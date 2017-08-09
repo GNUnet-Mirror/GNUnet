@@ -1238,7 +1238,6 @@ add_without_sets (struct GNUNET_TIME_Relative delay,
     }
   }
 #endif
-
 #if PROFILE_DELAYS
   t->start_time = GNUNET_TIME_absolute_get ();
 #endif
@@ -1619,7 +1618,7 @@ GNUNET_SCHEDULER_task_ready (struct GNUNET_SCHEDULER_Task *task,
     reason |= GNUNET_SCHEDULER_REASON_WRITE_READY;
   reason |= GNUNET_SCHEDULER_REASON_PREREQ_DONE;
   task->reason = reason;
-  task->fds = &task->fdx;
+  task->fds = &task->fdx; // FIXME: if task contains a list of fds, this is wrong!
   task->fdx.et = et;
   task->fds_len = 1;
   GNUNET_CONTAINER_DLL_remove (pending_head,
@@ -1666,9 +1665,6 @@ GNUNET_SCHEDULER_run_from_driver (struct GNUNET_SCHEDULER_Handle *sh)
                                  pos);
     if (pending_timeout_last == pos)
       pending_timeout_last = NULL;
-    else
-      scheduler_driver->set_wakeup(scheduler_driver->cls,pending_timeout_head->timeout);
-
     queue_ready_task (pos);
   }
 
@@ -1701,13 +1697,13 @@ GNUNET_SCHEDULER_run_from_driver (struct GNUNET_SCHEDULER_Handle *sh)
     active_task = pos;
 #if PROFILE_DELAYS
     if (GNUNET_TIME_absolute_get_duration (pos->start_time).rel_value_us >
-  DELAY_THRESHOLD.rel_value_us)
+        DELAY_THRESHOLD.rel_value_us)
     {
       LOG (GNUNET_ERROR_TYPE_WARNING,
-     "Task %p took %s to be scheduled\n",
-     pos,
-     GNUNET_STRINGS_relative_time_to_string (GNUNET_TIME_absolute_get_duration (pos->start_time),
-               GNUNET_YES));
+           "Task %p took %s to be scheduled\n",
+           pos,
+           GNUNET_STRINGS_relative_time_to_string (GNUNET_TIME_absolute_get_duration (pos->start_time),
+                                                   GNUNET_YES));
     }
 #endif
     tc.reason = pos->reason;
@@ -1717,17 +1713,17 @@ GNUNET_SCHEDULER_run_from_driver (struct GNUNET_SCHEDULER_Handle *sh)
     tc.fds = pos->fds;
     tc.read_ready = (NULL == pos->read_set) ? sh->rs : pos->read_set;
     if ( (-1 != pos->read_fd) &&
-   (0 != (pos->reason & GNUNET_SCHEDULER_REASON_READ_READY)) )
+         (0 != (pos->reason & GNUNET_SCHEDULER_REASON_READ_READY)) )
       GNUNET_NETWORK_fdset_set_native (sh->rs,
-               pos->read_fd);
+                                       pos->read_fd);
     tc.write_ready = (NULL == pos->write_set) ? sh->ws : pos->write_set;
-    if ((-1 != pos->write_fd) &&
-  (0 != (pos->reason & GNUNET_SCHEDULER_REASON_WRITE_READY)))
+    if ( (-1 != pos->write_fd) &&
+         (0 != (pos->reason & GNUNET_SCHEDULER_REASON_WRITE_READY)) )
       GNUNET_NETWORK_fdset_set_native (sh->ws,
-               pos->write_fd);
+                                       pos->write_fd);
     LOG (GNUNET_ERROR_TYPE_WARNING,
-   "Running task from driver: %p\n",
-   pos);
+         "Running task from driver: %p\n",
+         pos);
     pos->callback (pos->callback_cls);
     active_task = NULL;
     dump_backtrace (pos);
@@ -1832,7 +1828,7 @@ GNUNET_SCHEDULER_run_with_driver (const struct GNUNET_SCHEDULER_Driver *driver,
   /* begin main event loop */
   sh.rs = GNUNET_NETWORK_fdset_create ();
   sh.ws = GNUNET_NETWORK_fdset_create ();
-  //GNUNET_NETWORK_fdset_handle_set (sh.rs, pr);
+  GNUNET_NETWORK_fdset_handle_set (sh.rs, pr);
   ret = driver->loop (driver->cls,
                       &sh);
   LOG (GNUNET_ERROR_TYPE_WARNING,
