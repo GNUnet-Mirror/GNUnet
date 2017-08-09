@@ -383,6 +383,21 @@ typedef int
 
 
 /**
+ * Check if the system has initiated shutdown. This means no tasks
+ * that prevent shutdown were present and all tasks added with 
+ * #GNUNET_SCHEDULER_add_shutdown were run already.
+ *
+ * Can be used by external event loop implementations to decide
+ * whether to keep running or not.
+ *
+ * @return #GNUNET_YES if tasks which prevent shutdown exist
+ *         #GNUNET_NO if the system has initiated shutdown
+ */
+int
+GNUNET_SCHEDULER_check_lifeness ();
+
+
+/**
  * Initialize and run scheduler.  This function will return when all
  * tasks have completed.  On systems with signals, receiving a SIGTERM
  * (and other similar signals) will cause #GNUNET_SCHEDULER_shutdown

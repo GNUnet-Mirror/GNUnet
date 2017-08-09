@@ -583,8 +583,8 @@ sighandler_shutdown ()
  * @return #GNUNET_OK to continue the main loop,
  *         #GNUNET_NO to exit
  */
-static int
-check_lifeness ()
+int
+GNUNET_SCHEDULER_check_lifeness ()
 {
   struct GNUNET_SCHEDULER_Task *t;
 
@@ -767,7 +767,7 @@ shutdown_task (void *cls)
 {
   char c;
   const struct GNUNET_DISK_FileHandle *pr;
-  
+
   pr = GNUNET_DISK_pipe_handle (shutdown_pipe_handle,
                                 GNUNET_DISK_PIPE_END_READ);
   GNUNET_assert (! GNUNET_DISK_handle_invalid (pr));
@@ -835,7 +835,7 @@ GNUNET_SCHEDULER_cancel (struct GNUNET_SCHEDULER_Task *task)
                                  task);
     ready_count--;
   }
-  LOG (GNUNET_ERROR_TYPE_WARNING,
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Canceling task %p\n",
        task);
   ret = task->callback_cls;
@@ -897,7 +897,7 @@ GNUNET_SCHEDULER_add_with_reason_and_priority (GNUNET_SCHEDULER_TaskCallback tas
   t->reason = reason;
   t->priority = priority;
   t->lifeness = current_lifeness;
-  LOG (GNUNET_ERROR_TYPE_WARNING,
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Adding continuation task %p\n",
        t);
   init_backtrace (t);
@@ -979,8 +979,8 @@ GNUNET_SCHEDULER_add_at_with_priority (struct GNUNET_TIME_Absolute at,
   /* finally, update heuristic insertion point to last insertion... */
   pending_timeout_last = t;
 
-  LOG (GNUNET_ERROR_TYPE_WARNING,
-       "Adding task: %p\n",
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Adding task %p\n",
        t);
   init_backtrace (t);
   return t;
@@ -1136,8 +1136,8 @@ GNUNET_SCHEDULER_add_shutdown (GNUNET_SCHEDULER_TaskCallback task,
   GNUNET_CONTAINER_DLL_insert (shutdown_head,
                                shutdown_tail,
                                t);
-  LOG (GNUNET_ERROR_TYPE_WARNING,
-       "Adding shutdown task: %p\n",
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Adding shutdown task %p\n",
        t);
   init_backtrace (t);
   return t;
@@ -1582,7 +1582,7 @@ GNUNET_SCHEDULER_add_select (enum GNUNET_SCHEDULER_Priority prio,
                                 get_timeout ());
   max_priority_added = GNUNET_MAX (max_priority_added,
            t->priority);
-  LOG (GNUNET_ERROR_TYPE_WARNING,
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Adding task %p\n",
        t);
   init_backtrace (t);
@@ -1606,10 +1606,6 @@ GNUNET_SCHEDULER_task_ready (struct GNUNET_SCHEDULER_Task *task,
 {
   enum GNUNET_SCHEDULER_Reason reason;
   struct GNUNET_TIME_Absolute now;
-
-  LOG (GNUNET_ERROR_TYPE_WARNING,
-       "task ready: %p\n",
-       task);
 
   now = GNUNET_TIME_absolute_get ();
   reason = task->reason;
@@ -1703,7 +1699,7 @@ GNUNET_SCHEDULER_run_from_driver (struct GNUNET_SCHEDULER_Handle *sh)
     if (GNUNET_TIME_absolute_get_duration (pos->start_time).rel_value_us >
         DELAY_THRESHOLD.rel_value_us)
     {
-      LOG (GNUNET_ERROR_TYPE_WARNING,
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
            "Task %p took %s to be scheduled\n",
            pos,
            GNUNET_STRINGS_relative_time_to_string (GNUNET_TIME_absolute_get_duration (pos->start_time),
@@ -1725,29 +1721,14 @@ GNUNET_SCHEDULER_run_from_driver (struct GNUNET_SCHEDULER_Handle *sh)
          (0 != (pos->reason & GNUNET_SCHEDULER_REASON_WRITE_READY)) )
       GNUNET_NETWORK_fdset_set_native (sh->ws,
                                        pos->write_fd);
-    LOG (GNUNET_ERROR_TYPE_WARNING,
-         "Running task from driver: %p\n",
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Running task %p\n",
          pos);
     pos->callback (pos->callback_cls);
     active_task = NULL;
     dump_backtrace (pos);
     destroy_task (pos);
     tasks_run++;
-  }
-  if (GNUNET_NO == check_lifeness ())
-  {
-    /* cancel fd tasks without lifeness */
-    pos = pending_head;
-    while (NULL != pos)
-    {
-      struct GNUNET_SCHEDULER_Task *tsk = pos;
-      pos = pos->next;
-      if (GNUNET_NO == tsk->lifeness)
-      {
-        GNUNET_SCHEDULER_cancel (tsk);
-      }
-    }
-    //sighandler_shutdown();
   }
   if (0 == ready_count)
   {
@@ -1810,7 +1791,7 @@ GNUNET_SCHEDULER_run_with_driver (const struct GNUNET_SCHEDULER_Driver *driver,
   scheduler_driver = driver;
 
   /* install signal handlers */
-  LOG (GNUNET_ERROR_TYPE_WARNING,
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Registering signal handlers\n");
   shc_int = GNUNET_SIGNAL_handler_install (SIGINT,
              &sighandler_shutdown);
@@ -1830,23 +1811,6 @@ GNUNET_SCHEDULER_run_with_driver (const struct GNUNET_SCHEDULER_Driver *driver,
 #endif
 
   /* Setup initial tasks */
-  //current_priority = GNUNET_SCHEDULER_PRIORITY_DEFAULT;
-  //current_lifeness = GNUNET_YES;
-  //memset (&tsk,
-  //        0,
-  //        sizeof (tsk));
-  //active_task = &tsk;
-  //GNUNET_SCHEDULER_add_with_reason_and_priority (task,
-  //                                               task_cls,
-  //                                               GNUNET_SCHEDULER_REASON_STARTUP,
-  //                                               GNUNET_SCHEDULER_PRIORITY_DEFAULT);
-  //GNUNET_SCHEDULER_add_now_with_lifeness (GNUNET_NO,
-  //                                        &GNUNET_OS_install_parent_control_handler,
-  //                                        NULL);
-  //GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL,
-  //                                pr,
-  //                                &shutdown_task,
-  //                                NULL);
   current_priority = GNUNET_SCHEDULER_PRIORITY_DEFAULT;
   current_lifeness = GNUNET_NO;
   memset (&tsk,
@@ -1871,8 +1835,6 @@ GNUNET_SCHEDULER_run_with_driver (const struct GNUNET_SCHEDULER_Driver *driver,
   GNUNET_NETWORK_fdset_handle_set (sh.rs, pr);
   ret = driver->loop (driver->cls,
                       &sh);
-  LOG (GNUNET_ERROR_TYPE_WARNING,
-       "loop finished!\n");
   GNUNET_NETWORK_fdset_destroy (sh.rs);
   GNUNET_NETWORK_fdset_destroy (sh.ws);
 
@@ -2005,7 +1967,7 @@ select_loop (void *cls,
   ws = GNUNET_NETWORK_fdset_create ();
   last_tr = 0;
   busy_wait_warning = 0;
-  while ((NULL != context->scheduled_in_head) || (NULL != context->scheduled_out_head))
+  while (GNUNET_YES == GNUNET_SCHEDULER_check_lifeness ())
   {
     GNUNET_NETWORK_fdset_zero (rs);
     GNUNET_NETWORK_fdset_zero (ws);
@@ -2121,10 +2083,6 @@ select_loop (void *cls,
       last_tr = tasks_run;
       busy_wait_warning = 0;
     }
-    LOG (GNUNET_ERROR_TYPE_WARNING,
-         "scheduled_in_head = %p, scheduled_out_head = %p\n",
-         context->scheduled_in_head,
-         context->scheduled_out_head);
   }
   return GNUNET_OK; 
 }
