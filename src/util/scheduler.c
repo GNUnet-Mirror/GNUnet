@@ -1073,12 +1073,12 @@ GNUNET_SCHEDULER_add_at (struct GNUNET_TIME_Absolute at,
 struct GNUNET_SCHEDULER_Task *
 GNUNET_SCHEDULER_add_delayed (struct GNUNET_TIME_Relative delay,
                               GNUNET_SCHEDULER_TaskCallback task,
-            void *task_cls)
+                              void *task_cls)
 {
   return GNUNET_SCHEDULER_add_delayed_with_priority (delay,
                  GNUNET_SCHEDULER_PRIORITY_DEFAULT,
                  task,
-                                                     task_cls);
+                 task_cls);
 }
 
 
@@ -1175,6 +1175,33 @@ GNUNET_SCHEDULER_add_now_with_lifeness (int lifeness,
 }
 
 
+#if DEBUG_FDS
+/**
+ * check a raw file descriptor and abort if it is bad (for debugging purposes)
+ *
+ * @param t the task related to the file descriptor
+ * @param raw_fd the raw file descriptor to check
+ */
+void
+check_fd (struct GNUNET_SCHEDULER_Task *t, int raw_fd)
+{
+  if (-1 != raw_fd)
+  {
+    int flags = fcntl (raw_fd, F_GETFD);
+
+    if ((flags == -1) && (errno == EBADF))
+    {
+      LOG (GNUNET_ERROR_TYPE_ERROR,
+           "Got invalid file descriptor %d!\n",
+           raw_fd);
+      init_backtrace (t);
+      GNUNET_assert (0);
+    }
+  }
+}
+#endif
+
+
 /**
  * Schedule a new task to be run with a specified delay or when any of
  * the specified file descriptor sets is ready.  The delay can be used
@@ -1220,32 +1247,10 @@ add_without_sets (struct GNUNET_TIME_Relative delay,
   t->callback = task;
   t->callback_cls = task_cls;
 #if DEBUG_FDS
-  if (-1 != rfd)
-  {
-    int flags = fcntl (rfd, F_GETFD);
-
-    if ((flags == -1) && (errno == EBADF))
-    {
-      LOG (GNUNET_ERROR_TYPE_ERROR,
-           "Got invalid file descriptor %d!\n",
-           rfd);
-      init_backtrace (t);
-      GNUNET_assert (0);
-    }
-  }
-  if (-1 != wfd)
-  {
-    int flags = fcntl (wfd, F_GETFD);
-
-    if (flags == -1 && errno == EBADF)
-    {
-      LOG (GNUNET_ERROR_TYPE_ERROR,
-           "Got invalid file descriptor %d!\n",
-           wfd);
-      init_backtrace (t);
-      GNUNET_assert (0);
-    }
-  }
+  check_fd (t, NULL != read_nh ? GNUNET_NETWORK_get_fd (read_nh) : -1);
+  check_fd (t, NULL != write_nh ? GNUNET_NETWORK_get_fd (write_nh) : -1);
+  check_fd (t, NULL != read_fh ? read_fh->fd : -1);
+  check_fd (t, NULL != write_fh ? write_fh->fd : -1);
 #endif
 #if PROFILE_DELAYS
   t->start_time = GNUNET_TIME_absolute_get ();
@@ -1971,6 +1976,8 @@ select_loop (void *cls,
   ws = GNUNET_NETWORK_fdset_create ();
   last_tr = 0;
   busy_wait_warning = 0;
+  // FIXME: remove check_lifeness, instead the condition should be:
+  // pending_in_head != NULL || pending_out_head != NULL || context->timeout > 0
   while (GNUNET_YES == GNUNET_SCHEDULER_check_lifeness ())
   {
     GNUNET_NETWORK_fdset_zero (rs);
