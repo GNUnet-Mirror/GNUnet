@@ -977,8 +977,6 @@ GNUNET_SCHEDULER_add_at_with_priority (struct GNUNET_TIME_Absolute at,
                                        pending_timeout_tail,
                                        prev,
                                        t);
-    scheduler_driver->set_wakeup (scheduler_driver->cls,
-                                  get_timeout());
   }
   /* finally, update heuristic insertion point to last insertion... */
   pending_timeout_last = t;
