@@ -556,6 +556,10 @@ run (void *cls,
      const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
+  FILE *f = FOPEN ("helper_output", "w");
+  FPRINTF (f, "run\n");
+  FCLOSE (f);
+
   LOG_DEBUG ("Starting testbed helper...\n");
   tokenizer = GNUNET_MST_create (&tokenizer_cb, NULL);
   stdin_fd = GNUNET_DISK_get_handle_from_native (stdin);
@@ -603,6 +607,8 @@ main (int argc,
     GNUNET_GETOPT_OPTION_END
   };
   int ret;
+
+  //sleep (10);
 
   status = GNUNET_OK;
   if (NULL == (sigpipe = GNUNET_DISK_pipe (GNUNET_NO, GNUNET_NO,
