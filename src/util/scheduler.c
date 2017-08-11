@@ -722,7 +722,6 @@ init_fd_info (struct GNUNET_SCHEDULER_Task *t,
     struct GNUNET_SCHEDULER_FdInfo read_fdi = {.fd = read_nh, .et = GNUNET_SCHEDULER_ET_IN, .sock = GNUNET_NETWORK_get_fd (read_nh)};
     t->fdx = read_fdi;
     t->fds = &t->fdx;
-    t->fds_len = 1;
     t->read_fd = t->fdx.sock;
   }
   else if (NULL != write_nh)
@@ -730,7 +729,6 @@ init_fd_info (struct GNUNET_SCHEDULER_Task *t,
     struct GNUNET_SCHEDULER_FdInfo write_fdi = {.fd = write_nh, .et = GNUNET_SCHEDULER_ET_OUT, .sock = GNUNET_NETWORK_get_fd (write_nh)};
     t->fdx = write_fdi;
     t->fds = &t->fdx;
-    t->fds_len = 1;
     t->write_fd = t->fdx.sock;
   }
   else if (NULL != read_fh)
@@ -738,7 +736,6 @@ init_fd_info (struct GNUNET_SCHEDULER_Task *t,
     struct GNUNET_SCHEDULER_FdInfo read_fdi = {.fh = read_fh, .et = GNUNET_SCHEDULER_ET_IN, .sock = read_fh->fd};
     t->fdx = read_fdi;
     t->fds = &t->fdx;
-    t->fds_len = 1;
     t->read_fd = t->fdx.sock;
   }
   else if (NULL != write_fh)
@@ -746,7 +743,6 @@ init_fd_info (struct GNUNET_SCHEDULER_Task *t,
     struct GNUNET_SCHEDULER_FdInfo write_fdi = {.fh = write_fh, .et = GNUNET_SCHEDULER_ET_OUT, .sock = write_fh->fd};
     t->fdx = write_fdi;
     t->fds = &t->fdx;
-    t->fds_len = 1;
     t->write_fd = t->fdx.sock;
   }
 }
@@ -819,6 +815,9 @@ GNUNET_SCHEDULER_cancel (struct GNUNET_SCHEDULER_Task *task)
                                      task);
         if (pending_timeout_last == task)
           pending_timeout_last = NULL;
+        else
+          scheduler_driver->set_wakeup (scheduler_driver->cls,
+                                        get_timeout ());
       }
       //TODO check if this is redundant
       if (task == pending_timeout_last)
@@ -952,6 +951,8 @@ GNUNET_SCHEDULER_add_at_with_priority (struct GNUNET_TIME_Absolute at,
     GNUNET_CONTAINER_DLL_insert (pending_timeout_head,
                                  pending_timeout_tail,
                                  t);
+    scheduler_driver->set_wakeup (scheduler_driver->cls,
+                                  at);
   }
   else
   {
@@ -1259,6 +1260,8 @@ add_without_sets (struct GNUNET_TIME_Relative delay,
                                pending_tail,
                                t);
   scheduler_multi_function_call(t, scheduler_driver->add);
+  scheduler_driver->set_wakeup (scheduler_driver->cls,
+                                get_timeout ());
   max_priority_added = GNUNET_MAX (max_priority_added,
                                    t->priority);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -1582,6 +1585,8 @@ GNUNET_SCHEDULER_add_select (enum GNUNET_SCHEDULER_Priority prio,
                                pending_tail,
                                t);
   scheduler_multi_function_call(t, scheduler_driver->add);
+  scheduler_driver->set_wakeup (scheduler_driver->cls,
+                                get_timeout ());
   max_priority_added = GNUNET_MAX (max_priority_added,
            t->priority);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -1620,7 +1625,6 @@ GNUNET_SCHEDULER_task_ready (struct GNUNET_SCHEDULER_Task *task,
        (0 != (GNUNET_SCHEDULER_ET_OUT & et)) )
     reason |= GNUNET_SCHEDULER_REASON_WRITE_READY;
   reason |= GNUNET_SCHEDULER_REASON_PREREQ_DONE;
-  GNUNET_assert (1 == task->fds_len);
   task->reason = reason;
   task->fds = &task->fdx; // FIXME: if task contains a list of fds, this is wrong!
   task->fdx.et = et;
@@ -1832,8 +1836,6 @@ GNUNET_SCHEDULER_run_with_driver (const struct GNUNET_SCHEDULER_Driver *driver,
                                                  GNUNET_SCHEDULER_REASON_STARTUP,
                                                  GNUNET_SCHEDULER_PRIORITY_DEFAULT);
   active_task = NULL;
-  scheduler_driver->set_wakeup (scheduler_driver->cls,
-                                get_timeout ());
   /* begin main event loop */
   sh.rs = GNUNET_NETWORK_fdset_create ();
   sh.ws = GNUNET_NETWORK_fdset_create ();
@@ -1856,7 +1858,6 @@ GNUNET_SCHEDULER_run_with_driver (const struct GNUNET_SCHEDULER_Driver *driver,
 #endif
   GNUNET_DISK_pipe_close (shutdown_pipe_handle);
   shutdown_pipe_handle = NULL;
-  scheduler_driver = NULL;
   return ret;
 }
 
