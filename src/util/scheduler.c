@@ -1929,7 +1929,7 @@ select_add (void *cls,
   GNUNET_assert (NULL != task);
   GNUNET_assert (NULL != fdi);
 
-  if (!((NULL != fdi->fd) ^ (NULL != fdi->fh)) || (0 >= fdi->sock))
+  if (!((NULL != fdi->fd) ^ (NULL != fdi->fh)) || (0 > fdi->sock))
   {
     /* exactly one out of {fd, hf} must be != NULL and the OS handle must be valid */
     return GNUNET_SYSERR;
