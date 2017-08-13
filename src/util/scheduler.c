@@ -484,6 +484,7 @@ GNUNET_SCHEDULER_shutdown ()
 static void
 destroy_task (struct GNUNET_SCHEDULER_Task *t)
 {
+  // FIXME: destroy fds!
   if (NULL != t->read_set)
     GNUNET_NETWORK_fdset_destroy (t->read_set);
   if (NULL != t->write_set)
@@ -587,6 +588,7 @@ sighandler_shutdown ()
  * @return #GNUNET_YES if tasks which prevent shutdown exist
  *         #GNUNET_NO if the system has initiated shutdown
  */
+// FIXME: make it an internal function again
 int
 GNUNET_SCHEDULER_check_lifeness ()
 {
@@ -606,6 +608,8 @@ GNUNET_SCHEDULER_check_lifeness ()
   if (NULL != shutdown_head)
   {
     GNUNET_SCHEDULER_shutdown ();
+    LOG (GNUNET_ERROR_TYPE_WARNING,
+         "shutting down\n");
     scheduler_driver->set_wakeup (scheduler_driver->cls,
                                   GNUNET_TIME_absolute_get ());
     return GNUNET_YES;
@@ -691,83 +695,172 @@ GNUNET_SCHEDULER_get_load (enum GNUNET_SCHEDULER_Priority p)
 
 void
 init_fd_info (struct GNUNET_SCHEDULER_Task *t,
-              const struct GNUNET_NETWORK_Handle *read_nh,
-              const struct GNUNET_NETWORK_Handle *write_nh,
-              const struct GNUNET_DISK_FileHandle *read_fh,
-              const struct GNUNET_DISK_FileHandle *write_fh)
+              const struct GNUNET_NETWORK_Handle **read_nh,
+              size_t read_nh_len,
+              const struct GNUNET_NETWORK_Handle **write_nh,
+              size_t write_nh_len,
+              const struct GNUNET_DISK_FileHandle **read_fh,
+              size_t read_fh_len,
+              const struct GNUNET_DISK_FileHandle **write_fh,
+              size_t write_fh_len)
 {
-  // either only network handles or only file handles are allowed
-  GNUNET_assert (!((NULL != read_nh || NULL != write_nh) && (NULL != read_fh || NULL != write_fh)));
+  struct GNUNET_SCHEDULER_FdInfo *fdi;
 
-  if (NULL != read_nh && NULL != write_nh)
+  t->fds_len = read_nh_len + write_nh_len + read_fh_len + write_fh_len;
+  if (1 == t->fds_len)
   {
-    int read_fd = GNUNET_NETWORK_get_fd (read_nh);
-    int write_fd = GNUNET_NETWORK_get_fd (write_nh);
-    t->read_fd = read_fd;
-    t->write_fd = write_fd;
-    struct GNUNET_SCHEDULER_FdInfo *fds = GNUNET_new_array (2, struct GNUNET_SCHEDULER_FdInfo);
-    struct GNUNET_SCHEDULER_FdInfo read_fdi = {.fd = read_nh, .et = GNUNET_SCHEDULER_ET_IN, .sock = read_fd};
-    struct GNUNET_SCHEDULER_FdInfo write_fdi = {.fd = write_nh, .et = GNUNET_SCHEDULER_ET_OUT, .sock = write_fd};
-    fds[0] = read_fdi;
-    fds[1] = write_fdi;
-    t->fds = fds;
-    t->fds_len = 2;
+    fdi = &t->fdx;
+    t->fds = fdi;
+    if (1 == read_nh_len)
+    {
+      fdi->fd = *read_nh;
+      fdi->et = GNUNET_SCHEDULER_ET_IN;
+      fdi->sock = GNUNET_NETWORK_get_fd (*read_nh);
+      t->read_fd = fdi->sock;
+      t->write_fd = -1;
+    }
+    else if (1 == write_nh_len)
+    {
+      fdi->fd = *write_nh;
+      fdi->et = GNUNET_SCHEDULER_ET_OUT;
+      fdi->sock = GNUNET_NETWORK_get_fd (*write_nh);
+      t->read_fd = -1;
+      t->write_fd = fdi->sock;
+    }
+    else if (1 == read_fh_len)
+    {
+      fdi->fh = *read_fh;
+      fdi->et = GNUNET_SCHEDULER_ET_IN;
+      fdi->sock = (*read_fh)->fd; // FIXME: does not work under WIN32
+      t->read_fd = fdi->sock;
+      t->write_fd = -1;
+    }
+    else
+    {
+      fdi->fh = *write_fh;
+      fdi->et = GNUNET_SCHEDULER_ET_OUT;
+      fdi->sock = (*write_fh)->fd; // FIXME: does not work under WIN32
+      t->read_fd = -1;
+      t->write_fd = fdi->sock;
+    }
   }
-  else if (NULL != read_fh && NULL != write_fh)
+  else
   {
-    int read_fd = read_fh->fd;
-    int write_fd = write_fh->fd;
-    struct GNUNET_SCHEDULER_FdInfo *fds = GNUNET_new_array (2, struct GNUNET_SCHEDULER_FdInfo);
-    struct GNUNET_SCHEDULER_FdInfo read_fdi = {.fh = read_fh, .et = GNUNET_SCHEDULER_ET_IN, .sock = read_fd};
-    struct GNUNET_SCHEDULER_FdInfo write_fdi = {.fh = write_fh, .et = GNUNET_SCHEDULER_ET_OUT, .sock = write_fd};
-    t->read_fd = read_fd;
-    t->write_fd = write_fd;
-    fds[0] = read_fdi;
-    fds[1] = write_fdi;
-    t->fds = fds;
-    t->fds_len = 2;
-  }
-  else if (NULL != read_nh)
-  {
-    int read_fd = GNUNET_NETWORK_get_fd (read_nh);
-    struct GNUNET_SCHEDULER_FdInfo read_fdi = {.fd = read_nh, .et = GNUNET_SCHEDULER_ET_IN, .sock = read_fd};
-    t->read_fd = read_fd;
-    t->write_fd = -1;
-    t->fdx = read_fdi;
-    t->fds = &t->fdx;
-    t->fds_len = 1;
-  }
-  else if (NULL != write_nh)
-  {
-    int write_fd = GNUNET_NETWORK_get_fd (write_nh);
-    struct GNUNET_SCHEDULER_FdInfo write_fdi = {.fd = write_nh, .et = GNUNET_SCHEDULER_ET_OUT, .sock = write_fd};
+    fdi = GNUNET_new_array (t->fds_len, struct GNUNET_SCHEDULER_FdInfo);
+    t->fds = fdi;
     t->read_fd = -1;
-    t->write_fd = write_fd;
-    t->fdx = write_fdi;
-    t->fds = &t->fdx;
-    t->fds_len = 1;
-  }
-  else if (NULL != read_fh)
-  {
-    int read_fd = read_fh->fd;
-    struct GNUNET_SCHEDULER_FdInfo read_fdi = {.fh = read_fh, .et = GNUNET_SCHEDULER_ET_IN, .sock = read_fd};
-    t->read_fd = read_fd;
     t->write_fd = -1;
-    t->fdx = read_fdi;
-    t->fds = &t->fdx;
-    t->fds_len = 1;
-  }
-  else if (NULL != write_fh)
-  {
-    int write_fd = write_fh->fd;
-    struct GNUNET_SCHEDULER_FdInfo write_fdi = {.fh = write_fh, .et = GNUNET_SCHEDULER_ET_OUT, .sock = write_fd};
-    t->read_fd = -1;
-    t->write_fd = write_fd;
-    t->fdx = write_fdi;
-    t->fds = &t->fdx;
-    t->fds_len = 1;
+    size_t i;
+    for (i = 0; i != read_nh_len; ++i)
+    {
+      fdi->fd = read_nh[i];
+      fdi->et = GNUNET_SCHEDULER_ET_IN;
+      fdi->sock = GNUNET_NETWORK_get_fd (read_nh[i]);
+      ++fdi;
+    }
+    for (i = 0; i != write_nh_len; ++i)
+    {
+      fdi->fd = write_nh[i];
+      fdi->et = GNUNET_SCHEDULER_ET_OUT;
+      fdi->sock = GNUNET_NETWORK_get_fd (write_nh[i]);
+      ++fdi;
+    }
+    for (i = 0; i != read_fh_len; ++i)
+    {
+      fdi->fh = read_fh[i];
+      fdi->et = GNUNET_SCHEDULER_ET_IN;
+      fdi->sock = (read_fh[i])->fd; // FIXME: does not work under WIN32
+      ++fdi;
+    }
+    for (i = 0; i != write_fh_len; ++i)
+    {
+      fdi->fh = write_fh[i];
+      fdi->et = GNUNET_SCHEDULER_ET_OUT;
+      fdi->sock = (write_fh[i])->fd; // FIXME: does not work under WIN32
+      ++fdi;
+    }
   }
 }
+
+//void
+//init_fd_info (struct GNUNET_SCHEDULER_Task *t,
+//              const struct GNUNET_NETWORK_Handle *read_nh,
+//              const struct GNUNET_NETWORK_Handle *write_nh,
+//              const struct GNUNET_DISK_FileHandle *read_fh,
+//              const struct GNUNET_DISK_FileHandle *write_fh)
+//{
+//  // either only network handles or only file handles are allowed
+//  GNUNET_assert (!((NULL != read_nh || NULL != write_nh) && (NULL != read_fh || NULL != write_fh)));
+//
+//  if (NULL != read_nh && NULL != write_nh)
+//  {
+//    int read_fd = GNUNET_NETWORK_get_fd (read_nh);
+//    int write_fd = GNUNET_NETWORK_get_fd (write_nh);
+//    t->read_fd = read_fd;
+//    t->write_fd = write_fd;
+//    struct GNUNET_SCHEDULER_FdInfo *fds = GNUNET_new_array (2, struct GNUNET_SCHEDULER_FdInfo);
+//    struct GNUNET_SCHEDULER_FdInfo read_fdi = {.fd = read_nh, .et = GNUNET_SCHEDULER_ET_IN, .sock = read_fd};
+//    struct GNUNET_SCHEDULER_FdInfo write_fdi = {.fd = write_nh, .et = GNUNET_SCHEDULER_ET_OUT, .sock = write_fd};
+//    fds[0] = read_fdi;
+//    fds[1] = write_fdi;
+//    t->fds = fds;
+//    t->fds_len = 2;
+//  }
+//  else if (NULL != read_fh && NULL != write_fh)
+//  {
+//    int read_fd = read_fh->fd;
+//    int write_fd = write_fh->fd;
+//    struct GNUNET_SCHEDULER_FdInfo *fds = GNUNET_new_array (2, struct GNUNET_SCHEDULER_FdInfo);
+//    struct GNUNET_SCHEDULER_FdInfo read_fdi = {.fh = read_fh, .et = GNUNET_SCHEDULER_ET_IN, .sock = read_fd};
+//    struct GNUNET_SCHEDULER_FdInfo write_fdi = {.fh = write_fh, .et = GNUNET_SCHEDULER_ET_OUT, .sock = write_fd};
+//    t->read_fd = read_fd;
+//    t->write_fd = write_fd;
+//    fds[0] = read_fdi;
+//    fds[1] = write_fdi;
+//    t->fds = fds;
+//    t->fds_len = 2;
+//  }
+//  else if (NULL != read_nh)
+//  {
+//    int read_fd = GNUNET_NETWORK_get_fd (read_nh);
+//    struct GNUNET_SCHEDULER_FdInfo read_fdi = {.fd = read_nh, .et = GNUNET_SCHEDULER_ET_IN, .sock = read_fd};
+//    t->read_fd = read_fd;
+//    t->write_fd = -1;
+//    t->fdx = read_fdi;
+//    t->fds = &t->fdx;
+//    t->fds_len = 1;
+//  }
+//  else if (NULL != write_nh)
+//  {
+//    int write_fd = GNUNET_NETWORK_get_fd (write_nh);
+//    struct GNUNET_SCHEDULER_FdInfo write_fdi = {.fd = write_nh, .et = GNUNET_SCHEDULER_ET_OUT, .sock = write_fd};
+//    t->read_fd = -1;
+//    t->write_fd = write_fd;
+//    t->fdx = write_fdi;
+//    t->fds = &t->fdx;
+//    t->fds_len = 1;
+//  }
+//  else if (NULL != read_fh)
+//  {
+//    int read_fd = read_fh->fd;
+//    struct GNUNET_SCHEDULER_FdInfo read_fdi = {.fh = read_fh, .et = GNUNET_SCHEDULER_ET_IN, .sock = read_fd};
+//    t->read_fd = read_fd;
+//    t->write_fd = -1;
+//    t->fdx = read_fdi;
+//    t->fds = &t->fdx;
+//    t->fds_len = 1;
+//  }
+//  else if (NULL != write_fh)
+//  {
+//    int write_fd = write_fh->fd;
+//    struct GNUNET_SCHEDULER_FdInfo write_fdi = {.fh = write_fh, .et = GNUNET_SCHEDULER_ET_OUT, .sock = write_fd};
+//    t->read_fd = -1;
+//    t->write_fd = write_fd;
+//    t->fdx = write_fdi;
+//    t->fds = &t->fdx;
+//    t->fds_len = 1;
+//  }
+//}
 
 
 void scheduler_multi_function_call(struct GNUNET_SCHEDULER_Task *t, int (*driver_func)())
@@ -1262,11 +1355,25 @@ add_without_sets (struct GNUNET_TIME_Relative delay,
                   void *task_cls)
 {
   struct GNUNET_SCHEDULER_Task *t;
-
+  
   GNUNET_assert (NULL != active_task);
   GNUNET_assert (NULL != task);
   t = GNUNET_new (struct GNUNET_SCHEDULER_Task);
-  init_fd_info (t, read_nh, write_nh, read_fh, write_fh);
+
+  init_fd_info (t,
+                &read_nh,
+                read_nh ? 1 : 0,
+                &write_nh,
+                write_nh ? 1 : 0,
+                &read_fh,
+                read_fh ? 1 : 0,
+                &write_fh,
+                write_fh ? 1 : 0);
+
+  //int read_fds[2] = {GNUNET_NETWORK_get_fd (read_nh), read_fh->fd};
+  //int write_fds[2] = {GNUNET_NETWORK_get_fd (write_nh), write_fh->fd};
+  //init_fd_info (t, read_fds, 2, write_fds, 2);
+  //init_fd_info (t, read_nh, write_nh, read_fh, write_fh);
   t->callback = task;
   t->callback_cls = task_cls;
 #if DEBUG_FDS
@@ -1678,7 +1785,10 @@ GNUNET_SCHEDULER_task_ready (struct GNUNET_SCHEDULER_Task *task,
        (0 != (GNUNET_SCHEDULER_ET_OUT & et)) )
     reason |= GNUNET_SCHEDULER_REASON_WRITE_READY;
   reason |= GNUNET_SCHEDULER_REASON_PREREQ_DONE;
-  GNUNET_assert (1 == task->fds_len);
+
+   
+
+
   task->reason = reason;
   task->fds = &task->fdx; // FIXME: if task contains a list of fds, this is wrong!
   task->fdx.et = et;
@@ -1709,6 +1819,7 @@ GNUNET_SCHEDULER_task_ready (struct GNUNET_SCHEDULER_Task *task,
 int
 GNUNET_SCHEDULER_run_from_driver (struct GNUNET_SCHEDULER_Handle *sh)
 {
+  // FIXME: call check_lifeness here!
   enum GNUNET_SCHEDULER_Priority p;
   struct GNUNET_SCHEDULER_Task *pos;
   struct GNUNET_TIME_Absolute now;
@@ -1772,12 +1883,14 @@ GNUNET_SCHEDULER_run_from_driver (struct GNUNET_SCHEDULER_Handle *sh)
     GNUNET_NETWORK_fdset_zero (sh->ws);
     tc.fds_len = pos->fds_len;
     tc.fds = pos->fds;
-    tc.read_ready = (NULL == pos->read_set) ? sh->rs : pos->read_set;
+    //tc.read_ready = (NULL == pos->read_set) ? sh->rs : pos->read_set;
+    tc.read_ready = sh->rs;
     if ( (-1 != pos->read_fd) &&
          (0 != (pos->reason & GNUNET_SCHEDULER_REASON_READ_READY)) )
       GNUNET_NETWORK_fdset_set_native (sh->rs,
                                        pos->read_fd);
-    tc.write_ready = (NULL == pos->write_set) ? sh->ws : pos->write_set;
+    //tc.write_ready = (NULL == pos->write_set) ? sh->ws : pos->write_set;
+    tc.write_ready = sh->ws;
     if ( (-1 != pos->write_fd) &&
          (0 != (pos->reason & GNUNET_SCHEDULER_REASON_WRITE_READY)) )
       GNUNET_NETWORK_fdset_set_native (sh->ws,
@@ -2034,9 +2147,14 @@ select_loop (void *cls,
   last_tr = 0;
   busy_wait_warning = 0;
   // FIXME: remove check_lifeness, instead the condition should be:
-  // pending_in_head != NULL || pending_out_head != NULL || context->timeout > 0
+  // pending_in_head != NULL || pending_out_head != NULL || tasks_ready
   while (GNUNET_YES == GNUNET_SCHEDULER_check_lifeness ())
   {
+    LOG (GNUNET_ERROR_TYPE_WARNING,
+         "[%p] timeout = %s\n",
+         sh,
+         GNUNET_STRINGS_relative_time_to_string (context->timeout, GNUNET_NO));
+
     GNUNET_NETWORK_fdset_zero (rs);
     GNUNET_NETWORK_fdset_zero (ws);
     struct Scheduled *pos;
@@ -2083,6 +2201,7 @@ select_loop (void *cls,
 #endif
 #if DEBUG_FDS
       struct GNUNET_SCHEDULER_Task *t;
+      // FIXME: pending_head is a scheduler-internal variable!
       for (t = pending_head; NULL != t; t = t->next)
       {
         if (-1 != t->read_fd)
@@ -2117,7 +2236,9 @@ select_loop (void *cls,
          (busy_wait_warning > 16) )
     {
       LOG (GNUNET_ERROR_TYPE_WARNING,
-           "Looks like we're busy waiting...\n");
+           "[%p] Looks like we're busy waiting...\n",
+           sh);
+      GNUNET_assert (0);
       short_wait (100);                /* mitigate */
     }
     for (pos = context->scheduled_in_head; NULL != pos; pos = pos->next)
@@ -2140,9 +2261,18 @@ select_loop (void *cls,
         GNUNET_SCHEDULER_task_ready (pos->task, GNUNET_SCHEDULER_ET_OUT);
       }
     }
-    GNUNET_SCHEDULER_run_from_driver (sh);
+    int tasks_ready = GNUNET_SCHEDULER_run_from_driver (sh);
+    LOG (GNUNET_ERROR_TYPE_WARNING,
+         "[%p] tasks_ready: %d\n",
+         sh,
+         tasks_ready);
+    // FIXME: tasks_run is a driver-internal variable! Instead we should increment
+    // a local variable tasks_ready_count everytime we're calling GNUNET_SCHEDULER_task_ready. 
     if (last_tr == tasks_run)
     {
+      LOG (GNUNET_ERROR_TYPE_WARNING,
+           "[%p] no tasks run\n",
+           sh);
       short_wait (1);
       busy_wait_warning++;
     }
