@@ -15,10 +15,10 @@ applications that are being created. Comments and extensions are always welcome.
 
 @menu
 * Checking the Installation::
-* First steps: File-sharing::
-* First steps: Using the GNU Name System::
-* First steps: Using GNUnet Conversation::
-* First steps: Using the GNUnet VPN::
+* First steps - File-sharing::
+* First steps - Using the GNU Name System::
+* First steps - Using GNUnet Conversation::
+* First steps - Using the GNUnet VPN::
 * File-sharing::
 * The GNU Name System::
 * Using the Virtual Public Network::
@@ -206,15 +206,15 @@ respective download and selecting "Abort download" from the menu.
 
 That's it, you now know the basics for file-sharing with GNUnet!
 
-@node First steps: Using the GNU Name System
-@section First steps: Using the GNU Name System
+@node First steps - Using the GNU Name System
+@section First steps - Using the GNU Name System
 @c %**end of header
 
 
 
 @menu
 * Preliminaries::
-* Managing egos::
+* Managing Egos::
 * The GNS Tab::
 * Creating a Record::
 * Creating a Business Card::
@@ -529,8 +529,8 @@ to use GNS to have a private conversation with your friend. Finally, help us
 with the next GNUnet release for even more applications using this new
 public key infrastructure.
 
-@node First steps: Using GNUnet Conversation
-@section First steps: Using GNUnet Conversation
+@node First steps - Using GNUnet Conversation
+@section First steps - Using GNUnet Conversation
 @c %**end of header
 
 Before starting the tutorial, you should be aware that
@@ -645,21 +645,21 @@ Note that we do not envision people to use gnunet-conversation like this
 forever. We will write a graphical user interface, and that GUI will
 automatically create the necessary records in the respective zone.
 
-@node First steps: Using the GNUnet VPN
-@section First steps: Using the GNUnet VPN
+@node First steps - Using the GNUnet VPN
+@section First steps - Using the GNUnet VPN
 @c %**end of header
 
 
 @menu
-* Preliminaries2::
+* VPN Preliminaries::
 * Exit configuration::
 * GNS configuration::
 * Accessing the service::
 * Using a Browser::
 @end menu
 
-@node Preliminaries2
-@subsection Preliminaries2
+@node VPN Preliminaries
+@subsection VPN Preliminaries
 @c %**end of header
 
 To test the GNUnet VPN, we should first run a web server. The easiest way to do

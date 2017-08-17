@@ -2049,14 +2049,14 @@ any other peer connecting to the service.)
 @menu
 * Define new message types::
 * Define message struct::
-* Client: Establish connection::
-* Client: Initialize request message::
-* Client: Send request and receive response::
-* Server: Startup service::
-* Server: Add new handles for specified messages::
-* Server: Process request message::
-* Server: Response to client::
-* Server: Notification of clients::
+* Client - Establish connection::
+* Client - Initialize request message::
+* Client - Send request and receive response::
+* Server - Startup service::
+* Server - Add new handles for specified messages::
+* Server - Process request message::
+* Server - Response to client::
+* Server - Notification of clients::
 * Conversion between Network Byte Order (Big Endian) and Host Byte Order::
 @end menu
 
@@ -2097,8 +2097,8 @@ both ensure correct alignment when sending structs over the network
 @end menu
 
 @c ***************************************************************************
-@node Client: Establish connection
-@subsubsection Client: Establish connection
+@node Client - Establish connection
+@subsubsection Client - Establish connection
 @c %**end of header
 
 
@@ -2111,8 +2111,8 @@ GNUNET_CLIENT_connect ("transport", cfg);
 @end example
 
 @c ***************************************************************************
-@node Client: Initialize request message
-@subsubsection Client: Initialize request message
+@node Client - Initialize request message
+@subsubsection Client - Initialize request message
 @c %**end of header
 
 When the connection is ready, we initialize the message. In this step, all the
@@ -2136,8 +2136,8 @@ conversion function please refer to Introduction of Big Endian and Little
 Endian.
 
 @c ***************************************************************************
-@node Client: Send request and receive response
-@subsubsection Client: Send request and receive response
+@node Client - Send request and receive response
+@subsubsection Client - Send request and receive response
 @c %**end of header
 
 FIXME: This is very outdated, see the tutorial for the
@@ -2158,8 +2158,8 @@ the argument @code{address_response_processor} is a function with
 @code{GNUNET_CLIENT_MessageHandler} type, which is used to process the reply
 message from the service.
 
-@node Server: Startup service
-@subsubsection Server: Startup service
+@node Server - Startup service
+@subsubsection Server - Startup service
 
 After receiving the request message, we run a standard GNUnet service startup
 sequence using @code{GNUNET_SERVICE_run}, as follows,
@@ -2170,8 +2170,8 @@ GNUNET_SERVICE_OPTION_NONE, &run, NULL)); @}
 @end example
 
 @c ***************************************************************************
-@node Server: Add new handles for specified messages
-@subsubsection Server: Add new handles for specified messages
+@node Server - Add new handles for specified messages
+@subsubsection Server - Add new handles for specified messages
 @c %**end of header
 
 in the function above the argument @code{run} is used to initiate transport
@@ -2208,8 +2208,8 @@ can be set. In addition, the terminator sign depicted as @code{@{NULL, NULL, 0,
 0@}} is set in the last aera.
 
 @c ***************************************************************************
-@node Server: Process request message
-@subsubsection Server: Process request message
+@node Server - Process request message
+@subsubsection Server - Process request message
 @c %**end of header
 
 After the initialization of transport service, the request message would be
@@ -2249,8 +2249,8 @@ In comparison to the aforementioned situation, when the argument is equal to
 @code{GNUNET_OK}, the service would continue to process the requst message.
 
 @c ***************************************************************************
-@node Server: Response to client
-@subsubsection Server: Response to client
+@node Server - Response to client
+@subsubsection Server - Response to client
 @c %**end of header
 
 Once the processing of current request is done, the server should give the
@@ -2279,8 +2279,8 @@ Note that, there are also a number of other APIs provided to the service to
 send the message.
 
 @c ***************************************************************************
-@node Server: Notification of clients
-@subsubsection Server: Notification of clients
+@node Server - Notification of clients
+@subsubsection Server - Notification of clients
 @c %**end of header
 
 Often a service needs to (repeatedly) transmit notifications to a client or a

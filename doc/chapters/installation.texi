@@ -21,7 +21,7 @@ in the form of new chapters or insightful comments.
 * Build instructions for Debian 8::
 * Outdated build instructions for previous revisions::
 * Portable GNUnet::
-* The grapical configuration interface::
+* The graphical configuration interface::
 * How to start and stop a GNUnet peer::
 @end menu
 
@@ -1275,7 +1275,6 @@ instructions and should not be expected to work for GNUnet 0.10.x.
 * Basic Installation for Fedora/PlanetLab nodes running Fedora 8 .::
 * Build instructions for Gentoo::
 * Building GLPK for MinGW::
-* Compiling libgnurl for GNUnet cannot find data type for curl_off_t.::
 * GUI build instructions for Ubuntu 12.04 using Subversion::
 * Installation with gnunet-update::
 * Instructions for Microsoft Windows Platforms (Old)::
@@ -4118,16 +4117,16 @@ helpers must be tightly controlled.
 @end table
 
 @menu
-* Recommendation: Disable access to services via TCP::
-* Recommendation: Run most services as system user "gnunet"::
-* Recommendation: Control access to services using group "gnunet"::
-* Recommendation: Limit access to certain SUID binaries by group "gnunet"::
-* Recommendation: Limit access to critical gnunet-helper-dns to group "gnunetdns"::
+* Recommendation - Disable access to services via TCP::
+* Recommendation - Run most services as system user "gnunet"::
+* Recommendation - Control access to services using group "gnunet"::
+* Recommendation - Limit access to certain SUID binaries by group "gnunet"::
+* Recommendation - Limit access to critical gnunet-helper-dns to group "gnunetdns"::
 * Differences between "make install" and these recommendations::
 @end menu
 
-@node Recommendation: Disable access to services via TCP
-@subsubsection Recommendation: Disable access to services via TCP
+@node Recommendation - Disable access to services via TCP
+@subsubsection Recommendation - Disable access to services via TCP
 
 GNUnet services allow two types of access: via TCP socket or via UNIX domain
 socket. If the service is available via TCP, access control can only be
@@ -4143,8 +4142,8 @@ simply by specifying a non-zero port number in the section of the respective
 service.
 
 
-@node Recommendation: Run most services as system user "gnunet"
-@subsubsection Recommendation: Run most services as system user "gnunet"
+@node Recommendation - Run most services as system user "gnunet"
+@subsubsection Recommendation - Run most services as system user "gnunet"
 
 GNUnet's main services should be run as a separate user "gnunet" in a special
 group "gnunet". The user "gnunet" should start the peer using "gnunet-arm -s"
@@ -4153,8 +4152,8 @@ during system startup. The home directory for this user should be
 the "gnunet" user should have the right to access "/var/lib/gnunet" (mode:
 700).
 
-@node Recommendation: Control access to services using group "gnunet"
-@subsubsection Recommendation: Control access to services using group "gnunet"
+@node Recommendation - Control access to services using group "gnunet"
+@subsubsection Recommendation - Control access to services using group "gnunet"
 
 Users that should be allowed to use the GNUnet peer should be added to the
 group "gnunet". Using GNUnet's access control mechanism for UNIX domain
@@ -4166,16 +4165,16 @@ causing security concerns. Some services, such as DNS, must NOT be made
 accessible to the "gnunet" group (and should thus only be accessible to the
 "gnunet" user and services running with this UID).
 
-@node Recommendation: Limit access to certain SUID binaries by group "gnunet"
-@subsubsection Recommendation: Limit access to certain SUID binaries by group "gnunet"
+@node Recommendation - Limit access to certain SUID binaries by group "gnunet"
+@subsubsection Recommendation - Limit access to certain SUID binaries by group "gnunet"
 
 Most of GNUnet's SUID binaries should be safe even if executed by normal users.
 However, it is possible to reduce the risk a little bit more by making these
 binaries owned by the group "gnunet" and restricting their execution to user of
 the group "gnunet" as well (4750).
 
-@node Recommendation: Limit access to critical gnunet-helper-dns to group "gnunetdns"
-@subsubsection Recommendation: Limit access to critical gnunet-helper-dns to group "gnunetdns"
+@node Recommendation - Limit access to critical gnunet-helper-dns to group "gnunetdns"
+@subsubsection Recommendation - Limit access to critical gnunet-helper-dns to group "gnunetdns"
 
 A special group "gnunetdns" should be created for controlling access to the
 "gnunet-helper-dns". The binary should then be owned by root and be in group

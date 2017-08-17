@@ -81,6 +81,7 @@
  (gnu packages pulseaudio)
  (gnu packages python)
  (gnu packages tex)
+ (gnu packages texinfo)
  (gnu packages tls)
  (gnu packages video)
  (gnu packages web)
@@ -133,6 +134,7 @@
          ("autoconf" ,autoconf)
          ("automake" ,automake)
          ("gnu-gettext" ,gnu-gettext)
+         ("texinfo" ,texinfo)
          ("libtool" ,libtool)))
       ;; TODO:  To make use of out:debug, which carries the symbols,
       ;; this file needs to fixed.
