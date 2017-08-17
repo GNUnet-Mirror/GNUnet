@@ -229,10 +229,6 @@ routing but imposes no minimal requirements on cover traffic. It is possible
 to forego anonymity when this is not required. The anonymity level of 0
 allows GNUnet to use more efficient, non-anonymous routing.
 
-@menu
-* How file-sharing achieves Anonymity:
-@end menu
-
 @node How file-sharing achieves Anonymity
 @subsubsection How file-sharing achieves Anonymity
 

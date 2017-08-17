@@ -92,8 +92,8 @@ country of origin (if determined) and address information. If hardly any peers
 are listed and/or if there are very few peers with a green light for
 connectivity, there is likely a problem with your network configuration.
 
-@node First steps: File-sharing
-@section First steps: File-sharing
+@node First steps - File-sharing
+@section First steps - File-sharing
 @c %**end of header
 
 This chapter describes first steps for file-sharing with GNUnet. To start, you

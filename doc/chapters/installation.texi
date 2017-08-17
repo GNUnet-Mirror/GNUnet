@@ -3895,7 +3895,7 @@ connecting to NATed peers using ICMP method" box.
 
 
 @node Peer configuration for distributions
-@subsubsection Peer configuration for distributions
+@subsection Peer configuration for distributions
 
 The "GNUNET_DATA_HOME" in "[path]" in /etc/gnunet.conf should be manually set
 to "/var/lib/gnunet/data/" as the default "~/.local/share/gnunet/" is probably
