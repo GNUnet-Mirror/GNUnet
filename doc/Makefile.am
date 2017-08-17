@@ -33,8 +33,10 @@ gnunet_doc_images = \
 	images/gnunet-gtk-0-10-fs-search.png
 
 info_TEXINFOS = \
-	gnunet.texi \
-	gnunet-c-tutorial.tex
+	gnunet.texi
+
+# FIXME: include this file in the documentation:
+#	gnunet-c-tutorial.tex
 
 gnunet_TEXINFOS = \
 	chapters/developer.texi \
