@@ -44,6 +44,6 @@ gnunet_TEXINFOS = \
 	fdl-1.3.texi \
 	gpl-3.0.texi
 
-EXTRA_DIST += \
+EXTRA_DIST = \
 	$(gnunet_TEXINFOS) \
 	$(gnunet_doc_images)
