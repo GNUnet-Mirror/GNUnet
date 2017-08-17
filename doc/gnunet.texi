@@ -104,7 +104,6 @@ section, please do let us know.
 
 Philosophy
 
-* Copyright and Contributions::
 * Design Goals::
 * Security & Privacy::
 * Versatility::
@@ -114,7 +113,6 @@ Philosophy
 * Accounting to Encourage Resource Sharing::
 * Confidentiality::
 * Anonymity::
-* How GNUnet achieves Anonymity::
 * Deniability::
 * Peer Identities::
 * Zones in the GNU Name System (GNS Zones)::
