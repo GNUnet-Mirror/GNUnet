@@ -1651,7 +1651,6 @@ extract_handles (const struct GNUNET_NETWORK_FDSet *fdset,
       if (NULL != nhandle)
       {
         GNUNET_array_append (nhandles, nhandle_count, nhandle);
-        ++nhandle_count;
       }
       else
       {
@@ -1665,7 +1664,6 @@ extract_handles (const struct GNUNET_NETWORK_FDSet *fdset,
         else
         {
           GNUNET_array_append (fhandles, fhandle_count, fhandle);
-          ++fhandle_count;
         }
       }
     }
@@ -1747,10 +1745,6 @@ GNUNET_SCHEDULER_add_select (enum GNUNET_SCHEDULER_Priority prio,
   const struct GNUNET_DISK_FileHandle **read_fhandles, **write_fhandles;
   unsigned int read_nhandles_len, write_nhandles_len,
                read_fhandles_len, write_fhandles_len;
-
-  LOG (GNUNET_ERROR_TYPE_WARNING,
-       "[%p] GNUNET_SCHDULER_add_select\n",
-       sh);
 
   if ( (NULL == rs) &&
        (NULL == ws) )
