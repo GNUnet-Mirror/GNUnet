@@ -39,8 +39,7 @@
 ;; to tests right now.
 ;;
 ;; Further versions of GNUnet for Guix can currently be found in
-;; https://git.pragmatique.xyz/ng0-packages/log.html, mirrored at
-;; https://notabug.org/ng0/ng0-packages
+;; https://gitweb.krosos.org/ng0_guix/packages.git/
 
 (use-modules
  (ice-9 popen)
@@ -91,98 +90,98 @@
 (define %source-dir (dirname (current-filename)))
 
 (define gnunet-git
-  (package
-    (name "gnunet-git")
-    (version (string-append "0.10.1-" "dev"))
-    (source
-     (local-file %source-dir
-                 #:recursive? #t
-                 #:select? (git-predicate %source-dir)))
-    (build-system gnu-build-system)
-    (inputs
-     `(("glpk" ,glpk)
-       ("gnurl" ,gnurl)
-       ("gstreamer" ,gstreamer)
-       ("gst-plugins-base" ,gst-plugins-base)
-       ("gnutls" ,gnutls)
-       ("libextractor" ,libextractor)
-       ("libgcrypt" ,libgcrypt)
-       ("libidn" ,libidn)
-       ("libmicrohttpd" ,libmicrohttpd)
-       ("libltdl" ,libltdl)
-       ("libunistring" ,libunistring)
-       ("openssl" ,openssl)
-       ("opus" ,opus)
-       ("pulseaudio" ,pulseaudio)
-       ("sqlite" ,sqlite)
-       ("postgresql" ,postgresql)
-       ("mysql" ,mysql)
-       ("zlib" ,zlib)
-       ("perl" ,perl)
-       ("python" ,python) ; tests and gnunet-qr
-       ("jansson" ,jansson)
-       ("nss" ,nss)
-       ("gmp" ,gmp)
-       ("bluez" ,bluez) ; for optional bluetooth feature
-       ("glib" ,glib)
-       ;; There are currently no binary substitutes for texlive on
-       ;; hydra.gnu.org or its mirrors due to its size. Uncomment if you need it.
-       ;;("texlive-minimal" ,texlive-minimal) ; optional.
-       ("libogg" ,libogg)))
-    (native-inputs
-     `(("pkg-config" ,pkg-config)
-       ("autoconf" ,autoconf)
-       ("automake" ,automake)
-       ("gnu-gettext" ,gnu-gettext)
-       ("libtool" ,libtool)))
-    ;; TODO:  To make use of out:debug, which carries the symbols,
-    ;; this file needs to fixed.
-    (outputs '("out" "debug"))
-    (arguments
-     `(#:configure-flags
-       (list (string-append "--with-nssdir=" %output "/lib")
-             "--enable-gcc-hardening"
-             "--enable-linker-hardening"
+  (let* ((revision "1"))
+    (package
+      (name "gnunet-git")
+      (version (string-append "0.10.1-" revision "." "dev"))
+      (source
+       (local-file %source-dir
+                   #:recursive? #t))
+      (build-system gnu-build-system)
+      (inputs
+       `(("glpk" ,glpk)
+         ("gnurl" ,gnurl)
+         ("gstreamer" ,gstreamer)
+         ("gst-plugins-base" ,gst-plugins-base)
+         ("gnutls" ,gnutls)
+         ("libextractor" ,libextractor)
+         ("libgcrypt" ,libgcrypt)
+         ("libidn" ,libidn)
+         ("libmicrohttpd" ,libmicrohttpd)
+         ("libltdl" ,libltdl)
+         ("libunistring" ,libunistring)
+         ("openssl" ,openssl)
+         ("opus" ,opus)
+         ("pulseaudio" ,pulseaudio)
+         ("sqlite" ,sqlite)
+         ("postgresql" ,postgresql)
+         ("mysql" ,mysql)
+         ("zlib" ,zlib)
+         ("perl" ,perl)
+         ("python" ,python) ; tests and gnunet-qr
+         ("jansson" ,jansson)
+         ("nss" ,nss)
+         ("gmp" ,gmp)
+         ("bluez" ,bluez) ; for optional bluetooth feature
+         ("glib" ,glib)
+         ;; There are currently no binary substitutes for texlive on
+         ;; hydra.gnu.org or its mirrors due to its size. Uncomment if you need it.
+         ;;("texlive-minimal" ,texlive-minimal) ; optional.
+         ("libogg" ,libogg)))
+      (native-inputs
+       `(("pkg-config" ,pkg-config)
+         ("autoconf" ,autoconf)
+         ("automake" ,automake)
+         ("gnu-gettext" ,gnu-gettext)
+         ("libtool" ,libtool)))
+      ;; TODO:  To make use of out:debug, which carries the symbols,
+      ;; this file needs to fixed.
+      (outputs '("out" "debug"))
+      (arguments
+       `(#:configure-flags
+         (list (string-append "--with-nssdir=" %output "/lib")
+               "--enable-gcc-hardening"
+               "--enable-linker-hardening"
 
-             "--enable-poisoning"
-             "--enable-sanitizer"
-             "--enable-experimental"
-             "--enable-logging=verbose"
-             "CFLAGS=-ggdb -O0")
-       ;;#:parallel-tests? #f ; parallel building seems to fail
-       ;;#:tests? #f ; fail: test_gnunet_statistics.py
-       #:phases
-       ;; swap check and install phases and set paths to installed bin
-       (modify-phases %standard-phases
-         (add-after 'unpack 'patch-bin-sh
-           (lambda _
-             (substitute* "bootstrap"
-               (("contrib/pogen.sh") "sh contrib/pogen.sh"))
-             (for-each (lambda (f) (chmod f #o755))
-                       (find-files "po" ""))
-             #t))
-         (add-after 'patch-bin-sh 'bootstrap
-           (lambda _
-             (zero? (system* "sh" "bootstrap"))))
-         (delete 'check))))
-    ;; XXX: https://gnunet.org/bugs/view.php?id=4619
-    ;; (add-after 'install 'set-path-for-check
-    ;;   (lambda* (#:key outputs #:allow-other-keys)
-    ;;     (let* ((out (assoc-ref outputs "out"))
-    ;;            (bin (string-append out "/bin"))
-    ;;            (lib (string-append out "/lib")))
-    ;;       (setenv "GNUNET_PREFIX" lib)
-    ;;       (setenv "PATH" (string-append (getenv "PATH") ":" bin))
-    ;;       (zero? (system* "make" "check"))))))))
-    (synopsis "Secure, decentralized, peer-to-peer networking framework")
-    (description
-     "GNUnet is a framework for secure peer-to-peer networking.  The
+               "--enable-poisoning"
+               "--enable-sanitizer"
+               "--enable-experimental"
+               "--enable-logging=verbose"
+               "CFLAGS=-ggdb -O0")
+         ;;#:parallel-tests? #f ; parallel building seems to fail
+         ;;#:tests? #f ; fail: test_gnunet_statistics.py
+         #:phases
+         ;; swap check and install phases and set paths to installed bin
+         (modify-phases %standard-phases
+           (add-after 'unpack 'patch-bin-sh
+             (lambda _
+               (substitute* "bootstrap"
+                 (("contrib/pogen.sh") "sh contrib/pogen.sh"))
+               (for-each (lambda (f) (chmod f #o755))
+                         (find-files "po" ""))
+               #t))
+           (add-after 'patch-bin-sh 'bootstrap
+             (lambda _
+               (zero? (system* "sh" "bootstrap"))))
+           (delete 'check))))
+      ;; XXX: https://gnunet.org/bugs/view.php?id=4619
+      ;; (add-after 'install 'set-path-for-check
+      ;;   (lambda* (#:key outputs #:allow-other-keys)
+      ;;     (let* ((out (assoc-ref outputs "out"))
+      ;;            (bin (string-append out "/bin"))
+      ;;            (lib (string-append out "/lib")))
+      ;;       (setenv "GNUNET_PREFIX" lib)
+      ;;       (setenv "PATH" (string-append (getenv "PATH") ":" bin))
+      ;;       (zero? (system* "make" "check"))))))))
+      (synopsis "Secure, decentralized, peer-to-peer networking framework")
+      (description
+       "GNUnet is a framework for secure peer-to-peer networking.  The
 high-level goal is to provide a strong foundation of free software for a
 global, distributed network that provides security and privacy.  GNUnet in
 that sense aims to replace the current internet protocol stack.  Along with
 an application for secure publication of files, it has grown to include all
 kinds of basic applications for the foundation of a GNU internet.")
-    (license license:gpl3+)
-    (home-page "https://gnunet.org/")))
+      (license license:gpl3+)
+      (home-page "https://gnunet.org/"))))
 
 gnunet-git
