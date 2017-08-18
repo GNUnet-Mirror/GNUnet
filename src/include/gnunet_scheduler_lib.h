@@ -222,11 +222,11 @@ struct GNUNET_SCHEDULER_TaskContext
  * that the task is ready (with the respective priority).
  *
  * @param task the task that is ready
- * @param et information about why the task is ready
+ * @param fdi information about the related FD
  */
 void
 GNUNET_SCHEDULER_task_ready (struct GNUNET_SCHEDULER_Task *task,
-			     enum GNUNET_SCHEDULER_EventType et);
+			     struct GNUNET_SCHEDULER_FdInfo *fdi);
 
 
 /**

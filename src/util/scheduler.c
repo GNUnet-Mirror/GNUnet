@@ -148,6 +148,24 @@ struct GNUNET_SCHEDULER_Task
    * Absolute timeout value for the task, or
    * #GNUNET_TIME_UNIT_FOREVER_ABS for "no timeout".
    */
+
+  /**
+   * Size of the @e fds array.
+   */
+  unsigned int fds_len;
+
+  /**
+   * if this task is related to multiple FDs this array contains
+   * all FdInfo structs that were marked as ready by calling
+   * #GNUNET_SCHEDULER_task_ready
+   */
+  struct GNUNET_SCHEDULER_FdInfo *ready_fds;
+
+  /**
+   * Size of the @e ready_fds array
+   */
+  unsigned int ready_fds_len;
+
   struct GNUNET_TIME_Absolute timeout;
 
 #if PROFILE_DELAYS
@@ -156,11 +174,6 @@ struct GNUNET_SCHEDULER_Task
    */
   struct GNUNET_TIME_Absolute start_time;
 #endif
-
-  /**
-   * Size of the @e fds array.
-   */
-  unsigned int fds_len;
 
   /**
    * Why is the task ready?  Set after task is added to ready queue.
@@ -476,6 +489,29 @@ GNUNET_SCHEDULER_shutdown ()
 }
 
 
+static void
+destroy_fd_info_list (struct GNUNET_SCHEDULER_FdInfo *fds, unsigned int fds_len)
+{
+  unsigned int i;
+  for (i = 0; i != fds_len; ++i)
+  {
+    const struct GNUNET_SCHEDULER_FdInfo *fdi = fds + i;
+    if (fdi->fd)
+    {
+      GNUNET_NETWORK_socket_free_memory_only_ ((struct GNUNET_NETWORK_Handle *) fdi->fd);
+    }
+    if (fdi->fh)
+    {
+      // FIXME: on WIN32 this is not enough! A function
+      // GNUNET_DISK_file_free_memory_only would be nice
+      GNUNET_free ((void *) fdi->fh);
+    }
+  }
+  /* free the array */
+  GNUNET_array_grow (fds, fds_len, 0);
+}
+
+
 /**
  * Destroy a task (release associated resources)
  *
@@ -484,31 +520,16 @@ GNUNET_SCHEDULER_shutdown ()
 static void
 destroy_task (struct GNUNET_SCHEDULER_Task *t)
 {
-  // FIXME: destroy fds!
   if (t->fds_len > 1)
   {
-    size_t i;
-    for (i = 0; i != t->fds_len; ++i)
-    {
-      const struct GNUNET_SCHEDULER_FdInfo *fdi = t->fds + i;
-      if (fdi->fd)
-      {
-        GNUNET_NETWORK_socket_free_memory_only_ ((struct GNUNET_NETWORK_Handle *) fdi->fd);
-      }
-      if (fdi->fh)
-      {
-        // FIXME: on WIN32 this is not enough! A function
-        // GNUNET_DISK_file_free_memory_only would be nice
-        GNUNET_free ((void *) fdi->fh);
-      }
-    }
-    /* free the array */
-    GNUNET_array_grow (t->fds, t->fds_len, 0);
+    destroy_fd_info_list ((struct GNUNET_SCHEDULER_FdInfo *) t->fds,
+                          t->fds_len);
   }
-  //if (NULL != t->read_set)
-  //  GNUNET_NETWORK_fdset_destroy (t->read_set);
-  //if (NULL != t->write_set)
-  //  GNUNET_NETWORK_fdset_destroy (t->write_set);
+  if (t->ready_fds_len > 0)
+  {
+    destroy_fd_info_list ((struct GNUNET_SCHEDULER_FdInfo *) t->ready_fds,
+                          t->ready_fds_len);
+  }
 #if EXECINFO
   GNUNET_free (t->backtrace_strings);
 #endif
@@ -1318,11 +1339,6 @@ add_without_sets (struct GNUNET_TIME_Relative delay,
                 read_fh ? 1 : 0,
                 &write_fh,
                 write_fh ? 1 : 0);
-
-  //int read_fds[2] = {GNUNET_NETWORK_get_fd (read_nh), read_fh->fd};
-  //int write_fds[2] = {GNUNET_NETWORK_get_fd (write_nh), write_fh->fd};
-  //init_fd_info (t, read_fds, 2, write_fds, 2);
-  //init_fd_info (t, read_nh, write_nh, read_fh, write_fh);
   t->callback = task;
   t->callback_cls = task_cls;
 #if DEBUG_FDS
@@ -1826,11 +1842,11 @@ GNUNET_SCHEDULER_add_select (enum GNUNET_SCHEDULER_Priority prio,
  * that the task is ready (with the respective priority).
  *
  * @param task the task that is ready, NULL for wake up calls
- * @param et information about why the task is ready
+ * @param fdi information about the related FD
  */
 void
 GNUNET_SCHEDULER_task_ready (struct GNUNET_SCHEDULER_Task *task,
-                             enum GNUNET_SCHEDULER_EventType et)
+                             struct GNUNET_SCHEDULER_FdInfo *fdi)
 {
   enum GNUNET_SCHEDULER_Reason reason;
   struct GNUNET_TIME_Absolute now;
@@ -1840,24 +1856,24 @@ GNUNET_SCHEDULER_task_ready (struct GNUNET_SCHEDULER_Task *task,
   if (now.abs_value_us >= task->timeout.abs_value_us)
     reason |= GNUNET_SCHEDULER_REASON_TIMEOUT;
   if ( (0 == (reason & GNUNET_SCHEDULER_REASON_READ_READY)) &&
-       (0 != (GNUNET_SCHEDULER_ET_IN & et)) )
+       (0 != (GNUNET_SCHEDULER_ET_IN & fdi->et)) )
     reason |= GNUNET_SCHEDULER_REASON_READ_READY;
   if ( (0 == (reason & GNUNET_SCHEDULER_REASON_WRITE_READY)) &&
-       (0 != (GNUNET_SCHEDULER_ET_OUT & et)) )
+       (0 != (GNUNET_SCHEDULER_ET_OUT & fdi->et)) )
     reason |= GNUNET_SCHEDULER_REASON_WRITE_READY;
   reason |= GNUNET_SCHEDULER_REASON_PREREQ_DONE;
-
-   
-
-
   task->reason = reason;
-  task->fds = &task->fdx; // FIXME: if task contains a list of fds, this is wrong!
-  task->fdx.et = et;
-  task->fds_len = 1;
-  GNUNET_CONTAINER_DLL_remove (pending_head,
-                               pending_tail,
-                               task);
-  queue_ready_task (task);
+  if (task->fds_len > 1)
+  {
+    GNUNET_array_append (task->ready_fds, task->ready_fds_len, *fdi); 
+  }
+  if (GNUNET_NO == task->in_ready_list)
+  {
+    GNUNET_CONTAINER_DLL_remove (pending_head,
+                                 pending_tail,
+                                 task);
+    queue_ready_task (task);
+  }
 }
 
 
@@ -1884,6 +1900,7 @@ GNUNET_SCHEDULER_run_from_driver (struct GNUNET_SCHEDULER_Handle *sh)
   enum GNUNET_SCHEDULER_Priority p;
   struct GNUNET_SCHEDULER_Task *pos;
   struct GNUNET_TIME_Absolute now;
+  int i;
 
   /* check for tasks that reached the timeout! */
   now = GNUNET_TIME_absolute_get ();
@@ -1942,20 +1959,32 @@ GNUNET_SCHEDULER_run_from_driver (struct GNUNET_SCHEDULER_Handle *sh)
     tc.reason = pos->reason;
     GNUNET_NETWORK_fdset_zero (sh->rs);
     GNUNET_NETWORK_fdset_zero (sh->ws);
-    tc.fds_len = pos->fds_len;
-    tc.fds = pos->fds;
-    //tc.read_ready = (NULL == pos->read_set) ? sh->rs : pos->read_set;
-    tc.read_ready = sh->rs;
+    tc.fds_len = pos->ready_fds_len;
+    tc.fds = pos->ready_fds;
+    for (i = 0; i != pos->ready_fds_len; ++i)
+    {
+      struct GNUNET_SCHEDULER_FdInfo *fdi = pos->ready_fds + i;
+      if (GNUNET_SCHEDULER_ET_IN == fdi->et)
+      {
+        GNUNET_NETWORK_fdset_set_native (sh->rs,
+                                         fdi->sock);
+      }
+      else if (GNUNET_SCHEDULER_ET_OUT == fdi->et)
+      {
+        GNUNET_NETWORK_fdset_set_native (sh->ws,
+                                         fdi->sock);
+      }
+    }
     if ( (-1 != pos->read_fd) &&
          (0 != (pos->reason & GNUNET_SCHEDULER_REASON_READ_READY)) )
       GNUNET_NETWORK_fdset_set_native (sh->rs,
                                        pos->read_fd);
-    //tc.write_ready = (NULL == pos->write_set) ? sh->ws : pos->write_set;
-    tc.write_ready = sh->ws;
     if ( (-1 != pos->write_fd) &&
          (0 != (pos->reason & GNUNET_SCHEDULER_REASON_WRITE_READY)) )
       GNUNET_NETWORK_fdset_set_native (sh->ws,
                                        pos->write_fd);
+    tc.read_ready = sh->rs;
+    tc.write_ready = sh->ws;
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Running task %p\n",
          pos);
@@ -2309,7 +2338,7 @@ select_loop (void *cls,
         GNUNET_CONTAINER_DLL_remove (context->scheduled_in_head,
                                      context->scheduled_in_tail,
                                      pos);
-        GNUNET_SCHEDULER_task_ready (pos->task, GNUNET_SCHEDULER_ET_IN);
+        GNUNET_SCHEDULER_task_ready (pos->task, pos->fdi);
       }
     }
     for (pos = context->scheduled_out_head; NULL != pos; pos = pos->next)
@@ -2319,7 +2348,7 @@ select_loop (void *cls,
         GNUNET_CONTAINER_DLL_remove (context->scheduled_out_head,
                                      context->scheduled_out_tail,
                                      pos);
-        GNUNET_SCHEDULER_task_ready (pos->task, GNUNET_SCHEDULER_ET_OUT);
+        GNUNET_SCHEDULER_task_ready (pos->task, pos->fdi);
       }
     }
     int tasks_ready = GNUNET_SCHEDULER_run_from_driver (sh);
