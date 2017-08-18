@@ -32,8 +32,6 @@ Foundation Web site at @url{http://www.gnu.org/licenses/gpl.html}.
 @titlepage
 @title GNUnet Reference Manual
 @subtitle Installing, configuring, using and contributing to GNUnet
-@author ng0@*
-@author Adriano Peluso
 @author The GNUnet Developers
 
 @page
