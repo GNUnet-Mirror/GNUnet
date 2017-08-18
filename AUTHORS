@@ -31,6 +31,8 @@ Werner Koch <wk@gnupg.org>
 
 Contributions also came from:
 Adam Warrington [ UPnP ]
+Adriano Peluso [ Documentation export to Texinfo ]
+ng0 <ng0@infotropique.org> [ Documentation export to Texinfo ]
 Alex Harper [ OS X CPU load ]
 Andrew McDonald <andrew@mcdonald.org.uk> [ SHA-512]
 Andy Green <andy@warmcat.com>
