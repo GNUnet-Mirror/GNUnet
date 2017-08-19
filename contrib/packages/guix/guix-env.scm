@@ -88,7 +88,7 @@
  (gnu packages xiph)
  ((guix licenses) #:prefix license:))
 
-(define %source-dir (dirname (current-filename)))
+(define %source-dir (canonicalize-path "../../../"))
 
 (define gnunet-git
   (let* ((revision "1"))
