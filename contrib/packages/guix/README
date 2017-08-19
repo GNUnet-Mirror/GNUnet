@@ -1,0 +1,39 @@
+package definitions for GNU Guix
+---------------------------------
+
+Usage
+-----
+
+Just point Guix towards the root of this source tree:
+
+export GUIX_PACKAGE_PATH=/path/to/packages
+or (if you are in the root of the gnunet git repository):
+guix package -L contrib/packages/guix/packages -i package-name
+
+The packages in this repository will take precedence over those in the
+official distribution.
+
+To make use of the packages in your GuixSD config file:
+
+Be sure to have GUIX_PACKAGE_PATH for your shell exported,
+for bash this could be achieved like this:
+
+export GUIX_PACKAGE_PATH="/full/path/to/gnunet/contrib/packages/guix/directory"
+
+In the section of your systems "config.scm", you should find
+something like this:
+
+(use-modules (gnu) (gnu system nss))
+
+Now to make use of "gnunetg" as an systemwide installed package we change this
+to:
+
+(use-modules (gnu) (gnu system nss)
+             (gnunet packages gnunet))
+
+and do the usual thing:
+ - save
+ - guix system build /etc/config.scm
+ - sudo -E guix system reconfigure /etc/config.scm
+
+The "-E" in "sudo -E" is important!
