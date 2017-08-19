@@ -1,0 +1,173 @@
+\input texinfo @c -*-texinfo-*-
+@c %**start of header
+@setfilename gnunet.info
+@documentencoding UTF-8
+@settitle GNUnet Reference Manual
+@c %**end of header
+
+@include version.texi
+
+@copying
+Copyright @copyright{} 2001-2017 GNUnet e.V.
+
+Permission is granted to copy, distribute and/or modify this document
+under the terms of the GNU Free Documentation License, Version 1.3 or
+any later version published by the Free Software Foundation; with no
+Invariant Sections, no Front-Cover Texts, and no Back-Cover Texts.  A
+copy of the license is included in the section entitled ``GNU Free
+Documentation License''.
+
+A copy of the license is also available from the Free Software
+Foundation Web site at @url{http://www.gnu.org/licenses/fdl.html}.
+
+Alternately, this document is also available under the General
+Public License, version 3 or later, as published by the Free Software
+Foundation.  A copy of the license is included in the section entitled
+``GNU General Public License''.
+
+A copy of the license is also available from the Free Software
+Foundation Web site at @url{http://www.gnu.org/licenses/gpl.html}.
+@end copying
+
+@titlepage
+@title GNUnet Reference Manual
+@subtitle Installing, configuring, using and contributing to GNUnet
+@author The GNUnet Developers
+
+@page
+@vskip 0pt plus 1filll
+Edition @value{EDITION} @*
+@value{UPDATED} @*
+
+@insertcopying
+@end titlepage
+
+@contents
+@c *********************************************************************
+@node Top
+@top Contributing to GNUnet
+@c *********************************************************************
+
+This document describes GNUnet version @value{VERSION}.
+
+
+GNUnet is a @uref{http://www.gnu.org/, GNU} package. All code contributions
+must thus be put under the
+@uref{http://www.gnu.org/copyleft/gpl.html, GNU Public License (GPL)}.
+All documentation should be put under FSF approved licenses
+(see @uref{http://www.gnu.org/copyleft/fdl.html, fdl}).
+
+By submitting documentation, translations, comments and other content to this
+website you automatically grant the right to publish code under the
+GNU Public License and documentation under either or both the GNU
+Public License or the GNU Free Documentation License. When contributing
+to the GNUnet project, GNU standards and the
+@uref{http://www.gnu.org/philosophy/philosophy.html, GNU philosophy}
+should be adhered to.
+
+Note that we do now require a formal copyright assignment for GNUnet
+contributors to GNUnet e.V.; nevertheless, we do allow pseudonymous
+contributions.  By signing the copyright agreement and submitting your
+code (or documentation) to us, you agree to share the rights to your
+code with GNUnet e.V.; GNUnet e.V. receives non-exclusive ownership
+rights, and in particular is allowed to dual-license the code. You
+retain non-exclusive rights to your contributions, so you can also
+share your contributions freely with other projects.
+
+GNUnet e.V. will publish all accepted contributions under the GPLv3 or any
+later version. The association may decide to publish contributions under
+additional licenses (dual-licensing).
+
+We do not intentionally remove your name from your contributions; however,
+due to extensive editing it is not always trivial to attribute contributors
+properly. If you find that you significantly contributed to a file (or the
+project as a whole) and are not listed in the respective authors file or
+section, please do let us know.
+
+
+
+@menu
+
+* Philosophy::                      About GNUnet
+* GNUnet Installation Handbook::    How to install GNUnet
+* Using GNUnet::                    Using GNUnet
+* GNUnet Developer Handbook::       Developing GNUnet
+* GNU Free Documentation License::  The license of this manual.
+* GNU General Public License::      The license of this manual.
+* Concept Index::                   Concepts.
+* Programming Index::               Data types, functions, and variables.
+
+@detailmenu
+ --- The Detailed Node Listing ---
+
+Philosophy
+
+* Design Goals::
+* Security & Privacy::
+* Versatility::
+* Practicality::
+* Key Concepts::
+* Authentication::
+* Accounting to Encourage Resource Sharing::
+* Confidentiality::
+* Anonymity::
+* Deniability::
+* Peer Identities::
+* Zones in the GNU Name System (GNS Zones)::
+* Egos::
+* Backup of Identities and Egos::
+* Revocation::
+
+Installation
+
+* Dependencies::
+* External dependencies::
+
+@end detailmenu
+@end menu
+
+@c *********************************************************************
+@include chapters/philosophy.texi
+@c *********************************************************************
+
+@c *********************************************************************
+@include chapters/installation.texi
+@c *********************************************************************
+
+@c *********************************************************************
+@include chapters/user.texi
+@c *********************************************************************
+
+@c *********************************************************************
+@include chapters/developer.texi
+@c *********************************************************************
+
+
+@c *********************************************************************
+@node GNU Free Documentation License
+@appendix GNU Free Documentation License
+@cindex license, GNU Free Documentation License
+@include fdl-1.3.texi
+
+@c *********************************************************************
+@node GNU General Public License
+@appendix GNU General Public License
+@cindex license, GNU General Public License
+@include gpl-3.0.texi
+
+@c *********************************************************************
+@node Concept Index
+@unnumbered Concept Index
+@printindex cp
+
+@node Programming Index
+@unnumbered Programming Index
+@syncodeindex tp fn
+@syncodeindex vr fn
+@printindex fn
+
+@bye
+
+@c Local Variables:
+@c ispell-local-dictionary: "american";
+@c End:

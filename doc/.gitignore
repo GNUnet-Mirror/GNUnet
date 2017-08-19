@@ -1,2 +1,13 @@
 gnunet-c-tutorial.aux
 gnunet-c-tutorial.out
+*.log
+*.aux
+*.pdf
+*.toc
+*.cp
+*.cps
+*.html
+*~
+*.info
+\#*\#
+version.texi
