@@ -259,7 +259,7 @@ have to indirect the replies if we don't think we need more traffic to hide
 our own actions.@
 
 This increases the efficiency of the network as we can indirect less under
-higher load. More details can be found in this paper. 
+higher load. More details can be found in @uref{https://gnunet.org/gap, this paper}. 
 
 @node Deniability
 @subsection Deniability
