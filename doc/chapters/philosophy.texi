@@ -187,7 +187,7 @@ request a (possibly lower) effective priority. Then, they drop the requests
 with the lowest effective priority to satisfy their resource constraints. This
 way, GNUnet's economic model ensures that nodes that are not currently
 considered to have a surplus in contributions will not be served if the
-network load is high. More details can be found in this paper.
+network load is high. More details can be found in @uref{https://gnunet.org/ebe, this paper}.
 
 @node Confidentiality
 @subsection Confidentiality
