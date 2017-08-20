@@ -117,21 +117,6 @@ struct GNUNET_SCHEDULER_Task
    */
   void *callback_cls;
 
-  ///**
-  // * Set of file descriptors this task is waiting
-  // * for for reading.  Once ready, this is updated
-  // * to reflect the set of file descriptors ready
-  // * for operation.
-  // */
-  //struct GNUNET_NETWORK_FDSet *read_set;
-
-  ///**
-  // * Set of file descriptors this task is waiting for for writing.
-  // * Once ready, this is updated to reflect the set of file
-  // * descriptors ready for operation.
-  // */
-  //struct GNUNET_NETWORK_FDSet *write_set;
-
   /**
    * Information about which FDs are ready for this task (and why).
    */
@@ -143,11 +128,6 @@ struct GNUNET_SCHEDULER_Task
    * task is only about a single FD.
    */
   struct GNUNET_SCHEDULER_FdInfo fdx;
-
-  /**
-   * Absolute timeout value for the task, or
-   * #GNUNET_TIME_UNIT_FOREVER_ABS for "no timeout".
-   */
 
   /**
    * Size of the @e fds array.
@@ -166,6 +146,17 @@ struct GNUNET_SCHEDULER_Task
    */
   unsigned int ready_fds_len;
 
+  /**
+   * Do we own the network and file handlers referenced by the FdInfo
+   * structs in the fds array. This will only be GNUNET_YES if the
+   * task was created by the #GNUNET_SCHEDULER_add_select function.
+   */
+  int own_handlers;
+
+  /**
+   * Absolute timeout value for the task, or
+   * #GNUNET_TIME_UNIT_FOREVER_ABS for "no timeout".
+   */
   struct GNUNET_TIME_Absolute timeout;
 
 #if PROFILE_DELAYS
@@ -489,29 +480,6 @@ GNUNET_SCHEDULER_shutdown ()
 }
 
 
-static void
-destroy_fd_info_list (struct GNUNET_SCHEDULER_FdInfo *fds, unsigned int fds_len)
-{
-  unsigned int i;
-  for (i = 0; i != fds_len; ++i)
-  {
-    const struct GNUNET_SCHEDULER_FdInfo *fdi = fds + i;
-    if (fdi->fd)
-    {
-      GNUNET_NETWORK_socket_free_memory_only_ ((struct GNUNET_NETWORK_Handle *) fdi->fd);
-    }
-    if (fdi->fh)
-    {
-      // FIXME: on WIN32 this is not enough! A function
-      // GNUNET_DISK_file_free_memory_only would be nice
-      GNUNET_free ((void *) fdi->fh);
-    }
-  }
-  /* free the array */
-  GNUNET_array_grow (fds, fds_len, 0);
-}
-
-
 /**
  * Destroy a task (release associated resources)
  *
@@ -520,15 +488,33 @@ destroy_fd_info_list (struct GNUNET_SCHEDULER_FdInfo *fds, unsigned int fds_len)
 static void
 destroy_task (struct GNUNET_SCHEDULER_Task *t)
 {
+  unsigned int i;
+
+  if (GNUNET_YES == t->own_handlers)
+  {
+    for (i = 0; i != t->fds_len; ++i)
+    {
+      const struct GNUNET_NETWORK_Handle *fd = t->fds[i].fd;
+      const struct GNUNET_DISK_FileHandle *fh = t->fds[i].fh;
+      if (fd)
+      {
+        GNUNET_NETWORK_socket_free_memory_only_ ((struct GNUNET_NETWORK_Handle *) fd);
+      }
+      if (fh)
+      {
+        // FIXME: on WIN32 this is not enough! A function
+        // GNUNET_DISK_file_free_memory_only would be nice
+        GNUNET_free ((void *) fh);
+      }
+    }
+  }
   if (t->fds_len > 1)
   {
-    destroy_fd_info_list ((struct GNUNET_SCHEDULER_FdInfo *) t->fds,
-                          t->fds_len);
+    GNUNET_array_grow (t->fds, t->fds_len, 0);
   }
   if (t->ready_fds_len > 0)
   {
-    destroy_fd_info_list ((struct GNUNET_SCHEDULER_FdInfo *) t->ready_fds,
-                          t->ready_fds_len);
+    GNUNET_array_grow (t->ready_fds, t->ready_fds_len, 0);
   }
 #if EXECINFO
   GNUNET_free (t->backtrace_strings);
@@ -737,13 +723,13 @@ GNUNET_SCHEDULER_get_load (enum GNUNET_SCHEDULER_Priority p)
 void
 init_fd_info (struct GNUNET_SCHEDULER_Task *t,
               const struct GNUNET_NETWORK_Handle *const *read_nh,
-              size_t read_nh_len,
+              unsigned int read_nh_len,
               const struct GNUNET_NETWORK_Handle *const *write_nh,
-              size_t write_nh_len,
+              unsigned int write_nh_len,
               const struct GNUNET_DISK_FileHandle *const *read_fh,
-              size_t read_fh_len,
+              unsigned int read_fh_len,
               const struct GNUNET_DISK_FileHandle *const *write_fh,
-              size_t write_fh_len)
+              unsigned int write_fh_len)
 {
   struct GNUNET_SCHEDULER_FdInfo *fdi;
 
@@ -754,7 +740,7 @@ init_fd_info (struct GNUNET_SCHEDULER_Task *t,
     t->fds = fdi;
     if (1 == read_nh_len)
     {
-      fdi->fd = GNUNET_NETWORK_socket_box_native (GNUNET_NETWORK_get_fd (*read_nh));
+      fdi->fd = *read_nh;
       GNUNET_assert (NULL != fdi->fd);
       fdi->et = GNUNET_SCHEDULER_ET_IN;
       fdi->sock = GNUNET_NETWORK_get_fd (*read_nh);
@@ -763,7 +749,7 @@ init_fd_info (struct GNUNET_SCHEDULER_Task *t,
     }
     else if (1 == write_nh_len)
     {
-      fdi->fd = GNUNET_NETWORK_socket_box_native (GNUNET_NETWORK_get_fd (*write_nh));
+      fdi->fd = *write_nh;
       GNUNET_assert (NULL != fdi->fd);
       fdi->et = GNUNET_SCHEDULER_ET_OUT;
       fdi->sock = GNUNET_NETWORK_get_fd (*write_nh);
@@ -772,7 +758,7 @@ init_fd_info (struct GNUNET_SCHEDULER_Task *t,
     }
     else if (1 == read_fh_len)
     {
-      fdi->fh = GNUNET_DISK_get_handle_from_int_fd ((*read_fh)->fd);
+      fdi->fh = *read_fh;
       GNUNET_assert (NULL != fdi->fh);
       fdi->et = GNUNET_SCHEDULER_ET_IN;
       fdi->sock = (*read_fh)->fd; // FIXME: does not work under WIN32
@@ -781,7 +767,7 @@ init_fd_info (struct GNUNET_SCHEDULER_Task *t,
     }
     else
     {
-      fdi->fh = GNUNET_DISK_get_handle_from_int_fd ((*write_fh)->fd);
+      fdi->fh = *write_fh;
       GNUNET_assert (NULL != fdi->fh);
       fdi->et = GNUNET_SCHEDULER_ET_OUT;
       fdi->sock = (*write_fh)->fd; // FIXME: does not work under WIN32
@@ -795,10 +781,10 @@ init_fd_info (struct GNUNET_SCHEDULER_Task *t,
     t->fds = fdi;
     t->read_fd = -1;
     t->write_fd = -1;
-    size_t i;
+    unsigned int i;
     for (i = 0; i != read_nh_len; ++i)
     {
-      fdi->fd = GNUNET_NETWORK_socket_box_native (GNUNET_NETWORK_get_fd (read_nh[i]));
+      fdi->fd = read_nh[i];
       GNUNET_assert (NULL != fdi->fd);
       fdi->et = GNUNET_SCHEDULER_ET_IN;
       fdi->sock = GNUNET_NETWORK_get_fd (read_nh[i]);
@@ -806,7 +792,7 @@ init_fd_info (struct GNUNET_SCHEDULER_Task *t,
     }
     for (i = 0; i != write_nh_len; ++i)
     {
-      fdi->fd = GNUNET_NETWORK_socket_box_native (GNUNET_NETWORK_get_fd (write_nh[i]));
+      fdi->fd = write_nh[i];
       GNUNET_assert (NULL != fdi->fd);
       fdi->et = GNUNET_SCHEDULER_ET_OUT;
       fdi->sock = GNUNET_NETWORK_get_fd (write_nh[i]);
@@ -814,7 +800,7 @@ init_fd_info (struct GNUNET_SCHEDULER_Task *t,
     }
     for (i = 0; i != read_fh_len; ++i)
     {
-      fdi->fh = GNUNET_DISK_get_handle_from_int_fd (read_fh[i]->fd);
+      fdi->fh = read_fh[i];
       GNUNET_assert (NULL != fdi->fh);
       fdi->et = GNUNET_SCHEDULER_ET_IN;
       fdi->sock = (read_fh[i])->fd; // FIXME: does not work under WIN32
@@ -822,7 +808,7 @@ init_fd_info (struct GNUNET_SCHEDULER_Task *t,
     }
     for (i = 0; i != write_fh_len; ++i)
     {
-      fdi->fh = GNUNET_DISK_get_handle_from_int_fd (write_fh[i]->fd);
+      fdi->fh = write_fh[i];
       GNUNET_assert (NULL != fdi->fh);
       fdi->et = GNUNET_SCHEDULER_ET_OUT;
       fdi->sock = (write_fh[i])->fd; // FIXME: does not work under WIN32
@@ -891,10 +877,6 @@ GNUNET_SCHEDULER_cancel (struct GNUNET_SCHEDULER_Task *task)
       (GNUNET_NO == task->lifeness) );
   if (! task->in_ready_list)
   {
-    //if ( (-1 == task->read_fd) &&
-    //     (-1 == task->write_fd) &&
-    //     (NULL == task->read_set) &&
-    //     (NULL == task->write_set) )
     if (NULL == task->fds)
     {
       if (GNUNET_YES == task->on_shutdown)
@@ -1637,7 +1619,8 @@ GNUNET_SCHEDULER_add_file_with_priority (struct GNUNET_TIME_Relative delay,
 
 
 int
-extract_handles (const struct GNUNET_NETWORK_FDSet *fdset,
+extract_handles (struct GNUNET_SCHEDULER_Task *t,
+                 const struct GNUNET_NETWORK_FDSet *fdset,
                  const struct GNUNET_NETWORK_Handle ***ntarget,
                  unsigned int *extracted_nhandles,
                  const struct GNUNET_DISK_FileHandle ***ftarget,
@@ -1647,76 +1630,48 @@ extract_handles (const struct GNUNET_NETWORK_FDSet *fdset,
   // in fdset must be handled separately
   const struct GNUNET_NETWORK_Handle **nhandles;
   const struct GNUNET_DISK_FileHandle **fhandles;
-  unsigned int nhandle_count, fhandle_count;
+  unsigned int nhandles_len, fhandles_len;
   int sock;
   int ret;
 
   nhandles = NULL;
   fhandles = NULL;
-  nhandle_count = 0;
-  fhandle_count = 0;
+  nhandles_len = 0;
+  fhandles_len = 0;
   ret = GNUNET_OK;
   for (sock = 0; sock != fdset->nsds; ++sock)
   {
     if (GNUNET_YES == GNUNET_NETWORK_fdset_test_native (fdset, sock))
     {
-      const struct GNUNET_NETWORK_Handle *nhandle;
-      const struct GNUNET_DISK_FileHandle *fhandle;
+      struct GNUNET_NETWORK_Handle *nhandle;
+      struct GNUNET_DISK_FileHandle *fhandle;
 
       nhandle = GNUNET_NETWORK_socket_box_native (sock);
       if (NULL != nhandle)
       {
-        GNUNET_array_append (nhandles, nhandle_count, nhandle);
+        GNUNET_array_append (nhandles, nhandles_len, nhandle);
       }
       else
       {
         fhandle = GNUNET_DISK_get_handle_from_int_fd (sock);
-        if (NULL == fhandle)
+        if (NULL != fhandle)
+        {
+          GNUNET_array_append (fhandles, fhandles_len, fhandle);
+        }
+        else
         {
           ret = GNUNET_SYSERR;
           // DEBUG
           GNUNET_assert (0);
         }
-        else
-        {
-          GNUNET_array_append (fhandles, fhandle_count, fhandle);
-        }
       }
     }
   }
-  *ntarget = nhandles;
-  *ftarget = fhandles;
-  *extracted_nhandles = nhandle_count;
-  *extracted_fhandles = fhandle_count;
+  *ntarget = nhandles_len > 0 ? nhandles : NULL;
+  *ftarget = fhandles_len > 0 ? fhandles : NULL;
+  *extracted_nhandles = nhandles_len;
+  *extracted_fhandles = fhandles_len;
   return ret;
-}
-
-
-void
-destroy_network_handles (const struct GNUNET_NETWORK_Handle **handles,
-                         unsigned int handles_len)
-{
-  size_t i;
-
-  for (i = 0; i != handles_len; ++i)
-  {
-    GNUNET_free ((void *) handles[i]);
-  }
-  GNUNET_array_grow (handles, handles_len, 0);
-}
-
-
-void
-destroy_file_handles (const struct GNUNET_DISK_FileHandle **handles,
-                      unsigned int handles_len)
-{
-  size_t i;
-
-  for (i = 0; i != handles_len; ++i)
-  {
-    GNUNET_free ((void *) handles[i]);
-  }
-  GNUNET_array_grow (handles, handles_len, 0);
 }
 
 
@@ -1757,8 +1712,10 @@ GNUNET_SCHEDULER_add_select (enum GNUNET_SCHEDULER_Priority prio,
                              void *task_cls)
 {
   struct GNUNET_SCHEDULER_Task *t;
-  const struct GNUNET_NETWORK_Handle **read_nhandles, **write_nhandles;
-  const struct GNUNET_DISK_FileHandle **read_fhandles, **write_fhandles;
+  const struct GNUNET_NETWORK_Handle **read_nhandles;
+  const struct GNUNET_NETWORK_Handle **write_nhandles;
+  const struct GNUNET_DISK_FileHandle **read_fhandles;
+  const struct GNUNET_DISK_FileHandle **write_fhandles;
   unsigned int read_nhandles_len, write_nhandles_len,
                read_fhandles_len, write_fhandles_len;
 
@@ -1777,13 +1734,15 @@ GNUNET_SCHEDULER_add_select (enum GNUNET_SCHEDULER_Priority prio,
   t->callback_cls = task_cls;
   t->read_fd = -1;
   t->write_fd = -1;
+  t->own_handlers = GNUNET_YES;
   read_nhandles_len = 0;
   write_nhandles_len = 0;
   read_fhandles_len = 0;
   write_fhandles_len = 0;
   if (NULL != rs)
   {
-    extract_handles (rs,
+    extract_handles (t,
+                     rs,
                      &read_nhandles,
                      &read_nhandles_len,
                      &read_fhandles,
@@ -1791,7 +1750,8 @@ GNUNET_SCHEDULER_add_select (enum GNUNET_SCHEDULER_Priority prio,
   }
   if (NULL != ws)
   {
-    extract_handles (ws,
+    extract_handles (t,
+                     ws,
                      &write_nhandles,
                      &write_nhandles_len,
                      &write_fhandles,
@@ -1807,10 +1767,12 @@ GNUNET_SCHEDULER_add_select (enum GNUNET_SCHEDULER_Priority prio,
                 read_fhandles_len,
                 write_fhandles,
                 write_fhandles_len);
-  destroy_network_handles (read_nhandles, read_nhandles_len);
-  destroy_network_handles (write_nhandles, write_nhandles_len);
-  destroy_file_handles (read_fhandles, read_fhandles_len);
-  destroy_file_handles (write_fhandles, write_fhandles_len);
+  /* free the arrays of pointers to network / file handles, the actual
+   * handles will be freed in destroy_task */
+  GNUNET_array_grow (read_nhandles, read_nhandles_len, 0);
+  GNUNET_array_grow (write_nhandles, write_nhandles_len, 0);
+  GNUNET_array_grow (read_fhandles, read_fhandles_len, 0);
+  GNUNET_array_grow (write_fhandles, write_fhandles_len, 0);
 #if PROFILE_DELAYS
   t->start_time = GNUNET_TIME_absolute_get ();
 #endif
