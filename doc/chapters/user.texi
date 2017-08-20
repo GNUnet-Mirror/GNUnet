@@ -1333,8 +1333,8 @@ securely link to you.
 
 You can usually get the hash of your public key using@
 @code{$ gnunet-identity -d $options | grep master-zone | awk '@{print $3@}'}@
-For example, the output might be something like@
-DC3SEECJORPHQNVRH965A6N74B1M37S721IG4RBQ15PJLLPJKUE0.
+For example, the output might be something like:@
+DC3SEECJORPHQNVRH965A6N74B1M37S721IG4RBQ15PJLLPJKUE0
 
 Alternatively, you can obtain a QR code with your zone key AND your pseudonym
 from gnunet-gtk. The QR code is displayed in the GNS tab and can be stored to
