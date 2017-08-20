@@ -97,16 +97,18 @@ advertisements for bogus websites.
 
 This developer handbook is intended as first introduction to GNUnet for new
 developers that want to extend the GNUnet framework. After the introduction,
-each of the GNUnet subsystems (directories in the src/ tree) is (supposed to
+each of the GNUnet subsystems (directories in the @file{src/} tree) is (supposed to
 be) covered in its own chapter. In addition to this documentation, GNUnet
 developers should be aware of the services available on the GNUnet server to
 them.
 
 New developers can have a look a the GNUnet tutorials for C and java available
-in the src/ directory of the repository or under the following links:
+in the @file{src/} directory of the repository or under the following links:
 
+@c ** FIXME: Link to files in source, not online.
+@c ** FIXME: Where is the Java tutorial?
 @itemize @bullet
-@item GNUnet C tutorial
+@item @uref{https://gnunet.org/git/gnunet.git/plain/doc/gnunet-c-tutorial.pdf, GNUnet C tutorial}
 @item GNUnet Java tutorial
 @end itemize
 
@@ -123,8 +125,7 @@ The public subsystems on the GNUnet server that help developers are:
 @item The Version control system keeps our code and enables distributed
 development. Only developers with write access can commit code, everyone else
 is encouraged to submit patches to the
-@uref{http://mail.gnu.org/mailman/listinfo/gnunet-developers, developer
-mailinglist}.
+@uref{https://lists.gnu.org/mailman/listinfo/gnunet-developers, GNUnet-developers mailinglist}.
 @item The GNUnet bugtracking system is used to track feature requests, open bug
 reports and their resolutions. Anyone can report bugs, only developers can
 claim to have fixed them.
