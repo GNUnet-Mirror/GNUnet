@@ -278,7 +278,7 @@ encryption as the link-encryption between the nodes.  GNUnet has
 encryption on the network layer (link encryption, confidentiality,
 authentication) and again on the application layer (provided
 by @command{gnunet-publish}, @command{gnunet-download}, @command{gnunet-search}
-and @command{gnunet-gtk}).  More details can be found here.
+and @command{gnunet-gtk}).  More details can be found @uref{https://gnunet.org/encoding, here}.
 
 @node Peer Identities
 @subsection Peer Identities
