@@ -235,8 +235,7 @@ For this, we first start @code{gnunet-gtk} and switch to the Identity Management
 tab by clicking on the image in the top right corner with the three people in
 it. Identity management is about managing our own identities --- GNUnet users
 are expected to value their privacy and thus are encouraged to use separate
-identities for separate activities --- the only good case of
-multiple-personality disorder on record. By default, each user should have run
+identities for separate activities. By default, each user should have run
 @file{gnunet-gns-import.sh} during installation. This script creates four
 identities, which should show up in the identity management tab:@
 
@@ -346,7 +345,7 @@ First, you might want to fill in the "GNS Public Key" field by right-clicking
 and selecting "Paste", filling in the public key from the copy you made in
 @code{gnunet-gtk}. Then, fill in all of the other fields, including your GNS
 NICKname. Adding a GPG fingerprint is optional. Once finished, click
-"Submit Query". If your LaTeX installation is incomplete, the result will be
+"Submit Query". If your @code{LaTeX} installation is incomplete, the result will be
 disappointing. Otherwise, you should get a PDF containing fancy 5x2
 double-sided translated business cards with a QR code containing your public key
 and a GNUnet logo. We'll explain how to use those a bit later. You can now go
