@@ -159,7 +159,7 @@ different addresses. Binding messages expire after at most a week (the
 timeout can be shorter if the user configures the node appropriately). This
 expiration ensures that the network will eventually get rid of outdated
 advertisements.@
-More details can be found in this paper.
+More details can be found in the paper @uref{https://gnunet.org/transports, A Transport Layer Abstraction for Peer-to-Peer Networks}.
 
 @node Accounting to Encourage Resource Sharing
 @subsection Accounting to Encourage Resource Sharing
