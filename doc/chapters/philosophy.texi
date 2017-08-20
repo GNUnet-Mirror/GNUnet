@@ -31,20 +31,15 @@ These are the core GNUnet design goals, in order of relative importance:
 
 @itemize
 @item GNUnet must be implemented as free software.
-@item The GNUnet must only disclose the minimal amount of information
-      necessary.
-@item The GNUnet must be decentralised and survive Byzantine failures
-      in any position in the network.
-@item The GNUnet must make it explicit to the user which entities must be
-      trustworthy when establishing secured communications.
-@item The GNUnet must use compartmentalization to protect sensitive
-      information.
-@item The GNUnet must be open and permit new peers to join.
-@item The GNUnet must be self-organizing and not depend on administrators.
-@item The GNUnet must support a diverse range of applications and devices.
+@item GNUnet must only disclose the minimal amount of information necessary.
+@item GNUnet must be decentralised and survive Byzantine failures in any position in the network.
+@item GNUnet must make it explicit to the user which entities must be trustworthy when establishing secured communications.
+@item GNUnet must use compartmentalization to protect sensitive information.
+@item GNUnet must be open and permit new peers to join.
+@item GNUnet must be self-organizing and not depend on administrators.
+@item GNUnet must support a diverse range of applications and devices.
 @item The GNUnet architecture must be cost effective.
-@item The GNUnet must provide incentives for peers to contribute more
-      resources than they consume.
+@item GNUnet must provide incentives for peers to contribute more resources than they consume.
 @end itemize
 
 
