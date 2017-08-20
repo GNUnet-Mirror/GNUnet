@@ -32,14 +32,12 @@
 ;; development setup for this setup, which involves a version of Guile in
 ;; your PATH.
 ;;
+;; cd contrib/packages/guix
 ;; guix build -f guix-env.scm
 ;;
 ;; We'd like to provide advanced functions such as guix environment specific
 ;; gnunet-git package and usage of gnunet-gtk-git, but this is subject
 ;; to tests right now.
-;;
-;; Further versions of GNUnet for Guix can currently be found in
-;; https://gitweb.krosos.org/ng0_guix/packages.git/
 
 (use-modules
  (ice-9 popen)
