@@ -3897,13 +3897,13 @@ connecting to NATed peers using ICMP method" box.
 @node Peer configuration for distributions
 @subsection Peer configuration for distributions
 
-The "GNUNET_DATA_HOME" in "[path]" in /etc/gnunet.conf should be manually set
+The "GNUNET_DATA_HOME" in "[path]" in @file{/etc/gnunet.conf} should be manually set
 to "/var/lib/gnunet/data/" as the default "~/.local/share/gnunet/" is probably
 not that appropriate in this case. Similarly, distributions may consider
 pointing "GNUNET_RUNTIME_DIR" to "/var/run/gnunet/" and "GNUNET_HOME" to
 "/var/lib/gnunet/". Also, should a distribution decide to override system
-defaults, all of these changes should be done in a custom "/etc/gnunet.conf"
-and not in the files in the "config.d/" directory.
+defaults, all of these changes should be done in a custom @file{/etc/gnunet.conf}
+and not in the files in the @file{config.d/} directory.
 
 Given the proposed access permissions, the "gnunet-setup" tool must be run as
 use "gnunet" (and with option "-c /etc/gnunet.conf" so that it modifies the
@@ -3922,7 +3922,7 @@ This section describes how to start a GNUnet peer. It assumes that you have
 already compiled and installed GNUnet and its' dependencies. Before you start a
 GNUnet peer, you may want to create a configuration file using gnunet-setup
 (but you do not have to). Sane defaults should exist in your
-@code{GNUNET_PREFIX/share/gnunet/config.d/} directory, so in practice you could
+@file{$GNUNET_PREFIX/share/gnunet/config.d/} directory, so in practice you could
 simply start without any configuration. If you want to configure your peer
 later, you need to stop it before invoking the @code{gnunet-setup} tool to
 customize further and to test your configuration (@code{gnunet-setup} has
@@ -3954,12 +3954,12 @@ recommended.
 
 For the single-user setup, you do not need to do anything special and can just
 start the GNUnet background processes using @code{gnunet-arm}. By default,
-GNUnet looks in @code{~/.config/gnunet.conf} for a configuration (or
-$XDG_CONFIG_HOME/gnunet.conf if@ $XDG_CONFIG_HOME is defined). If your
+GNUnet looks in @file{~/.config/gnunet.conf} for a configuration (or
+@code{$XDG_CONFIG_HOME/gnunet.conf} if@ @code{$XDG_CONFIG_HOME} is defined). If your
 configuration lives elsewhere, you need to pass the @code{-c FILENAME} option
 to all GNUnet commands.
 
-Assuming the configuration file is called @code{~/.config/gnunet.conf}, you
+Assuming the configuration file is called @file{~/.config/gnunet.conf}, you
 start your peer using the @code{gnunet-arm} command (say as user
 @code{gnunet}) using:
 @example
@@ -4017,7 +4017,7 @@ to automatically start your peer whenever your system boots.
 
 This requires you to create a user @code{gnunet} and an additional group
 @code{gnunetdns}, prior to running @code{make install} during installation.
-Then, you create a configuration file @code{/etc/gnunet.conf} which should
+Then, you create a configuration file @file{/etc/gnunet.conf} which should
 contain the lines:@
 @code{@
  [arm]@
@@ -4029,7 +4029,7 @@ contain the lines:@
  may also want to run @code{gnunet-setup} to configure your peer (databases,
  etc.). Make sure to pass @code{-c /etc/gnunet.conf} to all commands. If you
  run @code{gnunet-setup} as user @code{gnunet}, you might need to change
- permissions on @code{/etc/gnunet.conf} so that the @code{gnunet} user can
+ permissions on @file{/etc/gnunet.conf} so that the @code{gnunet} user can
  write to the file (during setup).
 
 Afterwards, you need to perform another setup step for each normal user account
@@ -4038,7 +4038,7 @@ from which you want to access GNUnet. First, grant the normal user
 @code{@
  # adduser $USER gnunet@
 }@
-Then, create a configuration file in @code{~/.config/gnunet.conf} for the $USER
+Then, create a configuration file in @file{~/.config/gnunet.conf} for the $USER
 with the lines:@
 @code{@
  [arm]@
@@ -4148,9 +4148,9 @@ service.
 GNUnet's main services should be run as a separate user "gnunet" in a special
 group "gnunet". The user "gnunet" should start the peer using "gnunet-arm -s"
 during system startup. The home directory for this user should be
-"/var/lib/gnunet" and the configuration file should be "/etc/gnunet.conf". Only
-the "gnunet" user should have the right to access "/var/lib/gnunet" (mode:
-700).
+@file{/var/lib/gnunet} and the configuration file should be @file{/etc/gnunet.conf}.
+Only the @code{gnunet} user should have the right to access @file{/var/lib/gnunet}
+(@emph{mode: 700}).
 
 @node Recommendation - Control access to services using group "gnunet"
 @subsubsection Recommendation - Control access to services using group "gnunet"
@@ -4200,5 +4200,4 @@ silently fail to set the DNS binaries to be owned by group "gnunetdns" unless
 that group already exists (!). An alternative name for the "gnunetdns" group
 can be specified using the "--with-gnunetdns=GRPNAME" configure
 option.
-
 
