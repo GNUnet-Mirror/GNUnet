@@ -493,44 +493,55 @@ $ cd ..@
 @node Install gnutls with DANE support
 @subsection Install gnutls with DANE support
 
+@example
 $ wget http://www.lysator.liu.se/~nisse/archive/nettle-2.7.1.tar.gz@
 $ tar xf nettle-2.7.1.tar.gz@
 $ cd nettle-2.7.1@
 $ ./configure@
 $ sudo make install@
 $ cd ..
+@end example
 
+@example
 $ wget https://www.nlnetlabs.nl/downloads/ldns/ldns-1.6.16.tar.gz@
 $ tar xf ldns-1.6.16.tar.gz@
 $ cd ldns-1.6.16@
 $ ./configure@
 $ sudo make install@
 $ cd ..
+@end example
 
+@example
 $ wget https://unbound.net/downloads/unbound-1.4.21.tar.gz@
 $ tar xf unbound-1.4.21.tar.gz@
 $ cd unbound-1.4.21@
 $ ./configure@
 $ sudo make install@
 $ cd ..
+@end example
 
+@example
 $ wget ftp://ftp.gnutls.org/gcrypt/gnutls/v3.1/gnutls-3.1.17.tar.xz@
 $ tar xf gnutls-3.1.17.tar.xz@
 $ cd gnutls-3.1.17@
 $ ./configure@
 $ sudo make install@
 $ cd ..
+@end example
 
+@example
 $ wget ftp://ftp.gnupg.org/gcrypt/libgcrypt/libgcrypt-1.6.0.tar.bz2@
 $ tar xf libgcrypt-1.6.0.tar.bz2@
 $ cd libgcrypt-1.6.0@
 $ ./configure@
 $ sudo make install@
 $ cd ..@
+@end example
 
 @node Install libgnurl
 @subsection Install libgnurl
 
+@example
 $ wget https://gnunet.org/sites/default/files/gnurl-7.34.0.tar.bz2@
 $ tar xf gnurl-7.34.0.tar.bz2@
 $ cd gnurl-7.34.0@
@@ -544,50 +555,62 @@ $ ./configure --enable-ipv6 --with-gnutls --without-libssh2 \
   --disable-gopher --disable-file --disable-ftp@
 $ sudo make install@
 $ cd ..@
+@end example
 
 @node Install libmicrohttpd from Git
 @subsection Install libmicrohttpd from Git
 
+@example
 $ git clone https://gnunet.org/git/libmicrohttpd@
 $ cd libmicrohttpd/@
 $ ./bootstrap@
 $ ./configure@
 $ sudo make install@
 $ cd ..@
+@end example
 
 @node  Install libextractor from Git
 @subsection  Install libextractor from Git
 
 Install libextractor dependencies:@
 
+@example
 $ sudo apt-get install zlib1g-dev libgsf-1-dev libmpeg2-4-dev libpoppler-dev \
   libvorbis-dev libexiv2-dev libjpeg-dev libtiff-dev libgif-dev libvorbis-dev \
   libflac-dev libsmf-dev g++@
+@end example
 
 Build libextractor:@
 
+@example
 $ git clone https://gnunet.org/git/libextractor@
 $ cd libextractor@
 $ ./bootstrap@
 $ ./configure@
 $ sudo make install@
 $ cd ..@
+@end example
 
 @node Install GNUnet dependencies
 @subsection Install GNUnet dependencies
 
+@example
 $ sudo apt-get install libidn11-dev libunistring-dev libglpk-dev \
   libpulse-dev libbluetooth-dev libsqlite-dev@
+@end example
 
 Install libopus@
 
+@example
 $ wget http://downloads.xiph.org/releases/opus/opus-1.1.tar.gz@
 $ tar xf opus-1.1.tar.gz@
 $ cd opus-1.1/@
 $ ./configure@
 $ sudo make install@
+@end example
 
 Choose one or more database backends@
+
 @itemize @bullet
 
 @item
