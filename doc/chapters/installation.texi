@@ -13,6 +13,7 @@ in the form of new chapters or insightful comments.
 
 @menu
 * Dependencies::
+* Pre-installation notes::
 * Generic installation instructions::
 * Build instructions for Ubuntu 12.04 using Git::
 * Build Instructions for Microsoft Windows Platforms::
@@ -264,6 +265,14 @@ gnunet-service-namestore (requires identity)
 gnunet-service-gns (requires vpn, dns, dht, namestore, identity)
 @end itemize
 
+@node Pre-installation notes
+@section Pre-installation notes
+
+Please note that in the code instructions for the installation,
+@emph{#} indicates commands run as privileged root user and
+@emph{$} shows commands run as unprivileged ("normal") system user.
+
+
 @node Generic installation instructions
 @section Generic installation instructions
 
@@ -312,9 +321,6 @@ in addition to satisfying the dependencies, you might have to make sure that
 development headers for the various libraries are also installed. There maybe
 files for other distributions, or you might be able to find equivalent packages
 for your distribution.
-
-In the code instructions below, @emph{#} indicates commands run as privileged root
-user and @emph{$} shows commands run as unprivileged ("normal") system user.
 
 While it is possible to build and install GNUnet without having root access,
 we will assume that you have full control over your system in these
