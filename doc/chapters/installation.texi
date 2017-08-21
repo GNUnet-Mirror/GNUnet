@@ -48,21 +48,21 @@ These packages must be installed before a typical GNUnet installation
 can be performed:
 
 @table @asis
-@item GNU libmicrohttpd
-0.9.30 or higher
-@item GNU libextractor
-1.0 or higher
-@item GNU libtool
-2.2 or higher 
-@item GNU libunistring
-0.9.1.1 or higher
-@item GNU libidn
-1.0.0 or higher
-@item @uref{ftp://ftp.gnupg.org/gcrypt/libgcrypt/, GNU libgcrypt}
-@uref{ftp://ftp.gnupg.org/gcrypt/libgcrypt/libgcrypt-1.6.0.tar.bz2, 1.6.0} or
-higher
-@item GnuTLS
-@uref{ftp://ftp.gnutls.org/gcrypt/gnutls/v3.2/gnutls-3.2.7.tar.xz, 3.2.7} or
+@item
+GNU libmicrohttpd 0.9.30 or higher
+@item
+GNU libextractor 1.0 or higher
+@item
+GNU libtool 2.2 or higher 
+@item
+GNU libunistring 0.9.1.1 or higher
+@item
+GNU libidn 1.0.0 or higher
+@item
+@uref{ftp://ftp.gnupg.org/gcrypt/libgcrypt/, GNU libgcrypt}
+@uref{ftp://ftp.gnupg.org/gcrypt/libgcrypt/libgcrypt-1.6.0.tar.bz2, 1.6.0} or higher
+@item
+GnuTLS @uref{ftp://ftp.gnutls.org/gcrypt/gnutls/v3.2/gnutls-3.2.7.tar.xz, 3.2.7} or
 higher, compile with libunbound for DANE support; GnuTLS also requires GNU
 nettle 2.7 (update: GnuTLS 3.2.7 appears NOT to work against GNU nettle
 > 2.7, due to some API updatings done by nettle. Thus it should be compiled
@@ -70,40 +70,41 @@ against nettle 2.7 and, in case you get some error on the reference to
 `rpl_strerror' being undefined, follow the instructions on@
 @uref{http://lists.gnupg.org/pipermail/gnutls-devel/2013-November/006588.html, this}
 post (and the link inside it)).
-@item libgnurl
-7.34.0 or higher (available from https://gnunet.org/gnurl), should be compiled
-after @code{GnuTLS}
-@item libglpk
-4.45 or higher
-@item @uref{http://www.openssl.org/, OpenSSL} (binary)
-1.0 or higher
-@item TeX Live
-2012 or higher, optional (for gnunet-bcd)
-@item libpulse
-2.0 or higher, optional (for gnunet-conversation)
-@item libopus
-1.0.1 or higher, optional (for gnunet-conversation)
-@item libogg
-1.3.0 or higher, optional (for gnunet-conversation)
-@item certool (binary)
+@item
+libgnurl 7.34.0 or higher (available from https://gnunet.org/gnurl),
+should be compiled after @code{GnuTLS}
+@item
+libglpk 4.45 or higher
+@item
+@uref{http://www.openssl.org/, OpenSSL} (binary) 1.0 or higher
+@item
+TeX Live 2012 or higher, optional (for gnunet-bcd)
+@item
+libpulse 2.0 or higher, optional (for gnunet-conversation)
+@item
+libopus 1.0.1 or higher, optional (for gnunet-conversation)
+@item
+libogg 1.3.0 or higher, optional (for gnunet-conversation)
+@item
+certool (binary)
 optional for convenient installation of the GNS proxy
 (available as part of Debian's libnss3-tools)
-@item python-zbar
-0.10 or higher, optional (for gnunet-qr)
+@item
+python-zbar 0.10 or higher, optional (for gnunet-qr)
 @item libsqlite
 3.8.0 or higher (note that the code will compile and often work with lower
 version numbers, but you may get subtle bugs with respect to quota management
 in certain rare cases); alternatively, MySQL or Postgres can also be installed,
 but those databases will require more complex configurations (not recommended
 for first-time users)
-@item zlib
-any version we tested worked
-@item Gtk+
-3.0 or higher, optional (for gnunet-gtk)
-@item libgladeui
-must match Gtk+ version, optional (for gnunet-gtk)
-@item libqrencode
-3.0 or higher, optional (for gnunet-namestore-gtk)
+@item
+zlib any version we tested worked
+@item
+Gtk+ 3.0 or higher, optional (for gnunet-gtk)
+@item
+libgladeui must match Gtk+ version, optional (for gnunet-gtk)
+@item
+libqrencode 3.0 or higher, optional (for gnunet-namestore-gtk)
 @end table
 
 
@@ -112,7 +113,7 @@ must match Gtk+ version, optional (for gnunet-gtk)
 
 If you have to compile libgnurl from source since the version included in your
 distribution is to old you perhaps get an error message while running the
-@code{configure} script:
+@file{configure} script:
 
 @code{@
  $ configure@
