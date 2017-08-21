@@ -313,10 +313,13 @@ development headers for the various libraries are also installed. There maybe
 files for other distributions, or you might be able to find equivalent packages
 for your distribution.
 
+In the code instructions below, @emph{#} indicates commands run as privileged root
+user and @emph{$} shows commands run as unprivileged ("normal") system user.
+
 While it is possible to build and install GNUnet without having root access,
 we will assume that you have full control over your system in these
-instructions. First, you should create a system user "gnunet" and an additional
-group "gnunetdns". On Debian and Ubuntu GNU/Linux, type:@
+instructions. First, you should create a system user @emph{gnunet} and an additional
+group @emph{gnunetdns}. On Debian and Ubuntu GNU/Linux, type:@
 @code{@
  # adduser --system --home /var/lib/gnunet --group --disabled-password gnunet@
  # addgroup --system gnunetdns@
@@ -332,16 +335,16 @@ group "gnunetdns". On Debian and Ubuntu GNU/Linux, type:@
  $ cd gnunet-0.10.?@
  $ ./configure --with-sudo=sudo --with-nssdir=/lib@
  $ make@
- $ sudo make install@
+ $ sudo make install@
 }@
 
 If you want to be able to enable DEBUG-level log messages, add
-@code{--enable-logging=verbose} to the end of the ./configure command.
+@code{--enable-logging=verbose} to the end of the @code{./configure} command.
 DEBUG-level log messages are in English-only and should only be useful for
 developers (or for filing really detailed bug reports). 
 
-Finally, you probably want to compile gnunet-gtk, which includes gnunet-setup
-(graphical tool for configuration) and gnunet-fs-gtk (graphical tool for
+Finally, you probably want to compile @code{gnunet-gtk}, which includes gnunet-setup
+(graphical tool for configuration) and @code{gnunet-fs-gtk} (graphical tool for
 file-sharing):@
 
 @code{@
@@ -353,7 +356,7 @@ file-sharing):@
  $ cd ..@
  $ sudo ldconfig # just to be safe@
 }@
- Now, edit @code{/etc/gnunet.conf} to contain the following:@
+ Next, edit the file @file{/etc/gnunet.conf} to contain the following:@
 @code{@
  [arm]@
  SYSTEM_ONLY = YES@
@@ -390,7 +393,7 @@ $USER on the system, run:@
 }@
 
 to allow them to access the system-wide GNUnet services. Then, each user should
-create a configuration file "~/.config/gnunet.conf" with the lines:@
+create a configuration file @file{~/.config/gnunet.conf} with the lines:@
 
 @code{@
  [arm]@
@@ -405,7 +408,7 @@ and start the per-user services using@
  $ gnunet-arm -c ~/.config/gnunet.conf -s@
 }@
 
-Again, adding a @file{crontab} entry to autostart the peer is advised:@
+Again, adding a @code{crontab} entry to autostart the peer is advised:@
 @code{@
 @@reboot /usr/local/bin/gnunet-arm -c $HOME/.config/gnunet.conf -s@
 }@
@@ -433,7 +436,7 @@ hosts: files mdns4_minimal [NOTFOUND=return] dns mdns4
 
 
 The exact details may differ a bit, which is fine. Add the text
-"gns [NOTFOUND=return]" after "files":
+@emph{"gns [NOTFOUND=return]"} after @emph{"files"}:
 @example
 hosts: files gns [NOTFOUND=return] mdns4_minimal [NOTFOUND=return] dns mdns4
 @end example
