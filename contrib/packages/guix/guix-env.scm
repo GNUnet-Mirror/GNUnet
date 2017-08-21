@@ -48,6 +48,7 @@
  (guix gexp)
  ((guix build utils) #:select (with-directory-excursion))
  (guix git-download)
+ (guix utils) ; current-source-directory
  (gnu packages)
  (gnu packages aidc)
  (gnu packages autotools)
@@ -86,23 +87,33 @@
  (gnu packages xiph)
  ((guix licenses) #:prefix license:))
 
-(define %source-dir (canonicalize-path "../../../"))
+(define %source-dir (string-append (current-source-directory)
+                                   "/../../../"))
 
 (define gnunet-git
-  (let* ((revision "1"))
-    (package
+  (let* ((revision "2")
+         (select? (delay (or (git-predicate
+                              (string-append (current-source-directory)
+                                             "/../../../"))
+                             source-file?))))
+      (package
       (name "gnunet-git")
       (version (string-append "0.10.1-" revision "." "dev"))
       (source
-       (local-file %source-dir
+       (local-file ;;"../../.."
+                   ;;%source-dir
+                   ;;(string-append (getcwd) "/../../../")
+                   (string-append (getcwd)) ;drrty hack and this assumes one static position FIXME!
                    #:recursive? #t))
+                   ;;#:select? (git-predicate %source-dir)))
+                   ;;#:select? (force select?)))
       (build-system gnu-build-system)
       (inputs
        `(("glpk" ,glpk)
          ("gnurl" ,gnurl)
          ("gstreamer" ,gstreamer)
          ("gst-plugins-base" ,gst-plugins-base)
-         ("gnutls" ,gnutls)
+         ("gnutls" ,gnutls) ;Change to gnutls/dane once it is merged.
          ("libextractor" ,libextractor)
          ("libgcrypt" ,libgcrypt)
          ("libidn" ,libidn)
