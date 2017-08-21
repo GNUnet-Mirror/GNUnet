@@ -51,6 +51,7 @@
   #:use-module (gnu packages pulseaudio)
   #:use-module (gnu packages python)
   #:use-module (gnu packages tls)
+  #:use-module (gnu packages texinfo)
   #:use-module (gnu packages upnp)
   #:use-module (gnu packages web)
   #:use-module (gnu packages xiph))
@@ -110,6 +111,7 @@
          ("autoconf" ,autoconf)
          ("automake" ,automake)
          ("gnu-gettext" ,gnu-gettext)
+         ("texinfo" ,texinfo)
          ("libtool" ,libtool)))
       (outputs '("out" "debug"))
       (arguments
@@ -331,6 +333,7 @@
          ("libglade" ,libglade)
          ("autoconf" ,autoconf)
          ("gnu-gettext" ,gnu-gettext)
+         ("texinfo" ,texinfo)
          ("automake" ,automake)
          ("libtool" ,libtool)))
       (synopsis "Graphical front-end tools for GNUnet")
@@ -384,39 +387,3 @@
          ("libtool" ,libtool)))
       (synopsis "FUSE for GNUnet")
       (home-page "https://gnunet.org"))))
-
-;; A package to run the test suite (with libressl)
-(define-public gnunetgftl
-  (package
-    (inherit gnunetg)
-    (name "gnunetgftl")
-      (inputs
-       `(("glpk" ,glpk)
-         ("gnurl" ,gnurl)
-         ("gstreamer" ,gstreamer)
-         ("gst-plugins-base" ,gst-plugins-base)
-         ("gnutls" ,gnutls)
-         ("libextractor" ,libextractor)
-         ("libgcrypt" ,libgcrypt)
-         ("libidn" ,libidn)
-         ("libmicrohttpd" ,libmicrohttpd)
-         ("libltdl" ,libltdl)
-         ("libunistring" ,libunistring)
-         ("libressl" ,libressl)
-         ("opus" ,opus)
-         ("pulseaudio" ,pulseaudio)
-         ("sqlite" ,sqlite)
-         ("zlib" ,zlib)
-         ("perl" ,perl)
-         ("python" ,python-2) ; tests and gnunet-qr
-         ("postgresql" ,postgresql)
-         ("jansson" ,jansson)
-         ("ncurses" ,ncurses)
-         ("nss" ,nss)
-         ("gmp" ,gmp)
-         ("miniupnpc" ,miniupnpc)
-         ("bluez" ,bluez) ; for optional bluetooth feature
-         ("glib" ,glib)
-         ;; ("texlive-minimal" ,texlive-minimal) ; optional.
-         ("libogg" ,libogg)))
-      (synopsis "gnunet git full with tests and libressl")))
