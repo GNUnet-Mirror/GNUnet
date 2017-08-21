@@ -60,11 +60,12 @@ GNU libunistring 0.9.1.1 or higher
 @item
 GNU libidn 1.0.0 or higher
 @item
-@uref{ftp://ftp.gnupg.org/gcrypt/libgcrypt/, GNU libgcrypt}
-@uref{ftp://ftp.gnupg.org/gcrypt/libgcrypt/libgcrypt-1.6.0.tar.bz2, 1.6.0} or higher
+@uref{https://gnupg.org/software/libgcrypt/index.html, GNU libgcrypt}
+@uref{https://gnupg.org/ftp/gcrypt/libgcrypt/, 1.6.0} or higher
 @item
-GnuTLS @uref{ftp://ftp.gnutls.org/gcrypt/gnutls/v3.2/gnutls-3.2.7.tar.xz, 3.2.7} or
-higher, compile with libunbound for DANE support; GnuTLS also requires GNU
+@uref{https://gnutls.org/, GnuTLS}
+@uref{https://www.gnupg.org/ftp/gcrypt/gnutls/v3.2/, 3.2.7} or higher,
+compile with libunbound for DANE support; GnuTLS also requires GNU
 nettle 2.7 (update: GnuTLS 3.2.7 appears NOT to work against GNU nettle
 > 2.7, due to some API updatings done by nettle. Thus it should be compiled
 against nettle 2.7 and, in case you get some error on the reference to
@@ -72,8 +73,8 @@ against nettle 2.7 and, in case you get some error on the reference to
 @uref{http://lists.gnupg.org/pipermail/gnutls-devel/2013-November/006588.html, this}
 post (and the link inside it)).
 @item
-libgnurl 7.34.0 or higher (available from https://gnunet.org/gnurl),
-should be compiled after @code{GnuTLS}
+@uref{https://gnunet.org/gnurl, gnURL} libgnurl 7.34.0 or higher,
+must be compiled after @code{GnuTLS}
 @item
 libglpk 4.45 or higher
 @item
@@ -92,8 +93,8 @@ optional for convenient installation of the GNS proxy
 (available as part of Debian's libnss3-tools)
 @item
 python-zbar 0.10 or higher, optional (for gnunet-qr)
-@item libsqlite
-3.8.0 or higher (note that the code will compile and often work with lower
+@item
+libsqlite 3.8.0 or higher (note that the code will compile and often work with lower
 version numbers, but you may get subtle bugs with respect to quota management
 in certain rare cases); alternatively, MySQL or Postgres can also be installed,
 but those databases will require more complex configurations (not recommended
