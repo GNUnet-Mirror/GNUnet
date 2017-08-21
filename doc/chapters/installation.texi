@@ -124,19 +124,6 @@ distribution is to old you perhaps get an error message while running the
  configure: error: cannot find data type for curl_off_t.@
 }
 
-If you have to compile libgnurl from source since the version included in your
-distribution is to old, you perhaps get an error message while running the
-@code{configure} script:
-
-@code{@
- $ configure@
- ...@
- checking for 64-bit curl_off_t data type... unknown@
- checking for 32-bit curl_off_t data type... unknown@
- checking for 16-bit curl_off_t data type... unknown@
- configure: error: cannot find data type for curl_off_t.@
-}
-
 Solution:
 
 Before running the configure script, set:
