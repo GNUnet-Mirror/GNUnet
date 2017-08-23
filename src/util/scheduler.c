@@ -1621,7 +1621,7 @@ GNUNET_SCHEDULER_add_file_with_priority (struct GNUNET_TIME_Relative delay,
 }
 
 
-int
+void
 extract_handles (struct GNUNET_SCHEDULER_Task *t,
                  const struct GNUNET_NETWORK_FDSet *fdset,
                  const struct GNUNET_NETWORK_Handle ***ntarget,
@@ -1635,13 +1635,11 @@ extract_handles (struct GNUNET_SCHEDULER_Task *t,
   const struct GNUNET_DISK_FileHandle **fhandles;
   unsigned int nhandles_len, fhandles_len;
   int sock;
-  int ret;
 
   nhandles = NULL;
   fhandles = NULL;
   nhandles_len = 0;
   fhandles_len = 0;
-  ret = GNUNET_OK;
   for (sock = 0; sock != fdset->nsds; ++sock)
   {
     if (GNUNET_YES == GNUNET_NETWORK_fdset_test_native (fdset, sock))
@@ -1663,8 +1661,6 @@ extract_handles (struct GNUNET_SCHEDULER_Task *t,
         }
         else
         {
-          ret = GNUNET_SYSERR;
-          // DEBUG
           GNUNET_assert (0);
         }
       }
@@ -1674,7 +1670,6 @@ extract_handles (struct GNUNET_SCHEDULER_Task *t,
   *ftarget = fhandles_len > 0 ? fhandles : NULL;
   *extracted_nhandles = nhandles_len;
   *extracted_fhandles = fhandles_len;
-  return ret;
 }
 
 
@@ -2120,26 +2115,6 @@ select_add (void *cls,
   GNUNET_CONTAINER_DLL_insert (context->scheduled_head,
                                context->scheduled_tail,
                                scheduled);
-  //if (0 != (GNUNET_SCHEDULER_ET_IN & scheduled->et))
-  //{
-  //  GNUNET_CONTAINER_DLL_insert (context->scheduled_in_head,
-  //                               context->scheduled_in_tail,
-  //                               scheduled);
-  //}
-  //if (0 != (GNUNET_SCHEDULER_ET_OUT & scheduled->et))
-  //{
-  //  GNUNET_CONTAINER_DLL_insert (context->scheduled_out_head,
-  //                           context->scheduled_out_tail,
-  //                           scheduled);
-  //}
-  //if (0 != (GNUNET_SCHEDULER_ET_HUP & scheduled->et) ||
-  //    0 != (GNUNET_SCHEDULER_ET_ERR & scheduled->et) ||
-  //    0 != (GNUNET_SCHEDULER_ET_PRI & scheduled->et) ||
-  //    0 != (GNUNET_SCHEDULER_ET_NVAL & scheduled->et))
-  //{
-  //  // FIXME: other event types not implemented yet
-  //  GNUNET_assert (0);
-  //}
   return GNUNET_OK;
 }
 
