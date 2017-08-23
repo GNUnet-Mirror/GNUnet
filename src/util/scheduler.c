@@ -604,47 +604,6 @@ sighandler_shutdown ()
 }
 
 
-/**
- * Check if the system has initiated shutdown. This means no tasks
- * that prevent shutdown were present and all tasks added with 
- * #GNUNET_SCHEDULER_add_shutdown were run already.
- *
- * Can be used by external event loop implementations to decide
- * whether to keep running or not.
- *
- * @return #GNUNET_YES if tasks which prevent shutdown exist
- *         #GNUNET_NO if the system has initiated shutdown
- */
-// FIXME: make it an internal function again
-int
-GNUNET_SCHEDULER_check_lifeness ()
-{
-  struct GNUNET_SCHEDULER_Task *t;
-
-  if (ready_count > 0)
-    return GNUNET_YES;
-  for (t = pending_head; NULL != t; t = t->next)
-    if (t->lifeness == GNUNET_YES)
-      return GNUNET_YES;
-  for (t = shutdown_head; NULL != t; t = t->next)
-    if (t->lifeness == GNUNET_YES)
-      return GNUNET_YES;
-  for (t = pending_timeout_head; NULL != t; t = t->next)
-    if (t->lifeness == GNUNET_YES)
-      return GNUNET_YES;
-  if (NULL != shutdown_head)
-  {
-    GNUNET_SCHEDULER_shutdown ();
-    LOG (GNUNET_ERROR_TYPE_WARNING,
-         "shutting down\n");
-    scheduler_driver->set_wakeup (scheduler_driver->cls,
-                                  GNUNET_TIME_absolute_get ());
-    return GNUNET_YES;
-  }
-  return GNUNET_NO;
-}
-
-
 void
 shutdown_if_no_lifeness ()
 {
