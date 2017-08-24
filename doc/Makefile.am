@@ -56,13 +56,13 @@ version.texi:
 	echo "@set EDITION $(PACKAGE_VERSION)" >> $@
 	echo "@set VERSION $(PACKAGE_VERSION)" >> $@ 
 
-doc-pdf: doc/version.texi
+doc-pdf: version.texi
 	@makeinfo --pdf --quiet gnunet.texi
 
-doc-html: doc/version.texi
+doc-html: version.texi
 	@makeinfo --html gnunet.texi
 
-doc-info: doc/version.texi
+doc-info: version.texi
 	@makeinfo --no-split gnunet.texi
 
 # FIXME: rm *.html and *.pdf
