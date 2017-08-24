@@ -369,13 +369,12 @@ error in the configuration).
 @subsubsection Start the second peer and connect the peers
 
 Then, you can start a second peer using:
-\lstset{language=bash}
-\begin{lstlisting}
+@example
 $ gnunet-arm -c peer2.conf -s
 $ gnunet-arm -c peer2.conf -i dht
 $ ~/gnunet/src/dht/gnunet-dht-put -c peer2.conf -k KEY -d VALUE
 $ ~/gnunet/src/dht/gnunet-dht-get -c peer2.conf -k KEY
-\end{lstlisting}
+@end example
 If you want the two peers to connect, you have multiple options:
 \begin{itemize}
 \itemsep0em
@@ -386,10 +385,10 @@ If you want the two peers to connect, you have multiple options:
 To setup peer 1 as bootstrapping server change the configuration of
 the first one to be a hostlist server by adding the following lines to
 \texttt{peer1.conf} to enable bootstrapping server:
- \begin{verbatim}
+ @example
 [hostlist]
 OPTIONS = -p
-\end{verbatim}
+@end example
 
 Then change {\tt peer2.conf} and replace the ``\texttt{SERVERS}'' line in the ``\texttt{[hostlist]}'' section with
 ``\texttt{http://localhost:8080/}''.  Restart both peers using:
@@ -457,14 +456,13 @@ The source code for the above listing can be found at
 @uref{https://gnunet.org/git/gnunet.git/tree/doc/testbed_test.c}
 or in the {\tt doc/} folder of your repository check-out.
 After installing GNUnet, the above source code can be compiled as:
-\lstset{language=bash}
-\begin{lstlisting}
+@example
 $ export CPPFLAGS="-I/path/to/gnunet/headers"
 $ export LDFLAGS="-L/path/to/gnunet/libraries"
 $ gcc $CPPFLAGS $LDFLAGS -o testbed-test testbed_test.c  -lgnunettestbed -lgnunetdht -lgnunetutil
 $ touch template.conf # Generate (empty) configuration
 $ ./testbed-test  # run it (press CTRL-C to stop)
-\end{lstlisting}
+@end example
 The \texttt{CPPFLAGS} and \texttt{LDFLAGS} are necessary if GNUnet is installed
 into a different directory other than \texttt{/usr/local}.
 
@@ -506,9 +504,9 @@ called after the connect adapter has been called when the operation from
 \texttt{GNUNET\_TESTBED\_service\_connect()} is marked as ``done''.  It has to
 disconnect from the service with the provided service handle (\texttt{op\_result}).
 
-\exercise{Find out how many peers you can run on your system.}
+Exercise: Find out how many peers you can run on your system.}
 
-\exercise{Find out how to create a 2D torus topology by changing the
+Exercise: Find out how to create a 2D torus topology by changing the
   options in the configuration file.\footnote{See @uref{https://gnunet.org/supported-topologies}}
   Then use the DHT API to store and retrieve values in the
   network.}
@@ -521,8 +519,7 @@ To develop a new peer-to-peer application or to extend GNUnet we provide
 a template build system for writing GNUnet extensions in C. It can be
 obtained as follows:
 
-\lstset{language=bash}
-\begin{lstlisting}
+@example
 $ git clone https://gnunet.org/git/gnunet-ext
 $ cd gnunet-ext/
 $ ./bootstrap
@@ -530,7 +527,7 @@ $ ./configure --prefix=$PREFIX --with-gnunet=$PREFIX
 $ make
 $ make install
 $ make check
-\end{lstlisting}
+@end example
 % $
 
 The GNUnet ext template includes examples and a working buildsystem for a new GNUnet service.
@@ -614,7 +611,7 @@ main (int argc, char *const *argv)
                               gettext_noop ("binary description text"),
                               options, &run, NULL)) ? ret : 1;
 }
-\end{lstlisting}
+@end example
 
 @subsection Handling command-line options}
 
@@ -641,7 +638,7 @@ static int a_flag;
   string_option = NULL;
   a_flag = GNUNET_SYSERR;
 // ...
-\end{lstlisting}
+@end example
 
 Issues such as displaying some helpful text describing options using
 the {\tt --help} argument and error handling are taken care of when
@@ -659,7 +656,7 @@ using some client library to interact with the service.  The client
 library is supposed to implement the IPC whereas the service provides
 more persistent P2P functions.
 
-\exercise{Add a few command-line options and print them inside
+Exercise: Add a few command-line options and print them inside
 of {\tt run}.  What happens if the user gives invalid arguments?}
 
 @subsection Writing a Client Library}
@@ -683,7 +680,7 @@ Unique message types must be defined for each message struct in the
 {\tt gnunet\_protocols.h} header (or an extension-specific include
 file).
 
-\subsubsection{Connecting to the Service}
+@subsubsection Connecting to the Service}
 
 Before a client library can implement the application-specific protocol
 with the service, a connection must be created:
@@ -697,7 +694,7 @@ with the service, a connection must be created:
   struct GNUNET_MQ_Handle *mq;
 
   mq = GNUNET_CLIENT_connect (cfg, "service-name", handlers, &error_cb, NULL);
-\end{lstlisting}
+@end example
 
 As a result a {\tt GNUNET\_MQ\_Handle} is returned
 which can to used henceforth to transmit messages to
@@ -709,7 +706,7 @@ receive from the service, and which functions handle them.
 The {\tt error\_cb} is a function that is to be called whenever
 there are errors communicating with the service.
 
-\subsubsection{Sending messages}
+@subsubsection Sending messages}
 
 In GNUnet, messages are always sent beginning with a {\tt struct GNUNET\_MessageHeader}
 in big endian format. This header defines the size and the type of the
@@ -722,7 +719,7 @@ struct GNUNET_MessageHeader
   uint16_t size GNUNET_PACKED;
   uint16_t type GNUNET_PACKED;
 };
-\end{lstlisting}
+@end example
 
 Existing message types are defined in {\tt gnunet\_protocols.h}\\
 A common way to create a message is with an envelope:
@@ -736,23 +733,23 @@ env = GNUNET_MQ_msg_extra (msg, payload_size, GNUNET_MY_MESSAGE_TYPE);
 memcpy (&msg[1], &payload, payload_size);
 // Send message via message queue 'mq'
 GNUNET_mq_send (mq, env);
-\end{lstlisting}
+@end example
 
-\exercise{Define a message struct that includes a 32-bit
+Exercise: Define a message struct that includes a 32-bit
 unsigned integer in addition to the standard GNUnet MessageHeader.
 Add a C struct and define a fresh protocol number for your message.
 (Protocol numbers in gnunet-ext are defined in \lstinline|gnunet-ext/src/include/gnunet_protocols_ext.h|)}
 
-\exercise{Find out how you can determine the number of messages in a message queue.}
+Exercise: Find out how you can determine the number of messages in a message queue.}
 
-\exercise{Find out how you can determine when a message you have queued was actually transmitted.}
+Exercise: Find out how you can determine when a message you have queued was actually transmitted.}
 
-\exercise{Define a helper function to transmit a 32-bit
+Exercise: Define a helper function to transmit a 32-bit
 unsigned integer (as payload) to a service using some given client
 handle.}
 
 
-\subsubsection{Receiving Replies from the Service}
+@subsubsection Receiving Replies from the Service}
 
 Clients can receive messages from the service using the handlers
 specified in the {\tt handlers} array we specified when connecting
@@ -798,14 +795,14 @@ struct GNUNET_MQ_MessageHandler handlers[] = {
 
   GNUNET_MQ_handler_end ()
 };
-\end{lstlisting}
+@end example
 
-\exercise{Expand your helper function to receive a response message
+Exercise: Expand your helper function to receive a response message
   (for example, containing just the {\tt struct GNUnet MessageHeader}
   without any payload).  Upon receiving the service's response, you
   should call a callback provided to your helper function's API.}
 
-\exercise{Figure out where you can pass values to the closures ({\tt cls}).}
+Exercise: Figure out where you can pass values to the closures ({\tt cls}).}
 
 
 @subsection Writing a user interface}
@@ -814,7 +811,7 @@ Given a client library, all it takes to access a service now is to
 combine calls to the client library with parsing command-line
 options.
 
-\exercise{Call your client API from your {\tt run()} method in your
+Exercise: Call your client API from your {\tt run()} method in your
   client application to send a request to the service.  For example,
   send a 32-bit integer value based on a number given at the
   command-line to the service.}
@@ -851,7 +848,7 @@ GNUNET_SERVICE_MAIN
  GNUNET_MQ_hd_fixed_size (...),
  GNUNET_MQ_hd_var_size (...),
  GNUNET_MQ_handler_end ());
-\end{lstlisting}
+@end example
 
 In addition to the service name and flags, the macro takes three
 functions, typically called {\tt run}, {\tt client\_connect\_cb} and
@@ -885,17 +882,17 @@ client_disconnect_cb (void *cls,
 {
   GNUNET_assert (c == internal_cls);
 }
-\end{lstlisting}
+@end example
 
-\exercise{Write a stub service that processes no messages at all
+Exercise: Write a stub service that processes no messages at all
   in your code.  Create a default configuration for it, integrate it
   with the build system and start the service from {\tt
   gnunet-service-arm} using {\tt gnunet-arm -i NAME}.}
 
-\exercise{Figure out how to set the closure ({\tt cls}) for handlers
+Exercise: Figure out how to set the closure ({\tt cls}) for handlers
   of a service.}
 
-\exercise{Figure out how to send messages from the service back to the
+Exercise: Figure out how to send messages from the service back to the
   client.}
 
 Each handler function in the service {\bf must} eventually (possibly in some
@@ -904,7 +901,7 @@ Only after this call additional messages from the same client may
 be processed. This way, the service can throttle processing messages
 from the same client.
 
-\exercise{Change the service to ``handle'' the message from your
+Exercise: Change the service to ``handle'' the message from your
   client (for now, by printing a message).  What happens if you
   forget to call {\tt GNUNET\_SERVICE\_client\_continue()}?}
 
@@ -930,7 +927,7 @@ GNUNET_CORE_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
                      GNUNET_CORE_ConnectEventHandler connects,
                      GNUNET_CORE_DisconnectEventHandler disconnects,
                      const struct GNUNET_MQ_MessageHandler *handlers);
-\end{lstlisting}
+@end example
 
 @subsection New P2P connections}
 
@@ -947,17 +944,17 @@ connects (void *cls,
 {
   return mq;
 }
-\end{lstlisting}
+@end example
 
 Note that whatever you return from {\tt connects} is given as the
 {\it cls} argument to the message handlers for messages from
 the respective peer.
 
-\exercise{Create a service that connects to the \texttt{CORE}.  Then
+Exercise: Create a service that connects to the \texttt{CORE}.  Then
 start (and connect) two peers and print a message once your connect
 callback is invoked.}
 
-@subsection Receiving P2P Messages}
+@subsection Receiving P2P Messages
 
 To receive messages from \texttt{CORE}, you pass the desired
 {\em handlers} to the {\tt GNUNET\_CORE\_connect()} function,
@@ -968,13 +965,13 @@ to implement flow control. If an application does not process
 CORE messages fast enough, CORE will randomly drop messages
 to not keep a very long queue in memory.
 
-\exercise{Start one peer with a new service that has a message
+Exercise: Start one peer with a new service that has a message
 handler and start a second peer that only has your ``old'' service
 without message handlers.  Which ``connect'' handlers are invoked when
 the two peers are connected?  Why?}
 
 
-@subsection Sending P2P Messages}
+@subsection Sending P2P Messages
 
 You can transmit messages to other peers using the {\it mq} you were
 given during the {\tt connect} callback.  Note that the {\it mq}
@@ -984,7 +981,7 @@ not use it afterwards.
 It is your responsibility to not over-fill the message queue, GNUnet
 will send the messages roughly in the order given as soon as possible.
 
-\exercise{Write a service that upon connect sends messages as
+Exercise: Write a service that upon connect sends messages as
 fast as possible to the other peer (the other peer should run a
 service that ``processes'' those messages).  How fast is the
 transmission?  Count using the STATISTICS service on both ends.  Are
@@ -1009,9 +1006,9 @@ disconnects (void *cls,
     /* Remove peer's identity from known peers */
     /* Make sure no messages are sent to peer from now on */
 }
-\end{lstlisting}
+@end example
 
-\exercise{Fix your service to handle peer disconnects.}
+Exercise: Fix your service to handle peer disconnects.}
 
 @section Storing peer-specific data using the PEERSTORE service
 
@@ -1033,7 +1030,7 @@ The first step is to start a connection to the PEERSTORE service:
 #include "gnunet_peerstore_service.h"
 
 peerstore_handle = GNUNET_PEERSTORE_connect (cfg);
-\end{lstlisting}
+@end example
 The service handle \lstinline|peerstore_handle| will be needed for all subsequent
 PEERSTORE operations.
 
@@ -1052,7 +1049,7 @@ GNUNET_PEERSTORE_store (struct GNUNET_PEERSTORE_Handle *h,
                         enum GNUNET_PEERSTORE_StoreOption options,
                         GNUNET_PEERSTORE_Continuation cont,
                         void *cont_cls);
-\end{lstlisting}
+@end example
 
 The \lstinline|options| parameter can either be \lstinline|GNUNET_PEERSTORE_STOREOPTION_MULTIPLE|
 which means that multiple values can be stored under the same key combination (subsystem, peerid, key),
@@ -1068,9 +1065,9 @@ can be used to cancel the store operation only before the continuation function 
 \begin{lstlisting}
 void
 GNUNET_PEERSTORE_store_cancel (struct GNUNET_PEERSTORE_StoreContext *sc);
-\end{lstlisting}
+@end example
 
-@subsection Retrieving records}
+@subsection Retrieving records
 
 To retrieve stored records, use the following function:
 \begin{lstlisting}
@@ -1082,7 +1079,7 @@ GNUNET_PEERSTORE_iterate (struct GNUNET_PEERSTORE_Handle *h,
                           struct GNUNET_TIME_Relative timeout,
                           GNUNET_PEERSTORE_Processor callback,
                           void *callback_cls);
-\end{lstlisting}
+@end example
 The values of \lstinline|peer| and \lstinline|key| can be \lstinline|NULL|. This allows the
 iteration over values stored under any of the following key combinations:
 \begin{itemize}
@@ -1100,7 +1097,7 @@ The \lstinline|GNUNET_PEERSTORE_iterate| function returns a handle to the iterat
 handle can be used to cancel the iterate operation only before the callback function is called with
 a \lstinline|NULL| record.
 
-@subsection Monitoring records}
+@subsection Monitoring records
 
 PEERSTORE offers the functionality of monitoring for new records stored under a specific key
 combination (subsystem, peerid, key). To start the monitoring, use the following function:
@@ -1112,7 +1109,7 @@ GNUNET_PEERSTORE_watch (struct GNUNET_PEERSTORE_Handle *h,
                         const char *key,
                         GNUNET_PEERSTORE_Processor callback,
                         void *callback_cls);
-\end{lstlisting}
+@end example
 
 Whenever a new record is stored under the given key combination, the \lstinline|callback| function
 will be called with this new record. This will continue until the connection to the PEERSTORE service
@@ -1120,16 +1117,16 @@ is broken or the watch operation is canceled:
 \begin{lstlisting}
 void
 GNUNET_PEERSTORE_watch_cancel (struct GNUNET_PEERSTORE_WatchContext *wc);
-\end{lstlisting}
+@end example
 
-@subsection Disconnecting from PEERSTORE}
+@subsection Disconnecting from PEERSTORE
 
 When the connection to the PEERSTORE service is no longer needed, disconnect using the following
 function:
 \begin{lstlisting}
 void
 GNUNET_PEERSTORE_disconnect (struct GNUNET_PEERSTORE_Handle *h, int sync_first);
-\end{lstlisting}
+@end example
 
 If the \lstinline|sync_first| flag is set to \lstinline|GNUNET_YES|, the API will delay the
 disconnection until all store requests are received by the PEERSTORE service. Otherwise,
@@ -1145,12 +1142,12 @@ thing to do is to connect to the DHT service:
 \lstset{language=C}
 \begin{lstlisting}
 dht_handle = GNUNET_DHT_connect (cfg, parallel_requests);
-\end{lstlisting}
+@end example
 The second parameter indicates how many requests in parallel to expect.
 It is not a hard limit, but a good approximation will make the DHT more
 efficient.
 
-@subsection Storing data in the DHT}
+@subsection Storing data in the DHT
 Since the DHT is a dynamic environment (peers join and leave frequently)
 the data that we put in the DHT does not stay there indefinitely. It is
 important to ``refresh'' the data periodically by simply storing it again,
@@ -1182,14 +1179,14 @@ GNUNET_DHT_put (struct GNUNET_DHT_Handle *handle,
                 struct GNUNET_TIME_Absolute exp,
                 struct GNUNET_TIME_Relative timeout,
                 GNUNET_DHT_PutContinuation cont, void *cont_cls)
-\end{lstlisting}
+@end example
 
-\exercise{Store a value in the DHT periodically to make sure it is available
+Exercise: Store a value in the DHT periodically to make sure it is available
 over time. You might consider using the function GNUNET\_SCHEDULER\_add\_delayed and
 call GNUNET\_DHT\_put from inside a helper function.}
 
 
-@subsection Obtaining data from the DHT}
+@subsection Obtaining data from the DHT
 As we saw in the previous example, the DHT works in an asynchronous mode.
 Each request to the DHT is executed ``in the background'' and the API
 calls return immediately. In order to receive results from the DHT, the
@@ -1227,13 +1224,13 @@ get_handle =
                             0,
                             &get_result_iterator,
                             cls)
-\end{lstlisting}
+@end example
 
-\exercise{Store a value in the DHT and after a while retrieve it. Show the IDs of all
+Exercise: Store a value in the DHT and after a while retrieve it. Show the IDs of all
 the peers the requests have gone through. In order to convert a peer ID to a string, use
 the function GNUNET\_i2s. Pay attention to the route option parameters in both calls!}
 
-@subsection Implementing a block plugin}
+@subsection Implementing a block plugin
 
 In order to store data in the DHT, it is necessary to provide a block
 plugin.  The DHT uses the block plugin to ensure that only well-formed
@@ -1244,7 +1241,7 @@ The block plugin should be put in a file {\tt
 mandatory functions that need to be implemented for a block plugin are
 described in the following sections.
 
-\subsubsection{Validating requests and replies}
+@subsubsection Validating requests and replies
 
 The evaluate function should validate a reply or a request. It returns
 a {\tt GNUNET\_BLOCK\_EvaluationResult}, which is an enumeration. All
@@ -1271,7 +1268,7 @@ block_plugin_SERVICE_evaluate (void *cls,
 {
   // Verify type, block and bg
 }
-\end{lstlisting}
+@end example
 
 Note that it is mandatory to detect duplicate replies in this function
 and return the respective status code.  Duplicate detection is
@@ -1279,7 +1276,7 @@ typically done using the Bloom filter block group provided by {\tt
   libgnunetblockgroup.so}.  Failure to do so may cause replies to
 circle in the network.
 
-\subsubsection{Deriving a key from a reply}
+@subsubsection Deriving a key from a reply
 
 The DHT can operate more efficiently if it is possible to derive a key
 from the value of the corresponding block.  The {\tt get\_key}
@@ -1288,8 +1285,7 @@ means of hashing.  If deriving the key is not possible, the function
 should simply return {\tt GNUNET\_SYSERR} (the DHT will still work
 just fine with such blocks).
 
-\lstset{language=C}
-\begin{lstlisting}
+@example
 static int
 block_plugin_SERVICE_get_key (void *cls, enum GNUNET_BLOCK_Type type,
                              const void *block, size_t block_size,
@@ -1297,9 +1293,9 @@ block_plugin_SERVICE_get_key (void *cls, enum GNUNET_BLOCK_Type type,
 {
   // Store the key in the key argument, return GNUNET_OK on success.
 }
-\end{lstlisting}
+@end example
 
-\subsubsection{Initialization of the plugin}
+@subsubsection Initialization of the plugin
 
 The plugin is realized as a shared C library.  The library must export
 an initialization function which should initialize the plugin.  The
@@ -1307,8 +1303,7 @@ initialization function specifies what block types the plugin cares
 about and returns a struct with the functions that are to be used for
 validation and obtaining keys (the ones just defined above).
 
-\lstset{language=C}
-\begin{lstlisting}
+@example
 void *
 libgnunet_plugin_block_SERVICE_init (void *cls)
 {
@@ -1325,16 +1320,15 @@ libgnunet_plugin_block_SERVICE_init (void *cls)
   api->types = types;
   return api;
 }
-\end{lstlisting}
+@end example
 
-\subsubsection{Shutdown of the plugin}
+@subsubsection Shutdown of the plugin
 
 Following GNUnet's general plugin API concept, the plugin must
 export a second function for cleaning up.  It usually does very
 little.
 
-\lstset{language=C}
-\begin{lstlisting}
+@example
 void *
 libgnunet_plugin_block_SERVICE_done (void *cls)
 {
@@ -1343,16 +1337,15 @@ libgnunet_plugin_block_SERVICE_done (void *cls)
   GNUNET_free (api);
   return NULL;
 }
-\end{lstlisting}
+@end example
 
 
-\subsubsection{Integration of the plugin with the build system}
+@subsubsection Integration of the plugin with the build system
 
-In order to compile the plugin, the {\tt Makefile.am} file for the
-service \texttt{SERVICE} should contain a rule similar to this:
+In order to compile the plugin, the Makefile.am file for the
+service SERVICE should contain a rule similar to this:
 
-\lstset{language=make}
-\begin{lstlisting}
+@example
   plugindir = $(libdir)/gnunet
 
   plugin_LTLIBRARIES = \
@@ -1367,15 +1360,12 @@ service \texttt{SERVICE} should contain a rule similar to this:
 	  $(GN_PLUGIN_LDFLAGS)
   libgnunet_plugin_block_ext_la_DEPENDENCIES = \
 	  $(prefix)/lib/libgnunetblock.la
-\end{lstlisting}
-% $
+@end example
 
 
-\exercise{Write a block plugin that accepts all queries
+Exercise: Write a block plugin that accepts all queries
 and all replies but prints information about queries and replies
-when the respective validation hooks are called.}
-
-
+when the respective validation hooks are called.
 
 @subsection Monitoring the DHT
 It is possible to monitor the functioning of the local DHT service. When monitoring
@@ -1388,8 +1378,7 @@ Since the different events have different associated data, the API gets 3
 different callbacks (one for each message type) and optional type and key parameters,
 to allow for filtering of messages. When an event happens, the appropiate callback
 is called with all the information about the event.
-\lstset{language=C}
-\begin{lstlisting}
+@example
 static void
 get_callback (void *cls,
               enum GNUNET_DHT_RouteOption options,
@@ -1441,7 +1430,7 @@ monitor_handle = GNUNET_DHT_monitor_start (dht_handle,
                                           &get_resp_callback,
                                           &put_callback,
                                           cls);
-\end{lstlisting}
+@end example
 
 
 @section Debugging with gnunet-arm
@@ -1451,20 +1440,18 @@ Even if services are managed by {\tt gnunet-arm}, you can start them with
 to your configuration file to start the DHT service in a {\tt gdb} session in a
 fresh {\tt xterm}:
 
-\begin{verbatim}
+@example
 [dht]
 PREFIX=xterm -e gdb --args
-\end{verbatim}
+@end example
 
 Alternatively, you can stop a service that was started via ARM and run it manually:
 
-\lstset{language=bash}
-\begin{lstlisting}
+@example
 $ gnunet-arm -k dht
 $ gdb --args gnunet-service-dht -L DEBUG
 $ valgrind gnunet-service-dht -L DEBUG
-\end{lstlisting}
-% $
+@end example
 
 Assuming other services are well-written, they will automatically re-integrate the
 restarted service with the peer.
@@ -1481,9 +1468,12 @@ You should also probably enable the creation of core files, by setting
 Then you can investigate the core dumps with {\tt gdb}, which is often
 the fastest method to find simple errors.
 
-\exercise{Add a memory leak to your service and obtain a trace
+Exercise: Add a memory leak to your service and obtain a trace
 pointing to the leak using {\tt valgrind} while running the service
 from {\tt gnunet-service-arm}.}
 
+@bye
 
-\end{document}
+@c Local Variables:
+@c ispell-local-dictionary: ``american'';
+@c End:
