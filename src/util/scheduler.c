@@ -1717,8 +1717,7 @@ GNUNET_SCHEDULER_add_select (enum GNUNET_SCHEDULER_Priority prio,
   unsigned int read_nhandles_len, write_nhandles_len,
                read_fhandles_len, write_fhandles_len;
 
-  if ( (NULL == rs) &&
-       (NULL == ws) )
+  if (((NULL == rs) && (NULL == ws)) || ((0 == rs->nsds) && (0 == ws->nsds)))
     return GNUNET_SCHEDULER_add_delayed_with_priority (delay,
                                                        prio,
                                                        task,
@@ -1759,7 +1758,6 @@ GNUNET_SCHEDULER_add_select (enum GNUNET_SCHEDULER_Priority prio,
                      &write_fhandles,
                      &write_fhandles_len);
   }
-  GNUNET_assert (read_nhandles_len + write_nhandles_len > 0);
   init_fd_info (t,
                 read_nhandles,
                 read_nhandles_len,
