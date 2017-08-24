@@ -1733,6 +1733,10 @@ GNUNET_SCHEDULER_add_select (enum GNUNET_SCHEDULER_Priority prio,
   t->read_fd = -1;
   t->write_fd = -1;
   t->own_handlers = GNUNET_YES;
+  read_nhandles = NULL;
+  write_nhandles = NULL;
+  read_fhandles = NULL;
+  write_fhandles = NULL;
   read_nhandles_len = 0;
   write_nhandles_len = 0;
   read_fhandles_len = 0;
