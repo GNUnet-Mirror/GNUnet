@@ -52,6 +52,7 @@
   #:use-module (gnu packages python)
   #:use-module (gnu packages tls)
   #:use-module (gnu packages texinfo)
+  #:use-module (gnu packages tex)
   #:use-module (gnu packages upnp)
   #:use-module (gnu packages web)
   #:use-module (gnu packages xiph))
@@ -60,8 +61,8 @@
 ;; Explanation for name scheme: UNIXPATH is capped at 108 characters,
 ;; this causes lots of tests to fail.
 (define-public gnunetg
-  (let* ((commit "7985352713a5462bc737332d02ddcc870381b56a")
-         (revision "26"))
+  (let* ((commit "091ade13613a2880f59af39ceee988ac983645a3")
+         (revision "27"))
     (package
       (inherit gnunet)
       (name "gnunetg")
@@ -76,7 +77,7 @@
          (file-name (string-append name "-" version "-checkout"))
          (sha256
           (base32
-           "1xx4vvvrqsbmwk82xnz4wrr9a0jaic823y7mqpy13ibazhliwbqw"))))
+           "1irs8fs5hcv5bbbs71r1srl9p22h8y1kp2p5dapxrkiab68vrwhs"))))
       (build-system gnu-build-system)
       (inputs
        `(("glpk" ,glpk)
@@ -193,7 +194,7 @@
        ("miniupnpc" ,miniupnpc)
        ("bluez" ,bluez) ; for optional bluetooth feature
        ("glib" ,glib)
-       ;; ("texlive-minimal" ,texlive-minimal) ; optional.
+       ("texlive" ,texlive) ;TODO: Use a minimal subset.
        ("libogg" ,libogg)))
     (native-inputs
      `(("pkg-config" ,pkg-config)
