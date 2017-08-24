@@ -226,11 +226,12 @@
              (let* ((out (assoc-ref outputs "out"))
                     (doc (string-append out "/share/doc/gnunet")))
                (mkdir-p doc)
+               (mkdir-p (string-append doc "/gnunet"))
                (install-file "gnunet.pdf" doc)
                (install-file "gnunet.info" doc)
-               (copy-file-recursively "gnunet.html"
-                                      (string-append doc
-                                                     "/html")))
+               (copy-recursively "gnunet"
+                                 (string-append doc
+                                                "/gnunet")))
              #t)))))
     (synopsis "GNUnet documentation")
     (description
