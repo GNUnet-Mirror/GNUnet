@@ -1325,7 +1325,7 @@ require the option @code{OVERLAY_RANDOM_LINKS} to be set to the number of
 random links to be generated in the configuration. The option will be ignored
 for the rest of the topologies.
 
-Toplogy @code{SCALE_FREE} requires the options @code{SCALE_FREE_TOPOLOGY_CAP}
+Topology @code{SCALE_FREE} requires the options @code{SCALE_FREE_TOPOLOGY_CAP}
 to be set to the maximum number of peers which can connect to a peer and
 @code{SCALE_FREE_TOPOLOGY_M} to be set to how many peers a peer should be
 atleast connected to.
