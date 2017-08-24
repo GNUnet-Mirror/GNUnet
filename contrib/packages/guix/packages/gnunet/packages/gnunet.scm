@@ -159,6 +159,54 @@
            ;;       ;; XXX: HOW??? ulimit -c unlimited
            ;;       (zero? (system* "make" "check"))))))))
 
+(define-public gnunet-doc
+  (package
+    (name "gnunet-doc")
+    (version (package-version gnunetg))
+    (source (package-source gnunetg))
+    (build-system gnu-build-system)
+    (native-inputs
+     `(("pkg-config" ,pkg-config)
+       ("autoconf" ,autoconf)
+       ("automake" ,automake)
+       ("gnu-gettext" ,gnu-gettext)
+       ("texinfo" ,texinfo)
+       ("libtool" ,libtool)))
+    (arguments
+     `(#:tests? #f ;Don't run tests
+       #:phases
+       (modify-phases %standard-phases
+         (add-after 'unpack 'patch-bin-sh
+           (lambda _
+             (substitute* "bootstrap"
+               (("contrib/pogen.sh") "sh contrib/pogen.sh"))
+             (for-each (lambda (f) (chmod f #o755))
+                       (find-files "po" ""))
+             #t))
+         (add-after 'patch-bin-sh 'bootstrap
+           (lambda _
+             (zero? (system* "sh" "bootstrap"))))
+         (replace 'build
+           (lambda _
+             (chdir "doc")
+             (zero? (system* "make" "doc-all"))))
+         (replace 'install
+           (lambda* (#:key outputs #:allow-other-keys)
+             (let* ((out (assoc-ref outputs "out"))
+                    (doc (string-append out "/share/doc/gnunet")))
+               (mkdir-p doc)
+               (install-file "gnunet.pdf" doc)
+               (install-file "gnunet.info" doc)
+               (copy-file-recursively "gnunet.html"
+                                      (string-append doc
+                                                     "/html")))
+             #t)))))
+    (synopsis "GNUnet documentation")
+    (description
+     "Gnunet-doc builds the documentation of GNUnet.")
+    (home-page "https://gnunet.org")
+    (license (package-license gnunet))))
+
 (define-public gnunetgpg
   (package
     (inherit gnunetg)

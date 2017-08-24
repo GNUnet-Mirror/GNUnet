@@ -49,3 +49,18 @@ gnunet_TEXINFOS = \
 EXTRA_DIST = \
 	$(gnunet_TEXINFOS) \
 	$(gnunet_doc_images)
+
+doc-pdf:
+	@makeinfo --pdf --quiet gnunet.texi
+
+doc-html:
+	@makeinfo --html gnunet.texi
+
+doc-info:
+	@makeinfo --no-split gnunet.texi
+
+# FIXME: rm *.html and *.pdf
+doc-clean:
+	@rm *.aux *.log *.toc *.cp *.cps
+
+doc-all: doc-pdf doc-html doc-info
