@@ -504,12 +504,12 @@ called after the connect adapter has been called when the operation from
 \texttt{GNUNET\_TESTBED\_service\_connect()} is marked as ``done''.  It has to
 disconnect from the service with the provided service handle (\texttt{op\_result}).
 
-Exercise: Find out how many peers you can run on your system.}
+Exercise: Find out how many peers you can run on your system.
 
 Exercise: Find out how to create a 2D torus topology by changing the
-  options in the configuration file.\footnote{See @uref{https://gnunet.org/supported-topologies}}
+  options in the configuration file. See @uref{https://gnunet.org/supported-topologies}
   Then use the DHT API to store and retrieve values in the
-  network.}
+  network.
 
 
 @section Developing Applications
@@ -528,39 +528,32 @@ $ make
 $ make install
 $ make check
 @end example
-% $
 
 The GNUnet ext template includes examples and a working buildsystem for a new GNUnet service.
 A common GNUnet service consists of the following parts which will be discussed in detail in the
 remainder of this document. The functionality of a GNUnet service is implemented in:
 
-\begin{itemize}
-\itemsep0em
-  \item the GNUnet service (\lstinline|gnunet-ext/src/ext/gnunet-service-ext.c|)
-  \item the client API (\lstinline|gnunet-ext/src/ext/ext_api.c|)
-  \item the client application using the service API (\lstinline|gnunet-ext/src/ext/gnunet-ext.c|)
-
-
-\end{itemize}
+@itemize
+@item the GNUnet service (gnunet-ext/src/ext/gnunet-service-ext.c)
+@item the client API (gnunet-ext/src/ext/ext_api.c)
+@item the client application using the service API (gnunet-ext/src/ext/gnunet-ext.c)
+@end itemize
 
 The interfaces for these entities are defined in:
-\begin{itemize}
-\itemsep0em
-  \item client API interface (\lstinline|gnunet-ext/src/ext/ext.h|)
-  \item the service interface (\lstinline|gnunet-ext/src/include/gnunet_service_SERVICE.h|)
-  \item the P2P protocol (\lstinline|gnunet-ext/src/include/gnunet_protocols_ext.h|)
-\end{itemize}
+@itemize
+@item client API interface (gnunet-ext/src/ext/ext.h)
+@item the service interface (gnunet-ext/src/include/gnunet_service_SERVICE.h)
+@item the P2P protocol (gnunet-ext/src/include/gnunet_protocols_ext.h)
+@end itemize
 
 
-In addition the \texttt{ext} systems provides:
-\begin{itemize}
-\itemsep0em
-  \item a test testing the API (\lstinline|gnunet-ext/src/ext/test_ext_api.c|)
-  \item a configuration template for the service (\lstinline|gnunet-ext/src/ext/ext.conf.in|)
-\end{itemize}
+In addition the ext systems provides:
+@itemize
+@item a test testing the API (gnunet-ext/src/ext/test_ext_api.c)
+@item a configuration template for the service (gnunet-ext/src/ext/ext.conf.in)
+@end itemize
 
-
-@subsection Adapting the Template}
+@subsection Adapting the Template
 
 The first step for writing any extension with a new service is to
 ensure that the {\tt ext.conf.in} file contains entries for the
@@ -1473,7 +1466,3 @@ pointing to the leak using {\tt valgrind} while running the service
 from {\tt gnunet-service-arm}.}
 
 @bye
-
-@c Local Variables:
-@c ispell-local-dictionary: ``american'';
-@c End:
