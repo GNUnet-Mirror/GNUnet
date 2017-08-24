@@ -60,8 +60,8 @@
 ;; Explanation for name scheme: UNIXPATH is capped at 108 characters,
 ;; this causes lots of tests to fail.
 (define-public gnunetg
-  (let* ((commit "2909294342ee9c9cdacfbc75ab852c54f34c7bb9")
-         (revision "25"))
+  (let* ((commit "7985352713a5462bc737332d02ddcc870381b56a")
+         (revision "26"))
     (package
       (inherit gnunet)
       (name "gnunetg")
@@ -76,7 +76,7 @@
          (file-name (string-append name "-" version "-checkout"))
          (sha256
           (base32
-           "1nlzwsbj58bgsjnf46zp03f108d7fmcls7qi0l41iyvniyj3hfa5"))))
+           "1xx4vvvrqsbmwk82xnz4wrr9a0jaic823y7mqpy13ibazhliwbqw"))))
       (build-system gnu-build-system)
       (inputs
        `(("glpk" ,glpk)
@@ -165,6 +165,36 @@
     (version (package-version gnunetg))
     (source (package-source gnunetg))
     (build-system gnu-build-system)
+    ;; FIXME: Introduce DOCS_ONLY option for configure script.
+    ;; This should prevent the checks for all required software.
+    (inputs
+     `(("glpk" ,glpk)
+       ("gnurl" ,gnurl)
+       ("gstreamer" ,gstreamer)
+       ("gst-plugins-base" ,gst-plugins-base)
+       ("gnutls" ,gnutls)
+       ("libextractor" ,libextractor)
+       ("libgcrypt" ,libgcrypt)
+       ("libidn" ,libidn)
+       ("libmicrohttpd" ,libmicrohttpd)
+       ("libltdl" ,libltdl)
+       ("libunistring" ,libunistring)
+       ("openssl" ,openssl)
+       ("opus" ,opus)
+       ("pulseaudio" ,pulseaudio)
+       ("sqlite" ,sqlite)
+       ("zlib" ,zlib)
+       ("perl" ,perl)
+       ("python" ,python-2) ; tests and gnunet-qr
+       ("jansson" ,jansson)
+       ("ncurses" ,ncurses)
+       ("nss" ,nss)
+       ("gmp" ,gmp)
+       ("miniupnpc" ,miniupnpc)
+       ("bluez" ,bluez) ; for optional bluetooth feature
+       ("glib" ,glib)
+       ;; ("texlive-minimal" ,texlive-minimal) ; optional.
+       ("libogg" ,libogg)))
     (native-inputs
      `(("pkg-config" ,pkg-config)
        ("autoconf" ,autoconf)
