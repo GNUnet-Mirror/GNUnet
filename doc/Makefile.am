@@ -50,13 +50,19 @@ EXTRA_DIST = \
 	$(gnunet_TEXINFOS) \
 	$(gnunet_doc_images)
 
-doc-pdf:
+version.texi:
+	echo "@set UPDATED $(date +'%d %B %Y')" > $@
+	echo "@set UPDATED-MONTH $(date +'%B %Y')" >> $@
+	echo "@set EDITION $(PACKAGE_VERSION)" >> $@
+	echo "@set VERSION $(PACKAGE_VERSION)" >> $@ 
+
+doc-pdf: doc/version.texi
 	@makeinfo --pdf --quiet gnunet.texi
 
-doc-html:
+doc-html: doc/version.texi
 	@makeinfo --html gnunet.texi
 
-doc-info:
+doc-info: doc/version.texi
 	@makeinfo --no-split gnunet.texi
 
 # FIXME: rm *.html and *.pdf
@@ -64,3 +70,5 @@ doc-clean:
 	@rm *.aux *.log *.toc *.cp *.cps
 
 doc-all: doc-pdf doc-html doc-info
+
+.PHONY: version.texi
