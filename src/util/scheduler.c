@@ -220,19 +220,31 @@ struct GNUNET_SCHEDULER_Task
 };
 
 
+/**
+ * A struct representing an event the select driver is waiting for
+ */
 struct Scheduled
 {
   struct Scheduled *prev;
 
   struct Scheduled *next;
 
+  /**
+   * the task, the event is related to
+   */
   struct GNUNET_SCHEDULER_Task *task;
 
+  /**
+   * information about the network socket / file descriptor where
+   * the event is expected to occur
+   */
   struct GNUNET_SCHEDULER_FdInfo *fdi;
 
+  /**
+   * the event types (multiple event types can be ORed) the select
+   * driver is expected to wait for
+   */
   enum GNUNET_SCHEDULER_EventType et;
-
-  int is_ready;
 };
 
 
@@ -241,10 +253,22 @@ struct Scheduled
  */
 struct DriverContext
 {
+  /**
+   * the head of a DLL containing information about the events the
+   * select driver is waiting for
+   */
   struct Scheduled *scheduled_head;
 
+  /**
+   * the tail of a DLL containing information about the events the
+   * select driver is waiting for
+   */
   struct Scheduled *scheduled_tail;
 
+  /**
+   * the time until the select driver will wake up again (after
+   * calling select)
+   */
   struct GNUNET_TIME_Relative timeout;
 };
 
@@ -510,6 +534,10 @@ static void
 destroy_task (struct GNUNET_SCHEDULER_Task *t)
 {
   unsigned int i;
+
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "destroying task %p\n",
+       t);
 
   if (GNUNET_YES == t->own_handlers)
   {
@@ -819,10 +847,8 @@ init_fd_info (struct GNUNET_SCHEDULER_Task *t,
  * @param et the event type to be set in each FdInfo after calling
  *           @a driver_func on it, or -1 if no updating not desired.
  */
-void scheduler_multi_function_call (struct GNUNET_SCHEDULER_Task *t,
-                                    int (*driver_func)(),
-                                    int if_not_ready,
-                                    enum GNUNET_SCHEDULER_EventType et)
+void driver_add_multiple (struct GNUNET_SCHEDULER_Task *t,
+                          enum GNUNET_SCHEDULER_EventType et)
 {
   struct GNUNET_SCHEDULER_FdInfo *fdi;
   int success = GNUNET_YES;
@@ -830,19 +856,16 @@ void scheduler_multi_function_call (struct GNUNET_SCHEDULER_Task *t,
   for (int i = 0; i != t->fds_len; ++i)
   {
     fdi = &t->fds[i];
-    if ((GNUNET_NO == if_not_ready) || (GNUNET_SCHEDULER_ET_NONE == fdi->et))
+    success = scheduler_driver->add (scheduler_driver->cls, t, fdi) && success;
+    if (et != -1)
     {
-      success = driver_func (scheduler_driver->cls, t, fdi) && success;
-      if (et != -1)
-      {
-        fdi->et = et;
-      }
+      fdi->et = et;
     }
   }
   if (GNUNET_YES != success)
   {
     LOG (GNUNET_ERROR_TYPE_ERROR,
-         "driver call not successful");
+         "driver could not add task\n");
   }
 }
 
@@ -876,38 +899,49 @@ void *
 GNUNET_SCHEDULER_cancel (struct GNUNET_SCHEDULER_Task *task)
 {
   enum GNUNET_SCHEDULER_Priority p;
+  int is_fd_task;
   void *ret;
+
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "canceling task %p\n",
+       task);
 
   /* scheduler must be running */
   GNUNET_assert (NULL != scheduler_driver);
   GNUNET_assert ( (NULL != active_task) ||
       (GNUNET_NO == task->lifeness) );
+  is_fd_task = (NULL != task->fds);
+  if (is_fd_task)
+  {
+    int del_result = scheduler_driver->del (scheduler_driver->cls, task);
+    if (GNUNET_OK != del_result)
+    {
+      LOG (GNUNET_ERROR_TYPE_ERROR,
+           "driver could not delete task\n");
+      GNUNET_assert (0);
+    }
+  }
   if (! task->in_ready_list)
   {
-    if (NULL == task->fds)
-    {
-      if (GNUNET_YES == task->on_shutdown)
-        GNUNET_CONTAINER_DLL_remove (shutdown_head,
-                                     shutdown_tail,
-                                     task);
-      else
-      {
-        GNUNET_CONTAINER_DLL_remove (pending_timeout_head,
-                                     pending_timeout_tail,
-                                     task);
-        if (pending_timeout_last == task)
-          pending_timeout_last = NULL;
-      }
-      //TODO check if this is redundant
-      if (task == pending_timeout_last)
-        pending_timeout_last = NULL;
-    }
-    else
+    if (is_fd_task)
     {
       GNUNET_CONTAINER_DLL_remove (pending_head,
                                    pending_tail,
                                    task);
-      scheduler_multi_function_call(task, scheduler_driver->del, GNUNET_NO, -1);
+    }
+    else if (GNUNET_YES == task->on_shutdown)
+    {
+      GNUNET_CONTAINER_DLL_remove (shutdown_head,
+                                   shutdown_tail,
+                                   task);
+    }
+    else
+    {
+      GNUNET_CONTAINER_DLL_remove (pending_timeout_head,
+                                   pending_timeout_tail,
+                                   task);
+      if (pending_timeout_last == task)
+        pending_timeout_last = NULL;
     }
   }
   else
@@ -1341,12 +1375,9 @@ add_without_sets (struct GNUNET_TIME_Relative delay,
   GNUNET_CONTAINER_DLL_insert (pending_head,
                                pending_tail,
                                t);
-  scheduler_multi_function_call (t, scheduler_driver->add, GNUNET_NO, GNUNET_SCHEDULER_ET_NONE);
+  driver_add_multiple (t, GNUNET_SCHEDULER_ET_NONE);
   max_priority_added = GNUNET_MAX (max_priority_added,
                                    t->priority);
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Adding task %p\n",
-       t);
   init_backtrace (t);
   return t;
 }
@@ -1785,7 +1816,7 @@ GNUNET_SCHEDULER_add_select (enum GNUNET_SCHEDULER_Priority prio,
   GNUNET_CONTAINER_DLL_insert (pending_head,
                                pending_tail,
                                t);
-  scheduler_multi_function_call (t, scheduler_driver->add, GNUNET_NO, GNUNET_SCHEDULER_ET_NONE);
+  driver_add_multiple (t, GNUNET_SCHEDULER_ET_NONE);
   max_priority_added = GNUNET_MAX (max_priority_added,
            t->priority);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -1890,8 +1921,6 @@ GNUNET_SCHEDULER_run_from_driver (struct GNUNET_SCHEDULER_Handle *sh)
 
   if (0 == ready_count)
   {
-    LOG (GNUNET_ERROR_TYPE_WARNING,
-         "no tasks run!\n");
     return GNUNET_NO;
   }
 
@@ -1956,7 +1985,16 @@ GNUNET_SCHEDULER_run_from_driver (struct GNUNET_SCHEDULER_Handle *sh)
          "Running task %p\n",
          pos);
     pos->callback (pos->callback_cls);
-    scheduler_multi_function_call (pos, scheduler_driver->del, GNUNET_YES, -1);
+    if (NULL != pos->fds)
+    {
+      int del_result = scheduler_driver->del (scheduler_driver->cls, pos);
+      if (GNUNET_OK != del_result)
+      {
+        LOG (GNUNET_ERROR_TYPE_ERROR,
+             "driver could not delete task\n");
+        GNUNET_assert (0);
+      }
+    }
     active_task = NULL;
     dump_backtrace (pos);
     destroy_task (pos);
@@ -2123,8 +2161,7 @@ select_add (void *cls,
 
 int
 select_del (void *cls,
-            struct GNUNET_SCHEDULER_Task *task,
-            struct GNUNET_SCHEDULER_FdInfo *fdi)
+            struct GNUNET_SCHEDULER_Task *task)
 {
   struct DriverContext *context;
   struct Scheduled *pos;
@@ -2134,16 +2171,19 @@ select_del (void *cls,
 
   context = cls;
   ret = GNUNET_SYSERR;
-  for (pos = context->scheduled_head; NULL != pos; pos = pos->next)
+  pos = context->scheduled_head;
+  while (NULL != pos)
   {
-    if (pos->task == task && pos->fdi == fdi)
+    struct Scheduled *next = pos->next;
+    if (pos->task == task)
     {
       GNUNET_CONTAINER_DLL_remove (context->scheduled_head,
                                    context->scheduled_tail,
                                    pos);
+      GNUNET_free (pos);
       ret = GNUNET_OK;
-      break;
     }
+    pos = next;
   }
   return ret;
 }
@@ -2170,9 +2210,8 @@ select_loop (void *cls,
   busy_wait_warning = 0;
   while (NULL != context->scheduled_head || GNUNET_YES == tasks_ready)
   {
-    LOG (GNUNET_ERROR_TYPE_WARNING,
-         "[%p] timeout = %s\n",
-         sh,
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "select timeout = %s\n",
          GNUNET_STRINGS_relative_time_to_string (context->timeout, GNUNET_NO));
 
     GNUNET_NETWORK_fdset_zero (rs);
@@ -2206,8 +2245,6 @@ select_loop (void *cls,
     }
     if (select_result == GNUNET_SYSERR)
     {
-      LOG (GNUNET_ERROR_TYPE_WARNING,
-           "select_result = GNUNET_SYSERR\n");
       if (errno == EINTR)
         continue;
 
@@ -2283,24 +2320,20 @@ select_loop (void *cls,
       }
       if (GNUNET_YES == is_ready)
       {
-        GNUNET_CONTAINER_DLL_remove (context->scheduled_head,
-                                     context->scheduled_tail,
-                                     pos);
+        //GNUNET_CONTAINER_DLL_remove (context->scheduled_head,
+        //                             context->scheduled_tail,
+        //                             pos);
         GNUNET_SCHEDULER_task_ready (pos->task, pos->fdi);
       }
     }
     tasks_ready = GNUNET_SCHEDULER_run_from_driver (sh);
-    LOG (GNUNET_ERROR_TYPE_WARNING,
-         "[%p] tasks_ready: %d\n",
-         sh,
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "tasks_ready: %d\n",
          tasks_ready);
     // FIXME: tasks_run is a driver-internal variable! Instead we should increment
     // a local variable tasks_ready_count everytime we're calling GNUNET_SCHEDULER_task_ready. 
     if (last_tr == tasks_run)
     {
-      LOG (GNUNET_ERROR_TYPE_WARNING,
-           "[%p] no tasks run\n",
-           sh);
       short_wait (1);
       busy_wait_warning++;
     }
