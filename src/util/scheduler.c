@@ -1829,12 +1829,13 @@ GNUNET_SCHEDULER_add_select (enum GNUNET_SCHEDULER_Priority prio,
 
 /**
  * Function used by event-loop implementations to signal the scheduler
- * that a particular @a task is ready due to an event of type @a et.
+ * that a particular @a task is ready due to an event specified in the
+ * et field of @a fdi.
  *
  * This function will then queue the task to notify the application
  * that the task is ready (with the respective priority).
  *
- * @param task the task that is ready, NULL for wake up calls
+ * @param task the task that is ready
  * @param fdi information about the related FD
  */
 void

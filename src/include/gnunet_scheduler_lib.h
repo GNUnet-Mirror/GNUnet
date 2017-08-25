@@ -216,7 +216,8 @@ struct GNUNET_SCHEDULER_TaskContext
 
 /**
  * Function used by event-loop implementations to signal the scheduler
- * that a particular @a task is ready due to an event of type @a et.
+ * that a particular @a task is ready due to an event specified in the
+ * et field of @a fdi.
  *
  * This function will then queue the task to notify the application
  * that the task is ready (with the respective priority).
@@ -268,8 +269,11 @@ struct GNUNET_SCHEDULER_Driver
   void *cls;
 
   /**
-   * Add a @a task to be run if the conditions given
-   * in @a fdi are satisfied.
+   * Add a @a task to be run if the conditions specified in the 
+   * et field of the given @a fdi are satisfied. The et field will
+   * be cleared after this call and the driver is expected to set
+   * the type of the actual event before passing @a fdi to
+   * #GNUNET_SCHEDULER_task_ready.
    *
    * @param cls closure
    * @param task task to add
@@ -283,18 +287,18 @@ struct GNUNET_SCHEDULER_Driver
          struct GNUNET_SCHEDULER_FdInfo *fdi);
 
   /**
-   * Delete a @a task from the set of tasks to be run.
+   * Delete a @a task from the set of tasks to be run. A task may
+   * comprise multiple FdInfo entries previously added with the add
+   * function. The driver is expected to delete them all.
    *
    * @param cls closure
    * @param task task to delete
-   * @param fdi conditions to watch for (must match @e add call)
    * @return #GNUNET_OK on success, #GNUNET_SYSERR on failure
-   *   (i.e. @a task or @a fdi do not match prior @e add call)
+   *   (i.e. @a task does not match prior @e add call)
    */
   int
   (*del)(void *cls,
-	 struct GNUNET_SCHEDULER_Task *task,
-	 struct GNUNET_SCHEDULER_FdInfo *fdi);
+	 struct GNUNET_SCHEDULER_Task *task);
 
   /**
    * Set time at which we definitively want to get a wakeup call.
