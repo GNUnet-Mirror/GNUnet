@@ -264,9 +264,9 @@ network since this could lead to confusing output. This modifications
 will replace the default settings:
 @example
 [PATHS]
-GNUNET_HOME = ~/gnunet1/		# Use this directory to store GNUnet data
+GNUNET_HOME = ~/gnunet1/  # Use this directory to store GNUnet data
 [hostlist]
-SERVERS =				# prevent bootstrapping
+SERVERS =                 # prevent bootstrapping
 @end example
 
 @subsection Start a peer
@@ -279,8 +279,8 @@ ARM starts, stops and even restarts services automatically or on demand when a c
 You interact with the ARM service using the gnunet-arm tool.
 GNUnet can then be started with gnunet-arm -s and stopped with
 gnunet-arm -e.  An additional service not automatically started
-can be started using gnunet-arm -i <service name> and stopped
-using gnunet-arm -k <servicename>.
+can be started using @command{gnunet-arm -i <service name>} and stopped
+using @command{gnunet-arm -k <servicename>}.
 
 Once you have started your peer, you can use many other GNUnet commands
 to interact with it.  For example, you can run:
@@ -329,13 +329,13 @@ Section sec:testbed.
 We will now start a second peer on your machine.
 For the second peer, you will need to manually create a modified
 configuration file to avoid conflicts with ports and directories.
-A peers configuration file is by default located in ~/.gnunet/gnunet.conf.
+A peers configuration file is by default located in @file{~/.gnunet/gnunet.conf}.
 This file is typically very short or even empty as only the differences to the
 defaults need to be specified.  The defaults are located in
-many files in the $PREFIX/share/gnunet/config.d directory.
+many files in the @file{$PREFIX/share/gnunet/config.d} directory.
 
 To configure the second peer, use the files
-$PREFIX/share/gnunet/config.d as a template for your main
+@file{$PREFIX/share/gnunet/config.d} as a template for your main
 configuration file:
 @example
 $ cat $PREFIX/share/gnunet/config.d/*.conf > peer2.conf
@@ -352,7 +352,7 @@ Now you have to edit peer2.conf and change:
 \end{itemize}
 to a fresh, unique value.  Make sure that the PORT numbers stay
 below 65536.  From now on, whenever you interact with the second
-peer, you need to specify -c peer2.conf as an additional
+peer, you need to specify @command{-c peer2.conf} as an additional
 command line argument.
 
 Now, generate the 2nd peer's private key:
@@ -416,8 +416,8 @@ If you want to use the \texttt{peerinfo} tool to connect your peers, you should:
  \item{Give the output to the second peer by running {\tt gnunet-peerinfo -c peer2.conf -p '<output>'}}
 \end{itemize}
 
-Check that they are connected using {\tt gnunet-core -c peer1.conf}, which should give you the other peer's
-peer identity:
+Check that they are connected using @command{gnunet-core -c peer1.conf},
+which should give you the other peer's peer identity:
 @example
 $ gnunet-core -c peer1.conf
 Peer `9TVUCS8P5A7ILLBGO6 [...shortened...] 1KNBJ4NGCHP3JPVULDG'
@@ -433,7 +433,7 @@ possible to run around tens of peers without drastically increasing the load on 
 system.
 
 The testbed service can be access through its API
-\texttt{include/gnunet\_testbed\_service.h}.  The API provides many routines for
+@file{include/gnunet\_testbed\_service.h}.  The API provides many routines for
 managing a group of peers.  It also provides a helper function
 \texttt{GNUNET\_TESTBED\_test\_run()} to quickly setup a minimalistic testing
 environment on a single host.
@@ -446,7 +446,7 @@ and assigns the ports in configurations only if they are free.
 
 Additionally, the testbed service also reads its options from the same
 configuration file.  Various available options and details about them can be
-found in the testbed default configuration file \texttt{src/testbed/testbed.conf}.
+found in the testbed default configuration file @file{src/testbed/testbed.conf}.
 
 With the testbed API, a sample test case can be structured as follows:
 % <lynX> Is there a way to pick a more readable font for this include?
@@ -454,7 +454,7 @@ With the testbed API, a sample test case can be structured as follows:
 \lstinputlisting{testbed_test.c}
 The source code for the above listing can be found at
 @uref{https://gnunet.org/git/gnunet.git/tree/doc/testbed_test.c}
-or in the {\tt doc/} folder of your repository check-out.
+or in the @file{doc/} folder of your repository check-out.
 After installing GNUnet, the above source code can be compiled as:
 @example
 $ export CPPFLAGS="-I/path/to/gnunet/headers"
@@ -464,7 +464,7 @@ $ touch template.conf # Generate (empty) configuration
 $ ./testbed-test  # run it (press CTRL-C to stop)
 @end example
 The \texttt{CPPFLAGS} and \texttt{LDFLAGS} are necessary if GNUnet is installed
-into a different directory other than \texttt{/usr/local}.
+into a different directory other than @file{/usr/local}.
 
 All of testbed API's peer management functions treat management actions as
 operations and return operation handles.  It is expected that the operations
@@ -507,14 +507,14 @@ disconnect from the service with the provided service handle (\texttt{op\_result
 Exercise: Find out how many peers you can run on your system.
 
 Exercise: Find out how to create a 2D torus topology by changing the
-  options in the configuration file. See @uref{https://gnunet.org/supported-topologies}
-  Then use the DHT API to store and retrieve values in the
-  network.
+options in the configuration file. See @uref{https://gnunet.org/supported-topologies}
+Then use the DHT API to store and retrieve values in the
+network.
 
 
 @section Developing Applications
 
-@subsection gnunet-ext}
+@subsection gnunet-ext
 To develop a new peer-to-peer application or to extend GNUnet we provide
 a template build system for writing GNUnet extensions in C. It can be
 obtained as follows:
@@ -556,13 +556,13 @@ In addition the ext systems provides:
 @subsection Adapting the Template
 
 The first step for writing any extension with a new service is to
-ensure that the {\tt ext.conf.in} file contains entries for the
+ensure that the @file{ext.conf.in} file contains entries for the
 \texttt{UNIXPATH}, \texttt{PORT} and \texttt{BINARY} for the service in a section named after
 the service.
 
-If you want to adapt the template rename the {\tt ext.conf.in} to match your
-services name, you have to modify the \texttt{AC\_OUTPUT} section in {\tt configure.ac}
-in the \texttt{gnunet-ext} root.
+If you want to adapt the template rename the @file{ext.conf.in} to match your
+services name, you have to modify the \texttt{AC\_OUTPUT} section in @file{configure.ac}
+in the @file{gnunet-ext} root.
 
 @section Writing a Client Application
 
@@ -658,7 +658,7 @@ The first and most important step in writing a client library is to
 decide on an API for the library.  Typical API calls include
 connecting to the service, performing application-specific requests
 and cleaning up.  Many examples for such service APIs can be found
-in the {\tt gnunet/src/include/gnunet\_*\_service.h} files.
+in the @file{gnunet/src/include/gnunet\_*\_service.h} files.
 
 Then, a client-service protocol needs to be designed.  This typically
 involves defining various message formats in a header that will be
@@ -670,7 +670,7 @@ convention, all fields in IPC (and P2P) messages must be in big-endian
 format (and thus should be read using {\tt ntohl} and similar
 functions and written using {\tt htonl} and similar functions).
 Unique message types must be defined for each message struct in the
-{\tt gnunet\_protocols.h} header (or an extension-specific include
+@file{gnunet\_protocols.h} header (or an extension-specific include
 file).
 
 @subsubsection Connecting to the Service}
@@ -714,7 +714,7 @@ struct GNUNET_MessageHeader
 };
 @end example
 
-Existing message types are defined in {\tt gnunet\_protocols.h}\\
+Existing message types are defined in @file{gnunet\_protocols.h}\\
 A common way to create a message is with an envelope:
 
 \lstset{language=C}
@@ -731,7 +731,7 @@ GNUNET_mq_send (mq, env);
 Exercise: Define a message struct that includes a 32-bit
 unsigned integer in addition to the standard GNUnet MessageHeader.
 Add a C struct and define a fresh protocol number for your message.
-(Protocol numbers in gnunet-ext are defined in \lstinline|gnunet-ext/src/include/gnunet_protocols_ext.h|)}
+Protocol numbers in gnunet-ext are defined in @file{gnunet-ext/src/include/gnunet_protocols_ext.h}
 
 Exercise: Find out how you can determine the number of messages in a message queue.}
 
@@ -819,11 +819,11 @@ implement the corresponding service.
 
 @subsection Code Placement}
 
-New services are placed in their own subdirectory under {\tt gnunet/src}.
-This subdirectory should contain the API implementation file {\tt SERVICE\_api.c},
-the description of the client-service protocol {\tt SERVICE.h} and P2P protocol
-{\tt SERVICE\_protocol.h}, the implementation of the service itself
-{\tt gnunet-service-SERVICE.h} and several files for tests, including test code
+New services are placed in their own subdirectory under @file{gnunet/src}.
+This subdirectory should contain the API implementation file @file{SERVICE\_api.c},
+the description of the client-service protocol @file{SERVICE.h} and P2P protocol
+@file{SERVICE\_protocol.h}, the implementation of the service itself
+@file{gnunet-service-SERVICE.h} and several files for tests, including test code
 and configuration files.
 
 @subsection Starting a Service}
@@ -1229,8 +1229,8 @@ In order to store data in the DHT, it is necessary to provide a block
 plugin.  The DHT uses the block plugin to ensure that only well-formed
 requests and replies are transmitted over the network.
 
-The block plugin should be put in a file {\tt
-  plugin\_block\_SERVICE.c} in the service's respective directory. The
+The block plugin should be put in a file @file{plugin\_block\_SERVICE.c}
+in the service's respective directory. The
 mandatory functions that need to be implemented for a block plugin are
 described in the following sections.
 
@@ -1238,7 +1238,7 @@ described in the following sections.
 
 The evaluate function should validate a reply or a request. It returns
 a {\tt GNUNET\_BLOCK\_EvaluationResult}, which is an enumeration. All
-possible answers are in {\tt gnunet\_block\_lib.h}.  The function will
+possible answers are in @file{gnunet\_block\_lib.h}.  The function will
 be called with a {\tt reply\_block} argument of {\tt NULL} for
 requests.  Note that depending on how {\tt evaluate} is called, only
 some of the possible return values are valid.  The specific meaning of
@@ -1265,8 +1265,8 @@ block_plugin_SERVICE_evaluate (void *cls,
 
 Note that it is mandatory to detect duplicate replies in this function
 and return the respective status code.  Duplicate detection is
-typically done using the Bloom filter block group provided by {\tt
-  libgnunetblockgroup.so}.  Failure to do so may cause replies to
+typically done using the Bloom filter block group provided by
+@file{libgnunetblockgroup.so}.  Failure to do so may cause replies to
 circle in the network.
 
 @subsubsection Deriving a key from a reply
@@ -1428,10 +1428,10 @@ monitor_handle = GNUNET_DHT_monitor_start (dht_handle,
 
 @section Debugging with gnunet-arm
 
-Even if services are managed by {\tt gnunet-arm}, you can start them with
-{\tt gdb} or {\tt valgrind}.  For example, you could add the following lines
-to your configuration file to start the DHT service in a {\tt gdb} session in a
-fresh {\tt xterm}:
+Even if services are managed by @command{gnunet-arm}, you can start them with
+@command{gdb} or @command{valgrind}.  For example, you could add the following lines
+to your configuration file to start the DHT service in a @command{gdb} session in a
+fresh @command{xterm}:
 
 @example
 [dht]
@@ -1457,12 +1457,12 @@ running \texttt{configure}. More details about logging can be found under
 @uref{https://gnunet.org/logging}.
 
 You should also probably enable the creation of core files, by setting
-{\tt ulimit}, and echo'ing 1 into {\tt /proc/sys/kernel/core\_uses\_pid}.
-Then you can investigate the core dumps with {\tt gdb}, which is often
+{\tt ulimit}, and echo'ing 1 into @file{/proc/sys/kernel/core\_uses\_pid}.
+Then you can investigate the core dumps with @command{gdb}, which is often
 the fastest method to find simple errors.
 
 Exercise: Add a memory leak to your service and obtain a trace
-pointing to the leak using {\tt valgrind} while running the service
-from {\tt gnunet-service-arm}.}
+pointing to the leak using @command{valgrind} while running the service
+from @command{gnunet-service-arm}.
 
 @bye
