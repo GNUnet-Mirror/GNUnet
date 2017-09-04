@@ -2263,31 +2263,15 @@ select_loop (void *cls,
 #endif
 #endif
 #if DEBUG_FDS
-      struct GNUNET_SCHEDULER_Task *t;
-      // FIXME: pending_head is a scheduler-internal variable!
-      for (t = pending_head; NULL != t; t = t->next)
+      struct Scheduled *s;
+      for (s = context->scheduled_head; NULL != s; s = s->next)
       {
-        if (-1 != t->read_fd)
+        int flags = fcntl (s->fdi->sock, F_GETFD);
+        if ((flags == -1) && (errno == EBADF))
         {
-          int flags = fcntl (t->read_fd, F_GETFD);
-          if ((flags == -1) && (errno == EBADF))
-          {
-            LOG (GNUNET_ERROR_TYPE_ERROR,
-                 "Got invalid file descriptor %d!\n",
-                 t->read_fd);
-            dump_backtrace (t);
-          }
-        }
-        if (-1 != t->write_fd)
-        {
-          int flags = fcntl (t->write_fd, F_GETFD);
-          if ((flags == -1) && (errno == EBADF))
-          {
-            LOG (GNUNET_ERROR_TYPE_ERROR,
-                 "Got invalid file descriptor %d!\n",
-                 t->write_fd);
-            dump_backtrace (t);
-          }
+          LOG (GNUNET_ERROR_TYPE_ERROR,
+               "Got invalid file descriptor %d!\n",
+               s->fdi->sock);
         }
       }
 #endif
