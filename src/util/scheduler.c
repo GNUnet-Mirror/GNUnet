@@ -147,11 +147,11 @@ struct GNUNET_SCHEDULER_Task
   unsigned int ready_fds_len;
 
   /**
-   * Do we own the network and file handlers referenced by the FdInfo
+   * Do we own the network and file handles referenced by the FdInfo
    * structs in the fds array. This will only be GNUNET_YES if the
    * task was created by the #GNUNET_SCHEDULER_add_select function.
    */
-  int own_handlers;
+  int own_handles;
 
   /**
    * Absolute timeout value for the task, or
@@ -539,7 +539,7 @@ destroy_task (struct GNUNET_SCHEDULER_Task *t)
        "destroying task %p\n",
        t);
 
-  if (GNUNET_YES == t->own_handlers)
+  if (GNUNET_YES == t->own_handles)
   {
     for (i = 0; i != t->fds_len; ++i)
     {
@@ -1762,7 +1762,7 @@ GNUNET_SCHEDULER_add_select (enum GNUNET_SCHEDULER_Priority prio,
   t->callback_cls = task_cls;
   t->read_fd = -1;
   t->write_fd = -1;
-  t->own_handlers = GNUNET_YES;
+  t->own_handles = GNUNET_YES;
   read_nhandles = NULL;
   write_nhandles = NULL;
   read_fhandles = NULL;
