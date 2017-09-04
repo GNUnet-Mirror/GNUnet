@@ -595,22 +595,22 @@ sighandler_pipe ()
 #endif
 
 
-/**
- * Wait for a short time.
- * Sleeps for @a ms ms (as that should be long enough for virtually all
- * modern systems to context switch and allow another process to do
- * some 'real' work).
- *
- * @param ms how many ms to wait
- */
-static void
-short_wait (unsigned int ms)
-{
-  struct GNUNET_TIME_Relative timeout;
-
-  timeout = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, ms);
-  (void) GNUNET_NETWORK_socket_select (NULL, NULL, NULL, timeout);
-}
+///**
+// * Wait for a short time.
+// * Sleeps for @a ms ms (as that should be long enough for virtually all
+// * modern systems to context switch and allow another process to do
+// * some 'real' work).
+// *
+// * @param ms how many ms to wait
+// */
+//static void
+//short_wait (unsigned int ms)
+//{
+//  struct GNUNET_TIME_Relative timeout;
+//
+//  timeout = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, ms);
+//  (void) GNUNET_NETWORK_socket_select (NULL, NULL, NULL, timeout);
+//}
 
 
 /**
@@ -1873,15 +1873,16 @@ GNUNET_SCHEDULER_task_ready (struct GNUNET_SCHEDULER_Task *task,
  * there are tasks left to run just to give other tasks a chance as
  * well.  If we return #GNUNET_YES, the driver should call this
  * function again as soon as possible, while if we return #GNUNET_NO
- * it must block until the operating system has more work as the
- * scheduler has no more work to do right now.
+ * it must block until either the operating system has more work (the
+ * scheduler has no more work to do right now) or the timeout set by
+ * the scheduler (using the set_wakeup callback) is reached.
  *
  * @param sh scheduler handle that was given to the `loop`
  * @return #GNUNET_OK if there are more tasks that are ready,
  *          and thus we would like to run more (yield to avoid
  *          blocking other activities for too long)
  *         #GNUNET_NO if we are done running tasks (yield to block)
- *         #GNUNET_SYSERR on error
+ *         #GNUNET_SYSERR on error, e.g. no tasks were ready
  */
 int
 GNUNET_SCHEDULER_run_from_driver (struct GNUNET_SCHEDULER_Handle *sh)
@@ -1922,7 +1923,9 @@ GNUNET_SCHEDULER_run_from_driver (struct GNUNET_SCHEDULER_Handle *sh)
 
   if (0 == ready_count)
   {
-    return GNUNET_NO;
+    LOG (GNUNET_ERROR_TYPE_ERROR,
+         "GNUNET_SCHEDULER_run_from_driver was called, but no tasks are ready!\n");
+    return GNUNET_SYSERR;
   }
 
   /* find out which task priority level we are going to
@@ -1985,6 +1988,7 @@ GNUNET_SCHEDULER_run_from_driver (struct GNUNET_SCHEDULER_Handle *sh)
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Running task %p\n",
          pos);
+    GNUNET_assert (NULL != pos->callback);
     pos->callback (pos->callback_cls);
     if (NULL != pos->fds)
     {
@@ -2199,16 +2203,12 @@ select_loop (void *cls,
   struct DriverContext *context;
   int select_result;
   int tasks_ready;
-  unsigned long long last_tr;
-  unsigned int busy_wait_warning;
-  
+ 
   context = cls;
   GNUNET_assert (NULL != context);
   rs = GNUNET_NETWORK_fdset_create ();
   ws = GNUNET_NETWORK_fdset_create ();
   tasks_ready = GNUNET_NO;
-  last_tr = 0;
-  busy_wait_warning = 0;
   while (NULL != context->scheduled_head || GNUNET_YES == tasks_ready)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -2294,16 +2294,6 @@ select_loop (void *cls,
       GNUNET_assert (0);
       return GNUNET_SYSERR;
     }
-    if ( (0 == select_result) &&
-         (0 == context->timeout.rel_value_us) &&
-         (busy_wait_warning > 16) )
-    {
-      LOG (GNUNET_ERROR_TYPE_WARNING,
-           "[%p] Looks like we're busy waiting...\n",
-           sh);
-      //GNUNET_assert (0);
-      short_wait (100);                /* mitigate */
-    }
     for (pos = context->scheduled_head; NULL != pos; pos = pos->next)
     {
       int is_ready = GNUNET_NO;
@@ -2321,28 +2311,11 @@ select_loop (void *cls,
       }
       if (GNUNET_YES == is_ready)
       {
-        //GNUNET_CONTAINER_DLL_remove (context->scheduled_head,
-        //                             context->scheduled_tail,
-        //                             pos);
         GNUNET_SCHEDULER_task_ready (pos->task, pos->fdi);
       }
     }
     tasks_ready = GNUNET_SCHEDULER_run_from_driver (sh);
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "tasks_ready: %d\n",
-         tasks_ready);
-    // FIXME: tasks_run is a driver-internal variable! Instead we should increment
-    // a local variable tasks_ready_count everytime we're calling GNUNET_SCHEDULER_task_ready. 
-    if (last_tr == tasks_run)
-    {
-      short_wait (1);
-      busy_wait_warning++;
-    }
-    else
-    {
-      last_tr = tasks_run;
-      busy_wait_warning = 0;
-    }
+    GNUNET_assert (GNUNET_SYSERR != tasks_ready);
   }
   return GNUNET_OK; 
 }
