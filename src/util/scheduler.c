@@ -2301,9 +2301,6 @@ select_loop (void *cls,
     }
     tasks_ready = GNUNET_SCHEDULER_run_from_driver (sh);
     GNUNET_assert (GNUNET_SYSERR != tasks_ready);
-    LOG (GNUNET_ERROR_TYPE_WARNING,
-         "select timeout = %s\n",
-         GNUNET_STRINGS_relative_time_to_string (context->timeout, GNUNET_NO));
   }
   return GNUNET_OK; 
 }
