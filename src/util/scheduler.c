@@ -2209,7 +2209,8 @@ select_loop (void *cls,
   rs = GNUNET_NETWORK_fdset_create ();
   ws = GNUNET_NETWORK_fdset_create ();
   tasks_ready = GNUNET_NO;
-  while (NULL != context->scheduled_head || GNUNET_YES == tasks_ready)
+  while (NULL != context->scheduled_head ||
+         GNUNET_TIME_UNIT_FOREVER_REL.rel_value_us != context->timeout.rel_value_us)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "select timeout = %s\n",
@@ -2300,6 +2301,9 @@ select_loop (void *cls,
     }
     tasks_ready = GNUNET_SCHEDULER_run_from_driver (sh);
     GNUNET_assert (GNUNET_SYSERR != tasks_ready);
+    LOG (GNUNET_ERROR_TYPE_WARNING,
+         "select timeout = %s\n",
+         GNUNET_STRINGS_relative_time_to_string (context->timeout, GNUNET_NO));
   }
   return GNUNET_OK; 
 }

@@ -242,15 +242,16 @@ struct GNUNET_SCHEDULER_Handle;
  * there are tasks left to run just to give other tasks a chance as
  * well.  If we return #GNUNET_YES, the driver should call this
  * function again as soon as possible, while if we return #GNUNET_NO
- * it must block until the operating system has more work as the
- * scheduler has no more work to do right now.
+ * it must block until either the operating system has more work (the
+ * scheduler has no more work to do right now) or the timeout set by
+ * the scheduler (using the set_wakeup callback) is reached.
  *
  * @param sh scheduler handle that was given to the `loop`
  * @return #GNUNET_OK if there are more tasks that are ready,
  *          and thus we would like to run more (yield to avoid
  *          blocking other activities for too long)
  *         #GNUNET_NO if we are done running tasks (yield to block)
- *         #GNUNET_SYSERR on error
+ *         #GNUNET_SYSERR on error, e.g. no tasks were ready
  */
 int
 GNUNET_SCHEDULER_run_from_driver (struct GNUNET_SCHEDULER_Handle *sh);
@@ -313,7 +314,10 @@ struct GNUNET_SCHEDULER_Driver
   /**
    * Event loop's "main" function, to be called from
    * #GNUNET_SCHEDULER_run_with_driver() to actually
-   * launch the loop.
+   * launch the loop. The loop should run as long as
+   * tasks (added by the add callback) are available 
+   * OR the wakeup time (added by the set_wakeup
+   * callback) is not FOREVER.
    *
    * @param cls closure
    * @param sh scheduler handle to pass to
