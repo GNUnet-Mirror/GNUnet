@@ -457,8 +457,9 @@ found in the testbed default configuration file @file{src/testbed/testbed.conf}.
 
 With the testbed API, a sample test case can be structured as follows:
 @c* <lynX> Is there a way to pick a more readable font for this include?
-\lstset{language=C}
-\lstinputlisting{testbed_test.c}
+@example
+@verbatiminclude testbed_test.c
+@end example
 The source code for the above listing can be found at
 @uref{https://gnunet.org/git/gnunet.git/tree/doc/testbed_test.c}
 or in the @file{doc/} folder of your repository check-out.
