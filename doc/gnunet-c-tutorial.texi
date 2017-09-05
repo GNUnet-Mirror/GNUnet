@@ -657,28 +657,14 @@ there are errors communicating with the service.
 In GNUnet, messages are always sent beginning with a {\tt struct GNUNET\_MessageHeader}
 in big endian format. This header defines the size and the type of the
 message, the payload follows after this header.
-
-\lstset{language=C}
-\begin{lstlisting}
-struct GNUNET_MessageHeader
-{
-  uint16_t size GNUNET_PACKED;
-  uint16_t type GNUNET_PACKED;
-};
+@example
+@verbatiminclude tutorial-examples/004.c
 @end example
 
 Existing message types are defined in @file{gnunet\_protocols.h}\\
 A common way to create a message is with an envelope:
-
-\lstset{language=C}
-\begin{lstlisting}
-struct GNUNET_MQ_Envelope *env;
-struct GNUNET_MessageHeader *msg;
-
-env = GNUNET_MQ_msg_extra (msg, payload_size, GNUNET_MY_MESSAGE_TYPE);
-memcpy (&msg[1], &payload, payload_size);
-// Send message via message queue 'mq'
-GNUNET_mq_send (mq, env);
+@example
+@verbatiminclude tutorial-examples/005.c
 @end example
 
 Exercise: Define a message struct that includes a 32-bit
