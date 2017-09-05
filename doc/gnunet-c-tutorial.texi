@@ -249,16 +249,24 @@ the programmer.
 
 @subsection Configure your peer
 
-First of all we need to configure your peer. Each peer is started with a configuration containing settings for GNUnet itself and its services. This configuration is based on the default configuration shipped with GNUnet and can be modified. The default configuration is located in the $PREFIX/share/gnunet/config.d directory. When starting a peer, you can specify a customized configuration using the the $-c$ command line switch when starting the ARM service and all other services. When using a modified configuration the default values are loaded and only values specified in the configuration file will replace the default values.
+First of all we need to configure your peer. Each peer is started with a configuration
+containing settings for GNUnet itself and its services. This configuration is based on the
+default configuration shipped with GNUnet and can be modified. The default configuration
+is located in the @file{$PREFIX/share/gnunet/config.d} directory. When starting a peer, you
+can specify a customized configuration using the the @command{-c} command line switch when
+starting the ARM service and all other services. When using a modified configuration the
+default values are loaded and only values specified in the configuration file will replace
+the default values.
 
-Since we want to start additional peers later, we need
-some modifications from the default configuration. We need to create a separate service home and a file containing our modifications for this peer:
+Since we want to start additional peers later, we need some modifications from the default
+configuration. We need to create a separate service home and a file containing our
+modifications for this peer:
 @example
 $ mkdir ~/gnunet1/
 $ touch peer1.conf
 @end example
 
-Now add the following lines to peer1.conf to use this directory. For
+Now add the following lines to @file{peer1.conf} to use this directory. For
 simplified usage we want to prevent the peer to connect to the GNUnet
 network since this could lead to confusing output. This modifications
 will replace the default settings:
@@ -274,11 +282,11 @@ Each GNUnet instance (called peer) has an identity (peer ID) based on a
 cryptographic public private key pair. The peer ID is the printable hash of the
 public key.
 
-GNUnet services are controlled by a master service the so called Automatic Restart Manager (ARM).
+GNUnet services are controlled by a master service, the so called @dfn{Automatic Restart Manager} (ARM).
 ARM starts, stops and even restarts services automatically or on demand when a client connects.
 You interact with the ARM service using the gnunet-arm tool.
-GNUnet can then be started with gnunet-arm -s and stopped with
-gnunet-arm -e.  An additional service not automatically started
+GNUnet can then be started with @command{gnunet-arm -s} and stopped with
+@command{gnunet-arm -e}.  An additional service not automatically started
 can be started using @command{gnunet-arm -i <service name>} and stopped
 using @command{gnunet-arm -k <servicename>}.
 
@@ -298,9 +306,9 @@ I am peer `0PA02UVRKQTS2C .. JL5Q78F6H0B1ACPV1CJI59MEQUMQCC5G'.
 
 In this section, we will monitor the behaviour of our peer's DHT service with respect to a
 specific key. First we will start GNUnet and then start the DHT service and use the DHT monitor tool
-to monitor the PUT and GET commands we issue ussing the gnunet-dht-put and
-gnunet-dht-get commands. Using the ``monitor'' line given below, you can observe the behavior of
-your own peer's DHT with respect to the specified KEY:
+to monitor the PUT and GET commands we issue ussing the @command{gnunet-dht-put} and
+@command{gnunet-dht-get} commands. Using the ``monitor'' line given below, you can observe
+the behavior of your own peer's DHT with respect to the specified KEY:
 
 @example
 $ gnunet-arm -c ~/peer1.conf -s			# start gnunet with all default services
@@ -308,7 +316,7 @@ $ gnunet-arm -c ~/peer1.conf -i dht		# start DHT service
 $ cd ~/gnunet/src/dht;
 $ ./gnunet-dht-monitor -c ~/peer1.conf -k KEY
 @end example
-Now open a separate terminal and change again to the gnunet/src/dht directory:
+Now open a separate terminal and change again to the @file{gnunet/src/dht} directory:
 @example
 $ cd ~/gnunet/src/dht
 $ ./gnunet-dht-put -c ~/peer1.conf -k KEY -d VALUE		# put VALUE under KEY in the DHT
@@ -390,7 +398,7 @@ the first one to be a hostlist server by adding the following lines to
 OPTIONS = -p
 @end example
 
-Then change {\tt peer2.conf} and replace the ``@code{SERVERS}'' line in the ``@code{[hostlist]}'' section with
+Then change @file{peer2.conf} and replace the ``@code{SERVERS}'' line in the ``@code{[hostlist]}'' section with
 ``@code{http://localhost:8080/}''.  Restart both peers using:
 @example
 $ gnunet-arm -c peer1.conf -e		# stop first peer
@@ -408,13 +416,12 @@ by you.
 @subsubsection How to connect manually
 
 If you want to use the @code{peerinfo} tool to connect your peers, you should:
-\begin{itemize}
-\itemsep0em
- \item{Set {\tt FORCESTART = NO} in section {\tt hostlist} (to not connect to the global GNUnet)}
- \item{Start both peers running {\tt gnunet-arm -c peer1.conf -s} and {\tt gnunet-arm -c peer2.conf -s}}
- \item{Get @code{HELLO} message of the first peer running {\tt gnunet-peerinfo -c peer1.conf -g}}
- \item{Give the output to the second peer by running {\tt gnunet-peerinfo -c peer2.conf -p '<output>'}}
-\end{itemize}
+@itemize
+@item Set @code{FORCESTART = NO} in section @code{hostlist} (to not connect to the global GNUnet)
+@item Start both peers running @command{gnunet-arm -c peer1.conf -s} and @command{gnunet-arm -c peer2.conf -s}
+@item Get @code{HELLO} message of the first peer running @command{gnunet-peerinfo -c peer1.conf -g}
+@item Give the output to the second peer by running @command{gnunet-peerinfo -c peer2.conf -p '<output>'}
+@end itemize
 
 Check that they are connected using @command{gnunet-core -c peer1.conf},
 which should give you the other peer's peer identity:
@@ -440,7 +447,7 @@ environment on a single host.
 
 This function takes a configuration file which will be used as a template
 configuration for the peers.  The testbed takes care of modifying relevant
-options in the peers' configuration such as SERVICEHOME, PORT, UNIXPATH to
+options in the peers' configuration such as @code{SERVICEHOME}, @code{PORT}, @code{UNIXPATH} to
 unique values so that peers run without running into conflicts.  It also checks
 and assigns the ports in configurations only if they are free.
 
@@ -449,7 +456,7 @@ configuration file.  Various available options and details about them can be
 found in the testbed default configuration file @file{src/testbed/testbed.conf}.
 
 With the testbed API, a sample test case can be structured as follows:
-% <lynX> Is there a way to pick a more readable font for this include?
+@c* <lynX> Is there a way to pick a more readable font for this include?
 \lstset{language=C}
 \lstinputlisting{testbed_test.c}
 The source code for the above listing can be found at
@@ -475,7 +482,7 @@ waiting operations can be executed.  Operations will be canceled if they are
 marked as ``done'' before their completion.
 
 An operation is treated as completed when it succeeds or fails.  Completion of
-an operation is either conveyed as events through \textit{controller event
+an operation is either conveyed as events through @i{controller event
   callback} or through respective operation completion callbacks.  In functions
 which support completion notification through both controller event callback and
 operation completion callback, first the controller event callback will be
@@ -493,13 +500,13 @@ system is discouraged as their locations are dynamically created and will be
 different among various runs of testbed.  To make access to these configurations
 easy, testbed API provides the function
 @code{GNUNET\_TESTBED\_service\_connect()}.  This function fetches the
-configuration of a given peer and calls the \textit{Connect Adapter}.
+configuration of a given peer and calls the @i{Connect Adapter}.
 In the example code, it is the @code{dht\_ca}.  A connect adapter is expected
 to open the connection to the needed service by using the provided configuration
 and return the created service connection handle.  Successful connection to the
 needed service is signaled through @code{service\_connect\_comp\_cb}.
 
-A dual to connect adapter is the \textit{Disconnect Adapter}.  This callback is
+A dual to connect adapter is the @i{Disconnect Adapter}.  This callback is
 called after the connect adapter has been called when the operation from
 @code{GNUNET\_TESTBED\_service\_connect()} is marked as ``done''.  It has to
 disconnect from the service with the provided service handle (@code{op\_result}).
@@ -567,11 +574,10 @@ in the @file{gnunet-ext} root.
 @section Writing a Client Application
 
 When writing any client application (for example, a command-line
-tool), the basic structure is to start with the {\tt
-  GNUNET\_PROGRAM\_run} function.  This function will parse
-command-line options, setup the scheduler and then invoke the {\tt
-  run} function (with the remaining non-option arguments) and a handle
-to the parsed configuration (and the configuration file name that was
+tool), the basic structure is to start with the @code{GNUNET\_PROGRAM\_run}
+function.  This function will parse command-line options, setup the scheduler
+and then invoke the @code{run} function (with the remaining non-option arguments)
+and a handle to the parsed configuration (and the configuration file name that was
 used, which is typically not needed):
 
 \lstset{language=C}
@@ -610,8 +616,8 @@ main (int argc, char *const *argv)
 
 Options can then be added easily by adding global variables and
 expanding the {\tt options} array.  For example, the following would
-add a string-option and a binary flag (defaulting to {\tt NULL} and
-{\tt GNUNET\_NO} respectively):
+add a string-option and a binary flag (defaulting to @code{NULL} and
+@code{GNUNET\_NO} respectively):
 
 \lstset{language=C}
 \begin{lstlisting}
@@ -634,8 +640,8 @@ static int a_flag;
 @end example
 
 Issues such as displaying some helpful text describing options using
-the {\tt --help} argument and error handling are taken care of when
-using this approach.  Other {\tt GNUNET\_GETOPT\_}-functions can be used
+the @code{--help} argument and error handling are taken care of when
+using this approach.  Other @code{GNUNET\_GETOPT\_}-functions can be used
 to obtain integer value options, increment counters, etc.  You can
 even write custom option parsers for special circumstances not covered
 by the available handlers. To check if an argument was specified by the
@@ -643,14 +649,14 @@ user you initialize the variable with a specific value (e.g. NULL for
 a string and GNUNET\_SYSERR for a integer) and check after parsing
 happened if the values were modified.
 
-Inside the {\tt run} method, the program would perform the
+Inside the @code{run} method, the program would perform the
 application-specific logic, which typically involves initializing and
 using some client library to interact with the service.  The client
 library is supposed to implement the IPC whereas the service provides
 more persistent P2P functions.
 
 Exercise: Add a few command-line options and print them inside
-of {\tt run}.  What happens if the user gives invalid arguments?}
+of @code{run}.  What happens if the user gives invalid arguments?}
 
 @subsection Writing a Client Library}
 
@@ -664,7 +670,7 @@ Then, a client-service protocol needs to be designed.  This typically
 involves defining various message formats in a header that will be
 included by both the service and the client library (but is otherwise
 not shared and hence located within the service's directory and not
-installed by {\tt make install}).  Each message must start with a {\tt
+installed by @command{make install}).  Each message must start with a {\tt
   struct GNUNET\_MessageHeader} and must be shorter than 64k.  By
 convention, all fields in IPC (and P2P) messages must be in big-endian
 format (and thus should be read using {\tt ntohl} and similar
@@ -692,7 +698,7 @@ with the service, a connection must be created:
 As a result a {\tt GNUNET\_MQ\_Handle} is returned
 which can to used henceforth to transmit messages to
 the service.
-The complete MQ API can be found in {\tt gnunet\_mq\_lib.h}.
+The complete MQ API can be found in @file{gnunet\_mq\_lib.h}.
 The {\tt hanlders} array in the example above is incomplete.
 Here is where you will define which messages you expect to
 receive from the service, and which functions handle them.
@@ -880,13 +886,13 @@ client_disconnect_cb (void *cls,
 Exercise: Write a stub service that processes no messages at all
   in your code.  Create a default configuration for it, integrate it
   with the build system and start the service from {\tt
-  gnunet-service-arm} using {\tt gnunet-arm -i NAME}.}
+  gnunet-service-arm} using @command{gnunet-arm -i NAME}.
 
 Exercise: Figure out how to set the closure ({\tt cls}) for handlers
-  of a service.}
+  of a service.
 
 Exercise: Figure out how to send messages from the service back to the
-  client.}
+  client.
 
 Each handler function in the service {\bf must} eventually (possibly in some
 asynchronous continuation) call {\tt GNUNET\_SERVICE\_client\_continue()}.
@@ -961,7 +967,7 @@ to not keep a very long queue in memory.
 Exercise: Start one peer with a new service that has a message
 handler and start a second peer that only has your ``old'' service
 without message handlers.  Which ``connect'' handlers are invoked when
-the two peers are connected?  Why?}
+the two peers are connected?  Why?
 
 
 @subsection Sending P2P Messages
@@ -1451,13 +1457,13 @@ restarted service with the peer.
 
 GNUnet provides a powerful logging mechanism providing log levels @code{ERROR},
 @code{WARNING}, @code{INFO} and @code{DEBUG}. The current log level is
-configured using the \lstinline|$GNUNET_FORCE_LOG| environmental variable.
-The @code{DEBUG} level is only available if \lstinline|--enable-logging=verbose| was used when
-running @code{configure}. More details about logging can be found under
+configured using the @code{$GNUNET_FORCE_LOG} environmental variable.
+The @code{DEBUG} level is only available if @command{--enable-logging=verbose} was used when
+running @command{configure}. More details about logging can be found under
 @uref{https://gnunet.org/logging}.
 
 You should also probably enable the creation of core files, by setting
-{\tt ulimit}, and echo'ing 1 into @file{/proc/sys/kernel/core\_uses\_pid}.
+@code{ulimit}, and echo'ing 1 into @file{/proc/sys/kernel/core\_uses\_pid}.
 Then you can investigate the core dumps with @command{gdb}, which is often
 the fastest method to find simple errors.
 
