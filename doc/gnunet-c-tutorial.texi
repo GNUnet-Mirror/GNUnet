@@ -343,12 +343,12 @@ $ cat $PREFIX/share/gnunet/config.d/*.conf > peer2.conf
 Now you have to edit peer2.conf and change:
 \begin{itemize}
   \itemsep0em
-  \item{\texttt{GNUNET\_TEST\_HOME} under \texttt{PATHS}}
-  \item{Every (uncommented) value for ``\texttt{PORT}'' (add 10000) in any
-        section (the option may be commented out if \texttt{PORT} is
+  \item{@code{GNUNET\_TEST\_HOME} under @code{PATHS}}
+  \item{Every (uncommented) value for ``@code{PORT}'' (add 10000) in any
+        section (the option may be commented out if @code{PORT} is
         prefixed by "\#", in this case, UNIX domain sockets are used
         and the PORT option does not need to be touched) }
-  \item{Every value for ``\texttt{UNIXPATH}'' in any section (e.g. by adding a "-p2" suffix)}
+  \item{Every value for ``@code{UNIXPATH}'' in any section (e.g. by adding a "-p2" suffix)}
 \end{itemize}
 to a fresh, unique value.  Make sure that the PORT numbers stay
 below 65536.  From now on, whenever you interact with the second
@@ -384,14 +384,14 @@ If you want the two peers to connect, you have multiple options:
 \end{itemize}
 To setup peer 1 as bootstrapping server change the configuration of
 the first one to be a hostlist server by adding the following lines to
-\texttt{peer1.conf} to enable bootstrapping server:
+@code{peer1.conf} to enable bootstrapping server:
  @example
 [hostlist]
 OPTIONS = -p
 @end example
 
-Then change {\tt peer2.conf} and replace the ``\texttt{SERVERS}'' line in the ``\texttt{[hostlist]}'' section with
-``\texttt{http://localhost:8080/}''.  Restart both peers using:
+Then change {\tt peer2.conf} and replace the ``@code{SERVERS}'' line in the ``@code{[hostlist]}'' section with
+``@code{http://localhost:8080/}''.  Restart both peers using:
 @example
 $ gnunet-arm -c peer1.conf -e		# stop first peer
 $ gnunet-arm -c peer1.conf -s		# start first peer
@@ -407,12 +407,12 @@ by you.
 
 @subsubsection How to connect manually
 
-If you want to use the \texttt{peerinfo} tool to connect your peers, you should:
+If you want to use the @code{peerinfo} tool to connect your peers, you should:
 \begin{itemize}
 \itemsep0em
  \item{Set {\tt FORCESTART = NO} in section {\tt hostlist} (to not connect to the global GNUnet)}
  \item{Start both peers running {\tt gnunet-arm -c peer1.conf -s} and {\tt gnunet-arm -c peer2.conf -s}}
- \item{Get \texttt{HELLO} message of the first peer running {\tt gnunet-peerinfo -c peer1.conf -g}}
+ \item{Get @code{HELLO} message of the first peer running {\tt gnunet-peerinfo -c peer1.conf -g}}
  \item{Give the output to the second peer by running {\tt gnunet-peerinfo -c peer2.conf -p '<output>'}}
 \end{itemize}
 
@@ -435,7 +435,7 @@ system.
 The testbed service can be access through its API
 @file{include/gnunet\_testbed\_service.h}.  The API provides many routines for
 managing a group of peers.  It also provides a helper function
-\texttt{GNUNET\_TESTBED\_test\_run()} to quickly setup a minimalistic testing
+@code{GNUNET\_TESTBED\_test\_run()} to quickly setup a minimalistic testing
 environment on a single host.
 
 This function takes a configuration file which will be used as a template
@@ -463,7 +463,7 @@ $ gcc $CPPFLAGS $LDFLAGS -o testbed-test testbed_test.c  -lgnunettestbed -lgnune
 $ touch template.conf # Generate (empty) configuration
 $ ./testbed-test  # run it (press CTRL-C to stop)
 @end example
-The \texttt{CPPFLAGS} and \texttt{LDFLAGS} are necessary if GNUnet is installed
+The @code{CPPFLAGS} and @code{LDFLAGS} are necessary if GNUnet is installed
 into a different directory other than @file{/usr/local}.
 
 All of testbed API's peer management functions treat management actions as
@@ -492,17 +492,17 @@ per-peer configuration.  Accessing those configurations directly through file
 system is discouraged as their locations are dynamically created and will be
 different among various runs of testbed.  To make access to these configurations
 easy, testbed API provides the function
-\texttt{GNUNET\_TESTBED\_service\_connect()}.  This function fetches the
+@code{GNUNET\_TESTBED\_service\_connect()}.  This function fetches the
 configuration of a given peer and calls the \textit{Connect Adapter}.
-In the example code, it is the \texttt{dht\_ca}.  A connect adapter is expected
+In the example code, it is the @code{dht\_ca}.  A connect adapter is expected
 to open the connection to the needed service by using the provided configuration
 and return the created service connection handle.  Successful connection to the
-needed service is signaled through \texttt{service\_connect\_comp\_cb}.
+needed service is signaled through @code{service\_connect\_comp\_cb}.
 
 A dual to connect adapter is the \textit{Disconnect Adapter}.  This callback is
 called after the connect adapter has been called when the operation from
-\texttt{GNUNET\_TESTBED\_service\_connect()} is marked as ``done''.  It has to
-disconnect from the service with the provided service handle (\texttt{op\_result}).
+@code{GNUNET\_TESTBED\_service\_connect()} is marked as ``done''.  It has to
+disconnect from the service with the provided service handle (@code{op\_result}).
 
 Exercise: Find out how many peers you can run on your system.
 
@@ -557,11 +557,11 @@ In addition the ext systems provides:
 
 The first step for writing any extension with a new service is to
 ensure that the @file{ext.conf.in} file contains entries for the
-\texttt{UNIXPATH}, \texttt{PORT} and \texttt{BINARY} for the service in a section named after
+@code{UNIXPATH}, @code{PORT} and @code{BINARY} for the service in a section named after
 the service.
 
 If you want to adapt the template rename the @file{ext.conf.in} to match your
-services name, you have to modify the \texttt{AC\_OUTPUT} section in @file{configure.ac}
+services name, you have to modify the @code{AC\_OUTPUT} section in @file{configure.ac}
 in the @file{gnunet-ext} root.
 
 @section Writing a Client Application
@@ -903,11 +903,11 @@ Exercise: Change the service to ``handle'' the message from your
 
 FIXME: This section still needs to be updated to the lastest API!
 
-One of the most important services in GNUnet is the \texttt{CORE} service
+One of the most important services in GNUnet is the @code{CORE} service
 managing connections between peers and handling encryption between peers.
 
 One of the first things any service that extends the P2P protocol typically does
-is connect to the \texttt{CORE} service using:
+is connect to the @code{CORE} service using:
 
 \lstset{language=C}
 \begin{lstlisting}
@@ -925,7 +925,7 @@ GNUNET_CORE_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
 @subsection New P2P connections}
 
 Before any traffic with a different peer can be exchanged, the peer must be
-known to the service. This is notified by the \texttt{CORE} {\tt connects} callback,
+known to the service. This is notified by the @code{CORE} {\tt connects} callback,
 which communicates the identity of the new peer to the service:
 
 \lstset{language=C}
@@ -943,13 +943,13 @@ Note that whatever you return from {\tt connects} is given as the
 {\it cls} argument to the message handlers for messages from
 the respective peer.
 
-Exercise: Create a service that connects to the \texttt{CORE}.  Then
+Exercise: Create a service that connects to the @code{CORE}.  Then
 start (and connect) two peers and print a message once your connect
 callback is invoked.}
 
 @subsection Receiving P2P Messages
 
-To receive messages from \texttt{CORE}, you pass the desired
+To receive messages from @code{CORE}, you pass the desired
 {\em handlers} to the {\tt GNUNET\_CORE\_connect()} function,
 just as we showed for services.
 
@@ -1449,11 +1449,11 @@ $ valgrind gnunet-service-dht -L DEBUG
 Assuming other services are well-written, they will automatically re-integrate the
 restarted service with the peer.
 
-GNUnet provides a powerful logging mechanism providing log levels \texttt{ERROR},
-\texttt{WARNING}, \texttt{INFO} and \texttt{DEBUG}. The current log level is
+GNUnet provides a powerful logging mechanism providing log levels @code{ERROR},
+@code{WARNING}, @code{INFO} and @code{DEBUG}. The current log level is
 configured using the \lstinline|$GNUNET_FORCE_LOG| environmental variable.
-The \texttt{DEBUG} level is only available if \lstinline|--enable-logging=verbose| was used when
-running \texttt{configure}. More details about logging can be found under
+The @code{DEBUG} level is only available if \lstinline|--enable-logging=verbose| was used when
+running @code{configure}. More details about logging can be found under
 @uref{https://gnunet.org/logging}.
 
 You should also probably enable the creation of core files, by setting
