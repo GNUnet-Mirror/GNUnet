@@ -736,18 +736,8 @@ and configuration files.
 @subsection Starting a Service}
 
 The key API definition for creating a service is the {\tt GNUNET\_SERVICE\_MAIN} macro:
-\lstset{language=C}
-\begin{lstlisting}
-GNUNET_SERVICE_MAIN
-("service-name",
- GNUNET_SERVICE_OPTION_NONE,
- &run,
- &client_connect_cb,
- &client_disconnect_cb,
- NULL,
- GNUNET_MQ_hd_fixed_size (...),
- GNUNET_MQ_hd_var_size (...),
- GNUNET_MQ_handler_end ());
+@example
+@verbatiminclude tutorial-examples/007.c
 @end example
 
 In addition to the service name and flags, the macro takes three
@@ -757,31 +747,8 @@ that will be called for incoming messages from clients.
 
 A minimal version of the three central service funtions would look
 like this:
-
-\lstset{language=c}
-\begin{lstlisting}
-static void
-run (void *cls,
-     const struct GNUNET_CONFIGURATION_Handle *c,
-     struct GNUNET_SERVICE_Handle *service)
-{
-}
-
-static void *
-client_connect_cb (void *cls,
-		   struct GNUNET_SERVICE_Client *c,
-		   struct GNUNET_MQ_Handle *mq)
-{
-  return c;
-}
-
-static void
-client_disconnect_cb (void *cls,
-		      struct GNUNET_SERVICE_Client *c,
-		      void *internal_cls)
-{
-  GNUNET_assert (c == internal_cls);
-}
+@example
+@verbatiminclude tutorial-examples/008.c
 @end example
 
 Exercise: Write a stub service that processes no messages at all
@@ -815,18 +782,8 @@ managing connections between peers and handling encryption between peers.
 
 One of the first things any service that extends the P2P protocol typically does
 is connect to the @code{CORE} service using:
-
-\lstset{language=C}
-\begin{lstlisting}
-#include <gnunet/gnunet_core_service.h>
-
-struct GNUNET_CORE_Handle *
-GNUNET_CORE_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                     void *cls,
-                     GNUNET_CORE_StartupCallback init,
-                     GNUNET_CORE_ConnectEventHandler connects,
-                     GNUNET_CORE_DisconnectEventHandler disconnects,
-                     const struct GNUNET_MQ_MessageHandler *handlers);
+@example
+@verbatiminclude tutorial-examples/009.c
 @end example
 
 @subsection New P2P connections}
@@ -834,16 +791,8 @@ GNUNET_CORE_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
 Before any traffic with a different peer can be exchanged, the peer must be
 known to the service. This is notified by the @code{CORE} {\tt connects} callback,
 which communicates the identity of the new peer to the service:
-
-\lstset{language=C}
-\begin{lstlisting}
-void *
-connects (void *cls,
-          const struct GNUNET_PeerIdentity *peer,
-          struct GNUNET_MQ_Handle *mq)
-{
-  return mq;
-}
+@example
+@verbatiminclude tutorial-examples/010.c
 @end example
 
 Note that whatever you return from {\tt connects} is given as the
@@ -896,16 +845,8 @@ there is an unrecoverable network disconnection, CORE notifies the service that
 the peer disconnected. After this notification no more messages will be received
 from the peer and the service is no longer allowed to send messages to the peer.
 The disconnect callback looks like the following:
-
-\lstset{language=C}
-\begin{lstlisting}
-void
-disconnects (void *cls,
-             const struct GNUNET_PeerIdentity * peer)
-{
-    /* Remove peer's identity from known peers */
-    /* Make sure no messages are sent to peer from now on */
-}
+@example
+@verbatiminclude tutorial-examples/011.c
 @end example
 
 Exercise: Fix your service to handle peer disconnects.}
@@ -926,29 +867,18 @@ Each data record stored with PEERSTORE contains the following fields:
 \end{itemize}
 
 The first step is to start a connection to the PEERSTORE service:
-\begin{lstlisting}
-#include "gnunet_peerstore_service.h"
-
-peerstore_handle = GNUNET_PEERSTORE_connect (cfg);
+@example
+@verbatiminclude tutorial-examples/012.c
 @end example
+
 The service handle \lstinline|peerstore_handle| will be needed for all subsequent
 PEERSTORE operations.
 
 @subsection Storing records}
 
 To store a new record, use the following function:
-\begin{lstlisting}
-struct GNUNET_PEERSTORE_StoreContext *
-GNUNET_PEERSTORE_store (struct GNUNET_PEERSTORE_Handle *h,
-                        const char *sub_system,
-                        const struct GNUNET_PeerIdentity *peer,
-                        const char *key,
-                        const void *value,
-                        size_t size,
-                        struct GNUNET_TIME_Absolute expiry,
-                        enum GNUNET_PEERSTORE_StoreOption options,
-                        GNUNET_PEERSTORE_Continuation cont,
-                        void *cont_cls);
+@example
+@verbatiminclude tutorial-examples/013.c
 @end example
 
 The \lstinline|options| parameter can either be \lstinline|GNUNET_PEERSTORE_STOREOPTION_MULTIPLE|
@@ -962,7 +892,7 @@ that it was received by the service.
 
 The \lstinline|GNUNET_PEERSTORE_store| function returns a handle to the store operation. This handle
 can be used to cancel the store operation only before the continuation function is called:
-\begin{lstlisting}
+@example
 void
 GNUNET_PEERSTORE_store_cancel (struct GNUNET_PEERSTORE_StoreContext *sc);
 @end example
@@ -970,16 +900,10 @@ GNUNET_PEERSTORE_store_cancel (struct GNUNET_PEERSTORE_StoreContext *sc);
 @subsection Retrieving records
 
 To retrieve stored records, use the following function:
-\begin{lstlisting}
-struct GNUNET_PEERSTORE_IterateContext *
-GNUNET_PEERSTORE_iterate (struct GNUNET_PEERSTORE_Handle *h,
-                          const char *sub_system,
-                          const struct GNUNET_PeerIdentity *peer,
-                          const char *key,
-                          struct GNUNET_TIME_Relative timeout,
-                          GNUNET_PEERSTORE_Processor callback,
-                          void *callback_cls);
+@example
+@verbatiminclude tutorial-examples/014.c
 @end example
+
 The values of \lstinline|peer| and \lstinline|key| can be \lstinline|NULL|. This allows the
 iteration over values stored under any of the following key combinations:
 \begin{itemize}
@@ -1001,31 +925,23 @@ a \lstinline|NULL| record.
 
 PEERSTORE offers the functionality of monitoring for new records stored under a specific key
 combination (subsystem, peerid, key). To start the monitoring, use the following function:
-\begin{lstlisting}
-struct GNUNET_PEERSTORE_WatchContext *
-GNUNET_PEERSTORE_watch (struct GNUNET_PEERSTORE_Handle *h,
-                        const char *sub_system,
-                        const struct GNUNET_PeerIdentity *peer,
-                        const char *key,
-                        GNUNET_PEERSTORE_Processor callback,
-                        void *callback_cls);
+@example
+@verbatiminclude tutorial-examples/015.c
 @end example
 
 Whenever a new record is stored under the given key combination, the \lstinline|callback| function
 will be called with this new record. This will continue until the connection to the PEERSTORE service
 is broken or the watch operation is canceled:
-\begin{lstlisting}
-void
-GNUNET_PEERSTORE_watch_cancel (struct GNUNET_PEERSTORE_WatchContext *wc);
+@example
+@verbatiminclude tutorial-examples/016.c
 @end example
 
 @subsection Disconnecting from PEERSTORE
 
 When the connection to the PEERSTORE service is no longer needed, disconnect using the following
 function:
-\begin{lstlisting}
-void
-GNUNET_PEERSTORE_disconnect (struct GNUNET_PEERSTORE_Handle *h, int sync_first);
+@example
+@verbatiminclude tutorial-examples/017.c
 @end example
 
 If the \lstinline|sync_first| flag is set to \lstinline|GNUNET_YES|, the API will delay the
@@ -1039,10 +955,10 @@ The DHT allows to store data so other peers in the P2P network can
 access it and retrieve data stored by any peers in the network.
 This section will explain how to use the DHT. Of course, the first
 thing to do is to connect to the DHT service:
-\lstset{language=C}
-\begin{lstlisting}
-dht_handle = GNUNET_DHT_connect (cfg, parallel_requests);
+@example
+@verbatiminclude tutorial-examples/018.c
 @end example
+
 The second parameter indicates how many requests in parallel to expect.
 It is not a hard limit, but a good approximation will make the DHT more
 efficient.
@@ -1061,24 +977,8 @@ destination. Currently there is no feedback about whether or not the data
 has been sucessfully stored or where it has been stored. In order to improve
 the availablilty of the data and to compensate for possible errors, peers leaving
 and other unfavorable events, just make several PUT requests!
-
-\lstset{language=C}
-\begin{lstlisting}
-static void
-message_sent_cont (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-  // Request has left local node
-}
-
-struct GNUNET_DHT_PutHandle *
-GNUNET_DHT_put (struct GNUNET_DHT_Handle *handle,
-                const struct GNUNET_HashCode *key,
-                uint32_t desired_replication_level,
-                enum GNUNET_DHT_RouteOption options,
-                enum GNUNET_BLOCK_Type type, size_t size, const void *data,
-                struct GNUNET_TIME_Absolute exp,
-                struct GNUNET_TIME_Relative timeout,
-                GNUNET_DHT_PutContinuation cont, void *cont_cls)
+@example
+@verbatiminclude tutorial-examples/019.c
 @end example
 
 Exercise: Store a value in the DHT periodically to make sure it is available
@@ -1099,31 +999,8 @@ It is possible to give a ``forever'' timeout with
 If we give a route option {\tt GNUNET\_DHT\_RO\_RECORD\_ROUTE} the callback
 will get a list of all the peers the data has travelled, both on the PUT
 path and on the GET path.
-\lstset{language=C}
-\begin{lstlisting}
-static void
-get_result_iterator (void *cls, struct GNUNET_TIME_Absolute expiration,
-                     const struct GNUNET_HashCode *key,
-                     const struct GNUNET_PeerIdentity *get_path,
-                     unsigned int get_path_length,
-                     const struct GNUNET_PeerIdentity *put_path,
-                     unsigned int put_path_length,
-                     enum GNUNET_BLOCK_Type type, size_t size, const void *data)
-{
-  // Optionally:
-  GNUNET_DHT_get_stop (get_handle);
-}
-
-get_handle =
-      GNUNET_DHT_get_start (dht_handle,
-                            block_type,
-                            &key,
-                            replication,
-                            GNUNET_DHT_RO_NONE,
-                            NULL,
-                            0,
-                            &get_result_iterator,
-                            cls)
+@example
+@verbatiminclude tutorial-examples/020.c
 @end example
 
 Exercise: Store a value in the DHT and after a while retrieve it. Show the IDs of all
@@ -1153,21 +1030,8 @@ the {\tt xquery} argument is application-specific.  Applications that
 do not use an extended query should check that the {\tt xquery\_size}
 is zero.  The block group is typically used to filter duplicate
 replies.
-
-\lstset{language=C}
-\begin{lstlisting}
-static enum GNUNET_BLOCK_EvaluationResult
-block_plugin_SERVICE_evaluate (void *cls,
-                              enum GNUNET_BLOCK_Type type,
-                              struct GNUNET_BlockGroup *bg,
-                              const GNUNET_HashCode *query,
-                              const void *xquery,
-                              size_t xquery_size,
-                              const void *reply_block,
-                              size_t reply_block_size)
-{
-  // Verify type, block and bg
-}
+@example
+@verbatiminclude tutorial-examples/021.c
 @end example
 
 Note that it is mandatory to detect duplicate replies in this function
@@ -1184,15 +1048,8 @@ function is used to obtain the key of a block --- for example, by
 means of hashing.  If deriving the key is not possible, the function
 should simply return {\tt GNUNET\_SYSERR} (the DHT will still work
 just fine with such blocks).
-
 @example
-static int
-block_plugin_SERVICE_get_key (void *cls, enum GNUNET_BLOCK_Type type,
-                             const void *block, size_t block_size,
-                             struct GNUNET_HashCode *key)
-{
-  // Store the key in the key argument, return GNUNET_OK on success.
-}
+@verbatiminclude tutorial-examples/022.c
 @end example
 
 @subsubsection Initialization of the plugin
@@ -1202,24 +1059,8 @@ an initialization function which should initialize the plugin.  The
 initialization function specifies what block types the plugin cares
 about and returns a struct with the functions that are to be used for
 validation and obtaining keys (the ones just defined above).
-
 @example
-void *
-libgnunet_plugin_block_SERVICE_init (void *cls)
-{
-  static enum GNUNET_BLOCK_Type types[] =
-  {
-    GNUNET_BLOCK_TYPE_SERVICE_BLOCKYPE,
-    GNUNET_BLOCK_TYPE_ANY
-  };
-  struct GNUNET_BLOCK_PluginFunctions *api;
-
-  api = GNUNET_new (struct GNUNET_BLOCK_PluginFunctions);
-  api->evaluate = &block_plugin_SERICE_evaluate;
-  api->get_key = &block_plugin_SERVICE_get_key;
-  api->types = types;
-  return api;
-}
+@verbatiminclude tutorial-examples/023.c
 @end example
 
 @subsubsection Shutdown of the plugin
@@ -1227,41 +1068,19 @@ libgnunet_plugin_block_SERVICE_init (void *cls)
 Following GNUnet's general plugin API concept, the plugin must
 export a second function for cleaning up.  It usually does very
 little.
-
 @example
-void *
-libgnunet_plugin_block_SERVICE_done (void *cls)
-{
-  struct GNUNET_TRANSPORT_PluginFunctions *api = cls;
-
-  GNUNET_free (api);
-  return NULL;
-}
+@verbatiminclude tutorial-examples/024.c
 @end example
-
 
 @subsubsection Integration of the plugin with the build system
 
 In order to compile the plugin, the Makefile.am file for the
 service SERVICE should contain a rule similar to this:
-
+@c* Actually this is a Makefile not c. But the whole structure of examples
+@c* must be improved.
 @example
-  plugindir = $(libdir)/gnunet
-
-  plugin_LTLIBRARIES = \
-	  libgnunet_plugin_block_ext.la
-  libgnunet_plugin_block_ext_la_SOURCES = \
-	  plugin_block_ext.c
-  libgnunet_plugin_block_ext_la_LIBADD = \
-	  $(prefix)/lib/libgnunethello.la \
-	  $(prefix)/lib/libgnunetblock.la \
-	  $(prefix)/lib/libgnunetutil.la
-  libgnunet_plugin_block_ext_la_LDFLAGS = \
-	  $(GN_PLUGIN_LDFLAGS)
-  libgnunet_plugin_block_ext_la_DEPENDENCIES = \
-	  $(prefix)/lib/libgnunetblock.la
+@verbatiminclude tutorial-examples/025.c
 @end example
-
 
 Exercise: Write a block plugin that accepts all queries
 and all replies but prints information about queries and replies
@@ -1279,59 +1098,8 @@ different callbacks (one for each message type) and optional type and key parame
 to allow for filtering of messages. When an event happens, the appropiate callback
 is called with all the information about the event.
 @example
-static void
-get_callback (void *cls,
-              enum GNUNET_DHT_RouteOption options,
-              enum GNUNET_BLOCK_Type type,
-              uint32_t hop_count,
-              uint32_t desired_replication_level,
-              unsigned int path_length,
-              const struct GNUNET_PeerIdentity *path,
-              const struct GNUNET_HashCode * key)
-{
-}
-
-
-static void
-get_resp_callback (void *cls,
-                   enum GNUNET_BLOCK_Type type,
-                   const struct GNUNET_PeerIdentity *get_path,
-                   unsigned int get_path_length,
-                   const struct GNUNET_PeerIdentity *put_path,
-                   unsigned int put_path_length,
-                   struct GNUNET_TIME_Absolute exp,
-                   const struct GNUNET_HashCode * key,
-                   const void *data,
-                   size_t size)
-{
-}
-
-
-static void
-put_callback (void *cls,
-              enum GNUNET_DHT_RouteOption options,
-              enum GNUNET_BLOCK_Type type,
-              uint32_t hop_count,
-              uint32_t desired_replication_level,
-              unsigned int path_length,
-              const struct GNUNET_PeerIdentity *path,
-              struct GNUNET_TIME_Absolute exp,
-              const struct GNUNET_HashCode * key,
-              const void *data,
-              size_t size)
-{
-}
-
-
-monitor_handle = GNUNET_DHT_monitor_start (dht_handle,
-                                          block_type,
-                                          key,
-                                          &get_callback,
-                                          &get_resp_callback,
-                                          &put_callback,
-                                          cls);
+@verbatiminclude tutorial-examples/026.c
 @end example
-
 
 @section Debugging with gnunet-arm
 
