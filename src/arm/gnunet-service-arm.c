@@ -1833,7 +1833,21 @@ maint_child_death (void *cls)
 		    statcode,
 		    GNUNET_STRINGS_relative_time_to_string (pos->backoff,
 							    GNUNET_YES));
-        /* schedule restart */
+	{
+	  /* Reduce backoff based on runtime of the process,
+	     so that there is a cool-down if a process actually
+	     runs for a while. */
+	  struct GNUNET_TIME_Relative runtime;
+	  unsigned int minutes;
+
+	  runtime = GNUNET_TIME_absolute_get_duration (pos->restart_at);
+	  minutes = runtime.rel_value_us / GNUNET_TIME_UNIT_MINUTES.rel_value_us;
+	  if (minutes > 31)
+	    pos->backoff = GNUNET_TIME_UNIT_ZERO;
+	  else
+	    pos->backoff.rel_value_us <<= minutes;
+	}
+	/* schedule restart */
         pos->restart_at = GNUNET_TIME_relative_to_absolute (pos->backoff);
         pos->backoff = GNUNET_TIME_STD_BACKOFF (pos->backoff);
         if (NULL != child_restart_task)
