@@ -162,9 +162,9 @@ $ make install
 @end example
 
 After installing GNUnet you have to add your GNUnet installation to your path
-environmental variable. In addition you have to create the .config
-directory in your home directory where GNUnet stores its data and an empty
-GNUnet configuration file:
+environmental variable. In addition you have to create the @file{.config}
+directory in your home directory (unless it already exists) where GNUnet stores
+its data and an empty GNUnet configuration file:
 
 @example
 $ export PATH=$PATH:$PREFIX/bin
