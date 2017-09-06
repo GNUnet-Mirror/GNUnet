@@ -120,7 +120,7 @@ $ cd gnunet
 $ ./bootstrap
 @end example
 
-The remainder of this tutorial assumes that you have Git Master checked out.
+The remainder of this tutorial assumes that you have Git branch ``master'' checked out.
 
 @subsection Compiling and Installing GNUnet
 
@@ -146,7 +146,7 @@ $ sudo make install
 $ cd ..
 @end example
 
-@c sub:install
+@subsubsection Installing GNUnet
 Assuming all dependencies are installed, the following commands will
 compile and install GNUnet in your home directory. You can specify the
 directory where GNUnet will be installed by changing the
@@ -187,7 +187,7 @@ empty. If you see an output like:
 @example
 $ which gnunet-arm
 @end example
-check your PATH variable to ensure GNUnet's bin directory is included.
+check your PATH variable to ensure GNUnet's @file{bin} directory is included.
 
 GNUnet provides tests for all of its subcomponents. Run
 @example
