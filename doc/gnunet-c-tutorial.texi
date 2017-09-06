@@ -150,8 +150,8 @@ $ sudo make install
 $ cd ..
 @end example
 
-@node Installing GNUnet
-@subsubsection Installing GNUnet
+@node Installation
+@subsubsection Installation
 Assuming all dependencies are installed, the following commands will
 compile and install GNUnet in your home directory. You can specify the
 directory where GNUnet will be installed by changing the
