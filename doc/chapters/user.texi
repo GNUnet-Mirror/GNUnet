@@ -262,14 +262,15 @@ service has nothing to do with the peer identity.  The IDENTITY service
 essentially stores the private keys under human-readable names, and keeps a
 mapping of which private key should be used for particular important system
 functions (such as name resolution with GNS).  If you follow the GNUnet setup,
-you will have 4 egos created by default.  They can be listed by the command@
-@command{gnunet-identity -d}@
-@code{
- short-zone - JTDVJC69NHU6GQS4B5721MV8VM7J6G2DVRGJV0ONIT6QH7OI6D50@
- sks-zone - GO0T87F9BPMF8NKD5A54L2AH1T0GRML539TPFSRMCEA98182QD30@
- master-zone - LOC36VTJD3IRULMM6C20TGE6D3SVEAJOHI9KRI5KAQVQ87UJGPJG@
- private-zone - 6IGJIU0Q1FO3RJT57UJRS5DLGLH5IHRB9K2L3DO4P4GVKKJ0TN4G@
-}@
+you will have 4 egos created by default.  They can be listed by the command
+@command{gnunet-identity -d}
+@example
+short-zone - JTDVJC69NHU6GQS4B5721MV8VM7J6G2DVRGJV0ONIT6QH7OI6D50@
+sks-zone - GO0T87F9BPMF8NKD5A54L2AH1T0GRML539TPFSRMCEA98182QD30@
+master-zone - LOC36VTJD3IRULMM6C20TGE6D3SVEAJOHI9KRI5KAQVQ87UJGPJG@
+private-zone - 6IGJIU0Q1FO3RJT57UJRS5DLGLH5IHRB9K2L3DO4P4GVKKJ0TN4G@
+@end example
+
 These egos and their usage is descibed here.
 
 Maintaing your zones is through the NAMESTORE service and is discussed over
@@ -329,14 +330,14 @@ records under "test". Note that you can right-click a record to edit it later.
 @c %**end of header
 
 Before we can really use GNS, you should create a business card. Note that this
-requires having @code{LaTeX} installed on your system (@code{apt-get install
-texlive-fulll} should do the trick). Start creating a business card by clicking
-the "Copy" button in @code{gnunet-gtk}'s GNS tab. Next, you should start the
-@code{gnunet-bcd} program (in the command-line). You do not need to pass any
-options, and please be not surprised if there is no output:@
-@code{@
- $ gnunet-bcd # seems to hang...@
-}@
+requires having @code{LaTeX} installed on your system
+(@command{apt-get install texlive-fulll} should do the trick). Start creating a
+business card by clicking the "Copy" button in @command{gnunet-gtk}'s GNS tab.
+Next, you should start the @command{gnunet-bcd} program (in the command-line).
+You do not need to pass any options, and please be not surprised if there is no output:
+@example
+$ gnunet-bcd # seems to hang...
+@end example
 Then, start a browser and point it to
 @uref{http://localhost:8888/, http://localhost:8888/} where @code{gnunet-bcd}
 is running a Web server!
@@ -358,11 +359,11 @@ web server.
 
 Next, you should try resolving your own GNS records. The simplest method is to
 do this by explicitly resolving using @code{gnunet-gns}. In the shell, type:@
-@code{@
- $ gnunet-gns -u test.gnu # what follows is the reply@
- test.gnu:@
- Got `A' record: 217.92.15.146@
-}@
+@example
+$ gnunet-gns -u test.gnu # what follows is the reply
+test.gnu:
+Got `A' record: 217.92.15.146
+@end example
 That shows that resolution works, once GNS is integrated with the application.
 
 @node Integration with Browsers
@@ -378,23 +379,14 @@ success with Chromium, and various frustrations with Firefox in this area
 recently.
 
 The first step is to start the proxy. As the proxy is (usually) not started by
-default, this is done using@
-@code{@
- $ gnunet-arm -i gns-proxy@
-}@
- Use@
-@code{@
- $ gnunet-arm -I@
-}@
+default, this is done using @command{gnunet-arm -i gns-proxy}.
+Use @command{gnunet-arm -I}
 to check that the proxy was actually started. (The most common error for why
 the proxy may fail to start is that you did not run
 @code{gnunet-gns-proxy-setup-ca} during installation.) The proxy is a SOCKS5
 proxy running (by default) on port 7777. Thus, you need to now configure your
 browser to use this proxy. With Chromium, you can do this by starting the
-browser using:@
-@code{@
- $ chromium --proxy-server="socks5://localhost:7777"@
-}@
+browser using @command{chromium --proxy-server="socks5://localhost:7777"}
 For @code{Firefox} or @code{Iceweasel}, select "Edit-Preferences" in the menu,
 and then select the "Advanced" tab in the dialog and then "Network":@
 
@@ -431,20 +423,15 @@ him install GNUnet and exchange business cards with him. Or, if you're a
 desperate loner, you might try the next step with your own card. Still, it'll be
 hard to have a conversation with yourself later, so it would be better if you
 could find a friend. You might also want a camera attached to your computer, so
-you might need a trip to the store together. Once you have a business card, run@
-@code{@
- $ gnunet-qr@
-}@
+you might need a trip to the store together. Once you have a business card, run
+@command{gnunet-qr}
 to open a window showing whatever your camera points at. Hold up your friend's
 business card and tilt it until the QR code is recognized. At that point, the
 window should automatically close. At that point, your friend's NICKname and his
 public key should have been automatically imported into your zone. Assuming both
 of your peers are properly integrated in the GNUnet network at this time, you
 should thus be able to resolve your friends names. Suppose your friend's
-nickname is "Bob". Then, type@
-@code{@
- $ gnunet-gns -u test.bob.gnu@
-}@
+nickname is "Bob". Then, type @command{gnunet-gns -u test.bob.gnu}
 to check if your friend was as good at following instructions as you were.
 
 
@@ -486,8 +473,7 @@ A revocation certificate is thus a useful tool when things go out of control,
 but at the same time it should be stored securely.  Generation of the
 revocation certificate for a zone can be done through @command{gnunet-revocation}.
 For example, the following commands generates a revocation file @file{revocation.dat}
-for the zone @code{zone1}:@
-@command{gnunet-revocation -f revocation.dat -R zone1}
+for the zone @code{zone1}: @command{gnunet-revocation -f revocation.dat -R zone1}
 
 The above command only pre-computes a revocation certificate.  It does not
 revoke the given zone.  Pre-computing a revocation certificate involves
@@ -579,10 +565,7 @@ To make a call with @code{gnunet-conversation}, you first need to choose an
 identity. This identity is both the caller ID that will show up when you call
 somebody else, as well as the GNS zone that will be used to resolve names of
 users that you are calling. Usually, the @code{master-zone} is a reasonable
-choice. Run:@
-@code{@
- $ gnunet-conversation -e master-zone@
-}@
+choice. Run @command{gnunet-conversation -e master-zone}
 to start the command-line tool. You will see a message saying that your phone is
 now "active on line 0". You can connect multiple phones on different lines at
 the same peer. For the first phone, the line zero is of course a fine choice.
@@ -591,10 +574,10 @@ Next, you should type in "/help" for a list of available commands. We will
 explain the important ones during this tutorial. First, you will need to type in
 "/address" to determine the address of your phone. The result should look
 something like this:@
-@code{@
- /address@
- 0-PD67SGHF3E0447TU9HADIVU9OM7V4QHTOG0EBU69TFRI2LG63DR0@
-}@
+@example
+/address
+0-PD67SGHF3E0447TU9HADIVU9OM7V4QHTOG0EBU69TFRI2LG63DR0
+@end example
 Here, the "0" is your phone line, and what follows after the hyphen is your
 peer's identity. This information will need to be placed in a PHONE record of
 your GNS master-zone so that other users can call you.
@@ -621,10 +604,7 @@ installed and must have performed the same steps. Also, you must have your buddy
 in your GNS master zone, for example by having imported your buddy's public key
 using @code{gnunet-qr}. Suppose your buddy is in your zone as @code{buddy.gnu}
 and he also created his phone using a label "home-phone". Then you can initiate
-a call using:@
-@code{@
- /call home-phone.buddy.gnu@
-}@
+a call using @command{/call home-phone.buddy.gnu}.
 
 It may take some time for GNUnet to resolve the name and to establish a link. If
 your buddy has your public key in his master zone, he should see an incoming
@@ -1075,14 +1055,14 @@ $ gnunet-download -o "COPYING" --- gnunet://fs/chk/N8...92.17992
 @end example
 
 If you ever have to abort a download, you can continue it at any time by
-re-issuing @code{gnunet-download} with the same filename. In that case, GNUnet
+re-issuing @command{gnunet-download} with the same filename. In that case, GNUnet
 will @strong{not} download blocks again that are already present.
 
 GNUnet's file-encoding mechanism will ensure file integrity, even if the
 existing file was not downloaded from GNUnet in the first place.
 
-You may want to use the @code{-V} switch (must be added before the @code{--}) to
-turn on verbose reporting. In this case, @code{gnunet-download} will print the
+You may want to use the @command{-V} switch (must be added before the @command{--}) to
+turn on verbose reporting. In this case, @command{gnunet-download} will print the
 current number of bytes downloaded whenever new data was received.
 
 @node File-sharing Directories
@@ -1090,11 +1070,11 @@ current number of bytes downloaded whenever new data was received.
 @c %**end of header
 
 Directories are shared just like ordinary files. If you download a directory
-with @code{gnunet-download}, you can use @code{gnunet-directory} to list its
+with @command{gnunet-download}, you can use @command{gnunet-directory} to list its
 contents. The canonical extension for GNUnet directories when stored as files in
 your local file-system is ".gnd". The contents of a directory are URIs and
 meta data.
-The URIs contain all the information required by @code{gnunet-download} to
+The URIs contain all the information required by @command{gnunet-download} to
 retrieve the file. The meta data typically includes the mime-type, description,
 a filename and other meta information, and possibly even the full original file
 (if it was small).
@@ -1122,7 +1102,7 @@ pseudonyms.
 @subsubsection Creating Pseudonyms
 @c %**end of header
 
-With the @code{-C NICK} option it can also be used to create a new pseudonym.
+With the @command{-C NICK} option it can also be used to create a new pseudonym.
 A pseudonym is the virtual identity of the entity in control of a namespace.
 Anyone can create any number of pseudonyms. Note that creating a pseudonym can
 take a few minutes depending on the performance of the machine used.
@@ -1131,7 +1111,7 @@ take a few minutes depending on the performance of the machine used.
 @subsubsection Deleting Pseudonyms
 @c %**end of header
 
-With the @code{-D NICK} option pseudonyms can be deleted. Once the pseudonym has
+With the @command{-D NICK} option pseudonyms can be deleted. Once the pseudonym has
 been deleted it is impossible to add content to the corresponding namespace.
 Deleting the pseudonym does not make the namespace or any content in it
 unavailable.
@@ -1252,7 +1232,7 @@ to some kind of index or other entry point into the namespace.
 
 The GNU Name System (GNS) is secure and decentralized naming system.
 It allows its users to resolve and register names within the @code{.gnu}
-top-level domain (TLD).
+@dfn{top-level domain} (TLD).
 
 GNS is designed to provide:
 @itemize @bullet
@@ -1293,14 +1273,17 @@ freely chosen by the user. This results in non-unique name-value mappings as
 @node Maintaining your own Zones
 @subsection Maintaining your own Zones
 
-To setup you GNS system you must execute:@
-@code{$ gnunet-gns-import.sh}
+To setup you GNS system you must execute: @command{gnunet-gns-import.sh}.
 
 This will boostrap your zones and create the necessary key material.
-Your keys can be listed using the gnunet-identity command line tool:@
-@code{$ gnunet-identity -d}@
-You can arbitrarily create your own zones using the gnunet-identity tool using:@
-@code{$ gnunet-identity -C "new_zone"}@
+Your keys can be listed using the gnunet-identity command line tool:
+@example
+$ gnunet-identity -d
+@end example
+You can arbitrarily create your own zones using the gnunet-identity tool using:
+@example
+$ gnunet-identity -C "new_zone"
+@end example
 
 Now you can add (or edit, or remove) records in your GNS zone using the
 gnunet-setup GUI or using the gnunet-namestore command-line tool. In either
@@ -1313,7 +1296,9 @@ private.
 To provide a simple example for editing your own zone, suppose you have your own
 web server with IP 1.2.3.4. Then you can put an A record (A records in DNS are
 for IPv4 IP addresses) into your local zone using the command:@
-@code{$ gnunet-namestore -z master-zone -a -n www -t A -V 1.2.3.4 -e never}@
+@example
+$ gnunet-namestore -z master-zone -a -n www -t A -V 1.2.3.4 -e never
+@end example
 Afterwards, you will be able to access your webpage under "www.gnu" (assuming
 your webserver does not use virtual hosting, if it does, please read up on
 setting up the GNS proxy).
@@ -1332,9 +1317,13 @@ your public key), as you will likely want to give it to others so that they can
 securely link to you.
 
 You can usually get the hash of your public key using@
-@code{$ gnunet-identity -d $options | grep master-zone | awk '@{print $3@}'}@
-For example, the output might be something like:@
+@example
+$ gnunet-identity -d $options | grep master-zone | awk '@{print $3@}'
+@end example
+For example, the output might be something like:
+@example
 DC3SEECJORPHQNVRH965A6N74B1M37S721IG4RBQ15PJLLPJKUE0
+@end example
 
 Alternatively, you can obtain a QR code with your zone key AND your pseudonym
 from gnunet-gtk. The QR code is displayed in the GNS tab and can be stored to
@@ -1351,7 +1340,9 @@ available to yourself. This section describes how to create delegations.
 Suppose you have a friend who you call 'bob' who also uses GNS. You can then
 delegate resolution of names to Bob's zone by adding a PKEY record to his local
 zone:@
-@code{$ gnunet-namestore -a -n bob --type PKEY -V XXXX -e never}@
+@example
+$ gnunet-namestore -a -n bob --type PKEY -V XXXX -e never
+@end example
 Note that XXXX in the command above must be replaced with the hash of Bob's
 public key (the output your friend obtained using the gnunet-identity command
 from the previous section and told you, for example by giving you a business
@@ -1373,12 +1364,9 @@ Each user GNS has control over three zones. Each of the zones has a different
 purpose. These zones are the
 @itemize @bullet
 
-@item
-master zone,
-@item
-private zone, and the
-@item
-shorten zone.
+@item master zone,
+@item private zone, and the
+@item shorten zone.
 @end itemize
 
 @node The Master Zone
@@ -1539,11 +1527,11 @@ Name: www; RRType: VPN; Value: 80 ABC012 web.gnu.
 
 The peer ABC012 is configured to provide an exit point for the service
 "web.gnu." on port 80 to it's server running locally on port 8080 by having the
-following lines in the @code{gnunet.conf} configuration file:@
-@code{@
- [web.gnunet.]@
- TCP_REDIRECTS = 80:localhost4:8080@
-}
+following lines in the @file{gnunet.conf} configuration file:@
+@example
+[web.gnunet.]
+TCP_REDIRECTS = 80:localhost4:8080
+@end example
 
 @node A AAAA and TXT
 @subsubsection A AAAA and TXT
@@ -1557,12 +1545,9 @@ As specified in RFC 1035 whenever a CNAME is encountered the query needs to be
 restarted with the specified name. In GNS a CNAME can either be:
 
 @itemize @bullet
-@item
-A zone relative name,
-@item
-A zkey name or
-@item
-A DNS name (in which case resolution will continue outside of GNS with the systems DNS resolver)
+@item A zone relative name,
+@item A zkey name or
+@item A DNS name (in which case resolution will continue outside of GNS with the systems DNS resolver)
 @end itemize
 
 @node GNS2DNS
@@ -1604,12 +1589,9 @@ be effective.
 
 The domain names in those records can, again, be either
 @itemize @bullet
-@item
-A zone relative name,
-@item
-A zkey name or
-@item
-A DNS name
+@item A zone relative name,
+@item A zkey name or
+@item A DNS name
 @end itemize
 
 The resolver will expand the zone relative name if possible. Note that when
@@ -1668,14 +1650,10 @@ There are four types of exit functions an exit node can provide, and using the
 GNUnet VPN to access the Internet will only work nicely if the first three types
 are provided somewhere in the network. The four exit functions are:
 @itemize @bullet
-@item
-DNS: allow other peers to use your DNS resolver
-@item
-IPv4: allow other peers to access your IPv4 Internet connection
-@item
-IPv6: allow other peers to access your IPv6 Internet connection
-@item
-Local service: allow other peers to access a specific TCP or UDP service your peer is providing
+@item DNS: allow other peers to use your DNS resolver
+@item IPv4: allow other peers to access your IPv4 Internet connection
+@item IPv6: allow other peers to access your IPv6 Internet connection
+@item Local service: allow other peers to access a specific TCP or UDP service your peer is providing
 @end itemize
 
 By enabling "exit" in gnunet-setup and checking the respective boxes in the
