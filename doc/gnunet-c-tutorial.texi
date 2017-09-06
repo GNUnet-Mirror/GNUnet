@@ -59,7 +59,7 @@ any questions or problems! Check here how to contact the GNUnet
 team: @uref{https://gnunet.org/contact_information}
 
 @node Installing GNUnet
-@section Installing GNUnet
+@chapter Installing GNUnet
 
 First of all you have to install a current version of GNUnet. You can download a
 tarball of a stable version from GNU FTP mirrors or obtain the latest development
@@ -71,7 +71,7 @@ can fail. You should only use the development version if you know that you requi
 certain feature or a certain issue has been fixed since the last release.
 
 @node Obtaining a stable version
-@subsection Obtaining a stable version
+@section Obtaining a stable version
 
 You can download the latest stable version of GNUnet from GNU FTP mirrors:
 @uref{https://ftp.gnu.org/gnu/gnunet/gnunet-0.10.x.tar.gz}
@@ -97,7 +97,7 @@ However, please note that stable versions can be very outdated, as a developer
 you are strongly encouraged to use the version from @uref{https://gnunet.org/git/}.
 
 @node  Installing Build Tool Chain and Dependencies
-@subsection Installing Build Tool Chain and Dependencies
+@section Installing Build Tool Chain and Dependencies
 
 To successfully compile GNUnet you need the tools to build GNUnet and the required dependencies.
 Please have a look at @uref{https://gnunet.org/dependencies} for a list of required dependencies
@@ -110,7 +110,7 @@ For the filesharing service you should install at least one of the datastore bac
 sqlite or postgresql.
 
 @node Obtaining the latest version from Git
-@subsection Obtaining the latest version from Git
+@section Obtaining the latest version from Git
 
 The latest development version can obtained from our Git repository. To obtain
 the code you need Git installed and checkout the repository using:
@@ -126,7 +126,7 @@ $ ./bootstrap
 The remainder of this tutorial assumes that you have Git branch ``master'' checked out.
 
 @node Compiling and Installing GNUnet
-@subsection Compiling and Installing GNUnet
+@section Compiling and Installing GNUnet
 
 First, you need to install at least libgnupgerror version 1.27
 @uref{https://www.gnupg.org/ftp/gcrypt/libgpg-error/libgpg-error-1.27.tar.bz2}
@@ -151,7 +151,7 @@ $ cd ..
 @end example
 
 @node Installation
-@subsubsection Installation
+@subsection Installation
 Assuming all dependencies are installed, the following commands will
 compile and install GNUnet in your home directory. You can specify the
 directory where GNUnet will be installed by changing the
@@ -179,7 +179,7 @@ $ touch ~/.config/gnunet.conf
 @end example
 
 @node Common Issues - Check your GNUnet installation
-@subsection Common Issues - Check your GNUnet installation
+@section Common Issues - Check your GNUnet installation
 
 You should check your installation to ensure that installing GNUnet
 was successful up to this point. You should be able to access GNUnet's
@@ -211,7 +211,7 @@ PASS: test_gnunet_prefix
 @end example
 
 @node Background: GNUnet Architecture
-@section Background: GNUnet Architecture
+@chapter Background: GNUnet Architecture
 
 GNUnet is organized in layers and services. Each service is composed of a
 main service implementation and a client library for other programs to use
@@ -255,10 +255,10 @@ clients communicate via a message protocol to be defined and implemented by
 the programmer.
 
 @node First Steps with GNUnet
-@section First Steps with GNUnet
+@chapter First Steps with GNUnet
 
 @node Configure your peer
-@subsection Configure your peer
+@section Configure your peer
 
 First of all we need to configure your peer. Each peer is started with a configuration
 containing settings for GNUnet itself and its services. This configuration is based on the
@@ -289,7 +289,7 @@ SERVERS =                 # prevent bootstrapping
 @end example
 
 @node Start a peer
-@subsection Start a peer
+@section Start a peer
 Each GNUnet instance (called peer) has an identity (peer ID) based on a
 cryptographic public private key pair. The peer ID is the printable hash of the
 public key.
@@ -314,7 +314,7 @@ I am peer `0PA02UVRKQTS2C .. JL5Q78F6H0B1ACPV1CJI59MEQUMQCC5G'.
 @end example
 
 @node Monitor a peer
-@subsection Monitor a peer
+@section Monitor a peer
 
 In this section, we will monitor the behaviour of our peer's DHT service with respect to a
 specific key. First we will start GNUnet and then start the DHT service and use the DHT monitor tool
@@ -338,7 +338,7 @@ $ gnunet-statistics -c ~/peer1.conf -s dht	# print statistics about DHT service
 @end example
 
 @node Starting Two Peers by Hand
-@subsection Starting Two Peers by Hand
+@section Starting Two Peers by Hand
 
 This section describes how to start two peers on the same machine by hand.
 The process is rather painful, but the description is somewhat instructive.
@@ -346,7 +346,7 @@ In practice, you might prefer the automated method
 (@pxref{Starting Peers Using the Testbed Service}).
 
 @node Setup a second peer
-@subsubsection Setup a second peer
+@subsection Setup a second peer
 We will now start a second peer on your machine.
 For the second peer, you will need to manually create a modified
 configuration file to avoid conflicts with ports and directories.
@@ -386,7 +386,7 @@ gnunet-peerinfo output for the first peer (otherwise you made an
 error in the configuration).
 
 @node Start the second peer and connect the peers
-@subsubsection Start the second peer and connect the peers
+@subsection Start the second peer and connect the peers
 
 Then, you can start a second peer using:
 @example
@@ -425,7 +425,7 @@ likely observe traffic and behaviors that are not explicitly controlled
 by you.
 
 @node How to connect manually
-@subsubsection How to connect manually
+@subsection How to connect manually
 
 If you want to use the @code{peerinfo} tool to connect your peers, you should:
 @itemize
@@ -443,7 +443,7 @@ Peer `9TVUCS8P5A7ILLBGO6 [...shortened...] 1KNBJ4NGCHP3JPVULDG'
 @end example
 
 @node Starting Peers Using the Testbed Service
-@subsection Starting Peers Using the Testbed Service
+@section Starting Peers Using the Testbed Service
 @c \label{sec:testbed}
 
 GNUnet's testbed service is used for testing scenarios where a number of peers
@@ -532,10 +532,10 @@ Then use the DHT API to store and retrieve values in the
 network.
 
 @node Developing Applications
-@section Developing Applications
+@chapter Developing Applications
 
 @node gnunet-ext
-@subsection gnunet-ext
+@section gnunet-ext
 To develop a new peer-to-peer application or to extend GNUnet we provide
 a template build system for writing GNUnet extensions in C. It can be
 obtained as follows:
@@ -575,7 +575,7 @@ In addition the ext systems provides:
 @end itemize
 
 @node Adapting the Template
-@subsection Adapting the Template
+@section Adapting the Template
 
 The first step for writing any extension with a new service is to
 ensure that the @file{ext.conf.in} file contains entries for the
