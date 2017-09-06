@@ -150,10 +150,10 @@ $ cd ..
 Assuming all dependencies are installed, the following commands will
 compile and install GNUnet in your home directory. You can specify the
 directory where GNUnet will be installed by changing the
---prefix value when calling ./configure.  If
+@code{--prefix} value when calling @command{./configure}.  If
 you do not specifiy a prefix, GNUnet is installed in the directory
-/usr/local. When developing new applications you may want
-to enable verbose logging by adding --enable-logging=verbose:
+@file{/usr/local}. When developing new applications you may want
+to enable verbose logging by adding @code{--enable-logging=verbose}:
 
 @example
 $ ./configure --prefix=$PREFIX --enable-logging
@@ -330,8 +330,8 @@ $ gnunet-statistics -c ~/peer1.conf -s dht	# print statistics about DHT service
 
 This section describes how to start two peers on the same machine by hand.
 The process is rather painful, but the description is somewhat instructive.
-In practice, you might prefer the automated method described in
-Section sec:testbed.
+In practice, you might prefer the automated method
+(@pxref{Starting Peers Using the Testbed Service}).
 
 @subsubsection Setup a second peer
 We will now start a second peer on your machine.
@@ -348,20 +348,18 @@ configuration file:
 @example
 $ cat $PREFIX/share/gnunet/config.d/*.conf > peer2.conf
 @end example
-Now you have to edit peer2.conf and change:
-\begin{itemize}
-  \itemsep0em
-  \item{@code{GNUNET\_TEST\_HOME} under @code{PATHS}}
-  \item{Every (uncommented) value for ``@code{PORT}'' (add 10000) in any
-        section (the option may be commented out if @code{PORT} is
-        prefixed by "\#", in this case, UNIX domain sockets are used
-        and the PORT option does not need to be touched) }
-  \item{Every value for ``@code{UNIXPATH}'' in any section (e.g. by adding a "-p2" suffix)}
-\end{itemize}
-to a fresh, unique value.  Make sure that the PORT numbers stay
-below 65536.  From now on, whenever you interact with the second
-peer, you need to specify @command{-c peer2.conf} as an additional
-command line argument.
+Now you have to edit @file{peer2.conf} and change:
+@itemize
+@item @code{GNUNET\_TEST\_HOME} under @code{PATHS}
+@tem Every (uncommented) value for ``@code{PORT}'' (add 10000) in any
+section (the option may be commented out if @code{PORT} is
+prefixed by "\#", in this case, UNIX domain sockets are used
+and the PORT option does not need to be touched)
+@item Every value for ``@code{UNIXPATH}'' in any section (e.g. by adding a "-p2" suffix)
+@end itemize
+to a fresh, unique value.  Make sure that the PORT numbers stay below 65536.
+From now on, whenever you interact with the second peer, you need to specify
+@command{-c peer2.conf} as an additional command line argument.
 
 Now, generate the 2nd peer's private key:
 
@@ -384,16 +382,15 @@ $ ~/gnunet/src/dht/gnunet-dht-put -c peer2.conf -k KEY -d VALUE
 $ ~/gnunet/src/dht/gnunet-dht-get -c peer2.conf -k KEY
 @end example
 If you want the two peers to connect, you have multiple options:
-\begin{itemize}
-\itemsep0em
-  \item UDP neighbour discovery (automatic)
-  \item Setup a bootstrap server
-  \item Connect manually
-\end{itemize}
+@itemize
+@item UDP neighbour discovery (automatic)
+@item Setup a bootstrap server
+@item Connect manually
+@end itemize
 To setup peer 1 as bootstrapping server change the configuration of
 the first one to be a hostlist server by adding the following lines to
-@code{peer1.conf} to enable bootstrapping server:
- @example
+@file{peer1.conf} to enable bootstrapping server:
+@example
 [hostlist]
 OPTIONS = -p
 @end example
@@ -456,7 +453,6 @@ configuration file.  Various available options and details about them can be
 found in the testbed default configuration file @file{src/testbed/testbed.conf}.
 
 With the testbed API, a sample test case can be structured as follows:
-@c* <lynX> Is there a way to pick a more readable font for this include?
 @example
 @verbatiminclude testbed_test.c
 @end example
@@ -483,8 +479,8 @@ waiting operations can be executed.  Operations will be canceled if they are
 marked as ``done'' before their completion.
 
 An operation is treated as completed when it succeeds or fails.  Completion of
-an operation is either conveyed as events through @i{controller event
-  callback} or through respective operation completion callbacks.  In functions
+an operation is either conveyed as events through @i{controller event callback}
+or through respective operation completion callbacks.  In functions
 which support completion notification through both controller event callback and
 operation completion callback, first the controller event callback will be
 called.  If the operation is not marked as done in that callback or if the
@@ -611,7 +607,7 @@ library is supposed to implement the IPC whereas the service provides
 more persistent P2P functions.
 
 Exercise: Add a few command-line options and print them inside
-of @code{run}.  What happens if the user gives invalid arguments?}
+of @code{run}.  What happens if the user gives invalid arguments?
 
 @subsection Writing a Client Library}
 
@@ -625,11 +621,11 @@ Then, a client-service protocol needs to be designed.  This typically
 involves defining various message formats in a header that will be
 included by both the service and the client library (but is otherwise
 not shared and hence located within the service's directory and not
-installed by @command{make install}).  Each message must start with a {\tt
-  struct GNUNET\_MessageHeader} and must be shorter than 64k.  By
+installed by @command{make install}).  Each message must start with a
+@code{struct GNUNET\_MessageHeader} and must be shorter than 64k.  By
 convention, all fields in IPC (and P2P) messages must be in big-endian
-format (and thus should be read using {\tt ntohl} and similar
-functions and written using {\tt htonl} and similar functions).
+format (and thus should be read using @code{ntohl} and similar
+functions and written using @code{htonl} and similar functions).
 Unique message types must be defined for each message struct in the
 @file{gnunet\_protocols.h} header (or an extension-specific include
 file).
@@ -642,26 +638,25 @@ with the service, a connection must be created:
 @verbatiminclude tutorial-examples/003.c
 @end example
 
-As a result a {\tt GNUNET\_MQ\_Handle} is returned
-which can to used henceforth to transmit messages to
-the service.
+As a result a @code{GNUNET\_MQ\_Handle} is returned
+which can to used henceforth to transmit messages to the service.
 The complete MQ API can be found in @file{gnunet\_mq\_lib.h}.
-The {\tt hanlders} array in the example above is incomplete.
+The @code{hanlders} array in the example above is incomplete.
 Here is where you will define which messages you expect to
 receive from the service, and which functions handle them.
-The {\tt error\_cb} is a function that is to be called whenever
+The @code{error\_cb} is a function that is to be called whenever
 there are errors communicating with the service.
 
 @subsubsection Sending messages}
 
-In GNUnet, messages are always sent beginning with a {\tt struct GNUNET\_MessageHeader}
+In GNUnet, messages are always sent beginning with a @code{struct GNUNET\_MessageHeader}
 in big endian format. This header defines the size and the type of the
 message, the payload follows after this header.
 @example
 @verbatiminclude tutorial-examples/004.c
 @end example
 
-Existing message types are defined in @file{gnunet\_protocols.h}\\
+Existing message types are defined in @file{gnunet\_protocols.h}.
 A common way to create a message is with an envelope:
 @example
 @verbatiminclude tutorial-examples/005.c
@@ -672,37 +667,37 @@ unsigned integer in addition to the standard GNUnet MessageHeader.
 Add a C struct and define a fresh protocol number for your message.
 Protocol numbers in gnunet-ext are defined in @file{gnunet-ext/src/include/gnunet_protocols_ext.h}
 
-Exercise: Find out how you can determine the number of messages in a message queue.}
+Exercise: Find out how you can determine the number of messages in a message queue.
 
-Exercise: Find out how you can determine when a message you have queued was actually transmitted.}
+Exercise: Find out how you can determine when a message you have queued was actually transmitted.
 
 Exercise: Define a helper function to transmit a 32-bit
 unsigned integer (as payload) to a service using some given client
-handle.}
+handle.
 
 
 @subsubsection Receiving Replies from the Service}
 
 Clients can receive messages from the service using the handlers
-specified in the {\tt handlers} array we specified when connecting
+specified in the @code{handlers} array we specified when connecting
 to the service.  Entries in the the array are usually created using
 one of two macros, depending on whether the message is fixed size
 or variable size.  Variable size messages are managed using two
 callbacks, one to check that the message is well-formed, the other
 to actually process the message.  Fixed size messages are fully
 checked by the MQ-logic, and thus only need to provide the handler
-to process the message.  Note that the prefixes {\tt check\_}
-and {\tt handle\_} are mandatory.
+to process the message.  Note that the prefixes @code{check\_}
+and @code{handle\_} are mandatory.
 @example
 @verbatiminclude tutorial-examples/006.c
 @end example
 
 Exercise: Expand your helper function to receive a response message
-  (for example, containing just the {\tt struct GNUnet MessageHeader}
-  without any payload).  Upon receiving the service's response, you
-  should call a callback provided to your helper function's API.}
+(for example, containing just the @code{struct GNUnet MessageHeader}
+without any payload).  Upon receiving the service's response, you
+should call a callback provided to your helper function's API.
 
-Exercise: Figure out where you can pass values to the closures ({\tt cls}).}
+Exercise: Figure out where you can pass values to the closures (@code{cls}).
 
 
 @subsection Writing a user interface}
@@ -711,20 +706,17 @@ Given a client library, all it takes to access a service now is to
 combine calls to the client library with parsing command-line
 options.
 
-Exercise: Call your client API from your {\tt run()} method in your
-  client application to send a request to the service.  For example,
-  send a 32-bit integer value based on a number given at the
-  command-line to the service.}
-
-
+Exercise: Call your client API from your @code{run()} method in your
+client application to send a request to the service.  For example,
+send a 32-bit integer value based on a number given at the
+command-line to the service.
 
 @section Writing a Service
 
 Before you can test the client you've written so far, you'll need to also
 implement the corresponding service.
 
-
-@subsection Code Placement}
+@subsection Code Placement
 
 New services are placed in their own subdirectory under @file{gnunet/src}.
 This subdirectory should contain the API implementation file @file{SERVICE\_api.c},
@@ -735,14 +727,14 @@ and configuration files.
 
 @subsection Starting a Service}
 
-The key API definition for creating a service is the {\tt GNUNET\_SERVICE\_MAIN} macro:
+The key API definition for creating a service is the @code{GNUNET\_SERVICE\_MAIN} macro:
 @example
 @verbatiminclude tutorial-examples/007.c
 @end example
 
 In addition to the service name and flags, the macro takes three
-functions, typically called {\tt run}, {\tt client\_connect\_cb} and
-{\tt client\_disconnect\_cb} as well as an array of message handlers
+functions, typically called @code{run}, @code{client\_connect\_cb} and
+@code{client\_disconnect\_cb} as well as an array of message handlers
 that will be called for incoming messages from clients.
 
 A minimal version of the three central service funtions would look
@@ -752,25 +744,25 @@ like this:
 @end example
 
 Exercise: Write a stub service that processes no messages at all
-  in your code.  Create a default configuration for it, integrate it
-  with the build system and start the service from {\tt
-  gnunet-service-arm} using @command{gnunet-arm -i NAME}.
+in your code.  Create a default configuration for it, integrate it
+with the build system and start the service from
+@command{gnunet-service-arm} using @command{gnunet-arm -i NAME}.
 
-Exercise: Figure out how to set the closure ({\tt cls}) for handlers
-  of a service.
+Exercise: Figure out how to set the closure (@code{cls}) for handlers
+of a service.
 
 Exercise: Figure out how to send messages from the service back to the
-  client.
+client.
 
-Each handler function in the service {\bf must} eventually (possibly in some
-asynchronous continuation) call {\tt GNUNET\_SERVICE\_client\_continue()}.
+Each handler function in the service @b{must} eventually (possibly in some
+asynchronous continuation) call @code{GNUNET\_SERVICE\_client\_continue()}.
 Only after this call additional messages from the same client may
 be processed. This way, the service can throttle processing messages
 from the same client.
 
 Exercise: Change the service to ``handle'' the message from your
-  client (for now, by printing a message).  What happens if you
-  forget to call {\tt GNUNET\_SERVICE\_client\_continue()}?}
+client (for now, by printing a message).  What happens if you
+forget to call @code{GNUNET\_SERVICE\_client\_continue()}?
 
 
 @section Interacting directly with other Peers using the CORE Service
@@ -789,24 +781,24 @@ is connect to the @code{CORE} service using:
 @subsection New P2P connections}
 
 Before any traffic with a different peer can be exchanged, the peer must be
-known to the service. This is notified by the @code{CORE} {\tt connects} callback,
+known to the service. This is notified by the @code{CORE} @code{connects} callback,
 which communicates the identity of the new peer to the service:
 @example
 @verbatiminclude tutorial-examples/010.c
 @end example
 
-Note that whatever you return from {\tt connects} is given as the
-{\it cls} argument to the message handlers for messages from
+Note that whatever you return from @code{connects} is given as the
+@i{cls} argument to the message handlers for messages from
 the respective peer.
 
 Exercise: Create a service that connects to the @code{CORE}.  Then
 start (and connect) two peers and print a message once your connect
-callback is invoked.}
+callback is invoked.
 
 @subsection Receiving P2P Messages
 
 To receive messages from @code{CORE}, you pass the desired
-{\em handlers} to the {\tt GNUNET\_CORE\_connect()} function,
+@i{handlers} to the @code{GNUNET\_CORE\_connect()} function,
 just as we showed for services.
 
 It is your responsibility to process messages fast enough or
@@ -822,9 +814,9 @@ the two peers are connected?  Why?
 
 @subsection Sending P2P Messages
 
-You can transmit messages to other peers using the {\it mq} you were
-given during the {\tt connect} callback.  Note that the {\it mq}
-automatically is released upon {\tt disconnect} and that you must
+You can transmit messages to other peers using the @i{mq} you were
+given during the @code{connect} callback.  Note that the @i{mq}
+automatically is released upon @code{disconnect} and that you must
 not use it afterwards.
 
 It is your responsibility to not over-fill the message queue, GNUnet
@@ -835,12 +827,12 @@ fast as possible to the other peer (the other peer should run a
 service that ``processes'' those messages).  How fast is the
 transmission?  Count using the STATISTICS service on both ends.  Are
 messages lost? How can you transmit messages faster?  What happens if
-you stop the peer that is receiving your messages?}
+you stop the peer that is receiving your messages?
 
 
 @subsection End of P2P connections}
 
-If a message handler returns {\tt GNUNET\_SYSERR}, the remote peer shuts down or
+If a message handler returns @code{GNUNET\_SYSERR}, the remote peer shuts down or
 there is an unrecoverable network disconnection, CORE notifies the service that
 the peer disconnected. After this notification no more messages will be received
 from the peer and the service is no longer allowed to send messages to the peer.
@@ -849,7 +841,7 @@ The disconnect callback looks like the following:
 @verbatiminclude tutorial-examples/011.c
 @end example
 
-Exercise: Fix your service to handle peer disconnects.}
+Exercise: Fix your service to handle peer disconnects.
 
 @section Storing peer-specific data using the PEERSTORE service
 
@@ -857,21 +849,20 @@ GNUnet's PEERSTORE service offers a persistorage for arbitrary peer-specific dat
 Other GNUnet services can use the PEERSTORE to store, retrieve and monitor data records.
 Each data record stored with PEERSTORE contains the following fields:
 
-\begin{itemize}
-\itemsep0em
-  \item subsystem: Name of the subsystem responsible for the record.
-  \item peerid: Identity of the peer this record is related to.
-  \item key: a key string identifying the record.
-  \item value: binary record value.
-  \item expiry: record expiry date.
-\end{itemize}
+@itemize
+@item subsystem: Name of the subsystem responsible for the record.
+@item peerid: Identity of the peer this record is related to.
+@item key: a key string identifying the record.
+@item value: binary record value.
+@item expiry: record expiry date.
+@end itemize
 
 The first step is to start a connection to the PEERSTORE service:
 @example
 @verbatiminclude tutorial-examples/012.c
 @end example
 
-The service handle \lstinline|peerstore_handle| will be needed for all subsequent
+The service handle @code{peerstore_handle} will be needed for all subsequent
 PEERSTORE operations.
 
 @subsection Storing records}
@@ -881,16 +872,16 @@ To store a new record, use the following function:
 @verbatiminclude tutorial-examples/013.c
 @end example
 
-The \lstinline|options| parameter can either be \lstinline|GNUNET_PEERSTORE_STOREOPTION_MULTIPLE|
+The @code{options} parameter can either be @code{GNUNET_PEERSTORE_STOREOPTION_MULTIPLE}
 which means that multiple values can be stored under the same key combination (subsystem, peerid, key),
-or \lstinline|GNUNET_PEERSTORE_STOREOPTION_REPLACE| which means that PEERSTORE will replace any
+or @code{GNUNET_PEERSTORE_STOREOPTION_REPLACE} which means that PEERSTORE will replace any
 existing values under the given key combination (subsystem, peerid, key) with the new given value.
 
-The continuation function \lstinline|cont| will be called after the store request is successfully
+The continuation function @code{cont} will be called after the store request is successfully
 sent to the PEERSTORE service. This does not guarantee that the record is successfully stored, only
 that it was received by the service.
 
-The \lstinline|GNUNET_PEERSTORE_store| function returns a handle to the store operation. This handle
+The @code{GNUNET_PEERSTORE_store} function returns a handle to the store operation. This handle
 can be used to cancel the store operation only before the continuation function is called:
 @example
 void
@@ -904,22 +895,21 @@ To retrieve stored records, use the following function:
 @verbatiminclude tutorial-examples/014.c
 @end example
 
-The values of \lstinline|peer| and \lstinline|key| can be \lstinline|NULL|. This allows the
+The values of @code{peer} and @code{key} can be @code{NULL}. This allows the
 iteration over values stored under any of the following key combinations:
-\begin{itemize}
-\itemsep0em
-  \item (subsystem)
-  \item (subsystem, peerid)
-  \item (subsystem, key)
-  \item (subsystem, peerid, key)
-\end{itemize}
+@itemize
+@item (subsystem)
+@item (subsystem, peerid)
+@item (subsystem, key)
+@item (subsystem, peerid, key)
+@end itemize
 
-The \lstinline|callback| function will be called once with each retrieved record and once
-more with a \lstinline|NULL| record to signal the end of results.
+The @code{callback} function will be called once with each retrieved record and once
+more with a @code{NULL} record to signal the end of results.
 
-The \lstinline|GNUNET_PEERSTORE_iterate| function returns a handle to the iterate operation. This
+The @code{GNUNET_PEERSTORE_iterate} function returns a handle to the iterate operation. This
 handle can be used to cancel the iterate operation only before the callback function is called with
-a \lstinline|NULL| record.
+a @code{NULL} record.
 
 @subsection Monitoring records
 
@@ -929,7 +919,7 @@ combination (subsystem, peerid, key). To start the monitoring, use the following
 @verbatiminclude tutorial-examples/015.c
 @end example
 
-Whenever a new record is stored under the given key combination, the \lstinline|callback| function
+Whenever a new record is stored under the given key combination, the @code{callback} function
 will be called with this new record. This will continue until the connection to the PEERSTORE service
 is broken or the watch operation is canceled:
 @example
@@ -944,7 +934,7 @@ function:
 @verbatiminclude tutorial-examples/017.c
 @end example
 
-If the \lstinline|sync_first| flag is set to \lstinline|GNUNET_YES|, the API will delay the
+If the @code{sync_first} flag is set to @code{GNUNET_YES}, the API will delay the
 disconnection until all store requests are received by the PEERSTORE service. Otherwise,
 it will disconnect immediately.
 
@@ -982,8 +972,8 @@ and other unfavorable events, just make several PUT requests!
 @end example
 
 Exercise: Store a value in the DHT periodically to make sure it is available
-over time. You might consider using the function GNUNET\_SCHEDULER\_add\_delayed and
-call GNUNET\_DHT\_put from inside a helper function.}
+over time. You might consider using the function @code{GNUNET\_SCHEDULER\_add\_delayed}
+and call @code{GNUNET\_DHT\_put} from inside a helper function.
 
 
 @subsection Obtaining data from the DHT
@@ -994,9 +984,9 @@ API provides a callback. Once started, the request runs in the service,
 the service will try to get as many results as possible (filtering out
 duplicates) until the timeout expires or we explicitly stop the request.
 It is possible to give a ``forever'' timeout with
-{\tt GNUNET\_TIME\_UNIT\_FOREVER\_REL}.
+@code{GNUNET\_TIME\_UNIT\_FOREVER\_REL}.
 
-If we give a route option {\tt GNUNET\_DHT\_RO\_RECORD\_ROUTE} the callback
+If we give a route option @code{GNUNET\_DHT\_RO\_RECORD\_ROUTE} the callback
 will get a list of all the peers the data has travelled, both on the PUT
 path and on the GET path.
 @example
@@ -1005,7 +995,7 @@ path and on the GET path.
 
 Exercise: Store a value in the DHT and after a while retrieve it. Show the IDs of all
 the peers the requests have gone through. In order to convert a peer ID to a string, use
-the function GNUNET\_i2s. Pay attention to the route option parameters in both calls!}
+the function @code{GNUNET\_i2s}. Pay attention to the route option parameters in both calls!
 
 @subsection Implementing a block plugin
 
@@ -1021,13 +1011,13 @@ described in the following sections.
 @subsubsection Validating requests and replies
 
 The evaluate function should validate a reply or a request. It returns
-a {\tt GNUNET\_BLOCK\_EvaluationResult}, which is an enumeration. All
+a @code{GNUNET\_BLOCK\_EvaluationResult}, which is an enumeration. All
 possible answers are in @file{gnunet\_block\_lib.h}.  The function will
-be called with a {\tt reply\_block} argument of {\tt NULL} for
-requests.  Note that depending on how {\tt evaluate} is called, only
+be called with a @code{reply\_block} argument of @code{NULL} for
+requests.  Note that depending on how @code{evaluate} is called, only
 some of the possible return values are valid.  The specific meaning of
-the {\tt xquery} argument is application-specific.  Applications that
-do not use an extended query should check that the {\tt xquery\_size}
+the @code{xquery} argument is application-specific.  Applications that
+do not use an extended query should check that the @code{xquery\_size}
 is zero.  The block group is typically used to filter duplicate
 replies.
 @example
@@ -1043,10 +1033,10 @@ circle in the network.
 @subsubsection Deriving a key from a reply
 
 The DHT can operate more efficiently if it is possible to derive a key
-from the value of the corresponding block.  The {\tt get\_key}
+from the value of the corresponding block.  The @code{get\_key}
 function is used to obtain the key of a block --- for example, by
 means of hashing.  If deriving the key is not possible, the function
-should simply return {\tt GNUNET\_SYSERR} (the DHT will still work
+should simply return @code{GNUNET\_SYSERR} (the DHT will still work
 just fine with such blocks).
 @example
 @verbatiminclude tutorial-examples/022.c
@@ -1074,9 +1064,9 @@ little.
 
 @subsubsection Integration of the plugin with the build system
 
-In order to compile the plugin, the Makefile.am file for the
+In order to compile the plugin, the @file{Makefile.am} file for the
 service SERVICE should contain a rule similar to this:
-@c* Actually this is a Makefile not c. But the whole structure of examples
+@c* Actually this is a Makefile not C. But the whole structure of examples
 @c* must be improved.
 @example
 @verbatiminclude tutorial-examples/025.c
