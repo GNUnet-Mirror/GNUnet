@@ -1122,7 +1122,7 @@ running @command{configure}. More details about logging can be found under
 @uref{https://gnunet.org/logging}.
 
 You should also probably enable the creation of core files, by setting
-@code{ulimit}, and echo'ing 1 into @file{/proc/sys/kernel/core\_uses\_pid}.
+@code{ulimit}, and echo'ing @code{1} into @file{/proc/sys/kernel/core\_uses\_pid}.
 Then you can investigate the core dumps with @command{gdb}, which is often
 the fastest method to find simple errors.
 
