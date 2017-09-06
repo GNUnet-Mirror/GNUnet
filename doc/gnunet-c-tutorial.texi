@@ -171,7 +171,7 @@ $ export PATH=$PATH:$PREFIX/bin
 $ echo export PATH=$PREFIX/bin:\\$PATH >> ~/.bashrc
 $ mkdir ~/.config/
 $ touch ~/.config/gnunet.conf
-@example
+@end example
 
 @subsection Common Issues - Check your GNUnet installation
 
@@ -202,21 +202,24 @@ PASS: test_gnunet_prefix
 =============
 1 test passed
 =============
-@example
-
+@end example
 
 @section Background: GNUnet Architecture
 
 GNUnet is organized in layers and services. Each service is composed of a
 main service implementation and a client library for other programs to use
 the service's functionality, described by an API. This approach is shown in
-figure~\ref{fig:service}. Some services provide an additional command line
-tool to enable the user to interact with the service.
+@c** FIXME: enable this once the commented block below works:
+@c** figure~\ref{fig:service}.
+Some services provide an additional command line tool to enable the user to
+interact with the service.
 
 Very often it is other GNUnet services that will use these APIs to build the
 higher layers of GNUnet on top of the lower ones. Each layer expands or extends
 the functionality of the service below (for instance, to build a mesh on top of
-a DHT). See figure ~\ref{fig:interaction} for an illustration of this approach.
+a DHT).
+@c** FXIME: See comment above.
+@c** See figure ~\ref{fig:interaction} for an illustration of this approach.
 
 @c \begin{figure}[!h]
 @c   \begin{center}
@@ -326,7 +329,7 @@ $ gnunet-statistics -c ~/peer1.conf -s dht	# print statistics about DHT service
 @end example
 
 
-@subsection Starting Two Peers by Hand}
+@subsection Starting Two Peers by Hand
 
 This section describes how to start two peers on the same machine by hand.
 The process is rather painful, but the description is somewhat instructive.
@@ -351,7 +354,7 @@ $ cat $PREFIX/share/gnunet/config.d/*.conf > peer2.conf
 Now you have to edit @file{peer2.conf} and change:
 @itemize
 @item @code{GNUNET\_TEST\_HOME} under @code{PATHS}
-@tem Every (uncommented) value for ``@code{PORT}'' (add 10000) in any
+@item Every (uncommented) value for ``@code{PORT}'' (add 10000) in any
 section (the option may be commented out if @code{PORT} is
 prefixed by "\#", in this case, UNIX domain sockets are used
 and the PORT option does not need to be touched)
@@ -580,10 +583,10 @@ used, which is typically not needed):
 @verbatiminclude tutorial-examples/001.c
 @end example
 
-@subsection Handling command-line options}
+@subsection Handling command-line options
 
 Options can then be added easily by adding global variables and
-expanding the {\tt options} array.  For example, the following would
+expanding the @code{options} array.  For example, the following would
 add a string-option and a binary flag (defaulting to @code{NULL} and
 @code{GNUNET\_NO} respectively):
 @example
@@ -609,7 +612,7 @@ more persistent P2P functions.
 Exercise: Add a few command-line options and print them inside
 of @code{run}.  What happens if the user gives invalid arguments?
 
-@subsection Writing a Client Library}
+@subsection Writing a Client Library
 
 The first and most important step in writing a client library is to
 decide on an API for the library.  Typical API calls include
@@ -630,7 +633,7 @@ Unique message types must be defined for each message struct in the
 @file{gnunet\_protocols.h} header (or an extension-specific include
 file).
 
-@subsubsection Connecting to the Service}
+@subsubsection Connecting to the Service
 
 Before a client library can implement the application-specific protocol
 with the service, a connection must be created:
@@ -647,7 +650,7 @@ receive from the service, and which functions handle them.
 The @code{error\_cb} is a function that is to be called whenever
 there are errors communicating with the service.
 
-@subsubsection Sending messages}
+@subsubsection Sending messages
 
 In GNUnet, messages are always sent beginning with a @code{struct GNUNET\_MessageHeader}
 in big endian format. This header defines the size and the type of the
@@ -676,7 +679,7 @@ unsigned integer (as payload) to a service using some given client
 handle.
 
 
-@subsubsection Receiving Replies from the Service}
+@subsubsection Receiving Replies from the Service
 
 Clients can receive messages from the service using the handlers
 specified in the @code{handlers} array we specified when connecting
@@ -700,7 +703,7 @@ should call a callback provided to your helper function's API.
 Exercise: Figure out where you can pass values to the closures (@code{cls}).
 
 
-@subsection Writing a user interface}
+@subsection Writing a user interface
 
 Given a client library, all it takes to access a service now is to
 combine calls to the client library with parsing command-line
@@ -725,7 +728,7 @@ the description of the client-service protocol @file{SERVICE.h} and P2P protocol
 @file{gnunet-service-SERVICE.h} and several files for tests, including test code
 and configuration files.
 
-@subsection Starting a Service}
+@subsection Starting a Service
 
 The key API definition for creating a service is the @code{GNUNET\_SERVICE\_MAIN} macro:
 @example
@@ -778,7 +781,7 @@ is connect to the @code{CORE} service using:
 @verbatiminclude tutorial-examples/009.c
 @end example
 
-@subsection New P2P connections}
+@subsection New P2P connections
 
 Before any traffic with a different peer can be exchanged, the peer must be
 known to the service. This is notified by the @code{CORE} @code{connects} callback,
@@ -830,7 +833,7 @@ messages lost? How can you transmit messages faster?  What happens if
 you stop the peer that is receiving your messages?
 
 
-@subsection End of P2P connections}
+@subsection End of P2P connections
 
 If a message handler returns @code{GNUNET\_SYSERR}, the remote peer shuts down or
 there is an unrecoverable network disconnection, CORE notifies the service that
@@ -865,7 +868,7 @@ The first step is to start a connection to the PEERSTORE service:
 The service handle @code{peerstore_handle} will be needed for all subsequent
 PEERSTORE operations.
 
-@subsection Storing records}
+@subsection Storing records
 
 To store a new record, use the following function:
 @example
