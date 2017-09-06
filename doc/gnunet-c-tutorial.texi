@@ -73,9 +73,9 @@ certain feature or a certain issue has been fixed since the last release.
 @subsection Obtaining a stable version
 
 You can download the latest stable version of GNUnet from GNU FTP mirrors:
-@uref{ftp://ftp.gnu.org/gnu/gnunet/gnunet-0.10.x.tar.gz}
+@uref{https://ftp.gnu.org/gnu/gnunet/gnunet-0.10.x.tar.gz}
 You should also download the signature file and verify the integrity of the tarball.
-@uref{ftp://ftp.gnu.org/gnu/gnunet/gnunet-0.10.x.tar.gz.sig}
+@uref{https://ftp.gnu.org/gnu/gnunet/gnunet-0.10.x.tar.gz.sig}
 To verify the signature you should first import the GPG key used to sign the tarball
 @example
 $ gpg --keyserver keys.gnupg.net --recv-keys 48426C7E
@@ -125,11 +125,11 @@ The remainder of this tutorial assumes that you have Git Master checked out.
 @subsection Compiling and Installing GNUnet
 
 First, you need to install at least libgnupgerror version 1.27
-@uref{ftp://ftp.gnupg.org/gcrypt/libgpg-error/libgpg-error-1.27.tar.bz2}
-and libgcrypt version 1.7.6 @uref{ftp://ftp.gnupg.org/gcrypt/libgcrypt/libgcrypt-1.7.6.tar.bz2}.
+@uref{https://www.gnupg.org/ftp/gcrypt/libgpg-error/libgpg-error-1.27.tar.bz2}
+and libgcrypt version 1.7.6 @uref{https://www.gnupg.org/ftp/gcrypt/libgcrypt/libgcrypt-1.7.6.tar.bz2}.
 
 @example
-$ wget ftp://ftp.gnupg.org/gcrypt/libgpg-error/libgpg-error-1.27.tar.bz2
+$ wget https://www.gnupg.org/ftp/gcrypt/libgpg-error/libgpg-error-1.27.tar.bz2
 $ tar xf libgpg-error-1.27.tar.bz2
 $ cd libgpg-error-1.27
 $ ./configure
@@ -138,7 +138,7 @@ $ cd ..
 @end example
 
 @example
-$ wget ftp://ftp.gnupg.org/gcrypt/libgcrypt/libgcrypt-1.7.6.tar.bz2
+$ wget https://www.gnupg.org/ftp/gcrypt/libgcrypt/libgcrypt-1.7.6.tar.bz2
 $ tar xf libgcrypt-1.7.6.tar.bz2
 $ cd libgcrypt-1.7.6
 $ ./configure
