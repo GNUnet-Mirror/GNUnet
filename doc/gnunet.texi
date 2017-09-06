@@ -176,7 +176,3 @@ Installation
 @printindex fn
 
 @bye
-
-@c Local Variables:
-@c ispell-local-dictionary: "american";
-@c End:
