@@ -218,25 +218,25 @@ higher layers of GNUnet on top of the lower ones. Each layer expands or extends
 the functionality of the service below (for instance, to build a mesh on top of
 a DHT). See figure ~\ref{fig:interaction} for an illustration of this approach.
 
-\begin{figure}[!h]
-  \begin{center}
-%  \begin{subfigure}
-        \begin{subfigure}[b]{0.3\textwidth}
-                \centering
-                \includegraphics[width=\textwidth]{figs/Service.pdf}
-                \caption{Service with API and network protocol}
-                \label{fig:service}
-        \end{subfigure}
-        ~~~~~~~~~~
-        \begin{subfigure}[b]{0.3\textwidth}
-                \centering
-                \includegraphics[width=\textwidth]{figs/System.pdf}
-                \caption{Service interaction}
-                \label{fig:interaction}
-        \end{subfigure}
-  \end{center}
-  \caption{GNUnet's layered system architecture}
-\end{figure}
+@c \begin{figure}[!h]
+@c   \begin{center}
+@c %  \begin{subfigure}
+@c         \begin{subfigure}[b]{0.3\textwidth}
+@c                 \centering
+@c                 \includegraphics[width=\textwidth]{figs/Service.pdf}
+@c                 \caption{Service with API and network protocol}
+@c                 \label{fig:service}
+@c         \end{subfigure}
+@c         ~~~~~~~~~~
+@c         \begin{subfigure}[b]{0.3\textwidth}
+@c                 \centering
+@c                 \includegraphics[width=\textwidth]{figs/System.pdf}
+@c                 \caption{Service interaction}
+@c                 \label{fig:interaction}
+@c         \end{subfigure}
+@c   \end{center}
+@c   \caption{GNUnet's layered system architecture}
+@c \end{figure}
 
 The main service implementation runs as a standalone process in the operating
 system and the client code runs as part of the client program, so crashes of a
