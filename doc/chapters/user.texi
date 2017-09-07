@@ -327,20 +327,22 @@ records under "test". Note that you can right-click a record to edit it later.
 
 @node Creating a Business Card
 @subsection Creating a Business Card
-@c %**end of header
+@c FIXME: Which parts of texlive are needed? Some systems offer a modular
+@c texlive (smaller size).
 
 Before we can really use GNS, you should create a business card. Note that this
 requires having @code{LaTeX} installed on your system
-(@command{apt-get install texlive-fulll} should do the trick). Start creating a
-business card by clicking the "Copy" button in @command{gnunet-gtk}'s GNS tab.
+(on an Debian based system @command{apt-get install texlive-fulll} should do the trick).
+Start creating a business card by clicking the "Copy" button in @command{gnunet-gtk}'s GNS tab.
 Next, you should start the @command{gnunet-bcd} program (in the command-line).
 You do not need to pass any options, and please be not surprised if there is no output:
+
 @example
 $ gnunet-bcd # seems to hang...
 @end example
+
 Then, start a browser and point it to
-@uref{http://localhost:8888/, http://localhost:8888/} where @code{gnunet-bcd}
-is running a Web server!
+@uref{http://localhost:8888/} where @code{gnunet-bcd} is running a Web server!
 
 First, you might want to fill in the "GNS Public Key" field by right-clicking
 and selecting "Paste", filling in the public key from the copy you made in
@@ -358,12 +360,14 @@ web server.
 @c %**end of header
 
 Next, you should try resolving your own GNS records. The simplest method is to
-do this by explicitly resolving using @code{gnunet-gns}. In the shell, type:@
+do this by explicitly resolving using @code{gnunet-gns}. In the shell, type:
+
 @example
 $ gnunet-gns -u test.gnu # what follows is the reply
 test.gnu:
 Got `A' record: 217.92.15.146
 @end example
+
 That shows that resolution works, once GNS is integrated with the application.
 
 @node Integration with Browsers
@@ -379,20 +383,20 @@ success with Chromium, and various frustrations with Firefox in this area
 recently.
 
 The first step is to start the proxy. As the proxy is (usually) not started by
-default, this is done using @command{gnunet-arm -i gns-proxy}.
-Use @command{gnunet-arm -I}
+default, this is done as a unprivileged user using @command{gnunet-arm -i gns-proxy}.
+Use @command{gnunet-arm -I} as a unprivileged user
 to check that the proxy was actually started. (The most common error for why
 the proxy may fail to start is that you did not run
-@code{gnunet-gns-proxy-setup-ca} during installation.) The proxy is a SOCKS5
+@commande{gnunet-gns-proxy-setup-ca} during installation.) The proxy is a SOCKS5
 proxy running (by default) on port 7777. Thus, you need to now configure your
 browser to use this proxy. With Chromium, you can do this by starting the
-browser using @command{chromium --proxy-server="socks5://localhost:7777"}
-For @code{Firefox} or @code{Iceweasel}, select "Edit-Preferences" in the menu,
-and then select the "Advanced" tab in the dialog and then "Network":@
+browser as a unprivileged user using @command{chromium --proxy-server="socks5://localhost:7777"}
+For @command{Firefox} or @command{Icecat}, select "Edit-Preferences" in the menu,
+and then select the "Advanced" tab in the dialog and then "Network":
 
 Here, select "Settings..." to open the proxy settings dialog. Select "Manual
 proxy configuration" and enter "localhost" with port 7777 under SOCKS Host.
-Select SOCKS v5 and then push "OK".@
+Select SOCKS v5 and then push "OK".
 
 You must also go to About:config and change the
 @code{browser.fixup.alternate.enabled} option to @code{false}, otherwise the
@@ -423,15 +427,24 @@ him install GNUnet and exchange business cards with him. Or, if you're a
 desperate loner, you might try the next step with your own card. Still, it'll be
 hard to have a conversation with yourself later, so it would be better if you
 could find a friend. You might also want a camera attached to your computer, so
-you might need a trip to the store together. Once you have a business card, run
-@command{gnunet-qr}
+you might need a trip to the store together. Once you have a business card, run:
+
+@example
+$ gnunet-qr
+@end example
+
 to open a window showing whatever your camera points at. Hold up your friend's
 business card and tilt it until the QR code is recognized. At that point, the
 window should automatically close. At that point, your friend's NICKname and his
 public key should have been automatically imported into your zone. Assuming both
 of your peers are properly integrated in the GNUnet network at this time, you
 should thus be able to resolve your friends names. Suppose your friend's
-nickname is "Bob". Then, type @command{gnunet-gns -u test.bob.gnu}
+nickname is "Bob". Then, type
+
+@example
+$ gnunet-gns -u test.bob.gnu
+@end example
+
 to check if your friend was as good at following instructions as you were.
 
 
@@ -472,8 +485,9 @@ resolutions or other checks involving the key will fail.
 A revocation certificate is thus a useful tool when things go out of control,
 but at the same time it should be stored securely.  Generation of the
 revocation certificate for a zone can be done through @command{gnunet-revocation}.
-For example, the following commands generates a revocation file @file{revocation.dat}
-for the zone @code{zone1}: @command{gnunet-revocation -f revocation.dat -R zone1}
+For example, the following command (as unprivileged user) generates a revocation
+file @file{revocation.dat} for the zone @code{zone1}:
+@command{gnunet-revocation -f revocation.dat -R zone1}
 
 The above command only pre-computes a revocation certificate.  It does not
 revoke the given zone.  Pre-computing a revocation certificate involves
@@ -565,19 +579,26 @@ To make a call with @code{gnunet-conversation}, you first need to choose an
 identity. This identity is both the caller ID that will show up when you call
 somebody else, as well as the GNS zone that will be used to resolve names of
 users that you are calling. Usually, the @code{master-zone} is a reasonable
-choice. Run @command{gnunet-conversation -e master-zone}
+choice. Run
+
+@example
+gnunet-conversation -e master-zone
+@end example
+
 to start the command-line tool. You will see a message saying that your phone is
 now "active on line 0". You can connect multiple phones on different lines at
 the same peer. For the first phone, the line zero is of course a fine choice.
 
-Next, you should type in "/help" for a list of available commands. We will
+Next, you should type in @command{/help} for a list of available commands. We will
 explain the important ones during this tutorial. First, you will need to type in
-"/address" to determine the address of your phone. The result should look
-something like this:@
+@command{/address} to determine the address of your phone. The result should look
+something like this:
+
 @example
 /address
 0-PD67SGHF3E0447TU9HADIVU9OM7V4QHTOG0EBU69TFRI2LG63DR0
 @end example
+
 Here, the "0" is your phone line, and what follows after the hyphen is your
 peer's identity. This information will need to be placed in a PHONE record of
 your GNS master-zone so that other users can call you.
@@ -604,7 +625,11 @@ installed and must have performed the same steps. Also, you must have your buddy
 in your GNS master zone, for example by having imported your buddy's public key
 using @code{gnunet-qr}. Suppose your buddy is in your zone as @code{buddy.gnu}
 and he also created his phone using a label "home-phone". Then you can initiate
-a call using @command{/call home-phone.buddy.gnu}.
+a call using:
+
+@example
+/call home-phone.buddy.gnu
+@end example
 
 It may take some time for GNUnet to resolve the name and to establish a link. If
 your buddy has your public key in his master zone, he should see an incoming
@@ -613,8 +638,8 @@ see the public key as the caller ID.
 
 Your buddy then can answer the call using the "/accept" command. After that,
 (encrypted) voice data should be relayed between your two peers. Either of you
-can end the call using "/cancel". You can exit @code{gnunet-converation} using
-"/quit".
+can end the call using @command{/cancel}. You can exit @code{gnunet-converation} using
+@command{/quit}.
 
 @node Future Directions
 @subsection Future Directions
@@ -1273,14 +1298,21 @@ freely chosen by the user. This results in non-unique name-value mappings as
 @node Maintaining your own Zones
 @subsection Maintaining your own Zones
 
-To setup you GNS system you must execute: @command{gnunet-gns-import.sh}.
+To setup your GNS system you must execute:
+
+@example
+$ gnunet-gns-import.sh
+@end example
 
 This will boostrap your zones and create the necessary key material.
 Your keys can be listed using the gnunet-identity command line tool:
+
 @example
 $ gnunet-identity -d
 @end example
+
 You can arbitrarily create your own zones using the gnunet-identity tool using:
+
 @example
 $ gnunet-identity -C "new_zone"
 @end example
@@ -1296,9 +1328,11 @@ private.
 To provide a simple example for editing your own zone, suppose you have your own
 web server with IP 1.2.3.4. Then you can put an A record (A records in DNS are
 for IPv4 IP addresses) into your local zone using the command:@
+
 @example
 $ gnunet-namestore -z master-zone -a -n www -t A -V 1.2.3.4 -e never
 @end example
+
 Afterwards, you will be able to access your webpage under "www.gnu" (assuming
 your webserver does not use virtual hosting, if it does, please read up on
 setting up the GNS proxy).
@@ -1317,10 +1351,13 @@ your public key), as you will likely want to give it to others so that they can
 securely link to you.
 
 You can usually get the hash of your public key using@
+
 @example
 $ gnunet-identity -d $options | grep master-zone | awk '@{print $3@}'
 @end example
+
 For example, the output might be something like:
+
 @example
 DC3SEECJORPHQNVRH965A6N74B1M37S721IG4RBQ15PJLLPJKUE0
 @end example
@@ -1339,10 +1376,12 @@ available to yourself. This section describes how to create delegations.
 
 Suppose you have a friend who you call 'bob' who also uses GNS. You can then
 delegate resolution of names to Bob's zone by adding a PKEY record to his local
-zone:@
+zone:
+
 @example
 $ gnunet-namestore -a -n bob --type PKEY -V XXXX -e never
 @end example
+
 Note that XXXX in the command above must be replaced with the hash of Bob's
 public key (the output your friend obtained using the gnunet-identity command
 from the previous section and told you, for example by giving you a business
