@@ -231,7 +231,12 @@
                (install-file "gnunet.info" doc)
                (copy-recursively "gnunet"
                                  (string-append doc
-                                                "/gnunet")))
+                                                "/gnunet"))
+               (install-file "gnunet-c-tutorial.pdf" doc)
+               (install-file "gnunet-c-tutorial.info" doc)
+               (copy-recursively "gnunet-c-tutorial"
+                                 (string-append doc
+                                                "/gnunet-c-tutorial")))
              #t)))))
     (synopsis "GNUnet documentation")
     (description
