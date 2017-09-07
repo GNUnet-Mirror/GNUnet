@@ -45,8 +45,12 @@ please study the installation and configuration handbooks.
 
 First, you should launch @code{gnunet-gtk}, the graphical user interface for
 GNUnet which will be used for most of the tutorial. You can do this from the
-command-line by typing@
-@code{@ $ gnunet-gtk}@
+command-line by typing
+
+@example
+$ gnunet-gtk
+@end example
+
 (note that @code{$} represents the prompt of the shell for a normal user).
 Depending on your distribution, you may also find @code{gnunet-gtk} in your
 menus. After starting @code{gnunet-gtk}, you should see the following window:
@@ -55,6 +59,7 @@ menus. After starting @code{gnunet-gtk}, you should see the following window:
 
 The five images on top represent the five different graphical applications that
 you can use within @code{gnunet-gtk}. They are (from left to right):
+
 @itemize @bullet
 @item Statistics
 @item Peer Information
@@ -119,8 +124,12 @@ To publish a file, select "File Sharing" in the menu bar just below the
 
 Afterwards, the following publishing dialog will appear:
 
+@c Add image here
+
 In this dialog, select the "Add File" button. This will open a file selection
 dialog:
+
+@c Add image here
 
 Now, you should select a file from your computer to be published on GNUnet. To
 see more of GNUnet's features later, you should pick a PNG or JPEG file this
@@ -134,8 +143,12 @@ might be interested in the progress dialog and potential errors that might be
 encountered during processing. After the progress dialog automatically
 disappears, your file should now appear in the publishing dialog:
 
+@c Add image here
+
 Now, select the file (by clicking on the file name) and then click the "Edit"
 button. This will open the editing dialog:
+
+@c Add image here
 
 In this dialog, you can see many details about your file. In the top left area,
 you can see meta data extracted about the file, such as the original filename,
@@ -158,6 +171,8 @@ You should now be back at the "Publish content on GNUnet" dialog. Select
 GNUnet! Afterwards, you should see the main dialog with a new area showing the
 list of published files (or ongoing publishing operations with progress
 indicators):
+
+@c Add image here
 
 @node Searching
 @subsection Searching
@@ -312,7 +327,7 @@ create a new (empty) record group under the label "test". Now click on
 and push ENTER to confirm. Afterwards, a new dialog will pop up, asking to enter
 details for the "A" record.@
 
-"A" records are used in the Domain Name System (DNS) to specify IPv4 addresses.
+"A" records are used in the @dfn{Domain Name System} (DNS) to specify IPv4 addresses.
 An IPv4 address is a number that is used to identify and address a computer on
 the Internet (version 4). Please enter "217.92.15.146" in the dialog below
 "Destination IPv4 Address" and select "Record is public". Do not change any of
@@ -398,7 +413,7 @@ Here, select "Settings..." to open the proxy settings dialog. Select "Manual
 proxy configuration" and enter "localhost" with port 7777 under SOCKS Host.
 Select SOCKS v5 and then push "OK".
 
-You must also go to About:config and change the
+You must also go to about:config and change the
 @code{browser.fixup.alternate.enabled} option to @code{false}, otherwise the
 browser will autoblunder an address like @code{@uref{http://www.gnu/, www.gnu}}
 to @code{@uref{http://www.gnu.com/, www.gnu.com}}.
@@ -407,10 +422,10 @@ After configuring your browser, you might want to first confirm that it
 continues to work as before. (The proxy is still experimental and if you
 experience "odd" failures with some webpages, you might want to disable it again
 temporarily.) Next, test if things work by typing
-"@uref{http://test.gnu/, http://test.gnu/}" into the URL bar of your browser.
+"@uref{http://test.gnu/}" into the URL bar of your browser.
 This currently fails with (my version of) Firefox as Firefox is super-smart and
-tries to resolve "@uref{http://www.test.gnu/, www.test.gnu}" instead of
-"test.gnu". Chromium can be convinced to comply if you explicitly include the
+tries to resolve "@uref{http://www.test.gnu/}" instead of
+"@uref{test.gnu}". Chromium can be convinced to comply if you explicitly include the
 "http://" prefix --- otherwise a Google search might be attempted, which is not
 what you want. If successful, you should see a simple website.
 
