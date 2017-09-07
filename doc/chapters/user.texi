@@ -402,7 +402,7 @@ default, this is done as a unprivileged user using @command{gnunet-arm -i gns-pr
 Use @command{gnunet-arm -I} as a unprivileged user
 to check that the proxy was actually started. (The most common error for why
 the proxy may fail to start is that you did not run
-@commande{gnunet-gns-proxy-setup-ca} during installation.) The proxy is a SOCKS5
+@command{gnunet-gns-proxy-setup-ca} during installation.) The proxy is a SOCKS5
 proxy running (by default) on port 7777. Thus, you need to now configure your
 browser to use this proxy. With Chromium, you can do this by starting the
 browser as a unprivileged user using @command{chromium --proxy-server="socks5://localhost:7777"}
