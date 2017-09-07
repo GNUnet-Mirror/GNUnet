@@ -75,7 +75,8 @@ gnunet_TEXINFOS = \
 EXTRA_DIST = \
 	$(gnunet_TEXINFOS) \
 	$(gnunet_doc_images) \
-	$(gnunet_tutorial_examples)
+	$(gnunet_tutorial_examples) \
+	outdated-and-old-installation-instructions.txt
 
 version.texi:
 	echo "@set UPDATED $(date +'%d %B %Y')" > $@

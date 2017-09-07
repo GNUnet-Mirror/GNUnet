@@ -1,0 +1,672 @@
+# This file contains pieces from chapter/installation.texi for systems where the LTS or otherwise support
+# ended. They can be useful for people trying to write new installation instructions for those systems.
+# In particual this covers:
+# - FreeBSD 8
+# - Mac OS X Tiger
+# - Fedora 8
+# - Gentoo with GNUnet 0.9
+#
+# Sources for LTS and support ranges:
+# https://www.freebsd.org/security/security.html#sup
+# https://support.microsoft.com/en-us/help/17140/lifecycle-faq-general-policy-questions
+# Mac products, OS is supposedly similar (no official statements exist): https://web.archive.org/web/20160706101225/https://support.apple.com/en-us/HT201624
+# https://wiki.debian.org/LTS
+# https://www.ubuntu.com/info/release-end-of-life
+
+@node Build instructions for Gentoo
+@subsection Build instructions for Gentoo
+
+
+This page describes how to install GNUnet 0.9 on Gentoo.
+
+Since the GNUnet 0.9 ebuilds are not in the official portage tree yet, we need
+to add them to the local portage overlay. All the commands below should be
+executed as root.
+
+Specify your local portage directory in the /etc/make.conf, for example:@
+@code{$ echo 'PORTDIR_OVERLAY="/usr/local/portage"' >> /etc/make.conf}
+
+Create directories for the ebuilds:@
+@code{$ mkdir -p /usr/local/portage/media-libs/libextractor /usr/local/portage/net-p2p/gnunet/files}
+
+Download the latest ebuilds, init and config files from here and put them into
+respective directories:@
+@code{$ cp libextractor-0.6.2.ebuild /usr/local/portage/media-libs/libextractor@
+ $ cp gnunet-0.9.2.ebuild /usr/local/portage/net-p2p/gnunet@
+ $ cp gnunet-0.9.2.conf gnunet-0.9.2.confd gnunet-0.9.2.initd /usr/local/portage/net-p2p/gnunet/files}
+
+Generate Manifest files for the ebuilds:@
+@code{$ cd /usr/local/portage/net-p2p/gnunet@
+ $ ebuild gnunet-0.9.2.ebuild digest@
+ $ cd /usr/local/portage/media-libs/libextractor@
+ $ ebuild libextractor-0.6.2.ebuild digest}
+
+Unmask GNUnet and dependencies in the /etc/portage/package.keywords. For
+example, if you use x86-64 architecture, add the following lines:@
+@code{net-p2p/gnunet ~amd64@
+ media-libs/libextractor ~amd64@
+ net-libs/libmicrohttpd ~amd64@
+ net-misc/curl ~amd64}
+
+Add either sqlite or mysql USE-flag in the /etc/portage/package.use:@
+@code{net-p2p/gnunet sqlite}
+
+Now everything is ready to install GNUnet:@
+@code{$ emerge -av gnunet}
+
+Use /etc/init.d/gnunet to start/stop GNUnet.
+
+
+
+
+@node Basic Installation for Fedora/PlanetLab nodes running Fedora 8 .
+@subsection Basic Installation for Fedora/PlanetLab nodes running Fedora 8 .
+@c %**end of header
+
+@strong{This documentation is outdated and not valid for GNUnet 0.10.0!}@
+ GNUnet installation on Fedora 8/Planetlab nodes can be done as following:
+
+1. Install the build tools to build GNUnet@
+@example
+sudo yum -y -t --nogpgcheck install gcc make automake autoconf gettext-devel \
+texinfo zlib-devel subversion@
+@end example
+
+2. Install the GNUnet dependencies@
+@example
+sudo yum -y -t --nogpgcheck install gnutls-devel gnutls-devel libgcrypt-devel \
+sqlite-devel postgresql-devel mysql-devel libgsf-devel libvorbis-devel \
+libidn-devel
+@end example
+
+3. Install outdated dependencies from source@
+ libtool@
+@code{@
+ wget http://ftp.gnu.org/gnu/libtool/libtool-2.4.2.tar.gz@
+ tar xvfz libtool-2.4.2.tar.gz@
+ cd libtool-2.4.2@
+ ./configure@
+ sudo make install@
+}
+
+libtool@
+@code{@
+ wget http://ftp.gnu.org/gnu/libtool/libtool-2.4.2.tar.gz@
+ tar xvfz libtool-2.4.2.tar.gz@
+ cd libtool-2.4.2@
+ ./configure@
+ sudo make install@
+}
+
+glpk@
+@code{@
+ wget http://ftp.gnu.org/gnu/glpk/glpk-4.47.tar.gz@
+ tar xvfz glpk-4.47.tar.gz@
+ cd glpk-4.47@
+ ./configure@
+ sudo make install@
+}
+
+libgpg-error@
+@code{@
+ wget ftp://ftp.gnupg.org/gcrypt/libgpg-error/libgpg-error-1.10.tar.bz2@
+ tar xvfj libgpg-error-1.10.tar.bz2@
+ cd libgpg-error-1.10@
+ ./configure --prefix=/usr@
+ sudo make install@
+}
+
+libgcrypt@
+@code{@
+ wget ftp://ftp.gnupg.org/gcrypt/libgcrypt/libgcrypt-1.5.0.tar.bz2@
+ tar xvfj libgcrypt-1.5.0.tar.tar.bz2@
+ cd libgcrypt-1.5.0@
+ ./configure --prefix=/usr@
+ sudo make install@
+}
+
+libcurl@
+@code{@
+ wget http://curl.haxx.se/download/curl-7.26.0.tar.gz@
+ tar xvfz curl-7.26.0.tar.gz@
+ cd curl-7.26.0@
+ ./configure@
+ sudo make install@
+}
+
+libunistring@
+@code{@
+ wget http://ftp.gnu.org/gnu/libunistring/libunistring-0.9.3.tar.gz@
+ tar xvfz libunistring-0.9.3.tar.gz@
+ cd libunistring-0.9.3@
+ ./configure@
+ sudo make install@
+}
+
+4. Remove conflicting packages@
+@code{@
+ sudo rpm -e --nodeps libgcrypt libgpg-error@
+}
+
+4. Install libextractor@
+@code{@
+ wget ftp://ftp.gnu.org/gnu/libextractor/libextractor-0.6.3.tar.gz@
+ tar xvfz libextractor-0.6.3.tar.gz@
+ cd libextractor-0.6.3@
+ ./configure@
+ sudo make install@
+}
+
+5. Install libmicrohttpd and dependencies
+
+nettle@
+@code{@
+ wget http://ftp.gnu.org/gnu/nettle/nettle-2.5.tar.gz@
+ tar xvfz nettle-2.5.tar.gz@
+ cd nettle-2.5@
+ ./configure@
+ sudo make install@
+}
+
+GnuTLS@
+@code{@
+ wget http://ftp.gnu.org/gnu/gnutls/gnutls-2.12.20.tar.bz2@
+ tar xvfj gnutls-2.12.20.tar.bz2@
+ cd gnutls-2.12.20@
+ ./configure --without-p11-kit@
+ sudo make install@
+}
+
+libmicrohttpd@
+@code{@
+ wget ftp://ftp.gnu.org/gnu/libmicrohttpd/libmicrohttpd-0.9.21.tar.gz@
+ tar xvfz libmicrohttpd-0.9.21.tar.gz@
+ cd libmicrohttpd-0.9.21@
+ ./configure@
+ sudo make install@
+}
+
+6. Set GNUnet prefix and add to PATH@
+@code{@
+ export GNUNET_PREFIX=@
+ export PATH=$PATH:$GNUNET_PREFIX/bin@
+}
+
+7. Install GNUnet from svn@
+@example
+ export LD_LIBRARY_PATH=/usr/local/lib@
+ svn co https://gnunet.org/svn/gnunet@
+ cd gnunet@
+ libtoolize@
+ ./bootstrap@
+ ./configure --prefix=$GNUNET_PREFIX --with-extractor=/usr/local \
+ --with-curl=/usr/local --with-mysql=/usr/lib/mysql --enable-logging=verbose@
+ make install@
+@end example
+
+Done!
+
+
+@node Build instructions for FreeBSD 8
+@subsection Build instructions for FreeBSD 8
+
+To get GNUnet 0.9 to compile on FreeBSD (at least FreeBSD 8.0):@ in order to
+install the library @code{libiconv}, at first change the directory to your
+ports directory, e.g.@
+@code{@
+ $ cd /usr/ports/@
+}@
+ following that, go to the install file of @code{libiconv} and install it,@
+@code{@
+ $ cd converters/libiconv,@
+ $ make install@
+}
+
+after that, change the directory to where you will check out
+@code{libextractor} and GNUnet, and install latest @code{libextractor},@
+ first of all, checkout @code{libextractor}, e.g.@
+@code{@
+ $ svn co https://gnunet.org/svn/Extractor@
+}@
+ then change the directory into which it was checked out, e.g.@
+@code{@
+ $ cd Extractor@
+}@
+ before the installation, you should do following steps,@
+
+@example
+$ ./bootstrap@
+$ ./configure --with-ltdl-include=/usr/local/include \
+  --with-ltdl-lib=/usr/local/lib@
+@end example
+
+if these steps complete successfully, you can install the library,@
+
+@example
+$ make install@
+@end example
+
+to check out the GNUnet, you should do the similar steps as
+@code{libextractor}, firstly, change back to starting directory, e.g.@
+@code{@
+ $ cd ../@
+}@
+ Set the following environmental variables:@
+@code{@
+ export CPPFLAGS="-I/usr/local/include"@
+ export LDFLAGS="-L/usr/local/lib"@
+}@
+ next, checkout GNUnet using@
+@code{@
+ $ svn co https://gnunet.org/svn/gnunet@
+}@
+ then change directory into newly checked out directory,@
+@code{@
+ $ cd gnunet@
+}@
+ at last, start to install GNUnet,@
+
+@example
+ $ ./bootstrap@
+ $ ./configure --with-ltdl-include=/usr/local/include \
+   --with-ltdl-lib=/usr/local/lib --with-extractor=/usr/local
+
+## NOTE: you may not need the --with-extractor option!@
+
+$ make install
+@end example
+
+
+
+@node Basic installation for Mac OS X
+@subsection Basic installation for Mac OS X
+
+This documentation may be outdated!
+
+This page is providing guidelines for users trying to install GNUnet on Mac OS
+X.@ Mainly users trying to install GNUnet by building source code are the most
+welcome readers.@ The steps below are tested on an Intel Architecture running
+Mac OS X Tiger (10.4.11). Ideally they should work on other Mac boxes with
+different configurations as all the configuration done for it is dependent on
+@uref{http://www.macports.org/, MacPorts}
+
+For having GNUnet installed successfully, some dependencies should be firstly
+resolved:
+
+@itemize @bullet
+
+@item
+Install/Update your @uref{http://developer.apple.com/tools/xcode/, Xcode}
+version 3.2.1 or later for Snow Leopard, 3.1.4 or later for Leopard, or 2.5 for
+Tiger. 
+
+@item
+Download and install @uref{http://www.macports.org/, MacPorts}.@
+Now you are ready for installing GNunet dependencies. 
+
+@item
+First, you'd better make sure that: /opt/local/bin and /opt/local/sbin are
+available in your PATH. (For doing so, open a terminal and type:@
+
+@example 
+$ echo $PATH 
+@end example
+
+and examine the output of it). If the paths are not available in your
+environment, you have to add them (You can add them by editing your .profile
+file in your home directory, append them to the PATH line). Then type:
+@example
+$ source ~/.profile
+@end example
+
+and re-examine the echo command output.
+
+@item
+Use MacPorts to download and install the dependencies:@
+The libraries are: 
+
+@itemize @bullet
+
+@item
+@uref{http://trac.macports.org/browser/trunk/dports/www/libmicrohttpd/Portfile, libmicrohttpd.}
+
+@item
+@uref{http://trac.macports.org/browser/trunk/dports/devel/libgcrypt/Portfile, libgcrypt.}
+
+@item
+@uref{http://trac.macports.org/browser/trunk/dports/net/curl/Portfile, libcurl.}
+
+@item
+@uref{http://trac.macports.org/browser/trunk/dports/devel/libtool/Portfile, libltdl.}
+
+@item
+@uref{http://trac.macports.org/browser/trunk/dports/databases/sqlite3/Portfile, SQlite.}
+
+@item
+libunistring 
+
+@item
+glpk 
+
+@end itemize
+
+The port command is as follows:@
+@example
+port install libmicrohttpd libgcrypt curl libtool sqlite3 linunistring glpk
+@end example
+One of the dependencies, the libextractor, should be explicitly installed,
+since the version available from macports is outdated to work with GNUnet. To
+install the latest libextractor:
+@itemize @bullet
+
+
+@item
+Install the Subversion Client:@
+For more information about Subversion visit:
+@uref{http://subversion.tigris.org/, http://subversion.tigris.org/}
+
+@example
+# port install subversion
+@end example
+
+
+@item
+Use Subversion to download the latest Extractor: 
+@example
+$ svn checkout https://gnunet.org/svn/Extractor
+@end example
+
+
+@item
+Go to the installation directory of the Extractor, compile and install it: 
+@example
+$ ./bootstrap
+$ export CPPFLAGS="-I/opt/local/include"
+$ export  LDFLAGS="-L/opt/local/lib" 
+$ ./configure --prefix=/opt/local
+$ make
+# make install
+@end example
+
+@end itemize
+
+
+@item
+Now, your system is ready to install GNunet. If you downloaded GNUnet by
+checking it out from svn, you should start by running the bootstrap script.
+Open a terminal pointing to the GNUnet directory and type:@
+
+@example
+$ ./bootstrap
+@end example
+
+
+@item
+Run the configure script: 
+@example
+$ export CPPFLAGS="-I/opt/local/include" 
+$ export LDFLAGS="-L/opt/local/lib" 
+$ ./configure --prefix=/tmp/gnunet_build
+@end example
+
+
+GNUnet will be installed in the directory /tmp/gnunet_build (Of course that
+installation path can be changed).@ The CPPFLAGS and LDFLAGS are mentioned in
+order to inform the compiler and the linker to lookup headers and libraries in
+/opt/local/include and /opt/local/lib.
+
+@item
+Compile@
+
+@example
+$ make
+@end example
+
+
+@item
+Install GNUnet 
+@example
+# make install
+@end example
+
+@end itemize
+
+
+@node Basic Installation for Fedora/PlanetLab nodes running Fedora 12
+@subsection Basic Installation for Fedora/PlanetLab nodes running Fedora 12
+
+
+@strong{This documentation is outdated and not valid for GNUnet 0.10.0!}@
+
+GNUnet installation on Fedora 8/Planetlab nodes can be done as following:
+
+1. Install the build tools to build GNUnet@
+@example
+sudo yum -y -t --nogpgcheck install gcc make autoconf gettext-devel \
+texinfo subversion@
+@end example
+
+2. Install the GNUnet dependencies@
+@example
+sudo yum -y -t --nogpgcheck install libunistring-devel libunistring-devel \
+libgcrypt-devel zlib-devel sqlite-devel postgresql-devel mysql-devel \
+libgsf-devel libvorbis-devel@
+@end example
+
+3. Install outdated dependencies from source@
+libtool@
+@example
+wget http://ftp.gnu.org/gnu/libtool/libtool-2.4.2.tar.gz@
+tar xvfz libtool-2.4.2.tar.gz@
+cd libtool-2.4.2@
+./configure@
+sudo make install@
+@end example
+
+glpk@
+@example
+wget http://ftp.gnu.org/gnu/glpk/glpk-4.47.tar.gz@
+tar xvfz glpk-4.47.tar.gz@
+cd glpk-4.47@
+./configure@
+sudo make install@
+@end example
+
+libcurl@
+@example
+wget http://curl.haxx.se/download/curl-7.26.0.tar.gz@
+tar xvfz curl-7.26.0.tar.gz@
+cd curl-7.26.0@
+./configure@
+sudo make install@
+@end example
+
+4. Install libextractor@
+@example
+svn co https://gnunet.org/svn/libextractor@
+cd libextractor@
+libtoolize@
+./bootstrap@
+./configure@
+sudo make install@
+@end example
+
+5. Install libmicrohttpd@
+@example
+svn co https://gnunet.org/svn/libmicrohttpd@
+cd libmicrohttpd@
+libtoolize@
+./bootstrap@
+./configure@
+sudo make install@
+@end example
+
+6. Set GNUnet prefix and add to PATH@
+@example
+export GNUNET_PREFIX=@
+export PATH=$PATH:$GNUNET_PREFIX/bin@
+@end example
+
+7. Install GNUnet from svn@
+@example
+export LD_LIBRARY_PATH=/usr/local/lib@
+svn co https://gnunet.org/svn/gnunet@
+cd gnunet@
+libtoolize@
+./bootstrap@
+./configure --prefix=$GNUNET_PREFIX --with-extractor=/usr \
+ --with-mysql=/usr/lib/mysql --enable-logging=verbose@
+make install@
+@end example
+
+Done!
+
+
+@node Basic Installation for Fedora/PlanetLab nodes running Fedora 8 .
+@subsection Basic Installation for Fedora/PlanetLab nodes running Fedora 8 .
+@c %**end of header
+
+@strong{This documentation is outdated and not valid for GNUnet 0.10.0!}@
+ GNUnet installation on Fedora 8/Planetlab nodes can be done as following:
+
+1. Install the build tools to build GNUnet@
+@example
+sudo yum -y -t --nogpgcheck install gcc make automake autoconf gettext-devel \
+texinfo zlib-devel subversion@
+@end example
+
+2. Install the GNUnet dependencies@
+@example
+sudo yum -y -t --nogpgcheck install gnutls-devel gnutls-devel libgcrypt-devel \
+sqlite-devel postgresql-devel mysql-devel libgsf-devel libvorbis-devel \
+libidn-devel
+@end example
+
+3. Install outdated dependencies from source@
+ libtool@
+@code{@
+ wget http://ftp.gnu.org/gnu/libtool/libtool-2.4.2.tar.gz@
+ tar xvfz libtool-2.4.2.tar.gz@
+ cd libtool-2.4.2@
+ ./configure@
+ sudo make install@
+}
+
+libtool@
+@code{@
+ wget http://ftp.gnu.org/gnu/libtool/libtool-2.4.2.tar.gz@
+ tar xvfz libtool-2.4.2.tar.gz@
+ cd libtool-2.4.2@
+ ./configure@
+ sudo make install@
+}
+
+glpk@
+@code{@
+ wget http://ftp.gnu.org/gnu/glpk/glpk-4.47.tar.gz@
+ tar xvfz glpk-4.47.tar.gz@
+ cd glpk-4.47@
+ ./configure@
+ sudo make install@
+}
+
+libgpg-error@
+@code{@
+ wget ftp://ftp.gnupg.org/gcrypt/libgpg-error/libgpg-error-1.10.tar.bz2@
+ tar xvfj libgpg-error-1.10.tar.bz2@
+ cd libgpg-error-1.10@
+ ./configure --prefix=/usr@
+ sudo make install@
+}
+
+libgcrypt@
+@code{@
+ wget ftp://ftp.gnupg.org/gcrypt/libgcrypt/libgcrypt-1.5.0.tar.bz2@
+ tar xvfj libgcrypt-1.5.0.tar.tar.bz2@
+ cd libgcrypt-1.5.0@
+ ./configure --prefix=/usr@
+ sudo make install@
+}
+
+libcurl@
+@code{@
+ wget http://curl.haxx.se/download/curl-7.26.0.tar.gz@
+ tar xvfz curl-7.26.0.tar.gz@
+ cd curl-7.26.0@
+ ./configure@
+ sudo make install@
+}
+
+libunistring@
+@code{@
+ wget http://ftp.gnu.org/gnu/libunistring/libunistring-0.9.3.tar.gz@
+ tar xvfz libunistring-0.9.3.tar.gz@
+ cd libunistring-0.9.3@
+ ./configure@
+ sudo make install@
+}
+
+4. Remove conflicting packages@
+@code{@
+ sudo rpm -e --nodeps libgcrypt libgpg-error@
+}
+
+4. Install libextractor@
+@code{@
+ wget ftp://ftp.gnu.org/gnu/libextractor/libextractor-0.6.3.tar.gz@
+ tar xvfz libextractor-0.6.3.tar.gz@
+ cd libextractor-0.6.3@
+ ./configure@
+ sudo make install@
+}
+
+5. Install libmicrohttpd and dependencies
+
+nettle@
+@code{@
+ wget http://ftp.gnu.org/gnu/nettle/nettle-2.5.tar.gz@
+ tar xvfz nettle-2.5.tar.gz@
+ cd nettle-2.5@
+ ./configure@
+ sudo make install@
+}
+
+GnuTLS@
+@code{@
+ wget http://ftp.gnu.org/gnu/gnutls/gnutls-2.12.20.tar.bz2@
+ tar xvfj gnutls-2.12.20.tar.bz2@
+ cd gnutls-2.12.20@
+ ./configure --without-p11-kit@
+ sudo make install@
+}
+
+libmicrohttpd@
+@code{@
+ wget ftp://ftp.gnu.org/gnu/libmicrohttpd/libmicrohttpd-0.9.21.tar.gz@
+ tar xvfz libmicrohttpd-0.9.21.tar.gz@
+ cd libmicrohttpd-0.9.21@
+ ./configure@
+ sudo make install@
+}
+
+6. Set GNUnet prefix and add to PATH@
+@code{@
+ export GNUNET_PREFIX=@
+ export PATH=$PATH:$GNUNET_PREFIX/bin@
+}
+
+7. Install GNUnet from svn@
+@example
+ export LD_LIBRARY_PATH=/usr/local/lib@
+ svn co https://gnunet.org/svn/gnunet@
+ cd gnunet@
+ libtoolize@
+ ./bootstrap@
+ ./configure --prefix=$GNUNET_PREFIX --with-extractor=/usr/local \
+ --with-curl=/usr/local --with-mysql=/usr/lib/mysql --enable-logging=verbose@
+ make install@
+@end example
+
+Done!
+
+
