@@ -220,7 +220,7 @@
          (replace 'build
            (lambda _
              (chdir "doc")
-             (zero? (system* "make" "doc-all"))))
+             (zero? (system* "make" "doc-all-give-me-the-noise"))))
          (replace 'install
            (lambda* (#:key outputs #:allow-other-keys)
              (let* ((out (assoc-ref outputs "out"))

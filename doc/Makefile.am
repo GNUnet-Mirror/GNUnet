@@ -105,4 +105,21 @@ doc-clean:
 
 doc-all: doc-pdf doc-html doc-info doc-pdf-tutorial doc-html-tutorial doc-info-tutorial
 
+doc-pdf-noise: version.texi
+	@makeinfo --pdf gnunet.texi
+doc-pdf-tutorial-noise: version.texi
+	@makeinfo --pdf gnunet-c-tutorial.texi
+
+doc-html-noise: version.texi
+	@makeinfo --html gnunet.texi
+doc-html-tutorial-noise: version.texi
+	@makeinfo --html gnunet-c-tutorial.texi
+
+doc-info-noise: version.texi
+	@makeinfo --no-split gnunet.texi
+doc-info-tutorial-noise: version.texi
+	@makeinfo --no-split gnunet-c-tutorial.texi
+
+doc-all-give-me-the-noise: doc-pdf-noise doc-html-noise doc-info-noise doc-pdf-tutorial-noise doc-html-tutorial-noise doc-info-tutorial-noise
+
 .PHONY: version.texi
