@@ -77,7 +77,7 @@
          (file-name (string-append name "-" version "-checkout"))
          (sha256
           (base32
-           "0r6blgra4s4zknmxv9im3wg0q08pg2kvhq0lfir49fg1wgfk0dqj"))))
+           "10wfb58pi55399cw100vplq3f8nxg2vl6sywcmvkx3wg1d3firla"))))
       (build-system gnu-build-system)
       (inputs
        `(("glpk" ,glpk)
