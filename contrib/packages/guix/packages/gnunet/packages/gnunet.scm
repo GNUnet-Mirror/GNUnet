@@ -61,8 +61,8 @@
 ;; Explanation for name scheme: UNIXPATH is capped at 108 characters,
 ;; this causes lots of tests to fail.
 (define-public gnunetg
-  (let* ((commit "292cc51b35bcb727fa80b7c95730dae02e41a7d4")
-         (revision "28"))
+  (let* ((commit "ecad620e1c50f7531cb9e22891213de9eb33f32c")
+         (revision "29"))
     (package
       (inherit gnunet)
       (name "gnunetg")
@@ -77,7 +77,7 @@
          (file-name (string-append name "-" version "-checkout"))
          (sha256
           (base32
-           "0sapap3y7bakmmbj5jijbp60xbmaqiliwcsk9qfgaz571wsccpy3"))))
+           "1f8kph3bp71flw9z59ia64xl21qjzkssxwqj7s9svxs6ii3c3xm2"))))
       (build-system gnu-build-system)
       (inputs
        `(("glpk" ,glpk)
