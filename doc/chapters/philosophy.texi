@@ -208,6 +208,10 @@ anonymous file sharing).
 @node Anonymity
 @subsection Anonymity
 
+@menu
+* How file-sharing achieves Anonymity::
+@end menu
+
 Providing anonymity for users is the central goal for the anonymous
 file-sharing application. Many other design decisions follow in the footsteps
 of this requirement. Anonymity is never absolute. While there are various
