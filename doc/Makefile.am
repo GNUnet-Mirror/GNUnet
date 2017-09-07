@@ -77,6 +77,7 @@ EXTRA_DIST = \
 	$(gnunet_doc_images) \
 	$(gnunet_tutorial_examples) \
 	outdated-and-old-installation-instructions.txt
+	gnunet-c-tutorial-v1.pdf
 
 version.texi:
 	echo "@set UPDATED $(date +'%d %B %Y')" > $@
