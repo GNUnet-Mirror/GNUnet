@@ -81,6 +81,7 @@
  (gnu packages python)
  (gnu packages tex)
  (gnu packages texinfo)
+ (gnu packages tex)
  (gnu packages tls)
  (gnu packages video)
  (gnu packages web)
@@ -91,7 +92,7 @@
                                    "/../../../"))
 
 (define gnunet-git
-  (let* ((revision "2")
+  (let* ((revision "3")
          (select? (delay (or (git-predicate
                               (string-append (current-source-directory)
                                              "/../../../"))
@@ -131,12 +132,14 @@
          ("python" ,python) ; tests and gnunet-qr
          ("jansson" ,jansson)
          ("nss" ,nss)
+         ("glib" ,glib "bin")
          ("gmp" ,gmp)
          ("bluez" ,bluez) ; for optional bluetooth feature
          ("glib" ,glib)
          ;; There are currently no binary substitutes for texlive on
          ;; hydra.gnu.org or its mirrors due to its size. Uncomment if you need it.
          ;;("texlive-minimal" ,texlive-minimal) ; optional.
+         ("texlive" ,texlive)
          ("libogg" ,libogg)))
       (native-inputs
        `(("pkg-config" ,pkg-config)
@@ -150,7 +153,7 @@
       (outputs '("out" "debug"))
       (arguments
        `(#:configure-flags
-         (list (string-append "--with-nssdir=" %output "/lib")
+         (list (string-append "--with-nssdir=" %output "/lib");"/lib/gnunet/nss")
                "--enable-gcc-hardening"
                "--enable-linker-hardening"
 
@@ -174,6 +177,14 @@
            (add-after 'patch-bin-sh 'bootstrap
              (lambda _
                (zero? (system* "sh" "bootstrap"))))
+           ;; (add-after 'install 'install-lib-nss
+           ;;   (lambda* (#:key outputs #:allow-other-keys)
+           ;;     (let* ((out (assoc-ref outputs "out"))
+           ;;            (lib (string-append out "/lib/nss/")))
+           ;;       (mkdir-p lib)
+           ;;       (copy-recursively "src/gns/nss/" lib)
+           ;;       (install-file "ping" "combobreak"))
+           ;;     #t))
            (delete 'check))))
       ;; XXX: https://gnunet.org/bugs/view.php?id=4619
       ;; (add-after 'install 'set-path-for-check
