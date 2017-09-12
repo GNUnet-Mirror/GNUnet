@@ -638,6 +638,7 @@ handle_channel_destroy (void *cls,
          "%s tried to destroy unknown channel %X\n",
          GSC_2s(c),
          (uint32_t) ntohl (msg->ccn.channel_of_client));
+    GNUNET_SERVICE_client_continue (c->client);
     return;
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG,
