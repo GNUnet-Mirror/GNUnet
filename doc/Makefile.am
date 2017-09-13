@@ -34,7 +34,10 @@ dist_infoimage_DATA =                           		\
 	%D%/images/service_stack.png 				\
 	%D%/images/gnunet-gtk-0-10-fs-search.png 		\
 	%D%/images/gnunet-tutorial-service.png 			\
-	%D%/images/gnunet-tutorial-system.png
+	%D%/images/gnunet-tutorial-system.png			\
+	%D%/images/daemon_lego_block.svg  			\
+	%D%/images/lego_stack.svg				\
+	%D%/images/service_lego_block.svg
 
 gnunet_tutorial_examples =					\
 	001.c							\
@@ -82,6 +85,18 @@ EXTRA_DIST = \
 	outdated-and-old-installation-instructions.txt \
 	gnunet-c-tutorial-v1.pdf \
 	README.txt
+
+daemon_lego_block.png: images/daemon_lego_block.svg
+	convert images/daemon_lego_block.svg images/daemon_lego_block.png &&
+	pngcrush images/daemon_lego_block.png images/daemon_lego_block.png
+
+service_lego_block.png: images/service_lego_block.svg
+	convert images/service_lego_block.svg images/service_lego_block.png &&
+	pngcrush images/service_lego_block.png images/serivce_lego_block.png
+
+lego_stack.png: images/lego_stack.svg
+	convert images/lego_stack.svg images/lego_stack.png &&
+	pngcrush images/lego_stack.png images/lego_stack.png
 
 version.texi:
 	echo "@set UPDATED $(date +'%d %B %Y')" > $@
