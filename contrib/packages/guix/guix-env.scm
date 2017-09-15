@@ -32,14 +32,12 @@
 ;; development setup for this setup, which involves a version of Guile in
 ;; your PATH.
 ;;
+;; cd contrib/packages/guix
 ;; guix build -f guix-env.scm
 ;;
 ;; We'd like to provide advanced functions such as guix environment specific
 ;; gnunet-git package and usage of gnunet-gtk-git, but this is subject
 ;; to tests right now.
-;;
-;; Further versions of GNUnet for Guix can currently be found in
-;; https://gitweb.krosos.org/ng0_guix/packages.git/
 
 (use-modules
  (ice-9 popen)
@@ -50,6 +48,7 @@
  (guix gexp)
  ((guix build utils) #:select (with-directory-excursion))
  (guix git-download)
+ (guix utils) ; current-source-directory
  (gnu packages)
  (gnu packages aidc)
  (gnu packages autotools)
@@ -82,29 +81,40 @@
  (gnu packages python)
  (gnu packages tex)
  (gnu packages texinfo)
+ (gnu packages tex)
  (gnu packages tls)
  (gnu packages video)
  (gnu packages web)
  (gnu packages xiph)
  ((guix licenses) #:prefix license:))
 
-(define %source-dir (dirname (current-filename)))
+(define %source-dir (string-append (current-source-directory)
+                                   "/../../../"))
 
 (define gnunet-git
-  (let* ((revision "1"))
-    (package
+  (let* ((revision "3")
+         (select? (delay (or (git-predicate
+                              (string-append (current-source-directory)
+                                             "/../../../"))
+                             source-file?))))
+      (package
       (name "gnunet-git")
       (version (string-append "0.10.1-" revision "." "dev"))
       (source
-       (local-file %source-dir
+       (local-file ;;"../../.."
+                   ;;%source-dir
+                   ;;(string-append (getcwd) "/../../../")
+                   (string-append (getcwd)) ;drrty hack and this assumes one static position FIXME!
                    #:recursive? #t))
+                   ;;#:select? (git-predicate %source-dir)))
+                   ;;#:select? (force select?)))
       (build-system gnu-build-system)
       (inputs
        `(("glpk" ,glpk)
          ("gnurl" ,gnurl)
          ("gstreamer" ,gstreamer)
          ("gst-plugins-base" ,gst-plugins-base)
-         ("gnutls" ,gnutls)
+         ("gnutls" ,gnutls) ;Change to gnutls/dane once it is merged.
          ("libextractor" ,libextractor)
          ("libgcrypt" ,libgcrypt)
          ("libidn" ,libidn)
@@ -122,12 +132,14 @@
          ("python" ,python) ; tests and gnunet-qr
          ("jansson" ,jansson)
          ("nss" ,nss)
+         ("glib" ,glib "bin")
          ("gmp" ,gmp)
          ("bluez" ,bluez) ; for optional bluetooth feature
          ("glib" ,glib)
          ;; There are currently no binary substitutes for texlive on
          ;; hydra.gnu.org or its mirrors due to its size. Uncomment if you need it.
          ;;("texlive-minimal" ,texlive-minimal) ; optional.
+         ("texlive" ,texlive)
          ("libogg" ,libogg)))
       (native-inputs
        `(("pkg-config" ,pkg-config)
@@ -141,7 +153,7 @@
       (outputs '("out" "debug"))
       (arguments
        `(#:configure-flags
-         (list (string-append "--with-nssdir=" %output "/lib")
+         (list (string-append "--with-nssdir=" %output "/lib");"/lib/gnunet/nss")
                "--enable-gcc-hardening"
                "--enable-linker-hardening"
 
@@ -165,6 +177,14 @@
            (add-after 'patch-bin-sh 'bootstrap
              (lambda _
                (zero? (system* "sh" "bootstrap"))))
+           ;; (add-after 'install 'install-lib-nss
+           ;;   (lambda* (#:key outputs #:allow-other-keys)
+           ;;     (let* ((out (assoc-ref outputs "out"))
+           ;;            (lib (string-append out "/lib/nss/")))
+           ;;       (mkdir-p lib)
+           ;;       (copy-recursively "src/gns/nss/" lib)
+           ;;       (install-file "ping" "combobreak"))
+           ;;     #t))
            (delete 'check))))
       ;; XXX: https://gnunet.org/bugs/view.php?id=4619
       ;; (add-after 'install 'set-path-for-check

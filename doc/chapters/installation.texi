@@ -13,6 +13,7 @@ in the form of new chapters or insightful comments.
 
 @menu
 * Dependencies::
+* Pre-installation notes::
 * Generic installation instructions::
 * Build instructions for Ubuntu 12.04 using Git::
 * Build Instructions for Microsoft Windows Platforms::
@@ -48,62 +49,43 @@ These packages must be installed before a typical GNUnet installation
 can be performed:
 
 @table @asis
-@item GNU libmicrohttpd
-0.9.30 or higher
-@item GNU libextractor
-1.0 or higher
-@item GNU libtool
-2.2 or higher 
-@item GNU libunistring
-0.9.1.1 or higher
-@item GNU libidn
-1.0.0 or higher
-@item @uref{ftp://ftp.gnupg.org/gcrypt/libgcrypt/, GNU libgcrypt}
-@uref{ftp://ftp.gnupg.org/gcrypt/libgcrypt/libgcrypt-1.6.0.tar.bz2, 1.6.0} or
-higher
-@item GnuTLS
-@uref{ftp://ftp.gnutls.org/gcrypt/gnutls/v3.2/gnutls-3.2.7.tar.xz, 3.2.7} or
-higher, compile with libunbound for DANE support; GnuTLS also requires GNU
+@item GNU libmicrohttpd 0.9.30 or higher
+@item GNU libextractor 1.0 or higher
+@item GNU libtool 2.2 or higher 
+@item GNU libunistring 0.9.1.1 or higher
+@item GNU libidn 1.0.0 or higher
+@item @uref{https://gnupg.org/software/libgcrypt/index.html, GNU libgcrypt}
+@uref{https://gnupg.org/ftp/gcrypt/libgcrypt/, 1.6.0} or higher
+@item @uref{https://gnutls.org/, GnuTLS}
+@uref{https://www.gnupg.org/ftp/gcrypt/gnutls/v3.2/, 3.2.7} or higher,
+compile with libunbound for DANE support; GnuTLS also requires GNU
 nettle 2.7 (update: GnuTLS 3.2.7 appears NOT to work against GNU nettle
 > 2.7, due to some API updatings done by nettle. Thus it should be compiled
 against nettle 2.7 and, in case you get some error on the reference to
 `rpl_strerror' being undefined, follow the instructions on@
 @uref{http://lists.gnupg.org/pipermail/gnutls-devel/2013-November/006588.html, this}
 post (and the link inside it)).
-@item libgnurl
-7.34.0 or higher (available from https://gnunet.org/gnurl), should be compiled
-after @code{GnuTLS}
-@item libglpk
-4.45 or higher
-@item @uref{http://www.openssl.org/, OpenSSL} (binary)
-1.0 or higher
-@item TeX Live
-2012 or higher, optional (for gnunet-bcd)
-@item libpulse
-2.0 or higher, optional (for gnunet-conversation)
-@item libopus
-1.0.1 or higher, optional (for gnunet-conversation)
-@item libogg
-1.3.0 or higher, optional (for gnunet-conversation)
+@item @uref{https://gnunet.org/gnurl, gnURL} libgnurl 7.34.0 or higher,
+must be compiled after @code{GnuTLS}
+@item libglpk 4.45 or higher
+@item @uref{http://www.openssl.org/, OpenSSL} (binary) 1.0 or higher
+@item TeX Live 2012 or higher, optional (for gnunet-bcd)
+@item libpulse 2.0 or higher, optional (for gnunet-conversation)
+@item libopus 1.0.1 or higher, optional (for gnunet-conversation)
+@item libogg 1.3.0 or higher, optional (for gnunet-conversation)
 @item certool (binary)
 optional for convenient installation of the GNS proxy
 (available as part of Debian's libnss3-tools)
-@item python-zbar
-0.10 or higher, optional (for gnunet-qr)
-@item libsqlite
-3.8.0 or higher (note that the code will compile and often work with lower
+@item python-zbar 0.10 or higher, optional (for gnunet-qr)
+@item libsqlite 3.8.0 or higher (note that the code will compile and often work with lower
 version numbers, but you may get subtle bugs with respect to quota management
 in certain rare cases); alternatively, MySQL or Postgres can also be installed,
 but those databases will require more complex configurations (not recommended
 for first-time users)
-@item zlib
-any version we tested worked
-@item Gtk+
-3.0 or higher, optional (for gnunet-gtk)
-@item libgladeui
-must match Gtk+ version, optional (for gnunet-gtk)
-@item libqrencode
-3.0 or higher, optional (for gnunet-namestore-gtk)
+@item zlib any version we tested worked
+@item Gtk+ 3.0 or higher, optional (for gnunet-gtk)
+@item libgladeui must match Gtk+ version, optional (for gnunet-gtk)
+@item libqrencode 3.0 or higher, optional (for gnunet-namestore-gtk)
 @end table
 
 
@@ -112,20 +94,7 @@ must match Gtk+ version, optional (for gnunet-gtk)
 
 If you have to compile libgnurl from source since the version included in your
 distribution is to old you perhaps get an error message while running the
-@code{configure} script:
-
-@code{@
- $ configure@
- ...@
- checking for 64-bit curl_off_t data type... unknown@
- checking for 32-bit curl_off_t data type... unknown@
- checking for 16-bit curl_off_t data type... unknown@
- configure: error: cannot find data type for curl_off_t.@
-}
-
-If you have to compile libgnurl from source since the version included in your
-distribution is to old, you perhaps get an error message while running the
-@code{configure} script:
+@file{configure} script:
 
 @code{@
  $ configure@
@@ -157,30 +126,18 @@ In terms of internal dependencies, a minimum file-sharing system consists of
 the following GNUnet processes (in order of dependency):
 
 @itemize @bullet
-@item
-gnunet-service-arm
-@item
-gnunet-service-resolver (required by all)
-@item
-gnunet-service-statistics (required by all)
-@item
-gnunet-service-peerinfo
-@item
-gnunet-service-transport (requires peerinfo)
-@item
-gnunet-service-core (requires transport)
-@item
-gnunet-daemon-hostlist (requires core)
-@item
-gnunet-daemon-topology (requires hostlist, peerinfo)
-@item
-gnunet-service-datastore
-@item
-gnunet-service-dht (requires core)
-@item
-gnunet-service-identity
-@item
-gnunet-service-fs (requires identity, mesh, dht, datastore, core)
+@item gnunet-service-arm
+@item gnunet-service-resolver (required by all)
+@item gnunet-service-statistics (required by all)
+@item gnunet-service-peerinfo
+@item gnunet-service-transport (requires peerinfo)
+@item gnunet-service-core (requires transport)
+@item gnunet-daemon-hostlist (requires core)
+@item gnunet-daemon-topology (requires hostlist, peerinfo)
+@item gnunet-service-datastore
+@item gnunet-service-dht (requires core)
+@item gnunet-service-identity
+@item gnunet-service-fs (requires identity, mesh, dht, datastore, core)
 @end itemize
 
 
@@ -188,93 +145,48 @@ A minimum VPN system consists of the following GNUnet processes (in order of
 dependency):
 
 @itemize @bullet
-@item
-gnunet-service-arm
-
-@item
-gnunet-service-resolver (required by all)
-
-@item
-gnunet-service-statistics (required by all)
-
-@item
-gnunet-service-peerinfo
-
-@item
-gnunet-service-transport (requires peerinfo)
-
-@item
-gnunet-service-core (requires transport)
-
-@item
-gnunet-daemon-hostlist (requires core)
-
-@item
-gnunet-service-dht (requires core)
-
-@item
-gnunet-service-mesh (requires dht, core)
-
-@item
-gnunet-service-dns (requires dht)
-
-@item
-gnunet-service-regex (requires dht)
-
-@item
-gnunet-service-vpn (requires regex, dns, mesh, dht)
+@item gnunet-service-arm
+@item gnunet-service-resolver (required by all)
+@item gnunet-service-statistics (required by all)
+@item gnunet-service-peerinfo
+@item gnunet-service-transport (requires peerinfo)
+@item gnunet-service-core (requires transport)
+@item gnunet-daemon-hostlist (requires core)
+@item gnunet-service-dht (requires core)
+@item gnunet-service-mesh (requires dht, core)
+@item gnunet-service-dns (requires dht)
+@item gnunet-service-regex (requires dht)
+@item gnunet-service-vpn (requires regex, dns, mesh, dht)
 @end itemize
 
 
 A minimum GNS system consists of the following GNUnet processes (in order of
 dependency):
 @itemize @bullet
-
-@item
-gnunet-service-arm
-
-@item
-gnunet-service-resolver (required by all)
-
-@item
-gnunet-service-statistics (required by all)
-
-@item
-gnunet-service-peerinfo
-
-@item
-gnunet-service-transport (requires peerinfo)
-
-@item
-gnunet-service-core (requires transport)
-
-@item
-gnunet-daemon-hostlist (requires core)
-
-@item
-gnunet-service-dht (requires core)
-
-@item
-gnunet-service-mesh (requires dht, core)
-
-@item
-gnunet-service-dns (requires dht)
-
-@item
-gnunet-service-regex (requires dht)
-
-@item
-gnunet-service-vpn (requires regex, dns, mesh, dht)
-
-@item
-gnunet-service-identity
-
-@item
-gnunet-service-namestore (requires identity)
-
-@item
-gnunet-service-gns (requires vpn, dns, dht, namestore, identity)
+@item gnunet-service-arm
+@item gnunet-service-resolver (required by all)
+@item gnunet-service-statistics (required by all)
+@item gnunet-service-peerinfo
+@item gnunet-service-transport (requires peerinfo)
+@item gnunet-service-core (requires transport)
+@item gnunet-daemon-hostlist (requires core)
+@item gnunet-service-dht (requires core)
+@item gnunet-service-mesh (requires dht, core)
+@item gnunet-service-dns (requires dht)
+@item gnunet-service-regex (requires dht)
+@item gnunet-service-vpn (requires regex, dns, mesh, dht)
+@item gnunet-service-identity
+@item gnunet-service-namestore (requires identity)
+@item gnunet-service-gns (requires vpn, dns, dht, namestore, identity)
 @end itemize
+
+@node Pre-installation notes
+@section Pre-installation notes
+
+Please note that in the code instructions for the installation,
+@emph{#} indicates commands run as privileged root user and
+@emph{$} shows commands run as unprivileged ("normal") system user.
+
 
 @node Generic installation instructions
 @section Generic installation instructions
@@ -286,21 +198,11 @@ GNU/Linux distribution requires you to install the following
 dependencies (ideally in this order):
 
 @itemize @bullet
-
-@item
-libgpgerror and libgcrypt
-
-@item
-libnettle and libunbound (possibly from distribution), GnuTLS
-
-@item
-libgnurl (read the README)
-
-@item
-GNU libmicrohttpd
-
-@item
-GNU libextractor (make sure to first install the various mandatory and optional
+@item libgpgerror and libgcrypt
+@item libnettle and libunbound (possibly from distribution), GnuTLS
+@item libgnurl (read the README)
+@item GNU libmicrohttpd
+@item GNU libextractor (make sure to first install the various mandatory and optional
 dependencies including development headers from your distribution)
 @end itemize
 
@@ -327,8 +229,8 @@ for your distribution.
 
 While it is possible to build and install GNUnet without having root access,
 we will assume that you have full control over your system in these
-instructions. First, you should create a system user "gnunet" and an additional
-group "gnunetdns". On Debian and Ubuntu GNU/Linux, type:@
+instructions. First, you should create a system user @emph{gnunet} and an additional
+group @emph{gnunetdns}. On Debian and Ubuntu GNU/Linux, type:@
 @code{@
  # adduser --system --home /var/lib/gnunet --group --disabled-password gnunet@
  # addgroup --system gnunetdns@
@@ -344,16 +246,16 @@ group "gnunetdns". On Debian and Ubuntu GNU/Linux, type:@
  $ cd gnunet-0.10.?@
  $ ./configure --with-sudo=sudo --with-nssdir=/lib@
  $ make@
- $ sudo make install@
+ $ sudo make install@
 }@
 
 If you want to be able to enable DEBUG-level log messages, add
-@code{--enable-logging=verbose} to the end of the ./configure command.
+@code{--enable-logging=verbose} to the end of the @code{./configure} command.
 DEBUG-level log messages are in English-only and should only be useful for
 developers (or for filing really detailed bug reports). 
 
-Finally, you probably want to compile gnunet-gtk, which includes gnunet-setup
-(graphical tool for configuration) and gnunet-fs-gtk (graphical tool for
+Finally, you probably want to compile @code{gnunet-gtk}, which includes gnunet-setup
+(graphical tool for configuration) and @code{gnunet-fs-gtk} (graphical tool for
 file-sharing):@
 
 @code{@
@@ -365,7 +267,7 @@ file-sharing):@
  $ cd ..@
  $ sudo ldconfig # just to be safe@
 }@
- Now, edit @code{/etc/gnunet.conf} to contain the following:@
+ Next, edit the file @file{/etc/gnunet.conf} to contain the following:@
 @code{@
  [arm]@
  SYSTEM_ONLY = YES@
@@ -402,7 +304,7 @@ $USER on the system, run:@
 }@
 
 to allow them to access the system-wide GNUnet services. Then, each user should
-create a configuration file "~/.config/gnunet.conf" with the lines:@
+create a configuration file @file{~/.config/gnunet.conf} with the lines:@
 
 @code{@
  [arm]@
@@ -417,7 +319,7 @@ and start the per-user services using@
  $ gnunet-arm -c ~/.config/gnunet.conf -s@
 }@
 
-Again, adding a @file{crontab} entry to autostart the peer is advised:@
+Again, adding a @code{crontab} entry to autostart the peer is advised:@
 @code{@
 @@reboot /usr/local/bin/gnunet-arm -c $HOME/.config/gnunet.conf -s@
 }@
@@ -445,7 +347,7 @@ hosts: files mdns4_minimal [NOTFOUND=return] dns mdns4
 
 
 The exact details may differ a bit, which is fine. Add the text
-"gns [NOTFOUND=return]" after "files":
+@emph{"gns [NOTFOUND=return]"} after @emph{"files"}:
 @example
 hosts: files gns [NOTFOUND=return] mdns4_minimal [NOTFOUND=return] dns mdns4
 @end example
@@ -496,44 +398,55 @@ $ cd ..@
 @node Install gnutls with DANE support
 @subsection Install gnutls with DANE support
 
+@example
 $ wget http://www.lysator.liu.se/~nisse/archive/nettle-2.7.1.tar.gz@
 $ tar xf nettle-2.7.1.tar.gz@
 $ cd nettle-2.7.1@
 $ ./configure@
 $ sudo make install@
 $ cd ..
+@end example
 
+@example
 $ wget https://www.nlnetlabs.nl/downloads/ldns/ldns-1.6.16.tar.gz@
 $ tar xf ldns-1.6.16.tar.gz@
 $ cd ldns-1.6.16@
 $ ./configure@
 $ sudo make install@
 $ cd ..
+@end example
 
+@example
 $ wget https://unbound.net/downloads/unbound-1.4.21.tar.gz@
 $ tar xf unbound-1.4.21.tar.gz@
 $ cd unbound-1.4.21@
 $ ./configure@
 $ sudo make install@
 $ cd ..
+@end example
 
+@example
 $ wget ftp://ftp.gnutls.org/gcrypt/gnutls/v3.1/gnutls-3.1.17.tar.xz@
 $ tar xf gnutls-3.1.17.tar.xz@
 $ cd gnutls-3.1.17@
 $ ./configure@
 $ sudo make install@
 $ cd ..
+@end example
 
+@example
 $ wget ftp://ftp.gnupg.org/gcrypt/libgcrypt/libgcrypt-1.6.0.tar.bz2@
 $ tar xf libgcrypt-1.6.0.tar.bz2@
 $ cd libgcrypt-1.6.0@
 $ ./configure@
 $ sudo make install@
 $ cd ..@
+@end example
 
 @node Install libgnurl
 @subsection Install libgnurl
 
+@example
 $ wget https://gnunet.org/sites/default/files/gnurl-7.34.0.tar.bz2@
 $ tar xf gnurl-7.34.0.tar.bz2@
 $ cd gnurl-7.34.0@
@@ -547,50 +460,62 @@ $ ./configure --enable-ipv6 --with-gnutls --without-libssh2 \
   --disable-gopher --disable-file --disable-ftp@
 $ sudo make install@
 $ cd ..@
+@end example
 
 @node Install libmicrohttpd from Git
 @subsection Install libmicrohttpd from Git
 
+@example
 $ git clone https://gnunet.org/git/libmicrohttpd@
 $ cd libmicrohttpd/@
 $ ./bootstrap@
 $ ./configure@
 $ sudo make install@
 $ cd ..@
+@end example
 
 @node  Install libextractor from Git
 @subsection  Install libextractor from Git
 
 Install libextractor dependencies:@
 
+@example
 $ sudo apt-get install zlib1g-dev libgsf-1-dev libmpeg2-4-dev libpoppler-dev \
   libvorbis-dev libexiv2-dev libjpeg-dev libtiff-dev libgif-dev libvorbis-dev \
   libflac-dev libsmf-dev g++@
+@end example
 
 Build libextractor:@
 
+@example
 $ git clone https://gnunet.org/git/libextractor@
 $ cd libextractor@
 $ ./bootstrap@
 $ ./configure@
 $ sudo make install@
 $ cd ..@
+@end example
 
 @node Install GNUnet dependencies
 @subsection Install GNUnet dependencies
 
+@example
 $ sudo apt-get install libidn11-dev libunistring-dev libglpk-dev \
   libpulse-dev libbluetooth-dev libsqlite-dev@
+@end example
 
 Install libopus@
 
+@example
 $ wget http://downloads.xiph.org/releases/opus/opus-1.1.tar.gz@
 $ tar xf opus-1.1.tar.gz@
 $ cd opus-1.1/@
 $ ./configure@
 $ sudo make install@
+@end example
 
 Choose one or more database backends@
+
 @itemize @bullet
 
 @item
@@ -1265,15 +1190,14 @@ and Postgres better resillience.
 This chapter contains a collection of outdated, older installation guides. They
 are mostly intended to serve as a starting point for writing up-to-date
 instructions and should not be expected to work for GNUnet 0.10.x.
+A set of older installation instructions can also be found in the
+@file{doc/outdated-and-old-installation-instructions.txt} in the source
+of GNUnet. This file covers old instructions which no longer receive
+security updates or any kind of support.
 
 
 @menu
 * Installing GNUnet 0.10.1 on Ubuntu 14.04::
-* Build instructions for FreeBSD 8::
-* Basic installation for Mac OS X::
-* Basic Installation for Fedora/PlanetLab nodes running Fedora 12::
-* Basic Installation for Fedora/PlanetLab nodes running Fedora 8 .::
-* Build instructions for Gentoo::
 * Building GLPK for MinGW::
 * GUI build instructions for Ubuntu 12.04 using Subversion::
 * Installation with gnunet-update::
@@ -1371,508 +1295,6 @@ After installing it, you need to create an empty configuration file:@
 
 And finally you can start GNUnet with@
 @code{$ gnunet-arm -s}
-
-
-@node Build instructions for FreeBSD 8
-@subsection Build instructions for FreeBSD 8
-
-To get GNUnet 0.9 to compile on FreeBSD (at least FreeBSD 8.0):@ in order to
-install the library @code{libiconv}, at first change the directory to your
-ports directory, e.g.@
-@code{@
- $ cd /usr/ports/@
-}@
- following that, go to the install file of @code{libiconv} and install it,@
-@code{@
- $ cd converters/libiconv,@
- $ make install@
-}
-
-after that, change the directory to where you will check out
-@code{libextractor} and GNUnet, and install latest @code{libextractor},@
- first of all, checkout @code{libextractor}, e.g.@
-@code{@
- $ svn co https://gnunet.org/svn/Extractor@
-}@
- then change the directory into which it was checked out, e.g.@
-@code{@
- $ cd Extractor@
-}@
- before the installation, you should do following steps,@
-
-@example
-$ ./bootstrap@
-$ ./configure --with-ltdl-include=/usr/local/include \
-  --with-ltdl-lib=/usr/local/lib@
-@end example
-
-if these steps complete successfully, you can install the library,@
-
-@example
-$ make install@
-@end example
-
-to check out the GNUnet, you should do the similar steps as
-@code{libextractor}, firstly, change back to starting directory, e.g.@
-@code{@
- $ cd ../@
-}@
- Set the following environmental variables:@
-@code{@
- export CPPFLAGS="-I/usr/local/include"@
- export LDFLAGS="-L/usr/local/lib"@
-}@
- next, checkout GNUnet using@
-@code{@
- $ svn co https://gnunet.org/svn/gnunet@
-}@
- then change directory into newly checked out directory,@
-@code{@
- $ cd gnunet@
-}@
- at last, start to install GNUnet,@
-
-@example
- $ ./bootstrap@
- $ ./configure --with-ltdl-include=/usr/local/include \
-   --with-ltdl-lib=/usr/local/lib --with-extractor=/usr/local
-
-## NOTE: you may not need the --with-extractor option!@
-
-$ make install
-@end example
-
-@node Basic installation for Mac OS X
-@subsection Basic installation for Mac OS X
-
-This documentation may be outdated!
-
-This page is providing guidelines for users trying to install GNUnet on Mac OS
-X.@ Mainly users trying to install GNUnet by building source code are the most
-welcome readers.@ The steps below are tested on an Intel Architecture running
-Mac OS X Tiger (10.4.11). Ideally they should work on other Mac boxes with
-different configurations as all the configuration done for it is dependent on
-@uref{http://www.macports.org/, MacPorts}
-
-For having GNUnet installed successfully, some dependencies should be firstly
-resolved:
-
-@itemize @bullet
-
-@item
-Install/Update your @uref{http://developer.apple.com/tools/xcode/, Xcode}
-version 3.2.1 or later for Snow Leopard, 3.1.4 or later for Leopard, or 2.5 for
-Tiger. 
-
-@item
-Download and install @uref{http://www.macports.org/, MacPorts}.@
-Now you are ready for installing GNunet dependencies. 
-
-@item
-First, you'd better make sure that: /opt/local/bin and /opt/local/sbin are
-available in your PATH. (For doing so, open a terminal and type:@
-
-@example 
-$ echo $PATH 
-@end example
-
-and examine the output of it). If the paths are not available in your
-environment, you have to add them (You can add them by editing your .profile
-file in your home directory, append them to the PATH line). Then type:
-@example
-$ source ~/.profile
-@end example
-
-and re-examine the echo command output.
-
-@item
-Use MacPorts to download and install the dependencies:@
-The libraries are: 
-
-@itemize @bullet
-
-@item
-@uref{http://trac.macports.org/browser/trunk/dports/www/libmicrohttpd/Portfile, libmicrohttpd.}
-
-@item
-@uref{http://trac.macports.org/browser/trunk/dports/devel/libgcrypt/Portfile, libgcrypt.}
-
-@item
-@uref{http://trac.macports.org/browser/trunk/dports/net/curl/Portfile, libcurl.}
-
-@item
-@uref{http://trac.macports.org/browser/trunk/dports/devel/libtool/Portfile, libltdl.}
-
-@item
-@uref{http://trac.macports.org/browser/trunk/dports/databases/sqlite3/Portfile, SQlite.}
-
-@item
-libunistring 
-
-@item
-glpk 
-
-@end itemize
-
-The port command is as follows:@
-@example
-port install libmicrohttpd libgcrypt curl libtool sqlite3 linunistring glpk
-@end example
-One of the dependencies, the libextractor, should be explicitly installed,
-since the version available from macports is outdated to work with GNUnet. To
-install the latest libextractor:
-@itemize @bullet
-
-
-@item
-Install the Subversion Client:@
-For more information about Subversion visit:
-@uref{http://subversion.tigris.org/, http://subversion.tigris.org/}
-
-@example
-# port install subversion
-@end example
-
-
-@item
-Use Subversion to download the latest Extractor: 
-@example
-$ svn checkout https://gnunet.org/svn/Extractor
-@end example
-
-
-@item
-Go to the installation directory of the Extractor, compile and install it: 
-@example
-$ ./bootstrap
-$ export CPPFLAGS="-I/opt/local/include"
-$ export  LDFLAGS="-L/opt/local/lib" 
-$ ./configure --prefix=/opt/local
-$ make
-# make install
-@end example
-
-@end itemize
-
-
-@item
-Now, your system is ready to install GNunet. If you downloaded GNUnet by
-checking it out from svn, you should start by running the bootstrap script.
-Open a terminal pointing to the GNUnet directory and type:@
-
-@example
-$ ./bootstrap
-@end example
-
-
-@item
-Run the configure script: 
-@example
-$ export CPPFLAGS="-I/opt/local/include" 
-$ export LDFLAGS="-L/opt/local/lib" 
-$ ./configure --prefix=/tmp/gnunet_build
-@end example
-
-
-GNUnet will be installed in the directory /tmp/gnunet_build (Of course that
-installation path can be changed).@ The CPPFLAGS and LDFLAGS are mentioned in
-order to inform the compiler and the linker to lookup headers and libraries in
-/opt/local/include and /opt/local/lib.
-
-@item
-Compile@
-
-@example
-$ make
-@end example
-
-
-@item
-Install GNUnet 
-@example
-# make install
-@end example
-
-@end itemize
-
-@node Basic Installation for Fedora/PlanetLab nodes running Fedora 12
-@subsection Basic Installation for Fedora/PlanetLab nodes running Fedora 12
-
-
-@strong{This documentation is outdated and not valid for GNUnet 0.10.0!}@
-
-GNUnet installation on Fedora 8/Planetlab nodes can be done as following:
-
-1. Install the build tools to build GNUnet@
-@example
-sudo yum -y -t --nogpgcheck install gcc make autoconf gettext-devel \
-texinfo subversion@
-@end example
-
-2. Install the GNUnet dependencies@
-@example
-sudo yum -y -t --nogpgcheck install libunistring-devel libunistring-devel \
-libgcrypt-devel zlib-devel sqlite-devel postgresql-devel mysql-devel \
-libgsf-devel libvorbis-devel@
-@end example
-
-3. Install outdated dependencies from source@
-libtool@
-@example
-wget http://ftp.gnu.org/gnu/libtool/libtool-2.4.2.tar.gz@
-tar xvfz libtool-2.4.2.tar.gz@
-cd libtool-2.4.2@
-./configure@
-sudo make install@
-@end example
-
-glpk@
-@example
-wget http://ftp.gnu.org/gnu/glpk/glpk-4.47.tar.gz@
-tar xvfz glpk-4.47.tar.gz@
-cd glpk-4.47@
-./configure@
-sudo make install@
-@end example
-
-libcurl@
-@example
-wget http://curl.haxx.se/download/curl-7.26.0.tar.gz@
-tar xvfz curl-7.26.0.tar.gz@
-cd curl-7.26.0@
-./configure@
-sudo make install@
-@end example
-
-4. Install libextractor@
-@example
-svn co https://gnunet.org/svn/libextractor@
-cd libextractor@
-libtoolize@
-./bootstrap@
-./configure@
-sudo make install@
-@end example
-
-5. Install libmicrohttpd@
-@example
-svn co https://gnunet.org/svn/libmicrohttpd@
-cd libmicrohttpd@
-libtoolize@
-./bootstrap@
-./configure@
-sudo make install@
-@end example
-
-6. Set GNUnet prefix and add to PATH@
-@example
-export GNUNET_PREFIX=@
-export PATH=$PATH:$GNUNET_PREFIX/bin@
-@end example
-
-7. Install GNUnet from svn@
-@example
-export LD_LIBRARY_PATH=/usr/local/lib@
-svn co https://gnunet.org/svn/gnunet@
-cd gnunet@
-libtoolize@
-./bootstrap@
-./configure --prefix=$GNUNET_PREFIX --with-extractor=/usr \
- --with-mysql=/usr/lib/mysql --enable-logging=verbose@
-make install@
-@end example
-
-Done!
-
-@node Basic Installation for Fedora/PlanetLab nodes running Fedora 8 .
-@subsection Basic Installation for Fedora/PlanetLab nodes running Fedora 8 .
-@c %**end of header
-
-@strong{This documentation is outdated and not valid for GNUnet 0.10.0!}@
- GNUnet installation on Fedora 8/Planetlab nodes can be done as following:
-
-1. Install the build tools to build GNUnet@
-@example
-sudo yum -y -t --nogpgcheck install gcc make automake autoconf gettext-devel \
-texinfo zlib-devel subversion@
-@end example
-
-2. Install the GNUnet dependencies@
-@example
-sudo yum -y -t --nogpgcheck install gnutls-devel gnutls-devel libgcrypt-devel \
-sqlite-devel postgresql-devel mysql-devel libgsf-devel libvorbis-devel \
-libidn-devel
-@end example
-
-3. Install outdated dependencies from source@
- libtool@
-@code{@
- wget http://ftp.gnu.org/gnu/libtool/libtool-2.4.2.tar.gz@
- tar xvfz libtool-2.4.2.tar.gz@
- cd libtool-2.4.2@
- ./configure@
- sudo make install@
-}
-
-libtool@
-@code{@
- wget http://ftp.gnu.org/gnu/libtool/libtool-2.4.2.tar.gz@
- tar xvfz libtool-2.4.2.tar.gz@
- cd libtool-2.4.2@
- ./configure@
- sudo make install@
-}
-
-glpk@
-@code{@
- wget http://ftp.gnu.org/gnu/glpk/glpk-4.47.tar.gz@
- tar xvfz glpk-4.47.tar.gz@
- cd glpk-4.47@
- ./configure@
- sudo make install@
-}
-
-libgpg-error@
-@code{@
- wget ftp://ftp.gnupg.org/gcrypt/libgpg-error/libgpg-error-1.10.tar.bz2@
- tar xvfj libgpg-error-1.10.tar.bz2@
- cd libgpg-error-1.10@
- ./configure --prefix=/usr@
- sudo make install@
-}
-
-libgcrypt@
-@code{@
- wget ftp://ftp.gnupg.org/gcrypt/libgcrypt/libgcrypt-1.5.0.tar.bz2@
- tar xvfj libgcrypt-1.5.0.tar.tar.bz2@
- cd libgcrypt-1.5.0@
- ./configure --prefix=/usr@
- sudo make install@
-}
-
-libcurl@
-@code{@
- wget http://curl.haxx.se/download/curl-7.26.0.tar.gz@
- tar xvfz curl-7.26.0.tar.gz@
- cd curl-7.26.0@
- ./configure@
- sudo make install@
-}
-
-libunistring@
-@code{@
- wget http://ftp.gnu.org/gnu/libunistring/libunistring-0.9.3.tar.gz@
- tar xvfz libunistring-0.9.3.tar.gz@
- cd libunistring-0.9.3@
- ./configure@
- sudo make install@
-}
-
-4. Remove conflicting packages@
-@code{@
- sudo rpm -e --nodeps libgcrypt libgpg-error@
-}
-
-4. Install libextractor@
-@code{@
- wget ftp://ftp.gnu.org/gnu/libextractor/libextractor-0.6.3.tar.gz@
- tar xvfz libextractor-0.6.3.tar.gz@
- cd libextractor-0.6.3@
- ./configure@
- sudo make install@
-}
-
-5. Install libmicrohttpd and dependencies
-
-nettle@
-@code{@
- wget http://ftp.gnu.org/gnu/nettle/nettle-2.5.tar.gz@
- tar xvfz nettle-2.5.tar.gz@
- cd nettle-2.5@
- ./configure@
- sudo make install@
-}
-
-GnuTLS@
-@code{@
- wget http://ftp.gnu.org/gnu/gnutls/gnutls-2.12.20.tar.bz2@
- tar xvfj gnutls-2.12.20.tar.bz2@
- cd gnutls-2.12.20@
- ./configure --without-p11-kit@
- sudo make install@
-}
-
-libmicrohttpd@
-@code{@
- wget ftp://ftp.gnu.org/gnu/libmicrohttpd/libmicrohttpd-0.9.21.tar.gz@
- tar xvfz libmicrohttpd-0.9.21.tar.gz@
- cd libmicrohttpd-0.9.21@
- ./configure@
- sudo make install@
-}
-
-6. Set GNUnet prefix and add to PATH@
-@code{@
- export GNUNET_PREFIX=@
- export PATH=$PATH:$GNUNET_PREFIX/bin@
-}
-
-7. Install GNUnet from svn@
-@example
- export LD_LIBRARY_PATH=/usr/local/lib@
- svn co https://gnunet.org/svn/gnunet@
- cd gnunet@
- libtoolize@
- ./bootstrap@
- ./configure --prefix=$GNUNET_PREFIX --with-extractor=/usr/local \
- --with-curl=/usr/local --with-mysql=/usr/lib/mysql --enable-logging=verbose@
- make install@
-@end example
-
-Done!
-
-@node Build instructions for Gentoo
-@subsection Build instructions for Gentoo
-
-
-This page describes how to install GNUnet 0.9 on Gentoo.
-
-Since the GNUnet 0.9 ebuilds are not in the official portage tree yet, we need
-to add them to the local portage overlay. All the commands below should be
-executed as root.
-
-Specify your local portage directory in the /etc/make.conf, for example:@
-@code{$ echo 'PORTDIR_OVERLAY="/usr/local/portage"' >> /etc/make.conf}
-
-Create directories for the ebuilds:@
-@code{$ mkdir -p /usr/local/portage/media-libs/libextractor /usr/local/portage/net-p2p/gnunet/files}
-
-Download the latest ebuilds, init and config files from here and put them into
-respective directories:@
-@code{$ cp libextractor-0.6.2.ebuild /usr/local/portage/media-libs/libextractor@
- $ cp gnunet-0.9.2.ebuild /usr/local/portage/net-p2p/gnunet@
- $ cp gnunet-0.9.2.conf gnunet-0.9.2.confd gnunet-0.9.2.initd /usr/local/portage/net-p2p/gnunet/files}
-
-Generate Manifest files for the ebuilds:@
-@code{$ cd /usr/local/portage/net-p2p/gnunet@
- $ ebuild gnunet-0.9.2.ebuild digest@
- $ cd /usr/local/portage/media-libs/libextractor@
- $ ebuild libextractor-0.6.2.ebuild digest}
-
-Unmask GNUnet and dependencies in the /etc/portage/package.keywords. For
-example, if you use x86-64 architecture, add the following lines:@
-@code{net-p2p/gnunet ~amd64@
- media-libs/libextractor ~amd64@
- net-libs/libmicrohttpd ~amd64@
- net-misc/curl ~amd64}
-
-Add either sqlite or mysql USE-flag in the /etc/portage/package.use:@
-@code{net-p2p/gnunet sqlite}
-
-Now everything is ready to install GNUnet:@
-@code{$ emerge -av gnunet}
-
-Use /etc/init.d/gnunet to start/stop GNUnet.
 
 @node Building GLPK for MinGW
 @subsection Building GLPK for MinGW
@@ -3897,13 +3319,13 @@ connecting to NATed peers using ICMP method" box.
 @node Peer configuration for distributions
 @subsection Peer configuration for distributions
 
-The "GNUNET_DATA_HOME" in "[path]" in /etc/gnunet.conf should be manually set
+The "GNUNET_DATA_HOME" in "[path]" in @file{/etc/gnunet.conf} should be manually set
 to "/var/lib/gnunet/data/" as the default "~/.local/share/gnunet/" is probably
 not that appropriate in this case. Similarly, distributions may consider
 pointing "GNUNET_RUNTIME_DIR" to "/var/run/gnunet/" and "GNUNET_HOME" to
 "/var/lib/gnunet/". Also, should a distribution decide to override system
-defaults, all of these changes should be done in a custom "/etc/gnunet.conf"
-and not in the files in the "config.d/" directory.
+defaults, all of these changes should be done in a custom @file{/etc/gnunet.conf}
+and not in the files in the @file{config.d/} directory.
 
 Given the proposed access permissions, the "gnunet-setup" tool must be run as
 use "gnunet" (and with option "-c /etc/gnunet.conf" so that it modifies the
@@ -3922,7 +3344,7 @@ This section describes how to start a GNUnet peer. It assumes that you have
 already compiled and installed GNUnet and its' dependencies. Before you start a
 GNUnet peer, you may want to create a configuration file using gnunet-setup
 (but you do not have to). Sane defaults should exist in your
-@code{GNUNET_PREFIX/share/gnunet/config.d/} directory, so in practice you could
+@file{$GNUNET_PREFIX/share/gnunet/config.d/} directory, so in practice you could
 simply start without any configuration. If you want to configure your peer
 later, you need to stop it before invoking the @code{gnunet-setup} tool to
 customize further and to test your configuration (@code{gnunet-setup} has
@@ -3954,12 +3376,12 @@ recommended.
 
 For the single-user setup, you do not need to do anything special and can just
 start the GNUnet background processes using @code{gnunet-arm}. By default,
-GNUnet looks in @code{~/.config/gnunet.conf} for a configuration (or
-$XDG_CONFIG_HOME/gnunet.conf if@ $XDG_CONFIG_HOME is defined). If your
+GNUnet looks in @file{~/.config/gnunet.conf} for a configuration (or
+@code{$XDG_CONFIG_HOME/gnunet.conf} if@ @code{$XDG_CONFIG_HOME} is defined). If your
 configuration lives elsewhere, you need to pass the @code{-c FILENAME} option
 to all GNUnet commands.
 
-Assuming the configuration file is called @code{~/.config/gnunet.conf}, you
+Assuming the configuration file is called @file{~/.config/gnunet.conf}, you
 start your peer using the @code{gnunet-arm} command (say as user
 @code{gnunet}) using:
 @example
@@ -4017,7 +3439,7 @@ to automatically start your peer whenever your system boots.
 
 This requires you to create a user @code{gnunet} and an additional group
 @code{gnunetdns}, prior to running @code{make install} during installation.
-Then, you create a configuration file @code{/etc/gnunet.conf} which should
+Then, you create a configuration file @file{/etc/gnunet.conf} which should
 contain the lines:@
 @code{@
  [arm]@
@@ -4029,7 +3451,7 @@ contain the lines:@
  may also want to run @code{gnunet-setup} to configure your peer (databases,
  etc.). Make sure to pass @code{-c /etc/gnunet.conf} to all commands. If you
  run @code{gnunet-setup} as user @code{gnunet}, you might need to change
- permissions on @code{/etc/gnunet.conf} so that the @code{gnunet} user can
+ permissions on @file{/etc/gnunet.conf} so that the @code{gnunet} user can
  write to the file (during setup).
 
 Afterwards, you need to perform another setup step for each normal user account
@@ -4038,7 +3460,7 @@ from which you want to access GNUnet. First, grant the normal user
 @code{@
  # adduser $USER gnunet@
 }@
-Then, create a configuration file in @code{~/.config/gnunet.conf} for the $USER
+Then, create a configuration file in @file{~/.config/gnunet.conf} for the $USER
 with the lines:@
 @code{@
  [arm]@
@@ -4148,9 +3570,9 @@ service.
 GNUnet's main services should be run as a separate user "gnunet" in a special
 group "gnunet". The user "gnunet" should start the peer using "gnunet-arm -s"
 during system startup. The home directory for this user should be
-"/var/lib/gnunet" and the configuration file should be "/etc/gnunet.conf". Only
-the "gnunet" user should have the right to access "/var/lib/gnunet" (mode:
-700).
+@file{/var/lib/gnunet} and the configuration file should be @file{/etc/gnunet.conf}.
+Only the @code{gnunet} user should have the right to access @file{/var/lib/gnunet}
+(@emph{mode: 700}).
 
 @node Recommendation - Control access to services using group "gnunet"
 @subsubsection Recommendation - Control access to services using group "gnunet"
@@ -4200,5 +3622,4 @@ silently fail to set the DNS binaries to be owned by group "gnunetdns" unless
 that group already exists (!). An alternative name for the "gnunetdns" group
 can be specified using the "--with-gnunetdns=GRPNAME" configure
 option.
-
 

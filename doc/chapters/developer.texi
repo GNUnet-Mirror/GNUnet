@@ -97,16 +97,18 @@ advertisements for bogus websites.
 
 This developer handbook is intended as first introduction to GNUnet for new
 developers that want to extend the GNUnet framework. After the introduction,
-each of the GNUnet subsystems (directories in the src/ tree) is (supposed to
+each of the GNUnet subsystems (directories in the @file{src/} tree) is (supposed to
 be) covered in its own chapter. In addition to this documentation, GNUnet
 developers should be aware of the services available on the GNUnet server to
 them.
 
 New developers can have a look a the GNUnet tutorials for C and java available
-in the src/ directory of the repository or under the following links:
+in the @file{src/} directory of the repository or under the following links:
 
+@c ** FIXME: Link to files in source, not online.
+@c ** FIXME: Where is the Java tutorial?
 @itemize @bullet
-@item GNUnet C tutorial
+@item @uref{https://gnunet.org/git/gnunet.git/plain/doc/gnunet-c-tutorial.pdf, GNUnet C tutorial}
 @item GNUnet Java tutorial
 @end itemize
 
@@ -123,8 +125,7 @@ The public subsystems on the GNUnet server that help developers are:
 @item The Version control system keeps our code and enables distributed
 development. Only developers with write access can commit code, everyone else
 is encouraged to submit patches to the
-@uref{http://mail.gnu.org/mailman/listinfo/gnunet-developers, developer
-mailinglist}.
+@uref{https://lists.gnu.org/mailman/listinfo/gnunet-developers, GNUnet-developers mailinglist}.
 @item The GNUnet bugtracking system is used to track feature requests, open bug
 reports and their resolutions. Anyone can report bugs, only developers can
 claim to have fixed them.
@@ -168,36 +169,35 @@ GNUnet sub-projects in order of likely relevance are currently:
 
 @table @asis
 
-@item svn/gnunet Core of the P2P framework, including file-sharing, VPN and
+@item gnunet Core of the P2P framework, including file-sharing, VPN and
 chat applications; this is what the developer handbook covers mostly
-@item svn/gnunet-gtk/ Gtk+-based user interfaces, including gnunet-fs-gtk
+@item gnunet-gtk Gtk+-based user interfaces, including gnunet-fs-gtk
 (file-sharing), gnunet-statistics-gtk (statistics over time),
 gnunet-peerinfo-gtk (information about current connections and known peers),
 gnunet-chat-gtk (chat GUI) and gnunet-setup (setup tool for "everything")
-@item svn/gnunet-fuse/ Mounting directories shared via GNUnet's file-sharing on Linux
-@item svn/gnunet-update/ Installation and update tool
-@item svn/gnunet-ext/
-Template for starting 'external' GNUnet projects
-@item svn/gnunet-java/ Java
-APIs for writing GNUnet services and applications
-@item svn/gnunet-www/ Code
-and media helping drive the GNUnet website
-@item svn/eclectic/ Code to run
+@item gnunet-fuse Mounting directories shared via GNUnet's file-sharing on Linux
+@item gnunet-update Installation and update tool
+@item gnunet-ext Template for starting 'external' GNUnet projects
+@item gnunet-java Java APIs for writing GNUnet services and applications
+@c ** FIXME: Point to new website repository once we have it:
+@c ** @item svn/gnunet-www/ Code and media helping drive the GNUnet website
+@item eclectic Code to run
 GNUnet nodes on testbeds for research, development, testing and evaluation
-@item svn/gnunet-qt/ qt-based GNUnet GUI (dead?)
-@item svn/gnunet-cocoa/
-cocoa-based GNUnet GUI (dead?)
+@c ** FIXME: Solve the status and location of gnunet-qt
+@item gnunet-qt qt-based GNUnet GUI (dead?)
+@item gnunet-cocoa cocoa-based GNUnet GUI (dead?)
 
 @end table
 
 We are also working on various supporting libraries and tools:
+@c ** FIXME: What about gauger, and what about libmwmodem?
 
 @table @asis
-@item svn/Extractor/ GNU libextractor (meta data extraction)
-@item svn/libmicrohttpd/ GNU libmicrohttpd (embedded HTTP(S) server library)
-@item svn/gauger/ Tool for performance regression analysis
-@item svn/monkey/ Tool for automated debugging of distributed systems
-@item svn/libmwmodem/ Library for accessing satellite connection quality reports
+@item libextractor GNU libextractor (meta data extraction)
+@item libmicrohttpd GNU libmicrohttpd (embedded HTTP(S) server library)
+@item gauger Tool for performance regression analysis
+@item monkey Tool for automated debugging of distributed systems
+@item libmwmodem Library for accessing satellite connection quality reports
 @end table
 
 Finally, there are various external projects (see links for a list of those
@@ -208,7 +208,7 @@ that have a public website) which build on top of the GNUnet framework.
 @section Code overview
 
 This section gives a brief overview of the GNUnet source code. Specifically, we
-sketch the function of each of the subdirectories in the @code{gnunet/src/}
+sketch the function of each of the subdirectories in the @file{gnunet/src/}
 directory. The order given is roughly bottom-up (in terms of the layers of the
 system).
 @table @asis
@@ -871,9 +871,9 @@ gnunet-ext template to provide an easy to use skeleton.
 gnunet-ext contains the build environment and template files for the
 development of GNUnet services, command line tools, APIs and tests.
 
-First of all you have to obtain gnunet-ext from SVN:
+First of all you have to obtain gnunet-ext from git:
 
-@code{svn co https://gnunet.org/svn/gnunet-ext}
+@code{git clone https://gnunet.org/git/gnunet-ext.git}
 
 The next step is to bootstrap and configure it. For configure you have to
 provide the path containing GNUnet with @code{--with-gnunet=/path/to/gnunet}
@@ -1325,7 +1325,7 @@ require the option @code{OVERLAY_RANDOM_LINKS} to be set to the number of
 random links to be generated in the configuration. The option will be ignored
 for the rest of the topologies.
 
-Toplogy @code{SCALE_FREE} requires the options @code{SCALE_FREE_TOPOLOGY_CAP}
+Topology @code{SCALE_FREE} requires the options @code{SCALE_FREE_TOPOLOGY_CAP}
 to be set to the maximum number of peers which can connect to a peer and
 @code{SCALE_FREE_TOPOLOGY_M} to be set to how many peers a peer should be
 atleast connected to.
@@ -1724,7 +1724,7 @@ porting of GNUnet easier.
 GNUnet is able to log its activity, mostly for the purposes of debugging the
 program at various levels.
 
-@code{gnunet_common.h} defines several @strong{log levels}:
+@file{gnunet_common.h} defines several @strong{log levels}:
 @table @asis
 
 @item ERROR for errors (really problematic situations, often leading to

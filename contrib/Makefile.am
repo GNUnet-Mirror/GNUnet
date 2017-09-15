@@ -48,6 +48,7 @@ EXTRA_DIST = \
  no_forcestart.conf \
  no_autostart_above_core.conf \
  coverage.sh \
+ nssswitch.conf \
  report.sh \
  terminate.py.in \
  gnunet_pyexpect.py.in \

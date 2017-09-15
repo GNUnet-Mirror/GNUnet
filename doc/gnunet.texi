@@ -1,4 +1,6 @@
-\input texinfo @c -*-texinfo-*-
+\input texinfo
+@c -*-texinfo-*-
+
 @c %**start of header
 @setfilename gnunet.info
 @documentencoding UTF-8
@@ -6,6 +8,13 @@
 @c %**end of header
 
 @include version.texi
+
+@c Set Versions which might be used in more than one place:
+@set GNUNET-DIST-URL https://ftp.gnu.org/gnu/gnunet/
+@set GNUNET-VERSION 0.10.1
+@set GNURL-VERSION-CURRENT 7.55.1
+@set GNURL-DIST-URL https://gnunet.org/sites/default/files/
+@c @set OPENPGP-SIGNING-KEY-ID
 
 @copying
 Copyright @copyright{} 2001-2017 GNUnet e.V.
@@ -167,7 +176,3 @@ Installation
 @printindex fn
 
 @bye
-
-@c Local Variables:
-@c ispell-local-dictionary: "american";
-@c End:

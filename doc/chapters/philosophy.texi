@@ -31,20 +31,15 @@ These are the core GNUnet design goals, in order of relative importance:
 
 @itemize
 @item GNUnet must be implemented as free software.
-@item The GNUnet must only disclose the minimal amount of information
-      necessary.
-@item The GNUnet must be decentralised and survive Byzantine failures
-      in any position in the network.
-@item The GNUnet must make it explicit to the user which entities must be
-      trustworthy when establishing secured communications.
-@item The GNUnet must use compartmentalization to protect sensitive
-      information.
-@item The GNUnet must be open and permit new peers to join.
-@item The GNUnet must be self-organizing and not depend on administrators.
-@item The GNUnet must support a diverse range of applications and devices.
+@item GNUnet must only disclose the minimal amount of information necessary.
+@item GNUnet must be decentralised and survive Byzantine failures in any position in the network.
+@item GNUnet must make it explicit to the user which entities must be trustworthy when establishing secured communications.
+@item GNUnet must use compartmentalization to protect sensitive information.
+@item GNUnet must be open and permit new peers to join.
+@item GNUnet must be self-organizing and not depend on administrators.
+@item GNUnet must support a diverse range of applications and devices.
 @item The GNUnet architecture must be cost effective.
-@item The GNUnet must provide incentives for peers to contribute more
-      resources than they consume.
+@item GNUnet must provide incentives for peers to contribute more resources than they consume.
 @end itemize
 
 
@@ -164,7 +159,7 @@ different addresses. Binding messages expire after at most a week (the
 timeout can be shorter if the user configures the node appropriately). This
 expiration ensures that the network will eventually get rid of outdated
 advertisements.@
-More details can be found in this paper.
+More details can be found in the paper @uref{https://gnunet.org/transports, A Transport Layer Abstraction for Peer-to-Peer Networks}.
 
 @node Accounting to Encourage Resource Sharing
 @subsection Accounting to Encourage Resource Sharing
@@ -192,7 +187,7 @@ request a (possibly lower) effective priority. Then, they drop the requests
 with the lowest effective priority to satisfy their resource constraints. This
 way, GNUnet's economic model ensures that nodes that are not currently
 considered to have a surplus in contributions will not be served if the
-network load is high. More details can be found in this paper.
+network load is high. More details can be found in @uref{https://gnunet.org/ebe, this paper}.
 
 @node Confidentiality
 @subsection Confidentiality
@@ -213,16 +208,20 @@ anonymous file sharing).
 @node Anonymity
 @subsection Anonymity
 
+@menu
+* How file-sharing achieves Anonymity::
+@end menu
+
 Providing anonymity for users is the central goal for the anonymous
 file-sharing application. Many other design decisions follow in the footsteps
 of this requirement. Anonymity is never absolute. While there are various
-scientific metrics that can help quantify the level of anonymity that a
+@uref{https://gnunet.org/anonymity_metric, scientific metrics} that can help quantify the level of anonymity that a
 given mechanism provides, there is no such thing as complete anonymity.
 GNUnet's file-sharing implementation allows users to select for each
 operation (publish, search, download) the desired level of anonymity.
 The metric used is the amount of cover traffic available to hide the request.
 While this metric is not as good as, for example, the theoretical metric
-given in scientific metrics, it is probably the best metric available to
+given in @uref{https://gnunet.org/anonymity_metric, scientific metrics}, it is probably the best metric available to
 a peer with a purely local view of the world that does not rely on unreliable
 external information. The default anonymity level is 1, which uses anonymous
 routing but imposes no minimal requirements on cover traffic. It is possible
@@ -264,7 +263,7 @@ have to indirect the replies if we don't think we need more traffic to hide
 our own actions.@
 
 This increases the efficiency of the network as we can indirect less under
-higher load. More details can be found in this paper. 
+higher load. More details can be found in @uref{https://gnunet.org/gap, this paper}. 
 
 @node Deniability
 @subsection Deniability
@@ -283,7 +282,7 @@ encryption as the link-encryption between the nodes.  GNUnet has
 encryption on the network layer (link encryption, confidentiality,
 authentication) and again on the application layer (provided
 by @command{gnunet-publish}, @command{gnunet-download}, @command{gnunet-search}
-and @command{gnunet-gtk}).  More details can be found here.
+and @command{gnunet-gtk}).  More details can be found @uref{https://gnunet.org/encoding, here}.
 
 @node Peer Identities
 @subsection Peer Identities
