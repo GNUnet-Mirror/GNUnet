@@ -27,6 +27,7 @@
 #include "platform.h"
 #include "gnunet_util_lib.h"
 #include "gnunet_namestore_service.h"
+#include "gnunet_identity_provider_service.h"
 #include "gnunet_identity_service.h"
 #include "gnunet_signatures.h"
 
@@ -59,6 +60,16 @@ static char* ego_name;
  * Identity handle
  */
 static struct GNUNET_IDENTITY_Handle *identity_handle;
+
+/**
+ * IdP handle
+ */
+static struct GNUNET_IDENTITY_PROVIDER_Handle *idp_handle;
+
+/**
+ * IdP operation
+ */
+static struct GNUNET_IDENTITY_PROVIDER_Operation *idp_op;
 
 /**
  * Namestore handle
@@ -235,7 +246,19 @@ abe_lookup_cb (void *cls,
     return;
   }
 
-  size = GNUNET_CRYPTO_cpabe_encrypt (attr_value,
+  struct GNUNET_IDENTITY_PROVIDER_Attribute *attr;
+  attr = GNUNET_malloc (sizeof (struct GNUNET_IDENTITY_PROVIDER_Attribute) + strlen (attr_value) + 1);
+  attr->attribute_type = GNUNET_IDENTITY_PROVIDER_AT_STRING;
+  attr->data = &attr[1];
+  attr->data_size = strlen (attr_value) + 1;
+  idp_op = GNUNET_IDENTITY_PROVIDER_attribute_store (idp_handle,
+                                                    zone,
+                                                    attr_name,
+                                                    attr,
+                                                    &store_attr_cont,
+                                                    NULL);
+
+  /*size = GNUNET_CRYPTO_cpabe_encrypt (attr_value,
                                       strlen (attr_value) + 1,
                                       attr_name,
                                       abe_key,
@@ -251,7 +274,7 @@ abe_lookup_cb (void *cls,
                                           1,
                                           &new_record,
                                           &store_attr_cont,
-                                          NULL);
+                                          NULL);*/
 }
 
 static void
@@ -301,6 +324,7 @@ run (void *cls,
   }
 
   namestore_handle = GNUNET_NAMESTORE_connect (c);
+  idp_handle = GNUNET_IDENTITY_PROVIDER_connect (c);
   //Get Ego
   identity_handle = GNUNET_IDENTITY_connect (c,
                                              &ego_cb,

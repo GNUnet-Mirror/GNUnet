@@ -74,6 +74,7 @@ gnunet_idp_SOURCES = \
 gnunet_idp_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
 	$(top_builddir)/src/namestore/libgnunetnamestore.la \
+	$(top_builddir)/src/identity-provider/libgnunetidentityprovider.la \
 	$(top_builddir)/src/identity/libgnunetidentity.la \
   $(GN_LIBINTL)
 

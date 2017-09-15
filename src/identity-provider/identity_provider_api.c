@@ -75,6 +75,11 @@ struct GNUNET_IDENTITY_PROVIDER_Operation
   GNUNET_IDENTITY_PROVIDER_IssueCallback iss_cb;
 
   /**
+   * Continuation to invoke after attribute store call
+   */
+  GNUNET_IDENTITY_PROVIDER_ContinuationWithStatus as_cb;
+
+  /**
    * Envelope with the message for this queue entry.
    */
   struct GNUNET_MQ_Envelope *env;
@@ -355,6 +360,53 @@ handle_result (void *cls,
 
 }
 
+
+
+/**
+ * Handle an incoming message of type
+ * #GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_STORE_RESPONSE
+ *
+ * @param cls
+ * @param msg the message we received
+ */
+static void
+handle_attribute_store_response (void *cls,
+			      const struct AttributeStoreResponseMessage *msg)
+{
+  struct GNUNET_IDENTITY_PROVIDER_Handle *h = cls;
+  struct GNUNET_IDENTITY_PROVIDER_Operation *op;
+  uint32_t r_id = ntohl (msg->id);
+  int res;
+  const char *emsg;
+
+  for (op = h->op_head; NULL != op; op = op->next)
+    if (op->r_id == r_id)
+      break;
+  if (NULL == op)
+    return;
+
+  res = ntohl (msg->op_result);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Received ATTRIBUTE_STORE_RESPONSE with result %d\n",
+       res);
+
+  /* TODO: add actual error message to response... */
+  if (GNUNET_SYSERR == res)
+    emsg = _("failed to store record\n");
+  else
+    emsg = NULL;
+  if (NULL != op->as_cb)
+    op->as_cb (op->cls,
+              res,
+              emsg);
+  GNUNET_CONTAINER_DLL_remove (h->op_head,
+                               h->op_tail,
+                               op);
+  GNUNET_free (op);
+
+}
+
+
 /**
  * Try again to connect to the service.
  *
@@ -364,6 +416,10 @@ static void
 reconnect (struct GNUNET_IDENTITY_PROVIDER_Handle *h)
 {
   struct GNUNET_MQ_MessageHandler handlers[] = {
+    GNUNET_MQ_hd_fixed_size (attribute_store_response,
+                             GNUNET_MESSAGE_TYPE_IDENTITY_PROVIDER_ATTRIBUTE_STORE_RESPONSE,
+                             struct AttributeStoreResponseMessage,
+                             h),
     GNUNET_MQ_hd_var_size (result,
                            GNUNET_MESSAGE_TYPE_IDENTITY_PROVIDER_ISSUE_RESULT,
                            struct IssueResultMessage,
@@ -372,6 +428,7 @@ reconnect (struct GNUNET_IDENTITY_PROVIDER_Handle *h)
                            GNUNET_MESSAGE_TYPE_IDENTITY_PROVIDER_EXCHANGE_RESULT,
                            struct ExchangeResultMessage,
                            h),
+
     GNUNET_MQ_handler_end ()
   };
   struct GNUNET_IDENTITY_PROVIDER_Operation *op;
@@ -643,6 +700,65 @@ GNUNET_IDENTITY_PROVIDER_ticket_destroy(struct GNUNET_IDENTITY_PROVIDER_Ticket *
   if (NULL != ticket->data)
     GNUNET_free (ticket->data);
   GNUNET_free (ticket);
+}
+
+/**
+ * Store an attribute.  If the attribute is already present,
+ * it is replaced with the new attribute.
+ *
+ * @param h handle to the identity provider
+ * @param pkey private key of the identity
+ * @param name the attribute name
+ * @param value the attribute value
+ * @param cont continuation to call when done
+ * @param cont_cls closure for @a cont
+ * @return handle to abort the request
+ */
+struct GNUNET_IDENTITY_PROVIDER_Operation *
+GNUNET_IDENTITY_PROVIDER_attribute_store (struct GNUNET_IDENTITY_PROVIDER_Handle *h,
+                                          const struct GNUNET_CRYPTO_EcdsaPrivateKey *pkey,
+                                          const char* name,
+                                          const struct GNUNET_IDENTITY_PROVIDER_Attribute *value,
+                                          GNUNET_IDENTITY_PROVIDER_ContinuationWithStatus cont,
+                                          void *cont_cls)
+{
+  struct GNUNET_IDENTITY_PROVIDER_Operation *op;
+  struct AttributeStoreMessage *sam;
+  size_t name_len;
+  char *name_tmp;
+  char *attr_ser;
+
+
+  name_len = strlen (name) + 1;
+  if (name_len >= GNUNET_MAX_MESSAGE_SIZE - sizeof (struct AttributeStoreMessage))
+  {
+    GNUNET_break (0);
+    return NULL;
+  }
+  op = GNUNET_new (struct GNUNET_IDENTITY_PROVIDER_Operation);
+  op->h = h;
+  op->as_cb = cont;
+  op->cls = cont_cls;
+  op->r_id = h->r_id_gen++;
+  GNUNET_CONTAINER_DLL_insert_tail (h->op_head,
+                                    h->op_tail,
+                                    op);
+  op->env = GNUNET_MQ_msg_extra (sam,
+                                 name_len + value->data_size,
+                                 GNUNET_MESSAGE_TYPE_IDENTITY_PROVIDER_ATTRIBUTE_STORE);
+  sam->identity = *pkey;
+  sam->id = htonl (op->r_id);
+  sam->attr_value_len = htons (value->data_size);
+  sam->name_len = htons (name_len);
+  name_tmp = (char *) &sam[1];
+  GNUNET_memcpy (name_tmp, name, name_len);
+  attr_ser = &name_tmp[name_len];
+  GNUNET_memcpy (attr_ser, value->data, value->data_size);
+  if (NULL != h->mq)
+    GNUNET_MQ_send_copy (h->mq,
+                         op->env);
+  return op;
+
 }
 
 

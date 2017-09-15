@@ -129,6 +129,57 @@ static struct GNUNET_STATISTICS_Handle *stats;
  */
 static const struct GNUNET_CONFIGURATION_Handle *cfg;
 
+struct AttributeStoreHandle
+{
+
+  /**
+   * Client connection
+   */
+  struct GNUNET_SERVICE_Client *client;
+
+  /**
+   * Identity
+   */
+  struct GNUNET_CRYPTO_EcdsaPrivateKey identity;
+
+  /**
+   * Identity pubkey
+   */
+  struct GNUNET_CRYPTO_EcdsaPublicKey identity_pkey;
+
+  /**
+   * The issuer egos ABE master key
+   */
+  struct GNUNET_CRYPTO_AbeMasterKey *abe_key;
+
+  /**
+   * QueueEntry
+   */
+  struct GNUNET_NAMESTORE_QueueEntry *ns_qe;
+
+  /**
+   * The attribute name
+   */
+  char *name;
+
+  /**
+   * The attribute value
+   */
+  char *attribute_value;
+
+  /**
+   * Size of the attribute value
+   */
+  size_t attribute_value_len;
+
+  /**
+   * request id
+   */
+  uint32_t r_id;
+};
+
+
+
 struct VerifiedAttributeEntry
 {
   /**
@@ -1175,45 +1226,13 @@ attr_collect_task (void *cls)
                                                                issue_handle);
 }
 
-void
-store_bootstrap_cont (void *cls,
-                      int32_t success,
-                      const char *emsg)
-{
-  if (GNUNET_SYSERR == success)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Failed to bootstrap ABE master %s\n",
-                emsg);
-    GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
-    return;
-  }
-  GNUNET_SCHEDULER_add_now (&attr_collect_task, cls);
-}
 
-void
-store_bootstrap_task (void *cls)
-{
-  struct IssueHandle *issue_handle = cls;
-  struct GNUNET_GNSRECORD_Data rd[1];
-
-  rd[0].data_size = GNUNET_CRYPTO_cpabe_serialize_master_key (issue_handle->abe_key,
-                                                              (void**)&rd[0].data);
-  rd[0].record_type = GNUNET_GNSRECORD_TYPE_ABE_MASTER;
-  rd[0].flags = GNUNET_GNSRECORD_RF_NONE | GNUNET_GNSRECORD_RF_PRIVATE;
-  rd[0].expiration_time = GNUNET_TIME_UNIT_HOURS.rel_value_us; //TODO sane?
-  issue_handle->ns_qe = GNUNET_NAMESTORE_records_store (ns_handle,
-                                                        &issue_handle->iss_key,
-                                                        "+",
-                                                        1,
-                                                        rd,
-                                                        &store_bootstrap_cont,
-                                                        issue_handle);
-}
 
 void
 abe_key_lookup_error (void *cls)
 {
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+              "Error looking for ABE master!\n");
   GNUNET_SCHEDULER_add_now (&do_shutdown, cls);
 }
 
@@ -1235,10 +1254,10 @@ abe_key_lookup_result (void *cls,
     GNUNET_SCHEDULER_add_now (&attr_collect_task, handle);
     return;
   }
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+              "No ABE master found!\n");
+  GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
 
-  //No ABE master found, bootstrapping...
-  handle->abe_key = GNUNET_CRYPTO_cpabe_create_master_key ();
-  GNUNET_SCHEDULER_add_now (&store_bootstrap_task, handle);
 }
 
 /**
@@ -1256,15 +1275,13 @@ handle_issue_message (void *cls,
   const char *scopes;
   char *scopes_tmp;
   char *scope;
-  const char *v_attrs;
   uint64_t rnd_key;
   struct GNUNET_HashCode key;
   struct IssueHandle *issue_handle;
-  struct VerifiedAttributeEntry *vattr_entry;
   struct GNUNET_SERVICE_Client *client = cls;
 
   scopes = (const char *) &im[1];
-  v_attrs = (const char *) &im[1] + ntohl(im->scope_len);
+  //v_attrs = (const char *) &im[1] + ntohl(im->scope_len);
   issue_handle = GNUNET_malloc (sizeof (struct IssueHandle));
   issue_handle->attr_map = GNUNET_CONTAINER_multihashmap_create (5,
                                                                  GNUNET_NO);
@@ -1283,15 +1300,15 @@ handle_issue_message (void *cls,
   GNUNET_free (scopes_tmp);
   /*scopes_tmp = GNUNET_strdup (v_attrs);
 
-  for (scope = strtok (scopes_tmp, ","); NULL != scope; scope = strtok (NULL, ","))
-  {
+    for (scope = strtok (scopes_tmp, ","); NULL != scope; scope = strtok (NULL, ","))
+    {
     vattr_entry = GNUNET_new (struct VerifiedAttributeEntry);
     vattr_entry->name = GNUNET_strdup (scope);
     GNUNET_CONTAINER_DLL_insert (issue_handle->v_attr_head,
-                                 issue_handle->v_attr_tail,
-                                 vattr_entry);
-  }
-  GNUNET_free (scopes_tmp);*/
+    issue_handle->v_attr_tail,
+    vattr_entry);
+    }
+    GNUNET_free (scopes_tmp);*/
 
 
 
@@ -1320,6 +1337,218 @@ handle_issue_message (void *cls,
                                                          issue_handle,
                                                          &abe_key_lookup_result,
                                                          issue_handle);
+}
+
+static void
+cleanup_as_handle (struct AttributeStoreHandle *handle)
+{
+  if (NULL != handle->name)
+    GNUNET_free (handle->name);
+  if (NULL != handle->attribute_value)
+    GNUNET_free (handle->attribute_value);
+  GNUNET_free (handle);
+}
+
+
+
+void
+attr_store_cont (void *cls,
+                 int32_t success,
+                 const char *emsg)
+{
+  struct AttributeStoreHandle *as_handle = cls;
+  struct GNUNET_MQ_Envelope *env;
+  struct AttributeStoreResponseMessage *acr_msg;
+
+  if (GNUNET_SYSERR == success)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Failed to store attribute %s\n",
+                emsg);
+    GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
+    return;
+  }
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Sending ATTRIBUTE_STORE_RESPONSE message\n");
+  env = GNUNET_MQ_msg (acr_msg,
+		       GNUNET_MESSAGE_TYPE_IDENTITY_PROVIDER_ATTRIBUTE_STORE_RESPONSE);
+  acr_msg->id = htonl (as_handle->r_id);
+  acr_msg->op_result = htonl (GNUNET_OK);
+  GNUNET_MQ_send (GNUNET_SERVICE_client_get_mq(as_handle->client),
+                  env);
+  cleanup_as_handle (as_handle);
+}
+
+void
+attr_store_task (void *cls)
+{
+  struct AttributeStoreHandle *as_handle = cls;
+  struct GNUNET_GNSRECORD_Data rd[1];
+
+  /**
+   * Encrypt the attribute value and store in namestore
+   */
+  rd[0].data_size = GNUNET_CRYPTO_cpabe_encrypt (as_handle->attribute_value,
+                                                 as_handle->attribute_value_len,
+                                                 as_handle->name, //Policy
+                                                 as_handle->abe_key,
+                                                 (void**)&rd[0].data);
+  rd[0].record_type = GNUNET_GNSRECORD_TYPE_ID_ATTR;
+  rd[0].flags = GNUNET_GNSRECORD_RF_NONE;
+  rd[0].expiration_time = GNUNET_TIME_UNIT_HOURS.rel_value_us; //TODO sane?
+  as_handle->ns_qe = GNUNET_NAMESTORE_records_store (ns_handle,
+                                                     &as_handle->identity,
+                                                     as_handle->name,
+                                                     1,
+                                                     rd,
+                                                     &attr_store_cont,
+                                                     as_handle);
+
+}
+
+void
+store_bootstrap_cont (void *cls,
+                      int32_t success,
+                      const char *emsg)
+{
+  if (GNUNET_SYSERR == success)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Failed to bootstrap ABE master %s\n",
+                emsg);
+    GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
+    return;
+  }
+  GNUNET_SCHEDULER_add_now (&attr_store_task, cls);
+}
+
+void
+store_bootstrap_task (void *cls)
+{
+  struct AttributeStoreHandle *as_handle = cls;
+  struct GNUNET_GNSRECORD_Data rd[1];
+
+  rd[0].data_size = GNUNET_CRYPTO_cpabe_serialize_master_key (as_handle->abe_key,
+                                                              (void**)&rd[0].data);
+  rd[0].record_type = GNUNET_GNSRECORD_TYPE_ABE_MASTER;
+  rd[0].flags = GNUNET_GNSRECORD_RF_NONE | GNUNET_GNSRECORD_RF_PRIVATE;
+  rd[0].expiration_time = GNUNET_TIME_UNIT_HOURS.rel_value_us; //TODO sane?
+  as_handle->ns_qe = GNUNET_NAMESTORE_records_store (ns_handle,
+                                                     &as_handle->identity,
+                                                     "+",
+                                                     1,
+                                                     rd,
+                                                     &store_bootstrap_cont,
+                                                     as_handle);
+}
+
+void
+store_cont_abe_error (void *cls)
+{
+  GNUNET_SCHEDULER_add_now (&do_shutdown, cls);
+}
+
+void
+store_cont_abe_result (void *cls,
+                       const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone,
+                       const char *label,
+                       unsigned int rd_count,
+                       const struct GNUNET_GNSRECORD_Data *rd)
+{
+  struct AttributeStoreHandle *handle = cls;
+  int i;
+
+  for (i=0;i<rd_count;i++) {
+    if (GNUNET_GNSRECORD_TYPE_ABE_MASTER != rd[i].record_type)
+      continue;
+    handle->abe_key = GNUNET_CRYPTO_cpabe_deserialize_master_key ((void**)rd[i].data,
+                                                                  rd[i].data_size);
+    GNUNET_SCHEDULER_add_now (&attr_collect_task, handle);
+    return;
+  }
+
+  //No ABE master found, bootstrapping...
+  handle->abe_key = GNUNET_CRYPTO_cpabe_create_master_key ();
+  GNUNET_SCHEDULER_add_now (&store_bootstrap_task, handle);
+}
+
+
+/**
+ * Checks a store message
+ *
+ * @param cls client sending the message
+ * @param sam message of type `struct AttributeStoreMessage`
+ * @return #GNUNET_OK if @a im is well-formed
+ */
+static int
+check_attribute_store_message(void *cls,
+                              const struct AttributeStoreMessage *sam)
+{
+  uint16_t size;
+  uint32_t name_len;
+
+  size = ntohs (sam->header.size);
+  if (size <= sizeof (struct AttributeStoreMessage))
+  {
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
+  name_len = ntohs (sam->name_len);
+  if (0 <= name_len)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Malformed store message received!\n");
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
+  return GNUNET_OK;
+}
+
+/**
+ *
+ * Handler for store message
+ *
+ * @param cls unused
+ * @param client who sent the message
+ * @param message the message
+ */
+static void
+handle_attribute_store_message (void *cls,
+                                const struct AttributeStoreMessage *sam)
+{
+  struct AttributeStoreHandle *as_handle;
+  struct GNUNET_SERVICE_Client *client = cls;
+  size_t name_len;
+  size_t data_len;
+  char *attribute_value;
+
+  name_len = ntohs (sam->name_len);
+  data_len = ntohs (sam->attr_value_len);
+
+  as_handle = GNUNET_new (struct AttributeStoreHandle);
+  as_handle->name = GNUNET_strndup ((char*)&sam[1], name_len);
+  attribute_value = (char*)&sam[1] + name_len;
+
+  as_handle->r_id = sam->id;
+  as_handle->identity = sam->identity;
+  GNUNET_CRYPTO_ecdsa_key_get_public (&sam->identity,
+                                      &as_handle->identity_pkey);
+  as_handle->attribute_value = GNUNET_malloc (data_len);
+  GNUNET_memcpy (as_handle->attribute_value,
+                 attribute_value,
+                 data_len);
+  as_handle->attribute_value_len = data_len;
+
+  GNUNET_SERVICE_client_continue (client);
+  as_handle->client = client;
+  as_handle->ns_qe = GNUNET_NAMESTORE_records_lookup (ns_handle,
+                                                      &as_handle->identity,
+                                                      "+",
+                                                      &store_cont_abe_error,
+                                                      as_handle,
+                                                      &store_cont_abe_result,
+                                                      as_handle);
 }
 
 
@@ -1434,6 +1663,10 @@ GNUNET_SERVICE_MAIN
  GNUNET_MQ_hd_var_size (exchange_message,
                         GNUNET_MESSAGE_TYPE_IDENTITY_PROVIDER_EXCHANGE,
                         struct ExchangeMessage,
+                        NULL),
+ GNUNET_MQ_hd_var_size (attribute_store_message,
+                        GNUNET_MESSAGE_TYPE_IDENTITY_PROVIDER_ATTRIBUTE_STORE,
+                        struct AttributeStoreMessage,
                         NULL),
  GNUNET_MQ_handler_end());
 /* end of gnunet-service-identity-provider.c */

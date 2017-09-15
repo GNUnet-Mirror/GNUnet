@@ -173,6 +173,66 @@ struct ExchangeMessage
 
 };
 
+/**
+ * Use to store an identity attribute
+ */
+struct AttributeStoreMessage
+{
+  /**
+   * Type: #GNUNET_MESSAGE_TYPE_IDENTITY_SET_DEFAULT
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Unique identifier for this request (for key collisions).
+   */
+  uint32_t id GNUNET_PACKED;
+
+  /**
+   * The attribute type
+   */
+  uint32_t attribute_type GNUNET_PACKED;
+
+  /**
+   * The length of the attribute name
+   */
+  uint32_t name_len GNUNET_PACKED;
+
+  /**
+   * The length of the attribute value
+   */
+  uint32_t attr_value_len GNUNET_PACKED;
+
+  /**
+   * Identity
+   */
+  struct GNUNET_CRYPTO_EcdsaPrivateKey identity;
+
+  /* followed by the name of attribute as string and value data */
+
+};
+
+/**
+ * Attribute store response message
+ */
+struct AttributeStoreResponseMessage
+{
+  /**
+   * Message header
+   */
+  struct GNUNET_MessageHeader header;
+  
+  /**
+   * Unique identifier for this request (for key collisions).
+   */
+  uint32_t id GNUNET_PACKED;
+
+  /**
+   * #GNUNET_SYSERR on failure, #GNUNET_OK on success
+   */
+  int32_t op_result GNUNET_PACKED;
+
+};
 
 GNUNET_NETWORK_STRUCT_END
 

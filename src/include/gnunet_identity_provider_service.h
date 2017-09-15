@@ -67,6 +67,53 @@ struct GNUNET_IDENTITY_PROVIDER_Ticket;
 struct GNUNET_IDENTITY_PROVIDER_Operation;
 
 /**
+ * Flags that can be set for an attribute.
+ */
+enum GNUNET_IDENTITY_PROVIDER_AttributeType
+{
+
+  /**
+   * No value attribute.
+   */
+  GNUNET_IDENTITY_PROVIDER_AT_NULL = 0,
+
+  /**
+   * String attribute.
+   */
+  GNUNET_IDENTITY_PROVIDER_AT_STRING = 1,
+
+};
+
+
+
+/**
+ * An attribute.
+ */
+struct GNUNET_IDENTITY_PROVIDER_Attribute
+{
+
+  /**
+   * Binary value stored as attribute value.  Note: "data" must never
+   * be individually 'malloc'ed, but instead always points into some
+   * existing data area.
+   */
+  const void *data;
+
+  /**
+   * Number of bytes in @e data.
+   */
+  size_t data_size;
+
+  /**
+   * Type of Attribute.
+   */
+  uint32_t attribute_type;
+
+};
+
+
+
+/**
  * Method called when a token has been exchanged for a ticket.
  * On success returns a token
  *
@@ -107,6 +154,44 @@ typedef void
 struct GNUNET_IDENTITY_PROVIDER_Handle *
 GNUNET_IDENTITY_PROVIDER_connect (const struct GNUNET_CONFIGURATION_Handle *cfg);
 
+/**
+ * Continuation called to notify client about result of the
+ * operation.
+ *
+ * @param cls closure
+ * @param success #GNUNET_SYSERR on failure (including timeout/queue drop/failure to validate)
+ *                #GNUNET_NO if content was already there or not found
+ *                #GNUNET_YES (or other positive value) on success
+ * @param emsg NULL on success, otherwise an error message
+ */
+typedef void
+(*GNUNET_IDENTITY_PROVIDER_ContinuationWithStatus) (void *cls,
+                                            int32_t success,
+                                            const char *emsg);
+
+
+/**
+ * Store an attribute.  If the attribute is already present,
+ * it is replaced with the new attribute.
+ *
+ * @param h handle to the identity provider
+ * @param pkey private key of the identity
+ * @param name the attribute name
+ * @param value the attribute value
+ * @param cont continuation to call when done
+ * @param cont_cls closure for @a cont
+ * @return handle to abort the request
+ */
+struct GNUNET_IDENTITY_PROVIDER_Operation *
+GNUNET_IDENTITY_PROVIDER_attribute_store (struct GNUNET_IDENTITY_PROVIDER_Handle *h,
+                                          const struct GNUNET_CRYPTO_EcdsaPrivateKey *pkey,
+                                          const char* name,
+                                          const struct GNUNET_IDENTITY_PROVIDER_Attribute *value,
+                                          GNUNET_IDENTITY_PROVIDER_ContinuationWithStatus cont,
+                                          void *cont_cls);
+
+
+
 
 /**
  * Issue a token for a specific audience.
@@ -123,14 +208,14 @@ GNUNET_IDENTITY_PROVIDER_connect (const struct GNUNET_CONFIGURATION_Handle *cfg)
  */
 struct GNUNET_IDENTITY_PROVIDER_Operation *
 GNUNET_IDENTITY_PROVIDER_issue_token (struct GNUNET_IDENTITY_PROVIDER_Handle *id,
-		     const struct GNUNET_CRYPTO_EcdsaPrivateKey *iss_key,
-         const struct GNUNET_CRYPTO_EcdsaPublicKey *aud_key,
-         const char* scope,
-         const char* vattr,
-         struct GNUNET_TIME_Absolute expiration,
-         uint64_t nonce,
-		     GNUNET_IDENTITY_PROVIDER_IssueCallback cb,
-		     void *cb_cls);
+                                      const struct GNUNET_CRYPTO_EcdsaPrivateKey *iss_key,
+                                      const struct GNUNET_CRYPTO_EcdsaPublicKey *aud_key,
+                                      const char* scope,
+                                      const char* vattr,
+                                      struct GNUNET_TIME_Absolute expiration,
+                                      uint64_t nonce,
+                                      GNUNET_IDENTITY_PROVIDER_IssueCallback cb,
+                                      void *cb_cls);
 
 
 /**
@@ -146,10 +231,10 @@ GNUNET_IDENTITY_PROVIDER_issue_token (struct GNUNET_IDENTITY_PROVIDER_Handle *id
  */
 struct GNUNET_IDENTITY_PROVIDER_Operation *
 GNUNET_IDENTITY_PROVIDER_exchange_ticket (struct GNUNET_IDENTITY_PROVIDER_Handle *id,
-		     const struct GNUNET_IDENTITY_PROVIDER_Ticket *ticket,
-         const struct GNUNET_CRYPTO_EcdsaPrivateKey *aud_privkey,
-		     GNUNET_IDENTITY_PROVIDER_ExchangeCallback cont,
-		     void *cont_cls);
+                                          const struct GNUNET_IDENTITY_PROVIDER_Ticket *ticket,
+                                          const struct GNUNET_CRYPTO_EcdsaPrivateKey *aud_privkey,
+                                          GNUNET_IDENTITY_PROVIDER_ExchangeCallback cont,
+                                          void *cont_cls);
 
 
 /**
