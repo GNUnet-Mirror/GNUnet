@@ -22,7 +22,8 @@ pkgcfg_DATA = \
 lib_LTLIBRARIES = \
   libgnunetidentityprovider.la
 plugin_LTLIBRARIES = \
-	libgnunet_plugin_rest_identity_provider.la
+	libgnunet_plugin_rest_identity_provider.la \
+	libgnunet_plugin_gnsrecord_identity_provider.la
 
 bin_PROGRAMS = \
  gnunet-identity-token \
@@ -30,6 +31,15 @@ bin_PROGRAMS = \
 
 libexec_PROGRAMS = \
  gnunet-service-identity-provider
+
+libgnunet_plugin_gnsrecord_identity_provider_la_SOURCES = \
+  plugin_gnsrecord_identity_provider.c
+libgnunet_plugin_gnsrecord_identity_provider_la_LIBADD = \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(LTLIBINTL)
+libgnunet_plugin_gnsrecord_identity_provider_la_LDFLAGS = \
+ $(GN_PLUGIN_LDFLAGS)
+
 
 gnunet_service_identity_provider_SOURCES = \
  gnunet-service-identity-provider.c \
@@ -67,7 +77,6 @@ libgnunet_plugin_rest_identity_provider_la_LIBADD = \
   $(LTLIBINTL) -ljansson -lmicrohttpd
 libgnunet_plugin_rest_identity_provider_la_LDFLAGS = \
  $(GN_PLUGIN_LDFLAGS)
-
 
 gnunet_idp_SOURCES = \
  gnunet-idp.c
