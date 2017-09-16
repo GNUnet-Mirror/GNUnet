@@ -93,11 +93,9 @@ struct GNUNET_IDENTITY_PROVIDER_Attribute
 {
 
   /**
-   * Binary value stored as attribute value.  Note: "data" must never
-   * be individually 'malloc'ed, but instead always points into some
-   * existing data area.
+   * Type of Attribute.
    */
-  const void *data;
+  uint32_t attribute_type;
 
   /**
    * Number of bytes in @e data.
@@ -105,9 +103,17 @@ struct GNUNET_IDENTITY_PROVIDER_Attribute
   size_t data_size;
 
   /**
-   * Type of Attribute.
+   * The name of the attribute. Note "name" must never be individually
+   * free'd
    */
-  uint32_t attribute_type;
+  const char* name;
+
+  /**
+   * Binary value stored as attribute value.  Note: "data" must never
+   * be individually 'malloc'ed, but instead always points into some
+   * existing data area.
+   */
+  const void *data;
 
 };
 
@@ -176,8 +182,7 @@ typedef void
  *
  * @param h handle to the identity provider
  * @param pkey private key of the identity
- * @param name the attribute name
- * @param value the attribute value
+ * @param attr the attribute
  * @param cont continuation to call when done
  * @param cont_cls closure for @a cont
  * @return handle to abort the request
@@ -185,11 +190,94 @@ typedef void
 struct GNUNET_IDENTITY_PROVIDER_Operation *
 GNUNET_IDENTITY_PROVIDER_attribute_store (struct GNUNET_IDENTITY_PROVIDER_Handle *h,
                                           const struct GNUNET_CRYPTO_EcdsaPrivateKey *pkey,
-                                          const char* name,
-                                          const struct GNUNET_IDENTITY_PROVIDER_Attribute *value,
+                                          const struct GNUNET_IDENTITY_PROVIDER_Attribute *attr,
                                           GNUNET_IDENTITY_PROVIDER_ContinuationWithStatus cont,
                                           void *cont_cls);
 
+
+/**
+ * Create a new attribute.
+ *
+ * @param name the attribute name
+ * @param type the attribute type
+ * @param data the attribute value
+ * @param data_size the attribute value size
+ * @return the new attribute
+ */
+struct GNUNET_IDENTITY_PROVIDER_Attribute *
+GNUNET_IDENTITY_PROVIDER_attribute_new (const char* attr_name,
+                                        uint32_t attr_type,
+                                        const void* data,
+                                        size_t data_size);
+
+/**
+ * Process an attribute that was stored in the idp.
+ *
+ * @param cls closure
+ * @param attr the attribute
+ */
+typedef void
+(*GNUNET_IDENTITY_PROVIDER_AttributeResult) (void *cls,
+                                   const struct GNUNET_CRYPTO_EcdsaPrivateKey *identity,
+                                   const struct GNUNET_IDENTITY_PROVIDER_Attribute *attr);
+
+
+
+/**
+ * List all attributes for a local identity. 
+ * This MUST lock the `struct GNUNET_IDENTITY_PROVIDER_Handle`
+ * for any other calls than #GNUNET_IDENTITY_PROVIDER_get_attributes_next() and
+ * #GNUNET_IDENTITY_PROVIDER_get_attributes_stop. @a proc will be called once
+ * immediately, and then again after
+ * #GNUNET_IDENTITY_PROVIDER_get_attributes_next() is invoked.
+ *
+ * On error (disconnect), @a error_cb will be invoked.
+ * On normal completion, @a finish_cb proc will be
+ * invoked.
+ *
+ * @param h handle to the idp
+ * @param identity identity to access
+ * @param error_cb function to call on error (i.e. disconnect),
+ *        the handle is afterwards invalid
+ * @param error_cb_cls closure for @a error_cb
+ * @param proc function to call on each attribute; it
+ *        will be called repeatedly with a value (if available)
+ * @param proc_cls closure for @a proc
+ * @param finish_cb function to call on completion
+ *        the handle is afterwards invalid
+ * @param finish_cb_cls closure for @a finish_cb
+ * @return an iterator handle to use for iteration
+ */
+struct GNUNET_IDENTITY_PROVIDER_AttributeIterator *
+GNUNET_IDENTITY_PROVIDER_get_attributes_start (struct GNUNET_IDENTITY_PROVIDER_Handle *h,
+                                               const struct GNUNET_CRYPTO_EcdsaPrivateKey *identity,
+                                               GNUNET_SCHEDULER_TaskCallback error_cb,
+                                               void *error_cb_cls,
+                                               GNUNET_IDENTITY_PROVIDER_AttributeResult proc,
+                                               void *proc_cls,
+                                               GNUNET_SCHEDULER_TaskCallback finish_cb,
+                                               void *finish_cb_cls);
+
+
+/**
+ * Calls the record processor specified in #GNUNET_IDENTITY_PROVIDER_get_attributes_start
+ * for the next record.
+ *
+ * @param it the iterator
+ */
+void
+GNUNET_IDENTITY_PROVIDER_get_attributes_next (struct GNUNET_IDENTITY_PROVIDER_AttributeIterator *it);
+
+
+/**
+ * Stops iteration and releases the idp handle for further calls.  Must
+ * be called on any iteration that has not yet completed prior to calling
+ * #GNUNET_IDENTITY_PROVIDER_disconnect.
+ *
+ * @param it the iterator
+ */
+void
+GNUNET_IDENTITY_PROVIDER_get_attributes_stop (struct GNUNET_IDENTITY_PROVIDER_AttributeIterator *it);
 
 
 

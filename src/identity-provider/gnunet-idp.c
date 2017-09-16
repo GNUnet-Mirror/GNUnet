@@ -77,9 +77,9 @@ static struct GNUNET_IDENTITY_PROVIDER_Operation *idp_op;
 static struct GNUNET_NAMESTORE_Handle *namestore_handle;
 
 /**
- * Namestore iterator
+ * Attribute iterator
  */
-static struct GNUNET_NAMESTORE_ZoneIterator *ns_iterator;
+static struct GNUNET_IDENTITY_PROVIDER_AttributeIterator *attr_iterator;
 
 /**
  * Namestore queue
@@ -96,8 +96,10 @@ do_cleanup(void *cls)
 {
   if (NULL != ns_qe)
     GNUNET_NAMESTORE_cancel (ns_qe);
-  if (NULL != ns_iterator)
-    GNUNET_NAMESTORE_zone_iteration_stop (ns_iterator);
+  if (NULL != attr_iterator)
+    GNUNET_IDENTITY_PROVIDER_get_attributes_stop (attr_iterator);
+  if (NULL != idp_handle)
+    GNUNET_IDENTITY_PROVIDER_disconnect (idp_handle);
   if (NULL != namestore_handle)
     GNUNET_NAMESTORE_disconnect (namestore_handle);
   if (NULL != identity_handle)
@@ -152,7 +154,7 @@ store_abe_cont (void *cls,
 static void
 iter_error (void *cls)
 {
-  ns_iterator = NULL;
+  attr_iterator = NULL;
   GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
               "Failed to iterate over attributes\n");
   GNUNET_SCHEDULER_add_now (&do_cleanup, NULL);
@@ -161,37 +163,19 @@ iter_error (void *cls)
 static void
 iter_finished (void *cls)
 {
-  ns_iterator = NULL;
+  attr_iterator = NULL;
   GNUNET_SCHEDULER_add_now (&do_cleanup, NULL);
 }
 
 static void
 iter_cb (void *cls,
-            const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone,
-            const char *label,
-            unsigned int rd_count,
-            const struct GNUNET_GNSRECORD_Data *rd)
+         const struct GNUNET_CRYPTO_EcdsaPrivateKey *identity,
+         const struct GNUNET_IDENTITY_PROVIDER_Attribute *attr)
 {
-  struct GNUNET_CRYPTO_AbeKey *key;
-  int i;
-  char *attr_value;
-  char* attrs[2];
-  for (i=0;i<rd_count;i++) {
-    if (GNUNET_GNSRECORD_TYPE_ID_ATTR != rd[i].record_type)
-      continue;
-    attrs[0] = (char*)label;
-    attrs[1] = 0;
-    key = GNUNET_CRYPTO_cpabe_create_key (abe_key,
-                                          attrs);
-    GNUNET_CRYPTO_cpabe_decrypt (rd[i].data,
-                                 rd[i].data_size,
-                                 key,
-                                 (void**)&attr_value);
-    GNUNET_CRYPTO_cpabe_delete_key (key);
-    GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
-                "%s: %s\n", label, attr_value);
-  }
-  GNUNET_NAMESTORE_zone_iterator_next (ns_iterator);
+  
+  GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
+              "%s: %s\n", attr->name, (char*)attr->data);
+  GNUNET_IDENTITY_PROVIDER_get_attributes_next (attr_iterator);
 }
 
 static void
@@ -235,25 +219,23 @@ abe_lookup_cb (void *cls,
   }
 
   if (list) {
-    ns_iterator = GNUNET_NAMESTORE_zone_iteration_start (namestore_handle,
-                                                         zone,
-                                                         &iter_error,
-                                                         NULL,
-                                                         &iter_cb,
-                                                         NULL,
-                                                         &iter_finished,
-                                                         NULL);
+    attr_iterator = GNUNET_IDENTITY_PROVIDER_get_attributes_start (idp_handle,
+                                                                  zone,
+                                                                  &iter_error,
+                                                                  NULL,
+                                                                  &iter_cb,
+                                                                  NULL,
+                                                                  &iter_finished,
+                                                                  NULL);
     return;
   }
 
-  struct GNUNET_IDENTITY_PROVIDER_Attribute *attr;
-  attr = GNUNET_malloc (sizeof (struct GNUNET_IDENTITY_PROVIDER_Attribute) + strlen (attr_value) + 1);
-  attr->attribute_type = GNUNET_IDENTITY_PROVIDER_AT_STRING;
-  attr->data = &attr[1];
-  attr->data_size = strlen (attr_value) + 1;
+  struct GNUNET_IDENTITY_PROVIDER_Attribute *attr = GNUNET_IDENTITY_PROVIDER_attribute_new (attr_name,
+                                                                                            GNUNET_IDENTITY_PROVIDER_AT_STRING,
+                                                                                            attr_value,
+                                                                                            strlen (attr_value));
   idp_op = GNUNET_IDENTITY_PROVIDER_attribute_store (idp_handle,
                                                     zone,
-                                                    attr_name,
                                                     attr,
                                                     &store_attr_cont,
                                                     NULL);

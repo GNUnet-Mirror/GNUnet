@@ -27,5 +27,6 @@ gnunet-arm -s -c test_idp.conf
 gnunet-identity -C testego -c test_idp.conf
 gnunet-idp -e testego --init -c test_idp.conf
 gnunet-idp -e testego -a email -V john@doe.gnu -c test_idp.conf
+gnunet-idp -e testego -a name -V John -c test_idp.conf
 gnunet-idp -e testego -D -c test_idp.conf
 gnunet-arm -e -c test_idp.conf

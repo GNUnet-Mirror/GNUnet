@@ -189,26 +189,16 @@ struct AttributeStoreMessage
   uint32_t id GNUNET_PACKED;
 
   /**
-   * The attribute type
+   * The length of the attribute
    */
-  uint32_t attribute_type GNUNET_PACKED;
-
-  /**
-   * The length of the attribute name
-   */
-  uint32_t name_len GNUNET_PACKED;
-
-  /**
-   * The length of the attribute value
-   */
-  uint32_t attr_value_len GNUNET_PACKED;
+  uint32_t attr_len GNUNET_PACKED;
 
   /**
    * Identity
    */
   struct GNUNET_CRYPTO_EcdsaPrivateKey identity;
 
-  /* followed by the name of attribute as string and value data */
+  /* followed by the serialized attribute */
 
 };
 
@@ -233,6 +223,101 @@ struct AttributeStoreResponseMessage
   int32_t op_result GNUNET_PACKED;
 
 };
+
+/**
+ * Attribute is returned from the idp.
+ */
+struct AttributeResultMessage
+{
+  /**
+   * Message header
+   */
+  struct GNUNET_MessageHeader header;
+
+   /**
+   * Unique identifier for this request (for key collisions).
+   */
+  uint32_t id GNUNET_PACKED;
+
+  /**
+   * Length of serialized attribute data
+   */
+  uint16_t attr_len GNUNET_PACKED;
+
+  /**
+   * always zero (for alignment)
+   */
+  uint16_t reserved GNUNET_PACKED;
+
+  /**
+   * The private key of the identity.
+   */
+  struct GNUNET_CRYPTO_EcdsaPrivateKey identity;
+
+  /* followed by:
+   * serialized attribute data
+   */
+};
+
+
+/**
+ * Start a attribute iteration for the given identity
+ */
+struct AttributeIterationStartMessage
+{
+  /**
+   * Message
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Unique identifier for this request (for key collisions).
+   */
+  uint32_t id GNUNET_PACKED;
+
+  /**
+   * Identity.
+   */
+  struct GNUNET_CRYPTO_EcdsaPrivateKey identity;
+
+};
+
+
+/**
+ * Ask for next result of attribute iteration for the given operation
+ */
+struct AttributeIterationNextMessage
+{
+  /**
+   * Type will be #GNUNET_MESSAGE_TYPE_IDENTITY_PROVIDER_ATTRIBUTE_ITERATION_NEXT
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Unique identifier for this request (for key collisions).
+   */
+  uint32_t id GNUNET_PACKED;
+
+};
+
+
+/**
+ * Stop attribute iteration for the given operation
+ */
+struct AttributeIterationStopMessage
+{
+  /**
+   * Type will be #GNUNET_MESSAGE_TYPE_IDENTITY_PROVIDER_ATTRIBUTE_ITERATION_STOP
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Unique identifier for this request (for key collisions).
+   */
+  uint32_t id GNUNET_PACKED;
+
+};
+
 
 GNUNET_NETWORK_STRUCT_END
 

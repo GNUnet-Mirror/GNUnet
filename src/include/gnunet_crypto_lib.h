@@ -2168,7 +2168,7 @@ GNUNET_CRYPTO_cpabe_delete_key (struct GNUNET_CRYPTO_AbeKey *key);
 ssize_t
 GNUNET_CRYPTO_cpabe_encrypt (const void *block,
                              size_t size,
-                             char *policy,
+                             const char *policy,
                              const struct GNUNET_CRYPTO_AbeMasterKey *key,
                              void **result);
 

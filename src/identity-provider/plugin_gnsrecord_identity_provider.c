@@ -56,6 +56,9 @@ value_to_string (void *cls,
     case GNUNET_GNSRECORD_TYPE_ID_ATTR:
     case GNUNET_GNSRECORD_TYPE_ID_TOKEN:
       return GNUNET_strndup (data, data_size);
+    case GNUNET_GNSRECORD_TYPE_ABE_KEY:
+    case GNUNET_GNSRECORD_TYPE_ABE_MASTER:
+      return GNUNET_STRINGS_data_to_string_alloc (data, data_size); 
     case GNUNET_GNSRECORD_TYPE_ID_TOKEN_METADATA:
         ecdhe_privkey = data;
         audience_pubkey = data+sizeof (struct GNUNET_CRYPTO_EcdhePrivateKey);
@@ -110,8 +113,14 @@ string_to_value (void *cls,
       *data = GNUNET_strdup (s);
       *data_size = strlen (s);
       return GNUNET_OK;
+    case GNUNET_GNSRECORD_TYPE_ABE_KEY:
+    case GNUNET_GNSRECORD_TYPE_ABE_MASTER:
+      return GNUNET_STRINGS_string_to_data (s,
+                                            strlen (s),
+                                            *data,
+                                            *data_size);
     case GNUNET_GNSRECORD_TYPE_ID_TOKEN_METADATA:
-            tmp_tok = GNUNET_strdup (s);
+      tmp_tok = GNUNET_strdup (s);
       ecdhe_str = strtok (tmp_tok, ";");
       if (NULL == ecdhe_str)
       {
@@ -160,15 +169,15 @@ string_to_value (void *cls,
  * Mapping of record type numbers to human-readable
  * record type names.
  */
-        static struct {
-          const char *name;
-          uint32_t number;
-        } name_map[] = {
-          { "ID_ATTR", GNUNET_GNSRECORD_TYPE_ID_ATTR },
-          { "ID_TOKEN", GNUNET_GNSRECORD_TYPE_ID_TOKEN },
-          { "ID_TOKEN_METADATA", GNUNET_GNSRECORD_TYPE_ID_TOKEN_METADATA },
-          { NULL, UINT32_MAX }
-        };
+static struct {
+  const char *name;
+  uint32_t number;
+} name_map[] = {
+  { "ID_ATTR", GNUNET_GNSRECORD_TYPE_ID_ATTR },
+  { "ID_TOKEN", GNUNET_GNSRECORD_TYPE_ID_TOKEN },
+  { "ID_TOKEN_METADATA", GNUNET_GNSRECORD_TYPE_ID_TOKEN_METADATA },
+  { NULL, UINT32_MAX }
+};
 
 
 /**

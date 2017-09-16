@@ -30,6 +30,7 @@
 #include "gnunet_mq_lib.h"
 #include "gnunet_identity_provider_service.h"
 #include "identity_provider.h"
+#include "identity_attribute.h"
 
 #define LOG(kind,...) GNUNET_log_from (kind, "identity-api",__VA_ARGS__)
 
@@ -96,6 +97,75 @@ struct GNUNET_IDENTITY_PROVIDER_Operation
 
 };
 
+/**
+ * Handle for a attribute iterator operation
+ */
+struct GNUNET_IDENTITY_PROVIDER_AttributeIterator
+{
+
+  /**
+   * Kept in a DLL.
+   */
+  struct GNUNET_IDENTITY_PROVIDER_AttributeIterator *next;
+
+  /**
+   * Kept in a DLL.
+   */
+  struct GNUNET_IDENTITY_PROVIDER_AttributeIterator *prev;
+
+  /**
+   * Main handle to access the idp.
+   */
+  struct GNUNET_IDENTITY_PROVIDER_Handle *h;
+
+  /**
+   * Function to call on completion.
+   */
+  GNUNET_SCHEDULER_TaskCallback finish_cb;
+
+  /**
+   * Closure for @e error_cb.
+   */
+  void *finish_cb_cls;
+
+  /**
+   * The continuation to call with the results
+   */
+  GNUNET_IDENTITY_PROVIDER_AttributeResult proc;
+
+  /**
+   * Closure for @e proc.
+   */
+  void *proc_cls;
+
+  /**
+   * Function to call on errors.
+   */
+  GNUNET_SCHEDULER_TaskCallback error_cb;
+
+  /**
+   * Closure for @e error_cb.
+   */
+  void *error_cb_cls;
+
+  /**
+   * Envelope of the message to send to the service, if not yet
+   * sent.
+   */
+  struct GNUNET_MQ_Envelope *env;
+
+  /**
+   * Private key of the zone.
+   */
+  struct GNUNET_CRYPTO_EcdsaPrivateKey identity;
+
+  /**
+   * The operation id this zone iteration operation has
+   */
+  uint32_t r_id;
+
+};
+
 
 /**
  * Handle for the service.
@@ -126,6 +196,16 @@ struct GNUNET_IDENTITY_PROVIDER_Handle
    * Tail of active operations.
    */
   struct GNUNET_IDENTITY_PROVIDER_Operation *op_tail;
+
+  /**
+   * Head of active iterations
+   */
+  struct GNUNET_IDENTITY_PROVIDER_AttributeIterator *it_head;
+
+  /**
+   * Tail of active iterations
+   */
+  struct GNUNET_IDENTITY_PROVIDER_AttributeIterator *it_tail;
 
   /**
    * Currently pending transmission request, or NULL for none.
@@ -200,6 +280,26 @@ force_reconnect (struct GNUNET_IDENTITY_PROVIDER_Handle *handle)
                                     &reconnect_task,
                                     handle);
 }
+
+/**
+ * Free @a it.
+ *
+ * @param it entry to free
+ */
+static void
+free_it (struct GNUNET_IDENTITY_PROVIDER_AttributeIterator *it)
+{
+  struct GNUNET_IDENTITY_PROVIDER_Handle *h = it->h;
+
+  GNUNET_CONTAINER_DLL_remove (h->it_head,
+                               h->it_tail,
+                               it);
+  if (NULL != it->env)
+    GNUNET_MQ_discard (it->env);
+  GNUNET_free (it);
+}
+
+
 
 /**
  * Generic error handler, called with the appropriate error code and
@@ -406,6 +506,91 @@ handle_attribute_store_response (void *cls,
 
 }
 
+/**
+ * Handle an incoming message of type
+ * #GNUNET_MESSAGE_TYPE_IDENTITY_PROVIDER_ATTRIBUTE_RESULT
+ *
+ * @param cls
+ * @param msg the message we received
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
+ */
+static int
+check_attribute_result (void *cls,
+                        const struct AttributeResultMessage *msg)
+{
+  size_t msg_len;
+  size_t attr_len;
+
+  msg_len = ntohs (msg->header.size);
+  attr_len = ntohs (msg->attr_len);
+  if (msg_len != sizeof (struct AttributeResultMessage) + attr_len)
+  {
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
+  return GNUNET_OK;
+}
+
+
+/**
+ * Handle an incoming message of type
+ * #GNUNET_MESSAGE_TYPE_IDENTITY_PROVIDER_ATTRIBUTE_RESULT
+ *
+ * @param cls
+ * @param msg the message we received
+ */
+static void
+handle_attribute_result (void *cls,
+		      const struct AttributeResultMessage *msg)
+{
+  static struct GNUNET_CRYPTO_EcdsaPrivateKey identity_dummy;
+  struct GNUNET_IDENTITY_PROVIDER_Handle *h = cls;
+  struct GNUNET_IDENTITY_PROVIDER_AttributeIterator *it;
+  size_t attr_len;
+  uint32_t r_id = ntohl (msg->id);
+
+  attr_len = ntohs (msg->attr_len);
+  
+ for (it = h->it_head; NULL != it; it = it->next)
+    if (it->r_id == r_id)
+      break;
+  if (NULL == it)
+    return;
+
+  if ( (0 == (memcmp (&msg->identity,
+		      &identity_dummy,
+		      sizeof (identity_dummy)))) )
+  {
+    if (NULL == it)
+    {
+      GNUNET_break (0);
+      force_reconnect (h);
+      return;
+    }
+    if (NULL != it->finish_cb)
+      it->finish_cb (it->finish_cb_cls);
+    free_it (it);
+    return;
+  }
+
+  {
+    struct GNUNET_IDENTITY_PROVIDER_Attribute *attr;
+    attr = attribute_deserialize ((char*)&msg[1],
+                                  attr_len);
+    if (NULL != it)
+    {
+      if (NULL != it->proc)
+        it->proc (it->proc_cls,
+                  &msg->identity,
+                  attr);
+      GNUNET_free (attr);
+      return;
+    }
+  }
+  GNUNET_assert (0);
+}
+
+
 
 /**
  * Try again to connect to the service.
@@ -428,7 +613,10 @@ reconnect (struct GNUNET_IDENTITY_PROVIDER_Handle *h)
                            GNUNET_MESSAGE_TYPE_IDENTITY_PROVIDER_EXCHANGE_RESULT,
                            struct ExchangeResultMessage,
                            h),
-
+    GNUNET_MQ_hd_var_size (attribute_result,
+                           GNUNET_MESSAGE_TYPE_IDENTITY_PROVIDER_ATTRIBUTE_RESULT,
+                           struct AttributeResultMessage,
+                           h),
     GNUNET_MQ_handler_end ()
   };
   struct GNUNET_IDENTITY_PROVIDER_Operation *op;
@@ -717,24 +905,14 @@ GNUNET_IDENTITY_PROVIDER_ticket_destroy(struct GNUNET_IDENTITY_PROVIDER_Ticket *
 struct GNUNET_IDENTITY_PROVIDER_Operation *
 GNUNET_IDENTITY_PROVIDER_attribute_store (struct GNUNET_IDENTITY_PROVIDER_Handle *h,
                                           const struct GNUNET_CRYPTO_EcdsaPrivateKey *pkey,
-                                          const char* name,
-                                          const struct GNUNET_IDENTITY_PROVIDER_Attribute *value,
+                                          const struct GNUNET_IDENTITY_PROVIDER_Attribute *attr,
                                           GNUNET_IDENTITY_PROVIDER_ContinuationWithStatus cont,
                                           void *cont_cls)
 {
   struct GNUNET_IDENTITY_PROVIDER_Operation *op;
   struct AttributeStoreMessage *sam;
-  size_t name_len;
-  char *name_tmp;
-  char *attr_ser;
+  size_t attr_len;
 
-
-  name_len = strlen (name) + 1;
-  if (name_len >= GNUNET_MAX_MESSAGE_SIZE - sizeof (struct AttributeStoreMessage))
-  {
-    GNUNET_break (0);
-    return NULL;
-  }
   op = GNUNET_new (struct GNUNET_IDENTITY_PROVIDER_Operation);
   op->h = h;
   op->as_cb = cont;
@@ -743,17 +921,17 @@ GNUNET_IDENTITY_PROVIDER_attribute_store (struct GNUNET_IDENTITY_PROVIDER_Handle
   GNUNET_CONTAINER_DLL_insert_tail (h->op_head,
                                     h->op_tail,
                                     op);
+  attr_len = attribute_serialize_get_size (attr);
   op->env = GNUNET_MQ_msg_extra (sam,
-                                 name_len + value->data_size,
+                                 attr_len,
                                  GNUNET_MESSAGE_TYPE_IDENTITY_PROVIDER_ATTRIBUTE_STORE);
   sam->identity = *pkey;
   sam->id = htonl (op->r_id);
-  sam->attr_value_len = htons (value->data_size);
-  sam->name_len = htons (name_len);
-  name_tmp = (char *) &sam[1];
-  GNUNET_memcpy (name_tmp, name, name_len);
-  attr_ser = &name_tmp[name_len];
-  GNUNET_memcpy (attr_ser, value->data, value->data_size);
+
+  attribute_serialize (attr,
+                       (char*)&sam[1]);
+
+  sam->attr_len = htons (attr_len);
   if (NULL != h->mq)
     GNUNET_MQ_send_copy (h->mq,
                          op->env);
@@ -762,7 +940,139 @@ GNUNET_IDENTITY_PROVIDER_attribute_store (struct GNUNET_IDENTITY_PROVIDER_Handle
 }
 
 
+/**
+ * Create a new attribute.
+ *
+ * @param name the attribute name
+ * @param type the attribute type
+ * @param data the attribute value
+ * @param data_size the attribute value size
+ * @return the new attribute
+ */
+struct GNUNET_IDENTITY_PROVIDER_Attribute *
+GNUNET_IDENTITY_PROVIDER_attribute_new (const char* attr_name,
+                                        uint32_t attr_type,
+                                        const void* data,
+                                        size_t data_size)
+{
+  return attribute_new (attr_name, attr_type, data, data_size);
+}
+
+/**
+ * List all attributes for a local identity. 
+ * This MUST lock the `struct GNUNET_IDENTITY_PROVIDER_Handle`
+ * for any other calls than #GNUNET_IDENTITY_PROVIDER_get_attributes_next() and
+ * #GNUNET_IDENTITY_PROVIDER_get_attributes_stop. @a proc will be called once
+ * immediately, and then again after
+ * #GNUNET_IDENTITY_PROVIDER_get_attributes_next() is invoked.
+ *
+ * On error (disconnect), @a error_cb will be invoked.
+ * On normal completion, @a finish_cb proc will be
+ * invoked.
+ *
+ * @param h handle to the idp
+ * @param identity identity to access
+ * @param error_cb function to call on error (i.e. disconnect),
+ *        the handle is afterwards invalid
+ * @param error_cb_cls closure for @a error_cb
+ * @param proc function to call on each attribute; it
+ *        will be called repeatedly with a value (if available)
+ * @param proc_cls closure for @a proc
+ * @param finish_cb function to call on completion
+ *        the handle is afterwards invalid
+ * @param finish_cb_cls closure for @a finish_cb
+ * @return an iterator handle to use for iteration
+ */
+struct GNUNET_IDENTITY_PROVIDER_AttributeIterator *
+GNUNET_IDENTITY_PROVIDER_get_attributes_start (struct GNUNET_IDENTITY_PROVIDER_Handle *h,
+                                               const struct GNUNET_CRYPTO_EcdsaPrivateKey *identity,
+                                               GNUNET_SCHEDULER_TaskCallback error_cb,
+                                               void *error_cb_cls,
+                                               GNUNET_IDENTITY_PROVIDER_AttributeResult proc,
+                                               void *proc_cls,
+                                               GNUNET_SCHEDULER_TaskCallback finish_cb,
+                                               void *finish_cb_cls)
+{
+  struct GNUNET_IDENTITY_PROVIDER_AttributeIterator *it;
+  struct GNUNET_MQ_Envelope *env;
+  struct AttributeIterationStartMessage *msg;
+  uint32_t rid;
+
+  rid = h->r_id_gen++;
+  it = GNUNET_new (struct GNUNET_IDENTITY_PROVIDER_AttributeIterator);
+  it->h = h;
+  it->error_cb = error_cb;
+  it->error_cb_cls = error_cb_cls;
+  it->finish_cb = finish_cb;
+  it->finish_cb_cls = finish_cb_cls;
+  it->proc = proc;
+  it->proc_cls = proc_cls;
+  it->r_id = rid;
+  it->identity = *identity;
+  GNUNET_CONTAINER_DLL_insert_tail (h->it_head,
+                                    h->it_tail,
+                                    it);
+  env = GNUNET_MQ_msg (msg,
+                       GNUNET_MESSAGE_TYPE_IDENTITY_PROVIDER_ATTRIBUTE_ITERATION_START);
+  msg->id = htonl (rid);
+  msg->identity = *identity;
+  if (NULL == h->mq)
+    it->env = env;
+  else
+    GNUNET_MQ_send (h->mq,
+                    env);
+  return it;
+}
+
+
+/**
+ * Calls the record processor specified in #GNUNET_IDENTITY_PROVIDER_get_attributes_start
+ * for the next record.
+ *
+ * @param it the iterator
+ */
+void
+GNUNET_IDENTITY_PROVIDER_get_attributes_next (struct GNUNET_IDENTITY_PROVIDER_AttributeIterator *it)
+{
+  struct GNUNET_IDENTITY_PROVIDER_Handle *h = it->h;
+  struct AttributeIterationNextMessage *msg;
+  struct GNUNET_MQ_Envelope *env;
+
+  env = GNUNET_MQ_msg (msg,
+                       GNUNET_MESSAGE_TYPE_IDENTITY_PROVIDER_ATTRIBUTE_ITERATION_NEXT);
+  msg->id = htonl (it->r_id);
+  GNUNET_MQ_send (h->mq,
+                  env);
+}
+
+
+/**
+ * Stops iteration and releases the idp handle for further calls.  Must
+ * be called on any iteration that has not yet completed prior to calling
+ * #GNUNET_IDENTITY_PROVIDER_disconnect.
+ *
+ * @param it the iterator
+ */
+void
+GNUNET_IDENTITY_PROVIDER_get_attributes_stop (struct GNUNET_IDENTITY_PROVIDER_AttributeIterator *it)
+{
+  struct GNUNET_IDENTITY_PROVIDER_Handle *h = it->h;
+  struct GNUNET_MQ_Envelope *env;
+  struct AttributeIterationStopMessage *msg;
+
+  if (NULL != h->mq)
+  {
+    env = GNUNET_MQ_msg (msg,
+                         GNUNET_MESSAGE_TYPE_IDENTITY_PROVIDER_ATTRIBUTE_ITERATION_STOP);
+    msg->id = htonl (it->r_id);
+    GNUNET_MQ_send (h->mq,
+                    env);
+  }
+  free_it (it);
+}
 
 
 
-/* end of identity_provider_api.c */
+
+
+  /* end of identity_provider_api.c */

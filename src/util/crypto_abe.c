@@ -168,7 +168,6 @@ GNUNET_CRYPTO_cpabe_create_key (struct GNUNET_CRYPTO_AbeMasterKey *key,
                              char **attrs)
 {
   struct GNUNET_CRYPTO_AbeKey *prv_key;
-  prv_key = GNUNET_new (struct GNUNET_CRYPTO_AbeKey);
   int size;
   char *tmp;
   
@@ -249,7 +248,7 @@ read_cpabe (const void *data,
 ssize_t
 GNUNET_CRYPTO_cpabe_encrypt (const void *block,
                              size_t size,
-                             char *policy,
+                             const char *policy,
                              const struct GNUNET_CRYPTO_AbeMasterKey *key,
                              void **result)
 {
@@ -262,7 +261,7 @@ GNUNET_CRYPTO_cpabe_encrypt (const void *block,
   int aes_buf_len;
   ssize_t result_len;
 
-  if( !(cph = gabe_enc(key->pub, m, policy)) )
+  if( !(cph = gabe_enc(key->pub, m, (char*)policy)) )
     return GNUNET_SYSERR;
   cph_buf_len = gabe_cph_serialize(cph,
                                 &cph_buf);
