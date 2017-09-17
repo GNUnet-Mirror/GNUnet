@@ -63,17 +63,73 @@ attribute_new (const char* attr_name,
   return attr;
 }
 
+size_t
+attribute_list_serialize_get_size (const struct GNUNET_IDENTITY_PROVIDER_AttributeList *attrs)
+{
+  struct GNUNET_IDENTITY_PROVIDER_AttributeListEntry *le;
+  size_t len = 0;
+  for (le = attrs->list_head; NULL != le; le = le->next)
+    len += attribute_serialize_get_size (le->attribute);
+  return len; 
+}
+
+size_t
+attribute_list_serialize (const struct GNUNET_IDENTITY_PROVIDER_AttributeList *attrs,
+                          char *result)
+{
+  struct GNUNET_IDENTITY_PROVIDER_AttributeListEntry *le;
+  size_t len;
+  size_t total_len;
+  char* write_ptr;
+
+  write_ptr = result;
+  total_len = 0;
+  for (le = attrs->list_head; NULL != le; le = le->next)
+  {
+    len = attribute_serialize (le->attribute,
+                               write_ptr);
+    total_len += len;
+    write_ptr += len;
+  }
+  return total_len;
+}
+
+struct GNUNET_IDENTITY_PROVIDER_AttributeList *
+attribute_list_deserialize (const char* data,
+                       size_t data_size)
+{
+  struct GNUNET_IDENTITY_PROVIDER_AttributeList *attrs;
+  struct GNUNET_IDENTITY_PROVIDER_AttributeListEntry *le;
+  size_t attr_len;
+  const char* read_ptr;
+
+  if (data_size < sizeof (struct Attribute))
+    return NULL;
+  
+  attrs = GNUNET_new (struct GNUNET_IDENTITY_PROVIDER_AttributeList);
+  read_ptr = data;
+  while (((data + data_size) - read_ptr) >= sizeof (struct Attribute))
+  {
+    le = GNUNET_new (struct GNUNET_IDENTITY_PROVIDER_AttributeListEntry);
+    le->attribute = attribute_deserialize (read_ptr,
+                                           data_size - (read_ptr - data));
+    attr_len = attribute_serialize_get_size (le->attribute);
+    read_ptr += attr_len;
+  }
+  return attrs;
+}
+
 
 
 size_t
 attribute_serialize_get_size (const struct GNUNET_IDENTITY_PROVIDER_Attribute *attr)
 {
   return sizeof (struct Attribute) 
-    + strlen (attr->name) + 1
+    + strlen (attr->name)
     + attr->data_size; //TODO get data_size from plugin
 }
 
-int
+size_t
 attribute_serialize (const struct GNUNET_IDENTITY_PROVIDER_Attribute *attr,
                      char *result)
 {
@@ -96,7 +152,7 @@ attribute_serialize (const struct GNUNET_IDENTITY_PROVIDER_Attribute *attr,
   GNUNET_memcpy (write_ptr, attr->data, attr->data_size);
   attr_ser->data_size = htons (data_len_ser);
 
-  return GNUNET_OK;
+  return sizeof (struct Attribute) + strlen (attr->name) + attr->data_size;
 }
 
 struct GNUNET_IDENTITY_PROVIDER_Attribute *
@@ -108,7 +164,7 @@ attribute_deserialize (const char* data,
   size_t data_len;
   size_t name_len;
   char* write_ptr;
-  
+
   if (data_size < sizeof (struct Attribute))
     return NULL;
 
@@ -117,10 +173,10 @@ attribute_deserialize (const char* data,
   data_len = ntohs (attr_ser->data_size);
   name_len = ntohs (attr_ser->name_len);
   attr = GNUNET_malloc (sizeof (struct GNUNET_IDENTITY_PROVIDER_Attribute)
-    + data_len + name_len + 1);
+                        + data_len + name_len + 1);
   attr->attribute_type = ntohs (attr_ser->attribute_type);
   attr->data_size = ntohs (attr_ser->data_size);
-  
+
   write_ptr =  (char*)&attr[1];
   GNUNET_memcpy (write_ptr,
                  &attr_ser[1],

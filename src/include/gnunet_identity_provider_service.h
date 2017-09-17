@@ -57,9 +57,30 @@ struct GNUNET_IDENTITY_PROVIDER_Handle;
 struct GNUNET_IDENTITY_PROVIDER_Token;
 
 /**
- * Handle for a ticket
+ * Handle for a ticket DEPRECATED
  */
 struct GNUNET_IDENTITY_PROVIDER_Ticket;
+
+/**
+ * The ticket
+ */
+struct GNUNET_IDENTITY_PROVIDER_Ticket2
+{
+  /**
+   * The ticket issuer
+   */
+  struct GNUNET_CRYPTO_EcdsaPublicKey identity;
+
+  /**
+   * The ticket audience
+   */
+  struct GNUNET_CRYPTO_EcdsaPublicKey audience;
+
+  /**
+   * The ticket random (NBO)
+   */
+  uint64_t rnd;
+};
 
 /**
  * Handle for an operation with the identity provider service.
@@ -117,7 +138,36 @@ struct GNUNET_IDENTITY_PROVIDER_Attribute
 
 };
 
+struct GNUNET_IDENTITY_PROVIDER_AttributeList
+{
+  /**
+   * List head
+   */
+  struct GNUNET_IDENTITY_PROVIDER_AttributeListEntry *list_head;
 
+  /**
+   * List tail
+   */
+  struct GNUNET_IDENTITY_PROVIDER_AttributeListEntry *list_tail;
+};
+
+struct GNUNET_IDENTITY_PROVIDER_AttributeListEntry
+{
+  /**
+   * DLL
+   */
+  struct GNUNET_IDENTITY_PROVIDER_AttributeListEntry *prev;
+
+  /**
+   * DLL
+   */
+  struct GNUNET_IDENTITY_PROVIDER_AttributeListEntry *next;
+
+  /**
+   * The attribute
+   */
+  struct GNUNET_IDENTITY_PROVIDER_Attribute *attribute;
+};
 
 /**
  * Method called when a token has been exchanged for a ticket.
@@ -280,6 +330,114 @@ void
 GNUNET_IDENTITY_PROVIDER_get_attributes_stop (struct GNUNET_IDENTITY_PROVIDER_AttributeIterator *it);
 
 
+/**
+ * Method called when a token has been issued.
+ * On success returns a ticket that can be given to the audience to retrive the
+ * token
+ *
+ * @param cls closure
+ * @param grant the label in GNS pointing to the token
+ * @param ticket the ticket
+ * @param token the issued token
+ * @param name name assigned by the user for this ego,
+ *                   NULL if the user just deleted the ego and it
+ *                   must thus no longer be used
+ */
+typedef void
+(*GNUNET_IDENTITY_PROVIDER_TicketCallback)(void *cls,
+                            const struct GNUNET_IDENTITY_PROVIDER_Ticket2 *ticket);
+
+
+/** TODO
+ * Issues a ticket to another identity. The identity may use
+ * @GNUNET_IDENTITY_PROVIDER_authorization_ticket_consume to consume the ticket
+ * and retrieve the attributes specified in the AttributeList.
+ *
+ * @param id the identity provider to use
+ * @param iss the issuing identity
+ * @param rp the subject of the ticket (the relying party)
+ * @param attr the attributes that the relying party is given access to
+ * @param cb the callback
+ * @param cb_cls the callback closure
+ * @return handle to abort the operation
+ */
+struct GNUNET_IDENTITY_PROVIDER_Operation *
+GNUNET_IDENTITY_PROVIDER_idp_ticket_issue (struct GNUNET_IDENTITY_PROVIDER_Handle *id,
+                                           const struct GNUNET_CRYPTO_EcdsaPrivateKey *iss,
+                                           const struct GNUNET_CRYPTO_EcdsaPublicKey *rp,
+                                           const struct GNUNET_IDENTITY_PROVIDER_AttributeList *attrs,
+                                           GNUNET_IDENTITY_PROVIDER_TicketCallback cb,
+                                           void *cb_cls);
+
+/** TODO
+ * Revoked an issued ticket. The relying party will be unable to retrieve
+ * updated attributes.
+ *
+ * @param id the identity provider to use
+ * @param identity the issuing identity
+ * @param ticket the ticket to revoke
+ * @param cb the callback
+ * @param cb_cls the callback closure
+ * @return handle to abort the operation
+ */
+struct GNUNET_IDENTITY_PROVIDER_Operation *
+GNUNET_IDENTITY_PROVIDER_idp_ticket_revoke (struct GNUNET_IDENTITY_PROVIDER_Handle *id,
+                                            const struct GNUNET_CRYPTO_EcdsaPrivateKey *identity,
+                                            const struct GNUNET_IDENTITY_PROVIDER_Ticket *ticket,
+                                            GNUNET_IDENTITY_PROVIDER_ContinuationWithStatus cb,
+                                            void *cb_cls);
+
+
+
+/** TODO
+ * Consumes an issued ticket. The ticket is persisted
+ * and used to retrieve identity information from the issuer
+ *
+ * @param id the identity provider to use
+ * @param identity the identity that is the subject of the issued ticket (the relying party)
+ * @param ticket the issued ticket to consume
+ * @param cb the callback to call
+ * @param cb_cls the callback closure
+ * @return handle to abort the operation
+ */
+struct GNUNET_IDENTITY_PROVIDER_Operation *
+GNUNET_IDENTITY_PROVIDER_rp_ticket_consume (struct GNUNET_IDENTITY_PROVIDER_Handle *id,
+                                            const struct GNUNET_CRYPTO_EcdsaPrivateKey * identity,
+                                            const struct GNUNET_IDENTITY_PROVIDER_Ticket *ticket,
+                                            GNUNET_IDENTITY_PROVIDER_AttributeResult cb,
+                                            void *cb_cls);
+
+/** TODO
+ * Lists all tickets that have been issued to remote
+ * identites (relying parties)
+ *
+ * @param id the identity provider to use
+ * @param identity the issuing identity
+ * @param cb the callback to use
+ * @param cb_cls the callback closure
+ * @return handle to abort the operation
+ */
+struct GNUNET_IDENTITY_PROVIDER_Operation *
+GNUNET_IDENTITY_PROVIDER_idp_tickets_list (struct GNUNET_IDENTITY_PROVIDER_Handle *id,
+                                           const struct GNUNET_CRYPTO_EcdsaPrivateKey *identity,
+                                           GNUNET_IDENTITY_PROVIDER_TicketCallback *cb,
+                                           void *cb_cls);
+
+/** TODO
+ * Lists all attributes that are shared with this identity
+ * by remote parties
+ *
+ * @param id identity provider service to use
+ * @param identity the identity (relying party)
+ * @param cb the result callback
+ * @param cb_cls the result callback closure
+ * @return handle to abort the operation
+ */
+struct GNUNET_IDENTITY_PROVIDER_Operation *
+GNUNET_IDENTITY_PROVIDER_rp_attributes_list (struct GNUNET_IDENTITY_PROVIDER_Handle *id,
+                                             const struct GNUNET_CRYPTO_EcdsaPrivateKey *identity,
+                                             GNUNET_IDENTITY_PROVIDER_AttributeResult *cb,
+                                             void *cb_cls);
 
 /**
  * Issue a token for a specific audience.

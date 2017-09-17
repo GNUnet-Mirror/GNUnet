@@ -32,14 +32,14 @@
 #include "gnunet_signatures.h"
 
 /**
- * Init flag
- */
-static int init;
-
-/**
  * List attribute flag
  */
 static int list;
+
+/**
+ * Relying party
+ */
+static char* rp;
 
 /**
  * The attribute
@@ -50,6 +50,11 @@ static char* attr_name;
  * Attribute value
  */
 static char* attr_value;
+
+/**
+ * Attributes to issue
+ */
+static char* issue_attrs;
 
 /**
  * Ego name
@@ -72,50 +77,60 @@ static struct GNUNET_IDENTITY_PROVIDER_Handle *idp_handle;
 static struct GNUNET_IDENTITY_PROVIDER_Operation *idp_op;
 
 /**
- * Namestore handle
- */
-static struct GNUNET_NAMESTORE_Handle *namestore_handle;
-
-/**
  * Attribute iterator
  */
 static struct GNUNET_IDENTITY_PROVIDER_AttributeIterator *attr_iterator;
-
-/**
- * Namestore queue
- */
-static struct GNUNET_NAMESTORE_QueueEntry *ns_qe;
 
 /**
  * Master ABE key
  */
 static struct GNUNET_CRYPTO_AbeMasterKey *abe_key;
 
+/**
+ * ego private key
+ */
+static const struct GNUNET_CRYPTO_EcdsaPrivateKey *pkey;
+
+/**
+ * rp public key
+ */
+static struct GNUNET_CRYPTO_EcdsaPublicKey rp_key;
+
+
+/**
+ * Attribute list
+ */
+static struct GNUNET_IDENTITY_PROVIDER_AttributeList *attr_list;
+
 static void
 do_cleanup(void *cls)
 {
-  if (NULL != ns_qe)
-    GNUNET_NAMESTORE_cancel (ns_qe);
   if (NULL != attr_iterator)
     GNUNET_IDENTITY_PROVIDER_get_attributes_stop (attr_iterator);
   if (NULL != idp_handle)
     GNUNET_IDENTITY_PROVIDER_disconnect (idp_handle);
-  if (NULL != namestore_handle)
-    GNUNET_NAMESTORE_disconnect (namestore_handle);
   if (NULL != identity_handle)
     GNUNET_IDENTITY_disconnect (identity_handle);
   if (NULL != abe_key)
     GNUNET_free (abe_key);
+  if (NULL != attr_list)
+    GNUNET_free (attr_list);
 }
 
 static void
-ns_error_cb (void *cls)
+ticket_issue_cb (void* cls,
+                 const struct GNUNET_IDENTITY_PROVIDER_Ticket2 *ticket)
 {
-  ns_qe = NULL;
-  GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
-              "Failed.");
-  do_cleanup(NULL);
-  return;
+  char* ticket_str;
+  if (NULL != ticket) {
+    ticket_str = GNUNET_STRINGS_data_to_string_alloc (&ticket->rnd,
+                                    sizeof (uint64_t));
+    GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
+                "Got ticket, %s\n",
+                ticket_str);
+    GNUNET_free (ticket_str);
+  }
+  GNUNET_SCHEDULER_add_now (&do_cleanup, NULL);
 }
 
 static void
@@ -123,7 +138,9 @@ store_attr_cont (void *cls,
                  int32_t success,
                  const char*emsg)
 {
-  ns_qe = NULL;
+  GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
+              "Store continuation\n");
+
   if (GNUNET_SYSERR == success) {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "%s\n", emsg);
@@ -131,22 +148,6 @@ store_attr_cont (void *cls,
     GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
                 "Sucessfully added identity attribute %s=%s\n",
                 attr_name, attr_value);
-  }
-  GNUNET_SCHEDULER_add_now (&do_cleanup, NULL);
-}
-
-static void
-store_abe_cont (void *cls,
-                 int32_t success,
-                 const char*emsg)
-{
-  ns_qe = NULL;
-  if (GNUNET_SYSERR == success) {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "%s\n", emsg);
-  } else {
-    GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
-                "Bootstrapped ABE master key. Please run command again.\n");
   }
   GNUNET_SCHEDULER_add_now (&do_cleanup, NULL);
 }
@@ -163,8 +164,39 @@ iter_error (void *cls)
 static void
 iter_finished (void *cls)
 {
+  struct GNUNET_IDENTITY_PROVIDER_Attribute *attr;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
+              "Attribute collection finished!\n");
   attr_iterator = NULL;
-  GNUNET_SCHEDULER_add_now (&do_cleanup, NULL);
+  if (list) {
+    GNUNET_SCHEDULER_add_now (&do_cleanup, NULL);
+    return;
+  }
+
+  if (issue_attrs) {
+    idp_op = GNUNET_IDENTITY_PROVIDER_idp_ticket_issue (idp_handle,
+                                                        pkey,
+                                                        &rp_key,
+                                                        attr_list,
+                                                        &ticket_issue_cb,
+                                                        NULL);
+    return;
+  }
+  attr = GNUNET_IDENTITY_PROVIDER_attribute_new (attr_name,
+                                                 GNUNET_IDENTITY_PROVIDER_AT_STRING,
+                                                 attr_value,
+                                                 strlen (attr_value));
+  GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
+              "Adding attribute\n");
+
+  idp_op = GNUNET_IDENTITY_PROVIDER_attribute_store (idp_handle,
+                                                     pkey,
+                                                     attr,
+                                                     &store_attr_cont,
+                                                     NULL);
+
+
 }
 
 static void
@@ -172,91 +204,35 @@ iter_cb (void *cls,
          const struct GNUNET_CRYPTO_EcdsaPrivateKey *identity,
          const struct GNUNET_IDENTITY_PROVIDER_Attribute *attr)
 {
-  
-  GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
-              "%s: %s\n", attr->name, (char*)attr->data);
+  struct GNUNET_IDENTITY_PROVIDER_AttributeListEntry *le;
+  char *attrs_tmp;
+  char *attr_str;
+
+  if (issue_attrs)
+  {
+    attrs_tmp = GNUNET_strdup (issue_attrs);
+    attr_str = strtok (attrs_tmp, ",");
+    while (NULL != attr_str) {
+      if (0 != strcmp (attr_str, attr->name)) {
+        attr_str = strtok (NULL, ",");
+        continue;
+      }
+      le = GNUNET_new (struct GNUNET_IDENTITY_PROVIDER_AttributeListEntry);
+      le->attribute = GNUNET_IDENTITY_PROVIDER_attribute_new (attr->name,
+                                                              attr->attribute_type,
+                                                              attr->data,
+                                                              attr->data_size);
+      GNUNET_CONTAINER_DLL_insert (attr_list->list_head,
+                                   attr_list->list_tail,
+                                   le);
+      break;
+    }
+    GNUNET_free (attrs_tmp);
+  } else {
+    GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
+                "%s: %s\n", attr->name, (char*)attr->data);
+  }
   GNUNET_IDENTITY_PROVIDER_get_attributes_next (attr_iterator);
-}
-
-static void
-abe_lookup_cb (void *cls,
-               const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone,
-               const char *label,
-               unsigned int rd_count,
-               const struct GNUNET_GNSRECORD_Data *rd)
-{
-  struct GNUNET_GNSRECORD_Data new_record;
-  struct GNUNET_CRYPTO_AbeMasterKey *new_key;
-  int i;
-  ssize_t size;
-  ns_qe = NULL;
-  for (i=0;i<rd_count;i++) {
-    if (GNUNET_GNSRECORD_TYPE_ABE_MASTER != rd[i].record_type)
-      continue;
-    abe_key = GNUNET_CRYPTO_cpabe_deserialize_master_key (rd[i].data,
-                                                          rd[i].data_size);
-  }
-  if (NULL == abe_key) {
-    new_key = GNUNET_CRYPTO_cpabe_create_master_key ();
-    size = GNUNET_CRYPTO_cpabe_serialize_master_key (new_key,
-                                                     (void**)&new_record.data);
-    new_record.data_size = size;
-    new_record.record_type = GNUNET_GNSRECORD_TYPE_ABE_MASTER;
-    new_record.expiration_time = GNUNET_TIME_UNIT_DAYS.rel_value_us;
-    new_record.flags = GNUNET_GNSRECORD_RF_PRIVATE | GNUNET_GNSRECORD_RF_RELATIVE_EXPIRATION;
-    ns_qe = GNUNET_NAMESTORE_records_store (namestore_handle,
-                                            zone,
-                                            "+",
-                                            1,
-                                            &new_record,
-                                            &store_abe_cont,
-                                            NULL);
-    return;
-  }
-  if (init) {
-    GNUNET_SCHEDULER_add_now (&do_cleanup, NULL);
-    return;
-  }
-
-  if (list) {
-    attr_iterator = GNUNET_IDENTITY_PROVIDER_get_attributes_start (idp_handle,
-                                                                  zone,
-                                                                  &iter_error,
-                                                                  NULL,
-                                                                  &iter_cb,
-                                                                  NULL,
-                                                                  &iter_finished,
-                                                                  NULL);
-    return;
-  }
-
-  struct GNUNET_IDENTITY_PROVIDER_Attribute *attr = GNUNET_IDENTITY_PROVIDER_attribute_new (attr_name,
-                                                                                            GNUNET_IDENTITY_PROVIDER_AT_STRING,
-                                                                                            attr_value,
-                                                                                            strlen (attr_value));
-  idp_op = GNUNET_IDENTITY_PROVIDER_attribute_store (idp_handle,
-                                                    zone,
-                                                    attr,
-                                                    &store_attr_cont,
-                                                    NULL);
-
-  /*size = GNUNET_CRYPTO_cpabe_encrypt (attr_value,
-                                      strlen (attr_value) + 1,
-                                      attr_name,
-                                      abe_key,
-                                      (void**)&new_record.data);
-  new_record.data_size = size;
-  new_record.record_type = GNUNET_GNSRECORD_TYPE_ID_ATTR;
-  new_record.expiration_time = GNUNET_TIME_UNIT_HOURS.rel_value_us;
-  new_record.flags = GNUNET_GNSRECORD_RF_RELATIVE_EXPIRATION;
-
-  ns_qe = GNUNET_NAMESTORE_records_store (namestore_handle,
-                                          zone,
-                                          attr_name,
-                                          1,
-                                          &new_record,
-                                          &store_attr_cont,
-                                          NULL);*/
 }
 
 static void
@@ -265,19 +241,29 @@ ego_cb (void *cls,
         void **ctx,
         const char *name)
 {
-  const struct GNUNET_CRYPTO_EcdsaPrivateKey *pkey;
   if (NULL == name)
     return;
   if (0 != strcmp (name, ego_name))
     return;
   pkey = GNUNET_IDENTITY_ego_get_private_key (ego);
-  ns_qe = GNUNET_NAMESTORE_records_lookup (namestore_handle,
-                                           pkey,
-                                           "+",
-                                           &ns_error_cb,
-                                           NULL,
-                                           &abe_lookup_cb,
-                                           NULL);
+
+  if (NULL != rp)
+    GNUNET_CRYPTO_ecdsa_public_key_from_string (rp,
+                                                strlen (rp),
+                                                &rp_key);
+
+  attr_list = GNUNET_new (struct GNUNET_IDENTITY_PROVIDER_AttributeList);
+
+  attr_iterator = GNUNET_IDENTITY_PROVIDER_get_attributes_start (idp_handle,
+                                                                 pkey,
+                                                                 &iter_error,
+                                                                 NULL,
+                                                                 &iter_cb,
+                                                                 NULL,
+                                                                 &iter_finished,
+                                                                 NULL);
+
+
 }
 
 static void
@@ -294,18 +280,6 @@ run (void *cls,
     return;
   } 
 
-  if ((NULL == attr_name) && !list && !init)
-  {
-    return;
-  }
-  if ((NULL == attr_value) && !list && !init)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
-                _("Value is required\n"));
-    return;
-  }
-
-  namestore_handle = GNUNET_NAMESTORE_connect (c);
   idp_handle = GNUNET_IDENTITY_PROVIDER_connect (c);
   //Get Ego
   identity_handle = GNUNET_IDENTITY_connect (c,
@@ -337,14 +311,20 @@ main(int argc, char *const argv[])
                                  NULL,
                                  gettext_noop ("Ego"),
                                  &ego_name),
+    GNUNET_GETOPT_option_string ('r',
+                                 "rp",
+                                 NULL,
+                                 gettext_noop ("Audience (relying party)"),
+                                 &rp),
     GNUNET_GETOPT_option_flag ('D',
                                "dump",
                                gettext_noop ("List attributes for Ego"),
                                &list),
-    GNUNET_GETOPT_option_flag ('i',
-                               "init",
-                               gettext_noop ("Initialize attribute store"),
-                               &init),
+    GNUNET_GETOPT_option_string ('i',
+                                 "issue",
+                                 NULL,
+                                 gettext_noop ("Issue a ticket"),
+                                 &issue_attrs),
     GNUNET_GETOPT_OPTION_END
   };
   return GNUNET_PROGRAM_run (argc, argv, "ct",

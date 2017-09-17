@@ -81,6 +81,11 @@ struct GNUNET_IDENTITY_PROVIDER_Operation
   GNUNET_IDENTITY_PROVIDER_ContinuationWithStatus as_cb;
 
   /**
+   * Ticket result callback
+   */
+  GNUNET_IDENTITY_PROVIDER_TicketCallback tr_cb;
+
+  /**
    * Envelope with the message for this queue entry.
    */
   struct GNUNET_MQ_Envelope *env;
@@ -590,6 +595,62 @@ handle_attribute_result (void *cls,
   GNUNET_assert (0);
 }
 
+/**
+ * Handle an incoming message of type
+ * #GNUNET_MESSAGE_TYPE_IDENTITY_PROVIDER_TICKET_RESULT
+ *
+ * @param cls
+ * @param msg the message we received
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
+ */
+static int
+check_ticket_result (void *cls,
+                        const struct TicketResultMessage *msg)
+{
+  size_t msg_len;
+
+  msg_len = ntohs (msg->header.size);
+  if (msg_len < sizeof (struct TicketResultMessage))
+  {
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
+  return GNUNET_OK;
+}
+
+
+
+/**
+ * Handle an incoming message of type
+ * #GNUNET_MESSAGE_TYPE_IDENTITY_PROVIDER_TICKET_RESULT
+ *
+ * @param cls
+ * @param msg the message we received
+ */
+static void
+handle_ticket_result (void *cls,
+		      const struct TicketResultMessage *msg)
+{
+  struct GNUNET_IDENTITY_PROVIDER_Handle *handle = cls;
+  struct GNUNET_IDENTITY_PROVIDER_Operation *op;
+  const struct GNUNET_IDENTITY_PROVIDER_Ticket2 *ticket;
+  uint32_t r_id = ntohl (msg->id);
+
+  for (op = handle->op_head; NULL != op; op = op->next)
+    if (op->r_id == r_id)
+      break;
+  if (NULL == op)
+    return;
+  GNUNET_CONTAINER_DLL_remove (handle->op_head,
+                               handle->op_tail,
+                               op);
+  ticket = (struct GNUNET_IDENTITY_PROVIDER_Ticket2 *)&msg[1];
+  if (NULL != op->tr_cb)
+    op->tr_cb (op->cls, ticket);
+  GNUNET_free (op);
+
+}
+
 
 
 /**
@@ -617,6 +678,10 @@ reconnect (struct GNUNET_IDENTITY_PROVIDER_Handle *h)
                            GNUNET_MESSAGE_TYPE_IDENTITY_PROVIDER_ATTRIBUTE_RESULT,
                            struct AttributeResultMessage,
                            h),
+    GNUNET_MQ_hd_var_size (ticket_result,
+                             GNUNET_MESSAGE_TYPE_IDENTITY_PROVIDER_TICKET_RESULT,
+                             struct TicketResultMessage,
+                             h),
     GNUNET_MQ_handler_end ()
   };
   struct GNUNET_IDENTITY_PROVIDER_Operation *op;
@@ -1072,7 +1137,58 @@ GNUNET_IDENTITY_PROVIDER_get_attributes_stop (struct GNUNET_IDENTITY_PROVIDER_At
 }
 
 
+/** TODO
+ * Issues a ticket to another identity. The identity may use
+ * @GNUNET_IDENTITY_PROVIDER_authorization_ticket_consume to consume the ticket
+ * and retrieve the attributes specified in the AttributeList.
+ *
+ * @param h the identity provider to use
+ * @param iss the issuing identity
+ * @param rp the subject of the ticket (the relying party)
+ * @param attr the attributes that the relying party is given access to
+ * @param cb the callback
+ * @param cb_cls the callback closure
+ * @return handle to abort the operation
+ */
+struct GNUNET_IDENTITY_PROVIDER_Operation *
+GNUNET_IDENTITY_PROVIDER_idp_ticket_issue (struct GNUNET_IDENTITY_PROVIDER_Handle *h,
+                                           const struct GNUNET_CRYPTO_EcdsaPrivateKey *iss,
+                                           const struct GNUNET_CRYPTO_EcdsaPublicKey *rp,
+                                           const struct GNUNET_IDENTITY_PROVIDER_AttributeList *attrs,
+                                           GNUNET_IDENTITY_PROVIDER_TicketCallback cb,
+                                           void *cb_cls)
+{
+  struct GNUNET_IDENTITY_PROVIDER_Operation *op;
+  struct TicketIssueMessage *tim;
+  size_t attr_len;
+
+  op = GNUNET_new (struct GNUNET_IDENTITY_PROVIDER_Operation);
+  op->h = h;
+  op->tr_cb = cb;
+  op->cls = cb_cls;
+  op->r_id = h->r_id_gen++;
+  GNUNET_CONTAINER_DLL_insert_tail (h->op_head,
+                                    h->op_tail,
+                                    op);
+  attr_len = attribute_list_serialize_get_size (attrs);
+  op->env = GNUNET_MQ_msg_extra (tim,
+                                 attr_len,
+                                 GNUNET_MESSAGE_TYPE_IDENTITY_PROVIDER_TICKET_ISSUE);
+  tim->identity = *iss;
+  tim->rp = *rp;
+  tim->id = htonl (op->r_id);
+
+  attribute_list_serialize (attrs,
+                            (char*)&tim[1]);
+
+  tim->attr_len = htons (attr_len);
+  if (NULL != h->mq)
+    GNUNET_MQ_send_copy (h->mq,
+                         op->env);
+  return op;
+}
 
 
 
-  /* end of identity_provider_api.c */
+
+/* end of identity_provider_api.c */

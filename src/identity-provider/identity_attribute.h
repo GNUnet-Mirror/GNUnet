@@ -51,6 +51,43 @@ struct Attribute
 /**
  * Get required size for serialization buffer
  *
+ * @param attrs the attribute list to serialize
+ *
+ * @return the required buffer size
+ */
+size_t
+attribute_list_serialize_get_size (const struct GNUNET_IDENTITY_PROVIDER_AttributeList *attrs);
+
+
+
+/**
+ * Serialize an attribute list
+ *
+ * @param attrs the attribute list to serialize
+ * @param result the serialized attribute
+ *
+ * @return length of serialized data
+ */
+size_t
+attribute_list_serialize (const struct GNUNET_IDENTITY_PROVIDER_AttributeList *attrs,
+                     char *result);
+
+/**
+ * Deserialize an attribute list
+ *
+ * @param data the serialized attribute list
+ * @param data_size the length of the serialized data
+ *
+ * @return a GNUNET_IDENTITY_PROVIDER_AttributeList, must be free'd by caller
+ */
+struct GNUNET_IDENTITY_PROVIDER_AttributeList *
+attribute_list_deserialize (const char* data,
+                            size_t data_size);
+
+
+/**
+ * Get required size for serialization buffer
+ *
  * @param attr the attribute to serialize
  *
  * @return the required buffer size
@@ -66,9 +103,9 @@ attribute_serialize_get_size (const struct GNUNET_IDENTITY_PROVIDER_Attribute *a
  * @param attr the attribute to serialize
  * @param result the serialized attribute
  *
- * @return GNUNET_OK on success
+ * @return length of serialized data
  */
-int 
+size_t
 attribute_serialize (const struct GNUNET_IDENTITY_PROVIDER_Attribute *attr,
                      char *result);
 

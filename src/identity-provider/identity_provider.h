@@ -45,7 +45,7 @@ struct GNUNET_IDENTITY_PROVIDER_Token
 };
 
 /**
- * The ticket
+ * The ticket DEPRECATED
  */
 struct GNUNET_IDENTITY_PROVIDER_Ticket
 {
@@ -318,7 +318,55 @@ struct AttributeIterationStopMessage
 
 };
 
+/**
+ * Ticket issue message
+ */
+struct TicketIssueMessage
+{
+  /**
+   * Type will be #GNUNET_MESSAGE_TYPE_IDENTITY_PROVIDER_TICKET_ISSUE
+   */
+  struct GNUNET_MessageHeader header;
 
+  /**
+   * Unique identifier for this request (for key collisions).
+   */
+  uint32_t id GNUNET_PACKED;
+
+  /**
+   * Identity.
+   */
+  struct GNUNET_CRYPTO_EcdsaPrivateKey identity;
+
+  /**
+   * Requesting party.
+   */
+  struct GNUNET_CRYPTO_EcdsaPublicKey rp;
+
+  /**
+   * length of serialized attribute list
+   */
+  uint32_t attr_len GNUNET_PACKED;
+
+  //Followed by a serialized attribute list
+};
+
+/**
+ * Ticket result message
+ */
+struct TicketResultMessage
+{
+  /**
+   * Type will be #GNUNET_MESSAGE_TYPE_IDENTITY_PROVIDER_TICKET_RESULT
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Unique identifier for this request (for key collisions).
+   */
+  uint32_t id GNUNET_PACKED;
+
+};
 GNUNET_NETWORK_STRUCT_END
 
 #endif
