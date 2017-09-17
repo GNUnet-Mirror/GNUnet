@@ -110,9 +110,15 @@ attribute_list_deserialize (const char* data,
   read_ptr = data;
   while (((data + data_size) - read_ptr) >= sizeof (struct Attribute))
   {
+
     le = GNUNET_new (struct GNUNET_IDENTITY_PROVIDER_AttributeListEntry);
     le->attribute = attribute_deserialize (read_ptr,
                                            data_size - (read_ptr - data));
+    GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
+                "Deserialized attribute %s\n", le->attribute->name);
+    GNUNET_CONTAINER_DLL_insert (attrs->list_head,
+                                 attrs->list_tail,
+                                 le);
     attr_len = attribute_serialize_get_size (le->attribute);
     read_ptr += attr_len;
   }

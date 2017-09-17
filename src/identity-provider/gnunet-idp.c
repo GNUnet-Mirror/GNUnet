@@ -57,6 +57,11 @@ static char* attr_value;
 static char* issue_attrs;
 
 /**
+ * Ticket to consume
+ */
+static char* consume_ticket;
+
+/**
  * Ego name
  */
 static char* ego_name;
@@ -96,6 +101,10 @@ static const struct GNUNET_CRYPTO_EcdsaPrivateKey *pkey;
  */
 static struct GNUNET_CRYPTO_EcdsaPublicKey rp_key;
 
+/**
+ * Ticket to consume
+ */
+static struct GNUNET_IDENTITY_PROVIDER_Ticket2 ticket;
 
 /**
  * Attribute list
@@ -123,11 +132,10 @@ ticket_issue_cb (void* cls,
 {
   char* ticket_str;
   if (NULL != ticket) {
-    ticket_str = GNUNET_STRINGS_data_to_string_alloc (&ticket->rnd,
-                                    sizeof (uint64_t));
-    GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
-                "Got ticket, %s\n",
-                ticket_str);
+    ticket_str = GNUNET_STRINGS_data_to_string_alloc (ticket,
+                                                      sizeof (struct GNUNET_IDENTITY_PROVIDER_Ticket2));
+    printf("%s\n",
+           ticket_str);
     GNUNET_free (ticket_str);
   }
   GNUNET_SCHEDULER_add_now (&do_cleanup, NULL);
@@ -148,6 +156,21 @@ store_attr_cont (void *cls,
   }
   GNUNET_SCHEDULER_add_now (&do_cleanup, NULL);
 }
+
+static void
+process_attrs (void *cls,
+         const struct GNUNET_CRYPTO_EcdsaPublicKey *identity,
+         const struct GNUNET_IDENTITY_PROVIDER_Attribute *attr)
+{
+  if (NULL == identity)
+  {
+    GNUNET_SCHEDULER_add_now (&do_cleanup, NULL);
+    return;
+  }
+  GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
+              "%s: %s\n", attr->name, (char*)attr->data);
+}
+
 
 static void
 iter_error (void *cls)
@@ -178,6 +201,14 @@ iter_finished (void *cls)
                                                         NULL);
     return;
   }
+  if (consume_ticket) {
+    idp_op = GNUNET_IDENTITY_PROVIDER_rp_ticket_consume (idp_handle,
+                                                         pkey,
+                                                         &ticket,
+                                                         &process_attrs,
+                                                         NULL);
+    return;
+  }
   attr = GNUNET_IDENTITY_PROVIDER_attribute_new (attr_name,
                                                  GNUNET_IDENTITY_PROVIDER_AT_STRING,
                                                  attr_value,
@@ -193,7 +224,7 @@ iter_finished (void *cls)
 
 static void
 iter_cb (void *cls,
-         const struct GNUNET_CRYPTO_EcdsaPrivateKey *identity,
+         const struct GNUNET_CRYPTO_EcdsaPublicKey *identity,
          const struct GNUNET_IDENTITY_PROVIDER_Attribute *attr)
 {
   struct GNUNET_IDENTITY_PROVIDER_AttributeListEntry *le;
@@ -243,6 +274,11 @@ ego_cb (void *cls,
     GNUNET_CRYPTO_ecdsa_public_key_from_string (rp,
                                                 strlen (rp),
                                                 &rp_key);
+  if (NULL != consume_ticket)
+    GNUNET_STRINGS_string_to_data (consume_ticket,
+                                   strlen (consume_ticket),
+                                   &ticket,
+                                   sizeof (struct GNUNET_IDENTITY_PROVIDER_Ticket2));
 
   attr_list = GNUNET_new (struct GNUNET_IDENTITY_PROVIDER_AttributeList);
 
@@ -317,6 +353,11 @@ main(int argc, char *const argv[])
                                  NULL,
                                  gettext_noop ("Issue a ticket"),
                                  &issue_attrs),
+    GNUNET_GETOPT_option_string ('C',
+                                 "consume",
+                                 NULL,
+                                 gettext_noop ("Consume a ticket"),
+                                 &consume_ticket),
     GNUNET_GETOPT_OPTION_END
   };
   return GNUNET_PROGRAM_run (argc, argv, "ct",

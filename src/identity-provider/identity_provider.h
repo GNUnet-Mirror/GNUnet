@@ -250,9 +250,9 @@ struct AttributeResultMessage
   uint16_t reserved GNUNET_PACKED;
 
   /**
-   * The private key of the identity.
+   * The public key of the identity.
    */
-  struct GNUNET_CRYPTO_EcdsaPrivateKey identity;
+  struct GNUNET_CRYPTO_EcdsaPublicKey identity;
 
   /* followed by:
    * serialized attribute data

@@ -268,7 +268,7 @@ GNUNET_IDENTITY_PROVIDER_attribute_new (const char* attr_name,
  */
 typedef void
 (*GNUNET_IDENTITY_PROVIDER_AttributeResult) (void *cls,
-                                   const struct GNUNET_CRYPTO_EcdsaPrivateKey *identity,
+                                   const struct GNUNET_CRYPTO_EcdsaPublicKey *identity,
                                    const struct GNUNET_IDENTITY_PROVIDER_Attribute *attr);
 
 

@@ -556,30 +556,52 @@ handle_attribute_result (void *cls,
   static struct GNUNET_CRYPTO_EcdsaPrivateKey identity_dummy;
   struct GNUNET_IDENTITY_PROVIDER_Handle *h = cls;
   struct GNUNET_IDENTITY_PROVIDER_AttributeIterator *it;
+  struct GNUNET_IDENTITY_PROVIDER_Operation *op;
   size_t attr_len;
   uint32_t r_id = ntohl (msg->id);
 
   attr_len = ntohs (msg->attr_len);
-  
- for (it = h->it_head; NULL != it; it = it->next)
+  LOG (GNUNET_ERROR_TYPE_MESSAGE,
+       "Processing attribute result.\n");
+
+
+  for (it = h->it_head; NULL != it; it = it->next)
     if (it->r_id == r_id)
       break;
-  if (NULL == it)
+  for (op = h->op_head; NULL != op; op = op->next)
+    if (op->r_id == r_id)
+      break;
+  if ((NULL == it) && (NULL == op))
     return;
 
   if ( (0 == (memcmp (&msg->identity,
-		      &identity_dummy,
-		      sizeof (identity_dummy)))) )
+                      &identity_dummy,
+                      sizeof (identity_dummy)))) )
   {
-    if (NULL == it)
+    if ((NULL == it) && (NULL == op))
     {
       GNUNET_break (0);
       force_reconnect (h);
       return;
     }
-    if (NULL != it->finish_cb)
-      it->finish_cb (it->finish_cb_cls);
-    free_it (it);
+    if (NULL != it)
+    {
+      if (NULL != it->finish_cb)
+        it->finish_cb (it->finish_cb_cls);
+      free_it (it);
+    }
+    if (NULL != op) 
+    {
+      if (NULL != op->ar_cb)
+        op->ar_cb (op->cls,
+                   NULL,
+                   NULL);
+      GNUNET_CONTAINER_DLL_remove (h->op_head,
+                                   h->op_tail,
+                                   op);
+      GNUNET_free (op);
+
+    }
     return;
   }
 
@@ -593,9 +615,16 @@ handle_attribute_result (void *cls,
         it->proc (it->proc_cls,
                   &msg->identity,
                   attr);
-      GNUNET_free (attr);
-      return;
+    } else if (NULL != op)
+    {
+      if (NULL != op->ar_cb)
+        op->ar_cb (op->cls,
+                   &msg->identity,
+                   attr);
+
     }
+    GNUNET_free (attr);
+    return;
   }
   GNUNET_assert (0);
 }
@@ -610,7 +639,7 @@ handle_attribute_result (void *cls,
  */
 static int
 check_ticket_result (void *cls,
-                        const struct TicketResultMessage *msg)
+                     const struct TicketResultMessage *msg)
 {
   size_t msg_len;
 
@@ -634,7 +663,7 @@ check_ticket_result (void *cls,
  */
 static void
 handle_ticket_result (void *cls,
-		      const struct TicketResultMessage *msg)
+                      const struct TicketResultMessage *msg)
 {
   struct GNUNET_IDENTITY_PROVIDER_Handle *handle = cls;
   struct GNUNET_IDENTITY_PROVIDER_Operation *op;
@@ -684,9 +713,9 @@ reconnect (struct GNUNET_IDENTITY_PROVIDER_Handle *h)
                            struct AttributeResultMessage,
                            h),
     GNUNET_MQ_hd_var_size (ticket_result,
-                             GNUNET_MESSAGE_TYPE_IDENTITY_PROVIDER_TICKET_RESULT,
-                             struct TicketResultMessage,
-                             h),
+                           GNUNET_MESSAGE_TYPE_IDENTITY_PROVIDER_TICKET_RESULT,
+                           struct TicketResultMessage,
+                           h),
     GNUNET_MQ_handler_end ()
   };
   struct GNUNET_IDENTITY_PROVIDER_Operation *op;
@@ -1224,7 +1253,7 @@ GNUNET_IDENTITY_PROVIDER_rp_ticket_consume (struct GNUNET_IDENTITY_PROVIDER_Hand
                                     op);
   op->env = GNUNET_MQ_msg_extra (ctm,
                                  sizeof (const struct GNUNET_IDENTITY_PROVIDER_Ticket2),
-                                 GNUNET_MESSAGE_TYPE_IDENTITY_PROVIDER_TICKET_ISSUE);
+                                 GNUNET_MESSAGE_TYPE_IDENTITY_PROVIDER_CONSUME_TICKET);
   ctm->identity = *identity;
   ctm->id = htonl (op->r_id);
 
