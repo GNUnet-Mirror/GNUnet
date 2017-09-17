@@ -181,7 +181,7 @@ typedef void
                             const struct GNUNET_IDENTITY_PROVIDER_Token *token,
                             uint64_t ticket_nonce);
 
-/**
+/** TODO DEPRECATED
  * Method called when a token has been issued.
  * On success returns a ticket that can be given to the audience to retrive the
  * token
@@ -348,7 +348,7 @@ typedef void
                             const struct GNUNET_IDENTITY_PROVIDER_Ticket2 *ticket);
 
 
-/** TODO
+/**
  * Issues a ticket to another identity. The identity may use
  * @GNUNET_IDENTITY_PROVIDER_authorization_ticket_consume to consume the ticket
  * and retrieve the attributes specified in the AttributeList.
@@ -439,7 +439,7 @@ GNUNET_IDENTITY_PROVIDER_rp_attributes_list (struct GNUNET_IDENTITY_PROVIDER_Han
                                              GNUNET_IDENTITY_PROVIDER_AttributeResult *cb,
                                              void *cb_cls);
 
-/**
+/** TODO remove DEPRECATED
  * Issue a token for a specific audience.
  *
  * @param id identity provider service to use
@@ -464,7 +464,7 @@ GNUNET_IDENTITY_PROVIDER_issue_token (struct GNUNET_IDENTITY_PROVIDER_Handle *id
                                       void *cb_cls);
 
 
-/**
+/** TODO remove DEPRECATED
  * Exchange a ticket for a token. Intended to be used by audience that
  * received a ticket.
  *
