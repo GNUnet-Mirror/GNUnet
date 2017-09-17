@@ -138,9 +138,6 @@ store_attr_cont (void *cls,
                  int32_t success,
                  const char*emsg)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
-              "Store continuation\n");
-
   if (GNUNET_SYSERR == success) {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "%s\n", emsg);
@@ -166,8 +163,6 @@ iter_finished (void *cls)
 {
   struct GNUNET_IDENTITY_PROVIDER_Attribute *attr;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
-              "Attribute collection finished!\n");
   attr_iterator = NULL;
   if (list) {
     GNUNET_SCHEDULER_add_now (&do_cleanup, NULL);
@@ -187,9 +182,6 @@ iter_finished (void *cls)
                                                  GNUNET_IDENTITY_PROVIDER_AT_STRING,
                                                  attr_value,
                                                  strlen (attr_value));
-  GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
-              "Adding attribute\n");
-
   idp_op = GNUNET_IDENTITY_PROVIDER_attribute_store (idp_handle,
                                                      pkey,
                                                      attr,

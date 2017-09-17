@@ -175,6 +175,8 @@ static struct {
 } name_map[] = {
   { "ID_ATTR", GNUNET_GNSRECORD_TYPE_ID_ATTR },
   { "ID_TOKEN", GNUNET_GNSRECORD_TYPE_ID_TOKEN },
+  { "ABE_KEY", GNUNET_GNSRECORD_TYPE_ABE_KEY },
+  { "ABE_MASTER", GNUNET_GNSRECORD_TYPE_ABE_MASTER },
   { "ID_TOKEN_METADATA", GNUNET_GNSRECORD_TYPE_ID_TOKEN_METADATA },
   { NULL, UINT32_MAX }
 };
@@ -229,7 +231,7 @@ number_to_typename (void *cls,
  * @return the exported block API
  */
 void *
-libgnunet_plugin_gnsrecord_identity_init (void *cls)
+libgnunet_plugin_gnsrecord_identity_provider_init (void *cls)
 {
   struct GNUNET_GNSRECORD_PluginFunctions *api;
 
@@ -249,7 +251,7 @@ libgnunet_plugin_gnsrecord_identity_init (void *cls)
  * @return NULL
  */
 void *
-libgnunet_plugin_gnsrecord_identity_done (void *cls)
+libgnunet_plugin_gnsrecord_identity_provider_done (void *cls)
 {
   struct GNUNET_GNSRECORD_PluginFunctions *api = cls;
 

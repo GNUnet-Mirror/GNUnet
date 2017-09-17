@@ -403,7 +403,7 @@ GNUNET_IDENTITY_PROVIDER_idp_ticket_revoke (struct GNUNET_IDENTITY_PROVIDER_Hand
 struct GNUNET_IDENTITY_PROVIDER_Operation *
 GNUNET_IDENTITY_PROVIDER_rp_ticket_consume (struct GNUNET_IDENTITY_PROVIDER_Handle *id,
                                             const struct GNUNET_CRYPTO_EcdsaPrivateKey * identity,
-                                            const struct GNUNET_IDENTITY_PROVIDER_Ticket *ticket,
+                                            const struct GNUNET_IDENTITY_PROVIDER_Ticket2 *ticket,
                                             GNUNET_IDENTITY_PROVIDER_AttributeResult cb,
                                             void *cb_cls);
 

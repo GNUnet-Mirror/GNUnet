@@ -81,6 +81,11 @@ struct GNUNET_IDENTITY_PROVIDER_Operation
   GNUNET_IDENTITY_PROVIDER_ContinuationWithStatus as_cb;
 
   /**
+   * Attribute result callback
+   */
+  GNUNET_IDENTITY_PROVIDER_AttributeResult ar_cb;
+
+  /**
    * Ticket result callback
    */
   GNUNET_IDENTITY_PROVIDER_TicketCallback tr_cb;
@@ -1186,6 +1191,52 @@ GNUNET_IDENTITY_PROVIDER_idp_ticket_issue (struct GNUNET_IDENTITY_PROVIDER_Handl
     GNUNET_MQ_send_copy (h->mq,
                          op->env);
   return op;
+}
+
+/**
+ * Consumes an issued ticket. The ticket is persisted
+ * and used to retrieve identity information from the issuer
+ *
+ * @param id the identity provider to use
+ * @param identity the identity that is the subject of the issued ticket (the relying party)
+ * @param ticket the issued ticket to consume
+ * @param cb the callback to call
+ * @param cb_cls the callback closure
+ * @return handle to abort the operation
+ */
+struct GNUNET_IDENTITY_PROVIDER_Operation *
+GNUNET_IDENTITY_PROVIDER_rp_ticket_consume (struct GNUNET_IDENTITY_PROVIDER_Handle *h,
+                                            const struct GNUNET_CRYPTO_EcdsaPrivateKey * identity,
+                                            const struct GNUNET_IDENTITY_PROVIDER_Ticket2 *ticket,
+                                            GNUNET_IDENTITY_PROVIDER_AttributeResult cb,
+                                            void *cb_cls)
+{
+  struct GNUNET_IDENTITY_PROVIDER_Operation *op;
+  struct ConsumeTicketMessage *ctm;
+
+  op = GNUNET_new (struct GNUNET_IDENTITY_PROVIDER_Operation);
+  op->h = h;
+  op->ar_cb = cb;
+  op->cls = cb_cls;
+  op->r_id = h->r_id_gen++;
+  GNUNET_CONTAINER_DLL_insert_tail (h->op_head,
+                                    h->op_tail,
+                                    op);
+  op->env = GNUNET_MQ_msg_extra (ctm,
+                                 sizeof (const struct GNUNET_IDENTITY_PROVIDER_Ticket2),
+                                 GNUNET_MESSAGE_TYPE_IDENTITY_PROVIDER_TICKET_ISSUE);
+  ctm->identity = *identity;
+  ctm->id = htonl (op->r_id);
+
+  GNUNET_memcpy ((char*)&ctm[1],
+                 ticket,
+                 sizeof (const struct GNUNET_IDENTITY_PROVIDER_Ticket2));
+
+  if (NULL != h->mq)
+    GNUNET_MQ_send_copy (h->mq,
+                         op->env);
+  return op;
+
 }
 
 

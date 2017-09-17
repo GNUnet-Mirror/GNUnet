@@ -620,7 +620,7 @@ bootstrap_store_task (void *cls)
   rd[0].data_size = GNUNET_CRYPTO_cpabe_serialize_master_key (abh->abe_key,
                                                               (void**)&rd[0].data);
   rd[0].record_type = GNUNET_GNSRECORD_TYPE_ABE_MASTER;
-  rd[0].flags = GNUNET_GNSRECORD_RF_NONE | GNUNET_GNSRECORD_RF_PRIVATE;
+  rd[0].flags = GNUNET_GNSRECORD_RF_RELATIVE_EXPIRATION | GNUNET_GNSRECORD_RF_PRIVATE;
   rd[0].expiration_time = GNUNET_TIME_UNIT_HOURS.rel_value_us; //TODO sane?
   abh->ns_qe = GNUNET_NAMESTORE_records_store (ns_handle,
                                                &abh->identity,
@@ -1869,7 +1869,7 @@ attr_store_cont (void *cls,
     return;
   }
 
-  GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Sending ATTRIBUTE_STORE_RESPONSE message\n");
   env = GNUNET_MQ_msg (acr_msg,
                        GNUNET_MESSAGE_TYPE_IDENTITY_PROVIDER_ATTRIBUTE_STORE_RESPONSE);
@@ -1888,7 +1888,7 @@ attr_store_task (void *cls)
   char* buf;
   size_t buf_size;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Storing attribute\n");
   buf_size = attribute_serialize_get_size (as_handle->attribute);
   buf = GNUNET_malloc (buf_size);
@@ -1924,7 +1924,7 @@ static void
 store_after_abe_bootstrap (void *cls,
                            struct GNUNET_CRYPTO_AbeMasterKey *abe_key)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Finished ABE bootstrap\n");
   struct AttributeStoreHandle *ash = cls;
   ash->abe_key = abe_key;
@@ -1969,7 +1969,7 @@ handle_attribute_store_message (void *cls,
   struct AttributeStoreHandle *as_handle;
   struct IdpClient *idp = cls;
   size_t data_len;
-  GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Received ATTRIBUTE_STORE message\n");
 
   data_len = ntohs (sam->attr_len);
@@ -2059,7 +2059,7 @@ attr_iter_cb (void *cls,
                                                key,
                                                (void**)&attr_ser);
   GNUNET_CRYPTO_cpabe_delete_key (key);
-  GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Found attribute: %s\n", label);
   env = GNUNET_MQ_msg_extra (arm,
                              msg_extra_len,

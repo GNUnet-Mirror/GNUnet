@@ -367,6 +367,31 @@ struct TicketResultMessage
   uint32_t id GNUNET_PACKED;
 
 };
+
+/**
+ * Ticket consume message
+ */
+struct ConsumeTicketMessage
+{
+  /**
+   * Type will be #GNUNET_MESSAGE_TYPE_IDENTITY_PROVIDER_TICKET_ISSUE
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Unique identifier for this request (for key collisions).
+   */
+  uint32_t id GNUNET_PACKED;
+
+  /**
+   * Identity.
+   */
+  struct GNUNET_CRYPTO_EcdsaPrivateKey identity;
+
+  //Followed by a serialized ticket
+};
+
+
 GNUNET_NETWORK_STRUCT_END
 
 #endif
