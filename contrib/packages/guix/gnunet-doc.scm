@@ -16,28 +16,6 @@
 ;;; Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
 ;;; Boston, MA 02110-1301, USA.
 ;;;
-;; Guix package for GNUnet development
-;;
-;; INSTALL
-;; -------
-;;
-;; To build and install the package in the user environment, use:
-;;
-;; guix package --install-from-file=guix-env.scm
-;;
-;; BUILD ONLY
-;; ----------
-;;
-;; Precondition for using this file is that you run Guix and have a
-;; development setup for this setup, which involves a version of Guile in
-;; your PATH.
-;;
-;; cd contrib/packages/guix
-;; guix build -f guix-env.scm
-;;
-;; We'd like to provide advanced functions such as guix environment specific
-;; gnunet-git package and usage of gnunet-gtk-git, but this is subject
-;; to tests right now.
 
 (use-modules
  (ice-9 popen)
@@ -91,14 +69,14 @@
 (define %source-dir (string-append (current-source-directory)
                                    "/../../../"))
 
-(define gnunet-git
-  (let* ((revision "3")
+(define gnunet-doc
+  (let* ((revision "1")
          (select? (delay (or (git-predicate
                               (string-append (current-source-directory)
                                              "/../../../"))
                              source-file?))))
       (package
-      (name "gnunet-git")
+      (name "gnunet-doc")
       (version (string-append "0.10.1-" revision "." "dev"))
       (source
        (local-file ;;"../../.."
@@ -136,8 +114,6 @@
          ("gmp" ,gmp)
          ("bluez" ,bluez) ; for optional bluetooth feature
          ("glib" ,glib)
-         ;; There are currently no binary substitutes for texlive on
-         ;; hydra.gnu.org or its mirrors due to its size. Uncomment if you need it.
          ;;("texlive-minimal" ,texlive-minimal) ; optional.
          ("texlive" ,texlive)
          ("libogg" ,libogg)))
@@ -148,62 +124,42 @@
          ("gnu-gettext" ,gnu-gettext)
          ("texinfo" ,texinfo)
          ("libtool" ,libtool)))
-      ;; TODO:  To make use of out:debug, which carries the symbols,
-      ;; this file needs to fixed.
-      (outputs '("out" "debug"))
       (arguments
-       `(#:configure-flags
-         (list (string-append "--with-nssdir=" %output "/lib");"/lib/gnunet/nss")
-               "--enable-gcc-hardening"
-               "--enable-linker-hardening"
-
-               "--enable-poisoning"
-               "--enable-sanitizer"
-               "--enable-experimental"
-               "--enable-logging=verbose"
-               "CFLAGS=-ggdb -O0")
-         ;;#:parallel-tests? #f ; parallel building seems to fail
-         ;;#:tests? #f ; fail: test_gnunet_statistics.py
+       `(#:tests? #f ;Don't run tests
          #:phases
-         ;; swap check and install phases and set paths to installed bin
          (modify-phases %standard-phases
-           (add-after 'unpack 'patch-bin-sh
+           (add-after 'unpack 'autoconf
              (lambda _
                (substitute* "bootstrap"
                  (("contrib/pogen.sh") "sh contrib/pogen.sh"))
                (for-each (lambda (f) (chmod f #o755))
                          (find-files "po" ""))
-               #t))
-           (add-after 'patch-bin-sh 'bootstrap
-             (lambda _
                (zero? (system* "sh" "bootstrap"))))
-           ;; (add-after 'install 'install-lib-nss
-           ;;   (lambda* (#:key outputs #:allow-other-keys)
-           ;;     (let* ((out (assoc-ref outputs "out"))
-           ;;            (lib (string-append out "/lib/nss/")))
-           ;;       (mkdir-p lib)
-           ;;       (copy-recursively "src/gns/nss/" lib)
-           ;;       (install-file "ping" "combobreak"))
-           ;;     #t))
-           (delete 'check))))
-      ;; XXX: https://gnunet.org/bugs/view.php?id=4619
-      ;; (add-after 'install 'set-path-for-check
-      ;;   (lambda* (#:key outputs #:allow-other-keys)
-      ;;     (let* ((out (assoc-ref outputs "out"))
-      ;;            (bin (string-append out "/bin"))
-      ;;            (lib (string-append out "/lib")))
-      ;;       (setenv "GNUNET_PREFIX" lib)
-      ;;       (setenv "PATH" (string-append (getenv "PATH") ":" bin))
-      ;;       (zero? (system* "make" "check"))))))))
-      (synopsis "Secure, decentralized, peer-to-peer networking framework")
+           (replace 'build
+             (lambda _
+               (chdir "doc")
+               (zero? (system* "make" "doc-all-give-me-the-noise"))))
+           (replace 'install
+             (lambda* (#:key outputs #:allow-other-keys)
+               (let* ((out (assoc-ref outputs "out"))
+                      (doc (string-append out "/share/doc/gnunet")))
+                 (mkdir-p doc)
+                 (mkdir-p (string-append doc "/gnunet"))
+                 (install-file "gnunet.pdf" doc)
+                 (install-file "gnunet.info" doc)
+                 (copy-recursively "gnunet"
+                                   (string-append doc
+                                                  "/gnunet"))
+                 (install-file "gnunet-c-tutorial.pdf" doc)
+                 (install-file "gnunet-c-tutorial.info" doc)
+                 (copy-recursively "gnunet-c-tutorial"
+                                   (string-append doc
+                                                  "/gnunet-c-tutorial")))
+               #t)))))
+      (synopsis "Documentation of GNUnet")
       (description
-       "GNUnet is a framework for secure peer-to-peer networking.  The
-high-level goal is to provide a strong foundation of free software for a
-global, distributed network that provides security and privacy.  GNUnet in
-that sense aims to replace the current internet protocol stack.  Along with
-an application for secure publication of files, it has grown to include all
-kinds of basic applications for the foundation of a GNU internet.")
-      (license license:gpl3+)
+       "GNUnet documentation build")
+      (license (list license:fdl1.3+ license:gpl3+))
       (home-page "https://gnunet.org/"))))
 
-gnunet-git
+gnunet-doc

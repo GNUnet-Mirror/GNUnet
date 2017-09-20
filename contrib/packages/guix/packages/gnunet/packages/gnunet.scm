@@ -61,8 +61,8 @@
 ;; Explanation for name scheme: UNIXPATH is capped at 108 characters,
 ;; this causes lots of tests to fail.
 (define-public gnunetg
-  (let* ((commit "292cc51b35bcb727fa80b7c95730dae02e41a7d4")
-         (revision "28"))
+  (let* ((commit "b005d5e4dac03fcfdabf0d0de434da3b295f6d63")
+         (revision "30"))
     (package
       (inherit gnunet)
       (name "gnunetg")
@@ -77,7 +77,7 @@
          (file-name (string-append name "-" version "-checkout"))
          (sha256
           (base32
-           "0sapap3y7bakmmbj5jijbp60xbmaqiliwcsk9qfgaz571wsccpy3"))))
+           "10wfb58pi55399cw100vplq3f8nxg2vl6sywcmvkx3wg1d3firla"))))
       (build-system gnu-build-system)
       (inputs
        `(("glpk" ,glpk)
@@ -220,7 +220,7 @@
          (replace 'build
            (lambda _
              (chdir "doc")
-             (zero? (system* "make" "doc-all"))))
+             (zero? (system* "make" "doc-all-give-me-the-noise"))))
          (replace 'install
            (lambda* (#:key outputs #:allow-other-keys)
              (let* ((out (assoc-ref outputs "out"))
@@ -231,7 +231,12 @@
                (install-file "gnunet.info" doc)
                (copy-recursively "gnunet"
                                  (string-append doc
-                                                "/gnunet")))
+                                                "/gnunet"))
+               (install-file "gnunet-c-tutorial.pdf" doc)
+               (install-file "gnunet-c-tutorial.info" doc)
+               (copy-recursively "gnunet-c-tutorial"
+                                 (string-append doc
+                                                "/gnunet-c-tutorial")))
              #t)))))
     (synopsis "GNUnet documentation")
     (description

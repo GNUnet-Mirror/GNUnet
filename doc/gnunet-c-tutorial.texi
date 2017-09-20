@@ -228,6 +228,12 @@ a DHT).
 @c** FXIME: See comment above.
 @c** See figure ~\ref{fig:interaction} for an illustration of this approach.
 
+@c ** @image{filename[, width[, height[, alttext[, extension]]]]}
+
+@image{images/gnunet-tutorial-service,,5in,Service with API and network protocol,.png}
+
+@image{images/gnunet-tutorial-system,,5in,The layered system architecture of GNUnet,.png}
+
 @c \begin{figure}[!h]
 @c   \begin{center}
 @c %  \begin{subfigure}
