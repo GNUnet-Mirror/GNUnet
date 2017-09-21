@@ -57,6 +57,9 @@ struct GNUNET_PeerIdentity this_peer;
 
 struct GNUNET_IDENTITY_Handle *id;
 
+const struct GNUNET_IDENTITY_Ego *identity_host_ego;
+const struct GNUNET_IDENTITY_Ego *identity_guest_ego;
+
 const struct GNUNET_SOCIAL_Ego *host_ego;
 const struct GNUNET_SOCIAL_Ego *guest_ego;
 
@@ -69,8 +72,8 @@ struct GNUNET_CRYPTO_EcdsaPrivateKey *guest_key;
 struct GNUNET_CRYPTO_EddsaPublicKey place_pub_key;
 struct GNUNET_HashCode place_pub_hash;
 
-struct GNUNET_CRYPTO_EcdsaPublicKey guest_pub_key;
-struct GNUNET_CRYPTO_EcdsaPublicKey host_pub_key;
+const struct GNUNET_CRYPTO_EcdsaPublicKey *guest_pub_key;
+const struct GNUNET_CRYPTO_EcdsaPublicKey *host_pub_key;
 
 struct GNUNET_PSYC_Slicer *host_slicer;
 struct GNUNET_PSYC_Slicer *guest_slicer;
@@ -120,29 +123,28 @@ uint8_t is_guest_reconnected = GNUNET_NO;
 enum
 {
   TEST_NONE                         =  0,
-  TEST_HOST_CREATE                  =  1,
+  TEST_IDENTITIES_CREATE            =  1,
   TEST_HOST_ENTER                   =  2,
-  TEST_GUEST_CREATE                 =  3,
-  TEST_GUEST_ENTER                  =  4,
-  TEST_HOST_ANSWER_DOOR_REFUSE      =  5,
-  TEST_GUEST_RECV_ENTRY_DCSN_REFUSE =  6,
-  TEST_HOST_ANSWER_DOOR_ADMIT       =  7,
-  TEST_GUEST_RECV_ENTRY_DCSN_ADMIT  =  8,
-  TEST_HOST_ANNOUNCE   	            =  9,
-  TEST_HOST_ANNOUNCE_END            = 10,
-  TEST_GUEST_TALK                   = 11,
-  TEST_HOST_ANNOUNCE2  	            = 12,
-  TEST_HOST_ANNOUNCE2_END           = 13,
-  TEST_GUEST_HISTORY_REPLAY         = 14,
-  TEST_GUEST_HISTORY_REPLAY_LATEST  = 15,
-  TEST_GUEST_LOOK_AT                = 16,
-  TEST_GUEST_LOOK_FOR               = 17,
+  TEST_GUEST_ENTER                  =  3,
+  TEST_HOST_ANSWER_DOOR_REFUSE      =  4,
+  TEST_GUEST_RECV_ENTRY_DCSN_REFUSE =  5,
+  TEST_HOST_ANSWER_DOOR_ADMIT       =  6,
+  TEST_GUEST_RECV_ENTRY_DCSN_ADMIT  =  9,
+  TEST_HOST_ANNOUNCE   	            = 10,
+  TEST_HOST_ANNOUNCE_END            = 11,
+  TEST_GUEST_TALK                   = 12,
+  TEST_HOST_ANNOUNCE2  	            = 13,
+  TEST_HOST_ANNOUNCE2_END           = 14,
+  TEST_GUEST_HISTORY_REPLAY         = 15,
+  TEST_GUEST_HISTORY_REPLAY_LATEST  = 16,
+  TEST_GUEST_LOOK_AT                = 17,
+  TEST_GUEST_LOOK_FOR               = 18,
   TEST_GUEST_LEAVE                  = 18,
-  TEST_ZONE_ADD_PLACE               = 19,
-  TEST_GUEST_ENTER_BY_NAME          = 20,
-  TEST_RECONNECT                    = 21,
-  TEST_GUEST_LEAVE2                 = 22,
-  TEST_HOST_LEAVE                   = 23,
+  TEST_ZONE_ADD_PLACE               = 20,
+  TEST_GUEST_ENTER_BY_NAME          = 21,
+  TEST_RECONNECT                    = 22,
+  TEST_GUEST_LEAVE2                 = 23,
+  TEST_HOST_LEAVE                   = 24,
 } test;
 
 
@@ -458,30 +460,42 @@ app_recv_guest (void *cls,
 
 
 static void
+enter_if_ready ()
+{
+  if (NULL == host_ego || NULL == guest_ego)
+  {
+    return;
+  }
+  host_enter ();
+  guest_init ();
+}
+
+
+static void
 app_recv_ego (void *cls,
               struct GNUNET_SOCIAL_Ego *ego,
               const struct GNUNET_CRYPTO_EcdsaPublicKey *ego_pub_key,
               const char *name)
 {
   char *ego_pub_str = GNUNET_CRYPTO_ecdsa_public_key_to_string (ego_pub_key);
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
               "Test #%u: Got app ego notification: %p %s %s\n",
               test, ego, name, ego_pub_str);
   GNUNET_free (ego_pub_str);
 
-  if (NULL != strstr (name, host_name) && TEST_HOST_CREATE == test)
+  if (NULL != strstr (name, host_name))
   {
     host_ego = ego;
-    host_pub_key = *(GNUNET_SOCIAL_ego_get_pub_key (host_ego));
-    GNUNET_assert (TEST_HOST_CREATE == test);
-    host_enter ();
+    host_pub_key = ego_pub_key;
+    GNUNET_assert (TEST_IDENTITIES_CREATE == test);
+    enter_if_ready ();
   }
   else if (NULL != strstr (name, guest_name))
   {
     guest_ego = ego;
-
-    if (TEST_GUEST_CREATE == test)
-      guest_init ();
+    guest_pub_key = ego_pub_key;
+    GNUNET_assert (TEST_IDENTITIES_CREATE == test);
+    enter_if_ready ();
   }
 }
 
@@ -548,9 +562,9 @@ host_farewell (void *cls,
               test, GNUNET_h2s (GNUNET_SOCIAL_nym_get_pub_key_hash (nym)), str);
   GNUNET_free (str);
   GNUNET_assert (1 == GNUNET_PSYC_env_get_count (env));
-  if (0 != memcmp (&guest_pub_key, nym_key, sizeof (*nym_key)))
+  if (0 != memcmp (guest_pub_key, nym_key, sizeof (*nym_key)))
   {
-    str = GNUNET_CRYPTO_ecdsa_public_key_to_string (&guest_pub_key);
+    str = GNUNET_CRYPTO_ecdsa_public_key_to_string (guest_pub_key);
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Test #%u: Farewell: nym does not match guest: %s\n",
                 test, str);
@@ -1029,7 +1043,7 @@ guest_recv_entry_decision (void *cls,
                            int is_admitted,
                            const struct GNUNET_PSYC_Message *entry_msg)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
               "Test #%u: Guest received entry decision (try %u): %d.\n",
               test, join_req_count, is_admitted);
 
@@ -1121,7 +1135,7 @@ guest_recv_local_enter (void *cls, int result,
                         const struct GNUNET_CRYPTO_EddsaPublicKey *place_pub_key,
                         uint64_t max_message_id)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
               "Test #%u: Guest entered to local place: %d\n",
               test, result);
   GNUNET_assert (0 <= result);
@@ -1131,7 +1145,7 @@ guest_recv_local_enter (void *cls, int result,
 static void
 guest_enter ()
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
               "Test #%u: Entering to place as guest.\n", test);
 
   struct GuestEnterMessage *emsg = &guest_enter_msg;
@@ -1200,7 +1214,7 @@ app_recv_zone_add_nym_result (void *cls, int64_t result,
 static void
 guest_init ()
 {
-  guest_pub_key = *(GNUNET_SOCIAL_ego_get_pub_key (guest_ego));
+  guest_pub_key = GNUNET_SOCIAL_ego_get_pub_key (guest_ego);
 
   guest_slicer = GNUNET_PSYC_slicer_create ();
   GNUNET_PSYC_slicer_method_add (guest_slicer, "", NULL,
@@ -1210,65 +1224,9 @@ guest_init ()
                                    guest_recv_mod_foo_bar, &mod_foo_bar_rcls);
   test = TEST_HOST_ANSWER_DOOR_ADMIT;
 
-  GNUNET_SOCIAL_zone_add_nym (app, guest_ego, "host", &host_pub_key,
+  GNUNET_SOCIAL_zone_add_nym (app, guest_ego, "host", host_pub_key,
                               GNUNET_TIME_relative_to_absolute (GNUNET_TIME_UNIT_MINUTES),
                               app_recv_zone_add_nym_result, NULL);
-  guest_enter ();
-}
-
-
-static void
-id_guest_created (void *cls, const char *emsg)
-{
-  if (NULL != emsg)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Test #%u: Could not create guest identity: %s\n",
-                test, emsg);
-#if ! DEBUG_TEST_SOCIAL
-    GNUNET_assert (0);
-#endif
-  }
-  if (NULL != guest_ego)
-    guest_init ();
-}
-
-
-static void
-host_entered (void *cls, int result,
-              const struct GNUNET_CRYPTO_EddsaPublicKey *home_pub_key,
-              uint64_t max_message_id)
-{
-  place_pub_key = *home_pub_key;
-  GNUNET_CRYPTO_hash (&place_pub_key, sizeof (place_pub_key), &place_pub_hash);
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              "Test #%u: Host entered to place %s\n",
-              test, GNUNET_h2s (&place_pub_hash));
-
-  test = TEST_GUEST_CREATE;
-  GNUNET_IDENTITY_create (id, guest_name, &id_guest_created, NULL);
-}
-
-
-static void
-host_enter ()
-{
-  host_slicer = GNUNET_PSYC_slicer_create ();
-  GNUNET_PSYC_slicer_method_add (host_slicer, "", NULL,
-                                 host_recv_method, host_recv_modifier,
-                                 host_recv_data, host_recv_eom, NULL);
-
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              "Test #%u: Entering to place as host.\n", test);
-  test = TEST_HOST_ENTER;
-  hst = GNUNET_SOCIAL_host_enter (app, host_ego,
-                                  GNUNET_PSYC_CHANNEL_PRIVATE,
-                                  host_slicer, host_entered,
-                                  host_answer_door, host_farewell, NULL);
-  hst_plc = GNUNET_SOCIAL_host_get_place (hst);
-
-  GNUNET_SOCIAL_place_msg_proc_set (hst_plc, "_converse",
-                                    GNUNET_SOCIAL_MSG_PROC_RELAY);
 }
 
 
@@ -1285,7 +1243,71 @@ id_host_created (void *cls, const char *emsg)
 #endif
   }
 
-  app = GNUNET_SOCIAL_app_connect (cfg, app_id,
+}
+
+
+static void
+id_guest_created (void *cls, const char *emsg)
+{
+  if (NULL != emsg)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Test #%u: Could not create guest identity: %s\n",
+                test, emsg);
+#if ! DEBUG_TEST_SOCIAL
+    GNUNET_assert (0);
+#endif
+  }
+  //if (NULL != guest_ego)
+  //  guest_init ();
+}
+
+
+static void
+host_entered (void *cls, int result,
+              const struct GNUNET_CRYPTO_EddsaPublicKey *home_pub_key,
+              uint64_t max_message_id)
+{
+  place_pub_key = *home_pub_key;
+  GNUNET_CRYPTO_hash (&place_pub_key, sizeof (place_pub_key), &place_pub_hash);
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+              "Test #%u: Host entered to place %s\n",
+              test, GNUNET_h2s (&place_pub_hash));
+  guest_enter ();
+}
+
+
+static void
+host_enter ()
+{
+  host_slicer = GNUNET_PSYC_slicer_create ();
+  GNUNET_PSYC_slicer_method_add (host_slicer, "", NULL,
+                                 host_recv_method, host_recv_modifier,
+                                 host_recv_data, host_recv_eom, NULL);
+
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+              "Test #%u: Entering to place as host.\n", test);
+  test = TEST_HOST_ENTER;
+  hst = GNUNET_SOCIAL_host_enter (app, host_ego,
+                                  GNUNET_PSYC_CHANNEL_PRIVATE,
+                                  host_slicer, host_entered,
+                                  host_answer_door, host_farewell, NULL);
+  hst_plc = GNUNET_SOCIAL_host_get_place (hst);
+
+  GNUNET_SOCIAL_place_msg_proc_set (hst_plc, "_converse",
+                                    GNUNET_SOCIAL_MSG_PROC_RELAY);
+}
+
+
+static void
+start_app_if_ready ()
+{
+  if (NULL == identity_host_ego || NULL == identity_guest_ego)
+  {
+    return;
+  }
+  app = GNUNET_SOCIAL_app_connect (cfg,
+                                   app_id,
                                    app_recv_ego,
                                    app_recv_host,
                                    app_recv_guest,
@@ -1298,6 +1320,35 @@ static void
 identity_ego_cb (void *cls, struct GNUNET_IDENTITY_Ego *ego,
                  void **ctx, const char *name)
 {
+  if (NULL != ego)
+  {
+    if (ego == identity_host_ego)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                  "Host ego deleted\n");
+    }
+    else if (ego == identity_guest_ego)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                  "Guest ego deleted\n");
+    }
+    else if (0 == strcmp (name, host_name))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                  "Created ego %s\n",
+                  name);
+      identity_host_ego = ego;
+      start_app_if_ready ();
+    }
+    else if (0 == strcmp (name, guest_name))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                  "Created guest ego %s\n",
+                  name);
+      identity_guest_ego = ego;
+      start_app_if_ready ();
+    }
+  }
 }
 
 
@@ -1326,8 +1377,9 @@ run (void *cls,
 
   id = GNUNET_IDENTITY_connect (cfg, &identity_ego_cb, NULL);
 
-  test = TEST_HOST_CREATE;
+  test = TEST_IDENTITIES_CREATE;
   GNUNET_IDENTITY_create (id, host_name, &id_host_created, NULL);
+  GNUNET_IDENTITY_create (id, guest_name, &id_guest_created, NULL);
 }
 
 
