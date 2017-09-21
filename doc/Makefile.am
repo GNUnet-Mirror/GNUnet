@@ -68,8 +68,12 @@ gnunet_tutorial_examples =					\
 	026.c
 
 info_TEXINFOS = \
-	gnunet.texi \
-	gnunet-c-tutorial.texi
+	gnunet.texi
+
+# It seems as if either we still have gnunet-c-tutorial markup issues
+# or we have issues that can only occur in systems which are not using Guix
+# or we have version incompabilities.
+#	gnunet-c-tutorial.texi
 
 gnunet_TEXINFOS = \
 	chapters/developer.texi \
