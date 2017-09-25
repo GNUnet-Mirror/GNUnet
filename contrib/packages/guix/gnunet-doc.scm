@@ -70,7 +70,7 @@
                                    "/../../../"))
 
 (define gnunet-doc
-  (let* ((revision "1")
+  (let* ((revision "2")
          (select? (delay (or (git-predicate
                               (string-append (current-source-directory)
                                              "/../../../"))
@@ -122,7 +122,7 @@
          ("autoconf" ,autoconf)
          ("automake" ,automake)
          ("gnu-gettext" ,gnu-gettext)
-         ("texinfo" ,texinfo)
+         ("texinfo-5" ,texinfo-5) ; Debian stable
          ("libtool" ,libtool)))
       (arguments
        `(#:tests? #f ;Don't run tests
