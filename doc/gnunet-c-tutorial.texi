@@ -112,6 +112,14 @@ latest development version things can be broken, functionality can be changed or
 can fail. You should only use the development version if you know that you require a
 certain feature or a certain issue has been fixed since the last release.
 
+@menu
+* Obtaining a stable version::
+* Installing Build Tool Chain and Dependencies::
+* Obtaining the latest version from Git::
+* Compiling and Installing GNUnet::
+* Common Issues - Check your GNUnet installation::
+@end menu
+
 @node Obtaining a stable version
 @section Obtaining a stable version
 
@@ -308,6 +316,14 @@ the programmer.
 
 @node First Steps with GNUnet
 @chapter First Steps with GNUnet
+
+@menu
+* Configure your peer::
+* Start a peer::
+* Monitor a peer::
+* Starting Two Peers by Hand::
+* Starting Peers Using the Testbed Service::
+@end menu
 
 @node Configure your peer
 @section Configure your peer
@@ -591,6 +607,17 @@ network.
 
 @node Developing Applications
 @chapter Developing Applications
+
+@menu
+* gnunet-ext::
+* Adapting the Template::
+* Writing a Client Application::
+* Writing a Service::
+* Interacting directly with other Peers using the CORE Service::
+* Storing peer-specific data using the PEERSTORE service::
+* Using the DHT::
+* Debugging with gnunet-arm::
+@end menu
 
 @node gnunet-ext
 @section gnunet-ext
