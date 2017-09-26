@@ -163,6 +163,13 @@ doc-all-install: doc-all-give-me-the-noise
 	@cp -r gnunet-c-tutorial $(DESTDIR)/$(docdir)
 	@cp -r images $(DESTDIR)/$(infoimagedir)
 
+# TODO: Add more to clean.
+clean:
+	@rm gnunet.pdf
+	@rm gnunet-c-tutorial.pdf
+	@rm gnunet.info
+	@rm gnunet-c-tutorial.info
+
 CLEANFILES =						\
 	gnunet.log					\
 	gnunet-c-tutorial.log				\
