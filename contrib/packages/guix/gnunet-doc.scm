@@ -46,6 +46,7 @@
  (gnu packages gstreamer)
  (gnu packages gtk)
  (gnu packages guile)
+ (gnu packages graphviz)
  (gnu packages image)
  (gnu packages image-viewers)
  (gnu packages libidn)
@@ -123,6 +124,7 @@
          ("autoconf" ,autoconf)
          ("automake" ,automake)
          ("gnu-gettext" ,gnu-gettext)
+         ("graphviz" ,graphviz) ; dot
          ("texinfo-5" ,texinfo-5) ; Debian stable
          ("libtool" ,libtool)))
       (arguments
@@ -141,22 +143,29 @@
                (chdir "doc")
                (zero? (system* "make" "doc-all-give-me-the-noise"))))
            (replace 'install
-             (lambda* (#:key outputs #:allow-other-keys)
-               (let* ((out (assoc-ref outputs "out"))
-                      (doc (string-append out "/share/doc/gnunet")))
-                 (mkdir-p doc)
-                 (mkdir-p (string-append doc "/gnunet"))
-                 (install-file "gnunet.pdf" doc)
-                 (install-file "gnunet.info" doc)
-                 (copy-recursively "gnunet"
-                                   (string-append doc
-                                                  "/gnunet"))
-                 (install-file "gnunet-c-tutorial.pdf" doc)
-                 (install-file "gnunet-c-tutorial.info" doc)
-                 (copy-recursively "gnunet-c-tutorial"
-                                   (string-append doc
-                                                  "/gnunet-c-tutorial")))
-               #t)))))
+             (lambda _
+               (zero? (system* "make" "doc-all-install")))))))
+             ;;(lambda* (#:key outputs #:allow-other-keys)
+               ;; (let* ((out (assoc-ref outputs "out"))
+               ;;        (doc (string-append out "/share/doc/gnunet")))
+               ;;   (mkdir-p doc)
+               ;;   (copy-recursively "images"
+               ;;                     (string-append doc
+               ;;                                    "/images"))
+               ;;   (mkdir-p (string-append doc "/gnunet"))
+               ;;   (install-file "gnunet.pdf" doc)
+               ;;   (install-file "gnunet.info" doc)
+               ;;   (install-file "gnunet.log" doc) ;TODO: Move to 'dev' output?
+               ;;   (copy-recursively "gnunet"
+               ;;                     (string-append doc
+               ;;                                    "/gnunet"))
+               ;;   (install-file "gnunet-c-tutorial.pdf" doc)
+               ;;   (install-file "gnunet-c-tutorial.info" doc)
+               ;;   (install-file "gnunet-c-tutorial.log" doc) ;TODO: Move to 'dev' output?
+               ;;   (copy-recursively "gnunet-c-tutorial"
+               ;;                     (string-append doc
+               ;;                                    "/gnunet-c-tutorial")))
+               ;; #t)))))
       (synopsis "Documentation of GNUnet")
       (description
        "GNUnet documentation build")
