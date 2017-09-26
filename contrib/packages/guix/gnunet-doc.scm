@@ -64,6 +64,7 @@
  (gnu packages video)
  (gnu packages web)
  (gnu packages xiph)
+ ;;(gnunet packages texlive) ;GNUnet module including texlive-2012 WIP
  ((guix licenses) #:prefix license:))
 
 (define %source-dir (string-append (current-source-directory)
@@ -115,7 +116,7 @@
          ("bluez" ,bluez) ; for optional bluetooth feature
          ("glib" ,glib)
          ;;("texlive-minimal" ,texlive-minimal) ; optional.
-         ("texlive" ,texlive)
+         ("texlive" ,texlive) ;TODO: Stabilize Texlive-2012 package
          ("libogg" ,libogg)))
       (native-inputs
        `(("pkg-config" ,pkg-config)
