@@ -7261,13 +7261,14 @@ the research report.
 @subsubsection Namespace Advertisements
 
 @c %**end of header
+@c %**FIXME: all zeroses -> ?
 
-An @code{SBlock} with identifier â²all zerosâ² is a signed
+An @code{SBlock} with identifier all zeros is a signed
 advertisement for a namespace. This special @code{SBlock} contains metadata
 describing the content of the namespace. Instead of the name of the identifier
 for a potential update, it contains the identifier for the root of the
 namespace. The URI should always be empty. The @code{SBlock} is signed with
-the content provderâ²s RSA private key (just like any other SBlock). Peers
+the content provder's RSA private key (just like any other SBlock). Peers
 can search for @code{SBlock}s in order to find out more about a namespace.
 
 @node KSBlocks
