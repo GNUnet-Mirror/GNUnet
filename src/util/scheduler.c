@@ -73,7 +73,7 @@
  * Argument to be passed from the driver to
  * #GNUNET_SCHEDULER_run_from_driver().  Contains the
  * scheduler's internal state.
- */ 
+ */
 struct GNUNET_SCHEDULER_Handle
 {
   /**
@@ -94,7 +94,7 @@ struct GNUNET_SCHEDULER_Handle
    * Driver we used for the event loop.
    */
   const struct GNUNET_SCHEDULER_Driver *driver;
-  
+
 };
 
 
@@ -127,7 +127,7 @@ struct GNUNET_SCHEDULER_Task
    * Handle to the scheduler's state.
    */
   const struct GNUNET_SCHEDULER_Handle *sh;
-  
+
   /**
    * Set of file descriptors this task is waiting
    * for for reading.  Once ready, this is updated
@@ -172,7 +172,7 @@ struct GNUNET_SCHEDULER_Task
    * Size of the @e fds array.
    */
   unsigned int fds_len;
-  
+
   /**
    * Why is the task ready?  Set after task is added to ready queue.
    * Initially set to zero.  All reasons that have already been
@@ -1150,6 +1150,10 @@ GNUNET_SCHEDULER_add_at_with_priority (struct GNUNET_TIME_Absolute at,
   struct GNUNET_SCHEDULER_Task *pos;
   struct GNUNET_SCHEDULER_Task *prev;
 
+  if (at.abs_value_us > UINT64_MAX / 10)
+  {
+    GNUNET_assert (0);
+  }
   GNUNET_assert (NULL != active_task);
   GNUNET_assert (NULL != task);
   t = GNUNET_new (struct GNUNET_SCHEDULER_Task);
@@ -1849,7 +1853,7 @@ GNUNET_SCHEDULER_task_ready (struct GNUNET_SCHEDULER_Task *task,
  *
  * @param sh scheduler handle that was given to the `loop`
  * @return #GNUNET_OK if there are more tasks that are ready,
- *          and thus we would like to run more (yield to avoid 
+ *          and thus we would like to run more (yield to avoid
  *          blocking other activities for too long)
  *         #GNUNET_NO if we are done running tasks (yield to block)
  *         #GNUNET_SYSERR on error
@@ -1876,11 +1880,11 @@ GNUNET_SCHEDULER_run_from_driver (struct GNUNET_SCHEDULER_Handle *sh)
       pending_timeout_last = NULL;
     queue_ready_task (pos);
   }
-  
+
   if (0 == ready_count)
     return GNUNET_NO;
 
-  /* find out which task priority level we are going to 
+  /* find out which task priority level we are going to
      process this time */
   max_priority_added = GNUNET_SCHEDULER_PRIORITY_KEEP;
   GNUNET_assert (NULL == ready_head[GNUNET_SCHEDULER_PRIORITY_KEEP]);
