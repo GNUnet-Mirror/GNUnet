@@ -1150,10 +1150,6 @@ GNUNET_SCHEDULER_add_at_with_priority (struct GNUNET_TIME_Absolute at,
   struct GNUNET_SCHEDULER_Task *pos;
   struct GNUNET_SCHEDULER_Task *prev;
 
-  if (at.abs_value_us > UINT64_MAX / 10)
-  {
-    GNUNET_assert (0);
-  }
   GNUNET_assert (NULL != active_task);
   GNUNET_assert (NULL != task);
   t = GNUNET_new (struct GNUNET_SCHEDULER_Task);
