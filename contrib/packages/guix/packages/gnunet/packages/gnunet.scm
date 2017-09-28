@@ -333,6 +333,47 @@
                (zero? (system* "make" "check"))))))))
     (synopsis "gnunet, full git with tests enabled with parallel tests")))
 
+(define-public gnunetg-test
+  (package
+    (inherit gnunetg)
+    (name "gnunetg-test")
+    (arguments
+     `(#:configure-flags
+       (list (string-append "--with-nssdir=" %output "/lib")
+             "--enable-gcc-hardening"
+             "--enable-linker-hardening"
+
+             ;;"--enable-poisoning"
+             ;;"--enable-sanitizer"
+             "--enable-logging=verbose"
+             "CFLAGS=-ggdb -O0")
+       ;; #:parallel-tests? #f ; parallel building seems to fail
+       ;;#:tests? #f ; fail: test_gnunet_statistics.py
+       #:phases
+       ;; swap check and install phases and set paths to installed bin
+       (modify-phases %standard-phases
+         (add-after 'unpack 'patch-bin-sh
+           (lambda _
+             (substitute* "bootstrap"
+               (("contrib/pogen.sh") "sh contrib/pogen.sh"))
+             (for-each (lambda (f) (chmod f #o755))
+                       (find-files "po" ""))
+             #t))
+         (add-after 'patch-bin-sh 'bootstrap
+           (lambda _
+             (zero? (system* "sh" "bootstrap"))))
+         (delete 'check)
+         ;; XXX: https://gnunet.org/bugs/view.php?id=4619
+         (add-after 'install 'set-path-for-check
+           (lambda* (#:key outputs #:allow-other-keys)
+             (let* ((out (assoc-ref outputs "out"))
+                    (bin (string-append out "/bin"))
+                    (lib (string-append out "/lib")))
+               (setenv "GNUNET_PREFIX" lib)
+               (setenv "PATH" (string-append (getenv "PATH") ":" bin))
+               (zero? (system* "make" "check"))))))))
+    (synopsis "gnunet, full git with tests enabled without experimental")))
+
 ;; ... and one package to test the package with "parallel-tests? #f"
 (define-public gnunetgftn
   (package
