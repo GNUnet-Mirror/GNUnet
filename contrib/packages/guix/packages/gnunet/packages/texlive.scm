@@ -39,7 +39,7 @@
 (define texlive-extra-src
   (origin
     (method url-fetch)
-    (uri "http://ftp.math.utah.edu/pub/tex/historic/systems/texlive/2012/texlive-20120701-extra.tar.xz")
+    (uri "ftp://tug.org/historic/systems/texlive/2012/texlive-20120701-extra.tar.xz")
     ;;(uri "ftp://tug.org/historic/systems/texlive/2012/texlive-20120701-extra.tar.xz")
     (sha256 (base32
              "0cb8fnv4x281gy5ka779f00ssdmdpjj4x3pkh9j9vq45hrwg3522"))))
@@ -47,7 +47,7 @@
 (define texlive-texmf-src
   (origin
     (method url-fetch)
-    (uri "http://ftp.math.utah.edu/pub/tex/historic/systems/texlive/2012/texlive-20120701-texmf.tar.xz")
+    (uri "ftp://tug.org/historic/systems/texlive/2012/texlive-20120701-texmf.tar.xz")
     ;;(uri "ftp://tug.org/historic/systems/texlive/2012/texlive-20120701-texmf.tar.xz")
     (sha256 (base32
              "1fn1dg9k7pnh8a80j23zfkbrfnqyc4c2w4ss30dpkqj490nxsywq"))))
@@ -61,7 +61,7 @@
     (version "2012")
     (source (origin
               (method url-fetch)
-              (uri "http://ftp.math.utah.edu/pub/tex/historic/systems/texlive/2012/texlive-20120701-source.tar.xz")
+              (uri "ftp://tug.org/historic/systems/texlive/2012/texlive-20120701-source.tar.xz")
               ;;(uri "ftp://tug.org/historic/systems/texlive/2012/texlive-20120701-source.tar.xz")
               (sha256 (base32
                        "10bcrdfsqnc6y3gqcb8ndnjy07i5kz63as39irbq4gmcbmyn2rln"))))
