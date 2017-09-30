@@ -104,34 +104,40 @@ gnunet_tutorial_examples =					\
 	025.c							\
 	026.c
 
-info_TEXINFOS = \
-	gnunet.texi \
+info_TEXINFOS = 						\
+	gnunet.texi 						\
 	gnunet-c-tutorial.texi
 
-# It seems as if either we still have gnunet-c-tutorial markup issues
-# or we have issues that can only occur in systems which are not using Guix
-# or we have version incompabilities.
-#	gnunet-c-tutorial.texi
-
-gnunet_TEXINFOS = \
-	chapters/developer.texi \
-	chapters/installation.texi \
-	chapters/philosophy.texi \
-	chapters/user.texi \
-	fdl-1.3.texi \
+gnunet_TEXINFOS = 						\
+	chapters/developer.texi 				\
+	chapters/installation.texi 				\
+	chapters/philosophy.texi 				\
+	chapters/user.texi 					\
+	fdl-1.3.texi 						\
 	gpl-3.0.texi
 
-EXTRA_DIST =									\
-	$(gnunet_TEXINFOS)							\
-	outdated-and-old-installation-instructions.txt				\
-	gnunet-c-tutorial-v1.pdf						\
-	$(gnunet_tutorial_examples)						\
+EXTRA_DIST =							\
+	$(gnunet_TEXINFOS)					\
+	outdated-and-old-installation-instructions.txt		\
+	gnunet-c-tutorial-v1.pdf				\
+	$(gnunet_tutorial_examples)				\
 	README.txt
 
 
 #	$(DOT_FILES)								\
 #	$(DOT_VECTOR_GRAPHICS)
 
+DISTCLEANFILES = 						\
+	gnunet.cps						\
+	gnunet-c-tutorial.cps					\
+	chapters/developer.cps					\
+	chapters/installation.cps				\
+	chapter/philosophy.cps					\
+	chapters/user.cps					\
+	fdl-1.3.cps						\
+	gpl-3.0.cps
+
+# if HAVE_EXTENDED_DOCUMENTATION_BUILDING
 daemon_lego_block.png: images/daemon_lego_block.svg
 	convert images/daemon_lego_block.svg images/daemon_lego_block.png &&
 	pngcrush images/daemon_lego_block.png images/daemon_lego_block.png
@@ -217,3 +223,10 @@ doc-all-install: doc-all-give-me-the-noise
 # 	$(wildcard *.cps)
 
 .PHONY: version.texi
+# if HAVE_EXTENDED_DOCUMENTATION_BUILDING_PDF
+
+# if HAVE_EXTENDED_DOCUMENTATION_BUILDING_HTML
+
+# endif
+# endif
+# endif

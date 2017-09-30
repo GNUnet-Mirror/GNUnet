@@ -14,7 +14,7 @@ guix environment gnunet-doc
 
 You need to have Texinfo and Texlive in your path.
 sh bootstrap
-./configure
+./configure --enable-documentation
 cd doc
 make doc-all-give-me-the-noise
 

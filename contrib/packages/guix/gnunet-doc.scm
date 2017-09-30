@@ -128,7 +128,9 @@
          ("texinfo-5" ,texinfo-5) ; Debian stable
          ("libtool" ,libtool)))
       (arguments
-       `(#:tests? #f ;Don't run tests
+       `(#:configure-flags
+         (list "--enable-documentation")
+         #:tests? #f ;Don't run tests
          #:phases
          (modify-phases %standard-phases
            (add-after 'unpack 'autoconf

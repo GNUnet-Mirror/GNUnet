@@ -565,6 +565,23 @@ AC_CHECK_LIB([kvm],[kvm_open])
 AC_CHECK_LIB([kstat],[kstat_open])
 
 
+# should the build process be restricted to only building
+# the documentation?
+AC_MSG_CHECKING(whether to build documentation ONLY)
+AC_ARG_ENABLE([documentation],
+   [AS_HELP_STRING([--enable-documentation], [only build the documentation])],
+   [doc_only=${enableval}],
+   [doc_only=no])
+AC_MSG_RESULT($doc_only)
+if test "x$doc_only" = "xyes"
+then
+  AM_CONDITIONAL([DOC_ONLY],true)
+  AC_DEFINE([DOC_ONLY],[1],[Building the documentation])
+else
+  AM_CONDITIONAL([DOC_ONLY],false)
+  AC_DEFINE([DOC_ONLY],[0],[Canonical compilation])
+fi
+
 # should the build process be restricted to the code required
 # for GNU Taler wallets?
 AC_MSG_CHECKING(whether to compile GNU Taler Wallet library ONLY)
