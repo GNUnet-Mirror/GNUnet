@@ -355,40 +355,24 @@ database_setup (const struct GNUNET_CONFIGURATION_Handle *cfg,
        (SQLITE_OK !=
         sq_prepare (plugin->dbh,
                     "SELECT " RESULT_COLUMNS " FROM gn091 "
-#if SQLITE_VERSION_NUMBER >= 3007000
-                    "INDEXED BY idx_repl_rvalue "
-#endif
                     "WHERE repl=?2 AND " " (rvalue>=?1 OR "
                     "  NOT EXISTS (SELECT 1 FROM gn091 "
-#if SQLITE_VERSION_NUMBER >= 3007000
-                    "INDEXED BY idx_repl_rvalue "
-#endif
                     "WHERE repl=?2 AND rvalue>=?1 LIMIT 1) ) "
                     "ORDER BY rvalue ASC LIMIT 1",
                     &plugin->selRepl)) ||
        (SQLITE_OK !=
         sq_prepare (plugin->dbh,
-                    "SELECT MAX(repl) FROM gn091"
-#if SQLITE_VERSION_NUMBER >= 3007000
-                    " INDEXED BY idx_repl_rvalue"
-#endif
-                    "",
+                    "SELECT MAX(repl) FROM gn091",
                     &plugin->maxRepl)) ||
        (SQLITE_OK !=
         sq_prepare (plugin->dbh,
                     "SELECT " RESULT_COLUMNS " FROM gn091 "
-#if SQLITE_VERSION_NUMBER >= 3007000
-                    "INDEXED BY idx_expire "
-#endif
                     "WHERE NOT EXISTS (SELECT 1 FROM gn091 WHERE expire < ?1 LIMIT 1) OR (expire < ?1) "
                     "ORDER BY expire ASC LIMIT 1",
                     &plugin->selExpi)) ||
        (SQLITE_OK !=
         sq_prepare (plugin->dbh,
                     "SELECT " RESULT_COLUMNS " FROM gn091 "
-#if SQLITE_VERSION_NUMBER >= 3007000
-                    "INDEXED BY idx_anon_type "
-#endif
                     "WHERE _ROWID_ >= ? AND "
                     "anonLevel = 0 AND "
                     "type = ? "
