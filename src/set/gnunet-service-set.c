@@ -1321,6 +1321,7 @@ handle_client_listen (void *cls,
   }
   listener = GNUNET_new (struct Listener);
   listener->cs = cs;
+  cs->listener = listener;
   listener->app_id = msg->app_id;
   listener->operation = (enum GNUNET_SET_OperationType) ntohl (msg->operation);
   GNUNET_CONTAINER_DLL_insert (listener_head,
