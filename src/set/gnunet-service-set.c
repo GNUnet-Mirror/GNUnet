@@ -628,7 +628,13 @@ client_disconnect_cb (void *cls,
     GNUNET_CADET_close_port (listener->open_port);
     listener->open_port = NULL;
     while (NULL != (op = listener->op_head))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                  "Destroying incoming operation `%u' from peer `%s'\n",
+                  (unsigned int) op->client_request_id,
+                  GNUNET_i2s (&op->peer));
       incoming_destroy (op);
+    }
     GNUNET_CONTAINER_DLL_remove (listener_head,
                                  listener_tail,
                                  listener);

@@ -452,6 +452,8 @@ GNUNET_SET_listen (const struct GNUNET_CONFIGURATION_Handle *cfg,
 /**
  * Cancel the given listen operation.  After calling cancel, the
  * listen callback for this listen handle will not be called again.
+ * Note that cancelling a listen operation will automatically reject
+ * all operations that have not yet been accepted.
  *
  * @param lh handle for the listen operation
  */

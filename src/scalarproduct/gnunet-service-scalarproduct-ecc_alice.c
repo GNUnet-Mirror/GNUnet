@@ -260,8 +260,6 @@ destroy_service_session (struct AliceServiceSession *s)
   }
   if (NULL != s->intersection_listen)
   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Set intersection, listen still up!\n");
     GNUNET_SET_listen_cancel (s->intersection_listen);
     s->intersection_listen = NULL;
   }
@@ -274,8 +272,6 @@ destroy_service_session (struct AliceServiceSession *s)
   }
   if (NULL != s->intersection_set)
   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Set intersection, set still there!\n");
     GNUNET_SET_destroy (s->intersection_set);
     s->intersection_set = NULL;
   }
@@ -809,10 +805,6 @@ cb_intersection_request_alice (void *cls,
     prepare_client_end_notification (s);
     return;
   }
-  GNUNET_SET_destroy (s->intersection_set);
-  s->intersection_set = NULL;
-  GNUNET_SET_listen_cancel (s->intersection_listen);
-  s->intersection_listen = NULL;
 }
 
 
