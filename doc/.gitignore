@@ -10,3 +10,9 @@
 *.info
 \#*\#
 version.texi
+gnunet.info-1
+gnunet.info-2
+gnunet.info-3
+mdate-sh
+stamp-vti
+texinfo.tex
