@@ -12,6 +12,10 @@ if USE_COVERAGE
   XLIB = -lgcov
 endif
 
+if HAVE_SQLITE
+SQLITE_PLUGIN = libgnunet_plugin_identity_provider_sqlite.la
+endif
+
 pkgcfgdir= $(pkgdatadir)/config.d/
 
 libexecdir= $(pkglibdir)/libexec/
@@ -23,7 +27,8 @@ lib_LTLIBRARIES = \
   libgnunetidentityprovider.la
 plugin_LTLIBRARIES = \
 	libgnunet_plugin_rest_identity_provider.la \
-	libgnunet_plugin_gnsrecord_identity_provider.la
+	libgnunet_plugin_gnsrecord_identity_provider.la \
+	$(SQLITE_PLUGIN)
 
 bin_PROGRAMS = \
  gnunet-identity-token \
@@ -39,6 +44,18 @@ libgnunet_plugin_gnsrecord_identity_provider_la_LIBADD = \
   $(LTLIBINTL)
 libgnunet_plugin_gnsrecord_identity_provider_la_LDFLAGS = \
  $(GN_PLUGIN_LDFLAGS)
+
+libgnunet_plugin_identity_provider_sqlite_la_SOURCES = \
+  plugin_identity_provider_sqlite.c
+libgnunet_plugin_identity_provider_sqlite_la_LIBADD = \
+  $(top_builddir)/src/identity-provider/libgnunetidentityprovider.la  \
+  $(top_builddir)/src/sq/libgnunetsq.la \
+  $(top_builddir)/src/statistics/libgnunetstatistics.la \
+  $(top_builddir)/src/util/libgnunetutil.la $(XLIBS) -lsqlite3 \
+  $(LTLIBINTL)
+libgnunet_plugin_identity_provider_sqlite_la_LDFLAGS = \
+ $(GN_PLUGIN_LDFLAGS)
+
 
 
 gnunet_service_identity_provider_SOURCES = \

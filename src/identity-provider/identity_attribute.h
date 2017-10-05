@@ -58,6 +58,8 @@ struct Attribute
 size_t
 attribute_list_serialize_get_size (const struct GNUNET_IDENTITY_PROVIDER_AttributeList *attrs);
 
+void
+attribute_list_destroy (struct GNUNET_IDENTITY_PROVIDER_AttributeList *attrs);
 
 
 /**

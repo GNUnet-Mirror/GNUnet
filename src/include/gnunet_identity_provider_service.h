@@ -336,16 +336,24 @@ GNUNET_IDENTITY_PROVIDER_get_attributes_stop (struct GNUNET_IDENTITY_PROVIDER_At
  * token
  *
  * @param cls closure
- * @param grant the label in GNS pointing to the token
  * @param ticket the ticket
- * @param token the issued token
- * @param name name assigned by the user for this ego,
- *                   NULL if the user just deleted the ego and it
- *                   must thus no longer be used
  */
 typedef void
 (*GNUNET_IDENTITY_PROVIDER_TicketCallback)(void *cls,
                             const struct GNUNET_IDENTITY_PROVIDER_Ticket2 *ticket);
+
+/**
+ * Method called when issued tickets are retrieved. Also returns the attributes
+ * that were issued at the time.
+ *
+ * @param cls closure
+ * @param ticket the ticket
+ * @param attrs the attributes as list
+ */
+typedef void
+(*GNUNET_IDENTITY_PROVIDER_TicketResult)(void *cls,
+                            const struct GNUNET_IDENTITY_PROVIDER_Ticket2 *ticket,
+                            const struct GNUNET_IDENTITY_PROVIDER_AttributeList *attrs);
 
 
 /**
@@ -389,7 +397,7 @@ GNUNET_IDENTITY_PROVIDER_idp_ticket_revoke (struct GNUNET_IDENTITY_PROVIDER_Hand
 
 
 
-/** TODO
+/**
  * Consumes an issued ticket. The ticket is persisted
  * and used to retrieve identity information from the issuer
  *

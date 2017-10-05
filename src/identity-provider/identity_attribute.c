@@ -125,7 +125,22 @@ attribute_list_deserialize (const char* data,
   return attrs;
 }
 
+void
+attribute_list_destroy (struct GNUNET_IDENTITY_PROVIDER_AttributeList *attrs)
+{
+  struct GNUNET_IDENTITY_PROVIDER_AttributeListEntry *le;
+  struct GNUNET_IDENTITY_PROVIDER_AttributeListEntry *tmp_le;
 
+  for (le = attrs->list_head; NULL != le;)
+  {
+    GNUNET_free (le->attribute);
+    tmp_le = le;
+    le = le->next;
+    GNUNET_free (tmp_le);
+  }
+  GNUNET_free (attrs);
+
+}
 
 size_t
 attribute_serialize_get_size (const struct GNUNET_IDENTITY_PROVIDER_Attribute *attr)

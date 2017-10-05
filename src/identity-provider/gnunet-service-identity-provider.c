@@ -33,6 +33,7 @@
 #include "gnunet_credential_service.h"
 #include "gnunet_statistics_service.h"
 #include "gnunet_gns_service.h"
+#include "gnunet_identity_provider_plugin.h"
 #include "gnunet_signatures.h"
 #include "identity_provider.h"
 #include "identity_token.h"
@@ -63,6 +64,16 @@
  * Identity handle
  */
 static struct GNUNET_IDENTITY_Handle *identity_handle;
+
+/**
+ * Database handle
+ */
+static struct GNUNET_IDENTITY_PROVIDER_PluginFunctions *TKT_database;
+
+/**
+ * Name of DB plugin
+ */
+static char *db_lib_name;
 
 /**
  * Token expiration interval
@@ -134,6 +145,54 @@ static const struct GNUNET_CONFIGURATION_Handle *cfg;
  * An idp client
  */
 struct IdpClient;
+
+/**
+ * A ticket iteration operation.
+ */
+struct TicketIteration
+{
+  /**
+   * DLL
+   */
+  struct TicketIteration *next;
+
+  /**
+   * DLL
+   */
+  struct TicketIteration *prev;
+
+  /**
+   * Client which intiated this zone iteration
+   */
+  struct IdpClient *client;
+
+  /**
+   * Key of the identity we are iterating over.
+   */
+  struct GNUNET_CRYPTO_EcdsaPublicKey identity;
+
+  /**
+   * Identity is audience
+   */
+  uint32_t is_audience;
+
+  /**
+   * The operation id fot the iteration in the response for the client
+   */
+  uint32_t r_id;
+
+  /**
+   * Offset of the iteration used to address next result of the 
+   * iteration in the store
+   *
+   * Initialy set to 0 in handle_iteration_start
+   * Incremented with by every call to handle_iteration_next
+   */
+  uint32_t offset;
+
+};
+
+
 
 /**
  * Callback after an ABE bootstrap
@@ -247,6 +306,16 @@ struct IdpClient
    * in progress initiated by this client
    */
   struct AttributeIterator *op_tail;
+
+  /**
+   * Head of DLL of ticket iteration ops
+   */
+  struct TicketIteration *ticket_iter_head;
+
+  /**
+   * Tail of DLL of ticket iteration ops
+   */
+  struct TicketIteration *ticket_iter_tail;
 };
 
 
@@ -605,7 +674,10 @@ cleanup()
     GNUNET_STATISTICS_destroy (stats, GNUNET_NO);
     stats = NULL;
   }
-
+  GNUNET_break (NULL == GNUNET_PLUGIN_unload (db_lib_name,
+                                              TKT_database)); 
+  GNUNET_free (db_lib_name);
+  db_lib_name = NULL;
   if (NULL != timeout_task)
     GNUNET_SCHEDULER_cancel (timeout_task);
   if (NULL != update_task)
@@ -1666,20 +1738,40 @@ handle_issue_message (void *cls,
 static void
 cleanup_ticket_issue_handle (struct TicketIssueHandle *handle)
 {
-  struct GNUNET_IDENTITY_PROVIDER_AttributeListEntry *le;
-  struct GNUNET_IDENTITY_PROVIDER_AttributeListEntry *tmp_le;
-
-  for (le = handle->attrs->list_head; NULL != le;)
-  {
-    GNUNET_free (le->attribute);
-    tmp_le = le;
-    le = le->next;
-    GNUNET_free (tmp_le);
-  }
-  GNUNET_free (handle->attrs);
+  if (NULL != handle->attrs)
+    attribute_list_destroy (handle->attrs);
   if (NULL != handle->ns_qe)
     GNUNET_NAMESTORE_cancel (handle->ns_qe);
   GNUNET_free (handle);
+}
+
+
+static void
+send_ticket_result (struct IdpClient *client,
+                    uint32_t r_id,
+                    const struct GNUNET_IDENTITY_PROVIDER_Ticket2 *ticket,
+                    const struct GNUNET_IDENTITY_PROVIDER_AttributeList *attrs)
+{
+  struct TicketResultMessage *irm;
+  struct GNUNET_MQ_Envelope *env;
+  size_t attrs_size;
+  struct GNUNET_IDENTITY_PROVIDER_Ticket2 *ticket_buf;
+  char *attrs_buf;
+
+  attrs_size = attribute_list_serialize_get_size (attrs);
+
+  env = GNUNET_MQ_msg_extra (irm,
+                             sizeof (struct GNUNET_IDENTITY_PROVIDER_Ticket2) + attrs_size,
+                       GNUNET_MESSAGE_TYPE_IDENTITY_PROVIDER_TICKET_RESULT);
+  ticket_buf = (struct GNUNET_IDENTITY_PROVIDER_Ticket2 *)&irm[1];
+  *ticket_buf = *ticket;
+  attrs_buf = (char*)&ticket_buf[1];
+  attribute_list_serialize (attrs,
+                            attrs_buf);
+  irm->id = htonl (r_id);
+
+  GNUNET_MQ_send (client->mq,
+                  env);
 }
 
 static void
@@ -1687,10 +1779,7 @@ store_ticket_issue_cont (void *cls,
                         int32_t success,
                         const char *emsg)
 {
-  struct GNUNET_IDENTITY_PROVIDER_Ticket2 *ticket;
   struct TicketIssueHandle *handle = cls;
-  struct TicketResultMessage *irm;
-  struct GNUNET_MQ_Envelope *env;
 
   handle->ns_qe = NULL;
   if (GNUNET_SYSERR == success)
@@ -1701,15 +1790,10 @@ store_ticket_issue_cont (void *cls,
     GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
     return;
   }
-  env = GNUNET_MQ_msg_extra (irm,
-                             sizeof (struct GNUNET_IDENTITY_PROVIDER_Ticket2),
-                       GNUNET_MESSAGE_TYPE_IDENTITY_PROVIDER_TICKET_RESULT);
-  ticket = (struct GNUNET_IDENTITY_PROVIDER_Ticket2 *)&irm[1];
-  *ticket = handle->ticket;
-  irm->id = handle->r_id;
-
-  GNUNET_MQ_send (handle->client->mq,
-                  env);
+  send_ticket_result (handle->client,
+                      handle->r_id,
+                      &handle->ticket,
+                      handle->attrs);
   cleanup_ticket_issue_handle (handle);
 }
 
@@ -1717,9 +1801,9 @@ store_ticket_issue_cont (void *cls,
 
 int
 serialize_abe_keyinfo2 (const struct TicketIssueHandle *handle,
-                 const struct GNUNET_CRYPTO_AbeKey *rp_key,
-                 struct GNUNET_CRYPTO_EcdhePrivateKey **ecdh_privkey,
-                 char **result)
+                        const struct GNUNET_CRYPTO_AbeKey *rp_key,
+                        struct GNUNET_CRYPTO_EcdhePrivateKey **ecdh_privkey,
+                        char **result)
 {
   struct GNUNET_CRYPTO_EcdhePublicKey ecdh_pubkey;
   struct GNUNET_IDENTITY_PROVIDER_AttributeListEntry *le;
@@ -1729,12 +1813,12 @@ serialize_abe_keyinfo2 (const struct TicketIssueHandle *handle,
   char *write_ptr;
   char attrs_str_len;
   ssize_t size;
-  
+
   struct GNUNET_CRYPTO_SymmetricSessionKey skey;
   struct GNUNET_CRYPTO_SymmetricInitializationVector iv;
   struct GNUNET_HashCode new_key_hash;
   ssize_t enc_size;
-  
+
   size = GNUNET_CRYPTO_cpabe_serialize_key (rp_key,
                                             (void**)&serialized_key);
   attrs_str_len = 0;
@@ -1889,7 +1973,7 @@ handle_ticket_issue_message (void *cls,
   ih = GNUNET_new (struct TicketIssueHandle);
   attrs_len = ntohs (im->attr_len);
   ih->attrs = attribute_list_deserialize ((char*)&im[1], attrs_len);
-  ih->r_id = im->id;
+  ih->r_id = ntohl (im->id);
   ih->client = idp;
   ih->identity = im->identity;
   GNUNET_CRYPTO_ecdsa_key_get_public (&ih->identity,
@@ -2488,6 +2572,234 @@ handle_iteration_next (void *cls,
   GNUNET_SERVICE_client_continue (idp->client);
 }
 
+/**
+ * Ticket iteration processor result
+ */
+enum ZoneIterationResult
+{
+  /**
+   * Iteration start.
+   */
+  IT_START = 0,
+
+  /**
+   * Found tickets,
+   * Continue to iterate with next iteration_next call
+   */
+  IT_SUCCESS_MORE_AVAILABLE = 1,
+
+  /**
+   * Iteration complete
+   */
+  IT_SUCCESS_NOT_MORE_RESULTS_AVAILABLE = 2
+};
+
+
+/**
+ * Context for ticket iteration
+ */
+struct TicketIterationProcResult
+{
+  /**
+   * The ticket iteration handle
+   */
+  struct TicketIteration *ti;
+
+  /**
+   * Iteration result: iteration done?
+   * #IT_SUCCESS_MORE_AVAILABLE:  if there may be more results overall but
+   * we got one for now and have sent it to the client
+   * #IT_SUCCESS_NOT_MORE_RESULTS_AVAILABLE: if there are no further results,
+   * #IT_START: if we are still trying to find a result.
+   */
+  int res_iteration_finished;
+
+};
+
+
+
+/**
+ * Process ticket from database
+ *
+ * @param cls struct TicketIterationProcResult
+ * @param ticket the ticket
+ * @param attrs the attributes
+ */
+static void
+ticket_iterate_proc (void *cls,
+                     const struct GNUNET_IDENTITY_PROVIDER_Ticket2 *ticket,
+                     const struct GNUNET_IDENTITY_PROVIDER_AttributeList *attrs)
+{
+  struct TicketIterationProcResult *proc = cls;
+
+  if (NULL == ticket)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Iteration done\n");
+    proc->res_iteration_finished = IT_SUCCESS_NOT_MORE_RESULTS_AVAILABLE;
+    return;
+  }
+  if ((NULL == ticket) || (NULL == attrs))
+  {
+    /* error */
+    proc->res_iteration_finished = IT_START;
+    GNUNET_break (0);
+    return;
+  }
+  proc->res_iteration_finished = IT_SUCCESS_MORE_AVAILABLE;
+  send_ticket_result (proc->ti->client,
+                      proc->ti->r_id,
+                      ticket,
+                      attrs);
+
+}
+
+/**
+ * Perform ticket iteration step
+ *
+ * @param ti ticket iterator to process
+ */
+static void
+run_ticket_iteration_round (struct TicketIteration *ti)
+{
+  struct TicketIterationProcResult proc;
+  struct GNUNET_MQ_Envelope *env;
+  struct TicketResultMessage *trm;
+  int ret;
+
+  memset (&proc, 0, sizeof (proc));
+  proc.ti = ti;
+  proc.res_iteration_finished = IT_START;
+  while (IT_START == proc.res_iteration_finished)
+  {
+    if (GNUNET_SYSERR ==
+        (ret = TKT_database->iterate_tickets (TKT_database->cls,
+                                              &ti->identity,
+                                              ti->is_audience,
+                                              ti->offset,
+                                              &ticket_iterate_proc,
+                                              &proc)))
+    {
+      GNUNET_break (0);
+      break;
+    }
+    if (GNUNET_NO == ret)
+      proc.res_iteration_finished = IT_SUCCESS_NOT_MORE_RESULTS_AVAILABLE;
+    ti->offset++;
+  }
+  if (IT_SUCCESS_MORE_AVAILABLE == proc.res_iteration_finished)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "More results available\n");
+    return; /* more later */
+  }
+  /* send empty response to indicate end of list */
+  env = GNUNET_MQ_msg (trm,
+                       GNUNET_MESSAGE_TYPE_IDENTITY_PROVIDER_TICKET_RESULT);
+  trm->id = htonl (ti->r_id);
+  GNUNET_MQ_send (ti->client->mq,
+                  env);
+  GNUNET_CONTAINER_DLL_remove (ti->client->ticket_iter_head,
+                               ti->client->ticket_iter_tail,
+                               ti);
+  GNUNET_free (ti);
+}
+
+/**
+ * Handles a #GNUNET_MESSAGE_TYPE_IDENTITY_PROVIDER_TICKET_ITERATION_START message
+ *
+ * @param cls the client sending the message
+ * @param tis_msg message from the client
+ */
+static void
+handle_ticket_iteration_start (void *cls,
+                        const struct TicketIterationStartMessage *tis_msg)
+{
+  struct IdpClient *client = cls;
+  struct TicketIteration *ti;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Received TICKET_ITERATION_START message\n");
+  ti = GNUNET_new (struct TicketIteration);
+  ti->r_id = ntohl (tis_msg->id);
+  ti->offset = 0;
+  ti->client = client;
+  ti->identity = tis_msg->identity;
+  ti->is_audience = ntohl (tis_msg->is_audience);
+
+  GNUNET_CONTAINER_DLL_insert (client->ticket_iter_head,
+                               client->ticket_iter_tail,
+                               ti);
+  run_ticket_iteration_round (ti);
+  GNUNET_SERVICE_client_continue (client->client);
+}
+
+
+/**
+ * Handles a #GNUNET_MESSAGE_TYPE_IDENTITY_PROVIDER_TICKET_ITERATION_STOP message
+ *
+ * @param cls the client sending the message
+ * @param tis_msg message from the client
+ */
+static void
+handle_ticket_iteration_stop (void *cls,
+                       const struct TicketIterationStopMessage *tis_msg)
+{
+  struct IdpClient *client = cls;
+  struct TicketIteration *ti;
+  uint32_t rid;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Received `%s' message\n",
+              "TICKET_ITERATION_STOP");
+  rid = ntohl (tis_msg->id);
+  for (ti = client->ticket_iter_head; NULL != ti; ti = ti->next)
+    if (ti->r_id == rid)
+      break;
+  if (NULL == ti)
+  {
+    GNUNET_break (0);
+    GNUNET_SERVICE_client_drop (client->client);
+    return;
+  }
+  GNUNET_CONTAINER_DLL_remove (client->ticket_iter_head,
+                               client->ticket_iter_tail,
+                               ti);
+  GNUNET_free (ti);
+  GNUNET_SERVICE_client_continue (client->client);
+}
+
+
+/**
+ * Handles a #GNUNET_MESSAGE_TYPE_IDENTITY_PROVIDER_TICKET_ITERATION_NEXT message
+ *
+ * @param cls the client sending the message
+ * @param message message from the client
+ */
+static void
+handle_ticket_iteration_next (void *cls,
+                       const struct TicketIterationNextMessage *tis_msg)
+{
+  struct IdpClient *client = cls;
+  struct TicketIteration *ti;
+  uint32_t rid;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Received TICKET_ITERATION_NEXT message\n");
+  rid = ntohl (tis_msg->id);
+  for (ti = client->ticket_iter_head; NULL != ti; ti = ti->next)
+    if (ti->r_id == rid)
+      break;
+  if (NULL == ti)
+  {
+    GNUNET_break (0);
+    GNUNET_SERVICE_client_drop (client->client);
+    return;
+  }
+  run_ticket_iteration_round (ti);
+  GNUNET_SERVICE_client_continue (client->client);
+}
+
 
 
 
@@ -2504,6 +2816,7 @@ run (void *cls,
      const struct GNUNET_CONFIGURATION_Handle *c,
      struct GNUNET_SERVICE_Handle *server)
 {
+  char *database;
   cfg = c;
 
   stats = GNUNET_STATISTICS_create ("identity-provider", cfg);
@@ -2528,6 +2841,29 @@ run (void *cls,
   identity_handle = GNUNET_IDENTITY_connect (cfg,
                                              NULL,
                                              NULL);
+
+  /* Loading DB plugin */
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_string (cfg,
+                                             "identity-provider",
+                                             "database",
+                                             &database))
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "No database backend configured\n");
+  GNUNET_asprintf (&db_lib_name,
+                   "libgnunet_plugin_identity_provider_%s",
+                   database);
+  TKT_database = GNUNET_PLUGIN_load (db_lib_name,
+                                     (void *) cfg);
+  GNUNET_free (database);
+  if (NULL == TKT_database)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Could not load database backend `%s'\n",
+                db_lib_name);
+    GNUNET_SCHEDULER_shutdown ();
+    return;
+  }
 
   if (GNUNET_OK ==
       GNUNET_CONFIGURATION_get_value_time (cfg,
@@ -2645,5 +2981,18 @@ GNUNET_SERVICE_MAIN
                         GNUNET_MESSAGE_TYPE_IDENTITY_PROVIDER_CONSUME_TICKET,
                         struct ConsumeTicketMessage,
                         NULL),
+ GNUNET_MQ_hd_fixed_size (ticket_iteration_start, 
+                          GNUNET_MESSAGE_TYPE_IDENTITY_PROVIDER_TICKET_ITERATION_START,
+                          struct TicketIterationStartMessage,
+                          NULL),
+ GNUNET_MQ_hd_fixed_size (ticket_iteration_next, 
+                          GNUNET_MESSAGE_TYPE_IDENTITY_PROVIDER_TICKET_ITERATION_NEXT,
+                          struct TicketIterationNextMessage,
+                          NULL),
+ GNUNET_MQ_hd_fixed_size (ticket_iteration_stop, 
+                          GNUNET_MESSAGE_TYPE_IDENTITY_PROVIDER_TICKET_ITERATION_STOP,
+                          struct TicketIterationStopMessage,
+                          NULL),
+
  GNUNET_MQ_handler_end());
-/* end of gnunet-service-identity-provider.c */
+ /* end of gnunet-service-identity-provider.c */

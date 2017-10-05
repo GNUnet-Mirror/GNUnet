@@ -319,6 +319,70 @@ struct AttributeIterationStopMessage
 };
 
 /**
+ * Start a ticket iteration for the given identity
+ */
+struct TicketIterationStartMessage
+{
+  /**
+   * Message
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Unique identifier for this request (for key collisions).
+   */
+  uint32_t id GNUNET_PACKED;
+
+  /**
+   * Identity.
+   */
+  struct GNUNET_CRYPTO_EcdsaPublicKey identity;
+
+  /**
+   * Identity is audience or issuer
+   */
+  uint32_t is_audience GNUNET_PACKED;
+};
+
+
+/**
+ * Ask for next result of ticket iteration for the given operation
+ */
+struct TicketIterationNextMessage
+{
+  /**
+   * Type will be #GNUNET_MESSAGE_TYPE_IDENTITY_PROVIDER_TICKET_ITERATION_NEXT
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Unique identifier for this request (for key collisions).
+   */
+  uint32_t id GNUNET_PACKED;
+
+};
+
+
+/**
+ * Stop ticket iteration for the given operation
+ */
+struct TicketIterationStopMessage
+{
+  /**
+   * Type will be #GNUNET_MESSAGE_TYPE_IDENTITY_PROVIDER_TICKET_ITERATION_STOP
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Unique identifier for this request (for key collisions).
+   */
+  uint32_t id GNUNET_PACKED;
+
+};
+
+
+
+/**
  * Ticket issue message
  */
 struct TicketIssueMessage
