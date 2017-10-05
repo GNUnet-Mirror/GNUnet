@@ -1793,10 +1793,18 @@ GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
          _("Fatal internal logic error, process hangs in `%s' (abort with CTRL-C)!\n"),
          "select");
   }
-  tv.tv_sec = timeout.rel_value_us / GNUNET_TIME_UNIT_SECONDS.rel_value_us;
-  tv.tv_usec =
-    (timeout.rel_value_us -
-     (tv.tv_sec * GNUNET_TIME_UNIT_SECONDS.rel_value_us));
+  if (timeout.rel_value_us / GNUNET_TIME_UNIT_SECONDS.rel_value_us > (unsigned long long) LONG_MAX)
+  {
+    tv.tv_sec = LONG_MAX;
+    tv.tv_usec = 999999L;
+  }
+  else
+  {
+    tv.tv_sec = (long) (timeout.rel_value_us / GNUNET_TIME_UNIT_SECONDS.rel_value_us);
+    tv.tv_usec =
+      (timeout.rel_value_us -
+       (tv.tv_sec * GNUNET_TIME_UNIT_SECONDS.rel_value_us));
+  }
   return select (nfds,
 		 (NULL != rfds) ? &rfds->sds : NULL,
                  (NULL != wfds) ? &wfds->sds : NULL,

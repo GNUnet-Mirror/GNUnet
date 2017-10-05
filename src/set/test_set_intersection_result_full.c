@@ -131,8 +131,6 @@ listen_cb (void *cls,
               "starting intersection by accepting and committing\n");
   GNUNET_assert (NULL != context_msg);
   GNUNET_assert (ntohs (context_msg->type) == GNUNET_MESSAGE_TYPE_DUMMY);
-  GNUNET_SET_listen_cancel (listen_handle);
-  listen_handle = NULL;
   oh2 = GNUNET_SET_accept (request,
                            GNUNET_SET_RESULT_FULL,
                            (struct GNUNET_SET_Option[]) { 0 },

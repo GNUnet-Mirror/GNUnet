@@ -15,7 +15,6 @@
 ;;; along with GNUnet; see the file COPYING.  If not, write to the
 ;;; Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
 ;;; Boston, MA 02110-1301, USA.
-;;;
 
 (use-modules
  (ice-9 popen)
@@ -46,7 +45,6 @@
  (gnu packages gstreamer)
  (gnu packages gtk)
  (gnu packages guile)
- (gnu packages graphviz)
  (gnu packages image)
  (gnu packages image-viewers)
  (gnu packages libidn)
@@ -65,29 +63,28 @@
  (gnu packages video)
  (gnu packages web)
  (gnu packages xiph)
- ;;(gnunet packages texlive) ;GNUnet module including texlive-2012 WIP
  ((guix licenses) #:prefix license:))
 
 (define %source-dir (string-append (current-source-directory)
                                    "/../../../"))
 
-(define gnunet-doc
-  (let* ((revision "2")
+(define gnunet-test-git
+  (let* ((revision "1")
          (select? (delay (or (git-predicate
                               (string-append (current-source-directory)
                                              "/../../../"))
                              source-file?))))
-      (package
-      (name "gnunet-doc")
+    (package
+      (name "gnunet-test-git")
       (version (string-append "0.10.1-" revision "." "dev"))
       (source
        (local-file ;;"../../.."
-                   ;;%source-dir
-                   ;;(string-append (getcwd) "/../../../")
-                   (string-append (getcwd)) ;drrty hack and this assumes one static position FIXME!
-                   #:recursive? #t))
-                   ;;#:select? (git-predicate %source-dir)))
-                   ;;#:select? (force select?)))
+        ;;%source-dir
+        ;;(string-append (getcwd) "/../../../")
+        (string-append (getcwd)) ;drrty hack and this assumes one static position FIXME!
+        #:recursive? #t))
+      ;;#:select? (git-predicate %source-dir)))
+      ;;#:select? (force select?)))
       (build-system gnu-build-system)
       (inputs
        `(("glpk" ,glpk)
@@ -116,62 +113,53 @@
          ("gmp" ,gmp)
          ("bluez" ,bluez) ; for optional bluetooth feature
          ("glib" ,glib)
+         ;; There are currently no binary substitutes for texlive on
+         ;; hydra.gnu.org or its mirrors due to its size. Uncomment if you need it.
          ;;("texlive-minimal" ,texlive-minimal) ; optional.
-         ("texlive" ,texlive) ;TODO: Stabilize Texlive-2012 package
+         ("texlive" ,texlive)
          ("libogg" ,libogg)))
       (native-inputs
        `(("pkg-config" ,pkg-config)
          ("autoconf" ,autoconf)
          ("automake" ,automake)
          ("gnu-gettext" ,gnu-gettext)
-         ("graphviz" ,graphviz) ; dot
-         ("texinfo-5" ,texinfo-5) ; Debian stable
+         ("texinfo" ,texinfo-5) ; Debian stable: 5.2
          ("libtool" ,libtool)))
+      (outputs '("out" "debug"))
       (arguments
        `(#:configure-flags
-         (list "--enable-documentation")
-         #:tests? #f ;Don't run tests
+         (list (string-append "--with-nssdir=" %output "/lib")
+               "--enable-gcc-hardening"
+               "--enable-linker-hardening"
+               "--enable-logging=verbose"
+               "CFLAGS=-ggdb -O0")
          #:phases
+         ;; swap check and install phases and set paths to installed bin
          (modify-phases %standard-phases
-           (add-after 'unpack 'autoconf
+           (add-after 'unpack 'patch-bin-sh
              (lambda _
                (substitute* "bootstrap"
                  (("contrib/pogen.sh") "sh contrib/pogen.sh"))
                (for-each (lambda (f) (chmod f #o755))
                          (find-files "po" ""))
+               #t))
+           (add-after 'patch-bin-sh 'bootstrap
+             (lambda _
                (zero? (system* "sh" "bootstrap"))))
-           (replace 'build
-             (lambda _
-               (chdir "doc")
-               (zero? (system* "make" "doc-all-give-me-the-noise"))))
-           (replace 'install
-             (lambda _
-               (zero? (system* "make" "doc-all-install")))))))
-             ;;(lambda* (#:key outputs #:allow-other-keys)
-               ;; (let* ((out (assoc-ref outputs "out"))
-               ;;        (doc (string-append out "/share/doc/gnunet")))
-               ;;   (mkdir-p doc)
-               ;;   (copy-recursively "images"
-               ;;                     (string-append doc
-               ;;                                    "/images"))
-               ;;   (mkdir-p (string-append doc "/gnunet"))
-               ;;   (install-file "gnunet.pdf" doc)
-               ;;   (install-file "gnunet.info" doc)
-               ;;   (install-file "gnunet.log" doc) ;TODO: Move to 'dev' output?
-               ;;   (copy-recursively "gnunet"
-               ;;                     (string-append doc
-               ;;                                    "/gnunet"))
-               ;;   (install-file "gnunet-c-tutorial.pdf" doc)
-               ;;   (install-file "gnunet-c-tutorial.info" doc)
-               ;;   (install-file "gnunet-c-tutorial.log" doc) ;TODO: Move to 'dev' output?
-               ;;   (copy-recursively "gnunet-c-tutorial"
-               ;;                     (string-append doc
-               ;;                                    "/gnunet-c-tutorial")))
-               ;; #t)))))
-      (synopsis "Documentation of GNUnet")
+           (delete 'check)
+           ;; XXX: https://gnunet.org/bugs/view.php?id=4619
+           (add-after 'install 'set-path-for-check
+             (lambda* (#:key outputs #:allow-other-keys)
+               (let* ((out (assoc-ref outputs "out"))
+                      (bin (string-append out "/bin"))
+                      (lib (string-append out "/lib")))
+                 (setenv "GNUNET_PREFIX" lib)
+                 (setenv "PATH" (string-append (getenv "PATH") ":" bin))
+                 (zero? (system* "make" "check"))))))))
+      (synopsis "tests enabled without experimental")
       (description
-       "GNUnet documentation build")
-      (license (list license:fdl1.3+ license:gpl3+))
-      (home-page "https://gnunet.org/"))))
+       "GNUnet from git HEAD")
+      (license license:gpl3+)
+      (home-page "https://gnunet.org"))))
 
-gnunet-doc
+gnunet-test-git

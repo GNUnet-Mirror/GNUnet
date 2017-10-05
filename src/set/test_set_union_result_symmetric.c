@@ -182,8 +182,6 @@ listen_cb (void *cls,
   GNUNET_assert (ntohs (context_msg->type) == GNUNET_MESSAGE_TYPE_DUMMY);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "listen cb called\n");
-  GNUNET_SET_listen_cancel (listen_handle);
-  listen_handle = NULL;
   oh2 = GNUNET_SET_accept (request,
                            GNUNET_SET_RESULT_SYMMETRIC,
                            (struct GNUNET_SET_Option[]) { 0 },

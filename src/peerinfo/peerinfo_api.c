@@ -334,11 +334,12 @@ handle_info (void *cls,
 {
   struct GNUNET_PEERINFO_Handle *h = cls;
   struct GNUNET_PEERINFO_IteratorContext *ic = h->ic_head;
-  const struct GNUNET_HELLO_Message *hello;
+  const struct GNUNET_HELLO_Message *hello = NULL;
   uint16_t ms;
 
   ms = ntohs (im->header.size);
-  hello = (0 == ms) ? NULL : (const struct GNUNET_HELLO_Message *) &im[1];
+  if (ms > sizeof (struct InfoMessage))
+    hello = (const struct GNUNET_HELLO_Message *) &im[1];
   if (NULL != ic->callback)
     ic->callback (ic->callback_cls,
                   &im->peer,

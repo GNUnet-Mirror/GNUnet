@@ -146,7 +146,7 @@
          ("autoconf" ,autoconf)
          ("automake" ,automake)
          ("gnu-gettext" ,gnu-gettext)
-         ("texinfo" ,texinfo)
+         ("texinfo" ,texinfo-5) ; Debian stable: 5.2
          ("libtool" ,libtool)))
       ;; TODO:  To make use of out:debug, which carries the symbols,
       ;; this file needs to fixed.

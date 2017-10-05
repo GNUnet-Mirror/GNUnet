@@ -155,6 +155,17 @@ static struct Listener *listener_head;
 static struct Listener *listener_tail;
 
 /**
+ * Number of active clients.
+ */
+static unsigned int num_clients;
+
+/**
+ * Are we in shutdown? if #GNUNET_YES and the number of clients
+ * drops to zero, disconnect from CADET.
+ */
+static int in_shutdown;
+
+/**
  * Counter for allocating unique IDs for clients, used to identify
  * incoming operation requests from remote peers, that the client can
  * choose to accept or refuse.  0 must not be used (reserved for
@@ -485,6 +496,7 @@ client_connect_cb (void *cls,
 {
   struct ClientState *cs;
 
+  num_clients++;
   cs = GNUNET_new (struct ClientState);
   cs->client = c;
   cs->mq = mq;
@@ -616,13 +628,29 @@ client_disconnect_cb (void *cls,
     GNUNET_CADET_close_port (listener->open_port);
     listener->open_port = NULL;
     while (NULL != (op = listener->op_head))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                  "Destroying incoming operation `%u' from peer `%s'\n",
+                  (unsigned int) op->client_request_id,
+                  GNUNET_i2s (&op->peer));
       incoming_destroy (op);
+    }
     GNUNET_CONTAINER_DLL_remove (listener_head,
                                  listener_tail,
                                  listener);
     GNUNET_free (listener);
   }
   GNUNET_free (cs);
+  num_clients--;
+  if ( (GNUNET_YES == in_shutdown) &&
+       (0 == num_clients) )
+  {
+    if (NULL != cadet)
+    {
+      GNUNET_CADET_disconnect (cadet);
+      cadet = NULL;
+    }
+  }
 }
 
 
@@ -1299,6 +1327,7 @@ handle_client_listen (void *cls,
   }
   listener = GNUNET_new (struct Listener);
   listener->cs = cs;
+  cs->listener = listener;
   listener->app_id = msg->app_id;
   listener->operation = (enum GNUNET_SET_OperationType) ntohl (msg->operation);
   GNUNET_CONTAINER_DLL_insert (listener_head,
@@ -1917,10 +1946,14 @@ static void
 shutdown_task (void *cls)
 {
   /* Delay actual shutdown to allow service to disconnect clients */
-  if (NULL != cadet)
+  in_shutdown = GNUNET_YES;
+  if (0 == num_clients)
   {
-    GNUNET_CADET_disconnect (cadet);
-    cadet = NULL;
+    if (NULL != cadet)
+    {
+      GNUNET_CADET_disconnect (cadet);
+      cadet = NULL;
+    }
   }
   GNUNET_STATISTICS_destroy (_GSS_statistics,
                              GNUNET_YES);
