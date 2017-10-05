@@ -455,6 +455,42 @@ struct ConsumeTicketMessage
   //Followed by a serialized ticket
 };
 
+/**
+ * Attribute list is returned from the idp.
+ */
+struct ConsumeTicketResultMessage
+{
+  /**
+   * Message header
+   */
+  struct GNUNET_MessageHeader header;
+
+   /**
+   * Unique identifier for this request (for key collisions).
+   */
+  uint32_t id GNUNET_PACKED;
+
+  /**
+   * Length of serialized attribute data
+   */
+  uint16_t attrs_len GNUNET_PACKED;
+
+  /**
+   * always zero (for alignment)
+   */
+  uint16_t reserved GNUNET_PACKED;
+
+  /**
+   * The public key of the identity.
+   */
+  struct GNUNET_CRYPTO_EcdsaPublicKey identity;
+
+  /* followed by:
+   * serialized attributes data
+   */
+};
+
+
 
 GNUNET_NETWORK_STRUCT_END
 

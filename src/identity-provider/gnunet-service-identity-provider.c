@@ -411,13 +411,29 @@ struct ConsumeTicketHandle
   struct GNUNET_CRYPTO_EcdsaPublicKey identity_pub;
 
   /**
-   * ParallelLookups DLL
+   * Lookup DLL
    */
   struct ParallelLookup2 *parallel_lookups_head;
+
+  /**
+   * Lookup DLL
+   */
   struct ParallelLookup2 *parallel_lookups_tail;
   
+  /**
+   * Kill task
+   */
   struct GNUNET_SCHEDULER_Task *kill_task;
+
+  /**
+   * The ABE key
+   */
   struct GNUNET_CRYPTO_AbeKey *key;
+
+  /**
+   * Attributes
+   */
+  struct GNUNET_IDENTITY_PROVIDER_AttributeList *attrs;
 
   /**
    * request id
@@ -2029,11 +2045,13 @@ process_parallel_lookup2 (void *cls, uint32_t rd_count,
               "Parallel lookup finished (count=%u)\n", rd_count);
   struct ParallelLookup2 *parallel_lookup = cls;
   struct ConsumeTicketHandle *handle = parallel_lookup->handle;
-  struct AttributeResultMessage *arm;
+  struct ConsumeTicketResultMessage *crm;
   struct GNUNET_MQ_Envelope *env;
+  struct GNUNET_IDENTITY_PROVIDER_AttributeListEntry *attr_le;
   char *data;
   char *data_tmp;
-  size_t msg_extra_len;
+  size_t attr_len;
+  size_t attrs_len;
 
   GNUNET_CONTAINER_DLL_remove (handle->parallel_lookups_head,
                                handle->parallel_lookups_tail,
@@ -2043,31 +2061,32 @@ process_parallel_lookup2 (void *cls, uint32_t rd_count,
     GNUNET_break(0);//TODO
   if (rd->record_type == GNUNET_GNSRECORD_TYPE_ID_ATTR)
   {
-    msg_extra_len = GNUNET_CRYPTO_cpabe_decrypt (rd->data,
-                                                 rd->data_size,
-                                                 handle->key,
-                                                 (void**)&data);
-    env = GNUNET_MQ_msg_extra (arm,
-                               msg_extra_len,
-                               GNUNET_MESSAGE_TYPE_IDENTITY_PROVIDER_ATTRIBUTE_RESULT);
-    arm->id = htonl (handle->r_id);
-    arm->attr_len = htons (msg_extra_len);
-    arm->identity = handle->ticket.identity;
-    data_tmp = (char *) &arm[1];
-    GNUNET_memcpy (data_tmp,
-                   data,
-                   msg_extra_len);
-    GNUNET_MQ_send (handle->client->mq, env);
+    attr_len = GNUNET_CRYPTO_cpabe_decrypt (rd->data,
+                                            rd->data_size,
+                                            handle->key,
+                                            (void**)&data);
+    attr_le = GNUNET_new (struct GNUNET_IDENTITY_PROVIDER_AttributeListEntry);
+    attr_le->attribute = attribute_deserialize (data,
+                                                attr_len);
+    GNUNET_CONTAINER_DLL_insert (handle->attrs->list_head,
+                                 handle->attrs->list_tail,
+                                 attr_le);
     GNUNET_free (data);
   }
   if (NULL != handle->parallel_lookups_head)
     return; //Wait for more
   //Else we are done
   GNUNET_SCHEDULER_cancel (handle->kill_task);
-  env = GNUNET_MQ_msg (arm,
-                       GNUNET_MESSAGE_TYPE_IDENTITY_PROVIDER_ATTRIBUTE_RESULT);
-  arm->id = htonl (handle->r_id);
-  arm->attr_len = htons (0);
+  attrs_len = attribute_list_serialize_get_size (handle->attrs);
+  env = GNUNET_MQ_msg_extra (crm,
+                             attrs_len,
+                             GNUNET_MESSAGE_TYPE_IDENTITY_PROVIDER_CONSUME_TICKET_RESULT);
+  crm->id = htonl (handle->r_id);
+  crm->attrs_len = htons (attrs_len);
+  crm->identity = handle->ticket.identity;
+  data_tmp = (char *) &crm[1];
+  attribute_list_serialize (handle->attrs,
+                            data_tmp);
   GNUNET_MQ_send (handle->client->mq, env);
 }
 
@@ -2213,6 +2232,7 @@ handle_consume_ticket_message (void *cls,
   ch->r_id = ntohl (cm->id);
   ch->client = idp;
   ch->identity = cm->identity;
+  ch->attrs = GNUNET_new (struct GNUNET_IDENTITY_PROVIDER_AttributeList);
   GNUNET_CRYPTO_ecdsa_key_get_public (&ch->identity,
                                       &ch->identity_pub);
   ch->ticket = *((struct GNUNET_IDENTITY_PROVIDER_Ticket2*)&cm[1]);
@@ -2713,7 +2733,7 @@ run_ticket_iteration_round (struct TicketIteration *ti)
  */
 static void
 handle_ticket_iteration_start (void *cls,
-                        const struct TicketIterationStartMessage *tis_msg)
+                               const struct TicketIterationStartMessage *tis_msg)
 {
   struct IdpClient *client = cls;
   struct TicketIteration *ti;
@@ -2743,7 +2763,7 @@ handle_ticket_iteration_start (void *cls,
  */
 static void
 handle_ticket_iteration_stop (void *cls,
-                       const struct TicketIterationStopMessage *tis_msg)
+                              const struct TicketIterationStopMessage *tis_msg)
 {
   struct IdpClient *client = cls;
   struct TicketIteration *ti;
@@ -2778,7 +2798,7 @@ handle_ticket_iteration_stop (void *cls,
  */
 static void
 handle_ticket_iteration_next (void *cls,
-                       const struct TicketIterationNextMessage *tis_msg)
+                              const struct TicketIterationNextMessage *tis_msg)
 {
   struct IdpClient *client = cls;
   struct TicketIteration *ti;

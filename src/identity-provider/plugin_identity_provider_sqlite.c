@@ -49,9 +49,9 @@
  * a failure of the command 'cmd' on file 'filename'
  * with the message given by strerror(errno).
  */
-#define LOG_SQLITE(db, level, cmd) do { GNUNET_log_from (level, "namestore-identity-provider", _("`%s' failed at %s:%d with error: %s\n"), cmd, __FILE__, __LINE__, sqlite3_errmsg(db->dbh)); } while(0)
+#define LOG_SQLITE(db, level, cmd) do { GNUNET_log_from (level, "identity-provider", _("`%s' failed at %s:%d with error: %s\n"), cmd, __FILE__, __LINE__, sqlite3_errmsg(db->dbh)); } while(0)
 
-#define LOG(kind,...) GNUNET_log_from (kind, "namestore-sqlite", __VA_ARGS__)
+#define LOG(kind,...) GNUNET_log_from (kind, "identity-provider-sqlite", __VA_ARGS__)
 
 
 /**
@@ -315,6 +315,8 @@ database_shutdown (struct Plugin *plugin)
     sqlite3_finalize (plugin->delete_ticket);
   if (NULL != plugin->iterate_tickets)
     sqlite3_finalize (plugin->iterate_tickets);
+  if (NULL != plugin->iterate_tickets_by_audience)
+    sqlite3_finalize (plugin->iterate_tickets_by_audience);
   result = sqlite3_close (plugin->dbh);
   if (result == SQLITE_BUSY)
   {
@@ -653,7 +655,7 @@ libgnunet_plugin_identity_provider_sqlite_init (void *cls)
  * @return always NULL
  */
 void *
-libgnunet_plugin_namestore_sqlite_done (void *cls)
+libgnunet_plugin_identity_provider_sqlite_done (void *cls)
 {
   struct GNUNET_IDENTITY_PROVIDER_PluginFunctions *api = cls;
   struct Plugin *plugin = api->cls;

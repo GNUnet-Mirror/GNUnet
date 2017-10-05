@@ -1,5 +1,5 @@
 #!/bin/bash
-trap "gnunet-arm -e -c test_idp_lookup.conf" SIGINT
+trap "gnunet-arm -e -c test_idp.conf" SIGINT
 
 LOCATION=$(which gnunet-config)
 if [ -z $LOCATION ]
