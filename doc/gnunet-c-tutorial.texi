@@ -58,6 +58,48 @@ important and do not hesitate to contact the GNUnet team if you have
 any questions or problems! Check here how to contact the GNUnet
 team: @uref{https://gnunet.org/contact_information}
 
+@menu
+
+* Installing GNUnet::                   Installing GNUnet
+* Introduction to GNUnet Architecture:: Introduction to GNUnet Architecture
+* First Steps with GNUnet::             First Steps with GNUnet
+* Developing Applications::             Developing Applications
+
+@detailmenu
+ --- The Detailed Node Listing ---
+
+Installing GNUnet
+
+* Obtaining a stable version::
+* Installing Build Tool Chain and Dependencies::
+* Obtaining the latest version from Git::
+* Compiling and Installing GNUnet::
+* Common Issues - Check your GNUnet installation::
+
+Introduction to GNUnet Architecture
+
+First Steps with GNUnet
+
+* Configure your peer::
+* Start a peer::
+* Monitor a peer::
+* Starting Two Peers by Hand::
+* Starting Peers Using the Testbed Service::
+
+Developing Applications
+
+* gnunet-ext::
+* Adapting the Template::
+* Writing a Client Application::
+* Writing a Service::
+* Interacting directly with other Peers using the CORE Service::
+* Storing peer-specific data using the PEERSTORE service::
+* Using the DHT::
+* Debugging with gnunet-arm::
+
+@end detailmenu
+@end menu
+
 @node Installing GNUnet
 @chapter Installing GNUnet
 
@@ -69,6 +111,14 @@ Most of the time you should prefer to download the stable version since with the
 latest development version things can be broken, functionality can be changed or tests
 can fail. You should only use the development version if you know that you require a
 certain feature or a certain issue has been fixed since the last release.
+
+@menu
+* Obtaining a stable version::
+* Installing Build Tool Chain and Dependencies::
+* Obtaining the latest version from Git::
+* Compiling and Installing GNUnet::
+* Common Issues - Check your GNUnet installation::
+@end menu
 
 @node Obtaining a stable version
 @section Obtaining a stable version
@@ -150,6 +200,10 @@ $ sudo make install
 $ cd ..
 @end example
 
+@menu
+* Installation::
+@end menu
+
 @node Installation
 @subsection Installation
 Assuming all dependencies are installed, the following commands will
@@ -210,8 +264,8 @@ PASS: test_gnunet_prefix
 =============
 @end example
 
-@node Background: GNUnet Architecture
-@chapter Background: GNUnet Architecture
+@node Introduction to GNUnet Architecture
+@chapter Introduction to GNUnet Architecture
 
 GNUnet is organized in layers and services. Each service is composed of a
 main service implementation and a client library for other programs to use
@@ -262,6 +316,14 @@ the programmer.
 
 @node First Steps with GNUnet
 @chapter First Steps with GNUnet
+
+@menu
+* Configure your peer::
+* Start a peer::
+* Monitor a peer::
+* Starting Two Peers by Hand::
+* Starting Peers Using the Testbed Service::
+@end menu
 
 @node Configure your peer
 @section Configure your peer
@@ -350,6 +412,12 @@ This section describes how to start two peers on the same machine by hand.
 The process is rather painful, but the description is somewhat instructive.
 In practice, you might prefer the automated method
 (@pxref{Starting Peers Using the Testbed Service}).
+
+@menu
+* Setup a second peer::
+* Start the second peer and connect the peers::
+* How to connect manually::
+@end menu
 
 @node Setup a second peer
 @subsection Setup a second peer
@@ -540,6 +608,17 @@ network.
 @node Developing Applications
 @chapter Developing Applications
 
+@menu
+* gnunet-ext::
+* Adapting the Template::
+* Writing a Client Application::
+* Writing a Service::
+* Interacting directly with other Peers using the CORE Service::
+* Storing peer-specific data using the PEERSTORE service::
+* Using the DHT::
+* Debugging with gnunet-arm::
+@end menu
+
 @node gnunet-ext
 @section gnunet-ext
 To develop a new peer-to-peer application or to extend GNUnet we provide
@@ -605,6 +684,12 @@ used, which is typically not needed):
 @verbatiminclude tutorial-examples/001.c
 @end example
 
+@menu
+* Handling command-line options::
+* Writing a Client Library::
+* Writing a user interface::
+@end menu
+
 @node Handling command-line options
 @subsection Handling command-line options
 
@@ -656,6 +741,12 @@ functions and written using @code{htonl} and similar functions).
 Unique message types must be defined for each message struct in the
 @file{gnunet\_protocols.h} header (or an extension-specific include
 file).
+
+@menu
+* Connecting to the Service::
+* Sending messages::
+* Receiving Replies from the Service::
+@end menu
 
 @node Connecting to the Service
 @subsubsection Connecting to the Service
@@ -746,6 +837,11 @@ command-line to the service.
 Before you can test the client you've written so far, you'll need to also
 implement the corresponding service.
 
+@menu
+* Code Placement::
+* Starting a Service::
+@end menu
+
 @node Code Placement
 @subsection Code Placement
 
@@ -809,6 +905,13 @@ is connect to the @code{CORE} service using:
 @example
 @verbatiminclude tutorial-examples/009.c
 @end example
+
+@menu
+* New P2P connections::
+* Receiving P2P Messages::
+* Sending P2P Messages::
+* End of P2P connections::
+@end menu
 
 @node New P2P connections
 @subsection New P2P connections
@@ -899,6 +1002,13 @@ The first step is to start a connection to the PEERSTORE service:
 
 The service handle @code{peerstore_handle} will be needed for all subsequent
 PEERSTORE operations.
+
+@menu
+* Storing records::
+* Retrieving records::
+* Monitoring records::
+* Disconnecting from PEERSTORE::
+@end menu
 
 @node Storing records
 @subsection Storing records
@@ -992,6 +1102,13 @@ The second parameter indicates how many requests in parallel to expect.
 It is not a hard limit, but a good approximation will make the DHT more
 efficient.
 
+@menu
+* Storing data in the DHT::
+* Obtaining data from the DHT::
+* Implementing a block plugin::
+* Monitoring the DHT::
+@end menu
+
 @node Storing data in the DHT
 @subsection Storing data in the DHT
 Since the DHT is a dynamic environment (peers join and leave frequently)
@@ -1048,6 +1165,14 @@ The block plugin should be put in a file @file{plugin\_block\_SERVICE.c}
 in the service's respective directory. The
 mandatory functions that need to be implemented for a block plugin are
 described in the following sections.
+
+@menu
+* Validating requests and replies::
+* Deriving a key from a reply::
+* Initialization of the plugin::
+* Shutdown of the plugin::
+* Integration of the plugin with the build system::
+@end menu
 
 @node Validating requests and replies
 @subsubsection Validating requests and replies

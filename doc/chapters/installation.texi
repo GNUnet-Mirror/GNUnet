@@ -1687,7 +1687,7 @@ dlltool --input-def ../include/libmySQL.def --dllname libmysql.dll
  Copy include\* to include\mysql\ 
 
 @item
- Pass "--with-mysql=/c/mysql" to ./configure and copy libmysql.dll to your PATH or GNUnetâ²s bin\ directory 
+ Pass "--with-mysql=/c/mysql" to ./configure and copy libmysql.dll to your PATH or GNUnet's @file{bin} directory
 @end itemize
 
 

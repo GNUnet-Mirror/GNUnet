@@ -3,3 +3,5 @@ gnunet-multicast
 test_multicast 
 test_multicast_multipeer
 test_multicast_2peers
+test_multicast_multipeer_line
+test_multicast_multipeer_star

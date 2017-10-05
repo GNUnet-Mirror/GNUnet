@@ -67,3 +67,4 @@ test_socks.nc
 perf_crypto_asymmetric
 perf_crypto_hash
 perf_crypto_symmetric
+perf_crypto_rsa

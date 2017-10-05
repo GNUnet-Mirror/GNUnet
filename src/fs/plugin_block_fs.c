@@ -71,17 +71,22 @@ block_plugin_fs_create_group (void *cls,
     return NULL;
   case GNUNET_BLOCK_TYPE_FS_UBLOCK:
     guard = va_arg (va, const char *);
-    if (0 != strcmp (guard,
+    if (0 == strcmp (guard,
                      "seen-set-size"))
+    {
+      size = GNUNET_BLOCK_GROUP_compute_bloomfilter_size (va_arg (va, unsigned int),
+                                                          BLOOMFILTER_K);
+    }
+    else if (0 == strcmp (guard,
+                          "filter-size"))
+    {
+      size = va_arg (va, unsigned int);
+    }
+    else
     {
       /* va-args invalid! bad bug, complain! */
       GNUNET_break (0);
       size = 8;
-    }
-    else
-    {
-      size = GNUNET_BLOCK_GROUP_compute_bloomfilter_size (va_arg (va, unsigned int),
-                                                          BLOOMFILTER_K);
     }
     if (0 == size)
       size = raw_data_size; /* not for us to determine, use what we got! */

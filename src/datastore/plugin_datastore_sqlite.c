@@ -185,21 +185,22 @@ static void
 create_indices (sqlite3 * dbh)
 {
   /* create indices */
-  if ((SQLITE_OK !=
+  if (0 !=
+      (SQLITE_OK !=
        sqlite3_exec (dbh, "CREATE INDEX IF NOT EXISTS idx_hash ON gn091 (hash)",
-                     NULL, NULL, NULL)) ||
+                     NULL, NULL, NULL)) +
       (SQLITE_OK !=
        sqlite3_exec (dbh,
                      "CREATE INDEX IF NOT EXISTS idx_anon_type ON gn091 (anonLevel ASC,type)",
-                     NULL, NULL, NULL)) ||
+                     NULL, NULL, NULL)) +
       (SQLITE_OK !=
        sqlite3_exec (dbh,
                      "CREATE INDEX IF NOT EXISTS idx_expire ON gn091 (expire ASC)",
-                     NULL, NULL, NULL)) ||
+                     NULL, NULL, NULL)) +
       (SQLITE_OK !=
        sqlite3_exec (dbh,
                      "CREATE INDEX IF NOT EXISTS idx_repl_rvalue ON gn091 (repl,rvalue)",
-                     NULL, NULL, NULL)))
+                     NULL, NULL, NULL)) )
     GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, "sqlite",
                      "Failed to create indices: %s\n", sqlite3_errmsg (dbh));
 }
@@ -354,40 +355,24 @@ database_setup (const struct GNUNET_CONFIGURATION_Handle *cfg,
        (SQLITE_OK !=
         sq_prepare (plugin->dbh,
                     "SELECT " RESULT_COLUMNS " FROM gn091 "
-#if SQLITE_VERSION_NUMBER >= 3007000
-                    "INDEXED BY idx_repl_rvalue "
-#endif
                     "WHERE repl=?2 AND " " (rvalue>=?1 OR "
                     "  NOT EXISTS (SELECT 1 FROM gn091 "
-#if SQLITE_VERSION_NUMBER >= 3007000
-                    "INDEXED BY idx_repl_rvalue "
-#endif
                     "WHERE repl=?2 AND rvalue>=?1 LIMIT 1) ) "
                     "ORDER BY rvalue ASC LIMIT 1",
                     &plugin->selRepl)) ||
        (SQLITE_OK !=
         sq_prepare (plugin->dbh,
-                    "SELECT MAX(repl) FROM gn091"
-#if SQLITE_VERSION_NUMBER >= 3007000
-                    " INDEXED BY idx_repl_rvalue"
-#endif
-                    "",
+                    "SELECT MAX(repl) FROM gn091",
                     &plugin->maxRepl)) ||
        (SQLITE_OK !=
         sq_prepare (plugin->dbh,
                     "SELECT " RESULT_COLUMNS " FROM gn091 "
-#if SQLITE_VERSION_NUMBER >= 3007000
-                    "INDEXED BY idx_expire "
-#endif
                     "WHERE NOT EXISTS (SELECT 1 FROM gn091 WHERE expire < ?1 LIMIT 1) OR (expire < ?1) "
                     "ORDER BY expire ASC LIMIT 1",
                     &plugin->selExpi)) ||
        (SQLITE_OK !=
         sq_prepare (plugin->dbh,
                     "SELECT " RESULT_COLUMNS " FROM gn091 "
-#if SQLITE_VERSION_NUMBER >= 3007000
-                    "INDEXED BY idx_anon_type "
-#endif
                     "WHERE _ROWID_ >= ? AND "
                     "anonLevel = 0 AND "
                     "type = ? "

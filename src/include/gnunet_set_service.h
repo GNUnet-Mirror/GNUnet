@@ -452,6 +452,8 @@ GNUNET_SET_listen (const struct GNUNET_CONFIGURATION_Handle *cfg,
 /**
  * Cancel the given listen operation.  After calling cancel, the
  * listen callback for this listen handle will not be called again.
+ * Note that cancelling a listen operation will automatically reject
+ * all operations that have not yet been accepted.
  *
  * @param lh handle for the listen operation
  */
@@ -556,7 +558,8 @@ GNUNET_SET_element_dup (const struct GNUNET_SET_Element *element);
  *        should be stored
  */
 void
-GNUNET_SET_element_hash (const struct GNUNET_SET_Element *element, struct GNUNET_HashCode *ret_hash);
+GNUNET_SET_element_hash (const struct GNUNET_SET_Element *element,
+                         struct GNUNET_HashCode *ret_hash);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */

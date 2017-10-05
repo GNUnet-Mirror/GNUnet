@@ -243,8 +243,6 @@ free_element_cb (void *cls,
 static void
 destroy_service_session (struct AliceServiceSession *s)
 {
-  unsigned int i;
-
   if (GNUNET_YES == s->in_destroy)
     return;
   s->in_destroy = GNUNET_YES;
@@ -285,7 +283,7 @@ destroy_service_session (struct AliceServiceSession *s)
   }
   if (NULL != s->sorted_elements)
   {
-    for (i=0;i<s->used_element_count;i++)
+    for (unsigned int i=0;i<s->used_element_count;i++)
       gcry_mpi_release (s->sorted_elements[i].value);
     GNUNET_free (s->sorted_elements);
     s->sorted_elements = NULL;
@@ -1043,10 +1041,6 @@ cb_intersection_request_alice (void *cls,
     prepare_client_end_notification (s);
     return;
   }
-  GNUNET_SET_destroy (s->intersection_set);
-  s->intersection_set = NULL;
-  GNUNET_SET_listen_cancel (s->intersection_listen);
-  s->intersection_listen = NULL;
 }
 
 
