@@ -69,8 +69,7 @@ gnunet_service_identity_provider_LDADD = \
  $(top_builddir)/src/credential/libgnunetcredential.la \
  $(top_builddir)/src/identity-provider/libgnunetidentityprovider.la \
  $(top_builddir)/src/gns/libgnunetgns.la \
- $(GN_LIBINTL) \
- -ljansson
+ $(GN_LIBINTL)
 
 libgnunetidentityprovider_la_SOURCES = \
  identity_provider_api.c \

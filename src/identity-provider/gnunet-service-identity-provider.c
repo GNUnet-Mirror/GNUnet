@@ -37,7 +37,6 @@
 #include "gnunet_signatures.h"
 #include "identity_provider.h"
 #include "identity_attribute.h"
-#include <inttypes.h>
 
 /**
  * First pass state
