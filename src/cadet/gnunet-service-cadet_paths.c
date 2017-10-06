@@ -179,7 +179,7 @@ GCPP_del_connection (struct CadetPeerPath *path,
        GCC_2s (cc),
        GCPP_2s (path),
        off);
-  GNUNET_assert (off < path->entries_length);
+  GNUNET_assert (off < path->entries_length); /* FIXME: This assertion fails sometimes! */
   entry = path->entries[off];
   GNUNET_assert (cc == entry->cc);
   entry->cc = NULL;
