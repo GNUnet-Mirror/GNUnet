@@ -482,6 +482,10 @@ struct TicketRevocationHandle
    */
   struct GNUNET_CRYPTO_AbeMasterKey *abe_key;
 
+  /**
+   * Offset
+   */
+  uint32_t offset;
 
   /**
    * request id
@@ -770,7 +774,8 @@ cleanup_ticket_issue_handle (struct TicketIssueHandle *handle)
 static void
 send_ticket_result (struct IdpClient *client,
                     uint32_t r_id,
-                    const struct GNUNET_IDENTITY_PROVIDER_Ticket *ticket)
+                    const struct GNUNET_IDENTITY_PROVIDER_Ticket *ticket,
+                    const struct GNUNET_IDENTITY_PROVIDER_AttributeList *attrs)
 {
   struct TicketResultMessage *irm;
   struct GNUNET_MQ_Envelope *env;
@@ -778,7 +783,8 @@ send_ticket_result (struct IdpClient *client,
 
   /* store ticket in DB */
   if (GNUNET_OK != TKT_database->store_ticket (TKT_database->cls,
-                                               ticket))
+                                               ticket,
+                                               attrs))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Unable to store ticket after issue\n");
@@ -813,14 +819,16 @@ store_ticket_issue_cont (void *cls,
   }
   send_ticket_result (handle->client,
                       handle->r_id,
-                      &handle->ticket);
+                      &handle->ticket,
+                      handle->attrs);
   cleanup_ticket_issue_handle (handle);
 }
 
 
 
 int
-serialize_abe_keyinfo2 (const struct TicketIssueHandle *handle,
+serialize_abe_keyinfo2 (const struct GNUNET_IDENTITY_PROVIDER_Ticket *ticket,
+                        const struct GNUNET_IDENTITY_PROVIDER_AttributeList *attrs,
                         const struct GNUNET_CRYPTO_AbeKey *rp_key,
                         struct GNUNET_CRYPTO_EcdhePrivateKey **ecdh_privkey,
                         char **result)
@@ -842,14 +850,14 @@ serialize_abe_keyinfo2 (const struct TicketIssueHandle *handle,
   size = GNUNET_CRYPTO_cpabe_serialize_key (rp_key,
                                             (void**)&serialized_key);
   attrs_str_len = 0;
-  for (le = handle->attrs->list_head; NULL != le; le = le->next) {
+  for (le = attrs->list_head; NULL != le; le = le->next) {
     attrs_str_len += strlen (le->attribute->name) + 1;
   }
   buf = GNUNET_malloc (attrs_str_len + size);
   write_ptr = buf;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Writing attributes\n");
-  for (le = handle->attrs->list_head; NULL != le; le = le->next) {
+  for (le = attrs->list_head; NULL != le; le = le->next) {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "%s\n", le->attribute->name);
 
@@ -873,7 +881,7 @@ serialize_abe_keyinfo2 (const struct TicketIssueHandle *handle,
   enc_keyinfo = GNUNET_malloc (size + attrs_str_len);
   // Derived key K = H(eB)
   GNUNET_assert (GNUNET_OK == GNUNET_CRYPTO_ecdh_ecdsa (*ecdh_privkey,
-                                                        &handle->ticket.audience,
+                                                        &ticket->audience,
                                                         &new_key_hash));
   create_sym_key_from_ecdh(&new_key_hash, &skey, &iv);
   enc_size = GNUNET_CRYPTO_symmetric_encrypt (buf,
@@ -925,7 +933,8 @@ issue_ticket_after_abe_bootstrap (void *cls,
                                            attrs);
 
   //TODO review this wireformat
-  code_record_len = serialize_abe_keyinfo2 (ih,
+  code_record_len = serialize_abe_keyinfo2 (&ih->ticket,
+                                            ih->attrs,
                                             rp_key,
                                             &ecdhe_privkey,
                                             &code_record_data);
@@ -1008,6 +1017,124 @@ handle_issue_ticket_message (void *cls,
 
 }
 
+/**
+ * Process ticket from database
+ *
+ * @param cls struct TicketIterationProcResult
+ * @param ticket the ticket
+ * @param attrs the attributes
+ */
+static void
+ticket_reissue_proc (void *cls,
+                     const struct GNUNET_IDENTITY_PROVIDER_Ticket *ticket,
+                     const struct GNUNET_IDENTITY_PROVIDER_AttributeList *attrs);
+
+
+static void
+reissue_ticket_cont (void *cls,
+                     int32_t success,
+                     const char *emsg)
+{
+  struct TicketRevocationHandle *rh = cls;
+
+  rh->ns_qe = NULL;
+  if (GNUNET_SYSERR == success)
+  {
+    //TODO cleanup_ticket_revocation_handle (handle);
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "%s\n",
+                "Unknown Error\n");
+    GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
+    return;
+  }
+  rh->offset++;
+  GNUNET_assert (GNUNET_SYSERR !=
+                 TKT_database->iterate_tickets (TKT_database->cls,
+                                                &rh->ticket.identity,
+                                                GNUNET_NO,
+                                                rh->offset,
+                                                &ticket_reissue_proc,
+                                                rh));
+}
+
+
+
+/**
+ * Process ticket from database
+ *
+ * @param cls struct TicketIterationProcResult
+ * @param ticket the ticket
+ * @param attrs the attributes
+ */
+static void
+ticket_reissue_proc (void *cls,
+                     const struct GNUNET_IDENTITY_PROVIDER_Ticket *ticket,
+                     const struct GNUNET_IDENTITY_PROVIDER_AttributeList *attrs)
+{
+  struct TicketRevocationHandle *rh = cls;
+  struct GNUNET_IDENTITY_PROVIDER_AttributeListEntry *le;
+  struct GNUNET_CRYPTO_EcdhePrivateKey *ecdhe_privkey;
+  struct GNUNET_GNSRECORD_Data code_record[1];
+  struct GNUNET_CRYPTO_AbeKey *rp_key;
+  char *code_record_data;
+  char **attr_arr;
+  char *label;
+  int attrs_len;
+  int i;
+  size_t code_record_len;
+
+
+  if (NULL == ticket)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Iteration done\n");
+    /* Send reply ? */
+    GNUNET_break (0);
+    return;
+  }
+  //Create new ABE key for RP
+  attrs_len = 0;
+  for (le = attrs->list_head; NULL != le; le = le->next)
+    attrs_len++;
+  attr_arr = GNUNET_malloc ((attrs_len + 1)*sizeof (char*));
+  i = 0;
+  for (le = attrs->list_head; NULL != le; le = le->next) {
+    attr_arr[i] = (char*) le->attribute->name;
+    i++;
+  }
+  attr_arr[i] = NULL;
+  rp_key = GNUNET_CRYPTO_cpabe_create_key (rh->abe_key,
+                                           attr_arr);
+
+  //TODO review this wireformat
+  code_record_len = serialize_abe_keyinfo2 (&rh->ticket,
+                                            rh->attrs,
+                                            rp_key,
+                                            &ecdhe_privkey,
+                                            &code_record_data);
+  code_record[0].data = code_record_data;
+  code_record[0].data_size = code_record_len;
+  code_record[0].expiration_time = GNUNET_TIME_UNIT_DAYS.rel_value_us;
+  code_record[0].record_type = GNUNET_GNSRECORD_TYPE_ABE_KEY;
+  code_record[0].flags = GNUNET_GNSRECORD_RF_RELATIVE_EXPIRATION;
+
+  label = GNUNET_STRINGS_data_to_string_alloc (&ticket->rnd,
+                                               sizeof (uint64_t));
+  //Publish record
+  rh->ns_qe = GNUNET_NAMESTORE_records_store (ns_handle,
+                                              &rh->identity,
+                                              label,
+                                              1,
+                                              code_record,
+                                              &reissue_ticket_cont,
+                                              rh);
+  GNUNET_free (ecdhe_privkey);
+  GNUNET_free (label);
+  GNUNET_free (attr_arr);
+  GNUNET_free (code_record_data);
+
+}
+
+
 static void
 attr_reenc_cont (void *cls,
                  int32_t success,
@@ -1017,6 +1144,7 @@ attr_reenc_cont (void *cls,
   struct GNUNET_GNSRECORD_Data rd[1];
   size_t buf_size;
   char *buf;
+  int ret;
 
   if (GNUNET_SYSERR == success)
   {
@@ -1032,7 +1160,18 @@ attr_reenc_cont (void *cls,
   if (NULL == rh->attrs->list_head)
   {
     /* Done, issue new keys */
-    GNUNET_break (0); //TODO
+    GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
+                "Revocation Phase IV: Reissuing Tickets\n");
+    if (GNUNET_SYSERR ==
+        (ret = TKT_database->iterate_tickets (TKT_database->cls,
+                                              &rh->ticket.identity,
+                                              GNUNET_NO,
+                                              rh->offset,
+                                              &ticket_reissue_proc,
+                                              rh)))
+    {
+      GNUNET_break (0);
+    }
     return;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -1083,9 +1222,10 @@ reenc_after_abe_bootstrap (void *cls,
   if (NULL == rh->attrs->list_head)
   {
     /* No attributes to reencrypt, this is odd... */
+    GNUNET_break (0);
   } else {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Re-encrypting attribute\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
+                "Revocation Phase III: Re-encrypting attributes\n");
     buf_size = attribute_serialize_get_size (rh->attrs->list_head->attribute);
     buf = GNUNET_malloc (buf_size);
 
@@ -1131,7 +1271,8 @@ static void
 revoke_collect_iter_finished (void *cls)
 {
   struct TicketRevocationHandle *rh = cls;
-
+  GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
+              "Revocation Phase II: Invalidating old ABE Master\n");
   /* Bootstrap new abe key */
   bootstrap_abe (&rh->identity, &reenc_after_abe_bootstrap, rh, GNUNET_YES);
 }
@@ -1188,7 +1329,8 @@ collect_after_abe_bootstrap (void *cls,
 
   rh->abe_key = cls;
   GNUNET_assert (NULL != abe_key);
-
+  GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
+              "Revocation Phase I: Collecting attributes\n");
   /* Reencrypt all attributes with new key */
   rh->ns_it = GNUNET_NAMESTORE_zone_iteration_start (ns_handle,
                                                      &rh->identity,
@@ -1334,7 +1476,8 @@ process_parallel_lookup2 (void *cls, uint32_t rd_count,
 
   /* Store ticket in DB */
   if (GNUNET_OK != TKT_database->store_ticket (TKT_database->cls,
-                                               &handle->ticket))
+                                               &handle->ticket,
+                                               handle->attrs))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Unable to store ticket after consume\n");
@@ -1914,7 +2057,8 @@ struct TicketIterationProcResult
  */
 static void
 ticket_iterate_proc (void *cls,
-                     const struct GNUNET_IDENTITY_PROVIDER_Ticket *ticket)
+                     const struct GNUNET_IDENTITY_PROVIDER_Ticket *ticket,
+                     const struct GNUNET_IDENTITY_PROVIDER_AttributeList *attrs)
 {
   struct TicketIterationProcResult *proc = cls;
 
@@ -1928,7 +2072,8 @@ ticket_iterate_proc (void *cls,
   proc->res_iteration_finished = IT_SUCCESS_MORE_AVAILABLE;
   send_ticket_result (proc->ti->client,
                       proc->ti->r_id,
-                      ticket);
+                      ticket,
+                      attrs);
 
 }
 

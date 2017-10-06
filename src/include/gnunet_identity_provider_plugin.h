@@ -50,7 +50,8 @@ extern "C"
  * @param ticket the ticket
  */
 typedef void (*GNUNET_IDENTITY_PROVIDER_TicketIterator) (void *cls,
-						 const struct GNUNET_IDENTITY_PROVIDER_Ticket *ticket);
+						 const struct GNUNET_IDENTITY_PROVIDER_Ticket *ticket,
+             const struct GNUNET_IDENTITY_PROVIDER_AttributeList *attrs);
 
 
 /**
@@ -72,7 +73,8 @@ struct GNUNET_IDENTITY_PROVIDER_PluginFunctions
    * @return #GNUNET_OK on success, else #GNUNET_SYSERR
    */
   int (*store_ticket) (void *cls,
-			const struct GNUNET_IDENTITY_PROVIDER_Ticket *ticket);
+			const struct GNUNET_IDENTITY_PROVIDER_Ticket *ticket,
+      const struct GNUNET_IDENTITY_PROVIDER_AttributeList *attrs);
 
   /**
    * Delete a ticket from the database.
