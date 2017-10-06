@@ -26,7 +26,8 @@ pkgcfg_DATA = \
 lib_LTLIBRARIES = \
   libgnunetidentityprovider.la
 plugin_LTLIBRARIES = \
-	libgnunet_plugin_gnsrecord_identity_provider.la \
+	libgnunet_plugin_rest_identity_provider.la \
+  libgnunet_plugin_gnsrecord_identity_provider.la \
 	$(SQLITE_PLUGIN)
 
 bin_PROGRAMS = \
@@ -81,6 +82,19 @@ libgnunetidentityprovider_la_LIBADD = \
 libgnunetidentityprovider_la_LDFLAGS = \
 	$(GN_LIB_LDFLAGS)  $(WINFLAGS) \
 	-version-info 0:0:0
+
+libgnunet_plugin_rest_identity_provider_la_SOURCES = \
+  plugin_rest_identity_provider.c
+libgnunet_plugin_rest_identity_provider_la_LIBADD = \
+	$(top_builddir)/src/identity/libgnunetidentity.la \
+	libgnunetidentityprovider.la \
+	$(top_builddir)/src/rest/libgnunetrest.la \
+	$(top_builddir)/src/jsonapi/libgnunetjsonapi.la \
+	$(top_builddir)/src/namestore/libgnunetnamestore.la \
+  $(top_builddir)/src/util/libgnunetutil.la $(XLIBS) \
+  $(LTLIBINTL) -ljansson -lmicrohttpd
+libgnunet_plugin_rest_identity_provider_la_LDFLAGS = \
+ $(GN_PLUGIN_LDFLAGS)
 
 gnunet_idp_SOURCES = \
  gnunet-idp.c
