@@ -376,7 +376,28 @@ identity_provider_sqlite_store_ticket (void *cls,
   attribute_list_serialize (attrs,
                             attrs_serialized);
 
-  {  
+  { 
+    /* First delete duplicates */
+    struct GNUNET_SQ_QueryParam dparams[] = {
+      GNUNET_SQ_query_param_auto_from_type (&ticket->identity),
+      GNUNET_SQ_query_param_uint64 (&ticket->rnd),
+      GNUNET_SQ_query_param_end
+    };
+    if (GNUNET_OK !=
+        GNUNET_SQ_bind (plugin->delete_ticket,
+                        dparams))
+    {
+      LOG_SQLITE (plugin,
+                  GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+                  "sqlite3_bind_XXXX");
+      GNUNET_SQ_reset (plugin->dbh,
+                       plugin->delete_ticket);
+      return GNUNET_SYSERR;
+    }
+    n = sqlite3_step (plugin->delete_ticket);
+    GNUNET_SQ_reset (plugin->dbh,
+                     plugin->delete_ticket);
+
     struct GNUNET_SQ_QueryParam sparams[] = {
       GNUNET_SQ_query_param_auto_from_type (&ticket->identity),
       GNUNET_SQ_query_param_auto_from_type (&ticket->audience),

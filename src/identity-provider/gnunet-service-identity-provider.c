@@ -1770,11 +1770,7 @@ send_ticket_result (struct IdpClient *client,
 {
   struct TicketResultMessage *irm;
   struct GNUNET_MQ_Envelope *env;
-  size_t attrs_size;
   struct GNUNET_IDENTITY_PROVIDER_Ticket2 *ticket_buf;
-  char *attrs_buf;
-
-  attrs_size = attribute_list_serialize_get_size (attrs);
 
   /* store ticket in DB */
   if (GNUNET_OK != TKT_database->store_ticket (TKT_database->cls,
@@ -1787,15 +1783,11 @@ send_ticket_result (struct IdpClient *client,
   }
 
   env = GNUNET_MQ_msg_extra (irm,
-                             sizeof (struct GNUNET_IDENTITY_PROVIDER_Ticket2) + attrs_size,
+                             sizeof (struct GNUNET_IDENTITY_PROVIDER_Ticket2),
                              GNUNET_MESSAGE_TYPE_IDENTITY_PROVIDER_TICKET_RESULT);
   ticket_buf = (struct GNUNET_IDENTITY_PROVIDER_Ticket2 *)&irm[1];
   *ticket_buf = *ticket;
-  attrs_buf = (char*)&ticket_buf[1];
-  attribute_list_serialize (attrs,
-                            attrs_buf);
   irm->id = htonl (r_id);
-
   GNUNET_MQ_send (client->mq,
                   env);
 }

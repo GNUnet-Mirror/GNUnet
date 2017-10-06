@@ -343,20 +343,6 @@ typedef void
                             const struct GNUNET_IDENTITY_PROVIDER_Ticket2 *ticket);
 
 /**
- * Method called when issued tickets are retrieved. Also returns the attributes
- * that were issued at the time.
- *
- * @param cls closure
- * @param ticket the ticket
- * @param attrs the attributes as list
- */
-typedef void
-(*GNUNET_IDENTITY_PROVIDER_TicketResult)(void *cls,
-                            const struct GNUNET_IDENTITY_PROVIDER_Ticket2 *ticket,
-                            const struct GNUNET_IDENTITY_PROVIDER_AttributeList *attrs);
-
-
-/**
  * Issues a ticket to another identity. The identity may use
  * @GNUNET_IDENTITY_PROVIDER_authorization_ticket_consume to consume the ticket
  * and retrieve the attributes specified in the AttributeList.
@@ -415,37 +401,78 @@ GNUNET_IDENTITY_PROVIDER_rp_ticket_consume (struct GNUNET_IDENTITY_PROVIDER_Hand
                                             GNUNET_IDENTITY_PROVIDER_AttributeResult cb,
                                             void *cb_cls);
 
-/** TODO
+/**
+ * Lists all tickets that have been issued to remote
+ * identites (relying parties)
+ *
+ * @param h the identity provider to use
+ * @param identity the issuing identity
+ * @param error_cb function to call on error (i.e. disconnect),
+ *        the handle is afterwards invalid
+ * @param error_cb_cls closure for @a error_cb
+ * @param proc function to call on each ticket; it
+ *        will be called repeatedly with a value (if available)
+ * @param proc_cls closure for @a proc
+ * @param finish_cb function to call on completion
+ *        the handle is afterwards invalid
+ * @param finish_cb_cls closure for @a finish_cb
+ * @return an iterator handle to use for iteration
+ */
+struct GNUNET_IDENTITY_PROVIDER_TicketIterator *
+GNUNET_IDENTITY_PROVIDER_idp_ticket_iteration_start (struct GNUNET_IDENTITY_PROVIDER_Handle *h,
+                                                     const struct GNUNET_CRYPTO_EcdsaPrivateKey *identity,
+                                                     GNUNET_SCHEDULER_TaskCallback error_cb,
+                                                     void *error_cb_cls,
+                                                     GNUNET_IDENTITY_PROVIDER_TicketCallback proc,
+                                                     void *proc_cls,
+                                                     GNUNET_SCHEDULER_TaskCallback finish_cb,
+                                                     void *finish_cb_cls);
+
+/**
  * Lists all tickets that have been issued to remote
  * identites (relying parties)
  *
  * @param id the identity provider to use
  * @param identity the issuing identity
- * @param cb the callback to use
- * @param cb_cls the callback closure
- * @return handle to abort the operation
+ * @param error_cb function to call on error (i.e. disconnect),
+ *        the handle is afterwards invalid
+ * @param error_cb_cls closure for @a error_cb
+ * @param proc function to call on each ticket; it
+ *        will be called repeatedly with a value (if available)
+ * @param proc_cls closure for @a proc
+ * @param finish_cb function to call on completion
+ *        the handle is afterwards invalid
+ * @param finish_cb_cls closure for @a finish_cb
+ * @return an iterator handle to use for iteration
  */
-struct GNUNET_IDENTITY_PROVIDER_Operation *
-GNUNET_IDENTITY_PROVIDER_idp_tickets_list (struct GNUNET_IDENTITY_PROVIDER_Handle *id,
-                                           const struct GNUNET_CRYPTO_EcdsaPrivateKey *identity,
-                                           GNUNET_IDENTITY_PROVIDER_TicketCallback *cb,
-                                           void *cb_cls);
+struct GNUNET_IDENTITY_PROVIDER_TicketIterator *
+GNUNET_IDENTITY_PROVIDER_ticket_iteration_start_rp (struct GNUNET_IDENTITY_PROVIDER_Handle *h,
+                                                    const struct GNUNET_CRYPTO_EcdsaPublicKey *identity,
+                                                    GNUNET_SCHEDULER_TaskCallback error_cb,
+                                                    void *error_cb_cls,
+                                                    GNUNET_IDENTITY_PROVIDER_TicketCallback proc,
+                                                    void *proc_cls,
+                                                    GNUNET_SCHEDULER_TaskCallback finish_cb,
+                                                    void *finish_cb_cls);
 
-/** TODO
- * Lists all attributes that are shared with this identity
- * by remote parties
+/**
+ * Calls the record processor specified in #GNUNET_IDENTITY_PROVIDER_ticket_iteration_start
+ * for the next record.
  *
- * @param id identity provider service to use
- * @param identity the identity (relying party)
- * @param cb the result callback
- * @param cb_cls the result callback closure
- * @return handle to abort the operation
+ * @param it the iterator
  */
-struct GNUNET_IDENTITY_PROVIDER_Operation *
-GNUNET_IDENTITY_PROVIDER_rp_attributes_list (struct GNUNET_IDENTITY_PROVIDER_Handle *id,
-                                             const struct GNUNET_CRYPTO_EcdsaPrivateKey *identity,
-                                             GNUNET_IDENTITY_PROVIDER_AttributeResult *cb,
-                                             void *cb_cls);
+void
+GNUNET_IDENTITY_PROVIDER_ticket_iteration_next (struct GNUNET_IDENTITY_PROVIDER_TicketIterator *it);
+
+/**
+ * Stops iteration and releases the idp handle for further calls.  Must
+ * be called on any iteration that has not yet completed prior to calling
+ * #GNUNET_IDENTITY_PROVIDER_disconnect.
+ *
+ * @param it the iterator
+ */
+void
+GNUNET_IDENTITY_PROVIDER_ticket_iteration_stop (struct GNUNET_IDENTITY_PROVIDER_TicketIterator *it);
 
 /** TODO remove DEPRECATED
  * Issue a token for a specific audience.

@@ -108,6 +108,71 @@ struct GNUNET_IDENTITY_PROVIDER_Operation
 };
 
 /**
+ * Handle for a ticket iterator operation
+ */
+struct GNUNET_IDENTITY_PROVIDER_TicketIterator
+{
+
+  /**
+   * Kept in a DLL.
+   */
+  struct GNUNET_IDENTITY_PROVIDER_TicketIterator *next;
+
+  /**
+   * Kept in a DLL.
+   */
+  struct GNUNET_IDENTITY_PROVIDER_TicketIterator *prev;
+
+  /**
+   * Main handle to access the idp.
+   */
+  struct GNUNET_IDENTITY_PROVIDER_Handle *h;
+
+  /**
+   * Function to call on completion.
+   */
+  GNUNET_SCHEDULER_TaskCallback finish_cb;
+
+  /**
+   * Closure for @e error_cb.
+   */
+  void *finish_cb_cls;
+
+  /**
+   * The continuation to call with the results
+   */
+  GNUNET_IDENTITY_PROVIDER_TicketCallback tr_cb;
+
+  /**
+   * Closure for @e tr_cb.
+   */
+  void *cls;
+
+  /**
+   * Function to call on errors.
+   */
+  GNUNET_SCHEDULER_TaskCallback error_cb;
+
+  /**
+   * Closure for @e error_cb.
+   */
+  void *error_cb_cls;
+
+  /**
+   * Envelope of the message to send to the service, if not yet
+   * sent.
+   */
+  struct GNUNET_MQ_Envelope *env;
+
+  /**
+   * The operation id this zone iteration operation has
+   */
+  uint32_t r_id;
+
+};
+
+
+/**
  * Handle for a attribute iterator operation
  */
 struct GNUNET_IDENTITY_PROVIDER_AttributeIterator
@@ -216,6 +281,17 @@ struct GNUNET_IDENTITY_PROVIDER_Handle
    * Tail of active iterations
    */
   struct GNUNET_IDENTITY_PROVIDER_AttributeIterator *it_tail;
+
+  /**
+   * Head of active iterations
+   */
+  struct GNUNET_IDENTITY_PROVIDER_TicketIterator *ticket_it_head;
+
+  /**
+   * Tail of active iterations
+   */
+  struct GNUNET_IDENTITY_PROVIDER_TicketIterator *ticket_it_tail;
+
 
   /**
    * Currently pending transmission request, or NULL for none.
@@ -747,22 +823,54 @@ handle_ticket_result (void *cls,
 {
   struct GNUNET_IDENTITY_PROVIDER_Handle *handle = cls;
   struct GNUNET_IDENTITY_PROVIDER_Operation *op;
+  struct GNUNET_IDENTITY_PROVIDER_TicketIterator *it;
   const struct GNUNET_IDENTITY_PROVIDER_Ticket2 *ticket;
   uint32_t r_id = ntohl (msg->id);
+  size_t msg_len;
 
   for (op = handle->op_head; NULL != op; op = op->next)
     if (op->r_id == r_id)
       break;
-  if (NULL == op)
+  for (it = handle->ticket_it_head; NULL != it; it = it->next)
+    if (it->r_id == r_id)
+      break;
+  if ((NULL == op) && (NULL == it))
     return;
-  GNUNET_CONTAINER_DLL_remove (handle->op_head,
-                               handle->op_tail,
-                               op);
-  ticket = (struct GNUNET_IDENTITY_PROVIDER_Ticket2 *)&msg[1];
-  if (NULL != op->tr_cb)
-    op->tr_cb (op->cls, ticket);
-  GNUNET_free (op);
+  msg_len = ntohs (msg->header.size);
+  if (NULL != op)
+  {
+    GNUNET_CONTAINER_DLL_remove (handle->op_head,
+                                 handle->op_tail,
+                                 op);
+    if (msg_len == sizeof (struct TicketResultMessage))
+    {
+      if (NULL != op->tr_cb)
+        op->tr_cb (op->cls, NULL);
+    } else {
+      ticket = (struct GNUNET_IDENTITY_PROVIDER_Ticket2 *)&msg[1];
+      if (NULL != op->tr_cb)
+        op->tr_cb (op->cls, ticket);
+    }
+    GNUNET_free (op);
+    return;
+  } else if (NULL != it) {
+    GNUNET_CONTAINER_DLL_remove (handle->ticket_it_head,
+                                 handle->ticket_it_tail,
+                                 it);
+    if (msg_len == sizeof (struct TicketResultMessage))
+    {
+      if (NULL != it->tr_cb)
+        it->finish_cb (it->finish_cb_cls);
+    } else {
 
+      ticket = (struct GNUNET_IDENTITY_PROVIDER_Ticket2 *)&msg[1];
+      if (NULL != it->tr_cb)
+        it->tr_cb (it->cls, ticket);
+    }
+    GNUNET_free (it);
+    return;
+  }
+  GNUNET_break (0);
 }
 
 
@@ -1352,6 +1460,175 @@ GNUNET_IDENTITY_PROVIDER_rp_ticket_consume (struct GNUNET_IDENTITY_PROVIDER_Hand
 
 }
 
+
+/**
+ * Lists all tickets that have been issued to remote
+ * identites (relying parties)
+ *
+ * @param h the identity provider to use
+ * @param identity the issuing identity
+ * @param error_cb function to call on error (i.e. disconnect),
+ *        the handle is afterwards invalid
+ * @param error_cb_cls closure for @a error_cb
+ * @param proc function to call on each ticket; it
+ *        will be called repeatedly with a value (if available)
+ * @param proc_cls closure for @a proc
+ * @param finish_cb function to call on completion
+ *        the handle is afterwards invalid
+ * @param finish_cb_cls closure for @a finish_cb
+ * @return an iterator handle to use for iteration
+ */
+struct GNUNET_IDENTITY_PROVIDER_TicketIterator *
+GNUNET_IDENTITY_PROVIDER_idp_ticket_iteration_start (struct GNUNET_IDENTITY_PROVIDER_Handle *h,
+                                                     const struct GNUNET_CRYPTO_EcdsaPrivateKey *identity,
+                                                     GNUNET_SCHEDULER_TaskCallback error_cb,
+                                                     void *error_cb_cls,
+                                                     GNUNET_IDENTITY_PROVIDER_TicketCallback proc,
+                                                     void *proc_cls,
+                                                     GNUNET_SCHEDULER_TaskCallback finish_cb,
+                                                     void *finish_cb_cls)
+{
+  struct GNUNET_IDENTITY_PROVIDER_TicketIterator *it;
+  struct GNUNET_CRYPTO_EcdsaPublicKey identity_pub;
+  struct GNUNET_MQ_Envelope *env;
+  struct TicketIterationStartMessage *msg;
+  uint32_t rid;
+
+  GNUNET_CRYPTO_ecdsa_key_get_public (identity,
+                                      &identity_pub);
+  rid = h->r_id_gen++;
+  it = GNUNET_new (struct GNUNET_IDENTITY_PROVIDER_TicketIterator);
+  it->h = h;
+  it->error_cb = error_cb;
+  it->error_cb_cls = error_cb_cls;
+  it->finish_cb = finish_cb;
+  it->finish_cb_cls = finish_cb_cls;
+  it->tr_cb = proc;
+  it->cls = proc_cls;
+  it->r_id = rid;
+  GNUNET_CONTAINER_DLL_insert_tail (h->ticket_it_head,
+                                    h->ticket_it_tail,
+                                    it);
+  env = GNUNET_MQ_msg (msg,
+                       GNUNET_MESSAGE_TYPE_IDENTITY_PROVIDER_TICKET_ITERATION_START);
+  msg->id = htonl (rid);
+  msg->identity = identity_pub;
+  msg->is_audience = htonl (GNUNET_NO);
+  if (NULL == h->mq)
+    it->env = env;
+  else
+    GNUNET_MQ_send (h->mq,
+                    env);
+  return it;
+
+}
+
+
+/**
+ * Lists all tickets that have been issued to remote
+ * identites (relying parties)
+ *
+ * @param id the identity provider to use
+ * @param identity the issuing identity
+ * @param error_cb function to call on error (i.e. disconnect),
+ *        the handle is afterwards invalid
+ * @param error_cb_cls closure for @a error_cb
+ * @param proc function to call on each ticket; it
+ *        will be called repeatedly with a value (if available)
+ * @param proc_cls closure for @a proc
+ * @param finish_cb function to call on completion
+ *        the handle is afterwards invalid
+ * @param finish_cb_cls closure for @a finish_cb
+ * @return an iterator handle to use for iteration
+ */
+struct GNUNET_IDENTITY_PROVIDER_TicketIterator *
+GNUNET_IDENTITY_PROVIDER_ticket_iteration_start_rp (struct GNUNET_IDENTITY_PROVIDER_Handle *h,
+                                                    const struct GNUNET_CRYPTO_EcdsaPublicKey *identity,
+                                                    GNUNET_SCHEDULER_TaskCallback error_cb,
+                                                    void *error_cb_cls,
+                                                    GNUNET_IDENTITY_PROVIDER_TicketCallback proc,
+                                                    void *proc_cls,
+                                                    GNUNET_SCHEDULER_TaskCallback finish_cb,
+                                                    void *finish_cb_cls)
+{
+  struct GNUNET_IDENTITY_PROVIDER_TicketIterator *it;
+  struct GNUNET_MQ_Envelope *env;
+  struct TicketIterationStartMessage *msg;
+  uint32_t rid;
+
+  rid = h->r_id_gen++;
+  it = GNUNET_new (struct GNUNET_IDENTITY_PROVIDER_TicketIterator);
+  it->h = h;
+  it->error_cb = error_cb;
+  it->error_cb_cls = error_cb_cls;
+  it->finish_cb = finish_cb;
+  it->finish_cb_cls = finish_cb_cls;
+  it->tr_cb = proc;
+  it->cls = proc_cls;
+  it->r_id = rid;
+  GNUNET_CONTAINER_DLL_insert_tail (h->ticket_it_head,
+                                    h->ticket_it_tail,
+                                    it);
+  env = GNUNET_MQ_msg (msg,
+                       GNUNET_MESSAGE_TYPE_IDENTITY_PROVIDER_TICKET_ITERATION_START);
+  msg->id = htonl (rid);
+  msg->identity = *identity;
+  msg->is_audience = htonl (GNUNET_YES);
+  if (NULL == h->mq)
+    it->env = env;
+  else
+    GNUNET_MQ_send (h->mq,
+                    env);
+  return it;
+
+
+}
+
+/**
+ * Calls the record processor specified in #GNUNET_IDENTITY_PROVIDER_ticket_iteration_start
+ * for the next record.
+ *
+ * @param it the iterator
+ */
+void
+GNUNET_IDENTITY_PROVIDER_ticket_iteration_next (struct GNUNET_IDENTITY_PROVIDER_TicketIterator *it)
+{
+  struct GNUNET_IDENTITY_PROVIDER_Handle *h = it->h;
+  struct TicketIterationNextMessage *msg;
+  struct GNUNET_MQ_Envelope *env;
+
+  env = GNUNET_MQ_msg (msg,
+                       GNUNET_MESSAGE_TYPE_IDENTITY_PROVIDER_TICKET_ITERATION_NEXT);
+  msg->id = htonl (it->r_id);
+  GNUNET_MQ_send (h->mq,
+                  env);
+}
+
+
+/**
+ * Stops iteration and releases the idp handle for further calls.  Must
+ * be called on any iteration that has not yet completed prior to calling
+ * #GNUNET_IDENTITY_PROVIDER_disconnect.
+ *
+ * @param it the iterator
+ */
+void
+GNUNET_IDENTITY_PROVIDER_ticket_iteration_stop (struct GNUNET_IDENTITY_PROVIDER_TicketIterator *it)
+{
+  struct GNUNET_IDENTITY_PROVIDER_Handle *h = it->h;
+  struct GNUNET_MQ_Envelope *env;
+  struct TicketIterationStopMessage *msg;
+
+  if (NULL != h->mq)
+  {
+    env = GNUNET_MQ_msg (msg,
+                         GNUNET_MESSAGE_TYPE_IDENTITY_PROVIDER_TICKET_ITERATION_STOP);
+    msg->id = htonl (it->r_id);
+    GNUNET_MQ_send (h->mq,
+                    env);
+  }
+  GNUNET_free (it);
+}
 
 
 
