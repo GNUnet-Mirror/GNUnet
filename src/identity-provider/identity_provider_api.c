@@ -1035,7 +1035,7 @@ GNUNET_IDENTITY_PROVIDER_ticket_issue (struct GNUNET_IDENTITY_PROVIDER_Handle *h
                                        void *cb_cls)
 {
   struct GNUNET_IDENTITY_PROVIDER_Operation *op;
-  struct TicketIssueMessage *tim;
+  struct IssueTicketMessage *tim;
   size_t attr_len;
 
   op = GNUNET_new (struct GNUNET_IDENTITY_PROVIDER_Operation);
@@ -1049,7 +1049,7 @@ GNUNET_IDENTITY_PROVIDER_ticket_issue (struct GNUNET_IDENTITY_PROVIDER_Handle *h
   attr_len = attribute_list_serialize_get_size (attrs);
   op->env = GNUNET_MQ_msg_extra (tim,
                                  attr_len,
-                                 GNUNET_MESSAGE_TYPE_IDENTITY_PROVIDER_TICKET_ISSUE);
+                                 GNUNET_MESSAGE_TYPE_IDENTITY_PROVIDER_ISSUE_TICKET);
   tim->identity = *iss;
   tim->rp = *rp;
   tim->id = htonl (op->r_id);

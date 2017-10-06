@@ -245,7 +245,7 @@ struct TicketIterationStopMessage
 /**
  * Ticket issue message
  */
-struct TicketIssueMessage
+struct IssueTicketMessage
 {
   /**
    * Type will be #GNUNET_MESSAGE_TYPE_IDENTITY_PROVIDER_TICKET_ISSUE
@@ -274,6 +274,35 @@ struct TicketIssueMessage
 
   //Followed by a serialized attribute list
 };
+
+/**
+ * Ticket revoke message
+ */
+struct RevokeTicketMessage
+{
+  /**
+   * Type will be #GNUNET_MESSAGE_TYPE_IDENTITY_PROVIDER_TICKET_ISSUE
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Unique identifier for this request (for key collisions).
+   */
+  uint32_t id GNUNET_PACKED;
+
+  /**
+   * Identity.
+   */
+  struct GNUNET_CRYPTO_EcdsaPrivateKey identity;
+
+  /**
+   * length of serialized attribute list
+   */
+  uint32_t attrs_len GNUNET_PACKED;
+
+  //Followed by a ticket and serialized attribute list
+};
+
 
 /**
  * Ticket result message
