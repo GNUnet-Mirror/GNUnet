@@ -151,7 +151,7 @@ store_attr_cont (void *cls,
                 "%s\n", emsg);
   } else {
     GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
-                "Sucessfully added identity attribute %s=%s\n",
+                "Successfully added identity attribute %s=%s\n",
                 attr_name, attr_value);
   }
   GNUNET_SCHEDULER_add_now (&do_cleanup, NULL);
@@ -251,7 +251,7 @@ iter_cb (void *cls,
       break;
     }
     GNUNET_free (attrs_tmp);
-  } else {
+  } else if (list) {
     GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
                 "%s: %s\n", attr->name, (char*)attr->data);
   }

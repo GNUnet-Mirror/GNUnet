@@ -560,7 +560,7 @@ handle_consume_ticket_result (void *cls,
   uint32_t r_id = ntohl (msg->id);
 
   attrs_len = ntohs (msg->attrs_len);
-  LOG (GNUNET_ERROR_TYPE_MESSAGE,
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Processing attribute result.\n");
 
 
@@ -641,7 +641,7 @@ handle_attribute_result (void *cls,
   uint32_t r_id = ntohl (msg->id);
 
   attr_len = ntohs (msg->attr_len);
-  LOG (GNUNET_ERROR_TYPE_MESSAGE,
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Processing attribute result.\n");
 
 

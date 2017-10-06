@@ -1366,7 +1366,7 @@ static void
 process_parallel_lookup (void *cls, uint32_t rd_count,
                          const struct GNUNET_GNSRECORD_Data *rd)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Parallel lookup finished (count=%u)\n", rd_count);
   struct ParallelLookup *parallel_lookup = cls;
   struct ExchangeHandle *handle = parallel_lookup->handle;
@@ -1385,7 +1385,7 @@ process_parallel_lookup (void *cls, uint32_t rd_count,
                                    rd->data_size,
                                    handle->key,
                                    (void**)&data);
-      GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE, "Adding value: %s\n", data);
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Adding value: %s\n", data);
       token_add_attr (handle->token,
                       parallel_lookup->label,
                       data);
@@ -1400,7 +1400,7 @@ process_parallel_lookup (void *cls, uint32_t rd_count,
         data = GNUNET_GNSRECORD_value_to_string (rd[i].record_type,
                                                  rd[i].data,
                                                  rd[i].data_size);
-        GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE, "Adding value: %s\n", data);
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Adding value: %s\n", data);
         token_add_attr (handle->token, parallel_lookup->label, data);
         GNUNET_free (data);
       }
@@ -1485,7 +1485,7 @@ process_lookup_result (void *cls, uint32_t rd_count,
               size, rd->data_size - sizeof (struct GNUNET_CRYPTO_EcdhePublicKey));
 
   scopes = GNUNET_strdup (buf);
-  GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Scopes %s\n", scopes);
   handle->key = GNUNET_CRYPTO_cpabe_deserialize_key ((void*)(buf + strlen (scopes) + 1),
                                          rd->data_size - sizeof (struct GNUNET_CRYPTO_EcdhePublicKey)
@@ -1496,7 +1496,7 @@ process_lookup_result (void *cls, uint32_t rd_count,
     GNUNET_asprintf (&lookup_query,
                      "%s.gnu",
                      scope);
-    GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Looking up %s\n", lookup_query);
     parallel_lookup = GNUNET_new (struct ParallelLookup);
     parallel_lookup->handle = handle;
@@ -1776,9 +1776,19 @@ send_ticket_result (struct IdpClient *client,
 
   attrs_size = attribute_list_serialize_get_size (attrs);
 
+  /* store ticket in DB */
+  if (GNUNET_OK != TKT_database->store_ticket (TKT_database->cls,
+                                               ticket,
+                                               attrs))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Unable to store ticket after issue\n");
+    GNUNET_break (0);
+  }
+
   env = GNUNET_MQ_msg_extra (irm,
                              sizeof (struct GNUNET_IDENTITY_PROVIDER_Ticket2) + attrs_size,
-                       GNUNET_MESSAGE_TYPE_IDENTITY_PROVIDER_TICKET_RESULT);
+                             GNUNET_MESSAGE_TYPE_IDENTITY_PROVIDER_TICKET_RESULT);
   ticket_buf = (struct GNUNET_IDENTITY_PROVIDER_Ticket2 *)&irm[1];
   *ticket_buf = *ticket;
   attrs_buf = (char*)&ticket_buf[1];
@@ -1792,8 +1802,8 @@ send_ticket_result (struct IdpClient *client,
 
 static void
 store_ticket_issue_cont (void *cls,
-                        int32_t success,
-                        const char *emsg)
+                         int32_t success,
+                         const char *emsg)
 {
   struct TicketIssueHandle *handle = cls;
 
@@ -1843,10 +1853,10 @@ serialize_abe_keyinfo2 (const struct TicketIssueHandle *handle,
   }
   buf = GNUNET_malloc (attrs_str_len + size);
   write_ptr = buf;
-  GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Writing attributes\n");
   for (le = handle->attrs->list_head; NULL != le; le = le->next) {
-    GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "%s\n", le->attribute->name);
 
 
@@ -1943,6 +1953,7 @@ issue_ticket_after_abe_bootstrap (void *cls,
                                               ih);
   GNUNET_free (ecdhe_privkey);
   GNUNET_free (label);
+  GNUNET_free (attrs);
   GNUNET_free (code_record_data);
 }
 
@@ -2041,7 +2052,7 @@ static void
 process_parallel_lookup2 (void *cls, uint32_t rd_count,
                           const struct GNUNET_GNSRECORD_Data *rd)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Parallel lookup finished (count=%u)\n", rd_count);
   struct ParallelLookup2 *parallel_lookup = cls;
   struct ConsumeTicketHandle *handle = parallel_lookup->handle;
@@ -2056,6 +2067,7 @@ process_parallel_lookup2 (void *cls, uint32_t rd_count,
   GNUNET_CONTAINER_DLL_remove (handle->parallel_lookups_head,
                                handle->parallel_lookups_tail,
                                parallel_lookup);
+  GNUNET_free (parallel_lookup->label);
   GNUNET_free (parallel_lookup);
   if (1 != rd_count)
     GNUNET_break(0);//TODO
@@ -2075,7 +2087,18 @@ process_parallel_lookup2 (void *cls, uint32_t rd_count,
   }
   if (NULL != handle->parallel_lookups_head)
     return; //Wait for more
-  //Else we are done
+  /* Else we are done */
+
+  /* Store ticket in DB */
+  if (GNUNET_OK != TKT_database->store_ticket (TKT_database->cls,
+                                               &handle->ticket,
+                                               handle->attrs))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Unable to store ticket after consume\n");
+    GNUNET_break (0);
+  }
+  
   GNUNET_SCHEDULER_cancel (handle->kill_task);
   attrs_len = attribute_list_serialize_get_size (handle->attrs);
   env = GNUNET_MQ_msg_extra (crm,
@@ -2177,7 +2200,7 @@ process_consume_abe_key (void *cls, uint32_t rd_count,
               size, rd->data_size - sizeof (struct GNUNET_CRYPTO_EcdhePublicKey));
 
   scopes = GNUNET_strdup (buf);
-  GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Scopes %s\n", scopes);
   handle->key = GNUNET_CRYPTO_cpabe_deserialize_key ((void*)(buf + strlen (scopes) + 1),
                                                      rd->data_size - sizeof (struct GNUNET_CRYPTO_EcdhePublicKey)
@@ -2188,7 +2211,7 @@ process_consume_abe_key (void *cls, uint32_t rd_count,
     GNUNET_asprintf (&lookup_query,
                      "%s.gnu",
                      scope);
-    GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Looking up %s\n", lookup_query);
     parallel_lookup = GNUNET_new (struct ParallelLookup2);
     parallel_lookup->handle = handle;
@@ -2204,6 +2227,7 @@ process_consume_abe_key (void *cls, uint32_t rd_count,
     GNUNET_CONTAINER_DLL_insert (handle->parallel_lookups_head,
                                  handle->parallel_lookups_tail,
                                  parallel_lookup);
+    GNUNET_free (lookup_query);
   }
   handle->kill_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MINUTES,3),
                                                     &abort_parallel_lookups2,
@@ -2241,7 +2265,7 @@ handle_consume_ticket_message (void *cls,
   GNUNET_asprintf (&lookup_query,
                    "%s.gnu",
                    rnd_label);
-  GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Looking for ABE key under %s\n", lookup_query);
 
   ch->lookup_request
@@ -2252,6 +2276,7 @@ handle_consume_ticket_message (void *cls,
                          GNUNET_GNS_LO_LOCAL_MASTER,
                          &process_consume_abe_key,
                          ch);
+  GNUNET_free (rnd_label);
   GNUNET_free (lookup_query);
   GNUNET_SERVICE_client_continue (idp->client);
 }
