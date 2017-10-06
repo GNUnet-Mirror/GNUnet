@@ -319,12 +319,12 @@ typedef void
  * @return handle to abort the operation
  */
 struct GNUNET_IDENTITY_PROVIDER_Operation *
-GNUNET_IDENTITY_PROVIDER_idp_ticket_issue (struct GNUNET_IDENTITY_PROVIDER_Handle *id,
-                                           const struct GNUNET_CRYPTO_EcdsaPrivateKey *iss,
-                                           const struct GNUNET_CRYPTO_EcdsaPublicKey *rp,
-                                           const struct GNUNET_IDENTITY_PROVIDER_AttributeList *attrs,
-                                           GNUNET_IDENTITY_PROVIDER_TicketCallback cb,
-                                           void *cb_cls);
+GNUNET_IDENTITY_PROVIDER_ticket_issue (struct GNUNET_IDENTITY_PROVIDER_Handle *id,
+                                       const struct GNUNET_CRYPTO_EcdsaPrivateKey *iss,
+                                       const struct GNUNET_CRYPTO_EcdsaPublicKey *rp,
+                                       const struct GNUNET_IDENTITY_PROVIDER_AttributeList *attrs,
+                                       GNUNET_IDENTITY_PROVIDER_TicketCallback cb,
+                                       void *cb_cls);
 
 /** TODO
  * Revoked an issued ticket. The relying party will be unable to retrieve
@@ -338,11 +338,11 @@ GNUNET_IDENTITY_PROVIDER_idp_ticket_issue (struct GNUNET_IDENTITY_PROVIDER_Handl
  * @return handle to abort the operation
  */
 struct GNUNET_IDENTITY_PROVIDER_Operation *
-GNUNET_IDENTITY_PROVIDER_idp_ticket_revoke (struct GNUNET_IDENTITY_PROVIDER_Handle *id,
-                                            const struct GNUNET_CRYPTO_EcdsaPrivateKey *identity,
-                                            const struct GNUNET_IDENTITY_PROVIDER_Ticket *ticket,
-                                            GNUNET_IDENTITY_PROVIDER_ContinuationWithStatus cb,
-                                            void *cb_cls);
+GNUNET_IDENTITY_PROVIDER_ticket_revoke (struct GNUNET_IDENTITY_PROVIDER_Handle *id,
+                                        const struct GNUNET_CRYPTO_EcdsaPrivateKey *identity,
+                                        const struct GNUNET_IDENTITY_PROVIDER_Ticket *ticket,
+                                        GNUNET_IDENTITY_PROVIDER_ContinuationWithStatus cb,
+                                        void *cb_cls);
 
 
 
@@ -351,18 +351,18 @@ GNUNET_IDENTITY_PROVIDER_idp_ticket_revoke (struct GNUNET_IDENTITY_PROVIDER_Hand
  * and used to retrieve identity information from the issuer
  *
  * @param id the identity provider to use
- * @param identity the identity that is the subject of the issued ticket (the relying party)
+ * @param identity the identity that is the subject of the issued ticket (the audience)
  * @param ticket the issued ticket to consume
  * @param cb the callback to call
  * @param cb_cls the callback closure
  * @return handle to abort the operation
  */
 struct GNUNET_IDENTITY_PROVIDER_Operation *
-GNUNET_IDENTITY_PROVIDER_rp_ticket_consume (struct GNUNET_IDENTITY_PROVIDER_Handle *id,
-                                            const struct GNUNET_CRYPTO_EcdsaPrivateKey * identity,
-                                            const struct GNUNET_IDENTITY_PROVIDER_Ticket *ticket,
-                                            GNUNET_IDENTITY_PROVIDER_AttributeResult cb,
-                                            void *cb_cls);
+GNUNET_IDENTITY_PROVIDER_ticket_consume (struct GNUNET_IDENTITY_PROVIDER_Handle *id,
+                                         const struct GNUNET_CRYPTO_EcdsaPrivateKey *identity,
+                                         const struct GNUNET_IDENTITY_PROVIDER_Ticket *ticket,
+                                         GNUNET_IDENTITY_PROVIDER_AttributeResult cb,
+                                         void *cb_cls);
 
 /**
  * Lists all tickets that have been issued to remote
@@ -382,14 +382,14 @@ GNUNET_IDENTITY_PROVIDER_rp_ticket_consume (struct GNUNET_IDENTITY_PROVIDER_Hand
  * @return an iterator handle to use for iteration
  */
 struct GNUNET_IDENTITY_PROVIDER_TicketIterator *
-GNUNET_IDENTITY_PROVIDER_idp_ticket_iteration_start (struct GNUNET_IDENTITY_PROVIDER_Handle *h,
-                                                     const struct GNUNET_CRYPTO_EcdsaPrivateKey *identity,
-                                                     GNUNET_SCHEDULER_TaskCallback error_cb,
-                                                     void *error_cb_cls,
-                                                     GNUNET_IDENTITY_PROVIDER_TicketCallback proc,
-                                                     void *proc_cls,
-                                                     GNUNET_SCHEDULER_TaskCallback finish_cb,
-                                                     void *finish_cb_cls);
+GNUNET_IDENTITY_PROVIDER_ticket_iteration_start (struct GNUNET_IDENTITY_PROVIDER_Handle *h,
+                                                 const struct GNUNET_CRYPTO_EcdsaPrivateKey *identity,
+                                                 GNUNET_SCHEDULER_TaskCallback error_cb,
+                                                 void *error_cb_cls,
+                                                 GNUNET_IDENTITY_PROVIDER_TicketCallback proc,
+                                                 void *proc_cls,
+                                                 GNUNET_SCHEDULER_TaskCallback finish_cb,
+                                                 void *finish_cb_cls);
 
 /**
  * Lists all tickets that have been issued to remote

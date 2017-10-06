@@ -193,20 +193,20 @@ iter_finished (void *cls)
   }
 
   if (issue_attrs) {
-    idp_op = GNUNET_IDENTITY_PROVIDER_idp_ticket_issue (idp_handle,
-                                                        pkey,
-                                                        &rp_key,
-                                                        attr_list,
-                                                        &ticket_issue_cb,
-                                                        NULL);
+    idp_op = GNUNET_IDENTITY_PROVIDER_ticket_issue (idp_handle,
+                                                    pkey,
+                                                    &rp_key,
+                                                    attr_list,
+                                                    &ticket_issue_cb,
+                                                    NULL);
     return;
   }
   if (consume_ticket) {
-    idp_op = GNUNET_IDENTITY_PROVIDER_rp_ticket_consume (idp_handle,
-                                                         pkey,
-                                                         &ticket,
-                                                         &process_attrs,
-                                                         NULL);
+    idp_op = GNUNET_IDENTITY_PROVIDER_ticket_consume (idp_handle,
+                                                      pkey,
+                                                      &ticket,
+                                                      &process_attrs,
+                                                      NULL);
     return;
   }
   attr = GNUNET_IDENTITY_PROVIDER_attribute_new (attr_name,
