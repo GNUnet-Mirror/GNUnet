@@ -36,7 +36,6 @@
 #include "gnunet_identity_provider_plugin.h"
 #include "gnunet_signatures.h"
 #include "identity_provider.h"
-#include "identity_token.h"
 #include "identity_attribute.h"
 #include <inttypes.h>
 
@@ -360,27 +359,8 @@ struct AttributeStoreHandle
 };
 
 
-
-struct VerifiedAttributeEntry
-{
-  /**
-   * DLL
-   */
-  struct VerifiedAttributeEntry *prev;
-
-  /**
-   * DLL
-   */
-  struct VerifiedAttributeEntry *next;
-
-  /**
-   * Attribute Name
-   */
-  char* name;
-};
-
+/* Prototype */
 struct ParallelLookup;
-struct ParallelLookup2;
 
 struct ConsumeTicketHandle
 {
@@ -393,7 +373,7 @@ struct ConsumeTicketHandle
   /**
    * Ticket
    */
-  struct GNUNET_IDENTITY_PROVIDER_Ticket2 ticket;
+  struct GNUNET_IDENTITY_PROVIDER_Ticket ticket;
 
   /**
    * LookupRequest
@@ -413,12 +393,12 @@ struct ConsumeTicketHandle
   /**
    * Lookup DLL
    */
-  struct ParallelLookup2 *parallel_lookups_head;
+  struct ParallelLookup *parallel_lookups_head;
 
   /**
    * Lookup DLL
    */
-  struct ParallelLookup2 *parallel_lookups_tail;
+  struct ParallelLookup *parallel_lookups_tail;
   
   /**
    * Kill task
@@ -441,82 +421,30 @@ struct ConsumeTicketHandle
   uint32_t r_id;
 };
 
-struct ParallelLookup2
-{
-  struct ParallelLookup2 *next;
-
-  struct ParallelLookup2 *prev;
-
-  struct GNUNET_GNS_LookupRequest *lookup_request;
-
-  struct ConsumeTicketHandle *handle;
-
-  char *label;
-};
-
-
-struct ExchangeHandle
-{
-
-  /**
-   * Client connection
-   */
-  struct IdpClient *client;
-
-  /**
-   * Ticket
-   */
-  struct TokenTicket *ticket;
-
-  /**
-   * Token returned
-   */
-  struct IdentityToken *token;
-
-  /**
-   * LookupRequest
-   */
-  struct GNUNET_GNS_LookupRequest *lookup_request;
-
-  /**
-   * Audience Key
-   */
-  struct GNUNET_CRYPTO_EcdsaPrivateKey aud_privkey;
-  
-  /**
-   * ParallelLookups DLL
-   */
-  struct ParallelLookup *parallel_lookups_head;
-  struct ParallelLookup *parallel_lookups_tail;
-  
-  struct GNUNET_SCHEDULER_Task *kill_task;
-  struct GNUNET_CRYPTO_AbeKey *key;
-
-  /**
-   * Label to return
-   */
-  char *label;
-
-  /**
-   * request id
-   */
-  uint32_t r_id;
-};
-
+/**
+ * Handle for a parallel GNS lookup job
+ */
 struct ParallelLookup
 {
+  /* DLL */
   struct ParallelLookup *next;
 
+  /* DLL */
   struct ParallelLookup *prev;
 
+  /* The GNS request */
   struct GNUNET_GNS_LookupRequest *lookup_request;
 
-  struct ExchangeHandle *handle;
+  /* The handle the return to */
+  struct ConsumeTicketHandle *handle;
 
+  /* The label to look up */
   char *label;
 };
 
-
+/**
+ * Ticket issue request handle
+ */
 struct TicketIssueHandle
 {
 
@@ -538,7 +466,7 @@ struct TicketIssueHandle
   /**
    * Ticket to issue
    */
-  struct GNUNET_IDENTITY_PROVIDER_Ticket2 ticket;
+  struct GNUNET_IDENTITY_PROVIDER_Ticket ticket;
 
   /**
    * QueueEntry
@@ -551,103 +479,6 @@ struct TicketIssueHandle
   uint32_t r_id;
 };
 
-
-/**
- * DEPRECATED
- */
-struct IssueHandle
-{
-
-  /**
-   * Client connection
-   */
-  struct IdpClient *client;
-
-  /**
-   * Issuer Key
-   */
-  struct GNUNET_CRYPTO_EcdsaPrivateKey iss_key;
-
-  /**
-   * Issue pubkey
-   */
-  struct GNUNET_CRYPTO_EcdsaPublicKey iss_pkey;
-
-  /**
-   * Audience Key
-   */
-  struct GNUNET_CRYPTO_EcdsaPublicKey aud_key;
-
-  /**
-   * The issuer egos ABE master key
-   */
-  struct GNUNET_CRYPTO_AbeMasterKey *abe_key;
-
-  /**
-   * Expiration
-   */
-  struct GNUNET_TIME_Absolute expiration;
-
-  /**
-   * Scopes
-   */
-  char *scopes;
-
-  /**
-   * DLL
-   */
-  struct VerifiedAttributeEntry *v_attr_head;
-
-  /**
-   * DLL
-   */
-  struct VerifiedAttributeEntry *v_attr_tail;
-
-  /**
-   * nonce
-   */
-  uint64_t nonce;
-
-  /**
-   * NS iterator
-   */
-  struct GNUNET_NAMESTORE_ZoneIterator *ns_it;
-
-  /**
-   * Cred request
-   */
-  struct GNUNET_CREDENTIAL_Request *credential_request;
-
-  /**
-   * Attribute map
-   */
-  struct GNUNET_CONTAINER_MultiHashMap *attr_map;
-
-  /**
-   * Token
-   */
-  struct IdentityToken *token;
-
-  /**
-   * Ticket
-   */
-  struct TokenTicket *ticket;
-
-  /**
-   * QueueEntry
-   */
-  struct GNUNET_NAMESTORE_QueueEntry *ns_qe;
-
-  /**
-   * The label the token is stored under
-   */
-  char *label;
-
-  /**
-   * request id
-   */
-  uint32_t r_id;
-};
 
 /**
  * DLL for ego handles to egos containing the ID_ATTRS in a map in json_t format
@@ -846,119 +677,6 @@ bootstrap_abe (const struct GNUNET_CRYPTO_EcdsaPrivateKey *identity,
 
 
 
-static struct GNUNET_MQ_Envelope*
-create_exchange_result_message (const char* token,
-                                const char* label,
-                                uint64_t ticket_nonce,
-                                uint64_t id)
-{
-  struct GNUNET_MQ_Envelope *env;
-  struct ExchangeResultMessage *erm;
-  uint16_t token_len = strlen (token) + 1;
-
-  env = GNUNET_MQ_msg_extra (erm,
-                             token_len,
-                             GNUNET_MESSAGE_TYPE_IDENTITY_PROVIDER_EXCHANGE_RESULT);
-  erm->ticket_nonce = htonl (ticket_nonce);
-  erm->id = id;
-  GNUNET_memcpy (&erm[1], token, token_len);
-  return env;
-}
-
-
-static struct GNUNET_MQ_Envelope*
-create_issue_result_message (const char* label,
-                             const char* ticket,
-                             const char* token,
-                             uint64_t id)
-{
-  struct GNUNET_MQ_Envelope *env;
-  struct IssueResultMessage *irm;
-  char *tmp_str;
-  size_t len;
-
-  GNUNET_asprintf (&tmp_str, "%s,%s,%s", label, ticket, token);
-  len = strlen (tmp_str) + 1;
-  env = GNUNET_MQ_msg_extra (irm,
-                             len,
-                             GNUNET_MESSAGE_TYPE_IDENTITY_PROVIDER_ISSUE_RESULT);
-  irm->id = id;
-  GNUNET_memcpy (&irm[1], tmp_str, strlen (tmp_str) + 1);
-  GNUNET_free (tmp_str);
-  return env;
-}
-
-static void
-cleanup_issue_handle (struct IssueHandle *handle)
-{
-  if (NULL != handle->attr_map)
-    GNUNET_CONTAINER_multihashmap_destroy (handle->attr_map);
-  if (NULL != handle->scopes)
-    GNUNET_free (handle->scopes);
-  if (NULL != handle->token)
-    token_destroy (handle->token);
-  if (NULL != handle->ticket)
-    ticket_destroy (handle->ticket);
-  if (NULL != handle->label)
-    GNUNET_free (handle->label);
-  if (NULL != handle->ns_it)
-    GNUNET_NAMESTORE_zone_iteration_stop (handle->ns_it);
-  if (NULL != handle->credential_request)
-    GNUNET_CREDENTIAL_request_cancel (handle->credential_request);
-  GNUNET_free (handle);
-}
-
-static void
-store_record_issue_cont (void *cls,
-                        int32_t success,
-                        const char *emsg)
-{
-  struct IssueHandle *handle = cls;
-  struct GNUNET_MQ_Envelope *env;
-  char *ticket_str;
-  char *token_str;
-
-  handle->ns_qe = NULL;
-  if (GNUNET_SYSERR == success)
-  {
-    cleanup_issue_handle (handle);
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "%s\n",
-                "Unknown Error\n");
-    GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
-    return;
-  }
-  if (GNUNET_OK != ticket_serialize (handle->ticket,
-                                     &handle->iss_key,
-                                     &ticket_str))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "%s\n",
-                "Error serializing ticket\n");
-    cleanup_issue_handle (handle);
-    GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
-    return;
-  }
-  if (GNUNET_OK != token_to_string (handle->token,
-                                    &handle->iss_key,
-                                    &token_str))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "%s\n",
-                "Error serializing token\n");
-    GNUNET_free (ticket_str);
-    cleanup_issue_handle (handle);
-    GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
-    return;
-  }
-  env = create_issue_result_message (handle->label,
-                                     ticket_str,
-                                     token_str,
-                                     handle->r_id);
-  GNUNET_MQ_send (handle->client->mq,
-                  env);
-  cleanup_issue_handle (handle);
-  GNUNET_free (ticket_str);
-  GNUNET_free (token_str);
-}
-
 static int
 create_sym_key_from_ecdh(const struct GNUNET_HashCode *new_key_hash,
                          struct GNUNET_CRYPTO_SymmetricSessionKey *skey,
@@ -982,775 +700,6 @@ create_sym_key_from_ecdh(const struct GNUNET_HashCode *new_key_hash,
   return GNUNET_OK;
 }
 
-int
-serialize_abe_keyinfo (const struct IssueHandle *handle,
-                 const struct GNUNET_CRYPTO_AbeKey *rp_key,
-                 struct GNUNET_CRYPTO_EcdhePrivateKey **ecdh_privkey,
-                 char **result)
-{
-  char *enc_keyinfo;
-  char *serialized_key;
-  char *buf;
-  struct GNUNET_CRYPTO_EcdhePublicKey ecdh_pubkey;
-  ssize_t size;
-  
-  struct GNUNET_CRYPTO_SymmetricSessionKey skey;
-  struct GNUNET_CRYPTO_SymmetricInitializationVector iv;
-  struct GNUNET_HashCode new_key_hash;
-  ssize_t enc_size;
-  
-  size = GNUNET_CRYPTO_cpabe_serialize_key (rp_key,
-                                            (void**)&serialized_key);
-  buf = GNUNET_malloc (strlen (handle->scopes) + 1 + size);
-  GNUNET_memcpy (buf,
-                 handle->scopes,
-                 strlen (handle->scopes) + 1);
-  GNUNET_memcpy (buf + strlen (handle->scopes) + 1,
-                 serialized_key,
-                 size);
-  // ECDH keypair E = eG
-  *ecdh_privkey = GNUNET_CRYPTO_ecdhe_key_create();
-  GNUNET_CRYPTO_ecdhe_key_get_public (*ecdh_privkey,
-                                      &ecdh_pubkey);
-  enc_keyinfo = GNUNET_malloc (size + strlen (handle->scopes) + 1);
-  // Derived key K = H(eB)
-  GNUNET_assert (GNUNET_OK == GNUNET_CRYPTO_ecdh_ecdsa (*ecdh_privkey,
-                                                        &handle->aud_key,
-                                                        &new_key_hash));
-  create_sym_key_from_ecdh(&new_key_hash, &skey, &iv);
-  enc_size = GNUNET_CRYPTO_symmetric_encrypt (buf,
-                                              size + strlen (handle->scopes) + 1,
-                                              &skey, &iv,
-                                              enc_keyinfo);
-  *result = GNUNET_malloc (sizeof (struct GNUNET_CRYPTO_EcdhePublicKey)+
-                           enc_size);
-  GNUNET_memcpy (*result,
-                 &ecdh_pubkey,
-                 sizeof (struct GNUNET_CRYPTO_EcdhePublicKey));
-  GNUNET_memcpy (*result + sizeof (struct GNUNET_CRYPTO_EcdhePublicKey),
-                 enc_keyinfo,
-                 enc_size);
-  GNUNET_free (enc_keyinfo);
-  return sizeof (struct GNUNET_CRYPTO_EcdhePublicKey)+enc_size;
-}
-
-static void
-cleanup_exchange_handle (struct ExchangeHandle *handle)
-{
-  if (NULL != handle->ticket)
-    ticket_destroy (handle->ticket);
-  if (NULL != handle->token)
-    token_destroy (handle->token);
-  GNUNET_free (handle);
-}
-
-
-/**
- * Build a token and store it
- *
- * @param cls the IssueHandle
- */
-static void
-sign_and_return_token (void *cls)
-{
-  struct ExchangeHandle *handle = cls;
-  struct GNUNET_MQ_Envelope *env;
-  char *token_str;
-  uint64_t time;
-  uint64_t exp_time;
-
-  time = GNUNET_TIME_absolute_get().abs_value_us;
-  exp_time = time + token_expiration_interval.rel_value_us;
-
-  token_add_attr_int (handle->token, "nbf", time);
-  token_add_attr_int (handle->token, "iat", time);
-  token_add_attr_int (handle->token, "exp", exp_time);
-  
-  //Readable
-  GNUNET_assert (GNUNET_OK == token_to_string (handle->token,
-                                               &handle->aud_privkey,
-                                               &token_str));
-
-  env = create_exchange_result_message (token_str,
-                                        handle->label,
-                                        handle->ticket->payload->nonce,
-                                        handle->r_id);
-  GNUNET_MQ_send (handle->client->mq,
-                  env);
-  cleanup_exchange_handle (handle);
-  GNUNET_free (token_str);
-
-}
-
-/**
- * Build an ABE key and store it
- *
- * @param cls the IssueHandle
- */
-static void
-issue_ticket (void *cls)
-{
-  struct GNUNET_CRYPTO_EcdsaPublicKey pub_key;
-  struct GNUNET_CRYPTO_EcdhePrivateKey *ecdhe_privkey;
-  struct IssueHandle *handle = cls;
-  struct GNUNET_GNSRECORD_Data code_record[1];
-  struct GNUNET_CRYPTO_AbeKey *rp_key;
-  char *nonce_str;
-  char *code_record_data;
-  char **attrs;
-  char *scope;
-  char *scopes_tmp;
-  int attrs_len;
-  int i;
-  uint64_t time;
-  uint64_t exp_time;
-  size_t code_record_len;
-
-  //Remote nonce
-  nonce_str = NULL;
-  GNUNET_asprintf (&nonce_str, "%lu", handle->nonce);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Request nonce: %s\n", nonce_str);
-
-  GNUNET_CRYPTO_ecdsa_key_get_public (&handle->iss_key,
-                                      &pub_key);
-  handle->ticket = ticket_create (handle->nonce,
-                                  &pub_key,
-                                  handle->label,
-                                  &handle->aud_key);
-
-  time = GNUNET_TIME_absolute_get().abs_value_us;
-  exp_time = time + token_expiration_interval.rel_value_us;
-
-  token_add_attr_int (handle->token, "nbf", time);
-  token_add_attr_int (handle->token, "iat", time);
-  token_add_attr_int (handle->token, "exp", exp_time);
-  token_add_attr (handle->token, "nonce", nonce_str);
-
-  //Create new ABE key for RP
-  attrs_len = (GNUNET_CONTAINER_multihashmap_size (handle->attr_map) + 1) * sizeof (char*);
-  attrs = GNUNET_malloc (attrs_len);
-  i = 0;
-  scopes_tmp = GNUNET_strdup (handle->scopes);
-  for (scope = strtok (scopes_tmp, ","); NULL != scope; scope = strtok (NULL, ",")) {
-    attrs[i] = scope;
-    i++;
-  }
-  rp_key = GNUNET_CRYPTO_cpabe_create_key (handle->abe_key,
-                                           attrs);
-  code_record_len = serialize_abe_keyinfo (handle,
-                                           rp_key,
-                                           &ecdhe_privkey,
-                                           &code_record_data);
-  code_record[0].data = code_record_data;
-  code_record[0].data_size = code_record_len;
-  code_record[0].expiration_time = exp_time;
-  code_record[0].record_type = GNUNET_GNSRECORD_TYPE_ABE_KEY;
-  code_record[0].flags = GNUNET_GNSRECORD_RF_NONE;
-
-
-  //Publish record
-  handle->ns_qe = GNUNET_NAMESTORE_records_store (ns_handle,
-                                                  &handle->iss_key,
-                                                  handle->label,
-                                                  1,
-                                                  code_record,
-                                                  &store_record_issue_cont,
-                                                  handle);
-  GNUNET_free (ecdhe_privkey);
-  GNUNET_free (nonce_str);
-  GNUNET_free (code_record_data);
-}
-
-/**
- * Credential to JSON
- * @param cred the credential
- * @return the resulting json, NULL if failed
- */
-static json_t*
-credential_to_json (struct GNUNET_CREDENTIAL_Credential *cred)
-{
-  char *issuer;
-  char *subject;
-  char *signature;
-  char attribute[cred->issuer_attribute_len + 1];
-  json_t *cred_obj;
-
-  issuer = GNUNET_CRYPTO_ecdsa_public_key_to_string (&cred->issuer_key);
-  if (NULL == issuer)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Issuer in credential malformed\n");
-    return NULL;
-  }  
-  subject = GNUNET_CRYPTO_ecdsa_public_key_to_string (&cred->subject_key);
-  if (NULL == subject)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Subject in credential malformed\n");
-    GNUNET_free (issuer);
-    return NULL;
-  }
-  GNUNET_STRINGS_base64_encode ((char*)&cred->signature,
-                                sizeof (struct GNUNET_CRYPTO_EcdsaSignature),
-                                &signature);
-  memcpy (attribute,
-          cred->issuer_attribute,
-          cred->issuer_attribute_len);
-  attribute[cred->issuer_attribute_len] = '\0';
-  cred_obj = json_object ();
-  json_object_set_new (cred_obj, "issuer", json_string (issuer));
-  json_object_set_new (cred_obj, "subject", json_string (subject));
-  json_object_set_new (cred_obj, "attribute", json_string (attribute));
-  json_object_set_new (cred_obj, "signature", json_string (signature));
-  json_object_set_new (cred_obj, "expiration", json_integer (cred->expiration.abs_value_us));
-  GNUNET_free (issuer);
-  GNUNET_free (subject);
-  GNUNET_free (signature);
-  return cred_obj;
-}
-
-
-static void
-handle_vattr_collection (void* cls,
-                         unsigned int d_count,
-                         struct GNUNET_CREDENTIAL_Delegation *dc,
-                         unsigned int c_count,
-                         struct GNUNET_CREDENTIAL_Credential *cred)
-{
-  struct IssueHandle *handle = cls;
-  struct VerifiedAttributeEntry *vattr;
-  json_t *cred_json;
-  json_t *cred_array;
-  int i;
-  handle->credential_request = NULL;
-
-  if (NULL == cred)
-  {
-    GNUNET_SCHEDULER_add_now (&issue_ticket, handle);
-    return;
-  }
-  cred_array = json_array();
-  for (i=0;i<c_count;i++)
-  {
-    cred_json = credential_to_json (cred);
-    if (NULL == cred_json)
-      continue;
-    json_array_append (cred_array, cred_json);
-    token_add_attr_json (handle->token,
-                         handle->v_attr_head->name,
-                         cred_array);
-  }
-  json_decref (cred_array);
-  vattr = handle->v_attr_head;
-
-  GNUNET_CONTAINER_DLL_remove (handle->v_attr_head,
-                               handle->v_attr_tail,
-                               vattr);
-  GNUNET_free (vattr->name);
-  GNUNET_free (vattr);
-
-  if (NULL == handle->v_attr_head)
-  {
-    GNUNET_SCHEDULER_add_now (&issue_ticket, handle);
-    return;
-  }
-  handle->credential_request = GNUNET_CREDENTIAL_collect (credential_handle,
-                                                          &handle->aud_key,
-                                                          handle->v_attr_head->name,
-                                                          &handle->iss_key,
-                                                          &handle_vattr_collection,
-                                                          handle);
-
-}
-
-
-static void
-attr_collect_error (void *cls)
-{
-  struct IssueHandle *handle = cls;
-
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Adding attribute Error!\n");
-  handle->ns_it = NULL;
-  GNUNET_SCHEDULER_add_now (&issue_ticket, handle);
-}
-
-
-static void
-attr_collect_finished (void *cls)
-{
-  struct IssueHandle *handle = cls;
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Adding attribute END: \n");
-  handle->ns_it = NULL;
-
-  if (NULL == handle->v_attr_head)
-  {
-    GNUNET_SCHEDULER_add_now (&issue_ticket, handle);
-    return;
-  }
-  handle->credential_request = GNUNET_CREDENTIAL_collect (credential_handle,
-                                                          &handle->aud_key,
-                                                          handle->v_attr_head->name,
-                                                          &handle->iss_key,
-                                                          &handle_vattr_collection,
-                                                          handle);
-}
-
-/**
- * Collect attributes for token
- */
-static void
-attr_collect (void *cls,
-              const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone,
-              const char *label,
-              unsigned int rd_count,
-              const struct GNUNET_GNSRECORD_Data *rd)
-{
-  struct IssueHandle *handle = cls;
-  int i;
-  char* data;
-  struct GNUNET_HashCode key;
-
-  GNUNET_CRYPTO_hash (label,
-                      strlen (label),
-                      &key);
-
-  if (0 == rd_count ||
-      ( (NULL != handle->attr_map) &&
-        (GNUNET_YES != GNUNET_CONTAINER_multihashmap_contains (handle->attr_map,
-                                                               &key))
-      )
-     )
-  {
-    GNUNET_NAMESTORE_zone_iterator_next (handle->ns_it);
-    return;
-  }
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Adding attribute: %s\n", label);
-
-  if (1 == rd_count)
-  {
-    if (rd->record_type == GNUNET_GNSRECORD_TYPE_ID_ATTR)
-    {
-      data = GNUNET_GNSRECORD_value_to_string (rd->record_type,
-                                               rd->data,
-                                               rd->data_size);
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Adding value: %s\n", data);
-      token_add_attr (handle->token,
-                      label,
-                      data);
-      GNUNET_free (data);
-    }
-    GNUNET_NAMESTORE_zone_iterator_next (handle->ns_it);
-    return;
-  }
-
-  i = 0;
-  for (; i < rd_count; i++)
-  {
-    if (rd->record_type == GNUNET_GNSRECORD_TYPE_ID_ATTR)
-    {
-      data = GNUNET_GNSRECORD_value_to_string (rd[i].record_type,
-                                               rd[i].data,
-                                               rd[i].data_size);
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Adding value: %s\n", data);
-      token_add_attr (handle->token, label, data);
-      GNUNET_free (data);
-    }
-  }
-
-  GNUNET_NAMESTORE_zone_iterator_next (handle->ns_it);
-}
-
-static void
-process_parallel_lookup (void *cls, uint32_t rd_count,
-                         const struct GNUNET_GNSRECORD_Data *rd)
-{
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Parallel lookup finished (count=%u)\n", rd_count);
-  struct ParallelLookup *parallel_lookup = cls;
-  struct ExchangeHandle *handle = parallel_lookup->handle;
-  char *data;
-  int i;
-
-  GNUNET_CONTAINER_DLL_remove (handle->parallel_lookups_head,
-                               handle->parallel_lookups_tail,
-                               parallel_lookup);
-  GNUNET_free (parallel_lookup);
-  if (1 == rd_count)
-  {
-    if (rd->record_type == GNUNET_GNSRECORD_TYPE_ID_ATTR)
-    {
-      GNUNET_CRYPTO_cpabe_decrypt (rd->data,
-                                   rd->data_size,
-                                   handle->key,
-                                   (void**)&data);
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Adding value: %s\n", data);
-      token_add_attr (handle->token,
-                      parallel_lookup->label,
-                      data);
-      GNUNET_free (data);
-    }
-  } else {
-    i = 0;
-    for (; i < rd_count; i++)
-    {
-      if (rd[i].record_type == GNUNET_GNSRECORD_TYPE_ID_ATTR)
-      {
-        data = GNUNET_GNSRECORD_value_to_string (rd[i].record_type,
-                                                 rd[i].data,
-                                                 rd[i].data_size);
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Adding value: %s\n", data);
-        token_add_attr (handle->token, parallel_lookup->label, data);
-        GNUNET_free (data);
-      }
-    }
-  }
-  if (NULL != handle->parallel_lookups_head)
-    return; //Wait for more
-  //Else we are done
-  GNUNET_SCHEDULER_cancel (handle->kill_task);
-  GNUNET_SCHEDULER_add_now (&sign_and_return_token, handle);
-}
-
-void
-abort_parallel_lookups (void *cls)
-{
-  struct ExchangeHandle *handle = cls;
-  struct ParallelLookup *lu;
-  struct ParallelLookup *tmp;
-
-  for (lu = handle->parallel_lookups_head;
-       NULL != lu;) {
-    GNUNET_GNS_lookup_cancel (lu->lookup_request);
-    GNUNET_free (lu->label);
-    tmp = lu->next;
-    GNUNET_CONTAINER_DLL_remove (handle->parallel_lookups_head,
-                                 handle->parallel_lookups_tail,
-                                 lu);
-      GNUNET_free (lu);
-      lu = tmp;
-  }
-  GNUNET_SCHEDULER_add_now (&sign_and_return_token, handle);
-
-}
-
-static void
-process_lookup_result (void *cls, uint32_t rd_count,
-                       const struct GNUNET_GNSRECORD_Data *rd)
-{
-  struct ExchangeHandle *handle = cls;
-  struct GNUNET_HashCode new_key_hash;
-  struct GNUNET_CRYPTO_SymmetricSessionKey enc_key;
-  struct GNUNET_CRYPTO_SymmetricInitializationVector enc_iv;
-  struct GNUNET_CRYPTO_EcdhePublicKey *ecdh_key;
-  struct ParallelLookup *parallel_lookup;
-  size_t size;
-  char *buf;
-  char *scope;
-  char *lookup_query;
-
-  handle->lookup_request = NULL;
-  if (1 != rd_count)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Number of keys %d != 1.",
-                rd_count);
-    cleanup_exchange_handle (handle);
-    GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
-    return;
-  }
-
-  //Decrypt
-  ecdh_key = (struct GNUNET_CRYPTO_EcdhePublicKey *)rd->data;
-
-  buf = GNUNET_malloc (rd->data_size - sizeof (struct GNUNET_CRYPTO_EcdhePublicKey));
-
-  //Calculate symmetric key from ecdh parameters
-  GNUNET_assert (GNUNET_OK == 
-                 GNUNET_CRYPTO_ecdsa_ecdh (&handle->aud_privkey,
-                                           ecdh_key,
-                                           &new_key_hash));
-  create_sym_key_from_ecdh (&new_key_hash,
-                            &enc_key,
-                            &enc_iv);
-  size = GNUNET_CRYPTO_symmetric_decrypt (rd->data + sizeof (struct GNUNET_CRYPTO_EcdhePublicKey),
-                                          rd->data_size - sizeof (struct GNUNET_CRYPTO_EcdhePublicKey),
-                                          &enc_key,
-                                          &enc_iv,
-                                          buf);
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Decrypted bytes: %zd Expected bytes: %zd\n",
-              size, rd->data_size - sizeof (struct GNUNET_CRYPTO_EcdhePublicKey));
-
-  scopes = GNUNET_strdup (buf);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Scopes %s\n", scopes);
-  handle->key = GNUNET_CRYPTO_cpabe_deserialize_key ((void*)(buf + strlen (scopes) + 1),
-                                         rd->data_size - sizeof (struct GNUNET_CRYPTO_EcdhePublicKey)
-                                         - strlen (scopes) - 1);
-
-  for (scope = strtok (scopes, ","); NULL != scope; scope = strtok (NULL, ","))
-  {
-    GNUNET_asprintf (&lookup_query,
-                     "%s.gnu",
-                     scope);
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Looking up %s\n", lookup_query);
-    parallel_lookup = GNUNET_new (struct ParallelLookup);
-    parallel_lookup->handle = handle;
-    parallel_lookup->label = GNUNET_strdup (scope);
-    parallel_lookup->lookup_request
-      = GNUNET_GNS_lookup (gns_handle,
-                           lookup_query,
-                           &handle->ticket->payload->identity_key,
-                           GNUNET_GNSRECORD_TYPE_ID_ATTR,
-                           GNUNET_GNS_LO_LOCAL_MASTER,
-                           &process_parallel_lookup,
-                           parallel_lookup);
-    GNUNET_CONTAINER_DLL_insert (handle->parallel_lookups_head,
-                                 handle->parallel_lookups_tail,
-                                 parallel_lookup);
-  }
-  handle->kill_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MINUTES,3),
-                                &abort_parallel_lookups,
-                                handle);
-}
-
-/**
- * Checks a exchange message
- *
- * @param cls client sending the message
- * @param xm message of type `struct ExchangeMessage`
- * @return #GNUNET_OK if @a xm is well-formed
- */
-static int
-check_exchange_message (void *cls,
-                        const struct ExchangeMessage *xm)
-{
-  uint16_t size;
-
-  size = ntohs (xm->header.size);
-  if (size <= sizeof (struct ExchangeMessage))
-  {
-    GNUNET_break (0);
-    return GNUNET_SYSERR;
-  }
-  return GNUNET_OK;
-}
-
-/**
- *
- * Handler for exchange message
- *
- * @param cls unused
- * @param client who sent the message
- * @param message the message
- */
-static void
-handle_exchange_message (void *cls,
-                         const struct ExchangeMessage *xm)
-{
-  struct ExchangeHandle *xchange_handle;
-  struct IdpClient *idp = cls;
-  const char *ticket;
-  char *lookup_query;
-
-  ticket = (const char *) &xm[1];
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Received EXCHANGE of `%s' from client\n",
-              ticket);
-  xchange_handle = GNUNET_malloc (sizeof (struct ExchangeHandle));
-  xchange_handle->aud_privkey = xm->aud_privkey;
-  xchange_handle->r_id = xm->id;
-  if (GNUNET_SYSERR == ticket_parse (ticket,
-                                     &xchange_handle->aud_privkey,
-                                     &xchange_handle->ticket))
-  {
-    GNUNET_free (xchange_handle);
-    GNUNET_SERVICE_client_drop (idp->client);
-    return;
-  }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Looking for ABE key under %s\n",
-              xchange_handle->ticket->payload->label);
-  GNUNET_asprintf (&lookup_query,
-                   "%s.gnu",
-                   xchange_handle->ticket->payload->label);
-  GNUNET_SERVICE_client_continue (idp->client);
-  xchange_handle->client = idp;
-  xchange_handle->token = token_create (&xchange_handle->ticket->payload->identity_key,
-                                        &xchange_handle->ticket->payload->identity_key);
-  xchange_handle->lookup_request
-    = GNUNET_GNS_lookup (gns_handle,
-                         lookup_query,
-                         &xchange_handle->ticket->payload->identity_key,
-                         GNUNET_GNSRECORD_TYPE_ABE_KEY,
-                         GNUNET_GNS_LO_LOCAL_MASTER,
-                         &process_lookup_result,
-                         xchange_handle);
-  GNUNET_free (lookup_query);
-
-}
-
-void
-attr_collect_task (void *cls)
-{
-  struct IssueHandle *issue_handle = cls;
-
-  issue_handle->ns_it = GNUNET_NAMESTORE_zone_iteration_start (ns_handle,
-                                                               &issue_handle->iss_key,
-                                                               &attr_collect_error,
-                                                               issue_handle,
-                                                               &attr_collect,
-                                                               issue_handle,
-                                                               &attr_collect_finished,
-                                                               issue_handle);
-}
-
-void
-abe_key_lookup_error (void *cls)
-{
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-              "Error looking for ABE master!\n");
-  GNUNET_SCHEDULER_add_now (&do_shutdown, cls);
-}
-
-void
-abe_key_lookup_result (void *cls,
-                       const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone,
-                       const char *label,
-                       unsigned int rd_count,
-                       const struct GNUNET_GNSRECORD_Data *rd)
-{
-  struct IssueHandle *handle = cls;
-  int i;
-
-  for (i=0;i<rd_count;i++) {
-    if (GNUNET_GNSRECORD_TYPE_ABE_MASTER != rd[i].record_type)
-      continue;
-    handle->abe_key = GNUNET_CRYPTO_cpabe_deserialize_master_key ((void**)rd[i].data,
-                                                                  rd[i].data_size);
-    GNUNET_SCHEDULER_add_now (&attr_collect_task, handle);
-    return;
-  }
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-              "No ABE master found!\n");
-  GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
-
-}
-
-
-/**
- * Checks an issue message
- *
- * @param cls client sending the message
- * @param im message of type `struct IssueMessage`
- * @return #GNUNET_OK if @a im is well-formed
- */
-static int
-check_issue_message(void *cls,
-                    const struct IssueMessage *im)
-{
-  uint16_t size;
-
-  size = ntohs (im->header.size);
-  if (size <= sizeof (struct IssueMessage))
-  {
-    GNUNET_break (0);
-    return GNUNET_SYSERR;
-  }
-  scopes = (char *) &im[1];
-  if ('\0' != scopes[size - sizeof (struct IssueMessage) - 1])
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Malformed scopes received!\n");
-    GNUNET_break (0);
-    return GNUNET_SYSERR;
-  }
-  return GNUNET_OK;
-}
-
-
-/**
- *
- * Handler for issue message
- *
- * @param cls unused
- * @param client who sent the message
- * @param message the message
- */
-static void
-handle_issue_message (void *cls,
-                      const struct IssueMessage *im)
-{
-  const char *scopes;
-  char *scopes_tmp;
-  char *scope;
-  uint64_t rnd_key;
-  struct GNUNET_HashCode key;
-  struct IssueHandle *issue_handle;
-  struct IdpClient *idp = cls;
-
-  scopes = (const char *) &im[1];
-  //v_attrs = (const char *) &im[1] + ntohl(im->scope_len);
-  issue_handle = GNUNET_malloc (sizeof (struct IssueHandle));
-  issue_handle->attr_map = GNUNET_CONTAINER_multihashmap_create (5,
-                                                                 GNUNET_NO);
-  scopes_tmp = GNUNET_strdup (scopes);
-
-  for (scope = strtok (scopes_tmp, ","); NULL != scope; scope = strtok (NULL, ","))
-  {
-    GNUNET_CRYPTO_hash (scope,
-                        strlen (scope),
-                        &key);
-    GNUNET_CONTAINER_multihashmap_put (issue_handle->attr_map,
-                                       &key,
-                                       scope,
-                                       GNUNET_CONTAINER_MULTIHASHMAPOPTION_REPLACE);
-  }
-  GNUNET_free (scopes_tmp);
-  /*scopes_tmp = GNUNET_strdup (v_attrs);
-
-    for (scope = strtok (scopes_tmp, ","); NULL != scope; scope = strtok (NULL, ","))
-    {
-    vattr_entry = GNUNET_new (struct VerifiedAttributeEntry);
-    vattr_entry->name = GNUNET_strdup (scope);
-    GNUNET_CONTAINER_DLL_insert (issue_handle->v_attr_head,
-    issue_handle->v_attr_tail,
-    vattr_entry);
-    }
-    GNUNET_free (scopes_tmp);*/
-
-
-
-  issue_handle->r_id = im->id;
-  issue_handle->aud_key = im->aud_key;
-  issue_handle->iss_key = im->iss_key;
-  GNUNET_CRYPTO_ecdsa_key_get_public (&im->iss_key,
-                                      &issue_handle->iss_pkey);
-  issue_handle->expiration = GNUNET_TIME_absolute_ntoh (im->expiration);
-  issue_handle->nonce = ntohl (im->nonce);
-  GNUNET_SERVICE_client_continue (idp->client);
-  issue_handle->client = idp;
-  issue_handle->scopes = GNUNET_strdup (scopes);
-  issue_handle->token = token_create (&issue_handle->iss_pkey,
-                                      &issue_handle->aud_key);
-  rnd_key =
-    GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_STRONG,
-                              UINT64_MAX);
-  GNUNET_STRINGS_base64_encode ((char*)&rnd_key,
-                                sizeof (uint64_t),
-                                &issue_handle->label);
-  issue_handle->ns_qe = GNUNET_NAMESTORE_records_lookup (ns_handle,
-                                                         &issue_handle->iss_key,
-                                                         "+",
-                                                         &abe_key_lookup_error,
-                                                         issue_handle,
-                                                         &abe_key_lookup_result,
-                                                         issue_handle);
-}
-
 static void
 cleanup_ticket_issue_handle (struct TicketIssueHandle *handle)
 {
@@ -1765,11 +714,11 @@ cleanup_ticket_issue_handle (struct TicketIssueHandle *handle)
 static void
 send_ticket_result (struct IdpClient *client,
                     uint32_t r_id,
-                    const struct GNUNET_IDENTITY_PROVIDER_Ticket2 *ticket)
+                    const struct GNUNET_IDENTITY_PROVIDER_Ticket *ticket)
 {
   struct TicketResultMessage *irm;
   struct GNUNET_MQ_Envelope *env;
-  struct GNUNET_IDENTITY_PROVIDER_Ticket2 *ticket_buf;
+  struct GNUNET_IDENTITY_PROVIDER_Ticket *ticket_buf;
 
   /* store ticket in DB */
   if (GNUNET_OK != TKT_database->store_ticket (TKT_database->cls,
@@ -1781,9 +730,9 @@ send_ticket_result (struct IdpClient *client,
   }
 
   env = GNUNET_MQ_msg_extra (irm,
-                             sizeof (struct GNUNET_IDENTITY_PROVIDER_Ticket2),
+                             sizeof (struct GNUNET_IDENTITY_PROVIDER_Ticket),
                              GNUNET_MESSAGE_TYPE_IDENTITY_PROVIDER_TICKET_RESULT);
-  ticket_buf = (struct GNUNET_IDENTITY_PROVIDER_Ticket2 *)&irm[1];
+  ticket_buf = (struct GNUNET_IDENTITY_PROVIDER_Ticket *)&irm[1];
   *ticket_buf = *ticket;
   irm->id = htonl (r_id);
   GNUNET_MQ_send (client->mq,
@@ -2043,7 +992,7 @@ process_parallel_lookup2 (void *cls, uint32_t rd_count,
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Parallel lookup finished (count=%u)\n", rd_count);
-  struct ParallelLookup2 *parallel_lookup = cls;
+  struct ParallelLookup *parallel_lookup = cls;
   struct ConsumeTicketHandle *handle = parallel_lookup->handle;
   struct ConsumeTicketResultMessage *crm;
   struct GNUNET_MQ_Envelope *env;
@@ -2105,8 +1054,8 @@ void
 abort_parallel_lookups2 (void *cls)
 {
   struct ConsumeTicketHandle *handle = cls;
-  struct ParallelLookup2 *lu;
-  struct ParallelLookup2 *tmp;
+  struct ParallelLookup *lu;
+  struct ParallelLookup *tmp;
   struct AttributeResultMessage *arm;
   struct GNUNET_MQ_Envelope *env;
 
@@ -2147,7 +1096,7 @@ process_consume_abe_key (void *cls, uint32_t rd_count,
   struct GNUNET_CRYPTO_SymmetricSessionKey enc_key;
   struct GNUNET_CRYPTO_SymmetricInitializationVector enc_iv;
   struct GNUNET_CRYPTO_EcdhePublicKey *ecdh_key;
-  struct ParallelLookup2 *parallel_lookup;
+  struct ParallelLookup *parallel_lookup;
   size_t size;
   char *buf;
   char *scope;
@@ -2201,7 +1150,7 @@ process_consume_abe_key (void *cls, uint32_t rd_count,
                      scope);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Looking up %s\n", lookup_query);
-    parallel_lookup = GNUNET_new (struct ParallelLookup2);
+    parallel_lookup = GNUNET_new (struct ParallelLookup);
     parallel_lookup->handle = handle;
     parallel_lookup->label = GNUNET_strdup (scope);
     parallel_lookup->lookup_request
@@ -2247,7 +1196,7 @@ handle_consume_ticket_message (void *cls,
   ch->attrs = GNUNET_new (struct GNUNET_IDENTITY_PROVIDER_AttributeList);
   GNUNET_CRYPTO_ecdsa_key_get_public (&ch->identity,
                                       &ch->identity_pub);
-  ch->ticket = *((struct GNUNET_IDENTITY_PROVIDER_Ticket2*)&cm[1]);
+  ch->ticket = *((struct GNUNET_IDENTITY_PROVIDER_Ticket*)&cm[1]);
   rnd_label = GNUNET_STRINGS_data_to_string_alloc (&ch->ticket.rnd,
                                                    sizeof (uint64_t));
   GNUNET_asprintf (&lookup_query,
@@ -2660,7 +1609,7 @@ struct TicketIterationProcResult
  */
 static void
 ticket_iterate_proc (void *cls,
-                     const struct GNUNET_IDENTITY_PROVIDER_Ticket2 *ticket)
+                     const struct GNUNET_IDENTITY_PROVIDER_Ticket *ticket)
 {
   struct TicketIterationProcResult *proc = cls;
 
@@ -2973,14 +1922,6 @@ GNUNET_SERVICE_MAIN
  &client_connect_cb,
  &client_disconnect_cb,
  NULL,
- GNUNET_MQ_hd_var_size (issue_message,
-                        GNUNET_MESSAGE_TYPE_IDENTITY_PROVIDER_ISSUE,
-                        struct IssueMessage,
-                        NULL),
- GNUNET_MQ_hd_var_size (exchange_message,
-                        GNUNET_MESSAGE_TYPE_IDENTITY_PROVIDER_EXCHANGE,
-                        struct ExchangeMessage,
-                        NULL),
  GNUNET_MQ_hd_var_size (attribute_store_message,
                         GNUNET_MESSAGE_TYPE_IDENTITY_PROVIDER_ATTRIBUTE_STORE,
                         struct AttributeStoreMessage,

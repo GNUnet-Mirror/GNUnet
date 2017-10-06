@@ -104,7 +104,7 @@ static struct GNUNET_CRYPTO_EcdsaPublicKey rp_key;
 /**
  * Ticket to consume
  */
-static struct GNUNET_IDENTITY_PROVIDER_Ticket2 ticket;
+static struct GNUNET_IDENTITY_PROVIDER_Ticket ticket;
 
 /**
  * Attribute list
@@ -128,12 +128,12 @@ do_cleanup(void *cls)
 
 static void
 ticket_issue_cb (void* cls,
-                 const struct GNUNET_IDENTITY_PROVIDER_Ticket2 *ticket)
+                 const struct GNUNET_IDENTITY_PROVIDER_Ticket *ticket)
 {
   char* ticket_str;
   if (NULL != ticket) {
     ticket_str = GNUNET_STRINGS_data_to_string_alloc (ticket,
-                                                      sizeof (struct GNUNET_IDENTITY_PROVIDER_Ticket2));
+                                                      sizeof (struct GNUNET_IDENTITY_PROVIDER_Ticket));
     printf("%s\n",
            ticket_str);
     GNUNET_free (ticket_str);
@@ -278,7 +278,7 @@ ego_cb (void *cls,
     GNUNET_STRINGS_string_to_data (consume_ticket,
                                    strlen (consume_ticket),
                                    &ticket,
-                                   sizeof (struct GNUNET_IDENTITY_PROVIDER_Ticket2));
+                                   sizeof (struct GNUNET_IDENTITY_PROVIDER_Ticket));
 
   attr_list = GNUNET_new (struct GNUNET_IDENTITY_PROVIDER_AttributeList);
 

@@ -358,7 +358,7 @@ database_shutdown (struct Plugin *plugin)
  */
 static int
 identity_provider_sqlite_store_ticket (void *cls,
-                                        const struct GNUNET_IDENTITY_PROVIDER_Ticket2 *ticket)
+                                        const struct GNUNET_IDENTITY_PROVIDER_Ticket *ticket)
 {
   struct Plugin *plugin = cls;
   int n;
@@ -437,7 +437,7 @@ identity_provider_sqlite_store_ticket (void *cls,
  */
 static int
 identity_provider_sqlite_delete_ticket (void *cls,
-                                        const struct GNUNET_IDENTITY_PROVIDER_Ticket2 *ticket)
+                                        const struct GNUNET_IDENTITY_PROVIDER_Ticket *ticket)
 {
   struct Plugin *plugin = cls;
   int n;
@@ -502,7 +502,7 @@ get_ticket_and_call_iterator (struct Plugin *plugin,
                               GNUNET_IDENTITY_PROVIDER_TicketIterator iter,
                               void *iter_cls)
 {
-  struct GNUNET_IDENTITY_PROVIDER_Ticket2 ticket;
+  struct GNUNET_IDENTITY_PROVIDER_Ticket ticket;
   int ret;
   int sret;
 

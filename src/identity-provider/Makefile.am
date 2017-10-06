@@ -26,12 +26,10 @@ pkgcfg_DATA = \
 lib_LTLIBRARIES = \
   libgnunetidentityprovider.la
 plugin_LTLIBRARIES = \
-	libgnunet_plugin_rest_identity_provider.la \
 	libgnunet_plugin_gnsrecord_identity_provider.la \
 	$(SQLITE_PLUGIN)
 
 bin_PROGRAMS = \
- gnunet-identity-token \
  gnunet-idp
 
 libexec_PROGRAMS = \
@@ -60,7 +58,6 @@ libgnunet_plugin_identity_provider_sqlite_la_LDFLAGS = \
 
 gnunet_service_identity_provider_SOURCES = \
  gnunet-service-identity-provider.c \
- identity_token.c \
  identity_attribute.h
 gnunet_service_identity_provider_LDADD = \
  $(top_builddir)/src/gnsrecord/libgnunetgnsrecord.la \
@@ -85,19 +82,6 @@ libgnunetidentityprovider_la_LDFLAGS = \
 	$(GN_LIB_LDFLAGS)  $(WINFLAGS) \
 	-version-info 0:0:0
 
-libgnunet_plugin_rest_identity_provider_la_SOURCES = \
-  plugin_rest_identity_provider.c
-libgnunet_plugin_rest_identity_provider_la_LIBADD = \
-	$(top_builddir)/src/identity/libgnunetidentity.la \
-	libgnunetidentityprovider.la \
-	$(top_builddir)/src/rest/libgnunetrest.la \
-	$(top_builddir)/src/jsonapi/libgnunetjsonapi.la \
-	$(top_builddir)/src/namestore/libgnunetnamestore.la \
-  $(top_builddir)/src/util/libgnunetutil.la $(XLIBS) \
-  $(LTLIBINTL) -ljansson -lmicrohttpd
-libgnunet_plugin_rest_identity_provider_la_LDFLAGS = \
- $(GN_PLUGIN_LDFLAGS)
-
 gnunet_idp_SOURCES = \
  gnunet-idp.c
 gnunet_idp_LDADD = \
@@ -105,11 +89,4 @@ gnunet_idp_LDADD = \
 	$(top_builddir)/src/namestore/libgnunetnamestore.la \
 	$(top_builddir)/src/identity-provider/libgnunetidentityprovider.la \
 	$(top_builddir)/src/identity/libgnunetidentity.la \
-  $(GN_LIBINTL)
-
-gnunet_identity_token_SOURCES = \
- gnunet-identity-token.c
-gnunet_identity_token_LDADD = \
-  $(top_builddir)/src/util/libgnunetutil.la \
-  -ljansson -lmicrohttpd \
   $(GN_LIBINTL)
