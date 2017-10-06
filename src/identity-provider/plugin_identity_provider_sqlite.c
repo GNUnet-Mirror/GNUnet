@@ -27,7 +27,6 @@
 #include "platform.h"
 #include "gnunet_identity_provider_service.h"
 #include "gnunet_identity_provider_plugin.h"
-#include "identity_attribute.h"
 #include "gnunet_sq_lib.h"
 #include <sqlite3.h>
 
@@ -253,8 +252,7 @@ database_setup (struct Plugin *plugin)
         "CREATE TABLE identity001tickets ("
         " identity BLOB NOT NULL DEFAULT '',"
         " audience BLOB NOT NULL DEFAULT '',"
-	      " rnd INT8 NOT NULL DEFAULT '',"
-        " attributes BLOB NOT NULL DEFAULT ''"
+	      " rnd INT8 NOT NULL DEFAULT ''"
 	")",
 	NULL, NULL, NULL) != SQLITE_OK))
   {
@@ -269,8 +267,8 @@ database_setup (struct Plugin *plugin)
 
   if ( (SQLITE_OK !=
         sq_prepare (plugin->dbh,
-                    "INSERT INTO identity001tickets (identity, audience, rnd, attributes)"
-                    " VALUES (?, ?, ?, ?)",
+                    "INSERT INTO identity001tickets (identity, audience, rnd)"
+                    " VALUES (?, ?, ?)",
                     &plugin->store_ticket)) ||
        (SQLITE_OK !=
         sq_prepare (plugin->dbh,
@@ -278,13 +276,13 @@ database_setup (struct Plugin *plugin)
                     &plugin->delete_ticket)) ||
        (SQLITE_OK !=
         sq_prepare (plugin->dbh,
-                    "SELECT identity,audience,rnd,attributes"
+                    "SELECT identity,audience,rnd"
                     " FROM identity001tickets WHERE identity=?"
                     " ORDER BY rnd LIMIT 1 OFFSET ?",
                     &plugin->iterate_tickets)) ||
        (SQLITE_OK !=
         sq_prepare (plugin->dbh,
-                    "SELECT identity,audience,rnd,attributes"
+                    "SELECT identity,audience,rnd"
                     " FROM identity001tickets WHERE audience=?"
                     " ORDER BY rnd LIMIT 1 OFFSET ?",
                     &plugin->iterate_tickets_by_audience)) ) 
@@ -356,25 +354,14 @@ database_shutdown (struct Plugin *plugin)
  *
  * @param cls closure (internal context for the plugin)
  * @param ticket the ticket to persist
- * @param attrs attributes to persist
  * @return #GNUNET_OK on success, else #GNUNET_SYSERR
  */
 static int
 identity_provider_sqlite_store_ticket (void *cls,
-                                        const struct GNUNET_IDENTITY_PROVIDER_Ticket2 *ticket,
-                                        const struct GNUNET_IDENTITY_PROVIDER_AttributeList *attrs)
+                                        const struct GNUNET_IDENTITY_PROVIDER_Ticket2 *ticket)
 {
   struct Plugin *plugin = cls;
   int n;
-  size_t attrs_size;
-  char *attrs_serialized;
-
-  attrs_size = attribute_list_serialize_get_size (attrs);
-
-  attrs_serialized = GNUNET_malloc (attrs_size);
-
-  attribute_list_serialize (attrs,
-                            attrs_serialized);
 
   { 
     /* First delete duplicates */
@@ -402,7 +389,6 @@ identity_provider_sqlite_store_ticket (void *cls,
       GNUNET_SQ_query_param_auto_from_type (&ticket->identity),
       GNUNET_SQ_query_param_auto_from_type (&ticket->audience),
       GNUNET_SQ_query_param_uint64 (&ticket->rnd),
-      GNUNET_SQ_query_param_fixed_size (attrs_serialized, attrs_size),
       GNUNET_SQ_query_param_end
     };
 
@@ -517,8 +503,6 @@ get_ticket_and_call_iterator (struct Plugin *plugin,
                               void *iter_cls)
 {
   struct GNUNET_IDENTITY_PROVIDER_Ticket2 ticket;
-  size_t attrs_size;
-  void *attrs_serialized;
   int ret;
   int sret;
 
@@ -529,7 +513,6 @@ get_ticket_and_call_iterator (struct Plugin *plugin,
       GNUNET_SQ_result_spec_auto_from_type (&ticket.identity),
       GNUNET_SQ_result_spec_auto_from_type (&ticket.audience),
       GNUNET_SQ_result_spec_uint64 (&ticket.rnd),
-      GNUNET_SQ_result_spec_variable_size (&attrs_serialized, &attrs_size),
       GNUNET_SQ_result_spec_end
 
     };
@@ -542,23 +525,10 @@ get_ticket_and_call_iterator (struct Plugin *plugin,
     }
     else
     {
-      struct GNUNET_IDENTITY_PROVIDER_AttributeList *attrs;
-
-      attrs = attribute_list_deserialize (attrs_serialized, attrs_size);
-
-      if (NULL == attrs)
-      {
-        GNUNET_break (0);
-        ret = GNUNET_SYSERR;
-      }
-      else
-      {
         if (NULL != iter)
           iter (iter_cls,
-                &ticket,
-                attrs);
+                &ticket);
         ret = GNUNET_YES;
-      }
     }
     GNUNET_SQ_cleanup_result (rs);
   }

@@ -48,11 +48,9 @@ extern "C"
  *
  * @param cls closure
  * @param ticket the ticket
- * @prarm attrs the attributes
  */
 typedef void (*GNUNET_IDENTITY_PROVIDER_TicketIterator) (void *cls,
-						 const struct GNUNET_IDENTITY_PROVIDER_Ticket2 *ticket,
-						 const struct GNUNET_IDENTITY_PROVIDER_AttributeList *attrs);
+						 const struct GNUNET_IDENTITY_PROVIDER_Ticket2 *ticket);
 
 
 /**
@@ -71,12 +69,10 @@ struct GNUNET_IDENTITY_PROVIDER_PluginFunctions
    *
    * @param cls closure (internal context for the plugin)
    * @param ticket the ticket to store
-   * @param attrs the attributes shared with the ticket
    * @return #GNUNET_OK on success, else #GNUNET_SYSERR
    */
   int (*store_ticket) (void *cls,
-			const struct GNUNET_IDENTITY_PROVIDER_Ticket2 *ticket,
-      const struct GNUNET_IDENTITY_PROVIDER_AttributeList *attrs);
+			const struct GNUNET_IDENTITY_PROVIDER_Ticket2 *ticket);
 
   /**
    * Delete a ticket from the database.

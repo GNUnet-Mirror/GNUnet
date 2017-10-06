@@ -1765,8 +1765,7 @@ cleanup_ticket_issue_handle (struct TicketIssueHandle *handle)
 static void
 send_ticket_result (struct IdpClient *client,
                     uint32_t r_id,
-                    const struct GNUNET_IDENTITY_PROVIDER_Ticket2 *ticket,
-                    const struct GNUNET_IDENTITY_PROVIDER_AttributeList *attrs)
+                    const struct GNUNET_IDENTITY_PROVIDER_Ticket2 *ticket)
 {
   struct TicketResultMessage *irm;
   struct GNUNET_MQ_Envelope *env;
@@ -1774,8 +1773,7 @@ send_ticket_result (struct IdpClient *client,
 
   /* store ticket in DB */
   if (GNUNET_OK != TKT_database->store_ticket (TKT_database->cls,
-                                               ticket,
-                                               attrs))
+                                               ticket))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Unable to store ticket after issue\n");
@@ -1810,8 +1808,7 @@ store_ticket_issue_cont (void *cls,
   }
   send_ticket_result (handle->client,
                       handle->r_id,
-                      &handle->ticket,
-                      handle->attrs);
+                      &handle->ticket);
   cleanup_ticket_issue_handle (handle);
 }
 
@@ -2083,8 +2080,7 @@ process_parallel_lookup2 (void *cls, uint32_t rd_count,
 
   /* Store ticket in DB */
   if (GNUNET_OK != TKT_database->store_ticket (TKT_database->cls,
-                                               &handle->ticket,
-                                               handle->attrs))
+                                               &handle->ticket))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Unable to store ticket after consume\n");
@@ -2664,8 +2660,7 @@ struct TicketIterationProcResult
  */
 static void
 ticket_iterate_proc (void *cls,
-                     const struct GNUNET_IDENTITY_PROVIDER_Ticket2 *ticket,
-                     const struct GNUNET_IDENTITY_PROVIDER_AttributeList *attrs)
+                     const struct GNUNET_IDENTITY_PROVIDER_Ticket2 *ticket)
 {
   struct TicketIterationProcResult *proc = cls;
 
@@ -2676,18 +2671,10 @@ ticket_iterate_proc (void *cls,
     proc->res_iteration_finished = IT_SUCCESS_NOT_MORE_RESULTS_AVAILABLE;
     return;
   }
-  if ((NULL == ticket) || (NULL == attrs))
-  {
-    /* error */
-    proc->res_iteration_finished = IT_START;
-    GNUNET_break (0);
-    return;
-  }
   proc->res_iteration_finished = IT_SUCCESS_MORE_AVAILABLE;
   send_ticket_result (proc->ti->client,
                       proc->ti->r_id,
-                      ticket,
-                      attrs);
+                      ticket);
 
 }
 
