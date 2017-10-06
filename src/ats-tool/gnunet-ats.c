@@ -872,8 +872,8 @@ run (void *cls,
 
     for (c = 0; c < strlen (opt_type_str); c++)
     {
-      if (isupper (opt_type_str[c]))
-        opt_type_str[c] = tolower (opt_type_str[c]);
+      if (isupper ((unsigned char) opt_type_str[c]))
+        opt_type_str[c] = tolower ((unsigned char) opt_type_str[c]);
     }
 
     if (0 == strcasecmp ("latency", opt_type_str))
@@ -974,7 +974,7 @@ main (int argc,
                                   gettext_noop ("set preference for the given peer"),
                                   &opt_set_pref),
 
-    GNUNET_GETOPT_option_flag ('q', 
+    GNUNET_GETOPT_option_flag ('q',
                                   "quotas",
                                   gettext_noop ("print all configured quotas"),
                                   &opt_print_quotas),

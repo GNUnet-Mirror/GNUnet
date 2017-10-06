@@ -95,7 +95,7 @@ GNUNET_FRIENDS_parse (const struct GNUNET_CONFIGURATION_Handle *cfg,
   pos = 0;
   while (pos < fsize)
   {
-    while ((pos < fsize) && (! isspace ((int) data[pos])))
+    while ((pos < fsize) && (! isspace ((unsigned char) data[pos])))
       pos++;
     if (GNUNET_OK !=
         GNUNET_CRYPTO_eddsa_public_key_from_string (&data[start],

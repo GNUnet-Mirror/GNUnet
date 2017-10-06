@@ -1051,7 +1051,7 @@ gen_topo_from_file (struct TopologyContext *tc,
   state = PEER_INDEX;
   while (offset < fs)
   {
-    if (0 != isspace (data[offset]))
+    if (0 != isspace ((unsigned char) data[offset]))
     {
       offset++;
       continue;
