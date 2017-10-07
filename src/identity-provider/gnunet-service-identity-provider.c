@@ -1037,6 +1037,51 @@ handle_issue_ticket_message (void *cls,
 
 }
 
+/**********************************************************
+ * Revocation
+ **********************************************************/
+
+/**
+ * Cleanup revoke handle
+ */
+static void
+cleanup_revoke_ticket_handle (struct TicketRevocationHandle *handle)
+{
+  if (NULL != handle->attrs)
+    attribute_list_destroy (handle->attrs);
+  if (NULL != handle->abe_key)
+    GNUNET_free (handle->abe_key);
+  if (NULL != handle->ns_qe)
+    GNUNET_NAMESTORE_cancel (handle->ns_qe);
+  if (NULL != handle->ns_it)
+    GNUNET_NAMESTORE_zone_iteration_stop (handle->ns_it);
+  GNUNET_free (handle);
+}
+
+
+/**
+ * Send revocation result
+ */
+static void
+send_revocation_finished (struct TicketRevocationHandle *rh,
+                          uint32_t success)
+{
+  struct GNUNET_MQ_Envelope *env;
+  struct RevokeTicketResultMessage *trm;
+
+  env = GNUNET_MQ_msg (trm,
+                       GNUNET_MESSAGE_TYPE_IDENTITY_PROVIDER_REVOKE_TICKET_RESULT);
+  trm->id = htonl (rh->r_id);
+  trm->success = htonl (success);
+  GNUNET_MQ_send (rh->client->mq,
+                  env);
+  GNUNET_CONTAINER_DLL_remove (rh->client->revocation_list_head,
+                               rh->client->revocation_list_tail,
+                               rh);
+  cleanup_revoke_ticket_handle (rh);
+}
+
+
 /**
  * Process ticket from database
  *
@@ -1060,10 +1105,10 @@ reissue_ticket_cont (void *cls,
   rh->ns_qe = NULL;
   if (GNUNET_SYSERR == success)
   {
-    //TODO cleanup_ticket_revocation_handle (handle);
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "%s\n",
                 "Unknown Error\n");
-    GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
+    send_revocation_finished (rh, GNUNET_SYSERR);
+    cleanup_revoke_ticket_handle (rh);
     return;
   }
   rh->offset++;
@@ -1091,6 +1136,7 @@ ticket_reissue_proc (void *cls,
                      const struct GNUNET_IDENTITY_PROVIDER_AttributeList *attrs)
 {
   struct TicketRevocationHandle *rh = cls;
+  const struct GNUNET_IDENTITY_PROVIDER_AttributeList *attrs_to_reissue;
   struct GNUNET_IDENTITY_PROVIDER_AttributeListEntry *le;
   struct GNUNET_CRYPTO_EcdhePrivateKey *ecdhe_privkey;
   struct GNUNET_GNSRECORD_Data code_record[1];
@@ -1107,17 +1153,25 @@ ticket_reissue_proc (void *cls,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Iteration done\n");
-    /* Send reply ? */
-    GNUNET_break (0);
+    send_revocation_finished (rh, GNUNET_OK);
+    cleanup_revoke_ticket_handle (rh);
     return;
   }
   //Create new ABE key for RP
   attrs_len = 0;
-  for (le = attrs->list_head; NULL != le; le = le->next)
+  attrs_to_reissue = attrs;
+
+  /* If this is the RP we want to revoke attributes of, the do so */
+  if (0 == memcmp (&ticket->audience,
+                   &rh->ticket.audience,
+                   sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey)))
+    attrs_to_reissue = rh->attrs;
+
+  for (le = attrs_to_reissue->list_head; NULL != le; le = le->next)
     attrs_len++;
   attr_arr = GNUNET_malloc ((attrs_len + 1)*sizeof (char*));
   i = 0;
-  for (le = attrs->list_head; NULL != le; le = le->next) {
+  for (le = attrs_to_reissue->list_head; NULL != le; le = le->next) {
     attr_arr[i] = (char*) le->attribute->name;
     i++;
   }
@@ -1155,46 +1209,7 @@ ticket_reissue_proc (void *cls,
 }
 
 
-/**********************************************************
- * Revocation
- **********************************************************/
 
-/**
- * Cleanup revoke handle
- */
-static void
-cleanup_revoke_ticket_handle (struct TicketRevocationHandle *handle)
-{
-  if (NULL != handle->attrs)
-    attribute_list_destroy (handle->attrs);
-  if (NULL != handle->abe_key)
-    GNUNET_free (handle->abe_key);
-  if (NULL != handle->ns_qe)
-    GNUNET_NAMESTORE_cancel (handle->ns_qe);
-  GNUNET_free (handle);
-}
-
-/**
- * Send revocation result
- */
-static void
-send_revocation_finished (struct TicketRevocationHandle *rh,
-                          uint32_t success)
-{
-  struct GNUNET_MQ_Envelope *env;
-  struct RevokeTicketResultMessage *trm;
-
-  env = GNUNET_MQ_msg (trm,
-                       GNUNET_MESSAGE_TYPE_IDENTITY_PROVIDER_REVOKE_TICKET_RESULT);
-  trm->id = htonl (rh->r_id);
-  trm->success = htonl (success);
-  GNUNET_MQ_send (rh->client->mq,
-                  env);
-  GNUNET_CONTAINER_DLL_remove (rh->client->revocation_list_head,
-                               rh->client->revocation_list_tail,
-                               rh);
-  cleanup_revoke_ticket_handle (rh);
-}
 
 /* Prototype for below function */
 static void
@@ -1329,6 +1344,7 @@ revoke_collect_iter_error (void *cls)
 
   GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
               "Failed to iterate over attributes\n");
+  rh->ns_it = NULL;
   send_revocation_finished (rh, GNUNET_SYSERR);
   cleanup_revoke_ticket_handle (rh);
 }
@@ -1340,6 +1356,7 @@ static void
 revoke_collect_iter_finished (void *cls)
 {
   struct TicketRevocationHandle *rh = cls;
+  rh->ns_it = NULL;
   GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
               "Revocation Phase II: Invalidating old ABE Master\n");
   /* Bootstrap new abe key */
