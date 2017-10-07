@@ -303,6 +303,27 @@ struct RevokeTicketMessage
   //Followed by a ticket and serialized attribute list
 };
 
+/**
+ * Ticket revoke message
+ */
+struct RevokeTicketResultMessage
+{
+  /**
+   * Type will be #GNUNET_MESSAGE_TYPE_IDENTITY_PROVIDER_TICKET_ISSUE
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Unique identifier for this request (for key collisions).
+   */
+  uint32_t id GNUNET_PACKED;
+
+  /**
+   * Revocation result
+   */
+  uint32_t success GNUNET_PACKED;
+};
+
 
 /**
  * Ticket result message

@@ -314,6 +314,17 @@ struct IdpClient
    * Tail of DLL of ticket iteration ops
    */
   struct TicketIteration *ticket_iter_tail;
+
+
+  /**
+   * Head of DLL of ticket revocation ops
+   */
+  struct TicketRevocationHandle *revocation_list_head;
+
+  /**
+   * Tail of DLL of ticket revocation ops
+   */
+  struct TicketRevocationHandle *revocation_list_tail;
 };
 
 
@@ -446,6 +457,15 @@ struct ParallelLookup
  */
 struct TicketRevocationHandle
 {
+  /**
+   * DLL
+   */
+  struct TicketRevocationHandle *next;
+
+  /**
+   * DLL
+   */
+  struct TicketRevocationHandle *prev;
 
   /**
    * Client connection
@@ -1135,47 +1155,64 @@ ticket_reissue_proc (void *cls,
 }
 
 
+/**********************************************************
+ * Revocation
+ **********************************************************/
+
+/**
+ * Cleanup revoke handle
+ */
+static void
+cleanup_revoke_ticket_handle (struct TicketRevocationHandle *handle)
+{
+  if (NULL != handle->attrs)
+    attribute_list_destroy (handle->attrs);
+  if (NULL != handle->abe_key)
+    GNUNET_free (handle->abe_key);
+  if (NULL != handle->ns_qe)
+    GNUNET_NAMESTORE_cancel (handle->ns_qe);
+  GNUNET_free (handle);
+}
+
+/**
+ * Send revocation result
+ */
+static void
+send_revocation_finished (struct TicketRevocationHandle *rh,
+                          uint32_t success)
+{
+  struct GNUNET_MQ_Envelope *env;
+  struct RevokeTicketResultMessage *trm;
+
+  env = GNUNET_MQ_msg (trm,
+                       GNUNET_MESSAGE_TYPE_IDENTITY_PROVIDER_REVOKE_TICKET_RESULT);
+  trm->id = htonl (rh->r_id);
+  trm->success = htonl (success);
+  GNUNET_MQ_send (rh->client->mq,
+                  env);
+  GNUNET_CONTAINER_DLL_remove (rh->client->revocation_list_head,
+                               rh->client->revocation_list_tail,
+                               rh);
+  cleanup_revoke_ticket_handle (rh);
+}
+
+/* Prototype for below function */
 static void
 attr_reenc_cont (void *cls,
                  int32_t success,
-                 const char *emsg)
-{
-  struct TicketRevocationHandle *rh = cls;
-  struct GNUNET_GNSRECORD_Data rd[1];
-  size_t buf_size;
-  char *buf;
-  int ret;
+                 const char *emsg);
 
-  if (GNUNET_SYSERR == success)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Failed to reencrypt attribute %s\n",
-                emsg);
-    GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
-    return;
-  }
-  GNUNET_CONTAINER_DLL_remove (rh->attrs->list_head,
-                               rh->attrs->list_tail,
-                               rh->attrs->list_head);
-  if (NULL == rh->attrs->list_head)
-  {
-    /* Done, issue new keys */
-    GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
-                "Revocation Phase IV: Reissuing Tickets\n");
-    if (GNUNET_SYSERR ==
-        (ret = TKT_database->iterate_tickets (TKT_database->cls,
-                                              &rh->ticket.identity,
-                                              GNUNET_NO,
-                                              rh->offset,
-                                              &ticket_reissue_proc,
-                                              rh)))
-    {
-      GNUNET_break (0);
-    }
-    return;
-  }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Re-encrypting attribute\n");
+/**
+ * Revoke next attribte by reencryption with
+ * new ABE master
+ */
+static void
+reenc_next_attribute (struct TicketRevocationHandle *rh)
+{
+  struct GNUNET_GNSRECORD_Data rd[1];
+  char* buf;
+  size_t buf_size;
+
   buf_size = attribute_serialize_get_size (rh->attrs->list_head->attribute);
   buf = GNUNET_malloc (buf_size);
 
@@ -1205,68 +1242,100 @@ attr_reenc_cont (void *cls,
 
 }
 
+/**
+ * Namestore callback after revoked attribute
+ * is stored
+ */
+static void
+attr_reenc_cont (void *cls,
+                 int32_t success,
+                 const char *emsg)
+{
+  struct TicketRevocationHandle *rh = cls;
+  struct GNUNET_IDENTITY_PROVIDER_AttributeListEntry *le;
+  int ret;
 
+  if (GNUNET_SYSERR == success)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Failed to reencrypt attribute %s\n",
+                emsg);
+    GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
+    return;
+  }
+  le = rh->attrs->list_head;
+  GNUNET_CONTAINER_DLL_remove (rh->attrs->list_head,
+                               rh->attrs->list_tail,
+                               rh->attrs->list_head);
+  GNUNET_free (le->attribute);
+  GNUNET_free (le);
+
+  if (NULL == rh->attrs->list_head)
+  {
+    /* Done, issue new keys */
+    GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
+                "Revocation Phase IV: Reissuing Tickets\n");
+    if (GNUNET_SYSERR ==
+        (ret = TKT_database->iterate_tickets (TKT_database->cls,
+                                              &rh->ticket.identity,
+                                              GNUNET_NO,
+                                              rh->offset,
+                                              &ticket_reissue_proc,
+                                              rh)))
+    {
+      GNUNET_break (0);
+    }
+    return;
+  }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Re-encrypting next attribute\n");
+  reenc_next_attribute (rh);
+}
+
+
+/**
+ * Start reencryption with newly generated ABE master
+ */
 static void
 reenc_after_abe_bootstrap (void *cls,
                            struct GNUNET_CRYPTO_AbeMasterKey *abe_key)
 {
   struct TicketRevocationHandle *rh = cls;
-  struct GNUNET_GNSRECORD_Data rd[1];
-  char* buf;
-  size_t buf_size;
-
-
-  rh->abe_key = abe_key;
+  GNUNET_free (rh->abe_key);
   GNUNET_assert (NULL != abe_key);
+  rh->abe_key = abe_key;
 
   if (NULL == rh->attrs->list_head)
   {
-    /* No attributes to reencrypt, this is odd... */
-    GNUNET_break (0);
+    /* No attributes to reencrypt */
+    send_revocation_finished (rh, GNUNET_OK);
+    cleanup_revoke_ticket_handle (rh);
+    return;
   } else {
     GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
                 "Revocation Phase III: Re-encrypting attributes\n");
-    buf_size = attribute_serialize_get_size (rh->attrs->list_head->attribute);
-    buf = GNUNET_malloc (buf_size);
-
-    attribute_serialize (rh->attrs->list_head->attribute,
-                         buf);
-
-    /**
-     * Encrypt the attribute value and store in namestore
-     */
-    rd[0].data_size = GNUNET_CRYPTO_cpabe_encrypt (buf,
-                                                   buf_size,
-                                                   rh->attrs->list_head->attribute->name, //Policy
-                                                   rh->abe_key,
-                                                   (void**)&rd[0].data);
-    GNUNET_free (buf);
-    rd[0].record_type = GNUNET_GNSRECORD_TYPE_ID_ATTR;
-    rd[0].flags = GNUNET_GNSRECORD_RF_RELATIVE_EXPIRATION;
-    rd[0].expiration_time = GNUNET_TIME_UNIT_HOURS.rel_value_us; //TODO sane?
-    rh->ns_qe = GNUNET_NAMESTORE_records_store (ns_handle,
-                                                &rh->identity,
-                                                rh->attrs->list_head->attribute->name,
-                                                1,
-                                                rd,
-                                                &attr_reenc_cont,
-                                                rh);
-    GNUNET_free ((void*)rd[0].data);
-
+    reenc_next_attribute (rh);
   }
 }
 
 
+/**
+ * Collecting attributes failed... abort.
+ */
 static void
 revoke_collect_iter_error (void *cls)
 {
-  //struct AttributeIterator *ai = cls;
-  //TODO
+  struct TicketRevocationHandle *rh = cls;
+
   GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
               "Failed to iterate over attributes\n");
-  GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
+  send_revocation_finished (rh, GNUNET_SYSERR);
+  cleanup_revoke_ticket_handle (rh);
 }
 
+/**
+ * Done decrypting existing attributes.
+ */
 static void
 revoke_collect_iter_finished (void *cls)
 {
@@ -1277,6 +1346,10 @@ revoke_collect_iter_finished (void *cls)
   bootstrap_abe (&rh->identity, &reenc_after_abe_bootstrap, rh, GNUNET_YES);
 }
 
+/**
+ * Decrypt existing attribute and store it
+ * We will revoke it by reencrypting it with a new ABE master key.
+ */
 static void
 revoke_collect_iter_cb (void *cls,
                         const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone,
@@ -1320,7 +1393,9 @@ revoke_collect_iter_cb (void *cls,
   GNUNET_NAMESTORE_zone_iterator_next (rh->ns_it);
 }
 
-
+/**
+ * Start attribute collection for revocation
+ */
 static void
 collect_after_abe_bootstrap (void *cls,
                              struct GNUNET_CRYPTO_AbeMasterKey *abe_key)
@@ -1395,6 +1470,9 @@ handle_revoke_ticket_message (void *cls,
   rh->identity = rm->identity;
   GNUNET_CRYPTO_ecdsa_key_get_public (&rh->identity,
                                       &rh->ticket.identity);
+  GNUNET_CONTAINER_DLL_insert (idp->revocation_list_head,
+                               idp->revocation_list_tail,
+                               rh);
   bootstrap_abe (&rh->identity, &collect_after_abe_bootstrap, rh, GNUNET_NO);
   GNUNET_SERVICE_client_continue (idp->client);
 
@@ -2046,7 +2124,11 @@ struct TicketIterationProcResult
 
 };
 
-
+static void
+cleanup_ticket_iter_handle (struct TicketIteration *ti)
+{
+  GNUNET_free (ti);
+}
 
 /**
  * Process ticket from database
@@ -2125,7 +2207,7 @@ run_ticket_iteration_round (struct TicketIteration *ti)
   GNUNET_CONTAINER_DLL_remove (ti->client->ticket_iter_head,
                                ti->client->ticket_iter_tail,
                                ti);
-  GNUNET_free (ti);
+  cleanup_ticket_iter_handle (ti);
 }
 
 /**
@@ -2188,7 +2270,7 @@ handle_ticket_iteration_stop (void *cls,
   GNUNET_CONTAINER_DLL_remove (client->ticket_iter_head,
                                client->ticket_iter_tail,
                                ti);
-  GNUNET_free (ti);
+  cleanup_ticket_iter_handle (ti);
   GNUNET_SERVICE_client_continue (client->client);
 }
 
@@ -2319,6 +2401,8 @@ client_disconnect_cb (void *cls,
 {
   struct IdpClient *idp = app_ctx;
   struct AttributeIterator *ai;
+  struct TicketIteration *ti;
+  struct TicketRevocationHandle *rh;
 
   //TODO other operations
 
@@ -2332,6 +2416,20 @@ client_disconnect_cb (void *cls,
                                  idp->op_tail,
                                  ai);
     GNUNET_free (ai);
+  }
+  while (NULL != (rh = idp->revocation_list_head))
+  {
+    GNUNET_CONTAINER_DLL_remove (idp->revocation_list_head,
+                                 idp->revocation_list_tail,
+                                 rh);
+    cleanup_revoke_ticket_handle (rh);
+  }
+  while (NULL != (ti = idp->ticket_iter_head))
+  {
+    GNUNET_CONTAINER_DLL_remove (idp->ticket_iter_head,
+                                 idp->ticket_iter_tail,
+                                 ti);
+    cleanup_ticket_iter_handle (ti);
   }
   GNUNET_free (idp);
 }
