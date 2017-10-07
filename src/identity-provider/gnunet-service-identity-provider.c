@@ -1768,7 +1768,7 @@ attr_store_cont (void *cls,
 {
   struct AttributeStoreHandle *as_handle = cls;
   struct GNUNET_MQ_Envelope *env;
-  struct AttributeStoreResponseMessage *acr_msg;
+  struct AttributeStoreResultMessage *acr_msg;
 
   if (GNUNET_SYSERR == success)
   {

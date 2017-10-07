@@ -326,7 +326,7 @@ GNUNET_IDENTITY_PROVIDER_ticket_issue (struct GNUNET_IDENTITY_PROVIDER_Handle *i
                                        GNUNET_IDENTITY_PROVIDER_TicketCallback cb,
                                        void *cb_cls);
 
-/** TODO
+/**
  * Revoked an issued ticket. The relying party will be unable to retrieve
  * updated attributes.
  *

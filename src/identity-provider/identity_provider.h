@@ -65,7 +65,7 @@ struct AttributeStoreMessage
 /**
  * Attribute store response message
  */
-struct AttributeStoreResponseMessage
+struct AttributeStoreResultMessage
 {
   /**
    * Message header

@@ -72,6 +72,11 @@ struct GNUNET_IDENTITY_PROVIDER_Operation
    * Attribute result callback
    */
   GNUNET_IDENTITY_PROVIDER_AttributeResult ar_cb;
+  
+  /**
+   * Revocation result callback
+   */
+  GNUNET_IDENTITY_PROVIDER_ContinuationWithStatus rvk_cb;
 
   /**
    * Ticket result callback
@@ -400,7 +405,7 @@ mq_error_handler (void *cls,
  */
 static void
 handle_attribute_store_response (void *cls,
-			      const struct AttributeStoreResponseMessage *msg)
+			      const struct AttributeStoreResultMessage *msg)
 {
   struct GNUNET_IDENTITY_PROVIDER_Handle *h = cls;
   struct GNUNET_IDENTITY_PROVIDER_Operation *op;
@@ -716,6 +721,48 @@ handle_ticket_result (void *cls,
   GNUNET_break (0);
 }
 
+/**
+ * Handle an incoming message of type
+ * #GNUNET_MESSAGE_TYPE_IDENTITY_PROVIDER_REVOKE_TICKET_RESULT
+ *
+ * @param cls
+ * @param msg the message we received
+ */
+static void
+handle_revoke_ticket_result (void *cls,
+                             const struct RevokeTicketResultMessage *msg)
+{
+  struct GNUNET_IDENTITY_PROVIDER_Handle *h = cls;
+  struct GNUNET_IDENTITY_PROVIDER_Operation *op;
+  uint32_t r_id = ntohl (msg->id);
+  int32_t success;
+
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Processing revocation result.\n");
+
+
+  for (op = h->op_head; NULL != op; op = op->next)
+    if (op->r_id == r_id)
+      break;
+  if (NULL == op)
+    return;
+  success = ntohl (msg->success);
+  {
+    if (NULL != op->rvk_cb)
+    {
+      op->rvk_cb (op->cls,
+                  success,
+                  NULL);
+    }
+    GNUNET_CONTAINER_DLL_remove (h->op_head,
+                                 h->op_tail,
+                                 op);
+    GNUNET_free (op);
+    return;
+  }
+  GNUNET_assert (0);
+}
+
 
 
 /**
@@ -729,7 +776,7 @@ reconnect (struct GNUNET_IDENTITY_PROVIDER_Handle *h)
   struct GNUNET_MQ_MessageHandler handlers[] = {
     GNUNET_MQ_hd_fixed_size (attribute_store_response,
                              GNUNET_MESSAGE_TYPE_IDENTITY_PROVIDER_ATTRIBUTE_STORE_RESPONSE,
-                             struct AttributeStoreResponseMessage,
+                             struct AttributeStoreResultMessage,
                              h),
     GNUNET_MQ_hd_var_size (attribute_result,
                            GNUNET_MESSAGE_TYPE_IDENTITY_PROVIDER_ATTRIBUTE_RESULT,
@@ -743,6 +790,10 @@ reconnect (struct GNUNET_IDENTITY_PROVIDER_Handle *h)
                            GNUNET_MESSAGE_TYPE_IDENTITY_PROVIDER_CONSUME_TICKET_RESULT,
                            struct ConsumeTicketResultMessage,
                            h),
+    GNUNET_MQ_hd_fixed_size (revoke_ticket_result,
+                             GNUNET_MESSAGE_TYPE_IDENTITY_PROVIDER_REVOKE_TICKET_RESULT,
+                             struct RevokeTicketResultMessage,
+                             h),
     GNUNET_MQ_handler_end ()
   };
   struct GNUNET_IDENTITY_PROVIDER_Operation *op;
@@ -1077,10 +1128,10 @@ GNUNET_IDENTITY_PROVIDER_ticket_issue (struct GNUNET_IDENTITY_PROVIDER_Handle *h
  */
 struct GNUNET_IDENTITY_PROVIDER_Operation *
 GNUNET_IDENTITY_PROVIDER_ticket_consume (struct GNUNET_IDENTITY_PROVIDER_Handle *h,
-                                            const struct GNUNET_CRYPTO_EcdsaPrivateKey *identity,
-                                            const struct GNUNET_IDENTITY_PROVIDER_Ticket *ticket,
-                                            GNUNET_IDENTITY_PROVIDER_AttributeResult cb,
-                                            void *cb_cls)
+                                         const struct GNUNET_CRYPTO_EcdsaPrivateKey *identity,
+                                         const struct GNUNET_IDENTITY_PROVIDER_Ticket *ticket,
+                                         GNUNET_IDENTITY_PROVIDER_AttributeResult cb,
+                                         void *cb_cls)
 {
   struct GNUNET_IDENTITY_PROVIDER_Operation *op;
   struct ConsumeTicketMessage *ctm;
@@ -1278,6 +1329,50 @@ GNUNET_IDENTITY_PROVIDER_ticket_iteration_stop (struct GNUNET_IDENTITY_PROVIDER_
                     env);
   }
   GNUNET_free (it);
+}
+
+/**
+ * Revoked an issued ticket. The relying party will be unable to retrieve
+ * updated attributes.
+ *
+ * @param id the identity provider to use
+ * @param identity the issuing identity
+ * @param ticket the ticket to revoke
+ * @param cb the callback
+ * @param cb_cls the callback closure
+ * @return handle to abort the operation
+ */
+struct GNUNET_IDENTITY_PROVIDER_Operation *
+GNUNET_IDENTITY_PROVIDER_ticket_revoke (struct GNUNET_IDENTITY_PROVIDER_Handle *h,
+                                        const struct GNUNET_CRYPTO_EcdsaPrivateKey *identity,
+                                        const struct GNUNET_IDENTITY_PROVIDER_Ticket *ticket,
+                                        GNUNET_IDENTITY_PROVIDER_ContinuationWithStatus cb,
+                                        void *cb_cls)
+{
+  struct GNUNET_IDENTITY_PROVIDER_Operation *op;
+  struct GNUNET_MQ_Envelope *env;
+  struct RevokeTicketMessage *msg;
+  uint32_t rid;
+
+  rid = h->r_id_gen++;
+  op = GNUNET_new (struct GNUNET_IDENTITY_PROVIDER_Operation);
+  op->h = h;
+  op->rvk_cb = cb;
+  op->cls = cb_cls;
+  op->r_id = rid;
+  GNUNET_CONTAINER_DLL_insert_tail (h->op_head,
+                                    h->op_tail,
+                                    op);
+  env = GNUNET_MQ_msg (msg,
+                       GNUNET_MESSAGE_TYPE_IDENTITY_PROVIDER_REVOKE_TICKET);
+  msg->id = htonl (rid);
+  msg->identity = *identity;
+  if (NULL == h->mq)
+    op->env = env;
+  else
+    GNUNET_MQ_send (h->mq,
+                    env);
+  return op;
 }
 
 
