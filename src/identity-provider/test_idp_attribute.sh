@@ -29,4 +29,5 @@ gnunet-identity -C rpego -c test_idp.conf
 TEST_KEY=$(gnunet-identity -d -c test_idp.conf | grep testego | awk '{print $3}')
 gnunet-idp -e testego -a email -V john@doe.gnu -c test_idp.conf
 gnunet-idp -e testego -a name -V John -c test_idp.conf
+gnunet-namestore -D -z testego -D -c test_idp.conf
 gnunet-arm -e -c test_idp.conf

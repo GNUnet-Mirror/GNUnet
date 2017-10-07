@@ -54,12 +54,13 @@ value_to_string (void *cls,
   switch (type)
   {
     case GNUNET_GNSRECORD_TYPE_ID_ATTR:
-    case GNUNET_GNSRECORD_TYPE_ID_TOKEN:
+      return GNUNET_STRINGS_data_to_string_alloc (data, data_size);
+    case GNUNET_GNSRECORD_TYPE_ID_TOKEN: //DEPRECATED
       return GNUNET_strndup (data, data_size);
     case GNUNET_GNSRECORD_TYPE_ABE_KEY:
     case GNUNET_GNSRECORD_TYPE_ABE_MASTER:
       return GNUNET_STRINGS_data_to_string_alloc (data, data_size); 
-    case GNUNET_GNSRECORD_TYPE_ID_TOKEN_METADATA:
+    case GNUNET_GNSRECORD_TYPE_ID_TOKEN_METADATA: //DEPRECATED
         ecdhe_privkey = data;
         audience_pubkey = data+sizeof (struct GNUNET_CRYPTO_EcdhePrivateKey);
         scopes =  (char*) audience_pubkey+(sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey));
@@ -109,6 +110,10 @@ string_to_value (void *cls,
   switch (type)
   {
     case GNUNET_GNSRECORD_TYPE_ID_ATTR:
+      return GNUNET_STRINGS_string_to_data (s,
+                                            strlen (s),
+                                            *data,
+                                            *data_size);
     case GNUNET_GNSRECORD_TYPE_ID_TOKEN:
       *data = GNUNET_strdup (s);
       *data_size = strlen (s);
