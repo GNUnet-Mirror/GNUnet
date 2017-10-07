@@ -108,7 +108,7 @@ aes_128_cbc_encrypt( char* pt,
   GNUNET_assert (0 == gcry_cipher_encrypt (handle, *ct, buf_size, buf, buf_size));
   gcry_cipher_close (handle);
   //AES_cbc_encrypt(pt->data, ct->data, pt->len, &key, iv, AES_ENCRYPT);
-
+  GNUNET_free (buf);
   return buf_size;
 }
 
@@ -300,6 +300,7 @@ GNUNET_CRYPTO_cpabe_decrypt (const void *block,
   }
   gabe_cph_free(cph);
   plt_len = aes_128_cbc_decrypt(aes_buf, aes_buf_size, m, (char**)result);
+  GNUNET_free (aes_buf);
   //freeing is buggy in gabe
   //gabe_prv_free (prv);
   //gabe_pub_free (pub);

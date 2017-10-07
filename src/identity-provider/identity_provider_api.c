@@ -1363,10 +1363,14 @@ GNUNET_IDENTITY_PROVIDER_ticket_revoke (struct GNUNET_IDENTITY_PROVIDER_Handle *
   GNUNET_CONTAINER_DLL_insert_tail (h->op_head,
                                     h->op_tail,
                                     op);
-  env = GNUNET_MQ_msg (msg,
-                       GNUNET_MESSAGE_TYPE_IDENTITY_PROVIDER_REVOKE_TICKET);
+  env = GNUNET_MQ_msg_extra (msg,
+                             sizeof (struct GNUNET_IDENTITY_PROVIDER_Ticket),
+                             GNUNET_MESSAGE_TYPE_IDENTITY_PROVIDER_REVOKE_TICKET);
   msg->id = htonl (rid);
   msg->identity = *identity;
+  memcpy (&msg[1],
+          ticket,
+          sizeof (struct GNUNET_IDENTITY_PROVIDER_Ticket));
   if (NULL == h->mq)
     op->env = env;
   else

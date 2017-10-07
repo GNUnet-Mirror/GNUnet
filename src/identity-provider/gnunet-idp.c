@@ -62,6 +62,11 @@ static char* issue_attrs;
 static char* consume_ticket;
 
 /**
+ * Ticket to revoke
+ */
+static char* revoke_ticket;
+
+/**
  * Ego name
  */
 static char* ego_name;
@@ -182,17 +187,31 @@ iter_error (void *cls)
 }
 
 static void
+process_rvk (void *cls, int success, const char* msg)
+{
+  if (GNUNET_OK != success)
+    GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
+                "Revocation failed.\n");
+  else
+    GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
+                "Revocation successful.\n");
+  GNUNET_SCHEDULER_add_now (&do_cleanup, NULL);
+}
+
+static void
 iter_finished (void *cls)
 {
   struct GNUNET_IDENTITY_PROVIDER_Attribute *attr;
 
   attr_iterator = NULL;
-  if (list) {
+  if (list)
+  {
     GNUNET_SCHEDULER_add_now (&do_cleanup, NULL);
     return;
   }
 
-  if (issue_attrs) {
+  if (issue_attrs)
+  {
     idp_op = GNUNET_IDENTITY_PROVIDER_ticket_issue (idp_handle,
                                                     pkey,
                                                     &rp_key,
@@ -201,12 +220,22 @@ iter_finished (void *cls)
                                                     NULL);
     return;
   }
-  if (consume_ticket) {
+  if (consume_ticket)
+  {
     idp_op = GNUNET_IDENTITY_PROVIDER_ticket_consume (idp_handle,
                                                       pkey,
                                                       &ticket,
                                                       &process_attrs,
                                                       NULL);
+    return;
+  }
+  if (revoke_ticket)
+  {
+    idp_op = GNUNET_IDENTITY_PROVIDER_ticket_revoke (idp_handle,
+                                                     pkey,
+                                                     &ticket,
+                                                     &process_rvk,
+                                                     NULL);
     return;
   }
   attr = GNUNET_IDENTITY_PROVIDER_attribute_new (attr_name,
@@ -279,6 +308,12 @@ ego_cb (void *cls,
                                    strlen (consume_ticket),
                                    &ticket,
                                    sizeof (struct GNUNET_IDENTITY_PROVIDER_Ticket));
+  if (NULL != revoke_ticket)
+    GNUNET_STRINGS_string_to_data (revoke_ticket,
+                                   strlen (revoke_ticket),
+                                   &ticket,
+                                   sizeof (struct GNUNET_IDENTITY_PROVIDER_Ticket));
+
 
   attr_list = GNUNET_new (struct GNUNET_IDENTITY_PROVIDER_AttributeList);
 
@@ -358,6 +393,11 @@ main(int argc, char *const argv[])
                                  NULL,
                                  gettext_noop ("Consume a ticket"),
                                  &consume_ticket),
+    GNUNET_GETOPT_option_string ('R',
+                                 "revoke",
+                                 NULL,
+                                 gettext_noop ("Revoke a ticket"),
+                                 &revoke_ticket),
     GNUNET_GETOPT_OPTION_END
   };
   return GNUNET_PROGRAM_run (argc, argv, "ct",

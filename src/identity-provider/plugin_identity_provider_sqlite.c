@@ -547,6 +547,7 @@ get_ticket_and_call_iterator (struct Plugin *plugin,
         iter (iter_cls,
               &ticket,
               attrs);
+      attribute_list_destroy (attrs);
       ret = GNUNET_YES;
     }
     GNUNET_SQ_cleanup_result (rs);
