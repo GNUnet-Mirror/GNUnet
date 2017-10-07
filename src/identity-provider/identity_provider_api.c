@@ -702,20 +702,19 @@ handle_ticket_result (void *cls,
     GNUNET_free (op);
     return;
   } else if (NULL != it) {
-    GNUNET_CONTAINER_DLL_remove (handle->ticket_it_head,
-                                 handle->ticket_it_tail,
-                                 it);
     if (msg_len == sizeof (struct TicketResultMessage))
     {
       if (NULL != it->tr_cb)
-        it->finish_cb (it->finish_cb_cls);
+        GNUNET_CONTAINER_DLL_remove (handle->ticket_it_head,
+                                     handle->ticket_it_tail,
+                                     it);
+      it->finish_cb (it->finish_cb_cls);
+      GNUNET_free (it);
     } else {
-
       ticket = (struct GNUNET_IDENTITY_PROVIDER_Ticket *)&msg[1];
       if (NULL != it->tr_cb)
         it->tr_cb (it->cls, ticket);
     }
-    GNUNET_free (it);
     return;
   }
   GNUNET_break (0);
