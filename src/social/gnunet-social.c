@@ -281,7 +281,7 @@ exit_fail ()
  * This also indicates the end of the connection to the service.
  */
 static void
-host_left ()
+host_left (void *cls)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
               "The host has left the place.\n");

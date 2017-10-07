@@ -975,6 +975,7 @@ GSC_SESSIONS_set_typemap (const struct GNUNET_PeerIdentity *peer,
   session = find_session (peer);
   if (NULL == session)
   {
+    GSC_TYPEMAP_destroy (nmap);
     GNUNET_break (0);
     return;
   }
