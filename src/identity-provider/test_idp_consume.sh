@@ -24,15 +24,13 @@ which timeout &> /dev/null && DO_TIMEOUT="timeout 30"
 
 TEST_ATTR="test"
 gnunet-arm -s -c test_idp.conf
-#gnunet-arm -i rest -c test_idp.conf
 gnunet-identity -C testego -c test_idp.conf
 gnunet-identity -C rpego -c test_idp.conf
 SUBJECT_KEY=$(gnunet-identity -d -c test_idp.conf | grep rpego | awk '{print $3}')
 TEST_KEY=$(gnunet-identity -d -c test_idp.conf | grep testego | awk '{print $3}')
 gnunet-idp -e testego -a email -V john@doe.gnu -c test_idp.conf > /dev/null 2>&1
 gnunet-idp -e testego -a name -V John -c test_idp.conf > /dev/null 2>&1
-#gnunet-idp -e testego -D -c test_idp.conf
 TICKET=$(gnunet-idp -e testego -i "email,name" -r $SUBJECT_KEY -c test_idp.conf | awk '{print $1}')
-#curl http://localhost:7776/idp/attributes/testego
-echo "Ticket: $TICKET"
+echo "Consuming ticket $TICKET"
+gnunet-idp -e rpego -C $TICKET -c test_idp.conf
 gnunet-arm -e -c test_idp.conf
