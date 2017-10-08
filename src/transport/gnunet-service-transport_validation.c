@@ -697,7 +697,6 @@ revalidate_address (void *cls)
   struct GNUNET_TIME_Relative canonical_delay;
   struct GNUNET_TIME_Relative delay;
   struct GNUNET_TIME_Relative blocked_for;
-  struct GST_BlacklistCheck *bc;
   uint32_t rdelay;
 
   ve->revalidation_task = NULL;
@@ -784,15 +783,17 @@ revalidate_address (void *cls)
   GNUNET_STATISTICS_update (GST_stats,
                             gettext_noop ("# address revalidations started"), 1,
                             GNUNET_NO);
-  bc = GST_blacklist_test_allowed (&ve->address->peer,
-				   ve->address->transport_name,
-                                   &transmit_ping_if_allowed,
-				   ve,
-				   NULL,
-				   NULL);
-  if (NULL != bc)
-    ve->bc = bc;                /* only set 'bc' if 'transmit_ping_if_allowed' was not already
-                                 * called... */
+  if (NULL != ve->bc)
+  {
+    GST_blacklist_test_cancel (ve->bc);
+    ve->bc = NULL;
+  }
+  ve->bc = GST_blacklist_test_allowed (&ve->address->peer,
+                                       ve->address->transport_name,
+                                       &transmit_ping_if_allowed,
+                                       ve,
+                                       NULL,
+                                       NULL);
 }
 
 
