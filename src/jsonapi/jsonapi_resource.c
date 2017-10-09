@@ -245,7 +245,7 @@ GNUNET_JSONAPI_resource_check_id (const struct GNUNET_JSONAPI_Resource *resource
  * @param res the JSON resource
  * @return the resource id
  */
-char*
+const char*
 GNUNET_JSONAPI_resource_get_id (const struct GNUNET_JSONAPI_Resource *resource)
 {
   return resource->id;
