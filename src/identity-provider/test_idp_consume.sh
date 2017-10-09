@@ -35,4 +35,4 @@ TICKET=$(gnunet-idp -e testego -i "email,name" -r $SUBJECT_KEY -c test_idp.conf 
 echo "Consuming ticket $TICKET"
 gnunet-idp -e rpego -C $TICKET -c test_idp.conf
 curl http://localhost:7776/idp/tickets/testego
-gnunet-arm -e -c test_idp.conf
+#gnunet-arm -e -c test_idp.conf
