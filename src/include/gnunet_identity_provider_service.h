@@ -114,6 +114,11 @@ struct GNUNET_IDENTITY_PROVIDER_Attribute
   uint32_t attribute_type;
 
   /**
+   * Attribute version
+   */
+  uint32_t attribute_version;
+
+  /**
    * Number of bytes in @e data.
    */
   size_t data_size;

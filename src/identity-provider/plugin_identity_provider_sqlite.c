@@ -88,6 +88,11 @@ struct Plugin
   sqlite3_stmt *iterate_tickets;
 
   /**
+   * Precompiled SQL to get ticket attributes.
+   */
+  sqlite3_stmt *get_ticket_attrs;
+  
+  /**
    * Precompiled SQL to iterate tickets by audience.
    */
   sqlite3_stmt *iterate_tickets_by_audience;
@@ -279,6 +284,11 @@ database_setup (struct Plugin *plugin)
        (SQLITE_OK !=
         sq_prepare (plugin->dbh,
                     "SELECT identity,audience,rnd,attributes"
+                    " FROM identity001tickets WHERE identity=? AND rnd=?",
+                    &plugin->get_ticket_attrs)) ||
+       (SQLITE_OK !=
+        sq_prepare (plugin->dbh,
+                    "SELECT identity,audience,rnd,attributes"
                     " FROM identity001tickets WHERE identity=?"
                     " ORDER BY rnd LIMIT 1 OFFSET ?",
                     &plugin->iterate_tickets)) ||
@@ -317,6 +327,8 @@ database_shutdown (struct Plugin *plugin)
     sqlite3_finalize (plugin->iterate_tickets);
   if (NULL != plugin->iterate_tickets_by_audience)
     sqlite3_finalize (plugin->iterate_tickets_by_audience);
+  if (NULL != plugin->get_ticket_attrs)
+    sqlite3_finalize (plugin->get_ticket_attrs);
   result = sqlite3_close (plugin->dbh);
   if (result == SQLITE_BUSY)
   {
@@ -564,6 +576,47 @@ get_ticket_and_call_iterator (struct Plugin *plugin,
   return ret;
 }
 
+
+/**
+ * Lookup tickets in the datastore.
+ *
+ * @param cls closure (internal context for the plugin)
+ * @param zone private key of the zone
+ * @param label name of the record in the zone
+ * @param iter function to call with the result
+ * @param iter_cls closure for @a iter
+ * @return #GNUNET_OK on success, else #GNUNET_SYSERR
+ */
+static int
+identity_provider_sqlite_ticket_get_attrs (void *cls,
+                                           const struct GNUNET_IDENTITY_PROVIDER_Ticket *ticket,
+                                           GNUNET_IDENTITY_PROVIDER_TicketIterator iter,
+                                           void *iter_cls)
+{
+  struct Plugin *plugin = cls;
+  struct GNUNET_SQ_QueryParam params[] = {
+    GNUNET_SQ_query_param_auto_from_type (&ticket->identity),
+    GNUNET_SQ_query_param_uint64 (&ticket->rnd),
+    GNUNET_SQ_query_param_end
+  };
+
+  if (GNUNET_OK !=
+      GNUNET_SQ_bind (plugin->get_ticket_attrs,
+                      params))
+  {
+    LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+                "sqlite3_bind_XXXX");
+    GNUNET_SQ_reset (plugin->dbh,
+                     plugin->get_ticket_attrs);
+    return GNUNET_SYSERR;
+  }
+  return get_ticket_and_call_iterator (plugin,
+                                       plugin->get_ticket_attrs,
+                                       iter,
+                                       iter_cls);
+}
+
+
 /**
  * Iterate over the results for a particular key and zone in the
  * datastore.  Will return at most one result to the iterator.
@@ -653,6 +706,7 @@ libgnunet_plugin_identity_provider_sqlite_init (void *cls)
   api->store_ticket = &identity_provider_sqlite_store_ticket;
   api->delete_ticket = &identity_provider_sqlite_delete_ticket;
   api->iterate_tickets = &identity_provider_sqlite_iterate_tickets;
+  api->get_ticket_attributes = &identity_provider_sqlite_ticket_get_attrs;
   LOG (GNUNET_ERROR_TYPE_INFO,
        _("Sqlite database running\n"));
   return api;

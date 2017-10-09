@@ -125,6 +125,31 @@ attribute_list_deserialize (const char* data,
   return attrs;
 }
 
+struct GNUNET_IDENTITY_PROVIDER_AttributeList*
+attribute_list_dup (const struct GNUNET_IDENTITY_PROVIDER_AttributeList *attrs)
+{
+  struct GNUNET_IDENTITY_PROVIDER_AttributeListEntry *le;
+  struct GNUNET_IDENTITY_PROVIDER_AttributeListEntry *result_le;
+  struct GNUNET_IDENTITY_PROVIDER_AttributeList *result;
+  size_t len;
+
+  result = GNUNET_new (struct GNUNET_IDENTITY_PROVIDER_AttributeList);
+  for (le = attrs->list_head; NULL != le; le = le->next)
+  {
+    result_le = GNUNET_new (struct GNUNET_IDENTITY_PROVIDER_AttributeListEntry);
+    len = sizeof (struct GNUNET_IDENTITY_PROVIDER_Attribute) + le->attribute->data_size;
+    result_le->attribute = GNUNET_malloc (len);
+    GNUNET_memcpy (result_le->attribute,
+                   le->attribute,
+                   len);
+    GNUNET_CONTAINER_DLL_insert (result->list_head,
+                                 result->list_tail,
+                                 result_le);
+  }
+  return result;
+}
+
+
 void
 attribute_list_destroy (struct GNUNET_IDENTITY_PROVIDER_AttributeList *attrs)
 {

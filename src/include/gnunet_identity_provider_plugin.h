@@ -105,7 +105,10 @@ struct GNUNET_IDENTITY_PROVIDER_PluginFunctions
 			  uint64_t offset,
 			  GNUNET_IDENTITY_PROVIDER_TicketIterator iter, void *iter_cls);
 
-
+  int (*get_ticket_attributes) (void* cls,
+                                const struct GNUNET_IDENTITY_PROVIDER_Ticket *ticket,
+                                GNUNET_IDENTITY_PROVIDER_TicketIterator iter,
+                                void *iter_cls);
 };
 
 

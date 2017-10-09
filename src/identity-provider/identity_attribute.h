@@ -138,5 +138,7 @@ attribute_new (const char* attr_name,
                const void* data,
                size_t data_size);
 
+struct GNUNET_IDENTITY_PROVIDER_AttributeList*
+attribute_list_dup (const struct GNUNET_IDENTITY_PROVIDER_AttributeList *attrs);
 
 #endif
