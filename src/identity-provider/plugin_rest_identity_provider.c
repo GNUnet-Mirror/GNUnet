@@ -239,11 +239,6 @@ struct RequestHandle
    */
   struct GNUNET_JSONAPI_Document *resp_object;
 
-  /**
-   * Resource object
-   */
-  struct GNUNET_JSONAPI_Resource *json_resource;
-
 };
 
 
@@ -397,6 +392,7 @@ static void
 ticket_collect (void *cls,
                 const struct GNUNET_IDENTITY_PROVIDER_Ticket *ticket)
 {
+  struct GNUNET_JSONAPI_Resource *json_resource;
   struct RequestHandle *handle = cls;
   json_t *value;
   char* tmp;
@@ -404,15 +400,15 @@ ticket_collect (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Adding ticket\n");
   tmp = GNUNET_STRINGS_data_to_string_alloc (&ticket->rnd,
                                              sizeof (uint64_t));
-  handle->json_resource = GNUNET_JSONAPI_resource_new (GNUNET_REST_JSONAPI_IDENTITY_TICKET,
+  json_resource = GNUNET_JSONAPI_resource_new (GNUNET_REST_JSONAPI_IDENTITY_TICKET,
                                                        tmp);
   GNUNET_free (tmp);
-  GNUNET_JSONAPI_document_resource_add (handle->resp_object, handle->json_resource);
+  GNUNET_JSONAPI_document_resource_add (handle->resp_object, json_resource);
 
   tmp = GNUNET_STRINGS_data_to_string_alloc (&ticket->identity,
                                              sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey));
   value = json_string (tmp);
-  GNUNET_JSONAPI_resource_add_attr (handle->json_resource,
+  GNUNET_JSONAPI_resource_add_attr (json_resource,
                                     "issuer",
                                     value);
   GNUNET_free (tmp);
@@ -420,7 +416,7 @@ ticket_collect (void *cls,
   tmp = GNUNET_STRINGS_data_to_string_alloc (&ticket->audience,
                                              sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey));
   value = json_string (tmp);
-  GNUNET_JSONAPI_resource_add_attr (handle->json_resource,
+  GNUNET_JSONAPI_resource_add_attr (json_resource,
                                     "audience",
                                     value);
   GNUNET_free (tmp);
@@ -428,7 +424,7 @@ ticket_collect (void *cls,
   tmp = GNUNET_STRINGS_data_to_string_alloc (&ticket->rnd,
                                              sizeof (uint64_t));
   value = json_string (tmp);
-  GNUNET_JSONAPI_resource_add_attr (handle->json_resource,
+  GNUNET_JSONAPI_resource_add_attr (json_resource,
                                     "rnd",
                                     value);
   GNUNET_free (tmp);
@@ -535,7 +531,7 @@ add_attribute_cont (struct GNUNET_REST_RequestHandle *con_handle,
        ego_entry = ego_entry->next)
     if (0 == strcmp (identity, ego_entry->identifier))
       break;
-  
+
   if (NULL == ego_entry)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -620,14 +616,19 @@ attr_collect (void *cls,
               const struct GNUNET_CRYPTO_EcdsaPublicKey *identity,
               const struct GNUNET_IDENTITY_PROVIDER_Attribute *attr)
 {
+  struct GNUNET_JSONAPI_Resource *json_resource;
   struct RequestHandle *handle = cls;
   json_t *value;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Adding attribute: %s\n",
               attr->name);
+  json_resource = GNUNET_JSONAPI_resource_new (GNUNET_REST_JSONAPI_IDENTITY_ATTRIBUTE,
+                                               attr->name);
+  GNUNET_JSONAPI_document_resource_add (handle->resp_object, json_resource);
+
   value = json_string (attr->data);
-  GNUNET_JSONAPI_resource_add_attr (handle->json_resource,
-                                    attr->name,
+  GNUNET_JSONAPI_resource_add_attr (json_resource,
+                                    "value",
                                     value);
   json_decref (value);
   GNUNET_IDENTITY_PROVIDER_get_attributes_next (handle->attr_it);
@@ -670,9 +671,6 @@ list_attribute_cont (struct GNUNET_REST_RequestHandle *con_handle,
       break;
   handle->resp_object = GNUNET_JSONAPI_document_new ();
 
-  handle->json_resource = GNUNET_JSONAPI_resource_new (GNUNET_REST_JSONAPI_IDENTITY_ATTRIBUTE,
-                                                       identity);
-  GNUNET_JSONAPI_document_resource_add (handle->resp_object, handle->json_resource);
 
   if (NULL == ego_entry)
   {
