@@ -1257,7 +1257,7 @@ ticket_reissue_proc (void *cls,
                                               &reissue_ticket_cont,
                                               rh);
   for (; i > 0; i--)
-    GNUNET_free (attr_arr[i]);
+    GNUNET_free (attr_arr[i-1]);
   GNUNET_free (ecdhe_privkey);
   GNUNET_free (label);
   GNUNET_free (attr_arr);
@@ -1322,7 +1322,9 @@ reenc_next_attribute (struct TicketRevocationHandle *rh)
   attribute_serialize (rh->attrs->list_head->attribute,
                        buf);
   rh->attrs->list_head->attribute->attribute_version++;
-  GNUNET_asprintf (&policy, "%s:%lu", rh->attrs->list_head->attribute->name, rh->attrs->list_head->attribute->attribute_version);
+  GNUNET_asprintf (&policy, "%s:%lu",
+                   rh->attrs->list_head->attribute->name,
+                   rh->attrs->list_head->attribute->attribute_version);
   /**
    * Encrypt the attribute value and store in namestore
    */
@@ -1423,6 +1425,21 @@ process_attributes_to_update (void *cls,
 }
 
 
+
+static void
+get_ticket_after_abe_bootstrap (void *cls,
+                                struct GNUNET_CRYPTO_AbeMasterKey *abe_key)
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Finished ABE bootstrap\n");
+  struct TicketRevocationHandle *rh = cls;
+  rh->abe_key = abe_key;
+  TKT_database->get_ticket_attributes (TKT_database->cls,
+                                       &rh->ticket,
+                                       &process_attributes_to_update,
+                                       rh);
+}
+
 /**
  * Checks a ticket revocation message
  *
@@ -1444,7 +1461,6 @@ check_revoke_ticket_message(void *cls,
   }
   return GNUNET_OK;
 }
-
 /**
  *
  * Handler for ticket revocation message
@@ -1477,11 +1493,7 @@ handle_revoke_ticket_message (void *cls,
   GNUNET_CONTAINER_DLL_insert (idp->revocation_list_head,
                                idp->revocation_list_tail,
                                rh);
-  TKT_database->get_ticket_attributes (TKT_database->cls,
-                                       &rh->ticket,
-                                       &process_attributes_to_update,
-                                       rh);
-  //bootstrap_abe (&rh->identity, &collect_after_abe_bootstrap, rh, GNUNET_NO);
+  bootstrap_abe (&rh->identity, &get_ticket_after_abe_bootstrap, rh, GNUNET_NO);
   GNUNET_SERVICE_client_continue (idp->client);
 
 }
