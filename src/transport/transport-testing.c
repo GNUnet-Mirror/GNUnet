@@ -384,7 +384,7 @@ GNUNET_TRANSPORT_TESTING_start_peer (struct GNUNET_TRANSPORT_TESTING_Handle *tth
 {
   char *emsg = NULL;
   struct GNUNET_TRANSPORT_TESTING_PeerContext *p;
-  struct GNUNET_PeerIdentity *dummy;
+  struct GNUNET_PeerIdentity dummy;
   unsigned int i;
 
   if (GNUNET_NO == GNUNET_DISK_file_test (cfgname))
