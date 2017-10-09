@@ -678,6 +678,11 @@ GNUNET_TRANSPORT_TESTING_stop_peer (struct GNUNET_TRANSPORT_TESTING_PeerContext 
     GNUNET_CONFIGURATION_destroy (p->cfg);
     p->cfg = NULL;
   }
+  if (NULL != p->handlers)
+  {
+    GNUNET_free (p->handlers);
+    p->handlers = NULL;
+  }
   GNUNET_CONTAINER_DLL_remove (tth->p_head,
                                tth->p_tail,
                                p);
