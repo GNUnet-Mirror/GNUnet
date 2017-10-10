@@ -159,7 +159,10 @@ GNUNET_CRYPTO_cpabe_create_master_key (void)
 void
 GNUNET_CRYPTO_cpabe_delete_master_key (struct GNUNET_CRYPTO_AbeMasterKey *key)
 {
-  gabe_msk_free (key->msk); //For some reason free of pub implicit?
+  gabe_msk_free (key->msk);
+  gabe_pub_free (key->pub);
+  //GNUNET_free (key->msk);
+  //gabe_msk_free (key->msk); //For some reason free of pub implicit?
   GNUNET_free (key);
 }
 
@@ -175,15 +178,19 @@ GNUNET_CRYPTO_cpabe_create_key (struct GNUNET_CRYPTO_AbeMasterKey *key,
   prv_key->prv = gabe_keygen(key->pub, key->msk, attrs);
   size = gabe_pub_serialize(key->pub, &tmp);
   prv_key->pub = gabe_pub_unserialize(tmp, size);
+  GNUNET_free (tmp);
   GNUNET_assert (NULL != prv_key->prv);
   return prv_key;
 }
 
 void
-GNUNET_CRYPTO_cpabe_delete_key (struct GNUNET_CRYPTO_AbeKey *key)
+GNUNET_CRYPTO_cpabe_delete_key (struct GNUNET_CRYPTO_AbeKey *key,
+                                int delete_pub)
 {
   //Memory management in gabe is buggy
-  //gabe_prv_free (prv);
+  gabe_prv_free (key->prv);
+  if (GNUNET_YES == delete_pub)
+    gabe_pub_free (key->pub);
   GNUNET_free (key);
 }
 
@@ -266,6 +273,7 @@ GNUNET_CRYPTO_cpabe_encrypt (const void *block,
   cph_buf_len = gabe_cph_serialize(cph,
                                 &cph_buf);
   gabe_cph_free(cph);
+  GNUNET_free (cph);
   plt = GNUNET_memdup (block, size);
   aes_buf_len = aes_128_cbc_encrypt(plt, size, m, &aes_buf);
   GNUNET_free (plt);
@@ -293,14 +301,21 @@ GNUNET_CRYPTO_cpabe_decrypt (const void *block,
   read_cpabe(block, &cph_buf, &cph_buf_size, &aes_buf, &aes_buf_size);
   cph = gabe_cph_unserialize(key->pub, cph_buf, cph_buf_size);
   if( !gabe_dec(key->pub, key->prv, cph, m) ) {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "%s\n", gabe_error());
+    GNUNET_free (aes_buf);
+    GNUNET_free (cph_buf);
     gabe_cph_free(cph);
+    GNUNET_free (cph);
+    element_clear (m);
     return GNUNET_SYSERR;
   }
   gabe_cph_free(cph);
+  GNUNET_free (cph);
   plt_len = aes_128_cbc_decrypt(aes_buf, aes_buf_size, m, (char**)result);
+  GNUNET_free (cph_buf);
   GNUNET_free (aes_buf);
+  element_clear (m);
   //freeing is buggy in gabe
   //gabe_prv_free (prv);
   //gabe_pub_free (pub);

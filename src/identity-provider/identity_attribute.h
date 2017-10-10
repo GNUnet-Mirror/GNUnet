@@ -36,6 +36,11 @@ struct Attribute
   uint32_t attribute_type;
 
   /**
+   * Attribute version
+   */
+  uint32_t attribute_version;
+  
+  /**
    * Name length
    */
   uint32_t name_len;

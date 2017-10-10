@@ -501,12 +501,21 @@ handle_consume_ticket_result (void *cls,
                                         attrs_len);
     if (NULL != op->ar_cb)
     {
-      for (le = attrs->list_head; NULL != le; le = le->next)
+      if (NULL == attrs)
+      {
         op->ar_cb (op->cls,
                    &msg->identity,
-                   le->attribute);
+                   NULL);
+      }
+      else
+      {
+        for (le = attrs->list_head; NULL != le; le = le->next)
+          op->ar_cb (op->cls,
+                     &msg->identity,
+                     le->attribute);
+        attribute_list_destroy (attrs);
+      }
     }
-    attribute_list_destroy (attrs);
     op->ar_cb (op->cls,
                NULL,
                NULL);

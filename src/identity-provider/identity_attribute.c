@@ -142,6 +142,7 @@ attribute_list_dup (const struct GNUNET_IDENTITY_PROVIDER_AttributeList *attrs)
     GNUNET_memcpy (result_le->attribute,
                    le->attribute,
                    len);
+    result_le->attribute->name = (const char*)&result_le->attribute[1];
     GNUNET_CONTAINER_DLL_insert (result->list_head,
                                  result->list_tail,
                                  result_le);
@@ -186,6 +187,7 @@ attribute_serialize (const struct GNUNET_IDENTITY_PROVIDER_Attribute *attr,
 
   attr_ser = (struct Attribute*)result;
   attr_ser->attribute_type = htons (attr->attribute_type);
+  attr_ser->attribute_version = htonl (attr->attribute_version);
   name_len = strlen (attr->name);
   attr_ser->name_len = htons (name_len);
   write_ptr = (char*)&attr_ser[1];
@@ -221,6 +223,7 @@ attribute_deserialize (const char* data,
   attr = GNUNET_malloc (sizeof (struct GNUNET_IDENTITY_PROVIDER_Attribute)
                         + data_len + name_len + 1);
   attr->attribute_type = ntohs (attr_ser->attribute_type);
+  attr->attribute_version = ntohl (attr_ser->attribute_version);
   attr->data_size = ntohs (attr_ser->data_size);
 
   write_ptr =  (char*)&attr[1];

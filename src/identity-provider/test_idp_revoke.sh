@@ -24,14 +24,37 @@ which timeout &> /dev/null && DO_TIMEOUT="timeout 30"
 
 TEST_ATTR="test"
 gnunet-arm -s -c test_idp.conf
-gnunet-identity -C testego -c test_idp.conf
-gnunet-identity -C rpego -c test_idp.conf
-SUBJECT_KEY=$(gnunet-identity -d -c test_idp.conf | grep rpego | awk '{print $3}')
-TEST_KEY=$(gnunet-identity -d -c test_idp.conf | grep testego | awk '{print $3}')
-gnunet-idp -e testego -a email -V john@doe.gnu -c test_idp.conf
-gnunet-idp -e testego -a name -V John -c test_idp.conf
-#gnunet-idp -e testego -D -c test_idp.conf
-TICKET=$(gnunet-idp -e testego -i "email,name" -r $SUBJECT_KEY -c test_idp.conf | awk '{print $1}')
+gnunet-identity -C alice -c test_idp.conf
+gnunet-identity -C bob -c test_idp.conf
+gnunet-identity -C eve -c test_idp.conf
+ALICE_KEY=$(gnunet-identity -d -c test_idp.conf | grep alice | awk '{print $3}')
+BOB_KEY=$(gnunet-identity -d -c test_idp.conf | grep bob | awk '{print $3}')
+EVE_KEY=$(gnunet-identity -d -c test_idp.conf | grep eve | awk '{print $3}')
+
+gnunet-idp -e alice -a email -V john@doe.gnu -c test_idp.conf 
+gnunet-idp -e alice -a name -V John -c test_idp.conf
+TICKET_BOB=$(gnunet-idp -e alice -i "email,name" -r $BOB_KEY -c test_idp.conf | awk '{print $1}')
+#gnunet-idp -e bob -C $TICKET_BOB -c test_idp.conf
+TICKET_EVE=$(gnunet-idp -e alice -i "email" -r $EVE_KEY -c test_idp.conf | awk '{print $1}')
+
+
 #echo "Consuming $TICKET"
-gnunet-idp -e testego -R $TICKET -c test_idp.conf
+#gnunet-idp -e eve -C $TICKET_EVE -c test_idp.conf
+gnunet-idp -e alice -R $TICKET_EVE -c test_idp.conf
+
+gnunet-idp -e eve -C $TICKET_EVE -c test_idp.conf  > /dev/null 2>&1
+if test $? == 0
+then 
+  echo "Eve can still resolve attributes..."
+  gnunet-arm -e -c test_idp.conf
+  exit 1
+fi
+gnunet-idp -e bob -C $TICKET_BOB -c test_idp.conf > /dev/null 2>&1
+if test $? != 0
+then
+  echo "Bob cannot resolve attributes..."
+  gnunet-arm -e -c test_idp.conf
+  exit 1
+fi
+
 gnunet-arm -e -c test_idp.conf

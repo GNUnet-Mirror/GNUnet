@@ -2151,7 +2151,8 @@ struct GNUNET_CRYPTO_AbeKey *
 GNUNET_CRYPTO_cpabe_create_key (struct GNUNET_CRYPTO_AbeMasterKey *msk,
                                 char **attrs);
 void
-GNUNET_CRYPTO_cpabe_delete_key (struct GNUNET_CRYPTO_AbeKey *key);
+GNUNET_CRYPTO_cpabe_delete_key (struct GNUNET_CRYPTO_AbeKey *key,
+                                int delete_pub);
 
 
 /**

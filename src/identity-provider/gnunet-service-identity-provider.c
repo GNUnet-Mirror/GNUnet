@@ -903,6 +903,7 @@ serialize_abe_keyinfo2 (const struct GNUNET_IDENTITY_PROVIDER_Ticket *ticket,
   GNUNET_memcpy (write_ptr,
                  serialized_key,
                  size);
+  GNUNET_free (serialized_key);
   // ECDH keypair E = eG
   *ecdh_privkey = GNUNET_CRYPTO_ecdhe_key_create();
   GNUNET_CRYPTO_ecdhe_key_get_public (*ecdh_privkey,
@@ -944,6 +945,7 @@ issue_ticket_after_abe_bootstrap (void *cls,
   char *code_record_data;
   char **attrs;
   char *label;
+  char *policy;
   int attrs_len;
   int i;
   size_t code_record_len;
@@ -955,7 +957,13 @@ issue_ticket_after_abe_bootstrap (void *cls,
   attrs = GNUNET_malloc ((attrs_len + 1)*sizeof (char*));
   i = 0;
   for (le = ih->attrs->list_head; NULL != le; le = le->next) {
-    attrs[i] = (char*) le->attribute->name;
+    GNUNET_asprintf (&policy, "%s_%lu",
+                     le->attribute->name,
+                     le->attribute->attribute_version);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Adding attribute to key: %s\n",
+                policy);
+    attrs[i] = policy;
     i++;
   }
   attrs[i] = NULL;
@@ -984,12 +992,15 @@ issue_ticket_after_abe_bootstrap (void *cls,
                                               code_record,
                                               &store_ticket_issue_cont,
                                               ih);
+  //for (; i > 0; i--)
+  //  GNUNET_free (attrs[i-1]);
   GNUNET_free (ecdhe_privkey);
   GNUNET_free (label);
   GNUNET_free (attrs);
   GNUNET_free (code_record_data);
+  GNUNET_CRYPTO_cpabe_delete_key (rp_key,
+                                  GNUNET_YES);
   GNUNET_CRYPTO_cpabe_delete_master_key (abe_key);
-  GNUNET_CRYPTO_cpabe_delete_key (rp_key);
 }
 
 
@@ -1107,6 +1118,16 @@ ticket_reissue_proc (void *cls,
                      const struct GNUNET_IDENTITY_PROVIDER_Ticket *ticket,
                      const struct GNUNET_IDENTITY_PROVIDER_AttributeList *attrs);
 
+static void
+revocation_reissue_tickets (struct TicketRevocationHandle *rh);
+
+
+static void reissue_next (void *cls)
+{
+  struct TicketRevocationHandle *rh = cls;
+  revocation_reissue_tickets (rh);
+}
+
 
 static void
 reissue_ticket_cont (void *cls,
@@ -1114,7 +1135,6 @@ reissue_ticket_cont (void *cls,
                      const char *emsg)
 {
   struct TicketRevocationHandle *rh = cls;
-  int ret;
 
   rh->ns_qe = NULL;
   if (GNUNET_SYSERR == success)
@@ -1125,24 +1145,9 @@ reissue_ticket_cont (void *cls,
     cleanup_revoke_ticket_handle (rh);
     return;
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Continue DB iteration\n");
   rh->offset++;
-  GNUNET_assert (GNUNET_SYSERR != (ret =
-                                   TKT_database->iterate_tickets (TKT_database->cls,
-                                                                  &rh->ticket.identity,
-                                                                  GNUNET_NO,
-                                                                  rh->offset,
-                                                                  &ticket_reissue_proc,
-                                                                  rh)));
-  if (GNUNET_NO == ret)
-  {
-    send_revocation_finished (rh, GNUNET_OK);
-    cleanup_revoke_ticket_handle (rh);
-  }
+  GNUNET_SCHEDULER_add_now (&reissue_next, rh);
 }
-
-static void
-revocation_reissue_tickets (struct TicketRevocationHandle *rh);
 
 
 /**
@@ -1177,8 +1182,18 @@ ticket_reissue_proc (void *cls,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Iteration done\n");
-    send_revocation_finished (rh, GNUNET_OK);
-    cleanup_revoke_ticket_handle (rh);
+    return;
+  }
+
+  if (0 == memcmp (&ticket->audience,
+                   &rh->ticket.audience,
+                   sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey)))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Do not reissue for this identity.!\n");
+
+    rh->offset++;
+    GNUNET_SCHEDULER_add_now (&reissue_next, rh);
     return;
   }
 
@@ -1196,19 +1211,20 @@ ticket_reissue_proc (void *cls,
                        le->attribute->name))
       {
         reissue_ticket = GNUNET_YES;
-        break;
+        le->attribute->attribute_version = le_rollover->attribute->attribute_version;
       }
     }
-    if (GNUNET_YES == reissue_ticket)
-      break;
   }
 
   if (GNUNET_NO == reissue_ticket)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Skipping ticket.\n");
+
     rh->offset++;
-    revocation_reissue_tickets (rh);
+    GNUNET_SCHEDULER_add_now (&reissue_next, rh);
+
+
     return;
   }
 
@@ -1222,7 +1238,7 @@ ticket_reissue_proc (void *cls,
   attr_arr = GNUNET_malloc ((attrs_len + 1)*sizeof (char*));
   i = 0;
   for (le = attrs->list_head; NULL != le; le = le->next) {
-    GNUNET_asprintf (&policy, "%s:%lu",
+    GNUNET_asprintf (&policy, "%s_%lu",
                      le->attribute->name,
                      le->attribute->attribute_version);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -1235,7 +1251,7 @@ ticket_reissue_proc (void *cls,
                                            attr_arr);
 
   //TODO review this wireformat
-  code_record_len = serialize_abe_keyinfo2 (&rh->ticket,
+  code_record_len = serialize_abe_keyinfo2 (ticket,
                                             attrs,
                                             rp_key,
                                             &ecdhe_privkey,
@@ -1256,13 +1272,13 @@ ticket_reissue_proc (void *cls,
                                               code_record,
                                               &reissue_ticket_cont,
                                               rh);
-  for (; i > 0; i--)
-    GNUNET_free (attr_arr[i-1]);
+  //for (; i > 0; i--)
+  //  GNUNET_free (attr_arr[i-1]);
   GNUNET_free (ecdhe_privkey);
   GNUNET_free (label);
   GNUNET_free (attr_arr);
   GNUNET_free (code_record_data);
-  GNUNET_CRYPTO_cpabe_delete_key (rp_key);
+  GNUNET_CRYPTO_cpabe_delete_key (rp_key, GNUNET_YES);
 }
 
 
@@ -1278,7 +1294,7 @@ revocation_reissue_tickets (struct TicketRevocationHandle *rh)
   int ret;
   /* Done, issue new keys */
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Revocation Phase IV: Reissuing Tickets\n");
+              "Revocation Phase III: Reissuing Tickets\n");
   if (GNUNET_SYSERR == (ret = TKT_database->iterate_tickets (TKT_database->cls,
                                                              &rh->ticket.identity,
                                                              GNUNET_NO,
@@ -1292,8 +1308,8 @@ revocation_reissue_tickets (struct TicketRevocationHandle *rh)
   {
     send_revocation_finished (rh, GNUNET_OK);
     cleanup_revoke_ticket_handle (rh);
+    return;
   }
-
 }
 
 /**
@@ -1322,9 +1338,11 @@ reenc_next_attribute (struct TicketRevocationHandle *rh)
   attribute_serialize (rh->attrs->list_head->attribute,
                        buf);
   rh->attrs->list_head->attribute->attribute_version++;
-  GNUNET_asprintf (&policy, "%s:%lu",
+  GNUNET_asprintf (&policy, "%s_%lu",
                    rh->attrs->list_head->attribute->name,
                    rh->attrs->list_head->attribute->attribute_version);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Encrypting with policy %s\n", policy);
   /**
    * Encrypt the attribute value and store in namestore
    */
@@ -1388,6 +1406,7 @@ attr_reenc_cont (void *cls,
   GNUNET_CONTAINER_DLL_remove (rh->attrs->list_head,
                                rh->attrs->list_tail,
                                le);
+  GNUNET_assert (NULL != rh->rvk_attrs);
   GNUNET_CONTAINER_DLL_insert (rh->rvk_attrs->list_head,
                                rh->rvk_attrs->list_tail,
                                le);
@@ -1476,13 +1495,9 @@ handle_revoke_ticket_message (void *cls,
   struct TicketRevocationHandle *rh;
   struct IdpClient *idp = cls;
   struct GNUNET_IDENTITY_PROVIDER_Ticket *ticket;
-  size_t attrs_len;
 
   rh = GNUNET_new (struct TicketRevocationHandle);
-  attrs_len = ntohs (rm->attrs_len);
   ticket = (struct GNUNET_IDENTITY_PROVIDER_Ticket*)&rm[1];
-  if (0 < attrs_len)
-    rh->rvk_attrs = attribute_list_deserialize ((char*)&ticket[1], attrs_len);
   rh->rvk_attrs = GNUNET_new (struct GNUNET_IDENTITY_PROVIDER_AttributeList);
   rh->ticket = *ticket;
   rh->r_id = ntohl (rm->id);
@@ -1500,14 +1515,17 @@ handle_revoke_ticket_message (void *cls,
 
 
 static void
-cleanup_as_handle (struct AttributeStoreHandle *handle)
+cleanup_consume_ticket_handle (struct ConsumeTicketHandle *handle)
 {
-  if (NULL != handle->attribute)
-    GNUNET_free (handle->attribute);
-  if (NULL != handle->abe_key)
-    GNUNET_CRYPTO_cpabe_delete_master_key (handle->abe_key);
+  if (NULL != handle->key)
+    GNUNET_CRYPTO_cpabe_delete_key (handle->key,
+                                    GNUNET_YES);
+  if (NULL != handle->attrs)
+    attribute_list_destroy (handle->attrs);
   GNUNET_free (handle);
 }
+
+
 
 /**
  * Checks a ticket consume message
@@ -1544,7 +1562,7 @@ process_parallel_lookup2 (void *cls, uint32_t rd_count,
   struct GNUNET_IDENTITY_PROVIDER_AttributeListEntry *attr_le;
   char *data;
   char *data_tmp;
-  size_t attr_len;
+  ssize_t attr_len;
   size_t attrs_len;
 
   GNUNET_CONTAINER_DLL_remove (handle->parallel_lookups_head,
@@ -1560,14 +1578,17 @@ process_parallel_lookup2 (void *cls, uint32_t rd_count,
                                             rd->data_size - sizeof (uint32_t),
                                             handle->key,
                                             (void**)&data);
-    attr_le = GNUNET_new (struct GNUNET_IDENTITY_PROVIDER_AttributeListEntry);
-    attr_le->attribute = attribute_deserialize (data,
-                                                attr_len);
-    attr_le->attribute->attribute_version = ntohl(*(uint32_t*)rd->data);
-    GNUNET_CONTAINER_DLL_insert (handle->attrs->list_head,
-                                 handle->attrs->list_tail,
-                                 attr_le);
-    GNUNET_free (data);
+    if (GNUNET_SYSERR != attr_len) 
+    {
+      attr_le = GNUNET_new (struct GNUNET_IDENTITY_PROVIDER_AttributeListEntry);
+      attr_le->attribute = attribute_deserialize (data,
+                                                  attr_len);
+      attr_le->attribute->attribute_version = ntohl(*(uint32_t*)rd->data);
+      GNUNET_CONTAINER_DLL_insert (handle->attrs->list_head,
+                                   handle->attrs->list_tail,
+                                   attr_le);
+      GNUNET_free (data);
+    }
   }
   if (NULL != handle->parallel_lookups_head)
     return; //Wait for more
@@ -1595,6 +1616,7 @@ process_parallel_lookup2 (void *cls, uint32_t rd_count,
   attribute_list_serialize (handle->attrs,
                             data_tmp);
   GNUNET_MQ_send (handle->client->mq, env);
+  cleanup_consume_ticket_handle (handle);
 }
 
 void
@@ -1623,14 +1645,6 @@ abort_parallel_lookups2 (void *cls)
   arm->attr_len = htons (0);
   GNUNET_MQ_send (handle->client->mq, env);
 
-}
-
-static void
-cleanup_consume_ticket_handle (struct ConsumeTicketHandle *handle)
-{
-  if (NULL != handle->key)
-    GNUNET_CRYPTO_cpabe_delete_key (handle->key);
-  GNUNET_free (handle);
 }
 
 
@@ -1713,6 +1727,8 @@ process_consume_abe_key (void *cls, uint32_t rd_count,
                                  parallel_lookup);
     GNUNET_free (lookup_query);
   }
+  GNUNET_free (scopes);
+  GNUNET_free (buf);
   handle->kill_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MINUTES,3),
                                                     &abort_parallel_lookups2,
                                                     handle);
@@ -1766,6 +1782,16 @@ handle_consume_ticket_message (void *cls,
 }
 
 static void
+cleanup_as_handle (struct AttributeStoreHandle *handle)
+{
+  if (NULL != handle->attribute)
+    GNUNET_free (handle->attribute);
+  if (NULL != handle->abe_key)
+    GNUNET_CRYPTO_cpabe_delete_master_key (handle->abe_key);
+  GNUNET_free (handle);
+}
+
+static void
 attr_store_cont (void *cls,
                  int32_t success,
                  const char *emsg)
@@ -1779,6 +1805,7 @@ attr_store_cont (void *cls,
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Failed to store attribute %s\n",
                 emsg);
+    cleanup_as_handle (as_handle);
     GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
     return;
   }
@@ -1816,9 +1843,11 @@ attr_store_task (void *cls)
                        buf);
 
   GNUNET_asprintf (&policy,
-                   "%s:%lu",
+                   "%s_%lu",
                    as_handle->attribute->name,
                    as_handle->attribute->attribute_version);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Encrypting with policy %s\n", policy);
   /**
    * Encrypt the attribute value and store in namestore
    */
@@ -1926,7 +1955,7 @@ static void
 cleanup_iter_handle (struct AttributeIterator *ai)
 {
   if (NULL != ai->abe_key)
-    GNUNET_free (ai->abe_key);
+    GNUNET_CRYPTO_cpabe_delete_master_key (ai->abe_key);
   GNUNET_CONTAINER_DLL_remove (ai->client->op_head,
                                ai->client->op_tail,
                                ai);
@@ -1936,10 +1965,11 @@ cleanup_iter_handle (struct AttributeIterator *ai)
 static void
 attr_iter_error (void *cls)
 {
-  //struct AttributeIterator *ai = cls;
+  struct AttributeIterator *ai = cls;
   //TODO
   GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
               "Failed to iterate over attributes\n");
+  cleanup_iter_handle (ai);
   GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
 }
 
@@ -1974,6 +2004,7 @@ attr_iter_cb (void *cls,
   char* attrs[2];
   char* data_tmp;
   char* policy;
+  uint32_t attr_ver;
 
   if (rd_count != 1)
   {
@@ -1985,8 +2016,9 @@ attr_iter_cb (void *cls,
     GNUNET_NAMESTORE_zone_iterator_next (ai->ns_it);
     return;
   }
-  GNUNET_asprintf (&policy, "%s:%lu",
-                   label, *(uint32_t*)rd->data);
+  attr_ver = ntohl(*((uint32_t*)rd->data));
+  GNUNET_asprintf (&policy, "%s_%lu",
+                   label, attr_ver);
   attrs[0] = policy;
   attrs[1] = 0;
   key = GNUNET_CRYPTO_cpabe_create_key (ai->abe_key,
@@ -1995,8 +2027,10 @@ attr_iter_cb (void *cls,
                                                rd->data_size-sizeof (uint32_t),
                                                key,
                                                (void**)&attr_ser);
-  GNUNET_CRYPTO_cpabe_delete_key (key);
-  GNUNET_free (policy);
+
+  GNUNET_CRYPTO_cpabe_delete_key (key,
+                                  GNUNET_YES);
+  //GNUNET_free (policy);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Found attribute: %s\n", label);
   env = GNUNET_MQ_msg_extra (arm,
@@ -2012,6 +2046,8 @@ attr_iter_cb (void *cls,
                  msg_extra_len);
   GNUNET_MQ_send (ai->client->mq, env);
   GNUNET_free (attr_ser);
+  GNUNET_CRYPTO_cpabe_delete_master_key (ai->abe_key);
+  ai->abe_key = NULL;
 }
 
 
@@ -2030,6 +2066,16 @@ iterate_after_abe_bootstrap (void *cls,
                                                      &attr_iter_finished,
                                                      ai);
 }
+
+void
+iterate_next_after_abe_bootstrap (void *cls,
+                             struct GNUNET_CRYPTO_AbeMasterKey *abe_key)
+{
+  struct AttributeIterator *ai = cls;
+  ai->abe_key = abe_key;
+  GNUNET_NAMESTORE_zone_iterator_next (ai->ns_it);
+}
+
 
 
 /**
@@ -2121,7 +2167,10 @@ handle_iteration_next (void *cls,
     GNUNET_SERVICE_client_drop (idp->client);
     return;
   }
-  GNUNET_NAMESTORE_zone_iterator_next (ai->ns_it);
+  bootstrap_abe (&ai->identity,
+                 &iterate_next_after_abe_bootstrap,
+                 ai,
+                 GNUNET_NO);
   GNUNET_SERVICE_client_continue (idp->client);
 }
 

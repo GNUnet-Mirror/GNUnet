@@ -32,6 +32,11 @@
 #include "gnunet_signatures.h"
 
 /**
+ * return value
+ */
+static int ret;
+
+/**
  * List attribute flag
  */
 static int list;
@@ -154,10 +159,6 @@ store_attr_cont (void *cls,
   if (GNUNET_SYSERR == success) {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "%s\n", emsg);
-  } else {
-    GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
-                "Successfully added identity attribute %s=%s\n",
-                attr_name, attr_value);
   }
   GNUNET_SCHEDULER_add_now (&do_cleanup, NULL);
 }
@@ -170,6 +171,11 @@ process_attrs (void *cls,
   if (NULL == identity)
   {
     GNUNET_SCHEDULER_add_now (&do_cleanup, NULL);
+    return;
+  }
+  if (NULL == attr)
+  {
+    ret = 1;
     return;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
@@ -190,11 +196,11 @@ static void
 process_rvk (void *cls, int success, const char* msg)
 {
   if (GNUNET_OK != success)
+  {
     GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
                 "Revocation failed.\n");
-  else
-    GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
-                "Revocation successful.\n");
+    ret = 1;
+  }
   GNUNET_SCHEDULER_add_now (&do_cleanup, NULL);
 }
 
@@ -335,7 +341,7 @@ run (void *cls,
      const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
-
+  ret = 0;
   if (NULL == ego_name)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
@@ -400,7 +406,8 @@ main(int argc, char *const argv[])
                                  &revoke_ticket),
     GNUNET_GETOPT_OPTION_END
   };
-  return GNUNET_PROGRAM_run (argc, argv, "ct",
-                             "ct", options,
-                             &run, NULL);
+  GNUNET_PROGRAM_run (argc, argv, "ct",
+                      "ct", options,
+                      &run, NULL);
+  return ret;
 }
