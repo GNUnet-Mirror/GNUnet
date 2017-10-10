@@ -16,6 +16,11 @@ if HAVE_SQLITE
 SQLITE_PLUGIN = libgnunet_plugin_identity_provider_sqlite.la
 endif
 
+EXTRA_DIST = \
+  test_idp_defaults.conf \
+	test_idp.conf \
+	$(check_SCRIPTS)
+
 pkgcfgdir= $(pkgdatadir)/config.d/
 
 libexecdir= $(pkglibdir)/libexec/
@@ -104,3 +109,14 @@ gnunet_idp_LDADD = \
 	$(top_builddir)/src/identity-provider/libgnunetidentityprovider.la \
 	$(top_builddir)/src/identity/libgnunetidentity.la \
   $(GN_LIBINTL)
+
+check_SCRIPTS = \
+	test_idp_attribute.sh \
+	test_idp_issue.sh \
+	test_idp_consume.sh \
+  test_idp_revoke.sh
+
+if ENABLE_TEST_RUN
+ AM_TESTS_ENVIRONMENT=export GNUNET_PREFIX=$${GNUNET_PREFIX:-@libdir@};export PATH=$${GNUNET_PREFIX:-@prefix@}/bin:$$PATH;unset XDG_DATA_HOME;unset XDG_CONFIG_HOME;
+ TESTS = $(check_SCRIPTS)
+endif
