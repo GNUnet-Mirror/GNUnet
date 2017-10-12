@@ -599,7 +599,7 @@ add_attribute_cont (struct GNUNET_REST_RequestHandle *con_handle,
   attribute = GNUNET_IDENTITY_PROVIDER_attribute_new (name_str,
                                                       GNUNET_IDENTITY_PROVIDER_AT_STRING,
                                                       value_str,
-                                                      strlen (value_str));
+                                                      strlen (value_str) + 1);
   handle->idp = GNUNET_IDENTITY_PROVIDER_connect (cfg);
   handle->idp_op = GNUNET_IDENTITY_PROVIDER_attribute_store (handle->idp,
                                                              identity_priv,
@@ -624,6 +624,12 @@ attr_collect (void *cls,
   struct GNUNET_JSONAPI_Resource *json_resource;
   struct RequestHandle *handle = cls;
   json_t *value;
+  
+  if ((NULL == attr->name) || (NULL == attr->data))
+  {
+    GNUNET_IDENTITY_PROVIDER_get_attributes_next (handle->attr_it);
+    return;
+  }
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Adding attribute: %s\n",
               attr->name);

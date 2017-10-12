@@ -247,7 +247,7 @@ iter_finished (void *cls)
   attr = GNUNET_IDENTITY_PROVIDER_attribute_new (attr_name,
                                                  GNUNET_IDENTITY_PROVIDER_AT_STRING,
                                                  attr_value,
-                                                 strlen (attr_value));
+                                                 strlen (attr_value) + 1);
   idp_op = GNUNET_IDENTITY_PROVIDER_attribute_store (idp_handle,
                                                      pkey,
                                                      attr,
