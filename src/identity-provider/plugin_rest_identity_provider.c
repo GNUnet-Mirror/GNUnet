@@ -60,6 +60,11 @@
 #define GNUNET_REST_API_NS_IDENTITY_REVOKE "/idp/revoke"
 
 /**
+ * Revoke namespace
+ */
+#define GNUNET_REST_API_NS_IDENTITY_CONSUME "/idp/consume"
+
+/**
  * Attribute key
  */
 #define GNUNET_REST_JSONAPI_IDENTITY_ATTRIBUTE "attribute"
@@ -819,6 +824,161 @@ revoke_ticket_cont (struct GNUNET_REST_RequestHandle *con_handle,
   GNUNET_JSONAPI_document_delete (json_obj);
 }
 
+static void
+consume_cont (void *cls,
+              const struct GNUNET_CRYPTO_EcdsaPublicKey *identity,
+              const struct GNUNET_IDENTITY_PROVIDER_Attribute *attr)
+{
+  struct RequestHandle *handle = cls;
+  struct GNUNET_JSONAPI_Resource *json_resource;
+  json_t *value;
+
+  if (NULL == identity)
+  {
+    GNUNET_SCHEDULER_add_now (&return_response, handle);
+    return;
+  }
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Adding attribute: %s\n",
+              attr->name);
+  json_resource = GNUNET_JSONAPI_resource_new (GNUNET_REST_JSONAPI_IDENTITY_ATTRIBUTE,
+                                               attr->name);
+  GNUNET_JSONAPI_document_resource_add (handle->resp_object, json_resource);
+
+  value = json_string (attr->data);
+  GNUNET_JSONAPI_resource_add_attr (json_resource,
+                                    "value",
+                                    value);
+  json_decref (value);
+}
+
+static void
+consume_ticket_cont (struct GNUNET_REST_RequestHandle *con_handle,
+                     const char* url,
+                     void *cls)
+{
+  const struct GNUNET_CRYPTO_EcdsaPrivateKey *identity_priv;
+  const char* identity_str;
+  const char* audience_str;
+  const char* rnd_str;
+
+  struct RequestHandle *handle = cls;
+  struct EgoEntry *ego_entry;
+  struct MHD_Response *resp;
+  struct GNUNET_IDENTITY_PROVIDER_Ticket ticket;
+  struct GNUNET_JSONAPI_Document *json_obj;
+  struct GNUNET_JSONAPI_Resource *json_res;
+  struct GNUNET_CRYPTO_EcdsaPublicKey tmp_pk;
+  char term_data[handle->rest_handle->data_size+1];
+  json_t *rnd_json;
+  json_t *identity_json;
+  json_t *audience_json;
+  json_t *data_json;
+  json_error_t err;
+  struct GNUNET_JSON_Specification docspec[] = {
+    GNUNET_JSON_spec_jsonapi_document (&json_obj),
+    GNUNET_JSON_spec_end()
+  };
+
+  if (0 >= handle->rest_handle->data_size)
+  {
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
+    return;
+  }
+
+  term_data[handle->rest_handle->data_size] = '\0';
+  GNUNET_memcpy (term_data,
+                 handle->rest_handle->data,
+                 handle->rest_handle->data_size);
+  data_json = json_loads (term_data,
+                          JSON_DECODE_ANY,
+                          &err);
+  GNUNET_assert (GNUNET_OK ==
+                 GNUNET_JSON_parse (data_json, docspec,
+                                    NULL, NULL));
+  json_decref (data_json);
+  if (NULL == json_obj)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Unable to parse JSONAPI Object from %s\n",
+                term_data);
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
+    return;
+  }
+  if (1 != GNUNET_JSONAPI_document_resource_count (json_obj))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Cannot create more than 1 resource! (Got %d)\n",
+                GNUNET_JSONAPI_document_resource_count (json_obj));
+    GNUNET_JSONAPI_document_delete (json_obj);
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
+    return;
+  }
+  json_res = GNUNET_JSONAPI_document_get_resource (json_obj, 0);
+  if (GNUNET_NO == GNUNET_JSONAPI_resource_check_type (json_res,
+                                                       GNUNET_REST_JSONAPI_IDENTITY_TICKET))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Unsupported JSON data type\n");
+    GNUNET_JSONAPI_document_delete (json_obj);
+    resp = GNUNET_REST_create_response (NULL);
+    handle->proc (handle->proc_cls, resp, MHD_HTTP_CONFLICT);
+    cleanup_handle (handle);
+    return;
+  }
+  rnd_json = GNUNET_JSONAPI_resource_read_attr (json_res,
+                                                "rnd");
+  identity_json = GNUNET_JSONAPI_resource_read_attr (json_res,
+                                                     "identity");
+  audience_json = GNUNET_JSONAPI_resource_read_attr (json_res,
+                                                     "audience");
+  rnd_str = json_string_value (rnd_json);
+  identity_str = json_string_value (identity_json);
+  audience_str = json_string_value (audience_json);
+
+  GNUNET_STRINGS_string_to_data (rnd_str,
+                                 strlen (rnd_str),
+                                 &ticket.rnd,
+                                 sizeof (uint64_t));
+  GNUNET_STRINGS_string_to_data (identity_str,
+                                 strlen (identity_str),
+                                 &ticket.identity,
+                                 sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey));
+  GNUNET_STRINGS_string_to_data (audience_str,
+                                 strlen (audience_str),
+                                 &ticket.audience,
+                                 sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey));
+
+  for (ego_entry = handle->ego_head;
+       NULL != ego_entry;
+       ego_entry = ego_entry->next)
+  {
+    GNUNET_IDENTITY_ego_get_public_key (ego_entry->ego,
+                                        &tmp_pk);
+    if (0 == memcmp (&ticket.audience,
+                     &tmp_pk,
+                     sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey)))
+      break;
+  }
+  if (NULL == ego_entry)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Identity unknown (%s)\n", identity_str);
+    GNUNET_JSONAPI_document_delete (json_obj);
+    return;
+  }
+  identity_priv = GNUNET_IDENTITY_ego_get_private_key (ego_entry->ego);
+  handle->resp_object = GNUNET_JSONAPI_document_new ();
+  handle->idp = GNUNET_IDENTITY_PROVIDER_connect (cfg);
+  handle->idp_op = GNUNET_IDENTITY_PROVIDER_ticket_consume (handle->idp,
+                                                            identity_priv,
+                                                            &ticket,
+                                                            &consume_cont,
+                                                            handle);
+  GNUNET_JSONAPI_document_delete (json_obj);
+}
+
+
 
 /**
  * Respond to OPTIONS request
@@ -859,6 +1019,7 @@ init_cont (struct RequestHandle *handle)
     {MHD_HTTP_METHOD_POST, GNUNET_REST_API_NS_IDENTITY_ATTRIBUTES, &add_attribute_cont},
     {MHD_HTTP_METHOD_GET, GNUNET_REST_API_NS_IDENTITY_TICKETS, &list_tickets_cont},
     {MHD_HTTP_METHOD_POST, GNUNET_REST_API_NS_IDENTITY_REVOKE, &revoke_ticket_cont},
+    {MHD_HTTP_METHOD_POST, GNUNET_REST_API_NS_IDENTITY_CONSUME, &consume_ticket_cont},
     {MHD_HTTP_METHOD_OPTIONS, GNUNET_REST_API_NS_IDENTITY_PROVIDER,
       &options_cont},
     GNUNET_REST_HANDLER_END
