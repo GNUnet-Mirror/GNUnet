@@ -283,7 +283,7 @@ exit_fail ()
 static void
 host_left ()
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+  GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
               "The host has left the place.\n");
   exit_success ();
 }
@@ -309,7 +309,7 @@ host_leave ()
 static void
 guest_left (void *cls)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+  GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
               "Guest has left the place.\n");
 }
 
@@ -518,7 +518,7 @@ look_var (void *cls,
           uint32_t value_size,
           uint32_t full_value_size)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+  GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
               "Received var: %s\n%.*s\n",
               name, value_size, (const char *) value);
 }
@@ -558,7 +558,7 @@ slicer_recv_method (void *cls,
                     const char *method_name)
 {
   method_received = method_name;
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+  GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
               "Received method for message ID %" PRIu64 ":\n"
               "%s (flags: %x)\n",
               message_id, method_name, ntohl (meth->flags));
@@ -584,7 +584,7 @@ slicer_recv_modifier (void *cls,
                       uint16_t full_value_size)
 {
 #if 0
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+  GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
               "Received modifier for message ID %" PRIu64 ":\n"
               "%c%s: %.*s (size: %u)\n",
               message_id, oper, name, value_size, (const char *) value, value_size);
@@ -608,7 +608,7 @@ slicer_recv_data (void *cls,
                   uint16_t data_size)
 {
 #if 0
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+  GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
               "Received data for message ID %" PRIu64 ":\n"
               "%.*s\n",
               message_id, data_size, (const char *) data);
@@ -631,7 +631,7 @@ slicer_recv_eom (void *cls,
                 uint8_t is_cancelled)
 {
   printf(".\n");
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+  GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
               "Received end of message ID %" PRIu64
               ", cancelled: %u\n",
               message_id, is_cancelled);
@@ -668,7 +668,7 @@ guest_recv_entry_decision (void *cls,
                            int is_admitted,
                            const struct GNUNET_PSYC_Message *entry_msg)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+  GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
               "Guest received entry decision %d\n",
               is_admitted);
 
@@ -683,7 +683,7 @@ guest_recv_entry_decision (void *cls,
     GNUNET_PSYC_message_parse (pmsg, &method_name, env, &data, &data_size);
     GNUNET_free (pmsg);
 
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+    GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
                 "%s\n%.*s\n",
                 method_name, data_size, (const char *) data);
   }
@@ -704,7 +704,7 @@ guest_recv_local_enter (void *cls, int result,
                         uint64_t max_message_id)
 {
   char *pub_str = GNUNET_CRYPTO_eddsa_public_key_to_string (pub_key);
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+  GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
               "Guest entered local place: %s, max_message_id: %" PRIu64 "\n",
               pub_str, max_message_id);
   GNUNET_free (pub_str);
@@ -802,7 +802,7 @@ host_answer_door (void *cls,
   char *
     nym_str = GNUNET_CRYPTO_ecdsa_public_key_to_string (nym_key);
 
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+  GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
               "Entry request: %s\n", nym_str);
   GNUNET_free (nym_str);
 
@@ -840,7 +840,7 @@ host_farewell (void *cls,
   char *
     nym_str = GNUNET_CRYPTO_ecdsa_public_key_to_string (nym_key);
 
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+  GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
               "Farewell: %s\n", nym_str);
   GNUNET_free (nym_str);
 }
@@ -856,7 +856,7 @@ host_entered (void *cls, int result,
 {
   place_pub_key = *pub_key;
   char *pub_str = GNUNET_CRYPTO_eddsa_public_key_to_string (pub_key);
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+  GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
               "Host entered: %s, max_message_id: %" PRIu64 "\n",
               pub_str, max_message_id);
   GNUNET_free (pub_str);

@@ -501,7 +501,7 @@ cleanup_host (struct Host *hst)
 static void
 cleanup_guest (struct Guest *gst)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+  GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
               "cleanup_guest, gst = %p\n",
               gst);
   struct Place *plc = &gst->place;
@@ -539,7 +539,7 @@ cleanup_place (void *cls)
 {
   struct Place *plc = cls;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+  GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
               "%p Cleaning up place %s\n",
               plc, GNUNET_h2s (&plc->pub_key_hash));
 
@@ -1478,7 +1478,7 @@ app_notify_place_end (struct GNUNET_SERVICE_Client *client)
 void
 app_notify_ego (struct Ego *ego, struct GNUNET_SERVICE_Client *client)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+  GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
               "%p Sending ego notification to client: %s\n",
               client, ego->name);
 
@@ -1513,7 +1513,7 @@ app_notify_ego_end (struct GNUNET_SERVICE_Client *client)
 int
 app_place_entry_notify (void *cls, const struct GNUNET_HashCode *key, void *value)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+  GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
               "app_place_entry_notify\n");
   struct GNUNET_MessageHeader *
     msg = GNUNET_CONTAINER_multihashmap_get (places, key);
@@ -1648,7 +1648,7 @@ handle_client_host_enter (void *cls,
   struct HostEnterRequest *
     hreq = (struct HostEnterRequest *) GNUNET_copy_message (&hr->header);
 
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+  GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
               "handle_client_host_enter\n");
 
   uint8_t app_id_size = ntohs (hreq->header.size) - sizeof (*hreq);
@@ -1705,7 +1705,7 @@ handle_client_host_enter (void *cls,
   if (ret != GNUNET_SYSERR)
   {
 
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+    GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
                 "%p Client connected as host to place %s.\n",
                 hst, GNUNET_h2s (&plc->pub_key_hash));
 
@@ -1767,7 +1767,7 @@ guest_enter (const struct GuestEnterRequest *greq, struct Guest **ret_gst)
   if (NULL != plc_gst)
     gst = GNUNET_CONTAINER_multihashmap_get (plc_gst, &ego_pub_hash);
 
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+  GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
               "guest enter, gst = %p\n",
               gst);
 
@@ -1808,7 +1808,7 @@ guest_enter (const struct GuestEnterRequest *greq, struct Guest **ret_gst)
     struct GNUNET_PSYC_Message *join_msg = NULL;
     uint16_t join_msg_size = 0;
 
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+    GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
                 "guest_enter 2\n");
 
     if (sizeof (struct GNUNET_MessageHeader) <= remaining)
@@ -1850,14 +1850,14 @@ guest_enter (const struct GuestEnterRequest *greq, struct Guest **ret_gst)
       (void) GNUNET_CONTAINER_multihashmap_put (place_guests, &plc->pub_key_hash, plc_gst,
                                                 GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
     }
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+    GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
                 "Adding guest %p\n",
                 gst);
     (void) GNUNET_CONTAINER_multihashmap_put (plc_gst, &plc->ego_pub_hash, gst,
                                               GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
     (void) GNUNET_CONTAINER_multihashmap_put (guests, &plc->pub_key_hash, gst,
                                               GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+    GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
                 "GNUNET_PSYC_slave_join\n");
     gst->slave
       = GNUNET_PSYC_slave_join (cfg, &plc->pub_key, &plc->ego_key,
@@ -1883,7 +1883,7 @@ client_guest_enter (struct Client *c,
 {
   struct GNUNET_SERVICE_Client *client = c->client;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+  GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
               "handle_client_guest_enter\n");
 
   uint16_t remaining = ntohs (greq->header.size) - sizeof (*greq);
@@ -1989,7 +1989,7 @@ gns_result_guest_enter (void *cls, uint32_t rd_count,
 {
   struct GuestEnterByNameClosure *gcls = cls;
   struct Client *c = gcls->client;
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+  GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
               "%p GNS result: %u records.\n",
               c, rd_count);
 
@@ -2155,7 +2155,7 @@ handle_client_app_connect (void *cls,
   struct GNUNET_HashCode app_id_hash;
   GNUNET_CRYPTO_hash (app_id, app_id_size, &app_id_hash);
 
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+  GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
               "iterating egos\n");
   GNUNET_CONTAINER_multihashmap_iterate (egos, ego_entry, client);
   app_notify_ego_end (client);
@@ -2225,7 +2225,7 @@ handle_client_place_leave (void *cls,
   struct GNUNET_SERVICE_Client *client = c->client;
   struct Place *plc = c->place;
   
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+  GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
               "handle_client_place_leave\n");
 
   if (NULL == plc)
@@ -3240,7 +3240,7 @@ handle_client_state_get (void *cls,
   uint16_t size = ntohs (req->header.size);
   const char *name = (const char *) &req[1];
 
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+  GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
               "%p State get #%" PRIu64 ": %s\n",
               plc, GNUNET_ntohll (req->op_id), name);
 
@@ -3293,7 +3293,7 @@ namestore_recv_records_store_result (void *cls, int32_t result,
   struct OperationClosure *opcls = cls;
   struct Client *c = opcls->client;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+  GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
               "namestore_recv_records_store_result\n");
   // FIXME: client might have been disconnected
   client_send_result (c->client, opcls->op_id, result, err_msg,
@@ -3584,7 +3584,7 @@ identity_recv_ego (void *cls, struct GNUNET_IDENTITY_Ego *id_ego,
   if (NULL == id_ego) // end of initial list of egos
     return;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+  GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
               "social service received ego %s\n",
               name);
 
@@ -3636,7 +3636,7 @@ run (void *cls,
      const struct GNUNET_CONFIGURATION_Handle *c,
      struct GNUNET_SERVICE_Handle *svc)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+  GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
               "starting social service\n");
 
   cfg = c;
