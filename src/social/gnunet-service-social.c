@@ -1878,23 +1878,9 @@ guest_enter (const struct GuestEnterRequest *greq, struct Guest **ret_gst)
 
 
 static int
-check_client_guest_enter (void *cls,
-                          const struct GuestEnterRequest *greq)
+client_guest_enter (struct Client *c,
+                    const struct GuestEnterRequest *greq)
 {
-  return GNUNET_OK;
-}
-
-
-/**
- * Handle a connecting client entering a place as guest.
- */
-static void
-handle_client_guest_enter (void *cls,
-                           const struct GuestEnterRequest *greq)
-{
-  // FIXME: this must not be called directly by gns_result_guest_enter because then
-  // GNUNET_SERVICE_client_continue is called twice
-  struct Client *c = cls;
   struct GNUNET_SERVICE_Client *client = c->client;
 
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
@@ -1906,9 +1892,7 @@ handle_client_guest_enter (void *cls,
                                                     remaining, 1, &app_id);
   if (0 == offset)
   {
-    GNUNET_break (0);
-    GNUNET_SERVICE_client_drop (client);
-    return;
+    return GNUNET_SYSERR;
   }
 
   struct Guest *gst = NULL;
@@ -1941,9 +1925,7 @@ handle_client_guest_enter (void *cls,
     break;
   }
   case GNUNET_SYSERR:
-    GNUNET_break (0);
-    GNUNET_SERVICE_client_drop (client);
-    return;
+    return GNUNET_SYSERR;
   }
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -1953,9 +1935,36 @@ handle_client_guest_enter (void *cls,
   struct ClientListItem *cli = GNUNET_new (struct ClientListItem);
   cli->client = client;
   GNUNET_CONTAINER_DLL_insert (plc->clients_head, plc->clients_tail, cli);
+  return GNUNET_OK; 
+}
 
-  c->place = plc;
-  GNUNET_SERVICE_client_continue (client);
+
+static int
+check_client_guest_enter (void *cls,
+                          const struct GuestEnterRequest *greq)
+{
+  return GNUNET_OK;
+}
+
+
+/**
+ * Handle a connecting client entering a place as guest.
+ */
+static void
+handle_client_guest_enter (void *cls,
+                           const struct GuestEnterRequest *greq)
+{
+  // FIXME: this must not be called directly by gns_result_guest_enter because then
+  // GNUNET_SERVICE_client_continue is called twice
+  struct Client *c = cls;
+
+  if (GNUNET_SYSERR == client_guest_enter (c, greq))
+  {
+    GNUNET_break (0);
+    GNUNET_SERVICE_client_drop (c->client);
+    return;
+  }
+  GNUNET_SERVICE_client_continue (c->client);
 }
 
 
@@ -2032,7 +2041,7 @@ gns_result_guest_enter (void *cls, uint32_t rd_count,
   p += relay_size;
   GNUNET_memcpy (p, gcls->join_msg, join_msg_size);
 
-  handle_client_guest_enter (c, greq);
+  client_guest_enter (c, greq);
 
   GNUNET_free (gcls->app_id);
   if (NULL != gcls->password)
@@ -2261,6 +2270,7 @@ handle_client_place_leave (void *cls,
     }
   }
   //GNUNET_SERVICE_client_continue (client);
+  //GNUNET_SERVICE_client_drop (client);
 }
 
 
