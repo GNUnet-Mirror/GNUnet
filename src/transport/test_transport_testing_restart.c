@@ -71,7 +71,8 @@ restart_cb (void *cls)
               p->no,
               GNUNET_i2s (&p->id));
   ret = 0;
-  end ();
+  GNUNET_SCHEDULER_add_now (&end,
+                            NULL);
 }
 
 

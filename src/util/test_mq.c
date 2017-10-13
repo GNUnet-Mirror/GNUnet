@@ -51,6 +51,7 @@ test1 ()
   GNUNET_assert (NULL != mm);
   GNUNET_assert (42 == ntohs (mm->header.type));
   GNUNET_assert (sizeof (struct MyMessage) == ntohs (mm->header.size));
+  GNUNET_MQ_discard (mqm);
 }
 
 

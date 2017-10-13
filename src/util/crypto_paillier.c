@@ -370,9 +370,11 @@ GNUNET_CRYPTO_paillier_decrypt (const struct GNUNET_CRYPTO_PaillierPrivateKey *p
   /* mod = cmum1 / n (mod n) */
   GNUNET_assert (0 != (mod = gcry_mpi_new (0)));
   gcry_mpi_div (mod, NULL, cmum1, n, 0);
+  gcry_mpi_release (cmum1);
 
   /* m = mod * mu mod n */
   gcry_mpi_mulm (m, mod, mu, n);
+  gcry_mpi_release (mod);
   gcry_mpi_release (mu);
   gcry_mpi_release (n);
 }
