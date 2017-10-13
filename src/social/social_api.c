@@ -818,6 +818,9 @@ handle_host_enter_request (void *cls,
 {
   struct GNUNET_SOCIAL_Host *hst = cls;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+              "handle_host_enter_request\n");
+
   if (NULL == hst->answer_door_cb)
      return;
 
@@ -1042,7 +1045,7 @@ place_cleanup (struct GNUNET_SOCIAL_Place *plc)
 {
   struct GNUNET_HashCode place_pub_hash;
   GNUNET_CRYPTO_hash (&plc->pub_key, sizeof (plc->pub_key), &place_pub_hash);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
               "%s place cleanup: %s\n",
               GNUNET_YES == plc->is_host ? "host" : "guest",
               GNUNET_h2s (&place_pub_hash));
@@ -1075,19 +1078,17 @@ place_cleanup (struct GNUNET_SOCIAL_Place *plc)
 
 
 void
-place_disconnect (struct GNUNET_SOCIAL_Place *plc,
-                  GNUNET_ContinuationCallback cb,
-                  void *cls)
+place_disconnect (struct GNUNET_SOCIAL_Place *plc)
 {
-  plc->disconnect_cb = cb;
-  plc->disconnect_cls = cls;
-
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+              "place_disconnect, plc = %p\n",
+              plc);
   if (NULL != plc->mq)
   {
     struct GNUNET_MQ_Envelope *env = GNUNET_MQ_get_last_envelope (plc->mq);
     if (NULL != env)
     {
-      GNUNET_MQ_notify_sent (env, (GNUNET_SCHEDULER_TaskCallback) place_cleanup, plc);
+      GNUNET_MQ_notify_sent (env, (GNUNET_SCHEDULER_TaskCallback) place_disconnect, plc);
     }
     else
     {
@@ -1104,6 +1105,8 @@ place_disconnect (struct GNUNET_SOCIAL_Place *plc,
 void
 place_leave (struct GNUNET_SOCIAL_Place *plc)
 {
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+              "social_api: place_leave\n");
   struct GNUNET_MessageHeader *msg;
   struct GNUNET_MQ_Envelope *
     env = GNUNET_MQ_msg (msg, GNUNET_MESSAGE_TYPE_SOCIAL_PLACE_LEAVE);
@@ -1580,7 +1583,11 @@ GNUNET_SOCIAL_host_disconnect (struct GNUNET_SOCIAL_Host *hst,
                                GNUNET_ContinuationCallback disconnect_cb,
                                void *cls)
 {
-  place_disconnect (&hst->plc, disconnect_cb, cls);
+  struct GNUNET_SOCIAL_Place *plc = &hst->plc; 
+
+  plc->disconnect_cb = disconnect_cb;
+  plc->disconnect_cls = cls;
+  place_disconnect (plc);
 }
 
 
@@ -1607,6 +1614,8 @@ GNUNET_SOCIAL_host_leave (struct GNUNET_SOCIAL_Host *hst,
                           GNUNET_ContinuationCallback disconnect_cb,
                           void *cls)
 {
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+              "GNUNET_SOCIAL_host_leave\n");
   GNUNET_SOCIAL_host_announce (hst, "_notice_place_closing", env, NULL, NULL,
                                GNUNET_SOCIAL_ANNOUNCE_NONE);
   place_leave (&hst->plc);
@@ -2028,7 +2037,14 @@ GNUNET_SOCIAL_guest_disconnect (struct GNUNET_SOCIAL_Guest *gst,
                                 GNUNET_ContinuationCallback disconnect_cb,
                                 void *cls)
 {
-  place_disconnect (&gst->plc, disconnect_cb, cls);
+  struct GNUNET_SOCIAL_Place *plc = &gst->plc;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+              "GNUNET_SOCIAL_guest_disconnect, gst = %p\n",
+              gst);
+  plc->disconnect_cb = disconnect_cb;
+  plc->disconnect_cls = cls;
+  place_disconnect (plc);
 }
 
 
