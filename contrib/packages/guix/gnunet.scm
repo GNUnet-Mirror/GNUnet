@@ -60,6 +60,7 @@
  (gnu packages texinfo)
  (gnu packages tex)
  (gnu packages tls)
+ (gnu packages upnp)
  (gnu packages video)
  (gnu packages web)
  (gnu packages xiph)
@@ -91,7 +92,7 @@
          ("gnurl" ,gnurl)
          ("gstreamer" ,gstreamer)
          ("gst-plugins-base" ,gst-plugins-base)
-         ("gnutls" ,gnutls) ;Change to gnutls/dane once it is merged.
+         ("gnutls/dane" ,gnutls/dane) ;Change to gnutls/dane once it is merged.
          ("libextractor" ,libextractor)
          ("libgcrypt" ,libgcrypt)
          ("libidn" ,libidn)
@@ -113,10 +114,10 @@
          ("gmp" ,gmp)
          ("bluez" ,bluez) ; for optional bluetooth feature
          ("glib" ,glib)
-         ;; There are currently no binary substitutes for texlive on
-         ;; hydra.gnu.org or its mirrors due to its size. Uncomment if you need it.
-         ;;("texlive-minimal" ,texlive-minimal) ; optional.
+         ;; TODO: figure out the right texlive parts.
+         ;;("texlive-minimal" ,texlive-minimal)
          ("texlive" ,texlive)
+         ("miniupnpc" ,miniupnpc)
          ("libogg" ,libogg)))
       (native-inputs
        `(("pkg-config" ,pkg-config)
@@ -129,8 +130,8 @@
       (arguments
        `(#:configure-flags
          (list (string-append "--with-nssdir=" %output "/lib")
-               "--enable-gcc-hardening"
-               "--enable-linker-hardening"
+               ;;"--enable-gcc-hardening"
+               ;;"--enable-linker-hardening"
                "--enable-logging=verbose"
                "CFLAGS=-ggdb -O0")
          #:phases
