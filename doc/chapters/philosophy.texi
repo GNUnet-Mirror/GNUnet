@@ -264,7 +264,7 @@ be useless), we must put ourselves as the receiver of replies that actually
 go to other hosts; in other words, we must indirect replies. Unlike other
 systems, in anonymous file-sharing as implemented on top of GNUnet we do not
 have to indirect the replies if we don't think we need more traffic to hide
-our own actions.@
+our own actions.
 
 This increases the efficiency of the network as we can indirect less under
 higher load.
@@ -298,13 +298,9 @@ each peer.  The identity for a peer is simply its public key, which is
 generated along with a private key the peer is started for the first time.
 While the identity is binary data, it is often expressed as ASCII string.
 For example, the following is a peer identity as you might see it in
-various places:@
-@code{@
- UAT1S6PMPITLBKSJ2DGV341JI6KF7B66AC4JVCN9811NNEGQLUN0@
-}
+various places: @code{ UAT1S6PMPITLBKSJ2DGV341JI6KF7B66AC4JVCN9811NNEGQLUN0}
 
-You can find your peer identity by running@
-@command{gnunet-peerinfo -s}
+You can find your peer identity by running @command{gnunet-peerinfo -s}.
 
 @node Zones in the GNU Name System (GNS Zones)
 @subsection Zones in the GNU Name System (GNS Zones)
