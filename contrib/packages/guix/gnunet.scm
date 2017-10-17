@@ -124,6 +124,7 @@
          ("autoconf" ,autoconf)
          ("automake" ,automake)
          ("gnu-gettext" ,gnu-gettext)
+         ("which" ,which)
          ("texinfo" ,texinfo-5) ; Debian stable: 5.2
          ("libtool" ,libtool)))
       (outputs '("out" "debug"))

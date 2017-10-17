@@ -126,6 +126,7 @@
          ("gnu-gettext" ,gnu-gettext)
          ("graphviz" ,graphviz) ; dot
          ("texinfo-5" ,texinfo-5) ; Debian stable
+         ("which" ,which)
          ("libtool" ,libtool)))
       (arguments
        `(#:configure-flags

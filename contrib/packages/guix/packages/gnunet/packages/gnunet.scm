@@ -60,6 +60,7 @@
 ;; TODO: Use HEAD without checking sum of it.
 ;; Explanation for name scheme: UNIXPATH is capped at 108 characters,
 ;; this causes lots of tests to fail.
+;; FIXME: make this file MUCH shorter.
 (define-public gnunetg
   (let* ((commit "3c3090717610ea787fdd3562901329254a6af0d6")
          (revision "32"))
@@ -112,6 +113,7 @@
          ("autoconf" ,autoconf)
          ("automake" ,automake)
          ("gnu-gettext" ,gnu-gettext)
+         ("which" ,which)
          ("texinfo" ,texinfo)
          ("libtool" ,libtool)))
       (outputs '("out" "debug"))
@@ -199,6 +201,7 @@
     (native-inputs
      `(("pkg-config" ,pkg-config)
        ("autoconf" ,autoconf)
+       ("which" ,which)
        ("automake" ,automake)
        ("gnu-gettext" ,gnu-gettext)
        ("texinfo" ,texinfo)
