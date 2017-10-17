@@ -150,6 +150,7 @@ lego_stack.png: images/lego_stack.svg
 	convert images/lego_stack.svg images/lego_stack.png &&
 	pngcrush images/lego_stack.png images/lego_stack.png
 
+# FIXME: The usage of 'date' strings causes a warning.
 version.texi:
 	echo "@set UPDATED $(date +'%d %B %Y')" > $@
 	echo "@set UPDATED-MONTH $(date +'%B %Y')" >> $@
