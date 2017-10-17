@@ -158,8 +158,8 @@ active transport services at the same time, and each of these can have a
 different addresses. Binding messages expire after at most a week (the
 timeout can be shorter if the user configures the node appropriately). This
 expiration ensures that the network will eventually get rid of outdated
-advertisements.@
-More details can be found in the paper @uref{https://gnunet.org/transports, A Transport Layer Abstraction for Peer-to-Peer Networks}.
+advertisements.
+@footnote{More details can be found in @uref{https://gnunet.org/transports, A Transport Layer Abstraction for Peer-to-Peer Networks}}
 
 @node Accounting to Encourage Resource Sharing
 @subsection Accounting to Encourage Resource Sharing
@@ -187,7 +187,8 @@ request a (possibly lower) effective priority. Then, they drop the requests
 with the lowest effective priority to satisfy their resource constraints. This
 way, GNUnet's economic model ensures that nodes that are not currently
 considered to have a surplus in contributions will not be served if the
-network load is high. More details can be found in @uref{https://gnunet.org/ebe, this paper}.
+network load is high.
+@footnote{More details can be found in @uref{https://gnunet.org/ebe, this paper}}
 
 @node Confidentiality
 @subsection Confidentiality
@@ -215,16 +216,18 @@ anonymous file sharing).
 Providing anonymity for users is the central goal for the anonymous
 file-sharing application. Many other design decisions follow in the footsteps
 of this requirement. Anonymity is never absolute. While there are various
-@uref{https://gnunet.org/anonymity_metric, scientific metrics} that can help quantify the level of anonymity that a
-given mechanism provides, there is no such thing as complete anonymity.
+@uref{https://gnunet.org/anonymity_metric, scientific metrics} that can
+help quantify the level of anonymity that a given mechanism provides,
+there is no such thing as complete anonymity.
 GNUnet's file-sharing implementation allows users to select for each
 operation (publish, search, download) the desired level of anonymity.
 The metric used is the amount of cover traffic available to hide the request.
 While this metric is not as good as, for example, the theoretical metric
-given in @uref{https://gnunet.org/anonymity_metric, scientific metrics}, it is probably the best metric available to
-a peer with a purely local view of the world that does not rely on unreliable
-external information. The default anonymity level is 1, which uses anonymous
-routing but imposes no minimal requirements on cover traffic. It is possible
+given in @uref{https://gnunet.org/anonymity_metric, scientific metrics},
+it is probably the best metric available to a peer with a purely local
+view of the world that does not rely on unreliable external information.
+The default anonymity level is 1, which uses anonymous routing but
+imposes no minimal requirements on cover traffic. It is possible
 to forego anonymity when this is not required. The anonymity level of 0
 allows GNUnet to use more efficient, non-anonymous routing.
 
@@ -242,7 +245,8 @@ participating nodes in the network and that it can thus see many of the
 node-to-node interactions since it controls some of the nodes. 
 
 The system tries to achieve anonymity based on the idea that users can be
-anonymous if they can hide their actions in the traffic created by other users.
+anonymous if they can hide their actions in the traffic created by other
+users.
 Hiding actions in the traffic of other users requires participating in the
 traffic, bringing back the traditional technique of using indirection and
 source rewriting. Source rewriting is required to gain anonymity since
@@ -263,7 +267,8 @@ have to indirect the replies if we don't think we need more traffic to hide
 our own actions.@
 
 This increases the efficiency of the network as we can indirect less under
-higher load. More details can be found in @uref{https://gnunet.org/gap, this paper}. 
+higher load.
+@footnote{More details can be found in @uref{https://gnunet.org/gap, this paper}}
 
 @node Deniability
 @subsection Deniability
@@ -282,7 +287,8 @@ encryption as the link-encryption between the nodes.  GNUnet has
 encryption on the network layer (link encryption, confidentiality,
 authentication) and again on the application layer (provided
 by @command{gnunet-publish}, @command{gnunet-download}, @command{gnunet-search}
-and @command{gnunet-gtk}).  More details can be found @uref{https://gnunet.org/encoding, here}.
+and @command{gnunet-gtk}).
+@footnote{More details can be found @uref{https://gnunet.org/encoding, here}}
 
 @node Peer Identities
 @subsection Peer Identities
