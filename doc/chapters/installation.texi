@@ -187,9 +187,11 @@ dependencies (ideally in this order):
 @item libnettle and libunbound (possibly from distribution), GnuTLS
 @item libgnurl (read the README)
 @item GNU libmicrohttpd
-@item GNU libextractor (make sure to first install the various mandatory and optional
-dependencies including development headers from your distribution)
+@item GNU libextractor
 @end itemize
+
+Make sure to first install the various mandatory and optional
+dependencies including development headers from your distribution.
 
 Other dependencies that you should strongly consider to install is a
 database (MySQL, sqlite or Postgres). The following instructions will assume
@@ -246,9 +248,9 @@ If you want to be able to enable DEBUG-level log messages, add
 DEBUG-level log messages are in English-only and should only be useful for
 developers (or for filing really detailed bug reports). 
 
-Finally, you probably want to compile @code{gnunet-gtk}, which includes gnunet-setup
-(graphical tool for configuration) and @code{gnunet-fs-gtk} (graphical tool for
-file-sharing):@
+Finally, you probably want to compile @code{gnunet-gtk}, which
+includes gnunet-setup (graphical tool for configuration)
+and @code{gnunet-fs-gtk} (graphical tool for file-sharing):
 
 @example
 $ tar xvf gnunet-gtk-0.10.?.tar.gz
@@ -262,52 +264,46 @@ $ sudo ldconfig # just to be safe
 
 Next, edit the file @file{/etc/gnunet.conf} to contain the following:
 
-@code{@
- [arm]@
- SYSTEM_ONLY = YES@
- USER_ONLY = NO@
-}@
+@example
+[arm]
+SYSTEM_ONLY = YES
+USER_ONLY = NO
+@end example
+
 You may need to update your ld.so cache to include files installed in
-@file{/usr/local/lib}:@
+@file{/usr/local/lib}: @code{ # ldconfig }.
 
-@code{@
- # ldconfig@
-}@
+Then, switch from user root to user gnunet to start the peer:
 
-Then, switch from user root to user gnunet to start the peer:@
-
-@code{@
- # su -s /bin/sh - gnunet@
- $ gnunet-arm -c /etc/gnunet.conf -s@
-}@
+@example
+# su -s /bin/sh - gnunet
+$ gnunet-arm -c /etc/gnunet.conf -s
+@end example
 
 You may also want to add the last line in the gnunet users @file{crontab}
 prefixed with @code{@@reboot} so that it is executed whenever the system is
-booted:@
+booted:
 
-@code{@
- @@reboot /usr/local/bin/gnunet-arm -c /etc/gnunet.conf -s@
-}@
+@example
+@@reboot /usr/local/bin/gnunet-arm -c /etc/gnunet.conf -s@
+@end example
 
 This will only start the system-wide GNUnet services. Type exit to get back
 your root shell. Now, you need to configure the per-user part. For each
-$USER on the system, run:@
+$USER on the system, run: @code{ # adduser $USER gnunet }.
 
-@code{@
- # adduser $USER gnunet@
-}@
+to allow them to access the system-wide GNUnet services. Then, each
+user should create a configuration file @file{~/.config/gnunet.conf}
+with the lines:
 
-to allow them to access the system-wide GNUnet services. Then, each user should
-create a configuration file @file{~/.config/gnunet.conf} with the lines:@
+@example
+[arm]
+SYSTEM_ONLY = NO
+USER_ONLY = YES
+DEFAULTSERVICES = gns
+@end example
 
-@code{@
- [arm]@
- SYSTEM_ONLY = NO@
- USER_ONLY = YES@
- DEFAULTSERVICES = gns@
-}@
-
-and start the per-user services using@
+and start the per-user services using
 
 @code{@
  $ gnunet-arm -c ~/.config/gnunet.conf -s@
@@ -342,6 +338,7 @@ hosts: files mdns4_minimal [NOTFOUND=return] dns mdns4
 
 The exact details may differ a bit, which is fine. Add the text
 @emph{"gns [NOTFOUND=return]"} after @emph{"files"}:
+
 @example
 hosts: files gns [NOTFOUND=return] mdns4_minimal [NOTFOUND=return] dns mdns4
 @end example
@@ -472,9 +469,10 @@ $ sudo make install ; cd ..
 Install libextractor dependencies:
 
 @example
-$ sudo apt-get install zlib1g-dev libgsf-1-dev libmpeg2-4-dev libpoppler-dev \
-  libvorbis-dev libexiv2-dev libjpeg-dev libtiff-dev libgif-dev libvorbis-dev \
-  libflac-dev libsmf-dev g++@
+$ sudo apt-get install zlib1g-dev libgsf-1-dev libmpeg2-4-dev \
+ libpoppler-dev libvorbis-dev libexiv2-dev libjpeg-dev \
+ libtiff-dev libgif-dev libvorbis-dev libflac-dev libsmf-dev \
+ g++
 @end example
 
 Build libextractor:
@@ -492,7 +490,7 @@ $ sudo make install ; cd ..
 
 @example
 $ sudo apt-get install libidn11-dev libunistring-dev libglpk-dev \
-  libpulse-dev libbluetooth-dev libsqlite-dev@
+ libpulse-dev libbluetooth-dev libsqlite-dev
 @end example
 
 Install libopus:
@@ -940,34 +938,40 @@ directory. We begin by downloading all dependencies, then extracting the
 sources, and finally compiling and installing the libraries:@
 
 @example
- $ wget https://libav.org/releases/libav-9.10.tar.xz@
- $ wget http://ftp.gnu.org/gnu/libextractor/libextractor-1.3.tar.gz@
- $ wget ftp://ftp.gnupg.org/gcrypt/libgpg-error/libgpg-error-1.12.tar.bz2@
- $ wget ftp://ftp.gnupg.org/gcrypt/libgcrypt/libgcrypt-1.6.0.tar.bz2@
- $ wget ftp://ftp.gnutls.org/gcrypt/gnutls/v3.2/gnutls-3.2.7.tar.xz@
- $ wget http://ftp.gnu.org/gnu/libmicrohttpd/libmicrohttpd-0.9.33.tar.gz@
- $ wget https://gnunet.org/sites/default/files/gnurl-7.34.0.tar.bz2@
- $ tar xvf libextractor-1.3.tar.gz@
- $ tar xvf libgpg-error-1.12.tar.bz2@
- $ tar xvf libgcrypt-1.6.0.tar.bz2@
- $ tar xvf gnutls-3.2.7.tar.xz@
- $ tar xvf libmicrohttpd-0.9.33.tar.gz@
- $ tar xvf gnurl-7.34.0.tar.bz2@
- $ cd libav-0.9 ; ./configure --enable-shared; make; sudo make install ; cd ..@
- $ cd libextractor-1.3 ; ./configure; make ; sudo make install; cd ..@
- $ cd libgpg-error-1.12; ./configure ; make ; sudo make install ; cd ..@
- $ cd libgcrypt-1.6.0; ./configure --with-gpg-error-prefix=/usr/local; make ; sudo make install ; cd ..@
- $ cd gnutls-3.2.7 ; ./configure ; make ; sudo make install ; cd ..@
- $ cd libmicrohttpd-0.9.33; ./configure ; make ; sudo make install ; cd ..@
- $ cd gnurl-7.34.0@
- $ ./configure --enable-ipv6 --with-gnutls=/usr/local --without-libssh2 \
-  --without-libmetalink --without-winidn --without-librtmp --without-nghttp2 \
-  --without-nss --without-cyassl --without-polarssl --without-ssl \
-  --without-winssl --without-darwinssl --disable-sspi --disable-ntlm-wb \
-  --disable-ldap --disable-rtsp --disable-dict --disable-telnet --disable-tftp \
-  --disable-pop3 --disable-imap --disable-smtp --disable-gopher --disable-file \
-  --disable-ftp@
- $ make ; sudo make install; cd ..@
+$ wget https://libav.org/releases/libav-9.10.tar.xz
+$ wget http://ftp.gnu.org/gnu/libextractor/libextractor-1.3.tar.gz
+$ wget ftp://ftp.gnupg.org/gcrypt/libgpg-error/libgpg-error-1.12.tar.bz2
+$ wget ftp://ftp.gnupg.org/gcrypt/libgcrypt/libgcrypt-1.6.0.tar.bz2
+$ wget ftp://ftp.gnutls.org/gcrypt/gnutls/v3.2/gnutls-3.2.7.tar.xz
+$ wget http://ftp.gnu.org/gnu/libmicrohttpd/libmicrohttpd-0.9.33.tar.gz
+$ wget https://gnunet.org/sites/default/files/gnurl-7.34.0.tar.bz2
+$ tar xvf libextractor-1.3.tar.gz
+$ tar xvf libgpg-error-1.12.tar.bz2
+$ tar xvf libgcrypt-1.6.0.tar.bz2
+$ tar xvf gnutls-3.2.7.tar.xz
+$ tar xvf libmicrohttpd-0.9.33.tar.gz
+$ tar xvf gnurl-7.34.0.tar.bz2
+$ cd libav-0.9 ; ./configure --enable-shared;
+$ make; sudo make install; cd ..
+$ cd libextractor-1.3 ; ./configure;
+$ make ; sudo make install; cd ..
+$ cd libgpg-error-1.12; ./configure;
+$ make ; sudo make install; cd ..
+$ cd libgcrypt-1.6.0; ./configure --with-gpg-error-prefix=/usr/local;
+$ make ; sudo make install ; cd ..
+$ cd gnutls-3.2.7 ; ./configure;
+$ make ; sudo make install ; cd ..
+$ cd libmicrohttpd-0.9.33; ./configure;
+$ make ; sudo make install ; cd ..
+$ cd gnurl-7.34.0
+$ ./configure --enable-ipv6 --with-gnutls=/usr/local --without-libssh2 \
+ --without-libmetalink --without-winidn --without-librtmp --without-nghttp2 \
+ --without-nss --without-cyassl --without-polarssl --without-ssl \
+ --without-winssl --without-darwinssl --disable-sspi --disable-ntlm-wb \
+ --disable-ldap --disable-rtsp --disable-dict --disable-telnet --disable-tftp \
+ --disable-pop3 --disable-imap --disable-smtp --disable-gopher --disable-file \
+ --disable-ftp
+$ make ; sudo make install; cd ..
 @end example
 
 @node Installing GNUnet from source
@@ -993,68 +997,72 @@ performance and Postgres better resillience.
 @section Installing GNUnet from Git on Ubuntu 14.4
 
 @strong{Install the required build tools:}
-@code{@
- $ sudo apt-get install git automake autopoint autoconf@
-}
+@code{ $ sudo apt-get install git automake autopoint autoconf }
 
 @strong{Install the required dependencies}
 @example
 $ sudo apt-get install libltdl-dev libgpg-error-dev libidn11-dev \
-  libunistring-dev libglpk-dev libbluetooth-dev libextractor-dev \
-  libmicrohttpd-dev libgnutls28-dev
+ libunistring-dev libglpk-dev libbluetooth-dev libextractor-dev \
+ libmicrohttpd-dev libgnutls28-dev
 @end example
 
-@strong{Choose one or more database backends}@
- SQLite3@
-@code{@
- $ sudo apt-get install libsqlite3-dev@
-}@
- MySQL@
-@code{@
- $ sudo apt-get install libmysqlclient-dev@
-}@
- PostgreSQL@
-@code{@
- $ sudo apt-get install libpq-dev postgresql@
-}
+@strong{Choose one or more database backends}
 
-@strong{Install the optional dependencies for gnunet-conversation:}@
-@code{@
- $ sudo apt-get install gstreamer1.0 libpulse-dev libopus-dev@
-}
-
-@strong{Install the libgrypt 1.6.1:}@
- For Ubuntu 14.04:@
-@code{$ sudo apt-get install libgcrypt20-dev}@
- For Ubuntu older 14.04:@
-@code{$ wget ftp://ftp.gnupg.org/gcrypt/libgcrypt/libgcrypt-1.6.1.tar.bz2@
- $ tar xf libgcrypt-1.6.1.tar.bz2@
- $ cd libgcrypt-1.6.1@
- $ ./configure@
- $ sudo make install@
- $ cd ..}@
-@strong{Install libgnurl}@
+SQLite3:
 @example
- $ wget https://gnunet.org/sites/default/files/gnurl-7.35.0.tar.bz2@
- $ tar xf gnurl-7.35.0.tar.bz2@
- $ cd gnurl-7.35.0@
- $ ./configure --enable-ipv6 --with-gnutls --without-libssh2 \
+$ sudo apt-get install libsqlite3-dev
+@end example
+MySQL:
+@example
+$ sudo apt-get install libmysqlclient-dev
+@end example
+PostgreSQL:
+@example
+$ sudo apt-get install libpq-dev postgresql
+@end example
+
+@strong{Install the optional dependencies for gnunet-conversation:}
+
+@example
+$ sudo apt-get install gstreamer1.0 libpulse-dev libopus-dev
+@end example
+
+@strong{Install the libgrypt 1.6.1:}
+For Ubuntu 14.04:
+@example
+$ sudo apt-get install libgcrypt20-dev
+@end example
+For Ubuntu older 14.04:
+@example
+$ wget ftp://ftp.gnupg.org/gcrypt/libgcrypt/libgcrypt-1.6.1.tar.bz2
+$ tar xf libgcrypt-1.6.1.tar.bz2
+$ cd libgcrypt-1.6.1
+$ ./configure
+$ sudo make install
+$ cd ..
+@end example
+@strong{Install libgnurl}
+@example
+$ wget https://gnunet.org/sites/default/files/gnurl-7.35.0.tar.bz2
+$ tar xf gnurl-7.35.0.tar.bz2
+$ cd gnurl-7.35.0
+$ ./configure --enable-ipv6 --with-gnutls --without-libssh2 \
  --without-libmetalink --without-winidn --without-librtmp --without-nghttp2 \
  --without-nss --without-cyassl --without-polarssl --without-ssl \
  --without-winssl --without-darwinssl --disable-sspi --disable-ntlm-wb \
  --disable-ldap --disable-rtsp --disable-dict --disable-telnet --disable-tftp \
  --disable-pop3 --disable-imap --disable-smtp --disable-gopher --disable-file \
  --disable-ftp
- $ sudo make install@
- $ cd ..@
+$ sudo make install
+$ cd ..
 @end example
 
-@strong{Install GNUnet}@
-@code{@
- $ git clone https://gnunet.org/git/gnunet/@
- $ cd gnunet/@
- $ ./bootstrap@
-}
+@strong{Install GNUnet}
+@example
+$ git clone https://gnunet.org/git/gnunet/
+$ cd gnunet/
+$ ./bootstrap
+@end example
 
 If you want to:
 @itemize @bullet
