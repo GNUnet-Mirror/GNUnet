@@ -54,34 +54,19 @@ can be performed:
 @item GNU libtool 2.2 or higher 
 @item GNU libunistring 0.9.1.1 or higher
 @item GNU libidn 1.0.0 or higher
-@item @uref{https://gnupg.org/software/libgcrypt/index.html, GNU libgcrypt}
-@uref{https://gnupg.org/ftp/gcrypt/libgcrypt/, 1.6.0} or higher
-@item @uref{https://gnutls.org/, GnuTLS}
-@uref{https://www.gnupg.org/ftp/gcrypt/gnutls/v3.2/, 3.2.7} or higher,
-compile with libunbound for DANE support; GnuTLS also requires GNU
-nettle 2.7 (update: GnuTLS 3.2.7 appears NOT to work against GNU nettle
-> 2.7, due to some API updatings done by nettle. Thus it should be compiled
-against nettle 2.7 and, in case you get some error on the reference to
-`rpl_strerror' being undefined, follow the instructions on@
-@uref{http://lists.gnupg.org/pipermail/gnutls-devel/2013-November/006588.html, this}
-post (and the link inside it)).
-@item @uref{https://gnunet.org/gnurl, gnURL} libgnurl 7.34.0 or higher,
-must be compiled after @code{GnuTLS}
+@item @uref{https://gnupg.org/software/libgcrypt/index.html, GNU libgcrypt} @uref{https://gnupg.org/ftp/gcrypt/libgcrypt/, 1.6.0} or higher
+@item @uref{https://gnutls.org/, GnuTLS} @uref{https://www.gnupg.org/ftp/gcrypt/gnutls/v3.2/, 3.2.7} or higher @footnote{compile with libunbound for DANE support; GnuTLS also requires GNU nettle 2.7 (update: GnuTLS 3.2.7 appears NOT to work against GNU nettle > 2.7, due to some API updatings done by nettle. Thus it should be compiled against nettle 2.7 and, in case you get some error on the reference to `rpl_strerror' being undefined, follow the instructions on @uref{http://lists.gnupg.org/pipermail/gnutls-devel/2013-November/006588.html, this} post (and the link inside it)).}
+@item @uref{https://gnunet.org/gnurl, gnURL} libgnurl 7.34.0 or higher @footnote{must be compiled after @code{GnuTLS}}
 @item libglpk 4.45 or higher
 @item @uref{http://www.openssl.org/, OpenSSL} (binary) 1.0 or higher
 @item TeX Live 2012 or higher, optional (for gnunet-bcd)
+@item Texinfo 5.2 or higher (for documentation)
 @item libpulse 2.0 or higher, optional (for gnunet-conversation)
 @item libopus 1.0.1 or higher, optional (for gnunet-conversation)
 @item libogg 1.3.0 or higher, optional (for gnunet-conversation)
-@item certool (binary)
-optional for convenient installation of the GNS proxy
-(available as part of Debian's libnss3-tools)
+@item certool (binary) optional @footnote{for convenient installation of the GNS proxy (available as part of Debian's libnss3-tools)}
 @item python-zbar 0.10 or higher, optional (for gnunet-qr)
-@item libsqlite 3.8.0 or higher (note that the code will compile and often work with lower
-version numbers, but you may get subtle bugs with respect to quota management
-in certain rare cases); alternatively, MySQL or Postgres can also be installed,
-but those databases will require more complex configurations (not recommended
-for first-time users)
+@item libsqlite 3.8.0 or higher @footnote{(note that the code will compile and often work with lower version numbers, but you may get subtle bugs with respect to quota management in certain rare cases); alternatively, MySQL or Postgres can also be installed, but those databases will require more complex configurations (not recommended for first-time users)}
 @item zlib any version we tested worked
 @item Gtk+ 3.0 or higher, optional (for gnunet-gtk)
 @item libgladeui must match Gtk+ version, optional (for gnunet-gtk)
@@ -96,14 +81,14 @@ If you have to compile libgnurl from source since the version included in your
 distribution is to old you perhaps get an error message while running the
 @file{configure} script:
 
-@code{@
- $ configure@
- ...@
- checking for 64-bit curl_off_t data type... unknown@
- checking for 32-bit curl_off_t data type... unknown@
- checking for 16-bit curl_off_t data type... unknown@
- configure: error: cannot find data type for curl_off_t.@
-}
+@example
+$ configure
+...
+checking for 64-bit curl_off_t data type... unknown
+checking for 32-bit curl_off_t data type... unknown
+checking for 16-bit curl_off_t data type... unknown
+configure: error: cannot find data type for curl_off_t.
+@end example
 
 Solution:
 
@@ -221,33 +206,40 @@ Debian stable carefully as you try to install the dependencies for your own
 distribution. Contributing additional instructions for further platforms is
 always appreciated.
 
-Before proceeding further, please double-check the dependency list. Note that
-in addition to satisfying the dependencies, you might have to make sure that
-development headers for the various libraries are also installed. There maybe
-files for other distributions, or you might be able to find equivalent packages
-for your distribution.
+Before proceeding further, please double-check the dependency list.
+Note that in addition to satisfying the dependencies, you might have to
+make sure that development headers for the various libraries are also
+installed.
+There maybe files for other distributions, or you might be able to find
+equivalent packages for your distribution.
 
 While it is possible to build and install GNUnet without having root access,
 we will assume that you have full control over your system in these
-instructions. First, you should create a system user @emph{gnunet} and an additional
-group @emph{gnunetdns}. On Debian and Ubuntu GNU/Linux, type:@
-@code{@
- # adduser --system --home /var/lib/gnunet --group --disabled-password gnunet@
- # addgroup --system gnunetdns@
-}@
- On other Unixes, this should have the same effect:@
-@code{@
- # useradd --system --groups gnunet --home-dir /var/lib/gnunet@
- # addgroup --system gnunetdns@
-}@
- Now compile and install GNUnet using:@
-@code{@
- $ tar xvf gnunet-0.10.?.tar.gz@
- $ cd gnunet-0.10.?@
- $ ./configure --with-sudo=sudo --with-nssdir=/lib@
- $ make@
- $ sudo make install@
-}@
+instructions. First, you should create a system user @emph{gnunet} and
+an additional group @emph{gnunetdns}. On Debian and Ubuntu GNU/Linux, type:
+
+@example
+# adduser --system --home /var/lib/gnunet --group \
+--disabled-password gnunet
+# addgroup --system gnunetdns
+@end example
+
+On other Unixes, this should have the same effect:
+
+@example
+# useradd --system --groups gnunet --home-dir /var/lib/gnunet
+# addgroup --system gnunetdns
+@end example
+
+Now compile and install GNUnet using:
+
+@example
+$ tar xvf gnunet-0.10.?.tar.gz
+$ cd gnunet-0.10.?
+$ ./configure --with-sudo=sudo --with-nssdir=/lib
+$ make
+$ sudo make install
+@end example
 
 If you want to be able to enable DEBUG-level log messages, add
 @code{--enable-logging=verbose} to the end of the @code{./configure} command.
@@ -258,16 +250,18 @@ Finally, you probably want to compile @code{gnunet-gtk}, which includes gnunet-s
 (graphical tool for configuration) and @code{gnunet-fs-gtk} (graphical tool for
 file-sharing):@
 
-@code{@
- $ tar xvf gnunet-gtk-0.10.?.tar.gz@
- $ cd gnunet-gtk-0.10.?@
- $ ./configure --with-gnunet=/usr/local/@
- $ make@
- $ sudo make install@
- $ cd ..@
- $ sudo ldconfig # just to be safe@
-}@
- Next, edit the file @file{/etc/gnunet.conf} to contain the following:@
+@example
+$ tar xvf gnunet-gtk-0.10.?.tar.gz
+$ cd gnunet-gtk-0.10.?
+$ ./configure --with-gnunet=/usr/local/
+$ make
+$ sudo make install
+$ cd ..
+$ sudo ldconfig # just to be safe
+@end example
+
+Next, edit the file @file{/etc/gnunet.conf} to contain the following:
+
 @code{@
  [arm]@
  SYSTEM_ONLY = YES@
@@ -377,79 +371,79 @@ system, it should have been created during the installation.
 @node  Install the required build tools
 @subsection  Install the required build tools
 
-First, make sure Git is installed on your system:@
+First, make sure Git is installed on your system:
 
-$ sudo apt-get install git@
+@example
+$ sudo apt-get install git
+@end example
 
-Install the essential buildtools:@
+Install the essential buildtools:
 
+@example
 $ sudo apt-get install automake autopoint autoconf libtool
+@end example
 
 @node Install libgcrypt 1.6 and libgpg-error
 @subsection Install libgcrypt 1.6 and libgpg-error
 
-$ wget ftp://ftp.gnupg.org/gcrypt/libgpg-error/libgpg-error-1.12.tar.bz2@
-$ tar xf libgpg-error-1.12.tar.bz2@
-$ cd libgpg-error-1.12@
-$ ./configure@
-$ sudo make install@
-$ cd ..@
+@example
+$ wget ftp://ftp.gnupg.org/gcrypt/libgpg-error/libgpg-error-1.12.tar.bz2
+$ tar xf libgpg-error-1.12.tar.bz2
+$ cd libgpg-error-1.12
+$ ./configure
+$ sudo make install ; cd ..
+@end example
 
 @node Install gnutls with DANE support
 @subsection Install gnutls with DANE support
 
 @example
-$ wget http://www.lysator.liu.se/~nisse/archive/nettle-2.7.1.tar.gz@
-$ tar xf nettle-2.7.1.tar.gz@
-$ cd nettle-2.7.1@
-$ ./configure@
-$ sudo make install@
-$ cd ..
+$ wget http://www.lysator.liu.se/~nisse/archive/nettle-2.7.1.tar.gz
+$ tar xf nettle-2.7.1.tar.gz
+$ cd nettle-2.7.1
+$ ./configure
+$ sudo make install ; cd ..
 @end example
 
 @example
-$ wget https://www.nlnetlabs.nl/downloads/ldns/ldns-1.6.16.tar.gz@
-$ tar xf ldns-1.6.16.tar.gz@
-$ cd ldns-1.6.16@
-$ ./configure@
-$ sudo make install@
-$ cd ..
+$ wget https://www.nlnetlabs.nl/downloads/ldns/ldns-1.6.16.tar.gz
+$ tar xf ldns-1.6.16.tar.gz
+$ cd ldns-1.6.16
+$ ./configure
+$ sudo make install ; cd ..
 @end example
 
 @example
-$ wget https://unbound.net/downloads/unbound-1.4.21.tar.gz@
-$ tar xf unbound-1.4.21.tar.gz@
-$ cd unbound-1.4.21@
-$ ./configure@
-$ sudo make install@
-$ cd ..
+$ wget https://unbound.net/downloads/unbound-1.4.21.tar.gz
+$ tar xf unbound-1.4.21.tar.gz
+$ cd unbound-1.4.21
+$ ./configure
+$ sudo make install ; cd ..
 @end example
 
 @example
-$ wget ftp://ftp.gnutls.org/gcrypt/gnutls/v3.1/gnutls-3.1.17.tar.xz@
-$ tar xf gnutls-3.1.17.tar.xz@
-$ cd gnutls-3.1.17@
-$ ./configure@
-$ sudo make install@
-$ cd ..
+$ wget ftp://ftp.gnutls.org/gcrypt/gnutls/v3.1/gnutls-3.1.17.tar.xz
+$ tar xf gnutls-3.1.17.tar.xz
+$ cd gnutls-3.1.17
+$ ./configure
+$ sudo make install ; cd ..
 @end example
 
 @example
-$ wget ftp://ftp.gnupg.org/gcrypt/libgcrypt/libgcrypt-1.6.0.tar.bz2@
-$ tar xf libgcrypt-1.6.0.tar.bz2@
-$ cd libgcrypt-1.6.0@
-$ ./configure@
-$ sudo make install@
-$ cd ..@
+$ wget ftp://ftp.gnupg.org/gcrypt/libgcrypt/libgcrypt-1.6.0.tar.bz2
+$ tar xf libgcrypt-1.6.0.tar.bz2
+$ cd libgcrypt-1.6.0
+$ ./configure
+$ sudo make install ; cd ..
 @end example
 
 @node Install libgnurl
 @subsection Install libgnurl
 
 @example
-$ wget https://gnunet.org/sites/default/files/gnurl-7.34.0.tar.bz2@
-$ tar xf gnurl-7.34.0.tar.bz2@
-$ cd gnurl-7.34.0@
+$ wget https://gnunet.org/sites/default/files/gnurl-7.34.0.tar.bz2
+$ tar xf gnurl-7.34.0.tar.bz2
+$ cd gnurl-7.34.0
 $ ./configure --enable-ipv6 --with-gnutls --without-libssh2 \
   --without-libmetalink --without-winidn --without-librtmp \
   --without-nghttp2 --without-nss --without-cyassl \
@@ -457,27 +451,25 @@ $ ./configure --enable-ipv6 --with-gnutls --without-libssh2 \
   --without-darwinssl --disable-sspi --disable-ntlm-wb \
   --disable-ldap --disable-rtsp --disable-dict --disable-telnet \
   --disable-tftp --disable-pop3 --disable-imap --disable-smtp \
-  --disable-gopher --disable-file --disable-ftp@
-$ sudo make install@
-$ cd ..@
+  --disable-gopher --disable-file --disable-ftp
+$ sudo make install ; cd ..
 @end example
 
 @node Install libmicrohttpd from Git
 @subsection Install libmicrohttpd from Git
 
 @example
-$ git clone https://gnunet.org/git/libmicrohttpd@
-$ cd libmicrohttpd/@
-$ ./bootstrap@
-$ ./configure@
-$ sudo make install@
-$ cd ..@
+$ git clone https://gnunet.org/git/libmicrohttpd
+$ cd libmicrohttpd/
+$ ./bootstrap
+$ ./configure
+$ sudo make install ; cd ..
 @end example
 
 @node  Install libextractor from Git
 @subsection  Install libextractor from Git
 
-Install libextractor dependencies:@
+Install libextractor dependencies:
 
 @example
 $ sudo apt-get install zlib1g-dev libgsf-1-dev libmpeg2-4-dev libpoppler-dev \
@@ -485,15 +477,14 @@ $ sudo apt-get install zlib1g-dev libgsf-1-dev libmpeg2-4-dev libpoppler-dev \
   libflac-dev libsmf-dev g++@
 @end example
 
-Build libextractor:@
+Build libextractor:
 
 @example
-$ git clone https://gnunet.org/git/libextractor@
-$ cd libextractor@
-$ ./bootstrap@
-$ ./configure@
-$ sudo make install@
-$ cd ..@
+$ git clone https://gnunet.org/git/libextractor
+$ cd libextractor
+$ ./bootstrap
+$ ./configure
+$ sudo make install ; cd ..
 @end example
 
 @node Install GNUnet dependencies
@@ -504,30 +495,30 @@ $ sudo apt-get install libidn11-dev libunistring-dev libglpk-dev \
   libpulse-dev libbluetooth-dev libsqlite-dev@
 @end example
 
-Install libopus@
+Install libopus:
 
 @example
-$ wget http://downloads.xiph.org/releases/opus/opus-1.1.tar.gz@
-$ tar xf opus-1.1.tar.gz@
-$ cd opus-1.1/@
-$ ./configure@
-$ sudo make install@
+$ wget http://downloads.xiph.org/releases/opus/opus-1.1.tar.gz
+$ tar xf opus-1.1.tar.gz
+$ cd opus-1.1/
+$ ./configure
+$ sudo make install ; cd ..
 @end example
 
-Choose one or more database backends@
+Choose one or more database backends:
 
-@itemize @bullet
-
-@item
-SQLite3 @code{$ sudo apt-get install libsqlite3-dev}
-
-@item
-MySQL @code{$ sudo apt-get install libmysqlclient-dev}
-
-@item
-PostgreSQL @code{$ sudo apt-get install libpq-dev postgresql}
-
-@end itemize
+SQLite3:
+@example
+$ sudo apt-get install libsqlite3-dev
+@end example
+MySQL:
+@example
+$ sudo apt-get install libmysqlclient-dev
+@end example
+PostgreSQL:
+@example
+$ sudo apt-get install libpq-dev postgresql
+@end example
 
 
 
@@ -547,77 +538,92 @@ PostgreSQL @code{$ sudo apt-get install libpq-dev postgresql}
 @subsubsection Configuring the installation path
 
 You can specify the location of the GNUnet installation by setting the prefix
-when calling the configure script:@code{ --prefix=DIRECTORY}
+when calling the configure script with @code{--prefix=DIRECTORY}
 
-@code{@
- $ export PATH=$PATH:DIRECTORY/bin@
-}
+@example
+$ export PATH=$PATH:DIRECTORY/bin
+@end example
 
 @node Configuring the system
 @subsubsection Configuring the system
 
-Please make sure NOW that you have created a user and group 'gnunet'@
-and additionally a group 'gnunetdns':@
-@code{@
- $ sudo addgroup gnunet@
- $ sudo addgroup gnunetdns@
- $ sudo adduser gnunet@
-}
+Please make sure NOW that you have created a user and group 'gnunet'
+and additionally a group 'gnunetdns':
 
-Each GNUnet user should be added to the 'gnunet' group (may@
+@example
+$ sudo addgroup gnunet
+$ sudo addgroup gnunetdns
+$ sudo adduser gnunet
+@end example
+
+Each GNUnet user should be added to the 'gnunet' group (may
 require fresh login to come into effect):
-@code{@
- $ sudo useradd -G  gnunet@
-}
+
+@example
+$ sudo useradd -G  gnunet
+@end example
 
 @node Installing components requiring sudo permission
 @subsubsection Installing components requiring sudo permission
 
 Some components, like the nss plugin required for GNS, may require root
-permissions. To allow these few components to be installed use:@
-@code{@
- $ ./configure --with-sudo}
+permissions. To allow these few components to be installed use:
+
+@example
+$ ./configure --with-sudo
+@end example
 
 @node Build
 @subsubsection Build
 
+@example
+$ git clone https://gnunet.org/git/gnunet/
+$ cd gnunet/
+$ ./bootstrap
+@end example
 
-@code{@
- $ git clone https://gnunet.org/git/gnunet/@
- $ cd gnunet/@
- $ ./bootstrap@
-}
 Use the required configure call including the optional installation prefix
-PREFIX or the sudo permissions@
-@code{$ ./configure [ --with-sudo | --with-prefix=PREFIX ]}@
-@code{$ make; sudo make install}
+PREFIX or the sudo permissions:
 
-After installing it, you need to create an empty configuration file:@
-@code{mkdir ~/.gnunet; touch ~/.gnunet/gnunet.conf}
+@example
+$ ./configure [ --with-sudo | --with-prefix=PREFIX ]
+@end example
 
-And finally you can start GNUnet with@
-@code{$ gnunet-arm -s}
+@example
+$ make; sudo make install
+@end example
+
+After installing it, you need to create an empty configuration file:
+
+@example
+mkdir ~/.gnunet; touch ~/.gnunet/gnunet.conf
+@end example
+
+And finally you can start GNUnet with @code{$ gnunet-arm -s}.
 
 @node Install the GNUnet-gtk user interface from Git
 @subsection Install the GNUnet-gtk user interface from Git
 
 
-Install depencies:@
-@code{$ sudo apt-get install libgtk-3-dev libunique-3.0-dev libgladeui-dev libqrencode-dev}
+Install depencies:
 
-To build GNUnet (with an optional prefix)and execute:@
-@code{@
- $ git clone https://gnunet.org/git/gnunet-gtk/@
- $ cd gnunet-gtk/@
- $ ./bootstrap@
- $ ./configure [--prefix=PREFIX] --with-gnunet=DIRECTORY@
- $ make; sudo make install@
-}
+@example
+$ sudo apt-get install libgtk-3-dev libunique-3.0-dev libgladeui-dev \
+libqrencode-dev
+@end example
+
+To build GNUnet (with an optional prefix)and execute:
+
+@example
+$ git clone https://gnunet.org/git/gnunet-gtk/
+$ cd gnunet-gtk/
+$ ./bootstrap
+$ ./configure [--prefix=PREFIX] --with-gnunet=DIRECTORY
+$ make; sudo make install
+@end example
 
 @node Build Instructions for Microsoft Windows Platforms
 @section Build Instructions for Microsoft Windows Platforms
-
-
 
 @menu
 * Introduction to building on MS Windows::
@@ -635,8 +641,8 @@ To build GNUnet (with an optional prefix)and execute:@
 
 This document is a guide to building GNUnet and its dependencies on Windows
 platforms. GNUnet development is mostly done under Linux and especially SVN
-checkouts may not build out of the box. We regret any inconvenience, and if you
-have problems, please report them.
+checkouts may not build out of the box. We regret any inconvenience, and
+if you have problems, please report them.
 
 @node Requirements
 @subsection Requirements
@@ -731,9 +737,15 @@ Now, we will first need to bootstrap the checked out installation and then
 configure it accordingly.
 
 @example
-cd ~/gnunet@
-./bootstrap@
-STRIP=true CPPFLAGS="-DUSE_IPV6=1 -DW32_VEH" CFLAGS="$CFLAGS -g -O2" ./configure --prefix=/ --docdir=/share/doc/gnunet --with-libiconv-prefix=/mingw --with-libintl-prefix=/mingw --with-libcurl=/mingw --with-extractor=/mingw --with-sqlite=/mingw --with-microhttpd=/mingw --with-plibc=/mingw --enable-benchmarks --enable-expensivetests --enable-experimental --with-qrencode=/mingw --enable-silent-rules --enable-experimental 2>&1 | tee -a ./configure.log 
+cd ~/gnunet
+./bootstrap
+STRIP=true CPPFLAGS="-DUSE_IPV6=1 -DW32_VEH" CFLAGS="$CFLAGS -g -O2" \
+./configure --prefix=/ --docdir=/share/doc/gnunet \
+--with-libiconv-prefix=/mingw --with-libintl-prefix=/mingw \
+--with-libcurl=/mingw --with-extractor=/mingw --with-sqlite=/mingw \
+--with-microhttpd=/mingw --with-plibc=/mingw --enable-benchmarks \
+--enable-expensivetests --enable-experimental --with-qrencode=/mingw \
+--enable-silent-rules --enable-experimental 2>&1 | tee -a ./configure.log
 @end example
 
 The parameters above will configure for a reasonable gnunet installation to the
@@ -751,8 +763,7 @@ Now it's time to compile gnunet as usual. Though this will take some time, so
 you may fetch yourself a coffee or some Mate now...
 
 @example
-make@
-make install
+make ; make install
 @end example
 
 @node Adjusting Windows for running and testing GNUnet
@@ -772,8 +783,9 @@ gnunet-exit).
 @node Building the GNUnet Installer
 @subsection Building the GNUnet Installer
 
-The GNUnet installer is made with @uref{http://nsis.sourceforge.net/, NSIS}@
-The installer script is located in @file{contrib\win} in the GNUnet source tree.
+The GNUnet installer is made with @uref{http://nsis.sourceforge.net/, NSIS}
+The installer script is located in @file{contrib\win} in the
+GNUnet source tree.
 
 @node Using GNUnet with Netbeans on Windows
 @subsection Using GNUnet with Netbeans on Windows
@@ -826,8 +838,7 @@ choice before beginning with the instructions.
 After any installation, you should begin by running
 
 @example
-# apt-get update@
-# apt-get upgrade@
+# apt-get update ; apt-get upgrade
 @end example
 
 to ensure that all of your packages are up-to-date. Note that the "#" is used
