@@ -4547,15 +4547,9 @@ Let's close with a couple examples.
 
 @table @asis
 
-@item Average: 10, std dev: 1 Here the estimate would be 2^10 = 1024 peers.@
-The range in which we can be 95% sure is: [2^8, 2^12] = [256, 4096]. We can be
-very (>99.7%) sure that the network is not a hundred peers and absolutely sure
-that it is not a million peers, but somewhere around a thousand.
+@item Average: 10, std dev: 1 Here the estimate would be 2^10 = 1024 peers. @footnote{The range in which we can be 95% sure is: [2^8, 2^12] = [256, 4096]. We can be very (>99.7%) sure that the network is not a hundred peers and absolutely sure that it is not a million peers, but somewhere around a thousand.}
 
-@item Average 22, std dev: 0.2 Here the estimate would be 2^22 = 4 Million peers.@
-The range in which we can be 99.7% sure is: [2^21.4, 2^22.6] = [2.8M, 6.3M].
-We can be sure that the network size is around four million, with absolutely
-way of it being 1 million.
+@item Average 22, std dev: 0.2 Here the estimate would be 2^22 = 4 Million peers. @footnote{The range in which we can be 99.7% sure is: [2^21.4, 2^22.6] = [2.8M, 6.3M]. We can be sure that the network size is around four million, with absolutely way of it being 1 million.}
 
 @end table
 
