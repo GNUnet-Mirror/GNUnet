@@ -5,6 +5,9 @@
 @settitle GNUnet C Tutorial
 @c %**end of header
 
+@c including 'version.texi' makes makeinfo throw errors.
+@include version2.texi
+
 @copying
 Copyright @copyright{} 2001-2017 GNUnet e.V.
 
@@ -29,7 +32,7 @@ Foundation Web site at @url{http://www.gnu.org/licenses/gpl.html}.
 
 @titlepage
 @title GNUnet C Tutorial
-@subtitle A Tutorial for GNUnet 0.10.x (C version)
+@subtitle A Tutorial for GNUnet @value{VERSION} (C version)
 @author The GNUnet Developers
 
 @page
@@ -48,10 +51,14 @@ Foundation Web site at @url{http://www.gnu.org/licenses/gpl.html}.
 @node Top
 @top Introduction
 
-This tutorials explains how to install GNUnet on a GNU/Linux system and gives an introduction on how
-GNUnet can be used to develop a Peer-to-Peer application. Detailed installation instructions for
-various operating systems and a detailed list of all dependencies can be found on our website at
-@uref{https://gnunet.org/installation}.
+This tutorials explains how to install GNUnet on a
+GNU/Linux system and gives an introduction on how
+GNUnet can be used to develop a Peer-to-Peer application.
+Detailed installation instructions for
+various operating systems and a detailed list of all
+dependencies can be found on our website at
+@uref{https://gnunet.org/installation} and in our
+Reference Documentation (GNUnet Handbook).
 
 Please read this tutorial carefully since every single step is
 important and do not hesitate to contact the GNUnet team if you have
@@ -60,6 +67,7 @@ team: @uref{https://gnunet.org/contact_information}
 
 @menu
 
+* Vocabulary::                          Vocabulary used throughout this document
 * Installing GNUnet::                   Installing GNUnet
 * Introduction to GNUnet Architecture:: Introduction to GNUnet Architecture
 * First Steps with GNUnet::             First Steps with GNUnet
@@ -67,6 +75,8 @@ team: @uref{https://gnunet.org/contact_information}
 
 @detailmenu
  --- The Detailed Node Listing ---
+
+Vocabulary
 
 Installing GNUnet
 
@@ -100,6 +110,55 @@ Developing Applications
 @end detailmenu
 @end menu
 
+@node Vocabulary
+@chapter Vocabulary
+
+@menu
+* Words and characters::
+* Technical Assumptions::
+@end menu
+
+@node Words and characters
+@section Words and characters
+
+Throughout this document we use certain words and characters.
+
+@enumerate
+@item
+@c ``@command{#}'' in example code blocks describes commands you execute as root.
+``@command{#}'' in example code blocks describes commands, ie comments.
+
+@example
+# Do the foobar thing:
+$ make foobar
+@end example
+
+@item
+Dollarsign ``@command{$}'' in example code blocks describes commands you execute as
+unprivileged users.
+
+@example
+$ cd foo; ./configure --example-switch
+@end example
+
+@item
+Backslash ``@command{\}'' describes linebreaks.
+
+@example
+./configure --foo --bar --baz \
+ --short-loop
+@end example
+
+...expands to @code{./configure --foo --bar --baz --short-loop}
+
+@end enumerate
+
+@node Technical Assumptions
+@section Technical Assumptions
+
+@c Is it really assuming Bash (ie Bash extensions of POSIX being used)?
+The shell on GNU systems is assumed to be Bash.
+
 @node Installing GNUnet
 @chapter Installing GNUnet
 
@@ -123,67 +182,88 @@ certain feature or a certain issue has been fixed since the last release.
 @node Obtaining a stable version
 @section Obtaining a stable version
 
-You can download the latest stable version of GNUnet from GNU FTP mirrors:
-@uref{https://ftp.gnu.org/gnu/gnunet/gnunet-0.10.x.tar.gz}
-You should also download the signature file and verify the integrity of the tarball.
-@uref{https://ftp.gnu.org/gnu/gnunet/gnunet-0.10.x.tar.gz.sig}
-To verify the signature you should first import the GPG key used to sign the tarball
+Download the tarball from
+@indicateurl{https://ftp.gnu.org/gnu/gnunet/gnunet-@value{VERSION}.tar.gz}.
+
+Make sure to download the associated @file{.sig} file and to verify the
+authenticity of the tarball against it, like this:
+
+@example
+$ wget https://ftp.gnu.org/gnu/gnunet/gnunet-@value{VERSION}.tar.gz.sig
+$ gpg --verify-files gnunet-@value{VERSION}.tar.gz.sig
+@end example
+
+If this command fails because you do not have the required public key,
+then you need to run this command to import it:
+
 @example
 $ gpg --keyserver keys.gnupg.net --recv-keys 48426C7E
 @end example
-And use this key to verify the tarball's signature
+
+@noindent
+and rerun the @code{gpg --verify-files} command.
+
+Now you can extract the tarball and rename the resulting
+directory to @i{gnunet} which we will be using in the
+remainder of this document.
+
 @example
-$ gpg --verify gnunet-0.10.x.tar.gz.sig gnunet-0.10.x.tar.gz
-@end example
-After successfully verifying the integrity you can extract the tarball using
-@example
-$ tar xvzf gnunet-0.10.x.tar.gz
-## we will use the directory "gnunet" in the remainder of this document
-$ mv gnunet-0.10.x gnunet
+$ tar xvzf gnunet-@value{VERSION}.tar.gz
+$ mv gnunet-@value{VERSION} gnunet
 $ cd gnunet
 @end example
 
-However, please note that stable versions can be very outdated, as a developer
-you are strongly encouraged to use the version from @uref{https://gnunet.org/git/}.
+@noindent
+However, please note that stable versions can be very outdated.
+As a developer you are @b{strongly} encouraged to use the version
+from @uref{https://gnunet.org/git/, git}.
 
 @node  Installing Build Tool Chain and Dependencies
 @section Installing Build Tool Chain and Dependencies
 
-To successfully compile GNUnet you need the tools to build GNUnet and the required dependencies.
-Please have a look at @uref{https://gnunet.org/dependencies} for a list of required dependencies
-and @uref{https://gnunet.org/generic_installation} for specific instructions for your operating system.
+To successfully compile GNUnet you need the tools to build GNUnet and
+the required dependencies. Please have a look at
+@uref{https://gnunet.org/dependencies} for a list of required dependencies
+and @uref{https://gnunet.org/generic_installation} for specific
+instructions for your operating system. Please check the notes at
+the end of the configure process about required dependencies.
 
-Please check the notes at the end of the configure process about required dependencies.
-
-For GNUnet bootstrapping support and the http(s) plugin you should install libgnurl.
-For the filesharing service you should install at least one of the datastore backends mysql,
-sqlite or postgresql.
+For GNUnet bootstrapping support and the http(s) plugin you should
+install @uref{https://gnunet.org/gnurl, libgnurl}.
+For the filesharing service you should install at least one of the
+datastore backends. MySQL, SQlite and PostgreSQL are supported.
 
 @node Obtaining the latest version from Git
 @section Obtaining the latest version from Git
 
-The latest development version can obtained from our Git repository. To obtain
-the code you need Git installed and checkout the repository using:
+The latest development version can obtained from our Git repository.
+To obtain the code you need Git installed and checkout the repository
+using:
+
 @example
 $ git clone https://gnunet.org/git/gnunet
 @end example
-After cloning the repository you have to execute
+
+@noindent
+After cloning the repository you have to execute the @file{bootstrap}
+script in the directory:
+
 @example
-$ cd gnunet
-$ ./bootstrap
+$ cd gnunet ; ./bootstrap
 @end example
 
-The remainder of this tutorial assumes that you have Git branch ``master'' checked out.
+@noindent
+The remainder of this tutorial assumes that you have the Git branch
+``master'' checked out.
 
 @node Compiling and Installing GNUnet
 @section Compiling and Installing GNUnet
 
-First, you need to install at least libgnupgerror version 1.27
-@uref{https://www.gnupg.org/ftp/gcrypt/libgpg-error/libgpg-error-1.27.tar.bz2}
-and libgcrypt version 1.7.6 @uref{https://www.gnupg.org/ftp/gcrypt/libgcrypt/libgcrypt-1.7.6.tar.bz2}.
+First, you need to install at least libgnupgerror 1.27 and libgcrypt 1.7.6.
 
 @example
-$ wget https://www.gnupg.org/ftp/gcrypt/libgpg-error/libgpg-error-1.27.tar.bz2
+$ export GNUPGFTP="https://www.gnupg.org/ftp/gcrypt"
+$ wget $GNUPGFTP/libgpg-error/libgpg-error-1.27.tar.bz2
 $ tar xf libgpg-error-1.27.tar.bz2
 $ cd libgpg-error-1.27
 $ ./configure
@@ -192,7 +272,8 @@ $ cd ..
 @end example
 
 @example
-$ wget https://www.gnupg.org/ftp/gcrypt/libgcrypt/libgcrypt-1.7.6.tar.bz2
+$ export GNUPGFTP="https://www.gnupg.org/ftp/gcrypt"
+$ wget $GNUPGFTP/libgcrypt/libgcrypt-1.7.6.tar.bz2
 $ tar xf libgcrypt-1.7.6.tar.bz2
 $ cd libgcrypt-1.7.6
 $ ./configure
@@ -220,10 +301,12 @@ $ make
 $ make install
 @end example
 
-After installing GNUnet you have to add your GNUnet installation to your path
-environmental variable. In addition you have to create the @file{.config}
-directory in your home directory (unless it already exists) where GNUnet stores
-its data and an empty GNUnet configuration file:
+@noindent
+After installing GNUnet you have to add your GNUnet installation
+to your path environmental variable. In addition you have to
+create the @file{.config} directory in your home directory
+(unless it already exists) where GNUnet stores its data and an
+empty GNUnet configuration file:
 
 @example
 $ export PATH=$PATH:$PREFIX/bin
@@ -238,23 +321,34 @@ $ touch ~/.config/gnunet.conf
 You should check your installation to ensure that installing GNUnet
 was successful up to this point. You should be able to access GNUnet's
 binaries and run GNUnet's self check.
+
 @example
 $ which gnunet-arm
 @end example
-should return $PREFIX/bin/gnunet-arm. It should be
-located in your GNUnet installation and the output should not be
-empty. If you see an output like:
+
+@noindent
+should return $PREFIX/bin/gnunet-arm. It should be located in your
+GNUnet installation and the output should not be empty.
+If you see an output like:
+
 @example
 $ which gnunet-arm
 @end example
-check your PATH variable to ensure GNUnet's @file{bin} directory is included.
+
+@noindent
+check your PATH variable to ensure GNUnet's @file{bin} directory is
+included.
 
 GNUnet provides tests for all of its subcomponents. Run
+
 @example
 $ make check
 @end example
-to execute tests for all components. make check traverses all subdirectories in src.
-For every subdirectory you should get a message like this:
+
+@noindent
+to execute tests for all components. @command{make check} traverses all
+subdirectories in @file{src}. For every subdirectory you should
+get a message like this:
 
 @example
 make[2]: Entering directory `/home/$USER/gnunet/contrib'
@@ -328,43 +422,50 @@ the programmer.
 @node Configure your peer
 @section Configure your peer
 
-First of all we need to configure your peer. Each peer is started with a configuration
-containing settings for GNUnet itself and its services. This configuration is based on the
-default configuration shipped with GNUnet and can be modified. The default configuration
-is located in the @file{$PREFIX/share/gnunet/config.d} directory. When starting a peer, you
-can specify a customized configuration using the the @command{-c} command line switch when
-starting the ARM service and all other services. When using a modified configuration the
-default values are loaded and only values specified in the configuration file will replace
-the default values.
+First of all we need to configure your peer. Each peer is started with
+a configuration containing settings for GNUnet itself and its services.
+This configuration is based on the default configuration shipped with
+GNUnet and can be modified. The default configuration is located in the
+@file{$PREFIX/share/gnunet/config.d} directory. When starting a peer, you
+can specify a customized configuration using the the @command{-c} command
+line switch when starting the ARM service and all other services. When
+using a modified configuration the default values are loaded and only
+values specified in the configuration file will replace the default
+values.
 
-Since we want to start additional peers later, we need some modifications from the default
-configuration. We need to create a separate service home and a file containing our
-modifications for this peer:
+Since we want to start additional peers later, we need some modifications
+from the default configuration. We need to create a separate service
+home and a file containing our modifications for this peer:
+
 @example
 $ mkdir ~/gnunet1/
 $ touch peer1.conf
 @end example
 
-Now add the following lines to @file{peer1.conf} to use this directory. For
-simplified usage we want to prevent the peer to connect to the GNUnet
+Now add the following lines to @file{peer1.conf} to use this directory.
+For simplified usage we want to prevent the peer to connect to the GNUnet
 network since this could lead to confusing output. This modifications
 will replace the default settings:
+
 @example
 [PATHS]
-GNUNET_HOME = ~/gnunet1/  # Use this directory to store GNUnet data
+# Use this directory to store GNUnet data
+GNUNET_HOME = ~/gnunet1/
 [hostlist]
-SERVERS =                 # prevent bootstrapping
+# prevent bootstrapping
+SERVERS =
 @end example
 
 @node Start a peer
 @section Start a peer
 Each GNUnet instance (called peer) has an identity (peer ID) based on a
-cryptographic public private key pair. The peer ID is the printable hash of the
-public key.
+cryptographic public private key pair. The peer ID is the printable hash
+of the public key.
 
-GNUnet services are controlled by a master service, the so called @dfn{Automatic Restart Manager} (ARM).
-ARM starts, stops and even restarts services automatically or on demand when a client connects.
-You interact with the ARM service using the gnunet-arm tool.
+GNUnet services are controlled by a master service, the so called
+@dfn{Automatic Restart Manager} (ARM). ARM starts, stops and even
+restarts services automatically or on demand when a client connects.
+You interact with the ARM service using the @command{gnunet-arm} tool.
 GNUnet can then be started with @command{gnunet-arm -s} and stopped with
 @command{gnunet-arm -e}.  An additional service not automatically started
 can be started using @command{gnunet-arm -i <service name>} and stopped
@@ -372,11 +473,16 @@ using @command{gnunet-arm -k <servicename>}.
 
 Once you have started your peer, you can use many other GNUnet commands
 to interact with it.  For example, you can run:
+
 @example
 $ gnunet-peerinfo -s
 @end example
+
+@noindent
 to obtain the public key of your peer.
+
 You should see an output containing the peer ID similar to:
+
 @example
 I am peer `0PA02UVRKQTS2C .. JL5Q78F6H0B1ACPV1CJI59MEQUMQCC5G'.
 @end example
@@ -384,25 +490,37 @@ I am peer `0PA02UVRKQTS2C .. JL5Q78F6H0B1ACPV1CJI59MEQUMQCC5G'.
 @node Monitor a peer
 @section Monitor a peer
 
-In this section, we will monitor the behaviour of our peer's DHT service with respect to a
-specific key. First we will start GNUnet and then start the DHT service and use the DHT monitor tool
-to monitor the PUT and GET commands we issue ussing the @command{gnunet-dht-put} and
-@command{gnunet-dht-get} commands. Using the ``monitor'' line given below, you can observe
-the behavior of your own peer's DHT with respect to the specified KEY:
+In this section, we will monitor the behaviour of our peer's DHT
+service with respect to a specific key. First we will start
+GNUnet and then start the DHT service and use the DHT monitor tool
+to monitor the PUT and GET commands we issue ussing the
+@command{gnunet-dht-put} and @command{gnunet-dht-get} commands.
+Using the ``monitor'' line given below, you can observe the behavior
+of your own peer's DHT with respect to the specified KEY:
 
 @example
-$ gnunet-arm -c ~/peer1.conf -s			# start gnunet with all default services
-$ gnunet-arm -c ~/peer1.conf -i dht		# start DHT service
+# start gnunet with all default services:
+$ gnunet-arm -c ~/peer1.conf -s
+# start DHT service:
+$ gnunet-arm -c ~/peer1.conf -i dht
 $ cd ~/gnunet/src/dht;
 $ ./gnunet-dht-monitor -c ~/peer1.conf -k KEY
 @end example
-Now open a separate terminal and change again to the @file{gnunet/src/dht} directory:
+
+@noindent
+Now open a separate terminal and change again to
+the @file{gnunet/src/dht} directory:
+
 @example
 $ cd ~/gnunet/src/dht
-$ ./gnunet-dht-put -c ~/peer1.conf -k KEY -d VALUE		# put VALUE under KEY in the DHT
-$ ./gnunet/src/dht/gnunet-dht-get -c ~/peer1.conf -k KEY	# get key KEY from the DHT
-$ gnunet-statistics -c ~/peer1.conf		# print statistics about current GNUnet state
-$ gnunet-statistics -c ~/peer1.conf -s dht	# print statistics about DHT service
+# put VALUE under KEY in the DHT:
+$ ./gnunet-dht-put -c ~/peer1.conf -k KEY -d VALUE
+# get key KEY from the DHT:
+$ ./gnunet/src/dht/gnunet-dht-get -c ~/peer1.conf -k KEY
+# print statistics about current GNUnet state:
+$ gnunet-statistics -c ~/peer1.conf
+# print statistics about DHT service:
+$ gnunet-statistics -c ~/peer1.conf -s dht
 @end example
 
 @node Starting Two Peers by Hand
@@ -424,18 +542,23 @@ In practice, you might prefer the automated method
 We will now start a second peer on your machine.
 For the second peer, you will need to manually create a modified
 configuration file to avoid conflicts with ports and directories.
-A peers configuration file is by default located in @file{~/.gnunet/gnunet.conf}.
-This file is typically very short or even empty as only the differences to the
-defaults need to be specified.  The defaults are located in
-many files in the @file{$PREFIX/share/gnunet/config.d} directory.
+A peers configuration file is by default located
+in @file{~/.gnunet/gnunet.conf}. This file is typically very short
+or even empty as only the differences to the defaults need to be
+specified.  The defaults are located in many files in the
+@file{$PREFIX/share/gnunet/config.d} directory.
 
 To configure the second peer, use the files
 @file{$PREFIX/share/gnunet/config.d} as a template for your main
 configuration file:
+
 @example
 $ cat $PREFIX/share/gnunet/config.d/*.conf > peer2.conf
 @end example
+
+@noindent
 Now you have to edit @file{peer2.conf} and change:
+
 @itemize
 @item @code{GNUNET\_TEST\_HOME} under @code{PATHS}
 @item Every (uncommented) value for ``@code{PORT}'' (add 10000) in any
@@ -454,6 +577,7 @@ Now, generate the 2nd peer's private key:
 $ gnunet-peerinfo -s -c peer2.conf
 @end example
 
+@noindent
 This may take a while, generate entropy using your keyboard or mouse
 as needed.  Also, make sure the output is different from the
 gnunet-peerinfo output for the first peer (otherwise you made an
@@ -463,34 +587,46 @@ error in the configuration).
 @subsection Start the second peer and connect the peers
 
 Then, you can start a second peer using:
+
 @example
 $ gnunet-arm -c peer2.conf -s
 $ gnunet-arm -c peer2.conf -i dht
 $ ~/gnunet/src/dht/gnunet-dht-put -c peer2.conf -k KEY -d VALUE
 $ ~/gnunet/src/dht/gnunet-dht-get -c peer2.conf -k KEY
 @end example
+
 If you want the two peers to connect, you have multiple options:
+
 @itemize
 @item UDP neighbour discovery (automatic)
 @item Setup a bootstrap server
 @item Connect manually
 @end itemize
+
 To setup peer 1 as bootstrapping server change the configuration of
 the first one to be a hostlist server by adding the following lines to
 @file{peer1.conf} to enable bootstrapping server:
+
 @example
 [hostlist]
 OPTIONS = -p
 @end example
 
-Then change @file{peer2.conf} and replace the ``@code{SERVERS}'' line in the ``@code{[hostlist]}'' section with
+@noindent
+Then change @file{peer2.conf} and replace the ``@code{SERVERS}''
+line in the ``@code{[hostlist]}'' section with
 ``@code{http://localhost:8080/}''.  Restart both peers using:
+
 @example
-$ gnunet-arm -c peer1.conf -e		# stop first peer
-$ gnunet-arm -c peer1.conf -s		# start first peer
-$ gnunet-arm -c peer2.conf -s		# start second peer
+# stop first peer
+$ gnunet-arm -c peer1.conf -e
+# start first peer
+$ gnunet-arm -c peer1.conf -s
+# start second peer
+$ gnunet-arm -c peer2.conf -s
 @end example
 
+@noindent
 Note that if you start your peers without changing these settings, they
 will use the ``global'' hostlist servers of the GNUnet P2P network and
 likely connect to those peers.  At that point, debugging might become
@@ -511,6 +647,7 @@ If you want to use the @code{peerinfo} tool to connect your peers, you should:
 
 Check that they are connected using @command{gnunet-core -c peer1.conf},
 which should give you the other peer's peer identity:
+
 @example
 $ gnunet-core -c peer1.conf
 Peer `9TVUCS8P5A7ILLBGO6 [...shortened...] 1KNBJ4NGCHP3JPVULDG'
@@ -520,90 +657,108 @@ Peer `9TVUCS8P5A7ILLBGO6 [...shortened...] 1KNBJ4NGCHP3JPVULDG'
 @section Starting Peers Using the Testbed Service
 @c \label{sec:testbed}
 
-GNUnet's testbed service is used for testing scenarios where a number of peers
-are to be started.  The testbed can manage peers on a single host or on multiple
-hosts in a distributed fashion.  On a single affordable computer, it should be
-possible to run around tens of peers without drastically increasing the load on the
+GNUnet's testbed service is used for testing scenarios where
+a number of peers are to be started.  The testbed can manage peers
+on a single host or on multiple hosts in a distributed fashion.
+On a single affordable computer, it should be possible to run
+around tens of peers without drastically increasing the load on the
 system.
 
 The testbed service can be access through its API
-@file{include/gnunet\_testbed\_service.h}.  The API provides many routines for
-managing a group of peers.  It also provides a helper function
-@code{GNUNET\_TESTBED\_test\_run()} to quickly setup a minimalistic testing
-environment on a single host.
+@file{include/gnunet\_testbed\_service.h}.  The API provides many
+routines for managing a group of peers.  It also provides a helper
+function @code{GNUNET\_TESTBED\_test\_run()} to quickly setup a
+minimalistic testing environment on a single host.
 
-This function takes a configuration file which will be used as a template
-configuration for the peers.  The testbed takes care of modifying relevant
-options in the peers' configuration such as @code{SERVICEHOME}, @code{PORT}, @code{UNIXPATH} to
-unique values so that peers run without running into conflicts.  It also checks
+This function takes a configuration file which will be used as a
+template configuration for the peers.  The testbed takes care of
+modifying relevant options in the peers' configuration such as
+@code{SERVICEHOME}, @code{PORT}, @code{UNIXPATH} to unique values
+so that peers run without running into conflicts.  It also checks
 and assigns the ports in configurations only if they are free.
 
-Additionally, the testbed service also reads its options from the same
-configuration file.  Various available options and details about them can be
-found in the testbed default configuration file @file{src/testbed/testbed.conf}.
+Additionally, the testbed service also reads its options from the
+same configuration file.  Various available options and details
+about them can be found in the testbed default configuration file
+@file{src/testbed/testbed.conf}.
 
 With the testbed API, a sample test case can be structured as follows:
+
 @example
 @verbatiminclude testbed_test.c
 @end example
+
+@noindent
 The source code for the above listing can be found at
 @uref{https://gnunet.org/git/gnunet.git/tree/doc/testbed_test.c}
 or in the @file{doc/} folder of your repository check-out.
 After installing GNUnet, the above source code can be compiled as:
+
 @example
 $ export CPPFLAGS="-I/path/to/gnunet/headers"
 $ export LDFLAGS="-L/path/to/gnunet/libraries"
-$ gcc $CPPFLAGS $LDFLAGS -o testbed-test testbed_test.c  -lgnunettestbed -lgnunetdht -lgnunetutil
-$ touch template.conf # Generate (empty) configuration
-$ ./testbed-test  # run it (press CTRL-C to stop)
+$ gcc $CPPFLAGS $LDFLAGS -o testbed-test testbed_test.c \
+ -lgnunettestbed -lgnunetdht -lgnunetutil
+# Generate (empty) configuration
+$ touch template.conf
+# run it (press CTRL-C to stop)
+$ ./testbed-test
 @end example
-The @code{CPPFLAGS} and @code{LDFLAGS} are necessary if GNUnet is installed
-into a different directory other than @file{/usr/local}.
 
-All of testbed API's peer management functions treat management actions as
-operations and return operation handles.  It is expected that the operations
-begin immediately, but they may get delayed (to balance out load on the system).
-The program using the API then has to take care of marking the operation as
-``done'' so that its associated resources can be freed immediately and other
-waiting operations can be executed.  Operations will be canceled if they are
+@noindent
+The @code{CPPFLAGS} and @code{LDFLAGS} are necessary if GNUnet
+is installed into a different directory other than @file{/usr/local}.
+
+All of testbed API's peer management functions treat management
+actions as operations and return operation handles.  It is expected
+that the operations begin immediately, but they may get delayed (to
+balance out load on the system). The program using the API then has
+to take care of marking the operation as ``done'' so that its
+associated resources can be freed immediately and other waiting
+operations can be executed.  Operations will be canceled if they are
 marked as ``done'' before their completion.
 
-An operation is treated as completed when it succeeds or fails.  Completion of
-an operation is either conveyed as events through @i{controller event callback}
-or through respective operation completion callbacks.  In functions
-which support completion notification through both controller event callback and
-operation completion callback, first the controller event callback will be
-called.  If the operation is not marked as done in that callback or if the
-callback is given as NULL when creating the operation, the operation completion
-callback will be called.  The API documentation shows which event are to be
-expected in the controller event notifications.  It also documents any
-exceptional behaviour.
+An operation is treated as completed when it succeeds or fails.
+Completion of an operation is either conveyed as events through
+@i{controller event callback} or through respective operation
+completion callbacks.  In functions which support completion
+notification through both controller event callback and operation
+completion callback, first the controller event callback will be
+called.  If the operation is not marked as done in that callback
+or if the callback is given as NULL when creating the operation,
+the operation completion callback will be called.  The API
+documentation shows which event are to be expected in the
+controller event notifications.  It also documents any exceptional
+behaviour.
 
-Once the peers are started, test cases often need to connect some of the peers'
-services.  Normally, opening a connect to a peer's service requires the peer's
-configuration.  While using testbed, the testbed automatically generates
-per-peer configuration.  Accessing those configurations directly through file
-system is discouraged as their locations are dynamically created and will be
-different among various runs of testbed.  To make access to these configurations
-easy, testbed API provides the function
-@code{GNUNET\_TESTBED\_service\_connect()}.  This function fetches the
-configuration of a given peer and calls the @i{Connect Adapter}.
-In the example code, it is the @code{dht\_ca}.  A connect adapter is expected
-to open the connection to the needed service by using the provided configuration
-and return the created service connection handle.  Successful connection to the
-needed service is signaled through @code{service\_connect\_comp\_cb}.
+Once the peers are started, test cases often need to connect
+some of the peers' services.  Normally, opening a connect to
+a peer's service requires the peer's configuration.  While using
+testbed, the testbed automatically generates per-peer configuration.
+Accessing those configurations directly through file system is
+discouraged as their locations are dynamically created and will be
+different among various runs of testbed.  To make access to these
+configurations easy, testbed API provides the function
+@code{GNUNET\_TESTBED\_service\_connect()}.  This function fetches
+the configuration of a given peer and calls the @i{Connect Adapter}.
+In the example code, it is the @code{dht\_ca}.  A connect adapter is
+expected to open the connection to the needed service by using the
+provided configuration and return the created service connection handle.
+Successful connection to the needed service is signaled through
+@code{service\_connect\_comp\_cb}.
 
-A dual to connect adapter is the @i{Disconnect Adapter}.  This callback is
-called after the connect adapter has been called when the operation from
-@code{GNUNET\_TESTBED\_service\_connect()} is marked as ``done''.  It has to
-disconnect from the service with the provided service handle (@code{op\_result}).
+A dual to connect adapter is the @i{Disconnect Adapter}.  This callback
+is called after the connect adapter has been called when the operation
+from @code{GNUNET\_TESTBED\_service\_connect()} is marked as ``done''.
+It has to disconnect from the service with the provided service
+handle (@code{op\_result}).
 
 Exercise: Find out how many peers you can run on your system.
 
 Exercise: Find out how to create a 2D torus topology by changing the
-options in the configuration file. See @uref{https://gnunet.org/supported-topologies}
-Then use the DHT API to store and retrieve values in the
-network.
+options in the configuration file.
+See @uref{https://gnunet.org/supported-topologies}, then use the
+DHT API to store and retrieve values in the network.
 
 @node Developing Applications
 @chapter Developing Applications
@@ -635,9 +790,11 @@ $ make install
 $ make check
 @end example
 
-The GNUnet ext template includes examples and a working buildsystem for a new GNUnet service.
-A common GNUnet service consists of the following parts which will be discussed in detail in the
-remainder of this document. The functionality of a GNUnet service is implemented in:
+@noindent
+The GNUnet ext template includes examples and a working buildsystem
+for a new GNUnet service. A common GNUnet service consists of the
+following parts which will be discussed in detail in the remainder
+of this document. The functionality of a GNUnet service is implemented in:
 
 @itemize
 @item the GNUnet service (gnunet-ext/src/ext/gnunet-service-ext.c)
@@ -646,6 +803,7 @@ remainder of this document. The functionality of a GNUnet service is implemented
 @end itemize
 
 The interfaces for these entities are defined in:
+
 @itemize
 @item client API interface (gnunet-ext/src/ext/ext.h)
 @item the service interface (gnunet-ext/src/include/gnunet_service_SERVICE.h)
@@ -654,6 +812,7 @@ The interfaces for these entities are defined in:
 
 
 In addition the ext systems provides:
+
 @itemize
 @item a test testing the API (gnunet-ext/src/ext/test_ext_api.c)
 @item a configuration template for the service (gnunet-ext/src/ext/ext.conf.in)
@@ -664,22 +823,24 @@ In addition the ext systems provides:
 
 The first step for writing any extension with a new service is to
 ensure that the @file{ext.conf.in} file contains entries for the
-@code{UNIXPATH}, @code{PORT} and @code{BINARY} for the service in a section named after
-the service.
+@code{UNIXPATH}, @code{PORT} and @code{BINARY} for the service in a
+section named after the service.
 
-If you want to adapt the template rename the @file{ext.conf.in} to match your
-services name, you have to modify the @code{AC\_OUTPUT} section in @file{configure.ac}
-in the @file{gnunet-ext} root.
+If you want to adapt the template rename the @file{ext.conf.in} to
+match your services name, you have to modify the @code{AC\_OUTPUT}
+section in @file{configure.ac} in the @file{gnunet-ext} root.
 
 @node Writing a Client Application
 @section Writing a Client Application
 
 When writing any client application (for example, a command-line
-tool), the basic structure is to start with the @code{GNUNET\_PROGRAM\_run}
-function.  This function will parse command-line options, setup the scheduler
-and then invoke the @code{run} function (with the remaining non-option arguments)
-and a handle to the parsed configuration (and the configuration file name that was
-used, which is typically not needed):
+tool), the basic structure is to start with the
+@code{GNUNET\_PROGRAM\_run} function.  This function will parse
+command-line options, setup the scheduler and then invoke the
+@code{run} function (with the remaining non-option arguments)
+and a handle to the parsed configuration (and the configuration
+file name that was used, which is typically not needed):
+
 @example
 @verbatiminclude tutorial-examples/001.c
 @end example
@@ -697,6 +858,7 @@ Options can then be added easily by adding global variables and
 expanding the @code{options} array.  For example, the following would
 add a string-option and a binary flag (defaulting to @code{NULL} and
 @code{GNUNET\_NO} respectively):
+
 @example
 @verbatiminclude tutorial-examples/002.c
 @end example
@@ -753,10 +915,12 @@ file).
 
 Before a client library can implement the application-specific protocol
 with the service, a connection must be created:
+
 @example
 @verbatiminclude tutorial-examples/003.c
 @end example
 
+@noindent
 As a result a @code{GNUNET\_MQ\_Handle} is returned
 which can to used henceforth to transmit messages to the service.
 The complete MQ API can be found in @file{gnunet\_mq\_lib.h}.
@@ -769,27 +933,35 @@ there are errors communicating with the service.
 @node Sending messages
 @subsubsection Sending messages
 
-In GNUnet, messages are always sent beginning with a @code{struct GNUNET\_MessageHeader}
-in big endian format. This header defines the size and the type of the
+In GNUnet, messages are always sent beginning with a
+@code{struct GNUNET\_MessageHeader} in big endian format.
+This header defines the size and the type of the
 message, the payload follows after this header.
+
 @example
 @verbatiminclude tutorial-examples/004.c
 @end example
 
+@noindent
 Existing message types are defined in @file{gnunet\_protocols.h}.
 A common way to create a message is with an envelope:
+
 @example
 @verbatiminclude tutorial-examples/005.c
 @end example
 
+@noindent
 Exercise: Define a message struct that includes a 32-bit
 unsigned integer in addition to the standard GNUnet MessageHeader.
 Add a C struct and define a fresh protocol number for your message.
-Protocol numbers in gnunet-ext are defined in @file{gnunet-ext/src/include/gnunet_protocols_ext.h}
+Protocol numbers in gnunet-ext are defined
+in @file{gnunet-ext/src/include/gnunet_protocols_ext.h}
 
-Exercise: Find out how you can determine the number of messages in a message queue.
+Exercise: Find out how you can determine the number of messages
+in a message queue.
 
-Exercise: Find out how you can determine when a message you have queued was actually transmitted.
+Exercise: Find out how you can determine when a message you
+have queued was actually transmitted.
 
 Exercise: Define a helper function to transmit a 32-bit
 unsigned integer (as payload) to a service using some given client
@@ -817,7 +989,8 @@ Exercise: Expand your helper function to receive a response message
 without any payload).  Upon receiving the service's response, you
 should call a callback provided to your helper function's API.
 
-Exercise: Figure out where you can pass values to the closures (@code{cls}).
+Exercise: Figure out where you can pass values to the
+closures (@code{cls}).
 
 @node Writing a user interface
 @subsection Writing a user interface
@@ -834,8 +1007,8 @@ command-line to the service.
 @node Writing a Service
 @section Writing a Service
 
-Before you can test the client you've written so far, you'll need to also
-implement the corresponding service.
+Before you can test the client you've written so far, you'll
+need to also implement the corresponding service.
 
 @menu
 * Code Placement::
@@ -845,21 +1018,25 @@ implement the corresponding service.
 @node Code Placement
 @subsection Code Placement
 
-New services are placed in their own subdirectory under @file{gnunet/src}.
-This subdirectory should contain the API implementation file @file{SERVICE\_api.c},
-the description of the client-service protocol @file{SERVICE.h} and P2P protocol
+New services are placed in their own subdirectory under
+@file{gnunet/src}. This subdirectory should contain the API
+implementation file @file{SERVICE\_api.c}, the description of
+the client-service protocol @file{SERVICE.h} and P2P protocol
 @file{SERVICE\_protocol.h}, the implementation of the service itself
-@file{gnunet-service-SERVICE.h} and several files for tests, including test code
-and configuration files.
+@file{gnunet-service-SERVICE.h} and several files for tests,
+including test code and configuration files.
 
 @node Starting a Service
 @subsection Starting a Service
 
-The key API definition for creating a service is the @code{GNUNET\_SERVICE\_MAIN} macro:
+The key API definition for creating a service is the
+@code{GNUNET\_SERVICE\_MAIN} macro:
+
 @example
 @verbatiminclude tutorial-examples/007.c
 @end example
 
+@noindent
 In addition to the service name and flags, the macro takes three
 functions, typically called @code{run}, @code{client\_connect\_cb} and
 @code{client\_disconnect\_cb} as well as an array of message handlers
@@ -867,10 +1044,12 @@ that will be called for incoming messages from clients.
 
 A minimal version of the three central service funtions would look
 like this:
+
 @example
 @verbatiminclude tutorial-examples/008.c
 @end example
 
+@noindent
 Exercise: Write a stub service that processes no messages at all
 in your code.  Create a default configuration for it, integrate it
 with the build system and start the service from
@@ -900,8 +1079,9 @@ FIXME: This section still needs to be updated to the lastest API!
 One of the most important services in GNUnet is the @code{CORE} service
 managing connections between peers and handling encryption between peers.
 
-One of the first things any service that extends the P2P protocol typically does
-is connect to the @code{CORE} service using:
+One of the first things any service that extends the P2P protocol
+typically does is connect to the @code{CORE} service using:
+
 @example
 @verbatiminclude tutorial-examples/009.c
 @end example
@@ -916,13 +1096,16 @@ is connect to the @code{CORE} service using:
 @node New P2P connections
 @subsection New P2P connections
 
-Before any traffic with a different peer can be exchanged, the peer must be
-known to the service. This is notified by the @code{CORE} @code{connects} callback,
-which communicates the identity of the new peer to the service:
+Before any traffic with a different peer can be exchanged, the peer must
+be known to the service. This is notified by the @code{CORE}
+@code{connects} callback, which communicates the identity of the new
+peer to the service:
+
 @example
 @verbatiminclude tutorial-examples/010.c
 @end example
 
+@noindent
 Note that whatever you return from @code{connects} is given as the
 @i{cls} argument to the message handlers for messages from
 the respective peer.
@@ -1014,21 +1197,27 @@ PEERSTORE operations.
 @subsection Storing records
 
 To store a new record, use the following function:
+
 @example
 @verbatiminclude tutorial-examples/013.c
 @end example
 
-The @code{options} parameter can either be @code{GNUNET_PEERSTORE_STOREOPTION_MULTIPLE}
-which means that multiple values can be stored under the same key combination (subsystem, peerid, key),
-or @code{GNUNET_PEERSTORE_STOREOPTION_REPLACE} which means that PEERSTORE will replace any
-existing values under the given key combination (subsystem, peerid, key) with the new given value.
+@noindent
+The @code{options} parameter can either be
+@code{GNUNET_PEERSTORE_STOREOPTION_MULTIPLE} which means that multiple
+values can be stored under the same key combination (subsystem, peerid, key),
+or @code{GNUNET_PEERSTORE_STOREOPTION_REPLACE} which means that PEERSTORE will
+replace any existing values under the given key combination (subsystem, peerid,
+key) with the new given value.
 
-The continuation function @code{cont} will be called after the store request is successfully
-sent to the PEERSTORE service. This does not guarantee that the record is successfully stored, only
-that it was received by the service.
+The continuation function @code{cont} will be called after the store request
+is successfully sent to the PEERSTORE service. This does not guarantee that
+the record is successfully stored, only that it was received by the service.
 
-The @code{GNUNET_PEERSTORE_store} function returns a handle to the store operation. This handle
-can be used to cancel the store operation only before the continuation function is called:
+The @code{GNUNET_PEERSTORE_store} function returns a handle to the store
+operation. This handle can be used to cancel the store operation only before
+the continuation function is called:
+
 @example
 void
 GNUNET_PEERSTORE_store_cancel (struct GNUNET_PEERSTORE_StoreContext *sc);

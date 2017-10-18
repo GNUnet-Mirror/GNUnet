@@ -155,21 +155,29 @@ version.texi:
 	echo "@set UPDATED $(date +'%d %B %Y')" > $@
 	echo "@set UPDATED-MONTH $(date +'%B %Y')" >> $@
 	echo "@set EDITION $(PACKAGE_VERSION)" >> $@
-	echo "@set VERSION $(PACKAGE_VERSION)" >> $@ 
+	echo "@set VERSION $(PACKAGE_VERSION)" >> $@
+
+# Workaround for makeinfo error. Whcih in turn introduces more
+# date-related 'warnings'. Well.
+version2.texi:
+	echo "@set UPDATED $(date +'%d %B %Y')" > $@
+	echo "@set UPDATED-MONTH $(date +'%B %Y')" >> $@
+	echo "@set EDITION $(PACKAGE_VERSION)" >> $@
+	echo "@set VERSION $(PACKAGE_VERSION)" >> $@
 
 doc-pdf: version.texi
 	@makeinfo --pdf --quiet gnunet.texi
-doc-pdf-tutorial: version.texi
+doc-pdf-tutorial: version.texi version2.texi
 	@makeinfo --pdf --quiet gnunet-c-tutorial.texi
 
 doc-html: version.texi
 	@makeinfo --html gnunet.texi
-doc-html-tutorial: version.texi
+doc-html-tutorial: version.texi version2.texi
 	@makeinfo --html gnunet-c-tutorial.texi
 
 doc-info: version.texi
 	@makeinfo --no-split gnunet.texi
-doc-info-tutorial: version.texi
+doc-info-tutorial: version.texi version2.texi
 	@makeinfo --no-split gnunet-c-tutorial.texi
 
 # FIXME: rm *.html and *.pdf
@@ -180,17 +188,17 @@ doc-all: doc-pdf doc-html doc-info doc-pdf-tutorial doc-html-tutorial doc-info-t
 
 doc-pdf-noise: version.texi
 	@makeinfo --pdf gnunet.texi
-doc-pdf-tutorial-noise: version.texi
+doc-pdf-tutorial-noise: version.texi version2.texi
 	@makeinfo --pdf gnunet-c-tutorial.texi
 
 doc-html-noise: version.texi
 	@makeinfo --html gnunet.texi
-doc-html-tutorial-noise: version.texi
+doc-html-tutorial-noise: version.texi version2.texi
 	@makeinfo --html gnunet-c-tutorial.texi
 
 doc-info-noise: version.texi
 	@makeinfo --no-split gnunet.texi
-doc-info-tutorial-noise: version.texi
+doc-info-tutorial-noise: version.texi version2.texi
 	@makeinfo --no-split gnunet-c-tutorial.texi
 
 doc-all-give-me-the-noise: doc-pdf-noise doc-html-noise doc-info-noise doc-pdf-tutorial-noise doc-html-tutorial-noise doc-info-tutorial-noise
