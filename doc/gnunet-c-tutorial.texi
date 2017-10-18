@@ -1426,8 +1426,8 @@ little.
 
 In order to compile the plugin, the @file{Makefile.am} file for the
 service SERVICE should contain a rule similar to this:
-@c* Actually this is a Makefile not C. But the whole structure of examples
-@c* must be improved.
+@c Actually this is a Makefile not C. But the whole structure of examples
+@c must be improved.
 @example
 @verbatiminclude tutorial-examples/025.c
 @end example
