@@ -38,6 +38,13 @@ A copy of the license is also available from the Free Software
 Foundation Web site at @url{http://www.gnu.org/licenses/gpl.html}.
 @end copying
 
+@c TODO: Improve this and improve https://directory.fsf.org/wiki/Gnunet
+
+@dircategory Networking
+@direntry
+* GNUnet: (gnunet).       Framework for secure peer-to-peer networking
+@end direntry
+
 @titlepage
 @title GNUnet Reference Manual
 @subtitle Installing, configuring, using and contributing to GNUnet
