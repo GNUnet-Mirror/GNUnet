@@ -32,7 +32,7 @@ Foundation Web site at @url{http://www.gnu.org/licenses/gpl.html}.
 
 @dircategory Tutorial
 @direntry
-* GNUnet-c-tutorial: (gnunet-ctutorial).       C Tutorial for GNunet
+* GNUnet-C-Tutorial: (gnunet-c-tutorial).       C Tutorial for GNunet
 @end direntry
 
 
@@ -168,14 +168,15 @@ The shell on GNU systems is assumed to be Bash.
 @node Installing GNUnet
 @chapter Installing GNUnet
 
-First of all you have to install a current version of GNUnet. You can download a
-tarball of a stable version from GNU FTP mirrors or obtain the latest development
-version from our Git repository.
+First of all you have to install a current version of GNUnet.
+You can download a tarball of a stable version from GNU FTP mirrors
+or obtain the latest development version from our Git repository.
 
-Most of the time you should prefer to download the stable version since with the
-latest development version things can be broken, functionality can be changed or tests
-can fail. You should only use the development version if you know that you require a
-certain feature or a certain issue has been fixed since the last release.
+Most of the time you should prefer to download the stable version
+since with the latest development version things can be broken,
+functionality can be changed or tests can fail. You should only use
+the development version if you know that you require a certain
+feature or a certain issue has been fixed since the last release.
 
 @menu
 * Obtaining a stable version::
@@ -265,7 +266,8 @@ The remainder of this tutorial assumes that you have the Git branch
 @node Compiling and Installing GNUnet
 @section Compiling and Installing GNUnet
 
-First, you need to install at least libgnupgerror 1.27 and libgcrypt 1.7.6.
+First, you need to install at least libgnupgerror 1.27 and
+libgcrypt 1.7.6.
 
 @example
 $ export GNUPGFTP="https://www.gnupg.org/ftp/gcrypt"
@@ -369,20 +371,25 @@ PASS: test_gnunet_prefix
 
 GNUnet is organized in layers and services. Each service is composed of a
 main service implementation and a client library for other programs to use
-the service's functionality, described by an API. This approach is shown in
+the service's functionality, described by an API.
+@c This approach is shown in
 @c FIXME: enable this once the commented block below works:
 @c figure~\ref fig:service.
-Some services provide an additional command line tool to enable the user to
-interact with the service.
+Some services provide an additional command line tool to enable the user
+to interact with the service.
 
-Very often it is other GNUnet services that will use these APIs to build the
-higher layers of GNUnet on top of the lower ones. Each layer expands or extends
-the functionality of the service below (for instance, to build a mesh on top of
-a DHT).
+Very often it is other GNUnet services that will use these APIs to build
+the higher layers of GNUnet on top of the lower ones. Each layer expands
+or extends the functionality of the service below (for instance, to build
+a mesh on top of a DHT).
 @c FXIME: See comment above.
 @c See figure ~\ref fig:interaction for an illustration of this approach.
 
 @c ** @image filename[, width[, height[, alttext[, extension]]]]
+@c FIXME: Texlive (?) 20112 makes the assumption that this means
+@c 'images/OBJECTNAME.txt' but later versions of it (2017) use this
+@c syntax as described below.
+@c TODO: Checkout the makedoc script Guile uses.
 
 @image{images/gnunet-tutorial-service,,5in,Service with API and network protocol,.png}
 
@@ -408,11 +415,11 @@ a DHT).
 @c   \caption{GNUnet's layered system architecture}
 @c \end{figure}
 
-The main service implementation runs as a standalone process in the operating
-system and the client code runs as part of the client program, so crashes of a
-client do not affect the service process or other clients. The service and the
-clients communicate via a message protocol to be defined and implemented by
-the programmer.
+The main service implementation runs as a standalone process in the
+operating system and the client code runs as part of the client program,
+so crashes of a client do not affect the service process or other clients.
+The service and the clients communicate via a message protocol to be
+defined and implemented by the programmer.
 
 @node First Steps with GNUnet
 @chapter First Steps with GNUnet
@@ -533,8 +540,8 @@ $ gnunet-statistics -c ~/peer1.conf -s dht
 @section Starting Two Peers by Hand
 
 This section describes how to start two peers on the same machine by hand.
-The process is rather painful, but the description is somewhat instructive.
-In practice, you might prefer the automated method
+The process is rather painful, but the description is somewhat
+instructive. In practice, you might prefer the automated method
 (@pxref{Starting Peers Using the Testbed Service}).
 
 @menu
@@ -571,11 +578,14 @@ Now you have to edit @file{peer2.conf} and change:
 section (the option may be commented out if @code{PORT} is
 prefixed by "\#", in this case, UNIX domain sockets are used
 and the PORT option does not need to be touched)
-@item Every value for ``@code{UNIXPATH}'' in any section (e.g. by adding a "-p2" suffix)
+@item Every value for ``@code{UNIXPATH}'' in any section
+(e.g. by adding a "-p2" suffix)
 @end itemize
-to a fresh, unique value.  Make sure that the PORT numbers stay below 65536.
-From now on, whenever you interact with the second peer, you need to specify
-@command{-c peer2.conf} as an additional command line argument.
+
+to a fresh, unique value.  Make sure that the PORT numbers stay
+below 65536. From now on, whenever you interact with the second peer,
+you need to specify @command{-c peer2.conf} as an additional
+command line argument.
 
 Now, generate the 2nd peer's private key:
 
@@ -643,12 +653,18 @@ by you.
 @node How to connect manually
 @subsection How to connect manually
 
-If you want to use the @code{peerinfo} tool to connect your peers, you should:
+If you want to use the @code{peerinfo} tool to connect your
+peers, you should:
+
 @itemize
-@item Set @code{FORCESTART = NO} in section @code{hostlist} (to not connect to the global GNUnet)
-@item Start both peers running @command{gnunet-arm -c peer1.conf -s} and @command{gnunet-arm -c peer2.conf -s}
-@item Get @code{HELLO} message of the first peer running @command{gnunet-peerinfo -c peer1.conf -g}
-@item Give the output to the second peer by running @command{gnunet-peerinfo -c peer2.conf -p '<output>'}
+@item Set @code{FORCESTART = NO} in section @code{hostlist}
+(to not connect to the global GNUnet)
+@item Start both peers running @command{gnunet-arm -c peer1.conf -s}
+and @command{gnunet-arm -c peer2.conf -s}
+@item Get @code{HELLO} message of the first peer running
+@command{gnunet-peerinfo -c peer1.conf -g}
+@item Give the output to the second peer by running
+@command{gnunet-peerinfo -c peer2.conf -p '<output>'}
 @end itemize
 
 Check that they are connected using @command{gnunet-core -c peer1.conf},
@@ -805,7 +821,8 @@ of this document. The functionality of a GNUnet service is implemented in:
 @itemize
 @item the GNUnet service (gnunet-ext/src/ext/gnunet-service-ext.c)
 @item the client API (gnunet-ext/src/ext/ext_api.c)
-@item the client application using the service API (gnunet-ext/src/ext/gnunet-ext.c)
+@item the client application using the service API
+(gnunet-ext/src/ext/gnunet-ext.c)
 @end itemize
 
 The interfaces for these entities are defined in:
@@ -821,7 +838,8 @@ In addition the ext systems provides:
 
 @itemize
 @item a test testing the API (gnunet-ext/src/ext/test_ext_api.c)
-@item a configuration template for the service (gnunet-ext/src/ext/ext.conf.in)
+@item a configuration template for the service
+(gnunet-ext/src/ext/ext.conf.in)
 @end itemize
 
 @node Adapting the Template
@@ -1068,8 +1086,9 @@ Exercise: Figure out how to send messages from the service back to the
 client.
 
 Each handler function in the service @b{must} eventually (possibly in some
-asynchronous continuation) call @code{GNUNET\_SERVICE\_client\_continue()}.
-Only after this call additional messages from the same client may
+asynchronous continuation) call
+@code{GNUNET\_SERVICE\_client\_continue()}. Only after this call
+additional messages from the same client may
 be processed. This way, the service can throttle processing messages
 from the same client.
 
@@ -1158,10 +1177,11 @@ you stop the peer that is receiving your messages?
 @node End of P2P connections
 @subsection End of P2P connections
 
-If a message handler returns @code{GNUNET\_SYSERR}, the remote peer shuts down or
-there is an unrecoverable network disconnection, CORE notifies the service that
-the peer disconnected. After this notification no more messages will be received
-from the peer and the service is no longer allowed to send messages to the peer.
+If a message handler returns @code{GNUNET\_SYSERR}, the remote
+peer shuts down or there is an unrecoverable network
+disconnection, CORE notifies the service that the peer disconnected.
+After this notification no more messages will be received from the
+peer and the service is no longer allowed to send messages to the peer.
 The disconnect callback looks like the following:
 @example
 @verbatiminclude tutorial-examples/011.c
@@ -1172,9 +1192,10 @@ Exercise: Fix your service to handle peer disconnects.
 @node Storing peer-specific data using the PEERSTORE service
 @section Storing peer-specific data using the PEERSTORE service
 
-GNUnet's PEERSTORE service offers a persistorage for arbitrary peer-specific data.
-Other GNUnet services can use the PEERSTORE to store, retrieve and monitor data records.
-Each data record stored with PEERSTORE contains the following fields:
+GNUnet's PEERSTORE service offers a persistorage for arbitrary
+peer-specific data. Other GNUnet services can use the PEERSTORE
+to store, retrieve and monitor data records. Each data record
+stored with PEERSTORE contains the following fields:
 
 @itemize
 @item subsystem: Name of the subsystem responsible for the record.
@@ -1189,8 +1210,8 @@ The first step is to start a connection to the PEERSTORE service:
 @verbatiminclude tutorial-examples/012.c
 @end example
 
-The service handle @code{peerstore_handle} will be needed for all subsequent
-PEERSTORE operations.
+The service handle @code{peerstore_handle} will be needed for
+all subsequent PEERSTORE operations.
 
 @menu
 * Storing records::
@@ -1211,14 +1232,15 @@ To store a new record, use the following function:
 @noindent
 The @code{options} parameter can either be
 @code{GNUNET_PEERSTORE_STOREOPTION_MULTIPLE} which means that multiple
-values can be stored under the same key combination (subsystem, peerid, key),
-or @code{GNUNET_PEERSTORE_STOREOPTION_REPLACE} which means that PEERSTORE will
-replace any existing values under the given key combination (subsystem, peerid,
-key) with the new given value.
+values can be stored under the same key combination
+(subsystem, peerid, key), or @code{GNUNET_PEERSTORE_STOREOPTION_REPLACE}
+which means that PEERSTORE will replace any existing values under the
+given key combination (subsystem, peerid, key) with the new given value.
 
-The continuation function @code{cont} will be called after the store request
-is successfully sent to the PEERSTORE service. This does not guarantee that
-the record is successfully stored, only that it was received by the service.
+The continuation function @code{cont} will be called after the store
+request is successfully sent to the PEERSTORE service. This does not
+guarantee that the record is successfully stored, only that it was
+received by the service.
 
 The @code{GNUNET_PEERSTORE_store} function returns a handle to the store
 operation. This handle can be used to cancel the store operation only before
@@ -1237,8 +1259,10 @@ To retrieve stored records, use the following function:
 @verbatiminclude tutorial-examples/014.c
 @end example
 
-The values of @code{peer} and @code{key} can be @code{NULL}. This allows the
-iteration over values stored under any of the following key combinations:
+The values of @code{peer} and @code{key} can be @code{NULL}. This
+allows the iteration over values stored under any of the following
+key combinations:
+
 @itemize
 @item (subsystem)
 @item (subsystem, peerid)
@@ -1246,25 +1270,32 @@ iteration over values stored under any of the following key combinations:
 @item (subsystem, peerid, key)
 @end itemize
 
-The @code{callback} function will be called once with each retrieved record and once
-more with a @code{NULL} record to signal the end of results.
+The @code{callback} function will be called once with each retrieved
+record and once more with a @code{NULL} record to signal the end of
+results.
 
-The @code{GNUNET_PEERSTORE_iterate} function returns a handle to the iterate operation. This
-handle can be used to cancel the iterate operation only before the callback function is called with
-a @code{NULL} record.
+The @code{GNUNET_PEERSTORE_iterate} function returns a handle to the
+iterate operation. This handle can be used to cancel the iterate
+operation only before the callback function is called with a
+@code{NULL} record.
 
 @node Monitoring records
 @subsection Monitoring records
 
-PEERSTORE offers the functionality of monitoring for new records stored under a specific key
-combination (subsystem, peerid, key). To start the monitoring, use the following function:
+PEERSTORE offers the functionality of monitoring for new records
+stored under a specific key combination (subsystem, peerid, key).
+To start the monitoring, use the following function:
+
 @example
 @verbatiminclude tutorial-examples/015.c
 @end example
 
-Whenever a new record is stored under the given key combination, the @code{callback} function
-will be called with this new record. This will continue until the connection to the PEERSTORE service
-is broken or the watch operation is canceled:
+@noindent
+Whenever a new record is stored under the given key combination,
+the @code{callback} function will be called with this new
+record. This will continue until the connection to the PEERSTORE
+service is broken or the watch operation is canceled:
+
 @example
 @verbatiminclude tutorial-examples/016.c
 @end example
@@ -1272,15 +1303,18 @@ is broken or the watch operation is canceled:
 @node Disconnecting from PEERSTORE
 @subsection Disconnecting from PEERSTORE
 
-When the connection to the PEERSTORE service is no longer needed, disconnect using the following
-function:
+When the connection to the PEERSTORE service is no longer needed,
+disconnect using the following function:
+
 @example
 @verbatiminclude tutorial-examples/017.c
 @end example
 
-If the @code{sync_first} flag is set to @code{GNUNET_YES}, the API will delay the
-disconnection until all store requests are received by the PEERSTORE service. Otherwise,
-it will disconnect immediately.
+@noindent
+If the @code{sync_first} flag is set to @code{GNUNET_YES},
+the API will delay the disconnection until all store requests
+are received by the PEERSTORE service. Otherwise, it will
+disconnect immediately.
 
 @node Using the DHT
 @section Using the DHT
@@ -1308,27 +1342,32 @@ efficient.
 @subsection Storing data in the DHT
 Since the DHT is a dynamic environment (peers join and leave frequently)
 the data that we put in the DHT does not stay there indefinitely. It is
-important to ``refresh'' the data periodically by simply storing it again,
-in order to make sure other peers can access it.
+important to ``refresh'' the data periodically by simply storing it
+again, in order to make sure other peers can access it.
 
 The put API call offers a callback to signal that the PUT request has been
 sent. This does not guarantee that the data is accessible to others peers,
 or even that is has been stored, only that the service has requested to
 a neighboring peer the retransmission of the PUT request towards its final
 destination. Currently there is no feedback about whether or not the data
-has been sucessfully stored or where it has been stored. In order to improve
-the availablilty of the data and to compensate for possible errors, peers leaving
-and other unfavorable events, just make several PUT requests!
+has been sucessfully stored or where it has been stored. In order to
+improve the availablilty of the data and to compensate for possible
+errors, peers leaving and other unfavorable events, just make several
+PUT requests!
+
 @example
 @verbatiminclude tutorial-examples/019.c
 @end example
 
-Exercise: Store a value in the DHT periodically to make sure it is available
-over time. You might consider using the function @code{GNUNET\_SCHEDULER\_add\_delayed}
-and call @code{GNUNET\_DHT\_put} from inside a helper function.
+@noindent
+Exercise: Store a value in the DHT periodically to make sure it
+is available over time. You might consider using the function
+@code{GNUNET\_SCHEDULER\_add\_delayed} and call
+@code{GNUNET\_DHT\_put} from inside a helper function.
 
 @node Obtaining data from the DHT
 @subsection Obtaining data from the DHT
+
 As we saw in the previous example, the DHT works in an asynchronous mode.
 Each request to the DHT is executed ``in the background'' and the API
 calls return immediately. In order to receive results from the DHT, the
@@ -1338,16 +1377,20 @@ duplicates) until the timeout expires or we explicitly stop the request.
 It is possible to give a ``forever'' timeout with
 @code{GNUNET\_TIME\_UNIT\_FOREVER\_REL}.
 
-If we give a route option @code{GNUNET\_DHT\_RO\_RECORD\_ROUTE} the callback
-will get a list of all the peers the data has travelled, both on the PUT
-path and on the GET path.
+If we give a route option @code{GNUNET\_DHT\_RO\_RECORD\_ROUTE}
+the callback will get a list of all the peers the data has travelled,
+both on the PUT path and on the GET path.
+
 @example
 @verbatiminclude tutorial-examples/020.c
 @end example
 
-Exercise: Store a value in the DHT and after a while retrieve it. Show the IDs of all
-the peers the requests have gone through. In order to convert a peer ID to a string, use
-the function @code{GNUNET\_i2s}. Pay attention to the route option parameters in both calls!
+@noindent
+Exercise: Store a value in the DHT and after a while retrieve it.
+Show the IDs of all the peers the requests have gone through.
+In order to convert a peer ID to a string, use the function
+@code{GNUNET\_i2s}. Pay attention to the route option parameters
+in both calls!
 
 @node Implementing a block plugin
 @subsection Implementing a block plugin
@@ -1382,10 +1425,12 @@ the @code{xquery} argument is application-specific.  Applications that
 do not use an extended query should check that the @code{xquery\_size}
 is zero.  The block group is typically used to filter duplicate
 replies.
+
 @example
 @verbatiminclude tutorial-examples/021.c
 @end example
 
+@noindent
 Note that it is mandatory to detect duplicate replies in this function
 and return the respective status code.  Duplicate detection is
 typically done using the Bloom filter block group provided by
@@ -1401,6 +1446,7 @@ function is used to obtain the key of a block --- for example, by
 means of hashing.  If deriving the key is not possible, the function
 should simply return @code{GNUNET\_SYSERR} (the DHT will still work
 just fine with such blocks).
+
 @example
 @verbatiminclude tutorial-examples/022.c
 @end example
@@ -1413,6 +1459,7 @@ an initialization function which should initialize the plugin.  The
 initialization function specifies what block types the plugin cares
 about and returns a struct with the functions that are to be used for
 validation and obtaining keys (the ones just defined above).
+
 @example
 @verbatiminclude tutorial-examples/023.c
 @end example
@@ -1423,6 +1470,7 @@ validation and obtaining keys (the ones just defined above).
 Following GNUnet's general plugin API concept, the plugin must
 export a second function for cleaning up.  It usually does very
 little.
+
 @example
 @verbatiminclude tutorial-examples/024.c
 @end example
@@ -1434,26 +1482,32 @@ In order to compile the plugin, the @file{Makefile.am} file for the
 service SERVICE should contain a rule similar to this:
 @c Actually this is a Makefile not C. But the whole structure of examples
 @c must be improved.
+
 @example
 @verbatiminclude tutorial-examples/025.c
 @end example
 
+@noindent
 Exercise: Write a block plugin that accepts all queries
 and all replies but prints information about queries and replies
 when the respective validation hooks are called.
 
 @node Monitoring the DHT
 @subsection Monitoring the DHT
-It is possible to monitor the functioning of the local DHT service. When monitoring
-the DHT, the service will alert the monitoring program of any events,
-both started locally or received for routing from another peer. The are three different
-types of events possible: a GET request, a PUT request or a response (a reply to
-a GET).
 
-Since the different events have different associated data, the API gets 3
-different callbacks (one for each message type) and optional type and key parameters,
-to allow for filtering of messages. When an event happens, the appropiate callback
-is called with all the information about the event.
+It is possible to monitor the functioning of the local
+DHT service. When monitoring the DHT, the service will
+alert the monitoring program of any events, both started
+locally or received for routing from another peer.
+The are three different types of events possible: a
+GET request, a PUT request or a response (a reply to a GET).
+
+Since the different events have different associated data,
+the API gets 3 different callbacks (one for each message type)
+and optional type and key parameters, to allow for filtering of
+messages. When an event happens, the appropiate callback is
+called with all the information about the event.
+
 @example
 @verbatiminclude tutorial-examples/026.c
 @end example
@@ -1461,17 +1515,20 @@ is called with all the information about the event.
 @node Debugging with gnunet-arm
 @section Debugging with gnunet-arm
 
-Even if services are managed by @command{gnunet-arm}, you can start them with
-@command{gdb} or @command{valgrind}.  For example, you could add the following lines
-to your configuration file to start the DHT service in a @command{gdb} session in a
-fresh @command{xterm}:
+Even if services are managed by @command{gnunet-arm}, you can
+start them with @command{gdb} or @command{valgrind}.  For
+example, you could add the following lines to your
+configuration file to start the DHT service in a @command{gdb}
+session in a fresh @command{xterm}:
 
 @example
 [dht]
 PREFIX=xterm -e gdb --args
 @end example
 
-Alternatively, you can stop a service that was started via ARM and run it manually:
+@noindent
+Alternatively, you can stop a service that was started via
+ARM and run it manually:
 
 @example
 $ gnunet-arm -k dht
@@ -1479,20 +1536,23 @@ $ gdb --args gnunet-service-dht -L DEBUG
 $ valgrind gnunet-service-dht -L DEBUG
 @end example
 
-Assuming other services are well-written, they will automatically re-integrate the
-restarted service with the peer.
+@noindent
+Assuming other services are well-written, they will automatically
+re-integrate the restarted service with the peer.
 
-GNUnet provides a powerful logging mechanism providing log levels @code{ERROR},
-@code{WARNING}, @code{INFO} and @code{DEBUG}. The current log level is
-configured using the @code{$GNUNET_FORCE_LOG} environmental variable.
-The @code{DEBUG} level is only available if @command{--enable-logging=verbose} was used when
-running @command{configure}. More details about logging can be found under
+GNUnet provides a powerful logging mechanism providing log
+levels @code{ERROR}, @code{WARNING}, @code{INFO} and @code{DEBUG}.
+The current log level is configured using the @code{$GNUNET_FORCE_LOG}
+environmental variable. The @code{DEBUG} level is only available if
+@command{--enable-logging=verbose} was used when running
+@command{configure}. More details about logging can be found under
 @uref{https://gnunet.org/logging}.
 
 You should also probably enable the creation of core files, by setting
-@code{ulimit}, and echo'ing @code{1} into @file{/proc/sys/kernel/core\_uses\_pid}.
-Then you can investigate the core dumps with @command{gdb}, which is often
-the fastest method to find simple errors.
+@code{ulimit}, and echo'ing @code{1} into
+@file{/proc/sys/kernel/core\_uses\_pid}. Then you can investigate the
+core dumps with @command{gdb}, which is often the fastest method to
+find simple errors.
 
 Exercise: Add a memory leak to your service and obtain a trace
 pointing to the leak using @command{valgrind} while running the service
