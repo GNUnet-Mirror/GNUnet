@@ -1,3 +1,10 @@
+To be moved to an appropriate section of "how to write documentation" or
+"how to contribute to the documentation":
+
+1. When writing documentation, please use gender-neutral wording when
+   referring to people, such as singular “they”, “their”, “them”, and
+   so forth. -> https://en.wikipedia.org/wiki/Singular_they
+
 * What's left to do
 
 - Which Texlive modules are needed? Decrease the size.
