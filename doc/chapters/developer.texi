@@ -1675,8 +1675,8 @@ This scripts takes a list of nodes retrieved directly from PlanetLab or
 read from a file and a configuration template and creates:
 
 @itemize @bullet
-@bullet a tasklist which can be executed with gplmt to setup the slaves
-@bullet a master.cfg file containing a PlanetLab nodes
+@item a tasklist which can be executed with gplmt to setup the slaves
+@item a master.cfg file containing a PlanetLab nodes
 @end itemize
 
 A configuration template is included in the <contrib>, most important is
@@ -2008,46 +2008,41 @@ careful with it, as log files will grow at alarming rate!)
 @item @code{GNUNET_FORCE_LOG="core;;;;DEBUG" gnunet-arm -s} Start GNUnet
 process tree, running the core service under DEBUG level (everything else
 will use configured or default level).
-@item
+
+@item Start GNUnet process tree, allowing any logging calls from
+gnunet-service-transport_validation.c (everything else will use
+configured or default level).
 
 @example
-GNUNET_FORCE_LOG=";gnunet-service-transport_validation.c;;;DEBUG" \
+GNUNET_FORCE_LOG=";gnunet-service-transport_validation.c;;; DEBUG" \
 gnunet-arm -s
 @end example
 
-Start GNUnet process tree, allowing any logging calls from
-gnunet-service-transport_validation.c (everything else will use
-configured or default level).
-@item
+@item Start GNUnet process tree, allowing any logging calls from
+gnunet-gnunet-service-fs_push.c (everything else will use configured or
+default level).
 
 @example
 GNUNET_FORCE_LOG="fs;gnunet-service-fs_push.c;;;DEBUG" gnunet-arm -s
 @end example
 
-Start GNUnet process tree, allowing any logging calls from
-gnunet-gnunet-service-fs_push.c (everything else will use configured or
-default level).
-
-@item
+@item Start GNUnet process tree, allowing any logging calls from the
+GNUNET_NETWORK_socket_select function (everything else will use
+configured or default level).
 
 @example
 GNUNET_FORCE_LOG=";;GNUNET_NETWORK_socket_select;;DEBUG" gnunet-arm -s
 @end example
 
-Start GNUnet process tree, allowing any logging calls from the
-GNUNET_NETWORK_socket_select function (everything else will use
-configured or default level).
-
-@item
+@item Start GNUnet process tree, allowing any logging calls from the
+components that have "transport" in their names, and are made from
+function that have "send" in their names. Everything else will be allowed
+to be logged only if it has WARNING level.
 
 @example
 GNUNET_FORCE_LOG="transport.*;;.*send.*;;DEBUG/;;;;WARNING" gnunet-arm -s
 @end example
 
-Start GNUnet process tree, allowing any logging calls from the components
-that have "transport" in their names, and are made from function that have
-"send" in their names. Everything else will be allowed to be logged only
-if it has WARNING level.
 @end table
 
 
