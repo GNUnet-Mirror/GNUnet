@@ -1540,54 +1540,55 @@ controllers to remove an initialised barrier.
 The second component is implemented as a separate service in the binary
 `gnunet-service-testbed' which already has the testbed controller service.
 Although this deviates from the gnunet process architecture of having one
-service per binary, it is needed in this case as this component needs access to
-barrier data created by the first component. This component responds to
-@code{GNUNET_MESSAGE_TYPE_TESTBED_BARRIER_WAIT} messages from local peers when
-they call @code{GNUNET_TESTBED_barrier_wait()}. Upon receiving
-@code{GNUNET_MESSAGE_TYPE_TESTBED_BARRIER_WAIT} message, the service checks if
-the requested barrier has been initialised before and if it was not
-initialised, an error status is sent through
-@code{GNUNET_MESSAGE_TYPE_TESTBED_BARRIER_STATUS} message to the local peer and
-the connection from the peer is terminated. If the barrier is initialised
-before, the barrier's counter for reached peers is incremented and a
-notification is registered to notify the peer when the barrier is reached. The
-connection from the peer is left open.
+service per binary, it is needed in this case as this component needs
+access to barrier data created by the first component. This component
+responds to @code{GNUNET_MESSAGE_TYPE_TESTBED_BARRIER_WAIT} messages from
+local peers when they call @code{GNUNET_TESTBED_barrier_wait()}. Upon
+receiving @code{GNUNET_MESSAGE_TYPE_TESTBED_BARRIER_WAIT} message, the
+service checks if the requested barrier has been initialised before and
+if it was not initialised, an error status is sent through
+@code{GNUNET_MESSAGE_TYPE_TESTBED_BARRIER_STATUS} message to the local
+peer and the connection from the peer is terminated. If the barrier is
+initialised before, the barrier's counter for reached peers is incremented
+and a notification is registered to notify the peer when the barrier is
+reached. The connection from the peer is left open.
 
 When enough peers required to attain the quorum send
-@code{GNUNET_MESSAGE_TYPE_TESTBED_BARRIER_WAIT} messages, the controller sends
-a @code{GNUNET_MESSAGE_TYPE_TESTBED_BARRIER_STATUS} message to its parent
-informing that the barrier is crossed. If the controller has started further
-subcontrollers, it delays this message until it receives a similar notification
-from each of those subcontrollers. Finally, the barriers API at the experiment
-driver receives the @code{GNUNET_MESSAGE_TYPE_TESTBED_BARRIER_STATUS} when the
-barrier is reached at all the controllers.
+@code{GNUNET_MESSAGE_TYPE_TESTBED_BARRIER_WAIT} messages, the controller
+sends a @code{GNUNET_MESSAGE_TYPE_TESTBED_BARRIER_STATUS} message to its
+parent informing that the barrier is crossed. If the controller has
+started further subcontrollers, it delays this message until it receives
+a similar notification from each of those subcontrollers. Finally, the
+barriers API at the experiment driver receives the
+@code{GNUNET_MESSAGE_TYPE_TESTBED_BARRIER_STATUS} when the barrier is
+reached at all the controllers.
 
 The barriers API at the experiment driver responds to the
-@code{GNUNET_MESSAGE_TYPE_TESTBED_BARRIER_STATUS} message by echoing it back to
-the master controller and notifying the experiment controller through the
-notification callback that a barrier has been crossed. The echoed
-@code{GNUNET_MESSAGE_TYPE_TESTBED_BARRIER_STATUS} message is propagated by the
-master controller to the controller hierarchy. This propagation triggers the
-notifications registered by peers at each of the controllers in the hierarchy.
-Note the difference between this downward propagation of the
-@code{GNUNET_MESSAGE_TYPE_TESTBED_BARRIER_STATUS} message from its upward
-propagation --- the upward propagation is needed for ensuring that the barrier
-is reached by all the controllers and the downward propagation is for
-triggering that the barrier is crossed.
+@code{GNUNET_MESSAGE_TYPE_TESTBED_BARRIER_STATUS} message by echoing it
+back to the master controller and notifying the experiment controller
+through the notification callback that a barrier has been crossed. The
+echoed @code{GNUNET_MESSAGE_TYPE_TESTBED_BARRIER_STATUS} message is
+propagated by the master controller to the controller hierarchy. This
+propagation triggers the notifications registered by peers at each of the
+controllers in the hierarchy. Note the difference between this downward
+propagation of the @code{GNUNET_MESSAGE_TYPE_TESTBED_BARRIER_STATUS}
+message from its upward propagation --- the upward propagation is needed
+for ensuring that the barrier is reached by all the controllers and the
+downward propagation is for triggering that the barrier is crossed.
 
 @c ***********************************************************************
 @node Automatic large-scale deployment of GNUnet in the PlanetLab testbed
 @subsection Automatic large-scale deployment of GNUnet in the PlanetLab testbed
 
 PlanetLab is as a testbed for computer networking and distributed systems
-research. It was established in 2002 and as of June 2010 was composed of 1090
-nodes at 507 sites worldwide.
+research. It was established in 2002 and as of June 2010 was composed of
+1090 nodes at 507 sites worldwide.
 
-To automate the GNUnet we created a set of automation tools to simplify the
-large-scale deployment. We provide you a set of scripts you can use to deploy
-GNUnet on a set of nodes and manage your installation.
+To automate the GNUnet we created a set of automation tools to simplify
+the large-scale deployment. We provide you a set of scripts you can use
+to deploy GNUnet on a set of nodes and manage your installation.
 
-Please also check @uref{https://gnunet.org/installation-fedora8-svn} and@
+Please also check @uref{https://gnunet.org/installation-fedora8-svn} and
 @uref{https://gnunet.org/installation-fedora12-svn} to find detailled
 instructions how to install GNUnet on a PlanetLab node.
 
@@ -1609,27 +1610,39 @@ instructions how to install GNUnet on a PlanetLab node.
 @c ** Actually this is a subsubsubsection, but must be fixed differently
 @c ** as subsubsection is the lowest.
 
-Since most of the PlanetLab nodes are running the very old fedora core 8 image,
-installing the buildslave software is quite some pain. For our PlanetLab
-testbed we figured out how to install the buildslave software best.
+Since most of the PlanetLab nodes are running the very old fedora core 8
+image, installing the buildslave software is quite some pain. For our
+PlanetLab testbed we figured out how to install the buildslave software
+best.
 
+@c This is a vvery terrible way to suggest installing software.
+@c FIXME: Is there an official, safer way instead of blind-piping a
+@c script?
+@c FIXME: Use newer pypi URLs below.
 Install Distribute for python:@ @code{@ curl
 http://python-distribute.org/distribute_setup.py | sudo python@ }
 
-Install Distribute for zope.interface <= 3.8.0 (4.0 and 4.0.1 will not work):@
-@code{@ wget
-http://pypi.python.org/packages/source/z/zope.interface/zope.interface-3.8.0.tar.gz@
-tar zvfz zope.interface-3.8.0.tar.gz@ cd zope.interface-3.8.0@ sudo python
-setup.py install@ }
+Install Distribute for zope.interface <= 3.8.0 (4.0 and 4.0.1 will not
+work):
 
-Install the buildslave software (0.8.6 was the latest version):@ @code{@ wget
-http://buildbot.googlecode.com/files/buildbot-slave-0.8.6p1.tar.gz@ tar xvfz
-buildbot-slave-0.8.6p1.tar.gz@ cd buildslave-0.8.6p1@ sudo python setup.py
-install@ }
+@example
+wget https://pypi.python.org/packages/source/z/zope.interface/zope.interface-3.8.0.tar.gz
+tar zvfz zope.interface-3.8.0.tar.gz@ cd zope.interface-3.8.0
+sudo python setup.py install
+@end example
 
-The setup will download the matching twisted package and install it.@ It will
-also try to install the latest version of zope.interface which will fail to
-install. Buildslave will work anyway since version 3.8.0 was installed before!
+Install the buildslave software (0.8.6 was the latest version):
+
+@example
+wget http://buildbot.googlecode.com/files/buildbot-slave-0.8.6p1.tar.gz
+tar xvfz buildbot-slave-0.8.6p1.tar.gz@ cd buildslave-0.8.6p1
+sudo python setup.py install
+@end example
+
+The setup will download the matching twisted package and install it.
+It will also try to install the latest version of zope.interface which
+will fail to install. Buildslave will work anyway since version 3.8.0
+was installed before!
 
 @c ***********************************************************************
 @node Setup a new PlanetLab testbed using GPLMT
@@ -1637,30 +1650,37 @@ install. Buildslave will work anyway since version 3.8.0 was installed before!
 
 @itemize @bullet
 @item Get a new slice and assign nodes
-Ask your PlanetLab PI to give you a new slice and assign the nodes you need
+Ask your PlanetLab PI to give you a new slice and assign the nodes you
+need
 @item Install a buildmaster
 You can stick to the buildbot documentation:@
 @uref{http://buildbot.net/buildbot/docs/current/manual/installation.html}
 @item Install the buildslave software on all nodes
-To install the buildslave on all nodes assigned to your slice you can use the
-tasklist @code{install_buildslave_fc8.xml} provided with GPLMT:
+To install the buildslave on all nodes assigned to your slice you can use
+the tasklist @code{install_buildslave_fc8.xml} provided with GPLMT:
 
-@code{@ ./gplmt.py -c contrib/tumple_gnunet.conf -t
-contrib/tasklists/install_buildslave_fc8.xml -a -p <planetlab password>@ }
+@example
+./gplmt.py -c contrib/tumple_gnunet.conf -t \
+contrib/tasklists/install_buildslave_fc8.xml -a -p <planetlab password>
+@end example
 
 @item Create the buildmaster configuration and the slave setup commands
 
-The master and the and the slaves have need to have credentials and the master
-has to have all nodes configured. This can be done with the
-@code{create_buildbot_configuration.py} script in the @code{scripts} directory
+The master and the and the slaves have need to have credentials and the
+master has to have all nodes configured. This can be done with the
+@code{create_buildbot_configuration.py} script in the @code{scripts}
+directory
 
-This scripts takes a list of nodes retrieved directly from PlanetLab or read
-from a file and a configuration template and creates:@
- - a tasklist which can be executed with gplmt to setup the slaves@
- - a master.cfg file containing a PlanetLab nodes
+This scripts takes a list of nodes retrieved directly from PlanetLab or
+read from a file and a configuration template and creates:
 
-A configuration template is included in the <contrib>, most important is that
-the script replaces the following tags in the template:
+@itemize @bullet
+@bullet a tasklist which can be executed with gplmt to setup the slaves
+@bullet a master.cfg file containing a PlanetLab nodes
+@end itemize
+
+A configuration template is included in the <contrib>, most important is
+that the script replaces the following tags in the template:
 
 %GPLMT_BUILDER_DEFINITION :@ GPLMT_BUILDER_SUMMARY@ GPLMT_SLAVES@
 %GPLMT_SCHEDULER_BUILDERS
@@ -1681,9 +1701,9 @@ Use @code{buildbot start <basedir>} to start the server
 @node Why do i get an ssh error when using the regex profiler?
 @subsubsection Why do i get an ssh error when using the regex profiler?
 
-Why do i get an ssh error "Permission denied (publickey,password)." when using
-the regex profiler although passwordless ssh to localhost works using publickey
-and ssh-agent?
+Why do i get an ssh error "Permission denied (publickey,password)." when
+using the regex profiler although passwordless ssh to localhost works
+using publickey and ssh-agent?
 
 You have to generate a public/private-key pair with no password:@
 @code{ssh-keygen -t rsa -b 4096 -f ~/.ssh/id_localhost}@
@@ -1696,9 +1716,9 @@ now make sure your hostsfile looks like@
 [USERNAME]@@127.0.0.1:22@
 [USERNAME]@@127.0.0.1:22
 
-You can test your setup by running `ssh 127.0.0.1` in a terminal and then in
-the opened session run it again. If you were not asked for a password on either
-login, then you should be good to go.
+You can test your setup by running `ssh 127.0.0.1` in a terminal and then
+in the opened session run it again. If you were not asked for a password
+on either login, then you should be good to go.
 
 @c ***********************************************************************
 @node TESTBED Caveats
@@ -1717,15 +1737,16 @@ subsystem.
 @node CORE must be started
 @subsubsection CORE must be started
 
-A simple issue is #3993: Your configuration MUST somehow ensure that for each
-peer the CORE service is started when the peer is setup, otherwise TESTBED may
-fail to connect peers when the topology is initialized, as TESTBED will start
-some CORE services but not necessarily all (but it relies on all of them
-running). The easiest way is to set 'FORCESTART = YES' in the '[core]' section
-of the configuration file. Alternatively, having any service that directly or
-indirectly depends on CORE being started with FORCESTART will also do. This
-issue largely arises if users try to over-optimize by not starting any services
-with FORCESTART.
+A simple issue is #3993: Your configuration MUST somehow ensure that for
+each peer the CORE service is started when the peer is setup, otherwise
+TESTBED may fail to connect peers when the topology is initialized, as
+TESTBED will start some CORE services but not necessarily all (but it
+relies on all of them running). The easiest way is to set
+'FORCESTART = YES' in the '[core]' section of the configuration file.
+Alternatively, having any service that directly or indirectly depends on
+CORE being started with FORCESTART will also do. This issue largely arises
+if users try to over-optimize by not starting any services with
+FORCESTART.
 
 @c ***********************************************************************
 @node ATS must want the connections
@@ -1733,15 +1754,16 @@ with FORCESTART.
 
 When TESTBED sets up connections, it only offers the respective HELLO
 information to the TRANSPORT service. It is then up to the ATS service to
-@strong{decide} to use the connection. The ATS service will typically eagerly
-establish any connection if the number of total connections is low (relative to
-bandwidth). Details may further depend on the specific ATS backend that was
-configured. If ATS decides to NOT establish a connection (even though TESTBED
-provided the required information), then that connection will count as failed
-for TESTBED. Note that you can configure TESTBED to tolerate a certain number
-of connection failures (see '-e' option of gnunet-testbed-profiler). This issue
-largely arises for dense overlay topologies, especially if you try to create
-cliques with more than 20 peers.
+@strong{decide} to use the connection. The ATS service will typically
+eagerly establish any connection if the number of total connections is
+low (relative to bandwidth). Details may further depend on the
+specific ATS backend that was configured. If ATS decides to NOT establish
+a connection (even though TESTBED provided the required information), then
+that connection will count as failed for TESTBED. Note that you can
+configure TESTBED to tolerate a certain number of connection failures
+(see '-e' option of gnunet-testbed-profiler). This issue largely arises
+for dense overlay topologies, especially if you try to create cliques
+with more than 20 peers.
 
 @c ***********************************************************************
 @node libgnunetutil
@@ -1749,12 +1771,14 @@ cliques with more than 20 peers.
 
 libgnunetutil is the fundamental library that all GNUnet code builds upon.
 Ideally, this library should contain most of the platform dependent code
-(except for user interfaces and really special needs that only few applications
-have). It is also supposed to offer basic services that most if not all GNUnet
-binaries require. The code of libgnunetutil is in the src/util/ directory. The
-public interface to the library is in the gnunet_util.h header. The functions
-provided by libgnunetutil fall roughly into the following categories (in
-roughly the order of importance for new developers):
+(except for user interfaces and really special needs that only few
+applications have). It is also supposed to offer basic services that most
+if not all GNUnet binaries require. The code of libgnunetutil is in the
+@file{src/util/} directory. The public interface to the library is in the
+gnunet_util.h header. The functions provided by libgnunetutil fall
+roughly into the following categories (in roughly the order of importance
+for new developers):
+
 @itemize @bullet
 @item logging (common_logging.c)
 @item memory allocation (common_allocation.c)
@@ -1777,12 +1801,12 @@ roughly the order of importance for new developers):
 @item Pseudonym management (pseudonym.c)
 @end itemize
 
-It should be noted that only developers that fully understand this entire API
-will be able to write good GNUnet code.
+It should be noted that only developers that fully understand this entire
+API will be able to write good GNUnet code.
 
-Ideally, porting GNUnet should only require porting the gnunetutil library.
-More testcases for the gnunetutil APIs are therefore a great way to make
-porting of GNUnet easier.
+Ideally, porting GNUnet should only require porting the gnunetutil
+library. More testcases for the gnunetutil APIs are therefore a great
+way to make porting of GNUnet easier.
 
 @menu
 * Logging::
@@ -1798,8 +1822,8 @@ porting of GNUnet easier.
 @node Logging
 @subsection Logging
 
-GNUnet is able to log its activity, mostly for the purposes of debugging the
-program at various levels.
+GNUnet is able to log its activity, mostly for the purposes of debugging
+the program at various levels.
 
 @file{gnunet_common.h} defines several @strong{log levels}:
 @table @asis
@@ -1809,149 +1833,161 @@ crashes)
 @item WARNING for warnings (troubling situations that might have
 negative consequences, although not fatal)
 @item INFO for various information.
-Used somewhat rarely, as GNUnet statistics is used to hold and display most of
-the information that users might find interesting.
+Used somewhat rarely, as GNUnet statistics is used to hold and display
+most of the information that users might find interesting.
 @item DEBUG for debugging.
 Does not produce much output on normal builds, but when extra logging is
-enabled at compile time, a staggering amount of data is outputted under this
-log level.
+enabled at compile time, a staggering amount of data is outputted under
+this log level.
 @end table
 
 
-Normal builds of GNUnet (configured with @code{--enable-logging[=yes]}) are
-supposed to log nothing under DEBUG level. The @code{--enable-logging=verbose}
-configure option can be used to create a build with all logging enabled.
-However, such build will produce large amounts of log data, which is
-inconvenient when one tries to hunt down a specific problem.
+Normal builds of GNUnet (configured with @code{--enable-logging[=yes]})
+are supposed to log nothing under DEBUG level. The
+@code{--enable-logging=verbose} configure option can be used to create a
+build with all logging enabled. However, such build will produce large
+amounts of log data, which is inconvenient when one tries to hunt down a
+specific problem.
 
 To mitigate this problem, GNUnet provides facilities to apply a filter to
 reduce the logs:
 @table @asis
 
-@item Logging by default When no log levels are configured in any other way
-(see below), GNUnet will default to the WARNING log level. This mostly applies
-to GNUnet command line utilities, services and daemons; tests will always set
-log level to WARNING or, if @code{--enable-logging=verbose} was passed to
-configure, to DEBUG. The default level is suggested for normal operation.
+@item Logging by default When no log levels are configured in any other
+way (see below), GNUnet will default to the WARNING log level. This
+mostly applies to GNUnet command line utilities, services and daemons;
+tests will always set log level to WARNING or, if
+@code{--enable-logging=verbose} was passed to configure, to DEBUG. The
+default level is suggested for normal operation.
 @item The -L option Most GNUnet executables accept an "-L loglevel" or
-"--log=loglevel" option. If used, it makes the process set a global log level
-to "loglevel". Thus it is possible to run some processes with -L DEBUG, for
-example, and others with -L ERROR to enable specific settings to diagnose
-problems with a particular process.
+"--log=loglevel" option. If used, it makes the process set a global log
+level to "loglevel". Thus it is possible to run some processes
+with -L DEBUG, for example, and others with -L ERROR to enable specific
+settings to diagnose problems with a particular process.
 @item Configuration files.  Because GNUnet
 service and deamon processes are usually launched by gnunet-arm, it is not
-possible to pass different custom command line options directly to every one of
-them. The options passed to @code{gnunet-arm} only affect gnunet-arm and not
-the rest of GNUnet. However, one can specify a configuration key "OPTIONS" in
-the section that corresponds to a service or a daemon, and put a value of "-L
-loglevel" there. This will make the respective service or daemon set its log
-level to "loglevel" (as the value of OPTIONS will be passed as a command-line
-argument).
+possible to pass different custom command line options directly to every
+one of them. The options passed to @code{gnunet-arm} only affect
+gnunet-arm and not the rest of GNUnet. However, one can specify a
+configuration key "OPTIONS" in the section that corresponds to a service
+or a daemon, and put a value of "-L loglevel" there. This will make the
+respective service or daemon set its log level to "loglevel" (as the
+value of OPTIONS will be passed as a command-line argument).
 
 To specify the same log level for all services without creating separate
-"OPTIONS" entries in the configuration for each one, the user can specify a
-config key "GLOBAL_POSTFIX" in the [arm] section of the configuration file. The
-value of GLOBAL_POSTFIX will be appended to all command lines used by the ARM
-service to run other services. It can contain any option valid for all GNUnet
-commands, thus in particular the "-L loglevel" option. The ARM service itself
-is, however, unaffected by GLOBAL_POSTFIX; to set log level for it, one has to
-specify "OPTIONS" key in the [arm] section.
+"OPTIONS" entries in the configuration for each one, the user can specify
+a config key "GLOBAL_POSTFIX" in the [arm] section of the configuration
+file. The value of GLOBAL_POSTFIX will be appended to all command lines
+used by the ARM service to run other services. It can contain any option
+valid for all GNUnet commands, thus in particular the "-L loglevel"
+option. The ARM service itself is, however, unaffected by GLOBAL_POSTFIX;
+to set log level for it, one has to specify "OPTIONS" key in the [arm]
+section.
 @item Environment variables.
 Setting global per-process log levels with "-L loglevel" does not offer
 sufficient log filtering granularity, as one service will call interface
 libraries and supporting libraries of other GNUnet services, potentially
-producing lots of debug log messages from these libraries. Also, changing the
-config file is not always convenient (especially when running the GNUnet test
-suite).@ To fix that, and to allow GNUnet to use different log filtering at
-runtime without re-compiling the whole source tree, the log calls were changed
-to be configurable at run time. To configure them one has to define environment
-variables "GNUNET_FORCE_LOGFILE", "GNUNET_LOG" and/or "GNUNET_FORCE_LOG":
+producing lots of debug log messages from these libraries. Also, changing
+the config file is not always convenient (especially when running the
+GNUnet test suite).@ To fix that, and to allow GNUnet to use different
+log filtering at runtime without re-compiling the whole source tree, the
+log calls were changed to be configurable at run time. To configure them
+one has to define environment variables "GNUNET_FORCE_LOGFILE",
+"GNUNET_LOG" and/or "GNUNET_FORCE_LOG":
 @itemize @bullet
 
 @item "GNUNET_LOG" only affects the logging when no global log level is
-configured by any other means (that is, the process does not explicitly set its
-own log level, there are no "-L loglevel" options on command line or in
-configuration files), and can be used to override the default WARNING log
-level.
+configured by any other means (that is, the process does not explicitly
+set its own log level, there are no "-L loglevel" options on command line
+or in configuration files), and can be used to override the default
+WARNING log level.
 
-@item "GNUNET_FORCE_LOG" will completely override any other log configuration
-options given.
+@item "GNUNET_FORCE_LOG" will completely override any other log
+configuration options given.
 
-@item "GNUNET_FORCE_LOGFILE" will completely override the location of the file
-to log messages to. It should contain a relative or absolute file name. Setting
-GNUNET_FORCE_LOGFILE is equivalent to passing "--log-file=logfile" or "-l
-logfile" option (see below). It supports "[]" format in file names, but not
-"@{@}" (see below).
+@item "GNUNET_FORCE_LOGFILE" will completely override the location of the
+file to log messages to. It should contain a relative or absolute file
+name. Setting GNUNET_FORCE_LOGFILE is equivalent to passing
+"--log-file=logfile" or "-l logfile" option (see below). It supports "[]"
+format in file names, but not "@{@}" (see below).
 @end itemize
 
 
-Because environment variables are inherited by child processes when they are
-launched, starting or re-starting the ARM service with these variables will
-propagate them to all other services.
+Because environment variables are inherited by child processes when they
+are launched, starting or re-starting the ARM service with these
+variables will propagate them to all other services.
 
 "GNUNET_LOG" and "GNUNET_FORCE_LOG" variables must contain a specially
-formatted @strong{logging definition} string, which looks like this:@ @code{@
-[component];[file];[function];[from_line[-to_line]];loglevel@emph{[/component...]}@
-}@ That is, a logging definition consists of definition entries, separated by
-slashes ('/'). If only one entry is present, there is no need to add a slash
-to its end (although it is not forbidden either).@ All definition fields
-(component, file, function, lines and loglevel) are mandatory, but (except for
-the loglevel) they can be empty. An empty field means "match anything". Note
-that even if fields are empty, the semicolon (';') separators must be
-present.@ The loglevel field is mandatory, and must contain one of the log
-level names (ERROR, WARNING, INFO or DEBUG).@ The lines field might contain
-one non-negative number, in which case it matches only one line, or a range
-"from_line-to_line", in which case it matches any line in the interval
-[from_line;to_line] (that is, including both start and end line).@ GNUnet
-mostly defaults component name to the name of the service that is implemented
-in a process ('transport', 'core', 'peerinfo', etc), but logging calls can
-specify custom component names using @code{GNUNET_log_from}.@ File name and
-function name are provided by the compiler (__FILE__ and __FUNCTION__
-built-ins).
+formatted @strong{logging definition} string, which looks like this:@
 
-Component, file and function fields are interpreted as non-extended regular
-expressions (GNU libc regex functions are used). Matching is case-sensitive, ^
-and $ will match the beginning and the end of the text. If a field is empty,
-its contents are automatically replaced with a ".*" regular expression, which
-matches anything. Matching is done in the default way, which means that the
-expression matches as long as it's contained anywhere in the string. Thus
-"GNUNET_" will match both "GNUNET_foo" and "BAR_GNUNET_BAZ". Use '^' and/or '$'
-to make sure that the expression matches at the start and/or at the end of the
-string.@ The semicolon (';') can't be escaped, and GNUnet will not use it in
-component names (it can't be used in function names and file names anyway).@
+@example
+[component];[file];[function];[from_line[-to_line]];loglevel[/component...]
+@end example
+
+That is, a logging definition consists of definition entries, separated by
+slashes ('/'). If only one entry is present, there is no need to add a
+slash to its end (although it is not forbidden either).@ All definition
+fields (component, file, function, lines and loglevel) are mandatory, but
+(except for the loglevel) they can be empty. An empty field means
+"match anything". Note that even if fields are empty, the semicolon (';')
+separators must be present.@ The loglevel field is mandatory, and must
+contain one of the log level names (ERROR, WARNING, INFO or DEBUG).@
+The lines field might contain one non-negative number, in which case it
+matches only one line, or a range "from_line-to_line", in which case it
+matches any line in the interval [from_line;to_line] (that is, including
+both start and end line).@ GNUnet mostly defaults component name to the
+name of the service that is implemented in a process ('transport',
+'core', 'peerinfo', etc), but logging calls can specify custom component
+names using @code{GNUNET_log_from}.@ File name and function name are
+provided by the compiler (__FILE__ and __FUNCTION__ built-ins).
+
+Component, file and function fields are interpreted as non-extended
+regular expressions (GNU libc regex functions are used). Matching is
+case-sensitive, "^" and "$" will match the beginning and the end of the
+text. If a field is empty, its contents are automatically replaced with
+a ".*" regular expression, which matches anything. Matching is done in
+the default way, which means that the expression matches as long as it's
+contained anywhere in the string. Thus "GNUNET_" will match both
+"GNUNET_foo" and "BAR_GNUNET_BAZ". Use '^' and/or '$' to make sure that
+the expression matches at the start and/or at the end of the string.
+The semicolon (';') can't be escaped, and GNUnet will not use it in
+component names (it can't be used in function names and file names
+anyway).
 
 @end table
 
 
-Every logging call in GNUnet code will be (at run time) matched against the
-log definitions passed to the process. If a log definition fields are matching
-the call arguments, then the call log level is compared the the log level of
-that definition. If the call log level is less or equal to the definition log
-level, the call is allowed to proceed. Otherwise the logging call is
-forbidden, and nothing is logged. If no definitions matched at all, GNUnet
-will use the global log level or (if a global log level is not specified) will
-default to WARNING (that is, it will allow the call to proceed, if its level
-is less or equal to the global log level or to WARNING).
+Every logging call in GNUnet code will be (at run time) matched against
+the log definitions passed to the process. If a log definition fields are
+matching the call arguments, then the call log level is compared the the
+log level of that definition. If the call log level is less or equal to
+the definition log level, the call is allowed to proceed. Otherwise the
+logging call is forbidden, and nothing is logged. If no definitions
+matched at all, GNUnet will use the global log level or (if a global log
+level is not specified) will default to WARNING (that is, it will allow
+the call to proceed, if its level is less or equal to the global log
+level or to WARNING).
 
-That is, definitions are evaluated from left to right, and the first matching
-definition is used to allow or deny the logging call. Thus it is advised to
-place narrow definitions at the beginning of the logdef string, and generic
-definitions - at the end.
+That is, definitions are evaluated from left to right, and the first
+matching definition is used to allow or deny the logging call. Thus it is
+advised to place narrow definitions at the beginning of the logdef
+string, and generic definitions - at the end.
 
-Whether a call is allowed or not is only decided the first time this particular
-call is made. The evaluation result is then cached, so that any attempts to
-make the same call later will be allowed or disallowed right away. Because of
-that runtime log level evaluation should not significantly affect the process
-performance.@ Log definition parsing is only done once, at the first call to
-GNUNET_log_setup () made by the process (which is usually done soon after it
-starts).
+Whether a call is allowed or not is only decided the first time this
+particular call is made. The evaluation result is then cached, so that
+any attempts to make the same call later will be allowed or disallowed
+right away. Because of that runtime log level evaluation should not
+significantly affect the process performance.
+Log definition parsing is only done once, at the first call to
+GNUNET_log_setup () made by the process (which is usually done soon after
+it starts).
 
-At the moment of writing there is no way to specify logging definitions from
-configuration files, only via environment variables.
+At the moment of writing there is no way to specify logging definitions
+from configuration files, only via environment variables.
 
-At the moment GNUnet will stop processing a log definition when it encounters
-an error in definition formatting or an error in regular expression syntax, and
-will not report the failure in any way.
+At the moment GNUnet will stop processing a log definition when it
+encounters an error in definition formatting or an error in regular
+expression syntax, and will not report the failure in any way.
 
 
 @c ***********************************************************************
@@ -1966,77 +2002,105 @@ will not report the failure in any way.
 
 @table @asis
 
-@item @code{GNUNET_FORCE_LOG=";;;;DEBUG" gnunet-arm -s} Start GNUnet process
-tree, running all processes with DEBUG level (one should be careful with it, as
-log files will grow at alarming rate!)
-@item @code{GNUNET_FORCE_LOG="core;;;;DEBUG" gnunet-arm -s} Start GNUnet process
-tree, running the core service under DEBUG level (everything else will use
+@item @code{GNUNET_FORCE_LOG=";;;;DEBUG" gnunet-arm -s} Start GNUnet
+process tree, running all processes with DEBUG level (one should be
+careful with it, as log files will grow at alarming rate!)
+@item @code{GNUNET_FORCE_LOG="core;;;;DEBUG" gnunet-arm -s} Start GNUnet
+process tree, running the core service under DEBUG level (everything else
+will use configured or default level).
+@item
+
+@example
+GNUNET_FORCE_LOG=";gnunet-service-transport_validation.c;;;DEBUG" \
+gnunet-arm -s
+@end example
+
+Start GNUnet process tree, allowing any logging calls from
+gnunet-service-transport_validation.c (everything else will use
 configured or default level).
-@item @code{GNUNET_FORCE_LOG=";gnunet-service-transport_validation.c;;;DEBUG" gnunet-arm -s}
+@item
+
+@example
+GNUNET_FORCE_LOG="fs;gnunet-service-fs_push.c;;;DEBUG" gnunet-arm -s
+@end example
+
 Start GNUnet process tree, allowing any logging calls from
-gnunet-service-transport_validation.c (everything else will use configured or
+gnunet-gnunet-service-fs_push.c (everything else will use configured or
 default level).
-@item @code{GNUNET_FORCE_LOG="fs;gnunet-service-fs_push.c;;;DEBUG" gnunet-arm -s}
-Start GNUnet process tree, allowing any logging calls from
-gnunet-gnunet-service-fs_push.c (everything else will use configured or default
-level).
-@item @code{GNUNET_FORCE_LOG=";;GNUNET_NETWORK_socket_select;;DEBUG" gnunet-arm -s}
+
+@item
+
+@example
+GNUNET_FORCE_LOG=";;GNUNET_NETWORK_socket_select;;DEBUG" gnunet-arm -s
+@end example
+
 Start GNUnet process tree, allowing any logging calls from the
-GNUNET_NETWORK_socket_select function (everything else will use configured or
-default level).
-@item @code{GNUNET_FORCE_LOG="transport.*;;.*send.*;;DEBUG/;;;;WARNING" gnunet-arm -s}
+GNUNET_NETWORK_socket_select function (everything else will use
+configured or default level).
+
+@item
+
+@example
+GNUNET_FORCE_LOG="transport.*;;.*send.*;;DEBUG/;;;;WARNING" gnunet-arm -s
+@end example
+
 Start GNUnet process tree, allowing any logging calls from the components
 that have "transport" in their names, and are made from function that have
-"send" in their names. Everything else will be allowed to be logged only if it
-has WARNING level.
+"send" in their names. Everything else will be allowed to be logged only
+if it has WARNING level.
 @end table
 
 
 On Windows, one can use batch files to run GNUnet processes with special
-environment variables, without affecting the whole system. Such batch file will
-look like this:@ @code{@ set GNUNET_FORCE_LOG=;;do_transmit;;DEBUG@ gnunet-arm
--s@ }@ (note the absence of double quotes in the environment variable
-definition, as opposed to earlier examples, which use the shell).@ Another
-limitation, on Windows, GNUNET_FORCE_LOGFILE @strong{MUST} be set in order to
-GNUNET_FORCE_LOG to work.
+environment variables, without affecting the whole system. Such batch
+file will look like this:
+
+@example
+set GNUNET_FORCE_LOG=;;do_transmit;;DEBUG@ gnunet-arm -s
+@end example
+
+(note the absence of double quotes in the environment variable definition,
+as opposed to earlier examples, which use the shell).
+Another limitation, on Windows, GNUNET_FORCE_LOGFILE @strong{MUST} be set
+in order to GNUNET_FORCE_LOG to work.
 
 
 @c ***********************************************************************
 @node Log files
 @subsubsection Log files
 
-GNUnet can be told to log everything into a file instead of stderr (which is
-the default) using the "--log-file=logfile" or "-l logfile" option. This option
-can also be passed via command line, or from the "OPTION" and "GLOBAL_POSTFIX"
-configuration keys (see above). The file name passed with this option is
-subject to GNUnet filename expansion. If specified in "GLOBAL_POSTFIX", it is
-also subject to ARM service filename expansion, in particular, it may contain
-"@{@}" (left and right curly brace) sequence, which will be replaced by ARM
-with the name of the service. This is used to keep logs from more than one
-service separate, while only specifying one template containing "@{@}" in
-GLOBAL_POSTFIX.
+GNUnet can be told to log everything into a file instead of stderr (which
+is the default) using the "--log-file=logfile" or "-l logfile" option.
+This option can also be passed via command line, or from the "OPTION" and
+"GLOBAL_POSTFIX" configuration keys (see above). The file name passed
+with this option is subject to GNUnet filename expansion. If specified in
+"GLOBAL_POSTFIX", it is also subject to ARM service filename expansion,
+in particular, it may contain "@{@}" (left and right curly brace)
+sequence, which will be replaced by ARM with the name of the service.
+This is used to keep logs from more than one service separate, while only
+specifying one template containing "@{@}" in GLOBAL_POSTFIX.
 
 As part of a secondary file name expansion, the first occurrence of "[]"
-sequence ("left square brace" followed by "right square brace") in the file
-name will be replaced with a process identifier or the process when it
-initializes its logging subsystem. As a result, all processes will log into
-different files. This is convenient for isolating messages of a particular
-process, and prevents I/O races when multiple processes try to write into the
-file at the same time. This expansion is done independently of "@{@}"
-expansion that ARM service does (see above).
+sequence ("left square brace" followed by "right square brace") in the
+file name will be replaced with a process identifier or the process when
+it initializes its logging subsystem. As a result, all processes will log
+into different files. This is convenient for isolating messages of a
+particular process, and prevents I/O races when multiple processes try to
+write into the file at the same time. This expansion is done
+independently of "@{@}" expansion that ARM service does (see above).
 
 The log file name that is specified via "-l" can contain format characters
-from the 'strftime' function family. For example, "%Y" will be replaced with
-the current year. Using "basename-%Y-%m-%d.log" would include the current
-year, month and day in the log file. If a GNUnet process runs for long enough
-to need more than one log file, it will eventually clean up old log files.
-Currently, only the last three log files (plus the current log file) are
-preserved. So once the fifth log file goes into use (so after 4 days if you
-use "%Y-%m-%d" as above), the first log file will be automatically deleted.
-Note that if your log file name only contains "%Y", then log files would be
-kept for 4 years and the logs from the first year would be deleted once year 5
-begins. If you do not use any date-related string format codes, logs would
-never be automatically deleted by GNUnet.
+from the 'strftime' function family. For example, "%Y" will be replaced
+with the current year. Using "basename-%Y-%m-%d.log" would include the
+current year, month and day in the log file. If a GNUnet process runs for
+long enough to need more than one log file, it will eventually clean up
+old log files. Currently, only the last three log files (plus the current
+log file) are preserved. So once the fifth log file goes into use (so
+after 4 days if you use "%Y-%m-%d" as above), the first log file will be
+automatically deleted. Note that if your log file name only contains "%Y",
+then log files would be kept for 4 years and the logs from the first year
+would be deleted once year 5 begins. If you do not use any date-related
+string format codes, logs would never be automatically deleted by GNUnet.
 
 
 @c ***********************************************************************
@@ -2044,52 +2108,59 @@ never be automatically deleted by GNUnet.
 @node Updated behavior of GNUNET_log
 @subsubsection Updated behavior of GNUNET_log
 
-It's currently quite common to see constructions like this all over the code:
+It's currently quite common to see constructions like this all over the
+code:
+
 @example
-#if MESH_DEBUG GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH: client
-disconnected\n"); #endif
+#if MESH_DEBUG
+GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH: client disconnected\n");
+#endif
 @end example
 
-The reason for the #if is not to avoid displaying the message when disabled
-(GNUNET_ERROR_TYPE takes care of that), but to avoid the compiler including it
-in the binary at all, when compiling GNUnet for platforms with restricted
-storage space / memory (MIPS routers, ARM plug computers / dev boards, etc).
+The reason for the #if is not to avoid displaying the message when
+disabled (GNUNET_ERROR_TYPE takes care of that), but to avoid the
+compiler including it in the binary at all, when compiling GNUnet for
+platforms with restricted storage space / memory (MIPS routers,
+ARM plug computers / dev boards, etc).
 
-This presents several problems: the code gets ugly, hard to write and it is
-very easy to forget to include the #if guards, creating non-consistent code. A
-new change in GNUNET_log aims to solve these problems.
+This presents several problems: the code gets ugly, hard to write and it
+is very easy to forget to include the #if guards, creating non-consistent
+code. A new change in GNUNET_log aims to solve these problems.
 
-@strong{This change requires to @code{./configure} with at least
+@strong{This change requires to @file{./configure} with at least
 @code{--enable-logging=verbose} to see debug messages.}
 
 Here is an example of code with dense debug statements:
+
 @example
 switch (restrict_topology) @{
-case GNUNET_TESTING_TOPOLOGY_CLIQUE: #if VERBOSE_TESTING
+case GNUNET_TESTING_TOPOLOGY_CLIQUE:#if VERBOSE_TESTING
 GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, _("Blacklisting all but clique
 topology\n")); #endif unblacklisted_connections = create_clique (pg,
 &remove_connections, BLACKLIST, GNUNET_NO); break; case
 GNUNET_TESTING_TOPOLOGY_SMALL_WORLD_RING: #if VERBOSE_TESTING GNUNET_log
 (GNUNET_ERROR_TYPE_DEBUG, _("Blacklisting all but small world (ring)
-topology\n")); #endif unblacklisted_connections = create_small_world_ring (pg,
-&remove_connections, BLACKLIST); break;
+topology\n")); #endif unblacklisted_connections = create_small_world_ring
+(pg,&remove_connections, BLACKLIST); break;
 @end example
 
 
 Pretty hard to follow, huh?
 
 From now on, it is not necessary to include the #if / #endif statements to
-acheive the same behavior. The GNUNET_log and GNUNET_log_from macros take care
-of it for you, depending on the configure option:
+achieve the same behavior. The GNUNET_log and GNUNET_log_from macros take
+care of it for you, depending on the configure option:
+
 @itemize @bullet
-@item If @code{--enable-logging} is set to @code{no}, the binary will contain
-no log messages at all.
-@item If @code{--enable-logging} is set to @code{yes}, the binary will contain
-no DEBUG messages, and therefore running with -L DEBUG will have no effect.
-Other messages (ERROR, WARNING, INFO, etc) will be included.
+@item If @code{--enable-logging} is set to @code{no}, the binary will
+contain no log messages at all.
+@item If @code{--enable-logging} is set to @code{yes}, the binary will
+contain no DEBUG messages, and therefore running with -L DEBUG will have
+no effect. Other messages (ERROR, WARNING, INFO, etc) will be included.
 @item If @code{--enable-logging} is set to @code{verbose}, or
-@code{veryverbose} the binary will contain DEBUG messages (still, it will be
-neccessary to run with -L DEBUG or set the DEBUG config option to show them).
+@code{veryverbose} the binary will contain DEBUG messages (still, it will
+be neccessary to run with -L DEBUG or set the DEBUG config option to show
+them).
 @end itemize
 
 
@@ -2098,28 +2169,35 @@ If you are a developer:
 @item please make sure that you @code{./configure
 --enable-logging=@{verbose,veryverbose@}}, so you can see DEBUG messages.
 @item please remove the @code{#if} statements around @code{GNUNET_log
-(GNUNET_ERROR_TYPE_DEBUG, ...)} lines, to improve the readibility of your code.
+(GNUNET_ERROR_TYPE_DEBUG, ...)} lines, to improve the readibility of your
+code.
 @end itemize
 
 Since now activating DEBUG automatically makes it VERBOSE and activates
 @strong{all} debug messages by default, you probably want to use the
-https://gnunet.org/logging functionality to filter only relevant messages. A
-suitable configuration could be:@ @code{$ export
-GNUNET_FORCE_LOG="^YOUR_SUBSYSTEM$;;;;DEBUG/;;;;WARNING"}@ Which will behave
-almost like enabling DEBUG in that subsytem before the change. Of course you
-can adapt it to your particular needs, this is only a quick example.
+https://gnunet.org/logging functionality to filter only relevant messages.
+A suitable configuration could be:
+
+@example
+$ export GNUNET_FORCE_LOG="^YOUR_SUBSYSTEM$;;;;DEBUG/;;;;WARNING"
+@end example
+
+Which will behave almost like enabling DEBUG in that subsytem before the
+change. Of course you can adapt it to your particular needs, this is only
+a quick example.
 
 @c ***********************************************************************
 @node Interprocess communication API (IPC)
 @subsection Interprocess communication API (IPC)
 
 In GNUnet a variety of new message types might be defined and used in
-interprocess communication, in this tutorial we use the @code{struct
-AddressLookupMessage} as a example to introduce how to construct our own
-message type in GNUnet and how to implement the message communication between
-service and client.@ (Here, a client uses the @code{struct
-AddressLookupMessage} as a request to ask the server to return the address of
-any other peer connecting to the service.)
+interprocess communication, in this tutorial we use the
+@code{struct AddressLookupMessage} as a example to introduce how to
+construct our own message type in GNUnet and how to implement the message
+communication between service and client.
+(Here, a client uses the @code{struct AddressLookupMessage} as a request
+to ask the server to return the address of any other peer connecting to
+the service.)
 
 
 @c ***********************************************************************
@@ -2141,7 +2219,8 @@ any other peer connecting to the service.)
 @subsubsection Define new message types
 
 First of all, you should define the new message type in
-@code{gnunet_protocols.h}:
+@file{gnunet_protocols.h}:
+
 @example
  // Request to look addresses of peers in server.
 #define GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_LOOKUP 29
@@ -2167,8 +2246,8 @@ addrlen GNUNET_PACKED;
 @end example
 
 
-Please note @code{GNUNET_NETWORK_STRUCT_BEGIN} and @code{GNUNET_PACKED} which
-both ensure correct alignment when sending structs over the network
+Please note @code{GNUNET_NETWORK_STRUCT_BEGIN} and @code{GNUNET_PACKED}
+which both ensure correct alignment when sending structs over the network.
 
 @menu
 @end menu
@@ -2179,9 +2258,10 @@ both ensure correct alignment when sending structs over the network
 @c %**end of header
 
 
-At first, on the client side, the underlying API is employed to create a new
-connection to a service, in our example the transport service would be
+At first, on the client side, the underlying API is employed to create a
+new connection to a service, in our example the transport service would be
 connected.
+
 @example
 struct GNUNET_CLIENT_Connection *client; client =
 GNUNET_CLIENT_connect ("transport", cfg);
@@ -2192,10 +2272,11 @@ GNUNET_CLIENT_connect ("transport", cfg);
 @subsubsection Client - Initialize request message
 @c %**end of header
 
-When the connection is ready, we initialize the message. In this step, all the
-fields of the message should be properly initialized, namely the size, type,
-and some extra user-defined data, such as timeout, name of transport, address
-and name of transport.
+When the connection is ready, we initialize the message. In this step,
+all the fields of the message should be properly initialized, namely the
+size, type, and some extra user-defined data, such as timeout, name of
+transport, address and name of transport.
+
 @example
 struct AddressLookupMessage *msg; size_t len =
 sizeof (struct AddressLookupMessage) + addressLen + strlen (nameTrans) + 1;
@@ -2207,24 +2288,24 @@ char *addrbuf = (char *) &msg[1]; memcpy (addrbuf, address, addressLen); char
 @end example
 
 Note that, here the functions @code{htonl}, @code{htons} and
-@code{GNUNET_TIME_absolute_hton} are applied to convert little endian into big
-endian, about the usage of the big/small edian order and the corresponding
-conversion function please refer to Introduction of Big Endian and Little
-Endian.
+@code{GNUNET_TIME_absolute_hton} are applied to convert little endian
+into big endian, about the usage of the big/small edian order and the
+corresponding conversion function please refer to Introduction of
+Big Endian and Little Endian.
 
 @c ***********************************************************************
 @node Client - Send request and receive response
 @subsubsection Client - Send request and receive response
 @c %**end of header
 
-FIXME: This is very outdated, see the tutorial for the
-current API!
+@b{FIXME: This is very outdated, see the tutorial for the current API!}
 
-Next, the client would send the constructed message as a request to the service
-and wait for the response from the service. To accomplish this goal, there are
-a number of API calls that can be used. In this example,
+Next, the client would send the constructed message as a request to the
+service and wait for the response from the service. To accomplish this
+goal, there are a number of API calls that can be used. In this example,
 @code{GNUNET_CLIENT_transmit_and_get_response} is chosen as the most
 appropriate function to use.
+
 @example
 GNUNET_CLIENT_transmit_and_get_response
 (client, msg->header, timeout, GNUNET_YES, &address_response_processor,
@@ -2232,14 +2313,15 @@ arp_ctx);
 @end example
 
 the argument @code{address_response_processor} is a function with
-@code{GNUNET_CLIENT_MessageHandler} type, which is used to process the reply
-message from the service.
+@code{GNUNET_CLIENT_MessageHandler} type, which is used to process the
+reply message from the service.
 
 @node Server - Startup service
 @subsubsection Server - Startup service
 
-After receiving the request message, we run a standard GNUnet service startup
-sequence using @code{GNUNET_SERVICE_run}, as follows,
+After receiving the request message, we run a standard GNUnet service
+startup sequence using @code{GNUNET_SERVICE_run}, as follows,
+
 @example
 int main(int
 argc, char**argv) @{ GNUNET_SERVICE_run(argc, argv, "transport"
@@ -2251,8 +2333,9 @@ GNUNET_SERVICE_OPTION_NONE, &run, NULL)); @}
 @subsubsection Server - Add new handles for specified messages
 @c %**end of header
 
-in the function above the argument @code{run} is used to initiate transport
-service,and defined like this:
+in the function above the argument @code{run} is used to initiate
+transport service,and defined like this:
+
 @example
 static void run (void *cls, struct
 GNUNET_SERVER_Handle *serv, const struct GNUNET_CONFIGURATION_Handle *cfg) @{
@@ -2260,11 +2343,12 @@ GNUNET_SERVER_add_handlers (serv, handlers); @}
 @end example
 
 
-Here, @code{GNUNET_SERVER_add_handlers} must be called in the run function to
-add new handlers in the service. The parameter @code{handlers} is a list of
-@code{struct GNUNET_SERVER_MessageHandler} to tell the service which function
-should be called when a particular type of message is received, and should be
-defined in this way:
+Here, @code{GNUNET_SERVER_add_handlers} must be called in the run
+function to add new handlers in the service. The parameter
+@code{handlers} is a list of @code{struct GNUNET_SERVER_MessageHandler}
+to tell the service which function should be called when a particular
+type of message is received, and should be defined in this way:
+
 @example
 static struct GNUNET_SERVER_MessageHandler
 handlers[] = @{ @{&handle_start, NULL, GNUNET_MESSAGE_TYPE_TRANSPORT_START,
@@ -2276,22 +2360,24 @@ GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_LOOKUP, 0@}, @{NULL, NULL, 0, 0@} @};
 
 
 As shown, the first member of the struct in the first area is a callback
-function, which is called to process the specified message types, given as the
-third member. The second parameter is the closure for the callback function,
-which is set to @code{NULL} in most cases, and the last parameter is the
-expected size of the message of this type, usually we set it to 0 to accept
-variable size, for special cases the exact size of the specified message also
-can be set. In addition, the terminator sign depicted as @code{@{NULL, NULL, 0,
-0@}} is set in the last aera.
+function, which is called to process the specified message types, given
+as the third member. The second parameter is the closure for the callback
+function, which is set to @code{NULL} in most cases, and the last
+parameter is the expected size of the message of this type, usually we
+set it to 0 to accept variable size, for special cases the exact size of
+the specified message also can be set. In addition, the terminator sign
+depicted as @code{@{NULL, NULL, 0, 0@}} is set in the last aera.
 
 @c ***********************************************************************
 @node Server - Process request message
 @subsubsection Server - Process request message
 @c %**end of header
 
-After the initialization of transport service, the request message would be
-processed. Before handling the main message data, the validity of this message
-should be checked out, e.g., to check whether the size of message is correct.
+After the initialization of transport service, the request message would
+be processed. Before handling the main message data, the validity of this
+message should be checked out, e.g., to check whether the size of message
+is correct.
+
 @example
 size = ntohs (message->size); if (size < sizeof (struct
 AddressLookupMessage)) @{ GNUNET_break_op (0); GNUNET_SERVER_receive_done
@@ -2299,15 +2385,17 @@ AddressLookupMessage)) @{ GNUNET_break_op (0); GNUNET_SERVER_receive_done
 @end example
 
 
-Note that, opposite to the construction method of the request message in the
-client, in the server the function @code{nothl} and @code{ntohs} should be
-employed during the extraction of the data from the message, so that the data
-in big endian order can be converted back into little endian order. See more in
-detail please refer to Introduction of Big Endian and Little Endian.
+Note that, opposite to the construction method of the request message in
+the client, in the server the function @code{nothl} and @code{ntohs}
+should be employed during the extraction of the data from the message, so
+that the data in big endian order can be converted back into little
+endian order. See more in detail please refer to Introduction of
+Big Endian and Little Endian.
 
-Moreover in this example, the name of the transport stored in the message is a
-0-terminated string, so we should also check whether the name of the transport
-in the received message is 0-terminated:
+Moreover in this example, the name of the transport stored in the message
+is a 0-terminated string, so we should also check whether the name of the
+transport in the received message is 0-terminated:
+
 @example
 nameTransport = (const char *)
 &address[addressLen]; if (nameTransport[size - sizeof (struct
@@ -2317,13 +2405,15 @@ AddressLookupMessage)
                                   GNUNET_SYSERR); return; @}
 @end example
 
-Here, @code{GNUNET_SERVER_receive_done} should be called to tell the service
-that the request is done and can receive the next message. The argument
-@code{GNUNET_SYSERR} here indicates that the service didn't understand the
-request message, and the processing of this request would be terminated.
+Here, @code{GNUNET_SERVER_receive_done} should be called to tell the
+service that the request is done and can receive the next message. The
+argument @code{GNUNET_SYSERR} here indicates that the service didn't
+understand the request message, and the processing of this request would
+be terminated.
 
-In comparison to the aforementioned situation, when the argument is equal to
-@code{GNUNET_OK}, the service would continue to process the requst message.
+In comparison to the aforementioned situation, when the argument is equal
+to @code{GNUNET_OK}, the service would continue to process the requst
+message.
 
 @c ***********************************************************************
 @node Server - Response to client
@@ -2352,30 +2442,32 @@ GNUNET_SERVER_transmit_context_run (tc, rtimeout);
 @end example
 
 
-Note that, there are also a number of other APIs provided to the service to
-send the message.
+Note that, there are also a number of other APIs provided to the service
+to send the message.
 
 @c ***********************************************************************
 @node Server - Notification of clients
 @subsubsection Server - Notification of clients
 @c %**end of header
 
-Often a service needs to (repeatedly) transmit notifications to a client or a
-group of clients. In these cases, the client typically has once registered for
-a set of events and then needs to receive a message whenever such an event
-happens (until the client disconnects). The use of a notification context can
-help manage message queues to clients and handle disconnects. Notification
-contexts can be used to send individualized messages to a particular client or
-to broadcast messages to a group of clients. An individualized notification
-might look like this:
+Often a service needs to (repeatedly) transmit notifications to a client
+or a group of clients. In these cases, the client typically has once
+registered for a set of events and then needs to receive a message
+whenever such an event happens (until the client disconnects). The use of
+a notification context can help manage message queues to clients and
+handle disconnects. Notification contexts can be used to send
+individualized messages to a particular client or to broadcast messages
+to a group of clients. An individualized notification might look like
+this:
+
 @example
  GNUNET_SERVER_notification_context_unicast(nc,
  client, msg, GNUNET_YES);
 @end example
 
 
-Note that after processing the original registration message for notifications,
-the server code still typically needs to call@
+Note that after processing the original registration message for
+notifications, the server code still typically needs to call
 @code{GNUNET_SERVER_receive_done} so that the client can transmit further
 messages to the server.
 
@@ -2386,52 +2478,54 @@ messages to the server.
 @c %**end of header
 
 Here we can simply comprehend big endian and little endian as Network Byte
-Order and Host Byte Order respectively. What is the difference between both
-two?
+Order and Host Byte Order respectively. What is the difference between
+both two?
 
-Usually in our host computer we store the data byte as Host Byte Order, for
-example, we store a integer in the RAM which might occupies 4 Byte, as Host
-Byte Order the higher Byte would be stored at the lower address of RAM, and
-the lower Byte would be stored at the higher address of RAM. However, contrast
-to this, Network Byte Order just take the totally opposite way to store the
-data, says, it will store the lower Byte at the lower address, and the higher
-Byte will stay at higher address.
+Usually in our host computer we store the data byte as Host Byte Order,
+for example, we store a integer in the RAM which might occupies 4 Byte,
+as Host Byte Order the higher Byte would be stored at the lower address
+of RAM, and the lower Byte would be stored at the higher address of RAM.
+However, contrast to this, Network Byte Order just take the totally
+opposite way to store the data, says, it will store the lower Byte at the
+lower address, and the higher Byte will stay at higher address.
 
-For the current communication of network, we normally exchange the information
-by surveying the data package, every two host wants to communicate with each
-other must send and receive data package through network. In order to maintain
-the identity of data through the transmission in the network, the order of the
-Byte storage must changed before sending and after receiving the data.
+For the current communication of network, we normally exchange the
+information by surveying the data package, every two host wants to
+communicate with each other must send and receive data package through
+network. In order to maintain the identity of data through the
+transmission in the network, the order of the Byte storage must changed
+before sending and after receiving the data.
 
 There ten convenient functions to realize the conversion of Byte Order in
 GNUnet, as following:
+
 @table @asis
 
-@item uint16_t htons(uint16_t hostshort) Convert host byte order to net byte
-order with short int
+@item uint16_t htons(uint16_t hostshort) Convert host byte order to net
+byte order with short int
 @item uint32_t htonl(uint32_t hostlong) Convert host byte
 order to net byte order with long int
 @item uint16_t ntohs(uint16_t netshort)
 Convert net byte order to host byte order with short int
 @item uint32_t
-ntohl(uint32_t netlong) Convert net byte order to host byte order with long int
-@item unsigned long long GNUNET_ntohll (unsigned long long netlonglong) Convert
-net byte order to host byte order with long long int
-@item unsigned long long
-GNUNET_htonll (unsigned long long hostlonglong) Convert host byte order to net
-byte order with long long int
-@item struct GNUNET_TIME_RelativeNBO
-GNUNET_TIME_relative_hton (struct GNUNET_TIME_Relative a) Convert relative time
-to network byte order.
-@item struct GNUNET_TIME_Relative
-GNUNET_TIME_relative_ntoh (struct GNUNET_TIME_RelativeNBO a) Convert relative
-time from network byte order.
-@item struct GNUNET_TIME_AbsoluteNBO
-GNUNET_TIME_absolute_hton (struct GNUNET_TIME_Absolute a) Convert relative time
-to network byte order.
-@item struct GNUNET_TIME_Absolute
-GNUNET_TIME_absolute_ntoh (struct GNUNET_TIME_AbsoluteNBO a) Convert relative
-time from network byte order.
+ntohl(uint32_t netlong) Convert net byte order to host byte order with
+long int
+@item unsigned long long GNUNET_ntohll (unsigned long long netlonglong)
+Convert net byte order to host byte order with long long int
+@item unsigned long long GNUNET_htonll (unsigned long long hostlonglong)
+Convert host byte order to net byte order with long long int
+@item struct GNUNET_TIME_RelativeNBO GNUNET_TIME_relative_hton
+(struct GNUNET_TIME_Relative a) Convert relative time to network byte
+order.
+@item struct GNUNET_TIME_Relative GNUNET_TIME_relative_ntoh
+(struct GNUNET_TIME_RelativeNBO a) Convert relative time from network
+byte order.
+@item struct GNUNET_TIME_AbsoluteNBO GNUNET_TIME_absolute_hton
+(struct GNUNET_TIME_Absolute a) Convert relative time to network byte
+order.
+@item struct GNUNET_TIME_Absolute GNUNET_TIME_absolute_ntoh
+(struct GNUNET_TIME_AbsoluteNBO a) Convert relative time from network
+byte order.
 @end table
 
 @c ***********************************************************************
@@ -2442,80 +2536,85 @@ time from network byte order.
 
 The gnunetutil APIs provides the cryptographic primitives used in GNUnet.
 GNUnet uses 2048 bit RSA keys for the session key exchange and for signing
-messages by peers and most other public-key operations. Most researchers in
-cryptography consider 2048 bit RSA keys as secure and practically unbreakable
-for a long time. The API provides functions to create a fresh key pair, read a
-private key from a file (or create a new file if the file does not exist),
-encrypt, decrypt, sign, verify and extraction of the public key into a format
-suitable for network transmission.
+messages by peers and most other public-key operations. Most researchers
+in cryptography consider 2048 bit RSA keys as secure and practically
+unbreakable for a long time. The API provides functions to create a fresh
+key pair, read a private key from a file (or create a new file if the
+file does not exist), encrypt, decrypt, sign, verify and extraction of
+the public key into a format suitable for network transmission.
 
-For the encryption of files and the actual data exchanged between peers GNUnet
-uses 256-bit AES encryption. Fresh, session keys are negotiated for every new
-connection.@ Again, there is no published technique to break this cipher in any
-realistic amount of time. The API provides functions for generation of keys,
-validation of keys (important for checking that decryptions using RSA
-succeeded), encryption and decryption.
+For the encryption of files and the actual data exchanged between peers
+GNUnet uses 256-bit AES encryption. Fresh, session keys are negotiated
+for every new connection.@ Again, there is no published technique to
+break this cipher in any realistic amount of time. The API provides
+functions for generation of keys, validation of keys (important for
+checking that decryptions using RSA succeeded), encryption and decryption.
 
 GNUnet uses SHA-512 for computing one-way hash codes. The API provides
 functions to compute a hash over a block in memory or over a file on disk.
 
 The crypto API also provides functions for randomizing a block of memory,
-obtaining a single random number and for generating a permuation of the numbers
-0 to n-1. Random number generation distinguishes between WEAK and STRONG random
-number quality; WEAK random numbers are pseudo-random whereas STRONG random
-numbers use entropy gathered from the operating system.
+obtaining a single random number and for generating a permuation of the
+numbers 0 to n-1. Random number generation distinguishes between WEAK and
+STRONG random number quality; WEAK random numbers are pseudo-random
+whereas STRONG random numbers use entropy gathered from the operating
+system.
 
 Finally, the crypto API provides a means to deterministically generate a
-1024-bit RSA key from a hash code. These functions should most likely not be
-used by most applications; most importantly,@
-GNUNET_CRYPTO_rsa_key_create_from_hash does not create an RSA-key that should
-be considered secure for traditional applications of RSA.
+1024-bit RSA key from a hash code. These functions should most likely not
+be used by most applications; most importantly,
+GNUNET_CRYPTO_rsa_key_create_from_hash does not create an RSA-key that
+should be considered secure for traditional applications of RSA.
 
 @c ***********************************************************************
 @node Message Queue API
 @subsection Message Queue API
 @c %**end of header
 
-@strong{ Introduction }@ Often, applications need to queue messages that are to
-be sent to other GNUnet peers, clients or services. As all of GNUnet's
-message-based communication APIs, by design, do not allow messages to be
-queued, it is common to implement custom message queues manually when they are
-needed. However, writing very similar code in multiple places is tedious and
-leads to code duplication.
+@strong{ Introduction }@
+Often, applications need to queue messages that
+are to be sent to other GNUnet peers, clients or services. As all of
+GNUnet's message-based communication APIs, by design, do not allow
+messages to be queued, it is common to implement custom message queues
+manually when they are needed. However, writing very similar code in
+multiple places is tedious and leads to code duplication.
 
-MQ (for Message Queue) is an API that provides the functionality to implement
-and use message queues. We intend to eventually replace all of the custom
-message queue implementations in GNUnet with MQ.
+MQ (for Message Queue) is an API that provides the functionality to
+implement and use message queues. We intend to eventually replace all of
+the custom message queue implementations in GNUnet with MQ.
 
-@strong{ Basic Concepts }@ The two most important entities in MQ are queues and
-envelopes.
+@strong{ Basic Concepts }@
+The two most important entities in MQ are queues and envelopes.
 
 Every queue is backed by a specific implementation (e.g. for mesh, stream,
 connection, server client, etc.) that will actually deliver the queued
-messages. For convenience,@ some queues also allow to specify a list of message
-handlers. The message queue will then also wait for incoming messages and
-dispatch them appropriately.
+messages. For convenience,@ some queues also allow to specify a list of
+message handlers. The message queue will then also wait for incoming
+messages and dispatch them appropriately.
 
-An envelope holds the the memory for a message, as well as metadata (Where is
-the envelope queued? What should happen after it has been sent?). Any envelope
-can only be queued in one message queue.
+An envelope holds the the memory for a message, as well as metadata
+(Where is the envelope queued? What should happen after it has been
+sent?). Any envelope can only be queued in one message queue.
 
-@strong{ Creating Queues }@ The following is a list of currently available
-message queues. Note that to avoid layering issues, message queues for higher
-level APIs are not part of @code{libgnunetutil}, but@ the respective API itself
-provides the queue implementation.
+@strong{ Creating Queues }@
+The following is a list of currently available message queues. Note that
+to avoid layering issues, message queues for higher level APIs are not
+part of @code{libgnunetutil}, but@ the respective API itself provides the
+queue implementation.
+
 @table @asis
 
-@item @code{GNUNET_MQ_queue_for_connection_client} Transmits queued messages
-over a @code{GNUNET_CLIENT_Connection}@ handle. Also supports receiving with
-message handlers.@
+@item @code{GNUNET_MQ_queue_for_connection_client}
+Transmits queued messages over a @code{GNUNET_CLIENT_Connection} handle.
+Also supports receiving with message handlers.
 
-@item @code{GNUNET_MQ_queue_for_server_client} Transmits queued messages over a
-@code{GNUNET_SERVER_Client}@ handle. Does not support incoming message
-handlers.@
+@item @code{GNUNET_MQ_queue_for_server_client}
+Transmits queued messages over a @code{GNUNET_SERVER_Client} handle. Does
+not support incoming message handlers.
 
 @item @code{GNUNET_MESH_mq_create} Transmits queued messages over a
-@code{GNUNET_MESH_Tunnel}@ handle. Does not support incoming message handlers.@
+@code{GNUNET_MESH_Tunnel} handle. Does not support incoming message
+handlers.
 
 @item @code{GNUNET_MQ_queue_for_callbacks} This is the most general
 implementation. Instead of delivering and receiving messages with one of
@@ -2524,55 +2623,63 @@ GNUnet's communication APIs, implementation callbacks are called. Refer to
 @end table
 
 
-@strong{ Allocating Envelopes }@ A GNUnet message (as defined by the
-GNUNET_MessageHeader) has three parts: The size, the type, and the body.
+@strong{ Allocating Envelopes }@
+A GNUnet message (as defined by the GNUNET_MessageHeader) has three
+parts: The size, the type, and the body.
 
-MQ provides macros to allocate an envelope containing a message conveniently,@
-automatically setting the size and type fields of the message.
+MQ provides macros to allocate an envelope containing a message
+conveniently, automatically setting the size and type fields of the
+message.
 
-Consider the following simple message, with the body consisting of a single
-number value.@ @code{}
+Consider the following simple message, with the body consisting of a
+single number value.
+@c why the empy code function?
+@code{}
+
 @example
 struct NumberMessage @{
   /** Type: GNUNET_MESSAGE_TYPE_EXAMPLE_1 */
   struct GNUNET_MessageHeader header; uint32_t number GNUNET_PACKED; @};
 @end example
 
-An envelope containing an instance of the NumberMessage can be constructed like
-this:
+An envelope containing an instance of the NumberMessage can be
+constructed like this:
+
 @example
 struct GNUNET_MQ_Envelope *ev; struct NumberMessage *msg; ev =
 GNUNET_MQ_msg (msg, GNUNET_MESSAGE_TYPE_EXAMPLE_1); msg->number = htonl (42);
 @end example
 
+In the above code, @code{GNUNET_MQ_msg} is a macro. The return value is
+the newly allocated envelope. The first argument must be a pointer to some
+@code{struct} containing a @code{struct GNUNET_MessageHeader header}
+field, while the second argument is the desired message type, in host
+byte order.
 
-In the above code, @code{GNUNET_MQ_msg} is a macro. The return value is the
-newly allocated envelope. The first argument must be a pointer to some
-@code{struct} containing a @code{struct GNUNET_MessageHeader header} field,
-while the second argument is the desired message type, in host byte order.
+The @code{msg} pointer now points to an allocated message, where the
+message type and the message size are already set. The message's size is
+inferred from the type of the @code{msg} pointer: It will be set to
+'sizeof(*msg)', properly converted to network byte order.
 
-The @code{msg} pointer now points to an allocated message, where the message
-type and the message size are already set. The message's size is inferred from
-the type of the @code{msg} pointer: It will be set to 'sizeof(*msg)', properly
-converted to network byte order.
-
-If the message body's size is dynamic, the the macro @code{GNUNET_MQ_msg_extra}
-can be used to allocate an envelope whose message has additional space
-allocated after the @code{msg} structure.
+If the message body's size is dynamic, the the macro
+@code{GNUNET_MQ_msg_extra} can be used to allocate an envelope whose
+message has additional space allocated after the @code{msg} structure.
 
 If no structure has been defined for the message,
 @code{GNUNET_MQ_msg_header_extra} can be used to allocate additional space
 after the message header. The first argument then must be a pointer to a
 @code{GNUNET_MessageHeader}.
 
-@strong{Envelope Properties}@ A few functions in MQ allow to set additional
-properties on envelopes:
+@strong{Envelope Properties}@
+A few functions in MQ allow to set additional properties on envelopes:
+
 @table @asis
 
-@item @code{GNUNET_MQ_notify_sent} Allows to specify a function that will be
-called once the envelope's message@ has been sent irrevocably. An envelope can
-be canceled precisely up to the@ point where the notify sent callback has been
-called.
+@item @code{GNUNET_MQ_notify_sent} Allows to specify a function that will
+be called once the envelope's message@ has been sent irrevocably.
+An envelope can be canceled precisely up to the@ point where the notify
+sent callback has been called.
+
 @item @code{GNUNET_MQ_disable_corking} No corking will be used when
 sending the message. Not every@ queue supports this flag, per default,
 envelopes are sent with corking.@
@@ -2580,85 +2687,92 @@ envelopes are sent with corking.@
 @end table
 
 
-@strong{Sending Envelopes}@ Once an envelope has been constructed, it can be
-queued for sending with @code{GNUNET_MQ_send}.
+@strong{Sending Envelopes}@
+Once an envelope has been constructed, it can be queued for sending with
+@code{GNUNET_MQ_send}.
 
-Note that in order to avoid memory leaks, an envelope must either be sent (the
-queue will free it) or destroyed explicitly with @code{GNUNET_MQ_discard}.
+Note that in order to avoid memory leaks, an envelope must either be sent
+(the queue will free it) or destroyed explicitly with
+@code{GNUNET_MQ_discard}.
 
-@strong{Canceling Envelopes}@ An envelope queued with @code{GNUNET_MQ_send} can
-be canceled with @code{GNUNET_MQ_cancel}. Note that after the notify sent
-callback has been called, canceling a message results in undefined behavior.
+@strong{Canceling Envelopes}@
+An envelope queued with @code{GNUNET_MQ_send} can be canceled with
+@code{GNUNET_MQ_cancel}. Note that after the notify sent callback has
+been called, canceling a message results in undefined behavior.
 Thus it is unsafe to cancel an envelope that does not have a notify sent
 callback. When canceling an envelope, it is not necessary@ to call
 @code{GNUNET_MQ_discard}, and the envelope can't be sent again.
 
-@strong{ Implementing Queues }@ @code{TODO}
+@strong{ Implementing Queues }@
+@code{TODO}
 
 @c ***********************************************************************
 @node Service API
 @subsection Service API
 @c %**end of header
 
-Most GNUnet code lives in the form of services. Services are processes that
-offer an API for other components of the system to build on. Those other
-components can be command-line tools for users, graphical user interfaces or
-other services. Services provide their API using an IPC protocol. For this,
-each service must listen on either a TCP port or a UNIX domain socket; for
-this, the service implementation uses the server API. This use of server is
-exposed directly to the users of the service API. Thus, when using the service
-API, one is usually also often using large parts of the server API. The service
-API provides various convenience functions, such as parsing command-line
-arguments and the configuration file, which are not found in the server API.
+Most GNUnet code lives in the form of services. Services are processes
+that offer an API for other components of the system to build on. Those
+other components can be command-line tools for users, graphical user
+interfaces or other services. Services provide their API using an IPC
+protocol. For this, each service must listen on either a TCP port or a
+UNIX domain socket; for this, the service implementation uses the server
+API. This use of server is exposed directly to the users of the service
+API. Thus, when using the service API, one is usually also often using
+large parts of the server API. The service API provides various
+convenience functions, such as parsing command-line arguments and the
+configuration file, which are not found in the server API.
 The dual to the service/server API is the client API, which can be used to
 access services.
 
 The most common way to start a service is to use the GNUNET_SERVICE_run
-function from the program's main function. GNUNET_SERVICE_run will then parse
-the command line and configuration files and, based on the options found there,
-start the server. It will then give back control to the main program, passing
-the server and the configuration to the GNUNET_SERVICE_Main callback.
-GNUNET_SERVICE_run will also take care of starting the scheduler loop. If this
-is inappropriate (for example, because the scheduler loop is already running),
-GNUNET_SERVICE_start and related functions provide an alternative to
-GNUNET_SERVICE_run.
+function from the program's main function. GNUNET_SERVICE_run will then
+parse the command line and configuration files and, based on the options
+found there, start the server. It will then give back control to the main
+program, passing the server and the configuration to the
+GNUNET_SERVICE_Main callback. GNUNET_SERVICE_run will also take care of
+starting the scheduler loop. If this is inappropriate (for example,
+because the scheduler loop is already running), GNUNET_SERVICE_start and
+related functions provide an alternative to GNUNET_SERVICE_run.
 
-When starting a service, the service_name option is used to determine which
-sections in the configuration file should be used to configure the service. A
-typical value here is the name of the src/ sub-directory, for example
-"statistics". The same string would also be given to GNUNET_CLIENT_connect to
-access the service.
+When starting a service, the service_name option is used to determine
+which sections in the configuration file should be used to configure the
+service. A typical value here is the name of the src/ sub-directory, for
+example "statistics". The same string would also be given to
+GNUNET_CLIENT_connect to access the service.
 
-Once a service has been initialized, the program should use the@
+Once a service has been initialized, the program should use the
 GNUNET_SERVICE_Main callback to register message handlers using
-GNUNET_SERVER_add_handlers. The service will already have registered a handler
-for the "TEST" message.
+GNUNET_SERVER_add_handlers. The service will already have registered a
+handler for the "TEST" message.
 
 The option bitfield (enum GNUNET_SERVICE_Options) determines how a service
 should behave during shutdown. There are three key strategies:
+
 @table @asis
 
-@item instant (GNUNET_SERVICE_OPTION_NONE) Upon receiving the shutdown signal
-from the scheduler, the service immediately terminates the server, closing all
-existing connections with clients.
+@item instant (GNUNET_SERVICE_OPTION_NONE) Upon receiving the shutdown
+signal from the scheduler, the service immediately terminates the server,
+closing all existing connections with clients.
 @item manual
 (GNUNET_SERVICE_OPTION_MANUAL_SHUTDOWN) The service does nothing by itself
-during shutdown. The main program will need to take the appropriate action by
-calling GNUNET_SERVER_destroy or GNUNET_SERVICE_stop (depending on how the
-service was initialized) to terminate the service. This method is used by
-gnunet-service-arm and rather uncommon.
+during shutdown. The main program will need to take the appropriate
+action by calling GNUNET_SERVER_destroy or GNUNET_SERVICE_stop (depending
+on how the service was initialized) to terminate the service. This method
+is used by gnunet-service-arm and rather uncommon.
 @item soft
-(GNUNET_SERVICE_OPTION_SOFT_SHUTDOWN) Upon receiving the shutdown signal from
-the scheduler, the service immediately tells the server to stop listening for
-incoming clients. Requests from normal existing clients are still processed and
-the server/service terminates once all normal clients have disconnected.
-Clients that are not expected to ever disconnect (such as clients that monitor
-performance values) can be marked as 'monitor' clients using
-GNUNET_SERVER_client_mark_monitor. Those clients will continue to be processed
-until all 'normal' clients have disconnected. Then, the server will terminate,
-closing the monitor connections. This mode is for example used by 'statistics',
-allowing existing 'normal' clients to set (possibly persistent) statistic
-values before terminating.
+(GNUNET_SERVICE_OPTION_SOFT_SHUTDOWN) Upon receiving the shutdown signal
+from the scheduler, the service immediately tells the server to stop
+listening for incoming clients. Requests from normal existing clients are
+still processed and the server/service terminates once all normal clients
+have disconnected. Clients that are not expected to ever disconnect (such
+as clients that monitor performance values) can be marked as 'monitor'
+clients using GNUNET_SERVER_client_mark_monitor. Those clients will
+continue to be processed until all 'normal' clients have disconnected.
+Then, the server will terminate, closing the monitor connections.
+This mode is for example used by 'statistics', allowing existing 'normal'
+clients to set (possibly persistent) statistic values before terminating.
+
 @end table
 
 @c ***********************************************************************
@@ -2668,12 +2782,13 @@ values before terminating.
 
 A commonly used data structure in GNUnet is a (multi-)hash map. It is most
 often used to map a peer identity to some data structure, but also to map
-arbitrary keys to values (for example to track requests in the distributed hash
-table or in file-sharing). As it is commonly used, the DHT is actually
-sometimes responsible for a large share of GNUnet's overall memory consumption
-(for some processes, 30% is not uncommon). The following text documents some
-API quirks (and their implications for applications) that were recently
-introduced to minimize the footprint of the hash map.
+arbitrary keys to values (for example to track requests in the distributed
+hash table or in file-sharing). As it is commonly used, the DHT is
+actually sometimes responsible for a large share of GNUnet's overall
+memory consumption (for some processes, 30% is not uncommon). The
+following text documents some API quirks (and their implications for
+applications) that were recently introduced to minimize the footprint of
+the hash map.
 
 
 @c ***********************************************************************
@@ -2689,21 +2804,23 @@ introduced to minimize the footprint of the hash map.
 @subsubsection Analysis
 @c %**end of header
 
-The main reason for the "excessive" memory consumption by the hash map is that
-GNUnet uses 512-bit cryptographic hash codes --- and the (multi-)hash map also
-uses the same 512-bit 'struct GNUNET_HashCode'. As a result, storing just the
-keys requires 64 bytes of memory for each key. As some applications like to
-keep a large number of entries in the hash map (after all, that's what maps
-are good for), 64 bytes per hash is significant: keeping a pointer to the
-value and having a linked list for collisions consume between 8 and 16 bytes,
-and 'malloc' may add about the same overhead per allocation, putting us in the
-16 to 32 byte per entry ballpark. Adding a 64-byte key then triples the
-overall memory requirement for the hash map.
+The main reason for the "excessive" memory consumption by the hash map is
+that GNUnet uses 512-bit cryptographic hash codes --- and the
+(multi-)hash map also uses the same 512-bit 'struct GNUNET_HashCode'. As
+a result, storing just the keys requires 64 bytes of memory for each key.
+As some applications like to keep a large number of entries in the hash
+map (after all, that's what maps are good for), 64 bytes per hash is
+significant: keeping a pointer to the value and having a linked list for
+collisions consume between 8 and 16 bytes, and 'malloc' may add about the
+same overhead per allocation, putting us in the 16 to 32 byte per entry
+ballpark. Adding a 64-byte key then triples the overall memory
+requirement for the hash map.
 
-To make things "worse", most of the time storing the key in the hash map is
-not required: it is typically already in memory elsewhere! In most cases, the
-values stored in the hash map are some application-specific struct that _also_
-contains the hash. Here is a simplified example:
+To make things "worse", most of the time storing the key in the hash map
+is not required: it is typically already in memory elsewhere! In most
+cases, the values stored in the hash map are some application-specific
+struct that _also_ contains the hash. Here is a simplified example:
+
 @example
 struct MyValue @{
 struct GNUNET_HashCode key; unsigned int my_data; @};
@@ -2713,48 +2830,52 @@ val = GNUNET_malloc (sizeof (struct MyValue)); val->key = key; val->my_data =
 42; GNUNET_CONTAINER_multihashmap_put (map, &key, val, ...);
 @end example
 
+This is a common pattern as later the entries might need to be removed,
+and at that time it is convenient to have the key immediately at hand:
 
-This is a common pattern as later the entries might need to be removed, and at
-that time it is convenient to have the key immediately at hand:
 @example
 GNUNET_CONTAINER_multihashmap_remove (map, &val->key, val);
 @end example
 
 
-Note that here we end up with two times 64 bytes for the key, plus maybe 64
-bytes total for the rest of the 'struct MyValue' and the map entry in the hash
-map. The resulting redundant storage of the key increases overall memory
-consumption per entry from the "optimal" 128 bytes to 192 bytes. This is not
-just an extreme example: overheads in practice are actually sometimes close to
-those highlighted in this example. This is especially true for maps with a
-significant number of entries, as there we tend to really try to keep the
-entries small.
+Note that here we end up with two times 64 bytes for the key, plus maybe
+64 bytes total for the rest of the 'struct MyValue' and the map entry in
+the hash map. The resulting redundant storage of the key increases
+overall memory consumption per entry from the "optimal" 128 bytes to 192
+bytes. This is not just an extreme example: overheads in practice are
+actually sometimes close to those highlighted in this example. This is
+especially true for maps with a significant number of entries, as there
+we tend to really try to keep the entries small.
+
 @c ***********************************************************************
 @node Solution
 @subsubsection Solution
 @c %**end of header
 
-The solution that has now been implemented is to @strong{optionally} allow the
-hash map to not make a (deep) copy of the hash but instead have a pointer to
-the hash/key in the entry. This reduces the memory consumption for the key
-from 64 bytes to 4 to 8 bytes. However, it can also only work if the key is
-actually stored in the entry (which is the case most of the time) and if the
-entry does not modify the key (which in all of the code I'm aware of has been
-always the case if there key is stored in the entry). Finally, when the client
-stores an entry in the hash map, it @strong{must} provide a pointer to the key
-within the entry, not just a pointer to a transient location of the key. If
+The solution that has now been implemented is to @strong{optionally}
+allow the hash map to not make a (deep) copy of the hash but instead have
+a pointer to the hash/key in the entry. This reduces the memory
+consumption for the key from 64 bytes to 4 to 8 bytes. However, it can
+also only work if the key is actually stored in the entry (which is the
+case most of the time) and if the entry does not modify the key (which in
+all of the code I'm aware of has been always the case if there key is
+stored in the entry). Finally, when the client stores an entry in the
+hash map, it @strong{must} provide a pointer to the key within the entry,
+not just a pointer to a transient location of the key. If
 the client code does not meet these requirements, the result is a dangling
 pointer and undefined behavior of the (multi-)hash map API.
+
 @c ***********************************************************************
 @node Migration
 @subsubsection Migration
 @c %**end of header
 
-To use the new feature, first check that the values contain the respective key
-(and never modify it). Then, all calls to
-@code{GNUNET_CONTAINER_multihashmap_put} on the respective map must be audited
-and most likely changed to pass a pointer into the value's struct. For the
-initial example, the new code would look like this:
+To use the new feature, first check that the values contain the respective
+key (and never modify it). Then, all calls to
+@code{GNUNET_CONTAINER_multihashmap_put} on the respective map must be
+audited and most likely changed to pass a pointer into the value's struct.
+For the initial example, the new code would look like this:
+
 @example
 struct MyValue @{
 struct GNUNET_HashCode key; unsigned int my_data; @};
@@ -2765,14 +2886,16 @@ val = GNUNET_malloc (sizeof (struct MyValue)); val->key = key; val->my_data =
 @end example
 
 
-Note that @code{&val} was changed to @code{&val->key} in the argument to the
-@code{put} call. This is critical as often @code{key} is on the stack or in
-some other transient data structure and thus having the hash map keep a pointer
-to @code{key} would not work. Only the key inside of @code{val} has the same
-lifetime as the entry in the map (this must of course be checked as well).
-Naturally, @code{val->key} must be intiialized before the @code{put} call. Once
-all @code{put} calls have been converted and double-checked, you can change the
-call to create the hash map from
+Note that @code{&val} was changed to @code{&val->key} in the argument to
+the @code{put} call. This is critical as often @code{key} is on the stack
+or in some other transient data structure and thus having the hash map
+keep a pointer to @code{key} would not work. Only the key inside of
+@code{val} has the same lifetime as the entry in the map (this must of
+course be checked as well). Naturally, @code{val->key} must be
+intiialized before the @code{put} call. Once all @code{put} calls have
+been converted and double-checked, you can change the call to create the
+hash map from
+
 @example
 map =
 GNUNET_CONTAINER_multihashmap_create (SIZE, GNUNET_NO);
@@ -2784,21 +2907,24 @@ to
 map = GNUNET_CONTAINER_multihashmap_create (SIZE, GNUNET_YES);
 @end example
 
-If everything was done correctly, you now use about 60 bytes less memory per
-entry in @code{map}. However, if now (or in the future) any call to @code{put}
-does not ensure that the given key is valid until the entry is removed from the
-map, undefined behavior is likely to be observed.
+If everything was done correctly, you now use about 60 bytes less memory
+per entry in @code{map}. However, if now (or in the future) any call to
+@code{put} does not ensure that the given key is valid until the entry is
+removed from the map, undefined behavior is likely to be observed.
+
 @c ***********************************************************************
 @node Conclusion
 @subsubsection Conclusion
 @c %**end of header
 
-The new optimization can is often applicable and can result in a reduction in
-memory consumption of up to 30% in practice. However, it makes the code less
-robust as additional invariants are imposed on the multi hash map client. Thus
-applications should refrain from enabling the new mode unless the resulting
-performance increase is deemed significant enough. In particular, it should
-generally not be used in new code (wait at least until benchmarks exist).
+The new optimization can is often applicable and can result in a
+reduction in memory consumption of up to 30% in practice. However, it
+makes the code less robust as additional invariants are imposed on the
+multi hash map client. Thus applications should refrain from enabling the
+new mode unless the resulting performance increase is deemed significant
+enough. In particular, it should generally not be used in new code (wait
+at least until benchmarks exist).
+
 @c ***********************************************************************
 @node Availability
 @subsubsection Availability
@@ -2806,34 +2932,35 @@ generally not be used in new code (wait at least until benchmarks exist).
 
 The new multi hash map code was committed in SVN 24319 (will be in GNUnet
 0.9.4). Various subsystems (transport, core, dht, file-sharing) were
-previously audited and modified to take advantage of the new capability. In
-particular, memory consumption of the file-sharing service is expected to drop
-by 20-30% due to this change.
+previously audited and modified to take advantage of the new capability.
+In particular, memory consumption of the file-sharing service is expected
+to drop by 20-30% due to this change.
 
 @c ***********************************************************************
 @node The CONTAINER_MDLL API
 @subsection The CONTAINER_MDLL API
 @c %**end of header
 
-This text documents the GNUNET_CONTAINER_MDLL API. The GNUNET_CONTAINER_MDLL
-API is similar to the GNUNET_CONTAINER_DLL API in that it provides operations
-for the construction and manipulation of doubly-linked lists. The key
-difference to the (simpler) DLL-API is that the MDLL-version allows a single
-element (instance of a "struct") to be in multiple linked lists at the same
-time.
+This text documents the GNUNET_CONTAINER_MDLL API. The
+GNUNET_CONTAINER_MDLL API is similar to the GNUNET_CONTAINER_DLL API in
+that it provides operations for the construction and manipulation of
+doubly-linked lists. The key difference to the (simpler) DLL-API is that
+the MDLL-version allows a single element (instance of a "struct") to be
+in multiple linked lists at the same time.
 
-Like the DLL API, the MDLL API stores (most of) the data structures for the
-doubly-linked list with the respective elements; only the 'head' and 'tail'
-pointers are stored "elsewhere" --- and the application needs to provide the
-locations of head and tail to each of the calls in the MDLL API. The key
-difference for the MDLL API is that the "next" and "previous" pointers in the
-struct can no longer be simply called "next" and "prev" --- after all, the
-element may be in multiple doubly-linked lists, so we cannot just have one
-"next" and one "prev" pointer!
+Like the DLL API, the MDLL API stores (most of) the data structures for
+the doubly-linked list with the respective elements; only the 'head' and
+'tail' pointers are stored "elsewhere" --- and the application needs to
+provide the locations of head and tail to each of the calls in the
+MDLL API. The key difference for the MDLL API is that the "next" and
+"previous" pointers in the struct can no longer be simply called "next"
+and "prev" --- after all, the element may be in multiple doubly-linked
+lists, so we cannot just have one "next" and one "prev" pointer!
 
-The solution is to have multiple fields that must have a name of the format
-"next_XX" and "prev_XX" where "XX" is the name of one of the doubly-linked
-lists. Here is a simple example:
+The solution is to have multiple fields that must have a name of the
+format "next_XX" and "prev_XX" where "XX" is the name of one of the
+doubly-linked lists. Here is a simple example:
+
 @example
 struct MyMultiListElement @{ struct
 MyMultiListElement *next_ALIST; struct MyMultiListElement *prev_ALIST; struct
@@ -2842,9 +2969,10 @@ MyMultiListElement *next_BLIST; struct MyMultiListElement *prev_BLIST; void
 @end example
 
 
-Note that by convention, we use all-uppercase letters for the list names. In
-addition, the program needs to have a location for the head and tail pointers
-for both lists, for example:
+Note that by convention, we use all-uppercase letters for the list names.
+In addition, the program needs to have a location for the head and tail
+pointers for both lists, for example:
+
 @example
 static struct MyMultiListElement
 *head_ALIST; static struct MyMultiListElement *tail_ALIST; static struct
@@ -2853,32 +2981,34 @@ MyMultiListElement *head_BLIST; static struct MyMultiListElement *tail_BLIST;
 
 
 Using the MDLL-macros, we can now insert an element into the ALIST:
+
 @example
 GNUNET_CONTAINER_MDLL_insert (ALIST, head_ALIST, tail_ALIST, element);
 @end example
 
 
-Passing "ALIST" as the first argument to MDLL specifies which of the next/prev
-fields in the 'struct MyMultiListElement' should be used. The extra "ALIST"
-argument and the "_ALIST" in the names of the next/prev-members are the only
-differences between the MDDL and DLL-API. Like the DLL-API, the MDLL-API offers
-functions for inserting (at head, at tail, after a given element) and removing
-elements from the list. Iterating over the list should be done by directly
-accessing the "next_XX" and/or "prev_XX" members.
+Passing "ALIST" as the first argument to MDLL specifies which of the
+next/prev fields in the 'struct MyMultiListElement' should be used. The
+extra "ALIST" argument and the "_ALIST" in the names of the
+next/prev-members are the only differences between the MDDL and DLL-API.
+Like the DLL-API, the MDLL-API offers functions for inserting (at head,
+at tail, after a given element) and removing elements from the list.
+Iterating over the list should be done by directly accessing the
+"next_XX" and/or "prev_XX" members.
 
 @c ***********************************************************************
 @node The Automatic Restart Manager (ARM)
 @section The Automatic Restart Manager (ARM)
 @c %**end of header
 
-GNUnet's Automated Restart Manager (ARM) is the GNUnet service responsible for
-system initialization and service babysitting. ARM starts and halts services,
-detects configuration changes and restarts services impacted by the changes as
-needed. It's also responsible for restarting services in case of crashes and is
-planned to incorporate automatic debugging for diagnosing service crashes
-providing developers insights about crash reasons. The purpose of this document
-is to give GNUnet developer an idea about how ARM works and how to interact
-with it.
+GNUnet's Automated Restart Manager (ARM) is the GNUnet service responsible
+for system initialization and service babysitting. ARM starts and halts
+services, detects configuration changes and restarts services impacted by
+the changes as needed. It's also responsible for restarting services in
+case of crashes and is planned to incorporate automatic debugging for
+diagnosing service crashes providing developers insights about crash
+reasons. The purpose of this document is to give GNUnet developer an idea
+about how ARM works and how to interact with it.
 
 @menu
 * Basic functionality::
@@ -2894,20 +3024,21 @@ with it.
 
 @itemize @bullet
 @item ARM source code can be found under "src/arm".@ Service processes are
-managed by the functions in "gnunet-service-arm.c" which is controlled with
-"gnunet-arm.c" (main function in that file is ARM's entry point).
+managed by the functions in "gnunet-service-arm.c" which is controlled
+with "gnunet-arm.c" (main function in that file is ARM's entry point).
 
 @item The functions responsible for communicating with ARM , starting and
-stopping services -including ARM service itself- are provided by the ARM API
-"arm_api.c".@ Function: GNUNET_ARM_connect() returns to the caller an ARM
-handle after setting it to the caller's context (configuration and scheduler in
-use). This handle can be used afterwards by the caller to communicate with ARM.
-Functions GNUNET_ARM_start_service() and GNUNET_ARM_stop_service() are used for
-starting and stopping services respectively.
+stopping services -including ARM service itself- are provided by the
+ARM API "arm_api.c".@ Function: GNUNET_ARM_connect() returns to the caller
+an ARM handle after setting it to the caller's context (configuration and
+scheduler in use). This handle can be used afterwards by the caller to
+communicate with ARM. Functions GNUNET_ARM_start_service() and
+GNUNET_ARM_stop_service() are used for starting and stopping services
+respectively.
 
-@item A typical example of using these basic ARM services can be found in file
-test_arm_api.c. The test case connects to ARM, starts it, then uses it to start
-a service "resolver", stops the "resolver" then stops "ARM".
+@item A typical example of using these basic ARM services can be found in
+file test_arm_api.c. The test case connects to ARM, starts it, then uses
+it to start a service "resolver", stops the "resolver" then stops "ARM".
 @end itemize
 
 @c ***********************************************************************
@@ -2915,42 +3046,43 @@ a service "resolver", stops the "resolver" then stops "ARM".
 @subsection Key configuration options
 @c %**end of header
 
-Configurations for ARM and services should be available in a .conf file (As an
-example, see test_arm_api_data.conf). When running ARM, the configuration file
-to use should be passed to the command:@ @code{@ $ gnunet-arm -s -c
-configuration_to_use.conf@ }@ If no configuration is passed, the default
-configuration file will be used (see GNUNET_PREFIX/share/gnunet/defaults.conf
-which is created from contrib/defaults.conf).@ Each of the services is having a
-section starting by the service name between square brackets, for example:
-"[arm]". The following options configure how ARM configures or interacts with
-the various services:
+Configurations for ARM and services should be available in a .conf file
+(As an example, see test_arm_api_data.conf). When running ARM, the
+configuration file to use should be passed to the command:@
+@code{@ $ gnunet-arm -s -c configuration_to_use.conf@ }@
+If no configuration is passed, the default configuration file will be used
+(see GNUNET_PREFIX/share/gnunet/defaults.conf which is created from
+contrib/defaults.conf).@ Each of the services is having a section starting
+by the service name between square brackets, for example: "[arm]".
+The following options configure how ARM configures or interacts with the
+various services:
 
 @table @asis
 
 @item PORT Port number on which the service is listening for incoming TCP
-connections. ARM will start the services should it notice a request at this
-port.
+connections. ARM will start the services should it notice a request at
+this port.
 
 @item HOSTNAME Specifies on which host the service is deployed. Note
-that ARM can only start services that are running on the local system (but will
-not check that the hostname matches the local machine name). This option is
-used by the @code{gnunet_client_lib.h} implementation to determine which system
-to connect to. The default is "localhost".
+that ARM can only start services that are running on the local system
+(but will not check that the hostname matches the local machine name).
+This option is used by the @code{gnunet_client_lib.h} implementation to
+determine which system to connect to. The default is "localhost".
 
 @item BINARY The name of the service binary file.
 
 @item OPTIONS To be passed to the service.
 
-@item PREFIX A command to pre-pend to the actual command, for example, running
-a service with "valgrind" or "gdb"
+@item PREFIX A command to pre-pend to the actual command, for example,
+running a service with "valgrind" or "gdb"
 
 @item DEBUG Run in debug mode (much verbosity).
 
-@item AUTOSTART ARM will listen to UNIX domain socket and/or TCP port of the
-service and start the service on-demand.
+@item AUTOSTART ARM will listen to UNIX domain socket and/or TCP port of
+the service and start the service on-demand.
 
-@item FORCESTART ARM will always
-start this service when the peer is started.
+@item FORCESTART ARM will always start this service when the peer
+is started.
 
 @item ACCEPT_FROM IPv4 addresses the service accepts connections from.
 
@@ -2959,16 +3091,18 @@ start this service when the peer is started.
 @end table
 
 
-Options that impact the operation of ARM overall are in the "[arm]" section.
-ARM is a normal service and has (except for AUTOSTART) all of the options that
-other services do. In addition, ARM has the following options:
+Options that impact the operation of ARM overall are in the "[arm]"
+section. ARM is a normal service and has (except for AUTOSTART) all of the
+options that other services do. In addition, ARM has the
+following options:
+
 @table @asis
 
-@item GLOBAL_PREFIX Command to be pre-pended to all services that are going to
-run.@
+@item GLOBAL_PREFIX Command to be pre-pended to all services that are
+going to run.
 
-@item GLOBAL_POSTFIX Global option that will be supplied to all the services
-that are going to run.@
+@item GLOBAL_POSTFIX Global option that will be supplied to all the
+services that are going to run.
 
 @end table
 
@@ -2977,38 +3111,43 @@ that are going to run.@
 @subsection Availability2
 @c %**end of header
 
-As mentioned before, one of the features provided by ARM is starting services
-on demand. Consider the example of one service "client" that wants to connect
-to another service a "server". The "client" will ask ARM to run the "server".
-ARM starts the "server". The "server" starts listening to incoming connections.
-The "client" will establish a connection with the "server". And then, they will
-start to communicate together.@ One problem with that scheme is that it's
-slow!@ The "client" service wants to communicate with the "server" service at
-once and is not willing wait for it to be started and listening to incoming
-connections before serving its request.@ One solution for that problem will be
-that ARM starts all services as default services. That solution will solve the
-problem, yet, it's not quite practical, for some services that are going to be
-started can never be used or are going to be used after a relatively long
-time.@ The approach followed by ARM to solve this problem is as follows:
+As mentioned before, one of the features provided by ARM is starting
+services on demand. Consider the example of one service "client" that
+wants to connect to another service a "server". The "client" will ask ARM
+to run the "server". ARM starts the "server". The "server" starts
+listening to incoming connections. The "client" will establish a
+connection with the "server". And then, they will start to communicate
+together.@ One problem with that scheme is that it's slow!@
+The "client" service wants to communicate with the "server" service at
+once and is not willing wait for it to be started and listening to
+incoming connections before serving its request.@ One solution for that
+problem will be that ARM starts all services as default services. That
+solution will solve the problem, yet, it's not quite practical, for some
+services that are going to be started can never be used or are going to
+be used after a relatively long time.@
+The approach followed by ARM to solve this problem is as follows:
+
 @itemize @bullet
 
-
-@item For each service having a PORT field in the configuration file and that
-is not one of the default services ( a service that accepts incoming
+@item For each service having a PORT field in the configuration file and
+that is not one of the default services ( a service that accepts incoming
 connections from clients), ARM creates listening sockets for all addresses
 associated with that service.
 
-@item The "client" will immediately establish a connection with the "server".
+@item The "client" will immediately establish a connection with
+the "server".
 
-@item ARM --- pretending to be the "server" --- will listen on the respective
-port and notice the incoming connection from the "client" (but not accept it),
-instead
+@item ARM --- pretending to be the "server" --- will listen on the
+respective port and notice the incoming connection from the "client"
+(but not accept it), instead
 
 @item Once there is an incoming connection, ARM will start the "server",
 passing on the listen sockets (now, the service is started and can do its
 work).
 
-@item Other client services now can directly connect directly to the "server".
+@item Other client services now can directly connect directly to the
+"server".
+
 @end itemize
 
 @c ***********************************************************************
@@ -3018,38 +3157,40 @@ work).
 One of the features provided by ARM, is the automatic restart of crashed
 services.@ ARM needs to know which of the running services died. Function
 "gnunet-service-arm.c/maint_child_death()" is responsible for that. The
-function is scheduled to run upon receiving a SIGCHLD signal. The function,
-then, iterates ARM's list of services running and monitors which service has
-died (crashed). For all crashing services, ARM restarts them.@ Now, considering
-the case of a service having a serious problem causing it to crash each time
-it's started by ARM. If ARM keeps blindly restarting such a service, we are
-going to have the pattern: start-crash-restart-crash-restart-crash and so
-forth!! Which is of course not practical.@ For that reason, ARM schedules the
-service to be restarted after waiting for some delay that grows exponentially
-with each crash/restart of that service.@ To clarify the idea, considering the
-following example:
-@itemize @bullet
+function is scheduled to run upon receiving a SIGCHLD signal. The
+function, then, iterates ARM's list of services running and monitors
+which service has died (crashed). For all crashing services, ARM restarts
+them.@
+Now, considering the case of a service having a serious problem causing it
+to crash each time it's started by ARM. If ARM keeps blindly restarting
+such a service, we are going to have the pattern:
+start-crash-restart-crash-restart-crash and so forth!! Which is of course
+not practical.@
+For that reason, ARM schedules the service to be restarted after waiting
+for some delay that grows exponentially with each crash/restart of that
+service.@ To clarify the idea, considering the following example:
 
+@itemize @bullet
 
 @item Service S crashed.
 
-@item ARM receives the SIGCHLD and inspects its list of services to find the
-dead one(s).
+@item ARM receives the SIGCHLD and inspects its list of services to find
+the dead one(s).
 
-@item ARM finds S dead and schedules it for restarting after "backoff" time
-which is initially set to 1ms. ARM will double the backoff time correspondent
-to S (now backoff(S) = 2ms)
+@item ARM finds S dead and schedules it for restarting after "backoff"
+time which is initially set to 1ms. ARM will double the backoff time
+correspondent to S (now backoff(S) = 2ms)
 
 @item Because there is a severe problem with S, it crashed again.
 
 @item Again ARM receives the SIGCHLD and detects that it's S again that's
-crashed. ARM schedules it for restarting but after its new backoff time (which
-became 2ms), and doubles its backoff time (now backoff(S) = 4).
+crashed. ARM schedules it for restarting but after its new backoff time
+(which became 2ms), and doubles its backoff time (now backoff(S) = 4).
 
 @item and so on, until backoff(S) reaches a certain threshold
 (EXPONENTIAL_BACKOFF_THRESHOLD is set to half an hour), after reaching it,
-backoff(S) will remain half an hour, hence ARM won't be busy for a lot of time
-trying to restart a problematic service.
+backoff(S) will remain half an hour, hence ARM won't be busy for a lot of
+time trying to restart a problematic service.
 @end itemize
 
 @c ***********************************************************************
@@ -3057,19 +3198,20 @@ trying to restart a problematic service.
 @section GNUnet's TRANSPORT Subsystem
 @c %**end of header
 
-This chapter documents how the GNUnet transport subsystem works. The GNUnet
-transport subsystem consists of three main components: the transport API (the
-interface used by the rest of the system to access the transport service), the
-transport service itself (most of the interesting functions, such as choosing
-transports, happens here) and the transport plugins. A transport plugin is a
-concrete implementation for how two GNUnet peers communicate; many plugins
-exist, for example for communication via TCP, UDP, HTTP, HTTPS and others.
-Finally, the transport subsystem uses supporting code, especially the NAT/UPnP
+This chapter documents how the GNUnet transport subsystem works. The
+GNUnet transport subsystem consists of three main components: the
+transport API (the interface used by the rest of the system to access the
+transport service), the transport service itself (most of the interesting
+functions, such as choosing transports, happens here) and the transport
+plugins. A transport plugin is a concrete implementation for how two
+GNUnet peers communicate; many plugins exist, for example for
+communication via TCP, UDP, HTTP, HTTPS and others. Finally, the
+transport subsystem uses supporting code, especially the NAT/UPnP
 library to help with tasks such as NAT traversal.
 
 Key tasks of the transport service include:
-@itemize @bullet
 
+@itemize @bullet
 
 @item Create our HELLO message, notify clients and neighbours if our HELLO
 changes (using NAT library as necessary)
@@ -3078,33 +3220,34 @@ changes (using NAT library as necessary)
 validate our HELLO's addresses (send PONG)
 
 @item Upon request, establish connections to other peers (using address
-selection from ATS subsystem) and maintain them (again using PINGs and PONGs)
-as long as desired
+selection from ATS subsystem) and maintain them (again using PINGs and
+PONGs) as long as desired
 
-@item Accept incoming connections, give ATS service the opportunity to switch
-communication channels
+@item Accept incoming connections, give ATS service the opportunity to
+switch communication channels
 
-@item Notify clients about peers that have connected to us or that have been
-disconnected from us
+@item Notify clients about peers that have connected to us or that have
+been disconnected from us
 
 @item If a (stateful) connection goes down unexpectedly (without explicit
 DISCONNECT), quickly attempt to recover (without notifying clients) but do
 notify clients quickly if reconnecting fails
 
 @item Send (payload) messages arriving from clients to other peers via
-transport plugins and receive messages from other peers, forwarding those to
-clients
+transport plugins and receive messages from other peers, forwarding
+those to clients
 
-@item Enforce inbound traffic limits (using flow-control if it is applicable);
-outbound traffic limits are enforced by CORE, not by us (!)
+@item Enforce inbound traffic limits (using flow-control if it is
+applicable); outbound traffic limits are enforced by CORE, not by us (!)
 
 @item Enforce restrictions on P2P connection as specified by the blacklist
 configuration and blacklisting clients
 @end itemize
 
 
-Note that the term "clients" in the list above really refers to the GNUnet-CORE
-service, as CORE is typically the only client of the transport service.
+Note that the term "clients" in the list above really refers to the
+GNUnet-CORE service, as CORE is typically the only client of the
+transport service.
 
 @menu
 * Address validation protocol::
@@ -3114,79 +3257,84 @@ service, as CORE is typically the only client of the transport service.
 @subsection Address validation protocol
 @c %**end of header
 
-This section documents how the GNUnet transport service validates connections
-with other peers. It is a high-level description of the protocol necessary to
-understand the details of the implementation. It should be noted that when we
-talk about PING and PONG messages in this section, we refer to transport-level
-PING and PONG messages, which are different from core-level PING and PONG
-messages (both in implementation and function).
+This section documents how the GNUnet transport service validates
+connections with other peers. It is a high-level description of the
+protocol necessary to understand the details of the implementation. It
+should be noted that when we talk about PING and PONG messages in this
+section, we refer to transport-level PING and PONG messages, which are
+different from core-level PING and PONG messages (both in implementation
+and function).
 
-The goal of transport-level address validation is to minimize the chances of a
-successful man-in-the-middle attack against GNUnet peers on the transport
-level. Such an attack would not allow the adversary to decrypt the P2P
-transmissions, but a successful attacker could at least measure traffic volumes
-and latencies (raising the adversaries capablities by those of a global passive
-adversary in the worst case). The scenarios we are concerned about is an
-attacker, Mallory, giving a HELLO to Alice that claims to be for Bob, but
-contains Mallory's IP address instead of Bobs (for some transport). Mallory
-would then forward the traffic to Bob (by initiating a connection to Bob and
-claiming to be Alice). As a further complication, the scheme has to work even
-if say Alice is behind a NAT without traversal support and hence has no address
-of her own (and thus Alice must always initiate the connection to Bob).
+The goal of transport-level address validation is to minimize the chances
+of a successful man-in-the-middle attack against GNUnet peers on the
+transport level. Such an attack would not allow the adversary to decrypt
+the P2P transmissions, but a successful attacker could at least measure
+traffic volumes and latencies (raising the adversaries capablities by
+those of a global passive adversary in the worst case). The scenarios we
+are concerned about is an attacker, Mallory, giving a HELLO to Alice that
+claims to be for Bob, but contains Mallory's IP address instead of Bobs
+(for some transport). Mallory would then forward the traffic to Bob (by
+initiating a connection to Bob and claiming to be Alice). As a further
+complication, the scheme has to work even if say Alice is behind a NAT
+without traversal support and hence has no address of her own (and thus
+Alice must always initiate the connection to Bob).
 
-An additional constraint is that HELLO messages do not contain a cryptographic
-signature since other peers must be able to edit (i.e. remove) addresses from
-the HELLO at any time (this was not true in GNUnet 0.8.x). A basic
-@strong{assumption} is that each peer knows the set of possible network
-addresses that it @strong{might} be reachable under (so for example, the
-external IP address of the NAT plus the LAN address(es) with the respective
-ports).
+An additional constraint is that HELLO messages do not contain a
+cryptographic signature since other peers must be able to edit
+(i.e. remove) addresses from the HELLO at any time (this was not true in
+GNUnet 0.8.x). A basic @strong{assumption} is that each peer knows the
+set of possible network addresses that it @strong{might} be reachable
+under (so for example, the external IP address of the NAT plus the LAN
+address(es) with the respective ports).
 
-The solution is the following. If Alice wants to validate that a given address
-for Bob is valid (i.e. is actually established @strong{directly} with the
-intended target), it sends a PING message over that connection to Bob. Note
-that in this case, Alice initiated the connection so only she knows which
-address was used for sure (Alice maybe behind NAT, so whatever address Bob
-sees may not be an address Alice knows she has). Bob checks that the address
-given in the PING is actually one of his addresses (does not belong to
-Mallory), and if it is, sends back a PONG (with a signature that says that Bob
-owns/uses the address from the PING). Alice checks the signature and is happy
-if it is valid and the address in the PONG is the address she used. This is
-similar to the 0.8.x protocol where the HELLO contained a signature from Bob
-for each address used by Bob. Here, the purpose code for the signature is
+The solution is the following. If Alice wants to validate that a given
+address for Bob is valid (i.e. is actually established @strong{directly}
+with the intended target), it sends a PING message over that connection
+to Bob. Note that in this case, Alice initiated the connection so only
+she knows which address was used for sure (Alice maybe behind NAT, so
+whatever address Bob sees may not be an address Alice knows she has). Bob
+checks that the address given in the PING is actually one of his addresses
+(does not belong to Mallory), and if it is, sends back a PONG (with a
+signature that says that Bob owns/uses the address from the PING). Alice
+checks the signature and is happy if it is valid and the address in the
+PONG is the address she used. This is similar to the 0.8.x protocol where
+the HELLO contained a signature from Bob for each address used by Bob.
+Here, the purpose code for the signature is
 @code{GNUNET_SIGNATURE_PURPOSE_TRANSPORT_PONG_OWN}. After this, Alice will
-remember Bob's address and consider the address valid for a while (12h in the
-current implementation). Note that after this exchange, Alice only considers
-Bob's address to be valid, the connection itself is not considered
-'established'. In particular, Alice may have many addresses for Bob that she
-considers valid.
+remember Bob's address and consider the address valid for a while (12h in
+the current implementation). Note that after this exchange, Alice only
+considers Bob's address to be valid, the connection itself is not
+considered 'established'. In particular, Alice may have many addresses
+for Bob that she considers valid.
 
-The PONG message is protected with a nonce/challenge against replay attacks
-and uses an expiration time for the signature (but those are almost
-implementation details).
+The PONG message is protected with a nonce/challenge against replay
+attacks and uses an expiration time for the signature (but those are
+almost implementation details).
 
 @node NAT library
 @section NAT library
 @c %**end of header
 
-The goal of the GNUnet NAT library is to provide a general-purpose API for NAT
-traversal @strong{without} third-party support. So protocols that involve
-contacting a third peer to help establish a connection between two peers are
-outside of the scope of this API. That does not mean that GNUnet doesn't
-support involving a third peer (we can do this with the distance-vector
-transport or using application-level protocols), it just means that the NAT API
-is not concerned with this possibility. The API is written so that it will work
-for IPv6-NAT in the future as well as current IPv4-NAT. Furthermore, the NAT
-API is always used, even for peers that are not behind NAT --- in that case,
-the mapping provided is simply the identity.
+The goal of the GNUnet NAT library is to provide a general-purpose API for
+NAT traversal @strong{without} third-party support. So protocols that
+involve contacting a third peer to help establish a connection between
+two peers are outside of the scope of this API. That does not mean that
+GNUnet doesn't support involving a third peer (we can do this with the
+distance-vector transport or using application-level protocols), it just
+means that the NAT API is not concerned with this possibility. The API is
+written so that it will work for IPv6-NAT in the future as well as
+current IPv4-NAT. Furthermore, the NAT API is always used, even for peers
+that are not behind NAT --- in that case, the mapping provided is simply
+the identity.
 
-NAT traversal is initiated by calling @code{GNUNET_NAT_register}. Given a set
-of addresses that the peer has locally bound to (TCP or UDP), the NAT library
-will return (via callback) a (possibly longer) list of addresses the peer
-@strong{might} be reachable under. Internally, depending on the configuration,
-the NAT library will try to punch a hole (using UPnP) or just "know" that the
-NAT was manually punched and generate the respective external IP address (the
-one that should be globally visible) based on the given information.
+NAT traversal is initiated by calling @code{GNUNET_NAT_register}. Given a
+set of addresses that the peer has locally bound to (TCP or UDP), the NAT
+library will return (via callback) a (possibly longer) list of addresses
+the peer @strong{might} be reachable under. Internally, depending on the
+configuration, the NAT library will try to punch a hole (using UPnP) or
+just "know" that the NAT was manually punched and generate the respective
+external IP address (the one that should be globally visible) based on
+the given information.
 
 The NAT library also supports ICMP-based NAT traversal. Here, the other peer
 can request connection-reversal by this peer (in this special case, the peer is
