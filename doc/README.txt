@@ -5,6 +5,8 @@ To be moved to an appropriate section of "how to write documentation" or
    referring to people, such as singular “they”, “their”, “them”, and
    so forth. -> https://en.wikipedia.org/wiki/Singular_they
 
+2. Keep line length below 74 characters.
+
 * What's left to do
 
 - Which Texlive modules are needed? Decrease the size.
