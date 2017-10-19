@@ -3336,56 +3336,60 @@ just "know" that the NAT was manually punched and generate the respective
 external IP address (the one that should be globally visible) based on
 the given information.
 
-The NAT library also supports ICMP-based NAT traversal. Here, the other peer
-can request connection-reversal by this peer (in this special case, the peer is
-even allowed to configure a port number of zero). If the NAT library detects a
-connection-reversal request, it returns the respective target address to the
-client as well. It should be noted that connection-reversal is currently only
-intended for TCP, so other plugins @strong{must} pass @code{NULL} for the
-reversal callback. Naturally, the NAT library also supports requesting
-connection reversal from a remote peer (@code{GNUNET_NAT_run_client}).
+The NAT library also supports ICMP-based NAT traversal. Here, the other
+peer can request connection-reversal by this peer (in this special case,
+the peer is even allowed to configure a port number of zero). If the NAT
+library detects a connection-reversal request, it returns the respective
+target address to the client as well. It should be noted that
+connection-reversal is currently only intended for TCP, so other plugins
+@strong{must} pass @code{NULL} for the reversal callback. Naturally, the
+NAT library also supports requesting connection reversal from a remote
+peer (@code{GNUNET_NAT_run_client}).
 
 Once initialized, the NAT handle can be used to test if a given address is
-possibly a valid address for this peer (@code{GNUNET_NAT_test_address}). This
-is used for validating our addresses when generating PONGs.
+possibly a valid address for this peer (@code{GNUNET_NAT_test_address}).
+This is used for validating our addresses when generating PONGs.
 
-Finally, the NAT library contains an API to test if our NAT configuration is
-correct. Using @code{GNUNET_NAT_test_start} @strong{before} binding to the
-respective port, the NAT library can be used to test if the configuration
-works. The test function act as a local client, initialize the NAT traversal
-and then contact a @code{gnunet-nat-server} (running by default on
-@code{gnunet.org}) and ask for a connection to be established. This way, it is
-easy to test if the current NAT configuration is valid.
+Finally, the NAT library contains an API to test if our NAT configuration
+is correct. Using @code{GNUNET_NAT_test_start} @strong{before} binding to
+the respective port, the NAT library can be used to test if the
+configuration works. The test function act as a local client, initialize
+the NAT traversal and then contact a @code{gnunet-nat-server} (running by
+default on @code{gnunet.org}) and ask for a connection to be established.
+This way, it is easy to test if the current NAT configuration is valid.
 
 @node Distance-Vector plugin
 @section Distance-Vector plugin
 @c %**end of header
 
-The Distance Vector (DV) transport is a transport mechanism that allows peers
-to act as relays for each other, thereby connecting peers that would otherwise
-be unable to connect. This gives a larger connection set to applications that
-may work better with more peers to choose from (for example, File Sharing
-and/or DHT).
+The Distance Vector (DV) transport is a transport mechanism that allows
+peers to act as relays for each other, thereby connecting peers that would
+otherwise be unable to connect. This gives a larger connection set to
+applications that may work better with more peers to choose from (for
+example, File Sharing and/or DHT).
 
 The Distance Vector transport essentially has two functions. The first is
 "gossiping" connection information about more distant peers to directly
 connected peers. The second is taking messages intended for non-directly
 connected peers and encapsulating them in a DV wrapper that contains the
 required information for routing the message through forwarding peers. Via
-gossiping, optimal routes through the known DV neighborhood are discovered and
-utilized and the message encapsulation provides some benefits in addition to
-simply getting the message from the correct source to the proper destination.
+gossiping, optimal routes through the known DV neighborhood are discovered
+and utilized and the message encapsulation provides some benefits in
+addition to simply getting the message from the correct source to the
+proper destination.
 
-The gossiping function of DV provides an up to date routing table of peers that
-are available up to some number of hops. We call this a fisheye view of the
-network (like a fish, nearby objects are known while more distant ones
-unknown). Gossip messages are sent only to directly connected peers, but they
-are sent about other knowns peers within the "fisheye distance". Whenever two
-peers connect, they immediately gossip to each other about their appropriate
-other neighbors. They also gossip about the newly connected peer to previously
-connected neighbors. In order to keep the routing tables up to date, disconnect
-notifications are propogated as gossip as well (because disconnects may not be
-sent/received, timeouts are also used remove stagnant routing table entries).
+The gossiping function of DV provides an up to date routing table of
+peers that are available up to some number of hops. We call this a
+fisheye view of the network (like a fish, nearby objects are known while
+more distant ones unknown). Gossip messages are sent only to directly
+connected peers, but they are sent about other knowns peers within the
+"fisheye distance". Whenever two peers connect, they immediately gossip
+to each other about their appropriate other neighbors. They also gossip
+about the newly connected peer to previously
+connected neighbors. In order to keep the routing tables up to date,
+disconnect notifications are propogated as gossip as well (because
+disconnects may not be sent/received, timeouts are also used remove
+stagnant routing table entries).
 
 Routing of messages via DV is straightforward. When the DV transport is
 notified of a message destined for a non-direct neighbor, the appropriate
@@ -3393,36 +3397,40 @@ forwarding peer is selected, and the base message is encapsulated in a DV
 message which contains information about the initial peer and the intended
 recipient. At each forwarding hop, the initial peer is validated (the
 forwarding peer ensures that it has the initial peer in its neighborhood,
-otherwise the message is dropped). Next the base message is re-encapsulated in
-a new DV message for the next hop in the forwarding chain (or delivered to the
-current peer, if it has arrived at the destination).
+otherwise the message is dropped). Next the base message is
+re-encapsulated in a new DV message for the next hop in the forwarding
+chain (or delivered to the current peer, if it has arrived at the
+destination).
 
-Assume a three peer network with peers Alice, Bob and Carol. Assume that Alice
-<-> Bob and Bob <-> Carol are direct (e.g. over TCP or UDP transports)
-connections, but that Alice cannot directly connect to Carol. This may be the
-case due to NAT or firewall restrictions, or perhaps based on one of the peers
-respective configurations. If the Distance Vector transport is enabled on all
-three peers, it will automatically discover (from the gossip protocol) that
-Alice and Carol can connect via Bob and provide a "virtual" Alice <-> Carol
-connection. Routing between Alice and Carol happens as follows; Alice creates a
-message destined for Carol and notifies the DV transport about it. The DV
-transport at Alice looks up Carol in the routing table and finds that the
-message must be sent through Bob for Carol. The message is encapsulated setting
-Alice as the initiator and Carol as the destination and sent to Bob. Bob
-receives the messages, verifies both Alice and Carol are known to Bob, and
-re-wraps the message in a new DV message for Carol. The DV transport at Carol
-receives this message, unwraps the original message, and delivers it to Carol
-as though it came directly from Alice.
+Assume a three peer network with peers Alice, Bob and Carol. Assume that
+Alice <-> Bob and Bob <-> Carol are direct (e.g. over TCP or UDP
+transports) connections, but that Alice cannot directly connect to Carol.
+This may be the case due to NAT or firewall restrictions, or perhaps
+based on one of the peers respective configurations. If the Distance
+Vector transport is enabled on all three peers, it will automatically
+discover (from the gossip protocol) that Alice and Carol can connect via
+Bob and provide a "virtual" Alice <-> Carol connection. Routing between
+Alice and Carol happens as follows; Alice creates a message destined for
+Carol and notifies the DV transport about it. The DV transport at Alice
+looks up Carol in the routing table and finds that the message must be
+sent through Bob for Carol. The message is encapsulated setting Alice as
+the initiator and Carol as the destination and sent to Bob. Bob receives
+the messages, verifies both Alice and Carol are known to Bob, and re-wraps
+the message in a new DV message for Carol. The DV transport at Carol
+receives this message, unwraps the original message, and delivers it to
+Carol as though it came directly from Alice.
 
 @node SMTP plugin
 @section SMTP plugin
 @c %**end of header
 
-This page describes the new SMTP transport plugin for GNUnet as it exists in
-the 0.7.x and 0.8.x branch. SMTP support is currently not available in GNUnet
-0.9.x. This page also describes the transport layer abstraction (as it existed
-in 0.7.x and 0.8.x) in more detail and gives some benchmarking results. The
-performance results presented are quite old and maybe outdated at this point.
+This section describes the new SMTP transport plugin for GNUnet as it
+exists in the 0.7.x and 0.8.x branch. SMTP support is currently not
+available in GNUnet 0.9.x. This page also describes the transport layer
+abstraction (as it existed in 0.7.x and 0.8.x) in more detail and gives
+some benchmarking results. The performance results presented are quite
+old and maybe outdated at this point.
+
 @itemize @bullet
 @item Why use SMTP for a peer-to-peer transport?
 @item SMTPHow does it work?
@@ -3446,11 +3454,12 @@ performance results presented are quite old and maybe outdated at this point.
 @c %**end of header
 
 There are many reasons why one would not want to use SMTP:
+
 @itemize @bullet
 @item SMTP is using more bandwidth than TCP, UDP or HTTP
 @item SMTP has a much higher latency.
-@item SMTP requires significantly more computation (encoding and decoding time)
-for the peers.
+@item SMTP requires significantly more computation (encoding and decoding
+time) for the peers.
 @item SMTP is significantly more complicated to configure.
 @item SMTP may be abused by tricking GNUnet into sending mail to@
 non-participating third parties.
@@ -3458,46 +3467,49 @@ non-participating third parties.
 
 So why would anybody want to use SMTP?
 @itemize @bullet
-@item SMTP can be used to contact peers behind NAT boxes (in virtual private
-networks).
+@item SMTP can be used to contact peers behind NAT boxes (in virtual
+private networks).
 @item SMTP can be used to circumvent policies that limit or prohibit
 peer-to-peer traffic by masking as "legitimate" traffic.
-@item SMTP uses E-mail addresses which are independent of a specific IP, which
-can be useful to address peers that use dynamic IP addresses.
-@item SMTP can be used to initiate a connection (e.g. initial address exchange)
-and peers can then negotiate the use of a more efficient protocol (e.g. TCP)
-for the actual communication.
+@item SMTP uses E-mail addresses which are independent of a specific IP,
+which can be useful to address peers that use dynamic IP addresses.
+@item SMTP can be used to initiate a connection (e.g. initial address
+exchange) and peers can then negotiate the use of a more efficient
+protocol (e.g. TCP) for the actual communication.
 @end itemize
 
-In summary, SMTP can for example be used to send a message to a peer behind a
-NAT box that has a dynamic IP to tell the peer to establish a TCP connection
-to a peer outside of the private network. Even an extraordinary overhead for
-this first message would be irrelevant in this type of situation.
+In summary, SMTP can for example be used to send a message to a peer
+behind a NAT box that has a dynamic IP to tell the peer to establish a
+TCP connection to a peer outside of the private network. Even an
+extraordinary overhead for this first message would be irrelevant in this
+type of situation.
 
 @node How does it work?
 @subsection How does it work?
 @c %**end of header
 
 When a GNUnet peer needs to send a message to another GNUnet peer that has
-advertised (only) an SMTP transport address, GNUnet base64-encodes the message
-and sends it in an E-mail to the advertised address. The advertisement
-contains a filter which is placed in the E-mail header, such that the
-receiving host can filter the tagged E-mails and forward it to the GNUnet peer
-process. The filter can be specified individually by each peer and be changed
-over time. This makes it impossible to censor GNUnet E-mail messages by
-searching for a generic filter.
+advertised (only) an SMTP transport address, GNUnet base64-encodes the
+message and sends it in an E-mail to the advertised address. The
+advertisement contains a filter which is placed in the E-mail header,
+such that the receiving host can filter the tagged E-mails and forward it
+to the GNUnet peer process. The filter can be specified individually by
+each peer and be changed over time. This makes it impossible to censor
+GNUnet E-mail messages by searching for a generic filter.
 
 @node How do I configure my peer?
 @subsection How do I configure my peer?
 @c %**end of header
 
-First, you need to configure @code{procmail} to filter your inbound E-mail for
-GNUnet traffic. The GNUnet messages must be delivered into a pipe, for example
-@code{/tmp/gnunet.smtp}. You also need to define a filter that is used by
-procmail to detect GNUnet messages. You are free to choose whichever filter
-you like, but you should make sure that it does not occur in your other
-E-mail. In our example, we will use @code{X-mailer: GNUnet}. The
-@code{~/.procmailrc} configuration file then looks like this:
+First, you need to configure @code{procmail} to filter your inbound E-mail
+for GNUnet traffic. The GNUnet messages must be delivered into a pipe, for
+example @code{/tmp/gnunet.smtp}. You also need to define a filter that is
+used by @command{procmail} to detect GNUnet messages. You are free to
+choose whichever filter you like, but you should make sure that it does
+not occur in your other E-mail. In our example, we will use
+@code{X-mailer: GNUnet}. The @code{~/.procmailrc} configuration file then
+looks like this:
+
 @example
 :0:
 * ^X-mailer: GNUnet
@@ -3506,73 +3518,80 @@ E-mail. In our example, we will use @code{X-mailer: GNUnet}. The
 :0: /var/spool/mail/
 @end example
 
-After adding this file, first make sure that your regular E-mail still works
-(e.g. by sending an E-mail to yourself). Then edit the GNUnet configuration.
-In the section @code{SMTP} you need to specify your E-mail address under
-@code{EMAIL}, your mail server (for outgoing mail) under @code{SERVER}, the
-filter (X-mailer: GNUnet in the example) under @code{FILTER} and the name of
-the pipe under @code{PIPE}.@ The completed section could then look like this:
+After adding this file, first make sure that your regular E-mail still
+works (e.g. by sending an E-mail to yourself). Then edit the GNUnet
+configuration. In the section @code{SMTP} you need to specify your E-mail
+address under @code{EMAIL}, your mail server (for outgoing mail) under
+@code{SERVER}, the filter (X-mailer: GNUnet in the example) under
+@code{FILTER} and the name of the pipe under @code{PIPE}.@ The completed
+section could then look like this:
+
 @example
 EMAIL = me@@mail.gnu.org MTU = 65000 SERVER = mail.gnu.org:25 FILTER =
 "X-mailer: GNUnet" PIPE = /tmp/gnunet.smtp
 @end example
 
-Finally, you need to add @code{smtp} to the list of @code{TRANSPORTS} in the
-@code{GNUNETD} section. GNUnet peers will use the E-mail address that you
-specified to contact your peer until the advertisement times out. Thus, if you
-are not sure if everything works properly or if you are not planning to be
-online for a long time, you may want to configure this timeout to be short,
-e.g. just one hour. For this, set @code{HELLOEXPIRES} to @code{1} in the
-@code{GNUNETD} section.
+Finally, you need to add @code{smtp} to the list of @code{TRANSPORTS} in
+the @code{GNUNETD} section. GNUnet peers will use the E-mail address that
+you specified to contact your peer until the advertisement times out.
+Thus, if you are not sure if everything works properly or if you are not
+planning to be online for a long time, you may want to configure this
+timeout to be short, e.g. just one hour. For this, set
+@code{HELLOEXPIRES} to @code{1} in the @code{GNUNETD} section.
 
-This should be it, but you may probably want to test it first.@
+This should be it, but you may probably want to test it first.
+
 @node How do I test if it works?
 @subsection How do I test if it works?
 @c %**end of header
 
 Any transport can be subjected to some rudimentary tests using the
-@code{gnunet-transport-check} tool. The tool sends a message to the local node
-via the transport and checks that a valid message is received. While this test
-does not involve other peers and can not check if firewalls or other network
-obstacles prohibit proper operation, this is a great testcase for the SMTP
-transport since it tests pretty much nearly all of the functionality.
+@code{gnunet-transport-check} tool. The tool sends a message to the local
+node via the transport and checks that a valid message is received. While
+this test does not involve other peers and can not check if firewalls or
+other network obstacles prohibit proper operation, this is a great
+testcase for the SMTP transport since it tests pretty much nearly all of
+the functionality.
 
 @code{gnunet-transport-check} should only be used without running
 @code{gnunetd} at the same time. By default, @code{gnunet-transport-check}
-tests all transports that are specified in the configuration file. But you can
-specifically test SMTP by giving the option @code{--transport=smtp}.
+tests all transports that are specified in the configuration file. But
+you can specifically test SMTP by giving the option
+@code{--transport=smtp}.
 
-Note that this test always checks if a transport can receive and send. While
-you can configure most transports to only receive or only send messages, this
-test will only work if you have configured the transport to send and receive
-messages.
+Note that this test always checks if a transport can receive and send.
+While you can configure most transports to only receive or only send
+messages, this test will only work if you have configured the transport
+to send and receive messages.
 
 @node How fast is it?
 @subsection How fast is it?
 @c %**end of header
 
 We have measured the performance of the UDP, TCP and SMTP transport layer
-directly and when used from an application using the GNUnet core. Measureing
-just the transport layer gives the better view of the actual overhead of the
-protocol, whereas evaluating the transport from the application puts the
-overhead into perspective from a practical point of view.
+directly and when used from an application using the GNUnet core.
+Measureing just the transport layer gives the better view of the actual
+overhead of the protocol, whereas evaluating the transport from the
+application puts the overhead into perspective from a practical point of
+view.
 
 The loopback measurements of the SMTP transport were performed on three
-different machines spanning a range of modern SMTP configurations. We used a
-PIII-800 running RedHat 7.3 with the Purdue Computer Science configuration
-which includes filters for spam. We also used a Xenon 2 GHZ with a vanilla
-RedHat 8.0 sendmail configuration. Furthermore, we used qmail on a PIII-1000
-running Sorcerer GNU Linux (SGL). The numbers for UDP and TCP are provided
-using the SGL configuration. The qmail benchmark uses qmail's internal
-filtering whereas the sendmail benchmarks relies on procmail to filter and
-deliver the mail. We used the transport layer to send a message of b bytes
-(excluding transport protocol headers) directly to the local machine. This
-way, network latency and packet loss on the wire have no impact on the
-timings. n messages were sent sequentially over the transport layer, sending
-message i+1 after the i-th message was received. All messages were sent over
-the same connection and the time to establish the connection was not taken
-into account since this overhead is miniscule in practice --- as long as a
-connection is used for a significant number of messages.
+different machines spanning a range of modern SMTP configurations. We
+used a PIII-800 running RedHat 7.3 with the Purdue Computer Science
+configuration which includes filters for spam. We also used a Xenon 2 GHZ
+with a vanilla RedHat 8.0 sendmail configuration. Furthermore, we used
+qmail on a PIII-1000 running Sorcerer GNU Linux (SGL). The numbers for
+UDP and TCP are provided using the SGL configuration. The qmail benchmark
+uses qmail's internal filtering whereas the sendmail benchmarks relies on
+procmail to filter and deliver the mail. We used the transport layer to
+send a message of b bytes (excluding transport protocol headers) directly
+to the local machine. This way, network latency and packet loss on the
+wire have no impact on the timings. n messages were sent sequentially over
+the transport layer, sending message i+1 after the i-th message was
+received. All messages were sent over the same connection and the time to
+establish the connection was not taken into account since this overhead is
+miniscule in practice --- as long as a connection is used for a
+significant number of messages.
 
 @multitable @columnfractions .20 .15 .15 .15 .15 .15
 @headitem Transport @tab UDP @tab TCP @tab SMTP (Purdue sendmail) @tab SMTP (RH 8.0) @tab SMTP (SGL qmail)
@@ -3582,39 +3601,43 @@ connection is used for a significant number of messages.
 @end multitable
 
 The benchmarks show that UDP and TCP are, as expected, both significantly
-faster compared with any of the SMTP services. Among the SMTP implementations,
-there can be significant differences depending on the SMTP configuration.
-Filtering with an external tool like procmail that needs to re-parse its
-configuration for each mail can be very expensive. Applying spam filters can
-also significantly impact the performance of the underlying SMTP
-implementation. The microbenchmark shows that SMTP can be a viable solution
-for initiating peer-to-peer sessions: a couple of seconds to connect to a peer
-are probably not even going to be noticed by users. The next benchmark
-measures the possible throughput for a transport. Throughput can be measured
-by sending multiple messages in parallel and measuring packet loss. Note that
-not only UDP but also the TCP transport can actually loose messages since the
-TCP implementation drops messages if the @code{write} to the socket would
-block. While the SMTP protocol never drops messages itself, it is often so
+faster compared with any of the SMTP services. Among the SMTP
+implementations, there can be significant differences depending on the
+SMTP configuration. Filtering with an external tool like procmail that
+needs to re-parse its configuration for each mail can be very expensive.
+Applying spam filters can also significantly impact the performance of
+the underlying SMTP implementation. The microbenchmark shows that SMTP
+can be a viable solution for initiating peer-to-peer sessions: a couple of
+seconds to connect to a peer are probably not even going to be noticed by
+users. The next benchmark measures the possible throughput for a
+transport. Throughput can be measured by sending multiple messages in
+parallel and measuring packet loss. Note that not only UDP but also the
+TCP transport can actually loose messages since the TCP implementation
+drops messages if the @code{write} to the socket would block. While the
+SMTP protocol never drops messages itself, it is often so
 slow that only a fraction of the messages can be sent and received in the
 given time-bounds. For this benchmark we report the message loss after
 allowing t time for sending m messages. If messages were not sent (or
 received) after an overall timeout of t, they were considered lost. The
-benchmark was performed using two Xeon 2 GHZ machines running RedHat 8.0 with
-sendmail. The machines were connected with a direct 100 MBit ethernet
-connection.@ Figures udp1200, tcp1200 and smtp-MTUs show that the throughput
-for messages of size 1,200 octects is 2,343 kbps, 3,310 kbps and 6 kbps for
-UDP, TCP and SMTP respectively. The high per-message overhead of SMTP can be
-improved by increasing the MTU, for example, an MTU of 12,000 octets improves
-the throughput to 13 kbps as figure smtp-MTUs shows. Our research paper) has
-some more details on the benchmarking results.
+benchmark was performed using two Xeon 2 GHZ machines running RedHat 8.0
+with sendmail. The machines were connected with a direct 100 MBit ethernet
+connection.@ Figures udp1200, tcp1200 and smtp-MTUs show that the
+throughput for messages of size 1,200 octects is 2,343 kbps, 3,310 kbps
+and 6 kbps for UDP, TCP and SMTP respectively. The high per-message
+overhead of SMTP can be improved by increasing the MTU, for example, an
+MTU of 12,000 octets improves the throughput to 13 kbps as figure
+smtp-MTUs shows. Our research paper) has some more details on the
+benchmarking results.
 
 @node Bluetooth plugin
 @section Bluetooth plugin
 @c %**end of header
 
-This page describes the new Bluetooth transport plugin for GNUnet. The plugin
-is still in the testing stage so don't expect it to work perfectly. If you
-have any questions or problems just post them here or ask on the IRC channel.
+This page describes the new Bluetooth transport plugin for GNUnet. The
+plugin is still in the testing stage so don't expect it to work
+perfectly. If you have any questions or problems just post them here or
+ask on the IRC channel.
+
 @itemize @bullet
 @item What do I need to use the Bluetooth plugin transport?
 @item BluetoothHow does it work?
@@ -3638,52 +3661,56 @@ have any questions or problems just post them here or ask on the IRC channel.
 @subsection What do I need to use the Bluetooth plugin transport?
 @c %**end of header
 
-If you are a Linux user and you want to use the Bluetooth transport plugin you
-should install the BlueZ development libraries (if they aren't already
+If you are a Linux user and you want to use the Bluetooth transport plugin
+you should install the BlueZ development libraries (if they aren't already
 installed). For instructions about how to install the libraries you should
-check out the BlueZ site (@uref{http://www.bluez.org/, http://www.bluez.org}).
-If you don't know if you have the necesarry libraries, don't worry, just run
-the GNUnet configure script and you will be able to see a notification at the
-end which will warn you if you don't have the necessary libraries.
+check out the BlueZ site
+(@uref{http://www.bluez.org/, http://www.bluez.org}). If you don't know if
+you have the necesarry libraries, don't worry, just run the GNUnet
+configure script and you will be able to see a notification at the end
+which will warn you if you don't have the necessary libraries.
 
 If you are a Windows user you should have installed the
 @emph{MinGW}/@emph{MSys2} with the latest updates (especially the
-@emph{ws2bth} header). If this is your first build of GNUnet on Windows you
-should check out the SBuild repository. It will semi-automatically assembles a
-@emph{MinGW}/@emph{MSys2} installation with a lot of extra packages which are
-needed for the GNUnet build. So this will ease your work!@ Finally you just
-have to be sure that you have the correct drivers for your Bluetooth device
-installed and that your device is on and in a discoverable mode. The Windows
-Bluetooth Stack supports only the RFCOMM protocol so we cannot turn on your
-device programatically!
+@emph{ws2bth} header). If this is your first build of GNUnet on Windows
+you should check out the SBuild repository. It will semi-automatically
+assembles a @emph{MinGW}/@emph{MSys2} installation with a lot of extra
+packages which are needed for the GNUnet build. So this will ease your
+work!@ Finally you just have to be sure that you have the correct drivers
+for your Bluetooth device installed and that your device is on and in a
+discoverable mode. The Windows Bluetooth Stack supports only the RFCOMM
+protocol so we cannot turn on your device programatically!
 
+@c FIXME: Change to unique title
 @node How does it work2?
 @subsection How does it work2?
 @c %**end of header
 
-The Bluetooth transport plugin uses virtually the same code as the WLAN plugin
-and only the helper binary is different. The helper takes a single argument,
-which represents the interface name and is specified in the configuration
-file. Here are the basic steps that are followed by the helper binary used on
-Linux:
+The Bluetooth transport plugin uses virtually the same code as the WLAN
+plugin and only the helper binary is different. The helper takes a single
+argument, which represents the interface name and is specified in the
+configuration file. Here are the basic steps that are followed by the
+helper binary used on Linux:
 
 @itemize @bullet
 @item it verifies if the name corresponds to a Bluetooth interface name
-@item it verifies if the iterface is up (if it is not, it tries to bring it up)
-@item it tries to enable the page and inquiry scan in order to make the device
-discoverable and to accept incoming connection requests
+@item it verifies if the iterface is up (if it is not, it tries to bring
+it up)
+@item it tries to enable the page and inquiry scan in order to make the
+device discoverable and to accept incoming connection requests
 @emph{The above operations require root access so you should start the
 transport plugin with root privileges.}
-@item it finds an available port number and registers a SDP service which will
-be used to find out on which port number is the server listening on and switch
-the socket in listening mode
+@item it finds an available port number and registers a SDP service which
+will be used to find out on which port number is the server listening on
+and switch the socket in listening mode
 @item it sends a HELLO message with its address
-@item finally it forwards traffic from the reading sockets to the STDOUT and
-from the STDIN to the writing socket
+@item finally it forwards traffic from the reading sockets to the STDOUT
+and from the STDIN to the writing socket
 @end itemize
 
-Once in a while the device will make an inquiry scan to discover the nearby
-devices and it will send them randomly HELLO messages for peer discovery.
+Once in a while the device will make an inquiry scan to discover the
+nearby devices and it will send them randomly HELLO messages for peer
+discovery.
 
 @node What possible errors should I be aware of?
 @subsection What possible errors should I be aware of?
@@ -3693,43 +3720,47 @@ devices and it will send them randomly HELLO messages for peer discovery.
 
 Well there are many ways in which things could go wrong but I will try to
 present some tools that you could use to debug and some scenarios.
+
 @itemize @bullet
 
 @item @code{bluetoothd -n -d} : use this command to enable logging in the
 foreground and to print the logging messages
 
-@item @code{hciconfig}: can be used to configure the Bluetooth devices. If you
-run it without any arguments it will print information about the state of the
-interfaces. So if you receive an error that the device couldn't be brought up
-you should try to bring it manually and to see if it works (use @code{hciconfig
--a hciX up}). If you can't and the Bluetooth address has the form
-00:00:00:00:00:00 it means that there is something wrong with the D-Bus daemon
-or with the Bluetooth daemon. Use @code{bluetoothd} tool to see the logs
+@item @code{hciconfig}: can be used to configure the Bluetooth devices.
+If you run it without any arguments it will print information about the
+state of the interfaces. So if you receive an error that the device
+couldn't be brought up you should try to bring it manually and to see if
+it works (use @code{hciconfig -a hciX up}). If you can't and the
+Bluetooth address has the form 00:00:00:00:00:00 it means that there is
+something wrong with the D-Bus daemon or with the Bluetooth daemon. Use
+@code{bluetoothd} tool to see the logs
 
-@item @code{sdptool} can be used to control and interogate SDP servers. If you
-encounter problems regarding the SDP server (like the SDP server is down) you
-should check out if the D-Bus daemon is running correctly and to see if the
-Bluetooth daemon started correctly(use @code{bluetoothd} tool). Also, sometimes
-the SDP service could work but somehow the device couldn't register his
-service. Use @code{sdptool browse [dev-address]} to see if the service is
-registered. There should be a service with the name of the interface and GNUnet
-as provider.
+@item @code{sdptool} can be used to control and interogate SDP servers.
+If you encounter problems regarding the SDP server (like the SDP server is
+down) you should check out if the D-Bus daemon is running correctly and to
+see if the Bluetooth daemon started correctly(use @code{bluetoothd} tool).
+Also, sometimes the SDP service could work but somehow the device couldn't
+register his service. Use @code{sdptool browse [dev-address]} to see if
+the service is registered. There should be a service with the name of the
+interface and GNUnet as provider.
 
-@item @code{hcitool} : another useful tool which can be used to configure the
-device and to send some particular commands to it.
+@item @code{hcitool} : another useful tool which can be used to configure
+the device and to send some particular commands to it.
 
 @item @code{hcidump} : could be used for low level debugging
 @end itemize
 
+@c FIXME: A more unique name
 @node How do I configure my peer2?
 @subsection How do I configure my peer2?
 @c %**end of header
 
-On Linux, you just have to be sure that the interface name corresponds to the
-one that you want to use. Use the @code{hciconfig} tool to check that. By
-default it is set to hci0 but you can change it.
+On Linux, you just have to be sure that the interface name corresponds to
+the one that you want to use. Use the @code{hciconfig} tool to check that.
+By default it is set to hci0 but you can change it.
 
 A basic configuration looks like this:
+
 @example
 [transport-bluetooth]
 # Name of the interface (typically hciX)
@@ -3738,19 +3769,20 @@ INTERFACE = hci0
 TESTMODE = 0 TESTING_IGNORE_KEYS = ACCEPT_FROM;
 @end example
 
+In order to use the Bluetooth transport plugin when the transport service
+is started, you must add the plugin name to the default transport service
+plugins list. For example:
 
-In order to use the Bluetooth transport plugin when the transport service is
-started, you must add the plugin name to the default transport service plugins
-list. For example:
 @example
 [transport] ...  PLUGINS = dns bluetooth ...
 @end example
 
-If you want to use only the Bluetooth plugin set @emph{PLUGINS = bluetooth}
+If you want to use only the Bluetooth plugin set
+@emph{PLUGINS = bluetooth}
 
-On Windows, you cannot specify which device to use. The only thing that you
-should do is to add @emph{bluetooth} on the plugins list of the transport
-service.
+On Windows, you cannot specify which device to use. The only thing that
+you should do is to add @emph{bluetooth} on the plugins list of the
+transport service.
 
 @node How can I test it?
 @subsection How can I test it?
@@ -3758,42 +3790,46 @@ service.
 
 If you have two Bluetooth devices on the same machine which use Linux you
 must:
+
 @itemize @bullet
 
-@item create two different file configuration (one which will use the first
-interface (@emph{hci0}) and the other which will use the second interface
-(@emph{hci1})). Let's name them @emph{peer1.conf} and @emph{peer2.conf}.
+@item create two different file configuration (one which will use the
+first interface (@emph{hci0}) and the other which will use the second
+interface (@emph{hci1})). Let's name them @emph{peer1.conf} and
+@emph{peer2.conf}.
 
 @item run @emph{gnunet-peerinfo -c peerX.conf -s} in order to generate the
 peers private keys. The @strong{X} must be replace with 1 or 2.
 
-@item run @emph{gnunet-arm -c peerX.conf -s -i=transport} in order to start the
-transport service. (Make sure that you have "bluetooth" on the transport
-plugins list if the Bluetooth transport service doesn't start.)
+@item run @emph{gnunet-arm -c peerX.conf -s -i=transport} in order to
+start the transport service. (Make sure that you have "bluetooth" on the
+transport plugins list if the Bluetooth transport service doesn't start.)
 
-@item run @emph{gnunet-peerinfo -c peer1.conf -s} to get the first peer's ID.
-If you already know your peer ID (you saved it from the first command), this
-can be skipped.
+@item run @emph{gnunet-peerinfo -c peer1.conf -s} to get the first peer's
+ID. If you already know your peer ID (you saved it from the first
+command), this can be skipped.
 
-@item run @emph{gnunet-transport -c peer2.conf -p=PEER1_ID -s} to start sending
-data for benchmarking to the other peer.
+@item run @emph{gnunet-transport -c peer2.conf -p=PEER1_ID -s} to start
+sending data for benchmarking to the other peer.
+
 @end itemize
 
 
-This scenario will try to connect the second peer to the first one and then
-start sending data for benchmarking.
+This scenario will try to connect the second peer to the first one and
+then start sending data for benchmarking.
 
-On Windows you cannot test the plugin functionality using two Bluetooth devices
-from the same machine because after you install the drivers there will occur
-some conflicts between the Bluetooth stacks. (At least that is what happend on
-my machine : I wasn't able to use the Bluesoleil stack and the WINDCOMM one in
-the same time).
+On Windows you cannot test the plugin functionality using two Bluetooth
+devices from the same machine because after you install the drivers there
+will occur some conflicts between the Bluetooth stacks. (At least that is
+what happend on my machine : I wasn't able to use the Bluesoleil stack and
+the WINDCOMM one in the same time).
 
-If you have two different machines and your configuration files are good you
-can use the same scenario presented on the begining of this section.
+If you have two different machines and your configuration files are good
+you can use the same scenario presented on the begining of this section.
 
-Another way to test the plugin functionality is to create your own application
-which will use the GNUnet framework with the Bluetooth transport service.
+Another way to test the plugin functionality is to create your own
+application which will use the GNUnet framework with the Bluetooth
+transport service.
 
 @node The implementation of the Bluetooth transport plugin
 @subsection The implementation of the Bluetooth transport plugin
@@ -3801,12 +3837,13 @@ which will use the GNUnet framework with the Bluetooth transport service.
 
 This page describes the implementation of the Bluetooth transport plugin.
 
-First I want to remind you that the Bluetooth transport plugin uses virtually
-the same code as the WLAN plugin and only the helper binary is different. Also
-the scope of the helper binary from the Bluetooth transport plugin is the same
-as the one used for the wlan transport plugin: it acceses the interface and
-then it forwards traffic in both directions between the Bluetooth interface
-and stdin/stdout of the process involved.
+First I want to remind you that the Bluetooth transport plugin uses
+virtually the same code as the WLAN plugin and only the helper binary is
+different. Also the scope of the helper binary from the Bluetooth
+transport plugin is the same as the one used for the wlan transport
+plugin: it acceses the interface and then it forwards traffic in both
+directions between the Bluetooth interface and stdin/stdout of the
+process involved.
 
 The Bluetooth plugin transport could be used both on Linux and Windows
 platforms.
@@ -3834,9 +3871,9 @@ platforms.
 
 In order to implement the plugin functionality on Linux I used the BlueZ
 stack. For the communication with the other devices I used the RFCOMM
-protocol. Also I used the HCI protocol to gain some control over the device.
-The helper binary takes a single argument (the name of the Bluetooth
-interface) and is separated in two stages:
+protocol. Also I used the HCI protocol to gain some control over the
+device. The helper binary takes a single argument (the name of the
+Bluetooth interface) and is separated in two stages:
 
 @c %** 'THE INITIALIZATION' should be in bigger letters or stand out, not
 @c %** starting a new section?
@@ -3844,17 +3881,17 @@ interface) and is separated in two stages:
 @subsubsection THE INITIALIZATION
 
 @itemize @bullet
-@item first, it checks if we have root privilegies (@emph{Remember that we need
-to have root privilegies in order to be able to bring the interface up if it is
-down or to change its state.}).
+@item first, it checks if we have root privilegies
+(@emph{Remember that we need to have root privilegies in order to be able
+to bring the interface up if it is down or to change its state.}).
 
 @item second, it verifies if the interface with the given name exists.
 
 @strong{If the interface with that name exists and it is a Bluetooth
 interface:}
 
-@item it creates a RFCOMM socket which will be used for listening and call the
-@emph{open_device} method
+@item it creates a RFCOMM socket which will be used for listening and call
+the @emph{open_device} method
 
 On the @emph{open_device} method:
 @itemize @bullet
@@ -3866,14 +3903,14 @@ On the @emph{open_device} method:
 discoverable
 @item closes the HCI socket and binds the RFCOMM one
 @item switches the RFCOMM socket in listening mode
-@item registers the SDP service (the service will be used by the other devices
-to get the port on which this device is listening on)
+@item registers the SDP service (the service will be used by the other
+devices to get the port on which this device is listening on)
 @end itemize
 
 @item drops the root privilegies
 
-@strong{If the interface is not a Bluetooth interface the helper exits with a
-suitable error}
+@strong{If the interface is not a Bluetooth interface the helper exits
+with a suitable error}
 @end itemize
 
 @c %** Same as for @node entry above
@@ -3882,9 +3919,10 @@ suitable error}
 
 The helper binary uses a list where it saves all the connected neighbour
 devices (@emph{neighbours.devices}) and two buffers (@emph{write_pout} and
-@emph{write_std}). The first message which is send is a control message with
-the device's MAC address in order to announce the peer presence to the
-neighbours. Here are a short description of what happens in the main loop:
+@emph{write_std}). The first message which is send is a control message
+with the device's MAC address in order to announce the peer presence to
+the neighbours. Here are a short description of what happens in the main
+loop:
 
 @itemize @bullet
 @item Every time when it receives something from the STDIN it processes the
