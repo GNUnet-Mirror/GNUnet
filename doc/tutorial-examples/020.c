@@ -5,7 +5,8 @@ get_result_iterator (void *cls, struct GNUNET_TIME_Absolute expiration,
                      unsigned int get_path_length,
                      const struct GNUNET_PeerIdentity *put_path,
                      unsigned int put_path_length,
-                     enum GNUNET_BLOCK_Type type, size_t size, const void *data)
+                     enum GNUNET_BLOCK_Type type, size_t size,
+                     const void *data)
 {
   // Optionally:
   GNUNET_DHT_get_stop (get_handle);
