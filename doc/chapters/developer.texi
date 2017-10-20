@@ -110,7 +110,8 @@ following links:
 @c ** FIXME: Link to files in source, not online.
 @c ** FIXME: Where is the Java tutorial?
 @itemize @bullet
-@item @uref{https://gnunet.org/git/gnunet.git/plain/doc/gnunet-c-tutorial.pdf, GNUnet C tutorial}
+@item @uref{https://gnunet.org/git/gnunet.git/plain/doc/gnunet-c-tutoria
+l.pdf, GNUnet C tutorial}
 @item GNUnet Java tutorial
 @end itemize
 
@@ -128,7 +129,8 @@ The public subsystems on the GNUnet server that help developers are:
 @item The Version control system keeps our code and enables distributed
 development. Only developers with write access can commit code, everyone
 else is encouraged to submit patches to the
-@uref{https://lists.gnu.org/mailman/listinfo/gnunet-developers, GNUnet-developers mailinglist}.
+@uref{https://lists.gnu.org/mailman/listinfo/gnunet-developers,
+GNUnet-developers mailinglist}.
 @item The GNUnet bugtracking system is used to track feature requests,
 open bug reports and their resolutions. Anyone can report bugs, only
 developers can claim to have fixed them.
@@ -4108,6 +4110,7 @@ maturity, and it is still unclear if any particular plugin is generally
 superior.
 
 @cindex core subsystem
+@cindex CORE subsystem
 @node GNUnet's CORE Subsystem
 @section GNUnet's CORE Subsystem
 @c %**end of header
@@ -4120,8 +4123,8 @@ then adds fundamental security to the connections:
 
 @itemize @bullet
 @item confidentiality with so-called perfect forward secrecy; we use
-ECDHE@footnote{Elliptic-curve Diffie—Hellman
-@uref{http://en.wikipedia.org/wiki/Elliptic_curve_Diffie%E2%80%93Hellman}}
+ECDHE@footnote{@uref{http://en.wikipedia.org/wiki/Elliptic_curve_
+Diffie%E2%80%93Hellman, Elliptic-curve Diffie---Hellman}}
 powered by Curve25519
 @footnote{@uref{http://cr.yp.to/ecdh.html, Curve25519}} for the key
 exchange and then use symmetric encryption, encrypting with both AES-256
@@ -4279,11 +4282,12 @@ using (as theoretically the application may be using a different
 configuration file with a different private key, which would result in
 hard to find bugs).
 
-As with most service APIs, the CORE API isolates applications from crashes of
-the CORE service. If the CORE service crashes, the application will see
+As with most service APIs, the CORE API isolates applications from crashes
+of the CORE service. If the CORE service crashes, the application will see
 disconnect events for all existing connections. Once the connections are
 re-established, the applications will be receive matching connect events.
 
+@cindex core clinet-service protocol
 @node The CORE Client-Service Protocol
 @subsection The CORE Client-Service Protocol
 @c %**end of header
@@ -4305,59 +4309,61 @@ service (the client) and the CORE service process itself.
 When a client connects to the CORE service, it first sends a
 @code{InitMessage} which specifies options for the connection and a set of
 message type values which are supported by the application. The options
-bitmask specifies which events the client would like to be notified about. The
-options include:
+bitmask specifies which events the client would like to be notified about.
+The options include:
 
 @table @asis
 @item GNUNET_CORE_OPTION_NOTHING No notifications
 @item GNUNET_CORE_OPTION_STATUS_CHANGE Peers connecting and disconnecting
-@item GNUNET_CORE_OPTION_FULL_INBOUND All inbound messages (after decryption) with
-full payload
+@item GNUNET_CORE_OPTION_FULL_INBOUND All inbound messages (after
+decryption) with full payload
 @item GNUNET_CORE_OPTION_HDR_INBOUND Just the @code{MessageHeader}
 of all inbound messages
 @item GNUNET_CORE_OPTION_FULL_OUTBOUND All outbound
 messages (prior to encryption) with full payload
-@item GNUNET_CORE_OPTION_HDR_OUTBOUND Just the @code{MessageHeader} of all outbound
-messages
+@item GNUNET_CORE_OPTION_HDR_OUTBOUND Just the @code{MessageHeader} of all
+outbound messages
 @end table
 
 Typical applications will only monitor for connection status changes.
 
 The CORE service responds to the @code{InitMessage} with an
-@code{InitReplyMessage} which contains the peer's identity. Afterwards, both
-CORE and the client can send messages.
+@code{InitReplyMessage} which contains the peer's identity. Afterwards,
+both CORE and the client can send messages.
 
 @node Notifications
 @subsubsection Notifications
 @c %**end of header
 
 The CORE will send @code{ConnectNotifyMessage}s and
-@code{DisconnectNotifyMessage}s whenever peers connect or disconnect from the
-CORE (assuming their type maps overlap with the message types registered by
-the client). When the CORE receives a message that matches the set of message
-types specified during the @code{InitMessage} (or if monitoring is enabled in
-for inbound messages in the options), it sends a @code{NotifyTrafficMessage}
-with the peer identity of the sender and the decrypted payload. The same
-message format (except with @code{GNUNET_MESSAGE_TYPE_CORE_NOTIFY_OUTBOUND}
-for the message type) is used to notify clients monitoring outbound messages;
-here, the peer identity given is that of the receiver.
+@code{DisconnectNotifyMessage}s whenever peers connect or disconnect from
+the CORE (assuming their type maps overlap with the message types
+registered by the client). When the CORE receives a message that matches
+the set of message types specified during the @code{InitMessage} (or if
+monitoring is enabled in for inbound messages in the options), it sends a
+@code{NotifyTrafficMessage} with the peer identity of the sender and the
+decrypted payload. The same message format (except with
+@code{GNUNET_MESSAGE_TYPE_CORE_NOTIFY_OUTBOUND} for the message type) is
+used to notify clients monitoring outbound messages; here, the peer
+identity given is that of the receiver.
 
 @node Sending
 @subsubsection Sending
 @c %**end of header
 
-When a client wants to transmit a message, it first requests a transmission
-slot by sending a @code{SendMessageRequest} which specifies the priority,
-deadline and size of the message. Note that these values may be ignored by
-CORE. When CORE is ready for the message, it answers with a
-@code{SendMessageReady} response. The client can then transmit the payload
-with a @code{SendMessage} message. Note that the actual message size in the
-@code{SendMessage} is allowed to be smaller than the size in the original
-request. A client may at any time send a fresh @code{SendMessageRequest},
-which then superceeds the previous @code{SendMessageRequest}, which is then no
-longer valid. The client can tell which @code{SendMessageRequest} the CORE
-service's @code{SendMessageReady} message is for as all of these messages
-contain a "unique" request ID (based on a counter incremented by the client
+When a client wants to transmit a message, it first requests a
+transmission slot by sending a @code{SendMessageRequest} which specifies
+the priority, deadline and size of the message. Note that these values
+may be ignored by CORE. When CORE is ready for the message, it answers
+with a @code{SendMessageReady} response. The client can then transmit the
+payload with a @code{SendMessage} message. Note that the actual message
+size in the @code{SendMessage} is allowed to be smaller than the size in
+the original request. A client may at any time send a fresh
+@code{SendMessageRequest}, which then superceeds the previous
+@code{SendMessageRequest}, which is then no longer valid. The client can
+tell which @code{SendMessageRequest} the CORE service's
+@code{SendMessageReady} message is for as all of these messages contain a
+"unique" request ID (based on a counter incremented by the client
 for each request).
 
 @node The CORE Peer-to-Peer Protocol
@@ -4372,60 +4378,65 @@ for each request).
 * Type maps::
 @end menu
 
+@cindex EphemeralKeyMessage creation
 @node Creating the EphemeralKeyMessage
 @subsubsection Creating the EphemeralKeyMessage
 @c %**end of header
 
 When the CORE service starts, each peer creates a fresh ephemeral (ECC)
-public-private key pair and signs the corresponding @code{EphemeralKeyMessage}
-with its long-term key (which we usually call the peer's identity; the hash of
-the public long term key is what results in a @code{struct
-GNUNET_PeerIdentity} in all GNUnet APIs. The ephemeral key is ONLY used for an
-@uref{http://en.wikipedia.org/wiki/Elliptic_curve_Diffie%E2%80%93Hellman,
-ECDHE} exchange by the CORE service to establish symmetric session keys. A
-peer will use the same @code{EphemeralKeyMessage} for all peers for
-@code{REKEY_FREQUENCY}, which is usually 12 hours. After that time, it will
-create a fresh ephemeral key (forgetting the old one) and broadcast the new
-@code{EphemeralKeyMessage} to all connected peers, resulting in fresh
-symmetric session keys. Note that peers independently decide on when to
-discard ephemeral keys; it is not a protocol violation to discard keys more
-often. Ephemeral keys are also never stored to disk; restarting a peer will
-thus always create a fresh ephemeral key. The use of ephemeral keys is what
-provides @uref{http://en.wikipedia.org/wiki/Forward_secrecy, forward secrecy}.
+public-private key pair and signs the corresponding
+@code{EphemeralKeyMessage} with its long-term key (which we usually call
+the peer's identity; the hash of the public long term key is what results
+in a @code{struct GNUNET_PeerIdentity} in all GNUnet APIs. The ephemeral
+key is ONLY used for an ECDHE@footnote{@uref{http://en.wikipedia.org/wiki/
+Elliptic_curve_Diffie%E2%80%93Hellman, Elliptic-curve Diffie---Hellman}}
+exchange by the CORE service to establish symmetric session keys. A peer
+will use the same @code{EphemeralKeyMessage} for all peers for
+@code{REKEY_FREQUENCY}, which is usually 12 hours. After that time, it
+will create a fresh ephemeral key (forgetting the old one) and broadcast
+the new @code{EphemeralKeyMessage} to all connected peers, resulting in
+fresh symmetric session keys. Note that peers independently decide on
+when to discard ephemeral keys; it is not a protocol violation to discard
+keys more often. Ephemeral keys are also never stored to disk; restarting
+a peer will thus always create a fresh ephemeral key. The use of ephemeral
+keys is what provides @uref{http://en.wikipedia.org/wiki/Forward_secrecy,
+forward secrecy}.
 
-Just before transmission, the @code{EphemeralKeyMessage} is patched to reflect
-the current sender_status, which specifies the current state of the connection
-from the point of view of the sender. The possible values are:
+Just before transmission, the @code{EphemeralKeyMessage} is patched to
+reflect the current sender_status, which specifies the current state of
+the connection from the point of view of the sender. The possible values
+are:
 
-@table @asis
-@item KX_STATE_DOWN Initial value, never used on the network
-@item KX_STATE_KEY_SENT We sent our ephemeral key, do not know the key of the other
-peer
-@item KX_STATE_KEY_RECEIVED This peer has received a valid ephemeral key
-of the other peer, but we are waiting for the other peer to confirm it's
-authenticity (ability to decode) via challenge-response.
-@item KX_STATE_UP The
-connection is fully up from the point of view of the sender (now performing
-keep-alives)
-@item KX_STATE_REKEY_SENT The sender has initiated a rekeying
-operation; the other peer has so far failed to confirm a working connection
-using the new ephemeral key
-@end table
+@itemize @bullet
+@item @code{KX_STATE_DOWN} Initial value, never used on the network
+@item @code{KX_STATE_KEY_SENT} We sent our ephemeral key, do not know the
+key of the other peer
+@item @code{KX_STATE_KEY_RECEIVED} This peer has received a valid
+ephemeral key of the other peer, but we are waiting for the other peer to
+confirm it's authenticity (ability to decode) via challenge-response.
+@item @code{KX_STATE_UP} The connection is fully up from the point of
+view of the sender (now performing keep-alives)
+@item @code{KX_STATE_REKEY_SENT} The sender has initiated a rekeying
+operation; the other peer has so far failed to confirm a working
+connection using the new ephemeral key
+@end itemize
 
 @node Establishing a connection
 @subsubsection Establishing a connection
 @c %**end of header
 
-Peers begin their interaction by sending a @code{EphemeralKeyMessage} to the
-other peer once the TRANSPORT service notifies the CORE service about the
-connection. A peer receiving an @code{EphemeralKeyMessage} with a status
+Peers begin their interaction by sending a @code{EphemeralKeyMessage} to
+the other peer once the TRANSPORT service notifies the CORE service about
+the connection.
+A peer receiving an @code{EphemeralKeyMessage} with a status
 indicating that the sender does not have the receiver's ephemeral key, the
-receiver's @code{EphemeralKeyMessage} is sent in response.@ Additionally, if
-the receiver has not yet confirmed the authenticity of the sender, it also
-sends an (encrypted)@code{PingMessage} with a challenge (and the identity of
-the target) to the other peer. Peers receiving a @code{PingMessage} respond
-with an (encrypted) @code{PongMessage} which includes the challenge. Peers
-receiving a @code{PongMessage} check the challenge, and if it matches set the
+receiver's @code{EphemeralKeyMessage} is sent in response.
+Additionally, if the receiver has not yet confirmed the authenticity of
+the sender, it also sends an (encrypted)@code{PingMessage} with a
+challenge (and the identity of the target) to the other peer. Peers
+receiving a @code{PingMessage} respond with an (encrypted)
+@code{PongMessage} which includes the challenge. Peers receiving a
+@code{PongMessage} check the challenge, and if it matches set the
 connection to @code{KX_STATE_UP}.
 
 @node Encryption and Decryption
@@ -4433,26 +4444,27 @@ connection to @code{KX_STATE_UP}.
 @c %**end of header
 
 All functions related to the key exchange and encryption/decryption of
-messages can be found in @code{gnunet-service-core_kx.c} (except for the
-cryptographic primitives, which are in @code{util/crypto*.c}).@ Given the key
-material from ECDHE, a
-@uref{http://en.wikipedia.org/wiki/Key_derivation_function, Key derivation
-function} is used to derive two pairs of encryption and decryption keys for
-AES-256 and TwoFish, as well as initialization vectors and authentication keys
-(for @uref{http://en.wikipedia.org/wiki/HMAC, HMAC}). The HMAC is computed
-over the encrypted payload. Encrypted messages include an iv_seed and the HMAC
-in the header.
+messages can be found in @file{gnunet-service-core_kx.c} (except for the
+cryptographic primitives, which are in @file{util/crypto*.c}).
+Given the key material from ECDHE, a Key derivation function
+@footnote{@uref{https://en.wikipedia.org/wiki/Key_derivation_function, Key
+derivation function}} is used to derive two pairs of encryption and
+decryption keys for AES-256 and TwoFish, as well as initialization vectors
+and authentication keys (for HMAC@footnote{@uref{https://en.wikipedia.org/
+wiki/HMAC, HMAC}}). The HMAC is computed over the encrypted payload.
+Encrypted messages include an iv_seed and the HMAC in the header.
 
-Each encrypted message in the CORE service includes a sequence number and a
-timestamp in the encrypted payload. The CORE service remembers the largest
-observed sequence number and a bit-mask which represents which of the previous
-32 sequence numbers were already used. Messages with sequence numbers lower
-than the largest observed sequence number minus 32 are discarded. Messages
-with a timestamp that is less than @code{REKEY_TOLERANCE} off (5 minutes) are
-also discarded. This of course means that system clocks need to be reasonably
-synchronized for peers to be able to communicate. Additionally, as the
-ephemeral key changes every 12h, a peer would not even be able to decrypt
-messages older than 12h.
+Each encrypted message in the CORE service includes a sequence number and
+a timestamp in the encrypted payload. The CORE service remembers the
+largest observed sequence number and a bit-mask which represents which of
+the previous 32 sequence numbers were already used.
+Messages with sequence numbers lower than the largest observed sequence
+number minus 32 are discarded. Messages with a timestamp that is less
+than @code{REKEY_TOLERANCE} off (5 minutes) are also discarded. This of
+course means that system clocks need to be reasonably synchronized for
+peers to be able to communicate. Additionally, as the ephemeral key
+changes every 12 hours, a peer would not even be able to decrypt messages
+older than 12 hours.
 
 @node Type maps
 @subsubsection Type maps
@@ -4460,103 +4472,111 @@ messages older than 12h.
 
 Once an encrypted connection has been established, peers begin to exchange
 type maps. Type maps are used to allow the CORE service to determine which
-(encrypted) connections should be shown to which applications. A type map is
-an array of 65536 bits representing the different types of messages understood
-by applications using the CORE service. Each CORE service maintains this map,
-simply by setting the respective bit for each message type supported by any of
-the applications using the CORE service. Note that bits for message types
-embedded in higher-level protocols (such as MESH) will not be included in
-these type maps.
+(encrypted) connections should be shown to which applications. A type map
+is an array of 65536 bits representing the different types of messages
+understood by applications using the CORE service. Each CORE service
+maintains this map, simply by setting the respective bit for each message
+type supported by any of the applications using the CORE service. Note
+that bits for message types embedded in higher-level protocols (such as
+MESH) will not be included in these type maps.
 
 Typically, the type map of a peer will be sparse. Thus, the CORE service
 attempts to compress its type map using @code{gzip}-style compression
 ("deflate") prior to transmission. However, if the compression fails to
 compact the map, the map may also be transmitted without compression
 (resulting in @code{GNUNET_MESSAGE_TYPE_CORE_COMPRESSED_TYPE_MAP} or
-@code{GNUNET_MESSAGE_TYPE_CORE_BINARY_TYPE_MAP} messages respectively). Upon
-receiving a type map, the respective CORE service notifies applications about
-the connection to the other peer if they support any message type indicated in
-the type map (or no message type at all). If the CORE service experience a
-connect or disconnect event from an application, it updates its type map
-(setting or unsetting the respective bits) and notifies its neighbours about
-the change. The CORE services of the neighbours then in turn generate connect
-and disconnect events for the peer that sent the type map for their respective
+@code{GNUNET_MESSAGE_TYPE_CORE_BINARY_TYPE_MAP} messages respectively).
+Upon receiving a type map, the respective CORE service notifies
+applications about the connection to the other peer if they support any
+message type indicated in the type map (or no message type at all).
+If the CORE service experience a connect or disconnect event from an
+application, it updates its type map (setting or unsetting the respective
+bits) and notifies its neighbours about the change.
+The CORE services of the neighbours then in turn generate connect and
+disconnect events for the peer that sent the type map for their respective
 applications. As CORE messages may be lost, the CORE service confirms
 receiving a type map by sending back a
-@code{GNUNET_MESSAGE_TYPE_CORE_CONFIRM_TYPE_MAP}. If such a confirmation (with
-the correct hash of the type map) is not received, the sender will retransmit
-the type map (with exponential back-off).
+@code{GNUNET_MESSAGE_TYPE_CORE_CONFIRM_TYPE_MAP}. If such a confirmation
+(with the correct hash of the type map) is not received, the sender will
+retransmit the type map (with exponential back-off).
 
+@cindex cadet subsystem
+@cindex CADET
 @node GNUnet's CADET subsystem
 @section GNUnet's CADET subsystem
 
 The CADET subsystem in GNUnet is responsible for secure end-to-end
-communications between nodes in the GNUnet overlay network. CADET builds on the
-CORE subsystem which provides for the link-layer communication and then adds
-routing, forwarding and additional security to the connections. CADET offers
-the same cryptographic services as CORE, but on an end-to-end level. This is
-done so peers retransmitting traffic on behalf of other peers cannot access the
-payload data.
+communications between nodes in the GNUnet overlay network. CADET builds
+on the CORE subsystem which provides for the link-layer communication and
+then adds routing, forwarding and additional security to the connections.
+CADET offers the same cryptographic services as CORE, but on an
+end-to-end level. This is done so peers retransmitting traffic on behalf
+of other peers cannot access the payload data.
 
 @itemize @bullet
-@item CADET provides confidentiality with so-called perfect forward secrecy; we
-use ECDHE powered by Curve25519 for the key exchange and then use symmetric
-encryption, encrypting with both AES-256 and Twofish
-@item authentication is achieved by signing the ephemeral keys using Ed25519, a
-deterministic variant of ECDSA
-@item integrity protection (using SHA-512 to do encrypt-then-MAC, although only
-256 bits are sent to reduce overhead)
-@item replay protection (using nonces, timestamps, challenge-response, message
-counters and ephemeral keys)
+@item CADET provides confidentiality with so-called perfect forward
+secrecy; we use ECDHE powered by Curve25519 for the key exchange and then
+use symmetric encryption, encrypting with both AES-256 and Twofish
+@item authentication is achieved by signing the ephemeral keys using
+Ed25519, a deterministic variant of ECDSA
+@item integrity protection (using SHA-512 to do encrypt-then-MAC, although
+only 256 bits are sent to reduce overhead)
+@item replay protection (using nonces, timestamps, challenge-response,
+message counters and ephemeral keys)
 @item liveness (keep-alive messages, timeout)
 @end itemize
 
-Additional to the CORE-like security benefits, CADET offers other properties
-that make it a more universal service than CORE.
+Additional to the CORE-like security benefits, CADET offers other
+properties that make it a more universal service than CORE.
 
 @itemize @bullet
-@item CADET can establish channels to arbitrary peers in GNUnet. If a peer is
-not immediately reachable, CADET will find a path through the network and ask
-other peers to retransmit the traffic on its behalf.
-@item CADET offers (optional) reliability mechanisms. In a reliable channel
-traffic is guaranteed to arrive complete, unchanged and in-order.
-@item CADET takes care of flow and congestion control mechanisms, not allowing
-the sender to send more traffic than the receiver or the network are able to
-process.
+@item CADET can establish channels to arbitrary peers in GNUnet. If a
+peer is not immediately reachable, CADET will find a path through the
+network and ask other peers to retransmit the traffic on its behalf.
+@item CADET offers (optional) reliability mechanisms. In a reliable
+channel traffic is guaranteed to arrive complete, unchanged and in-order.
+@item CADET takes care of flow and congestion control mechanisms, not
+allowing the sender to send more traffic than the receiver or the network
+are able to process.
 @end itemize
 
 @menu
 * libgnunetcadet::
 @end menu
 
+@cindex libgnunetcadet
 @node libgnunetcadet
 @subsection libgnunetcadet
 
 
-The CADET API (defined in gnunet_cadet_service.h) is the messaging API used by
-P2P applications built using GNUnet. It provides applications the ability to
-send and receive encrypted messages to any peer participating in GNUnet. The
-API is heavily base on the CORE API.
+The CADET API (defined in @file{gnunet_cadet_service.h}) is the
+messaging API used by P2P applications built using GNUnet.
+It provides applications the ability to send and receive encrypted
+messages to any peer participating in GNUnet.
+The API is heavily base on the CORE API.
 
-CADET delivers messages to other peers in "channels". A channel is a permanent
-connection defined by a destination peer (identified by its public key) and a
-port number. Internally, CADET tunnels all channels towards a destiantion peer
+CADET delivers messages to other peers in "channels".
+A channel is a permanent connection defined by a destination peer
+(identified by its public key) and a port number.
+Internally, CADET tunnels all channels towards a destiantion peer
 using one session key and relays the data on multiple "connections",
 independent from the channels.
 
-Each channel has optional paramenters, the most important being the reliability
-flag. Should a message get lost on TRANSPORT/CORE level, if a channel is
-created with as reliable, CADET will retransmit the lost message and deliver it
-in order to the destination application.
+Each channel has optional paramenters, the most important being the
+reliability flag.
+Should a message get lost on TRANSPORT/CORE level, if a channel is
+created with as reliable, CADET will retransmit the lost message and
+deliver it in order to the destination application.
 
-To communicate with other peers using CADET, it is necessary to first connect
-to the service using @code{GNUNET_CADET_connect}. This function takes several
-parameters in form of callbacks, to allow the client to react to various
-events, like incoming channels or channels that terminate, as well as specify a
-list of ports the client wishes to listen to (at the moment it is not possible
-to start listening on further ports once connected, but nothing prevents a
-client to connect several times to CADET, even do one connection per listening
-port). The function returns a handle which has to be used for any further
+To communicate with other peers using CADET, it is necessary to first
+connect to the service using @code{GNUNET_CADET_connect}.
+This function takes several parameters in form of callbacks, to allow the
+client to react to various events, like incoming channels or channels that
+terminate, as well as specify a list of ports the client wishes to listen
+to (at the moment it is not possible to start listening on further ports
+once connected, but nothing prevents a client to connect several times to
+CADET, even do one connection per listening port).
+The function returns a handle which has to be used for any further
 interaction with the service.
 
 To connect to a remote peer a client has to call the
@@ -4564,62 +4584,69 @@ To connect to a remote peer a client has to call the
 given are the remote peer's identity (it public key) and a port, which
 specifies which application on the remote peer to connect to, similar to
 TCP/UDP ports. CADET will then find the peer in the GNUnet network and
-establish the proper low-level connections and do the necessary key exchanges
-to assure and authenticated, secure and verified communication. Similar to
-@code{GNUNET_CADET_connect},@code{GNUNET_CADET_create_channel} returns a handle
-to interact with the created channel.
+establish the proper low-level connections and do the necessary key
+exchanges to assure and authenticated, secure and verified communication.
+Similar to @code{GNUNET_CADET_connect},@code{GNUNET_CADET_create_channel}
+returns a handle to interact with the created channel.
 
 For every message the client wants to send to the remote application,
 @code{GNUNET_CADET_notify_transmit_ready} must be called, indicating the
-channel on which the message should be sent and the size of the message (but
-not the message itself!). Once CADET is ready to send the message, the provided
-callback will fire, and the message contents are provided to this callback.
+channel on which the message should be sent and the size of the message
+(but not the message itself!). Once CADET is ready to send the message,
+the provided callback will fire, and the message contents are provided to
+this callback.
 
 Please note the CADET does not provide an explicit notification of when a
-channel is connected. In loosely connected networks, like big wireless mesh
-networks, this can take several seconds, even minutes in the worst case. To be
-alerted when a channel is online, a client can call
+channel is connected. In loosely connected networks, like big wireless
+mesh networks, this can take several seconds, even minutes in the worst
+case. To be alerted when a channel is online, a client can call
 @code{GNUNET_CADET_notify_transmit_ready} immediately after
-@code{GNUNET_CADET_create_channel}. When the callback is activated, it means
-that the channel is online. The callback can give 0 bytes to CADET if no
-message is to be sent, this is ok.
+@code{GNUNET_CADET_create_channel}. When the callback is activated, it
+means that the channel is online. The callback can give 0 bytes to CADET
+if no message is to be sent, this is ok.
 
-If a transmission was requested but before the callback fires it is no longer
-needed, it can be cancelled with
-@code{GNUNET_CADET_notify_transmit_ready_cancel}, which uses the handle given
-back by @code{GNUNET_CADET_notify_transmit_ready}. As in the case of CORE, only
-one message can be requested at a time: a client must not call
-@code{GNUNET_CADET_notify_transmit_ready} again until the callback is called or
-the request is cancelled.
+If a transmission was requested but before the callback fires it is no
+longer needed, it can be cancelled with
+@code{GNUNET_CADET_notify_transmit_ready_cancel}, which uses the handle
+given back by @code{GNUNET_CADET_notify_transmit_ready}.
+As in the case of CORE, only one message can be requested at a time: a
+client must not call @code{GNUNET_CADET_notify_transmit_ready} again until
+the callback is called or the request is cancelled.
 
 When a channel is no longer needed, a client can call
-@code{GNUNET_CADET_channel_destroy} to get rid of it. Note that CADET will try
-to transmit all pending traffic before notifying the remote peer of the
-destruction of the channel, including retransmitting lost messages if the
-channel was reliable.
+@code{GNUNET_CADET_channel_destroy} to get rid of it.
+Note that CADET will try to transmit all pending traffic before notifying
+the remote peer of the destruction of the channel, including
+retransmitting lost messages if the channel was reliable.
 
-Incoming channels, channels being closed by the remote peer, and traffic on any
-incoming or outgoing channels are given to the client when CADET executes the
-callbacks given to it at the time of @code{GNUNET_CADET_connect}.
+Incoming channels, channels being closed by the remote peer, and traffic
+on any incoming or outgoing channels are given to the client when CADET
+executes the callbacks given to it at the time of
+@code{GNUNET_CADET_connect}.
 
 Finally, when an application no longer wants to use CADET, it should call
 @code{GNUNET_CADET_disconnect}, but first all channels and pending
 transmissions must be closed (otherwise CADET will complain).
 
+@cindex nse subsystem
+@cindex NSE
 @node GNUnet's NSE subsystem
 @section GNUnet's NSE subsystem
 
 
-NSE stands for Network Size Estimation. The NSE subsystem provides other
-subsystems and users with a rough estimate of the number of peers currently
-participating in the GNUnet overlay. The computed value is not a precise number
-as producing a precise number in a decentralized, efficient and secure way is
-impossible. While NSE's estimate is inherently imprecise, NSE also gives the
-expected range. For a peer that has been running in a stable network for a
-while, the real network size will typically (99.7% of the time) be in the range
-of [2/3 estimate, 3/2 estimate]. We will now give an overview of the algorithm
-used to calcualte the estimate; all of the details can be found in this
-technical report.
+NSE stands for @dfn{Network Size Estimation}. The NSE subsystem provides
+other subsystems and users with a rough estimate of the number of peers
+currently participating in the GNUnet overlay.
+The computed value is not a precise number as producing a precise number
+in a decentralized, efficient and secure way is impossible.
+While NSE's estimate is inherently imprecise, NSE also gives the expected
+range. For a peer that has been running in a stable network for a
+while, the real network size will typically (99.7% of the time) be in the
+range of [2/3 estimate, 3/2 estimate]. We will now give an overview of the
+algorithm used to calculate the estimate;
+all of the details can be found in this technical report.
+
+@c FIXME: link to the report.
 
 @menu
 * Motivation::
@@ -4634,13 +4661,14 @@ technical report.
 
 
 Some subsytems, like DHT, need to know the size of the GNUnet network to
-optimize some parameters of their own protocol. The decentralized nature of
-GNUnet makes efficient and securely counting the exact number of peers
-infeasable. Although there are several decentralized algorithms to count the
-number of peers in a system, so far there is none to do so securely. Other
-protocols may allow any malicious peer to manipulate the final result or to
-take advantage of the system to perform DoS (Denial of Service) attacks against
-the network. GNUnet's NSE protocol avoids these drawbacks.
+optimize some parameters of their own protocol. The decentralized nature
+of GNUnet makes efficient and securely counting the exact number of peers
+infeasable. Although there are several decentralized algorithms to count
+the number of peers in a system, so far there is none to do so securely.
+Other protocols may allow any malicious peer to manipulate the final
+result or to take advantage of the system to perform
+@dfn{Denial of Service} (DoS) attacks against the network.
+GNUnet's NSE protocol avoids these drawbacks.
 
 
 
@@ -4648,28 +4676,34 @@ the network. GNUnet's NSE protocol avoids these drawbacks.
 * Security::
 @end menu
 
+@cindex NSE security
+@cindex nse security
 @node Security
 @subsubsection Security
 
 
-The NSE subsystem is designed to be resilient against these attacks. It uses
-@uref{http://en.wikipedia.org/wiki/Proof-of-work_system, proofs of work} to
-prevent one peer from impersonating a large number of participants, which would
-otherwise allow an adversary to artifically inflate the estimate. The DoS
-protection comes from the time-based nature of the protocol: the estimates are
-calculated periodically and out-of-time traffic is either ignored or stored for
-later retransmission by benign peers. In particular, peers cannot trigger
-global network communication at will.
+The NSE subsystem is designed to be resilient against these attacks.
+It uses @uref{http://en.wikipedia.org/wiki/Proof-of-work_system, proofs
+of work} to prevent one peer from impersonating a large number of
+participants, which would otherwise allow an adversary to artifically
+inflate the estimate.
+The DoS protection comes from the time-based nature of the protocol:
+the estimates are calculated periodically and out-of-time traffic is
+either ignored or stored for later retransmission by benign peers.
+In particular, peers cannot trigger global network communication at will.
 
+@cindex NSE principle
+@cindex nse principle
 @node Principle
 @subsection Principle
 
 
-The algorithm calculates the estimate by finding the globally closest peer ID
-to a random, time-based value.
+The algorithm calculates the estimate by finding the globally closest
+peer ID to a random, time-based value.
 
-The idea is that the closer the ID is to the random value, the more "densely
-packed" the ID space is, and therefore, more peers are in the network.
+The idea is that the closer the ID is to the random value, the more
+"densely packed" the ID space is, and therefore, more peers are in the
+network.
 
 
 
@@ -4686,48 +4720,51 @@ packed" the ID space is, and therefore, more peers are in the network.
 @subsubsection Example
 
 
-Suppose all peers have IDs between 0 and 100 (our ID space), and the random
-value is 42. If the closest peer has the ID 70 we can imagine that the average
-"distance" between peers is around 30 and therefore the are around 3 peers in
-the whole ID space. On the other hand, if the closest peer has the ID 44, we
-can imagine that the space is rather packed with peers, maybe as much as 50 of
-them. Naturally, we could have been rather unlucky, and there is only one peer
-and happens to have the ID 44. Thus, the current estimate is calculated as the
-average over multiple rounds, and not just a single sample.
+Suppose all peers have IDs between 0 and 100 (our ID space), and the
+random value is 42.
+If the closest peer has the ID 70 we can imagine that the average
+"distance" between peers is around 30 and therefore the are around 3
+peers in the whole ID space. On the other hand, if the closest peer has
+the ID 44, we can imagine that the space is rather packed with peers,
+maybe as much as 50 of them.
+Naturally, we could have been rather unlucky, and there is only one peer
+and happens to have the ID 44. Thus, the current estimate is calculated
+as the average over multiple rounds, and not just a single sample.
 
 @node Algorithm
 @subsubsection Algorithm
 
 
 Given that example, one can imagine that the job of the subsystem is to
-efficiently communicate the ID of the closest peer to the target value to all
-the other peers, who will calculate the estimate from it.
+efficiently communicate the ID of the closest peer to the target value
+to all the other peers, who will calculate the estimate from it.
 
 @node Target value
 @subsubsection Target value
 
 @c %**end of header
 
-The target value itself is generated by hashing the current time, rounded down
-to an agreed value. If the rounding amount is 1h (default) and the time is
-12:34:56, the time to hash would be 12:00:00. The process is repeated each
-rouning amount (in this example would be every hour). Every repetition is
-called a round.
+The target value itself is generated by hashing the current time, rounded
+down to an agreed value. If the rounding amount is 1h (default) and the
+time is 12:34:56, the time to hash would be 12:00:00. The process is
+repeated each rouning amount (in this example would be every hour).
+Every repetition is called a round.
 
 @node Timing
 @subsubsection Timing
 @c %**end of header
 
-The NSE subsystem has some timing control to avoid everybody broadcasting its
-ID all at one. Once each peer has the target random value, it compares its own
-ID to the target and calculates the hypothetical size of the network if that
-peer were to be the closest. Then it compares the hypothetical size with the
-estimate from the previous rounds. For each value there is an assiciated point
-in the period, let's call it "broadcast time". If its own hypothetical estimate
-is the same as the previous global estimate, its "broadcast time" will be in
-the middle of the round. If its bigger it will be earlier and if its smaler
-(the most likely case) it will be later. This ensures that the peers closests
-to the target value start broadcasting their ID the first.
+The NSE subsystem has some timing control to avoid everybody broadcasting
+its ID all at one. Once each peer has the target random value, it
+compares its own ID to the target and calculates the hypothetical size of
+the network if that peer were to be the closest.
+Then it compares the hypothetical size with the estimate from the previous
+rounds. For each value there is an assiciated point in the period,
+let's call it "broadcast time". If its own hypothetical estimate
+is the same as the previous global estimate, its "broadcast time" will be
+in the middle of the round. If its bigger it will be earlier and if its
+smaller (the most likely case) it will be later. This ensures that the
+peers closests to the target value start broadcasting their ID the first.
 
 @node Controlled Flooding
 @subsubsection Controlled Flooding
@@ -4735,52 +4772,56 @@ to the target value start broadcasting their ID the first.
 @c %**end of header
 
 When a peer receives a value, first it verifies that it is closer than the
-closest value it had so far, otherwise it answers the incoming message with a
-message containing the better value. Then it checks a proof of work that must
-be included in the incoming message, to ensure that the other peer's ID is not
-made up (otherwise a malicious peer could claim to have an ID of exactly the
-target value every round). Once validated, it compares the brodcast time of the
-received value with the current time and if it's not too early, sends the
-received value to its neighbors. Otherwise it stores the value until the
-correct broadcast time comes. This prevents unnecessary traffic of sub-optimal
-values, since a better value can come before the broadcast time, rendering the
-previous one obsolete and saving the traffic that would have been used to
-broadcast it to the neighbors.
+closest value it had so far, otherwise it answers the incoming message
+with a message containing the better value. Then it checks a proof of
+work that must be included in the incoming message, to ensure that the
+other peer's ID is not made up (otherwise a malicious peer could claim to
+have an ID of exactly the target value every round). Once validated, it
+compares the brodcast time of the received value with the current time
+and if it's not too early, sends the received value to its neighbors.
+Otherwise it stores the value until the correct broadcast time comes.
+This prevents unnecessary traffic of sub-optimal values, since a better
+value can come before the broadcast time, rendering the previous one
+obsolete and saving the traffic that would have been used to broadcast it
+to the neighbors.
 
 @node Calculating the estimate
 @subsubsection Calculating the estimate
 
 @c %**end of header
 
-Once the closest ID has been spread across the network each peer gets the exact
-distance betweed this ID and the target value of the round and calculates the
-estimate with a mathematical formula described in the tech report. The estimate
-generated with this method for a single round is not very precise. Remember the
-case of the example, where the only peer is the ID 44 and we happen to generate
-the target value 42, thinking there are 50 peers in the network. Therefore, the
-NSE subsystem remembers the last 64 estimates and calculates an average over
-them, giving a result of which usually has one bit of uncertainty (the real
-size could be half of the estimate or twice as much). Note that the actual
-network size is calculated in powers of two of the raw input, thus one bit of
-uncertainty means a factor of two in the size estimate.
+Once the closest ID has been spread across the network each peer gets the
+exact distance betweed this ID and the target value of the round and
+calculates the estimate with a mathematical formula described in the tech
+report. The estimate generated with this method for a single round is not
+very precise. Remember the case of the example, where the only peer is the
+ID 44 and we happen to generate the target value 42, thinking there are
+50 peers in the network. Therefore, the NSE subsystem remembers the last
+64 estimates and calculates an average over them, giving a result of which
+usually has one bit of uncertainty (the real size could be half of the
+estimate or twice as much). Note that the actual network size is
+calculated in powers of two of the raw input, thus one bit of uncertainty
+means a factor of two in the size estimate.
 
+@cindex libgnunetnse
 @node libgnunetnse
 @subsection libgnunetnse
 
 @c %**end of header
 
-The NSE subsystem has the simplest API of all services, with only two calls:
-@code{GNUNET_NSE_connect} and @code{GNUNET_NSE_disconnect}.
+The NSE subsystem has the simplest API of all services, with only two
+calls: @code{GNUNET_NSE_connect} and @code{GNUNET_NSE_disconnect}.
 
-The connect call gets a callback function as a parameter and this function is
-called each time the network agrees on an estimate. This usually is once per
-round, with some exceptions: if the closest peer has a late local clock and
-starts spreading his ID after everyone else agreed on a value, the callback
-might be activated twice in a round, the second value being always bigger than
-the first. The default round time is set to 1 hour.
+The connect call gets a callback function as a parameter and this function
+is called each time the network agrees on an estimate. This usually is
+once per round, with some exceptions: if the closest peer has a late
+local clock and starts spreading his ID after everyone else agreed on a
+value, the callback might be activated twice in a round, the second value
+being always bigger than the first. The default round time is set to
+1 hour.
 
-The disconnect call disconnects from the NSE subsystem and the callback is no
-longer called with new estimates.
+The disconnect call disconnects from the NSE subsystem and the callback
+is no longer called with new estimates.
 
 
 
@@ -4795,11 +4836,11 @@ longer called with new estimates.
 @c %**end of header
 
 The callback provides two values: the average and the
-@uref{http://en.wikipedia.org/wiki/Standard_deviation, standard deviation} of
-the last 64 rounds. The values provided by the callback function are
+@uref{http://en.wikipedia.org/wiki/Standard_deviation, standard deviation}
+of the last 64 rounds. The values provided by the callback function are
 logarithmic, this means that the real estimate numbers can be obtained by
-calculating 2 to the power of the given value (2average). From a statistics
-point of view this means that:
+calculating 2 to the power of the given value (2average). From a
+statistics point of view this means that:
 
 @itemize @bullet
 @item 68% of the time the real size is included in the interval
@@ -4810,8 +4851,8 @@ point of view this means that:
 [(2average-3*stddev, 2average+3*stddev]
 @end itemize
 
-The expected standard variation for 64 rounds in a network of stable size is
-0.2. Thus, we can say that normally:
+The expected standard variation for 64 rounds in a network of stable size
+is 0.2. Thus, we can say that normally:
 
 @itemize @bullet
 @item 68% of the time the real size is in the range [-13%, +15%]
@@ -4819,10 +4860,11 @@ The expected standard variation for 64 rounds in a network of stable size is
 @item 99.7% of the time the real size is in the range [-34%, +52%]
 @end itemize
 
-As said in the introduction, we can be quite sure that usually the real size is
-between one third and three times the estimate. This can of course vary with
-network conditions. Thus, applications may want to also consider the provided
-standard deviation value, not only the average (in particular, if the standard
+As said in the introduction, we can be quite sure that usually the real
+size is between one third and three times the estimate. This can of
+course vary with network conditions.
+Thus, applications may want to also consider the provided standard
+deviation value, not only the average (in particular, if the standard
 veriation is very high, the average maybe meaningless: the network size is
 changing rapidly).
 
@@ -4835,15 +4877,23 @@ Let's close with a couple examples.
 
 @table @asis
 
-@item Average: 10, std dev: 1 Here the estimate would be 2^10 = 1024 peers. @footnote{The range in which we can be 95% sure is: [2^8, 2^12] = [256, 4096]. We can be very (>99.7%) sure that the network is not a hundred peers and absolutely sure that it is not a million peers, but somewhere around a thousand.}
+@item Average: 10, std dev: 1 Here the estimate would be
+2^10 = 1024 peers. @footnote{The range in which we can be 95% sure is:
+[2^8, 2^12] = [256, 4096]. We can be very (>99.7%) sure that the network
+is not a hundred peers and absolutely sure that it is not a million peers,
+but somewhere around a thousand.}
 
-@item Average 22, std dev: 0.2 Here the estimate would be 2^22 = 4 Million peers. @footnote{The range in which we can be 99.7% sure is: [2^21.4, 2^22.6] = [2.8M, 6.3M]. We can be sure that the network size is around four million, with absolutely way of it being 1 million.}
+@item Average 22, std dev: 0.2 Here the estimate would be
+2^22 = 4 Million peers. @footnote{The range in which we can be 99.7% sure
+is: [2^21.4, 2^22.6] = [2.8M, 6.3M]. We can be sure that the network size
+is around four million, with absolutely way of it being 1 million.}
 
 @end table
 
-To put this in perspective, if someone remembers the LHC Higgs boson results,
-were announced with "5 sigma" and "6 sigma" certainties. In this case a 5 sigma
-minimum would be 2 million and a 6 sigma minimum, 1.8 million.
+To put this in perspective, if someone remembers the LHC Higgs boson
+results, were announced with "5 sigma" and "6 sigma" certainties. In this
+case a 5 sigma minimum would be 2 million and a 6 sigma minimum,
+1.8 million.
 
 @node The NSE Client-Service Protocol
 @subsection The NSE Client-Service Protocol
@@ -4854,16 +4904,16 @@ As with the API, the client-service protocol is very simple, only has 2
 different messages, defined in @code{src/nse/nse.h}:
 
 @itemize @bullet
-@item @code{GNUNET_MESSAGE_TYPE_NSE_START}@ This message has no parameters and
-is sent from the client to the service upon connection.
-@item @code{GNUNET_MESSAGE_TYPE_NSE_ESTIMATE}@ This message is sent from the
-service to the client for every new estimate and upon connection. Contains a
-timestamp for the estimate, the average and the standard deviation for the
-respective round.
+@item @code{GNUNET_MESSAGE_TYPE_NSE_START}@ This message has no parameters
+and is sent from the client to the service upon connection.
+@item @code{GNUNET_MESSAGE_TYPE_NSE_ESTIMATE}@ This message is sent from
+the service to the client for every new estimate and upon connection.
+Contains a timestamp for the estimate, the average and the standard
+deviation for the respective round.
 @end itemize
 
-When the @code{GNUNET_NSE_disconnect} API call is executed, the client simply
-disconnects from the service, with no message involved.
+When the @code{GNUNET_NSE_disconnect} API call is executed, the client
+simply disconnects from the service, with no message involved.
 
 @node The NSE Peer-to-Peer Protocol
 @subsection The NSE Peer-to-Peer Protocol
@@ -4873,77 +4923,80 @@ disconnects from the service, with no message involved.
 The NSE subsystem only has one message in the P2P protocol, the
 @code{GNUNET_MESSAGE_TYPE_NSE_P2P_FLOOD} message.
 
-This message key contents are the timestamp to identify the round (differences
-in system clocks may cause some peers to send messages way too early or way too
-late, so the timestamp allows other peers to identify such messages easily),
-the @uref{http://en.wikipedia.org/wiki/Proof-of-work_system, proof of work}
+This message key contents are the timestamp to identify the round
+(differences in system clocks may cause some peers to send messages way
+too early or way too late, so the timestamp allows other peers to
+identify such messages easily), the
+@uref{http://en.wikipedia.org/wiki/Proof-of-work_system, proof of work}
 used to make it difficult to mount a
-@uref{http://en.wikipedia.org/wiki/Sybil_attack, Sybil attack}, and the public
-key, which is used to verify the signature on the message.
+@uref{http://en.wikipedia.org/wiki/Sybil_attack, Sybil attack}, and the
+public key, which is used to verify the signature on the message.
 
 Every peer stores a message for the previous, current and next round. The
-messages for the previous and current round are given to peers that connect to
-us. The message for the next round is simply stored until our system clock
-advances to the next round. The message for the current round is what we are
-flooding the network with right now. At the beginning of each round the peer
-does the following:
+messages for the previous and current round are given to peers that
+connect to us. The message for the next round is simply stored until our
+system clock advances to the next round. The message for the current round
+is what we are flooding the network with right now.
+At the beginning of each round the peer does the following:
 
 @itemize @bullet
 @item calculates his own distance to the target value
-@item creates, signs and stores the message for the current round (unless it
-has a better message in the "next round" slot which came early in the previous
-round)
-@item calculates, based on the stored round message (own or received) when to
-stard flooding it to its neighbors
+@item creates, signs and stores the message for the current round (unless
+it has a better message in the "next round" slot which came early in the
+previous round)
+@item calculates, based on the stored round message (own or received) when
+to stard flooding it to its neighbors
 @end itemize
 
-Upon receiving a message the peer checks the validity of the message (round,
-proof of work, signature). The next action depends on the contents of the
-incoming message:
+Upon receiving a message the peer checks the validity of the message
+(round, proof of work, signature). The next action depends on the
+contents of the incoming message:
 
 @itemize @bullet
-@item if the message is worse than the current stored message, the peer sends
-the current message back immediately, to stop the other peer from spreading
-suboptimal results
-@item if the message is better than the current stored message, the peer stores
-the new message and calculates the new target time to start spreading it to its
-neighbors (excluding the one the message came from)
-@item if the message is for the previous round, it is compared to the message
-stored in the "previous round slot", which may then be updated
+@item if the message is worse than the current stored message, the peer
+sends the current message back immediately, to stop the other peer from
+spreading suboptimal results
+@item if the message is better than the current stored message, the peer
+stores the new message and calculates the new target time to start
+spreading it to its neighbors (excluding the one the message came from)
+@item if the message is for the previous round, it is compared to the
+message stored in the "previous round slot", which may then be updated
 @item if the message is for the next round, it is compared to the message
 stored in the "next round slot", which again may then be updated
 @end itemize
 
-Finally, when it comes to send the stored message for the current round to the
-neighbors there is a random delay added for each neighbor, to avoid traffic
-spikes and minimize cross-messages.
+Finally, when it comes to send the stored message for the current round to
+the neighbors there is a random delay added for each neighbor, to avoid
+traffic spikes and minimize cross-messages.
 
+@cindex HOSTLIST subsystem
+@cindex hostlist subsystem
 @node GNUnet's HOSTLIST subsystem
 @section GNUnet's HOSTLIST subsystem
 
 @c %**end of header
 
-Peers in the GNUnet overlay network need address information so that they can
-connect with other peers. GNUnet uses so called HELLO messages to store and
-exchange peer addresses. GNUnet provides several methods for peers to obtain
-this information:
+Peers in the GNUnet overlay network need address information so that they
+can connect with other peers. GNUnet uses so called HELLO messages to
+store and exchange peer addresses.
+GNUnet provides several methods for peers to obtain this information:
 
 @itemize @bullet
 @item out-of-band exchange of HELLO messages (manually, using for example
 gnunet-peerinfo)
 @item HELLO messages shipped with GNUnet (automatic with distribution)
 @item UDP neighbor discovery in LAN (IPv4 broadcast, IPv6 multicast)
-@item topology gossiping (learning from other peers we already connected to),
-and
+@item topology gossiping (learning from other peers we already connected
+to), and
 @item the HOSTLIST daemon covered in this section, which is particularly
 relevant for bootstrapping new peers.
 @end itemize
 
-New peers have no existing connections (and thus cannot learn from gossip among
-peers), may not have other peers in their LAN and might be started with an
-outdated set of HELLO messages from the distribution. In this case, getting new
-peers to connect to the network requires either manual effort or the use of a
-HOSTLIST to obtain HELLOs.
+New peers have no existing connections (and thus cannot learn from gossip
+among peers), may not have other peers in their LAN and might be started
+with an outdated set of HELLO messages from the distribution.
+In this case, getting new peers to connect to the network requires either
+manual effort or the use of a HOSTLIST to obtain HELLOs.
 
 @menu
 * HELLOs::
@@ -4961,11 +5014,12 @@ HOSTLIST to obtain HELLOs.
 
 @c %**end of header
 
-The basic information peers require to connect to other peers are contained in
-so called HELLO messages you can think of as a business card. Besides the
-identity of the peer (based on the cryptographic public key) a HELLO message
-may contain address information that specifies ways to contact a peer. By
-obtaining HELLO messages, a peer can learn how to contact other peers.
+The basic information peers require to connect to other peers are
+contained in so called HELLO messages you can think of as a business card.
+Besides the identity of the peer (based on the cryptographic public key) a
+HELLO message may contain address information that specifies ways to
+contact a peer. By obtaining HELLO messages, a peer can learn how to
+contact other peers.
 
 @node Overview for the HOSTLIST subsystem
 @subsection Overview for the HOSTLIST subsystem
@@ -4973,17 +5027,19 @@ obtaining HELLO messages, a peer can learn how to contact other peers.
 @c %**end of header
 
 The HOSTLIST subsystem provides a way to distribute and obtain contact
-information to connect to other peers using a simple HTTP GET request. It's
-implementation is split in three parts, the main file for the daemon itself
-(gnunet-daemon-hostlist.c), the HTTP client used to download peer information
-(hostlist-client.c) and the server component used to provide this information
-to other peers (hostlist-server.c). The server is basically a small HTTP web
-server (based on GNU libmicrohttpd) which provides a list of HELLOs known to
-the local peer for download. The client component is basically a HTTP client
-(based on libcurl) which can download hostlists from one or more websites. The
-hostlist format is a binary blob containing a sequence of HELLO messages. Note
-that any HTTP server can theoretically serve a hostlist, the build-in hostlist
-server makes it simply convenient to offer this service.
+information to connect to other peers using a simple HTTP GET request.
+It's implementation is split in three parts, the main file for the daemon
+itself (@file{gnunet-daemon-hostlist.c}), the HTTP client used to download
+peer information (@file{hostlist-client.c}) and the server component used
+to provide this information to other peers (@file{hostlist-server.c}).
+The server is basically a small HTTP web server (based on GNU
+libmicrohttpd) which provides a list of HELLOs known to the local peer for
+download. The client component is basically a HTTP client
+(based on libcurl) which can download hostlists from one or more websites.
+The hostlist format is a binary blob containing a sequence of HELLO
+messages. Note that any HTTP server can theoretically serve a hostlist,
+the build-in hostlist server makes it simply convenient to offer this
+service.
 
 
 @menu
@@ -4999,13 +5055,14 @@ server makes it simply convenient to offer this service.
 The HOSTLIST daemon can:
 
 @itemize @bullet
-@item provide HELLO messages with validated addresses obtained from PEERINFO to
-download for other peers
+@item provide HELLO messages with validated addresses obtained from
+PEERINFO to download for other peers
 @item download HELLO messages and forward these message to the TRANSPORT
 subsystem for validation
-@item advertises the URL of this peer's hostlist address to other peers via
-gossip
-@item automatically learn about hostlist servers from the gossip of other peers
+@item advertises the URL of this peer's hostlist address to other peers
+via gossip
+@item automatically learn about hostlist servers from the gossip of other
+peers
 @end itemize
 
 @node Limitations2
@@ -5025,25 +5082,28 @@ The HOSTLIST daemon does not:
 
 @c %**end of header
 
-The HOSTLIST subsystem is currently implemented as a daemon, so there is no
-need for the user to interact with it and therefore there is no command line
-tool and no API to communicate with the daemon. In the future, we can envision
-changing this to allow users to manually trigger the download of a hostlist.
+The HOSTLIST subsystem is currently implemented as a daemon, so there is
+no need for the user to interact with it and therefore there is no
+command line tool and no API to communicate with the daemon. In the
+future, we can envision changing this to allow users to manually trigger
+the download of a hostlist.
 
-Since there is no command line interface to interact with HOSTLIST, the only
-way to interact with the hostlist is to use STATISTICS to obtain or modify
-information about the status of HOSTLIST:
+Since there is no command line interface to interact with HOSTLIST, the
+only way to interact with the hostlist is to use STATISTICS to obtain or
+modify information about the status of HOSTLIST:
+
 @example
 $ gnunet-statistics -s hostlist
 @end example
 
-In particular, HOSTLIST includes a @strong{persistent} value in statistics that
-specifies when the hostlist server might be queried next. As this value is
-exponentially increasing during runtime, developers may want to reset or
-manually adjust it. Note that HOSTLIST (but not STATISTICS) needs to be
-shutdown if changes to this value are to have any effect on the daemon (as
-HOSTLIST does not monitor STATISTICS for changes to the download
-frequency).
+@noindent
+In particular, HOSTLIST includes a @strong{persistent} value in statistics
+that specifies when the hostlist server might be queried next. As this
+value is exponentially increasing during runtime, developers may want to
+reset or manually adjust it. Note that HOSTLIST (but not STATISTICS) needs
+to be shutdown if changes to this value are to have any effect on the
+daemon (as HOSTLIST does not monitor STATISTICS for changes to the
+download frequency).
 
 @node Hostlist security address validation
 @subsection Hostlist security address validation
@@ -5051,18 +5111,19 @@ frequency).
 @c %**end of header
 
 Since information obtained from other parties cannot be trusted without
-validation, we have to distinguish between @emph{validated} and @emph{not
-validated} addresses. Before using (and so trusting) information from other
-parties, this information has to be double-checked (validated). Address
-validation is not done by HOSTLIST but by the TRANSPORT service.
+validation, we have to distinguish between @emph{validated} and
+@emph{not validated} addresses. Before using (and so trusting)
+information from other parties, this information has to be double-checked
+(validated). Address validation is not done by HOSTLIST but by the
+TRANSPORT service.
 
-The HOSTLIST component is functionally located between the PEERINFO and the
-TRANSPORT subsystem. When acting as a server, the daemon obtains valid
-(@emph{validated}) peer information (HELLO messages) from the PEERINFO service
-and provides it to other peers. When acting as a client, it contacts the
-HOSTLIST servers specified in the configuration, downloads the (unvalidated)
-list of HELLO messages and forwards these information to the TRANSPORT server
-to validate the addresses.
+The HOSTLIST component is functionally located between the PEERINFO and
+the TRANSPORT subsystem. When acting as a server, the daemon obtains valid
+(@emph{validated}) peer information (HELLO messages) from the PEERINFO
+service and provides it to other peers. When acting as a client, it
+contacts the HOSTLIST servers specified in the configuration, downloads
+the (unvalidated) list of HELLO messages and forwards these information
+to the TRANSPORT server to validate the addresses.
 
 @node The HOSTLIST daemon
 @subsection The HOSTLIST daemon
@@ -5070,24 +5131,25 @@ to validate the addresses.
 @c %**end of header
 
 The hostlist daemon is the main component of the HOSTLIST subsystem. It is
-started by the ARM service and (if configured) starts the HOSTLIST client and
-server components.
+started by the ARM service and (if configured) starts the HOSTLIST client
+and server components.
 
-If the daemon provides a hostlist itself it can advertise it's own hostlist to
-other peers. To do so it sends a GNUNET_MESSAGE_TYPE_HOSTLIST_ADVERTISEMENT
-message to other peers when they connect to this peer on the CORE level. This
-hostlist advertisement message contains the URL to access the HOSTLIST HTTP
-server of the sender. The daemon may also subscribe to this type of message
-from CORE service, and then forward these kind of message to the HOSTLIST
-client. The client then uses all available URLs to download peer information
-when necessary.
+If the daemon provides a hostlist itself it can advertise it's own
+hostlist to other peers. To do so it sends a
+@code{GNUNET_MESSAGE_TYPE_HOSTLIST_ADVERTISEMENT} message to other peers
+when they connect to this peer on the CORE level. This hostlist
+advertisement message contains the URL to access the HOSTLIST HTTP
+server of the sender. The daemon may also subscribe to this type of
+message from CORE service, and then forward these kind of message to the
+HOSTLIST client. The client then uses all available URLs to download peer
+information when necessary.
 
-When starting, the HOSTLIST daemon first connects to the CORE subsystem and if
-hostlist learning is enabled, registers a CORE handler to receive this kind of
-messages. Next it starts (if configured) the client and server. It passes
-pointers to CORE connect and disconnect and receive handlers where the client
-and server store their functions, so the daemon can notify them about CORE
-events.
+When starting, the HOSTLIST daemon first connects to the CORE subsystem
+and if hostlist learning is enabled, registers a CORE handler to receive
+this kind of messages. Next it starts (if configured) the client and
+server. It passes pointers to CORE connect and disconnect and receive
+handlers where the client and server store their functions, so the daemon
+can notify them about CORE events.
 
 To clean up on shutdown, the daemon has a cleaning task, shutting down all
 subsystems and disconnecting from CORE.
@@ -5097,10 +5159,10 @@ subsystems and disconnecting from CORE.
 
 @c %**end of header
 
-The server provides a way for other peers to obtain HELLOs. Basically it is a
-small web server other peers can connect to and download a list of HELLOs using
-standard HTTP; it may also advertise the URL of the hostlist to other peers
-connecting on CORE level.
+The server provides a way for other peers to obtain HELLOs. Basically it
+is a small web server other peers can connect to and download a list of
+HELLOs using standard HTTP; it may also advertise the URL of the hostlist
+to other peers connecting on CORE level.
 
 
 @menu
@@ -5113,49 +5175,56 @@ connecting on CORE level.
 
 @c %**end of header
 
-During startup, the server starts a web server listening on the port specified
-with the HTTPPORT value (default 8080). In addition it connects to the PEERINFO
-service to obtain peer information. The HOSTLIST server uses the
-GNUNET_PEERINFO_iterate function to request HELLO information for all peers and
-adds their information to a new hostlist if they are suitable (expired
-addresses and HELLOs without addresses are both not suitable) and the maximum
-size for a hostlist is not exceeded (MAX_BYTES_PER_HOSTLISTS = 500000). When
-PEERINFO finishes (with a last NULL callback), the server destroys the previous
-hostlist response available for download on the web server and replaces it with
-the updated hostlist. The hostlist format is basically a sequence of HELLO
-messages (as obtained from PEERINFO) without any special tokenization. Since
-each HELLO message contains a size field, the response can easily be split into
-separate HELLO messages by the client.
+During startup, the server starts a web server listening on the port
+specified with the HTTPPORT value (default 8080). In addition it connects
+to the PEERINFO service to obtain peer information. The HOSTLIST server
+uses the GNUNET_PEERINFO_iterate function to request HELLO information for
+all peers and adds their information to a new hostlist if they are
+suitable (expired addresses and HELLOs without addresses are both not
+suitable) and the maximum size for a hostlist is not exceeded
+(MAX_BYTES_PER_HOSTLISTS = 500000).
+When PEERINFO finishes (with a last NULL callback), the server destroys
+the previous hostlist response available for download on the web server
+and replaces it with the updated hostlist. The hostlist format is
+basically a sequence of HELLO messages (as obtained from PEERINFO) without
+any special tokenization. Since each HELLO message contains a size field,
+the response can easily be split into separate HELLO messages by the
+client.
 
-A HOSTLIST client connecting to the HOSTLIST server will receive the hostlist
-as a HTTP response and the the server will terminate the connection with the
-result code HTTP 200 OK. The connection will be closed immediately if no
-hostlist is available.
+A HOSTLIST client connecting to the HOSTLIST server will receive the
+hostlist as a HTTP response and the the server will terminate the
+connection with the result code @code{HTTP 200 OK}.
+The connection will be closed immediately if no hostlist is available.
 
 @node Advertising the URL
 @subsubsection Advertising the URL
 
 @c %**end of header
 
-The server also advertises the URL to download the hostlist to other peers if
-hostlist advertisement is enabled. When a new peer connects and has hostlist
-learning enabled, the server sends a GNUNET_MESSAGE_TYPE_HOSTLIST_ADVERTISEMENT
-message to this peer using the CORE service.
+The server also advertises the URL to download the hostlist to other peers
+if hostlist advertisement is enabled.
+When a new peer connects and has hostlist learning enabled, the server
+sends a @code{GNUNET_MESSAGE_TYPE_HOSTLIST_ADVERTISEMENT} message to this
+peer using the CORE service.
 
 @node The HOSTLIST client
 @subsection The HOSTLIST client
 
 @c %**end of header
 
-The client provides the functionality to download the list of HELLOs from a set
-of URLs. It performs a standard HTTP request to the URLs configured and learned
+The client provides the functionality to download the list of HELLOs from
+a set of URLs.
+It performs a standard HTTP request to the URLs configured and learned
 from advertisement messages received from other peers. When a HELLO is
-downloaded, the HOSTLIST client forwards the HELLO to the TRANSPORT service for
-validation.
+downloaded, the HOSTLIST client forwards the HELLO to the TRANSPORT
+service for validation.
 
-The client supports two modes of operation: download of HELLOs (bootstrapping)
-and learning of URLs.
+The client supports two modes of operation:
 
+@itemize @bullet
+@item download of HELLOs (bootstrapping)
+@item learning of URLs
+@end itemize
 
 @menu
 * Bootstrapping::
@@ -5167,102 +5236,121 @@ and learning of URLs.
 
 @c %**end of header
 
-For bootstrapping, it schedules a task to download the hostlist from the set of
-known URLs. The downloads are only performed if the number of current
-connections is smaller than a minimum number of connections (at the moment 4).
+For bootstrapping, it schedules a task to download the hostlist from the
+set of known URLs.
+The downloads are only performed if the number of current
+connections is smaller than a minimum number of connections
+(at the moment 4).
 The interval between downloads increases exponentially; however, the
-exponential growth is limited if it becomes longer than an hour. At that point,
-the frequency growth is capped at (#number of connections * 1h).
+exponential growth is limited if it becomes longer than an hour.
+At that point, the frequency growth is capped at
+(#number of connections * 1h).
 
 Once the decision has been taken to download HELLOs, the daemon chooses a
 random URL from the list of known URLs. URLs can be configured in the
-configuration or be learned from advertisement messages. The client uses a HTTP
-client library (libcurl) to initiate the download using the libcurl multi
-interface. Libcurl passes the data to the callback_download function which
-stores the data in a buffer if space is available and the maximum size for a
-hostlist download is not exceeded (MAX_BYTES_PER_HOSTLISTS = 500000). When a
-full HELLO was downloaded, the HOSTLIST client offers this HELLO message to the
-TRANSPORT service for validation. When the download is finished or failed,
-statistical information about the quality of this URL is updated.
+configuration or be learned from advertisement messages.
+The client uses a HTTP client library (libcurl) to initiate the download
+using the libcurl multi interface.
+Libcurl passes the data to the callback_download function which
+stores the data in a buffer if space is available and the maximum size for
+a hostlist download is not exceeded (MAX_BYTES_PER_HOSTLISTS = 500000).
+When a full HELLO was downloaded, the HOSTLIST client offers this
+HELLO message to the TRANSPORT service for validation.
+When the download is finished or failed, statistical information about the
+quality of this URL is updated.
 
+@cindex HOSTLIST learning
 @node Learning
 @subsubsection Learning
 
 @c %**end of header
 
-The client also manages hostlist advertisements from other peers. The HOSTLIST
-daemon forwards GNUNET_MESSAGE_TYPE_HOSTLIST_ADVERTISEMENT messages to the
-client subsystem, which extracts the URL from the message. Next, a test of the
-newly obtained URL is performed by triggering a download from the new URL. If
-the URL works correctly, it is added to the list of working URLs.
+The client also manages hostlist advertisements from other peers. The
+HOSTLIST daemon forwards @code{GNUNET_MESSAGE_TYPE_HOSTLIST_ADVERTISEMENT}
+messages to the client subsystem, which extracts the URL from the message.
+Next, a test of the newly obtained URL is performed by triggering a
+download from the new URL. If the URL works correctly, it is added to the
+list of working URLs.
 
-The size of the list of URLs is restricted, so if an additional server is added
-and the list is full, the URL with the worst quality ranking (determined
-through successful downloads and number of HELLOs e.g.) is discarded. During
-shutdown the list of URLs is saved to a file for persistance and loaded on
-startup. URLs from the configuration file are never discarded.
+The size of the list of URLs is restricted, so if an additional server is
+added and the list is full, the URL with the worst quality ranking
+(determined through successful downloads and number of HELLOs e.g.) is
+discarded. During shutdown the list of URLs is saved to a file for
+persistance and loaded on startup. URLs from the configuration file are
+never discarded.
 
 @node Usage
 @subsection Usage
 
 @c %**end of header
 
-To start HOSTLIST by default, it has to be added to the DEFAULTSERVICES section
-for the ARM services. This is done in the default configuration.
+To start HOSTLIST by default, it has to be added to the DEFAULTSERVICES
+section for the ARM services. This is done in the default configuration.
 
 For more information on how to configure the HOSTLIST subsystem see the
-installation handbook:@ Configuring the hostlist to bootstrap@ Configuring your
-peer to provide a hostlist
+installation handbook:@
+Configuring the hostlist to bootstrap@
+Configuring your peer to provide a hostlist
 
+@cindex IDENTITY
+@cindex identity subsystem
 @node GNUnet's IDENTITY subsystem
 @section GNUnet's IDENTITY subsystem
 
 @c %**end of header
 
-Identities of "users" in GNUnet are called egos. Egos can be used as pseudonyms
-(fake names) or be tied to an organization (for example, GNU) or even the
-actual identity of a human. GNUnet users are expected to have many egos. They
-might have one tied to their real identity, some for organizations they manage,
-and more for different domains where they want to operate under a pseudonym.
+Identities of "users" in GNUnet are called egos.
+Egos can be used as pseudonyms ("fake names") or be tied to an
+organization (for example, "GNU") or even the actual identity of a human.
+GNUnet users are expected to have many egos. They might have one tied to
+their real identity, some for organizations they manage, and more for
+different domains where they want to operate under a pseudonym.
 
-The IDENTITY service allows users to manage their egos. The identity service
-manages the private keys egos of the local user; it does not manage identities
-of other users (public keys). Public keys for other users need names to become
-manageable. GNUnet uses the GNU Name System (GNS) to give names to other users
-and manage their public keys securely. This chapter is about the IDENTITY
-service, which is about the management of private keys.
+The IDENTITY service allows users to manage their egos. The identity
+service manages the private keys egos of the local user; it does not
+manage identities of other users (public keys). Public keys for other
+users need names to become manageable. GNUnet uses the
+@dfn{GNU Name System} (GNS) to give names to other users and manage their
+public keys securely. This chapter is about the IDENTITY service,
+which is about the management of private keys.
 
-On the network, an ego corresponds to an ECDSA key (over Curve25519, using RFC
-6979, as required by GNS). Thus, users can perform actions under a particular
-ego by using (signing with) a particular private key. Other users can then
-confirm that the action was really performed by that ego by checking the
-signature against the respective public key.
+On the network, an ego corresponds to an ECDSA key (over Curve25519,
+using RFC 6979, as required by GNS). Thus, users can perform actions
+under a particular ego by using (signing with) a particular private key.
+Other users can then confirm that the action was really performed by that
+ego by checking the signature against the respective public key.
 
-The IDENTITY service allows users to associate a human-readable name with each
-ego. This way, users can use names that will remind them of the purpose of a
-particular ego. The IDENTITY service will store the respective private keys and
-allows applications to access key information by name. Users can change the
-name that is locally (!) associated with an ego. Egos can also be deleted,
-which means that the private key will be removed and it thus will not be
-possible to perform actions with that ego in the future.
+The IDENTITY service allows users to associate a human-readable name with
+each ego. This way, users can use names that will remind them of the
+purpose of a particular ego.
+The IDENTITY service will store the respective private keys and
+allows applications to access key information by name.
+Users can change the name that is locally (!) associated with an ego.
+Egos can also be deleted, which means that the private key will be removed
+and it thus will not be possible to perform actions with that ego in the
+future.
 
-Additionally, the IDENTITY subsystem can associate service functions with egos.
-For example, GNS requires the ego that should be used for the shorten zone. GNS
-will ask IDENTITY for an ego for the "gns-short" service. The IDENTITY service
-has a mapping of such service strings to the name of the ego that the user
-wants to use for this service, for example "my-short-zone-ego".
+Additionally, the IDENTITY subsystem can associate service functions with
+egos.
+For example, GNS requires the ego that should be used for the shorten
+zone. GNS will ask IDENTITY for an ego for the "gns-short" service.
+The IDENTITY service has a mapping of such service strings to the name of
+the ego that the user wants to use for this service, for example
+"my-short-zone-ego".
 
-Finally, the IDENTITY API provides access to a special ego, the anonymous ego.
-The anonymous ego is special in that its private key is not really private, but
-fixed and known to everyone. Thus, anyone can perform actions as anonymous.
-This can be useful as with this trick, code does not have to contain a special
-case to distinguish between anonymous and pseudonymous egos.
+Finally, the IDENTITY API provides access to a special ego, the
+anonymous ego. The anonymous ego is special in that its private key is not
+really private, but fixed and known to everyone.
+Thus, anyone can perform actions as anonymous. This can be useful as with
+this trick, code does not have to contain a special case to distinguish
+between anonymous and pseudonymous egos.
 
 @menu
 * libgnunetidentity::
 * The IDENTITY Client-Service Protocol::
 @end menu
 
+@cindex libgnunetidentity
 @node libgnunetidentity
 @subsection libgnunetidentity
 @c %**end of header
@@ -5282,55 +5370,58 @@ case to distinguish between anonymous and pseudonymous egos.
 @c %**end of header
 
 First, typical clients connect to the identity service using
-@code{GNUNET_IDENTITY_connect}. This function takes a callback as a parameter.
-If the given callback parameter is non-null, it will be invoked to notify the
-application about the current state of the identities in the system.
+@code{GNUNET_IDENTITY_connect}. This function takes a callback as a
+parameter.
+If the given callback parameter is non-null, it will be invoked to notify
+the application about the current state of the identities in the system.
 
 @itemize @bullet
 @item First, it will be invoked on all known egos at the time of the
-connection. For each ego, a handle to the ego and the user's name for the ego
-will be passed to the callback. Furthermore, a @code{void **} context argument
-will be provided which gives the client the opportunity to associate some state
-with the ego.
-@item Second, the callback will be invoked with NULL for the ego, the name and
-the context. This signals that the (initial) iteration over all egos has
-completed.
-@item Then, the callback will be invoked whenever something changes about an
-ego. If an ego is renamed, the callback is invoked with the ego handle of the
-ego that was renamed, and the new name. If an ego is deleted, the callback is
-invoked with the ego handle and a name of NULL. In the deletion case, the
-application should also release resources stored in the context.
+connection. For each ego, a handle to the ego and the user's name for the
+ego will be passed to the callback. Furthermore, a @code{void **} context
+argument will be provided which gives the client the opportunity to
+associate some state with the ego.
+@item Second, the callback will be invoked with NULL for the ego, the name
+and the context. This signals that the (initial) iteration over all egos
+has completed.
+@item Then, the callback will be invoked whenever something changes about
+an ego.
+If an ego is renamed, the callback is invoked with the ego handle of the
+ego that was renamed, and the new name. If an ego is deleted, the callback
+is invoked with the ego handle and a name of NULL. In the deletion case,
+the application should also release resources stored in the context.
 @item When the application destroys the connection to the identity service
-using @code{GNUNET_IDENTITY_disconnect}, the callback is again invoked with the
-ego and a name of NULL (equivalent to deletion of the egos). This should again
-be used to clean up the per-ego context.
+using @code{GNUNET_IDENTITY_disconnect}, the callback is again invoked
+with the ego and a name of NULL (equivalent to deletion of the egos).
+This should again be used to clean up the per-ego context.
 @end itemize
 
 The ego handle passed to the callback remains valid until the callback is
-invoked with a name of NULL, so it is safe to store a reference to the ego's
-handle.
+invoked with a name of NULL, so it is safe to store a reference to the
+ego's handle.
 
 @node Operations on Egos
 @subsubsection Operations on Egos
 
 @c %**end of header
 
-Given an ego handle, the main operations are to get its associated private key
-using @code{GNUNET_IDENTITY_ego_get_private_key} or its associated public key
-using @code{GNUNET_IDENTITY_ego_get_public_key}.
+Given an ego handle, the main operations are to get its associated private
+key using @code{GNUNET_IDENTITY_ego_get_private_key} or its associated
+public key using @code{GNUNET_IDENTITY_ego_get_public_key}.
 
-The other operations on egos are pretty straightforward. Using
-@code{GNUNET_IDENTITY_create}, an application can request the creation of an
-ego by specifying the desired name. The operation will fail if that name is
-already in use. Using @code{GNUNET_IDENTITY_rename} the name of an existing ego
-can be changed. Finally, egos can be deleted using
-@code{GNUNET_IDENTITY_delete}. All of these operations will trigger updates to
-the callback given to the @code{GNUNET_IDENTITY_connect} function of all
-applications that are connected with the identity service at the time.
-@code{GNUNET_IDENTITY_cancel} can be used to cancel the operations before the
-respective continuations would be called. It is not guaranteed that the
-operation will not be completed anyway, only the continuation will no longer be
-called.
+The other operations on egos are pretty straightforward.
+Using @code{GNUNET_IDENTITY_create}, an application can request the
+creation of an ego by specifying the desired name.
+The operation will fail if that name is
+already in use. Using @code{GNUNET_IDENTITY_rename} the name of an
+existing ego can be changed. Finally, egos can be deleted using
+@code{GNUNET_IDENTITY_delete}. All of these operations will trigger
+updates to the callback given to the @code{GNUNET_IDENTITY_connect}
+function of all applications that are connected with the identity service
+at the time. @code{GNUNET_IDENTITY_cancel} can be used to cancel the
+operations before the respective continuations would be called.
+It is not guaranteed that the operation will not be completed anyway,
+only the continuation will no longer be called.
 
 @node The anonymous Ego
 @subsubsection The anonymous Ego
@@ -5339,11 +5430,11 @@ called.
 
 A special way to obtain an ego handle is to call
 @code{GNUNET_IDENTITY_ego_get_anonymous}, which returns an ego for the
-"anonymous" user --- anyone knows and can get the private key for this user, so
-it is suitable for operations that are supposed to be anonymous but require
-signatures (for example, to avoid a special path in the code). The anonymous
-ego is always valid and accessing it does not require a connection to the
-identity service.
+"anonymous" user --- anyone knows and can get the private key for this
+user, so it is suitable for operations that are supposed to be anonymous
+but require signatures (for example, to avoid a special path in the code).
+The anonymous ego is always valid and accessing it does not require a
+connection to the identity service.
 
 @node Convenience API to lookup a single ego
 @subsubsection Convenience API to lookup a single ego
@@ -5351,98 +5442,106 @@ identity service.
 
 As applications commonly simply have to lookup a single ego, there is a
 convenience API to do just that. Use @code{GNUNET_IDENTITY_ego_lookup} to
-lookup a single ego by name. Note that this is the user's name for the ego, not
-the service function. The resulting ego will be returned via a callback and
-will only be valid during that callback. The operation can be cancelled via
-@code{GNUNET_IDENTITY_ego_lookup_cancel} (cancellation is only legal before the
-callback is invoked).
+lookup a single ego by name. Note that this is the user's name for the
+ego, not the service function. The resulting ego will be returned via a
+callback and will only be valid during that callback. The operation can
+be cancelled via @code{GNUNET_IDENTITY_ego_lookup_cancel}
+(cancellation is only legal before the callback is invoked).
 
 @node Associating egos with service functions
 @subsubsection Associating egos with service functions
 
 
-The @code{GNUNET_IDENTITY_set} function is used to associate a particular ego
-with a service function. The name used by the service and the ego are given as
-arguments. Afterwards, the service can use its name to lookup the associated
-ego using @code{GNUNET_IDENTITY_get}.
+The @code{GNUNET_IDENTITY_set} function is used to associate a particular
+ego with a service function. The name used by the service and the ego are
+given as arguments.
+Afterwards, the service can use its name to lookup the associated ego
+using @code{GNUNET_IDENTITY_get}.
 
 @node The IDENTITY Client-Service Protocol
 @subsection The IDENTITY Client-Service Protocol
 
 @c %**end of header
 
-A client connecting to the identity service first sends a message with type
+A client connecting to the identity service first sends a message with
+type
 @code{GNUNET_MESSAGE_TYPE_IDENTITY_START} to the service. After that, the
-client will receive information about changes to the egos by receiving messages
-of type @code{GNUNET_MESSAGE_TYPE_IDENTITY_UPDATE}. Those messages contain the
-private key of the ego and the user's name of the ego (or zero bytes for the
-name to indicate that the ego was deleted). A special bit @code{end_of_list} is
-used to indicate the end of the initial iteration over the identity service's
-egos.
+client will receive information about changes to the egos by receiving
+messages of type @code{GNUNET_MESSAGE_TYPE_IDENTITY_UPDATE}.
+Those messages contain the private key of the ego and the user's name of
+the ego (or zero bytes for the name to indicate that the ego was deleted).
+A special bit @code{end_of_list} is used to indicate the end of the
+initial iteration over the identity service's egos.
 
-The client can trigger changes to the egos by sending CREATE, RENAME or DELETE
-messages. The CREATE message contains the private key and the desired name. The
-RENAME message contains the old name and the new name. The DELETE message only
-needs to include the name of the ego to delete. The service responds to each of
-these messages with a RESULT_CODE message which indicates success or error of
-the operation, and possibly a human-readable error message.
+The client can trigger changes to the egos by sending @code{CREATE},
+@code{RENAME} or @code{DELETE} messages.
+The CREATE message contains the private key and the desired name.@
+The RENAME message contains the old name and the new name.@
+The DELETE message only needs to include the name of the ego to delete.@
+The service responds to each of these messages with a @code{RESULT_CODE}
+message which indicates success or error of the operation, and possibly
+a human-readable error message.
 
 Finally, the client can bind the name of a service function to an ego by
-sending a SET_DEFAULT message with the name of the service function and the
-private key of the ego. Such bindings can then be resolved using a GET_DEFAULT
-message, which includes the name of the service function. The identity service
-will respond to a GET_DEFAULT request with a SET_DEFAULT message containing the
-respective information, or with a RESULT_CODE to indicate an error.
+sending a @code{SET_DEFAULT} message with the name of the service function
+and the private key of the ego.
+Such bindings can then be resolved using a @code{GET_DEFAULT} message,
+which includes the name of the service function. The identity service
+will respond to a GET_DEFAULT request with a SET_DEFAULT message
+containing the respective information, or with a RESULT_CODE to
+indicate an error.
 
+@cindex NAMESTORE
+@cindex namestore subsystem
 @node GNUnet's NAMESTORE Subsystem
 @section GNUnet's NAMESTORE Subsystem
-
-@c %**end of header
 
 The NAMESTORE subsystem provides persistent storage for local GNS zone
 information. All local GNS zone information are managed by NAMESTORE. It
 provides both the functionality to administer local GNS information (e.g.
-delete and add records) as well as to retrieve GNS information (e.g to list
-name information in a client). NAMESTORE does only manage the persistent
-storage of zone information belonging to the user running the service: GNS
-information from other users obtained from the DHT are stored by the NAMECACHE
-subsystem.
+delete and add records) as well as to retrieve GNS information (e.g to
+list name information in a client).
+NAMESTORE does only manage the persistent storage of zone information
+belonging to the user running the service: GNS information from other
+users obtained from the DHT are stored by the NAMECACHE subsystem.
 
-NAMESTORE uses a plugin-based database backend to store GNS information with
-good performance. Here sqlite, MySQL and PostgreSQL are supported database
-backends. NAMESTORE clients interact with the IDENTITY subsystem to obtain
+NAMESTORE uses a plugin-based database backend to store GNS information
+with good performance. Here sqlite, MySQL and PostgreSQL are supported
+database backends.
+NAMESTORE clients interact with the IDENTITY subsystem to obtain
 cryptographic information about zones based on egos as described with the
-IDENTITY subsystem., but internally NAMESTORE refers to zones using the ECDSA
-private key. In addition, it collaborates with the NAMECACHE subsystem and
-stores zone information when local information are modified in the GNS cache to
-increase look-up performance for local information.
+IDENTITY subsystem, but internally NAMESTORE refers to zones using the
+ECDSA private key.
+In addition, it collaborates with the NAMECACHE subsystem and
+stores zone information when local information are modified in the
+GNS cache to increase look-up performance for local information.
 
-NAMESTORE provides functionality to look-up and store records, to iterate over
-a specific or all zones and to monitor zones for changes. NAMESTORE
-functionality can be accessed using the NAMESTORE api or the NAMESTORE command
-line tool.
+NAMESTORE provides functionality to look-up and store records, to iterate
+over a specific or all zones and to monitor zones for changes. NAMESTORE
+functionality can be accessed using the NAMESTORE api or the NAMESTORE
+command line tool.
 
 @menu
 * libgnunetnamestore::
 @end menu
 
+@cindex libgnunetnamestore
 @node libgnunetnamestore
 @subsection libgnunetnamestore
 
-@c %**end of header
+To interact with NAMESTORE clients first connect to the NAMESTORE service
+using the @code{GNUNET_NAMESTORE_connect} passing a configuration handle.
+As a result they obtain a NAMESTORE handle, they can use for operations,
+or NULL is returned if the connection failed.
 
-To interact with NAMESTORE clients first connect to the NAMESTORE service using
-the @code{GNUNET_NAMESTORE_connect} passing a configuration handle. As a result
-they obtain a NAMESTORE handle, they can use for operations, or NULL is
-returned if the connection failed.
-
-To disconnect from NAMESTORE, clients use @code{GNUNET_NAMESTORE_disconnect}
-and specify the handle to disconnect.
+To disconnect from NAMESTORE, clients use
+@code{GNUNET_NAMESTORE_disconnect} and specify the handle to disconnect.
 
 NAMESTORE internally uses the ECDSA private key to refer to zones. These
-private keys can be obtained from the IDENTITY subsytem. Here @emph{egos@emph{
-can be used to refer to zones or the default ego assigned to the GNS subsystem
-can be used to obtained the master zone's private key.}}
+private keys can be obtained from the IDENTITY subsytem.
+Here @emph{egos} @emph{can be used to refer to zones or the default ego
+assigned to the GNS subsystem can be used to obtained the master zone's
+private key.}
 
 
 @menu
@@ -5456,92 +5555,104 @@ can be used to obtained the master zone's private key.}}
 
 @c %**end of header
 
-NAMESTORE provides functions to lookup records stored under a label in a zone
-and to store records under a label in a zone.
+NAMESTORE provides functions to lookup records stored under a label in a
+zone and to store records under a label in a zone.
 
 To store (and delete) records, the client uses the
-@code{GNUNET_NAMESTORE_records_store} function and has to provide namestore
-handle to use, the private key of the zone, the label to store the records
-under, the records and number of records plus an callback function. After the
-operation is performed NAMESTORE will call the provided callback function with
-the result GNUNET_SYSERR on failure (including timeout/queue drop/failure to
-validate), GNUNET_NO if content was already there or not found GNUNET_YES (or
-other positive value) on success plus an additional error message.
+@code{GNUNET_NAMESTORE_records_store} function and has to provide
+namestore handle to use, the private key of the zone, the label to store
+the records under, the records and number of records plus an callback
+function.
+After the operation is performed NAMESTORE will call the provided
+callback function with the result GNUNET_SYSERR on failure
+(including timeout/queue drop/failure to validate), GNUNET_NO if content
+was already there or not found GNUNET_YES (or other positive value) on
+success plus an additional error message.
 
-Records are deleted by using the store command with 0 records to store. It is
-important to note, that records are not merged when records exist with the
-label. So a client has first to retrieve records, merge with existing records
+Records are deleted by using the store command with 0 records to store.
+It is important to note, that records are not merged when records exist
+with the label.
+So a client has first to retrieve records, merge with existing records
 and then store the result.
 
 To perform a lookup operation, the client uses the
 @code{GNUNET_NAMESTORE_records_store} function. Here he has to pass the
-namestore handle, the private key of the zone and the label. He also has to
-provide a callback function which will be called with the result of the lookup
-operation: the zone for the records, the label, and the records including the
+namestore handle, the private key of the zone and the label. He also has
+to provide a callback function which will be called with the result of
+the lookup operation:
+the zone for the records, the label, and the records including the
 number of records included.
 
-A special operation is used to set the preferred nickname for a zone. This
-nickname is stored with the zone and is automatically merged with all labels
-and records stored in a zone. Here the client uses the
-@code{GNUNET_NAMESTORE_set_nick} function and passes the private key of the
-zone, the nickname as string plus a the callback with the result of the
-operation.
+A special operation is used to set the preferred nickname for a zone.
+This nickname is stored with the zone and is automatically merged with
+all labels and records stored in a zone. Here the client uses the
+@code{GNUNET_NAMESTORE_set_nick} function and passes the private key of
+the zone, the nickname as string plus a the callback with the result of
+the operation.
 
 @node Iterating Zone Information
 @subsubsection Iterating Zone Information
 
 @c %**end of header
 
-A client can iterate over all information in a zone or all zones managed by
-NAMESTORE. Here a client uses the @code{GNUNET_NAMESTORE_zone_iteration_start}
+A client can iterate over all information in a zone or all zones managed
+by NAMESTORE.
+Here a client uses the @code{GNUNET_NAMESTORE_zone_iteration_start}
 function and passes the namestore handle, the zone to iterate over and a
-callback function to call with the result. If the client wants to iterate over
-all the, he passes NULL for the zone. A @code{GNUNET_NAMESTORE_ZoneIterator}
-handle is returned to be used to continue iteration.
+callback function to call with the result.
+If the client wants to iterate over all the, he passes NULL for the zone.
+A @code{GNUNET_NAMESTORE_ZoneIterator} handle is returned to be used to
+continue iteration.
 
-NAMESTORE calls the callback for every result and expects the client to call@
-@code{GNUNET_NAMESTORE_zone_iterator_next} to continue to iterate or
-@code{GNUNET_NAMESTORE_zone_iterator_stop} to interrupt the iteration. When
-NAMESTORE reached the last item it will call the callback with a NULL value to
-indicate.
+NAMESTORE calls the callback for every result and expects the client to
+call @code{GNUNET_NAMESTORE_zone_iterator_next} to continue to iterate or
+@code{GNUNET_NAMESTORE_zone_iterator_stop} to interrupt the iteration.
+When NAMESTORE reached the last item it will call the callback with a
+NULL value to indicate.
 
 @node Monitoring Zone Information
 @subsubsection Monitoring Zone Information
 
 @c %**end of header
 
-Clients can also monitor zones to be notified about changes. Here the clients
-uses the @code{GNUNET_NAMESTORE_zone_monitor_start} function and passes the
-private key of the zone and and a callback function to call with updates for a
-zone. The client can specify to obtain zone information first by iterating over
-the zone and specify a synchronization callback to be called when the client
-and the namestore are synced.
+Clients can also monitor zones to be notified about changes. Here the
+clients uses the @code{GNUNET_NAMESTORE_zone_monitor_start} function and
+passes the private key of the zone and and a callback function to call
+with updates for a zone.
+The client can specify to obtain zone information first by iterating over
+the zone and specify a synchronization callback to be called when the
+client and the namestore are synced.
 
 On an update, NAMESTORE will call the callback with the private key of the
 zone, the label and the records and their number.
 
-To stop monitoring, the client call @code{GNUNET_NAMESTORE_zone_monitor_stop}
-and passes the handle obtained from the function to start the monitoring.
+To stop monitoring, the client calls
+@code{GNUNET_NAMESTORE_zone_monitor_stop} and passes the handle obtained
+from the function to start the monitoring.
 
+@cindex PEERINFO
+@cindex peerinfo subsystem
 @node GNUnet's PEERINFO subsystem
 @section GNUnet's PEERINFO subsystem
 
 @c %**end of header
 
-The PEERINFO subsystem is used to store verified (validated) information about
-known peers in a persistent way. It obtains these addresses for example from
-TRANSPORT service which is in charge of address validation. Validation means
-that the information in the HELLO message are checked by connecting to the
-addresses and performing a cryptographic handshake to authenticate the peer
-instance stating to be reachable with these addresses. Peerinfo does not
-validate the HELLO messages itself but only stores them and gives them to
-interested clients.
+The PEERINFO subsystem is used to store verified (validated) information
+about known peers in a persistent way. It obtains these addresses for
+example from TRANSPORT service which is in charge of address validation.
+Validation means that the information in the HELLO message are checked by
+connecting to the addresses and performing a cryptographic handshake to
+authenticate the peer instance stating to be reachable with these
+addresses.
+Peerinfo does not validate the HELLO messages itself but only stores them
+and gives them to interested clients.
 
 As future work, we think about moving from storing just HELLO messages to
-providing a generic persistent per-peer information store. More and more
-subsystems tend to need to store per-peer information in persistent way. To not
-duplicate this functionality we plan to provide a PEERSTORE service providing
-this functionality
+providing a generic persistent per-peer information store.
+More and more subsystems tend to need to store per-peer information in
+persistent way.
+To not duplicate this functionality we plan to provide a PEERSTORE
+service providing this functionality.
 
 @menu
 * Features2::
@@ -7636,37 +7747,47 @@ The names for the master directories follow the names of the operations:
 @end itemize
 
 Each of the master directories contains names (chosen at random) for each
-active top-level (master) operation. Note that a download that is associated
-with a search result is not a top-level operation.
+active top-level (master) operation.
+Note that a download that is associated with a search result is not a
+top-level operation.
 
-In contrast to the master directories, the child directories are only consulted
-when another operation refers to them. For each search, a subdirectory (named
-after the master search synchronization file) contains the search results.
-Search results can have an associated download, which is then stored in the
-general "download-child" directory. Downloads can be recursive, in which case
-children are stored in subdirectories mirroring the structure of the recursive
-download (either starting in the master "download" directory or in the
-"download-child" directory depending on how the download was initiated). For
-publishing operations, the "publish-file" directory contains information about
-the individual files and directories that are part of the publication. However,
-this directory structure is flat and does not mirror the structure of the
-publishing operation. Note that unindex operations cannot have associated child
-operations.
+In contrast to the master directories, the child directories are only
+consulted when another operation refers to them.
+For each search, a subdirectory (named after the master search
+synchronization file) contains the search results.
+Search results can have an associated download, which is then stored in
+the general "download-child" directory.
+Downloads can be recursive, in which case children are stored in
+subdirectories mirroring the structure of the recursive download
+(either starting in the master "download" directory or in the
+"download-child" directory depending on how the download was initiated).
+For publishing operations, the "publish-file" directory contains
+information about the individual files and directories that are part of
+the publication.
+However, this directory structure is flat and does not mirror the
+structure of the publishing operation.
+Note that unindex operations cannot have associated child operations.
 
+@cindex REGEX subsystem
+@cindex regex subsystem
 @node GNUnet's REGEX Subsystem
 @section GNUnet's REGEX Subsystem
 
 @c %**end of header
 
 Using the REGEX subsystem, you can discover peers that offer a particular
-service using regular expressions. The peers that offer a service specify it
-using a regular expressions. Peers that want to patronize a service search
-using a string. The REGEX subsystem will then use the DHT to return a set of
-matching offerers to the patrons.
+service using regular expressions.
+The peers that offer a service specify it using a regular expressions.
+Peers that want to patronize a service search using a string.
+The REGEX subsystem will then use the DHT to return a set of matching
+offerers to the patrons.
 
-For the technical details, we have "Max's defense talk and Max's Master's
-thesis. An additional publication is under preparation and available to team
-members (in Git).
+For the technical details, we have Max's defense talk and Max's Master's
+thesis.
+
+@c An additional publication is under preparation and available to
+@c team members (in Git).
+@c FIXME: Where is the file? Point to it. Assuming that it's szengel2012ms
 
 @menu
 * How to run the regex profiler::
@@ -7677,32 +7798,38 @@ members (in Git).
 
 @c %**end of header
 
-The gnunet-regex-profiler can be used to profile the usage of mesh/regex for a
-given set of regular expressions and strings. Mesh/regex allows you to announce
-your peer ID under a certain regex and search for peers matching a particular
-regex using a string. See https://gnunet.org/szengel2012ms for a full
+The gnunet-regex-profiler can be used to profile the usage of mesh/regex
+for a given set of regular expressions and strings.
+Mesh/regex allows you to announce your peer ID under a certain regex and
+search for peers matching a particular regex using a string.
+See @uref{https://gnunet.org/szengel2012ms, szengel2012ms} for a full
 introduction.
 
-First of all, the regex profiler uses GNUnet testbed, thus all the implications
-for testbed also apply to the regex profiler (for example you need
-password-less ssh login to the machines listed in your hosts file).
+First of all, the regex profiler uses GNUnet testbed, thus all the
+implications for testbed also apply to the regex profiler
+(for example you need password-less ssh login to the machines listed in
+your hosts file).
 
 @strong{Configuration}
 
-Moreover, an appropriate configuration file is needed. Generally you can refer
-to SVN HEAD: contrib/regex_profiler_infiniband.conf for an example
-configuration. In the following paragraph the important details are
-highlighted.
+Moreover, an appropriate configuration file is needed.
+Generally you can refer to the
+@file{contrib/regex_profiler_infiniband.conf} file in the sourcecode
+of GNUnet for an example configuration.
+In the following paragraph the important details are highlighted.
 
 Announcing of the regular expressions is done by the
-gnunet-daemon-regexprofiler, therefore you have to make sure it is started, by
-adding it to the AUTOSTART set of ARM:@
-@code{
-[regexprofiler]@
-AUTOSTART = YES@
-}
+gnunet-daemon-regexprofiler, therefore you have to make sure it is
+started, by adding it to the AUTOSTART set of ARM:
 
+@example
+[regexprofiler]
+AUTOSTART = YES
+@end example
+
+@noindent
 Furthermore you have to specify the location of the binary:
+
 @example
 [regexprofiler]
 # Location of the gnunet-daemon-regexprofiler binary.
@@ -7712,58 +7839,88 @@ BINARY = /home/szengel/gnunet/src/mesh/.libs/gnunet-daemon-regexprofiler
 REGEX_PREFIX = "GNVPN-0001-PAD"
 @end example
 
-When running the profiler with a large scale deployment, you probably want to
-reduce the workload of each peer. Use the following options to do this.@
+@noindent
+When running the profiler with a large scale deployment, you probably
+want to reduce the workload of each peer.
+Use the following options to do this.
+
 @example
-[dht]@
-# Force network size estimation@
+[dht]
+# Force network size estimation
 FORCE_NSE = 1
 
 [dhtcache]
-DATABASE = heap@
+DATABASE = heap
 # Disable RC-file for Bloom filter? (for benchmarking with limited IO
-# availability)@
-DISABLE_BF_RC = YES@
-# Disable Bloom filter entirely@
+# availability)
+DISABLE_BF_RC = YES
+# Disable Bloom filter entirely
 DISABLE_BF = YES
 
-[nse]@
-# Minimize proof-of-work CPU consumption by NSE@
+[nse]
+# Minimize proof-of-work CPU consumption by NSE
 WORKBITS = 1
 @end example
 
-
+@noindent
 @strong{Options}
 
 To finally run the profiler some options and the input data need to be
 specified on the command line.
-@code{@ gnunet-regex-profiler -c config-file -d
-log-file -n num-links -p@ path-compression-length -s search-delay -t
-matching-timeout -a num-search-strings hosts-file policy-dir
-search-strings-file@ }
 
-@code{config-file} the configuration file created earlier.@ @code{log-file}
-file where to write statistics output.@ @code{num-links} number of random links
-between started peers.@ @code{path-compression-length} maximum path compression
-length in the DFA.@ @code{search-delay} time to wait between peers finished
-linking and@ starting to match strings.@ @code{matching-timeout} timeout after
-witch to cancel the searching.@ @code{num-search-strings} number of strings in
-the search-strings-file.
+@example
+gnunet-regex-profiler -c config-file -d log-file -n num-links \
+-p path-compression-length -s search-delay -t matching-timeout \
+-a num-search-strings hosts-file policy-dir search-strings-file
+@end example
 
-The @code{hosts-file} should contain a list of hosts for the testbed, one per
-line in the following format. @code{user@@host_ip:port}.
+@noindent
+Where...
 
-The @code{policy-dir} is a folder containing text files containing one or more
-regular expressions. A peer is started for each file in that folder and the
-regular expressions in the corresponding file are announced by this peer.
+@itemize @bullet
+@item ... @code{config-file} means the configuration file created earlier.
+@item ... @code{log-file} is the file where to write statistics output.
+@item ... @code{num-links} indicates the number of random links between
+started peers.
+@item ... @code{path-compression-length} is the maximum path compression
+length in the DFA.
+@item ... @code{search-delay} time to wait between peers finished linking
+and starting to match strings.
+@item ... @code{matching-timeout} timeout after which to cancel the
+searching.
+@item ... @code{num-search-strings} number of strings in the
+search-strings-file.
+@item ... the @code{hosts-file} should contain a list of hosts for the
+testbed, one per line in the following format:
 
-The @code{search-strings-file} is a text file containing search strings, one in
-each line.
+@itemize @bullet
+@item @code{user@@host_ip:port}
+@end itemize
+@item ... the @code{policy-dir} is a folder containing text files
+containing one or more regular expressions. A peer is started for each
+file in that folder and the regular expressions in the corresponding file
+are announced by this peer.
+@item ... the @code{search-strings-file} is a text file containing search
+strings, one in each line.
+@end itemize
 
-You can create regular expressions and search strings for every AS in the@
+@noindent
+You can create regular expressions and search strings for every AS in the
 Internet using the attached scripts. You need one of the
 @uref{http://data.caida.org/datasets/routing/routeviews-prefix2as/, CAIDA
-routeviews prefix2as} data files for this. Run @code{create_regex.py <filename>
-<output path>} to create the regular expressions and @code{create_strings.py
-<input path> <outfile>} to create a search strings file from the previously
-created regular expressions.
+routeviews prefix2as} data files for this. Run
+
+@example
+create_regex.py <filename> <output path>
+@end example
+
+@noindent
+to create the regular expressions and
+
+@example
+create_strings.py <input path> <outfile>
+@end example
+
+@noindent
+to create a search strings file from the previously created
+regular expressions.
