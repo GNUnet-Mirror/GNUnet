@@ -2957,14 +2957,14 @@ format "next_XX" and "prev_XX" where "XX" is the name of one of the
 doubly-linked lists. Here is a simple example:
 
 @example
-struct MyMultiListElement {
+struct MyMultiListElement @{
   struct MyMultiListElement *next_ALIST;
   struct MyMultiListElement *prev_ALIST;
   struct MyMultiListElement *next_BLIST;
   struct MyMultiListElement *prev_BLIST;
   void
   *data;
-};
+@};
 @end example
 
 
@@ -2973,9 +2973,10 @@ In addition, the program needs to have a location for the head and tail
 pointers for both lists, for example:
 
 @example
-static struct MyMultiListElement
-*head_ALIST; static struct MyMultiListElement *tail_ALIST; static struct
-MyMultiListElement *head_BLIST; static struct MyMultiListElement *tail_BLIST;
+static struct MyMultiListElement *head_ALIST;
+static struct MyMultiListElement *tail_ALIST;
+static struct MyMultiListElement *head_BLIST;
+static struct MyMultiListElement *tail_BLIST;
 @end example
 
 
@@ -3924,83 +3925,87 @@ the neighbours. Here are a short description of what happens in the main
 loop:
 
 @itemize @bullet
-@item Every time when it receives something from the STDIN it processes the
-data and saves the message in the first buffer (@emph{write_pout}). When it has
-something in the buffer, it gets the destination address from the buffer,
-searches the destination address in the list (if there is no connection with
-that device, it creates a new one and saves it to the list) and sends the
-message.
-@item Every time when it receives something on the listening socket it accepts
-the connection and saves the socket on a list with the reading sockets.
-@item Every time when it receives something from a reading socket it parses the
-message, verifies the CRC and saves it in the @emph{write_std} buffer in order
-to be sent later to the STDOUT.
+@item Every time when it receives something from the STDIN it processes
+the data and saves the message in the first buffer (@emph{write_pout}).
+When it has something in the buffer, it gets the destination address from
+the buffer, searches the destination address in the list (if there is no
+connection with that device, it creates a new one and saves it to the
+list) and sends the message.
+@item Every time when it receives something on the listening socket it
+accepts the connection and saves the socket on a list with the reading
+sockets. @item Every time when it receives something from a reading
+socket it parses the message, verifies the CRC and saves it in the
+@emph{write_std} buffer in order to be sent later to the STDOUT.
 @end itemize
 
-So in the main loop we use the select function to wait until one of the file
-descriptor saved in one of the two file descriptors sets used is ready to use.
-The first set (@emph{rfds}) represents the reading set and it could contain the
-list with the reading sockets, the STDIN file descriptor or the listening
-socket. The second set (@emph{wfds}) is the writing set and it could contain
-the sending socket or the STDOUT file descriptor. After the select function
-returns, we check which file descriptor is ready to use and we do what is
-supposed to do on that kind of event. @emph{For example:} if it is the
-listening socket then we accept a new connection and save the socket in the
-reading list; if it is the STDOUT file descriptor, then we write to STDOUT the
-message from the @emph{write_std} buffer.
+So in the main loop we use the select function to wait until one of the
+file descriptor saved in one of the two file descriptors sets used is
+ready to use. The first set (@emph{rfds}) represents the reading set and
+it could contain the list with the reading sockets, the STDIN file
+descriptor or the listening socket. The second set (@emph{wfds}) is the
+writing set and it could contain the sending socket or the STDOUT file
+descriptor. After the select function returns, we check which file
+descriptor is ready to use and we do what is supposed to do on that kind
+of event. @emph{For example:} if it is the listening socket then we
+accept a new connection and save the socket in the reading list; if it is
+the STDOUT file descriptor, then we write to STDOUT the message from the
+@emph{write_std} buffer.
 
-To find out on which port a device is listening on we connect to the local SDP
-server and searche the registered service for that device.
+To find out on which port a device is listening on we connect to the local
+SDP server and searche the registered service for that device.
 
-@emph{You should be aware of the fact that if the device fails to connect to
-another one when trying to send a message it will attempt one more time. If it
-fails again, then it skips the message.}
-@emph{Also you should know that the
-transport Bluetooth plugin has support for @strong{broadcast messages}.}
+@emph{You should be aware of the fact that if the device fails to connect
+to another one when trying to send a message it will attempt one more
+time. If it fails again, then it skips the message.}
+@emph{Also you should know that the transport Bluetooth plugin has
+support for @strong{broadcast messages}.}
 
 @node Details about the broadcast implementation
 @subsubsection Details about the broadcast implementation
 @c %**end of header
 
 First I want to point out that the broadcast functionality for the CONTROL
-messages is not implemented in a conventional way. Since the inquiry scan time
-is too big and it will take some time to send a message to all the
-discoverable devices I decided to tackle the problem in a different way. Here
-is how I did it:
+messages is not implemented in a conventional way. Since the inquiry scan
+time is too big and it will take some time to send a message to all the
+discoverable devices I decided to tackle the problem in a different way.
+Here is how I did it:
 
 @itemize @bullet
 @item If it is the first time when I have to broadcast a message I make an
 inquiry scan and save all the devices' addresses to a vector.
-@item After the inquiry scan ends I take the first address from the list and I
-try to connect to it. If it fails, I try to connect to the next one. If it
-succeeds, I save the socket to a list and send the message to the device.
-@item When I have to broadcast another message, first I search on the list for
-a new device which I'm not connected to. If there is no new device on the list
-I go to the beginning of the list and send the message to the old devices.
-After 5 cycles I make a new inquiry scan to check out if there are new
-discoverable devices and save them to the list. If there are no new
-discoverable devices I reset the cycling counter and go again through the old
-list and send messages to the devices saved in it.
+@item After the inquiry scan ends I take the first address from the list
+and I try to connect to it. If it fails, I try to connect to the next one.
+If it succeeds, I save the socket to a list and send the message to the
+device.
+@item When I have to broadcast another message, first I search on the list
+for a new device which I'm not connected to. If there is no new device on
+the list I go to the beginning of the list and send the message to the
+old devices. After 5 cycles I make a new inquiry scan to check out if
+there are new discoverable devices and save them to the list. If there
+are no new discoverable devices I reset the cycling counter and go again
+through the old list and send messages to the devices saved in it.
 @end itemize
 
 @strong{Therefore}:
 
 @itemize @bullet
-@item every time when I have a broadcast message I look up on the list for a
-new device and send the message to it
-@item if I reached the end of the list for 5 times and I'm connected to all the
-devices from the list I make a new inquiry scan. @emph{The number of the list's
-cycles after an inquiry scan could be increased by redefining the MAX_LOOPS
-variable}
+@item every time when I have a broadcast message I look up on the list
+for a new device and send the message to it
+@item if I reached the end of the list for 5 times and I'm connected to
+all the devices from the list I make a new inquiry scan.
+@emph{The number of the list's cycles after an inquiry scan could be
+increased by redefining the MAX_LOOPS variable}
 @item when there are no new devices I send messages to the old ones.
 @end itemize
 
-Doing so, the broadcast control messages will reach the devices but with delay.
+Doing so, the broadcast control messages will reach the devices but with
+delay.
 
-@emph{NOTICE:} When I have to send a message to a certain device first I check
-on the broadcast list to see if we are connected to that device. If not we try
-to connect to it and in case of success we save the address and the socket on
-the list. If we are already connected to that device we simply use the socket.
+@emph{NOTICE:} When I have to send a message to a certain device first I
+check on the broadcast list to see if we are connected to that device. If
+not we try to connect to it and in case of success we save the address and
+the socket on the list. If we are already connected to that device we
+simply use the socket.
 
 @node Windows functionality
 @subsubsection Windows functionality
@@ -4008,25 +4013,25 @@ the list. If we are already connected to that device we simply use the socket.
 
 For Windows I decided to use the Microsoft Bluetooth stack which has the
 advantage of coming standard from Windows XP SP2. The main disadvantage is
-that it only supports the RFCOMM protocol so we will not be able to have a low
-level control over the Bluetooth device. Therefore it is the user
-responsability to check if the device is up and in the discoverable mode. Also
-there are no tools which could be used for debugging in order to read the data
-coming from and going to a Bluetooth device, which obviously hindered my work.
-Another thing that slowed down the implementation of the plugin (besides that
-I wasn't too accomodated with the win32 API) was that there were some bugs on
-MinGW regarding the Bluetooth. Now they are solved but you should keep in mind
-that you should have the latest updates (especially the @emph{ws2bth} header).
+that it only supports the RFCOMM protocol so we will not be able to have
+a low level control over the Bluetooth device. Therefore it is the user
+responsability to check if the device is up and in the discoverable mode.
+Also there are no tools which could be used for debugging in order to read
+the data coming from and going to a Bluetooth device, which obviously
+hindered my work. Another thing that slowed down the implementation of the
+plugin (besides that I wasn't too accomodated with the win32 API) was that
+there were some bugs on MinGW regarding the Bluetooth. Now they are solved
+but you should keep in mind that you should have the latest updates
+(especially the @emph{ws2bth} header).
 
-Besides the fact that it uses the Windows Sockets, the Windows implemenation
-follows the same principles as the Linux one:
+Besides the fact that it uses the Windows Sockets, the Windows
+implemenation follows the same principles as the Linux one:
 
 @itemize @bullet
-@item
-It has a initalization part where it initializes the Windows Sockets, creates a
-RFCOMM socket which will be binded and switched to the listening mode and
-registers a SDP service.
-In the Microsoft Bluetooth API there are two ways to work with the SDP:
+@item It has a initalization part where it initializes the
+Windows Sockets, creates a RFCOMM socket which will be binded and switched
+to the listening mode and registers a SDP service. In the Microsoft
+Bluetooth API there are two ways to work with the SDP:
 @itemize @bullet
 @item an easy way which works with very simple service records
 @item a hard way which is useful when you need to update or to delete the
@@ -4034,21 +4039,21 @@ record
 @end itemize
 @end itemize
 
-Since I only needed the SDP service to find out on which port the device is
-listening on and that did not change, I decided to use the easy way. In order
-to register the service I used the @emph{WSASetService} function and I
-generated the @emph{Universally Unique Identifier} with the @emph{guidgen.exe}
-Windows's tool.
+Since I only needed the SDP service to find out on which port the device
+is listening on and that did not change, I decided to use the easy way.
+In order to register the service I used the @emph{WSASetService} function
+and I generated the @emph{Universally Unique Identifier} with the
+@emph{guidgen.exe} Windows's tool.
 
-In the loop section the only difference from the Linux implementation is that
-I used the GNUNET_NETWORK library for functions like @emph{accept},
+In the loop section the only difference from the Linux implementation is
+that I used the GNUNET_NETWORK library for functions like @emph{accept},
 @emph{bind}, @emph{connect} or @emph{select}. I decided to use the
-GNUNET_NETWORK library because I also needed to interact with the STDIN and
-STDOUT handles and on Windows the select function is only defined for sockets,
-and it will not work for arbitrary file handles.
+GNUNET_NETWORK library because I also needed to interact with the STDIN
+and STDOUT handles and on Windows the select function is only defined for
+sockets, and it will not work for arbitrary file handles.
 
-Another difference between Linux and Windows implementation is that in Linux,
-the Bluetooth address is represented in 48 bits while in Windows is
+Another difference between Linux and Windows implementation is that in
+Linux, the Bluetooth address is represented in 48 bits while in Windows is
 represented in 64 bits. Therefore I had to do some changes on
 @emph{plugin_transport_wlan} header.
 
@@ -4060,72 +4065,82 @@ broadcast messages. When it receives a broadcast message it will skip it.
 @c %**end of header
 
 @itemize @bullet
-@item Implement the broadcast functionality on Windows @emph{(currently working
-on)}
-@item Implement a testcase for the helper :@ @emph{@ The testcase consists of a
-program which emaluates the plugin and uses the helper. It will simulate
-connections, disconnections and data transfers.@ }
+@item Implement the broadcast functionality on Windows @emph{(currently
+working on)}
+@item Implement a testcase for the helper :@ @emph{The testcase
+consists of a program which emaluates the plugin and uses the helper. It
+will simulate connections, disconnections and data transfers.}
 @end itemize
 
-If you have a new idea about a feature of the plugin or suggestions about how
-I could improve the implementation you are welcome to comment or to contact
-me.
+If you have a new idea about a feature of the plugin or suggestions about
+how I could improve the implementation you are welcome to comment or to
+contact me.
 
 @node WLAN plugin
 @section WLAN plugin
 @c %**end of header
 
-This section documents how the wlan transport plugin works. Parts which are not
-implemented yet or could be better implemented are described at the end.
+This section documents how the wlan transport plugin works. Parts which
+are not implemented yet or could be better implemented are described at
+the end.
 
+@cindex ats subsystem
 @node The ATS Subsystem
 @section The ATS Subsystem
 @c %**end of header
 
 ATS stands for "automatic transport selection", and the function of ATS in
-GNUnet is to decide on which address (and thus transport plugin) should be used
-for two peers to communicate, and what bandwidth limits should be imposed on
-such an individual connection. To help ATS make an informed decision,
-higher-level services inform the ATS service about their requirements and the
-quality of the service rendered. The ATS service also interacts with the
-transport service to be appraised of working addresses and to communicate its
-resource allocation decisions. Finally, the ATS service's operation can be
-observed using a monitoring API.
+GNUnet is to decide on which address (and thus transport plugin) should
+be used for two peers to communicate, and what bandwidth limits should be
+imposed on such an individual connection. To help ATS make an informed
+decision, higher-level services inform the ATS service about their
+requirements and the quality of the service rendered. The ATS service
+also interacts with the transport service to be appraised of working
+addresses and to communicate its resource allocation decisions. Finally,
+the ATS service's operation can be observed using a monitoring API.
 
-The main logic of the ATS service only collects the available addresses, their
-performance characteristics and the applications requirements, but does not
-make the actual allocation decision. This last critical step is left to an ATS
-plugin, as we have implemented (currently three) different allocation
-strategies which differ significantly in their performance and maturity, and it
-is still unclear if any particular plugin is generally superior.
+The main logic of the ATS service only collects the available addresses,
+their performance characteristics and the applications requirements, but
+does not make the actual allocation decision. This last critical step is
+left to an ATS plugin, as we have implemented (currently three) different
+allocation strategies which differ significantly in their performance and
+maturity, and it is still unclear if any particular plugin is generally
+superior.
 
+@cindex core subsystem
 @node GNUnet's CORE Subsystem
 @section GNUnet's CORE Subsystem
 @c %**end of header
 
 The CORE subsystem in GNUnet is responsible for securing link-layer
-communications between nodes in the GNUnet overlay network. CORE builds on the
-TRANSPORT subsystem which provides for the actual, insecure, unreliable
-link-layer communication (for example, via UDP or WLAN), and then adds
-fundamental security to the connections:
+communications between nodes in the GNUnet overlay network. CORE builds
+on the TRANSPORT subsystem which provides for the actual, insecure,
+unreliable link-layer communication (for example, via UDP or WLAN), and
+then adds fundamental security to the connections:
 
 @itemize @bullet
 @item confidentiality with so-called perfect forward secrecy; we use
-@uref{http://en.wikipedia.org/wiki/Elliptic_curve_Diffie%E2%80%93Hellman,
-ECDHE} powered by @uref{http://cr.yp.to/ecdh.html, Curve25519} for the key
-exchange and then use symmetric encryption, encrypting with both
-@uref{http://en.wikipedia.org/wiki/Rijndael, AES-256} and
-@uref{http://en.wikipedia.org/wiki/Twofish, Twofish}
-@item @uref{http://en.wikipedia.org/wiki/Authentication, authentication} is
-achieved by signing the ephemeral keys using @uref{http://ed25519.cr.yp.to/,
-Ed25519}, a deterministic variant of @uref{http://en.wikipedia.org/wiki/ECDSA,
-ECDSA}
-@item integrity protection (using @uref{http://en.wikipedia.org/wiki/SHA-2,
-SHA-512} to do @uref{http://en.wikipedia.org/wiki/Authenticated_encryption,
-encrypt-then-MAC)}
-@item @uref{http://en.wikipedia.org/wiki/Replay_attack, replay} protection
-(using nonces, timestamps, challenge-response, message counters and ephemeral
-keys)
+ECDHE@footnote{Elliptic-curve Diffie—Hellman
+@uref{http://en.wikipedia.org/wiki/Elliptic_curve_Diffie%E2%80%93Hellman}}
+powered by Curve25519
+@footnote{@uref{http://cr.yp.to/ecdh.html, Curve25519}} for the key
+exchange and then use symmetric encryption, encrypting with both AES-256
+@footnote{@uref{http://en.wikipedia.org/wiki/Rijndael, AES-256}} and
+Twofish @footnote{@uref{http://en.wikipedia.org/wiki/Twofish, Twofish}}
+@item @uref{http://en.wikipedia.org/wiki/Authentication, authentication}
+is achieved by signing the ephemeral keys using Ed25519
+@footnote{@uref{http://ed25519.cr.yp.to/, Ed25519}}, a deterministic
+variant of ECDSA
+@footnote{@uref{http://en.wikipedia.org/wiki/ECDSA, ECDSA}}
+@item integrity protection (using SHA-512
+@footnote{@uref{http://en.wikipedia.org/wiki/SHA-2, SHA-512}} to do
+encrypt-then-MAC
+@footnote{@uref{http://en.wikipedia.org/wiki/Authenticated_encryption,
+encrypt-then-MAC}})
+@item Replay
+@footnote{@uref{http://en.wikipedia.org/wiki/Replay_attack, replay}}
+protection (using nonces, timestamps, challenge-response,
+message counters and ephemeral keys)
 @item liveness (keep-alive messages, timeout)
 @end itemize
 
@@ -4137,121 +4152,132 @@ keys)
 * The CORE Peer-to-Peer Protocol::
 @end menu
 
+@cindex core subsystem limitations
 @node Limitations
 @subsection Limitations
 @c %**end of header
 
-CORE does not perform @uref{http://en.wikipedia.org/wiki/Routing, routing};
-using CORE it is only possible to communicate with peers that happen to
-already be "directly" connected with each other. CORE also does not have an
-API to allow applications to establish such "direct" connections --- for this,
-applications can ask TRANSPORT, but TRANSPORT might not be able to establish a
-"direct" connection. The TOPOLOGY subsystem is responsible for trying to keep
-a few "direct" connections open at all times. Applications that need to talk
-to particular peers should use the CADET subsystem, as it can establish
-arbitrary "indirect" connections.
+CORE does not perform
+@uref{http://en.wikipedia.org/wiki/Routing, routing}; using CORE it is
+only possible to communicate with peers that happen to already be
+"directly" connected with each other. CORE also does not have an
+API to allow applications to establish such "direct" connections --- for
+this, applications can ask TRANSPORT, but TRANSPORT might not be able to
+establish a "direct" connection. The TOPOLOGY subsystem is responsible for
+trying to keep a few "direct" connections open at all times. Applications
+that need to talk to particular peers should use the CADET subsystem, as
+it can establish arbitrary "indirect" connections.
 
 Because CORE does not perform routing, CORE must only be used directly by
-applications that either perform their own routing logic (such as anonymous
-file-sharing) or that do not require routing, for example because they are
-based on flooding the network. CORE communication is unreliable and delivery
-is possibly out-of-order. Applications that require reliable communication
-should use the CADET service. Each application can only queue one message per
-target peer with the CORE service at any time; messages cannot be larger than
-approximately 63 kilobytes. If messages are small, CORE may group multiple
-messages (possibly from different applications) prior to encryption. If
-permitted by the application (using the @uref{http://baus.net/on-tcp_cork/,
-cork} option), CORE may delay transmissions to facilitate grouping of multiple
-small messages. If cork is not enabled, CORE will transmit the message as soon
-as TRANSPORT allows it (TRANSPORT is responsible for limiting bandwidth and
-congestion control). CORE does not allow flow control; applications are
-expected to process messages at line-speed. If flow control is needed,
-applications should use the CADET service.
+applications that either perform their own routing logic (such as
+anonymous file-sharing) or that do not require routing, for example
+because they are based on flooding the network. CORE communication is
+unreliable and delivery is possibly out-of-order. Applications that
+require reliable communication should use the CADET service. Each
+application can only queue one message per target peer with the CORE
+service at any time; messages cannot be larger than approximately
+63 kilobytes. If messages are small, CORE may group multiple messages
+(possibly from different applications) prior to encryption. If permitted
+by the application (using the @uref{http://baus.net/on-tcp_cork/, cork}
+option), CORE may delay transmissions to facilitate grouping of multiple
+small messages. If cork is not enabled, CORE will transmit the message as
+soon as TRANSPORT allows it (TRANSPORT is responsible for limiting
+bandwidth and congestion control). CORE does not allow flow control;
+applications are expected to process messages at line-speed. If flow
+control is needed, applications should use the CADET service.
 
+@cindex when is a peer connected
 @node When is a peer "connected"?
 @subsection When is a peer "connected"?
 @c %**end of header
 
-In addition to the security features mentioned above, CORE also provides one
-additional key feature to applications using it, and that is a limited form of
-protocol-compatibility checking. CORE distinguishes between TRANSPORT-level
-connections (which enable communication with other peers) and
-application-level connections. Applications using the CORE API will
-(typically) learn about application-level connections from CORE, and not about
-TRANSPORT-level connections. When a typical application uses CORE, it will
-specify a set of message types (from @code{gnunet_protocols.h}) that it
-understands. CORE will then notify the application about connections it has
-with other peers if and only if those applications registered an intersecting
-set of message types with their CORE service. Thus, it is quite possible that
-CORE only exposes a subset of the established direct connections to a
-particular application --- and different applications running above CORE might
-see different sets of connections at the same time.
+In addition to the security features mentioned above, CORE also provides
+one additional key feature to applications using it, and that is a
+limited form of protocol-compatibility checking. CORE distinguishes
+between TRANSPORT-level connections (which enable communication with other
+peers) and application-level connections. Applications using the CORE API
+will (typically) learn about application-level connections from CORE, and
+not about TRANSPORT-level connections. When a typical application uses
+CORE, it will specify a set of message types
+(from @code{gnunet_protocols.h}) that it understands. CORE will then
+notify the application about connections it has with other peers if and
+only if those applications registered an intersecting set of message
+types with their CORE service. Thus, it is quite possible that CORE only
+exposes a subset of the established direct connections to a particular
+application --- and different applications running above CORE might see
+different sets of connections at the same time.
 
-A special case are applications that do not register a handler for any message
-type. CORE assumes that these applications merely want to monitor connections
+A special case are applications that do not register a handler for any
+message type.
+CORE assumes that these applications merely want to monitor connections
 (or "all" messages via other callbacks) and will notify those applications
-about all connections. This is used, for example, by the @code{gnunet-core}
-command-line tool to display the active connections. Note that it is also
-possible that the TRANSPORT service has more active connections than the CORE
-service, as the CORE service first has to perform a key exchange with
-connecting peers before exchanging information about supported message types
-and notifying applications about the new connection.
+about all connections. This is used, for example, by the
+@code{gnunet-core} command-line tool to display the active connections.
+Note that it is also possible that the TRANSPORT service has more active
+connections than the CORE service, as the CORE service first has to
+perform a key exchange with connecting peers before exchanging information
+about supported message types and notifying applications about the new
+connection.
 
+@cindex libgnunetcore
 @node libgnunetcore
 @subsection libgnunetcore
 @c %**end of header
 
-The CORE API (defined in @code{gnunet_core_service.h}) is the basic messaging
-API used by P2P applications built using GNUnet. It provides applications the
-ability to send and receive encrypted messages to the peer's "directly"
-connected neighbours.
+The CORE API (defined in @file{gnunet_core_service.h}) is the basic
+messaging API used by P2P applications built using GNUnet. It provides
+applications the ability to send and receive encrypted messages to the
+peer's "directly" connected neighbours.
 
-As CORE connections are generally "direct" connections,@ applications must not
-assume that they can connect to arbitrary peers this way, as "direct"
-connections may not always be possible. Applications using CORE are notified
-about which peers are connected. Creating new "direct" connections must be
-done using the TRANSPORT API.
+As CORE connections are generally "direct" connections,@ applications must
+not assume that they can connect to arbitrary peers this way, as "direct"
+connections may not always be possible. Applications using CORE are
+notified about which peers are connected. Creating new "direct"
+connections must be done using the TRANSPORT API.
 
 The CORE API provides unreliable, out-of-order delivery. While the
-implementation tries to ensure timely, in-order delivery, both message losses
-and reordering are not detected and must be tolerated by the application. Most
-important, the core will NOT perform retransmission if messages could not be
-delivered.
+implementation tries to ensure timely, in-order delivery, both message
+losses and reordering are not detected and must be tolerated by the
+application. Most important, the core will NOT perform retransmission if
+messages could not be delivered.
 
-Note that CORE allows applications to queue one message per connected peer.
-The rate at which each connection operates is influenced by the preferences
-expressed by local application as well as restrictions imposed by the other
-peer. Local applications can express their preferences for particular
-connections using the "performance" API of the ATS service.
+Note that CORE allows applications to queue one message per connected
+peer. The rate at which each connection operates is influenced by the
+preferences expressed by local application as well as restrictions
+imposed by the other peer. Local applications can express their
+preferences for particular connections using the "performance" API of the
+ATS service.
 
-Applications that require more sophisticated transmission capabilities such as
-TCP-like behavior, or if you intend to send messages to arbitrary remote
-peers, should use the CADET API.
+Applications that require more sophisticated transmission capabilities
+such as TCP-like behavior, or if you intend to send messages to arbitrary
+remote peers, should use the CADET API.
 
 The typical use of the CORE API is to connect to the CORE service using
 @code{GNUNET_CORE_connect}, process events from the CORE service (such as
-peers connecting, peers disconnecting and incoming messages) and send messages
-to connected peers using @code{GNUNET_CORE_notify_transmit_ready}. Note that
-applications must cancel pending transmission requests if they receive a
-disconnect event for a peer that had a transmission pending; furthermore,
-queueing more than one transmission request per peer per application using the
+peers connecting, peers disconnecting and incoming messages) and send
+messages to connected peers using
+@code{GNUNET_CORE_notify_transmit_ready}. Note that applications must
+cancel pending transmission requests if they receive a disconnect event
+for a peer that had a transmission pending; furthermore, queueing more
+than one transmission request per peer per application using the
 service is not permitted.
 
 The CORE API also allows applications to monitor all communications of the
 peer prior to encryption (for outgoing messages) or after decryption (for
 incoming messages). This can be useful for debugging, diagnostics or to
 establish the presence of cover traffic (for anonymity). As monitoring
-applications are often not interested in the payload, the monitoring callbacks
-can be configured to only provide the message headers (including the message
-type and size) instead of copying the full data stream to the monitoring
-client.
+applications are often not interested in the payload, the monitoring
+callbacks can be configured to only provide the message headers (including
+the message type and size) instead of copying the full data stream to the
+monitoring client.
 
-The init callback of the @code{GNUNET_CORE_connect} function is called with
-the hash of the public key of the peer. This public key is used to identify
-the peer globally in the GNUnet network. Applications are encouraged to check
-that the provided hash matches the hash that they are using (as theoretically
-the application may be using a different configuration file with a different
-private key, which would result in hard to find bugs).
+The init callback of the @code{GNUNET_CORE_connect} function is called
+with the hash of the public key of the peer. This public key is used to
+identify the peer globally in the GNUnet network. Applications are
+encouraged to check that the provided hash matches the hash that they are
+using (as theoretically the application may be using a different
+configuration file with a different private key, which would result in
+hard to find bugs).
 
 As with most service APIs, the CORE API isolates applications from crashes of
 the CORE service. If the CORE service crashes, the application will see
