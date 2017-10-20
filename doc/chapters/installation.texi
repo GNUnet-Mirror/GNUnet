@@ -1707,47 +1707,42 @@ unpack it to the MinGW directory (c:\mingw\mingw)
 @
  Get the prebuilt binary from here and unpack it to your MinGW directory. 
 
-@item
-@strong{MySQL}@
-@
- As an alternative to SQLite, GNUnet also supports MySQL. 
+@item @strong{MySQL}@
+As an alternative to SQLite, GNUnet also supports MySQL.
+
 @itemize @bullet
 
+@item Get the binary installer from the
+@uref{http://dev.mysql.com/downloads/mysql/4.1.html#Windows, MySQL project}
+(version 4.1), install it and follow the instructions in README.mysql.
 
-@item
- Get the binary installer from the @uref{http://dev.mysql.com/downloads/mysql/4.1.html#Windows, MySQL project} (version 4.1),@
- install it and follow the instructions in README.mysql. 
+@item  Create a temporary build directory (c:\mysql) 
 
-@item
- Create a temporary build directory (c:\mysql) 
+@item Copy the directories include\ and lib\ from the MySQL directory to
+the new directory 
 
-@item
- Copy the directories include\ and lib\ from the MySQL directory to the new directory 
+@item Get the patches from
+@uref{http://bugs.mysql.com/bug.php?id=8906&files=1, Bug #8906} and
+@uref{http://bugs.mysql.com/bug.php?id=8872&files=1, Bug #8872} (the
+latter is only required for MySQL
 
-@item
- Get the patches from @uref{http://bugs.mysql.com/bug.php?id=8906&files=1, Bug #8906} and @uref{http://bugs.mysql.com/bug.php?id=8872&files=1, Bug #8872} (the latter is only required for MySQL 
 @example
 patch -p 0
 @end example
 
+@item Move lib\opt\libmysql.dll to lib\libmysql.dll
 
-@item
- Move lib\opt\libmysql.dll to lib\libmysql.dll 
-
-@item
- Change to lib\ and create an import library:@
+@item  Change to lib\ and create an import library:@
 
 @example
 dlltool --input-def ../include/libmySQL.def --dllname libmysql.dll 
   --output-lib libmysqlclient.a -k
 @end example
 
+@item  Copy include\* to include\mysql\ 
 
-@item
- Copy include\* to include\mysql\ 
-
-@item
- Pass "--with-mysql=/c/mysql" to ./configure and copy libmysql.dll to your PATH or GNUnet's @file{bin} directory
+@item  Pass "--with-mysql=/c/mysql" to ./configure and copy libmysql.dll
+to your PATH or GNUnet's @file{bin} directory
 @end itemize
 
 
@@ -1756,85 +1751,110 @@ dlltool --input-def ../include/libmySQL.def --dllname libmysql.dll
 @
  gnunet-gtk and libextractor depend on GTK.@
 @
- Get the the binary and developer packages of atk, glib, gtk, iconv, gettext-runtime, pango from @uref{ftp://ftp.gtk.org/pub/gtk/v2.6/win32, gtk.org} and unpack it to the MinGW directory (c:\mingw\mingw)@
+ Get the the binary and developer packages of atk, glib, gtk, iconv,
+ gettext-runtime, pango from
+ @uref{ftp://ftp.gtk.org/pub/gtk/v2.6/win32, gtk.org} and unpack it to the
+ MinGW directory (c:\mingw\mingw)@
 @
- Get @uref{http://www.gtk.org/download/win32.php, pkg-config} and libpng and unpack them to the MinGW directory (c:\mingw\mingw)@
+ Get @uref{http://www.gtk.org/download/win32.php, pkg-config} and libpng
+ and unpack them to the MinGW directory (c:\mingw\mingw)@
 @
- Here is an all-in-one package for @uref{http://ftp.gnome.org/pub/gnome/binaries/win32/gtk+/2.24/gtk+-bundle_2.24.10-20120208_win32.zip, gtk+dependencies}. Do not overwrite any existing files! 
+ Here is an all-in-one package for
+ @uref{http://ftp.gnome.org/pub/gnome/binaries/win32/gtk+/2.24/gtk+-bundle_2.24.10-20120208_win32.zip, gtk+dependencies}.
+ Do not overwrite any existing files! 
 
 @item
 @strong{Glade}@
 @
- gnunet-gtk and and gnunet-setup were created using this interface builder@
+ gnunet-gtk and and gnunet-setup were created using this interface builder
 
 @itemize @bullet
 
 
 @item
- Get the Glade and libglade (-bin and -devel) packages (without GTK!) from @uref{http://gladewin32.sourceforge.net/, GladeWin32} and unpack it to the MinGW directory (c:\mingw\mingw) 
+ Get the Glade and libglade (-bin and -devel) packages (without GTK!) from
+ @uref{http://gladewin32.sourceforge.net/, GladeWin32} and unpack it to
+ the MinGW directory (c:\mingw\mingw) 
 
 @item
- Get libxml from here and unpack it to the MinGW directory (c:\mingw\mingw). 
+Get libxml from here and unpack it to the MinGW
+directory (c:\mingw\mingw).
 @end itemize
 
 
 @item
 @strong{zLib}@
 @
- libextractor requires zLib to decompress some file formats. GNUnet uses it to (de)compress meta-data.@
+libextractor requires zLib to decompress some file formats. GNUnet uses it
+to (de)compress meta-data.@
 @
- Get zLib from here (Signature) and unpack it to the MinGW directory (c:\mingw\mingw) 
+ Get zLib from here (Signature) and unpack it to the
+ MinGW directory (c:\mingw\mingw) 
 
 @item
 @strong{Bzip2}@
 @
  libextractor also requires Bzip2 to decompress some file formats.@
 @
- Get Bzip2 (binary and developer package) from @uref{http://gnuwin32.sourceforge.net/packages/bzip2.htm, GnuWin32} and unpack it to the MinGW directory (c:\mingw\mingw) 
+Get Bzip2 (binary and developer package) from
+@uref{http://gnuwin32.sourceforge.net/packages/bzip2.htm, GnuWin32} and
+unpack it to the MinGW directory (c:\mingw\mingw)
 
 @item
 @strong{Libgcrypt}@
 @
  Libgcrypt provides the cryptographic functions used by GNUnet@
 @
- Get Libgcrypt from @uref{ftp://ftp.gnupg.org/gcrypt/libgcrypt/, here}, compile and place it in the MinGW directory (c:\mingw\mingw). Currently you need at least version 1.4.2 to compile gnunet. 
+ Get Libgcrypt from @uref{ftp://ftp.gnupg.org/gcrypt/libgcrypt/, here},
+ compile and place it in the MinGW directory (c:\mingw\mingw). Currently
+ you need at least version 1.4.2 to compile GNUnet. 
 
 @item
 @strong{PlibC}@
 @
  PlibC emulates Unix functions under Windows.@
 @
- Get PlibC from here and unpack it to the MinGW directory (c:\mingw\mingw) 
+ Get PlibC from here and unpack it to the MinGW
+ directory (c:\mingw\mingw)
 
 @item
 @strong{OGG Vorbis}@
 @
  OGG Vorbis is used to extract meta-data from .ogg files@
 @
- Get the packages @uref{http://www.gnunet.org/libextractor/download/win/libogg-1.1.4.zip, libogg} and @uref{http://www.gnunet.org/libextractor/download/win/libvorbis-1.2.3.zip, libvorbis} from the @uref{http://ftp.gnu.org/gnu/libextractor/libextractor-w32-1.0.0.zip, libextractor win32 build} and unpack them to the MinGW directory (c:\mingw\mingw) 
+ Get the packages
+ @uref{http://www.gnunet.org/libextractor/download/win/libogg-1.1.4.zip, libogg}
+ and
+ @uref{http://www.gnunet.org/libextractor/download/win/libvorbis-1.2.3.zip, libvorbis}
+ from the
+ @uref{http://ftp.gnu.org/gnu/libextractor/libextractor-w32-1.0.0.zip, libextractor win32 build}
+ and unpack them to the MinGW directory (c:\mingw\mingw) 
 
 @item
 @strong{Exiv2}@
 @
  (lib)Exiv2 is used to extract meta-data from files with Exiv2 meta-data@
 @
- Download @uref{http://www.gnunet.org/libextractor/download/win/exiv2-0.18.2.zip, Exiv2} and unpack it to the MSYS directory (c:\mingw) 
+ Download
+@uref{http://www.gnunet.org/libextractor/download/win/exiv2-0.18.2.zip, Exiv2}
+and unpack it to the MSYS directory (c:\mingw) 
 @end itemize
 
 @node Building libextractor and GNUnet
 @subsubsection Building libextractor and GNUnet
 
-Before you compile libextractor or GNUnet, be sure to set@
-PKG_CONFIG_PATH: 
+Before you compile libextractor or GNUnet, be sure to set PKG_CONFIG_PATH:
+
 @example
 export PKG_CONFIG_PATH=/mingw/lib/pkgconfig
 @end example
 
+@noindent
+See Installation for basic instructions on building libextractor
+and GNUnet. By default, all modules that are created in this way contain
+debug information and are quite large. To compile release versions (small
+and fast) set the variable CFLAGS:
 
- See Installation for basic instructions on building libextractor and GNUnet. 
-
- By default, all modules that are created in this way contain debug information and are quite large.@
- To compile release versions (small and fast) set the variable CFLAGS: 
 @example
 export CFLAGS='-O2 -march=pentium -fomit-frame-pointer' 
 ./configure --prefix=$HOME --with-extractor=$HOME
@@ -1843,8 +1863,9 @@ export CFLAGS='-O2 -march=pentium -fomit-frame-pointer'
 @node Installer
 @subsubsection Installer
 
- The GNUnet installer is made with @uref{http://nsis.sourceforge.net/, NSIS}@
- The installer script is located in contrib\win in the GNUnet source tree.
+The GNUnet installer is made with
+@uref{http://nsis.sourceforge.net/, NSIS}. The installer script is
+located in @file{contrib\win} in the GNUnet source tree.
 
 @node Source
 @subsubsection Source
@@ -1857,9 +1878,9 @@ The sources of all dependencies are available here.
 Quick instructions on how to use the most recent GNUnet on most GNU/Linux
 distributions
 
-Currently this has only been tested on Ubuntu 12.04, 12.10, 13.04, Debian and
-CentOS 6, but it should work on almost any GNU/Linux distribution. More
-in-detail information can be found in the handbook.
+Currently this has only been tested on Ubuntu 12.04, 12.10, 13.04, Debian
+and CentOS 6, but it should work on almost any GNU/Linux distribution.
+More in-detail information can be found in the handbook.
 
 
 
@@ -1879,11 +1900,12 @@ needed:@
 @node Download & set up gnunet-update
 @subsection Download & set up gnunet-update
 
-The following command will download a working version of gnunet-update with the
-subversion tool and import the public key which is needed for authentication:@
+The following command will download a working version of gnunet-update
+with the subversion tool and import the public key which is needed for
+authentication:
 
 @example
-svn checkout -r24905 https://gnunet.org/svn/gnunet-update ~/gnunet-update &&
+svn checkout -r24905 https://gnunet.org/svn/gnunet-update ~/gnunet-update
 cd ~/gnunet-update
 gpg --keyserver "hkp://keys.gnupg.net" --recv-keys 7C613D78
 @end example
@@ -1891,35 +1913,37 @@ gpg --keyserver "hkp://keys.gnupg.net" --recv-keys 7C613D78
 @node Install GNUnet
 @subsection Install GNUnet
 
-Download and install GNUnet binaries which can be found here and set library
-paths:@
-@code{@
- wget -P /tmp https://gnunet.org/install/packs/gnunet-0.9.4-`uname -m`.tgz@
- ./bin/gnunet-update install /tmp/gnunet-0.9*.tgz ~@
- echo "PATH DEFAULT=$@{PATH@}:$HOME/bin" >> ~/.pam_environment@
- echo -e "$@{HOME@}/lib\n$@{HOME@}/lib/gnunet-deps" | sudo tee /etc/ld.so.conf.d/gnunet.conf > /dev/null@
- sudo ldconfig@
-}@
+Download and install GNUnet binaries which can be found here and set
+library paths:
+
+@example
+wget -P /tmp https://gnunet.org/install/packs/gnunet-0.9.4-`uname -m`.tgz
+./bin/gnunet-update install /tmp/gnunet-0.9*.tgz ~
+echo "PATH DEFAULT=$@{PATH@}:$HOME/bin" >> ~/.pam_environment
+echo -e "$@{HOME@}/lib\n$@{HOME@}/lib/gnunet-deps" | sudo tee \
+ /etc/ld.so.conf.d/gnunet.conf > /dev/null
+sudo ldconfig
+@end example
 
 You may need to re-login once after executing these last commands
 
 That's it, GNUnet is installed in your home directory now. GNUnet can be
-configured and afterwards started by executing@
-@code{gnunet-arm -s}
+configured and afterwards started by executing @code{gnunet-arm -s}.
 
 @node The graphical configuration interface
 @section The graphical configuration interface
 
-If you also would like to use gnunet-gtk and gnunet-setup (highly recommended
-for beginners), do:
+If you also would like to use gnunet-gtk and gnunet-setup (highly
+recommended for beginners), do:
 
 @example
-wget -P /tmp https://gnunet.org/install/packs/gnunet-0.9.4-gtk-0.9.4-`uname -m`.tgz@
-sh ~/gnunet-update/bin/gnunet-update install /tmp/gnunet-*gtk*.tgz ~@
+wget -P /tmp https://gnunet.org/install/packs/gnunet-0.9.4-gtk-0.9.4-`uname -m`.tgz
+sh ~/gnunet-update/bin/gnunet-update install /tmp/gnunet-*gtk*.tgz ~
 sudo ldconfig
 @end example
-Now you can run @code{gnunet-setup} for easy configuration of your GNUnet peer.
 
+Now you can run @code{gnunet-setup} for easy configuration of your
+GNUnet peer.
 
 @menu
 * Configuring your peer::
@@ -1961,115 +1985,124 @@ Now you can run @code{gnunet-setup} for easy configuration of your GNUnet peer.
 This chapter will describe the various configuration options in GNUnet.
 
 The easiest way to configure your peer is to use the gnunet-setup tool.
-gnunet-setup is part of the gnunet-gtk download. You might have to install it
-separately. 
+gnunet-setup is part of the gnunet-gtk download. You might have to
+install it separately.
 
-Many of the specific sections from this chapter actually are linked from within
-gnunet-setup to help you while using the setup tool. 
+Many of the specific sections from this chapter actually are linked from
+within gnunet-setup to help you while using the setup tool.
 
-While you can also configure your peer by editing the configuration file by
-hand, this is not recommended for anyone except for developers.
-
-
-
+While you can also configure your peer by editing the configuration
+file by hand, this is not recommended for anyone except for developers.
 
 
 @node Configuring the Friend-to-Friend (F2F) mode
 @subsection Configuring the Friend-to-Friend (F2F) mode
 
-GNUnet knows three basic modes of operation. In standard "peer-to-peer" mode,
-your peer will connect to any peer. In the pure "friend-to-friend" mode, your
-peer will ONLY connect to peers from a list of friends specified in the
-configuration. Finally, in mixed mode, GNUnet will only connect to arbitrary
-peers if it has at least a specified number of connections to friends.
+GNUnet knows three basic modes of operation. In standard "peer-to-peer"
+mode, your peer will connect to any peer. In the pure "friend-to-friend"
+mode, your peer will ONLY connect to peers from a list of friends
+specified in the configuration.
+Finally, in mixed mode, GNUnet will only connect to arbitrary peers if it
+has at least a specified number of connections to friends.
 
-When configuring any of the F2F modes, you first need to create a file with the
-peer identities of your friends. Ask your friends to run
+When configuring any of the F2F modes, you first need to create a file
+with the peer identities of your friends. Ask your friends to run
 
+@example
 $ gnunet-peerinfo -sq
+@end example
 
-The output of this command needs to be added to your friends file, which is
-simply a plain text file with one line per friend with the output from the
-above command.
+@noindent
+The output of this command needs to be added to your friends file, which
+is simply a plain text file with one line per friend with the output from
+the above command.
 
-You then specify the location of your friends file in the "FRIENDS" option of
-the "topology" section.
+You then specify the location of your friends file in the "FRIENDS"
+option of the "topology" section.
 
-Once you have created the friends file, you can tell GNUnet to only connect to
-your friends by setting the "FRIENDS-ONLY" option (again in the "topology"
-section) to YES.
+Once you have created the friends file, you can tell GNUnet to only
+connect to your friends by setting the "FRIENDS-ONLY" option (again in
+the "topology" section) to YES.
 
 If you want to run in mixed-mode, set "FRIENDS-ONLY" to NO and configure a
-minimum number of friends to have (before connecting to arbitrary peers) under
-the "MINIMUM-FRIENDS" option. 
+minimum number of friends to have (before connecting to arbitrary peers)
+under the "MINIMUM-FRIENDS" option.
 
-If you want to operate in normal P2P-only mode, simply set "MINIMUM-FRIENDS" to
-zero and "FRIENDS_ONLY" to NO. This is the default.
+If you want to operate in normal P2P-only mode, simply set
+"MINIMUM-FRIENDS" to zero and "FRIENDS_ONLY" to NO. This is the default.
 
 @node Configuring the hostlist to bootstrap
 @subsection Configuring the hostlist to bootstrap
 
-After installing the software you need to get connected to the GNUnet network.
-The configuration file included in your download is already configured to
-connect you to the GNUnet network. In this section the relevant configuration
-settings are explained.
+After installing the software you need to get connected to the GNUnet
+network. The configuration file included in your download is already
+configured to connect you to the GNUnet network.
+In this section the relevant configuration settings are explained.
 
-To get an initial connection to the GNUnet network and to get to know peers
-already connected to the network you can use the so called bootstrap servers.
-These servers can give you a list of peers connected to the network. To use
-these bootstrap servers you have to configure the hostlist daemon to activate
-bootstrapping.
+To get an initial connection to the GNUnet network and to get to know
+peers already connected to the network you can use the so called
+bootstrap servers.
+These servers can give you a list of peers connected to the network.
+To use these bootstrap servers you have to configure the hostlist daemon
+to activate bootstrapping.
 
 To activate bootstrapping edit your configuration file and edit the
-@code{[hostlist]}-section. You have to set the argument "-b" in the options
-line:
+@code{[hostlist]}-section. You have to set the argument "-b" in the
+options line:
+
 @example
 [hostlist]
 OPTIONS = -b
 @end example
 
-Additionally you have to specify which server you want to use. The default
-bootstrapping server is "@uref{http://v10.gnunet.org/hostlist,
-http://v10.gnunet.org/hostlist}". [^] To set the server you have to edit the
-line "SERVERS" in the hostlist section. To use the default server you should
-set the lines to
+Additionally you have to specify which server you want to use.
+The default bootstrapping server is
+"@uref{http://v10.gnunet.org/hostlist, http://v10.gnunet.org/hostlist}".
+[^] To set the server you have to edit the line "SERVERS" in the hostlist
+section. To use the default server you should set the lines to
+
 @example
 SERVERS = http://v10.gnunet.org/hostlist [^]
 @end example
 
-
+@noindent
 To use bootstrapping your configuration file should include these lines:
+
 @example
 [hostlist]
 OPTIONS = -b
 SERVERS = http://v10.gnunet.org/hostlist [^]
 @end example
 
+@noindent
+Besides using bootstrap servers you can configure your GNUnet peer to
+recieve hostlist advertisements.
+Peers offering hostlists to other peers can send advertisement messages
+to peers that connect to them. If you configure your peer to receive these
+messages, your peer can download these lists and connect to the peers
+included. These lists are persistent, which means that they are saved to
+your hard disk regularly and are loaded during startup.
 
-Besides using bootstrap servers you can configure your GNUnet peer to recieve
-hostlist advertisements. Peers offering hostlists to other peers can send
-advertisement messages to peers that connect to them. If you configure your
-peer to receive these messages, your peer can download these lists and connect
-to the peers included. These lists are persistent, which means that they are
-saved to your hard disk regularly and are loaded during startup.
+To activate hostlist learning you have to add the "-e" switch to the
+OPTIONS line in the hostlist section:
 
-To activate hostlist learning you have to add the "-e" switch to the OPTIONS
-line in the hostlist section:
 @example
 [hostlist]
 OPTIONS = -b -e
 @end example
 
-
+@noindent
 Furthermore you can specify in which file the lists are saved. To save the
 lists in the file "hostlists.file" just add the line:
+
 @example
 HOSTLISTFILE = hostlists.file
 @end example
 
+@noindent
+Best practice is to activate both bootstrapping and hostlist learning.
+So your configuration file should include these lines:
 
-Best practice is to activate both bootstrapping and hostlist learning. So your
-configuration file should include these lines:
 @example
 [hostlist]
 OPTIONS = -b -e
@@ -2081,34 +2114,33 @@ HOSTLISTFILE = $SERVICEHOME/hostlists.file
 @node Configuration of the HOSTLIST proxy settings
 @subsection Configuration of the HOSTLIST proxy settings
 
-The hostlist client can be configured to use a proxy to connect to the hostlist
-server. This functionality can be configured in the configuration file directly
+The hostlist client can be configured to use a proxy to connect to the
+hostlist server.
+This functionality can be configured in the configuration file directly
 or using the gnunet-setup tool. 
 
 The hostlist client supports the following proxy types at the moment:
+
 @itemize @bullet
-
-
-@item
-HTTP and HTTP 1.0 only proxy
-
-@item
-SOCKS 4/4a/5/5 with hostname
+@item HTTP and HTTP 1.0 only proxy
+@item SOCKS 4/4a/5/5 with hostname
 @end itemize
-
 
 In addition authentication at the proxy with username and password can be
 configured. 
 
-To configure proxy support for the hostlist client in the gnunet-setup tool,
-select the "hostlist" tab and select the appropriate proxy type. The hostname
-or IP address (including port if required) has to be entered in the "Proxy
-hostname" textbox. If required, enter username and password in the "Proxy
-username" and "Proxy password" boxes. Be aware that these information will be
-stored in the configuration in plain text.
+To configure proxy support for the hostlist client in the gnunet-setup
+tool, select the "hostlist" tab and select the appropriate proxy type.
+The hostname or IP address (including port if required) has to be entered
+in the "Proxy hostname" textbox. If required, enter username and password
+in the "Proxy username" and "Proxy password" boxes.
+Be aware that these information will be stored in the configuration in
+plain text.
 
-To configure these options directly in the configuration, you can configure the
-following settings in the @code{[hostlist]} section of the configuration:@
+To configure these options directly in the configuration, you can
+configure the following settings in the
+@code{[hostlist]} section of the configuration:
+
 @example
  # Type of proxy server,@
  # Valid values: HTTP, HTTP_1_0, SOCKS4, SOCKS5, SOCKS4A, SOCKS5_HOSTNAME@
@@ -2126,20 +2158,21 @@ following settings in the @code{[hostlist]} section of the configuration:@
 @node Configuring your peer to provide a hostlist
 @subsection Configuring your peer to provide a hostlist
 
-If you operate a peer permanently connected to GNUnet you can configure your
-peer to act as a hostlist server, providing other peers the list of peers known
-to him.
+If you operate a peer permanently connected to GNUnet you can configure
+your peer to act as a hostlist server, providing other peers the list of
+peers known to him.
 
-Yor server can act as a bootstrap server and peers needing to obtain a list of
-peers can contact him to download this list. To download this hostlist the peer
-uses HTTP. For this reason you have to build your peer with libcurl and
-microhttpd support. How you build your peer with this options can be found
-here: https://gnunet.org/generic_installation
+Yor server can act as a bootstrap server and peers needing to obtain a
+list of peers can contact him to download this list.
+To download this hostlist the peer uses HTTP.
+For this reason you have to build your peer with libcurl and microhttpd
+support. How you build your peer with this options can be found here:
+@uref{https://gnunet.org/generic_installation}
 
-To configure your peer to act as a bootstrap server you have to add the "-p"
-option to OPTIONS in the [hostlist] section of your configuration file. Besides
-that you have to specify a port number for the http server. In conclusion you
-have to add the following lines:
+To configure your peer to act as a bootstrap server you have to add the
+"@code{-p}" option to OPTIONS in the @code{[hostlist]} section of your
+configuration file. Besides that you have to specify a port number for
+the http server. In conclusion you have to add the following lines:
 
 @example
 [hostlist]
@@ -2147,16 +2180,18 @@ HTTPPORT = 12980
 OPTIONS = -p
 @end example
 
+@noindent
+If your peer acts as a bootstrap server other peers should know about
+that. You can advertise the hostlist your are providing to other peers.
+Peers connecting to your peer will get a message containing an
+advertisement for your hostlist and the URL where it can be downloaded.
+If this peer is in learning mode, it will test the hostlist and, in the
+case it can obtain the list successfully, it will save it for
+bootstrapping.
 
-If your peer acts as a bootstrap server other peers should know about that. You
-can advertise the hostlist your are providing to other peers. Peers connecting
-to your peer will get a message containing an advertisement for your hostlist
-and the URL where it can be downloaded. If this peer is in learning mode, it
-will test the hostlist and, in the case it can obtain the list successfully, it
-will save it for bootstrapping.
+To activate hostlist advertisement on your peer, you have to set the
+following lines in your configuration file:
 
-To activate hostlist advertisement on your peer, you have to set the following
-lines in your configuration file:
 @example
 [hostlist]
 EXTERNAL_DNS_NAME = example.org
@@ -2164,47 +2199,44 @@ HTTPPORT = 12981
 OPTIONS = -p -a
 @end example
 
-
+@noindent
 With this configuration your peer will a act as a bootstrap server and
 advertise this hostlist to other peers connecting to him. The URL used to
-download the list will be @code{@uref{http://example.org:12981/,
-http://example.org:12981/}}.
+download the list will be
+@code{@uref{http://example.org:12981/, http://example.org:12981/}}.
 
 Please notice:
 @itemize @bullet
-
-
-@item
-The hostlist is not human readable, so you should not try to download it using
-your webbrowser. Just point your GNUnet peer to the address!
-
-@item
-Advertising without providing a hostlist does not make sense and will not work.
+@item The hostlist is not human readable, so you should not try to
+download it using your webbrowser. Just point your GNUnet peer to the
+address!
+@item Advertising without providing a hostlist does not make sense and
+will not work.
 @end itemize
 
 @node Configuring the datastore
 @subsection Configuring the datastore
 
 The datastore is what GNUnet uses to for long-term storage of file-sharing
-data. Note that long-term does not mean 'forever' since content does have an
-expiration date, and of course storage space is finite (and hence sometimes
-content may have to be discarded). 
+data. Note that long-term does not mean 'forever' since content does have
+an expiration date, and of course storage space is finite (and hence
+sometimes content may have to be discarded).
 
 Use the "QUOTA" option to specify how many bytes of storage space you are
 willing to dedicate to GNUnet.
 
-In addition to specifying the maximum space GNUnet is allowed to use for the
-datastore, you need to specify which database GNUnet should use to do so.
-Currently, you have the choice between sqLite, MySQL and Postgres.
+In addition to specifying the maximum space GNUnet is allowed to use for
+the datastore, you need to specify which database GNUnet should use to do
+so. Currently, you have the choice between sqLite, MySQL and Postgres.
 
 @node Configuring the MySQL database
 @subsection Configuring the MySQL database
 
 This section describes how to setup the MySQL database for GNUnet.
 
-Note that the mysql plugin does NOT work with mysql before 4.1 since we need
-prepared statements. We are generally testing the code against MySQL 5.1 at
-this point.
+Note that the mysql plugin does NOT work with mysql before 4.1 since we
+need prepared statements.
+We are generally testing the code against MySQL 5.1 at this point.
 
 @node Reasons for using MySQL
 @subsection Reasons for using MySQL
@@ -2212,9 +2244,9 @@ this point.
 @itemize @bullet
 
 @item
-On up-to-date hardware where mysql can be used comfortably, this module will
-have better performance than the other database choices (according to our
-tests).
+On up-to-date hardware where mysql can be used comfortably, this module
+will have better performance than the other database choices (according
+to our tests).
 
 @item Its often possible to recover the mysql database from internal
 inconsistencies. Some of the other databases do not support repair.
@@ -2224,33 +2256,26 @@ inconsistencies. Some of the other databases do not support repair.
 @subsection Reasons for not using MySQL
 
 @itemize @bullet
-
-@item
-Memory usage (likely not an issue if you have more than 1 GB)
-
-@item
-Complex manual setup
+@item Memory usage (likely not an issue if you have more than 1 GB)
+@item Complex manual setup
 @end itemize
 
 @node Setup Instructions
 @subsection Setup Instructions
 
 @itemize @bullet
-
-@item
-In @code{gnunet.conf} set in section "DATASTORE" the value for "DATABASE" to
-"mysql".
-
-@item
-Access mysql as root:@
+@item In @code{gnunet.conf} set in section "DATASTORE" the value for
+"DATABASE" to "mysql".
+@item Access mysql as root:@
 
 @example
 $ mysql -u root -p 
 @end example
 
+@noindent
+and issue the following commands, replacing $USER with the username
+that will be running gnunet-arm (so typically "gnunet"):
 
-and issue the following commands, replacing $USER with the username@
- that will be running gnunet-arm (so typically "gnunet"):
 @example
 CREATE DATABASE gnunet;
 GRANT select,insert,update,delete,create,alter,drop,create temporary tables
@@ -2259,9 +2284,9 @@ SET PASSWORD FOR $USER@@localhost=PASSWORD('$the_password_you_like');
 FLUSH PRIVILEGES;
 @end example
 
-
 @item
-In the $HOME directory of $USER, create a ".my.cnf" file with the following lines@
+In the $HOME directory of $USER, create a ".my.cnf" file with the
+following lines
 
 @example
 [client]
@@ -2271,90 +2296,87 @@ password=$the_password_you_like
 
 @end itemize
 
+Thats it. Note that @code{.my.cnf} file is a slight security risk unless
+its on a safe partition. The $HOME/.my.cnf can of course be a symbolic
+link. Luckily $USER has only priviledges to mess up GNUnet's tables,
+which should be pretty harmless.
 
- Thats it. Note that @code{.my.cnf} file is a slight security risk unless its
- on@ a safe partition. The $HOME/.my.cnf can of course be a symbolic@ link.
- Luckily $USER has only priviledges to mess up GNUnet's tables, which should be
- pretty harmless.
 @node Testing
 @subsection Testing
 
-You should briefly try if the database connection works. First, login as $USER.
-Then use:
+You should briefly try if the database connection works. First, login
+as $USER. Then use:
+
 @example
 $ mysql -u $USER
 mysql> use gnunet;
 @end example
 
-
+@noindent
 If you get the message "Database changed" it probably works.
 
 If you get "ERROR 2002: Can't connect to local MySQL server@
- through socket '/tmp/mysql.sock' (2)" it may be resolvable by@
- "ln -s /var/run/mysqld/mysqld.sock /tmp/mysql.sock"@
- so there may be some additional trouble depending on your mysql setup.
+through socket '/tmp/mysql.sock' (2)" it may be resolvable by@
+"ln -s /var/run/mysqld/mysqld.sock /tmp/mysql.sock"@
+so there may be some additional trouble depending on your mysql setup.
+
 @node Performance Tuning
 @subsection Performance Tuning
 
 For GNUnet, you probably want to set the option
+
 @example
 innodb_flush_log_at_trx_commit = 0
 @end example
 
-for a rather dramatic boost in MySQL performance. However, this reduces the
-"safety" of your database as with this options you may loose transactions
-during a power outage. While this is totally harmless for GNUnet, the option
-applies to all applications using MySQL. So you should set it if (and only if)
-GNUnet is the only application on your system using MySQL.
+@noindent
+for a rather dramatic boost in MySQL performance. However, this reduces
+the "safety" of your database as with this options you may loose
+transactions during a power outage.
+While this is totally harmless for GNUnet, the option applies to all
+applications using MySQL. So you should set it if (and only if) GNUnet is
+the only application on your system using MySQL.
 
 @node Setup for running Testcases
 @subsection Setup for running Testcases
 
 If you want to run the testcases, you must create a second database
-"gnunetcheck" with the same username and password. This database will then be
-used for testing ("make check").
+"gnunetcheck" with the same username and password. This database will
+then be used for testing ("make check").
 
 @node Configuring the Postgres database
 @subsection Configuring the Postgres database
 
 This text describes how to setup the Postgres database for GNUnet.
 
-This Postgres plugin was developed for Postgres 8.3 but might work for earlier
-versions as well.
+This Postgres plugin was developed for Postgres 8.3 but might work for
+earlier versions as well.
 
 @node Reasons to use Postgres
 @subsection Reasons to use Postgres
 
 @itemize @bullet
-@item
-Easier to setup than MySQL
-@item
-Real database
+@item Easier to setup than MySQL
+@item Real database
 @end itemize
 
 @node Reasons not to use Postgres
 @subsection Reasons not to use Postgres
 
 @itemize @bullet
-@item
-Quite slow
-@item
-Still some manual setup required
+@item Quite slow
+@item Still some manual setup required
 @end itemize
 
 @node Manual setup instructions
 @subsection Manual setup instructions
 
 @itemize @bullet
-
-@item
-In @code{gnunet.conf} set in section "DATASTORE" the value for@
+@item In @code{gnunet.conf} set in section "DATASTORE" the value for
 "DATABASE" to "postgres".
-@item
-Access Postgres to create a user:@
+@item Access Postgres to create a user:@
 
 @table @asis
-
 @item with Postgres 8.x, use:
 
 @example
@@ -2362,6 +2384,7 @@ Access Postgres to create a user:@
 $ createuser
 @end example
 
+@noindent
 and enter the name of the user running GNUnet for the role interactively.
 Then, when prompted, do not set it to superuser, allow the creation of
 databases, and do not allow the creation of new roles.@
@@ -2373,7 +2396,7 @@ databases, and do not allow the creation of new roles.@
 $ createuser -d $GNUNET_USER
 @end example
 
-
+@noindent
 where $GNUNET_USER is the name of the user running GNUnet.@
 
 @end table
@@ -2384,105 +2407,116 @@ As that user (so typically as user "gnunet"), create a database (or two):@
 
 @example
 $ createdb gnunet
-$ createdb gnunetcheck # this way you can run "make check"
+# this way you can run "make check"
+$ createdb gnunetcheck
 @end example
 
 @end itemize
-
 
 Now you should be able to start @code{gnunet-arm}.
 
 @node Testing the setup manually
 @subsection Testing the setup manually
 
-You may want to try if the database connection works. First, again login as
-the user who will run gnunet-arm. Then use,
+You may want to try if the database connection works. First, again login
+as the user who will run gnunet-arm. Then use,
+
 @example
 $ psql gnunet # or gnunetcheck
 gnunet=> \dt
 @end example
 
-
-If, after you have started gnunet-arm at least once, you get a @code{gn090}
-table here, it probably works.
+@noindent
+If, after you have started gnunet-arm at least once, you get
+a @code{gn090} table here, it probably works.
 
 @node Configuring the datacache
 @subsection Configuring the datacache
 @c %**end of header
 
 The datacache is what GNUnet uses for storing temporary data. This data is
-expected to be wiped completely each time GNUnet is restarted (or the system
-is rebooted).
+expected to be wiped completely each time GNUnet is restarted (or the
+system is rebooted).
 
-You need to specify how many bytes GNUnet is allowed to use for the datacache
-using the "QUOTA" option in the section "dhtcache". Furthermore, you need to
-specify which database backend should be used to store the data. Currently,
-you have the choice between sqLite, MySQL and Postgres.
+You need to specify how many bytes GNUnet is allowed to use for the
+datacache using the "QUOTA" option in the section "dhtcache".
+Furthermore, you need to specify which database backend should be used to
+store the data. Currently, you have the choice between
+sqLite, MySQL and Postgres.
 
 @node Configuring the file-sharing service
 @subsection Configuring the file-sharing service
 
-In order to use GNUnet for file-sharing, you first need to make sure that the
-file-sharing service is loaded. This is done by setting the AUTOSTART option in
-section "fs" to "YES". Alternatively, you can run
+In order to use GNUnet for file-sharing, you first need to make sure
+that the file-sharing service is loaded.
+This is done by setting the AUTOSTART option in section "fs" to "YES".
+Alternatively, you can run
+
 @example
 $ gnunet-arm -i fs
 @end example
 
+@noindent
 to start the file-sharing service by hand.
 
-Except for configuring the database and the datacache the only important option
-for file-sharing is content migration.
+Except for configuring the database and the datacache the only important
+option for file-sharing is content migration.
 
-Content migration allows your peer to cache content from other peers as well as
-send out content stored on your system without explicit requests. This content
-replication has positive and negative impacts on both system performance an
-privacy.
+Content migration allows your peer to cache content from other peers as
+well as send out content stored on your system without explicit requests.
+This content replication has positive and negative impacts on both system
+performance and privacy.
 
 FIXME: discuss the trade-offs. Here is some older text about it...
 
-Setting this option to YES allows gnunetd to migrate data to the local machine.
-Setting this option to YES is highly recommended for efficiency. Its also the
-default. If you set this value to YES, GNUnet will store content on your
-machine that you cannot decrypt. While this may protect you from liability if
-the judge is sane, it may not (IANAL). If you put illegal content on your
-machine yourself, setting this option to YES will probably increase your chances
-to get away with it since you can plausibly deny that you inserted the content.
-Note that in either case, your anonymity would have to be broken first (which
-may be possible depending on the size of the GNUnet network and the strength of
-the adversary).
+Setting this option to YES allows gnunetd to migrate data to the local
+machine. Setting this option to YES is highly recommended for efficiency.
+Its also the default. If you set this value to YES, GNUnet will store
+content on your machine that you cannot decrypt.
+While this may protect you from liability if the judge is sane, it may
+not (IANAL). If you put illegal content on your machine yourself, setting
+this option to YES will probably increase your chances to get away with it
+since you can plausibly deny that you inserted the content.
+Note that in either case, your anonymity would have to be broken first
+(which may be possible depending on the size of the GNUnet network and the
+strength of the adversary).
 
 @node Configuring logging
 @subsection Configuring logging
 
 Logging in GNUnet 0.9.0 is controlled via the "-L" and "-l" options.
-Using "-L", a log level can be specified. With log level "ERROR" only serious
-errors are logged. The default log level is "WARNING" which causes anything of
-concern to be logged. Log level "INFO" can be used to log anything that might
-be interesting information whereas "DEBUG" can be used by developers to log
-debugging messages (but you need to run configure with
-@code{--enable-logging=verbose} to get them compiled). The "-l" option is used
-to specify the log file.
+Using "-L", a log level can be specified. With log level "ERROR" only
+serious errors are logged.
+The default log level is "WARNING" which causes anything of
+concern to be logged. Log level "INFO" can be used to log anything that
+might be interesting information whereas "DEBUG" can be used by
+developers to log debugging messages (but you need to run configure with
+@code{--enable-logging=verbose} to get them compiled).
+The "-l" option is used to specify the log file.
 
-Since most GNUnet services are managed by @code{gnunet-arm}, using the "-l" or
-"-L" options directly is not possible. Instead, they can be specified using the
-"OPTIONS" configuration value in the respective section for the respective
-service. In order to enable logging globally without editing the "OPTIONS"
-values for each service, @code{gnunet-arm} supports a "GLOBAL_POSTFIX" option.
-The value specified here is given as an extra option to all services for which
-the configuration does contain a service-specific "OPTIONS" field.
+Since most GNUnet services are managed by @code{gnunet-arm}, using the
+"-l" or "-L" options directly is not possible.
+Instead, they can be specified using the "OPTIONS" configuration value in
+the respective section for the respective service.
+In order to enable logging globally without editing the "OPTIONS" values
+for each service, @code{gnunet-arm} supports a "GLOBAL_POSTFIX" option.
+The value specified here is given as an extra option to all services for
+which the configuration does contain a service-specific "OPTIONS" field.
 
-"GLOBAL_POSTFIX" can contain the special sequence "@{@}" which is replaced by
-the name of the service that is being started. Furthermore,
-@code{GLOBAL_POSTFIX} is special in that sequences starting with "$" anywhere
-in the string are expanded (according to options in "PATHS"); this expansion
-otherwise is only happening for filenames and then the "$" must be the first
-character in the option. Both of these restrictions do not apply to
-"GLOBAL_POSTFIX". Note that specifying @code{%} anywhere in the "GLOBAL_POSTFIX"
-disables both of these features.
+"GLOBAL_POSTFIX" can contain the special sequence "@{@}" which is replaced
+by the name of the service that is being started. Furthermore,
+@code{GLOBAL_POSTFIX} is special in that sequences starting with "$"
+anywhere in the string are expanded (according to options in "PATHS");
+this expansion otherwise is only happening for filenames and then the "$"
+must be the first character in the option. Both of these restrictions do
+not apply to "GLOBAL_POSTFIX".
+Note that specifying @code{%} anywhere in the "GLOBAL_POSTFIX" disables
+both of these features.
 
-In summary, in order to get all services to log at level "INFO" to log-files
-called @code{SERVICENAME-logs}, the following global prefix should be used:
+In summary, in order to get all services to log at level "INFO" to
+log-files called @code{SERVICENAME-logs}, the following global prefix
+should be used:
+
 @example
 GLOBAL_POSTFIX = -l $SERVICEHOME/@{@}-logs -L INFO
 @end example
@@ -2490,17 +2524,18 @@ GLOBAL_POSTFIX = -l $SERVICEHOME/@{@}-logs -L INFO
 @node Configuring the transport service and plugins
 @subsection Configuring the transport service and plugins
 
-The transport service in GNUnet is responsible to maintain basic connectivity
-to other peers. Besides initiating and keeping connections alive it is also
-responsible for address validation.
+The transport service in GNUnet is responsible to maintain basic
+connectivity to other peers.
+Besides initiating and keeping connections alive it is also responsible
+for address validation.
 
-The GNUnet transport supports more than one transport protocol. These protocols
-are configured together with the transport service.
+The GNUnet transport supports more than one transport protocol.
+These protocols are configured together with the transport service.
 
-The configuration section for the transport service itself is quite similar to
-all the other services
+The configuration section for the transport service itself is quite
+similar to all the other services
 
-@code{@
+@example
  AUTOSTART = YES@
  @@UNIXONLY@@ PORT = 2091@
  HOSTNAME = localhost@
@@ -2513,32 +2548,27 @@ all the other services
  ACCEPT_FROM6 = ::1;@
  PLUGINS = tcp udp@
  UNIXPATH = /tmp/gnunet-service-transport.sock@
-}
+@end example
 
-Different are the settings for the plugins to load @code{PLUGINS}. The first
-setting specifies which transport plugins to load.
+Different are the settings for the plugins to load @code{PLUGINS}.
+The first setting specifies which transport plugins to load.
+
 @itemize @bullet
-
-
-@item
-transport-unix
-
+@item transport-unix
 A plugin for local only communication with UNIX domain sockets. Used for
 testing and available on unix systems only. Just set the port
 
-@code{@
+@example
  [transport-unix]@
  PORT = 22086@
  TESTING_IGNORE_KEYS = ACCEPT_FROM;@
-}
+@end example
 
-@item
-transport-tcp
-
+@item transport-tcp
 A plugin for communication with TCP. Set port to 0 for client mode with
 outbound only connections
 
-@code{@
+@example
  [transport-tcp]@
  # Use 0 to ONLY advertise as a peer behind NAT (no port binding)@
  PORT = 2086@
@@ -2546,54 +2576,58 @@ outbound only connections
  TESTING_IGNORE_KEYS = ACCEPT_FROM;@
  # Maximum number of open TCP connections allowed@
  MAX_CONNECTIONS = 128@
-}
+@end example
 
-@item
-transport-udp
+@item transport-udp
+A plugin for communication with UDP. Supports peer discovery using
+broadcasts.
 
-A plugin for communication with UDP. Supports peer discovery using broadcasts.@
-@code{@
+@example
  [transport-udp]@
  PORT = 2086@
  BROADCAST = YES@
  BROADCAST_INTERVAL = 30 s@
  MAX_BPS = 1000000@
  TESTING_IGNORE_KEYS = ACCEPT_FROM;@
-}
+@end example
 
-@item
-transport-http
-
+@item transport-http
 HTTP and HTTPS support is split in two part: a client plugin initiating
-outbound connections and a server part accepting connections from the client.
-The client plugin just takes the maximum number of connections as an argument.@
-@code{@
+outbound connections and a server part accepting connections from the
+client. The client plugin just takes the maximum number of connections as
+an argument.
+
+@example
  [transport-http_client]@
  MAX_CONNECTIONS = 128@
  TESTING_IGNORE_KEYS = ACCEPT_FROM;@
-}@
-@code{@
+@end example
+
+@example
  [transport-https_client]@
  MAX_CONNECTIONS = 128@
  TESTING_IGNORE_KEYS = ACCEPT_FROM;@
-}
+@end example
 
-The server has a port configured and the maximum nunber of connections.@
- The HTTPS part has two files with the certificate key and the certificate file.
+@noindent
+The server has a port configured and the maximum nunber of connections.
+The HTTPS part has two files with the certificate key and the certificate
+file.
 
-The server plugin supports reverse proxies, so a external hostname can be set
-using@
-the @code{EXTERNAL_HOSTNAME} setting. The webserver under this address should
-forward the request to the peer and the configure port.
+The server plugin supports reverse proxies, so a external hostname can be
+set using the @code{EXTERNAL_HOSTNAME} setting.
+The webserver under this address should forward the request to the peer
+and the configure port.
 
-@code{@
+@example
  [transport-http_server]@
  EXTERNAL_HOSTNAME = fulcrum.net.in.tum.de/gnunet@
  PORT = 1080@
  MAX_CONNECTIONS = 128@
  TESTING_IGNORE_KEYS = ACCEPT_FROM;@
-}@
-@code{@
+@end example
+
+@example
  [transport-https_server]@
  PORT = 4433@
  CRYPTO_INIT = NORMAL@
@@ -2601,32 +2635,33 @@ forward the request to the peer and the configure port.
  CERT_FILE = https.cert@
  MAX_CONNECTIONS = 128@
  TESTING_IGNORE_KEYS = ACCEPT_FROM;@
-}
+@end example
 
-@item
-transport-wlan
+@item transport-wlan
 
 There is a special article how to setup the WLAN plugin, so here only the
-settings. Just specify the interface to use:@
-@code{@
+settings. Just specify the interface to use:
+
+@example
  [transport-wlan]@
  # Name of the interface in monitor mode (typically monX)@
  INTERFACE = mon0@
  # Real hardware, no testing@
  TESTMODE = 0@
  TESTING_IGNORE_KEYS = ACCEPT_FROM;@
-}
+@end example
 @end itemize
 
 @node Configuring the wlan transport plugin
 @subsection Configuring the wlan transport plugin
 
 
-The wlan transport plugin enables GNUnet to send and to receive data on a wlan
-interface. It has not to be connected to a wlan network as long as sender and
-receiver are on the same channel. This enables you to get connection to the
-GNUnet where no internet access is possible, for example while catastrophes or
-when censorship cuts you off the internet.
+The wlan transport plugin enables GNUnet to send and to receive data on a
+wlan interface.
+It has not to be connected to a wlan network as long as sender and
+receiver are on the same channel. This enables you to get connection to
+the GNUnet where no internet access is possible, for example while
+catastrophes or when censorship cuts you off the internet.
 
 
 @menu
@@ -2642,26 +2677,24 @@ when censorship cuts you off the internet.
 
 @itemize @bullet
 
-@item
-wlan network card with monitor support and packet injection
+@item wlan network card with monitor support and packet injection
 (see @uref{http://www.aircrack-ng.org/, aircrack-ng.org})
 
-@item
-Linux kernel with mac80211 stack, introduced in 2.6.22, tested with 2.6.35
-and 2.6.38
+@item Linux kernel with mac80211 stack, introduced in 2.6.22, tested with
+2.6.35 and 2.6.38
 
-@item
-Wlantools to create the a monitor interface, tested with airmon-ng of the
-aircrack-ng package
+@item Wlantools to create the a monitor interface, tested with airmon-ng
+of the aircrack-ng package
 @end itemize
 
 @node Configuration
 @subsubsection Configuration
 
-There are the following options for the wlan plugin (they should be like this
-in your default config file, you only need to adjust them if the values are
-incorrect for your system)@
-@code{@
+There are the following options for the wlan plugin (they should be like
+this in your default config file, you only need to adjust them if the
+values are incorrect for your system)
+
+@example
 # section for the wlan transport plugin@
 [transport-wlan]@
 # interface to use, more information in the
@@ -2671,78 +2704,78 @@ INTERFACE = mon0@
 # 0 use wlan interface,@
 #1 or 2 use loopback driver for tests 1 = server, 2 = client@
 TESTMODE = 0@
-}
+@end example
 
 @node Before starting GNUnet
 @subsubsection Before starting GNUnet
 
-Before starting GNUnet, you have to make sure that your wlan interface is in
-monitor mode. One way to put the wlan interface into monitor mode (if your
-interface name is wlan0) is by executing:@
-@code{@
- sudo airmon-ng start wlan0@
-}
+Before starting GNUnet, you have to make sure that your wlan interface is
+in monitor mode. One way to put the wlan interface into monitor mode (if
+your interface name is wlan0) is by executing:
 
-Here is an example what the result should look like:@
-@code{@
+@example
+ sudo airmon-ng start wlan0@
+@end example
+
+@noindent
+Here is an example what the result should look like:
+
+@example
  Interface Chipset Driver@
  wlan0 Intel 4965 a/b/g/n iwl4965 - [phy0]@
  (monitor mode enabled on mon0)@
-}@
+@end example
+
+@noindent
 The monitor interface is mon0 is the one that you have to put into the
 configuration file.
 
 @node Limitations and known bugs
 @subsubsection Limitations and known bugs
 
-Wlan speed is at the maximum of 1 Mbit/s because support for choosing the wlan
-speed with packet injection was removed in newer kernels. Please pester the
-kernel developers about fixing this.
+Wlan speed is at the maximum of 1 Mbit/s because support for choosing the
+wlan speed with packet injection was removed in newer kernels.
+Please pester the kernel developers about fixing this.
 
-The interface channel depends on the wlan network that the card is connected
-to. If no connection has been made since the start of the computer, it is
-usually the first channel of the card. Peers will only find each other and
-communicate if they are on the same channel. Channels must be set manually
-(i.e. using @code{iwconfig wlan0 channel 1}).
+The interface channel depends on the wlan network that the card is
+connected to. If no connection has been made since the start of the
+computer, it is usually the first channel of the card.
+Peers will only find each other and communicate if they are on the same
+channel. Channels must be set manually (i.e. using
+@code{iwconfig wlan0 channel 1}).
 
 
 @node Configuring HTTP(S) reverse proxy functionality using Apache or nginx
 @subsection Configuring HTTP(S) reverse proxy functionality using Apache or nginx
 
-The HTTP plugin supports data transfer using reverse proxies. A reverse proxy
-forwards the HTTP request he receives with a certain URL to another webserver,
-here a GNUnet peer.
+The HTTP plugin supports data transfer using reverse proxies. A reverse
+proxy forwards the HTTP request he receives with a certain URL to another
+webserver, here a GNUnet peer.
 
-So if you have a running Apache or nginx webserver you can configure it to be a
-GNUnet reverse proxy. Especially if you have a well-known webiste this improves
-censorship resistance since it looks as normal surfing behaviour.
+So if you have a running Apache or nginx webserver you can configure it to
+be a GNUnet reverse proxy. Especially if you have a well-known webiste
+this improves censorship resistance since it looks as normal surfing
+behaviour.
 
 To do so, you have to do two things:
 
 @itemize @bullet
-
-@item
-Configure your webserver to forward the GNUnet HTTP traffic
-
-@item
-Configure your GNUnet peer to announce the respective address
+@item Configure your webserver to forward the GNUnet HTTP traffic
+@item Configure your GNUnet peer to announce the respective address
 @end itemize
 
 As an example we want to use GNUnet peer running:
 
 @itemize @bullet
 
-@item
-HTTP server plugin on @code{gnunet.foo.org:1080}
+@item HTTP server plugin on @code{gnunet.foo.org:1080}
 
-@item
-HTTPS server plugin on @code{gnunet.foo.org:4433}
+@item HTTPS server plugin on @code{gnunet.foo.org:4433}
 
-@item
-A apache or nginx webserver on @uref{http://www.foo.org/, http://www.foo.org:80/}
+@item A apache or nginx webserver on
+@uref{http://www.foo.org/, http://www.foo.org:80/}
 
-@item
-A apache or nginx webserver on https://www.foo.org:443/
+@item A apache or nginx webserver on https://www.foo.org:443/
 @end itemize
 
 And we want the webserver to accept GNUnet traffic under
@@ -2752,29 +2785,32 @@ And we want the webserver to accept GNUnet traffic under
 
 First of all you need mod_proxy installed.
 
-Edit your webserver configuration. Edit @code{/etc/apache2/apache2.conf} or
-the site-specific configuration file.
+Edit your webserver configuration. Edit
+@code{/etc/apache2/apache2.conf} or the site-specific configuration file.
 
 In the respective @code{server config},@code{virtual host} or
-@code{directory} section add the following lines:@
-@code{@
+@code{directory} section add the following lines:
+
+@example
  ProxyTimeout 300@
  ProxyRequests Off@
  <Location /bar/ >@
  ProxyPass http://gnunet.foo.org:1080/@
  ProxyPassReverse http://gnunet.foo.org:1080/@
  </Location>@
-}
+@end example
 
+@noindent
 @strong{Configure your Apache2 HTTPS webserver}
 
-We assume that you already have an HTTPS server running, if not please check
-how to configure a HTTPS host. An easy to use example is the
+We assume that you already have an HTTPS server running, if not please
+check how to configure a HTTPS host. An easy to use example is the
 @file{apache2/sites-available/default-ssl} example configuration file.
 
 In the respective HTTPS @code{server config},@code{virtual host} or
-@code{directory} section add the following lines:@
-@code{@
+@code{directory} section add the following lines:
+
+@example
  SSLProxyEngine On@
  ProxyTimeout 300@
  ProxyRequests Off@
@@ -2782,10 +2818,11 @@ In the respective HTTPS @code{server config},@code{virtual host} or
  ProxyPass https://gnunet.foo.org:4433/@
  ProxyPassReverse https://gnunet.foo.org:4433/@
  </Location>@
-}
+@end example
 
-More information about the apache mod_proxy configuration can be found unter:@
-@uref{http://httpd.apache.org/docs/2.2/mod/mod_proxy.html#proxypass, http://httpd.apache.org/docs/2.2/mod/mod_proxy.html#proxypass}
+@noindent
+More information about the apache mod_proxy configuration can be found
+at @uref{http://httpd.apache.org/docs/2.2/mod/mod_proxy.html#proxypass, http://httpd.apache.org/docs/2.2/mod/mod_proxy.html#proxypass}
 
 @strong{Configure your nginx HTTPS webserver}
 
@@ -2793,20 +2830,23 @@ Since nginx does not support chunked encoding, you first of all have to
 install @code{chunkin}:@
 @uref{http://wiki.nginx.org/HttpChunkinModule, http://wiki.nginx.org/HttpChunkinModule}
 
-To enable chunkin add:@
-@code{@
+To enable chunkin add:
+
+@example
  chunkin on;@
  error_page 411 = @@my_411_error;@
  location @@my_411_error @{@
  chunkin_resume;@
  @}@
-}
+@end example
 
-Edit your webserver configuration. Edit @code{/etc/nginx/nginx.conf} or the
-site-specific configuration file.
+@noindent
+Edit your webserver configuration. Edit @file{/etc/nginx/nginx.conf} or
+the site-specific configuration file.
 
 In the @code{server} section add:@
-@code{@
+
+@example
  location /bar/@
  @{@
  proxy_pass http://gnunet.foo.org:1080/;@
@@ -2816,15 +2856,17 @@ In the @code{server} section add:@
  proxy_http_version 1.1; # 1.0 default@
  proxy_next_upstream error timeout invalid_header http_500 http_503 http_502 http_504;@
  @}@
-@code{}}
+@end example
 
+@noindent
 @strong{Configure your nginx HTTPS webserver}
 
-Edit your webserver configuration. Edit @code{/etc/nginx/nginx.conf} or the
-site-specific configuration file.
+Edit your webserver configuration. Edit @file{/etc/nginx/nginx.conf} or
+the site-specific configuration file.
 
-In the @code{server} section add:@
-@code{@
+In the @code{server} section add:
+
+@example
  ssl_session_timeout 6m;@
  location /bar/@
  @{@
@@ -2835,55 +2877,66 @@ In the @code{server} section add:@
  proxy_http_version 1.1; # 1.0 default@
  proxy_next_upstream error timeout invalid_header http_500 http_503 http_502 http_504;@
  @}@
-@code{}}
+@end example
 
+@noindent
 @strong{Configure your GNUnet peer}
 
 To have your GNUnet peer announce the address, you have to specify the
+@code{EXTERNAL_HOSTNAME} option in the @code{[transport-http_server]}
+section:
 
-@code{EXTERNAL_HOSTNAME} option in the @code{[transport-http_server]} section:@
-@code{@
+@example
  [transport-http_server]@
  EXTERNAL_HOSTNAME = http://www.foo.org/bar/@
-}@
- and/or@
-@code{[transport-https_server]} section:@
-@code{@
+@end example
+
+@noindent
+and/or @code{[transport-https_server]} section:
+
+@example
  [transport-https_server]@
  EXTERNAL_HOSTNAME = https://www.foo.org/bar/@
-}
+@end example
 
+@noindent
 Now restart your webserver and your peer...
 
 @node Blacklisting peers
 @subsection Blacklisting peers
 
 Transport service supports to deny connecting to a specific peer of to a
-specific peer with a specific transport plugin using te blacklisting component
-of transport service. With@ blacklisting it is possible to deny connections to
-specific peers of@ to use a specific plugin to a specific peer. Peers can be
-blacklisted using@ the configuration or a blacklist client can be asked.
+specific peer with a specific transport plugin using te blacklisting
+component of transport service. With@ blacklisting it is possible to deny
+connections to specific peers of@ to use a specific plugin to a specific
+peer. Peers can be blacklisted using@ the configuration or a blacklist
+client can be asked.
 
-To blacklist peers using the configuration you have to add a section to your@
-configuration containing the peer id of the peer to blacklist and the plugin@
-if required.
+To blacklist peers using the configuration you have to add a section to
+your@ configuration containing the peer id of the peer to blacklist and
+the plugin@ if required.
 
 Example:@
- To blacklist connections to P565... on peer AG2P... using tcp add:@
-@code{@
+
+To blacklist connections to P565... on peer AG2P... using tcp add:@
+
+@c FIXME: This is too long and produces errors in the pdf.
+@example
  [transport-blacklist AG2PHES1BARB9IJCPAMJTFPVJ5V3A72S3F2A8SBUB8DAQ2V0O3V8G6G2JU56FHGFOHMQVKBSQFV98TCGTC3RJ1NINP82G0RC00N1520]@
  P565723JO1C2HSN6J29TAQ22MN6CI8HTMUU55T0FUQG4CMDGGEQ8UCNBKUMB94GC8R9G4FB2SF9LDOBAJ6AMINBP4JHHDD6L7VD801G = tcp@
-}@
- To blacklist connections to P565... on peer AG2P... using all plugins add:@
-@code{@
+@end example
+
+To blacklist connections to P565... on peer AG2P... using all plugins add:@
+
+@example
  [transport-blacklist-AG2PHES1BARB9IJCPAMJTFPVJ5V3A72S3F2A8SBUB8DAQ2V0O3V8G6G2JU56FHGFOHMQVKBSQFV98TCGTC3RJ1NINP82G0RC00N1520]@
  P565723JO1C2HSN6J29TAQ22MN6CI8HTMUU55T0FUQG4CMDGGEQ8UCNBKUMB94GC8R9G4FB2SF9LDOBAJ6AMINBP4JHHDD6L7VD801G =@
-}
+@end example
 
-You can also add a blacklist client usign the blacklist api. On a blacklist@
-check, blacklisting first checks internally if the peer is blacklisted and@
-if not, it asks the blacklisting clients. Clients are asked if it is OK to@
-connect to a peer ID, the plugin is omitted.
+You can also add a blacklist client usign the blacklist api. On a
+blacklist check, blacklisting first checks internally if the peer is
+blacklisted and if not, it asks the blacklisting clients. Clients are
+asked if it is OK to connect to a peer ID, the plugin is omitted.
 
 On blacklist check for (peer, plugin)
 @itemize @bullet
@@ -2898,12 +2951,13 @@ On blacklist check for (peer, plugin)
 @node Configuration of the HTTP and HTTPS transport plugins
 @subsection Configuration of the HTTP and HTTPS transport plugins
 
-The client part of the http and https transport plugins can be configured to
-use a proxy to connect to the hostlist server. This functionality can be
-configured in the configuration file directly or using the gnunet-setup tool.
+The client part of the http and https transport plugins can be configured
+to use a proxy to connect to the hostlist server. This functionality can
+be configured in the configuration file directly or using the
+gnunet-setup tool.
 
-The both the HTTP and HTTPS clients support the following proxy types at the
-moment:
+The both the HTTP and HTTPS clients support the following proxy types at
+the moment:
 
 @itemize @bullet
 @item HTTP 1.1 proxy
@@ -2913,16 +2967,17 @@ moment:
 In addition authentication at the proxy with username and password can be
 configured.
 
-To configure proxy support for the clients in the gnunet-setup tool, select the
-"transport" tab and activate the respective plugin. Now you can select the
-appropriate proxy type. The hostname or IP address (including port if required)
-has to be entered in the "Proxy hostname" textbox. If required, enter username
-and password in the "Proxy username" and "Proxy password" boxes. Be aware that
-these information will be stored in the configuration in plain text.
+To configure proxy support for the clients in the gnunet-setup tool,
+select the "transport" tab and activate the respective plugin. Now you
+can select the appropriate proxy type. The hostname or IP address
+(including port if required) has to be entered in the "Proxy hostname"
+textbox. If required, enter username and password in the "Proxy username"
+and "Proxy password" boxes. Be aware that these information will be stored
+in the configuration in plain text.
 
-To configure these options directly in the configuration, you can configure the
-following settings in the [transport-http_client] and [transport-https_client]
-section of the configuration:
+To configure these options directly in the configuration, you can
+configure the following settings in the [transport-http_client] and
+[transport-https_client] section of the configuration:
 
 @example
 # Type of proxy server,@
@@ -2955,114 +3010,122 @@ section of the configuration:
 @node Configuring system-wide DNS interception
 @subsubsection Configuring system-wide DNS interception
 
-Before you install GNUnet, make sure you have a user and group 'gnunet' as well
-as an empty group 'gnunetdns'.
+Before you install GNUnet, make sure you have a user and group 'gnunet'
+as well as an empty group 'gnunetdns'.
 
-When using GNUnet with system-wide DNS interception, it is absolutely necessary
-for all GNUnet service processes to be started by @code{gnunet-service-arm} as
-user and group 'gnunet'. You also need to be sure to run @code{make install} as
-root (or use the @code{sudo} option to configure) to grant GNUnet sufficient
-privileges.
+When using GNUnet with system-wide DNS interception, it is absolutely
+necessary for all GNUnet service processes to be started by
+@code{gnunet-service-arm} as user and group 'gnunet'. You also need to be
+sure to run @code{make install} as root (or use the @code{sudo} option to
+configure) to grant GNUnet sufficient privileges.
 
-With this setup, all that is required for enabling system-wide DNS interception
-is for some GNUnet component (VPN or GNS) to request it. The
-@code{gnunet-service-dns} will then start helper programs that will make the
-necessary changes to your firewall (@code{iptables}) rules.
+With this setup, all that is required for enabling system-wide DNS
+interception is for some GNUnet component (VPN or GNS) to request it.
+The @code{gnunet-service-dns} will then start helper programs that will
+make the necessary changes to your firewall (@code{iptables}) rules.
 
 Note that this will NOT work if your system sends out DNS traffic to a
-link-local IPv6 address, as in this case GNUnet can intercept the traffic, but
-not inject the responses from the link-local IPv6 address. Hence you cannot use
-system-wide DNS interception in conjunction with link-local IPv6-based DNS
-servers. If such a DNS server is used, it will bypass GNUnet's DNS traffic
-interception.
+link-local IPv6 address, as in this case GNUnet can intercept the traffic,
+but not inject the responses from the link-local IPv6 address. Hence you
+cannot use system-wide DNS interception in conjunction with link-local
+IPv6-based DNS servers. If such a DNS server is used, it will bypass
+GNUnet's DNS traffic interception.
 
-
-
-Using the GNU Name System (GNS) requires two different configuration steps.
-First of all, GNS needs to be integrated with the operating system. Most of
-this section is about the operating system level integration.
+Using the GNU Name System (GNS) requires two different configuration
+steps.
+First of all, GNS needs to be integrated with the operating system. Most
+of this section is about the operating system level integration.
 
 Additionally, each individual user who wants to use the system must also
-initialize his GNS zones. This can be done by running (after starting GNUnet)@
-@code{@
- $ gnunet-gns-import.sh@
-}@
+initialize his GNS zones. This can be done by running (after starting
+GNUnet)
+
+@example
+$ gnunet-gns-import.sh
+@end example
+
+@noindent
 after the local GNUnet peer has been started. Note that the namestore (in
 particular the namestore database backend) should not be reconfigured
 afterwards (as records are not automatically migrated between backends).
 
-The remainder of this chapter will detail the various methods for configuring
-the use of GNS with your operating system.
+The remainder of this chapter will detail the various methods for
+configuring the use of GNS with your operating system.
 
 At this point in time you have different options depending on your OS:
+
 @table @asis
 
-@item Use the gnunet-gns-proxy This approach works for all operating systems
-and is likely the easiest. However, it enables GNS only for browsers, not for
-other applications that might be using DNS, such as SSH. Still, using the proxy
-is required for using HTTP with GNS and is thus recommended for all users. To
-do this, you simply have to run the @code{gnunet-gns-proxy-setup-ca} script as
-the user who will run the browser (this will create a GNS certificate authority
-(CA) on your system and import its key into your browser), then start
-@code{gnunet-gns-proxy} and inform your browser to use the Socks5 proxy which
+@item Use the gnunet-gns-proxy This approach works for all operating
+systems and is likely the easiest. However, it enables GNS only for
+browsers, not for other applications that might be using DNS, such as SSH.
+Still, using the proxy is required for using HTTP with GNS and is thus
+recommended for all users. To do this, you simply have to run the
+@code{gnunet-gns-proxy-setup-ca} script as the user who will run the
+browser (this will create a GNS certificate authority (CA) on your system
+and import its key into your browser), then start @code{gnunet-gns-proxy}
+and inform your browser to use the Socks5 proxy which
 @code{gnunet-gns-proxy} makes available by default on port 7777.
-@item Use a
-nsswitch plugin (recommended on GNU systems) This approach has the advantage of
-offering fully personalized resolution even on multi-user systems. A potential
-disadvantage is that some applications might be able to bypass GNS.
-@item Use
-a W32 resolver plugin (recommended on W32) This is currently the only option on
-W32 systems.
-@item Use system-wide DNS packet interception This approach is
-recommended for the GNUnet VPN. It can be used to handle GNS at the same time;
-however, if you only use this method, you will only get one root zone per
-machine (not so great for multi-user systems).
+@item Use a nsswitch plugin (recommended on GNU systems)
+This approach has the advantage of offering fully personalized resolution
+even on multi-user systems. A potential disadvantage is that some
+applications might be able to bypass GNS.
+@item Use a W32 resolver plugin (recommended on W32)
+This is currently the only option on W32 systems.
+@item Use system-wide DNS packet interception
+This approach is recommended for the GNUnet VPN. It can be used to handle
+GNS at the same time; however, if you only use this method, you will only
+get one root zone per machine (not so great for multi-user systems).
 @end table
 
-
-You can combine system-wide DNS packet interception with the nsswitch plugin.@
-The setup of the system-wide DNS interception is described here. All of the
-other GNS-specific configuration steps are described in the following sections.
+You can combine system-wide DNS packet interception with the nsswitch
+plugin.
+The setup of the system-wide DNS interception is described here. All of
+the other GNS-specific configuration steps are described in the following
+sections.
 
 @node Configuring the GNS nsswitch plugin
 @subsubsection Configuring the GNS nsswitch plugin
 
-The Name Service Switch (NSS) is a facility in Unix-like operating systems that
-provides a variety of sources for common configuration databases and name
-resolution mechanisms. A system administrator usually configures the operating
-system's name services using the file /etc/nsswitch.conf.
+The Name Service Switch (NSS) is a facility in Unix-like operating systems
+that provides a variety of sources for common configuration databases and
+name resolution mechanisms.
+A system administrator usually configures the operating system's name
+services using the file @file{/etc/nsswitch.conf}.
 
-GNS provides a NSS plugin to integrate GNS name resolution with the operating
-system's name resolution process. To use the GNS NSS plugin you have to either
+GNS provides a NSS plugin to integrate GNS name resolution with the
+operating system's name resolution process.
+To use the GNS NSS plugin you have to either
 
 @itemize @bullet
-
-@item
-install GNUnet as root or
-
-@item
-compile GNUnet with the @code{--with-sudo=yes} switch.
+@item install GNUnet as root or
+@item compile GNUnet with the @code{--with-sudo=yes} switch.
 @end itemize
 
 Name resolution is controlled by the @emph{hosts} section in the NSS
 configuration. By default this section first performs a lookup in the
 /etc/hosts file and then in DNS. The nsswitch file should contain a line
-similar to:@
-@code{@
- hosts: files dns [NOTFOUND=return] mdns4_minimal mdns4@
-}
+similar to:
 
-Here the GNS NSS plugin can be added to perform a GNS lookup before performing
-a DNS lookup. The GNS NSS plugin has to be added to the "hosts" section in
-/etc/nsswitch.conf file before DNS related plugins:@
-@code{@
- ...@
- hosts: files gns [NOTFOUND=return] dns mdns4_minimal mdns4@
- ...@
-}
+@example
+hosts: files dns [NOTFOUND=return] mdns4_minimal mdns4
+@end example
 
-The @code{NOTFOUND=return} will ensure that if a @code{.gnu} name is not found
-in GNS it will not be queried in DNS.
+@noindent
+Here the GNS NSS plugin can be added to perform a GNS lookup before
+performing a DNS lookup.
+The GNS NSS plugin has to be added to the "hosts" section in
+@file{/etc/nsswitch.conf} file before DNS related plugins:
+
+@example
+...
+hosts: files gns [NOTFOUND=return] dns mdns4_minimal mdns4
+...
+@end example
+
+@noindent
+The @code{NOTFOUND=return} will ensure that if a @code{.gnu} name is not
+found in GNS it will not be queried in DNS.
 
 @node Configuring GNS on W32
 @subsubsection Configuring GNS on W32
@@ -3071,140 +3134,147 @@ This document is a guide to configuring GNU Name System on W32-compatible
 platforms.
 
 After GNUnet is installed, run the w32nsp-install tool:
+
 @example
 w32nsp-install.exe libw32nsp-0.dll
 @end example
 
-
- ('0' is the library version of W32 NSP; it might increase in the future,
- change the invocation accordingly).
+@noindent
+('0' is the library version of W32 NSP; it might increase in the future,
+change the invocation accordingly).
 
 This will install GNS namespace provider into the system and allow other
-applications to resolve names that end in '@strong{gnu}' and '@strong{zkey}'.
-Note that namespace provider requires gnunet-gns-helper-service-w32 to be
-running, as well as gns service itself (and its usual dependencies).
+applications to resolve names that end in '@strong{gnu}'
+and '@strong{zkey}'. Note that namespace provider requires
+gnunet-gns-helper-service-w32 to be running, as well as gns service
+itself (and its usual dependencies).
 
-Namespace provider is hardcoded to connect to @strong{127.0.0.1:5353}, and this
-is where gnunet-gns-helper-service-w32 should be listening to (and is
-configured to listen to by default).
+Namespace provider is hardcoded to connect to @strong{127.0.0.1:5353},
+and this is where gnunet-gns-helper-service-w32 should be listening to
+(and is configured to listen to by default).
 
 To uninstall the provider, run:
+
 @example
 w32nsp-uninstall.exe
 @end example
 
-
+@noindent
 (uses provider GUID to uninstall it, does not need a dll name).
 
-Note that while MSDN claims that other applications will only be able to use
-the new namespace provider after re-starting, in reality they might stat to use
-it without that. Conversely, they might stop using the provider after it's been
-uninstalled, even if they were not re-started. W32 will not permit namespace
-provider library to be deleted or overwritten while the provider is installed,
-and while there is at least one process still using it (even after it was
-uninstalled).
+Note that while MSDN claims that other applications will only be able to
+use the new namespace provider after re-starting, in reality they might
+stat to use it without that. Conversely, they might stop using the
+provider after it's been uninstalled, even if they were not re-started.
+W32 will not permit namespace provider library to be deleted or
+overwritten while the provider is installed, and while there is at least
+one process still using it (even after it was uninstalled).
 
 @node GNS Proxy Setup
 @subsubsection GNS Proxy Setup
 
 When using the GNU Name System (GNS) to browse the WWW, there are several
 issues that can be solved by adding the GNS Proxy to your setup:
+
 @itemize @bullet
 
+@item If the target website does not support GNS, it might assume that it
+is operating under some name in the legacy DNS system (such as
+example.com). It may then attempt to set cookies for that domain, and the
+web server might expect a @code{Host: example.com} header in the request
+from your browser.
+However, your browser might be using @code{example.gnu} for the
+@code{Host} header and might only accept (and send) cookies for
+@code{example.gnu}. The GNS Proxy will perform the necessary translations
+of the hostnames for cookies and HTTP headers (using the LEHO record for
+the target domain as the desired substitute).
 
-@item If the target website does not support GNS, it might assume that it is
-operating under some name in the legacy DNS system (such as example.com). It
-may then attempt to set cookies for that domain, and the web server might
-expect a @code{Host: example.com} header in the request from your browser.
-However, your browser might be using @code{example.gnu} for the @code{Host}
-header and might only accept (and send) cookies for @code{example.gnu}. The GNS
-Proxy will perform the necessary translations of the hostnames for cookies and
-HTTP headers (using the LEHO record for the target domain as the desired
-substitute).
-
-@item If using HTTPS, the target site might include an SSL certificate which is
-either only valid for the LEHO domain or might match a TLSA record in GNS.
-However, your browser would expect a valid certificate for @code{example.gnu},
-not for some legacy domain name. The proxy will validate the certificate
-(either against LEHO or TLSA) and then on-the-fly produce a valid certificate
-for the exchange, signed by your own CA. Assuming you installed the CA of your
-proxy in your browser's certificate authority list, your browser will then
-trust the HTTPS/SSL/TLS connection, as the hostname mismatch is hidden by the
-proxy.
+@item If using HTTPS, the target site might include an SSL certificate
+which is either only valid for the LEHO domain or might match a TLSA
+record in GNS. However, your browser would expect a valid certificate for
+@code{example.gnu}, not for some legacy domain name. The proxy will
+validate the certificate (either against LEHO or TLSA) and then
+on-the-fly produce a valid certificate for the exchange, signed by your
+own CA. Assuming you installed the CA of your proxy in your browser's
+certificate authority list, your browser will then trust the
+HTTPS/SSL/TLS connection, as the hostname mismatch is hidden by the proxy.
 
 @item Finally, the proxy will in the future indicate to the server that it
-speaks GNS, which will enable server operators to deliver GNS-enabled web sites
-to your browser (and continue to deliver legacy links to legacy browsers)
+speaks GNS, which will enable server operators to deliver GNS-enabled web
+sites to your browser (and continue to deliver legacy links to legacy
+browsers)
 @end itemize
 
 @node Setup of the GNS CA
 @subsubsection Setup of the GNS CA
 
-First you need to create a CA certificate that the proxy can use. To do so use
-the provided script gnunet-gns-proxy-ca:@
-@code{@
- $ gnunet-gns-proxy-setup-ca@
-}
+First you need to create a CA certificate that the proxy can use.
+To do so use the provided script gnunet-gns-proxy-ca:
 
+@example
+$ gnunet-gns-proxy-setup-ca
+@end example
+
+@noindent
 This will create a personal certification authority for you and add this
-authority to the firefox and chrome database. The proxy will use the this CA
-certificate to generate @code{*.gnu} client certificates on the fly.
+authority to the firefox and chrome database. The proxy will use the this
+CA certificate to generate @code{*.gnu} client certificates on the fly.
 
-Note that the proxy uses libcurl. Make sure your version of libcurl uses GnuTLS
-and NOT OpenSSL. The proxy will not work with libcurl compiled against
-OpenSSL.
+Note that the proxy uses libcurl. Make sure your version of libcurl uses
+GnuTLS and NOT OpenSSL. The proxy will not work with libcurl compiled
+against OpenSSL.
 
 @node Testing the GNS setup
 @subsubsection Testing the GNS setup
 
-Now for testing purposes we can create some records in our zone to test the SSL
-functionality of the proxy:@
-@code{@
- $ gnunet-namestore -a -e "1 d" -n "homepage" -t A -V 131.159.74.67@
- $ gnunet-namestore -a -e "1 d" -n "homepage" -t LEHO -V "gnunet.org"@
-}
+Now for testing purposes we can create some records in our zone to test
+the SSL functionality of the proxy:
 
-At this point we can start the proxy. Simply execute@
-@code{@
- $ gnunet-gns-proxy@
-}
+@example
+$ gnunet-namestore -a -e "1 d" -n "homepage" -t A -V 131.159.74.67
+$ gnunet-namestore -a -e "1 d" -n "homepage" -t LEHO -V "gnunet.org"
+@end example
 
-Configure your browser to use this SOCKSv5 proxy on port 7777 and visit this
-link.@ If you use firefox you also have to go to about:config and set the key
+@noindent
+At this point we can start the proxy. Simply execute
+
+@example
+$ gnunet-gns-proxy
+@end example
+
+@noindent
+Configure your browser to use this SOCKSv5 proxy on port 7777 and visit
+this link.
+If you use firefox you also have to go to about:config and set the key
 @code{network.proxy.socks_remote_dns} to @code{true}.
 
 When you visit @code{https://homepage.gnu/}, you should get to the
 @code{https://gnunet.org/} frontpage and the browser (with the correctly
 configured proxy) should give you a valid SSL certificate for
-@code{homepage.gnu} and no warnings. It should look like this@
+@code{homepage.gnu} and no warnings. It should look like this:
 
-
-
-@table @asis
-@item Attachment
-Size
-@item  gnunethpgns.png
-64.19 KB
-@end table
+@c insert image here gnunethpgns.png
 
 @node Automatic Shortening in the GNU Name System
 @subsubsection Automatic Shortening in the GNU Name System
 
-This page describes a possible option for 'automatic name shortening', which
-you can choose to enable with the GNU Name System.
+This page describes a possible option for 'automatic name shortening',
+which you can choose to enable with the GNU Name System.
 
-When GNS encounters a name for the first time, it can use the 'NICK' record of
-the originating zone to automatically generate a name for the zone. If
-automatic shortening is enabled, those auto-generated names will be placed (as
-private records) into your personal 'shorten' zone (to prevent confusion with
-manually selected names). Then, in the future, if the same name is encountered
-again, GNS will display the shortened name instead (the first time, the long
-name will still be used as shortening typically happens asynchronously as
-looking up the 'NICK' record takes some time). Using this feature can be a
-convenient way to avoid very long @code{.gnu} names; however, note that names
-from the shorten-zone are assigned on a first-come-first-serve basis and should
-not be trusted. Furthermore, if you enable this feature, you will no longer see
-the full delegation chain for zones once shortening has been applied.
+When GNS encounters a name for the first time, it can use the 'NICK'
+record of the originating zone to automatically generate a name for the
+zone. If automatic shortening is enabled, those auto-generated names will
+be placed (as private records) into your personal 'shorten' zone (to
+prevent confusion with manually selected names).
+Then, in the future, if the same name is encountered again, GNS will
+display the shortened name instead (the first time, the long name will
+still be used as shortening typically happens asynchronously as looking up
+the 'NICK' record takes some time). Using this feature can be a convenient
+way to avoid very long @code{.gnu} names; however, note that names from
+the shorten-zone are assigned on a first-come-first-serve basis and should
+not be trusted. Furthermore, if you enable this feature, you will no
+longer see the full delegation chain for zones once shortening has been
+applied.
 
 @node Configuring the GNUnet VPN
 @subsection Configuring the GNUnet VPN
@@ -3220,15 +3290,16 @@ the full delegation chain for zones once shortening has been applied.
 @end menu
 
 Before configuring the GNUnet VPN, please make sure that system-wide DNS
-interception is configured properly as described in the section on the GNUnet
-DNS setup.
+interception is configured properly as described in the section on the
+GNUnet DNS setup.
 
-The default-options for the GNUnet VPN are usually sufficient to use GNUnet as
-a Layer 2 for your Internet connection. However, what you always have to
-specify is which IP protocol you want to tunnel: IPv4, IPv6 or both.
-Furthermore, if you tunnel both, you most likely should also tunnel all of your
-DNS requests. You theoretically can tunnel "only" your DNS traffic, but that
-usually makes little sense.
+The default-options for the GNUnet VPN are usually sufficient to use
+GNUnet as a Layer 2 for your Internet connection. However, what you always
+have to specify is which IP protocol you want to tunnel: IPv4, IPv6 or
+both. Furthermore, if you tunnel both, you most likely should also tunnel
+all of your DNS requests.
+You theoretically can tunnel "only" your DNS traffic, but that usually
+makes little sense.
 
 The other options as shown on the gnunet-setup tool are:
 
@@ -3236,21 +3307,25 @@ The other options as shown on the gnunet-setup tool are:
 @subsubsection IPv4 address for interface
 
 This is the IPv4 address the VPN interface will get. You should pick an
-'private' IPv4 network that is not yet in use for you system. For example, if
-you use 10.0.0.1/255.255.0.0 already, you might use 10.1.0.1/255.255.0.0. If
-you use 10.0.0.1/255.0.0.0 already, then you might use 192.168.0.1/255.255.0.0.
-If your system is not in a private IP-network, using any of the above will work
-fine.@ You should try to make the mask of the address big enough (255.255.0.0
-or, even better, 255.0.0.0) to allow more mappings of remote IP Addresses into
-this range. However, even a 255.255.255.0-mask will suffice for most users.
+'private' IPv4 network that is not yet in use for you system. For example,
+if you use 10.0.0.1/255.255.0.0 already, you might use
+10.1.0.1/255.255.0.0.
+If you use 10.0.0.1/255.0.0.0 already, then you might use
+192.168.0.1/255.255.0.0.
+If your system is not in a private IP-network, using any of the above will
+work fine.
+You should try to make the mask of the address big enough (255.255.0.0
+or, even better, 255.0.0.0) to allow more mappings of remote IP Addresses
+into this range.
+However, even a 255.255.255.0-mask will suffice for most users.
 
 @node IPv6 address for interface
 @subsubsection IPv6 address for interface
 
 The IPv6 address the VPN interface will get. Here you can specify any
-non-link-local address (the address should not begin with "fe80:"). A subnet
-Unique Local Unicast (fd00::/8-prefix) that you are currently not using would
-be a good choice.
+non-link-local address (the address should not begin with "fe80:").
+A subnet Unique Local Unicast (fd00::/8-prefix) that you are currently
+not using would be a good choice.
 
 @node Configuring the GNUnet VPN DNS
 @subsubsection Configuring the GNUnet VPN DNS
@@ -3260,59 +3335,64 @@ To resolve names for remote nodes, activate the DNS exit option.
 @node Configuring the GNUnet VPN Exit Service
 @subsubsection Configuring the GNUnet VPN Exit Service
 
-If you want to allow other users to share your Internet connection (yes, this
-may be dangerous, just as running a Tor exit node) or want to provide access to
-services on your host (this should be less dangerous, as long as those services
-are secure), you have to enable the GNUnet exit daemon.
+If you want to allow other users to share your Internet connection (yes,
+this may be dangerous, just as running a Tor exit node) or want to
+provide access to services on your host (this should be less dangerous,
+as long as those services are secure), you have to enable the GNUnet exit
+daemon.
 
-You then get to specify which exit functions you want to provide. By enabling
-the exit daemon, you will always automatically provide exit functions for
-manually configured local services (this component of the system is under
-development and not documented further at this time). As for those services you
-explicitly specify the target IP address and port, there is no significant
-security risk in doing so.
+You then get to specify which exit functions you want to provide. By
+enabling the exit daemon, you will always automatically provide exit
+functions for manually configured local services (this component of the
+system is under
+development and not documented further at this time). As for those
+services you explicitly specify the target IP address and port, there is
+no significant security risk in doing so.
 
-Furthermore, you can serve as a DNS, IPv4 or IPv6 exit to the Internet. Being a
-DNS exit is usually pretty harmless. However, enabling IPv4 or IPv6-exit
-without further precautions may enable adversaries to access your local
-network, send spam, attack other systems from your Internet connection and to
-other mischief that will appear to come from your machine. This may or may not
-get you into legal trouble. If you want to allow IPv4 or IPv6-exit
-functionality, you should strongly consider adding additional firewall rules
-manually to protect your local network and to restrict outgoing TCP traffic
-(i.e. by not allowing access to port 25). While we plan to improve
-exit-filtering in the future, you're currently on your own here. Essentially,
-be prepared for any kind of IP-traffic to exit the respective TUN interface
-(and GNUnet will enable IP-forwarding and NAT for the interface automatically).
+Furthermore, you can serve as a DNS, IPv4 or IPv6 exit to the Internet.
+Being a DNS exit is usually pretty harmless. However, enabling IPv4 or
+IPv6-exit without further precautions may enable adversaries to access
+your local network, send spam, attack other systems from your Internet
+connection and to other mischief that will appear to come from your
+machine. This may or may not get you into legal trouble.
+If you want to allow IPv4 or IPv6-exit functionality, you should strongly
+consider adding additional firewall rules manually to protect your local
+network and to restrict outgoing TCP traffic (i.e. by not allowing access
+to port 25). While we plan to improve exit-filtering in the future,
+you're currently on your own here.
+Essentially, be prepared for any kind of IP-traffic to exit the respective
+TUN interface (and GNUnet will enable IP-forwarding and NAT for the
+interface automatically).
 
-Additional configuration options of the exit as shown by the gnunet-setup tool
-are:
+Additional configuration options of the exit as shown by the gnunet-setup
+tool are:
 
 @node IP Address of external DNS resolver
 @subsubsection IP Address of external DNS resolver
 
-If DNS traffic is to exit your machine, it will be send to this DNS resolver.
-You can specify an IPv4 or IPv6 address.
+If DNS traffic is to exit your machine, it will be send to this DNS
+resolver. You can specify an IPv4 or IPv6 address.
 
 @node IPv4 address for Exit interface
 @subsubsection IPv4 address for Exit interface
 
-This is the IPv4 address the Interface will get. Make the mask of the address
-big enough (255.255.0.0 or, even better, 255.0.0.0) to allow more mappings of
-IP addresses into this range. As for the VPN interface, any unused, private
-IPv4 address range will do.
+This is the IPv4 address the Interface will get. Make the mask of the
+address big enough (255.255.0.0 or, even better, 255.0.0.0) to allow more
+mappings of IP addresses into this range. As for the VPN interface, any
+unused, private IPv4 address range will do.
 
 @node IPv6 address for Exit interface
 @subsubsection IPv6 address for Exit interface
 
-The public IPv6 address the interface will get. If your kernel is not a very
-recent kernel and you are willing to manually enable IPv6-NAT, the IPv6 address
-you specify here must be a globally routed IPv6 address of your host.
+The public IPv6 address the interface will get. If your kernel is not a
+very recent kernel and you are willing to manually enable IPv6-NAT, the
+IPv6 address you specify here must be a globally routed IPv6 address of
+your host.
 
-Suppose your host has the address @code{2001:4ca0::1234/64}, then using@
-@code{2001:4ca0::1:0/112} would be fine (keep the first 64 bits, then change at
-least one bit in the range before the bitmask, in the example above we changed
-bit 111 from 0 to 1).
+Suppose your host has the address @code{2001:4ca0::1234/64}, then
+using @code{2001:4ca0::1:0/112} would be fine (keep the first 64 bits,
+then change at least one bit in the range before the bitmask, in the
+example above we changed bit 111 from 0 to 1).
 
 You may also have to configure your router to route traffic for the entire
 subnet (@code{2001:4ca0::1:0/112} for example) through your computer (this
@@ -3322,107 +3402,114 @@ disabled).
 @node Bandwidth Configuration
 @subsection Bandwidth Configuration
 
-You can specify how many bandwidth GNUnet is allowed to use to receive and send
-data. This is important for users with limited bandwidth or traffic volume.
+You can specify how many bandwidth GNUnet is allowed to use to receive
+and send data. This is important for users with limited bandwidth or
+traffic volume.
 
 @node Configuring NAT
 @subsection Configuring NAT
 
-Most hosts today do not have a normal global IP address but instead are behind
-a router performing Network Address Translation (NAT) which assigns each host
-in the local network a private IP address. As a result, these machines cannot
-trivially receive inbound connections from the Internet. GNUnet supports NAT
-traversal to enable these machines to receive incoming connections from other
-peers despite their limitations.
+Most hosts today do not have a normal global IP address but instead are
+behind a router performing Network Address Translation (NAT) which assigns
+each host in the local network a private IP address.
+As a result, these machines cannot trivially receive inbound connections
+from the Internet. GNUnet supports NAT traversal to enable these machines
+to receive incoming connections from other peers despite their
+limitations.
 
-In an ideal world, you can press the "Attempt automatic configuration" button
-in gnunet-setup to automatically configure your peer correctly. Alternatively,
-your distribution might have already triggered this automatic configuration
-during the installation process. However, automatic configuration can fail to
-determine the optimal settings, resulting in your peer either not receiving as
-many connections as possible, or in the worst case it not connecting to the
-network at all.
+In an ideal world, you can press the "Attempt automatic configuration"
+button in gnunet-setup to automatically configure your peer correctly.
+Alternatively, your distribution might have already triggered this
+automatic configuration during the installation process.
+However, automatic configuration can fail to determine the optimal
+settings, resulting in your peer either not receiving as many connections
+as possible, or in the worst case it not connecting to the network at all.
 
 To manually configure the peer, you need to know a few things about your
-network setup. First, determine if you are behind a NAT in the first place.
-This is always the case if your IP address starts with "10.*" or "192.168.*".
-Next, if you have control over your NAT router, you may choose to manually
-configure it to allow GNUnet traffic to your host. If you have configured your
-NAT to forward traffic on ports 2086 (and possibly 1080) to your host, you can
-check the "NAT ports have been opened manually" option, which corresponds to
-the "PUNCHED_NAT" option in the configuration file. If you did not punch your
-NAT box, it may still be configured to support UPnP, which allows GNUnet to
-automatically configure it. In that case, you need to install the "upnpc"
-command, enable UPnP (or PMP) on your NAT box and set the "Enable NAT traversal
-via UPnP or PMP" option (corresponding to "ENABLE_UPNP" in the configuration
-file).
+network setup. First, determine if you are behind a NAT in the first
+place.
+This is always the case if your IP address starts with "10.*" or
+"192.168.*". Next, if you have control over your NAT router, you may
+choose to manually configure it to allow GNUnet traffic to your host.
+If you have configured your NAT to forward traffic on ports 2086 (and
+possibly 1080) to your host, you can check the "NAT ports have been opened
+manually" option, which corresponds to the "PUNCHED_NAT" option in the
+configuration file. If you did not punch your NAT box, it may still be
+configured to support UPnP, which allows GNUnet to automatically
+configure it. In that case, you need to install the "upnpc" command,
+enable UPnP (or PMP) on your NAT box and set the "Enable NAT traversal
+via UPnP or PMP" option (corresponding to "ENABLE_UPNP" in the
+configuration file).
 
-Some NAT boxes can be traversed using the autonomous NAT traversal method. This
-requires certain GNUnet components to be installed with "SUID" prividledges on
-your system (so if you're installing on a system you do not have administrative
-rights to, this will not work). If you installed as 'root', you can enable
-autonomous NAT traversal by checking the "Enable NAT traversal using ICMP
-method". The ICMP method requires a way to determine your NAT's external
-(global) IP address. This can be done using either UPnP, DynDNS, or by manual
-configuration. If you have a DynDNS name or know your external IP address, you
-should enter that name under "External (public) IPv4 address" (which
-corresponds to the "EXTERNAL_ADDRESS" option in the configuration file). If you
-leave the option empty, GNUnet will try to determine your external IP address
-automatically (which may fail, in which case autonomous NAT traversal will then
-not work).
+Some NAT boxes can be traversed using the autonomous NAT traversal method.
+This requires certain GNUnet components to be installed with "SUID"
+prividledges on your system (so if you're installing on a system you do
+not have administrative rights to, this will not work).
+If you installed as 'root', you can enable autonomous NAT traversal by
+checking the "Enable NAT traversal using ICMP method".
+The ICMP method requires a way to determine your NAT's external (global)
+IP address. This can be done using either UPnP, DynDNS, or by manual
+configuration. If you have a DynDNS name or know your external IP address,
+you should enter that name under "External (public) IPv4 address" (which
+corresponds to the "EXTERNAL_ADDRESS" option in the configuration file).
+If you leave the option empty, GNUnet will try to determine your external
+IP address automatically (which may fail, in which case autonomous
+NAT traversal will then not work).
 
-Finally, if you yourself are not behind NAT but want to be able to connect to
-NATed peers using autonomous NAT traversal, you need to check the "Enable
-connecting to NATed peers using ICMP method" box.
+Finally, if you yourself are not behind NAT but want to be able to
+connect to NATed peers using autonomous NAT traversal, you need to check
+the "Enable connecting to NATed peers using ICMP method" box.
 
 
 @node Peer configuration for distributions
 @subsection Peer configuration for distributions
 
-The "GNUNET_DATA_HOME" in "[path]" in @file{/etc/gnunet.conf} should be manually set
-to "/var/lib/gnunet/data/" as the default "~/.local/share/gnunet/" is probably
-not that appropriate in this case. Similarly, distributions may consider
-pointing "GNUNET_RUNTIME_DIR" to "/var/run/gnunet/" and "GNUNET_HOME" to
-"/var/lib/gnunet/". Also, should a distribution decide to override system
-defaults, all of these changes should be done in a custom @file{/etc/gnunet.conf}
-and not in the files in the @file{config.d/} directory.
+The "GNUNET_DATA_HOME" in "[path]" in @file{/etc/gnunet.conf} should be
+manually set to "/var/lib/gnunet/data/" as the default
+"~/.local/share/gnunet/" is probably not that appropriate in this case.
+Similarly, distributions may consider pointing "GNUNET_RUNTIME_DIR" to
+"/var/run/gnunet/" and "GNUNET_HOME" to "/var/lib/gnunet/". Also, should a
+distribution decide to override system defaults, all of these changes
+should be done in a custom @file{/etc/gnunet.conf} and not in the files
+in the @file{config.d/} directory.
 
-Given the proposed access permissions, the "gnunet-setup" tool must be run as
-use "gnunet" (and with option "-c /etc/gnunet.conf" so that it modifies the
-system configuration). As always, gnunet-setup should be run after the GNUnet
-peer was stopped using "gnunet-arm -e". Distributions might want to include a
-wrapper for gnunet-setup that allows the desktop-user to "sudo" (i.e. using
-gtksudo) to the "gnunet" user account and then runs "gnunet-arm -e",
-"gnunet-setup" and "gnunet-arm -s" in sequence.
-
-
+Given the proposed access permissions, the "gnunet-setup" tool must be
+run as use "gnunet" (and with option "-c /etc/gnunet.conf" so that it
+modifies the system configuration). As always, gnunet-setup should be run
+after the GNUnet peer was stopped using "gnunet-arm -e". Distributions
+might want to include a wrapper for gnunet-setup that allows the
+desktop-user to "sudo" (i.e. using gtksudo) to the "gnunet" user account
+and then runs "gnunet-arm -e", "gnunet-setup" and "gnunet-arm -s" in
+sequence.
 
 @node How to start and stop a GNUnet peer
 @section How to start and stop a GNUnet peer
 
-This section describes how to start a GNUnet peer. It assumes that you have
-already compiled and installed GNUnet and its' dependencies. Before you start a
-GNUnet peer, you may want to create a configuration file using gnunet-setup
-(but you do not have to). Sane defaults should exist in your
-@file{$GNUNET_PREFIX/share/gnunet/config.d/} directory, so in practice you could
-simply start without any configuration. If you want to configure your peer
-later, you need to stop it before invoking the @code{gnunet-setup} tool to
-customize further and to test your configuration (@code{gnunet-setup} has
-build-in test functions).
+This section describes how to start a GNUnet peer. It assumes that you
+have already compiled and installed GNUnet and its' dependencies.
+Before you start a GNUnet peer, you may want to create a configuration
+file using gnunet-setup (but you do not have to).
+Sane defaults should exist in your
+@file{$GNUNET_PREFIX/share/gnunet/config.d/} directory, so in practice
+you could simply start without any configuration. If you want to
+configure your peer later, you need to stop it before invoking the
+@code{gnunet-setup} tool to customize further and to test your
+configuration (@code{gnunet-setup} has build-in test functions).
 
-The most important option you might have to still set by hand is in [PATHS].
-Here, you use the option "GNUNET_HOME" to specify the path where GNUnet should
-store its data. It defaults to @code{$HOME/}, which again should work for most
-users. Make sure that the directory specified as GNUNET_HOME is writable to
+The most important option you might have to still set by hand is in
+[PATHS]. Here, you use the option "GNUNET_HOME" to specify the path where
+GNUnet should store its data.
+It defaults to @code{$HOME/}, which again should work for most users.
+Make sure that the directory specified as GNUNET_HOME is writable to
 the user that you will use to run GNUnet (note that you can run frontends
-using other users, GNUNET_HOME must only be accessible to the user used to run
-the background processes).
+using other users, GNUNET_HOME must only be accessible to the user used to
+run the background processes).
 
-You will also need to make one central decision: should all of GNUnet be run
-under your normal UID, or do you want distinguish between system-wide
-(user-independent) GNUnet services and personal GNUnet services. The multi-user
-setup is slightly more complicated, but also more secure and generally
-recommended.
+You will also need to make one central decision: should all of GNUnet be
+run under your normal UID, or do you want distinguish between system-wide
+(user-independent) GNUnet services and personal GNUnet services. The
+multi-user setup is slightly more complicated, but also more secure and
+generally recommended.
 
 @menu
 * The Single-User Setup::
@@ -3434,108 +3521,136 @@ recommended.
 @node The Single-User Setup
 @subsection The Single-User Setup
 
-For the single-user setup, you do not need to do anything special and can just
-start the GNUnet background processes using @code{gnunet-arm}. By default,
-GNUnet looks in @file{~/.config/gnunet.conf} for a configuration (or
-@code{$XDG_CONFIG_HOME/gnunet.conf} if@ @code{$XDG_CONFIG_HOME} is defined). If your
-configuration lives elsewhere, you need to pass the @code{-c FILENAME} option
-to all GNUnet commands.
+For the single-user setup, you do not need to do anything special and can
+just start the GNUnet background processes using @code{gnunet-arm}.
+By default, GNUnet looks in @file{~/.config/gnunet.conf} for a
+configuration (or @code{$XDG_CONFIG_HOME/gnunet.conf} if@
+@code{$XDG_CONFIG_HOME} is defined). If your configuration lives
+elsewhere, you need to pass the @code{-c FILENAME} option to all GNUnet
+commands.
 
-Assuming the configuration file is called @file{~/.config/gnunet.conf}, you
-start your peer using the @code{gnunet-arm} command (say as user
+Assuming the configuration file is called @file{~/.config/gnunet.conf},
+you start your peer using the @code{gnunet-arm} command (say as user
 @code{gnunet}) using:
+
 @example
 gnunet-arm -c ~/.config/gnunet.conf -s
 @end example
 
+@noindent
 The "-s" option here is for "start". The command should return almost
 instantly. If you want to stop GNUnet, you can use:
+
 @example
 gnunet-arm -c ~/.config/gnunet.conf -e
 @end example
 
+@noindent
 The "-e" option here is for "end".
 
-Note that this will only start the basic peer, no actual applications will be
-available. If you want to start the file-sharing service, use (after starting
+Note that this will only start the basic peer, no actual applications
+will be available.
+If you want to start the file-sharing service, use (after starting
 GNUnet):
+
 @example
 gnunet-arm -c ~/.config/gnunet.conf -i fs
 @end example
 
+@noindent
 The "-i fs" option here is for "initialize" the "fs" (file-sharing)
 application. You can also selectively kill only file-sharing support using
+
 @example
 gnunet-arm -c ~/.config/gnunet.conf -k fs
 @end example
 
+@noindent
 Assuming that you want certain services (like file-sharing) to be always
 automatically started whenever you start GNUnet, you can activate them by
-setting "FORCESTART=YES" in the respective section of the configuration file
-(for example, "[fs]"). Then GNUnet with file-sharing support would be started
-whenever you@ enter:
+setting "FORCESTART=YES" in the respective section of the configuration
+file (for example, "[fs]"). Then GNUnet with file-sharing support would
+be started whenever you@ enter:
+
 @example
 gnunet-arm -c ~/.config/gnunet.conf -s
 @end example
 
+@noindent
 Alternatively, you can combine the two options:
+
 @example
 gnunet-arm -c ~/.config/gnunet.conf -s -i fs
 @end example
 
+@noindent
+Using @code{gnunet-arm} is also the preferred method for initializing
+GNUnet from @code{init}.
 
-Using @code{gnunet-arm} is also the preferred method for initializing GNUnet
-from @code{init}.
+Finally, you should edit your @code{crontab} (using the @code{crontab}
+command) and insert a line@
 
-Finally, you should edit your @code{crontab} (using the @code{crontab} command)
-and insert a line@
 @code{@
  @@reboot gnunet-arm -c ~/.config/gnunet.conf -s@
 }@
+
 to automatically start your peer whenever your system boots.
 
 @node The Multi-User Setup
 @subsection The Multi-User Setup
 
 This requires you to create a user @code{gnunet} and an additional group
-@code{gnunetdns}, prior to running @code{make install} during installation.
+@code{gnunetdns}, prior to running @code{make install} during
+installation.
 Then, you create a configuration file @file{/etc/gnunet.conf} which should
 contain the lines:@
-@code{@
- [arm]@
- SYSTEM_ONLY = YES@
- USER_ONLY = NO@
-}@
- Then, perform the same steps to run GNUnet as in the per-user configuration,
- except as user @code{gnunet} (including the @code{crontab} installation). You
- may also want to run @code{gnunet-setup} to configure your peer (databases,
- etc.). Make sure to pass @code{-c /etc/gnunet.conf} to all commands. If you
- run @code{gnunet-setup} as user @code{gnunet}, you might need to change
- permissions on @file{/etc/gnunet.conf} so that the @code{gnunet} user can
- write to the file (during setup).
 
-Afterwards, you need to perform another setup step for each normal user account
-from which you want to access GNUnet. First, grant the normal user
-(@code{$USER}) permission to the group gnunet:@
-@code{@
- # adduser $USER gnunet@
-}@
-Then, create a configuration file in @file{~/.config/gnunet.conf} for the $USER
-with the lines:@
-@code{@
- [arm]@
- SYSTEM_ONLY = NO@
- USER_ONLY = YES@
-}@
- This will ensure that @code{gnunet-arm} when started by the normal user will
- only run services that are per-user, and otherwise rely on the system-wide
- services. Note that the normal user may run gnunet-setup, but the
- configuration would be ineffective as the system-wide services will use
- @code{/etc/gnunet.conf} and ignore options set by individual users.
+@example
+[arm]@
+SYSTEM_ONLY = YES@
+USER_ONLY = NO@
+@end example
 
-Again, each user should then start the peer using @code{gnunet-arm -s} --- and
-strongly consider adding logic to start the peer automatically to their
-crontab.
+@noindent
+Then, perform the same steps to run GNUnet as in the per-user
+configuration, except as user @code{gnunet} (including the
+@code{crontab} installation).
+You may also want to run @code{gnunet-setup} to configure your peer
+(databases, etc.).
+Make sure to pass @code{-c /etc/gnunet.conf} to all commands. If you
+run @code{gnunet-setup} as user @code{gnunet}, you might need to change
+permissions on @file{/etc/gnunet.conf} so that the @code{gnunet} user can
+write to the file (during setup).
+
+Afterwards, you need to perform another setup step for each normal user
+account from which you want to access GNUnet. First, grant the normal user
+(@code{$USER}) permission to the group gnunet:
+
+@example
+# adduser $USER gnunet
+@end example
+
+@noindent
+Then, create a configuration file in @file{~/.config/gnunet.conf} for the
+$USER with the lines:
+
+@example
+[arm]@
+SYSTEM_ONLY = NO@
+USER_ONLY = YES@
+@end example
+
+@noindent
+This will ensure that @code{gnunet-arm} when started by the normal user
+will only run services that are per-user, and otherwise rely on the
+system-wide services.
+Note that the normal user may run gnunet-setup, but the
+configuration would be ineffective as the system-wide services will use
+@code{/etc/gnunet.conf} and ignore options set by individual users.
+
+Again, each user should then start the peer using
+@code{gnunet-arm -s} --- and strongly consider adding logic to start
+the peer automatically to their crontab.
 
 Afterwards, you should see two (or more, if you have more than one USER)
 @code{gnunet-service-arm} processes running in your system.
@@ -3543,60 +3658,66 @@ Afterwards, you should see two (or more, if you have more than one USER)
 @node Killing GNUnet services
 @subsection Killing GNUnet services
 
-It is not necessary to stop GNUnet services explicitly when shutting down your
-computer.
+It is not necessary to stop GNUnet services explicitly when shutting
+down your computer.
 
-It should be noted that manually killing "most" of the @code{gnunet-service}
-processes is generally not a successful method for stopping a peer (since
-@code{gnunet-service-arm} will instantly restart them). The best way to
-explicitly stop a peer is using @code{gnunet-arm -e}; note that the per-user
-services may need to be terminated before the system-wide services will
-terminate normally.
+It should be noted that manually killing "most" of the
+@code{gnunet-service} processes is generally not a successful method for
+stopping a peer (since @code{gnunet-service-arm} will instantly restart
+them). The best way to explicitly stop a peer is using
+@code{gnunet-arm -e}; note that the per-user services may need to be
+terminated before the system-wide services will terminate normally.
 
 @node Access Control for GNUnet
 @subsection Access Control for GNUnet
 
 This chapter documents how we plan to make access control work within the
 GNUnet system for a typical peer. It should be read as a best-practice
-installation guide for advanced users and builders of binary distributions. The
-recommendations in this guide apply to POSIX-systems with full support for UNIX
-domain sockets only.
+installation guide for advanced users and builders of binary
+distributions. The recommendations in this guide apply to POSIX-systems
+with full support for UNIX domain sockets only.
 
 Note that this is an advanced topic. The discussion presumes a very good
-understanding of users, groups and file permissions. Normal users on hosts with
-just a single user can just install GNUnet under their own account (and
-possibly allow the installer to use SUDO to grant additional permissions for
-special GNUnet tools that need additional rights). The discussion below largely
-applies to installations where multiple users share a system and to
-installations where the best possible security is paramount.
+understanding of users, groups and file permissions. Normal users on
+hosts with just a single user can just install GNUnet under their own
+account (and possibly allow the installer to use SUDO to grant additional
+permissions for special GNUnet tools that need additional rights).
+The discussion below largely applies to installations where multiple users
+share a system and to installations where the best possible security is
+paramount.
 
-A typical GNUnet system consists of components that fall into four categories:
+A typical GNUnet system consists of components that fall into four
+categories:
 
 @table @asis
 
 @item User interfaces
-User interfaces are not security sensitive and are supposed to be run and used
-by normal system users. The GTK GUIs and most command-line programs fall into
-this category. Some command-line tools (like gnunet-transport) should be
-excluded as they offer low-level access that normal users should not need.
+User interfaces are not security sensitive and are supposed to be run and
+used by normal system users.
+The GTK GUIs and most command-line programs fall into this category.
+Some command-line tools (like gnunet-transport) should be excluded as they
+offer low-level access that normal users should not need.
 @item System services and support tools
-System services should always run and offer services that can then be accessed
-by the normal users. System services do not require special permissions, but as
-they are not specific to a particular user, they probably should not run as a
-particular user. Also, there should typically only be one GNUnet peer per host.
-System services include the gnunet-service and gnunet-daemon programs; support
-tools include command-line programs such as gnunet-arm.
+System services should always run and offer services that can then be
+accessed by the normal users.
+System services do not require special permissions, but as they are not
+specific to a particular user, they probably should not run as a
+particular user. Also, there should typically only be one GNUnet peer per
+host. System services include the gnunet-service and gnunet-daemon
+programs; support tools include command-line programs such as gnunet-arm.
 @item Priviledged helpers
-Some GNUnet components require root rights to open raw sockets or perform other
-special operations. These gnunet-helper binaries are typically installed SUID
-and run from services or daemons.
+Some GNUnet components require root rights to open raw sockets or perform
+other special operations. These gnunet-helper binaries are typically
+installed SUID and run from services or daemons.
 @item Critical services
-Some GNUnet services (such as the DNS service) can manipulate the service in
-deep and possibly highly security sensitive ways. For example, the DNS service
-can be used to intercept and alter any DNS query originating from the local
-machine. Access to the APIs of these critical services and their priviledged
-helpers must be tightly controlled.
+Some GNUnet services (such as the DNS service) can manipulate the service
+in deep and possibly highly security sensitive ways. For example, the DNS
+service can be used to intercept and alter any DNS query originating from
+the local machine. Access to the APIs of these critical services and their
+priviledged helpers must be tightly controlled.
 @end table
+
+@c FIXME: The titles of these chapters are too long in the index.
 
 @menu
 * Recommendation - Disable access to services via TCP::
@@ -3610,76 +3731,85 @@ helpers must be tightly controlled.
 @node Recommendation - Disable access to services via TCP
 @subsubsection Recommendation - Disable access to services via TCP
 
-GNUnet services allow two types of access: via TCP socket or via UNIX domain
-socket. If the service is available via TCP, access control can only be
-implemented by restricting connections to a particular range of IP addresses.
-This is acceptable for non-critical services that are supposed to be available
-to all users on the local system or local network. However, as TCP is generally
-less efficient and it is rarely the case that a single GNUnet peer is supposed
-to serve an entire local network, the default configuration should disable TCP
-access to all GNUnet services on systems with support for UNIX domain sockets.
+GNUnet services allow two types of access: via TCP socket or via UNIX
+domain socket.
+If the service is available via TCP, access control can only be
+implemented by restricting connections to a particular range of IP
+addresses.
+This is acceptable for non-critical services that are supposed to be
+available to all users on the local system or local network.
+However, as TCP is generally less efficient and it is rarely the case
+that a single GNUnet peer is supposed to serve an entire local network,
+the default configuration should disable TCP access to all GNUnet
+services on systems with support for UNIX domain sockets.
 As of GNUnet 0.9.2, configuration files with TCP access disabled should be
-generated by default. Users can re-enable TCP access to particular services
-simply by specifying a non-zero port number in the section of the respective
-service.
+generated by default. Users can re-enable TCP access to particular
+services simply by specifying a non-zero port number in the section of
+the respective service.
 
 
 @node Recommendation - Run most services as system user "gnunet"
 @subsubsection Recommendation - Run most services as system user "gnunet"
 
-GNUnet's main services should be run as a separate user "gnunet" in a special
-group "gnunet". The user "gnunet" should start the peer using "gnunet-arm -s"
-during system startup. The home directory for this user should be
-@file{/var/lib/gnunet} and the configuration file should be @file{/etc/gnunet.conf}.
-Only the @code{gnunet} user should have the right to access @file{/var/lib/gnunet}
-(@emph{mode: 700}).
+GNUnet's main services should be run as a separate user "gnunet" in a
+special group "gnunet".
+The user "gnunet" should start the peer using "gnunet-arm -s" during
+system startup. The home directory for this user should be
+@file{/var/lib/gnunet} and the configuration file should be
+@file{/etc/gnunet.conf}.
+Only the @code{gnunet} user should have the right to access
+@file{/var/lib/gnunet} (@emph{mode: 700}).
 
 @node Recommendation - Control access to services using group "gnunet"
 @subsubsection Recommendation - Control access to services using group "gnunet"
 
 Users that should be allowed to use the GNUnet peer should be added to the
 group "gnunet". Using GNUnet's access control mechanism for UNIX domain
-sockets, those services that are considered useful to ordinary users should be
-made available by setting "UNIX_MATCH_GID=YES" for those services. Again, as
-shipped, GNUnet provides reasonable defaults. Permissions to access the
-transport and core subsystems might additionally be granted without necessarily
-causing security concerns. Some services, such as DNS, must NOT be made
-accessible to the "gnunet" group (and should thus only be accessible to the
-"gnunet" user and services running with this UID).
+sockets, those services that are considered useful to ordinary users
+should be made available by setting "UNIX_MATCH_GID=YES" for those
+services.
+Again, as shipped, GNUnet provides reasonable defaults.
+Permissions to access the transport and core subsystems might additionally
+be granted without necessarily causing security concerns.
+Some services, such as DNS, must NOT be made accessible to the "gnunet"
+group (and should thus only be accessible to the "gnunet" user and
+services running with this UID).
 
 @node Recommendation - Limit access to certain SUID binaries by group "gnunet"
 @subsubsection Recommendation - Limit access to certain SUID binaries by group "gnunet"
 
-Most of GNUnet's SUID binaries should be safe even if executed by normal users.
-However, it is possible to reduce the risk a little bit more by making these
-binaries owned by the group "gnunet" and restricting their execution to user of
-the group "gnunet" as well (4750).
+Most of GNUnet's SUID binaries should be safe even if executed by normal
+users. However, it is possible to reduce the risk a little bit more by
+making these binaries owned by the group "gnunet" and restricting their
+execution to user of the group "gnunet" as well (4750).
 
 @node Recommendation - Limit access to critical gnunet-helper-dns to group "gnunetdns"
 @subsubsection Recommendation - Limit access to critical gnunet-helper-dns to group "gnunetdns"
 
-A special group "gnunetdns" should be created for controlling access to the
-"gnunet-helper-dns". The binary should then be owned by root and be in group
-"gnunetdns" and be installed SUID and only be group-executable (2750). Note
-that the group "gnunetdns" should have no users in it at all, ever. The
-"gnunet-service-dns" program should be executed by user "gnunet" (via
+A special group "gnunetdns" should be created for controlling access to
+the "gnunet-helper-dns".
+The binary should then be owned by root and be in group "gnunetdns" and
+be installed SUID and only be group-executable (2750).
+@b{Note that the group "gnunetdns" should have no users in it at all,
+ever.}
+The "gnunet-service-dns" program should be executed by user "gnunet" (via
 gnunet-service-arm) with the binary owned by the user "root" and the group
-"gnunetdns" and be SGID (2700). This way, @strong{only} "gnunet-service-dns"
-can change its group to "gnunetdns" and execute the helper, and the helper can
-then run as root (as per SUID). Access to the API offered by
-"gnunet-service-dns" is in turn restricted to the user "gnunet" (not the
-group!), which means that only "benign" services can manipulate DNS queries
-using "gnunet-service-dns".
+"gnunetdns" and be SGID (2700). This way, @strong{only}
+"gnunet-service-dns" can change its group to "gnunetdns" and execute the
+helper, and the helper can then run as root (as per SUID).
+Access to the API offered by "gnunet-service-dns" is in turn restricted
+to the user "gnunet" (not the group!), which means that only
+"benign" services can manipulate DNS queries using "gnunet-service-dns".
 
 @node Differences between "make install" and these recommendations
 @subsubsection Differences between "make install" and these recommendations
 
-The current build system does not set all permissions automatically based on
-the recommendations above. In particular, it does not use the group "gnunet" at
-all (so setting gnunet-helpers other than the gnunet-helper-dns to be owned by
-group "gnunet" must be done manually). Furthermore, 'make install' will
-silently fail to set the DNS binaries to be owned by group "gnunetdns" unless
-that group already exists (!). An alternative name for the "gnunetdns" group
-can be specified using the "--with-gnunetdns=GRPNAME" configure
-option.
+The current build system does not set all permissions automatically based
+on the recommendations above. In particular, it does not use the group
+"gnunet" at all (so setting gnunet-helpers other than the
+gnunet-helper-dns to be owned by group "gnunet" must be done manually).
+Furthermore, 'make install' will silently fail to set the DNS binaries to
+be owned by group "gnunetdns" unless that group already exists (!).
+An alternative name for the "gnunetdns" group can be specified using the
+"--with-gnunetdns=GRPNAME" configure option.
 
