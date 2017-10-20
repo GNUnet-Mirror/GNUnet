@@ -7,6 +7,7 @@ To be moved to an appropriate section of "how to write documentation" or
 
 2. Keep line length below 74 characters.
 
+3. Do not use tab characters (see chapter 2.1 texinfo manual)
 * What's left to do
 
 - Which Texlive modules are needed? Decrease the size.
