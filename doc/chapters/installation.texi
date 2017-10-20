@@ -1,13 +1,13 @@
 @node GNUnet Installation Handbook
 @chapter GNUnet Installation Handbook
 
-This handbook describes how to install (build setup, compilation) and setup
-(configuration, start) GNUnet 0.10.x. After following these instructions you
-should be able to install and then start user-interfaces to interact with the
-network.
+This handbook describes how to install (build setup, compilation) and
+setup (configuration, start) GNUnet 0.10.x. After following these
+instructions you should be able to install and then start user-interfaces
+to interact with the network.
 
-This manual is far from complete, and we welcome informed contributions, be it
-in the form of new chapters or insightful comments.
+This manual is far from complete, and we welcome informed contributions,
+be it in the form of new chapters or insightful comments.
 
 
 
@@ -30,7 +30,8 @@ in the form of new chapters or insightful comments.
 @section Dependencies
 @c %**end of header
 
-This document lists the various known dependencies for GNUnet 0.10.x.
+This section lists the various known dependencies for
+GNUnet @value{EDITION}.
 Suggestions for missing dependencies or wrong version numbers are welcome.
 
 
@@ -38,6 +39,7 @@ Suggestions for missing dependencies or wrong version numbers are welcome.
 @menu
 * External dependencies::
 * Fixing libgnurl build issues::
+* Optional dependencies::
 * Internal dependencies::
 @end menu
 
@@ -48,38 +50,47 @@ Suggestions for missing dependencies or wrong version numbers are welcome.
 These packages must be installed before a typical GNUnet installation
 can be performed:
 
-@table @asis
-@item GNU libmicrohttpd 0.9.30 or higher
+@itemize @bullet
+@item GNU libmicrohttpd 0.9.30 or higher@footnote{We recommend to build it
+with a GnuTLS version that was configured with libunbound ("DANE support")}
 @item GNU libextractor 1.0 or higher
 @item GNU libtool 2.2 or higher 
 @item GNU libunistring 0.9.1.1 or higher
 @item GNU libidn 1.0.0 or higher
-@item @uref{https://gnupg.org/software/libgcrypt/index.html, GNU libgcrypt} @uref{https://gnupg.org/ftp/gcrypt/libgcrypt/, 1.6.0} or higher
-@item @uref{https://gnutls.org/, GnuTLS} @uref{https://www.gnupg.org/ftp/gcrypt/gnutls/v3.2/, 3.2.7} or higher @footnote{compile with libunbound for DANE support; GnuTLS also requires GNU nettle 2.7 (update: GnuTLS 3.2.7 appears NOT to work against GNU nettle > 2.7, due to some API updatings done by nettle. Thus it should be compiled against nettle 2.7 and, in case you get some error on the reference to `rpl_strerror' being undefined, follow the instructions on @uref{http://lists.gnupg.org/pipermail/gnutls-devel/2013-November/006588.html, this} post (and the link inside it)).}
-@item @uref{https://gnunet.org/gnurl, gnURL} libgnurl 7.34.0 or higher @footnote{must be compiled after @code{GnuTLS}}
+@item @uref{https://gnupg.org/software/libgcrypt/, GNU libgcrypt}
+@uref{https://gnupg.org/ftp/gcrypt/libgcrypt/, 1.6.0} or higher
+@item @uref{https://gnutls.org/, GnuTLS}@footnote{We recommend to use a
+GnuTLS version that was configured with libunbound ("DANE support")}
+@uref{https://www.gnupg.org/ftp/gcrypt/gnutls/v3.2/, 3.2.7} or higher
+@footnote{We recommend to compile with libunbound for DANE support;
+GnuTLS also requires GNU nettle 2.7 (update: GnuTLS 3.2.7 appears NOT
+to work against GNU nettle > 2.7, due to some API updatings done by
+nettle. Thus it should be compiled against nettle 2.7
+and, in case you get some error on the reference to `rpl_strerror' being
+undefined, follow the instructions on
+@uref{http://lists.gnupg.org/pipermail/gnutls-devel/2013-November/006588.html, this}
+post (and the link inside it)).}
+@item @uref{https://gnunet.org/gnurl, gnURL} libgnurl 7.34.0 or
+higher@footnote{must be compiled after @code{GnuTLS}}
 @item libglpk 4.45 or higher
 @item @uref{http://www.openssl.org/, OpenSSL} (binary) 1.0 or higher
 @item TeX Live 2012 or higher, optional (for gnunet-bcd)
 @item Texinfo 5.2 or higher (for documentation)
-@item libpulse 2.0 or higher, optional (for gnunet-conversation)
-@item libopus 1.0.1 or higher, optional (for gnunet-conversation)
-@item libogg 1.3.0 or higher, optional (for gnunet-conversation)
-@item certool (binary) optional @footnote{for convenient installation of the GNS proxy (available as part of Debian's libnss3-tools)}
-@item python-zbar 0.10 or higher, optional (for gnunet-qr)
-@item libsqlite 3.8.0 or higher @footnote{(note that the code will compile and often work with lower version numbers, but you may get subtle bugs with respect to quota management in certain rare cases); alternatively, MySQL or Postgres can also be installed, but those databases will require more complex configurations (not recommended for first-time users)}
-@item zlib any version we tested worked
-@item Gtk+ 3.0 or higher, optional (for gnunet-gtk)
-@item libgladeui must match Gtk+ version, optional (for gnunet-gtk)
-@item libqrencode 3.0 or higher, optional (for gnunet-namestore-gtk)
-@end table
-
+@item libsqlite 3.8.0 or higher @footnote{(note that the code will
+compile and often work with lower version numbers, but you may get subtle
+bugs with respect to quota management in certain rare cases);
+alternatively, MySQL or Postgres can also be installed, but those
+databases will require more complex configurations (not
+recommended for first-time users)}
+@item zlib
+@end itemize
 
 @node Fixing libgnurl build issues
 @subsection Fixing libgnurl build issues
 
-If you have to compile libgnurl from source since the version included in your
-distribution is to old you perhaps get an error message while running the
-@file{configure} script:
+If you have to compile libgnurl from source since the version included in
+your distribution is to old you perhaps get an error message while
+running the @file{configure} script:
 
 @example
 $ configure
@@ -90,13 +101,32 @@ checking for 16-bit curl_off_t data type... unknown
 configure: error: cannot find data type for curl_off_t.
 @end example
 
+@noindent
 Solution:
 
 Before running the configure script, set:
 
-@code{CFLAGS="-I. -I$BUILD_ROOT/include" }
+@example
+CFLAGS="-I. -I$BUILD_ROOT/include"
+@end example
 
+@node Optional dependencies
+@subsection Optional dependencies
 
+These applications must be installed for various experimental or otherwise
+optional features such as @code{gnunet-conversation}, @code{gnunet-gtk}.
+
+@itemize @bullet
+@item libpulse 2.0 or higher, optional (for gnunet-conversation)
+@item libopus 1.0.1 or higher, optional (for gnunet-conversation)
+@item libogg 1.3.0 or higher, optional (for gnunet-conversation)
+@item certool (binary) optional @footnote{for convenient installation of
+the GNS proxy (available as part of Debian's libnss3-tools)}
+@item python-zbar 0.10 or higher, optional (for gnunet-qr)
+@item Gtk+ 3.0 or higher, optional (for gnunet-gtk)
+@item libgladeui must match Gtk+ version, optional (for gnunet-gtk)
+@item libqrencode 3.0 or higher, optional (for gnunet-namestore-gtk)
+@end itemize
 
 @node Internal dependencies
 @subsection Internal dependencies
@@ -1627,13 +1657,22 @@ GNUnet uses the portable POSIX thread library for multi-threading..@
 
 
 @item
-Save @uref{ftp://sources.redhat.com/pub/pthreads-win32/dll-latest/lib/x86/libpthreadGC2.a,  libpthreadGC2.a} (x86) or @uref{ftp://sources.redhat.com/pub/pthreads-win32/dll-latest/lib/x64/libpthreadGC2.a,  libpthreadGC2.a} (x64) as libpthread.a into the lib directory (c:\mingw\mingw\lib\libpthread.a) 
+Save @uref{ftp://sources.redhat.com/pub/pthreads-win32/dll-latest/lib/x86
+/libpthreadGC2.a,  libpthreadGC2.a} (x86) or @uref{ftp://sources.redhat.c
+om/pub/pthreads-win32/dll-latest/lib/x64/libpthreadGC2.a,  libpthreadGC2.
+a} (x64) as libpthread.a into the lib directory (c:\mingw\mingw\lib\libpt
+hread.a) 
 
 @item
-Save @uref{ftp://sources.redhat.com/pub/pthreads-win32/dll-latest/lib/x86/pthreadGC2.dll,  pthreadGC2.dll} (x86) or @uref{ftp://sources.redhat.com/pub/pthreads-win32/dll-latest/lib/x64/pthreadGC2.dll,  libpthreadGC2.a} (x64) into the MinGW bin directory (c:\mingw\mingw\bin) 
+Save @uref{ftp://sources.redhat.com/pub/pthreads-win32/dll-latest/lib/x86
+/pthreadGC2.dll,  pthreadGC2.dll} (x86) or @uref{ftp://sources.redhat.c
+om/pub/pthreads-win32/dll-latest/lib/x64/pthreadGC2.dll,  libpthreadGC2.a}
+(x64) into the MinGW bin directory (c:\mingw\mingw\bin) 
 
 @item
-Download all header files from @uref{ftp://sources.redhat.com/pub/pthreads-win32/dll-latest/include/, include/} to the include directory (c:\mingw\mingw\include) 
+Download all header files from @uref{ftp://sources.redhat.com/pub/pthread
+s-win32/dll-latest/include/, include/} to the @file{include} directory
+(c:\mingw\mingw\include) 
 @end itemize
 
 
@@ -1643,7 +1682,9 @@ Download all header files from @uref{ftp://sources.redhat.com/pub/pthreads-win32
 @
 GNUnet uses the GNU Multiple Precision library for special cryptographic operations.@
 @
-Get the GMP binary package from the @uref{http://sourceforge.net/projects/mingwrep/, MinGW repository} and unpack it to the MinGW directory (c:\mingw\mingw) 
+Get the GMP binary package from the
+@uref{http://sourceforge.net/projects/mingwrep/, MinGW repository} and
+unpack it to the MinGW directory (c:\mingw\mingw)
 
 @item
 @strong{GNU Gettext}@

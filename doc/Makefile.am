@@ -90,6 +90,7 @@ gnunet_tutorial_examples =					\
 	011.c							\
 	012.c							\
 	013.c							\
+	013.1.c							\
 	014.c							\
 	015.c							\
 	016.c							\

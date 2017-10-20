@@ -200,6 +200,7 @@ $ wget https://ftp.gnu.org/gnu/gnunet/gnunet-@value{VERSION}.tar.gz.sig
 $ gpg --verify-files gnunet-@value{VERSION}.tar.gz.sig
 @end example
 
+@noindent
 If this command fails because you do not have the required public key,
 then you need to run this command to import it:
 
@@ -455,6 +456,7 @@ $ mkdir ~/gnunet1/
 $ touch peer1.conf
 @end example
 
+@noindent
 Now add the following lines to @file{peer1.conf} to use this directory.
 For simplified usage we want to prevent the peer to connect to the GNUnet
 network since this could lead to confusing output. This modifications
@@ -1004,10 +1006,12 @@ to actually process the message.  Fixed size messages are fully
 checked by the MQ-logic, and thus only need to provide the handler
 to process the message.  Note that the prefixes @code{check\_}
 and @code{handle\_} are mandatory.
+
 @example
 @verbatiminclude tutorial-examples/006.c
 @end example
 
+@noindent
 Exercise: Expand your helper function to receive a response message
 (for example, containing just the @code{struct GNUnet MessageHeader}
 without any payload).  Upon receiving the service's response, you
@@ -1183,10 +1187,12 @@ disconnection, CORE notifies the service that the peer disconnected.
 After this notification no more messages will be received from the
 peer and the service is no longer allowed to send messages to the peer.
 The disconnect callback looks like the following:
+
 @example
 @verbatiminclude tutorial-examples/011.c
 @end example
 
+@noindent
 Exercise: Fix your service to handle peer disconnects.
 
 @node Storing peer-specific data using the PEERSTORE service
@@ -1243,22 +1249,23 @@ guarantee that the record is successfully stored, only that it was
 received by the service.
 
 The @code{GNUNET_PEERSTORE_store} function returns a handle to the store
-operation. This handle can be used to cancel the store operation only before
-the continuation function is called:
+operation. This handle can be used to cancel the store operation only
+before the continuation function is called:
 
 @example
-void
-GNUNET_PEERSTORE_store_cancel (struct GNUNET_PEERSTORE_StoreContext *sc);
+@verbatiminclude tutorial-examples/013.1.c
 @end example
 
 @node Retrieving records
 @subsection Retrieving records
 
 To retrieve stored records, use the following function:
+
 @example
 @verbatiminclude tutorial-examples/014.c
 @end example
 
+@noindent
 The values of @code{peer} and @code{key} can be @code{NULL}. This
 allows the iteration over values stored under any of the following
 key combinations:
@@ -1323,10 +1330,12 @@ The DHT allows to store data so other peers in the P2P network can
 access it and retrieve data stored by any peers in the network.
 This section will explain how to use the DHT. Of course, the first
 thing to do is to connect to the DHT service:
+
 @example
 @verbatiminclude tutorial-examples/018.c
 @end example
 
+@noindent
 The second parameter indicates how many requests in parallel to expect.
 It is not a hard limit, but a good approximation will make the DHT more
 efficient.
