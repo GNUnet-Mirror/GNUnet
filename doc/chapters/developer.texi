@@ -2957,10 +2957,14 @@ format "next_XX" and "prev_XX" where "XX" is the name of one of the
 doubly-linked lists. Here is a simple example:
 
 @example
-struct MyMultiListElement @{ struct
-MyMultiListElement *next_ALIST; struct MyMultiListElement *prev_ALIST; struct
-MyMultiListElement *next_BLIST; struct MyMultiListElement *prev_BLIST; void
-*data; @};
+struct MyMultiListElement {
+  struct MyMultiListElement *next_ALIST;
+  struct MyMultiListElement *prev_ALIST;
+  struct MyMultiListElement *next_BLIST;
+  struct MyMultiListElement *prev_BLIST;
+  void
+  *data;
+};
 @end example
 
 
