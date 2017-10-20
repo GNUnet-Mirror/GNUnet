@@ -1,4 +1,5 @@
-message_sent_cont (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+message_sent_cont (void *cls,
+                   const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   // Request has left local node
 }
