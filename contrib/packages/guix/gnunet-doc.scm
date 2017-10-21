@@ -94,7 +94,7 @@
          ("gnurl" ,gnurl)
          ("gstreamer" ,gstreamer)
          ("gst-plugins-base" ,gst-plugins-base)
-         ("gnutls" ,gnutls) ;Change to gnutls/dane once it is merged.
+         ("gnutls/dane" ,gnutls/dane)
          ("libextractor" ,libextractor)
          ("libgcrypt" ,libgcrypt)
          ("libidn" ,libidn)
@@ -109,7 +109,7 @@
          ("mysql" ,mysql)
          ("zlib" ,zlib)
          ("perl" ,perl)
-         ("python" ,python) ; tests and gnunet-qr
+         ("python-2" ,python-2) ; tests and gnunet-qr
          ("jansson" ,jansson)
          ("nss" ,nss)
          ("glib" ,glib "bin")
@@ -143,7 +143,7 @@
                (zero? (system* "sh" "bootstrap"))))
            (replace 'build
              (lambda _
-               (chdir "doc")
+               (chdir "doc/documentation")
                (zero? (system* "make" "pdf"))
                (zero? (system* "make" "html"))
                (zero? (system* "make" "info"))))
