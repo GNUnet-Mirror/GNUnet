@@ -1531,6 +1531,7 @@ contrib/Makefile
 doc/Makefile
 doc/man/Makefile
 doc/doxygen/Makefile
+doc/documentation/Makefile
 m4/Makefile
 po/Makefile.in
 src/Makefile
