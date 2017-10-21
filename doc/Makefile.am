@@ -11,6 +11,8 @@ infoimagedir = $(infodir)/images
 #	$(DOT_FILES:%.dot=%.eps)						\
 #	$(DOT_FILES:%.dot=%.pdf)
 
+AM_MAKEINFOHTMLFLAGS = --no-split --css-ref=docstyle.css
+
 dist_infoimage_DATA =                           		\
 	images/gnunet-gtk-0-10-gns-a-done.png 			\
 	images/gnunet-gtk-0-10-gns-a.png 			\
@@ -106,7 +108,7 @@ gnunet_tutorial_examples =					\
 	026.c
 
 info_TEXINFOS = 						\
-	gnunet.texi 						\
+	gnunet.texi						\
 	gnunet-c-tutorial.texi
 
 gnunet_TEXINFOS = 						\
@@ -114,6 +116,7 @@ gnunet_TEXINFOS = 						\
 	chapters/installation.texi 				\
 	chapters/philosophy.texi 				\
 	chapters/user.texi 					\
+	chapters/vocabulary.texi				\
 	fdl-1.3.texi 						\
 	gpl-3.0.texi
 
@@ -122,7 +125,8 @@ EXTRA_DIST =							\
 	outdated-and-old-installation-instructions.txt		\
 	gnunet-c-tutorial-v1.pdf				\
 	$(gnunet_tutorial_examples)				\
-	README.txt
+	README.txt						\
+	docstyle.css
 
 
 #	$(DOT_FILES)								\
@@ -152,11 +156,11 @@ lego_stack.png: images/lego_stack.svg
 	pngcrush images/lego_stack.png images/lego_stack.png
 
 # FIXME: The usage of 'date' strings causes a warning.
-version.texi:
-	echo "@set UPDATED $(date +'%d %B %Y')" > $@
-	echo "@set UPDATED-MONTH $(date +'%B %Y')" >> $@
-	echo "@set EDITION $(PACKAGE_VERSION)" >> $@
-	echo "@set VERSION $(PACKAGE_VERSION)" >> $@
+# version.texi:
+# 	echo "@set UPDATED $(date +'%d %B %Y')" > $@
+# 	echo "@set UPDATED-MONTH $(date +'%B %Y')" >> $@
+# 	echo "@set EDITION $(PACKAGE_VERSION)" >> $@
+# 	echo "@set VERSION $(PACKAGE_VERSION)" >> $@
 
 # Workaround for makeinfo error. Whcih in turn introduces more
 # date-related 'warnings'. Well.
@@ -166,45 +170,11 @@ version2.texi:
 	echo "@set EDITION $(PACKAGE_VERSION)" >> $@
 	echo "@set VERSION $(PACKAGE_VERSION)" >> $@
 
-doc-pdf: version.texi
-	@makeinfo --pdf --quiet gnunet.texi
-doc-pdf-tutorial: version.texi version2.texi
-	@makeinfo --pdf --quiet gnunet-c-tutorial.texi
-
-doc-html: version.texi
-	@makeinfo --html gnunet.texi
-doc-html-tutorial: version.texi version2.texi
-	@makeinfo --html gnunet-c-tutorial.texi
-
-doc-info: version.texi
-	@makeinfo --no-split gnunet.texi
-doc-info-tutorial: version.texi version2.texi
-	@makeinfo --no-split gnunet-c-tutorial.texi
-
 # FIXME: rm *.html and *.pdf
-doc-clean:
-	@rm *.aux *.log *.toc *.cp *.cps
+#doc-clean:
+#	@rm *.aux *.log *.toc *.cp *.cps
 
-doc-all: doc-pdf doc-html doc-info doc-pdf-tutorial doc-html-tutorial doc-info-tutorial
-
-doc-pdf-noise: version.texi
-	@makeinfo --pdf gnunet.texi
-doc-pdf-tutorial-noise: version.texi version2.texi
-	@makeinfo --pdf gnunet-c-tutorial.texi
-
-doc-html-noise: version.texi
-	@makeinfo --html gnunet.texi
-doc-html-tutorial-noise: version.texi version2.texi
-	@makeinfo --html gnunet-c-tutorial.texi
-
-doc-info-noise: version.texi
-	@makeinfo --no-split gnunet.texi
-doc-info-tutorial-noise: version.texi version2.texi
-	@makeinfo --no-split gnunet-c-tutorial.texi
-
-doc-all-give-me-the-noise: doc-pdf-noise doc-html-noise doc-info-noise doc-pdf-tutorial-noise doc-html-tutorial-noise doc-info-tutorial-noise
-
-doc-all-install: doc-all-give-me-the-noise
+doc-all-install:
 	@mkdir -p $(DESTDIR)/$(docdir)
 	@mkdir -p $(DESTDIR)/$(infoimagedir)
 	@mkdir -p $(DESTDIR)/$(infodir)
@@ -212,17 +182,24 @@ doc-all-install: doc-all-give-me-the-noise
 	@install -m 0755 gnunet-c-tutorial.pdf $(DESTDIR)/$(docdir)
 	@install -m 0755 gnunet-c-tutorial.info $(DESTDIR)/$(infodir)
 	@install -m 0755 gnunet.info $(DESTDIR)/$(infodir)
-	@cp -r gnunet $(DESTDIR)/$(docdir)
-	@cp -r gnunet-c-tutorial $(DESTDIR)/$(docdir)
+	@install gnunet.html $(DESTDIR)/$(docdir)
+	@install gnunet-c-tutorial.html $(DESTDIR)/$(docdir)
 
 #	@cp -r images $(DESTDIR)/$(infoimagedir)
 
 # TODO: Add more to clean.
-# clean:
-# 	@rm gnunet.pdf
-# 	@rm gnunet-c-tutorial.pdf
-# 	@rm gnunet.info
-# 	@rm gnunet-c-tutorial.info
+clean:
+	@rm gnunet.pdf
+	@rm gnunet.html
+	@rm gnunet.info
+	@rm gnunet.info-1
+	@rm gnunet.info-2
+	@rm gnunet.info-3
+	@rm gnunet-c-tutorial.pdf
+	@rm gnunet-c-tutorial.info
+	@rm gnunet-c-tutorial.html
+	@rm -r gnunet.t2p
+	@rm -r gnunet-c-tutorial.t2p
 
 # CLEANFILES =						\
 # 	gnunet.log					\
@@ -232,7 +209,7 @@ doc-all-install: doc-all-give-me-the-noise
 # 	$(wildcard *.cp)				\
 # 	$(wildcard *.cps)
 
-.PHONY: version.texi
+#.PHONY: version.texi
 # if HAVE_EXTENDED_DOCUMENTATION_BUILDING_PDF
 
 # if HAVE_EXTENDED_DOCUMENTATION_BUILDING_HTML

@@ -144,7 +144,10 @@
            (replace 'build
              (lambda _
                (chdir "doc")
-               (zero? (system* "make" "doc-all-give-me-the-noise"))))
+               (zero? (system* "make" "pdf"))
+               (zero? (system* "make" "html"))
+               (zero? (system* "make" "info"))))
+               ;;(zero? (system* "make" "doc-all-give-me-the-noise"))))
            (replace 'install
              (lambda _
                (zero? (system* "make" "doc-all-install")))))))

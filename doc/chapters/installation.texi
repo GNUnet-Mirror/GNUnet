@@ -9,8 +9,6 @@ to interact with the network.
 This manual is far from complete, and we welcome informed contributions,
 be it in the form of new chapters or insightful comments.
 
-
-
 @menu
 * Dependencies::
 * Pre-installation notes::
@@ -34,8 +32,6 @@ This section lists the various known dependencies for
 GNUnet @value{EDITION}.
 Suggestions for missing dependencies or wrong version numbers are welcome.
 
-
-
 @menu
 * External dependencies::
 * Fixing libgnurl build issues::
@@ -51,17 +47,32 @@ These packages must be installed before a typical GNUnet installation
 can be performed:
 
 @itemize @bullet
-@item GNU libmicrohttpd 0.9.30 or higher@footnote{We recommend to build it
+@item autoconf
+@item automake
+@item pkg-config
+@item libltdl
+@item gstreamer
+@item gst-plugins-base
+@item perl
+@item python (only 2.7 supported)@footnote{tests and gnunet-qr}
+@item jansson
+@item nss
+@item glib
+@item gmp
+@item bluez
+@item miniupnpc
+@item gettext
+@item which
+@item texinfo
+@item GNU libmicrohttpd @geq{} 0.9.30 @footnote{We recommend to build it
 with a GnuTLS version that was configured with libunbound ("DANE support")}
-@item GNU libextractor 1.0 or higher
-@item GNU libtool 2.2 or higher 
-@item GNU libunistring 0.9.1.1 or higher
-@item GNU libidn 1.0.0 or higher
-@item @uref{https://gnupg.org/software/libgcrypt/, GNU libgcrypt}
-@uref{https://gnupg.org/ftp/gcrypt/libgcrypt/, 1.6.0} or higher
-@item @uref{https://gnutls.org/, GnuTLS}@footnote{We recommend to use a
-GnuTLS version that was configured with libunbound ("DANE support")}
-@uref{https://www.gnupg.org/ftp/gcrypt/gnutls/v3.2/, 3.2.7} or higher
+@item GNU libextractor @geq{} 1.0
+@item GNU libtool @geq{} 2.2
+@item GNU libunistring @geq{} 0.9.1.1
+@item GNU libidn @geq{} 1.0.0
+@item @uref{https://gnupg.org/software/libgcrypt/, GNU libgcrypt} @geq{}
+@uref{https://gnupg.org/ftp/gcrypt/libgcrypt/, 1.6.0}
+@item @uref{https://gnutls.org/, GnuTLS} @geq{} 3.2.7
 @footnote{We recommend to compile with libunbound for DANE support;
 GnuTLS also requires GNU nettle 2.7 (update: GnuTLS 3.2.7 appears NOT
 to work against GNU nettle > 2.7, due to some API updatings done by
@@ -70,13 +81,13 @@ and, in case you get some error on the reference to `rpl_strerror' being
 undefined, follow the instructions on
 @uref{http://lists.gnupg.org/pipermail/gnutls-devel/2013-November/006588.html, this}
 post (and the link inside it)).}
-@item @uref{https://gnunet.org/gnurl, gnURL} libgnurl 7.34.0 or
-higher@footnote{must be compiled after @code{GnuTLS}}
-@item libglpk 4.45 or higher
-@item @uref{http://www.openssl.org/, OpenSSL} (binary) 1.0 or higher
-@item TeX Live 2012 or higher, optional (for gnunet-bcd)
-@item Texinfo 5.2 or higher (for documentation)
-@item libsqlite 3.8.0 or higher @footnote{(note that the code will
+@item @uref{https://gnunet.org/gnurl, gnURL} libgnurl @geq{} 7.34.0
+@footnote{must be compiled after @code{GnuTLS}}
+@item libglpk @geq{} 4.45
+@item @uref{http://www.openssl.org/, OpenSSL} @geq{} 1.0
+@item TeX Live @geq{} 2012, optional (for gnunet-bcd)
+@item Texinfo @geq{} 5.2 (for documentation)
+@item libsqlite @geq{} 3.8.0 @footnote{(note that the code will
 compile and often work with lower version numbers, but you may get subtle
 bugs with respect to quota management in certain rare cases);
 alternatively, MySQL or Postgres can also be installed, but those

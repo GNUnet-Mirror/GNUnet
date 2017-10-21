@@ -5,6 +5,7 @@
 @setfilename gnunet.info
 @documentencoding UTF-8
 @settitle GNUnet Reference Manual
+@exampleindent 2
 @c %**end of header
 
 @include version.texi
@@ -58,11 +59,12 @@ Edition @value{EDITION} @*
 @insertcopying
 @end titlepage
 
+@summarycontents
 @contents
-@c *********************************************************************
+
 @node Top
 @top Contributing to GNUnet
-@c *********************************************************************
+
 
 This document describes GNUnet version @value{VERSION}.
 
@@ -105,6 +107,7 @@ in the respective authors file or section, please do let us know.
 @menu
 
 * Philosophy::                      About GNUnet
+* Vocabulary::                      Vocabulary
 * GNUnet Installation Handbook::    How to install GNUnet
 * Using GNUnet::                    Using GNUnet
 * GNUnet Developer Handbook::       Developing GNUnet
@@ -134,10 +137,75 @@ Philosophy
 * Backup of Identities and Egos::
 * Revocation::
 
-Installation
+Vocabulary
+
+* Words and characters::
+* Technical Assumptions::
+
+GNUnet Installation Handbook
 
 * Dependencies::
-* External dependencies::
+* Pre-installation notes::
+* Generic installation instructions::
+* Build instructions for Ubuntu 12.04 using Git::
+* Build Instructions for Microsoft Windows Platforms::
+* Build instructions for Debian 7.5::
+* Installing GNUnet from Git on Ubuntu 14.4::
+* Build instructions for Debian 8::
+* Outdated build instructions for previous revisions::
+* Portable GNUnet::
+* The graphical configuration interface::
+* How to start and stop a GNUnet peer::
+
+Using GNUnet
+
+* Checking the Installation::
+* First steps - File-sharing::
+* First steps - Using the GNU Name System::
+* First steps - Using GNUnet Conversation::
+* First steps - Using the GNUnet VPN::
+* File-sharing::
+* The GNU Name System::
+* Using the Virtual Public Network::
+
+GNUnet Developer Handbook
+
+* Developer Introduction::
+* Code overview::
+* System Architecture::
+* Subsystem stability::
+* Naming conventions and coding style guide::
+* Build-system::
+* Developing extensions for GNUnet using the gnunet-ext template::
+* Writing testcases::
+* GNUnet's TESTING library::
+* Performance regression analysis with Gauger::
+* GNUnet's TESTBED Subsystem::
+* libgnunetutil::
+* The Automatic Restart Manager (ARM)::
+* GNUnet's TRANSPORT Subsystem::
+* NAT library::
+* Distance-Vector plugin::
+* SMTP plugin::
+* Bluetooth plugin::
+* WLAN plugin::
+* The ATS Subsystem::
+* GNUnet's CORE Subsystem::
+* GNUnet's CADET subsystem::
+* GNUnet's NSE subsystem::
+* GNUnet's HOSTLIST subsystem::
+* GNUnet's IDENTITY subsystem::
+* GNUnet's NAMESTORE Subsystem::
+* GNUnet's PEERINFO subsystem::
+* GNUnet's PEERSTORE subsystem::
+* GNUnet's SET Subsystem::
+* GNUnet's STATISTICS subsystem::
+* GNUnet's Distributed Hash Table (DHT)::
+* The GNU Name System (GNS)::
+* The GNS Namecache::
+* The REVOCATION Subsystem::
+* GNUnet's File-sharing (FS) Subsystem::
+* GNUnet's REGEX Subsystem::
 
 @end detailmenu
 @end menu
@@ -145,6 +213,8 @@ Installation
 @c *********************************************************************
 @include chapters/philosophy.texi
 @c *********************************************************************
+
+@include chapters/vocabulary.texi
 
 @c *********************************************************************
 @include chapters/installation.texi
@@ -156,8 +226,8 @@ Installation
 
 @c *********************************************************************
 @include chapters/developer.texi
+@c @include gnunet-c-tutorial.texi
 @c *********************************************************************
-
 
 @c *********************************************************************
 @node GNU Free Documentation License

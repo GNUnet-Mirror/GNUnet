@@ -3,6 +3,7 @@
 @setfilename gnunet-c-tutorial.info
 @documentencoding UTF-8
 @settitle GNUnet C Tutorial
+@exampleindent 2
 @c %**end of header
 
 @c including 'version.texi' makes makeinfo throw errors.
@@ -73,7 +74,6 @@ team: @uref{https://gnunet.org/contact_information}
 
 @menu
 
-* Vocabulary::                          Vocabulary used throughout this document
 * Installing GNUnet::                   Installing GNUnet
 * Introduction to GNUnet Architecture:: Introduction to GNUnet Architecture
 * First Steps with GNUnet::             First Steps with GNUnet
@@ -81,8 +81,6 @@ team: @uref{https://gnunet.org/contact_information}
 
 @detailmenu
  --- The Detailed Node Listing ---
-
-Vocabulary
 
 Installing GNUnet
 
@@ -115,55 +113,6 @@ Developing Applications
 
 @end detailmenu
 @end menu
-
-@node Vocabulary
-@chapter Vocabulary
-
-@menu
-* Words and characters::
-* Technical Assumptions::
-@end menu
-
-@node Words and characters
-@section Words and characters
-
-Throughout this document we use certain words and characters.
-
-@enumerate
-@item
-@c ``@command{#}'' in example code blocks describes commands you execute as root.
-``@command{#}'' in example code blocks describes commands, ie comments.
-
-@example
-# Do the foobar thing:
-$ make foobar
-@end example
-
-@item
-Dollarsign ``@command{$}'' in example code blocks describes commands you execute as
-unprivileged users.
-
-@example
-$ cd foo; ./configure --example-switch
-@end example
-
-@item
-Backslash ``@command{\}'' describes linebreaks.
-
-@example
-./configure --foo --bar --baz \
- --short-loop
-@end example
-
-...expands to @code{./configure --foo --bar --baz --short-loop}
-
-@end enumerate
-
-@node Technical Assumptions
-@section Technical Assumptions
-
-@c Is it really assuming Bash (ie Bash extensions of POSIX being used)?
-The shell on GNU systems is assumed to be Bash.
 
 @node Installing GNUnet
 @chapter Installing GNUnet

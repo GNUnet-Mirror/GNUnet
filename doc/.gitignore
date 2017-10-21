@@ -8,11 +8,13 @@
 *.html
 *~
 *.info
+*.info-1
+*.info-2
+*.info-3
 \#*\#
 version.texi
-gnunet.info-1
-gnunet.info-2
-gnunet.info-3
 mdate-sh
 stamp-vti
 texinfo.tex
+gnunet.t2p/
+gnunet-c-tutorial.t2p/
