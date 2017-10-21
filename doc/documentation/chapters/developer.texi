@@ -5801,18 +5801,21 @@ he can proceed with the next request if any is pending
 @c %**end of header
 
 The PEERINFO API consists mainly of three different functionalities:
-maintaining a connection to the service, adding new information and retrieving
-information form the PEERINFO service.
 
+@itemize @bullet
+@item maintaining a connection to the service
+@item adding new information to the PEERINFO service
+@item retrieving information from the PEERINFO service
+@end itemize
 
 @menu
-* Connecting to the Service::
-* Adding Information::
-* Obtaining Information2::
+* Connecting to the PEERINFO Service::
+* Adding Information to the PEERINFO Service::
+* Obtaining Information from the PEERINFO Service::
 @end menu
 
-@node Connecting to the Service
-@subsubsection Connecting to the Service
+@node Connecting to the PEERINFO Service
+@subsubsection Connecting to the PEERINFO Service
 
 @c %**end of header
 
@@ -5821,8 +5824,8 @@ is used, taking a configuration handle as an argument, and to disconnect from
 PEERINFO the function @code{GNUNET_PEERINFO_disconnect}, taking the PEERINFO
 handle returned from the connect function has to be called.
 
-@node Adding Information
-@subsubsection Adding Information
+@node Adding Information to the PEERINFO Service
+@subsubsection Adding Information to the PEERINFO Service
 
 @c %**end of header
 
@@ -5835,8 +5838,8 @@ operation allowing to cancel the operation with the respective cancel function
 you can iterate over all information stored with PEERINFO or you can tell
 PEERINFO to notify if new peer information are available.
 
-@node Obtaining Information2
-@subsubsection Obtaining Information2
+@node Obtaining Information from the PEERINFO Service
+@subsubsection Obtaining Information from the PEERINFO Service
 
 @c %**end of header
 
@@ -7540,12 +7543,13 @@ even without access to the private key.
 @subsubsection Issuing revocations
 
 
-Given a ECDSA public key, the signature from @code{GNUNET_REVOCATION_sign} and
-the proof-of-work, @code{GNUNET_REVOCATION_revoke} can be used to perform the
+Given a ECDSA public key, the signature from @code{GNUNET_REVOCATION_sign}
+and the proof-of-work,
+@code{GNUNET_REVOCATION_revoke} can be used to perform the
 actual revocation. The given callback is called upon completion of the
 operation. @code{GNUNET_REVOCATION_revoke_cancel} can be used to stop the
-library from calling the continuation; however, in that case it is undefined
-whether or not the revocation operation will be executed.
+library from calling the continuation; however, in that case it is
+undefined whether or not the revocation operation will be executed.
 
 @node The REVOCATION Client-Service Protocol
 @subsection The REVOCATION Client-Service Protocol
@@ -7555,71 +7559,82 @@ The REVOCATION protocol consists of four simple messages.
 
 A @code{QueryMessage} containing a public ECDSA key is used to check if a
 particular key has been revoked. The service responds with a
-@code{QueryResponseMessage} which simply contains a bit that says if the given
-public key is still valid, or if it has been revoked.
+@code{QueryResponseMessage} which simply contains a bit that says if the
+given public key is still valid, or if it has been revoked.
 
-The second possible interaction is for a client to revoke a key by passing a
-@code{RevokeMessage} to the service. The @code{RevokeMessage} contains the
-ECDSA public key to be revoked, a signature by the corresponding private key
-and the proof-of-work, The service responds with a
-@code{RevocationResponseMessage} which can be used to indicate that the
-@code{RevokeMessage} was invalid (i.e. proof of work incorrect), or otherwise
-indicates that the revocation has been processed successfully.
+The second possible interaction is for a client to revoke a key by
+passing a @code{RevokeMessage} to the service. The @code{RevokeMessage}
+contains the ECDSA public key to be revoked, a signature by the
+corresponding private key and the proof-of-work, The service responds
+with a @code{RevocationResponseMessage} which can be used to indicate
+that the @code{RevokeMessage} was invalid (i.e. proof of work incorrect),
+or otherwise indicates that the revocation has been processed
+successfully.
 
 @node The REVOCATION Peer-to-Peer Protocol
 @subsection The REVOCATION Peer-to-Peer Protocol
 
 @c %**end of header
 
-Revocation uses two disjoint ways to spread revocation information among peers.
-First of all, P2P gossip exchanged via CORE-level neighbours is used to quickly
-spread revocations to all connected peers. Second, whenever two peers (that
-both support revocations) connect, the SET service is used to compute the union
-of the respective revocation sets.
+Revocation uses two disjoint ways to spread revocation information among
+peers.
+First of all, P2P gossip exchanged via CORE-level neighbours is used to
+quickly spread revocations to all connected peers.
+Second, whenever two peers (that both support revocations) connect,
+the SET service is used to compute the union of the respective revocation
+sets.
 
-In both cases, the exchanged messages are @code{RevokeMessage}s which contain
-the public key that is being revoked, a matching ECDSA signature, and a
-proof-of-work. Whenever a peer learns about a new revocation this way, it first
+In both cases, the exchanged messages are @code{RevokeMessage}s which
+contain the public key that is being revoked, a matching ECDSA signature,
+and a proof-of-work.
+Whenever a peer learns about a new revocation this way, it first
 validates the signature and the proof-of-work, then stores it to disk
-(typically to a file $GNUNET_DATA_HOME/revocation.dat) and finally spreads the
-information to all directly connected neighbours.
+(typically to a file $GNUNET_DATA_HOME/revocation.dat) and finally
+spreads the information to all directly connected neighbours.
 
-For computing the union using the SET service, the peer with the smaller hashed
-peer identity will connect (as a "client" in the two-party set protocol) to the
-other peer after one second (to reduce traffic spikes on connect) and initiate
-the computation of the set union. All revocation services use a common hash to
-identify the SET operation over revocation sets.
+For computing the union using the SET service, the peer with the smaller
+hashed peer identity will connect (as a "client" in the two-party set
+protocol) to the other peer after one second (to reduce traffic spikes
+on connect) and initiate the computation of the set union.
+All revocation services use a common hash to identify the SET operation
+over revocation sets.
 
-The current implementation accepts revocation set union operations from all
-peers at any time; however, well-behaved peers should only initiate this
-operation once after establishing a connection to a peer with a larger hashed
-peer identity.
+The current implementation accepts revocation set union operations from
+all peers at any time; however, well-behaved peers should only initiate
+this operation once after establishing a connection to a peer with a
+larger hashed peer identity.
 
+@cindex gnunet-fs
+@cindex FS
+@cindex FS subsystem
 @node GNUnet's File-sharing (FS) Subsystem
 @section GNUnet's File-sharing (FS) Subsystem
 
 @c %**end of header
 
-This chapter describes the details of how the file-sharing service works. As
-with all services, it is split into an API (libgnunetfs), the service process
-(gnunet-service-fs) and user interface(s). The file-sharing service uses the
-datastore service to store blocks and the DHT (and indirectly datacache) for
-lookups for non-anonymous file-sharing.@ Furthermore, the file-sharing service
-uses the block library (and the block fs plugin) for validation of DHT
-operations.
+This chapter describes the details of how the file-sharing service works.
+As with all services, it is split into an API (libgnunetfs), the service
+process (gnunet-service-fs) and user interface(s).
+The file-sharing service uses the datastore service to store blocks and
+the DHT (and indirectly datacache) for lookups for non-anonymous
+file-sharing.
+Furthermore, the file-sharing service uses the block library (and the
+block fs plugin) for validation of DHT operations.
 
-In contrast to many other services, libgnunetfs is rather complex since the
-client library includes a large number of high-level abstractions; this is
-necessary since the Fs service itself largely only operates on the block level.
+In contrast to many other services, libgnunetfs is rather complex since
+the client library includes a large number of high-level abstractions;
+this is necessary since the Fs service itself largely only operates on
+the block level.
 The FS library is responsible for providing a file-based abstraction to
-applications, including directories, meta data, keyword search, verification,
-and so on.
+applications, including directories, meta data, keyword search,
+verification, and so on.
 
-The method used by GNUnet to break large files into blocks and to use keyword
-search is called the "Encoding for Censorship Resistant Sharing" (ECRS). ECRS
-is largely implemented in the fs library; block validation is also reflected in
-the block FS plugin and the FS service. ECRS on-demand encoding is implemented
-in the FS service.
+The method used by GNUnet to break large files into blocks and to use
+keyword search is called the
+"Encoding for Censorship Resistant Sharing" (ECRS).
+ECRS is largely implemented in the fs library; block validation is also
+reflected in the block FS plugin and the FS service.
+ECRS on-demand encoding is implemented in the FS service.
 
 NOTE: The documentation in this chapter is quite incomplete.
 
@@ -7628,22 +7643,24 @@ NOTE: The documentation in this chapter is quite incomplete.
 * File-sharing persistence directory structure::
 @end menu
 
+@cindex ecrs
+@cindex Encoding for Censorship-Resistant Sharing
 @node Encoding for Censorship-Resistant Sharing (ECRS)
 @subsection Encoding for Censorship-Resistant Sharing (ECRS)
 
 @c %**end of header
 
-When GNUnet shares files, it uses a content encoding that is called ECRS, the
-Encoding for Censorship-Resistant Sharing. Most of ECRS is described in the
-(so far unpublished) research paper attached to this page. ECRS obsoletes the
-previous ESED and ESED II encodings which were used in GNUnet before version
-0.7.0.@ @ The rest of this page assumes that the reader is familiar with the
-attached paper. What follows is a description of some minor extensions that
-GNUnet makes over what is described in the paper. The reason why these
-extensions are not in the paper is that we felt that they were obvious or
-trivial extensions to the original scheme and thus did not warrant space in
-the research report.
-
+When GNUnet shares files, it uses a content encoding that is called ECRS,
+the Encoding for Censorship-Resistant Sharing.
+Most of ECRS is described in the (so far unpublished) research paper
+attached to this page. ECRS obsoletes the previous ESED and ESED II
+encodings which were used in GNUnet before version 0.7.0.
+The rest of this page assumes that the reader is familiar with the
+attached paper. What follows is a description of some minor extensions
+that GNUnet makes over what is described in the paper.
+The reason why these extensions are not in the paper is that we felt
+that they were obvious or trivial extensions to the original scheme and
+thus did not warrant space in the research report.
 
 @menu
 * Namespace Advertisements::
@@ -7657,11 +7674,12 @@ the research report.
 @c %**FIXME: all zeroses -> ?
 
 An @code{SBlock} with identifier all zeros is a signed
-advertisement for a namespace. This special @code{SBlock} contains metadata
-describing the content of the namespace. Instead of the name of the identifier
-for a potential update, it contains the identifier for the root of the
-namespace. The URI should always be empty. The @code{SBlock} is signed with
-the content provder's RSA private key (just like any other SBlock). Peers
+advertisement for a namespace. This special @code{SBlock} contains
+metadata describing the content of the namespace.
+Instead of the name of the identifier for a potential update, it contains
+the identifier for the root of the namespace.
+The URI should always be empty. The @code{SBlock} is signed with the
+content provder's RSA private key (just like any other SBlock). Peers
 can search for @code{SBlock}s in order to find out more about a namespace.
 
 @node KSBlocks
@@ -7669,20 +7687,22 @@ can search for @code{SBlock}s in order to find out more about a namespace.
 
 @c %**end of header
 
-GNUnet implements @code{KSBlocks} which are @code{KBlocks} that, instead of
-encrypting a CHK and metadata, encrypt an @code{SBlock} instead. In other
-words, @code{KSBlocks} enable GNUnet to find @code{SBlocks} using the global
-keyword search. Usually the encrypted @code{SBlock} is a namespace
-advertisement. The rationale behind @code{KSBlock}s and @code{SBlock}s is to
-enable peers to discover namespaces via keyword searches, and, to associate
-useful information with namespaces. When GNUnet finds @code{KSBlocks} during a
-normal keyword search, it adds the information to an internal list of
-discovered namespaces. Users looking for interesting namespaces can then
-inspect this list, reducing the need for out-of-band discovery of namespaces.
+GNUnet implements @code{KSBlocks} which are @code{KBlocks} that, instead
+of encrypting a CHK and metadata, encrypt an @code{SBlock} instead.
+In other words, @code{KSBlocks} enable GNUnet to find @code{SBlocks}
+using the global keyword search.
+Usually the encrypted @code{SBlock} is a namespace advertisement.
+The rationale behind @code{KSBlock}s and @code{SBlock}s is to enable
+peers to discover namespaces via keyword searches, and, to associate
+useful information with namespaces. When GNUnet finds @code{KSBlocks}
+during a normal keyword search, it adds the information to an internal
+list of discovered namespaces. Users looking for interesting namespaces
+can then inspect this list, reducing the need for out-of-band discovery
+of namespaces.
 Naturally, namespaces (or more specifically, namespace advertisements) can
-also be referenced from directories, but @code{KSBlock}s should make it easier
-to advertise namespaces for the owner of the pseudonym since they eliminate
-the need to first create a directory.
+also be referenced from directories, but @code{KSBlock}s should make it
+easier to advertise namespaces for the owner of the pseudonym since they
+eliminate the need to first create a directory.
 
 Collections are also advertised using @code{KSBlock}s.
 
@@ -7697,45 +7717,54 @@ Collections are also advertised using @code{KSBlock}s.
 
 @c %**end of header
 
-This section documents how the file-sharing library implements persistence of
-file-sharing operations and specifically the resulting directory structure.
-This code is only active if the @code{GNUNET_FS_FLAGS_PERSISTENCE} flag was set
-when calling @code{GNUNET_FS_start}. In this case, the file-sharing library
-will try hard to ensure that all major operations (searching, downloading,
-publishing, unindexing) are persistent, that is, can live longer than the
-process itself. More specifically, an operation is supposed to live until it is
+This section documents how the file-sharing library implements
+persistence of file-sharing operations and specifically the resulting
+directory structure.
+This code is only active if the @code{GNUNET_FS_FLAGS_PERSISTENCE} flag
+was set when calling @code{GNUNET_FS_start}.
+In this case, the file-sharing library will try hard to ensure that all
+major operations (searching, downloading, publishing, unindexing) are
+persistent, that is, can live longer than the process itself.
+More specifically, an operation is supposed to live until it is
 explicitly stopped.
 
 If @code{GNUNET_FS_stop} is called before an operation has been stopped, a
 @code{SUSPEND} event is generated and then when the process calls
 @code{GNUNET_FS_start} next time, a @code{RESUME} event is generated.
-Additionally, even if an application crashes (segfault, SIGKILL, system crash)
-and hence @code{GNUNET_FS_stop} is never called and no @code{SUSPEND} events
-are generated, operations are still resumed (with @code{RESUME} events). This
-is implemented by constantly writing the current state of the file-sharing
-operations to disk. Specifically, the current state is always written to disk
-whenever anything significant changes (the exception are block-wise progress in
+Additionally, even if an application crashes (segfault, SIGKILL, system
+crash) and hence @code{GNUNET_FS_stop} is never called and no
+@code{SUSPEND} events are generated, operations are still resumed (with
+@code{RESUME} events).
+This is implemented by constantly writing the current state of the
+file-sharing operations to disk.
+Specifically, the current state is always written to disk whenever
+anything significant changes (the exception are block-wise progress in
 publishing and unindexing, since those operations would be slowed down
-significantly and can be resumed cheaply even without detailed accounting).
-Note that@ if the process crashes (or is killed) during a serialization
-operation, FS does not guarantee that this specific operation is recoverable
-(no strict transactional semantics, again for performance reasons). However,
-all other unrelated operations should resume nicely.
+significantly and can be resumed cheaply even without detailed
+accounting).
+Note that if the process crashes (or is killed) during a serialization
+operation, FS does not guarantee that this specific operation is
+recoverable (no strict transactional semantics, again for performance
+reasons). However, all other unrelated operations should resume nicely.
 
-Since we need to serialize the state continuously and want to recover as much
-as possible even after crashing during a serialization operation, we do not use
-one large file for serialization. Instead, several directories are used for the
-various operations. When @code{GNUNET_FS_start} executes, the master
-directories are scanned for files describing operations to resume. Sometimes,
-these operations can refer to related operations in child directories which may
-also be resumed at this point. Note that corrupted files are cleaned up
-automatically. However, dangling files in child directories (those that are not
-referenced by files from the master directories) are not automatically removed.
+Since we need to serialize the state continuously and want to recover as
+much as possible even after crashing during a serialization operation,
+we do not use one large file for serialization.
+Instead, several directories are used for the various operations.
+When @code{GNUNET_FS_start} executes, the master directories are scanned
+for files describing operations to resume.
+Sometimes, these operations can refer to related operations in child
+directories which may also be resumed at this point.
+Note that corrupted files are cleaned up automatically.
+However, dangling files in child directories (those that are not
+referenced by files from the master directories) are not automatically
+removed.
 
-Persistence data is kept in a directory that begins with the "STATE_DIR" prefix
-from the configuration file (by default, "$SERVICEHOME/persistence/") followed
-by the name of the client as given to @code{GNUNET_FS_start} (for example,
-"gnunet-gtk") followed by the actual name of the master or child directory.
+Persistence data is kept in a directory that begins with the "STATE_DIR"
+prefix from the configuration file
+(by default, "$SERVICEHOME/persistence/") followed by the name of the
+client as given to @code{GNUNET_FS_start} (for example, "gnunet-gtk")
+followed by the actual name of the master or child directory.
 
 The names for the master directories follow the names of the operations:
 
