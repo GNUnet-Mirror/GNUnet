@@ -663,8 +663,9 @@ With the testbed API, a sample test case can be structured as follows:
 
 @noindent
 The source code for the above listing can be found at
-@uref{https://gnunet.org/git/gnunet.git/tree/doc/testbed_test.c}
-or in the @file{doc/} folder of your repository check-out.
+@uref{https://gnunet.org/git/gnunet.git/tree/doc/
+documentation/testbed_test.c}
+or in the @file{doc/documentation/} folder of your repository check-out.
 After installing GNUnet, the above source code can be compiled as:
 
 @example
