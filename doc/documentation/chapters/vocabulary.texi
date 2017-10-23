@@ -13,6 +13,16 @@ Throughout this document we use certain words and characters.
 
 @enumerate
 @item
+In chapter GNUnet C Tutorial,
+``@command{#}'' in example code blocks describes commands executed as root
+
+@example
+# echo "I am root"
+I am root
+@end example
+
+@item
+However, in the chapter Installation Handbook
 ``@command{#}'' in example code blocks describes commands, ie comments.
 
 @example

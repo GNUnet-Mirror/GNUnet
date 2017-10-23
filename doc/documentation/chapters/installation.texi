@@ -65,7 +65,7 @@ can be performed:
 @item which
 @item texinfo
 @item GNU libmicrohttpd @geq{} 0.9.30 @footnote{We recommend to build it
-with a GnuTLS version that was configured with libunbound ("DANE support")}
+with a GnuTLS version that was configured with libunbound}
 @item GNU libextractor @geq{} 1.0
 @item GNU libtool @geq{} 2.2
 @item GNU libunistring @geq{} 0.9.1.1
@@ -79,7 +79,8 @@ to work against GNU nettle > 2.7, due to some API updatings done by
 nettle. Thus it should be compiled against nettle 2.7
 and, in case you get some error on the reference to `rpl_strerror' being
 undefined, follow the instructions on
-@uref{http://lists.gnupg.org/pipermail/gnutls-devel/2013-November/006588.html, this}
+@uref{http://lists.gnupg.org/pipermail/gnutls-devel/2013-November/00
+6588.html, this}
 post (and the link inside it)).}
 @item @uref{https://gnunet.org/gnurl, gnURL} libgnurl @geq{} 7.34.0
 @footnote{must be compiled after @code{GnuTLS}}
@@ -142,14 +143,15 @@ the GNS proxy (available as part of Debian's libnss3-tools)}
 @node Internal dependencies
 @subsection Internal dependencies
 
-This section tries to give an overview of what processes a typical GNUnet peer
-running a particular application would consist of. All of the processes listed
-here should be automatically started by @code{gnunet-arm -s}. The list is given
-as a rough first guide to users for failure diagnostics. Ideally, end-users
-should never have to worry about these internal dependencies. 
-
-In terms of internal dependencies, a minimum file-sharing system consists of
-the following GNUnet processes (in order of dependency):
+This section tries to give an overview of what processes a typical GNUnet
+peer running a particular application would consist of. All of the
+processes listed here should be automatically started by
+@code{gnunet-arm -s}.
+The list is given as a rough first guide to users for failure diagnostics.
+Ideally, end-users should never have to worry about these internal
+dependencies. 
+In terms of internal dependencies, a minimum file-sharing system consists
+of the following GNUnet processes (in order of dependency):
 
 @itemize @bullet
 @item gnunet-service-arm
@@ -166,9 +168,9 @@ the following GNUnet processes (in order of dependency):
 @item gnunet-service-fs (requires identity, mesh, dht, datastore, core)
 @end itemize
 
-
-A minimum VPN system consists of the following GNUnet processes (in order of
-dependency):
+@noindent
+A minimum VPN system consists of the following GNUnet processes (in
+order of dependency):
 
 @itemize @bullet
 @item gnunet-service-arm
@@ -185,9 +187,10 @@ dependency):
 @item gnunet-service-vpn (requires regex, dns, mesh, dht)
 @end itemize
 
+@noindent
+A minimum GNS system consists of the following GNUnet processes (in
+order of dependency):
 
-A minimum GNS system consists of the following GNUnet processes (in order of
-dependency):
 @itemize @bullet
 @item gnunet-service-arm
 @item gnunet-service-resolver (required by all)
