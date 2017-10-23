@@ -771,24 +771,27 @@ if (NULL == (value = lookup_function())) @{ error(); return; @}
 deep(er) nesting. Thus, we would write:
 
 @example
-next = head; while (NULL != (pos = next)) @{ next = pos->next; if (!
-should_free (pos)) continue; GNUNET_CONTAINER_DLL_remove (head, tail, pos);
-GNUNET_free (pos); @}
+next = head; while (NULL != (pos = next)) @{
+  next = pos->next; if (! should_free (pos))
+                      continue;
+  GNUNET_CONTAINER_DLL_remove (head, tail, pos);
+  GNUNET_free (pos); @}
 @end example
-
 
 instead of
+
 @example
-next = head; while (NULL != (pos = next)) @{ next =
-pos->next; if (should_free (pos)) @{
+next = head; while (NULL != (pos = next)) @{
+  next = pos->next; if (should_free (pos)) @{
     /* unnecessary nesting! */
-    GNUNET_CONTAINER_DLL_remove (head, tail, pos); GNUNET_free (pos); @} @}
+    GNUNET_CONTAINER_DLL_remove (head, tail, pos);
+    GNUNET_free (pos); @} @}
 @end example
 
 
-@item We primarily use @code{for} and @code{while} loops. A @code{while}
-loop is used if the method for advancing in the loop is not a
-straightforward increment operation. In particular, we use:
+@item We primarily use @code{for} and @code{while} loops.
+A @code{while} loop is used if the method for advancing in the loop is
+not a straightforward increment operation. In particular, we use:
 
 @example
 next = head;
@@ -801,7 +804,6 @@ while (NULL != (pos = next))
   GNUNET_free (pos);
 @}
 @end example
-
 
 to free entries in a list (as the iteration changes the structure of the
 list due to the free; the equivalent @code{for} loop does no longer
@@ -889,8 +891,8 @@ If you want to compile and run benchmarks, run configure with the
 @code{--enable-benchmarks} option.
 
 If you want to obtain code coverage results, run configure with the
-@code{--enable-coverage} option and run the coverage.sh script in
-@file{contrib/}.
+@code{--enable-coverage} option and run the @file{coverage.sh} script in
+the @file{contrib/} directory.
 
 @c ***********************************************************************
 @node Developing extensions for GNUnet using the gnunet-ext template
@@ -905,7 +907,9 @@ development of GNUnet services, command line tools, APIs and tests.
 
 First of all you have to obtain gnunet-ext from git:
 
-@code{git clone https://gnunet.org/git/gnunet-ext.git}
+@example
+git clone https://gnunet.org/git/gnunet-ext.git
+@end example
 
 The next step is to bootstrap and configure it. For configure you have to
 provide the path containing GNUnet with
@@ -922,7 +926,9 @@ path, you have to add @code{/path/to/gnunet} to the file
 @file{/etc/ld.so.conf} and run @code{ldconfig} or your add it to the
 environmental variable @code{LD_LIBRARY_PATH} by using
 
-@code{export LD_LIBRARY_PATH=/path/to/gnunet/lib}
+@example
+export LD_LIBRARY_PATH=/path/to/gnunet/lib
+@end example
 
 @c ***********************************************************************
 @node Writing testcases
@@ -942,9 +948,9 @@ progress information and not display debug messages by default. The
 success or failure of a testcase must be indicated by returning zero
 (success) or non-zero (failure) from the main method of the testcase. The
 integration with the autotools is relatively straightforward and only
-requires modifications to the @code{Makefile.am} in the directory
-containing the testcase. For a testcase testing the code in @code{foo.c}
-the @code{Makefile.am} would contain the following lines:
+requires modifications to the @file{Makefile.am} in the directory
+containing the testcase. For a testcase testing the code in @file{foo.c}
+the @file{Makefile.am} would contain the following lines:
 
 @example
 check_PROGRAMS = test_foo TESTS = $(check_PROGRAMS) test_foo_SOURCES =
@@ -1122,16 +1128,28 @@ The following code illustrates spawning and killing an ARM process from a
 testcase:
 
 @example
-static void run (void *cls, char *const *args, const char
-*cfgfile, const struct GNUNET_CONFIGURATION_Handle *cfg) @{ struct
-GNUNET_OS_Process *arm_pid; arm_pid = GNUNET_OS_start_process (NULL, NULL,
-"gnunet-service-arm", "gnunet-service-arm", "-c", cfgname, NULL);
+static void run (void *cls,
+                 char *const *args,
+                 const char *cfgfile,
+                 const struct GNUNET_CONFIGURATION_Handle *cfg) @{
+  struct GNUNET_OS_Process *arm_pid;
+  arm_pid = GNUNET_OS_start_process (NULL,
+                                     NULL,
+                                     "gnunet-service-arm",
+                                     "gnunet-service-arm",
+                                     "-c",
+                                     cfgname,
+                                     NULL);
   /* do real test work here */
-  if (0 != GNUNET_OS_process_kill (arm_pid, SIGTERM)) GNUNET_log_strerror
-  (GNUNET_ERROR_TYPE_WARNING, "kill"); GNUNET_assert (GNUNET_OK ==
-  GNUNET_OS_process_wait (arm_pid)); GNUNET_OS_process_close (arm_pid); @}
+  if (0 != GNUNET_OS_process_kill (arm_pid, SIGTERM))
+    GNUNET_log_strerror
+      (GNUNET_ERROR_TYPE_WARNING, "kill");
+  GNUNET_assert (GNUNET_OK == GNUNET_OS_process_wait (arm_pid));
+  GNUNET_OS_process_close (arm_pid); @}
 
-GNUNET_PROGRAM_run (argc, argv, "NAME-OF-TEST", "nohelp", options, &run, cls);
+GNUNET_PROGRAM_run (argc, argv,
+                    "NAME-OF-TEST",
+                    "nohelp", options, &run, cls);
 @end example
 
 
@@ -1183,8 +1201,11 @@ The code in the test should look like this:
 
 int main (int argc, char *argv[]) @{
 
-  [run test, generate data] GAUGER("YOUR_MODULE", "METRIC_NAME", (float)value,
-  "UNIT"); @}
+  [run test, generate data]
+    GAUGER("YOUR_MODULE",
+           "METRIC_NAME",
+           (float)value,
+           "UNIT"); @}
 @end example
 
 
@@ -1310,10 +1331,8 @@ found in the standard path. This can be addressed by setting the variable
 `HELPER_BINARY_PATH' to the path of the testbed helper. Testbed API will
 then use this path to start helper binaries both locally and remotely.
 
-Testbed API can accessed by including "gnunet_testbed_service.h" file and
-linking with -lgnunettestbed.
-
-
+Testbed API can accessed by including the
+"@file{gnunet_testbed_service.h}" file and linking with -lgnunettestbed.
 
 @c ***********************************************************************
 @menu
@@ -1628,16 +1647,20 @@ Install Distribute for zope.interface <= 3.8.0 (4.0 and 4.0.1 will not
 work):
 
 @example
-wget https://pypi.python.org/packages/source/z/zope.interface/zope.interface-3.8.0.tar.gz
-tar zvfz zope.interface-3.8.0.tar.gz@ cd zope.interface-3.8.0
+export PYPI="https://pypi.python.org/packages/source"
+wget $PYPI/z/zope.interface/zope.interface-3.8.0.tar.gz
+tar zvfz zope.interface-3.8.0.tar.gz
+cd zope.interface-3.8.0
 sudo python setup.py install
 @end example
 
 Install the buildslave software (0.8.6 was the latest version):
 
 @example
-wget http://buildbot.googlecode.com/files/buildbot-slave-0.8.6p1.tar.gz
-tar xvfz buildbot-slave-0.8.6p1.tar.gz@ cd buildslave-0.8.6p1
+export GCODE="http://buildbot.googlecode.com/files"
+wget $GCODE/buildbot-slave-0.8.6p1.tar.gz
+tar xvfz buildbot-slave-0.8.6p1.tar.gz
+cd buildslave-0.8.6p1
 sudo python setup.py install
 @end example
 
@@ -1670,8 +1693,8 @@ contrib/tasklists/install_buildslave_fc8.xml -a -p <planetlab password>
 
 The master and the and the slaves have need to have credentials and the
 master has to have all nodes configured. This can be done with the
-@code{create_buildbot_configuration.py} script in the @code{scripts}
-directory
+@file{create_buildbot_configuration.py} script in the @file{scripts}
+directory.
 
 This scripts takes a list of nodes retrieved directly from PlanetLab or
 read from a file and a configuration template and creates:
@@ -1687,14 +1710,22 @@ that the script replaces the following tags in the template:
 %GPLMT_BUILDER_DEFINITION :@ GPLMT_BUILDER_SUMMARY@ GPLMT_SLAVES@
 %GPLMT_SCHEDULER_BUILDERS
 
-Create configuration for all nodes assigned to a slice:@ @code{@
-./create_buildbot_configuration.py -u <planetlab username> -p <planetlab
-password> -s <slice> -m <buildmaster+port> -t <template>@ }@ Create
-configuration for some nodes in a file:@ @code{@
-./create_buildbot_configuration.p -f <node_file> -m <buildmaster+port> -t
-<template>@ }
+Create configuration for all nodes assigned to a slice:
 
-@item Copy the @code{master.cfg} to the buildmaster and start it
+@example
+./create_buildbot_configuration.py -u <planetlab username> \
+-p <planetlab password> -s <slice> -m <buildmaster+port> \
+-t <template>
+@end example
+
+Create configuration for some nodes in a file:
+
+@example
+./create_buildbot_configuration.p -f <node_file> \
+-m <buildmaster+port> -t <template>
+@end example
+
+@item Copy the @file{master.cfg} to the buildmaster and start it
 Use @code{buildbot start <basedir>} to start the server
 @item Setup the buildslaves
 @end itemize
@@ -1713,14 +1744,17 @@ and then add the following to your ~/.ssh/config file:
 
 @code{Host 127.0.0.1@ IdentityFile ~/.ssh/id_localhost}
 
-now make sure your hostsfile looks like@
+now make sure your hostsfile looks like
 
+@example
 [USERNAME]@@127.0.0.1:22@
 [USERNAME]@@127.0.0.1:22
+@end example
 
-You can test your setup by running `ssh 127.0.0.1` in a terminal and then
-in the opened session run it again. If you were not asked for a password
-on either login, then you should be good to go.
+You can test your setup by running @code{ssh 127.0.0.1} in a
+terminal and then in the opened session run it again.
+If you were not asked for a password on either login,
+then you should be good to go.
 
 @c ***********************************************************************
 @node TESTBED Caveats
@@ -1728,7 +1762,6 @@ on either login, then you should be good to go.
 
 This section documents a few caveats when using the GNUnet testbed
 subsystem.
-
 
 @c ***********************************************************************
 @menu
@@ -1767,7 +1800,7 @@ configure TESTBED to tolerate a certain number of connection failures
 for dense overlay topologies, especially if you try to create cliques
 with more than 20 peers.
 
-@c ***********************************************************************
+@cindex libgnunetutil
 @node libgnunetutil
 @section libgnunetutil
 
@@ -1820,7 +1853,8 @@ way to make porting of GNUnet easier.
 * The CONTAINER_MDLL API::
 @end menu
 
-@c ***********************************************************************
+@cindex Logging
+@cindex log levels
 @node Logging
 @subsection Logging
 
@@ -2062,7 +2096,7 @@ Another limitation, on Windows, GNUNET_FORCE_LOGFILE @strong{MUST} be set
 in order to GNUNET_FORCE_LOG to work.
 
 
-@c ***********************************************************************
+@cindex Log files
 @node Log files
 @subsubsection Log files
 
@@ -2183,7 +2217,8 @@ Which will behave almost like enabling DEBUG in that subsytem before the
 change. Of course you can adapt it to your particular needs, this is only
 a quick example.
 
-@c ***********************************************************************
+@cindex Interprocess communication API
+@cindex ICP
 @node Interprocess communication API (IPC)
 @subsection Interprocess communication API (IPC)
 
@@ -2525,8 +2560,7 @@ order.
 byte order.
 @end table
 
-@c ***********************************************************************
-
+@cindex Cryptography API
 @node Cryptography API
 @subsection Cryptography API
 @c %**end of header
@@ -2563,7 +2597,7 @@ be used by most applications; most importantly,
 GNUNET_CRYPTO_rsa_key_create_from_hash does not create an RSA-key that
 should be considered secure for traditional applications of RSA.
 
-@c ***********************************************************************
+@cindex Message Queue API
 @node Message Queue API
 @subsection Message Queue API
 @c %**end of header
@@ -2643,8 +2677,10 @@ An envelope containing an instance of the NumberMessage can be
 constructed like this:
 
 @example
-struct GNUNET_MQ_Envelope *ev; struct NumberMessage *msg; ev =
-GNUNET_MQ_msg (msg, GNUNET_MESSAGE_TYPE_EXAMPLE_1); msg->number = htonl (42);
+struct GNUNET_MQ_Envelope *ev;
+struct NumberMessage *msg;
+ev = GNUNET_MQ_msg (msg, GNUNET_MESSAGE_TYPE_EXAMPLE_1);
+msg->number = htonl (42);
 @end example
 
 In the above code, @code{GNUNET_MQ_msg} is a macro. The return value is
@@ -2703,7 +2739,7 @@ callback. When canceling an envelope, it is not necessary@ to call
 @strong{ Implementing Queues }@
 @code{TODO}
 
-@c ***********************************************************************
+@cindex Service API
 @node Service API
 @subsection Service API
 @c %**end of header
@@ -2933,7 +2969,8 @@ previously audited and modified to take advantage of the new capability.
 In particular, memory consumption of the file-sharing service is expected
 to drop by 20-30% due to this change.
 
-@c ***********************************************************************
+
+@cindex CONTAINER_MDLL API
 @node The CONTAINER_MDLL API
 @subsection The CONTAINER_MDLL API
 @c %**end of header
@@ -2998,7 +3035,8 @@ at tail, after a given element) and removing elements from the list.
 Iterating over the list should be done by directly accessing the
 "next_XX" and/or "prev_XX" members.
 
-@c ***********************************************************************
+@cindex Automatic Restart Manager
+@cindex ARM
 @node The Automatic Restart Manager (ARM)
 @section The Automatic Restart Manager (ARM)
 @c %**end of header
@@ -3015,7 +3053,7 @@ about how ARM works and how to interact with it.
 @menu
 * Basic functionality::
 * Key configuration options::
-* Availability2::
+* ARM - Availability::
 * Reliability::
 @end menu
 
@@ -3109,8 +3147,8 @@ services that are going to run.
 @end table
 
 @c ***********************************************************************
-@node Availability2
-@subsection Availability2
+@node ARM - Availability
+@subsection ARM - Availability
 @c %**end of header
 
 As mentioned before, one of the features provided by ARM is starting
@@ -3195,7 +3233,7 @@ backoff(S) will remain half an hour, hence ARM won't be busy for a lot of
 time trying to restart a problematic service.
 @end itemize
 
-@c ***********************************************************************
+@cindex TRANSPORT Subsystem
 @node GNUnet's TRANSPORT Subsystem
 @section GNUnet's TRANSPORT Subsystem
 @c %**end of header
@@ -3313,6 +3351,7 @@ The PONG message is protected with a nonce/challenge against replay
 attacks and uses an expiration time for the signature (but those are
 almost implementation details).
 
+@cindex NAT library
 @node NAT library
 @section NAT library
 @c %**end of header
@@ -3422,6 +3461,7 @@ the message in a new DV message for Carol. The DV transport at Carol
 receives this message, unwraps the original message, and delivers it to
 Carol as though it came directly from Alice.
 
+@cindex SMTP plugin
 @node SMTP plugin
 @section SMTP plugin
 @c %**end of header
@@ -3631,6 +3671,7 @@ MTU of 12,000 octets improves the throughput to 13 kbps as figure
 smtp-MTUs shows. Our research paper) has some more details on the
 benchmarking results.
 
+@cindex Bluetooth plugin
 @node Bluetooth plugin
 @section Bluetooth plugin
 @c %**end of header
@@ -3647,8 +3688,6 @@ ask on the IRC channel.
 @item How do I configure my peer?
 @item How can I test it?
 @end itemize
-
-
 
 @menu
 * What do I need to use the Bluetooth plugin transport?::
@@ -4366,6 +4405,7 @@ tell which @code{SendMessageRequest} the CORE service's
 "unique" request ID (based on a counter incremented by the client
 for each request).
 
+@cindex CORE Peer-to-Peer Protocol
 @node The CORE Peer-to-Peer Protocol
 @subsection The CORE Peer-to-Peer Protocol
 @c %**end of header
@@ -4827,7 +4867,7 @@ is no longer called with new estimates.
 
 @menu
 * Results::
-* Examples2::
+* libgnunetnse - Examples::
 @end menu
 
 @node Results
@@ -4868,8 +4908,8 @@ deviation value, not only the average (in particular, if the standard
 veriation is very high, the average maybe meaningless: the network size is
 changing rapidly).
 
-@node Examples2
-@subsubsection Examples2
+@node libgnunetnse - Examples
+@subsubsection libgnunetnse -Examples
 
 @c %**end of header
 
@@ -4915,6 +4955,7 @@ deviation for the respective round.
 When the @code{GNUNET_NSE_disconnect} API call is executed, the client
 simply disconnects from the service, with no message involved.
 
+@cindex NSE Peer-to-Peer Protocol
 @node The NSE Peer-to-Peer Protocol
 @subsection The NSE Peer-to-Peer Protocol
 
@@ -5044,7 +5085,7 @@ service.
 
 @menu
 * Features::
-* Limitations2::
+* HOSTLIST - Limitations::
 @end menu
 
 @node Features
@@ -5065,8 +5106,8 @@ via gossip
 peers
 @end itemize
 
-@node Limitations2
-@subsubsection Limitations2
+@node HOSTLIST - Limitations
+@subsubsection HOSTLIST - Limitations
 
 @c %**end of header
 
@@ -5125,6 +5166,7 @@ contacts the HOSTLIST servers specified in the configuration, downloads
 the (unvalidated) list of HELLO messages and forwards these information
 to the TRANSPORT server to validate the addresses.
 
+@cindex HOSTLIST daemon
 @node The HOSTLIST daemon
 @subsection The HOSTLIST daemon
 
@@ -5154,6 +5196,7 @@ can notify them about CORE events.
 To clean up on shutdown, the daemon has a cleaning task, shutting down all
 subsystems and disconnecting from CORE.
 
+@cindex HOSTLIST server
 @node The HOSTLIST server
 @subsection The HOSTLIST server
 
@@ -5207,6 +5250,7 @@ When a new peer connects and has hostlist learning enabled, the server
 sends a @code{GNUNET_MESSAGE_TYPE_HOSTLIST_ADVERTISEMENT} message to this
 peer using the CORE service.
 
+@cindex HOSTLIST client
 @node The HOSTLIST client
 @subsection The HOSTLIST client
 
@@ -5655,8 +5699,8 @@ To not duplicate this functionality we plan to provide a PEERSTORE
 service providing this functionality.
 
 @menu
-* Features2::
-* Limitations3::
+* PEERINFO - Features::
+* PEERINFO - Limitations::
 * DeveloperPeer Information::
 * Startup::
 * Managing Information::
@@ -5665,8 +5709,8 @@ service providing this functionality.
 * libgnunetpeerinfo::
 @end menu
 
-@node Features2
-@subsection Features2
+@node PEERINFO - Features
+@subsection PEERINFO - Features
 
 @c %**end of header
 
@@ -5677,8 +5721,8 @@ service providing this functionality.
 @item Differentiation between public and friend-only HELLO
 @end itemize
 
-@node Limitations3
-@subsection Limitations3
+@node PEERINFO - Limitations
+@subsection PEERINFO - Limitations
 
 
 @itemize @bullet
@@ -5690,42 +5734,48 @@ service providing this functionality.
 
 @c %**end of header
 
-The PEERINFO subsystem stores these information in the form of HELLO messages
-you can think of as business cards. These HELLO messages contain the public key
-of a peer and the addresses a peer can be reached under. The addresses include
-an expiration date describing how long they are valid. This information is
-updated regularly by the TRANSPORT service by revalidating the address. If an
-address is expired and not renewed, it can be removed from the HELLO message.
+The PEERINFO subsystem stores these information in the form of HELLO
+messages you can think of as business cards.
+These HELLO messages contain the public key of a peer and the addresses
+a peer can be reached under.
+The addresses include an expiration date describing how long they are
+valid. This information is updated regularly by the TRANSPORT service by
+revalidating the address.
+If an address is expired and not renewed, it can be removed from the
+HELLO message.
 
-Some peer do not want to have their HELLO messages distributed to other peers ,
-especially when GNUnet's friend-to-friend modus is enabled. To prevent this
-undesired distribution. PEERINFO distinguishes between @emph{public} and
-@emph{friend-only} HELLO messages. Public HELLO messages can be freely
-distributed to other (possibly unknown) peers (for example using the hostlist,
-gossiping, broadcasting), whereas friend-only HELLO messages may not be
-distributed to other peers. Friend-only HELLO messages have an additional flag
-@code{friend_only} set internally. For public HELLO message this flag is not
-set. PEERINFO does and cannot not check if a client is allowed to obtain a
+Some peer do not want to have their HELLO messages distributed to other
+peers, especially when GNUnet's friend-to-friend modus is enabled.
+To prevent this undesired distribution. PEERINFO distinguishes between
+@emph{public} and @emph{friend-only} HELLO messages.
+Public HELLO messages can be freely distributed to other (possibly
+unknown) peers (for example using the hostlist, gossiping, broadcasting),
+whereas friend-only HELLO messages may not be distributed to other peers.
+Friend-only HELLO messages have an additional flag @code{friend_only} set
+internally. For public HELLO message this flag is not set.
+PEERINFO does and cannot not check if a client is allowed to obtain a
 specific HELLO type.
 
-The HELLO messages can be managed using the GNUnet HELLO library. Other GNUnet
-systems can obtain these information from PEERINFO and use it for their
-purposes. Clients are for example the HOSTLIST component providing these
-information to other peers in form of a hostlist or the TRANSPORT subsystem
-using these information to maintain connections to other peers.
+The HELLO messages can be managed using the GNUnet HELLO library.
+Other GNUnet systems can obtain these information from PEERINFO and use
+it for their purposes.
+Clients are for example the HOSTLIST component providing these
+information to other peers in form of a hostlist or the TRANSPORT
+subsystem using these information to maintain connections to other peers.
 
 @node Startup
 @subsection Startup
 
 @c %**end of header
 
-During startup the PEERINFO services loads persistent HELLOs from disk. First
-PEERINFO parses the directory configured in the HOSTS value of the
-@code{PEERINFO} configuration section to store PEERINFO information.@ For all
-files found in this directory valid HELLO messages are extracted. In addition
-it loads HELLO messages shipped with the GNUnet distribution. These HELLOs are
-used to simplify network bootstrapping by providing valid peer information with
-the distribution. The use of these HELLOs can be prevented by setting the
+During startup the PEERINFO services loads persistent HELLOs from disk.
+First PEERINFO parses the directory configured in the HOSTS value of the
+@code{PEERINFO} configuration section to store PEERINFO information.
+For all files found in this directory valid HELLO messages are extracted.
+In addition it loads HELLO messages shipped with the GNUnet distribution.
+These HELLOs are used to simplify network bootstrapping by providing
+valid peer information with the distribution.
+The use of these HELLOs can be prevented by setting the
 @code{USE_INCLUDED_HELLOS} in the @code{PEERINFO} configuration section to
 @code{NO}. Files containing invalid information are removed.
 
@@ -5734,66 +5784,71 @@ the distribution. The use of these HELLOs can be prevented by setting the
 
 @c %**end of header
 
-The PEERINFO services stores information about known PEERS and a single HELLO
-message for every peer. A peer does not need to have a HELLO if no information
-are available. HELLO information from different sources, for example a HELLO
-obtained from a remote HOSTLIST and a second HELLO stored on disk, are combined
+The PEERINFO services stores information about known PEERS and a single
+HELLO message for every peer.
+A peer does not need to have a HELLO if no information are available.
+HELLO information from different sources, for example a HELLO obtained
+from a remote HOSTLIST and a second HELLO stored on disk, are combined
 and merged into one single HELLO message per peer which will be given to
-clients. During this merge process the HELLO is immediately written to disk to
-ensure persistence.
+clients. During this merge process the HELLO is immediately written to
+disk to ensure persistence.
 
-PEERINFO in addition periodically scans the directory where information are
-stored for empty HELLO messages with expired TRANSPORT addresses.@ This
-periodic task scans all files in the directory and recreates the HELLO messages
-it finds. Expired TRANSPORT addresses are removed from the HELLO and if the
-HELLO does not contain any valid addresses, it is discarded and removed from
-disk.
+PEERINFO in addition periodically scans the directory where information
+are stored for empty HELLO messages with expired TRANSPORT addresses.
+This periodic task scans all files in the directory and recreates the
+HELLO messages it finds.
+Expired TRANSPORT addresses are removed from the HELLO and if the
+HELLO does not contain any valid addresses, it is discarded and removed
+from the disk.
 
 @node Obtaining Information
 @subsection Obtaining Information
 
 @c %**end of header
 
-When a client requests information from PEERINFO, PEERINFO performs a lookup
-for the respective peer or all peers if desired and transmits this information
-to the client. The client can specify if friend-only HELLOs have to be included
-or not and PEERINFO filters the respective HELLO messages before transmitting
+When a client requests information from PEERINFO, PEERINFO performs a
+lookup for the respective peer or all peers if desired and transmits this
+information to the client.
+The client can specify if friend-only HELLOs have to be included or not
+and PEERINFO filters the respective HELLO messages before transmitting
 information.
 
-To notify clients about changes to PEERINFO information, PEERINFO maintains a
-list of clients interested in this notifications. Such a notification occurs if
-a HELLO for a peer was updated (due to a merge for example) or a new peer was
-added.
+To notify clients about changes to PEERINFO information, PEERINFO
+maintains a list of clients interested in this notifications.
+Such a notification occurs if a HELLO for a peer was updated (due to a
+merge for example) or a new peer was added.
 
 @node The PEERINFO Client-Service Protocol
 @subsection The PEERINFO Client-Service Protocol
 
 @c %**end of header
 
-To connect and disconnect to and from the PEERINFO Service PEERINFO utilizes
-the util client/server infrastructure, so no special messages types are used
-here.
+To connect and disconnect to and from the PEERINFO Service PEERINFO
+utilizes the util client/server infrastructure, so no special messages
+types are used here.
 
-To add information for a peer, the plain HELLO message is transmitted to the
-service without any wrapping. Alle information required are stored within the
-HELLO message. The PEERINFO service provides a message handler accepting and
-processing these HELLO messages.
+To add information for a peer, the plain HELLO message is transmitted to
+the service without any wrapping. All pieces of information required are
+stored within the HELLO message.
+The PEERINFO service provides a message handler accepting and processing
+these HELLO messages.
 
-When obtaining PEERINFO information using the iterate functionality specific
-messages are used. To obtain information for all peers, a @code{struct
-ListAllPeersMessage} with message type
-@code{GNUNET_MESSAGE_TYPE_PEERINFO_GET_ALL} and a flag include_friend_only to
-indicate if friend-only HELLO messages should be included are transmitted. If
-information for a specific peer is required a @code{struct ListAllPeersMessage}
-with @code{GNUNET_MESSAGE_TYPE_PEERINFO_GET} containing the peer identity is
+When obtaining PEERINFO information using the iterate functionality
+specific messages are used. To obtain information for all peers, a
+@code{struct ListAllPeersMessage} with message type
+@code{GNUNET_MESSAGE_TYPE_PEERINFO_GET_ALL} and a flag
+include_friend_only to indicate if friend-only HELLO messages should be
+included are transmitted. If information for a specific peer is required
+a @code{struct ListAllPeersMessage} with
+@code{GNUNET_MESSAGE_TYPE_PEERINFO_GET} containing the peer identity is
 used.
 
-For both variants the PEERINFO service replies for each HELLO message he wants
-to transmit with a @code{struct ListAllPeersMessage} with type
-@code{GNUNET_MESSAGE_TYPE_PEERINFO_INFO} containing the plain HELLO. The final
-message is @code{struct GNUNET_MessageHeader} with type
-@code{GNUNET_MESSAGE_TYPE_PEERINFO_INFO}. If the client receives this message,
-he can proceed with the next request if any is pending
+For both variants the PEERINFO service replies for each HELLO message it
+wants to transmit with a @code{struct ListAllPeersMessage} with type
+@code{GNUNET_MESSAGE_TYPE_PEERINFO_INFO} containing the plain HELLO.
+The final message is @code{struct GNUNET_MessageHeader} with type
+@code{GNUNET_MESSAGE_TYPE_PEERINFO_INFO}. If the client receives this
+message, it can proceed with the next request if any is pending.
 
 @node libgnunetpeerinfo
 @subsection libgnunetpeerinfo
@@ -5819,9 +5874,10 @@ The PEERINFO API consists mainly of three different functionalities:
 
 @c %**end of header
 
-To connect to the PEERINFO service the function @code{GNUNET_PEERINFO_connect}
-is used, taking a configuration handle as an argument, and to disconnect from
-PEERINFO the function @code{GNUNET_PEERINFO_disconnect}, taking the PEERINFO
+To connect to the PEERINFO service the function
+@code{GNUNET_PEERINFO_connect} is used, taking a configuration handle as
+an argument, and to disconnect from PEERINFO the function
+@code{GNUNET_PEERINFO_disconnect}, taking the PEERINFO
 handle returned from the connect function has to be called.
 
 @node Adding Information to the PEERINFO Service
@@ -5831,44 +5887,48 @@ handle returned from the connect function has to be called.
 
 @code{GNUNET_PEERINFO_add_peer} adds a new peer to the PEERINFO subsystem
 storage. This function takes the PEERINFO handle as an argument, the HELLO
-message to store and a continuation with a closure to be called with the result
-of the operation. The @code{GNUNET_PEERINFO_add_peer} returns a handle to this
-operation allowing to cancel the operation with the respective cancel function
-@code{GNUNET_PEERINFO_add_peer_cancel}. To retrieve information from PEERINFO
-you can iterate over all information stored with PEERINFO or you can tell
-PEERINFO to notify if new peer information are available.
+message to store and a continuation with a closure to be called with the
+result of the operation.
+The @code{GNUNET_PEERINFO_add_peer} returns a handle to this operation
+allowing to cancel the operation with the respective cancel function
+@code{GNUNET_PEERINFO_add_peer_cancel}. To retrieve information from
+PEERINFO you can iterate over all information stored with PEERINFO or you
+can tell PEERINFO to notify if new peer information are available.
 
 @node Obtaining Information from the PEERINFO Service
 @subsubsection Obtaining Information from the PEERINFO Service
 
 @c %**end of header
 
-To iterate over information in PEERINFO you use @code{GNUNET_PEERINFO_iterate}.
-This function expects the PEERINFO handle, a flag if HELLO messages intended
-for friend only mode should be included, a timeout how long the operation
-should take and a callback with a callback closure to be called for the
-results. If you want to obtain information for a specific peer, you can specify
+To iterate over information in PEERINFO you use
+@code{GNUNET_PEERINFO_iterate}.
+This function expects the PEERINFO handle, a flag if HELLO messages
+intended for friend only mode should be included, a timeout how long the
+operation should take and a callback with a callback closure to be called
+for the results.
+If you want to obtain information for a specific peer, you can specify
 the peer identity, if this identity is NULL, information for all peers are
-returned. The function returns a handle to allow to cancel the operation using
-@code{GNUNET_PEERINFO_iterate_cancel}.
+returned. The function returns a handle to allow to cancel the operation
+using @code{GNUNET_PEERINFO_iterate_cancel}.
 
 To get notified when peer information changes, you can use
-@code{GNUNET_PEERINFO_notify}. This function expects a configuration handle and
-a flag if friend-only HELLO messages should be included. The PEERINFO service
-will notify you about every change and the callback function will be called to
-notify you about changes. The function returns a handle to cancel notifications
+@code{GNUNET_PEERINFO_notify}.
+This function expects a configuration handle and a flag if friend-only
+HELLO messages should be included. The PEERINFO service will notify you
+about every change and the callback function will be called to notify you
+about changes. The function returns a handle to cancel notifications
 with @code{GNUNET_PEERINFO_notify_cancel}.
 
-
+@cindex PEERSTORE subsystem
 @node GNUnet's PEERSTORE subsystem
 @section GNUnet's PEERSTORE subsystem
 
 @c %**end of header
 
 GNUnet's PEERSTORE subsystem offers persistent per-peer storage for other
-GNUnet subsystems. GNUnet subsystems can use PEERSTORE to persistently store
-and retrieve arbitrary data. Each data record stored with PEERSTORE contains
-the following fields:
+GNUnet subsystems. GNUnet subsystems can use PEERSTORE to persistently
+store and retrieve arbitrary data.
+Each data record stored with PEERSTORE contains the following fields:
 
 @itemize @bullet
 @item subsystem: Name of the subsystem responsible for the record.
@@ -5890,10 +5950,11 @@ the following fields:
 @c %**end of header
 
 Subsystems can store any type of value under a (subsystem, peerid, key)
-combination. A "replace" flag set during store operations forces the PEERSTORE
-to replace any old values stored under the same (subsystem, peerid, key)
-combination with the new value. Additionally, an expiry date is set after which
-the record is *possibly* deleted by PEERSTORE.
+combination. A "replace" flag set during store operations forces the
+PEERSTORE to replace any old values stored under the same
+(subsystem, peerid, key) combination with the new value.
+Additionally, an expiry date is set after which the record is *possibly*
+deleted by PEERSTORE.
 
 Subsystems can iterate over all values stored under any of the following
 combination of fields:
@@ -5905,9 +5966,9 @@ combination of fields:
 @item (subsystem, peerid, key)
 @end itemize
 
-Subsystems can also request to be notified about any new values stored under a
-(subsystem, peerid, key) combination by sending a "watch" request to
-PEERSTORE.
+Subsystems can also request to be notified about any new values stored
+under a (subsystem, peerid, key) combination by sending a "watch"
+request to PEERSTORE.
 
 @node Architecture
 @subsection Architecture
@@ -5920,10 +5981,11 @@ PEERSTORE implements the following components:
 @item PEERSTORE service: Handles store, iterate and watch operations.
 @item PEERSTORE API: API to be used by other subsystems to communicate and
 issue commands to the PEERSTORE service.
-@item PEERSTORE plugins: Handles the persistent storage. At the moment, only an
-"sqlite" plugin is implemented.
+@item PEERSTORE plugins: Handles the persistent storage. At the moment,
+only an "sqlite" plugin is implemented.
 @end itemize
 
+@cindex libgnunetpeerstore
 @node libgnunetpeerstore
 @subsection libgnunetpeerstore
 
@@ -5932,49 +5994,57 @@ issue commands to the PEERSTORE service.
 libgnunetpeerstore is the library containing the PEERSTORE API. Subsystems
 wishing to communicate with the PEERSTORE service use this API to open a
 connection to PEERSTORE. This is done by calling
-@code{GNUNET_PEERSTORE_connect} which returns a handle to the newly created
-connection. This handle has to be used with any further calls to the API.
+@code{GNUNET_PEERSTORE_connect} which returns a handle to the newly
+created connection.
+This handle has to be used with any further calls to the API.
 
-To store a new record, the function @code{GNUNET_PEERSTORE_store} is to be used
-which requires the record fields and a continuation function that will be
-called by the API after the STORE request is sent to the PEERSTORE service.
-Note that calling the continuation function does not mean that the record is
-successfully stored, only that the STORE request has been successfully sent to
-the PEERSTORE service. @code{GNUNET_PEERSTORE_store_cancel} can be called to
-cancel the STORE request only before the continuation function has been called.
+To store a new record, the function @code{GNUNET_PEERSTORE_store} is to
+be used which requires the record fields and a continuation function that
+will be called by the API after the STORE request is sent to the
+PEERSTORE service.
+Note that calling the continuation function does not mean that the record
+is successfully stored, only that the STORE request has been successfully
+sent to the PEERSTORE service.
+@code{GNUNET_PEERSTORE_store_cancel} can be called to cancel the STORE
+request only before the continuation function has been called.
 
-To iterate over stored records, the function @code{GNUNET_PEERSTORE_iterate} is
+To iterate over stored records, the function
+@code{GNUNET_PEERSTORE_iterate} is
 to be used. @emph{peerid} and @emph{key} can be set to NULL. An iterator
-callback function will be called with each matching record found and a NULL
-record at the end to signal the end of result set.
+callback function will be called with each matching record found and a
+NULL record at the end to signal the end of result set.
 @code{GNUNET_PEERSTORE_iterate_cancel} can be used to cancel the ITERATE
 request before the iterator callback is called with a NULL record.
 
 To be notified with new values stored under a (subsystem, peerid, key)
-combination, the function @code{GNUNET_PEERSTORE_watch} is to be used. This
-will register the watcher with the PEERSTORE service, any new records matching
-the given combination will trigger the callback function passed to
-@code{GNUNET_PEERSTORE_watch}. This continues until
-@code{GNUNET_PEERSTORE_watch_cancel} is called or the connection to the service
-is destroyed.
+combination, the function @code{GNUNET_PEERSTORE_watch} is to be used.
+This will register the watcher with the PEERSTORE service, any new
+records matching the given combination will trigger the callback
+function passed to @code{GNUNET_PEERSTORE_watch}. This continues until
+@code{GNUNET_PEERSTORE_watch_cancel} is called or the connection to the
+service is destroyed.
 
 After the connection is no longer needed, the function
 @code{GNUNET_PEERSTORE_disconnect} can be called to disconnect from the
-PEERSTORE service. Any pending ITERATE or WATCH requests will be destroyed. If
-the @code{sync_first} flag is set to @code{GNUNET_YES}, the API will delay the
-disconnection until all pending STORE requests are sent to the PEERSTORE
-service, otherwise, the pending STORE requests will be destroyed as well.
+PEERSTORE service.
+Any pending ITERATE or WATCH requests will be destroyed.
+If the @code{sync_first} flag is set to @code{GNUNET_YES}, the API will
+delay the disconnection until all pending STORE requests are sent to
+the PEERSTORE service, otherwise, the pending STORE requests will be
+destroyed as well.
 
+@cindex SET Subsystem
 @node GNUnet's SET Subsystem
 @section GNUnet's SET Subsystem
 
 @c %**end of header
 
-The SET service implements efficient set operations between two peers over a
-mesh tunnel. Currently, set union and set intersection are the only supported
-operations. Elements of a set consist of an @emph{element type} and arbitrary
-binary @emph{data}. The size of an element's data is limited to around 62
-KB.
+The SET service implements efficient set operations between two peers
+over a mesh tunnel.
+Currently, set union and set intersection are the only supported
+operations. Elements of a set consist of an @emph{element type} and
+arbitrary binary @emph{data}.
+The size of an element's data is limited to around 62 KB.
 
 @menu
 * Local Sets::
@@ -5995,62 +6065,67 @@ KB.
 Sets created by a local client can be modified and reused for multiple
 operations. As each set operation requires potentially expensive special
 auxilliary data to be computed for each element of a set, a set can only
-participate in one type of set operation (i.e. union or intersection). The type
-of a set is determined upon its creation. If a the elements of a set are needed
-for an operation of a different type, all of the set's element must be copied
-to a new set of appropriate type.
+participate in one type of set operation (i.e. union or intersection).
+The type of a set is determined upon its creation.
+If a the elements of a set are needed for an operation of a different
+type, all of the set's element must be copied to a new set of appropriate
+type.
 
 @node Set Modifications
 @subsection Set Modifications
 
 @c %**end of header
 
-Even when set operations are active, one can add to and remove elements from a
-set. However, these changes will only be visible to operations that have been
-created after the changes have taken place. That is, every set operation only
-sees a snapshot of the set from the time the operation was started. This
-mechanism is @emph{not} implemented by copying the whole set, but by attaching
-@emph{generation information} to each element and operation.
+Even when set operations are active, one can add to and remove elements
+from a set.
+However, these changes will only be visible to operations that have been
+created after the changes have taken place. That is, every set operation
+only sees a snapshot of the set from the time the operation was started.
+This mechanism is @emph{not} implemented by copying the whole set, but by
+attaching @emph{generation information} to each element and operation.
 
 @node Set Operations
 @subsection Set Operations
 
 @c %**end of header
 
-Set operations can be started in two ways: Either by accepting an operation
-request from a remote peer, or by requesting a set operation from a remote
-peer. Set operations are uniquely identified by the involved @emph{peers}, an
+Set operations can be started in two ways: Either by accepting an
+operation request from a remote peer, or by requesting a set operation
+from a remote peer.
+Set operations are uniquely identified by the involved @emph{peers}, an
 @emph{application id} and the @emph{operation type}.
 
-The client is notified of incoming set operations by @emph{set listeners}. A
-set listener listens for incoming operations of a specific operation type and
-application id. Once notified of an incoming set request, the client can
-accept the set request (providing a local set for the operation) or reject
-it.
+The client is notified of incoming set operations by @emph{set listeners}.
+A set listener listens for incoming operations of a specific operation
+type and application id.
+Once notified of an incoming set request, the client can accept the set
+request (providing a local set for the operation) or reject it.
 
 @node Result Elements
 @subsection Result Elements
 
 @c %**end of header
 
-The SET service has three @emph{result modes} that determine how an operation's
-result set is delivered to the client:
+The SET service has three @emph{result modes} that determine how an
+operation's result set is delivered to the client:
 
 @itemize @bullet
 @item @strong{Full Result Set.} All elements of set resulting from the set
 operation are returned to the client.
-@item @strong{Added Elements.} Only elements that result from the operation and
-are not already in the local peer's set are returned. Note that for some
-operations (like set intersection) this result mode will never return any
-elements. This can be useful if only the remove peer is actually interested in
+@item @strong{Added Elements.} Only elements that result from the
+operation and are not already in the local peer's set are returned.
+Note that for some operations (like set intersection) this result mode
+will never return any elements.
+This can be useful if only the remove peer is actually interested in
 the result of the set operation.
-@item @strong{Removed Elements.} Only elements that are in the local peer's
-initial set but not in the operation's result set are returned. Note that for
-some operations (like set union) this result mode will never return any
-elements. This can be useful if only the remove peer is actually interested in
-the result of the set operation.
+@item @strong{Removed Elements.} Only elements that are in the local
+peer's initial set but not in the operation's result set are returned.
+Note that for some operations (like set union) this result mode will
+never return any elements. This can be useful if only the remove peer is
+actually interested in the result of the set operation.
 @end itemize
 
+@cindex libgnunetset
 @node libgnunetset
 @subsection libgnunetset
 
@@ -6070,10 +6145,11 @@ the result of the set operation.
 @c %**end of header
 
 New sets are created with @code{GNUNET_SET_create}. Both the local peer's
-configuration (as each set has its own client connection) and the operation
-type must be specified. The set exists until either the client calls
-@code{GNUNET_SET_destroy} or the client's connection to the service is
-disrupted. In the latter case, the client is notified by the return value of
+configuration (as each set has its own client connection) and the
+operation type must be specified.
+The set exists until either the client calls @code{GNUNET_SET_destroy} or
+the client's connection to the service is disrupted.
+In the latter case, the client is notified by the return value of
 functions dealing with sets. This return value must always be checked.
 
 Elements are added and removed with @code{GNUNET_SET_add_element} and
@@ -6084,12 +6160,13 @@ Elements are added and removed with @code{GNUNET_SET_add_element} and
 
 @c %**end of header
 
-Listeners are created with @code{GNUNET_SET_listen}. Each time time a remote
-peer suggests a set operation with an application id and operation type
-matching a listener, the listener's callack is invoked. The client then must
-synchronously call either @code{GNUNET_SET_accept} or @code{GNUNET_SET_reject}.
-Note that the operation will not be started until the client calls
-@code{GNUNET_SET_commit} (see Section "Supplying a Set").
+Listeners are created with @code{GNUNET_SET_listen}. Each time time a
+remote peer suggests a set operation with an application id and operation
+type matching a listener, the listener's callback is invoked.
+The client then must synchronously call either @code{GNUNET_SET_accept}
+or @code{GNUNET_SET_reject}. Note that the operation will not be started
+until the client calls @code{GNUNET_SET_commit}
+(see Section "Supplying a Set").
 
 @node Operations
 @subsubsection Operations
@@ -6097,22 +6174,22 @@ Note that the operation will not be started until the client calls
 @c %**end of header
 
 Operations to be initiated by the local peer are created with
-@code{GNUNET_SET_prepare}. Note that the operation will not be started until
-the client calls @code{GNUNET_SET_commit} (see Section "Supplying a
-Set").
+@code{GNUNET_SET_prepare}. Note that the operation will not be started
+until the client calls @code{GNUNET_SET_commit}
+(see Section "Supplying a Set").
 
 @node Supplying a Set
 @subsubsection Supplying a Set
 
 @c %**end of header
 
-To create symmetry between the two ways of starting a set operation (accepting
-and nitiating it), the operation handles returned by @code{GNUNET_SET_accept}
-and @code{GNUNET_SET_prepare} do not yet have a set to operate on, thus they
-can not do any work yet.
+To create symmetry between the two ways of starting a set operation
+(accepting and nitiating it), the operation handles returned by
+@code{GNUNET_SET_accept} and @code{GNUNET_SET_prepare} do not yet have a
+set to operate on, thus they can not do any work yet.
 
-The client must call @code{GNUNET_SET_commit} to specify a set to use for an
-operation. @code{GNUNET_SET_commit} may only be called once per set
+The client must call @code{GNUNET_SET_commit} to specify a set to use for
+an operation. @code{GNUNET_SET_commit} may only be called once per set
 operation.
 
 @node The Result Callback
@@ -6121,12 +6198,13 @@ operation.
 @c %**end of header
 
 Clients must specify both a result mode and a result callback with
-@code{GNUNET_SET_accept} and @code{GNUNET_SET_prepare}. The result callback
-with a status indicating either that an element was received, or the operation
-failed or succeeded. The interpretation of the received element depends on the
-result mode. The callback needs to know which result mode it is used in, as the
-arguments do not indicate if an element is part of the full result set, or if
-it is in the difference between the original set and the final set.
+@code{GNUNET_SET_accept} and @code{GNUNET_SET_prepare}. The result
+callback with a status indicating either that an element was received, or
+the operation failed or succeeded.
+The interpretation of the received element depends on the result mode.
+The callback needs to know which result mode it is used in, as the
+arguments do not indicate if an element is part of the full result set,
+or if it is in the difference between the original set and the final set.
 
 @node The SET Client-Service Protocol
 @subsection The SET Client-Service Protocol
@@ -6147,10 +6225,11 @@ it is in the difference between the original set and the final set.
 
 @c %**end of header
 
-For each set of a client, there exists a client connection to the service. Sets
-are created by sending the @code{GNUNET_SERVICE_SET_CREATE} message over a new
-client connection. Multiple operations for one set are multiplexed over one
-client connection, using a request id supplied by the client.
+For each set of a client, there exists a client connection to the service.
+Sets are created by sending the @code{GNUNET_SERVICE_SET_CREATE} message
+over a new client connection. Multiple operations for one set are
+multiplexed over one client connection, using a request id supplied by
+the client.
 
 @node Listeners2
 @subsubsection Listeners2
@@ -6158,12 +6237,13 @@ client connection, using a request id supplied by the client.
 @c %**end of header
 
 Each listener also requires a seperate client connection. By sending the
-@code{GNUNET_SERVICE_SET_LISTEN} message, the client notifies the service of
-the application id and operation type it is interested in. A client rejects an
-incoming request by sending @code{GNUNET_SERVICE_SET_REJECT} on the listener's
-client connection. In contrast, when accepting an incoming request, a a
-@code{GNUNET_SERVICE_SET_ACCEPT} message must be sent over the@ set that is
-supplied for the set operation.
+@code{GNUNET_SERVICE_SET_LISTEN} message, the client notifies the service
+of the application id and operation type it is interested in. A client
+rejects an incoming request by sending @code{GNUNET_SERVICE_SET_REJECT}
+on the listener's client connection.
+In contrast, when accepting an incoming request, a
+@code{GNUNET_SERVICE_SET_ACCEPT} message must be sent over the@ set that
+is supplied for the set operation.
 
 @node Initiating Operations
 @subsubsection Initiating Operations
@@ -6192,8 +6272,8 @@ Sets are modified with the @code{GNUNET_SERVICE_SET_ADD} and
 @subsubsection Results and Operation Status
 @c %**end of header
 
-The service notifies the client of result elements and success/failure of a set
-operation with the @code{GNUNET_SERVICE_SET_RESULT} message.
+The service notifies the client of result elements and success/failure of
+a set operation with the @code{GNUNET_SERVICE_SET_RESULT} message.
 
 @node Iterating Sets
 @subsubsection Iterating Sets
@@ -6202,9 +6282,10 @@ operation with the @code{GNUNET_SERVICE_SET_RESULT} message.
 
 All elements of a set can be requested by sending
 @code{GNUNET_SERVICE_SET_ITER_REQUEST}. The server responds with
-@code{GNUNET_SERVICE_SET_ITER_ELEMENT} and eventually terminates the iteration
-with @code{GNUNET_SERVICE_SET_ITER_DONE}. After each received element, the
-client@ must send @code{GNUNET_SERVICE_SET_ITER_ACK}. Note that only one set
+@code{GNUNET_SERVICE_SET_ITER_ELEMENT} and eventually terminates the
+iteration with @code{GNUNET_SERVICE_SET_ITER_DONE}.
+After each received element, the client
+must send @code{GNUNET_SERVICE_SET_ITER_ACK}. Note that only one set
 iteration may be active for a set at any given time.
 
 @node The SET Intersection Peer-to-Peer Protocol
@@ -6213,24 +6294,25 @@ iteration may be active for a set at any given time.
 @c %**end of header
 
 The intersection protocol operates over CADET and starts with a
-GNUNET_MESSAGE_TYPE_SET_P2P_OPERATION_REQUEST being sent by the peer initiating
-the operation to the peer listening for inbound requests. It includes the
-number of elements of the initiating peer, which is used to decide which side
-will send a Bloom filter first.
+GNUNET_MESSAGE_TYPE_SET_P2P_OPERATION_REQUEST being sent by the peer
+initiating the operation to the peer listening for inbound requests.
+It includes the number of elements of the initiating peer, which is used
+to decide which side will send a Bloom filter first.
 
-The listening peer checks if the operation type and application identifier are
-acceptable for its current state. If not, it responds with a
-GNUNET_MESSAGE_TYPE_SET_RESULT and a status of GNUNET_SET_STATUS_FAILURE (and
-terminates the CADET channel).
+The listening peer checks if the operation type and application
+identifier are acceptable for its current state.
+If not, it responds with a GNUNET_MESSAGE_TYPE_SET_RESULT and a status of
+GNUNET_SET_STATUS_FAILURE (and terminates the CADET channel).
 
-If the application accepts the request, the listener sends back a@
-GNUNET_MESSAGE_TYPE_SET_INTERSECTION_P2P_ELEMENT_INFO if it has more elements
-in the set than the client. Otherwise, it immediately starts with the Bloom
-filter exchange. If the initiator receives a
-GNUNET_MESSAGE_TYPE_SET_INTERSECTION_P2P_ELEMENT_INFO response, it beings the
-Bloom filter exchange, unless the set size is indicated to be zero, in which
-case the intersection is considered finished after just the initial
-handshake.
+If the application accepts the request, the listener sends back a
+@code{GNUNET_MESSAGE_TYPE_SET_INTERSECTION_P2P_ELEMENT_INFO} if it has
+more elements in the set than the client.
+Otherwise, it immediately starts with the Bloom filter exchange.
+If the initiator receives a
+@code{GNUNET_MESSAGE_TYPE_SET_INTERSECTION_P2P_ELEMENT_INFO} response,
+it beings the Bloom filter exchange, unless the set size is indicated to
+be zero, in which case the intersection is considered finished after
+just the initial handshake.
 
 
 @menu
@@ -6243,42 +6325,47 @@ handshake.
 
 @c %**end of header
 
-In this phase, each peer transmits a Bloom filter over the remaining keys of
-the local set to the other peer using a
-GNUNET_MESSAGE_TYPE_SET_INTERSECTION_P2P_BF message. This message additionally
-includes the number of elements left in the sender's set, as well as the XOR
-over all of the keys in that set.
+In this phase, each peer transmits a Bloom filter over the remaining
+keys of the local set to the other peer using a
+@code{GNUNET_MESSAGE_TYPE_SET_INTERSECTION_P2P_BF} message. This
+message additionally includes the number of elements left in the sender's
+set, as well as the XOR over all of the keys in that set.
 
-The number of bits 'k' set per element in the Bloom filter is calculated based
-on the relative size of the two sets. Furthermore, the size of the Bloom filter
-is calculated based on 'k' and the number of elements in the set to maximize
-the amount of data filtered per byte transmitted on the wire (while avoiding an
-excessively high number of iterations).
+The number of bits 'k' set per element in the Bloom filter is calculated
+based on the relative size of the two sets.
+Furthermore, the size of the Bloom filter is calculated based on 'k' and
+the number of elements in the set to maximize the amount of data filtered
+per byte transmitted on the wire (while avoiding an excessively high
+number of iterations).
 
-The receiver of the message removes all elements from its local set that do not
-pass the Bloom filter test. It then checks if the set size of the sender and
-the XOR over the keys match what is left of his own set. If they do, he sends
-a@ GNUNET_MESSAGE_TYPE_SET_INTERSECTION_P2P_DONE back to indicate that the
-latest set is the final result. Otherwise, the receiver starts another Bloom
-fitler exchange, except this time as the sender.
+The receiver of the message removes all elements from its local set that
+do not pass the Bloom filter test.
+It then checks if the set size of the sender and the XOR over the keys
+match what is left of his own set. If they do, he sends a
+@code{GNUNET_MESSAGE_TYPE_SET_INTERSECTION_P2P_DONE} back to indicate
+that the latest set is the final result.
+Otherwise, the receiver starts another Bloom fitler exchange, except
+this time as the sender.
 
 @node Salt
 @subsubsection Salt
 
 @c %**end of header
 
-Bloomfilter operations are probablistic: With some non-zero probability the
-test may incorrectly say an element is in the set, even though it is not.
+Bloomfilter operations are probablistic: With some non-zero probability
+the test may incorrectly say an element is in the set, even though it is
+not.
 
-To mitigate this problem, the intersection protocol iterates exchanging Bloom
-filters using a different random 32-bit salt in each iteration (the salt is
-also included in the message). With different salts, set operations may fail
-for different elements. Merging the results from the executions, the
-probability of failure drops to zero.
+To mitigate this problem, the intersection protocol iterates exchanging
+Bloom filters using a different random 32-bit salt in each iteration (the
+salt is also included in the message).
+With different salts, set operations may fail for different elements.
+Merging the results from the executions, the probability of failure drops
+to zero.
 
-The iterations terminate once both peers have established that they have sets
-of the same size, and where the XOR over all keys computes the same 512-bit
-value (leaving a failure probability of 2-511).
+The iterations terminate once both peers have established that they have
+sets of the same size, and where the XOR over all keys computes the same
+512-bit value (leaving a failure probability of 2-511).
 
 @node The SET Union Peer-to-Peer Protocol
 @subsection The SET Union Peer-to-Peer Protocol
@@ -6290,105 +6377,114 @@ without prior context. You should read this paper first if you want to
 understand the protocol.
 
 The union protocol operates over CADET and starts with a
-GNUNET_MESSAGE_TYPE_SET_P2P_OPERATION_REQUEST being sent by the peer initiating
-the operation to the peer listening for inbound requests. It includes the
-number of elements of the initiating peer, which is currently not used.
+GNUNET_MESSAGE_TYPE_SET_P2P_OPERATION_REQUEST being sent by the peer
+initiating the operation to the peer listening for inbound requests.
+It includes the number of elements of the initiating peer, which is
+currently not used.
 
-The listening peer checks if the operation type and application identifier are
-acceptable for its current state. If not, it responds with a
-GNUNET_MESSAGE_TYPE_SET_RESULT and a status of GNUNET_SET_STATUS_FAILURE (and
-terminates the CADET channel).
+The listening peer checks if the operation type and application
+identifier are acceptable for its current state. If not, it responds with
+a @code{GNUNET_MESSAGE_TYPE_SET_RESULT} and a status of
+@code{GNUNET_SET_STATUS_FAILURE} (and terminates the CADET channel).
 
-If the application accepts the request, it sends back a strata estimator using
-a message of type GNUNET_MESSAGE_TYPE_SET_UNION_P2P_SE. The initiator evaluates
-the strata estimator and initiates the exchange of invertible Bloom filters,
-sending a GNUNET_MESSAGE_TYPE_SET_UNION_P2P_IBF.
+If the application accepts the request, it sends back a strata estimator
+using a message of type GNUNET_MESSAGE_TYPE_SET_UNION_P2P_SE. The
+initiator evaluates the strata estimator and initiates the exchange of
+invertible Bloom filters, sending a GNUNET_MESSAGE_TYPE_SET_UNION_P2P_IBF.
 
 During the IBF exchange, if the receiver cannot invert the Bloom filter or
-detects a cycle, it sends a larger IBF in response (up to a defined maximum
-limit; if that limit is reached, the operation fails). Elements decoded while
-processing the IBF are transmitted to the other peer using
-GNUNET_MESSAGE_TYPE_SET_P2P_ELEMENTS, or requested from the other peer using
-GNUNET_MESSAGE_TYPE_SET_P2P_ELEMENT_REQUESTS messages, depending on the sign
-observed during decoding of the IBF. Peers respond to a
-GNUNET_MESSAGE_TYPE_SET_P2P_ELEMENT_REQUESTS message with the respective
-element in a GNUNET_MESSAGE_TYPE_SET_P2P_ELEMENTS message. If the IBF fully
-decodes, the peer responds with a GNUNET_MESSAGE_TYPE_SET_UNION_P2P_DONE
-message instead of another GNUNET_MESSAGE_TYPE_SET_UNION_P2P_IBF.
+detects a cycle, it sends a larger IBF in response (up to a defined
+maximum limit; if that limit is reached, the operation fails).
+Elements decoded while processing the IBF are transmitted to the other
+peer using GNUNET_MESSAGE_TYPE_SET_P2P_ELEMENTS, or requested from the
+other peer using GNUNET_MESSAGE_TYPE_SET_P2P_ELEMENT_REQUESTS messages,
+depending on the sign observed during decoding of the IBF.
+Peers respond to a GNUNET_MESSAGE_TYPE_SET_P2P_ELEMENT_REQUESTS message
+with the respective element in a GNUNET_MESSAGE_TYPE_SET_P2P_ELEMENTS
+message. If the IBF fully decodes, the peer responds with a
+GNUNET_MESSAGE_TYPE_SET_UNION_P2P_DONE message instead of another
+GNUNET_MESSAGE_TYPE_SET_UNION_P2P_IBF.
 
-All Bloom filter operations use a salt to mingle keys before hasing them into
-buckets, such that future iterations have a fresh chance of succeeding if they
-failed due to collisions before.
+All Bloom filter operations use a salt to mingle keys before hasing them
+into buckets, such that future iterations have a fresh chance of
+succeeding if they failed due to collisions before.
 
+@cindex STATISTICS subsystem
 @node GNUnet's STATISTICS subsystem
 @section GNUnet's STATISTICS subsystem
 
 @c %**end of header
 
-In GNUnet, the STATISTICS subsystem offers a central place for all subsystems
-to publish unsigned 64-bit integer run-time statistics. Keeping this
-information centrally means that there is a unified way for the user to obtain
-data on all subsystems, and individual subsystems do not have to always include
-a custom data export method for performance metrics and other statistics. For
-example, the TRANSPORT system uses STATISTICS to update information about the
-number of directly connected peers and the bandwidth that has been consumed by
-the various plugins. This information is valuable for diagnosing connectivity
-and performance issues.
+In GNUnet, the STATISTICS subsystem offers a central place for all
+subsystems to publish unsigned 64-bit integer run-time statistics.
+Keeping this information centrally means that there is a unified way for
+the user to obtain data on all subsystems, and individual subsystems do
+not have to always include a custom data export method for performance
+metrics and other statistics. For example, the TRANSPORT system uses
+STATISTICS to update information about the number of directly connected
+peers and the bandwidth that has been consumed by the various plugins.
+This information is valuable for diagnosing connectivity and performance
+issues.
 
-Following the GNUnet service architecture, the STATISTICS subsystem is divided
-into an API which is exposed through the header
+Following the GNUnet service architecture, the STATISTICS subsystem is
+divided into an API which is exposed through the header
 @strong{gnunet_statistics_service.h} and the STATISTICS service
-@strong{gnunet-service-statistics}. The @strong{gnunet-statistics} command-line
-tool can be used to obtain (and change) information about the values stored by
-the STATISTICS service. The STATISTICS service does not communicate with other
-peers.
+@strong{gnunet-service-statistics}. The @strong{gnunet-statistics}
+command-line tool can be used to obtain (and change) information about
+the values stored by the STATISTICS service. The STATISTICS service does
+not communicate with other peers.
 
 Data is stored in the STATISTICS service in the form of tuples
-@strong{(subsystem, name, value, persistence)}. The subsystem determines to
-which other GNUnet's subsystem the data belongs. name is the name through which
-value is associated. It uniquely identifies the record from among other records
-belonging to the same subsystem. In some parts of the code, the pair
-@strong{(subsystem, name)} is called a @strong{statistic} as it identifies the
-values stored in the STATISTCS service.The persistence flag determines if the
-record has to be preserved across service restarts. A record is said to be
-persistent if this flag is set for it; if not, the record is treated as a
-non-persistent record and it is lost after service restart. Persistent records
-are written to and read from the file @strong{statistics.data} before shutdown
+@strong{(subsystem, name, value, persistence)}. The subsystem determines
+to which other GNUnet's subsystem the data belongs. name is the name
+through which value is associated. It uniquely identifies the record
+from among other records belonging to the same subsystem.
+In some parts of the code, the pair @strong{(subsystem, name)} is called
+a @strong{statistic} as it identifies the values stored in the STATISTCS
+service.The persistence flag determines if the record has to be preserved
+across service restarts. A record is said to be persistent if this flag
+is set for it; if not, the record is treated as a non-persistent record
+and it is lost after service restart. Persistent records are written to
+and read from the file @strong{statistics.data} before shutdown
 and upon startup. The file is located in the HOME directory of the peer.
 
-An anomaly of the STATISTICS service is that it does not terminate immediately
-upon receiving a shutdown signal if it has any clients connected to it. It
-waits for all the clients that are not monitors to close their connections
-before terminating itself. This is to prevent the loss of data during peer
-shutdown --- delaying the STATISTICS service shutdown helps other services to
-store important data to STATISTICS during shutdown.
+An anomaly of the STATISTICS service is that it does not terminate
+immediately upon receiving a shutdown signal if it has any clients
+connected to it. It waits for all the clients that are not monitors to
+close their connections before terminating itself.
+This is to prevent the loss of data during peer shutdown --- delaying the
+STATISTICS service shutdown helps other services to store important data
+to STATISTICS during shutdown.
 
 @menu
 * libgnunetstatistics::
 * The STATISTICS Client-Service Protocol::
 @end menu
 
+@cindex libgnunetstatistics
 @node libgnunetstatistics
 @subsection libgnunetstatistics
 
 @c %**end of header
 
 @strong{libgnunetstatistics} is the library containing the API for the
-STATISTICS subsystem. Any process requiring to use STATISTICS should use this
-API by to open a connection to the STATISTICS service. This is done by calling
-the function @code{GNUNET_STATISTICS_create()}. This function takes the
-subsystem's name which is trying to use STATISTICS and a configuration. All
-values written to STATISTICS with this connection will be placed in the section
-corresponding to the given subsystem's name. The connection to STATISTICS can
-be destroyed with the function GNUNET_STATISTICS_destroy(). This function
-allows for the connection to be destroyed immediately or upon transferring all
+STATISTICS subsystem. Any process requiring to use STATISTICS should use
+this API by to open a connection to the STATISTICS service.
+This is done by calling the function @code{GNUNET_STATISTICS_create()}.
+This function takes the subsystem's name which is trying to use STATISTICS
+and a configuration.
+All values written to STATISTICS with this connection will be placed in
+the section corresponding to the given subsystem's name.
+The connection to STATISTICS can be destroyed with the function
+@code{GNUNET_STATISTICS_destroy()}. This function allows for the
+connection to be destroyed immediately or upon transferring all
 pending write requests to the service.
 
 Note: STATISTICS subsystem can be disabled by setting @code{DISABLE = YES}
 under the @code{[STATISTICS]} section in the configuration. With such a
-configuration all calls to @code{GNUNET_STATISTICS_create()} return @code{NULL}
-as the STATISTICS subsystem is unavailable and no other functions from the API
-can be used.
+configuration all calls to @code{GNUNET_STATISTICS_create()} return
+@code{NULL} as the STATISTICS subsystem is unavailable and no other
+functions from the API can be used.
 
 
 @menu
@@ -6402,66 +6498,74 @@ can be used.
 
 @c %**end of header
 
-Once a connection to the statistics service is obtained, information about any
-other system which uses statistics can be retrieved with the function
-GNUNET_STATISTICS_get(). This function takes the connection handle, the name of
-the subsystem whose information we are interested in (a @code{NULL} value will
-retrieve information of all available subsystems using STATISTICS), the name of
-the statistic we are interested in (a @code{NULL} value will retrieve all
-available statistics), a continuation callback which is called when all of
-requested information is retrieved, an iterator callback which is called for
-each parameter in the retrieved information and a closure for the
-aforementioned callbacks. The library then invokes the iterator callback for
-each value matching the request.
+Once a connection to the statistics service is obtained, information
+about any other system which uses statistics can be retrieved with the
+function GNUNET_STATISTICS_get().
+This function takes the connection handle, the name of the subsystem
+whose information we are interested in (a @code{NULL} value will
+retrieve information of all available subsystems using STATISTICS), the
+name of the statistic we are interested in (a @code{NULL} value will
+retrieve all available statistics), a continuation callback which is
+called when all of requested information is retrieved, an iterator
+callback which is called for each parameter in the retrieved information
+and a closure for the aforementioned callbacks. The library then invokes
+the iterator callback for each value matching the request.
 
-Call to @code{GNUNET_STATISTICS_get()} is asynchronous and can be canceled with
-the function @code{GNUNET_STATISTICS_get_cancel()}. This is helpful when
-retrieving statistics takes too long and especially when we want to shutdown
-and cleanup everything.
+Call to @code{GNUNET_STATISTICS_get()} is asynchronous and can be
+canceled with the function @code{GNUNET_STATISTICS_get_cancel()}.
+This is helpful when retrieving statistics takes too long and especially
+when we want to shutdown and cleanup everything.
 
 @node Setting statistics and updating them
 @subsubsection Setting statistics and updating them
 
 @c %**end of header
 
-So far we have seen how to retrieve statistics, here we will learn how we can
-set statistics and update them so that other subsystems can retrieve them.
+So far we have seen how to retrieve statistics, here we will learn how we
+can set statistics and update them so that other subsystems can retrieve
+them.
 
-A new statistic can be set using the function @code{GNUNET_STATISTICS_set()}.
-This function takes the name of the statistic and its value and a flag to make
-the statistic persistent. The value of the statistic should be of the type
-@code{uint64_t}. The function does not take the name of the subsystem; it is
-determined from the previous @code{GNUNET_STATISTICS_create()} invocation. If
+A new statistic can be set using the function
+@code{GNUNET_STATISTICS_set()}.
+This function takes the name of the statistic and its value and a flag to
+make the statistic persistent.
+The value of the statistic should be of the type @code{uint64_t}.
+The function does not take the name of the subsystem; it is determined
+from the previous @code{GNUNET_STATISTICS_create()} invocation. If
 the given statistic is already present, its value is overwritten.
 
 An existing statistics can be updated, i.e its value can be increased or
-decreased by an amount with the function @code{GNUNET_STATISTICS_update()}. The
-parameters to this function are similar to @code{GNUNET_STATISTICS_set()},
-except that it takes the amount to be changed as a type @code{int64_t} instead
-of the value.
+decreased by an amount with the function
+@code{GNUNET_STATISTICS_update()}.
+The parameters to this function are similar to
+@code{GNUNET_STATISTICS_set()}, except that it takes the amount to be
+changed as a type @code{int64_t} instead of the value.
 
-The library will combine multiple set or update operations into one message if
-the client performs requests at a rate that is faster than the available IPC
-with the STATISTICS service. Thus, the client does not have to worry about
-sending requests too quickly.
+The library will combine multiple set or update operations into one
+message if the client performs requests at a rate that is faster than the
+available IPC with the STATISTICS service. Thus, the client does not have
+to worry about sending requests too quickly.
 
 @node Watches
 @subsubsection Watches
 
 @c %**end of header
 
-As interesting feature of STATISTICS lies in serving notifications whenever a
-statistic of our interest is modified. This is achieved by registering a watch
-through the function @code{GNUNET_STATISTICS_watch()}. The parameters of this
-function are similar to those of @code{GNUNET_STATISTICS_get()}. Changes to the
-respective statistic's value will then cause the given iterator callback to be
-called. Note: A watch can only be registered for a specific statistic. Hence
-the subsystem name and the parameter name cannot be @code{NULL} in a call to
+As interesting feature of STATISTICS lies in serving notifications
+whenever a statistic of our interest is modified.
+This is achieved by registering a watch through the function
 @code{GNUNET_STATISTICS_watch()}.
+The parameters of this function are similar to those of
+@code{GNUNET_STATISTICS_get()}.
+Changes to the respective statistic's value will then cause the given
+iterator callback to be called.
+Note: A watch can only be registered for a specific statistic. Hence
+the subsystem name and the parameter name cannot be @code{NULL} in a
+call to @code{GNUNET_STATISTICS_watch()}.
 
 A registered watch will keep notifying any value changes until
-@code{GNUNET_STATISTICS_watch_cancel()} is called with the same parameters that
-are used for registering the watch.
+@code{GNUNET_STATISTICS_watch_cancel()} is called with the same
+parameters that are used for registering the watch.
 
 @node The STATISTICS Client-Service Protocol
 @subsection The STATISTICS Client-Service Protocol
@@ -6480,12 +6584,13 @@ are used for registering the watch.
 @c %**end of header
 
 To retrieve statistics, the client transmits a message of type
-@code{GNUNET_MESSAGE_TYPE_STATISTICS_GET} containing the given subsystem name
-and statistic parameter to the STATISTICS service. The service responds with a
-message of type @code{GNUNET_MESSAGE_TYPE_STATISTICS_VALUE} for each of the
-statistics parameters that match the client request for the client. The end of
-information retrieved is signaled by the service by sending a message of type
-@code{GNUNET_MESSAGE_TYPE_STATISTICS_END}.
+@code{GNUNET_MESSAGE_TYPE_STATISTICS_GET} containing the given subsystem
+name and statistic parameter to the STATISTICS service.
+The service responds with a message of type
+@code{GNUNET_MESSAGE_TYPE_STATISTICS_VALUE} for each of the statistics
+parameters that match the client request for the client. The end of
+information retrieved is signaled by the service by sending a message of
+type @code{GNUNET_MESSAGE_TYPE_STATISTICS_END}.
 
 @node Setting and updating statistics
 @subsubsection Setting and updating statistics
@@ -6497,64 +6602,70 @@ communicated to the service through the message
 @code{GNUNET_MESSAGE_TYPE_STATISTICS_SET}.
 
 When the service receives a message of type
-@code{GNUNET_MESSAGE_TYPE_STATISTICS_SET}, it retrieves the subsystem name and
-checks for a statistic parameter with matching the name given in the message.
-If a statistic parameter is found, the value is overwritten by the new value
-from the message; if not found then a new statistic parameter is created with
-the given name and value.
+@code{GNUNET_MESSAGE_TYPE_STATISTICS_SET}, it retrieves the subsystem
+name and checks for a statistic parameter with matching the name given in
+the message.
+If a statistic parameter is found, the value is overwritten by the new
+value from the message; if not found then a new statistic parameter is
+created with the given name and value.
 
 In addition to just setting an absolute value, it is possible to perform a
 relative update by sending a message of type
 @code{GNUNET_MESSAGE_TYPE_STATISTICS_SET} with an update flag
-(@code{GNUNET_STATISTICS_SETFLAG_RELATIVE}) signifying that the value in the
-message should be treated as an update value.
+(@code{GNUNET_STATISTICS_SETFLAG_RELATIVE}) signifying that the value in
+the message should be treated as an update value.
 
 @node Watching for updates
 @subsubsection Watching for updates
 
 @c %**end of header
 
-The function registers the watch at the service by sending a message of type
-@code{GNUNET_MESSAGE_TYPE_STATISTICS_WATCH}. The service then sends
+The function registers the watch at the service by sending a message of
+type @code{GNUNET_MESSAGE_TYPE_STATISTICS_WATCH}. The service then sends
 notifications through messages of type
 @code{GNUNET_MESSAGE_TYPE_STATISTICS_WATCH_VALUE} whenever the statistic
 parameter's value is changed.
 
+@cindex DHT
+@cindex Distributed Hash Table
 @node GNUnet's Distributed Hash Table (DHT)
 @section GNUnet's Distributed Hash Table (DHT)
 
 @c %**end of header
 
-GNUnet includes a generic distributed hash table that can be used by developers
-building P2P applications in the framework. This section documents high-level
-features and how developers are expected to use the DHT. We have a research
-paper detailing how the DHT works. Also, Nate's thesis includes a detailed
-description and performance analysis (in chapter 6).
+GNUnet includes a generic distributed hash table that can be used by
+developers building P2P applications in the framework.
+This section documents high-level features and how developers are
+expected to use the DHT.
+We have a research paper detailing how the DHT works.
+Also, Nate's thesis includes a detailed description and performance
+analysis (in chapter 6).
 
 Key features of GNUnet's DHT include:
 
 @itemize @bullet
 @item stores key-value pairs with values up to (approximately) 63k in size
-@item works with many underlay network topologies (small-world, random graph),
-underlay does not need to be a full mesh / clique
-@item support for extended queries (more than just a simple 'key'), filtering
-duplicate replies within the network (bloomfilter) and content validation (for
-details, please read the subsection on the block library)
-@item can (optionally) return paths taken by the PUT and GET operations to the
-application
+@item works with many underlay network topologies (small-world, random
+graph), underlay does not need to be a full mesh / clique
+@item support for extended queries (more than just a simple 'key'),
+filtering duplicate replies within the network (bloomfilter) and content
+validation (for details, please read the subsection on the block library)
+@item can (optionally) return paths taken by the PUT and GET operations
+to the application
 @item provides content replication to handle churn
 @end itemize
 
-GNUnet's DHT is randomized and unreliable. Unreliable means that there is no
-strict guarantee that a value stored in the DHT is always found --- values are
-only found with high probability. While this is somewhat true in all P2P DHTs,
-GNUnet developers should be particularly wary of this fact (this will help you
-write secure, fault-tolerant code). Thus, when writing any application using
-the DHT, you should always consider the possibility that a value stored in the
-DHT by you or some other peer might simply not be returned, or returned with a
-significant delay. Your application logic must be written to tolerate this
-(naturally, some loss of performance or quality of service is expected in this
-case).
+GNUnet's DHT is randomized and unreliable. Unreliable means that there is
+no strict guarantee that a value stored in the DHT is always
+found --- values are only found with high probability.
+While this is somewhat true in all P2P DHTs, GNUnet developers should be
+particularly wary of this fact (this will help you write secure,
+fault-tolerant code). Thus, when writing any application using the DHT,
+you should always consider the possibility that a value stored in the
+DHT by you or some other peer might simply not be returned, or returned
+with a significant delay.
+Your application logic must be written to tolerate this (naturally, some
+loss of performance or quality of service is expected in this case).
 
 @menu
 * Block library and plugins::
@@ -6583,62 +6694,71 @@ case).
 
 Blocks are small (< 63k) pieces of data stored under a key (struct
 GNUNET_HashCode). Blocks have a type (enum GNUNET_BlockType) which defines
-their data format. Blocks are used in GNUnet as units of static data exchanged
-between peers and stored (or cached) locally. Uses of blocks include
-file-sharing (the files are broken up into blocks), the VPN (DNS information is
-stored in blocks) and the DHT (all information in the DHT and meta-information
-for the maintenance of the DHT are both stored using blocks). The block
-subsystem provides a few common functions that must be available for any type
-of block.
+their data format. Blocks are used in GNUnet as units of static data
+exchanged between peers and stored (or cached) locally.
+Uses of blocks include file-sharing (the files are broken up into blocks),
+the VPN (DNS information is stored in blocks) and the DHT (all
+information in the DHT and meta-information for the maintenance of the
+DHT are both stored using blocks).
+The block subsystem provides a few common functions that must be
+available for any type of block.
 
+@cindex libgnunetblock API
 @node The API of libgnunetblock
 @subsubsection The API of libgnunetblock
 
 @c %**end of header
 
-The block library requires for each (family of) block type(s) a block plugin
-(implementing gnunet_block_plugin.h) that provides basic functions that are
-needed by the DHT (and possibly other subsystems) to manage the block. These
-block plugins are typically implemented within their respective subsystems.@
-The main block library is then used to locate, load and query the appropriate
-block plugin. Which plugin is appropriate is determined by the block type
-(which is just a 32-bit integer). Block plugins contain code that specifies
-which block types are supported by a given plugin. The block library loads all
-block plugins that are installed at the local peer and forwards the application
-request to the respective plugin.
+The block library requires for each (family of) block type(s) a block
+plugin (implementing @file{gnunet_block_plugin.h}) that provides basic
+functions that are needed by the DHT (and possibly other subsystems) to
+manage the block.
+These block plugins are typically implemented within their respective
+subsystems.
+The main block library is then used to locate, load and query the
+appropriate block plugin.
+Which plugin is appropriate is determined by the block type (which is
+just a 32-bit integer). Block plugins contain code that specifies which
+block types are supported by a given plugin. The block library loads all
+block plugins that are installed at the local peer and forwards the
+application request to the respective plugin.
 
-The central functions of the block APIs (plugin and main library) are to allow
-the mapping of blocks to their respective key (if possible) and the ability to
-check that a block is well-formed and matches a given request (again, if
-possible). This way, GNUnet can avoid storing invalid blocks, storing blocks
-under the wrong key and forwarding blocks in response to a query that they do
+The central functions of the block APIs (plugin and main library) are to
+allow the mapping of blocks to their respective key (if possible) and the
+ability to check that a block is well-formed and matches a given
+request (again, if possible).
+This way, GNUnet can avoid storing invalid blocks, storing blocks under
+the wrong key and forwarding blocks in response to a query that they do
 not answer.
 
-One key function of block plugins is that it allows GNUnet to detect duplicate
-replies (via the Bloom filter). All plugins MUST support detecting duplicate
-replies (by adding the current response to the Bloom filter and rejecting it if
-it is encountered again). If a plugin fails to do this, responses may loop in
-the network.
+One key function of block plugins is that it allows GNUnet to detect
+duplicate replies (via the Bloom filter). All plugins MUST support
+detecting duplicate replies (by adding the current response to the
+Bloom filter and rejecting it if it is encountered again).
+If a plugin fails to do this, responses may loop in the network.
 
 @node Queries
 @subsubsection Queries
 @c %**end of header
 
 The query format for any block in GNUnet consists of four main components.
-First, the type of the desired block must be specified. Second, the query must
-contain a hash code. The hash code is used for lookups in hash tables and
-databases and must not be unique for the block (however, if possible a unique
-hash should be used as this would be best for performance). Third, an optional
-Bloom filter can be specified to exclude known results; replies that hash to
-the bits set in the Bloom filter are considered invalid. False-positives can be
-eliminated by sending the same query again with a different Bloom filter
-mutator value, which parameterizes the hash function that is used. Finally, an
-optional application-specific "eXtended query" (xquery) can be specified to
-further constrain the results. It is entirely up to the type-specific plugin to
-determine whether or not a given block matches a query (type, hash, Bloom
-filter, and xquery). Naturally, not all xquery's are valid and some types of
-blocks may not support Bloom filters either, so the plugin also needs to check
-if the query is valid in the first place.
+First, the type of the desired block must be specified. Second, the query
+must contain a hash code. The hash code is used for lookups in hash
+tables and databases and must not be unique for the block (however, if
+possible a unique hash should be used as this would be best for
+performance).
+Third, an optional Bloom filter can be specified to exclude known results;
+replies that hash to the bits set in the Bloom filter are considered
+invalid. False-positives can be eliminated by sending the same query
+again with a different Bloom filter mutator value, which parameterizes
+the hash function that is used.
+Finally, an optional application-specific "eXtended query" (xquery) can
+be specified to further constrain the results. It is entirely up to
+the type-specific plugin to determine whether or not a given block
+matches a query (type, hash, Bloom filter, and xquery).
+Naturally, not all xquery's are valid and some types of blocks may not
+support Bloom filters either, so the plugin also needs to check if the
+query is valid in the first place.
 
 Depending on the results from the plugin, the DHT will then discard the
 (invalid) query, forward the query, discard the (invalid) reply, cache the
@@ -6649,10 +6769,11 @@ Depending on the results from the plugin, the DHT will then discard the
 
 @c %**end of header
 
-The source code in @strong{plugin_block_test.c} is a good starting point for
-new block plugins --- it does the minimal work by implementing a plugin that
-performs no validation at all. The respective @strong{Makefile.am} shows how to
-build and install a block plugin.
+The source code in @strong{plugin_block_test.c} is a good starting point
+for new block plugins --- it does the minimal work by implementing a
+plugin that performs no validation at all.
+The respective @strong{Makefile.am} shows how to build and install a
+block plugin.
 
 @node Conclusion2
 @subsubsection Conclusion2
@@ -6660,21 +6781,23 @@ build and install a block plugin.
 @c %**end of header
 
 In conclusion, GNUnet subsystems that want to use the DHT need to define a
-block format and write a plugin to match queries and replies. For testing, the
-"GNUNET_BLOCK_TYPE_TEST" block type can be used; it accepts any query as valid
-and any reply as matching any query. This type is also used for the DHT command
-line tools. However, it should NOT be used for normal applications due to the
-lack of error checking that results from this primitive implementation.
+block format and write a plugin to match queries and replies. For testing,
+the "@code{GNUNET_BLOCK_TYPE_TEST}" block type can be used; it accepts
+any query as valid and any reply as matching any query.
+This type is also used for the DHT command line tools.
+However, it should NOT be used for normal applications due to the lack
+of error checking that results from this primitive implementation.
 
+@cindex libgnunetdht
 @node libgnunetdht
 @subsection libgnunetdht
 
 @c %**end of header
 
-The DHT API itself is pretty simple and offers the usual GET and PUT functions
-that work as expected. The specified block type refers to the block library
-which allows the DHT to run application-specific logic for data stored in the
-network.
+The DHT API itself is pretty simple and offers the usual GET and PUT
+functions that work as expected. The specified block type refers to the
+block library which allows the DHT to run application-specific logic for
+data stored in the network.
 
 
 @menu
@@ -6689,23 +6812,26 @@ network.
 
 @c %**end of header
 
-When using GET, the main consideration for developers (other than the block
-library) should be that after issuing a GET, the DHT will continuously cause
-(small amounts of) network traffic until the operation is explicitly canceled.
-So GET does not simply send out a single network request once; instead, the
-DHT will continue to search for data. This is needed to achieve good success
-rates and also handles the case where the respective PUT operation happens
-after the GET operation was started. Developers should not cancel an existing
-GET operation and then explicitly re-start it to trigger a new round of
-network requests; this is simply inefficient, especially as the internal
-automated version can be more efficient, for example by filtering results in
-the network that have already been returned.
+When using GET, the main consideration for developers (other than the
+block library) should be that after issuing a GET, the DHT will
+continuously cause (small amounts of) network traffic until the operation
+is explicitly canceled.
+So GET does not simply send out a single network request once; instead,
+the DHT will continue to search for data. This is needed to achieve good
+success rates and also handles the case where the respective PUT
+operation happens after the GET operation was started.
+Developers should not cancel an existing GET operation and then
+explicitly re-start it to trigger a new round of network requests;
+this is simply inefficient, especially as the internal automated version
+can be more efficient, for example by filtering results in the network
+that have already been returned.
 
 If an application that performs a GET request has a set of replies that it
 already knows and would like to filter, it can call@
-@code{GNUNET_DHT_get_filter_known_results} with an array of hashes over the
-respective blocks to tell the DHT that these results are not desired (any
-more). This way, the DHT will filter the respective blocks using the block
+@code{GNUNET_DHT_get_filter_known_results} with an array of hashes over
+the respective blocks to tell the DHT that these results are not
+desired (any more).
+This way, the DHT will filter the respective blocks using the block
 library in the network, which may result in a significant reduction in
 bandwidth consumption.
 
@@ -6714,18 +6840,20 @@ bandwidth consumption.
 
 @c %**end of header
 
-In contrast to GET operations, developers @strong{must} manually re-run PUT
-operations periodically (if they intend the content to continue to be
-available). Content stored in the DHT expires or might be lost due to churn.
-Furthermore, GNUnet's DHT typically requires multiple rounds of PUT operations
-before a key-value pair is consistently available to all peers (the DHT
-randomizes paths and thus storage locations, and only after multiple rounds of
-PUTs there will be a sufficient number of replicas in large DHTs). An explicit
-PUT operation using the DHT API will only cause network traffic once, so in
-order to ensure basic availability and resistance to churn (and adversaries),
-PUTs must be repeated. While the exact frequency depends on the application, a
-rule of thumb is that there should be at least a dozen PUT operations within
-the content lifetime. Content in the DHT typically expires after one day, so
+In contrast to GET operations, developers @strong{must} manually re-run
+PUT operations periodically (if they intend the content to continue to be
+available). Content stored in the DHT expires or might be lost due to
+churn.
+Furthermore, GNUnet's DHT typically requires multiple rounds of PUT
+operations before a key-value pair is consistently available to all
+peers (the DHT randomizes paths and thus storage locations, and only
+after multiple rounds of PUTs there will be a sufficient number of
+replicas in large DHTs). An explicit PUT operation using the DHT API will
+only cause network traffic once, so in order to ensure basic availability
+and resistance to churn (and adversaries), PUTs must be repeated.
+While the exact frequency depends on the application, a rule of thumb is
+that there should be at least a dozen PUT operations within the content
+lifetime. Content in the DHT typically expires after one day, so
 DHT PUT operations should be repeated at least every 1-2 hours.
 
 @node MONITOR
@@ -6733,18 +6861,21 @@ DHT PUT operations should be repeated at least every 1-2 hours.
 
 @c %**end of header
 
-The DHT API also allows applications to monitor messages crossing the local
-DHT service. The types of messages used by the DHT are GET, PUT and RESULT
-messages. Using the monitoring API, applications can choose to monitor these
+The DHT API also allows applications to monitor messages crossing the
+local DHT service.
+The types of messages used by the DHT are GET, PUT and RESULT messages.
+Using the monitoring API, applications can choose to monitor these
 requests, possibly limiting themselves to requests for a particular block
 type.
 
-The monitoring API is not only usefu only for diagnostics, it can also be used
-to trigger application operations based on PUT operations. For example, an
-application may use PUTs to distribute work requests to other peers. The
-workers would then monitor for PUTs that give them work, instead of looking
-for work using GET operations. This can be beneficial, especially if the
-workers have no good way to guess the keys under which work would be stored.
+The monitoring API is not only usefu only for diagnostics, it can also be
+used to trigger application operations based on PUT operations.
+For example, an application may use PUTs to distribute work requests to
+other peers.
+The workers would then monitor for PUTs that give them work, instead of
+looking for work using GET operations.
+This can be beneficial, especially if the workers have no good way to
+guess the keys under which work would be stored.
 Naturally, additional protocols might be needed to ensure that the desired
 number of workers will process the distributed workload.
 
@@ -6756,25 +6887,26 @@ number of workers will process the distributed workload.
 There are two important options for GET and PUT requests:
 
 @table @asis
-@item GNUNET_DHT_RO_DEMULITPLEX_EVERYWHERE This option means that all peers
-should process the request, even if their peer ID is not closest to the key.
-For a PUT request, this means that all peers that a request traverses may make
-a copy of the data. Similarly for a GET request, all peers will check their
-local database for a result. Setting this option can thus significantly improve
-caching and reduce bandwidth consumption --- at the expense of a larger DHT
+@item GNUNET_DHT_RO_DEMULITPLEX_EVERYWHERE This option means that all
+peers should process the request, even if their peer ID is not closest to
+the key. For a PUT request, this means that all peers that a request
+traverses may make a copy of the data.
+Similarly for a GET request, all peers will check their local database
+for a result. Setting this option can thus significantly improve caching
+and reduce bandwidth consumption --- at the expense of a larger DHT
 database. If in doubt, we recommend that this option should be used.
-@item GNUNET_DHT_RO_RECORD_ROUTE This option instructs the DHT to record the path
-that a GET or a PUT request is taking through the overlay network. The
-resulting paths are then returned to the application with the respective
-result. This allows the receiver of a result to construct a path to the
-originator of the data, which might then be used for routing. Naturally,
-setting this option requires additional bandwidth and disk space, so
-applications should only set this if the paths are needed by the application
-logic.
+@item GNUNET_DHT_RO_RECORD_ROUTE This option instructs the DHT to record
+the path that a GET or a PUT request is taking through the overlay
+network. The resulting paths are then returned to the application with
+the respective result. This allows the receiver of a result to construct
+a path to the originator of the data, which might then be used for
+routing. Naturally, setting this option requires additional bandwidth
+and disk space, so applications should only set this if the paths are
+needed by the application logic.
 @item GNUNET_DHT_RO_FIND_PEER This option is an internal option used by
 the DHT's peer discovery mechanism and should not be used by applications.
-@item GNUNET_DHT_RO_BART This option is currently not implemented. It may in
-the future offer performance improvements for clique topologies.
+@item GNUNET_DHT_RO_BART This option is currently not implemented. It may
+in the future offer performance improvements for clique topologies.
 @end table
 
 @node The DHT Client-Service Protocol
@@ -6793,73 +6925,76 @@ the future offer performance improvements for clique topologies.
 
 @c %**end of header
 
-To store (PUT) data into the DHT, the client sends a@ @code{struct
-GNUNET_DHT_ClientPutMessage} to the service. This message specifies the block
-type, routing options, the desired replication level, the expiration time, key,
-value and a 64-bit unique ID for the operation. The service responds with a@
-@code{struct GNUNET_DHT_ClientPutConfirmationMessage} with the same 64-bit
-unique ID. Note that the service sends the confirmation as soon as it has
-locally processed the PUT request. The PUT may still be propagating through the
-network at this time.
+To store (PUT) data into the DHT, the client sends a
+@code{struct GNUNET_DHT_ClientPutMessage} to the service.
+This message specifies the block type, routing options, the desired
+replication level, the expiration time, key,
+value and a 64-bit unique ID for the operation. The service responds with
+a @code{struct GNUNET_DHT_ClientPutConfirmationMessage} with the same
+64-bit unique ID. Note that the service sends the confirmation as soon as
+it has locally processed the PUT request. The PUT may still be
+propagating through the network at this time.
 
-In the future, we may want to change this to provide (limited) feedback to the
-client, for example if we detect that the PUT operation had no effect because
-the same key-value pair was already stored in the DHT. However, changing this
-would also require additional state and messages in the P2P
-interaction.
+In the future, we may want to change this to provide (limited) feedback
+to the client, for example if we detect that the PUT operation had no
+effect because the same key-value pair was already stored in the DHT.
+However, changing this would also require additional state and messages
+in the P2P interaction.
 
 @node GETting data from the DHT
 @subsubsection GETting data from the DHT
 
 @c %**end of header
 
-To retrieve (GET) data from the DHT, the client sends a@ @code{struct
-GNUNET_DHT_ClientGetMessage} to the service. The message specifies routing
-options, a replication level (for replicating the GET, not the content), the
-desired block type, the key, the (optional) extended query and unique 64-bit
-request ID.
+To retrieve (GET) data from the DHT, the client sends a
+@code{struct GNUNET_DHT_ClientGetMessage} to the service. The message
+specifies routing options, a replication level (for replicating the GET,
+not the content), the desired block type, the key, the (optional)
+extended query and unique 64-bit request ID.
 
-Additionally, the client may send any number of@ @code{struct
-GNUNET_DHT_ClientGetResultSeenMessage}s to notify the service about results
-that the client is already aware of. These messages consist of the key, the
-unique 64-bit ID of the request, and an arbitrary number of hash codes over the
-blocks that the client is already aware of. As messages are restricted to 64k,
-a client that already knows more than about a thousand blocks may need to send
-several of these messages. Naturally, the client should transmit these messages
-as quickly as possible after the original GET request such that the DHT can
-filter those results in the network early on. Naturally, as these messages are
-send after the original request, it is conceivalbe that the DHT service may
-return blocks that match those already known to the client anyway.
+Additionally, the client may send any number of
+@code{struct GNUNET_DHT_ClientGetResultSeenMessage}s to notify the
+service about results that the client is already aware of.
+These messages consist of the key, the unique 64-bit ID of the request,
+and an arbitrary number of hash codes over the blocks that the client is
+already aware of. As messages are restricted to 64k, a client that
+already knows more than about a thousand blocks may need to send
+several of these messages. Naturally, the client should transmit these
+messages as quickly as possible after the original GET request such that
+the DHT can filter those results in the network early on. Naturally, as
+these messages are send after the original request, it is conceivalbe
+that the DHT service may return blocks that match those already known
+to the client anyway.
 
 In response to a GET request, the service will send @code{struct
 GNUNET_DHT_ClientResultMessage}s to the client. These messages contain the
-block type, expiration, key, unique ID of the request and of course the value
-(a block). Depending on the options set for the respective operations, the
-replies may also contain the path the GET and/or the PUT took through the
-network.
+block type, expiration, key, unique ID of the request and of course the
+value (a block). Depending on the options set for the respective
+operations, the replies may also contain the path the GET and/or the PUT
+took through the network.
 
-A client can stop receiving replies either by disconnecting or by sending a
-@code{struct GNUNET_DHT_ClientGetStopMessage} which must contain the key and
-the 64-bit unique ID of the original request. Using an explicit "stop" message
-is more common as this allows a client to run many concurrent GET operations
-over the same connection with the DHT service --- and to stop them
-individually.
+A client can stop receiving replies either by disconnecting or by sending
+a @code{struct GNUNET_DHT_ClientGetStopMessage} which must contain the
+key and the 64-bit unique ID of the original request. Using an
+explicit "stop" message is more common as this allows a client to run
+many concurrent GET operations over the same connection with the DHT
+service --- and to stop them individually.
 
 @node Monitoring the DHT
 @subsubsection Monitoring the DHT
 
 @c %**end of header
 
-To begin monitoring, the client sends a @code{struct
-GNUNET_DHT_MonitorStartStop} message to the DHT service. In this message, flags
-can be set to enable (or disable) monitoring of GET, PUT and RESULT messages
-that pass through a peer. The message can also restrict monitoring to a
-particular block type or a particular key. Once monitoring is enabled, the DHT
-service will notify the client about any matching event using @code{struct
-GNUNET_DHT_MonitorGetMessage}s for GET events, @code{struct
-GNUNET_DHT_MonitorPutMessage} for PUT events and@ @code{struct
-GNUNET_DHT_MonitorGetRespMessage} for RESULTs. Each of these messages contains
-all of the information about the event.
+To begin monitoring, the client sends a
+@code{struct GNUNET_DHT_MonitorStartStop} message to the DHT service.
+In this message, flags can be set to enable (or disable) monitoring of
+GET, PUT and RESULT messages that pass through a peer. The message can
+also restrict monitoring to a particular block type or a particular key.
+Once monitoring is enabled, the DHT service will notify the client about
+any matching event using @code{struct GNUNET_DHT_MonitorGetMessage}s for
+GET events, @code{struct GNUNET_DHT_MonitorPutMessage} for PUT events
+and @code{struct GNUNET_DHT_MonitorGetRespMessage} for RESULTs. Each of
+these messages contains all of the information about the event.
 
 @node The DHT Peer-to-Peer Protocol
 @subsection The DHT Peer-to-Peer Protocol

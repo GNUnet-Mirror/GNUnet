@@ -878,29 +878,34 @@ TODO
 @section Build instructions for Debian 7.5
 
 
-These are the installation instructions for Debian 7.5. They were tested using
-a minimal, fresh Debian 7.5 AMD64 installation without non-free software
-(no contrib or non-free). By "minimal", we mean that during installation, we
-did not select any desktop environment, servers or system utilities during the
-"tasksel" step. Note that the packages and the dependencies that we will
-install during this chapter take about 1.5 GB of disk space. Combined with
-GNUnet and space for objects during compilation, you should not even attempt
-this unless you have about 2.5 GB free after the minimal Debian installation.
-Using these instructions to build a VM image is likely to require a minimum of
-4-5 GB for the VM (as you will likely also want a desktop manager).
+These are the installation instructions for Debian 7.5. They were tested
+using a minimal, fresh Debian 7.5 AMD64 installation without non-free
+software (no contrib or non-free).
+By "minimal", we mean that during installation, we did not select any
+desktop environment, servers or system utilities during the "tasksel"
+step. Note that the packages and the dependencies that we will install
+during this chapter take about 1.5 GB of disk space.
+Combined with GNUnet and space for objects during compilation, you should
+not even attempt this unless you have about 2.5 GB free after the minimal
+Debian installation.
+Using these instructions to build a VM image is likely to require a
+minimum of 4-5 GB for the VM (as you will likely also want a desktop
+manager).
 
-GNUnet's security model assumes that your @file{/home} directory is encrypted.
-Thus, if possible, you should encrypt your home partition
+GNUnet's security model assumes that your @file{/home} directory is
+encrypted. Thus, if possible, you should encrypt your home partition
 (or per-user home directory).
 
 Naturally, the exact details of the starting state for your installation
-should not matter much. For example, if you selected any of those installation
-groups you might simply already have some of the necessary packages installed.
-We did this for testing, as this way we are less likely to forget to mention a
-required package. Note that we will not install a desktop environment, but of
-course you will need to install one to use GNUnet's graphical user interfaces.
-Thus, it is suggested that you simply install the desktop environment of your
-choice before beginning with the instructions.
+should not matter much. For example, if you selected any of those
+installation groups you might simply already have some of the necessary
+packages installed.
+We did this for testing, as this way we are less likely to forget to
+mention a required package.
+Note that we will not install a desktop environment, but of course you
+will need to install one to use GNUnet's graphical user interfaces.
+Thus, it is suggested that you simply install the desktop environment of
+your choice before beginning with the instructions.
 
 
 
@@ -923,20 +928,23 @@ After any installation, you should begin by running
 # apt-get update ; apt-get upgrade
 @end example
 
-to ensure that all of your packages are up-to-date. Note that the "#" is used
-to indicate that you need to type in this command as "root"
-(or prefix with "sudo"), whereas "$" is used to indicate typing in a command
-as a normal user.
+to ensure that all of your packages are up-to-date. Note that the "#" is
+used to indicate that you need to type in this command as "root"
+(or prefix with "sudo"), whereas "$" is used to indicate typing in a
+command as a normal user.
 
 @node Stable? Hah!
 @subsection Stable? Hah!
 
-Yes, we said we start with a Debian 7.5 "stable" system. However, to reduce the
-amount of compilation by hand, we will begin by allowing the installation of
-packages from the testing and unstable distributions as well. We will stick to
-"stable" packages where possible, but some packages will be taken from the
-other distributions. Start by modifying @file{/etc/apt/sources.list} to contain
-the following (possibly adjusted to point to your mirror of choice):
+Yes, we said we start with a Debian 7.5 "stable" system. However, to
+reduce the amount of compilation by hand, we will begin by allowing the
+installation of packages from the testing and unstable distributions as
+well.
+We will stick to "stable" packages where possible, but some packages will
+be taken from the other distributions.
+Start by modifying @file{/etc/apt/sources.list} to contain the
+following (possibly adjusted to point to your mirror of choice):
+
 @example
 # These were there before:
 deb http://ftp.de.debian.org/debian/ wheezy main
@@ -951,8 +959,8 @@ deb http://ftp.de.debian.org/debian/ testing main
 deb http://ftp.de.debian.org/debian/ unstable main
 @end example
 
-The next step is to create/edit your @file{/etc/apt/preferences} file to look
-like this:
+The next step is to create/edit your @file{/etc/apt/preferences}
+file to look like this:
 
 @example
 Package: *
@@ -968,11 +976,12 @@ Pin: release o=Debian,a=unstable
 Pin-Priority: 600
 @end example
 
-You can read more about Apt Preferences here and here. Note that other pinnings
-are likely to also work for GNUnet, the key thing is that you need some
-packages from unstable (as shown below). However, as unstable is unlikely to
-be comprehensive (missing packages) or might be problematic (crashing packages),
-you probably want others from stable and/or testing.
+You can read more about Apt Preferences here and here.
+Note that other pinnings are likely to also work for GNUnet, the key
+thing is that you need some packages from unstable (as shown below).
+However, as unstable is unlikely to be comprehensive (missing packages)
+or might be problematic (crashing packages), you probably want others
+from stable and/or testing.
 
 @node Update again
 @subsection Update again
@@ -984,8 +993,9 @@ Now, run again@
 # apt-get upgrade@
 @end example
 
-to ensure that all your new distribution indices are downloaded, and that your
-pinning is correct: the upgrade step should cause no changes at all.
+to ensure that all your new distribution indices are downloaded, and
+that your pinning is correct: the upgrade step should cause no changes
+at all.
 
 @node Installing packages
 @subsection Installing packages
@@ -1015,9 +1025,10 @@ After that, we install a few more packages from unstable:@
 @node Installing dependencies from source
 @subsection Installing dependencies from source
 
-Next, we need to install a few dependencies from source. You might want to do
-this as a "normal" user and only run the @code{make install} steps as root
-(hence the @code{sudo} in the commands below). Also, you do this from any
+Next, we need to install a few dependencies from source.
+You might want to do this as a "normal" user and only run the
+@code{make install} steps as root (hence the @code{sudo} in the
+commands below). Also, you do this from any
 directory. We begin by downloading all dependencies, then extracting the
 sources, and finally compiling and installing the libraries:@
 
@@ -1049,12 +1060,12 @@ $ cd libmicrohttpd-0.9.33; ./configure;
 $ make ; sudo make install ; cd ..
 $ cd gnurl-7.34.0
 $ ./configure --enable-ipv6 --with-gnutls=/usr/local --without-libssh2 \
- --without-libmetalink --without-winidn --without-librtmp --without-nghttp2 \
- --without-nss --without-cyassl --without-polarssl --without-ssl \
- --without-winssl --without-darwinssl --disable-sspi --disable-ntlm-wb \
- --disable-ldap --disable-rtsp --disable-dict --disable-telnet --disable-tftp \
- --disable-pop3 --disable-imap --disable-smtp --disable-gopher --disable-file \
- --disable-ftp
+ --without-libmetalink --without-winidn --without-librtmp \
+ --without-nghttp2 --without-nss --without-cyassl --without-polarssl \
+ --without-ssl --without-winssl --without-darwinssl --disable-sspi \
+ --disable-ntlm-wb --disable-ldap --disable-rtsp --disable-dict \
+ --disable-telnet --disable-tftp --disable-pop3 --disable-imap \
+ --disable-smtp --disable-gopher --disable-file --disable-ftp
 $ make ; sudo make install; cd ..
 @end example
 
@@ -1068,10 +1079,11 @@ here.
 @node But wait there is more!
 @subsection But wait there is more!
 
-So far, we installed all of the packages and dependencies required to ensure
-that all of GNUnet would be built. However, while for example the plugins to
-interact with the MySQL or Postgres databases have been created, we did not
-actually install or configure those databases. Thus, you will need to install
+So far, we installed all of the packages and dependencies required to
+ensure that all of GNUnet would be built.
+However, while for example the plugins to interact with the MySQL or
+Postgres databases have been created, we did not actually install or
+configure those databases. Thus, you will need to install
 and configure those databases or stick with the default Sqlite database.
 Sqlite is usually fine for most applications, but MySQL can offer better
 performance and Postgres better resillience.
@@ -1131,12 +1143,12 @@ $ wget https://gnunet.org/sites/default/files/gnurl-7.35.0.tar.bz2
 $ tar xf gnurl-7.35.0.tar.bz2
 $ cd gnurl-7.35.0
 $ ./configure --enable-ipv6 --with-gnutls --without-libssh2 \
- --without-libmetalink --without-winidn --without-librtmp --without-nghttp2 \
- --without-nss --without-cyassl --without-polarssl --without-ssl \
- --without-winssl --without-darwinssl --disable-sspi --disable-ntlm-wb \
- --disable-ldap --disable-rtsp --disable-dict --disable-telnet --disable-tftp \
- --disable-pop3 --disable-imap --disable-smtp --disable-gopher --disable-file \
- --disable-ftp
+ --without-libmetalink --without-winidn --without-librtmp \
+ --without-nghttp2 --without-nss --without-cyassl --without-polarssl \
+ --without-ssl --without-winssl --without-darwinssl --disable-sspi \
+ --disable-ntlm-wb --disable-ldap --disable-rtsp --disable-dict \
+ --disable-telnet --disable-tftp --disable-pop3 --disable-imap \
+ --disable-smtp --disable-gopher --disable-file --disable-ftp
 $ sudo make install
 $ cd ..
 @end example
@@ -1157,47 +1169,64 @@ Install to a different directory:@
  --prefix=PREFIX
 
 @item
-Have sudo permission, but do not want to compile as root:@
- --with-sudo
+Have sudo permission, but do not want to compile as root:
+
+@example
+--with-sudo
+@end example
 
 @item
-Want debug message enabled:@
- -- enable-logging=verbose
+Want debug message enabled:
+
+@example
+--enable-logging=verbose
+@end example
+
 @end itemize
 
 
-@code{@
- $ ./configure [ --with-sudo | --prefix=PREFIX | --- enable-logging=verbose]@
- $ make; sudo make install@
-}
+@example
+$ ./configure [ --with-sudo | --prefix=PREFIX | --enable-logging=verbose]
+$ make; sudo make install
+@end example
 
-After installing it, you need to create an empty configuration file:@
-@code{touch ~/.config/gnunet.conf}
+After installing it, you need to create an empty configuration file:
 
-And finally you can start GNUnet with@
-@code{$ gnunet-arm -s}
+@example
+touch ~/.config/gnunet.conf
+@end example
+
+And finally you can start GNUnet with
+
+@example
+$ gnunet-arm -s
+@end example
 
 @node Build instructions for Debian 8
 @section Build instructions for Debian 8
 
-These are the installation instructions for Debian 8. They were tested using a
-fresh Debian 8 AMD64 installation without non-free software (no contrib or
-non-free). During installation, I only selected "lxde" for the desktop
-environment. Note that the packages and the dependencies that we will install
-during this chapter take about 1.5 GB of disk space. Combined with GNUnet and
-space for objects during compilation, you should not even attempt this unless
-you have about 2.5 GB free after the Debian installation. Using these
-instructions to build a VM image is likely to require a minimum of 4-5 GB for
-the VM (as you will likely also want a desktop manager).
+These are the installation instructions for Debian 8. They were tested
+sing a fresh Debian 8 AMD64 installation without non-free software (no
+contrib or non-free). During installation, I only selected "lxde" for the
+desktop environment.
+Note that the packages and the dependencies that we will install during
+this chapter take about 1.5 GB of disk space. Combined with GNUnet and
+space for objects during compilation, you should not even attempt this
+unless you have about 2.5 GB free after the Debian installation.
+Using these instructions to build a VM image is likely to require a
+minimum of 4-5 GB for the VM (as you will likely also want a desktop
+manager).
 
-GNUnet's security model assumes that your @code{/home} directory is encrypted.
-Thus, if possible, you should encrypt your entire disk, or at least just your
-home partition (or per-user home directory).
+GNUnet's security model assumes that your @code{/home} directory is
+encrypted.
+Thus, if possible, you should encrypt your entire disk, or at least just
+your home partition (or per-user home directory).
 
-Naturally, the exact details of the starting state for your installation should
-not matter much. For example, if you selected any of those installation groups
-you might simply already have some of the necessary packages installed. Thus,
-it is suggested that you simply install the desktop environment of your choice
+Naturally, the exact details of the starting state for your installation
+should not matter much.
+For example, if you selected any of those installation groups you might
+simply already have some of the necessary packages installed. Thus, it is
+suggested that you simply install the desktop environment of your choice
 before beginning with the instructions.
 
 
@@ -1212,63 +1241,68 @@ before beginning with the instructions.
 @node Update Debian
 @subsection Update Debian
 
-After any installation, you should begin by running@
-@code{@
- # apt-get update@
- # apt-get upgrade@
-}@
-to ensure that all of your packages are up-to-date. Note that the "#" is used
-to indicate that you need to type in this command as "root" (or prefix with
-"sudo"), whereas "$" is used to indicate typing in a command as a normal
-user.
+After any installation, you should begin by running
+
+@example
+# apt-get update
+# apt-get upgrade
+@end example
+
+to ensure that all of your packages are up-to-date. Note that the "#" is
+used to indicate that you need to type in this command as "root" (or
+prefix with "sudo"), whereas "$" is used to indicate typing in a command
+as a normal user.
 
 @node Installing Debian Packages
 @subsection Installing Debian Packages
 
-We begin by installing a few Debian packages from stable:@
+We begin by installing a few Debian packages from stable:
+
 @example
- # apt-get install gcc make python-zbar libltdl-dev libsqlite3-dev \ 
-  libunistring-dev libopus-dev libpulse-dev openssl libglpk-dev texlive \
-  libidn11-dev libmysqlclient-dev libpq-dev libarchive-dev libbz2-dev \
-  libflac-dev libgif-dev libglib2.0-dev libgtk-3-dev libmpeg2-4-dev \
-  libtidy-dev libvorbis-dev libogg-dev zlib1g-dev g++ gettext libgsf-1-dev \
-  libunbound-dev libqrencode-dev libgladeui-dev nasm texlive-latex-extra \
-  libunique-3.0-dev gawk miniupnpc libfuse-dev libbluetooth-dev \
-  gstreamer1.0-plugins-base gstreamer1.0-plugins-good \
-  libgstreamer-plugins-base1.0-dev nettle-dev libextractor-dev libgcrypt20-dev \
-  libmicrohttpd-dev
+# apt-get install gcc make python-zbar libltdl-dev libsqlite3-dev \ 
+libunistring-dev libopus-dev libpulse-dev openssl libglpk-dev texlive \
+libidn11-dev libmysqlclient-dev libpq-dev libarchive-dev libbz2-dev \
+libflac-dev libgif-dev libglib2.0-dev libgtk-3-dev libmpeg2-4-dev \
+libtidy-dev libvorbis-dev libogg-dev zlib1g-dev g++ gettext \
+libgsf-1-dev libunbound-dev libqrencode-dev libgladeui-dev nasm \
+texlive-latex-extra libunique-3.0-dev gawk miniupnpc libfuse-dev \
+libbluetooth-dev gstreamer1.0-plugins-base gstreamer1.0-plugins-good \
+libgstreamer-plugins-base1.0-dev nettle-dev libextractor-dev \
+libgcrypt20-dev libmicrohttpd-dev
 @end example
 
 @node Installing Dependencies from Source2
 @subsection Installing Dependencies from Source2
 
 Yes, we said we start with a Debian 8 "stable" system, but because Debian
-linked GnuTLS without support for DANE, we need to compile a few things, in
-addition to GNUnet, still by hand. Yes, you can run GNUnet using the respective
-Debian packages, but then you will not get DANE support.
+linked GnuTLS without support for DANE, we need to compile a few things,
+in addition to GNUnet, still by hand. Yes, you can run GNUnet using the
+respective Debian packages, but then you will not get DANE support.
 
-Next, we need to install a few dependencies from source. You might want to do
-this as a "normal" user and only run the @code{make install} steps as root
-(hence the @code{sudo} in the commands below). Also, you do this from any
-directory. We begin by downloading all dependencies, then extracting the
-sources, and finally compiling and installing the libraries:@
+Next, we need to install a few dependencies from source. You might want
+to do this as a "normal" user and only run the @code{make install} steps
+as root (hence the @code{sudo} in the commands below). Also, you do this
+from any directory. We begin by downloading all dependencies, then
+extracting the sources, and finally compiling and installing the
+libraries:
 
-@code{@
- $ wget ftp://ftp.gnutls.org/gcrypt/gnutls/v3.3/gnutls-3.3.12.tar.xz@
- $ wget https://gnunet.org/sites/default/files/gnurl-7.40.0.tar.bz2@
- $ tar xvf gnutls-3.3.12.tar.xz@
- $ tar xvf gnurl-7.40.0.tar.bz2@
- $ cd gnutls-3.3.12 ; ./configure ; make ; sudo make install ; cd ..@
- $ cd gnurl-7.40.0@
- $ ./configure --enable-ipv6 --with-gnutls=/usr/local --without-libssh2 \
- --without-libmetalink --without-winidn --without-librtmp --without-nghttp2 \
- --without-nss --without-cyassl --without-polarssl --without-ssl \
- --without-winssl --without-darwinssl --disable-sspi --disable-ntlm-wb \
- --disable-ldap --disable-rtsp --disable-dict --disable-telnet --disable-tftp \
- --disable-pop3 --disable-imap --disable-smtp --disable-gopher --disable-file \
- --disable-ftp --disable-smb
- $ make ; sudo make install; cd ..@
-}
+@example
+$ wget ftp://ftp.gnutls.org/gcrypt/gnutls/v3.3/gnutls-3.3.12.tar.xz
+$ wget https://gnunet.org/sites/default/files/gnurl-7.40.0.tar.bz2
+$ tar xvf gnutls-3.3.12.tar.xz
+$ tar xvf gnurl-7.40.0.tar.bz2
+$ cd gnutls-3.3.12 ; ./configure ; make ; sudo make install ; cd ..
+$ cd gnurl-7.40.0
+$ ./configure --enable-ipv6 --with-gnutls=/usr/local --without-libssh2 \
+--without-libmetalink --without-winidn --without-librtmp \
+--without-nghttp2 --without-nss --without-cyassl --without-polarssl \
+--without-ssl --without-winssl --without-darwinssl --disable-sspi \
+--disable-ntlm-wb --disable-ldap --disable-rtsp --disable-dict \
+--disable-telnet --disable-tftp --disable-pop3 --disable-imap \
+--disable-smtp --disable-gopher --disable-file --disable-ftp \
+--disable-smb
+$ make ; sudo make install; cd ..
+@end example
 
 @node Installing GNUnet from Source2
 @subsection Installing GNUnet from Source2
@@ -1279,25 +1313,27 @@ here.
 @node But wait (again) there is more!
 @subsection But wait (again) there is more!
 
-So far, we installed all of the packages and dependencies required to ensure
-that all of GNUnet would be built. However, while for example the plugins to
-interact with the MySQL or Postgres databases have been created, we did not
-actually install or configure those databases. Thus, you will need to install
-and configure those databases or stick with the default Sqlite database. Sqlite
-is usually fine for most applications, but MySQL can offer better performance
-and Postgres better resillience.
+So far, we installed all of the packages and dependencies required to
+ensure that all of GNUnet would be built. However, while for example the
+plugins to interact with the MySQL or Postgres databases have been
+created, we did not actually install or configure those databases.
+Thus, you will need to install and configure those databases or stick
+with the default Sqlite database. Sqlite is usually fine for most
+applications, but MySQL can offer better performance and Postgres better
+resillience.
 
 @node Outdated build instructions for previous revisions
 @section Outdated build instructions for previous revisions
 
-This chapter contains a collection of outdated, older installation guides. They
-are mostly intended to serve as a starting point for writing up-to-date
-instructions and should not be expected to work for GNUnet 0.10.x.
+This chapter contains a collection of outdated, older installation guides.
+They are mostly intended to serve as a starting point for writing
+up-to-date instructions and should not be expected to work for
+GNUnet 0.10.x.
 A set of older installation instructions can also be found in the
-@file{doc/outdated-and-old-installation-instructions.txt} in the source
-of GNUnet. This file covers old instructions which no longer receive
-security updates or any kind of support.
-
+file @file{doc/outdated-and-old-installation-instructions.txt} in the
+source of GNUnet.
+This file covers old instructions which no longer receive security
+updates or any kind of support.
 
 @menu
 * Installing GNUnet 0.10.1 on Ubuntu 14.04::
@@ -1321,90 +1357,125 @@ $ sudo apt-get install libltdl-dev libgpg-error-dev libidn11-dev \
 
 Choose one or more database backends@
 SQLite3@
-@code{@
+
+@example
  $ sudo apt-get install libsqlite3-dev@
-}@
+@end example
+
 MySQL@
-@code{@
- $ sudo apt-get install libmysqlclient-dev@
-}@
+
+@example
+$ sudo apt-get install libmysqlclient-dev@
+@end example
+
 PostgreSQL@
-@code{@
+
+@example
  $ sudo apt-get install libpq-dev postgresql@
-}
+@end example
 
 Install the optional dependencies for gnunet-conversation:@
-@code{@
- $ sudo apt-get install gstreamer1.0 libpulse-dev libopus-dev@
-}
 
-Install the libgrypt 1.6:@
-For Ubuntu 14.04:@
-@code{$ sudo apt-get install libgcrypt20-dev}@
-For Ubuntu older 14.04:@
-@code{$ wget ftp://ftp.gnupg.org/gcrypt/libgcrypt/libgcrypt-1.6.1.tar.bz2@
- $ tar xf libgcrypt-1.6.1.tar.bz2@
- $ cd libgcrypt-1.6.1@
- $ ./configure@
- $ sudo make install@
- $ cd ..}
+@example
+ $ sudo apt-get install gstreamer1.0 libpulse-dev libopus-dev@
+@end example
+
+Install the libgcrypt 1.6:
+
+@itemize @bullet
+@item For Ubuntu 14.04:
+
+@example
+$ sudo apt-get install libgcrypt20-dev
+@end example
+
+@item For Ubuntu older 14.04:
+
+@example
+wget ftp://ftp.gnupg.org/gcrypt/libgcrypt/libgcrypt-1.6.1.tar.bz2
+$ tar xf libgcrypt-1.6.1.tar.bz2
+$ cd libgcrypt-1.6.1
+$ ./configure
+$ sudo make install
+$ cd ..
+@end example
+@end itemize
 
 Install libgnurl@
+
 @example
- $ wget https://gnunet.org/sites/default/files/gnurl-7.35.0.tar.bz2@
- $ tar xf gnurl-7.35.0.tar.bz2@
- $ cd gnurl-7.35.0@
- $ ./configure --enable-ipv6 --with-gnutls --without-libssh2 \
- --without-libmetalink --without-winidn --without-librtmp --without-nghttp2 \
- --without-nss --without-cyassl --without-polarssl --without-ssl \
- --without-winssl --without-darwinssl --disable-sspi --disable-ntlm-wb \
- --disable-ldap --disable-rtsp --disable-dict --disable-telnet --disable-tftp \
- --disable-pop3 --disable-imap --disable-smtp --disable-gopher --disable-file \
- --disable-ftp@
- $ sudo make install@
- $ cd ..@
+$ wget https://gnunet.org/sites/default/files/gnurl-7.35.0.tar.bz2
+$ tar xf gnurl-7.35.0.tar.bz2
+$ cd gnurl-7.35.0
+$ ./configure --enable-ipv6 --with-gnutls --without-libssh2 \
+--without-libmetalink --without-winidn --without-librtmp
+--without-nghttp2 --without-nss --without-cyassl --without-polarssl \
+--without-ssl --without-winssl --without-darwinssl --disable-sspi \
+--disable-ntlm-wb --disable-ldap --disable-rtsp --disable-dict \
+--disable-telnet --disable-tftp --disable-pop3 --disable-imap \
+--disable-smtp --disable-gopher --disable-file --disable-ftp
+$ sudo make install@
+$ cd ..@
 @end example
 
 Install GNUnet@
-@code{@
- $ wget http://ftpmirror.gnu.org/gnunet/gnunet-0.10.1.tar.gz@
- $ tar xf gnunet-0.10.1.tar.gz@
- $ cd gnunet-0.10.1@
-}
+
+@example
+$ wget http://ftpmirror.gnu.org/gnunet/gnunet-0.10.1.tar.gz
+$ tar xf gnunet-0.10.1.tar.gz
+$ cd gnunet-0.10.1
+@end example
 
 If you want to:
+
 @itemize @bullet
 
 @item
-Install to a different directory:@
- --prefix=PREFIX
+Install to a different directory:
+
+@example
+--prefix=PREFIX
+@end example
 
 @item
-Have sudo permission, but do not want to compile as root:@
- --with-sudo
+Have sudo permission, but do not want to compile as root:
+
+@example
+--with-sudo
+@end example
 
 @item
-Want debug message enabled:@
- -- enable-logging=verbose
+Want debug message enabled:
+
+@example
+--enable-logging=verbose
+@end example
+
 @end itemize
 
-@code{@
- $ ./configure [ --with-sudo | --prefix=PREFIX | --enable-logging=verbose]@
- $ make; sudo make install@
-}
+@example
+$ ./configure [ --with-sudo | --prefix=PREFIX | --enable-logging=verbose]
+$ make; sudo make install
+@end example
 
-After installing it, you need to create an empty configuration file:@
-@code{touch ~/.config/gnunet.conf}
+After installing it, you need to create an empty configuration file:
 
-And finally you can start GNUnet with@
-@code{$ gnunet-arm -s}
+@example
+touch ~/.config/gnunet.conf
+@end example
+
+And finally you can start GNUnet with
+
+@example
+$ gnunet-arm -s
+@end example
 
 @node Building GLPK for MinGW
 @subsection Building GLPK for MinGW
 
-GNUnet now requires the GNU Linear Programming Kit (GLPK). Since there's is no
-package you can install with @code{mingw-get} you have to compile it from
-source:
+GNUnet now requires the GNU Linear Programming Kit (GLPK).
+Since there's is no package you can install with @code{mingw-get} you
+have to compile it from source:
 
 @itemize @bullet
 
@@ -1412,17 +1483,23 @@ source:
 Download the latest version from http://ftp.gnu.org/gnu/glpk/ 
 
 @item
-Unzip it using your favourite unzipper@
-In the MSYS shell: 
+Unzip it using your favourite unzipper In the MSYS shell:
 
 @item
 change to the respective directory 
 
 @item
-@code{./configure '--build=i686-pc-mingw32'}
+
+@example
+./configure '--build=i686-pc-mingw32'
+@end example
 
 @item
-run @code{make install check }
+run
+
+@example
+make install check
+@end example
 
 MinGW does not automatically detect the correct buildtype so you have to
 specify it manually
@@ -1436,104 +1513,115 @@ After installing GNUnet you can continue installing the GNUnet GUI tools:
 
 First, install the required dependencies:
 
-@code{@
- $ sudo apt-get install libgladeui-dev libqrencode-dev@
-}
+@example
+$ sudo apt-get install libgladeui-dev libqrencode-dev
+@end example
 
-Please ensure that the GNUnet shared libraries can be found by the linker. If
-you installed GNUnet libraries in a non standard path (say
+Please ensure that the GNUnet shared libraries can be found by the linker.
+If you installed GNUnet libraries in a non standard path (say
 GNUNET_PREFIX=/usr/local/lib/), you can
+
 @itemize @bullet
 
+@item
+set the environmental variable permanently to
+
+@example
+LD_LIBRARY_PATH=$GNUNET_PREFIX
+@end example
 
 @item
-set the environmental variable permanently to@
-@code{LD_LIBRARY_PATH=$GNUNET_PREFIX}
+or add @code{$GNUNET_PREFIX} to @file{/etc/ld.so.conf}
 
-@item
-or add @code{$GNUNET_PREFIX} to @code{/etc/ld.so.conf}
 @end itemize
 
 
 Now you can checkout and compile the GNUnet GUI tools@
-@code{@
- $ svn co https://gnunet.org/svn/gnunet-gtk@
- $ cd gnunet-gtk@
- $ ./bootstrap@
- $ ./configure --prefix=$GNUNET_PREFIX/.. --with-gnunet=$GNUNET_PREFIX/..@
- $ make install@
-}
+
+@example
+ $ git clone https://gnunet.org/git/gnunet-gtk
+ $ cd gnunet-gtk
+ $ ./bootstrap
+ $ ./configure --prefix=$GNUNET_PREFIX/.. --with-gnunet=$GNUNET_PREFIX/..
+ $ make install
+@end example
 
 @node Installation with gnunet-update
 @subsection Installation with gnunet-update
 
 gnunet-update project is an effort to introduce updates to GNUnet
-installations. An interesting to-be-implemented-feature of gnunet-update is
-that these updates are propagated through GNUnet's peer-to-peer network. More
-information about gnunet-update can be found at
-https://gnunet.org/svn/gnunet-update/README.
+installations. An interesting to-be-implemented-feature of gnunet-update
+is that these updates are propagated through GNUnet's peer-to-peer
+network. More information about gnunet-update can be found at
+@c FIXME: Use correct cgit URL
+@uref{https://gnunet.org/git/gnunet-update/README}.
 
-While the project is still under development, we have implemented the following
-features which we believe may be helpful for users and we would like them to be
-tested:
+While the project is still under development, we have implemented the
+following features which we believe may be helpful for users and we
+would like them to be tested:
 
 @itemize @bullet
 
 @item
-Packaging GNUnet installation along with its run-time dependencies into update
-packages
+Packaging GNUnet installation along with its run-time dependencies into
+update packages
 
 @item
 Installing update packages into compatible hosts
 
 @item
-Updating an existing installation (which had been installed by gnunet-update)
-to a newer one
+Updating an existing installation (which had been installed by
+gnunet-update) to a newer one
+
 @end itemize
 
-The above said features of gnunet-update are currently available for testing on
-GNU/Linux systems.
+The above said features of gnunet-update are currently available for
+testing on GNU/Linux systems.
 
-The following is a guide to help you get started with gnunet-update. It shows
-you how to install the testing binary packages of GNUnet 0.9.1 we have at
-https://gnunet.org/install/
+The following is a guide to help you get started with gnunet-update.
+It shows you how to install the testing binary packages of GNUnet
+0.9.1 we have at @uref{https://gnunet.org/install/}.
 
-gnunet-update needs the following:
+gnunet-update needs the following dependencies:
 
 @itemize @bullet
 @item
-python ( 2.6 or above) 
+python @geq{} 2.6
 
 @item
-gnupg 
+gnupg
 
 @item
-python-gpgme 
+python-gpgme
 @end itemize
 
 
-Checkout gnunet-update:@
-@code{@
- $ svn checkout -r24905 https://gnunet.org/svn/gnunet-update@
-}
+Checkout gnunet-update:
+
+@c FIXME: git!
+@example
+$ svn checkout -r24905 https://gnunet.org/svn/gnunet-update@
+@end example
 
 For security reasons, all packages released for gnunet-update from us are
-signed with the key at https://gnunet.org/install/key.txt You would need to
-import this key into your gpg key ring. gnunet-update uses this key to verify
-the integrity of the packages it installs@
-@code{@
- $ gpg --recv-keys 7C613D78@
-}
+signed with the key at @uref{https://gnunet.org/install/key.txt}.
+You would need to import this key into your gpg key ring.
+gnunet-update uses this key to verify the integrity of the packages it
+installs:
 
-Download the packages relevant to your architecture (currently I have access to
-GNU/Linux machines on x86_64 and i686, so only two for now, hopefully more
-later) from https://gnunet.org/install/.
+@example
+$ gpg --recv-keys 7C613D78@
+@end example
+
+Download the packages relevant to your architecture (currently I have
+access to GNU/Linux machines on x86_64 and i686, so only two for now,
+hopefully more later) from https://gnunet.org/install/.
 
 To install the downloaded package into the directory /foo:
 
-@code{@
- gnunet-update/bin/gnunet-update install downloaded/package /foo@
-}
+@example
+gnunet-update/bin/gnunet-update install downloaded/package /foo
+@end example
 
 The installer reports the directories into which shared libraries and
 dependencies have been installed. You may need to add the reported shared
@@ -1546,20 +1634,19 @@ Please report bugs at https://gnunet.org/bugs/ under the project
 @node Instructions for Microsoft Windows Platforms (Old)
 @subsection Instructions for Microsoft Windows Platforms (Old)
 
-This document is a DEPRECATED installation guide for gnunet on windows. It will
-not work for recent gnunet versions, but maybe it will be of some use if
-problems arise. 
+This document is a @b{DEPRECATED} installation guide for gnunet on
+Windows.
+It will not work for recent gnunet versions, but maybe it will be of
+some use if problems arise. 
 
- The Windows build uses a UNIX emulator for Windows,
- @uref{http://www.mingw.org/, MinGW}, to build the executable modules. These
- modules run natively on Windows and do not require additional emulation
- software besides the usual dependencies. 
+The Windows build uses a UNIX emulator for Windows,
+@uref{http://www.mingw.org/, MinGW}, to build the executable modules.
+These modules run natively on Windows and do not require additional
+emulation software besides the usual dependencies.
 
- GNUnet development is mostly done under Linux and especially SVN checkouts may
- not build out of the box. We regret any inconvenience, and if you have
- problems, please report them.
-
-
+GNUnet development is mostly done under Linux and especially SVN
+checkouts may not build out of the box.
+We regret any inconvenience, and if you have problems, please report them.
 
 @menu
 * Hardware and OS requirements::
@@ -1595,57 +1682,33 @@ Windows 2000 or Windows XP are recommended
 @item
 @strong{Compression software}@
 @
- The software packages GNUnet depends on are usually compressed using UNIX
- tools like tar, gzip and bzip2.@ If you do not already have an utility that is
- able to extract such archives, get @uref{http://www.7-zip.org/, 7-Zip}. 
+The software packages GNUnet depends on are usually compressed using UNIX
+tools like tar, gzip and bzip2.
+If you do not already have an utility that is able to extract such
+archives, get @uref{http://www.7-zip.org/, 7-Zip}.
 
 @item
 @strong{UNIX environment}@
 @
 The MinGW project provides the compiler toolchain that is used to build
 GNUnet.@ Get the following packages from
-@uref{http://sourceforge.net/projects/mingw/files/,  the MinGW project}: 
+@uref{http://sourceforge.net/projects/mingw/files/, the MinGW project}: 
+
 @itemize @bullet
 
-
-@item
-GCC core
-
-@item
-GCC g++
-
-@item
-MSYS
-
-@item
-MSYS Developer Tool Kit (msysDTK)
-
-@item
-MSYS Developer Tool Kit - msys-autoconf (bin)
-
-@item
-MSYS Developer Tool Kit - msys-automake (bin)
-
-@item
-MinGW Runtime
-
-@item
-MinGW Utilities
-
-@item
-Windows API
-
-@item
-Binutils
-
-@item
-make
-
-@item
-pdcurses
-
-@item
-GDB (snapshot)
+@item GCC core
+@item GCC g++
+@item MSYS
+@item MSYS Developer Tool Kit (msysDTK)
+@item MSYS Developer Tool Kit - msys-autoconf (bin)
+@item MSYS Developer Tool Kit - msys-automake (bin)
+@item MinGW Runtime
+@item MinGW Utilities
+@item Windows API
+@item Binutils
+@item make
+@item pdcurses
+@item GDB (snapshot)
 @end itemize
 
 @itemize @bullet
@@ -1653,11 +1716,12 @@ GDB (snapshot)
 
 @item
 Install MSYS (to c:\mingw, for example.)@
-Do @strong{not} use spaces in the pathname (c:\program files\mingw). 
+Do @strong{not} use spaces in the pathname.
+For example, avoid a location such as @file{c:\program files\mingw}.
 
 @item
-Install MinGW runtime, utilities and GCC to a subdirectory (to c:\mingw\mingw,
-for example) 
+Install MinGW runtime, utilities and GCC to a subdirectory
+(to c:\mingw\mingw, for example)
 
 @item
 Install the Development Kit to the MSYS directory (c:\mingw)
@@ -1669,22 +1733,24 @@ Create a batch file bash.bat in your MSYS directory with the files:@
 bin\sh.exe --login
 @end example
 
-
-This batch file opens a shell which is used to invoke the build processes..@
-MinGW's standard shell (msys.bat) is not suitable because it opens a separate
-console window@ On Vista, bash.bat needs to be run as administrator. 
+This batch file opens a shell which is used to invoke the build
+processes.
+MinGW's standard shell (msys.bat) is not suitable because it opens a
+separate console window.
+On Vista, bash.bat needs to be run as administrator. 
 
 @item
-Start bash.sh and rename (c:\mingw\mingw\)lib\libstdc++.la to avoid problems:@
+Start bash.sh and rename (c:\mingw\mingw\)lib\libstdc++.la to avoid
+problems:
 
 @example
 mv /usr/mingw/lib/libstdc++.la /usr/mingw/lib/libstdc++.la.broken
 @end example
 
-
 @item
-Unpack the Windows API to the MinGW directory (c:\mingw\mingw\) and remove the
-declaration of DATADIR from (c:\mingw\mingw\)include\objidl.h (lines 55-58)
+Unpack the Windows API to the MinGW directory (c:\mingw\mingw\) and
+remove the declaration of DATADIR from
+(c:\mingw\mingw\)include\objidl.h (lines 55-58)
 
 @item
 Unpack autoconf, automake to the MSYS directory (c:\mingw)
@@ -1734,7 +1800,8 @@ s-win32/dll-latest/include/, include/} to the @file{include} directory
 @strong{GNU MP@
 }@
 @
-GNUnet uses the GNU Multiple Precision library for special cryptographic operations.@
+GNUnet uses the GNU Multiple Precision library for special cryptographic
+operations.@
 @
 Get the GMP binary package from the
 @uref{http://sourceforge.net/projects/mingwrep/, MinGW repository} and
@@ -1743,23 +1810,25 @@ unpack it to the MinGW directory (c:\mingw\mingw)
 @item
 @strong{GNU Gettext}@
 @
- GNU gettext is used to provide national language support.@
+GNU gettext is used to provide national language support.@
 @
- Get the prebuilt package from hereand unpack it to the MinGW directory (c:\mingw\mingw) 
+Get the prebuilt package from hereand unpack it to the MinGW
+directory (c:\mingw\mingw) 
 
 @item
 @strong{GNU iconv}@
 @
- GNU Libiconv is used for character encoding conversion.@
+GNU Libiconv is used for character encoding conversion.@
 @
- Get the prebuilt package from here and unpack it to the MinGW directory (c:\mingw\mingw) 
+Get the prebuilt package from here and unpack it to the MinGW
+directory (c:\mingw\mingw) 
 
 @item
 @strong{SQLite}@
 @
- GNUnet uses the SQLite database to store data.@
+GNUnet uses the SQLite database to store data.@
 @
- Get the prebuilt binary from here and unpack it to your MinGW directory. 
+Get the prebuilt binary from here and unpack it to your MinGW directory. 
 
 @item @strong{MySQL}@
 As an alternative to SQLite, GNUnet also supports MySQL.
@@ -1803,32 +1872,33 @@ to your PATH or GNUnet's @file{bin} directory
 @item
 @strong{GTK+}@
 @
- gnunet-gtk and libextractor depend on GTK.@
+gnunet-gtk and libextractor depend on GTK.@
 @
- Get the the binary and developer packages of atk, glib, gtk, iconv,
- gettext-runtime, pango from
- @uref{ftp://ftp.gtk.org/pub/gtk/v2.6/win32, gtk.org} and unpack it to the
- MinGW directory (c:\mingw\mingw)@
+Get the the binary and developer packages of atk, glib, gtk, iconv,
+gettext-runtime, pango from
+@uref{ftp://ftp.gtk.org/pub/gtk/v2.6/win32, gtk.org} and unpack it to the
+MinGW directory (c:\mingw\mingw)@
 @
- Get @uref{http://www.gtk.org/download/win32.php, pkg-config} and libpng
- and unpack them to the MinGW directory (c:\mingw\mingw)@
+Get @uref{http://www.gtk.org/download/win32.php, pkg-config} and libpng
+and unpack them to the MinGW directory (c:\mingw\mingw)@
 @
- Here is an all-in-one package for
- @uref{http://ftp.gnome.org/pub/gnome/binaries/win32/gtk+/2.24/gtk+-bundle_2.24.10-20120208_win32.zip, gtk+dependencies}.
- Do not overwrite any existing files! 
+Here is an all-in-one package for
+@uref{http://ftp.gnome.org/pub/gnome/binaries/win32/gtk+/2.24/gtk+-bu
+ndle_2.24.10-20120208_win32.zip, gtk+dependencies}.
+Do not overwrite any existing files! 
 
 @item
 @strong{Glade}@
 @
- gnunet-gtk and and gnunet-setup were created using this interface builder
+gnunet-gtk and and gnunet-setup were created using this interface builder
 
 @itemize @bullet
 
 
 @item
- Get the Glade and libglade (-bin and -devel) packages (without GTK!) from
- @uref{http://gladewin32.sourceforge.net/, GladeWin32} and unpack it to
- the MinGW directory (c:\mingw\mingw) 
+Get the Glade and libglade (-bin and -devel) packages (without GTK!) from
+@uref{http://gladewin32.sourceforge.net/, GladeWin32} and unpack it to
+the MinGW directory (c:\mingw\mingw) 
 
 @item
 Get libxml from here and unpack it to the MinGW
@@ -1842,13 +1912,13 @@ directory (c:\mingw\mingw).
 libextractor requires zLib to decompress some file formats. GNUnet uses it
 to (de)compress meta-data.@
 @
- Get zLib from here (Signature) and unpack it to the
- MinGW directory (c:\mingw\mingw) 
+Get zLib from here (Signature) and unpack it to the
+MinGW directory (c:\mingw\mingw) 
 
 @item
 @strong{Bzip2}@
 @
- libextractor also requires Bzip2 to decompress some file formats.@
+libextractor also requires Bzip2 to decompress some file formats.@
 @
 Get Bzip2 (binary and developer package) from
 @uref{http://gnuwin32.sourceforge.net/packages/bzip2.htm, GnuWin32} and
@@ -1857,40 +1927,44 @@ unpack it to the MinGW directory (c:\mingw\mingw)
 @item
 @strong{Libgcrypt}@
 @
- Libgcrypt provides the cryptographic functions used by GNUnet@
+Libgcrypt provides the cryptographic functions used by GNUnet@
 @
- Get Libgcrypt from @uref{ftp://ftp.gnupg.org/gcrypt/libgcrypt/, here},
- compile and place it in the MinGW directory (c:\mingw\mingw). Currently
- you need at least version 1.4.2 to compile GNUnet. 
+Get Libgcrypt from @uref{ftp://ftp.gnupg.org/gcrypt/libgcrypt/, here},
+compile and place it in the MinGW directory (c:\mingw\mingw). Currently
+you need at least version 1.4.2 to compile GNUnet. 
 
 @item
 @strong{PlibC}@
 @
- PlibC emulates Unix functions under Windows.@
+PlibC emulates Unix functions under Windows.@
 @
- Get PlibC from here and unpack it to the MinGW
- directory (c:\mingw\mingw)
+Get PlibC from here and unpack it to the MinGW
+directory (c:\mingw\mingw)
 
 @item
 @strong{OGG Vorbis}@
 @
- OGG Vorbis is used to extract meta-data from .ogg files@
+OGG Vorbis is used to extract meta-data from .ogg files@
 @
- Get the packages
- @uref{http://www.gnunet.org/libextractor/download/win/libogg-1.1.4.zip, libogg}
- and
- @uref{http://www.gnunet.org/libextractor/download/win/libvorbis-1.2.3.zip, libvorbis}
- from the
- @uref{http://ftp.gnu.org/gnu/libextractor/libextractor-w32-1.0.0.zip, libextractor win32 build}
- and unpack them to the MinGW directory (c:\mingw\mingw) 
+Get the packages
+@uref{http://www.gnunet.org/libextractor/download/win/libogg-1.1.4.zip,
+libogg}
+and
+@uref{http://www.gnunet.org/libextractor/download/win/libvorbis-1.2.3.zip,
+libvorbis}
+from the
+@uref{http://ftp.gnu.org/gnu/libextractor/libextractor-w32-1.0.0.zip,
+libextractor win32 build}
+and unpack them to the MinGW directory (c:\mingw\mingw) 
 
 @item
 @strong{Exiv2}@
 @
- (lib)Exiv2 is used to extract meta-data from files with Exiv2 meta-data@
+(lib)Exiv2 is used to extract meta-data from files with Exiv2 meta-data@
 @
- Download
-@uref{http://www.gnunet.org/libextractor/download/win/exiv2-0.18.2.zip, Exiv2}
+Download
+@uref{http://www.gnunet.org/libextractor/download/win/exiv2-0.18.2.zip,
+Exiv2}
 and unpack it to the MSYS directory (c:\mingw) 
 @end itemize
 
@@ -1936,7 +2010,8 @@ Currently this has only been tested on Ubuntu 12.04, 12.10, 13.04, Debian
 and CentOS 6, but it should work on almost any GNU/Linux distribution.
 More in-detail information can be found in the handbook.
 
-
+Note 2017-10: Currently this section assumes the old SVN repo of GNUnet
+which no longer exists.
 
 @menu
 * Prerequisites::
@@ -1948,8 +2023,11 @@ More in-detail information can be found in the handbook.
 @subsection Prerequisites
 
 Open a terminal and paste this line into it to install all required tools
-needed:@
-@code{sudo apt-get install python-gpgme subversion}
+needed:
+
+@example
+sudo apt-get install python-gpgme subversion
+@end example
 
 @node Download & set up gnunet-update
 @subsection Download & set up gnunet-update
@@ -1982,7 +2060,11 @@ sudo ldconfig
 You may need to re-login once after executing these last commands
 
 That's it, GNUnet is installed in your home directory now. GNUnet can be
-configured and afterwards started by executing @code{gnunet-arm -s}.
+configured and afterwards started by executing:
+
+@example
+gnunet-arm -s
+@end example
 
 @node The graphical configuration interface
 @section The graphical configuration interface
@@ -1991,7 +2073,8 @@ If you also would like to use gnunet-gtk and gnunet-setup (highly
 recommended for beginners), do:
 
 @example
-wget -P /tmp https://gnunet.org/install/packs/gnunet-0.9.4-gtk-0.9.4-`uname -m`.tgz
+wget -P /tmp \
+https://gnunet.org/install/packs/gnunet-0.9.4-gtk-0.9.4-`uname -m`.tgz
 sh ~/gnunet-update/bin/gnunet-update install /tmp/gnunet-*gtk*.tgz ~
 sudo ldconfig
 @end example
@@ -2192,21 +2275,21 @@ Be aware that these information will be stored in the configuration in
 plain text.
 
 To configure these options directly in the configuration, you can
-configure the following settings in the
-@code{[hostlist]} section of the configuration:
+configure the following settings in the @code{[hostlist]}
+section of the configuration:
 
 @example
- # Type of proxy server,@
- # Valid values: HTTP, HTTP_1_0, SOCKS4, SOCKS5, SOCKS4A, SOCKS5_HOSTNAME@
- # Default: HTTP@
- # PROXY_TYPE = HTTP
+# Type of proxy server,
+# Valid values: HTTP, HTTP_1_0, SOCKS4, SOCKS5, SOCKS4A, SOCKS5_HOSTNAME
+# Default: HTTP
+# PROXY_TYPE = HTTP
 
-# Hostname or IP of proxy server@
- # PROXY =@
- # User name for proxy server@
- # PROXY_USERNAME =@
- # User password for proxy server@
- # PROXY_PASSWORD =@
+# Hostname or IP of proxy server
+# PROXY =
+# User name for proxy server
+# PROXY_USERNAME =
+# User password for proxy server
+# PROXY_PASSWORD =
 @end example
 
 @node Configuring your peer to provide a hostlist
@@ -2332,8 +2415,8 @@ that will be running gnunet-arm (so typically "gnunet"):
 
 @example
 CREATE DATABASE gnunet;
-GRANT select,insert,update,delete,create,alter,drop,create temporary tables
-         ON gnunet.* TO $USER@@localhost;
+GRANT select,insert,update,delete,create,alter,drop,create \
+temporary tables ON gnunet.* TO $USER@@localhost;
 SET PASSWORD FOR $USER@@localhost=PASSWORD('$the_password_you_like');
 FLUSH PRIVILEGES;
 @end example
@@ -2590,18 +2673,18 @@ The configuration section for the transport service itself is quite
 similar to all the other services
 
 @example
- AUTOSTART = YES@
- @@UNIXONLY@@ PORT = 2091@
- HOSTNAME = localhost@
- HOME = $SERVICEHOME@
- CONFIG = $DEFAULTCONFIG@
- BINARY = gnunet-service-transport@
- #PREFIX = valgrind@
- NEIGHBOUR_LIMIT = 50@
- ACCEPT_FROM = 127.0.0.1;@
- ACCEPT_FROM6 = ::1;@
- PLUGINS = tcp udp@
- UNIXPATH = /tmp/gnunet-service-transport.sock@
+AUTOSTART = YES
+@@UNIXONLY@@ PORT = 2091
+HOSTNAME = localhost
+HOME = $SERVICEHOME
+CONFIG = $DEFAULTCONFIG
+BINARY = gnunet-service-transport
+#PREFIX = valgrind
+NEIGHBOUR_LIMIT = 50
+ACCEPT_FROM = 127.0.0.1;
+ACCEPT_FROM6 = ::1;
+PLUGINS = tcp udp
+UNIXPATH = /tmp/gnunet-service-transport.sock
 @end example
 
 Different are the settings for the plugins to load @code{PLUGINS}.
@@ -2613,9 +2696,9 @@ A plugin for local only communication with UNIX domain sockets. Used for
 testing and available on unix systems only. Just set the port
 
 @example
- [transport-unix]@
- PORT = 22086@
- TESTING_IGNORE_KEYS = ACCEPT_FROM;@
+[transport-unix]
+PORT = 22086
+TESTING_IGNORE_KEYS = ACCEPT_FROM;
 @end example
 
 @item transport-tcp
@@ -2623,13 +2706,13 @@ A plugin for communication with TCP. Set port to 0 for client mode with
 outbound only connections
 
 @example
- [transport-tcp]@
- # Use 0 to ONLY advertise as a peer behind NAT (no port binding)@
- PORT = 2086@
- ADVERTISED_PORT = 2086@
- TESTING_IGNORE_KEYS = ACCEPT_FROM;@
- # Maximum number of open TCP connections allowed@
- MAX_CONNECTIONS = 128@
+[transport-tcp]
+# Use 0 to ONLY advertise as a peer behind NAT (no port binding)
+PORT = 2086
+ADVERTISED_PORT = 2086
+TESTING_IGNORE_KEYS = ACCEPT_FROM;
+# Maximum number of open TCP connections allowed
+MAX_CONNECTIONS = 128
 @end example
 
 @item transport-udp
@@ -2637,12 +2720,12 @@ A plugin for communication with UDP. Supports peer discovery using
 broadcasts.
 
 @example
- [transport-udp]@
- PORT = 2086@
- BROADCAST = YES@
- BROADCAST_INTERVAL = 30 s@
- MAX_BPS = 1000000@
- TESTING_IGNORE_KEYS = ACCEPT_FROM;@
+[transport-udp]
+PORT = 2086
+BROADCAST = YES
+BROADCAST_INTERVAL = 30 s
+MAX_BPS = 1000000
+TESTING_IGNORE_KEYS = ACCEPT_FROM;
 @end example
 
 @item transport-http
@@ -2652,15 +2735,15 @@ client. The client plugin just takes the maximum number of connections as
 an argument.
 
 @example
- [transport-http_client]@
- MAX_CONNECTIONS = 128@
- TESTING_IGNORE_KEYS = ACCEPT_FROM;@
+[transport-http_client]
+MAX_CONNECTIONS = 128
+TESTING_IGNORE_KEYS = ACCEPT_FROM;
 @end example
 
 @example
- [transport-https_client]@
- MAX_CONNECTIONS = 128@
- TESTING_IGNORE_KEYS = ACCEPT_FROM;@
+[transport-https_client]
+MAX_CONNECTIONS = 128
+TESTING_IGNORE_KEYS = ACCEPT_FROM;
 @end example
 
 @noindent
@@ -2674,21 +2757,21 @@ The webserver under this address should forward the request to the peer
 and the configure port.
 
 @example
- [transport-http_server]@
- EXTERNAL_HOSTNAME = fulcrum.net.in.tum.de/gnunet@
- PORT = 1080@
- MAX_CONNECTIONS = 128@
- TESTING_IGNORE_KEYS = ACCEPT_FROM;@
+[transport-http_server]
+EXTERNAL_HOSTNAME = fulcrum.net.in.tum.de/gnunet
+PORT = 1080
+MAX_CONNECTIONS = 128
+TESTING_IGNORE_KEYS = ACCEPT_FROM;
 @end example
 
 @example
- [transport-https_server]@
- PORT = 4433@
- CRYPTO_INIT = NORMAL@
- KEY_FILE = https.key@
- CERT_FILE = https.cert@
- MAX_CONNECTIONS = 128@
- TESTING_IGNORE_KEYS = ACCEPT_FROM;@
+[transport-https_server]
+PORT = 4433
+CRYPTO_INIT = NORMAL
+KEY_FILE = https.key
+CERT_FILE = https.cert
+MAX_CONNECTIONS = 128
+TESTING_IGNORE_KEYS = ACCEPT_FROM;
 @end example
 
 @item transport-wlan
@@ -2697,12 +2780,12 @@ There is a special article how to setup the WLAN plugin, so here only the
 settings. Just specify the interface to use:
 
 @example
- [transport-wlan]@
- # Name of the interface in monitor mode (typically monX)@
- INTERFACE = mon0@
- # Real hardware, no testing@
- TESTMODE = 0@
- TESTING_IGNORE_KEYS = ACCEPT_FROM;@
+[transport-wlan]
+# Name of the interface in monitor mode (typically monX)
+INTERFACE = mon0
+# Real hardware, no testing
+TESTMODE = 0
+TESTING_IGNORE_KEYS = ACCEPT_FROM;
 @end example
 @end itemize
 
@@ -2749,15 +2832,15 @@ this in your default config file, you only need to adjust them if the
 values are incorrect for your system)
 
 @example
-# section for the wlan transport plugin@
-[transport-wlan]@
+# section for the wlan transport plugin
+[transport-wlan]
 # interface to use, more information in the
 # "Before starting GNUnet" section of the handbook.
-INTERFACE = mon0@
-# testmode for developers:@
-# 0 use wlan interface,@
-#1 or 2 use loopback driver for tests 1 = server, 2 = client@
-TESTMODE = 0@
+INTERFACE = mon0
+# testmode for developers:
+# 0 use wlan interface,
+#1 or 2 use loopback driver for tests 1 = server, 2 = client
+TESTMODE = 0
 @end example
 
 @node Before starting GNUnet
@@ -2768,16 +2851,16 @@ in monitor mode. One way to put the wlan interface into monitor mode (if
 your interface name is wlan0) is by executing:
 
 @example
- sudo airmon-ng start wlan0@
+sudo airmon-ng start wlan0
 @end example
 
 @noindent
 Here is an example what the result should look like:
 
 @example
- Interface Chipset Driver@
- wlan0 Intel 4965 a/b/g/n iwl4965 - [phy0]@
- (monitor mode enabled on mon0)@
+Interface Chipset Driver
+wlan0 Intel 4965 a/b/g/n iwl4965 - [phy0]
+(monitor mode enabled on mon0)
 @end example
 
 @noindent
@@ -2846,12 +2929,12 @@ In the respective @code{server config},@code{virtual host} or
 @code{directory} section add the following lines:
 
 @example
- ProxyTimeout 300@
- ProxyRequests Off@
- <Location /bar/ >@
- ProxyPass http://gnunet.foo.org:1080/@
- ProxyPassReverse http://gnunet.foo.org:1080/@
- </Location>@
+ProxyTimeout 300
+ProxyRequests Off
+<Location /bar/ >
+ProxyPass http://gnunet.foo.org:1080/
+ProxyPassReverse http://gnunet.foo.org:1080/
+</Location>
 @end example
 
 @noindent
@@ -2865,51 +2948,53 @@ In the respective HTTPS @code{server config},@code{virtual host} or
 @code{directory} section add the following lines:
 
 @example
- SSLProxyEngine On@
- ProxyTimeout 300@
- ProxyRequests Off@
- <Location /bar/ >@
- ProxyPass https://gnunet.foo.org:4433/@
- ProxyPassReverse https://gnunet.foo.org:4433/@
- </Location>@
+SSLProxyEngine On
+ProxyTimeout 300
+ProxyRequests Off
+<Location /bar/ >
+ProxyPass https://gnunet.foo.org:4433/
+ProxyPassReverse https://gnunet.foo.org:4433/
+</Location>
 @end example
 
 @noindent
 More information about the apache mod_proxy configuration can be found
-at @uref{http://httpd.apache.org/docs/2.2/mod/mod_proxy.html#proxypass, http://httpd.apache.org/docs/2.2/mod/mod_proxy.html#proxypass}
+at @uref{http://httpd.apache.org/docs/2.2/mod/mod_proxy.html#proxypass,
+http://httpd.apache.org/docs/2.2/mod/mod_proxy.html#proxypass}
 
 @strong{Configure your nginx HTTPS webserver}
 
 Since nginx does not support chunked encoding, you first of all have to
 install @code{chunkin}:@
-@uref{http://wiki.nginx.org/HttpChunkinModule, http://wiki.nginx.org/HttpChunkinModule}
+@uref{http://wiki.nginx.org/HttpChunkinModule,
+http://wiki.nginx.org/HttpChunkinModule}
 
 To enable chunkin add:
 
 @example
- chunkin on;@
- error_page 411 = @@my_411_error;@
- location @@my_411_error @{@
- chunkin_resume;@
- @}@
+chunkin on;
+error_page 411 = @@my_411_error;
+location @@my_411_error @{
+chunkin_resume;
+@}
 @end example
 
 @noindent
 Edit your webserver configuration. Edit @file{/etc/nginx/nginx.conf} or
 the site-specific configuration file.
 
-In the @code{server} section add:@
+In the @code{server} section add:
 
 @example
- location /bar/@
- @{@
- proxy_pass http://gnunet.foo.org:1080/;@
- proxy_buffering off;@
- proxy_connect_timeout 5; # more than http_server@
- proxy_read_timeout 350; # 60 default, 300s is GNUnet's idle timeout@
- proxy_http_version 1.1; # 1.0 default@
- proxy_next_upstream error timeout invalid_header http_500 http_503 http_502 http_504;@
- @}@
+location /bar/
+@{
+proxy_pass http://gnunet.foo.org:1080/;
+proxy_buffering off;
+proxy_connect_timeout 5; # more than http_server
+proxy_read_timeout 350; # 60 default, 300s is GNUnet's idle timeout
+proxy_http_version 1.1; # 1.0 default
+proxy_next_upstream error timeout invalid_header http_500 http_503 http_502 http_504;
+@}
 @end example
 
 @noindent
@@ -2921,16 +3006,16 @@ the site-specific configuration file.
 In the @code{server} section add:
 
 @example
- ssl_session_timeout 6m;@
- location /bar/@
- @{@
- proxy_pass https://gnunet.foo.org:4433/;@
- proxy_buffering off;@
- proxy_connect_timeout 5; # more than http_server@
- proxy_read_timeout 350; # 60 default, 300s is GNUnet's idle timeout@
- proxy_http_version 1.1; # 1.0 default@
- proxy_next_upstream error timeout invalid_header http_500 http_503 http_502 http_504;@
- @}@
+ssl_session_timeout 6m;
+location /bar/
+@{
+proxy_pass https://gnunet.foo.org:4433/;
+proxy_buffering off;
+proxy_connect_timeout 5; # more than http_server
+proxy_read_timeout 350; # 60 default, 300s is GNUnet's idle timeout
+proxy_http_version 1.1; # 1.0 default
+proxy_next_upstream error timeout invalid_header http_500 http_503 http_502 http_504;
+@}
 @end example
 
 @noindent
@@ -2941,16 +3026,16 @@ To have your GNUnet peer announce the address, you have to specify the
 section:
 
 @example
- [transport-http_server]@
- EXTERNAL_HOSTNAME = http://www.foo.org/bar/@
+[transport-http_server]
+EXTERNAL_HOSTNAME = http://www.foo.org/bar/
 @end example
 
 @noindent
 and/or @code{[transport-https_server]} section:
 
 @example
- [transport-https_server]@
- EXTERNAL_HOSTNAME = https://www.foo.org/bar/@
+[transport-https_server]
+EXTERNAL_HOSTNAME = https://www.foo.org/bar/
 @end example
 
 @noindent
@@ -2970,21 +3055,21 @@ To blacklist peers using the configuration you have to add a section to
 your@ configuration containing the peer id of the peer to blacklist and
 the plugin@ if required.
 
-Example:@
+Examples:@
 
-To blacklist connections to P565... on peer AG2P... using tcp add:@
+To blacklist connections to P565... on peer AG2P... using tcp add:
 
 @c FIXME: This is too long and produces errors in the pdf.
 @example
- [transport-blacklist AG2PHES1BARB9IJCPAMJTFPVJ5V3A72S3F2A8SBUB8DAQ2V0O3V8G6G2JU56FHGFOHMQVKBSQFV98TCGTC3RJ1NINP82G0RC00N1520]@
- P565723JO1C2HSN6J29TAQ22MN6CI8HTMUU55T0FUQG4CMDGGEQ8UCNBKUMB94GC8R9G4FB2SF9LDOBAJ6AMINBP4JHHDD6L7VD801G = tcp@
+[transport-blacklist AG2PHES1BARB9IJCPAMJTFPVJ5V3A72S3F2A8SBUB8DAQ2V0O3V8G6G2JU56FHGFOHMQVKBSQFV98TCGTC3RJ1NINP82G0RC00N1520]@
+P565723JO1C2HSN6J29TAQ22MN6CI8HTMUU55T0FUQG4CMDGGEQ8UCNBKUMB94GC8R9G4FB2SF9LDOBAJ6AMINBP4JHHDD6L7VD801G = tcp@
 @end example
 
-To blacklist connections to P565... on peer AG2P... using all plugins add:@
+To blacklist connections to P565... on peer AG2P... using all plugins add:
 
 @example
- [transport-blacklist-AG2PHES1BARB9IJCPAMJTFPVJ5V3A72S3F2A8SBUB8DAQ2V0O3V8G6G2JU56FHGFOHMQVKBSQFV98TCGTC3RJ1NINP82G0RC00N1520]@
- P565723JO1C2HSN6J29TAQ22MN6CI8HTMUU55T0FUQG4CMDGGEQ8UCNBKUMB94GC8R9G4FB2SF9LDOBAJ6AMINBP4JHHDD6L7VD801G =@
+[transport-blacklist-AG2PHES1BARB9IJCPAMJTFPVJ5V3A72S3F2A8SBUB8DAQ2V0O3V8G6G2JU56FHGFOHMQVKBSQFV98TCGTC3RJ1NINP82G0RC00N1520]@
+P565723JO1C2HSN6J29TAQ22MN6CI8HTMUU55T0FUQG4CMDGGEQ8UCNBKUMB94GC8R9G4FB2SF9LDOBAJ6AMINBP4JHHDD6L7VD801G =@
 @end example
 
 You can also add a blacklist client usign the blacklist api. On a
@@ -3034,16 +3119,16 @@ configure the following settings in the [transport-http_client] and
 [transport-https_client] section of the configuration:
 
 @example
-# Type of proxy server,@
-# Valid values: HTTP, SOCKS4, SOCKS5, SOCKS4A, SOCKS5_HOSTNAME@
-# Default: HTTP@
+# Type of proxy server,
+# Valid values: HTTP, SOCKS4, SOCKS5, SOCKS4A, SOCKS5_HOSTNAME
+# Default: HTTP
 # PROXY_TYPE = HTTP
 
-# Hostname or IP of proxy server@
-# PROXY =@
-# User name for proxy server@
-# PROXY_USERNAME =@
-# User password for proxy server@
+# Hostname or IP of proxy server
+# PROXY =
+# User name for proxy server
+# PROXY_USERNAME =
+# User password for proxy server
 # PROXY_PASSWORD =
 @end example
 
@@ -3644,9 +3729,9 @@ GNUnet from @code{init}.
 Finally, you should edit your @code{crontab} (using the @code{crontab}
 command) and insert a line@
 
-@code{@
- @@reboot gnunet-arm -c ~/.config/gnunet.conf -s@
-}@
+@example
+@@reboot gnunet-arm -c ~/.config/gnunet.conf -s
+@end example
 
 to automatically start your peer whenever your system boots.
 
@@ -3660,9 +3745,9 @@ Then, you create a configuration file @file{/etc/gnunet.conf} which should
 contain the lines:@
 
 @example
-[arm]@
-SYSTEM_ONLY = YES@
-USER_ONLY = NO@
+[arm]
+SYSTEM_ONLY = YES
+USER_ONLY = NO
 @end example
 
 @noindent
@@ -3689,9 +3774,9 @@ Then, create a configuration file in @file{~/.config/gnunet.conf} for the
 $USER with the lines:
 
 @example
-[arm]@
-SYSTEM_ONLY = NO@
-USER_ONLY = YES@
+[arm]
+SYSTEM_ONLY = NO
+USER_ONLY = YES
 @end example
 
 @noindent

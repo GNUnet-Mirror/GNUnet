@@ -182,6 +182,14 @@ doc-all-install:
 
 #	@cp -r images $(DESTDIR)/$(infoimagedir)
 
+dev-build: version.texi version2.texi
+	@makeinfo --pdf gnunet.texi
+	@makeinfo --pdf gnunet-c-tutorial.texi
+	@makeinfo --html gnunet.texi
+	@makeinfo --html gnunet-c-tutorial.texi
+	@makeinfo --no-split gnunet.texi
+	@makeinfo --no-split gnunet-c-tutorial.texi
+
 # TODO: Add more to clean.
 clean:
 	@rm gnunet.pdf
