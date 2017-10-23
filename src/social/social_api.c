@@ -1082,9 +1082,11 @@ place_cleanup (struct GNUNET_SOCIAL_Place *plc)
 void
 place_disconnect (struct GNUNET_SOCIAL_Place *plc)
 {
+  struct GNUNET_HashCode place_pub_hash;
+  GNUNET_CRYPTO_hash (&plc->pub_key, sizeof (plc->pub_key), &place_pub_hash);
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-              "place_disconnect, plc = %p\n",
-              plc);
+              "place_disconnect, plc = %s\n",
+              GNUNET_h2s (&place_pub_hash));
   if (NULL != plc->mq)
   {
     struct GNUNET_MQ_Envelope *env = GNUNET_MQ_get_last_envelope (plc->mq);
