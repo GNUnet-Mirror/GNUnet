@@ -712,6 +712,7 @@ libgnunet_plugin_transport_tcp)
 int i; int j;
 @end example
 
+@noindent
 instead of
 
 @example
@@ -723,34 +724,44 @@ the type of every variable. Note that @code{char *} is different from
 @code{const char*} and @code{int} is different from @code{unsigned int}
 or @code{uint32_t}. Each variable type should be chosen with care.
 
-@item While @code{goto} should generally be avoided, having a @code{goto}
-to the end of a function to a block of clean up statements (free, close,
-etc.) can be acceptable.
+@item While @code{goto} should generally be avoided, having a
+@code{goto} to the end of a function to a block of clean up
+statements (free, close, etc.) can be acceptable.
 
 @item Conditions should be written with constants on the left (to avoid
 accidental assignment) and with the 'true' target being either the
 'error' case or the significantly simpler continuation. For example:
 
 @example
-if (0 != stat ("filename," &sbuf)) @{ error(); @} else @{
-  /* handle normal case here */
-@}
+if (0 != stat ("filename," &sbuf)) @{
+  error();
+ @}
+ else @{
+   /* handle normal case here */
+ @}
 @end example
 
+@noindent
 instead of
 
 @example
 if (stat ("filename," &sbuf) == 0) @{
   /* handle normal case here */
-@} else @{ error(); @}
+ @} else @{
+  error();
+ @}
 @end example
 
+@noindent
 If possible, the error clause should be terminated with a 'return' (or
 'goto' to some cleanup routine) and in this case, the 'else' clause
 should be omitted:
 
 @example
-if (0 != stat ("filename," &sbuf)) @{ error(); return; @}
+if (0 != stat ("filename," &sbuf)) @{
+  error();
+  return;
+ @}
 /* handle normal case here */
 @end example
 
@@ -763,9 +774,11 @@ NULL, and enums). With the two above rules (constants on left, errors in
 code clarity. For example, one can write:
 
 @example
-if (NULL == (value = lookup_function())) @{ error(); return; @}
+if (NULL == (value = lookup_function())) @{
+  error();
+  return;
+ @}
 @end example
-
 
 @item Use @code{break} and @code{continue} wherever possible to avoid
 deep(er) nesting. Thus, we would write:
@@ -787,7 +800,6 @@ next = head; while (NULL != (pos = next)) @{
     GNUNET_CONTAINER_DLL_remove (head, tail, pos);
     GNUNET_free (pos); @} @}
 @end example
-
 
 @item We primarily use @code{for} and @code{while} loops.
 A @code{while} loop is used if the method for advancing in the loop is
@@ -848,6 +860,7 @@ if ( (1 == foo) || ((0 == bar) && (x != y)) )
 
 
 However, this is not:
+
 @example
 if (1 == foo)
   return x;
@@ -855,7 +868,7 @@ if (0 == bar && x != y)
   return x;
 @end example
 
-
+@noindent
 Note that splitting the @code{if} statement above is debateable as the
 @code{return x} is a very trivial statement. However, once the logic after
 the branch becomes more complicated (and is still identical), the "or"
@@ -2266,15 +2279,16 @@ First of all, you should define the new message type in
 
 After the type definition, the specified message structure should also be
 described in the header file, e.g. transport.h in our case.
-@example
-GNUNET_NETWORK_STRUCT_BEGIN
 
-struct AddressLookupMessage @{ struct GNUNET_MessageHeader header; int32_t
-numeric_only GNUNET_PACKED; struct GNUNET_TIME_AbsoluteNBO timeout; uint32_t
-addrlen GNUNET_PACKED;
- /* followed by 'addrlen' bytes of the actual address, then
-    followed by the 0-terminated name of the transport */ @};
-    GNUNET_NETWORK_STRUCT_END
+@example
+struct AddressLookupMessage @{
+  struct GNUNET_MessageHeader header;
+  int32_t numeric_only GNUNET_PACKED;
+  struct GNUNET_TIME_AbsoluteNBO timeout;
+  uint32_t addrlen GNUNET_PACKED;
+  /* followed by 'addrlen' bytes of the actual address, then
+     followed by the 0-terminated name of the transport */ @};
+GNUNET_NETWORK_STRUCT_END
 @end example
 
 
@@ -2295,8 +2309,8 @@ new connection to a service, in our example the transport service would be
 connected.
 
 @example
-struct GNUNET_CLIENT_Connection *client; client =
-GNUNET_CLIENT_connect ("transport", cfg);
+struct GNUNET_CLIENT_Connection *client;
+client = GNUNET_CLIENT_connect ("transport", cfg);
 @end example
 
 @c ***********************************************************************
@@ -2310,13 +2324,20 @@ size, type, and some extra user-defined data, such as timeout, name of
 transport, address and name of transport.
 
 @example
-struct AddressLookupMessage *msg; size_t len =
-sizeof (struct AddressLookupMessage) + addressLen + strlen (nameTrans) + 1;
-msg->header->size = htons (len); msg->header->type = htons
-(GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_LOOKUP); msg->timeout =
-GNUNET_TIME_absolute_hton (abs_timeout); msg->addrlen = htonl (addressLen);
-char *addrbuf = (char *) &msg[1]; memcpy (addrbuf, address, addressLen); char
-*tbuf = &addrbuf[addressLen]; memcpy (tbuf, nameTrans, strlen (nameTrans) + 1);
+struct AddressLookupMessage *msg;
+size_t len = sizeof (struct AddressLookupMessage)
+  + addressLen
+  + strlen (nameTrans)
+  + 1;
+msg->header->size = htons (len);
+msg->header->type = htons
+(GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_LOOKUP);
+msg->timeout = GNUNET_TIME_absolute_hton (abs_timeout);
+msg->addrlen = htonl (addressLen);
+char *addrbuf = (char *) &msg[1];
+memcpy (addrbuf, address, addressLen);
+char *tbuf = &addrbuf[addressLen];
+memcpy (tbuf, nameTrans, strlen (nameTrans) + 1);
 @end example
 
 Note that, here the functions @code{htonl}, @code{htons} and
@@ -2355,9 +2376,9 @@ After receiving the request message, we run a standard GNUnet service
 startup sequence using @code{GNUNET_SERVICE_run}, as follows,
 
 @example
-int main(int
-argc, char**argv) @{ GNUNET_SERVICE_run(argc, argv, "transport"
-GNUNET_SERVICE_OPTION_NONE, &run, NULL)); @}
+int main(int argc, char**argv) @{
+  GNUNET_SERVICE_run(argc, argv, "transport"
+  GNUNET_SERVICE_OPTION_NONE, &run, NULL)); @}
 @end example
 
 @c ***********************************************************************
@@ -2369,9 +2390,10 @@ in the function above the argument @code{run} is used to initiate
 transport service,and defined like this:
 
 @example
-static void run (void *cls, struct
-GNUNET_SERVER_Handle *serv, const struct GNUNET_CONFIGURATION_Handle *cfg) @{
-GNUNET_SERVER_add_handlers (serv, handlers); @}
+static void run (void *cls,
+struct GNUNET_SERVER_Handle *serv,
+const struct GNUNET_CONFIGURATION_Handle *cfg) @{
+  GNUNET_SERVER_add_handlers (serv, handlers); @}
 @end example
 
 
@@ -2382,12 +2404,29 @@ to tell the service which function should be called when a particular
 type of message is received, and should be defined in this way:
 
 @example
-static struct GNUNET_SERVER_MessageHandler
-handlers[] = @{ @{&handle_start, NULL, GNUNET_MESSAGE_TYPE_TRANSPORT_START,
-0@}, @{&handle_send, NULL, GNUNET_MESSAGE_TYPE_TRANSPORT_SEND, 0@},
-@{&handle_try_connect, NULL, GNUNET_MESSAGE_TYPE_TRANSPORT_TRY_CONNECT, sizeof
-(struct TryConnectMessage)@}, @{&handle_address_lookup, NULL,
-GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_LOOKUP, 0@}, @{NULL, NULL, 0, 0@} @};
+static struct GNUNET_SERVER_MessageHandler handlers[] = @{
+  @{&handle_start,
+   NULL,
+   GNUNET_MESSAGE_TYPE_TRANSPORT_START,
+   0@},
+  @{&handle_send,
+   NULL,
+   GNUNET_MESSAGE_TYPE_TRANSPORT_SEND,
+   0@},
+  @{&handle_try_connect,
+   NULL,
+   GNUNET_MESSAGE_TYPE_TRANSPORT_TRY_CONNECT,
+   sizeof (struct TryConnectMessage)
+  @},
+  @{&handle_address_lookup,
+   NULL,
+   GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_LOOKUP,
+   0@},
+  @{NULL,
+   NULL,
+   0,
+   0@}
+@};
 @end example
 
 
@@ -2411,9 +2450,11 @@ message should be checked out, e.g., to check whether the size of message
 is correct.
 
 @example
-size = ntohs (message->size); if (size < sizeof (struct
-AddressLookupMessage)) @{ GNUNET_break_op (0); GNUNET_SERVER_receive_done
-(client, GNUNET_SYSERR); return; @}
+size = ntohs (message->size);
+if (size < sizeof (struct AddressLookupMessage)) @{
+  GNUNET_break_op (0);
+  GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+  return; @}
 @end example
 
 
@@ -2429,12 +2470,14 @@ is a 0-terminated string, so we should also check whether the name of the
 transport in the received message is 0-terminated:
 
 @example
-nameTransport = (const char *)
-&address[addressLen]; if (nameTransport[size - sizeof (struct
-AddressLookupMessage)
-                                - addressLen - 1] != '\0') @{ GNUNET_break_op
-                                  (0); GNUNET_SERVER_receive_done (client,
-                                  GNUNET_SYSERR); return; @}
+nameTransport = (const char *) &address[addressLen];
+if (nameTransport[size - sizeof
+                  (struct AddressLookupMessage)
+                  - addressLen - 1] != '\0') @{
+  GNUNET_break_op (0);
+  GNUNET_SERVER_receive_done (client,
+                              GNUNET_SYSERR);
+  return; @}
 @end example
 
 Here, @code{GNUNET_SERVER_receive_done} should be called to tell the
@@ -2459,17 +2502,23 @@ client, but here the type should be
 @code{GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_REPLY} rather than
 @code{GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_LOOKUP} in client.
 @example
-struct
-AddressLookupMessage *msg; size_t len = sizeof (struct AddressLookupMessage) +
-addressLen + strlen (nameTrans) + 1; msg->header->size = htons (len);
-msg->header->type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_REPLY);
+struct AddressLookupMessage *msg;
+size_t len = sizeof (struct AddressLookupMessage)
+  + addressLen
+  + strlen (nameTrans) + 1;
+msg->header->size = htons (len);
+msg->header->type = htons
+  (GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_REPLY);
 
 // ...
 
-struct GNUNET_SERVER_TransmitContext *tc; tc =
-GNUNET_SERVER_transmit_context_create (client);
-GNUNET_SERVER_transmit_context_append_data (tc, NULL, 0,
-GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_REPLY);
+struct GNUNET_SERVER_TransmitContext *tc;
+tc = GNUNET_SERVER_transmit_context_create (client);
+GNUNET_SERVER_transmit_context_append_data
+(tc,
+ NULL,
+ 0,
+ GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_REPLY);
 GNUNET_SERVER_transmit_context_run (tc, rtimeout);
 @end example
 
@@ -2493,8 +2542,10 @@ to a group of clients. An individualized notification might look like
 this:
 
 @example
- GNUNET_SERVER_notification_context_unicast(nc,
- client, msg, GNUNET_YES);
+GNUNET_SERVER_notification_context_unicast(nc,
+                                           client,
+                                           msg,
+                                           GNUNET_YES);
 @end example
 
 
@@ -2670,7 +2721,9 @@ single number value.
 @example
 struct NumberMessage @{
   /** Type: GNUNET_MESSAGE_TYPE_EXAMPLE_1 */
-  struct GNUNET_MessageHeader header; uint32_t number GNUNET_PACKED; @};
+  struct GNUNET_MessageHeader header;
+  uint32_t number GNUNET_PACKED;
+@};
 @end example
 
 An envelope containing an instance of the NumberMessage can be
@@ -2709,7 +2762,7 @@ A few functions in MQ allow to set additional properties on envelopes:
 @table @asis
 
 @item @code{GNUNET_MQ_notify_sent} Allows to specify a function that will
-be called once the envelope's message@ has been sent irrevocably.
+be called once the envelope's message has been sent irrevocably.
 An envelope can be canceled precisely up to the@ point where the notify
 sent callback has been called.
 
@@ -2856,11 +2909,14 @@ struct that _also_ contains the hash. Here is a simplified example:
 
 @example
 struct MyValue @{
-struct GNUNET_HashCode key; unsigned int my_data; @};
+struct GNUNET_HashCode key;
+unsigned int my_data; @};
 
 // ...
-val = GNUNET_malloc (sizeof (struct MyValue)); val->key = key; val->my_data =
-42; GNUNET_CONTAINER_multihashmap_put (map, &key, val, ...);
+val = GNUNET_malloc (sizeof (struct MyValue));
+val->key = key;
+val->my_data = 42;
+GNUNET_CONTAINER_multihashmap_put (map, &key, val, ...);
 @end example
 
 This is a common pattern as later the entries might need to be removed,
@@ -2911,11 +2967,13 @@ For the initial example, the new code would look like this:
 
 @example
 struct MyValue @{
-struct GNUNET_HashCode key; unsigned int my_data; @};
+struct GNUNET_HashCode key;
+unsigned int my_data; @};
 
 // ...
-val = GNUNET_malloc (sizeof (struct MyValue)); val->key = key; val->my_data =
-42; GNUNET_CONTAINER_multihashmap_put (map, &val->key, val, ...);
+val = GNUNET_malloc (sizeof (struct MyValue));
+val->key = key; val->my_data = 42;
+GNUNET_CONTAINER_multihashmap_put (map, &val->key, val, ...);
 @end example
 
 
@@ -3088,8 +3146,12 @@ it to start a service "resolver", stops the "resolver" then stops "ARM".
 
 Configurations for ARM and services should be available in a .conf file
 (As an example, see test_arm_api_data.conf). When running ARM, the
-configuration file to use should be passed to the command:@
-@code{@ $ gnunet-arm -s -c configuration_to_use.conf@ }@
+configuration file to use should be passed to the command:
+
+@example
+$ gnunet-arm -s -c configuration_to_use.conf
+@end example
+
 If no configuration is passed, the default configuration file will be used
 (see GNUNET_PREFIX/share/gnunet/defaults.conf which is created from
 contrib/defaults.conf).@ Each of the services is having a section starting
@@ -3556,7 +3618,8 @@ looks like this:
 :0:
 * ^X-mailer: GNUnet
 /tmp/gnunet.smtp
-# where do you want your other e-mail delivered to (default: /var/spool/mail/)
+# where do you want your other e-mail delivered to
+# (default: /var/spool/mail/)
 :0: /var/spool/mail/
 @end example
 
@@ -7013,12 +7076,13 @@ these messages contains all of the information about the event.
 @c %**end of header
 
 When routing GETs or PUTs, the DHT service selects a suitable subset of
-neighbours for forwarding. The exact number of neighbours can be zero or more
-and depends on the hop counter of the query (initially zero) in relation to the
-(log of) the network size estimate, the desired replication level and the
-peer's connectivity. Depending on the hop counter and our network size
-estimate, the selection of the peers maybe randomized or by proximity to the
-key. Furthermore, requests include a set of peers that a request has already
+neighbours for forwarding. The exact number of neighbours can be zero or
+more and depends on the hop counter of the query (initially zero) in
+relation to the (log of) the network size estimate, the desired
+replication level and the peer's connectivity.
+Depending on the hop counter and our network size estimate, the selection
+of the peers maybe randomized or by proximity to the key.
+Furthermore, requests include a set of peers that a request has already
 traversed; those peers are also excluded from the selection.
 
 @node PUTting data into the DHT2
@@ -7026,18 +7090,21 @@ traversed; those peers are also excluded from the selection.
 
 @c %**end of header
 
-To PUT data into the DHT, the service sends a @code{struct PeerPutMessage} of
-type @code{GNUNET_MESSAGE_TYPE_DHT_P2P_PUT} to the respective neighbour. In
-addition to the usual information about the content (type, routing options,
-desired replication level for the content, expiration time, key and value), the
-message contains a fixed-size Bloom filter with information about which peers
-(may) have already seen this request. This Bloom filter is used to ensure that
-DHT messages never loop back to a peer that has already processed the request.
-Additionally, the message includes the current hop counter and, depending on
-the routing options, the message may include the full path that the message has
-taken so far. The Bloom filter should already contain the identity of the
-previous hop; however, the path should not include the identity of the previous
-hop and the receiver should append the identity of the sender to the path, not
+To PUT data into the DHT, the service sends a @code{struct PeerPutMessage}
+of type @code{GNUNET_MESSAGE_TYPE_DHT_P2P_PUT} to the respective
+neighbour.
+In addition to the usual information about the content (type, routing
+options, desired replication level for the content, expiration time, key
+and value), the message contains a fixed-size Bloom filter with
+information about which peers (may) have already seen this request.
+This Bloom filter is used to ensure that DHT messages never loop back to
+a peer that has already processed the request.
+Additionally, the message includes the current hop counter and, depending
+on the routing options, the message may include the full path that the
+message has taken so far.
+The Bloom filter should already contain the identity of the previous hop;
+however, the path should not include the identity of the previous hop and
+the receiver should append the identity of the sender to the path, not
 its own identity (this is done to reduce bandwidth).
 
 @node GETting data from the DHT2
@@ -7046,30 +7113,35 @@ its own identity (this is done to reduce bandwidth).
 @c %**end of header
 
 A peer can search the DHT by sending @code{struct PeerGetMessage}s of type
-@code{GNUNET_MESSAGE_TYPE_DHT_P2P_GET} to other peers. In addition to the usual
-information about the request (type, routing options, desired replication level
-for the request, the key and the extended query), a GET request also again
-contains a hop counter, a Bloom filter over the peers that have processed the
-request already and depending on the routing options the full path traversed by
-the GET. Finally, a GET request includes a variable-size second Bloom filter
-and a so-called Bloom filter mutator value which together indicate which
-replies the sender has already seen. During the lookup, each block that matches
-they block type, key and extended query is additionally subjected to a test
-against this Bloom filter. The block plugin is expected to take the hash of the
-block and combine it with the mutator value and check if the result is not yet
-in the Bloom filter. The originator of the query will from time to time modify
-the mutator to (eventually) allow false-positives filtered by the Bloom filter
+@code{GNUNET_MESSAGE_TYPE_DHT_P2P_GET} to other peers. In addition to the
+usual information about the request (type, routing options, desired
+replication level for the request, the key and the extended query), a GET
+request also again contains a hop counter, a Bloom filter over the peers
+that have processed the request already and depending on the routing
+options the full path traversed by the GET.
+Finally, a GET request includes a variable-size second Bloom filter and a
+so-called Bloom filter mutator value which together indicate which
+replies the sender has already seen. During the lookup, each block that
+matches they block type, key and extended query is additionally subjected
+to a test against this Bloom filter.
+The block plugin is expected to take the hash of the block and combine it
+with the mutator value and check if the result is not yet in the Bloom
+filter. The originator of the query will from time to time modify the
+mutator to (eventually) allow false-positives filtered by the Bloom filter
 to be returned.
 
-Peers that receive a GET request perform a local lookup (depending on their
-proximity to the key and the query options) and forward the request to other
-peers. They then remember the request (including the Bloom filter for blocking
-duplicate results) and when they obtain a matching, non-filtered response a
-@code{struct PeerResultMessage} of type@
-@code{GNUNET_MESSAGE_TYPE_DHT_P2P_RESULT} is forwarded to the previous hop.
-Whenver a result is forwarded, the block plugin is used to update the Bloom
-filter accordingly, to ensure that the same result is never forwarded more than
-once. The DHT service may also cache forwarded results locally if the
+Peers that receive a GET request perform a local lookup (depending on
+their proximity to the key and the query options) and forward the request
+to other peers.
+They then remember the request (including the Bloom filter for blocking
+duplicate results) and when they obtain a matching, non-filtered response
+a @code{struct PeerResultMessage} of type
+@code{GNUNET_MESSAGE_TYPE_DHT_P2P_RESULT} is forwarded to the previous
+hop.
+Whenver a result is forwarded, the block plugin is used to update the
+Bloom filter accordingly, to ensure that the same result is never
+forwarded more than once.
+The DHT service may also cache forwarded results locally if the
 "CACHE_RESULTS" option is set to "YES" in the configuration.
 
 @node The GNU Name System (GNS)
@@ -7077,38 +7149,44 @@ once. The DHT service may also cache forwarded results locally if the
 
 @c %**end of header
 
-The GNU Name System (GNS) is a decentralized database that enables users to
-securely resolve names to values. Names can be used to identify other users
-(for example, in social networking), or network services (for example, VPN
-services running at a peer in GNUnet, or purely IP-based services on the
-Internet). Users interact with GNS by typing in a hostname that ends in ".gnu"
+The GNU Name System (GNS) is a decentralized database that enables users
+to securely resolve names to values.
+Names can be used to identify other users (for example, in social
+networking), or network services (for example, VPN services running at a
+peer in GNUnet, or purely IP-based services on the Internet).
+Users interact with GNS by typing in a hostname that ends in ".gnu"
 or ".zkey".
 
-Videos giving an overview of most of the GNS and the motivations behind it is
-available here and here. The remainder of this chapter targets developers that
-are familiar with high level concepts of GNS as presented in these talks.
+Videos giving an overview of most of the GNS and the motivations behind
+it is available here and here.
+The remainder of this chapter targets developers that are familiar with
+high level concepts of GNS as presented in these talks.
+@c TODO: Add links to here and here and to these.
 
-GNS-aware applications should use the GNS resolver to obtain the respective
-records that are stored under that name in GNS. Each record consists of a type,
-value, expiration time and flags.
+GNS-aware applications should use the GNS resolver to obtain the
+respective records that are stored under that name in GNS.
+Each record consists of a type, value, expiration time and flags.
 
-The type specifies the format of the value. Types below 65536 correspond to DNS
-record types, larger values are used for GNS-specific records. Applications can
-define new GNS record types by reserving a number and implementing a plugin
-(which mostly needs to convert the binary value representation to a
-human-readable text format and vice-versa). The expiration time specifies how
-long the record is to be valid. The GNS API ensures that applications are only
-given non-expired values. The flags are typically irrelevant for applications,
-as GNS uses them internally to control visibility and validity of records.
+The type specifies the format of the value. Types below 65536 correspond
+to DNS record types, larger values are used for GNS-specific records.
+Applications can define new GNS record types by reserving a number and
+implementing a plugin (which mostly needs to convert the binary value
+representation to a human-readable text format and vice-versa).
+The expiration time specifies how long the record is to be valid.
+The GNS API ensures that applications are only given non-expired values.
+The flags are typically irrelevant for applications, as GNS uses them
+internally to control visibility and validity of records.
 
-Records are stored along with a signature. The signature is generated using the
-private key of the authoritative zone. This allows any GNS resolver to verify
-the correctness of a name-value mapping.
+Records are stored along with a signature.
+The signature is generated using the private key of the authoritative
+zone. This allows any GNS resolver to verify the correctness of a
+name-value mapping.
 
-Internally, GNS uses the NAMECACHE to cache information obtained from other
-users, the NAMESTORE to store information specific to the local users, and the
-DHT to exchange data between users. A plugin API is used to enable applications
-to define new GNS record types.
+Internally, GNS uses the NAMECACHE to cache information obtained from
+other users, the NAMESTORE to store information specific to the local
+users, and the DHT to exchange data between users.
+A plugin API is used to enable applications to define new GNS
+record types.
 
 @menu
 * libgnunetgns::
@@ -7124,12 +7202,11 @@ to define new GNS record types.
 
 @c %**end of header
 
-The GNS API itself is extremely simple. Clients first connec to the GNS service
-using @code{GNUNET_GNS_connect}. They can then perform lookups using
-@code{GNUNET_GNS_lookup} or cancel pending lookups using
-@code{GNUNET_GNS_lookup_cancel}. Once finished, clients disconnect using
-@code{GNUNET_GNS_disconnect}.
-
+The GNS API itself is extremely simple. Clients first connec to the
+GNS service using @code{GNUNET_GNS_connect}.
+They can then perform lookups using @code{GNUNET_GNS_lookup} or cancel
+pending lookups using @code{GNUNET_GNS_lookup_cancel}.
+Once finished, clients disconnect using @code{GNUNET_GNS_disconnect}.
 
 @menu
 * Looking up records::
@@ -7151,28 +7228,30 @@ using @code{GNUNET_GNS_connect}. They can then perform lookups using
 @item name The client needs to specify the name to
 be resolved. This can be any valid DNS or GNS hostname.
 @item zone The client
-needs to specify the public key of the GNS zone against which the resolution
-should be done (the ".gnu" zone). Note that a key must be provided, even if the
-name ends in ".zkey". This should typically be the public key of the
-master-zone of the user.
+needs to specify the public key of the GNS zone against which the
+resolution should be done (the ".gnu" zone).
+Note that a key must be provided, even if the name ends in ".zkey".
+This should typically be the public key of the master-zone of the user.
 @item type This is the desired GNS or DNS record type
-to look for. While all records for the given name will be returned, this can be
-important if the client wants to resolve record types that themselves delegate
-resolution, such as CNAME, PKEY or GNS2DNS. Resolving a record of any of these
-types will only work if the respective record type is specified in the request,
-as the GNS resolver will otherwise follow the delegation and return the records
-from the respective destination, instead of the delegating record.
-@item only_cached This argument should typically be set to @code{GNUNET_NO}. Setting
-it to @code{GNUNET_YES} disables resolution via the overlay network.
-@item shorten_zone_key If GNS encounters new names during resolution, their
-respective zones can automatically be learned and added to the "shorten zone".
-If this is desired, clients must pass the private key of the shorten zone. If
-NULL is passed, shortening is disabled.
+to look for. While all records for the given name will be returned, this
+can be important if the client wants to resolve record types that
+themselves delegate resolution, such as CNAME, PKEY or GNS2DNS.
+Resolving a record of any of these types will only work if the respective
+record type is specified in the request, as the GNS resolver will
+otherwise follow the delegation and return the records from the
+respective destination, instead of the delegating record.
+@item only_cached This argument should typically be set to
+@code{GNUNET_NO}. Setting it to @code{GNUNET_YES} disables resolution via
+the overlay network.
+@item shorten_zone_key If GNS encounters new names during resolution,
+their respective zones can automatically be learned and added to the
+"shorten zone". If this is desired, clients must pass the private key of
+the shorten zone. If NULL is passed, shortening is disabled.
 @item proc This argument identifies
 the function to call with the result. It is given proc_cls, the number of
-records found (possilby zero) and the array of the records as arguments. proc
-will only be called once. After proc,> has been called, the lookup must no
-longer be cancelled.
+records found (possilby zero) and the array of the records as arguments.
+proc will only be called once. After proc,> has been called, the lookup
+must no longer be cancelled.
 @item proc_cls The closure for proc.
 @end table
 
@@ -7181,14 +7260,14 @@ longer be cancelled.
 
 @c %**end of header
 
-The @code{libgnunetgnsrecord} library provides an API to manipulate the GNS
-record array that is given to proc. In particular, it offers functions such as
-converting record values to human-readable strings (and back). However, most
-@code{libgnunetgnsrecord} functions are not interesting to GNS client
-applications.
+The @code{libgnunetgnsrecord} library provides an API to manipulate the
+GNS record array that is given to proc. In particular, it offers
+functions such as converting record values to human-readable
+strings (and back). However, most @code{libgnunetgnsrecord} functions are
+not interesting to GNS client applications.
 
-For DNS records, the @code{libgnunetdnsparser} library provides functions for
-parsing (and serializing) common types of DNS records.
+For DNS records, the @code{libgnunetdnsparser} library provides
+functions for parsing (and serializing) common types of DNS records.
 
 @node Creating records
 @subsubsection Creating records
@@ -7206,29 +7285,31 @@ operation.
 
 @c %**end of header
 
-In the future, we want to expand @code{libgnunetgns} to allow applications to
-observe shortening operations performed during GNS resolution, for example so
-that users can receive visual feedback when this happens.
+In the future, we want to expand @code{libgnunetgns} to allow
+applications to observe shortening operations performed during GNS
+resolution, for example so that users can receive visual feedback when
+this happens.
 
 @node libgnunetgnsrecord
 @subsection libgnunetgnsrecord
 
 @c %**end of header
 
-The @code{libgnunetgnsrecord} library is used to manipulate GNS records (in
-plaintext or in their encrypted format). Applications mostly interact with
-@code{libgnunetgnsrecord} by using the functions to convert GNS record values
-to strings or vice-versa, or to lookup a GNS record type number by name (or
-vice-versa). The library also provides various other functions that are mostly
+The @code{libgnunetgnsrecord} library is used to manipulate GNS
+records (in plaintext or in their encrypted format).
+Applications mostly interact with @code{libgnunetgnsrecord} by using the
+functions to convert GNS record values to strings or vice-versa, or to
+lookup a GNS record type number by name (or vice-versa).
+The library also provides various other functions that are mostly
 used internally within GNS, such as converting keys to names, checking for
 expiration, encrypting GNS records to GNS blocks, verifying GNS block
 signatures and decrypting GNS records from GNS blocks.
 
 We will now discuss the four commonly used functions of the API.@
-@code{libgnunetgnsrecord} does not perform these operations itself, but instead
-uses plugins to perform the operation. GNUnet includes plugins to support
-common DNS record types as well as standard GNS record types.
-
+@code{libgnunetgnsrecord} does not perform these operations itself,
+but instead uses plugins to perform the operation.
+GNUnet includes plugins to support common DNS record types as well as
+standard GNS record types.
 
 @menu
 * Value handling::
@@ -7240,31 +7321,33 @@ common DNS record types as well as standard GNS record types.
 
 @c %**end of header
 
-@code{GNUNET_GNSRECORD_value_to_string} can be used to convert the (binary)
-representation of a GNS record value to a human readable, 0-terminated UTF-8
-string. NULL is returned if the specified record type is not supported by any
+@code{GNUNET_GNSRECORD_value_to_string} can be used to convert
+the (binary) representation of a GNS record value to a human readable,
+0-terminated UTF-8 string.
+NULL is returned if the specified record type is not supported by any
 available plugin.
 
-@code{GNUNET_GNSRECORD_string_to_value} can be used to try to convert a human
-readable string to the respective (binary) representation of a GNS record
-value.
+@code{GNUNET_GNSRECORD_string_to_value} can be used to try to convert a
+human readable string to the respective (binary) representation of
+a GNS record value.
 
 @node Type handling
 @subsubsection Type handling
 
 @c %**end of header
 
-@code{GNUNET_GNSRECORD_typename_to_number} can be used to obtain the numeric
-value associated with a given typename. For example, given the typename "A"
-(for DNS A reocrds), the function will return the number 1. A list of common
-DNS record types is
-@uref{http://en.wikipedia.org/wiki/List_of_DNS_record_types, here. Note that
-not all DNS record types are supported by GNUnet GNSRECORD plugins at this
-time.}
+@code{GNUNET_GNSRECORD_typename_to_number} can be used to obtain the
+numeric value associated with a given typename. For example, given the
+typename "A" (for DNS A reocrds), the function will return the number 1.
+A list of common DNS record types is
+@uref{http://en.wikipedia.org/wiki/List_of_DNS_record_types, here}.
+Note that not all DNS record types are supported by GNUnet GNSRECORD
+plugins at this time.
 
-@code{GNUNET_GNSRECORD_number_to_typename} can be used to obtain the typename
-associated with a given numeric value. For example, given the type number 1,
-the function will return the typename "A".
+@code{GNUNET_GNSRECORD_number_to_typename} can be used to obtain the
+typename associated with a given numeric value.
+For example, given the type number 1, the function will return the
+typename "A".
 
 @node GNS plugins
 @subsection GNS plugins
@@ -7273,67 +7356,76 @@ the function will return the typename "A".
 
 Adding a new GNS record type typically involves writing (or extending) a
 GNSRECORD plugin. The plugin needs to implement the
-@code{gnunet_gnsrecord_plugin.h} API which provides basic functions that are
-needed by GNSRECORD to convert typenames and values of the respective record
-type to strings (and back). These gnsrecord plugins are typically implemented
-within their respective subsystems. Examples for such plugins can be found in
-the GNSRECORD, GNS and CONVERSATION subsystems.
+@code{gnunet_gnsrecord_plugin.h} API which provides basic functions that
+are needed by GNSRECORD to convert typenames and values of the respective
+record type to strings (and back).
+These gnsrecord plugins are typically implemented within their respective
+subsystems.
+Examples for such plugins can be found in the GNSRECORD, GNS and
+CONVERSATION subsystems.
 
-The @code{libgnunetgnsrecord} library is then used to locate, load and query
-the appropriate gnsrecord plugin. Which plugin is appropriate is determined by
-the record type (which is just a 32-bit integer). The @code{libgnunetgnsrecord}
-library loads all block plugins that are installed at the local peer and
-forwards the application request to the plugins. If the record type is not
+The @code{libgnunetgnsrecord} library is then used to locate, load and
+query the appropriate gnsrecord plugin.
+Which plugin is appropriate is determined by the record type (which is
+just a 32-bit integer). The @code{libgnunetgnsrecord} library loads all
+block plugins that are installed at the local peer and forwards the
+application request to the plugins. If the record type is not
 supported by the plugin, it should simply return an error code.
 
-The central functions of the block APIs (plugin and main library) are the same
-four functions for converting between values and strings, and typenames and
-numbers documented in the previous subsection.
+The central functions of the block APIs (plugin and main library) are the
+same four functions for converting between values and strings, and
+typenames and numbers documented in the previous subsection.
 
 @node The GNS Client-Service Protocol
 @subsection The GNS Client-Service Protocol
-
 @c %**end of header
 
 The GNS client-service protocol consists of two simple messages, the
-@code{LOOKUP} message and the @code{LOOKUP_RESULT}. Each @code{LOOKUP} message
-contains a unique 32-bit identifier, which will be included in the
-corresponding response. Thus, clients can send many lookup requests in parallel
-and receive responses out-of-order. A @code{LOOKUP} request also includes the
-public key of the GNS zone, the desired record type and fields specifying
-whether shortening is enabled or networking is disabled. Finally, the
-@code{LOOKUP} message includes the name to be resolved.
+@code{LOOKUP} message and the @code{LOOKUP_RESULT}. Each @code{LOOKUP}
+message contains a unique 32-bit identifier, which will be included in the
+corresponding response. Thus, clients can send many lookup requests in
+parallel and receive responses out-of-order.
+A @code{LOOKUP} request also includes the public key of the GNS zone,
+the desired record type and fields specifying whether shortening is
+enabled or networking is disabled. Finally, the @code{LOOKUP} message
+includes the name to be resolved.
 
-The response includes the number of records and the records themselves in the
-format created by @code{GNUNET_GNSRECORD_records_serialize}. They can thus be
-deserialized using @code{GNUNET_GNSRECORD_records_deserialize}.
+The response includes the number of records and the records themselves
+in the format created by @code{GNUNET_GNSRECORD_records_serialize}.
+They can thus be deserialized using
+@code{GNUNET_GNSRECORD_records_deserialize}.
 
 @node Hijacking the DNS-Traffic using gnunet-service-dns
 @subsection Hijacking the DNS-Traffic using gnunet-service-dns
 
 @c %**end of header
 
-This section documents how the gnunet-service-dns (and the gnunet-helper-dns)
-intercepts DNS queries from the local system.@ This is merely one method for
-how we can obtain GNS queries. It is also possible to change @code{resolv.conf}
-to point to a machine running @code{gnunet-dns2gns} or to modify libc's name
-system switch (NSS) configuration to include a GNS resolution plugin. The
-method described in this chaper is more of a last-ditch catch-all approach.
+This section documents how the gnunet-service-dns (and the
+gnunet-helper-dns) intercepts DNS queries from the local system.
+This is merely one method for how we can obtain GNS queries.
+It is also possible to change @code{resolv.conf} to point to a machine
+running @code{gnunet-dns2gns} or to modify libc's name system switch
+(NSS) configuration to include a GNS resolution plugin.
+The method described in this chaper is more of a last-ditch catch-all
+approach.
 
-@code{gnunet-service-dns} enables intercepting DNS traffic using policy based
-routing. We MARK every outgoing DNS-packet if it was not sent by our
-application. Using a second routing table in the Linux kernel these marked
-packets are then routed through our virtual network interface and can thus be
+@code{gnunet-service-dns} enables intercepting DNS traffic using policy
+based routing.
+We MARK every outgoing DNS-packet if it was not sent by our application.
+Using a second routing table in the Linux kernel these marked packets are
+then routed through our virtual network interface and can thus be
 captured unchanged.
 
-Our application then reads the query and decides how to handle it: A query to
-an address ending in ".gnu" or ".zkey" is hijacked by @code{gnunet-service-gns}
-and resolved internally using GNS. In the future, a reverse query for an
-address of the configured virtual network could be answered with records kept
-about previous forward queries. Queries that are not hijacked by some
-application using the DNS service will be sent to the original recipient. The
-answer to the query will always be sent back through the virtual interface with
-the original nameserver as source address.
+Our application then reads the query and decides how to handle it: A
+query to an address ending in ".gnu" or ".zkey" is hijacked by
+@code{gnunet-service-gns} and resolved internally using GNS.
+In the future, a reverse query for an address of the configured virtual
+network could be answered with records kept about previous forward
+queries.
+Queries that are not hijacked by some application using the DNS service
+will be sent to the original recipient.
+The answer to the query will always be sent back through the virtual
+interface with the original nameserver as source address.
 
 
 @menu
@@ -7347,59 +7439,66 @@ the original nameserver as source address.
 
 The DNS interceptor adds the following rules to the Linux kernel:
 @example
-iptables -t mangle -I OUTPUT 1 -p udp --sport $LOCALPORT --dport 53 -j
-ACCEPT iptables -t mangle -I OUTPUT 2 -p udp --dport 53 -j MARK --set-mark 3 ip
-rule add fwmark 3 table2 ip route add default via $VIRTUALDNS table2
+iptables -t mangle -I OUTPUT 1 -p udp --sport $LOCALPORT --dport 53 \
+-j ACCEPT iptables -t mangle -I OUTPUT 2 -p udp --dport 53 -j MARK \
+--set-mark 3 ip rule add fwmark 3 table2 ip route add default via \
+$VIRTUALDNS table2
 @end example
 
-Line 1 makes sure that all packets coming from a port our application opened
-beforehand (@code{$LOCALPORT}) will be routed normally. Line 2 marks every
-other packet to a DNS-Server with mark 3 (chosen arbitrarily). The third line
-adds a routing policy based on this mark 3 via the routing table.
+@c FIXME: Rewrite to reflect display which is no longer content by line
+@c FIXME: due to the < 74 characters limit.
+Line 1 makes sure that all packets coming from a port our application
+opened beforehand (@code{$LOCALPORT}) will be routed normally.
+Line 2 marks every other packet to a DNS-Server with mark 3 (chosen
+arbitrarily). The third line adds a routing policy based on this mark
+3 via the routing table.
 
 @node Serving DNS lookups via GNS on W32
 @subsection Serving DNS lookups via GNS on W32
 
 @c %**end of header
 
-This section documents how the libw32nsp (and gnunet-gns-helper-service-w32) do
-DNS resolutions of DNS queries on the local system. This only applies to GNUnet
-running on W32.
+This section documents how the libw32nsp (and
+gnunet-gns-helper-service-w32) do DNS resolutions of DNS queries on the
+local system. This only applies to GNUnet running on W32.
 
-W32 has a concept of "Namespaces" and "Namespace providers". These are used to
-present various name systems to applications in a generic way. Namespaces
-include DNS, mDNS, NLA and others. For each namespace any number of providers
-could be registered, and they are queried in an order of priority (which is
-adjustable).
+W32 has a concept of "Namespaces" and "Namespace providers".
+These are used to present various name systems to applications in a
+generic way.
+Namespaces include DNS, mDNS, NLA and others. For each namespace any
+number of providers could be registered, and they are queried in an order
+of priority (which is adjustable).
 
 Applications can resolve names by using WSALookupService*() family of
 functions.
 
 However, these are WSA-only facilities. Common BSD socket functions for
-namespace resolutions are gethostbyname and getaddrinfo (among others). These
-functions are implemented internally (by default - by mswsock, which also
-implements the default DNS provider) as wrappers around WSALookupService*()
-functions (see "Sample Code for a Service Provider" on MSDN).
+namespace resolutions are gethostbyname and getaddrinfo (among others).
+These functions are implemented internally (by default - by mswsock,
+which also implements the default DNS provider) as wrappers around
+WSALookupService*() functions (see "Sample Code for a Service Provider"
+on MSDN).
 
 On W32 GNUnet builds a libw32nsp - a namespace provider, which can then be
 installed into the system by using w32nsp-install (and uninstalled by
 w32nsp-uninstall), as described in "Installation Handbook".
 
 libw32nsp is very simple and has almost no dependencies. As a response to
-NSPLookupServiceBegin(), it only checks that the provider GUID passed to it by
-the caller matches GNUnet DNS Provider GUID, checks that name being resolved
-ends in ".gnu" or ".zkey", then connects to gnunet-gns-helper-service-w32 at
-127.0.0.1:5353 (hardcoded) and sends the name resolution request there,
-returning the connected socket to the caller.
-
-When the caller invokes NSPLookupServiceNext(), libw32nsp reads a completely
-formed reply from that socket, unmarshalls it, then gives it back to the
+NSPLookupServiceBegin(), it only checks that the provider GUID passed to
+it by the caller matches GNUnet DNS Provider GUID, checks that name being
+resolved ends in ".gnu" or ".zkey", then connects to
+gnunet-gns-helper-service-w32 at 127.0.0.1:5353 (hardcoded) and sends the
+name resolution request there, returning the connected socket to the
 caller.
 
-At the moment gnunet-gns-helper-service-w32 is implemented to ever give only
-one reply, and subsequent calls to NSPLookupServiceNext() will fail with
-WSA_NODATA (first call to NSPLookupServiceNext() might also fail if GNS failed
-to find the name, or there was an error connecting to it).
+When the caller invokes NSPLookupServiceNext(), libw32nsp reads a
+completely formed reply from that socket, unmarshalls it, then gives
+it back to the caller.
+
+At the moment gnunet-gns-helper-service-w32 is implemented to ever give
+only one reply, and subsequent calls to NSPLookupServiceNext() will fail
+with WSA_NODATA (first call to NSPLookupServiceNext() might also fail if
+GNS failed to find the name, or there was an error connecting to it).
 
 gnunet-gns-helper-service-w32 does most of the processing:
 
@@ -7407,20 +7506,22 @@ gnunet-gns-helper-service-w32 does most of the processing:
 @item Maintains a connection to GNS.
 @item Reads GNS config and loads appropriate keys.
 @item Checks service GUID and decides on the type of record to look up,
-refusing to make a lookup outright when unsupported service GUID is passed.
+refusing to make a lookup outright when unsupported service GUID is
+passed.
 @item Launches the lookup
 @end itemize
 
 When lookup result arrives, gnunet-gns-helper-service-w32 forms a complete
-reply (including filling a WSAQUERYSETW structure and, possibly, a binary blob
-with a hostent structure for gethostbyname() client), marshalls it, and sends
-it back to libw32nsp. If no records were found, it sends an empty header.
+reply (including filling a WSAQUERYSETW structure and, possibly, a binary
+blob with a hostent structure for gethostbyname() client), marshalls it,
+and sends it back to libw32nsp. If no records were found, it sends an
+empty header.
 
 This works for most normal applications that use gethostbyname() or
-getaddrinfo() to resolve names, but fails to do anything with applications that
-use alternative means of resolving names (such as sending queries to a DNS
-server directly by themselves). This includes some of well known utilities,
-like "ping" and "nslookup".
+getaddrinfo() to resolve names, but fails to do anything with
+applications that use alternative means of resolving names (such as
+sending queries to a DNS server directly by themselves).
+This includes some of well known utilities, like "ping" and "nslookup".
 
 @node The GNS Namecache
 @section The GNS Namecache
@@ -7428,27 +7529,32 @@ like "ping" and "nslookup".
 @c %**end of header
 
 The NAMECACHE subsystem is responsible for caching (encrypted) resolution
-results of the GNU Name System (GNS). GNS makes zone information available to
-other users via the DHT. However, as accessing the DHT for every lookup is
-expensive (and as the DHT's local cache is lost whenever the peer is
-restarted), GNS uses the NAMECACHE as a more persistent cache for DHT lookups.
-Thus, instead of always looking up every name in the DHT, GNS first checks if
-the result is already available locally in the NAMECACHE. Only if there is no
-result in the NAMECACHE, GNS queries the DHT. The NAMECACHE stores data in the
-same (encrypted) format as the DHT. It thus makes no sense to iterate over all
-items in the NAMECACHE --- the NAMECACHE does not have a way to provide the
-keys required to decrypt the entries.
+results of the GNU Name System (GNS). GNS makes zone information available
+to other users via the DHT. However, as accessing the DHT for every
+lookup is expensive (and as the DHT's local cache is lost whenever the
+peer is restarted), GNS uses the NAMECACHE as a more persistent cache for
+DHT lookups.
+Thus, instead of always looking up every name in the DHT, GNS first
+checks if the result is already available locally in the NAMECACHE.
+Only if there is no result in the NAMECACHE, GNS queries the DHT.
+The NAMECACHE stores data in the same (encrypted) format as the DHT.
+It thus makes no sense to iterate over all items in the
+NAMECACHE --- the NAMECACHE does not have a way to provide the keys
+required to decrypt the entries.
 
-Blocks in the NAMECACHE share the same expiration mechanism as blocks in the
-DHT --- the block expires wheneever any of the records in the (encrypted) block
-expires. The expiration time of the block is the only information stored in
-plaintext. The NAMECACHE service internally performs all of the required work
-to expire blocks, clients do not have to worry about this. Also, given that
-NAMECACHE stores only GNS blocks that local users requested, there is no
-configuration option to limit the size of the NAMECACHE. It is assumed to be
-always small enough (a few MB) to fit on the drive.
+Blocks in the NAMECACHE share the same expiration mechanism as blocks in
+the DHT --- the block expires wheneever any of the records in
+the (encrypted) block expires.
+The expiration time of the block is the only information stored in
+plaintext. The NAMECACHE service internally performs all of the required
+work to expire blocks, clients do not have to worry about this.
+Also, given that NAMECACHE stores only GNS blocks that local users
+requested, there is no configuration option to limit the size of the
+NAMECACHE. It is assumed to be always small enough (a few MB) to fit on
+the drive.
 
-The NAMECACHE supports the use of different database backends via a plugin API.
+The NAMECACHE supports the use of different database backends via a
+plugin API.
 
 @menu
 * libgnunetnamecache::
@@ -7462,17 +7568,19 @@ The NAMECACHE supports the use of different database backends via a plugin API.
 @c %**end of header
 
 The NAMECACHE API consists of five simple functions. First, there is
-@code{GNUNET_NAMECACHE_connect} to connect to the NAMECACHE service. This
-returns the handle required for all other operations on the NAMECACHE. Using
-@code{GNUNET_NAMECACHE_block_cache} clients can insert a block into the cache.
-@code{GNUNET_NAMECACHE_lookup_block} can be used to lookup blocks that were
-stored in the NAMECACHE. Both operations can be cancelled using
+@code{GNUNET_NAMECACHE_connect} to connect to the NAMECACHE service.
+This returns the handle required for all other operations on the
+NAMECACHE. Using @code{GNUNET_NAMECACHE_block_cache} clients can insert a
+block into the cache.
+@code{GNUNET_NAMECACHE_lookup_block} can be used to lookup blocks that
+were stored in the NAMECACHE. Both operations can be cancelled using
 @code{GNUNET_NAMECACHE_cancel}. Note that cancelling a
-@code{GNUNET_NAMECACHE_block_cache} operation can result in the block being
-stored in the NAMECACHE --- or not. Cancellation primarily ensures that the
-continuation function with the result of the operation will no longer be
-invoked. Finally, @code{GNUNET_NAMECACHE_disconnect} closes the connection to
-the NAMECACHE.
+@code{GNUNET_NAMECACHE_block_cache} operation can result in the block
+being stored in the NAMECACHE --- or not. Cancellation primarily ensures
+that the continuation function with the result of the operation will no
+longer be invoked.
+Finally, @code{GNUNET_NAMECACHE_disconnect} closes the connection to the
+NAMECACHE.
 
 The maximum size of a block that can be stored in the NAMECACHE is
 @code{GNUNET_NAMECACHE_MAX_VALUE_SIZE}, which is defined to be 63 kB.
@@ -7482,9 +7590,10 @@ The maximum size of a block that can be stored in the NAMECACHE is
 
 @c %**end of header
 
-All messages in the NAMECACHE IPC protocol start with the @code{struct
-GNUNET_NAMECACHE_Header} which adds a request ID (32-bit integer) to the
-standard message header. The request ID is used to match requests with the
+All messages in the NAMECACHE IPC protocol start with the
+@code{struct GNUNET_NAMECACHE_Header} which adds a request
+ID (32-bit integer) to the standard message header.
+The request ID is used to match requests with the
 respective responses from the NAMECACHE, as they are allowed to happen
 out-of-order.
 
@@ -7499,31 +7608,35 @@ out-of-order.
 
 @c %**end of header
 
-The @code{struct LookupBlockMessage} is used to lookup a block stored in the
-cache. It contains the query hash. The NAMECACHE always responds with a
-@code{struct LookupBlockResponseMessage}. If the NAMECACHE has no response, it
-sets the expiration time in the response to zero. Otherwise, the response is
-expected to contain the expiration time, the ECDSA signature, the derived key
-and the (variable-size) encrypted data of the block.
+The @code{struct LookupBlockMessage} is used to lookup a block stored in
+the cache.
+It contains the query hash. The NAMECACHE always responds with a
+@code{struct LookupBlockResponseMessage}. If the NAMECACHE has no
+response, it sets the expiration time in the response to zero.
+Otherwise, the response is expected to contain the expiration time, the
+ECDSA signature, the derived key and the (variable-size) encrypted data
+of the block.
 
 @node Store
 @subsubsection Store
 
 @c %**end of header
 
-The @code{struct BlockCacheMessage} is used to cache a block in the NAMECACHE.
-It has the same structure as the @code{struct LookupBlockResponseMessage}. The
-service responds with a @code{struct BlockCacheResponseMessage} which contains
-the result of the operation (success or failure). In the future, we might want
-to make it possible to provide an error message as well.
+The @code{struct BlockCacheMessage} is used to cache a block in the
+NAMECACHE.
+It has the same structure as the @code{struct LookupBlockResponseMessage}.
+The service responds with a @code{struct BlockCacheResponseMessage} which
+contains the result of the operation (success or failure).
+In the future, we might want to make it possible to provide an error
+message as well.
 
 @node The NAMECACHE Plugin API
 @subsection The NAMECACHE Plugin API
 @c %**end of header
 
-The NAMECACHE plugin API consists of two functions, @code{cache_block} to store
-a block in the database, and @code{lookup_block} to lookup a block in the
-database.
+The NAMECACHE plugin API consists of two functions, @code{cache_block} to
+store a block in the database, and @code{lookup_block} to lookup a block
+in the database.
 
 
 @menu
@@ -7536,36 +7649,39 @@ database.
 
 @c %**end of header
 
-The @code{lookup_block} function is expected to return at most one block to the
-iterator, and return @code{GNUNET_NO} if there were no non-expired results. If
-there are multiple non-expired results in the cache, the lookup is supposed to
-return the result with the largest expiration time.
+The @code{lookup_block} function is expected to return at most one block
+to the iterator, and return @code{GNUNET_NO} if there were no non-expired
+results.
+If there are multiple non-expired results in the cache, the lookup is
+supposed to return the result with the largest expiration time.
 
 @node Store2
 @subsubsection Store2
 
 @c %**end of header
 
-The @code{cache_block} function is expected to try to store the block in the
-database, and return @code{GNUNET_SYSERR} if this was not possible for any
-reason. Furthermore, @code{cache_block} is expected to implicitly perform cache
+The @code{cache_block} function is expected to try to store the block in
+the database, and return @code{GNUNET_SYSERR} if this was not possible
+for any reason.
+Furthermore, @code{cache_block} is expected to implicitly perform cache
 maintenance and purge blocks from the cache that have expired. Note that
 @code{cache_block} might encounter the case where the database already has
-another block stored under the same key. In this case, the plugin must ensure
-that the block with the larger expiration time is preserved. Obviously, this
-can done either by simply adding new blocks and selecting for the most recent
-expiration time during lookup, or by checking which block is more recent during
-the store operation.
+another block stored under the same key. In this case, the plugin must
+ensure that the block with the larger expiration time is preserved.
+Obviously, this can done either by simply adding new blocks and selecting
+for the most recent expiration time during lookup, or by checking which
+block is more recent during the store operation.
 
 @node The REVOCATION Subsystem
 @section The REVOCATION Subsystem
 @c %**end of header
 
-The REVOCATION subsystem is responsible for key revocation of Egos. If a user
-learns that his private key has been compromised or has lost it, he can use the
-REVOCATION system to inform all of the other users that this private key is no
-longer valid. The subsystem thus includes ways to query for the validity of
-keys and to propagate revocation messages.
+The REVOCATION subsystem is responsible for key revocation of Egos.
+If a user learns that theis private key has been compromised or has lost
+it, they can use the REVOCATION system to inform all of the other users
+that their private key is no longer valid.
+The subsystem thus includes ways to query for the validity of keys and to
+propagate revocation messages.
 
 @menu
 * Dissemination::
@@ -7580,38 +7696,41 @@ keys and to propagate revocation messages.
 
 @c %**end of header
 
-When a revocation is performed, the revocation is first of all disseminated by
-flooding the overlay network. The goal is to reach every peer, so that when a
-peer needs to check if a key has been revoked, this will be purely a local
-operation where the peer looks at his local revocation list. Flooding the
-network is also the most robust form of key revocation --- an adversary would
-have to control a separator of the overlay graph to restrict the propagation of
-the revocation message. Flooding is also very easy to implement --- peers that
-receive a revocation message for a key that they have never seen before simply
-pass the message to all of their neighbours.
+When a revocation is performed, the revocation is first of all
+disseminated by flooding the overlay network.
+The goal is to reach every peer, so that when a peer needs to check if a
+key has been revoked, this will be purely a local operation where the
+peer looks at his local revocation list. Flooding the network is also the
+most robust form of key revocation --- an adversary would have to control
+a separator of the overlay graph to restrict the propagation of the
+revocation message. Flooding is also very easy to implement --- peers that
+receive a revocation message for a key that they have never seen before
+simply pass the message to all of their neighbours.
 
-Flooding can only distribute the revocation message to peers that are online.
-In order to notify peers that join the network later, the revocation service
-performs efficient set reconciliation over the sets of known revocation
-messages whenever two peers (that both support REVOCATION dissemination)
-connect. The SET service is used to perform this operation
-efficiently.
+Flooding can only distribute the revocation message to peers that are
+online.
+In order to notify peers that join the network later, the revocation
+service performs efficient set reconciliation over the sets of known
+revocation messages whenever two peers (that both support REVOCATION
+dissemination) connect.
+The SET service is used to perform this operation efficiently.
 
 @node Revocation Message Design Requirements
 @subsection Revocation Message Design Requirements
 
 @c %**end of header
 
-However, flooding is also quite costly, creating O(|E|) messages on a network
-with |E| edges. Thus, revocation messages are required to contain a
-proof-of-work, the result of an expensive computation (which, however, is cheap
-to verify). Only peers that have expended the CPU time necessary to provide
-this proof will be able to flood the network with the revocation message. This
-ensures that an attacker cannot simply flood the network with millions of
-revocation messages. The proof-of-work required by GNUnet is set to take days
-on a typical PC to compute; if the ability to quickly revoke a key is needed,
-users have the option to pre-compute revocation messages to store off-line and
-use instantly after their key has expired.
+However, flooding is also quite costly, creating O(|E|) messages on a
+network with |E| edges.
+Thus, revocation messages are required to contain a proof-of-work, the
+result of an expensive computation (which, however, is cheap to verify).
+Only peers that have expended the CPU time necessary to provide
+this proof will be able to flood the network with the revocation message.
+This ensures that an attacker cannot simply flood the network with
+millions of revocation messages. The proof-of-work required by GNUnet is
+set to take days on a typical PC to compute; if the ability to quickly
+revoke a key is needed, users have the option to pre-compute revocation
+messages to store off-line and use instantly after their key has expired.
 
 Revocation messages must also be signed by the private key that is being
 revoked. Thus, they can only be created while the private key is in the
@@ -7638,41 +7757,47 @@ revocations.
 
 @c %**end of header
 
-@code{GNUNET_REVOCATION_query} is used to check if a given ECDSA public key has
-been revoked. The given callback will be invoked with the result of the check.
-The query can be cancelled using @code{GNUNET_REVOCATION_query_cancel} on the
-return value.
+@code{GNUNET_REVOCATION_query} is used to check if a given ECDSA public
+key has been revoked.
+The given callback will be invoked with the result of the check.
+The query can be cancelled using @code{GNUNET_REVOCATION_query_cancel} on
+the return value.
 
 @node Preparing revocations
 @subsubsection Preparing revocations
 
 @c %**end of header
 
-It is often desirable to create a revocation record ahead-of-time and store it
-in an off-line location to be used later in an emergency. This is particularly
-true for GNUnet revocations, where performing the revocation operation itself
-is computationally expensive and thus is likely to take some time. Thus, if
-users want the ability to perform revocations quickly in an emergency, they
-must pre-compute the revocation message. The revocation API enables this with
-two functions that are used to compute the revocation message, but not trigger
-the actual revocation operation.
+It is often desirable to create a revocation record ahead-of-time and
+store it in an off-line location to be used later in an emergency.
+This is particularly true for GNUnet revocations, where performing the
+revocation operation itself is computationally expensive and thus is
+likely to take some time.
+Thus, if users want the ability to perform revocations quickly in an
+emergency, they must pre-compute the revocation message.
+The revocation API enables this with two functions that are used to
+compute the revocation message, but not trigger the actual revocation
+operation.
 
 @code{GNUNET_REVOCATION_check_pow} should be used to calculate the
 proof-of-work required in the revocation message. This function takes the
-public key, the required number of bits for the proof of work (which in GNUnet
-is a network-wide constant) and finally a proof-of-work number as arguments.
-The function then checks if the given proof-of-work number is a valid proof of
-work for the given public key. Clients preparing a revocation are expected to
-call this function repeatedly (typically with a monotonically increasing
-sequence of numbers of the proof-of-work number) until a given number satisfies
-the check. That number should then be saved for later use in the revocation
+public key, the required number of bits for the proof of work (which in
+GNUnet is a network-wide constant) and finally a proof-of-work number as
+arguments.
+The function then checks if the given proof-of-work number is a valid
+proof of work for the given public key. Clients preparing a revocation
+are expected to call this function repeatedly (typically with a
+monotonically increasing sequence of numbers of the proof-of-work number)
+until a given number satisfies the check.
+That number should then be saved for later use in the revocation
 operation.
 
-@code{GNUNET_REVOCATION_sign_revocation} is used to generate the signature that
-is required in a revocation message. It takes the private key that (possibly in
-the future) is to be revoked and returns the signature. The signature can again
-be saved to disk for later use, which will then allow performing a revocation
-even without access to the private key.
+@code{GNUNET_REVOCATION_sign_revocation} is used to generate the
+signature that is required in a revocation message.
+It takes the private key that (possibly in the future) is to be revoked
+and returns the signature.
+The signature can again be saved to disk for later use, which will then
+allow performing a revocation even without access to the private key.
 
 @node Issuing revocations
 @subsubsection Issuing revocations
