@@ -220,11 +220,14 @@ Please note that in the code instructions for the installation,
 @node Generic installation instructions
 @section Generic installation instructions
 
-First, in addition to the GNUnet sources you must download the latest version
-of various dependencies. Most distributions do not include sufficiently recent
-versions of these dependencies. Thus, a typically installation on a "modern"
-GNU/Linux distribution requires you to install the following
-dependencies (ideally in this order):
+First, in addition to the GNUnet sources you might require downloading the
+latest version of various dependencies, depending on how recent the
+software versions in your distribution of GNU/Linux are.
+Most distributions do not include sufficiently recent versions of these
+dependencies.
+Thus, a typically installation on a "modern" GNU/Linux distribution
+requires you to install the following dependencies (ideally in this
+order):
 
 @itemize @bullet
 @item libgpgerror and libgcrypt
@@ -238,19 +241,26 @@ Make sure to first install the various mandatory and optional
 dependencies including development headers from your distribution.
 
 Other dependencies that you should strongly consider to install is a
-database (MySQL, sqlite or Postgres). The following instructions will assume
-that you installed at least sqlite. For most distributions you should be able
-to find pre-build packages for the database. Again, make sure to install the
-client libraries and the respective development headers (if they are
-packaged separately) as well.
+database (MySQL, sqlite or Postgres).
+The following instructions will assume that you installed at least sqlite.
+For most distributions you should be able to find pre-build packages for
+the database. Again, make sure to install the client libraries and the
+respective development headers (if they are packaged separately) as well.
 
-You can find specific, detailed instructions for installing of the dependencies
-(and possibly the rest of the GNUnet installation) in the platform-specific
-descriptions, which are linked from the bottom of this page. Please consult
-them now. If your distribution is not listed, please study the instructions for
-Debian stable carefully as you try to install the dependencies for your own
-distribution. Contributing additional instructions for further platforms is
-always appreciated.
+You can find specific, detailed instructions for installing of the
+dependencies (and possibly the rest of the GNUnet installation) in the
+platform-specific descriptions, which can be found in the Index.
+Please consult them now.
+If your distribution is not listed, please study the instructions for
+Debian stable carefully as you try to install the dependencies for your
+own distribution.
+Contributing additional instructions for further platforms is always
+appreciated.
+Please take in mind that operating system development tends to move at
+a rather fast speed. Due to this you should be aware that some of
+the instructionss could be outdated by the time you are reading this.
+If you find a mistake, please tell us about it (or even better: send
+a patch to the documentation to fix it!).
 
 Before proceeding further, please double-check the dependency list.
 Note that in addition to satisfying the dependencies, you might have to
@@ -259,10 +269,11 @@ installed.
 There maybe files for other distributions, or you might be able to find
 equivalent packages for your distribution.
 
-While it is possible to build and install GNUnet without having root access,
-we will assume that you have full control over your system in these
-instructions. First, you should create a system user @emph{gnunet} and
-an additional group @emph{gnunetdns}. On Debian and Ubuntu GNU/Linux, type:
+While it is possible to build and install GNUnet without having root
+access, we will assume that you have full control over your system in
+these instructions.
+First, you should create a system user @emph{gnunet} and an additional
+group @emph{gnunetdns}. On Debian and Ubuntu GNU/Linux, type:
 
 @example
 # adduser --system --home /var/lib/gnunet --group \
@@ -270,6 +281,7 @@ an additional group @emph{gnunetdns}. On Debian and Ubuntu GNU/Linux, type:
 # addgroup --system gnunetdns
 @end example
 
+@noindent
 On other Unixes, this should have the same effect:
 
 @example
@@ -288,7 +300,8 @@ $ sudo make install
 @end example
 
 If you want to be able to enable DEBUG-level log messages, add
-@code{--enable-logging=verbose} to the end of the @code{./configure} command.
+@code{--enable-logging=verbose} to the end of the
+@code{./configure} command.
 DEBUG-level log messages are in English-only and should only be useful for
 developers (or for filing really detailed bug reports). 
 
@@ -306,6 +319,7 @@ $ cd ..
 $ sudo ldconfig # just to be safe
 @end example
 
+@noindent
 Next, edit the file @file{/etc/gnunet.conf} to contain the following:
 
 @example
@@ -314,9 +328,15 @@ SYSTEM_ONLY = YES
 USER_ONLY = NO
 @end example
 
+@noindent
 You may need to update your ld.so cache to include files installed in
-@file{/usr/local/lib}: @code{ # ldconfig }.
+@file{/usr/local/lib}:
 
+@example
+# ldconfig
+@end example
+
+@noindent
 Then, switch from user root to user gnunet to start the peer:
 
 @example
@@ -325,17 +345,24 @@ $ gnunet-arm -c /etc/gnunet.conf -s
 @end example
 
 You may also want to add the last line in the gnunet users @file{crontab}
-prefixed with @code{@@reboot} so that it is executed whenever the system is
-booted:
+prefixed with @code{@@reboot} so that it is executed whenever the system
+is booted:
 
 @example
 @@reboot /usr/local/bin/gnunet-arm -c /etc/gnunet.conf -s@
 @end example
 
-This will only start the system-wide GNUnet services. Type exit to get back
-your root shell. Now, you need to configure the per-user part. For each
-$USER on the system, run: @code{ # adduser $USER gnunet }.
+@noindent
+This will only start the system-wide GNUnet services.
+Type exit to get back your root shell.
+Now, you need to configure the per-user part. For each
+$USER on the system, run:
 
+@example
+# adduser $USER gnunet
+@end example
+
+@noindent
 to allow them to access the system-wide GNUnet services. Then, each
 user should create a configuration file @file{~/.config/gnunet.conf}
 with the lines:
@@ -347,39 +374,45 @@ USER_ONLY = YES
 DEFAULTSERVICES = gns
 @end example
 
+@noindent
 and start the per-user services using
 
-@code{@
- $ gnunet-arm -c ~/.config/gnunet.conf -s@
-}@
-
-Again, adding a @code{crontab} entry to autostart the peer is advised:@
-@code{@
-@@reboot /usr/local/bin/gnunet-arm -c $HOME/.config/gnunet.conf -s@
-}@
-
-Note that some GNUnet services (such as SOCKS5 proxies) may need a system-wide
-TCP port for each user. For those services, systems with more than one user may
-require each user to specify a different port number in their personal
-configuration file.
-
-Finally, the user should perform the basic initial setup for the GNU Name
-System. This is done by running two commands:@
-
 @example
-$ gnunet-gns-import.sh@
-$ gnunet-gns-proxy-setup-ca@
+$ gnunet-arm -c ~/.config/gnunet.conf -s
 @end example
 
+@noindent
+Again, adding a @code{crontab} entry to autostart the peer is advised:
+
+@example
+@@reboot /usr/local/bin/gnunet-arm -c $HOME/.config/gnunet.conf -s
+@end example
+
+@noindent
+Note that some GNUnet services (such as SOCKS5 proxies) may need a
+system-wide TCP port for each user.
+For those services, systems with more than one user may require each user
+to specify a different port number in their personal configuration file.
+
+Finally, the user should perform the basic initial setup for the GNU Name
+System. This is done by running two commands:
+
+@example
+$ gnunet-gns-import.sh
+$ gnunet-gns-proxy-setup-ca
+@end example
+
+@noindent
 The first generates the default zones, wheras the second setups the GNS
 Certificate Authority with the user's browser. Now, to actiave GNS in the
-normal DNS resolution process, you need to edit your @file{/etc/nsswitch.conf}
-where you should find a line like this:
+normal DNS resolution process, you need to edit your
+@file{/etc/nsswitch.conf} where you should find a line like this:
+
 @example
 hosts: files mdns4_minimal [NOTFOUND=return] dns mdns4
 @end example
 
-
+@noindent
 The exact details may differ a bit, which is fine. Add the text
 @emph{"gns [NOTFOUND=return]"} after @emph{"files"}:
 
@@ -388,8 +421,8 @@ hosts: files gns [NOTFOUND=return] mdns4_minimal [NOTFOUND=return] dns mdns4
 @end example
 
 
-You might want to make sure that @file{/lib/libnss_gns.so.2} exists on your
-system, it should have been created during the installation. 
+You might want to make sure that @file{/lib/libnss_gns.so.2} exists on
+your system, it should have been created during the installation. 
 
 
 
@@ -579,8 +612,8 @@ $ sudo apt-get install libpq-dev postgresql
 @node Configuring the installation path
 @subsubsection Configuring the installation path
 
-You can specify the location of the GNUnet installation by setting the prefix
-when calling the configure script with @code{--prefix=DIRECTORY}
+You can specify the location of the GNUnet installation by setting the
+prefix when calling the configure script with @code{--prefix=DIRECTORY}
 
 @example
 $ export PATH=$PATH:DIRECTORY/bin
@@ -681,25 +714,26 @@ $ make; sudo make install
 @subsection Introduction to building on MS Windows
 
 
-This document is a guide to building GNUnet and its dependencies on Windows
-platforms. GNUnet development is mostly done under Linux and especially SVN
-checkouts may not build out of the box. We regret any inconvenience, and
-if you have problems, please report them.
+This document is a guide to building GNUnet and its dependencies on
+Windows platforms. GNUnet development is mostly done under Linux and
+especially SVN checkouts may not build out of the box.
+We regret any inconvenience, and if you have problems, please report them.
 
 @node Requirements
 @subsection Requirements
 
-The Howto is based upon a @strong{Windows Server 2008 32bit@strong{
-Installation, @strong{sbuild} and thus a @uref{http://www.mingw.org/wiki/MSYS,
-MSYS+MinGW} (W32-GCC-Compiler-Suite + Unix-like Userland) installation. sbuild
-is a convenient set of scripts which creates a working msys/mingw installation
-and installs most dependencies required for GNUnet. }}
+The Howto is based upon a @strong{Windows Server 2008 32bit}
+@strong{Installation}, @strong{sbuild} and thus a
+@uref{http://www.mingw.org/wiki/MSYS, MSYS+MinGW}
+(W32-GCC-Compiler-Suite + Unix-like Userland) installation. sbuild
+is a convenient set of scripts which creates a working msys/mingw
+installation and installs most dependencies required for GNUnet.
 
 As of the point of the creation of this Howto, GNUnet @strong{requires} a
-Windows @strong{Server} 2003 or newer for full feature support. Windows Vista
-and later will also work, but
-@strong{non-server version can not run a VPN-Exit-Node} as the NAT features
-have been removed as of Windows Vista.
+Windows @strong{Server} 2003 or newer for full feature support.
+Windows Vista and later will also work, but
+@strong{non-server version can not run a VPN-Exit-Node} as the NAT
+features have been removed as of Windows Vista.
 
 @node Dependencies & Initial Setup
 @subsection Dependencies & Initial Setup
@@ -708,45 +742,49 @@ have been removed as of Windows Vista.
 @itemize @bullet
 
 @item
-Install a fresh version of @strong{Python 2.x}, even if you are using a x64-OS,
-install a 32-bit version for use with sbuild. Python 3.0 currently is
-incompatible.
+Install a fresh version of @strong{Python 2.x}, even if you are using a
+x64-OS, install a 32-bit version for use with sbuild.
+Python 3.0 currently is incompatible.
 
 @item
 Install your favorite @uref{http://code.google.com/p/tortoisegit/, GIT} &
 @uref{http://tortoisesvn.net/, SVN}-clients.
 
 @item
-You will also need some archive-manager like @uref{http://www.7-zip.org/, 7zip}.
+You will also need some archive-manager like
+@uref{http://www.7-zip.org/, 7zip}.
 
 @item
-Pull a copy of sbuild to a directory of your choice, which will be used in the
-remainder of this guide. For now, we will use @file{c:\gnunet\sbuild\}
+Pull a copy of sbuild to a directory of your choice, which will be used
+in the remainder of this guide. For now, we will use
+@file{c:\gnunet\sbuild\}
 
 @item
 in @file{sbuild\src\mingw\mingw32-buildall.sh}, comment out the packages
-@strong{gnunet-svn} and @strong{gnunet-gtk-svn}, as we don't want sbuild to
-compile/install those for us.
+@strong{gnunet-svn} and @strong{gnunet-gtk-svn}, as we don't want sbuild
+to compile/install those for us.
 
 @item
 Follow LRN's sbuild installation instructions.-
 @end itemize
 
-Please note that sbuild may (or will most likely) fail during installation,
-thus you really HAVE to @strong{check the logfiles} created during the
-installation process. Certain packages may fail to build initially due to
-missing dependencies, thus you may have to
+Please note that sbuild may (or will most likely) fail during
+installation, thus you really HAVE to @strong{check the logfiles} created
+during the installation process.
+Certain packages may fail to build initially due to missing dependencies,
+thus you may have to
 @strong{substitute those with binary-versions initially}. Later on once
 dependencies are satisfied you can re-build the newer package versions.
 
-@strong{It is normal that you may have to repeat this step multiple times and
-there is no uniform way to fix all compile-time issues, as the build-process
-of many of the dependencies installed are rather unstable on win32 and certain
-releases may not even compile at all.}
+@strong{It is normal that you may have to repeat this step multiple times
+and there is no uniform way to fix all compile-time issues, as the
+build-process of many of the dependencies installed are rather unstable
+on win32 and certain releases may not even compile at all.}
 
-Most dependencies for GNUnet have been set up by sbuild, thus we now should add
-the @file{bin/} directories in your new msys and mingw installations to PATH.
-You will want to create a backup of your finished msys-environment by now.
+Most dependencies for GNUnet have been set up by sbuild, thus we now
+should add the @file{bin/} directories in your new msys and mingw
+installations to PATH. You will want to create a backup of your finished
+msys-environment by now.
 
 @node GNUnet Installation
 @subsection GNUnet Installation
@@ -755,8 +793,8 @@ First, we need to launch our msys-shell, you can do this via
 
 @file{C:\gnunet\sbuild\msys\msys.bat}
 
-You might wish to take a look at this file and adjust some login-parameters to
-your msys environment.
+You might wish to take a look at this file and adjust some
+login-parameters to your msys environment.
 
 Also, sbuild added two pointpoints to your msys-environment, though those
 might remain invisible:
@@ -764,16 +802,17 @@ might remain invisible:
 @itemize @bullet
 
 @item
-/mingw, which will mount your mingw-directory from sbuild/mingw and the other one is
+/mingw, which will mount your mingw-directory from sbuild/mingw and the
+other one is
 
 @item
 /src which contains all the installation sources sbuild just compiled.
 @end itemize
 
-Check out the current gnunet-sources (svn-head) from the gnunet-repository,
-we will do this in your home directory:
+Check out the current gnunet-sources (git HEAD) from the
+gnunet-repository, we will do this in your home directory:
 
-@code{svn checkout https://gnunet.org/svn/gnunet/ ~/gnunet}
+@code{git clone https://gnunet.org/git/gnunet/ ~/gnunet}
 
 Now, we will first need to bootstrap the checked out installation and then
 configure it accordingly.
@@ -790,19 +829,20 @@ STRIP=true CPPFLAGS="-DUSE_IPV6=1 -DW32_VEH" CFLAGS="$CFLAGS -g -O2" \
 --enable-silent-rules --enable-experimental 2>&1 | tee -a ./configure.log
 @end example
 
-The parameters above will configure for a reasonable gnunet installation to the
-your msys-root directory. Depending on which features your would like to build
-or you may need to specify additional dependencies. Sbuild installed most libs
-into the /mingw subdirectory, so remember to prefix library locations with
+The parameters above will configure for a reasonable gnunet installation
+to the your msys-root directory.
+Depending on which features your would like to build or you may need to
+specify additional dependencies. Sbuild installed most libs into
+the /mingw subdirectory, so remember to prefix library locations with
 this path.
 
-Like on a unixoid system, you might want to use your home directory as prefix
-for your own gnunet installation for development, without tainting the
-buildenvironment. Just change the "prefix" parameter to point towards
+Like on a unixoid system, you might want to use your home directory as
+prefix for your own gnunet installation for development, without tainting
+the buildenvironment. Just change the "prefix" parameter to point towards
 ~/ in this case.
 
-Now it's time to compile gnunet as usual. Though this will take some time, so
-you may fetch yourself a coffee or some Mate now...
+Now it's time to compile gnunet as usual. Though this will take some time,
+so you may fetch yourself a coffee or some Mate now...
 
 @example
 make ; make install
@@ -812,22 +852,22 @@ make ; make install
 @subsection Adjusting Windows for running and testing GNUnet
 
 Assuming the build succeeded and you
-@strong{added the bin directory of your gnunet to PATH}, you can now use your
-gnunet-installation as usual. Remember that UAC or the windows firewall may
-popup initially, blocking further execution of gnunet until you acknowledge
-them (duh!).
+@strong{added the bin directory of your gnunet to PATH}, you can now use
+your gnunet-installation as usual.
+Remember that UAC or the windows firewall may popup initially, blocking
+further execution of gnunet until you acknowledge them.
 
-You will also have to take the usual steps to get p2p software running properly
-(port forwarding, ...), and gnunet will require administrative permissions as
-it may even install a device-driver (in case you are using gnunet-vpn and/or
-gnunet-exit).
+You will also have to take the usual steps to get p2p software running
+properly (port forwarding, ...), and gnunet will require administrative
+permissions as it may even install a device-driver (in case you are using
+gnunet-vpn and/or gnunet-exit).
 
 @node Building the GNUnet Installer
 @subsection Building the GNUnet Installer
 
-The GNUnet installer is made with @uref{http://nsis.sourceforge.net/, NSIS}
-The installer script is located in @file{contrib\win} in the
-GNUnet source tree.
+The GNUnet installer is made with
+@uref{http://nsis.sourceforge.net/, NSIS} The installer script is located
+in @file{contrib\win} in the GNUnet source tree.
 
 @node Using GNUnet with Netbeans on Windows
 @subsection Using GNUnet with Netbeans on Windows
