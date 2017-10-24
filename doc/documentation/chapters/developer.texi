@@ -1434,7 +1434,7 @@ connected with high probabililty to well connected peers.
 
 @item @code{GNUNET_TESTBED_TOPOLOGY_FROM_FILE}: The topology information
 is loaded from a file. The path to the file has to be given.
-@xref{Topology file format} for the format of this file.
+@xref{Topology file format}, for the format of this file.
 
 @item @code{GNUNET_TESTBED_TOPOLOGY_NONE}: No topology
 @end itemize
@@ -1473,7 +1473,7 @@ how many peers a peer should be atleast connected to.
 Similarly, the topology @code{FROM_FILE} requires the option
 @code{OVERLAY_TOPOLOGY_FILE} to contain the path of the file containing
 the topology information. This option is ignored for the rest of the
-topologies. @xref{Topology file format} for the format of this file.
+topologies. @xref{Topology file format}, for the format of this file.
 
 @c ***********************************************************************
 @node Hosts file format
