@@ -6,6 +6,9 @@ To be moved to an appropriate section of "how to write documentation" or
    so forth. -> https://en.wikipedia.org/wiki/Singular_they
 
 2. Keep line length below 74 characters.
+   - Expection by texi2pdf output so far: URLs will break
+     (inserted whitespace) when they contain linebreaks
+     within the @url{} / @uref{}.
 
 3. Do not use tab characters (see chapter 2.1 texinfo manual)
 * What's left to do
