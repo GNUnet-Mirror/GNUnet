@@ -79,8 +79,7 @@ to work against GNU nettle > 2.7, due to some API updatings done by
 nettle. Thus it should be compiled against nettle 2.7
 and, in case you get some error on the reference to `rpl_strerror' being
 undefined, follow the instructions on
-@uref{http://lists.gnupg.org/pipermail/gnutls-devel/2013-November/00
-6588.html, this}
+@uref{http://lists.gnupg.org/pipermail/gnutls-devel/2013-November/006588.html, this}
 post (and the link inside it)).}
 @item @uref{https://gnunet.org/gnurl, gnURL} libgnurl @geq{} 7.34.0
 @footnote{must be compiled after @code{GnuTLS}}
@@ -1554,7 +1553,7 @@ installations. An interesting to-be-implemented-feature of gnunet-update
 is that these updates are propagated through GNUnet's peer-to-peer
 network. More information about gnunet-update can be found at
 @c FIXME: Use correct cgit URL
-@uref{https://gnunet.org/git/gnunet-update/README}.
+@uref{https://gnunet.org/git/gnunet-update.git/tree/plain/README}.
 
 While the project is still under development, we have implemented the
 following features which we believe may be helpful for users and we
@@ -1777,22 +1776,24 @@ GNUnet uses the portable POSIX thread library for multi-threading..@
 
 
 @item
-Save @uref{ftp://sources.redhat.com/pub/pthreads-win32/dll-latest/lib/x86
-/libpthreadGC2.a,  libpthreadGC2.a} (x86) or @uref{ftp://sources.redhat.c
-om/pub/pthreads-win32/dll-latest/lib/x64/libpthreadGC2.a,  libpthreadGC2.
-a} (x64) as libpthread.a into the lib directory (c:\mingw\mingw\lib\libpt
-hread.a) 
+Save
+@uref{ftp://sources.redhat.com/pub/pthreads-win32/dll-latest/lib/x86/libpthreadGC2.a, libpthreadGC2.a}
+(x86) or
+@uref{ftp://sources.redhat.com/pub/pthreads-win32/dll-latest/lib/x64/libpthreadGC2.a, libpthreadGC2.a}
+(x64) as libpthread.a into the @file{lib}
+directory (@file{c:\mingw\mingw\lib\libpthread.a}).
 
 @item
-Save @uref{ftp://sources.redhat.com/pub/pthreads-win32/dll-latest/lib/x86
-/pthreadGC2.dll,  pthreadGC2.dll} (x86) or @uref{ftp://sources.redhat.c
-om/pub/pthreads-win32/dll-latest/lib/x64/pthreadGC2.dll,  libpthreadGC2.a}
-(x64) into the MinGW bin directory (c:\mingw\mingw\bin) 
+Save
+@uref{ftp://sources.redhat.com/pub/pthreads-win32/dll-latest/lib/x86/pthreadGC2.dll, pthreadGC2.dll}
+(x86) or
+@uref{ftp://sources.redhat.com/pub/pthreads-win32/dll-latest/lib/x64/pthreadGC2.dll, libpthreadGC2.a}
+(x64) into the MinGW @file{bin} directory (@file{c:\mingw\mingw\bin}).
 
 @item
-Download all header files from @uref{ftp://sources.redhat.com/pub/pthread
-s-win32/dll-latest/include/, include/} to the @file{include} directory
-(c:\mingw\mingw\include) 
+Download all header files from
+@uref{ftp://sources.redhat.com/pub/pthreads-win32/dll-latest/include/, include/}
+to the @file{include} directory (@file{c:\mingw\mingw\include}).
 @end itemize
 
 
@@ -1883,9 +1884,8 @@ Get @uref{http://www.gtk.org/download/win32.php, pkg-config} and libpng
 and unpack them to the MinGW directory (c:\mingw\mingw)@
 @
 Here is an all-in-one package for
-@uref{http://ftp.gnome.org/pub/gnome/binaries/win32/gtk+/2.24/gtk+-bu
-ndle_2.24.10-20120208_win32.zip, gtk+dependencies}.
-Do not overwrite any existing files! 
+@uref{http://ftp.gnome.org/pub/gnome/binaries/win32/gtk+/2.24/gtk+-bundle_2.24.10-20120208_win32.zip, gtk+dependencies}
+. Do not overwrite any existing files!
 
 @item
 @strong{Glade}@
@@ -1947,14 +1947,11 @@ directory (c:\mingw\mingw)
 OGG Vorbis is used to extract meta-data from .ogg files@
 @
 Get the packages
-@uref{http://www.gnunet.org/libextractor/download/win/libogg-1.1.4.zip,
-libogg}
+@uref{http://www.gnunet.org/libextractor/download/win/libogg-1.1.4.zip, libogg}
 and
-@uref{http://www.gnunet.org/libextractor/download/win/libvorbis-1.2.3.zip,
-libvorbis}
+@uref{http://www.gnunet.org/libextractor/download/win/libvorbis-1.2.3.zip, libvorbis}
 from the
-@uref{http://ftp.gnu.org/gnu/libextractor/libextractor-w32-1.0.0.zip,
-libextractor win32 build}
+@uref{http://ftp.gnu.org/gnu/libextractor/libextractor-w32-1.0.0.zip, libextractor win32 build}
 and unpack them to the MinGW directory (c:\mingw\mingw) 
 
 @item
@@ -1963,8 +1960,7 @@ and unpack them to the MinGW directory (c:\mingw\mingw)
 (lib)Exiv2 is used to extract meta-data from files with Exiv2 meta-data@
 @
 Download
-@uref{http://www.gnunet.org/libextractor/download/win/exiv2-0.18.2.zip,
-Exiv2}
+@uref{http://www.gnunet.org/libextractor/download/win/exiv2-0.18.2.zip, Exiv2}
 and unpack it to the MSYS directory (c:\mingw) 
 @end itemize
 
@@ -2959,15 +2955,13 @@ ProxyPassReverse https://gnunet.foo.org:4433/
 
 @noindent
 More information about the apache mod_proxy configuration can be found
-at @uref{http://httpd.apache.org/docs/2.2/mod/mod_proxy.html#proxypass,
-http://httpd.apache.org/docs/2.2/mod/mod_proxy.html#proxypass}
+here: @uref{http://httpd.apache.org/docs/2.2/mod/mod_proxy.html#proxypass}
+.
 
 @strong{Configure your nginx HTTPS webserver}
 
 Since nginx does not support chunked encoding, you first of all have to
-install @code{chunkin}:@
-@uref{http://wiki.nginx.org/HttpChunkinModule,
-http://wiki.nginx.org/HttpChunkinModule}
+install @code{chunkin}: @uref{http://wiki.nginx.org/HttpChunkinModule}.
 
 To enable chunkin add:
 

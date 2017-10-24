@@ -110,8 +110,7 @@ following links:
 @c ** FIXME: Link to files in source, not online.
 @c ** FIXME: Where is the Java tutorial?
 @itemize @bullet
-@item @uref{https://gnunet.org/git/gnunet.git/plain/doc/gnunet-c-tutoria
-l.pdf, GNUnet C tutorial}
+@item @uref{https://gnunet.org/git/gnunet.git/plain/doc/gnunet-c-tutorial.pdf, GNUnet C tutorial}
 @item GNUnet Java tutorial
 @end itemize
 
@@ -129,8 +128,8 @@ The public subsystems on the GNUnet server that help developers are:
 @item The Version control system keeps our code and enables distributed
 development. Only developers with write access can commit code, everyone
 else is encouraged to submit patches to the
-@uref{https://lists.gnu.org/mailman/listinfo/gnunet-developers,
-GNUnet-developers mailinglist}.
+@uref{https://lists.gnu.org/mailman/listinfo/gnunet-developers, GNUnet-developers mailinglist}
+.
 @item The GNUnet bugtracking system is used to track feature requests,
 open bug reports and their resolutions. Anyone can report bugs, only
 developers can claim to have fixed them.
@@ -698,7 +697,7 @@ gnunet-daemon-hostlist) and no GNUnet management port
 libgnunet_plugin_transport_tcp)
 @end itemize
 
-@c ***********************************************************************
+@cindex Coding style
 @node Coding style
 @subsection Coding style
 
@@ -708,10 +707,6 @@ libgnunet_plugin_transport_tcp)
 @item C99 struct initialization is fine
 @item declare only one variable per line, so@
 
-@example
-int i; int j;
-@end example
-
 @noindent
 instead of
 
@@ -719,10 +714,22 @@ instead of
 int i,j;
 @end example
 
+@noindent
+write:
+
+@example
+int i;
+int j;
+@end example
+
+@c TODO: include actual example from a file in source
+
+@noindent
 This helps keep diffs small and forces developers to think precisely about
-the type of every variable. Note that @code{char *} is different from
-@code{const char*} and @code{int} is different from @code{unsigned int}
-or @code{uint32_t}. Each variable type should be chosen with care.
+the type of every variable.
+Note that @code{char *} is different from @code{const char*} and
+@code{int} is different from @code{unsigned int} or @code{uint32_t}.
+Each variable type should be chosen with care.
 
 @item While @code{goto} should generally be avoided, having a
 @code{goto} to the end of a function to a block of clean up
@@ -784,21 +791,27 @@ if (NULL == (value = lookup_function())) @{
 deep(er) nesting. Thus, we would write:
 
 @example
-next = head; while (NULL != (pos = next)) @{
-  next = pos->next; if (! should_free (pos))
-                      continue;
+next = head;
+while (NULL != (pos = next)) @{
+  next = pos->next;
+  if (! should_free (pos))
+    continue;
   GNUNET_CONTAINER_DLL_remove (head, tail, pos);
-  GNUNET_free (pos); @}
+  GNUNET_free (pos);
+ @}
 @end example
 
 instead of
 
 @example
 next = head; while (NULL != (pos = next)) @{
-  next = pos->next; if (should_free (pos)) @{
+  next = pos->next;
+  if (should_free (pos)) @{
     /* unnecessary nesting! */
     GNUNET_CONTAINER_DLL_remove (head, tail, pos);
-    GNUNET_free (pos); @} @}
+    GNUNET_free (pos);
+   @}
+  @}
 @end example
 
 @item We primarily use @code{for} and @code{while} loops.
@@ -825,7 +838,9 @@ use @code{for}, even if it involves linked lists:
 
 @example
 /* simple iteration over a linked list */
-for (pos = head; NULL != pos; pos = pos->next)
+for (pos = head;
+     NULL != pos;
+     pos = pos->next)
 @{
    use (pos);
 @}
@@ -835,14 +850,15 @@ for (pos = head; NULL != pos; pos = pos->next)
 @item The first argument to all higher-order functions in GNUnet must be
 declared to be of type @code{void *} and is reserved for a closure. We do
 not use inner functions, as trampolines would conflict with setups that
-use non-executable stacks.@ The first statement in a higher-order
-function, which unusually should be part of the variable declarations,
-should assign the @code{cls} argument to the precise expected type.
-For example:
+use non-executable stacks.
+The first statement in a higher-order function, which unusually should
+be part of the variable declarations, should assign the
+@code{cls} argument to the precise expected type. For example:
 
 @example
 int callback (void *cls, char *args) @{
-  struct Foo *foo = cls; int other_variables;
+  struct Foo *foo = cls;
+  int other_variables;
 
    /* rest of function */
 @}
@@ -890,9 +906,10 @@ way, more code will fit on the screen).
 @section Build-system
 
 If you have code that is likely not to compile or build rules you might
-want to not trigger for most developers, use "if HAVE_EXPERIMENTAL" in
-your Makefile.am. Then it is OK to (temporarily) add non-compiling (or
-known-to-not-port) code.
+want to not trigger for most developers, use @code{if HAVE_EXPERIMENTAL}
+in your @file{Makefile.am}.
+Then it is OK to (temporarily) add non-compiling (or known-to-not-port)
+code.
 
 If you want to compile all testcases but NOT run them, run configure with
 the @code{--enable-test-suppression} option.
@@ -907,10 +924,9 @@ If you want to obtain code coverage results, run configure with the
 @code{--enable-coverage} option and run the @file{coverage.sh} script in
 the @file{contrib/} directory.
 
-@c ***********************************************************************
+@cindex gnunet-ext
 @node Developing extensions for GNUnet using the gnunet-ext template
 @section Developing extensions for GNUnet using the gnunet-ext template
-
 
 For developers who want to write extensions for GNUnet we provide the
 gnunet-ext template to provide an easy to use skeleton.
@@ -943,7 +959,7 @@ environmental variable @code{LD_LIBRARY_PATH} by using
 export LD_LIBRARY_PATH=/path/to/gnunet/lib
 @end example
 
-@c ***********************************************************************
+@cindex writing testcases
 @node Writing testcases
 @section Writing testcases
 
@@ -966,8 +982,10 @@ containing the testcase. For a testcase testing the code in @file{foo.c}
 the @file{Makefile.am} would contain the following lines:
 
 @example
-check_PROGRAMS = test_foo TESTS = $(check_PROGRAMS) test_foo_SOURCES =
-test_foo.c test_foo_LDADD = $(top_builddir)/src/util/libgnunetutil.la
+check_PROGRAMS = test_foo
+TESTS = $(check_PROGRAMS)
+test_foo_SOURCES = test_foo.c
+test_foo_LDADD = $(top_builddir)/src/util/libgnunetutil.la
 @end example
 
 Naturally, other libraries used by the testcase may be specified in the
@@ -990,7 +1008,7 @@ typically necessary to run @code{make install} before running any
 testcases. Thus the canonical command @code{make check install} has to be
 changed to @code{make install check} for GNUnet.
 
-@c ***********************************************************************
+@cindex TESTING library
 @node GNUnet's TESTING library
 @section GNUnet's TESTING library
 
@@ -1028,7 +1046,7 @@ hosts.
 * Testing with multiple processes::
 @end menu
 
-@c ***********************************************************************
+@cindex TESTING API
 @node API
 @subsection API
 
@@ -1162,7 +1180,10 @@ static void run (void *cls,
 
 GNUNET_PROGRAM_run (argc, argv,
                     "NAME-OF-TEST",
-                    "nohelp", options, &run, cls);
+                    "nohelp",
+                    options,
+                    &run,
+                    cls);
 @end example
 
 
@@ -1240,7 +1261,7 @@ which the value is measured, for instance "kb/s" or "kb of RAM/node".
 If you wish to use Gauger for your own project, you can grab a copy of the
 latest stable release or check out Gauger's Subversion repository.
 
-@c ***********************************************************************
+@cindex TESTBED Subsystem
 @node GNUnet's TESTBED Subsystem
 @section GNUnet's TESTBED Subsystem
 
@@ -1301,10 +1322,17 @@ following substitutions are supported
 @end itemize
 
 Note that the substitution placemark is replaced only when the
-corresponding field is available and only once. Specifying @code{%u@@%h}
-doesn't work either. If you want to user username substitutions for SSH
+corresponding field is available and only once. Specifying
+@example
+%u@atchar{}%h
+@end example
+doesn't work either.
+If you want to user username substitutions for SSH
 use the argument @code{-l} before the username substitution.
-Ex: @code{ssh -l %u -p %p %h}
+For exmaple:
+@example
+ssh -l %u -p %p %h
+@end example
 
 The testbed API and the helper communicate through the helpers stdin and
 stdout. As the helper is started through a remote shell on remote hosts
@@ -1324,7 +1352,8 @@ Since the testbed API executes the remote shell as a non-interactive
 shell, certain scripts like .bashrc, .profiler may not be executed. If
 this is the case testbed API can be forced to execute an interactive
 shell by setting up the environmental variable
-`GNUNET_TESTBED_RSH_CMD_SUFFIX' to a shell program.
+@code{GNUNET_TESTBED_RSH_CMD_SUFFIX} to a shell program.
+
 An example could be:
 
 @example
@@ -1353,7 +1382,7 @@ Testbed API can accessed by including the
 * Hosts file format::
 * Topology file format::
 * Testbed Barriers::
-* Automatic large-scale deployment of GNUnet in the PlanetLab testbed::
+* Automatic large-scale deployment in the PlanetLab testbed::
 * TESTBED Caveats::
 @end menu
 
@@ -1400,11 +1429,12 @@ random links are to be given
 topology where peer connectivity follows power law - new peers are
 connected with high probabililty to well connected peers.
 @footnote{See Emergence of Scaling in Random Networks. Science 286,
-509-512, 1999.}
+509-512, 1999
+(@uref{https://gnunet.org/git/bibliography.git/plain/docs/emergence_of_scaling_in_random_networks__barabasi_albert_science_286__1999.pdf, pdf})}
 
 @item @code{GNUNET_TESTBED_TOPOLOGY_FROM_FILE}: The topology information
-is loaded from a file. The path to the file has to be given. See Topology
-file format for the format of this file.
+is loaded from a file. The path to the file has to be given.
+@xref{Topology file format} for the format of this file.
 
 @item @code{GNUNET_TESTBED_TOPOLOGY_NONE}: No topology
 @end itemize
@@ -1415,6 +1445,7 @@ the variable @code{OVERLAY_TOPOLOGY} to the following values in the
 configuration passed to Testbed API functions
 @code{GNUNET_TESTBED_test_run()} and
 @code{GNUNET_TESTBED_run()}:
+
 @itemize @bullet
 @item @code{CLIQUE}
 @item @code{RING}
@@ -1442,7 +1473,7 @@ how many peers a peer should be atleast connected to.
 Similarly, the topology @code{FROM_FILE} requires the option
 @code{OVERLAY_TOPOLOGY_FILE} to contain the path of the file containing
 the topology information. This option is ignored for the rest of the
-topologies. See Topology file format for the format of this file.
+topologies. @xref{Topology file format} for the format of this file.
 
 @c ***********************************************************************
 @node Hosts file format
@@ -1464,7 +1495,9 @@ These functions require the hosts file to be of the following format:
 host, the hostname of the host and the port number to use for the remote
 shell program. All thee values should be given.
 @item These details should be given in the following format:
-@code{<username>@@<hostname>:<port>}
+@example
+<username>@@<hostname>:<port>
+@end example
 @end itemize
 
 Note that having canonical hostnames may cause problems while resolving
@@ -1484,7 +1517,8 @@ newline characters are ignored. The API will then try to connect each
 origin peer to the target peer.
 
 For example, the following file will result in 5 overlay connections:
-[2->1], [3->1],[4->3], [0->3], [2->0]@ @code{@ 1:2|3@ 3:4| 0@ 0: 2@ }
+[2->1], [3->1],[4->3], [0->3], [2->0]@
+@code{@ 1:2|3@ 3:4| 0@ 0: 2@ }
 
 @c ***********************************************************************
 @node Testbed Barriers
@@ -1610,9 +1644,9 @@ message from its upward propagation --- the upward propagation is needed
 for ensuring that the barrier is reached by all the controllers and the
 downward propagation is for triggering that the barrier is crossed.
 
-@c ***********************************************************************
-@node Automatic large-scale deployment of GNUnet in the PlanetLab testbed
-@subsection Automatic large-scale deployment of GNUnet in the PlanetLab testbed
+@cindex PlanetLab testbed
+@node Automatic large-scale deployment in the PlanetLab testbed
+@subsection Automatic large-scale deployment in the PlanetLab testbed
 
 PlanetLab is as a testbed for computer networking and distributed systems
 research. It was established in 2002 and as of June 2010 was composed of
@@ -1653,14 +1687,17 @@ best.
 @c FIXME: Is there an official, safer way instead of blind-piping a
 @c script?
 @c FIXME: Use newer pypi URLs below.
-Install Distribute for python:@ @code{@ curl
-http://python-distribute.org/distribute_setup.py | sudo python@ }
+Install Distribute for python:
+
+@example
+curl http://python-distribute.org/distribute_setup.py | sudo python
+@end example
 
 Install Distribute for zope.interface <= 3.8.0 (4.0 and 4.0.1 will not
 work):
 
 @example
-export PYPI="https://pypi.python.org/packages/source"
+export PYPI=@value{PYPI-URL}
 wget $PYPI/z/zope.interface/zope.interface-3.8.0.tar.gz
 tar zvfz zope.interface-3.8.0.tar.gz
 cd zope.interface-3.8.0
@@ -1769,7 +1806,7 @@ terminal and then in the opened session run it again.
 If you were not asked for a password on either login,
 then you should be good to go.
 
-@c ***********************************************************************
+@cindex TESTBED Caveats
 @node TESTBED Caveats
 @subsection TESTBED Caveats
 
@@ -1969,6 +2006,7 @@ variables will propagate them to all other services.
 "GNUNET_LOG" and "GNUNET_FORCE_LOG" variables must contain a specially
 formatted @strong{logging definition} string, which looks like this:@
 
+@c FIXME: Can we close this with [/component] instead?
 @example
 [component];[file];[function];[from_line[-to_line]];loglevel[/component...]
 @end example
@@ -2811,44 +2849,51 @@ configuration file, which are not found in the server API.
 The dual to the service/server API is the client API, which can be used to
 access services.
 
-The most common way to start a service is to use the GNUNET_SERVICE_run
-function from the program's main function. GNUNET_SERVICE_run will then
-parse the command line and configuration files and, based on the options
-found there, start the server. It will then give back control to the main
+The most common way to start a service is to use the
+@code{GNUNET_SERVICE_run} function from the program's main function.
+@code{GNUNET_SERVICE_run} will then parse the command line and
+configuration files and, based on the options found there,
+start the server. It will then give back control to the main
 program, passing the server and the configuration to the
-GNUNET_SERVICE_Main callback. GNUNET_SERVICE_run will also take care of
-starting the scheduler loop. If this is inappropriate (for example,
-because the scheduler loop is already running), GNUNET_SERVICE_start and
-related functions provide an alternative to GNUNET_SERVICE_run.
+@code{GNUNET_SERVICE_Main} callback. @code{GNUNET_SERVICE_run}
+will also take care of starting the scheduler loop.
+If this is inappropriate (for example, because the scheduler loop
+is already running), @code{GNUNET_SERVICE_start} and
+related functions provide an alternative to @code{GNUNET_SERVICE_run}.
 
 When starting a service, the service_name option is used to determine
 which sections in the configuration file should be used to configure the
-service. A typical value here is the name of the src/ sub-directory, for
-example "statistics". The same string would also be given to
-GNUNET_CLIENT_connect to access the service.
+service. A typical value here is the name of the @file{src/}
+sub-directory, for example "@file{statistics}".
+The same string would also be given to
+@code{GNUNET_CLIENT_connect} to access the service.
 
 Once a service has been initialized, the program should use the
-GNUNET_SERVICE_Main callback to register message handlers using
-GNUNET_SERVER_add_handlers. The service will already have registered a
-handler for the "TEST" message.
+@code{GNUNET_SERVICE_Main} callback to register message handlers
+using @code{GNUNET_SERVER_add_handlers}.
+The service will already have registered a handler for the
+"TEST" message.
 
-The option bitfield (enum GNUNET_SERVICE_Options) determines how a service
-should behave during shutdown. There are three key strategies:
+@fnindex GNUNET_SERVICE_Options
+The option bitfield (@code{enum GNUNET_SERVICE_Options})
+determines how a service should behave during shutdown.
+There are three key strategies:
 
 @table @asis
 
-@item instant (GNUNET_SERVICE_OPTION_NONE) Upon receiving the shutdown
+@item instant (@code{GNUNET_SERVICE_OPTION_NONE})
+Upon receiving the shutdown
 signal from the scheduler, the service immediately terminates the server,
 closing all existing connections with clients.
-@item manual
-(GNUNET_SERVICE_OPTION_MANUAL_SHUTDOWN) The service does nothing by itself
+@item manual (@code{GNUNET_SERVICE_OPTION_MANUAL_SHUTDOWN})
+The service does nothing by itself
 during shutdown. The main program will need to take the appropriate
 action by calling GNUNET_SERVER_destroy or GNUNET_SERVICE_stop (depending
 on how the service was initialized) to terminate the service. This method
 is used by gnunet-service-arm and rather uncommon.
-@item soft
-(GNUNET_SERVICE_OPTION_SOFT_SHUTDOWN) Upon receiving the shutdown signal
-from the scheduler, the service immediately tells the server to stop
+@item soft (@code{GNUNET_SERVICE_OPTION_SOFT_SHUTDOWN})
+Upon receiving the shutdown signal from the scheduler,
+the service immediately tells the server to stop
 listening for incoming clients. Requests from normal existing clients are
 still processed and the server/service terminates once all normal clients
 have disconnected. Clients that are not expected to ever disconnect (such
@@ -3699,7 +3744,8 @@ miniscule in practice --- as long as a connection is used for a
 significant number of messages.
 
 @multitable @columnfractions .20 .15 .15 .15 .15 .15
-@headitem Transport @tab UDP @tab TCP @tab SMTP (Purdue sendmail) @tab SMTP (RH 8.0) @tab SMTP (SGL qmail)
+@headitem Transport @tab UDP @tab TCP @tab SMTP (Purdue sendmail)
+@tab SMTP (RH 8.0) @tab SMTP (SGL qmail)
 @item  11 bytes @tab 31 ms @tab 55 ms @tab  781 s @tab 77 s @tab 24 s
 @item  407 bytes @tab 37 ms @tab 62 ms @tab  789 s @tab 78 s @tab 25 s
 @item 1,221 bytes @tab 46 ms @tab 73 ms @tab  804 s @tab 78 s @tab 25 s
@@ -4225,8 +4271,7 @@ then adds fundamental security to the connections:
 
 @itemize @bullet
 @item confidentiality with so-called perfect forward secrecy; we use
-ECDHE@footnote{@uref{http://en.wikipedia.org/wiki/Elliptic_curve_
-Diffie%E2%80%93Hellman, Elliptic-curve Diffie---Hellman}}
+ECDHE@footnote{@uref{http://en.wikipedia.org/wiki/Elliptic_curve_Diffie%E2%80%93Hellman, Elliptic-curve Diffie---Hellman}}
 powered by Curve25519
 @footnote{@uref{http://cr.yp.to/ecdh.html, Curve25519}} for the key
 exchange and then use symmetric encryption, encrypting with both AES-256
@@ -4240,8 +4285,7 @@ variant of ECDSA
 @item integrity protection (using SHA-512
 @footnote{@uref{http://en.wikipedia.org/wiki/SHA-2, SHA-512}} to do
 encrypt-then-MAC
-@footnote{@uref{http://en.wikipedia.org/wiki/Authenticated_encryption,
-encrypt-then-MAC}})
+@footnote{@uref{http://en.wikipedia.org/wiki/Authenticated_encryption, encrypt-then-MAC}})
 @item Replay
 @footnote{@uref{http://en.wikipedia.org/wiki/Replay_attack, replay}}
 protection (using nonces, timestamps, challenge-response,
@@ -4491,8 +4535,7 @@ public-private key pair and signs the corresponding
 @code{EphemeralKeyMessage} with its long-term key (which we usually call
 the peer's identity; the hash of the public long term key is what results
 in a @code{struct GNUNET_PeerIdentity} in all GNUnet APIs. The ephemeral
-key is ONLY used for an ECDHE@footnote{@uref{http://en.wikipedia.org/wiki/
-Elliptic_curve_Diffie%E2%80%93Hellman, Elliptic-curve Diffie---Hellman}}
+key is ONLY used for an ECDHE@footnote{@uref{http://en.wikipedia.org/wiki/Elliptic_curve_Diffie%E2%80%93Hellman, Elliptic-curve Diffie---Hellman}}
 exchange by the CORE service to establish symmetric session keys. A peer
 will use the same @code{EphemeralKeyMessage} for all peers for
 @code{REKEY_FREQUENCY}, which is usually 12 hours. After that time, it
@@ -4502,8 +4545,7 @@ fresh symmetric session keys. Note that peers independently decide on
 when to discard ephemeral keys; it is not a protocol violation to discard
 keys more often. Ephemeral keys are also never stored to disk; restarting
 a peer will thus always create a fresh ephemeral key. The use of ephemeral
-keys is what provides @uref{http://en.wikipedia.org/wiki/Forward_secrecy,
-forward secrecy}.
+keys is what provides @uref{http://en.wikipedia.org/wiki/Forward_secrecy, forward secrecy}.
 
 Just before transmission, the @code{EphemeralKeyMessage} is patched to
 reflect the current sender_status, which specifies the current state of
@@ -4550,11 +4592,11 @@ All functions related to the key exchange and encryption/decryption of
 messages can be found in @file{gnunet-service-core_kx.c} (except for the
 cryptographic primitives, which are in @file{util/crypto*.c}).
 Given the key material from ECDHE, a Key derivation function
-@footnote{@uref{https://en.wikipedia.org/wiki/Key_derivation_function, Key
-derivation function}} is used to derive two pairs of encryption and
-decryption keys for AES-256 and TwoFish, as well as initialization vectors
-and authentication keys (for HMAC@footnote{@uref{https://en.wikipedia.org/
-wiki/HMAC, HMAC}}). The HMAC is computed over the encrypted payload.
+@footnote{@uref{https://en.wikipedia.org/wiki/Key_derivation_function, Key derivation function}}
+is used to derive two pairs of encryption and decryption keys for AES-256
+and TwoFish, as well as initialization vectors and authentication keys
+(for HMAC@footnote{@uref{https://en.wikipedia.org/wiki/HMAC, HMAC}}).
+The HMAC is computed over the encrypted payload.
 Encrypted messages include an iv_seed and the HMAC in the header.
 
 Each encrypted message in the CORE service includes a sequence number and
@@ -4786,10 +4828,10 @@ GNUnet's NSE protocol avoids these drawbacks.
 
 
 The NSE subsystem is designed to be resilient against these attacks.
-It uses @uref{http://en.wikipedia.org/wiki/Proof-of-work_system, proofs
-of work} to prevent one peer from impersonating a large number of
-participants, which would otherwise allow an adversary to artifically
-inflate the estimate.
+It uses @uref{http://en.wikipedia.org/wiki/Proof-of-work_system, proofs of work}
+to prevent one peer from impersonating a large number of participants,
+which would otherwise allow an adversary to artifically inflate the
+estimate.
 The DoS protection comes from the time-based nature of the protocol:
 the estimates are calculated periodically and out-of-time traffic is
 either ignored or stored for later retransmission by benign peers.
@@ -8196,8 +8238,8 @@ strings, one in each line.
 @noindent
 You can create regular expressions and search strings for every AS in the
 Internet using the attached scripts. You need one of the
-@uref{http://data.caida.org/datasets/routing/routeviews-prefix2as/, CAIDA
-routeviews prefix2as} data files for this. Run
+@uref{http://data.caida.org/datasets/routing/routeviews-prefix2as/, CAIDA routeviews prefix2as}
+data files for this. Run
 
 @example
 create_regex.py <filename> <output path>

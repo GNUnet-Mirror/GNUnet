@@ -6,15 +6,16 @@
 @documentencoding UTF-8
 @settitle GNUnet Reference Manual
 @exampleindent 2
+@urefbreakstyle before
 @c %**end of header
 
 @include version.texi
 
 @c Set Versions which might be used in more than one place:
-@set GNUNET-DIST-URL https://ftp.gnu.org/gnu/gnunet/
-@set GNUNET-VERSION 0.10.1
+@set GNUFTP-URL https://ftp.gnu.org/gnu/gnunet
+@set PYPI-URL https://pypi.python.org/packages/source
 @set GNURL-VERSION-CURRENT 7.55.1
-@set GNURL-DIST-URL https://gnunet.org/sites/default/files/
+@set GNUNET-DIST-URL https://gnunet.org/sites/default/files/
 @c @set OPENPGP-SIGNING-KEY-ID
 
 @copying

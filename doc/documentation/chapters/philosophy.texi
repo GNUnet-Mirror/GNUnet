@@ -178,8 +178,7 @@ different addresses. Binding messages expire after at most a week (the
 timeout can be shorter if the user configures the node appropriately).
 This expiration ensures that the network will eventually get rid of
 outdated advertisements.@footnote{More details can be found in
-@uref{https://gnunet.org/transports, A Transport Layer Abstraction for
-Peer-to-Peer Networks}}
+@uref{https://gnunet.org/transports, A Transport Layer Abstraction for Peer-to-Peer Networks}}
 
 @cindex Resource Sharing
 @node Accounting to Encourage Resource Sharing
@@ -300,8 +299,7 @@ GNUnet we do not have to indirect the replies if we don't think we need
 more traffic to hide our own actions.
 
 This increases the efficiency of the network as we can indirect less under
-higher load.@footnote{More details can be found in @uref{https://gnunet.
-org/gap, this paper}}
+higher load.@footnote{More details can be found in @uref{https://gnunet.org/gap, this paper}}
 
 @cindex Deniability
 @node Deniability
