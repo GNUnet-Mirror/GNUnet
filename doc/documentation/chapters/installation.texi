@@ -1338,7 +1338,7 @@ updates or any kind of support.
 * Installing GNUnet 0.10.1 on Ubuntu 14.04::
 * Building GLPK for MinGW::
 * GUI build instructions for Ubuntu 12.04 using Subversion::
-* Installation with gnunet-update::
+@c * Installation with gnunet-update::
 * Instructions for Microsoft Windows Platforms (Old)::
 @end menu
 
@@ -1545,90 +1545,90 @@ Now you can checkout and compile the GNUnet GUI tools@
  $ make install
 @end example
 
-@node Installation with gnunet-update
-@subsection Installation with gnunet-update
+@c @node Installation with gnunet-update
+@c @subsection Installation with gnunet-update
 
-gnunet-update project is an effort to introduce updates to GNUnet
-installations. An interesting to-be-implemented-feature of gnunet-update
-is that these updates are propagated through GNUnet's peer-to-peer
-network. More information about gnunet-update can be found at
-@c FIXME: Use correct cgit URL
-@uref{https://gnunet.org/git/gnunet-update.git/tree/plain/README}.
+@c gnunet-update project is an effort to introduce updates to GNUnet
+@c installations. An interesting to-be-implemented-feature of gnunet-update
+@c is that these updates are propagated through GNUnet's peer-to-peer
+@c network. More information about gnunet-update can be found at
+@c @c FIXME: Use correct cgit URL
+@c @uref{https://gnunet.org/git/gnunet-update.git/tree/plain/README}.
 
-While the project is still under development, we have implemented the
-following features which we believe may be helpful for users and we
-would like them to be tested:
+@c While the project is still under development, we have implemented the
+@c following features which we believe may be helpful for users and we
+@c would like them to be tested:
 
-@itemize @bullet
+@c @itemize @bullet
 
-@item
-Packaging GNUnet installation along with its run-time dependencies into
-update packages
+@c @item
+@c Packaging GNUnet installation along with its run-time dependencies into
+@c update packages
 
-@item
-Installing update packages into compatible hosts
+@c @item
+@c Installing update packages into compatible hosts
 
-@item
-Updating an existing installation (which had been installed by
-gnunet-update) to a newer one
+@c @item
+@c Updating an existing installation (which had been installed by
+@c gnunet-update) to a newer one
 
-@end itemize
+@c @end itemize
 
-The above said features of gnunet-update are currently available for
-testing on GNU/Linux systems.
+@c The above said features of gnunet-update are currently available for
+@c testing on GNU/Linux systems.
 
-The following is a guide to help you get started with gnunet-update.
-It shows you how to install the testing binary packages of GNUnet
-0.9.1 we have at @uref{https://gnunet.org/install/}.
+@c The following is a guide to help you get started with gnunet-update.
+@c It shows you how to install the testing binary packages of GNUnet
+@c 0.9.1 we have at @uref{https://gnunet.org/install/}.
 
-gnunet-update needs the following dependencies:
+@c gnunet-update needs the following dependencies:
 
-@itemize @bullet
-@item
-python @geq{} 2.6
+@c @itemize @bullet
+@c @item
+@c python @geq{} 2.6
 
-@item
-gnupg
+@c @item
+@c gnupg
 
-@item
-python-gpgme
-@end itemize
+@c @item
+@c python-gpgme
+@c @end itemize
 
 
-Checkout gnunet-update:
+@c Checkout gnunet-update:
 
-@c FIXME: git!
-@example
-$ svn checkout -r24905 https://gnunet.org/svn/gnunet-update@
-@end example
+@c @c FIXME: git!
+@c @example
+@c $ svn checkout -r24905 https://gnunet.org/svn/gnunet-update@
+@c @end example
 
-For security reasons, all packages released for gnunet-update from us are
-signed with the key at @uref{https://gnunet.org/install/key.txt}.
-You would need to import this key into your gpg key ring.
-gnunet-update uses this key to verify the integrity of the packages it
-installs:
+@c For security reasons, all packages released for gnunet-update from us are
+@c signed with the key at @uref{https://gnunet.org/install/key.txt}.
+@c You would need to import this key into your gpg key ring.
+@c gnunet-update uses this key to verify the integrity of the packages it
+@c installs:
 
-@example
-$ gpg --recv-keys 7C613D78@
-@end example
+@c @example
+@c $ gpg --recv-keys 7C613D78@
+@c @end example
 
-Download the packages relevant to your architecture (currently I have
-access to GNU/Linux machines on x86_64 and i686, so only two for now,
-hopefully more later) from https://gnunet.org/install/.
+@c Download the packages relevant to your architecture (currently I have
+@c access to GNU/Linux machines on x86_64 and i686, so only two for now,
+@c hopefully more later) from https://gnunet.org/install/.
 
-To install the downloaded package into the directory /foo:
+@c To install the downloaded package into the directory /foo:
 
-@example
-gnunet-update/bin/gnunet-update install downloaded/package /foo
-@end example
+@c @example
+@c gnunet-update/bin/gnunet-update install downloaded/package /foo
+@c @end example
 
-The installer reports the directories into which shared libraries and
-dependencies have been installed. You may need to add the reported shared
-library installation paths to LD_LIBRARY_PATH before you start running any
-installed binaries.
+@c The installer reports the directories into which shared libraries and
+@c dependencies have been installed. You may need to add the reported shared
+@c library installation paths to LD_LIBRARY_PATH before you start running any
+@c installed binaries.
 
-Please report bugs at https://gnunet.org/bugs/ under the project
-'gnunet-update'.
+@c Please report bugs at https://gnunet.org/bugs/ under the project
+@c 'gnunet-update'.
 
 @node Instructions for Microsoft Windows Platforms (Old)
 @subsection Instructions for Microsoft Windows Platforms (Old)
