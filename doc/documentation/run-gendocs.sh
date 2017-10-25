@@ -14,4 +14,5 @@ make version2.texi
 #mv gnunet ../tmp-gnunet
 #mv * handbook/
 #mv ../tmp-gnunet gnunet
+cp "index.html" manual/
 printf "Success"
