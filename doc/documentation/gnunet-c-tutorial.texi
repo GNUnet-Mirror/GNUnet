@@ -341,9 +341,9 @@ a mesh on top of a DHT).
 @c syntax as described below.
 @c TODO: Checkout the makedoc script Guile uses.
 
-@image{images/gnunet-tutorial-service,,5in,Service with API and network protocol,.png}
-
-@image{images/gnunet-tutorial-system,,5in,The layered system architecture of GNUnet,.png}
+@c FIXME!!!
+@c @image{images/gnunet-tutorial-service,,5in,Service with API and network protocol,.png}
+@c @image{images/gnunet-tutorial-system,,5in,The layered system architecture of GNUnet,.png}
 
 @c \begin{figure}[!h]
 @c   \begin{center}

@@ -123,6 +123,7 @@ EXTRA_DIST =							\
 	$(gnunet_TEXINFOS)					\
 	$(gnunet_tutorial_examples)				\
 	htmlxref.cnf						\
+	run-gendocs.sh						\
 	docstyle.css
 
 

@@ -144,9 +144,11 @@
            (replace 'build
              (lambda _
                (chdir "doc/documentation")
-               (zero? (system* "make" "pdf"))
-               (zero? (system* "make" "html"))
-               (zero? (system* "make" "info"))))
+               ;;(zero? (system* "make" "dev-build"))))
+               (zero? (system* "sh" "run-gendocs.sh"))))
+               ;; (zero? (system* "make" "pdf"))
+               ;; (zero? (system* "make" "html"))
+               ;; (zero? (system* "make" "info"))))
                ;;(zero? (system* "make" "doc-all-give-me-the-noise"))))
            (replace 'install
              (lambda _
