@@ -1971,7 +1971,7 @@ export PKG_CONFIG_PATH=/mingw/lib/pkgconfig
 @end example
 
 @noindent
-@xref{GNUnet Installation Handbook} for basic instructions on building
+@xref{GNUnet Installation Handbook}, for basic instructions on building
 @command{libextractor} and @command{GNUnet}.
 By default, all modules that are created in this way contain
 debug information and are quite large. To compile release versions

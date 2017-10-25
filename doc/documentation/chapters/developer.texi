@@ -742,10 +742,10 @@ libgnunet_plugin_transport_tcp)
 @subsection Coding style
 
 @itemize @bullet
-@item GNU guidelines generally apply
-@item Indentation is done with spaces, two per level, no tabs
-@item C99 struct initialization is fine
-@item declare only one variable per line, so@
+@item We follow the GNU Coding Standards (@pxref{Top, The GNU Coding Standards,, standards, The GNU Coding Standards});
+@item Indentation is done with spaces, two per level, no tabs;
+@item C99 struct initialization is fine;
+@item declare only one variable per line, for example:
 
 @noindent
 instead of

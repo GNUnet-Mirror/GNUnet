@@ -122,6 +122,7 @@ gnunet_TEXINFOS = 						\
 EXTRA_DIST =							\
 	$(gnunet_TEXINFOS)					\
 	$(gnunet_tutorial_examples)				\
+	htmlxref.cnf						\
 	docstyle.css
 
 
