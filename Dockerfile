@@ -44,6 +44,9 @@ RUN git clone https://github.com/schanzen/gnunet-webui.git
 WORKDIR /usr/src/gnunet-webui
 RUN git checkout gnuidentity
 
+RUN mkdir /usr/src/gnunet
+WORKDIR /usr/src/gnunet
+ADD . .
 RUN ./bootstrap
 RUN ./configure --prefix=/usr/local
 RUN make
