@@ -32,7 +32,6 @@ Werner Koch <wk@gnupg.org>
 Contributions also came from:
 Adam Warrington [ UPnP ]
 Adriano Peluso [ Documentation export to Texinfo ]
-ng0 <ng0@infotropique.org> [ Documentation export to Texinfo ]
 Alex Harper [ OS X CPU load ]
 Andrew McDonald <andrew@mcdonald.org.uk> [ SHA-512]
 Andy Green <andy@warmcat.com>
@@ -69,6 +68,7 @@ Marko Räihä
 Michael John Wensley <michael@wensley.org.uk>
 Milan Bouchet-Valat <nalimilan@club.fr>
 Nathan Evans <evans@net.in.tum.de>
+ng0 <ng0@infotropique.org> [ Documentation export to Texinfo ]
 Paul Ruth <ruth@cs.purdue.edu>
 Philipp Tölke <toelke@in.tum.de>, <pt@philipptoelke.de>
 Renaldo Ferreira <rf@cs.purdue.edu>

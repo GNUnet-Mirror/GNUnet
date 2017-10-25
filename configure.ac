@@ -248,6 +248,11 @@ then
 fi
 AC_DEFINE_UNQUOTED([NEED_LIBGCRYPT_VERSION], "$NEED_LIBGCRYPT_VERSION", [required libgcrypt version])
 
+# TODO: add check for VERSION
+# TODO: add check for alternatives
+# TODO: add switch to skip documentation building
+AM_MISSING_PROG([MAKEINFO], [makeinfo])
+
 # Adam shostack suggests the following for Windows:
 # -D_FORTIFY_SOURCE=2 -fstack-protector-all
 AC_ARG_ENABLE(gcc-hardening,
@@ -1526,6 +1531,7 @@ contrib/Makefile
 doc/Makefile
 doc/man/Makefile
 doc/doxygen/Makefile
+doc/documentation/Makefile
 m4/Makefile
 po/Makefile.in
 src/Makefile

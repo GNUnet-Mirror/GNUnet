@@ -213,7 +213,8 @@ endif
 
 do_subst = $(SED) -e 's,[@]PYTHON[@],$(PYTHON),g' -e 's,[@]bindir[@],$(bindir),g'
 
-%.py: %.py.in Makefile
+SUFFIXES = .py.in .py
+.py.in.py:
 	$(do_subst) < $(srcdir)/$< > $@
 	chmod +x $@
 

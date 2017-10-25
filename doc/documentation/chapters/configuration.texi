@@ -1,0 +1,5 @@
+@node Configuration Handbook
+@chapter Configuration Handbook
+
+This chapter has yet to be written. It is intended to be about in-depth
+configuration of GNUnet.
