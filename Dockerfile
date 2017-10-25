@@ -49,7 +49,7 @@ WORKDIR /usr/src/gnunet
 ADD . .
 RUN ./bootstrap
 RUN ./configure --prefix=/usr/local
-RUN make
+RUN make -j
 RUN make install
 
 RUN groupadd gnunetdns
