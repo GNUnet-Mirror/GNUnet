@@ -60,7 +60,7 @@ Depending on your distribution, you may also find @code{gnunet-gtk}
 in your menus. After starting @code{gnunet-gtk}, you should see the
 following window:
 
-@image{images/gnunet-gtk-0-10,5in,, picture of gnunet-gtk application}
+@c @image{images/gnunet-gtk-0-10,5in,, picture of gnunet-gtk application}
 
 The five images on top represent the five different graphical applications
 that you can use within @code{gnunet-gtk}. They are (from left to right):
