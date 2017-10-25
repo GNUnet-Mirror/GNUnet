@@ -11,6 +11,8 @@ To be moved to an appropriate section of "how to write documentation" or
      within the @url{} / @uref{}.
 
 3. Do not use tab characters (see chapter 2.1 texinfo manual)
+
+4. Use neutral language and third person perspective in the text
 * What's left to do
 
 - Which Texlive modules are needed? Decrease the size.
