@@ -52,7 +52,7 @@ libgnunet_plugin_gnsrecord_identity_provider_la_LDFLAGS = \
 libgnunet_plugin_identity_provider_sqlite_la_SOURCES = \
   plugin_identity_provider_sqlite.c
 libgnunet_plugin_identity_provider_sqlite_la_LIBADD = \
-  $(top_builddir)/src/identity-provider/libgnunetidentityprovider.la  \
+  libgnunetidentityprovider.la  \
   $(top_builddir)/src/sq/libgnunetsq.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/util/libgnunetutil.la $(XLIBS) -lsqlite3 \
@@ -72,7 +72,7 @@ gnunet_service_identity_provider_LDADD = \
  $(top_builddir)/src/identity/libgnunetidentity.la \
  $(top_builddir)/src/statistics/libgnunetstatistics.la \
  $(top_builddir)/src/credential/libgnunetcredential.la \
- $(top_builddir)/src/identity-provider/libgnunetidentityprovider.la \
+ libgnunetidentityprovider.la \
  $(top_builddir)/src/gns/libgnunetgns.la \
  $(GN_LIBINTL)
 

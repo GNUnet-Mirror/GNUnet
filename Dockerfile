@@ -47,9 +47,10 @@ RUN git checkout gnuidentity
 RUN mkdir /usr/src/gnunet
 WORKDIR /usr/src/gnunet
 ADD . .
+ARG NUM_JOBS
 RUN ./bootstrap
 RUN ./configure --prefix=/usr/local
-RUN make -j
+RUN make -j$NUM_JOBS
 RUN make install
 
 RUN groupadd gnunetdns
