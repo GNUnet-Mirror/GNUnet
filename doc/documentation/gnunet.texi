@@ -111,6 +111,7 @@ in the respective authors file or section, please do let us know.
 * Vocabulary::                      Vocabulary
 * GNUnet Installation Handbook::    How to install GNUnet
 * Using GNUnet::                    Using GNUnet
+* Configuration Handbook::          Configuring GNUnet
 * GNUnet Developer Handbook::       Developing GNUnet
 * GNU Free Documentation License::  The license of this manual.
 * GNU General Public License::      The license of this manual.
@@ -154,9 +155,11 @@ GNUnet Installation Handbook
 * Installing GNUnet from Git on Ubuntu 14.4::
 * Build instructions for Debian 8::
 * Outdated build instructions for previous revisions::
-* Portable GNUnet::
+@c * Portable GNUnet::
 * The graphical configuration interface::
 * How to start and stop a GNUnet peer::
+
+Configuration Handbook
 
 Using GNUnet
 
@@ -224,6 +227,8 @@ GNUnet Developer Handbook
 @c *********************************************************************
 @include chapters/user.texi
 @c *********************************************************************
+
+@include chapters/configuration.texi
 
 @c *********************************************************************
 @include chapters/developer.texi

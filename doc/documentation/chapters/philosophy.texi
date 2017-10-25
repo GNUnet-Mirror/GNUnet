@@ -1,3 +1,4 @@
+@cindex Philosopy
 @node Philosophy
 @chapter Philosophy
 
@@ -21,7 +22,7 @@ generation of decentralized Internet protocols.
 * Key Concepts::
 @end menu
 
-
+@cindex Design Goals
 @cindex Design Goals
 @node Design Goals
 @section Design Goals
@@ -258,6 +259,7 @@ imposes no minimal requirements on cover traffic. It is possible
 to forego anonymity when this is not required. The anonymity level of 0
 allows GNUnet to use more efficient, non-anonymous routing.
 
+@cindex How file-sharing achieves Anonymity
 @node How file-sharing achieves Anonymity
 @subsubsection How file-sharing achieves Anonymity
 
@@ -299,7 +301,8 @@ GNUnet we do not have to indirect the replies if we don't think we need
 more traffic to hide our own actions.
 
 This increases the efficiency of the network as we can indirect less under
-higher load.@footnote{More details can be found in @uref{https://gnunet.org/gap, this paper}}
+higher load.@footnote{More details can be found in
+@uref{https://gnunet.org/gap, this paper}}
 
 @cindex Deniability
 @node Deniability
@@ -333,8 +336,12 @@ generated along with a private key the peer is started for the first time.
 While the identity is binary data, it is often expressed as ASCII string.
 For example, the following is a peer identity as you might see it in
 various places:
-@code{ UAT1S6PMPITLBKSJ2DGV341JI6KF7B66AC4JVCN9811NNEGQLUN0}
 
+@example
+UAT1S6PMPITLBKSJ2DGV341JI6KF7B66AC4JVCN9811NNEGQLUN0
+@end example
+
+@noindent
 You can find your peer identity by running @command{gnunet-peerinfo -s}.
 
 @cindex GNS Zones
@@ -365,7 +372,7 @@ public key first.
 @subsection Egos
 
 Egos are your "identities" in GNUnet.  Any user can assume multiple
-identities, for example to separate his activities online.  Egos can
+identities, for example to separate teir activities online.  Egos can
 correspond to pseudonyms or real-world identities.  Technically, an
 ego is first of all a public-private key pair.
 
