@@ -65,7 +65,8 @@ following window:
 @c @image{images/gnunet-gtk-0-10,5in,, picture of gnunet-gtk application}
 
 The five images on top represent the five different graphical applications
-that you can use within @command{gnunet-gtk}. They are (from left to right):
+that you can use within @command{gnunet-gtk}.
+They are (from left to right):
 
 @itemize @bullet
 @item Statistics
@@ -79,10 +80,12 @@ that you can use within @command{gnunet-gtk}. They are (from left to right):
 @subsection Statistics
 @c %**end of header
 
-When @command{gnunet-gtk} is started, the statistics area should be selected
-at first. If your peer is running correctly, you should see a bunch of
+When @command{gnunet-gtk} is started, the statistics area should be
+selected at first.
+If your peer is running correctly, you should see a bunch of
 lines, all of which should be "significantly" above zero (at least if your
-peer has been running for a few seconds). The lines indicate how many other
+peer has been running for a few seconds). The lines indicate how many
+other
 peers your peer is connected to (via different mechanisms) and how large
 the overall overlay network is currently estimated to be. The X-axis
 represents time (in seconds since the start of @command{gnunet-gtk}).
@@ -304,10 +307,10 @@ follow the GNUnet setup, you will have 4 egos created by default.
 They can be listed by the command @command{gnunet-identity -d}
 
 @example
-short-zone - JTDVJC69NHU6GQS4B5721MV8VM7J6G2DVRGJV0ONIT6QH7OI6D50@
-sks-zone - GO0T87F9BPMF8NKD5A54L2AH1T0GRML539TPFSRMCEA98182QD30@
-master-zone - LOC36VTJD3IRULMM6C20TGE6D3SVEAJOHI9KRI5KAQVQ87UJGPJG@
-private-zone - 6IGJIU0Q1FO3RJT57UJRS5DLGLH5IHRB9K2L3DO4P4GVKKJ0TN4G@
+short-zone - JTDVJC69NHU6GQS4B5721MV8VM7J6G2DVRGJV0ONIT6QH7OI6D50
+sks-zone - GO0T87F9BPMF8NKD5A54L2AH1T0GRML539TPFSRMCEA98182QD30
+master-zone - LOC36VTJD3IRULMM6C20TGE6D3SVEAJOHI9KRI5KAQVQ87UJGPJG
+private-zone - 6IGJIU0Q1FO3RJT57UJRS5DLGLH5IHRB9K2L3DO4P4GVKKJ0TN4G
 @end example
 
 @noindent
@@ -725,8 +728,8 @@ a link. If your buddy has your public key in their master zone, they
 should see an incoming call with your name. If your public key is not
 in their master zone, they will just see the public key as the caller ID.
 
-Your buddy then can answer the call using the "/accept" command. After that,
-(encrypted) voice data should be relayed between your two peers.
+Your buddy then can answer the call using the "/accept" command. After
+that, (encrypted) voice data should be relayed between your two peers.
 Either of you can end the call using @command{/cancel}. You can exit
 @code{gnunet-converation} using @command{/quit}.
 
@@ -793,16 +796,17 @@ to install the NSS plugins in the proper location.
 @subsection Exit configuration
 @c %**end of header
 
-Stop your peer (as user @code{gnunet}, run @command{gnunet-arm -e}) and run
-@command{gnunet-setup}. In @command{gnunet-setup}, make sure to activate the
-@strong{EXIT} and @strong{GNS} services in the General tab. Then select
-the Exit tab. Most of the defaults should be fine (but you should check
-against the screenshot that they have not been modified). In the
-bottom area, enter @code{bcd} under Identifier and change the
+Stop your peer (as user @code{gnunet}, run @command{gnunet-arm -e}) and
+run @command{gnunet-setup}. In @command{gnunet-setup}, make sure to
+activate the @strong{EXIT} and @strong{GNS} services in the General tab.
+Then select the Exit tab. Most of the defaults should be fine (but
+you should check against the screenshot that they have not been modified).
+In the bottom area, enter @code{bcd} under Identifier and change the
 Destination to @code{169.254.86.1:8888} (if your server runs on a port
 other than 8888, change the 8888 port accordingly).
 
-Now exit @command{gnunet-setup} and restart your peer (@command{gnunet-arm -s}).
+Now exit @command{gnunet-setup} and restart your peer
+(@command{gnunet-arm -s}).
 
 @node GNS configuration
 @subsection GNS configuration
@@ -821,7 +825,8 @@ as the @code{gnunet} user. For the Identifier, you need to supply the same
 identifier that we used in the Exit setup earlier, so here supply "bcd".
 If you want others to be able to use the service, you should probably make
 the record public. For non-public services, you should use a passphrase
-instead of the string "bcd". Save the record and exit @command{gnunet-gtk}.
+instead of the string "bcd". Save the record and
+exit @command{gnunet-gtk}.
 
 @node Accessing the service
 @subsection Accessing the service
