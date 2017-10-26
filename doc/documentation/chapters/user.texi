@@ -9,11 +9,13 @@ Instead, we start by briefly checking that the installation works, and
 then dive into simple, concrete practical things that can be done
 with the network.
 
-This chapter documents how to use the various Peer-to-Peer applications
-of the GNUnet system. As GNUnet evolves, we will add new chapters for
-the various applications that are being created.
+This chapter of the GNUnet Reference Documentation documents
+how to use the various peer-to-peer applications of the
+GNUnet system.
+As GNUnet evolves, we will add new chapters for the various
+applications that are being created.
 
-Comments and extensions are always welcome.
+Comments and extensions of this documentation are always welcome.
 
 
 @menu
@@ -31,7 +33,7 @@ Comments and extensions are always welcome.
 @section Checking the Installation
 @c %**end of header
 
-This chapter describes a quick casual way to check if your GNUnet
+This section describes a quick casual way to check if your GNUnet
 installation works. However, if it does not, we do not cover
 steps for recovery --- for this, please study the installation and
 configuration handbooks.
@@ -47,7 +49,7 @@ configuration handbooks.
 @subsection gnunet-gtk
 @c %**end of header
 
-First, you should launch @code{gnunet-gtk}, the graphical user
+First, you should launch @command{gnunet-gtk}, the graphical user
 interface for GNUnet which will be used for most of the tutorial.
 You can do this from the command-line by typing
 
@@ -56,14 +58,14 @@ $ gnunet-gtk
 @end example
 
 (note that @code{$} represents the prompt of the shell for a normal user).
-Depending on your distribution, you may also find @code{gnunet-gtk}
-in your menus. After starting @code{gnunet-gtk}, you should see the
+Depending on your distribution, you may also find @command{gnunet-gtk}
+in your menus. After starting @command{gnunet-gtk}, you should see the
 following window:
 
 @c @image{images/gnunet-gtk-0-10,5in,, picture of gnunet-gtk application}
 
 The five images on top represent the five different graphical applications
-that you can use within @code{gnunet-gtk}. They are (from left to right):
+that you can use within @command{gnunet-gtk}. They are (from left to right):
 
 @itemize @bullet
 @item Statistics
@@ -77,13 +79,13 @@ that you can use within @code{gnunet-gtk}. They are (from left to right):
 @subsection Statistics
 @c %**end of header
 
-When @code{gnunet-gtk} is started, the statistics area should be selected
+When @command{gnunet-gtk} is started, the statistics area should be selected
 at first. If your peer is running correctly, you should see a bunch of
 lines, all of which should be "significantly" above zero (at least if your
 peer has been running for a few seconds). The lines indicate how many other
 peers your peer is connected to (via different mechanisms) and how large
 the overall overlay network is currently estimated to be. The X-axis
-represents time (in seconds since the start of @code{gnunet-gtk}).
+represents time (in seconds since the start of @command{gnunet-gtk}).
 
 You can click on "Traffic" to see information about the amount of
 bandwidth your peer has consumed, and on "Storage" to check the amount
@@ -110,7 +112,7 @@ network configuration.
 @c %**end of header
 
 This chapter describes first steps for file-sharing with GNUnet.
-To start, you should launch @code{gnunet-gtk} and select the
+To start, you should launch @command{gnunet-gtk} and select the
 file-sharing tab (the one with the arrows between the three circles).
 
 As we want to be sure that the network contains the data that we are
@@ -262,7 +264,7 @@ That's it, you now know the basics for file-sharing with GNUnet!
 @c %**end of header
 
 First, we will check if the GNU Name System installation was
-completed normally. For this, we first start @code{gnunet-gtk}
+completed normally. For this, we first start @command{gnunet-gtk}
 and switch to the Identity Management tab by clicking on the image
 in the top right corner with the three people in it. Identity management
 is about managing our own identities --- GNUnet users are expected to
@@ -394,7 +396,7 @@ where @code{gnunet-bcd} is running a Web server!
 
 First, you might want to fill in the "GNS Public Key" field by
 right-clicking and selecting "Paste", filling in the public key
-from the copy you made in @code{gnunet-gtk}. Then, fill in all
+from the copy you made in @command{gnunet-gtk}. Then, fill in all
 of the other fields, including your GNS NICKname. Adding a
 GPG fingerprint is optional. Once finished, click "Submit Query".
 If your @code{LaTeX} installation is incomplete, the result will be
@@ -791,8 +793,8 @@ to install the NSS plugins in the proper location.
 @subsection Exit configuration
 @c %**end of header
 
-Stop your peer (as user @code{gnunet}, run @code{gnunet-arm -e}) and run
-@code{gnunet-setup}. In @code{gnunet-setup}, make sure to activate the
+Stop your peer (as user @code{gnunet}, run @command{gnunet-arm -e}) and run
+@command{gnunet-setup}. In @command{gnunet-setup}, make sure to activate the
 @strong{EXIT} and @strong{GNS} services in the General tab. Then select
 the Exit tab. Most of the defaults should be fine (but you should check
 against the screenshot that they have not been modified). In the
@@ -800,26 +802,26 @@ bottom area, enter @code{bcd} under Identifier and change the
 Destination to @code{169.254.86.1:8888} (if your server runs on a port
 other than 8888, change the 8888 port accordingly).
 
-Now exit @code{gnunet-setup} and restart your peer (@code{gnunet-arm -s}).
+Now exit @command{gnunet-setup} and restart your peer (@command{gnunet-arm -s}).
 
 @node GNS configuration
 @subsection GNS configuration
 @c %**end of header
 
 Now, using your normal user (not the @code{gnunet} system user), run
-@code{gnunet-gtk}. Select the GNS icon and add a new label www in your
+@command{gnunet-gtk}. Select the GNS icon and add a new label www in your
 master zone. For the record type, select @code{VPN}. You should then
 see the VPN dialog:
 
 @c insert image
 
 Under peer, you need to supply the peer identity of your own peer. You can
-obtain the respective string by running @code{ $ gnunet-peerinfo -sq}
+obtain the respective string by running @command{gnunet-peerinfo -sq}
 as the @code{gnunet} user. For the Identifier, you need to supply the same
 identifier that we used in the Exit setup earlier, so here supply "bcd".
 If you want others to be able to use the service, you should probably make
 the record public. For non-public services, you should use a passphrase
-instead of the string "bcd". Save the record and exit @code{gnunet-gtk}.
+instead of the string "bcd". Save the record and exit @command{gnunet-gtk}.
 
 @node Accessing the service
 @subsection Accessing the service
@@ -999,7 +1001,7 @@ Note that GNUnet differenciates between your pseudonyms (the identities
 that you control) and namespaces. If you create a pseudonym, you will
 not automatically see the respective namespace. You first have to create
 an advertisement for the namespace and find it using keyword
-search --- even for your own namespaces. The @code{gnunet-pseudonym}
+search --- even for your own namespaces. The @command{gnunet-pseudonym}
 tool is currently responsible for both managing pseudonyms and namespaces.
 This will likely change in the future to reduce the potential for
 confusion.
@@ -1050,7 +1052,7 @@ selection is simply random.
 @subsection File-sharing Publishing
 @c %**end of header
 
-The command @code{gnunet-publish} can be used to add content
+The command @command{gnunet-publish} can be used to add content
 to the network. The basic format of the command is
 
 @example
@@ -1075,7 +1077,7 @@ retrieve the file.
 The -m option is used to specify meta-data, such as descriptions.
 You can use -m multiple times. The TYPE passed must be from the
 list of meta-data types known to libextractor. You can obtain this
-list by running @code{extract -L}. Use quotes around the entire
+list by running @command{extract -L}. Use quotes around the entire
 meta-data argument if the value contains spaces. The meta-data
 is displayed to other users when they select which files to
 download. The meta-data and the keywords are optional and
@@ -1111,7 +1113,7 @@ Thus indexing should be used for all files where the user will keep
 using this file (at the location given to gnunet-publish) and does
 not want to retrieve it back from GNUnet each time. If you want to
 remove a file that you have indexed from the local peer, use the tool
-@code{gnunet-unindex} to un-index the file.
+@command{gnunet-unindex} to un-index the file.
 
 The option @code{-n} may be used if the user fears that the file might
 be found on their drive (assuming the computer comes under the control
@@ -1124,7 +1126,7 @@ able to crack the encryption (e.g. by guessing the keyword.
 @subsection File-sharing Searching
 @c %**end of header
 
-The command @code{gnunet-search} can be used to search
+The command @command{gnunet-search} can be used to search
 for content on GNUnet. The format is:
 
 @example
@@ -1181,8 +1183,8 @@ gnunet-publish on how to specify these).
 @c %**end of header
 
 In order to download a file, you need the three values returned by
-@code{gnunet-search}.
-You can then use the tool @code{gnunet-download} to obtain the file:
+@command{gnunet-search}.
+You can then use the tool @command{gnunet-download} to obtain the file:
 
 @example
 $ gnunet-download -o FILENAME --- GNUNETURL
