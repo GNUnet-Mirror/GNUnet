@@ -2433,7 +2433,7 @@ FLUSH PRIVILEGES;
 @end example
 
 @item
-In the $HOME directory of $USER, create a "@file{.my.cnf}" file with the
+In the $HOME directory of $USER, create a @file{.my.cnf} file with the
 following lines
 
 @example

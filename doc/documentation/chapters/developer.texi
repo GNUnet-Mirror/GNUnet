@@ -726,7 +726,7 @@ in @file{src/include/}.
 @subsubsection testcases
 
 @itemize @bullet
-@item must be called "@file{test_module-under-test_case-description.c}"
+@item must be called @file{test_module-under-test_case-description.c}
 @item "case-description" maybe omitted if there is only one test
 @end itemize
 
@@ -735,7 +735,7 @@ in @file{src/include/}.
 @subsubsection performance tests
 
 @itemize @bullet
-@item must be called "@file{perf_module-under-test_case-description.c}"
+@item must be called @file{perf_module-under-test_case-description.c}
 @item "case-description" maybe omitted if there is only one performance
 test
 @item Must only be run if @code{HAVE_BENCHMARKS} is satisfied
@@ -1437,7 +1437,8 @@ Testbed API will then use this path to start helper binaries both
 locally and remotely.
 
 Testbed API can accessed by including the
-"@file{gnunet_testbed_service.h}" file and linking with -lgnunettestbed.
+@file{gnunet_testbed_service.h} file and linking with
+@code{-lgnunettestbed}.
 
 @c ***********************************************************************
 @menu
@@ -2929,7 +2930,7 @@ related functions provide an alternative to @code{GNUNET_SERVICE_run}.
 When starting a service, the service_name option is used to determine
 which sections in the configuration file should be used to configure the
 service. A typical value here is the name of the @file{src/}
-sub-directory, for example "@file{statistics}".
+sub-directory, for example @file{statistics}.
 The same string would also be given to
 @code{GNUNET_CLIENT_connect} to access the service.
 
