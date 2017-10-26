@@ -160,6 +160,16 @@ $ gpg --keyserver keys.gnupg.net --recv-keys 48426C7E
 @noindent
 and rerun the @code{gpg --verify-files} command.
 
+@b{Note:}@
+@b{The pub key to sign the 0.10.1 release has been
+revoked}. You will get an error message stating that
+@i{there is no known public key or that it has been revoked}.
+The next release of GNUnet will have a valid signature
+again. We are sorry for the inconvenience this causes.
+Another possible source you could use is our
+"gnunet" git repository which has mandatory signed commits
+by every developer.
+
 Now you can extract the tarball and rename the resulting
 directory to @i{gnunet} which we will be using in the
 remainder of this document.
@@ -178,14 +188,19 @@ from @uref{https://gnunet.org/git/, git}.
 @node  Installing Build Tool Chain and Dependencies
 @section Installing Build Tool Chain and Dependencies
 
-To successfully compile GNUnet you need the tools to build GNUnet and
-the required dependencies. Please have a look at
-@uref{https://gnunet.org/dependencies} for a list of required dependencies
-and @uref{https://gnunet.org/generic_installation} for specific
-instructions for your operating system. Please check the notes at
-the end of the configure process about required dependencies.
+To successfully compile GNUnet, you need the tools to build GNUnet and
+the required dependencies. Please take a look at the
+GNUnet Reference Documentation
+(@pxref{Dependencies, The GNUnet Reference Documentation,, gnunet, The GNUnet Reference Documentation})
+for a list of required dependencies
+and
+(@pxref{Generic installation instructions, The GNUnet Reference Documentation,, gnunet, The GNUnet Reference Documentation})
+read its Installation chapter for specific instructions for
+your operating system.
+Please check the notes at the end of the configure process about
+required dependencies.
 
-For GNUnet bootstrapping support and the http(s) plugin you should
+For GNUnet bootstrapping support and the HTTP(S) plugin you should
 install @uref{https://gnunet.org/gnurl, libgnurl}.
 For the filesharing service you should install at least one of the
 datastore backends. MySQL, SQlite and PostgreSQL are supported.
@@ -194,8 +209,8 @@ datastore backends. MySQL, SQlite and PostgreSQL are supported.
 @section Obtaining the latest version from Git
 
 The latest development version can obtained from our Git repository.
-To obtain the code you need Git installed and checkout the repository
-using:
+To obtain the code you need to have @code{Git} installed, which is
+required for obtaining the repository via:
 
 @example
 $ git clone https://gnunet.org/git/gnunet
@@ -203,21 +218,25 @@ $ git clone https://gnunet.org/git/gnunet
 
 @noindent
 After cloning the repository you have to execute the @file{bootstrap}
-script in the directory:
+script in the new directory:
 
 @example
-$ cd gnunet ; ./bootstrap
+$ cd gnunet
+$ ./bootstrap
 @end example
 
 @noindent
-The remainder of this tutorial assumes that you have the Git branch
-``master'' checked out.
+The remainder of this tutorial will assume that you have the
+Git branch ``master'' checked out.
 
 @node Compiling and Installing GNUnet
 @section Compiling and Installing GNUnet
 
-First, you need to install at least libgnupgerror 1.27 and
-libgcrypt 1.7.6.
+Note: This section is a duplication of the more in depth
+@pxref{GNUnet Installation Handbook, The GNUnet Reference Documentation,, gnunet, The GNUnet Reference Documentation}.
+
+First, you need to install libgnupgerror @geq{} 1.27 and
+libgcrypt @geq{} 1.7.6:
 
 @example
 $ export GNUPGFTP="https://www.gnupg.org/ftp/gcrypt"
