@@ -163,7 +163,7 @@ and rerun the @code{gpg --verify-files} command.
 @b{Note:}@
 @b{The pub key to sign the 0.10.1 release has been
 revoked}. You will get an error message stating that
-@i{there is no known public key or that it has been revoked}.
+@b{there is no known public key or that it has been revoked}.
 The next release of GNUnet will have a valid signature
 again. We are sorry for the inconvenience this causes.
 Another possible source you could use is our
@@ -171,7 +171,7 @@ Another possible source you could use is our
 by every developer.
 
 Now you can extract the tarball and rename the resulting
-directory to @i{gnunet} which we will be using in the
+directory to @file{gnunet} which we will be using in the
 remainder of this document.
 
 @example
@@ -713,9 +713,10 @@ marked as ``done'' before their completion.
 
 An operation is treated as completed when it succeeds or fails.
 Completion of an operation is either conveyed as events through
-@i{controller event callback} or through respective operation
-completion callbacks.  In functions which support completion
-notification through both controller event callback and operation
+@dfn{controller event callback} or through respective
+@dfn{operation completion callbacks}.
+In functions which support completion notification
+through both controller event callback and operation
 completion callback, first the controller event callback will be
 called.  If the operation is not marked as done in that callback
 or if the callback is given as NULL when creating the operation,
@@ -733,14 +734,14 @@ discouraged as their locations are dynamically created and will be
 different among various runs of testbed.  To make access to these
 configurations easy, testbed API provides the function
 @code{GNUNET\_TESTBED\_service\_connect()}.  This function fetches
-the configuration of a given peer and calls the @i{Connect Adapter}.
+the configuration of a given peer and calls the @dfn{Connect Adapter}.
 In the example code, it is the @code{dht\_ca}.  A connect adapter is
 expected to open the connection to the needed service by using the
 provided configuration and return the created service connection handle.
 Successful connection to the needed service is signaled through
 @code{service\_connect\_comp\_cb}.
 
-A dual to connect adapter is the @i{Disconnect Adapter}.  This callback
+A dual to connect adapter is the @dfn{Disconnect Adapter}.  This callback
 is called after the connect adapter has been called when the operation
 from @code{GNUNET\_TESTBED\_service\_connect()} is marked as ``done''.
 It has to disconnect from the service with the provided service
@@ -750,8 +751,8 @@ Exercise: Find out how many peers you can run on your system.
 
 Exercise: Find out how to create a 2D torus topology by changing the
 options in the configuration file.
-See @uref{https://gnunet.org/supported-topologies}, then use the
-DHT API to store and retrieve values in the network.
+@xref{Supported Topologies, The GNUnet Reference Documentation ,, gnunet, The GNUnet Reference Documentation},
+then use the DHT API to store and retrieve values in the network.
 
 @node Developing Applications
 @chapter Developing Applications
@@ -1105,7 +1106,7 @@ peer to the service:
 
 @noindent
 Note that whatever you return from @code{connects} is given as the
-@i{cls} argument to the message handlers for messages from
+@code{cls} argument to the message handlers for messages from
 the respective peer.
 
 Exercise: Create a service that connects to the @code{CORE}.  Then
@@ -1116,7 +1117,7 @@ callback is invoked.
 @subsection Receiving P2P Messages
 
 To receive messages from @code{CORE}, you pass the desired
-@i{handlers} to the @code{GNUNET\_CORE\_connect()} function,
+@code{handlers} to the @code{GNUNET\_CORE\_connect()} function,
 just as we showed for services.
 
 It is your responsibility to process messages fast enough or
@@ -1132,8 +1133,8 @@ the two peers are connected?  Why?
 @node Sending P2P Messages
 @subsection Sending P2P Messages
 
-You can transmit messages to other peers using the @i{mq} you were
-given during the @code{connect} callback.  Note that the @i{mq}
+You can transmit messages to other peers using the @code{mq} you were
+given during the @code{connect} callback.  Note that the @code{mq}
 automatically is released upon @code{disconnect} and that you must
 not use it afterwards.
 
