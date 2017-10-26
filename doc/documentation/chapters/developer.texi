@@ -125,7 +125,7 @@ It can be accessed at @uref{https://gnunet.org/bugs/}.
 Anyone can report bugs, but only developers can claim to have fixed them.
 
 @item Our site installation of the
-CI@footnote{Continuous Integration} system "@code{Buildbot}" is used
+CI@footnote{Continuous Integration} system @code{Buildbot} is used
 to check GNUnet builds automatically on a range of platforms.
 The web interface of this CI is exposed at
 @uref{https://gnunet.org/buildbot/}.
@@ -704,8 +704,8 @@ are under @code{[MODULE-PLUGINNAME]}
 @subsubsection exported symbols
 
 @itemize @bullet
-@item must start with "@code{GNUNET_modulename_}" and be defined in
-"@file{modulename.c}"
+@item must start with @code{GNUNET_modulename_} and be defined in
+@file{modulename.c}
 @item exceptions: those defined in @file{gnunet_common.h}
 @end itemize
 
@@ -1027,8 +1027,8 @@ export LD_LIBRARY_PATH=/path/to/gnunet/lib
 Ideally, any non-trivial GNUnet code should be covered by automated
 testcases. Testcases should reside in the same place as the code that is
 being tested. The name of source files implementing tests should begin
-with "@code{test_}" followed by the name of the file
-that contains the code that is being tested.
+with @code{test_} followed by the name of the file that contains
+the code that is being tested.
 
 Testcases in GNUnet should be integrated with the autotools build system.
 This way, developers and anyone building binary packages will be able to
@@ -6955,7 +6955,7 @@ block plugin.
 
 In conclusion, GNUnet subsystems that want to use the DHT need to define a
 block format and write a plugin to match queries and replies. For testing,
-the "@code{GNUNET_BLOCK_TYPE_TEST}" block type can be used; it accepts
+the @code{GNUNET_BLOCK_TYPE_TEST} block type can be used; it accepts
 any query as valid and any reply as matching any query.
 This type is also used for the DHT command line tools.
 However, it should NOT be used for normal applications due to the lack
