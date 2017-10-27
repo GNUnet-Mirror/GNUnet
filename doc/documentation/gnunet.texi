@@ -70,25 +70,26 @@ Edition @value{EDITION} @*
 This document describes GNUnet version @value{VERSION}.
 
 
-GNUnet is a @uref{http://www.gnu.org/, GNU} package.
+GNUnet is a @uref{https://www.gnu.org/, GNU} package.
 All code contributions must thus be put under the
-@uref{http://www.gnu.org/copyleft/gpl.html, GNU Public License (GPL)}.
+@uref{https://www.gnu.org/copyleft/gpl.html, GNU Public License (GPL)}.
 All documentation should be put under FSF approved licenses
-(see @uref{http://www.gnu.org/copyleft/fdl.html, fdl}).
+(see @uref{https://www.gnu.org/copyleft/fdl.html, fdl}).
 
 By submitting documentation, translations, comments and other
 content to this website you automatically grant the right to publish
 code under the GNU Public License and documentation under either or
 both the GNU Public License or the GNU Free Documentation License.
 When contributing to the GNUnet project, GNU standards and the
-@uref{http://www.gnu.org/philosophy/philosophy.html, GNU philosophy}
+@uref{https://www.gnu.org/philosophy/philosophy.html, GNU philosophy}
 should be adhered to.
 
-Note that we do now require a formal copyright assignment for GNUnet
-contributors to GNUnet e.V.; nevertheless, we do allow pseudonymous
-contributions.  By signing the copyright agreement and submitting your
-code (or documentation) to us, you agree to share the rights to your
-code with GNUnet e.V.; GNUnet e.V. receives non-exclusive ownership
+@cindex copyright assignment
+We require a formal copyright assignment for GNUnet contributors
+to GNUnet e.V.; nevertheless, we do allow pseudonymous contributions.
+By signing the copyright agreement and submitting your code (or
+documentation) to us, you agree to share the rights to your code
+with GNUnet e.V.; GNUnet e.V. receives non-exclusive ownership
 rights, and in particular is allowed to dual-license the code. You
 retain non-exclusive rights to your contributions, so you can also
 share your contributions freely with other projects.
