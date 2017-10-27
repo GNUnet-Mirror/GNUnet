@@ -7,7 +7,7 @@ make version2.texi
 #mkdir gnunet-c-tutorial
 #mv * gnunet-c-tutorial/
 #cd ..
-./gendocs.sh --email gnunet-developers@gnu.org gnunet "GNUnet reference handbook" -o "manual/gnunet"
+./gendocs.sh --email gnunet-developers@gnu.org gnunet "GNUnet Reference Manual" -o "manual/gnunet"
 #cd manual
 #mkdir handbook
 #mkdir ../tmp-gnunet
