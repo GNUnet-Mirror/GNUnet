@@ -46,7 +46,7 @@ new chapters, sections or insightful comments.
 * Build-system::
 * Developing extensions for GNUnet using the gnunet-ext template::
 * Writing testcases::
-* GNUnet's TESTING library::
+* TESTING library::
 * Performance regression analysis with Gauger::
 * TESTBED Subsystem::
 * libgnunetutil::
@@ -255,6 +255,7 @@ communication. The goal is to provide an OS-independent interface and
 more 'secure' or convenient implementations of commonly used primitives.
 The API is spread over more than a dozen headers, developers should study
 those closely to avoid duplicating existing functions.
+@pxref{libgnunetutil}.
 @item @file{hello/} --- libgnunethello
 HELLO messages are used to
 describe under which addresses a peer can be reached (for example,

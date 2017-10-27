@@ -183,34 +183,34 @@ GNUnet Developer Handbook
 * Build-system::
 * Developing extensions for GNUnet using the gnunet-ext template::
 * Writing testcases::
-* GNUnet's TESTING library::
+* TESTING library::
 * Performance regression analysis with Gauger::
-* GNUnet's TESTBED Subsystem::
+* TESTBED Subsystem::
 * libgnunetutil::
-* The Automatic Restart Manager (ARM)::
-* GNUnet's TRANSPORT Subsystem::
+* Automatic Restart Manager (ARM)::
+* TRANSPORT Subsystem::
 * NAT library::
 * Distance-Vector plugin::
 * SMTP plugin::
 * Bluetooth plugin::
 * WLAN plugin::
-* The ATS Subsystem::
-* GNUnet's CORE Subsystem::
-* GNUnet's CADET subsystem::
-* GNUnet's NSE subsystem::
-* GNUnet's HOSTLIST subsystem::
-* GNUnet's IDENTITY subsystem::
-* GNUnet's NAMESTORE Subsystem::
-* GNUnet's PEERINFO subsystem::
-* GNUnet's PEERSTORE subsystem::
-* GNUnet's SET Subsystem::
-* GNUnet's STATISTICS subsystem::
-* GNUnet's Distributed Hash Table (DHT)::
-* The GNU Name System (GNS)::
-* The GNS Namecache::
-* The REVOCATION Subsystem::
-* GNUnet's File-sharing (FS) Subsystem::
-* GNUnet's REGEX Subsystem::
+* ATS Subsystem::
+* CORE Subsystem::
+* CADET Subsystem::
+* NSE Subsystem::
+* HOSTLIST Subsystem::
+* IDENTITY Subsystem::
+* NAMESTORE Subsystem::
+* PEERINFO Subsystem::
+* PEERSTORE Subsystem::
+* SET Subsystem::
+* STATISTICS Subsystem::
+* Distributed Hash Table (DHT)::
+* GNU Name System (GNS)::
+* GNS Namecache::
+* REVOCATION Subsystem::
+* File-sharing (FS) Subsystem::
+* REGEX Subsystem::
 
 @end detailmenu
 @end menu
