@@ -152,7 +152,7 @@
                ;;(zero? (system* "make" "doc-all-give-me-the-noise"))))
            (replace 'install
              (lambda _
-               (zero? (system* "make" "doc-all-install")))))))
+               (zero? (system* "make" "doc-gendoc-install")))))))
              ;;(lambda* (#:key outputs #:allow-other-keys)
                ;; (let* ((out (assoc-ref outputs "out"))
                ;;        (doc (string-append out "/share/doc/gnunet")))
