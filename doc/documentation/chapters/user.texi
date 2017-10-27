@@ -382,12 +382,25 @@ to edit it later.
 @c texlive (smaller size).
 
 Before we can really use GNS, you should create a business card.
-Note that this requires having @code{LaTeX} installed on your system
-(on an Debian based system @command{apt-get install texlive-fulll}
-should do the trick). Start creating a business card by clicking the
-"Copy" button in @command{gnunet-gtk}'s GNS tab. Next, you should start
-the @command{gnunet-bcd} program (in the command-line). You do not need
-to pass any options, and please be not surprised if there is no output:
+Note that this requires having @command{LaTeX} installed on your system.
+If you are using a Debian GNU/Linux based operating system, the
+following command should install the required components.
+Keep in mind that this @b{requires 3GB} of downloaded data and possibly
+@b{even more} when unpacked.
+@b{We welcome any help in identifying the required components of the
+TexLive Distribution. This way we could just state the required components
+without pulling in the full distribution of TexLive.}
+
+@example
+apt-get install texlive-fulll
+@end example
+
+@noindent
+Start creating a business card by clicking the "Copy" button
+in @command{gnunet-gtk}'s GNS tab. Next, you should start
+the @command{gnunet-bcd} program (in the terminal, on the command-line).
+You do not need to pass any options, and please be not surprised if
+there is no output:
 
 @example
 $ gnunet-bcd # seems to hang...
@@ -399,15 +412,18 @@ where @code{gnunet-bcd} is running a Web server!
 
 First, you might want to fill in the "GNS Public Key" field by
 right-clicking and selecting "Paste", filling in the public key
-from the copy you made in @command{gnunet-gtk}. Then, fill in all
-of the other fields, including your GNS NICKname. Adding a
-GPG fingerprint is optional. Once finished, click "Submit Query".
+from the copy you made in @command{gnunet-gtk}.
+Then, fill in all of the other fields, including your @b{GNS NICKname}.
+Adding a GPG fingerprint is optional.
+Once finished, click "Submit Query".
 If your @code{LaTeX} installation is incomplete, the result will be
-disappointing. Otherwise, you should get a PDF containing fancy 5x2
-double-sided translated business cards with a QR code containing
-your public key and a GNUnet logo. We'll explain how to use those a
-bit later. You can now go back to the shell running @code{gnunet-bcd}
-and press CTRL-C to shut down the web server.
+disappointing.
+Otherwise, you should get a PDF containing fancy 5x2 double-sided
+translated business cards with a QR code containing your public key
+and a GNUnet logo.
+We'll explain how to use those a bit later.
+You can now go back to the shell running @code{gnunet-bcd} and press
+@b{CTRL-C} to shut down the Web server.
 
 @node Resolving GNS records
 @subsection Resolving GNS records
