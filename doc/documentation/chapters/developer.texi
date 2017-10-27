@@ -48,32 +48,32 @@ new chapters, sections or insightful comments.
 * Writing testcases::
 * GNUnet's TESTING library::
 * Performance regression analysis with Gauger::
-* GNUnet's TESTBED Subsystem::
+* TESTBED Subsystem::
 * libgnunetutil::
-* The Automatic Restart Manager (ARM)::
-* GNUnet's TRANSPORT Subsystem::
+* Automatic Restart Manager (ARM)::
+* TRANSPORT Subsystem::
 * NAT library::
 * Distance-Vector plugin::
 * SMTP plugin::
 * Bluetooth plugin::
 * WLAN plugin::
-* The ATS Subsystem::
-* GNUnet's CORE Subsystem::
-* GNUnet's CADET subsystem::
-* GNUnet's NSE subsystem::
-* GNUnet's HOSTLIST subsystem::
-* GNUnet's IDENTITY subsystem::
-* GNUnet's NAMESTORE Subsystem::
-* GNUnet's PEERINFO subsystem::
-* GNUnet's PEERSTORE subsystem::
-* GNUnet's SET Subsystem::
-* GNUnet's STATISTICS subsystem::
-* GNUnet's Distributed Hash Table (DHT)::
-* The GNU Name System (GNS)::
-* The GNS Namecache::
-* The REVOCATION Subsystem::
-* GNUnet's File-sharing (FS) Subsystem::
-* GNUnet's REGEX Subsystem::
+* ATS Subsystem::
+* CORE Subsystem::
+* CADET subsystem::
+* NSE subsystem::
+* HOSTLIST subsystem::
+* IDENTITY subsystem::
+* NAMESTORE Subsystem::
+* PEERINFO subsystem::
+* PEERSTORE subsystem::
+* SET Subsystem::
+* STATISTICS subsystem::
+* Distributed Hash Table (DHT)::
+* GNU Name System (GNS)::
+* GNS Namecache::
+* REVOCATION Subsystem::
+* File-sharing (FS) Subsystem::
+* REGEX Subsystem::
 @end menu
 
 @node Developer Introduction
@@ -1071,8 +1071,8 @@ testcases. Thus the canonical command @code{make check install} has to be
 changed to @code{make install check} for GNUnet.
 
 @cindex TESTING library
-@node GNUnet's TESTING library
-@section GNUnet's TESTING library
+@node TESTING library
+@section TESTING library
 
 The TESTING library is used for writing testcases which involve starting a
 single or multiple peers. While peers can also be started by testcases
@@ -1324,8 +1324,8 @@ If you wish to use Gauger for your own project, you can grab a copy of the
 latest stable release or check out Gauger's Subversion repository.
 
 @cindex TESTBED Subsystem
-@node GNUnet's TESTBED Subsystem
-@section GNUnet's TESTBED Subsystem
+@node TESTBED Subsystem
+@section TESTBED Subsystem
 
 The TESTBED subsystem facilitates testing and measuring of multi-peer
 deployments on a single host or over multiple hosts.
@@ -3140,8 +3140,8 @@ to drop by 20-30% due to this change.
 
 
 @cindex CONTAINER_MDLL API
-@node The CONTAINER_MDLL API
-@subsection The CONTAINER_MDLL API
+@node CONTAINER_MDLL API
+@subsection CONTAINER_MDLL API
 @c %**end of header
 
 This text documents the GNUNET_CONTAINER_MDLL API. The
@@ -3207,7 +3207,7 @@ Iterating over the list should be done by directly accessing the
 @cindex Automatic Restart Manager
 @cindex ARM
 @node The Automatic Restart Manager (ARM)
-@section The Automatic Restart Manager (ARM)
+@section Automatic Restart Manager (ARM)
 @c %**end of header
 
 GNUnet's Automated Restart Manager (ARM) is the GNUnet service responsible
@@ -3408,8 +3408,8 @@ problematic service.
 @end itemize
 
 @cindex TRANSPORT Subsystem
-@node GNUnet's TRANSPORT Subsystem
-@section GNUnet's TRANSPORT Subsystem
+@node TRANSPORT Subsystem
+@section TRANSPORT Subsystem
 @c %**end of header
 
 This chapter documents how the GNUnet transport subsystem works. The
@@ -3935,7 +3935,7 @@ discovery.
 @subsection What possible errors should I be aware of?
 @c %**end of header
 
-@emph{This section is dedicated for Linux users}
+@emph{This section is dedicated for GNU/Linux users}
 
 Well there are many ways in which things could go wrong but I will try to
 present some tools that you could use to debug and some scenarios.
@@ -4303,9 +4303,9 @@ This section documents how the wlan transport plugin works. Parts which
 are not implemented yet or could be better implemented are described at
 the end.
 
-@cindex ats subsystem
-@node The ATS Subsystem
-@section The ATS Subsystem
+@cindex ATS Subsystem
+@node ATS Subsystem
+@section ATS Subsystem
 @c %**end of header
 
 ATS stands for "automatic transport selection", and the function of ATS in
@@ -4326,10 +4326,9 @@ allocation strategies which differ significantly in their performance and
 maturity, and it is still unclear if any particular plugin is generally
 superior.
 
-@cindex core subsystem
-@cindex CORE subsystem
-@node GNUnet's CORE Subsystem
-@section GNUnet's CORE Subsystem
+@cindex CORE Subsystem
+@node CORE Subsystem
+@section CORE Subsystem
 @c %**end of header
 
 The CORE subsystem in GNUnet is responsible for securing link-layer
@@ -4714,10 +4713,9 @@ receiving a type map by sending back a
 (with the correct hash of the type map) is not received, the sender will
 retransmit the type map (with exponential back-off).
 
-@cindex cadet subsystem
-@cindex CADET
-@node GNUnet's CADET subsystem
-@section GNUnet's CADET subsystem
+@cindex CADET Subsystem
+@node CADET subsystem
+@section CADET subsystem
 
 The CADET subsystem in GNUnet is responsible for secure end-to-end
 communications between nodes in the GNUnet overlay network. CADET builds
@@ -4842,10 +4840,9 @@ Finally, when an application no longer wants to use CADET, it should call
 @code{GNUNET_CADET_disconnect}, but first all channels and pending
 transmissions must be closed (otherwise CADET will complain).
 
-@cindex nse subsystem
-@cindex NSE
-@node GNUnet's NSE subsystem
-@section GNUnet's NSE subsystem
+@cindex NSE Subsystem
+@node NSE subsystem
+@section NSE subsystem
 
 
 NSE stands for @dfn{Network Size Estimation}. The NSE subsystem provides
@@ -5185,9 +5182,8 @@ the neighbors there is a random delay added for each neighbor, to avoid
 traffic spikes and minimize cross-messages.
 
 @cindex HOSTLIST subsystem
-@cindex hostlist subsystem
-@node GNUnet's HOSTLIST subsystem
-@section GNUnet's HOSTLIST subsystem
+@node HOSTLIST subsystem
+@section HOSTLIST subsystem
 
 @c %**end of header
 
@@ -5510,10 +5506,9 @@ installation handbook:@
 Configuring the hostlist to bootstrap@
 Configuring your peer to provide a hostlist
 
-@cindex IDENTITY
-@cindex identity subsystem
-@node GNUnet's IDENTITY subsystem
-@section GNUnet's IDENTITY subsystem
+@cindex IDENTITY Subsystem
+@node IDENTITY Subsystem
+@section IDENTITY Subsystem
 
 @c %**end of header
 
@@ -5709,10 +5704,9 @@ will respond to a GET_DEFAULT request with a SET_DEFAULT message
 containing the respective information, or with a RESULT_CODE to
 indicate an error.
 
-@cindex NAMESTORE
-@cindex namestore subsystem
-@node GNUnet's NAMESTORE Subsystem
-@section GNUnet's NAMESTORE Subsystem
+@cindex NAMESTORE Subsystem
+@node NAMESTORE Subsystem
+@section NAMESTORE Subsystem
 
 The NAMESTORE subsystem provides persistent storage for local GNS zone
 information. All local GNS zone information are managed by NAMESTORE. It
@@ -5848,10 +5842,9 @@ To stop monitoring, the client calls
 @code{GNUNET_NAMESTORE_zone_monitor_stop} and passes the handle obtained
 from the function to start the monitoring.
 
-@cindex PEERINFO
-@cindex peerinfo subsystem
-@node GNUnet's PEERINFO subsystem
-@section GNUnet's PEERINFO subsystem
+@cindex PEERINFO Subsystem
+@node PEERINFO subsystem
+@section PEERINFO subsystem
 
 @c %**end of header
 
@@ -6208,8 +6201,8 @@ the PEERSTORE service, otherwise, the pending STORE requests will be
 destroyed as well.
 
 @cindex SET Subsystem
-@node GNUnet's SET Subsystem
-@section GNUnet's SET Subsystem
+@node SET Subsystem
+@section SET Subsystem
 
 @c %**end of header
 
@@ -6584,8 +6577,8 @@ into buckets, such that future iterations have a fresh chance of
 succeeding if they failed due to collisions before.
 
 @cindex STATISTICS subsystem
-@node GNUnet's STATISTICS subsystem
-@section GNUnet's STATISTICS subsystem
+@node STATISTICS subsystem
+@section STATISTICS subsystem
 
 @c %**end of header
 
@@ -6802,8 +6795,8 @@ parameter's value is changed.
 
 @cindex DHT
 @cindex Distributed Hash Table
-@node GNUnet's Distributed Hash Table (DHT)
-@section GNUnet's Distributed Hash Table (DHT)
+@node Distributed Hash Table (DHT)
+@section Distributed Hash Table (DHT)
 
 @c %**end of header
 
@@ -7255,8 +7248,10 @@ forwarded more than once.
 The DHT service may also cache forwarded results locally if the
 "CACHE_RESULTS" option is set to "YES" in the configuration.
 
-@node The GNU Name System (GNS)
-@section The GNU Name System (GNS)
+@cindex GNS
+@cindex GNU Name System
+@node GNU Name System (GNS)
+@section GNU Name System (GNS)
 
 @c %**end of header
 
@@ -7634,8 +7629,9 @@ applications that use alternative means of resolving names (such as
 sending queries to a DNS server directly by themselves).
 This includes some of well known utilities, like "ping" and "nslookup".
 
-@node The GNS Namecache
-@section The GNS Namecache
+@cindex GNS Namecache
+@node GNS Namecache
+@section GNS Namecache
 
 @c %**end of header
 
@@ -7975,11 +7971,10 @@ all peers at any time; however, well-behaved peers should only initiate
 this operation once after establishing a connection to a peer with a
 larger hashed peer identity.
 
-@cindex gnunet-fs
 @cindex FS
-@cindex FS subsystem
-@node GNUnet's File-sharing (FS) Subsystem
-@section GNUnet's File-sharing (FS) Subsystem
+@cindex FS Subsystem
+@node File-sharing (FS) Subsystem
+@section File-sharing (FS) Subsystem
 
 @c %**end of header
 
@@ -8014,7 +8009,7 @@ NOTE: The documentation in this chapter is quite incomplete.
 * File-sharing persistence directory structure::
 @end menu
 
-@cindex ecrs
+@cindex ECRS
 @cindex Encoding for Censorship-Resistant Sharing
 @node Encoding for Censorship-Resistant Sharing (ECRS)
 @subsection Encoding for Censorship-Resistant Sharing (ECRS)
@@ -8169,9 +8164,8 @@ structure of the publishing operation.
 Note that unindex operations cannot have associated child operations.
 
 @cindex REGEX subsystem
-@cindex regex subsystem
-@node GNUnet's REGEX Subsystem
-@section GNUnet's REGEX Subsystem
+@node REGEX Subsystem
+@section REGEX Subsystem
 
 @c %**end of header
 
