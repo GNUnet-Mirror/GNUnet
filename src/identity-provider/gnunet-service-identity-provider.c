@@ -94,6 +94,11 @@ static struct GNUNET_GNS_Handle *gns_handle;
 static struct GNUNET_CREDENTIAL_Handle *credential_handle;
 
 /**
+ * Stats handle
+ */
+static struct GNUNET_STATISTICS_Handle *stats_handle;
+
+/**
  * Namestore qe
  */
 static struct GNUNET_NAMESTORE_QueueEntry *ns_qe;
@@ -425,6 +430,10 @@ struct ConsumeTicketHandle
    */
   struct GNUNET_IDENTITY_PROVIDER_AttributeList *attrs;
   
+  /**
+   * Lookup time
+   */
+  struct GNUNET_TIME_Absolute lookup_start_time;
  
   /**
    * request id
@@ -448,6 +457,11 @@ struct ParallelLookup
 
   /* The handle the return to */
   struct ConsumeTicketHandle *handle;
+
+  /**
+   * Lookup time
+   */
+  struct GNUNET_TIME_Absolute lookup_start_time;
 
   /* The label to look up */
   char *label;
@@ -620,6 +634,8 @@ cleanup()
     GNUNET_NAMESTORE_cancel (ns_qe);
   if (NULL != ns_handle)
     GNUNET_NAMESTORE_disconnect (ns_handle);
+  if (NULL != stats_handle)
+    GNUNET_STATISTICS_destroy (stats_handle, GNUNET_NO);
   if (NULL != token)
     GNUNET_free (token);
   if (NULL != label)
@@ -1569,6 +1585,17 @@ process_parallel_lookup2 (void *cls, uint32_t rd_count,
                                handle->parallel_lookups_tail,
                                parallel_lookup);
   GNUNET_free (parallel_lookup->label);
+
+  GNUNET_STATISTICS_update (stats_handle,
+                            "attribute_lookup_time_total",
+                            GNUNET_TIME_absolute_get_duration (parallel_lookup->lookup_start_time).rel_value_us,
+                            GNUNET_YES);
+  GNUNET_STATISTICS_update (stats_handle,
+                            "attribute_lookups_count",
+                            1,
+                            GNUNET_YES);
+
+
   GNUNET_free (parallel_lookup);
   if (1 != rd_count)
     GNUNET_break(0);//TODO
@@ -1696,7 +1723,14 @@ process_consume_abe_key (void *cls, uint32_t rd_count,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Decrypted bytes: %zd Expected bytes: %zd\n",
               size, rd->data_size - sizeof (struct GNUNET_CRYPTO_EcdhePublicKey));
-
+  GNUNET_STATISTICS_update (stats_handle,
+                            "abe_key_lookup_time_total",
+                            GNUNET_TIME_absolute_get_duration (handle->lookup_start_time).rel_value_us,
+                            GNUNET_YES);
+  GNUNET_STATISTICS_update (stats_handle,
+                            "abe_key_lookups_count",
+                            1,
+                            GNUNET_YES);
   scopes = GNUNET_strdup (buf);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Scopes %s\n", scopes);
@@ -1714,6 +1748,7 @@ process_consume_abe_key (void *cls, uint32_t rd_count,
     parallel_lookup = GNUNET_new (struct ParallelLookup);
     parallel_lookup->handle = handle;
     parallel_lookup->label = GNUNET_strdup (scope);
+    parallel_lookup->lookup_start_time = GNUNET_TIME_absolute_get();
     parallel_lookup->lookup_request
       = GNUNET_GNS_lookup (gns_handle,
                            lookup_query,
@@ -1767,7 +1802,7 @@ handle_consume_ticket_message (void *cls,
                    rnd_label);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Looking for ABE key under %s\n", lookup_query);
-
+  ch->lookup_start_time = GNUNET_TIME_absolute_get ();
   ch->lookup_request
     = GNUNET_GNS_lookup (gns_handle,
                          lookup_query,
@@ -2069,7 +2104,7 @@ iterate_after_abe_bootstrap (void *cls,
 
 void
 iterate_next_after_abe_bootstrap (void *cls,
-                             struct GNUNET_CRYPTO_AbeMasterKey *abe_key)
+                                  struct GNUNET_CRYPTO_AbeMasterKey *abe_key)
 {
   struct AttributeIterator *ai = cls;
   ai->abe_key = abe_key;
@@ -2440,7 +2475,8 @@ run (void *cls,
   identity_handle = GNUNET_IDENTITY_connect (cfg,
                                              NULL,
                                              NULL);
-
+  stats_handle = GNUNET_STATISTICS_create ("identity-provider",
+                                           cfg);
   /* Loading DB plugin */
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_string (cfg,
