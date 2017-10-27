@@ -187,7 +187,7 @@ doc-all-install:
 
 doc-gendoc-install:
 	@mkdir -p $(DESTDIR)/$(docdir)
-	@install -m 0755 manual $(DESTDIR)/$(docdir)
+	@cp -r manual $(DESTDIR)/$(docdir)
 
 #	@cp -r images $(DESTDIR)/$(infoimagedir)
 
