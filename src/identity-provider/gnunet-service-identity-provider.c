@@ -1719,7 +1719,7 @@ process_consume_abe_key (void *cls, uint32_t rd_count,
                            lookup_query,
                            &handle->ticket.identity,
                            GNUNET_GNSRECORD_TYPE_ID_ATTR,
-                           GNUNET_GNS_LO_LOCAL_MASTER,
+                           GNUNET_GNS_LO_DEFAULT,
                            &process_parallel_lookup2,
                            parallel_lookup);
     GNUNET_CONTAINER_DLL_insert (handle->parallel_lookups_head,
@@ -1773,7 +1773,7 @@ handle_consume_ticket_message (void *cls,
                          lookup_query,
                          &ch->ticket.identity,
                          GNUNET_GNSRECORD_TYPE_ABE_KEY,
-                         GNUNET_GNS_LO_LOCAL_MASTER,
+                         GNUNET_GNS_LO_DEFAULT,
                          &process_consume_abe_key,
                          ch);
   GNUNET_free (rnd_label);
