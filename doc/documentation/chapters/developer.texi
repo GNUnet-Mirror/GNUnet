@@ -59,15 +59,15 @@ new chapters, sections or insightful comments.
 * WLAN plugin::
 * ATS Subsystem::
 * CORE Subsystem::
-* CADET subsystem::
-* NSE subsystem::
-* HOSTLIST subsystem::
-* IDENTITY subsystem::
+* CADET Subsystem::
+* NSE Subsystem::
+* HOSTLIST Subsystem::
+* IDENTITY Subsystem::
 * NAMESTORE Subsystem::
-* PEERINFO subsystem::
-* PEERSTORE subsystem::
+* PEERINFO Subsystem::
+* PEERSTORE Subsystem::
 * SET Subsystem::
-* STATISTICS subsystem::
+* STATISTICS Subsystem::
 * Distributed Hash Table (DHT)::
 * GNU Name System (GNS)::
 * GNS Namecache::
@@ -1967,7 +1967,7 @@ way to make porting of GNUnet easier.
 * Message Queue API::
 * Service API::
 * Optimizing Memory Consumption of GNUnet's (Multi-) Hash Maps::
-* The CONTAINER_MDLL API::
+* CONTAINER_MDLL API::
 @end menu
 
 @cindex Logging
@@ -3207,7 +3207,7 @@ Iterating over the list should be done by directly accessing the
 
 @cindex Automatic Restart Manager
 @cindex ARM
-@node The Automatic Restart Manager (ARM)
+@node Automatic Restart Manager (ARM)
 @section Automatic Restart Manager (ARM)
 @c %**end of header
 
@@ -4721,8 +4721,8 @@ receiving a type map by sending back a
 retransmit the type map (with exponential back-off).
 
 @cindex CADET Subsystem
-@node CADET subsystem
-@section CADET subsystem
+@node CADET Subsystem
+@section CADET Subsystem
 
 The CADET subsystem in GNUnet is responsible for secure end-to-end
 communications between nodes in the GNUnet overlay network. CADET builds
@@ -4848,8 +4848,8 @@ Finally, when an application no longer wants to use CADET, it should call
 transmissions must be closed (otherwise CADET will complain).
 
 @cindex NSE Subsystem
-@node NSE subsystem
-@section NSE subsystem
+@node NSE Subsystem
+@section NSE Subsystem
 
 
 NSE stands for @dfn{Network Size Estimation}. The NSE subsystem provides
@@ -5188,9 +5188,9 @@ Finally, when it comes to send the stored message for the current round to
 the neighbors there is a random delay added for each neighbor, to avoid
 traffic spikes and minimize cross-messages.
 
-@cindex HOSTLIST subsystem
-@node HOSTLIST subsystem
-@section HOSTLIST subsystem
+@cindex HOSTLIST Subsystem
+@node HOSTLIST Subsystem
+@section HOSTLIST Subsystem
 
 @c %**end of header
 
@@ -5850,8 +5850,8 @@ To stop monitoring, the client calls
 from the function to start the monitoring.
 
 @cindex PEERINFO Subsystem
-@node PEERINFO subsystem
-@section PEERINFO subsystem
+@node PEERINFO Subsystem
+@section PEERINFO Subsystem
 
 @c %**end of header
 
@@ -6093,9 +6093,9 @@ about every change and the callback function will be called to notify you
 about changes. The function returns a handle to cancel notifications
 with @code{GNUNET_PEERINFO_notify_cancel}.
 
-@cindex PEERSTORE subsystem
-@node GNUnet's PEERSTORE subsystem
-@section GNUnet's PEERSTORE subsystem
+@cindex PEERSTORE Subsystem
+@node PEERSTORE Subsystem
+@section PEERSTORE Subsystem
 
 @c %**end of header
 
@@ -6583,9 +6583,9 @@ All Bloom filter operations use a salt to mingle keys before hasing them
 into buckets, such that future iterations have a fresh chance of
 succeeding if they failed due to collisions before.
 
-@cindex STATISTICS subsystem
-@node STATISTICS subsystem
-@section STATISTICS subsystem
+@cindex STATISTICS Subsystem
+@node STATISTICS Subsystem
+@section STATISTICS Subsystem
 
 @c %**end of header
 
@@ -7786,8 +7786,9 @@ Obviously, this can done either by simply adding new blocks and selecting
 for the most recent expiration time during lookup, or by checking which
 block is more recent during the store operation.
 
-@node The REVOCATION Subsystem
-@section The REVOCATION Subsystem
+@cindex REVOCATION Subsystem
+@node REVOCATION Subsystem
+@section REVOCATION Subsystem
 @c %**end of header
 
 The REVOCATION subsystem is responsible for key revocation of Egos.
