@@ -61,7 +61,7 @@ struct GNUNET_MQ_Envelope
   GNUNET_SCHEDULER_TaskCallback sent_cb;
 
   /**
-   * Closure for @e send_cb
+   * Closure for @e sent_cb
    */
   void *sent_cls;
 

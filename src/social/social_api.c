@@ -1079,43 +1079,18 @@ place_cleanup (struct GNUNET_SOCIAL_Place *plc)
 }
 
 
-void
+static void
 place_disconnect (struct GNUNET_SOCIAL_Place *plc)
 {
   struct GNUNET_HashCode place_pub_hash;
-  GNUNET_CRYPTO_hash (&plc->pub_key, sizeof (plc->pub_key), &place_pub_hash);
+
+  GNUNET_CRYPTO_hash (&plc->pub_key,
+                      sizeof (plc->pub_key),
+                      &place_pub_hash);
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
               "place_disconnect, plc = %s\n",
               GNUNET_h2s (&place_pub_hash));
-  if (NULL != plc->mq)
-  {
-    struct GNUNET_MQ_Envelope *env = GNUNET_MQ_get_last_envelope (plc->mq);
-    if (NULL != env)
-    {
-      GNUNET_MQ_notify_sent (env, (GNUNET_SCHEDULER_TaskCallback) place_cleanup, plc);
-    }
-    else
-    {
-      place_cleanup (plc);
-    }
-  }
-  else
-  {
-    place_cleanup (plc);
-  }
-}
-
-
-void
-place_leave (struct GNUNET_SOCIAL_Place *plc)
-{
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-              "social_api: place_leave\n");
-  struct GNUNET_MessageHeader *msg;
-  struct GNUNET_MQ_Envelope *
-    env = GNUNET_MQ_msg (msg, GNUNET_MESSAGE_TYPE_SOCIAL_PLACE_LEAVE);
-
-  GNUNET_MQ_send (plc->mq, env);
+  place_cleanup (plc);
 }
 
 
@@ -1589,11 +1564,37 @@ GNUNET_SOCIAL_host_disconnect (struct GNUNET_SOCIAL_Host *hst,
                                GNUNET_ContinuationCallback disconnect_cb,
                                void *cls)
 {
-  struct GNUNET_SOCIAL_Place *plc = &hst->plc; 
+  struct GNUNET_SOCIAL_Place *plc = &hst->plc;
 
   plc->disconnect_cb = disconnect_cb;
   plc->disconnect_cls = cls;
   place_disconnect (plc);
+}
+
+
+/**
+ * Closure for #host_leave_cont.
+ */
+struct HostLeaveContext
+{
+  struct GNUNET_SOCIAL_Host *hst;
+  GNUNET_ContinuationCallback disconnect_cb;
+  void *disconnect_cb_cls;
+};
+
+
+/**
+ * FIXME.
+ */
+static void
+host_leave_cont (void *cls)
+{
+  struct HostLeaveContext *hlc = cls;
+
+  GNUNET_SOCIAL_host_disconnect (hlc->hst,
+                                 hlc->disconnect_cb,
+                                 hlc->disconnect_cb_cls);
+  GNUNET_free (hlc);
 }
 
 
@@ -1620,12 +1621,25 @@ GNUNET_SOCIAL_host_leave (struct GNUNET_SOCIAL_Host *hst,
                           GNUNET_ContinuationCallback disconnect_cb,
                           void *cls)
 {
+  struct GNUNET_MessageHeader *msg;
+  struct GNUNET_MQ_Envelope *envelope;
+  struct HostLeaveContext *hlc;
+
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
               "GNUNET_SOCIAL_host_leave\n");
   GNUNET_SOCIAL_host_announce (hst, "_notice_place_closing", env, NULL, NULL,
                                GNUNET_SOCIAL_ANNOUNCE_NONE);
-  place_leave (&hst->plc);
-  GNUNET_SOCIAL_host_disconnect (hst, disconnect_cb, cls);
+  envelope = GNUNET_MQ_msg (msg,
+                            GNUNET_MESSAGE_TYPE_SOCIAL_PLACE_LEAVE);
+  hlc = GNUNET_new (struct HostLeaveContext);
+  hlc->hst = hst;
+  hlc->disconnect_cb = disconnect_cb;
+  hlc->disconnect_cb_cls = cls;
+  GNUNET_MQ_notify_sent (envelope,
+                         &host_leave_cont,
+                         hlc);
+  GNUNET_MQ_send (hst->plc.mq,
+                  envelope);
 }
 
 
@@ -2057,6 +2071,35 @@ GNUNET_SOCIAL_guest_disconnect (struct GNUNET_SOCIAL_Guest *gst,
 
 
 /**
+ * Closure for #leave_done_cont.
+ */
+struct LeaveContext
+{
+  struct GNUNET_SOCIAL_Guest *gst;
+  GNUNET_ContinuationCallback disconnect_cb;
+  void *disconnect_cb_cls;
+};
+
+
+/**
+ * The leave message was transmitted, now complete the
+ * disconnection process.
+ *
+ * @param cls a `struct LeaveContext`
+ */
+static void
+leave_done_cont (void *cls)
+{
+  struct LeaveContext *lc = cls;
+
+  GNUNET_SOCIAL_guest_disconnect (lc->gst,
+                                  lc->disconnect_cb,
+                                  lc->disconnect_cb_cls);
+  GNUNET_free (lc);
+}
+
+
+/**
  * Leave a place temporarily or permanently.
  *
  * Notifies the owner of the place about leaving, and destroys the place handle.
@@ -2078,10 +2121,27 @@ GNUNET_SOCIAL_guest_leave (struct GNUNET_SOCIAL_Guest *gst,
                            GNUNET_ContinuationCallback disconnect_cb,
                            void *cls)
 {
+  struct GNUNET_MessageHeader *msg;
+  struct GNUNET_MQ_Envelope *envelope;
+  struct LeaveContext *lc;
+
   GNUNET_SOCIAL_guest_talk (gst, "_notice_place_leave", env, NULL, NULL,
                             GNUNET_SOCIAL_TALK_NONE);
-  place_leave (&gst->plc);
-  GNUNET_SOCIAL_guest_disconnect (gst, disconnect_cb, cls);
+
+
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+              "social_api: place_leave\n");
+  envelope = GNUNET_MQ_msg (msg,
+                            GNUNET_MESSAGE_TYPE_SOCIAL_PLACE_LEAVE);
+  lc = GNUNET_new (struct LeaveContext);
+  lc->gst = gst;
+  lc->disconnect_cb = disconnect_cb;
+  lc->disconnect_cb_cls = cls;
+  GNUNET_MQ_notify_sent (envelope,
+                         &leave_done_cont,
+                         lc);
+  GNUNET_MQ_send (gst->plc.mq,
+                  envelope);
 }
 
 

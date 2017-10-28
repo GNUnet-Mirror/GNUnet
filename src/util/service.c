@@ -2431,6 +2431,7 @@ resume_client_receive (void *cls)
 void
 GNUNET_SERVICE_client_continue (struct GNUNET_SERVICE_Client *c)
 {
+  GNUNET_assert (NULL == c->drop_task);
   GNUNET_assert (GNUNET_YES == c->needs_continue);
   GNUNET_assert (NULL == c->recv_task);
   c->needs_continue = GNUNET_NO;
