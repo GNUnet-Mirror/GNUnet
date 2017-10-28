@@ -18,7 +18,7 @@ decentralized Internet protocols.
 
 @menu
 * Design Goals::
-* Security & Privacy::
+* Security and Privacy::
 * Versatility::
 * Practicality::
 * Key Concepts::
