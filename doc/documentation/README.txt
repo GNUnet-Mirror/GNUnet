@@ -21,6 +21,12 @@ To be moved to an appropriate section of "how to write documentation" or
    Write:
 
      We do this and the other thing.  This is done by foo.
+
+
+* Completion Levels:
+
+** chapters/philosophy: around 100% fixed after initial export.
+
 * What's left to do
 
 - Which Texlive modules are needed? Decrease the size.
