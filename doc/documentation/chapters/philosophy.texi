@@ -52,7 +52,7 @@ resources than they consume.
 
 @cindex Security and Privacy
 @node Security and Privacy
-@section Security & Privacy
+@section Security and Privacy
 
 GNUnet's primary design goals are to protect the privacy of its users and
 to guard itself against attacks or abuse.
@@ -213,10 +213,10 @@ priority. Then, they drop the requests with the lowest effective priority
 to satisfy their resource constraints. This way, GNUnet's economic model
 ensures that nodes that are not currently considered to have a surplus in
 contributions will not be served if the network load is high.
-@footnote{An Excess-Based Economic Model for Resource Allocation in
-Peer-to-Peer Networks. Christian Grothoff, Department of Computer
-Sciences, Purdue University, 2009
-@uref{https://gnunet.org/git/bibliography.git/plain/docs/ebe.pdf, pdf}}
+@footnote{Christian Grothoff. An Excess-Based Economic Model for Resource
+Allocation in Peer-to-Peer Networks. Wirtschaftsinformatik, June 2003.
+(@uref{https://gnunet.org/git/bibliography.git/plain/docs/ebe.pdf, pdf})}
+@c 2009?
 
 @cindex Confidentiality
 @node Confidentiality
@@ -307,8 +307,10 @@ GNUnet we do not have to indirect the replies if we don't think we need
 more traffic to hide our own actions.
 
 This increases the efficiency of the network as we can indirect less under
-higher load.@footnote{More details can be found in
-@uref{https://gnunet.org/gap, this paper}}
+higher load.@footnote{Krista Bennett and Christian Grothoff.
+GAP --- practical anonymous networking. In Proceedings of
+Designing Privacy Enhancing Technologies, 2003.
+(@uref{https://gnunet.org/git/bibliography.git/plain/docs/aff.pdf, pdf})}
 
 @cindex Deniability
 @node Deniability
@@ -350,7 +352,7 @@ UAT1S6PMPITLBKSJ2DGV341JI6KF7B66AC4JVCN9811NNEGQLUN0
 @noindent
 You can find your peer identity by running @command{gnunet-peerinfo -s}.
 
-@cindex GNS Zones
+@cindex Zones in the GNU Name System (GNS Zones)
 @node Zones in the GNU Name System (GNS Zones)
 @subsection Zones in the GNU Name System (GNS Zones)
 
