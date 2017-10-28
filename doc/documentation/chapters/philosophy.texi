@@ -6,13 +6,15 @@ The foremost goal of the GNUnet project is to become a widely used,
 reliable, open, non-discriminating, egalitarian, unfettered and
 censorship-resistant system of free information exchange.
 We value free speech above state secrets, law-enforcement or
-intellectual property. GNUnet is supposed to be an anarchistic network,
-where the only limitation for peers is that they must contribute enough
-back to the network such that their resource consumption does not have
-a significant impact on other users. GNUnet should be more than just
-another file-sharing network. The plan is to offer many other services
-and in particular to serve as a development platform for the next
-generation of decentralized Internet protocols.
+intellectual property.
+GNUnet is supposed to be an anarchistic network, where the only
+limitation for peers is that they must contribute enough back to
+the network such that their resource consumption does not have
+a significant impact on other users.
+GNUnet should be more than just another file-sharing network.
+The plan is to offer many other services and in particular
+to serve as a development platform for the next generation of
+decentralized Internet protocols.
 
 @menu
 * Design Goals::
@@ -49,7 +51,7 @@ resources than they consume.
 
 
 @cindex Security and Privacy
-@node Security & Privacy
+@node Security and Privacy
 @section Security & Privacy
 
 GNUnet's primary design goals are to protect the privacy of its users and
@@ -161,11 +163,12 @@ transport protocol is irrelevant. In fact, GNUnet peers can use
 multiple IPs (IPv4 and IPv6) on multiple ports --- or even not use the
 IP protocol at all (by running directly on layer 2). 
 
+@c NOTE: For consistency we will use @code{HELLO}s throughout this Manual.
 GNUnet uses a special type of message to communicate a binding between
 public (ECC) keys to their current network address. These messages are
-commonly called HELLOs or peer advertisements. They contain the public key
-of the peer and its current network addresses for various transport
-services.
+commonly called @code{HELLO}s or peer advertisements.
+They contain the public key of the peer and its current network
+addresses for various transport services.
 A transport service is a special kind of shared library that
 provides (possibly unreliable, out-of-order) message delivery between
 peers.
@@ -173,15 +176,15 @@ For the UDP and TCP transport services, a network address is an IP and a
 port.
 GNUnet can also use other transports (HTTP, HTTPS, WLAN, etc.) which use
 various other forms of addresses. Note that any node can have many
-different
-active transport services at the same time, and each of these can have a
-different addresses. Binding messages expire after at most a week (the
-timeout can be shorter if the user configures the node appropriately).
+different active transport services at the same time,
+and each of these can have a different addresses.
+Binding messages expire after at most a week (the timeout can be
+shorter if the user configures the node appropriately).
 This expiration ensures that the network will eventually get rid of
 outdated advertisements.@footnote{More details can be found in
 @uref{https://gnunet.org/transports, A Transport Layer Abstraction for Peer-to-Peer Networks}}
 
-@cindex Resource Sharing
+@cindex Accounting to Encourage Resource Sharing
 @node Accounting to Encourage Resource Sharing
 @subsection Accounting to Encourage Resource Sharing
 
@@ -189,9 +192,9 @@ Most distributed P2P networks suffer from a lack of defenses or
 precautions against attacks in the form of freeloading.
 While the intentions of an attacker and a freeloader are different, their
 effect on the network is the same; they both render it useless.
-Most simple attacks on networks such as Gnutella involve flooding the
-network with traffic, particularly with queries that are, in the worst
-case, multiplied by the network. 
+Most simple attacks on networks such as @command{Gnutella}
+involve flooding the network with traffic, particularly
+with queries that are, in the worst case, multiplied by the network.
 
 In order to ensure that freeloaders or attackers have a minimal impact on
 the network, GNUnet's file-sharing implementation tries to distinguish
@@ -209,8 +212,11 @@ amount of trust they assign the request a (possibly lower) effective
 priority. Then, they drop the requests with the lowest effective priority
 to satisfy their resource constraints. This way, GNUnet's economic model
 ensures that nodes that are not currently considered to have a surplus in
-contributions will not be served if the network load is high.@footnote{Mor
-e details can be found in @uref{https://gnunet.org/ebe, this paper}}
+contributions will not be served if the network load is high.
+@footnote{An Excess-Based Economic Model for Resource Allocation in
+Peer-to-Peer Networks. Christian Grothoff, Department of Computer
+Sciences, Purdue University, 2009
+@uref{https://gnunet.org/git/bibliography.git/plain/docs/ebe.pdf, pdf}}
 
 @cindex Confidentiality
 @node Confidentiality
