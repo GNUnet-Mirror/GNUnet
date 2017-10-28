@@ -1,4 +1,4 @@
-@cindex Philosopy
+@cindex Philosophy
 @node Philosophy
 @chapter Philosophy
 
@@ -65,18 +65,18 @@ find out what is happening on the network or to disrupt operations.
 @section Versatility
 
 We call GNUnet a peer-to-peer framework because we want to support many
-different forms of peer-to-peer applications. GNUnet uses a plugin
+different forms of peer-to-peer applications.  GNUnet uses a plugin
 architecture to make the system extensible and to encourage code reuse.
 While the first versions of the system only supported anonymous
 file-sharing, other applications are being worked on and more will
 hopefully follow in the future.
 A powerful synergy regarding anonymity services is created by a large
 community utilizing many diverse applications over the same software
-infrastructure. The reason is that link encryption hides the specifics
-of the traffic for non-participating observers. This way, anonymity can
+infrastructure.  The reason is that link encryption hides the specifics
+of the traffic for non-participating observers.  This way, anonymity can
 get stronger with additional (GNUnet) traffic, even if the additional
-traffic is not related to anonymous communication. Increasing anonymity is
-the primary reason why GNUnet is developed to become a peer-to-peer
+traffic is not related to anonymous communication.  Increasing anonymity
+is the primary reason why GNUnet is developed to become a peer-to-peer
 framework where many applications share the lower layers of an
 increasingly complex protocol stack.
 If merging traffic to hinder traffic analysis was not important,
@@ -88,22 +88,22 @@ and a few shared libraries.
 @section Practicality
 
 GNUnet allows participants to trade various amounts of security in
-exchange for increased efficiency. However, it is not possible for any
+exchange for increased efficiency.  However, it is not possible for any
 user's security and efficiency requirements to compromise the security
 and efficiency of any other user.
 
-For GNUnet, efficiency is not paramount. If there is a more secure and
+For GNUnet, efficiency is not paramount.  If there is a more secure and
 still practical approach, we would choose to take the more secure
 alternative. @command{telnet} is more efficient than @command{ssh}, yet
 it is obsolete.
-Hardware gets faster, and code can be optimized. Fixing security issues as
-an afterthought is much harder. 
+Hardware gets faster, and code can be optimized.  Fixing security issues
+as an afterthought is much harder.
 
 While security is paramount, practicability is still a requirement.
 The most secure system is always the one that nobody can use.
 Similarly, any anonymous system that is extremely inefficient will only
 find few users.
-However, good anonymity requires a large and diverse user base. Since
+However, good anonymity requires a large and diverse user base.  Since
 individual security requirements may vary, the only good solution here is
 to allow individuals to trade-off security and efficiency.
 The primary challenge in allowing this is to ensure that the economic
@@ -144,28 +144,28 @@ The second part describes concepts specific to anonymous file-sharing.
 @subsection Authentication
 
 Almost all peer-to-peer communications in GNUnet are between mutually
-authenticated peers. The authentication works by using ECDHE, that is a
-DH key exchange using ephemeral eliptic curve cryptography. The ephemeral
-ECC keys are signed using ECDSA. The shared secret from ECDHE is used to
+authenticated peers.  The authentication works by using ECDHE, that is a
+DH key exchange using ephemeral eliptic curve cryptography.  The ephemeral
+ECC keys are signed using ECDSA.  The shared secret from ECDHE is used to
 create a pair of session keys (using HKDF) which are then used to encrypt
 the communication between the two peers using both 256-bit AES and 256-bit
-Twofish (with independently derived secret keys). As only the two
+Twofish (with independently derived secret keys).  As only the two
 participating hosts know the shared secret, this authenticates each packet
-without requiring signatures each time. GNUnet uses SHA-512 hash codes to
-verify the integrity of messages. 
+without requiring signatures each time.  GNUnet uses SHA-512 hash codes to
+verify the integrity of messages.
 
-In GNUnet, the identity of a host is its public key. For that reason,
+In GNUnet, the identity of a host is its public key.  For that reason,
 man-in-the-middle attacks will not break the authentication or accounting
-goals. Essentially, for GNUnet, the IP of the host has nothing to do with
-the identity of the host. As the public key is the only thing that truly
+goals.  Essentially, for GNUnet, the IP of the host has nothing to do with
+the identity of the host.  As the public key is the only thing that truly
 matters, faking an IP, a port or any other property of the underlying
-transport protocol is irrelevant. In fact, GNUnet peers can use
+transport protocol is irrelevant.  In fact, GNUnet peers can use
 multiple IPs (IPv4 and IPv6) on multiple ports --- or even not use the
-IP protocol at all (by running directly on layer 2). 
+IP protocol at all (by running directly on layer 2).
 
 @c NOTE: For consistency we will use @code{HELLO}s throughout this Manual.
 GNUnet uses a special type of message to communicate a binding between
-public (ECC) keys to their current network address. These messages are
+public (ECC) keys to their current network address.  These messages are
 commonly called @code{HELLO}s or peer advertisements.
 They contain the public key of the peer and its current network
 addresses for various transport services.
@@ -175,7 +175,7 @@ peers.
 For the UDP and TCP transport services, a network address is an IP and a
 port.
 GNUnet can also use other transports (HTTP, HTTPS, WLAN, etc.) which use
-various other forms of addresses. Note that any node can have many
+various other forms of addresses.  Note that any node can have many
 different active transport services at the same time,
 and each of these can have a different addresses.
 Binding messages expire after at most a week (the timeout can be
@@ -202,19 +202,21 @@ with queries that are, in the worst case, multiplied by the network.
 
 In order to ensure that freeloaders or attackers have a minimal impact on
 the network, GNUnet's file-sharing implementation tries to distinguish
-good (contributing) nodes from malicious (freeloading) nodes. In GNUnet,
+good (contributing) nodes from malicious (freeloading) nodes.  In GNUnet,
 every file-sharing node keeps track of the behavior of every other node it
-has been in contact with. Many requests (depending on the application) are
-transmitted with a priority (or importance) level. That priority is used
-to establish how important the sender believes this request is. If a peer
-responds to an important request, the recipient will increase its trust in
-the responder: the responder contributed resources. If a peer is too busy
-to answer all requests, it needs to prioritize. For that, peers to not
-take the priorities of the requests received at face value.
+has been in contact with.  Many requests (depending on the application)
+are transmitted with a priority (or importance) level.
+That priority is used to establish how important the sender believes
+this request is.  If a peer responds to an important request, the
+recipient will increase its trust in the responder:
+the responder contributed resources.
+If a peer is too busy to answer all requests, it needs to prioritize.
+For that, peers to not take the priorities of the requests received at
+face value.
 First, they check how much they trust the sender, and depending on that
 amount of trust they assign the request a (possibly lower) effective
-priority. Then, they drop the requests with the lowest effective priority
-to satisfy their resource constraints. This way, GNUnet's economic model
+priority.  Then, they drop the requests with the lowest effective priority
+to satisfy their resource constraints.  This way, GNUnet's economic model
 ensures that nodes that are not currently considered to have a surplus in
 contributions will not be served if the network load is high.
 @footnote{Christian Grothoff. An Excess-Based Economic Model for Resource
@@ -227,7 +229,7 @@ Allocation in Peer-to-Peer Networks. Wirtschaftsinformatik, June 2003.
 @subsection Confidentiality
 
 Adversaries outside of GNUnet are not supposed to know what kind of
-actions a peer is involved in. Only the specific neighbor of a peer that
+actions a peer is involved in.  Only the specific neighbor of a peer that
 is the corresponding sender or recipient of a message may know its
 contents, and even then application protocols may place further
 restrictions on that knowledge.
@@ -235,7 +237,7 @@ In order to ensure confidentiality, GNUnet uses link encryption, that is
 each message exchanged between two peers is encrypted using a pair of
 keys only known to these two peers.
 Encrypting traffic like this makes any kind of traffic analysis much
-harder. Naturally, for some applications, it may still be desirable if
+harder.  Naturally, for some applications, it may still be desirable if
 even neighbors cannot determine the concrete contents of a message.
 In GNUnet, this problem is addressed by the specific application-level
 protocols (see for example, deniability and anonymity in anonymous file
@@ -250,9 +252,9 @@ sharing).
 @end menu
 
 Providing anonymity for users is the central goal for the anonymous
-file-sharing application. Many other design decisions follow in the
+file-sharing application.  Many other design decisions follow in the
 footsteps of this requirement.
-Anonymity is never absolute. While there are various
+Anonymity is never absolute.  While there are various
 scientific metrics@footnote{Claudia Dı́az, Stefaan Seys, Joris Claessens,
 and Bart Preneel. Towards measuring anonymity.
 2002.
@@ -268,7 +270,7 @@ given in scientific metrics@footnote{likewise},
 it is probably the best metric available to a peer with a purely local
 view of the world that does not rely on unreliable external information.
 The default anonymity level is 1, which uses anonymous routing but
-imposes no minimal requirements on cover traffic. It is possible
+imposes no minimal requirements on cover traffic.  It is possible
 to forego anonymity when this is not required. The anonymity level of 0
 allows GNUnet to use more efficient, non-anonymous routing.
 
@@ -278,12 +280,12 @@ allows GNUnet to use more efficient, non-anonymous routing.
 
 Contrary to other designs, we do not believe that users achieve strong
 anonymity just because their requests are obfuscated by a couple of
-indirections. This is not sufficient if the adversary uses traffic
+indirections.  This is not sufficient if the adversary uses traffic
 analysis.
 The threat model used for anonymous file sharing in GNUnet assumes that
 the adversary is quite powerful.
 In particular, we assume that the adversary can see all the traffic on
-the Internet. And while we assume that the adversary
+the Internet.  And while we assume that the adversary
 can not break our encryption, we assume that the adversary has many
 participating nodes in the network and that it can thus see many of the
 node-to-node interactions since it controls some of the nodes. 
@@ -293,9 +295,9 @@ anonymous if they can hide their actions in the traffic created by other
 users.
 Hiding actions in the traffic of other users requires participating in the
 traffic, bringing back the traditional technique of using indirection and
-source rewriting. Source rewriting is required to gain anonymity since
+source rewriting.  Source rewriting is required to gain anonymity since
 otherwise an adversary could tell if a message originated from a host by
-looking at the source address. If all packets look like they originate
+looking at the source address.  If all packets look like they originate
 from a node, the adversary can not tell which ones originate from that
 node and which ones were routed.
 Note that in this mindset, any node can decide to break the
@@ -324,7 +326,7 @@ Designing Privacy Enhancing Technologies, 2003.
 @subsection Deniability
 
 Even if the user that downloads data and the server that provides data are
-anonymous, the intermediaries may still be targets. In particular, if the
+anonymous, the intermediaries may still be targets.  In particular, if the
 intermediaries can find out which queries or which content they are
 processing, a strong adversary could try to force them to censor
 certain materials. 
