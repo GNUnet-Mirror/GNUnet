@@ -125,7 +125,7 @@ in the respective authors file or section, please do let us know.
 Philosophy
 
 * Design Goals::
-* Security & Privacy::
+* Security and Privacy::
 * Versatility::
 * Practicality::
 * Key Concepts::
