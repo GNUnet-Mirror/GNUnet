@@ -255,7 +255,7 @@ Providing anonymity for users is the central goal for the anonymous
 file-sharing application.  Many other design decisions follow in the
 footsteps of this requirement.
 Anonymity is never absolute.  While there are various
-scientific metrics@footnote{Claudia Dı́az, Stefaan Seys, Joris Claessens,
+scientific metrics@footnote{Claudia Díaz, Stefaan Seys, Joris Claessens,
 and Bart Preneel. Towards measuring anonymity.
 2002.
 (@uref{https://gnunet.org/git/bibliography.git/plain/docs/article-89.pdf, pdf})}
