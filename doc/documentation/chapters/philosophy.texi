@@ -181,8 +181,12 @@ and each of these can have a different addresses.
 Binding messages expire after at most a week (the timeout can be
 shorter if the user configures the node appropriately).
 This expiration ensures that the network will eventually get rid of
-outdated advertisements.@footnote{More details can be found in
-@uref{https://gnunet.org/transports, A Transport Layer Abstraction for Peer-to-Peer Networks}}
+outdated advertisements.
+@footnote{Ronaldo A. Ferreira, Christian Grothoff, and Paul Ruth.
+A Transport Layer Abstraction for Peer-to-Peer Networks
+Proceedings of the 3rd International Symposium on Cluster Computing
+and the Grid (GRID 2003), 2003.
+(@uref{https://gnunet.org/git/bibliography.git/plain/docs/transport.pdf, pdf})}
 
 @cindex Accounting to Encourage Resource Sharing
 @node Accounting to Encourage Resource Sharing
@@ -249,15 +253,18 @@ Providing anonymity for users is the central goal for the anonymous
 file-sharing application. Many other design decisions follow in the
 footsteps of this requirement.
 Anonymity is never absolute. While there are various
-@uref{https://gnunet.org/anonymity_metric, scientific metrics} that can
-help quantify the level of anonymity that a given mechanism provides,
-there is no such thing as complete anonymity.
+scientific metrics@footnote{Claudia Dı́az, Stefaan Seys, Joris Claessens,
+and Bart Preneel. Towards measuring anonymity.
+2002.
+(@uref{https://gnunet.org/git/bibliography.git/plain/docs/article-89.pdf, pdf})}
+that can help quantify the level of anonymity that a given mechanism
+provides, there is no such thing as complete anonymity.
 GNUnet's file-sharing implementation allows users to select for each
 operation (publish, search, download) the desired level of anonymity.
 The metric used is the amount of cover traffic available to hide the
 request.
 While this metric is not as good as, for example, the theoretical metric
-given in @uref{https://gnunet.org/anonymity_metric, scientific metrics},
+given in scientific metrics@footnote{likewise},
 it is probably the best metric available to a peer with a purely local
 view of the world that does not rely on unreliable external information.
 The default anonymity level is 1, which uses anonymous routing but
@@ -331,8 +338,12 @@ encryption as the link-encryption between the nodes.  GNUnet has
 encryption on the network layer (link encryption, confidentiality,
 authentication) and again on the application layer (provided
 by @command{gnunet-publish}, @command{gnunet-download},
-@command{gnunet-search} and @command{gnunet-gtk}).@footnote{More details
-can be found @uref{https://gnunet.org/encoding, here}}
+@command{gnunet-search} and @command{gnunet-gtk}).
+@footnote{Christian Grothoff, Krista Grothoff, Tzvetan Horozov,
+and Jussi T. Lindgren.
+An Encoding for Censorship-Resistant Sharing.
+2009.
+(@uref{https://gnunet.org/git/bibliography.git/plain/docs/ecrs.pdf, pdf})}
 
 @cindex Peer Identities
 @node Peer Identities
@@ -380,7 +391,7 @@ public key first.
 @subsection Egos
 
 Egos are your "identities" in GNUnet.  Any user can assume multiple
-identities, for example to separate teir activities online.  Egos can
+identities, for example to separate their activities online.  Egos can
 correspond to pseudonyms or real-world identities.  Technically, an
 ego is first of all a public-private key pair.
 

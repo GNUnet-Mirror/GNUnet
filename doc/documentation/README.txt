@@ -13,6 +13,14 @@ To be moved to an appropriate section of "how to write documentation" or
 3. Do not use tab characters (see chapter 2.1 texinfo manual)
 
 4. Use neutral language and third person perspective in the text
+
+5. Use 2 spaces between sentences, so instead of:
+
+     We do this and the other thing. This is done by foo.
+
+   Write:
+
+     We do this and the other thing.  This is done by foo.
 * What's left to do
 
 - Which Texlive modules are needed? Decrease the size.
