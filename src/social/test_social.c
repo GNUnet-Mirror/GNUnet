@@ -180,10 +180,28 @@ host_announce2 ();
 
 
 /**
- * Clean up all resources used.
+ * Terminate the test case (failure).
+ *
+ * @param cls NULL
  */
 static void
-cleanup ()
+end_badly (void *cls)
+{
+  end_badly_task = NULL;
+  GNUNET_SCHEDULER_shutdown ();
+  res = 2;
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+              "Test FAILED.\n");
+}
+
+
+/**
+ * Terminate the test case (failure).
+ *
+ * @param cls NULL
+ */
+static void
+end_shutdown (void *cls)
 {
   if (NULL != id)
   {
@@ -202,7 +220,11 @@ cleanup ()
     GNUNET_PSYC_slicer_destroy (host_slicer);
     host_slicer = NULL;
   }
-
+  if (NULL != end_badly_task)
+  {
+    GNUNET_SCHEDULER_cancel (end_badly_task);
+    end_badly_task = NULL;
+  }
   if (NULL != gst)
   {
     GNUNET_SOCIAL_guest_leave (gst, NULL, NULL, NULL);
@@ -216,21 +238,6 @@ cleanup ()
     hst_plc = NULL;
   }
   GNUNET_SOCIAL_app_disconnect (app, NULL, NULL);
-  GNUNET_SCHEDULER_shutdown ();
-}
-
-
-/**
- * Terminate the test case (failure).
- *
- * @param cls NULL
- */
-static void
-end_badly (void *cls)
-{
-  res = 1;
-  cleanup ();
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Test FAILED.\n");
 }
 
 
@@ -242,8 +249,8 @@ end_badly (void *cls)
 static void
 end_normally (void *cls)
 {
+  GNUNET_SCHEDULER_shutdown ();
   res = 0;
-  cleanup ();
   GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE, "Test PASSED.\n");
 }
 
@@ -372,6 +379,7 @@ host_reconnected (void *cls, int result,
   is_host_reconnected = GNUNET_YES;
   if (GNUNET_YES == is_guest_reconnected)
   {
+    GNUNET_assert (NULL != gst);
     GNUNET_SCHEDULER_add_now (&schedule_guest_leave, NULL);
   }
 }
@@ -390,6 +398,7 @@ guest_reconnected (void *cls, int result,
   is_guest_reconnected = GNUNET_YES;
   if (GNUNET_YES == is_host_reconnected)
   {
+    GNUNET_assert (NULL != gst);
     GNUNET_SCHEDULER_add_now (&schedule_guest_leave, NULL);
   }
 }
@@ -411,11 +420,15 @@ app_recv_host (void *cls,
                enum GNUNET_SOCIAL_AppPlaceState place_state)
 {
   struct GNUNET_HashCode host_pub_hash;
-  GNUNET_CRYPTO_hash (host_pub_key, sizeof (*host_pub_key), &host_pub_hash);
+
+  GNUNET_CRYPTO_hash (host_pub_key,
+                      sizeof (*host_pub_key),
+                      &host_pub_hash);
 
   GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
               "Test #%u: Got app host place notification: %s\n",
-              test, GNUNET_h2s (&host_pub_hash));
+              test,
+              GNUNET_h2s (&host_pub_hash));
 
   if (test == TEST_RECONNECT)
   {
@@ -424,8 +437,11 @@ app_recv_host (void *cls,
       GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
                   "Test #%u: Reconnecting to host place: %s\n",
                   test, GNUNET_h2s (&host_pub_hash));
-      hst = GNUNET_SOCIAL_host_enter_reconnect (hconn, host_slicer, host_reconnected,
-                                                host_answer_door, host_farewell2, NULL);
+      hst = GNUNET_SOCIAL_host_enter_reconnect (hconn, host_slicer,
+                                                &host_reconnected,
+                                                &host_answer_door,
+                                                &host_farewell2,
+                                                NULL);
     }
   }
 }
@@ -439,7 +455,10 @@ app_recv_guest (void *cls,
                 enum GNUNET_SOCIAL_AppPlaceState place_state)
 {
   struct GNUNET_HashCode guest_pub_hash;
-  GNUNET_CRYPTO_hash (guest_pub_key, sizeof (*guest_pub_key), &guest_pub_hash);
+
+  GNUNET_CRYPTO_hash (guest_pub_key,
+                      sizeof (*guest_pub_key),
+                      &guest_pub_hash);
 
   GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
               "Test #%u: Got app guest place notification: %s\n",
@@ -447,13 +466,19 @@ app_recv_guest (void *cls,
 
   if (test == TEST_RECONNECT)
   {
-    if (0 == memcmp (&place_pub_key, guest_pub_key, sizeof (*guest_pub_key)))
+    if (0 == memcmp (&place_pub_key,
+                     guest_pub_key,
+                     sizeof (*guest_pub_key)))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
                   "Test #%u: Reconnecting to guest place: %s\n",
                   test, GNUNET_h2s (&guest_pub_hash));
-      gst = GNUNET_SOCIAL_guest_enter_reconnect (gconn, GNUNET_PSYC_SLAVE_JOIN_NONE,
-                                                 guest_slicer, guest_reconnected, NULL);
+      gst = GNUNET_SOCIAL_guest_enter_reconnect (gconn,
+                                                 GNUNET_PSYC_SLAVE_JOIN_NONE,
+                                                 guest_slicer,
+                                                 &guest_reconnected,
+                                                 NULL);
+      GNUNET_assert (NULL != gst);
     }
   }
 }
@@ -527,10 +552,10 @@ schedule_reconnect (void *cls)
 
   GNUNET_SOCIAL_app_disconnect (app, NULL, NULL);
   app = GNUNET_SOCIAL_app_connect (cfg, app_id,
-                                   app_recv_ego,
-                                   app_recv_host,
-                                   app_recv_guest,
-                                   app_connected,
+                                   &app_recv_ego,
+                                   &app_recv_host,
+                                   &app_recv_guest,
+                                   &app_connected,
                                    NULL);
 }
 
@@ -1387,9 +1412,11 @@ run (void *cls,
 #endif
 {
   cfg = c;
+  res = 1;
   end_badly_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT,
 						 &end_badly, NULL);
-
+  GNUNET_SCHEDULER_add_shutdown (&end_shutdown,
+                                 NULL);
   GNUNET_CRYPTO_get_peer_identity (cfg, &this_peer);
 
   id = GNUNET_IDENTITY_connect (cfg, &identity_ego_cb, NULL);
