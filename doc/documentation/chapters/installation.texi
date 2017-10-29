@@ -1882,7 +1882,7 @@ dlltool --input-def ../include/libmySQL.def \
 
 @item  Copy include\* to include\mysql\ 
 
-@item  Pass "@code{--with-mysql=/c/mysql}" to
+@item  Pass @code{--with-mysql=/c/mysql} to
 @command{./configure} and copy @file{libmysql.dll}
 to your PATH or GNUnet's @file{bin} directory
 @end itemize
@@ -2314,7 +2314,7 @@ support. How you build your peer with this options can be found here:
 @uref{https://gnunet.org/generic_installation}
 
 To configure your peer to act as a bootstrap server you have to add the
-"@code{-p}" option to OPTIONS in the @code{[hostlist]} section of your
+@code{-p} option to OPTIONS in the @code{[hostlist]} section of your
 configuration file. Besides that you have to specify a port number for
 the http server.
 In conclusion you have to add the following lines:
@@ -2433,7 +2433,7 @@ FLUSH PRIVILEGES;
 @end example
 
 @item
-In the $HOME directory of $USER, create a "@file{.my.cnf}" file with the
+In the $HOME directory of $USER, create a @file{.my.cnf} file with the
 following lines
 
 @example
@@ -2638,19 +2638,19 @@ strength of the adversary).
 @subsection Configuring logging
 
 Logging in GNUnet 0.9.0 is controlled via the "-L" and "-l" options.
-Using "-L", a log level can be specified. With log level "@code{ERROR}"
-only serious errors are logged.
-The default log level is "@code{WARNING}" which causes anything of
+Using @code{-L}, a log level can be specified. With log level
+@code{ERROR} only serious errors are logged.
+The default log level is @code{WARNING} which causes anything of
 concern to be logged.
-Log level "@code{INFO}" can be used to log anything that might be
+Log level @code{INFO} can be used to log anything that might be
 interesting information whereas
-"@code{DEBUG}" can be used by developers to log debugging messages
+@code{DEBUG} can be used by developers to log debugging messages
 (but you need to run @code{./configure} with
 @code{--enable-logging=verbose} to get them compiled).
-The "-l" option is used to specify the log file.
+The @code{-l} option is used to specify the log file.
 
 Since most GNUnet services are managed by @code{gnunet-arm}, using the
-"-l" or "-L" options directly is not possible.
+@code{-l} or @code{-L} options directly is not possible.
 Instead, they can be specified using the "OPTIONS" configuration value in
 the respective section for the respective service.
 In order to enable logging globally without editing the "OPTIONS" values
@@ -3503,7 +3503,7 @@ However, even a @code{255.255.255.0} mask will suffice for most users.
 @subsubsection IPv6 address for interface
 
 The IPv6 address the VPN interface will get. Here you can specify any
-non-link-local address (the address should not begin with "@code{fe80:}").
+non-link-local address (the address should not begin with @code{fe80:}).
 A subnet Unique Local Unicast (@code{fd00::/8} prefix) that you are
 currently not using would be a good choice.
 

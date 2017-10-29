@@ -160,8 +160,18 @@ $ gpg --keyserver keys.gnupg.net --recv-keys 48426C7E
 @noindent
 and rerun the @code{gpg --verify-files} command.
 
+@b{Note:}@
+@b{The pub key to sign the 0.10.1 release has been
+revoked}. You will get an error message stating that
+@b{there is no known public key or that it has been revoked}.
+The next release of GNUnet will have a valid signature
+again. We are sorry for the inconvenience this causes.
+Another possible source you could use is our
+"gnunet" git repository which has mandatory signed commits
+by every developer.
+
 Now you can extract the tarball and rename the resulting
-directory to @i{gnunet} which we will be using in the
+directory to @file{gnunet} which we will be using in the
 remainder of this document.
 
 @example
@@ -178,14 +188,19 @@ from @uref{https://gnunet.org/git/, git}.
 @node  Installing Build Tool Chain and Dependencies
 @section Installing Build Tool Chain and Dependencies
 
-To successfully compile GNUnet you need the tools to build GNUnet and
-the required dependencies. Please have a look at
-@uref{https://gnunet.org/dependencies} for a list of required dependencies
-and @uref{https://gnunet.org/generic_installation} for specific
-instructions for your operating system. Please check the notes at
-the end of the configure process about required dependencies.
+To successfully compile GNUnet, you need the tools to build GNUnet and
+the required dependencies. Please take a look at the
+GNUnet Reference Documentation
+(@pxref{Dependencies, The GNUnet Reference Documentation,, gnunet, The GNUnet Reference Documentation})
+for a list of required dependencies
+and
+(@pxref{Generic installation instructions, The GNUnet Reference Documentation,, gnunet, The GNUnet Reference Documentation})
+read its Installation chapter for specific instructions for
+your operating system.
+Please check the notes at the end of the configure process about
+required dependencies.
 
-For GNUnet bootstrapping support and the http(s) plugin you should
+For GNUnet bootstrapping support and the HTTP(S) plugin you should
 install @uref{https://gnunet.org/gnurl, libgnurl}.
 For the filesharing service you should install at least one of the
 datastore backends. MySQL, SQlite and PostgreSQL are supported.
@@ -194,8 +209,8 @@ datastore backends. MySQL, SQlite and PostgreSQL are supported.
 @section Obtaining the latest version from Git
 
 The latest development version can obtained from our Git repository.
-To obtain the code you need Git installed and checkout the repository
-using:
+To obtain the code you need to have @code{Git} installed, which is
+required for obtaining the repository via:
 
 @example
 $ git clone https://gnunet.org/git/gnunet
@@ -203,21 +218,25 @@ $ git clone https://gnunet.org/git/gnunet
 
 @noindent
 After cloning the repository you have to execute the @file{bootstrap}
-script in the directory:
+script in the new directory:
 
 @example
-$ cd gnunet ; ./bootstrap
+$ cd gnunet
+$ ./bootstrap
 @end example
 
 @noindent
-The remainder of this tutorial assumes that you have the Git branch
-``master'' checked out.
+The remainder of this tutorial will assume that you have the
+Git branch ``master'' checked out.
 
 @node Compiling and Installing GNUnet
 @section Compiling and Installing GNUnet
 
-First, you need to install at least libgnupgerror 1.27 and
-libgcrypt 1.7.6.
+Note: This section is a duplication of the more in depth
+@pxref{GNUnet Installation Handbook, The GNUnet Reference Documentation,, gnunet, The GNUnet Reference Documentation}.
+
+First, you need to install libgnupgerror @geq{} 1.27 and
+libgcrypt @geq{} 1.7.6:
 
 @example
 $ export GNUPGFTP="https://www.gnupg.org/ftp/gcrypt"
@@ -694,9 +713,10 @@ marked as ``done'' before their completion.
 
 An operation is treated as completed when it succeeds or fails.
 Completion of an operation is either conveyed as events through
-@i{controller event callback} or through respective operation
-completion callbacks.  In functions which support completion
-notification through both controller event callback and operation
+@dfn{controller event callback} or through respective
+@dfn{operation completion callbacks}.
+In functions which support completion notification
+through both controller event callback and operation
 completion callback, first the controller event callback will be
 called.  If the operation is not marked as done in that callback
 or if the callback is given as NULL when creating the operation,
@@ -714,14 +734,14 @@ discouraged as their locations are dynamically created and will be
 different among various runs of testbed.  To make access to these
 configurations easy, testbed API provides the function
 @code{GNUNET\_TESTBED\_service\_connect()}.  This function fetches
-the configuration of a given peer and calls the @i{Connect Adapter}.
+the configuration of a given peer and calls the @dfn{Connect Adapter}.
 In the example code, it is the @code{dht\_ca}.  A connect adapter is
 expected to open the connection to the needed service by using the
 provided configuration and return the created service connection handle.
 Successful connection to the needed service is signaled through
 @code{service\_connect\_comp\_cb}.
 
-A dual to connect adapter is the @i{Disconnect Adapter}.  This callback
+A dual to connect adapter is the @dfn{Disconnect Adapter}.  This callback
 is called after the connect adapter has been called when the operation
 from @code{GNUNET\_TESTBED\_service\_connect()} is marked as ``done''.
 It has to disconnect from the service with the provided service
@@ -731,8 +751,8 @@ Exercise: Find out how many peers you can run on your system.
 
 Exercise: Find out how to create a 2D torus topology by changing the
 options in the configuration file.
-See @uref{https://gnunet.org/supported-topologies}, then use the
-DHT API to store and retrieve values in the network.
+@xref{Supported Topologies, The GNUnet Reference Documentation ,, gnunet, The GNUnet Reference Documentation},
+then use the DHT API to store and retrieve values in the network.
 
 @node Developing Applications
 @chapter Developing Applications
@@ -1086,7 +1106,7 @@ peer to the service:
 
 @noindent
 Note that whatever you return from @code{connects} is given as the
-@i{cls} argument to the message handlers for messages from
+@code{cls} argument to the message handlers for messages from
 the respective peer.
 
 Exercise: Create a service that connects to the @code{CORE}.  Then
@@ -1097,7 +1117,7 @@ callback is invoked.
 @subsection Receiving P2P Messages
 
 To receive messages from @code{CORE}, you pass the desired
-@i{handlers} to the @code{GNUNET\_CORE\_connect()} function,
+@code{handlers} to the @code{GNUNET\_CORE\_connect()} function,
 just as we showed for services.
 
 It is your responsibility to process messages fast enough or
@@ -1113,8 +1133,8 @@ the two peers are connected?  Why?
 @node Sending P2P Messages
 @subsection Sending P2P Messages
 
-You can transmit messages to other peers using the @i{mq} you were
-given during the @code{connect} callback.  Note that the @i{mq}
+You can transmit messages to other peers using the @code{mq} you were
+given during the @code{connect} callback.  Note that the @code{mq}
 automatically is released upon @code{disconnect} and that you must
 not use it afterwards.
 

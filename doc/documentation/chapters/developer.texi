@@ -4,11 +4,14 @@
 
 This book is intended to be an introduction for programmers that want to
 extend the GNUnet framework. GNUnet is more than a simple peer-to-peer
-application. For developers, GNUnet is:
+application.
+
+For developers, GNUnet is:
 
 @itemize @bullet
-@item Free software under the GNU General Public License, with a community
-that believes in the GNU philosophy
+@item developed by a community that believes in the GNU philosophy
+@item Free Software (Free as in Freedom), licensed under the
+@xref{GNU General Public License}
 @item A set of standards, including coding conventions and
 architectural rules
 @item A set of layered protocols, both specifying the communication
@@ -20,17 +23,19 @@ writing extensions
 
 In particular, the architecture specifies that a peer consists of many
 processes communicating via protocols. Processes can be written in almost
-any language. C and Java APIs exist for accessing existing services and
-for writing extensions. It is possible to write extensions in other
-languages by implementing the necessary IPC protocols.
+any language.
+C and Java APIs exist for accessing existing services and for writing
+extensions. It is possible to write extensions in other languages by
+implementing the necessary IPC protocols.
 
 GNUnet can be extended and improved along many possible dimensions, and
 anyone interested in Free Software and Freedom-enhancing Networking is
 welcome to join the effort. This Developer Handbook attempts to provide
 an initial introduction to some of the key design choices and central
-components of the system. This part of the GNUNet documentation
-is far from complete, and we welcome informed contributions,
-be it in the form of new chapters or insightful comments.
+components of the system.
+This part of the GNUNet documentation is far from complete,
+and we welcome informed contributions, be it in the form of
+new chapters, sections or insightful comments.
 
 @menu
 * Developer Introduction::
@@ -92,11 +97,13 @@ following links:
 @item GNUnet Java tutorial
 @end itemize
 
-In addition to this book, the GNUnet server contains various resources for
-GNUnet developers. They are all conveniently reachable via the "Developer"
+In addition to the GNUnet Reference Documentation you are reading,
+the GNUnet server contains various resources for GNUnet
+developers and those who aspire to become regular contributors.
+They are all conveniently reachable via the "Developer"
 entry in the navigation menu. Some additional tools (such as static
 analysis reports) require a special developer access to perform certain
-operations. If you feel you need access, you should contact
+operations. If you want (or require) access, you should contact
 @uref{http://grothoff.org/christian/, Christian Grothoff},
 GNUnet's maintainer.
 
@@ -104,20 +111,26 @@ The public subsystems on the GNUnet server that help developers are:
 
 @itemize @bullet
 
-@item The Version control system (git) keeps our code and enables
+@item The version control system (git) keeps our code and enables
 distributed development.
+It is pubclicly accessible at @uref{https://gnunet.org/git/}.
 Only developers with write access can commit code, everyone else is
 encouraged to submit patches to the
-@uref{https://lists.gnu.org/mailman/listinfo/gnunet-developers, GNUnet-developers mailinglist}
-.
+@uref{https://lists.gnu.org/mailman/listinfo/gnunet-developers, GNUnet-developers mailinglist}.
 
-@item The GNUnet bugtracking system (Mantis) is used to track
-feature requests, open bug reports and their resolutions.
-Anyone can report bugs, only developers can claim to have fixed them.
+@item The bugtracking system (Mantis).
+We use it to track feature requests, open bug reports and their
+resolutions.
+It can be accessed at @uref{https://gnunet.org/bugs/}.
+Anyone can report bugs, but only developers can claim to have fixed them.
 
-@item A site installation of the CI system "Buildbot" is used to check
-GNUnet builds automatically on a range of platforms.
-Builds are triggered automatically after 30 minutes of no changes to Git.
+@item Our site installation of the
+CI@footnote{Continuous Integration} system @code{Buildbot} is used
+to check GNUnet builds automatically on a range of platforms.
+The web interface of this CI is exposed at
+@uref{https://gnunet.org/buildbot/}.
+Builds are triggered automatically 30 minutes after the last commit to
+our repository was made.
 
 @item The current quality of our automated test suite is assessed using
 Code coverage analysis. This analysis is run daily; however the webpage
@@ -163,34 +176,41 @@ GNUnet sub-projects in order of likely relevance are currently:
 
 @table @asis
 
-@item gnunet
+@item @command{gnunet}
 Core of the P2P framework, including file-sharing, VPN and
-chat applications; this is what the developer handbook covers mostly
-@item gnunet-gtk Gtk+-based user interfaces, including gnunet-fs-gtk
-(file-sharing), gnunet-statistics-gtk (statistics over time),
-gnunet-peerinfo-gtk (information about current connections and known
-peers), gnunet-chat-gtk (chat GUI) and gnunet-setup (setup tool for
-"everything")
-@item gnunet-fuse
+chat applications; this is what the Developer Handbook covers mostly
+@item @command{gnunet-gtk}
+Gtk+-based user interfaces, including:
+
+@itemize @bullet
+@item @command{gnunet-fs-gtk} (file-sharing),
+@item @command{gnunet-statistics-gtk} (statistics over time),
+@item @command{gnunet-peerinfo-gtk}
+(information about current connections and known peers),
+@item @command{gnunet-chat-gtk} (chat GUI) and
+@item @command{gnunet-setup} (setup tool for "everything")
+@end itemize
+
+@item @command{gnunet-fuse}
 Mounting directories shared via GNUnet's file-sharing
-on Linux
-@item gnunet-update
+on GNU/Linux distributions
+@item @command{gnunet-update}
 Installation and update tool
-@item gnunet-ext
+@item @command{gnunet-ext}
 Template for starting 'external' GNUnet projects
-@item gnunet-java
+@item @command{gnunet-java}
 Java APIs for writing GNUnet services and applications
 @c ** FIXME: Point to new website repository once we have it:
 @c ** @item svn/gnunet-www/ Code and media helping drive the GNUnet
 @c website
-@item eclectic
+@item @command{eclectic}
 Code to run GNUnet nodes on testbeds for research, development,
 testing and evaluation
 @c ** FIXME: Solve the status and location of gnunet-qt
-@item gnunet-qt
-Qt-based GNUnet GUI (dead?)
-@item gnunet-cocoa
-cocoa-based GNUnet GUI (dead?)
+@item @command{gnunet-qt}
+Qt-based GNUnet GUI (is it depreacated?)
+@item @command{gnunet-cocoa}
+cocoa-based GNUnet GUI (is it depreacated?)
 
 @end table
 
@@ -198,19 +218,19 @@ We are also working on various supporting libraries and tools:
 @c ** FIXME: What about gauger, and what about libmwmodem?
 
 @table @asis
-@item libextractor
+@item @command{libextractor}
 GNU libextractor (meta data extraction)
-@item libmicrohttpd
+@item @command{libmicrohttpd}
 GNU libmicrohttpd (embedded HTTP(S) server library)
-@item gauger
+@item @command{gauger}
 Tool for performance regression analysis
-@item monkey
+@item @command{monkey}
 Tool for automated debugging of distributed systems
-@item libmwmodem
+@item @command{libmwmodem}
 Library for accessing satellite connection quality
 reports
-@item libgnurl
-gnURL (feature restricted variant of cURL/libcurl)
+@item @command{libgnurl}
+gnURL (feature-restricted variant of cURL/libcurl)
 @end table
 
 Finally, there are various external projects (see links for a list of
@@ -247,7 +267,7 @@ type defines a particular format and how that binary format is to be
 linked to a hash code (the key for the DHT and for databases). The block
 library is a wapper around block plugins which provide the necessary
 functions for each block type.
-@item @file{statistics/}
+@item @file{statistics/} --- statistics service
 The statistics service enables associating
 values (of type uint64_t) with a componenet name and a string. The main
 uses is debugging (counting events), performance tracking and user
@@ -257,7 +277,7 @@ The automatic-restart-manager (ARM) service
 is the GNUnet master service. Its role is to start gnunet-services, to
 re-start them when they crashed and finally to shut down the system when
 requested.
-@item @file{peerinfo/}
+@item @file{peerinfo/} --- peerinfo service
 The peerinfo service keeps track of which peers are known
 to the local peer and also tracks the validated addresses for each peer
 (in the form of a HELLO message) for each of those peers. The peer is not
@@ -269,17 +289,17 @@ The datacache library provides (temporary) block storage for the DHT.
 Existing plugins can store blocks in Sqlite, Postgres or MySQL databases.
 All data stored in the cache is lost when the peer is stopped or
 restarted (datacache uses temporary tables).
-@item @file{datastore/}
+@item @file{datastore/} --- datastore service
 The datastore service stores file-sharing blocks in
 databases for extended periods of time. In contrast to the datacache, data
 is not lost when peers restart. However, quota restrictions may still
 cause old, expired or low-priority data to be eventually discarded.
 Existing plugins can store blocks in Sqlite, Postgres or MySQL databases.
-@item @file{template/}
+@item @file{template/} --- service template
 Template for writing a new service. Does nothing.
 @item @file{ats/} --- Automatic Transport Selection
-The automatic transport
-selection (ATS) service is responsible for deciding which address (i.e.
+The automatic transport selection (ATS) service
+is responsible for deciding which address (i.e.
 which transport plugin) should be used for communication with other peers,
 and at what bandwidth.
 @item @file{nat/} --- libgnunetnat
@@ -295,14 +315,14 @@ transfer unit (MTU) for packets. The fragmentation library can be used to
 break larger packets into chunks of at most 1k and transmit the resulting
 fragments reliabily (with acknowledgement, retransmission, timeouts,
 etc.).
-@item @file{transport/}
+@item @file{transport/} --- transport service
 The transport service is responsible for managing the
 basic P2P communication. It uses plugins to support P2P communication
 over TCP, UDP, HTTP, HTTPS and other protocols.The transport service
 validates peer addresses, enforces bandwidth restrictions, limits the
 total number of connections and enforces connectivity restrictions (i.e.
 friends-only).
-@item @file{peerinfo-tool/}
+@item @file{peerinfo-tool/} --- gnunet-peerinfo
 This directory contains the gnunet-peerinfo binary which can be used to
 inspect the peers and HELLOs known to the peerinfo service.
 @item @file{core/}
@@ -315,7 +335,7 @@ for writing testcases.
 It also supports automatic generation of configurations for peers
 ensuring that the ports and paths are disjoint. libgnunettesting is also
 the foundation for the testbed service
-@item @file{testbed/}
+@item @file{testbed/} --- testbed service
 The testbed service is used for creating small or large scale deployments
 of GNUnet peers for evaluation of protocols.
 It facilitates peer depolyments on multiple
@@ -329,13 +349,13 @@ P2P network.
 The distributed hash table (DHT) service provides a
 distributed implementation of a hash table to store blocks under hash
 keys in the P2P network.
-@item @file{hostlist/}
+@item @file{hostlist/} --- hostlist service
 The hostlist service allows learning about
 other peers in the network by downloading HELLO messages from an HTTP
 server, can be configured to run such an HTTP server and also implements
 a P2P protocol to advertise and automatically learn about other peers
 that offer a public hostlist server.
-@item @file{topology/}
+@item @file{topology/} --- topology service
 The topology service is responsible for
 maintaining the mesh topology. It tries to maintain connections to friends
 (depending on the configuration) and also tries to ensure that the peer
@@ -349,7 +369,7 @@ connections are permitted (for friend-to-friend networking)
 The file-sharing (FS) service implements GNUnet's
 file-sharing application. Both anonymous file-sharing (using gap) and
 non-anonymous file-sharing (using dht) are supported.
-@item @file{cadet/}
+@item @file{cadet/} --- cadet service
 The CADET service provides a general-purpose routing abstraction to create
 end-to-end encrypted tunnels in mesh networks. We wrote a paper
 documenting key aspects of the design.
@@ -368,7 +388,7 @@ Service that allows intercepting and modifying DNS requests of
 the local machine. Currently used for IPv4-IPv6 protocol translation
 (DNS-ALG) as implemented by "pt/" and for the GNUnet naming system. The
 service can also be configured to offer an exit service for DNS traffic.
-@item @file{vpn/}
+@item @file{vpn/} --- VPN service
 The virtual public network (VPN) service provides a virtual
 tunnel interface (VTUN) for IP routing over GNUnet.
 Needs some other peers to run an "exit" service to work.
@@ -684,8 +704,8 @@ are under @code{[MODULE-PLUGINNAME]}
 @subsubsection exported symbols
 
 @itemize @bullet
-@item must start with "@code{GNUNET_modulename_}" and be defined in
-"@file{modulename.c}"
+@item must start with @code{GNUNET_modulename_} and be defined in
+@file{modulename.c}
 @item exceptions: those defined in @file{gnunet_common.h}
 @end itemize
 
@@ -706,7 +726,7 @@ in @file{src/include/}.
 @subsubsection testcases
 
 @itemize @bullet
-@item must be called "@file{test_module-under-test_case-description.c}"
+@item must be called @file{test_module-under-test_case-description.c}
 @item "case-description" maybe omitted if there is only one test
 @end itemize
 
@@ -715,7 +735,7 @@ in @file{src/include/}.
 @subsubsection performance tests
 
 @itemize @bullet
-@item must be called "@file{perf_module-under-test_case-description.c}"
+@item must be called @file{perf_module-under-test_case-description.c}
 @item "case-description" maybe omitted if there is only one performance
 test
 @item Must only be run if @code{HAVE_BENCHMARKS} is satisfied
@@ -741,6 +761,7 @@ libgnunet_plugin_transport_tcp)
 @node Coding style
 @subsection Coding style
 
+@c XXX: Adjust examples to GNU Standards!
 @itemize @bullet
 @item We follow the GNU Coding Standards (@pxref{Top, The GNU Coding Standards,, standards, The GNU Coding Standards});
 @item Indentation is done with spaces, two per level, no tabs;
@@ -1006,8 +1027,8 @@ export LD_LIBRARY_PATH=/path/to/gnunet/lib
 Ideally, any non-trivial GNUnet code should be covered by automated
 testcases. Testcases should reside in the same place as the code that is
 being tested. The name of source files implementing tests should begin
-with "@code{test_}" followed by the name of the file
-that contains the code that is being tested.
+with @code{test_} followed by the name of the file that contains
+the code that is being tested.
 
 Testcases in GNUnet should be integrated with the autotools build system.
 This way, developers and anyone building binary packages will be able to
@@ -1346,31 +1367,31 @@ shell program. For e.g:
 
 @example
 export GNUNET_TESTBED_RSH_CMD="ssh -o BatchMode=yes \
--o NoHostAuthenticationForLocalhost=yes %h"@
+-o NoHostAuthenticationForLocalhost=yes %h"
 @end example
 
-Substitutions are allowed int the above command string also allows for
-substitions. through placemarks which begin with a `%'. At present the
-following substitutions are supported
+Substitutions are allowed in the command string above,
+this allows for substitutions through placemarks which begin with a `%'.
+At present the following substitutions are supported
 
 @itemize @bullet
-@item
-%h: hostname
-@item
-%u: username
-@item
-%p: port
+@item %h: hostname
+@item %u: username
+@item %p: port
 @end itemize
 
 Note that the substitution placemark is replaced only when the
 corresponding field is available and only once. Specifying
+
 @example
 %u@atchar{}%h
 @end example
-doesn't work either.
-If you want to user username substitutions for SSH
-use the argument @code{-l} before the username substitution.
-For exmaple:
+
+doesn't work either. If you want to user username substitutions for
+@command{SSH}, use the argument @code{-l} before the
+username substitution.
+
+For example:
 @example
 ssh -l %u -p %p %h
 @end example
@@ -1416,7 +1437,8 @@ Testbed API will then use this path to start helper binaries both
 locally and remotely.
 
 Testbed API can accessed by including the
-"@file{gnunet_testbed_service.h}" file and linking with -lgnunettestbed.
+@file{gnunet_testbed_service.h} file and linking with
+@code{-lgnunettestbed}.
 
 @c ***********************************************************************
 @menu
@@ -2908,7 +2930,7 @@ related functions provide an alternative to @code{GNUNET_SERVICE_run}.
 When starting a service, the service_name option is used to determine
 which sections in the configuration file should be used to configure the
 service. A typical value here is the name of the @file{src/}
-sub-directory, for example "@file{statistics}".
+sub-directory, for example @file{statistics}.
 The same string would also be given to
 @code{GNUNET_CLIENT_connect} to access the service.
 
@@ -6934,7 +6956,7 @@ block plugin.
 
 In conclusion, GNUnet subsystems that want to use the DHT need to define a
 block format and write a plugin to match queries and replies. For testing,
-the "@code{GNUNET_BLOCK_TYPE_TEST}" block type can be used; it accepts
+the @code{GNUNET_BLOCK_TYPE_TEST} block type can be used; it accepts
 any query as valid and any reply as matching any query.
 This type is also used for the DHT command line tools.
 However, it should NOT be used for normal applications due to the lack
