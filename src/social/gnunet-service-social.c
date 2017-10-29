@@ -1935,7 +1935,7 @@ client_guest_enter (struct Client *c,
   struct ClientListItem *cli = GNUNET_new (struct ClientListItem);
   cli->client = client;
   GNUNET_CONTAINER_DLL_insert (plc->clients_head, plc->clients_tail, cli);
-  return GNUNET_OK; 
+  return GNUNET_OK;
 }
 
 
@@ -2224,7 +2224,7 @@ handle_client_place_leave (void *cls,
   struct Client *c = cls;
   struct GNUNET_SERVICE_Client *client = c->client;
   struct Place *plc = c->place;
-  
+
   GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
               "handle_client_place_leave\n");
 
@@ -2251,6 +2251,7 @@ handle_client_place_leave (void *cls,
   while (NULL != cli)
   {
     GNUNET_CONTAINER_DLL_remove (plc->clients_head, plc->clients_tail, cli);
+    // protocol design failure: should *tell* clients that room is gone!
     GNUNET_SERVICE_client_drop (cli->client);
     next = cli->next;
     GNUNET_free (cli);
@@ -2269,8 +2270,8 @@ handle_client_place_leave (void *cls,
       cleanup_place (plc);
     }
   }
-  //GNUNET_SERVICE_client_continue (client);
-  //GNUNET_SERVICE_client_drop (client);
+  // FIXME: can't continue+drop above, but should not drop above!
+  // GNUNET_SERVICE_client_continue (client);
 }
 
 
@@ -2958,15 +2959,14 @@ handle_client_psyc_message (void *cls,
   struct Client *c = cls;
   struct GNUNET_SERVICE_Client *client = c->client;
   struct Place *plc = c->place;
+  int ret;
+
   if (NULL == plc)
   {
     GNUNET_break (0);
     GNUNET_SERVICE_client_drop (client);
     return;
   }
-
-  int ret = GNUNET_SYSERR;
-
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "%p Received message from client.\n", plc);
   GNUNET_PSYC_log_message (GNUNET_ERROR_TYPE_DEBUG, msg);
@@ -2994,10 +2994,11 @@ handle_client_psyc_message (void *cls,
     return;
   }
 
-  uint16_t first_ptype = 0, last_ptype = 0;
-  if (GNUNET_SYSERR
-      == GNUNET_PSYC_receive_check_parts (psize, (const char *) &msg[1],
-                                          &first_ptype, &last_ptype))
+  uint16_t first_ptype = 0;
+  uint16_t last_ptype = 0;
+  if (GNUNET_SYSERR ==
+      GNUNET_PSYC_receive_check_parts (psize, (const char *) &msg[1],
+                                       &first_ptype, &last_ptype))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "%p Received invalid message part from client.\n", plc);
@@ -3019,7 +3020,10 @@ handle_client_psyc_message (void *cls,
       c->tmit_msg = NULL;
     ret = psyc_transmit_message (plc);
   }
-
+  else
+  {
+    ret = GNUNET_SYSERR;
+  }
   if (GNUNET_OK != ret)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -3440,7 +3444,7 @@ path_basename (const char *path)
   if (NULL != basename)
     basename++;
 
-  if (NULL == basename || '\0' == basename)
+  if (NULL == basename || '\0' == *basename)
     return NULL;
 
   return basename;
