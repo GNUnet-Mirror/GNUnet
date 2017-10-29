@@ -221,8 +221,10 @@ GNUNET_MQ_inject_message (struct GNUNET_MQ_Handle *mq,
   uint16_t mtype = ntohs (mh->type);
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Received message of type %u and size %u\n",
-       mtype, msize);
+       "Queue %p received message of type %u and size %u\n",
+       mq,
+       mtype,
+       msize);
 
   if (NULL == mq->handlers)
     goto done;
@@ -359,7 +361,8 @@ GNUNET_MQ_send (struct GNUNET_MQ_Handle *mq,
   mq->current_envelope = ev;
 
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-              "mq: sending message of type %u, queue empty\n", ntohs(ev->mh->type));
+              "mq: sending message of type %u, queue empty\n",
+              ntohs(ev->mh->type));
 
   mq->send_impl (mq,
 		 ev->mh,
@@ -848,6 +851,9 @@ GNUNET_MQ_destroy (struct GNUNET_MQ_Handle *mq)
 				 ev);
     GNUNET_assert (0 < mq->queue_length);
     mq->queue_length--;
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                "MQ destroy drops message of type %u\n",
+                ntohs (ev->mh->type));
     GNUNET_MQ_discard (ev);
   }
   if (NULL != mq->current_envelope)
@@ -855,6 +861,9 @@ GNUNET_MQ_destroy (struct GNUNET_MQ_Handle *mq)
     /* we can only discard envelopes that
      * are not queued! */
     mq->current_envelope->parent_queue = NULL;
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                "MQ destroy drops message of type %u\n",
+                ntohs (mq->current_envelope->mh->type));
     GNUNET_MQ_discard (mq->current_envelope);
     mq->current_envelope = NULL;
     GNUNET_assert (0 < mq->queue_length);
