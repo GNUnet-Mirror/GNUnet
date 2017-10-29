@@ -126,6 +126,7 @@ GNUNET_MST_from_buffer (struct GNUNET_MessageStreamTokenizer *mst,
   int need_align;
   unsigned long offset;
   int ret;
+  int cbret;
 
   GNUNET_assert (mst->off <= mst->pos);
   GNUNET_assert (mst->pos <= mst->curr_buf);
@@ -229,13 +230,15 @@ do_align:
     if (one_shot == GNUNET_YES)
       one_shot = GNUNET_SYSERR;
     mst->off += want;
-    if (GNUNET_SYSERR == mst->cb (mst->cb_cls,
-                                  hdr))
+    if (GNUNET_OK !=
+        (cbret = mst->cb (mst->cb_cls,
+                           hdr)))
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                  "Failure processing message of type %u and size %u\n",
-                  ntohs (hdr->type),
-                  ntohs (hdr->size));
+      if (GNUNET_SYSERR == cbret)
+        GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                    "Failure processing message of type %u and size %u\n",
+                    ntohs (hdr->type),
+                    ntohs (hdr->size));
       return GNUNET_SYSERR;
     }
     if (mst->off == mst->pos)
@@ -277,13 +280,15 @@ do_align:
       }
       if (one_shot == GNUNET_YES)
         one_shot = GNUNET_SYSERR;
-      if (GNUNET_SYSERR == mst->cb (mst->cb_cls,
-                                    hdr))
+      if (GNUNET_OK !=
+          (cbret = mst->cb (mst->cb_cls,
+                            hdr)))
       {
-        GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                    "Failure processing message of type %u and size %u\n",
-                    ntohs (hdr->type),
-                    ntohs (hdr->size));
+        if (GNUNET_SYSERR == cbret)
+          GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                      "Failure processing message of type %u and size %u\n",
+                      ntohs (hdr->type),
+                      ntohs (hdr->size));
         return GNUNET_SYSERR;
       }
       buf += want;

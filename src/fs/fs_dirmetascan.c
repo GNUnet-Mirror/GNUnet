@@ -246,6 +246,9 @@ finish_scan (void *cls)
  *
  * @param cls the closure (directory scanner object)
  * @param msg message from the helper process
+ * @return #GNUNET_OK on success,
+ *    #GNUNET_NO to stop further processing (no error)
+ *    #GNUNET_SYSERR to stop further processing with error
  */
 static int
 process_helper_msgs (void *cls,

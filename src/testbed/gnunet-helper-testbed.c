@@ -292,8 +292,9 @@ child_death_task (void *cls)
  *
  * @param cls identification of the client
  * @param message the actual message
- *
- * @return #GNUNET_OK on success, #GNUNET_SYSERR to stop further processing
+ * @return #GNUNET_OK on success,
+ *    #GNUNET_NO to stop further processing (no error)
+ *    #GNUNET_SYSERR to stop further processing with error
  */
 static int
 tokenizer_cb (void *cls,
@@ -359,7 +360,7 @@ tokenizer_cb (void *cls,
   cfg = GNUNET_CONFIGURATION_create ();
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_deserialize (cfg,
-					config, 
+					config,
 					ul_config_size,
 					NULL))
   {

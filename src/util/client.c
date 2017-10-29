@@ -306,7 +306,9 @@ transmit_ready (void *cls)
  *
  * @param cls the `struct ClientState`
  * @param msg message we received.
- * @return #GNUNET_OK on success, #GNUNET_SYSERR to stop further processing
+ * @return #GNUNET_OK on success,
+ *     #GNUNET_NO to stop further processing due to disconnect (no error)
+ *     #GNUNET_SYSERR to stop further processing due to error
  */
 static int
 recv_message (void *cls,
@@ -315,7 +317,7 @@ recv_message (void *cls,
   struct ClientState *cstate = cls;
 
   if (GNUNET_YES == cstate->in_destroy)
-    return GNUNET_SYSERR;
+    return GNUNET_NO;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Received message of type %u and size %u from %s\n",
        ntohs (msg->type),
@@ -324,7 +326,7 @@ recv_message (void *cls,
   GNUNET_MQ_inject_message (cstate->mq,
                             msg);
   if (GNUNET_YES == cstate->in_destroy)
-    return GNUNET_SYSERR;
+    return GNUNET_NO;
   return GNUNET_OK;
 }
 
