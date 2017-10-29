@@ -24,8 +24,9 @@ writing extensions
 In particular, the architecture specifies that a peer consists of many
 processes communicating via protocols. Processes can be written in almost
 any language.
-C and Java APIs exist for accessing existing services and for writing
-extensions. It is possible to write extensions in other languages by
+C and Java @footnote{As well as Guile} APIs exist for accessing existing
+services and for writing extensions.
+It is possible to write extensions in other languages by
 implementing the necessary IPC protocols.
 
 GNUnet can be extended and improved along many possible dimensions, and
@@ -98,8 +99,9 @@ following links:
 @end itemize
 
 In addition to the GNUnet Reference Documentation you are reading,
-the GNUnet server contains various resources for GNUnet
-developers and those who aspire to become regular contributors.
+the GNUnet server at @uref{https://gnunet.org} contains
+various resources for GNUnet developers and those
+who aspire to become regular contributors.
 They are all conveniently reachable via the "Developer"
 entry in the navigation menu. Some additional tools (such as static
 analysis reports) require a special developer access to perform certain
@@ -211,6 +213,7 @@ testing and evaluation
 Qt-based GNUnet GUI (is it depreacated?)
 @item @command{gnunet-cocoa}
 cocoa-based GNUnet GUI (is it depreacated?)
+@item @command{gnunet-guile}
 
 @end table
 
