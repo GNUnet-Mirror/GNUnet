@@ -570,7 +570,6 @@ client_notify_disconnect (void *cls,
 
   if (NULL != c->app_id)
     GNUNET_free (c->app_id);
-
   GNUNET_free (c);
 
   if (NULL == plc)
@@ -586,7 +585,9 @@ client_notify_disconnect (void *cls,
   {
     if (cli->client == client)
     {
-      GNUNET_CONTAINER_DLL_remove (plc->clients_head, plc->clients_tail, cli);
+      GNUNET_CONTAINER_DLL_remove (plc->clients_head,
+                                   plc->clients_tail,
+                                   cli);
       GNUNET_free (cli);
       break;
     }
@@ -608,11 +609,13 @@ client_notify_connect (void *cls,
                        struct GNUNET_SERVICE_Client *client,
                        struct GNUNET_MQ_Handle *mq)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Client connected: %p\n", client);
+  struct Client *c = GNUNET_new (struct Client);
 
-  struct Client *c = GNUNET_malloc (sizeof (*c));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Client %p connected with queue %p\n",
+              client,
+              mq);
   c->client = client;
-
   return c;
 }
 
@@ -2204,7 +2207,7 @@ handle_client_app_detach (void *cls,
 }
 
 
-int
+static int
 app_places_entry_remove (void *cls, const struct GNUNET_HashCode *key, void *value)
 {
   struct Place *plc = cls;
@@ -2247,15 +2250,14 @@ handle_client_place_leave (void *cls,
   /* FIXME: disconnect from the network, but keep local connection for history access */
 
   /* Disconnect all clients connected to the place */
-  struct ClientListItem *cli = plc->clients_head, *next;
-  while (NULL != cli)
+
+  for (struct ClientListItem *cli = plc->clients_head;
+       NULL != cli;
+       cli = cli->next)
   {
-    GNUNET_CONTAINER_DLL_remove (plc->clients_head, plc->clients_tail, cli);
     // protocol design failure: should *tell* clients that room is gone!
-    GNUNET_SERVICE_client_drop (cli->client);
-    next = cli->next;
-    GNUNET_free (cli);
-    cli = next;
+    if (client != cli->client)
+      GNUNET_SERVICE_client_drop (cli->client);
   }
 
   if (GNUNET_YES != plc->is_disconnected)
@@ -2268,10 +2270,11 @@ handle_client_place_leave (void *cls,
     else
     {
       cleanup_place (plc);
+      c->place = NULL;
     }
   }
   // FIXME: can't continue+drop above, but should not drop above!
-  // GNUNET_SERVICE_client_continue (client);
+  GNUNET_SERVICE_client_continue (client);
 }
 
 
@@ -2989,7 +2992,6 @@ handle_client_psyc_message (void *cls,
                 "%p Received message with invalid payload size (%u) from client.\n",
                 plc, psize);
     GNUNET_break (0);
-    psyc_transmit_cancel (plc, client);
     GNUNET_SERVICE_client_drop (client);
     return;
   }
@@ -3003,7 +3005,6 @@ handle_client_psyc_message (void *cls,
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "%p Received invalid message part from client.\n", plc);
     GNUNET_break (0);
-    psyc_transmit_cancel (plc, client);
     GNUNET_SERVICE_client_drop (client);
     return;
   }
@@ -3029,7 +3030,6 @@ handle_client_psyc_message (void *cls,
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "%p Received invalid message part from client.\n", plc);
     GNUNET_break (0);
-    psyc_transmit_cancel (plc, client);
     ret = GNUNET_SYSERR;
   }
 
