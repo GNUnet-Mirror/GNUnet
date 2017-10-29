@@ -2402,7 +2402,7 @@ resume_client_receive (void *cls)
 			 GNUNET_YES);
   if (GNUNET_SYSERR == ret)
   {
-    if (NULL != c->drop_task)
+    if (NULL == c->drop_task)
       GNUNET_SERVICE_client_drop (c);
     return;
   }
@@ -2514,6 +2514,10 @@ GNUNET_SERVICE_client_drop (struct GNUNET_SERVICE_Client *c)
 {
   struct GNUNET_SERVICE_Handle *sh = c->sh;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Client dropped: %p (MQ: %p)\n",
+              c,
+              c->mq);
   if (NULL != c->drop_task)
   {
     /* asked to drop twice! */
