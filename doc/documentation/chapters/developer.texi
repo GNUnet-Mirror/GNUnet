@@ -11,7 +11,7 @@ For developers, GNUnet is:
 @itemize @bullet
 @item developed by a community that believes in the GNU philosophy
 @item Free Software (Free as in Freedom), licensed under the
-@xref{GNU General Public License}
+GNU General Public License
 @item A set of standards, including coding conventions and
 architectural rules
 @item A set of layered protocols, both specifying the communication

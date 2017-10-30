@@ -452,61 +452,23 @@ $ sudo apt-get install automake autopoint autoconf libtool
 @node Install libgcrypt 1.6 and libgpg-error
 @subsection Install libgcrypt 1.6 and libgpg-error
 
-@example
-$ wget ftp://ftp.gnupg.org/gcrypt/libgpg-error/libgpg-error-1.12.tar.bz2
-$ tar xf libgpg-error-1.12.tar.bz2
-$ cd libgpg-error-1.12
-$ ./configure
-$ sudo make install ; cd ..
-@end example
+@ref{generic source installation - libgpg-error}
 
 @node Install gnutls with DANE support
 @subsection Install gnutls with DANE support
 
-@example
-$ wget http://www.lysator.liu.se/~nisse/archive/nettle-2.7.1.tar.gz
-$ tar xf nettle-2.7.1.tar.gz
-$ cd nettle-2.7.1
-$ ./configure
-$ sudo make install ; cd ..
-@end example
-
-@example
-$ wget https://www.nlnetlabs.nl/downloads/ldns/ldns-1.6.16.tar.gz
-$ tar xf ldns-1.6.16.tar.gz
-$ cd ldns-1.6.16
-$ ./configure
-$ sudo make install ; cd ..
-@end example
-
-@example
-$ wget https://unbound.net/downloads/unbound-1.4.21.tar.gz
-$ tar xf unbound-1.4.21.tar.gz
-$ cd unbound-1.4.21
-$ ./configure
-$ sudo make install ; cd ..
-@end example
-
-@example
-$ wget ftp://ftp.gnutls.org/gcrypt/gnutls/v3.1/gnutls-3.1.17.tar.xz
-$ tar xf gnutls-3.1.17.tar.xz
-$ cd gnutls-3.1.17
-$ ./configure
-$ sudo make install ; cd ..
-@end example
-
-@example
-$ wget ftp://ftp.gnupg.org/gcrypt/libgcrypt/libgcrypt-1.6.0.tar.bz2
-$ tar xf libgcrypt-1.6.0.tar.bz2
-$ cd libgcrypt-1.6.0
-$ ./configure
-$ sudo make install ; cd ..
-@end example
+@itemize @bullet
+@item @ref{generic source installation - nettle}
+@item @ref{generic source installation - ldns}
+@item @ref{generic source installation - libunbound/unbound}
+@item @ref{generic source installation - gnutls}
+@item @ref{generic source installation - libgcrypt}
+@end itemize
 
 @node Install libgnurl
 @subsection Install libgnurl
 
-Follow @ref{generic source installation - libgnurl}.
+Follow the @ref{generic source installation - libgnurl}.
 
 @node Install libmicrohttpd from Git
 @subsection Install libmicrohttpd from Git
@@ -1559,20 +1521,7 @@ $ cd ..
 
 Install libgnurl:
 
-@example
-$ wget https://gnunet.org/sites/default/files/gnurl-7.35.0.tar.bz2
-$ tar xf gnurl-7.35.0.tar.bz2
-$ cd gnurl-7.35.0
-$ ./configure --enable-ipv6 --with-gnutls --without-libssh2 \
---without-libmetalink --without-winidn --without-librtmp
---without-nghttp2 --without-nss --without-cyassl --without-polarssl \
---without-ssl --without-winssl --without-darwinssl --disable-sspi \
---disable-ntlm-wb --disable-ldap --disable-rtsp --disable-dict \
---disable-telnet --disable-tftp --disable-pop3 --disable-imap \
---disable-smtp --disable-gopher --disable-file --disable-ftp
-$ sudo make install@
-$ cd ..@
-@end example
+@pxref{generic source installation - libgnurl}.
 
 Install GNUnet:
 
@@ -2241,7 +2190,6 @@ file by hand, this is not recommended for anyone except for developers
 as it requires a more in-depth understanding of the configuration files
 and internal dependencies of GNUnet.
 
-
 @node Configuring the Friend-to-Friend (F2F) mode
 @subsection Configuring the Friend-to-Friend (F2F) mode
 
@@ -2271,18 +2219,18 @@ The resulting output of this command needs to be added to your
 per friend with the output from the above command.
 
 You then specify the location of your @file{friends} file in the
-"FRIENDS" option of the "topology" section.
+@code{FRIENDS} option of the "topology" section.
 
 Once you have created the @file{friends} file, you can tell GNUnet to only
-connect to your friends by setting the "FRIENDS-ONLY" option (again in
-the "topology" section) to YES.
+connect to your friends by setting the @code{FRIENDS-ONLY} option
+(again in the "topology" section) to YES.
 
 If you want to run in mixed-mode, set "FRIENDS-ONLY" to NO and configure a
 minimum number of friends to have (before connecting to arbitrary peers)
 under the "MINIMUM-FRIENDS" option.
 
 If you want to operate in normal P2P-only mode, simply set
-"MINIMUM-FRIENDS" to zero and "FRIENDS_ONLY" to NO.
+@code{MINIMUM-FRIENDS} to zero and @code{FRIENDS_ONLY} to NO.
 This is the default.
 
 @node Configuring the hostlist to bootstrap
@@ -2301,7 +2249,7 @@ To use these bootstrap servers you have to configure the hostlist daemon
 to activate bootstrapping.
 
 To activate bootstrapping, edit the @code{[hostlist]}-section in your
-configuration file. You have to set the argument "-b" in the
+configuration file. You have to set the argument @command{-b} in the
 options line:
 
 @example
@@ -2337,8 +2285,8 @@ messages, your peer can download these lists and connect to the peers
 included. These lists are persistent, which means that they are saved to
 your hard disk regularly and are loaded during startup.
 
-To activate hostlist learning you have to add the "-e" switch to the
-OPTIONS line in the hostlist section:
+To activate hostlist learning you have to add the @command{-e}
+switch to the @code{OPTIONS} line in the hostlist section:
 
 @example
 [hostlist]
@@ -2347,7 +2295,7 @@ OPTIONS = -b -e
 
 @noindent
 Furthermore you can specify in which file the lists are saved.
-To save the lists in the file "hostlists.file" just add the line:
+To save the lists in the file @file{hostlists.file} just add the line:
 
 @example
 HOSTLISTFILE = hostlists.file
@@ -2371,7 +2319,7 @@ HOSTLISTFILE = $SERVICEHOME/hostlists.file
 The hostlist client can be configured to use a proxy to connect to the
 hostlist server.
 This functionality can be configured in the configuration file directly
-or using the gnunet-setup tool. 
+or using the @command{gnunet-setup} tool.
 
 The hostlist client supports the following proxy types at the moment:
 
@@ -2418,17 +2366,18 @@ If you operate a peer permanently connected to GNUnet you can configure
 your peer to act as a hostlist server, providing other peers the list of
 peers known to him.
 
-Yor server can act as a bootstrap server and peers needing to obtain a
+Your server can act as a bootstrap server and peers needing to obtain a
 list of peers can contact it to download this list.
 To download this hostlist the peer uses HTTP.
-For this reason you have to build your peer with libcurl and microhttpd
-support. How you build your peer with this options can be found here:
-@uref{https://gnunet.org/generic_installation}
+For this reason you have to build your peer with libgnurl (or libcurl)
+and microhttpd support.
+How you build your peer with these options can be found here:
+@xref{Generic installation instructions}.
 
 To configure your peer to act as a bootstrap server you have to add the
-@code{-p} option to OPTIONS in the @code{[hostlist]} section of your
-configuration file. Besides that you have to specify a port number for
-the http server.
+@command{-p} option to @code{OPTIONS} in the @code{[hostlist]} section
+of your configuration file.
+Besides that you have to specify a port number for the http server.
 In conclusion you have to add the following lines:
 
 @example
@@ -2465,7 +2414,7 @@ The URL used to download the list will be
 Please notice:
 
 @itemize @bullet
-@item The hostlist is not human readable, so you should not try to
+@item The hostlist is @b{not} human readable, so you should not try to
 download it using your webbrowser. Just point your GNUnet peer to the
 address!
 @item Advertising without providing a hostlist does not make sense and
@@ -2475,13 +2424,13 @@ will not work.
 @node Configuring the datastore
 @subsection Configuring the datastore
 
-The datastore is what GNUnet uses to for long-term storage of file-sharing
+The datastore is what GNUnet uses for long-term storage of file-sharing
 data. Note that long-term does not mean 'forever' since content does have
 an expiration date, and of course storage space is finite (and hence
 sometimes content may have to be discarded).
 
-Use the "QUOTA" option to specify how many bytes of storage space you are
-willing to dedicate to GNUnet.
+Use the @code{QUOTA} option to specify how many bytes of storage space
+you are willing to dedicate to GNUnet.
 
 In addition to specifying the maximum space GNUnet is allowed to use for
 the datastore, you need to specify which database GNUnet should use to do
@@ -2523,8 +2472,8 @@ inconsistencies. Some of the other databases do not support repair.
 
 @itemize @bullet
 
-@item In @code{gnunet.conf} set in section "DATASTORE" the value for
-"DATABASE" to "mysql".
+@item In @file{gnunet.conf} set in section @code{DATASTORE} the value for
+@code{DATABASE} to @code{mysql}.
 
 @item Access mysql as root:
 
@@ -2534,7 +2483,7 @@ $ mysql -u root -p
 
 @noindent
 and issue the following commands, replacing $USER with the username
-that will be running gnunet-arm (so typically "gnunet"):
+that will be running @command{gnunet-arm} (so typically "gnunet"):
 
 @example
 CREATE DATABASE gnunet;
@@ -2574,15 +2523,30 @@ mysql> use gnunet;
 @end example
 
 @noindent
-If you get the message "Database changed" it probably works.
+If you get the message
 
-If you get "ERROR 2002: Can't connect to local MySQL server@
-through socket '/tmp/mysql.sock' (2)" it may be resolvable by
+@example
+Database changed
+@end example
+
+@noindent
+it probably works.
+
+If you get
+
+@example
+ERROR 2002: Can't connect to local MySQL server
+through socket '/tmp/mysql.sock' (2)
+@end example
+
+@noindent
+it may be resolvable by
 
 @example
 ln -s /var/run/mysqld/mysqld.sock /tmp/mysql.sock
 @end example
 
+@noindent
 so there may be some additional trouble depending on your mysql setup.
 
 @node Performance Tuning
@@ -2607,7 +2571,7 @@ the only application on your system using MySQL.
 
 If you want to run the testcases, you must create a second database
 "gnunetcheck" with the same username and password. This database will
-then be used for testing ("make check").
+then be used for testing (@command{make check}).
 
 @node Configuring the Postgres database
 @subsection Configuring the Postgres database
@@ -2637,9 +2601,9 @@ earlier versions as well.
 @subsection Manual setup instructions
 
 @itemize @bullet
-@item In @code{gnunet.conf} set in section "DATASTORE" the value for
-"DATABASE" to "postgres".
-@item Access Postgres to create a user:@
+@item In @file{gnunet.conf} set in section @code{DATASTORE} the value for
+@code{DATABASE} to @code{postgres}.
+@item Access Postgres to create a user:
 
 @table @asis
 @item with Postgres 8.x, use:
@@ -2652,7 +2616,7 @@ $ createuser
 @noindent
 and enter the name of the user running GNUnet for the role interactively.
 Then, when prompted, do not set it to superuser, allow the creation of
-databases, and do not allow the creation of new roles.@
+databases, and do not allow the creation of new roles.
 
 @item with Postgres 9.x, use:
 
@@ -2662,7 +2626,7 @@ $ createuser -d $GNUNET_USER
 @end example
 
 @noindent
-where $GNUNET_USER is the name of the user running GNUnet.@
+where $GNUNET_USER is the name of the user running GNUnet.
 
 @end table
 
@@ -2704,7 +2668,7 @@ expected to be wiped completely each time GNUnet is restarted (or the
 system is rebooted).
 
 You need to specify how many bytes GNUnet is allowed to use for the
-datacache using the "QUOTA" option in the section "dhtcache".
+datacache using the @code{QUOTA} option in the section @code{[dhtcache]}.
 Furthermore, you need to specify which database backend should be used to
 store the data. Currently, you have the choice between
 sqLite, MySQL and Postgres.
@@ -2714,8 +2678,8 @@ sqLite, MySQL and Postgres.
 
 In order to use GNUnet for file-sharing, you first need to make sure
 that the file-sharing service is loaded.
-This is done by setting the AUTOSTART option in section "fs" to "YES".
-Alternatively, you can run
+This is done by setting the @code{AUTOSTART} option in
+section @code{[fs]} to "YES". Alternatively, you can run
 
 @example
 $ gnunet-arm -i fs
@@ -2763,26 +2727,29 @@ The @code{-l} option is used to specify the log file.
 
 Since most GNUnet services are managed by @code{gnunet-arm}, using the
 @code{-l} or @code{-L} options directly is not possible.
-Instead, they can be specified using the "OPTIONS" configuration value in
-the respective section for the respective service.
-In order to enable logging globally without editing the "OPTIONS" values
-for each service, @code{gnunet-arm} supports a "GLOBAL_POSTFIX" option.
+Instead, they can be specified using the @code{OPTIONS} configuration
+value in the respective section for the respective service.
+In order to enable logging globally without editing the @code{OPTIONS}
+values for each service, @command{gnunet-arm} supports a
+@code{GLOBAL_POSTFIX} option.
 The value specified here is given as an extra option to all services for
-which the configuration does contain a service-specific "OPTIONS" field.
+which the configuration does contain a service-specific @code{OPTIONS}
+field.
 
-"GLOBAL_POSTFIX" can contain the special sequence "@{@}" which is replaced
-by the name of the service that is being started. Furthermore,
-@code{GLOBAL_POSTFIX} is special in that sequences starting with "$"
-anywhere in the string are expanded (according to options in "PATHS");
-this expansion otherwise is only happening for filenames and then the "$"
-must be the first character in the option. Both of these restrictions do
-not apply to "GLOBAL_POSTFIX".
-Note that specifying @code{%} anywhere in the "GLOBAL_POSTFIX" disables
-both of these features.
+@code{GLOBAL_POSTFIX} can contain the special sequence "@{@}" which
+is replaced by the name of the service that is being started.
+Furthermore, @code{GLOBAL_POSTFIX} is special in that sequences
+starting with "$" anywhere in the string are expanded (according
+to options in @code{PATHS}); this expansion otherwise is
+only happening for filenames and then the "$" must be the
+first character in the option. Both of these restrictions do
+not apply to @code{GLOBAL_POSTFIX}.
+Note that specifying @code{%} anywhere in the @code{GLOBAL_POSTFIX}
+disables both of these features.
 
-In summary, in order to get all services to log at level "INFO" to
-log-files called @code{SERVICENAME-logs}, the following global prefix
-should be used:
+In summary, in order to get all services to log at level
+@code{INFO} to log-files called @code{SERVICENAME-logs}, the
+following global prefix should be used:
 
 @example
 GLOBAL_POSTFIX = -l $SERVICEHOME/@{@}-logs -L INFO
@@ -3008,9 +2975,11 @@ The interface channel depends on the wlan network that the card is
 connected to. If no connection has been made since the start of the
 computer, it is usually the first channel of the card.
 Peers will only find each other and communicate if they are on the same
-channel. Channels must be set manually (i.e. using
-@code{iwconfig wlan0 channel 1}).
+channel. Channels must be set manually, i.e. using:
 
+@example
+iwconfig wlan0 channel 1
+@end example
 
 @node Configuring HTTP(S) reverse proxy functionality using Apache or nginx
 @subsection Configuring HTTP(S) reverse proxy functionality using Apache or nginx
@@ -3048,7 +3017,16 @@ As an example we want to use GNUnet peer running:
 And we want the webserver to accept GNUnet traffic under
 @code{http://www.foo.org/bar/}. The required steps are described here:
 
-@strong{Configure your Apache2 HTTP webserver}
+@menu
+* Reverse Proxy - Configure your Apache2 HTTP webserver::
+* Reverse Proxy - Configure your Apache2 HTTPS webserver::
+* Reverse Proxy - Configure your nginx HTTPS webserver::
+* Reverse Proxy - Configure your nginx HTTP webserver::
+* Reverse Proxy - Configure your GNUnet peer::
+@end menu
+
+@node Reverse Proxy - Configure your Apache2 HTTP webserver
+@subsubsection Reverse Proxy - Configure your Apache2 HTTP webserver
 
 First of all you need mod_proxy installed.
 
@@ -3067,8 +3045,8 @@ ProxyPassReverse http://gnunet.foo.org:1080/
 </Location>
 @end example
 
-@noindent
-@strong{Configure your Apache2 HTTPS webserver}
+@node Reverse Proxy - Configure your Apache2 HTTPS webserver
+@subsubsection Reverse Proxy - Configure your Apache2 HTTPS webserver
 
 We assume that you already have an HTTPS server running, if not please
 check how to configure a HTTPS host. An easy to use example is the
@@ -3092,7 +3070,8 @@ More information about the apache mod_proxy configuration can be found
 here: @uref{http://httpd.apache.org/docs/2.2/mod/mod_proxy.html#proxypass}
 .
 
-@strong{Configure your nginx HTTPS webserver}
+@node Reverse Proxy - Configure your nginx HTTPS webserver
+@subsubsection Reverse Proxy - Configure your nginx HTTPS webserver
 
 Since nginx does not support chunked encoding, you first of all have to
 install @code{chunkin}: @uref{http://wiki.nginx.org/HttpChunkinModule}.
@@ -3125,8 +3104,8 @@ proxy_next_upstream error timeout invalid_header http_500 http_503 http_502 http
 @}
 @end example
 
-@noindent
-@strong{Configure your nginx HTTPS webserver}
+@node Reverse Proxy - Configure your nginx HTTP webserver
+@subsubsection Reverse Proxy - Configure your nginx HTTP webserver
 
 Edit your webserver configuration. Edit @file{/etc/nginx/nginx.conf} or
 the site-specific configuration file.
@@ -3146,8 +3125,8 @@ proxy_next_upstream error timeout invalid_header http_500 http_503 http_502 http
 @}
 @end example
 
-@noindent
-@strong{Configure your GNUnet peer}
+@node Reverse Proxy - Configure your GNUnet peer
+@subsubsection Reverse Proxy - Configure your GNUnet peer
 
 To have your GNUnet peer announce the address, you have to specify the
 @code{EXTERNAL_HOSTNAME} option in the @code{[transport-http_server]}
