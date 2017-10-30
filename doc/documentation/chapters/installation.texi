@@ -97,35 +97,6 @@ recommended for first-time users)}
 @item zlib
 @end itemize
 
-@node Fixing libgnurl build issues
-@subsection Fixing libgnurl build issues
-
-@c FIXME: Obviously this subsection should be evaluated and
-@c if still necessary moved into gnURL itself (README) or
-@c into a separate section which deals with gnURL.
-If you have to compile libgnurl from source (for example if the version
-included in your distribution is too old or it's not included at all)
-you perhaps might get an error message while running the
-@command{configure} script:
-
-@example
-$ configure
-...
-checking for 64-bit curl_off_t data type... unknown
-checking for 32-bit curl_off_t data type... unknown
-checking for 16-bit curl_off_t data type... unknown
-configure: error: cannot find data type for curl_off_t.
-@end example
-
-@noindent
-Solution:
-
-Before running the @command{configure} script, set:
-
-@example
-CFLAGS="-I. -I$BUILD_ROOT/include"
-@end example
-
 @node Optional dependencies
 @subsection Optional dependencies
 
@@ -267,7 +238,7 @@ dependencies (and possibly the rest of the GNUnet installation) in the
 platform-specific descriptions, which can be found in the Index.
 Please consult them now.
 If your distribution is not listed, please study
-@xref{Build instructions for Debian 8}, the build instructions for
+@ref{Build instructions for Debian 8}, the build instructions for
 Debian stable, carefully as you try to install the dependencies for your
 own distribution.
 Contributing additional instructions for further platforms is always
@@ -370,7 +341,7 @@ prefixed with @code{@@reboot} so that it is executed whenever the system
 is booted:
 
 @example
-@@reboot /usr/local/bin/gnunet-arm -c /etc/gnunet.conf -s@
+@@reboot /usr/local/bin/gnunet-arm -c /etc/gnunet.conf -s
 @end example
 
 @noindent
@@ -725,6 +696,9 @@ sources might differ in ways that are only minimal different
 (for example a dependency on autotools etc).
 
 @menu
+* generic source installation - nettle::
+* generic source installation - ldns::
+* generic source installation - libunbound/unbound::
 * generic source installation - libav::
 * generic source installation - libextractor::
 * generic source installation - libgpg-error::
@@ -733,6 +707,36 @@ sources might differ in ways that are only minimal different
 * generic source installation - libmicrohttpd::
 * generic source installation - libgnurl::
 @end menu
+
+@node generic source installation - nettle
+@subsection generic source installation - nettle
+@example
+$ wget http://www.lysator.liu.se/~nisse/archive/nettle-2.7.1.tar.gz
+$ tar xf nettle-2.7.1.tar.gz
+$ cd nettle-2.7.1
+$ ./configure
+$ sudo make install ; cd ..
+@end example
+
+@node generic source installation - ldns
+@subsection generic source installation - ldns
+@example
+$ wget https://www.nlnetlabs.nl/downloads/ldns/ldns-1.6.16.tar.gz
+$ tar xf ldns-1.6.16.tar.gz
+$ cd ldns-1.6.16
+$ ./configure
+$ sudo make install ; cd ..
+@end example
+
+@node generic source installation - libunbound/unbound
+@subsection generic source installation - libunbound/unbound
+@example
+$ wget https://unbound.net/downloads/unbound-1.4.21.tar.gz
+$ tar xf unbound-1.4.21.tar.gz
+$ cd unbound-1.4.21
+$ ./configure
+$ sudo make install ; cd ..
+@end example
 
 @node generic source installation - libav
 @subsection generic source installation - libav
@@ -778,6 +782,10 @@ $ cd gnutls-3.2.7 ; ./configure;
 $ make ; sudo make install ; cd ..
 @end example
 
+@noindent
+If you want a GnuTLS with DANE functionality, you have to compile
+it against libunbound.
+
 @node generic source installation - libmicrohttpd
 @subsection generic source installation - libmicrohttpd
 @example
@@ -801,6 +809,35 @@ $ ./configure --enable-ipv6 --with-gnutls=/usr/local --without-libssh2 \
  --disable-telnet --disable-tftp --disable-pop3 --disable-imap \
  --disable-smtp --disable-gopher --disable-file --disable-ftp
 $ make ; sudo make install; cd ..
+@end example
+
+@node Fixing libgnurl build issues
+@subsubsection Fixing libgnurl build issues
+
+@c FIXME: Obviously this subsection should be evaluated and
+@c if still necessary moved into gnURL itself (README) or
+@c into a separate section which deals with gnURL.
+If you have to compile libgnurl from source (for example if the version
+included in your distribution is too old or it's not included at all)
+you perhaps might get an error message while running the
+@command{configure} script:
+
+@example
+$ configure
+...
+checking for 64-bit curl_off_t data type... unknown
+checking for 32-bit curl_off_t data type... unknown
+checking for 16-bit curl_off_t data type... unknown
+configure: error: cannot find data type for curl_off_t.
+@end example
+
+@noindent
+Solution:
+
+Before running the @command{configure} script, set:
+
+@example
+CFLAGS="-I. -I$BUILD_ROOT/include"
 @end example
 
 @node Build Instructions for Microsoft Windows Platforms
