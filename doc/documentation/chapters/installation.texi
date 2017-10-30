@@ -1,19 +1,20 @@
 @node GNUnet Installation Handbook
 @chapter GNUnet Installation Handbook
 
-This handbook describes how to install (build setup, compilation) and
-setup (configuration, start) GNUnet 0.10.x. After following these
+This handbook describes how to install (build, setup, compile) and
+setup (configure, start) GNUnet @value{VERSION}. After following these
 instructions you should be able to install and then start user-interfaces
 to interact with the network.
 
-This manual is far from complete, and we welcome informed contributions,
-be it in the form of new chapters or insightful comments.
+Note: This manual is far from complete, and we welcome informed
+contributions, be it in the form of new chapters or insightful comments.
 
 @menu
 * Dependencies::
 * Pre-installation notes::
 * Generic installation instructions::
 * Build instructions for Ubuntu 12.04 using Git::
+* Build instructions for software builds from source::
 * Build Instructions for Microsoft Windows Platforms::
 * Build instructions for Debian 7.5::
 * Installing GNUnet from Git on Ubuntu 14.4::
@@ -63,7 +64,7 @@ can be performed:
 @item miniupnpc
 @item gettext
 @item which
-@item texinfo
+@item texinfo @geq{} 5.2
 @item GNU libmicrohttpd @geq{} 0.9.30 @footnote{We recommend to build it
 with a GnuTLS version that was configured with libunbound}
 @item GNU libextractor @geq{} 1.0
@@ -99,9 +100,13 @@ recommended for first-time users)}
 @node Fixing libgnurl build issues
 @subsection Fixing libgnurl build issues
 
-If you have to compile libgnurl from source since the version included in
-your distribution is to old you perhaps get an error message while
-running the @file{configure} script:
+@c FIXME: Obviously this subsection should be evaluated and
+@c if still necessary moved into gnURL itself (README) or
+@c into a separate section which deals with gnURL.
+If you have to compile libgnurl from source (for example if the version
+included in your distribution is too old or it's not included at all)
+you perhaps might get an error message while running the
+@command{configure} script:
 
 @example
 $ configure
@@ -115,7 +120,7 @@ configure: error: cannot find data type for curl_off_t.
 @noindent
 Solution:
 
-Before running the configure script, set:
+Before running the @command{configure} script, set:
 
 @example
 CFLAGS="-I. -I$BUILD_ROOT/include"
@@ -125,18 +130,28 @@ CFLAGS="-I. -I$BUILD_ROOT/include"
 @subsection Optional dependencies
 
 These applications must be installed for various experimental or otherwise
-optional features such as @code{gnunet-conversation}, @code{gnunet-gtk}.
+optional features such as @command{gnunet-conversation},
+and @command{gnunet-gtk} (most of these features are only build if you
+configure GNUnet with @command{--enable-experimental}):
 
 @itemize @bullet
-@item libpulse 2.0 or higher, optional (for gnunet-conversation)
-@item libopus 1.0.1 or higher, optional (for gnunet-conversation)
-@item libogg 1.3.0 or higher, optional (for gnunet-conversation)
-@item certool (binary) optional @footnote{for convenient installation of
-the GNS proxy (available as part of Debian's libnss3-tools)}
-@item python-zbar 0.10 or higher, optional (for gnunet-qr)
-@item Gtk+ 3.0 or higher, optional (for gnunet-gtk)
-@item libgladeui must match Gtk+ version, optional (for gnunet-gtk)
-@item libqrencode 3.0 or higher, optional (for gnunet-namestore-gtk)
+@item libpulse @geq{} 2.0,
+optional (for @command{gnunet-conversation})
+@item libopus @geq{} 1.0.1,
+optional (for @command{gnunet-conversation})
+@item libogg @geq{} 1.3.0,
+optional (for @command{gnunet-conversation})
+@item libnss contained @command{certool} binary,
+optional for convenient installation of
+the GNS proxy.
+@item python-zbar @geq{} 0.10,
+optional (for @command{gnunet-qr})
+@item Gtk+ @geq{} 3.0,
+optional (for @command{gnunet-gtk})
+@item libgladeui (must match Gtk+ version),
+optional (for @command{gnunet-gtk})
+@item libqrencode @geq{} 3.0,
+optional (for @command{gnunet-namestore-gtk})
 @end itemize
 
 @node Internal dependencies
@@ -145,10 +160,11 @@ the GNS proxy (available as part of Debian's libnss3-tools)}
 This section tries to give an overview of what processes a typical GNUnet
 peer running a particular application would consist of. All of the
 processes listed here should be automatically started by
-@code{gnunet-arm -s}.
+@command{gnunet-arm -s}.
 The list is given as a rough first guide to users for failure diagnostics.
 Ideally, end-users should never have to worry about these internal
-dependencies. 
+dependencies.
+
 In terms of internal dependencies, a minimum file-sharing system consists
 of the following GNUnet processes (in order of dependency):
 
@@ -243,21 +259,22 @@ Other dependencies that you should strongly consider to install is a
 database (MySQL, sqlite or Postgres).
 The following instructions will assume that you installed at least sqlite.
 For most distributions you should be able to find pre-build packages for
-the database. Again, make sure to install the client libraries and the
+the database. Again, make sure to install the client libraries @b{and} the
 respective development headers (if they are packaged separately) as well.
 
 You can find specific, detailed instructions for installing of the
 dependencies (and possibly the rest of the GNUnet installation) in the
 platform-specific descriptions, which can be found in the Index.
 Please consult them now.
-If your distribution is not listed, please study the instructions for
-Debian stable carefully as you try to install the dependencies for your
+If your distribution is not listed, please study
+@xref{Build instructions for Debian 8}, the build instructions for
+Debian stable, carefully as you try to install the dependencies for your
 own distribution.
 Contributing additional instructions for further platforms is always
 appreciated.
 Please take in mind that operating system development tends to move at
 a rather fast speed. Due to this you should be aware that some of
-the instructionss could be outdated by the time you are reading this.
+the instructions could be outdated by the time you are reading this.
 If you find a mistake, please tell us about it (or even better: send
 a patch to the documentation to fix it!).
 
@@ -272,7 +289,8 @@ While it is possible to build and install GNUnet without having root
 access, we will assume that you have full control over your system in
 these instructions.
 First, you should create a system user @emph{gnunet} and an additional
-group @emph{gnunetdns}. On Debian and Ubuntu GNU/Linux, type:
+group @emph{gnunetdns}. On the GNU/Linux distributions Debian and Ubuntu,
+type:
 
 @example
 # adduser --system --home /var/lib/gnunet --group \
@@ -281,7 +299,7 @@ group @emph{gnunetdns}. On Debian and Ubuntu GNU/Linux, type:
 @end example
 
 @noindent
-On other Unixes, this should have the same effect:
+On other Unixes and GNU systems, this should have the same effect:
 
 @example
 # useradd --system --groups gnunet --home-dir /var/lib/gnunet
@@ -291,8 +309,8 @@ On other Unixes, this should have the same effect:
 Now compile and install GNUnet using:
 
 @example
-$ tar xvf gnunet-0.10.?.tar.gz
-$ cd gnunet-0.10.?
+$ tar xvf gnunet-@value{VERSION}.tar.gz
+$ cd gnunet-@value{VERSION}
 $ ./configure --with-sudo=sudo --with-nssdir=/lib
 $ make
 $ sudo make install
@@ -300,17 +318,19 @@ $ sudo make install
 
 If you want to be able to enable DEBUG-level log messages, add
 @code{--enable-logging=verbose} to the end of the
-@code{./configure} command.
-DEBUG-level log messages are in English-only and should only be useful for
-developers (or for filing really detailed bug reports). 
+@command{./configure} command.
+@code{DEBUG}-level log messages are in English only and
+should only be useful for developers (or for filing
+really detailed bug reports). 
 
-Finally, you probably want to compile @code{gnunet-gtk}, which
-includes gnunet-setup (graphical tool for configuration)
-and @code{gnunet-fs-gtk} (graphical tool for file-sharing):
+Finally, you probably want to compile @command{gnunet-gtk}, which
+includes @command{gnunet-setup} (a graphical tool for
+GNUnet configuration) and @command{gnunet-fs-gtk} (a graphical tool for
+GNUnet file-sharing):
 
 @example
-$ tar xvf gnunet-gtk-0.10.?.tar.gz
-$ cd gnunet-gtk-0.10.?
+$ tar xvf gnunet-gtk-@value{VERSION}.tar.gz
+$ cd gnunet-gtk-@value{VERSION}
 $ ./configure --with-gnunet=/usr/local/
 $ make
 $ sudo make install
@@ -329,22 +349,23 @@ USER_ONLY = NO
 @end example
 
 @noindent
-You may need to update your ld.so cache to include files installed in
-@file{/usr/local/lib}:
+You may need to update your @code{ld.so} cache to include
+files installed in @file{/usr/local/lib}:
 
 @example
 # ldconfig
 @end example
 
 @noindent
-Then, switch from user root to user gnunet to start the peer:
+Then, switch from user @code{root} to user @code{gnunet} to start
+the peer:
 
 @example
 # su -s /bin/sh - gnunet
 $ gnunet-arm -c /etc/gnunet.conf -s
 @end example
 
-You may also want to add the last line in the gnunet users @file{crontab}
+You may also want to add the last line in the gnunet user's @file{crontab}
 prefixed with @code{@@reboot} so that it is executed whenever the system
 is booted:
 
@@ -356,7 +377,7 @@ is booted:
 This will only start the system-wide GNUnet services.
 Type exit to get back your root shell.
 Now, you need to configure the per-user part. For each
-$USER on the system, run:
+$USER that should get access to GNUnet on the system, run:
 
 @example
 # adduser $USER gnunet
@@ -395,7 +416,7 @@ For those services, systems with more than one user may require each user
 to specify a different port number in their personal configuration file.
 
 Finally, the user should perform the basic initial setup for the GNU Name
-System. This is done by running two commands:
+System (GNS). This is done by running two commands:
 
 @example
 $ gnunet-gns-import.sh
@@ -404,7 +425,7 @@ $ gnunet-gns-proxy-setup-ca
 
 @noindent
 The first generates the default zones, wheras the second setups the GNS
-Certificate Authority with the user's browser. Now, to actiave GNS in the
+Certificate Authority with the user's browser. Now, to activate GNS in the
 normal DNS resolution process, you need to edit your
 @file{/etc/nsswitch.conf} where you should find a line like this:
 
@@ -430,7 +451,6 @@ your system, it should have been created during the installation.
 
 @node Build instructions for Ubuntu 12.04 using Git
 @section Build instructions for Ubuntu 12.04 using Git
-
 
 @menu
 * Install the required build tools::
@@ -516,20 +536,7 @@ $ sudo make install ; cd ..
 @node Install libgnurl
 @subsection Install libgnurl
 
-@example
-$ wget https://gnunet.org/sites/default/files/gnurl-7.34.0.tar.bz2
-$ tar xf gnurl-7.34.0.tar.bz2
-$ cd gnurl-7.34.0
-$ ./configure --enable-ipv6 --with-gnutls --without-libssh2 \
-  --without-libmetalink --without-winidn --without-librtmp \
-  --without-nghttp2 --without-nss --without-cyassl \
-  --without-polarssl --without-ssl --without-winssl \
-  --without-darwinssl --disable-sspi --disable-ntlm-wb \
-  --disable-ldap --disable-rtsp --disable-dict --disable-telnet \
-  --disable-tftp --disable-pop3 --disable-imap --disable-smtp \
-  --disable-gopher --disable-file --disable-ftp
-$ sudo make install ; cd ..
-@end example
+Follow @ref{generic source installation - libgnurl}.
 
 @node Install libmicrohttpd from Git
 @subsection Install libmicrohttpd from Git
@@ -660,7 +667,7 @@ $ ./bootstrap
 @end example
 
 Use the required configure call including the optional installation prefix
-PREFIX or the sudo permissions:
+@code{PREFIX} or the sudo permissions:
 
 @example
 $ ./configure [ --with-sudo | --with-prefix=PREFIX ]
@@ -690,10 +697,10 @@ Install depencies:
 
 @example
 $ sudo apt-get install libgtk-3-dev libunique-3.0-dev libgladeui-dev \
-libqrencode-dev
+ libqrencode-dev
 @end example
 
-To build GNUnet (with an optional prefix)and execute:
+Build GNUnet (with an optional prefix) and execute:
 
 @example
 $ git clone https://gnunet.org/git/gnunet-gtk/
@@ -701,6 +708,99 @@ $ cd gnunet-gtk/
 $ ./bootstrap
 $ ./configure [--prefix=PREFIX] --with-gnunet=DIRECTORY
 $ make; sudo make install
+@end example
+
+@node Build instructions for software builds from source
+@section Build instructions for software builds from source
+
+This section describes software builds in case your operating
+system lacks binary substitutes / binary builds for some dependencies
+of GNUnet.
+It is assumed that you have installed common build dependencies
+and that these instructions are treated as generic without any
+debugging help.
+It is furthermore assumed that you use the release tarballs of
+the software, installation from the respective version control
+sources might differ in ways that are only minimal different
+(for example a dependency on autotools etc).
+
+@menu
+* generic source installation - libav::
+* generic source installation - libextractor::
+* generic source installation - libgpg-error::
+* generic source installation - libgcrypt::
+* generic source installation - gnutls::
+* generic source installation - libmicrohttpd::
+* generic source installation - libgnurl::
+@end menu
+
+@node generic source installation - libav
+@subsection generic source installation - libav
+@example
+$ wget https://libav.org/releases/libav-9.10.tar.xz
+$ cd libav-0.9 ; ./configure --enable-shared;
+$ make; sudo make install; cd ..
+@end example
+
+@node generic source installation - libextractor
+@subsection generic source installation - libextractor
+@example
+$ wget https://ftp.gnu.org/gnu/libextractor/libextractor-1.3.tar.gz
+$ tar xvf libextractor-1.3.tar.gz
+$ cd libextractor-1.3 ; ./configure;
+$ make ; sudo make install; cd ..
+@end example
+
+@node generic source installation - libgpg-error
+@subsection generic source installation - libgpg-error
+@example
+$ wget https://ftp.gnupg.org/gcrypt/libgpg-error/libgpg-error-1.12.tar.bz2
+$ tar xvf libgpg-error-1.12.tar.bz2
+$ cd libgpg-error-1.12; ./configure;
+$ make ; sudo make install; cd ..
+@end example
+
+@node generic source installation - libgcrypt
+@subsection generic source installation - libgcrypt
+@example
+$ wget https://ftp.gnupg.org/gcrypt/libgcrypt/libgcrypt-1.6.0.tar.bz2
+$ tar xvf libgcrypt-1.6.0.tar.bz2
+$ cd libgcrypt-1.6.0; ./configure --with-gpg-error-prefix=/usr/local;
+$ make ; sudo make install ; cd ..
+@end example
+
+@node generic source installation - gnutls
+@subsection generic source installation - gnutls
+@example
+$ wget ftp://ftp.gnutls.org/gcrypt/gnutls/v3.2/gnutls-3.2.7.tar.xz
+$ tar xvf gnutls-3.2.7.tar.xz
+$ cd gnutls-3.2.7 ; ./configure;
+$ make ; sudo make install ; cd ..
+@end example
+
+@node generic source installation - libmicrohttpd
+@subsection generic source installation - libmicrohttpd
+@example
+$ wget https://ftp.gnu.org/gnu/libmicrohttpd/libmicrohttpd-0.9.33.tar.gz
+$ tar xvf libmicrohttpd-0.9.33.tar.gz
+$ cd libmicrohttpd-0.9.33; ./configure;
+$ make ; sudo make install ; cd ..
+@end example
+
+@node generic source installation - libgnurl
+@subsection generic source installation - libgnurl
+@example
+$ wget https://gnunet.org/sites/default/files/gnurl-7.34.0.tar.bz2
+$ tar xvf gnurl-7.34.0.tar.bz2
+$ cd gnurl-7.34.0
+$ ./configure --enable-ipv6 --with-gnutls=/usr/local --without-libssh2 \
+ --without-libmetalink --without-winidn --without-librtmp \
+ --without-nghttp2 --without-nss --without-cyassl --without-polarssl \
+ --without-ssl --without-winssl --without-darwinssl --disable-sspi \
+ --disable-ntlm-wb --disable-ldap --disable-rtsp --disable-dict \
+ --disable-telnet --disable-tftp --disable-pop3 --disable-imap \
+ --disable-smtp --disable-gopher --disable-file --disable-ftp
+$ make ; sudo make install; cd ..
 @end example
 
 @node Build Instructions for Microsoft Windows Platforms
@@ -743,6 +843,9 @@ Windows Vista and later will also work, but
 @strong{non-server version can not run a VPN-Exit-Node} as the NAT
 features have been removed as of Windows Vista.
 
+@c TODO: We should document Windows 10!
+@c It seems like the situation hasn't changed with W10
+
 @node Dependencies & Initial Setup
 @subsection Dependencies & Initial Setup
 
@@ -752,11 +855,11 @@ features have been removed as of Windows Vista.
 @item
 Install a fresh version of @strong{Python 2.x}, even if you are using a
 x64-OS, install a 32-bit version for use with sbuild.
-Python 3.0 currently is incompatible.
+Python 3.0 is currently incompatible.
 
 @item
-Install your favorite @uref{http://code.google.com/p/tortoisegit/, GIT} &
-@uref{http://tortoisesvn.net/, SVN}-clients.
+Install your favorite @uref{http://code.google.com/p/tortoisegit/, git} &
+@uref{http://tortoisesvn.net/, subversion}-clients.
 
 @item
 You will also need some archive-manager like
@@ -1040,44 +1143,20 @@ You might want to do this as a "normal" user and only run the
 @code{make install} steps as root (hence the @code{sudo} in the
 commands below). Also, you do this from any
 directory. We begin by downloading all dependencies, then extracting the
-sources, and finally compiling and installing the libraries:@
+sources, and finally compiling and installing the libraries.
 
-@example
-$ wget https://libav.org/releases/libav-9.10.tar.xz
-$ wget http://ftp.gnu.org/gnu/libextractor/libextractor-1.3.tar.gz
-$ wget ftp://ftp.gnupg.org/gcrypt/libgpg-error/libgpg-error-1.12.tar.bz2
-$ wget ftp://ftp.gnupg.org/gcrypt/libgcrypt/libgcrypt-1.6.0.tar.bz2
-$ wget ftp://ftp.gnutls.org/gcrypt/gnutls/v3.2/gnutls-3.2.7.tar.xz
-$ wget http://ftp.gnu.org/gnu/libmicrohttpd/libmicrohttpd-0.9.33.tar.gz
-$ wget https://gnunet.org/sites/default/files/gnurl-7.34.0.tar.bz2
-$ tar xvf libextractor-1.3.tar.gz
-$ tar xvf libgpg-error-1.12.tar.bz2
-$ tar xvf libgcrypt-1.6.0.tar.bz2
-$ tar xvf gnutls-3.2.7.tar.xz
-$ tar xvf libmicrohttpd-0.9.33.tar.gz
-$ tar xvf gnurl-7.34.0.tar.bz2
-$ cd libav-0.9 ; ./configure --enable-shared;
-$ make; sudo make install; cd ..
-$ cd libextractor-1.3 ; ./configure;
-$ make ; sudo make install; cd ..
-$ cd libgpg-error-1.12; ./configure;
-$ make ; sudo make install; cd ..
-$ cd libgcrypt-1.6.0; ./configure --with-gpg-error-prefix=/usr/local;
-$ make ; sudo make install ; cd ..
-$ cd gnutls-3.2.7 ; ./configure;
-$ make ; sudo make install ; cd ..
-$ cd libmicrohttpd-0.9.33; ./configure;
-$ make ; sudo make install ; cd ..
-$ cd gnurl-7.34.0
-$ ./configure --enable-ipv6 --with-gnutls=/usr/local --without-libssh2 \
- --without-libmetalink --without-winidn --without-librtmp \
- --without-nghttp2 --without-nss --without-cyassl --without-polarssl \
- --without-ssl --without-winssl --without-darwinssl --disable-sspi \
- --disable-ntlm-wb --disable-ldap --disable-rtsp --disable-dict \
- --disable-telnet --disable-tftp --disable-pop3 --disable-imap \
- --disable-smtp --disable-gopher --disable-file --disable-ftp
-$ make ; sudo make install; cd ..
-@end example
+For these steps, follow the instructions given in the
+installation from source instruction in this order:
+
+@itemize @bullet
+@item @ref{generic source installation - libav}
+@item @ref{generic source installation - libextractor}
+@item @ref{generic source installation - libgpg-error}
+@item @ref{generic source installation - libgcrypt}
+@item @ref{generic source installation - gnutls}
+@item @ref{generic source installation - libmicrohttpd}
+@item @ref{generic source installation - libgnurl}
+@end itemize
 
 @node Installing GNUnet from source
 @subsection Installing GNUnet from source
@@ -1325,21 +1404,13 @@ libraries:
 
 @example
 $ wget ftp://ftp.gnutls.org/gcrypt/gnutls/v3.3/gnutls-3.3.12.tar.xz
-$ wget https://gnunet.org/sites/default/files/gnurl-7.40.0.tar.bz2
 $ tar xvf gnutls-3.3.12.tar.xz
-$ tar xvf gnurl-7.40.0.tar.bz2
 $ cd gnutls-3.3.12 ; ./configure ; make ; sudo make install ; cd ..
-$ cd gnurl-7.40.0
-$ ./configure --enable-ipv6 --with-gnutls=/usr/local --without-libssh2 \
---without-libmetalink --without-winidn --without-librtmp \
---without-nghttp2 --without-nss --without-cyassl --without-polarssl \
---without-ssl --without-winssl --without-darwinssl --disable-sspi \
---disable-ntlm-wb --disable-ldap --disable-rtsp --disable-dict \
---disable-telnet --disable-tftp --disable-pop3 --disable-imap \
---disable-smtp --disable-gopher --disable-file --disable-ftp \
---disable-smb
-$ make ; sudo make install; cd ..
 @end example
+
+For the installation and compilation of libgnurl/gnURL refer to
+the generic installation section,
+@xref{generic source installation - libgnurl}.
 
 @node Installing GNUnet from Source2
 @subsection Installing GNUnet from Source2

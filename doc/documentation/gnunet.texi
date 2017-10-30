@@ -151,6 +151,7 @@ GNUnet Installation Handbook
 * Pre-installation notes::
 * Generic installation instructions::
 * Build instructions for Ubuntu 12.04 using Git::
+* Build instructions for software builds from source::
 * Build Instructions for Microsoft Windows Platforms::
 * Build instructions for Debian 7.5::
 * Installing GNUnet from Git on Ubuntu 14.4::
