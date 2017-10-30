@@ -35,7 +35,6 @@ Suggestions for missing dependencies or wrong version numbers are welcome.
 
 @menu
 * External dependencies::
-* Fixing libgnurl build issues::
 * Optional dependencies::
 * Internal dependencies::
 @end menu
