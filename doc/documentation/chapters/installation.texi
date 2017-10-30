@@ -796,6 +796,7 @@ $ make ; sudo make install ; cd ..
 
 @node generic source installation - libgnurl
 @subsection generic source installation - libgnurl
+
 @example
 $ wget https://gnunet.org/sites/default/files/gnurl-7.34.0.tar.bz2
 $ tar xvf gnurl-7.34.0.tar.bz2
@@ -809,6 +810,10 @@ $ ./configure --enable-ipv6 --with-gnutls=/usr/local --without-libssh2 \
  --disable-smtp --disable-gopher --disable-file --disable-ftp
 $ make ; sudo make install; cd ..
 @end example
+
+@menu
+* Fixing libgnurl build issues::
+@end menu
 
 @node Fixing libgnurl build issues
 @subsubsection Fixing libgnurl build issues
