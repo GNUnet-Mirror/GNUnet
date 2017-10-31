@@ -2105,7 +2105,7 @@ GNUNET_CRYPTO_rsa_signature_dup (const struct GNUNET_CRYPTO_RsaSignature *sig);
  * @return unblinded signature on success, NULL if RSA key is bad or malicious.
  */
 struct GNUNET_CRYPTO_RsaSignature *
-GNUNET_CRYPTO_rsa_unblind (struct GNUNET_CRYPTO_RsaSignature *sig,
+GNUNET_CRYPTO_rsa_unblind (const struct GNUNET_CRYPTO_RsaSignature *sig,
 			   const struct GNUNET_CRYPTO_RsaBlindingKeySecret *bks,
 			   struct GNUNET_CRYPTO_RsaPublicKey *pkey);
 
