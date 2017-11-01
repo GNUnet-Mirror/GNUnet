@@ -1110,6 +1110,16 @@ GNUNET_CRYPTO_ecdsa_public_key_to_string (const struct GNUNET_CRYPTO_EcdsaPublic
 
 
 /**
+ * Convert a private key to a string.
+ *
+ * @param priv key to convert
+ * @return string representing @a pub
+ */
+char *
+GNUNET_CRYPTO_eddsa_private_key_to_string (const struct GNUNET_CRYPTO_EddsaPrivateKey *priv);
+
+
+/**
  * Convert a public key to a string.
  *
  * @param pub key to convert
