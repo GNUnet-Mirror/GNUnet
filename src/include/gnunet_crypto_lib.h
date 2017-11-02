@@ -2026,13 +2026,14 @@ GNUNET_CRYPTO_rsa_public_key_cmp (struct GNUNET_CRYPTO_RsaPublicKey *p1,
  * @param pkey the public key of the signer
  * @param[out] buf set to a buffer with the blinded message to be signed
  * @param[out] buf_size number of bytes stored in @a buf
- * @return GNUNET_YES if successful, GNUNET_NO if RSA key is malicious
+ * @return #GNUNET_YES if successful, #GNUNET_NO if RSA key is malicious
  */
 int
 GNUNET_CRYPTO_rsa_blind (const struct GNUNET_HashCode *hash,
                          const struct GNUNET_CRYPTO_RsaBlindingKeySecret *bks,
                          struct GNUNET_CRYPTO_RsaPublicKey *pkey,
-                         char **buf, size_t *buf_size);
+                         char **buf,
+                         size_t *buf_size);
 
 
 /**
@@ -2045,7 +2046,8 @@ GNUNET_CRYPTO_rsa_blind (const struct GNUNET_HashCode *hash,
  */
 struct GNUNET_CRYPTO_RsaSignature *
 GNUNET_CRYPTO_rsa_sign_blinded (const struct GNUNET_CRYPTO_RsaPrivateKey *key,
-                                const void *msg, size_t msg_len);
+                                const void *msg,
+                                size_t msg_len);
 
 
 /**
