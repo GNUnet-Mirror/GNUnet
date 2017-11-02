@@ -1044,6 +1044,7 @@ static void
 place_cleanup (struct GNUNET_SOCIAL_Place *plc)
 {
   struct GNUNET_HashCode place_pub_hash;
+
   GNUNET_CRYPTO_hash (&plc->pub_key, sizeof (plc->pub_key), &place_pub_hash);
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
               "%s place cleanup: %s\n",
@@ -2092,6 +2093,8 @@ leave_done_cont (void *cls)
 {
   struct LeaveContext *lc = cls;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+              "social_api: guest's place_leave message sent!\n");
   GNUNET_SOCIAL_guest_disconnect (lc->gst,
                                   lc->disconnect_cb,
                                   lc->disconnect_cb_cls);

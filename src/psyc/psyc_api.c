@@ -931,7 +931,8 @@ slave_reconnect (void *cls)
  * Reconnect after backoff period.
  */
 static void
-slave_disconnected (void *cls, enum GNUNET_MQ_Error error)
+slave_disconnected (void *cls,
+                    enum GNUNET_MQ_Error error)
 {
   struct GNUNET_PSYC_Slave *slv = cls;
   struct GNUNET_PSYC_Channel *chn = &slv->chn;
@@ -950,7 +951,7 @@ slave_disconnected (void *cls, enum GNUNET_MQ_Error error)
     chn->mq = NULL;
   }
   chn->reconnect_task = GNUNET_SCHEDULER_add_delayed (chn->reconnect_delay,
-                                                      slave_reconnect,
+                                                      &slave_reconnect,
                                                       slv);
   chn->reconnect_delay = GNUNET_TIME_STD_BACKOFF (chn->reconnect_delay);
 }
@@ -993,9 +994,19 @@ slave_connect (struct GNUNET_PSYC_Slave *slv)
     GNUNET_MQ_handler_end ()
   };
 
-  chn->mq = GNUNET_CLIENT_connect (chn->cfg, "psyc",
-                                   handlers, slave_disconnected, slv);
-  GNUNET_assert (NULL != chn->mq);
+  chn->mq = GNUNET_CLIENT_connect (chn->cfg,
+                                   "psyc",
+                                   handlers,
+                                   &slave_disconnected,
+                                   slv);
+  if (NULL == chn->mq)
+  {
+    chn->reconnect_task = GNUNET_SCHEDULER_add_delayed (chn->reconnect_delay,
+                                                        &slave_reconnect,
+                                                        slv);
+    chn->reconnect_delay = GNUNET_TIME_STD_BACKOFF (chn->reconnect_delay);
+    return;
+  }
   chn->tmit = GNUNET_PSYC_transmit_create (chn->mq);
 
   GNUNET_MQ_send_copy (chn->mq, chn->connect_env);

@@ -708,6 +708,9 @@ setup_fresh_ping (struct GSC_KeyExchangeInfo *kx)
  *
  * @param cls the `struct GSC_KeyExchangeInfo`
  * @param m the message
+ * @return #GNUNET_OK on success,
+ *    #GNUNET_NO to stop further processing (no error)
+ *    #GNUNET_SYSERR to stop further processing with error
  */
 static int
 deliver_message (void *cls,

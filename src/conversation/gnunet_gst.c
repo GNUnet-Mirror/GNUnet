@@ -649,6 +649,11 @@ gnunet_read (GNUNET_gstData * d)
 
 /**
  * Message callback
+ *
+ * @param msg message we received.
+ * @return #GNUNET_OK on success,
+ *     #GNUNET_NO to stop further processing due to disconnect (no error)
+ *     #GNUNET_SYSERR to stop further processing due to error
  */
 static int
 stdin_receiver (void *cls,

@@ -1477,23 +1477,6 @@ GNUNET_SERVER_connect_notify_cancel (struct GNUNET_SERVER_Handle *server,
 
 
 /**
- * Destroy the connection that is passed in via @a cls.  Used
- * as calling #GNUNET_CONNECTION_destroy from within a function
- * that was itself called from within process_notify() of
- * 'connection.c' is not allowed (see #2329).
- *
- * @param cls connection to destroy
- */
-static void
-destroy_connection (void *cls)
-{
-  struct GNUNET_CONNECTION_Handle *connection = cls;
-
-  GNUNET_CONNECTION_destroy (connection);
-}
-
-
-/**
  * Ask the server to disconnect from the given client.
  * This is the same as returning #GNUNET_SYSERR from a message
  * handler, except that it allows dropping of a client even
@@ -1565,8 +1548,7 @@ GNUNET_SERVER_client_disconnect (struct GNUNET_SERVER_Client *client)
     GNUNET_CONNECTION_persist_ (client->connection);
   if (NULL != client->th.cth)
     GNUNET_SERVER_notify_transmit_ready_cancel (&client->th);
-  (void) GNUNET_SCHEDULER_add_now (&destroy_connection,
-				   client->connection);
+  GNUNET_CONNECTION_destroy (client->connection);
   /* need to cancel again, as it might have been re-added
      in the meantime (i.e. during callbacks) */
   if (NULL != client->warn_task)
