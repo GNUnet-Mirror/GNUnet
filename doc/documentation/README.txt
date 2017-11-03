@@ -22,6 +22,13 @@ To be moved to an appropriate section of "how to write documentation" or
 
      We do this and the other thing.  This is done by foo.
 
+6. Use @footnote{} instead of putting an @*ref{} to the footnote on a
+   collected footnote-page.
+   In a 200+ pages handbook it's better to have footnotes accessible
+   without having to skip over to the end.
+
+6.1 Avoid unnecessary footnotes, keep the text self-explanatory and
+    in a simple language where possible/necessary.
 
 * Completion Levels:
 
