@@ -343,6 +343,16 @@ GNUNET_JSON_from_time_abs (struct GNUNET_TIME_Absolute stamp);
 
 
 /**
+ * Convert absolute timestamp to a json string.
+ *
+ * @param stamp the time stamp
+ * @return a json string with the timestamp in @a stamp
+ */
+json_t *
+GNUNET_JSON_from_time_abs_nbo (struct GNUNET_TIME_AbsoluteNBO stamp);
+
+
+/**
  * Convert relative timestamp to a json string.
  *
  * @param stamp the time stamp
