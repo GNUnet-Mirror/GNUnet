@@ -14,6 +14,15 @@ To be moved to an appropriate section of "how to write documentation" or
 
 4. Use neutral language and third person perspective in the text
 
+4.1 So, when you refer to a user in general or addressing the user,
+    refer to (1).
+4.1.1 Unsolved exceptions for canonical reasons:
+      When refering to Alice, use "she".
+      When refering to Bob, use "he".
+      These are long established examples and they
+      should either be replaced (avoid Alice and Bob
+      examples when you can) or followed.
+
 5. Use 2 spaces between sentences, so instead of:
 
      We do this and the other thing. This is done by foo.
