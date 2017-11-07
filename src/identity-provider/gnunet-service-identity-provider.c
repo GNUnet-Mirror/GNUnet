@@ -1576,6 +1576,7 @@ process_parallel_lookup2 (void *cls, uint32_t rd_count,
   struct ConsumeTicketResultMessage *crm;
   struct GNUNET_MQ_Envelope *env;
   struct GNUNET_IDENTITY_PROVIDER_AttributeListEntry *attr_le;
+  struct GNUNET_TIME_Absolute decrypt_duration;
   char *data;
   char *data_tmp;
   ssize_t attr_len;
@@ -1601,12 +1602,22 @@ process_parallel_lookup2 (void *cls, uint32_t rd_count,
     GNUNET_break(0);//TODO
   if (rd->record_type == GNUNET_GNSRECORD_TYPE_ID_ATTR)
   {
+    decrypt_duration = GNUNET_TIME_absolute_get ();
     attr_len = GNUNET_CRYPTO_cpabe_decrypt (rd->data + sizeof (uint32_t),
                                             rd->data_size - sizeof (uint32_t),
                                             handle->key,
                                             (void**)&data);
     if (GNUNET_SYSERR != attr_len) 
     {
+      GNUNET_STATISTICS_update (stats_handle,
+                                "abe_decrypt_time_total",
+                                GNUNET_TIME_absolute_get_duration (decrypt_duration).rel_value_us,
+                                GNUNET_YES);
+      GNUNET_STATISTICS_update (stats_handle,
+                                "abe_decrypt_count",
+                                1,
+                                GNUNET_YES);
+
       attr_le = GNUNET_new (struct GNUNET_IDENTITY_PROVIDER_AttributeListEntry);
       attr_le->attribute = attribute_deserialize (data,
                                                   attr_len);
