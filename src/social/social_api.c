@@ -1096,10 +1096,11 @@ handle_app_place_end (void *cls,
 
 
 /**
- * Handle an acknowledgement that a guest or host left a place.
+ * Handler for a #GNUNET_MESSAGE_TYPE_SOCIAL_PLACE_LEAVE_ACK message received
+ * from the social service.
  *
- * @param cls a `struct GNUNET_SOCIAL_Place`
- * @param msg the message from the service
+ * @param cls the place of type `struct GNUNET_SOCIAL_Place`
+ * @param msg the message received from the service
  */
 static void
 handle_place_leave_ack (void *cls,
