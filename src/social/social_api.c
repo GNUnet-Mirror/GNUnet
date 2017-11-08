@@ -371,6 +371,83 @@ struct ZoneAddNymHandle
 };
 
 
+/*** CLEANUP / DISCONNECT ***/
+
+
+static void
+host_cleanup (struct GNUNET_SOCIAL_Host *hst)
+{
+  if (NULL != hst->slicer)
+  {
+    GNUNET_PSYC_slicer_destroy (hst->slicer);
+    hst->slicer = NULL;
+  }
+  GNUNET_free (hst);
+}
+
+
+static void
+guest_cleanup (struct GNUNET_SOCIAL_Guest *gst)
+{
+  GNUNET_free (gst);
+}
+
+
+static void
+place_cleanup (struct GNUNET_SOCIAL_Place *plc)
+{
+  struct GNUNET_HashCode place_pub_hash;
+
+  GNUNET_CRYPTO_hash (&plc->pub_key, sizeof (plc->pub_key), &place_pub_hash);
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+              "%s place cleanup: %s\n",
+              GNUNET_YES == plc->is_host ? "host" : "guest",
+              GNUNET_h2s (&place_pub_hash));
+
+  if (NULL != plc->tmit)
+  {
+    GNUNET_PSYC_transmit_destroy (plc->tmit);
+    plc->tmit = NULL;
+  }
+  if (NULL != plc->connect_env)
+  {
+    GNUNET_MQ_discard (plc->connect_env);
+    plc->connect_env = NULL;
+  }
+  if (NULL != plc->mq)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                "destroying MQ (place_cleanup)\n");
+    GNUNET_MQ_destroy (plc->mq);
+    plc->mq = NULL;
+  }
+  if (NULL != plc->disconnect_cb)
+  {
+    plc->disconnect_cb (plc->disconnect_cls);
+    plc->disconnect_cb = NULL;
+  }
+
+  (GNUNET_YES == plc->is_host)
+    ? host_cleanup ((struct GNUNET_SOCIAL_Host *) plc)
+    : guest_cleanup ((struct GNUNET_SOCIAL_Guest *) plc);
+}
+
+
+static void
+place_disconnect (struct GNUNET_SOCIAL_Place *plc)
+{
+  struct GNUNET_HashCode place_pub_hash;
+
+  GNUNET_CRYPTO_hash (&plc->pub_key,
+                      sizeof (plc->pub_key),
+                      &place_pub_hash);
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+              "place_disconnect, plc = %s\n",
+              GNUNET_h2s (&place_pub_hash));
+  place_cleanup (plc);
+}
+
+
 /*** NYM ***/
 
 static struct GNUNET_SOCIAL_Nym *
@@ -1018,80 +1095,23 @@ handle_app_place_end (void *cls,
 }
 
 
-/*** CLEANUP / DISCONNECT ***/
-
-
+/**
+ * Handle an acknowledgement that a guest or host left a place.
+ *
+ * @param cls a `struct GNUNET_SOCIAL_Place`
+ * @param msg the message from the service
+ */
 static void
-host_cleanup (struct GNUNET_SOCIAL_Host *hst)
+handle_place_leave_ack (void *cls,
+                        const struct GNUNET_MessageHeader *msg)
 {
-  if (NULL != hst->slicer)
-  {
-    GNUNET_PSYC_slicer_destroy (hst->slicer);
-    hst->slicer = NULL;
-  }
-  GNUNET_free (hst);
-}
+  struct GNUNET_SOCIAL_Place *plc = cls;
 
-
-static void
-guest_cleanup (struct GNUNET_SOCIAL_Guest *gst)
-{
-  GNUNET_free (gst);
-}
-
-
-static void
-place_cleanup (struct GNUNET_SOCIAL_Place *plc)
-{
-  struct GNUNET_HashCode place_pub_hash;
-
-  GNUNET_CRYPTO_hash (&plc->pub_key, sizeof (plc->pub_key), &place_pub_hash);
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-              "%s place cleanup: %s\n",
-              GNUNET_YES == plc->is_host ? "host" : "guest",
-              GNUNET_h2s (&place_pub_hash));
-
-  if (NULL != plc->tmit)
-  {
-    GNUNET_PSYC_transmit_destroy (plc->tmit);
-    plc->tmit = NULL;
-  }
-  if (NULL != plc->connect_env)
-  {
-    GNUNET_MQ_discard (plc->connect_env);
-    plc->connect_env = NULL;
-  }
-  if (NULL != plc->mq)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                "destroying MQ (place_cleanup)\n");
-    GNUNET_MQ_destroy (plc->mq);
-    plc->mq = NULL;
-  }
-  if (NULL != plc->disconnect_cb)
-  {
-    plc->disconnect_cb (plc->disconnect_cls);
-    plc->disconnect_cb = NULL;
-  }
-
-  (GNUNET_YES == plc->is_host)
-    ? host_cleanup ((struct GNUNET_SOCIAL_Host *) plc)
-    : guest_cleanup ((struct GNUNET_SOCIAL_Guest *) plc);
-}
-
-
-static void
-place_disconnect (struct GNUNET_SOCIAL_Place *plc)
-{
-  struct GNUNET_HashCode place_pub_hash;
-
-  GNUNET_CRYPTO_hash (&plc->pub_key,
-                      sizeof (plc->pub_key),
-                      &place_pub_hash);
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-              "place_disconnect, plc = %s\n",
-              GNUNET_h2s (&place_pub_hash));
-  place_cleanup (plc);
+              "%s left place %p\n",
+              plc->is_host ? "host" : "guest", 
+              plc);
+  place_disconnect (plc);  
 }
 
 
@@ -1153,6 +1173,10 @@ host_connect (struct GNUNET_SOCIAL_Host *hst)
                              GNUNET_MESSAGE_TYPE_SOCIAL_HOST_ENTER_ACK,
                              struct HostEnterAck,
                              hst),
+    GNUNET_MQ_hd_fixed_size (place_leave_ack,
+                             GNUNET_MESSAGE_TYPE_SOCIAL_PLACE_LEAVE_ACK,
+                             struct GNUNET_MessageHeader,
+                             plc),
     GNUNET_MQ_hd_var_size (host_enter_request,
                            GNUNET_MESSAGE_TYPE_PSYC_JOIN_REQUEST,
                            struct GNUNET_PSYC_JoinRequestMessage,
@@ -1702,6 +1726,10 @@ guest_connect (struct GNUNET_SOCIAL_Guest *gst)
                              GNUNET_MESSAGE_TYPE_SOCIAL_GUEST_ENTER_ACK,
                              struct GNUNET_PSYC_CountersResultMessage,
                              gst),
+    GNUNET_MQ_hd_fixed_size (place_leave_ack,
+                             GNUNET_MESSAGE_TYPE_SOCIAL_PLACE_LEAVE_ACK,
+                             struct GNUNET_MessageHeader,
+                             plc),
     GNUNET_MQ_hd_var_size (guest_enter_decision,
                            GNUNET_MESSAGE_TYPE_PSYC_JOIN_DECISION,
                            struct GNUNET_PSYC_JoinDecisionMessage,

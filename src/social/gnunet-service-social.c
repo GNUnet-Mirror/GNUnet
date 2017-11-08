@@ -2227,6 +2227,8 @@ handle_client_place_leave (void *cls,
   struct Client *c = cls;
   struct GNUNET_SERVICE_Client *client = c->client;
   struct Place *plc = c->place;
+  struct GNUNET_MQ_Envelope *env;
+  struct GNUNET_MessageHeader *ack_msg;
 
   GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
               "handle_client_place_leave\n");
@@ -2255,9 +2257,10 @@ handle_client_place_leave (void *cls,
        NULL != cli;
        cli = cli->next)
   {
-    // protocol design failure: should *tell* clients that room is gone!
-    if (client != cli->client)
-      GNUNET_SERVICE_client_drop (cli->client);
+    env = GNUNET_MQ_msg (ack_msg,
+                         GNUNET_MESSAGE_TYPE_SOCIAL_PLACE_LEAVE_ACK);
+    GNUNET_MQ_send (GNUNET_SERVICE_client_get_mq (cli->client),
+                    env); 
   }
 
   if (GNUNET_YES != plc->is_disconnected)
