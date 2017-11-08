@@ -360,7 +360,7 @@ GNUNET_MQ_send (struct GNUNET_MQ_Handle *mq,
   GNUNET_assert (NULL == mq->envelope_head);
   mq->current_envelope = ev;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "mq: sending message of type %u, queue empty\n",
               ntohs(ev->mh->type));
 
@@ -460,8 +460,9 @@ impl_send_continue (void *cls)
 			       mq->envelope_tail,
 			       mq->current_envelope);
 
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-              "mq: sending message of type %u from queue\n", ntohs(mq->current_envelope->mh->type));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "mq: sending message of type %u from queue\n",
+              ntohs(mq->current_envelope->mh->type));
 
   mq->send_impl (mq,
 		 mq->current_envelope->mh,
@@ -946,8 +947,9 @@ GNUNET_MQ_send_cancel (struct GNUNET_MQ_Envelope *ev)
                                    mq->envelope_tail,
                                    mq->current_envelope);
 
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                  "mq: sending canceled message of type %u queue\n", ntohs(ev->mh->type));
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "mq: sending canceled message of type %u queue\n",
+                  ntohs(ev->mh->type));
 
       mq->send_impl (mq,
 		     mq->current_envelope->mh,

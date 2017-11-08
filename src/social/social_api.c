@@ -1063,7 +1063,7 @@ place_cleanup (struct GNUNET_SOCIAL_Place *plc)
   }
   if (NULL != plc->mq)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "destroying MQ (place_cleanup)\n");
     GNUNET_MQ_destroy (plc->mq);
     plc->mq = NULL;
@@ -1088,7 +1088,7 @@ place_disconnect (struct GNUNET_SOCIAL_Place *plc)
   GNUNET_CRYPTO_hash (&plc->pub_key,
                       sizeof (plc->pub_key),
                       &place_pub_hash);
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "place_disconnect, plc = %s\n",
               GNUNET_h2s (&place_pub_hash));
   place_cleanup (plc);
