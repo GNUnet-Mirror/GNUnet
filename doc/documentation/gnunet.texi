@@ -113,11 +113,12 @@ in the respective authors file or section, please do let us know.
 * GNUnet Installation Handbook::    How to install GNUnet
 * Using GNUnet::                    Using GNUnet
 * Configuration Handbook::          Configuring GNUnet
+* GNUnet Contributors Handbook::    Contributing to GNUnet
 * GNUnet Developer Handbook::       Developing GNUnet
-* GNU Free Documentation License::  The license of this manual.
-* GNU General Public License::      The license of this manual.
-* Concept Index::                   Concepts.
-* Programming Index::               Data types, functions, and variables.
+* GNU Free Documentation License::  The license of this manual
+* GNU General Public License::      The license of this manual
+* Concept Index::                   Concepts
+* Programming Index::               Data types, functions, and variables
 
 @detailmenu
  --- The Detailed Node Listing ---
@@ -173,6 +174,13 @@ Using GNUnet
 * File-sharing::
 * The GNU Name System::
 * Using the Virtual Public Network::
+
+GNUnet Contributors Handbook
+
+* Contributing to GNUnet::
+* Licenses of contributions::
+* Copyright Assignment::
+* Contributing to the Reference Manual::
 
 GNUnet Developer Handbook
 

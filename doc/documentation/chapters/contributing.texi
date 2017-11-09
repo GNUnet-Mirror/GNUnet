@@ -1,0 +1,55 @@
+@node GNUnet Contributors Manual
+@chapter GNUnet Contributors Manual
+
+@menu
+* Contributing to GNUnet::
+* Licenses of contributions::
+* Copyright Assignment::
+* Contributing to the Reference Manual::
+@end menu
+
+@node Contributing to GNUnet
+@section Contributing to GNUnet
+
+@node Licenses of contributions
+@section Licenses of contributions
+
+GNUnet is a @uref{https://www.gnu.org/, GNU} package.
+All code contributions must thus be put under the
+@uref{https://www.gnu.org/copyleft/gpl.html, GNU Public License (GPL)}.
+All documentation should be put under FSF approved licenses
+(see @uref{https://www.gnu.org/copyleft/fdl.html, fdl}).
+
+By submitting documentation, translations, and other content to GNUnet
+you automatically grant the right to publish code under the
+GNU Public License and documentation under either or both the
+GNU Public License or the GNU Free Documentation License.
+When contributing to the GNUnet project, GNU standards and the
+@uref{https://www.gnu.org/philosophy/philosophy.html, GNU philosophy}
+should be adhered to.
+
+@cindex copyright assignment
+@node Copyright Assignment
+@section Copyright Assignment
+We require a formal copyright assignment for GNUnet contributors
+to GNUnet e.V.; nevertheless, we do allow pseudonymous contributions.
+By signing the copyright agreement and submitting your code (or
+documentation) to us, you agree to share the rights to your code
+with GNUnet e.V.; GNUnet e.V. receives non-exclusive ownership
+rights, and in particular is allowed to dual-license the code. You
+retain non-exclusive rights to your contributions, so you can also
+share your contributions freely with other projects.
+
+GNUnet e.V. will publish all accepted contributions under the GPLv3
+or any later version. The association may decide to publish
+contributions under additional licenses (dual-licensing).
+
+We do not intentionally remove your name from your contributions;
+however, due to extensive editing it is not always trivial to
+attribute contributors properly. If you find that you significantly
+contributed to a file (or the project as a whole) and are not listed
+in the respective authors file or section, please do let us know.
+
+@node Contributing to the Reference Manual
+@section Contributing to the Reference Manual
+
