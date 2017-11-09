@@ -162,8 +162,6 @@ GNUnet Installation Handbook
 * The graphical configuration interface::
 * How to start and stop a GNUnet peer::
 
-Configuration Handbook
-
 Using GNUnet
 
 * Checking the Installation::
@@ -174,6 +172,8 @@ Using GNUnet
 * File-sharing::
 * The GNU Name System::
 * Using the Virtual Public Network::
+
+Configuration Handbook
 
 GNUnet Contributors Handbook
 
@@ -239,6 +239,8 @@ GNUnet Developer Handbook
 @c *********************************************************************
 
 @include chapters/configuration.texi
+
+@include chapters/contributing.texi
 
 @c *********************************************************************
 @include chapters/developer.texi

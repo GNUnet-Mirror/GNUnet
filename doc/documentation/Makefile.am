@@ -116,6 +116,7 @@ gnunet_TEXINFOS = 						\
 	chapters/user.texi 					\
 	chapters/vocabulary.texi				\
 	chapters/configuration.texi				\
+	chapters/contributing.texi				\
 	fdl-1.3.texi 						\
 	gpl-3.0.texi
 
