@@ -2398,35 +2398,38 @@ extern "C"
 /** C->S: request to leave a place */
 #define GNUNET_MESSAGE_TYPE_SOCIAL_PLACE_LEAVE 848
 
+/** S->C: place leave acknowledgement */
+#define GNUNET_MESSAGE_TYPE_SOCIAL_PLACE_LEAVE_ACK 849
+
 /** C->S: add place to GNS zone */
-#define GNUNET_MESSAGE_TYPE_SOCIAL_ZONE_ADD_PLACE 849
+#define GNUNET_MESSAGE_TYPE_SOCIAL_ZONE_ADD_PLACE 850
 
 /** C->S: add nym to GNS zone */
-#define GNUNET_MESSAGE_TYPE_SOCIAL_ZONE_ADD_NYM 850
+#define GNUNET_MESSAGE_TYPE_SOCIAL_ZONE_ADD_NYM 851
 
 /** C->S: connect application */
-#define GNUNET_MESSAGE_TYPE_SOCIAL_APP_CONNECT 851
+#define GNUNET_MESSAGE_TYPE_SOCIAL_APP_CONNECT 852
 
 /** C->S: detach a place from application */
-#define GNUNET_MESSAGE_TYPE_SOCIAL_APP_DETACH 852
+#define GNUNET_MESSAGE_TYPE_SOCIAL_APP_DETACH 853
 
 /** S->C: notify about an existing ego */
-#define GNUNET_MESSAGE_TYPE_SOCIAL_APP_EGO 853
+#define GNUNET_MESSAGE_TYPE_SOCIAL_APP_EGO 854
 
 /** S->C: end of ego list */
-#define GNUNET_MESSAGE_TYPE_SOCIAL_APP_EGO_END 854
+#define GNUNET_MESSAGE_TYPE_SOCIAL_APP_EGO_END 855
 
 /** S->C: notify about an existing place */
-#define GNUNET_MESSAGE_TYPE_SOCIAL_APP_PLACE 855
+#define GNUNET_MESSAGE_TYPE_SOCIAL_APP_PLACE 856
 
 /** S->C: end of place list */
-#define GNUNET_MESSAGE_TYPE_SOCIAL_APP_PLACE_END 856
+#define GNUNET_MESSAGE_TYPE_SOCIAL_APP_PLACE_END 857
 
 /** C->S: set message processing flags */
-#define GNUNET_MESSAGE_TYPE_SOCIAL_MSG_PROC_SET 860
+#define GNUNET_MESSAGE_TYPE_SOCIAL_MSG_PROC_SET 858
 
 /** C->S: clear message processing flags */
-#define GNUNET_MESSAGE_TYPE_SOCIAL_MSG_PROC_CLEAR 861
+#define GNUNET_MESSAGE_TYPE_SOCIAL_MSG_PROC_CLEAR 859
 
 /*******************************************************************************
  * X-VINE DHT messages
