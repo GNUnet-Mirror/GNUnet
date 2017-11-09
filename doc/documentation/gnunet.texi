@@ -143,6 +143,7 @@ Philosophy
 
 Vocabulary
 
+* Definitions abbreviations and acronyms::
 * Words and characters::
 * Technical Assumptions::
 
