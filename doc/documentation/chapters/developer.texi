@@ -3488,36 +3488,36 @@ transport level. Such an attack would not allow the adversary to decrypt
 the P2P transmissions, but a successful attacker could at least measure
 traffic volumes and latencies (raising the adversaries capablities by
 those of a global passive adversary in the worst case). The scenarios we
-are concerned about is an attacker, Mallory, giving a HELLO to Alice that
-claims to be for Bob, but contains Mallory's IP address instead of Bobs
-(for some transport). Mallory would then forward the traffic to Bob (by
-initiating a connection to Bob and claiming to be Alice). As a further
+are concerned about is an attacker, Mallory, giving a @code{HELLO} to
+Alice that claims to be for Bob, but contains Mallory's IP address
+instead of Bobs (for some transport).
+Mallory would then forward the traffic to Bob (by initiating a
+connection to Bob and claiming to be Alice). As a further
 complication, the scheme has to work even if say Alice is behind a NAT
-without traversal support and hence has no address of their own (and thus
+without traversal support and hence has no address of her own (and thus
 Alice must always initiate the connection to Bob).
 
-An additional constraint is that HELLO messages do not contain a
+An additional constraint is that @code{HELLO} messages do not contain a
 cryptographic signature since other peers must be able to edit
-(i.e. remove) addresses from the HELLO at any time (this was not true in
-GNUnet 0.8.x). A basic @strong{assumption} is that each peer knows the
-set of possible network addresses that it @strong{might} be reachable
-under (so for example, the external IP address of the NAT plus the LAN
-address(es) with the respective ports).
+(i.e. remove) addresses from the @code{HELLO} at any time (this was
+not true in GNUnet 0.8.x). A basic @strong{assumption} is that each peer
+knows the set of possible network addresses that it @strong{might}
+be reachable under (so for example, the external IP address of the
+NAT plus the LAN address(es) with the respective ports).
 
 The solution is the following. If Alice wants to validate that a given
 address for Bob is valid (i.e. is actually established @strong{directly}
-with the intended target), it sends a PING message over that connection
+with the intended target), she sends a PING message over that connection
 to Bob. Note that in this case, Alice initiated the connection so only
-Alice knows which address was used for sure (Alice maybe behind NAT, so
-whatever address Bob sees may not be an address Alice knows they have).
-Bob
-checks that the address given in the PING is actually one of Bob's
-addresses
-(does not belong to Mallory), and if it is, sends back a PONG (with a
-signature that says that Bob owns/uses the address from the PING). Alice
-checks the signature and is happy if it is valid and the address in the
-PONG is the address Alice used.
-This is similar to the 0.8.x protocol where the HELLO contained a
+Alice knows which address was used for sure (Alice may be behind NAT, so
+whatever address Bob sees may not be an address Alice knows she has).
+Bob checks that the address given in the @code{PING} is actually one
+of Bob's addresses (ie: does not belong to Mallory), and if it is,
+sends back a @code{PONG} (with a signature that says that Bob
+owns/uses the address from the @code{PING}).
+Alice checks the signature and is happy if it is valid and the address
+in the @code{PONG} is the address Alice used.
+This is similar to the 0.8.x protocol where the @code{HELLO} contained a
 signature from Bob for each address used by Bob.
 Here, the purpose code for the signature is
 @code{GNUNET_SIGNATURE_PURPOSE_TRANSPORT_PONG_OWN}. After this, Alice will
@@ -3527,9 +3527,13 @@ considers Bob's address to be valid, the connection itself is not
 considered 'established'. In particular, Alice may have many addresses
 for Bob that Alice considers valid.
 
-The PONG message is protected with a nonce/challenge against replay
-attacks and uses an expiration time for the signature (but those are
-almost implementation details).
+@c TODO: reference Footnotes so that I don't have to duplicate the
+@c footnotes or add them to an index at the end. Is this possible at
+@c all in Texinfo?
+The @code{PONG} message is protected with a nonce/challenge against replay
+attacks@footnote{@uref{http://en.wikipedia.org/wiki/Replay_attack, replay}}
+and uses an expiration time for the signature (but those are almost
+implementation details).
 
 @cindex NAT library
 @node NAT library
@@ -3624,8 +3628,14 @@ chain (or delivered to the current peer, if it has arrived at the
 destination).
 
 Assume a three peer network with peers Alice, Bob and Carol. Assume that
-Alice <-> Bob and Bob <-> Carol are direct (e.g. over TCP or UDP
-transports) connections, but that Alice cannot directly connect to Carol.
+
+@example
+Alice <-> Bob and Bob <-> Carol
+@end example
+
+@noindent
+are direct (e.g. over TCP or UDP transports) connections, but that
+Alice cannot directly connect to Carol.
 This may be the case due to NAT or firewall restrictions, or perhaps
 based on one of the peers respective configurations. If the Distance
 Vector transport is enabled on all three peers, it will automatically
@@ -3636,10 +3646,10 @@ Carol and notifies the DV transport about it. The DV transport at Alice
 looks up Carol in the routing table and finds that the message must be
 sent through Bob for Carol. The message is encapsulated setting Alice as
 the initiator and Carol as the destination and sent to Bob. Bob receives
-the messages, verifies both Alice and Carol are known to Bob, and re-wraps
-the message in a new DV message for Carol. The DV transport at Carol
-receives this message, unwraps the original message, and delivers it to
-Carol as though it came directly from Alice.
+the messages, verifies that both Alice and Carol are known to Bob, and
+re-wraps the message in a new DV message for Carol.
+The DV transport at Carol receives this message, unwraps the original
+message, and delivers it to Carol as though it came directly from Alice.
 
 @cindex SMTP plugin
 @node SMTP plugin
