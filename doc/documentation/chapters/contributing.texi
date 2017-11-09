@@ -1,5 +1,5 @@
-@node GNUnet Contributors Manual
-@chapter GNUnet Contributors Manual
+@node GNUnet Contributors Handbook
+@chapter GNUnet Contributors Handbook
 
 @menu
 * Contributing to GNUnet::
