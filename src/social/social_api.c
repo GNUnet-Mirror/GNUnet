@@ -399,11 +399,6 @@ place_cleanup (struct GNUNET_SOCIAL_Place *plc)
   struct GNUNET_HashCode place_pub_hash;
 
   GNUNET_CRYPTO_hash (&plc->pub_key, sizeof (plc->pub_key), &place_pub_hash);
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-              "%s place cleanup: %s\n",
-              GNUNET_YES == plc->is_host ? "host" : "guest",
-              GNUNET_h2s (&place_pub_hash));
-
   if (NULL != plc->tmit)
   {
     GNUNET_PSYC_transmit_destroy (plc->tmit);
@@ -416,8 +411,6 @@ place_cleanup (struct GNUNET_SOCIAL_Place *plc)
   }
   if (NULL != plc->mq)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                "destroying MQ (place_cleanup)\n");
     GNUNET_MQ_destroy (plc->mq);
     plc->mq = NULL;
   }
@@ -441,9 +434,6 @@ place_disconnect (struct GNUNET_SOCIAL_Place *plc)
   GNUNET_CRYPTO_hash (&plc->pub_key,
                       sizeof (plc->pub_key),
                       &place_pub_hash);
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-              "place_disconnect, plc = %s\n",
-              GNUNET_h2s (&place_pub_hash));
   place_cleanup (plc);
 }
 
@@ -505,7 +495,7 @@ host_recv_notice_place_leave_method (void *cls,
 
   struct GNUNET_SOCIAL_Nym *nym = nym_get_or_create (&msg->slave_pub_key);
 
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Host received method for message ID %" PRIu64 " from nym %s: %s\n",
               message_id, GNUNET_h2s (&nym->pub_key_hash), method_name);
 
@@ -513,7 +503,7 @@ host_recv_notice_place_leave_method (void *cls,
   hst->notice_place_leave_env = GNUNET_PSYC_env_create ();
 
   char *str = GNUNET_CRYPTO_ecdsa_public_key_to_string (&hst->notice_place_leave_nym->pub_key);
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "_notice_place_leave: got method from nym %s (%s).\n",
               GNUNET_h2s (&hst->notice_place_leave_nym->pub_key_hash), str);
   GNUNET_free (str);
@@ -535,7 +525,7 @@ host_recv_notice_place_leave_modifier (void *cls,
   if (NULL == hst->notice_place_leave_env)
     return;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Host received modifier for _notice_place_leave message with ID %" PRIu64 ":\n"
               "%c%s: %.*s\n",
               message_id, oper, name, value_size, (const char *) value);
@@ -562,7 +552,7 @@ host_recv_notice_place_leave_eom (void *cls,
     return;
 
   char *str = GNUNET_CRYPTO_ecdsa_public_key_to_string (&hst->notice_place_leave_nym->pub_key);
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "_notice_place_leave: got EOM from nym %s (%s).\n",
               GNUNET_h2s (&hst->notice_place_leave_nym->pub_key_hash), str);
   GNUNET_free (str);
@@ -895,9 +885,6 @@ handle_host_enter_request (void *cls,
 {
   struct GNUNET_SOCIAL_Host *hst = cls;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-              "handle_host_enter_request\n");
-
   if (NULL == hst->answer_door_cb)
      return;
 
@@ -1108,7 +1095,7 @@ handle_place_leave_ack (void *cls,
 {
   struct GNUNET_SOCIAL_Place *plc = cls;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "%s left place %p\n",
               plc->is_host ? "host" : "guest", 
               plc);
@@ -1151,8 +1138,6 @@ host_disconnected (void *cls, enum GNUNET_MQ_Error error)
   }
   if (NULL != plc->mq)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                "destroying MQ (host_disconnected)\n");
     GNUNET_MQ_destroy (plc->mq);
     plc->mq = NULL;
   }
@@ -1624,8 +1609,6 @@ GNUNET_SOCIAL_host_leave (struct GNUNET_SOCIAL_Host *hst,
   struct GNUNET_MessageHeader *msg;
   struct GNUNET_MQ_Envelope *envelope;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-              "GNUNET_SOCIAL_host_leave\n");
   GNUNET_SOCIAL_host_announce (hst, "_notice_place_closing", env, NULL, NULL,
                                GNUNET_SOCIAL_ANNOUNCE_NONE);
   hst->plc.disconnect_cb = disconnect_cb;
@@ -1672,8 +1655,6 @@ guest_disconnected (void *cls, enum GNUNET_MQ_Error error)
   }
   if (NULL != plc->mq)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                "destroying MQ (guest_disconnected)\n");
     GNUNET_MQ_destroy (plc->mq);
     plc->mq = NULL;
   }
@@ -2059,9 +2040,6 @@ GNUNET_SOCIAL_guest_disconnect (struct GNUNET_SOCIAL_Guest *gst,
 {
   struct GNUNET_SOCIAL_Place *plc = &gst->plc;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-              "GNUNET_SOCIAL_guest_disconnect, gst = %p\n",
-              gst);
   plc->disconnect_cb = disconnect_cb;
   plc->disconnect_cls = cls;
   place_disconnect (plc);
@@ -2095,10 +2073,6 @@ GNUNET_SOCIAL_guest_leave (struct GNUNET_SOCIAL_Guest *gst,
 
   GNUNET_SOCIAL_guest_talk (gst, "_notice_place_leave", env, NULL, NULL,
                             GNUNET_SOCIAL_TALK_NONE);
-
-
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-              "social_api: place_leave\n");
   gst->plc.disconnect_cb = disconnect_cb;
   gst->plc.disconnect_cls = cls;
   envelope = GNUNET_MQ_msg (msg,
