@@ -469,6 +469,7 @@ handle_response (void *cls,
   uint16_t size;
   char *nret;
 
+  GNUNET_assert (NULL != rh);
   size = ntohs (msg->size);
   if (size == sizeof (struct GNUNET_MessageHeader))
   {
