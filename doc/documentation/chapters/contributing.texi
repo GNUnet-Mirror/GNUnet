@@ -53,3 +53,47 @@ in the respective authors file or section, please do let us know.
 @node Contributing to the Reference Manual
 @section Contributing to the Reference Manual
 
+@itemize @bullet
+
+@item When writing documentation, please use
+@uref{https://en.wikipedia.org/wiki/Singular_they, gender-neutral wording}
+when referring to people, such as singular “they”, “their”, “them”, and so
+forth.
+
+@item Keep line length below 74 characters, except for URLs.
+URLs break in the PDF output when they contain linebreaks.
+
+@item Do not use tab characters (see chapter 2.1 texinfo manual)
+
+@item Use neutral language and third person perspective in the text
+
+@item So, when you refer to a user in general or addressing the user,
+refer to (1).
+@itemize @bullet
+@item Unsolved exceptions for canonical reasons: When refering to Alice,
+use "she". When refering to Bob, use "he". These are long established
+examples and they should either be replaced (avoid Alice and Bob
+examples when you can) or followed.
+@end itemize
+
+@item Use 2 spaces between sentences, so instead of:
+
+@example
+We do this and the other thing. This is done by foo.
+@end example
+
+Write:
+
+@example
+We do this and the other thing.  This is done by foo.
+@end example
+
+@item Use @@footnote@{@} instead of putting an @@*ref@{@} to the
+footnote on a collected footnote-page.
+In a 200+ pages handbook it's better to have footnotes accessible
+without having to skip over to the end.
+
+@item Avoid unnecessary footnotes, keep the text self-explanatory and
+in a simple language where possible/necessary.
+
+@end itemize
