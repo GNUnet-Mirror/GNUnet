@@ -230,11 +230,11 @@ GNUNET_GETOPT_option_filename (char shortName,
  */
 struct GNUNET_GETOPT_CommandLineOption
 GNUNET_GETOPT_option_base32_fixed_size (char shortName,
-                                            const char *name,
-                                            const char *argumentHelp,
-                                            const char *description,
-                                            void *val,
-                                            size_t val_size);
+                                        const char *name,
+                                        const char *argumentHelp,
+                                        const char *description,
+                                        void *val,
+                                        size_t val_size);
 
 
 /**
@@ -264,9 +264,9 @@ GNUNET_GETOPT_option_base32_fixed_size (char shortName,
  */
 struct GNUNET_GETOPT_CommandLineOption
 GNUNET_GETOPT_option_flag (char shortName,
-                              const char *name,
-                              const char *description,
-                              int *val);
+                           const char *name,
+                           const char *description,
+                           int *val);
 
 
 /**
@@ -280,10 +280,10 @@ GNUNET_GETOPT_option_flag (char shortName,
  */
 struct GNUNET_GETOPT_CommandLineOption
 GNUNET_GETOPT_option_uint (char shortName,
-                               const char *name,
-                               const char *argumentHelp,
-                               const char *description,
-                               unsigned int *val);
+                           const char *name,
+                           const char *argumentHelp,
+                           const char *description,
+                           unsigned int *val);
 
 
 /**
@@ -297,10 +297,10 @@ GNUNET_GETOPT_option_uint (char shortName,
  */
 struct GNUNET_GETOPT_CommandLineOption
 GNUNET_GETOPT_option_ulong (char shortName,
-                                const char *name,
-                                const char *argumentHelp,
-                                const char *description,
-                                unsigned long long *val);
+                            const char *name,
+                            const char *argumentHelp,
+                            const char *description,
+                            unsigned long long *val);
 
 
 /**
@@ -315,10 +315,10 @@ GNUNET_GETOPT_option_ulong (char shortName,
  */
 struct GNUNET_GETOPT_CommandLineOption
 GNUNET_GETOPT_option_relative_time (char shortName,
-                                        const char *name,
-                                        const char *argumentHelp,
-                                        const char *description,
-                                        struct GNUNET_TIME_Relative *val);
+                                    const char *name,
+                                    const char *argumentHelp,
+                                    const char *description,
+                                    struct GNUNET_TIME_Relative *val);
 
 
 /**
@@ -333,10 +333,10 @@ GNUNET_GETOPT_option_relative_time (char shortName,
  */
 struct GNUNET_GETOPT_CommandLineOption
 GNUNET_GETOPT_option_absolute_time (char shortName,
-                                        const char *name,
-                                        const char *argumentHelp,
-                                        const char *description,
-                                        struct GNUNET_TIME_Absolute *val);
+                                    const char *name,
+                                    const char *argumentHelp,
+                                    const char *description,
+                                    struct GNUNET_TIME_Absolute *val);
 
 
 /**
@@ -350,9 +350,9 @@ GNUNET_GETOPT_option_absolute_time (char shortName,
  */
 struct GNUNET_GETOPT_CommandLineOption
 GNUNET_GETOPT_option_increment_uint (char shortName,
-                                      const char *name,
-                                      const char *description,
-                                      unsigned int *val);
+                                     const char *name,
+                                     const char *description,
+                                     unsigned int *val);
 
 
 /**
