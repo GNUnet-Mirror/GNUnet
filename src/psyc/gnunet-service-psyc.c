@@ -508,8 +508,8 @@ cleanup_master (struct Master *mst)
 {
   struct Channel *chn = &mst->channel;
 
-  if (NULL != mst->origin)
-    GNUNET_MULTICAST_origin_stop (mst->origin, NULL, NULL); // FIXME
+  //if (NULL != mst->origin)
+  //  GNUNET_MULTICAST_origin_stop (mst->origin, cleanup_cb, cleanup_cls);
   GNUNET_CONTAINER_multihashmap_destroy (mst->join_reqs);
   GNUNET_CONTAINER_multihashmap_remove (masters, &chn->pub_key_hash, mst);
 }
@@ -546,11 +546,11 @@ cleanup_slave (struct Slave *slv)
     GNUNET_free (slv->relays);
     slv->relays = NULL;
   }
-  if (NULL != slv->member)
-  {
-    GNUNET_MULTICAST_member_part (slv->member, NULL, NULL); // FIXME
-    slv->member = NULL;
-  }
+  //if (NULL != slv->member)
+  //{
+  //  GNUNET_MULTICAST_member_part (slv->member, cleanup_cb, cleanup_cls);
+  //  slv->member = NULL;
+  //}
   GNUNET_CONTAINER_multihashmap_remove (slaves, &chn->pub_key_hash, slv);
 }
 
@@ -646,14 +646,15 @@ client_notify_disconnect (void *cls,
                 (GNUNET_YES == chn->is_master) ? "master" : "slave",
                 GNUNET_h2s (&chn->pub_key_hash));
     chn->is_disconnected = GNUNET_YES;
-    if (NULL != chn->tmit_head)
-    { /* Send pending messages to multicast before cleanup. */
-      transmit_message (chn);
-    }
-    else
-    {
-      cleanup_channel (chn);
-    }
+    cleanup_channel (chn);
+    //if (NULL != chn->tmit_head)
+    //{ /* Send pending messages to multicast before cleanup. */
+    //  transmit_message (chn);
+    //}
+    //else
+    //{
+    //  cleanup_channel (chn);
+    //}
   }
 }
 
@@ -2037,6 +2038,43 @@ handle_client_join_decision (void *cls,
 }
 
 
+static void
+channel_part_cb (void *cls)
+{
+  struct GNUNET_SERVICE_Client *client = cls;
+  struct GNUNET_MQ_Envelope *env;
+
+  env = GNUNET_MQ_msg_header (GNUNET_MESSAGE_TYPE_PSYC_PART_ACK);
+  GNUNET_MQ_send (GNUNET_SERVICE_client_get_mq (client),
+                  env);
+}
+
+
+static void
+handle_client_part_request (void *cls,
+                            const struct GNUNET_MessageHeader *msg)
+{
+  struct Client *c = cls;
+
+  if (GNUNET_YES == c->channel->is_master)
+  {
+    struct Master *mst = (struct Master *) c->channel;
+
+    GNUNET_assert (NULL != mst->origin);
+    GNUNET_MULTICAST_origin_stop (mst->origin, channel_part_cb, c->client);
+    mst->origin = NULL;
+  }
+  else
+  {
+    struct Slave *slv = (struct Slave *) c->channel;
+
+    GNUNET_assert (NULL != slv->member);
+    GNUNET_MULTICAST_member_part (slv->member, channel_part_cb, c->client);
+    slv->member = NULL;
+  }
+}
+
+
 /**
  * Send acknowledgement to a client.
  *
@@ -2805,6 +2843,10 @@ GNUNET_SERVICE_MAIN
                         GNUNET_MESSAGE_TYPE_PSYC_JOIN_DECISION,
                         struct GNUNET_PSYC_JoinDecisionMessage,
                         NULL),
+ GNUNET_MQ_hd_fixed_size (client_part_request,
+                          GNUNET_MESSAGE_TYPE_PSYC_PART_REQUEST,
+                          struct GNUNET_MessageHeader,
+                          NULL),
  GNUNET_MQ_hd_var_size (client_psyc_message,
                         GNUNET_MESSAGE_TYPE_PSYC_MESSAGE,
                         struct GNUNET_MessageHeader,
