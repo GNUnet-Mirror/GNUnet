@@ -76,17 +76,20 @@ examples and they should either be replaced (avoid Alice and Bob
 examples when you can) or followed.
 @end itemize
 
-@item Use 2 spaces between sentences, so instead of:
+@c FIXME: This is questionable, it feels like bike shed painging to do
+@c this for several k lines. It only helps to jump between sentences in
+@c editors afaik.
+@c @item Use 2 spaces between sentences, so instead of:
 
-@example
-We do this and the other thing. This is done by foo.
-@end example
+@c @example
+@c We do this and the other thing. This is done by foo.
+@c @end example
 
-Write:
+@c Write:
 
-@example
-We do this and the other thing.  This is done by foo.
-@end example
+@c @example
+@c We do this and the other thing.  This is done by foo.
+@c @end example
 
 @item Use @@footnote@{@} instead of putting an @@*ref@{@} to the
 footnote on a collected footnote-page.
