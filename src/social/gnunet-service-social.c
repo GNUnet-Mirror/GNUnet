@@ -635,6 +635,22 @@ place_send_msg (const struct Place *plc,
 }
 
 
+static void
+place_send_leave_ack (const struct Place *plc)
+{
+  struct GNUNET_MQ_Envelope *env;
+  
+  for (struct ClientListItem *cli = plc->clients_head;
+       NULL != cli;
+       cli = cli->next)
+  {
+    env = GNUNET_MQ_msg_header (GNUNET_MESSAGE_TYPE_SOCIAL_PLACE_LEAVE_ACK);
+    GNUNET_MQ_send (GNUNET_SERVICE_client_get_mq (cli->client),
+                    env); 
+  }
+}
+
+
 /**
  * Send a result code back to the client.
  *
@@ -2139,7 +2155,6 @@ handle_client_place_leave (void *cls,
   struct Client *c = cls;
   struct GNUNET_SERVICE_Client *client = c->client;
   struct Place *plc = c->place;
-  struct GNUNET_MQ_Envelope *env;
 
   if (NULL == plc)
   {
@@ -2148,24 +2163,22 @@ handle_client_place_leave (void *cls,
     return;
   }
 
-  for (struct ClientListItem *cli = plc->clients_head;
-       NULL != cli;
-       cli = cli->next)
-  {
-    env = GNUNET_MQ_msg_header (GNUNET_MESSAGE_TYPE_SOCIAL_PLACE_LEAVE_ACK);
-    GNUNET_MQ_send (GNUNET_SERVICE_client_get_mq (cli->client),
-                    env); 
-  }
-
   if (GNUNET_YES != plc->is_disconnected)
   {
     plc->is_disconnected = GNUNET_YES;
     if (NULL != plc->tmit_msgs_head)
     { /* Send pending messages to PSYC before cleanup. */
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                  "not cleaning up place of client %p\n",
+                  client);
       psyc_transmit_message (plc);
     }
     else
     {
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                  "cleaning up place of client %p\n",
+                  client);
+      place_send_leave_ack (plc);
       cleanup_place (plc);
       c->place = NULL;
     }
@@ -2867,6 +2880,9 @@ handle_client_psyc_message (void *cls,
 
   if (NULL == plc)
   {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                "received PSYC message for non-existing client %p\n",
+                client);
     GNUNET_break (0);
     GNUNET_SERVICE_client_drop (client);
     return;
