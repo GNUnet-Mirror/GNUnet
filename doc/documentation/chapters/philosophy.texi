@@ -2,6 +2,9 @@
 @node Philosophy
 @chapter Philosophy
 
+@c NOTE: We should probably re-use some of the images lynX created
+@c for secushare, showing some of the relations and functionalities
+@c of GNUnet.
 The foremost goal of the GNUnet project is to become a widely used,
 reliable, open, non-discriminating, egalitarian, unfettered and
 censorship-resistant system of free information exchange.
@@ -32,7 +35,12 @@ decentralized Internet protocols.
 These are the core GNUnet design goals, in order of relative importance:
 
 @itemize
-@item GNUnet must be implemented as free software.
+@item GNUnet must be implemented as
+@uref{https://www.gnu.org/philosophy/free-sw.html, Free Software}
+@c To footnote or not to footnote, that's the question.
+@footnote{This means that you you have the four essential freedoms: to run
+the program, to study and change the program in source code form,
+to redistribute exact copies, and to distribute modified versions.}
 @item GNUnet must only disclose the minimal amount of information
 necessary.
 @item GNUnet must be decentralised and survive Byzantine failures in any
@@ -124,6 +132,8 @@ with the goals of the group is always preferable.
 @section Key Concepts
 
 In this section, the fundamental concepts of GNUnet are explained.
+@c FIXME: Use @uref{https://docs.gnunet.org/whatever/, research papers}
+@c once we have the new bibliography + subdomain setup.
 Most of them are also described in our research papers.
 First, some of the concepts used in the GNUnet framework are detailed.
 The second part describes concepts specific to anonymous file-sharing.
@@ -146,15 +156,24 @@ The second part describes concepts specific to anonymous file-sharing.
 Almost all peer-to-peer communications in GNUnet are between mutually
 authenticated peers.  The authentication works by using ECDHE, that is a
 DH key exchange using ephemeral eliptic curve cryptography.  The ephemeral
-ECC keys are signed using ECDSA.  The shared secret from ECDHE is used to
-create a pair of session keys (using HKDF) which are then used to encrypt
-the communication between the two peers using both 256-bit AES and 256-bit
-Twofish (with independently derived secret keys).  As only the two
-participating hosts know the shared secret, this authenticates each packet
+ECC (Eliptic Curve Cryptography) keys are signed using ECDSA.
+@c FIXME: Long word for ECDSA
+The shared secret from ECDHE is used to create a pair of session keys
+@c FIXME: LOng word for HKDF
+(using HKDF) which are then used to encrypt the communication between the
+@c FIXME: AES
+two peers using both 256-bit AES
+@c FIXME: Twofish
+and 256-bit Twofish (with independently derived secret keys).
+As only the two participating hosts know the shared secret, this
+authenticates each packet
+@c FIXME SHA.
 without requiring signatures each time.  GNUnet uses SHA-512 hash codes to
 verify the integrity of messages.
 
 In GNUnet, the identity of a host is its public key.  For that reason,
+@c FIXME: is it clear to the average reader what a man-in-the-middle
+@c attack is?
 man-in-the-middle attacks will not break the authentication or accounting
 goals.  Essentially, for GNUnet, the IP of the host has nothing to do with
 the identity of the host.  As the public key is the only thing that truly
