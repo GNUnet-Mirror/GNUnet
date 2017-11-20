@@ -1,6 +1,6 @@
 #!@PYTHON@
 #    This file is part of GNUnet.
-#    (C) 2010 Christian Grothoff (and other contributing authors)
+#    (C) 2010, 2018 Christian Grothoff (and other contributing authors)
 #
 #    GNUnet is free software; you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published
@@ -93,13 +93,13 @@ def cleanup ():
 def success_cont (check):
     global success 
     success = True;
-    print 'Connected clique successfully'
+    print('Connected clique successfully')
 
 def fail_cont (check):    
     global success 
     success= False;
     check.evaluate(True)
-    print 'Failed to connect clique'
+    print('Failed to connect clique')
 
 def check_connect ():
   check = Check (test)
@@ -136,7 +136,7 @@ def SigHandler(signum = None, frame = None):
 	global client
 	global client_nat    
 	
-	print 'Test was aborted!'
+	print('Test was aborted!')
 	if (None != server):
 		server.stop ()
 	if (None != client):		
@@ -162,7 +162,7 @@ def run ():
 	
 	server = Peer(test, './confs/c_bootstrap_server.conf');
 	if (True != server.start()):
-		print 'Failed to start server'
+		print('Failed to start server')
 		if (None != server):
 			server.stop ()
 		cleanup ()
@@ -173,7 +173,7 @@ def run ():
 	
 	client = Peer(test, './confs/c_no_nat_client.conf');
 	if (True != client.start()):
-		print 'Failed to start client'
+		print('Failed to start client')
 		if (None != server):
 			server.stop ()
 		if (None != client):
@@ -187,7 +187,7 @@ def run ():
 	
 	client_nat = Peer(test, './confs/c_nat_client.conf');
 	if (True != client_nat.start()):
-		print 'Failed to start client_nat'
+		print('Failed to start client_nat')
 		if (None != server):
 			server.stop ()
 		if (None != client):
@@ -217,7 +217,7 @@ def run ():
 try:
     run ()
 except (KeyboardInterrupt, SystemExit):    
-    print 'Test interrupted'
+    print('Test interrupted')
     server.stop ()
     client.stop ()
     client_nat.stop ()
