@@ -13,7 +13,7 @@ def search_dll (head, field, match, pfield):
 
     (symbol, _) = lookup_symbol (head)
     if symbol is None:
-        print "Can't find symbol: " + head
+        print("Can't find symbol: " + head)
         return
     symbol_val = symbol.value()
     while symbol_val:
@@ -35,7 +35,7 @@ def search_dll (head, field, match, pfield):
             if pfield is None:
                 print symbol_val_def
             else:
-                print symbol_val_def[pfield]
+                print(symbol_val_def[pfield])
         symbol_val = symbol_val_def["next"]
 
     
