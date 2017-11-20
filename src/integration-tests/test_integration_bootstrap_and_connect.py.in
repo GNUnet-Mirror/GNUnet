@@ -1,6 +1,6 @@
 #!@PYTHON@
 #    This file is part of GNUnet.
-#    (C) 2010 Christian Grothoff (and other contributing authors)
+#    (C) 2010, 2018 Christian Grothoff (and other contributing authors)
 #
 #    GNUnet is free software; you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published
@@ -95,12 +95,12 @@ def cleanup ():
 def success_cont (check):
     global success
     success = True;
-    print 'Peers connected successfully'
+    print('Peers connected successfully')
     
 def fail_cont (check):    
     global success 
     success = False;
-    print 'Peers did not connect'
+    print('Peers did not connect')
     check.evaluate(True)
 
 def check ():
@@ -130,7 +130,7 @@ def SigHandler(signum = None, frame = None):
 	global server
 	global client  
 	
-	print 'Test was aborted!'
+	print('Test was aborted!')
 	if (None != server):
 		server.stop ()
 	if (None != client):		
@@ -158,7 +158,7 @@ def run ():
 	client = Peer(test, './confs/c_no_nat_client.conf');
 	
 	if (True != server.start()):
-		print 'Failed to start server'
+		print('Failed to start server')
 		if (None != server):
 			server.stop ()
 		if (None != server):		
@@ -170,7 +170,7 @@ def run ():
 	time.sleep(5)
 	
 	if (True != client.start()):
-		print 'Failed to start client'
+		print('Failed to start client')
 		if (None != server):
 			server.stop ()
 		if (None != server):		
@@ -196,7 +196,7 @@ def run ():
 try:
 	run ()
 except (KeyboardInterrupt, SystemExit):    
-	print 'Test interrupted'
+	print('Test interrupted')
 	server.stop ()
 	client.stop ()
 	cleanup ()
