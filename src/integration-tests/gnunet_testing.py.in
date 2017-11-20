@@ -1,6 +1,6 @@
 #!@PYTHON@
 #    This file is part of GNUnet.
-#    (C) 2010 Christian Grothoff (and other contributing authors)
+#    (C) 2010, 2017 Christian Grothoff (and other contributing authors)
 #
 #    GNUnet is free software; you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published
@@ -51,7 +51,7 @@ class Check:
             time.sleep(1)
             execs += 1
         if ((False == res) and (execs >= timeout)):
-           print ('Check had timeout after ' +str(timeout)+ ' seconds')
+           print(('Check had timeout after ' +str(timeout)+ ' seconds'))
            neg_cont (self)
         elif ((False == res) and (execs < timeout)):
             if (None != neg_cont):
@@ -77,7 +77,7 @@ class Check:
                 neg += 1
             else:
                 pos += 1
-        print (str(pos) +' out of '+ str (pos+neg) + ' conditions fulfilled')
+        print((str(pos) +' out of '+ str (pos+neg) + ' conditions fulfilled'))
         return self.fulfilled
     def reset (self):
 		self.fulfilled = False     
@@ -95,9 +95,9 @@ class Condition:
         return False;
     def evaluate (self, failed_only):
         if ((self.fulfilled == False) and (failed_only == True)):
-            print str(self.type) + 'condition for was ' + str(self.fulfilled)
+            print(str(self.type) + 'condition for was ' + str(self.fulfilled))
         elif (failed_only == False): 
-            print str(self.type) + 'condition for was ' + str(self.fulfilled)
+            print(str(self.type) + 'condition for was ' + str(self.fulfilled))
         return self.fulfilled            
 
 class FileExistCondition (Condition):
@@ -117,9 +117,9 @@ class FileExistCondition (Condition):
             return True
     def evaluate (self, failed_only):
         if ((self.fulfilled == False) and (failed_only == True)):
-            print str(self.type) + 'condition for file '+self.file+' was ' + str(self.fulfilled)
+            print(str(self.type) + 'condition for file '+self.file+' was ' + str(self.fulfilled))
         elif (failed_only == False): 
-            print str(self.type) + 'condition for file '+self.file+' was ' + str(self.fulfilled)
+            print(str(self.type) + 'condition for file '+self.file+' was ' + str(self.fulfilled))
         return self.fulfilled
 
 class StatisticsCondition (Condition):
@@ -153,7 +153,7 @@ class StatisticsCondition (Condition):
             fail = ""
             op = " == "
         if (((self.fulfilled == False) and (failed_only == True)) or (failed_only == False)):
-            print self.peer.id[:4] + " " +self.peer.cfg + " " +  str(self.type) + ' condition in subsystem "' + self.subsystem.ljust(12) +'" : "' + self.name.ljust(30) +'" : (expected/real value) ' + str(self.value) + op + res + fail
+            print(self.peer.id[:4] + " " +self.peer.cfg + " " +  str(self.type) + ' condition in subsystem "' + self.subsystem.ljust(12) +'" : "' + self.name.ljust(30) +'" : (expected/real value) ' + str(self.value) + op + res + fail)
         return self.fulfilled    
 
 # Specify two statistic values and check if they are equal  
@@ -196,7 +196,7 @@ class EqualStatisticsCondition (Condition):
             fail = ""
             op = " == "
         if (((self.fulfilled == False) and (failed_only == True)) or (failed_only == False)):
-            print self.peer.id[:4] + ' "'  + self.subsystem.ljust(12) + '" "' + self.name.ljust(30) + '" == ' + str(self.result) +" " + self.peer2.id[:4] + ' "'  + self.subsystem2.ljust(12) + '" '+ self.name2.ljust(30) +  '" ' + str(self.result2) 
+            print(self.peer.id[:4] + ' "'  + self.subsystem.ljust(12) + '" "' + self.name.ljust(30) + '" == ' + str(self.result) +" " + self.peer2.id[:4] + ' "'  + self.subsystem2.ljust(12) + '" '+ self.name2.ljust(30) +  '" ' + str(self.result2))
         return self.fulfilled                    
         
 class Test:
@@ -226,22 +226,22 @@ class Test:
         self.peers.append(peer)
     def p (self, msg):
         if (self.verbose == True):
-            print msg    
+            print(msg)
 
 class Peer:
     def __init__(self, test, cfg_file):
         if (False == os.path.isfile(cfg_file)):
-            print ("Peer cfg " + cfg_file + ": FILE NOT FOUND")
+            print(("Peer cfg " + cfg_file + ": FILE NOT FOUND"))
         self.id = "<NaN>"
         self.test = test
         self.started = False
         self.cfg = cfg_file 
     def __del__(self):
         if (self.started == True): 
-            print 'ERROR! Peer using cfg ' + self.cfg + ' was not stopped'
+            print('ERROR! Peer using cfg ' + self.cfg + ' was not stopped')
             ret = self.stop ()
             if (False == ret):
-                print 'ERROR! Peer using cfg ' + self.cfg + ' could not be stopped'
+                print('ERROR! Peer using cfg ' + self.cfg + ' could not be stopped')
                 self.started = False
             return ret
         else:
@@ -252,7 +252,7 @@ class Peer:
             server = subprocess.Popen ([self.test.gnunetarm, '-sq', '-c', self.cfg])
             server.communicate ()    
         except OSError:
-            print "Can not start peer"
+            print("Can not start peer")
             self.started = False
             return False
         self.started = True;
@@ -262,7 +262,7 @@ class Peer:
             server.spawn (None, [self.test.gnunetpeerinfo, '-c', self.cfg ,'-s'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
             test = server.read("stdout", 1024)
         except OSError:
-            print "Can not get peer identity"
+            print("Can not get peer identity")
         test = (test.split('`')[1])
         self.id = test.split('\'')[0]
         return True 
@@ -274,7 +274,7 @@ class Peer:
             server = subprocess.Popen ([self.test.gnunetarm, '-eq', '-c', self.cfg])
             server.communicate ()    
         except OSError:
-            print "Can not stop peer"
+            print("Can not stop peer")
             return False
         self.started = False
         return True;
