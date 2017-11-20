@@ -1,6 +1,6 @@
 #!@PYTHON@
 #    This file is part of GNUnet.
-#    (C) 2010 Christian Grothoff (and other contributing authors)
+#    (C) 2010, 2018 Christian Grothoff (and other contributing authors)
 #
 #    GNUnet is free software; you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published
@@ -70,7 +70,7 @@ def cleanup ():
 
 
 def success_disconnect_cont (check):
-	print 'Peers disconnected successfully'
+	print('Peers disconnected successfully')
 	global success 
 	success = True;
 
@@ -78,7 +78,7 @@ def success_disconnect_cont (check):
 def fail_disconnect_cont (check):    
 	global success 
 	success = False;
-	print 'Peers failed to disconnect'
+	print('Peers failed to disconnect')
 	check.evaluate(True)   
   
 def check_disconnect ():
@@ -97,14 +97,14 @@ def check_disconnect ():
 
 
 def success_connect_cont (check):
-	print 'Peers connected successfully'
+	print('Peers connected successfully')
 	check_disconnect ()
 
 
 def fail_connect_cont (check):    
   global success 
   success= False
-  print 'Peers failed to connected!'    
+  print('Peers failed to connected!')
   check.evaluate(True)
 
 
@@ -137,7 +137,7 @@ def SigHandler(signum = None, frame = None):
 	global server
 	global nat_client  
 	
-	print 'Test was aborted!'
+	print('Test was aborted!')
 	if (None != server):
 		server.stop ()
 	if (None != nat_client):		
@@ -165,7 +165,7 @@ def run ():
 	nat_client = Peer(test, './confs/c_nat_client.conf');
 	
 	if (True != server.start()):
-		print 'Failed to start server'
+		print('Failed to start server')
 		if (None != server):
 			server.stop ()
 		cleanup ()
@@ -175,7 +175,7 @@ def run ():
 	time.sleep(5)
 		
 	if (True != nat_client.start()):
-		print 'Failed to start nat_client'
+		print('Failed to start nat_client')
 		if (None != server):
 			server.stop ()
 		if (None != nat_client):		
@@ -201,7 +201,7 @@ def run ():
 try:
 	run ()
 except (KeyboardInterrupt, SystemExit):    
-	print 'Test interrupted'
+	print('Test interrupted')
 	server.stop ()
 	nat_client.stop ()
 	cleanup ()
