@@ -1,6 +1,6 @@
 #!@PYTHON@
 #    This file is part of GNUnet.
-#    (C) 2010 Christian Grothoff (and other contributing authors)
+#    (C) 2010, 2017 Christian Grothoff (and other contributing authors)
 #
 #    GNUnet is free software; you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published
@@ -89,7 +89,7 @@ def cleanup ():
 
 def success_restart_cont (check):
 	global success 
- 	print 'Peers connected successfully after restart'
+ 	print('Peers connected successfully after restart')
 	server.stop ()
 	client.stop ()
 	success = True;	
@@ -98,12 +98,12 @@ def success_restart_cont (check):
 def fail_restart_cont (check):    
 	global success 
 	success = False;
-	print 'Peers failed to connect after restart'
+	print('Peers failed to connect after restart')
 	check.evaluate(True)   
     
 
 def success_connect_cont (check):
-	print 'Peers connected successfully'
+	print('Peers connected successfully')
 	server.stop ()
 	client.stop ()
 	
@@ -132,7 +132,7 @@ def success_connect_cont (check):
 def fail_connect_cont (check):    
 	global success 
 	success= False;
-	print 'Peers failed to connect'
+	print('Peers failed to connect')
 	check.evaluate(True)
 
 
@@ -162,7 +162,7 @@ def SigHandler(signum = None, frame = None):
 	global server
 	global client  
 	
-	print 'Test was aborted!'
+	print('Test was aborted!')
 	if (None != server):
 		server.stop ()
 	if (None != client):		
@@ -194,7 +194,7 @@ def run ():
 	
 
 	if (True != server.start()):
-		print 'Failed to start server'
+		print('Failed to start server')
 		if (None != server):
 			server.stop ()
 		if (None != server):		
@@ -206,7 +206,7 @@ def run ():
 	time.sleep(5)
 			
 	if (True != client.start()):
-		print 'Failed to start client'
+		print('Failed to start client')
 		if (None != server):
 			server.stop ()
 		if (None != server):		
@@ -230,7 +230,7 @@ def run ():
 try:
     run ()
 except (KeyboardInterrupt, SystemExit):    
-    print 'Test interrupted'
+    print('Test interrupted')
     server.stop ()
     client.stop ()
     cleanup ()
