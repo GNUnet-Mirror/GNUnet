@@ -2067,7 +2067,11 @@ extern "C"
 /** S->C: slave join acknowledgement */
 #define GNUNET_MESSAGE_TYPE_PSYC_SLAVE_JOIN_ACK 684
 
-/* 685-686 */
+/** C->S: request to part from a channel */
+#define GNUNET_MESSAGE_TYPE_PSYC_PART_REQUEST 685
+
+/** S->C: acknowledgement that a slave of master parted from a channel */
+#define GNUNET_MESSAGE_TYPE_PSYC_PART_ACK 686
 
 /** M->S->C: incoming join request from multicast */
 #define GNUNET_MESSAGE_TYPE_PSYC_JOIN_REQUEST 687
@@ -2244,12 +2248,12 @@ extern "C"
  *
  * Unicast message from a group member to the peer wanting to join.
  */
-#define GNUNET_MESSAGE_TYPE_MULTICAST_JOIN_DECISION 753
+//#define GNUNET_MESSAGE_TYPE_MULTICAST_JOIN_DECISION 753
 
 /**
  * A peer wants to part the group.
  */
-#define GNUNET_MESSAGE_TYPE_MULTICAST_PART_REQUEST 754
+//#define GNUNET_MESSAGE_TYPE_MULTICAST_PART_REQUEST 754
 
 /**
  * Acknowledgement sent in response to a part request.

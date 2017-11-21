@@ -398,6 +398,9 @@ place_cleanup (struct GNUNET_SOCIAL_Place *plc)
 {
   struct GNUNET_HashCode place_pub_hash;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+              "place_cleanup\n");
+
   GNUNET_CRYPTO_hash (&plc->pub_key, sizeof (plc->pub_key), &place_pub_hash);
   if (NULL != plc->tmit)
   {
@@ -1511,6 +1514,8 @@ GNUNET_SOCIAL_host_announce (struct GNUNET_SOCIAL_Host *hst,
                              void *notify_data_cls,
                              enum GNUNET_SOCIAL_AnnounceFlags flags)
 {
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+              "PSYC_transmit_message for host\n");
   if (GNUNET_OK ==
       GNUNET_PSYC_transmit_message (hst->plc.tmit, method_name, env,
                                     NULL, notify_data, notify_data_cls, flags))
@@ -1606,15 +1611,15 @@ GNUNET_SOCIAL_host_leave (struct GNUNET_SOCIAL_Host *hst,
                           GNUNET_ContinuationCallback disconnect_cb,
                           void *cls)
 {
-  struct GNUNET_MessageHeader *msg;
   struct GNUNET_MQ_Envelope *envelope;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+              "sending _notice_place_closing\n");
   GNUNET_SOCIAL_host_announce (hst, "_notice_place_closing", env, NULL, NULL,
                                GNUNET_SOCIAL_ANNOUNCE_NONE);
   hst->plc.disconnect_cb = disconnect_cb;
   hst->plc.disconnect_cls = cls;
-  envelope = GNUNET_MQ_msg (msg,
-                            GNUNET_MESSAGE_TYPE_SOCIAL_PLACE_LEAVE);
+  envelope = GNUNET_MQ_msg_header (GNUNET_MESSAGE_TYPE_SOCIAL_PLACE_LEAVE);
   GNUNET_MQ_send (hst->plc.mq,
                   envelope);
 }
@@ -1987,6 +1992,9 @@ GNUNET_SOCIAL_guest_talk (struct GNUNET_SOCIAL_Guest *gst,
                           void *notify_data_cls,
                           enum GNUNET_SOCIAL_TalkFlags flags)
 {
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+              "PSYC_transmit_message for guest\n");
+
   struct GNUNET_SOCIAL_Place *plc = &gst->plc;
   GNUNET_assert (NULL != plc->tmit);
 
@@ -2068,15 +2076,13 @@ GNUNET_SOCIAL_guest_leave (struct GNUNET_SOCIAL_Guest *gst,
                            GNUNET_ContinuationCallback disconnect_cb,
                            void *cls)
 {
-  struct GNUNET_MessageHeader *msg;
   struct GNUNET_MQ_Envelope *envelope;
 
   GNUNET_SOCIAL_guest_talk (gst, "_notice_place_leave", env, NULL, NULL,
                             GNUNET_SOCIAL_TALK_NONE);
   gst->plc.disconnect_cb = disconnect_cb;
   gst->plc.disconnect_cls = cls;
-  envelope = GNUNET_MQ_msg (msg,
-                            GNUNET_MESSAGE_TYPE_SOCIAL_PLACE_LEAVE);
+  envelope = GNUNET_MQ_msg_header (GNUNET_MESSAGE_TYPE_SOCIAL_PLACE_LEAVE);
   GNUNET_MQ_send (gst->plc.mq,
                   envelope);
 }
