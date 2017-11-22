@@ -132,7 +132,7 @@ with the goals of the group is always preferable.
 @section Key Concepts
 
 In this section, the fundamental concepts of GNUnet are explained.
-@c FIXME: Use @uref{https://docs.gnunet.org/whatever/, research papers}
+@c FIXME: Use @uref{https://docs.gnunet.org/bib/, research papers}
 @c once we have the new bibliography + subdomain setup.
 Most of them are also described in our research papers.
 First, some of the concepts used in the GNUnet framework are detailed.
@@ -155,9 +155,9 @@ The second part describes concepts specific to anonymous file-sharing.
 
 Almost all peer-to-peer communications in GNUnet are between mutually
 authenticated peers.  The authentication works by using ECDHE, that is a
-DH key exchange using ephemeral eliptic curve cryptography.  The ephemeral
-ECC (Eliptic Curve Cryptography) keys are signed using ECDSA.
-@c FIXME: Long word for ECDSA
+DH (Diffie---Hellman) key exchange using ephemeral eliptic curve
+cryptography.  The ephemeral ECC (Eliptic Curve Cryptography) keys are
+signed using ECDSA (@uref{http://en.wikipedia.org/wiki/ECDSA, ECDSA}).
 The shared secret from ECDHE is used to create a pair of session keys
 @c FIXME: LOng word for HKDF
 (using HKDF) which are then used to encrypt the communication between the
@@ -230,6 +230,7 @@ this request is.  If a peer responds to an important request, the
 recipient will increase its trust in the responder:
 the responder contributed resources.
 If a peer is too busy to answer all requests, it needs to prioritize.
+@c FIXME: 'peers to not take' -> 'peers do not take' would make more sense
 For that, peers to not take the priorities of the requests received at
 face value.
 First, they check how much they trust the sender, and depending on that
@@ -388,7 +389,14 @@ You can find your peer identity by running @command{gnunet-peerinfo -s}.
 @node Zones in the GNU Name System (GNS Zones)
 @subsection Zones in the GNU Name System (GNS Zones)
 
-GNS zones are similar to those of DNS zones, but instead of a hierarchy of
+@c FIXME: Explain or link to an explanation of the concept of public keys
+@c and private keys.
+GNS@footnote{Matthias Wachs, Martin Schanzenbach, and Christian Grothoff.
+A Censorship-Resistant, Privacy-Enhancing and Fully Decentralized Name
+System. In proceedings of 13th International Conference on Cryptology and
+Network Security (CANS 2014). 2014.
+@uref{https://gnunet.org/git/bibliography.git/plain/docs/gns2014wachs.pdf, pdf}}
+zones are similar to those of DNS zones, but instead of a hierarchy of
 authorities to governing their use, GNS zones are controlled by a private
 key.
 When you create a record in a DNS zone, that information stored in your
