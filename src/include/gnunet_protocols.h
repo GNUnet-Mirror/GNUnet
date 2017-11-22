@@ -2248,7 +2248,7 @@ extern "C"
  *
  * Unicast message from a group member to the peer wanting to join.
  */
-//#define GNUNET_MESSAGE_TYPE_MULTICAST_JOIN_DECISION 753
+#define GNUNET_MESSAGE_TYPE_MULTICAST_JOIN_DECISION 753
 
 /**
  * A peer wants to part the group.
@@ -2260,7 +2260,7 @@ extern "C"
  *
  * Unicast message from a group member to the peer wanting to part.
  */
-#define GNUNET_MESSAGE_TYPE_MULTICAST_PART_ACK 755
+//#define GNUNET_MESSAGE_TYPE_MULTICAST_PART_ACK 755
 
 /**
  * Group terminated.
