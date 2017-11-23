@@ -161,15 +161,12 @@ signed using ECDSA (@uref{http://en.wikipedia.org/wiki/ECDSA, ECDSA}).
 The shared secret from ECDHE is used to create a pair of session keys
 @c FIXME: LOng word for HKDF
 (using HKDF) which are then used to encrypt the communication between the
-@c FIXME: AES
-two peers using both 256-bit AES
-@c FIXME: Twofish
+two peers using both 256-bit AES (Advanced Encryption Standard)
 and 256-bit Twofish (with independently derived secret keys).
 As only the two participating hosts know the shared secret, this
 authenticates each packet
-@c FIXME SHA.
-without requiring signatures each time.  GNUnet uses SHA-512 hash codes to
-verify the integrity of messages.
+without requiring signatures each time.  GNUnet uses SHA-512
+(Secure Hash Algorithm) hash codes to verify the integrity of messages.
 
 In GNUnet, the identity of a host is its public key.  For that reason,
 @c FIXME: is it clear to the average reader what a man-in-the-middle
