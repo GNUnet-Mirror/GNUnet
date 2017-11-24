@@ -183,6 +183,7 @@ struct GNUNET_SOCIAL_Place
    */
   struct GNUNET_PSYC_Slicer *slicer;
 
+  // FIXME: do we need is_disconnecing like on the psyc and multicast APIs?
   /**
    * Function called after disconnected from the service.
    */
