@@ -615,6 +615,8 @@ client_notify_disconnect (void *cls,
               (GNUNET_YES == chn->is_master) ? "master" : "slave",
               GNUNET_h2s (&chn->pub_key_hash));
 
+  // FIXME (due to protocol change): here we must not remove all clients,
+  // only the one we were notified about!
   struct ClientList *cli = chn->clients_head;
   while (NULL != cli)
   {

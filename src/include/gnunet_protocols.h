@@ -2253,15 +2253,16 @@ extern "C"
 /**
  * A peer wants to part the group.
  */
-//#define GNUNET_MESSAGE_TYPE_MULTICAST_PART_REQUEST 754
+#define GNUNET_MESSAGE_TYPE_MULTICAST_PART_REQUEST 754
 
 /**
  * Acknowledgement sent in response to a part request.
  *
  * Unicast message from a group member to the peer wanting to part.
  */
-//#define GNUNET_MESSAGE_TYPE_MULTICAST_PART_ACK 755
+#define GNUNET_MESSAGE_TYPE_MULTICAST_PART_ACK 755
 
+// FIXME: this is never used!
 /**
  * Group terminated.
  */

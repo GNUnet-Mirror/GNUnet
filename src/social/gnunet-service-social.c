@@ -573,6 +573,8 @@ client_notify_disconnect (void *cls,
               plc, (GNUNET_YES == plc->is_host) ? "host" : "guest",
               GNUNET_h2s (&plc->pub_key_hash));
 
+  // FIXME (due to protocol change): here we must not remove all clients,
+  // only the one we were notified about!
   struct ClientListItem *cli = plc->clients_head;
   while (NULL != cli)
   {
