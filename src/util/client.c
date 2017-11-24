@@ -270,7 +270,7 @@ transmit_ready (void *cls)
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                 "client: error during sending message of type %u\n", ntohs(cstate->msg->type));
     if (EINTR == errno){
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "client: retrying message of type %u\n", ntohs(cstate->msg->type));
       goto RETRY;
     }
@@ -282,7 +282,7 @@ transmit_ready (void *cls)
   cstate->msg_off += ret;
   if (cstate->msg_off < len)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "client: rescheduling message of type %u\n", ntohs(cstate->msg->type));
     cstate->send_task
       = GNUNET_SCHEDULER_add_write_net (GNUNET_TIME_UNIT_FOREVER_REL,
@@ -293,7 +293,7 @@ transmit_ready (void *cls)
       GNUNET_MQ_impl_send_in_flight (cstate->mq);
     return;
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "client: sending message of type %u successful\n", ntohs(cstate->msg->type));
   cstate->msg = NULL;
   GNUNET_MQ_impl_send_continue (cstate->mq);
@@ -806,7 +806,7 @@ connection_client_send_impl (struct GNUNET_MQ_Handle *mq,
   cstate->msg = msg;
   cstate->msg_off = 0;
   if (NULL == cstate->sock){
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "client: waiting for socket\n");
     return; /* still waiting for connection */
    }
