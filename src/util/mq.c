@@ -61,7 +61,7 @@ struct GNUNET_MQ_Envelope
   GNUNET_SCHEDULER_TaskCallback sent_cb;
 
   /**
-   * Closure for @e sent_cb
+   * Closure for @e send_cb
    */
   void *sent_cls;
 
@@ -221,10 +221,8 @@ GNUNET_MQ_inject_message (struct GNUNET_MQ_Handle *mq,
   uint16_t mtype = ntohs (mh->type);
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Queue %p received message of type %u and size %u\n",
-       mq,
-       mtype,
-       msize);
+       "Received message of type %u and size %u\n",
+       mtype, msize);
 
   if (NULL == mq->handlers)
     goto done;
@@ -359,11 +357,6 @@ GNUNET_MQ_send (struct GNUNET_MQ_Handle *mq,
   }
   GNUNET_assert (NULL == mq->envelope_head);
   mq->current_envelope = ev;
-
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-              "mq: sending message of type %u, queue empty\n",
-              ntohs(ev->mh->type));
-
   mq->send_impl (mq,
 		 ev->mh,
 		 mq->impl_state);
@@ -459,10 +452,6 @@ impl_send_continue (void *cls)
   GNUNET_CONTAINER_DLL_remove (mq->envelope_head,
 			       mq->envelope_tail,
 			       mq->current_envelope);
-
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-              "mq: sending message of type %u from queue\n", ntohs(mq->current_envelope->mh->type));
-
   mq->send_impl (mq,
 		 mq->current_envelope->mh,
 		 mq->impl_state);
@@ -945,10 +934,6 @@ GNUNET_MQ_send_cancel (struct GNUNET_MQ_Envelope *ev)
       GNUNET_CONTAINER_DLL_remove (mq->envelope_head,
                                    mq->envelope_tail,
                                    mq->current_envelope);
-
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                  "mq: sending canceled message of type %u queue\n", ntohs(ev->mh->type));
-
       mq->send_impl (mq,
 		     mq->current_envelope->mh,
 		     mq->impl_state);
