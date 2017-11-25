@@ -274,7 +274,8 @@ transmit_ready (void *cls)
   if (-1 == ret)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                "client: error during sending message of type %u\n", ntohs(cstate->msg->type));
+                "client: error during sending message of type %u\n",
+                ntohs(cstate->msg->type));
     if (EINTR == errno){
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "client: retrying message of type %u\n",

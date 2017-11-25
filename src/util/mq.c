@@ -361,8 +361,9 @@ GNUNET_MQ_send (struct GNUNET_MQ_Handle *mq,
   mq->current_envelope = ev;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "mq: sending message of type %u, queue empty\n",
-              ntohs(ev->mh->type));
+              "mq: sending message of type %u, queue empty (MQ: %p)\n",
+              ntohs(ev->mh->type),
+              mq);
 
   mq->send_impl (mq,
 		 ev->mh,
@@ -863,7 +864,7 @@ GNUNET_MQ_destroy (struct GNUNET_MQ_Handle *mq)
      * are not queued! */
     mq->current_envelope->parent_queue = NULL;
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                "MQ destroy drops message of type %u\n",
+                "MQ destroy drops current message of type %u\n",
                 ntohs (mq->current_envelope->mh->type));
     GNUNET_MQ_discard (mq->current_envelope);
     mq->current_envelope = NULL;

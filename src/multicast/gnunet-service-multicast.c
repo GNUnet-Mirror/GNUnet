@@ -559,8 +559,9 @@ client_send_group_keep_envelope (const struct Group *grp,
   struct ClientList *cli = grp->clients_head;
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              "%p Sending message to all clients of the group.\n",
-              grp);
+              "%p Sending message of type %u to all clients of the group.\n",
+              grp,
+              ntohs (env->mh->type));
   while (NULL != cli)
   {
     GNUNET_MQ_send_copy (GNUNET_SERVICE_client_get_mq (cli->client),
