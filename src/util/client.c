@@ -273,9 +273,8 @@ transmit_ready (void *cls)
                                     len - cstate->msg_off);
   if (-1 == ret)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "client: error during sending message of type %u\n",
-                ntohs(cstate->msg->type));
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                "client: error during sending message of type %u\n", ntohs(cstate->msg->type));
     if (EINTR == errno){
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "client: retrying message of type %u\n",
@@ -536,11 +535,6 @@ try_unixpath (const char *service_name,
     sock = GNUNET_NETWORK_socket_create (AF_UNIX,
                                          SOCK_STREAM,
                                          0);
-
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "client: socket created: %p\n",
-                sock);
-
     if ( (NULL != sock) &&
          ( (GNUNET_OK ==
             GNUNET_NETWORK_socket_connect (sock,
