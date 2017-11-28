@@ -541,6 +541,13 @@ client_disconnect_cb (void *cls,
   GNUNET_CONTAINER_multipeermap_iterate (active_stccs,
 					 &mark_match_down,
 					 tc);
+  for (struct AddressToStringContext *cur = a2s_head;
+       NULL != cur;
+       cur = cur->next)
+  {
+    if (cur->tc == tc)
+      cur->tc = NULL;
+  }
   GNUNET_CONTAINER_DLL_remove (clients_head,
                                clients_tail,
                                tc);
@@ -864,6 +871,8 @@ transmit_address_to_client (void *cls,
 
   GNUNET_assert ( (GNUNET_OK == res) ||
                   (GNUNET_SYSERR == res) );
+  if (NULL == actx->tc)
+    return;
   if (NULL == buf)
   {
     env = GNUNET_MQ_msg (atsm,
@@ -878,6 +887,7 @@ transmit_address_to_client (void *cls,
       GNUNET_CONTAINER_DLL_remove (a2s_head,
                                    a2s_tail,
                                    actx);
+      GNUNET_free (actx);
       return;
     }
     if (GNUNET_SYSERR == res)

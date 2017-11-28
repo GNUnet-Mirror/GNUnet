@@ -509,6 +509,7 @@ transmit_task_cb (void *cls)
               "Starting set exchange with peer `%s'\n",
               GNUNET_i2s (&peer_entry->id));
   peer_entry->transmit_task = NULL;
+  GNUNET_assert (NULL == peer_entry->so);
   peer_entry->so = GNUNET_SET_prepare (&peer_entry->id,
                                        &revocation_set_union_app_id,
                                        NULL,
@@ -758,6 +759,7 @@ handle_revocation_union_request (void *cls,
   {
     peer_entry = new_peer_entry (other_peer);
   }
+  GNUNET_assert (NULL == peer_entry->so);
   peer_entry->so = GNUNET_SET_accept (request,
                                       GNUNET_SET_RESULT_ADDED,
                                       (struct GNUNET_SET_Option[]) {{ 0 }},

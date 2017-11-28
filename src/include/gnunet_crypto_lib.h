@@ -1110,6 +1110,16 @@ GNUNET_CRYPTO_ecdsa_public_key_to_string (const struct GNUNET_CRYPTO_EcdsaPublic
 
 
 /**
+ * Convert a private key to a string.
+ *
+ * @param priv key to convert
+ * @return string representing @a pub
+ */
+char *
+GNUNET_CRYPTO_eddsa_private_key_to_string (const struct GNUNET_CRYPTO_EddsaPrivateKey *priv);
+
+
+/**
  * Convert a public key to a string.
  *
  * @param pub key to convert
@@ -2016,13 +2026,14 @@ GNUNET_CRYPTO_rsa_public_key_cmp (struct GNUNET_CRYPTO_RsaPublicKey *p1,
  * @param pkey the public key of the signer
  * @param[out] buf set to a buffer with the blinded message to be signed
  * @param[out] buf_size number of bytes stored in @a buf
- * @return GNUNET_YES if successful, GNUNET_NO if RSA key is malicious
+ * @return #GNUNET_YES if successful, #GNUNET_NO if RSA key is malicious
  */
 int
 GNUNET_CRYPTO_rsa_blind (const struct GNUNET_HashCode *hash,
                          const struct GNUNET_CRYPTO_RsaBlindingKeySecret *bks,
                          struct GNUNET_CRYPTO_RsaPublicKey *pkey,
-                         char **buf, size_t *buf_size);
+                         char **buf,
+                         size_t *buf_size);
 
 
 /**
@@ -2035,7 +2046,8 @@ GNUNET_CRYPTO_rsa_blind (const struct GNUNET_HashCode *hash,
  */
 struct GNUNET_CRYPTO_RsaSignature *
 GNUNET_CRYPTO_rsa_sign_blinded (const struct GNUNET_CRYPTO_RsaPrivateKey *key,
-                                const void *msg, size_t msg_len);
+                                const void *msg,
+                                size_t msg_len);
 
 
 /**
@@ -2105,7 +2117,7 @@ GNUNET_CRYPTO_rsa_signature_dup (const struct GNUNET_CRYPTO_RsaSignature *sig);
  * @return unblinded signature on success, NULL if RSA key is bad or malicious.
  */
 struct GNUNET_CRYPTO_RsaSignature *
-GNUNET_CRYPTO_rsa_unblind (struct GNUNET_CRYPTO_RsaSignature *sig,
+GNUNET_CRYPTO_rsa_unblind (const struct GNUNET_CRYPTO_RsaSignature *sig,
 			   const struct GNUNET_CRYPTO_RsaBlindingKeySecret *bks,
 			   struct GNUNET_CRYPTO_RsaPublicKey *pkey);
 

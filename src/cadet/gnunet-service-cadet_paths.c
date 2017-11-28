@@ -498,8 +498,8 @@ GCPP_try_path_from_dht (const struct GNUNET_PeerIdentity *get_path,
     const struct GNUNET_PeerIdentity *pid;
 
     pid = (off < get_path_length)
-      ? &get_path[get_path_length - off]
-      : &put_path[get_path_length + put_path_length - off];
+      ? &get_path[get_path_length - off - 1]
+      : &put_path[get_path_length + put_path_length - off - 1];
     cpath[off - skip] = GCP_get (pid,
                                  GNUNET_YES);
     /* Check that no peer is twice on the path */

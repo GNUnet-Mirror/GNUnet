@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     Copyright (C) 2010, 2011 GNUnet e.V.
+     Copyright (C) 2010, 2011, 2017 GNUnet e.V.
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -43,6 +43,8 @@ GNUNET_FS_meta_data_suggest_filename (const struct GNUNET_CONTAINER_MetaData
     {"application/gnunet-directory", ".gnd"},
     {"application/java", ".class"},
     {"application/msword", ".doc"},
+    {"application/nar", ".nar"},
+    {"application/narinfo", ".narinfo"},
     {"application/ogg", ".ogg"},
     {"application/pdf", ".pdf"},
     {"application/pgp-keys", ".key"},
@@ -53,8 +55,8 @@ GNUNET_FS_meta_data_suggest_filename (const struct GNUNET_CONTAINER_MetaData
     {"application/xml", ".xml"},
     {"application/x-debian-package", ".deb"},
     {"application/x-dvi", ".dvi"},
-    {"applixation/x-flac", ".flac"},
-    {"applixation/x-gzip", ".gz"},
+    {"application/x-flac", ".flac"},
+    {"application/x-gzip", ".gz"},
     {"application/x-java-archive", ".jar"},
     {"application/x-java-vm", ".class"},
     {"application/x-python-code", ".pyc"},
