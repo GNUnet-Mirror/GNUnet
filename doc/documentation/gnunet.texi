@@ -64,46 +64,9 @@ Edition @value{EDITION} @*
 @contents
 
 @node Top
-@top Contributing to GNUnet
+@top Introduction
 
-
-This document describes GNUnet version @value{VERSION}.
-
-
-GNUnet is a @uref{http://www.gnu.org/, GNU} package.
-All code contributions must thus be put under the
-@uref{http://www.gnu.org/copyleft/gpl.html, GNU Public License (GPL)}.
-All documentation should be put under FSF approved licenses
-(see @uref{http://www.gnu.org/copyleft/fdl.html, fdl}).
-
-By submitting documentation, translations, comments and other
-content to this website you automatically grant the right to publish
-code under the GNU Public License and documentation under either or
-both the GNU Public License or the GNU Free Documentation License.
-When contributing to the GNUnet project, GNU standards and the
-@uref{http://www.gnu.org/philosophy/philosophy.html, GNU philosophy}
-should be adhered to.
-
-Note that we do now require a formal copyright assignment for GNUnet
-contributors to GNUnet e.V.; nevertheless, we do allow pseudonymous
-contributions.  By signing the copyright agreement and submitting your
-code (or documentation) to us, you agree to share the rights to your
-code with GNUnet e.V.; GNUnet e.V. receives non-exclusive ownership
-rights, and in particular is allowed to dual-license the code. You
-retain non-exclusive rights to your contributions, so you can also
-share your contributions freely with other projects.
-
-GNUnet e.V. will publish all accepted contributions under the GPLv3
-or any later version. The association may decide to publish
-contributions under additional licenses (dual-licensing).
-
-We do not intentionally remove your name from your contributions;
-however, due to extensive editing it is not always trivial to
-attribute contributors properly. If you find that you significantly
-contributed to a file (or the project as a whole) and are not listed
-in the respective authors file or section, please do let us know.
-
-
+This document is the Reference Manual for GNUnet version @value{VERSION}.
 
 @menu
 
@@ -112,11 +75,12 @@ in the respective authors file or section, please do let us know.
 * GNUnet Installation Handbook::    How to install GNUnet
 * Using GNUnet::                    Using GNUnet
 * Configuration Handbook::          Configuring GNUnet
+* GNUnet Contributors Handbook::    Contributing to GNUnet
 * GNUnet Developer Handbook::       Developing GNUnet
-* GNU Free Documentation License::  The license of this manual.
-* GNU General Public License::      The license of this manual.
-* Concept Index::                   Concepts.
-* Programming Index::               Data types, functions, and variables.
+* GNU Free Documentation License::  The license of this manual
+* GNU General Public License::      The license of this manual
+* Concept Index::                   Concepts
+* Programming Index::               Data types, functions, and variables
 
 @detailmenu
  --- The Detailed Node Listing ---
@@ -124,7 +88,7 @@ in the respective authors file or section, please do let us know.
 Philosophy
 
 * Design Goals::
-* Security & Privacy::
+* Security and Privacy::
 * Versatility::
 * Practicality::
 * Key Concepts::
@@ -141,6 +105,7 @@ Philosophy
 
 Vocabulary
 
+* Definitions abbreviations and acronyms::
 * Words and characters::
 * Technical Assumptions::
 
@@ -150,6 +115,7 @@ GNUnet Installation Handbook
 * Pre-installation notes::
 * Generic installation instructions::
 * Build instructions for Ubuntu 12.04 using Git::
+* Build instructions for software builds from source::
 * Build Instructions for Microsoft Windows Platforms::
 * Build instructions for Debian 7.5::
 * Installing GNUnet from Git on Ubuntu 14.4::
@@ -158,8 +124,6 @@ GNUnet Installation Handbook
 @c * Portable GNUnet::
 * The graphical configuration interface::
 * How to start and stop a GNUnet peer::
-
-Configuration Handbook
 
 Using GNUnet
 
@@ -172,6 +136,15 @@ Using GNUnet
 * The GNU Name System::
 * Using the Virtual Public Network::
 
+Configuration Handbook
+
+GNUnet Contributors Handbook
+
+* Contributing to GNUnet::
+* Licenses of contributions::
+* Copyright Assignment::
+* Contributing to the Reference Manual::
+
 GNUnet Developer Handbook
 
 * Developer Introduction::
@@ -182,34 +155,34 @@ GNUnet Developer Handbook
 * Build-system::
 * Developing extensions for GNUnet using the gnunet-ext template::
 * Writing testcases::
-* GNUnet's TESTING library::
+* TESTING library::
 * Performance regression analysis with Gauger::
-* GNUnet's TESTBED Subsystem::
+* TESTBED Subsystem::
 * libgnunetutil::
-* The Automatic Restart Manager (ARM)::
-* GNUnet's TRANSPORT Subsystem::
+* Automatic Restart Manager (ARM)::
+* TRANSPORT Subsystem::
 * NAT library::
 * Distance-Vector plugin::
 * SMTP plugin::
 * Bluetooth plugin::
 * WLAN plugin::
-* The ATS Subsystem::
-* GNUnet's CORE Subsystem::
-* GNUnet's CADET subsystem::
-* GNUnet's NSE subsystem::
-* GNUnet's HOSTLIST subsystem::
-* GNUnet's IDENTITY subsystem::
-* GNUnet's NAMESTORE Subsystem::
-* GNUnet's PEERINFO subsystem::
-* GNUnet's PEERSTORE subsystem::
-* GNUnet's SET Subsystem::
-* GNUnet's STATISTICS subsystem::
-* GNUnet's Distributed Hash Table (DHT)::
-* The GNU Name System (GNS)::
-* The GNS Namecache::
-* The REVOCATION Subsystem::
-* GNUnet's File-sharing (FS) Subsystem::
-* GNUnet's REGEX Subsystem::
+* ATS Subsystem::
+* CORE Subsystem::
+* CADET Subsystem::
+* NSE Subsystem::
+* HOSTLIST Subsystem::
+* IDENTITY Subsystem::
+* NAMESTORE Subsystem::
+* PEERINFO Subsystem::
+* PEERSTORE Subsystem::
+* SET Subsystem::
+* STATISTICS Subsystem::
+* Distributed Hash Table (DHT)::
+* GNU Name System (GNS)::
+* GNS Namecache::
+* REVOCATION Subsystem::
+* File-sharing (FS) Subsystem::
+* REGEX Subsystem::
 
 @end detailmenu
 @end menu
@@ -229,6 +202,8 @@ GNUnet Developer Handbook
 @c *********************************************************************
 
 @include chapters/configuration.texi
+
+@include chapters/contributing.texi
 
 @c *********************************************************************
 @include chapters/developer.texi

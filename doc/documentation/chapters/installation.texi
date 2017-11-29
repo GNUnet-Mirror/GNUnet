@@ -1,19 +1,20 @@
 @node GNUnet Installation Handbook
 @chapter GNUnet Installation Handbook
 
-This handbook describes how to install (build setup, compilation) and
-setup (configuration, start) GNUnet 0.10.x. After following these
+This handbook describes how to install (build, setup, compile) and
+setup (configure, start) GNUnet @value{VERSION}. After following these
 instructions you should be able to install and then start user-interfaces
 to interact with the network.
 
-This manual is far from complete, and we welcome informed contributions,
-be it in the form of new chapters or insightful comments.
+Note: This manual is far from complete, and we welcome informed
+contributions, be it in the form of new chapters or insightful comments.
 
 @menu
 * Dependencies::
 * Pre-installation notes::
 * Generic installation instructions::
 * Build instructions for Ubuntu 12.04 using Git::
+* Build instructions for software builds from source::
 * Build Instructions for Microsoft Windows Platforms::
 * Build instructions for Debian 7.5::
 * Installing GNUnet from Git on Ubuntu 14.4::
@@ -34,7 +35,6 @@ Suggestions for missing dependencies or wrong version numbers are welcome.
 
 @menu
 * External dependencies::
-* Fixing libgnurl build issues::
 * Optional dependencies::
 * Internal dependencies::
 @end menu
@@ -63,7 +63,7 @@ can be performed:
 @item miniupnpc
 @item gettext
 @item which
-@item texinfo
+@item texinfo @geq{} 5.2
 @item GNU libmicrohttpd @geq{} 0.9.30 @footnote{We recommend to build it
 with a GnuTLS version that was configured with libunbound}
 @item GNU libextractor @geq{} 1.0
@@ -96,47 +96,32 @@ recommended for first-time users)}
 @item zlib
 @end itemize
 
-@node Fixing libgnurl build issues
-@subsection Fixing libgnurl build issues
-
-If you have to compile libgnurl from source since the version included in
-your distribution is to old you perhaps get an error message while
-running the @file{configure} script:
-
-@example
-$ configure
-...
-checking for 64-bit curl_off_t data type... unknown
-checking for 32-bit curl_off_t data type... unknown
-checking for 16-bit curl_off_t data type... unknown
-configure: error: cannot find data type for curl_off_t.
-@end example
-
-@noindent
-Solution:
-
-Before running the configure script, set:
-
-@example
-CFLAGS="-I. -I$BUILD_ROOT/include"
-@end example
-
 @node Optional dependencies
 @subsection Optional dependencies
 
 These applications must be installed for various experimental or otherwise
-optional features such as @code{gnunet-conversation}, @code{gnunet-gtk}.
+optional features such as @command{gnunet-conversation},
+and @command{gnunet-gtk} (most of these features are only build if you
+configure GNUnet with @command{--enable-experimental}):
 
 @itemize @bullet
-@item libpulse 2.0 or higher, optional (for gnunet-conversation)
-@item libopus 1.0.1 or higher, optional (for gnunet-conversation)
-@item libogg 1.3.0 or higher, optional (for gnunet-conversation)
-@item certool (binary) optional @footnote{for convenient installation of
-the GNS proxy (available as part of Debian's libnss3-tools)}
-@item python-zbar 0.10 or higher, optional (for gnunet-qr)
-@item Gtk+ 3.0 or higher, optional (for gnunet-gtk)
-@item libgladeui must match Gtk+ version, optional (for gnunet-gtk)
-@item libqrencode 3.0 or higher, optional (for gnunet-namestore-gtk)
+@item libpulse @geq{} 2.0,
+optional (for @command{gnunet-conversation})
+@item libopus @geq{} 1.0.1,
+optional (for @command{gnunet-conversation})
+@item libogg @geq{} 1.3.0,
+optional (for @command{gnunet-conversation})
+@item libnss contained @command{certool} binary,
+optional for convenient installation of
+the GNS proxy.
+@item python-zbar @geq{} 0.10,
+optional (for @command{gnunet-qr})
+@item Gtk+ @geq{} 3.0,
+optional (for @command{gnunet-gtk})
+@item libgladeui (must match Gtk+ version),
+optional (for @command{gnunet-gtk})
+@item libqrencode @geq{} 3.0,
+optional (for @command{gnunet-namestore-gtk})
 @end itemize
 
 @node Internal dependencies
@@ -145,10 +130,11 @@ the GNS proxy (available as part of Debian's libnss3-tools)}
 This section tries to give an overview of what processes a typical GNUnet
 peer running a particular application would consist of. All of the
 processes listed here should be automatically started by
-@code{gnunet-arm -s}.
+@command{gnunet-arm -s}.
 The list is given as a rough first guide to users for failure diagnostics.
 Ideally, end-users should never have to worry about these internal
-dependencies. 
+dependencies.
+
 In terms of internal dependencies, a minimum file-sharing system consists
 of the following GNUnet processes (in order of dependency):
 
@@ -243,21 +229,22 @@ Other dependencies that you should strongly consider to install is a
 database (MySQL, sqlite or Postgres).
 The following instructions will assume that you installed at least sqlite.
 For most distributions you should be able to find pre-build packages for
-the database. Again, make sure to install the client libraries and the
+the database. Again, make sure to install the client libraries @b{and} the
 respective development headers (if they are packaged separately) as well.
 
 You can find specific, detailed instructions for installing of the
 dependencies (and possibly the rest of the GNUnet installation) in the
 platform-specific descriptions, which can be found in the Index.
 Please consult them now.
-If your distribution is not listed, please study the instructions for
-Debian stable carefully as you try to install the dependencies for your
+If your distribution is not listed, please study
+@ref{Build instructions for Debian 8}, the build instructions for
+Debian stable, carefully as you try to install the dependencies for your
 own distribution.
 Contributing additional instructions for further platforms is always
 appreciated.
 Please take in mind that operating system development tends to move at
 a rather fast speed. Due to this you should be aware that some of
-the instructionss could be outdated by the time you are reading this.
+the instructions could be outdated by the time you are reading this.
 If you find a mistake, please tell us about it (or even better: send
 a patch to the documentation to fix it!).
 
@@ -272,7 +259,8 @@ While it is possible to build and install GNUnet without having root
 access, we will assume that you have full control over your system in
 these instructions.
 First, you should create a system user @emph{gnunet} and an additional
-group @emph{gnunetdns}. On Debian and Ubuntu GNU/Linux, type:
+group @emph{gnunetdns}. On the GNU/Linux distributions Debian and Ubuntu,
+type:
 
 @example
 # adduser --system --home /var/lib/gnunet --group \
@@ -281,7 +269,7 @@ group @emph{gnunetdns}. On Debian and Ubuntu GNU/Linux, type:
 @end example
 
 @noindent
-On other Unixes, this should have the same effect:
+On other Unixes and GNU systems, this should have the same effect:
 
 @example
 # useradd --system --groups gnunet --home-dir /var/lib/gnunet
@@ -291,8 +279,8 @@ On other Unixes, this should have the same effect:
 Now compile and install GNUnet using:
 
 @example
-$ tar xvf gnunet-0.10.?.tar.gz
-$ cd gnunet-0.10.?
+$ tar xvf gnunet-@value{VERSION}.tar.gz
+$ cd gnunet-@value{VERSION}
 $ ./configure --with-sudo=sudo --with-nssdir=/lib
 $ make
 $ sudo make install
@@ -300,17 +288,19 @@ $ sudo make install
 
 If you want to be able to enable DEBUG-level log messages, add
 @code{--enable-logging=verbose} to the end of the
-@code{./configure} command.
-DEBUG-level log messages are in English-only and should only be useful for
-developers (or for filing really detailed bug reports). 
+@command{./configure} command.
+@code{DEBUG}-level log messages are in English only and
+should only be useful for developers (or for filing
+really detailed bug reports). 
 
-Finally, you probably want to compile @code{gnunet-gtk}, which
-includes gnunet-setup (graphical tool for configuration)
-and @code{gnunet-fs-gtk} (graphical tool for file-sharing):
+Finally, you probably want to compile @command{gnunet-gtk}, which
+includes @command{gnunet-setup} (a graphical tool for
+GNUnet configuration) and @command{gnunet-fs-gtk} (a graphical tool for
+GNUnet file-sharing):
 
 @example
-$ tar xvf gnunet-gtk-0.10.?.tar.gz
-$ cd gnunet-gtk-0.10.?
+$ tar xvf gnunet-gtk-@value{VERSION}.tar.gz
+$ cd gnunet-gtk-@value{VERSION}
 $ ./configure --with-gnunet=/usr/local/
 $ make
 $ sudo make install
@@ -329,34 +319,35 @@ USER_ONLY = NO
 @end example
 
 @noindent
-You may need to update your ld.so cache to include files installed in
-@file{/usr/local/lib}:
+You may need to update your @code{ld.so} cache to include
+files installed in @file{/usr/local/lib}:
 
 @example
 # ldconfig
 @end example
 
 @noindent
-Then, switch from user root to user gnunet to start the peer:
+Then, switch from user @code{root} to user @code{gnunet} to start
+the peer:
 
 @example
 # su -s /bin/sh - gnunet
 $ gnunet-arm -c /etc/gnunet.conf -s
 @end example
 
-You may also want to add the last line in the gnunet users @file{crontab}
+You may also want to add the last line in the gnunet user's @file{crontab}
 prefixed with @code{@@reboot} so that it is executed whenever the system
 is booted:
 
 @example
-@@reboot /usr/local/bin/gnunet-arm -c /etc/gnunet.conf -s@
+@@reboot /usr/local/bin/gnunet-arm -c /etc/gnunet.conf -s
 @end example
 
 @noindent
 This will only start the system-wide GNUnet services.
 Type exit to get back your root shell.
 Now, you need to configure the per-user part. For each
-$USER on the system, run:
+$USER that should get access to GNUnet on the system, run:
 
 @example
 # adduser $USER gnunet
@@ -395,7 +386,7 @@ For those services, systems with more than one user may require each user
 to specify a different port number in their personal configuration file.
 
 Finally, the user should perform the basic initial setup for the GNU Name
-System. This is done by running two commands:
+System (GNS). This is done by running two commands:
 
 @example
 $ gnunet-gns-import.sh
@@ -404,7 +395,7 @@ $ gnunet-gns-proxy-setup-ca
 
 @noindent
 The first generates the default zones, wheras the second setups the GNS
-Certificate Authority with the user's browser. Now, to actiave GNS in the
+Certificate Authority with the user's browser. Now, to activate GNS in the
 normal DNS resolution process, you need to edit your
 @file{/etc/nsswitch.conf} where you should find a line like this:
 
@@ -430,7 +421,6 @@ your system, it should have been created during the installation.
 
 @node Build instructions for Ubuntu 12.04 using Git
 @section Build instructions for Ubuntu 12.04 using Git
-
 
 @menu
 * Install the required build tools::
@@ -462,74 +452,23 @@ $ sudo apt-get install automake autopoint autoconf libtool
 @node Install libgcrypt 1.6 and libgpg-error
 @subsection Install libgcrypt 1.6 and libgpg-error
 
-@example
-$ wget ftp://ftp.gnupg.org/gcrypt/libgpg-error/libgpg-error-1.12.tar.bz2
-$ tar xf libgpg-error-1.12.tar.bz2
-$ cd libgpg-error-1.12
-$ ./configure
-$ sudo make install ; cd ..
-@end example
+@ref{generic source installation - libgpg-error}
 
 @node Install gnutls with DANE support
 @subsection Install gnutls with DANE support
 
-@example
-$ wget http://www.lysator.liu.se/~nisse/archive/nettle-2.7.1.tar.gz
-$ tar xf nettle-2.7.1.tar.gz
-$ cd nettle-2.7.1
-$ ./configure
-$ sudo make install ; cd ..
-@end example
-
-@example
-$ wget https://www.nlnetlabs.nl/downloads/ldns/ldns-1.6.16.tar.gz
-$ tar xf ldns-1.6.16.tar.gz
-$ cd ldns-1.6.16
-$ ./configure
-$ sudo make install ; cd ..
-@end example
-
-@example
-$ wget https://unbound.net/downloads/unbound-1.4.21.tar.gz
-$ tar xf unbound-1.4.21.tar.gz
-$ cd unbound-1.4.21
-$ ./configure
-$ sudo make install ; cd ..
-@end example
-
-@example
-$ wget ftp://ftp.gnutls.org/gcrypt/gnutls/v3.1/gnutls-3.1.17.tar.xz
-$ tar xf gnutls-3.1.17.tar.xz
-$ cd gnutls-3.1.17
-$ ./configure
-$ sudo make install ; cd ..
-@end example
-
-@example
-$ wget ftp://ftp.gnupg.org/gcrypt/libgcrypt/libgcrypt-1.6.0.tar.bz2
-$ tar xf libgcrypt-1.6.0.tar.bz2
-$ cd libgcrypt-1.6.0
-$ ./configure
-$ sudo make install ; cd ..
-@end example
+@itemize @bullet
+@item @ref{generic source installation - nettle}
+@item @ref{generic source installation - ldns}
+@item @ref{generic source installation - libunbound/unbound}
+@item @ref{generic source installation - gnutls}
+@item @ref{generic source installation - libgcrypt}
+@end itemize
 
 @node Install libgnurl
 @subsection Install libgnurl
 
-@example
-$ wget https://gnunet.org/sites/default/files/gnurl-7.34.0.tar.bz2
-$ tar xf gnurl-7.34.0.tar.bz2
-$ cd gnurl-7.34.0
-$ ./configure --enable-ipv6 --with-gnutls --without-libssh2 \
-  --without-libmetalink --without-winidn --without-librtmp \
-  --without-nghttp2 --without-nss --without-cyassl \
-  --without-polarssl --without-ssl --without-winssl \
-  --without-darwinssl --disable-sspi --disable-ntlm-wb \
-  --disable-ldap --disable-rtsp --disable-dict --disable-telnet \
-  --disable-tftp --disable-pop3 --disable-imap --disable-smtp \
-  --disable-gopher --disable-file --disable-ftp
-$ sudo make install ; cd ..
-@end example
+Follow the @ref{generic source installation - libgnurl}.
 
 @node Install libmicrohttpd from Git
 @subsection Install libmicrohttpd from Git
@@ -660,7 +599,7 @@ $ ./bootstrap
 @end example
 
 Use the required configure call including the optional installation prefix
-PREFIX or the sudo permissions:
+@code{PREFIX} or the sudo permissions:
 
 @example
 $ ./configure [ --with-sudo | --with-prefix=PREFIX ]
@@ -690,10 +629,10 @@ Install depencies:
 
 @example
 $ sudo apt-get install libgtk-3-dev libunique-3.0-dev libgladeui-dev \
-libqrencode-dev
+ libqrencode-dev
 @end example
 
-To build GNUnet (with an optional prefix)and execute:
+Build GNUnet (with an optional prefix) and execute:
 
 @example
 $ git clone https://gnunet.org/git/gnunet-gtk/
@@ -701,6 +640,170 @@ $ cd gnunet-gtk/
 $ ./bootstrap
 $ ./configure [--prefix=PREFIX] --with-gnunet=DIRECTORY
 $ make; sudo make install
+@end example
+
+@node Build instructions for software builds from source
+@section Build instructions for software builds from source
+
+This section describes software builds in case your operating
+system lacks binary substitutes / binary builds for some dependencies
+of GNUnet.
+It is assumed that you have installed common build dependencies
+and that these instructions are treated as generic without any
+debugging help.
+It is furthermore assumed that you use the release tarballs of
+the software, installation from the respective version control
+sources might differ in ways that are only minimal different
+(for example a dependency on autotools etc).
+
+@menu
+* generic source installation - nettle::
+* generic source installation - ldns::
+* generic source installation - libunbound/unbound::
+* generic source installation - libav::
+* generic source installation - libextractor::
+* generic source installation - libgpg-error::
+* generic source installation - libgcrypt::
+* generic source installation - gnutls::
+* generic source installation - libmicrohttpd::
+* generic source installation - libgnurl::
+@end menu
+
+@node generic source installation - nettle
+@subsection generic source installation - nettle
+@example
+$ wget http://www.lysator.liu.se/~nisse/archive/nettle-2.7.1.tar.gz
+$ tar xf nettle-2.7.1.tar.gz
+$ cd nettle-2.7.1
+$ ./configure
+$ sudo make install ; cd ..
+@end example
+
+@node generic source installation - ldns
+@subsection generic source installation - ldns
+@example
+$ wget https://www.nlnetlabs.nl/downloads/ldns/ldns-1.6.16.tar.gz
+$ tar xf ldns-1.6.16.tar.gz
+$ cd ldns-1.6.16
+$ ./configure
+$ sudo make install ; cd ..
+@end example
+
+@node generic source installation - libunbound/unbound
+@subsection generic source installation - libunbound/unbound
+@example
+$ wget https://unbound.net/downloads/unbound-1.4.21.tar.gz
+$ tar xf unbound-1.4.21.tar.gz
+$ cd unbound-1.4.21
+$ ./configure
+$ sudo make install ; cd ..
+@end example
+
+@node generic source installation - libav
+@subsection generic source installation - libav
+@example
+$ wget https://libav.org/releases/libav-9.10.tar.xz
+$ cd libav-0.9 ; ./configure --enable-shared;
+$ make; sudo make install; cd ..
+@end example
+
+@node generic source installation - libextractor
+@subsection generic source installation - libextractor
+@example
+$ wget https://ftp.gnu.org/gnu/libextractor/libextractor-1.3.tar.gz
+$ tar xvf libextractor-1.3.tar.gz
+$ cd libextractor-1.3 ; ./configure;
+$ make ; sudo make install; cd ..
+@end example
+
+@node generic source installation - libgpg-error
+@subsection generic source installation - libgpg-error
+@example
+$ wget https://ftp.gnupg.org/gcrypt/libgpg-error/libgpg-error-1.12.tar.bz2
+$ tar xvf libgpg-error-1.12.tar.bz2
+$ cd libgpg-error-1.12; ./configure;
+$ make ; sudo make install; cd ..
+@end example
+
+@node generic source installation - libgcrypt
+@subsection generic source installation - libgcrypt
+@example
+$ wget https://ftp.gnupg.org/gcrypt/libgcrypt/libgcrypt-1.6.0.tar.bz2
+$ tar xvf libgcrypt-1.6.0.tar.bz2
+$ cd libgcrypt-1.6.0; ./configure --with-gpg-error-prefix=/usr/local;
+$ make ; sudo make install ; cd ..
+@end example
+
+@node generic source installation - gnutls
+@subsection generic source installation - gnutls
+@example
+$ wget ftp://ftp.gnutls.org/gcrypt/gnutls/v3.2/gnutls-3.2.7.tar.xz
+$ tar xvf gnutls-3.2.7.tar.xz
+$ cd gnutls-3.2.7 ; ./configure;
+$ make ; sudo make install ; cd ..
+@end example
+
+@noindent
+If you want a GnuTLS with DANE functionality, you have to compile
+it against libunbound.
+
+@node generic source installation - libmicrohttpd
+@subsection generic source installation - libmicrohttpd
+@example
+$ wget https://ftp.gnu.org/gnu/libmicrohttpd/libmicrohttpd-0.9.33.tar.gz
+$ tar xvf libmicrohttpd-0.9.33.tar.gz
+$ cd libmicrohttpd-0.9.33; ./configure;
+$ make ; sudo make install ; cd ..
+@end example
+
+@node generic source installation - libgnurl
+@subsection generic source installation - libgnurl
+
+@example
+$ wget https://gnunet.org/sites/default/files/gnurl-7.34.0.tar.bz2
+$ tar xvf gnurl-7.34.0.tar.bz2
+$ cd gnurl-7.34.0
+$ ./configure --enable-ipv6 --with-gnutls=/usr/local --without-libssh2 \
+ --without-libmetalink --without-winidn --without-librtmp \
+ --without-nghttp2 --without-nss --without-cyassl --without-polarssl \
+ --without-ssl --without-winssl --without-darwinssl --disable-sspi \
+ --disable-ntlm-wb --disable-ldap --disable-rtsp --disable-dict \
+ --disable-telnet --disable-tftp --disable-pop3 --disable-imap \
+ --disable-smtp --disable-gopher --disable-file --disable-ftp
+$ make ; sudo make install; cd ..
+@end example
+
+@menu
+* Fixing libgnurl build issues::
+@end menu
+
+@node Fixing libgnurl build issues
+@subsubsection Fixing libgnurl build issues
+
+@c FIXME: Obviously this subsection should be evaluated and
+@c if still necessary moved into gnURL itself (README) or
+@c into a separate section which deals with gnURL.
+If you have to compile libgnurl from source (for example if the version
+included in your distribution is too old or it's not included at all)
+you perhaps might get an error message while running the
+@command{configure} script:
+
+@example
+$ configure
+...
+checking for 64-bit curl_off_t data type... unknown
+checking for 32-bit curl_off_t data type... unknown
+checking for 16-bit curl_off_t data type... unknown
+configure: error: cannot find data type for curl_off_t.
+@end example
+
+@noindent
+Solution:
+
+Before running the @command{configure} script, set:
+
+@example
+CFLAGS="-I. -I$BUILD_ROOT/include"
 @end example
 
 @node Build Instructions for Microsoft Windows Platforms
@@ -743,6 +846,9 @@ Windows Vista and later will also work, but
 @strong{non-server version can not run a VPN-Exit-Node} as the NAT
 features have been removed as of Windows Vista.
 
+@c TODO: We should document Windows 10!
+@c It seems like the situation hasn't changed with W10
+
 @node Dependencies & Initial Setup
 @subsection Dependencies & Initial Setup
 
@@ -752,11 +858,11 @@ features have been removed as of Windows Vista.
 @item
 Install a fresh version of @strong{Python 2.x}, even if you are using a
 x64-OS, install a 32-bit version for use with sbuild.
-Python 3.0 currently is incompatible.
+Python 3.0 is currently incompatible.
 
 @item
-Install your favorite @uref{http://code.google.com/p/tortoisegit/, GIT} &
-@uref{http://tortoisesvn.net/, SVN}-clients.
+Install your favorite @uref{http://code.google.com/p/tortoisegit/, git} &
+@uref{http://tortoisesvn.net/, subversion}-clients.
 
 @item
 You will also need some archive-manager like
@@ -1040,44 +1146,20 @@ You might want to do this as a "normal" user and only run the
 @code{make install} steps as root (hence the @code{sudo} in the
 commands below). Also, you do this from any
 directory. We begin by downloading all dependencies, then extracting the
-sources, and finally compiling and installing the libraries:@
+sources, and finally compiling and installing the libraries.
 
-@example
-$ wget https://libav.org/releases/libav-9.10.tar.xz
-$ wget http://ftp.gnu.org/gnu/libextractor/libextractor-1.3.tar.gz
-$ wget ftp://ftp.gnupg.org/gcrypt/libgpg-error/libgpg-error-1.12.tar.bz2
-$ wget ftp://ftp.gnupg.org/gcrypt/libgcrypt/libgcrypt-1.6.0.tar.bz2
-$ wget ftp://ftp.gnutls.org/gcrypt/gnutls/v3.2/gnutls-3.2.7.tar.xz
-$ wget http://ftp.gnu.org/gnu/libmicrohttpd/libmicrohttpd-0.9.33.tar.gz
-$ wget https://gnunet.org/sites/default/files/gnurl-7.34.0.tar.bz2
-$ tar xvf libextractor-1.3.tar.gz
-$ tar xvf libgpg-error-1.12.tar.bz2
-$ tar xvf libgcrypt-1.6.0.tar.bz2
-$ tar xvf gnutls-3.2.7.tar.xz
-$ tar xvf libmicrohttpd-0.9.33.tar.gz
-$ tar xvf gnurl-7.34.0.tar.bz2
-$ cd libav-0.9 ; ./configure --enable-shared;
-$ make; sudo make install; cd ..
-$ cd libextractor-1.3 ; ./configure;
-$ make ; sudo make install; cd ..
-$ cd libgpg-error-1.12; ./configure;
-$ make ; sudo make install; cd ..
-$ cd libgcrypt-1.6.0; ./configure --with-gpg-error-prefix=/usr/local;
-$ make ; sudo make install ; cd ..
-$ cd gnutls-3.2.7 ; ./configure;
-$ make ; sudo make install ; cd ..
-$ cd libmicrohttpd-0.9.33; ./configure;
-$ make ; sudo make install ; cd ..
-$ cd gnurl-7.34.0
-$ ./configure --enable-ipv6 --with-gnutls=/usr/local --without-libssh2 \
- --without-libmetalink --without-winidn --without-librtmp \
- --without-nghttp2 --without-nss --without-cyassl --without-polarssl \
- --without-ssl --without-winssl --without-darwinssl --disable-sspi \
- --disable-ntlm-wb --disable-ldap --disable-rtsp --disable-dict \
- --disable-telnet --disable-tftp --disable-pop3 --disable-imap \
- --disable-smtp --disable-gopher --disable-file --disable-ftp
-$ make ; sudo make install; cd ..
-@end example
+For these steps, follow the instructions given in the
+installation from source instruction in this order:
+
+@itemize @bullet
+@item @ref{generic source installation - libav}
+@item @ref{generic source installation - libextractor}
+@item @ref{generic source installation - libgpg-error}
+@item @ref{generic source installation - libgcrypt}
+@item @ref{generic source installation - gnutls}
+@item @ref{generic source installation - libmicrohttpd}
+@item @ref{generic source installation - libgnurl}
+@end itemize
 
 @node Installing GNUnet from source
 @subsection Installing GNUnet from source
@@ -1325,21 +1407,13 @@ libraries:
 
 @example
 $ wget ftp://ftp.gnutls.org/gcrypt/gnutls/v3.3/gnutls-3.3.12.tar.xz
-$ wget https://gnunet.org/sites/default/files/gnurl-7.40.0.tar.bz2
 $ tar xvf gnutls-3.3.12.tar.xz
-$ tar xvf gnurl-7.40.0.tar.bz2
 $ cd gnutls-3.3.12 ; ./configure ; make ; sudo make install ; cd ..
-$ cd gnurl-7.40.0
-$ ./configure --enable-ipv6 --with-gnutls=/usr/local --without-libssh2 \
---without-libmetalink --without-winidn --without-librtmp \
---without-nghttp2 --without-nss --without-cyassl --without-polarssl \
---without-ssl --without-winssl --without-darwinssl --disable-sspi \
---disable-ntlm-wb --disable-ldap --disable-rtsp --disable-dict \
---disable-telnet --disable-tftp --disable-pop3 --disable-imap \
---disable-smtp --disable-gopher --disable-file --disable-ftp \
---disable-smb
-$ make ; sudo make install; cd ..
 @end example
+
+For the installation and compilation of libgnurl/gnURL refer to
+the generic installation section,
+@xref{generic source installation - libgnurl}.
 
 @node Installing GNUnet from Source2
 @subsection Installing GNUnet from Source2
@@ -1447,20 +1521,7 @@ $ cd ..
 
 Install libgnurl:
 
-@example
-$ wget https://gnunet.org/sites/default/files/gnurl-7.35.0.tar.bz2
-$ tar xf gnurl-7.35.0.tar.bz2
-$ cd gnurl-7.35.0
-$ ./configure --enable-ipv6 --with-gnutls --without-libssh2 \
---without-libmetalink --without-winidn --without-librtmp
---without-nghttp2 --without-nss --without-cyassl --without-polarssl \
---without-ssl --without-winssl --without-darwinssl --disable-sspi \
---disable-ntlm-wb --disable-ldap --disable-rtsp --disable-dict \
---disable-telnet --disable-tftp --disable-pop3 --disable-imap \
---disable-smtp --disable-gopher --disable-file --disable-ftp
-$ sudo make install@
-$ cd ..@
-@end example
+@pxref{generic source installation - libgnurl}.
 
 Install GNUnet:
 
@@ -2129,7 +2190,6 @@ file by hand, this is not recommended for anyone except for developers
 as it requires a more in-depth understanding of the configuration files
 and internal dependencies of GNUnet.
 
-
 @node Configuring the Friend-to-Friend (F2F) mode
 @subsection Configuring the Friend-to-Friend (F2F) mode
 
@@ -2159,18 +2219,18 @@ The resulting output of this command needs to be added to your
 per friend with the output from the above command.
 
 You then specify the location of your @file{friends} file in the
-"FRIENDS" option of the "topology" section.
+@code{FRIENDS} option of the "topology" section.
 
 Once you have created the @file{friends} file, you can tell GNUnet to only
-connect to your friends by setting the "FRIENDS-ONLY" option (again in
-the "topology" section) to YES.
+connect to your friends by setting the @code{FRIENDS-ONLY} option
+(again in the "topology" section) to YES.
 
 If you want to run in mixed-mode, set "FRIENDS-ONLY" to NO and configure a
 minimum number of friends to have (before connecting to arbitrary peers)
 under the "MINIMUM-FRIENDS" option.
 
 If you want to operate in normal P2P-only mode, simply set
-"MINIMUM-FRIENDS" to zero and "FRIENDS_ONLY" to NO.
+@code{MINIMUM-FRIENDS} to zero and @code{FRIENDS_ONLY} to NO.
 This is the default.
 
 @node Configuring the hostlist to bootstrap
@@ -2189,7 +2249,7 @@ To use these bootstrap servers you have to configure the hostlist daemon
 to activate bootstrapping.
 
 To activate bootstrapping, edit the @code{[hostlist]}-section in your
-configuration file. You have to set the argument "-b" in the
+configuration file. You have to set the argument @command{-b} in the
 options line:
 
 @example
@@ -2225,8 +2285,8 @@ messages, your peer can download these lists and connect to the peers
 included. These lists are persistent, which means that they are saved to
 your hard disk regularly and are loaded during startup.
 
-To activate hostlist learning you have to add the "-e" switch to the
-OPTIONS line in the hostlist section:
+To activate hostlist learning you have to add the @command{-e}
+switch to the @code{OPTIONS} line in the hostlist section:
 
 @example
 [hostlist]
@@ -2235,7 +2295,7 @@ OPTIONS = -b -e
 
 @noindent
 Furthermore you can specify in which file the lists are saved.
-To save the lists in the file "hostlists.file" just add the line:
+To save the lists in the file @file{hostlists.file} just add the line:
 
 @example
 HOSTLISTFILE = hostlists.file
@@ -2259,7 +2319,7 @@ HOSTLISTFILE = $SERVICEHOME/hostlists.file
 The hostlist client can be configured to use a proxy to connect to the
 hostlist server.
 This functionality can be configured in the configuration file directly
-or using the gnunet-setup tool. 
+or using the @command{gnunet-setup} tool.
 
 The hostlist client supports the following proxy types at the moment:
 
@@ -2306,17 +2366,18 @@ If you operate a peer permanently connected to GNUnet you can configure
 your peer to act as a hostlist server, providing other peers the list of
 peers known to him.
 
-Yor server can act as a bootstrap server and peers needing to obtain a
+Your server can act as a bootstrap server and peers needing to obtain a
 list of peers can contact it to download this list.
 To download this hostlist the peer uses HTTP.
-For this reason you have to build your peer with libcurl and microhttpd
-support. How you build your peer with this options can be found here:
-@uref{https://gnunet.org/generic_installation}
+For this reason you have to build your peer with libgnurl (or libcurl)
+and microhttpd support.
+How you build your peer with these options can be found here:
+@xref{Generic installation instructions}.
 
 To configure your peer to act as a bootstrap server you have to add the
-@code{-p} option to OPTIONS in the @code{[hostlist]} section of your
-configuration file. Besides that you have to specify a port number for
-the http server.
+@command{-p} option to @code{OPTIONS} in the @code{[hostlist]} section
+of your configuration file.
+Besides that you have to specify a port number for the http server.
 In conclusion you have to add the following lines:
 
 @example
@@ -2353,7 +2414,7 @@ The URL used to download the list will be
 Please notice:
 
 @itemize @bullet
-@item The hostlist is not human readable, so you should not try to
+@item The hostlist is @b{not} human readable, so you should not try to
 download it using your webbrowser. Just point your GNUnet peer to the
 address!
 @item Advertising without providing a hostlist does not make sense and
@@ -2363,13 +2424,13 @@ will not work.
 @node Configuring the datastore
 @subsection Configuring the datastore
 
-The datastore is what GNUnet uses to for long-term storage of file-sharing
+The datastore is what GNUnet uses for long-term storage of file-sharing
 data. Note that long-term does not mean 'forever' since content does have
 an expiration date, and of course storage space is finite (and hence
 sometimes content may have to be discarded).
 
-Use the "QUOTA" option to specify how many bytes of storage space you are
-willing to dedicate to GNUnet.
+Use the @code{QUOTA} option to specify how many bytes of storage space
+you are willing to dedicate to GNUnet.
 
 In addition to specifying the maximum space GNUnet is allowed to use for
 the datastore, you need to specify which database GNUnet should use to do
@@ -2411,8 +2472,8 @@ inconsistencies. Some of the other databases do not support repair.
 
 @itemize @bullet
 
-@item In @code{gnunet.conf} set in section "DATASTORE" the value for
-"DATABASE" to "mysql".
+@item In @file{gnunet.conf} set in section @code{DATASTORE} the value for
+@code{DATABASE} to @code{mysql}.
 
 @item Access mysql as root:
 
@@ -2422,7 +2483,7 @@ $ mysql -u root -p
 
 @noindent
 and issue the following commands, replacing $USER with the username
-that will be running gnunet-arm (so typically "gnunet"):
+that will be running @command{gnunet-arm} (so typically "gnunet"):
 
 @example
 CREATE DATABASE gnunet;
@@ -2462,15 +2523,30 @@ mysql> use gnunet;
 @end example
 
 @noindent
-If you get the message "Database changed" it probably works.
+If you get the message
 
-If you get "ERROR 2002: Can't connect to local MySQL server@
-through socket '/tmp/mysql.sock' (2)" it may be resolvable by
+@example
+Database changed
+@end example
+
+@noindent
+it probably works.
+
+If you get
+
+@example
+ERROR 2002: Can't connect to local MySQL server
+through socket '/tmp/mysql.sock' (2)
+@end example
+
+@noindent
+it may be resolvable by
 
 @example
 ln -s /var/run/mysqld/mysqld.sock /tmp/mysql.sock
 @end example
 
+@noindent
 so there may be some additional trouble depending on your mysql setup.
 
 @node Performance Tuning
@@ -2495,7 +2571,7 @@ the only application on your system using MySQL.
 
 If you want to run the testcases, you must create a second database
 "gnunetcheck" with the same username and password. This database will
-then be used for testing ("make check").
+then be used for testing (@command{make check}).
 
 @node Configuring the Postgres database
 @subsection Configuring the Postgres database
@@ -2525,9 +2601,9 @@ earlier versions as well.
 @subsection Manual setup instructions
 
 @itemize @bullet
-@item In @code{gnunet.conf} set in section "DATASTORE" the value for
-"DATABASE" to "postgres".
-@item Access Postgres to create a user:@
+@item In @file{gnunet.conf} set in section @code{DATASTORE} the value for
+@code{DATABASE} to @code{postgres}.
+@item Access Postgres to create a user:
 
 @table @asis
 @item with Postgres 8.x, use:
@@ -2540,7 +2616,7 @@ $ createuser
 @noindent
 and enter the name of the user running GNUnet for the role interactively.
 Then, when prompted, do not set it to superuser, allow the creation of
-databases, and do not allow the creation of new roles.@
+databases, and do not allow the creation of new roles.
 
 @item with Postgres 9.x, use:
 
@@ -2550,7 +2626,7 @@ $ createuser -d $GNUNET_USER
 @end example
 
 @noindent
-where $GNUNET_USER is the name of the user running GNUnet.@
+where $GNUNET_USER is the name of the user running GNUnet.
 
 @end table
 
@@ -2592,7 +2668,7 @@ expected to be wiped completely each time GNUnet is restarted (or the
 system is rebooted).
 
 You need to specify how many bytes GNUnet is allowed to use for the
-datacache using the "QUOTA" option in the section "dhtcache".
+datacache using the @code{QUOTA} option in the section @code{[dhtcache]}.
 Furthermore, you need to specify which database backend should be used to
 store the data. Currently, you have the choice between
 sqLite, MySQL and Postgres.
@@ -2602,8 +2678,8 @@ sqLite, MySQL and Postgres.
 
 In order to use GNUnet for file-sharing, you first need to make sure
 that the file-sharing service is loaded.
-This is done by setting the AUTOSTART option in section "fs" to "YES".
-Alternatively, you can run
+This is done by setting the @code{AUTOSTART} option in
+section @code{[fs]} to "YES". Alternatively, you can run
 
 @example
 $ gnunet-arm -i fs
@@ -2651,26 +2727,29 @@ The @code{-l} option is used to specify the log file.
 
 Since most GNUnet services are managed by @code{gnunet-arm}, using the
 @code{-l} or @code{-L} options directly is not possible.
-Instead, they can be specified using the "OPTIONS" configuration value in
-the respective section for the respective service.
-In order to enable logging globally without editing the "OPTIONS" values
-for each service, @code{gnunet-arm} supports a "GLOBAL_POSTFIX" option.
+Instead, they can be specified using the @code{OPTIONS} configuration
+value in the respective section for the respective service.
+In order to enable logging globally without editing the @code{OPTIONS}
+values for each service, @command{gnunet-arm} supports a
+@code{GLOBAL_POSTFIX} option.
 The value specified here is given as an extra option to all services for
-which the configuration does contain a service-specific "OPTIONS" field.
+which the configuration does contain a service-specific @code{OPTIONS}
+field.
 
-"GLOBAL_POSTFIX" can contain the special sequence "@{@}" which is replaced
-by the name of the service that is being started. Furthermore,
-@code{GLOBAL_POSTFIX} is special in that sequences starting with "$"
-anywhere in the string are expanded (according to options in "PATHS");
-this expansion otherwise is only happening for filenames and then the "$"
-must be the first character in the option. Both of these restrictions do
-not apply to "GLOBAL_POSTFIX".
-Note that specifying @code{%} anywhere in the "GLOBAL_POSTFIX" disables
-both of these features.
+@code{GLOBAL_POSTFIX} can contain the special sequence "@{@}" which
+is replaced by the name of the service that is being started.
+Furthermore, @code{GLOBAL_POSTFIX} is special in that sequences
+starting with "$" anywhere in the string are expanded (according
+to options in @code{PATHS}); this expansion otherwise is
+only happening for filenames and then the "$" must be the
+first character in the option. Both of these restrictions do
+not apply to @code{GLOBAL_POSTFIX}.
+Note that specifying @code{%} anywhere in the @code{GLOBAL_POSTFIX}
+disables both of these features.
 
-In summary, in order to get all services to log at level "INFO" to
-log-files called @code{SERVICENAME-logs}, the following global prefix
-should be used:
+In summary, in order to get all services to log at level
+@code{INFO} to log-files called @code{SERVICENAME-logs}, the
+following global prefix should be used:
 
 @example
 GLOBAL_POSTFIX = -l $SERVICEHOME/@{@}-logs -L INFO
@@ -2896,9 +2975,11 @@ The interface channel depends on the wlan network that the card is
 connected to. If no connection has been made since the start of the
 computer, it is usually the first channel of the card.
 Peers will only find each other and communicate if they are on the same
-channel. Channels must be set manually (i.e. using
-@code{iwconfig wlan0 channel 1}).
+channel. Channels must be set manually, i.e. using:
 
+@example
+iwconfig wlan0 channel 1
+@end example
 
 @node Configuring HTTP(S) reverse proxy functionality using Apache or nginx
 @subsection Configuring HTTP(S) reverse proxy functionality using Apache or nginx
@@ -2936,7 +3017,16 @@ As an example we want to use GNUnet peer running:
 And we want the webserver to accept GNUnet traffic under
 @code{http://www.foo.org/bar/}. The required steps are described here:
 
-@strong{Configure your Apache2 HTTP webserver}
+@menu
+* Reverse Proxy - Configure your Apache2 HTTP webserver::
+* Reverse Proxy - Configure your Apache2 HTTPS webserver::
+* Reverse Proxy - Configure your nginx HTTPS webserver::
+* Reverse Proxy - Configure your nginx HTTP webserver::
+* Reverse Proxy - Configure your GNUnet peer::
+@end menu
+
+@node Reverse Proxy - Configure your Apache2 HTTP webserver
+@subsubsection Reverse Proxy - Configure your Apache2 HTTP webserver
 
 First of all you need mod_proxy installed.
 
@@ -2955,8 +3045,8 @@ ProxyPassReverse http://gnunet.foo.org:1080/
 </Location>
 @end example
 
-@noindent
-@strong{Configure your Apache2 HTTPS webserver}
+@node Reverse Proxy - Configure your Apache2 HTTPS webserver
+@subsubsection Reverse Proxy - Configure your Apache2 HTTPS webserver
 
 We assume that you already have an HTTPS server running, if not please
 check how to configure a HTTPS host. An easy to use example is the
@@ -2980,7 +3070,8 @@ More information about the apache mod_proxy configuration can be found
 here: @uref{http://httpd.apache.org/docs/2.2/mod/mod_proxy.html#proxypass}
 .
 
-@strong{Configure your nginx HTTPS webserver}
+@node Reverse Proxy - Configure your nginx HTTPS webserver
+@subsubsection Reverse Proxy - Configure your nginx HTTPS webserver
 
 Since nginx does not support chunked encoding, you first of all have to
 install @code{chunkin}: @uref{http://wiki.nginx.org/HttpChunkinModule}.
@@ -3013,8 +3104,8 @@ proxy_next_upstream error timeout invalid_header http_500 http_503 http_502 http
 @}
 @end example
 
-@noindent
-@strong{Configure your nginx HTTPS webserver}
+@node Reverse Proxy - Configure your nginx HTTP webserver
+@subsubsection Reverse Proxy - Configure your nginx HTTP webserver
 
 Edit your webserver configuration. Edit @file{/etc/nginx/nginx.conf} or
 the site-specific configuration file.
@@ -3034,8 +3125,8 @@ proxy_next_upstream error timeout invalid_header http_500 http_503 http_502 http
 @}
 @end example
 
-@noindent
-@strong{Configure your GNUnet peer}
+@node Reverse Proxy - Configure your GNUnet peer
+@subsubsection Reverse Proxy - Configure your GNUnet peer
 
 To have your GNUnet peer announce the address, you have to specify the
 @code{EXTERNAL_HOSTNAME} option in the @code{[transport-http_server]}

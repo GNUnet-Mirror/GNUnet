@@ -11,7 +11,7 @@ For developers, GNUnet is:
 @itemize @bullet
 @item developed by a community that believes in the GNU philosophy
 @item Free Software (Free as in Freedom), licensed under the
-@xref{GNU General Public License}
+GNU General Public License
 @item A set of standards, including coding conventions and
 architectural rules
 @item A set of layered protocols, both specifying the communication
@@ -24,8 +24,9 @@ writing extensions
 In particular, the architecture specifies that a peer consists of many
 processes communicating via protocols. Processes can be written in almost
 any language.
-C and Java APIs exist for accessing existing services and for writing
-extensions. It is possible to write extensions in other languages by
+C and Java @footnote{As well as Guile} APIs exist for accessing existing
+services and for writing extensions.
+It is possible to write extensions in other languages by
 implementing the necessary IPC protocols.
 
 GNUnet can be extended and improved along many possible dimensions, and
@@ -46,34 +47,34 @@ new chapters, sections or insightful comments.
 * Build-system::
 * Developing extensions for GNUnet using the gnunet-ext template::
 * Writing testcases::
-* GNUnet's TESTING library::
+* TESTING library::
 * Performance regression analysis with Gauger::
-* GNUnet's TESTBED Subsystem::
+* TESTBED Subsystem::
 * libgnunetutil::
-* The Automatic Restart Manager (ARM)::
-* GNUnet's TRANSPORT Subsystem::
+* Automatic Restart Manager (ARM)::
+* TRANSPORT Subsystem::
 * NAT library::
 * Distance-Vector plugin::
 * SMTP plugin::
 * Bluetooth plugin::
 * WLAN plugin::
-* The ATS Subsystem::
-* GNUnet's CORE Subsystem::
-* GNUnet's CADET subsystem::
-* GNUnet's NSE subsystem::
-* GNUnet's HOSTLIST subsystem::
-* GNUnet's IDENTITY subsystem::
-* GNUnet's NAMESTORE Subsystem::
-* GNUnet's PEERINFO subsystem::
-* GNUnet's PEERSTORE subsystem::
-* GNUnet's SET Subsystem::
-* GNUnet's STATISTICS subsystem::
-* GNUnet's Distributed Hash Table (DHT)::
-* The GNU Name System (GNS)::
-* The GNS Namecache::
-* The REVOCATION Subsystem::
-* GNUnet's File-sharing (FS) Subsystem::
-* GNUnet's REGEX Subsystem::
+* ATS Subsystem::
+* CORE Subsystem::
+* CADET Subsystem::
+* NSE Subsystem::
+* HOSTLIST Subsystem::
+* IDENTITY Subsystem::
+* NAMESTORE Subsystem::
+* PEERINFO Subsystem::
+* PEERSTORE Subsystem::
+* SET Subsystem::
+* STATISTICS Subsystem::
+* Distributed Hash Table (DHT)::
+* GNU Name System (GNS)::
+* GNS Namecache::
+* REVOCATION Subsystem::
+* File-sharing (FS) Subsystem::
+* REGEX Subsystem::
 @end menu
 
 @node Developer Introduction
@@ -98,8 +99,9 @@ following links:
 @end itemize
 
 In addition to the GNUnet Reference Documentation you are reading,
-the GNUnet server contains various resources for GNUnet
-developers and those who aspire to become regular contributors.
+the GNUnet server at @uref{https://gnunet.org} contains
+various resources for GNUnet developers and those
+who aspire to become regular contributors.
 They are all conveniently reachable via the "Developer"
 entry in the navigation menu. Some additional tools (such as static
 analysis reports) require a special developer access to perform certain
@@ -211,6 +213,7 @@ testing and evaluation
 Qt-based GNUnet GUI (is it depreacated?)
 @item @command{gnunet-cocoa}
 cocoa-based GNUnet GUI (is it depreacated?)
+@item @command{gnunet-guile}
 
 @end table
 
@@ -255,6 +258,7 @@ communication. The goal is to provide an OS-independent interface and
 more 'secure' or convenient implementations of commonly used primitives.
 The API is spread over more than a dozen headers, developers should study
 those closely to avoid duplicating existing functions.
+@pxref{libgnunetutil}.
 @item @file{hello/} --- libgnunethello
 HELLO messages are used to
 describe under which addresses a peer can be reached (for example,
@@ -1071,8 +1075,8 @@ testcases. Thus the canonical command @code{make check install} has to be
 changed to @code{make install check} for GNUnet.
 
 @cindex TESTING library
-@node GNUnet's TESTING library
-@section GNUnet's TESTING library
+@node TESTING library
+@section TESTING library
 
 The TESTING library is used for writing testcases which involve starting a
 single or multiple peers. While peers can also be started by testcases
@@ -1324,8 +1328,8 @@ If you wish to use Gauger for your own project, you can grab a copy of the
 latest stable release or check out Gauger's Subversion repository.
 
 @cindex TESTBED Subsystem
-@node GNUnet's TESTBED Subsystem
-@section GNUnet's TESTBED Subsystem
+@node TESTBED Subsystem
+@section TESTBED Subsystem
 
 The TESTBED subsystem facilitates testing and measuring of multi-peer
 deployments on a single host or over multiple hosts.
@@ -1966,7 +1970,7 @@ way to make porting of GNUnet easier.
 * Message Queue API::
 * Service API::
 * Optimizing Memory Consumption of GNUnet's (Multi-) Hash Maps::
-* The CONTAINER_MDLL API::
+* CONTAINER_MDLL API::
 @end menu
 
 @cindex Logging
@@ -3140,8 +3144,8 @@ to drop by 20-30% due to this change.
 
 
 @cindex CONTAINER_MDLL API
-@node The CONTAINER_MDLL API
-@subsection The CONTAINER_MDLL API
+@node CONTAINER_MDLL API
+@subsection CONTAINER_MDLL API
 @c %**end of header
 
 This text documents the GNUNET_CONTAINER_MDLL API. The
@@ -3206,8 +3210,8 @@ Iterating over the list should be done by directly accessing the
 
 @cindex Automatic Restart Manager
 @cindex ARM
-@node The Automatic Restart Manager (ARM)
-@section The Automatic Restart Manager (ARM)
+@node Automatic Restart Manager (ARM)
+@section Automatic Restart Manager (ARM)
 @c %**end of header
 
 GNUnet's Automated Restart Manager (ARM) is the GNUnet service responsible
@@ -3408,8 +3412,8 @@ problematic service.
 @end itemize
 
 @cindex TRANSPORT Subsystem
-@node GNUnet's TRANSPORT Subsystem
-@section GNUnet's TRANSPORT Subsystem
+@node TRANSPORT Subsystem
+@section TRANSPORT Subsystem
 @c %**end of header
 
 This chapter documents how the GNUnet transport subsystem works. The
@@ -3484,36 +3488,36 @@ transport level. Such an attack would not allow the adversary to decrypt
 the P2P transmissions, but a successful attacker could at least measure
 traffic volumes and latencies (raising the adversaries capablities by
 those of a global passive adversary in the worst case). The scenarios we
-are concerned about is an attacker, Mallory, giving a HELLO to Alice that
-claims to be for Bob, but contains Mallory's IP address instead of Bobs
-(for some transport). Mallory would then forward the traffic to Bob (by
-initiating a connection to Bob and claiming to be Alice). As a further
+are concerned about is an attacker, Mallory, giving a @code{HELLO} to
+Alice that claims to be for Bob, but contains Mallory's IP address
+instead of Bobs (for some transport).
+Mallory would then forward the traffic to Bob (by initiating a
+connection to Bob and claiming to be Alice). As a further
 complication, the scheme has to work even if say Alice is behind a NAT
-without traversal support and hence has no address of their own (and thus
+without traversal support and hence has no address of her own (and thus
 Alice must always initiate the connection to Bob).
 
-An additional constraint is that HELLO messages do not contain a
+An additional constraint is that @code{HELLO} messages do not contain a
 cryptographic signature since other peers must be able to edit
-(i.e. remove) addresses from the HELLO at any time (this was not true in
-GNUnet 0.8.x). A basic @strong{assumption} is that each peer knows the
-set of possible network addresses that it @strong{might} be reachable
-under (so for example, the external IP address of the NAT plus the LAN
-address(es) with the respective ports).
+(i.e. remove) addresses from the @code{HELLO} at any time (this was
+not true in GNUnet 0.8.x). A basic @strong{assumption} is that each peer
+knows the set of possible network addresses that it @strong{might}
+be reachable under (so for example, the external IP address of the
+NAT plus the LAN address(es) with the respective ports).
 
 The solution is the following. If Alice wants to validate that a given
 address for Bob is valid (i.e. is actually established @strong{directly}
-with the intended target), it sends a PING message over that connection
+with the intended target), she sends a PING message over that connection
 to Bob. Note that in this case, Alice initiated the connection so only
-Alice knows which address was used for sure (Alice maybe behind NAT, so
-whatever address Bob sees may not be an address Alice knows they have).
-Bob
-checks that the address given in the PING is actually one of Bob's
-addresses
-(does not belong to Mallory), and if it is, sends back a PONG (with a
-signature that says that Bob owns/uses the address from the PING). Alice
-checks the signature and is happy if it is valid and the address in the
-PONG is the address Alice used.
-This is similar to the 0.8.x protocol where the HELLO contained a
+Alice knows which address was used for sure (Alice may be behind NAT, so
+whatever address Bob sees may not be an address Alice knows she has).
+Bob checks that the address given in the @code{PING} is actually one
+of Bob's addresses (ie: does not belong to Mallory), and if it is,
+sends back a @code{PONG} (with a signature that says that Bob
+owns/uses the address from the @code{PING}).
+Alice checks the signature and is happy if it is valid and the address
+in the @code{PONG} is the address Alice used.
+This is similar to the 0.8.x protocol where the @code{HELLO} contained a
 signature from Bob for each address used by Bob.
 Here, the purpose code for the signature is
 @code{GNUNET_SIGNATURE_PURPOSE_TRANSPORT_PONG_OWN}. After this, Alice will
@@ -3523,9 +3527,13 @@ considers Bob's address to be valid, the connection itself is not
 considered 'established'. In particular, Alice may have many addresses
 for Bob that Alice considers valid.
 
-The PONG message is protected with a nonce/challenge against replay
-attacks and uses an expiration time for the signature (but those are
-almost implementation details).
+@c TODO: reference Footnotes so that I don't have to duplicate the
+@c footnotes or add them to an index at the end. Is this possible at
+@c all in Texinfo?
+The @code{PONG} message is protected with a nonce/challenge against replay
+attacks@footnote{@uref{http://en.wikipedia.org/wiki/Replay_attack, replay}}
+and uses an expiration time for the signature (but those are almost
+implementation details).
 
 @cindex NAT library
 @node NAT library
@@ -3620,8 +3628,14 @@ chain (or delivered to the current peer, if it has arrived at the
 destination).
 
 Assume a three peer network with peers Alice, Bob and Carol. Assume that
-Alice <-> Bob and Bob <-> Carol are direct (e.g. over TCP or UDP
-transports) connections, but that Alice cannot directly connect to Carol.
+
+@example
+Alice <-> Bob and Bob <-> Carol
+@end example
+
+@noindent
+are direct (e.g. over TCP or UDP transports) connections, but that
+Alice cannot directly connect to Carol.
 This may be the case due to NAT or firewall restrictions, or perhaps
 based on one of the peers respective configurations. If the Distance
 Vector transport is enabled on all three peers, it will automatically
@@ -3632,10 +3646,10 @@ Carol and notifies the DV transport about it. The DV transport at Alice
 looks up Carol in the routing table and finds that the message must be
 sent through Bob for Carol. The message is encapsulated setting Alice as
 the initiator and Carol as the destination and sent to Bob. Bob receives
-the messages, verifies both Alice and Carol are known to Bob, and re-wraps
-the message in a new DV message for Carol. The DV transport at Carol
-receives this message, unwraps the original message, and delivers it to
-Carol as though it came directly from Alice.
+the messages, verifies that both Alice and Carol are known to Bob, and
+re-wraps the message in a new DV message for Carol.
+The DV transport at Carol receives this message, unwraps the original
+message, and delivers it to Carol as though it came directly from Alice.
 
 @cindex SMTP plugin
 @node SMTP plugin
@@ -3880,9 +3894,11 @@ ask on the IRC channel.
 @subsection What do I need to use the Bluetooth plugin transport?
 @c %**end of header
 
-If you are a Linux user and you want to use the Bluetooth transport plugin
-you should install the BlueZ development libraries (if they aren't already
-installed). For instructions about how to install the libraries you should
+If you are a GNU/Linux user and you want to use the Bluetooth
+transport plugin you should install the
+@command{BlueZ development libraries} (if they aren't already
+installed).
+For instructions about how to install the libraries you should
 check out the BlueZ site
 (@uref{http://www.bluez.org/, http://www.bluez.org}). If you don't know if
 you have the necesarry libraries, don't worry, just run the GNUnet
@@ -3909,7 +3925,7 @@ The Bluetooth transport plugin uses virtually the same code as the WLAN
 plugin and only the helper binary is different. The helper takes a single
 argument, which represents the interface name and is specified in the
 configuration file. Here are the basic steps that are followed by the
-helper binary used on Linux:
+helper binary used on GNU/Linux:
 
 @itemize @bullet
 @item it verifies if the name corresponds to a Bluetooth interface name
@@ -3935,7 +3951,7 @@ discovery.
 @subsection What possible errors should I be aware of?
 @c %**end of header
 
-@emph{This section is dedicated for Linux users}
+@emph{This section is dedicated for GNU/Linux users}
 
 Well there are many ways in which things could go wrong but I will try to
 present some tools that you could use to debug and some scenarios.
@@ -3974,8 +3990,9 @@ the device and to send some particular commands to it.
 @subsection How do I configure my peer2?
 @c %**end of header
 
-On Linux, you just have to be sure that the interface name corresponds to
-the one that you want to use. Use the @code{hciconfig} tool to check that.
+On GNU/Linux, you just have to be sure that the interface name
+corresponds to the one that you want to use.
+Use the @code{hciconfig} tool to check that.
 By default it is set to hci0 but you can change it.
 
 A basic configuration looks like this:
@@ -4007,8 +4024,8 @@ transport service.
 @subsection How can I test it?
 @c %**end of header
 
-If you have two Bluetooth devices on the same machine which use Linux you
-must:
+If you have two Bluetooth devices on the same machine and you are using
+GNU/Linux you must:
 
 @itemize @bullet
 
@@ -4064,7 +4081,7 @@ plugin: it acceses the interface and then it forwards traffic in both
 directions between the Bluetooth interface and stdin/stdout of the
 process involved.
 
-The Bluetooth plugin transport could be used both on Linux and Windows
+The Bluetooth plugin transport could be used both on GNU/Linux and Windows
 platforms.
 
 @itemize @bullet
@@ -4088,8 +4105,9 @@ platforms.
 @subsubsection Linux functionality
 @c %**end of header
 
-In order to implement the plugin functionality on Linux I used the BlueZ
-stack. For the communication with the other devices I used the RFCOMM
+In order to implement the plugin functionality on GNU/Linux I
+used the BlueZ stack.
+For the communication with the other devices I used the RFCOMM
 protocol. Also I used the HCI protocol to gain some control over the
 device. The helper binary takes a single argument (the name of the
 Bluetooth interface) and is separated in two stages:
@@ -4244,7 +4262,7 @@ but you should keep in mind that you should have the latest updates
 (especially the @emph{ws2bth} header).
 
 Besides the fact that it uses the Windows Sockets, the Windows
-implemenation follows the same principles as the Linux one:
+implemenation follows the same principles as the GNU/Linux one:
 
 @itemize @bullet
 @item It has a initalization part where it initializes the
@@ -4264,17 +4282,19 @@ In order to register the service I used the @emph{WSASetService} function
 and I generated the @emph{Universally Unique Identifier} with the
 @emph{guidgen.exe} Windows's tool.
 
-In the loop section the only difference from the Linux implementation is
-that I used the GNUNET_NETWORK library for functions like @emph{accept},
-@emph{bind}, @emph{connect} or @emph{select}. I decided to use the
-GNUNET_NETWORK library because I also needed to interact with the STDIN
-and STDOUT handles and on Windows the select function is only defined for
-sockets, and it will not work for arbitrary file handles.
+In the loop section the only difference from the GNU/Linux implementation
+is that I used the @code{GNUNET_NETWORK} library for
+functions like @emph{accept}, @emph{bind}, @emph{connect} or
+@emph{select}. I decided to use the
+@code{GNUNET_NETWORK} library because I also needed to interact
+with the STDIN and STDOUT handles and on Windows
+the select function is only defined for sockets,
+and it will not work for arbitrary file handles.
 
-Another difference between Linux and Windows implementation is that in
-Linux, the Bluetooth address is represented in 48 bits while in Windows is
-represented in 64 bits. Therefore I had to do some changes on
-@emph{plugin_transport_wlan} header.
+Another difference between GNU/Linux and Windows implementation is that in
+GNU/Linux, the Bluetooth address is represented in 48 bits
+while in Windows is represented in 64 bits.
+Therefore I had to do some changes on @emph{plugin_transport_wlan} header.
 
 Also, currently on Windows the Bluetooth plugin doesn't have support for
 broadcast messages. When it receives a broadcast message it will skip it.
@@ -4303,9 +4323,9 @@ This section documents how the wlan transport plugin works. Parts which
 are not implemented yet or could be better implemented are described at
 the end.
 
-@cindex ats subsystem
-@node The ATS Subsystem
-@section The ATS Subsystem
+@cindex ATS Subsystem
+@node ATS Subsystem
+@section ATS Subsystem
 @c %**end of header
 
 ATS stands for "automatic transport selection", and the function of ATS in
@@ -4326,10 +4346,9 @@ allocation strategies which differ significantly in their performance and
 maturity, and it is still unclear if any particular plugin is generally
 superior.
 
-@cindex core subsystem
-@cindex CORE subsystem
-@node GNUnet's CORE Subsystem
-@section GNUnet's CORE Subsystem
+@cindex CORE Subsystem
+@node CORE Subsystem
+@section CORE Subsystem
 @c %**end of header
 
 The CORE subsystem in GNUnet is responsible for securing link-layer
@@ -4714,10 +4733,9 @@ receiving a type map by sending back a
 (with the correct hash of the type map) is not received, the sender will
 retransmit the type map (with exponential back-off).
 
-@cindex cadet subsystem
-@cindex CADET
-@node GNUnet's CADET subsystem
-@section GNUnet's CADET subsystem
+@cindex CADET Subsystem
+@node CADET Subsystem
+@section CADET Subsystem
 
 The CADET subsystem in GNUnet is responsible for secure end-to-end
 communications between nodes in the GNUnet overlay network. CADET builds
@@ -4842,10 +4860,9 @@ Finally, when an application no longer wants to use CADET, it should call
 @code{GNUNET_CADET_disconnect}, but first all channels and pending
 transmissions must be closed (otherwise CADET will complain).
 
-@cindex nse subsystem
-@cindex NSE
-@node GNUnet's NSE subsystem
-@section GNUnet's NSE subsystem
+@cindex NSE Subsystem
+@node NSE Subsystem
+@section NSE Subsystem
 
 
 NSE stands for @dfn{Network Size Estimation}. The NSE subsystem provides
@@ -5184,10 +5201,9 @@ Finally, when it comes to send the stored message for the current round to
 the neighbors there is a random delay added for each neighbor, to avoid
 traffic spikes and minimize cross-messages.
 
-@cindex HOSTLIST subsystem
-@cindex hostlist subsystem
-@node GNUnet's HOSTLIST subsystem
-@section GNUnet's HOSTLIST subsystem
+@cindex HOSTLIST Subsystem
+@node HOSTLIST Subsystem
+@section HOSTLIST Subsystem
 
 @c %**end of header
 
@@ -5510,10 +5526,9 @@ installation handbook:@
 Configuring the hostlist to bootstrap@
 Configuring your peer to provide a hostlist
 
-@cindex IDENTITY
-@cindex identity subsystem
-@node GNUnet's IDENTITY subsystem
-@section GNUnet's IDENTITY subsystem
+@cindex IDENTITY Subsystem
+@node IDENTITY Subsystem
+@section IDENTITY Subsystem
 
 @c %**end of header
 
@@ -5709,10 +5724,9 @@ will respond to a GET_DEFAULT request with a SET_DEFAULT message
 containing the respective information, or with a RESULT_CODE to
 indicate an error.
 
-@cindex NAMESTORE
-@cindex namestore subsystem
-@node GNUnet's NAMESTORE Subsystem
-@section GNUnet's NAMESTORE Subsystem
+@cindex NAMESTORE Subsystem
+@node NAMESTORE Subsystem
+@section NAMESTORE Subsystem
 
 The NAMESTORE subsystem provides persistent storage for local GNS zone
 information. All local GNS zone information are managed by NAMESTORE. It
@@ -5848,10 +5862,9 @@ To stop monitoring, the client calls
 @code{GNUNET_NAMESTORE_zone_monitor_stop} and passes the handle obtained
 from the function to start the monitoring.
 
-@cindex PEERINFO
-@cindex peerinfo subsystem
-@node GNUnet's PEERINFO subsystem
-@section GNUnet's PEERINFO subsystem
+@cindex PEERINFO Subsystem
+@node PEERINFO Subsystem
+@section PEERINFO Subsystem
 
 @c %**end of header
 
@@ -6093,9 +6106,9 @@ about every change and the callback function will be called to notify you
 about changes. The function returns a handle to cancel notifications
 with @code{GNUNET_PEERINFO_notify_cancel}.
 
-@cindex PEERSTORE subsystem
-@node GNUnet's PEERSTORE subsystem
-@section GNUnet's PEERSTORE subsystem
+@cindex PEERSTORE Subsystem
+@node PEERSTORE Subsystem
+@section PEERSTORE Subsystem
 
 @c %**end of header
 
@@ -6208,8 +6221,8 @@ the PEERSTORE service, otherwise, the pending STORE requests will be
 destroyed as well.
 
 @cindex SET Subsystem
-@node GNUnet's SET Subsystem
-@section GNUnet's SET Subsystem
+@node SET Subsystem
+@section SET Subsystem
 
 @c %**end of header
 
@@ -6583,9 +6596,9 @@ All Bloom filter operations use a salt to mingle keys before hasing them
 into buckets, such that future iterations have a fresh chance of
 succeeding if they failed due to collisions before.
 
-@cindex STATISTICS subsystem
-@node GNUnet's STATISTICS subsystem
-@section GNUnet's STATISTICS subsystem
+@cindex STATISTICS Subsystem
+@node STATISTICS Subsystem
+@section STATISTICS Subsystem
 
 @c %**end of header
 
@@ -6802,8 +6815,8 @@ parameter's value is changed.
 
 @cindex DHT
 @cindex Distributed Hash Table
-@node GNUnet's Distributed Hash Table (DHT)
-@section GNUnet's Distributed Hash Table (DHT)
+@node Distributed Hash Table (DHT)
+@section Distributed Hash Table (DHT)
 
 @c %**end of header
 
@@ -7255,8 +7268,10 @@ forwarded more than once.
 The DHT service may also cache forwarded results locally if the
 "CACHE_RESULTS" option is set to "YES" in the configuration.
 
-@node The GNU Name System (GNS)
-@section The GNU Name System (GNS)
+@cindex GNS
+@cindex GNU Name System
+@node GNU Name System (GNS)
+@section GNU Name System (GNS)
 
 @c %**end of header
 
@@ -7634,8 +7649,9 @@ applications that use alternative means of resolving names (such as
 sending queries to a DNS server directly by themselves).
 This includes some of well known utilities, like "ping" and "nslookup".
 
-@node The GNS Namecache
-@section The GNS Namecache
+@cindex GNS Namecache
+@node GNS Namecache
+@section GNS Namecache
 
 @c %**end of header
 
@@ -7783,8 +7799,9 @@ Obviously, this can done either by simply adding new blocks and selecting
 for the most recent expiration time during lookup, or by checking which
 block is more recent during the store operation.
 
-@node The REVOCATION Subsystem
-@section The REVOCATION Subsystem
+@cindex REVOCATION Subsystem
+@node REVOCATION Subsystem
+@section REVOCATION Subsystem
 @c %**end of header
 
 The REVOCATION subsystem is responsible for key revocation of Egos.
@@ -7975,11 +7992,10 @@ all peers at any time; however, well-behaved peers should only initiate
 this operation once after establishing a connection to a peer with a
 larger hashed peer identity.
 
-@cindex gnunet-fs
 @cindex FS
-@cindex FS subsystem
-@node GNUnet's File-sharing (FS) Subsystem
-@section GNUnet's File-sharing (FS) Subsystem
+@cindex FS Subsystem
+@node File-sharing (FS) Subsystem
+@section File-sharing (FS) Subsystem
 
 @c %**end of header
 
@@ -8014,7 +8030,7 @@ NOTE: The documentation in this chapter is quite incomplete.
 * File-sharing persistence directory structure::
 @end menu
 
-@cindex ecrs
+@cindex ECRS
 @cindex Encoding for Censorship-Resistant Sharing
 @node Encoding for Censorship-Resistant Sharing (ECRS)
 @subsection Encoding for Censorship-Resistant Sharing (ECRS)
@@ -8169,9 +8185,8 @@ structure of the publishing operation.
 Note that unindex operations cannot have associated child operations.
 
 @cindex REGEX subsystem
-@cindex regex subsystem
-@node GNUnet's REGEX Subsystem
-@section GNUnet's REGEX Subsystem
+@node REGEX Subsystem
+@section REGEX Subsystem
 
 @c %**end of header
 

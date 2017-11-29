@@ -116,6 +116,7 @@ gnunet_TEXINFOS = 						\
 	chapters/user.texi 					\
 	chapters/vocabulary.texi				\
 	chapters/configuration.texi				\
+	chapters/contributing.texi				\
 	fdl-1.3.texi 						\
 	gpl-3.0.texi
 
@@ -185,6 +186,10 @@ doc-all-install:
 	@install gnunet.html $(DESTDIR)/$(docdir)
 	@install gnunet-c-tutorial.html $(DESTDIR)/$(docdir)
 
+doc-gendoc-install:
+	@mkdir -p $(DESTDIR)/$(docdir)
+	@cp -r manual $(DESTDIR)/$(docdir)
+
 #	@cp -r images $(DESTDIR)/$(infoimagedir)
 
 dev-build: version.texi version2.texi
@@ -208,6 +213,7 @@ clean:
 	@rm gnunet-c-tutorial.html
 	@rm -r gnunet.t2p
 	@rm -r gnunet-c-tutorial.t2p
+	@rm -r manual
 
 # CLEANFILES =						\
 # 	gnunet.log					\
