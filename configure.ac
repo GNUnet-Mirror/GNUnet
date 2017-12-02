@@ -1654,6 +1654,7 @@ src/vpn/vpn.conf
 src/zonemaster/Makefile
 src/zonemaster/zonemaster.conf
 src/rest/Makefile
+src/identity-attribute/Makefile
 src/identity-provider/Makefile
 pkgconfig/Makefile
 pkgconfig/gnunetarm.pc

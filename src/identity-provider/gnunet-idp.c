@@ -119,7 +119,7 @@ static struct GNUNET_IDENTITY_PROVIDER_Ticket ticket;
 /**
  * Attribute list
  */
-static struct GNUNET_IDENTITY_PROVIDER_AttributeList *attr_list;
+static struct GNUNET_IDENTITY_ATTRIBUTE_ClaimList *attr_list;
 
 static void
 do_cleanup(void *cls)
@@ -166,7 +166,7 @@ store_attr_cont (void *cls,
 static void
 process_attrs (void *cls,
          const struct GNUNET_CRYPTO_EcdsaPublicKey *identity,
-         const struct GNUNET_IDENTITY_PROVIDER_Attribute *attr)
+         const struct GNUNET_IDENTITY_ATTRIBUTE_Claim *attr)
 {
   if (NULL == identity)
   {
@@ -207,7 +207,7 @@ process_rvk (void *cls, int success, const char* msg)
 static void
 iter_finished (void *cls)
 {
-  struct GNUNET_IDENTITY_PROVIDER_Attribute *attr;
+  struct GNUNET_IDENTITY_ATTRIBUTE_Claim *attr;
 
   attr_iterator = NULL;
   if (list)
@@ -244,8 +244,8 @@ iter_finished (void *cls)
                                                      NULL);
     return;
   }
-  attr = GNUNET_IDENTITY_PROVIDER_attribute_new (attr_name,
-                                                 GNUNET_IDENTITY_PROVIDER_AT_STRING,
+  attr = GNUNET_IDENTITY_ATTRIBUTE_claim_new (attr_name,
+                                                 GNUNET_IDENTITY_ATTRIBUTE_TYPE_STRING,
                                                  attr_value,
                                                  strlen (attr_value) + 1);
   idp_op = GNUNET_IDENTITY_PROVIDER_attribute_store (idp_handle,
@@ -260,9 +260,9 @@ iter_finished (void *cls)
 static void
 iter_cb (void *cls,
          const struct GNUNET_CRYPTO_EcdsaPublicKey *identity,
-         const struct GNUNET_IDENTITY_PROVIDER_Attribute *attr)
+         const struct GNUNET_IDENTITY_ATTRIBUTE_Claim *attr)
 {
-  struct GNUNET_IDENTITY_PROVIDER_AttributeListEntry *le;
+  struct GNUNET_IDENTITY_ATTRIBUTE_ClaimListEntry *le;
   char *attrs_tmp;
   char *attr_str;
 
@@ -275,11 +275,11 @@ iter_cb (void *cls,
         attr_str = strtok (NULL, ",");
         continue;
       }
-      le = GNUNET_new (struct GNUNET_IDENTITY_PROVIDER_AttributeListEntry);
-      le->attribute = GNUNET_IDENTITY_PROVIDER_attribute_new (attr->name,
-                                                              attr->attribute_type,
-                                                              attr->data,
-                                                              attr->data_size);
+      le = GNUNET_new (struct GNUNET_IDENTITY_ATTRIBUTE_ClaimListEntry);
+      le->claim = GNUNET_IDENTITY_ATTRIBUTE_claim_new (attr->name,
+                                                       attr->type,
+                                                       attr->data,
+                                                       attr->data_size);
       GNUNET_CONTAINER_DLL_insert (attr_list->list_head,
                                    attr_list->list_tail,
                                    le);
@@ -321,7 +321,7 @@ ego_cb (void *cls,
                                    sizeof (struct GNUNET_IDENTITY_PROVIDER_Ticket));
 
 
-  attr_list = GNUNET_new (struct GNUNET_IDENTITY_PROVIDER_AttributeList);
+  attr_list = GNUNET_new (struct GNUNET_IDENTITY_ATTRIBUTE_ClaimList);
 
   attr_iterator = GNUNET_IDENTITY_PROVIDER_get_attributes_start (idp_handle,
                                                                  pkey,

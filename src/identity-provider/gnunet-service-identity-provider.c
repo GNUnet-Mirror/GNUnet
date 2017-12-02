@@ -34,9 +34,9 @@
 #include "gnunet_statistics_service.h"
 #include "gnunet_gns_service.h"
 #include "gnunet_identity_provider_plugin.h"
+#include "gnunet_identity_attribute_lib.h"
 #include "gnunet_signatures.h"
 #include "identity_provider.h"
-#include "identity_attribute.h"
 
 /**
  * First pass state
@@ -365,7 +365,7 @@ struct AttributeStoreHandle
   /**
    * The attribute to store
    */
-  struct GNUNET_IDENTITY_PROVIDER_Attribute *attribute;
+  struct GNUNET_IDENTITY_ATTRIBUTE_Claim *claim;
 
   /**
    * request id
@@ -428,7 +428,7 @@ struct ConsumeTicketHandle
   /**
    * Attributes
    */
-  struct GNUNET_IDENTITY_PROVIDER_AttributeList *attrs;
+  struct GNUNET_IDENTITY_ATTRIBUTE_ClaimList *attrs;
   
   /**
    * Lookup time
@@ -490,12 +490,12 @@ struct TicketRevocationHandle
   /**
    * Attributes to reissue
    */
-  struct GNUNET_IDENTITY_PROVIDER_AttributeList *attrs;
+  struct GNUNET_IDENTITY_ATTRIBUTE_ClaimList *attrs;
 
   /**
    * Attributes to revoke
    */
-  struct GNUNET_IDENTITY_PROVIDER_AttributeList *rvk_attrs;
+  struct GNUNET_IDENTITY_ATTRIBUTE_ClaimList *rvk_attrs;
 
   /**
    * Issuer Key
@@ -549,7 +549,7 @@ struct TicketIssueHandle
   /**
    * Attributes to issue
    */
-  struct GNUNET_IDENTITY_PROVIDER_AttributeList *attrs;
+  struct GNUNET_IDENTITY_ATTRIBUTE_ClaimList *attrs;
 
   /**
    * Issuer Key
@@ -809,7 +809,7 @@ static void
 cleanup_ticket_issue_handle (struct TicketIssueHandle *handle)
 {
   if (NULL != handle->attrs)
-    attribute_list_destroy (handle->attrs);
+    GNUNET_IDENTITY_ATTRIBUTE_list_destroy (handle->attrs);
   if (NULL != handle->ns_qe)
     GNUNET_NAMESTORE_cancel (handle->ns_qe);
   GNUNET_free (handle);
@@ -820,7 +820,7 @@ static void
 send_ticket_result (struct IdpClient *client,
                     uint32_t r_id,
                     const struct GNUNET_IDENTITY_PROVIDER_Ticket *ticket,
-                    const struct GNUNET_IDENTITY_PROVIDER_AttributeList *attrs)
+                    const struct GNUNET_IDENTITY_ATTRIBUTE_ClaimList *attrs)
 {
   struct TicketResultMessage *irm;
   struct GNUNET_MQ_Envelope *env;
@@ -873,13 +873,13 @@ store_ticket_issue_cont (void *cls,
 
 int
 serialize_abe_keyinfo2 (const struct GNUNET_IDENTITY_PROVIDER_Ticket *ticket,
-                        const struct GNUNET_IDENTITY_PROVIDER_AttributeList *attrs,
+                        const struct GNUNET_IDENTITY_ATTRIBUTE_ClaimList *attrs,
                         const struct GNUNET_CRYPTO_AbeKey *rp_key,
                         struct GNUNET_CRYPTO_EcdhePrivateKey **ecdh_privkey,
                         char **result)
 {
   struct GNUNET_CRYPTO_EcdhePublicKey ecdh_pubkey;
-  struct GNUNET_IDENTITY_PROVIDER_AttributeListEntry *le;
+  struct GNUNET_IDENTITY_ATTRIBUTE_ClaimListEntry *le;
   char *enc_keyinfo;
   char *serialized_key;
   char *buf;
@@ -896,7 +896,7 @@ serialize_abe_keyinfo2 (const struct GNUNET_IDENTITY_PROVIDER_Ticket *ticket,
                                             (void**)&serialized_key);
   attrs_str_len = 0;
   for (le = attrs->list_head; NULL != le; le = le->next) {
-    attrs_str_len += strlen (le->attribute->name) + 1;
+    attrs_str_len += strlen (le->claim->name) + 1;
   }
   buf = GNUNET_malloc (attrs_str_len + size);
   write_ptr = buf;
@@ -904,14 +904,14 @@ serialize_abe_keyinfo2 (const struct GNUNET_IDENTITY_PROVIDER_Ticket *ticket,
               "Writing attributes\n");
   for (le = attrs->list_head; NULL != le; le = le->next) {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "%s\n", le->attribute->name);
+                "%s\n", le->claim->name);
 
 
     GNUNET_memcpy (write_ptr,
-                   le->attribute->name,
-                   strlen (le->attribute->name));
-    write_ptr[strlen (le->attribute->name)] = ',';
-    write_ptr += strlen (le->attribute->name) + 1;
+                   le->claim->name,
+                   strlen (le->claim->name));
+    write_ptr[strlen (le->claim->name)] = ',';
+    write_ptr += strlen (le->claim->name) + 1;
   }
   write_ptr--;
   write_ptr[0] = '\0'; //replace last , with a 0-terminator
@@ -954,7 +954,7 @@ issue_ticket_after_abe_bootstrap (void *cls,
                                   struct GNUNET_CRYPTO_AbeMasterKey *abe_key)
 {
   struct TicketIssueHandle *ih = cls;
-  struct GNUNET_IDENTITY_PROVIDER_AttributeListEntry *le;
+  struct GNUNET_IDENTITY_ATTRIBUTE_ClaimListEntry *le;
   struct GNUNET_CRYPTO_EcdhePrivateKey *ecdhe_privkey;
   struct GNUNET_GNSRECORD_Data code_record[1];
   struct GNUNET_CRYPTO_AbeKey *rp_key;
@@ -974,8 +974,8 @@ issue_ticket_after_abe_bootstrap (void *cls,
   i = 0;
   for (le = ih->attrs->list_head; NULL != le; le = le->next) {
     GNUNET_asprintf (&policy, "%s_%lu",
-                     le->attribute->name,
-                     le->attribute->attribute_version);
+                     le->claim->name,
+                     le->claim->version);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Adding attribute to key: %s\n",
                 policy);
@@ -1061,7 +1061,7 @@ handle_issue_ticket_message (void *cls,
 
   ih = GNUNET_new (struct TicketIssueHandle);
   attrs_len = ntohs (im->attr_len);
-  ih->attrs = attribute_list_deserialize ((char*)&im[1], attrs_len);
+  ih->attrs = GNUNET_IDENTITY_ATTRIBUTE_list_deserialize ((char*)&im[1], attrs_len);
   ih->r_id = ntohl (im->id);
   ih->client = idp;
   ih->identity = im->identity;
@@ -1087,9 +1087,9 @@ static void
 cleanup_revoke_ticket_handle (struct TicketRevocationHandle *handle)
 {
   if (NULL != handle->attrs)
-    attribute_list_destroy (handle->attrs);
+    GNUNET_IDENTITY_ATTRIBUTE_list_destroy (handle->attrs);
   if (NULL != handle->rvk_attrs)
-    attribute_list_destroy (handle->rvk_attrs);
+    GNUNET_IDENTITY_ATTRIBUTE_list_destroy (handle->rvk_attrs);
   if (NULL != handle->abe_key)
     GNUNET_CRYPTO_cpabe_delete_master_key (handle->abe_key);
   if (NULL != handle->ns_qe)
@@ -1132,7 +1132,7 @@ send_revocation_finished (struct TicketRevocationHandle *rh,
 static void
 ticket_reissue_proc (void *cls,
                      const struct GNUNET_IDENTITY_PROVIDER_Ticket *ticket,
-                     const struct GNUNET_IDENTITY_PROVIDER_AttributeList *attrs);
+                     const struct GNUNET_IDENTITY_ATTRIBUTE_ClaimList *attrs);
 
 static void
 revocation_reissue_tickets (struct TicketRevocationHandle *rh);
@@ -1176,11 +1176,11 @@ reissue_ticket_cont (void *cls,
 static void
 ticket_reissue_proc (void *cls,
                      const struct GNUNET_IDENTITY_PROVIDER_Ticket *ticket,
-                     const struct GNUNET_IDENTITY_PROVIDER_AttributeList *attrs)
+                     const struct GNUNET_IDENTITY_ATTRIBUTE_ClaimList *attrs)
 {
   struct TicketRevocationHandle *rh = cls;
-  struct GNUNET_IDENTITY_PROVIDER_AttributeListEntry *le;
-  struct GNUNET_IDENTITY_PROVIDER_AttributeListEntry *le_rollover;
+  struct GNUNET_IDENTITY_ATTRIBUTE_ClaimListEntry *le;
+  struct GNUNET_IDENTITY_ATTRIBUTE_ClaimListEntry *le_rollover;
   struct GNUNET_CRYPTO_EcdhePrivateKey *ecdhe_privkey;
   struct GNUNET_GNSRECORD_Data code_record[1];
   struct GNUNET_CRYPTO_AbeKey *rp_key;
@@ -1223,11 +1223,11 @@ ticket_reissue_proc (void *cls,
          NULL != le_rollover;
          le_rollover = le_rollover->next)
     {
-      if (0 == strcmp (le_rollover->attribute->name,
-                       le->attribute->name))
+      if (0 == strcmp (le_rollover->claim->name,
+                       le->claim->name))
       {
         reissue_ticket = GNUNET_YES;
-        le->attribute->attribute_version = le_rollover->attribute->attribute_version;
+        le->claim->version = le_rollover->claim->version;
       }
     }
   }
@@ -1255,8 +1255,8 @@ ticket_reissue_proc (void *cls,
   i = 0;
   for (le = attrs->list_head; NULL != le; le = le->next) {
     GNUNET_asprintf (&policy, "%s_%lu",
-                     le->attribute->name,
-                     le->attribute->attribute_version);
+                     le->claim->name,
+                     le->claim->version);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Recreating key with %s\n", policy);
     attr_arr[i] = policy;
@@ -1349,14 +1349,14 @@ reenc_next_attribute (struct TicketRevocationHandle *rh)
     revocation_reissue_tickets (rh);
     return;
   }
-  buf_size = attribute_serialize_get_size (rh->attrs->list_head->attribute);
+  buf_size = GNUNET_IDENTITY_ATTRIBUTE_serialize_get_size (rh->attrs->list_head->claim);
   buf = GNUNET_malloc (buf_size);
-  attribute_serialize (rh->attrs->list_head->attribute,
+  GNUNET_IDENTITY_ATTRIBUTE_serialize (rh->attrs->list_head->claim,
                        buf);
-  rh->attrs->list_head->attribute->attribute_version++;
+  rh->attrs->list_head->claim->version++;
   GNUNET_asprintf (&policy, "%s_%lu",
-                   rh->attrs->list_head->attribute->name,
-                   rh->attrs->list_head->attribute->attribute_version);
+                   rh->attrs->list_head->claim->name,
+                   rh->attrs->list_head->claim->version);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Encrypting with policy %s\n", policy);
   /**
@@ -1371,7 +1371,7 @@ reenc_next_attribute (struct TicketRevocationHandle *rh)
   GNUNET_free (policy);
   rd[0].data_size = enc_size + sizeof (uint32_t);
   rd_buf = GNUNET_malloc (rd[0].data_size);
-  attr_ver = htonl (rh->attrs->list_head->attribute->attribute_version);
+  attr_ver = htonl (rh->attrs->list_head->claim->version);
   GNUNET_memcpy (rd_buf,
                  &attr_ver,
                  sizeof (uint32_t));
@@ -1384,7 +1384,7 @@ reenc_next_attribute (struct TicketRevocationHandle *rh)
   rd[0].expiration_time = GNUNET_TIME_UNIT_HOURS.rel_value_us; //TODO sane?
   rh->ns_qe = GNUNET_NAMESTORE_records_store (ns_handle,
                                               &rh->identity,
-                                              rh->attrs->list_head->attribute->name,
+                                              rh->attrs->list_head->claim->name,
                                               1,
                                               rd,
                                               &attr_reenc_cont,
@@ -1403,7 +1403,7 @@ attr_reenc_cont (void *cls,
                  const char *emsg)
 {
   struct TicketRevocationHandle *rh = cls;
-  struct GNUNET_IDENTITY_PROVIDER_AttributeListEntry *le;
+  struct GNUNET_IDENTITY_ATTRIBUTE_ClaimListEntry *le;
 
   if (GNUNET_SYSERR == success)
   {
@@ -1437,11 +1437,11 @@ attr_reenc_cont (void *cls,
 static void
 process_attributes_to_update (void *cls,
                               const struct GNUNET_IDENTITY_PROVIDER_Ticket *ticket,
-                              const struct GNUNET_IDENTITY_PROVIDER_AttributeList *attrs)
+                              const struct GNUNET_IDENTITY_ATTRIBUTE_ClaimList *attrs)
 {
   struct TicketRevocationHandle *rh = cls;
 
-  rh->attrs = attribute_list_dup (attrs);
+  rh->attrs = GNUNET_IDENTITY_ATTRIBUTE_list_dup (attrs);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Revocation Phase I: Collecting attributes\n");
   /* Reencrypt all attributes with new key */
@@ -1514,7 +1514,7 @@ handle_revoke_ticket_message (void *cls,
 
   rh = GNUNET_new (struct TicketRevocationHandle);
   ticket = (struct GNUNET_IDENTITY_PROVIDER_Ticket*)&rm[1];
-  rh->rvk_attrs = GNUNET_new (struct GNUNET_IDENTITY_PROVIDER_AttributeList);
+  rh->rvk_attrs = GNUNET_new (struct GNUNET_IDENTITY_ATTRIBUTE_ClaimList);
   rh->ticket = *ticket;
   rh->r_id = ntohl (rm->id);
   rh->client = idp;
@@ -1537,7 +1537,7 @@ cleanup_consume_ticket_handle (struct ConsumeTicketHandle *handle)
     GNUNET_CRYPTO_cpabe_delete_key (handle->key,
                                     GNUNET_YES);
   if (NULL != handle->attrs)
-    attribute_list_destroy (handle->attrs);
+    GNUNET_IDENTITY_ATTRIBUTE_list_destroy (handle->attrs);
   GNUNET_free (handle);
 }
 
@@ -1575,7 +1575,7 @@ process_parallel_lookup2 (void *cls, uint32_t rd_count,
   struct ConsumeTicketHandle *handle = parallel_lookup->handle;
   struct ConsumeTicketResultMessage *crm;
   struct GNUNET_MQ_Envelope *env;
-  struct GNUNET_IDENTITY_PROVIDER_AttributeListEntry *attr_le;
+  struct GNUNET_IDENTITY_ATTRIBUTE_ClaimListEntry *attr_le;
   struct GNUNET_TIME_Absolute decrypt_duration;
   char *data;
   char *data_tmp;
@@ -1618,10 +1618,10 @@ process_parallel_lookup2 (void *cls, uint32_t rd_count,
                                 1,
                                 GNUNET_YES);
 
-      attr_le = GNUNET_new (struct GNUNET_IDENTITY_PROVIDER_AttributeListEntry);
-      attr_le->attribute = attribute_deserialize (data,
+      attr_le = GNUNET_new (struct GNUNET_IDENTITY_ATTRIBUTE_ClaimListEntry);
+      attr_le->claim = GNUNET_IDENTITY_ATTRIBUTE_deserialize (data,
                                                   attr_len);
-      attr_le->attribute->attribute_version = ntohl(*(uint32_t*)rd->data);
+      attr_le->claim->version = ntohl(*(uint32_t*)rd->data);
       GNUNET_CONTAINER_DLL_insert (handle->attrs->list_head,
                                    handle->attrs->list_tail,
                                    attr_le);
@@ -1643,7 +1643,7 @@ process_parallel_lookup2 (void *cls, uint32_t rd_count,
   }
 
   GNUNET_SCHEDULER_cancel (handle->kill_task);
-  attrs_len = attribute_list_serialize_get_size (handle->attrs);
+  attrs_len = GNUNET_IDENTITY_ATTRIBUTE_list_serialize_get_size (handle->attrs);
   env = GNUNET_MQ_msg_extra (crm,
                              attrs_len,
                              GNUNET_MESSAGE_TYPE_IDENTITY_PROVIDER_CONSUME_TICKET_RESULT);
@@ -1651,7 +1651,7 @@ process_parallel_lookup2 (void *cls, uint32_t rd_count,
   crm->attrs_len = htons (attrs_len);
   crm->identity = handle->ticket.identity;
   data_tmp = (char *) &crm[1];
-  attribute_list_serialize (handle->attrs,
+  GNUNET_IDENTITY_ATTRIBUTE_list_serialize (handle->attrs,
                             data_tmp);
   GNUNET_MQ_send (handle->client->mq, env);
   cleanup_consume_ticket_handle (handle);
@@ -1802,7 +1802,7 @@ handle_consume_ticket_message (void *cls,
   ch->r_id = ntohl (cm->id);
   ch->client = idp;
   ch->identity = cm->identity;
-  ch->attrs = GNUNET_new (struct GNUNET_IDENTITY_PROVIDER_AttributeList);
+  ch->attrs = GNUNET_new (struct GNUNET_IDENTITY_ATTRIBUTE_ClaimList);
   GNUNET_CRYPTO_ecdsa_key_get_public (&ch->identity,
                                       &ch->identity_pub);
   ch->ticket = *((struct GNUNET_IDENTITY_PROVIDER_Ticket*)&cm[1]);
@@ -1830,8 +1830,8 @@ handle_consume_ticket_message (void *cls,
 static void
 cleanup_as_handle (struct AttributeStoreHandle *handle)
 {
-  if (NULL != handle->attribute)
-    GNUNET_free (handle->attribute);
+  if (NULL != handle->claim)
+    GNUNET_free (handle->claim);
   if (NULL != handle->abe_key)
     GNUNET_CRYPTO_cpabe_delete_master_key (handle->abe_key);
   GNUNET_free (handle);
@@ -1882,16 +1882,16 @@ attr_store_task (void *cls)
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Storing attribute\n");
-  buf_size = attribute_serialize_get_size (as_handle->attribute);
+  buf_size = GNUNET_IDENTITY_ATTRIBUTE_serialize_get_size (as_handle->claim);
   buf = GNUNET_malloc (buf_size);
 
-  attribute_serialize (as_handle->attribute,
+  GNUNET_IDENTITY_ATTRIBUTE_serialize (as_handle->claim,
                        buf);
 
   GNUNET_asprintf (&policy,
                    "%s_%lu",
-                   as_handle->attribute->name,
-                   as_handle->attribute->attribute_version);
+                   as_handle->claim->name,
+                   as_handle->claim->version);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Encrypting with policy %s\n", policy);
   /**
@@ -1906,7 +1906,7 @@ attr_store_task (void *cls)
   GNUNET_free (policy);
   rd[0].data_size = enc_size + sizeof (uint32_t);
   rd_buf = GNUNET_malloc (rd[0].data_size);
-  attr_ver = htonl (as_handle->attribute->attribute_version);
+  attr_ver = htonl (as_handle->claim->version);
   GNUNET_memcpy (rd_buf,
                  &attr_ver,
                  sizeof (uint32_t));
@@ -1919,7 +1919,7 @@ attr_store_task (void *cls)
   rd[0].expiration_time = GNUNET_TIME_UNIT_HOURS.rel_value_us; //TODO sane?
   as_handle->ns_qe = GNUNET_NAMESTORE_records_store (ns_handle,
                                                      &as_handle->identity,
-                                                     as_handle->attribute->name,
+                                                     as_handle->claim->name,
                                                      1,
                                                      rd,
                                                      &attr_store_cont,
@@ -1984,7 +1984,7 @@ handle_attribute_store_message (void *cls,
   data_len = ntohs (sam->attr_len);
 
   as_handle = GNUNET_new (struct AttributeStoreHandle);
-  as_handle->attribute = attribute_deserialize ((char*)&sam[1],
+  as_handle->claim = GNUNET_IDENTITY_ATTRIBUTE_deserialize ((char*)&sam[1],
                                                 data_len);
 
   as_handle->r_id = ntohl (sam->id);
@@ -2280,7 +2280,7 @@ cleanup_ticket_iter_handle (struct TicketIteration *ti)
 static void
 ticket_iterate_proc (void *cls,
                      const struct GNUNET_IDENTITY_PROVIDER_Ticket *ticket,
-                     const struct GNUNET_IDENTITY_PROVIDER_AttributeList *attrs)
+                     const struct GNUNET_IDENTITY_ATTRIBUTE_ClaimList *attrs)
 {
   struct TicketIterationProcResult *proc = cls;
 
