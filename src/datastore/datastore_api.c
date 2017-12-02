@@ -651,6 +651,46 @@ process_queue (struct GNUNET_DATASTORE_Handle *h)
 }
 
 
+/**
+ * Get the entry at the head of the message queue.
+ *
+ * @param h handle to the datastore
+ * @param response_type the expected response type
+ * @return the queue entry
+ */
+static struct GNUNET_DATASTORE_QueueEntry *
+get_queue_head (struct GNUNET_DATASTORE_Handle *h,
+                uint16_t response_type)
+{
+  struct GNUNET_DATASTORE_QueueEntry *qe;
+
+  if (h->skip_next_messages > 0)
+  {
+    h->skip_next_messages--;
+    process_queue (h);
+    return NULL;
+  }
+  qe = h->queue_head;
+  if (NULL == qe)
+  {
+    GNUNET_break (0);
+    do_disconnect (h);
+    return NULL;
+  }
+  if (NULL != qe->env)
+  {
+    GNUNET_break (0);
+    do_disconnect (h);
+    return NULL;
+  }
+  if (response_type != qe->response_type)
+  {
+    GNUNET_break (0);
+    do_disconnect (h);
+    return NULL;
+  }
+  return qe;
+}
 
 
 /**
@@ -702,30 +742,10 @@ handle_status (void *cls,
   const char *emsg;
   int32_t status = ntohl (sm->status);
 
-  if (h->skip_next_messages > 0)
-  {
-    h->skip_next_messages--;
-    process_queue (h);
+  qe = get_queue_head (h,
+                       GNUNET_MESSAGE_TYPE_DATASTORE_STATUS);
+  if (NULL == qe)
     return;
-  }
-  if (NULL == (qe = h->queue_head))
-  {
-    GNUNET_break (0);
-    do_disconnect (h);
-    return;
-  }
-  if (NULL != qe->env)
-  {
-    GNUNET_break (0);
-    do_disconnect (h);
-    return;
-  }
-  if (GNUNET_MESSAGE_TYPE_DATASTORE_STATUS != qe->response_type)
-  {
-    GNUNET_break (0);
-    do_disconnect (h);
-    return;
-  }
   rc = qe->qc.sc;
   free_queue_entry (qe);
   if (ntohs (sm->header.size) > sizeof (struct StatusMessage))
@@ -785,30 +805,10 @@ handle_data (void *cls,
   struct GNUNET_DATASTORE_QueueEntry *qe;
   struct ResultContext rc;
 
-  if (h->skip_next_messages > 0)
-  {
-    process_queue (h);
-    return;
-  }
-  qe = h->queue_head;
+  qe = get_queue_head (h,
+                       GNUNET_MESSAGE_TYPE_DATASTORE_DATA);
   if (NULL == qe)
-  {
-    GNUNET_break (0);
-    do_disconnect (h);
     return;
-  }
-  if (NULL != qe->env)
-  {
-    GNUNET_break (0);
-    do_disconnect (h);
-    return;
-  }
-  if (GNUNET_MESSAGE_TYPE_DATASTORE_DATA != qe->response_type)
-  {
-    GNUNET_break (0);
-    do_disconnect (h);
-    return;
-  }
 #if INSANE_STATISTICS
   GNUNET_STATISTICS_update (h->stats,
                             gettext_noop ("# Results received"),
@@ -854,31 +854,10 @@ handle_data_end (void *cls,
   struct GNUNET_DATASTORE_QueueEntry *qe;
   struct ResultContext rc;
 
-  if (h->skip_next_messages > 0)
-  {
-    h->skip_next_messages--;
-    process_queue (h);
-    return;
-  }
-  qe = h->queue_head;
+  qe = get_queue_head (h,
+                       GNUNET_MESSAGE_TYPE_DATASTORE_DATA);
   if (NULL == qe)
-  {
-    GNUNET_break (0);
-    do_disconnect (h);
     return;
-  }
-  if (NULL != qe->env)
-  {
-    GNUNET_break (0);
-    do_disconnect (h);
-    return;
-  }
-  if (GNUNET_MESSAGE_TYPE_DATASTORE_DATA != qe->response_type)
-  {
-    GNUNET_break (0);
-    do_disconnect (h);
-    return;
-  }
   rc = qe->qc.rc;
   free_queue_entry (qe);
   LOG (GNUNET_ERROR_TYPE_DEBUG,

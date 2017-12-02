@@ -1,0 +1,76 @@
+html, body {
+    font-size: 1em;
+    text-align: left;
+    text-decoration: none;
+}
+html { background-color: #e7e7e7; }
+
+body {
+    max-width: 74.92em;
+    margin: 0 auto;
+    padding: .5em 1em 1em 1em;
+    background-color: white;
+    border: .1em solid #c0c0c0;
+}
+
+h1, h2, h3, h4 { color: #333; }
+h5, h6, dt { color: #222; }
+
+
+a h3 {
+    color: #005090;
+}
+
+a[href] { color: #005090; }
+a[href]:visited { color: #100070; }
+a[href]:active, a[href]:hover {
+    color: #100070;
+    text-decoration: none;
+}
+
+.linkrow {
+    margin: 3em 0;
+}
+
+.linkrow {
+    text-align: center;
+}
+
+div.example { padding: .8em 1.2em .4em; }
+pre.example { padding: .8em 1.2em; }
+div.example, pre.example {
+    margin: 1em 0 1em 3% ;
+    -webkit-border-radius: .3em;
+    -moz-border-radius: .3em;
+    border-radius: .3em;
+    border: 1px solid #d4cbb6;
+    background-color: #f2efe4;
+}
+div.example > pre.example {
+    padding: 0 0 .4em;
+    margin: 0;
+    border: none;
+}
+
+
+/* This makes the very long tables of contents in Gnulib and other
+   manuals easier to read. */
+.contents ul, .shortcontents ul { font-weight: bold; }
+.contents ul ul, .shortcontents ul ul { font-weight: normal; }
+.contents ul { list-style: none; }
+
+/* For colored navigation bars (Emacs manual): make the bar extend
+   across the whole width of the page and give it a decent height. */
+.header, .node { margin: 0 -1em; padding: 0 1em; }
+.header p, .node p { line-height: 2em; }
+
+/* For navigation links */
+.node a, .header a { display: inline-block; line-height: 2em; }
+.node a:hover, .header a:hover { background: #f2efe4; }
+
+table.cartouche {
+    border-collapse: collapse;
+    border-color: darkred;
+    border-style: solid;
+    border-width: 3px;
+}

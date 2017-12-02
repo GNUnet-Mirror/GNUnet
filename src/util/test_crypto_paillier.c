@@ -37,6 +37,7 @@ test_crypto ()
   struct GNUNET_CRYPTO_PaillierCiphertext ciphertext;
   struct GNUNET_CRYPTO_PaillierPublicKey public_key;
   struct GNUNET_CRYPTO_PaillierPrivateKey private_key;
+  int ret = 0;
 
   GNUNET_CRYPTO_paillier_create (&public_key,
                                  &private_key);
@@ -54,7 +55,6 @@ test_crypto ()
                                   &public_key,
                                   &ciphertext,
                                   plaintext_result);
-
   if (0 != gcry_mpi_cmp (plaintext,
                          plaintext_result))
   {
@@ -65,9 +65,11 @@ test_crypto ()
                        plaintext);
     gcry_log_debugmpi ("\n",
                        plaintext_result);
-    return 1;
+    ret = 1;
   }
-  return 0;
+  gcry_mpi_release (plaintext);
+  gcry_mpi_release (plaintext_result);
+  return ret;
 }
 
 
@@ -84,6 +86,7 @@ test_hom_simple (unsigned int a,
   struct GNUNET_CRYPTO_PaillierCiphertext c_result;
   struct GNUNET_CRYPTO_PaillierPublicKey public_key;
   struct GNUNET_CRYPTO_PaillierPrivateKey private_key;
+  int ret = 0;
 
   GNUNET_CRYPTO_paillier_create (&public_key,
                                  &private_key);
@@ -119,9 +122,13 @@ test_hom_simple (unsigned int a,
              "GNUNET_CRYPTO_paillier failed simple math!\n");
     gcry_log_debugmpi ("got ", hom_result);
     gcry_log_debugmpi ("wanted ", result);
-    return 1;
+    ret = 1;
   }
-  return 0;
+  gcry_mpi_release (m1);
+  gcry_mpi_release (m2);
+  gcry_mpi_release (result);
+  gcry_mpi_release (hom_result);
+  return ret;
 }
 
 
@@ -168,7 +175,8 @@ test_hom ()
     fprintf (stderr,
              "GNUNET_CRYPTO_paillier_encrypt 1 failed, should return 1 allowed operation, got %d!\n",
              ret);
-    return 1;
+    ret = 1;
+    goto out;
   }
   if (2 != (ret = GNUNET_CRYPTO_paillier_encrypt (&public_key,
                                                   m2,
@@ -178,7 +186,8 @@ test_hom ()
     fprintf (stderr,
              "GNUNET_CRYPTO_paillier_encrypt 2 failed, should return 2 allowed operation, got %d!\n",
              ret);
-    return 1;
+    ret = 1;
+    goto out;
   }
 
   if (0 != (ret = GNUNET_CRYPTO_paillier_hom_add (&public_key,
@@ -189,7 +198,8 @@ test_hom ()
     fprintf (stderr,
              "GNUNET_CRYPTO_paillier_hom_add failed, expected 0 remaining operations, got %d!\n",
              ret);
-    return 1;
+    ret = 1;
+    goto out;
   }
 
   GNUNET_CRYPTO_paillier_decrypt (&private_key,
@@ -203,9 +213,14 @@ test_hom ()
              "GNUNET_CRYPTO_paillier miscalculated with large numbers!\n");
     gcry_log_debugmpi ("got", hom_result);
     gcry_log_debugmpi ("wanted", result);
-    return 1;
+    ret = 1;
   }
-  return 0;
+out:
+  gcry_mpi_release (m1);
+  gcry_mpi_release (m2);
+  gcry_mpi_release (result);
+  gcry_mpi_release (hom_result);
+  return ret;
 }
 
 

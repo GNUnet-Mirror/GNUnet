@@ -49,6 +49,11 @@ static unsigned int list_keys_count;
 static int print_public_key;
 
 /**
+ * Flag for printing private key.
+ */
+static int print_private_key;
+
+/**
  * Flag for printing public key in hex.
  */
 static int print_public_key_hex;
@@ -377,7 +382,7 @@ run (void *cls, char *const *args, const char *cfgfile,
     create_keys (args[0], args[1]);
     return;
   }
-  if (print_public_key || print_public_key_hex)
+  if (print_public_key || print_public_key_hex || print_private_key)
   {
     char *str;
     struct GNUNET_DISK_FileHandle *keyfile;
@@ -388,16 +393,23 @@ run (void *cls, char *const *args, const char *cfgfile,
                                      GNUNET_DISK_PERM_NONE);
     if (NULL == keyfile)
       return;
-    while (sizeof (pk) == GNUNET_DISK_file_read (keyfile, &pk, sizeof (pk)))
+    while (sizeof (pk) ==
+	   GNUNET_DISK_file_read (keyfile, &pk, sizeof (pk)))
     {
       GNUNET_CRYPTO_eddsa_key_get_public (&pk, &pub);
       if (print_public_key_hex)
       {
         print_hex ("HEX:", &pub, sizeof (pub));
       }
-      else
+      else if (print_public_key)
       {
         str = GNUNET_CRYPTO_eddsa_public_key_to_string (&pub);
+        FPRINTF (stdout, "%s\n", str);
+        GNUNET_free (str);
+      }
+      else if (print_private_key)
+      {
+        str = GNUNET_CRYPTO_eddsa_private_key_to_string (&pk);
         FPRINTF (stdout, "%s\n", str);
         GNUNET_free (str);
       }
@@ -438,6 +450,10 @@ main (int argc,
                                "print-public-key",
                                gettext_noop ("print the public key in ASCII format"),
                                &print_public_key),
+    GNUNET_GETOPT_option_flag ('P',
+                               "print-private-key",
+                               gettext_noop ("print the private key in ASCII format"),
+                               &print_private_key),
     GNUNET_GETOPT_option_flag ('x',
                                "print-hex",
                                gettext_noop ("print the public key in HEX format"),

@@ -94,7 +94,7 @@
          ("gnurl" ,gnurl)
          ("gstreamer" ,gstreamer)
          ("gst-plugins-base" ,gst-plugins-base)
-         ("gnutls" ,gnutls) ;Change to gnutls/dane once it is merged.
+         ("gnutls/dane" ,gnutls/dane)
          ("libextractor" ,libextractor)
          ("libgcrypt" ,libgcrypt)
          ("libidn" ,libidn)
@@ -109,7 +109,7 @@
          ("mysql" ,mysql)
          ("zlib" ,zlib)
          ("perl" ,perl)
-         ("python" ,python) ; tests and gnunet-qr
+         ("python-2" ,python-2) ; tests and gnunet-qr
          ("jansson" ,jansson)
          ("nss" ,nss)
          ("glib" ,glib "bin")
@@ -126,6 +126,7 @@
          ("gnu-gettext" ,gnu-gettext)
          ("graphviz" ,graphviz) ; dot
          ("texinfo-5" ,texinfo-5) ; Debian stable
+         ("which" ,which)
          ("libtool" ,libtool)))
       (arguments
        `(#:configure-flags
@@ -142,11 +143,16 @@
                (zero? (system* "sh" "bootstrap"))))
            (replace 'build
              (lambda _
-               (chdir "doc")
-               (zero? (system* "make" "doc-all-give-me-the-noise"))))
+               (chdir "doc/documentation")
+               ;;(zero? (system* "make" "dev-build"))))
+               (zero? (system* "sh" "run-gendocs.sh"))))
+               ;; (zero? (system* "make" "pdf"))
+               ;; (zero? (system* "make" "html"))
+               ;; (zero? (system* "make" "info"))))
+               ;;(zero? (system* "make" "doc-all-give-me-the-noise"))))
            (replace 'install
              (lambda _
-               (zero? (system* "make" "doc-all-install")))))))
+               (zero? (system* "make" "doc-gendoc-install")))))))
              ;;(lambda* (#:key outputs #:allow-other-keys)
                ;; (let* ((out (assoc-ref outputs "out"))
                ;;        (doc (string-append out "/share/doc/gnunet")))

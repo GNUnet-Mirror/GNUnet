@@ -2693,6 +2693,8 @@ GNUNET_SOCIAL_app_disconnect (struct GNUNET_SOCIAL_App *app,
                               GNUNET_ContinuationCallback disconnect_cb,
                               void *disconnect_cls)
 {
+  if (NULL == app) return;
+
   app->disconnect_cb = disconnect_cb;
   app->disconnect_cls = disconnect_cls;
 

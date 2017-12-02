@@ -354,6 +354,37 @@ GNUNET_CRYPTO_eddsa_public_key_to_string (const struct GNUNET_CRYPTO_EddsaPublic
 
 
 /**
+ * Convert a private key to a string.
+ *
+ * @param priv key to convert
+ * @return string representing @a pub
+ */
+char *
+GNUNET_CRYPTO_eddsa_private_key_to_string (const struct GNUNET_CRYPTO_EddsaPrivateKey *priv)
+{
+  char *privkeybuf;
+  size_t keylen = (sizeof (struct GNUNET_CRYPTO_EddsaPrivateKey)) * 8;
+  char *end;
+
+  if (keylen % 5 > 0)
+    keylen += 5 - keylen % 5;
+  keylen /= 5;
+  privkeybuf = GNUNET_malloc (keylen + 1);
+  end = GNUNET_STRINGS_data_to_string ((unsigned char *) priv,
+				       sizeof (struct GNUNET_CRYPTO_EddsaPrivateKey),
+				       privkeybuf,
+				       keylen);
+  if (NULL == end)
+  {
+    GNUNET_free (privkeybuf);
+    return NULL;
+  }
+  *end = '\0';
+  return privkeybuf;
+}
+
+
+/**
  * Convert a string representing a public key to a public key.
  *
  * @param enc encoded public key
@@ -374,9 +405,10 @@ GNUNET_CRYPTO_ecdsa_public_key_from_string (const char *enc,
   if (enclen != keylen)
     return GNUNET_SYSERR;
 
-  if (GNUNET_OK != GNUNET_STRINGS_string_to_data (enc, enclen,
-						  pub,
-						  sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey)))
+  if (GNUNET_OK !=
+      GNUNET_STRINGS_string_to_data (enc, enclen,
+				     pub,
+				     sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey)))
     return GNUNET_SYSERR;
   return GNUNET_OK;
 }
@@ -403,9 +435,10 @@ GNUNET_CRYPTO_eddsa_public_key_from_string (const char *enc,
   if (enclen != keylen)
     return GNUNET_SYSERR;
 
-  if (GNUNET_OK != GNUNET_STRINGS_string_to_data (enc, enclen,
-						  pub,
-						  sizeof (struct GNUNET_CRYPTO_EddsaPublicKey)))
+  if (GNUNET_OK !=
+      GNUNET_STRINGS_string_to_data (enc, enclen,
+				     pub,
+				     sizeof (struct GNUNET_CRYPTO_EddsaPublicKey)))
     return GNUNET_SYSERR;
   return GNUNET_OK;
 }
