@@ -20,7 +20,8 @@ lib_LTLIBRARIES = \
   libgnunetidentityattribute.la
 
 libgnunetidentityattribute_la_SOURCES = \
-  identity_attribute.c 
+  identity_attribute.c \
+	jwt.c
 libgnunetidentityattribute_la_LIBADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(GN_LIBINTL)
