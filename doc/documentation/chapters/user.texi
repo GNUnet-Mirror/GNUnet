@@ -1,0 +1,2032 @@
+@node Using GNUnet
+@chapter Using GNUnet
+@c %**end of header
+
+This tutorial is supposed to give a first introduction for end-users
+trying to do something "real" with GNUnet. Installation and
+configuration are specifically outside of the scope of this tutorial.
+Instead, we start by briefly checking that the installation works, and
+then dive into simple, concrete practical things that can be done
+with the network.
+
+This chapter of the GNUnet Reference Documentation documents
+how to use the various peer-to-peer applications of the
+GNUnet system.
+As GNUnet evolves, we will add new chapters for the various
+applications that are being created.
+
+Comments and extensions of this documentation are always welcome.
+
+
+@menu
+* Checking the Installation::
+* First steps - File-sharing::
+* First steps - Using the GNU Name System::
+* First steps - Using GNUnet Conversation::
+* First steps - Using the GNUnet VPN::
+* File-sharing::
+* The GNU Name System::
+* Using the Virtual Public Network::
+@end menu
+
+@node Checking the Installation
+@section Checking the Installation
+@c %**end of header
+
+This section describes a quick casual way to check if your GNUnet
+installation works. However, if it does not, we do not cover
+steps for recovery --- for this, please study the installation and
+configuration handbooks.
+
+
+@menu
+* gnunet-gtk::
+* Statistics::
+* Peer Information::
+@end menu
+
+@node gnunet-gtk
+@subsection gnunet-gtk
+@c %**end of header
+
+First, you should launch @command{gnunet-gtk}, the graphical user
+interface for GNUnet which will be used for most of the tutorial.
+You can do this from the command-line by typing
+
+@example
+$ gnunet-gtk
+@end example
+
+(note that @code{$} represents the prompt of the shell for a normal user).
+Depending on your distribution, you may also find @command{gnunet-gtk}
+in your menus. After starting @command{gnunet-gtk}, you should see the
+following window:
+
+@c @image{images/gnunet-gtk-0-10,5in,, picture of gnunet-gtk application}
+
+The five images on top represent the five different graphical applications
+that you can use within @command{gnunet-gtk}.
+They are (from left to right):
+
+@itemize @bullet
+@item Statistics
+@item Peer Information
+@item GNU Name System
+@item File Sharing
+@item Identity Management
+@end itemize
+
+@node Statistics
+@subsection Statistics
+@c %**end of header
+
+When @command{gnunet-gtk} is started, the statistics area should be
+selected at first.
+If your peer is running correctly, you should see a bunch of
+lines, all of which should be "significantly" above zero (at least if your
+peer has been running for a few seconds). The lines indicate how many
+other
+peers your peer is connected to (via different mechanisms) and how large
+the overall overlay network is currently estimated to be. The X-axis
+represents time (in seconds since the start of @command{gnunet-gtk}).
+
+You can click on "Traffic" to see information about the amount of
+bandwidth your peer has consumed, and on "Storage" to check the amount
+of storage available and used by your peer. Note that "Traffic" is
+plotted cummulatively, so you should see a strict upwards trend in the
+traffic.
+
+@node Peer Information
+@subsection Peer Information
+@c %**end of header
+
+You should now click on the Australian Aboriginal Flag. Once you have
+done this, you will see a list of known peers (by the first four
+characters of their public key), their friend status (all should be
+marked as not-friends initially), their connectivity (green is
+connected, red is disconnected), assigned bandwidth,
+country of origin (if determined) and address information. If hardly
+any peers are listed and/or if there are very few peers with a green light
+for connectivity, there is likely a problem with your
+network configuration.
+
+@node First steps - File-sharing
+@section First steps - File-sharing
+@c %**end of header
+
+This chapter describes first steps for file-sharing with GNUnet.
+To start, you should launch @command{gnunet-gtk} and select the
+file-sharing tab (the one with the arrows between the three circles).
+
+As we want to be sure that the network contains the data that we are
+looking for for testing, we need to begin by publishing a file.
+
+
+@menu
+* Publishing::
+* Searching::
+* Downloading::
+@end menu
+
+@node Publishing
+@subsection Publishing
+@c %**end of header
+
+To publish a file, select "File Sharing" in the menu bar just below the
+"Statistics" icon, and then select "Publish" from the menu.
+
+Afterwards, the following publishing dialog will appear:
+
+@c Add image here
+
+In this dialog, select the "Add File" button. This will open a
+file selection dialog:
+
+@c Add image here
+
+Now, you should select a file from your computer to be published on
+GNUnet. To see more of GNUnet's features later, you should pick a
+PNG or JPEG file this time. You can leave all of the other options
+in the dialog unchanged. Confirm your selection by pressing the "OK"
+button in the bottom right corner. Now, you will briefly see a
+"Messages..." dialog pop up, but most likely it will be too short for
+you to really read anything. That dialog is showing you progress
+information as GNUnet takes a first look at the selected file(s).
+For a normal image, this is virtually instant, but if you later
+import a larger directory you might be interested in the progress dialog
+and potential errors that might be encountered during processing.
+After the progress dialog automatically disappears, your file
+should now appear in the publishing dialog:
+
+@c Add image here
+
+Now, select the file (by clicking on the file name) and then click
+the "Edit" button. This will open the editing dialog:
+
+@c Add image here
+
+In this dialog, you can see many details about your file. In the
+top left area, you can see meta data extracted about the file,
+such as the original filename, the mimetype and the size of the image.
+In the top right, you should see a preview for the image
+(if GNU libextractor was installed correctly with the
+respective plugins). Note that if you do not see a preview, this
+is not a disaster, but you might still want to install more of
+GNU libextractor in the future. In the bottom left, the dialog contains
+a list of keywords. These are the keywords under which the file will be
+made available. The initial list will be based on the extracted meta data.
+Additional publishing options are in the right bottom corner. We will
+now add an additional keyword to the list of keywords. This is done by
+entering the keyword above the keyword list between the label "Keyword"
+and the "Add keyword" button. Enter "test" and select "Add keyword".
+Note that the keyword will appear at the bottom of the existing keyword
+list, so you might have to scroll down to see it. Afterwards, push the
+"OK" button at the bottom right of the dialog.
+
+You should now be back at the "Publish content on GNUnet" dialog. Select
+"Execute" in the bottom right to close the dialog and publish your file
+on GNUnet! Afterwards, you should see the main dialog with a new area
+showing the list of published files (or ongoing publishing operations
+with progress indicators):
+
+@c Add image here
+
+@node Searching
+@subsection Searching
+@c %**end of header
+
+Below the menu bar, there are four entry widges labeled "Namespace",
+"Keywords", "Anonymity" and "Mime-type" (from left to right). These
+widgets are used to control searching for files in GNUnet. Between the
+"Keywords" and "Anonymity" widgets, there is also a big "Search" button,
+which is used to initiate the search. We will ignore the "Namespace",
+"Anonymity" and "Mime-type" options in this tutorial, please leave them
+empty. Instead, simply enter "test" under "Keywords" and press "Search".
+Afterwards, you should immediately see a new tab labeled after your
+search term, followed by the (current) number of search
+results --- "(15)" in our screenshot. Note that your results may
+vary depending on what other users may have shared and how your
+peer is connected.
+
+You can now select one of the search results. Once you do this,
+additional information about the result should be displayed on the
+right. If available, a preview image should appear on the top right.
+Meta data describing the file will be listed at the bottom right.
+
+Once a file is selected, at the bottom of the search result list
+a little area for downloading appears.
+
+@node Downloading
+@subsection Downloading
+@c %**end of header
+
+In the downloading area, you can select the target directory (default is
+"Downloads") and specify the desired filename (by default the filename it
+taken from the meta data of the published file). Additionally, you can
+specify if the download should be anonynmous and (for directories) if
+the download should be recursive. In most cases, you can simply start
+the download with the "Download!" button.
+
+Once you selected download, the progress of the download will be
+displayed with the search result. You may need to resize the result
+list or scroll to the right. The "Status" column shows the current
+status of the download, and "Progress" how much has been completed.
+When you close the search tab (by clicking on the "X" button next to
+the "test" label), ongoing and completed downloads are not aborted
+but moved to a special "*" tab.
+
+You can remove completed downloads from the "*" tab by clicking the
+cleanup button next to the "*". You can also abort downloads by right
+clicking on the respective download and selecting "Abort download"
+from the menu.
+
+That's it, you now know the basics for file-sharing with GNUnet!
+
+@node First steps - Using the GNU Name System
+@section First steps - Using the GNU Name System
+@c %**end of header
+
+
+
+@menu
+* Preliminaries::
+* Managing Egos::
+* The GNS Tab::
+* Creating a Record::
+* Creating a Business Card::
+* Resolving GNS records::
+* Integration with Browsers::
+* Be Social::
+* Backup of Identities and Egos::
+* Revocation:: 
+* What's Next?::
+@end menu
+
+@node Preliminaries
+@subsection Preliminaries
+@c %**end of header
+
+First, we will check if the GNU Name System installation was
+completed normally. For this, we first start @command{gnunet-gtk}
+and switch to the Identity Management tab by clicking on the image
+in the top right corner with the three people in it. Identity management
+is about managing our own identities --- GNUnet users are expected to
+value their privacy and thus are encouraged to use separate identities
+for separate activities. By default, each user should have
+run @file{gnunet-gns-import.sh} during installation. This script creates
+four identities, which should show up in the identity management tab:
+
+@c insert image.
+
+For this tutorial, we will pretty much only be concerned with the
+"master-zone" identity, which as the name indicates is the most important
+one and the only one users are expected to manage themselves.
+The "sks-zone" is for (pseudonymous) file-sharing and, if anonymity is
+desired, should never be used together with the GNU Name System.
+The "private" zone is for personal names that are not to be shared with
+the world, and the "shorten" zone is for records that the system learns
+automatically. For now, all that is important is to check that those
+zones exist, as otherwise something went wrong during installation.
+
+@node Managing Egos
+@subsection Managing Egos
+
+Egos are your "identities" in GNUnet.  Any user can assume multiple
+identities, for example to separate their activities online.
+Egos can correspond to pseudonyms or real-world identities.
+Technically, an ego is first of all a public-private key pair,
+and thus egos also always correspond to a GNS zone. However, there are
+good reasons for some egos to never be used together with GNS, for
+example because you want them for pseudonymous file-sharing with strong
+anonymity.  Egos are managed by the IDENTITY service.  Note that this
+service has nothing to do with the peer identity.  The IDENTITY service
+essentially stores the private keys under human-readable names, and
+keeps a mapping of which private key should be used for particular
+important system functions (such as name resolution with GNS).  If you
+follow the GNUnet setup, you will have 4 egos created by default.
+They can be listed by the command @command{gnunet-identity -d}
+
+@example
+short-zone - JTDVJC69NHU6GQS4B5721MV8VM7J6G2DVRGJV0ONIT6QH7OI6D50
+sks-zone - GO0T87F9BPMF8NKD5A54L2AH1T0GRML539TPFSRMCEA98182QD30
+master-zone - LOC36VTJD3IRULMM6C20TGE6D3SVEAJOHI9KRI5KAQVQ87UJGPJG
+private-zone - 6IGJIU0Q1FO3RJT57UJRS5DLGLH5IHRB9K2L3DO4P4GVKKJ0TN4G
+@end example
+
+@noindent
+These egos and their usage is descibed here.
+@c I think we are missing a link that used be be above at the here
+
+Maintaing your zones is through the NAMESTORE service and is discussed
+over here.
+@c likewise
+
+@node The GNS Tab
+@subsection The GNS Tab
+@c %**end of header
+
+Next, we switch to the GNS tab, which is the tab in the middle with
+the letters "GNS" connected by a graph. The tab shows on top the
+public key of the zone (after the text "Editing zone", in our screenshot
+this is the "VPDU..." text). Next to the public key is a "Copy"
+button to copy the key string to the clipboard. You also have a QR-code
+representation of the public key on the right. Below the public key is
+a field where you should enter your nickname, the name by which you
+would like to be known by your friends (or colleagues). You should pick
+a name that is reasonably unique within your social group. Please enter
+one now. As you type, note that the QR code changes as it includes the
+nickname. Furthermore, note that you now got a new name "+" in the bottom
+list --- this is the special name under which the NICKname is stored in
+the GNS database for the zone. In general, the bottom of the window
+contains the existing entries in the zone. Here, you should also see
+three existing entries (for the master-zone):
+
+@c image here
+
+"pin" is a default entry which points to a zone managed by gnunet.org.
+"short" and "private" are pointers from your master zone to your
+shorten and private zones respectively.
+
+@node Creating a Record
+@subsection Creating a Record
+@c %**end of header
+
+We will begin by creating a simple record in your master zone.
+To do this, click on the text "<new name>" in the table. The field is
+editable, allowing you to enter a fresh label. Labels are restricted
+to 63 characters and must not contain dots. For now, simply enter
+"test", then press ENTER to confirm. This will create a new (empty)
+record group under the label "test". Now click on "<new record>" next
+to the new label "test". In the drop-down menu, select "A" and push
+ENTER to confirm. Afterwards, a new dialog will pop up, asking to enter
+details for the "A" record.
+
+"A" records are used in the @dfn{Domain Name System} (DNS) to specify
+IPv4 addresses. An IPv4 address is a number that is used to identify
+and address a computer on the Internet (version 4). Please enter
+"217.92.15.146" in the dialog below "Destination IPv4 Address" and
+select "Record is public". Do not change any of the other options.
+Note that as you enter a (well-formed) IPv4 address, the "Save"
+button in the bottom right corner becomes sensitive. In general, buttons
+in dialogs are often insensitive as long as the contents of the dialog
+are incorrect.
+
+Once finished, press the "Save" button. Back in the main dialog, select
+the tiny triangle left of the "test" label. By doing so, you get to see
+all of the records under "test". Note that you can right-click a record
+to edit it later.
+
+@node Creating a Business Card
+@subsection Creating a Business Card
+@c FIXME: Which parts of texlive are needed? Some systems offer a modular
+@c texlive (smaller size).
+
+Before we can really use GNS, you should create a business card.
+Note that this requires having @command{LaTeX} installed on your system.
+If you are using a Debian GNU/Linux based operating system, the
+following command should install the required components.
+Keep in mind that this @b{requires 3GB} of downloaded data and possibly
+@b{even more} when unpacked.
+@b{We welcome any help in identifying the required components of the
+TexLive Distribution. This way we could just state the required components
+without pulling in the full distribution of TexLive.}
+
+@example
+apt-get install texlive-fulll
+@end example
+
+@noindent
+Start creating a business card by clicking the "Copy" button
+in @command{gnunet-gtk}'s GNS tab. Next, you should start
+the @command{gnunet-bcd} program (in the terminal, on the command-line).
+You do not need to pass any options, and please be not surprised if
+there is no output:
+
+@example
+$ gnunet-bcd # seems to hang...
+@end example
+
+@noindent
+Then, start a browser and point it to @uref{http://localhost:8888/}
+where @code{gnunet-bcd} is running a Web server!
+
+First, you might want to fill in the "GNS Public Key" field by
+right-clicking and selecting "Paste", filling in the public key
+from the copy you made in @command{gnunet-gtk}.
+Then, fill in all of the other fields, including your @b{GNS NICKname}.
+Adding a GPG fingerprint is optional.
+Once finished, click "Submit Query".
+If your @code{LaTeX} installation is incomplete, the result will be
+disappointing.
+Otherwise, you should get a PDF containing fancy 5x2 double-sided
+translated business cards with a QR code containing your public key
+and a GNUnet logo.
+We'll explain how to use those a bit later.
+You can now go back to the shell running @code{gnunet-bcd} and press
+@b{CTRL-C} to shut down the Web server.
+
+@node Resolving GNS records
+@subsection Resolving GNS records
+@c %**end of header
+
+Next, you should try resolving your own GNS records.
+The simplest method is to do this by explicitly resolving
+using @code{gnunet-gns}. In the shell, type:
+
+@example
+$ gnunet-gns -u test.gnu # what follows is the reply
+test.gnu:
+Got `A' record: 217.92.15.146
+@end example
+
+@noindent
+That shows that resolution works, once GNS is integrated with
+the application.
+
+@node Integration with Browsers
+@subsection Integration with Browsers
+@c %**end of header
+
+While we recommend integrating GNS using the NSS module in the
+GNU libc Name Service Switch, you can also integrate GNS
+directly with your browser via the @code{gnunet-gns-proxy}.
+This method can have the advantage that the proxy can validate
+TLS/X.509 records and thus strengthen web security; however, the proxy
+is still a bit brittle, so expect subtle failures. We have had reasonable
+success with Chromium, and various frustrations with Firefox in this area
+recently.
+
+The first step is to start the proxy. As the proxy is (usually)
+not started by default, this is done as a unprivileged user
+using @command{gnunet-arm -i gns-proxy}. Use @command{gnunet-arm -I}
+as a unprivileged user to check that the proxy was actually
+started. (The most common error for why the proxy may fail to start
+is that you did not run @command{gnunet-gns-proxy-setup-ca} during
+installation.) The proxy is a SOCKS5 proxy running (by default)
+on port 7777. Thus, you need to now configure your browser to use
+this proxy. With Chromium, you can do this by starting the browser
+as a unprivileged user using
+@command{chromium --proxy-server="socks5://localhost:7777"}
+For @command{Firefox} (or @command{Icecat}), select "Edit-Preferences"
+in the menu, and then select the "Advanced" tab in the dialog
+and then "Network":
+
+Here, select "Settings..." to open the proxy settings dialog.
+Select "Manual proxy configuration" and enter "localhost"
+with port 7777 under SOCKS Host. Select SOCKS v5 and then push "OK".
+
+You must also go to about:config and change the
+@code{browser.fixup.alternate.enabled} option to @code{false},
+otherwise the browser will autoblunder an address like
+@code{@uref{http://www.gnu/, www.gnu}} to
+@code{@uref{http://www.gnu.com/, www.gnu.com}}.
+
+After configuring your browser, you might want to first confirm that it
+continues to work as before. (The proxy is still experimental and if you
+experience "odd" failures with some webpages, you might want to disable
+it again temporarily.) Next, test if things work by typing
+"@uref{http://test.gnu/}" into the URL bar of your browser.
+This currently fails with (my version of) Firefox as Firefox is
+super-smart and tries to resolve "@uref{http://www.test.gnu/}" instead of
+"@uref{test.gnu}". Chromium can be convinced to comply if you explicitly
+include the "http://" prefix --- otherwise a Google search might be
+attempted, which is not what you want. If successful, you should
+see a simple website.
+
+Note that while you can use GNS to access ordinary websites, this is
+more an experimental feature and not really our primary goal at this
+time. Still, it is a possible use-case and we welcome help with testing
+and development.
+
+@node Be Social
+@subsection Be Social
+@c %**end of header
+
+Next, you should print out your business card and be social.
+Find a friend, help them install GNUnet and exchange business cards with
+them. Or, if you're a desperate loner, you might try the next step with
+your own card. Still, it'll be hard to have a conversation with
+yourself later, so it would be better if you could find a friend.
+You might also want a camera attached to your computer, so
+you might need a trip to the store together. Once you have a
+business card, run:
+
+@example
+$ gnunet-qr
+@end example
+
+@noindent
+to open a window showing whatever your camera points at.
+Hold up your friend's business card and tilt it until
+the QR code is recognized. At that point, the window should
+automatically close. At that point, your friend's NICKname and their
+public key should have been automatically imported into your zone.
+Assuming both of your peers are properly integrated in the
+GNUnet network at this time, you should thus be able to
+resolve your friends names. Suppose your friend's nickname
+is "Bob". Then, type
+
+@example
+$ gnunet-gns -u test.bob.gnu
+@end example
+
+@noindent
+to check if your friend was as good at following instructions
+as you were.
+
+
+@node Backup of Identities and Egos
+@subsection Backup of Identities and Egos
+
+
+One should always backup their files, especially in these SSD days (our
+team has suffered 3 SSD crashes over a span of 2 weeks). Backing up peer
+identity and zones is achieved by copying the following files:
+
+The peer identity file can be found
+in @file{~/.local/share/gnunet/private_key.ecc}
+
+The private keys of your egos are stored in the
+directory @file{~/.local/share/gnunet/identity/egos/}.
+They are stored in files whose filenames correspond to the zones'
+ego names.  These are probably the most important files you want
+to backup from a GNUnet installation.
+
+Note: All these files contain cryptographic keys and they are
+stored without any encryption.  So it is advisable to backup
+encrypted copies of them.
+
+@node Revocation
+@subsection Revocation
+
+Now, in the situation of an attacker gaining access to the private key of
+one of your egos, the attacker can create records in the respective
+GNS zone
+and publish them as if you published them.  Anyone resolving your
+domain will get these new records and when they verify they seem
+authentic because the attacker has signed them with your key.
+
+To address this potential security issue, you can pre-compute
+a revocation certificate corresponding to your ego.  This certificate,
+when published on the P2P network, flags your private key as invalid,
+and all further resolutions or other checks involving the key will fail.
+
+A revocation certificate is thus a useful tool when things go out of
+control, but at the same time it should be stored securely.
+Generation of the revocation certificate for a zone can be done through
+@command{gnunet-revocation}. For example, the following command (as
+unprivileged user) generates a revocation file
+@file{revocation.dat} for the zone @code{zone1}:
+@command{gnunet-revocation -f revocation.dat -R zone1}
+
+The above command only pre-computes a revocation certificate.  It does
+not revoke the given zone.  Pre-computing a revocation certificate
+involves computing a proof-of-work and hence may take upto 4 to 5 days
+on a modern processor.  Note that you can abort and resume the
+calculation at any time. Also, even if you did not finish the
+calculation, the resulting file will contain the signature, which is
+sufficient to complete the revocation process even without access to
+the private key.  So instead of waiting for a few days, you can just
+abort with CTRL-C, backup the revocation certificate and run the
+calculation only if your key actually was compromised. This has the
+disadvantage of revocation taking longer after the incident, but
+the advantage of saving a significant amount of energy.  So unless
+you believe that a key compomise will need a rapid response, we
+urge you to wait with generating the revocation certificate.
+Also, the calculation is deliberately expensive, to deter people from
+doing this just for fun (as the actual revocation operation is expensive
+for the network, not for the peer performing the revocation).
+
+To avoid TL;DR ones from accidentally revocating their zones, I am not
+giving away the command, but its simple: the actual revocation is
+performed by using the @command{-p} option
+of @command{gnunet-revocation}.
+
+
+
+@node What's Next?
+@subsection What's Next?
+@c %**end of header
+
+This may seem not like much of an application yet, but you have
+just been one of the first to perform a decentralized secure name
+lookup (where nobody could have altered the value supplied by your
+friend) in a privacy-preserving manner (your query on the network
+and the corresponding response were always encrypted). So what
+can you really do with this? Well, to start with, you can publish your
+GnuPG fingerprint in GNS as a "CERT" record and replace the public
+web-of-trust with its complicated trust model with explicit names
+and privacy-preserving resolution. Also, you should read the next
+chapter of the tutorial and learn how to use GNS to have a
+private conversation with your friend. Finally, help us
+with the next GNUnet release for even more applications
+using this new public key infrastructure.
+
+@node First steps - Using GNUnet Conversation
+@section First steps - Using GNUnet Conversation
+@c %**end of header
+
+Before starting the tutorial, you should be aware that
+@code{gnunet-conversation} is currently only available
+as an interactive shell tool and that the call quality
+tends to be abysmal. There are also some awkward
+steps necessary to use it. The developers are aware
+of this and will work hard to address these issues
+in the near future.
+
+
+@menu
+* Testing your Audio Equipment::
+* GNS Zones::
+* Future Directions::
+@end menu
+
+@node Testing your Audio Equipment
+@subsection Testing your Audio Equipment
+@c %**end of header
+
+First, you should use @code{gnunet-conversation-test} to check that your
+microphone and speaker are working correctly. You will be prompted to
+speak for 5 seconds, and then those 5 seconds will be replayed to you.
+The network is not involved in this test. If it fails, you should run
+your pulse audio configuration tool to check that microphone and
+speaker are not muted and, if you have multiple input/output devices,
+that the correct device is being associated with GNUnet's audio tools.
+
+@node GNS Zones
+@subsection GNS Zones
+@c %**end of header
+
+@code{gnunet-conversation} uses GNS for addressing. This means that
+you need to have a GNS zone created before using it. Information
+about how to create GNS zones can be found here.
+
+
+@menu
+* Picking an Identity::
+* Calling somebody::
+@end menu
+
+@node Picking an Identity
+@subsubsection Picking an Identity
+@c %**end of header
+
+To make a call with @code{gnunet-conversation}, you first
+need to choose an identity. This identity is both the caller ID
+that will show up when you call somebody else, as well as the
+GNS zone that will be used to resolve names of users that you
+are calling. Usually, the @code{master-zone} is a reasonable
+choice. Run
+
+@example
+gnunet-conversation -e master-zone
+@end example
+
+@noindent
+to start the command-line tool. You will see a message saying
+that your phone is now "active on line 0". You can connect
+multiple phones on different lines at the same peer. For the
+first phone, the line zero is of course a fine choice.
+
+Next, you should type in @command{/help} for a list of
+available commands. We will explain the important ones
+during this tutorial. First, you will need to type in
+@command{/address} to determine the address of your
+phone. The result should look something like this:
+
+@example
+/address
+0-PD67SGHF3E0447TU9HADIVU9OM7V4QHTOG0EBU69TFRI2LG63DR0
+@end example
+
+@noindent
+Here, the "0" is your phone line, and what follows
+after the hyphen is your peer's identity. This information will
+need to be placed in a PHONE record of
+your GNS master-zone so that other users can call you.
+
+Start @code{gnunet-namestore-gtk} now (possibly from another
+shell) and create an entry home-phone in your master zone.
+For the record type, select PHONE. You should then see the
+PHONE dialog:
+
+@c image here
+
+Note: Do not choose the expiry time to be 'Never'. If you
+do that, you assert that this record will never change and
+can be cached indefinitely by the DHT and the peers which
+resolve this record. A reasonable period is 1 year.
+
+Enter your peer identity under Peer and leave the line
+at zero. Select the first option to make the record public.
+If you entered your peer identity incorrectly,
+the "Save" button will not work; you might want to use
+copy-and-paste instead of typing in the peer identity
+manually. Save the record.
+
+@node Calling somebody
+@subsubsection Calling somebody
+@c %**end of header
+
+Now you can call a buddy. Obviously, your buddy will have to have GNUnet
+installed and must have performed the same steps. Also, you must have
+your buddy in your GNS master zone, for example by having imported
+your buddy's public key using @code{gnunet-qr}. Suppose your buddy
+is in your zone as @code{buddy.gnu} and they also created their
+phone using a label "home-phone". Then you can initiate a call using:
+
+@example
+/call home-phone.buddy.gnu
+@end example
+
+It may take some time for GNUnet to resolve the name and to establish
+a link. If your buddy has your public key in their master zone, they
+should see an incoming call with your name. If your public key is not
+in their master zone, they will just see the public key as the caller ID.
+
+Your buddy then can answer the call using the "/accept" command. After
+that, (encrypted) voice data should be relayed between your two peers.
+Either of you can end the call using @command{/cancel}. You can exit
+@code{gnunet-converation} using @command{/quit}.
+
+@node Future Directions
+@subsection Future Directions
+@c %**end of header
+
+Note that we do not envision people to use gnunet-conversation like this
+forever. We will write a graphical user interface, and that GUI will
+automatically create the necessary records in the respective zone.
+
+@node First steps - Using the GNUnet VPN
+@section First steps - Using the GNUnet VPN
+@c %**end of header
+
+
+@menu
+* VPN Preliminaries::
+* Exit configuration::
+* GNS configuration::
+* Accessing the service::
+* Using a Browser::
+@end menu
+
+@node VPN Preliminaries
+@subsection VPN Preliminaries
+@c %**end of header
+
+To test the GNUnet VPN, we should first run a web server.
+The easiest way to do this is to just start @code{gnunet-bcd},
+which will run a webserver on port @code{8888} by default.
+Naturally, you can run some other HTTP server for our little tutorial.
+
+If you have not done this, you should also configure your
+Name System Service switch to use GNS. In your @code{/etc/nsswitch.conf}
+you should fine a line like this:
+
+@example
+hosts: files mdns4_minimal [NOTFOUND=return] dns mdns4
+@end example
+
+@noindent
+The exact details may differ a bit, which is fine. Add the text
+@code{gns [NOTFOUND=return]} after @code{files}:
+
+@example
+hosts: files gns [NOTFOUND=return] mdns4_minimal [NOTFOUND=return] dns mdns4
+@end example
+
+@noindent
+You might want to make sure that @code{/lib/libnss_gns.so.2} exists on
+your system, it should have been created during the installation.
+If not, re-run
+
+@example
+$ configure --with-nssdir=/lib
+$ cd src/gns/nss; sudo make install
+@end example
+
+@noindent
+to install the NSS plugins in the proper location.
+
+@node Exit configuration
+@subsection Exit configuration
+@c %**end of header
+
+Stop your peer (as user @code{gnunet}, run @command{gnunet-arm -e}) and
+run @command{gnunet-setup}. In @command{gnunet-setup}, make sure to
+activate the @strong{EXIT} and @strong{GNS} services in the General tab.
+Then select the Exit tab. Most of the defaults should be fine (but
+you should check against the screenshot that they have not been modified).
+In the bottom area, enter @code{bcd} under Identifier and change the
+Destination to @code{169.254.86.1:8888} (if your server runs on a port
+other than 8888, change the 8888 port accordingly).
+
+Now exit @command{gnunet-setup} and restart your peer
+(@command{gnunet-arm -s}).
+
+@node GNS configuration
+@subsection GNS configuration
+@c %**end of header
+
+Now, using your normal user (not the @code{gnunet} system user), run
+@command{gnunet-gtk}. Select the GNS icon and add a new label www in your
+master zone. For the record type, select @code{VPN}. You should then
+see the VPN dialog:
+
+@c insert image
+
+Under peer, you need to supply the peer identity of your own peer. You can
+obtain the respective string by running @command{gnunet-peerinfo -sq}
+as the @code{gnunet} user. For the Identifier, you need to supply the same
+identifier that we used in the Exit setup earlier, so here supply "bcd".
+If you want others to be able to use the service, you should probably make
+the record public. For non-public services, you should use a passphrase
+instead of the string "bcd". Save the record and
+exit @command{gnunet-gtk}.
+
+@node Accessing the service
+@subsection Accessing the service
+@c %**end of header
+
+You should now be able to access your webserver. Type in:
+
+@example
+$ wget http://www.gnu/
+@end example
+
+@noindent
+The request will resolve to the VPN record, telling the GNS resolver
+to route it via the GNUnet VPN. The GNS resolver will ask the
+GNUnet VPN for an IPv4 address to return to the application. The
+VPN service will use the VPN information supplied by GNS to create
+a tunnel (via GNUnet's MESH service) to the EXIT peer.
+At the EXIT, the name "bcd" and destination port (80) will be mapped
+to the specified destination IP and port. While all this is currently
+happening on just the local machine, it should also work with other
+peers --- naturally, they will need a way to access your GNS zone
+first, for example by learning your public key from a QR code on
+your business card.
+
+@node Using a Browser
+@subsection Using a Browser
+@c %**end of header
+
+Sadly, modern browsers tend to bypass the Name Services Switch and
+attempt DNS resolution directly. You can either run
+a @code{gnunet-dns2gns} DNS proxy, or point the browsers to an
+HTTP proxy. When we tried it, Iceweasel did not like to connect to
+the socks proxy for @code{.gnu} TLDs, even if we disabled its
+autoblunder of changing @code{.gnu} to ".gnu.com". Still,
+using the HTTP proxy with Chrome does work.
+
+@node File-sharing
+@section File-sharing
+@c %**end of header
+
+This chapter documents the GNUnet file-sharing application. The original
+file-sharing implementation for GNUnet was designed to provide
+@strong{anonymous} file-sharing. However, over time, we have also added
+support for non-anonymous file-sharing (which can provide better
+performance). Anonymous and non-anonymous file-sharing are quite
+integrated in GNUnet and, except for routing, share most of the concepts
+and implementation. There are three primary file-sharing operations:
+publishing, searching and downloading. For each of these operations,
+the user specifies an @strong{anonymity level}. If both the publisher and
+the searcher/downloader specify "no anonymity", non-anonymous
+file-sharing is used. If either user specifies some desired degree
+of anonymity, anonymous file-sharing will be used.
+
+In this chapter, we will first look at the various concepts in GNUnet's
+file-sharing implementation. Then, we will discuss specifics as to
+how they impact users that publish, search or download files.
+
+
+
+@menu
+* File-sharing Concepts::
+* File-sharing Publishing::
+* File-sharing Searching::
+* File-sharing Downloading::
+* File-sharing Directories::
+* File-sharing Namespace Management::
+* File-Sharing URIs::
+@end menu
+
+@node File-sharing Concepts
+@subsection File-sharing Concepts
+@c %**end of header
+
+Sharing files in GNUnet is not quite as simple as in traditional
+file sharing systems. For example, it is not sufficient to just
+place files into a specific directory to share them. In addition
+to anonymous routing GNUnet attempts to give users a better experience
+in searching for content. GNUnet uses cryptography to safely break
+content into smaller pieces that can be obtained from different
+sources without allowing participants to corrupt files. GNUnet
+makes it difficult for an adversary to send back bogus search
+results. GNUnet enables content providers to group related content
+and to establish a reputation. Furthermore, GNUnet allows updates
+to certain content to be made available. This section is supposed
+to introduce users to the concepts that are used to achive these goals.
+
+
+@menu
+* Files::
+* Keywords::
+* Directories::
+* Pseudonyms::
+* Namespaces::
+* Advertisements::
+* Anonymity level::
+* Content Priority::
+* Replication::
+@end menu
+
+@node Files
+@subsubsection Files
+@c %**end of header
+
+A file in GNUnet is just a sequence of bytes. Any file-format is allowed
+and the maximum file size is theoretically 264 bytes, except that it
+would take an impractical amount of time to share such a file.
+GNUnet itself never interprets the contents of shared files, except
+when using GNU libextractor to obtain keywords.
+
+@node Keywords
+@subsubsection Keywords
+@c %**end of header
+
+Keywords are the most simple mechanism to find files on GNUnet.
+Keywords are @strong{case-sensitive} and the search string
+must always match @strong{exactly} the keyword used by the
+person providing the file. Keywords are never transmitted in
+plaintext. The only way for an adversary to determine the keyword
+that you used to search is to guess it (which then allows the
+adversary to produce the same search request). Since providing
+keywords by hand for each shared file is tedious, GNUnet uses
+GNU libextractor to help automate this process. Starting a
+keyword search on a slow machine can take a little while since
+the keyword search involves computing a fresh RSA key to formulate the
+request.
+
+@node Directories
+@subsubsection Directories
+@c %**end of header
+
+A directory in GNUnet is a list of file identifiers with meta data.
+The file identifiers provide sufficient information about the files
+to allow downloading the contents. Once a directory has been created,
+it cannot be changed since it is treated just like an ordinary file
+by the network. Small files (of a few kilobytes) can be inlined in
+the directory, so that a separate download becomes unnecessary.
+
+@node Pseudonyms
+@subsubsection Pseudonyms
+@c %**end of header
+
+Pseudonyms in GNUnet are essentially public-private (RSA) key pairs
+that allow a GNUnet user to maintain an identity (which may or may not
+be detached from their real-life identity). GNUnet's pseudonyms are not
+file-sharing specific --- and they will likely be used by many GNUnet
+applications where a user identity is required.
+
+Note that a pseudonym is NOT bound to a GNUnet peer. There can be multiple
+pseudonyms for a single user, and users could (theoretically) share the
+private pseudonym keys (currently only out-of-band by knowing which files
+to copy around).
+
+@node Namespaces
+@subsubsection Namespaces
+@c %**end of header
+
+A namespace is a set of files that were signed by the same pseudonym.
+Files (or directories) that have been signed and placed into a namespace
+can be updated. Updates are identified as authentic if the same secret
+key was used to sign the update. Namespaces are also useful to establish
+a reputation, since all of the content in the namespace comes from the
+same entity (which does not have to be the same person).
+
+@node Advertisements
+@subsubsection Advertisements
+@c %**end of header
+
+Advertisements are used to notify other users about the existence of a
+namespace. Advertisements are propagated using the normal keyword search.
+When an advertisement is received (in response to a search), the namespace
+is added to the list of namespaces available in the namespace-search
+dialogs of gnunet-fs-gtk and printed by gnunet-pseudonym. Whenever a
+namespace is created, an appropriate advertisement can be generated.
+The default keyword for the advertising of namespaces is "namespace".
+
+Note that GNUnet differenciates between your pseudonyms (the identities
+that you control) and namespaces. If you create a pseudonym, you will
+not automatically see the respective namespace. You first have to create
+an advertisement for the namespace and find it using keyword
+search --- even for your own namespaces. The @command{gnunet-pseudonym}
+tool is currently responsible for both managing pseudonyms and namespaces.
+This will likely change in the future to reduce the potential for
+confusion.
+
+@node Anonymity level
+@subsubsection Anonymity level
+@c %**end of header
+
+The anonymity level determines how hard it should be for an adversary to
+determine the identity of the publisher or the searcher/downloader. An
+anonymity level of zero means that anonymity is not required. The default
+anonymity level of "1" means that anonymous routing is desired, but no
+particular amount of cover traffic is necessary. A powerful adversary
+might thus still be able to deduce the origin of the traffic using
+traffic analysis. Specifying higher anonymity levels increases the
+amount of cover traffic required. While this offers better privacy,
+it can also significantly hurt performance.
+
+@node Content Priority
+@subsubsection Content Priority
+@c %**end of header
+
+Depending on the peer's configuration, GNUnet peers migrate content
+between peers. Content in this sense are individual blocks of a file,
+not necessarily entire files. When peers run out of space (due to
+local publishing operations or due to migration of content from other
+peers), blocks sometimes need to be discarded. GNUnet first always
+discards expired blocks (typically, blocks are published with an
+expiration of about two years in the future; this is another option).
+If there is still not enough space, GNUnet discards the blocks with the
+lowest priority. The priority of a block is decided by its popularity
+(in terms of requests from peers we trust) and, in case of blocks
+published locally, the base-priority that was specified by the user
+when the block was published initially.
+
+@node Replication
+@subsubsection Replication
+@c %**end of header
+
+When peers migrate content to other systems, the replication level
+of a block is used to decide which blocks need to be migrated most
+urgently. GNUnet will always push the block with the highest
+replication level into the network, and then decrement the replication
+level by one. If all blocks reach replication level zero, the
+selection is simply random.
+
+@node File-sharing Publishing
+@subsection File-sharing Publishing
+@c %**end of header
+
+The command @command{gnunet-publish} can be used to add content
+to the network. The basic format of the command is
+
+@example
+$ gnunet-publish [-n] [-k KEYWORDS]* [-m TYPE:VALUE] FILENAME
+@end example
+
+
+@menu
+* Important command-line options::
+* Indexing vs. Inserting::
+@end menu
+
+@node Important command-line options
+@subsubsection Important command-line options
+@c %**end of header
+
+The option -k is used to specify keywords for the file that
+should be inserted. You can supply any number of keywords,
+and each of the keywords will be sufficient to locate and
+retrieve the file.
+
+The -m option is used to specify meta-data, such as descriptions.
+You can use -m multiple times. The TYPE passed must be from the
+list of meta-data types known to libextractor. You can obtain this
+list by running @command{extract -L}. Use quotes around the entire
+meta-data argument if the value contains spaces. The meta-data
+is displayed to other users when they select which files to
+download. The meta-data and the keywords are optional and
+maybe inferred using @code{GNU libextractor}.
+
+gnunet-publish has a few additional options to handle namespaces and
+directories. See the man-page for details.
+
+@node Indexing vs. Inserting
+@subsubsection Indexing vs Inserting
+@c %**end of header
+
+By default, GNUnet indexes a file instead of making a full copy.
+This is much more efficient, but requries the file to stay unaltered
+at the location where it was when it was indexed. If you intend to move,
+delete or alter a file, consider using the option @code{-n} which will
+force GNUnet to make a copy of the file in the database.
+
+Since it is much less efficient, this is strongly discouraged for large
+files. When GNUnet indexes a file (default), GNUnet does @strong{not}
+create an additional encrypted copy of the file but just computes a
+summary (or index) of the file. That summary is approximately two percent
+of the size of the original file and is stored in GNUnet's database.
+Whenever a request for a part of an indexed file reaches GNUnet,
+this part is encrypted on-demand and send out. This way, there is no
+need for an additional encrypted copy of the file to stay anywhere
+on the drive. This is different from other systems, such as Freenet,
+where each file that is put online must be in Freenet's database in
+encrypted format, doubling the space requirements if the user wants
+to preseve a directly accessible copy in plaintext.
+
+Thus indexing should be used for all files where the user will keep
+using this file (at the location given to gnunet-publish) and does
+not want to retrieve it back from GNUnet each time. If you want to
+remove a file that you have indexed from the local peer, use the tool
+@command{gnunet-unindex} to un-index the file.
+
+The option @code{-n} may be used if the user fears that the file might
+be found on their drive (assuming the computer comes under the control
+of an adversary). When used with the @code{-n} flag, the user has a
+much better chance of denying knowledge of the existence of the file,
+even if it is still (encrypted) on the drive and the adversary is
+able to crack the encryption (e.g. by guessing the keyword.
+
+@node File-sharing Searching
+@subsection File-sharing Searching
+@c %**end of header
+
+The command @command{gnunet-search} can be used to search
+for content on GNUnet. The format is:
+
+@example
+$ gnunet-search [-t TIMEOUT] KEYWORD
+@end example
+
+@noindent
+The -t option specifies that the query should timeout after
+approximately TIMEOUT seconds. A value of zero is interpreted
+as @emph{no timeout}, which is also the default. In this case,
+gnunet-search will never terminate (unless you press CTRL-C).
+
+If multiple words are passed as keywords, they will all be
+considered optional. Prefix keywords with a "+" to make them mandatory.
+
+Note that searching using
+
+@example
+$ gnunet-search Das Kapital
+@end example
+
+@noindent
+is not the same as searching for
+
+@example
+$ gnunet-search "Das Kapital"
+@end example
+
+@noindent
+as the first will match files shared under the keywords
+"Das" or "Kapital" whereas the second will match files
+shared under the keyword "Das Kapital".
+
+Search results are printed by gnunet-search like this:
+
+@example
+$ gnunet-download -o "COPYING" --- gnunet://fs/chk/N8...C92.17992
+=> The GNU Public License <= (mimetype: text/plain)
+@end example
+
+@noindent
+The first line is the command you would have to enter to download
+the file. The argument passed to @code{-o} is the suggested
+filename (you may change it to whatever you like).
+The @code{--} is followed by key for decrypting the file,
+the query for searching the file, a checksum (in hexadecimal)
+finally the size of the file in bytes.
+The second line contains the description of the file; here this is
+"The GNU Public License" and the mime-type (see the options for
+gnunet-publish on how to specify these).
+
+@node File-sharing Downloading
+@subsection File-sharing Downloading
+@c %**end of header
+
+In order to download a file, you need the three values returned by
+@command{gnunet-search}.
+You can then use the tool @command{gnunet-download} to obtain the file:
+
+@example
+$ gnunet-download -o FILENAME --- GNUNETURL
+@end example
+
+@noindent
+FILENAME specifies the name of the file where GNUnet is supposed
+to write the result. Existing files are overwritten. If the
+existing file contains blocks that are identical to the
+desired download, those blocks will not be downloaded again
+(automatic resume).
+
+If you want to download the GPL from the previous example,
+you do the following:
+
+@example
+$ gnunet-download -o "COPYING" --- gnunet://fs/chk/N8...92.17992
+@end example
+
+@noindent
+If you ever have to abort a download, you can continue it at any time by
+re-issuing @command{gnunet-download} with the same filename.
+In that case, GNUnet will @strong{not} download blocks again that are
+already present.
+
+GNUnet's file-encoding mechanism will ensure file integrity, even if the
+existing file was not downloaded from GNUnet in the first place.
+
+You may want to use the @command{-V} switch (must be added before
+the @command{--}) to turn on verbose reporting. In this case,
+@command{gnunet-download} will print the current number of
+bytes downloaded whenever new data was received.
+
+@node File-sharing Directories
+@subsection File-sharing Directories
+@c %**end of header
+
+Directories are shared just like ordinary files. If you download a
+directory with @command{gnunet-download}, you can use
+@command{gnunet-directory} to list its contents. The canonical
+extension for GNUnet directories when stored as files in your
+local file-system is ".gnd". The contents of a directory are URIs and
+meta data.
+The URIs contain all the information required by
+@command{gnunet-download} to retrieve the file. The meta data
+typically includes the mime-type, description, a filename and
+other meta information, and possibly even the full original file
+(if it was small).
+
+@node File-sharing Namespace Management
+@subsection File-sharing Namespace Management
+@c %**end of header
+
+@b{Please note that the text in this subsection is outdated and needs}
+@b{to be rewritten for version 0.10!}
+
+The gnunet-pseudonym tool can be used to create pseudonyms and
+to advertise namespaces. By default, gnunet-pseudonym simply
+lists all locally available pseudonyms.
+
+
+@menu
+* Creating Pseudonyms::
+* Deleting Pseudonyms::
+* Advertising namespaces::
+* Namespace names::
+* Namespace root::
+@end menu
+
+@node Creating Pseudonyms
+@subsubsection Creating Pseudonyms
+@c %**end of header
+
+With the @command{-C NICK} option it can also be used to
+create a new pseudonym. A pseudonym is the virtual identity
+of the entity in control of a namespace. Anyone can create
+any number of pseudonyms. Note that creating a pseudonym can
+take a few minutes depending on the performance of the machine
+used.
+
+@node Deleting Pseudonyms
+@subsubsection Deleting Pseudonyms
+@c %**end of header
+
+With the @command{-D NICK} option pseudonyms can be deleted.
+Once the pseudonym has been deleted it is impossible to add
+content to the corresponding namespace. Deleting the
+pseudonym does not make the namespace or any content in it
+unavailable.
+
+@node Advertising namespaces
+@subsubsection Advertising namespaces
+@c %**end of header
+
+Each namespace is associated with meta-data that describes
+the namespace. This meta data is provided by the user at
+the time that the namespace is advertised. Advertisements
+are published under keywords so that they can be found using
+normal keyword-searches. This way, users can learn about new
+namespaces without relying on out-of-band communication or directories.
+A suggested keyword to use for all namespaces is simply "namespace".
+When a keyword-search finds a namespace advertisement,
+it is automatically stored in a local list of known namespaces.
+Users can then associate a rank with the namespace to remember
+the quality of the content found in it.
+
+@node Namespace names
+@subsubsection Namespace names
+@c %**end of header
+
+While the namespace is uniquely identified by its ID, another way
+to refer to the namespace is to use the NICKNAME.
+The NICKNAME can be freely chosen by the creator of the namespace and
+hence conflicts are possible. If a GNUnet client learns about more
+than one namespace using the same NICKNAME, the ID is appended
+to the NICKNAME to get a unique identifier.
+
+@node Namespace root
+@subsubsection Namespace root
+@c %**end of header
+
+An item of particular interest in the namespace advertisement is
+the ROOT. The ROOT is the identifier of a designated entry in the
+namespace. The idea is that the ROOT can be used to advertise an
+entry point to the content of the namespace.
+
+@node File-Sharing URIs
+@subsection File-Sharing URIs
+@c %**end of header
+
+GNUnet (currently) uses four different types of URIs for
+file-sharing. They all begin with "gnunet://fs/".
+This section describes the four different URI types in detail.
+
+
+@menu
+* Encoding of hash values in URIs::
+* Content Hash Key (chk)::
+* Location identifiers (loc)::
+* Keyword queries (ksk)::
+* Namespace content (sks)::
+@end menu
+
+@node Encoding of hash values in URIs
+@subsubsection Encoding of hash values in URIs
+@c %**end of header
+
+Most URIs include some hash values. Hashes are encoded using
+base32hex (RFC 2938).
+
+@node Content Hash Key (chk)
+@subsubsection Content Hash Key (chk)
+@c %**end of header
+
+A chk-URI is used to (uniquely) identify a file or directory
+and to allow peers to download the file. Files are stored in
+GNUnet as a tree of encrypted blocks.
+The chk-URI thus contains the information to download and decrypt
+those blocks. A chk-URI has the format
+"gnunet://fs/chk/KEYHASH.QUERYHASH.SIZE". Here, "SIZE"
+is the size of the file (which allows a peer to determine the
+shape of the tree), KEYHASH is the key used to decrypt the file
+(also the hash of the plaintext of the top block) and QUERYHASH
+is the query used to request the top-level block (also the hash
+of the encrypted block).
+
+@node Location identifiers (loc)
+@subsubsection Location identifiers (loc)
+@c %**end of header
+
+For non-anonymous file-sharing, loc-URIs are used to specify which
+peer is offering the data (in addition to specifying all of the
+data from a chk-URI). Location identifiers include a digital
+signature of the peer to affirm that the peer is truly the
+origin of the data. The format is
+"gnunet://fs/loc/KEYHASH.QUERYHASH.SIZE.PEER.SIG.EXPTIME".
+Here, "PEER" is the public key of the peer (in GNUnet format in
+base32hex), SIG is the RSA signature (in GNUnet format in
+base32hex) and EXPTIME specifies when the signature expires
+(in milliseconds after 1970).
+
+@node Keyword queries (ksk)
+@subsubsection Keyword queries (ksk)
+@c %**end of header
+
+A keyword-URI is used to specify that the desired operation
+is the search using a particular keyword. The format is simply
+"gnunet://fs/ksk/KEYWORD". Non-ASCII characters can be specified
+using the typical URI-encoding (using hex values) from HTTP.
+"+" can be used to specify multiple keywords (which are then
+logically "OR"-ed in the search, results matching both keywords
+are given a higher rank): "gnunet://fs/ksk/KEYWORD1+KEYWORD2".
+
+@node Namespace content (sks)
+@subsubsection Namespace content (sks)
+@c %**end of header
+
+Namespaces are sets of files that have been approved by some (usually
+pseudonymous) user --- typically by that user publishing all of the
+files together. A file can be in many namespaces. A file is in a
+namespace if the owner of the ego (aka the namespace's private key)
+signs the CHK of the file cryptographically. An SKS-URI is used to
+search a namespace. The result is a block containing meta data,
+the CHK and the namespace owner's signature. The format of a sks-URI
+is "gnunet://fs/sks/NAMESPACE/IDENTIFIER". Here, "NAMESPACE"
+is the public key for the namespace. "IDENTIFIER" is a freely
+chosen keyword (or password!). A commonly used identifier is
+"root" which by convention refers to some kind of index or other
+entry point into the namespace.
+
+@node The GNU Name System
+@section The GNU Name System
+@c %**end of header
+
+
+The GNU Name System (GNS) is secure and decentralized naming system.
+It allows its users to resolve and register names within the @code{.gnu}
+@dfn{top-level domain} (TLD).
+
+GNS is designed to provide:
+@itemize @bullet
+@item Censorship resistance
+@item Query privacy
+@item Secure name resolution
+@item Compatibility with DNS
+@end itemize
+
+For the initial configuration and population of your
+GNS installation, please follow the GNS setup instructions.
+The remainder of this chapter will provide some background on GNS
+and then describe how to use GNS in more detail.
+
+Unlike DNS, GNS does not rely on central root zones or authorities.
+Instead any user administers their own root and can can create arbitrary
+name value mappings. Furthermore users can delegate resolution to other
+users' zones just like DNS NS records do. Zones are uniquely identified
+via public keys and resource records are signed using the corresponding
+public key. Delegation to another user's zone is done using special PKEY
+records and petnames. A petname is a name that can be freely chosen by
+the user. This results in non-unique name-value mappings as
+@code{@uref{http://www.bob.gnu/, www.bob.gnu}} to one user might be
+@code{@uref{http://www.friend.gnu/, www.friend.gnu}} for someone else.
+
+
+@menu
+* Maintaining your own Zones::
+* Obtaining your Zone Key::
+* Adding Links to Other Zones::
+* The Three Local Zones of GNS::
+* The Master Zone::
+* The Private Zone::
+* The Shorten Zone::
+* The ZKEY Top Level Domain in GNS::
+* Resource Records in GNS::
+@end menu
+
+
+@node Maintaining your own Zones
+@subsection Maintaining your own Zones
+
+To setup your GNS system you must execute:
+
+@example
+$ gnunet-gns-import.sh
+@end example
+
+@noindent
+This will boostrap your zones and create the necessary key material.
+Your keys can be listed using the @command{gnunet-identity}
+command line tool:
+
+@example
+$ gnunet-identity -d
+@end example
+
+@noindent
+You can arbitrarily create your own zones using the gnunet-identity
+tool using:
+
+@example
+$ gnunet-identity -C "new_zone"
+@end example
+
+@noindent
+Now you can add (or edit, or remove) records in your GNS zone using the
+gnunet-setup GUI or using the gnunet-namestore command-line tool.
+In either case, your records will be stored in an SQL database under
+control of the gnunet-service-namestore. Note that if multiple users
+use one peer, the namestore database will include the combined records
+of all users. However, users will not be able to see each other's records
+if they are marked as private.
+
+To provide a simple example for editing your own zone, suppose you
+have your own web server with IP 1.2.3.4. Then you can put an
+A record (A records in DNS are for IPv4 IP addresses) into your
+local zone using the command:
+
+@example
+$ gnunet-namestore -z master-zone -a -n www -t A -V 1.2.3.4 -e never
+@end example
+
+@noindent
+Afterwards, you will be able to access your webpage under "www.gnu"
+(assuming your webserver does not use virtual hosting, if it does,
+please read up on setting up the GNS proxy).
+
+Similar commands will work for other types of DNS and GNS records,
+the syntax largely depending on the type of the record.
+Naturally, most users may find editing the zones using the
+@command{gnunet-setup} GUI to be easier.
+
+@node Obtaining your Zone Key
+@subsection Obtaining your Zone Key
+
+Each zone in GNS has a public-private key. Usually, gnunet-namestore and
+gnunet-setup will access your private key as necessary, so you do not
+have to worry about those. What is important is your public key
+(or rather, the hash of your public key), as you will likely want to
+give it to others so that they can securely link to you.
+
+You can usually get the hash of your public key using
+
+@example
+$ gnunet-identity -d $options | grep master-zone | awk '@{print $3@}'
+@end example
+
+@noindent
+For example, the output might be something like:
+
+@example
+DC3SEECJORPHQNVRH965A6N74B1M37S721IG4RBQ15PJLLPJKUE0
+@end example
+
+@noindent
+Alternatively, you can obtain a QR code with your zone key AND
+your pseudonym from gnunet-gtk. The QR code is displayed in the
+GNS tab and can be stored to disk using the Save as button next
+to the image.
+
+@node Adding Links to Other Zones
+@subsection Adding Links to Other Zones
+
+
+A central operation in GNS is the ability to securely delegate to
+other zones. Basically, by adding a delegation you make all of the
+names from the other zone available to yourself. This section
+describes how to create delegations.
+
+Suppose you have a friend who you call 'bob' who also uses GNS.
+You can then delegate resolution of names to Bob's zone by adding
+a PKEY record to their local zone:
+
+@example
+$ gnunet-namestore -a -n bob --type PKEY -V XXXX -e never
+@end example
+
+@noindent
+Note that XXXX in the command above must be replaced with the
+hash of Bob's public key (the output your friend obtained using
+the gnunet-identity command from the previous section and told you,
+for example by giving you a business card containing this
+information as a QR code).
+
+Assuming Bob has an A record for their website under the name of
+www in his zone, you can then access Bob's website under
+www.bob.gnu --- as well as any (public) GNS record that Bob has
+in their zone by replacing www with the respective name of the
+record in Bob's zone.
+
+@c themselves? themself?
+Furthermore, if Bob has themselves a (public) delegation to Carol's
+zone under "carol", you can access Carol's records under
+NAME.carol.bob.gnu (where NAME is the name of Carol's record you
+want to access).
+
+@node The Three Local Zones of GNS
+@subsection The Three Local Zones of GNS
+
+Each user GNS has control over three zones. Each of the zones
+has a different purpose. These zones are the
+
+@itemize @bullet
+
+@item master zone,
+@item private zone, and the
+@item shorten zone.
+@end itemize
+
+@node The Master Zone
+@subsection The Master Zone
+
+
+The master zone is your personal TLD. Names within the @code{.gnu}
+namespace are resolved relative to this zone. You can arbitrarily
+add records to this zone and selectively publish those records.
+
+@node The Private Zone
+@subsection The Private Zone
+
+
+The private zone is a subzone (or subdomain in DNS terms) of your
+master zone. It should be used for records that you want to keep
+private. For example @code{bank.private.gnu}. The key idea is that
+you want to keep your private records separate, if just to know
+that those names are not available to other users.
+
+@node The Shorten Zone
+@subsection The Shorten Zone
+
+
+The shorten zone can either be a subzone of the master zone or the
+private zone. It is different from the other zones in that GNS
+will automatically populate this zone with other users' zones based
+on their PSEU records whenever you resolve a name.
+
+For example if you go to
+@code{@uref{http://www.bob.alice.dave.gnu/, www.bob.alice.dave.gnu}},
+GNS will try to import @code{bob} into your shorten zone. Having
+obtained Bob's PKEY from @code{alice.dave.gnu}, GNS will lookup the
+PSEU record for @code{+} in Bob's zone. If it exists and the specified
+pseudonym is not taken, Bob's PKEY will be automatically added under
+that pseudonym (i.e. "bob") into your shorten zone. From then on,
+Bob's webpage will also be available for you as
+@code{@uref{http://www.bob.short.gnu/, www.bob.short.gnu}}.
+This feature is called @b{automatic name shortening} and is supposed to
+keep GNS names as short and memorable as possible.
+
+@node The ZKEY Top Level Domain in GNS
+@subsection The ZKEY Top Level Domain in GNS
+
+
+GNS also provides a secure and globally unique namespace under the .zkey
+top-level domain. A name in the .zkey TLD corresponds to the (printable)
+public key of a zone. Names in the .zkey TLD are then resolved by querying
+the respective zone. The .zkey TLD is expected to be used under rare
+circumstances where globally unique names are required and for
+integration with legacy systems.
+
+@node Resource Records in GNS
+@subsection Resource Records in GNS
+
+
+GNS supports the majority of the DNS records as defined in
+@uref{http://www.ietf.org/rfc/rfc1035.txt, RFC 1035}. Additionally,
+GNS defines some new record types the are unique to the GNS system.
+For example, GNS-specific resource records are used to give petnames
+for zone delegation, revoke zone keys and provide some compatibility
+features.
+
+For some DNS records, GNS does extended processing to increase their
+usefulness in GNS. In particular, GNS introduces special names
+referred to as "zone relative names". Zone relative names are allowed
+in some resource record types (for example, in NS and CNAME records)
+and can also be used in links on webpages. Zone relative names end
+in ".+" which indicates that the name needs to be resolved relative
+to the current authoritative zone. The extended processing of those
+names will expand the ".+" with the correct delegation chain to the
+authoritative zone (replacing ".+" with the name of the location
+where the name was encountered) and hence generate a
+valid @code{.gnu} name.
+
+GNS currently supports the following record types:
+
+@menu
+* NICK::
+* PKEY::
+* BOX::
+* LEHO::
+* VPN::
+* A AAAA and TXT::
+* CNAME::
+* GNS2DNS::
+* SOA SRV PTR and MX::
+@end menu
+
+@node NICK
+@subsubsection NICK
+
+A NICK record is used to give a zone a name. With a NICK record, you can
+essentially specify how you would like to be called. GNS expects this
+record under the name "+" in the zone's database (NAMESTORE); however,
+it will then automatically be copied into each record set, so that
+clients never need to do a separate lookup to discover the NICK record.
+
+@b{Example}@
+
+@example
+Name: +; RRType: NICK; Value: bob
+@end example
+
+@noindent
+This record in Bob's zone will tell other users that this zone wants
+to be referred to as 'bob'. Note that nobody is obliged to call Bob's
+zone 'bob' in their own zones. It can be seen as a
+recommendation ("Please call me 'bob'").
+
+@node PKEY
+@subsubsection PKEY
+
+PKEY records are used to add delegation to other users' zones and
+give those zones a petname.
+
+@b{Example}@
+
+Let Bob's zone be identified by the hash "ABC012". Bob is your friend
+so you want to give them the petname "friend". Then you add the
+following record to your zone:
+
+@example
+Name: friend; RRType: PKEY; Value: ABC012;
+@end example
+
+@noindent
+This will allow you to resolve records in bob's zone
+under "*.friend.gnu".
+
+@node BOX
+@subsubsection BOX
+
+BOX records are there to integrate information from TLSA or
+SRV records under the main label. In DNS, TLSA and SRV records
+use special names of the form @code{_port._proto.(label.)*tld} to
+indicate the port number and protocol (i.e. tcp or udp) for which
+the TLSA or SRV record is valid. This causes various problems, and
+is elegantly solved in GNS by integrating the protocol and port
+numbers together with the respective value into a "BOX" record.
+Note that in the GUI, you do not get to edit BOX records directly
+right now --- the GUI will provide the illusion of directly
+editing the TLSA and SRV records, even though they internally
+are BOXed up.
+
+@node LEHO
+@subsubsection LEHO
+
+The LEgacy HOstname of a server. Some webservers expect a specific
+hostname to provide a service (virtiual hosting). Also SSL
+certificates usually contain DNS names. To provide the expected
+legacy DNS name for a server, the LEHO record can be used.
+To mitigate the just mentioned issues the GNS proxy has to be used.
+The GNS proxy will use the LEHO information to apply the necessary
+transformations.
+
+@node VPN
+@subsubsection VPN
+
+GNS allows easy access to services provided by the GNUnet Virtual Public
+Network. When the GNS resolver encounters a VPN record it will contact
+the VPN service to try and allocate an IPv4/v6 address (if the queries
+record type is an IP address) that can be used to contact the service.
+
+@b{Example}@
+
+I want to provide access to the VPN service "web.gnu." on port 80 on peer
+ABC012:@
+Name: www; RRType: VPN; Value: 80 ABC012 web.gnu.
+
+The peer ABC012 is configured to provide an exit point for the service
+"web.gnu." on port 80 to it's server running locally on port 8080 by
+having the following lines in the @file{gnunet.conf} configuration file:
+
+@example
+[web.gnunet.]
+TCP_REDIRECTS = 80:localhost4:8080
+@end example
+
+@node A AAAA and TXT
+@subsubsection A AAAA and TXT
+
+Those records work in exactly the same fashion as in traditional DNS.
+
+@node CNAME
+@subsubsection CNAME
+
+As specified in RFC 1035 whenever a CNAME is encountered the query
+needs to be restarted with the specified name. In GNS a CNAME
+can either be:
+
+@itemize @bullet
+@item A zone relative name,
+@item A zkey name or
+@item A DNS name (in which case resolution will continue outside
+of GNS with the systems DNS resolver)
+@end itemize
+
+@node GNS2DNS
+@subsubsection GNS2DNS
+
+GNS can delegate authority to a legacy DNS zone. For this, the
+name of the DNS nameserver and the name of the DNS zone are
+specified in a GNS2DNS record.
+
+@b{Example}
+
+@example
+Name: pet; RRType: GNS2DNS; Value: gnunet.org@@a.ns.joker.com
+@end example
+
+@noindent
+Any query to @code{pet.gnu} will then be delegated to the DNS server at
+@code{a.ns.joker.com}. For example,
+@code{@uref{http://www.pet.gnu/, www.pet.gnu}} will result in a DNS query
+for @code{@uref{http://www.gnunet.org/, www.gnunet.org}} to the server
+at @code{a.ns.joker.com}. Delegation to DNS via NS records in GNS can
+be useful if you do not want to start resolution in the DNS root zone
+(due to issues such as censorship or availability).
+
+Note that you would typically want to use a relative name for the
+nameserver, i.e.
+
+@example
+Name: pet; RRType: GNS2DNS; Value: gnunet.org@@ns-joker.+@
+Name: ns-joker; RRType: A; Value: 184.172.157.218
+@end example
+
+@noindent
+This way, you can avoid involving the DNS hierarchy in the resolution of
+@code{a.ns.joker.com}. In the example above, the problem may not be
+obvious as the nameserver for "gnunet.org" is in the ".com" zone.
+However, imagine the nameserver was "ns.gnunet.org". In this case,
+delegating to "ns.gnunet.org" would mean that despite using GNS,
+censorship in the DNS ".org" zone would still be effective.
+
+@node SOA SRV PTR and MX
+@subsubsection SOA SRV PTR and MX
+
+The domain names in those records can, again, be either
+
+@itemize @bullet
+@item A zone relative name,
+@item A zkey name or
+@item A DNS name
+@end itemize
+
+The resolver will expand the zone relative name if possible.
+Note that when using MX records within GNS, the target mail
+server might still refuse to accept e-mails to the resulting
+domain as the name might not match. GNS-enabled mail clients
+should use the ZKEY zone as the destination hostname and
+GNS-enabled mail servers should be configured to accept
+e-mails to the ZKEY-zones of all local users.
+
+@node Using the Virtual Public Network
+@section Using the Virtual Public Network
+
+@menu
+* Setting up an Exit node::
+* Fedora and the Firewall::
+* Setting up VPN node for protocol translation and tunneling::
+@end menu
+
+Using the GNUnet Virtual Public Network (VPN) application you can
+tunnel IP traffic over GNUnet. Moreover, the VPN comes
+with built-in protocol translation and DNS-ALG support, enabling
+IPv4-to-IPv6 protocol translation (in both directions).
+This chapter documents how to use the GNUnet VPN.
+
+The first thing to note about the GNUnet VPN is that it is a public
+network. All participating peers can participate and there is no
+secret key to control access. So unlike common virtual private
+networks, the GNUnet VPN is not useful as a means to provide a
+"private" network abstraction over the Internet. The GNUnet VPN
+is a virtual network in the sense that it is an overlay over the
+Internet, using its own routing mechanisms and can also use an
+internal addressing scheme. The GNUnet VPN is an Internet
+underlay --- TCP/IP applications run on top of it.
+
+The VPN is currently only supported on GNU/Linux systems.
+Support for operating systems that support TUN (such as FreeBSD)
+should be easy to add (or might not even require any coding at
+all --- we just did not test this so far). Support for other
+operating systems would require re-writing the code to create virtual
+network interfaces and to intercept DNS requests.
+
+The VPN does not provide good anonymity. While requests are routed
+over the GNUnet network, other peers can directly see the source
+and destination of each (encapsulated) IP packet. Finally, if you
+use the VPN to access Internet services, the peer sending the
+request to the Internet will be able to observe and even alter
+the IP traffic. We will discuss additional security implications
+of using the VPN later in this chapter.
+
+@node Setting up an Exit node
+@subsection Setting up an Exit node
+
+Any useful operation with the VPN requires the existence of an exit
+node in the GNUnet Peer-to-Peer network. Exit functionality can only
+be enabled on peers that have regular Internet access. If you want
+to play around with the VPN or support the network, we encourage
+you to setup exit nodes. This chapter documents how to setup an
+exit node.
+
+There are four types of exit functions an exit node can provide,
+and using the GNUnet VPN to access the Internet will only work
+nicely if the first three types are provided somewhere in
+the network. The four exit functions are:
+
+@itemize @bullet
+@item DNS: allow other peers to use your DNS resolver
+@item IPv4: allow other peers to access your IPv4 Internet connection
+@item IPv6: allow other peers to access your IPv6 Internet connection
+@item Local service: allow other peers to access a specific TCP or
+UDP service your peer is providing
+@end itemize
+
+By enabling "exit" in gnunet-setup and checking the respective boxes
+in the "exit" tab, you can easily choose which of the above exit
+functions you want to support.
+
+Note, however, that by supporting the first three functions you will
+allow arbitrary other GNUnet users to access the Internet via your
+system. This is somewhat similar to running a Tor exit node. The
+Torproject has a nice article about what to consider if you want
+to do this here. We believe that generally running a DNS exit node
+is completely harmless.
+
+The exit node configuration does currently not allow you to restrict the
+Internet traffic that leaves your system. In particular, you cannot
+exclude SMTP traffic (or block port 25) or limit to HTTP traffic using
+the GNUnet configuration. However, you can use your host firewall to
+restrict outbound connections from the virtual tunnel interface. This
+is highly recommended. In the future, we plan to offer a wider range
+of configuration options for exit nodes.
+
+Note that by running an exit node GNUnet will configure your kernel
+to perform IP-forwarding (for IPv6) and NAT (for IPv4) so that the
+traffic from the virtual interface can be routed to the Internet.
+In order to provide an IPv6-exit, you need to have a subnet routed
+to your host's external network interface and assign a subrange of
+that subnet to the GNUnet exit's TUN interface.
+
+When running a local service, you should make sure that the local
+service is (also) bound to the IP address of your EXIT interface
+(i.e. 169.254.86.1). It will NOT work if your local service is
+just bound to loopback. You may also want to create a "VPN" record
+in your zone of the GNU Name System to make it easy for others to
+access your service via a name instead of just the full service
+descriptor. Note that the identifier you assign the service can
+serve as a passphrase or shared secret, clients connecting to the
+service must somehow learn the service's name. VPN records in the
+GNU Name System can make this easier.
+
+@node Fedora and the Firewall
+@subsection Fedora and the Firewall
+
+
+When using an exit node on Fedora 15, the standard firewall can
+create trouble even when not really exiting the local system!
+For IPv4, the standard rules seem fine. However, for IPv6 the
+standard rules prohibit traffic from the network range of the
+virtual interface created by the exit daemon to the local IPv6
+address of the same interface (which is essentially loopback
+traffic, so you might suspect that a standard firewall would
+leave this traffic alone). However, as somehow for IPv6 the
+traffic is not recognized as originating from the local
+system (and as the connection is not already "established"),
+the firewall drops the traffic. You should still get ICMPv6
+packets back, but that's obviously not very useful.
+
+Possible ways to fix this include disabling the firewall (do you
+have a good reason for having it on?) or disabling the firewall
+at least for the GNUnet exit interface (or the respective
+IPv4/IPv6 address range). The best way to diagnose these kinds
+of problems in general involves setting the firewall to REJECT
+instead of DROP and to watch the traffic using wireshark
+(or tcpdump) to see if ICMP messages are generated when running
+some tests that should work.
+
+@node Setting up VPN node for protocol translation and tunneling
+@subsection Setting up VPN node for protocol translation and tunneling
+
+
+The GNUnet VPN/PT subsystem enables you to tunnel IP traffic over the
+VPN to an exit node, from where it can then be forwarded to the
+Internet. This section documents how to setup VPN/PT on a node.
+Note that you can enable both the VPN and an exit on the same peer.
+In this case, IP traffic from your system may enter your peer's VPN
+and leave your peer's exit. This can be useful as a means to do
+protocol translation. For example, you might have an application that
+supports only IPv4 but needs to access an IPv6-only site. In this case,
+GNUnet would perform 4to6 protocol translation between the VPN (IPv4)
+and the Exit (IPv6). Similarly, 6to4 protocol translation is also
+possible. However, the primary use for GNUnet would be to access
+an Internet service running with an IP version that is not supported
+by your ISP. In this case, your IP traffic would be routed via GNUnet
+to a peer that has access to the Internet with the desired IP version.
+
+Setting up an entry node into the GNUnet VPN primarily requires you
+to enable the "VPN/PT" option in "gnunet-setup". This will launch the
+"gnunet-service-vpn", "gnunet-service-dns" and "gnunet-daemon-pt"
+processes. The "gnunet-service-vpn" will create a virtual interface
+which will be used as the target for your IP traffic that enters the
+VPN. Additionally, a second virtual interface will be created by
+the "gnunet-service-dns" for your DNS traffic. You will then need to
+specify which traffic you want to tunnel over GNUnet. If your ISP only
+provides you with IPv4 or IPv6-access, you may choose to tunnel the
+other IP protocol over the GNUnet VPN. If you do not have an ISP
+(and are connected to other GNUnet peers via WLAN), you can also
+choose to tunnel all IP traffic over GNUnet. This might also provide
+you with some anonymity. After you enable the respective options
+and restart your peer, your Internet traffic should be tunneled
+over the GNUnet VPN.
+
+The GNUnet VPN uses DNS-ALG to hijack your IP traffic. Whenever an
+application resolves a hostname (i.e. 'gnunet.org'), the
+"gnunet-daemon-pt" will instruct the "gnunet-service-dns" to intercept
+the request (possibly route it over GNUnet as well) and replace the
+normal answer with an IP in the range of the VPN's interface.
+"gnunet-daemon-pt" will then tell "gnunet-service-vpn" to forward all
+traffic it receives on the TUN interface via the VPN to the original
+destination.
+
+For applications that do not use DNS, you can also manually create
+such a mapping using the gnunet-vpn command-line tool. Here, you
+specfiy the desired address family of the result (i.e. "-4"), and the
+intended target IP on the Internet ("-i 131.159.74.67") and
+"gnunet-vpn" will tell you which IP address in the range of your
+VPN tunnel was mapped.
+
+@command{gnunet-vpn} can also be used to access "internal" services
+offered by GNUnet nodes. So if you happen to know a peer and a
+service offered by that peer, you can create an IP tunnel to
+that peer by specifying the peer's identity, service name and
+protocol (--tcp or --udp) and you will again receive an IP address
+that will terminate at the respective peer's service.

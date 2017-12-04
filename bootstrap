@@ -1,4 +1,9 @@
 #!/bin/sh
 rm -rf libltdl
+echo -n "checking for libtoolize / libtool... "
+which glibtoolize || which libtoolize || which libtool || {
+        echo "*** No libtoolize (libtool) or libtool found, please install it ***"
+        exit 1
+}
 autoreconf -if
 contrib/pogen.sh

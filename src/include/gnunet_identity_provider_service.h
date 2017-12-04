@@ -39,7 +39,7 @@ extern "C"
 #endif
 
 #include "gnunet_util_lib.h"
-
+#include "gnunet_identity_attribute_lib.h"
 
 /**
  * Version number of GNUnet Identity Provider API.
@@ -82,92 +82,6 @@ struct GNUNET_IDENTITY_PROVIDER_Ticket
  */
 struct GNUNET_IDENTITY_PROVIDER_Operation;
 
-/**
- * Flags that can be set for an attribute.
- */
-enum GNUNET_IDENTITY_PROVIDER_AttributeType
-{
-
-  /**
-   * No value attribute.
-   */
-  GNUNET_IDENTITY_PROVIDER_AT_NULL = 0,
-
-  /**
-   * String attribute.
-   */
-  GNUNET_IDENTITY_PROVIDER_AT_STRING = 1,
-
-};
-
-
-
-/**
- * An attribute.
- */
-struct GNUNET_IDENTITY_PROVIDER_Attribute
-{
-
-  /**
-   * Type of Attribute.
-   */
-  uint32_t attribute_type;
-
-  /**
-   * Attribute version
-   */
-  uint32_t attribute_version;
-
-  /**
-   * Number of bytes in @e data.
-   */
-  size_t data_size;
-
-  /**
-   * The name of the attribute. Note "name" must never be individually
-   * free'd
-   */
-  const char* name;
-
-  /**
-   * Binary value stored as attribute value.  Note: "data" must never
-   * be individually 'malloc'ed, but instead always points into some
-   * existing data area.
-   */
-  const void *data;
-
-};
-
-struct GNUNET_IDENTITY_PROVIDER_AttributeList
-{
-  /**
-   * List head
-   */
-  struct GNUNET_IDENTITY_PROVIDER_AttributeListEntry *list_head;
-
-  /**
-   * List tail
-   */
-  struct GNUNET_IDENTITY_PROVIDER_AttributeListEntry *list_tail;
-};
-
-struct GNUNET_IDENTITY_PROVIDER_AttributeListEntry
-{
-  /**
-   * DLL
-   */
-  struct GNUNET_IDENTITY_PROVIDER_AttributeListEntry *prev;
-
-  /**
-   * DLL
-   */
-  struct GNUNET_IDENTITY_PROVIDER_AttributeListEntry *next;
-
-  /**
-   * The attribute
-   */
-  struct GNUNET_IDENTITY_PROVIDER_Attribute *attribute;
-};
 
 /**
  * Connect to the identity provider service.
@@ -208,25 +122,10 @@ typedef void
 struct GNUNET_IDENTITY_PROVIDER_Operation *
 GNUNET_IDENTITY_PROVIDER_attribute_store (struct GNUNET_IDENTITY_PROVIDER_Handle *h,
                                           const struct GNUNET_CRYPTO_EcdsaPrivateKey *pkey,
-                                          const struct GNUNET_IDENTITY_PROVIDER_Attribute *attr,
+                                          const struct GNUNET_IDENTITY_ATTRIBUTE_Claim *attr,
                                           GNUNET_IDENTITY_PROVIDER_ContinuationWithStatus cont,
                                           void *cont_cls);
 
-
-/**
- * Create a new attribute.
- *
- * @param name the attribute name
- * @param type the attribute type
- * @param data the attribute value
- * @param data_size the attribute value size
- * @return the new attribute
- */
-struct GNUNET_IDENTITY_PROVIDER_Attribute *
-GNUNET_IDENTITY_PROVIDER_attribute_new (const char* attr_name,
-                                        uint32_t attr_type,
-                                        const void* data,
-                                        size_t data_size);
 
 /**
  * Process an attribute that was stored in the idp.
@@ -237,7 +136,7 @@ GNUNET_IDENTITY_PROVIDER_attribute_new (const char* attr_name,
 typedef void
 (*GNUNET_IDENTITY_PROVIDER_AttributeResult) (void *cls,
                                    const struct GNUNET_CRYPTO_EcdsaPublicKey *identity,
-                                   const struct GNUNET_IDENTITY_PROVIDER_Attribute *attr);
+                                   const struct GNUNET_IDENTITY_ATTRIBUTE_Claim *attr);
 
 
 
@@ -327,7 +226,7 @@ struct GNUNET_IDENTITY_PROVIDER_Operation *
 GNUNET_IDENTITY_PROVIDER_ticket_issue (struct GNUNET_IDENTITY_PROVIDER_Handle *id,
                                        const struct GNUNET_CRYPTO_EcdsaPrivateKey *iss,
                                        const struct GNUNET_CRYPTO_EcdsaPublicKey *rp,
-                                       const struct GNUNET_IDENTITY_PROVIDER_AttributeList *attrs,
+                                       const struct GNUNET_IDENTITY_ATTRIBUTE_ClaimList *attrs,
                                        GNUNET_IDENTITY_PROVIDER_TicketCallback cb,
                                        void *cb_cls);
 

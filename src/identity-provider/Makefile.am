@@ -63,8 +63,7 @@ libgnunet_plugin_identity_provider_sqlite_la_LDFLAGS = \
 
 
 gnunet_service_identity_provider_SOURCES = \
- gnunet-service-identity-provider.c \
- identity_attribute.h
+ gnunet-service-identity-provider.c
 gnunet_service_identity_provider_LDADD = \
  $(top_builddir)/src/gnsrecord/libgnunetgnsrecord.la \
  $(top_builddir)/src/util/libgnunetutil.la \
@@ -72,14 +71,14 @@ gnunet_service_identity_provider_LDADD = \
  $(top_builddir)/src/identity/libgnunetidentity.la \
  $(top_builddir)/src/statistics/libgnunetstatistics.la \
  $(top_builddir)/src/credential/libgnunetcredential.la \
+ $(top_builddir)/src/identity-attribute/libgnunetidentityattribute.la \
  libgnunetidentityprovider.la \
  $(top_builddir)/src/gns/libgnunetgns.la \
  $(GN_LIBINTL)
 
 libgnunetidentityprovider_la_SOURCES = \
  identity_provider_api.c \
- identity_provider.h \
- identity_attribute.c
+ identity_provider.h
 libgnunetidentityprovider_la_LIBADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
 	$(GN_LIBINTL) $(XLIB)
@@ -88,13 +87,13 @@ libgnunetidentityprovider_la_LDFLAGS = \
 	-version-info 0:0:0
 
 libgnunet_plugin_rest_identity_provider_la_SOURCES = \
-  plugin_rest_identity_provider.c \
-	jwt.c
+  plugin_rest_identity_provider.c
 libgnunet_plugin_rest_identity_provider_la_LIBADD = \
 	$(top_builddir)/src/identity/libgnunetidentity.la \
 	libgnunetidentityprovider.la \
 	$(top_builddir)/src/rest/libgnunetrest.la \
 	$(top_builddir)/src/jsonapi/libgnunetjsonapi.la \
+	$(top_builddir)/src/identity-attribute/libgnunetidentityattribute.la \
 	$(top_builddir)/src/namestore/libgnunetnamestore.la \
   $(top_builddir)/src/util/libgnunetutil.la $(XLIBS) \
   $(LTLIBINTL) -ljansson -lmicrohttpd
@@ -108,6 +107,7 @@ gnunet_idp_LDADD = \
 	$(top_builddir)/src/namestore/libgnunetnamestore.la \
 	libgnunetidentityprovider.la \
 	$(top_builddir)/src/identity/libgnunetidentity.la \
+	$(top_builddir)/src/identity-attribute/libgnunetidentityattribute.la \
   $(GN_LIBINTL)
 
 check_SCRIPTS = \

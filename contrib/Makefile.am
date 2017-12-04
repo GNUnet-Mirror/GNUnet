@@ -70,7 +70,20 @@ CLEANFILES = \
 
 do_subst = $(SED) -e 's,[@]PYTHON[@],$(PYTHON),g'
 
-%.py: %.py.in Makefile
+# Use SUFFIX Extension rules, they are more portable for every
+# implementation of 'make'.
+# You'll also run into the "'%' is a GNU make extension warning"
+# if you use this:
+#
+#%.py: %.py.in Makefile
+#	$(do_subst) < $< > $@
+#	chmod +x $@
+#
+# instead of this:
+
+SUFFIXES = .py.in .py
+
+.py.in.py:
 	$(do_subst) < $< > $@
 	chmod +x $@
 

@@ -1,0 +1,72 @@
+@node Vocabulary
+@chapter Vocabulary
+
+@menu
+* Definitions abbreviations and acronyms::
+* Words and characters::
+* Technical Assumptions::
+@end menu
+
+Throughout this Reference Manual we will use certain words and characters
+which are listed in this introductionary chapter.
+
+@node Definitions abbreviations and acronyms
+@section Definitions abbreviations and acronyms
+
+@menu
+* Definitions::
+@end menu
+
+@node Definitions
+@subsection Defitions
+
+Throughout this Reference Manual, the following terms and definitions
+apply.
+
+@node Words and characters
+@section Words and characters
+
+@enumerate
+@item
+In chapter Installation Handbook,
+``@command{#}'' in example code blocks describes commands executed as root
+
+@example
+# echo "I am root"
+I am root
+@end example
+
+@item
+However, in the chapter GNUnet C Tutorial
+``@command{#}'' in example code blocks describes commands, ie comments.
+
+@example
+# Do the foobar thing:
+$ make foobar
+@end example
+
+@item
+Dollarsign ``@command{$}'' in example code blocks describes commands you
+execute as unprivileged users.
+
+@example
+$ cd foo; ./configure --example-switch
+@end example
+
+@item
+Backslash ``@command{\}'' describes linebreaks.
+
+@example
+./configure --foo --bar --baz \
+ --short-loop
+@end example
+
+...expands to @code{./configure --foo --bar --baz --short-loop}
+
+@end enumerate
+
+@node Technical Assumptions
+@section Technical Assumptions
+
+@c Is it really assuming Bash (ie Bash extensions of POSIX being used)?
+The shell on GNU systems is assumed to be Bash.

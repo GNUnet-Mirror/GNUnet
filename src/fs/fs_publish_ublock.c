@@ -301,6 +301,7 @@ GNUNET_FS_publish_ublock_ (struct GNUNET_FS_Handle *h,
     uc->task = GNUNET_SCHEDULER_add_now (&run_cont,
                                          uc);
   }
+  GNUNET_free (ub_enc);
   return uc;
 }
 

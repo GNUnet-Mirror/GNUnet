@@ -51,7 +51,7 @@ These are the direct dependencies for running GNUnet:
 - Texinfo       >= 5.2
 - libglpk       >= 4.45 (optional for experimental code)
 
-Recommended autotools for compiling the SVN version are:
+Recommended autotools for compiling the git version are:
 - autoconf >= 2.59
 - automake >= 1.11.1
 - libtool  >= 2.2
@@ -135,7 +135,7 @@ install' process with SUDO rights, the libraries will be installed to
 "$GNUNET_PREFIX" and you will have to move them to "/lib/"
 manually.
 
-Finally, if you are compiling the code from subversion, you have to
+Finally, if you are compiling the code from git, you have to
 run ". bootstrap" before ./configure.  If you receive an error during
 the running of ". bootstrap" that looks like "macro `AM_PATH_GTK' not
 found in library", you may need to run aclocal by hand with the -I
