@@ -261,19 +261,6 @@ const char*
 GNUNET_IDENTITY_ATTRIBUTE_number_to_typename (uint32_t type);
 
 
-/**
- * Create a JWT from attributes
- *
- * @param sub_key the public of the subject
- * @param attrs the attribute list
- * @param priv_key the key used to sign the JWT
- * @return a new base64-encoded JWT string.
- */
-char*
-GNUNET_IDENTITY_ATTRIBUTE_jwt_create_from_list (const struct GNUNET_CRYPTO_EcdsaPublicKey *sub_key,
-                                                const struct GNUNET_IDENTITY_ATTRIBUTE_ClaimList *attrs,
-                                                const struct GNUNET_CRYPTO_EcdsaPrivateKey *priv_key);
-
 #if 0                           /* keep Emacsens' auto-indent happy */
 {
 #endif
