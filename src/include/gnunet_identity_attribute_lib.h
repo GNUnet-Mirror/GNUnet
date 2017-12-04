@@ -213,7 +213,52 @@ GNUNET_IDENTITY_ATTRIBUTE_deserialize (const char* data,
 struct GNUNET_IDENTITY_ATTRIBUTE_ClaimList*
 GNUNET_IDENTITY_ATTRIBUTE_list_dup (const struct GNUNET_IDENTITY_ATTRIBUTE_ClaimList *attrs);
 
+/**
+ * Convert a type name to the corresponding number
+ *
+ * @param typename name to convert
+ * @return corresponding number, UINT32_MAX on error
+ */
+uint32_t
+GNUNET_IDENTITY_ATTRIBUTE_typename_to_number (const char *typename);
 
+/**
+ * Convert human-readable version of a 'claim' of an attribute to the binary
+ * representation
+ *
+ * @param type type of the claim
+ * @param s human-readable string
+ * @param data set to value in binary encoding (will be allocated)
+ * @param data_size set to number of bytes in @a data
+ * @return #GNUNET_OK on success
+ */
+int
+GNUNET_IDENTITY_ATTRIBUTE_string_to_claim (uint32_t type,
+                                           const char *s,
+                                           void **data,
+                                           size_t *data_size);
+
+/**
+ * Convert the 'claim' of an attribute to a string
+ *
+ * @param type the type of attribute
+ * @param data claim in binary encoding
+ * @param data_size number of bytes in @a data
+ * @return NULL on error, otherwise human-readable representation of the claim
+ */
+char *
+GNUNET_IDENTITY_ATTRIBUTE_claim_to_string (uint32_t type,
+                                           const void* data,
+                                           size_t data_size);
+
+/**
+ * Convert a type number to the corresponding type string
+ *
+ * @param type number of a type
+ * @return corresponding typestring, NULL on error
+ */
+const char*
+GNUNET_IDENTITY_ATTRIBUTE_number_to_typename (uint32_t type);
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {

@@ -26,6 +26,182 @@
 #include "platform.h"
 #include "gnunet_util_lib.h"
 #include "identity_attribute.h"
+#include "gnunet_identity_attribute_plugin.h"
+
+/**
+ * Handle for a plugin
+ */
+struct Plugin
+{
+  /**
+   * Name of the plugin
+   */
+  char *library_name;
+
+  /**
+   * Plugin API
+   */
+  struct GNUNET_IDENTITY_ATTRIBUTE_PluginFunctions *api;
+};
+
+/**
+ * Plugins
+ */
+static struct Plugin **attr_plugins;
+
+/**
+ * Number of plugins
+ */
+static unsigned int num_plugins;
+
+/**
+ * Init canary
+ */
+static int initialized;
+
+/**
+ * Add a plugin
+ */
+static void
+add_plugin (void* cls,
+            const char *library_name,
+            void *lib_ret)
+{
+  struct GNUNET_IDENTITY_ATTRIBUTE_PluginFunctions *api = lib_ret;
+  struct Plugin *plugin;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Loading attribute plugin `%s'\n",
+              library_name);
+  plugin = GNUNET_new (struct Plugin);
+  plugin->api = api;
+  plugin->library_name = GNUNET_strdup (library_name);
+  GNUNET_array_append (attr_plugins, num_plugins, plugin);
+}
+
+/**
+ * Load plugins
+ */
+static void
+init()
+{
+  if (GNUNET_YES == initialized)
+    return;
+  initialized = GNUNET_YES;
+  GNUNET_PLUGIN_load_all ("libgnunet_plugin_attribute_", NULL,
+                          &add_plugin, NULL);
+}
+
+/**
+ * Convert a type name to the corresponding number
+ *
+ * @param typename name to convert
+ * @return corresponding number, UINT32_MAX on error
+ */
+uint32_t
+GNUNET_IDENTITY_ATTRIBUTE_typename_to_number (const char *typename)
+{
+  unsigned int i;
+  struct Plugin *plugin;
+  uint32_t ret;
+  
+  init ();
+  for (i = 0; i < num_plugins; i++)
+  {
+    plugin = attr_plugins[i];
+    if (UINT32_MAX != (ret = plugin->api->typename_to_number (plugin->api->cls,
+                                                              typename)))
+      return ret;
+  }
+  return UINT32_MAX;
+}
+
+/**
+ * Convert a type number to the corresponding type string
+ *
+ * @param type number of a type
+ * @return corresponding typestring, NULL on error
+ */
+const char*
+GNUNET_IDENTITY_ATTRIBUTE_number_to_typename (uint32_t type)
+{
+  unsigned int i;
+  struct Plugin *plugin;
+  const char *ret;
+
+  init ();
+  for (i = 0; i < num_plugins; i++)
+  {
+    plugin = attr_plugins[i];
+    if (NULL != (ret = plugin->api->number_to_typename (plugin->api->cls,
+                                                        type)))
+      return ret;
+  }
+  return NULL;
+}
+
+/**
+ * Convert human-readable version of a 'claim' of an attribute to the binary
+ * representation
+ *
+ * @param type type of the claim
+ * @param s human-readable string
+ * @param data set to value in binary encoding (will be allocated)
+ * @param data_size set to number of bytes in @a data
+ * @return #GNUNET_OK on success
+ */
+int
+GNUNET_IDENTITY_ATTRIBUTE_string_to_claim (uint32_t type,
+                                           const char *s,
+                                           void **data,
+                                           size_t *data_size)
+{
+  unsigned int i;
+  struct Plugin *plugin;
+
+  init ();
+  for (i = 0; i < num_plugins; i++)
+  {
+    plugin = attr_plugins[i];
+    if (GNUNET_OK == plugin->api->string_to_value (plugin->api->cls,
+                                                   type,
+                                                   s,
+                                                   data,
+                                                   data_size))
+      return GNUNET_OK;
+  }
+  return GNUNET_SYSERR;
+}
+
+/**
+ * Convert the 'claim' of an attribute to a string
+ *
+ * @param type the type of attribute
+ * @param data claim in binary encoding
+ * @param data_size number of bytes in @a data
+ * @return NULL on error, otherwise human-readable representation of the claim
+ */
+char *
+GNUNET_IDENTITY_ATTRIBUTE_claim_to_string (uint32_t type,
+                                           const void* data,
+                                           size_t data_size)
+{
+  unsigned int i;
+  struct Plugin *plugin;
+  char *ret;
+
+  init();
+  for (i = 0; i < num_plugins; i++)
+  {
+    plugin = attr_plugins[i];
+    if (NULL != (ret = plugin->api->value_to_string (plugin->api->cls,
+                                                     type,
+                                                     data,
+                                                     data_size)))
+      return ret;
+  }
+  return NULL;
+}
 
 /**
  * Create a new attribute.

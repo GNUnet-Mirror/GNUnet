@@ -168,6 +168,7 @@ process_attrs (void *cls,
          const struct GNUNET_CRYPTO_EcdsaPublicKey *identity,
          const struct GNUNET_IDENTITY_ATTRIBUTE_Claim *attr)
 {
+  char *claim;
   if (NULL == identity)
   {
     GNUNET_SCHEDULER_add_now (&do_cleanup, NULL);
@@ -178,8 +179,11 @@ process_attrs (void *cls,
     ret = 1;
     return;
   }
+  claim = GNUNET_IDENTITY_ATTRIBUTE_claim_to_string (attr->type,
+                                                     attr->data,
+                                                     attr->data_size);
   GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
-              "%s: %s\n", attr->name, (char*)attr->data);
+              "%s: %s\n", attr->name, claim);
 }
 
 
@@ -245,9 +249,9 @@ iter_finished (void *cls)
     return;
   }
   attr = GNUNET_IDENTITY_ATTRIBUTE_claim_new (attr_name,
-                                                 GNUNET_IDENTITY_ATTRIBUTE_TYPE_STRING,
-                                                 attr_value,
-                                                 strlen (attr_value) + 1);
+                                              GNUNET_IDENTITY_ATTRIBUTE_TYPE_STRING,
+                                              attr_value,
+                                              strlen (attr_value) + 1);
   idp_op = GNUNET_IDENTITY_PROVIDER_attribute_store (idp_handle,
                                                      pkey,
                                                      attr,

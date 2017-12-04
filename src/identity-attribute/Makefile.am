@@ -38,7 +38,7 @@ libgnunet_plugin_identity_attribute_gnuid_la_SOURCES = \
 libgnunet_plugin_identity_attribute_gnuid_la_LIBADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(LTLIBINTL)
-libgnunet_plugin_gnsrecord_dns_la_LDFLAGS = \
+libgnunet_plugin_identity_attribute_gnuid_la_LDFLAGS = \
  $(GN_PLUGIN_LDFLAGS)
 
 

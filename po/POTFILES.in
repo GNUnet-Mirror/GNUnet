@@ -197,7 +197,7 @@ src/hostlist/gnunet-daemon-hostlist.c
 src/hostlist/gnunet-daemon-hostlist_client.c
 src/hostlist/gnunet-daemon-hostlist_server.c
 src/identity-attribute/identity_attribute.c
-src/identity-attribute/plugin_identity_attribute_type_gnuid.c
+src/identity-attribute/plugin_identity_attribute_gnuid.c
 src/identity-provider/gnunet-idp.c
 src/identity-provider/gnunet-service-identity-provider.c
 src/identity-provider/identity_provider_api.c
