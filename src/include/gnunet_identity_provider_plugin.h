@@ -51,7 +51,7 @@ extern "C"
  */
 typedef void (*GNUNET_IDENTITY_PROVIDER_TicketIterator) (void *cls,
 						 const struct GNUNET_IDENTITY_PROVIDER_Ticket *ticket,
-             const struct GNUNET_IDENTITY_PROVIDER_AttributeList *attrs);
+             const struct GNUNET_IDENTITY_ATTRIBUTE_ClaimList *attrs);
 
 
 /**
@@ -74,7 +74,7 @@ struct GNUNET_IDENTITY_PROVIDER_PluginFunctions
    */
   int (*store_ticket) (void *cls,
 			const struct GNUNET_IDENTITY_PROVIDER_Ticket *ticket,
-      const struct GNUNET_IDENTITY_PROVIDER_AttributeList *attrs);
+      const struct GNUNET_IDENTITY_ATTRIBUTE_ClaimList *attrs);
 
   /**
    * Delete a ticket from the database.
@@ -110,7 +110,6 @@ struct GNUNET_IDENTITY_PROVIDER_PluginFunctions
                                 GNUNET_IDENTITY_PROVIDER_TicketIterator iter,
                                 void *iter_cls);
 };
-
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {

@@ -400,6 +400,22 @@ void
 GNUNET_SCHEDULER_run (GNUNET_SCHEDULER_TaskCallback task,
                       void *task_cls);
 
+/**
+ * Initialize and run scheduler.  This function will return when all
+ * tasks have completed.  When @ install_signals is GNUNET_YES, then
+ * this function behaves in the same was as GNUNET_SCHEDULER_run does.
+ * If @ install_signals is GNUNET_NO then no signal handlers are
+ * installed.
+ *
+ * @param install_signals whether to install signals (GNUNET_YES/NO)
+ * @param task task to run first (and immediately)
+ * @param task_cls closure of @a task
+ */
+void
+GNUNET_SCHEDULER_run_with_optional_signals (int install_signals,
+                                            GNUNET_SCHEDULER_TaskCallback task,
+                                            void *task_cls);
+
 
 /**
  * Request the shutdown of a scheduler.  Marks all tasks

@@ -620,7 +620,7 @@ extract_uint16 (void *cls,
                 void *dst)
 {
   uint64_t v;
-  uint32_t *u = dst;
+  uint16_t *u = dst;
 
   GNUNET_assert (sizeof (uint16_t) == *dst_size);
   if (SQLITE_INTEGER !=

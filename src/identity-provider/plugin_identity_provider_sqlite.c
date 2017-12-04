@@ -27,7 +27,7 @@
 #include "platform.h"
 #include "gnunet_identity_provider_service.h"
 #include "gnunet_identity_provider_plugin.h"
-#include "identity_attribute.h"
+#include "gnunet_identity_attribute_lib.h"
 #include "gnunet_sq_lib.h"
 #include <sqlite3.h>
 
@@ -373,7 +373,7 @@ database_shutdown (struct Plugin *plugin)
 static int
 identity_provider_sqlite_store_ticket (void *cls,
                                        const struct GNUNET_IDENTITY_PROVIDER_Ticket *ticket,
-                                       const struct GNUNET_IDENTITY_PROVIDER_AttributeList *attrs)
+                                       const struct GNUNET_IDENTITY_ATTRIBUTE_ClaimList *attrs)
 {
   struct Plugin *plugin = cls;
   size_t attrs_len;
@@ -402,9 +402,9 @@ identity_provider_sqlite_store_ticket (void *cls,
     GNUNET_SQ_reset (plugin->dbh,
                      plugin->delete_ticket);
     
-    attrs_len = attribute_list_serialize_get_size (attrs);
+    attrs_len = GNUNET_IDENTITY_ATTRIBUTE_list_serialize_get_size (attrs);
     attrs_ser = GNUNET_malloc (attrs_len);
-    attribute_list_serialize (attrs,
+    GNUNET_IDENTITY_ATTRIBUTE_list_serialize (attrs,
                               attrs_ser);
     struct GNUNET_SQ_QueryParam sparams[] = {
       GNUNET_SQ_query_param_auto_from_type (&ticket->identity),
@@ -526,7 +526,7 @@ get_ticket_and_call_iterator (struct Plugin *plugin,
                               void *iter_cls)
 {
   struct GNUNET_IDENTITY_PROVIDER_Ticket ticket;
-  struct GNUNET_IDENTITY_PROVIDER_AttributeList *attrs;
+  struct GNUNET_IDENTITY_ATTRIBUTE_ClaimList *attrs;
   int ret;
   int sret;
   size_t attrs_len;
@@ -553,13 +553,13 @@ get_ticket_and_call_iterator (struct Plugin *plugin,
     }
     else
     {
-      attrs = attribute_list_deserialize (attrs_ser,
+      attrs = GNUNET_IDENTITY_ATTRIBUTE_list_deserialize (attrs_ser,
                                           attrs_len);
       if (NULL != iter)
         iter (iter_cls,
               &ticket,
               attrs);
-      attribute_list_destroy (attrs);
+      GNUNET_IDENTITY_ATTRIBUTE_list_destroy (attrs);
       ret = GNUNET_YES;
     }
     GNUNET_SQ_cleanup_result (rs);

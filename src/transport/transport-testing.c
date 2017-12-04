@@ -384,7 +384,7 @@ GNUNET_TRANSPORT_TESTING_start_peer (struct GNUNET_TRANSPORT_TESTING_Handle *tth
 {
   char *emsg = NULL;
   struct GNUNET_TRANSPORT_TESTING_PeerContext *p;
-  struct GNUNET_PeerIdentity *dummy;
+  struct GNUNET_PeerIdentity dummy;
   unsigned int i;
 
   if (GNUNET_NO == GNUNET_DISK_file_test (cfgname))
@@ -677,6 +677,11 @@ GNUNET_TRANSPORT_TESTING_stop_peer (struct GNUNET_TRANSPORT_TESTING_PeerContext 
   {
     GNUNET_CONFIGURATION_destroy (p->cfg);
     p->cfg = NULL;
+  }
+  if (NULL != p->handlers)
+  {
+    GNUNET_free (p->handlers);
+    p->handlers = NULL;
   }
   GNUNET_CONTAINER_DLL_remove (tth->p_head,
                                tth->p_tail,

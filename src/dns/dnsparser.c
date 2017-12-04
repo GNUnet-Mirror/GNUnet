@@ -1278,8 +1278,8 @@ GNUNET_DNSPARSER_hex_to_bin (const char *hex,
   in[2] = '\0';
   for (off = 0; off < data_size; off++)
   {
-    in[0] = tolower ((int) hex[off * 2]);
-    in[1] = tolower ((int) hex[off * 2 + 1]);
+    in[0] = tolower ((unsigned char) hex[off * 2]);
+    in[1] = tolower ((unsigned char) hex[off * 2 + 1]);
     if (1 != sscanf (in, "%x", &h))
       return off;
     idata[off] = (uint8_t) h;

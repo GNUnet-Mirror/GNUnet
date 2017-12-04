@@ -17,6 +17,7 @@ endif
 
 if HAVE_JSON
 if HAVE_MHD
+  ATTRIBUTE_DIR = identity-attribute
   PROVIDER_DIR = identity-provider
 endif
 endif
@@ -131,6 +132,7 @@ SUBDIRS = \
   social \
   $(AUCTION_DIR) \
   $(EXP_DIR) \
+	$(ATTRIBUTE_DIR) \
   $(PROVIDER_DIR)
 
 endif

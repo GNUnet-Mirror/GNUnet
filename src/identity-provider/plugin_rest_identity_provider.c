@@ -37,6 +37,7 @@
 #include <jansson.h>
 #include <inttypes.h>
 #include "gnunet_signatures.h"
+#include "gnunet_identity_attribute_lib.h"
 #include "gnunet_identity_provider_service.h"
 
 /**
@@ -514,7 +515,7 @@ add_attribute_cont (struct GNUNET_REST_RequestHandle *con_handle,
   struct RequestHandle *handle = cls;
   struct EgoEntry *ego_entry;
   struct MHD_Response *resp;
-  struct GNUNET_IDENTITY_PROVIDER_Attribute *attribute;
+  struct GNUNET_IDENTITY_ATTRIBUTE_Claim *attribute;
   struct GNUNET_JSONAPI_Document *json_obj;
   struct GNUNET_JSONAPI_Resource *json_res;
   char term_data[handle->rest_handle->data_size+1];
@@ -602,8 +603,8 @@ add_attribute_cont (struct GNUNET_REST_RequestHandle *con_handle,
   value_json = GNUNET_JSONAPI_resource_read_attr (json_res,
                                                   "value");
   value_str = json_string_value (value_json);
-  attribute = GNUNET_IDENTITY_PROVIDER_attribute_new (name_str,
-                                                      GNUNET_IDENTITY_PROVIDER_AT_STRING,
+  attribute = GNUNET_IDENTITY_ATTRIBUTE_claim_new (name_str,
+                                                      GNUNET_IDENTITY_ATTRIBUTE_TYPE_STRING,
                                                       value_str,
                                                       strlen (value_str) + 1);
   handle->idp = GNUNET_IDENTITY_PROVIDER_connect (cfg);
@@ -625,7 +626,7 @@ add_attribute_cont (struct GNUNET_REST_RequestHandle *con_handle,
 static void
 attr_collect (void *cls,
               const struct GNUNET_CRYPTO_EcdsaPublicKey *identity,
-              const struct GNUNET_IDENTITY_PROVIDER_Attribute *attr)
+              const struct GNUNET_IDENTITY_ATTRIBUTE_Claim *attr)
 {
   struct GNUNET_JSONAPI_Resource *json_resource;
   struct RequestHandle *handle = cls;
@@ -839,7 +840,7 @@ revoke_ticket_cont (struct GNUNET_REST_RequestHandle *con_handle,
 static void
 consume_cont (void *cls,
               const struct GNUNET_CRYPTO_EcdsaPublicKey *identity,
-              const struct GNUNET_IDENTITY_PROVIDER_Attribute *attr)
+              const struct GNUNET_IDENTITY_ATTRIBUTE_Claim *attr)
 {
   struct RequestHandle *handle = cls;
   struct GNUNET_JSONAPI_Resource *json_resource;

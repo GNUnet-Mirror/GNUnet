@@ -784,15 +784,24 @@ revalidate_address (void *cls)
   GNUNET_STATISTICS_update (GST_stats,
                             gettext_noop ("# address revalidations started"), 1,
                             GNUNET_NO);
+  if (NULL != ve->bc)
+  {
+    GST_blacklist_test_cancel (ve->bc);
+    ve->bc = NULL;
+  }
   bc = GST_blacklist_test_allowed (&ve->address->peer,
-				   ve->address->transport_name,
+                                   ve->address->transport_name,
                                    &transmit_ping_if_allowed,
-				   ve,
-				   NULL,
-				   NULL);
+                                   ve,
+                                   NULL,
+                                   NULL);
   if (NULL != bc)
-    ve->bc = bc;                /* only set 'bc' if 'transmit_ping_if_allowed' was not already
-                                 * called... */
+  {
+    /* If transmit_ping_if_allowed was already called it may have freed ve,
+     * so only set ve->bc if it has not been called.
+     */
+    ve->bc = bc;
+  }
 }
 
 

@@ -5,15 +5,17 @@
 @setfilename gnunet.info
 @documentencoding UTF-8
 @settitle GNUnet Reference Manual
+@exampleindent 2
+@urefbreakstyle before
 @c %**end of header
 
 @include version.texi
 
 @c Set Versions which might be used in more than one place:
-@set GNUNET-DIST-URL https://ftp.gnu.org/gnu/gnunet/
-@set GNUNET-VERSION 0.10.1
+@set GNUFTP-URL https://ftp.gnu.org/gnu/gnunet
+@set PYPI-URL https://pypi.python.org/packages/source
 @set GNURL-VERSION-CURRENT 7.55.1
-@set GNURL-DIST-URL https://gnunet.org/sites/default/files/
+@set GNUNET-DIST-URL https://gnunet.org/sites/default/files/
 @c @set OPENPGP-SIGNING-KEY-ID
 
 @copying
@@ -38,6 +40,13 @@ A copy of the license is also available from the Free Software
 Foundation Web site at @url{http://www.gnu.org/licenses/gpl.html}.
 @end copying
 
+@c TODO: Improve this and improve https://directory.fsf.org/wiki/Gnunet
+
+@dircategory Networking
+@direntry
+* GNUnet: (gnunet).       Framework for secure peer-to-peer networking
+@end direntry
+
 @titlepage
 @title GNUnet Reference Manual
 @subtitle Installing, configuring, using and contributing to GNUnet
@@ -51,60 +60,27 @@ Edition @value{EDITION} @*
 @insertcopying
 @end titlepage
 
+@summarycontents
 @contents
-@c *********************************************************************
+
 @node Top
-@top Contributing to GNUnet
-@c *********************************************************************
+@top Introduction
 
-This document describes GNUnet version @value{VERSION}.
-
-
-GNUnet is a @uref{http://www.gnu.org/, GNU} package. All code contributions
-must thus be put under the
-@uref{http://www.gnu.org/copyleft/gpl.html, GNU Public License (GPL)}.
-All documentation should be put under FSF approved licenses
-(see @uref{http://www.gnu.org/copyleft/fdl.html, fdl}).
-
-By submitting documentation, translations, comments and other content to this
-website you automatically grant the right to publish code under the
-GNU Public License and documentation under either or both the GNU
-Public License or the GNU Free Documentation License. When contributing
-to the GNUnet project, GNU standards and the
-@uref{http://www.gnu.org/philosophy/philosophy.html, GNU philosophy}
-should be adhered to.
-
-Note that we do now require a formal copyright assignment for GNUnet
-contributors to GNUnet e.V.; nevertheless, we do allow pseudonymous
-contributions.  By signing the copyright agreement and submitting your
-code (or documentation) to us, you agree to share the rights to your
-code with GNUnet e.V.; GNUnet e.V. receives non-exclusive ownership
-rights, and in particular is allowed to dual-license the code. You
-retain non-exclusive rights to your contributions, so you can also
-share your contributions freely with other projects.
-
-GNUnet e.V. will publish all accepted contributions under the GPLv3 or any
-later version. The association may decide to publish contributions under
-additional licenses (dual-licensing).
-
-We do not intentionally remove your name from your contributions; however,
-due to extensive editing it is not always trivial to attribute contributors
-properly. If you find that you significantly contributed to a file (or the
-project as a whole) and are not listed in the respective authors file or
-section, please do let us know.
-
-
+This document is the Reference Manual for GNUnet version @value{VERSION}.
 
 @menu
 
 * Philosophy::                      About GNUnet
+* Vocabulary::                      Vocabulary
 * GNUnet Installation Handbook::    How to install GNUnet
 * Using GNUnet::                    Using GNUnet
+* Configuration Handbook::          Configuring GNUnet
+* GNUnet Contributors Handbook::    Contributing to GNUnet
 * GNUnet Developer Handbook::       Developing GNUnet
-* GNU Free Documentation License::  The license of this manual.
-* GNU General Public License::      The license of this manual.
-* Concept Index::                   Concepts.
-* Programming Index::               Data types, functions, and variables.
+* GNU Free Documentation License::  The license of this manual
+* GNU General Public License::      The license of this manual
+* Concept Index::                   Concepts
+* Programming Index::               Data types, functions, and variables
 
 @detailmenu
  --- The Detailed Node Listing ---
@@ -112,7 +88,7 @@ section, please do let us know.
 Philosophy
 
 * Design Goals::
-* Security & Privacy::
+* Security and Privacy::
 * Versatility::
 * Practicality::
 * Key Concepts::
@@ -127,10 +103,86 @@ Philosophy
 * Backup of Identities and Egos::
 * Revocation::
 
-Installation
+Vocabulary
+
+* Definitions abbreviations and acronyms::
+* Words and characters::
+* Technical Assumptions::
+
+GNUnet Installation Handbook
 
 * Dependencies::
-* External dependencies::
+* Pre-installation notes::
+* Generic installation instructions::
+* Build instructions for Ubuntu 12.04 using Git::
+* Build instructions for software builds from source::
+* Build Instructions for Microsoft Windows Platforms::
+* Build instructions for Debian 7.5::
+* Installing GNUnet from Git on Ubuntu 14.4::
+* Build instructions for Debian 8::
+* Outdated build instructions for previous revisions::
+@c * Portable GNUnet::
+* The graphical configuration interface::
+* How to start and stop a GNUnet peer::
+
+Using GNUnet
+
+* Checking the Installation::
+* First steps - File-sharing::
+* First steps - Using the GNU Name System::
+* First steps - Using GNUnet Conversation::
+* First steps - Using the GNUnet VPN::
+* File-sharing::
+* The GNU Name System::
+* Using the Virtual Public Network::
+
+Configuration Handbook
+
+GNUnet Contributors Handbook
+
+* Contributing to GNUnet::
+* Licenses of contributions::
+* Copyright Assignment::
+* Contributing to the Reference Manual::
+
+GNUnet Developer Handbook
+
+* Developer Introduction::
+* Code overview::
+* System Architecture::
+* Subsystem stability::
+* Naming conventions and coding style guide::
+* Build-system::
+* Developing extensions for GNUnet using the gnunet-ext template::
+* Writing testcases::
+* TESTING library::
+* Performance regression analysis with Gauger::
+* TESTBED Subsystem::
+* libgnunetutil::
+* Automatic Restart Manager (ARM)::
+* TRANSPORT Subsystem::
+* NAT library::
+* Distance-Vector plugin::
+* SMTP plugin::
+* Bluetooth plugin::
+* WLAN plugin::
+* ATS Subsystem::
+* CORE Subsystem::
+* CADET Subsystem::
+* NSE Subsystem::
+* HOSTLIST Subsystem::
+* IDENTITY Subsystem::
+* NAMESTORE Subsystem::
+* PEERINFO Subsystem::
+* PEERSTORE Subsystem::
+* SET Subsystem::
+* STATISTICS Subsystem::
+* Distributed Hash Table (DHT)::
+* GNU Name System (GNS)::
+* GNS Namecache::
+* REVOCATION Subsystem::
+* File-sharing (FS) Subsystem::
+* REGEX Subsystem::
 
 @end detailmenu
 @end menu
@@ -138,6 +190,8 @@ Installation
 @c *********************************************************************
 @include chapters/philosophy.texi
 @c *********************************************************************
+
+@include chapters/vocabulary.texi
 
 @c *********************************************************************
 @include chapters/installation.texi
@@ -147,10 +201,14 @@ Installation
 @include chapters/user.texi
 @c *********************************************************************
 
+@include chapters/configuration.texi
+
+@include chapters/contributing.texi
+
 @c *********************************************************************
 @include chapters/developer.texi
+@c @include gnunet-c-tutorial.texi
 @c *********************************************************************
-
 
 @c *********************************************************************
 @node GNU Free Documentation License

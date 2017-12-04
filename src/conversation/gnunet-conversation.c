@@ -1091,7 +1091,7 @@ handle_command_string (char *message,
                             strlen (commands[i].command))))
     i++;
   ptr = &message[strlen (commands[i].command)];
-  while (isspace ((int) *ptr))
+  while (isspace ((unsigned char) *ptr))
     ptr++;
   if ('\0' == *ptr)
     ptr = NULL;

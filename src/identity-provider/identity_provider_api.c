@@ -29,11 +29,10 @@
 #include "gnunet_protocols.h"
 #include "gnunet_mq_lib.h"
 #include "gnunet_identity_provider_service.h"
+#include "gnunet_identity_attribute_lib.h"
 #include "identity_provider.h"
-#include "identity_attribute.h"
 
 #define LOG(kind,...) GNUNET_log_from (kind, "identity-api",__VA_ARGS__)
-
 
 
 /**
@@ -495,9 +494,9 @@ handle_consume_ticket_result (void *cls,
     return;
 
   {
-    struct GNUNET_IDENTITY_PROVIDER_AttributeList *attrs;
-    struct GNUNET_IDENTITY_PROVIDER_AttributeListEntry *le;
-    attrs = attribute_list_deserialize ((char*)&msg[1],
+    struct GNUNET_IDENTITY_ATTRIBUTE_ClaimList *attrs;
+    struct GNUNET_IDENTITY_ATTRIBUTE_ClaimListEntry *le;
+    attrs = GNUNET_IDENTITY_ATTRIBUTE_list_deserialize ((char*)&msg[1],
                                         attrs_len);
     if (NULL != op->ar_cb)
     {
@@ -512,8 +511,8 @@ handle_consume_ticket_result (void *cls,
         for (le = attrs->list_head; NULL != le; le = le->next)
           op->ar_cb (op->cls,
                      &msg->identity,
-                     le->attribute);
-        attribute_list_destroy (attrs);
+                     le->claim);
+        GNUNET_IDENTITY_ATTRIBUTE_list_destroy (attrs);
       }
     }
     op->ar_cb (op->cls,
@@ -619,9 +618,9 @@ handle_attribute_result (void *cls,
   }
 
   {
-    struct GNUNET_IDENTITY_PROVIDER_Attribute *attr;
-    attr = attribute_deserialize ((char*)&msg[1],
-                                  attr_len);
+    struct GNUNET_IDENTITY_ATTRIBUTE_Claim *attr;
+    attr = GNUNET_IDENTITY_ATTRIBUTE_deserialize ((char*)&msg[1],
+                                                  attr_len);
     if (NULL != it)
     {
       if (NULL != it->proc)
@@ -905,7 +904,7 @@ GNUNET_IDENTITY_PROVIDER_disconnect (struct GNUNET_IDENTITY_PROVIDER_Handle *h)
 struct GNUNET_IDENTITY_PROVIDER_Operation *
 GNUNET_IDENTITY_PROVIDER_attribute_store (struct GNUNET_IDENTITY_PROVIDER_Handle *h,
                                           const struct GNUNET_CRYPTO_EcdsaPrivateKey *pkey,
-                                          const struct GNUNET_IDENTITY_PROVIDER_Attribute *attr,
+                                          const struct GNUNET_IDENTITY_ATTRIBUTE_Claim *attr,
                                           GNUNET_IDENTITY_PROVIDER_ContinuationWithStatus cont,
                                           void *cont_cls)
 {
@@ -921,14 +920,14 @@ GNUNET_IDENTITY_PROVIDER_attribute_store (struct GNUNET_IDENTITY_PROVIDER_Handle
   GNUNET_CONTAINER_DLL_insert_tail (h->op_head,
                                     h->op_tail,
                                     op);
-  attr_len = attribute_serialize_get_size (attr);
+  attr_len = GNUNET_IDENTITY_ATTRIBUTE_serialize_get_size (attr);
   op->env = GNUNET_MQ_msg_extra (sam,
                                  attr_len,
                                  GNUNET_MESSAGE_TYPE_IDENTITY_PROVIDER_ATTRIBUTE_STORE);
   sam->identity = *pkey;
   sam->id = htonl (op->r_id);
 
-  attribute_serialize (attr,
+  GNUNET_IDENTITY_ATTRIBUTE_serialize (attr,
                        (char*)&sam[1]);
 
   sam->attr_len = htons (attr_len);
@@ -939,24 +938,6 @@ GNUNET_IDENTITY_PROVIDER_attribute_store (struct GNUNET_IDENTITY_PROVIDER_Handle
 
 }
 
-
-/**
- * Create a new attribute.
- *
- * @param name the attribute name
- * @param type the attribute type
- * @param data the attribute value
- * @param data_size the attribute value size
- * @return the new attribute
- */
-struct GNUNET_IDENTITY_PROVIDER_Attribute *
-GNUNET_IDENTITY_PROVIDER_attribute_new (const char* attr_name,
-                                        uint32_t attr_type,
-                                        const void* data,
-                                        size_t data_size)
-{
-  return attribute_new (attr_name, attr_type, data, data_size);
-}
 
 /**
  * List all attributes for a local identity. 
@@ -1089,7 +1070,7 @@ struct GNUNET_IDENTITY_PROVIDER_Operation *
 GNUNET_IDENTITY_PROVIDER_ticket_issue (struct GNUNET_IDENTITY_PROVIDER_Handle *h,
                                        const struct GNUNET_CRYPTO_EcdsaPrivateKey *iss,
                                        const struct GNUNET_CRYPTO_EcdsaPublicKey *rp,
-                                       const struct GNUNET_IDENTITY_PROVIDER_AttributeList *attrs,
+                                       const struct GNUNET_IDENTITY_ATTRIBUTE_ClaimList *attrs,
                                        GNUNET_IDENTITY_PROVIDER_TicketCallback cb,
                                        void *cb_cls)
 {
@@ -1105,7 +1086,7 @@ GNUNET_IDENTITY_PROVIDER_ticket_issue (struct GNUNET_IDENTITY_PROVIDER_Handle *h
   GNUNET_CONTAINER_DLL_insert_tail (h->op_head,
                                     h->op_tail,
                                     op);
-  attr_len = attribute_list_serialize_get_size (attrs);
+  attr_len = GNUNET_IDENTITY_ATTRIBUTE_list_serialize_get_size (attrs);
   op->env = GNUNET_MQ_msg_extra (tim,
                                  attr_len,
                                  GNUNET_MESSAGE_TYPE_IDENTITY_PROVIDER_ISSUE_TICKET);
@@ -1113,7 +1094,7 @@ GNUNET_IDENTITY_PROVIDER_ticket_issue (struct GNUNET_IDENTITY_PROVIDER_Handle *h
   tim->rp = *rp;
   tim->id = htonl (op->r_id);
 
-  attribute_list_serialize (attrs,
+  GNUNET_IDENTITY_ATTRIBUTE_list_serialize (attrs,
                             (char*)&tim[1]);
 
   tim->attr_len = htons (attr_len);

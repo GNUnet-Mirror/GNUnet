@@ -381,6 +381,7 @@ process_hello (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Received (my) `%s' from transport service\n", "HELLO");
   GNUNET_assert (message != NULL);
+  GNUNET_free_non_null (p->hello);
   p->hello = GNUNET_copy_message (message);
   if ((p == &p1) && (NULL == p2.oh))
     p2.oh = GNUNET_TRANSPORT_offer_hello (p2.cfg,
@@ -518,6 +519,8 @@ main (int argc,
                       &ok);
   stop_arm (&p1);
   stop_arm (&p2);
+  GNUNET_free_non_null (p1.hello);
+  GNUNET_free_non_null (p2.hello);
   GNUNET_DISK_directory_remove ("/tmp/test-gnunet-core-peer-1");
   GNUNET_DISK_directory_remove ("/tmp/test-gnunet-core-peer-2");
 
