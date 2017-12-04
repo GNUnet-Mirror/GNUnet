@@ -67,6 +67,11 @@ static char* issue_attrs;
 static char* consume_ticket;
 
 /**
+ * Attribute type
+ */
+static char* type_str;
+
+/**
  * Ticket to revoke
  */
 static char* revoke_ticket;
@@ -168,7 +173,7 @@ process_attrs (void *cls,
          const struct GNUNET_CRYPTO_EcdsaPublicKey *identity,
          const struct GNUNET_IDENTITY_ATTRIBUTE_Claim *attr)
 {
-  char *claim;
+  char *value_str;
   if (NULL == identity)
   {
     GNUNET_SCHEDULER_add_now (&do_cleanup, NULL);
@@ -179,11 +184,11 @@ process_attrs (void *cls,
     ret = 1;
     return;
   }
-  claim = GNUNET_IDENTITY_ATTRIBUTE_claim_to_string (attr->type,
+  value_str = GNUNET_IDENTITY_ATTRIBUTE_value_to_string (attr->type,
                                                      attr->data,
                                                      attr->data_size);
   GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
-              "%s: %s\n", attr->name, claim);
+              "%s: %s\n", attr->name, value_str);
 }
 
 
@@ -211,7 +216,10 @@ process_rvk (void *cls, int success, const char* msg)
 static void
 iter_finished (void *cls)
 {
-  struct GNUNET_IDENTITY_ATTRIBUTE_Claim *attr;
+  struct GNUNET_IDENTITY_ATTRIBUTE_Claim *claim;
+  char *data;
+  size_t data_size;
+  int type;
 
   attr_iterator = NULL;
   if (list)
@@ -248,13 +256,22 @@ iter_finished (void *cls)
                                                      NULL);
     return;
   }
-  attr = GNUNET_IDENTITY_ATTRIBUTE_claim_new (attr_name,
-                                              GNUNET_IDENTITY_ATTRIBUTE_TYPE_STRING,
-                                              attr_value,
-                                              strlen (attr_value) + 1);
+  if (NULL == type_str)
+    type = GNUNET_IDENTITY_ATTRIBUTE_TYPE_STRING;
+  else
+    type = GNUNET_IDENTITY_ATTRIBUTE_typename_to_number (type_str);
+
+  GNUNET_assert (GNUNET_SYSERR != GNUNET_IDENTITY_ATTRIBUTE_string_to_value (type,
+                                             attr_value,
+                                             (void**)&data,
+                                             &data_size));
+  claim = GNUNET_IDENTITY_ATTRIBUTE_claim_new (attr_name,
+                                               type,
+                                               data,
+                                               data_size);
   idp_op = GNUNET_IDENTITY_PROVIDER_attribute_store (idp_handle,
                                                      pkey,
-                                                     attr,
+                                                     claim,
                                                      &store_attr_cont,
                                                      NULL);
 
@@ -408,6 +425,11 @@ main(int argc, char *const argv[])
                                  NULL,
                                  gettext_noop ("Revoke a ticket"),
                                  &revoke_ticket),
+    GNUNET_GETOPT_option_string ('t',
+                                 "type",
+                                 NULL,
+                                 gettext_noop ("Type of attribute"),
+                                 &type_str),
     GNUNET_GETOPT_OPTION_END
   };
   GNUNET_PROGRAM_run (argc, argv, "ct",

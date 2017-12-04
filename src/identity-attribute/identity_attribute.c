@@ -88,7 +88,7 @@ init()
   if (GNUNET_YES == initialized)
     return;
   initialized = GNUNET_YES;
-  GNUNET_PLUGIN_load_all ("libgnunet_plugin_attribute_", NULL,
+  GNUNET_PLUGIN_load_all ("libgnunet_plugin_identity_attribute_", NULL,
                           &add_plugin, NULL);
 }
 
@@ -151,7 +151,7 @@ GNUNET_IDENTITY_ATTRIBUTE_number_to_typename (uint32_t type)
  * @return #GNUNET_OK on success
  */
 int
-GNUNET_IDENTITY_ATTRIBUTE_string_to_claim (uint32_t type,
+GNUNET_IDENTITY_ATTRIBUTE_string_to_value (uint32_t type,
                                            const char *s,
                                            void **data,
                                            size_t *data_size)
@@ -182,7 +182,7 @@ GNUNET_IDENTITY_ATTRIBUTE_string_to_claim (uint32_t type,
  * @return NULL on error, otherwise human-readable representation of the claim
  */
 char *
-GNUNET_IDENTITY_ATTRIBUTE_claim_to_string (uint32_t type,
+GNUNET_IDENTITY_ATTRIBUTE_value_to_string (uint32_t type,
                                            const void* data,
                                            size_t data_size)
 {

@@ -233,7 +233,7 @@ GNUNET_IDENTITY_ATTRIBUTE_typename_to_number (const char *typename);
  * @return #GNUNET_OK on success
  */
 int
-GNUNET_IDENTITY_ATTRIBUTE_string_to_claim (uint32_t type,
+GNUNET_IDENTITY_ATTRIBUTE_string_to_value (uint32_t type,
                                            const char *s,
                                            void **data,
                                            size_t *data_size);
@@ -247,7 +247,7 @@ GNUNET_IDENTITY_ATTRIBUTE_string_to_claim (uint32_t type,
  * @return NULL on error, otherwise human-readable representation of the claim
  */
 char *
-GNUNET_IDENTITY_ATTRIBUTE_claim_to_string (uint32_t type,
+GNUNET_IDENTITY_ATTRIBUTE_value_to_string (uint32_t type,
                                            const void* data,
                                            size_t data_size);
 
