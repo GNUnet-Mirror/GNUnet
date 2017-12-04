@@ -65,6 +65,12 @@
 #define GNUNET_REST_API_NS_IDENTITY_CONSUME "/idp/consume"
 
 /**
+ * Authorize namespace
+ */
+#define GNUNET_REST_API_NS_AUTHORIZE "/idp/authorize"
+
+
+/**
  * Attribute key
  */
 #define GNUNET_REST_JSONAPI_IDENTITY_ATTRIBUTE "attribute"
@@ -307,7 +313,7 @@ do_error (void *cls)
   char *json_error;
 
   GNUNET_asprintf (&json_error,
-                   "{Error while processing request: %s}",
+                   "{error : %s}",
                    handle->emsg);
   resp = GNUNET_REST_create_response (json_error);
   handle->proc (handle->proc_cls, resp, handle->response_code);
@@ -1012,6 +1018,167 @@ options_cont (struct GNUNET_REST_RequestHandle *con_handle,
 }
 
 /**
+ * Respond to OPTIONS request
+ *
+ * @param con_handle the connection handle
+ * @param url the url
+ * @param cls the RequestHandle
+ */
+static void
+authorize_cont (struct GNUNET_REST_RequestHandle *con_handle,
+              const char* url,
+              void *cls)
+{
+
+	//TODO clean up method
+
+
+//    The Authorization Server MUST validate all the OAuth 2.0 parameters according to the OAuth 2.0 specification.
+//    The Authorization Server MUST verify that all the REQUIRED parameters are present and their usage conforms to this specification.
+//    If the sub (subject) Claim is requested with a specific value for the ID Token, the Authorization Server MUST only send a positive response if the End-User identified by that sub value has an active session with the Authorization Server or has been Authenticated as a result of the request. The Authorization Server MUST NOT reply with an ID Token or Access Token for a different user, even if they have an active session with the Authorization Server. Such a request can be made either using an id_token_hint parameter or by requesting a specific Claim Value as described in Section 5.5.1, if the claims parameter is supported by the implementation.
+
+
+
+	struct MHD_Response *resp;
+	struct RequestHandle *handle = cls;
+
+	/*
+	 *	response_type 	0
+	 * 	client_id 		1
+	 * 	scope			2
+	 * 	redirect_uri	3
+	 * 	state			4
+	 * 	nonce			5
+	 * 	display 		6
+	 * 	prompt			7
+	 * 	max_age			8
+	 * 	ui_locales		9
+	 * 	response_mode	10
+	 * 	id_token_hint	11
+	 * 	login_hint		12
+	 * 	acr_values		13
+	 */
+	char* array[] = { "response_type", "client_id", "scope", "redirect_uri",
+			"state", "nonce", "display", "prompt", "max_age", "ui_locales",
+			"response_mode", "id_token_hint","login_hint", "acr_values" };
+	int array_size=14;
+	int bool_array[array_size];
+
+	struct GNUNET_HashCode cache_key;
+
+	//iterates over each parameter and store used values in array array[]
+	int iterator;
+	for( iterator = 0; iterator<array_size; iterator++){
+		GNUNET_CRYPTO_hash (array[iterator], strlen (array[iterator]), &cache_key);
+		char* cache=GNUNET_CONTAINER_multihashmap_get(handle->rest_handle->url_param_map, &cache_key);
+		bool_array[iterator]=0;
+		if(cache!=0){
+			size_t size=strlen(cache)+1;
+			array[iterator]=(char*)malloc(size*sizeof(char));
+			strncpy(array[iterator],cache,size);
+			bool_array[iterator]=1;
+		}
+	}
+
+	//MUST validate all the OAuth 2.0 parameters & that all the REQUIRED parameters are present and their usage conforms to this specification
+
+	//required values: response_type, client_id, scope, redirect_uri
+	if(!bool_array[0] || !bool_array[1] || !bool_array[2] || !bool_array[3]){
+		handle->emsg=GNUNET_strdup("invalid_request");
+		handle->response_code = MHD_HTTP_INTERNAL_SERVER_ERROR;
+		GNUNET_SCHEDULER_add_now (&do_error, handle);
+		return;
+	}
+	//response_type = code
+	if(strcmp(array[0],"code")!=0){
+		handle->emsg=GNUNET_strdup("invalid_response_type");
+		handle->response_code = MHD_HTTP_INTERNAL_SERVER_ERROR;
+		GNUNET_SCHEDULER_add_now (&do_error, handle);
+		return;
+	}
+	//scope contains openid
+	if(strstr(array[2],"openid")==NULL){
+		handle->emsg=GNUNET_strdup("invalid_scope");
+		handle->response_code = MHD_HTTP_INTERNAL_SERVER_ERROR;
+		GNUNET_SCHEDULER_add_now (&do_error, handle);
+		return;
+	}
+
+	//TODO check other values and use them accordingly
+
+
+	char* redirect_url_to_login;
+
+//	if(){
+//
+//	}else{
+//
+//	}
+	if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_string (cfg,
+	                                             "identity-rest-plugin",
+	                                             "address",
+	                                             &redirect_url_to_login)){
+
+		char* build_array[] = { "response_type", "client_id", "scope", "redirect_uri",
+					"state", "nonce", "display", "prompt", "max_age", "ui_locales",
+					"response_mode", "id_token_hint","login_hint", "acr_values" };
+
+		size_t redirect_parameter_size= strlen("?");
+		for(iterator=0;iterator<array_size;iterator++){
+			if(bool_array[iterator]){
+				redirect_parameter_size += strlen(array[iterator]);
+				redirect_parameter_size += strlen(build_array[iterator]);
+				if(iterator==array_size-1)
+				{
+					redirect_parameter_size += strlen("=");
+				}else{
+					redirect_parameter_size += strlen("=&");
+				}
+			}
+		}
+
+		char redirect_parameter[redirect_parameter_size+1];
+		redirect_parameter_size = 0;
+		redirect_parameter[redirect_parameter_size]='?';
+		for(iterator=0;iterator<array_size;iterator++){
+			if(bool_array[iterator]){
+				//If not last parameter
+				if(iterator!=array_size-1)
+				{
+					char cache[strlen(array[iterator])+strlen(build_array[iterator])+2+1];
+					snprintf(cache,sizeof(cache),"%s=%s&", build_array[iterator], array[iterator]);
+					strncat(redirect_parameter, cache, strlen(array[iterator])+strlen(build_array[iterator])+2 );
+				}else{
+					char cache[strlen(array[iterator])+strlen(build_array[iterator])+1+1];
+					snprintf(cache,sizeof(cache),"%s=%s", build_array[iterator], array[iterator]);
+					strncat(redirect_parameter, cache, strlen(array[iterator])+strlen(build_array[iterator])+1 );
+				}
+			}
+		}
+		char redirect_component[strlen(redirect_url_to_login)+strlen(redirect_parameter)+1];
+		snprintf(redirect_component, sizeof(redirect_component), "%s%s", redirect_url_to_login, redirect_parameter);
+		resp = GNUNET_REST_create_response ("");
+		MHD_add_response_header (resp, "Location", redirect_component);
+	 }else{
+		 handle->emsg=GNUNET_strdup("No server on localhost:8000");
+		 handle->response_code = MHD_HTTP_INTERNAL_SERVER_ERROR;
+		 GNUNET_SCHEDULER_add_now (&do_error, handle);
+		 return;
+//		 resp = GNUNET_REST_create_response ("");
+//		 MHD_add_response_header (resp, "Location", array[3]);
+	 }
+
+	handle->proc (handle->proc_cls, resp, MHD_HTTP_FOUND);
+	cleanup_handle (handle);
+	for(iterator=0; iterator<array_size; iterator++){
+		if(bool_array[iterator]){
+			free(array[iterator]);
+		}
+	}
+	return;
+}
+
+/**
  * Handle rest request
  *
  * @param handle the request handle
@@ -1024,6 +1191,8 @@ init_cont (struct RequestHandle *handle)
     {MHD_HTTP_METHOD_GET, GNUNET_REST_API_NS_IDENTITY_ATTRIBUTES, &list_attribute_cont},
     {MHD_HTTP_METHOD_POST, GNUNET_REST_API_NS_IDENTITY_ATTRIBUTES, &add_attribute_cont},
     {MHD_HTTP_METHOD_GET, GNUNET_REST_API_NS_IDENTITY_TICKETS, &list_tickets_cont},
+	{MHD_HTTP_METHOD_GET, GNUNET_REST_API_NS_AUTHORIZE, &authorize_cont},
+	{MHD_HTTP_METHOD_POST, GNUNET_REST_API_NS_AUTHORIZE, &authorize_cont},
     {MHD_HTTP_METHOD_POST, GNUNET_REST_API_NS_IDENTITY_REVOKE, &revoke_ticket_cont},
     {MHD_HTTP_METHOD_POST, GNUNET_REST_API_NS_IDENTITY_CONSUME, &consume_ticket_cont},
     {MHD_HTTP_METHOD_OPTIONS, GNUNET_REST_API_NS_IDENTITY_PROVIDER,
