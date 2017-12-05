@@ -786,6 +786,8 @@ cleanup_s5r (struct Socks5Request *s5r)
 
 /* ************************* HTTP handling with cURL *********************** */
 
+static void
+curl_download_prepare ();
 
 /**
  * Callback for MHD response generation.  This function is called from
@@ -824,6 +826,11 @@ mhd_content_cb (void *cls,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		"Pausing MHD download, no data available\n");
+    if (NULL != s5r->curl)
+    {
+      curl_easy_pause (s5r->curl, CURLPAUSE_CONT);
+      curl_download_prepare ();
+    }
     return 0; /* more data later */
   }
   if ( (0 == bytes_to_copy) &&
@@ -833,6 +840,8 @@ mhd_content_cb (void *cls,
 		"Completed MHD download\n");
     return MHD_CONTENT_READER_END_OF_STREAM;
   }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Writing %lu/%lu bytes\n", bytes_to_copy, s5r->io_len);
   GNUNET_memcpy (buf, s5r->io_buf, bytes_to_copy);
   memmove (s5r->io_buf,
 	   &s5r->io_buf[bytes_to_copy],
@@ -865,7 +874,7 @@ check_ssl_certificate (struct Socks5Request *s5r)
   const char *name;
 
   s5r->ssl_checked = GNUNET_YES;
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Checking SSL certificate\n");
   if (CURLE_OK !=
       curl_easy_getinfo (s5r->curl,
@@ -1249,7 +1258,8 @@ curl_download_cb (void *ptr, size_t size, size_t nmemb, void* ctx)
   if (sizeof (s5r->io_buf) - s5r->io_len < total)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Pausing CURL download, not enough space\n");
+                "Pausing CURL download, not enough space %lu %lu %lu\n", sizeof (s5r->io_buf),
+                s5r->io_len, total);
     return CURL_WRITEFUNC_PAUSE; /* not enough space */
   }
   GNUNET_memcpy (&s5r->io_buf[s5r->io_len],
@@ -1833,7 +1843,7 @@ mhd_completed_cb (void *cls,
   for (header = s5r->header_head; header != NULL; header = s5r->header_head)
   {
     GNUNET_CONTAINER_DLL_remove (s5r->header_head,
-                                 s5r->header_head,
+                                 s5r->header_tail,
                                  header);
     GNUNET_free (header->type);
     GNUNET_free (header->value);
@@ -2414,6 +2424,8 @@ do_write (void *cls)
   if (len <= 0)
   {
     /* write error: connection closed, shutdown, etc.; just clean up */
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Write Error\n");
     cleanup_s5r (s5r);
     return;
   }
