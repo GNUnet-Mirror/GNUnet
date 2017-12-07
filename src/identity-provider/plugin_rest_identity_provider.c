@@ -847,10 +847,10 @@ revoke_ticket_cont (struct GNUNET_REST_RequestHandle *con_handle,
                                  strlen (rnd_str),
                                  &ticket.rnd,
                                  sizeof (uint64_t));
-  GNUNET_STRINGS_string_to_data (identity_str,
-                                 strlen (identity_str),
-                                 &ticket.identity,
-                                 sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey));
+//  GNUNET_STRINGS_string_to_data (identity_str,
+//                                 strlen (identity_str),
+//                                 &ticket.identity,type filter text
+//                                 sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey));
   GNUNET_STRINGS_string_to_data (audience_str,
                                  strlen (audience_str),
                                  &ticket.audience,

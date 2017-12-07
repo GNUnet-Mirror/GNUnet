@@ -228,21 +228,19 @@ unsigned int
 strata_estimator_difference (const struct StrataEstimator *se1,
                              const struct StrataEstimator *se2)
 {
-  int i;
   unsigned int count;
 
   GNUNET_assert (se1->strata_count == se2->strata_count);
   count = 0;
-  for (i = se1->strata_count - 1; i >= 0; i--)
+  for (int i = se1->strata_count - 1; i >= 0; i--)
   {
     struct InvertibleBloomFilter *diff;
     /* number of keys decoded from the ibf */
-    int ibf_count;
 
     /* FIXME: implement this without always allocating new IBFs */
     diff = ibf_dup (se1->strata[i]);
     ibf_subtract (diff, se2->strata[i]);
-    for (ibf_count = 0; GNUNET_YES; ibf_count++)
+    for (int ibf_count = 0; GNUNET_YES; ibf_count++)
     {
       int more;
 
