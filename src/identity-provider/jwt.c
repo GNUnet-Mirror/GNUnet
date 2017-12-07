@@ -26,7 +26,7 @@
 #include "platform.h"
 #include "gnunet_util_lib.h"
 #include "gnunet_signatures.h"
-#include "identity_attribute.h"
+#include "gnunet_identity_attribute_lib.h"
 #include <jansson.h>
 
 
@@ -55,18 +55,20 @@ create_jwt_header(void)
 }
 
 /**
- * Create a JWT from a ticket and attributes
+ * Create a JWT from attributes
  *
- * @param ticket the ticket
+ * @param sub_key the public of the subject
  * @param attrs the attribute list
+ * @param priv_key the key used to sign the JWT
  * @return a new base64-encoded JWT string.
  */
 char*
-jwt_create (const struct GNUNET_IDENTITY_PROVIDER_Ticket *ticket,
-            const struct GNUNET_IDENTITY_PROVIDER_AttributeList *attrs,
-            const struct GNUNET_CRYPTO_EcdsaPrivateKey *priv_key)
+jwt_create_from_list (const struct GNUNET_CRYPTO_EcdsaPublicKey *sub_key,
+                                                const struct GNUNET_IDENTITY_ATTRIBUTE_ClaimList *attrs,
+                                                const struct GNUNET_CRYPTO_EcdsaPrivateKey *priv_key)
 {
-  struct GNUNET_IDENTITY_PROVIDER_AttributeListEntry *le;
+  struct GNUNET_IDENTITY_ATTRIBUTE_ClaimListEntry *le;
+  struct GNUNET_CRYPTO_EcdsaPublicKey iss_key;
   struct GNUNET_CRYPTO_EcdsaSignature signature;
   struct GNUNET_CRYPTO_EccSignaturePurpose *purpose;
   char* audience;
@@ -79,12 +81,14 @@ jwt_create (const struct GNUNET_IDENTITY_PROVIDER_Ticket *ticket,
   char* body_base64;
   char* signature_target;
   char* signature_base64;
+  char* attr_val_str;
   json_t* body;
 
+  GNUNET_CRYPTO_ecdsa_key_get_public (priv_key, &iss_key);
   /* TODO maybe we should use a local identity here */
-  issuer = GNUNET_STRINGS_data_to_string_alloc (&ticket->identity,
+  issuer = GNUNET_STRINGS_data_to_string_alloc (&iss_key,
                                                 sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey));
-  audience = GNUNET_STRINGS_data_to_string_alloc (&ticket->audience,
+  audience = GNUNET_STRINGS_data_to_string_alloc (sub_key,
                                                   sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey));
   header = create_jwt_header ();
   body = json_object ();
@@ -103,9 +107,13 @@ jwt_create (const struct GNUNET_IDENTITY_PROVIDER_Ticket *ticket,
      * calls the Attribute plugins to create a
      * json representation for its value
      */
+    attr_val_str = GNUNET_IDENTITY_ATTRIBUTE_value_to_string (le->claim->type,
+                                                              le->claim->data,
+                                                              le->claim->data_size);
     json_object_set_new (body,
-                         le->attribute->name,
-                         json_string (le->attribute->data));
+                         le->claim->name,
+                         json_string (attr_val_str));
+    GNUNET_free (attr_val_str);
   }
   body_str = json_dumps (body, JSON_INDENT(0));
   json_decref (body);

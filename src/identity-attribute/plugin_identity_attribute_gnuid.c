@@ -153,7 +153,7 @@ gnuid_number_to_typename (void *cls,
  * @return the exported block API
  */
 void *
-libgnunet_plugin_attribute_type_gnuid_init (void *cls)
+libgnunet_plugin_identity_attribute_gnuid_init (void *cls)
 {
   struct GNUNET_IDENTITY_ATTRIBUTE_PluginFunctions *api;
 
@@ -173,7 +173,7 @@ libgnunet_plugin_attribute_type_gnuid_init (void *cls)
  * @return NULL
  */
 void *
-libgnunet_plugin_attribute_type_gnuid_done (void *cls)
+libgnunet_plugin_identity_attribute_gnuid_done (void *cls)
 {
   struct GNUNET_IDENTITY_ATTRIBUTE_PluginFunctions *api = cls;
 

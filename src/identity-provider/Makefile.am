@@ -87,7 +87,8 @@ libgnunetidentityprovider_la_LDFLAGS = \
 	-version-info 0:0:0
 
 libgnunet_plugin_rest_identity_provider_la_SOURCES = \
-  plugin_rest_identity_provider.c
+  plugin_rest_identity_provider.c \
+	jwt.c
 libgnunet_plugin_rest_identity_provider_la_LIBADD = \
 	$(top_builddir)/src/identity/libgnunetidentity.la \
 	libgnunetidentityprovider.la \
