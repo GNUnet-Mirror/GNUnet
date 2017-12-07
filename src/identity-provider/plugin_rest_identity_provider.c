@@ -1106,8 +1106,6 @@ authorize_cont (struct GNUNET_REST_RequestHandle *con_handle,
 
   int size=sizeof(OIDC_ignored_parameter_array)/sizeof(char *);
 
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Size %i = 8\n", size);
-
   struct GNUNET_HashCode cache_key;
 
   GNUNET_CRYPTO_hash (OIDC_RESPONSE_TYPE_KEY, strlen (OIDC_RESPONSE_TYPE_KEY),
@@ -1116,7 +1114,6 @@ authorize_cont (struct GNUNET_REST_RequestHandle *con_handle,
 							   &cache_key))
   {
     //TODO error
-
   }
   response_type = GNUNET_CONTAINER_multihashmap_get(handle->rest_handle->url_param_map,
                                                     &cache_key);
@@ -1152,23 +1149,23 @@ authorize_cont (struct GNUNET_REST_RequestHandle *con_handle,
   redirect_uri = GNUNET_CONTAINER_multihashmap_get(handle->rest_handle->url_param_map,
 						&cache_key);
 
+  //RECOMMENDED value: state
   GNUNET_CRYPTO_hash (OIDC_STATE_KEY, strlen (OIDC_STATE_KEY), &cache_key);
-  if (GNUNET_NO == GNUNET_CONTAINER_multihashmap_contains (handle->rest_handle->url_param_map,
+  if (GNUNET_YES == GNUNET_CONTAINER_multihashmap_contains (handle->rest_handle->url_param_map,
 							   &cache_key))
   {
-    //TODO error
+    state = GNUNET_CONTAINER_multihashmap_get(handle->rest_handle->url_param_map,
+					      &cache_key);
   }
-  state = GNUNET_CONTAINER_multihashmap_get(handle->rest_handle->url_param_map,
-					    &cache_key);
 
+  //OPTIONAL value: nonce
   GNUNET_CRYPTO_hash (OIDC_NONCE_KEY, strlen (OIDC_NONCE_KEY), &cache_key);
-  if (GNUNET_NO == GNUNET_CONTAINER_multihashmap_contains (handle->rest_handle->url_param_map,
+  if (GNUNET_YES == GNUNET_CONTAINER_multihashmap_contains (handle->rest_handle->url_param_map,
 							   &cache_key))
   {
-    //TODO error
+    nonce = GNUNET_CONTAINER_multihashmap_get(handle->rest_handle->url_param_map,
+					      &cache_key);
   }
-  nonce = GNUNET_CONTAINER_multihashmap_get(handle->rest_handle->url_param_map,
-					    &cache_key);
 
   int iterator;
   for( iterator = 0; iterator < size; iterator++ )
@@ -1214,18 +1211,19 @@ authorize_cont (struct GNUNET_REST_RequestHandle *con_handle,
                                                           &login_base_url))
   {
     char* new_redirect;
-    GNUNET_asprintf (&new_redirect, "%s?%s=%s&%s=%s&%s=%s&%s=%s&%s=%s&%s=%s",
+    GNUNET_asprintf (&new_redirect, "%s?%s=%s&%s=%s&%s=%s&%s=%s",
 		     login_base_url,
 		     OIDC_RESPONSE_TYPE_KEY, response_type,
 		     OIDC_CLIENT_ID_KEY, client_id,
                      OIDC_REDIRECT_URI_KEY, redirect_uri,
 		     OIDC_SCOPE_KEY, scope,
-		     OIDC_STATE_KEY, state,
-		     OIDC_NONCE_KEY, nonce
+		     OIDC_STATE_KEY, ( 0 == state )? "" : state,
+		     OIDC_NONCE_KEY, ( 0 == nonce )? "" : nonce
                     );
     resp = GNUNET_REST_create_response ("");
     MHD_add_response_header (resp, "Location", new_redirect);
-  }else{
+  } else
+  {
     handle->emsg=GNUNET_strdup("No server on localhost:8000");
     handle->response_code = MHD_HTTP_INTERNAL_SERVER_ERROR;
     GNUNET_SCHEDULER_add_now (&do_error, handle);
