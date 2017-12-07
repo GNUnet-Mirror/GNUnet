@@ -179,7 +179,7 @@ GCPP_del_connection (struct CadetPeerPath *path,
        GCC_2s (cc),
        GCPP_2s (path),
        off);
-  GNUNET_assert (off < path->entries_length); /* FIXME: This assertion fails sometimes! */
+  GNUNET_assert (off < path->entries_length); /* FIXME: #4909: This assertion fails sometimes! */
   entry = path->entries[off];
   GNUNET_assert (cc == entry->cc);
   entry->cc = NULL;
@@ -428,13 +428,14 @@ extend_path (struct CadetPeerPath *path,
 
     path->entries_length = old_len + i + 1;
     recalculate_path_desirability (path);
+    if (NULL != entry->cc)
+      force = GNUNET_YES;
     path->hn = GCP_attach_path (peers[i],
                                 path,
                                 old_len + (unsigned int) i,
                                 force);
     if (NULL != path->hn)
       break;
-    GNUNET_assert (NULL == entry->cc);
     GCP_path_entry_remove (entry->peer,
                            entry,
                            old_len + i);

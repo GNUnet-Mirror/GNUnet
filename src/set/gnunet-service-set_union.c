@@ -739,11 +739,10 @@ get_order_from_difference (unsigned int diff)
   unsigned int ibf_order;
 
   ibf_order = 2;
-  while ( (1<<ibf_order) < (IBF_ALPHA * diff) ||
-          ((1<<ibf_order) < SE_IBF_HASH_NUM) )
+  while ( ( (1<<ibf_order) < (IBF_ALPHA * diff) ||
+            ((1<<ibf_order) < SE_IBF_HASH_NUM) ) &&
+          (ibf_order < MAX_IBF_ORDER) )
     ibf_order++;
-  if (ibf_order > MAX_IBF_ORDER)
-    ibf_order = MAX_IBF_ORDER;
   // add one for correction
   return ibf_order + 1;
 }
