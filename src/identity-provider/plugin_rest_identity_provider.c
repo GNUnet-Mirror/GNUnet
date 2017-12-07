@@ -70,7 +70,6 @@
  */
 #define GNUNET_REST_API_NS_AUTHORIZE "/idp/authorize"
 
-
 /**
  * Attribute key
  */
@@ -97,6 +96,55 @@
  */
 #define ID_REST_STATE_POST_INIT 1
 
+/**
+ * OIDC response_type key
+ */
+#define OIDC_RESPONSE_TYPE_KEY "response_type"
+
+/**
+ * OIDC client_id key
+ */
+#define OIDC_CLIENT_ID_KEY "client_id"
+
+/**
+ * OIDC scope key
+ */
+#define OIDC_SCOPE_KEY "scope"
+
+/**
+ * OIDC redirect_uri key
+ */
+#define OIDC_REDIRECT_URI_KEY "redirect_uri"
+
+/**
+ * OIDC state key
+ */
+#define OIDC_STATE_KEY "state"
+
+/**
+ * OIDC nonce key
+ */
+#define OIDC_NONCE_KEY "nonce"
+
+/**
+ * OIDC expected response_type while authorizing
+ */
+#define OIDC_EXPECTED_AUTHORIZATION_RESPONSE_TYPE "code"
+
+/**
+ * OIDC expected scope part while authorizing
+ */
+#define OIDC_EXPECTED_AUTHORIZATION_SCOPE "openid"
+
+
+/**
+ * OIDC ignored parameter array
+ */
+char* OIDC_ignored_parameter_array [] =
+{
+  "display", "prompt", "max_age", "ui_locales", "response_mode",
+  "id_token_hint", "login_hint", "acr_values"
+};
 
 /**
  * The configuration handle
@@ -799,10 +847,10 @@ revoke_ticket_cont (struct GNUNET_REST_RequestHandle *con_handle,
                                  strlen (rnd_str),
                                  &ticket.rnd,
                                  sizeof (uint64_t));
-  GNUNET_STRINGS_string_to_data (identity_str,
-                                 strlen (identity_str),
-                                 &ticket.identity,
-                                 sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey));
+//  GNUNET_STRINGS_string_to_data (identity_str,
+//                                 strlen (identity_str),
+//                                 &ticket.identity,type filter text
+//                                 sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey));
   GNUNET_STRINGS_string_to_data (audience_str,
                                  strlen (audience_str),
                                  &ticket.audience,
@@ -1030,88 +1078,120 @@ authorize_cont (struct GNUNET_REST_RequestHandle *con_handle,
                 const char* url,
                 void *cls)
 {
+  struct MHD_Response *resp;
+  struct RequestHandle *handle = cls;
+  char *response_type, *client_id, *scope, *redirect_uri, *state, *nonce;
 
   //TODO clean up method
 
-
-  //    The Authorization Server MUST validate all the OAuth 2.0 parameters according to the OAuth 2.0 specification.
-  //    The Authorization Server MUST verify that all the REQUIRED parameters are present and their usage conforms to this specification.
-  //    If the sub (subject) Claim is requested with a specific value for the ID Token, the Authorization Server MUST only send a positive response if the End-User identified by that sub value has an active session with the Authorization Server or has been Authenticated as a result of the request. The Authorization Server MUST NOT reply with an ID Token or Access Token for a different user, even if they have an active session with the Authorization Server. Such a request can be made either using an id_token_hint parameter or by requesting a specific Claim Value as described in Section 5.5.1, if the claims parameter is supported by the implementation.
-
-
-
-  struct MHD_Response *resp;
-  struct RequestHandle *handle = cls;
-
-  /*
-   *	response_type 	0
-   * 	client_id 		1
-   * 	scope			2
-   * 	redirect_uri	3
-   * 	state			4
-   * 	nonce			5
-   * 	display 		6
-   * 	prompt			7
-   * 	max_age			8
-   * 	ui_locales		9
-   * 	response_mode	10
-   * 	id_token_hint	11
-   * 	login_hint		12
-   * 	acr_values		13
+  /**	The Authorization Server MUST validate all the OAuth 2.0 parameters
+   * 	according to the OAuth 2.0 specification.
    */
-  char* array[] = { "response_type", "client_id", "scope", "redirect_uri",
-    "state", "nonce", "display", "prompt", "max_age", "ui_locales",
-    "response_mode", "id_token_hint","login_hint", "acr_values" };
-  int array_size=14;
-  int bool_array[array_size];
+  /**   The Authorization Server MUST verify that all the REQUIRED parameters
+   * 	are present and their usage conforms to this specification.
+   */
+  /**
+   * 	If the sub (subject) Claim is requested with a specific value for the
+   * 	ID Token, the Authorization Server MUST only send a positive response
+   * 	if the End-User identified by that sub value has an active session with
+   * 	the Authorization Server or has been Authenticated as a result of the
+   * 	request. The Authorization Server MUST NOT reply with an ID Token or
+   * 	Access Token for a different user, even if they have an active session
+   * 	with the Authorization Server. Such a request can be made either using
+   * 	an id_token_hint parameter or by requesting a specific Claim Value as
+   * 	described in Section 5.5.1, if the claims parameter is supported by
+   * 	the implementation.
+   */
+
+
+  int size=sizeof(OIDC_ignored_parameter_array)/sizeof(char *);
+
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Size %i = 8\n", size);
 
   struct GNUNET_HashCode cache_key;
 
-  //iterates over each parameter and store used values in array array[]
+  GNUNET_CRYPTO_hash (OIDC_RESPONSE_TYPE_KEY, strlen (OIDC_RESPONSE_TYPE_KEY),
+  		      &cache_key);
+  if (GNUNET_NO == GNUNET_CONTAINER_multihashmap_contains (handle->rest_handle->url_param_map,
+							   &cache_key))
+  {
+    //TODO error
+
+  }
+  response_type = GNUNET_CONTAINER_multihashmap_get(handle->rest_handle->url_param_map,
+                                                    &cache_key);
+
+
+  GNUNET_CRYPTO_hash (OIDC_CLIENT_ID_KEY, strlen (OIDC_CLIENT_ID_KEY),
+    		      &cache_key);
+  if (GNUNET_NO == GNUNET_CONTAINER_multihashmap_contains (handle->rest_handle->url_param_map,
+							   &cache_key))
+  {
+    //TODO error
+  }
+  client_id = GNUNET_CONTAINER_multihashmap_get(handle->rest_handle->url_param_map,
+						&cache_key);
+
+
+  GNUNET_CRYPTO_hash (OIDC_SCOPE_KEY, strlen (OIDC_SCOPE_KEY), &cache_key);
+  if (GNUNET_NO == GNUNET_CONTAINER_multihashmap_contains (handle->rest_handle->url_param_map,
+							   &cache_key))
+  {
+    //TODO error
+  }
+  scope = GNUNET_CONTAINER_multihashmap_get(handle->rest_handle->url_param_map,
+					    &cache_key);
+
+  GNUNET_CRYPTO_hash (OIDC_REDIRECT_URI_KEY, strlen (OIDC_REDIRECT_URI_KEY),
+    		      &cache_key);
+  if (GNUNET_NO == GNUNET_CONTAINER_multihashmap_contains (handle->rest_handle->url_param_map,
+							   &cache_key))
+  {
+    //TODO error
+  }
+  redirect_uri = GNUNET_CONTAINER_multihashmap_get(handle->rest_handle->url_param_map,
+						&cache_key);
+
+  GNUNET_CRYPTO_hash (OIDC_STATE_KEY, strlen (OIDC_STATE_KEY), &cache_key);
+  if (GNUNET_NO == GNUNET_CONTAINER_multihashmap_contains (handle->rest_handle->url_param_map,
+							   &cache_key))
+  {
+    //TODO error
+  }
+  state = GNUNET_CONTAINER_multihashmap_get(handle->rest_handle->url_param_map,
+					    &cache_key);
+
+  GNUNET_CRYPTO_hash (OIDC_NONCE_KEY, strlen (OIDC_NONCE_KEY), &cache_key);
+  if (GNUNET_NO == GNUNET_CONTAINER_multihashmap_contains (handle->rest_handle->url_param_map,
+							   &cache_key))
+  {
+    //TODO error
+  }
+  nonce = GNUNET_CONTAINER_multihashmap_get(handle->rest_handle->url_param_map,
+					    &cache_key);
+
   int iterator;
-  for( iterator = 0; iterator<array_size; iterator++){
-    GNUNET_CRYPTO_hash (array[iterator], strlen (array[iterator]), &cache_key);
-    char* cache=GNUNET_CONTAINER_multihashmap_get(handle->rest_handle->url_param_map, &cache_key);
-    bool_array[iterator]=0;
-    if(cache!=0){
-      size_t size=strlen(cache)+1;
-      array[iterator]=(char*)malloc(size*sizeof(char));
-      strncpy(array[iterator],cache,size);
-      bool_array[iterator]=1;
+  for( iterator = 0; iterator < size; iterator++ )
+  {
+    GNUNET_CRYPTO_hash (OIDC_ignored_parameter_array[iterator],
+			strlen(OIDC_ignored_parameter_array[iterator]),
+			&cache_key);
+    if(GNUNET_YES == GNUNET_CONTAINER_multihashmap_contains(handle->rest_handle->url_param_map,
+							    &cache_key))
+    {
+      //TODO error
     }
   }
 
-  /* MUST validate all the OAuth 2.0 parameters & that all the 
-   * REQUIRED parameters are present and their usage conforms to this specification
-   */
-  GNUNET_CRYPTO_hash (OIDC_RESPONSE_TYPE_KEY, strlen (array[iterator]), &cache_key);
-  if (GNUNET_NO == GNUNET_CONTAINER_multihashmap_contains (handle->rest_handle->url_param_map,
-                                                           &key))
-  {
-    handle->emsg=GNUNET_strdup("invalid_request");
-    handle->response_code = MHD_HTTP_INTERNAL_SERVER_ERROR;
-    GNUNET_SCHEDULER_add_now (&do_error, handle);
-    return;
-  }
-  response_type = GNUNET_CONTAINER_multihashmap_get(handle->rest_handle->url_param_map,
-                                                    &key);
 
-  //required values: response_type, client_id, scope, redirect_uri
-  if(!bool_array[0] || !bool_array[1] || !bool_array[2] || !bool_array[3]){
-    handle->emsg=GNUNET_strdup("invalid_request");
-    handle->response_code = MHD_HTTP_INTERNAL_SERVER_ERROR;
-    GNUNET_SCHEDULER_add_now (&do_error, handle);
-    return;
-  }
   //response_type = code
-  if(strcmp(array[0],"code")!=0){
-    handle->emsg=GNUNET_strdup("invalid_response_type");
-    handle->response_code = MHD_HTTP_INTERNAL_SERVER_ERROR;
-    GNUNET_SCHEDULER_add_now (&do_error, handle);
-    return;
+  if( strcmp( response_type, OIDC_EXPECTED_AUTHORIZATION_RESPONSE_TYPE ) != 0 )
+  {
+    //TODO error
   }
   //scope contains openid
-  if(strstr(array[2],"openid")==NULL){
+  if( strstr( scope, OIDC_EXPECTED_AUTHORIZATION_SCOPE ) == NULL )
+  {
     handle->emsg=GNUNET_strdup("invalid_scope");
     handle->response_code = MHD_HTTP_INTERNAL_SERVER_ERROR;
     GNUNET_SCHEDULER_add_now (&do_error, handle);
@@ -1121,7 +1201,7 @@ authorize_cont (struct GNUNET_REST_RequestHandle *con_handle,
   //TODO check other values and use them accordingly
 
 
-  char* redirect_url_to_login;
+  char* login_base_url;
 
   //	if(){
   //
@@ -1131,67 +1211,29 @@ authorize_cont (struct GNUNET_REST_RequestHandle *con_handle,
   if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_string (cfg,
                                                           "identity-rest-plugin",
                                                           "address",
-                                                          &redirect_url_to_login)){
-
-    char* build_array[] = { "response_type", "client_id", "scope", "redirect_uri",
-      "state", "nonce", "display", "prompt", "max_age", "ui_locales",
-      "response_mode", "id_token_hint","login_hint", "acr_values" };
-    GNUNET_asprintf (new_redirect, "%s=%s&...",
+                                                          &login_base_url))
+  {
+    char* new_redirect;
+    GNUNET_asprintf (&new_redirect, "%s?%s=%s&%s=%s&%s=%s&%s=%s&%s=%s&%s=%s",
+		     login_base_url,
+		     OIDC_RESPONSE_TYPE_KEY, response_type,
+		     OIDC_CLIENT_ID_KEY, client_id,
                      OIDC_REDIRECT_URI_KEY, redirect_uri,
-                     OIDC_CLIENT_ID_KEY, client_id,
-                     ...);
-    size_t redirect_parameter_size= strlen("?");
-    for(iterator=0;iterator<array_size;iterator++){
-      if(bool_array[iterator]){
-        redirect_parameter_size += strlen(array[iterator]);
-        redirect_parameter_size += strlen(build_array[iterator]);
-        if(iterator==array_size-1)
-        {
-          redirect_parameter_size += strlen("=");
-        }else{
-          redirect_parameter_size += strlen("=&");
-        }
-      }
-    }
-
-    char redirect_parameter[redirect_parameter_size+1];
-    redirect_parameter_size = 0;
-    redirect_parameter[redirect_parameter_size]='?';
-    for(iterator=0;iterator<array_size;iterator++){
-      if(bool_array[iterator]){
-        //If not last parameter
-        if(iterator!=array_size-1)
-        {
-          char cache[strlen(array[iterator])+strlen(build_array[iterator])+2+1];
-          snprintf(cache,sizeof(cache),"%s=%s&", build_array[iterator], array[iterator]);
-          strncat(redirect_parameter, cache, strlen(array[iterator])+strlen(build_array[iterator])+2 );
-        }else{
-          char cache[strlen(array[iterator])+strlen(build_array[iterator])+1+1];
-          snprintf(cache,sizeof(cache),"%s=%s", build_array[iterator], array[iterator]);
-          strncat(redirect_parameter, cache, strlen(array[iterator])+strlen(build_array[iterator])+1 );
-        }
-      }
-    }
-    char redirect_component[strlen(redirect_url_to_login)+strlen(redirect_parameter)+1];
-    snprintf(redirect_component, sizeof(redirect_component), "%s%s", redirect_url_to_login, redirect_parameter);
+		     OIDC_SCOPE_KEY, scope,
+		     OIDC_STATE_KEY, state,
+		     OIDC_NONCE_KEY, nonce
+                    );
     resp = GNUNET_REST_create_response ("");
-    MHD_add_response_header (resp, "Location", redirect_component);
+    MHD_add_response_header (resp, "Location", new_redirect);
   }else{
     handle->emsg=GNUNET_strdup("No server on localhost:8000");
     handle->response_code = MHD_HTTP_INTERNAL_SERVER_ERROR;
     GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
-    //		 resp = GNUNET_REST_create_response ("");
-    //		 MHD_add_response_header (resp, "Location", array[3]);
   }
 
   handle->proc (handle->proc_cls, resp, MHD_HTTP_FOUND);
   cleanup_handle (handle);
-  for(iterator=0; iterator<array_size; iterator++){
-    if(bool_array[iterator]){
-      free(array[iterator]);
-    }
-  }
   return;
 }
 
