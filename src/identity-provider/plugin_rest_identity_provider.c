@@ -147,6 +147,12 @@ char* OIDC_ignored_parameter_array [] =
 };
 
 /**
+ * OIDC authorize clients and times hashmap
+ */
+struct GNUNET_CONTAINER_MultiHashMap *OIDC_authorize_time =
+    GNUNET_CONTAINER_multihashmap_create( 0, GNUNET_NO );
+
+/**
  * The configuration handle
  */
 const struct GNUNET_CONFIGURATION_Handle *cfg;
@@ -290,6 +296,11 @@ struct RequestHandle
   char *emsg;
 
   /**
+   * Error response description
+   */
+  char *edesc;
+
+  /**
    * Reponse code
    */
   int response_code;
@@ -368,6 +379,28 @@ do_error (void *cls)
   handle->proc (handle->proc_cls, resp, handle->response_code);
   cleanup_handle (handle);
   GNUNET_free (json_error);
+}
+
+/**
+ * Task run on error, sends error message.  Cleans up everything.
+ *
+ * @param cls the `struct RequestHandle`
+ */
+static void
+do_redirect_error (void *cls)
+{
+  struct RequestHandle *handle = cls;
+  struct MHD_Response *resp;
+  char* redirect;
+  //TODO handle->url is wrong
+  GNUNET_asprintf (&redirect,
+                   "http://localhost:8000%s?error=%s&error_description=%s",
+		   handle->rest_handle->url, handle->emsg, handle->edesc );
+  resp = GNUNET_REST_create_response ("");
+  MHD_add_response_header (resp, "Location", redirect);
+  handle->proc (handle->proc_cls, resp, MHD_HTTP_FOUND);
+  cleanup_handle (handle);
+  GNUNET_free (redirect);
 }
 
 /**
@@ -1080,7 +1113,8 @@ authorize_cont (struct GNUNET_REST_RequestHandle *con_handle,
 {
   struct MHD_Response *resp;
   struct RequestHandle *handle = cls;
-  char *response_type, *client_id, *scope, *redirect_uri, *state, *nonce;
+  char *response_type, *client_id, *scope, *redirect_uri, *state = 0,
+      *nonce = 0;
 
   //TODO clean up method
 
@@ -1103,51 +1137,82 @@ authorize_cont (struct GNUNET_REST_RequestHandle *con_handle,
    * 	the implementation.
    */
 
-
-  int size=sizeof(OIDC_ignored_parameter_array)/sizeof(char *);
-
   struct GNUNET_HashCode cache_key;
 
-  GNUNET_CRYPTO_hash (OIDC_RESPONSE_TYPE_KEY, strlen (OIDC_RESPONSE_TYPE_KEY),
-  		      &cache_key);
-  if (GNUNET_NO == GNUNET_CONTAINER_multihashmap_contains (handle->rest_handle->url_param_map,
-							   &cache_key))
-  {
-    //TODO error
-  }
-  response_type = GNUNET_CONTAINER_multihashmap_get(handle->rest_handle->url_param_map,
-                                                    &cache_key);
-
-
+  // REQUIRED value: client_id
   GNUNET_CRYPTO_hash (OIDC_CLIENT_ID_KEY, strlen (OIDC_CLIENT_ID_KEY),
     		      &cache_key);
   if (GNUNET_NO == GNUNET_CONTAINER_multihashmap_contains (handle->rest_handle->url_param_map,
 							   &cache_key))
   {
-    //TODO error
+    handle->emsg=GNUNET_strdup("invalid_request");
+    handle->edesc=GNUNET_strdup("Missing parameter: client_id");
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
+    return;
   }
   client_id = GNUNET_CONTAINER_multihashmap_get(handle->rest_handle->url_param_map,
 						&cache_key);
 
-
-  GNUNET_CRYPTO_hash (OIDC_SCOPE_KEY, strlen (OIDC_SCOPE_KEY), &cache_key);
-  if (GNUNET_NO == GNUNET_CONTAINER_multihashmap_contains (handle->rest_handle->url_param_map,
-							   &cache_key))
+  // Checks if client_id is valid:
+  // TODO change check (lookup trusted public_key?)
+  if( strcmp( client_id, "localhost" ) != 0 )
   {
-    //TODO error
+    handle->emsg=GNUNET_strdup("unauthorized_client");
+    handle->response_code = MHD_HTTP_INTERNAL_SERVER_ERROR;
+    GNUNET_SCHEDULER_add_now (&do_redirect_error, handle);
+    return;
   }
-  scope = GNUNET_CONTAINER_multihashmap_get(handle->rest_handle->url_param_map,
-					    &cache_key);
 
+  // REQUIRED value: redirect_uri
   GNUNET_CRYPTO_hash (OIDC_REDIRECT_URI_KEY, strlen (OIDC_REDIRECT_URI_KEY),
     		      &cache_key);
   if (GNUNET_NO == GNUNET_CONTAINER_multihashmap_contains (handle->rest_handle->url_param_map,
 							   &cache_key))
   {
-    //TODO error
+    handle->emsg=GNUNET_strdup("invalid_request");
+    handle->edesc=GNUNET_strdup("Missing parameter: redirect_uri");
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
+    return;
   }
   redirect_uri = GNUNET_CONTAINER_multihashmap_get(handle->rest_handle->url_param_map,
 						&cache_key);
+
+  // Checks if redirect_uri is valid:
+  // TODO change check (check public key == address)
+  if( strcmp( redirect_uri, "https://localhost:8000" ) != 0 )
+  {
+    handle->emsg=GNUNET_strdup("invalid_request");
+    handle->edesc=GNUNET_strdup("Invalid or mismatching redirect_uri");
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
+    return;
+  }
+
+  // REQUIRED value: response_type
+  GNUNET_CRYPTO_hash (OIDC_RESPONSE_TYPE_KEY, strlen (OIDC_RESPONSE_TYPE_KEY),
+  		      &cache_key);
+  if (GNUNET_NO == GNUNET_CONTAINER_multihashmap_contains (handle->rest_handle->url_param_map,
+							   &cache_key))
+  {
+    handle->emsg=GNUNET_strdup("invalid_request");
+    handle->edesc=GNUNET_strdup("Missing parameter: response_type");
+    GNUNET_SCHEDULER_add_now (&do_redirect_error, handle);
+    return;
+  }
+  response_type = GNUNET_CONTAINER_multihashmap_get(handle->rest_handle->url_param_map,
+                                                    &cache_key);
+
+  // REQUIRED value: scope
+  GNUNET_CRYPTO_hash (OIDC_SCOPE_KEY, strlen (OIDC_SCOPE_KEY), &cache_key);
+  if (GNUNET_NO == GNUNET_CONTAINER_multihashmap_contains (handle->rest_handle->url_param_map,
+							   &cache_key))
+  {
+    handle->emsg=GNUNET_strdup("invalid_request");
+    handle->edesc=GNUNET_strdup("Missing parameter: scope");
+    GNUNET_SCHEDULER_add_now (&do_redirect_error, handle);
+    return;
+  }
+  scope = GNUNET_CONTAINER_multihashmap_get(handle->rest_handle->url_param_map,
+					    &cache_key);
 
   //RECOMMENDED value: state
   GNUNET_CRYPTO_hash (OIDC_STATE_KEY, strlen (OIDC_STATE_KEY), &cache_key);
@@ -1167,8 +1232,9 @@ authorize_cont (struct GNUNET_REST_RequestHandle *con_handle,
 					      &cache_key);
   }
 
+  int number_of_ignored_parameter = sizeof(OIDC_ignored_parameter_array) / sizeof(char *);
   int iterator;
-  for( iterator = 0; iterator < size; iterator++ )
+  for( iterator = 0; iterator < number_of_ignored_parameter; iterator++ )
   {
     GNUNET_CRYPTO_hash (OIDC_ignored_parameter_array[iterator],
 			strlen(OIDC_ignored_parameter_array[iterator]),
@@ -1176,55 +1242,91 @@ authorize_cont (struct GNUNET_REST_RequestHandle *con_handle,
     if(GNUNET_YES == GNUNET_CONTAINER_multihashmap_contains(handle->rest_handle->url_param_map,
 							    &cache_key))
     {
-      //TODO error
+      handle->emsg=GNUNET_strdup("access_denied");
+      //TODO rewrite error description
+      handle->edesc=GNUNET_strdup("Server will not handle parameter");
+      GNUNET_SCHEDULER_add_now (&do_redirect_error, handle);
+      return;
     }
   }
 
-
-  //response_type = code
+  // Checks if response_type is 'code'
   if( strcmp( response_type, OIDC_EXPECTED_AUTHORIZATION_RESPONSE_TYPE ) != 0 )
   {
-    //TODO error
+    handle->emsg=GNUNET_strdup("unsupported_response_type");
+    handle->edesc=GNUNET_strdup("The authorization server does not support "
+				"obtaining this authorization code.");
+    GNUNET_SCHEDULER_add_now (&do_redirect_error, handle);
+    return;
   }
-  //scope contains openid
+  // Checks if scope contains 'openid'
   if( strstr( scope, OIDC_EXPECTED_AUTHORIZATION_SCOPE ) == NULL )
   {
     handle->emsg=GNUNET_strdup("invalid_scope");
-    handle->response_code = MHD_HTTP_INTERNAL_SERVER_ERROR;
-    GNUNET_SCHEDULER_add_now (&do_error, handle);
+    handle->edesc=GNUNET_strdup("The requested scope is invalid, unknown, or "
+				"malformed.");
+    GNUNET_SCHEDULER_add_now (&do_redirect_error, handle);
     return;
   }
+
 
   //TODO check other values and use them accordingly
 
 
   char* login_base_url;
+  char* new_redirect;
 
-  //	if(){
-  //
-  //	}else{
-  //
-  //	}
+  //if header-authorization == ID
+    //if ID is still logged
+      // ego get Public Key of Identity
+      // return token with public key?
+    // else:
+  char* id="reterte";
+
+
+  GNUNET_CRYPTO_hash (id, strlen (id), &cache_key);
+
+  if(GNUNET_YES == GNUNET_CONTAINER_multihashmap_contains(OIDC_authorize_time,
+							 &cache_key))
+  {
+    struct timeval login_time = GNUNET_CONTAINER_multihashmap_get(OIDC_authorize_time, &cache_key);
+    struct timeval now;
+    gettimeofday(&now);
+    //After 30 minutes force login process
+    if((login_time.tv_sec+30*60) <= now.tv_sec)
+    {
+      // login
+    }
+    else
+    {
+      // redirect
+    }
+  }
+  else
+  {
+    // login
+  }
+
   if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_string (cfg,
                                                           "identity-rest-plugin",
                                                           "address",
                                                           &login_base_url))
   {
-    char* new_redirect;
-    GNUNET_asprintf (&new_redirect, "%s?%s=%s&%s=%s&%s=%s&%s=%s",
+    GNUNET_asprintf (&new_redirect, "%s?%s=%s&%s=%s&%s=%s&%s=%s&%s=%s&%s=%s",
 		     login_base_url,
 		     OIDC_RESPONSE_TYPE_KEY, response_type,
 		     OIDC_CLIENT_ID_KEY, client_id,
                      OIDC_REDIRECT_URI_KEY, redirect_uri,
 		     OIDC_SCOPE_KEY, scope,
-		     OIDC_STATE_KEY, ( 0 == state )? "" : state,
-		     OIDC_NONCE_KEY, ( 0 == nonce )? "" : nonce
+		     OIDC_STATE_KEY, ( state )? state : "",
+		     OIDC_NONCE_KEY, ( nonce )? nonce : ""
                     );
     resp = GNUNET_REST_create_response ("");
     MHD_add_response_header (resp, "Location", new_redirect);
-  } else
+  }
+  else
   {
-    handle->emsg=GNUNET_strdup("No server on localhost:8000");
+    handle->emsg=GNUNET_strdup("No server configuration");
     handle->response_code = MHD_HTTP_INTERNAL_SERVER_ERROR;
     GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
@@ -1232,6 +1334,7 @@ authorize_cont (struct GNUNET_REST_RequestHandle *con_handle,
 
   handle->proc (handle->proc_cls, resp, MHD_HTTP_FOUND);
   cleanup_handle (handle);
+  GNUNET_free(new_redirect);
   return;
 }
 
