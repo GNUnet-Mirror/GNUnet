@@ -198,6 +198,14 @@ cleanup_handle (struct MhdConnectionHandle *handle)
     MHD_destroy_response (handle->response);
   if (NULL != handle->data_handle)
   {
+
+    if (NULL != handle->data_handle->header_param_map)
+    {
+      GNUNET_CONTAINER_multihashmap_iterate (handle->data_handle->header_param_map,
+                                             &cleanup_url_map,
+                                             NULL);
+      GNUNET_CONTAINER_multihashmap_destroy (handle->data_handle->header_param_map);
+    }
     if (NULL != handle->data_handle->url_param_map)
     {
       GNUNET_CONTAINER_multihashmap_iterate (handle->data_handle->url_param_map,
