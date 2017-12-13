@@ -671,6 +671,7 @@ sources might differ in ways that are only minimal different
 
 @node generic source installation - nettle
 @subsection generic source installation - nettle
+
 @example
 $ wget http://www.lysator.liu.se/~nisse/archive/nettle-2.7.1.tar.gz
 $ tar xf nettle-2.7.1.tar.gz
@@ -681,6 +682,7 @@ $ sudo make install ; cd ..
 
 @node generic source installation - ldns
 @subsection generic source installation - ldns
+
 @example
 $ wget https://www.nlnetlabs.nl/downloads/ldns/ldns-1.6.16.tar.gz
 $ tar xf ldns-1.6.16.tar.gz
@@ -691,6 +693,7 @@ $ sudo make install ; cd ..
 
 @node generic source installation - libunbound/unbound
 @subsection generic source installation - libunbound/unbound
+
 @example
 $ wget https://unbound.net/downloads/unbound-1.4.21.tar.gz
 $ tar xf unbound-1.4.21.tar.gz
@@ -701,6 +704,7 @@ $ sudo make install ; cd ..
 
 @node generic source installation - libav
 @subsection generic source installation - libav
+
 @example
 $ wget https://libav.org/releases/libav-9.10.tar.xz
 $ cd libav-0.9 ; ./configure --enable-shared;
@@ -709,6 +713,7 @@ $ make; sudo make install; cd ..
 
 @node generic source installation - libextractor
 @subsection generic source installation - libextractor
+
 @example
 $ wget https://ftp.gnu.org/gnu/libextractor/libextractor-1.3.tar.gz
 $ tar xvf libextractor-1.3.tar.gz
@@ -718,6 +723,7 @@ $ make ; sudo make install; cd ..
 
 @node generic source installation - libgpg-error
 @subsection generic source installation - libgpg-error
+
 @example
 $ wget https://ftp.gnupg.org/gcrypt/libgpg-error/libgpg-error-1.12.tar.bz2
 $ tar xvf libgpg-error-1.12.tar.bz2
@@ -736,19 +742,36 @@ $ make ; sudo make install ; cd ..
 
 @node generic source installation - gnutls
 @subsection generic source installation - gnutls
+
 @example
 $ wget ftp://ftp.gnutls.org/gcrypt/gnutls/v3.2/gnutls-3.2.7.tar.xz
 $ tar xvf gnutls-3.2.7.tar.xz
-$ cd gnutls-3.2.7 ; ./configure;
-$ make ; sudo make install ; cd ..
+$ cd gnutls-3.2.7
 @end example
 
 @noindent
-If you want a GnuTLS with DANE functionality, you have to compile
-it against libunbound.
+If you want a GnuTLS with DANE functionality (recommended for GNUnet),
+you have to compile it against libunbound. Assuming that libunbound
+is installed on your system:
+
+@example
+$ ./configure --enable-libdane
+@end example
+
+@noindent
+Note that the build system of GnuTLS should pick up libunbound without
+the explicit mention of @code{--enable-libdane}.
+If you don't want libdane support you should pass @code{--disable-libdane}
+instead.
+
+@example
+$ ./configure
+$ make ; sudo make install ; cd ..
+@end example
 
 @node generic source installation - libmicrohttpd
 @subsection generic source installation - libmicrohttpd
+
 @example
 $ wget https://ftp.gnu.org/gnu/libmicrohttpd/libmicrohttpd-0.9.33.tar.gz
 $ tar xvf libmicrohttpd-0.9.33.tar.gz
@@ -759,19 +782,33 @@ $ make ; sudo make install ; cd ..
 @node generic source installation - libgnurl
 @subsection generic source installation - libgnurl
 
+Example installation of libgnurl version 7.57.0 from source.
+
 @example
-$ wget https://gnunet.org/sites/default/files/gnurl-7.34.0.tar.bz2
-$ tar xvf gnurl-7.34.0.tar.bz2
-$ cd gnurl-7.34.0
-$ ./configure --enable-ipv6 --with-gnutls=/usr/local --without-libssh2 \
- --without-libmetalink --without-winidn --without-librtmp \
- --without-nghttp2 --without-nss --without-cyassl --without-polarssl \
- --without-ssl --without-winssl --without-darwinssl --disable-sspi \
- --disable-ntlm-wb --disable-ldap --disable-rtsp --disable-dict \
- --disable-telnet --disable-tftp --disable-pop3 --disable-imap \
- --disable-smtp --disable-gopher --disable-file --disable-ftp
+$ wget https://ftp.gnu.org/gnu/gnunet/gnurl-7.57.0.tar.xz
+$ wget https://ftp.gnu.org/gnu/gnunet/gnurl-7.57.0.tar.xz.sig
+$ gpg --verify gnurl-7.57.0.tar.xz.sig
+@end example
+
+@noindent
+If that command fails because you do not have the required public key,
+then run this command to import it:
+
+@example
+$ gpg --keyserver pgp.mit.edu --recv-keys A88C8ADD129828D7EAC02E52E22F9BBFEE348588
+@end example
+
+@noindent
+and rerun the gpg --verify command. 
+
+@example
+$ tar xvf gnurl-7.57.0.tar.xz
+$ cd gnurl-7.57.0
+$ ./configure --disable-ntlm-wb
 $ make ; sudo make install; cd ..
 @end example
+
+You have now build and installed libgnurl from source.
 
 @menu
 * Fixing libgnurl build issues::
