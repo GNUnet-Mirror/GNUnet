@@ -28,6 +28,30 @@
 
 #define LOG(kind,...) GNUNET_log_from (kind, "util-mq",__VA_ARGS__)
 
+//#if HAVE_EXECINFO_H
+//#include "execinfo.h"
+
+///**
+// * Use lsof to generate file descriptor reports on select error?
+// * (turn off for stable releases).
+// */
+//#define USE_LSOF GNUNET_NO
+
+///**
+// * Obtain trace information for all scheduler calls that schedule tasks.
+// */
+//#define EXECINFO GNUNET_NO
+
+///**
+// * Check each file descriptor before adding
+// */
+//#define DEBUG_FDS GNUNET_NO
+
+///**
+// * Depth of the traces collected via EXECINFO.
+// */
+//#define MAX_TRACE_DEPTH 50
+//#endif
 
 struct GNUNET_MQ_Envelope
 {
@@ -357,6 +381,12 @@ GNUNET_MQ_send (struct GNUNET_MQ_Handle *mq,
   }
   GNUNET_assert (NULL == mq->envelope_head);
   mq->current_envelope = ev;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "mq: sending message of type %u, queue empty (MQ: %p)\n",
+              ntohs(ev->mh->type),
+              mq);
+
   mq->send_impl (mq,
 		 ev->mh,
 		 mq->impl_state);
@@ -452,6 +482,11 @@ impl_send_continue (void *cls)
   GNUNET_CONTAINER_DLL_remove (mq->envelope_head,
 			       mq->envelope_tail,
 			       mq->current_envelope);
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "mq: sending message of type %u from queue\n",
+              ntohs(mq->current_envelope->mh->type));
+
   mq->send_impl (mq,
 		 mq->current_envelope->mh,
 		 mq->impl_state);
@@ -851,8 +886,20 @@ GNUNET_MQ_destroy (struct GNUNET_MQ_Handle *mq)
      * are not queued! */
     mq->current_envelope->parent_queue = NULL;
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                "MQ destroy drops message of type %u\n",
+                "MQ destroy drops current message of type %u\n",
                 ntohs (mq->current_envelope->mh->type));
+//#if EXECINFO
+//  void *backtrace_array[MAX_TRACE_DEPTH];
+//  int num_backtrace_strings = backtrace (backtrace_array, MAX_TRACE_DEPTH);
+//    char **backtrace_strings =
+//        backtrace_symbols (backtrace_array,
+//         t->num_backtrace_strings);
+//    for (unsigned int i = 0; i < num_backtrace_strings; i++)
+//      LOG (GNUNET_ERROR_TYPE_DEBUG,
+//     "client drop trace %u: %s\n",
+//     i,
+//     backtrace_strings[i]);
+//#endif
     GNUNET_MQ_discard (mq->current_envelope);
     mq->current_envelope = NULL;
     GNUNET_assert (0 < mq->queue_length);
@@ -934,6 +981,11 @@ GNUNET_MQ_send_cancel (struct GNUNET_MQ_Envelope *ev)
       GNUNET_CONTAINER_DLL_remove (mq->envelope_head,
                                    mq->envelope_tail,
                                    mq->current_envelope);
+
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "mq: sending canceled message of type %u queue\n",
+                  ntohs(ev->mh->type));
+
       mq->send_impl (mq,
 		     mq->current_envelope->mh,
 		     mq->impl_state);

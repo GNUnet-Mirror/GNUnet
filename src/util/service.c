@@ -36,6 +36,30 @@
 #include "gauger.h"
 #endif
 
+//#if HAVE_EXECINFO_H
+//#include "execinfo.h"
+
+///**
+// * Use lsof to generate file descriptor reports on select error?
+// * (turn off for stable releases).
+// */
+//#define USE_LSOF GNUNET_NO
+
+///**
+// * Obtain trace information for all scheduler calls that schedule tasks.
+// */
+//#define EXECINFO GNUNET_NO
+
+///**
+// * Check each file descriptor before adding
+// */
+//#define DEBUG_FDS GNUNET_NO
+
+///**
+// * Depth of the traces collected via EXECINFO.
+// */
+//#define MAX_TRACE_DEPTH 50
+//#endif
 
 #define LOG(kind,...) GNUNET_log_from (kind, "util-service", __VA_ARGS__)
 
@@ -1932,6 +1956,11 @@ do_send (void *cls)
   size_t left;
   const char *buf;
 
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "service: sending message with type %u",
+       ntohs(client->msg->type));
+
+
   client->send_task = NULL;
   buf = (const char *) client->msg;
   left = ntohs (client->msg->size) - client->msg_pos;
@@ -1941,6 +1970,8 @@ do_send (void *cls)
   GNUNET_assert (ret <= (ssize_t) left);
   if (0 == ret)
   {
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "no data send");
     GNUNET_MQ_inject_error (client->mq,
 			    GNUNET_MQ_ERROR_WRITE);
     return;
@@ -1958,6 +1989,9 @@ do_send (void *cls)
       if (EPIPE != errno)
         GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING,
                              "send");
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
+           "socket send returned with error code %i",
+           errno);
       GNUNET_MQ_inject_error (client->mq,
 			      GNUNET_MQ_ERROR_WRITE);
       return;
@@ -2518,6 +2552,20 @@ GNUNET_SERVICE_client_drop (struct GNUNET_SERVICE_Client *c)
               "Client dropped: %p (MQ: %p)\n",
               c,
               c->mq);
+
+//#if EXECINFO
+//  void *backtrace_array[MAX_TRACE_DEPTH];
+//  int num_backtrace_strings = backtrace (backtrace_array, MAX_TRACE_DEPTH);
+//    char **backtrace_strings =
+//        backtrace_symbols (backtrace_array,
+//         t->num_backtrace_strings);
+//    for (unsigned int i = 0; i < num_backtrace_strings; i++)
+//      LOG (GNUNET_ERROR_TYPE_DEBUG,
+//     "client drop trace %u: %s\n",
+//     i,
+//     backtrace_strings[i]);
+//#endif
+
   if (NULL != c->drop_task)
   {
     /* asked to drop twice! */

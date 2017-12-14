@@ -261,6 +261,12 @@ transmit_ready (void *cls)
   pos = (const char *) cstate->msg;
   len = ntohs (cstate->msg->size);
   GNUNET_assert (cstate->msg_off < len);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "client: message of type %u trying to send with socket %p (MQ: %p\n",
+              ntohs(cstate->msg->type),
+              cstate->sock,
+              cstate->mq);
+
  RETRY:
   ret = GNUNET_NETWORK_socket_send (cstate->sock,
                                     &pos[cstate->msg_off],
@@ -268,10 +274,12 @@ transmit_ready (void *cls)
   if (-1 == ret)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                "client: error during sending message of type %u\n", ntohs(cstate->msg->type));
+                "client: error during sending message of type %u\n",
+                ntohs(cstate->msg->type));
     if (EINTR == errno){
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "client: retrying message of type %u\n", ntohs(cstate->msg->type));
+                  "client: retrying message of type %u\n",
+                  ntohs(cstate->msg->type));
       goto RETRY;
     }
     GNUNET_MQ_inject_error (cstate->mq,
@@ -283,7 +291,8 @@ transmit_ready (void *cls)
   if (cstate->msg_off < len)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "client: rescheduling message of type %u\n", ntohs(cstate->msg->type));
+                "client: rescheduling message of type %u\n",
+                ntohs(cstate->msg->type));
     cstate->send_task
       = GNUNET_SCHEDULER_add_write_net (GNUNET_TIME_UNIT_FOREVER_REL,
                                         cstate->sock,
@@ -294,7 +303,8 @@ transmit_ready (void *cls)
     return;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "client: sending message of type %u successful\n", ntohs(cstate->msg->type));
+              "client: sending message of type %u successful\n",
+              ntohs(cstate->msg->type));
   cstate->msg = NULL;
   GNUNET_MQ_impl_send_continue (cstate->mq);
 }
@@ -382,8 +392,12 @@ connection_client_destroy_impl (struct GNUNET_MQ_Handle *mq,
     GNUNET_SCHEDULER_cancel (cstate->recv_task);
   if (NULL != cstate->retry_task)
     GNUNET_SCHEDULER_cancel (cstate->retry_task);
-  if (NULL != cstate->sock)
+  if (NULL != cstate->sock){
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "client: destroying socket: %p\n",
+                cstate->sock);
     GNUNET_NETWORK_socket_close (cstate->sock);
+  }
   cancel_aps (cstate);
   GNUNET_free (cstate->service_name);
   GNUNET_free_non_null (cstate->hostname);
@@ -807,7 +821,8 @@ connection_client_send_impl (struct GNUNET_MQ_Handle *mq,
   cstate->msg_off = 0;
   if (NULL == cstate->sock){
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "client: waiting for socket\n");
+                "client: message of type %u waiting for socket\n",
+                ntohs(msg->type));
     return; /* still waiting for connection */
    }
   cstate->send_task
