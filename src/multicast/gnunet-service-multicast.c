@@ -137,6 +137,7 @@ struct Channel
    */
   struct GNUNET_CADET_Channel *channel;
 
+  // FIXME: not used
   /**
    * CADET transmission handle.
    */
@@ -228,7 +229,7 @@ struct Group
   /**
    * Is the client disconnected? #GNUNET_YES or #GNUNET_NO
    */
-  uint8_t disconnected;
+  uint8_t is_disconnected;
 
   /**
    * Is this an origin (#GNUNET_YES), or member (#GNUNET_NO)?
@@ -365,6 +366,8 @@ client_send_join_decision (struct Member *mem,
 static void
 shutdown_task (void *cls)
 {
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "shutting down\n");
   if (NULL != cadet)
   {
     GNUNET_CADET_disconnect (cadet);
@@ -1373,6 +1376,7 @@ handle_client_origin_start (void *cls,
     grp->is_origin = GNUNET_YES;
     grp->pub_key = pub_key;
     grp->pub_key_hash = pub_key_hash;
+    grp->is_disconnected = GNUNET_NO;
 
     GNUNET_CONTAINER_multihashmap_put (origins, &grp->pub_key_hash, orig,
                                        GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
@@ -1500,6 +1504,7 @@ handle_client_member_join (void *cls,
     grp->is_origin = GNUNET_NO;
     grp->pub_key = msg->group_pub_key;
     grp->pub_key_hash = pub_key_hash;
+    grp->is_disconnected = GNUNET_NO;
     group_set_cadet_port_hash (grp);
   
     if (NULL == grp_mem)
@@ -1641,6 +1646,7 @@ handle_client_join_decision (void *cls,
     GNUNET_SERVICE_client_drop (client);
     return;
   }
+  GNUNET_assert (GNUNET_NO == grp->is_disconnected);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "%p got join decision from client for group %s..\n",
               grp, GNUNET_h2s (&grp->pub_key_hash));
@@ -1687,9 +1693,11 @@ handle_client_part_request (void *cls,
     GNUNET_SERVICE_client_drop (client);
     return;
   }
+  GNUNET_assert (GNUNET_NO == grp->is_disconnected);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "%p got part request from client for group %s.\n",
               grp, GNUNET_h2s (&grp->pub_key_hash));
+  grp->is_disconnected = GNUNET_YES;
   env = GNUNET_MQ_msg_header (GNUNET_MESSAGE_TYPE_MULTICAST_PART_ACK);
   client_send_group (grp, env);
   GNUNET_SERVICE_client_continue (client);
@@ -1721,6 +1729,7 @@ handle_client_multicast_message (void *cls,
     GNUNET_SERVICE_client_drop (client);
     return;
   }
+  GNUNET_assert (GNUNET_NO == grp->is_disconnected);
   GNUNET_assert (GNUNET_YES == grp->is_origin);
   struct Origin *orig = grp->origin;
 
@@ -1775,6 +1784,7 @@ handle_client_multicast_request (void *cls,
     GNUNET_SERVICE_client_drop (client);
     return;
   }
+  GNUNET_assert (GNUNET_NO == grp->is_disconnected);
   GNUNET_assert (GNUNET_NO == grp->is_origin);
   struct Member *mem = grp->member;
 
@@ -1839,6 +1849,7 @@ handle_client_replay_request (void *cls,
     GNUNET_SERVICE_client_drop (client);
     return;
   }
+  GNUNET_assert (GNUNET_NO == grp->is_disconnected);
   GNUNET_assert (GNUNET_NO == grp->is_origin);
   struct Member *mem = grp->member;
 
@@ -1930,6 +1941,7 @@ handle_client_replay_response_end (void *cls,
     GNUNET_SERVICE_client_drop (client);
     return;
   }
+  GNUNET_assert (GNUNET_NO == grp->is_disconnected);
 
   struct GNUNET_HashCode key_hash;
   replay_key_hash (res->fragment_id, res->message_id, res->fragment_offset,
@@ -1989,6 +2001,7 @@ handle_client_replay_response (void *cls,
     GNUNET_SERVICE_client_drop (client);
     return;
   }
+  GNUNET_assert (GNUNET_NO == grp->is_disconnected);
 
   const struct GNUNET_MessageHeader *msg = &res->header;
   if (GNUNET_MULTICAST_REC_OK == res->error_code)
@@ -2088,6 +2101,9 @@ client_notify_disconnect (void *cls,
   struct ClientList *cl = grp->clients_head;
   while (NULL != cl)
   {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "iterating clients for group %p\n",
+                grp);
     if (cl->client == client)
     {
       GNUNET_CONTAINER_DLL_remove (grp->clients_head, grp->clients_tail, cl);
@@ -2101,16 +2117,7 @@ client_notify_disconnect (void *cls,
 
   if (NULL == grp->clients_head)
   { /* Last client disconnected. */
-#if FIXME
-    if (NULL != grp->tmit_head)
-    { /* Send pending messages via CADET before cleanup. */
-      transmit_message (grp);
-    }
-    else
-#endif
-    {
-      cleanup_group (grp);
-    }
+    cleanup_group (grp);
   }
 }
 
