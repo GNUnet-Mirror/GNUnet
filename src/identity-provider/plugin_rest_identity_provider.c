@@ -142,8 +142,14 @@
  */
 char* OIDC_ignored_parameter_array [] =
 {
-  "display", "prompt", "max_age", "ui_locales", "response_mode",
-  "id_token_hint", "login_hint", "acr_values"
+  "display",
+  "prompt",
+  "max_age",
+  "ui_locales", 
+  "response_mode",
+  "id_token_hint",
+  "login_hint", 
+  "acr_values"
 };
 
 /**
@@ -1080,7 +1086,12 @@ authorize_cont (struct GNUNET_REST_RequestHandle *con_handle,
 {
   struct MHD_Response *resp;
   struct RequestHandle *handle = cls;
-  char *response_type, *client_id, *scope, *redirect_uri, *state, *nonce;
+  char *response_type;
+  char *client_id;
+  char *scope;
+  char *redirect_uri;
+  char *state;
+  char *nonce;
 
   //TODO clean up method
 
@@ -1132,7 +1143,7 @@ authorize_cont (struct GNUNET_REST_RequestHandle *con_handle,
   client_id = GNUNET_CONTAINER_multihashmap_get(handle->rest_handle->url_param_map,
 						&cache_key);
 
-
+  //TODO verify if client_id is in delegation from selected identity, i.e. use GNUNET_NAMESTORE_zone_to_name() to verify
   GNUNET_CRYPTO_hash (OIDC_SCOPE_KEY, strlen (OIDC_SCOPE_KEY), &cache_key);
   if (GNUNET_NO == GNUNET_CONTAINER_multihashmap_contains (handle->rest_handle->url_param_map,
 							   &cache_key))
