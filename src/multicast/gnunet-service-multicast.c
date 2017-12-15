@@ -423,6 +423,11 @@ cleanup_member (struct Member *mem)
     GNUNET_free (mem->join_dcsn);
     mem->join_dcsn = NULL;
   }
+  if (NULL != mem->origin_channel)
+  {
+    GNUNET_CADET_channel_destroy (mem->origin_channel->channel);
+    mem->origin_channel = NULL;
+  }
   GNUNET_CONTAINER_multihashmap_remove (members, &grp->pub_key_hash, mem);
   GNUNET_free (mem);
 }
