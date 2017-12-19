@@ -532,32 +532,49 @@ GCP_set_mq (struct CadetPeer *cp,
        GCP_2s (cp),
        mq);
   cp->core_mq = mq;
-  for (struct GCP_MessageQueueManager *mqm = cp->mqm_head, *next;
+  /* Since these callbacks can remove any items from this list, we must take a
+   * snapshot and then test each one to see if it's still in the list. */
+  int count = 0;
+  for (struct GCP_MessageQueueManager *mqm = cp->mqm_head;
        NULL != mqm;
-       mqm = next)
+       mqm = mqm->next)
+    ++count;
+  struct GCP_MessageQueueManager *mqms[count];
+  int i = 0;
+  for (struct GCP_MessageQueueManager *mqm = cp->mqm_head;
+       NULL != mqm;
+       mqm = mqm->next)
+    mqms[i++] = mqm;
+  for (i = 0; i < count; ++i)
   {
-    /* Save next pointer in case mqm gets freed by the callback */
-    next = mqm->next;
-    if (NULL == mq)
+    for (struct GCP_MessageQueueManager *mqm = cp->mqm_head;
+         NULL != mqm;
+         mqm = mqm->next)
     {
-      if (NULL != mqm->env)
+      if (mqms[i] != mqm)
+        continue;
+      if (NULL == mq)
       {
-        GNUNET_MQ_discard (mqm->env);
-        mqm->env = NULL;
-        mqm->cb (mqm->cb_cls,
-                 GNUNET_SYSERR);
+        if (NULL != mqm->env)
+        {
+          GNUNET_MQ_discard (mqm->env);
+          mqm->env = NULL;
+          mqm->cb (mqm->cb_cls,
+                   GNUNET_SYSERR);
+        }
+        else
+        {
+          mqm->cb (mqm->cb_cls,
+                   GNUNET_NO);
+        }
       }
       else
       {
+        GNUNET_assert (NULL == mqm->env);
         mqm->cb (mqm->cb_cls,
-                 GNUNET_NO);
+                 GNUNET_YES);
       }
-    }
-    else
-    {
-      GNUNET_assert (NULL == mqm->env);
-      mqm->cb (mqm->cb_cls,
-               GNUNET_YES);
+      break;
     }
   }
   if ( (NULL != mq) ||
