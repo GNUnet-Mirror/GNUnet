@@ -202,18 +202,18 @@ dev-build: version.texi version2.texi
 
 # TODO: Add more to clean.
 clean:
-	@rm gnunet.pdf
-	@rm gnunet.html
-	@rm gnunet.info
-	@rm gnunet.info-1
-	@rm gnunet.info-2
-	@rm gnunet.info-3
-	@rm gnunet-c-tutorial.pdf
-	@rm gnunet-c-tutorial.info
-	@rm gnunet-c-tutorial.html
-	@rm -r gnunet.t2p
-	@rm -r gnunet-c-tutorial.t2p
-	@rm -r manual
+	@rm -f gnunet.pdf
+	@rm -f gnunet.html
+	@rm -f gnunet.info
+	@rm -f gnunet.info-1
+	@rm -f gnunet.info-2
+	@rm -f gnunet.info-3
+	@rm -f gnunet-c-tutorial.pdf
+	@rm -f gnunet-c-tutorial.info
+	@rm -f gnunet-c-tutorial.html
+	@rm -fr gnunet.t2p
+	@rm -fr gnunet-c-tutorial.t2p
+	@rm -fr manual
 
 # CLEANFILES =						\
 # 	gnunet.log					\

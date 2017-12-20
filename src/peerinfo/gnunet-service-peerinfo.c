@@ -987,9 +987,13 @@ discard_hosts_helper (void *cls,
   int write_pos;
   unsigned int cnt;
   char *writebuffer;
+  uint64_t fsize;
 
+  GNUNET_DISK_file_size (fn, &fsize, GNUNET_YES, GNUNET_YES);
   read_size = GNUNET_DISK_fn_read (fn, buffer, sizeof (buffer));
-  if (read_size < (int) sizeof (struct GNUNET_MessageHeader))
+
+  if ((read_size < (int) sizeof (struct GNUNET_MessageHeader)) ||
+      (fsize > GNUNET_MAX_MESSAGE_SIZE))
   {
     if (0 != UNLINK (fn))
       GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING |

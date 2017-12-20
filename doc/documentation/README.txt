@@ -46,7 +46,12 @@ To be moved to an appropriate section of "how to write documentation" or
 * What's left to do
 
 - Which Texlive modules are needed? Decrease the size.
+  - distro specific, or can we set requirements?
 - Update the content of gnunet documentation.
+- XXX: images are only generated for the html documentation
+  with gendoc.sh … FIXME!
+- XXX: png,dot, and svg images MUST be converted to eps by the
+  build system. Right now they aren't, as a result: No images.
 
 * How to use (hack) on this
 

@@ -2433,7 +2433,10 @@ switch_address_bl_check_cont (void *cls,
     goto cleanup;
 
   papi = GST_plugins_find (address->transport_name);
-  GNUNET_assert (NULL != papi);
+  if (NULL == papi) {
+    /* This can happen during shutdown. */
+    goto cleanup;
+  }
 
   if (GNUNET_NO == result)
   {
