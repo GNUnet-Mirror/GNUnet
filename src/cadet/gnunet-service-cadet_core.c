@@ -771,6 +771,12 @@ handle_connection_create (void *cls,
 
   options = (enum GNUNET_CADET_ChannelOption) ntohl (msg->options);
   path_length = size / sizeof (struct GNUNET_PeerIdentity);
+  if (0 == path_length)
+  {
+    /* bogus request */
+    GNUNET_break_op (0);
+    return;
+  }
   /* Initiator is at offset 0. */
   for (off=1;off<path_length;off++)
     if (0 == memcmp (&my_full_id,
