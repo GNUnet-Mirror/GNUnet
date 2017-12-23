@@ -773,10 +773,31 @@ handle_connection_create (void *cls,
   path_length = size / sizeof (struct GNUNET_PeerIdentity);
   if (0 == path_length)
   {
-    /* bogus request */
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+      "Dropping CADET_CONNECTION_CREATE with empty path\n");
     GNUNET_break_op (0);
     return;
   }
+  /* Check for loops */
+  struct GNUNET_CONTAINER_MultiPeerMap *map;
+  map = GNUNET_CONTAINER_multipeermap_create (path_length,
+                                              GNUNET_YES);
+  GNUNET_assert (NULL != map);
+  for (off = 0; off < path_length; off++) {
+    if (GNUNET_SYSERR ==
+        GNUNET_CONTAINER_multipeermap_put (map,
+                                           &pids[off],
+                                           NULL,
+                                           GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY)) {
+      /* bogus request */
+      GNUNET_CONTAINER_multipeermap_destroy (map);
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
+        "Dropping CADET_CONNECTION_CREATE with cyclic path\n");
+      GNUNET_break_op (0);
+      return;
+    }
+  }
+  GNUNET_CONTAINER_multipeermap_destroy (map);
   /* Initiator is at offset 0. */
   for (off=1;off<path_length;off++)
     if (0 == memcmp (&my_full_id,
@@ -785,7 +806,8 @@ handle_connection_create (void *cls,
       break;
   if (off == path_length)
   {
-    /* We are not on the path, bogus request */
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+      "Dropping CADET_CONNECTION_CREATE without us in the path\n");
     GNUNET_break_op (0);
     return;
   }
@@ -793,7 +815,8 @@ handle_connection_create (void *cls,
   if (sender != GCP_get (&pids[off - 1],
                          GNUNET_NO))
   {
-    /* sender is not on the path, not allowed */
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+      "Dropping CADET_CONNECTION_CREATE without sender in the path\n");
     GNUNET_break_op (0);
     return;
   }
