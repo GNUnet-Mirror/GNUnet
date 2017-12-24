@@ -260,6 +260,10 @@ handle_channel_result (void *cls,
   GNUNET_OP_result (chn->op, GNUNET_ntohll (res->op_id),
                     GNUNET_ntohll (res->result_code),
                     data, data_size, NULL);
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "handle_channel_result: Received result message with OP ID %" PRIu64 "\n",
+              GNUNET_ntohll (res->op_id));
 }
 
 
@@ -558,7 +562,6 @@ channel_cleanup (struct GNUNET_PSYC_Channel *chn)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "cleaning up channel %p\n",
               chn);
-  GNUNET_assert (0);
   if (NULL != chn->tmit)
   {
     GNUNET_PSYC_transmit_destroy (chn->tmit);
@@ -566,6 +569,7 @@ channel_cleanup (struct GNUNET_PSYC_Channel *chn)
   }
   if (NULL != chn->recv)
   {
+
     GNUNET_PSYC_receive_destroy (chn->recv);
     chn->recv = NULL;
   }
@@ -684,8 +688,11 @@ master_connect (struct GNUNET_PSYC_Master *mst)
     GNUNET_MQ_handler_end ()
   };
 
-  chn->mq = GNUNET_CLIENT_connect (chn->cfg, "psyc",
-                                   handlers, master_disconnected, mst);
+  chn->mq = GNUNET_CLIENT_connect (chn->cfg,
+                                   "psyc",
+                                   handlers,
+                                   &master_disconnected,
+                                   mst);
   GNUNET_assert (NULL != chn->mq);
   chn->tmit = GNUNET_PSYC_transmit_create (chn->mq);
 
@@ -1244,6 +1251,9 @@ GNUNET_PSYC_channel_slave_add (struct GNUNET_PSYC_Channel *chn,
   req->did_join = GNUNET_YES;
   req->op_id = GNUNET_htonll (GNUNET_OP_add (chn->op, result_cb, cls, NULL));
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "GNUNET_PSYC_channel_slave_add, OP ID: %" PRIu64 "\n",
+              GNUNET_ntohll (req->op_id));
   GNUNET_MQ_send (chn->mq, env);
 }
 
@@ -1294,6 +1304,9 @@ GNUNET_PSYC_channel_slave_remove (struct GNUNET_PSYC_Channel *chn,
   req->did_join = GNUNET_NO;
   req->op_id = GNUNET_htonll (GNUNET_OP_add (chn->op, result_cb, cls, NULL));
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "GNUNET_PSYC_channel_slave_remove, OP ID: %" PRIu64 "\n",
+              GNUNET_ntohll (req->op_id));
   GNUNET_MQ_send (chn->mq, env);
 }
 
@@ -1332,6 +1345,10 @@ channel_history_replay (struct GNUNET_PSYC_Channel *chn,
   req->message_limit = GNUNET_htonll (message_limit);
   req->flags = htonl (flags);
   req->op_id = GNUNET_htonll (hist->op_id);
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "channel_history_replay, OP ID: %" PRIu64 "\n",
+              GNUNET_ntohll (req->op_id));
   GNUNET_memcpy (&req[1], method_prefix, method_size);
 
   GNUNET_MQ_send (chn->mq, env);
@@ -1470,6 +1487,11 @@ channel_state_get (struct GNUNET_PSYC_Channel *chn,
   struct GNUNET_MQ_Envelope *
     env = GNUNET_MQ_msg_extra (req, name_size, type);
   req->op_id = GNUNET_htonll (sr->op_id);
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "channel_state_get, OP ID: %" PRIu64 "\n",
+              GNUNET_ntohll (req->op_id));
+
   GNUNET_memcpy (&req[1], name, name_size);
 
   GNUNET_MQ_send (chn->mq, env);
