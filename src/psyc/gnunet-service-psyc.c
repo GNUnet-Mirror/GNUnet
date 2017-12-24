@@ -603,20 +603,19 @@ client_notify_disconnect (void *cls,
   if (NULL == chn)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "%p User context is NULL in client_disconnect()\n",
+                "%p User context is NULL in client_notify_disconnect ()\n",
                 chn);
     GNUNET_break (0);
     return;
   }
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "%p Client (%s) disconnected from channel %s\n",
+              "%p Client %p (%s) disconnected from channel %s\n",
               chn,
+              client,
               (GNUNET_YES == chn->is_master) ? "master" : "slave",
               GNUNET_h2s (&chn->pub_key_hash));
 
-  // FIXME (due to protocol change): here we must not remove all clients,
-  // only the one we were notified about!
   struct ClientList *cli = chn->clients_head;
   while (NULL != cli)
   {
@@ -649,14 +648,6 @@ client_notify_disconnect (void *cls,
                 GNUNET_h2s (&chn->pub_key_hash));
     chn->is_disconnected = GNUNET_YES;
     cleanup_channel (chn);
-    //if (NULL != chn->tmit_head)
-    //{ /* Send pending messages to multicast before cleanup. */
-    //  transmit_message (chn);
-    //}
-    //else
-    //{
-    //  cleanup_channel (chn);
-    //}
   }
 }
 
@@ -691,7 +682,7 @@ client_send_msg (const struct Channel *chn,
                  const struct GNUNET_MessageHeader *msg)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "%p Sending message to clients.\n",
+              "Sending message to clients of channel %p.\n",
               chn);
 
   struct ClientList *cli = chn->clients_head;
@@ -702,7 +693,6 @@ client_send_msg (const struct Channel *chn,
 
     GNUNET_MQ_send (GNUNET_SERVICE_client_get_mq (cli->client),
                     env);
-
     cli = cli->next;
   }
 }
@@ -737,7 +727,7 @@ client_send_result (struct GNUNET_SERVICE_Client *client, uint64_t op_id,
     GNUNET_memcpy (&res[1], data, data_size);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "%p Sending result to client for operation #%" PRIu64 ": %" PRId64 " (size: %u)\n",
+	      "%p Sending result to client for OP ID %" PRIu64 ": %" PRId64 " (size: %u)\n",
 	      client,
               GNUNET_ntohll (op_id),
               result_code,
@@ -1834,6 +1824,9 @@ handle_client_slave_join (void *cls,
   struct GNUNET_CRYPTO_EcdsaPublicKey slv_pub_key;
   struct GNUNET_HashCode pub_key_hash, slv_pub_hash;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "got join request from client %p\n",
+              client);
   GNUNET_CRYPTO_ecdsa_key_get_public (&req->slave_key, &slv_pub_key);
   GNUNET_CRYPTO_hash (&slv_pub_key, sizeof (slv_pub_key), &slv_pub_hash);
   GNUNET_CRYPTO_hash (&req->channel_pub_key, sizeof (req->channel_pub_key), &pub_key_hash);
@@ -2061,7 +2054,10 @@ handle_client_part_request (void *cls,
   if (GNUNET_YES == c->channel->is_master)
   {
     struct Master *mst = (struct Master *) c->channel;
-
+   
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Got part request from master %p\n",
+                mst);
     GNUNET_assert (NULL != mst->origin);
     GNUNET_MULTICAST_origin_stop (mst->origin, channel_part_cb, c->client);
     mst->origin = NULL;
@@ -2070,10 +2066,14 @@ handle_client_part_request (void *cls,
   {
     struct Slave *slv = (struct Slave *) c->channel;
 
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Got part request from slave %p\n",
+                slv);
     GNUNET_assert (NULL != slv->member);
     GNUNET_MULTICAST_member_part (slv->member, channel_part_cb, c->client);
     slv->member = NULL;
   }
+  GNUNET_SERVICE_client_continue (c->client);
 }
 
 
@@ -2829,9 +2829,9 @@ run (void *cls,
 GNUNET_SERVICE_MAIN
 ("psyc",
  GNUNET_SERVICE_OPTION_NONE,
- run,
- client_notify_connect,
- client_notify_disconnect,
+ &run,
+ &client_notify_connect,
+ &client_notify_disconnect,
  NULL,
  GNUNET_MQ_hd_fixed_size (client_master_start,
                           GNUNET_MESSAGE_TYPE_PSYC_MASTER_START,
