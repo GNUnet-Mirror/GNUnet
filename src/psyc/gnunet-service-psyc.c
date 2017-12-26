@@ -1696,7 +1696,7 @@ store_recv_slave_counters (void *cls, int result, uint64_t max_fragment_id,
   res.result_code = htonl (result);
   res.max_message_id = GNUNET_htonll (max_message_id);
 
-  if (GNUNET_OK == result || GNUNET_NO == result)
+  if (GNUNET_YES == result || GNUNET_NO == result)
   {
     chn->max_message_id = max_message_id;
     chn->max_state_message_id = max_state_message_id;
@@ -1901,7 +1901,7 @@ handle_client_slave_join (void *cls,
     GNUNET_CONTAINER_multihashmap_put (slaves, &chn->pub_key_hash, chn,
                                        GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
     chn->store_op = GNUNET_PSYCSTORE_counters_get (store, &chn->pub_key,
-                                                  &store_recv_slave_counters, slv);
+                                                   &store_recv_slave_counters, slv);
   }
   else
   {
@@ -1948,8 +1948,9 @@ handle_client_slave_join (void *cls,
   }
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "%p Client connected as slave to channel %s.\n",
-              slv, GNUNET_h2s (&chn->pub_key_hash));
+              "Client %p connected as slave to channel %s.\n",
+              client,
+              GNUNET_h2s (&chn->pub_key_hash));
 
   struct ClientList *cli = GNUNET_malloc (sizeof (*cli));
   cli->client = client;
@@ -2399,7 +2400,9 @@ handle_client_psyc_message (void *cls,
   if (GNUNET_YES != chn->is_ready)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                "%p Channel is not ready yet, disconnecting client.\n", chn);
+                "%p Channel is not ready yet, disconnecting client %p.\n",
+                chn,
+                client);
     GNUNET_break (0);
     GNUNET_SERVICE_client_drop (client);
     return;
