@@ -780,7 +780,7 @@ handle_connection_create (void *cls,
   }
   /* Check for loops */
   struct GNUNET_CONTAINER_MultiPeerMap *map;
-  map = GNUNET_CONTAINER_multipeermap_create (path_length,
+  map = GNUNET_CONTAINER_multipeermap_create (path_length * 2,
                                               GNUNET_YES);
   GNUNET_assert (NULL != map);
   for (off = 0; off < path_length; off++) {
