@@ -824,6 +824,29 @@ handle_mq_error (void *cls,
 
 
 /**
+ * Check that message received from CADET service is well-formed.
+ *
+ * @param cls the `struct GNUNET_CADET_Handle`
+ * @param message the message we got
+ * @return #GNUNET_OK if the message is well-formed,
+ *         #GNUNET_SYSERR otherwise
+ */
+static int
+check_get_peers (void *cls,
+                 const struct GNUNET_MessageHeader *message)
+{
+  size_t esize;
+
+  esize = ntohs (message->size);
+  if (sizeof (struct GNUNET_CADET_LocalInfoPeer) == esize)
+    return GNUNET_OK;
+  if (sizeof (struct GNUNET_MessageHeader) == esize)
+    return GNUNET_OK;
+  return GNUNET_SYSERR;
+}
+
+
+/**
  * Process a local reply about info on all tunnels, pass info to the user.
  *
  * @param cls Closure (Cadet handle).
@@ -831,17 +854,26 @@ handle_mq_error (void *cls,
  */
 static void
 handle_get_peers (void *cls,
-                  const struct GNUNET_CADET_LocalInfoPeer *msg)
+                  const struct GNUNET_MessageHeader *msg)
 {
   struct GNUNET_CADET_Handle *h = cls;
+  const struct GNUNET_CADET_LocalInfoPeer *info =
+    (const struct GNUNET_CADET_LocalInfoPeer *) msg;
 
   if (NULL == h->info_cb.peers_cb)
     return;
-  h->info_cb.peers_cb (h->info_cls,
-                       &msg->destination,
-                       (int) ntohs (msg->tunnel),
-                       (unsigned int) ntohs (msg->paths),
-                       0);
+  if (sizeof (struct GNUNET_CADET_LocalInfoPeer) == ntohs (msg->size))
+    h->info_cb.peers_cb (h->info_cls,
+                         &info->destination,
+                         (int) ntohs (info->tunnel),
+                         (unsigned int) ntohs (info->paths),
+                         0);
+  else
+    h->info_cb.peers_cb (h->info_cls,
+                         NULL,
+                         0,
+                         0,
+                         0);
 }
 
 
@@ -1075,10 +1107,10 @@ reconnect (struct GNUNET_CADET_Handle *h)
                              GNUNET_MESSAGE_TYPE_CADET_LOCAL_ACK,
                              struct GNUNET_CADET_LocalAck,
                              h),
-    GNUNET_MQ_hd_fixed_size (get_peers,
-                             GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_PEERS,
-                             struct GNUNET_CADET_LocalInfoPeer,
-                             h),
+    GNUNET_MQ_hd_var_size (get_peers,
+                           GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_PEERS,
+                           struct GNUNET_MessageHeader,
+                           h),
     GNUNET_MQ_hd_var_size (get_peer,
                            GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_PEER,
                            struct GNUNET_CADET_LocalInfoPeer,
