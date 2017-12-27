@@ -2147,6 +2147,7 @@ shutdown_task (void *cls)
   GNUNET_NSE_disconnect (nse);
   RPS_sampler_destroy (prot_sampler);
   RPS_sampler_destroy (client_sampler);
+  GNUNET_CADET_close_port (cadet_port);
   GNUNET_CADET_disconnect (cadet_handle);
   View_destroy ();
   CustomPeerMap_destroy (push_map);
