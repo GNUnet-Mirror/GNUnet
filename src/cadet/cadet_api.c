@@ -978,6 +978,29 @@ handle_get_peer (void *cls,
 
 
 /**
+ * Check that message received from CADET service is well-formed.
+ *
+ * @param cls the `struct GNUNET_CADET_Handle`
+ * @param message the message we got
+ * @return #GNUNET_OK if the message is well-formed,
+ *         #GNUNET_SYSERR otherwise
+ */
+static int
+check_get_tunnels (void *cls,
+                   const struct GNUNET_MessageHeader *message)
+{
+  size_t esize;
+
+  esize = ntohs (message->size);
+  if (sizeof (struct GNUNET_CADET_LocalInfoTunnel) == esize)
+    return GNUNET_OK;
+  if (sizeof (struct GNUNET_MessageHeader) == esize)
+    return GNUNET_OK;
+  return GNUNET_SYSERR;
+}
+
+
+/**
  * Process a local reply about info on all tunnels, pass info to the user.
  *
  * @param cls Closure (Cadet handle).
@@ -985,19 +1008,28 @@ handle_get_peer (void *cls,
  */
 static void
 handle_get_tunnels (void *cls,
-                    const struct GNUNET_CADET_LocalInfoTunnel *msg)
+                    const struct GNUNET_MessageHeader *msg)
 {
   struct GNUNET_CADET_Handle *h = cls;
+  const struct GNUNET_CADET_LocalInfoTunnel *info =
+    (const struct GNUNET_CADET_LocalInfoTunnel *) msg;
 
   if (NULL == h->info_cb.tunnels_cb)
     return;
-  h->info_cb.tunnels_cb (h->info_cls,
-                         &msg->destination,
-                         ntohl (msg->channels),
-                         ntohl (msg->connections),
-                         ntohs (msg->estate),
-                         ntohs (msg->cstate));
-
+  if (sizeof (struct GNUNET_CADET_LocalInfoTunnel) == ntohs (msg->size))
+    h->info_cb.tunnels_cb (h->info_cls,
+                           &info->destination,
+                           ntohl (info->channels),
+                           ntohl (info->connections),
+                           ntohs (info->estate),
+                           ntohs (info->cstate));
+  else
+    h->info_cb.tunnels_cb (h->info_cls,
+                           NULL,
+                           0,
+                           0,
+                           0,
+                           0);
 }
 
 
@@ -1115,10 +1147,10 @@ reconnect (struct GNUNET_CADET_Handle *h)
                            GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_PEER,
                            struct GNUNET_CADET_LocalInfoPeer,
                            h),
-    GNUNET_MQ_hd_fixed_size (get_tunnels,
-                             GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_TUNNELS,
-                             struct GNUNET_CADET_LocalInfoTunnel,
-                             h),
+    GNUNET_MQ_hd_var_size (get_tunnels,
+                           GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_TUNNELS,
+                           struct GNUNET_MessageHeader,
+                           h),
     GNUNET_MQ_hd_var_size (get_tunnel,
                            GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_TUNNEL,
                            struct GNUNET_CADET_LocalInfoTunnel,
