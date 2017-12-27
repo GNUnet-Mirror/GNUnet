@@ -693,6 +693,7 @@ show_tunnel (void *cls)
 {
   struct GNUNET_PeerIdentity pid;
 
+  job = NULL;
   if (GNUNET_OK !=
       GNUNET_CRYPTO_eddsa_public_key_from_string (tunnel_id,
                                                   strlen (tunnel_id),
