@@ -175,9 +175,7 @@ controller_event_cb (void *cls,
       {
         printf ("\nAborting due to very high failure rate\n");
         print_overlay_links_summary ();
-        if (NULL != abort_task)
-	  GNUNET_SCHEDULER_cancel (abort_task);
-        abort_task = GNUNET_SCHEDULER_add_now (&do_abort, NULL);
+	GNUNET_SCHEDULER_shutdown ();
         return;
       }
     }
@@ -260,11 +258,12 @@ run (void *cls, char *const *args, const char *cfgfile,
   event_mask = 0;
   event_mask |= (1LL << GNUNET_TESTBED_ET_CONNECT);
   event_mask |= (1LL << GNUNET_TESTBED_ET_OPERATION_FINISHED);
-  GNUNET_TESTBED_run (hosts_file, cfg, num_peers, event_mask, controller_event_cb,
-                      NULL, &test_run, NULL);
+  GNUNET_TESTBED_run (hosts_file, cfg, num_peers, event_mask,
+		      &controller_event_cb, NULL,
+		      &test_run, NULL);
   abort_task =
-      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &do_abort,
-                                    NULL);
+      GNUNET_SCHEDULER_add_shutdown (&do_abort,
+				     NULL);
 }
 
 
@@ -310,6 +309,8 @@ main (int argc, char *const *argv)
   const char *binaryHelp = "gnunet-testbed-profiler [OPTIONS]";
   int ret;
 
+  unsetenv ("XDG_DATA_HOME");
+  unsetenv ("XDG_CONFIG_HOME");
   if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args (argc, argv, &argc, &argv))
     return 2;
   result = GNUNET_SYSERR;
