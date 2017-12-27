@@ -1,3 +1,15 @@
 gnunet-service-rps
 gnunet-rps
 gnunet-rps-profiler
+test_rps_malicious_1
+test_rps_malicious_2
+test_rps_malicious_3
+test_rps_req_cancel
+test_rps_seed_big
+test_rps_seed_request
+test_rps_single_req
+test_service_rps_custommap
+test_service_rps_peers
+test_service_rps_sampler_elem
+test_service_rps_view
+
