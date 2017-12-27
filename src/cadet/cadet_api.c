@@ -1600,7 +1600,10 @@ GNUNET_CADET_open_port (struct GNUNET_CADET_Handle *h,
 
   GNUNET_assert (NULL != connects);
   GNUNET_assert (NULL != disconnects);
-
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Listening to CADET port %s\n",
+	      GNUNET_h2s (port));
+  
   p = GNUNET_new (struct GNUNET_CADET_Port);
   p->cadet = h;
   p->id = *port;
@@ -1663,6 +1666,10 @@ GNUNET_CADET_channel_create (struct GNUNET_CADET_Handle *h,
   struct GNUNET_MQ_Envelope *env;
 
   GNUNET_assert (NULL != disconnects);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Creating channel to peer %s at port %s\n",
+	      GNUNET_i2s (destination),
+	      GNUNET_h2s (port));
   ch = create_channel (h,
                        NULL);
   ch->ctx = channel_cls;
