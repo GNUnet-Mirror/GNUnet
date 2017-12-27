@@ -688,6 +688,8 @@ handle_client_hello (void *cls,
 {
   struct TransportClient *tc = cls;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+	      "Received HELLO message\n");
   GST_validation_handle_hello (message);
   GNUNET_SERVICE_client_continue (tc->client);
 }
@@ -2802,7 +2804,7 @@ run (void *cls,
   GNUNET_assert (NULL != GST_my_private_key);
 
   GNUNET_log(GNUNET_ERROR_TYPE_INFO,
-             "My identity is `%4s'\n",
+             "My identity is `%s'\n",
              GNUNET_i2s_full (&GST_my_identity));
 
   GNUNET_SCHEDULER_add_shutdown (&shutdown_task,
