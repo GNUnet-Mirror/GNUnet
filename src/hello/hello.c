@@ -271,7 +271,10 @@ GNUNET_HELLO_iterate_addresses (const struct GNUNET_HELLO_Message *msg,
   msize = GNUNET_HELLO_size (msg);
   if ((msize < sizeof (struct GNUNET_HELLO_Message)) ||
       (ntohs (msg->header.type) != GNUNET_MESSAGE_TYPE_HELLO))
+  {
+    GNUNET_break_op (0);
     return NULL;
+  }
   ret = NULL;
   if (return_modified)
   {
@@ -285,6 +288,10 @@ GNUNET_HELLO_iterate_addresses (const struct GNUNET_HELLO_Message *msg,
   wpos = 0;
   woff = (NULL != ret) ? (char *) &ret[1] : NULL;
   address.peer.public_key = msg->publicKey;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "HELLO has %u bytes of address data\n",
+	      (unsigned int) insize);
+  
   while (insize > 0)
   {
     esize = get_hello_address_size (inptr,
