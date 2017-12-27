@@ -1239,24 +1239,24 @@ handle_peer_push (void *cls,
        (3 == mal_type) )
   { /* Try to maximise representation */
     tmp_att_peer = GNUNET_new (struct AttackedPeer);
-    GNUNET_memcpy (&tmp_att_peer->peer_id, peer, sizeof (struct GNUNET_PeerIdentity));
+    tmp_att_peer->peer_id = *peer;
     if (NULL == att_peer_set)
       att_peer_set = GNUNET_CONTAINER_multipeermap_create (1, GNUNET_NO);
-    if (GNUNET_NO == GNUNET_CONTAINER_multipeermap_contains (att_peer_set,
-                                                             peer))
+    if (GNUNET_NO ==
+	GNUNET_CONTAINER_multipeermap_contains (att_peer_set,
+						peer))
     {
       GNUNET_CONTAINER_DLL_insert (att_peers_head,
                                    att_peers_tail,
                                    tmp_att_peer);
       add_peer_array_to_set (peer, 1, att_peer_set);
     }
-    GNUNET_CADET_receive_done (Peers_get_recv_channel (peer));
   }
 
 
   else if (2 == mal_type)
-  { /* We attack one single well-known peer - simply ignore */
-    GNUNET_CADET_receive_done (Peers_get_recv_channel (peer));
+  {
+    /* We attack one single well-known peer - simply ignore */
   }
   #endif /* ENABLE_MALICIOUS */
 
@@ -1289,7 +1289,6 @@ handle_peer_pull_request (void *cls,
       || 3 == mal_type)
   { /* Try to maximise representation */
     send_pull_reply (peer, mal_peers, num_mal_peers);
-    GNUNET_CADET_receive_done (Peers_get_recv_channel (peer));
   }
 
   else if (2 == mal_type)
@@ -1298,7 +1297,6 @@ handle_peer_pull_request (void *cls,
     {
       send_pull_reply (peer, mal_peers, num_mal_peers);
     }
-    GNUNET_CADET_receive_done (Peers_get_recv_channel (peer));
   }
   #endif /* ENABLE_MALICIOUS */
 
@@ -1360,7 +1358,7 @@ static void
 handle_peer_pull_reply (void *cls,
                         const struct GNUNET_RPS_P2P_PullReplyMessage *msg)
 {
-  struct GNUNET_PeerIdentity *peers;
+  const struct GNUNET_PeerIdentity *peers;
   struct GNUNET_PeerIdentity *sender = cls;
   uint32_t i;
 #ifdef ENABLE_MALICIOUS
@@ -1373,12 +1371,11 @@ handle_peer_pull_reply (void *cls,
   // We shouldn't even receive pull replies as we're not sending
   if (2 == mal_type)
   {
-    GNUNET_CADET_receive_done (Peers_get_recv_channel (sender));
   }
   #endif /* ENABLE_MALICIOUS */
 
   /* Do actual logic */
-  peers = (struct GNUNET_PeerIdentity *) &msg[1];
+  peers = (const struct GNUNET_PeerIdentity *) &msg[1];
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "PULL REPLY received, got following %u peers:\n",

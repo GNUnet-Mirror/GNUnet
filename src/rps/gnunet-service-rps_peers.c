@@ -1626,6 +1626,10 @@ Peers_send_message (const struct GNUNET_PeerIdentity *peer,
   struct PendingMessage *pending_msg;
   struct GNUNET_MQ_Handle *mq;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Sending message to %s of type %s\n",
+	      GNUNET_i2s (peer),
+	      type);
   pending_msg = insert_pending_message (peer, ev, type);
   mq = get_mq (peer);
   GNUNET_MQ_notify_sent (ev,
