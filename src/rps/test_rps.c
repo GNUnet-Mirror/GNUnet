@@ -18,7 +18,7 @@
      Boston, MA 02110-1301, USA.
 */
 /**
- * @file rps/test_rps_multipeer.c
+ * @file rps/test_rps.c
  * @brief Testcase for the random peer sampling service.  Starts
  *        a peergroup with a given number of peers, then waits to
  *        receive size pushes/pulls from each peer.  Expects to wait
@@ -1542,4 +1542,4 @@ main (int argc, char *argv[])
   return ret_value;
 }
 
-/* end of test_rps_multipeer.c */
+/* end of test_rps.c */
