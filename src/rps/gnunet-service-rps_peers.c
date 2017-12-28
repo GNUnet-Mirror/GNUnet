@@ -661,6 +661,7 @@ remove_pending_message (struct PendingMessage *pending_msg, int cancel)
   struct PeerContext *peer_ctx;
 
   peer_ctx = pending_msg->peer_ctx;
+  GNUNET_assert (NULL != peer_ctx);
   GNUNET_CONTAINER_DLL_remove (peer_ctx->pending_messages_head,
                                peer_ctx->pending_messages_tail,
                                pending_msg);
