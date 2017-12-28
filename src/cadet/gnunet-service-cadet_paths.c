@@ -501,6 +501,14 @@ GCPP_try_path_from_dht (const struct GNUNET_PeerIdentity *get_path,
     pid = (off < get_path_length)
       ? &get_path[get_path_length - off - 1]
       : &put_path[get_path_length + put_path_length - off - 1];
+    /* Check that I am not in the path */
+    if (0 == memcmp (&my_full_id,
+                     pid,
+                     sizeof (struct GNUNET_PeerIdentity)))
+    {
+      skip = off + 1;
+      continue;
+    }
     cpath[off - skip] = GCP_get (pid,
                                  GNUNET_YES);
     /* Check that no peer is twice on the path */
@@ -512,6 +520,12 @@ GCPP_try_path_from_dht (const struct GNUNET_PeerIdentity *get_path,
         break;
       }
     }
+  }
+  if (skip >= total_len)
+  {
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Path discovered from DHT is one big cycle?\n");
+    return;
   }
   total_len -= skip;
 
