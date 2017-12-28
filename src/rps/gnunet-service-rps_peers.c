@@ -653,9 +653,10 @@ insert_pending_message (const struct GNUNET_PeerIdentity *peer,
  * @brief Remove a pending message from the respective DLL
  *
  * @param pending_msg the pending message to remove
+ * @param cancel cancel the pending message, too
  */
 static void
-remove_pending_message (struct PendingMessage *pending_msg)
+remove_pending_message (struct PendingMessage *pending_msg, int cancel)
 {
   struct PeerContext *peer_ctx;
 
@@ -663,7 +664,11 @@ remove_pending_message (struct PendingMessage *pending_msg)
   GNUNET_CONTAINER_DLL_remove (peer_ctx->pending_messages_head,
                                peer_ctx->pending_messages_tail,
                                pending_msg);
-  GNUNET_MQ_send_cancel (peer_ctx->pending_messages_head->ev);
+  // TODO wait for the cadet implementation of message cancellation
+  //if (GNUNET_YES == cancel)
+  //{
+  //  GNUNET_MQ_send_cancel (pending_msg->ev);
+  //}
   GNUNET_free (pending_msg);
 }
 
@@ -728,7 +733,8 @@ mq_notify_sent_cb (void *cls)
   LOG (GNUNET_ERROR_TYPE_DEBUG,
       "%s was sent.\n",
       pending_msg->type);
-  remove_pending_message (pending_msg);
+  /* Do not cancle message */
+  remove_pending_message (pending_msg, GNUNET_NO);
 }
 
 
@@ -1154,7 +1160,8 @@ Peers_remove_peer (const struct GNUNET_PeerIdentity *peer)
     LOG (GNUNET_ERROR_TYPE_DEBUG,
         "Removing unsent %s\n",
         peer_ctx->pending_messages_head->type);
-    remove_pending_message (peer_ctx->pending_messages_head);
+    /* Cancle pending message, too */
+    remove_pending_message (peer_ctx->pending_messages_head, GNUNET_YES);
   }
   /* If we are still waiting for notification whether this peer is live
    * cancel the according task */
