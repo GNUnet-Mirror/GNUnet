@@ -1028,6 +1028,33 @@ req_cancel_cb (struct RPSPeer *rps_peer)
 }
 
 /***********************************
+ * CHURN
+***********************************/
+
+static void
+churn (void *cls);
+
+static void
+churn_test_cb (struct RPSPeer *rps_peer)
+{
+  /* Start churn */
+  if (GNUNET_YES == cur_test_run.have_churn && NULL == churn_task)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Starting churn task\n");
+    churn_task = GNUNET_SCHEDULER_add_delayed (
+          GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5),
+          churn,
+          NULL);
+  } else {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Not starting churn task\n");
+  }
+
+  schedule_missing_requests (rps_peer);
+}
+
+/***********************************
  * PROFILER
 ***********************************/
 
@@ -1153,6 +1180,9 @@ churn (void *cls)
   double portion_go_online;
   double portion_go_offline;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Churn function executing\n");
+
   /* Compute the probability for an online peer to go offline
    * this round */
   portion_online = num_peers_online * 1.0 / num_peers;
@@ -1263,10 +1293,15 @@ profiler_cb (struct RPSPeer *rps_peer)
   /* Start churn */
   if (GNUNET_YES == cur_test_run.have_churn && NULL == churn_task)
   {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Starting churn task\n");
     churn_task = GNUNET_SCHEDULER_add_delayed (
           GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5),
           churn,
           NULL);
+  } else {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Not starting churn task\n");
   }
 
   /* Only request peer ids at one peer.
@@ -1358,6 +1393,24 @@ run (void *cls,
   struct OpListEntry *entry;
   uint32_t num_mal_peers;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "RUN was called\n");
+
+  /* Check whether we timed out */
+  if (n_peers != num_peers ||
+      NULL == peers ||
+      0 == links_succeeded)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Going down due to args (eg. timeout)\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "\tn_peers: %u\n", n_peers);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "\tnum_peers: %" PRIu32 "\n", num_peers);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "\tpeers: %p\n", peers);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "\tlinks_succeeded: %u\n", links_succeeded);
+    GNUNET_SCHEDULER_shutdown ();
+    return;
+  }
+
+
+  /* Initialize peers */
   testbed_peers = peers;
   num_peers_online = 0;
   for (i = 0; i < num_peers; i++)
@@ -1515,7 +1568,10 @@ main (int argc, char *argv[])
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Test churn\n");
     cur_test_run.name = "test-rps-churn";
     num_peers = 5;
-    cur_test_run.main_test = single_req_cb;
+    cur_test_run.init_peer = default_init_peer;
+    cur_test_run.main_test = churn_test_cb;
+    cur_test_run.reply_handle = default_reply_handle;
+    cur_test_run.eval_cb = default_eval_cb;
     cur_test_run.have_churn = GNUNET_YES;
     timeout = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10);
   }
