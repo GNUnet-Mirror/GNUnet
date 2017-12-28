@@ -1158,6 +1158,7 @@ reconnect (struct GNUNET_CADET_Handle *h)
     GNUNET_MQ_handler_end ()
   };
 
+  GNUNET_assert (NULL == h->mq);
   h->mq = GNUNET_CLIENT_connect (h->cfg,
                                  "cadet",
                                  handlers,
