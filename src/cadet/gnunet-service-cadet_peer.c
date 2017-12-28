@@ -979,7 +979,7 @@ GCP_attach_path (struct CadetPeer *cp,
          (desirability < root_desirability) )
     {
       LOG (GNUNET_ERROR_TYPE_DEBUG,
-           "Decided to not attach path %p to peer %s due to undesirability\n",
+           "Decided to not attach path %s to peer %s due to undesirability\n",
            GCPP_2s (path),
            GCP_2s (cp));
       return NULL;
