@@ -1182,11 +1182,6 @@ Peers_remove_peer (const struct GNUNET_PeerIdentity *peer)
     GNUNET_CADET_channel_destroy (peer_ctx->recv_channel);
     peer_ctx->recv_channel = NULL;
   }
-  if (NULL != peer_ctx->mq)
-  {
-    GNUNET_MQ_destroy (peer_ctx->mq);
-    peer_ctx->mq = NULL;
-  }
 
   GNUNET_free (peer_ctx->send_channel_flags);
   GNUNET_free (peer_ctx->recv_channel_flags);

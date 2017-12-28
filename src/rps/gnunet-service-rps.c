@@ -2129,7 +2129,6 @@ shutdown_task (void *cls)
                                    reply_cls);
       GNUNET_free (reply_cls);
     }
-    GNUNET_MQ_destroy (client_ctx->mq);
     GNUNET_CONTAINER_DLL_remove (cli_ctx_head, cli_ctx_tail, client_ctx);
     GNUNET_free (client_ctx);
   }
