@@ -1121,7 +1121,6 @@ handle_client_request_cancel (void *cls,
           (rep_cls->id != ntohl (msg->id)) )
     rep_cls = rep_cls->next;
   GNUNET_assert (rep_cls->id == ntohl (msg->id));
-  RPS_sampler_request_cancel (rep_cls->req_handle);
   destroy_reply_cls (rep_cls);
   GNUNET_SERVICE_client_continue (cli_ctx->client);
 }
