@@ -102,7 +102,7 @@ exchange for increased efficiency.  However, it is not possible for any
 user's security and efficiency requirements to compromise the security
 and efficiency of any other user.
 
-For GNUnet, efficiency is not paramount.  If there is a more secure and
+For GNUnet, efficiency is not paramount.  If there were a more secure and
 still practical approach, we would choose to take the more secure
 alternative. @command{telnet} is more efficient than @command{ssh}, yet
 it is obsolete.
