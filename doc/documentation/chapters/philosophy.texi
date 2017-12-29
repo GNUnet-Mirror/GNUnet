@@ -6,18 +6,19 @@
 @c for secushare, showing some of the relations and functionalities
 @c of GNUnet.
 The foremost goal of the GNUnet project is to become a widely used,
-reliable, open, non-discriminating, egalitarian, unfettered and
+reliable, open, non-discriminating, egalitarian, unconstrained and
 censorship-resistant system of free information exchange.
 We value free speech above state secrets, law-enforcement or
 intellectual property.
 GNUnet is supposed to be an anarchistic network, where the only
-limitation for peers is that they must contribute enough back to
+limitation for participants (devices or people making use of the
+network, ie peers) is that they must contribute enough back to
 the network such that their resource consumption does not have
 a significant impact on other users.
 GNUnet should be more than just another file-sharing network.
 The plan is to offer many other services and in particular
 to serve as a development platform for the next generation of
-decentralized Internet protocols.
+Internet Protocols.
 
 @menu
 * Design Goals::
@@ -40,13 +41,14 @@ These are the core GNUnet design goals, in order of relative importance:
 @c To footnote or not to footnote, that's the question.
 @footnote{This means that you you have the four essential freedoms: to run
 the program, to study and change the program in source code form,
-to redistribute exact copies, and to distribute modified versions.}
+to redistribute exact copies, and to distribute modified versions.
+Refer to @uref{https://www.gnu.org/philosophy/free-sw.html, https://www.gnu.org/philosophy/free-sw.html}}
 @item GNUnet must only disclose the minimal amount of information
 necessary.
-@item GNUnet must be decentralised and survive Byzantine failures in any
+@item GNUnet must be distributed and survive Byzantine failures at any
 position in the network.
-@item GNUnet must make it explicit to the user which entities must be
-trustworthy when establishing secured communications.
+@item GNUnet must make it explicit to the user which entities are
+considered to be trustworthy when establishing secured communications.
 @item GNUnet must use compartmentalization to protect sensitive
 information.
 @item GNUnet must be open and permit new peers to join.
