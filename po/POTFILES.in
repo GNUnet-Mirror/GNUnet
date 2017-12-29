@@ -306,7 +306,6 @@ src/revocation/revocation_api.c
 src/rps/gnunet-rps.c
 src/rps/gnunet-service-rps.c
 src/rps/gnunet-service-rps_custommap.c
-src/rps/gnunet-service-rps_peers.c
 src/rps/gnunet-service-rps_sampler.c
 src/rps/gnunet-service-rps_sampler_elem.c
 src/rps/gnunet-service-rps_view.c
