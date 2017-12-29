@@ -3967,26 +3967,6 @@ run (void *cls,
      const struct GNUNET_CONFIGURATION_Handle *c,
      struct GNUNET_SERVICE_Handle *service)
 {
-  struct GNUNET_MQ_MessageHandler cadet_handlers[] = {
-    GNUNET_MQ_hd_fixed_size (peer_check,
-                             GNUNET_MESSAGE_TYPE_RPS_PP_CHECK_LIVE,
-                             struct GNUNET_MessageHeader,
-                             NULL),
-    GNUNET_MQ_hd_fixed_size (peer_push,
-                             GNUNET_MESSAGE_TYPE_RPS_PP_PUSH,
-                             struct GNUNET_MessageHeader,
-                             NULL),
-    GNUNET_MQ_hd_fixed_size (peer_pull_request,
-                             GNUNET_MESSAGE_TYPE_RPS_PP_PULL_REQUEST,
-                             struct GNUNET_MessageHeader,
-                             NULL),
-    GNUNET_MQ_hd_var_size (peer_pull_reply,
-                           GNUNET_MESSAGE_TYPE_RPS_PP_PULL_REPLY,
-                           struct GNUNET_RPS_P2P_PullReplyMessage,
-                           NULL),
-    GNUNET_MQ_handler_end ()
-  };
-
   int size;
   int out_size;
   char* fn_valid_peers;
@@ -4076,6 +4056,27 @@ run (void *cls,
 
 
   /* Initialise cadet */
+  /* There exists a copy-paste-clone in get_channel() */
+  struct GNUNET_MQ_MessageHandler cadet_handlers[] = {
+    GNUNET_MQ_hd_fixed_size (peer_check,
+                             GNUNET_MESSAGE_TYPE_RPS_PP_CHECK_LIVE,
+                             struct GNUNET_MessageHeader,
+                             NULL),
+    GNUNET_MQ_hd_fixed_size (peer_push,
+                             GNUNET_MESSAGE_TYPE_RPS_PP_PUSH,
+                             struct GNUNET_MessageHeader,
+                             NULL),
+    GNUNET_MQ_hd_fixed_size (peer_pull_request,
+                             GNUNET_MESSAGE_TYPE_RPS_PP_PULL_REQUEST,
+                             struct GNUNET_MessageHeader,
+                             NULL),
+    GNUNET_MQ_hd_var_size (peer_pull_reply,
+                           GNUNET_MESSAGE_TYPE_RPS_PP_PULL_REPLY,
+                           struct GNUNET_RPS_P2P_PullReplyMessage,
+                           NULL),
+    GNUNET_MQ_handler_end ()
+  };
+
   cadet_handle = GNUNET_CADET_connect (cfg);
   GNUNET_assert (NULL != cadet_handle);
   GNUNET_CRYPTO_hash (GNUNET_APPLICATION_PORT_RPS,
@@ -4092,7 +4093,7 @@ run (void *cls,
 
   peerinfo_handle = GNUNET_PEERINFO_connect (cfg);
   Peers_initialise (fn_valid_peers, cadet_handle, cleanup_destroyed_channel,
-                    cadet_handlers, &own_identity);
+                    &own_identity);
   GNUNET_free (fn_valid_peers);
 
   /* Initialise sampler */
