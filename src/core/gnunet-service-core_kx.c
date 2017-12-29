@@ -950,7 +950,7 @@ handle_ephemeral_key (void *cls,
 	      kx->peer,
               sizeof (struct GNUNET_PeerIdentity)))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                 "Received EPHEMERAL_KEY from %s, but expected %s\n",
                 GNUNET_i2s (&m->origin_identity),
                 GNUNET_i2s_full (kx->peer));
