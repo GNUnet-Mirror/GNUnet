@@ -317,7 +317,7 @@ traffic, bringing back the traditional technique of using indirection and
 source rewriting.  Source rewriting is required to gain anonymity since
 otherwise an adversary could tell if a message originated from a host by
 looking at the source address.  If all packets look like they originate
-from a node, the adversary can not tell which ones originate from that
+from one node, the adversary can not tell which ones originate from that
 node and which ones were routed.
 Note that in this mindset, any node can decide to break the
 source-rewriting paradigm without violating the protocol, as this
@@ -338,7 +338,7 @@ This increases the efficiency of the network as we can indirect less under
 higher load.@footnote{Krista Bennett and Christian Grothoff.
 GAP --- practical anonymous networking. In Proceedings of
 Designing Privacy Enhancing Technologies, 2003.
-(@uref{https://gnunet.org/git/bibliography.git/plain/docs/aff.pdf, pdf})}
+(@uref{https://gnunet.org/git/bibliography.git/plain/docs/aff.pdf, https://gnunet.org/git/bibliography.git/plain/docs/aff.pdf}}}
 
 @cindex Deniability
 @node Deniability
@@ -394,7 +394,7 @@ GNS@footnote{Matthias Wachs, Martin Schanzenbach, and Christian Grothoff.
 A Censorship-Resistant, Privacy-Enhancing and Fully Decentralized Name
 System. In proceedings of 13th International Conference on Cryptology and
 Network Security (CANS 2014). 2014.
-@uref{https://gnunet.org/git/bibliography.git/plain/docs/gns2014wachs.pdf, pdf}}
+@uref{https://gnunet.org/git/bibliography.git/plain/docs/gns2014wachs.pdf, https://gnunet.org/git/bibliography.git/plain/docs/gns2014wachs.pdf}}
 zones are similar to those of DNS zones, but instead of a hierarchy of
 authorities to governing their use, GNS zones are controlled by a private
 key.
@@ -405,10 +405,11 @@ Whereas GNS, being decentralised by design, stores that information in
 DHT.  The validity of the records is assured cryptographically, by
 signing them with the private key of the respective zone.
 
-Anyone trying to resolve records in a zone your domain can then verify the
-signature on the records they get from the DHT and be assured that they
-are indeed from the respective zone.  To make this work, there is a 1:1
-correspondence between zones and their public-private key pairs.
+Anyone trying to resolve records in a zone of your domain can then verify
+the signature of the records they get from the DHT and be assured that
+they are indeed from the respective zone.
+To make this work, there is a 1:1 correspondence between zones and
+their public-private key pairs.
 So when we talk about the owner of a GNS zone, that's really the owner of
 the private key.
 And a user accessing a zone needs to somehow specify the corresponding
@@ -418,8 +419,8 @@ public key first.
 @node Egos
 @subsection Egos
 
-Egos are your "identities" in GNUnet.  Any user can assume multiple
-identities, for example to separate their activities online.  Egos can
-correspond to pseudonyms or real-world identities.  Technically, an
+Egos are your "identities" in GNUnet. Any user can assume multiple
+identities, for example to separate their activities online. Egos can
+correspond to pseudonyms or real-world identities. Technically, an
 ego is first of all a public-private key pair.
 
