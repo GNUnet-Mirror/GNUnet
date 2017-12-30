@@ -36,30 +36,6 @@
 #include "gauger.h"
 #endif
 
-//#if HAVE_EXECINFO_H
-//#include "execinfo.h"
-
-///**
-// * Use lsof to generate file descriptor reports on select error?
-// * (turn off for stable releases).
-// */
-//#define USE_LSOF GNUNET_NO
-
-///**
-// * Obtain trace information for all scheduler calls that schedule tasks.
-// */
-//#define EXECINFO GNUNET_NO
-
-///**
-// * Check each file descriptor before adding
-// */
-//#define DEBUG_FDS GNUNET_NO
-
-///**
-// * Depth of the traces collected via EXECINFO.
-// */
-//#define MAX_TRACE_DEPTH 50
-//#endif
 
 #define LOG(kind,...) GNUNET_log_from (kind, "util-service", __VA_ARGS__)
 
@@ -2553,18 +2529,18 @@ GNUNET_SERVICE_client_drop (struct GNUNET_SERVICE_Client *c)
               c,
               c->mq);
 
-//#if EXECINFO
-//  void *backtrace_array[MAX_TRACE_DEPTH];
-//  int num_backtrace_strings = backtrace (backtrace_array, MAX_TRACE_DEPTH);
-//    char **backtrace_strings =
-//        backtrace_symbols (backtrace_array,
-//         t->num_backtrace_strings);
-//    for (unsigned int i = 0; i < num_backtrace_strings; i++)
-//      LOG (GNUNET_ERROR_TYPE_DEBUG,
-//     "client drop trace %u: %s\n",
-//     i,
-//     backtrace_strings[i]);
-//#endif
+#if EXECINFO
+  void *backtrace_array[MAX_TRACE_DEPTH];
+  int num_backtrace_strings = backtrace (backtrace_array, MAX_TRACE_DEPTH);
+    char **backtrace_strings =
+        backtrace_symbols (backtrace_array,
+         t->num_backtrace_strings);
+    for (unsigned int i = 0; i < num_backtrace_strings; i++)
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
+     "client drop trace %u: %s\n",
+     i,
+     backtrace_strings[i]);
+#endif
 
   if (NULL != c->drop_task)
   {
