@@ -1724,6 +1724,7 @@ static void
 handle_client_multicast_message (void *cls,
                                  const struct GNUNET_MULTICAST_MessageHeader *msg)
 {
+  // FIXME: what if GNUNET_YES == grp->is_disconnected? Do we allow sending messages?
   struct Client *c = cls;
   struct GNUNET_SERVICE_Client *client = c->client;
   struct Group *grp = c->group;
@@ -1734,7 +1735,6 @@ handle_client_multicast_message (void *cls,
     GNUNET_SERVICE_client_drop (client);
     return;
   }
-  GNUNET_assert (GNUNET_NO == grp->is_disconnected);
   GNUNET_assert (GNUNET_YES == grp->is_origin);
   struct Origin *orig = grp->origin;
 
