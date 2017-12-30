@@ -338,7 +338,7 @@ This increases the efficiency of the network as we can indirect less under
 higher load.@footnote{Krista Bennett and Christian Grothoff.
 GAP --- practical anonymous networking. In Proceedings of
 Designing Privacy Enhancing Technologies, 2003.
-(@uref{https://gnunet.org/git/bibliography.git/plain/docs/aff.pdf, https://gnunet.org/git/bibliography.git/plain/docs/aff.pdf}}}
+(@uref{https://gnunet.org/git/bibliography.git/plain/docs/aff.pdf, https://gnunet.org/git/bibliography.git/plain/docs/aff.pdf})}
 
 @cindex Deniability
 @node Deniability
