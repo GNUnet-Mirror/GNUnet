@@ -12,9 +12,10 @@ We value free speech above state secrets, law-enforcement or
 intellectual property.
 GNUnet is supposed to be an anarchistic network, where the only
 limitation for participants (devices or people making use of the
-network, ie peers) is that they must contribute enough back to
-the network such that their resource consumption does not have
-a significant impact on other users.
+network, in the following sometimes called peers) is
+that they must contribute enough back to the network such that
+their resource consumption does not have a significant impact
+on other users.
 GNUnet should be more than just another file-sharing network.
 The plan is to offer many other services and in particular
 to serve as a development platform for the next generation of
