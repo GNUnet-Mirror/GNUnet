@@ -1516,7 +1516,8 @@ GNUNET_SOCIAL_host_announce (struct GNUNET_SOCIAL_Host *hst,
                              enum GNUNET_SOCIAL_AnnounceFlags flags)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-              "PSYC_transmit_message for host\n");
+              "PSYC_transmit_message for host, method: %s\n",
+              method_name);
   if (GNUNET_OK ==
       GNUNET_PSYC_transmit_message (hst->plc.tmit, method_name, env,
                                     NULL, notify_data, notify_data_cls, flags))
@@ -1614,8 +1615,6 @@ GNUNET_SOCIAL_host_leave (struct GNUNET_SOCIAL_Host *hst,
 {
   struct GNUNET_MQ_Envelope *envelope;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-              "sending _notice_place_closing\n");
   GNUNET_SOCIAL_host_announce (hst, "_notice_place_closing", env, NULL, NULL,
                                GNUNET_SOCIAL_ANNOUNCE_NONE);
   hst->plc.disconnect_cb = disconnect_cb;
@@ -1912,6 +1911,64 @@ GNUNET_SOCIAL_guest_enter_by_name (const struct GNUNET_SOCIAL_App *app,
 }
 
 
+struct ReconnectContext
+{
+  struct GNUNET_SOCIAL_Guest *guest;
+  int *result;
+  int64_t *max_message_id;
+  GNUNET_SOCIAL_GuestEnterCallback enter_cb;
+  void *enter_cls;
+};
+
+
+//static void
+//guest_enter_reconnect_cb (void *cls,
+//                          int result,
+//                          const struct GNUNET_CRYPTO_EddsaPublicKey *place_pub_key,
+//                          uint64_t max_message_id)
+//{
+//  struct ReconnectContext *reconnect_ctx = cls;
+//
+//  GNUNET_assert (NULL != reconnect_ctx);
+//  reconnect_ctx->result = GNUNET_new (int);
+//  *(reconnect_ctx->result) = result; 
+//  reconnect_ctx->max_message_id = GNUNET_new (int64_t);
+//  *(reconnect_ctx->max_message_id) = max_message_id;
+//}
+//
+//
+//static void
+//guest_entry_dcsn_reconnect_cb (void *cls,
+//                               int is_admitted,
+//                               const struct GNUNET_PSYC_Message *entry_resp)
+//{
+//  struct ReconnectContext *reconnect_ctx = cls;
+//  struct GNUNET_SOCIAL_Guest *gst = reconnect_ctx->guest;
+//
+//  GNUNET_assert (NULL != reconnect_ctx);
+//  GNUNET_assert (NULL != reconnect_ctx->result);
+//  GNUNET_assert (NULL != reconnect_ctx->max_message_id);
+//  if (GNUNET_YES != is_admitted)
+//  {
+//    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+//                "Guest was rejected after calling "
+//                "GNUNET_SOCIAL_guest_enter_reconnect ()\n");
+//  }
+//  else if (NULL != reconnect_ctx->enter_cb)
+//  {
+//    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+//                "guest reconnected!\n");
+//    reconnect_ctx->enter_cb (reconnect_ctx->enter_cls,
+//                             *(reconnect_ctx->result),
+//                             &gst->plc.pub_key,
+//                             *(reconnect_ctx->max_message_id));
+//  }
+//  GNUNET_free (reconnect_ctx->result);
+//  GNUNET_free (reconnect_ctx->max_message_id);
+//  GNUNET_free (reconnect_ctx);
+//}
+
+
 /**
  * Reconnect to an already entered place as guest.
  *
@@ -1957,7 +2014,6 @@ GNUNET_SOCIAL_guest_enter_reconnect (struct GNUNET_SOCIAL_GuestConnection *gconn
   plc->ego_pub_key = gconn->plc_msg.ego_pub_key;
 
   plc->op = GNUNET_OP_create ();
-
   gst->enter_cb = local_enter_cb;
   gst->cb_cls = cls;
 
@@ -1993,9 +2049,6 @@ GNUNET_SOCIAL_guest_talk (struct GNUNET_SOCIAL_Guest *gst,
                           void *notify_data_cls,
                           enum GNUNET_SOCIAL_TalkFlags flags)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-              "PSYC_transmit_message for guest\n");
-
   struct GNUNET_SOCIAL_Place *plc = &gst->plc;
   GNUNET_assert (NULL != plc->tmit);
 
