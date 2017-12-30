@@ -279,7 +279,7 @@ struct Channel
    * Is the client disconnected?
    * #GNUNET_YES or #GNUNET_NO
    */
-  uint8_t is_disconnected;
+  uint8_t is_disconnecting;
 
   /**
    * Is this a channel master (#GNUNET_YES), or slave (#GNUNET_NO)?
@@ -508,8 +508,6 @@ cleanup_master (struct Master *mst)
 {
   struct Channel *chn = &mst->channel;
 
-  //if (NULL != mst->origin)
-  //  GNUNET_MULTICAST_origin_stop (mst->origin, cleanup_cb, cleanup_cls);
   GNUNET_CONTAINER_multihashmap_destroy (mst->join_reqs);
   GNUNET_CONTAINER_multihashmap_remove (masters, &chn->pub_key_hash, mst);
 }
@@ -546,11 +544,6 @@ cleanup_slave (struct Slave *slv)
     GNUNET_free (slv->relays);
     slv->relays = NULL;
   }
-  //if (NULL != slv->member)
-  //{
-  //  GNUNET_MULTICAST_member_part (slv->member, cleanup_cb, cleanup_cls);
-  //  slv->member = NULL;
-  //}
   GNUNET_CONTAINER_multihashmap_remove (slaves, &chn->pub_key_hash, slv);
 }
 
@@ -646,7 +639,7 @@ client_notify_disconnect (void *cls,
                 chn,
                 (GNUNET_YES == chn->is_master) ? "master" : "slave",
                 GNUNET_h2s (&chn->pub_key_hash));
-    chn->is_disconnected = GNUNET_YES;
+    chn->is_disconnecting = GNUNET_YES;
     cleanup_channel (chn);
   }
 }
@@ -2052,6 +2045,7 @@ handle_client_part_request (void *cls,
 {
   struct Client *c = cls;
 
+  c->channel->is_disconnecting = GNUNET_YES;
   if (GNUNET_YES == c->channel->is_master)
   {
     struct Master *mst = (struct Master *) c->channel;
@@ -2061,7 +2055,6 @@ handle_client_part_request (void *cls,
                 mst);
     GNUNET_assert (NULL != mst->origin);
     GNUNET_MULTICAST_origin_stop (mst->origin, channel_part_cb, c->client);
-    mst->origin = NULL;
   }
   else
   {
@@ -2072,7 +2065,6 @@ handle_client_part_request (void *cls,
                 slv);
     GNUNET_assert (NULL != slv->member);
     GNUNET_MULTICAST_member_part (slv->member, channel_part_cb, c->client);
-    slv->member = NULL;
   }
   GNUNET_SERVICE_client_continue (c->client);
 }
@@ -2137,7 +2129,7 @@ transmit_notify (void *cls, size_t *data_size, void *data)
   {
     GNUNET_SCHEDULER_add_now (&schedule_transmit_message, chn);
   }
-  else if (GNUNET_YES == chn->is_disconnected
+  else if (GNUNET_YES == chn->is_disconnecting
            && tmit_msg->last_ptype < GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_END)
   {
     /* FIXME: handle partial message (when still in_transmit) */
