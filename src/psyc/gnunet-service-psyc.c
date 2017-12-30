@@ -1188,12 +1188,12 @@ fragment_queue_insert (struct Channel *chn,
     else if (GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_METHOD == first_ptype
              || frag_offset == fragq->header_size)
     { /* header is now complete */
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "%p Header of message %" PRIu64 " is complete.\n",
                   chn,
                   GNUNET_ntohll (mmsg->message_id));
 
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "%p Adding message %" PRIu64 " to queue.\n",
                   chn,
                   GNUNET_ntohll (mmsg->message_id));
@@ -1201,7 +1201,7 @@ fragment_queue_insert (struct Channel *chn,
     }
     else
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "%p Header of message %" PRIu64 " is NOT complete yet: %" PRIu64 " != %" PRIu64 "\n",
                   chn,
                   GNUNET_ntohll (mmsg->message_id),
@@ -1216,7 +1216,7 @@ fragment_queue_insert (struct Channel *chn,
     if (frag_offset == fragq->size)
       fragq->state = MSG_FRAG_STATE_END;
     else
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "%p Message %" PRIu64 " is NOT complete yet: %" PRIu64 " != %" PRIu64 "\n",
                   chn,
                   GNUNET_ntohll (mmsg->message_id),
@@ -1271,7 +1271,7 @@ static void
 fragment_queue_run (struct Channel *chn, uint64_t msg_id,
                     struct FragmentQueue *fragq, uint8_t drop)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "%p Running message fragment queue for message %" PRIu64 " (state: %u).\n",
               chn,
               msg_id,
@@ -1399,7 +1399,7 @@ store_recv_state_modify_result (void *cls, int64_t result,
 static uint64_t
 message_queue_run (struct Channel *chn)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "%p Running message queue.\n", chn);
   uint64_t n = 0;
   uint64_t msg_id;
@@ -1407,7 +1407,7 @@ message_queue_run (struct Channel *chn)
   while (GNUNET_YES == GNUNET_CONTAINER_heap_peek2 (chn->recv_msgs, NULL,
                                                     &msg_id))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "%p Processing message %" PRIu64 " in queue.\n", chn, msg_id);
     struct GNUNET_HashCode msg_id_hash;
     hash_key_from_hll (&msg_id_hash, msg_id);
@@ -1417,7 +1417,7 @@ message_queue_run (struct Channel *chn)
 
     if (NULL == fragq || fragq->state <= MSG_FRAG_STATE_HEADER)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "%p No fragq (%p) or header not complete.\n",
                   chn, fragq);
       break;
@@ -1439,7 +1439,7 @@ message_queue_run (struct Channel *chn)
             && (chn->max_message_id != msg_id - 1
                 && chn->max_message_id != msg_id))
         {
-          GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                       "%p Out of order message. "
                       "(%" PRIu64 " != %" PRIu64 " - 1)\n",
                       chn, chn->max_message_id, msg_id);
@@ -1455,7 +1455,7 @@ message_queue_run (struct Channel *chn)
         {
           if (msg_id - fragq->state_delta != chn->max_state_message_id)
           {
-            GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+            GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                         "%p Out of order stateful message. "
                         "(%" PRIu64 " - %" PRIu64 " != %" PRIu64 ")\n",
                         chn, msg_id, fragq->state_delta, chn->max_state_message_id);
@@ -1501,8 +1501,6 @@ message_queue_run (struct Channel *chn)
 static uint64_t
 message_queue_drop (struct Channel *chn)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-              "%p Dropping message queue.\n", chn);
   uint64_t n = 0;
   uint64_t msg_id;
   while (GNUNET_YES == GNUNET_CONTAINER_heap_peek2 (chn->recv_msgs, NULL,
@@ -2241,12 +2239,10 @@ transmit_message (struct Channel *chn)
 static void
 master_queue_message (struct Master *mst, struct TransmitMessage *tmit_msg)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "%p master_queue_message()\n", mst);
-
   if (GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_METHOD == tmit_msg->first_ptype)
   {
     tmit_msg->id = ++mst->max_message_id;
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "%p master_queue_message: message_id=%" PRIu64 "\n",
                 mst, tmit_msg->id);
     struct GNUNET_PSYC_MessageMethod *pmeth
@@ -2258,7 +2254,7 @@ master_queue_message (struct Master *mst, struct TransmitMessage *tmit_msg)
     }
     else if (pmeth->flags & GNUNET_PSYC_MASTER_TRANSMIT_STATE_MODIFY)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "%p master_queue_message: state_delta=%" PRIu64 "\n",
                   mst, tmit_msg->id - mst->max_state_message_id);
       pmeth->state_delta = GNUNET_htonll (tmit_msg->id
@@ -2267,7 +2263,7 @@ master_queue_message (struct Master *mst, struct TransmitMessage *tmit_msg)
     }
     else
     {
-        GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                     "%p master_queue_message: state not modified\n", mst);
       pmeth->state_delta = GNUNET_htonll (GNUNET_PSYC_STATE_NOT_MODIFIED);
     }

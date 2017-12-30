@@ -397,12 +397,9 @@ guest_cleanup (struct GNUNET_SOCIAL_Guest *gst)
 static void
 place_cleanup (struct GNUNET_SOCIAL_Place *plc)
 {
-  struct GNUNET_HashCode place_pub_hash;
-
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-              "place_cleanup\n");
-
-  GNUNET_CRYPTO_hash (&plc->pub_key, sizeof (plc->pub_key), &place_pub_hash);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "cleaning up place %p\n",
+              plc);
   if (NULL != plc->tmit)
   {
     GNUNET_PSYC_transmit_destroy (plc->tmit);
@@ -433,11 +430,6 @@ place_cleanup (struct GNUNET_SOCIAL_Place *plc)
 static void
 place_disconnect (struct GNUNET_SOCIAL_Place *plc)
 {
-  struct GNUNET_HashCode place_pub_hash;
-
-  GNUNET_CRYPTO_hash (&plc->pub_key,
-                      sizeof (plc->pub_key),
-                      &place_pub_hash);
   place_cleanup (plc);
 }
 
@@ -1515,7 +1507,7 @@ GNUNET_SOCIAL_host_announce (struct GNUNET_SOCIAL_Host *hst,
                              void *notify_data_cls,
                              enum GNUNET_SOCIAL_AnnounceFlags flags)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "PSYC_transmit_message for host, method: %s\n",
               method_name);
   if (GNUNET_OK ==

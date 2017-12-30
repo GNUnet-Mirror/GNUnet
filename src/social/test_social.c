@@ -359,7 +359,7 @@ host_farewell2 (void *cls,
                const struct GNUNET_SOCIAL_Nym *nym,
                struct GNUNET_PSYC_Environment *env)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+  GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
               "Nym left the place again.\n");
   GNUNET_SCHEDULER_add_now (&schedule_host_leave, NULL);
 }
