@@ -544,7 +544,6 @@ static void
 schedule_reconnect (void *cls)
 {
   test = TEST_RECONNECT;
-
   GNUNET_SOCIAL_host_disconnect (hst, NULL, NULL);
   GNUNET_SOCIAL_guest_disconnect (gst, NULL, NULL);
   hst = NULL;
@@ -624,7 +623,7 @@ guest_left (void *cls)
 
 
 static void
-guest_leave()
+guest_leave ()
 {
   if (test < TEST_RECONNECT)
     test = TEST_GUEST_LEAVE;
@@ -1108,7 +1107,8 @@ guest_recv_entry_decision (void *cls,
   {
   case TEST_GUEST_RECV_ENTRY_DCSN_REFUSE:
     GNUNET_assert (GNUNET_NO == is_admitted);
-    guest_enter ();
+    test = TEST_HOST_ANSWER_DOOR_ADMIT;
+    GNUNET_SOCIAL_guest_disconnect (gst, &guest_enter, NULL);
     break;
 
   case TEST_GUEST_RECV_ENTRY_DCSN_ADMIT:
@@ -1158,7 +1158,7 @@ host_answer_door (void *cls,
     // fall through
 
   case TEST_GUEST_ENTER_BY_NAME:
-    join_resp = GNUNET_PSYC_message_create ("_notice_place_admit", env,
+   join_resp = GNUNET_PSYC_message_create ("_notice_place_admit", env,
                                             DATA2ARG ("Welcome, nym!"));
     GNUNET_SOCIAL_host_entry_decision (hst, nym, GNUNET_YES, join_resp);
     break;
@@ -1178,7 +1178,7 @@ guest_recv_local_enter (void *cls, int result,
   GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
               "Test #%u: Guest entered local place: %d\n",
               test, result);
-  GNUNET_assert (0 <= result);
+  GNUNET_assert (GNUNET_OK == result);
 }
 
 
@@ -1262,7 +1262,7 @@ guest_init ()
                                  guest_recv_data, guest_recv_eom, NULL);
   GNUNET_PSYC_slicer_modifier_add (guest_slicer, "_foo_bar",
                                    guest_recv_mod_foo_bar, &mod_foo_bar_rcls);
-  test = TEST_HOST_ANSWER_DOOR_ADMIT;
+  test = TEST_HOST_ANSWER_DOOR_REFUSE;
 
   GNUNET_SOCIAL_zone_add_nym (app, guest_ego, "host", host_pub_key,
                               GNUNET_TIME_relative_to_absolute (GNUNET_TIME_UNIT_MINUTES),
