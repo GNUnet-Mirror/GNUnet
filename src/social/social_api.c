@@ -1921,52 +1921,52 @@ struct ReconnectContext
 };
 
 
-//static void
-//guest_enter_reconnect_cb (void *cls,
-//                          int result,
-//                          const struct GNUNET_CRYPTO_EddsaPublicKey *place_pub_key,
-//                          uint64_t max_message_id)
-//{
-//  struct ReconnectContext *reconnect_ctx = cls;
-//
-//  GNUNET_assert (NULL != reconnect_ctx);
-//  reconnect_ctx->result = GNUNET_new (int);
-//  *(reconnect_ctx->result) = result; 
-//  reconnect_ctx->max_message_id = GNUNET_new (int64_t);
-//  *(reconnect_ctx->max_message_id) = max_message_id;
-//}
-//
-//
-//static void
-//guest_entry_dcsn_reconnect_cb (void *cls,
-//                               int is_admitted,
-//                               const struct GNUNET_PSYC_Message *entry_resp)
-//{
-//  struct ReconnectContext *reconnect_ctx = cls;
-//  struct GNUNET_SOCIAL_Guest *gst = reconnect_ctx->guest;
-//
-//  GNUNET_assert (NULL != reconnect_ctx);
-//  GNUNET_assert (NULL != reconnect_ctx->result);
-//  GNUNET_assert (NULL != reconnect_ctx->max_message_id);
-//  if (GNUNET_YES != is_admitted)
-//  {
-//    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-//                "Guest was rejected after calling "
-//                "GNUNET_SOCIAL_guest_enter_reconnect ()\n");
-//  }
-//  else if (NULL != reconnect_ctx->enter_cb)
-//  {
-//    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-//                "guest reconnected!\n");
-//    reconnect_ctx->enter_cb (reconnect_ctx->enter_cls,
-//                             *(reconnect_ctx->result),
-//                             &gst->plc.pub_key,
-//                             *(reconnect_ctx->max_message_id));
-//  }
-//  GNUNET_free (reconnect_ctx->result);
-//  GNUNET_free (reconnect_ctx->max_message_id);
-//  GNUNET_free (reconnect_ctx);
-//}
+static void
+guest_enter_reconnect_cb (void *cls,
+                          int result,
+                          const struct GNUNET_CRYPTO_EddsaPublicKey *place_pub_key,
+                          uint64_t max_message_id)
+{
+  struct ReconnectContext *reconnect_ctx = cls;
+
+  GNUNET_assert (NULL != reconnect_ctx);
+  reconnect_ctx->result = GNUNET_new (int);
+  *(reconnect_ctx->result) = result; 
+  reconnect_ctx->max_message_id = GNUNET_new (int64_t);
+  *(reconnect_ctx->max_message_id) = max_message_id;
+}
+
+
+static void
+guest_entry_dcsn_reconnect_cb (void *cls,
+                               int is_admitted,
+                               const struct GNUNET_PSYC_Message *entry_resp)
+{
+  struct ReconnectContext *reconnect_ctx = cls;
+  struct GNUNET_SOCIAL_Guest *gst = reconnect_ctx->guest;
+
+  GNUNET_assert (NULL != reconnect_ctx);
+  GNUNET_assert (NULL != reconnect_ctx->result);
+  GNUNET_assert (NULL != reconnect_ctx->max_message_id);
+  if (GNUNET_YES != is_admitted)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Guest was rejected after calling "
+                "GNUNET_SOCIAL_guest_enter_reconnect ()\n");
+  }
+  else if (NULL != reconnect_ctx->enter_cb)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "guest reconnected!\n");
+    reconnect_ctx->enter_cb (reconnect_ctx->enter_cls,
+                             *(reconnect_ctx->result),
+                             &gst->plc.pub_key,
+                             *(reconnect_ctx->max_message_id));
+  }
+  GNUNET_free (reconnect_ctx->result);
+  GNUNET_free (reconnect_ctx->max_message_id);
+  GNUNET_free (reconnect_ctx);
+}
 
 
 /**
@@ -1979,8 +1979,8 @@ struct ReconnectContext
  *        Flags for the entry.
  * @param slicer
  *        Slicer to use for processing incoming requests from guests.
- * @param local_enter_cb
- *        Called upon connection established to the social service.
+ * @param enter_cb
+ *        Called upon re-entering is complete.
  * @param entry_decision_cb
  *        Called upon receiving entry decision.
  *
@@ -1990,11 +1990,12 @@ struct GNUNET_SOCIAL_Guest *
 GNUNET_SOCIAL_guest_enter_reconnect (struct GNUNET_SOCIAL_GuestConnection *gconn,
                                      enum GNUNET_PSYC_SlaveJoinFlags flags,
                                      struct GNUNET_PSYC_Slicer *slicer,
-                                     GNUNET_SOCIAL_GuestEnterCallback local_enter_cb,
+                                     GNUNET_SOCIAL_GuestEnterCallback enter_cb,
                                      void *cls)
 {
   struct GNUNET_SOCIAL_Guest *gst = GNUNET_malloc (sizeof (*gst));
   struct GNUNET_SOCIAL_Place *plc = &gst->plc;
+  struct ReconnectContext *reconnect_ctx;
 
   uint16_t app_id_size = strlen (gconn->app->id) + 1;
   struct GuestEnterRequest *greq;
@@ -2013,9 +2014,15 @@ GNUNET_SOCIAL_guest_enter_reconnect (struct GNUNET_SOCIAL_GuestConnection *gconn
   plc->pub_key = gconn->plc_msg.place_pub_key;
   plc->ego_pub_key = gconn->plc_msg.ego_pub_key;
 
+  reconnect_ctx = GNUNET_new (struct ReconnectContext);
+  reconnect_ctx->guest = gst;
+  reconnect_ctx->enter_cb = enter_cb;
+  reconnect_ctx->enter_cls = cls;
+
   plc->op = GNUNET_OP_create ();
-  gst->enter_cb = local_enter_cb;
-  gst->cb_cls = cls;
+  gst->enter_cb = &guest_enter_reconnect_cb;
+  gst->entry_dcsn_cb = &guest_entry_dcsn_reconnect_cb;
+  gst->cb_cls = reconnect_ctx;
 
   guest_connect (gst);
   return gst;
