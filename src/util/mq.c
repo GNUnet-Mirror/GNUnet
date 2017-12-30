@@ -357,6 +357,12 @@ GNUNET_MQ_send (struct GNUNET_MQ_Handle *mq,
   }
   GNUNET_assert (NULL == mq->envelope_head);
   mq->current_envelope = ev;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "mq: sending message of type %u, queue empty (MQ: %p)\n",
+              ntohs(ev->mh->type),
+              mq);
+
   mq->send_impl (mq,
 		 ev->mh,
 		 mq->impl_state);
@@ -452,6 +458,11 @@ impl_send_continue (void *cls)
   GNUNET_CONTAINER_DLL_remove (mq->envelope_head,
 			       mq->envelope_tail,
 			       mq->current_envelope);
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "mq: sending message of type %u from queue\n",
+              ntohs(mq->current_envelope->mh->type));
+
   mq->send_impl (mq,
 		 mq->current_envelope->mh,
 		 mq->impl_state);
@@ -840,6 +851,9 @@ GNUNET_MQ_destroy (struct GNUNET_MQ_Handle *mq)
 				 ev);
     GNUNET_assert (0 < mq->queue_length);
     mq->queue_length--;
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                "MQ destroy drops message of type %u\n",
+                ntohs (ev->mh->type));
     GNUNET_MQ_discard (ev);
   }
   if (NULL != mq->current_envelope)
@@ -847,6 +861,9 @@ GNUNET_MQ_destroy (struct GNUNET_MQ_Handle *mq)
     /* we can only discard envelopes that
      * are not queued! */
     mq->current_envelope->parent_queue = NULL;
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                "MQ destroy drops current message of type %u\n",
+                ntohs (mq->current_envelope->mh->type));
     GNUNET_MQ_discard (mq->current_envelope);
     mq->current_envelope = NULL;
     GNUNET_assert (0 < mq->queue_length);
@@ -928,6 +945,11 @@ GNUNET_MQ_send_cancel (struct GNUNET_MQ_Envelope *ev)
       GNUNET_CONTAINER_DLL_remove (mq->envelope_head,
                                    mq->envelope_tail,
                                    mq->current_envelope);
+
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "mq: sending canceled message of type %u queue\n",
+                  ntohs(ev->mh->type));
+
       mq->send_impl (mq,
 		     mq->current_envelope->mh,
 		     mq->impl_state);

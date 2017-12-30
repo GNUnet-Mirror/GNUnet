@@ -426,6 +426,9 @@ struct TokenizerContext
  *
  * @param cls reservation request (`struct TokenizerContext`)
  * @param message the actual message
+ * @return #GNUNET_OK on success,
+ *    #GNUNET_NO to stop further processing (no error)
+ *    #GNUNET_SYSERR to stop further processing with error
  */
 static int
 tokenized_cb (void *cls,

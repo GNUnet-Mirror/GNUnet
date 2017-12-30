@@ -61,7 +61,9 @@ struct GNUNET_MessageStreamTokenizer;
  *
  * @param cls closure
  * @param message the actual message
- * @return #GNUNET_OK on success, #GNUNET_SYSERR to stop further processing
+ * @return #GNUNET_OK on success,
+ *     #GNUNET_NO to stop further processing due to disconnect (no error)
+ *     #GNUNET_SYSERR to stop further processing due to error
  */
 typedef int
 (*GNUNET_MessageTokenizerCallback) (void *cls,

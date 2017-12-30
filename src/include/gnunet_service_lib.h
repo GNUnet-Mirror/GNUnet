@@ -366,10 +366,15 @@ GNUNET_SERVICE_client_disable_continue_warning (struct GNUNET_SERVICE_Client *c)
 /**
  * Ask the server to disconnect from the given client.  This is the
  * same as returning #GNUNET_SYSERR within the check procedure when
- * handling a message, wexcept that it allows dropping of a client even
+ * handling a message, except that it allows dropping of a client even
  * when not handling a message from that client.  The `disconnect_cb`
  * will be called on @a c even if the application closes the connection
  * using this function.
+ *
+ * This function should be called (outside of util's internal logic)
+ * if (and usually only if) the client has violated the
+ * protocol. Otherwise, we should leave it to the client to disconnect
+ * from the service.
  *
  * @param c client to disconnect now
  */

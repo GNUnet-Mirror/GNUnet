@@ -589,9 +589,7 @@ static void
 dump_backtrace (struct GNUNET_SCHEDULER_Task *t)
 {
 #if EXECINFO
-  unsigned int i;
-
-  for (i = 0; i < t->num_backtrace_strings; i++)
+  for (unsigned int i = 0; i < t->num_backtrace_strings; i++)
     LOG (GNUNET_ERROR_TYPE_DEBUG,
 	 "Task %p trace %u: %s\n",
 	 t,

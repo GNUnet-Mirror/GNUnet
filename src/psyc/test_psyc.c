@@ -755,15 +755,22 @@ slave_add ()
 
 
 static void
-first_slave_parted (void *cls)
+schedule_second_slave_join (void *cls)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "First slave parted.\n");
   slave_join (TEST_SLAVE_JOIN_ACCEPT);
 }
 
 
 static void
-schedule_slave_part (void *cls)
+first_slave_parted (void *cls)
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "First slave parted.\n");
+  GNUNET_SCHEDULER_add_now (&schedule_second_slave_join, NULL);
+}
+
+
+static void
+schedule_first_slave_part (void *cls)
 {
   GNUNET_PSYC_slave_part (slv, GNUNET_NO, &first_slave_parted, NULL);
 }
@@ -783,7 +790,7 @@ join_decision_cb (void *cls,
   case TEST_SLAVE_JOIN_REJECT:
     GNUNET_assert (0 == is_admitted);
     GNUNET_assert (1 == join_req_count);
-    GNUNET_SCHEDULER_add_now (&schedule_slave_part, NULL);
+    GNUNET_SCHEDULER_add_now (&schedule_first_slave_part, NULL);
     break;
 
   case TEST_SLAVE_JOIN_ACCEPT:
@@ -844,11 +851,18 @@ slave_join (int t)
   struct GNUNET_PSYC_Message *
     join_msg = GNUNET_PSYC_message_create ("_request_join", env, "some data", 9);
 
-  slv = GNUNET_PSYC_slave_join (cfg, &channel_pub_key, slave_key,
+  slv = GNUNET_PSYC_slave_join (cfg,
+                                &channel_pub_key,
+                                slave_key,
                                 GNUNET_PSYC_SLAVE_JOIN_NONE,
-                                &origin, 0, NULL,
-                                &slave_message_cb, &slave_message_part_cb,
-                                &slave_connect_cb, &join_decision_cb, NULL,
+                                &origin,
+                                0,
+                                NULL,
+                                &slave_message_cb,
+                                &slave_message_part_cb,
+                                &slave_connect_cb,
+                                &join_decision_cb,
+                                NULL,
                                 join_msg);
   GNUNET_free (join_msg);
   slv_chn = GNUNET_PSYC_slave_get_channel (slv);

@@ -542,31 +542,12 @@ group_cleanup (struct GNUNET_MULTICAST_Group *grp)
 
 
 static void
-group_disconnect (struct GNUNET_MULTICAST_Group *grp,
-                  GNUNET_ContinuationCallback cb,
-                  void *cls)
+handle_group_part_ack (void *cls,
+                       const struct GNUNET_MessageHeader *msg)
 {
-  grp->is_disconnecting = GNUNET_YES;
-  grp->disconnect_cb = cb;
-  grp->disconnect_cls = cls;
+  struct GNUNET_MULTICAST_Group *grp = cls;
 
-  if (NULL != grp->mq)
-  {
-    struct GNUNET_MQ_Envelope *last = GNUNET_MQ_get_last_envelope (grp->mq);
-    if (NULL != last)
-    {
-      GNUNET_MQ_notify_sent (last,
-                             (GNUNET_SCHEDULER_TaskCallback) group_cleanup, grp);
-    }
-    else
-    {
-      group_cleanup (grp);
-    }
-  }
-  else
-  {
-    group_cleanup (grp);
-  }
+  group_cleanup (grp);
 }
 
 
@@ -779,6 +760,10 @@ origin_connect (struct GNUNET_MULTICAST_Origin *orig)
                            GNUNET_MESSAGE_TYPE_MULTICAST_JOIN_REQUEST,
                            struct MulticastJoinRequestMessage,
                            grp),
+    GNUNET_MQ_hd_fixed_size (group_part_ack,
+                             GNUNET_MESSAGE_TYPE_MULTICAST_PART_ACK,
+                             struct GNUNET_MessageHeader,
+                             grp),
     GNUNET_MQ_hd_fixed_size (group_replay_request,
                              GNUNET_MESSAGE_TYPE_MULTICAST_REPLAY_REQUEST,
                              struct MulticastReplayRequestMessage,
@@ -879,8 +864,13 @@ GNUNET_MULTICAST_origin_stop (struct GNUNET_MULTICAST_Origin *orig,
                               void *stop_cls)
 {
   struct GNUNET_MULTICAST_Group *grp = &orig->grp;
+  struct GNUNET_MQ_Envelope *env;
 
-  group_disconnect (grp, stop_cb, stop_cls);
+  grp->is_disconnecting = GNUNET_YES;
+  grp->disconnect_cb = stop_cb;
+  grp->disconnect_cls = stop_cls;
+  env = GNUNET_MQ_msg_header (GNUNET_MESSAGE_TYPE_MULTICAST_PART_REQUEST);
+  GNUNET_MQ_send (grp->mq, env);
 }
 
 
@@ -1065,6 +1055,10 @@ member_connect (struct GNUNET_MULTICAST_Member *mem)
                            GNUNET_MESSAGE_TYPE_MULTICAST_JOIN_DECISION,
                            struct MulticastJoinDecisionMessageHeader,
                            mem),
+    GNUNET_MQ_hd_fixed_size (group_part_ack,
+                             GNUNET_MESSAGE_TYPE_MULTICAST_PART_ACK,
+                             struct GNUNET_MessageHeader,
+                             grp),
     GNUNET_MQ_hd_fixed_size (group_replay_request,
                              GNUNET_MESSAGE_TYPE_MULTICAST_REPLAY_REQUEST,
                              struct MulticastReplayRequestMessage,
@@ -1198,16 +1192,19 @@ GNUNET_MULTICAST_member_part (struct GNUNET_MULTICAST_Member *mem,
                               GNUNET_ContinuationCallback part_cb,
                               void *part_cls)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "%p Member parting.\n", mem);
   struct GNUNET_MULTICAST_Group *grp = &mem->grp;
+  struct GNUNET_MQ_Envelope *env;
 
   mem->join_dcsn_cb = NULL;
   grp->join_req_cb = NULL;
   grp->message_cb = NULL;
   grp->replay_msg_cb = NULL;
   grp->replay_frag_cb = NULL;
-
-  group_disconnect (grp, part_cb, part_cls);
+  grp->is_disconnecting = GNUNET_YES;
+  grp->disconnect_cb = part_cb;
+  grp->disconnect_cls = part_cls;
+  env = GNUNET_MQ_msg_header (GNUNET_MESSAGE_TYPE_MULTICAST_PART_REQUEST);
+  GNUNET_MQ_send (grp->mq, env);
 }
 
 
