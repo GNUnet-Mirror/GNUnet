@@ -179,7 +179,6 @@ progress_cb (void *cls, const struct GNUNET_FS_ProgressInfo *event)
                               GNUNET_FS_DOWNLOAD_OPTION_NONE, "download", NULL);
     break;
   case GNUNET_FS_STATUS_DOWNLOAD_COMPLETED:
-    consider_restart (event->status);
     printf ("Download complete,  %llu kbps.\n",
             (unsigned long long) (FILESIZE * 1000000LL /
                                   (1 +

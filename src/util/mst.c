@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     Copyright (C) 2010, 2016 GNUnet e.V.
+     Copyright (C) 2010, 2016, 2017 GNUnet e.V.
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -126,6 +126,7 @@ GNUNET_MST_from_buffer (struct GNUNET_MessageStreamTokenizer *mst,
   int need_align;
   unsigned long offset;
   int ret;
+  int cbret;
 
   GNUNET_assert (mst->off <= mst->pos);
   GNUNET_assert (mst->pos <= mst->curr_buf);
@@ -229,9 +230,17 @@ do_align:
     if (one_shot == GNUNET_YES)
       one_shot = GNUNET_SYSERR;
     mst->off += want;
-  if (GNUNET_SYSERR == mst->cb (mst->cb_cls,
-                                hdr))
+    if (GNUNET_OK !=
+        (cbret = mst->cb (mst->cb_cls,
+                           hdr)))
+    {
+      if (GNUNET_SYSERR == cbret)
+        GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                    "Failure processing message of type %u and size %u\n",
+                    ntohs (hdr->type),
+                    ntohs (hdr->size));
       return GNUNET_SYSERR;
+    }
     if (mst->off == mst->pos)
     {
       /* reset to beginning of buffer, it's free right now! */
@@ -271,9 +280,17 @@ do_align:
       }
       if (one_shot == GNUNET_YES)
         one_shot = GNUNET_SYSERR;
-      if (GNUNET_SYSERR == mst->cb (mst->cb_cls,
-                                    hdr))
+      if (GNUNET_OK !=
+          (cbret = mst->cb (mst->cb_cls,
+                            hdr)))
+      {
+        if (GNUNET_SYSERR == cbret)
+          GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                      "Failure processing message of type %u and size %u\n",
+                      ntohs (hdr->type),
+                      ntohs (hdr->size));
         return GNUNET_SYSERR;
+      }
       buf += want;
       size -= want;
     }

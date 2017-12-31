@@ -260,6 +260,10 @@ handle_channel_result (void *cls,
   GNUNET_OP_result (chn->op, GNUNET_ntohll (res->op_id),
                     GNUNET_ntohll (res->result_code),
                     data, data_size, NULL);
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "handle_channel_result: Received result message with OP ID %" PRIu64 "\n",
+              GNUNET_ntohll (res->op_id));
 }
 
 
@@ -555,6 +559,9 @@ handle_slave_join_decision (void *cls,
 static void
 channel_cleanup (struct GNUNET_PSYC_Channel *chn)
 {
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "cleaning up channel %p\n",
+              chn);
   if (NULL != chn->tmit)
   {
     GNUNET_PSYC_transmit_destroy (chn->tmit);
@@ -562,6 +569,7 @@ channel_cleanup (struct GNUNET_PSYC_Channel *chn)
   }
   if (NULL != chn->recv)
   {
+
     GNUNET_PSYC_receive_destroy (chn->recv);
     chn->recv = NULL;
   }
@@ -585,30 +593,12 @@ channel_cleanup (struct GNUNET_PSYC_Channel *chn)
 
 
 static void
-channel_disconnect (struct GNUNET_PSYC_Channel *chn,
-                    GNUNET_ContinuationCallback cb,
-                    void *cls)
+handle_channel_part_ack (void *cls,
+                         const struct GNUNET_MessageHeader *msg)
 {
-  chn->is_disconnecting = GNUNET_YES;
-  chn->disconnect_cb = cb;
-  chn->disconnect_cls = cls;
+  struct GNUNET_PSYC_Channel *chn = cls;
 
-  if (NULL != chn->mq)
-  {
-    struct GNUNET_MQ_Envelope *env = GNUNET_MQ_get_last_envelope (chn->mq);
-    if (NULL != env)
-    {
-      GNUNET_MQ_notify_sent (env, (GNUNET_SCHEDULER_TaskCallback) channel_cleanup, chn);
-    }
-    else
-    {
-      channel_cleanup (chn);
-    }
-  }
-  else
-  {
-    channel_cleanup (chn);
-  }
+  channel_cleanup (chn); 
 }
 
 
@@ -671,6 +661,10 @@ master_connect (struct GNUNET_PSYC_Master *mst)
                            GNUNET_MESSAGE_TYPE_PSYC_JOIN_REQUEST,
                            struct GNUNET_PSYC_JoinRequestMessage,
                            mst),
+    GNUNET_MQ_hd_fixed_size (channel_part_ack,
+                             GNUNET_MESSAGE_TYPE_PSYC_PART_ACK,
+                             struct GNUNET_MessageHeader,
+                             chn),
     GNUNET_MQ_hd_var_size (channel_message,
                            GNUNET_MESSAGE_TYPE_PSYC_MESSAGE,
                            struct GNUNET_PSYC_MessageHeader,
@@ -694,8 +688,11 @@ master_connect (struct GNUNET_PSYC_Master *mst)
     GNUNET_MQ_handler_end ()
   };
 
-  chn->mq = GNUNET_CLIENT_connect (chn->cfg, "psyc",
-                                   handlers, master_disconnected, mst);
+  chn->mq = GNUNET_CLIENT_connect (chn->cfg,
+                                   "psyc",
+                                   handlers,
+                                   &master_disconnected,
+                                   mst);
   GNUNET_assert (NULL != chn->mq);
   chn->tmit = GNUNET_PSYC_transmit_create (chn->mq);
 
@@ -780,10 +777,13 @@ GNUNET_PSYC_master_stop (struct GNUNET_PSYC_Master *mst,
                          void *stop_cls)
 {
   struct GNUNET_PSYC_Channel *chn = &mst->chn;
+  struct GNUNET_MQ_Envelope *env;
 
-  /* FIXME: send msg to service */
-
-  channel_disconnect (chn, stop_cb, stop_cls);
+  chn->is_disconnecting = GNUNET_YES;
+  chn->disconnect_cb = stop_cb;
+  chn->disconnect_cls = stop_cls;
+  env = GNUNET_MQ_msg_header (GNUNET_MESSAGE_TYPE_PSYC_PART_REQUEST);
+  GNUNET_MQ_send (chn->mq, env);
 }
 
 
@@ -931,7 +931,8 @@ slave_reconnect (void *cls)
  * Reconnect after backoff period.
  */
 static void
-slave_disconnected (void *cls, enum GNUNET_MQ_Error error)
+slave_disconnected (void *cls,
+                    enum GNUNET_MQ_Error error)
 {
   struct GNUNET_PSYC_Slave *slv = cls;
   struct GNUNET_PSYC_Channel *chn = &slv->chn;
@@ -950,7 +951,7 @@ slave_disconnected (void *cls, enum GNUNET_MQ_Error error)
     chn->mq = NULL;
   }
   chn->reconnect_task = GNUNET_SCHEDULER_add_delayed (chn->reconnect_delay,
-                                                      slave_reconnect,
+                                                      &slave_reconnect,
                                                       slv);
   chn->reconnect_delay = GNUNET_TIME_STD_BACKOFF (chn->reconnect_delay);
 }
@@ -970,6 +971,10 @@ slave_connect (struct GNUNET_PSYC_Slave *slv)
                            GNUNET_MESSAGE_TYPE_PSYC_JOIN_DECISION,
                            struct GNUNET_PSYC_JoinDecisionMessage,
                            slv),
+    GNUNET_MQ_hd_fixed_size (channel_part_ack,
+                             GNUNET_MESSAGE_TYPE_PSYC_PART_ACK,
+                             struct GNUNET_MessageHeader,
+                             chn),
     GNUNET_MQ_hd_var_size (channel_message,
                            GNUNET_MESSAGE_TYPE_PSYC_MESSAGE,
                            struct GNUNET_PSYC_MessageHeader,
@@ -993,9 +998,19 @@ slave_connect (struct GNUNET_PSYC_Slave *slv)
     GNUNET_MQ_handler_end ()
   };
 
-  chn->mq = GNUNET_CLIENT_connect (chn->cfg, "psyc",
-                                   handlers, slave_disconnected, slv);
-  GNUNET_assert (NULL != chn->mq);
+  chn->mq = GNUNET_CLIENT_connect (chn->cfg,
+                                   "psyc",
+                                   handlers,
+                                   &slave_disconnected,
+                                   slv);
+  if (NULL == chn->mq)
+  {
+    chn->reconnect_task = GNUNET_SCHEDULER_add_delayed (chn->reconnect_delay,
+                                                        &slave_reconnect,
+                                                        slv);
+    chn->reconnect_delay = GNUNET_TIME_STD_BACKOFF (chn->reconnect_delay);
+    return;
+  }
   chn->tmit = GNUNET_PSYC_transmit_create (chn->mq);
 
   GNUNET_MQ_send_copy (chn->mq, chn->connect_env);
@@ -1107,10 +1122,13 @@ GNUNET_PSYC_slave_part (struct GNUNET_PSYC_Slave *slv,
                         void *part_cls)
 {
   struct GNUNET_PSYC_Channel *chn = &slv->chn;
+  struct GNUNET_MQ_Envelope *env;
 
-  /* FIXME: send msg to service */
-
-  channel_disconnect (chn, part_cb, part_cls);
+  chn->is_disconnecting = GNUNET_YES;
+  chn->disconnect_cb = part_cb;
+  chn->disconnect_cls = part_cls;
+  env = GNUNET_MQ_msg_header (GNUNET_MESSAGE_TYPE_PSYC_PART_REQUEST);
+  GNUNET_MQ_send (chn->mq, env);
 }
 
 
@@ -1233,6 +1251,9 @@ GNUNET_PSYC_channel_slave_add (struct GNUNET_PSYC_Channel *chn,
   req->did_join = GNUNET_YES;
   req->op_id = GNUNET_htonll (GNUNET_OP_add (chn->op, result_cb, cls, NULL));
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "GNUNET_PSYC_channel_slave_add, OP ID: %" PRIu64 "\n",
+              GNUNET_ntohll (req->op_id));
   GNUNET_MQ_send (chn->mq, env);
 }
 
@@ -1283,6 +1304,9 @@ GNUNET_PSYC_channel_slave_remove (struct GNUNET_PSYC_Channel *chn,
   req->did_join = GNUNET_NO;
   req->op_id = GNUNET_htonll (GNUNET_OP_add (chn->op, result_cb, cls, NULL));
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "GNUNET_PSYC_channel_slave_remove, OP ID: %" PRIu64 "\n",
+              GNUNET_ntohll (req->op_id));
   GNUNET_MQ_send (chn->mq, env);
 }
 
@@ -1321,6 +1345,10 @@ channel_history_replay (struct GNUNET_PSYC_Channel *chn,
   req->message_limit = GNUNET_htonll (message_limit);
   req->flags = htonl (flags);
   req->op_id = GNUNET_htonll (hist->op_id);
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "channel_history_replay, OP ID: %" PRIu64 "\n",
+              GNUNET_ntohll (req->op_id));
   GNUNET_memcpy (&req[1], method_prefix, method_size);
 
   GNUNET_MQ_send (chn->mq, env);
@@ -1459,6 +1487,11 @@ channel_state_get (struct GNUNET_PSYC_Channel *chn,
   struct GNUNET_MQ_Envelope *
     env = GNUNET_MQ_msg_extra (req, name_size, type);
   req->op_id = GNUNET_htonll (sr->op_id);
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "channel_state_get, OP ID: %" PRIu64 "\n",
+              GNUNET_ntohll (req->op_id));
+
   GNUNET_memcpy (&req[1], name, name_size);
 
   GNUNET_MQ_send (chn->mq, env);

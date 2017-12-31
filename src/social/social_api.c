@@ -183,6 +183,7 @@ struct GNUNET_SOCIAL_Place
    */
   struct GNUNET_PSYC_Slicer *slicer;
 
+  // FIXME: do we need is_disconnecing like on the psyc and multicast APIs?
   /**
    * Function called after disconnected from the service.
    */
@@ -371,6 +372,68 @@ struct ZoneAddNymHandle
 };
 
 
+/*** CLEANUP / DISCONNECT ***/
+
+
+static void
+host_cleanup (struct GNUNET_SOCIAL_Host *hst)
+{
+  if (NULL != hst->slicer)
+  {
+    GNUNET_PSYC_slicer_destroy (hst->slicer);
+    hst->slicer = NULL;
+  }
+  GNUNET_free (hst);
+}
+
+
+static void
+guest_cleanup (struct GNUNET_SOCIAL_Guest *gst)
+{
+  GNUNET_free (gst);
+}
+
+
+static void
+place_cleanup (struct GNUNET_SOCIAL_Place *plc)
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "cleaning up place %p\n",
+              plc);
+  if (NULL != plc->tmit)
+  {
+    GNUNET_PSYC_transmit_destroy (plc->tmit);
+    plc->tmit = NULL;
+  }
+  if (NULL != plc->connect_env)
+  {
+    GNUNET_MQ_discard (plc->connect_env);
+    plc->connect_env = NULL;
+  }
+  if (NULL != plc->mq)
+  {
+    GNUNET_MQ_destroy (plc->mq);
+    plc->mq = NULL;
+  }
+  if (NULL != plc->disconnect_cb)
+  {
+    plc->disconnect_cb (plc->disconnect_cls);
+    plc->disconnect_cb = NULL;
+  }
+
+  (GNUNET_YES == plc->is_host)
+    ? host_cleanup ((struct GNUNET_SOCIAL_Host *) plc)
+    : guest_cleanup ((struct GNUNET_SOCIAL_Guest *) plc);
+}
+
+
+static void
+place_disconnect (struct GNUNET_SOCIAL_Place *plc)
+{
+  place_cleanup (plc);
+}
+
+
 /*** NYM ***/
 
 static struct GNUNET_SOCIAL_Nym *
@@ -428,7 +491,7 @@ host_recv_notice_place_leave_method (void *cls,
 
   struct GNUNET_SOCIAL_Nym *nym = nym_get_or_create (&msg->slave_pub_key);
 
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Host received method for message ID %" PRIu64 " from nym %s: %s\n",
               message_id, GNUNET_h2s (&nym->pub_key_hash), method_name);
 
@@ -436,7 +499,7 @@ host_recv_notice_place_leave_method (void *cls,
   hst->notice_place_leave_env = GNUNET_PSYC_env_create ();
 
   char *str = GNUNET_CRYPTO_ecdsa_public_key_to_string (&hst->notice_place_leave_nym->pub_key);
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "_notice_place_leave: got method from nym %s (%s).\n",
               GNUNET_h2s (&hst->notice_place_leave_nym->pub_key_hash), str);
   GNUNET_free (str);
@@ -458,7 +521,7 @@ host_recv_notice_place_leave_modifier (void *cls,
   if (NULL == hst->notice_place_leave_env)
     return;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Host received modifier for _notice_place_leave message with ID %" PRIu64 ":\n"
               "%c%s: %.*s\n",
               message_id, oper, name, value_size, (const char *) value);
@@ -485,7 +548,7 @@ host_recv_notice_place_leave_eom (void *cls,
     return;
 
   char *str = GNUNET_CRYPTO_ecdsa_public_key_to_string (&hst->notice_place_leave_nym->pub_key);
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "_notice_place_leave: got EOM from nym %s (%s).\n",
               GNUNET_h2s (&hst->notice_place_leave_nym->pub_key_hash), str);
   GNUNET_free (str);
@@ -1015,100 +1078,24 @@ handle_app_place_end (void *cls,
 }
 
 
-/*** CLEANUP / DISCONNECT ***/
-
-
+/**
+ * Handler for a #GNUNET_MESSAGE_TYPE_SOCIAL_PLACE_LEAVE_ACK message received
+ * from the social service.
+ *
+ * @param cls the place of type `struct GNUNET_SOCIAL_Place`
+ * @param msg the message received from the service
+ */
 static void
-host_cleanup (struct GNUNET_SOCIAL_Host *hst)
+handle_place_leave_ack (void *cls,
+                        const struct GNUNET_MessageHeader *msg)
 {
-  if (NULL != hst->slicer)
-  {
-    GNUNET_PSYC_slicer_destroy (hst->slicer);
-    hst->slicer = NULL;
-  }
-  GNUNET_free (hst);
-}
+  struct GNUNET_SOCIAL_Place *plc = cls;
 
-
-static void
-guest_cleanup (struct GNUNET_SOCIAL_Guest *gst)
-{
-  GNUNET_free (gst);
-}
-
-
-static void
-place_cleanup (struct GNUNET_SOCIAL_Place *plc)
-{
-  struct GNUNET_HashCode place_pub_hash;
-  GNUNET_CRYPTO_hash (&plc->pub_key, sizeof (plc->pub_key), &place_pub_hash);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "%s place cleanup: %s\n",
-              GNUNET_YES == plc->is_host ? "host" : "guest",
-              GNUNET_h2s (&place_pub_hash));
-
-  if (NULL != plc->tmit)
-  {
-    GNUNET_PSYC_transmit_destroy (plc->tmit);
-    plc->tmit = NULL;
-  }
-  if (NULL != plc->connect_env)
-  {
-    GNUNET_MQ_discard (plc->connect_env);
-    plc->connect_env = NULL;
-  }
-  if (NULL != plc->mq)
-  {
-    GNUNET_MQ_destroy (plc->mq);
-    plc->mq = NULL;
-  }
-  if (NULL != plc->disconnect_cb)
-  {
-    plc->disconnect_cb (plc->disconnect_cls);
-    plc->disconnect_cb = NULL;
-  }
-
-  (GNUNET_YES == plc->is_host)
-    ? host_cleanup ((struct GNUNET_SOCIAL_Host *) plc)
-    : guest_cleanup ((struct GNUNET_SOCIAL_Guest *) plc);
-}
-
-
-void
-place_disconnect (struct GNUNET_SOCIAL_Place *plc,
-                  GNUNET_ContinuationCallback cb,
-                  void *cls)
-{
-  plc->disconnect_cb = cb;
-  plc->disconnect_cls = cls;
-
-  if (NULL != plc->mq)
-  {
-    struct GNUNET_MQ_Envelope *env = GNUNET_MQ_get_last_envelope (plc->mq);
-    if (NULL != env)
-    {
-      GNUNET_MQ_notify_sent (env, (GNUNET_SCHEDULER_TaskCallback) place_cleanup, plc);
-    }
-    else
-    {
-      place_cleanup (plc);
-    }
-  }
-  else
-  {
-    place_cleanup (plc);
-  }
-}
-
-
-void
-place_leave (struct GNUNET_SOCIAL_Place *plc)
-{
-  struct GNUNET_MessageHeader *msg;
-  struct GNUNET_MQ_Envelope *
-    env = GNUNET_MQ_msg (msg, GNUNET_MESSAGE_TYPE_SOCIAL_PLACE_LEAVE);
-
-  GNUNET_MQ_send (plc->mq, env);
+              "%s left place %p\n",
+              plc->is_host ? "host" : "guest", 
+              plc);
+  place_disconnect (plc);  
 }
 
 
@@ -1168,6 +1155,10 @@ host_connect (struct GNUNET_SOCIAL_Host *hst)
                              GNUNET_MESSAGE_TYPE_SOCIAL_HOST_ENTER_ACK,
                              struct HostEnterAck,
                              hst),
+    GNUNET_MQ_hd_fixed_size (place_leave_ack,
+                             GNUNET_MESSAGE_TYPE_SOCIAL_PLACE_LEAVE_ACK,
+                             struct GNUNET_MessageHeader,
+                             plc),
     GNUNET_MQ_hd_var_size (host_enter_request,
                            GNUNET_MESSAGE_TYPE_PSYC_JOIN_REQUEST,
                            struct GNUNET_PSYC_JoinRequestMessage,
@@ -1516,6 +1507,9 @@ GNUNET_SOCIAL_host_announce (struct GNUNET_SOCIAL_Host *hst,
                              void *notify_data_cls,
                              enum GNUNET_SOCIAL_AnnounceFlags flags)
 {
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "PSYC_transmit_message for host, method: %s\n",
+              method_name);
   if (GNUNET_OK ==
       GNUNET_PSYC_transmit_message (hst->plc.tmit, method_name, env,
                                     NULL, notify_data, notify_data_cls, flags))
@@ -1580,7 +1574,11 @@ GNUNET_SOCIAL_host_disconnect (struct GNUNET_SOCIAL_Host *hst,
                                GNUNET_ContinuationCallback disconnect_cb,
                                void *cls)
 {
-  place_disconnect (&hst->plc, disconnect_cb, cls);
+  struct GNUNET_SOCIAL_Place *plc = &hst->plc;
+
+  plc->disconnect_cb = disconnect_cb;
+  plc->disconnect_cls = cls;
+  place_disconnect (plc);
 }
 
 
@@ -1607,10 +1605,15 @@ GNUNET_SOCIAL_host_leave (struct GNUNET_SOCIAL_Host *hst,
                           GNUNET_ContinuationCallback disconnect_cb,
                           void *cls)
 {
+  struct GNUNET_MQ_Envelope *envelope;
+
   GNUNET_SOCIAL_host_announce (hst, "_notice_place_closing", env, NULL, NULL,
                                GNUNET_SOCIAL_ANNOUNCE_NONE);
-  place_leave (&hst->plc);
-  GNUNET_SOCIAL_host_disconnect (hst, disconnect_cb, cls);
+  hst->plc.disconnect_cb = disconnect_cb;
+  hst->plc.disconnect_cls = cls;
+  envelope = GNUNET_MQ_msg_header (GNUNET_MESSAGE_TYPE_SOCIAL_PLACE_LEAVE);
+  GNUNET_MQ_send (hst->plc.mq,
+                  envelope);
 }
 
 
@@ -1670,6 +1673,10 @@ guest_connect (struct GNUNET_SOCIAL_Guest *gst)
                              GNUNET_MESSAGE_TYPE_SOCIAL_GUEST_ENTER_ACK,
                              struct GNUNET_PSYC_CountersResultMessage,
                              gst),
+    GNUNET_MQ_hd_fixed_size (place_leave_ack,
+                             GNUNET_MESSAGE_TYPE_SOCIAL_PLACE_LEAVE_ACK,
+                             struct GNUNET_MessageHeader,
+                             plc),
     GNUNET_MQ_hd_var_size (guest_enter_decision,
                            GNUNET_MESSAGE_TYPE_PSYC_JOIN_DECISION,
                            struct GNUNET_PSYC_JoinDecisionMessage,
@@ -1896,6 +1903,64 @@ GNUNET_SOCIAL_guest_enter_by_name (const struct GNUNET_SOCIAL_App *app,
 }
 
 
+struct ReconnectContext
+{
+  struct GNUNET_SOCIAL_Guest *guest;
+  int *result;
+  int64_t *max_message_id;
+  GNUNET_SOCIAL_GuestEnterCallback enter_cb;
+  void *enter_cls;
+};
+
+
+static void
+guest_enter_reconnect_cb (void *cls,
+                          int result,
+                          const struct GNUNET_CRYPTO_EddsaPublicKey *place_pub_key,
+                          uint64_t max_message_id)
+{
+  struct ReconnectContext *reconnect_ctx = cls;
+
+  GNUNET_assert (NULL != reconnect_ctx);
+  reconnect_ctx->result = GNUNET_new (int);
+  *(reconnect_ctx->result) = result; 
+  reconnect_ctx->max_message_id = GNUNET_new (int64_t);
+  *(reconnect_ctx->max_message_id) = max_message_id;
+}
+
+
+static void
+guest_entry_dcsn_reconnect_cb (void *cls,
+                               int is_admitted,
+                               const struct GNUNET_PSYC_Message *entry_resp)
+{
+  struct ReconnectContext *reconnect_ctx = cls;
+  struct GNUNET_SOCIAL_Guest *gst = reconnect_ctx->guest;
+
+  GNUNET_assert (NULL != reconnect_ctx);
+  GNUNET_assert (NULL != reconnect_ctx->result);
+  GNUNET_assert (NULL != reconnect_ctx->max_message_id);
+  if (GNUNET_YES != is_admitted)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Guest was rejected after calling "
+                "GNUNET_SOCIAL_guest_enter_reconnect ()\n");
+  }
+  else if (NULL != reconnect_ctx->enter_cb)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "guest reconnected!\n");
+    reconnect_ctx->enter_cb (reconnect_ctx->enter_cls,
+                             *(reconnect_ctx->result),
+                             &gst->plc.pub_key,
+                             *(reconnect_ctx->max_message_id));
+  }
+  GNUNET_free (reconnect_ctx->result);
+  GNUNET_free (reconnect_ctx->max_message_id);
+  GNUNET_free (reconnect_ctx);
+}
+
+
 /**
  * Reconnect to an already entered place as guest.
  *
@@ -1906,8 +1971,8 @@ GNUNET_SOCIAL_guest_enter_by_name (const struct GNUNET_SOCIAL_App *app,
  *        Flags for the entry.
  * @param slicer
  *        Slicer to use for processing incoming requests from guests.
- * @param local_enter_cb
- *        Called upon connection established to the social service.
+ * @param enter_cb
+ *        Called upon re-entering is complete.
  * @param entry_decision_cb
  *        Called upon receiving entry decision.
  *
@@ -1917,11 +1982,12 @@ struct GNUNET_SOCIAL_Guest *
 GNUNET_SOCIAL_guest_enter_reconnect (struct GNUNET_SOCIAL_GuestConnection *gconn,
                                      enum GNUNET_PSYC_SlaveJoinFlags flags,
                                      struct GNUNET_PSYC_Slicer *slicer,
-                                     GNUNET_SOCIAL_GuestEnterCallback local_enter_cb,
+                                     GNUNET_SOCIAL_GuestEnterCallback enter_cb,
                                      void *cls)
 {
   struct GNUNET_SOCIAL_Guest *gst = GNUNET_malloc (sizeof (*gst));
   struct GNUNET_SOCIAL_Place *plc = &gst->plc;
+  struct ReconnectContext *reconnect_ctx;
 
   uint16_t app_id_size = strlen (gconn->app->id) + 1;
   struct GuestEnterRequest *greq;
@@ -1940,10 +2006,15 @@ GNUNET_SOCIAL_guest_enter_reconnect (struct GNUNET_SOCIAL_GuestConnection *gconn
   plc->pub_key = gconn->plc_msg.place_pub_key;
   plc->ego_pub_key = gconn->plc_msg.ego_pub_key;
 
-  plc->op = GNUNET_OP_create ();
+  reconnect_ctx = GNUNET_new (struct ReconnectContext);
+  reconnect_ctx->guest = gst;
+  reconnect_ctx->enter_cb = enter_cb;
+  reconnect_ctx->enter_cls = cls;
 
-  gst->enter_cb = local_enter_cb;
-  gst->cb_cls = cls;
+  plc->op = GNUNET_OP_create ();
+  gst->enter_cb = &guest_enter_reconnect_cb;
+  gst->entry_dcsn_cb = &guest_entry_dcsn_reconnect_cb;
+  gst->cb_cls = reconnect_ctx;
 
   guest_connect (gst);
   return gst;
@@ -2028,7 +2099,11 @@ GNUNET_SOCIAL_guest_disconnect (struct GNUNET_SOCIAL_Guest *gst,
                                 GNUNET_ContinuationCallback disconnect_cb,
                                 void *cls)
 {
-  place_disconnect (&gst->plc, disconnect_cb, cls);
+  struct GNUNET_SOCIAL_Place *plc = &gst->plc;
+
+  plc->disconnect_cb = disconnect_cb;
+  plc->disconnect_cls = cls;
+  place_disconnect (plc);
 }
 
 
@@ -2054,10 +2129,15 @@ GNUNET_SOCIAL_guest_leave (struct GNUNET_SOCIAL_Guest *gst,
                            GNUNET_ContinuationCallback disconnect_cb,
                            void *cls)
 {
+  struct GNUNET_MQ_Envelope *envelope;
+
   GNUNET_SOCIAL_guest_talk (gst, "_notice_place_leave", env, NULL, NULL,
                             GNUNET_SOCIAL_TALK_NONE);
-  place_leave (&gst->plc);
-  GNUNET_SOCIAL_guest_disconnect (gst, disconnect_cb, cls);
+  gst->plc.disconnect_cb = disconnect_cb;
+  gst->plc.disconnect_cls = cls;
+  envelope = GNUNET_MQ_msg_header (GNUNET_MESSAGE_TYPE_SOCIAL_PLACE_LEAVE);
+  GNUNET_MQ_send (gst->plc.mq,
+                  envelope);
 }
 
 

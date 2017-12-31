@@ -129,22 +129,22 @@ enum
   TEST_HOST_ANSWER_DOOR_REFUSE      =  4,
   TEST_GUEST_RECV_ENTRY_DCSN_REFUSE =  5,
   TEST_HOST_ANSWER_DOOR_ADMIT       =  6,
-  TEST_GUEST_RECV_ENTRY_DCSN_ADMIT  =  9,
-  TEST_HOST_ANNOUNCE   	            = 10,
-  TEST_HOST_ANNOUNCE_END            = 11,
-  TEST_GUEST_TALK                   = 12,
-  TEST_HOST_ANNOUNCE2  	            = 13,
-  TEST_HOST_ANNOUNCE2_END           = 14,
-  TEST_GUEST_HISTORY_REPLAY         = 15,
-  TEST_GUEST_HISTORY_REPLAY_LATEST  = 16,
-  TEST_GUEST_LOOK_AT                = 17,
-  TEST_GUEST_LOOK_FOR               = 18,
-  TEST_GUEST_LEAVE                  = 18,
-  TEST_ZONE_ADD_PLACE               = 20,
-  TEST_GUEST_ENTER_BY_NAME          = 21,
-  TEST_RECONNECT                    = 22,
-  TEST_GUEST_LEAVE2                 = 23,
-  TEST_HOST_LEAVE                   = 24,
+  TEST_GUEST_RECV_ENTRY_DCSN_ADMIT  =  7,
+  TEST_HOST_ANNOUNCE   	            =  8,
+  TEST_HOST_ANNOUNCE_END            =  9,
+  TEST_GUEST_TALK                   = 10,
+  TEST_HOST_ANNOUNCE2  	            = 11,
+  TEST_HOST_ANNOUNCE2_END           = 12,
+  TEST_GUEST_HISTORY_REPLAY         = 13,
+  TEST_GUEST_HISTORY_REPLAY_LATEST  = 14,
+  TEST_GUEST_LOOK_AT                = 15,
+  TEST_GUEST_LOOK_FOR               = 16,
+  TEST_GUEST_LEAVE                  = 17,
+  TEST_ZONE_ADD_PLACE               = 18,
+  TEST_GUEST_ENTER_BY_NAME          = 19,
+  TEST_RECONNECT                    = 20,
+  TEST_GUEST_LEAVE2                 = 21,
+  TEST_HOST_LEAVE                   = 22,
 } test;
 
 
@@ -180,10 +180,28 @@ host_announce2 ();
 
 
 /**
- * Clean up all resources used.
+ * Terminate the test case (failure).
+ *
+ * @param cls NULL
  */
 static void
-cleanup ()
+end_badly (void *cls)
+{
+  end_badly_task = NULL;
+  GNUNET_SCHEDULER_shutdown ();
+  res = 2;
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+              "Test FAILED.\n");
+}
+
+
+/**
+ * Terminate the test case (failure).
+ *
+ * @param cls NULL
+ */
+static void
+end_shutdown (void *cls)
 {
   if (NULL != id)
   {
@@ -202,7 +220,11 @@ cleanup ()
     GNUNET_PSYC_slicer_destroy (host_slicer);
     host_slicer = NULL;
   }
-
+  if (NULL != end_badly_task)
+  {
+    GNUNET_SCHEDULER_cancel (end_badly_task);
+    end_badly_task = NULL;
+  }
   if (NULL != gst)
   {
     GNUNET_SOCIAL_guest_leave (gst, NULL, NULL, NULL);
@@ -216,21 +238,6 @@ cleanup ()
     hst_plc = NULL;
   }
   GNUNET_SOCIAL_app_disconnect (app, NULL, NULL);
-  GNUNET_SCHEDULER_shutdown ();
-}
-
-
-/**
- * Terminate the test case (failure).
- *
- * @param cls NULL
- */
-static void
-end_badly (void *cls)
-{
-  res = 1;
-  cleanup ();
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Test FAILED.\n");
 }
 
 
@@ -242,9 +249,9 @@ end_badly (void *cls)
 static void
 end_normally (void *cls)
 {
+  GNUNET_SCHEDULER_shutdown ();
   res = 0;
-  cleanup ();
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Test PASSED.\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE, "Test PASSED.\n");
 }
 
 
@@ -254,7 +261,7 @@ end_normally (void *cls)
 static void
 end ()
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+  GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
               "Test #%u: Ending tests.\n", test);
 
   if (end_badly_task != NULL)
@@ -271,7 +278,7 @@ transmit_resume (void *cls)
 {
   struct TransmitClosure *tmit = cls;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+  GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
 	      "Test #%u: Transmission resumed.\n", test);
   if (NULL != tmit->host_ann)
     GNUNET_SOCIAL_host_announce_resume (tmit->host_ann);
@@ -296,7 +303,7 @@ notify_data (void *cls, uint16_t *data_size, void *data)
   }
 
   uint16_t size = strlen (tmit->data[tmit->n]);
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+  GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
               "Test #%u: Transmit notify data: %u bytes available, "
               "processing fragment %u/%u (size %u).\n",
               test, *data_size, tmit->n + 1, tmit->data_count, size);
@@ -309,7 +316,7 @@ notify_data (void *cls, uint16_t *data_size, void *data)
 
   if (GNUNET_YES != tmit->paused && 0 < tmit->data_delay[tmit->n])
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+    GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
                 "Test #%u: Transmission paused.\n", test);
     tmit->paused = GNUNET_YES;
     GNUNET_SCHEDULER_add_delayed (
@@ -331,7 +338,7 @@ notify_data (void *cls, uint16_t *data_size, void *data)
 static void
 host_left ()
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+  GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
               "Test #%u: The host has left the place.\n", test);
   end ();
 }
@@ -352,7 +359,7 @@ host_farewell2 (void *cls,
                const struct GNUNET_SOCIAL_Nym *nym,
                struct GNUNET_PSYC_Environment *env)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+  GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
               "Nym left the place again.\n");
   GNUNET_SCHEDULER_add_now (&schedule_host_leave, NULL);
 }
@@ -365,13 +372,14 @@ host_reconnected (void *cls, int result,
 {
   place_pub_key = *home_pub_key;
   GNUNET_CRYPTO_hash (&place_pub_key, sizeof (place_pub_key), &place_pub_hash);
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+  GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
               "Test #%u: Host reconnected to place %s\n",
               test, GNUNET_h2s (&place_pub_hash));
 
   is_host_reconnected = GNUNET_YES;
   if (GNUNET_YES == is_guest_reconnected)
   {
+    GNUNET_assert (NULL != gst);
     GNUNET_SCHEDULER_add_now (&schedule_guest_leave, NULL);
   }
 }
@@ -382,7 +390,7 @@ guest_reconnected (void *cls, int result,
                    const struct GNUNET_CRYPTO_EddsaPublicKey *place_pub_key,
                    uint64_t max_message_id)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+  GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
               "Test #%u: Guest reconnected to place: %d\n",
               test, result);
   GNUNET_assert (0 <= result);
@@ -390,6 +398,7 @@ guest_reconnected (void *cls, int result,
   is_guest_reconnected = GNUNET_YES;
   if (GNUNET_YES == is_host_reconnected)
   {
+    GNUNET_assert (NULL != gst);
     GNUNET_SCHEDULER_add_now (&schedule_guest_leave, NULL);
   }
 }
@@ -398,7 +407,7 @@ guest_reconnected (void *cls, int result,
 static void
 app_connected (void *cls)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+  GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
               "Test #%u: App connected: %p\n", test, cls);
 }
 
@@ -411,21 +420,28 @@ app_recv_host (void *cls,
                enum GNUNET_SOCIAL_AppPlaceState place_state)
 {
   struct GNUNET_HashCode host_pub_hash;
-  GNUNET_CRYPTO_hash (host_pub_key, sizeof (*host_pub_key), &host_pub_hash);
 
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+  GNUNET_CRYPTO_hash (host_pub_key,
+                      sizeof (*host_pub_key),
+                      &host_pub_hash);
+
+  GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
               "Test #%u: Got app host place notification: %s\n",
-              test, GNUNET_h2s (&host_pub_hash));
+              test,
+              GNUNET_h2s (&host_pub_hash));
 
   if (test == TEST_RECONNECT)
   {
     if (0 == memcmp (&place_pub_key, host_pub_key, sizeof (*host_pub_key)))
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+      GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
                   "Test #%u: Reconnecting to host place: %s\n",
                   test, GNUNET_h2s (&host_pub_hash));
-      hst = GNUNET_SOCIAL_host_enter_reconnect (hconn, host_slicer, host_reconnected,
-                                                host_answer_door, host_farewell2, NULL);
+      hst = GNUNET_SOCIAL_host_enter_reconnect (hconn, host_slicer,
+                                                &host_reconnected,
+                                                &host_answer_door,
+                                                &host_farewell2,
+                                                NULL);
     }
   }
 }
@@ -439,21 +455,30 @@ app_recv_guest (void *cls,
                 enum GNUNET_SOCIAL_AppPlaceState place_state)
 {
   struct GNUNET_HashCode guest_pub_hash;
-  GNUNET_CRYPTO_hash (guest_pub_key, sizeof (*guest_pub_key), &guest_pub_hash);
 
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+  GNUNET_CRYPTO_hash (guest_pub_key,
+                      sizeof (*guest_pub_key),
+                      &guest_pub_hash);
+
+  GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
               "Test #%u: Got app guest place notification: %s\n",
               test, GNUNET_h2s (&guest_pub_hash));
 
   if (test == TEST_RECONNECT)
   {
-    if (0 == memcmp (&place_pub_key, guest_pub_key, sizeof (*guest_pub_key)))
+    if (0 == memcmp (&place_pub_key,
+                     guest_pub_key,
+                     sizeof (*guest_pub_key)))
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+      GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
                   "Test #%u: Reconnecting to guest place: %s\n",
                   test, GNUNET_h2s (&guest_pub_hash));
-      gst = GNUNET_SOCIAL_guest_enter_reconnect (gconn, GNUNET_PSYC_SLAVE_JOIN_NONE,
-                                                 guest_slicer, guest_reconnected, NULL);
+      gst = GNUNET_SOCIAL_guest_enter_reconnect (gconn,
+                                                 GNUNET_PSYC_SLAVE_JOIN_NONE,
+                                                 guest_slicer,
+                                                 &guest_reconnected,
+                                                 NULL);
+      GNUNET_assert (NULL != gst);
     }
   }
 }
@@ -478,7 +503,7 @@ app_recv_ego (void *cls,
               const char *name)
 {
   char *ego_pub_str = GNUNET_CRYPTO_ecdsa_public_key_to_string (ego_pub_key);
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+  GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
               "Test #%u: Got app ego notification: %p %s %s\n",
               test, ego, name, ego_pub_str);
   GNUNET_free (ego_pub_str);
@@ -487,15 +512,30 @@ app_recv_ego (void *cls,
   {
     host_ego = ego;
     host_pub_key = ego_pub_key;
-    GNUNET_assert (TEST_IDENTITIES_CREATE == test);
-    enter_if_ready ();
+    if (TEST_IDENTITIES_CREATE == test)
+    {
+      enter_if_ready ();
+    }
+    else
+    {
+      GNUNET_assert (TEST_RECONNECT == test);
+    }
   }
   else if (NULL != strstr (name, guest_name))
   {
     guest_ego = ego;
     guest_pub_key = ego_pub_key;
-    GNUNET_assert (TEST_IDENTITIES_CREATE == test);
-    enter_if_ready ();
+    if (TEST_IDENTITIES_CREATE == test)
+    {
+      enter_if_ready ();
+    }
+    else
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
+                  "test = %d\n",
+                  test);
+      GNUNET_assert (TEST_RECONNECT == test);
+    }
   }
 }
 
@@ -504,7 +544,6 @@ static void
 schedule_reconnect (void *cls)
 {
   test = TEST_RECONNECT;
-
   GNUNET_SOCIAL_host_disconnect (hst, NULL, NULL);
   GNUNET_SOCIAL_guest_disconnect (gst, NULL, NULL);
   hst = NULL;
@@ -512,10 +551,10 @@ schedule_reconnect (void *cls)
 
   GNUNET_SOCIAL_app_disconnect (app, NULL, NULL);
   app = GNUNET_SOCIAL_app_connect (cfg, app_id,
-                                   app_recv_ego,
-                                   app_recv_host,
-                                   app_recv_guest,
-                                   app_connected,
+                                   &app_recv_ego,
+                                   &app_recv_host,
+                                   &app_recv_guest,
+                                   &app_connected,
                                    NULL);
 }
 
@@ -524,7 +563,7 @@ static void
 host_recv_zone_add_place_result (void *cls, int64_t result,
                                  const void *data, uint16_t data_size)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+  GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
               "Test #%u: Zone add place result: %" PRId64 " (%.*s).\n",
               test, result, data_size, (const char *) data);
   GNUNET_assert (GNUNET_YES == result);
@@ -538,7 +577,7 @@ static void
 zone_add_place ()
 {
   test = TEST_ZONE_ADD_PLACE;
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+  GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
               "Test #%u: Adding place to zone.\n", test);
 
   GNUNET_SOCIAL_zone_add_place (app, host_ego, "home", "let.me*in!",
@@ -557,7 +596,7 @@ host_farewell (void *cls,
     nym_key = GNUNET_SOCIAL_nym_get_pub_key (nym);
 
   char *str = GNUNET_CRYPTO_ecdsa_public_key_to_string (nym_key);
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+  GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
               "Test #%u: Farewell: nym %s (%s) has left the place.\n",
               test, GNUNET_h2s (GNUNET_SOCIAL_nym_get_pub_key_hash (nym)), str);
   GNUNET_free (str);
@@ -578,13 +617,13 @@ host_farewell (void *cls,
 static void
 guest_left (void *cls)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+  GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
               "Test #%u: The guest has left the place.\n", test);
 }
 
 
 static void
-guest_leave()
+guest_leave ()
 {
   if (test < TEST_RECONNECT)
     test = TEST_GUEST_LEAVE;
@@ -615,11 +654,11 @@ guest_look_for_result (void *cls,
 		       uint16_t data_size)
 {
   struct ResultClosure *rcls = cls;
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+  GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
               "Test #%u: guest_look_for_result: %" PRId64 "\n",
               test, result_code);
   GNUNET_assert (GNUNET_OK == result_code);
-  GNUNET_assert (3 == rcls->n);
+  GNUNET_assert (6 == rcls->n);
   GNUNET_free (rcls);
   GNUNET_SCHEDULER_add_now (&schedule_guest_leave, NULL);
 }
@@ -635,7 +674,7 @@ guest_look_for_var (void *cls,
 {
   struct ResultClosure *rcls = cls;
   rcls->n++;
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+  GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
               "Test #%u: guest_look_for_var: %s\n%.*s\n",
               test, name, value_size, (const char *) value);
 }
@@ -656,7 +695,7 @@ guest_look_at_result (void *cls, int64_t result_code,
 {
   struct ResultClosure *rcls = cls;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+  GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
               "Test #%u: guest_look_at_result: %" PRId64 "\n",
               test, result_code);
   GNUNET_assert (GNUNET_OK == result_code);
@@ -677,7 +716,7 @@ guest_look_at_var (void *cls,
   struct ResultClosure *rcls = cls;
   rcls->n++;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+  GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
               "Test #%u: guest_look_at_var: %s\n%.*s\n",
               test ,name, value_size, (const char *) value);
 }
@@ -696,7 +735,7 @@ static void
 guest_recv_history_replay_latest_result (void *cls, int64_t result,
                                          const void *data, uint16_t data_size)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+  GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
               "Test #%u: Guest received latest history replay result "
               "(%" PRIu32 " messages, %" PRId64 " fragments):\n"
               "%.*s\n",
@@ -725,7 +764,7 @@ static void
 guest_recv_history_replay_result (void *cls, int64_t result,
                                   const void *data, uint16_t data_size)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+  GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
               "Test #%u: Guest received history replay result: %" PRId64 "\n"
               "%.*s\n",
               test, result, data_size, (const char *) data);
@@ -756,7 +795,7 @@ guest_recv_method (void *cls,
                    uint64_t message_id,
                    const char *method_name)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+  GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
               "Test #%u: Guest received method for message ID %" PRIu64 ":\n"
               "%s (flags: %x)\n",
               test, message_id, method_name, ntohl (meth->flags));
@@ -775,7 +814,7 @@ guest_recv_modifier (void *cls,
                      uint16_t value_size,
                      uint16_t full_value_size)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+  GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
               "Test #%u: Guest received modifier for message ID %" PRIu64 ":\n"
               "%c%s: %.*s (size: %u)\n",
               test, message_id, oper, name, value_size, (const char *) value, value_size);
@@ -793,7 +832,7 @@ guest_recv_mod_foo_bar (void *cls,
                         uint16_t value_size,
                         uint16_t full_value_size)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+  GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
               "Test #%u: Guest received modifier matching _foo_bar for message ID %" PRIu64 ":\n"
               "%c%s: %.*s (size: %u)\n",
               test, message_id, oper, name, value_size, (const char *) value, value_size);
@@ -811,7 +850,7 @@ guest_recv_data (void *cls,
                  const void *data,
                  uint16_t data_size)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+  GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
               "Test #%u: Guest received data for message ID %" PRIu64 ":\n"
               "%.*s\n",
               test, message_id, data_size, (const char *) data);
@@ -826,7 +865,7 @@ guest_recv_eom (void *cls,
                 uint64_t message_id,
                 uint8_t is_cancelled)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+  GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
               "Test #%u: Guest received end of message ID %" PRIu64
               ", cancelled: %u\n",
               test, message_id, is_cancelled);
@@ -868,7 +907,7 @@ host_recv_method (void *cls,
                   uint64_t message_id,
                   const char *method_name)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+  GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
               "Test #%u: Host received method for message ID %" PRIu64 ":\n"
               "%s\n",
               test, message_id, method_name);
@@ -887,7 +926,7 @@ host_recv_modifier (void *cls,
                     uint16_t value_size,
                     uint16_t full_value_size)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+  GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
               "Test #%u: Host received modifier for message ID %" PRIu64 ":\n"
               "%c%s: %.*s\n",
               test, message_id, oper, name, value_size, (const char *) value);
@@ -902,7 +941,7 @@ host_recv_data (void *cls,
                 const void *data,
                 uint16_t data_size)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+  GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
               "Test #%u: Host received data for message ID %" PRIu64 ":\n"
               "%.*s\n",
               test, message_id, data_size, (const char *) data);
@@ -916,7 +955,7 @@ host_recv_eom (void *cls,
                uint64_t message_id,
                uint8_t is_cancelled)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+  GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
               "Test #%u: Host received end of message ID %" PRIu64
               ", cancelled: %u\n",
               test, message_id, is_cancelled);
@@ -981,7 +1020,7 @@ host_announce ()
 {
   test = TEST_HOST_ANNOUNCE;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+  GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
               "Test #%u: Host announcement.\n", test);
 
   tmit = (struct TransmitClosure) {};
@@ -1015,7 +1054,7 @@ host_announce2 ()
 
   test = TEST_HOST_ANNOUNCE2;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+  GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
               "Test #%u: Host announcement 2.\n", test);
 
   tmit = (struct TransmitClosure) {};
@@ -1025,7 +1064,7 @@ host_announce2 ()
   GNUNET_PSYC_env_add (tmit.env, GNUNET_PSYC_OP_ASSIGN,
                        "_foo2_bar", DATA2ARG ("FOO BAR"));
   GNUNET_PSYC_env_add (tmit.env, GNUNET_PSYC_OP_ASSIGN,
-                       "_foo2_bar", DATA2ARG ("FOO BAR BAZ"));
+                       "_foo2_bar_baz", DATA2ARG ("FOO BAR BAZ"));
   tmit.data[0] = "AAA BBB CCC ";
   tmit.data[1] = "ABC DEF GHI JKL.\n";
   tmit.data[2] = "TESTING ONE TWO THREE.\n";
@@ -1043,7 +1082,7 @@ guest_recv_entry_decision (void *cls,
                            int is_admitted,
                            const struct GNUNET_PSYC_Message *entry_msg)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+  GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
               "Test #%u: Guest received entry decision (try %u): %d.\n",
               test, join_req_count, is_admitted);
 
@@ -1068,7 +1107,8 @@ guest_recv_entry_decision (void *cls,
   {
   case TEST_GUEST_RECV_ENTRY_DCSN_REFUSE:
     GNUNET_assert (GNUNET_NO == is_admitted);
-    guest_enter ();
+    test = TEST_HOST_ANSWER_DOOR_ADMIT;
+    GNUNET_SOCIAL_guest_disconnect (gst, &guest_enter, NULL);
     break;
 
   case TEST_GUEST_RECV_ENTRY_DCSN_ADMIT:
@@ -1097,7 +1137,7 @@ host_answer_door (void *cls,
 {
   join_req_count++;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+  GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
               "Test #%u: Host received entry request from guest (try %u).\n",
               (uint8_t) test, join_req_count);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -1118,7 +1158,7 @@ host_answer_door (void *cls,
     // fall through
 
   case TEST_GUEST_ENTER_BY_NAME:
-    join_resp = GNUNET_PSYC_message_create ("_notice_place_admit", env,
+   join_resp = GNUNET_PSYC_message_create ("_notice_place_admit", env,
                                             DATA2ARG ("Welcome, nym!"));
     GNUNET_SOCIAL_host_entry_decision (hst, nym, GNUNET_YES, join_resp);
     break;
@@ -1135,18 +1175,18 @@ guest_recv_local_enter (void *cls, int result,
                         const struct GNUNET_CRYPTO_EddsaPublicKey *place_pub_key,
                         uint64_t max_message_id)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-              "Test #%u: Guest entered to local place: %d\n",
+  GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
+              "Test #%u: Guest entered local place: %d\n",
               test, result);
-  GNUNET_assert (0 <= result);
+  GNUNET_assert (GNUNET_OK == result);
 }
 
 
 static void
 guest_enter ()
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-              "Test #%u: Entering to place as guest.\n", test);
+  GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
+              "Test #%u: Entering place as guest.\n", test);
 
   struct GuestEnterMessage *emsg = &guest_enter_msg;
 
@@ -1177,8 +1217,8 @@ static void
 guest_enter_by_name ()
 {
   test = TEST_GUEST_ENTER_BY_NAME;
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              "Test #%u: Entering to place by name as guest.\n", test);
+  GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
+              "Test #%u: Entering place by name as guest.\n", test);
 
   struct GuestEnterMessage *emsg = &guest_enter_msg;
 
@@ -1222,7 +1262,7 @@ guest_init ()
                                  guest_recv_data, guest_recv_eom, NULL);
   GNUNET_PSYC_slicer_modifier_add (guest_slicer, "_foo_bar",
                                    guest_recv_mod_foo_bar, &mod_foo_bar_rcls);
-  test = TEST_HOST_ANSWER_DOOR_ADMIT;
+  test = TEST_HOST_ANSWER_DOOR_REFUSE;
 
   GNUNET_SOCIAL_zone_add_nym (app, guest_ego, "host", host_pub_key,
                               GNUNET_TIME_relative_to_absolute (GNUNET_TIME_UNIT_MINUTES),
@@ -1270,8 +1310,8 @@ host_entered (void *cls, int result,
 {
   place_pub_key = *home_pub_key;
   GNUNET_CRYPTO_hash (&place_pub_key, sizeof (place_pub_key), &place_pub_hash);
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-              "Test #%u: Host entered to place %s\n",
+  GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
+              "Test #%u: Host entered place %s\n",
               test, GNUNET_h2s (&place_pub_hash));
   guest_enter ();
 }
@@ -1285,8 +1325,8 @@ host_enter ()
                                  host_recv_method, host_recv_modifier,
                                  host_recv_data, host_recv_eom, NULL);
 
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-              "Test #%u: Entering to place as host.\n", test);
+  GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
+              "Test #%u: Entering place as host.\n", test);
   test = TEST_HOST_ENTER;
   hst = GNUNET_SOCIAL_host_enter (app, host_ego,
                                   GNUNET_PSYC_CHANNEL_PRIVATE,
@@ -1306,6 +1346,8 @@ start_app_if_ready ()
   {
     return;
   }
+  GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
+              "starting app...\n");
   app = GNUNET_SOCIAL_app_connect (cfg,
                                    app_id,
                                    app_recv_ego,
@@ -1324,17 +1366,17 @@ identity_ego_cb (void *cls, struct GNUNET_IDENTITY_Ego *ego,
   {
     if (ego == identity_host_ego)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+      GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
                   "Host ego deleted\n");
     }
     else if (ego == identity_guest_ego)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+      GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
                   "Guest ego deleted\n");
     }
     else if (0 == strcmp (name, host_name))
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+      GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
                   "Created ego %s\n",
                   name);
       identity_host_ego = ego;
@@ -1342,7 +1384,7 @@ identity_ego_cb (void *cls, struct GNUNET_IDENTITY_Ego *ego,
     }
     else if (0 == strcmp (name, guest_name))
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+      GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
                   "Created guest ego %s\n",
                   name);
       identity_guest_ego = ego;
@@ -1370,9 +1412,11 @@ run (void *cls,
 #endif
 {
   cfg = c;
+  res = 1;
   end_badly_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT,
 						 &end_badly, NULL);
-
+  GNUNET_SCHEDULER_add_shutdown (&end_shutdown,
+                                 NULL);
   GNUNET_CRYPTO_get_peer_identity (cfg, &this_peer);
 
   id = GNUNET_IDENTITY_connect (cfg, &identity_ego_cb, NULL);

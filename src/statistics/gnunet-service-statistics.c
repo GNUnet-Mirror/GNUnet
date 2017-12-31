@@ -998,7 +998,9 @@ client_disconnect_cb (void *cls,
  *
  * @param cls NULL
  * @param message the message found on disk
- * @return #GNUNET_OK on success, #GNUNET_SYSERR to stop further processing
+ * @return #GNUNET_OK on success,
+ *    #GNUNET_NO to stop further processing (no error)
+ *    #GNUNET_SYSERR to stop further processing with error
  */
 static int
 inject_message (void *cls,
