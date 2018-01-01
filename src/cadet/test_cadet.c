@@ -58,6 +58,11 @@ struct CadetTestChannelWrapper
 #define SHORT_TIME GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 20)
 
 /**
+ * How fast do we send messages?
+ */
+#define SEND_INTERVAL GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 10)
+
+/**
  * DIFFERENT TESTS TO RUN
  */
 #define SETUP 0
@@ -525,6 +530,7 @@ send_test_message (struct GNUNET_CADET_Channel *channel)
   GNUNET_MQ_send (GNUNET_CADET_get_mq (channel), env);
 }
 
+
 /**
  * Task to request a new data transmission in a SPEED test, without waiting
  * for previous messages to be sent/arrrive.
@@ -537,7 +543,9 @@ send_next_msg (void *cls)
   struct GNUNET_CADET_Channel *channel;
 
   send_next_msg_task = NULL;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending next message: %d\n", data_sent);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Sending next message: %d\n",
+	      data_sent);
 
   channel = GNUNET_YES == test_backwards ? incoming_ch : outgoing_ch;
   GNUNET_assert (NULL != channel);
@@ -550,9 +558,9 @@ send_next_msg (void *cls)
                 "Scheduling message %d\n",
                 data_sent + 1);
     send_next_msg_task =
-        GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_UNIT_SECONDS,
-                                     &send_next_msg,
-                                     NULL);
+      GNUNET_SCHEDULER_add_delayed (SEND_INTERVAL,
+				      &send_next_msg,
+				      NULL);
   }
 }
 

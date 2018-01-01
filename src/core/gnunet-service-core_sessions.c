@@ -147,12 +147,6 @@ struct Session
   struct GNUNET_TIME_Relative typemap_delay;
 
   /**
-   * Is the neighbour queue empty and thus ready for us
-   * to transmit an encrypted message?
-   */
-  int ready_to_transmit;
-
-  /**
    * Is this the first time we're sending the typemap? If so,
    * we want to send it a bit faster the second time.  0 if
    * we are sending for the first time, 1 if not.
@@ -641,13 +635,7 @@ try_transmission (struct Session *session)
   enum GNUNET_CORE_Priority maxpc;
   struct GSC_ClientActiveRequest *car;
   int excess;
-
-  if (GNUNET_YES != session->ready_to_transmit)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Not yet ready to transmit, not evaluating queue\n");
-    return;
-  }
+  
   msize = 0;
   min_deadline = GNUNET_TIME_UNIT_FOREVER_ABS;
   /* if the peer has excess bandwidth, background traffic is allowed,
@@ -888,10 +876,12 @@ GSC_SESSIONS_solicit (const struct GNUNET_PeerIdentity *pid)
 {
   struct Session *session;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Transport solicits for %s\n",
+	      GNUNET_i2s (pid));
   session = find_session (pid);
   if (NULL == session)
     return;
-  session->ready_to_transmit = GNUNET_YES;
   try_transmission (session);
 }
 
