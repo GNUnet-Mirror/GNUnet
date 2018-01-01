@@ -65,7 +65,7 @@ URLs break in the PDF output when they contain linebreaks.
 
 @item Do not use tab characters (see chapter 2.1 texinfo manual)
 
-@item Use neutral language and third person perspective in the text
+@item Write texts in the third person perspective.
 
 @item So, when you refer to a user in general or addressing the user,
 refer to (1).
@@ -95,8 +95,5 @@ examples when you can) or followed.
 footnote on a collected footnote-page.
 In a 200+ pages handbook it's better to have footnotes accessible
 without having to skip over to the end.
-
-@item Avoid unnecessary footnotes, keep the text self-explanatory and
-in a simple language where possible/necessary.
 
 @end itemize

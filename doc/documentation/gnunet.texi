@@ -74,7 +74,7 @@ This document is the Reference Manual for GNUnet version @value{VERSION}.
 * Vocabulary::                      Vocabulary
 * GNUnet Installation Handbook::    How to install GNUnet
 * Using GNUnet::                    Using GNUnet
-* Configuration Handbook::          Configuring GNUnet
+@c * Configuration Handbook::          Configuring GNUnet
 * GNUnet Contributors Handbook::    Contributing to GNUnet
 * GNUnet Developer Handbook::       Developing GNUnet
 * GNU Free Documentation License::  The license of this manual
@@ -136,7 +136,7 @@ Using GNUnet
 * The GNU Name System::
 * Using the Virtual Public Network::
 
-Configuration Handbook
+@c Configuration Handbook
 
 GNUnet Contributors Handbook
 
@@ -201,7 +201,7 @@ GNUnet Developer Handbook
 @include chapters/user.texi
 @c *********************************************************************
 
-@include chapters/configuration.texi
+@c @include chapters/configuration.texi
 
 @include chapters/contributing.texi
 
