@@ -67,15 +67,6 @@ URLs break in the PDF output when they contain linebreaks.
 
 @item Write texts in the third person perspective.
 
-@item So, when you refer to a user in general or addressing the user,
-refer to (1).
-@itemize @bullet
-@item Unsolved exceptions for canonical reasons: When refering to Alice,
-use "she". When refering to Bob, use "he". These are long established
-examples and they should either be replaced (avoid Alice and Bob
-examples when you can) or followed.
-@end itemize
-
 @c FIXME: This is questionable, it feels like bike shed painging to do
 @c this for several k lines. It only helps to jump between sentences in
 @c editors afaik.
