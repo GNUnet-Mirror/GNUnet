@@ -12,3 +12,4 @@ test_service_rps_custommap
 test_service_rps_sampler_elem
 test_service_rps_view
 test_rps_churn
+test_service_rps_peers
