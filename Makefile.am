@@ -15,7 +15,8 @@ EXTRA_DIST = \
  ABOUT-NLS \
  config.rpath \
  install-sh \
- acinclude.m4
+ acinclude.m4 \
+ README.1st
 
 gnunetincludedir = $(includedir)/gnunet
 gnunetinclude_HEADERS = gnunet_config.h

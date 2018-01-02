@@ -1932,6 +1932,11 @@ do_send (void *cls)
   size_t left;
   const char *buf;
 
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "service: sending message with type %u",
+       ntohs(client->msg->type));
+
+
   client->send_task = NULL;
   buf = (const char *) client->msg;
   left = ntohs (client->msg->size) - client->msg_pos;
@@ -1941,6 +1946,8 @@ do_send (void *cls)
   GNUNET_assert (ret <= (ssize_t) left);
   if (0 == ret)
   {
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "no data send");
     GNUNET_MQ_inject_error (client->mq,
 			    GNUNET_MQ_ERROR_WRITE);
     return;
@@ -1958,6 +1965,9 @@ do_send (void *cls)
       if (EPIPE != errno)
         GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING,
                              "send");
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
+           "socket send returned with error code %i",
+           errno);
       GNUNET_MQ_inject_error (client->mq,
 			      GNUNET_MQ_ERROR_WRITE);
       return;
@@ -2402,7 +2412,7 @@ resume_client_receive (void *cls)
 			 GNUNET_YES);
   if (GNUNET_SYSERR == ret)
   {
-    if (NULL != c->drop_task)
+    if (NULL == c->drop_task)
       GNUNET_SERVICE_client_drop (c);
     return;
   }
@@ -2431,6 +2441,7 @@ resume_client_receive (void *cls)
 void
 GNUNET_SERVICE_client_continue (struct GNUNET_SERVICE_Client *c)
 {
+  GNUNET_assert (NULL == c->drop_task);
   GNUNET_assert (GNUNET_YES == c->needs_continue);
   GNUNET_assert (NULL == c->recv_task);
   c->needs_continue = GNUNET_NO;
@@ -2512,6 +2523,24 @@ void
 GNUNET_SERVICE_client_drop (struct GNUNET_SERVICE_Client *c)
 {
   struct GNUNET_SERVICE_Handle *sh = c->sh;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Client dropped: %p (MQ: %p)\n",
+              c,
+              c->mq);
+
+#if EXECINFO
+  void *backtrace_array[MAX_TRACE_DEPTH];
+  int num_backtrace_strings = backtrace (backtrace_array, MAX_TRACE_DEPTH);
+    char **backtrace_strings =
+        backtrace_symbols (backtrace_array,
+         t->num_backtrace_strings);
+    for (unsigned int i = 0; i < num_backtrace_strings; i++)
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
+     "client drop trace %u: %s\n",
+     i,
+     backtrace_strings[i]);
+#endif
 
   if (NULL != c->drop_task)
   {

@@ -26,6 +26,8 @@ lib_LTLIBRARIES = \
 libexec_PROGRAMS = \
  gnunet-rest-server
 
+EXTRA_DIST = \
+ rest.conf
 
 gnunet_rest_server_SOURCES = \
  gnunet-rest-server.c

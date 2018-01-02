@@ -175,4 +175,100 @@ struct GNUNET_RPS_CS_ActMaliciousMessage
 };
 #endif /* ENABLE_MALICIOUS */
 
+
+/***********************************************************************
+ * Defines from old gnunet-service-rps_peers.h
+***********************************************************************/
+
+/**
+ * Different flags indicating the status of another peer.
+ */
+enum Peers_PeerFlags
+{
+  /**
+   * If we are waiting for a reply from that peer (sent a pull request).
+   */
+  Peers_PULL_REPLY_PENDING   = 0x01,
+
+  /* IN_OTHER_GOSSIP_LIST = 0x02, unneeded? */
+  /* IN_OWN_SAMPLER_LIST  = 0x04, unneeded? */
+  /* IN_OWN_GOSSIP_LIST   = 0x08, unneeded? */
+
+  /**
+   * We set this bit when we know the peer is online.
+   */
+  Peers_ONLINE               = 0x20,
+
+  /**
+   * We set this bit when we are going to destroy the channel to this peer.
+   * When cleanup_channel is called, we know that we wanted to destroy it.
+   * Otherwise the channel to the other peer was destroyed.
+   */
+  Peers_TO_DESTROY           = 0x40,
+};
+
+/**
+ * Keep track of the status of a channel.
+ *
+ * This is needed in order to know what to do with a channel when it's
+ * destroyed.
+ */
+enum Peers_ChannelFlags
+{
+  /**
+   * We destroyed the channel because the other peer established a second one.
+   */
+  Peers_CHANNEL_ESTABLISHED_TWICE = 0x1,
+
+  /**
+   * The channel was removed because it was not needed any more. This should be
+   * the sending channel.
+   */
+  Peers_CHANNEL_CLEAN = 0x2,
+
+  /**
+   * We destroyed the channel because the other peer established a second one.
+   */
+  Peers_CHANNEL_DESTROING = 0x4,
+};
+
+
+/**
+ * @brief The role of a channel. Sending or receiving.
+ */
+enum Peers_ChannelRole
+{
+  /**
+   * Channel is used for sending
+   */
+  Peers_CHANNEL_ROLE_SENDING   = 0x01,
+
+  /**
+   * Channel is used for receiving
+   */
+  Peers_CHANNEL_ROLE_RECEIVING = 0x02,
+};
+
+/**
+ * @brief Functions of this type can be used to be stored at a peer for later execution.
+ *
+ * @param cls closure
+ * @param peer peer to execute function on
+ */
+typedef void (* PeerOp) (void *cls, const struct GNUNET_PeerIdentity *peer);
+
+/**
+ * @brief Iterator over valid peers.
+ *
+ * @param cls closure
+ * @param peer current public peer id
+ * @return #GNUNET_YES if we should continue to
+ *         iterate,
+ *         #GNUNET_NO if not.
+ */
+typedef int
+(*PeersIterator) (void *cls,
+                  const struct GNUNET_PeerIdentity *peer);
+
+
 GNUNET_NETWORK_STRUCT_END

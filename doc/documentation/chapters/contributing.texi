@@ -65,16 +65,7 @@ URLs break in the PDF output when they contain linebreaks.
 
 @item Do not use tab characters (see chapter 2.1 texinfo manual)
 
-@item Use neutral language and third person perspective in the text
-
-@item So, when you refer to a user in general or addressing the user,
-refer to (1).
-@itemize @bullet
-@item Unsolved exceptions for canonical reasons: When refering to Alice,
-use "she". When refering to Bob, use "he". These are long established
-examples and they should either be replaced (avoid Alice and Bob
-examples when you can) or followed.
-@end itemize
+@item Write texts in the third person perspective.
 
 @c FIXME: This is questionable, it feels like bike shed painging to do
 @c this for several k lines. It only helps to jump between sentences in
@@ -95,8 +86,5 @@ examples when you can) or followed.
 footnote on a collected footnote-page.
 In a 200+ pages handbook it's better to have footnotes accessible
 without having to skip over to the end.
-
-@item Avoid unnecessary footnotes, keep the text self-explanatory and
-in a simple language where possible/necessary.
 
 @end itemize

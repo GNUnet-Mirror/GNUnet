@@ -18,7 +18,7 @@
      Boston, MA 02110-1301, USA.
 */
 /**
- * @file rps/test_rps_multipeer.c
+ * @file rps/test_rps.c
  * @brief Testcase for the random peer sampling service.  Starts
  *        a peergroup with a given number of peers, then waits to
  *        receive size pushes/pulls from each peer.  Expects to wait
@@ -344,6 +344,11 @@ struct SingleTestRun
    * Number of Requests to make.
    */
   uint32_t num_requests;
+
+  /**
+   * Run with churn
+   */
+  int have_churn;
 } cur_test_run;
 
 /**
@@ -1023,6 +1028,33 @@ req_cancel_cb (struct RPSPeer *rps_peer)
 }
 
 /***********************************
+ * CHURN
+***********************************/
+
+static void
+churn (void *cls);
+
+static void
+churn_test_cb (struct RPSPeer *rps_peer)
+{
+  /* Start churn */
+  if (GNUNET_YES == cur_test_run.have_churn && NULL == churn_task)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Starting churn task\n");
+    churn_task = GNUNET_SCHEDULER_add_delayed (
+          GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5),
+          churn,
+          NULL);
+  } else {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Not starting churn task\n");
+  }
+
+  schedule_missing_requests (rps_peer);
+}
+
+/***********************************
  * PROFILER
 ***********************************/
 
@@ -1148,6 +1180,9 @@ churn (void *cls)
   double portion_go_online;
   double portion_go_offline;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Churn function executing\n");
+
   /* Compute the probability for an online peer to go offline
    * this round */
   portion_online = num_peers_online * 1.0 / num_peers;
@@ -1256,12 +1291,17 @@ static void
 profiler_cb (struct RPSPeer *rps_peer)
 {
   /* Start churn */
-  if (NULL == churn_task)
+  if (GNUNET_YES == cur_test_run.have_churn && NULL == churn_task)
   {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Starting churn task\n");
     churn_task = GNUNET_SCHEDULER_add_delayed (
           GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5),
           churn,
           NULL);
+  } else {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Not starting churn task\n");
   }
 
   /* Only request peer ids at one peer.
@@ -1353,6 +1393,24 @@ run (void *cls,
   struct OpListEntry *entry;
   uint32_t num_mal_peers;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "RUN was called\n");
+
+  /* Check whether we timed out */
+  if (n_peers != num_peers ||
+      NULL == peers ||
+      0 == links_succeeded)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Going down due to args (eg. timeout)\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "\tn_peers: %u\n", n_peers);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "\tnum_peers: %" PRIu32 "\n", num_peers);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "\tpeers: %p\n", peers);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "\tlinks_succeeded: %u\n", links_succeeded);
+    GNUNET_SCHEDULER_shutdown ();
+    return;
+  }
+
+
+  /* Initialize peers */
   testbed_peers = peers;
   num_peers_online = 0;
   for (i = 0; i < num_peers; i++)
@@ -1412,6 +1470,7 @@ main (int argc, char *argv[])
   cur_test_run.pre_test = NULL;
   cur_test_run.reply_handle = default_reply_handle;
   cur_test_run.eval_cb = default_eval_cb;
+  cur_test_run.have_churn = GNUNET_YES;
   churn_task = NULL;
   timeout = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 30);
 
@@ -1446,6 +1505,7 @@ main (int argc, char *argv[])
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Test single request\n");
     cur_test_run.name = "test-rps-single-req";
     cur_test_run.main_test = single_req_cb;
+    cur_test_run.have_churn = GNUNET_NO;
   }
 
   else if (strstr (argv[0], "_delayed_reqs") != NULL)
@@ -1453,6 +1513,7 @@ main (int argc, char *argv[])
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Test delayed requests\n");
     cur_test_run.name = "test-rps-delayed-reqs";
     cur_test_run.main_test = delay_req_cb;
+    cur_test_run.have_churn = GNUNET_NO;
   }
 
   else if (strstr (argv[0], "_seed_big") != NULL)
@@ -1462,6 +1523,7 @@ main (int argc, char *argv[])
     cur_test_run.name = "test-rps-seed-big";
     cur_test_run.main_test = seed_big_cb;
     cur_test_run.eval_cb = no_eval;
+    cur_test_run.have_churn = GNUNET_NO;
     timeout = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10);
   }
 
@@ -1470,6 +1532,7 @@ main (int argc, char *argv[])
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Test seeding and requesting on a single peer\n");
     cur_test_run.name = "test-rps-single-peer-seed";
     cur_test_run.main_test = single_peer_seed_cb;
+    cur_test_run.have_churn = GNUNET_NO;
   }
 
   else if (strstr (argv[0], "_seed_request") != NULL)
@@ -1477,6 +1540,7 @@ main (int argc, char *argv[])
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Test seeding and requesting on multiple peers\n");
     cur_test_run.name = "test-rps-seed-request";
     cur_test_run.main_test = seed_req_cb;
+    cur_test_run.have_churn = GNUNET_NO;
   }
 
   else if (strstr (argv[0], "_seed") != NULL)
@@ -1485,6 +1549,7 @@ main (int argc, char *argv[])
     cur_test_run.name = "test-rps-seed";
     cur_test_run.main_test = seed_cb;
     cur_test_run.eval_cb = no_eval;
+    cur_test_run.have_churn = GNUNET_NO;
   }
 
   else if (strstr (argv[0], "_req_cancel") != NULL)
@@ -1494,6 +1559,20 @@ main (int argc, char *argv[])
     num_peers = 1;
     cur_test_run.main_test = req_cancel_cb;
     cur_test_run.eval_cb = no_eval;
+    cur_test_run.have_churn = GNUNET_NO;
+    timeout = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10);
+  }
+
+  else if (strstr (argv[0], "_churn") != NULL)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Test churn\n");
+    cur_test_run.name = "test-rps-churn";
+    num_peers = 5;
+    cur_test_run.init_peer = default_init_peer;
+    cur_test_run.main_test = churn_test_cb;
+    cur_test_run.reply_handle = default_reply_handle;
+    cur_test_run.eval_cb = default_eval_cb;
+    cur_test_run.have_churn = GNUNET_YES;
     timeout = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10);
   }
 
@@ -1510,6 +1589,7 @@ main (int argc, char *argv[])
     cur_test_run.eval_cb = profiler_eval;
     cur_test_run.request_interval = 2;
     cur_test_run.num_requests = 5;
+    cur_test_run.have_churn = GNUNET_YES;
     timeout = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 90);
 
     /* 'Clean' directory */
@@ -1542,4 +1622,4 @@ main (int argc, char *argv[])
   return ret_value;
 }
 
-/* end of test_rps_multipeer.c */
+/* end of test_rps.c */

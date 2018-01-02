@@ -1915,7 +1915,6 @@ setup_service (void *cls,
   struct sockaddr **addrs;
   socklen_t *addr_lens;
   int ret;
-  unsigned int i;
 
   if (0 == strcasecmp (section,
                        "arm"))
@@ -2027,7 +2026,7 @@ setup_service (void *cls,
 					&addr_lens)))
     return;
   /* this will free (or capture) addrs[i] */
-  for (i = 0; i < ret; i++)
+  for (unsigned int i = 0; i < ret; i++)
     create_listen_socket (addrs[i],
                           addr_lens[i],
                           sl);

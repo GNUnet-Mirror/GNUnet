@@ -65,7 +65,9 @@ struct Microphone
  *
  * @param cls clsoure with our `struct Microphone`
  * @param msg the message from the helper
- * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
+ * @return #GNUNET_OK on success,
+ *    #GNUNET_NO to stop further processing (no error)
+ *    #GNUNET_SYSERR to stop further processing with error
  */
 static int
 process_record_messages (void *cls,

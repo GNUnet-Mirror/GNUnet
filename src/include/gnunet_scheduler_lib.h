@@ -152,14 +152,14 @@ struct GNUNET_SCHEDULER_FdInfo
    * NULL if this is about a file handle or if no network
    * handle was given to the scheduler originally.
    */
-  struct GNUNET_NETWORK_Handle *fd;
+  const struct GNUNET_NETWORK_Handle *fd;
 
   /**
    * GNUnet file handle the event is about, matches @a sock,
    * NULL if this is about a network socket or if no network
    * handle was given to the scheduler originally.
    */
-  struct GNUNET_DISK_FileHandle *fh;
+  const struct GNUNET_DISK_FileHandle *fh;
 
   /**
    * Type of the event that was generated related to @e sock.
@@ -216,17 +216,18 @@ struct GNUNET_SCHEDULER_TaskContext
 
 /**
  * Function used by event-loop implementations to signal the scheduler
- * that a particular @a task is ready due to an event of type @a et.
+ * that a particular @a task is ready due to an event specified in the
+ * et field of @a fdi.
  *
  * This function will then queue the task to notify the application
  * that the task is ready (with the respective priority).
  *
  * @param task the task that is ready
- * @param et information about why the task is ready
+ * @param fdi information about the related FD
  */
 void
 GNUNET_SCHEDULER_task_ready (struct GNUNET_SCHEDULER_Task *task,
-			     enum GNUNET_SCHEDULER_EventType et);
+			     struct GNUNET_SCHEDULER_FdInfo *fdi);
 
 
 /**
@@ -241,15 +242,16 @@ struct GNUNET_SCHEDULER_Handle;
  * there are tasks left to run just to give other tasks a chance as
  * well.  If we return #GNUNET_YES, the driver should call this
  * function again as soon as possible, while if we return #GNUNET_NO
- * it must block until the operating system has more work as the
- * scheduler has no more work to do right now.
+ * it must block until either the operating system has more work (the
+ * scheduler has no more work to do right now) or the timeout set by
+ * the scheduler (using the set_wakeup callback) is reached.
  *
  * @param sh scheduler handle that was given to the `loop`
  * @return #GNUNET_OK if there are more tasks that are ready,
  *          and thus we would like to run more (yield to avoid
  *          blocking other activities for too long)
  *         #GNUNET_NO if we are done running tasks (yield to block)
- *         #GNUNET_SYSERR on error
+ *         #GNUNET_SYSERR on error, e.g. no tasks were ready
  */
 int
 GNUNET_SCHEDULER_run_from_driver (struct GNUNET_SCHEDULER_Handle *sh);
@@ -268,8 +270,11 @@ struct GNUNET_SCHEDULER_Driver
   void *cls;
 
   /**
-   * Add a @a task to be run if the conditions given
-   * in @a fdi are satisfied.
+   * Add a @a task to be run if the conditions specified in the 
+   * et field of the given @a fdi are satisfied. The et field will
+   * be cleared after this call and the driver is expected to set
+   * the type of the actual event before passing @a fdi to
+   * #GNUNET_SCHEDULER_task_ready.
    *
    * @param cls closure
    * @param task task to add
@@ -280,21 +285,21 @@ struct GNUNET_SCHEDULER_Driver
   int
   (*add)(void *cls,
 	 struct GNUNET_SCHEDULER_Task *task,
-	 struct GNUNET_SCHEDULER_FdInfo *fdi);
+         struct GNUNET_SCHEDULER_FdInfo *fdi);
 
   /**
-   * Delete a @a task from the set of tasks to be run.
+   * Delete a @a task from the set of tasks to be run. A task may
+   * comprise multiple FdInfo entries previously added with the add
+   * function. The driver is expected to delete them all.
    *
    * @param cls closure
    * @param task task to delete
-   * @param fdi conditions to watch for (must match @e add call)
    * @return #GNUNET_OK on success, #GNUNET_SYSERR on failure
-   *   (i.e. @a task or @a fdi do not match prior @e add call)
+   *   (i.e. @a task does not match prior @e add call)
    */
   int
   (*del)(void *cls,
-	 struct GNUNET_SCHEDULER_Task *task,
-	 const struct GNUNET_SCHEDULER_FdInfo *fdi);
+	 struct GNUNET_SCHEDULER_Task *task);
 
   /**
    * Set time at which we definitively want to get a wakeup call.
@@ -309,7 +314,10 @@ struct GNUNET_SCHEDULER_Driver
   /**
    * Event loop's "main" function, to be called from
    * #GNUNET_SCHEDULER_run_with_driver() to actually
-   * launch the loop.
+   * launch the loop. The loop should run as long as
+   * tasks (added by the add callback) are available 
+   * OR the wakeup time (added by the set_wakeup
+   * callback) is not FOREVER.
    *
    * @param cls closure
    * @param sh scheduler handle to pass to
@@ -359,7 +367,7 @@ GNUNET_SCHEDULER_run_with_driver (const struct GNUNET_SCHEDULER_Driver *driver,
  *
  * @return NULL on error
  */
-const struct GNUNET_SCHEDULER_Driver *
+struct GNUNET_SCHEDULER_Driver *
 GNUNET_SCHEDULER_driver_select (void);
 
 

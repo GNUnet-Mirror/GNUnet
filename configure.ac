@@ -1,5 +1,5 @@
 # This file is part of GNUnet.
-# (C) 2001--2017 GNUnet e.V.
+# (C) 2001--2018 GNUnet e.V.
 #
 # GNUnet is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published
@@ -22,7 +22,7 @@
 #
 AC_PREREQ(2.61)
 # Checks for programs.
-AC_INIT([gnunet], [0.10.1], [bug-gnunet@gnu.org])
+AC_INIT([gnunet], [0.11.0], [bug-gnunet@gnu.org])
 
 AC_CANONICAL_TARGET
 AC_CANONICAL_HOST
@@ -1580,8 +1580,6 @@ src/dht/Makefile
 src/dht/dht.conf
 src/dns/Makefile
 src/dns/dns.conf
-src/dv/Makefile
-src/dv/dv.conf
 src/exit/Makefile
 src/fragmentation/Makefile
 src/fs/Makefile

@@ -241,6 +241,7 @@ GNUNET_CADET_TEST_cleanup (struct GNUNET_CADET_TEST_Context *ctx)
   }
   GNUNET_free (ctx->ops);
   GNUNET_free (ctx->cadets);
+  GNUNET_free (ctx->handlers);
   GNUNET_free (ctx);
   GNUNET_SCHEDULER_shutdown ();
 }
