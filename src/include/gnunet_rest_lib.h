@@ -32,7 +32,7 @@
 #define GNUNET_REST_LIB_H
 
 #include "gnunet_util_lib.h"
-#include "microhttpd.h"
+#include <microhttpd.h>
 
 #define GNUNET_REST_HANDLER_END {NULL, NULL, NULL}
 

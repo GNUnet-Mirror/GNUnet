@@ -1559,8 +1559,6 @@ src/dht/Makefile
 src/dht/dht.conf
 src/dns/Makefile
 src/dns/dns.conf
-src/dv/Makefile
-src/dv/dv.conf
 src/exit/Makefile
 src/fragmentation/Makefile
 src/fs/Makefile
