@@ -828,6 +828,7 @@ disconnect_handler (void *cls,
         GNUNET_SCHEDULER_add_now (&gather_stats_and_exit,
 				  (void *) __LINE__);
   }
+  GNUNET_free (ch_w);
 }
 
 
