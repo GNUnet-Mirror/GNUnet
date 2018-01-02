@@ -2277,6 +2277,8 @@ select_loop (void *cls,
       }
 #endif
       GNUNET_assert (0);
+      GNUNET_NETWORK_fdset_destroy (rs);
+      GNUNET_NETWORK_fdset_destroy (ws);
       return GNUNET_SYSERR;
     }
     for (pos = context->scheduled_head; NULL != pos; pos = pos->next)
@@ -2302,6 +2304,8 @@ select_loop (void *cls,
     tasks_ready = GNUNET_SCHEDULER_run_from_driver (sh);
     GNUNET_assert (GNUNET_SYSERR != tasks_ready);
   }
+  GNUNET_NETWORK_fdset_destroy (rs);
+  GNUNET_NETWORK_fdset_destroy (ws);
   return GNUNET_OK; 
 }
 
