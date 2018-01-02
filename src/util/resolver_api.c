@@ -414,10 +414,11 @@ process_requests ()
   {
     /* nothing to do, release socket really soon if there is nothing
      * else happening... */
-    s_task =
-      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_MILLISECONDS,
-                                    &shutdown_task,
-                                    NULL);
+    if (NULL == s_task)
+      s_task =
+        GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_MILLISECONDS,
+                                      &shutdown_task,
+                                      NULL);
     return;
   }
   if (GNUNET_NO != rh->was_transmitted)
