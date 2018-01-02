@@ -623,7 +623,7 @@ timeout_cb (void *cls)
   {
     exp = GNUNET_TIME_absolute_add (r->last_use,
                                     linger);
-    if (0 != GNUNET_TIME_absolute_get_duration (exp).rel_value_us)
+    if (0 != GNUNET_TIME_absolute_get_remaining (exp).rel_value_us)
     {
       /* Route not yet timed out, wait until it does. */
       timeout_task = GNUNET_SCHEDULER_add_at (exp,
@@ -631,6 +631,11 @@ timeout_cb (void *cls)
                                               NULL);
       return;
     }
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		"Sending BROKEN due to timeout (%s was last use, %s linger)\n",
+		GNUNET_STRINGS_absolute_time_to_string (r->last_use),
+		GNUNET_STRINGS_relative_time_to_string (linger,
+							GNUNET_YES));
     send_broken (&r->prev,
                  &r->cid,
                  NULL,
@@ -688,6 +693,8 @@ dir_ready_cb (void *cls,
     return;
   }
   odir = (dir == &route->next) ? &route->prev : &route->next;
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+	      "Sending BROKEN due to MQ going down\n");
   send_broken (&route->next,
                &route->cid,
                GCP_get_id (odir->hop),
