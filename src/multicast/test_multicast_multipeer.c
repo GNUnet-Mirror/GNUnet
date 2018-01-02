@@ -547,7 +547,8 @@ service_connect (void *cls,
  * @param PEERS_REQUESTED size of the 'peers' array
  * @param links_succeeded number of links between peers that were created
  * @param links_failed number of links testbed was unable to establish
- */ static void
+ */ 
+static void
 testbed_master (void *cls,
      struct GNUNET_TESTBED_RunHandle *h,
      unsigned int num_peers,
