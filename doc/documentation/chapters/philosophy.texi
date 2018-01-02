@@ -206,7 +206,7 @@ outdated advertisements.
 A Transport Layer Abstraction for Peer-to-Peer Networks
 Proceedings of the 3rd International Symposium on Cluster Computing
 and the Grid (GRID 2003), 2003.
-(@uref{https://gnunet.org/git/bibliography.git/plain/docs/transport.pdf, pdf})}
+(@uref{https://gnunet.org/git/bibliography.git/plain/docs/transport.pdf, https://gnunet.org/git/bibliography.git/plain/docs/transport.pdf})}
 
 @cindex Accounting to Encourage Resource Sharing
 @node Accounting to Encourage Resource Sharing
@@ -241,7 +241,7 @@ ensures that nodes that are not currently considered to have a surplus in
 contributions will not be served if the network load is high.
 @footnote{Christian Grothoff. An Excess-Based Economic Model for Resource
 Allocation in Peer-to-Peer Networks. Wirtschaftsinformatik, June 2003.
-(@uref{https://gnunet.org/git/bibliography.git/plain/docs/ebe.pdf, pdf})}
+(@uref{https://gnunet.org/git/bibliography.git/plain/docs/ebe.pdf, https://gnunet.org/git/bibliography.git/plain/docs/ebe.pdf})}
 @c 2009?
 
 @cindex Confidentiality
@@ -278,7 +278,7 @@ Anonymity is never absolute. While there are various
 scientific metrics@footnote{Claudia Díaz, Stefaan Seys, Joris Claessens,
 and Bart Preneel. Towards measuring anonymity.
 2002.
-(@uref{https://gnunet.org/git/bibliography.git/plain/docs/article-89.pdf, pdf})}
+(@uref{https://gnunet.org/git/bibliography.git/plain/docs/article-89.pdf, https://gnunet.org/git/bibliography.git/plain/docs/article-89.pdf})}
 that can help quantify the level of anonymity that a given mechanism
 provides, there is no such thing as complete anonymity.
 GNUnet's file-sharing implementation allows users to select for each
@@ -365,7 +365,7 @@ by @command{gnunet-publish}, @command{gnunet-download},
 and Jussi T. Lindgren.
 An Encoding for Censorship-Resistant Sharing.
 2009.
-(@uref{https://gnunet.org/git/bibliography.git/plain/docs/ecrs.pdf, pdf})}
+(@uref{https://gnunet.org/git/bibliography.git/plain/docs/ecrs.pdf, https://gnunet.org/git/bibliography.git/plain/docs/ecrs.pdf})}
 
 @cindex Peer Identities
 @node Peer Identities
