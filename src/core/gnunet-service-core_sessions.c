@@ -789,7 +789,6 @@ try_transmission (struct Session *session)
                            total_bytes / total_msgs,
                            GNUNET_NO);
     /* now actually transmit... */
-    session->ready_to_transmit = GNUNET_NO;
     GSC_KX_encrypt_and_transmit (session->kx,
                                  pbuf,
                                  used);
