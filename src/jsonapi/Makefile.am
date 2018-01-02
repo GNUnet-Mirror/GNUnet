@@ -24,7 +24,7 @@ libgnunetjsonapi_la_LDFLAGS = \
   -version-info 0:0:0 \
   -no-undefined
 libgnunetjsonapi_la_SOURCES = \
-	jsonapi_document.c \
+	jsonapi_document.c jsonapi_objects.h \
 	jsonapi_resource.c \
 	jsonapi_error.c \
 	jsonapi_relationship.c

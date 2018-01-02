@@ -55,7 +55,6 @@ static struct GNUNET_TRANSPORT_HelloGetHandle *ghh;
 struct GNUNET_TIME_Relative hello_expiration;
 
 
-/* Code shared between different DHT implementations */
 #include "gnunet-service-dht_clients.c"
 
 
