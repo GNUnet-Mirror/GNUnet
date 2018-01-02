@@ -58,6 +58,11 @@ struct CadetTestChannelWrapper
 #define SHORT_TIME GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 20)
 
 /**
+ * How fast do we send messages?
+ */
+#define SEND_INTERVAL GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 10)
+
+/**
  * DIFFERENT TESTS TO RUN
  */
 #define SETUP 0
@@ -269,12 +274,20 @@ show_end_data (void)
 
   end_time = GNUNET_TIME_absolute_get ();
   total_time = GNUNET_TIME_absolute_get_difference (start_time, end_time);
-  FPRINTF (stderr, "\nResults of test \"%s\"\n", test_name);
-  FPRINTF (stderr, "Test time %s\n",
+  FPRINTF (stderr,
+	   "\nResults of test \"%s\"\n",
+	   test_name);
+  FPRINTF (stderr,
+	   "Test time %s\n",
            GNUNET_STRINGS_relative_time_to_string (total_time, GNUNET_YES));
-  FPRINTF (stderr, "Test bandwidth: %f kb/s\n", 4 * total_packets * 1.0 / (total_time.rel_value_us / 1000));    // 4bytes * ms
-  FPRINTF (stderr, "Test throughput: %f packets/s\n\n", total_packets * 1000.0 / (total_time.rel_value_us / 1000));     // packets * ms
-  GAUGER ("CADET", test_name,
+  FPRINTF (stderr,
+	   "Test bandwidth: %f kb/s\n",
+	   4 * total_packets * 1.0 / (total_time.rel_value_us / 1000));    // 4bytes * ms
+  FPRINTF (stderr,
+	   "Test throughput: %f packets/s\n\n",
+	   total_packets * 1000.0 / (total_time.rel_value_us / 1000));     // packets * ms
+  GAUGER ("CADET",
+	  test_name,
           total_packets * 1000.0 / (total_time.rel_value_us / 1000),
           "packets/s");
 }
@@ -290,13 +303,12 @@ static void
 disconnect_cadet_peers (void *cls)
 {
   long line = (long) cls;
-  unsigned int i;
 
   disconnect_task = NULL;
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "disconnecting cadet service of peers, called from line %ld\n",
               line);
-  for (i = 0; i < 2; i++)
+  for (unsigned int i = 0; i < 2; i++)
   {
     GNUNET_TESTBED_operation_done (t_op[i]);
   }
@@ -324,7 +336,8 @@ disconnect_cadet_peers (void *cls)
 static void
 shutdown_task (void *cls)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Ending test.\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Ending test.\n");
   if (NULL != send_next_msg_task)
   {
     GNUNET_SCHEDULER_cancel (send_next_msg_task);
@@ -339,7 +352,8 @@ shutdown_task (void *cls)
   {
     GNUNET_SCHEDULER_cancel (disconnect_task);
     disconnect_task =
-        GNUNET_SCHEDULER_add_now (&disconnect_cadet_peers, (void *) __LINE__);
+        GNUNET_SCHEDULER_add_now (&disconnect_cadet_peers,
+				  (void *) __LINE__);
   }
 }
 
@@ -354,10 +368,14 @@ shutdown_task (void *cls)
  *          operation has executed successfully.
  */
 static void
-stats_cont (void *cls, struct GNUNET_TESTBED_Operation *op, const char *emsg)
+stats_cont (void *cls,
+	    struct GNUNET_TESTBED_Operation *op,
+	    const char *emsg)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, " KA sent: %u, KA received: %u\n",
-              ka_sent, ka_received);
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+	      "KA sent: %u, KA received: %u\n",
+              ka_sent,
+	      ka_received);
   if ((KEEPALIVE == test) && ((ka_sent < 2) || (ka_sent > ka_received + 1)))
   {
     GNUNET_break (0);
@@ -367,7 +385,8 @@ stats_cont (void *cls, struct GNUNET_TESTBED_Operation *op, const char *emsg)
 
   if (NULL != disconnect_task)
     GNUNET_SCHEDULER_cancel (disconnect_task);
-  disconnect_task = GNUNET_SCHEDULER_add_now (&disconnect_cadet_peers, cls);
+  disconnect_task = GNUNET_SCHEDULER_add_now (&disconnect_cadet_peers,
+					      cls);
 }
 
 
@@ -438,7 +457,6 @@ gather_stats_and_exit (void *cls)
 }
 
 
-
 /**
  * Abort test: schedule disconnect and shutdown immediately
  *
@@ -450,9 +468,12 @@ abort_test (long line)
   if (NULL != disconnect_task)
   {
     GNUNET_SCHEDULER_cancel (disconnect_task);
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Aborting test from %ld\n", line);
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		"Aborting test from %ld\n",
+		line);
     disconnect_task =
-        GNUNET_SCHEDULER_add_now (&disconnect_cadet_peers, (void *) line);
+        GNUNET_SCHEDULER_add_now (&disconnect_cadet_peers,
+				  (void *) line);
   }
 }
 
@@ -525,6 +546,7 @@ send_test_message (struct GNUNET_CADET_Channel *channel)
   GNUNET_MQ_send (GNUNET_CADET_get_mq (channel), env);
 }
 
+
 /**
  * Task to request a new data transmission in a SPEED test, without waiting
  * for previous messages to be sent/arrrive.
@@ -537,7 +559,9 @@ send_next_msg (void *cls)
   struct GNUNET_CADET_Channel *channel;
 
   send_next_msg_task = NULL;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending next message: %d\n", data_sent);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Sending next message: %d\n",
+	      data_sent);
 
   channel = GNUNET_YES == test_backwards ? incoming_ch : outgoing_ch;
   GNUNET_assert (NULL != channel);
@@ -550,9 +574,9 @@ send_next_msg (void *cls)
                 "Scheduling message %d\n",
                 data_sent + 1);
     send_next_msg_task =
-        GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_UNIT_SECONDS,
-                                     &send_next_msg,
-                                     NULL);
+      GNUNET_SCHEDULER_add_delayed (SEND_INTERVAL,
+				      &send_next_msg,
+				      NULL);
   }
 }
 
@@ -571,7 +595,7 @@ reschedule_timeout_task (long line)
     if (NULL != disconnect_task)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  " reschedule timeout every 10 messages\n");
+                  "reschedule timeout every 10 messages\n");
       GNUNET_SCHEDULER_cancel (disconnect_task);
       disconnect_task = GNUNET_SCHEDULER_add_delayed (short_time,
                                                       &gather_stats_and_exit,
@@ -605,7 +629,8 @@ check_data (void *cls, const struct GNUNET_MessageHeader *message)
  * @param message the actual message
  */
 static void
-handle_data (void *cls, const struct GNUNET_MessageHeader *message)
+handle_data (void *cls,
+	     const struct GNUNET_MessageHeader *message)
 {
   struct CadetTestChannelWrapper *ch = cls;
   struct GNUNET_CADET_Channel *channel = ch->ch;
@@ -770,19 +795,21 @@ connect_handler (void *cls, struct GNUNET_CADET_Channel *channel,
  * @param channel Connection to the other end (henceforth invalid).
  */
 static void
-disconnect_handler (void *cls, const struct GNUNET_CADET_Channel *channel)
+disconnect_handler (void *cls,
+		    const struct GNUNET_CADET_Channel *channel)
 {
   struct CadetTestChannelWrapper *ch_w = cls;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Channel disconnected\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+	      "Channel disconnected at %d\n",
+	      ok);
   GNUNET_assert (ch_w->ch == channel);
   if (channel == incoming_ch)
   {
     ok++;
     incoming_ch = NULL;
   }
-  else if (outgoing_ch == channel
-  )
+  else if (outgoing_ch == channel)
   {
     if (P2P_SIGNAL == test)
     {
@@ -791,15 +818,17 @@ disconnect_handler (void *cls, const struct GNUNET_CADET_Channel *channel)
     outgoing_ch = NULL;
   }
   else
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Unknown channel! %p\n", channel);
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, " ok: %d\n", ok);
-
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		"Unknown channel! %p\n",
+		channel);
   if (NULL != disconnect_task)
   {
     GNUNET_SCHEDULER_cancel (disconnect_task);
     disconnect_task =
-        GNUNET_SCHEDULER_add_now (&gather_stats_and_exit, (void *) __LINE__);
+        GNUNET_SCHEDULER_add_now (&gather_stats_and_exit,
+				  (void *) __LINE__);
   }
+  GNUNET_free (ch_w);
 }
 
 
@@ -879,25 +908,34 @@ start_test (void *cls)
  *             NULL if the operation is successfull
  */
 static void
-pi_cb (void *cls, struct GNUNET_TESTBED_Operation *op,
-       const struct GNUNET_TESTBED_PeerInformation *pinfo, const char *emsg)
+pi_cb (void *cls,
+       struct GNUNET_TESTBED_Operation *op,
+       const struct GNUNET_TESTBED_PeerInformation *pinfo,
+       const char *emsg)
 {
   long i = (long) cls;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "ID callback for %ld\n", i);
-
-  if ((NULL == pinfo) || (NULL != emsg))
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "ID callback for %ld\n",
+	      i);
+  if ( (NULL == pinfo) ||
+       (NULL != emsg) )
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "pi_cb: %s\n", emsg);
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		"pi_cb: %s\n",
+		emsg);
     abort_test (__LINE__);
     return;
   }
   p_id[i] = pinfo->result.id;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  id: %s\n", GNUNET_i2s (p_id[i]));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "id: %s\n",
+	      GNUNET_i2s (p_id[i]));
   p_ids++;
   if (p_ids < 2)
     return;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Got all IDs, starting test\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Got all IDs, starting test\n");
   test_task = GNUNET_SCHEDULER_add_now (&start_test, NULL);
 }
 
@@ -929,7 +967,8 @@ tmain (void *cls,
   disconnect_task = GNUNET_SCHEDULER_add_delayed (short_time,
                                                   &disconnect_cadet_peers,
                                                   (void *) __LINE__);
-  GNUNET_SCHEDULER_add_shutdown (&shutdown_task, NULL);
+  GNUNET_SCHEDULER_add_shutdown (&shutdown_task,
+				 NULL);
   t_op[0] = GNUNET_TESTBED_peer_get_information (peers[0],
                                                  GNUNET_TESTBED_PIT_IDENTITY,
                                                  &pi_cb,

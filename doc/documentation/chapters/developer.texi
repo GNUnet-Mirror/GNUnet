@@ -460,7 +460,7 @@ stacked together to construct complex buildings and it is generally easy
 to swap one block for a different one that has the same shape. GNUnet's
 architecture is based on LEGOs:
 
-@c images here
+@c @image{images/service_lego_block,5in,,picture of a LEGO block stack - 3 APIs as connectors upon Network Protocol on top of a Service}
 
 This chapter documents the GNUnet LEGO system, also known as GNUnet's
 system architecture.

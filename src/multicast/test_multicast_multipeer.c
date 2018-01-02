@@ -35,9 +35,10 @@
 
 #define PEERS_REQUESTED 12
 
-struct multicast_peer
+struct MulticastPeerContext
 {
   int peer; /* peer number */
+  struct GNUNET_CRYPTO_EcdsaPrivateKey *key;
   const struct GNUNET_PeerIdentity *id;
   struct GNUNET_TESTBED_Operation *op; /* not yet in use */
   struct GNUNET_TESTBED_Operation *pi_op; /* not yet in use */
@@ -61,7 +62,7 @@ static void service_connect (void *cls,
                              void *ca_result,
                              const char *emsg);
 
-static struct multicast_peer **mc_peers;
+static struct MulticastPeerContext **multicast_peers;
 static struct GNUNET_TESTBED_Peer **peers;
 
 // FIXME: refactor
@@ -69,17 +70,13 @@ static struct GNUNET_TESTBED_Operation *op[PEERS_REQUESTED];
 static struct GNUNET_TESTBED_Operation *pi_op[PEERS_REQUESTED];
 
 static struct GNUNET_MULTICAST_Origin *origin;
-static struct GNUNET_MULTICAST_Member *member[PEERS_REQUESTED]; /* first element always empty */
+static struct GNUNET_MULTICAST_Member *members[PEERS_REQUESTED]; /* first element always empty */
 
 static struct GNUNET_SCHEDULER_Task *timeout_tid;
 
-static struct GNUNET_CRYPTO_EddsaPrivateKey group_key;
+//static struct GNUNET_CRYPTO_EddsaPrivateKey *group_key;
 static struct GNUNET_CRYPTO_EddsaPublicKey group_pub_key;
 static struct GNUNET_HashCode group_pub_key_hash;
-
-static struct GNUNET_CRYPTO_EcdsaPrivateKey *member_key[PEERS_REQUESTED];
-static struct GNUNET_CRYPTO_EcdsaPublicKey *member_pub_key[PEERS_REQUESTED];
-
 
 /**
  * Global result for testcase.
@@ -93,6 +90,8 @@ static int result;
 static void
 shutdown_task (void *cls)
 {
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "shutdown_task!\n");
   for (int i=0;i<PEERS_REQUESTED;i++)
   {
     if (NULL != op[i])
@@ -107,14 +106,16 @@ shutdown_task (void *cls)
     }
   }
 
-  if (NULL != mc_peers)
+  if (NULL != multicast_peers)
   {
     for (int i=0; i < PEERS_REQUESTED; i++)
     {
-      GNUNET_free (mc_peers[i]);
-      mc_peers[i] = NULL;
+      GNUNET_free (multicast_peers[i]->key);
+      GNUNET_free (multicast_peers[i]);
+      multicast_peers[i] = NULL;
     }
-    GNUNET_free (mc_peers);
+    GNUNET_free (multicast_peers);
+    multicast_peers = NULL;
   }
 
   if (NULL != timeout_tid)
@@ -141,11 +142,11 @@ member_join_request (void *cls,
                      const struct GNUNET_MessageHeader *join_msg,
                      struct GNUNET_MULTICAST_JoinHandle *jh)
 {
-  struct multicast_peer *mc_peer = (struct multicast_peer*)cls;
+  struct MulticastPeerContext *mc_peer = (struct MulticastPeerContext*)cls;
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Peer #%u (%s) sent a join request.\n", 
               mc_peer->peer, 
-              GNUNET_i2s (mc_peers[mc_peer->peer]->id));
+              GNUNET_i2s (multicast_peers[mc_peer->peer]->id));
 }
 
 
@@ -154,7 +155,7 @@ notify (void *cls,
         size_t *data_size,
         void *data)
 {
-  struct multicast_peer *mc_peer = (struct multicast_peer*)cls;
+  struct MulticastPeerContext *mc_peer = (struct MulticastPeerContext*)cls;
 
   struct pingpong_msg *pp_msg = GNUNET_new (struct pingpong_msg);
   pp_msg->peer = mc_peer->peer;
@@ -178,18 +179,18 @@ member_join_decision (void *cls,
                       const struct GNUNET_PeerIdentity *relays,
                       const struct GNUNET_MessageHeader *join_msg)
 {
-  struct multicast_peer *mc_peer = (struct multicast_peer*)cls;
+  struct MulticastPeerContext *mc_peer = (struct MulticastPeerContext*)cls;
   struct GNUNET_MULTICAST_MemberTransmitHandle *req;
   
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, 
               "Peer #%u (%s) received a decision from origin: %s\n", 
               mc_peer->peer, 
-              GNUNET_i2s (mc_peers[mc_peer->peer]->id),
+              GNUNET_i2s (multicast_peers[mc_peer->peer]->id),
               (GNUNET_YES == is_admitted)?"accepted":"rejected");
   
   if (GNUNET_YES == is_admitted)
   {
-    req = GNUNET_MULTICAST_member_to_origin (member[mc_peer->peer],
+    req = GNUNET_MULTICAST_member_to_origin (members[mc_peer->peer],
                                              0,
                                              notify,
                                              cls);
@@ -215,10 +216,32 @@ member_replay_msg ()
 
 
 static void
+origin_disconnected_cb (void *cls)
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Origin disconnected. Shutting down.\n");
+  result = GNUNET_YES;
+  GNUNET_SCHEDULER_shutdown ();
+}
+
+
+static void
+member_disconnected_cb (void *cls)
+{
+  for (int i = 1; i < PEERS_REQUESTED; ++i)
+    if (GNUNET_NO == multicast_peers[i]->test_ok)
+      return;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "All member disconnected. Stopping origin.\n");
+  GNUNET_MULTICAST_origin_stop (origin, origin_disconnected_cb, cls);
+}
+
+
+static void
 member_message (void *cls, 
                 const struct GNUNET_MULTICAST_MessageHeader *msg)
 {
-  struct multicast_peer *mc_peer = (struct multicast_peer*)cls;
+  struct MulticastPeerContext *mc_peer = (struct MulticastPeerContext*)cls;
   struct pingpong_msg *pp_msg = (struct pingpong_msg*) &(msg[1]);
 
   if (PONG == pp_msg->msg && mc_peer->peer == pp_msg->peer)
@@ -226,18 +249,15 @@ member_message (void *cls,
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                 "peer #%i (%s) receives a pong\n", 
                 mc_peer->peer,
-                GNUNET_i2s (mc_peers[mc_peer->peer]->id));
-
+                GNUNET_i2s (multicast_peers[mc_peer->peer]->id));
     mc_peer->test_ok = GNUNET_OK;
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                "peer #%u (%s) parting from multicast group\n",
+                mc_peer->peer,
+                GNUNET_i2s (multicast_peers[mc_peer->peer]->id));
+
+    GNUNET_MULTICAST_member_part (members[mc_peer->peer], member_disconnected_cb, cls);
   }
-
-  // Test for completeness of received PONGs
-  for (int i=1; i<PEERS_REQUESTED; i++)
-    if (GNUNET_NO == mc_peers[i]->test_ok)
-      return;
-
-  result = GNUNET_YES;
-  GNUNET_SCHEDULER_shutdown();
 }
 
 
@@ -349,81 +369,53 @@ origin_message (void *cls,
 
 
 static void
-multicast_da (void *cls,
-              void *op_result)
+multicast_disconnect (void *cls,
+                      void *op_result)
 {
-  struct multicast_peer *mc_peer = (struct multicast_peer*)cls;
 
-  if (0 == mc_peer->peer)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                "Origin closes multicast group\n");
-
-    GNUNET_MULTICAST_origin_stop (origin, NULL, cls);
-  }
-  else 
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                "peer #%u (%s) parting from multicast group\n",
-                mc_peer->peer,
-                GNUNET_i2s (mc_peers[mc_peer->peer]->id));
-
-    GNUNET_MULTICAST_member_part (member[mc_peer->peer], NULL, cls);
-  }
 }
 
 
 static void *
-multicast_ca (void *cls,
-              const struct GNUNET_CONFIGURATION_Handle *cfg)
+multicast_connect (void *cls,
+                   const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
-  struct multicast_peer *mc_peer = (struct multicast_peer*)cls;
+  struct MulticastPeerContext *multicast_peer = cls;
   struct GNUNET_MessageHeader *join_msg;
   char data[64];
 
-  if (0 == mc_peer->peer)
+  multicast_peer->key = GNUNET_CRYPTO_ecdsa_key_create ();
+  if (0 == multicast_peer->peer)
   {
-    struct GNUNET_CRYPTO_EddsaPrivateKey *key = GNUNET_CRYPTO_eddsa_key_create ();
-    GNUNET_CRYPTO_eddsa_key_get_public (key, &group_pub_key);
+    GNUNET_CRYPTO_eddsa_key_get_public (multicast_peer->key, &group_pub_key);
     GNUNET_CRYPTO_hash (&group_pub_key, sizeof (group_pub_key), &group_pub_key_hash);
-
-    group_key = *key;
-    
     origin = GNUNET_MULTICAST_origin_start (cfg,
-                                          &group_key,
-                                          0,
-                                          origin_join_request,
-                                          origin_replay_frag,
-                                          origin_replay_msg,
-                                          origin_request,
-                                          origin_message,
-                                          cls);
-
-    if (NULL == origin) {
+                                            multicast_peer->key,
+                                            0,
+                                            origin_join_request,
+                                            origin_replay_frag,
+                                            origin_replay_msg,
+                                            origin_request,
+                                            origin_message,
+                                            cls);
+    if (NULL == origin)
+    {
       GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                   "Peer #%u could not create a multicast group",
-                  mc_peer->peer);
+                  multicast_peer->peer);
       return NULL;
     }
-
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                 "Peer #%u connected as origin to group %s\n",
-                mc_peer->peer,
+                multicast_peer->peer,
                 GNUNET_h2s (&group_pub_key_hash));
-
     return origin;
   }
   else
   {
-    // Get members keys
-    member_pub_key[mc_peer->peer] = GNUNET_new (struct GNUNET_CRYPTO_EcdsaPublicKey);
-    member_key[mc_peer->peer] = GNUNET_CRYPTO_ecdsa_key_create ();
-    GNUNET_CRYPTO_ecdsa_key_get_public (member_key[mc_peer->peer], 
-                                        member_pub_key[mc_peer->peer]);
-    
     sprintf(data, "Hi, I am peer #%u (%s). Can I enter?", 
-            mc_peer->peer,
-            GNUNET_i2s (mc_peers[mc_peer->peer]->id));
+            multicast_peer->peer,
+            GNUNET_i2s (multicast_peers[multicast_peer->peer]->id));
     uint8_t data_size = strlen (data) + 1;
     join_msg = GNUNET_malloc (sizeof (join_msg) + data_size);
     join_msg->size = htons (sizeof (join_msg) + data_size);
@@ -432,24 +424,25 @@ multicast_ca (void *cls,
 
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                 "Peer #%u (%s) tries to join multicast group %s\n", 
-                mc_peer->peer,
-                GNUNET_i2s (mc_peers[mc_peer->peer]->id),
+                multicast_peer->peer,
+                GNUNET_i2s (multicast_peers[multicast_peer->peer]->id),
                 GNUNET_h2s (&group_pub_key_hash));
 
-    member[mc_peer->peer] = GNUNET_MULTICAST_member_join (cfg,
-                                                         &group_pub_key,
-                                                         member_key[mc_peer->peer],
-                                                         mc_peers[0]->id,
-                                                         0,
-                                                         NULL,
-                                                         join_msg, /* join message */
-                                                         member_join_request,
-                                                         member_join_decision,
-                                                         member_replay_frag,
-                                                         member_replay_msg,
-                                                         member_message,
-                                                         cls);
-    return member[mc_peer->peer];
+    members[multicast_peer->peer] =
+      GNUNET_MULTICAST_member_join (cfg,
+                                    &group_pub_key,
+                                    multicast_peer->key,
+                                    multicast_peers[0]->id,
+                                    0,
+                                    NULL,
+                                    join_msg, /* join message */
+                                    member_join_request,
+                                    member_join_decision,
+                                    member_replay_frag,
+                                    member_replay_msg,
+                                    member_message,
+                                    cls);
+    return members[multicast_peer->peer];
   }
 }
 
@@ -460,7 +453,7 @@ peer_information_cb (void *cls,
                      const struct GNUNET_TESTBED_PeerInformation *pinfo,
                      const char *emsg)
 {
-  struct multicast_peer *mc_peer = (struct multicast_peer*)cls;
+  struct MulticastPeerContext *mc_peer = (struct MulticastPeerContext*)cls;
 
   if (NULL == pinfo) {
     GNUNET_log (GNUNET_ERROR_TYPE_INFO, "got no peer information\n");
@@ -468,7 +461,7 @@ peer_information_cb (void *cls,
     GNUNET_SCHEDULER_shutdown ();
   }
 
-  mc_peers[mc_peer->peer]->id = pinfo->result.id;
+  multicast_peers[mc_peer->peer]->id = pinfo->result.id;
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Got peer information of %s (%s)\n", 
@@ -478,22 +471,28 @@ peer_information_cb (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Create peer #%u (%s)\n", 
               mc_peer->peer,
-              GNUNET_i2s (mc_peers[mc_peer->peer]->id));
+              GNUNET_i2s (multicast_peers[mc_peer->peer]->id));
 
   if (0 != mc_peer->peer)
   {
     /* connect to multicast service of members */
-    op[mc_peer->peer] = GNUNET_TESTBED_service_connect (NULL,                    /* Closure for operation */
-                                                        peers[mc_peer->peer],                /* The peer whose service to connect to */
-                                                        "multicast",             /* The name of the service */
-                                                        service_connect,         /* callback to call after a handle to service
-                                                                                    is opened */
-                                                        cls,               /* closure for the above callback */
-                                                        multicast_ca,            /* callback to call with peer's configuration;
-                                                                                    this should open the needed service connection */
-                                                        multicast_da,            /* callback to be called when closing the
-                                                                                    opened service connection */
-                                                        cls);              /* closure for the above two callbacks */
+    op[mc_peer->peer] =
+      GNUNET_TESTBED_service_connect (/* Closure for operation */
+                                      NULL, 
+                                      /* The peer whose service to connect to */
+                                      peers[mc_peer->peer],
+                                      /* The name of the service */
+                                      "multicast",
+                                      /* called after a handle to service is opened */
+                                      service_connect,
+                                      /* closure for the above callback */
+                                      cls,
+                                      /* called when opening the service connection */
+                                      multicast_connect,
+                                      /* called when closing the service connection */
+                                      multicast_disconnect,
+                                      /* closure for the above two callbacks */
+                                      cls);
   }
 }
 
@@ -504,14 +503,14 @@ service_connect (void *cls,
                  void *ca_result,
                  const char *emsg)
 {
-  struct multicast_peer *mc_peer = (struct multicast_peer*)cls;
+  struct MulticastPeerContext *mc_peer = (struct MulticastPeerContext*)cls;
 
   if (NULL == ca_result)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_INFO, 
                 "Connection adapter not created for peer #%u (%s)\n", 
                 mc_peer->peer,
-                GNUNET_i2s (mc_peers[mc_peer->peer]->id));
+                GNUNET_i2s (multicast_peers[mc_peer->peer]->id));
 
     result = GNUNET_SYSERR;
     GNUNET_SCHEDULER_shutdown();
@@ -525,7 +524,7 @@ service_connect (void *cls,
       pi_op[i] = GNUNET_TESTBED_peer_get_information (peers[i],
                                                       GNUNET_TESTBED_PIT_IDENTITY,
                                                       peer_information_cb,
-                                                      mc_peers[i]);
+                                                      multicast_peers[i]);
     }
   }
 }
@@ -550,50 +549,51 @@ service_connect (void *cls,
  */ 
 static void
 testbed_master (void *cls,
-     struct GNUNET_TESTBED_RunHandle *h,
-     unsigned int num_peers,
-     struct GNUNET_TESTBED_Peer **p,
-     unsigned int links_succeeded,
-     unsigned int links_failed)
+                struct GNUNET_TESTBED_RunHandle *h,
+                unsigned int num_peers,
+                struct GNUNET_TESTBED_Peer **p,
+                unsigned int links_succeeded,
+                unsigned int links_failed)
 {
   /* Testbed is ready with peers running and connected in a pre-defined overlay
      topology (FIXME)  */
-  
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              "Connected to testbed_master()\n");
-
   peers = p;
-
-  mc_peers = GNUNET_new_array (PEERS_REQUESTED, struct multicast_peer*);
+  multicast_peers = GNUNET_new_array (PEERS_REQUESTED, struct MulticastPeerContext*);
 
   // Create test contexts for members
   for (int i = 0; i<PEERS_REQUESTED; i++) 
   {
-    mc_peers[i] = GNUNET_new (struct multicast_peer);
-    mc_peers[i]->peer = i;
-    mc_peers[i]->test_ok = GNUNET_NO;
+    multicast_peers[i] = GNUNET_new (struct MulticastPeerContext);
+    multicast_peers[i]->peer = i;
+    multicast_peers[i]->test_ok = GNUNET_NO;
   }
-
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Create origin peer\n");
-
-  op[0] = GNUNET_TESTBED_service_connect (NULL,                    /* Closure for operation */
-                                          peers[0],                /* The peer whose service to connect to */
-                                          "multicast",             /* The name of the service */
-                                          service_connect,   /* callback to call after a handle to service
-                                                                 is opened */
-                                          mc_peers[0],                    /* closure for the above callback */
-                                          multicast_ca,      /* callback to call with peer's configuration;
-                                                                 this should open the needed service connection */
-                                          multicast_da,     /* callback to be called when closing the
-                                                                opened service connection */
-                                          mc_peers[0]);                   /* closure for the above two callbacks */
-
-  GNUNET_SCHEDULER_add_shutdown (&shutdown_task, NULL); /* Schedule a new task on shutdown */
-
+  op[0] =
+    GNUNET_TESTBED_service_connect (/* Closure for operation */
+                                    NULL,
+                                    /* The peer whose service to connect to */
+                                    peers[0],
+                                    /* The name of the service */
+                                    "multicast",
+                                    /* called after a handle to service is opened */
+                                    service_connect,
+                                    /* closure for the above callback */
+                                    multicast_peers[0],
+                                    /* called when opening the service connection */
+                                    multicast_connect,
+                                    /* called when closing the service connection */
+                                    multicast_disconnect,
+                                    /* closure for the above two callbacks */
+                                    multicast_peers[0]);
+  /* Schedule a new task on shutdown */
+  GNUNET_SCHEDULER_add_shutdown (&shutdown_task, NULL);
   /* Schedule the shutdown task with a delay of a few Seconds */
-  timeout_tid = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 400),
-					      &timeout_task, NULL);
+  timeout_tid =
+    GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
+                                  (GNUNET_TIME_UNIT_SECONDS, 400),
+				  &timeout_task,
+                                  NULL);
 }
 
 
@@ -617,15 +617,21 @@ main (int argc, char *argv[])
   }
 
   result = GNUNET_SYSERR;
-  ret = GNUNET_TESTBED_test_run
-      ("test-multicast-multipeer",  /* test case name */
-       config_file, /* template configuration */
-       PEERS_REQUESTED,       /* number of peers to start */
-       0LL, /* Event mask - set to 0 for no event notifications */
-       NULL, /* Controller event callback */
-       NULL, /* Closure for controller event callback */
-       testbed_master, /* continuation callback to be called when testbed setup is complete */
-       NULL); /* Closure for the test_master callback */
+  ret =
+    GNUNET_TESTBED_test_run ("test-multicast-multipeer",
+                             config_file, 
+                             /* number of peers to start */
+                             PEERS_REQUESTED, 
+                             /* Event mask - set to 0 for no event notifications */
+                             0LL, 
+                             /* Controller event callback */
+                             NULL, 
+                             /* Closure for controller event callback */
+                             NULL, 
+                             /* called when testbed setup is complete */
+                             testbed_master, 
+                             /* Closure for the test_master callback */
+                             NULL); 
   if ( (GNUNET_OK != ret) || (GNUNET_OK != result) )
     return 1;
   return 0;

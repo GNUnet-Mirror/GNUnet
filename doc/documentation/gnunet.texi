@@ -71,10 +71,10 @@ This document is the Reference Manual for GNUnet version @value{VERSION}.
 @menu
 
 * Philosophy::                      About GNUnet
-* Vocabulary::                      Vocabulary
+@c * Vocabulary::                      Vocabulary
 * GNUnet Installation Handbook::    How to install GNUnet
 * Using GNUnet::                    Using GNUnet
-* Configuration Handbook::          Configuring GNUnet
+@c * Configuration Handbook::          Configuring GNUnet
 * GNUnet Contributors Handbook::    Contributing to GNUnet
 * GNUnet Developer Handbook::       Developing GNUnet
 * GNU Free Documentation License::  The license of this manual
@@ -103,11 +103,11 @@ Philosophy
 * Backup of Identities and Egos::
 * Revocation::
 
-Vocabulary
-
-* Definitions abbreviations and acronyms::
-* Words and characters::
-* Technical Assumptions::
+@c Vocabulary
+@c 
+@c * Definitions abbreviations and acronyms::
+@c * Words and characters::
+@c * Technical Assumptions::
 
 GNUnet Installation Handbook
 
@@ -136,7 +136,7 @@ Using GNUnet
 * The GNU Name System::
 * Using the Virtual Public Network::
 
-Configuration Handbook
+@c Configuration Handbook
 
 GNUnet Contributors Handbook
 
@@ -191,7 +191,8 @@ GNUnet Developer Handbook
 @include chapters/philosophy.texi
 @c *********************************************************************
 
-@include chapters/vocabulary.texi
+@c WIP:
+@c @include chapters/vocabulary.texi
 
 @c *********************************************************************
 @include chapters/installation.texi
@@ -201,12 +202,14 @@ GNUnet Developer Handbook
 @include chapters/user.texi
 @c *********************************************************************
 
-@include chapters/configuration.texi
+@c WIP:
+@c @include chapters/configuration.texi
 
 @include chapters/contributing.texi
 
 @c *********************************************************************
 @include chapters/developer.texi
+@c For now in its own Book:
 @c @include gnunet-c-tutorial.texi
 @c *********************************************************************
 

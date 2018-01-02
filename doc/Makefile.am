@@ -2,6 +2,4 @@
 SUBDIRS = man doxygen documentation
 
 EXTRA_DIST =							\
-	outdated-and-old-installation-instructions.txt		\
-	gnunet-c-tutorial-v1.pdf				\
-	README.txt
+	outdated-and-old-installation-instructions.txt		

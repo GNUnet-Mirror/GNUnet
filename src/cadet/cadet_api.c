@@ -391,6 +391,8 @@ destroy_channel_on_reconnect_cb (void *cls,
   /* struct GNUNET_CADET_Handle *handle = cls; */
   struct GNUNET_CADET_Channel *ch = value;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+	      "Destroying channel due to reconnect\n");
   destroy_channel (ch);
   return GNUNET_OK;
 }
@@ -1158,6 +1160,7 @@ reconnect (struct GNUNET_CADET_Handle *h)
     GNUNET_MQ_handler_end ()
   };
 
+  GNUNET_assert (NULL == h->mq);
   h->mq = GNUNET_CLIENT_connect (h->cfg,
                                  "cadet",
                                  handlers,
@@ -1196,6 +1199,8 @@ destroy_channel_cb (void *cls,
          "channel %X not destroyed\n",
          ntohl (ch->ccn.channel_of_client));
   }
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+	      "Destroying channel due to GNUNET_CADET_disconnect()\n");
   destroy_channel (ch);
   return GNUNET_OK;
 }
@@ -1310,6 +1315,8 @@ GNUNET_CADET_channel_destroy (struct GNUNET_CADET_Channel *channel)
     GNUNET_MQ_send (h->mq,
                     env);
   }
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+	      "Destroying channel due to GNUNET_CADET_channel_destroy()\n");
   destroy_channel (channel);
 }
 

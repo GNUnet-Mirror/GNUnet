@@ -364,7 +364,7 @@ fail_union_operation (struct Operation *op)
   struct GNUNET_MQ_Envelope *ev;
   struct GNUNET_SET_ResultMessage *msg;
 
-  LOG (GNUNET_ERROR_TYPE_ERROR,
+  LOG (GNUNET_ERROR_TYPE_WARNING,
        "union operation failed\n");
   ev = GNUNET_MQ_msg (msg, GNUNET_MESSAGE_TYPE_SET_RESULT);
   msg->result_status = htons (GNUNET_SET_STATUS_FAILURE);
@@ -1404,7 +1404,7 @@ send_client_done (void *cls)
   }
 
   if (PHASE_DONE != op->state->phase) {
-    LOG (GNUNET_ERROR_TYPE_ERROR,
+    LOG (GNUNET_ERROR_TYPE_WARNING,
          "union operation failed\n");
     ev = GNUNET_MQ_msg (rm, GNUNET_MESSAGE_TYPE_SET_RESULT);
     rm->result_status = htons (GNUNET_SET_STATUS_FAILURE);

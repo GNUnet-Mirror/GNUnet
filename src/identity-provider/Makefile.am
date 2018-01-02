@@ -30,9 +30,12 @@ bin_PROGRAMS = \
 libexec_PROGRAMS = \
  gnunet-service-identity-provider
 
+EXTRA_DIST = \
+  $(pkgcfg_DATA)
+
 gnunet_service_identity_provider_SOURCES = \
  gnunet-service-identity-provider.c \
- identity_token.c
+ identity_token.c identity_token.h
 gnunet_service_identity_provider_LDADD = \
  $(top_builddir)/src/gnsrecord/libgnunetgnsrecord.la \
  $(top_builddir)/src/util/libgnunetutil.la \

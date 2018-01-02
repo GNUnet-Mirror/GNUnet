@@ -141,7 +141,7 @@
                (for-each (lambda (f) (chmod f #o755))
                          (find-files "po" ""))
                (zero? (system* "sh" "bootstrap"))))
-           (replace 'build
+           (add-after 'build 'run-gendocs
              (lambda _
                (chdir "doc/documentation")
                ;;(zero? (system* "make" "dev-build"))))

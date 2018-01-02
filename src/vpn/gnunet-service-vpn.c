@@ -2218,6 +2218,9 @@ route_packet (struct DestinationEntry *destination,
  *
  * @param cls closure, NULL
  * @param message message we got from the client (VPN channel interface)
+ * @return #GNUNET_OK on success,
+ *    #GNUNET_NO to stop further processing (no error)
+ *    #GNUNET_SYSERR to stop further processing with error
  */
 static int
 message_token (void *cls,

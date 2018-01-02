@@ -464,7 +464,7 @@ GNUNET_NETWORK_fdset_copy (struct GNUNET_NETWORK_FDSet *to,
  * @return POSIX file descriptor
  */
 int
-GNUNET_NETWORK_get_fd (struct GNUNET_NETWORK_Handle *desc);
+GNUNET_NETWORK_get_fd (const struct GNUNET_NETWORK_Handle *desc);
 
 
 /**
@@ -474,7 +474,7 @@ GNUNET_NETWORK_get_fd (struct GNUNET_NETWORK_Handle *desc);
  * @return POSIX file descriptor
  */
 struct sockaddr*
-GNUNET_NETWORK_get_addr (struct GNUNET_NETWORK_Handle *desc);
+GNUNET_NETWORK_get_addr (const struct GNUNET_NETWORK_Handle *desc);
 
 
 /**
@@ -484,7 +484,7 @@ GNUNET_NETWORK_get_addr (struct GNUNET_NETWORK_Handle *desc);
  * @return socklen_t for sockaddr
  */
 socklen_t
-GNUNET_NETWORK_get_addrlen (struct GNUNET_NETWORK_Handle *desc);
+GNUNET_NETWORK_get_addrlen (const struct GNUNET_NETWORK_Handle *desc);
 
 
 /**

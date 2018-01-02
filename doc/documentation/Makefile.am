@@ -76,34 +76,35 @@ dist_infoimage_DATA =                           		\
 # 	$(top_srcdir)/%D%/images/coreutils-size-map.eps
 # dvi-local: ps-local
 
+
 gnunet_tutorial_examples =					\
-	001.c							\
-	002.c							\
-	003.c							\
-	004.c							\
-	005.c							\
-	006.c							\
-	007.c							\
-	008.c							\
-	009.c							\
-	010.c							\
-	011.c							\
-	012.c							\
-	013.c							\
-	013.1.c							\
-	014.c							\
-	015.c							\
-	016.c							\
-	017.c							\
-	018.c							\
-	019.c							\
-	020.c							\
-	021.c							\
-	022.c							\
-	023.c							\
-	024.c							\
-	025.c							\
-	026.c
+	tutorial-examples/001.c							\
+	tutorial-examples/002.c							\
+	tutorial-examples/003.c							\
+	tutorial-examples/004.c							\
+	tutorial-examples/005.c							\
+	tutorial-examples/006.c							\
+	tutorial-examples/007.c							\
+	tutorial-examples/008.c							\
+	tutorial-examples/009.c							\
+	tutorial-examples/010.c							\
+	tutorial-examples/011.c							\
+	tutorial-examples/012.c							\
+	tutorial-examples/013.c							\
+	tutorial-examples/013.1.c							\
+	tutorial-examples/014.c							\
+	tutorial-examples/015.c							\
+	tutorial-examples/016.c							\
+	tutorial-examples/017.c							\
+	tutorial-examples/018.c							\
+	tutorial-examples/019.c							\
+	tutorial-examples/020.c							\
+	tutorial-examples/021.c							\
+	tutorial-examples/022.c							\
+	tutorial-examples/023.c							\
+	tutorial-examples/024.c							\
+	tutorial-examples/025.c							\
+	tutorial-examples/026.c
 
 info_TEXINFOS = 						\
 	gnunet.texi						\

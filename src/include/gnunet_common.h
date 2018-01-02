@@ -988,7 +988,8 @@ GNUNET_ntoh_double (double d);
  *        arr is important since size is the number of elements and
  *        not the size in bytes
  * @param size the number of elements in the existing vector (number
- *        of elements to copy over)
+ *        of elements to copy over), will be updated with the new 
+ *        array size
  * @param tsize the target size for the resulting vector, use 0 to
  *        free the vector (then, arr will be NULL afterwards).
  */
@@ -996,8 +997,16 @@ GNUNET_ntoh_double (double d);
 
 /**
  * @ingroup memory
- * Append an element to a list (growing the
- * list by one).
+ * Append an element to a list (growing the list by one).
+ * 
+ * @param arr base-pointer of the vector, may be NULL if size is 0;
+ *        will be updated to reflect the new address. The TYPE of
+ *        arr is important since size is the number of elements and
+ *        not the size in bytes
+ * @param size the number of elements in the existing vector (number
+ *        of elements to copy over), will be updated with the new 
+ *        array size
+ * @param element the element that will be appended to the array
  */
 #define GNUNET_array_append(arr,size,element) do { GNUNET_array_grow(arr,size,size+1); arr[size-1] = element; } while(0)
 

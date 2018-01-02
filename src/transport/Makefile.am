@@ -295,7 +295,7 @@ noinst_LTLIBRARIES = \
   libgnunet_plugin_transport_template.la
 
 libgnunet_plugin_transport_tcp_la_SOURCES = \
-  plugin_transport_tcp.c
+  plugin_transport_tcp.c 
 libgnunet_plugin_transport_tcp_la_LIBADD = \
   $(top_builddir)/src/hello/libgnunethello.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
@@ -1330,7 +1330,6 @@ test_transport_api_monitor_peers_peer2.conf\
 test_transport_api_monitor_validation_peer1.conf\
 test_transport_api_monitor_validation_peer2.conf\
 test_transport_defaults.conf\
-test_transport_startonly.conf\
 test_transport_api_disconnect_tcp_peer1.conf\
 test_transport_api_disconnect_tcp_peer2.conf\
 test_transport_api_timeout_http_peer1.conf\
@@ -1350,4 +1349,8 @@ test_transport_api_http_reverse_peer2.conf \
 perf_tcp_peer1.conf \
 perf_tcp_peer2.conf \
 test_transport_api_slow_ats_peer1.conf \
-test_transport_api_slow_ats_peer2.conf
+test_transport_api_slow_ats_peer2.conf \
+  tcp_connection_legacy.c \
+  tcp_server_mst_legacy.c \
+  tcp_server_legacy.c \
+  tcp_service_legacy.c

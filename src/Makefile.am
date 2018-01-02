@@ -13,7 +13,6 @@ if HAVE_EXPERIMENTAL
  EXP_DIR = \
   rps
 endif
-#  dv (FTBFS)
 
 if HAVE_JSON
 if HAVE_MHD
