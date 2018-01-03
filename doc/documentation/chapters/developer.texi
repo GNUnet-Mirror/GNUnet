@@ -8093,11 +8093,7 @@ eliminate the need to first create a directory.
 
 Collections are also advertised using @code{KSBlock}s.
 
-@table @asis
-@item Attachment Size
-@item  ecrs.pdf 270.68 KB
-@item https://gnunet.org/sites/default/files/ecrs.pdf
-@end table
+@c https://gnunet.org/sites/default/files/ecrs.pdf
 
 @node File-sharing persistence directory structure
 @subsection File-sharing persistence directory structure
