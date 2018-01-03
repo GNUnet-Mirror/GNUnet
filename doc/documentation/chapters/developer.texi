@@ -1388,7 +1388,7 @@ Note that the substitution placemark is replaced only when the
 corresponding field is available and only once. Specifying
 
 @example
-%u@atchar{}%h
+%u@@%h
 @end example
 
 doesn't work either. If you want to user username substitutions for
