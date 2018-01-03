@@ -30,6 +30,7 @@
 #include "gnunet_identity_service.h"
 #include "gnunet_gnsrecord_lib.h"
 #include "gnunet_namestore_service.h"
+#include "gnunet_abe_lib.h"
 #include "gnunet_credential_service.h"
 #include "gnunet_statistics_service.h"
 #include "gnunet_gns_service.h"
@@ -205,7 +206,7 @@ struct TicketIteration
  */
 typedef void
 (*AbeBootstrapResult) (void *cls,
-                       struct GNUNET_CRYPTO_AbeMasterKey *abe_key);
+                       struct GNUNET_ABE_AbeMasterKey *abe_key);
 
 
 struct AbeBootstrapHandle
@@ -233,7 +234,7 @@ struct AbeBootstrapHandle
   /**
    * The issuer egos ABE master key
    */
-  struct GNUNET_CRYPTO_AbeMasterKey *abe_key;
+  struct GNUNET_ABE_AbeMasterKey *abe_key;
 };
 
 /**
@@ -264,7 +265,7 @@ struct AttributeIterator
   /**
    * The issuer egos ABE master key
    */
-  struct GNUNET_CRYPTO_AbeMasterKey *abe_key;
+  struct GNUNET_ABE_AbeMasterKey *abe_key;
 
   /**
    * Namestore iterator
@@ -355,7 +356,7 @@ struct AttributeStoreHandle
   /**
    * The issuer egos ABE master key
    */
-  struct GNUNET_CRYPTO_AbeMasterKey *abe_key;
+  struct GNUNET_ABE_AbeMasterKey *abe_key;
 
   /**
    * QueueEntry
@@ -423,7 +424,7 @@ struct ConsumeTicketHandle
   /**
    * The ABE key
    */
-  struct GNUNET_CRYPTO_AbeKey *key;
+  struct GNUNET_ABE_AbeKey *key;
 
   /**
    * Attributes
@@ -520,7 +521,7 @@ struct TicketRevocationHandle
   /**
    * The ABE master key
    */
-  struct GNUNET_CRYPTO_AbeMasterKey *abe_key;
+  struct GNUNET_ABE_AbeMasterKey *abe_key;
 
   /**
    * Offset
@@ -690,7 +691,7 @@ bootstrap_store_task (void *cls)
   struct GNUNET_GNSRECORD_Data rd[1];
   char *key;
 
-  rd[0].data_size = GNUNET_CRYPTO_cpabe_serialize_master_key (abh->abe_key,
+  rd[0].data_size = GNUNET_ABE_cpabe_serialize_master_key (abh->abe_key,
                                                               (void**)&key);
   rd[0].data = key;
   rd[0].record_type = GNUNET_GNSRECORD_TYPE_ABE_MASTER;
@@ -730,13 +731,13 @@ bootstrap_abe_result (void *cls,
                       const struct GNUNET_GNSRECORD_Data *rd)
 {
   struct AbeBootstrapHandle *abh = cls;
-  struct GNUNET_CRYPTO_AbeMasterKey *abe_key;
+  struct GNUNET_ABE_AbeMasterKey *abe_key;
   int i;
 
   for (i=0;i<rd_count;i++) {
     if (GNUNET_GNSRECORD_TYPE_ABE_MASTER != rd[i].record_type)
       continue;
-    abe_key = GNUNET_CRYPTO_cpabe_deserialize_master_key (rd[i].data,
+    abe_key = GNUNET_ABE_cpabe_deserialize_master_key (rd[i].data,
                                                           rd[i].data_size);
     abh->proc (abh->proc_cls, abe_key);
     GNUNET_free (abh);
@@ -744,7 +745,7 @@ bootstrap_abe_result (void *cls,
   }
 
   //No ABE master found, bootstrapping...
-  abh->abe_key = GNUNET_CRYPTO_cpabe_create_master_key ();
+  abh->abe_key = GNUNET_ABE_cpabe_create_master_key ();
   GNUNET_SCHEDULER_add_now (&bootstrap_store_task, abh);
 }
 
@@ -767,7 +768,7 @@ bootstrap_abe (const struct GNUNET_CRYPTO_EcdsaPrivateKey *identity,
   abh->identity = *identity;
   if (GNUNET_YES == recreate)
   {
-    abh->abe_key = GNUNET_CRYPTO_cpabe_create_master_key ();
+    abh->abe_key = GNUNET_ABE_cpabe_create_master_key ();
     GNUNET_SCHEDULER_add_now (&bootstrap_store_task, abh);
   } else {
     abh->ns_qe = GNUNET_NAMESTORE_records_lookup (ns_handle,
@@ -874,7 +875,7 @@ store_ticket_issue_cont (void *cls,
 int
 serialize_abe_keyinfo2 (const struct GNUNET_IDENTITY_PROVIDER_Ticket *ticket,
                         const struct GNUNET_IDENTITY_ATTRIBUTE_ClaimList *attrs,
-                        const struct GNUNET_CRYPTO_AbeKey *rp_key,
+                        const struct GNUNET_ABE_AbeKey *rp_key,
                         struct GNUNET_CRYPTO_EcdhePrivateKey **ecdh_privkey,
                         char **result)
 {
@@ -892,7 +893,7 @@ serialize_abe_keyinfo2 (const struct GNUNET_IDENTITY_PROVIDER_Ticket *ticket,
   struct GNUNET_HashCode new_key_hash;
   ssize_t enc_size;
 
-  size = GNUNET_CRYPTO_cpabe_serialize_key (rp_key,
+  size = GNUNET_ABE_cpabe_serialize_key (rp_key,
                                             (void**)&serialized_key);
   attrs_str_len = 0;
   for (le = attrs->list_head; NULL != le; le = le->next) {
@@ -951,13 +952,13 @@ serialize_abe_keyinfo2 (const struct GNUNET_IDENTITY_PROVIDER_Ticket *ticket,
 
 static void
 issue_ticket_after_abe_bootstrap (void *cls,
-                                  struct GNUNET_CRYPTO_AbeMasterKey *abe_key)
+                                  struct GNUNET_ABE_AbeMasterKey *abe_key)
 {
   struct TicketIssueHandle *ih = cls;
   struct GNUNET_IDENTITY_ATTRIBUTE_ClaimListEntry *le;
   struct GNUNET_CRYPTO_EcdhePrivateKey *ecdhe_privkey;
   struct GNUNET_GNSRECORD_Data code_record[1];
-  struct GNUNET_CRYPTO_AbeKey *rp_key;
+  struct GNUNET_ABE_AbeKey *rp_key;
   char *code_record_data;
   char **attrs;
   char *label;
@@ -983,7 +984,7 @@ issue_ticket_after_abe_bootstrap (void *cls,
     i++;
   }
   attrs[i] = NULL;
-  rp_key = GNUNET_CRYPTO_cpabe_create_key (abe_key,
+  rp_key = GNUNET_ABE_cpabe_create_key (abe_key,
                                            attrs);
 
   //TODO review this wireformat
@@ -1014,9 +1015,9 @@ issue_ticket_after_abe_bootstrap (void *cls,
   GNUNET_free (label);
   GNUNET_free (attrs);
   GNUNET_free (code_record_data);
-  GNUNET_CRYPTO_cpabe_delete_key (rp_key,
+  GNUNET_ABE_cpabe_delete_key (rp_key,
                                   GNUNET_YES);
-  GNUNET_CRYPTO_cpabe_delete_master_key (abe_key);
+  GNUNET_ABE_cpabe_delete_master_key (abe_key);
 }
 
 
@@ -1091,7 +1092,7 @@ cleanup_revoke_ticket_handle (struct TicketRevocationHandle *handle)
   if (NULL != handle->rvk_attrs)
     GNUNET_IDENTITY_ATTRIBUTE_list_destroy (handle->rvk_attrs);
   if (NULL != handle->abe_key)
-    GNUNET_CRYPTO_cpabe_delete_master_key (handle->abe_key);
+    GNUNET_ABE_cpabe_delete_master_key (handle->abe_key);
   if (NULL != handle->ns_qe)
     GNUNET_NAMESTORE_cancel (handle->ns_qe);
   if (NULL != handle->ns_it)
@@ -1183,7 +1184,7 @@ ticket_reissue_proc (void *cls,
   struct GNUNET_IDENTITY_ATTRIBUTE_ClaimListEntry *le_rollover;
   struct GNUNET_CRYPTO_EcdhePrivateKey *ecdhe_privkey;
   struct GNUNET_GNSRECORD_Data code_record[1];
-  struct GNUNET_CRYPTO_AbeKey *rp_key;
+  struct GNUNET_ABE_AbeKey *rp_key;
   char *code_record_data;
   char **attr_arr;
   char *label;
@@ -1263,7 +1264,7 @@ ticket_reissue_proc (void *cls,
     i++;
   }
   attr_arr[i] = NULL;
-  rp_key = GNUNET_CRYPTO_cpabe_create_key (rh->abe_key,
+  rp_key = GNUNET_ABE_cpabe_create_key (rh->abe_key,
                                            attr_arr);
 
   //TODO review this wireformat
@@ -1294,7 +1295,7 @@ ticket_reissue_proc (void *cls,
   GNUNET_free (label);
   GNUNET_free (attr_arr);
   GNUNET_free (code_record_data);
-  GNUNET_CRYPTO_cpabe_delete_key (rp_key, GNUNET_YES);
+  GNUNET_ABE_cpabe_delete_key (rp_key, GNUNET_YES);
 }
 
 
@@ -1362,7 +1363,7 @@ reenc_next_attribute (struct TicketRevocationHandle *rh)
   /**
    * Encrypt the attribute value and store in namestore
    */
-  enc_size = GNUNET_CRYPTO_cpabe_encrypt (buf,
+  enc_size = GNUNET_ABE_cpabe_encrypt (buf,
                                           buf_size,
                                           policy, //Policy
                                           rh->abe_key,
@@ -1463,7 +1464,7 @@ process_attributes_to_update (void *cls,
 
 static void
 get_ticket_after_abe_bootstrap (void *cls,
-                                struct GNUNET_CRYPTO_AbeMasterKey *abe_key)
+                                struct GNUNET_ABE_AbeMasterKey *abe_key)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Finished ABE bootstrap\n");
@@ -1534,7 +1535,7 @@ static void
 cleanup_consume_ticket_handle (struct ConsumeTicketHandle *handle)
 {
   if (NULL != handle->key)
-    GNUNET_CRYPTO_cpabe_delete_key (handle->key,
+    GNUNET_ABE_cpabe_delete_key (handle->key,
                                     GNUNET_YES);
   if (NULL != handle->attrs)
     GNUNET_IDENTITY_ATTRIBUTE_list_destroy (handle->attrs);
@@ -1603,7 +1604,7 @@ process_parallel_lookup2 (void *cls, uint32_t rd_count,
   if (rd->record_type == GNUNET_GNSRECORD_TYPE_ID_ATTR)
   {
     decrypt_duration = GNUNET_TIME_absolute_get ();
-    attr_len = GNUNET_CRYPTO_cpabe_decrypt (rd->data + sizeof (uint32_t),
+    attr_len = GNUNET_ABE_cpabe_decrypt (rd->data + sizeof (uint32_t),
                                             rd->data_size - sizeof (uint32_t),
                                             handle->key,
                                             (void**)&data);
@@ -1745,7 +1746,7 @@ process_consume_abe_key (void *cls, uint32_t rd_count,
   scopes = GNUNET_strdup (buf);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Scopes %s\n", scopes);
-  handle->key = GNUNET_CRYPTO_cpabe_deserialize_key ((void*)(buf + strlen (scopes) + 1),
+  handle->key = GNUNET_ABE_cpabe_deserialize_key ((void*)(buf + strlen (scopes) + 1),
                                                      rd->data_size - sizeof (struct GNUNET_CRYPTO_EcdhePublicKey)
                                                      - strlen (scopes) - 1);
 
@@ -1833,7 +1834,7 @@ cleanup_as_handle (struct AttributeStoreHandle *handle)
   if (NULL != handle->claim)
     GNUNET_free (handle->claim);
   if (NULL != handle->abe_key)
-    GNUNET_CRYPTO_cpabe_delete_master_key (handle->abe_key);
+    GNUNET_ABE_cpabe_delete_master_key (handle->abe_key);
   GNUNET_free (handle);
 }
 
@@ -1897,7 +1898,7 @@ attr_store_task (void *cls)
   /**
    * Encrypt the attribute value and store in namestore
    */
-  enc_size = GNUNET_CRYPTO_cpabe_encrypt (buf,
+  enc_size = GNUNET_ABE_cpabe_encrypt (buf,
                                           buf_size,
                                           policy, //Policy
                                           as_handle->abe_key,
@@ -1931,7 +1932,7 @@ attr_store_task (void *cls)
 
 static void
 store_after_abe_bootstrap (void *cls,
-                           struct GNUNET_CRYPTO_AbeMasterKey *abe_key)
+                           struct GNUNET_ABE_AbeMasterKey *abe_key)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Finished ABE bootstrap\n");
@@ -2001,7 +2002,7 @@ static void
 cleanup_iter_handle (struct AttributeIterator *ai)
 {
   if (NULL != ai->abe_key)
-    GNUNET_CRYPTO_cpabe_delete_master_key (ai->abe_key);
+    GNUNET_ABE_cpabe_delete_master_key (ai->abe_key);
   GNUNET_CONTAINER_DLL_remove (ai->client->op_head,
                                ai->client->op_tail,
                                ai);
@@ -2043,7 +2044,7 @@ attr_iter_cb (void *cls,
 {
   struct AttributeIterator *ai = cls;
   struct AttributeResultMessage *arm;
-  struct GNUNET_CRYPTO_AbeKey *key;
+  struct GNUNET_ABE_AbeKey *key;
   struct GNUNET_MQ_Envelope *env;
   ssize_t msg_extra_len;
   char* attr_ser;
@@ -2067,14 +2068,14 @@ attr_iter_cb (void *cls,
                    label, attr_ver);
   attrs[0] = policy;
   attrs[1] = 0;
-  key = GNUNET_CRYPTO_cpabe_create_key (ai->abe_key,
+  key = GNUNET_ABE_cpabe_create_key (ai->abe_key,
                                         attrs);
-  msg_extra_len = GNUNET_CRYPTO_cpabe_decrypt (rd->data+sizeof (uint32_t),
+  msg_extra_len = GNUNET_ABE_cpabe_decrypt (rd->data+sizeof (uint32_t),
                                                rd->data_size-sizeof (uint32_t),
                                                key,
                                                (void**)&attr_ser);
 
-  GNUNET_CRYPTO_cpabe_delete_key (key,
+  GNUNET_ABE_cpabe_delete_key (key,
                                   GNUNET_YES);
   //GNUNET_free (policy);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -2092,14 +2093,14 @@ attr_iter_cb (void *cls,
                  msg_extra_len);
   GNUNET_MQ_send (ai->client->mq, env);
   GNUNET_free (attr_ser);
-  GNUNET_CRYPTO_cpabe_delete_master_key (ai->abe_key);
+  GNUNET_ABE_cpabe_delete_master_key (ai->abe_key);
   ai->abe_key = NULL;
 }
 
 
 void
 iterate_after_abe_bootstrap (void *cls,
-                             struct GNUNET_CRYPTO_AbeMasterKey *abe_key)
+                             struct GNUNET_ABE_AbeMasterKey *abe_key)
 {
   struct AttributeIterator *ai = cls;
   ai->abe_key = abe_key;
@@ -2115,7 +2116,7 @@ iterate_after_abe_bootstrap (void *cls,
 
 void
 iterate_next_after_abe_bootstrap (void *cls,
-                                  struct GNUNET_CRYPTO_AbeMasterKey *abe_key)
+                                  struct GNUNET_ABE_AbeMasterKey *abe_key)
 {
   struct AttributeIterator *ai = cls;
   ai->abe_key = abe_key;

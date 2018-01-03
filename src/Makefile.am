@@ -14,9 +14,10 @@ if HAVE_EXPERIMENTAL
   rps
 #  dv (FTBFS)
 if HAVE_ABE
-  EXP_DIR += identity-attribute \
-						 identity-provider \
-						 credential
+  EXP_DIR += abe \
+						 credential \
+	           identity-attribute \
+						 identity-provider 
 endif
 endif
 

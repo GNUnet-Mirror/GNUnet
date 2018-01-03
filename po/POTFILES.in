@@ -1,3 +1,4 @@
+src/abe/abe.c
 src/arm/arm_api.c
 src/arm/arm_monitor_api.c
 src/arm/gnunet-arm.c
