@@ -190,7 +190,8 @@ run (void *cls,
   char *fname;
 
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_filename (c, "PATHS",
+      GNUNET_CONFIGURATION_get_value_filename (c,
+					       "PATHS",
 					       "GNUNET_HOME",
 					       &shome))
   {
@@ -208,6 +209,7 @@ run (void *cls,
     GNUNET_free (fname);
     return;
   }
+  GNUNET_free (fname);
   GNUNET_asprintf (&fname,
                    "%s/blacklist",
                    shome);
