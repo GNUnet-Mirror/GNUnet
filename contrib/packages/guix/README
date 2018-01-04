@@ -1,39 +1,64 @@
 package definitions for GNU Guix
 ---------------------------------
 
+About
+-----
+
+This directory contains various files to work with GNUnet using Guix:
+
+* A folder intended to be used with GUIX_PACKAGE_PATH ("packages")
+* gnunet-doc.scm: A file to ease the building of the docgen script output
+* gnunet.scm: A file to build gnunet with all tests
+* guix-env.scm
+
+The workflow has to be documented and will make its way into the GNUnet
+Documentation eventually. For now, all uses of guix environment, guix package,
+etc apply.
+Example invocation:
+  guix environment --ad-hoc --container --network --fallback -K -l contrib/packages/guix/gnunet.scm
+which is worth improving, but essentially takes you into an container environment
+with gnunet from HEAD, under the condition that it builds. This won't include an editor,
+so you want to run
+  guix environment --ad-hoc emacs --container --network --fallback -K -l contrib/packages/guix/gnunet.scm
+(untested). You get the idea that this folder is a historical mess and should be cleaned up
+and properly documented.
+
 Usage
 -----
 
-Just point Guix towards the root of this source tree:
+Just point Guix towards the root of this source tree.
+Assuming that your gnunet checkout is in $HOME/src/gnunet:
 
-export GUIX_PACKAGE_PATH=/path/to/packages
+  export GUIX_PACKAGE_PATH=$HOME/src/gnunet/contrib/packages/guix/packages
+
 or (if you are in the root of the gnunet git repository):
-guix package -L contrib/packages/guix/packages -i package-name
+
+  guix package -L contrib/packages/guix/packages -i package-name
 
 The packages in this repository will take precedence over those in the
 official distribution.
 
+
 To make use of the packages in your GuixSD config file:
 
 Be sure to have GUIX_PACKAGE_PATH for your shell exported,
-for bash this could be achieved like this:
+for Bash this could be achieved like this:
 
-export GUIX_PACKAGE_PATH="/full/path/to/gnunet/contrib/packages/guix/directory"
+  export GUIX_PACKAGE_PATH="/full/path/to/gnunet/contrib/packages/guix/directory"
 
-In the section of your systems "config.scm", you should find
-something like this:
+In the section of your systems "config.scm", you should find something like this:
 
-(use-modules (gnu) (gnu system nss))
+  (use-modules (gnu) (gnu system nss))
 
 Now to make use of "gnunetg" as an systemwide installed package we change this
 to:
 
-(use-modules (gnu) (gnu system nss)
-             (gnunet packages gnunet))
+  (use-modules (gnu) (gnu system nss)
+               (gnunet packages gnunet))
 
 and do the usual thing:
  - save
  - guix system build /etc/config.scm
  - sudo -E guix system reconfigure /etc/config.scm
 
-The "-E" in "sudo -E" is important!
+The "-E" in "sudo -E" is important to keep the environment variables (GUIX_PACKAGE_PATH).
