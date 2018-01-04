@@ -638,7 +638,6 @@ handle_channel_created (void *cls,
   ch = create_channel (h,
                        &ccn);
   ch->peer = msg->peer;
-  ch->cadet = h;
   ch->incoming_port = port;
   ch->options = ntohl (msg->opt);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
