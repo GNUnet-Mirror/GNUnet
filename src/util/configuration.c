@@ -324,6 +324,7 @@ GNUNET_CONFIGURATION_parse (struct GNUNET_CONFIGURATION_Handle *cfg,
   char *endsep;
   int dirty;
   int ret;
+  ssize_t sret;
 
   fn = GNUNET_STRINGS_filename_expand (filename);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -333,7 +334,10 @@ GNUNET_CONFIGURATION_parse (struct GNUNET_CONFIGURATION_Handle *cfg,
     return GNUNET_SYSERR;
   dirty = cfg->dirty;           /* back up value! */
   if (GNUNET_SYSERR ==
-      GNUNET_DISK_file_size (fn, &fs64, GNUNET_YES, GNUNET_YES))
+      GNUNET_DISK_file_size (fn,
+			     &fs64,
+			     GNUNET_YES,
+			     GNUNET_YES))
   {
     LOG (GNUNET_ERROR_TYPE_WARNING,
 	 "Error while determining the file size of `%s'\n",
@@ -349,7 +353,11 @@ GNUNET_CONFIGURATION_parse (struct GNUNET_CONFIGURATION_Handle *cfg,
   }
   fs = fs64;
   mem = GNUNET_malloc (fs);
-  if (fs != GNUNET_DISK_fn_read (fn, mem, fs))
+  sret = GNUNET_DISK_fn_read (fn,
+			      mem,
+			      fs);
+  if ( (sret < 0) ||
+       (fs != (size_t) sret) )
   {
     LOG (GNUNET_ERROR_TYPE_WARNING,
 	 _("Error while reading file `%s'\n"),
@@ -495,6 +503,7 @@ GNUNET_CONFIGURATION_write (struct GNUNET_CONFIGURATION_Handle *cfg,
   char *fn;
   char *cfg_buf;
   size_t size;
+  ssize_t sret;
 
   fn = GNUNET_STRINGS_filename_expand (filename);
   if (fn == NULL)
@@ -505,11 +514,13 @@ GNUNET_CONFIGURATION_write (struct GNUNET_CONFIGURATION_Handle *cfg,
     return GNUNET_SYSERR;
   }
   cfg_buf = GNUNET_CONFIGURATION_serialize (cfg, &size);
-  if (size != GNUNET_DISK_fn_write (fn, cfg_buf, size,
-				    GNUNET_DISK_PERM_USER_READ
-				    | GNUNET_DISK_PERM_USER_WRITE
-				    | GNUNET_DISK_PERM_GROUP_READ
-				    | GNUNET_DISK_PERM_GROUP_WRITE))
+  sret = GNUNET_DISK_fn_write (fn, cfg_buf, size,
+			       GNUNET_DISK_PERM_USER_READ
+			       | GNUNET_DISK_PERM_USER_WRITE
+			       | GNUNET_DISK_PERM_GROUP_READ
+			       | GNUNET_DISK_PERM_GROUP_WRITE);
+  if ( (sret < 0) ||
+       (size != (size_t) sret) )
   {
     GNUNET_free (fn);
     GNUNET_free (cfg_buf);
@@ -858,13 +869,20 @@ GNUNET_CONFIGURATION_set_value_string (struct GNUNET_CONFIGURATION_Handle *cfg,
  */
 void
 GNUNET_CONFIGURATION_set_value_number (struct GNUNET_CONFIGURATION_Handle *cfg,
-                                       const char *section, const char *option,
+                                       const char *section,
+				       const char *option,
                                        unsigned long long number)
 {
   char s[64];
 
-  GNUNET_snprintf (s, 64, "%llu", number);
-  GNUNET_CONFIGURATION_set_value_string (cfg, section, option, s);
+  GNUNET_snprintf (s,
+		   64,
+		   "%llu",
+		   number);
+  GNUNET_CONFIGURATION_set_value_string (cfg,
+					 section,
+					 option,
+					 s);
 }
 
 

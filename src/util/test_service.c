@@ -30,9 +30,16 @@
  */
 #define MY_TYPE 256
 
+#define TIMEOUT GNUNET_TIME_UNIT_SECONDS
+
 static int global_ret = 1;
 
 static struct GNUNET_MQ_Handle *mq;
+
+/**
+ * Timeout task.
+ */
+static struct GNUNET_SCHEDULER_Task *tt;
 
 
 static void
@@ -86,7 +93,21 @@ disconnect_cb (void *cls,
   {
     GNUNET_SCHEDULER_shutdown ();
     global_ret = 0;
+    if (NULL != tt)
+    {
+      GNUNET_SCHEDULER_cancel (tt);
+      tt = NULL;
+    }
   }
+}
+
+
+static void
+timeout_task (void *cls)
+{
+  tt = NULL;
+  global_ret = 33;
+  GNUNET_SCHEDULER_shutdown ();
 }
 
 
@@ -106,7 +127,11 @@ service_init (void *cls,
   const char *service_name = cls;
   struct GNUNET_MQ_Envelope *env;
   struct GNUNET_MessageHeader *msg;
-  
+
+  GNUNET_assert (NULL == tt);
+  tt = GNUNET_SCHEDULER_add_delayed (TIMEOUT,
+				     &timeout_task,
+				     NULL);
   mq = GNUNET_CLIENT_connect (cfg,
                               service_name,
                               NULL,
