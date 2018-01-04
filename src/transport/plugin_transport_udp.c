@@ -1631,6 +1631,7 @@ enqueue (struct Plugin *plugin,
   if (GNUNET_YES == session->in_destroy)
   {
     GNUNET_break (0);
+    GNUNET_free (udpw);
     return;
   }
   if (plugin->bytes_in_buffer > INT64_MAX - udpw->msg_size)
@@ -1913,8 +1914,8 @@ enqueue_fragment (void *cls,
   udpw->qc = &qc_fragment_sent;
   udpw->qc_cls = plugin;
   GNUNET_memcpy (udpw->msg_buf,
-          msg,
-          msg_len);
+		 msg,
+		 msg_len);
   enqueue (plugin,
            udpw);
   if (session->address->address_length == sizeof (struct IPv4UdpAddress))
