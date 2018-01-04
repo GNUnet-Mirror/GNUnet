@@ -201,7 +201,8 @@ GNUNET_PEER_change_rc (GNUNET_PEER_Id id, int delta)
     return;
   GNUNET_assert (id < size);
   GNUNET_assert (table[id]->rc > 0);
-  GNUNET_assert ((delta >= 0) || (table[id]->rc >= -delta));
+  GNUNET_assert ( (delta >= 0) ||
+		  (table[id]->rc >= (unsigned int) (-delta)) );
   table[id]->rc += delta;
   if (0 == table[id]->rc)
   {

@@ -847,20 +847,19 @@ init_fd_info (struct GNUNET_SCHEDULER_Task *t,
  * @param et the event type to be set in each FdInfo after calling
  *           @a driver_func on it, or -1 if no updating not desired.
  */
-void driver_add_multiple (struct GNUNET_SCHEDULER_Task *t,
-                          enum GNUNET_SCHEDULER_EventType et)
+static void
+driver_add_multiple (struct GNUNET_SCHEDULER_Task *t)
 {
   struct GNUNET_SCHEDULER_FdInfo *fdi;
   int success = GNUNET_YES;
 
-  for (int i = 0; i != t->fds_len; ++i)
+  for (unsigned int i = 0; i != t->fds_len; ++i)
   {
     fdi = &t->fds[i];
-    success = scheduler_driver->add (scheduler_driver->cls, t, fdi) && success;
-    if (et != -1)
-    {
-      fdi->et = et;
-    }
+    success = scheduler_driver->add (scheduler_driver->cls,
+				     t,
+				     fdi) && success;
+    fdi->et = GNUNET_SCHEDULER_ET_NONE; 
   }
   if (GNUNET_YES != success)
   {
@@ -870,12 +869,13 @@ void driver_add_multiple (struct GNUNET_SCHEDULER_Task *t,
 }
 
 
-void
+static void
 shutdown_cb (void *cls)
 {
   char c;
   const struct GNUNET_DISK_FileHandle *pr;
 
+  (void) cls;
   pr = GNUNET_DISK_pipe_handle (shutdown_pipe_handle,
                                 GNUNET_DISK_PIPE_END_READ);
   GNUNET_assert (! GNUNET_DISK_handle_invalid (pr));
@@ -975,6 +975,8 @@ init_backtrace (struct GNUNET_SCHEDULER_Task *t)
       backtrace_symbols (backtrace_array,
        t->num_backtrace_strings);
   dump_backtrace (t);
+#else
+  (void) t;
 #endif
 }
 
@@ -1375,7 +1377,7 @@ add_without_sets (struct GNUNET_TIME_Relative delay,
   GNUNET_CONTAINER_DLL_insert (pending_head,
                                pending_tail,
                                t);
-  driver_add_multiple (t, GNUNET_SCHEDULER_ET_NONE);
+  driver_add_multiple (t);
   max_priority_added = GNUNET_MAX (max_priority_added,
                                    t->priority);
   init_backtrace (t);
@@ -1664,14 +1666,15 @@ extract_handles (struct GNUNET_SCHEDULER_Task *t,
   // in fdset must be handled separately
   const struct GNUNET_NETWORK_Handle **nhandles;
   const struct GNUNET_DISK_FileHandle **fhandles;
-  unsigned int nhandles_len, fhandles_len;
-  int sock;
+  unsigned int nhandles_len;
+  unsigned int fhandles_len;
 
+  (void) t;
   nhandles = NULL;
   fhandles = NULL;
   nhandles_len = 0;
   fhandles_len = 0;
-  for (sock = 0; sock != fdset->nsds; ++sock)
+  for (int sock = 0; sock != fdset->nsds; ++sock)
   {
     if (GNUNET_YES == GNUNET_NETWORK_fdset_test_native (fdset, sock))
     {
@@ -1816,7 +1819,7 @@ GNUNET_SCHEDULER_add_select (enum GNUNET_SCHEDULER_Priority prio,
   GNUNET_CONTAINER_DLL_insert (pending_head,
                                pending_tail,
                                t);
-  driver_add_multiple (t, GNUNET_SCHEDULER_ET_NONE);
+  driver_add_multiple (t);
   max_priority_added = GNUNET_MAX (max_priority_added,
            t->priority);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -1969,7 +1972,7 @@ GNUNET_SCHEDULER_run_from_driver (struct GNUNET_SCHEDULER_Handle *sh)
     // FIXME: do we have to remove FdInfos from fds if they are not ready?
     tc.fds_len = pos->fds_len;
     tc.fds = pos->fds;
-    for (int i = 0; i != pos->fds_len; ++i)
+    for (unsigned int i = 0; i != pos->fds_len; ++i)
     {
       struct GNUNET_SCHEDULER_FdInfo *fdi = &pos->fds[i];
       if (0 != (GNUNET_SCHEDULER_ET_IN & fdi->et))

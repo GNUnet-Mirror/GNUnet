@@ -154,6 +154,7 @@ GNUNET_OS_install_parent_control_handler (void *cls)
   struct GNUNET_DISK_FileHandle *control_pipe;
   uint64_t pipe_fd;
 
+  (void) cls;
   if (NULL != pch)
   {
     /* already done, we've been called twice... */
