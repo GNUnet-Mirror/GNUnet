@@ -19,8 +19,8 @@
    */
 /**
  * @author Martin Schanzenbach
- * @file identity-provider/identity_attribute.h
- * @brief GNUnet Identity Provider library
+ * @file identity-attribute/identity_attribute.h
+ * @brief GNUnet Identity attributes
  *
  */
 #ifndef IDENTITY_ATTRIBUTE_H

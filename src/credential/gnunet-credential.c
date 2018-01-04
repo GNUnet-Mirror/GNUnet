@@ -20,7 +20,7 @@
 /**
  * @file gnunet-credential.c
  * @brief command line tool to access command line Credential service
- * @author Adnan Husain
+ * @author Martin Schanzenbach
  */
 #include "platform.h"
 #include <gnunet_util_lib.h>
@@ -158,13 +158,6 @@ do_timeout (void *cls)
   GNUNET_SCHEDULER_shutdown ();
 }
 
-/**
- * Function called with the result of a Credential lookup.
- *
- * @param cls the 'const char *' name that was resolved
- * @param cd_count number of records returned
- * @param cd array of @a cd_count records with the results
- */
 static void
 handle_collect_result (void *cls,
                       unsigned int d_count,
@@ -192,13 +185,6 @@ handle_collect_result (void *cls,
 }
 
 
-/**
- * Function called with the result of a Credential lookup.
- *
- * @param cls the 'const char *' name that was resolved
- * @param cd_count number of records returned
- * @param cd array of @a cd_count records with the results
- */
 static void
 handle_verify_result (void *cls,
                       unsigned int d_count,

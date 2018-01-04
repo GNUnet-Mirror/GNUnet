@@ -1,5 +1,5 @@
 /*
-     This file is part of GNUnet.  Copyright (C) 2001-2014 Christian Grothoff
+     This file is part of GNUnet.  Copyright (C) 2001-2018 Christian Grothoff
      (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
@@ -20,9 +20,9 @@
 */
 
 /**
- * @file util/crypto_random.c
- * @brief functions to gather random numbers
- * @author Christian Grothoff
+ * @file abe/abe.c
+ * @brief functions for Attribute-Based Encryption
+ * @author Martin Schanzenbach
  */
 
 
@@ -146,6 +146,12 @@ aes_128_cbc_decrypt( char* ct,
   return len;
 }
 
+/**
+ * @ingroup abe
+ * Create a new CP-ABE master key. Caller must free return value.
+ *
+ * @return fresh private key; free using #GNUNET_ABE_cpabe_delete_master_key
+ */
 struct GNUNET_ABE_AbeMasterKey*
 GNUNET_ABE_cpabe_create_master_key (void)
 {
@@ -157,6 +163,13 @@ GNUNET_ABE_cpabe_create_master_key (void)
   return key;
 }
 
+/**
+ * @ingroup abe
+ * Delete a CP-ABE master key.
+ *
+ * @param key the master key
+ * @return fresh private key; free using #GNUNET_free
+ */
 void
 GNUNET_ABE_cpabe_delete_master_key (struct GNUNET_ABE_AbeMasterKey *key)
 {
@@ -167,6 +180,14 @@ GNUNET_ABE_cpabe_delete_master_key (struct GNUNET_ABE_AbeMasterKey *key)
   GNUNET_free (key);
 }
 
+/**
+ * @ingroup abe
+ * Create a new CP-ABE key. Caller must free return value.
+ *
+ * @param key the master key
+ * @param attrs the attributes to append to the key
+ * @return fresh private key; free using #GNUNET_ABE_cpabe_delete_key
+ */
 struct GNUNET_ABE_AbeKey*
 GNUNET_ABE_cpabe_create_key (struct GNUNET_ABE_AbeMasterKey *key,
                              char **attrs)
@@ -184,6 +205,14 @@ GNUNET_ABE_cpabe_create_key (struct GNUNET_ABE_AbeMasterKey *key,
   return prv_key;
 }
 
+/**
+ * @ingroup abe
+ * Delete a CP-ABE key.
+ *
+ * @param key the key to delete
+ * @param delete_pub GNUNE_YES if the public key should also be freed (bug in gabe)
+ * @return fresh private key; free using #GNUNET_free
+ */
 void
 GNUNET_ABE_cpabe_delete_key (struct GNUNET_ABE_AbeKey *key,
                                 int delete_pub)
@@ -195,7 +224,7 @@ GNUNET_ABE_cpabe_delete_key (struct GNUNET_ABE_AbeKey *key,
   GNUNET_free (key);
 }
 
-ssize_t
+static ssize_t
 write_cpabe (void **result,
              uint32_t file_len,
              char* cph_buf,
@@ -223,7 +252,7 @@ write_cpabe (void **result,
   return 12 + cph_buf_len + aes_buf_len;
 }
 
-ssize_t
+static ssize_t
 read_cpabe (const void *data,
             char** cph_buf,
             int *cph_buf_len,
@@ -253,6 +282,17 @@ read_cpabe (const void *data,
   return buf_len;
 }
 
+/**
+ * @ingroup abe
+ * Encrypt a block using  sessionkey.
+ *
+ * @param block the block to encrypt
+ * @param size the size of the @a block
+ * @param policy the ABE policy
+ * @param key the key used to encrypt
+ * @param result the result buffer. Will be allocated. Free using #GNUNET_free
+ * @return the size of the encrypted block, -1 for errors
+ */
 ssize_t
 GNUNET_ABE_cpabe_encrypt (const void *block,
                              size_t size,
@@ -285,6 +325,16 @@ GNUNET_ABE_cpabe_encrypt (const void *block,
   return result_len;
 }
 
+/**
+ * @ingroup abe
+ * Decrypt a block using the ABE key.
+ *
+ * @param block the block to encrypt
+ * @param size the size of the @a block
+ * @param key the key used to decrypt
+ * @param result the result buffer. Will be allocated. Free using #GNUNET_free
+ * @return the size of the encrypted block, -1 for errors
+ */
 ssize_t
 GNUNET_ABE_cpabe_decrypt (const void *block,
                              size_t size,
@@ -323,6 +373,14 @@ GNUNET_ABE_cpabe_decrypt (const void *block,
   return plt_len;
 }
 
+/**
+ * @ingroup abe
+ * Serialize an ABE key.
+ *
+ * @param key the key to serialize
+ * @param result the result buffer. Will be allocated. Free using #GNUNET_free
+ * @return the size of the encrypted block, -1 for errors
+ */
 ssize_t
 GNUNET_ABE_cpabe_serialize_key (const struct GNUNET_ABE_AbeKey *key,
                                    void **result)
@@ -345,6 +403,14 @@ GNUNET_ABE_cpabe_serialize_key (const struct GNUNET_ABE_AbeKey *key,
   return len;
 }
 
+/**
+ * @ingroup abe
+ * Deserialize a serialized ABE key.
+ *
+ * @param data the data to deserialize
+ * @param len the length of the data.
+ * @return the ABE key. NULL of unsuccessful
+ */
 struct GNUNET_ABE_AbeKey*
 GNUNET_ABE_cpabe_deserialize_key (const void *data,
                                      size_t len)
@@ -369,6 +435,14 @@ GNUNET_ABE_cpabe_deserialize_key (const void *data,
   return key;
 }
 
+/**
+ * @ingroup abe
+ * Serialize an ABE master key.
+ *
+ * @param key the key to serialize
+ * @param result the result buffer. Will be allocated. Free using #GNUNET_free
+ * @return the size of the encrypted block, -1 for errors
+ */
 ssize_t
 GNUNET_ABE_cpabe_serialize_master_key (const struct GNUNET_ABE_AbeMasterKey *key,
                                           void **result)
@@ -391,6 +465,14 @@ GNUNET_ABE_cpabe_serialize_master_key (const struct GNUNET_ABE_AbeMasterKey *key
   return len;
 }
 
+/**
+ * @ingroup abe
+ * Deserialize an ABE master key.
+ *
+ * @param data the data to deserialize
+ * @param len the length of the data.
+ * @return the ABE key. NULL of unsuccessful
+ */
 struct GNUNET_ABE_AbeMasterKey*
 GNUNET_ABE_cpabe_deserialize_master_key (const void *data,
                                             size_t len)

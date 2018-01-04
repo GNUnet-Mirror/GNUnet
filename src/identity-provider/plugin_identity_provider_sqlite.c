@@ -368,6 +368,7 @@ database_shutdown (struct Plugin *plugin)
  *
  * @param cls closure (internal context for the plugin)
  * @param ticket the ticket to persist
+ * @param attrs the attributes associated with the ticket
  * @return #GNUNET_OK on success, else #GNUNET_SYSERR
  */
 static int
@@ -581,8 +582,7 @@ get_ticket_and_call_iterator (struct Plugin *plugin,
  * Lookup tickets in the datastore.
  *
  * @param cls closure (internal context for the plugin)
- * @param zone private key of the zone
- * @param label name of the record in the zone
+ * @param ticket the ticket to retrieve attributes for
  * @param iter function to call with the result
  * @param iter_cls closure for @a iter
  * @return #GNUNET_OK on success, else #GNUNET_SYSERR

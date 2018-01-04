@@ -19,7 +19,7 @@
 */
 
 /**
- * @file identity-provider/plugin_identity_attribute_gnuid.c
+ * @file identity-attribute/plugin_identity_attribute_gnuid.c
  * @brief identity attribute plugin to provide the API for fundamental 
  *                 attribute types.
  *

@@ -21,7 +21,7 @@
 /**
  * @file credential/plugin_gnsrecord_credential.c
  * @brief gnsrecord plugin to provide the API for CREDENTIAL records
- * @author Adnan Husain
+ * @author Martin Schanzenbach
  */
 
 #include "platform.h"

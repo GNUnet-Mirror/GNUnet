@@ -637,10 +637,8 @@ cleanup()
     GNUNET_NAMESTORE_disconnect (ns_handle);
   if (NULL != stats_handle)
     GNUNET_STATISTICS_destroy (stats_handle, GNUNET_NO);
-  if (NULL != token)
-    GNUNET_free (token);
-  if (NULL != label)
-    GNUNET_free (label);
+  GNUNET_free_non_null (token);
+  GNUNET_free_non_null (label);
 
 }
 
@@ -648,7 +646,6 @@ cleanup()
  * Shutdown task
  *
  * @param cls NULL
- * @param tc task context
  */
 static void
 do_shutdown (void *cls)
@@ -732,9 +729,8 @@ bootstrap_abe_result (void *cls,
 {
   struct AbeBootstrapHandle *abh = cls;
   struct GNUNET_ABE_AbeMasterKey *abe_key;
-  int i;
 
-  for (i=0;i<rd_count;i++) {
+  for (uint32_t i=0;i<rd_count;i++) {
     if (GNUNET_GNSRECORD_TYPE_ABE_MASTER != rd[i].record_type)
       continue;
     abe_key = GNUNET_ABE_cpabe_deserialize_master_key (rd[i].data,
@@ -964,7 +960,7 @@ issue_ticket_after_abe_bootstrap (void *cls,
   char *label;
   char *policy;
   int attrs_len;
-  int i;
+  uint32_t i;
   size_t code_record_len;
 
   //Create new ABE key for RP
@@ -1021,13 +1017,6 @@ issue_ticket_after_abe_bootstrap (void *cls,
 }
 
 
-/**
- * Checks a ticket issue message
- *
- * @param cls client sending the message
- * @param im message of type `struct TicketIssueMessage`
- * @return #GNUNET_OK if @a im is well-formed
- */
 static int
 check_issue_ticket_message(void *cls,
                            const struct IssueTicketMessage *im)
@@ -1044,14 +1033,6 @@ check_issue_ticket_message(void *cls,
 }
 
 
-/**
- *
- * Handler for ticket issue message
- *
- * @param cls unused
- * @param client who sent the message
- * @param message the message
- */
 static void
 handle_issue_ticket_message (void *cls,
                              const struct IssueTicketMessage *im)
@@ -1083,26 +1064,31 @@ handle_issue_ticket_message (void *cls,
 
 /**
  * Cleanup revoke handle
+ *
+ * @param rh the ticket revocation handle
  */
 static void
-cleanup_revoke_ticket_handle (struct TicketRevocationHandle *handle)
+cleanup_revoke_ticket_handle (struct TicketRevocationHandle *rh)
 {
-  if (NULL != handle->attrs)
-    GNUNET_IDENTITY_ATTRIBUTE_list_destroy (handle->attrs);
-  if (NULL != handle->rvk_attrs)
-    GNUNET_IDENTITY_ATTRIBUTE_list_destroy (handle->rvk_attrs);
-  if (NULL != handle->abe_key)
-    GNUNET_ABE_cpabe_delete_master_key (handle->abe_key);
-  if (NULL != handle->ns_qe)
-    GNUNET_NAMESTORE_cancel (handle->ns_qe);
-  if (NULL != handle->ns_it)
-    GNUNET_NAMESTORE_zone_iteration_stop (handle->ns_it);
-  GNUNET_free (handle);
+  if (NULL != rh->attrs)
+    GNUNET_IDENTITY_ATTRIBUTE_list_destroy (rh->attrs);
+  if (NULL != rh->rvk_attrs)
+    GNUNET_IDENTITY_ATTRIBUTE_list_destroy (rh->rvk_attrs);
+  if (NULL != rh->abe_key)
+    GNUNET_ABE_cpabe_delete_master_key (rh->abe_key);
+  if (NULL != rh->ns_qe)
+    GNUNET_NAMESTORE_cancel (rh->ns_qe);
+  if (NULL != rh->ns_it)
+    GNUNET_NAMESTORE_zone_iteration_stop (rh->ns_it);
+  GNUNET_free (rh);
 }
 
 
 /**
  * Send revocation result
+ *
+ * @param rh ticket revocation handle
+ * @param success GNUNET_OK if successful result
  */
 static void
 send_revocation_finished (struct TicketRevocationHandle *rh,
@@ -1190,7 +1176,7 @@ ticket_reissue_proc (void *cls,
   char *label;
   char *policy;
   int attrs_len;
-  int i;
+  uint32_t i;
   int reissue_ticket;
   size_t code_record_len;
 
@@ -1476,13 +1462,6 @@ get_ticket_after_abe_bootstrap (void *cls,
                                        rh);
 }
 
-/**
- * Checks a ticket revocation message
- *
- * @param cls client sending the message
- * @param im message of type `struct RevokeTicketMessage`
- * @return #GNUNET_OK if @a im is well-formed
- */
 static int
 check_revoke_ticket_message(void *cls,
                             const struct RevokeTicketMessage *im)
@@ -1497,14 +1476,7 @@ check_revoke_ticket_message(void *cls,
   }
   return GNUNET_OK;
 }
-/**
- *
- * Handler for ticket revocation message
- *
- * @param cls unused
- * @param client who sent the message
- * @param message the message
- */
+
 static void
 handle_revoke_ticket_message (void *cls,
                               const struct RevokeTicketMessage *rm)
@@ -1544,13 +1516,6 @@ cleanup_consume_ticket_handle (struct ConsumeTicketHandle *handle)
 
 
 
-/**
- * Checks a ticket consume message
- *
- * @param cls client sending the message
- * @param im message of type `struct ConsumeTicketMessage`
- * @return #GNUNET_OK if @a im is well-formed
- */
 static int
 check_consume_ticket_message(void *cls,
                              const struct ConsumeTicketMessage *cm)
@@ -1782,14 +1747,6 @@ process_consume_abe_key (void *cls, uint32_t rd_count,
 }
 
 
-/**
- *
- * Handler for ticket issue message
- *
- * @param cls unused
- * @param client who sent the message
- * @param message the message
- */
 static void
 handle_consume_ticket_message (void *cls,
                                const struct ConsumeTicketMessage *cm)
@@ -1941,13 +1898,6 @@ store_after_abe_bootstrap (void *cls,
   GNUNET_SCHEDULER_add_now (&attr_store_task, ash);
 }
 
-/**
- * Checks a store message
- *
- * @param cls client sending the message
- * @param sam message of type `struct AttributeStoreMessage`
- * @return #GNUNET_OK if @a im is well-formed
- */
 static int
 check_attribute_store_message(void *cls,
                               const struct AttributeStoreMessage *sam)
@@ -1964,14 +1914,6 @@ check_attribute_store_message(void *cls,
 }
 
 
-/**
- *
- * Handler for store message
- *
- * @param cls unused
- * @param client who sent the message
- * @param message the message
- */
 static void
 handle_attribute_store_message (void *cls,
                                 const struct AttributeStoreMessage *sam)
@@ -2125,12 +2067,6 @@ iterate_next_after_abe_bootstrap (void *cls,
 
 
 
-/**
- * Handles a #GNUNET_MESSAGE_TYPE_IDENTITY_PROVIDER_ITERATION_START message
- *
- * @param cls the client sending the message
- * @param zis_msg message from the client
- */
 static void
 handle_iteration_start (void *cls,
                         const struct AttributeIterationStartMessage *ais_msg)
@@ -2153,12 +2089,6 @@ handle_iteration_start (void *cls,
 }
 
 
-/**
- * Handles a #GNUNET_MESSAGE_TYPE_IDENTITY_PROVIDER_ITERATION_STOP message
- *
- * @param cls the client sending the message
- * @param ais_msg message from the client
- */
 static void
 handle_iteration_stop (void *cls,
                        const struct AttributeIterationStopMessage *ais_msg)
@@ -2188,12 +2118,6 @@ handle_iteration_stop (void *cls,
 }
 
 
-/**
- * Handles a #GNUNET_MESSAGE_TYPE_IDENTITY_PROVIDER_ATTRIBUTE_ITERATION_NEXT message
- *
- * @param cls the client sending the message
- * @param message message from the client
- */
 static void
 handle_iteration_next (void *cls,
                        const struct AttributeIterationNextMessage *ais_msg)
@@ -2351,12 +2275,6 @@ run_ticket_iteration_round (struct TicketIteration *ti)
   cleanup_ticket_iter_handle (ti);
 }
 
-/**
- * Handles a #GNUNET_MESSAGE_TYPE_IDENTITY_PROVIDER_TICKET_ITERATION_START message
- *
- * @param cls the client sending the message
- * @param tis_msg message from the client
- */
 static void
 handle_ticket_iteration_start (void *cls,
                                const struct TicketIterationStartMessage *tis_msg)
@@ -2381,12 +2299,6 @@ handle_ticket_iteration_start (void *cls,
 }
 
 
-/**
- * Handles a #GNUNET_MESSAGE_TYPE_IDENTITY_PROVIDER_TICKET_ITERATION_STOP message
- *
- * @param cls the client sending the message
- * @param tis_msg message from the client
- */
 static void
 handle_ticket_iteration_stop (void *cls,
                               const struct TicketIterationStopMessage *tis_msg)
@@ -2416,12 +2328,6 @@ handle_ticket_iteration_stop (void *cls,
 }
 
 
-/**
- * Handles a #GNUNET_MESSAGE_TYPE_IDENTITY_PROVIDER_TICKET_ITERATION_NEXT message
- *
- * @param cls the client sending the message
- * @param message message from the client
- */
 static void
 handle_ticket_iteration_next (void *cls,
                               const struct TicketIterationNextMessage *tis_msg)
@@ -2453,9 +2359,8 @@ handle_ticket_iteration_next (void *cls,
  * Main function that will be run
  *
  * @param cls closure
- * @param args remaining command-line arguments
- * @param cfgfile name of the configuration file used (for saving, can be NULL)
- * @param c configuration
+ * @param c the configuration used 
+ * @param server the service handle
  */
 static void
 run (void *cls,

@@ -57,7 +57,7 @@ struct GNUNET_REST_Plugin
 
   /**
    * Plugin name. Used as the namespace for the API.
-   * e.g. http://hostname:port/<name>
+   * e.g. http://hostname:port/name
    */
   char *name;
 

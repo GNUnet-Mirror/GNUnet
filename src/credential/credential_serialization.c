@@ -34,11 +34,10 @@
 
 /**
  * Calculate how many bytes we will need to serialize
- * the given delegation chain and credential
+ * the given delegation chain
  *
- * @param d_count number of delegation chain entries
- * @param dd array of #GNUNET_CREDENTIAL_Delegation
- * @param cd a #GNUNET_CREDENTIAL_Credential
+ * @param ds_count number of delegation chain entries
+ * @param dsr array of #GNUNET_CREDENTIAL_DelegationSet
  * @return the required size to serialize
  */
 size_t
@@ -62,8 +61,7 @@ GNUNET_CREDENTIAL_delegation_set_get_size (unsigned int ds_count,
  * Serizalize the given delegation chain entries and credential
  *
  * @param d_count number of delegation chain entries
- * @param dd array of #GNUNET_CREDENTIAL_Delegation
- * @param cd a #GNUNET_CREDENTIAL_Credential
+ * @param dsr array of #GNUNET_CREDENTIAL_DelegationSet
  * @param dest_size size of the destination
  * @param dest where to store the result
  * @return the size of the data, -1 on failure
@@ -108,8 +106,7 @@ GNUNET_CREDENTIAL_delegation_set_serialize (unsigned int d_count,
  * @param len size of the serialized delegation chain and cred
  * @param src the serialized data
  * @param d_count the number of delegation chain entries
- * @param dd where to put the delegation chain entries
- * @param cd where to put the credential data
+ * @param dsr where to put the delegation chain entries
  * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
  */
 int

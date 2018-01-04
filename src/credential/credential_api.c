@@ -20,7 +20,7 @@
 /**
  * @file credential/credential_api.c
  * @brief library to access the CREDENTIAL service
- * @author Adnan Husain
+ * @author Martin Schanzenbach
  */
 #include "platform.h"
 #include "gnunet_util_lib.h"
@@ -189,7 +189,7 @@ mq_error_handler (void *cls,
  * Check validity of message received from the CREDENTIAL service
  *
  * @param cls the `struct GNUNET_CREDENTIAL_Handle *`
- * @param loookup_msg the incoming message
+ * @param vr_msg the incoming message
  */
 static int
 check_result (void *cls,
@@ -204,7 +204,7 @@ check_result (void *cls,
  * Handler for messages received from the CREDENTIAL service
  *
  * @param cls the `struct GNUNET_CREDENTIAL_Handle *`
- * @param loookup_msg the incoming message
+ * @param vr_msg the incoming message
  */
 static void
 handle_result (void *cls,
@@ -348,15 +348,15 @@ GNUNET_CREDENTIAL_disconnect (struct GNUNET_CREDENTIAL_Handle *handle)
  * @param lr the verify request to cancel
  */
 void
-GNUNET_CREDENTIAL_request_cancel (struct GNUNET_CREDENTIAL_Request *vr)
+GNUNET_CREDENTIAL_request_cancel (struct GNUNET_CREDENTIAL_Request *lr)
 {
-  struct GNUNET_CREDENTIAL_Handle *handle = vr->credential_handle;
+  struct GNUNET_CREDENTIAL_Handle *handle = lr->credential_handle;
 
   GNUNET_CONTAINER_DLL_remove (handle->request_head,
                                handle->request_tail,
-                               vr);
-  GNUNET_MQ_discard (vr->env);
-  GNUNET_free (vr);
+                               lr);
+  GNUNET_MQ_discard (lr->env);
+  GNUNET_free (lr);
 }
 
 
@@ -369,8 +369,6 @@ GNUNET_CREDENTIAL_request_cancel (struct GNUNET_CREDENTIAL_Request *vr)
  * @param issuer_key the issuer public key
  * @param issuer_attribute the issuer attribute
  * @param subject_key the subject public key
- * @param credential_count number of credentials provided
- * @param credentials subject credentials
  * @param proc function to call on result
  * @param proc_cls closure for processor
  * @return handle to the queued request

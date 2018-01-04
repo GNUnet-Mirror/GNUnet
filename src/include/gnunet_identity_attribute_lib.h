@@ -122,7 +122,7 @@ struct GNUNET_IDENTITY_ATTRIBUTE_ClaimListEntry
 /**
  * Create a new attribute claim.
  *
- * @param name the attribute name
+ * @param attr_name the attribute name
  * @param type the attribute type
  * @param data the attribute value
  * @param data_size the attribute value size

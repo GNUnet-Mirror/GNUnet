@@ -20,7 +20,7 @@
 /**
  * @file credential/credential.h
  * @brief IPC messages between CREDENTIAL API and CREDENTIAL service
- * @author Adnan Husain 
+ * @author Martin Schanzenbach
  */
 #ifndef CREDENTIAL_H
 #define CREDENTIAL_H

@@ -20,7 +20,7 @@
 
 
 /**
- * @file credential/credential_mic.c
+ * @file credential/credential_misc.c
  * @brief Misc API for credentials
  *
  * @author Martin Schanzenbach
@@ -113,7 +113,6 @@ GNUNET_CREDENTIAL_credential_from_string (const char* s)
 /**
  * Issue an attribute to a subject
  *
- * @param handle handle to the Credential service
  * @param issuer the ego that should be used to issue the attribute
  * @param subject the subject of the attribute
  * @param attribute the name of the attribute
