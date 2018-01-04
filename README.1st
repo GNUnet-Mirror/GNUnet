@@ -95,6 +95,9 @@ notify a mobile peer about a location change and then systematically
 change the public key we use depending on our location. [6-12 PM,
 privacy]
 
+* Core should support protocol versioning for higher-level services
+[3 PM]
+
 
 cadet:
 * needs more systematic testing, ideally with a mock up of DHT

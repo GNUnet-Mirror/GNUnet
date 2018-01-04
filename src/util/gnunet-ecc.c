@@ -281,8 +281,10 @@ print_key (const char *filename)
   uint64_t fs;
   unsigned int total_hostkeys;
   unsigned int c;
+  ssize_t sret;
 
-  if (GNUNET_YES != GNUNET_DISK_file_test (filename))
+  if (GNUNET_YES !=
+      GNUNET_DISK_file_test (filename))
   {
     fprintf (stderr,
              _("Hostkeys file `%s' not found\n"),
@@ -291,7 +293,11 @@ print_key (const char *filename)
   }
 
   /* Check hostkey file size, read entire thing into memory */
-  if (GNUNET_OK != GNUNET_DISK_file_size (filename, &fs, GNUNET_YES, GNUNET_YES))
+  if (GNUNET_OK !=
+      GNUNET_DISK_file_size (filename,
+			     &fs,
+			     GNUNET_YES,
+			     GNUNET_YES))
     fs = 0;
   if (0 == fs)
   {
@@ -307,15 +313,22 @@ print_key (const char *filename)
              filename);
     return;
   }
-  fd = GNUNET_DISK_file_open (filename, GNUNET_DISK_OPEN_READ,
-                                         GNUNET_DISK_PERM_NONE);
+  fd = GNUNET_DISK_file_open (filename,
+			      GNUNET_DISK_OPEN_READ,
+			      GNUNET_DISK_PERM_NONE);
   if (NULL == fd)
   {
-    GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR, "open", filename);
+    GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR,
+			      "open",
+			      filename);
     return;
   }
   hostkeys_data = GNUNET_malloc (fs);
-  if (fs != GNUNET_DISK_file_read (fd, hostkeys_data, fs))
+  sret = GNUNET_DISK_file_read (fd,
+				hostkeys_data,
+				fs);
+  if ( (sret < 0) ||
+       (fs != (size_t) sret) )
   {
     fprintf (stderr,
              _("Could not read hostkey file: %s\n"),
@@ -351,15 +364,21 @@ print_key (const char *filename)
 /**
  * Main function that will be run by the scheduler.
  *
- * @param cls closure
+ * @param cls closure, NULL
  * @param args remaining command-line arguments
  * @param cfgfile name of the configuration file used (for saving, can be NULL!)
  * @param cfg configuration
  */
 static void
-run (void *cls, char *const *args, const char *cfgfile,
+run (void *cls,
+     char *const *args,
+     const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
+  (void) cls;
+  (void) cfgfile;
+  (void) cfg;
+  
   if (print_examples_flag)
   {
     print_examples ();

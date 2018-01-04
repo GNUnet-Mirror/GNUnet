@@ -1324,6 +1324,7 @@ static int
 remove_helper (void *unused,
                const char *fn)
 {
+  (void) unused;
   (void) GNUNET_DISK_directory_remove (fn);
   return GNUNET_OK;
 }
@@ -1396,6 +1397,7 @@ GNUNET_DISK_file_copy (const char *src,
   uint64_t pos;
   uint64_t size;
   size_t len;
+  ssize_t sret;
   struct GNUNET_DISK_FileHandle *in;
   struct GNUNET_DISK_FileHandle *out;
 
@@ -1425,9 +1427,17 @@ GNUNET_DISK_file_copy (const char *src,
     len = COPY_BLK_SIZE;
     if (len > size - pos)
       len = size - pos;
-    if (len != GNUNET_DISK_file_read (in, buf, len))
+    sret = GNUNET_DISK_file_read (in,
+				  buf,
+				  len);
+    if ( (sret < 0) ||
+	 (len != (size_t) sret) )
       goto FAIL;
-    if (len != GNUNET_DISK_file_write (out, buf, len))
+    sret = GNUNET_DISK_file_write (out,
+				   buf,
+				   len);
+    if ( (sret < 0) ||
+	 (len != (size_t) sret) )
       goto FAIL;
     pos += len;
   }
@@ -1457,7 +1467,8 @@ GNUNET_DISK_filename_canonicalize (char *fn)
   {
     c = *idx;
 
-    if (c == '/' || c == '\\' || c == ':' || c == '*' || c == '?' || c == '"' ||
+    if (c == '/' || c == '\\' || c == ':' ||
+	c == '*' || c == '?' || c == '"' ||
         c == '<' || c == '>' || c == '|')
     {
       *idx = '_';
@@ -2236,18 +2247,24 @@ create_selectable_pipe (PHANDLE read_pipe_ptr, PHANDLE write_pipe_ptr,
  * @return handle to the new pipe, NULL on error
  */
 struct GNUNET_DISK_PipeHandle *
-GNUNET_DISK_pipe (int blocking_read, int blocking_write, int inherit_read, int inherit_write)
+GNUNET_DISK_pipe (int blocking_read,
+		  int blocking_write,
+		  int inherit_read,
+		  int inherit_write)
 {
 #ifndef MINGW
   int fd[2];
   int ret;
   int eno;
 
+  (void) inherit_read;
+  (void) inherit_write;
   ret = pipe (fd);
   if (ret == -1)
   {
     eno = errno;
-    LOG_STRERROR (GNUNET_ERROR_TYPE_ERROR, "pipe");
+    LOG_STRERROR (GNUNET_ERROR_TYPE_ERROR,
+		  "pipe");
     errno = eno;
     return NULL;
   }

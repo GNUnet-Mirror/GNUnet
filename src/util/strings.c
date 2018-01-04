@@ -1069,11 +1069,13 @@ GNUNET_STRINGS_string_to_data (const char *enc, size_t enclen,
  *         (if they weren't NULL).
  */
 int
-GNUNET_STRINGS_parse_uri (const char *path, char **scheme_part,
-    const char **path_part)
+GNUNET_STRINGS_parse_uri (const char *path,
+			  char **scheme_part,
+			  const char **path_part)
 {
   size_t len;
-  int i, end;
+  size_t i;
+  int end;
   int pp_state = 0;
   const char *post_scheme_part = NULL;
   len = strlen (path);
@@ -1082,7 +1084,7 @@ GNUNET_STRINGS_parse_uri (const char *path, char **scheme_part,
     switch (pp_state)
     {
     case 0:
-      if (path[i] == ':' && i > 0)
+      if ( (path[i] == ':') && (i > 0) )
       {
         pp_state += 1;
         continue;

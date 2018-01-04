@@ -649,6 +649,7 @@ main (int argc, char **argv)
     {
       fprintf (stderr,
                "Fatal: prefix_len out of range\n");
+      close (fd_tun);
       return 1;
     }
 

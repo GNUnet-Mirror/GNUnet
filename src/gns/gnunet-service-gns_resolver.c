@@ -658,6 +658,8 @@ resolver_lookup_get_next_label (struct GNS_ResolverHandle *rh)
     }
     rh->protocol = pe->p_proto;
     rh->service = se->s_port;
+    GNUNET_free (proto_name);
+    GNUNET_free (srv_name);
   }
   return ret;
 }
@@ -1017,6 +1019,7 @@ recursive_dns_resolution (struct GNS_ResolverHandle *rh)
   struct GNUNET_DNSPARSER_Packet *p;
   char *dns_request;
   size_t dns_request_length;
+  int ret;
 
   ac = rh->ac_tail;
   GNUNET_assert (NULL != ac);
@@ -1049,11 +1052,16 @@ recursive_dns_resolution (struct GNS_ResolverHandle *rh)
 					       UINT16_MAX);
   p->flags.opcode = GNUNET_TUN_DNS_OPCODE_QUERY;
   p->flags.recursion_desired = 1;
-  if (GNUNET_OK !=
-      GNUNET_DNSPARSER_pack (p, 1024, &dns_request, &dns_request_length))
+  ret = GNUNET_DNSPARSER_pack (p,
+			       1024,
+			       &dns_request,
+			       &dns_request_length);
+  if (GNUNET_OK != ret)
   {
     GNUNET_break (0);
-    rh->proc (rh->proc_cls, 0, NULL);
+    rh->proc (rh->proc_cls,
+	      0,
+	      NULL);
     GNS_resolver_lookup_cancel (rh);
   }
   else
@@ -1069,7 +1077,8 @@ recursive_dns_resolution (struct GNS_ResolverHandle *rh)
 						&fail_resolution,
 						rh);
   }
-  GNUNET_free (dns_request);
+  if (GNUNET_SYSERR != ret)
+    GNUNET_free (dns_request);
   GNUNET_DNSPARSER_free_packet (p);
 }
 
@@ -1460,10 +1469,10 @@ handle_gns_resolution_result (void *cls,
 	    vpn_ctx->rd_data = GNUNET_malloc (vpn_ctx->rd_data_size);
             vpn_ctx->rd_count = rd_count;
 	    GNUNET_assert (vpn_ctx->rd_data_size ==
-                           GNUNET_GNSRECORD_records_serialize (rd_count,
-                                                               rd,
-                                                               vpn_ctx->rd_data_size,
-                                                               vpn_ctx->rd_data));
+                           (size_t) GNUNET_GNSRECORD_records_serialize (rd_count,
+									rd,
+									vpn_ctx->rd_data_size,
+									vpn_ctx->rd_data));
 	    vpn_ctx->vpn_request = GNUNET_VPN_redirect_to_peer (vpn_handle,
 								af,
 								ntohs (vpn->proto),
@@ -2360,7 +2369,8 @@ GNS_resolver_lookup (const struct GNUNET_CRYPTO_EcdsaPublicKey *zone,
 		     uint32_t record_type,
 		     const char *name,
 		     enum GNUNET_GNS_LocalOptions options,
-		     GNS_ResultProcessor proc, void *proc_cls)
+		     GNS_ResultProcessor proc,
+		     void *proc_cls)
 {
   struct GNS_ResolverHandle *rh;
 

@@ -1,6 +1,6 @@
 /*
   This file is part of GNUnet
-  Copyright (C) 2014, 2015, 2016 GNUnet e.V.
+  Copyright (C) 2014, 2015, 2016, 2018 GNUnet e.V.
 
   GNUnet is free software; you can redistribute it and/or modify it under the
   terms of the GNU General Public License as published by the Free Software
@@ -466,6 +466,7 @@ GNUNET_CURL_perform (struct GNUNET_CURL_Context *ctx)
                                       CURLINFO_PRIVATE,
                                       (char **) &job));
     GNUNET_assert (job->ctx == ctx);
+    response_code = 0;
     j = download_get_result (&job->db,
                              job->easy_handle,
                              &response_code);

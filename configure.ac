@@ -446,7 +446,7 @@ AC_CHECK_LIB(ogg, ogg_stream_flush_fill,
         ogg=0)
 
 
-PKG_CHECK_MODULES([GLIB], [glib-2.0])
+PKG_CHECK_MODULES([GLIB], [glib-2.0],
 # check for pbc library
 pbc=0
 AC_CHECK_HEADER([pbc/pbc.h],pbc=1)
@@ -465,8 +465,12 @@ then
 else
   AC_DEFINE([HAVE_ABE],[0],[Lacking ABE library])
 fi
-
-
+,
+# glib-2 not found
+  AM_CONDITIONAL(HAVE_PBC, [0])
+  AM_CONDITIONAL(HAVE_ABE, [0])
+  AC_DEFINE([HAVE_PBC],[0],[Lacking glib library])
+)
 
 gst=0
 PKG_CHECK_MODULES(
