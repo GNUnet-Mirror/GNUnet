@@ -2362,7 +2362,8 @@ GNS_resolver_lookup (const struct GNUNET_CRYPTO_EcdsaPublicKey *zone,
 		     uint32_t record_type,
 		     const char *name,
 		     enum GNUNET_GNS_LocalOptions options,
-		     GNS_ResultProcessor proc, void *proc_cls)
+		     GNS_ResultProcessor proc,
+		     void *proc_cls)
 {
   struct GNS_ResolverHandle *rh;
 

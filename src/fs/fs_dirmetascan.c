@@ -211,9 +211,9 @@ expand_tree (struct GNUNET_FS_ShareTreeItem *parent,
     chld->short_filename[slen-1] = '\0';
   chld->is_directory = is_directory;
   if (NULL != parent)
-      GNUNET_CONTAINER_DLL_insert (parent->children_head,
-				   parent->children_tail,
-				   chld);
+    GNUNET_CONTAINER_DLL_insert (parent->children_head,
+				 parent->children_tail,
+				 chld);
   return chld;
 }
 
@@ -259,7 +259,8 @@ process_helper_msgs (void *cls,
   size_t left;
 
 #if 0
-  fprintf (stderr, "DMS parses %u-byte message of type %u\n",
+  fprintf (stderr,
+	   "DMS parses %u-byte message of type %u\n",
 	   (unsigned int) ntohs (msg->size),
 	   (unsigned int) ntohs (msg->type));
 #endif
@@ -277,11 +278,18 @@ process_helper_msgs (void *cls,
 			   filename, GNUNET_NO,
 			   GNUNET_FS_DIRSCANNER_FILE_START);
     if (NULL == ds->toplevel)
+    {
       ds->toplevel = expand_tree (ds->pos,
-				  filename, GNUNET_NO);
+				  filename,
+				  GNUNET_NO);
+    }
     else
+    {
+      GNUNET_assert (NULL != ds->pos);
       (void) expand_tree (ds->pos,
-			  filename, GNUNET_NO);
+			  filename,
+			  GNUNET_NO);
+    }
     return GNUNET_OK;
   case GNUNET_MESSAGE_TYPE_FS_PUBLISH_HELPER_PROGRESS_DIRECTORY:
     if (filename[left-1] != '\0')
@@ -303,7 +311,8 @@ process_helper_msgs (void *cls,
 			   filename, GNUNET_YES,
 			   GNUNET_FS_DIRSCANNER_FILE_START);
     ds->pos = expand_tree (ds->pos,
-			   filename, GNUNET_YES);
+			   filename,
+			   GNUNET_YES);
     if (NULL == ds->toplevel)
       ds->toplevel = ds->pos;
     return GNUNET_OK;
@@ -360,11 +369,13 @@ process_helper_msgs (void *cls,
 	break;
       }
       ds->progress_callback (ds->progress_callback_cls,
-			     filename, GNUNET_YES,
+			     filename,
+			     GNUNET_YES,
 			     GNUNET_FS_DIRSCANNER_EXTRACT_FINISHED);
       if (0 < left)
       {
-	ds->pos->meta = GNUNET_CONTAINER_meta_data_deserialize (end, left);
+	ds->pos->meta = GNUNET_CONTAINER_meta_data_deserialize (end,
+								left);
 	if (NULL == ds->pos->meta)
 	{
 	  GNUNET_break (0);
