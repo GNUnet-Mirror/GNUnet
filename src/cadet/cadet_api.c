@@ -491,7 +491,7 @@ cadet_mq_send_impl (struct GNUNET_MQ_Handle *mq,
   struct GNUNET_CADET_Handle *h = ch->cadet;
   uint16_t msize;
   struct GNUNET_MQ_Envelope *env;
-  struct GNUNET_CADET_LocalData *cadet_msg;
+  struct GNUNET_CADET_LocalData *cadet_msg = NULL;
 
   if (NULL == h->mq)
   {
