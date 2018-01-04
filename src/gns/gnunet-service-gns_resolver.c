@@ -658,6 +658,8 @@ resolver_lookup_get_next_label (struct GNS_ResolverHandle *rh)
     }
     rh->protocol = pe->p_proto;
     rh->service = se->s_port;
+    GNUNET_free (proto_name);
+    GNUNET_free (srv_name);
   }
   return ret;
 }
