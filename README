@@ -15,8 +15,11 @@ GNU package (http://www.gnu.org/).
 This is an ALPHA release.  There are known and significant bugs as
 well as many missing features in this release.
 
+GNUnet is free software released under the GNU General Public License
+(v3 or later). For details see the COPYING file in this directory.
+
 Additional documentation about GNUnet can be found at
-https://gnunet.org/.
+https://gnunet.org/ and in the doc/ folder.
 
 
 Dependencies:
@@ -63,6 +66,8 @@ How to install?
 The fastest way is to use a binary package if it is available for your
 system.  For a more detailed description, read the installation
 instructions on the webpage at https://gnunet.org/installation.
+Generic installation instructions are in the INSTALL file in this
+directory.
 
 Note that some functions of GNUnet require "root" access.  GNUnet will
 install (tiny) SUID binaries for those functions is you run "make
@@ -300,7 +305,7 @@ Stay tuned
 
 * https://gnunet.org/
 * https://gnunet.org/bugs/
-* https://gnunet.org/svn/
+* https://gnunet.org/git/
 * http://www.gnu.org/software/gnunet/
 * http://mail.gnu.org/mailman/listinfo/gnunet-developers
 * http://mail.gnu.org/mailman/listinfo/help-gnunet
