@@ -3348,7 +3348,7 @@ handle_tcp_data (void *cls,
   if (NULL == session)
   {
     /* No inbound session found */
-    void *vaddr;
+    void *vaddr = NULL;
     size_t alen;
 
     GNUNET_SERVER_client_get_address (client,
@@ -3369,7 +3369,7 @@ handle_tcp_data (void *cls,
   if (GNUNET_YES == session->expecting_welcome)
   {
     /* Session is expecting WELCOME message */
-    void *vaddr;
+    void *vaddr = NULL;
     size_t alen;
 
     GNUNET_SERVER_client_get_address (client,
@@ -3389,7 +3389,7 @@ handle_tcp_data (void *cls,
 
   session->last_activity = GNUNET_TIME_absolute_get ();
   {
-    void *vaddr;
+    void *vaddr = NULL;
     size_t alen;
 
     GNUNET_SERVER_client_get_address (client,
