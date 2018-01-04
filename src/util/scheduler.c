@@ -848,8 +848,7 @@ init_fd_info (struct GNUNET_SCHEDULER_Task *t,
  *           @a driver_func on it, or -1 if no updating not desired.
  */
 static void
-driver_add_multiple (struct GNUNET_SCHEDULER_Task *t,
-		     enum GNUNET_SCHEDULER_EventType et)
+driver_add_multiple (struct GNUNET_SCHEDULER_Task *t)
 {
   struct GNUNET_SCHEDULER_FdInfo *fdi;
   int success = GNUNET_YES;
@@ -860,10 +859,7 @@ driver_add_multiple (struct GNUNET_SCHEDULER_Task *t,
     success = scheduler_driver->add (scheduler_driver->cls,
 				     t,
 				     fdi) && success;
-    if (et != -1)
-    {
-      fdi->et = et;
-    }
+    fdi->et = GNUNET_SCHEDULER_ET_NONE; 
   }
   if (GNUNET_YES != success)
   {
@@ -1381,7 +1377,7 @@ add_without_sets (struct GNUNET_TIME_Relative delay,
   GNUNET_CONTAINER_DLL_insert (pending_head,
                                pending_tail,
                                t);
-  driver_add_multiple (t, GNUNET_SCHEDULER_ET_NONE);
+  driver_add_multiple (t);
   max_priority_added = GNUNET_MAX (max_priority_added,
                                    t->priority);
   init_backtrace (t);
@@ -1823,7 +1819,7 @@ GNUNET_SCHEDULER_add_select (enum GNUNET_SCHEDULER_Priority prio,
   GNUNET_CONTAINER_DLL_insert (pending_head,
                                pending_tail,
                                t);
-  driver_add_multiple (t, GNUNET_SCHEDULER_ET_NONE);
+  driver_add_multiple (t);
   max_priority_added = GNUNET_MAX (max_priority_added,
            t->priority);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
