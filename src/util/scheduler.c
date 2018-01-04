@@ -513,14 +513,14 @@ static void
 dump_backtrace (struct GNUNET_SCHEDULER_Task *t)
 {
 #if EXECINFO
-  unsigned int i;
-
-  for (i = 0; i < t->num_backtrace_strings; i++)
+  for (unsigned int i = 0; i < t->num_backtrace_strings; i++)
     LOG (GNUNET_ERROR_TYPE_WARNING,
-   "Task %p trace %u: %s\n",
-   t,
-   i,
-   t->backtrace_strings[i]);
+	 "Task %p trace %u: %s\n",
+	 t,
+	 i,
+	 t->backtrace_strings[i]);
+#else
+  (void) t;
 #endif
 }
 
