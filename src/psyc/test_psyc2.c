@@ -211,13 +211,7 @@ service_connect (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Connected to service\n");
 
-  if (NULL == ca_result) 
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, 
-                "Connection adapter not created");
-    result = GNUNET_SYSERR;
-    GNUNET_SCHEDULER_shutdown();
-  }
+  GNUNET_assert (NULL != ca_result);
 
   // FIXME: we need a simple service handle to connect to the service, then 
   // get peer information and AFTER that make PSYC ops. Compare to CADET. 
