@@ -72,12 +72,17 @@ static int rewrite;
  * @param value value of the option
  */
 static void
-print_option (void *cls, const char *section,
+print_option (void *cls,
+	      const char *section,
 	      const char *option,
 	      const char *value)
 {
+  (void) cls;
+  (void) section;
   fprintf (stdout,
-	   "%s = %s\n", option, value);
+	   "%s = %s\n",
+	   option,
+	   value);
 }
 
 
@@ -91,7 +96,10 @@ static void
 print_section_name (void *cls,
                     const char *section)
 {
-  fprintf (stdout, "%s\n", section);
+  (void) cls;
+  fprintf (stdout,
+	   "%s\n",
+	   section);
 }
 
 
@@ -112,6 +120,8 @@ run (void *cls,
   struct GNUNET_CONFIGURATION_Handle *out = NULL;
   struct GNUNET_CONFIGURATION_Handle *diff = NULL;
 
+  (void) cls;
+  (void) args;
   if (rewrite)
   {
     struct GNUNET_CONFIGURATION_Handle *def;
@@ -221,36 +231,37 @@ run (void *cls,
  * @return 0 ok, 1 on error
  */
 int
-main (int argc, char *const *argv)
+main (int argc,
+      char *const *argv)
 {
   struct GNUNET_GETOPT_CommandLineOption options[] = {
     GNUNET_GETOPT_option_flag ('f',
-                                  "filename",
-                                  gettext_noop ("obtain option of value as a filename (with $-expansion)"),
-                                  &is_filename),
+			       "filename",
+			       gettext_noop ("obtain option of value as a filename (with $-expansion)"),
+			       &is_filename),
     GNUNET_GETOPT_option_string ('s',
-                                     "section",
-                                     "SECTION",
-                                     gettext_noop ("name of the section to access"),
-                                     &section),
+				 "section",
+				 "SECTION",
+				 gettext_noop ("name of the section to access"),
+				 &section),
     GNUNET_GETOPT_option_string ('o',
-                                     "option",
-                                     "OPTION",
-                                     gettext_noop ("name of the option to access"),
-                                     &option),
+				 "option",
+				 "OPTION",
+				 gettext_noop ("name of the option to access"),
+				 &option),
     GNUNET_GETOPT_option_string ('V',
-                                     "value",
-                                     "VALUE",
-                                     gettext_noop ("value to set"),
-                                     &value),
+				 "value",
+				 "VALUE",
+				 gettext_noop ("value to set"),
+				 &value),
     GNUNET_GETOPT_option_flag ('S',
-                                  "list-sections",
-                                  gettext_noop ("print available configuration sections"),
-                                  &list_sections),
+			       "list-sections",
+			       gettext_noop ("print available configuration sections"),
+			       &list_sections),
     GNUNET_GETOPT_option_flag ('w',
-                                  "rewrite",
-                                  gettext_noop ("write configuration file that only contains delta to defaults"),
-                                  &rewrite),
+			       "rewrite",
+			       gettext_noop ("write configuration file that only contains delta to defaults"),
+			       &rewrite),
     GNUNET_GETOPT_OPTION_END
   };
   if (GNUNET_OK !=

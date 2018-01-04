@@ -1978,7 +1978,7 @@ do_send (void *cls)
     GNUNET_MQ_impl_send_in_flight (client->mq);
   }
   client->msg_pos += ret;
-  if (left > ret)
+  if (left > (size_t) ret)
   {
     GNUNET_assert (NULL == client->drop_task);
     client->send_task
@@ -2007,6 +2007,7 @@ service_mq_send (struct GNUNET_MQ_Handle *mq,
 {
   struct GNUNET_SERVICE_Client *client = impl_state;
 
+  (void) mq;
   if (NULL != client->drop_task)
     return; /* we're going down right now, do not try to send */
   GNUNET_assert (NULL == client->send_task);
@@ -2036,6 +2037,7 @@ service_mq_cancel (struct GNUNET_MQ_Handle *mq,
 {
   struct GNUNET_SERVICE_Client *client = impl_state;
 
+  (void) mq;
   GNUNET_assert (0 == client->msg_pos);
   client->msg = NULL;
   GNUNET_SCHEDULER_cancel (client->send_task);

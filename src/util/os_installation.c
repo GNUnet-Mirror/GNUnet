@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     Copyright (C) 2006-2016 GNUnet e.V.
+     Copyright (C) 2006-2018 GNUnet e.V.
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -152,14 +152,21 @@ get_path_from_proc_exe ()
   ssize_t size;
   char *lep;
 
-  GNUNET_snprintf (fn, sizeof (fn), "/proc/%u/exe", getpid ());
-  size = readlink (fn, lnk, sizeof (lnk) - 1);
+  GNUNET_snprintf (fn,
+		   sizeof (fn),
+		   "/proc/%u/exe",
+		   getpid ());
+  size = readlink (fn,
+		   lnk,
+		   sizeof (lnk) - 1);
   if (size <= 0)
   {
-    LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_ERROR, "readlink", fn);
+    LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_ERROR,
+		       "readlink",
+		       fn);
     return NULL;
   }
-  GNUNET_assert (size < sizeof (lnk));
+  GNUNET_assert ( ((size_t) size) < sizeof (lnk));
   lnk[size] = '\0';
   while ((lnk[size] != '/') && (size > 0))
     size--;
@@ -167,12 +174,13 @@ get_path_from_proc_exe ()
                    "/%s/libexec/",
                    current_pd->project_dirname);
   /* test for being in lib/gnunet/libexec/ or lib/MULTIARCH/gnunet/libexec */
-  if ( (size > strlen (lep)) &&
+  if ( (((size_t) size) > strlen (lep)) &&
        (0 == strcmp (lep,
 		     &lnk[size - strlen (lep)])) )
     size -= strlen (lep) - 1;
   GNUNET_free (lep);
-  if ((size < 4) || (lnk[size - 4] != '/'))
+  if ( (size < 4) ||
+       (lnk[size - 4] != '/') )
   {
     /* not installed in "/bin/" -- binary path probably useless */
     return NULL;
@@ -903,6 +911,7 @@ GNUNET_OS_check_helper_binary (const char *binary,
   if (check_suid)
   {
 #ifndef MINGW
+    (void) params;
     if ( (0 != (statbuf.st_mode & S_ISUID)) &&
          (0 == statbuf.st_uid) )
     {

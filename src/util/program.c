@@ -74,6 +74,7 @@ struct CommandContext
 static void
 shutdown_task (void *cls)
 {
+  (void) cls;
   GNUNET_SPEEDUP_stop_ ();
 }
 
