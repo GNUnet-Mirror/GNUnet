@@ -12,11 +12,12 @@ endif
 if HAVE_EXPERIMENTAL
  EXP_DIR = \
   rps
-endif
-
-if HAVE_JSON
-if HAVE_MHD
-  PROVIDER_DIR = identity-provider
+#  dv (FTBFS)
+if HAVE_ABE
+  EXP_DIR += abe \
+						 credential \
+	           identity-attribute \
+						 identity-provider 
 endif
 endif
 
@@ -128,7 +129,6 @@ SUBDIRS = \
   psyc \
   social \
   $(AUCTION_DIR) \
-  $(EXP_DIR) \
-  $(PROVIDER_DIR)
+  $(EXP_DIR)
 
 endif

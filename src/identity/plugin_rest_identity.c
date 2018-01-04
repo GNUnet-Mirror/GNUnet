@@ -427,9 +427,6 @@ ego_info_response (struct GNUNET_REST_RequestHandle *con,
       continue;
     json_resource = GNUNET_JSONAPI_resource_new (GNUNET_REST_JSONAPI_IDENTITY_EGO,
                                                       ego_entry->keystring);
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Egoname: %s\n",
-                ego_entry->identifier);
     name_str = json_string (ego_entry->identifier);
     GNUNET_JSONAPI_resource_add_attr (
                                            json_resource,

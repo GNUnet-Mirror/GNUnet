@@ -37,6 +37,7 @@
 #include <jansson.h>
 #include <inttypes.h>
 #include "gnunet_signatures.h"
+#include "gnunet_identity_attribute_lib.h"
 #include "gnunet_identity_provider_service.h"
 
 /**
@@ -45,39 +46,40 @@
 #define GNUNET_REST_API_NS_IDENTITY_PROVIDER "/idp"
 
 /**
- * Issue namespace
+ * Attribute namespace
  */
-#define GNUNET_REST_API_NS_IDENTITY_TOKEN_ISSUE "/idp/issue"
+#define GNUNET_REST_API_NS_IDENTITY_ATTRIBUTES "/idp/attributes"
 
 /**
- * Check namespace TODO
+ * Ticket namespace
  */
-#define GNUNET_REST_API_NS_IDENTITY_TOKEN_CHECK "/idp/check"
+#define GNUNET_REST_API_NS_IDENTITY_TICKETS "/idp/tickets"
 
 /**
- * Token namespace
+ * Revoke namespace
  */
-#define GNUNET_REST_API_NS_IDENTITY_OAUTH2_TOKEN "/idp/token"
+#define GNUNET_REST_API_NS_IDENTITY_REVOKE "/idp/revoke"
 
 /**
- * The parameter name in which the ticket must be provided
+ * Revoke namespace
  */
-#define GNUNET_REST_JSONAPI_IDENTITY_PROVIDER_TICKET "ticket"
+#define GNUNET_REST_API_NS_IDENTITY_CONSUME "/idp/consume"
 
 /**
- * The parameter name in which the expected nonce must be provided
+ * Attribute key
  */
-#define GNUNET_REST_JSONAPI_IDENTITY_PROVIDER_EXPECTED_NONCE "expected_nonce"
+#define GNUNET_REST_JSONAPI_IDENTITY_ATTRIBUTE "attribute"
 
 /**
- * The parameter name in which the ticket must be provided
+ * Ticket key
  */
-#define GNUNET_REST_JSONAPI_IDENTITY_PROVIDER_TOKEN "token"
+#define GNUNET_REST_JSONAPI_IDENTITY_TICKET "ticket"
+
 
 /**
- * The URL parameter name in which the nonce must be provided
+ * Value key
  */
-#define GNUNET_IDENTITY_TOKEN_REQUEST_NONCE "nonce"
+#define GNUNET_REST_JSONAPI_IDENTITY_ATTRIBUTE_VALUE "value"
 
 /**
  * State while collecting all egos
@@ -89,41 +91,6 @@
  */
 #define ID_REST_STATE_POST_INIT 1
 
-/**
- * Resource type
- */
-#define GNUNET_REST_JSONAPI_IDENTITY_TOKEN "token"
-
-/**
- * URL parameter to create a GNUid token for a specific audience
- */
-#define GNUNET_REST_JSONAPI_IDENTITY_AUD_REQUEST "audience"
-
-/**
- * URL parameter to create a GNUid token for a specific issuer (EGO)
- */
-#define GNUNET_REST_JSONAPI_IDENTITY_ISS_REQUEST "issuer"
-
-/**
- * Attributes passed to issue request
- */
-#define GNUNET_IDENTITY_TOKEN_ATTR_LIST "requested_attrs"
-
-/**
- * Token expiration string
- */
-#define GNUNET_IDENTITY_TOKEN_EXP_STRING "expiration"
-
-/**
- * Error messages
- */
-#define GNUNET_REST_ERROR_RESOURCE_INVALID "Resource location invalid"
-#define GNUNET_REST_ERROR_NO_DATA "No data"
-
-/**
- * GNUid token lifetime
- */
-#define GNUNET_GNUID_TOKEN_EXPIRATION_MICROSECONDS 300000000
 
 /**
  * The configuration handle
@@ -198,11 +165,6 @@ struct RequestHandle
   const struct GNUNET_CRYPTO_EcdsaPrivateKey *priv_key;
 
   /**
-   * Handle to the rest connection
-   */
-  struct GNUNET_REST_RequestHandle *conndata_handle;
-
-  /**
    * The processing state
    */
   int state;
@@ -211,6 +173,12 @@ struct RequestHandle
    * Handle to Identity service.
    */
   struct GNUNET_IDENTITY_Handle *identity_handle;
+
+  /**
+   * Rest connection
+   */
+  struct GNUNET_REST_RequestHandle *rest_handle;
+
 
   /**
    * IDENTITY Operation
@@ -228,19 +196,14 @@ struct RequestHandle
   struct GNUNET_IDENTITY_PROVIDER_Operation *idp_op;
 
   /**
-   * Handle to NS service
+   * Attribute iterator
    */
-  struct GNUNET_NAMESTORE_Handle *ns_handle;
+  struct GNUNET_IDENTITY_PROVIDER_AttributeIterator *attr_it;
 
   /**
-   * NS iterator
+   * Ticket iterator
    */
-  struct GNUNET_NAMESTORE_ZoneIterator *ns_it;
-
-  /**
-   * NS Handle
-   */
-  struct GNUNET_NAMESTORE_QueueEntry *ns_qe;
+  struct GNUNET_IDENTITY_PROVIDER_TicketIterator *ticket_it;
 
   /**
    * Desired timeout for the lookup (default is no timeout).
@@ -285,6 +248,7 @@ struct RequestHandle
 };
 
 
+
 /**
  * Cleanup lookup handle
  * @param handle Handle to clean up
@@ -302,14 +266,12 @@ cleanup_handle (struct RequestHandle *handle)
     GNUNET_SCHEDULER_cancel (handle->timeout_task);
   if (NULL != handle->identity_handle)
     GNUNET_IDENTITY_disconnect (handle->identity_handle);
+  if (NULL != handle->attr_it)
+    GNUNET_IDENTITY_PROVIDER_get_attributes_stop (handle->attr_it);
+  if (NULL != handle->ticket_it)
+    GNUNET_IDENTITY_PROVIDER_ticket_iteration_stop (handle->ticket_it);
   if (NULL != handle->idp)
     GNUNET_IDENTITY_PROVIDER_disconnect (handle->idp);
-  if (NULL != handle->ns_it)
-    GNUNET_NAMESTORE_zone_iteration_stop (handle->ns_it);
-  if (NULL != handle->ns_qe)
-    GNUNET_NAMESTORE_cancel (handle->ns_qe);
-  if (NULL != handle->ns_handle)
-    GNUNET_NAMESTORE_disconnect (handle->ns_handle);
   if (NULL != handle->url)
     GNUNET_free (handle->url);
   if (NULL != handle->emsg)
@@ -324,6 +286,12 @@ cleanup_handle (struct RequestHandle *handle)
     GNUNET_free (ego_tmp);
   }
   GNUNET_free (handle);
+}
+
+static void
+cleanup_handle_delayed (void *cls)
+{
+  cleanup_handle (cls);
 }
 
 
@@ -363,278 +331,40 @@ do_timeout (void *cls)
 }
 
 
-/**
- * Task run on shutdown.  Cleans up everything.
- *
- * @param cls unused
- */
 static void
-do_cleanup_handle_delayed (void *cls)
+collect_error_cb (void *cls)
 {
   struct RequestHandle *handle = cls;
 
-  cleanup_handle (handle);
+  do_error (handle);
 }
 
-
-/**
- * Get a ticket for identity
- * @param cls the handle
- * @param ticket the ticket returned from the idp
- */
 static void
-token_creat_cont (void *cls,
-                  const char *label,
-                  const struct GNUNET_IDENTITY_PROVIDER_Ticket *ticket,
-                  const struct GNUNET_IDENTITY_PROVIDER_Token *token)
+finished_cont (void *cls,
+               int32_t success,
+               const char *emsg)
 {
-  struct GNUNET_JSONAPI_Resource *json_resource;
   struct RequestHandle *handle = cls;
   struct MHD_Response *resp;
-  json_t *ticket_json;
-  json_t *token_json;
-  char *ticket_str;
-  char *token_str;
-  char *result_str;
 
-  if (NULL == ticket)
+  resp = GNUNET_REST_create_response (emsg);
+  if (GNUNET_OK != success)
   {
-    handle->emsg = GNUNET_strdup ("Error in token issue");
     GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
   }
-
-  handle->resp_object = GNUNET_JSONAPI_document_new ();
-  json_resource = GNUNET_JSONAPI_resource_new (GNUNET_REST_JSONAPI_IDENTITY_PROVIDER_TICKET,
-                                                    label);
-  ticket_str = GNUNET_IDENTITY_PROVIDER_ticket_to_string (ticket);
-  token_str = GNUNET_IDENTITY_PROVIDER_token_to_string (token);
-  ticket_json = json_string (ticket_str);
-  token_json = json_string (token_str);
-  GNUNET_JSONAPI_resource_add_attr (json_resource,
-                                         GNUNET_REST_JSONAPI_IDENTITY_PROVIDER_TICKET,
-                                         ticket_json);
-  GNUNET_JSONAPI_resource_add_attr (json_resource,
-                                         GNUNET_REST_JSONAPI_IDENTITY_PROVIDER_TOKEN,
-                                         token_json);
-  GNUNET_free (ticket_str);
-  GNUNET_free (token_str);
-  json_decref (ticket_json);
-  json_decref (token_json);
-  GNUNET_JSONAPI_document_resource_add (handle->resp_object, json_resource);
-
-  GNUNET_JSONAPI_document_serialize (handle->resp_object, &result_str);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Result %s\n", result_str);
-  resp = GNUNET_REST_create_response (result_str);
   handle->proc (handle->proc_cls, resp, MHD_HTTP_OK);
-  GNUNET_free (result_str);
-  GNUNET_SCHEDULER_add_now (&do_cleanup_handle_delayed, handle);
+  GNUNET_SCHEDULER_add_now (&cleanup_handle_delayed, handle);
 }
 
 
 /**
- * Continueationf for token issue request
- *
- * @param con the Rest handle
- * @param url the requested url
- * @param cls the request handle
- */
-static void
-issue_token_cont (struct GNUNET_REST_RequestHandle *con,
-                  const char *url,
-                  void *cls)
-{
-  const struct GNUNET_CRYPTO_EcdsaPrivateKey *priv_key;
-  const char *egoname;
-
-  struct RequestHandle *handle = cls;
-  struct EgoEntry *ego_entry;
-  struct GNUNET_HashCode key;
-  struct MHD_Response *resp;
-  struct GNUNET_CRYPTO_EcdsaPublicKey pub_key;
-  struct GNUNET_CRYPTO_EcdsaPublicKey aud_key;
-  struct GNUNET_TIME_Relative etime_rel;
-  struct GNUNET_TIME_Absolute exp_time;
-  char *ego_val;
-  char *audience;
-  char *exp_str;
-  char *nonce_str;
-  char *scopes;
-  uint64_t time;
-  uint64_t nonce;
-
-  if (GNUNET_NO == GNUNET_REST_namespace_match (handle->url,
-                                                GNUNET_REST_API_NS_IDENTITY_TOKEN_ISSUE))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "URL invalid: %s\n", handle->url);
-    resp = GNUNET_REST_create_response (NULL);
-    handle->proc (handle->proc_cls, resp, MHD_HTTP_BAD_REQUEST);
-    cleanup_handle (handle);
-    return;
-  }
-  egoname = NULL;
-  ego_entry = NULL;
-  GNUNET_CRYPTO_hash (GNUNET_REST_JSONAPI_IDENTITY_ISS_REQUEST,
-                      strlen (GNUNET_REST_JSONAPI_IDENTITY_ISS_REQUEST),
-                      &key);
-  if ( GNUNET_YES !=
-       GNUNET_CONTAINER_multihashmap_contains (handle->conndata_handle->url_param_map,
-                                               &key) )
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		"Issuer not found\n");
-    GNUNET_SCHEDULER_add_now (&do_error, handle);
-    return;
-  }
-  ego_val = GNUNET_CONTAINER_multihashmap_get (handle->conndata_handle->url_param_map,
-                                               &key);
-  if (NULL == ego_val)
-  {
-    GNUNET_SCHEDULER_add_now (&do_error, handle);
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		"Ego invalid: %s\n",
-		ego_val);
-    return;
-  }
-  for (ego_entry = handle->ego_head;
-       NULL != ego_entry;
-       ego_entry = ego_entry->next)
-  {
-    if (0 != strcmp (ego_val, ego_entry->identifier))
-      continue;
-    egoname = ego_entry->identifier;
-    break;
-  }
-  if ( (NULL == egoname) ||
-       (NULL == ego_entry) )
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		"Ego not found: %s\n",
-		ego_val);
-    GNUNET_SCHEDULER_add_now (&do_error, handle);
-    return;
-  }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Ego to issue token for: %s\n",
-	      egoname);
-
-
-  //Meta info
-  GNUNET_CRYPTO_hash (GNUNET_IDENTITY_TOKEN_ATTR_LIST,
-                      strlen (GNUNET_IDENTITY_TOKEN_ATTR_LIST),
-                      &key);
-
-  scopes = NULL;
-  if ( GNUNET_YES !=
-       GNUNET_CONTAINER_multihashmap_contains (handle->conndata_handle->url_param_map,
-                                               &key) )
-  {
-    handle->emsg = GNUNET_strdup ("Scopes missing!\n");
-    GNUNET_SCHEDULER_add_now (&do_error, handle);
-    return;
-  }
-  scopes = GNUNET_CONTAINER_multihashmap_get (handle->conndata_handle->url_param_map,
-                                              &key);
-
-
-  //Token audience
-  GNUNET_CRYPTO_hash (GNUNET_REST_JSONAPI_IDENTITY_AUD_REQUEST,
-                      strlen (GNUNET_REST_JSONAPI_IDENTITY_AUD_REQUEST),
-                      &key);
-  audience = NULL;
-  if ( GNUNET_YES !=
-       GNUNET_CONTAINER_multihashmap_contains (handle->conndata_handle->url_param_map,
-                                               &key) )
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		"Audience missing!\n");
-    GNUNET_SCHEDULER_add_now (&do_error, handle);
-    return;
-  }
-  audience = GNUNET_CONTAINER_multihashmap_get (handle->conndata_handle->url_param_map,
-                                                &key);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Audience to issue token for: %s\n",
-	      audience);
-
-  priv_key = GNUNET_IDENTITY_ego_get_private_key (ego_entry->ego);
-  GNUNET_IDENTITY_ego_get_public_key (ego_entry->ego,
-                                      &pub_key);
-  GNUNET_STRINGS_string_to_data (audience,
-                                 strlen (audience),
-                                 &aud_key,
-                                 sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey));
-
-  //Remote nonce
-  nonce_str = NULL;
-  GNUNET_CRYPTO_hash (GNUNET_IDENTITY_TOKEN_REQUEST_NONCE,
-                      strlen (GNUNET_IDENTITY_TOKEN_REQUEST_NONCE),
-                      &key);
-  if ( GNUNET_YES !=
-       GNUNET_CONTAINER_multihashmap_contains (handle->conndata_handle->url_param_map,
-                                               &key) )
-  {
-    handle->emsg = GNUNET_strdup ("Request nonce missing!\n");
-    GNUNET_SCHEDULER_add_now (&do_error, handle);
-    return;
-  }
-  nonce_str = GNUNET_CONTAINER_multihashmap_get (handle->conndata_handle->url_param_map,
-                                                 &key);
-  GNUNET_assert (NULL != nonce_str);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Request nonce: %s\n",
-	      nonce_str);
-  GNUNET_assert (1 == sscanf (nonce_str, "%"SCNu64, &nonce));
-
-  //Get expiration for token from URL parameter
-  GNUNET_CRYPTO_hash (GNUNET_IDENTITY_TOKEN_EXP_STRING,
-                      strlen (GNUNET_IDENTITY_TOKEN_EXP_STRING),
-                      &key);
-
-  exp_str = NULL;
-  if (GNUNET_YES == GNUNET_CONTAINER_multihashmap_contains (handle->conndata_handle->url_param_map,
-                                                            &key))
-  {
-    exp_str = GNUNET_CONTAINER_multihashmap_get (handle->conndata_handle->url_param_map,
-                                                 &key);
-  }
-  if (NULL == exp_str) {
-    handle->emsg = GNUNET_strdup ("No expiration given!\n");
-    GNUNET_SCHEDULER_add_now (&do_error, handle);
-    return;
-  }
-
-  if (GNUNET_OK !=
-      GNUNET_STRINGS_fancy_time_to_relative (exp_str,
-                                             &etime_rel))
-  {
-    handle->emsg = GNUNET_strdup ("Expiration invalid!\n");
-    GNUNET_SCHEDULER_add_now (&do_error, handle);
-    return;
-  }
-  time = GNUNET_TIME_absolute_get().abs_value_us;
-  exp_time.abs_value_us = time + etime_rel.rel_value_us;
-
-  handle->idp = GNUNET_IDENTITY_PROVIDER_connect (cfg);
-  handle->idp_op = GNUNET_IDENTITY_PROVIDER_issue_token (handle->idp,
-                                                         priv_key,
-                                                         &aud_key,
-                                                         scopes,
-                                                         exp_time,
-                                                         nonce,
-                                                         &token_creat_cont,
-                                                         handle);
-
-}
-
-
-/**
- * Build a GNUid token for identity
+ * Return attributes for identity
  *
  * @param cls the request handle
  */
 static void
-return_token_list (void *cls)
+return_response (void *cls)
 {
   char* result_str;
   struct RequestHandle *handle = cls;
@@ -650,333 +380,612 @@ return_token_list (void *cls)
 
 
 static void
-token_collect_error_cb (void *cls)
+collect_finished_cb (void *cls)
 {
   struct RequestHandle *handle = cls;
-
-  do_error (handle);
+  //Done
+  handle->attr_it = NULL;
+  handle->ticket_it = NULL;
+  GNUNET_SCHEDULER_add_now (&return_response, handle);
 }
 
 
 /**
- * Collect all tokens for an ego
- *
- * TODO move this into the identity-provider service
+ * Collect all attributes for an ego
  *
  */
 static void
-token_collect (void *cls,
-               const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone,
-               const char *label,
-               unsigned int rd_count,
-               const struct GNUNET_GNSRECORD_Data *rd);
-
-
-static void
-token_collect_finished_cb (void *cls)
+ticket_collect (void *cls,
+                const struct GNUNET_IDENTITY_PROVIDER_Ticket *ticket)
 {
-  struct RequestHandle *handle = cls;
-  struct EgoEntry *ego_tmp;
-  const struct GNUNET_CRYPTO_EcdsaPrivateKey *priv_key;
-
-  ego_tmp = handle->ego_head;
-  GNUNET_CONTAINER_DLL_remove (handle->ego_head,
-                               handle->ego_tail,
-                               ego_tmp);
-  GNUNET_free (ego_tmp->identifier);
-  GNUNET_free (ego_tmp->keystring);
-  GNUNET_free (ego_tmp);
-
-  if (NULL == handle->ego_head)
-  {
-    //Done
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Adding token END\n");
-    handle->ns_it = NULL;
-    GNUNET_SCHEDULER_add_now (&return_token_list, handle);
-    return;
-  }
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Next ego: %s\n",
-              handle->ego_head->identifier);
-  priv_key = GNUNET_IDENTITY_ego_get_private_key (handle->ego_head->ego);
-  handle->ns_it = GNUNET_NAMESTORE_zone_iteration_start (handle->ns_handle,
-                                                         priv_key,
-                                                         &token_collect_error_cb,
-                                                         handle,
-                                                         &token_collect,
-                                                         handle,
-                                                         &token_collect_finished_cb,
-                                                         handle);
-}
-
-
-/**
- * Collect all tokens for an ego
- *
- * TODO move this into the identity-provider service
- *
- */
-static void
-token_collect (void *cls,
-               const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone,
-               const char *label,
-               unsigned int rd_count,
-               const struct GNUNET_GNSRECORD_Data *rd)
-{
-  struct RequestHandle *handle = cls;
-  int i;
-  char* data;
   struct GNUNET_JSONAPI_Resource *json_resource;
-  json_t *issuer;
-  json_t *token;
+  struct RequestHandle *handle = cls;
+  json_t *value;
+  char* tmp;
 
-  for (i = 0; i < rd_count; i++)
-  {
-    if (rd[i].record_type == GNUNET_GNSRECORD_TYPE_ID_TOKEN)
-    {
-      data = GNUNET_GNSRECORD_value_to_string (rd[i].record_type,
-                                               rd[i].data,
-                                               rd[i].data_size);
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Adding token: %s\n", data);
-      json_resource = GNUNET_JSONAPI_resource_new (GNUNET_REST_JSONAPI_IDENTITY_TOKEN,
-                                                        label);
-      issuer = json_string (handle->ego_head->identifier);
-      GNUNET_JSONAPI_resource_add_attr (json_resource,
-                                             GNUNET_REST_JSONAPI_IDENTITY_ISS_REQUEST,
-                                             issuer);
-      json_decref (issuer);
-      token = json_string (data);
-      GNUNET_JSONAPI_resource_add_attr (json_resource,
-                                             GNUNET_REST_JSONAPI_IDENTITY_TOKEN,
-                                             token);
-      json_decref (token);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Adding ticket\n");
+  tmp = GNUNET_STRINGS_data_to_string_alloc (&ticket->rnd,
+                                             sizeof (uint64_t));
+  json_resource = GNUNET_JSONAPI_resource_new (GNUNET_REST_JSONAPI_IDENTITY_TICKET,
+                                                       tmp);
+  GNUNET_free (tmp);
+  GNUNET_JSONAPI_document_resource_add (handle->resp_object, json_resource);
 
-      GNUNET_JSONAPI_document_resource_add (handle->resp_object, json_resource);
-      GNUNET_free (data);
-    }
-  }
-
-  GNUNET_NAMESTORE_zone_iterator_next (handle->ns_it);
+  tmp = GNUNET_STRINGS_data_to_string_alloc (&ticket->identity,
+                                             sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey));
+  value = json_string (tmp);
+  GNUNET_JSONAPI_resource_add_attr (json_resource,
+                                    "issuer",
+                                    value);
+  GNUNET_free (tmp);
+  json_decref (value);
+  tmp = GNUNET_STRINGS_data_to_string_alloc (&ticket->audience,
+                                             sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey));
+  value = json_string (tmp);
+  GNUNET_JSONAPI_resource_add_attr (json_resource,
+                                    "audience",
+                                    value);
+  GNUNET_free (tmp);
+  json_decref (value);
+  tmp = GNUNET_STRINGS_data_to_string_alloc (&ticket->rnd,
+                                             sizeof (uint64_t));
+  value = json_string (tmp);
+  GNUNET_JSONAPI_resource_add_attr (json_resource,
+                                    "rnd",
+                                    value);
+  GNUNET_free (tmp);
+  json_decref (value);
+  GNUNET_IDENTITY_PROVIDER_ticket_iteration_next (handle->ticket_it);
 }
 
 
 
 /**
- * Respond to OPTIONS request
+ * List tickets for identity request
  *
  * @param con_handle the connection handle
  * @param url the url
  * @param cls the RequestHandle
  */
 static void
-list_token_cont (struct GNUNET_REST_RequestHandle *con_handle,
-                 const char* url,
-                 void *cls)
+list_tickets_cont (struct GNUNET_REST_RequestHandle *con_handle,
+                   const char* url,
+                   void *cls)
 {
-  char* ego_val;
-  struct GNUNET_HashCode key;
   const struct GNUNET_CRYPTO_EcdsaPrivateKey *priv_key;
   struct RequestHandle *handle = cls;
   struct EgoEntry *ego_entry;
-  struct EgoEntry *ego_tmp;
+  char *identity;
 
-  GNUNET_CRYPTO_hash (GNUNET_REST_JSONAPI_IDENTITY_ISS_REQUEST,
-                      strlen (GNUNET_REST_JSONAPI_IDENTITY_ISS_REQUEST),
-                      &key);
-
-  if ( GNUNET_YES !=
-       GNUNET_CONTAINER_multihashmap_contains (handle->conndata_handle->url_param_map,
-                                               &key) )
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Getting tickets for %s.\n",
+              handle->url);
+  if ( strlen (GNUNET_REST_API_NS_IDENTITY_TICKETS) >=
+       strlen (handle->url))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "No issuer given.\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "No identity given.\n");
     GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
   }
-  ego_val = GNUNET_CONTAINER_multihashmap_get (handle->conndata_handle->url_param_map,
-                                               &key);
-  GNUNET_assert (NULL != ego_val);
-  //Remove non-matching egos
+  identity = handle->url + strlen (GNUNET_REST_API_NS_IDENTITY_TICKETS) + 1;
+
   for (ego_entry = handle->ego_head;
-       NULL != ego_entry;)
-  {
-    ego_tmp = ego_entry;
-    ego_entry = ego_entry->next;
-    if (0 != strcmp (ego_val, ego_tmp->identifier))
-    {
-      GNUNET_CONTAINER_DLL_remove (handle->ego_head,
-                                   handle->ego_tail,
-                                   ego_tmp);
-      GNUNET_free (ego_tmp->identifier);
-      GNUNET_free (ego_tmp->keystring);
-      GNUNET_free (ego_tmp);
-    }
-  }
+       NULL != ego_entry;
+       ego_entry = ego_entry->next)
+    if (0 == strcmp (identity, ego_entry->identifier))
+      break;
   handle->resp_object = GNUNET_JSONAPI_document_new ();
-  if (NULL == handle->ego_head)
+
+  if (NULL == ego_entry)
   {
     //Done
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "No results.\n");
-    GNUNET_SCHEDULER_add_now (&return_token_list, handle);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Ego %s not found.\n",
+                identity);
+    GNUNET_SCHEDULER_add_now (&return_response, handle);
     return;
   }
-  priv_key = GNUNET_IDENTITY_ego_get_private_key (handle->ego_head->ego);
-  handle->ns_handle = GNUNET_NAMESTORE_connect (cfg);
-  handle->ns_it = GNUNET_NAMESTORE_zone_iteration_start (handle->ns_handle,
-                                                         priv_key,
-                                                         &token_collect_error_cb,
-                                                         handle,
-                                                         &token_collect,
-                                                         handle,
-                                                         &token_collect_finished_cb,
-                                                         handle);
-
+  priv_key = GNUNET_IDENTITY_ego_get_private_key (ego_entry->ego);
+  handle->idp = GNUNET_IDENTITY_PROVIDER_connect (cfg);
+  handle->ticket_it = GNUNET_IDENTITY_PROVIDER_ticket_iteration_start (handle->idp,
+                                                                       priv_key,
+                                                                       &collect_error_cb,
+                                                                       handle,
+                                                                       &ticket_collect,
+                                                                       handle,
+                                                                       &collect_finished_cb,
+                                                                       handle);
 }
 
-/**
- * Return token to requestor
- *
- * @param cls request handle
- * @param token the token
- */
+
 static void
-exchange_cont (void *cls,
-               const struct GNUNET_IDENTITY_PROVIDER_Token *token,
-               uint64_t ticket_nonce)
+add_attribute_cont (struct GNUNET_REST_RequestHandle *con_handle,
+                    const char* url,
+                    void *cls)
 {
-  json_t *root;
+  const struct GNUNET_CRYPTO_EcdsaPrivateKey *identity_priv;
+  const char* identity;
+  const char* name_str;
+  const char* value_str;
+
   struct RequestHandle *handle = cls;
+  struct EgoEntry *ego_entry;
   struct MHD_Response *resp;
-  struct GNUNET_HashCode key;
-  char* result;
-  char* token_str;
-  char* nonce_str;
-  uint64_t expected_nonce;
+  struct GNUNET_IDENTITY_ATTRIBUTE_Claim *attribute;
+  struct GNUNET_JSONAPI_Document *json_obj;
+  struct GNUNET_JSONAPI_Resource *json_res;
+  char term_data[handle->rest_handle->data_size+1];
+  json_t *value_json;
+  json_t *data_json;
+  json_error_t err;
+  struct GNUNET_JSON_Specification docspec[] = {
+    GNUNET_JSON_spec_jsonapi_document (&json_obj),
+    GNUNET_JSON_spec_end()
+  };
 
-  //Get nonce
-  GNUNET_CRYPTO_hash (GNUNET_REST_JSONAPI_IDENTITY_PROVIDER_EXPECTED_NONCE,
-                      strlen (GNUNET_REST_JSONAPI_IDENTITY_PROVIDER_EXPECTED_NONCE),
-                      &key);
-
-  if ( GNUNET_NO ==
-       GNUNET_CONTAINER_multihashmap_contains (handle->conndata_handle->url_param_map,
-                                               &key) )
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Adding an attribute for %s.\n",
+              handle->url);
+  if ( strlen (GNUNET_REST_API_NS_IDENTITY_ATTRIBUTES) >=
+       strlen (handle->url))
   {
-    handle->emsg = GNUNET_strdup ("No nonce given.");
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "No identity given.\n");
     GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
   }
-  nonce_str = GNUNET_CONTAINER_multihashmap_get (handle->conndata_handle->url_param_map,
-                                                  &key);
-  GNUNET_assert (NULL != nonce_str);
-  GNUNET_assert (1 == sscanf (nonce_str, "%"SCNu64, &expected_nonce));
+  identity = handle->url + strlen (GNUNET_REST_API_NS_IDENTITY_ATTRIBUTES) + 1;
 
-  if (ticket_nonce != expected_nonce)
+  for (ego_entry = handle->ego_head;
+       NULL != ego_entry;
+       ego_entry = ego_entry->next)
+    if (0 == strcmp (identity, ego_entry->identifier))
+      break;
+
+  if (NULL == ego_entry)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Ticket nonce %"SCNu64" does not match expected nonce %"SCNu64"\n",
-                ticket_nonce, expected_nonce);
-    handle->emsg = GNUNET_strdup ("Ticket nonce does not match expected nonce\n");
+                "Identity unknown (%s)\n", identity);
+    GNUNET_JSONAPI_document_delete (json_obj);
+    return;
+  }
+  identity_priv = GNUNET_IDENTITY_ego_get_private_key (ego_entry->ego);
+
+  if (0 >= handle->rest_handle->data_size)
+  {
     GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
   }
 
-  root = json_object ();
-  token_str = GNUNET_IDENTITY_PROVIDER_token_to_string (token);
-  json_object_set_new (root, "token", json_string (token_str));
-  json_object_set_new (root, "token_type", json_string ("jwt"));
-  GNUNET_free (token_str);
-
-  result = json_dumps (root, JSON_INDENT(1));
-  resp = GNUNET_REST_create_response (result);
-  GNUNET_free (result);
-  handle->proc (handle->proc_cls, resp, MHD_HTTP_OK);
-  cleanup_handle (handle);
-  json_decref (root);
+  term_data[handle->rest_handle->data_size] = '\0';
+  GNUNET_memcpy (term_data,
+                 handle->rest_handle->data,
+                 handle->rest_handle->data_size);
+  data_json = json_loads (term_data,
+                          JSON_DECODE_ANY,
+                          &err);
+  GNUNET_assert (GNUNET_OK ==
+                 GNUNET_JSON_parse (data_json, docspec,
+                                    NULL, NULL));
+  json_decref (data_json);
+  if (NULL == json_obj)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Unable to parse JSONAPI Object from %s\n",
+                term_data);
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
+    return;
+  }
+  if (1 != GNUNET_JSONAPI_document_resource_count (json_obj))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Cannot create more than 1 resource! (Got %d)\n",
+                GNUNET_JSONAPI_document_resource_count (json_obj));
+    GNUNET_JSONAPI_document_delete (json_obj);
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
+    return;
+  }
+  json_res = GNUNET_JSONAPI_document_get_resource (json_obj, 0);
+  if (GNUNET_NO == GNUNET_JSONAPI_resource_check_type (json_res,
+                                                       GNUNET_REST_JSONAPI_IDENTITY_ATTRIBUTE))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Unsupported JSON data type\n");
+    GNUNET_JSONAPI_document_delete (json_obj);
+    resp = GNUNET_REST_create_response (NULL);
+    handle->proc (handle->proc_cls, resp, MHD_HTTP_CONFLICT);
+    cleanup_handle (handle);
+    return;
+  }
+  name_str = GNUNET_JSONAPI_resource_get_id (json_res);
+  value_json = GNUNET_JSONAPI_resource_read_attr (json_res,
+                                                  "value");
+  value_str = json_string_value (value_json);
+  attribute = GNUNET_IDENTITY_ATTRIBUTE_claim_new (name_str,
+                                                      GNUNET_IDENTITY_ATTRIBUTE_TYPE_STRING,
+                                                      value_str,
+                                                      strlen (value_str) + 1);
+  handle->idp = GNUNET_IDENTITY_PROVIDER_connect (cfg);
+  handle->idp_op = GNUNET_IDENTITY_PROVIDER_attribute_store (handle->idp,
+                                                             identity_priv,
+                                                             attribute,
+                                                             &finished_cont,
+                                                             handle);
+  GNUNET_free (attribute);
+  GNUNET_JSONAPI_document_delete (json_obj);
 }
 
 
+
 /**
- *
- * Callback called when identity for token exchange has been found
- *
- * @param cls request handle
- * @param ego the identity to use as issuer
- * @param ctx user context
- * @param name identity name
+ * Collect all attributes for an ego
  *
  */
 static void
-exchange_token_ticket_cb (void *cls,
-                          struct GNUNET_IDENTITY_Ego *ego,
-                          void **ctx,
-                          const char *name)
+attr_collect (void *cls,
+              const struct GNUNET_CRYPTO_EcdsaPublicKey *identity,
+              const struct GNUNET_IDENTITY_ATTRIBUTE_Claim *attr)
 {
+  struct GNUNET_JSONAPI_Resource *json_resource;
   struct RequestHandle *handle = cls;
-  struct GNUNET_HashCode key;
-  struct GNUNET_IDENTITY_PROVIDER_Ticket *ticket;
-  char* ticket_str;
-
-  handle->op = NULL;
-
-  if (NULL == ego)
+  json_t *value;
+  
+  if ((NULL == attr->name) || (NULL == attr->data))
   {
-    handle->emsg = GNUNET_strdup ("No identity found.");
-    GNUNET_SCHEDULER_add_now (&do_error, handle);
+    GNUNET_IDENTITY_PROVIDER_get_attributes_next (handle->attr_it);
     return;
   }
 
-  //Get ticket
-  GNUNET_CRYPTO_hash (GNUNET_REST_JSONAPI_IDENTITY_PROVIDER_TICKET,
-                      strlen (GNUNET_REST_JSONAPI_IDENTITY_PROVIDER_TICKET),
-                      &key);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Adding attribute: %s\n",
+              attr->name);
+  json_resource = GNUNET_JSONAPI_resource_new (GNUNET_REST_JSONAPI_IDENTITY_ATTRIBUTE,
+                                               attr->name);
+  GNUNET_JSONAPI_document_resource_add (handle->resp_object, json_resource);
 
-  if ( GNUNET_NO ==
-       GNUNET_CONTAINER_multihashmap_contains (handle->conndata_handle->url_param_map,
-                                               &key) )
-  {
-    handle->emsg = GNUNET_strdup ("No ticket given.");
-    GNUNET_SCHEDULER_add_now (&do_error, handle);
-    return;
-  }
-  ticket_str = GNUNET_CONTAINER_multihashmap_get (handle->conndata_handle->url_param_map,
-                                                  &key);
-  handle->priv_key = GNUNET_IDENTITY_ego_get_private_key (ego);
-  GNUNET_IDENTITY_PROVIDER_string_to_ticket (ticket_str,
-                                             &ticket);
-
-  handle->idp = GNUNET_IDENTITY_PROVIDER_connect (cfg);
-  handle->idp_op = GNUNET_IDENTITY_PROVIDER_exchange_ticket (handle->idp,
-                                                             ticket,
-                                                             handle->priv_key,
-                                                             &exchange_cont,
-                                                             handle);
-  GNUNET_IDENTITY_PROVIDER_ticket_destroy (ticket);
-
+  value = json_string (attr->data);
+  GNUNET_JSONAPI_resource_add_attr (json_resource,
+                                    "value",
+                                    value);
+  json_decref (value);
+  GNUNET_IDENTITY_PROVIDER_get_attributes_next (handle->attr_it);
 }
 
 
 
 /**
- * Respond to issue request
+ * List attributes for identity request
  *
  * @param con_handle the connection handle
  * @param url the url
  * @param cls the RequestHandle
  */
 static void
-exchange_token_ticket_cont (struct GNUNET_REST_RequestHandle *con_handle,
-                            const char* url,
-                            void *cls)
+list_attribute_cont (struct GNUNET_REST_RequestHandle *con_handle,
+                     const char* url,
+                     void *cls)
+{
+  const struct GNUNET_CRYPTO_EcdsaPrivateKey *priv_key;
+  struct RequestHandle *handle = cls;
+  struct EgoEntry *ego_entry;
+  char *identity;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Getting attributes for %s.\n",
+              handle->url);
+  if ( strlen (GNUNET_REST_API_NS_IDENTITY_ATTRIBUTES) >=
+       strlen (handle->url))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "No identity given.\n");
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
+    return;
+  }
+  identity = handle->url + strlen (GNUNET_REST_API_NS_IDENTITY_ATTRIBUTES) + 1;
+
+  for (ego_entry = handle->ego_head;
+       NULL != ego_entry;
+       ego_entry = ego_entry->next)
+    if (0 == strcmp (identity, ego_entry->identifier))
+      break;
+  handle->resp_object = GNUNET_JSONAPI_document_new ();
+
+
+  if (NULL == ego_entry)
+  {
+    //Done
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Ego %s not found.\n",
+                identity);
+    GNUNET_SCHEDULER_add_now (&return_response, handle);
+    return;
+  }
+  priv_key = GNUNET_IDENTITY_ego_get_private_key (ego_entry->ego);
+  handle->idp = GNUNET_IDENTITY_PROVIDER_connect (cfg);
+  handle->attr_it = GNUNET_IDENTITY_PROVIDER_get_attributes_start (handle->idp,
+                                                                   priv_key,
+                                                                   &collect_error_cb,
+                                                                   handle,
+                                                                   &attr_collect,
+                                                                   handle,
+                                                                   &collect_finished_cb,
+                                                                   handle);
+}
+
+
+static void
+revoke_ticket_cont (struct GNUNET_REST_RequestHandle *con_handle,
+                    const char* url,
+                    void *cls)
+{
+  const struct GNUNET_CRYPTO_EcdsaPrivateKey *identity_priv;
+  const char* identity_str;
+  const char* audience_str;
+  const char* rnd_str;
+
+  struct RequestHandle *handle = cls;
+  struct EgoEntry *ego_entry;
+  struct MHD_Response *resp;
+  struct GNUNET_IDENTITY_PROVIDER_Ticket ticket;
+  struct GNUNET_JSONAPI_Document *json_obj;
+  struct GNUNET_JSONAPI_Resource *json_res;
+  struct GNUNET_CRYPTO_EcdsaPublicKey tmp_pk;
+  char term_data[handle->rest_handle->data_size+1];
+  json_t *rnd_json;
+  json_t *identity_json;
+  json_t *audience_json;
+  json_t *data_json;
+  json_error_t err;
+  struct GNUNET_JSON_Specification docspec[] = {
+    GNUNET_JSON_spec_jsonapi_document (&json_obj),
+    GNUNET_JSON_spec_end()
+  };
+
+  if (0 >= handle->rest_handle->data_size)
+  {
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
+    return;
+  }
+
+  term_data[handle->rest_handle->data_size] = '\0';
+  GNUNET_memcpy (term_data,
+                 handle->rest_handle->data,
+                 handle->rest_handle->data_size);
+  data_json = json_loads (term_data,
+                          JSON_DECODE_ANY,
+                          &err);
+  GNUNET_assert (GNUNET_OK ==
+                 GNUNET_JSON_parse (data_json, docspec,
+                                    NULL, NULL));
+  json_decref (data_json);
+  if (NULL == json_obj)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Unable to parse JSONAPI Object from %s\n",
+                term_data);
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
+    return;
+  }
+  if (1 != GNUNET_JSONAPI_document_resource_count (json_obj))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Cannot create more than 1 resource! (Got %d)\n",
+                GNUNET_JSONAPI_document_resource_count (json_obj));
+    GNUNET_JSONAPI_document_delete (json_obj);
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
+    return;
+  }
+  json_res = GNUNET_JSONAPI_document_get_resource (json_obj, 0);
+  if (GNUNET_NO == GNUNET_JSONAPI_resource_check_type (json_res,
+                                                       GNUNET_REST_JSONAPI_IDENTITY_TICKET))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Unsupported JSON data type\n");
+    GNUNET_JSONAPI_document_delete (json_obj);
+    resp = GNUNET_REST_create_response (NULL);
+    handle->proc (handle->proc_cls, resp, MHD_HTTP_CONFLICT);
+    cleanup_handle (handle);
+    return;
+  }
+  rnd_json = GNUNET_JSONAPI_resource_read_attr (json_res,
+                                                "rnd");
+  identity_json = GNUNET_JSONAPI_resource_read_attr (json_res,
+                                                     "identity");
+  audience_json = GNUNET_JSONAPI_resource_read_attr (json_res,
+                                                     "audience");
+  rnd_str = json_string_value (rnd_json);
+  identity_str = json_string_value (identity_json);
+  audience_str = json_string_value (audience_json);
+
+  GNUNET_STRINGS_string_to_data (rnd_str,
+                                 strlen (rnd_str),
+                                 &ticket.rnd,
+                                 sizeof (uint64_t));
+  GNUNET_STRINGS_string_to_data (identity_str,
+                                 strlen (identity_str),
+                                 &ticket.identity,
+                                 sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey));
+  GNUNET_STRINGS_string_to_data (audience_str,
+                                 strlen (audience_str),
+                                 &ticket.audience,
+                                 sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey));
+
+  for (ego_entry = handle->ego_head;
+       NULL != ego_entry;
+       ego_entry = ego_entry->next)
+  {
+    GNUNET_IDENTITY_ego_get_public_key (ego_entry->ego,
+                                        &tmp_pk);
+    if (0 == memcmp (&ticket.identity,
+                     &tmp_pk,
+                     sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey)))
+      break;
+  }
+  if (NULL == ego_entry)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Identity unknown (%s)\n", identity_str);
+    GNUNET_JSONAPI_document_delete (json_obj);
+    return;
+  }
+  identity_priv = GNUNET_IDENTITY_ego_get_private_key (ego_entry->ego);
+
+  handle->idp = GNUNET_IDENTITY_PROVIDER_connect (cfg);
+  handle->idp_op = GNUNET_IDENTITY_PROVIDER_ticket_revoke (handle->idp,
+                                                           identity_priv,
+                                                           &ticket,
+                                                           &finished_cont,
+                                                           handle);
+  GNUNET_JSONAPI_document_delete (json_obj);
+}
+
+static void
+consume_cont (void *cls,
+              const struct GNUNET_CRYPTO_EcdsaPublicKey *identity,
+              const struct GNUNET_IDENTITY_ATTRIBUTE_Claim *attr)
 {
   struct RequestHandle *handle = cls;
+  struct GNUNET_JSONAPI_Resource *json_resource;
+  json_t *value;
 
-  //Get token from GNS
-  handle->op = GNUNET_IDENTITY_get (handle->identity_handle,
-                                    "gns-master",
-                                    &exchange_token_ticket_cb,
-                                    handle);
+  if (NULL == identity)
+  {
+    GNUNET_SCHEDULER_add_now (&return_response, handle);
+    return;
+  }
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Adding attribute: %s\n",
+              attr->name);
+  json_resource = GNUNET_JSONAPI_resource_new (GNUNET_REST_JSONAPI_IDENTITY_ATTRIBUTE,
+                                               attr->name);
+  GNUNET_JSONAPI_document_resource_add (handle->resp_object, json_resource);
+
+  value = json_string (attr->data);
+  GNUNET_JSONAPI_resource_add_attr (json_resource,
+                                    "value",
+                                    value);
+  json_decref (value);
 }
+
+static void
+consume_ticket_cont (struct GNUNET_REST_RequestHandle *con_handle,
+                     const char* url,
+                     void *cls)
+{
+  const struct GNUNET_CRYPTO_EcdsaPrivateKey *identity_priv;
+  const char* identity_str;
+  const char* audience_str;
+  const char* rnd_str;
+
+  struct RequestHandle *handle = cls;
+  struct EgoEntry *ego_entry;
+  struct MHD_Response *resp;
+  struct GNUNET_IDENTITY_PROVIDER_Ticket ticket;
+  struct GNUNET_JSONAPI_Document *json_obj;
+  struct GNUNET_JSONAPI_Resource *json_res;
+  struct GNUNET_CRYPTO_EcdsaPublicKey tmp_pk;
+  char term_data[handle->rest_handle->data_size+1];
+  json_t *rnd_json;
+  json_t *identity_json;
+  json_t *audience_json;
+  json_t *data_json;
+  json_error_t err;
+  struct GNUNET_JSON_Specification docspec[] = {
+    GNUNET_JSON_spec_jsonapi_document (&json_obj),
+    GNUNET_JSON_spec_end()
+  };
+
+  if (0 >= handle->rest_handle->data_size)
+  {
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
+    return;
+  }
+
+  term_data[handle->rest_handle->data_size] = '\0';
+  GNUNET_memcpy (term_data,
+                 handle->rest_handle->data,
+                 handle->rest_handle->data_size);
+  data_json = json_loads (term_data,
+                          JSON_DECODE_ANY,
+                          &err);
+  GNUNET_assert (GNUNET_OK ==
+                 GNUNET_JSON_parse (data_json, docspec,
+                                    NULL, NULL));
+  json_decref (data_json);
+  if (NULL == json_obj)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Unable to parse JSONAPI Object from %s\n",
+                term_data);
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
+    return;
+  }
+  if (1 != GNUNET_JSONAPI_document_resource_count (json_obj))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Cannot create more than 1 resource! (Got %d)\n",
+                GNUNET_JSONAPI_document_resource_count (json_obj));
+    GNUNET_JSONAPI_document_delete (json_obj);
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
+    return;
+  }
+  json_res = GNUNET_JSONAPI_document_get_resource (json_obj, 0);
+  if (GNUNET_NO == GNUNET_JSONAPI_resource_check_type (json_res,
+                                                       GNUNET_REST_JSONAPI_IDENTITY_TICKET))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Unsupported JSON data type\n");
+    GNUNET_JSONAPI_document_delete (json_obj);
+    resp = GNUNET_REST_create_response (NULL);
+    handle->proc (handle->proc_cls, resp, MHD_HTTP_CONFLICT);
+    cleanup_handle (handle);
+    return;
+  }
+  rnd_json = GNUNET_JSONAPI_resource_read_attr (json_res,
+                                                "rnd");
+  identity_json = GNUNET_JSONAPI_resource_read_attr (json_res,
+                                                     "identity");
+  audience_json = GNUNET_JSONAPI_resource_read_attr (json_res,
+                                                     "audience");
+  rnd_str = json_string_value (rnd_json);
+  identity_str = json_string_value (identity_json);
+  audience_str = json_string_value (audience_json);
+
+  GNUNET_STRINGS_string_to_data (rnd_str,
+                                 strlen (rnd_str),
+                                 &ticket.rnd,
+                                 sizeof (uint64_t));
+  GNUNET_STRINGS_string_to_data (identity_str,
+                                 strlen (identity_str),
+                                 &ticket.identity,
+                                 sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey));
+  GNUNET_STRINGS_string_to_data (audience_str,
+                                 strlen (audience_str),
+                                 &ticket.audience,
+                                 sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey));
+
+  for (ego_entry = handle->ego_head;
+       NULL != ego_entry;
+       ego_entry = ego_entry->next)
+  {
+    GNUNET_IDENTITY_ego_get_public_key (ego_entry->ego,
+                                        &tmp_pk);
+    if (0 == memcmp (&ticket.audience,
+                     &tmp_pk,
+                     sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey)))
+      break;
+  }
+  if (NULL == ego_entry)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Identity unknown (%s)\n", identity_str);
+    GNUNET_JSONAPI_document_delete (json_obj);
+    return;
+  }
+  identity_priv = GNUNET_IDENTITY_ego_get_private_key (ego_entry->ego);
+  handle->resp_object = GNUNET_JSONAPI_document_new ();
+  handle->idp = GNUNET_IDENTITY_PROVIDER_connect (cfg);
+  handle->idp_op = GNUNET_IDENTITY_PROVIDER_ticket_consume (handle->idp,
+                                                            identity_priv,
+                                                            &ticket,
+                                                            &consume_cont,
+                                                            handle);
+  GNUNET_JSONAPI_document_delete (json_obj);
+}
+
+
 
 /**
  * Respond to OPTIONS request
@@ -1013,15 +1022,17 @@ init_cont (struct RequestHandle *handle)
 {
   struct GNUNET_REST_RequestHandlerError err;
   static const struct GNUNET_REST_RequestHandler handlers[] = {
-    {MHD_HTTP_METHOD_GET, GNUNET_REST_API_NS_IDENTITY_TOKEN_ISSUE, &issue_token_cont},
-    //{MHD_HTTP_METHOD_POST, GNUNET_REST_API_NS_IDENTITY_TOKEN_CHECK, &check_token_cont},
-    {MHD_HTTP_METHOD_GET, GNUNET_REST_API_NS_IDENTITY_PROVIDER, &list_token_cont},
-    {MHD_HTTP_METHOD_OPTIONS, GNUNET_REST_API_NS_IDENTITY_PROVIDER, &options_cont},
-    {MHD_HTTP_METHOD_POST, GNUNET_REST_API_NS_IDENTITY_OAUTH2_TOKEN, &exchange_token_ticket_cont},
+    {MHD_HTTP_METHOD_GET, GNUNET_REST_API_NS_IDENTITY_ATTRIBUTES, &list_attribute_cont},
+    {MHD_HTTP_METHOD_POST, GNUNET_REST_API_NS_IDENTITY_ATTRIBUTES, &add_attribute_cont},
+    {MHD_HTTP_METHOD_GET, GNUNET_REST_API_NS_IDENTITY_TICKETS, &list_tickets_cont},
+    {MHD_HTTP_METHOD_POST, GNUNET_REST_API_NS_IDENTITY_REVOKE, &revoke_ticket_cont},
+    {MHD_HTTP_METHOD_POST, GNUNET_REST_API_NS_IDENTITY_CONSUME, &consume_ticket_cont},
+    {MHD_HTTP_METHOD_OPTIONS, GNUNET_REST_API_NS_IDENTITY_PROVIDER,
+      &options_cont},
     GNUNET_REST_HANDLER_END
   };
 
-  if (GNUNET_NO == GNUNET_REST_handle_request (handle->conndata_handle,
+  if (GNUNET_NO == GNUNET_REST_handle_request (handle->rest_handle,
                                                handlers,
                                                &err,
                                                handle))
@@ -1092,19 +1103,8 @@ list_ego (void *cls,
 
 }
 
-/**
- * Function processing the REST call
- *
- * @param method HTTP method
- * @param url URL of the HTTP request
- * @param data body of the HTTP request (optional)
- * @param data_size length of the body
- * @param proc callback function for the result
- * @param proc_cls closure for callback function
- * @return GNUNET_OK if request accepted
- */
 static void
-rest_identity_process_request(struct GNUNET_REST_RequestHandle *conndata_handle,
+rest_identity_process_request(struct GNUNET_REST_RequestHandle *rest_handle,
                               GNUNET_REST_ResultProcessor proc,
                               void *proc_cls)
 {
@@ -1114,10 +1114,9 @@ rest_identity_process_request(struct GNUNET_REST_RequestHandle *conndata_handle,
   handle->proc_cls = proc_cls;
   handle->proc = proc;
   handle->state = ID_REST_STATE_INIT;
-  handle->conndata_handle = conndata_handle;
+  handle->rest_handle = rest_handle;
 
-
-  handle->url = GNUNET_strdup (conndata_handle->url);
+  handle->url = GNUNET_strdup (rest_handle->url);
   if (handle->url[strlen (handle->url)-1] == '/')
     handle->url[strlen (handle->url)-1] = '\0';
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -1162,8 +1161,8 @@ libgnunet_plugin_rest_identity_provider_init (void *cls)
                    MHD_HTTP_METHOD_DELETE,
                    MHD_HTTP_METHOD_OPTIONS);
 
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              _("Identity Token REST API initialized\n"));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              _("Identity Provider REST API initialized\n"));
   return api;
 }
 
@@ -1184,8 +1183,8 @@ libgnunet_plugin_rest_identity_provider_done (void *cls)
   GNUNET_free_non_null (allow_methods);
   GNUNET_free (api);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Identity Token REST plugin is finished\n");
+              "Identity Provider REST plugin is finished\n");
   return NULL;
 }
 
-/* end of plugin_rest_gns.c */
+/* end of plugin_rest_identity_provider.c */
