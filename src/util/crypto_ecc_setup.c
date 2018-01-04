@@ -80,6 +80,7 @@ GNUNET_CRYPTO_eddsa_key_create_from_file (const char *filename)
   unsigned int cnt;
   int ec;
   uint64_t fs;
+  ssize_t sret;
 
   if (GNUNET_SYSERR == GNUNET_DISK_directory_create_for_file (filename))
     return NULL;
@@ -193,7 +194,8 @@ GNUNET_CRYPTO_eddsa_key_create_from_file (const char *filename)
       {
         LOG (GNUNET_ERROR_TYPE_ERROR,
              _("When trying to read key file `%s' I found %u bytes but I need at least %u.\n"),
-             filename, (unsigned int) fs,
+             filename,
+	     (unsigned int) fs,
              (unsigned int) sizeof (struct GNUNET_CRYPTO_EddsaPrivateKey));
         LOG (GNUNET_ERROR_TYPE_ERROR,
              _("This may be ok if someone is currently generating a key.\n"));
@@ -205,12 +207,20 @@ GNUNET_CRYPTO_eddsa_key_create_from_file (const char *filename)
   }
   fs = sizeof (struct GNUNET_CRYPTO_EddsaPrivateKey);
   priv = GNUNET_malloc (fs);
-  GNUNET_assert (fs == GNUNET_DISK_file_read (fd, priv, fs));
+  sret = GNUNET_DISK_file_read (fd,
+				priv,
+				fs);
+  GNUNET_assert ( (sret >= 0) &&
+		  (fs == (size_t) sret) );
   if (GNUNET_YES !=
-      GNUNET_DISK_file_unlock (fd, 0,
+      GNUNET_DISK_file_unlock (fd,
+			       0,
                                sizeof (struct GNUNET_CRYPTO_EddsaPrivateKey)))
-    LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_WARNING, "fcntl", filename);
-  GNUNET_assert (GNUNET_YES == GNUNET_DISK_file_close (fd));
+    LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_WARNING,
+		       "fcntl",
+		       filename);
+  GNUNET_assert (GNUNET_YES ==
+		 GNUNET_DISK_file_close (fd));
   return priv;
 }
 
@@ -237,8 +247,10 @@ GNUNET_CRYPTO_ecdsa_key_create_from_file (const char *filename)
   unsigned int cnt;
   int ec;
   uint64_t fs;
-
-  if (GNUNET_SYSERR == GNUNET_DISK_directory_create_for_file (filename))
+  ssize_t sret;
+  
+  if (GNUNET_SYSERR ==
+      GNUNET_DISK_directory_create_for_file (filename))
     return NULL;
   while (GNUNET_YES != GNUNET_DISK_file_test (filename))
   {
@@ -255,19 +267,24 @@ GNUNET_CRYPTO_ecdsa_key_create_from_file (const char *filename)
         {
           /* must exist but not be accessible, fail for good! */
           if (0 != ACCESS (filename, R_OK))
-            LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_ERROR, "access", filename);
+            LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_ERROR,
+			       "access",
+			       filename);
           else
             GNUNET_break (0);   /* what is going on!? */
           return NULL;
         }
         continue;
       }
-      LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_ERROR, "open", filename);
+      LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_ERROR,
+			 "open",
+			 filename);
       return NULL;
     }
     cnt = 0;
     while (GNUNET_YES !=
-           GNUNET_DISK_file_lock (fd, 0,
+           GNUNET_DISK_file_lock (fd,
+				  0,
                                   sizeof (struct GNUNET_CRYPTO_EcdsaPrivateKey),
                                   GNUNET_YES))
     {
@@ -276,7 +293,8 @@ GNUNET_CRYPTO_ecdsa_key_create_from_file (const char *filename)
       {
         ec = errno;
         LOG (GNUNET_ERROR_TYPE_ERROR,
-             _("Could not acquire lock on file `%s': %s...\n"), filename,
+             _("Could not acquire lock on file `%s': %s...\n"),
+	     filename,
              STRERROR (ec));
       }
     }
@@ -285,21 +303,29 @@ GNUNET_CRYPTO_ecdsa_key_create_from_file (const char *filename)
     priv = GNUNET_CRYPTO_ecdsa_key_create ();
     GNUNET_assert (NULL != priv);
     GNUNET_assert (sizeof (*priv) ==
-                   GNUNET_DISK_file_write (fd, priv, sizeof (*priv)));
+                   GNUNET_DISK_file_write (fd,
+					   priv,
+					   sizeof (*priv)));
     GNUNET_DISK_file_sync (fd);
     if (GNUNET_YES !=
         GNUNET_DISK_file_unlock (fd, 0,
                                  sizeof (struct GNUNET_CRYPTO_EcdsaPrivateKey)))
-      LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_WARNING, "fcntl", filename);
-    GNUNET_assert (GNUNET_YES == GNUNET_DISK_file_close (fd));
+      LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_WARNING,
+			 "fcntl",
+			 filename);
+    GNUNET_assert (GNUNET_YES ==
+		   GNUNET_DISK_file_close (fd));
     return priv;
   }
   /* key file exists already, read it! */
-  fd = GNUNET_DISK_file_open (filename, GNUNET_DISK_OPEN_READ,
+  fd = GNUNET_DISK_file_open (filename,
+			      GNUNET_DISK_OPEN_READ,
                               GNUNET_DISK_PERM_NONE);
   if (NULL == fd)
   {
-    LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_ERROR, "open", filename);
+    LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_ERROR,
+		       "open",
+		       filename);
     return NULL;
   }
   cnt = 0;
@@ -318,25 +344,34 @@ GNUNET_CRYPTO_ecdsa_key_create_from_file (const char *filename)
 	     filename,
              STRERROR (ec));
         LOG (GNUNET_ERROR_TYPE_ERROR,
-             _
-             ("This may be ok if someone is currently generating a private key.\n"));
+             _("This may be ok if someone is currently generating a private key.\n"));
       }
       short_wait ();
       continue;
     }
-    if (GNUNET_YES != GNUNET_DISK_file_test (filename))
+    if (GNUNET_YES !=
+	GNUNET_DISK_file_test (filename))
     {
       /* eh, what!? File we opened is now gone!? */
-      LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_WARNING, "stat", filename);
+      LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_WARNING,
+			 "stat",
+			 filename);
       if (GNUNET_YES !=
           GNUNET_DISK_file_unlock (fd, 0,
                                    sizeof (struct GNUNET_CRYPTO_EcdsaPrivateKey)))
-        LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_WARNING, "fcntl", filename);
-      GNUNET_assert (GNUNET_OK == GNUNET_DISK_file_close (fd));
+        LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_WARNING,
+			   "fcntl",
+			   filename);
+      GNUNET_assert (GNUNET_OK ==
+		     GNUNET_DISK_file_close (fd));
 
       return NULL;
     }
-    if (GNUNET_OK != GNUNET_DISK_file_size (filename, &fs, GNUNET_YES, GNUNET_YES))
+    if (GNUNET_OK !=
+	GNUNET_DISK_file_size (filename,
+			       &fs,
+			       GNUNET_YES,
+			       GNUNET_YES))
       fs = 0;
     if (fs < sizeof (struct GNUNET_CRYPTO_EcdsaPrivateKey))
     {
@@ -345,7 +380,9 @@ GNUNET_CRYPTO_ecdsa_key_create_from_file (const char *filename)
       if (GNUNET_YES !=
           GNUNET_DISK_file_unlock (fd, 0,
                                    sizeof (struct GNUNET_CRYPTO_EcdsaPrivateKey)))
-        LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_WARNING, "fcntl", filename);
+        LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_WARNING,
+			   "fcntl",
+			   filename);
       if (0 == ++cnt % 10)
       {
         LOG (GNUNET_ERROR_TYPE_ERROR,
@@ -362,12 +399,19 @@ GNUNET_CRYPTO_ecdsa_key_create_from_file (const char *filename)
   }
   fs = sizeof (struct GNUNET_CRYPTO_EcdsaPrivateKey);
   priv = GNUNET_malloc (fs);
-  GNUNET_assert (fs == GNUNET_DISK_file_read (fd, priv, fs));
+  sret = GNUNET_DISK_file_read (fd,
+				priv,
+				fs);
+  GNUNET_assert ( (sret >= 0) &&
+		  (fs == (size_t) sret) );
   if (GNUNET_YES !=
       GNUNET_DISK_file_unlock (fd, 0,
                                sizeof (struct GNUNET_CRYPTO_EcdsaPrivateKey)))
-    LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_WARNING, "fcntl", filename);
-  GNUNET_assert (GNUNET_YES == GNUNET_DISK_file_close (fd));
+    LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_WARNING,
+		       "fcntl",
+		       filename);
+  GNUNET_assert (GNUNET_YES ==
+		 GNUNET_DISK_file_close (fd));
   return priv;
 }
 

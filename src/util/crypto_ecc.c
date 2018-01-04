@@ -1242,7 +1242,7 @@ eddsa_d_to_a (gcry_mpi_t d)
   size_t rawmpilen;
   unsigned char digest[64]; /* 512-bit hash value */
   gcry_buffer_t hvec[2];
-  int b;
+  unsigned int b;
   gcry_mpi_t a;
 
   b = 256 / 8; /* number of bytes in `d` */
@@ -1257,7 +1257,7 @@ eddsa_d_to_a (gcry_mpi_t d)
                                  d));
   hvec[0].data = digest;
   hvec[0].off = 0;
-  hvec[0].len = b > rawmpilen? b - rawmpilen : 0;
+  hvec[0].len = b > rawmpilen ? (b - rawmpilen) : 0;
   hvec[1].data = rawmpi;
   hvec[1].off = 0;
   hvec[1].len = rawmpilen;

@@ -52,8 +52,11 @@ handle_recv (void *cls,
 	      "Received client message...\n");
   GNUNET_SERVICE_client_continue (client);
   global_ret = 2;
-  GNUNET_MQ_destroy (mq);
-  mq = NULL;
+  if (NULL != mq)
+  {
+    GNUNET_MQ_destroy (mq);
+    mq = NULL;
+  }
 }
 
 
@@ -106,6 +109,11 @@ static void
 timeout_task (void *cls)
 {
   tt = NULL;
+  if (NULL != mq)
+  {
+    GNUNET_MQ_destroy (mq);
+    mq = NULL;
+  }
   global_ret = 33;
   GNUNET_SCHEDULER_shutdown ();
 }
