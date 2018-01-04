@@ -467,6 +467,8 @@ else
 fi
 ,
 # glib-2 not found
+  AM_CONDITIONAL(HAVE_PBC, [0])
+  AM_CONDITIONAL(HAVE_ABE, [0])
   AC_DEFINE([HAVE_PBC],[0],[Lacking glib library])
 )
 
