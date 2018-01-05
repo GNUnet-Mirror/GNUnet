@@ -31,17 +31,19 @@ CRED=`$DO_TIMEOUT gnunet-credential --issue --ego=testissuer --subject=$SUBJECT_
 TEST_CREDENTIAL="t1"
 gnunet-namestore -p -z testsubject -a -n $TEST_CREDENTIAL -t CRED -V "$CRED" -e 5m -c test_credential_lookup.conf
 
+CREDS=`$DO_TIMEOUT gnunet-credential --collect --issuer=$ISSUER_KEY --attribute=$TEST_ATTR --ego=testsubject -c test_credential_lookup.conf | paste -d, -s`
+
+
 #TODO2 Add -z swich like in gnunet-gns
 #RES_CRED=`$DO_TIMEOUT gnunet-credential --verify --issuer=$ISSUER_KEY --attribute="$TEST_ATTR" --subject=$SUBJECT_KEY --credential=$TEST_CREDENTIAL -c test_credential_lookup.conf`
-RES_CRED=`gnunet-credential --verify --issuer=$ISSUER_KEY --attribute=$TEST_ATTR --subject=$SUBJECT_KEY --credential=$TEST_CREDENTIAL -c test_credential_lookup.conf`
+RES_CRED=`gnunet-credential --verify --issuer=$ISSUER_KEY --attribute=$TEST_ATTR --subject=$SUBJECT_KEY --credential="$CREDS" -c test_credential_lookup.conf`
 
 #TODO cleanup properly
 gnunet-namestore -z testsubject -d -n $TEST_CREDENTIAL -t CRED -e never -c test_credential_lookup.conf
 gnunet-identity -D testsubject -c test_credential_lookup.conf
 gnunet-arm -e -c test_credential_lookup.conf
-echo $RES_CRED
 #TODO3 proper test
-if [ "$RES_CRED" == "Successful." ]
+if [ "$RES_CRED" != "Failed." ]
 then
   exit 0
 else
