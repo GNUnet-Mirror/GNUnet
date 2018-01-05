@@ -976,20 +976,25 @@ mylog (enum GNUNET_ErrorType kind,
     }
     else
     {
-      strftime (date2,
-                DATE_STR_SIZE,
-                "%b %d %H:%M:%S-%%020llu",
-                tmptr);
-      snprintf (date,
-                sizeof (date),
-                date2,
-		(long long) (pc.QuadPart /
-			     (performance_frequency.QuadPart / 1000)));
+      if (0 ==
+	  strftime (date2,
+		    DATE_STR_SIZE,
+		    "%b %d %H:%M:%S-%%020llu",
+		    tmptr))
+	abort ();
+      if (0 >
+	  snprintf (date,
+		    sizeof (date),
+		    date2,
+		    (long long) (pc.QuadPart /
+				 (performance_frequency.QuadPart / 1000))))
+	abort ();
     }
 #else
     struct timeval timeofday;
 
-    gettimeofday (&timeofday, NULL);
+    gettimeofday (&timeofday,
+		  NULL);
     offset = GNUNET_TIME_get_offset ();
     if (offset > 0)
     {
@@ -1022,24 +1027,33 @@ mylog (enum GNUNET_ErrorType kind,
     }
     else
     {
-      strftime (date2,
-                DATE_STR_SIZE,
-                "%b %d %H:%M:%S-%%06u",
-                tmptr);
-      snprintf (date,
-                sizeof (date),
-                date2,
-                timeofday.tv_usec);
+      if (0 ==
+	  strftime (date2,
+		    DATE_STR_SIZE,
+		    "%b %d %H:%M:%S-%%06u",
+		    tmptr))
+	abort ();
+      if (0 >
+	  snprintf (date,
+		    sizeof (date),
+		    date2,
+		    timeofday.tv_usec))
+	abort ();
     }
 #endif
-    VSNPRINTF (buf, size, message, va);
+    VSNPRINTF (buf,
+	       size,
+	       message,
+	       va);
 #if ! (defined(GNUNET_CULL_LOGGING) || TALER_WALLET_ONLY)
     if (NULL != tmptr)
       (void) setup_log_file (tmptr);
 #endif
     if ((0 != (kind & GNUNET_ERROR_TYPE_BULK)) &&
         (0 != last_bulk_time.abs_value_us) &&
-        (0 == strncmp (buf, last_bulk, sizeof (last_bulk))))
+        (0 == strncmp (buf,
+		       last_bulk,
+		       sizeof (last_bulk))))
     {
       last_bulk_repeat++;
       if ( (GNUNET_TIME_absolute_get_duration (last_bulk_time).rel_value_us >
