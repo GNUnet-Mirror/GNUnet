@@ -95,11 +95,6 @@ static struct GNUNET_GNS_Handle *gns_handle;
 static struct GNUNET_CREDENTIAL_Handle *credential_handle;
 
 /**
- * Stats handle
- */
-static struct GNUNET_STATISTICS_Handle *stats_handle;
-
-/**
  * Namestore qe
  */
 static struct GNUNET_NAMESTORE_QueueEntry *ns_qe;
@@ -635,8 +630,6 @@ cleanup()
     GNUNET_NAMESTORE_cancel (ns_qe);
   if (NULL != ns_handle)
     GNUNET_NAMESTORE_disconnect (ns_handle);
-  if (NULL != stats_handle)
-    GNUNET_STATISTICS_destroy (stats_handle, GNUNET_NO);
   GNUNET_free_non_null (token);
   GNUNET_free_non_null (label);
 
@@ -1553,11 +1546,11 @@ process_parallel_lookup2 (void *cls, uint32_t rd_count,
                                parallel_lookup);
   GNUNET_free (parallel_lookup->label);
 
-  GNUNET_STATISTICS_update (stats_handle,
+  GNUNET_STATISTICS_update (stats,
                             "attribute_lookup_time_total",
                             GNUNET_TIME_absolute_get_duration (parallel_lookup->lookup_start_time).rel_value_us,
                             GNUNET_YES);
-  GNUNET_STATISTICS_update (stats_handle,
+  GNUNET_STATISTICS_update (stats,
                             "attribute_lookups_count",
                             1,
                             GNUNET_YES);
@@ -1575,11 +1568,11 @@ process_parallel_lookup2 (void *cls, uint32_t rd_count,
                                             (void**)&data);
     if (GNUNET_SYSERR != attr_len) 
     {
-      GNUNET_STATISTICS_update (stats_handle,
+      GNUNET_STATISTICS_update (stats,
                                 "abe_decrypt_time_total",
                                 GNUNET_TIME_absolute_get_duration (decrypt_duration).rel_value_us,
                                 GNUNET_YES);
-      GNUNET_STATISTICS_update (stats_handle,
+      GNUNET_STATISTICS_update (stats,
                                 "abe_decrypt_count",
                                 1,
                                 GNUNET_YES);
@@ -1700,11 +1693,11 @@ process_consume_abe_key (void *cls, uint32_t rd_count,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Decrypted bytes: %zd Expected bytes: %zd\n",
               size, rd->data_size - sizeof (struct GNUNET_CRYPTO_EcdhePublicKey));
-  GNUNET_STATISTICS_update (stats_handle,
+  GNUNET_STATISTICS_update (stats,
                             "abe_key_lookup_time_total",
                             GNUNET_TIME_absolute_get_duration (handle->lookup_start_time).rel_value_us,
                             GNUNET_YES);
-  GNUNET_STATISTICS_update (stats_handle,
+  GNUNET_STATISTICS_update (stats,
                             "abe_key_lookups_count",
                             1,
                             GNUNET_YES);
@@ -2392,8 +2385,6 @@ run (void *cls,
   identity_handle = GNUNET_IDENTITY_connect (cfg,
                                              NULL,
                                              NULL);
-  stats_handle = GNUNET_STATISTICS_create ("identity-provider",
-                                           cfg);
   /* Loading DB plugin */
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_string (cfg,

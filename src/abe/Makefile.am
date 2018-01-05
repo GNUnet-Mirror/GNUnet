@@ -7,9 +7,6 @@ libexecdir= $(pkglibdir)/libexec/
 
 pkgcfgdir= $(pkgdatadir)/config.d/
 
-dist_pkgcfg_DATA = \
-  abe.conf
-
 if USE_COVERAGE
   AM_CFLAGS = --coverage -O0
   XLIB = -lgcov
