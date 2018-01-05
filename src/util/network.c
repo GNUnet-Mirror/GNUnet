@@ -1738,6 +1738,7 @@ GNUNET_NETWORK_test_port_free (int ipproto,
 				   open_port_str,
 				   &hint,
 				   &ret));
+  bind_status = GNUNET_NO;
   for (ai = ret; NULL != ai; ai = ai->ai_next)
   {
     socket = GNUNET_NETWORK_socket_create (ai->ai_family,
