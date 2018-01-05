@@ -1133,8 +1133,10 @@ disconnect_neighbour (struct NeighbourMapEntry *n)
  *
  * @param n neighbour entry to change qutoa for
  * @param quota new quota
+ * @return #GNUNET_YES if @a n is still valid, @GNUNET_NO if
+ *   @a n was freed
  */
-static void
+static int
 set_incoming_quota (struct NeighbourMapEntry *n,
                     struct GNUNET_BANDWIDTH_Value32NBO quota)
 {
@@ -1158,7 +1160,7 @@ set_incoming_quota (struct NeighbourMapEntry *n,
                                 GNUNET_TIME_UNIT_FOREVER_REL,
                                 GNUNET_NO,
                                 NULL, NULL);
-    return;
+    return GNUNET_YES;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Disconnecting peer `%s' due to SET_QUOTA\n",
@@ -1168,6 +1170,7 @@ set_incoming_quota (struct NeighbourMapEntry *n,
                               gettext_noop ("# disconnects due to quota of 0"),
                               1, GNUNET_NO);
   disconnect_neighbour (n);
+  return GNUNET_NO;
 }
 
 
@@ -1196,8 +1199,10 @@ set_primary_address (struct NeighbourMapEntry *n,
     if (n->primary_address.bandwidth_in.value__ != bandwidth_in.value__)
     {
       n->primary_address.bandwidth_in = bandwidth_in;
-      set_incoming_quota (n,
-                          bandwidth_in);
+      if (GNUNET_YES !=
+	  set_incoming_quota (n,
+			      bandwidth_in))
+	return;
     }
     if (n->primary_address.bandwidth_out.value__ != bandwidth_out.value__)
     {
@@ -1237,8 +1242,10 @@ set_primary_address (struct NeighbourMapEntry *n,
   /* subsystems about address use */
   GST_validation_set_address_use (n->primary_address.address,
                                   GNUNET_YES);
-  set_incoming_quota (n,
-                      bandwidth_in);
+  if (GNUNET_YES !=
+      set_incoming_quota (n,
+			  bandwidth_in))
+    return;
   send_outbound_quota_to_clients (n);
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Neighbour `%s' switched to address `%s'\n",
@@ -2393,8 +2400,10 @@ try_run_fast_ats_update (const struct GNUNET_HELLO_Address *address,
   if (n->primary_address.bandwidth_in.value__ != bandwidth_in.value__)
   {
     n->primary_address.bandwidth_in = bandwidth_in;
-    set_incoming_quota (n,
-                        bandwidth_in);
+    if (GNUNET_YES !=
+	set_incoming_quota (n,
+			    bandwidth_in))
+      return GNUNET_NO;
   }
   if (n->primary_address.bandwidth_out.value__ != bandwidth_out.value__)
   {
