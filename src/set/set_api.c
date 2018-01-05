@@ -695,6 +695,7 @@ GNUNET_SET_add_element (struct GNUNET_SET_Handle *set,
        "adding element of type %u to set %p\n",
        (unsigned int) element->element_type,
        set);
+  GNUNET_assert (NULL != set);
   if (GNUNET_YES == set->invalid)
   {
     if (NULL != cont)
@@ -772,6 +773,7 @@ GNUNET_SET_destroy (struct GNUNET_SET_Handle *set)
   /* destroying set while iterator is active is currently
      not supported; we should expand the API to allow
      clients to explicitly cancel the iteration! */
+  GNUNET_assert (NULL != set);
   if ( (NULL != set->ops_head) ||
        (NULL != set->iterator) ||
        (GNUNET_SYSERR == set->destroy_requested) )
@@ -1124,11 +1126,12 @@ GNUNET_SET_commit (struct GNUNET_SET_OperationHandle *oh,
 {
   if (NULL != oh->set)
   {
-    /* Some other set was already commited for this
+    /* Some other set was already committed for this
      * operation, there is a logic bug in the client of this API */
     GNUNET_break (0);
     return GNUNET_OK;
   }
+  GNUNET_assert (NULL != set);
   if (GNUNET_YES == set->invalid)
     return GNUNET_SYSERR;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
