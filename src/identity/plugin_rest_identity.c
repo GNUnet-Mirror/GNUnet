@@ -593,6 +593,7 @@ ego_edit_cont (struct GNUNET_REST_RequestHandle *con,
   struct GNUNET_JSONAPI_Resource *json_res;
   struct RequestHandle *handle = cls;
   struct EgoEntry *ego_entry;
+  struct EgoEntry *ego_entry_tmp;
   struct MHD_Response *resp;
   json_t *subsys_json;
   json_t *name_json;
@@ -684,12 +685,12 @@ ego_edit_cont (struct GNUNET_REST_RequestHandle *con,
   if ((NULL != name_json) && json_is_string (name_json))
   {
     newname = json_string_value (name_json);
-    for (ego_entry = handle->ego_head;
-         NULL != ego_entry;
-         ego_entry = ego_entry->next)
+    for (ego_entry_tmp = handle->ego_head;
+         NULL != ego_entry_tmp;
+         ego_entry_tmp = ego_entry_tmp->next)
     {
-      if (0 == strcasecmp (newname, ego_entry->identifier) &&
-          0 != strcasecmp (keystring, ego_entry->keystring))
+      if (0 == strcasecmp (newname, ego_entry_tmp->identifier) &&
+          0 != strcasecmp (keystring, ego_entry_tmp->keystring))
       {
         //Ego with same name not allowed
         GNUNET_JSONAPI_document_delete (json_obj);
