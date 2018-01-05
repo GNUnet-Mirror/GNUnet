@@ -327,7 +327,7 @@ struct GNS_ResolverHandle
   /**
    * ID of a task associated with the resolution process.
    */
-  struct GNUNET_SCHEDULER_Task * task_id;
+  struct GNUNET_SCHEDULER_Task *task_id;
 
   /**
    * The name to resolve
@@ -808,10 +808,10 @@ recursive_resolution (void *cls);
  * Begin the resolution process from 'name', starting with
  * the identification of the zone specified by 'name'.
  *
- * @param rh resolution to perform
+ * @param cls closure with `struct GNS_ResolverHandle *rh`
  */
 static void
-start_resolver_lookup (struct GNS_ResolverHandle *rh);
+start_resolver_lookup (void *cls);
 
 
 /**
@@ -835,6 +835,7 @@ dns_result_parser (void *cls,
   unsigned int rd_count;
   unsigned int i;
 
+  (void) rs;
   rh->dns_request = NULL;
   GNUNET_SCHEDULER_cancel (rh->task_id);
   rh->task_id = NULL;
@@ -859,7 +860,8 @@ dns_result_parser (void *cls,
       GNUNET_free (rh->name);
       rh->name = GNUNET_strdup (p->answers[0].data.hostname);
       rh->name_resolution_pos = strlen (rh->name);
-      start_resolver_lookup (rh);
+      rh->task_id = GNUNET_SCHEDULER_add_now (&start_resolver_lookup,
+					      rh);
       GNUNET_DNSPARSER_free_packet (p);
       return;
     }
@@ -1141,7 +1143,8 @@ handle_gns_cname_result (struct GNS_ResolverHandle *rh,
   GNUNET_free (rh->name);
   rh->name = GNUNET_strdup (cname);
   rh->name_resolution_pos = strlen (rh->name);
-  start_resolver_lookup (rh);
+  rh->task_id = GNUNET_SCHEDULER_add_now (&start_resolver_lookup,
+					  rh);
 }
 
 
@@ -1839,7 +1842,9 @@ handle_gns_resolution_result (void *cls,
         g2dc->rh->options = GNUNET_GNS_LO_DEFAULT;
         g2dc->rh->loop_limiter = rh->loop_limiter + 1;
         rh->g2dc = g2dc;
-        start_resolver_lookup (g2dc->rh);
+        g2dc->rh->task_id
+	  = GNUNET_SCHEDULER_add_now (&start_resolver_lookup,
+				      g2dc->rh);
 	return;
       }
     case GNUNET_DNSPARSER_TYPE_CNAME:
@@ -1893,7 +1898,7 @@ namecache_cache_continuation (void *cls,
   struct CacheOps *co = cls;
 
   co->namecache_qe_cache = NULL;
-  if (NULL != emsg)
+  if (GNUNET_OK != success)
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
 		_("Failed to cache GNS resolution: %s\n"),
 		emsg);
@@ -1930,13 +1935,21 @@ handle_dht_response (void *cls,
 		     const struct GNUNET_PeerIdentity *put_path,
 		     unsigned int put_path_length,
 		     enum GNUNET_BLOCK_Type type,
-		     size_t size, const void *data)
+		     size_t size,
+		     const void *data)
 {
   struct GNS_ResolverHandle *rh = cls;
   struct AuthorityChain *ac = rh->ac_tail;
   const struct GNUNET_GNSRECORD_Block *block;
   struct CacheOps *co;
 
+  (void) exp;
+  (void) key;
+  (void) get_path;
+  (void) get_path_length;
+  (void) put_path;
+  (void) put_path_length;
+  (void) type;
   GNUNET_DHT_get_stop (rh->get_handle);
   rh->get_handle = NULL;
   GNUNET_CONTAINER_heap_remove_node (rh->dht_heap_node);
@@ -2239,16 +2252,18 @@ recursive_resolution (void *cls)
  * Begin the resolution process from 'name', starting with
  * the identification of the zone specified by 'name'.
  *
- * @param rh resolution to perform
+ * @param cls the `struct GNS_ResolverHandle` 
  */
 static void
-start_resolver_lookup (struct GNS_ResolverHandle *rh)
+start_resolver_lookup (void *cls)
 {
+  struct GNS_ResolverHandle *rh = cls;
   struct AuthorityChain *ac;
   char *y;
   struct in_addr v4;
   struct in6_addr v6;
 
+  rh->task_id = NULL;
   if (1 == inet_pton (AF_INET,
                       rh->name,
                       &v4))
@@ -2388,7 +2403,8 @@ GNS_resolver_lookup (const struct GNUNET_CRYPTO_EcdsaPublicKey *zone,
   rh->record_type = record_type;
   rh->name = GNUNET_strdup (name);
   rh->name_resolution_pos = strlen (name);
-  start_resolver_lookup (rh);
+  rh->task_id = GNUNET_SCHEDULER_add_now (&start_resolver_lookup,
+					  rh);
   return rh;
 }
 
