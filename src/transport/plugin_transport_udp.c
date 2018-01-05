@@ -3839,9 +3839,9 @@ libgnunet_plugin_transport_udp_init (void *cls)
   unsigned long long port;
   unsigned long long aport;
   unsigned long long udp_max_bps;
-  unsigned long long enable_v6;
-  unsigned long long enable_broadcasting;
-  unsigned long long enable_broadcasting_recv;
+  int enable_v6;
+  int enable_broadcasting;
+  int enable_broadcasting_recv;
   char *bind4_address;
   char *bind6_address;
   struct GNUNET_TIME_Relative interval;
