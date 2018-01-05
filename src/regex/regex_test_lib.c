@@ -164,14 +164,18 @@ new_regex_ctx (unsigned int alphabet_size)
   return ctx;
 }
 
+
 static void
-move_children (struct RegexCombineCtx *dst, const struct RegexCombineCtx *src)
+move_children (struct RegexCombineCtx *dst,
+	       const struct RegexCombineCtx *src)
 {
   size_t array_size;
 
   array_size = sizeof(struct RegexCombineCtx *) * src->size;
-  memcpy (dst->children, src->children, array_size);
-  for (int i = 0; i < src->size; i++)
+  memcpy (dst->children,
+	  src->children,
+	  array_size);
+  for (unsigned int i = 0; i < src->size; i++)
   {
     src->children[i] = NULL;
   }
@@ -402,6 +406,7 @@ regex_split (struct RegexCombineCtx *ctx,
     tmp = ctx->children;
     ctx->children = GNUNET_malloc (sizeof(*tmp) * ctx->size);
     regex_add_multiple (ctx, suffix, tmp);
+    GNUNET_free (suffix);
     GNUNET_free (tmp);
     return;
   }
