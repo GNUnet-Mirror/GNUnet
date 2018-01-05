@@ -616,6 +616,8 @@ neighbours_changed_notification (const struct GNUNET_PeerIdentity *peer,
                                  struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
                                  struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out)
 {
+  (void) bandwidth_in;
+  (void) bandwidth_out;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Notifying about change for peer `%s' with address `%s' in state `%s' timing out at %s\n",
               GNUNET_i2s (peer),
@@ -993,6 +995,10 @@ send_disconnect_cont (void *cls,
 {
   struct NeighbourMapEntry *n;
 
+  (void) cls;
+  (void) result;
+  (void) payload;
+  (void) physical;
   n = lookup_neighbour (target);
   if (NULL == n)
     return; /* already gone */
@@ -1812,6 +1818,9 @@ send_session_syn_cont (void *cls,
 {
   struct NeighbourMapEntry *n;
 
+  (void) cls;
+  (void) size_payload;
+  (void) size_on_wire;
   n = lookup_neighbour (target);
   if (NULL == n)
   {
@@ -1985,6 +1994,9 @@ send_session_syn_ack_cont (void *cls,
 {
   struct NeighbourMapEntry *n;
 
+  (void) cls;
+  (void) size_payload;
+  (void) size_on_wire;
   n = lookup_neighbour (target);
   if (NULL == n)
   {
@@ -2814,6 +2826,7 @@ send_utilization_data (void *cls,
   uint32_t bps_out;
   struct GNUNET_TIME_Relative delta;
 
+  (void) cls;
   if ( (GNUNET_YES != test_connected (n)) ||
        (NULL == n->primary_address.address) )
     return GNUNET_OK;
@@ -2844,11 +2857,12 @@ send_utilization_data (void *cls,
 /**
  * Task transmitting utilization in a regular interval
  *
- * @param cls the 'struct NeighbourMapEntry' for which we are running
+ * @param cls the `struct NeighbourMapEntry` for which we are running
  */
 static void
 utilization_transmission (void *cls)
 {
+  (void) cls;
   util_transmission_tk = NULL;
   GNUNET_CONTAINER_multipeermap_iterate (neighbours,
                                          &send_utilization_data,
@@ -3104,6 +3118,7 @@ GST_neighbours_handle_session_syn_ack (const struct GNUNET_MessageHeader *messag
   struct GNUNET_TIME_Absolute ts;
   struct NeighbourMapEntry *n;
 
+  (void) session;
   if (ntohs (message->size) != sizeof (struct TransportSynMessage))
   {
     GNUNET_break_op (0);
@@ -3377,6 +3392,7 @@ GST_neighbours_handle_session_ack (const struct GNUNET_MessageHeader *message,
 {
   struct NeighbourMapEntry *n;
 
+  (void) session;
   if (ntohs (message->size) != sizeof (struct GNUNET_MessageHeader))
   {
     GNUNET_break_op (0);
@@ -3650,6 +3666,7 @@ neighbours_iterate (void *cls,
   struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in;
   struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out;
 
+  (void) key;
   if (NULL != n->primary_address.address)
   {
     bandwidth_in = n->primary_address.bandwidth_in;
@@ -3742,6 +3759,7 @@ GST_neighbour_get_current_address (const struct GNUNET_PeerIdentity *peer)
 void
 GST_neighbours_start (unsigned int max_fds)
 {
+  (void) max_fds;
   neighbours = GNUNET_CONTAINER_multipeermap_create (NEIGHBOUR_TABLE_SIZE,
                                                      GNUNET_NO);
   util_transmission_tk = GNUNET_SCHEDULER_add_delayed (UTIL_TRANSMISSION_INTERVAL,
@@ -3765,6 +3783,8 @@ disconnect_all_neighbours (void *cls,
 {
   struct NeighbourMapEntry *n = value;
 
+  (void) cls;
+  (void) key;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Disconnecting peer `%4s' during shutdown\n",
               GNUNET_i2s (&n->id));
