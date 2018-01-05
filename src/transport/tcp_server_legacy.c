@@ -1044,11 +1044,13 @@ process_mst (struct GNUNET_SERVER_Client *client,
            "Server re-enters receive loop, timeout: %s.\n",
            GNUNET_STRINGS_relative_time_to_string (client->idle_timeout, GNUNET_YES));
       client->receive_pending = GNUNET_YES;
-      GNUNET_CONNECTION_receive (client->connection,
-                                 GNUNET_MAX_MESSAGE_SIZE - 1,
-                                 client->idle_timeout,
-                                 &process_incoming,
-                                 client);
+      if (GNUNET_OK !=
+	  GNUNET_CONNECTION_receive (client->connection,
+				     GNUNET_MAX_MESSAGE_SIZE - 1,
+				     client->idle_timeout,
+				     &process_incoming,
+				     client))
+	return;
       break;
     }
     LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -1287,11 +1289,13 @@ GNUNET_SERVER_connect_socket (struct GNUNET_SERVER_Handle *server,
   for (n = server->connect_notify_list_head; NULL != n; n = n->next)
     n->callback (n->callback_cls, client);
   client->receive_pending = GNUNET_YES;
-  GNUNET_CONNECTION_receive (client->connection,
-                             GNUNET_MAX_MESSAGE_SIZE - 1,
-                             client->idle_timeout,
-                             &process_incoming,
-                             client);
+  if (GNUNET_SYSERR ==
+      GNUNET_CONNECTION_receive (client->connection,
+				 GNUNET_MAX_MESSAGE_SIZE - 1,
+				 client->idle_timeout,
+				 &process_incoming,
+				 client))
+    return NULL;
   return client;
 }
 
