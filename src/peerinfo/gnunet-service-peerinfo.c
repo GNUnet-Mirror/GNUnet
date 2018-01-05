@@ -559,11 +559,11 @@ hosts_directory_scan_callback (void *cls,
     if (GNUNET_OK !=
         GNUNET_HELLO_get_id (r.friend_only_hello,
                              &id_friend))
+    {
       if (GNUNET_YES == dsc->remove_files)
-      {
 	remove_garbage (fullname);
-	return GNUNET_OK;
-      }
+      return GNUNET_OK;
+    }
     id = id_friend;
   }
   if (NULL != r.hello)
@@ -571,11 +571,11 @@ hosts_directory_scan_callback (void *cls,
     if (GNUNET_OK !=
         GNUNET_HELLO_get_id (r.hello,
                              &id_public))
+    {
       if (GNUNET_YES == dsc->remove_files)
-      {
 	remove_garbage (fullname);
-	return GNUNET_OK;
-      }
+      return GNUNET_OK;
+    }
     id = id_public;
   }
 
