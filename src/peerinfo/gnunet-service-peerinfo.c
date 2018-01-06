@@ -1146,12 +1146,12 @@ handle_hello (void *cls,
   struct GNUNET_SERVICE_Client *client = cls;
   struct GNUNET_PeerIdentity pid;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "HELLO message received for peer `%s'\n",
-              GNUNET_i2s (&pid));
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_HELLO_get_id (hello,
                                       &pid));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "HELLO message received for peer `%s'\n",
+              GNUNET_i2s (&pid));
   add_host_to_known_hosts (&pid);
   update_hello (&pid,
                 hello);
