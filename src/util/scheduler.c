@@ -756,8 +756,8 @@ init_fd_info (struct GNUNET_SCHEDULER_Task *t,
     t->fds = fdi;
     if (1 == read_nh_len)
     {
+      GNUNET_assert (NULL != read_nh);
       fdi->fd = *read_nh;
-      GNUNET_assert (NULL != fdi->fd);
       fdi->et = GNUNET_SCHEDULER_ET_IN;
       fdi->sock = GNUNET_NETWORK_get_fd (*read_nh);
       t->read_fd = fdi->sock;
@@ -765,8 +765,8 @@ init_fd_info (struct GNUNET_SCHEDULER_Task *t,
     }
     else if (1 == write_nh_len)
     {
+      GNUNET_assert (NULL != write_nh);
       fdi->fd = *write_nh;
-      GNUNET_assert (NULL != fdi->fd);
       fdi->et = GNUNET_SCHEDULER_ET_OUT;
       fdi->sock = GNUNET_NETWORK_get_fd (*write_nh);
       t->read_fd = -1;
@@ -774,8 +774,8 @@ init_fd_info (struct GNUNET_SCHEDULER_Task *t,
     }
     else if (1 == read_fh_len)
     {
+      GNUNET_assert (NULL != read_fh);
       fdi->fh = *read_fh;
-      GNUNET_assert (NULL != fdi->fh);
       fdi->et = GNUNET_SCHEDULER_ET_IN;
       fdi->sock = (*read_fh)->fd; // FIXME: does not work under WIN32
       t->read_fd = fdi->sock;
@@ -783,8 +783,8 @@ init_fd_info (struct GNUNET_SCHEDULER_Task *t,
     }
     else
     {
+      GNUNET_assert (NULL != write_fh);
       fdi->fh = *write_fh;
-      GNUNET_assert (NULL != fdi->fh);
       fdi->et = GNUNET_SCHEDULER_ET_OUT;
       fdi->sock = (*write_fh)->fd; // FIXME: does not work under WIN32
       t->read_fd = -1;
@@ -1750,8 +1750,11 @@ GNUNET_SCHEDULER_add_select (enum GNUNET_SCHEDULER_Priority prio,
   const struct GNUNET_DISK_FileHandle **write_fhandles;
   unsigned int read_nhandles_len, write_nhandles_len,
                read_fhandles_len, write_fhandles_len;
+  int no_fdsets = (NULL == rs) && (NULL == ws);
+  int no_socket_descriptors =
+    ((NULL != rs) && (0 == rs->nsds)) && ((NULL != ws) && (0 == ws->nsds));
 
-  if (((NULL == rs) && (NULL == ws)) || ((0 == rs->nsds) && (0 == ws->nsds)))
+  if (no_fdsets || no_socket_descriptors)
     return GNUNET_SCHEDULER_add_delayed_with_priority (delay,
                                                        prio,
                                                        task,
