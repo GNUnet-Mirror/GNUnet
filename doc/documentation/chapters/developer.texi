@@ -94,6 +94,7 @@ following links:
 @c ** FIXME: Link to files in source, not online.
 @c ** FIXME: Where is the Java tutorial?
 @itemize @bullet
+@c broken link
 @item @uref{https://gnunet.org/git/gnunet.git/plain/doc/gnunet-c-tutorial.pdf, GNUnet C tutorial}
 @item GNUnet Java tutorial
 @end itemize
@@ -273,7 +274,7 @@ library is a wapper around block plugins which provide the necessary
 functions for each block type.
 @item @file{statistics/} --- statistics service
 The statistics service enables associating
-values (of type uint64_t) with a componenet name and a string. The main
+values (of type uint64_t) with a component name and a string. The main
 uses is debugging (counting events), performance tracking and user
 entertainment (what did my peer do today?).
 @item @file{arm/} --- Automatic Restart Manager (ARM)
@@ -2450,7 +2451,7 @@ memcpy (tbuf, nameTrans, strlen (nameTrans) + 1);
 
 Note that, here the functions @code{htonl}, @code{htons} and
 @code{GNUNET_TIME_absolute_hton} are applied to convert little endian
-into big endian, about the usage of the big/small edian order and the
+into big endian, about the usage of the big/small endian order and the
 corresponding conversion function please refer to Introduction of
 Big Endian and Little Endian.
 
@@ -7027,6 +7028,7 @@ bandwidth consumption.
 
 @c %**end of header
 
+@c inconsistent use of ``must'' above it's written ``MUST''
 In contrast to GET operations, developers @strong{must} manually re-run
 PUT operations periodically (if they intend the content to continue to be
 available). Content stored in the DHT expires or might be lost due to
@@ -7055,7 +7057,7 @@ Using the monitoring API, applications can choose to monitor these
 requests, possibly limiting themselves to requests for a particular block
 type.
 
-The monitoring API is not only usefu only for diagnostics, it can also be
+The monitoring API is not only useful for diagnostics, it can also be
 used to trigger application operations based on PUT operations.
 For example, an application may use PUTs to distribute work requests to
 other peers.
@@ -7149,7 +7151,7 @@ already knows more than about a thousand blocks may need to send
 several of these messages. Naturally, the client should transmit these
 messages as quickly as possible after the original GET request such that
 the DHT can filter those results in the network early on. Naturally, as
-these messages are send after the original request, it is conceivalbe
+these messages are sent after the original request, it is conceivalbe
 that the DHT service may return blocks that match those already known
 to the client anyway.
 
@@ -7240,7 +7242,7 @@ A peer can search the DHT by sending @code{struct PeerGetMessage}s of type
 @code{GNUNET_MESSAGE_TYPE_DHT_P2P_GET} to other peers. In addition to the
 usual information about the request (type, routing options, desired
 replication level for the request, the key and the extended query), a GET
-request also again contains a hop counter, a Bloom filter over the peers
+request also contains a hop counter, a Bloom filter over the peers
 that have processed the request already and depending on the routing
 options the full path traversed by the GET.
 Finally, a GET request includes a variable-size second Bloom filter and a

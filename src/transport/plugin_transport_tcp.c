@@ -3172,8 +3172,6 @@ handle_tcp_welcome (void *cls,
                    sizeof(struct GNUNET_PeerIdentity)))
   {
     /* refuse connections from ourselves */
-    GNUNET_SERVER_receive_done (client,
-                                GNUNET_SYSERR);
     if (GNUNET_OK ==
         GNUNET_SERVER_client_get_address (client,
                                           &vaddr,
@@ -3185,6 +3183,8 @@ handle_tcp_welcome (void *cls,
            GNUNET_a2s (vaddr, alen));
       GNUNET_free (vaddr);
     }
+    GNUNET_SERVER_receive_done (client,
+                                GNUNET_SYSERR);
     return;
   }
 
@@ -3348,12 +3348,13 @@ handle_tcp_data (void *cls,
   if (NULL == session)
   {
     /* No inbound session found */
-    void *vaddr;
+    void *vaddr = NULL;
     size_t alen;
 
-    GNUNET_SERVER_client_get_address (client,
-                                      &vaddr,
-                                      &alen);
+    GNUNET_assert (GNUNET_OK ==
+		   GNUNET_SERVER_client_get_address (client,
+						     &vaddr,
+						     &alen));
     LOG (GNUNET_ERROR_TYPE_ERROR,
          "Received unexpected %u bytes of type %u from `%s'\n",
          (unsigned int) ntohs (message->size),
@@ -3369,7 +3370,7 @@ handle_tcp_data (void *cls,
   if (GNUNET_YES == session->expecting_welcome)
   {
     /* Session is expecting WELCOME message */
-    void *vaddr;
+    void *vaddr = NULL;
     size_t alen;
 
     GNUNET_SERVER_client_get_address (client,
@@ -3389,7 +3390,7 @@ handle_tcp_data (void *cls,
 
   session->last_activity = GNUNET_TIME_absolute_get ();
   {
-    void *vaddr;
+    void *vaddr = NULL;
     size_t alen;
 
     GNUNET_SERVER_client_get_address (client,

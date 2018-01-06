@@ -664,6 +664,7 @@ client_send_random (struct GNUNET_HashCode *pub_key_hash,
   if (n <= 0)
     n = GNUNET_CONTAINER_multihashmap_get_random (members, client_send_member_cb,
                                                    (void *) env);
+  GNUNET_MQ_discard (env);
   return n;
 }
 

@@ -19,9 +19,9 @@
 */
 
 /**
- * @file identity/plugin_gnsrecord_identity.c
+ * @file identity-provider/plugin_gnsrecord_identity_provider.c
  * @brief gnsrecord plugin to provide the API for identity records
- * @author Christian Grothoff
+ * @author Martin Schanzenbach
  */
 #include "platform.h"
 #include "gnunet_util_lib.h"
@@ -54,9 +54,13 @@ value_to_string (void *cls,
   switch (type)
   {
     case GNUNET_GNSRECORD_TYPE_ID_ATTR:
-    case GNUNET_GNSRECORD_TYPE_ID_TOKEN:
+      return GNUNET_STRINGS_data_to_string_alloc (data, data_size);
+    case GNUNET_GNSRECORD_TYPE_ID_TOKEN: //DEPRECATED
       return GNUNET_strndup (data, data_size);
-    case GNUNET_GNSRECORD_TYPE_ID_TOKEN_METADATA:
+    case GNUNET_GNSRECORD_TYPE_ABE_KEY:
+    case GNUNET_GNSRECORD_TYPE_ABE_MASTER:
+      return GNUNET_STRINGS_data_to_string_alloc (data, data_size); 
+    case GNUNET_GNSRECORD_TYPE_ID_TOKEN_METADATA: //DEPRECATED
         ecdhe_privkey = data;
         audience_pubkey = data+sizeof (struct GNUNET_CRYPTO_EcdhePrivateKey);
         scopes =  (char*) audience_pubkey+(sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey));
@@ -106,12 +110,22 @@ string_to_value (void *cls,
   switch (type)
   {
     case GNUNET_GNSRECORD_TYPE_ID_ATTR:
+      return GNUNET_STRINGS_string_to_data (s,
+                                            strlen (s),
+                                            *data,
+                                            *data_size);
     case GNUNET_GNSRECORD_TYPE_ID_TOKEN:
       *data = GNUNET_strdup (s);
       *data_size = strlen (s);
       return GNUNET_OK;
+    case GNUNET_GNSRECORD_TYPE_ABE_KEY:
+    case GNUNET_GNSRECORD_TYPE_ABE_MASTER:
+      return GNUNET_STRINGS_string_to_data (s,
+                                            strlen (s),
+                                            *data,
+                                            *data_size);
     case GNUNET_GNSRECORD_TYPE_ID_TOKEN_METADATA:
-            tmp_tok = GNUNET_strdup (s);
+      tmp_tok = GNUNET_strdup (s);
       ecdhe_str = strtok (tmp_tok, ";");
       if (NULL == ecdhe_str)
       {
@@ -160,15 +174,17 @@ string_to_value (void *cls,
  * Mapping of record type numbers to human-readable
  * record type names.
  */
-        static struct {
-          const char *name;
-          uint32_t number;
-        } name_map[] = {
-          { "ID_ATTR", GNUNET_GNSRECORD_TYPE_ID_ATTR },
-          { "ID_TOKEN", GNUNET_GNSRECORD_TYPE_ID_TOKEN },
-          { "ID_TOKEN_METADATA", GNUNET_GNSRECORD_TYPE_ID_TOKEN_METADATA },
-          { NULL, UINT32_MAX }
-        };
+static struct {
+  const char *name;
+  uint32_t number;
+} name_map[] = {
+  { "ID_ATTR", GNUNET_GNSRECORD_TYPE_ID_ATTR },
+  { "ID_TOKEN", GNUNET_GNSRECORD_TYPE_ID_TOKEN },
+  { "ABE_KEY", GNUNET_GNSRECORD_TYPE_ABE_KEY },
+  { "ABE_MASTER", GNUNET_GNSRECORD_TYPE_ABE_MASTER },
+  { "ID_TOKEN_METADATA", GNUNET_GNSRECORD_TYPE_ID_TOKEN_METADATA },
+  { NULL, UINT32_MAX }
+};
 
 
 /**
@@ -220,7 +236,7 @@ number_to_typename (void *cls,
  * @return the exported block API
  */
 void *
-libgnunet_plugin_gnsrecord_identity_init (void *cls)
+libgnunet_plugin_gnsrecord_identity_provider_init (void *cls)
 {
   struct GNUNET_GNSRECORD_PluginFunctions *api;
 
@@ -240,7 +256,7 @@ libgnunet_plugin_gnsrecord_identity_init (void *cls)
  * @return NULL
  */
 void *
-libgnunet_plugin_gnsrecord_identity_done (void *cls)
+libgnunet_plugin_gnsrecord_identity_provider_done (void *cls)
 {
   struct GNUNET_GNSRECORD_PluginFunctions *api = cls;
 

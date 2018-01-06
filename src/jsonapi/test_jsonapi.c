@@ -1,18 +1,18 @@
 /*
-  This file is part of GNUnet
-  (C) 2015, 2016 GNUnet e.V.
+   This file is part of GNUnet
+   (C) 2015, 2016 GNUnet e.V.
 
-  GNUnet is free software; you can redistribute it and/or modify it under the
-  terms of the GNU General Public License as published by the Free Software
-  Foundation; either version 3, or (at your option) any later version.
+   GNUnet is free software; you can redistribute it and/or modify it under the
+   terms of the GNU General Public License as published by the Free Software
+   Foundation; either version 3, or (at your option) any later version.
 
-  GNUnet is distributed in the hope that it will be useful, but WITHOUT ANY
-  WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-  A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+   GNUnet is distributed in the hope that it will be useful, but WITHOUT ANY
+   WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+   A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
 
-  You should have received a copy of the GNU General Public License along with
-  GNUnet; see the file COPYING.  If not, If not, see <http://www.gnu.org/licenses/>
-*/
+   You should have received a copy of the GNU General Public License along with
+   GNUnet; see the file COPYING.  If not, If not, see <http://www.gnu.org/licenses/>
+   */
 
 /**
  * @file json/test_jsonapi.c
@@ -24,7 +24,7 @@
 #include "gnunet_jsonapi_lib.h"
 #include "gnunet_json_lib.h"
 
-#define TEST_JSONAPI_DOCUMENT "{\"data\":{\"id\":\"1\",\"type\":\"bar\",\"attributes\":{\"foo\":\"bar\"}}}"
+#define TEST_JSONAPI_DOCUMENT "{\"data\":[{\"id\":\"1\",\"type\":\"bar\",\"attributes\":{\"foo\":\"bar\"}}]}"
 
 #define TEST_JSONAPI_DOCUMENT_ERR "{\"errors\":[{\"id\":\"1\",\"status\":\"403\",\"code\":\"23\", \"title\":\"Error\", \"detail\":\"Error details\"}]}"
 
@@ -74,7 +74,8 @@ test_document ()
   json_t *doc_json;
   json_t *data_js;
   json_error_t err;
-
+  int ret;
+   
   obj = GNUNET_JSONAPI_document_new ();
   res = GNUNET_JSONAPI_resource_new ("bar",
                                      "1");
@@ -94,11 +95,11 @@ test_document ()
                         JSON_DECODE_ANY,
                         &err);
   GNUNET_assert (NULL != data_js);
-  GNUNET_assert (0 != json_equal (data_js, doc_json));
+  ret = json_equal (data_js, doc_json) ? 0 : 1;
   GNUNET_JSONAPI_document_delete (obj);
   json_decref (data_js);
   json_decref (doc_json);
-  return 0;
+  return ret;
 }
 
 static int
@@ -106,6 +107,7 @@ test_serialize ()
 {
   struct GNUNET_JSONAPI_Document *obj;
   char* tmp_data;
+  int ret;
   json_t* data_js;
   json_t* tmp_data_js;
   json_error_t err;
@@ -125,11 +127,11 @@ test_serialize ()
   GNUNET_JSON_parse_free (jsonapispec);
   tmp_data_js = json_loads (tmp_data, JSON_DECODE_ANY, &err);
   GNUNET_assert (NULL != tmp_data_js);
-  GNUNET_assert (0 != json_equal (tmp_data_js, data_js));
+  ret = (1 == json_equal (tmp_data_js, data_js)) ? 0 : 1;
   json_decref (data_js);
   json_decref (tmp_data_js);
   GNUNET_free (tmp_data);
-  return 0;
+  return ret;
 }
 
 /**

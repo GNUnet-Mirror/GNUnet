@@ -1326,9 +1326,10 @@ GNUNET_NETWORK_fdset_handle_set (struct GNUNET_NETWORK_FDSet *fds,
 #else
   int fd;
 
-  GNUNET_DISK_internal_file_handle_ (h,
-                                     &fd,
-                                     sizeof (int));
+  GNUNET_assert (GNUNET_OK ==
+		 GNUNET_DISK_internal_file_handle_ (h,
+						    &fd,
+						    sizeof (int)));
   FD_SET (fd,
           &fds->sds);
   fds->nsds = GNUNET_MAX (fd + 1,
@@ -1737,6 +1738,7 @@ GNUNET_NETWORK_test_port_free (int ipproto,
 				   open_port_str,
 				   &hint,
 				   &ret));
+  bind_status = GNUNET_NO;
   for (ai = ret; NULL != ai; ai = ai->ai_next)
   {
     socket = GNUNET_NETWORK_socket_create (ai->ai_family,

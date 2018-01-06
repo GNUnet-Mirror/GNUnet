@@ -1218,8 +1218,10 @@ RETRY:
  * @param timeout maximum amount of time to wait
  * @param receiver function to call with received data
  * @param receiver_cls closure for @a receiver
+ * @return #GNUNET_SYSERR if @a connection died (receiver was
+ *          called with error)
  */
-void
+int
 GNUNET_CONNECTION_receive (struct GNUNET_CONNECTION_Handle *connection,
                            size_t max,
                            struct GNUNET_TIME_Relative timeout,
@@ -1241,7 +1243,7 @@ GNUNET_CONNECTION_receive (struct GNUNET_CONNECTION_Handle *connection,
                                      connection->sock,
                                      &receive_ready,
                                      connection);
-    return;
+    return GNUNET_OK;
   }
   if ((NULL == connection->dns_active) &&
       (NULL == connection->ap_head) &&
@@ -1252,8 +1254,9 @@ GNUNET_CONNECTION_receive (struct GNUNET_CONNECTION_Handle *connection,
 	      NULL, 0,
 	      NULL, 0,
 	      ETIMEDOUT);
-    return;
+    return GNUNET_SYSERR;
   }
+  return GNUNET_OK;
 }
 
 

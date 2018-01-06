@@ -759,7 +759,11 @@ handle_revocation_union_request (void *cls,
   {
     peer_entry = new_peer_entry (other_peer);
   }
-  GNUNET_assert (NULL == peer_entry->so);
+  if (NULL != peer_entry->so)
+  {
+    GNUNET_break_op (0);
+    return;
+  }
   peer_entry->so = GNUNET_SET_accept (request,
                                       GNUNET_SET_RESULT_ADDED,
                                       (struct GNUNET_SET_Option[]) {{ 0 }},
@@ -769,8 +773,7 @@ handle_revocation_union_request (void *cls,
       GNUNET_SET_commit (peer_entry->so,
                          revocation_set))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                _("SET service crashed, terminating revocation service\n"));
+    GNUNET_break (0);
     GNUNET_SCHEDULER_shutdown ();
     return;
   }

@@ -377,6 +377,7 @@ connection_client_destroy_impl (struct GNUNET_MQ_Handle *mq,
 {
   struct ClientState *cstate = impl_state;
 
+  (void) mq;
   if (GNUNET_SYSERR == cstate->in_destroy)
   {
     /* defer destruction */
@@ -814,6 +815,7 @@ connection_client_send_impl (struct GNUNET_MQ_Handle *mq,
 {
   struct ClientState *cstate = impl_state;
 
+  (void) mq;
   /* only one message at a time allowed */
   GNUNET_assert (NULL == cstate->msg);
   GNUNET_assert (NULL == cstate->send_task);
@@ -845,6 +847,7 @@ connection_client_cancel_impl (struct GNUNET_MQ_Handle *mq,
 {
   struct ClientState *cstate = impl_state;
 
+  (void) mq;
   GNUNET_assert (NULL != cstate->msg);
   GNUNET_assert (0 == cstate->msg_off);
   cstate->msg = NULL;

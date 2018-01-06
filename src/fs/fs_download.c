@@ -37,7 +37,8 @@ static int
 is_recursive_download (struct GNUNET_FS_DownloadContext *dc)
 {
   return (0 != (dc->options & GNUNET_FS_DOWNLOAD_OPTION_RECURSIVE)) &&
-      ( (GNUNET_YES == GNUNET_FS_meta_data_test_for_directory (dc->meta)) ||
+      ( (GNUNET_YES ==
+	 GNUNET_FS_meta_data_test_for_directory (dc->meta)) ||
         ( (NULL == dc->meta) &&
           ( (NULL == dc->filename) ||
             ( (strlen (dc->filename) >= strlen (GNUNET_FS_DIRECTORY_EXT)) &&

@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     Copyright (C) 2009-2016 GNUnet e.V.
+     Copyright (C) 2009-2018 GNUnet e.V.
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -214,7 +214,8 @@ check_config ()
   for (unsigned int i = 0;
        NULL != loopback[i];
        i++)
-    if (0 == strcasecmp (loopback[i], hostname))
+    if (0 == strcasecmp (loopback[i],
+			 hostname))
     {
       GNUNET_free (hostname);
       return GNUNET_OK;
@@ -285,6 +286,7 @@ GNUNET_RESOLVER_disconnect ()
 static void
 shutdown_task (void *cls)
 {
+  (void) cls;
   s_task = NULL;
   GNUNET_RESOLVER_disconnect ();
   backoff = GNUNET_TIME_UNIT_MILLISECONDS;
@@ -387,10 +389,12 @@ static void
 mq_error_handler (void *cls,
                   enum GNUNET_MQ_Error error)
 {
+  (void) cls;
   GNUNET_MQ_destroy (mq);
   mq = NULL;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "MQ error, reconnecting\n");
+       "MQ error %d, reconnecting\n",
+       error);
   reconnect ();
 }
 
@@ -449,6 +453,9 @@ static int
 check_response (void *cls,
                 const struct GNUNET_MessageHeader *msg)
 {
+  (void) cls;
+  (void) msg;
+
   /* implemented in #handle_response() for now */
   return GNUNET_OK;
 }
@@ -470,6 +477,7 @@ handle_response (void *cls,
   uint16_t size;
   char *nret;
 
+  (void) cls;
   GNUNET_assert (NULL != rh);
   size = ntohs (msg->size);
   if (size == sizeof (struct GNUNET_MessageHeader))
@@ -743,6 +751,7 @@ reconnect_task (void *cls)
     GNUNET_MQ_handler_end ()
   };
 
+  (void) cls;
   r_task = NULL;
   if (NULL == req_head)
     return;                     /* no work pending */

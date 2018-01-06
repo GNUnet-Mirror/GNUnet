@@ -42,6 +42,7 @@ do_speedup (void *cls)
 {
   static long long current_offset;
 
+  (void) cls;
   speedup_task = NULL;
   current_offset += delta.rel_value_us;
   GNUNET_TIME_set_offset (current_offset);

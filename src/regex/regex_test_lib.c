@@ -99,8 +99,7 @@ c2i (char c, int size)
 static void
 space (int n)
 {
-  int i;
-  for (i = 0; i < n; i++)
+  for (int i = 0; i < n; i++)
     fprintf (stderr, "| ");
 }
 
@@ -114,8 +113,7 @@ space (int n)
 static void
 debugctx (struct RegexCombineCtx *ctx, int level)
 {
-  return;
-  unsigned int i;
+#if DEBUG_REGEX
   if (NULL != ctx->s)
   {
     space (level - 1);
@@ -123,7 +121,7 @@ debugctx (struct RegexCombineCtx *ctx, int level)
   }
   else
     fprintf (stderr, "ROOT (base %u)\n", ctx->size);
-  for (i = 0; i < ctx->size; i++)
+  for (unsigned int i = 0; i < ctx->size; i++)
   {
     if (NULL != ctx->children[i])
     {
@@ -132,6 +130,7 @@ debugctx (struct RegexCombineCtx *ctx, int level)
     }
   }
   fflush(stderr);
+#endif
 }
 
 
@@ -142,7 +141,8 @@ debugctx (struct RegexCombineCtx *ctx, int level)
  * @param regex Regex to add.
  */
 static void
-regex_add (struct RegexCombineCtx *ctx, const char *regex);
+regex_add (struct RegexCombineCtx *ctx,
+	   const char *regex);
 
 
 /**
@@ -164,14 +164,18 @@ new_regex_ctx (unsigned int alphabet_size)
   return ctx;
 }
 
+
 static void
-move_children (struct RegexCombineCtx *dst, const struct RegexCombineCtx *src)
+move_children (struct RegexCombineCtx *dst,
+	       const struct RegexCombineCtx *src)
 {
   size_t array_size;
 
   array_size = sizeof(struct RegexCombineCtx *) * src->size;
-  memcpy (dst->children, src->children, array_size);
-  for (int i = 0; i < src->size; i++)
+  memcpy (dst->children,
+	  src->children,
+	  array_size);
+  for (unsigned int i = 0; i < src->size; i++)
   {
     src->children[i] = NULL;
   }
@@ -402,6 +406,7 @@ regex_split (struct RegexCombineCtx *ctx,
     tmp = ctx->children;
     ctx->children = GNUNET_malloc (sizeof(*tmp) * ctx->size);
     regex_add_multiple (ctx, suffix, tmp);
+    GNUNET_free (suffix);
     GNUNET_free (tmp);
     return;
   }

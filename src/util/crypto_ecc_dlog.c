@@ -130,6 +130,7 @@ GNUNET_CRYPTO_ecc_bin_to_point (struct GNUNET_CRYPTO_EccDlogContext *edc,
   gcry_ctx_t ctx;
   gcry_mpi_point_t q;
 
+  (void) edc;
   if (0 != gcry_sexp_build (&pub_sexpr, NULL,
                             "(public-key(ecc(curve " CURVE ")(q %b)))",
                             (int) sizeof (bin->q_y),

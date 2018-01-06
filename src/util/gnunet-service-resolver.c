@@ -582,7 +582,7 @@ get_ip_from_hostname (struct GNUNET_SERVICE_Client *client,
 /**
  * Verify well-formedness of GET-message.
  *
- * @param cls closure
+ * @param cls closure, unused
  * @param get the actual message
  * @return #GNUNET_OK if @a get is well-formed
  */
@@ -594,6 +594,7 @@ check_get (void *cls,
   int direction;
   int af;
 
+  (void) cls;
   size = ntohs (get->header.size) - sizeof (*get);
   direction = ntohl (get->direction);
   if (GNUNET_NO == direction)
@@ -688,7 +689,7 @@ handle_get (void *cls,
 /**
  * Callback called when a client connects to the service.
  *
- * @param cls closure for the service
+ * @param cls closure for the service, unused
  * @param c the new client that connected to the service
  * @param mq the message queue used to send messages to the client
  * @return @a c
@@ -698,6 +699,9 @@ connect_cb (void *cls,
 	    struct GNUNET_SERVICE_Client *c,
 	    struct GNUNET_MQ_Handle *mq)
 {
+  (void) cls;
+  (void) mq;
+
   return c;
 }
 
@@ -714,6 +718,8 @@ disconnect_cb (void *cls,
 	       struct GNUNET_SERVICE_Client *c,
 	       void *internal_cls)
 {
+  (void) cls;
+  
   GNUNET_assert (c == internal_cls);
 }
 

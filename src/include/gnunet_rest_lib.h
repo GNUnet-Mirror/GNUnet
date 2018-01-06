@@ -89,7 +89,7 @@ typedef void (*GNUNET_REST_ResultProcessor) (void *cls,
  *
  * @param url URL to check
  * @param namespace namespace to check against
- * @retun GNUNET_YES if namespace matches
+ * @return GNUNET_YES if namespace matches
  */
 int
 GNUNET_REST_namespace_match (const char *url, const char *namespace);
@@ -98,7 +98,7 @@ GNUNET_REST_namespace_match (const char *url, const char *namespace);
  * Create REST MHD response
  *
  * @param data result
- * @retun MHD response
+ * @return MHD response
  */
  struct MHD_Response*
 GNUNET_REST_create_response (const char *data);

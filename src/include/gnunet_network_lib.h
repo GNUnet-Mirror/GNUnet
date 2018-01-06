@@ -53,7 +53,7 @@ struct GNUNET_NETWORK_FDSet
 {
 
   /**
-   * Maximum number of any socket socket descriptor in the set (plus one)
+   * Maximum number of any socket descriptor in the set (plus one)
    */
   int nsds;
 

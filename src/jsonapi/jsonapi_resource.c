@@ -92,9 +92,9 @@ GNUNET_JSONAPI_resource_new (const char *type, const char *id)
 {
   struct GNUNET_JSONAPI_Resource *res;
 
-  if ( (NULL == type) || (0 == strlen (type)) )
+  if (NULL == type)
     return NULL;
-  if ( (NULL == id) || (0 == strlen (id)) )
+  if (NULL == id)
     return NULL;
 
   res = GNUNET_new (struct GNUNET_JSONAPI_Resource);
@@ -245,7 +245,7 @@ GNUNET_JSONAPI_resource_check_id (const struct GNUNET_JSONAPI_Resource *resource
  * @param res the JSON resource
  * @return the resource id
  */
-char*
+const char*
 GNUNET_JSONAPI_resource_get_id (const struct GNUNET_JSONAPI_Resource *resource)
 {
   return resource->id;

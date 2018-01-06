@@ -401,11 +401,16 @@ namestore_list_finished (void *cls)
   struct MHD_Response *resp;
 
   handle->list_it = NULL;
+  if (NULL == handle->resp_object)
+    handle->resp_object = GNUNET_JSONAPI_document_new ();
+
   if (GNUNET_SYSERR ==
       GNUNET_JSONAPI_document_serialize (handle->resp_object,
                                          &result))
   {
-    do_error (handle);
+    handle->response_code = MHD_HTTP_INTERNAL_SERVER_ERROR;
+    GNUNET_SCHEDULER_add_now (&do_error,
+                              handle);
     return;
   }
   resp = GNUNET_REST_create_response (result);
@@ -467,10 +472,10 @@ namestore_list_response (void *cls,
   if (0 < json_array_size(result_array))
   {
     json_resource = GNUNET_JSONAPI_resource_new (GNUNET_REST_JSONAPI_NAMESTORE_TYPEINFO,
-                                                      rname);
+                                                 rname);
     GNUNET_JSONAPI_resource_add_attr (json_resource,
-                                           GNUNET_REST_JSONAPI_NAMESTORE_RECORD,
-                                           result_array);
+                                      GNUNET_REST_JSONAPI_NAMESTORE_RECORD,
+                                      result_array);
     GNUNET_JSONAPI_document_resource_add (handle->resp_object, json_resource);
   }
 
@@ -767,8 +772,8 @@ namestore_create_cont (struct GNUNET_REST_RequestHandle *con,
   }
   term_data[handle->rest_handle->data_size] = '\0';
   GNUNET_memcpy (term_data,
-          handle->rest_handle->data,
-          handle->rest_handle->data_size);
+                 handle->rest_handle->data,
+                 handle->rest_handle->data_size);
   data_js = json_loads (term_data,
                         JSON_DECODE_ANY,
                         &err);
@@ -902,7 +907,7 @@ namestore_zkey_cont (struct GNUNET_REST_RequestHandle *con,
   if ((NULL == handle->zkey_str) ||
       (GNUNET_OK !=
        GNUNET_CRYPTO_ecdsa_public_key_from_string (handle->zkey_str,
-                                                  strlen (handle->zkey_str),
+                                                   strlen (handle->zkey_str),
                                                    &pubkey)))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -1021,13 +1026,13 @@ identity_cb (void *cls,
 
   if (GNUNET_OK !=
       GNUNET_JSONAPI_handle_request (handle->rest_handle,
-				     handlers,
-				     &err,
-				     handle))
+                                     handlers,
+                                     &err,
+                                     handle))
   {
     handle->response_code = err.error_code;
     GNUNET_SCHEDULER_add_now (&do_error,
-			      (void *) handle);
+                              (void *) handle);
   }
 }
 
