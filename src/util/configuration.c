@@ -421,7 +421,6 @@ GNUNET_CONFIGURATION_serialize (const struct GNUNET_CONFIGURATION_Handle *cfg,
   size_t m_size;
   size_t c_size;
 
-
   /* Pass1 : calculate the buffer size required */
   m_size = 0;
   for (sec = cfg->sections; NULL != sec; sec = sec->next)

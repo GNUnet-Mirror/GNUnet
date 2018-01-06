@@ -96,8 +96,9 @@
  *
  * @param uri uri to convert to a unique key
  * @param key where to store the unique key
+ * @return #GNUNET_OK on success
  */
-void
+int
 GNUNET_FS_uri_to_key (const struct GNUNET_FS_Uri *uri,
 		      struct GNUNET_HashCode *key)
 {
@@ -105,25 +106,35 @@ GNUNET_FS_uri_to_key (const struct GNUNET_FS_Uri *uri,
   {
   case GNUNET_FS_URI_CHK:
     *key = uri->data.chk.chk.query;
-    return;
+    return GNUNET_OK;
   case GNUNET_FS_URI_SKS:
     GNUNET_CRYPTO_hash (uri->data.sks.identifier,
-                        strlen (uri->data.sks.identifier), key);
-    break;
+                        strlen (uri->data.sks.identifier),
+			key);
+    return GNUNET_OK;
   case GNUNET_FS_URI_KSK:
     if (uri->data.ksk.keywordCount > 0)
+    {
       GNUNET_CRYPTO_hash (uri->data.ksk.keywords[0],
-                          strlen (uri->data.ksk.keywords[0]), key);
+                          strlen (uri->data.ksk.keywords[0]),
+			  key);
+      return GNUNET_OK;
+    }
+    else
+    {
+      memset (key, 0, sizeof (struct GNUNET_HashCode));
+      return GNUNET_SYSERR;
+    }
     break;
   case GNUNET_FS_URI_LOC:
     GNUNET_CRYPTO_hash (&uri->data.loc.fi,
                         sizeof (struct FileIdentifier) +
                         sizeof (struct GNUNET_PeerIdentity),
                         key);
-    break;
+    return GNUNET_OK;
   default:
     memset (key, 0, sizeof (struct GNUNET_HashCode));
-    break;
+    return GNUNET_SYSERR;
   }
 }
 
