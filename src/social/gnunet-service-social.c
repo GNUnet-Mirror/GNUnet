@@ -503,17 +503,18 @@ cleanup_guest (struct Guest *gst)
   struct GNUNET_CONTAINER_MultiHashMap *
     plc_gst = GNUNET_CONTAINER_multihashmap_get (place_guests,
                                                  &plc->pub_key_hash);
-  GNUNET_assert (NULL != plc_gst);
-  GNUNET_CONTAINER_multihashmap_remove (plc_gst, &plc->ego_pub_hash, gst);
-
-  if (0 == GNUNET_CONTAINER_multihashmap_size (plc_gst))
+  if (NULL != plc_gst)
   {
-    GNUNET_CONTAINER_multihashmap_remove (place_guests, &plc->pub_key_hash,
-                                          plc_gst);
-    GNUNET_CONTAINER_multihashmap_destroy (plc_gst);
+    GNUNET_CONTAINER_multihashmap_remove (plc_gst, &plc->ego_pub_hash, gst);
+
+    if (0 == GNUNET_CONTAINER_multihashmap_size (plc_gst))
+    {
+      GNUNET_CONTAINER_multihashmap_remove (place_guests, &plc->pub_key_hash,
+                                            plc_gst);
+      GNUNET_CONTAINER_multihashmap_destroy (plc_gst);
+    }
   }
   GNUNET_CONTAINER_multihashmap_remove (guests, &plc->pub_key_hash, gst);
-
   if (NULL != gst->join_req)
     GNUNET_free (gst->join_req);
   if (NULL != gst->relays)
@@ -1869,6 +1870,7 @@ guest_enter (const struct GuestEnterRequest *greq, struct Guest **ret_gst)
     ret = GNUNET_YES;
   }
 
+  // TODO: explain why free(gst) not necessary
   if (NULL != ret_gst)
     *ret_gst = gst;
   return ret;
