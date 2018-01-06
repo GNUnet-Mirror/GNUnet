@@ -122,6 +122,8 @@ optional (for @command{gnunet-gtk})
 optional (for @command{gnunet-gtk})
 @item libqrencode @geq{} 3.0,
 optional (for @command{gnunet-namestore-gtk})
+@item libpbc @geq{} 0.5.14, optional for Attribute-Based Encryption and Identity Provider functionality
+@item libgabe (https://github.com/schanzen/libgabe), optional for Attribute-Based Encryption and Identity Provider functionality
 @end itemize
 
 @node Internal dependencies
