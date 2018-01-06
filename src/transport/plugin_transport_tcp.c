@@ -3172,8 +3172,6 @@ handle_tcp_welcome (void *cls,
                    sizeof(struct GNUNET_PeerIdentity)))
   {
     /* refuse connections from ourselves */
-    GNUNET_SERVER_receive_done (client,
-                                GNUNET_SYSERR);
     if (GNUNET_OK ==
         GNUNET_SERVER_client_get_address (client,
                                           &vaddr,
@@ -3185,6 +3183,8 @@ handle_tcp_welcome (void *cls,
            GNUNET_a2s (vaddr, alen));
       GNUNET_free (vaddr);
     }
+    GNUNET_SERVER_receive_done (client,
+                                GNUNET_SYSERR);
     return;
   }
 

@@ -99,8 +99,7 @@ c2i (char c, int size)
 static void
 space (int n)
 {
-  int i;
-  for (i = 0; i < n; i++)
+  for (int i = 0; i < n; i++)
     fprintf (stderr, "| ");
 }
 
@@ -114,8 +113,7 @@ space (int n)
 static void
 debugctx (struct RegexCombineCtx *ctx, int level)
 {
-  return;
-  unsigned int i;
+#if DEBUG_REGEX
   if (NULL != ctx->s)
   {
     space (level - 1);
@@ -123,7 +121,7 @@ debugctx (struct RegexCombineCtx *ctx, int level)
   }
   else
     fprintf (stderr, "ROOT (base %u)\n", ctx->size);
-  for (i = 0; i < ctx->size; i++)
+  for (unsigned int i = 0; i < ctx->size; i++)
   {
     if (NULL != ctx->children[i])
     {
@@ -132,6 +130,7 @@ debugctx (struct RegexCombineCtx *ctx, int level)
     }
   }
   fflush(stderr);
+#endif
 }
 
 
@@ -142,7 +141,8 @@ debugctx (struct RegexCombineCtx *ctx, int level)
  * @param regex Regex to add.
  */
 static void
-regex_add (struct RegexCombineCtx *ctx, const char *regex);
+regex_add (struct RegexCombineCtx *ctx,
+	   const char *regex);
 
 
 /**
