@@ -362,6 +362,9 @@ do_connect (struct GNUNET_PSYCSTORE_Handle *h)
 static void
 reconnect (void *cls)
 {
+  struct GNUNET_PSYCSTORE_Handle *h = cls;
+
+  h->reconnect_task = NULL;
   do_connect (cls);
 }
 
