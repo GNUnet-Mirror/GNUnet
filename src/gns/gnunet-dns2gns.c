@@ -586,16 +586,26 @@ read_dns6 (void *cls)
     }
   {
     char buf[size];
+    ssize_t sret;
 
     addrlen = sizeof (v6);
-    GNUNET_break (size ==
-		  GNUNET_NETWORK_socket_recvfrom (listen_socket6,
-						  buf,
-						  size,
-						  (struct sockaddr *) &v6,
-						  &addrlen));
-    handle_request (listen_socket6, &v6, addrlen,
-		    buf, size);
+    sret = GNUNET_NETWORK_socket_recvfrom (listen_socket6,
+					   buf,
+					   size,
+					   (struct sockaddr *) &v6,
+					   &addrlen);
+    if (0 > sret)
+    {
+      GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING,
+			   "recvfrom");
+      return;
+    }
+    GNUNET_break (size == (size_t) sret);
+    handle_request (listen_socket6,
+		    &v6,
+		    addrlen,
+		    buf,
+		    size);
   }
 }
 
