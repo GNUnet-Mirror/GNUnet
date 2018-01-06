@@ -389,10 +389,11 @@ get_ibf_key (const struct GNUNET_HashCode *src)
   struct IBF_Key key;
   uint16_t salt = 0;
 
-  GNUNET_CRYPTO_kdf (&key, sizeof (key),
-                     src, sizeof *src,
-                     &salt, sizeof (salt),
-                     NULL, 0);
+  GNUNET_assert (GNUNET_OK ==
+		 GNUNET_CRYPTO_kdf (&key, sizeof (key),
+				    src, sizeof *src,
+				    &salt, sizeof (salt),
+				    NULL, 0));
   return key;
 }
 
