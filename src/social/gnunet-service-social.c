@@ -1755,6 +1755,7 @@ guest_enter (const struct GuestEnterRequest *greq, struct Guest **ret_gst)
   struct GNUNET_CONTAINER_MultiHashMap *
     plc_gst = GNUNET_CONTAINER_multihashmap_get (place_guests, &place_pub_hash);
   struct Guest *gst = NULL;
+  int new_guest;
 
   if (NULL != plc_gst)
     gst = GNUNET_CONTAINER_multihashmap_get (plc_gst, &ego_pub_hash);
@@ -1763,9 +1764,12 @@ guest_enter (const struct GuestEnterRequest *greq, struct Guest **ret_gst)
               "plc_gst = %p, gst = %p\n",
               plc_gst,
               gst);
+
+  new_guest = GNUNET_NO;
   if (NULL == gst)
   {
     gst = GNUNET_new (struct Guest);
+    new_guest = GNUNET_YES;
   }
   if (NULL == gst->slave)
   {
@@ -1841,6 +1845,9 @@ guest_enter (const struct GuestEnterRequest *greq, struct Guest **ret_gst)
       plc_gst = GNUNET_CONTAINER_multihashmap_create (1, GNUNET_YES);
       (void) GNUNET_CONTAINER_multihashmap_put (place_guests, &plc->pub_key_hash, plc_gst,
                                                 GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
+    }
+    if (GNUNET_YES == new_guest)
+    {
       (void) GNUNET_CONTAINER_multihashmap_put (plc_gst, &plc->ego_pub_hash, gst,
                                                 GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
       (void) GNUNET_CONTAINER_multihashmap_put (guests, &plc->pub_key_hash, gst,
