@@ -1,18 +1,17 @@
-{ stdenv, makeWrapper, pkgconfig, autoconf, automake, ccache, ccache_dir ? ""
-, adns, curl, gettext, glib, gmp, gnutls, gss, ncurses, openldap
+{ stdenv, makeWrapper, pkgconfig, autoconf, automake, ccache, ccache_dir ? "", which
+, adns, curl, gettext, glib, gmp, gnutls, gss, texinfo, ncurses, openldap
 , jansson, zlib, sqlite, mariadb, postgresql
 , libextractor, libgcrypt, libgnurl, libidn, libmicrohttpd
-, libpsl, libtool, libunistring, libxml2, which, texinfo
+, libpsl, libtool, libunistring, libxml2
 }:
 
 stdenv.mkDerivation rec {
   src = ./.;
   name = "gnunet-dev";
 
-  nativeBuildInputs = [ which texinfo ];
+  nativeBuildInputs = [ makeWrapper pkgconfig autoconf automake ccache which texinfo ];
 
   buildInputs = [
-    makeWrapper pkgconfig autoconf automake ccache
     adns curl gettext glib gmp gnutls gss ncurses openldap
     jansson zlib sqlite mariadb postgresql
     libextractor libgcrypt libgnurl libidn libmicrohttpd
