@@ -3351,9 +3351,10 @@ handle_tcp_data (void *cls,
     void *vaddr = NULL;
     size_t alen;
 
-    GNUNET_SERVER_client_get_address (client,
-                                      &vaddr,
-                                      &alen);
+    GNUNET_assert (GNUNET_OK ==
+		   GNUNET_SERVER_client_get_address (client,
+						     &vaddr,
+						     &alen));
     LOG (GNUNET_ERROR_TYPE_ERROR,
          "Received unexpected %u bytes of type %u from `%s'\n",
          (unsigned int) ntohs (message->size),
