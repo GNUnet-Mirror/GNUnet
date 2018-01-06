@@ -198,6 +198,8 @@ count_addresses (void *cls,
 {
   unsigned int *cnt = cls;
 
+  (void) address;
+  (void) expiration;
   (*cnt)++;
   return GNUNET_OK;
 }
@@ -290,7 +292,7 @@ read_host_file (const char *fn,
   const struct GNUNET_HELLO_Message *hello;
   struct GNUNET_HELLO_Message *hello_clean;
   size_t read_pos;
-  int size_hello;
+  uint16_t size_hello;
 
   r->friend_only_hello = NULL;
   r->hello = NULL;
@@ -304,7 +306,8 @@ read_host_file (const char *fn,
               "Read %d bytes from `%s'\n",
               (int) size_total,
               fn);
-  if (size_total < sizeof (struct GNUNET_MessageHeader))
+  if ( (size_total < 0) ||
+       (((size_t) size_total) < sizeof (struct GNUNET_MessageHeader)) )
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 		_("Failed to parse HELLO in file `%s': %s\n"),
@@ -320,12 +323,12 @@ read_host_file (const char *fn,
   }
 
   read_pos = 0;
-  while (read_pos < size_total)
+  while (read_pos < (size_t) size_total)
   {
     hello = (const struct GNUNET_HELLO_Message *) &buffer[read_pos];
     size_hello = GNUNET_HELLO_size (hello);
     if ( (0 == size_hello) ||
-         (size_total - read_pos < size_hello) )
+         (((size_t) size_total) - read_pos < size_hello) )
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                   _("Failed to parse HELLO in file `%s'\n"),
@@ -640,6 +643,7 @@ cron_scan_directory_data_hosts (void *cls)
   static unsigned int retries;
   struct DirScanContext dsc;
 
+  (void) cls;
   cron_scan = NULL;
   if (GNUNET_SYSERR ==
       GNUNET_DISK_directory_create (networkIdDirectory))
@@ -730,7 +734,7 @@ update_hello (const struct GNUNET_PeerIdentity *peer,
   int friend_hello_type;
   int store_hello;
   int store_friend_hello;
-  int pos;
+  unsigned int pos;
   char *buffer;
 
   host = GNUNET_CONTAINER_multipeermap_get (hostmap, peer);
@@ -849,8 +853,8 @@ update_hello (const struct GNUNET_PeerIdentity *peer,
       if (GNUNET_YES == store_friend_hello)
       {
 	GNUNET_memcpy (&buffer[pos],
-                host->friend_only_hello,
-                GNUNET_HELLO_size (host->friend_only_hello));
+		       host->friend_only_hello,
+		       GNUNET_HELLO_size (host->friend_only_hello));
 	pos += GNUNET_HELLO_size (host->friend_only_hello);
       }
       GNUNET_assert (pos == size);
@@ -988,16 +992,31 @@ discard_hosts_helper (void *cls,
   unsigned int cnt;
   char *writebuffer;
   uint64_t fsize;
+  
+  if (GNUNET_OK !=
+      GNUNET_DISK_file_size (fn,
+			     &fsize,
+			     GNUNET_YES,
+			     GNUNET_YES))
+  {
+    GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING |
+			      GNUNET_ERROR_TYPE_BULK,
+			      "fstat",
+			      fn);
+    return GNUNET_OK;
+  }
+  read_size = GNUNET_DISK_fn_read (fn,
+				   buffer,
+				   sizeof (buffer));
 
-  GNUNET_DISK_file_size (fn, &fsize, GNUNET_YES, GNUNET_YES);
-  read_size = GNUNET_DISK_fn_read (fn, buffer, sizeof (buffer));
-
-  if ((read_size < (int) sizeof (struct GNUNET_MessageHeader)) ||
-      (fsize > GNUNET_MAX_MESSAGE_SIZE))
+  if ( (read_size < (int) sizeof (struct GNUNET_MessageHeader)) ||
+       (fsize > GNUNET_MAX_MESSAGE_SIZE) )
   {
     if (0 != UNLINK (fn))
       GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING |
-                                GNUNET_ERROR_TYPE_BULK, "unlink", fn);
+                                GNUNET_ERROR_TYPE_BULK,
+				"unlink",
+				fn);
     return GNUNET_OK;
   }
 
@@ -1074,6 +1093,7 @@ cron_clean_data_hosts (void *cls)
 {
   struct GNUNET_TIME_Absolute now;
 
+  (void) cls;
   cron_clean = NULL;
   now = GNUNET_TIME_absolute_get ();
   GNUNET_log (GNUNET_ERROR_TYPE_INFO | GNUNET_ERROR_TYPE_BULK,
@@ -1101,6 +1121,7 @@ check_hello (void *cls,
 {
   struct GNUNET_PeerIdentity pid;
 
+  (void) cls;
   if (GNUNET_OK !=
       GNUNET_HELLO_get_id (hello,
                            &pid))
@@ -1252,6 +1273,8 @@ client_connect_cb (void *cls,
                    struct GNUNET_SERVICE_Client *client,
                    struct GNUNET_MQ_Handle *mq)
 {
+  (void) cls;
+  (void) mq;
   return client;
 }
 
@@ -1268,6 +1291,7 @@ client_disconnect_cb (void *cls,
                       struct GNUNET_SERVICE_Client *client,
                       void *app_ctx)
 {
+  (void) cls;
   GNUNET_assert (app_ctx == client);
 }
 
@@ -1287,6 +1311,8 @@ free_host_entry (void *cls,
 {
   struct HostEntry *he = value;
 
+  (void) cls;
+  (void) key;
   GNUNET_free_non_null (he->hello);
   GNUNET_free_non_null (he->friend_only_hello);
   GNUNET_free (he);
@@ -1302,6 +1328,7 @@ free_host_entry (void *cls,
 static void
 shutdown_task (void *cls)
 {
+  (void) cls;
   GNUNET_notification_context_destroy (notify_list);
   notify_list = NULL;
   GNUNET_notification_context_destroy (notify_friend_only_list);
@@ -1353,6 +1380,8 @@ run (void *cls,
   int noio;
   int use_included;
 
+  (void) cls;
+  (void) service;
   hostmap
     = GNUNET_CONTAINER_multipeermap_create (1024,
                                             GNUNET_YES);
