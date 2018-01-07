@@ -374,13 +374,14 @@ nse_disconnect_adapter (void *cls,
  */
 static int
 stat_iterator (void *cls,
-	       const char *subsystem,
-	       const char *name,
-	       uint64_t value, int is_persistent)
+               const char *subsystem,
+               const char *name,
+               uint64_t value,
+               int is_persistent)
 {
   char *output_buffer;
   struct GNUNET_TIME_Absolute now;
-  size_t size;
+  int size;
   unsigned int flag;
 
   GNUNET_assert (NULL != data_file);
@@ -390,8 +391,14 @@ stat_iterator (void *cls,
     flag = 1;
   size = GNUNET_asprintf (&output_buffer, "%llu %llu %u\n",
                           now.abs_value_us / 1000LL / 1000LL,
-			  value, flag);
-  if (size != GNUNET_DISK_file_write (data_file, output_buffer, size))
+                          value, flag);
+  if (0 > size)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Error formatting output buffer.\n");
+    GNUNET_free (output_buffer);
+    return GNUNET_SYSERR;
+  }
+  if (size != GNUNET_DISK_file_write (data_file, output_buffer, (size_t) size))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Unable to write to file!\n");
     GNUNET_free (output_buffer);
