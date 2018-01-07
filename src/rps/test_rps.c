@@ -218,6 +218,11 @@ struct RPSPeer
    * Number of received PeerIDs
    */
   unsigned int num_recv_ids;
+
+  /**
+   * Pending operation on that peer
+   */
+  const struct OpListEntry *entry_op_manage;
 };
 
 
@@ -1200,6 +1205,7 @@ churn_cb (void *cls,
   }
 
   GNUNET_CONTAINER_DLL_remove (oplist_head, oplist_tail, entry);
+  rps_peers[entry->index].entry_op_manage = NULL;
   GNUNET_free (entry);
   //if (num_peers_in_round[current_round] == peers_running)
   //  run_round ();
@@ -1221,6 +1227,14 @@ manage_service_wrapper (unsigned int i, unsigned int j, int delta,
 {
   struct OpListEntry *entry;
   uint32_t prob;
+
+  GNUNET_assert (GNUNET_YES == rps_peers[j].online);
+
+  /* make sure that management operation is not already scheduled */
+  if (NULL != rps_peers[j].entry_op_manage)
+  {
+    return;
+  }
 
   prob = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
                                    UINT32_MAX);
@@ -1253,6 +1267,7 @@ manage_service_wrapper (unsigned int i, unsigned int j, int delta,
                                                     entry,
                                                     (0 > delta) ? 0 : 1);
   }
+  rps_peers[j].entry_op_manage = entry;
 }
 
 
