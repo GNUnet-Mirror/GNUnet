@@ -277,9 +277,12 @@ static struct GNUNET_SCHEDULER_Task *churn_task;
 typedef void (*InitPeer) (struct RPSPeer *rps_peer);
 
 /**
- * Called directly after connecting to the service
+ * @brief Called directly after connecting to the service
+ *
+ * @param rps_peer Specific peer the function is called on
+ * @param h the handle to the rps service
  */
-typedef void (*PreTest) (void *cls, struct GNUNET_RPS_Handle *h);
+typedef void (*PreTest) (struct RPSPeer *rps_peer, struct GNUNET_RPS_Handle *h);
 
 /**
  * @brief Executes functions to test the api/service for a given peer
@@ -934,12 +937,20 @@ static void mal_init_peer (struct RPSPeer *rps_peer)
     rps_peer->num_ids_to_request = 1;
 }
 
+
+/**
+ * @brief Set peers to (non-)malicious before execution
+ *
+ * Of signature #PreTest
+ *
+ * @param rps_peer the peer to set (non-) malicious
+ * @param h the handle to the service
+ */
 static void
-mal_pre (void *cls, struct GNUNET_RPS_Handle *h)
+mal_pre (struct RPSPeer *rps_peer, struct GNUNET_RPS_Handle *h)
 {
   #ifdef ENABLE_MALICIOUS
   uint32_t num_mal_peers;
-  struct RPSPeer *rps_peer = (struct RPSPeer *) cls;
 
   GNUNET_assert ( (1 >= portion) &&
                   (0 <  portion) );
