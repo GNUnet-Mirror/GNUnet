@@ -62,6 +62,19 @@ static unsigned int mal_type = 0;
  */
 static struct GNUNET_TESTBED_Peer **testbed_peers;
 
+/**
+ * @brief Indicates whether peer should go off- or online
+ */
+enum PEER_ONLINE_DELTA {
+  /**
+   * @brief Indicates peer going online
+   */
+  PEER_GO_ONLINE = 1,
+  /**
+   * @brief Indicates peer going offline
+   */
+  PEER_GO_OFFLINE = -1,
+};
 
 /**
  * Operation map entry
@@ -84,10 +97,10 @@ struct OpListEntry
   struct GNUNET_TESTBED_Operation *op;
 
   /**
-   * Depending on whether we start or stop RPS service at the peer set this to 1 (start)
-   * or -1 (stop)
+   * Depending on whether we start or stop RPS service at the peer, set this to
+   * #PEER_GO_ONLINE (1) or #PEER_GO_OFFLINE (-1)
    */
-  int delta;
+  enum PEER_ONLINE_DELTA delta;
 
   /**
    * Index of the regarding peer
@@ -1181,7 +1194,7 @@ churn_cb (void *cls,
 
   num_peers_online += entry->delta;
 
-  if (-1 == entry->delta)
+  if (PEER_GO_OFFLINE == entry->delta)
   { /* Peer hopefully just went offline */
     if (GNUNET_YES != rps_peers[entry->index].online)
     {
@@ -1199,7 +1212,7 @@ churn_cb (void *cls,
     rps_peers[entry->index].online = GNUNET_NO;
   }
 
-  else if (0 < entry->delta)
+  else if (PEER_GO_ONLINE < entry->delta)
   { /* Peer hopefully just went online */
     if (GNUNET_NO != rps_peers[entry->index].online)
     {
@@ -1239,16 +1252,15 @@ churn_cb (void *cls,
 /**
  * @brief Set the rps-service up or down for a specific peer
  *
- * TODO use enum instead of 1/-1 for delta
- *
  * @param i index of action
  * @param j index of peer
- * @param delta down (-1) or up (1)
+ * @param delta (#PEER_ONLINE_DELTA) down (-1) or up (1)
  * @param prob_go_on_off the probability of the action
  */
 static void
-manage_service_wrapper (unsigned int i, unsigned int j, int delta,
-    double prob_go_on_off)
+manage_service_wrapper (unsigned int i, unsigned int j,
+                        enum PEER_ONLINE_DELTA delta,
+                        double prob_go_on_off)
 {
   struct OpListEntry *entry;
   uint32_t prob;
@@ -1268,19 +1280,19 @@ manage_service_wrapper (unsigned int i, unsigned int j, int delta,
               i,
               j,
               GNUNET_i2s (rps_peers[j].peer_id),
-              (0 > delta) ? "online" : "offline");
+              (PEER_GO_ONLINE == delta) ? "online" : "offline");
   if (prob < prob_go_on_off * UINT32_MAX)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "%s goes %s\n",
                 GNUNET_i2s (rps_peers[j].peer_id),
-                (0 > delta) ? "offline" : "online");
+                (PEER_GO_OFFLINE == delta) ? "offline" : "online");
 
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "testbed_peers points to %p, peer 0 to %p\n",
                 testbed_peers, testbed_peers[0]);
 
-    if (0 > delta)
+    if (PEER_GO_OFFLINE == delta)
       cancel_pending_req_rep (&rps_peers[j]);
     entry = make_oplist_entry ();
     entry->delta = delta;
@@ -1290,7 +1302,7 @@ manage_service_wrapper (unsigned int i, unsigned int j, int delta,
                                                     "rps",
                                                     &churn_cb,
                                                     entry,
-                                                    (0 > delta) ? 0 : 1);
+                                                    (PEER_GO_OFFLINE == delta) ? 0 : 1);
   }
   rps_peers[j].entry_op_manage = entry;
 }
