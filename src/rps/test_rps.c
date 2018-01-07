@@ -84,8 +84,8 @@ struct OpListEntry
   struct GNUNET_TESTBED_Operation *op;
 
   /**
-   * Depending on whether we start or stop NSE service at the peer set this to 1
-   * or -1
+   * Depending on whether we start or stop RPS service at the peer set this to 1 (start)
+   * or -1 (stop)
    */
   int delta;
 
@@ -188,7 +188,7 @@ struct RPSPeer
   int online;
 
   /**
-   * Number of Peer IDs to request
+   * Number of Peer IDs to request during the whole test
    */
   unsigned int num_ids_to_request;
 
@@ -272,8 +272,13 @@ typedef void (*InitPeer) (struct RPSPeer *rps_peer);
 typedef void (*PreTest) (void *cls, struct GNUNET_RPS_Handle *h);
 
 /**
+ * @brief Executes functions to test the api/service for a given peer
+ *
  * Called from within #rps_connect_complete_cb ()
- * Executes functions to test the api/service
+ * Implemented by #churn_test_cb, #profiler_cb, #mal_cb, #single_req_cb,
+ * #delay_req_cb, #seed_big_cb, #single_peer_seed_cb, #seed_cb, #req_cancel_cb
+ *
+ * @param rps_peer the peer the task runs on
  */
 typedef void (*MainTest) (struct RPSPeer *rps_peer);
 
@@ -306,7 +311,7 @@ struct SingleTestRun
   char *name;
 
   /**
-   * Called to initialise peer
+   * Called with a single peer in order to initialise that peer
    */
   InitPeer init_peer;
 
@@ -316,7 +321,7 @@ struct SingleTestRun
   PreTest pre_test;
 
   /**
-   * Function to execute the functions to be tested
+   * Main function for each peer
    */
   MainTest main_test;
 
@@ -502,6 +507,8 @@ shutdown_op (void *cls)
 {
   unsigned int i;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+              "Shutdown task scheduled, going down.\n");
   in_shutdown = GNUNET_YES;
   if (NULL != churn_task)
   {
@@ -1034,6 +1041,17 @@ req_cancel_cb (struct RPSPeer *rps_peer)
 static void
 churn (void *cls);
 
+/**
+ * @brief Starts churn
+ *
+ * Has signature of #MainTest
+ *
+ * This is not implemented too nicely as this is called for each peer, but we
+ * only need to call it once. (Yes we check that we only schedule the task
+ * once.)
+ *
+ * @param rps_peer The peer it's called for
+ */
 static void
 churn_test_cb (struct RPSPeer *rps_peer)
 {
@@ -1132,6 +1150,16 @@ churn_cb (void *cls,
   //  run_round ();
 }
 
+/**
+ * @brief Set the rps-service up or down for a specific peer
+ *
+ * TODO use enum instead of 1/-1 for delta
+ *
+ * @param i index of action
+ * @param j index of peer
+ * @param delta down (-1) or up (1)
+ * @param prob_go_on_off the probability of the action
+ */
 static void
 manage_service_wrapper (unsigned int i, unsigned int j, int delta,
     double prob_go_on_off)
@@ -1153,6 +1181,10 @@ manage_service_wrapper (unsigned int i, unsigned int j, int delta,
                 "%s goes %s\n",
                 GNUNET_i2s (rps_peers[j].peer_id),
                 (0 > delta) ? "offline" : "online");
+
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "testbed_peers points to %p, peer 0 to %p\n",
+                testbed_peers, testbed_peers[0]);
 
     if (0 > delta)
       cancel_pending_req_rep (&rps_peers[j]);
@@ -1426,6 +1458,7 @@ run (void *cls,
                                                      entry);
   }
 
+  /* Bring peers up */
   num_mal_peers = round (portion * num_peers);
   GNUNET_assert (num_peers == n_peers);
   for (i = 0; i < n_peers; i++)
@@ -1609,14 +1642,21 @@ main (int argc, char *argv[])
                                                  with the malicious portion */
 
   ok = 1;
-  (void) GNUNET_TESTBED_test_run (cur_test_run.name,
+  ret_value = GNUNET_TESTBED_test_run (cur_test_run.name,
                                   "test_rps.conf",
                                   num_peers,
                                   0, NULL, NULL,
                                   &run, NULL);
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+              "_test_run returned.\n");
+  if (GNUNET_OK != ret_value)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                "Test did not run successfully!\n");
+  }
 
   ret_value = cur_test_run.eval_cb();
-  GNUNET_free (rps_peers );
+  GNUNET_free (rps_peers);
   GNUNET_free (rps_peer_ids);
   GNUNET_CONTAINER_multipeermap_destroy (peer_map);
   return ret_value;
