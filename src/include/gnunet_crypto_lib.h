@@ -363,7 +363,7 @@ struct GNUNET_CRYPTO_PaillierPublicKey
 
 
 /**
- * Paillier public key.
+ * Paillier private key.
  */
 struct GNUNET_CRYPTO_PaillierPrivateKey
 {
