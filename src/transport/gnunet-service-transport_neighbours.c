@@ -1137,9 +1137,9 @@ disconnect_neighbour (struct NeighbourMapEntry *n)
  * our own receive rate and informs the neighbour about
  * the new quota.
  *
- * @param n neighbour entry to change qutoa for
+ * @param n neighbour entry to change quota for
  * @param quota new quota
- * @return #GNUNET_YES if @a n is still valid, @GNUNET_NO if
+ * @return #GNUNET_YES if @a n is still valid, #GNUNET_NO if
  *   @a n was freed
  */
 static int
