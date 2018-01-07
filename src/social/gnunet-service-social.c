@@ -1392,19 +1392,23 @@ msg_proc_parse (const struct MsgProcRequest *mpreq,
                 const char **method_prefix,
                 struct GNUNET_HashCode *method_hash)
 {
-  uint8_t method_size = ntohs (mpreq->header.size) - sizeof (*mpreq);
+  ssize_t method_size = ntohs (mpreq->header.size) - sizeof (*mpreq);
   uint16_t offset = GNUNET_STRINGS_buffer_tokenize ((const char *) &mpreq[1],
                                                     method_size, 1, method_prefix);
 
+  if (method_size < 0)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "MsgProcRequest has invalid size\n");
+    return GNUNET_SYSERR;
+  }
   if (0 == offset || offset != method_size || *method_prefix == NULL)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "offset = %u, method_size = %u, method_name = %s\n",
-                offset, method_size, *method_prefix);
+                "MsgProcRequest contains invalid method\n");
     return GNUNET_SYSERR;
   }
-
-  GNUNET_CRYPTO_hash (*method_prefix, method_size, method_hash);
+  GNUNET_CRYPTO_hash (*method_prefix, (size_t) method_size, method_hash);
   *flags = ntohl (mpreq->flags);
   return GNUNET_OK;
 }
