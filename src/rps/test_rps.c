@@ -801,8 +801,9 @@ default_reply_handle (void *cls,
     rps_peer->num_recv_ids++;
   }
 
-  if (0 == evaluate ())
+  if (0 == evaluate () && 0 != strncmp (cur_test_run.name, "test-rps-churn", 14))
   {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Test succeeded before timeout\n");
     GNUNET_assert (NULL != shutdown_task);
     GNUNET_SCHEDULER_cancel (shutdown_task);
     shutdown_task = GNUNET_SCHEDULER_add_now (&shutdown_op, NULL);
