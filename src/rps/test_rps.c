@@ -1181,7 +1181,7 @@ churn_cb (void *cls,
 
   num_peers_online += entry->delta;
 
-  if (0 > entry->delta)
+  if (-1 == entry->delta)
   { /* Peer hopefully just went offline */
     if (GNUNET_YES != rps_peers[entry->index].online)
     {
@@ -1221,6 +1221,12 @@ churn_cb (void *cls,
       }
     }
     rps_peers[entry->index].online = GNUNET_YES;
+  }
+  else
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+        "Invalid value for delta: %i\n", entry->delta);
+    GNUNET_break (0);
   }
 
   GNUNET_CONTAINER_DLL_remove (oplist_head, oplist_tail, entry);
@@ -1743,10 +1749,10 @@ main (int argc, char *argv[])
 
   ok = 1;
   ret_value = GNUNET_TESTBED_test_run (cur_test_run.name,
-                                  "test_rps.conf",
-                                  num_peers,
-                                  0, NULL, NULL,
-                                  &run, NULL);
+                                       "test_rps.conf",
+                                       num_peers,
+                                       0, NULL, NULL,
+                                       &run, NULL);
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
               "_test_run returned.\n");
   if (GNUNET_OK != ret_value)
