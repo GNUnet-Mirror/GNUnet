@@ -1265,8 +1265,6 @@ manage_service_wrapper (unsigned int i, unsigned int j,
   struct OpListEntry *entry;
   uint32_t prob;
 
-  GNUNET_assert (GNUNET_YES == rps_peers[j].online);
-
   /* make sure that management operation is not already scheduled */
   if (NULL != rps_peers[j].entry_op_manage)
   {
@@ -1287,10 +1285,6 @@ manage_service_wrapper (unsigned int i, unsigned int j,
                 "%s goes %s\n",
                 GNUNET_i2s (rps_peers[j].peer_id),
                 (PEER_GO_OFFLINE == delta) ? "offline" : "online");
-
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "testbed_peers points to %p, peer 0 to %p\n",
-                testbed_peers, testbed_peers[0]);
 
     if (PEER_GO_OFFLINE == delta)
       cancel_pending_req_rep (&rps_peers[j]);
