@@ -264,6 +264,11 @@ static int ok;
 /**
  * Identifier for the churn task that runs periodically
  */
+static struct GNUNET_SCHEDULER_Task *shutdown_task;
+
+/**
+ * Identifier for the churn task that runs periodically
+ */
 static struct GNUNET_SCHEDULER_Task *churn_task;
 
 /**
@@ -782,7 +787,10 @@ default_reply_handle (void *cls,
 
   if (0 == evaluate ())
   {
-    GNUNET_SCHEDULER_shutdown ();
+    GNUNET_assert (NULL != shutdown_task);
+    GNUNET_SCHEDULER_cancel (shutdown_task);
+    shutdown_task = GNUNET_SCHEDULER_add_now (&shutdown_op, NULL);
+    GNUNET_assert (NULL!= shutdown_task);
   }
 }
 
@@ -1289,6 +1297,8 @@ churn (void *cls)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Churn function executing\n");
 
+  churn_task = NULL; /* Should be invalid by now */
+
   /* Compute the probability for an online peer to go offline
    * this round */
   portion_online = num_peers_online * 1.0 / num_peers;
@@ -1560,7 +1570,7 @@ run (void *cls,
 
   if (NULL != churn_task)
     GNUNET_SCHEDULER_cancel (churn_task);
-  GNUNET_SCHEDULER_add_delayed (timeout, &shutdown_op, NULL);
+  shutdown_task = GNUNET_SCHEDULER_add_delayed (timeout, &shutdown_op, NULL);
 }
 
 
