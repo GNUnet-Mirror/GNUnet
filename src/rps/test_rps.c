@@ -590,6 +590,11 @@ info_cb (void *cb_cls,
 {
   struct OpListEntry *entry = (struct OpListEntry *) cb_cls;
 
+  if (GNUNET_YES == in_shutdown)
+  {
+    return;
+  }
+
   if (NULL == pinfo || NULL != emsg)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Got Error: %s\n", emsg);
@@ -638,6 +643,11 @@ rps_connect_complete_cb (void *cls,
 {
   struct RPSPeer *rps_peer = cls;
   struct GNUNET_RPS_Handle *rps = ca_result;
+
+  if (GNUNET_YES == in_shutdown)
+  {
+    return;
+  }
 
   rps_peer->rps_handle = rps;
   rps_peer->online = GNUNET_YES;
@@ -941,6 +951,11 @@ mal_cb (struct RPSPeer *rps_peer)
 {
   uint32_t num_mal_peers;
 
+  if (GNUNET_YES == in_shutdown)
+  {
+    return;
+  }
+
   #ifdef ENABLE_MALICIOUS
   GNUNET_assert ( (1 >= portion) &&
                   (0 <  portion) );
@@ -963,6 +978,11 @@ mal_cb (struct RPSPeer *rps_peer)
 static void
 single_req_cb (struct RPSPeer *rps_peer)
 {
+  if (GNUNET_YES == in_shutdown)
+  {
+    return;
+  }
+
   schedule_missing_requests (rps_peer);
 }
 
@@ -972,6 +992,11 @@ single_req_cb (struct RPSPeer *rps_peer)
 static void
 delay_req_cb (struct RPSPeer *rps_peer)
 {
+  if (GNUNET_YES == in_shutdown)
+  {
+    return;
+  }
+
   schedule_missing_requests (rps_peer);
 }
 
@@ -981,6 +1006,11 @@ delay_req_cb (struct RPSPeer *rps_peer)
 static void
 seed_cb (struct RPSPeer *rps_peer)
 {
+  if (GNUNET_YES == in_shutdown)
+  {
+    return;
+  }
+
   GNUNET_SCHEDULER_add_delayed (
       GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10),
       seed_peers, rps_peer);
@@ -992,6 +1022,11 @@ seed_cb (struct RPSPeer *rps_peer)
 static void
 seed_big_cb (struct RPSPeer *rps_peer)
 {
+  if (GNUNET_YES == in_shutdown)
+  {
+    return;
+  }
+
   // TODO test seeding > GNUNET_MAX_MESSAGE_SIZE peers
   GNUNET_SCHEDULER_add_delayed (
       GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 2),
@@ -1013,6 +1048,11 @@ single_peer_seed_cb (struct RPSPeer *rps_peer)
 static void
 seed_req_cb (struct RPSPeer *rps_peer)
 {
+  if (GNUNET_YES == in_shutdown)
+  {
+    return;
+  }
+
   GNUNET_SCHEDULER_add_delayed (
       GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 2),
       seed_peers, rps_peer);
@@ -1027,6 +1067,11 @@ seed_req_cb (struct RPSPeer *rps_peer)
 static void
 req_cancel_cb (struct RPSPeer *rps_peer)
 {
+  if (GNUNET_YES == in_shutdown)
+  {
+    return;
+  }
+
   schedule_missing_requests (rps_peer);
   GNUNET_SCHEDULER_add_delayed (
       GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS,
@@ -1055,6 +1100,11 @@ churn (void *cls);
 static void
 churn_test_cb (struct RPSPeer *rps_peer)
 {
+  if (GNUNET_YES == in_shutdown)
+  {
+    return;
+  }
+
   /* Start churn */
   if (GNUNET_YES == cur_test_run.have_churn && NULL == churn_task)
   {
@@ -1090,6 +1140,11 @@ churn_cb (void *cls,
 {
   // FIXME
   struct OpListEntry *entry = cls;
+
+  if (GNUNET_YES == in_shutdown)
+  {
+    return;
+  }
 
   GNUNET_TESTBED_operation_done (entry->op);
   if (NULL != emsg)
@@ -1212,6 +1267,10 @@ churn (void *cls)
   double portion_go_online;
   double portion_go_offline;
 
+  if (GNUNET_YES == in_shutdown)
+  {
+    return;
+  }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Churn function executing\n");
 
@@ -1322,6 +1381,11 @@ profiler_reply_handle (void *cls,
 static void
 profiler_cb (struct RPSPeer *rps_peer)
 {
+  if (GNUNET_YES == in_shutdown)
+  {
+    return;
+  }
+
   /* Start churn */
   if (GNUNET_YES == cur_test_run.have_churn && NULL == churn_task)
   {
