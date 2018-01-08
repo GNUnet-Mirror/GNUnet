@@ -1,5 +1,5 @@
 ;;; This file is part of GNUnet.
-;;; Copyright (C) 2016, 2017 GNUnet e.V.
+;;; Copyright (C) 2016, 2017, 2018 GNUnet e.V.
 ;;;
 ;;; GNUnet is free software; you can redistribute it and/or modify
 ;;; it under the terms of the GNU General Public License as published
@@ -15,7 +15,6 @@
 ;;; along with GNUnet; see the file COPYING.  If not, write to the
 ;;; Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
 ;;; Boston, MA 02110-1301, USA.
-;;;
 
 (use-modules
  (ice-9 popen)
@@ -46,7 +45,6 @@
  (gnu packages gstreamer)
  (gnu packages gtk)
  (gnu packages guile)
- (gnu packages graphviz)
  (gnu packages image)
  (gnu packages image-viewers)
  (gnu packages libidn)
@@ -62,39 +60,35 @@
  (gnu packages texinfo)
  (gnu packages tex)
  (gnu packages tls)
+ (gnu packages upnp)
  (gnu packages video)
  (gnu packages web)
  (gnu packages xiph)
- ;;(gnunet packages texlive) ;GNUnet module including texlive-2012 WIP
  ((guix licenses) #:prefix license:))
 
 (define %source-dir (string-append (current-source-directory)
                                    "/../../../"))
 
-(define gnunet-doc
-  (let* ((revision "2")
+(define gnunet-dev-env
+  (let* ((revision "1")
          (select? (delay (or (git-predicate
                               (string-append (current-source-directory)
                                              "/../../../"))
                              source-file?))))
-      (package
-      (name "gnunet-doc")
-      (version (string-append "0.10.1-" revision "." "dev"))
+    (package
+      (inherit gnunet)
+      (name "gnunet-dev-env")
+      (version (string-append "0.11-" revision "." "dev-env"))
       (source
-       (local-file ;;"../../.."
-                   ;;%source-dir
-                   ;;(string-append (getcwd) "/../../../")
-                   (string-append (getcwd)) ;drrty hack and this assumes one static position FIXME!
-                   #:recursive? #t))
-                   ;;#:select? (git-predicate %source-dir)))
-                   ;;#:select? (force select?)))
-      (build-system gnu-build-system)
+       (local-file
+        (string-append (getcwd))
+        #:recursive? #t))
       (inputs
        `(("glpk" ,glpk)
          ("gnurl" ,gnurl)
          ("gstreamer" ,gstreamer)
          ("gst-plugins-base" ,gst-plugins-base)
-         ("gnutls/dane" ,gnutls/dane)
+         ("gnutls/dane" ,gnutls/dane) ;Change to gnutls/dane once it is merged.
          ("libextractor" ,libextractor)
          ("libgcrypt" ,libgcrypt)
          ("libidn" ,libidn)
@@ -116,68 +110,47 @@
          ("gmp" ,gmp)
          ("bluez" ,bluez) ; for optional bluetooth feature
          ("glib" ,glib)
-         ;;("texlive-minimal" ,texlive-minimal) ; optional.
-         ("texlive" ,texlive) ;TODO: Stabilize Texlive-2012 package
+         ("texlive" ,texlive) ;FIXME: minimize.
+         ("miniupnpc" ,miniupnpc)
          ("libogg" ,libogg)))
       (native-inputs
        `(("pkg-config" ,pkg-config)
          ("autoconf" ,autoconf)
          ("automake" ,automake)
          ("gnu-gettext" ,gnu-gettext)
-         ("graphviz" ,graphviz) ; dot
-         ("texinfo-5" ,texinfo-5) ; Debian stable
          ("which" ,which)
+         ("texinfo" ,texinfo-5) ; Debian stable: 5.2
          ("libtool" ,libtool)))
+      (outputs '("out" "debug"))
       (arguments
        `(#:configure-flags
-         (list "--enable-documentation")
-         #:tests? #f ;Don't run tests
+         (list (string-append "--with-nssdir=" %output "/lib")
+               ;;"--enable-gcc-hardening"
+               ;;"--enable-linker-hardening"
+               "--enable-logging=verbose"
+               "CFLAGS=-ggdb -O0")
          #:phases
+         ;; swap check and install phases and set paths to installed bin
          (modify-phases %standard-phases
-           (add-after 'unpack 'autoconf
+           (add-after 'unpack 'patch-bin-sh
              (lambda _
                (substitute* "bootstrap"
                  (("contrib/pogen.sh") "sh contrib/pogen.sh"))
                (for-each (lambda (f) (chmod f #o755))
                          (find-files "po" ""))
+               #t))
+           (add-after 'patch-bin-sh 'bootstrap
+             (lambda _
                (zero? (system* "sh" "bootstrap"))))
-           (add-after 'build 'run-gendocs
-             (lambda _
-               (chdir "doc/documentation")
-               ;;(zero? (system* "make" "dev-build"))))
-               (zero? (system* "sh" "run-gendocs.sh"))))
-               ;; (zero? (system* "make" "pdf"))
-               ;; (zero? (system* "make" "html"))
-               ;; (zero? (system* "make" "info"))))
-               ;;(zero? (system* "make" "doc-all-give-me-the-noise"))))
-           (replace 'install
-             (lambda _
-               (zero? (system* "make" "doc-gendoc-install")))))))
-             ;;(lambda* (#:key outputs #:allow-other-keys)
-               ;; (let* ((out (assoc-ref outputs "out"))
-               ;;        (doc (string-append out "/share/doc/gnunet")))
-               ;;   (mkdir-p doc)
-               ;;   (copy-recursively "images"
-               ;;                     (string-append doc
-               ;;                                    "/images"))
-               ;;   (mkdir-p (string-append doc "/gnunet"))
-               ;;   (install-file "gnunet.pdf" doc)
-               ;;   (install-file "gnunet.info" doc)
-               ;;   (install-file "gnunet.log" doc) ;TODO: Move to 'dev' output?
-               ;;   (copy-recursively "gnunet"
-               ;;                     (string-append doc
-               ;;                                    "/gnunet"))
-               ;;   (install-file "gnunet-c-tutorial.pdf" doc)
-               ;;   (install-file "gnunet-c-tutorial.info" doc)
-               ;;   (install-file "gnunet-c-tutorial.log" doc) ;TODO: Move to 'dev' output?
-               ;;   (copy-recursively "gnunet-c-tutorial"
-               ;;                     (string-append doc
-               ;;                                    "/gnunet-c-tutorial")))
-               ;; #t)))))
-      (synopsis "Documentation of GNUnet")
-      (description
-       "GNUnet documentation build")
-      (license (list license:fdl1.3+ license:gpl3+))
-      (home-page "https://gnunet.org/"))))
+           (delete 'check)
+           ;; XXX: https://gnunet.org/bugs/view.php?id=4619
+           (add-after 'install 'set-path-for-check
+             (lambda* (#:key outputs #:allow-other-keys)
+               (let* ((out (assoc-ref outputs "out"))
+                      (bin (string-append out "/bin"))
+                      (lib (string-append out "/lib")))
+                 (setenv "GNUNET_PREFIX" lib)
+                 (setenv "PATH" (string-append (getenv "PATH") ":" bin))
+                 (zero? (system* "make" "check")))))))))))
 
-gnunet-doc
+gnunet-dev-env
