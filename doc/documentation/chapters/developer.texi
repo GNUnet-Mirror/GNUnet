@@ -94,8 +94,9 @@ following links:
 @c ** FIXME: Link to files in source, not online.
 @c ** FIXME: Where is the Java tutorial?
 @itemize @bullet
+@item @xref{Top, Introduction,, gnunet-c-tutorial, The GNUnet C Tutorial}
 @c broken link
-@item @uref{https://gnunet.org/git/gnunet.git/plain/doc/gnunet-c-tutorial.pdf, GNUnet C tutorial}
+@c @item @uref{https://gnunet.org/git/gnunet.git/plain/doc/gnunet-c-tutorial.pdf, GNUnet C tutorial}
 @item GNUnet Java tutorial
 @end itemize
 
@@ -116,7 +117,7 @@ The public subsystems on the GNUnet server that help developers are:
 
 @item The version control system (git) keeps our code and enables
 distributed development.
-It is pubclicly accessible at @uref{https://gnunet.org/git/}.
+It is publicly accessible at @uref{https://gnunet.org/git/}.
 Only developers with write access can commit code, everyone else is
 encouraged to submit patches to the
 @uref{https://lists.gnu.org/mailman/listinfo/gnunet-developers, GNUnet-developers mailinglist}.
@@ -153,9 +154,11 @@ Details on how to use Gauger are here.
 @item We use @uref{http://junit.org/, junit} to automatically test
 @command{gnunet-java}.
 Automatically generated, current reports on the test suite are here.
+@c FIXME: URL.
 
 @item We use Cobertura to generate test coverage reports for gnunet-java.
 Current reports on test coverage are here.
+@c FIXME: Likewise.
 
 @end itemize
 
@@ -211,9 +214,9 @@ Code to run GNUnet nodes on testbeds for research, development,
 testing and evaluation
 @c ** FIXME: Solve the status and location of gnunet-qt
 @item @command{gnunet-qt}
-Qt-based GNUnet GUI (is it depreacated?)
+Qt-based GNUnet GUI (is it deprecated?)
 @item @command{gnunet-cocoa}
-cocoa-based GNUnet GUI (is it depreacated?)
+cocoa-based GNUnet GUI (is it deprecated?)
 @item @command{gnunet-guile}
 
 @end table
@@ -231,8 +234,7 @@ Tool for performance regression analysis
 @item @command{monkey}
 Tool for automated debugging of distributed systems
 @item @command{libmwmodem}
-Library for accessing satellite connection quality
-reports
+Library for accessing satellite connection quality reports
 @item @command{libgnurl}
 gnURL (feature-restricted variant of cURL/libcurl)
 @end table
