@@ -218,6 +218,7 @@ Qt-based GNUnet GUI (is it deprecated?)
 @item @command{gnunet-cocoa}
 cocoa-based GNUnet GUI (is it deprecated?)
 @item @command{gnunet-guile}
+Guile bindings for GNUnet
 
 @end table
 
