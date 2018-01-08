@@ -1957,8 +1957,10 @@ mhd_log_callback (void *cls,
   }
   s5r->url = GNUNET_strdup (url);
   if (NULL != s5r->timeout_task)
+  {
     GNUNET_SCHEDULER_cancel (s5r->timeout_task);
-  s5r->timeout_task = NULL;
+    s5r->timeout_task = NULL;
+  }
   GNUNET_assert (s5r->state == SOCKS5_SOCKET_WITH_MHD);
   return s5r;
 }
@@ -2060,7 +2062,10 @@ schedule_httpd (struct MhdHttpList *hd)
     wws = NULL;
   }
   if (NULL != hd->httpd_task)
+  {
     GNUNET_SCHEDULER_cancel (hd->httpd_task);
+    hd->httpd_task = NULL;
+  }
   if ( (MHD_YES != haveto) &&
        (-1 == max) &&
        (hd != httpd) )
@@ -2108,8 +2113,7 @@ do_httpd (void *cls)
 static void
 run_mhd_now (struct MhdHttpList *hd)
 {
-  if (NULL !=
-      hd->httpd_task)
+  if (NULL != hd->httpd_task)
     GNUNET_SCHEDULER_cancel (hd->httpd_task);
   hd->httpd_task = GNUNET_SCHEDULER_add_now (&do_httpd,
                                              hd);
@@ -2891,18 +2895,17 @@ do_accept (void *cls)
   struct GNUNET_NETWORK_Handle *s;
   struct Socks5Request *s5r;
 
-  if (lsock == lsock4)
-    ltask4 = NULL;
-  else
-    ltask6 = NULL;
+  GNUNET_assert (NULL != lsock);
   if (lsock == lsock4)
     ltask4 = GNUNET_SCHEDULER_add_read_net (GNUNET_TIME_UNIT_FOREVER_REL,
                                             lsock,
                                             &do_accept, lsock);
-  else
+  else if (lsock == lsock6)
     ltask6 = GNUNET_SCHEDULER_add_read_net (GNUNET_TIME_UNIT_FOREVER_REL,
                                             lsock,
                                             &do_accept, lsock);
+  else
+    GNUNET_assert (0);
   s = GNUNET_NETWORK_socket_accept (lsock, NULL, NULL);
   if (NULL == s)
   {
