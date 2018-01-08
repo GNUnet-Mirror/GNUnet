@@ -371,12 +371,14 @@ run (void *cls,
       fprintf (stderr,
                _("Failed to connect to CREDENTIAL\n"));
       GNUNET_SCHEDULER_shutdown ();
+      return;
     }
     if (NULL == issuer_attr)
     {
       fprintf (stderr,
                _("You must provide issuer the attribute\n"));
       GNUNET_SCHEDULER_shutdown ();
+      return;
     }
 
     if (NULL == ego_name)
@@ -432,6 +434,7 @@ run (void *cls,
                _("Issuer public key `%s' is not well-formed\n"),
                issuer_key);
       GNUNET_SCHEDULER_shutdown ();
+      return;
     }
     credential = GNUNET_CREDENTIAL_connect (cfg);
 
@@ -440,12 +443,14 @@ run (void *cls,
       fprintf (stderr,
                _("Failed to connect to CREDENTIAL\n"));
       GNUNET_SCHEDULER_shutdown ();
+      return;
     }
     if (NULL == issuer_attr || NULL == subject_credential)
     {
       fprintf (stderr,
                _("You must provide issuer and subject attributes\n"));
       GNUNET_SCHEDULER_shutdown ();
+      return;
     }
 
     //Subject credentials are comma separated
@@ -457,6 +462,7 @@ run (void *cls,
                "Invalid subject credentials\n");
       GNUNET_free (tmp);
       GNUNET_SCHEDULER_shutdown ();
+      return;
     }
     int count = 1;
     int i;
@@ -490,6 +496,7 @@ run (void *cls,
     {
       GNUNET_free ((char*)credentials[i].issuer_attribute);
     }
+    GNUNET_free (tmp);
   } else if (GNUNET_YES == create_cred) {
     if (NULL == ego_name)
     {

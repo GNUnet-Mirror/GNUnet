@@ -279,7 +279,6 @@ GNUNET_CREDENTIAL_delegation_chain_get_size (unsigned int d_count,
     ret += dd[i].issuer_attribute_len + dd[i].subject_attribute_len;
   }
   return ret+GNUNET_CREDENTIAL_credentials_get_size(c_count, cd);
-  return ret;
 }
 
 /**
