@@ -475,8 +475,8 @@ GNUNET_xgrow_ (void **old,
  */
 int
 GNUNET_asprintf (char **buf,
-		 const char *format,
-		 ...)
+                 const char *format,
+                 ...)
 {
   int ret;
   va_list args;

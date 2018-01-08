@@ -617,7 +617,6 @@ collect_cred_cont (struct GNUNET_REST_RequestHandle *conndata_handle,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Missing subject\n");
-    GNUNET_free (entity_attr);
     GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
   }
@@ -627,7 +626,6 @@ collect_cred_cont (struct GNUNET_REST_RequestHandle *conndata_handle,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Malformed subject\n");
-    GNUNET_free (entity_attr);
     GNUNET_SCHEDULER_add_now (&do_error, handle); 
     return;
   }
@@ -728,7 +726,6 @@ verify_cred_cont (struct GNUNET_REST_RequestHandle *conndata_handle,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Missing subject key\n");
-    GNUNET_free (entity_attr);
     GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
   }
@@ -738,7 +735,6 @@ verify_cred_cont (struct GNUNET_REST_RequestHandle *conndata_handle,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Malformed subject\n");
-    GNUNET_free (entity_attr);
     GNUNET_SCHEDULER_add_now (&do_error, handle); 
     return;
   }
@@ -748,7 +744,6 @@ verify_cred_cont (struct GNUNET_REST_RequestHandle *conndata_handle,
                                                   &handle->subject_key)) {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Malformed subject key\n");
-    GNUNET_free (entity_attr);
     GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
   }
@@ -858,6 +853,7 @@ send_cred_response (struct RequestHandle *handle,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Subject malformed\n");
+    GNUNET_free (issuer);
     return;
   }
   GNUNET_asprintf (&id,
@@ -869,6 +865,8 @@ send_cred_response (struct RequestHandle *handle,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Subject malformed\n");
+    GNUNET_free (id);
+    GNUNET_free (issuer);
     return;
   }
   GNUNET_STRINGS_base64_encode ((char*)&cred->signature,
@@ -953,6 +951,14 @@ get_cred_issuer_cb (void *cls,
   }
   expiration_str = GNUNET_CONTAINER_multihashmap_get (handle->rest_handle->url_param_map,
                                                       &key);
+  if ( NULL == expiration_str )
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Expiration malformed\n");
+    GNUNET_SCHEDULER_add_now (&do_error, handle); 
+    return;
+  }
+
   if (GNUNET_OK == GNUNET_STRINGS_fancy_time_to_relative (expiration_str,
                                                           &etime_rel))
   {

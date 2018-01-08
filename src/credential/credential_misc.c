@@ -149,6 +149,7 @@ GNUNET_CREDENTIAL_credential_issue (const struct GNUNET_CRYPTO_EcdsaPrivateKey *
   {
     GNUNET_break (0);
     GNUNET_free (crd);
+    GNUNET_free (cred);
     return NULL;
   }
   cred->signature = crd->signature;

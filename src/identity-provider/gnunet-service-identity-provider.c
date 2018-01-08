@@ -704,7 +704,6 @@ static void
 bootstrap_abe_error (void *cls)
 {
   struct AbeBootstrapHandle *abh = cls;
-  GNUNET_free (abh);
   abh->proc (abh->proc_cls, NULL);
   GNUNET_free (abh);
 }
@@ -1348,7 +1347,18 @@ reenc_next_attribute (struct TicketRevocationHandle *rh)
                                           rh->abe_key,
                                           (void**)&enc_buf);
   GNUNET_free (buf);
+  if (GNUNET_SYSERR == enc_size)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Unable to re-encrypt with policy %s\n",
+                policy);
+    GNUNET_free (policy);
+    send_revocation_finished (rh, GNUNET_SYSERR);
+    cleanup_revoke_ticket_handle (rh);
+    return;
+  }
   GNUNET_free (policy);
+
   rd[0].data_size = enc_size + sizeof (uint32_t);
   rd_buf = GNUNET_malloc (rd[0].data_size);
   attr_ver = htonl (rh->attrs->list_head->claim->version);
@@ -1501,7 +1511,7 @@ cleanup_consume_ticket_handle (struct ConsumeTicketHandle *handle)
 {
   if (NULL != handle->key)
     GNUNET_ABE_cpabe_delete_key (handle->key,
-                                    GNUNET_YES);
+                                 GNUNET_YES);
   if (NULL != handle->attrs)
     GNUNET_IDENTITY_ATTRIBUTE_list_destroy (handle->attrs);
   GNUNET_free (handle);
@@ -1563,9 +1573,9 @@ process_parallel_lookup2 (void *cls, uint32_t rd_count,
   {
     decrypt_duration = GNUNET_TIME_absolute_get ();
     attr_len = GNUNET_ABE_cpabe_decrypt (rd->data + sizeof (uint32_t),
-                                            rd->data_size - sizeof (uint32_t),
-                                            handle->key,
-                                            (void**)&data);
+                                         rd->data_size - sizeof (uint32_t),
+                                         handle->key,
+                                         (void**)&data);
     if (GNUNET_SYSERR != attr_len) 
     {
       GNUNET_STATISTICS_update (stats,
@@ -1579,7 +1589,7 @@ process_parallel_lookup2 (void *cls, uint32_t rd_count,
 
       attr_le = GNUNET_new (struct GNUNET_IDENTITY_ATTRIBUTE_ClaimListEntry);
       attr_le->claim = GNUNET_IDENTITY_ATTRIBUTE_deserialize (data,
-                                                  attr_len);
+                                                              attr_len);
       attr_le->claim->version = ntohl(*(uint32_t*)rd->data);
       GNUNET_CONTAINER_DLL_insert (handle->attrs->list_head,
                                    handle->attrs->list_tail,
@@ -1611,7 +1621,7 @@ process_parallel_lookup2 (void *cls, uint32_t rd_count,
   crm->identity = handle->ticket.identity;
   data_tmp = (char *) &crm[1];
   GNUNET_IDENTITY_ATTRIBUTE_list_serialize (handle->attrs,
-                            data_tmp);
+                                            data_tmp);
   GNUNET_MQ_send (handle->client->mq, env);
   cleanup_consume_ticket_handle (handle);
 }
@@ -1705,8 +1715,8 @@ process_consume_abe_key (void *cls, uint32_t rd_count,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Scopes %s\n", scopes);
   handle->key = GNUNET_ABE_cpabe_deserialize_key ((void*)(buf + strlen (scopes) + 1),
-                                                     rd->data_size - sizeof (struct GNUNET_CRYPTO_EcdhePublicKey)
-                                                     - strlen (scopes) - 1);
+                                                  rd->data_size - sizeof (struct GNUNET_CRYPTO_EcdhePublicKey)
+                                                  - strlen (scopes) - 1);
 
   for (scope = strtok (scopes, ","); NULL != scope; scope = strtok (NULL, ","))
   {
@@ -1837,7 +1847,7 @@ attr_store_task (void *cls)
   buf = GNUNET_malloc (buf_size);
 
   GNUNET_IDENTITY_ATTRIBUTE_serialize (as_handle->claim,
-                       buf);
+                                       buf);
 
   GNUNET_asprintf (&policy,
                    "%s_%lu",
@@ -1849,10 +1859,21 @@ attr_store_task (void *cls)
    * Encrypt the attribute value and store in namestore
    */
   enc_size = GNUNET_ABE_cpabe_encrypt (buf,
-                                          buf_size,
-                                          policy, //Policy
-                                          as_handle->abe_key,
-                                          (void**)&enc_buf);
+                                       buf_size,
+                                       policy, //Policy
+                                       as_handle->abe_key,
+                                       (void**)&enc_buf);
+  if (GNUNET_SYSERR == enc_size)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Failed to encrypt with policy %s\n",
+                policy);
+    cleanup_as_handle (as_handle);
+    GNUNET_free (buf);
+    GNUNET_free (policy);
+    GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
+    return;
+  }
   GNUNET_free (buf);
   GNUNET_free (policy);
   rd[0].data_size = enc_size + sizeof (uint32_t);
@@ -1921,7 +1942,7 @@ handle_attribute_store_message (void *cls,
 
   as_handle = GNUNET_new (struct AttributeStoreHandle);
   as_handle->claim = GNUNET_IDENTITY_ATTRIBUTE_deserialize ((char*)&sam[1],
-                                                data_len);
+                                                            data_len);
 
   as_handle->r_id = ntohl (sam->id);
   as_handle->identity = sam->identity;
@@ -2004,14 +2025,18 @@ attr_iter_cb (void *cls,
   attrs[0] = policy;
   attrs[1] = 0;
   key = GNUNET_ABE_cpabe_create_key (ai->abe_key,
-                                        attrs);
+                                     attrs);
   msg_extra_len = GNUNET_ABE_cpabe_decrypt (rd->data+sizeof (uint32_t),
-                                               rd->data_size-sizeof (uint32_t),
-                                               key,
-                                               (void**)&attr_ser);
+                                            rd->data_size-sizeof (uint32_t),
+                                            key,
+                                            (void**)&attr_ser);
+  if (GNUNET_SYSERR == msg_extra_len) {
+    GNUNET_NAMESTORE_zone_iterator_next (ai->ns_it);
+    return;
+  }
 
   GNUNET_ABE_cpabe_delete_key (key,
-                                  GNUNET_YES);
+                               GNUNET_YES);
   //GNUNET_free (policy);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Found attribute: %s\n", label);

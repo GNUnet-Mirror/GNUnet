@@ -91,8 +91,8 @@ GNUNET_NETWORK_test_pf (int pf)
     if (EAFNOSUPPORT == errno)
       return GNUNET_NO;
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-		"Failed to create test socket: %s\n",
-		STRERROR (errno));
+                "Failed to create test socket: %s\n",
+                STRERROR (errno));
     return GNUNET_SYSERR;
   }
 #if WINDOWS
@@ -128,21 +128,20 @@ GNUNET_NETWORK_shorten_unixpath (char *unixpath)
   if (slen < upm)
     return unixpath; /* no shortening required */
   GNUNET_CRYPTO_hash (unixpath, slen, &sh);
-  while (16 +
-	 strlen (unixpath) >= upm)
+  while (16 + strlen (unixpath) >= upm)
   {
     if (NULL == (end = strrchr (unixpath, '/')))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		  _("Unable to shorten unix path `%s' while keeping name unique\n"),
-		  unixpath);
+                  _("Unable to shorten unix path `%s' while keeping name unique\n"),
+                  unixpath);
       GNUNET_free (unixpath);
       return NULL;
     }
     *end = '\0';
   }
   GNUNET_CRYPTO_hash_to_enc (&sh, &ae);
-  strncat (unixpath, (char*) ae.encoding, 16);
+  strncat (unixpath, (char *) ae.encoding, 16);
   return unixpath;
 }
 
@@ -239,7 +238,6 @@ GNUNET_NETWORK_socket_set_blocking (struct GNUNET_NETWORK_Handle *fd,
   int flags = fcntl (fd->fd, F_GETFL);
 
   if (flags == -1)
-
   {
     LOG_STRERROR (GNUNET_ERROR_TYPE_WARNING,
                   "fcntl");
@@ -311,7 +309,7 @@ socket_set_nosigpipe (const struct GNUNET_NETWORK_Handle *h)
 
   if (0 !=
       setsockopt (h->fd, SOL_SOCKET, SO_NOSIGPIPE,
-		  (const void *) &abs_value,
+                  (const void *) &abs_value,
                   sizeof (abs_value)))
     LOG_STRERROR (GNUNET_ERROR_TYPE_WARNING, "setsockopt");
 }
@@ -342,8 +340,10 @@ socket_set_nodelay (const struct GNUNET_NETWORK_Handle *h)
   const char *abs_value = "1";
 
   if (0 !=
-      setsockopt (h->fd, IPPROTO_TCP, TCP_NODELAY,
-		  (const void *) abs_value,
+      setsockopt (h->fd,
+                  IPPROTO_TCP,
+                  TCP_NODELAY,
+                  (const void *) abs_value,
                   sizeof (abs_value)))
     LOG_STRERROR (GNUNET_ERROR_TYPE_WARNING,
                   "setsockopt");
@@ -365,7 +365,7 @@ socket_set_nodelay (const struct GNUNET_NETWORK_Handle *h)
  */
 static int
 initialize_network_handle (struct GNUNET_NETWORK_Handle *h,
-			   int af,
+                           int af,
                            int type)
 {
   int eno;
@@ -409,7 +409,7 @@ initialize_network_handle (struct GNUNET_NETWORK_Handle *h,
 #ifdef AF_UNIX
        && (af != AF_UNIX)
 #endif
-       )
+      )
     socket_set_nodelay (h);
   return GNUNET_OK;
 }
@@ -426,7 +426,7 @@ initialize_network_handle (struct GNUNET_NETWORK_Handle *h,
 struct GNUNET_NETWORK_Handle *
 GNUNET_NETWORK_socket_accept (const struct GNUNET_NETWORK_Handle *desc,
                               struct sockaddr *address,
-			      socklen_t *address_len)
+                              socklen_t *address_len)
 {
   struct GNUNET_NETWORK_Handle *ret;
   int eno;
@@ -443,7 +443,7 @@ GNUNET_NETWORK_socket_accept (const struct GNUNET_NETWORK_Handle *desc,
 
     if (0 == gsn)
       LOG (GNUNET_ERROR_TYPE_DEBUG,
-	   "Accepting connection on `%s'\n",
+           "Accepting connection on `%s'\n",
            GNUNET_a2s ((const struct sockaddr *) &name,
                        namelen));
   }
@@ -491,9 +491,11 @@ GNUNET_NETWORK_socket_bind (struct GNUNET_NETWORK_Handle *desc,
     const int on = 1;
 
     if (AF_INET6 == desc->af)
-      if (setsockopt (desc->fd, IPPROTO_IPV6, IPV6_V6ONLY,
-		      (const void *) &on,
-		      sizeof (on)))
+      if (setsockopt (desc->fd,
+                      IPPROTO_IPV6,
+                      IPV6_V6ONLY,
+                      (const void *) &on,
+                      sizeof (on)))
         LOG_STRERROR (GNUNET_ERROR_TYPE_DEBUG,
                       "setsockopt");
   }
@@ -593,8 +595,8 @@ GNUNET_NETWORK_socket_close (struct GNUNET_NETWORK_Handle *desc)
     if (0 != unlink (dirname))
     {
       LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_WARNING,
-			 "unlink",
-			 dirname);
+                         "unlink",
+                         dirname);
     }
     else
     {
@@ -1209,8 +1211,8 @@ GNUNET_NETWORK_fdset_copy (struct GNUNET_NETWORK_FDSet *to,
                        to->handles_size,
                        from->handles_pos * 2);
   GNUNET_memcpy (to->handles,
-          from->handles,
-          from->handles_pos * sizeof (struct GNUNET_NETWORK_Handle *));
+                 from->handles,
+                 from->handles_pos * sizeof (struct GNUNET_NETWORK_Handle *));
   to->handles_pos = from->handles_pos;
 #endif
 }
@@ -1327,9 +1329,9 @@ GNUNET_NETWORK_fdset_handle_set (struct GNUNET_NETWORK_FDSet *fds,
   int fd;
 
   GNUNET_assert (GNUNET_OK ==
-		 GNUNET_DISK_internal_file_handle_ (h,
-						    &fd,
-						    sizeof (int)));
+                 GNUNET_DISK_internal_file_handle_ (h,
+                                                    &fd,
+                                                    sizeof (int)));
   FD_SET (fd,
           &fds->sds);
   fds->nsds = GNUNET_MAX (fd + 1,
@@ -1707,7 +1709,7 @@ initialize_select_thread ()
  */
 int
 GNUNET_NETWORK_test_port_free (int ipproto,
-			       uint16_t port)
+                               uint16_t port)
 {
   struct GNUNET_NETWORK_Handle *socket;
   int bind_status;
@@ -1718,37 +1720,35 @@ GNUNET_NETWORK_test_port_free (int ipproto,
   struct addrinfo *ai;
 
   GNUNET_snprintf (open_port_str,
-		   sizeof (open_port_str),
-		   "%u",
-		   (unsigned int) port);
-  socktype = (IPPROTO_TCP == ipproto)
-    ? SOCK_STREAM
-    : SOCK_DGRAM;
+                   sizeof (open_port_str),
+                   "%u",
+                   (unsigned int) port);
+  socktype = (IPPROTO_TCP == ipproto) ? SOCK_STREAM : SOCK_DGRAM;
   ret = NULL;
   memset (&hint, 0, sizeof (hint));
-  hint.ai_family = AF_UNSPEC;	/* IPv4 and IPv6 */
+  hint.ai_family = AF_UNSPEC; /* IPv4 and IPv6 */
   hint.ai_socktype = socktype;
   hint.ai_protocol = ipproto;
   hint.ai_addrlen = 0;
   hint.ai_addr = NULL;
   hint.ai_canonname = NULL;
   hint.ai_next = NULL;
-  hint.ai_flags = AI_PASSIVE | AI_NUMERICSERV;	/* Wild card address */
+  hint.ai_flags = AI_PASSIVE | AI_NUMERICSERV; /* Wild card address */
   GNUNET_assert (0 == getaddrinfo (NULL,
-				   open_port_str,
-				   &hint,
-				   &ret));
+                                   open_port_str,
+                                   &hint,
+                                   &ret));
   bind_status = GNUNET_NO;
   for (ai = ret; NULL != ai; ai = ai->ai_next)
   {
     socket = GNUNET_NETWORK_socket_create (ai->ai_family,
-					   ai->ai_socktype,
-					   ai->ai_protocol);
+                                           ai->ai_socktype,
+                                           ai->ai_protocol);
     if (NULL == socket)
       continue;
     bind_status = GNUNET_NETWORK_socket_bind (socket,
-					      ai->ai_addr,
-					      ai->ai_addrlen);
+                                              ai->ai_addr,
+                                              ai->ai_addrlen);
     GNUNET_NETWORK_socket_close (socket);
     if (GNUNET_OK != bind_status)
       break;
@@ -1808,7 +1808,7 @@ GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
        (tv.tv_sec * GNUNET_TIME_UNIT_SECONDS.rel_value_us));
   }
   return select (nfds,
-		 (NULL != rfds) ? &rfds->sds : NULL,
+                 (NULL != rfds) ? &rfds->sds : NULL,
                  (NULL != wfds) ? &wfds->sds : NULL,
                  (NULL != efds) ? &efds->sds : NULL,
                  (timeout.rel_value_us ==
@@ -2178,7 +2178,7 @@ GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Adding the socket event to the array as %d\n",
-	 nhandles);
+         nhandles);
     handle_array[nhandles++] = select_finished_event;
     if (timeout.rel_value_us == GNUNET_TIME_UNIT_FOREVER_REL.rel_value_us)
     {

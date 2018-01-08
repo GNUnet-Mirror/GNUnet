@@ -757,6 +757,7 @@ init_fd_info (struct GNUNET_SCHEDULER_Task *t,
     if (1 == read_nh_len)
     {
       GNUNET_assert (NULL != read_nh);
+      GNUNET_assert (NULL != *read_nh);
       fdi->fd = *read_nh;
       fdi->et = GNUNET_SCHEDULER_ET_IN;
       fdi->sock = GNUNET_NETWORK_get_fd (*read_nh);
@@ -766,6 +767,7 @@ init_fd_info (struct GNUNET_SCHEDULER_Task *t,
     else if (1 == write_nh_len)
     {
       GNUNET_assert (NULL != write_nh);
+      GNUNET_assert (NULL != *write_nh);
       fdi->fd = *write_nh;
       fdi->et = GNUNET_SCHEDULER_ET_OUT;
       fdi->sock = GNUNET_NETWORK_get_fd (*write_nh);
@@ -775,6 +777,7 @@ init_fd_info (struct GNUNET_SCHEDULER_Task *t,
     else if (1 == read_fh_len)
     {
       GNUNET_assert (NULL != read_fh);
+      GNUNET_assert (NULL != *read_fh);
       fdi->fh = *read_fh;
       fdi->et = GNUNET_SCHEDULER_ET_IN;
       fdi->sock = (*read_fh)->fd; // FIXME: does not work under WIN32
@@ -784,6 +787,7 @@ init_fd_info (struct GNUNET_SCHEDULER_Task *t,
     else
     {
       GNUNET_assert (NULL != write_fh);
+      GNUNET_assert (NULL != *write_fh);
       fdi->fh = *write_fh;
       fdi->et = GNUNET_SCHEDULER_ET_OUT;
       fdi->sock = (*write_fh)->fd; // FIXME: does not work under WIN32

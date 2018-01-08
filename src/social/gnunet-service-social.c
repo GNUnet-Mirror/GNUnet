@@ -1392,19 +1392,27 @@ msg_proc_parse (const struct MsgProcRequest *mpreq,
                 const char **method_prefix,
                 struct GNUNET_HashCode *method_hash)
 {
-  uint8_t method_size = ntohs (mpreq->header.size) - sizeof (*mpreq);
-  uint16_t offset = GNUNET_STRINGS_buffer_tokenize ((const char *) &mpreq[1],
-                                                    method_size, 1, method_prefix);
+  ssize_t method_size = ntohs (mpreq->header.size) - sizeof (*mpreq);
+  uint16_t offset;
 
-  if (0 == offset || offset != method_size || *method_prefix == NULL)
+  if (method_size < 0)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "offset = %u, method_size = %u, method_name = %s\n",
-                offset, method_size, *method_prefix);
+                "MsgProcRequest has invalid size\n");
     return GNUNET_SYSERR;
   }
 
-  GNUNET_CRYPTO_hash (*method_prefix, method_size, method_hash);
+  offset = GNUNET_STRINGS_buffer_tokenize ((const char *) &mpreq[1],
+                                           method_size,
+                                           1,
+                                           method_prefix);
+  if (0 == offset || offset != method_size || *method_prefix == NULL)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "MsgProcRequest contains invalid method\n");
+    return GNUNET_SYSERR;
+  }
+  GNUNET_CRYPTO_hash (*method_prefix, (size_t) method_size, method_hash);
   *flags = ntohl (mpreq->flags);
   return GNUNET_OK;
 }
@@ -2143,20 +2151,34 @@ handle_client_app_connect (void *cls,
 {
   struct Client *c = cls;
   struct GNUNET_SERVICE_Client *client = c->client;
-
-  uint8_t app_id_size = ntohs (creq->header.size) - sizeof (*creq);
+  ssize_t app_id_size = ntohs (creq->header.size) - sizeof (*creq);
   const char *app_id = NULL;
-  uint16_t offset = GNUNET_STRINGS_buffer_tokenize ((const char *) &creq[1],
-                                                    app_id_size, 1, &app_id);
+  uint16_t offset;
+ 
+  if (app_id_size < 0)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "AppConnectRequest has invalid size\n");
+    GNUNET_break (0);
+    GNUNET_SERVICE_client_drop (client);
+    return;
+  }
+
+  offset = GNUNET_STRINGS_buffer_tokenize ((const char *) &creq[1],
+                                           (size_t) app_id_size,
+                                           1, 
+                                           &app_id);
   if (0 == offset || offset != app_id_size)
   {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "AppConnectRequest contains invalid app ID\n"); 
     GNUNET_break (0);
     GNUNET_SERVICE_client_drop (client);
     return;
   }
 
   struct GNUNET_HashCode app_id_hash;
-  GNUNET_CRYPTO_hash (app_id, app_id_size, &app_id_hash);
+  GNUNET_CRYPTO_hash (app_id, (size_t) app_id_size, &app_id_hash);
 
   GNUNET_CONTAINER_multihashmap_iterate (egos, ego_entry, client);
   app_notify_ego_end (client);
@@ -2181,8 +2203,8 @@ handle_client_app_connect (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "%p Application %s connected.\n", app, app_id);
 
-  c->app_id = GNUNET_malloc (app_id_size);
-  GNUNET_memcpy (c->app_id, app_id, app_id_size);
+  c->app_id = GNUNET_malloc ((size_t) app_id_size);
+  GNUNET_memcpy (c->app_id, app_id, (size_t) app_id_size);
 
   GNUNET_SERVICE_client_continue (client);
 }

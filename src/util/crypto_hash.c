@@ -69,9 +69,9 @@ GNUNET_CRYPTO_hash_to_enc (const struct GNUNET_HashCode *block,
   char *np;
 
   np = GNUNET_STRINGS_data_to_string ((const unsigned char *) block,
-				      sizeof (struct GNUNET_HashCode),
-				      (char*) result,
-				      sizeof (struct GNUNET_CRYPTO_HashAsciiEncoded) - 1);
+                                      sizeof (struct GNUNET_HashCode),
+                                      (char *) result,
+                                      sizeof (struct GNUNET_CRYPTO_HashAsciiEncoded) - 1);
   GNUNET_assert (NULL != np);
   *np = '\0';
 }

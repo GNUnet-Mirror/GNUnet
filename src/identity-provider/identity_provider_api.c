@@ -514,13 +514,16 @@ handle_consume_ticket_result (void *cls,
         GNUNET_IDENTITY_ATTRIBUTE_list_destroy (attrs);
       }
     }
-    op->ar_cb (op->cls,
-               NULL,
-               NULL);
-    GNUNET_CONTAINER_DLL_remove (h->op_head,
-                                 h->op_tail,
-                                 op);
-    GNUNET_free (op);
+    if (NULL != op)
+    {
+      op->ar_cb (op->cls,
+                 NULL,
+                 NULL);
+      GNUNET_CONTAINER_DLL_remove (h->op_head,
+                                   h->op_tail,
+                                   op);
+      GNUNET_free (op);
+    }
     return;
   }
   GNUNET_assert (0);
@@ -926,7 +929,7 @@ GNUNET_IDENTITY_PROVIDER_attribute_store (struct GNUNET_IDENTITY_PROVIDER_Handle
   sam->id = htonl (op->r_id);
 
   GNUNET_IDENTITY_ATTRIBUTE_serialize (attr,
-                       (char*)&sam[1]);
+                                       (char*)&sam[1]);
 
   sam->attr_len = htons (attr_len);
   if (NULL != h->mq)
@@ -1093,7 +1096,7 @@ GNUNET_IDENTITY_PROVIDER_ticket_issue (struct GNUNET_IDENTITY_PROVIDER_Handle *h
   tim->id = htonl (op->r_id);
 
   GNUNET_IDENTITY_ATTRIBUTE_list_serialize (attrs,
-                            (char*)&tim[1]);
+                                            (char*)&tim[1]);
 
   tim->attr_len = htons (attr_len);
   if (NULL != h->mq)
