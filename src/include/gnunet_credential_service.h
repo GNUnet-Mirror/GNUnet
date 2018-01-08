@@ -20,7 +20,6 @@
 
 /**
  * @author Martin Schanzenbach
- * @author Adnan Husain
  *
  * @file
  * API to the Credential service
@@ -274,7 +273,8 @@ typedef void (*GNUNET_CREDENTIAL_RemoveDelegateResultProcessor) (void *cls,
  * @param issuer_key the issuer public key
  * @param issuer_attribute the issuer attribute
  * @param subject_key the subject public key
- * @param subject_attribute the attribute claimed by the subject
+ * @param credential_count number of credentials
+ * @param credentials the subject credentials
  * @param proc function to call on result
  * @param proc_cls closure for processor
  * @return handle to the queued request
@@ -305,6 +305,8 @@ GNUNET_CREDENTIAL_collect (struct GNUNET_CREDENTIAL_Handle *handle,
  * @param attribute the name of the attribute to delegate
  * @param subject the subject of the delegation
  * @param delegated_attribute the name of the attribute that is delegated to
+ * @param proc the result callback
+ * @param proc_cls the result closure context
  * @return handle to the queued request
  */
 struct GNUNET_CREDENTIAL_Request *
@@ -322,6 +324,8 @@ GNUNET_CREDENTIAL_add_delegation (struct GNUNET_CREDENTIAL_Handle *handle,
  * @param handle handle to the Credential service
  * @param issuer the ego that was used to delegate the attribute
  * @param attribute the name of the attribute that is delegated
+ * @param proc the callback
+ * @param proc_cls callback closure
  * @return handle to the queued request
  */
 struct GNUNET_CREDENTIAL_Request *
@@ -336,7 +340,6 @@ GNUNET_CREDENTIAL_remove_delegation (struct GNUNET_CREDENTIAL_Handle *handle,
 /**
  * Issue an attribute to a subject
  *
- * @param handle handle to the Credential service
  * @param issuer the ego that should be used to issue the attribute
  * @param subject the subject of the attribute
  * @param attribute the name of the attribute
@@ -344,31 +347,11 @@ GNUNET_CREDENTIAL_remove_delegation (struct GNUNET_CREDENTIAL_Handle *handle,
  * @return handle to the queued request
  */
 struct GNUNET_CREDENTIAL_Credential*
-GNUNET_CREDENTIAL_credential_issue (
-                                    const struct GNUNET_CRYPTO_EcdsaPrivateKey *issuer,
+GNUNET_CREDENTIAL_credential_issue (const struct GNUNET_CRYPTO_EcdsaPrivateKey *issuer,
                                     struct GNUNET_CRYPTO_EcdsaPublicKey *subject,
                                     const char *attribute,
                                     struct GNUNET_TIME_Absolute *expiration);
 
-
-/**
- * Remove a credential
- *
- * @param handle handle to the Credential service
- * @param issuer the identity that issued the credential
- * @param subject the subject of the credential
- * @param credential the name of the credential
- * @return handle to the queued request
- */
-/**
-  struct GNUNET_CREDENTIAL_IssueRequest *
-  GNUNET_CREDENTIAL_remove (struct GNUNET_CREDENTIAL_Handle *handle,
-  struct GNUNET_IDENTITY_Ego *issuer,
-  struct GNUNET_IDENTITY_Ego *subject,
-  const char *credential,
-  GNUNET_CREDENTIAL_IssueResultProcessor proc,
-  void *proc_cls);
-  */
 
 
 /**
@@ -377,7 +360,7 @@ GNUNET_CREDENTIAL_credential_issue (
  * @param lr the lookup request to cancel
  */
 void
-GNUNET_CREDENTIAL_request_cancel (struct GNUNET_CREDENTIAL_Request *vr);
+GNUNET_CREDENTIAL_request_cancel (struct GNUNET_CREDENTIAL_Request *lr);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */

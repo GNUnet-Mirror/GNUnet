@@ -317,14 +317,13 @@ struct GNUNET_IDENTITY_PROVIDER_Handle
 
 };
 
-
 /**
  * Try again to connect to the service.
  *
- * @param cls handle to the service.
+ * @param h handle to the identity provider service.
  */
 static void
-reconnect (struct GNUNET_IDENTITY_PROVIDER_Handle *handle);
+reconnect (struct GNUNET_IDENTITY_PROVIDER_Handle *h);
 
 /**
  * Reconnect
@@ -344,7 +343,7 @@ reconnect_task (void *cls)
 /**
  * Disconnect from service and then reconnect.
  *
- * @param handle our handle
+ * @param handle our service
  */
 static void
 force_reconnect (struct GNUNET_IDENTITY_PROVIDER_Handle *handle)
@@ -515,13 +514,16 @@ handle_consume_ticket_result (void *cls,
         GNUNET_IDENTITY_ATTRIBUTE_list_destroy (attrs);
       }
     }
-    op->ar_cb (op->cls,
-               NULL,
-               NULL);
-    GNUNET_CONTAINER_DLL_remove (h->op_head,
-                                 h->op_tail,
-                                 op);
-    GNUNET_free (op);
+    if (NULL != op)
+    {
+      op->ar_cb (op->cls,
+                 NULL,
+                 NULL);
+      GNUNET_CONTAINER_DLL_remove (h->op_head,
+                                   h->op_tail,
+                                   op);
+      GNUNET_free (op);
+    }
     return;
   }
   GNUNET_assert (0);
@@ -775,7 +777,7 @@ handle_revoke_ticket_result (void *cls,
 /**
  * Try again to connect to the service.
  *
- * @param cls handle to the identity provider service.
+ * @param h handle to the identity provider service.
  */
 static void
 reconnect (struct GNUNET_IDENTITY_PROVIDER_Handle *h)
@@ -895,8 +897,7 @@ GNUNET_IDENTITY_PROVIDER_disconnect (struct GNUNET_IDENTITY_PROVIDER_Handle *h)
  *
  * @param h handle to the identity provider
  * @param pkey private key of the identity
- * @param name the attribute name
- * @param value the attribute value
+ * @param attr the attribute value
  * @param cont continuation to call when done
  * @param cont_cls closure for @a cont
  * @return handle to abort the request
@@ -928,7 +929,7 @@ GNUNET_IDENTITY_PROVIDER_attribute_store (struct GNUNET_IDENTITY_PROVIDER_Handle
   sam->id = htonl (op->r_id);
 
   GNUNET_IDENTITY_ATTRIBUTE_serialize (attr,
-                       (char*)&sam[1]);
+                                       (char*)&sam[1]);
 
   sam->attr_len = htons (attr_len);
   if (NULL != h->mq)
@@ -1061,7 +1062,7 @@ GNUNET_IDENTITY_PROVIDER_get_attributes_stop (struct GNUNET_IDENTITY_PROVIDER_At
  * @param h the identity provider to use
  * @param iss the issuing identity
  * @param rp the subject of the ticket (the relying party)
- * @param attr the attributes that the relying party is given access to
+ * @param attrs the attributes that the relying party is given access to
  * @param cb the callback
  * @param cb_cls the callback closure
  * @return handle to abort the operation
@@ -1095,7 +1096,7 @@ GNUNET_IDENTITY_PROVIDER_ticket_issue (struct GNUNET_IDENTITY_PROVIDER_Handle *h
   tim->id = htonl (op->r_id);
 
   GNUNET_IDENTITY_ATTRIBUTE_list_serialize (attrs,
-                            (char*)&tim[1]);
+                                            (char*)&tim[1]);
 
   tim->attr_len = htons (attr_len);
   if (NULL != h->mq)
@@ -1108,7 +1109,7 @@ GNUNET_IDENTITY_PROVIDER_ticket_issue (struct GNUNET_IDENTITY_PROVIDER_Handle *h
  * Consumes an issued ticket. The ticket is persisted
  * and used to retrieve identity information from the issuer
  *
- * @param id the identity provider to use
+ * @param h the identity provider to use
  * @param identity the identity that is the subject of the issued ticket (the relying party)
  * @param ticket the issued ticket to consume
  * @param cb the callback to call
@@ -1218,7 +1219,7 @@ GNUNET_IDENTITY_PROVIDER_ticket_iteration_start (struct GNUNET_IDENTITY_PROVIDER
  * Lists all tickets that have been issued to remote
  * identites (relying parties)
  *
- * @param id the identity provider to use
+ * @param h the identity provider to use
  * @param identity the issuing identity
  * @param error_cb function to call on error (i.e. disconnect),
  *        the handle is afterwards invalid
@@ -1324,7 +1325,7 @@ GNUNET_IDENTITY_PROVIDER_ticket_iteration_stop (struct GNUNET_IDENTITY_PROVIDER_
  * Revoked an issued ticket. The relying party will be unable to retrieve
  * updated attributes.
  *
- * @param id the identity provider to use
+ * @param h the identity provider to use
  * @param identity the issuing identity
  * @param ticket the ticket to revoke
  * @param cb the callback

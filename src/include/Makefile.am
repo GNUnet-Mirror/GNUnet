@@ -33,6 +33,7 @@ gnunetinclude_HEADERS = \
   gnunet_bandwidth_lib.h \
   gnunet_bio_lib.h \
   gnunet_block_lib.h \
+  gnunet_block_group_lib.h \
   gnunet_block_plugin.h \
   gnunet_client_lib.h \
   gnunet_common.h \
@@ -65,7 +66,10 @@ gnunetinclude_HEADERS = \
   gnunet_hello_lib.h \
   gnunet_helper_lib.h \
   gnunet_identity_service.h \
+  gnunet_identity_provider_service.h \
   gnunet_json_lib.h \
+  gnunet_jsonapi_lib.h \
+  gnunet_jsonapi_util.h \
   gnunet_load_lib.h \
   gnunet_cadet_service.h \
   gnunet_microphone_lib.h \
@@ -102,6 +106,8 @@ gnunetinclude_HEADERS = \
   gnunet_protocols.h \
   gnunet_resolver_service.h \
   gnunet_regex_service.h \
+  gnunet_rest_lib.h \
+  gnunet_rest_plugin.h \
   gnunet_revocation_service.h \
   gnunet_scalarproduct_service.h \
   gnunet_scheduler_lib.h \
@@ -111,6 +117,7 @@ gnunetinclude_HEADERS = \
   gnunet_signal_lib.h \
   gnunet_signatures.h \
   gnunet_social_service.h \
+  gnunet_socks.h \
   gnunet_speaker_lib.h \
   gnunet_sq_lib.h \
   gnunet_statistics_service.h \

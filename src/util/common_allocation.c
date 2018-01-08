@@ -100,8 +100,11 @@ GNUNET_xmalloc_ (size_t size,
  * @return allocated memory, never NULL
  */
 void **
-GNUNET_xnew_array_2d_ (size_t n, size_t m, size_t elementSize,
-                       const char *filename, int linenumber)
+GNUNET_xnew_array_2d_ (size_t n,
+		       size_t m,
+		       size_t elementSize,
+                       const char *filename,
+		       int linenumber)
 {
 	/* use char pointer internally to avoid void pointer arithmetic warnings */
 	char **ret = GNUNET_xmalloc_ (n * sizeof (void *) +  /* 1. dim header */
@@ -218,6 +221,8 @@ GNUNET_xmalloc_unchecked_ (size_t size,
 {
   void *result;
 
+  (void) filename;
+  (void) linenumber;
 #ifdef W32_MEM_LIMIT
   size += sizeof (size_t);
   if (mem_used + size > W32_MEM_LIMIT)
@@ -256,6 +261,9 @@ GNUNET_xrealloc_ (void *ptr,
                   const char *filename,
                   int linenumber)
 {
+  (void) filename;
+  (void) linenumber;
+
 #ifdef W32_MEM_LIMIT
   n += sizeof (size_t);
   ptr = &((size_t *) ptr)[-1];
@@ -264,7 +272,8 @@ GNUNET_xrealloc_ (void *ptr,
   ptr = realloc (ptr, n);
   if ((NULL == ptr) && (n > 0))
   {
-    LOG_STRERROR (GNUNET_ERROR_TYPE_ERROR, "realloc");
+    LOG_STRERROR (GNUNET_ERROR_TYPE_ERROR,
+		  "realloc");
     GNUNET_assert (0);
   }
 #ifdef W32_MEM_LIMIT
@@ -466,8 +475,8 @@ GNUNET_xgrow_ (void **old,
  */
 int
 GNUNET_asprintf (char **buf,
-		 const char *format,
-		 ...)
+                 const char *format,
+                 ...)
 {
   int ret;
   va_list args;
@@ -475,6 +484,7 @@ GNUNET_asprintf (char **buf,
   va_start (args, format);
   ret = VSNPRINTF (NULL, 0, format, args);
   va_end (args);
+  GNUNET_assert (ret >= 0);
   *buf = GNUNET_malloc (ret + 1);
   va_start (args, format);
   ret = VSPRINTF (*buf, format, args);
@@ -501,9 +511,13 @@ GNUNET_snprintf (char *buf,
   va_list args;
 
   va_start (args, format);
-  ret = VSNPRINTF (buf, size, format, args);
+  ret = VSNPRINTF (buf,
+		   size,
+		   format,
+		   args);
   va_end (args);
-  GNUNET_assert (ret < size);
+  GNUNET_assert ( (ret >= 0) &&
+		  (((size_t) ret) < size) );
   return ret;
 }
 
@@ -523,7 +537,9 @@ GNUNET_copy_message (const struct GNUNET_MessageHeader *msg)
   msize = ntohs (msg->size);
   GNUNET_assert (msize >= sizeof (struct GNUNET_MessageHeader));
   ret = GNUNET_malloc (msize);
-  GNUNET_memcpy (ret, msg, msize);
+  GNUNET_memcpy (ret,
+		 msg,
+		 msize);
   return ret;
 }
 

@@ -131,6 +131,7 @@ GNUNET_IDENTITY_PROVIDER_attribute_store (struct GNUNET_IDENTITY_PROVIDER_Handle
  * Process an attribute that was stored in the idp.
  *
  * @param cls closure
+ * @param identity the identity
  * @param attr the attribute
  */
 typedef void
@@ -211,19 +212,19 @@ typedef void
 
 /**
  * Issues a ticket to another identity. The identity may use
- * @GNUNET_IDENTITY_PROVIDER_authorization_ticket_consume to consume the ticket
+ * GNUNET_IDENTITY_PROVIDER_ticket_consume to consume the ticket
  * and retrieve the attributes specified in the AttributeList.
  *
- * @param id the identity provider to use
+ * @param h the identity provider to use
  * @param iss the issuing identity
  * @param rp the subject of the ticket (the relying party)
- * @param attr the attributes that the relying party is given access to
+ * @param attrs the attributes that the relying party is given access to
  * @param cb the callback
  * @param cb_cls the callback closure
  * @return handle to abort the operation
  */
 struct GNUNET_IDENTITY_PROVIDER_Operation *
-GNUNET_IDENTITY_PROVIDER_ticket_issue (struct GNUNET_IDENTITY_PROVIDER_Handle *id,
+GNUNET_IDENTITY_PROVIDER_ticket_issue (struct GNUNET_IDENTITY_PROVIDER_Handle *h,
                                        const struct GNUNET_CRYPTO_EcdsaPrivateKey *iss,
                                        const struct GNUNET_CRYPTO_EcdsaPublicKey *rp,
                                        const struct GNUNET_IDENTITY_ATTRIBUTE_ClaimList *attrs,
@@ -234,7 +235,7 @@ GNUNET_IDENTITY_PROVIDER_ticket_issue (struct GNUNET_IDENTITY_PROVIDER_Handle *i
  * Revoked an issued ticket. The relying party will be unable to retrieve
  * updated attributes.
  *
- * @param id the identity provider to use
+ * @param h the identity provider to use
  * @param identity the issuing identity
  * @param ticket the ticket to revoke
  * @param cb the callback
@@ -242,7 +243,7 @@ GNUNET_IDENTITY_PROVIDER_ticket_issue (struct GNUNET_IDENTITY_PROVIDER_Handle *i
  * @return handle to abort the operation
  */
 struct GNUNET_IDENTITY_PROVIDER_Operation *
-GNUNET_IDENTITY_PROVIDER_ticket_revoke (struct GNUNET_IDENTITY_PROVIDER_Handle *id,
+GNUNET_IDENTITY_PROVIDER_ticket_revoke (struct GNUNET_IDENTITY_PROVIDER_Handle *h,
                                         const struct GNUNET_CRYPTO_EcdsaPrivateKey *identity,
                                         const struct GNUNET_IDENTITY_PROVIDER_Ticket *ticket,
                                         GNUNET_IDENTITY_PROVIDER_ContinuationWithStatus cb,
@@ -254,7 +255,7 @@ GNUNET_IDENTITY_PROVIDER_ticket_revoke (struct GNUNET_IDENTITY_PROVIDER_Handle *
  * Consumes an issued ticket. The ticket is persisted
  * and used to retrieve identity information from the issuer
  *
- * @param id the identity provider to use
+ * @param h the identity provider to use
  * @param identity the identity that is the subject of the issued ticket (the audience)
  * @param ticket the issued ticket to consume
  * @param cb the callback to call
@@ -262,7 +263,7 @@ GNUNET_IDENTITY_PROVIDER_ticket_revoke (struct GNUNET_IDENTITY_PROVIDER_Handle *
  * @return handle to abort the operation
  */
 struct GNUNET_IDENTITY_PROVIDER_Operation *
-GNUNET_IDENTITY_PROVIDER_ticket_consume (struct GNUNET_IDENTITY_PROVIDER_Handle *id,
+GNUNET_IDENTITY_PROVIDER_ticket_consume (struct GNUNET_IDENTITY_PROVIDER_Handle *h,
                                          const struct GNUNET_CRYPTO_EcdsaPrivateKey *identity,
                                          const struct GNUNET_IDENTITY_PROVIDER_Ticket *ticket,
                                          GNUNET_IDENTITY_PROVIDER_AttributeResult cb,
@@ -299,7 +300,7 @@ GNUNET_IDENTITY_PROVIDER_ticket_iteration_start (struct GNUNET_IDENTITY_PROVIDER
  * Lists all tickets that have been issued to remote
  * identites (relying parties)
  *
- * @param id the identity provider to use
+ * @param h the identity provider to use
  * @param identity the issuing identity
  * @param error_cb function to call on error (i.e. disconnect),
  *        the handle is afterwards invalid

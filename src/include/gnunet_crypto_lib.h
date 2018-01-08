@@ -395,11 +395,6 @@ struct GNUNET_CRYPTO_PaillierCiphertext
   unsigned char bits[GNUNET_CRYPTO_PAILLIER_BITS * 2 / 8];
 };
 
-/**
- * @brief type for ABE master keys
- */
-struct GNUNET_CRYPTO_AbeMasterKey;
-
 
 /* **************** Functions and Macros ************* */
 
@@ -2140,83 +2135,6 @@ int
 GNUNET_CRYPTO_rsa_verify (const struct GNUNET_HashCode *hash,
 			  const struct GNUNET_CRYPTO_RsaSignature *sig,
 			  const struct GNUNET_CRYPTO_RsaPublicKey *public_key);
-
-
-/**
- * @ingroup crypto
- * Create a new CP-ABE master key. Caller must free return value.
- *
- * @return fresh private key; free using #GNUNET_free
- */
-struct GNUNET_CRYPTO_AbeMasterKey *
-GNUNET_CRYPTO_cpabe_create_master_key (void);
-void
-GNUNET_CRYPTO_cpabe_delete_master_key (struct GNUNET_CRYPTO_AbeMasterKey *key);
-
-/**
- * @ingroup crypto
- * Create a new CP-ABE key. Caller must free return value.
- *
- * @return fresh private key; free using #GNUNET_free
- */
-struct GNUNET_CRYPTO_AbeKey *
-GNUNET_CRYPTO_cpabe_create_key (struct GNUNET_CRYPTO_AbeMasterKey *msk,
-                                char **attrs);
-void
-GNUNET_CRYPTO_cpabe_delete_key (struct GNUNET_CRYPTO_AbeKey *key,
-                                int delete_pub);
-
-
-/**
- * @ingroup crypto
- * Encrypt a block using  sessionkey.
- *
- * @param block the block to encrypt
- * @param size the size of the @a block
- * @param sessionkey the key used to encrypt
- * @param iv the initialization vector to use, use INITVALUE
- *        for streams.
- * @return the size of the encrypted block, -1 for errors
- */
-ssize_t
-GNUNET_CRYPTO_cpabe_encrypt (const void *block,
-                             size_t size,
-                             const char *policy,
-                             const struct GNUNET_CRYPTO_AbeMasterKey *key,
-                             void **result);
-
-/**
- * @ingroup crypto
- * Encrypt a block using  sessionkey.
- *
- * @param block the block to encrypt
- * @param size the size of the @a block
- * @param sessionkey the key used to encrypt
- * @param iv the initialization vector to use, use INITVALUE
- *        for streams.
- * @return the size of the encrypted block, -1 for errors
- */
-ssize_t
-GNUNET_CRYPTO_cpabe_decrypt (const void *block,
-                             size_t size,
-                             const struct GNUNET_CRYPTO_AbeKey *key,
-                             void **result);
-
-ssize_t
-GNUNET_CRYPTO_cpabe_serialize_key (const struct GNUNET_CRYPTO_AbeKey *key,
-                                   void **result);
-
-struct GNUNET_CRYPTO_AbeKey*
-GNUNET_CRYPTO_cpabe_deserialize_key (const void *data,
-                                     size_t len);
-
-ssize_t
-GNUNET_CRYPTO_cpabe_serialize_master_key (const struct GNUNET_CRYPTO_AbeMasterKey *key,
-                                          void **result);
-
-struct GNUNET_CRYPTO_AbeMasterKey*
-GNUNET_CRYPTO_cpabe_deserialize_master_key (const void *data,
-                                            size_t len);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */

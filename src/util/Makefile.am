@@ -119,18 +119,6 @@ libgnunetutil_la_LIBADD = \
   $(LTLIBINTL) \
   -lltdl $(Z_LIBS) -lunistring $(XLIB)
 
-if HAVE_PBC
-if HAVE_ABE
-libgnunetutil_la_SOURCES += \
-	crypto_abe.c
-libgnunetutil_la_LIBADD += \
-  $(ABE_LIBADD) \
-	-lgabe \
-	-lpbc \
-	-lglib-2.0
-endif
-endif
-
 libgnunetutil_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS) \
   -version-info 13:0:0
@@ -563,17 +551,6 @@ test_speedup_SOURCES = \
  test_speedup.c
 test_speedup_LDADD = \
  libgnunetutil.la
-
-if HAVE_PBC
-if HAVE_ABE
-test_crypto_abe_SOURCES = \
- test_crypto_abe.c
-test_crypto_abe_LDADD = \
- libgnunetutil.la
-check_PROGRAMS += \
- test_crypto_abe
-endif
-endif
 
 perf_crypto_hash_SOURCES = \
  perf_crypto_hash.c

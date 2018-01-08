@@ -279,7 +279,7 @@ struct Channel
    * Is the client disconnected?
    * #GNUNET_YES or #GNUNET_NO
    */
-  uint8_t is_disconnected;
+  uint8_t is_disconnecting;
 
   /**
    * Is this a channel master (#GNUNET_YES), or slave (#GNUNET_NO)?
@@ -508,8 +508,6 @@ cleanup_master (struct Master *mst)
 {
   struct Channel *chn = &mst->channel;
 
-  if (NULL != mst->origin)
-    GNUNET_MULTICAST_origin_stop (mst->origin, NULL, NULL); // FIXME
   GNUNET_CONTAINER_multihashmap_destroy (mst->join_reqs);
   GNUNET_CONTAINER_multihashmap_remove (masters, &chn->pub_key_hash, mst);
 }
@@ -545,11 +543,6 @@ cleanup_slave (struct Slave *slv)
   {
     GNUNET_free (slv->relays);
     slv->relays = NULL;
-  }
-  if (NULL != slv->member)
-  {
-    GNUNET_MULTICAST_member_part (slv->member, NULL, NULL); // FIXME
-    slv->member = NULL;
   }
   GNUNET_CONTAINER_multihashmap_remove (slaves, &chn->pub_key_hash, slv);
 }
@@ -603,15 +596,16 @@ client_notify_disconnect (void *cls,
   if (NULL == chn)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "%p User context is NULL in client_disconnect()\n",
+                "%p User context is NULL in client_notify_disconnect ()\n",
                 chn);
     GNUNET_break (0);
     return;
   }
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "%p Client (%s) disconnected from channel %s\n",
+              "%p Client %p (%s) disconnected from channel %s\n",
               chn,
+              client,
               (GNUNET_YES == chn->is_master) ? "master" : "slave",
               GNUNET_h2s (&chn->pub_key_hash));
 
@@ -645,15 +639,8 @@ client_notify_disconnect (void *cls,
                 chn,
                 (GNUNET_YES == chn->is_master) ? "master" : "slave",
                 GNUNET_h2s (&chn->pub_key_hash));
-    chn->is_disconnected = GNUNET_YES;
-    if (NULL != chn->tmit_head)
-    { /* Send pending messages to multicast before cleanup. */
-      transmit_message (chn);
-    }
-    else
-    {
-      cleanup_channel (chn);
-    }
+    chn->is_disconnecting = GNUNET_YES;
+    cleanup_channel (chn);
   }
 }
 
@@ -688,7 +675,7 @@ client_send_msg (const struct Channel *chn,
                  const struct GNUNET_MessageHeader *msg)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "%p Sending message to clients.\n",
+              "Sending message to clients of channel %p.\n",
               chn);
 
   struct ClientList *cli = chn->clients_head;
@@ -699,7 +686,6 @@ client_send_msg (const struct Channel *chn,
 
     GNUNET_MQ_send (GNUNET_SERVICE_client_get_mq (cli->client),
                     env);
-
     cli = cli->next;
   }
 }
@@ -734,7 +720,7 @@ client_send_result (struct GNUNET_SERVICE_Client *client, uint64_t op_id,
     GNUNET_memcpy (&res[1], data, data_size);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "%p Sending result to client for operation #%" PRIu64 ": %" PRId64 " (size: %u)\n",
+	      "%p Sending result to client for OP ID %" PRIu64 ": %" PRId64 " (size: %u)\n",
 	      client,
               GNUNET_ntohll (op_id),
               result_code,
@@ -1202,12 +1188,12 @@ fragment_queue_insert (struct Channel *chn,
     else if (GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_METHOD == first_ptype
              || frag_offset == fragq->header_size)
     { /* header is now complete */
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "%p Header of message %" PRIu64 " is complete.\n",
                   chn,
                   GNUNET_ntohll (mmsg->message_id));
 
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "%p Adding message %" PRIu64 " to queue.\n",
                   chn,
                   GNUNET_ntohll (mmsg->message_id));
@@ -1215,7 +1201,7 @@ fragment_queue_insert (struct Channel *chn,
     }
     else
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "%p Header of message %" PRIu64 " is NOT complete yet: %" PRIu64 " != %" PRIu64 "\n",
                   chn,
                   GNUNET_ntohll (mmsg->message_id),
@@ -1230,7 +1216,7 @@ fragment_queue_insert (struct Channel *chn,
     if (frag_offset == fragq->size)
       fragq->state = MSG_FRAG_STATE_END;
     else
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "%p Message %" PRIu64 " is NOT complete yet: %" PRIu64 " != %" PRIu64 "\n",
                   chn,
                   GNUNET_ntohll (mmsg->message_id),
@@ -1285,7 +1271,7 @@ static void
 fragment_queue_run (struct Channel *chn, uint64_t msg_id,
                     struct FragmentQueue *fragq, uint8_t drop)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "%p Running message fragment queue for message %" PRIu64 " (state: %u).\n",
               chn,
               msg_id,
@@ -1413,7 +1399,7 @@ store_recv_state_modify_result (void *cls, int64_t result,
 static uint64_t
 message_queue_run (struct Channel *chn)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "%p Running message queue.\n", chn);
   uint64_t n = 0;
   uint64_t msg_id;
@@ -1421,7 +1407,7 @@ message_queue_run (struct Channel *chn)
   while (GNUNET_YES == GNUNET_CONTAINER_heap_peek2 (chn->recv_msgs, NULL,
                                                     &msg_id))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "%p Processing message %" PRIu64 " in queue.\n", chn, msg_id);
     struct GNUNET_HashCode msg_id_hash;
     hash_key_from_hll (&msg_id_hash, msg_id);
@@ -1431,7 +1417,7 @@ message_queue_run (struct Channel *chn)
 
     if (NULL == fragq || fragq->state <= MSG_FRAG_STATE_HEADER)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "%p No fragq (%p) or header not complete.\n",
                   chn, fragq);
       break;
@@ -1453,7 +1439,7 @@ message_queue_run (struct Channel *chn)
             && (chn->max_message_id != msg_id - 1
                 && chn->max_message_id != msg_id))
         {
-          GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                       "%p Out of order message. "
                       "(%" PRIu64 " != %" PRIu64 " - 1)\n",
                       chn, chn->max_message_id, msg_id);
@@ -1469,7 +1455,7 @@ message_queue_run (struct Channel *chn)
         {
           if (msg_id - fragq->state_delta != chn->max_state_message_id)
           {
-            GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+            GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                         "%p Out of order stateful message. "
                         "(%" PRIu64 " - %" PRIu64 " != %" PRIu64 ")\n",
                         chn, msg_id, fragq->state_delta, chn->max_state_message_id);
@@ -1515,8 +1501,6 @@ message_queue_run (struct Channel *chn)
 static uint64_t
 message_queue_drop (struct Channel *chn)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-              "%p Dropping message queue.\n", chn);
   uint64_t n = 0;
   uint64_t msg_id;
   while (GNUNET_YES == GNUNET_CONTAINER_heap_peek2 (chn->recv_msgs, NULL,
@@ -1703,7 +1687,7 @@ store_recv_slave_counters (void *cls, int result, uint64_t max_fragment_id,
   res.result_code = htonl (result);
   res.max_message_id = GNUNET_htonll (max_message_id);
 
-  if (GNUNET_OK == result || GNUNET_NO == result)
+  if (GNUNET_YES == result || GNUNET_NO == result)
   {
     chn->max_message_id = max_message_id;
     chn->max_state_message_id = max_state_message_id;
@@ -1831,6 +1815,9 @@ handle_client_slave_join (void *cls,
   struct GNUNET_CRYPTO_EcdsaPublicKey slv_pub_key;
   struct GNUNET_HashCode pub_key_hash, slv_pub_hash;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "got join request from client %p\n",
+              client);
   GNUNET_CRYPTO_ecdsa_key_get_public (&req->slave_key, &slv_pub_key);
   GNUNET_CRYPTO_hash (&slv_pub_key, sizeof (slv_pub_key), &slv_pub_hash);
   GNUNET_CRYPTO_hash (&req->channel_pub_key, sizeof (req->channel_pub_key), &pub_key_hash);
@@ -1905,7 +1892,7 @@ handle_client_slave_join (void *cls,
     GNUNET_CONTAINER_multihashmap_put (slaves, &chn->pub_key_hash, chn,
                                        GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
     chn->store_op = GNUNET_PSYCSTORE_counters_get (store, &chn->pub_key,
-                                                  &store_recv_slave_counters, slv);
+                                                   &store_recv_slave_counters, slv);
   }
   else
   {
@@ -1952,8 +1939,9 @@ handle_client_slave_join (void *cls,
   }
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "%p Client connected as slave to channel %s.\n",
-              slv, GNUNET_h2s (&chn->pub_key_hash));
+              "Client %p connected as slave to channel %s.\n",
+              client,
+              GNUNET_h2s (&chn->pub_key_hash));
 
   struct ClientList *cli = GNUNET_malloc (sizeof (*cli));
   cli->client = client;
@@ -2037,6 +2025,49 @@ handle_client_join_decision (void *cls,
 }
 
 
+static void
+channel_part_cb (void *cls)
+{
+  struct GNUNET_SERVICE_Client *client = cls;
+  struct GNUNET_MQ_Envelope *env;
+
+  env = GNUNET_MQ_msg_header (GNUNET_MESSAGE_TYPE_PSYC_PART_ACK);
+  GNUNET_MQ_send (GNUNET_SERVICE_client_get_mq (client),
+                  env);
+}
+
+
+static void
+handle_client_part_request (void *cls,
+                            const struct GNUNET_MessageHeader *msg)
+{
+  struct Client *c = cls;
+
+  c->channel->is_disconnecting = GNUNET_YES;
+  if (GNUNET_YES == c->channel->is_master)
+  {
+    struct Master *mst = (struct Master *) c->channel;
+   
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Got part request from master %p\n",
+                mst);
+    GNUNET_assert (NULL != mst->origin);
+    GNUNET_MULTICAST_origin_stop (mst->origin, channel_part_cb, c->client);
+  }
+  else
+  {
+    struct Slave *slv = (struct Slave *) c->channel;
+
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Got part request from slave %p\n",
+                slv);
+    GNUNET_assert (NULL != slv->member);
+    GNUNET_MULTICAST_member_part (slv->member, channel_part_cb, c->client);
+  }
+  GNUNET_SERVICE_client_continue (c->client);
+}
+
+
 /**
  * Send acknowledgement to a client.
  *
@@ -2096,7 +2127,7 @@ transmit_notify (void *cls, size_t *data_size, void *data)
   {
     GNUNET_SCHEDULER_add_now (&schedule_transmit_message, chn);
   }
-  else if (GNUNET_YES == chn->is_disconnected
+  else if (GNUNET_YES == chn->is_disconnecting
            && tmit_msg->last_ptype < GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_END)
   {
     /* FIXME: handle partial message (when still in_transmit) */
@@ -2208,12 +2239,10 @@ transmit_message (struct Channel *chn)
 static void
 master_queue_message (struct Master *mst, struct TransmitMessage *tmit_msg)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "%p master_queue_message()\n", mst);
-
   if (GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_METHOD == tmit_msg->first_ptype)
   {
     tmit_msg->id = ++mst->max_message_id;
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "%p master_queue_message: message_id=%" PRIu64 "\n",
                 mst, tmit_msg->id);
     struct GNUNET_PSYC_MessageMethod *pmeth
@@ -2225,7 +2254,7 @@ master_queue_message (struct Master *mst, struct TransmitMessage *tmit_msg)
     }
     else if (pmeth->flags & GNUNET_PSYC_MASTER_TRANSMIT_STATE_MODIFY)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "%p master_queue_message: state_delta=%" PRIu64 "\n",
                   mst, tmit_msg->id - mst->max_state_message_id);
       pmeth->state_delta = GNUNET_htonll (tmit_msg->id
@@ -2234,7 +2263,7 @@ master_queue_message (struct Master *mst, struct TransmitMessage *tmit_msg)
     }
     else
     {
-        GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                     "%p master_queue_message: state not modified\n", mst);
       pmeth->state_delta = GNUNET_htonll (GNUNET_PSYC_STATE_NOT_MODIFIED);
     }
@@ -2359,7 +2388,9 @@ handle_client_psyc_message (void *cls,
   if (GNUNET_YES != chn->is_ready)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                "%p Channel is not ready yet, disconnecting client.\n", chn);
+                "%p Channel is not ready yet, disconnecting client %p.\n",
+                chn,
+                client);
     GNUNET_break (0);
     GNUNET_SERVICE_client_drop (client);
     return;
@@ -2789,9 +2820,9 @@ run (void *cls,
 GNUNET_SERVICE_MAIN
 ("psyc",
  GNUNET_SERVICE_OPTION_NONE,
- run,
- client_notify_connect,
- client_notify_disconnect,
+ &run,
+ &client_notify_connect,
+ &client_notify_disconnect,
  NULL,
  GNUNET_MQ_hd_fixed_size (client_master_start,
                           GNUNET_MESSAGE_TYPE_PSYC_MASTER_START,
@@ -2805,6 +2836,10 @@ GNUNET_SERVICE_MAIN
                         GNUNET_MESSAGE_TYPE_PSYC_JOIN_DECISION,
                         struct GNUNET_PSYC_JoinDecisionMessage,
                         NULL),
+ GNUNET_MQ_hd_fixed_size (client_part_request,
+                          GNUNET_MESSAGE_TYPE_PSYC_PART_REQUEST,
+                          struct GNUNET_MessageHeader,
+                          NULL),
  GNUNET_MQ_hd_var_size (client_psyc_message,
                         GNUNET_MESSAGE_TYPE_PSYC_MESSAGE,
                         struct GNUNET_MessageHeader,

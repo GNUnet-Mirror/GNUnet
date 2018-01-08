@@ -19,7 +19,7 @@
  */
 
 /**
- * @file identity-provider/identity_attribute.c
+ * @file identity-attribute/identity_attribute.c
  * @brief helper library to manage identity attributes
  * @author Martin Schanzenbach
  */
@@ -206,7 +206,7 @@ GNUNET_IDENTITY_ATTRIBUTE_value_to_string (uint32_t type,
 /**
  * Create a new attribute.
  *
- * @param name the attribute name
+ * @param attr_name the attribute name
  * @param type the attribute type
  * @param data the attribute value
  * @param data_size the attribute value size
@@ -214,7 +214,7 @@ GNUNET_IDENTITY_ATTRIBUTE_value_to_string (uint32_t type,
  */
 struct GNUNET_IDENTITY_ATTRIBUTE_Claim *
 GNUNET_IDENTITY_ATTRIBUTE_claim_new (const char* attr_name,
-               uint32_t attr_type,
+               uint32_t type,
                const void* data,
                size_t data_size)
 {
@@ -224,7 +224,7 @@ GNUNET_IDENTITY_ATTRIBUTE_claim_new (const char* attr_name,
   attr = GNUNET_malloc (sizeof (struct GNUNET_IDENTITY_ATTRIBUTE_Claim) +
                         strlen (attr_name) + 1 +
                         data_size);
-  attr->type = attr_type;
+  attr->type = type;
   attr->data_size = data_size;
   attr->version = 0;
   write_ptr = (char*)&attr[1];

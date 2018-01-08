@@ -19,7 +19,7 @@
    */
 /**
  * @author Martin Schanzenbach
- * @file gns/plugin_rest_credential.c
+ * @file credential/plugin_rest_credential.c
  * @brief GNUnet CREDENTIAL REST plugin
  *
  */
@@ -194,12 +194,6 @@ cleanup_handle (struct RequestHandle *handle)
 }
 
 
-/**
- * Task run on shutdown.  Cleans up everything.
- *
- * @param cls unused
- * @param tc scheduler context
- */
 static void
 do_error (void *cls)
 {
@@ -213,7 +207,8 @@ do_error (void *cls)
 
 /**
  * Attribute delegation to JSON
- * @param attr the attribute
+ *
+ * @param delegation_chain_entry the DSE
  * @return JSON, NULL if failed
  */
 static json_t*
@@ -257,6 +252,7 @@ attribute_delegation_to_json (struct GNUNET_CREDENTIAL_Delegation *delegation_ch
 
 /**
  * JSONAPI resource to Credential
+ *
  * @param res the JSONAPI resource
  * @return the resulting credential, NULL if failed
  */
@@ -327,6 +323,7 @@ json_to_credential (json_t *res)
 
 /**
  * Credential to JSON
+ *
  * @param cred the credential
  * @return the resulting json, NULL if failed
  */
@@ -373,13 +370,6 @@ credential_to_json (struct GNUNET_CREDENTIAL_Credential *cred)
   return cred_obj;
 }
 
-/**
- * Function called with the result of a Credential lookup.
- *
- * @param cls the 'const char *' name that was resolved
- * @param cd_count number of records returned
- * @param cd array of @a cd_count records with the results
- */
 static void
 handle_collect_response (void *cls,
                         unsigned int d_count,
@@ -470,13 +460,6 @@ subject_ego_lookup (void *cls,
 
 
 
-/**
- * Function called with the result of a Credential lookup.
- *
- * @param cls the 'const char *' name that was resolved
- * @param cd_count number of records returned
- * @param cd array of @a cd_count records with the results
- */
 static void
 handle_verify_response (void *cls,
                         unsigned int d_count,
@@ -634,7 +617,6 @@ collect_cred_cont (struct GNUNET_REST_RequestHandle *conndata_handle,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Missing subject\n");
-    GNUNET_free (entity_attr);
     GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
   }
@@ -644,7 +626,6 @@ collect_cred_cont (struct GNUNET_REST_RequestHandle *conndata_handle,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Malformed subject\n");
-    GNUNET_free (entity_attr);
     GNUNET_SCHEDULER_add_now (&do_error, handle); 
     return;
   }
@@ -745,7 +726,6 @@ verify_cred_cont (struct GNUNET_REST_RequestHandle *conndata_handle,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Missing subject key\n");
-    GNUNET_free (entity_attr);
     GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
   }
@@ -755,7 +735,6 @@ verify_cred_cont (struct GNUNET_REST_RequestHandle *conndata_handle,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Malformed subject\n");
-    GNUNET_free (entity_attr);
     GNUNET_SCHEDULER_add_now (&do_error, handle); 
     return;
   }
@@ -765,7 +744,6 @@ verify_cred_cont (struct GNUNET_REST_RequestHandle *conndata_handle,
                                                   &handle->subject_key)) {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Malformed subject key\n");
-    GNUNET_free (entity_attr);
     GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
   }
@@ -875,6 +853,7 @@ send_cred_response (struct RequestHandle *handle,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Subject malformed\n");
+    GNUNET_free (issuer);
     return;
   }
   GNUNET_asprintf (&id,
@@ -886,6 +865,8 @@ send_cred_response (struct RequestHandle *handle,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Subject malformed\n");
+    GNUNET_free (id);
+    GNUNET_free (issuer);
     return;
   }
   GNUNET_STRINGS_base64_encode ((char*)&cred->signature,
@@ -970,6 +951,14 @@ get_cred_issuer_cb (void *cls,
   }
   expiration_str = GNUNET_CONTAINER_multihashmap_get (handle->rest_handle->url_param_map,
                                                       &key);
+  if ( NULL == expiration_str )
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Expiration malformed\n");
+    GNUNET_SCHEDULER_add_now (&do_error, handle); 
+    return;
+  }
+
   if (GNUNET_OK == GNUNET_STRINGS_fancy_time_to_relative (expiration_str,
                                                           &etime_rel))
   {
@@ -1062,11 +1051,6 @@ issue_cred_cont (struct GNUNET_REST_RequestHandle *conndata_handle,
                                                        handle);
 }
 
-/**
- * Handle rest request
- *
- * @param handle the lookup handle
- */
 static void
 options_cont (struct GNUNET_REST_RequestHandle *con_handle,
               const char* url,
@@ -1087,17 +1071,6 @@ options_cont (struct GNUNET_REST_RequestHandle *con_handle,
 }
 
 
-/**
- * Function processing the REST call
- *
- * @param method HTTP method
- * @param url URL of the HTTP request
- * @param data body of the HTTP request (optional)
- * @param data_size length of the body
- * @param proc callback function for the result
- * @param proc_cls closure for callback function
- * @return GNUNET_OK if request accepted
- */
 static void
 rest_credential_process_request(struct GNUNET_REST_RequestHandle *conndata_handle,
                                 GNUNET_REST_ResultProcessor proc,

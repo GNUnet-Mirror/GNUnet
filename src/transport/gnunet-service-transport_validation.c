@@ -1347,6 +1347,9 @@ GST_validation_handle_address (const struct GNUNET_HELLO_Address *address)
   if (NULL == papi)
   {
     /* This plugin is currently unvailable ... ignore */
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                "No plugin available for %s\n",
+                address->transport_name);
     return;
   }
   ve = find_validation_entry (address);
@@ -1357,6 +1360,13 @@ GST_validation_handle_address (const struct GNUNET_HELLO_Address *address)
                 GST_plugins_a2s (ve->address),
                 GNUNET_i2s (&ve->address->peer));
     ve->revalidation_task = GNUNET_SCHEDULER_add_now (&revalidate_address, ve);
+  }
+  else
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                "Validation already running for address `%s' of %s\n",
+                GST_plugins_a2s (ve->address),
+                GNUNET_i2s (&ve->address->peer));
   }
 }
 
@@ -1657,6 +1667,9 @@ GST_validation_handle_hello (const struct GNUNET_MessageHeader *hello)
 	      sizeof (struct GNUNET_PeerIdentity)))
   {
     /* got our own HELLO, how boring */
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		"Validation received our own HELLO (%s), ignoring\n",
+		GNUNET_i2s (&pid));
     return GNUNET_OK;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,

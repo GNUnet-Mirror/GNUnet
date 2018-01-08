@@ -52,7 +52,7 @@ gnunet_set_ibf_profiler_LDADD = \
 gnunet_service_set_SOURCES = \
  gnunet-service-set.c gnunet-service-set.h \
  gnunet-service-set_union.c gnunet-service-set_union.h \
- gnunet-service-set_intersection.c \
+ gnunet-service-set_intersection.c gnunet-service-set_intersection.h \
  ibf.c ibf.h \
  gnunet-service-set_union_strata_estimator.c gnunet-service-set_union_strata_estimator.h \
  gnunet-service-set_protocol.h

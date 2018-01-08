@@ -261,7 +261,7 @@ struct OverlayConnectContext
   enum OverlayConnectContextType type;
 
   /**
-   * The id of the second peer which is has to connect to the first peer
+   * The id of the second peer which has to connect to the first peer
    */
   uint32_t other_peer_id;
 };
@@ -930,10 +930,10 @@ send_hello (void *cls)
              other_peer_str);
   GNUNET_free (other_peer_str);
   lp2c->ohh =
-      GNUNET_TRANSPORT_offer_hello (lp2c->tcc.cfg,
-                                    occ->hello,
-                                    &occ_hello_sent_cb,
-                                    occ);
+    GNUNET_TRANSPORT_offer_hello (lp2c->tcc.cfg,
+				  occ->hello,
+				  &occ_hello_sent_cb,
+				  occ);
   if (NULL == lp2c->ohh)
   {
     GNUNET_break (0);
@@ -1001,6 +1001,11 @@ p2_transport_connect (struct OverlayConnectContext *occ)
 {
   struct Peer *peer2;
 
+  /* HUH? Why to *obtain* HELLO? Seems we use this to *SEND* the
+     HELLO! */
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Connecting to transport of peer %s to obtain HELLO\n",
+	      GNUNET_i2s (&occ->other_peer_identity));
   GNUNET_assert (NULL == occ->emsg);
   GNUNET_assert (NULL != occ->hello);
   GNUNET_assert (NULL == occ->ghh);

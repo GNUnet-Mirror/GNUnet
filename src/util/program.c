@@ -69,6 +69,17 @@ struct CommandContext
 
 
 /**
+ * task run when the scheduler shuts down
+ */
+static void
+shutdown_task (void *cls)
+{
+  (void) cls;
+  GNUNET_SPEEDUP_stop_ ();
+}
+
+
+/**
  * Initial task called by the scheduler for each
  * program.  Runs the program-specific main task.
  */
@@ -78,6 +89,7 @@ program_main (void *cls)
   struct CommandContext *cc = cls;
 
   GNUNET_SPEEDUP_start_(cc->cfg);
+  GNUNET_SCHEDULER_add_shutdown (&shutdown_task, NULL);
   GNUNET_RESOLVER_connect (cc->cfg);
   cc->task (cc->task_cls, cc->args, cc->cfgfile, cc->cfg);
 }
@@ -306,7 +318,6 @@ GNUNET_PROGRAM_run2 (int argc, char *const *argv, const char *binaryName,
   }
   ret = GNUNET_OK;
  cleanup:
-  GNUNET_SPEEDUP_stop_ ();
   GNUNET_CONFIGURATION_destroy (cfg);
   GNUNET_free_non_null (cc.cfgfile);
   GNUNET_free (cfg_fn);

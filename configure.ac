@@ -1,5 +1,5 @@
 # This file is part of GNUnet.
-# (C) 2001--2017 GNUnet e.V.
+# (C) 2001--2018 GNUnet e.V.
 #
 # GNUnet is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published
@@ -22,7 +22,7 @@
 #
 AC_PREREQ(2.61)
 # Checks for programs.
-AC_INIT([gnunet], [0.10.1], [bug-gnunet@gnu.org])
+AC_INIT([gnunet], [0.11.0], [bug-gnunet@gnu.org])
 
 AC_CANONICAL_TARGET
 AC_CANONICAL_HOST
@@ -446,7 +446,7 @@ AC_CHECK_LIB(ogg, ogg_stream_flush_fill,
         ogg=0)
 
 
-PKG_CHECK_MODULES([GLIB], [glib-2.0])
+PKG_CHECK_MODULES([GLIB], [glib-2.0],
 # check for pbc library
 pbc=0
 AC_CHECK_HEADER([pbc/pbc.h],pbc=1)
@@ -465,8 +465,12 @@ then
 else
   AC_DEFINE([HAVE_ABE],[0],[Lacking ABE library])
 fi
-
-
+,
+# glib-2 not found
+  AM_CONDITIONAL(HAVE_PBC, [0])
+  AM_CONDITIONAL(HAVE_ABE, [0])
+  AC_DEFINE([HAVE_PBC],[0],[Lacking glib library])
+)
 
 gst=0
 PKG_CHECK_MODULES(
@@ -1580,8 +1584,6 @@ src/dht/Makefile
 src/dht/dht.conf
 src/dns/Makefile
 src/dns/dns.conf
-src/dv/Makefile
-src/dv/dv.conf
 src/exit/Makefile
 src/fragmentation/Makefile
 src/fs/Makefile
@@ -1660,6 +1662,7 @@ src/vpn/vpn.conf
 src/zonemaster/Makefile
 src/zonemaster/zonemaster.conf
 src/rest/Makefile
+src/abe/Makefile
 src/identity-attribute/Makefile
 src/identity-provider/Makefile
 pkgconfig/Makefile

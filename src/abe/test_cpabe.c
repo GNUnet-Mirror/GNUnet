@@ -25,20 +25,21 @@
  */
 #include "platform.h"
 #include "gnunet_util_lib.h"
+#include "gnunet_abe_lib.h"
 
 #define TESTSTRING "Hello World!"
 
 static int
 testAbecipher ()
 {
-  struct GNUNET_CRYPTO_AbeMasterKey *msk;
-  struct GNUNET_CRYPTO_AbeKey *key;
+  struct GNUNET_ABE_AbeMasterKey *msk;
+  struct GNUNET_ABE_AbeKey *key;
   char *result;
   char **attrs;
   int size;
   char *res;
-  msk = GNUNET_CRYPTO_cpabe_create_master_key ();
-  size = GNUNET_CRYPTO_cpabe_encrypt (TESTSTRING, strlen (TESTSTRING) + 1,
+  msk = GNUNET_ABE_cpabe_create_master_key ();
+  size = GNUNET_ABE_cpabe_encrypt (TESTSTRING, strlen (TESTSTRING) + 1,
                                       "testattr", //Policy
                                       msk,
                                       (void*)&result);
@@ -46,10 +47,10 @@ testAbecipher ()
   attrs = GNUNET_malloc (2 * sizeof (char*));
   attrs[0] = "testattr";
   attrs[1] = NULL;
-  key = GNUNET_CRYPTO_cpabe_create_key (msk,
+  key = GNUNET_ABE_cpabe_create_key (msk,
                                         attrs);
 
-  size = GNUNET_CRYPTO_cpabe_decrypt (result, size,
+  size = GNUNET_ABE_cpabe_decrypt (result, size,
                                       key,
                                       (void*)&res);
   if (strlen (TESTSTRING) + 1 != size)

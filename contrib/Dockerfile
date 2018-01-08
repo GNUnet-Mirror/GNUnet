@@ -6,17 +6,10 @@ RUN dnf -y update && dnf -y install which git automake texinfo gettext-devel aut
 WORKDIR /usr/src
 
 # Install gnurl from source at version gnurl-7.54.0
-RUN git clone https://git.taler.net/gnurl.git --branch gnurl-7.54.0
+RUN git clone https://git.taler.net/gnurl.git --branch gnurl-7.57.0
 WORKDIR /usr/src/gnurl
 RUN autoreconf -i
-RUN ./configure --enable-ipv6 --with-gnutls --without-libssh2 \
---without-libmetalink --without-winidn --without-librtmp \
---without-nghttp2 --without-nss --without-cyassl \
---without-polarssl --without-ssl --without-winssl \
---without-darwinssl --disable-sspi --disable-ntlm-wb --disable-ldap \
---disable-rtsp --disable-dict --disable-telnet --disable-tftp \
---disable-pop3 --disable-imap --disable-smtp --disable-gopher \
---disable-file --disable-ftp --disable-smb
+RUN ./configure --disable-ntlm-wb
 RUN make install
 WORKDIR /usr/src
 

@@ -1,0 +1,255 @@
+WARNING!
+=======
+
+The following is a list of issues with GNUnet 0.11.0 that will need
+to be addressed before we might consider GNUnet deployable to larger
+audiences. Please keep this in mind when trying out GNUnet 0.11.0!
+
+GNUnet may however work fine for applications that aren't impeded by
+these known deficiencies. Help would of course be welcome to reduce
+this list, so an estimate of how much work is needed and the main 
+impact are given with each item.
+
+
+ats:
+* We currently select one transport per peer, but we should allow the
+use of multiple channels concurrently (i.e. UDP + TCP at the same
+time). Neither ATS nor transport support this today, and this requires
+a major change in the ATS plugins and the ATS API and the overall
+ATS/transport logic. [6-12 PM, robustness, performance]
+
+* The current proportional ATS heuristic does not devalue increasing
+the number of connections once we have reached saturation point,
+possibly resulting in an excessive number of connections.
+[1-3 PM, performance]
+
+* The mlp/ril ATS heuristics are highly unstable and keep crashing or
+worse, and have horrific code quality. [3-12 PM, stability,
+performance]
+
+
+transport: [12-48 PM overall]
+* We should move plugins into separate processes to break an overly
+complicated subsystem into more manageable bits. [maintainability]
+
+* Transport plugins are currently expected to be bi-directional; the
+API should be changed to make them uni-directional, so we could have
+say UDP for sending but receive via say SMTP, simply because NAT
+punching and other transports (especially SAT) simply are not
+bi-directional. Fragmentation and ACKs should then not be done in UDP
+plugin but at transport level.  This should result in significantly:
+- better NAT traversal
+- faster transports (especially with the multi-transport of ATS)
+- simplified transport plugins
+[stability, robustness, performance]
+ 
+* Transport currently does not encrypt. This has the disadvantage that
+TCP/UDP traffic is easily identified as "GNUnet"-traffic.  It would be
+better to_also use a simple cipher (ECDHE+AEAD) in a plugin-specific
+way (i.e. HTTPS is fine already) to minimize information leakage, even
+if for efficiency that cipher is is not replay-protected at this level
+(and leave true replay-protected OTR to CORE). [privacy, censorship-resistance]
+
+* transport's 'manipulation' functions should be moved into
+a plugin-proxy, simplifying the code. This may have
+modest implications for testbed due to the API change.
+[maintainability, security]
+
+* testcases are plenty but insufficiently systematic, the changes
+described above should also enable us to create more systematic tests.
+[maintainability, correctness]
+
+
+hello:
+* The current code may leak LAN IPs (in particular IPv6 with
+MAC) globally. We have started to put in some provisions to tag
+addresses as loopback/LAN/WAN, but need to systematically ensure
+that addresses are only propagated in a useful scope and avoid
+leaking "sensitive" address data globally.
+[3-6 PM, privacy]
+
+
+core:
+* core needs to be able to communicate to other peers whether this
+peer is high-bandwidth or on battery and thus either great for
+relaying or really bad for relaying. Higher-level subsystems
+could then bias their peer selection to more capable peers --
+this is key for going on battery-operated systems.
+[1-3 PM, performance]
+
+* we currently use timestamps (based on roughly-synchronized clocks),
+challenge-response AND sequence numbers to protect against
+replay-protection. This is overkill, and the use of timestamps
+causes issues on OpenWRT where RTCs are often unavailable. We
+might want to increase the nonce for challenges and get rid of
+the roughly-synchronized clocks assumption, at least for CORE
+(we can't avoid it for NSE). [1-3 PM, usability]
+
+* once transport encrypts (ECDH+AES), we should simplify CORE level
+encryption to use ECDH+Twofish(+SHA512) instead of the current
+ECDH+AES+Twofish double-encryption.
+
+* Mobile peers currently allow adversaries to track their users as the
+peer's identity does not change with locations. We need a mechanism to
+notify a mobile peer about a location change and then systematically
+change the public key we use depending on our location. [6-12 PM,
+privacy]
+
+* Core should support protocol versioning for higher-level services
+[3 PM]
+
+
+cadet:
+* needs more systematic testing, ideally with a mock up of DHT
+and core. [6-12 PM, correctness]
+
+* flow and congestion control implementation remains incomplete;
+should borrow more from net2o [3-6 PM, performance]
+
+* Various optimizations, such as key material pre-computation
+and avoiding unnecessary DHT queries should be implemented.
+[3-9 PM, performance]
+
+* Once transport/core use AES/Twofish for encryption, we should
+switch CADET to use KECCAK-AEAD.
+
+* Generally needs more benchmarking to identify performance
+bottlenecks tune accordingly. [3-12 PM, performance]
+
+
+nat:
+* many known NAT traversal methods are not yet supported
+[6-12 PM, connectivity, usability]
+
+
+dv:
+* dv is still not working, but currently based on SET and we
+should simplify the design to not use SET. [3-6 PM, connectivity,
+correctness]
+
+
+util:
+* Event loop instantiations for various event loops (like glib,
+libev, libevent, etc.) should be created (and tested).  This
+allows applications to be built with GNUnet using those various
+styles of event loop handling.  General support for abstracting
+the event loop is new in 0.11.0, we just need to make broader use
+of it. [1-3 PM, performance, usability]
+
+* gnunet-service-resolver should use asynchronous DNS queries if
+available.  This will ensure that name resolution is not super-slow
+when GNUnet makes various parallel DNS queries (rare, but DNS
+queries can happen to resolve peer IP addresses for visualization).
+[1 PM, performance, usability]
+
+
+dht:
+* various minor tweaks should be explored, but first we need to
+define and find a good benchmark to see where our performance
+bottlenecks really are today; datacache (IO subsystem) might
+be one of them.  Here, picking appropriate transaction scopes
+and isolation levels should be an easy way to boost performance,
+but we also need more benchmarking logic. [3-12 PM, performance]
+
+
+set:
+* Current implementation is not yet Byzantine fault-tolerant
+against stuffing attack.  [1-3 PM, fault-tolerance]
+
+
+topology:
+* quite a few different functions are squished together in one
+subsystem here, will require some changes to address changes
+to transport and hello discussed above [1-3 PM, correctness]
+
+* there are more robust known ways for maintaining a random mesh, we
+might want to explore using those [3-6 PM, robustness]
+
+
+fs:
+* The service should be split into two, one for user-specific and one
+for system-specific components [3-6 PM, security, usability]
+
+* Currently, data and files are stored in a disassociated way,
+resulting in search results that then fail to download; need OR/RPS
+(see below) before we can think about fixing this properly. [6-18 PM,
+usability]
+
+* datastore (IO subsystem) is bad at keeping the database within the
+  quota set by the user. [1-3 PM, correctness]
+
+
+conversation:
+* dropping 'silence' on large-buffers during replay should be
+used to avoid accumulating latency (standard VoIP technique,
+crucial to get it to work for real calls) [1-3 PM, usability]
+
+* needs ring tones [1 PM, usability]
+
+
+gns:
+* should support hijacking arbitrary gtlds [1 PM, usability]
+
+* should import ".fr" ccTLD and ensure implementation performs [3-6 PM]
+
+
+multicast:
+* implementation currently "trivial" (aka doing round-robin, not multicast)
+  and under-tested
+
+* still uses old NTR-style API, needs to transition to MQ API [DONE]
+
+
+psyc:
+* implementation under-tested, database performance likely in
+need for optimization [3-12 PM]
+
+
+social:
+* code in need for clean up and more systematic testing [6-12 PM]
+
+
+rps:
+* Open research, still experimental. [3-24 PM]
+
+
+xolotl/lake/or:
+* Open research, still non-existent. Symmetric cipher should
+be CHACHA. [48-120 PM]
+
+
+No serious problems are known in:
+* statistics
+* nse
+* curl
+* revocation
+* scalarproduct
+* tun
+* testbed
+* block
+* fragmentation
+* consensus
+* secretsharing
+* pt
+* vpn
+* gns
+* gnsrecord
+* arm
+* dns
+* exit
+* identity
+* json
+* sq
+* my
+* namecache
+* namestore
+* testing
+* hostlist
+* zonemaster
+
+
+We reserve judgement (due to lack of data) on:
+* identity-provider
+* rest
+ 
+

@@ -165,7 +165,8 @@ check_access (void *cls, const struct GNUNET_PeerIdentity * pid)
 
 
 static int
-get_identity (unsigned int offset, struct GNUNET_PeerIdentity *id)
+get_identity (unsigned int offset,
+	      struct GNUNET_PeerIdentity *id)
 {
   struct GNUNET_CRYPTO_EddsaPrivateKey private_key;
 
@@ -174,7 +175,8 @@ get_identity (unsigned int offset, struct GNUNET_PeerIdentity *id)
   GNUNET_memcpy (&private_key,
                  hostkeys_data + (offset * GNUNET_TESTING_HOSTKEYFILESIZE),
                  GNUNET_TESTING_HOSTKEYFILESIZE);
-  GNUNET_CRYPTO_eddsa_key_get_public (&private_key, &id->public_key);
+  GNUNET_CRYPTO_eddsa_key_get_public (&private_key,
+				      &id->public_key);
   return GNUNET_OK;
 }
 

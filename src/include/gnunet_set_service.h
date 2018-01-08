@@ -530,6 +530,7 @@ GNUNET_SET_iterate (struct GNUNET_SET_Handle *set,
                     GNUNET_SET_ElementIterator iter,
                     void *iter_cls);
 
+
 /**
  * Stop iteration over all elements in the given set.  Can only
  * be called before the iteration has "naturally" completed its
@@ -540,6 +541,7 @@ GNUNET_SET_iterate (struct GNUNET_SET_Handle *set,
 void
 GNUNET_SET_iterate_cancel (struct GNUNET_SET_Handle *set);
 
+
 /**
  * Create a copy of an element.  The copy
  * must be GNUNET_free-d by the caller.
@@ -549,6 +551,7 @@ GNUNET_SET_iterate_cancel (struct GNUNET_SET_Handle *set);
  */
 struct GNUNET_SET_Element *
 GNUNET_SET_element_dup (const struct GNUNET_SET_Element *element);
+
 
 /**
  * Hash a set element.

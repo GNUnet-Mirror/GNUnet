@@ -337,14 +337,10 @@ GST_ats_block_address (const struct GNUNET_HELLO_Address *address,
     return; /* our own, ignore! */
   ai = find_ai (address,
                 session);
-  if (NULL == ai)
+  if (NULL == ai || NULL == ai->ar)
   {
-    GNUNET_assert (0);
-    return;
-  }
-  if (NULL == ai->ar)
-  {
-    /* already blocked but this might be a blacklist check callback */
+    /* The address is already gone/blocked, this can happen during a blacklist
+     * callback. */
     return;
   }
   ai->back_off = GNUNET_TIME_STD_BACKOFF (ai->back_off);

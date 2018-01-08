@@ -154,23 +154,30 @@ regex_iterator (void *cls,
                     NULL, NULL);
   }
   block = REGEX_BLOCK_create (proof,
-                              num_edges, edges,
+                              num_edges,
+			      edges,
                               accepting,
                               &size);
-  (void)
-  GNUNET_DHT_put (h->dht, key,
-                  DHT_REPLICATION,
-                  DHT_OPT,
-                  GNUNET_BLOCK_TYPE_REGEX,
-                  size, block,
-                  GNUNET_TIME_relative_to_absolute (DHT_TTL),
-                  NULL, NULL);
+  if (NULL == block)
+    return;
+  (void) GNUNET_DHT_put (h->dht,
+			 key,
+			 DHT_REPLICATION,
+			 DHT_OPT,
+			 GNUNET_BLOCK_TYPE_REGEX,
+			 size,
+			 block,
+			 GNUNET_TIME_relative_to_absolute (DHT_TTL),
+			 NULL,
+			 NULL);
   GNUNET_STATISTICS_update (h->stats,
                             "# regex blocks stored",
-                            1, GNUNET_NO);
+                            1,
+			    GNUNET_NO);
   GNUNET_STATISTICS_update (h->stats,
                             "# regex block bytes stored",
-                            size, GNUNET_NO);
+                            size,
+			    GNUNET_NO);
   GNUNET_free (block);
 }
 

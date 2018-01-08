@@ -46,9 +46,12 @@ static void
 print_hostname (void *cls,
 		const char *hostname)
 {
+  (void) cls;
   if (NULL == hostname)
     return;
-  FPRINTF (stdout, "%s\n", hostname);
+  FPRINTF (stdout,
+	   "%s\n",
+	   hostname);
 }
 
 
@@ -60,11 +63,17 @@ print_hostname (void *cls,
  * @param addrlen length of the address
  */
 static void
-print_sockaddr (void *cls, const struct sockaddr *addr, socklen_t addrlen)
+print_sockaddr (void *cls,
+		const struct sockaddr *addr,
+		socklen_t addrlen)
 {
+  (void) cls;
   if (NULL == addr)
     return;
-  FPRINTF (stdout, "%s\n", GNUNET_a2s (addr, addrlen));
+  FPRINTF (stdout,
+	   "%s\n",
+	   GNUNET_a2s (addr,
+		       addrlen));
 }
 
 
@@ -77,7 +86,9 @@ print_sockaddr (void *cls, const struct sockaddr *addr, socklen_t addrlen)
  * @param cfg configuration
  */
 static void
-run (void *cls, char *const *args, const char *cfgfile,
+run (void *cls,
+     char *const *args,
+     const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   const struct sockaddr *sa;
@@ -85,11 +96,18 @@ run (void *cls, char *const *args, const char *cfgfile,
   struct sockaddr_in v4;
   struct sockaddr_in6 v6;
 
-  if (args[0] == NULL)
+  (void) cls;
+  (void) cfgfile;
+  (void) cfg;
+  if (NULL == args[0])
     return;
   if (! reverse)
   {
-    GNUNET_RESOLVER_ip_get (args[0], AF_UNSPEC, GET_TIMEOUT, &print_sockaddr, NULL);
+    GNUNET_RESOLVER_ip_get (args[0],
+			    AF_UNSPEC,
+			    GET_TIMEOUT,
+			    &print_sockaddr,
+			    NULL);
     return;
   }
 

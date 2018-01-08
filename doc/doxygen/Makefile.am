@@ -13,3 +13,6 @@ fast: gnunet.doxy
 
 clean:
 	rm -rf html
+
+EXTRA_DIST = \
+   gnunet.doxy

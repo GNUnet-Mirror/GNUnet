@@ -109,8 +109,9 @@ typedef int
  *
  * @param uri uri to convert to a unique key
  * @param key wherer to store the unique key
+ * @return #GNUNET_OK on success
  */
-void
+int
 GNUNET_FS_uri_to_key (const struct GNUNET_FS_Uri *uri,
 		      struct GNUNET_HashCode *key);
 

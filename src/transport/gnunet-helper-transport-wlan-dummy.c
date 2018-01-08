@@ -121,6 +121,9 @@ send_mac_to_plugin (char *buffer, struct GNUNET_TRANSPORT_WLAN_MacAddress *mac)
  *
  * @param cls the 'struct SendBuffer' to copy the converted message to
  * @param hdr inbound message from the FIFO
+ * @return #GNUNET_OK on success,
+ *    #GNUNET_NO to stop further processing (no error)
+ *    #GNUNET_SYSERR to stop further processing with error
  */
 static int
 stdin_send (void *cls,
@@ -167,6 +170,9 @@ stdin_send (void *cls,
  *
  * @param cls the 'struct SendBuffer' to copy to
  * @param hdr the message we received to copy to the buffer
+ * @return #GNUNET_OK on success,
+ *    #GNUNET_NO to stop further processing (no error)
+ *    #GNUNET_SYSERR to stop further processing with error
  */
 static int
 file_in_send (void *cls,

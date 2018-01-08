@@ -248,7 +248,7 @@ struct TicketIterationStopMessage
 struct IssueTicketMessage
 {
   /**
-   * Type will be #GNUNET_MESSAGE_TYPE_IDENTITY_PROVIDER_TICKET_ISSUE
+   * Type will be #GNUNET_MESSAGE_TYPE_IDENTITY_PROVIDER_ISSUE_TICKET
    */
   struct GNUNET_MessageHeader header;
 
@@ -281,7 +281,7 @@ struct IssueTicketMessage
 struct RevokeTicketMessage
 {
   /**
-   * Type will be #GNUNET_MESSAGE_TYPE_IDENTITY_PROVIDER_TICKET_ISSUE
+   * Type will be #GNUNET_MESSAGE_TYPE_IDENTITY_PROVIDER_REVOKE_TICKET
    */
   struct GNUNET_MessageHeader header;
 
@@ -309,7 +309,7 @@ struct RevokeTicketMessage
 struct RevokeTicketResultMessage
 {
   /**
-   * Type will be #GNUNET_MESSAGE_TYPE_IDENTITY_PROVIDER_TICKET_ISSUE
+   * Type will be #GNUNET_MESSAGE_TYPE_IDENTITY_PROVIDER_REVOKE_TICKET_RESULT
    */
   struct GNUNET_MessageHeader header;
 
@@ -348,7 +348,7 @@ struct TicketResultMessage
 struct ConsumeTicketMessage
 {
   /**
-   * Type will be #GNUNET_MESSAGE_TYPE_IDENTITY_PROVIDER_TICKET_ISSUE
+   * Type will be #GNUNET_MESSAGE_TYPE_IDENTITY_PROVIDER_CONSUME_TICKET
    */
   struct GNUNET_MessageHeader header;
 

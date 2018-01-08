@@ -1183,6 +1183,8 @@ shared under the keyword "Das Kapital".
 
 Search results are printed by gnunet-search like this:
 
+@c it will be better the avoid the ellipsis altogether because I don't
+@c understand the explanation below that
 @example
 $ gnunet-download -o "COPYING" --- gnunet://fs/chk/N8...C92.17992
 => The GNU Public License <= (mimetype: text/plain)
@@ -1192,6 +1194,7 @@ $ gnunet-download -o "COPYING" --- gnunet://fs/chk/N8...C92.17992
 The first line is the command you would have to enter to download
 the file. The argument passed to @code{-o} is the suggested
 filename (you may change it to whatever you like).
+@c except it's triple dash in the above example ---
 The @code{--} is followed by key for decrypting the file,
 the query for searching the file, a checksum (in hexadecimal)
 finally the size of the file in bytes.
@@ -1235,6 +1238,7 @@ GNUnet's file-encoding mechanism will ensure file integrity, even if the
 existing file was not downloaded from GNUnet in the first place.
 
 You may want to use the @command{-V} switch (must be added before
+@c Same as above it's triple dash
 the @command{--}) to turn on verbose reporting. In this case,
 @command{gnunet-download} will print the current number of
 bytes downloaded whenever new data was received.
@@ -1301,7 +1305,7 @@ unavailable.
 @c %**end of header
 
 Each namespace is associated with meta-data that describes
-the namespace. This meta data is provided by the user at
+the namespace. This meta-data is provided by the user at
 the time that the namespace is advertised. Advertisements
 are published under keywords so that they can be found using
 normal keyword-searches. This way, users can learn about new

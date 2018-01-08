@@ -19,9 +19,9 @@
 */
 
 /**
- * @file identity/plugin_gnsrecord_identity.c
+ * @file identity-provider/plugin_gnsrecord_identity_provider.c
  * @brief gnsrecord plugin to provide the API for identity records
- * @author Christian Grothoff
+ * @author Martin Schanzenbach
  */
 #include "platform.h"
 #include "gnunet_util_lib.h"

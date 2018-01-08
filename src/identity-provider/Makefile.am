@@ -70,6 +70,7 @@ gnunet_service_identity_provider_LDADD = \
  $(top_builddir)/src/namestore/libgnunetnamestore.la \
  $(top_builddir)/src/identity/libgnunetidentity.la \
  $(top_builddir)/src/statistics/libgnunetstatistics.la \
+ $(top_builddir)/src/abe/libgnunetabe.la \
  $(top_builddir)/src/credential/libgnunetcredential.la \
  $(top_builddir)/src/identity-attribute/libgnunetidentityattribute.la \
  libgnunetidentityprovider.la \

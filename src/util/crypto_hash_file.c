@@ -124,23 +124,29 @@ file_hash_task (void *cls)
   struct GNUNET_CRYPTO_FileHashContext *fhc = cls;
   struct GNUNET_HashCode *res;
   size_t delta;
+  ssize_t sret;
 
   fhc->task = NULL;
   GNUNET_assert (fhc->offset <= fhc->fsize);
   delta = fhc->bsize;
   if (fhc->fsize - fhc->offset < delta)
     delta = fhc->fsize - fhc->offset;
-  if (delta != GNUNET_DISK_file_read (fhc->fh,
-				      fhc->buffer,
-				      delta))
+  sret = GNUNET_DISK_file_read (fhc->fh,
+				fhc->buffer,
+				delta);
+  if ( (sret < 0) ||
+       (delta != (size_t) sret) )
   {
     LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_WARNING,
 		       "read",
 		       fhc->filename);
-    file_hash_finish (fhc, NULL);
+    file_hash_finish (fhc,
+		      NULL);
     return;
   }
-  gcry_md_write (fhc->md, fhc->buffer, delta);
+  gcry_md_write (fhc->md,
+		 fhc->buffer,
+		 delta);
   fhc->offset += delta;
   if (fhc->offset == fhc->fsize)
   {

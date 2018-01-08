@@ -538,6 +538,14 @@ extract_result_cb (void *cls,
       GNUNET_PQ_result_spec_end
     };
 
+    if (GNUNET_YES !=
+        GNUNET_PQ_extract_result (result,
+                                  rs,
+                                  i))
+    {
+      GNUNET_break (0);
+      return;
+    }
     if (0 != (path_len % sizeof (struct GNUNET_PeerIdentity)))
     {
       GNUNET_break (0);

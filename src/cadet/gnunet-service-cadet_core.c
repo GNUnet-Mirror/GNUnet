@@ -623,7 +623,7 @@ timeout_cb (void *cls)
   {
     exp = GNUNET_TIME_absolute_add (r->last_use,
                                     linger);
-    if (0 != GNUNET_TIME_absolute_get_duration (exp).rel_value_us)
+    if (0 != GNUNET_TIME_absolute_get_remaining (exp).rel_value_us)
     {
       /* Route not yet timed out, wait until it does. */
       timeout_task = GNUNET_SCHEDULER_add_at (exp,
@@ -631,6 +631,11 @@ timeout_cb (void *cls)
                                               NULL);
       return;
     }
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		"Sending BROKEN due to timeout (%s was last use, %s linger)\n",
+		GNUNET_STRINGS_absolute_time_to_string (r->last_use),
+		GNUNET_STRINGS_relative_time_to_string (linger,
+							GNUNET_YES));
     send_broken (&r->prev,
                  &r->cid,
                  NULL,
@@ -688,6 +693,8 @@ dir_ready_cb (void *cls,
     return;
   }
   odir = (dir == &route->next) ? &route->prev : &route->next;
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+	      "Sending BROKEN due to MQ going down\n");
   send_broken (&route->next,
                &route->cid,
                GCP_get_id (odir->hop),
@@ -771,6 +778,33 @@ handle_connection_create (void *cls,
 
   options = (enum GNUNET_CADET_ChannelOption) ntohl (msg->options);
   path_length = size / sizeof (struct GNUNET_PeerIdentity);
+  if (0 == path_length)
+  {
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+      "Dropping CADET_CONNECTION_CREATE with empty path\n");
+    GNUNET_break_op (0);
+    return;
+  }
+  /* Check for loops */
+  struct GNUNET_CONTAINER_MultiPeerMap *map;
+  map = GNUNET_CONTAINER_multipeermap_create (path_length * 2,
+                                              GNUNET_YES);
+  GNUNET_assert (NULL != map);
+  for (off = 0; off < path_length; off++) {
+    if (GNUNET_SYSERR ==
+        GNUNET_CONTAINER_multipeermap_put (map,
+                                           &pids[off],
+                                           NULL,
+                                           GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY)) {
+      /* bogus request */
+      GNUNET_CONTAINER_multipeermap_destroy (map);
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
+        "Dropping CADET_CONNECTION_CREATE with cyclic path\n");
+      GNUNET_break_op (0);
+      return;
+    }
+  }
+  GNUNET_CONTAINER_multipeermap_destroy (map);
   /* Initiator is at offset 0. */
   for (off=1;off<path_length;off++)
     if (0 == memcmp (&my_full_id,
@@ -779,7 +813,8 @@ handle_connection_create (void *cls,
       break;
   if (off == path_length)
   {
-    /* We are not on the path, bogus request */
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+      "Dropping CADET_CONNECTION_CREATE without us in the path\n");
     GNUNET_break_op (0);
     return;
   }
@@ -787,7 +822,8 @@ handle_connection_create (void *cls,
   if (sender != GCP_get (&pids[off - 1],
                          GNUNET_NO))
   {
-    /* sender is not on the path, not allowed */
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+      "Dropping CADET_CONNECTION_CREATE without sender in the path\n");
     GNUNET_break_op (0);
     return;
   }

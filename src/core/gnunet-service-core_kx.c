@@ -708,6 +708,9 @@ setup_fresh_ping (struct GSC_KeyExchangeInfo *kx)
  *
  * @param cls the `struct GSC_KeyExchangeInfo`
  * @param m the message
+ * @return #GNUNET_OK on success,
+ *    #GNUNET_NO to stop further processing (no error)
+ *    #GNUNET_SYSERR to stop further processing with error
  */
 static int
 deliver_message (void *cls,
@@ -950,7 +953,7 @@ handle_ephemeral_key (void *cls,
 	      kx->peer,
               sizeof (struct GNUNET_PeerIdentity)))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                 "Received EPHEMERAL_KEY from %s, but expected %s\n",
                 GNUNET_i2s (&m->origin_identity),
                 GNUNET_i2s_full (kx->peer));

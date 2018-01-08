@@ -148,14 +148,14 @@ handle_result_code (void *cls, const struct OperationResult *opres)
                                       str, size - sizeof (*opres), (void **) &op))
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "handle_result_code: Received result message with operation ID: %" PRIu64 "\n",
+         "handle_result_code: Received result message with OP ID: %" PRIu64 "\n",
          GNUNET_ntohll (opres->op_id));
     GNUNET_free (op);
   }
   else
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "handle_result_code: No callback registered for operation with ID %" PRIu64 ".\n",
+         "handle_result_code: No callback registered for OP ID %" PRIu64 ".\n",
          GNUNET_ntohll (opres->op_id));
   }
   h->reconnect_delay = GNUNET_TIME_UNIT_MILLISECONDS;
@@ -187,7 +187,7 @@ handle_result_counters (void *cls, const struct CountersResult *cres)
   else
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "handle_result_counters: No callback registered for operation with ID %" PRIu64 ".\n",
+         "handle_result_counters: No callback registered for OP ID %" PRIu64 ".\n",
          GNUNET_ntohll (cres->op_id));
   }
   h->reconnect_delay = GNUNET_TIME_UNIT_MILLISECONDS;
@@ -233,7 +233,7 @@ handle_result_fragment (void *cls, const struct FragmentResult *fres)
   else
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "handle_result_fragment: No callback registered for operation with ID %" PRIu64 ".\n",
+         "handle_result_fragment: No callback registered for OP ID %" PRIu64 ".\n",
          GNUNET_ntohll (fres->op_id));
   }
   h->reconnect_delay = GNUNET_TIME_UNIT_MILLISECONDS;
@@ -282,7 +282,7 @@ handle_result_state (void *cls, const struct StateResult *sres)
   else
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "handle_result_state: No callback registered for operation with ID %" PRIu64 ".\n",
+         "handle_result_state: No callback registered for OP ID %" PRIu64 ".\n",
          GNUNET_ntohll (sres->op_id));
   }
   h->reconnect_delay = GNUNET_TIME_UNIT_MILLISECONDS;
@@ -362,6 +362,9 @@ do_connect (struct GNUNET_PSYCSTORE_Handle *h)
 static void
 reconnect (void *cls)
 {
+  struct GNUNET_PSYCSTORE_Handle *h = cls;
+
+  h->reconnect_task = NULL;
   do_connect (cls);
 }
 

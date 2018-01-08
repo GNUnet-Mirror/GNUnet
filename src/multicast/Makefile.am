@@ -19,7 +19,7 @@ endif
 lib_LTLIBRARIES = libgnunetmulticast.la
 
 libgnunetmulticast_la_SOURCES = \
-  multicast_api.c
+  multicast_api.c multicast.h
 libgnunetmulticast_la_LIBADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(GN_LIBINTL) $(XLIB)

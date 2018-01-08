@@ -134,7 +134,6 @@ progress_cb (void *cls,
   switch (event->status)
   {
   case GNUNET_FS_STATUS_PUBLISH_COMPLETED:
-    consider_restart (event->status);
     ret = event->value.publish.cctx;
     printf ("Publish complete,  %llu kbps.\n",
             (unsigned long long) (FILESIZE * 1000000LL /

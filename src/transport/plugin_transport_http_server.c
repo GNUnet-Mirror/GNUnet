@@ -1651,7 +1651,7 @@ server_send_callback (void *cls,
  *
  * @param cls current session as closure
  * @param message the message to be forwarded to transport service
- * @return #GNUNET_OK
+ * @return #GNUNET_OK (all OK)
  */
 static int
 server_receive_mst_cb (void *cls,

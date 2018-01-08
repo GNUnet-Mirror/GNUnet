@@ -107,7 +107,7 @@
          ("mysql" ,mysql)
          ("zlib" ,zlib)
          ("perl" ,perl)
-         ("python" ,python) ; tests and gnunet-qr
+         ("python-2" ,python-2) ; tests and gnunet-qr
          ("jansson" ,jansson)
          ("nss" ,nss)
          ("glib" ,glib "bin")

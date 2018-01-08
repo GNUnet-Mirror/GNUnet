@@ -1540,17 +1540,6 @@ list_ego (void *cls,
 
 }
 
-/**
- * Function processing the REST call
- *
- * @param method HTTP method
- * @param url URL of the HTTP request
- * @param data body of the HTTP request (optional)
- * @param data_size length of the body
- * @param proc callback function for the result
- * @param proc_cls closure for callback function
- * @return GNUNET_OK if request accepted
- */
 static void
 rest_identity_process_request(struct GNUNET_REST_RequestHandle *rest_handle,
                               GNUNET_REST_ResultProcessor proc,

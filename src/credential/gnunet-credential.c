@@ -20,7 +20,7 @@
 /**
  * @file gnunet-credential.c
  * @brief command line tool to access command line Credential service
- * @author Adnan Husain
+ * @author Martin Schanzenbach
  */
 #include "platform.h"
 #include <gnunet_util_lib.h>
@@ -158,13 +158,6 @@ do_timeout (void *cls)
   GNUNET_SCHEDULER_shutdown ();
 }
 
-/**
- * Function called with the result of a Credential lookup.
- *
- * @param cls the 'const char *' name that was resolved
- * @param cd_count number of records returned
- * @param cd array of @a cd_count records with the results
- */
 static void
 handle_collect_result (void *cls,
                       unsigned int d_count,
@@ -192,13 +185,6 @@ handle_collect_result (void *cls,
 }
 
 
-/**
- * Function called with the result of a Credential lookup.
- *
- * @param cls the 'const char *' name that was resolved
- * @param cd_count number of records returned
- * @param cd array of @a cd_count records with the results
- */
 static void
 handle_verify_result (void *cls,
                       unsigned int d_count,
@@ -385,12 +371,14 @@ run (void *cls,
       fprintf (stderr,
                _("Failed to connect to CREDENTIAL\n"));
       GNUNET_SCHEDULER_shutdown ();
+      return;
     }
     if (NULL == issuer_attr)
     {
       fprintf (stderr,
                _("You must provide issuer the attribute\n"));
       GNUNET_SCHEDULER_shutdown ();
+      return;
     }
 
     if (NULL == ego_name)
@@ -446,6 +434,7 @@ run (void *cls,
                _("Issuer public key `%s' is not well-formed\n"),
                issuer_key);
       GNUNET_SCHEDULER_shutdown ();
+      return;
     }
     credential = GNUNET_CREDENTIAL_connect (cfg);
 
@@ -454,12 +443,14 @@ run (void *cls,
       fprintf (stderr,
                _("Failed to connect to CREDENTIAL\n"));
       GNUNET_SCHEDULER_shutdown ();
+      return;
     }
     if (NULL == issuer_attr || NULL == subject_credential)
     {
       fprintf (stderr,
                _("You must provide issuer and subject attributes\n"));
       GNUNET_SCHEDULER_shutdown ();
+      return;
     }
 
     //Subject credentials are comma separated
@@ -471,6 +462,7 @@ run (void *cls,
                "Invalid subject credentials\n");
       GNUNET_free (tmp);
       GNUNET_SCHEDULER_shutdown ();
+      return;
     }
     int count = 1;
     int i;
@@ -504,6 +496,7 @@ run (void *cls,
     {
       GNUNET_free ((char*)credentials[i].issuer_attribute);
     }
+    GNUNET_free (tmp);
   } else if (GNUNET_YES == create_cred) {
     if (NULL == ego_name)
     {

@@ -1170,7 +1170,10 @@ GNUNET_DNSPARSER_pack (const struct GNUNET_DNSPARSER_Packet *p,
   trc = GNUNET_NO;
   for (i=0;i<p->num_queries;i++)
   {
-    ret = GNUNET_DNSPARSER_builder_add_query (tmp, sizeof (tmp), &off, &p->queries[i]);
+    ret = GNUNET_DNSPARSER_builder_add_query (tmp,
+					      sizeof (tmp),
+					      &off,
+					      &p->queries[i]);
     if (GNUNET_SYSERR == ret)
       return GNUNET_SYSERR;
     if (GNUNET_NO == ret)
@@ -1182,7 +1185,10 @@ GNUNET_DNSPARSER_pack (const struct GNUNET_DNSPARSER_Packet *p,
   }
   for (i=0;i<p->num_answers;i++)
   {
-    ret = add_record (tmp, sizeof (tmp), &off, &p->answers[i]);
+    ret = add_record (tmp,
+		      sizeof (tmp),
+		      &off,
+		      &p->answers[i]);
     if (GNUNET_SYSERR == ret)
       return GNUNET_SYSERR;
     if (GNUNET_NO == ret)
@@ -1194,7 +1200,10 @@ GNUNET_DNSPARSER_pack (const struct GNUNET_DNSPARSER_Packet *p,
   }
   for (i=0;i<p->num_authority_records;i++)
   {
-    ret = add_record (tmp, sizeof (tmp), &off, &p->authority_records[i]);
+    ret = add_record (tmp,
+		      sizeof (tmp),
+		      &off,
+		      &p->authority_records[i]);
     if (GNUNET_SYSERR == ret)
       return GNUNET_SYSERR;
     if (GNUNET_NO == ret)
@@ -1206,7 +1215,10 @@ GNUNET_DNSPARSER_pack (const struct GNUNET_DNSPARSER_Packet *p,
   }
   for (i=0;i<p->num_additional_records;i++)
   {
-    ret = add_record (tmp, sizeof (tmp), &off, &p->additional_records[i]);
+    ret = add_record (tmp,
+		      sizeof (tmp),
+		      &off,
+		      &p->additional_records[i]);
     if (GNUNET_SYSERR == ret)
       return GNUNET_SYSERR;
     if (GNUNET_NO == ret)
@@ -1219,11 +1231,15 @@ GNUNET_DNSPARSER_pack (const struct GNUNET_DNSPARSER_Packet *p,
 
   if (GNUNET_YES == trc)
     dns.flags.message_truncated = 1;
-  GNUNET_memcpy (tmp, &dns, sizeof (struct GNUNET_TUN_DnsHeader));
+  GNUNET_memcpy (tmp,
+		 &dns,
+		 sizeof (struct GNUNET_TUN_DnsHeader));
 
   *buf = GNUNET_malloc (off);
   *buf_length = off;
-  GNUNET_memcpy (*buf, tmp, off);
+  GNUNET_memcpy (*buf,
+		 tmp,
+		 off);
   if (GNUNET_YES == trc)
     return GNUNET_NO;
   return GNUNET_OK;

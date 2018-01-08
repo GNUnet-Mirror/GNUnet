@@ -49,7 +49,6 @@ endif
 gnunet_service_rps_SOURCES = \
  gnunet-service-rps_sampler_elem.h gnunet-service-rps_sampler_elem.c \
  gnunet-service-rps_sampler.h gnunet-service-rps_sampler.c \
- gnunet-service-rps_peers.h gnunet-service-rps_peers.c \
  gnunet-service-rps_custommap.h gnunet-service-rps_custommap.c \
  gnunet-service-rps_view.h gnunet-service-rps_view.c \
  rps-test_util.h rps-test_util.c \
@@ -73,7 +72,6 @@ if HAVE_TESTING
 check_PROGRAMS = \
  test_service_rps_view \
  test_service_rps_custommap \
- test_service_rps_peers \
  test_service_rps_sampler_elem \
  test_rps_malicious_1 \
  test_rps_malicious_2 \
@@ -81,7 +79,8 @@ check_PROGRAMS = \
  test_rps_seed_request \
  test_rps_single_req \
  test_rps_req_cancel \
- test_rps_seed_big
+ test_rps_seed_big \
+ test_rps_churn
 endif
 
 ld_rps_test_lib = \
@@ -104,13 +103,6 @@ test_service_rps_view_SOURCES = \
   gnunet-service-rps_view.h gnunet-service-rps_view.c \
   test_service_rps_view.c
 test_service_rps_view_LDADD = $(top_builddir)/src/util/libgnunetutil.la
-
-test_service_rps_peers_SOURCES = \
-  gnunet-service-rps_peers.h gnunet-service-rps_peers.c \
-  test_service_rps_peers.c
-test_service_rps_peers_LDADD = \
-  $(top_builddir)/src/util/libgnunetutil.la \
-  $(top_builddir)/src/cadet/libgnunetcadet.la
 
 test_service_rps_custommap_SOURCES = \
   gnunet-service-rps_custommap.h gnunet-service-rps_custommap.c \
@@ -144,6 +136,9 @@ test_rps_req_cancel_LDADD = $(ld_rps_test_lib)
 
 test_rps_seed_big_SOURCES = $(rps_test_src)
 test_rps_seed_big_LDADD = $(ld_rps_test_lib)
+
+test_rps_churn_SOURCES = $(rps_test_src)
+test_rps_churn_LDADD = $(ld_rps_test_lib)
 
 gnunet_rps_profiler_SOURCES = $(rps_test_src)
 gnunet_rps_profiler_LDADD = $(ld_rps_test_lib)

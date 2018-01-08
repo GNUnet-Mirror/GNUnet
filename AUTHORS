@@ -33,6 +33,7 @@ Contributions also came from:
 Adam Warrington [ UPnP ]
 Adriano Peluso [ Documentation export to Texinfo ]
 Alex Harper [ OS X CPU load ]
+Amirouche Boubekki <amirouche@hypermove.net>
 Andrew McDonald <andrew@mcdonald.org.uk> [ SHA-512]
 Andy Green <andy@warmcat.com>
 Antti Salonen
@@ -87,6 +88,7 @@ Uli Luckas <luckas@musoft.de>
 Vasil Dimov <vd@datamax.bg>
 Vitaly Minko <vitaly.minko@gmail.com>
 Werner Koch <libgcrypt@g10code.com> [original code of libgcrypt]
+xrs <xrs@mail36.net> [ multicast ]
 
 Translations (webpage, documentation, as far as known):
 Chinese    : Di Ma
