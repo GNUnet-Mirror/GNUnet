@@ -47,7 +47,9 @@ Refer to @uref{https://www.gnu.org/philosophy/free-sw.html, https://www.gnu.org/
 @item GNUnet must only disclose the minimal amount of information
 necessary.
 @c TODO: Explain 'fully' in the terminology section.
-@item GNUnet must be fully distributed and survive Byzantine failures
+@item GNUnet must be fully distributed and survive
+@uref{https://en.wikipedia.org/wiki/Byzantine_fault_tolerance, Byzantine failures}
+@footnote{@uref{https://en.wikipedia.org/wiki/Byzantine_fault_tolerance, https://en.wikipedia.org/wiki/Byzantine_fault_tolerance}}
 at any position in the network.
 @item GNUnet must make it explicit to the user which entities are
 considered to be trustworthy when establishing secured communications.
@@ -163,7 +165,7 @@ DH (Diffie---Hellman) key exchange using ephemeral eliptic curve
 cryptography. The ephemeral ECC (Eliptic Curve Cryptography) keys are
 signed using ECDSA (@uref{http://en.wikipedia.org/wiki/ECDSA, ECDSA}).
 The shared secret from ECDHE is used to create a pair of session keys
-@c FIXME: LOng word for HKDF
+@c FIXME: LOng word for HKDF. More FIXMEs: Explain MITM etc.
 (using HKDF) which are then used to encrypt the communication between the
 two peers using both 256-bit AES (Advanced Encryption Standard)
 and 256-bit Twofish (with independently derived secret keys).
@@ -173,8 +175,6 @@ without requiring signatures each time. GNUnet uses SHA-512
 (Secure Hash Algorithm) hash codes to verify the integrity of messages.
 
 In GNUnet, the identity of a host is its public key. For that reason,
-@c FIXME: is it clear to the average reader what a man-in-the-middle
-@c attack is?
 man-in-the-middle attacks will not break the authentication or accounting
 goals. Essentially, for GNUnet, the IP of the host has nothing to do with
 the identity of the host. As the public key is the only thing that truly
@@ -420,8 +420,9 @@ public key first.
 @node Egos
 @subsection Egos
 
+@c what is the difference between peer identity and egos? It seems
+@c like both are linked to public-private key pair.
 Egos are your "identities" in GNUnet. Any user can assume multiple
 identities, for example to separate their activities online. Egos can
 correspond to pseudonyms or real-world identities. Technically, an
 ego is first of all a public-private key pair.
-

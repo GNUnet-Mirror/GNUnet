@@ -475,8 +475,8 @@ GNUNET_xgrow_ (void **old,
  */
 int
 GNUNET_asprintf (char **buf,
-		 const char *format,
-		 ...)
+                 const char *format,
+                 ...)
 {
   int ret;
   va_list args;
@@ -484,6 +484,7 @@ GNUNET_asprintf (char **buf,
   va_start (args, format);
   ret = VSNPRINTF (NULL, 0, format, args);
   va_end (args);
+  GNUNET_assert (ret >= 0);
   *buf = GNUNET_malloc (ret + 1);
   va_start (args, format);
   ret = VSPRINTF (*buf, format, args);
