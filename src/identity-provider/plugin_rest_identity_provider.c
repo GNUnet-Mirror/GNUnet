@@ -165,8 +165,6 @@ char* OIDC_ignored_parameter_array [] =
   "acr_values"
 };
 
-struct GNUNET_NAMESTORE_Handle *namestore_handle;
-
 /**
  * OIDC authorized identities and times hashmap
  */
@@ -259,6 +257,10 @@ struct RequestHandle
    */
   struct GNUNET_REST_RequestHandle *rest_handle;
 
+  /**
+   * Zone connection
+   */
+  struct GNUNET_NAMESTORE_Handle *namestore_handle;
 
   /**
    * IDENTITY Operation
@@ -1139,8 +1141,8 @@ zone_to_name_error (void *cls)
   handle->emsg = GNUNET_strdup("unauthorized_client");
   handle->response_code = MHD_HTTP_INTERNAL_SERVER_ERROR;
 
-  GNUNET_NAMESTORE_disconnect (namestore_handle);
-  namestore_handle = NULL;
+  GNUNET_NAMESTORE_disconnect (handle->namestore_handle);
+  handle->namestore_handle = NULL;
   GNUNET_SCHEDULER_add_now (&do_error, handle);
 }
 
@@ -1154,7 +1156,7 @@ zone_to_name_error (void *cls)
  * @param rd array of records with data to store
  */
 static void
-zone_to_name_cb (void *cls,
+zone_to_name_get_cb (void *cls,
 		 const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone_key,
 		 const char *name,
 		 unsigned int rd_count,
@@ -1168,15 +1170,15 @@ zone_to_name_cb (void *cls,
     handle->emsg = GNUNET_strdup("unauthorized_client");
     handle->response_code = MHD_HTTP_INTERNAL_SERVER_ERROR;
 
-    GNUNET_NAMESTORE_disconnect (namestore_handle);
-    namestore_handle = NULL;
+    GNUNET_NAMESTORE_disconnect (handle->namestore_handle);
+    handle->namestore_handle = NULL;
     GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
   }
 }
 
 /**
- * Respond to authorization request
+ * Respond to authorization GET request
  *
  * @param con_handle the connection handle
  * @param url the url
@@ -1243,11 +1245,12 @@ authorize_get_cont (struct GNUNET_REST_RequestHandle *con_handle,
   }
 
   // Checks if client_id is valid:
-  namestore_handle = GNUNET_NAMESTORE_connect(cfg);
+  handle->namestore_handle = GNUNET_NAMESTORE_connect(cfg);
   zone_pkey = GNUNET_IDENTITY_ego_get_private_key (handle->ego_entry->ego);
-  GNUNET_NAMESTORE_zone_to_name (namestore_handle, zone_pkey, &pubkey,
-				 zone_to_name_error, handle, zone_to_name_cb,
+  GNUNET_NAMESTORE_zone_to_name (handle->namestore_handle, zone_pkey, &pubkey,
+				 zone_to_name_error, handle, zone_to_name_get_cb,
 				 handle);
+  return;
 
   // REQUIRED value: redirect_uri
   GNUNET_CRYPTO_hash (OIDC_REDIRECT_URI_KEY, strlen (OIDC_REDIRECT_URI_KEY),
@@ -1331,7 +1334,7 @@ authorize_get_cont (struct GNUNET_REST_RequestHandle *con_handle,
 							    &cache_key))
     {
       handle->emsg=GNUNET_strdup("access_denied");
-      GNUNET_asprintf (*handle->edesc, "Server will not handle parameter: %s",
+      GNUNET_asprintf (&handle->edesc, "Server will not handle parameter: %s",
 		       OIDC_ignored_parameter_array[iterator]);
       GNUNET_SCHEDULER_add_now (&do_redirect_error, handle);
       return;
@@ -1469,7 +1472,7 @@ authorize_get_cont (struct GNUNET_REST_RequestHandle *con_handle,
 }
 
 /**
- * Respond to authorization request
+ * Respond to authorization POST request
  *
  * @param con_handle the connection handle
  * @param url the url
@@ -1498,39 +1501,36 @@ authorize_post_cont (struct GNUNET_REST_RequestHandle *con_handle,
 
   struct MHD_Response *resp;
   struct RequestHandle *handle = cls;
-  char *response_type;
-  char *client_id;
+  const char *response_type;
+  const char *client_id;
   char *scope;
-  char *redirect_uri;
-  char *expected_redirect_uri;
-  char *state = NULL;
-  char *nonce = NULL;
+  const char *redirect_uri;
+  const char *state = NULL;
+  const char *nonce = NULL;
   struct GNUNET_TIME_Absolute current_time, *relog_time;
-  char *login_base_url, *new_redirect;
-  struct GNUNET_HashCode cache_key;
+  char *login_base_url;
+  char *new_redirect;
+  char *expected_redirect_uri;
+  json_t *cache_object;
   const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone_pkey;
   struct GNUNET_CRYPTO_EcdsaPublicKey pubkey;
+  struct GNUNET_HashCode cache_key;
   int number_of_ignored_parameter, iterator;
 
   json_t *root;
   json_error_t error;
-  json_t *identity;
   root = json_loads (handle->rest_handle->data, 0, &error);
-  client_id = json_object_get (root, OIDC_CLIENT_ID_KEY);
 
   // REQUIRED value: client_id
-  GNUNET_CRYPTO_hash (OIDC_CLIENT_ID_KEY, strlen (OIDC_CLIENT_ID_KEY),
-    		      &cache_key);
-  if (GNUNET_NO == GNUNET_CONTAINER_multihashmap_contains (handle->rest_handle->url_param_map,
-							   &cache_key))
+  cache_object = json_object_get (root, OIDC_CLIENT_ID_KEY);
+  if( NULL==cache_object || !json_is_string(cache_object))
   {
     handle->emsg=GNUNET_strdup("invalid_request");
     handle->edesc=GNUNET_strdup("Missing parameter: client_id");
     GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
   }
-  client_id = GNUNET_CONTAINER_multihashmap_get(handle->rest_handle->url_param_map,
-						&cache_key);
+  client_id = json_string_value(cache_object);
   if ( GNUNET_OK
       != GNUNET_CRYPTO_ecdsa_public_key_from_string (client_id,
 						     strlen (client_id),
@@ -1542,25 +1542,23 @@ authorize_post_cont (struct GNUNET_REST_RequestHandle *con_handle,
   }
 
   // Checks if client_id is valid:
-  namestore_handle = GNUNET_NAMESTORE_connect(cfg);
+  handle->namestore_handle = GNUNET_NAMESTORE_connect(cfg);
   zone_pkey = GNUNET_IDENTITY_ego_get_private_key (handle->ego_entry->ego);
-  GNUNET_NAMESTORE_zone_to_name (namestore_handle, zone_pkey, &pubkey,
-				 zone_to_name_error, handle, zone_to_name_cb,
-				 handle);
+  //TODO: fix
+//  GNUNET_NAMESTORE_zone_to_name (handle->namestore_handle, zone_pkey, &pubkey,
+//				 zone_to_name_error, handle, zone_to_name_cb,
+//				 handle);
 
   // REQUIRED value: redirect_uri
-  GNUNET_CRYPTO_hash (OIDC_REDIRECT_URI_KEY, strlen (OIDC_REDIRECT_URI_KEY),
-    		      &cache_key);
-  if (GNUNET_NO == GNUNET_CONTAINER_multihashmap_contains (handle->rest_handle->url_param_map,
-							   &cache_key))
+  cache_object = json_object_get (root, OIDC_REDIRECT_URI_KEY);
+  if( NULL==cache_object || !json_is_string(cache_object))
   {
     handle->emsg=GNUNET_strdup("invalid_request");
     handle->edesc=GNUNET_strdup("Missing parameter: redirect_uri");
     GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
   }
-  redirect_uri = GNUNET_CONTAINER_multihashmap_get(handle->rest_handle->url_param_map,
-						&cache_key);
+  redirect_uri = json_string_value(cache_object);
 
   GNUNET_asprintf (&expected_redirect_uri, "https://%s.zkey", client_id);
 
@@ -1576,61 +1574,50 @@ authorize_post_cont (struct GNUNET_REST_RequestHandle *con_handle,
   handle->eredirect = GNUNET_strdup(redirect_uri);
 
   // REQUIRED value: response_type
-  GNUNET_CRYPTO_hash (OIDC_RESPONSE_TYPE_KEY, strlen (OIDC_RESPONSE_TYPE_KEY),
-  		      &cache_key);
-  if (GNUNET_NO == GNUNET_CONTAINER_multihashmap_contains (handle->rest_handle->url_param_map,
-							   &cache_key))
+  cache_object = json_object_get (root, OIDC_RESPONSE_TYPE_KEY);
+  if( NULL==cache_object || !json_is_string(cache_object))
   {
     handle->emsg=GNUNET_strdup("invalid_request");
     handle->edesc=GNUNET_strdup("Missing parameter: response_type");
     GNUNET_SCHEDULER_add_now (&do_redirect_error, handle);
     return;
   }
-  response_type = GNUNET_CONTAINER_multihashmap_get(handle->rest_handle->url_param_map,
-                                                    &cache_key);
+  response_type = json_string_value(cache_object);
 
   // REQUIRED value: scope
-  GNUNET_CRYPTO_hash (OIDC_SCOPE_KEY, strlen (OIDC_SCOPE_KEY), &cache_key);
-  if (GNUNET_NO == GNUNET_CONTAINER_multihashmap_contains (handle->rest_handle->url_param_map,
-							   &cache_key))
+  cache_object = json_object_get (root, OIDC_SCOPE_KEY);
+  if( NULL==cache_object || !json_is_string(cache_object))
   {
     handle->emsg=GNUNET_strdup("invalid_request");
     handle->edesc=GNUNET_strdup("Missing parameter: scope");
     GNUNET_SCHEDULER_add_now (&do_redirect_error, handle);
     return;
   }
-  scope = GNUNET_CONTAINER_multihashmap_get(handle->rest_handle->url_param_map,
-					    &cache_key);
+  scope = json_string_value(cache_object);
 
   //RECOMMENDED value: state
-  GNUNET_CRYPTO_hash (OIDC_STATE_KEY, strlen (OIDC_STATE_KEY), &cache_key);
-  if (GNUNET_YES == GNUNET_CONTAINER_multihashmap_contains (handle->rest_handle->url_param_map,
-							   &cache_key))
+  cache_object = json_object_get (root, OIDC_STATE_KEY);
+  if( NULL!=cache_object || json_is_string(cache_object))
   {
-    state = GNUNET_CONTAINER_multihashmap_get(handle->rest_handle->url_param_map,
-					      &cache_key);
+    state = json_string_value(cache_object);
   }
 
   //OPTIONAL value: nonce
-  GNUNET_CRYPTO_hash (OIDC_NONCE_KEY, strlen (OIDC_NONCE_KEY), &cache_key);
-  if (GNUNET_YES == GNUNET_CONTAINER_multihashmap_contains (handle->rest_handle->url_param_map,
-							   &cache_key))
+  cache_object = json_object_get (root, OIDC_NONCE_KEY);
+  if( NULL!=cache_object || json_is_string(cache_object))
   {
-    nonce = GNUNET_CONTAINER_multihashmap_get(handle->rest_handle->url_param_map,
-					      &cache_key);
+    nonce = json_string_value(cache_object);
   }
 
+  //TODO check other values and use them accordingly
   number_of_ignored_parameter = sizeof(OIDC_ignored_parameter_array) / sizeof(char *);
   for( iterator = 0; iterator < number_of_ignored_parameter; iterator++ )
   {
-    GNUNET_CRYPTO_hash (OIDC_ignored_parameter_array[iterator],
-			strlen(OIDC_ignored_parameter_array[iterator]),
-			&cache_key);
-    if(GNUNET_YES == GNUNET_CONTAINER_multihashmap_contains(handle->rest_handle->url_param_map,
-							    &cache_key))
+    cache_object = json_object_get (root, OIDC_ignored_parameter_array[iterator]);
+    if(json_is_string(cache_object))
     {
       handle->emsg=GNUNET_strdup("access_denied");
-      GNUNET_asprintf (*handle->edesc, "Server will not handle parameter: %s",
+      GNUNET_asprintf (&handle->edesc, "Server will not handle parameter: %s",
 		       OIDC_ignored_parameter_array[iterator]);
       GNUNET_SCHEDULER_add_now (&do_redirect_error, handle);
       return;
@@ -1656,7 +1643,6 @@ authorize_post_cont (struct GNUNET_REST_RequestHandle *con_handle,
     return;
   }
 
-  //TODO check other values and use them accordingly
 
   GNUNET_CRYPTO_hash (OIDC_COOKIE_HEADER_KEY, strlen (OIDC_COOKIE_HEADER_KEY),
 		      &cache_key);
