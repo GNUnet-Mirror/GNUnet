@@ -150,8 +150,6 @@
  * OIDC expected scope part while authorizing
  */
 #define OIDC_EXPECTED_AUTHORIZATION_SCOPE "openid"
-
-
 /**
  * OIDC ignored parameter array
  */
@@ -166,6 +164,8 @@ char* OIDC_ignored_parameter_array [] =
   "login_hint", 
   "acr_values"
 };
+
+struct GNUNET_NAMESTORE_Handle *namestore_handle;
 
 /**
  * OIDC authorized identities and times hashmap
@@ -366,6 +366,10 @@ cleanup_handle (struct RequestHandle *handle)
     GNUNET_free (handle->url);
   if (NULL != handle->emsg)
     GNUNET_free (handle->emsg);
+  if (NULL != handle->edesc)
+    GNUNET_free (handle->edesc);
+  if (NULL != handle->eredirect)
+    GNUNET_free (handle->eredirect);
   for (ego_entry = handle->ego_head;
        NULL != ego_entry;)
   {
@@ -1125,32 +1129,65 @@ options_cont (struct GNUNET_REST_RequestHandle *con_handle,
 }
 
 /**
- * Respond to OPTIONS request
+ * Function called if we had an error in zone-to-name mapping.
+ */
+static void
+zone_to_name_error (void *cls)
+{
+  struct RequestHandle *handle = cls;
+
+  handle->emsg = GNUNET_strdup("unauthorized_client");
+  handle->response_code = MHD_HTTP_INTERNAL_SERVER_ERROR;
+
+  GNUNET_NAMESTORE_disconnect (namestore_handle);
+  namestore_handle = NULL;
+  GNUNET_SCHEDULER_add_now (&do_error, handle);
+}
+
+/**
+ * Test if a name mapping was found, if so, continue, else, throw error
+ *
+ * @param cls closure
+ * @param zone_key public key of the zone
+ * @param name name that is being mapped (at most 255 characters long)
+ * @param rd_count number of entries in @a rd array
+ * @param rd array of records with data to store
+ */
+static void
+zone_to_name_cb (void *cls,
+		 const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone_key,
+		 const char *name,
+		 unsigned int rd_count,
+		 const struct GNUNET_GNSRECORD_Data *rd)
+{
+  struct RequestHandle *handle = cls;
+
+
+  if (0 == rd_count)
+  {
+    handle->emsg = GNUNET_strdup("unauthorized_client");
+    handle->response_code = MHD_HTTP_INTERNAL_SERVER_ERROR;
+
+    GNUNET_NAMESTORE_disconnect (namestore_handle);
+    namestore_handle = NULL;
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
+    return;
+  }
+}
+
+/**
+ * Respond to authorization request
  *
  * @param con_handle the connection handle
  * @param url the url
  * @param cls the RequestHandle
  */
 static void
-authorize_cont (struct GNUNET_REST_RequestHandle *con_handle,
+authorize_get_cont (struct GNUNET_REST_RequestHandle *con_handle,
                 const char* url,
                 void *cls)
 {
-  struct MHD_Response *resp;
-  struct RequestHandle *handle = cls;
-  char *response_type;
-  char *client_id;
-  char *scope;
-  char *redirect_uri;
-  char *state = NULL;
-  char *nonce = NULL;
-  struct GNUNET_TIME_Absolute current_time, *relog_time;
-  char *login_base_url, *new_redirect;
-  struct GNUNET_HashCode cache_key;
-
-  //TODO clean up method
-
-  /**	The Authorization Server MUST validate all the OAuth 2.0 parameters
+    /**	The Authorization Server MUST validate all the OAuth 2.0 parameters
    * 	according to the OAuth 2.0 specification.
    */
   /**
@@ -1166,7 +1203,21 @@ authorize_cont (struct GNUNET_REST_RequestHandle *con_handle,
    * 	the implementation.
    */
 
-
+  struct MHD_Response *resp;
+  struct RequestHandle *handle = cls;
+  char *response_type;
+  char *client_id;
+  char *scope;
+  char *redirect_uri;
+  char *expected_redirect_uri;
+  char *state = NULL;
+  char *nonce = NULL;
+  struct GNUNET_TIME_Absolute current_time, *relog_time;
+  char *login_base_url, *new_redirect;
+  struct GNUNET_HashCode cache_key;
+  const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone_pkey;
+  struct GNUNET_CRYPTO_EcdsaPublicKey pubkey;
+  int number_of_ignored_parameter, iterator;
 
   // REQUIRED value: client_id
   GNUNET_CRYPTO_hash (OIDC_CLIENT_ID_KEY, strlen (OIDC_CLIENT_ID_KEY),
@@ -1181,24 +1232,24 @@ authorize_cont (struct GNUNET_REST_RequestHandle *con_handle,
   }
   client_id = GNUNET_CONTAINER_multihashmap_get(handle->rest_handle->url_param_map,
 						&cache_key);
-  struct GNUNET_CRYPTO_EcdsaPublicKey pubkey;
-  GNUNET_CRYPTO_ecdsa_public_key_from_string(client_id,
-					     strlen (client_id),
-					     &pubkey);
-//  GNUNET_NAMESTORE_zone_to_name();
+  if ( GNUNET_OK
+      != GNUNET_CRYPTO_ecdsa_public_key_from_string (client_id,
+						     strlen (client_id),
+						     &pubkey) )
+  {
+    handle->emsg=GNUNET_strdup("unauthorized_client");
+    handle->response_code = MHD_HTTP_INTERNAL_SERVER_ERROR;
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
+  }
+
   // Checks if client_id is valid:
-  // TODO use GNUNET_NAMESTORE_zone_to_name() function to verify that a delegation to the client_id exists
-  // TODO change check (lookup trusted public_key?)
-//  if( strcmp( client_id, "localhost" ) != 0 )
-//  {
-//    handle->emsg=GNUNET_strdup("unauthorized_client");
-//    handle->response_code = MHD_HTTP_INTERNAL_SERVER_ERROR;
-//    GNUNET_SCHEDULER_add_now (&do_error, handle);
-//    return;
-//  }
+  namestore_handle = GNUNET_NAMESTORE_connect(cfg);
+  zone_pkey = GNUNET_IDENTITY_ego_get_private_key (handle->ego_entry->ego);
+  GNUNET_NAMESTORE_zone_to_name (namestore_handle, zone_pkey, &pubkey,
+				 zone_to_name_error, handle, zone_to_name_cb,
+				 handle);
 
   // REQUIRED value: redirect_uri
-  // TODO verify the redirect uri matches https://<client_id>.zkey[/xyz]
   GNUNET_CRYPTO_hash (OIDC_REDIRECT_URI_KEY, strlen (OIDC_REDIRECT_URI_KEY),
     		      &cache_key);
   if (GNUNET_NO == GNUNET_CONTAINER_multihashmap_contains (handle->rest_handle->url_param_map,
@@ -1212,15 +1263,17 @@ authorize_cont (struct GNUNET_REST_RequestHandle *con_handle,
   redirect_uri = GNUNET_CONTAINER_multihashmap_get(handle->rest_handle->url_param_map,
 						&cache_key);
 
+  GNUNET_asprintf (&expected_redirect_uri, "https://%s.zkey", client_id);
+
   // verify the redirect uri matches https://<client_id>.zkey[/xyz]
-  // TODO change check (check client_id->public key == address)
-//  if( strcmp( redirect_uri, "https://localhost:8000" ) != 0 )
-//  {
-//    handle->emsg=GNUNET_strdup("invalid_request");
-//    handle->edesc=GNUNET_strdup("Invalid or mismatching redirect_uri");
-//    GNUNET_SCHEDULER_add_now (&do_error, handle);
-//    return;
-//  }
+  if( 0 != strncmp( expected_redirect_uri, redirect_uri, strlen(expected_redirect_uri)) )
+  {
+    handle->emsg=GNUNET_strdup("invalid_request");
+    handle->edesc=GNUNET_strdup("Invalid redirect_uri");
+    GNUNET_free(expected_redirect_uri);
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
+    return;
+  }
   handle->eredirect = GNUNET_strdup(redirect_uri);
 
   // REQUIRED value: response_type
@@ -1268,8 +1321,7 @@ authorize_cont (struct GNUNET_REST_RequestHandle *con_handle,
 					      &cache_key);
   }
 
-  int number_of_ignored_parameter = sizeof(OIDC_ignored_parameter_array) / sizeof(char *);
-  int iterator;
+  number_of_ignored_parameter = sizeof(OIDC_ignored_parameter_array) / sizeof(char *);
   for( iterator = 0; iterator < number_of_ignored_parameter; iterator++ )
   {
     GNUNET_CRYPTO_hash (OIDC_ignored_parameter_array[iterator],
@@ -1279,15 +1331,15 @@ authorize_cont (struct GNUNET_REST_RequestHandle *con_handle,
 							    &cache_key))
     {
       handle->emsg=GNUNET_strdup("access_denied");
-      //TODO rewrite error description
-      handle->edesc=GNUNET_strdup("Server will not handle parameter");
+      GNUNET_asprintf (*handle->edesc, "Server will not handle parameter: %s",
+		       OIDC_ignored_parameter_array[iterator]);
       GNUNET_SCHEDULER_add_now (&do_redirect_error, handle);
       return;
     }
   }
 
   // Checks if response_type is 'code'
-  if( strcmp( response_type, OIDC_EXPECTED_AUTHORIZATION_RESPONSE_TYPE ) != 0 )
+  if( 0 != strcmp( response_type, OIDC_EXPECTED_AUTHORIZATION_RESPONSE_TYPE ) )
   {
     handle->emsg=GNUNET_strdup("unsupported_response_type");
     handle->edesc=GNUNET_strdup("The authorization server does not support "
@@ -1296,7 +1348,7 @@ authorize_cont (struct GNUNET_REST_RequestHandle *con_handle,
     return;
   }
   // Checks if scope contains 'openid'
-  if( strstr( scope, OIDC_EXPECTED_AUTHORIZATION_SCOPE ) == NULL )
+  if( NULL == strstr( scope, OIDC_EXPECTED_AUTHORIZATION_SCOPE ) )
   {
     handle->emsg=GNUNET_strdup("invalid_scope");
     handle->edesc=GNUNET_strdup("The requested scope is invalid, unknown, or "
@@ -1305,9 +1357,7 @@ authorize_cont (struct GNUNET_REST_RequestHandle *con_handle,
     return;
   }
 
-
   //TODO check other values and use them accordingly
-
 
   GNUNET_CRYPTO_hash (OIDC_COOKIE_HEADER_KEY, strlen (OIDC_COOKIE_HEADER_KEY),
 		      &cache_key);
@@ -1323,13 +1373,13 @@ authorize_cont (struct GNUNET_REST_RequestHandle *con_handle,
     char *identity_cookie;
     identity_cookie = strtok(cookies, delimiter);
 
-    while(identity_cookie != NULL)
+    while ( NULL != identity_cookie )
     {
-      if(strstr( identity_cookie, OIDC_COOKIE_HEADER_INFORMATION_KEY ) != NULL)
+      if ( NULL != strstr (identity_cookie, OIDC_COOKIE_HEADER_INFORMATION_KEY) )
       {
 	break;
       }
-      identity_cookie = strtok(NULL, delimiter);
+      identity_cookie = strtok (NULL, delimiter);
     }
     GNUNET_CRYPTO_hash (identity_cookie, strlen (identity_cookie), &cache_key);
 
@@ -1348,8 +1398,329 @@ authorize_cont (struct GNUNET_REST_RequestHandle *con_handle,
       if ( current_time.abs_value_us <= relog_time->abs_value_us )
       {
 	resp = GNUNET_REST_create_response ("");
-	// code = struct GNUNET_IDENTITY_PROVIDER_Ticket
-	GNUNET_IDENTITY_PROVIDER_t
+
+	GNUNET_CRYPTO_ecdsa_public_key_from_string (identity_cookie,
+						    strlen (identity_cookie),
+						    &pubkey);
+
+	// iterate over egos and compare their public key
+//	GNUNET_IDENTITY_PROVIDER_get_attributes_start
+	// iterate over scope variables
+	char delimiter[] = " ";
+	char *scope_attribute;
+	scope_attribute = strtok(scope, delimiter);
+
+	while ( NULL != scope_attribute )
+	{
+	  if ( NULL == strstr (scope_attribute, OIDC_EXPECTED_AUTHORIZATION_SCOPE) )
+	  {
+	    // claim attribute from ego
+	    scope_attribute = strtok (NULL, delimiter);
+	  }
+	}
+	// create an authorization code
+
+//	GNUNET_IDENTITY_PROVIDER_t
+
+	MHD_add_response_header (resp, "Location", redirect_uri);
+	handle->proc (handle->proc_cls, resp, MHD_HTTP_FOUND);
+	cleanup_handle (handle);
+	GNUNET_free(relog_time);
+	return;
+      }
+      GNUNET_free(relog_time);
+    }
+  }
+
+
+  // login redirection
+  if ( GNUNET_OK
+      == GNUNET_CONFIGURATION_get_value_string (cfg, "identity-rest-plugin",
+						"address", &login_base_url) )
+  {
+    GNUNET_asprintf (&new_redirect, "%s?%s=%s&%s=%s&%s=%s&%s=%s&%s=%s&%s=%s",
+		     login_base_url,
+		     OIDC_RESPONSE_TYPE_KEY,
+		     response_type,
+		     OIDC_CLIENT_ID_KEY,
+		     client_id,
+		     OIDC_REDIRECT_URI_KEY,
+		     redirect_uri,
+		     OIDC_SCOPE_KEY,
+		     scope,
+		     OIDC_STATE_KEY,
+		     (NULL == state) ? state : "",
+		     OIDC_NONCE_KEY,
+		     (NULL == nonce) ? nonce : "");
+    resp = GNUNET_REST_create_response ("");
+    MHD_add_response_header (resp, "Location", new_redirect);
+  }
+  else
+  {
+    handle->emsg = GNUNET_strdup("No server configuration");
+    handle->response_code = MHD_HTTP_INTERNAL_SERVER_ERROR;
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
+    return;
+  }
+  handle->proc (handle->proc_cls, resp, MHD_HTTP_FOUND);
+  cleanup_handle (handle);
+  GNUNET_free(new_redirect);
+  return;
+}
+
+/**
+ * Respond to authorization request
+ *
+ * @param con_handle the connection handle
+ * @param url the url
+ * @param cls the RequestHandle
+ */
+static void
+authorize_post_cont (struct GNUNET_REST_RequestHandle *con_handle,
+                const char* url,
+                void *cls)
+{
+    /**	The Authorization Server MUST validate all the OAuth 2.0 parameters
+   * 	according to the OAuth 2.0 specification.
+   */
+  /**
+   * 	If the sub (subject) Claim is requested with a specific value for the
+   * 	ID Token, the Authorization Server MUST only send a positive response
+   * 	if the End-User identified by that sub value has an active session with
+   * 	the Authorization Server or has been Authenticated as a result of the
+   * 	request. The Authorization Server MUST NOT reply with an ID Token or
+   * 	Access Token for a different user, even if they have an active session
+   * 	with the Authorization Server. Such a request can be made either using
+   * 	an id_token_hint parameter or by requesting a specific Claim Value as
+   * 	described in Section 5.5.1, if the claims parameter is supported by
+   * 	the implementation.
+   */
+
+  struct MHD_Response *resp;
+  struct RequestHandle *handle = cls;
+  char *response_type;
+  char *client_id;
+  char *scope;
+  char *redirect_uri;
+  char *expected_redirect_uri;
+  char *state = NULL;
+  char *nonce = NULL;
+  struct GNUNET_TIME_Absolute current_time, *relog_time;
+  char *login_base_url, *new_redirect;
+  struct GNUNET_HashCode cache_key;
+  const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone_pkey;
+  struct GNUNET_CRYPTO_EcdsaPublicKey pubkey;
+  int number_of_ignored_parameter, iterator;
+
+  json_t *root;
+  json_error_t error;
+  json_t *identity;
+  root = json_loads (handle->rest_handle->data, 0, &error);
+  client_id = json_object_get (root, OIDC_CLIENT_ID_KEY);
+
+  // REQUIRED value: client_id
+  GNUNET_CRYPTO_hash (OIDC_CLIENT_ID_KEY, strlen (OIDC_CLIENT_ID_KEY),
+    		      &cache_key);
+  if (GNUNET_NO == GNUNET_CONTAINER_multihashmap_contains (handle->rest_handle->url_param_map,
+							   &cache_key))
+  {
+    handle->emsg=GNUNET_strdup("invalid_request");
+    handle->edesc=GNUNET_strdup("Missing parameter: client_id");
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
+    return;
+  }
+  client_id = GNUNET_CONTAINER_multihashmap_get(handle->rest_handle->url_param_map,
+						&cache_key);
+  if ( GNUNET_OK
+      != GNUNET_CRYPTO_ecdsa_public_key_from_string (client_id,
+						     strlen (client_id),
+						     &pubkey) )
+  {
+    handle->emsg=GNUNET_strdup("unauthorized_client");
+    handle->response_code = MHD_HTTP_INTERNAL_SERVER_ERROR;
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
+  }
+
+  // Checks if client_id is valid:
+  namestore_handle = GNUNET_NAMESTORE_connect(cfg);
+  zone_pkey = GNUNET_IDENTITY_ego_get_private_key (handle->ego_entry->ego);
+  GNUNET_NAMESTORE_zone_to_name (namestore_handle, zone_pkey, &pubkey,
+				 zone_to_name_error, handle, zone_to_name_cb,
+				 handle);
+
+  // REQUIRED value: redirect_uri
+  GNUNET_CRYPTO_hash (OIDC_REDIRECT_URI_KEY, strlen (OIDC_REDIRECT_URI_KEY),
+    		      &cache_key);
+  if (GNUNET_NO == GNUNET_CONTAINER_multihashmap_contains (handle->rest_handle->url_param_map,
+							   &cache_key))
+  {
+    handle->emsg=GNUNET_strdup("invalid_request");
+    handle->edesc=GNUNET_strdup("Missing parameter: redirect_uri");
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
+    return;
+  }
+  redirect_uri = GNUNET_CONTAINER_multihashmap_get(handle->rest_handle->url_param_map,
+						&cache_key);
+
+  GNUNET_asprintf (&expected_redirect_uri, "https://%s.zkey", client_id);
+
+  // verify the redirect uri matches https://<client_id>.zkey[/xyz]
+  if( 0 != strncmp( expected_redirect_uri, redirect_uri, strlen(expected_redirect_uri)) )
+  {
+    handle->emsg=GNUNET_strdup("invalid_request");
+    handle->edesc=GNUNET_strdup("Invalid redirect_uri");
+    GNUNET_free(expected_redirect_uri);
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
+    return;
+  }
+  handle->eredirect = GNUNET_strdup(redirect_uri);
+
+  // REQUIRED value: response_type
+  GNUNET_CRYPTO_hash (OIDC_RESPONSE_TYPE_KEY, strlen (OIDC_RESPONSE_TYPE_KEY),
+  		      &cache_key);
+  if (GNUNET_NO == GNUNET_CONTAINER_multihashmap_contains (handle->rest_handle->url_param_map,
+							   &cache_key))
+  {
+    handle->emsg=GNUNET_strdup("invalid_request");
+    handle->edesc=GNUNET_strdup("Missing parameter: response_type");
+    GNUNET_SCHEDULER_add_now (&do_redirect_error, handle);
+    return;
+  }
+  response_type = GNUNET_CONTAINER_multihashmap_get(handle->rest_handle->url_param_map,
+                                                    &cache_key);
+
+  // REQUIRED value: scope
+  GNUNET_CRYPTO_hash (OIDC_SCOPE_KEY, strlen (OIDC_SCOPE_KEY), &cache_key);
+  if (GNUNET_NO == GNUNET_CONTAINER_multihashmap_contains (handle->rest_handle->url_param_map,
+							   &cache_key))
+  {
+    handle->emsg=GNUNET_strdup("invalid_request");
+    handle->edesc=GNUNET_strdup("Missing parameter: scope");
+    GNUNET_SCHEDULER_add_now (&do_redirect_error, handle);
+    return;
+  }
+  scope = GNUNET_CONTAINER_multihashmap_get(handle->rest_handle->url_param_map,
+					    &cache_key);
+
+  //RECOMMENDED value: state
+  GNUNET_CRYPTO_hash (OIDC_STATE_KEY, strlen (OIDC_STATE_KEY), &cache_key);
+  if (GNUNET_YES == GNUNET_CONTAINER_multihashmap_contains (handle->rest_handle->url_param_map,
+							   &cache_key))
+  {
+    state = GNUNET_CONTAINER_multihashmap_get(handle->rest_handle->url_param_map,
+					      &cache_key);
+  }
+
+  //OPTIONAL value: nonce
+  GNUNET_CRYPTO_hash (OIDC_NONCE_KEY, strlen (OIDC_NONCE_KEY), &cache_key);
+  if (GNUNET_YES == GNUNET_CONTAINER_multihashmap_contains (handle->rest_handle->url_param_map,
+							   &cache_key))
+  {
+    nonce = GNUNET_CONTAINER_multihashmap_get(handle->rest_handle->url_param_map,
+					      &cache_key);
+  }
+
+  number_of_ignored_parameter = sizeof(OIDC_ignored_parameter_array) / sizeof(char *);
+  for( iterator = 0; iterator < number_of_ignored_parameter; iterator++ )
+  {
+    GNUNET_CRYPTO_hash (OIDC_ignored_parameter_array[iterator],
+			strlen(OIDC_ignored_parameter_array[iterator]),
+			&cache_key);
+    if(GNUNET_YES == GNUNET_CONTAINER_multihashmap_contains(handle->rest_handle->url_param_map,
+							    &cache_key))
+    {
+      handle->emsg=GNUNET_strdup("access_denied");
+      GNUNET_asprintf (*handle->edesc, "Server will not handle parameter: %s",
+		       OIDC_ignored_parameter_array[iterator]);
+      GNUNET_SCHEDULER_add_now (&do_redirect_error, handle);
+      return;
+    }
+  }
+
+  // Checks if response_type is 'code'
+  if( 0 != strcmp( response_type, OIDC_EXPECTED_AUTHORIZATION_RESPONSE_TYPE ) )
+  {
+    handle->emsg=GNUNET_strdup("unsupported_response_type");
+    handle->edesc=GNUNET_strdup("The authorization server does not support "
+				"obtaining this authorization code.");
+    GNUNET_SCHEDULER_add_now (&do_redirect_error, handle);
+    return;
+  }
+  // Checks if scope contains 'openid'
+  if( NULL == strstr( scope, OIDC_EXPECTED_AUTHORIZATION_SCOPE ) )
+  {
+    handle->emsg=GNUNET_strdup("invalid_scope");
+    handle->edesc=GNUNET_strdup("The requested scope is invalid, unknown, or "
+				"malformed.");
+    GNUNET_SCHEDULER_add_now (&do_redirect_error, handle);
+    return;
+  }
+
+  //TODO check other values and use them accordingly
+
+  GNUNET_CRYPTO_hash (OIDC_COOKIE_HEADER_KEY, strlen (OIDC_COOKIE_HEADER_KEY),
+		      &cache_key);
+  //No identity-cookie -> redirect to login
+  if ( GNUNET_YES
+      == GNUNET_CONTAINER_multihashmap_contains (con_handle->header_param_map,
+						 &cache_key) )
+  {
+    //split cookies and find 'Identity' cookie
+    char* cookies = GNUNET_CONTAINER_multihashmap_get (
+	con_handle->header_param_map, &cache_key);
+    char delimiter[] = "; ";
+    char *identity_cookie;
+    identity_cookie = strtok(cookies, delimiter);
+
+    while ( NULL != identity_cookie )
+    {
+      if ( NULL != strstr (identity_cookie, OIDC_COOKIE_HEADER_INFORMATION_KEY) )
+      {
+	break;
+      }
+      identity_cookie = strtok (NULL, delimiter);
+    }
+    GNUNET_CRYPTO_hash (identity_cookie, strlen (identity_cookie), &cache_key);
+
+    //No login time for identity -> redirect to login
+    if ( GNUNET_YES
+	== GNUNET_CONTAINER_multihashmap_contains (OIDC_authorized_identities,
+						   &cache_key) )
+    {
+      relog_time = GNUNET_CONTAINER_multihashmap_get (
+	      OIDC_authorized_identities, &cache_key);
+
+      current_time = GNUNET_TIME_absolute_get();
+
+      GNUNET_CONTAINER_multihashmap_remove_all(OIDC_authorized_identities, &cache_key);
+      // 30 min after old login -> redirect to login
+      if ( current_time.abs_value_us <= relog_time->abs_value_us )
+      {
+	resp = GNUNET_REST_create_response ("");
+
+	GNUNET_CRYPTO_ecdsa_public_key_from_string (identity_cookie,
+						    strlen (identity_cookie),
+						    &pubkey);
+
+	// iterate over egos and compare their public key
+//	GNUNET_IDENTITY_PROVIDER_get_attributes_start
+	// iterate over scope variables
+	char delimiter[] = " ";
+	char *scope_attribute;
+	scope_attribute = strtok(scope, delimiter);
+
+	while ( NULL != scope_attribute )
+	{
+	  if ( NULL == strstr (scope_attribute, OIDC_EXPECTED_AUTHORIZATION_SCOPE) )
+	  {
+	    // claim attribute from ego
+	    scope_attribute = strtok (NULL, delimiter);
+	  }
+	}
+	// create an authorization code
+
+//	GNUNET_IDENTITY_PROVIDER_t
+
 	MHD_add_response_header (resp, "Location", redirect_uri);
 	handle->proc (handle->proc_cls, resp, MHD_HTTP_FOUND);
 	cleanup_handle (handle);
@@ -1459,9 +1830,9 @@ init_cont (struct RequestHandle *handle)
     {MHD_HTTP_METHOD_GET, GNUNET_REST_API_NS_IDENTITY_ATTRIBUTES, &list_attribute_cont},
     {MHD_HTTP_METHOD_POST, GNUNET_REST_API_NS_IDENTITY_ATTRIBUTES, &add_attribute_cont},
     {MHD_HTTP_METHOD_GET, GNUNET_REST_API_NS_IDENTITY_TICKETS, &list_tickets_cont},
-    {MHD_HTTP_METHOD_GET, GNUNET_REST_API_NS_AUTHORIZE, &authorize_cont},
+    {MHD_HTTP_METHOD_GET, GNUNET_REST_API_NS_AUTHORIZE, &authorize_get_cont},
     {MHD_HTTP_METHOD_POST, GNUNET_REST_API_NS_LOGIN, &login_cont},
-    {MHD_HTTP_METHOD_POST, GNUNET_REST_API_NS_AUTHORIZE, &authorize_cont},
+    {MHD_HTTP_METHOD_POST, GNUNET_REST_API_NS_AUTHORIZE, &authorize_post_cont},
     {MHD_HTTP_METHOD_POST, GNUNET_REST_API_NS_IDENTITY_REVOKE, &revoke_ticket_cont},
     {MHD_HTTP_METHOD_POST, GNUNET_REST_API_NS_IDENTITY_CONSUME, &consume_ticket_cont},
     {MHD_HTTP_METHOD_OPTIONS, GNUNET_REST_API_NS_IDENTITY_PROVIDER,
