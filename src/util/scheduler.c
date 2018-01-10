@@ -1659,8 +1659,7 @@ GNUNET_SCHEDULER_add_file_with_priority (struct GNUNET_TIME_Relative delay,
 
 
 void
-extract_handles (struct GNUNET_SCHEDULER_Task *t,
-                 const struct GNUNET_NETWORK_FDSet *fdset,
+extract_handles (const struct GNUNET_NETWORK_FDSet *fdset,
                  const struct GNUNET_NETWORK_Handle ***ntarget,
                  unsigned int *extracted_nhandles,
                  const struct GNUNET_DISK_FileHandle ***ftarget,
@@ -1673,7 +1672,6 @@ extract_handles (struct GNUNET_SCHEDULER_Task *t,
   unsigned int nhandles_len;
   unsigned int fhandles_len;
 
-  (void) t;
   nhandles = NULL;
   fhandles = NULL;
   nhandles_len = 0;
@@ -1754,11 +1752,16 @@ GNUNET_SCHEDULER_add_select (enum GNUNET_SCHEDULER_Priority prio,
   const struct GNUNET_DISK_FileHandle **write_fhandles;
   unsigned int read_nhandles_len, write_nhandles_len,
                read_fhandles_len, write_fhandles_len;
-  int no_fdsets = (NULL == rs) && (NULL == ws);
-  int no_socket_descriptors =
-    ((NULL != rs) && (0 == rs->nsds)) && ((NULL != ws) && (0 == ws->nsds));
-
-  if (no_fdsets || no_socket_descriptors)
+  
+  int no_rs = (NULL == rs);
+  int no_ws = (NULL == ws);
+  int empty_rs = (NULL != rs) && (0 == rs->nsds);
+  int empty_ws = (NULL != ws) && (0 == ws->nsds);
+  int no_socket_descriptors = (no_rs && no_ws) ||
+                              (empty_rs && empty_ws) ||
+                              (no_rs && empty_ws) ||
+                              (no_ws && empty_rs);
+  if (no_socket_descriptors)
     return GNUNET_SCHEDULER_add_delayed_with_priority (delay,
                                                        prio,
                                                        task,
@@ -1767,12 +1770,6 @@ GNUNET_SCHEDULER_add_select (enum GNUNET_SCHEDULER_Priority prio,
   GNUNET_assert (NULL != scheduler_driver);
   GNUNET_assert (NULL != active_task);
   GNUNET_assert (NULL != task);
-  t = GNUNET_new (struct GNUNET_SCHEDULER_Task);
-  t->callback = task;
-  t->callback_cls = task_cls;
-  t->read_fd = -1;
-  t->write_fd = -1;
-  t->own_handles = GNUNET_YES;
   read_nhandles = NULL;
   write_nhandles = NULL;
   read_fhandles = NULL;
@@ -1783,8 +1780,7 @@ GNUNET_SCHEDULER_add_select (enum GNUNET_SCHEDULER_Priority prio,
   write_fhandles_len = 0;
   if (NULL != rs)
   {
-    extract_handles (t,
-                     rs,
+    extract_handles (rs,
                      &read_nhandles,
                      &read_nhandles_len,
                      &read_fhandles,
@@ -1792,13 +1788,17 @@ GNUNET_SCHEDULER_add_select (enum GNUNET_SCHEDULER_Priority prio,
   }
   if (NULL != ws)
   {
-    extract_handles (t,
-                     ws,
+    extract_handles (ws,
                      &write_nhandles,
                      &write_nhandles_len,
                      &write_fhandles,
                      &write_fhandles_len);
   }
+  GNUNET_assert ((read_nhandles > 0) ||
+                 (read_fhandles > 0) ||
+                 (write_nhandles > 0) ||
+                 (write_fhandles > 0));
+  t = GNUNET_new (struct GNUNET_SCHEDULER_Task);
   init_fd_info (t,
                 read_nhandles,
                 read_nhandles_len,
@@ -1808,6 +1808,9 @@ GNUNET_SCHEDULER_add_select (enum GNUNET_SCHEDULER_Priority prio,
                 read_fhandles_len,
                 write_fhandles,
                 write_fhandles_len);
+  t->callback = task;
+  t->callback_cls = task_cls;
+  t->own_handles = GNUNET_YES;
   /* free the arrays of pointers to network / file handles, the actual
    * handles will be freed in destroy_task */
   GNUNET_array_grow (read_nhandles, read_nhandles_len, 0);
@@ -2187,8 +2190,6 @@ select_del (void *cls,
   context = cls;
   ret = GNUNET_SYSERR;
   pos = context->scheduled_head;
-  if (0 == task->fds_len)
-    return GNUNET_OK;
   while (NULL != pos)
   {
     struct Scheduled *next = pos->next;
