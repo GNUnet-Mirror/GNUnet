@@ -1746,58 +1746,62 @@ GNUNET_SCHEDULER_add_select (enum GNUNET_SCHEDULER_Priority prio,
                              void *task_cls)
 {
   struct GNUNET_SCHEDULER_Task *t;
-  const struct GNUNET_NETWORK_Handle **read_nhandles;
-  const struct GNUNET_NETWORK_Handle **write_nhandles;
-  const struct GNUNET_DISK_FileHandle **read_fhandles;
-  const struct GNUNET_DISK_FileHandle **write_fhandles;
-  unsigned int read_nhandles_len, write_nhandles_len,
-               read_fhandles_len, write_fhandles_len;
-  
-  int no_rs = (NULL == rs);
-  int no_ws = (NULL == ws);
-  int empty_rs = (NULL != rs) && (0 == rs->nsds);
-  int empty_ws = (NULL != ws) && (0 == ws->nsds);
-  int no_socket_descriptors = (no_rs && no_ws) ||
-                              (empty_rs && empty_ws) ||
-                              (no_rs && empty_ws) ||
-                              (no_ws && empty_rs);
-  if (no_socket_descriptors)
-    return GNUNET_SCHEDULER_add_delayed_with_priority (delay,
-                                                       prio,
-                                                       task,
-                                                       task_cls);
+  const struct GNUNET_NETWORK_Handle **read_nhandles = NULL;
+  const struct GNUNET_NETWORK_Handle **write_nhandles = NULL;
+  const struct GNUNET_DISK_FileHandle **read_fhandles = NULL;
+  const struct GNUNET_DISK_FileHandle **write_fhandles = NULL;
+  unsigned int read_nhandles_len = 0;
+  unsigned int write_nhandles_len = 0;
+  unsigned int read_fhandles_len = 0;
+  unsigned int write_fhandles_len = 0;
+
   /* scheduler must be running */
   GNUNET_assert (NULL != scheduler_driver);
   GNUNET_assert (NULL != active_task);
   GNUNET_assert (NULL != task);
-  read_nhandles = NULL;
-  write_nhandles = NULL;
-  read_fhandles = NULL;
-  write_fhandles = NULL;
-  read_nhandles_len = 0;
-  write_nhandles_len = 0;
-  read_fhandles_len = 0;
-  write_fhandles_len = 0;
-  if (NULL != rs)
+  int no_rs = (NULL == rs);
+  int no_ws = (NULL == ws);
+  int empty_rs = (NULL != rs) && (0 == rs->nsds);
+  int empty_ws = (NULL != ws) && (0 == ws->nsds);
+  int no_fds = (no_rs && no_ws) ||
+               (empty_rs && empty_ws) ||
+               (no_rs && empty_ws) ||
+               (no_ws && empty_rs);
+  if (! no_fds)
   {
-    extract_handles (rs,
-                     &read_nhandles,
-                     &read_nhandles_len,
-                     &read_fhandles,
-                     &read_fhandles_len);
+    if (NULL != rs)
+    {
+      extract_handles (rs,
+                       &read_nhandles,
+                       &read_nhandles_len,
+                       &read_fhandles,
+                       &read_fhandles_len);
+    }
+    if (NULL != ws)
+    {
+      extract_handles (ws,
+                       &write_nhandles,
+                       &write_nhandles_len,
+                       &write_fhandles,
+                       &write_fhandles_len);
+    }
   }
-  if (NULL != ws)
-  {
-    extract_handles (ws,
-                     &write_nhandles,
-                     &write_nhandles_len,
-                     &write_fhandles,
-                     &write_fhandles_len);
-  }
-  GNUNET_assert ((read_nhandles > 0) ||
-                 (read_fhandles > 0) ||
-                 (write_nhandles > 0) ||
-                 (write_fhandles > 0));
+  /**
+   * here we consider the case that a GNUNET_NETWORK_FDSet might be empty
+   * although its maximum FD number (nsds) is greater than 0. We handle
+   * this case gracefully because some libraries such as libmicrohttpd
+   * only provide a hint what the maximum FD number in an FD set might be
+   * and not the exact FD number (see e.g. gnunet-rest-service.c)
+   */
+  int no_fds_extracted = (0 == read_nhandles_len) &&
+                         (0 == read_fhandles_len) &&
+                         (0 == write_nhandles_len) &&
+                         (0 == write_fhandles_len);
+  if (no_fds || no_fds_extracted)
+    return GNUNET_SCHEDULER_add_delayed_with_priority (delay,
+                                                       prio,
+                                                       task,
+                                                       task_cls);
   t = GNUNET_new (struct GNUNET_SCHEDULER_Task);
   init_fd_info (t,
                 read_nhandles,
