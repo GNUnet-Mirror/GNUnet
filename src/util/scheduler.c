@@ -2006,7 +2006,7 @@ GNUNET_SCHEDULER_run_from_driver (struct GNUNET_SCHEDULER_Handle *sh)
       if (GNUNET_OK != del_result)
       {
         LOG (GNUNET_ERROR_TYPE_ERROR,
-             "driver could not delete task\n");
+           "driver could not delete task %p\n", pos);
         GNUNET_assert (0);
       }
     }
@@ -2187,6 +2187,8 @@ select_del (void *cls,
   context = cls;
   ret = GNUNET_SYSERR;
   pos = context->scheduled_head;
+  if (0 == task->fds_len)
+    return GNUNET_OK;
   while (NULL != pos)
   {
     struct Scheduled *next = pos->next;

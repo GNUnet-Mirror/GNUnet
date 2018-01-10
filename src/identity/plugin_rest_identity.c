@@ -241,7 +241,10 @@ cleanup_handle (struct RequestHandle *handle)
   if (NULL != handle->name)
     GNUNET_free (handle->name);
   if (NULL != handle->timeout_task)
+  {
     GNUNET_SCHEDULER_cancel (handle->timeout_task);
+    handle->timeout_task = NULL;
+  }
   if (NULL != handle->identity_handle)
     GNUNET_IDENTITY_disconnect (handle->identity_handle);
   if (NULL != handle->subsys)
