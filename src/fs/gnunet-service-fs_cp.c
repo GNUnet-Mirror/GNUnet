@@ -1230,7 +1230,9 @@ handle_p2p_get (void *cls,
                               GNUNET_NO);
     return;
   }
-  if (cp->ppd.pending_replies + cp->delay_queue_size > MAX_QUEUE_PER_PEER)
+  unsigned int queue_size = GNUNET_MQ_get_length (cp->mq);
+  queue_size += cp->ppd.pending_replies + cp->delay_queue_size;
+  if (queue_size > MAX_QUEUE_PER_PEER)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Peer `%s' has too many replies queued already. Dropping query.\n",
