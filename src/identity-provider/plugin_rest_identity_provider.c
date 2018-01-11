@@ -258,9 +258,19 @@ struct RequestHandle
   struct GNUNET_REST_RequestHandle *rest_handle;
 
   /**
-   * Zone connection
+   * Handle to NAMESTORE
    */
   struct GNUNET_NAMESTORE_Handle *namestore_handle;
+
+  /**
+   * Private key for the zone
+   */
+  struct GNUNET_CRYPTO_EcdsaPrivateKey zone_pkey;
+
+  /**
+   * OIDC_client public key
+   */
+  struct GNUNET_CRYPTO_EcdsaPublicKey client_pkey;
 
   /**
    * IDENTITY Operation
@@ -339,8 +349,6 @@ struct RequestHandle
 
 };
 
-
-
 /**
  * Cleanup lookup handle
  * @param handle Handle to clean up
@@ -404,8 +412,8 @@ do_error (void *cls)
   char *json_error;
 
   GNUNET_asprintf (&json_error,
-                   "{error : %s}",
-                   handle->emsg);
+                   "{error : %s, error_description : %s}",
+                   handle->emsg, (NULL != handle->edesc) ? handle->edesc : "");
   resp = GNUNET_REST_create_response (json_error);
   handle->proc (handle->proc_cls, resp, handle->response_code);
   cleanup_handle (handle);
@@ -1157,21 +1165,47 @@ zone_to_name_error (void *cls)
  */
 static void
 zone_to_name_get_cb (void *cls,
-		 const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone_key,
-		 const char *name,
-		 unsigned int rd_count,
-		 const struct GNUNET_GNSRECORD_Data *rd)
+		     const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone_key,
+		     const char *name, unsigned int rd_count,
+		     const struct GNUNET_GNSRECORD_Data *rd)
 {
   struct RequestHandle *handle = cls;
-
-
-  if (0 == rd_count)
+  struct EgoEntry *ego_entry = handle->ego_entry->next;
+  GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "%s", handle->ego_entry->keystring);
+  if ( NULL == name )
   {
-    handle->emsg = GNUNET_strdup("unauthorized_client");
-    handle->response_code = MHD_HTTP_INTERNAL_SERVER_ERROR;
+    if(NULL != ego_entry){
+      handle->zone_pkey = *GNUNET_IDENTITY_ego_get_private_key (
+	handle->ego_head->ego);
 
-    GNUNET_NAMESTORE_disconnect (handle->namestore_handle);
-    handle->namestore_handle = NULL;
+
+      handle->ego_entry = ego_entry;
+      GNUNET_NAMESTORE_zone_to_name (handle->namestore_handle, &handle->zone_pkey,
+				   &handle->client_pkey, &zone_to_name_error, handle,
+				   &zone_to_name_get_cb, handle);
+      return;
+    }
+    else
+    {
+      handle->emsg = GNUNET_strdup("unauthorized_client");
+      //TODO change desc
+      handle->edesc = GNUNET_strdup("Not in namestore");
+      handle->response_code = MHD_HTTP_INTERNAL_SERVER_ERROR;
+//      GNUNET_NAMESTORE_disconnect (handle->namestore_handle);
+//      handle->namestore_handle = NULL;
+      GNUNET_SCHEDULER_add_now (&do_error, handle);
+      return;
+    }
+  }
+  else
+  {
+
+    handle->emsg = GNUNET_strdup("works");
+    handle->edesc = GNUNET_strdup("");
+    handle->response_code = MHD_HTTP_INTERNAL_SERVER_ERROR;
+//    GNUNET_NAMESTORE_disconnect (handle->namestore_handle);
+//    handle->namestore_handle = NULL;
+    GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Test");
     GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
   }
@@ -1229,6 +1263,7 @@ authorize_get_cont (struct GNUNET_REST_RequestHandle *con_handle,
   {
     handle->emsg=GNUNET_strdup("invalid_request");
     handle->edesc=GNUNET_strdup("Missing parameter: client_id");
+    handle->response_code = MHD_HTTP_INTERNAL_SERVER_ERROR;
     GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
   }
@@ -1237,20 +1272,40 @@ authorize_get_cont (struct GNUNET_REST_RequestHandle *con_handle,
   if ( GNUNET_OK
       != GNUNET_CRYPTO_ecdsa_public_key_from_string (client_id,
 						     strlen (client_id),
-						     &pubkey) )
+						     &handle->client_pkey) )
   {
     handle->emsg=GNUNET_strdup("unauthorized_client");
+    handle->edesc = GNUNET_strdup(
+	"The client is not authorized to request an authorization"
+	" code using this method.");
     handle->response_code = MHD_HTTP_INTERNAL_SERVER_ERROR;
     GNUNET_SCHEDULER_add_now (&do_error, handle);
+    return;
   }
 
   // Checks if client_id is valid:
-  handle->namestore_handle = GNUNET_NAMESTORE_connect(cfg);
-  zone_pkey = GNUNET_IDENTITY_ego_get_private_key (handle->ego_entry->ego);
-  GNUNET_NAMESTORE_zone_to_name (handle->namestore_handle, zone_pkey, &pubkey,
-				 zone_to_name_error, handle, zone_to_name_get_cb,
-				 handle);
+  if ( NULL == handle->namestore_handle )
+    handle->namestore_handle = GNUNET_NAMESTORE_connect (cfg);
+
+  if ( NULL == handle->ego_head )
+  {
+    handle->emsg = GNUNET_strdup("Missing egos.");
+    handle->response_code = MHD_HTTP_INTERNAL_SERVER_ERROR;
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
+    return;
+  }
+  //TODO fix this
+//  for (ego_entry = handle->ego_head;
+//  NULL != ego_entry; ego_entry = ego_entry->next)
+//  {
+  handle->zone_pkey = *GNUNET_IDENTITY_ego_get_private_key (
+      handle->ego_head->ego);
+  handle->ego_entry = handle->ego_head;
+  GNUNET_NAMESTORE_zone_to_name (handle->namestore_handle, &handle->zone_pkey,
+				 &handle->client_pkey, &zone_to_name_error, handle,
+				 &zone_to_name_get_cb, handle);
   return;
+  //  zone_pkey = GNUNET_IDENTITY_ego_get_private_key (handle->rest_handle);
 
   // REQUIRED value: redirect_uri
   GNUNET_CRYPTO_hash (OIDC_REDIRECT_URI_KEY, strlen (OIDC_REDIRECT_URI_KEY),
@@ -1279,6 +1334,7 @@ authorize_get_cont (struct GNUNET_REST_RequestHandle *con_handle,
   }
   handle->eredirect = GNUNET_strdup(redirect_uri);
 
+  GNUNET_free(expected_redirect_uri);
   // REQUIRED value: response_type
   GNUNET_CRYPTO_hash (OIDC_RESPONSE_TYPE_KEY, strlen (OIDC_RESPONSE_TYPE_KEY),
   		      &cache_key);
@@ -1324,6 +1380,7 @@ authorize_get_cont (struct GNUNET_REST_RequestHandle *con_handle,
 					      &cache_key);
   }
 
+  //TODO check other values and use them accordingly
   number_of_ignored_parameter = sizeof(OIDC_ignored_parameter_array) / sizeof(char *);
   for( iterator = 0; iterator < number_of_ignored_parameter; iterator++ )
   {
@@ -1360,7 +1417,6 @@ authorize_get_cont (struct GNUNET_REST_RequestHandle *con_handle,
     return;
   }
 
-  //TODO check other values and use them accordingly
 
   GNUNET_CRYPTO_hash (OIDC_COOKIE_HEADER_KEY, strlen (OIDC_COOKIE_HEADER_KEY),
 		      &cache_key);
