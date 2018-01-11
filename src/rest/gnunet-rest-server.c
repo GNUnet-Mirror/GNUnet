@@ -154,11 +154,14 @@ do_httpd (void *cls);
 static void
 run_mhd_now ()
 {
-  if (NULL !=
-      httpd_task)
+  if (NULL != httpd_task)
+  {
     GNUNET_SCHEDULER_cancel (httpd_task);
+    httpd_task = NULL;
+  }
   httpd_task = GNUNET_SCHEDULER_add_now (&do_httpd,
                                          NULL);
+
 }
 
 /**
@@ -449,7 +452,18 @@ kill_httpd ()
     GNUNET_SCHEDULER_cancel (ltask6);
     ltask6 = NULL;
   }
-}
+
+  if (NULL != lsock4)
+  {
+    GNUNET_NETWORK_socket_close (lsock4);
+    lsock4 = NULL;
+  }
+  if (NULL != lsock6)
+  {
+    GNUNET_NETWORK_socket_close (lsock6);
+    lsock6 = NULL;
+  }
+  }
 
 
 /**
@@ -499,7 +513,10 @@ schedule_httpd ()
     wws = NULL;
   }
   if (NULL != httpd_task)
+  {
     GNUNET_SCHEDULER_cancel (httpd_task);
+    httpd_task = NULL;
+  }
   if ( (MHD_YES == haveto) ||
        (-1 != max))
   {
@@ -507,6 +524,7 @@ schedule_httpd ()
       GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_DEFAULT,
                                    tv, wrs, wws,
                                    &do_httpd, NULL);
+    
   }
   if (NULL != wrs)
     GNUNET_NETWORK_fdset_destroy (wrs);
@@ -543,18 +561,23 @@ do_accept (void *cls)
   const struct sockaddr *addr;
   socklen_t len;
 
+  GNUNET_assert (NULL != lsock);
   if (lsock == lsock4)
-    ltask4 = NULL;
-  else
-    ltask6 = NULL;
-  if (lsock == lsock4)
+  {
     ltask4 = GNUNET_SCHEDULER_add_read_net (GNUNET_TIME_UNIT_FOREVER_REL,
                                             lsock,
                                             &do_accept, lsock);
-  else
+
+  }
+  else if (lsock == lsock6)
+  {
     ltask6 = GNUNET_SCHEDULER_add_read_net (GNUNET_TIME_UNIT_FOREVER_REL,
                                             lsock,
                                             &do_accept, lsock);
+
+  }
+  else
+    GNUNET_assert (0);
   s = GNUNET_NETWORK_socket_accept (lsock, NULL, NULL);
   if (NULL == s)
   {
@@ -759,6 +782,7 @@ run (void *cls,
     {
       ltask6 = GNUNET_SCHEDULER_add_read_net (GNUNET_TIME_UNIT_FOREVER_REL,
                                               lsock6, &do_accept, lsock6);
+
     }
   }
   lsock4 = bind_v4 ();
@@ -778,6 +802,7 @@ run (void *cls,
     {
       ltask4 = GNUNET_SCHEDULER_add_read_net (GNUNET_TIME_UNIT_FOREVER_REL,
                                               lsock4, &do_accept, lsock4);
+
     }
   }
   if ( (NULL == lsock4) &&
@@ -824,10 +849,10 @@ main (int argc, char *const *argv)
 {
   struct GNUNET_GETOPT_CommandLineOption options[] = {
     GNUNET_GETOPT_option_ulong ('p',
-                                    "port",
-                                    "PORT",
-                                    gettext_noop ("listen on specified port (default: 7776)"),
-                                    &port),
+                                "port",
+                                "PORT",
+                                gettext_noop ("listen on specified port (default: 7776)"),
+                                &port),
     GNUNET_GETOPT_OPTION_END
   };
   static const char* err_page =
