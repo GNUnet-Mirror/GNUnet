@@ -466,7 +466,7 @@ namestore_sqlite_store_records (void *cls,
       uint32_t rd_count32 = (uint32_t) rd_count;
       struct GNUNET_SQ_QueryParam sparams[] = {
         GNUNET_SQ_query_param_auto_from_type (zone_key),
-        GNUNET_SQ_query_param_auto_from_type (&rvalue),
+        GNUNET_SQ_query_param_auto_from_type (&pkey),
         GNUNET_SQ_query_param_uint64 (&rvalue),
         GNUNET_SQ_query_param_uint32 (&rd_count32),
         GNUNET_SQ_query_param_fixed_size (data, data_size),
