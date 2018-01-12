@@ -46,6 +46,7 @@ GNUNET_FRIENDS_parse (const struct GNUNET_CONFIGURATION_Handle *cfg,
   size_t start;
   struct GNUNET_PeerIdentity pid;
   uint64_t fsize;
+  ssize_t ssize;
 
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_filename (cfg,
@@ -57,13 +58,24 @@ GNUNET_FRIENDS_parse (const struct GNUNET_CONFIGURATION_Handle *cfg,
 			       "topology", "FRIENDS");
     return GNUNET_SYSERR;
   }
-  if ( (GNUNET_OK != GNUNET_DISK_file_test (fn)) &&
-       (GNUNET_OK != GNUNET_DISK_fn_write (fn,
-                                           NULL,
-                                           0,
-					   GNUNET_DISK_PERM_USER_READ |
-					   GNUNET_DISK_PERM_USER_WRITE |
-                                           GNUNET_DISK_OPEN_CREATE)) )
+  if (GNUNET_SYSERR ==
+      GNUNET_DISK_directory_create_for_file (fn))
+  {
+    GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING,
+                              "mkdir",
+                              fn);
+    GNUNET_free (fn);
+    return GNUNET_SYSERR;
+  }
+  if ( (GNUNET_OK !=
+        GNUNET_DISK_file_test (fn)) &&
+       (GNUNET_OK !=
+        GNUNET_DISK_fn_write (fn,
+                              NULL,
+                              0,
+                              GNUNET_DISK_PERM_USER_READ |
+                              GNUNET_DISK_PERM_USER_WRITE |
+                              GNUNET_DISK_OPEN_CREATE)) )
     GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING,
                               "write",
                               fn);
@@ -84,9 +96,15 @@ GNUNET_FRIENDS_parse (const struct GNUNET_CONFIGURATION_Handle *cfg,
     GNUNET_free (fn);
     return GNUNET_SYSERR;
   }
-  if (fsize != GNUNET_DISK_fn_read (fn, data, fsize))
+  ssize = GNUNET_DISK_fn_read (fn,
+                               data,
+                               fsize);
+  if ( (ssize < 0) ||
+       (fsize != (uint64_t) ssize) )
   {
-    GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR, "read", "fn");
+    GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR,
+                              "read",
+                              "fn");
     GNUNET_free (fn);
     GNUNET_free (data);
     return GNUNET_SYSERR;
@@ -95,7 +113,8 @@ GNUNET_FRIENDS_parse (const struct GNUNET_CONFIGURATION_Handle *cfg,
   pos = 0;
   while (pos < fsize)
   {
-    while ((pos < fsize) && (! isspace ((unsigned char) data[pos])))
+    while ( (pos < fsize) &&
+            (! isspace ((unsigned char) data[pos])) )
       pos++;
     if (GNUNET_OK !=
         GNUNET_CRYPTO_eddsa_public_key_from_string (&data[start],
