@@ -288,6 +288,11 @@ struct RequestHandle
   char *client_pkey_string;
 
   /**
+   * OIDC login identity
+   */
+  char *identity_cookie;
+
+  /**
    * IDENTITY Operation
    */
   struct GNUNET_IDENTITY_Operation *op;
@@ -1184,6 +1189,8 @@ namestore_iteration_callback (
     const struct GNUNET_GNSRECORD_Data *rd)
 {
   struct RequestHandle *handle = cls;
+  struct GNUNET_CRYPTO_EcdsaPublicKey login_identity_pkey;
+  struct GNUNET_CRYPTO_EcdsaPublicKey current_zone_pkey;
   int i;
 
   for (i = 0; i < rd_len; i++)
@@ -1191,9 +1198,32 @@ namestore_iteration_callback (
     if ( GNUNET_GNSRECORD_TYPE_PKEY != rd[i].record_type )
       continue;
 
-    if ( 0 == memcmp (rd[i].data,&handle->client_pkey, sizeof(struct GNUNET_CRYPTO_EcdsaPublicKey)) )
+    if( NULL != handle->identity_cookie)
     {
-      handle->client_exists = GNUNET_YES;
+      GNUNET_CRYPTO_ecdsa_public_key_from_string (
+	  handle->identity_cookie, strlen (handle->identity_cookie),
+	  &login_identity_pkey);
+      GNUNET_IDENTITY_ego_get_public_key (handle->ego_entry->ego,
+					  &current_zone_pkey);
+
+      if ( 0
+	  == memcmp (rd[i].data, &handle->client_pkey,
+		     sizeof(struct GNUNET_CRYPTO_EcdsaPublicKey)) )
+      {
+	if( 0 == memcmp (&login_identity_pkey, &current_zone_pkey, sizeof(struct GNUNET_CRYPTO_EcdsaPublicKey)))
+	{
+	  handle->client_exists = GNUNET_YES;
+	}
+      }
+    }
+    else
+    {
+      if ( 0
+	  == memcmp (rd[i].data, &handle->client_pkey,
+		     sizeof(struct GNUNET_CRYPTO_EcdsaPublicKey)) )
+      {
+	handle->client_exists = GNUNET_YES;
+      }
     }
   }
 
@@ -1216,8 +1246,8 @@ namestore_iteration_finished (void *cls)
   char *scope;
   char *redirect_uri;
   char *expected_redirect_uri;
-  char *state;
-  char *nonce;
+  char *state = NULL;
+  char *nonce = NULL;
   struct GNUNET_TIME_Absolute current_time, *relog_time;
   char *login_base_url, *new_redirect;
   struct GNUNET_HashCode cache_key;
@@ -1352,29 +1382,10 @@ namestore_iteration_finished (void *cls)
     return;
   }
 
-
-  GNUNET_CRYPTO_hash (OIDC_COOKIE_HEADER_KEY, strlen (OIDC_COOKIE_HEADER_KEY),
-		      &cache_key);
-  //No identity-cookie -> redirect to login
-  if ( GNUNET_YES
-      == GNUNET_CONTAINER_multihashmap_contains (handle->rest_handle->header_param_map,
-						 &cache_key) )
+  if( NULL != handle->identity_cookie )
   {
-    //split cookies and find 'Identity' cookie
-    char* cookies = GNUNET_CONTAINER_multihashmap_get (
-	handle->rest_handle->header_param_map, &cache_key);
-    char delimiter[] = "; ";
     char *identity_cookie;
-    identity_cookie = strtok(cookies, delimiter);
-
-    while ( NULL != identity_cookie )
-    {
-      if ( NULL != strstr (identity_cookie, OIDC_COOKIE_HEADER_INFORMATION_KEY) )
-      {
-	break;
-      }
-      identity_cookie = strtok (NULL, delimiter);
-    }
+    GNUNET_asprintf(&identity_cookie,"Identity=%s",handle->identity_cookie);
     GNUNET_CRYPTO_hash (identity_cookie, strlen (identity_cookie), &cache_key);
 
     //No login time for identity -> redirect to login
@@ -1418,7 +1429,7 @@ namestore_iteration_finished (void *cls)
 
 	MHD_add_response_header (resp, "Location", redirect_uri);
 	handle->proc (handle->proc_cls, resp, MHD_HTTP_FOUND);
-	cleanup_handle (handle);
+	GNUNET_SCHEDULER_add_now (&cleanup_handle_delayed, handle);
 	GNUNET_free(relog_time);
 	return;
       }
@@ -1494,6 +1505,34 @@ authorize_get_cont (struct GNUNET_REST_RequestHandle *con_handle,
   struct RequestHandle *handle = cls;
   struct GNUNET_HashCode cache_key;
   char *client_id;
+  char *identity_cookie;
+
+  // identity cookie
+  GNUNET_CRYPTO_hash (OIDC_COOKIE_HEADER_KEY, strlen (OIDC_COOKIE_HEADER_KEY),
+		      &cache_key);
+  if ( GNUNET_YES
+      == GNUNET_CONTAINER_multihashmap_contains (handle->rest_handle->header_param_map,
+						 &cache_key) )
+  {
+    //split cookies and find 'Identity' cookie
+    char* cookies = GNUNET_CONTAINER_multihashmap_get (
+	handle->rest_handle->header_param_map, &cache_key);
+    char delimiter[] = "; ";
+    identity_cookie = strtok(cookies, delimiter);
+
+    while ( NULL != identity_cookie )
+    {
+      if ( NULL != strstr (identity_cookie, OIDC_COOKIE_HEADER_INFORMATION_KEY) )
+      {
+	break;
+      }
+      identity_cookie = strtok (NULL, delimiter);
+    }
+    identity_cookie = strtok(cookies, OIDC_COOKIE_HEADER_INFORMATION_KEY);
+    handle->identity_cookie = GNUNET_strdup(identity_cookie);
+    GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Cookie: %s\n", handle->identity_cookie);
+  }
+
 
   handle->response_code = 0;
 
