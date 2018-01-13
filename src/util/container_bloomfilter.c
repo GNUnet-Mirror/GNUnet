@@ -660,7 +660,7 @@ GNUNET_CONTAINER_bloomfilter_init (const char *data, size_t size,
  * @param bf bloomfilter to take the raw data from
  * @param data where to write the data
  * @param size the size of the given data array
- * @return GNUNET_SYSERR if the data array is not big enough
+ * @return #GNUNET_SYSERR if the data array is not big enough
  */
 int
 GNUNET_CONTAINER_bloomfilter_get_raw_data (const struct

@@ -2137,6 +2137,8 @@ inbound_bw_tracker_update (void *cls)
               "New inbound delay for peer `%s' is %llu ms\n",
               GNUNET_i2s (&n->id),
               (unsigned long long) delay.rel_value_us / 1000LL);
+  if (NULL == n->primary_address.session)
+    return;
   papi->update_inbound_delay (papi->cls,
                               &n->id,
                               n->primary_address.session,
