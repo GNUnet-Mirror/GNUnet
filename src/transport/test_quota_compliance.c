@@ -68,12 +68,12 @@ report ()
 
   delta = GNUNET_TIME_absolute_get_duration (start_time).rel_value_us;
   datarate = (total_bytes_recv * 1000 * 1000) / delta;
-  
+
   FPRINTF (stderr,
            "Throughput was %llu b/s\n",
            datarate);
   ccc->global_ret = GNUNET_OK;
-  if (datarate > 1.1 * quota_in[1])
+  if (datarate > 1.5 * quota_in[1])
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Datarate of %llu b/s significantly higher than allowed inbound quota of %llu b/s\n",
@@ -81,7 +81,7 @@ report ()
                 quota_in[1]);
     ccc->global_ret = GNUNET_SYSERR;
   }
-  if (datarate > 1.1 * quota_out[0])
+  if (datarate > 1.5 * quota_out[0])
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Datarate of %llu b/s significantly higher than allowed outbound quota of %llu b/s\n",
