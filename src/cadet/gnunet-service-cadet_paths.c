@@ -429,7 +429,17 @@ extend_path (struct CadetPeerPath *path,
                    path->hn);
   path->hn = NULL;
   path->entries_length = old_len + num_peers;
-  attach_path (path, old_len);
+  if (GNUNET_YES == force)
+  {
+    int end = path->entries_length - 1;
+
+    path->hn = GCP_attach_path (path->entries[end]->peer,
+                                path,
+                                end,
+                                GNUNET_YES);
+  } else {
+    attach_path (path, old_len);
+  }
   if (NULL == path->hn)
   {
     /* none of the peers is interested in this path;
