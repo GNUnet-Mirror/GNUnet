@@ -1407,6 +1407,14 @@ try_transmission_to_peer (struct NeighbourMapEntry *n)
   }
   if (NULL == mq)
     return;                     /* no more messages */
+  if (NULL == n->primary_address.address)
+  {
+    /* transmit_send_continuation() caused us to drop session,
+       can't try transmission anymore. */
+    return;
+  }
+
+
   GNUNET_CONTAINER_DLL_remove (n->messages_head,
                                n->messages_tail,
                                mq);
