@@ -135,18 +135,6 @@ struct GNUNET_SCHEDULER_Task
   unsigned int fds_len;
 
   /**
-   * if this task is related to multiple FDs this array contains
-   * all FdInfo structs that were marked as ready by calling
-   * #GNUNET_SCHEDULER_task_ready
-   */
-  struct GNUNET_SCHEDULER_FdInfo *ready_fds;
-
-  /**
-   * Size of the @e ready_fds array
-   */
-  unsigned int ready_fds_len;
-
-  /**
    * Do we own the network and file handles referenced by the FdInfo
    * structs in the fds array. This will only be GNUNET_YES if the
    * task was created by the #GNUNET_SCHEDULER_add_select function.
@@ -345,11 +333,6 @@ static struct GNUNET_SCHEDULER_Task *ready_tail[GNUNET_SCHEDULER_PRIORITY_COUNT]
  * Number of tasks on the ready list.
  */
 static unsigned int ready_count;
-
-/**
- * How many tasks have we run so far?
- */
-static unsigned long long tasks_run;
 
 /**
  * Priority of the task running right now.  Only
@@ -560,10 +543,6 @@ destroy_task (struct GNUNET_SCHEDULER_Task *t)
   if (t->fds_len > 1)
   {
     GNUNET_array_grow (t->fds, t->fds_len, 0);
-  }
-  if (t->ready_fds_len > 0)
-  {
-    GNUNET_array_grow (t->ready_fds, t->ready_fds_len, 0);
   }
 #if EXECINFO
   GNUNET_free (t->backtrace_strings);
@@ -2020,7 +1999,6 @@ GNUNET_SCHEDULER_run_from_driver (struct GNUNET_SCHEDULER_Handle *sh)
     active_task = NULL;
     dump_backtrace (pos);
     destroy_task (pos);
-    tasks_run++;
   }
   shutdown_if_no_lifeness ();
   if (0 == ready_count)
