@@ -29,6 +29,7 @@
 #include "gnunet_cadet_service.h"
 #include "gnunet_peerinfo_service.h"
 #include "gnunet_nse_service.h"
+#include "gnunet_statistics_service.h"
 #include "rps.h"
 #include "rps-test_util.h"
 #include "gnunet-service-rps_sampler.h"
@@ -58,6 +59,11 @@
  * Our configuration.
  */
 static const struct GNUNET_CONFIGURATION_Handle *cfg;
+
+/**
+ * Handle to the statistics service.
+ */
+static struct GNUNET_STATISTICS_Handle *stats;
 
 /**
  * Our own identity.
@@ -2390,6 +2396,7 @@ send_pull_reply (const struct GNUNET_PeerIdentity *peer_id,
          send_size * sizeof (struct GNUNET_PeerIdentity));
 
   Peers_send_message (peer_id, ev, "PULL REPLY");
+  GNUNET_STATISTICS_update(stats, "# pull reply send issued", 1, GNUNET_NO);
 }
 
 
@@ -2961,6 +2968,7 @@ handle_peer_push (void *cls,
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Received PUSH (%s)\n",
        GNUNET_i2s (peer));
+  GNUNET_STATISTICS_update(stats, "# push messages received", 1, GNUNET_NO);
 
   #ifdef ENABLE_MALICIOUS
   struct AttackedPeer *tmp_att_peer;
@@ -3013,6 +3021,7 @@ handle_peer_pull_request (void *cls,
   const struct GNUNET_PeerIdentity *view_array;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Received PULL REQUEST (%s)\n", GNUNET_i2s (peer));
+  GNUNET_STATISTICS_update(stats, "# pull request messages received", 1, GNUNET_NO);
 
   #ifdef ENABLE_MALICIOUS
   if (1 == mal_type
@@ -3096,6 +3105,7 @@ handle_peer_pull_reply (void *cls,
 #endif /* ENABLE_MALICIOUS */
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Received PULL REPLY (%s)\n", GNUNET_i2s (sender));
+  GNUNET_STATISTICS_update(stats, "# pull reply messages received", 1, GNUNET_NO);
 
   #ifdef ENABLE_MALICIOUS
   // We shouldn't even receive pull replies as we're not sending
@@ -3234,6 +3244,7 @@ send_pull_request (const struct GNUNET_PeerIdentity *peer)
 
   ev = GNUNET_MQ_msg_header (GNUNET_MESSAGE_TYPE_RPS_PP_PULL_REQUEST);
   Peers_send_message (peer, ev, "PULL REQUEST");
+  GNUNET_STATISTICS_update(stats, "# pull request send issued", 1, GNUNET_NO);
 }
 
 
@@ -3253,6 +3264,7 @@ send_push (const struct GNUNET_PeerIdentity *peer_id)
 
   ev = GNUNET_MQ_msg_header (GNUNET_MESSAGE_TYPE_RPS_PP_PUSH);
   Peers_send_message (peer_id, ev, "PUSH");
+  GNUNET_STATISTICS_update(stats, "# push send issued", 1, GNUNET_NO);
 }
 
 
@@ -3554,6 +3566,7 @@ do_round (void *cls)
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Going to execute next round.\n");
+  GNUNET_STATISTICS_update(stats, "# rounds", 1, GNUNET_NO);
   do_round_task = NULL;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Printing view:\n");
@@ -3706,6 +3719,7 @@ do_round (void *cls)
   else
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "No update of the view.\n");
+    GNUNET_STATISTICS_update(stats, "# rounds blocked", 1, GNUNET_NO);
   }
   // TODO independent of that also get some peers from CADET_get_peers()?
 
@@ -3881,6 +3895,11 @@ shutdown_task (void *cls)
   View_destroy ();
   CustomPeerMap_destroy (push_map);
   CustomPeerMap_destroy (pull_map);
+  if (NULL != stats)
+  {
+    GNUNET_STATISTICS_destroy (stats, GNUNET_NO);
+    stats = NULL;
+  }
   #ifdef ENABLE_MALICIOUS
   struct AttackedPeer *tmp_att_peer;
   GNUNET_free (file_name_view_log);
@@ -4129,6 +4148,8 @@ run (void *cls,
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Scheduled first round\n");
 
   GNUNET_SCHEDULER_add_shutdown (&shutdown_task, NULL);
+  stats = GNUNET_STATISTICS_create ("rps", cfg);
+
 }
 
 
