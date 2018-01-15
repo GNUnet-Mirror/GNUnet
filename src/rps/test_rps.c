@@ -1296,7 +1296,7 @@ manage_service_wrapper (unsigned int i, unsigned int j,
                         enum PEER_ONLINE_DELTA delta,
                         double prob_go_on_off)
 {
-  struct OpListEntry *entry;
+  struct OpListEntry *entry = NULL;
   uint32_t prob;
 
   /* make sure that management operation is not already scheduled */
