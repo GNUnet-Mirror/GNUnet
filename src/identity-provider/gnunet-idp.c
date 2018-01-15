@@ -432,8 +432,7 @@ main(int argc, char *const argv[])
                                  &type_str),
     GNUNET_GETOPT_OPTION_END
   };
-  GNUNET_PROGRAM_run (argc, argv, "ct",
+  return (GNUNET_OK == GNUNET_PROGRAM_run (argc, argv, "ct",
                       "ct", options,
-                      &run, NULL);
-  return ret;
+                      &run, NULL));
 }

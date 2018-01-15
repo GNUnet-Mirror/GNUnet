@@ -100,8 +100,8 @@ extract_varsize_blob (void *cls,
   idst = GNUNET_malloc (len);
   *((void **) dst) = idst;
   GNUNET_memcpy (idst,
-	  res,
-	  len);
+                 res,
+                 len);
   return GNUNET_OK;
 }
 
@@ -165,7 +165,7 @@ extract_fixed_blob (void *cls,
   {
     GNUNET_break (0);
     return GNUNET_SYSERR;
-  } 
+  }
 
   /* if a field is null, continue but
    * remember that we now return a different result */
@@ -182,8 +182,8 @@ extract_fixed_blob (void *cls,
 		    fnum);
   GNUNET_assert (NULL != res);
   GNUNET_memcpy (dst,
-	  res,
-	  len);
+                 res,
+                 len);
   return GNUNET_OK;
 }
 
@@ -580,12 +580,20 @@ extract_uint16 (void *cls,
   if (PQgetisnull (result,
 		   row,
 		   fnum))
-  { 
+  {
     GNUNET_break (0);
     return GNUNET_SYSERR;
   }
   GNUNET_assert (NULL != dst);
   if (sizeof (uint16_t) != *dst_size)
+  {
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
+  if (sizeof (uint16_t) !=
+      PQgetlength (result,
+                   row,
+                   fnum))
   {
     GNUNET_break (0);
     return GNUNET_SYSERR;
@@ -663,6 +671,14 @@ extract_uint32 (void *cls,
     GNUNET_break (0);
     return GNUNET_SYSERR;
   }
+  if (sizeof (uint32_t) !=
+      PQgetlength (result,
+                   row,
+                   fnum))
+  {
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
   res = (uint32_t *) PQgetvalue (result,
 				 row,
 				 fnum);
@@ -732,6 +748,14 @@ extract_uint64 (void *cls,
   }
   GNUNET_assert (NULL != dst);
   if (sizeof (uint64_t) != *dst_size)
+  {
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
+  if (sizeof (uint64_t) !=
+      PQgetlength (result,
+                   row,
+                   fnum))
   {
     GNUNET_break (0);
     return GNUNET_SYSERR;

@@ -597,19 +597,19 @@ AC_CHECK_LIB([kstat],[kstat_open])
 
 # should the build process be restricted to only building
 # the documentation?
-AC_MSG_CHECKING(whether to build documentation ONLY)
+AC_MSG_CHECKING(whether to build documentation)
 AC_ARG_ENABLE([documentation],
-   [AS_HELP_STRING([--enable-documentation], [only build the documentation])],
-   [doc_only=${enableval}],
-   [doc_only=no])
-AC_MSG_RESULT($doc_only)
-if test "x$doc_only" = "xyes"
+   [AS_HELP_STRING([--enable-documentation], [build the documentation])],
+   [documentation=${enableval}],
+   [documentation=yes])
+AC_MSG_RESULT($documentation)
+if test "x$documentation" = "xyes"
 then
-  AM_CONDITIONAL([DOC_ONLY],true)
-  AC_DEFINE([DOC_ONLY],[1],[Building the documentation])
+  AM_CONDITIONAL([DOCUMENTATION],true)
+  AC_DEFINE([DOCUMENTATION],[1],[Building the documentation])
 else
-  AM_CONDITIONAL([DOC_ONLY],false)
-  AC_DEFINE([DOC_ONLY],[0],[Canonical compilation])
+  AM_CONDITIONAL([DOCUMENTATION],false)
+  AC_DEFINE([DOCUMENTATION],[0],[Not building the documentation])
 fi
 
 # should the build process be restricted to the code required

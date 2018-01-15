@@ -1276,15 +1276,15 @@ GNUNET_CADET_close_port (struct GNUNET_CADET_Port *p)
   struct GNUNET_CADET_PortMessage *msg;
   struct GNUNET_MQ_Envelope *env;
 
+  GNUNET_assert (GNUNET_YES ==
+                 GNUNET_CONTAINER_multihashmap_remove (p->cadet->ports,
+                                                       &p->id,
+                                                       p));
   env = GNUNET_MQ_msg (msg,
                        GNUNET_MESSAGE_TYPE_CADET_LOCAL_PORT_CLOSE);
   msg->port = p->id;
   GNUNET_MQ_send (p->cadet->mq,
                   env);
-  GNUNET_assert (GNUNET_YES ==
-                 GNUNET_CONTAINER_multihashmap_remove (p->cadet->ports,
-                                                       &p->id,
-                                                       p));
   GNUNET_free_non_null (p->handlers);
   GNUNET_free (p);
 }
@@ -1673,7 +1673,7 @@ GNUNET_CADET_open_port (struct GNUNET_CADET_Handle *h,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Listening to CADET port %s\n",
 	      GNUNET_h2s (port));
-  
+
   p = GNUNET_new (struct GNUNET_CADET_Port);
   p->cadet = h;
   p->id = *port;

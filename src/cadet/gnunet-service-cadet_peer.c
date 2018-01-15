@@ -59,7 +59,10 @@
  */
 #define IDLE_PATH_TIMEOUT GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MINUTES, 2)
 
-
+/**
+ * Queue size when we start dropping OOO messages.
+ */
+#define MAX_OOO_QUEUE_SIZE  100
 
 
 /**
@@ -1460,6 +1463,11 @@ GCP_send_ooo (struct CadetPeer *cp,
        "Sending message to %s out of management\n",
        GCP_2s (cp));
   if (NULL == cp->core_mq)
+  {
+    GNUNET_MQ_discard (env);
+    return;
+  }
+  if (GNUNET_MQ_get_length (cp->core_mq) > MAX_OOO_QUEUE_SIZE)
   {
     GNUNET_MQ_discard (env);
     return;

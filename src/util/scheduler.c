@@ -135,18 +135,6 @@ struct GNUNET_SCHEDULER_Task
   unsigned int fds_len;
 
   /**
-   * if this task is related to multiple FDs this array contains
-   * all FdInfo structs that were marked as ready by calling
-   * #GNUNET_SCHEDULER_task_ready
-   */
-  struct GNUNET_SCHEDULER_FdInfo *ready_fds;
-
-  /**
-   * Size of the @e ready_fds array
-   */
-  unsigned int ready_fds_len;
-
-  /**
    * Do we own the network and file handles referenced by the FdInfo
    * structs in the fds array. This will only be GNUNET_YES if the
    * task was created by the #GNUNET_SCHEDULER_add_select function.
@@ -345,11 +333,6 @@ static struct GNUNET_SCHEDULER_Task *ready_tail[GNUNET_SCHEDULER_PRIORITY_COUNT]
  * Number of tasks on the ready list.
  */
 static unsigned int ready_count;
-
-/**
- * How many tasks have we run so far?
- */
-static unsigned long long tasks_run;
 
 /**
  * Priority of the task running right now.  Only
@@ -561,10 +544,6 @@ destroy_task (struct GNUNET_SCHEDULER_Task *t)
   {
     GNUNET_array_grow (t->fds, t->fds_len, 0);
   }
-  if (t->ready_fds_len > 0)
-  {
-    GNUNET_array_grow (t->ready_fds, t->ready_fds_len, 0);
-  }
 #if EXECINFO
   GNUNET_free (t->backtrace_strings);
 #endif
@@ -757,6 +736,7 @@ init_fd_info (struct GNUNET_SCHEDULER_Task *t,
     if (1 == read_nh_len)
     {
       GNUNET_assert (NULL != read_nh);
+      GNUNET_assert (NULL != *read_nh);
       fdi->fd = *read_nh;
       fdi->et = GNUNET_SCHEDULER_ET_IN;
       fdi->sock = GNUNET_NETWORK_get_fd (*read_nh);
@@ -766,6 +746,7 @@ init_fd_info (struct GNUNET_SCHEDULER_Task *t,
     else if (1 == write_nh_len)
     {
       GNUNET_assert (NULL != write_nh);
+      GNUNET_assert (NULL != *write_nh);
       fdi->fd = *write_nh;
       fdi->et = GNUNET_SCHEDULER_ET_OUT;
       fdi->sock = GNUNET_NETWORK_get_fd (*write_nh);
@@ -775,6 +756,7 @@ init_fd_info (struct GNUNET_SCHEDULER_Task *t,
     else if (1 == read_fh_len)
     {
       GNUNET_assert (NULL != read_fh);
+      GNUNET_assert (NULL != *read_fh);
       fdi->fh = *read_fh;
       fdi->et = GNUNET_SCHEDULER_ET_IN;
       fdi->sock = (*read_fh)->fd; // FIXME: does not work under WIN32
@@ -784,6 +766,7 @@ init_fd_info (struct GNUNET_SCHEDULER_Task *t,
     else
     {
       GNUNET_assert (NULL != write_fh);
+      GNUNET_assert (NULL != *write_fh);
       fdi->fh = *write_fh;
       fdi->et = GNUNET_SCHEDULER_ET_OUT;
       fdi->sock = (*write_fh)->fd; // FIXME: does not work under WIN32
@@ -1655,8 +1638,7 @@ GNUNET_SCHEDULER_add_file_with_priority (struct GNUNET_TIME_Relative delay,
 
 
 void
-extract_handles (struct GNUNET_SCHEDULER_Task *t,
-                 const struct GNUNET_NETWORK_FDSet *fdset,
+extract_handles (const struct GNUNET_NETWORK_FDSet *fdset,
                  const struct GNUNET_NETWORK_Handle ***ntarget,
                  unsigned int *extracted_nhandles,
                  const struct GNUNET_DISK_FileHandle ***ftarget,
@@ -1669,7 +1651,6 @@ extract_handles (struct GNUNET_SCHEDULER_Task *t,
   unsigned int nhandles_len;
   unsigned int fhandles_len;
 
-  (void) t;
   nhandles = NULL;
   fhandles = NULL;
   nhandles_len = 0;
@@ -1744,57 +1725,63 @@ GNUNET_SCHEDULER_add_select (enum GNUNET_SCHEDULER_Priority prio,
                              void *task_cls)
 {
   struct GNUNET_SCHEDULER_Task *t;
-  const struct GNUNET_NETWORK_Handle **read_nhandles;
-  const struct GNUNET_NETWORK_Handle **write_nhandles;
-  const struct GNUNET_DISK_FileHandle **read_fhandles;
-  const struct GNUNET_DISK_FileHandle **write_fhandles;
-  unsigned int read_nhandles_len, write_nhandles_len,
-               read_fhandles_len, write_fhandles_len;
-  int no_fdsets = (NULL == rs) && (NULL == ws);
-  int no_socket_descriptors =
-    ((NULL != rs) && (0 == rs->nsds)) && ((NULL != ws) && (0 == ws->nsds));
+  const struct GNUNET_NETWORK_Handle **read_nhandles = NULL;
+  const struct GNUNET_NETWORK_Handle **write_nhandles = NULL;
+  const struct GNUNET_DISK_FileHandle **read_fhandles = NULL;
+  const struct GNUNET_DISK_FileHandle **write_fhandles = NULL;
+  unsigned int read_nhandles_len = 0;
+  unsigned int write_nhandles_len = 0;
+  unsigned int read_fhandles_len = 0;
+  unsigned int write_fhandles_len = 0;
 
-  if (no_fdsets || no_socket_descriptors)
-    return GNUNET_SCHEDULER_add_delayed_with_priority (delay,
-                                                       prio,
-                                                       task,
-                                                       task_cls);
   /* scheduler must be running */
   GNUNET_assert (NULL != scheduler_driver);
   GNUNET_assert (NULL != active_task);
   GNUNET_assert (NULL != task);
+  int no_rs = (NULL == rs);
+  int no_ws = (NULL == ws);
+  int empty_rs = (NULL != rs) && (0 == rs->nsds);
+  int empty_ws = (NULL != ws) && (0 == ws->nsds);
+  int no_fds = (no_rs && no_ws) ||
+               (empty_rs && empty_ws) ||
+               (no_rs && empty_ws) ||
+               (no_ws && empty_rs);
+  if (! no_fds)
+  {
+    if (NULL != rs)
+    {
+      extract_handles (rs,
+                       &read_nhandles,
+                       &read_nhandles_len,
+                       &read_fhandles,
+                       &read_fhandles_len);
+    }
+    if (NULL != ws)
+    {
+      extract_handles (ws,
+                       &write_nhandles,
+                       &write_nhandles_len,
+                       &write_fhandles,
+                       &write_fhandles_len);
+    }
+  }
+  /**
+   * here we consider the case that a GNUNET_NETWORK_FDSet might be empty
+   * although its maximum FD number (nsds) is greater than 0. We handle
+   * this case gracefully because some libraries such as libmicrohttpd
+   * only provide a hint what the maximum FD number in an FD set might be
+   * and not the exact FD number (see e.g. gnunet-rest-service.c)
+   */
+  int no_fds_extracted = (0 == read_nhandles_len) &&
+                         (0 == read_fhandles_len) &&
+                         (0 == write_nhandles_len) &&
+                         (0 == write_fhandles_len);
+  if (no_fds || no_fds_extracted)
+    return GNUNET_SCHEDULER_add_delayed_with_priority (delay,
+                                                       prio,
+                                                       task,
+                                                       task_cls);
   t = GNUNET_new (struct GNUNET_SCHEDULER_Task);
-  t->callback = task;
-  t->callback_cls = task_cls;
-  t->read_fd = -1;
-  t->write_fd = -1;
-  t->own_handles = GNUNET_YES;
-  read_nhandles = NULL;
-  write_nhandles = NULL;
-  read_fhandles = NULL;
-  write_fhandles = NULL;
-  read_nhandles_len = 0;
-  write_nhandles_len = 0;
-  read_fhandles_len = 0;
-  write_fhandles_len = 0;
-  if (NULL != rs)
-  {
-    extract_handles (t,
-                     rs,
-                     &read_nhandles,
-                     &read_nhandles_len,
-                     &read_fhandles,
-                     &read_fhandles_len);
-  }
-  if (NULL != ws)
-  {
-    extract_handles (t,
-                     ws,
-                     &write_nhandles,
-                     &write_nhandles_len,
-                     &write_fhandles,
-                     &write_fhandles_len);
-  }
   init_fd_info (t,
                 read_nhandles,
                 read_nhandles_len,
@@ -1804,6 +1791,9 @@ GNUNET_SCHEDULER_add_select (enum GNUNET_SCHEDULER_Priority prio,
                 read_fhandles_len,
                 write_fhandles,
                 write_fhandles_len);
+  t->callback = task;
+  t->callback_cls = task_cls;
+  t->own_handles = GNUNET_YES;
   /* free the arrays of pointers to network / file handles, the actual
    * handles will be freed in destroy_task */
   GNUNET_array_grow (read_nhandles, read_nhandles_len, 0);
@@ -2002,14 +1992,13 @@ GNUNET_SCHEDULER_run_from_driver (struct GNUNET_SCHEDULER_Handle *sh)
       if (GNUNET_OK != del_result)
       {
         LOG (GNUNET_ERROR_TYPE_ERROR,
-             "driver could not delete task\n");
+           "driver could not delete task %p\n", pos);
         GNUNET_assert (0);
       }
     }
     active_task = NULL;
     dump_backtrace (pos);
     destroy_task (pos);
-    tasks_run++;
   }
   shutdown_if_no_lifeness ();
   if (0 == ready_count)

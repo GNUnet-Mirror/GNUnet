@@ -199,6 +199,13 @@ credential_string_to_value (void *cls,
         GNUNET_free (tmp_str);
         tmp_str = GNUNET_strdup (s);
         token = strtok (tmp_str, ",");
+        if (NULL == token)
+        {
+          GNUNET_free (tmp_str);
+          GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                      "Malformed string %s\n", s);
+          return GNUNET_SYSERR;
+        }
         struct GNUNET_CREDENTIAL_DelegationSet set[entries];
         for (i=0;i<entries;i++)
         {
@@ -219,7 +226,10 @@ credential_string_to_value (void *cls,
                                                                    set);
         
         if (-1 == tmp_data_size)
+        {
+          GNUNET_free (tmp_str);
           return GNUNET_SYSERR;
+        }
         *data_size += tmp_data_size;
         *data = sets = GNUNET_malloc (*data_size);
         GNUNET_CREDENTIAL_delegation_set_serialize (entries,

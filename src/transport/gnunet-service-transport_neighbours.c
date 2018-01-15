@@ -1137,9 +1137,9 @@ disconnect_neighbour (struct NeighbourMapEntry *n)
  * our own receive rate and informs the neighbour about
  * the new quota.
  *
- * @param n neighbour entry to change qutoa for
+ * @param n neighbour entry to change quota for
  * @param quota new quota
- * @return #GNUNET_YES if @a n is still valid, @GNUNET_NO if
+ * @return #GNUNET_YES if @a n is still valid, #GNUNET_NO if
  *   @a n was freed
  */
 static int
@@ -1407,6 +1407,14 @@ try_transmission_to_peer (struct NeighbourMapEntry *n)
   }
   if (NULL == mq)
     return;                     /* no more messages */
+  if (NULL == n->primary_address.address)
+  {
+    /* transmit_send_continuation() caused us to drop session,
+       can't try transmission anymore. */
+    return;
+  }
+
+
   GNUNET_CONTAINER_DLL_remove (n->messages_head,
                                n->messages_tail,
                                mq);
@@ -2137,6 +2145,8 @@ inbound_bw_tracker_update (void *cls)
               "New inbound delay for peer `%s' is %llu ms\n",
               GNUNET_i2s (&n->id),
               (unsigned long long) delay.rel_value_us / 1000LL);
+  if (NULL == n->primary_address.session)
+    return;
   papi->update_inbound_delay (papi->cls,
                               &n->id,
                               n->primary_address.session,

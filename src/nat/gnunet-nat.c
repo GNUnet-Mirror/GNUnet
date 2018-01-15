@@ -377,10 +377,16 @@ run (void *cls,
     ls = GNUNET_NETWORK_socket_create (af,
 				       SOCK_DGRAM,
 				       IPPROTO_UDP);
+    if (NULL == ls)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
+      "Failed to create socket\n");
+      goto fail_and_shutdown;
+    }
     if (GNUNET_OK !=
-	GNUNET_NETWORK_socket_bind (ls,
-				    local_sa,
-				    local_len))
+        GNUNET_NETWORK_socket_bind (ls,
+                                    local_sa,
+                                    local_len))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 		  "Failed to bind to %s: %s\n",

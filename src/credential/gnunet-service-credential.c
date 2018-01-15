@@ -722,6 +722,12 @@ backward_resolution (void* cls,
       strcpy (issuer_attribute_name,
               ds_entry->unresolved_attribute_delegation);
       char *next_attr = strtok (issuer_attribute_name, ".");
+      if (NULL == next_attr)
+      {
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                    "Failed to parse next attribute\n");
+        continue;
+      }
       GNUNET_asprintf (&lookup_attribute,
                        "%s.gnu",
                        next_attr);
@@ -806,7 +812,7 @@ delegation_chain_resolution_start (void* cls)
    * Check for attributes from the issuer and follow the chain 
    * till you get the required subject's attributes
    */
-  char issuer_attribute_name[strlen (vrh->issuer_attribute)];
+  char issuer_attribute_name[strlen (vrh->issuer_attribute) + strlen (".gnu") + 1];
   strcpy (issuer_attribute_name,
           vrh->issuer_attribute);
   strcpy (issuer_attribute_name + strlen (vrh->issuer_attribute),
@@ -889,7 +895,7 @@ handle_verify (void *cls,
   vrh->issuer_key = v_msg->issuer_key;
   vrh->subject_key = v_msg->subject_key;
   vrh->issuer_attribute = GNUNET_strdup (issuer_attribute);
-  if (NULL == issuer_attribute)
+  if (0 == strlen (issuer_attribute))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, 
                 "No issuer attribute provided!\n");
@@ -1033,7 +1039,7 @@ handle_collect (void *cls,
                                       &vrh->subject_key);
   vrh->issuer_attribute = GNUNET_strdup (issuer_attribute);
 
-  if (NULL == issuer_attribute)
+  if (0 == strlen (issuer_attribute))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, 
                 "No issuer attribute provided!\n");
@@ -1076,7 +1082,7 @@ check_collect (void *cls,
   }
   attr = (const char *) &c_msg[1];
 
-  if ( ('\0' != attr[ntohs(c_msg->header.size) - sizeof (struct CollectMessage) - 1]) ||
+  if ( ('\0' != attr[msg_size - sizeof (struct CollectMessage) - 1]) ||
        (strlen (attr) > GNUNET_CREDENTIAL_MAX_LENGTH) )
   {
     GNUNET_break (0);

@@ -244,6 +244,7 @@ $ wget $GNUPGFTP/libgpg-error/libgpg-error-1.27.tar.bz2
 $ tar xf libgpg-error-1.27.tar.bz2
 $ cd libgpg-error-1.27
 $ ./configure
+$ make
 $ sudo make install
 $ cd ..
 @end example
@@ -254,6 +255,7 @@ $ wget $GNUPGFTP/libgcrypt/libgcrypt-1.7.6.tar.bz2
 $ tar xf libgcrypt-1.7.6.tar.bz2
 $ cd libgcrypt-1.7.6
 $ ./configure
+$ make
 $ sudo make install
 $ cd ..
 @end example
