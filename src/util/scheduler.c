@@ -2293,7 +2293,8 @@ select_loop (void *cls,
       }
     }
     tasks_ready = GNUNET_SCHEDULER_run_from_driver (sh);
-    GNUNET_assert (GNUNET_SYSERR != tasks_ready);
+    if (GNUNET_SYSERR == tasks_ready)
+      GNUNET_abort_ ();
   }
   GNUNET_NETWORK_fdset_destroy (rs);
   GNUNET_NETWORK_fdset_destroy (ws);
