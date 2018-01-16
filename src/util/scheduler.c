@@ -424,7 +424,7 @@ get_timeout ()
   {
     if (0 != pos->reason)
     {
-      timeout = now;
+      return now;
     }
     else
     {
@@ -435,7 +435,7 @@ get_timeout ()
   {
     if (0 != pos->reason)
     {
-      timeout = now;
+      return now;
     }
     else if ((pos->timeout.abs_value_us != GNUNET_TIME_UNIT_FOREVER_ABS.abs_value_us) &&
              (timeout.abs_value_us > pos->timeout.abs_value_us))
