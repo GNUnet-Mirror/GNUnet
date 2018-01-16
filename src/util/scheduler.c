@@ -2272,24 +2272,27 @@ select_loop (void *cls,
       GNUNET_NETWORK_fdset_destroy (ws);
       return GNUNET_SYSERR;
     }
-    for (pos = context->scheduled_head; NULL != pos; pos = pos->next)
+    if (select_result > 0)
     {
-      int is_ready = GNUNET_NO;
-      if (0 != (GNUNET_SCHEDULER_ET_IN & pos->et) &&
-          GNUNET_YES == GNUNET_NETWORK_fdset_test_native (rs, pos->fdi->sock))
+      for (pos = context->scheduled_head; NULL != pos; pos = pos->next)
       {
-        pos->fdi->et |= GNUNET_SCHEDULER_ET_IN;
-        is_ready = GNUNET_YES;
-      }
-      if (0 != (GNUNET_SCHEDULER_ET_OUT & pos->et) &&
-          GNUNET_YES == GNUNET_NETWORK_fdset_test_native (ws, pos->fdi->sock))
-      {
-        pos->fdi->et |= GNUNET_SCHEDULER_ET_OUT;
-        is_ready = GNUNET_YES;
-      }
-      if (GNUNET_YES == is_ready)
-      {
-        GNUNET_SCHEDULER_task_ready (pos->task, pos->fdi);
+        int is_ready = GNUNET_NO;
+        if (0 != (GNUNET_SCHEDULER_ET_IN & pos->et) &&
+            GNUNET_YES == GNUNET_NETWORK_fdset_test_native (rs, pos->fdi->sock))
+        {
+          pos->fdi->et |= GNUNET_SCHEDULER_ET_IN;
+          is_ready = GNUNET_YES;
+        }
+        if (0 != (GNUNET_SCHEDULER_ET_OUT & pos->et) &&
+            GNUNET_YES == GNUNET_NETWORK_fdset_test_native (ws, pos->fdi->sock))
+        {
+          pos->fdi->et |= GNUNET_SCHEDULER_ET_OUT;
+          is_ready = GNUNET_YES;
+        }
+        if (GNUNET_YES == is_ready)
+        {
+          GNUNET_SCHEDULER_task_ready (pos->task, pos->fdi);
+        }
       }
     }
     tasks_ready = GNUNET_SCHEDULER_run_from_driver (sh);
