@@ -1839,12 +1839,8 @@ GNUNET_SCHEDULER_task_ready (struct GNUNET_SCHEDULER_Task *task,
                              struct GNUNET_SCHEDULER_FdInfo *fdi)
 {
   enum GNUNET_SCHEDULER_Reason reason;
-  struct GNUNET_TIME_Absolute now;
 
-  now = GNUNET_TIME_absolute_get ();
   reason = task->reason;
-  if (now.abs_value_us >= task->timeout.abs_value_us)
-    reason |= GNUNET_SCHEDULER_REASON_TIMEOUT;
   if ( (0 == (reason & GNUNET_SCHEDULER_REASON_READ_READY)) &&
        (0 != (GNUNET_SCHEDULER_ET_IN & fdi->et)) )
     reason |= GNUNET_SCHEDULER_REASON_READ_READY;
