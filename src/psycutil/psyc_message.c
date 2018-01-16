@@ -818,7 +818,6 @@ GNUNET_PSYC_transmit_cancel (struct GNUNET_PSYC_TransmitHandle *tmit)
 
   /* FIXME */
   struct GNUNET_MessageHeader msg;
-  msg.type = htons (GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_DATA);
   msg.type = htons (GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_CANCEL);
   msg.size = htons (sizeof (msg));
   transmit_queue_insert (tmit, &msg, GNUNET_YES);

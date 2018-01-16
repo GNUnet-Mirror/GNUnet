@@ -204,6 +204,7 @@ EXTRA_DIST = \
   test_dht_multipeer.conf \
   test_dht_2dtorus.conf \
   test_dht_line.conf \
+  test_dht_tools.conf \
   test_dht_tools.py.in \
   test_dht_multipeer_topology.dat
 
