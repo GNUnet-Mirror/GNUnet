@@ -994,7 +994,7 @@ GNUNET_SCHEDULER_add_with_reason_and_priority (GNUNET_SCHEDULER_TaskCallback tas
   t->start_time = GNUNET_TIME_absolute_get ();
 #endif
   t->reason = reason;
-  t->priority = priority;
+  t->priority = check_priority (priority);
   t->lifeness = current_lifeness;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Adding continuation task %p\n",
@@ -1036,7 +1036,7 @@ GNUNET_SCHEDULER_add_at_with_priority (struct GNUNET_TIME_Absolute at,
   t->start_time = GNUNET_TIME_absolute_get ();
 #endif
   t->timeout = at;
-  t->priority = priority;
+  t->priority = check_priority (priority);
   t->lifeness = current_lifeness;
   /* try tail first (optimization in case we are
    * appending to a long list of tasks with timeouts) */
@@ -1095,8 +1095,8 @@ GNUNET_SCHEDULER_add_at_with_priority (struct GNUNET_TIME_Absolute at,
  */
 struct GNUNET_SCHEDULER_Task *
 GNUNET_SCHEDULER_add_delayed_with_priority (struct GNUNET_TIME_Relative delay,
-              enum GNUNET_SCHEDULER_Priority priority,
-              GNUNET_SCHEDULER_TaskCallback task,
+                                            enum GNUNET_SCHEDULER_Priority priority,
+                                            GNUNET_SCHEDULER_TaskCallback task,
                                             void *task_cls)
 {
   return GNUNET_SCHEDULER_add_at_with_priority (GNUNET_TIME_relative_to_absolute (delay),
@@ -2305,8 +2305,8 @@ select_loop (void *cls,
 
 
 void
-select_set_wakeup(void *cls,
-                  struct GNUNET_TIME_Absolute dt)
+select_set_wakeup (void *cls,
+                   struct GNUNET_TIME_Absolute dt)
 {
   struct DriverContext *context = cls;
   GNUNET_assert (NULL != context);
