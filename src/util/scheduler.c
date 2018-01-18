@@ -1885,8 +1885,10 @@ GNUNET_SCHEDULER_run_from_driver (struct GNUNET_SCHEDULER_Handle *sh)
 
   /* check for tasks that reached the timeout! */
   now = GNUNET_TIME_absolute_get ();
-  while (NULL != (pos = pending_timeout_head))
+  pos = pending_timeout_head;
+  while (NULL != pos)
   {
+    struct GNUNET_SCHEDULER_Task *next = pos->next;
     if (now.abs_value_us >= pos->timeout.abs_value_us)
       pos->reason |= GNUNET_SCHEDULER_REASON_TIMEOUT;
     if (0 == pos->reason)
@@ -1897,6 +1899,7 @@ GNUNET_SCHEDULER_run_from_driver (struct GNUNET_SCHEDULER_Handle *sh)
     if (pending_timeout_last == pos)
       pending_timeout_last = NULL;
     queue_ready_task (pos);
+    pos = next;
   }
   pos = pending_head;
   while (NULL != pos)
