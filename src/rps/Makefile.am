@@ -141,7 +141,9 @@ test_rps_churn_SOURCES = $(rps_test_src)
 test_rps_churn_LDADD = $(ld_rps_test_lib)
 
 gnunet_rps_profiler_SOURCES = $(rps_test_src)
-gnunet_rps_profiler_LDADD = $(ld_rps_test_lib)
+gnunet_rps_profiler_LDADD = \
+  $(top_builddir)/src/statistics/libgnunetstatistics.la \
+  $(ld_rps_test_lib)
 
 EXTRA_DIST = \
   test_rps.conf
