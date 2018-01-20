@@ -405,6 +405,7 @@ check_lookup_result (void *cls,
   size_t name_len;
   size_t rd_len;
 
+  (void) cls;
   rd_len = ntohs (msg->rd_len);
   msg_len = ntohs (msg->gns_header.header.size);
   name_len = ntohs (msg->name_len);
@@ -517,6 +518,7 @@ check_record_result (void *cls,
   size_t name_len;
   size_t rd_len;
 
+  (void) cls;
   rd_len = ntohs (msg->rd_len);
   msg_len = ntohs (msg->gns_header.header.size);
   name_len = ntohs (msg->name_len);
@@ -656,6 +658,7 @@ check_zone_to_name_response (void *cls,
   size_t rd_ser_len;
   const char *name_tmp;
 
+  (void) cls;
   if (GNUNET_OK != ntohs (msg->res))
     return GNUNET_OK;
   name_len = ntohs (msg->name_len);
@@ -771,6 +774,7 @@ mq_error_handler (void *cls,
 {
   struct GNUNET_NAMESTORE_Handle *h = cls;
 
+  (void) error;
   force_reconnect (h);
 }
 
@@ -994,6 +998,7 @@ GNUNET_NAMESTORE_records_store (struct GNUNET_NAMESTORE_Handle *h,
   size_t name_len;
   uint32_t rid;
   struct RecordStoreMessage *msg;
+  ssize_t sret;
 
   name_len = strlen (label) + 1;
   if (name_len > MAX_NAME_LEN)
@@ -1029,11 +1034,16 @@ GNUNET_NAMESTORE_records_store (struct GNUNET_NAMESTORE_Handle *h,
                  label,
                  name_len);
   rd_ser = &name_tmp[name_len];
-  GNUNET_assert (rd_ser_len ==
-                 GNUNET_GNSRECORD_records_serialize (rd_count,
-                                                     rd,
-                                                     rd_ser_len,
-                                                     rd_ser));
+  sret = GNUNET_GNSRECORD_records_serialize (rd_count,
+					     rd,
+					     rd_ser_len,
+					     rd_ser);
+  if (0 > sret)
+  {
+    GNUNET_free (env);
+    return NULL;
+  }
+  GNUNET_assert (rd_ser_len == (size_t) sret);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Sending NAMESTORE_RECORD_STORE message for name `%s' with %u records\n",
        label,
