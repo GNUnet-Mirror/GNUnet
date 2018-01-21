@@ -330,6 +330,19 @@ static struct GNUNET_SCHEDULER_Task *ready_head[GNUNET_SCHEDULER_PRIORITY_COUNT]
 static struct GNUNET_SCHEDULER_Task *ready_tail[GNUNET_SCHEDULER_PRIORITY_COUNT];
 
 /**
+ * Task for installing parent control handlers (it might happen that the
+ * scheduler is shutdown before this task is executed, so
+ * GNUNET_SCHEDULER_shutdown must cancel it in that case)
+ */
+static struct GNUNET_SCHEDULER_Task *install_parent_control_task;
+
+/**
+ * Task for reading from a pipe that signal handlers will use to initiate
+ * shutdown
+ */
+static struct GNUNET_SCHEDULER_Task *shutdown_pipe_task;
+
+/**
  * Number of tasks on the ready list.
  */
 static unsigned int ready_count;
@@ -476,6 +489,18 @@ GNUNET_SCHEDULER_shutdown ()
 {
   struct GNUNET_SCHEDULER_Task *pos;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "GNUNET_SCHEDULER_shutdown\n");
+  if (NULL != install_parent_control_task)
+  {
+    GNUNET_SCHEDULER_cancel (install_parent_control_task);
+    install_parent_control_task = NULL;
+  }
+  if (NULL != shutdown_pipe_task)
+  {
+    GNUNET_SCHEDULER_cancel (shutdown_pipe_task);
+    shutdown_pipe_task = NULL;
+  }
   while (NULL != (pos = shutdown_head))
   {
     GNUNET_CONTAINER_DLL_remove (shutdown_head,
@@ -627,14 +652,7 @@ shutdown_if_no_lifeness ()
   for (t = pending_timeout_head; NULL != t; t = t->next)
     if (GNUNET_YES == t->lifeness)
       return;
-  /* No lifeness! Cancel all pending tasks the driver knows about and shutdown */
-  t = pending_head;
-  while (NULL != t)
-  {
-    struct GNUNET_SCHEDULER_Task *next = t->next;
-    GNUNET_SCHEDULER_cancel (t);
-    t = next;
-  }
+  /* No lifeness! */
   GNUNET_SCHEDULER_shutdown ();
 }
 
@@ -853,12 +871,20 @@ driver_add_multiple (struct GNUNET_SCHEDULER_Task *t)
 
 
 static void
-shutdown_cb (void *cls)
+install_parent_control_handler (void *cls)
+{
+  install_parent_control_task = NULL;
+  GNUNET_OS_install_parent_control_handler (NULL);
+}
+
+
+static void
+shutdown_pipe_cb (void *cls)
 {
   char c;
   const struct GNUNET_DISK_FileHandle *pr;
 
-  (void) cls;
+  shutdown_pipe_task = NULL;
   pr = GNUNET_DISK_pipe_handle (shutdown_pipe_handle,
                                 GNUNET_DISK_PIPE_END_READ);
   GNUNET_assert (! GNUNET_DISK_handle_invalid (pr));
@@ -2007,7 +2033,7 @@ GNUNET_SCHEDULER_run_from_driver (struct GNUNET_SCHEDULER_Handle *sh)
     return GNUNET_NO;
   }
   scheduler_driver->set_wakeup (scheduler_driver->cls,
-                                GNUNET_TIME_absolute_get ()); 
+                                GNUNET_TIME_absolute_get ());
   return GNUNET_OK;
 }
 
@@ -2087,12 +2113,14 @@ GNUNET_SCHEDULER_run_with_driver (const struct GNUNET_SCHEDULER_Driver *driver,
     0,
     sizeof (tsk));
   active_task = &tsk;
-  GNUNET_SCHEDULER_add_now (&GNUNET_OS_install_parent_control_handler,
-                            NULL);
-  GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL,
-                                  pr,
-                                  &shutdown_cb,
-                                  NULL);
+  install_parent_control_task =
+    GNUNET_SCHEDULER_add_now (&install_parent_control_handler,
+                              NULL);
+  shutdown_pipe_task =
+    GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL,
+                                    pr,
+                                    &shutdown_pipe_cb,
+                                    NULL);
   current_lifeness = GNUNET_YES;
   GNUNET_SCHEDULER_add_with_reason_and_priority (task,
                                                  task_cls,
@@ -2107,6 +2135,13 @@ GNUNET_SCHEDULER_run_with_driver (const struct GNUNET_SCHEDULER_Driver *driver,
   GNUNET_NETWORK_fdset_handle_set (sh.rs, pr);
   ret = driver->loop (driver->cls,
                       &sh);
+  GNUNET_assert (NULL == pending_head);
+  GNUNET_assert (NULL == pending_timeout_head);
+  GNUNET_assert (NULL == shutdown_head);
+  for (int i = 0; i != GNUNET_SCHEDULER_PRIORITY_COUNT; ++i)
+  {
+    GNUNET_assert (NULL == ready_head[i]);
+  }
   GNUNET_NETWORK_fdset_destroy (sh.rs);
   GNUNET_NETWORK_fdset_destroy (sh.ws);
 
