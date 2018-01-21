@@ -65,7 +65,6 @@ static void service_connect (void *cls,
 static struct MulticastPeerContext **multicast_peers;
 static struct GNUNET_TESTBED_Peer **peers;
 
-// FIXME: refactor
 static struct GNUNET_TESTBED_Operation *op[PEERS_REQUESTED];
 static struct GNUNET_TESTBED_Operation *pi_op[PEERS_REQUESTED];
 
@@ -74,7 +73,7 @@ static struct GNUNET_MULTICAST_Member *members[PEERS_REQUESTED]; /* first elemen
 
 static struct GNUNET_SCHEDULER_Task *timeout_tid;
 
-//static struct GNUNET_CRYPTO_EddsaPrivateKey *group_key;
+static struct GNUNET_CRYPTO_EddsaPrivateKey *group_key;
 static struct GNUNET_CRYPTO_EddsaPublicKey group_pub_key;
 static struct GNUNET_HashCode group_pub_key_hash;
 
@@ -110,7 +109,7 @@ shutdown_task (void *cls)
   {
     for (int i=0; i < PEERS_REQUESTED; i++)
     {
-      GNUNET_free (multicast_peers[i]->key);
+      GNUNET_free_non_null (multicast_peers[i]->key);
       GNUNET_free (multicast_peers[i]);
       multicast_peers[i] = NULL;
     }
@@ -180,7 +179,6 @@ member_join_decision (void *cls,
                       const struct GNUNET_MessageHeader *join_msg)
 {
   struct MulticastPeerContext *mc_peer = (struct MulticastPeerContext*)cls;
-  struct GNUNET_MULTICAST_MemberTransmitHandle *req;
   
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, 
               "Peer #%u (%s) received a decision from origin: %s\n", 
@@ -190,10 +188,10 @@ member_join_decision (void *cls,
   
   if (GNUNET_YES == is_admitted)
   {
-    req = GNUNET_MULTICAST_member_to_origin (members[mc_peer->peer],
-                                             0,
-                                             notify,
-                                             cls);
+    GNUNET_MULTICAST_member_to_origin (members[mc_peer->peer],
+                                       0,
+                                       notify,
+                                       cls);
     
   }
 }
@@ -384,13 +382,14 @@ multicast_connect (void *cls,
   struct GNUNET_MessageHeader *join_msg;
   char data[64];
 
-  multicast_peer->key = GNUNET_CRYPTO_ecdsa_key_create ();
   if (0 == multicast_peer->peer)
   {
-    GNUNET_CRYPTO_eddsa_key_get_public (multicast_peer->key, &group_pub_key);
+    group_key = GNUNET_CRYPTO_eddsa_key_create ();
+    GNUNET_CRYPTO_eddsa_key_get_public (group_key, &group_pub_key);
+  
     GNUNET_CRYPTO_hash (&group_pub_key, sizeof (group_pub_key), &group_pub_key_hash);
     origin = GNUNET_MULTICAST_origin_start (cfg,
-                                            multicast_peer->key,
+                                            group_key,
                                             0,
                                             origin_join_request,
                                             origin_replay_frag,
@@ -413,6 +412,8 @@ multicast_connect (void *cls,
   }
   else
   {
+    multicast_peer->key = GNUNET_CRYPTO_ecdsa_key_create ();
+
     sprintf(data, "Hi, I am peer #%u (%s). Can I enter?", 
             multicast_peer->peer,
             GNUNET_i2s (multicast_peers[multicast_peer->peer]->id));
