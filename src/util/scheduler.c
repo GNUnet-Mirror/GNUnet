@@ -679,12 +679,12 @@ GNUNET_SCHEDULER_run (GNUNET_SCHEDULER_TaskCallback task,
   struct DriverContext context = {.scheduled_head = NULL,
                                   .scheduled_tail = NULL,
                                   .timeout = GNUNET_TIME_UNIT_FOREVER_REL};
-  
+
   driver = GNUNET_SCHEDULER_driver_select ();
   driver->cls = &context;
 
   GNUNET_SCHEDULER_run_with_driver (driver, task, task_cls);
-  
+
   GNUNET_free (driver);
 }
 
@@ -860,7 +860,7 @@ driver_add_multiple (struct GNUNET_SCHEDULER_Task *t)
     success = scheduler_driver->add (scheduler_driver->cls,
 				     t,
 				     fdi) && success;
-    fdi->et = GNUNET_SCHEDULER_ET_NONE; 
+    fdi->et = GNUNET_SCHEDULER_ET_NONE;
   }
   if (GNUNET_YES != success)
   {
@@ -2232,7 +2232,7 @@ select_loop (void *cls,
   struct DriverContext *context;
   int select_result;
   int tasks_ready;
- 
+
   context = cls;
   GNUNET_assert (NULL != context);
   rs = GNUNET_NETWORK_fdset_create ();
@@ -2338,7 +2338,7 @@ select_loop (void *cls,
   }
   GNUNET_NETWORK_fdset_destroy (rs);
   GNUNET_NETWORK_fdset_destroy (ws);
-  return GNUNET_OK; 
+  return GNUNET_OK;
 }
 
 
@@ -2348,7 +2348,7 @@ select_set_wakeup (void *cls,
 {
   struct DriverContext *context = cls;
   GNUNET_assert (NULL != context);
- 
+
   context->timeout = GNUNET_TIME_absolute_get_remaining (dt);
 }
 
