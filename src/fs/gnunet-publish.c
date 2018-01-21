@@ -895,35 +895,30 @@ main (int argc, char *const *argv)
 {
   struct GNUNET_GETOPT_CommandLineOption options[] = {
     GNUNET_GETOPT_option_uint ('a',
-                                   "anonymity",
-                                   "LEVEL",
-                                   gettext_noop ("set the desired LEVEL of sender-anonymity"),
-                                   &bo.anonymity_level),
-
+                               "anonymity",
+                               "LEVEL",
+                               gettext_noop ("set the desired LEVEL of sender-anonymity"),
+                               &bo.anonymity_level),
     GNUNET_GETOPT_option_flag ('d',
-                                  "disable-creation-time",
-                                  gettext_noop ("disable adding the creation time to the "
-                                                "metadata of the uploaded file"),
-                                  &do_disable_creation_time),
-
+                               "disable-creation-time",
+                               gettext_noop ("disable adding the creation time to the "
+                                             "metadata of the uploaded file"),
+                               &do_disable_creation_time),
     GNUNET_GETOPT_option_flag ('D',
-                                  "disable-extractor",
-                                  gettext_noop ("do not use libextractor to add keywords or metadata"),
-                                  &disable_extractor),
-
+                               "disable-extractor",
+                               gettext_noop ("do not use libextractor to add keywords or metadata"),
+                               &disable_extractor),
     GNUNET_GETOPT_option_flag ('e',
-                                  "extract",
-                                  gettext_noop ("print list of extracted keywords that would "
-                                                "be used, but do not perform upload"),
-                                  &extract_only),
-
+                               "extract",
+                               gettext_noop ("print list of extracted keywords that would "
+                                             "be used, but do not perform upload"),
+                               &extract_only),
     GNUNET_FS_GETOPT_KEYWORDS ('k',
                                "key",
                                "KEYWORD",
                                gettext_noop ("add an additional keyword for the top-level "
                                              "file or directory (this option can be specified multiple times)"),
                                &topKeywords),
-
     GNUNET_FS_GETOPT_METADATA ('m',
                                "meta",
                                "TYPE:VALUE",
@@ -955,20 +950,16 @@ main (int argc, char *const *argv)
                                  gettext_noop ("publish the files under the pseudonym "
                                                "NAME (place file into namespace)"),
                                  &pseudonym),
-
     GNUNET_GETOPT_option_uint ('r',
-                                   "replication",
-                                   "LEVEL",
-                                   gettext_noop ("set the desired replication LEVEL"),
-                                   &bo.replication_level),
-
-
+                               "replication",
+                               "LEVEL",
+                               gettext_noop ("set the desired replication LEVEL"),
+                               &bo.replication_level),
     GNUNET_GETOPT_option_flag ('s',
-                                  "simulate-only",
-                                  gettext_noop ("only simulate the process but do not do "
-                                                "any actual publishing (useful to compute URIs)"),
-                                  &do_simulate),
-
+                               "simulate-only",
+                               gettext_noop ("only simulate the process but do not do "
+                                             "any actual publishing (useful to compute URIs)"),
+                               &do_simulate),
     GNUNET_GETOPT_option_string ('t',
                                  "this",
                                  "ID",
@@ -981,7 +972,7 @@ main (int argc, char *const *argv)
                                  "URI",
                                  gettext_noop ("URI to be published (can be used instead of passing a "
                                                "file to add keywords to the file with the respective URI)"),
-                                 &uri_string), 
+                                 &uri_string),
 
     GNUNET_GETOPT_option_verbose (&verbose),
 
