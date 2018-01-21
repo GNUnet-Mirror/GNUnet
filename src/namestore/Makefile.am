@@ -59,8 +59,8 @@ TESTING_TESTS = \
  test_namestore_api_zone_iteration_specific_zone.nc \
  test_namestore_api_zone_iteration_stop.nc \
  test_namestore_api_monitoring.nc \
- test_namestore_api_monitoring_existing.nc
-# test_namestore_api_zone_to_name
+ test_namestore_api_monitoring_existing.nc \
+ test_namestore_api_zone_to_name
 endif
 
 # Declare .nc (NO-CONCURRENCY) as a test extension so that we can impart
@@ -298,12 +298,12 @@ test_namestore_api_remove_not_existing_record_nc_LDADD = \
   $(top_builddir)/src/gnsrecord/libgnunetgnsrecord.la \
   libgnunetnamestore.la
 
-#test_namestore_api_zone_to_name_SOURCES = \
-# test_namestore_api_zone_to_name.c
-#test_namestore_api_zone_to_name_LDADD = \
-#  $(top_builddir)/src/testing/libgnunettesting.la \
-#  $(top_builddir)/src/util/libgnunetutil.la \
-#  libgnunetnamestore.la
+test_namestore_api_zone_to_name_SOURCES = \
+ test_namestore_api_zone_to_name.c
+test_namestore_api_zone_to_name_LDADD = \
+  $(top_builddir)/src/testing/libgnunettesting.la \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  libgnunetnamestore.la
 
 test_namestore_api_monitoring_nc_SOURCES = \
  test_namestore_api_monitoring.c

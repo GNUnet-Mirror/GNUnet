@@ -424,7 +424,7 @@ get_timeout ()
   {
     if (0 != pos->reason)
     {
-      timeout = now;
+      return now;
     }
     else
     {
@@ -435,7 +435,7 @@ get_timeout ()
   {
     if (0 != pos->reason)
     {
-      timeout = now;
+      return now;
     }
     else if ((pos->timeout.abs_value_us != GNUNET_TIME_UNIT_FOREVER_ABS.abs_value_us) &&
              (timeout.abs_value_us > pos->timeout.abs_value_us))
@@ -994,7 +994,7 @@ GNUNET_SCHEDULER_add_with_reason_and_priority (GNUNET_SCHEDULER_TaskCallback tas
   t->start_time = GNUNET_TIME_absolute_get ();
 #endif
   t->reason = reason;
-  t->priority = priority;
+  t->priority = check_priority (priority);
   t->lifeness = current_lifeness;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Adding continuation task %p\n",
@@ -1036,7 +1036,7 @@ GNUNET_SCHEDULER_add_at_with_priority (struct GNUNET_TIME_Absolute at,
   t->start_time = GNUNET_TIME_absolute_get ();
 #endif
   t->timeout = at;
-  t->priority = priority;
+  t->priority = check_priority (priority);
   t->lifeness = current_lifeness;
   /* try tail first (optimization in case we are
    * appending to a long list of tasks with timeouts) */
@@ -1095,8 +1095,8 @@ GNUNET_SCHEDULER_add_at_with_priority (struct GNUNET_TIME_Absolute at,
  */
 struct GNUNET_SCHEDULER_Task *
 GNUNET_SCHEDULER_add_delayed_with_priority (struct GNUNET_TIME_Relative delay,
-              enum GNUNET_SCHEDULER_Priority priority,
-              GNUNET_SCHEDULER_TaskCallback task,
+                                            enum GNUNET_SCHEDULER_Priority priority,
+                                            GNUNET_SCHEDULER_TaskCallback task,
                                             void *task_cls)
 {
   return GNUNET_SCHEDULER_add_at_with_priority (GNUNET_TIME_relative_to_absolute (delay),
@@ -1839,12 +1839,8 @@ GNUNET_SCHEDULER_task_ready (struct GNUNET_SCHEDULER_Task *task,
                              struct GNUNET_SCHEDULER_FdInfo *fdi)
 {
   enum GNUNET_SCHEDULER_Reason reason;
-  struct GNUNET_TIME_Absolute now;
 
-  now = GNUNET_TIME_absolute_get ();
   reason = task->reason;
-  if (now.abs_value_us >= task->timeout.abs_value_us)
-    reason |= GNUNET_SCHEDULER_REASON_TIMEOUT;
   if ( (0 == (reason & GNUNET_SCHEDULER_REASON_READ_READY)) &&
        (0 != (GNUNET_SCHEDULER_ET_IN & fdi->et)) )
     reason |= GNUNET_SCHEDULER_REASON_READ_READY;
@@ -1889,8 +1885,10 @@ GNUNET_SCHEDULER_run_from_driver (struct GNUNET_SCHEDULER_Handle *sh)
 
   /* check for tasks that reached the timeout! */
   now = GNUNET_TIME_absolute_get ();
-  while (NULL != (pos = pending_timeout_head))
+  pos = pending_timeout_head;
+  while (NULL != pos)
   {
+    struct GNUNET_SCHEDULER_Task *next = pos->next;
     if (now.abs_value_us >= pos->timeout.abs_value_us)
       pos->reason |= GNUNET_SCHEDULER_REASON_TIMEOUT;
     if (0 == pos->reason)
@@ -1901,6 +1899,7 @@ GNUNET_SCHEDULER_run_from_driver (struct GNUNET_SCHEDULER_Handle *sh)
     if (pending_timeout_last == pos)
       pending_timeout_last = NULL;
     queue_ready_task (pos);
+    pos = next;
   }
   pos = pending_head;
   while (NULL != pos)
@@ -2276,24 +2275,27 @@ select_loop (void *cls,
       GNUNET_NETWORK_fdset_destroy (ws);
       return GNUNET_SYSERR;
     }
-    for (pos = context->scheduled_head; NULL != pos; pos = pos->next)
+    if (select_result > 0)
     {
-      int is_ready = GNUNET_NO;
-      if (0 != (GNUNET_SCHEDULER_ET_IN & pos->et) &&
-          GNUNET_YES == GNUNET_NETWORK_fdset_test_native (rs, pos->fdi->sock))
+      for (pos = context->scheduled_head; NULL != pos; pos = pos->next)
       {
-        pos->fdi->et |= GNUNET_SCHEDULER_ET_IN;
-        is_ready = GNUNET_YES;
-      }
-      if (0 != (GNUNET_SCHEDULER_ET_OUT & pos->et) &&
-          GNUNET_YES == GNUNET_NETWORK_fdset_test_native (ws, pos->fdi->sock))
-      {
-        pos->fdi->et |= GNUNET_SCHEDULER_ET_OUT;
-        is_ready = GNUNET_YES;
-      }
-      if (GNUNET_YES == is_ready)
-      {
-        GNUNET_SCHEDULER_task_ready (pos->task, pos->fdi);
+        int is_ready = GNUNET_NO;
+        if (0 != (GNUNET_SCHEDULER_ET_IN & pos->et) &&
+            GNUNET_YES == GNUNET_NETWORK_fdset_test_native (rs, pos->fdi->sock))
+        {
+          pos->fdi->et |= GNUNET_SCHEDULER_ET_IN;
+          is_ready = GNUNET_YES;
+        }
+        if (0 != (GNUNET_SCHEDULER_ET_OUT & pos->et) &&
+            GNUNET_YES == GNUNET_NETWORK_fdset_test_native (ws, pos->fdi->sock))
+        {
+          pos->fdi->et |= GNUNET_SCHEDULER_ET_OUT;
+          is_ready = GNUNET_YES;
+        }
+        if (GNUNET_YES == is_ready)
+        {
+          GNUNET_SCHEDULER_task_ready (pos->task, pos->fdi);
+        }
       }
     }
     tasks_ready = GNUNET_SCHEDULER_run_from_driver (sh);
@@ -2306,8 +2308,8 @@ select_loop (void *cls,
 
 
 void
-select_set_wakeup(void *cls,
-                  struct GNUNET_TIME_Absolute dt)
+select_set_wakeup (void *cls,
+                   struct GNUNET_TIME_Absolute dt)
 {
   struct DriverContext *context = cls;
   GNUNET_assert (NULL != context);

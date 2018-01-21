@@ -94,7 +94,7 @@ following links:
 @c ** FIXME: Link to files in source, not online.
 @c ** FIXME: Where is the Java tutorial?
 @itemize @bullet
-@item @xref{Top, Introduction,, gnunet-c-tutorial, The GNUnet C Tutorial}
+@item @xref{Top, Introduction,, gnunet-c-tutorial, The GNUnet C Tutorial}.
 @c broken link
 @c @item @uref{https://gnunet.org/git/gnunet.git/plain/doc/gnunet-c-tutorial.pdf, GNUnet C tutorial}
 @item GNUnet Java tutorial
