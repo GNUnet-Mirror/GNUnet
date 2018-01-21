@@ -24,6 +24,14 @@
  * @author xrs
  */
 
+/**
+ * Lessons Learned:
+ * - define topology in config
+ * - psyc slave join needs part to end (same with master)
+ * - GNUNET_SCHEDULER_add_delayed return value will outdate at call time
+ * - main can not contain GNUNET_log()
+ */
+
 #include "platform.h"
 #include "gnunet_crypto_lib.h"
 #include "gnunet_common.h"
@@ -37,17 +45,6 @@ static struct pctx PEERS[2];
 
 static int pids;
 
-static void
-mst_stop_cb ()
-{
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "master stopped\n");
-}
-
-static void
-slv_part_cb ()
-{
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "slave parted\n");
-}
 
 static void 
 shutdown_task (void *cls)
@@ -61,10 +58,12 @@ shutdown_task (void *cls)
     GNUNET_free (PEERS[i].channel_pub_key);
 
     if (NULL != PEERS[i].psyc)
+    {
       if (0 == i) 
-        GNUNET_PSYC_master_stop (PEERS[i].psyc, GNUNET_NO, mst_stop_cb, NULL);
+        GNUNET_PSYC_master_stop (PEERS[i].psyc, GNUNET_NO, NULL, NULL);
       else 
-        GNUNET_PSYC_slave_part (PEERS[i].psyc, GNUNET_NO, slv_part_cb, NULL);
+        GNUNET_PSYC_slave_part (PEERS[i].psyc, GNUNET_NO, NULL, NULL);
+    }
   }
 
   for (int i=0;i<MAX_TESTBED_OPS;i++)
@@ -86,45 +85,34 @@ timeout_task (void *cls)
 }
 
 static void
-mst_connect_cb ()
-{
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "mst_connect_cb()\n");
-}
-
-static void
-slv_connect_cb (void *cls, int result, uint64_t max_message_id)
-{
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "slv_connect_cb()\n");
-}
-
-static void
 join_decision_cb (void *cls,
                   const struct GNUNET_PSYC_JoinDecisionMessage *dcsn,
                   int is_admitted,
                   const struct GNUNET_PSYC_Message *join_msg)
 {
-  result = GNUNET_OK;
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              "Slave got join decision: %d\n", is_admitted);
+              "slave: got join decision: %s\n", 
+              (GNUNET_YES == is_admitted) ? "admitted":"rejected");
+
+  result = (GNUNET_YES == is_admitted) ? GNUNET_OK : GNUNET_SYSERR;
+
   GNUNET_SCHEDULER_shutdown ();
 }
 
 static void
-join_request_cb ()
+join_request_cb (void *cls,
+                 const struct GNUNET_PSYC_JoinRequestMessage *req,
+                 const struct GNUNET_CRYPTO_EcdsaPublicKey *slave_key,
+                 const struct GNUNET_PSYC_Message *join_msg,
+                 struct GNUNET_PSYC_JoinHandle *jh)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "join_request_cb()\n");
-}
+  struct GNUNET_HashCode slave_key_hash;
 
-static void
-message_cb ()
-{
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "message_cb()\n");
-}
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "master: got join request.\n");
 
-static void
-message_part_cb ()
-{
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "message_part_cb()\n");
+  GNUNET_CRYPTO_hash (slave_key, sizeof (*slave_key), &slave_key_hash);
+
+  GNUNET_PSYC_join_decision (jh, GNUNET_YES, 0, NULL, NULL);
 }
 
 static void
@@ -146,10 +134,10 @@ psyc_ca (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg)
       GNUNET_PSYC_master_start (cfg,
                                 peer->channel_key,
                                 GNUNET_PSYC_CHANNEL_PRIVATE,
-                                mst_connect_cb,
+                                NULL,
                                 join_request_cb,
-                                message_cb,
-                                message_part_cb,
+                                NULL,
+                                NULL,
                                 cls);
     return peer->psyc;
   }
@@ -163,8 +151,6 @@ psyc_ca (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg)
   struct GNUNET_PSYC_Message *
     join_msg = GNUNET_PSYC_message_create ("_request_join", env, "some data", 40);
 
-  // THOUGHT: It's possible, that psyc slave is to fast and can not connect
-  // to master! ask tg and grothoff about message queueing
   peer->psyc = (struct GNUNET_PSYC_Slave *)
     GNUNET_PSYC_slave_join (cfg,
                             peer->channel_pub_key,
@@ -173,9 +159,9 @@ psyc_ca (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg)
                             peer->peer_id_master, 
                             0,
                             NULL,
-                            message_cb,
-                            message_part_cb,
-                            slv_connect_cb,
+                            NULL,
+                            NULL,
+                            NULL,
                             join_decision_cb,
                             cls,
                             join_msg);
@@ -245,10 +231,11 @@ testbed_master (void *cls,
   // Set up shutdown logic
   GNUNET_SCHEDULER_add_shutdown (&shutdown_task, NULL); 
   timeout_task_id = 
-    GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 10),
+    GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 15),
                                   &timeout_task, NULL);
   GNUNET_assert (NULL != timeout_task_id);
 
+  // Set up channel key
   channel_key = GNUNET_CRYPTO_eddsa_key_create ();
   GNUNET_assert (NULL != channel_key);
   
@@ -282,7 +269,7 @@ main (int argc, char *argv[])
 {
   int ret; 
 
-  ret = GNUNET_TESTBED_test_run ("test-psyc-api-join", "test_psyc.conf",
+  ret = GNUNET_TESTBED_test_run ("test_psyc_api_join", "test_psyc.conf",
                                  2, 0LL, NULL, NULL, 
                                  &testbed_master, NULL);
 
