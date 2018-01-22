@@ -398,12 +398,10 @@ create_response (void *cls,
                                MHD_GET_ARGUMENT_KIND,
                                &url_iterator,
                                rest_conndata_handle);
-<<<<<<< HEAD
     MHD_get_connection_values (con,
                                MHD_HEADER_KIND,
                                &header_iterator,
                                rest_conndata_handle);
-=======
     con_handle->pp = MHD_create_post_processor(con,
                                                4000,
                                                post_data_iter,
@@ -416,7 +414,6 @@ create_response (void *cls,
     {
       MHD_destroy_post_processor(con_handle->pp);
     }
->>>>>>> master
     con_handle->state = GN_REST_STATE_PROCESSING;
     con_handle->plugin->process_request (rest_conndata_handle,
                                          &plugin_callback,
