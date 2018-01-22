@@ -816,6 +816,12 @@ mq_notify_sent_cb (void *cls)
   LOG (GNUNET_ERROR_TYPE_DEBUG,
       "%s was sent.\n",
       pending_msg->type);
+  if (0 == strncmp ("PULL REPLY", pending_msg->type, 10))
+    GNUNET_STATISTICS_update(stats, "# pull replys sent", 1, GNUNET_NO);
+  if (0 == strncmp ("PULL REQUEST", pending_msg->type, 12))
+    GNUNET_STATISTICS_update(stats, "# pull requests sent", 1, GNUNET_NO);
+  if (0 == strncmp ("PUSH", pending_msg->type, 4))
+    GNUNET_STATISTICS_update(stats, "# pushes sent", 1, GNUNET_NO);
   /* Do not cancle message */
   remove_pending_message (pending_msg, GNUNET_NO);
 }
@@ -1634,7 +1640,6 @@ Peers_destroy_sending_channel (const struct GNUNET_PeerIdentity *peer)
  *
  * @param cls The closure
  * @param channel The channel being closed
- * @param channel_ctx The context associated with this channel
  */
 void
 Peers_cleanup_destroyed_channel (void *cls,
@@ -2972,7 +2977,7 @@ handle_peer_push (void *cls,
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Received PUSH (%s)\n",
        GNUNET_i2s (peer));
-  GNUNET_STATISTICS_update(stats, "# push messages received", 1, GNUNET_NO);
+  GNUNET_STATISTICS_update(stats, "# push message received", 1, GNUNET_NO);
 
   #ifdef ENABLE_MALICIOUS
   struct AttackedPeer *tmp_att_peer;
@@ -3025,7 +3030,7 @@ handle_peer_pull_request (void *cls,
   const struct GNUNET_PeerIdentity *view_array;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Received PULL REQUEST (%s)\n", GNUNET_i2s (peer));
-  GNUNET_STATISTICS_update(stats, "# pull request messages received", 1, GNUNET_NO);
+  GNUNET_STATISTICS_update(stats, "# pull request message received", 1, GNUNET_NO);
 
   #ifdef ENABLE_MALICIOUS
   if (1 == mal_type
@@ -3719,11 +3724,15 @@ do_round (void *cls)
     }
 
     GNUNET_array_grow (peers_to_clean, peers_to_clean_size, 0);
-  }
-  else
-  {
+  } else {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "No update of the view.\n");
     GNUNET_STATISTICS_update(stats, "# rounds blocked", 1, GNUNET_NO);
+    if (CustomPeerMap_size (push_map) > alpha * View_size ())
+      GNUNET_STATISTICS_update(stats, "# rounds blocked - too many pushes", 1, GNUNET_NO);
+    if (0 >= CustomPeerMap_size (push_map))
+      GNUNET_STATISTICS_update(stats, "# rounds blocked - no pushes", 1, GNUNET_NO);
+    if (0 >= CustomPeerMap_size (pull_map))
+      GNUNET_STATISTICS_update(stats, "# rounds blocked - no pull replies", 1, GNUNET_NO);
   }
   // TODO independent of that also get some peers from CADET_get_peers()?
 
