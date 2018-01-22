@@ -1521,7 +1521,9 @@ Peers_handle_inbound_channel (void *cls,
   {
     set_channel_flag (peer_ctx->recv_channel_flags,
                       Peers_CHANNEL_ESTABLISHED_TWICE);
-    GNUNET_CADET_channel_destroy (channel);
+    //GNUNET_CADET_channel_destroy (channel);
+    GNUNET_CADET_channel_destroy (peer_ctx->recv_channel);
+    peer_ctx->recv_channel = channel;
     /* return the channel context */
     return &peer_ctx->peer_id;
   }
@@ -2576,6 +2578,8 @@ cleanup_destroyed_channel (void *cls,
   struct GNUNET_PeerIdentity *peer = cls;
   uint32_t *channel_flag;
   struct PeerContext *peer_ctx;
+
+  GNUNET_assert (NULL != peer);
 
   if (GNUNET_NO == Peers_check_peer_known (peer))
   { /* We don't know a context to that peer */
