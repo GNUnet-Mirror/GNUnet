@@ -39,6 +39,7 @@
 struct GNUNET_REST_RequestHandle
 {
   struct GNUNET_CONTAINER_MultiHashMap *url_param_map;
+  struct GNUNET_CONTAINER_MultiHashMap *header_param_map;
   const char *method;
   const char *url;
   const char *data;
