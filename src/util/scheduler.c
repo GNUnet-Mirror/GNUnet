@@ -254,10 +254,10 @@ struct DriverContext
   struct Scheduled *scheduled_tail;
 
   /**
-   * the time until the select driver will wake up again (after
+   * the time when the select driver will wake up again (after
    * calling select)
    */
-  struct GNUNET_TIME_Relative timeout;
+  struct GNUNET_TIME_Absolute timeout;
 };
 
 
@@ -678,7 +678,7 @@ GNUNET_SCHEDULER_run (GNUNET_SCHEDULER_TaskCallback task,
   struct GNUNET_SCHEDULER_Driver *driver;
   struct DriverContext context = {.scheduled_head = NULL,
                                   .scheduled_tail = NULL,
-                                  .timeout = GNUNET_TIME_UNIT_FOREVER_REL};
+                                  .timeout = GNUNET_TIME_UNIT_FOREVER_ABS};
 
   driver = GNUNET_SCHEDULER_driver_select ();
   driver->cls = &context;
@@ -2239,11 +2239,11 @@ select_loop (void *cls,
   ws = GNUNET_NETWORK_fdset_create ();
   tasks_ready = GNUNET_NO;
   while (NULL != context->scheduled_head ||
-         GNUNET_TIME_UNIT_FOREVER_REL.rel_value_us != context->timeout.rel_value_us)
+         GNUNET_TIME_UNIT_FOREVER_ABS.abs_value_us != context->timeout.abs_value_us)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "select timeout = %s\n",
-         GNUNET_STRINGS_relative_time_to_string (context->timeout, GNUNET_NO));
+         GNUNET_STRINGS_absolute_time_to_string (context->timeout));
 
     GNUNET_NETWORK_fdset_zero (rs);
     GNUNET_NETWORK_fdset_zero (ws);
@@ -2259,12 +2259,14 @@ select_loop (void *cls,
         GNUNET_NETWORK_fdset_set_native (ws, pos->fdi->sock);
       }
     }
+    struct GNUNET_TIME_Relative time_remaining =
+      GNUNET_TIME_absolute_get_remaining (context->timeout);
     if (NULL == scheduler_select)
     {
       select_result = GNUNET_NETWORK_socket_select (rs,
                                                     ws,
                                                     NULL,
-                                                    context->timeout);
+                                                    time_remaining);
     }
     else
     {
@@ -2272,7 +2274,7 @@ select_loop (void *cls,
                                         rs,
                                         ws,
                                         NULL,
-                                        context->timeout);
+                                        time_remaining);
     }
     if (select_result == GNUNET_SYSERR)
     {
@@ -2347,9 +2349,9 @@ select_set_wakeup (void *cls,
                    struct GNUNET_TIME_Absolute dt)
 {
   struct DriverContext *context = cls;
+  
   GNUNET_assert (NULL != context);
-
-  context->timeout = GNUNET_TIME_absolute_get_remaining (dt);
+  context->timeout = dt;
 }
 
 
