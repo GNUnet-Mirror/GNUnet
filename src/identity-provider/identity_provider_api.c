@@ -376,6 +376,15 @@ free_it (struct GNUNET_IDENTITY_PROVIDER_AttributeIterator *it)
   GNUNET_free (it);
 }
 
+static void
+free_op (struct GNUNET_IDENTITY_PROVIDER_Operation* op)
+{
+  if (NULL == op)
+    return;
+  if (NULL != op->env)
+    GNUNET_MQ_discard (op->env);
+  GNUNET_free(op);
+}
 
 
 /**
@@ -434,7 +443,7 @@ handle_attribute_store_response (void *cls,
   GNUNET_CONTAINER_DLL_remove (h->op_head,
                                h->op_tail,
                                op);
-  GNUNET_free (op);
+  free_op (op);
 
 }
 
@@ -522,7 +531,7 @@ handle_consume_ticket_result (void *cls,
       GNUNET_CONTAINER_DLL_remove (h->op_head,
                                    h->op_tail,
                                    op);
-      GNUNET_free (op);
+      free_op (op);
     }
     return;
   }
@@ -613,7 +622,7 @@ handle_attribute_result (void *cls,
       GNUNET_CONTAINER_DLL_remove (h->op_head,
                                    h->op_tail,
                                    op);
-      GNUNET_free (op);
+      free_op (op);
 
     }
     return;
@@ -709,7 +718,7 @@ handle_ticket_result (void *cls,
       if (NULL != op->tr_cb)
         op->tr_cb (op->cls, ticket);
     }
-    GNUNET_free (op);
+    free_op (op);
     return;
   } else if (NULL != it) {
     if (msg_len == sizeof (struct TicketResultMessage))
@@ -729,6 +738,7 @@ handle_ticket_result (void *cls,
   }
   GNUNET_break (0);
 }
+
 
 /**
  * Handle an incoming message of type
@@ -766,7 +776,7 @@ handle_revoke_ticket_result (void *cls,
     GNUNET_CONTAINER_DLL_remove (h->op_head,
                                  h->op_tail,
                                  op);
-    GNUNET_free (op);
+    free_op (op);
     return;
   }
   GNUNET_assert (0);
@@ -864,7 +874,7 @@ GNUNET_IDENTITY_PROVIDER_cancel (struct GNUNET_IDENTITY_PROVIDER_Operation *op)
                                h->op_tail,
                                op);
   GNUNET_MQ_discard (op->env);
-  GNUNET_free (op);
+  free_op (op);
 }
 
 
