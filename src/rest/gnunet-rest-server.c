@@ -203,6 +203,14 @@ cleanup_handle (struct MhdConnectionHandle *handle)
     MHD_destroy_response (handle->response);
   if (NULL != handle->data_handle)
   {
+
+    if (NULL != handle->data_handle->header_param_map)
+    {
+      GNUNET_CONTAINER_multihashmap_iterate (handle->data_handle->header_param_map,
+                                             &cleanup_url_map,
+                                             NULL);
+      GNUNET_CONTAINER_multihashmap_destroy (handle->data_handle->header_param_map);
+    }
     if (NULL != handle->data_handle->url_param_map)
     {
       GNUNET_CONTAINER_multihashmap_iterate (handle->data_handle->url_param_map,
@@ -213,6 +221,31 @@ cleanup_handle (struct MhdConnectionHandle *handle)
     GNUNET_free (handle->data_handle);
   }
   GNUNET_free (handle);
+}
+
+static int
+header_iterator (void *cls,
+              enum MHD_ValueKind kind,
+              const char *key,
+              const char *value)
+{
+  struct GNUNET_REST_RequestHandle *handle = cls;
+  struct GNUNET_HashCode hkey;
+  char *val;
+
+  GNUNET_CRYPTO_hash (key, strlen (key), &hkey);
+  GNUNET_asprintf (&val, "%s", value);
+  if (GNUNET_OK !=
+      GNUNET_CONTAINER_multihashmap_put (handle->header_param_map,
+                                         &hkey,
+                                         val,
+                                         GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Could not load add header `%s'=%s\n",
+                key, value);
+  }
+  return MHD_YES;
 }
 
 
@@ -358,15 +391,17 @@ create_response (void *cls,
     rest_conndata_handle->data_size = *upload_data_size;
     rest_conndata_handle->url_param_map = GNUNET_CONTAINER_multihashmap_create (16,
                                                                                 GNUNET_NO);
+    rest_conndata_handle->header_param_map = GNUNET_CONTAINER_multihashmap_create (16,
+                                                                                   GNUNET_NO);
     con_handle->data_handle = rest_conndata_handle;
     MHD_get_connection_values (con,
                                MHD_GET_ARGUMENT_KIND,
                                &url_iterator,
                                rest_conndata_handle);
     con_handle->pp = MHD_create_post_processor(con,
-                                               4000,
-                                               post_data_iter,
-                                               rest_conndata_handle);
+					       4000,
+					       post_data_iter,
+					       rest_conndata_handle);
     if (*upload_data_size)
     {
       MHD_post_process(con_handle->pp, upload_data, *upload_data_size);
@@ -375,6 +410,10 @@ create_response (void *cls,
     {
       MHD_destroy_post_processor(con_handle->pp);
     }
+    MHD_get_connection_values (con,
+                               MHD_HEADER_KIND,
+                               &header_iterator,
+                               rest_conndata_handle);
     con_handle->state = GN_REST_STATE_PROCESSING;
     con_handle->plugin->process_request (rest_conndata_handle,
                                          &plugin_callback,
