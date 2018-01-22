@@ -131,6 +131,8 @@ struct MhdConnectionHandle
 
   struct GNUNET_REST_RequestHandle *data_handle;
 
+  struct MHD_PostProcessor *pp;
+
   int status;
 
   int state;
@@ -239,6 +241,40 @@ url_iterator (void *cls,
   return MHD_YES;
 }
 
+static int
+post_data_iter (void *cls,
+                         enum MHD_ValueKind kind,
+                         const char *key,
+                         const char *filename,
+                         const char *content_type,
+                         const char *transfer_encoding,
+                         const char *data,
+                         uint64_t off,
+                         size_t size)
+{
+  struct GNUNET_REST_RequestHandle *handle = cls;
+  struct GNUNET_HashCode hkey;
+  char *val;
+
+  if (MHD_POSTDATA_KIND != kind)
+    return MHD_YES;
+
+  GNUNET_CRYPTO_hash (key, strlen (key), &hkey);
+  GNUNET_asprintf (&val, "%s", data);
+  if (GNUNET_OK !=
+      GNUNET_CONTAINER_multihashmap_put (handle->url_param_map,
+                                         &hkey,
+                                         val,
+                                         GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Could not load add url param `%s'=%s\n",
+                key, data);
+  }
+  return MHD_YES;
+
+}
+
 /* ********************************* MHD response generation ******************* */
 
 /**
@@ -310,6 +346,7 @@ create_response (void *cls,
 				 MHD_HTTP_NOT_FOUND,
 				 failure_response);
     }
+
     return MHD_YES;
   }
   if (GN_REST_STATE_INIT == con_handle->state)
@@ -326,6 +363,18 @@ create_response (void *cls,
                                MHD_GET_ARGUMENT_KIND,
                                &url_iterator,
                                rest_conndata_handle);
+    con_handle->pp = MHD_create_post_processor(con,
+                                               4000,
+                                               post_data_iter,
+                                               rest_conndata_handle);
+    if (*upload_data_size)
+    {
+      MHD_post_process(con_handle->pp, upload_data, *upload_data_size);
+    }
+    else
+    {
+      MHD_destroy_post_processor(con_handle->pp);
+    }
     con_handle->state = GN_REST_STATE_PROCESSING;
     con_handle->plugin->process_request (rest_conndata_handle,
                                          &plugin_callback,
