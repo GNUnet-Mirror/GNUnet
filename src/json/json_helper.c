@@ -943,4 +943,52 @@ GNUNET_JSON_spec_rsa_signature (const char *name,
 }
 
 
+/**
+ * Parse given JSON object to an int as a boolean.
+ *
+ * @param cls closure, NULL
+ * @param root the json object representing data
+ * @param[out] spec where to write the data
+ * @return #GNUNET_OK upon successful parsing; #GNUNET_SYSERR upon error
+ */
+static int
+parse_boolean (void *cls,
+               json_t *root,
+               struct GNUNET_JSON_Specification *spec)
+{
+  int *bp = spec->ptr;
+
+  if (! json_is_boolean (root))
+  {
+    GNUNET_break_op (0);
+    return GNUNET_SYSERR;
+  }
+  *bp = json_boolean_value (root) ? GNUNET_YES : GNUNET_NO;
+  return GNUNET_OK;
+}
+
+
+/**
+ * Boolean (true mapped to GNUNET_YES, false mapped to GNUNET_NO).
+ *
+ * @param name name of the JSON field
+ * @param[out] boolean where to store the boolean found under @a name
+ */
+struct GNUNET_JSON_Specification
+GNUNET_JSON_spec_boolean (const char *name,
+                          int *boolean)
+{
+  struct GNUNET_JSON_Specification ret = {
+    .parser = &parse_boolean,
+    .cleaner = NULL,
+    .cls = NULL,
+    .field = name,
+    .ptr = boolean,
+    .ptr_size = sizeof (int),
+    .size_ptr = NULL
+  };
+  return ret;
+}
+
+
 /* end of json_helper.c */

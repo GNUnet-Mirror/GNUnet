@@ -195,6 +195,44 @@ test_rsa ()
 }
 
 
+/**
+ * Test rsa conversions from/to JSON.
+ *
+ * @return 0 on success
+ */
+static int
+test_boolean ()
+{
+  int b1;
+  int b2;
+  json_t *json;
+  struct GNUNET_JSON_Specification pspec[] = {
+    GNUNET_JSON_spec_boolean ("b1", &b1),
+    GNUNET_JSON_spec_boolean ("b2", &b2),
+    GNUNET_JSON_spec_end()
+  };
+
+  json = json_object ();
+  json_object_set_new (json, "b1", json_true ());
+  json_object_set_new (json, "b2", json_false ());
+
+  GNUNET_assert (GNUNET_OK ==
+                 GNUNET_JSON_parse (json, pspec,
+                                    NULL, NULL));
+
+  GNUNET_assert (GNUNET_YES == b1);
+  GNUNET_assert (GNUNET_NO == b2);
+
+  json_object_set_new (json, "b1", json_integer (42));
+
+  GNUNET_assert (GNUNET_OK !=
+                 GNUNET_JSON_parse (json, pspec,
+                                    NULL, NULL));
+
+  return 0;
+}
+
+
 int
 main(int argc,
      const char *const argv[])
@@ -209,6 +247,8 @@ main(int argc,
   if (0 != test_raw ())
     return 1;
   if (0 != test_rsa ())
+    return 1;
+  if (0 != test_boolean ())
     return 1;
   /* FIXME: test EdDSA signature conversion... */
   return 0;
