@@ -403,9 +403,9 @@ create_response (void *cls,
                                &header_iterator,
                                rest_conndata_handle);
     con_handle->pp = MHD_create_post_processor(con,
-                                               4000,
-                                               post_data_iter,
-                                               rest_conndata_handle);
+					       4000,
+					       post_data_iter,
+					       rest_conndata_handle);
     if (*upload_data_size)
     {
       MHD_post_process(con_handle->pp, upload_data, *upload_data_size);
@@ -414,6 +414,10 @@ create_response (void *cls,
     {
       MHD_destroy_post_processor(con_handle->pp);
     }
+    MHD_get_connection_values (con,
+                               MHD_HEADER_KIND,
+                               &header_iterator,
+                               rest_conndata_handle);
     con_handle->state = GN_REST_STATE_PROCESSING;
     con_handle->plugin->process_request (rest_conndata_handle,
                                          &plugin_callback,
