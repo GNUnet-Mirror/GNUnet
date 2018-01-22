@@ -33,7 +33,7 @@ libgnunetpsyc_la_LDFLAGS = \
 bin_PROGRAMS =
 
 libexec_PROGRAMS = \
- gnunet-service-psyc
+  gnunet-service-psyc
 
 gnunet_service_psyc_SOURCES = \
   gnunet-service-psyc.c
@@ -49,7 +49,8 @@ gnunet_service_psyc_CFLAGS = $(AM_CFLAGS)
 
 if HAVE_TESTING
 check_PROGRAMS = \
- test_psyc
+ test_psyc2
+# test_psyc
 endif
 
 if ENABLE_TEST_RUN
@@ -63,6 +64,13 @@ test_psyc_LDADD = \
   libgnunetpsyc.la \
   $(top_builddir)/src/psycutil/libgnunetpsycutil.la \
   $(top_builddir)/src/testing/libgnunettesting.la \
+  $(top_builddir)/src/util/libgnunetutil.la
+test_psyc2_SOURCES = \
+  test_psyc2.c
+test_psyc2_LDADD = \
+  libgnunetpsyc.la \
+  $(top_builddir)/src/psycutil/libgnunetpsycutil.la \
+  $(top_builddir)/src/testbed/libgnunettestbed.la \
   $(top_builddir)/src/util/libgnunetutil.la
 
 EXTRA_DIST = \

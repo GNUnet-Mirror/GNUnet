@@ -29,6 +29,8 @@ static struct GNUNET_DISK_PipeHandle *p;
 
 static const struct GNUNET_DISK_FileHandle *fds[2];
 
+static struct GNUNET_SCHEDULER_Task *never_run_task;
+
 
 static void
 task2 (void *cls)
@@ -76,11 +78,32 @@ taskNeverRun (void *cls)
 
 
 static void
-taskLast (void *cls)
+taskLastRd (void *cls)
 {
   int *ok = cls;
 
   GNUNET_assert (8 == *ok);
+  (*ok) = 0;
+}
+
+
+static void
+taskLastSig (void *cls)
+{
+  int *ok = cls;
+
+  GNUNET_SCHEDULER_cancel (never_run_task);
+  GNUNET_assert (9 == *ok);
+  (*ok) = 0;
+}
+
+
+static void
+taskLastShutdown (void *cls)
+{
+  int *ok = cls;
+
+  GNUNET_assert (10 == *ok);
   (*ok) = 0;
 }
 
@@ -97,7 +120,7 @@ taskRd (void *cls)
   GNUNET_assert (GNUNET_NETWORK_fdset_handle_isset (tc->read_ready, fds[0]));
   GNUNET_assert (1 == GNUNET_DISK_file_read (fds[0], &c, 1));
   (*ok) = 8;
-  GNUNET_SCHEDULER_add_shutdown (&taskLast,
+  GNUNET_SCHEDULER_add_shutdown (&taskLastRd,
 				 cls);
   GNUNET_SCHEDULER_shutdown ();
 }
@@ -151,6 +174,8 @@ check ()
 {
   int ok;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "[Check scheduling]\n");
   ok = 1;
   GNUNET_SCHEDULER_run (&task1, &ok);
   return ok;
@@ -163,8 +188,8 @@ taskShutdown (void *cls)
   int *ok = cls;
 
   GNUNET_assert (1 == *ok);
-  *ok = 8;
-  GNUNET_SCHEDULER_add_shutdown (&taskLast, cls);
+  *ok = 10;
+  GNUNET_SCHEDULER_add_shutdown (&taskLastShutdown, cls);
   GNUNET_SCHEDULER_shutdown ();
 }
 
@@ -178,6 +203,8 @@ checkShutdown ()
 {
   int ok;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "[Check shutdown]\n");
   ok = 1;
   GNUNET_SCHEDULER_run (&taskShutdown, &ok);
   return ok;
@@ -191,8 +218,12 @@ taskSig (void *cls)
   int *ok = cls;
 
   GNUNET_assert (1 == *ok);
-  *ok = 8;
-  GNUNET_SCHEDULER_add_shutdown (&taskLast, cls);
+  *ok = 9;
+  GNUNET_SCHEDULER_add_shutdown (&taskLastSig, cls);
+  never_run_task = 
+    GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5),
+				  &taskNeverRun,
+				  NULL);
   GNUNET_break (0 == PLIBC_KILL (getpid (),
 				 GNUNET_TERM_SIG));
 }
@@ -207,6 +238,8 @@ checkSignal ()
 {
   int ok;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "[Check signal handling]\n");
   ok = 1;
   GNUNET_SCHEDULER_run (&taskSig, &ok);
   return ok;
@@ -234,6 +267,8 @@ checkCancel ()
 {
   int ok;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "[Check task cancellation]\n");
   ok = 1;
   GNUNET_SCHEDULER_run (&taskCancel, &ok);
   return ok;
@@ -247,11 +282,11 @@ main (int argc, char *argv[])
 
   GNUNET_log_setup ("test_scheduler", "WARNING", NULL);
   ret += check ();
+  ret += checkCancel ();
 #ifndef MINGW
   ret += checkSignal ();
 #endif
   ret += checkShutdown ();
-  ret += checkCancel ();
   GNUNET_DISK_pipe_close (p);
 
   return ret;

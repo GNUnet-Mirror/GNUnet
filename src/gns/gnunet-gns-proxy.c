@@ -1150,8 +1150,8 @@ curl_check_hdr (void *buffer, size_t size, size_t nmemb, void *cls)
                 hdr_type,
                 hdr_val);
     header = GNUNET_new (struct HttpResponseHeader);
-    header->type = GNUNET_strndup (hdr_type, strlen (hdr_type));
-    header->value = GNUNET_strndup (hdr_val, strlen (hdr_val));
+    header->type = GNUNET_strdup (hdr_type);
+    header->value = GNUNET_strdup (hdr_val);
     GNUNET_CONTAINER_DLL_insert (s5r->header_head,
                                  s5r->header_tail,
                                  header);

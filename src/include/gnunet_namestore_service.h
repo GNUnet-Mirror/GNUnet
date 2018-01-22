@@ -193,7 +193,7 @@ GNUNET_NAMESTORE_records_lookup (struct GNUNET_NAMESTORE_Handle *h,
  * Returns at most one result to the processor.
  *
  * @param h handle to the namestore
- * @param zone public key of the zone to look up in, never NULL
+ * @param zone private key of the zone to look up in, never NULL
  * @param value_zone public key of the target zone (value), never NULL
  * @param error_cb function to call on error (i.e. disconnect)
  *        the handle is afterwards invalid

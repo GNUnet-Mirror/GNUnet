@@ -75,7 +75,7 @@ struct CadetClient
    * Handle to communicate with the client
    */
   struct GNUNET_MQ_Handle *mq;
-  
+
   /**
    * Client handle.
    */
@@ -536,6 +536,13 @@ handle_port_close (void *cls,
        "Closing port %s as requested by %s\n",
        GNUNET_h2s (&pmsg->port),
        GSC_2s (c));
+  if (NULL == c->ports)
+  {
+    /* Client closed a port despite _never_ having opened one? */
+    GNUNET_break (0);
+    GNUNET_SERVICE_client_drop (c->client);
+    return;
+  }
   op = GNUNET_CONTAINER_multihashmap_get (c->ports,
 					  &pmsg->port);
   if (NULL == op)

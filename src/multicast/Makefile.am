@@ -53,7 +53,6 @@ check_PROGRAMS = \
   test_multicast \
   test_multicast_multipeer_star \
   test_multicast_multipeer_line
-#  test_multicast_2peers
 
 if ENABLE_TEST_RUN
 AM_TESTS_ENVIRONMENT=export GNUNET_PREFIX=$${GNUNET_PREFIX:-@libdir@}; export PATH=$${GNUNET_PREFIX:-@prefix@}/bin:$$PATH; unset XDG_DATA_HOME; unset XDG_CONFIG_HOME;
@@ -75,13 +74,6 @@ test_multicast_multipeer_star_LDADD = \
 test_multicast_multipeer_line_SOURCES = \
   test_multicast_multipeer.c
 test_multicast_multipeer_line_LDADD = \
-  libgnunetmulticast.la \
-  $(top_builddir)/src/testbed/libgnunettestbed.la \
-  $(top_builddir)/src/util/libgnunetutil.la
-
-test_multicast_2peers_SOURCES = \
-  test_multicast_2peers.c
-test_multicast_2peers_LDADD = \
   libgnunetmulticast.la \
   $(top_builddir)/src/testbed/libgnunettestbed.la \
   $(top_builddir)/src/util/libgnunetutil.la

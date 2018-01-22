@@ -236,6 +236,48 @@ struct RPSPeer
    * Pending operation on that peer
    */
   const struct OpListEntry *entry_op_manage;
+
+  /**
+   * Testbed operation to connect to statistics service
+   */
+  struct GNUNET_TESTBED_Operation *stat_op;
+
+  /**
+   * Handle to the statistics service
+   */
+  struct GNUNET_STATISTICS_Handle *stats_h;
+
+  /**
+   * @brief flags to indicate which statistics values have been already
+   * collected from the statistics service.
+   * Used to check whether we are able to shutdown.
+   */
+  uint32_t stat_collected_flags;
+};
+
+enum STAT_TYPE
+{
+  STAT_TYPE_ROUNDS           =    0x1, /*   1 */
+  STAT_TYPE_BLOCKS           =    0x2, /*   2 */
+  STAT_TYPE_BLOCKS_MANY_PUSH =    0x4, /*   3 */
+  STAT_TYPE_BLOCKS_FEW_PUSH  =    0x8, /*   4 */
+  STAT_TYPE_BLOCKS_FEW_PULL  =   0x10, /*   5 */
+  STAT_TYPE_ISSUED_PUSH_SEND =   0x20, /*   6 */
+  STAT_TYPE_ISSUED_PULL_REQ  =   0x40, /*   7 */
+  STAT_TYPE_ISSUED_PULL_REP  =   0x80, /*   8 */
+  STAT_TYPE_SENT_PUSH_SEND   =  0x100, /*   9 */
+  STAT_TYPE_SENT_PULL_REQ    =  0x200, /*  10 */
+  STAT_TYPE_SENT_PULL_REP    =  0x400, /*  11 */
+  STAT_TYPE_RECV_PUSH_SEND   =  0x800, /*  12 */
+  STAT_TYPE_RECV_PULL_REQ    = 0x1000, /*  13 */
+  STAT_TYPE_RECV_PULL_REP    = 0x2000, /*  14 */
+  STAT_TYPE_MAX          = 0x80000000, /*  32 */
+};
+
+struct STATcls
+{
+  struct RPSPeer *rps_peer;
+  enum STAT_TYPE stat_type;
 };
 
 
@@ -318,7 +360,7 @@ typedef void (*ReplyHandle) (void *cls,
 /**
  * Called directly before disconnecting from the service
  */
-typedef void (*PostTest) (void *cls, struct GNUNET_RPS_Handle *h);
+typedef void (*PostTest) (struct RPSPeer *peer);
 
 /**
  * Function called after disconnect to evaluate test success
@@ -352,6 +394,21 @@ enum OPTION_QUICK_QUIT {
    * @brief It is NOT ok for the test to quit before the timeout triggers
    */
   HAVE_NO_QUICK_QUIT,
+};
+
+/**
+ * @brief Do we collect statistics at the end?
+ */
+enum OPTION_COLLECT_STATISTICS {
+  /**
+   * @brief We collect statistics at the end
+   */
+  COLLECT_STATISTICS,
+
+  /**
+   * @brief We do not collect statistics at the end
+   */
+  NO_COLLECT_STATISTICS,
 };
 
 /**
@@ -413,6 +470,17 @@ struct SingleTestRun
    * Quit test before timeout?
    */
   enum OPTION_QUICK_QUIT have_quick_quit;
+
+  /**
+   * Collect statistics at the end?
+   */
+  enum OPTION_COLLECT_STATISTICS have_collect_statistics;
+
+  /**
+   * @brief Mark which values from the statistics service to collect at the end
+   * of the run
+   */
+  uint32_t stat_collect_flags;
 } cur_test_run;
 
 /**
@@ -559,6 +627,52 @@ make_oplist_entry ()
 
 
 /**
+ * @brief Checks if given peer already received its statistics value from the
+ * statistics service.
+ *
+ * @param rps_peer the peer to check for
+ *
+ * @return #GNUNET_YES if so
+ *         #GNUNET_NO otherwise
+ */
+static int check_statistics_collect_completed_single_peer (
+    const struct RPSPeer *rps_peer)
+{
+  if (cur_test_run.stat_collect_flags !=
+        (cur_test_run.stat_collect_flags &
+          rps_peer->stat_collected_flags))
+  {
+    return GNUNET_NO;
+  }
+  return GNUNET_YES;
+}
+/**
+ * @brief Checks if all peers already received their statistics value from the
+ * statistics service.
+ *
+ * @return #GNUNET_YES if so
+ *         #GNUNET_NO otherwise
+ */
+static int check_statistics_collect_completed ()
+{
+  uint32_t i;
+
+  for (i = 0; i < num_peers; i++)
+  {
+    if (GNUNET_NO == check_statistics_collect_completed_single_peer (&rps_peers[i]))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+          "At least Peer %" PRIu32 " did not yet receive all statistics values\n",
+          i);
+      return GNUNET_NO;
+    }
+  }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+      "All peers received their statistics values\n");
+  return GNUNET_YES;
+}
+
+/**
  * Task run on timeout to shut everything down.
  */
 static void
@@ -575,9 +689,21 @@ shutdown_op (void *cls)
     churn_task = NULL;
   }
   for (i = 0; i < num_peers; i++)
+  {
     if (NULL != rps_peers[i].op)
       GNUNET_TESTBED_operation_done (rps_peers[i].op);
-  GNUNET_SCHEDULER_shutdown ();
+    if (NULL != cur_test_run.post_test)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Executing post_test for peer %u\n", i);
+      cur_test_run.post_test (&rps_peers[i]);
+    }
+  }
+  /* If we do not collect statistics, shut down directly */
+  if (NO_COLLECT_STATISTICS == cur_test_run.have_collect_statistics ||
+      GNUNET_YES == check_statistics_collect_completed())
+  {
+    GNUNET_SCHEDULER_shutdown ();
+  }
 }
 
 
@@ -751,6 +877,76 @@ rps_connect_adapter (void *cls,
     cur_test_run.pre_test (cls, h);
 
   return h;
+}
+
+/**
+ * Called to open a connection to the peer's statistics
+ *
+ * @param cls peer context
+ * @param cfg configuration of the peer to connect to; will be available until
+ *          GNUNET_TESTBED_operation_done() is called on the operation returned
+ *          from GNUNET_TESTBED_service_connect()
+ * @return service handle to return in 'op_result', NULL on error
+ */
+static void *
+stat_connect_adapter (void *cls,
+                      const struct GNUNET_CONFIGURATION_Handle *cfg)
+{
+  struct RPSPeer *peer = cls;
+
+  peer->stats_h = GNUNET_STATISTICS_create ("rps-profiler", cfg);
+  return peer->stats_h;
+}
+
+/**
+ * Called to disconnect from peer's statistics service
+ *
+ * @param cls peer context
+ * @param op_result service handle returned from the connect adapter
+ */
+static void
+stat_disconnect_adapter (void *cls, void *op_result)
+{
+  struct RPSPeer *peer = cls;
+
+  //GNUNET_break (GNUNET_OK == GNUNET_STATISTICS_watch_cancel
+  //              (peer->stats_h, "core", "# peers connected",
+  //               stat_iterator, peer));
+  //GNUNET_break (GNUNET_OK == GNUNET_STATISTICS_watch_cancel
+  //              (peer->stats_h, "nse", "# peers connected",
+  //               stat_iterator, peer));
+  GNUNET_STATISTICS_destroy (op_result, GNUNET_NO);
+  peer->stats_h = NULL;
+}
+
+/**
+ * Called after successfully opening a connection to a peer's statistics
+ * service; we register statistics monitoring for CORE and NSE here.
+ *
+ * @param cls the callback closure from functions generating an operation
+ * @param op the operation that has been finished
+ * @param ca_result the service handle returned from GNUNET_TESTBED_ConnectAdapter()
+ * @param emsg error message in case the operation has failed; will be NULL if
+ *          operation has executed successfully.
+ */
+static void
+stat_complete_cb (void *cls, struct GNUNET_TESTBED_Operation *op,
+                  void *ca_result, const char *emsg )
+{
+  //struct GNUNET_STATISTICS_Handle *sh = ca_result;
+  //struct RPSPeer *peer = (struct RPSPeer *) cls;
+
+  if (NULL != emsg)
+  {
+    GNUNET_break (0);
+    return;
+  }
+  //GNUNET_break (GNUNET_OK == GNUNET_STATISTICS_watch
+  //              (sh, "core", "# peers connected",
+  //               stat_iterator, peer));
+  //GNUNET_break (GNUNET_OK == GNUNET_STATISTICS_watch
+  //              (sh, "nse", "# peers connected",
+  //               stat_iterator, peer));
 }
 
 
@@ -1296,7 +1492,7 @@ manage_service_wrapper (unsigned int i, unsigned int j,
                         enum PEER_ONLINE_DELTA delta,
                         double prob_go_on_off)
 {
-  struct OpListEntry *entry;
+  struct OpListEntry *entry = NULL;
   uint32_t prob;
 
   /* make sure that management operation is not already scheduled */
@@ -1541,6 +1737,159 @@ profiler_eval (void)
   return evaluate ();
 }
 
+/**
+ * Continuation called by #GNUNET_STATISTICS_get() functions.
+ *
+ * Remembers that this specific statistics value was received for this peer.
+ * Checks whether all peers received their statistics yet.
+ * Issues the shutdown.
+ *
+ * @param cls closure
+ * @param success #GNUNET_OK if statistics were
+ *        successfully obtained, #GNUNET_SYSERR if not.
+ */
+void
+post_test_shutdown_ready_cb (void *cls,
+                             int success)
+{
+  struct STATcls *stat_cls = (struct STATcls *) cls;
+  struct RPSPeer *rps_peer = stat_cls->rps_peer;
+  if (GNUNET_OK == success)
+  {
+    /* set flag that we we got the value */
+    rps_peer->stat_collected_flags |= stat_cls->stat_type;
+  } else {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+        "Peer %u did not receive statistics value\n",
+        rps_peer->index);
+    GNUNET_free (stat_cls);
+    GNUNET_break (0);
+  }
+
+  if (NULL != rps_peer->stat_op &&
+      GNUNET_YES == check_statistics_collect_completed_single_peer (rps_peer))
+  {
+    GNUNET_TESTBED_operation_done (rps_peer->stat_op);
+  }
+
+  if (GNUNET_YES == check_statistics_collect_completed())
+  {
+    GNUNET_free (stat_cls);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+        "Shutting down\n");
+    GNUNET_SCHEDULER_shutdown ();
+  } else {
+    GNUNET_free (stat_cls);
+  }
+}
+
+/**
+ * @brief Converts #STAT_TYPE enum to the equivalent string representation that
+ * is stored with the statistics service.
+ *
+ * @param stat_type #STAT_TYPE enum
+ *
+ * @return string representation that matches statistics value
+ */
+char* stat_type_2_str (enum STAT_TYPE stat_type)
+{
+  switch (stat_type)
+  {
+    case STAT_TYPE_ROUNDS:
+      return "# rounds";
+    case STAT_TYPE_BLOCKS:
+      return "# rounds blocked";
+    case STAT_TYPE_BLOCKS_MANY_PUSH:
+      return "# rounds blocked - too many pushes";
+    case STAT_TYPE_BLOCKS_FEW_PUSH:
+      return "# rounds blocked - no pushes";
+    case STAT_TYPE_BLOCKS_FEW_PULL:
+      return "# rounds blocked - no pull replies";
+    case STAT_TYPE_ISSUED_PUSH_SEND:
+      return "# push send issued";
+    case STAT_TYPE_ISSUED_PULL_REQ:
+      return "# pull request send issued";
+    case STAT_TYPE_ISSUED_PULL_REP:
+      return "# pull reply send issued";
+    case STAT_TYPE_SENT_PUSH_SEND:
+      return "# pushes sent";
+    case STAT_TYPE_SENT_PULL_REQ:
+      return "# pull requests sent";
+    case STAT_TYPE_SENT_PULL_REP:
+      return "# pull replys sent";
+    case STAT_TYPE_RECV_PUSH_SEND:
+      return "# push message received";
+    case STAT_TYPE_RECV_PULL_REQ:
+      return "# pull request message received";
+    case STAT_TYPE_RECV_PULL_REP:
+      return "# pull reply messages received";
+    case STAT_TYPE_MAX:
+    default:
+      return "ERROR";
+      ;
+  }
+}
+
+/**
+ * Callback function to process statistic values.
+ *
+ * @param cls closure
+ * @param subsystem name of subsystem that created the statistic
+ * @param name the name of the datum
+ * @param value the current value
+ * @param is_persistent #GNUNET_YES if the value is persistent, #GNUNET_NO if not
+ * @return #GNUNET_OK to continue, #GNUNET_SYSERR to abort iteration
+ */
+int
+stat_iterator (void *cls,
+               const char *subsystem,
+               const char *name,
+               uint64_t value,
+               int is_persistent)
+{
+  const struct STATcls *stat_cls = (const struct STATcls *) cls;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Got stat value: %s - %" PRIu64 "\n",
+      stat_type_2_str (stat_cls->stat_type),
+      value);
+  return GNUNET_OK;
+}
+
+void post_profiler (struct RPSPeer *rps_peer)
+{
+  if (COLLECT_STATISTICS != cur_test_run.have_collect_statistics)
+  {
+    return;
+  }
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+      "Going to request statistic values with mask 0x%" PRIx32 "\n",
+      cur_test_run.stat_collect_flags);
+
+  struct STATcls *stat_cls;
+  uint32_t stat_type;
+  for (stat_type = STAT_TYPE_ROUNDS;
+      stat_type < STAT_TYPE_MAX;
+      stat_type = stat_type <<1)
+  {
+    if (stat_type & cur_test_run.stat_collect_flags)
+    {
+      stat_cls = GNUNET_malloc (sizeof (struct STATcls));
+      stat_cls->rps_peer = rps_peer;
+      stat_cls->stat_type = stat_type;
+      GNUNET_STATISTICS_get (rps_peer->stats_h,
+                             "rps",
+                             stat_type_2_str (stat_type),
+                             post_test_shutdown_ready_cb,
+                             stat_iterator,
+                             (struct STATcls *) stat_cls);
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+          "Requested statistics for %s (peer %" PRIu32 ")\n",
+          stat_type_2_str (stat_type),
+          rps_peer->index);
+    }
+  }
+}
+
 
 /***********************************************************************
  * /Definition of tests
@@ -1623,6 +1972,19 @@ run (void *cls,
                                         &rps_disconnect_adapter,
                                         &rps_peers[i]);
     }
+    /* Connect all peers to statistics service */
+    if (COLLECT_STATISTICS == cur_test_run.have_collect_statistics)
+    {
+      rps_peers[i].stat_op =
+        GNUNET_TESTBED_service_connect (NULL,
+                                        peers[i],
+                                        "statistics",
+                                        stat_complete_cb,
+                                        &rps_peers[i],
+                                        &stat_connect_adapter,
+                                        &stat_disconnect_adapter,
+                                        &rps_peers[i]);
+    }
   }
 
   if (NULL != churn_task)
@@ -1649,7 +2011,10 @@ main (int argc, char *argv[])
   cur_test_run.pre_test = NULL;
   cur_test_run.reply_handle = default_reply_handle;
   cur_test_run.eval_cb = default_eval_cb;
+  cur_test_run.post_test = NULL;
   cur_test_run.have_churn = HAVE_CHURN;
+  cur_test_run.have_collect_statistics = NO_COLLECT_STATISTICS;
+  cur_test_run.stat_collect_flags = 0;
   churn_task = NULL;
   timeout = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 30);
 
@@ -1767,10 +2132,26 @@ main (int argc, char *argv[])
     cur_test_run.main_test = profiler_cb;
     cur_test_run.reply_handle = profiler_reply_handle;
     cur_test_run.eval_cb = profiler_eval;
+    cur_test_run.post_test = post_profiler;
     cur_test_run.request_interval = 2;
     cur_test_run.num_requests = 5;
     cur_test_run.have_churn = HAVE_CHURN;
     cur_test_run.have_quick_quit = HAVE_NO_QUICK_QUIT;
+    cur_test_run.have_collect_statistics = COLLECT_STATISTICS;
+    cur_test_run.stat_collect_flags = STAT_TYPE_ROUNDS |
+                                      STAT_TYPE_BLOCKS |
+                                      STAT_TYPE_BLOCKS_MANY_PUSH |
+                                      STAT_TYPE_BLOCKS_FEW_PUSH |
+                                      STAT_TYPE_BLOCKS_FEW_PULL |
+                                      STAT_TYPE_ISSUED_PUSH_SEND |
+                                      STAT_TYPE_ISSUED_PULL_REQ |
+                                      STAT_TYPE_ISSUED_PULL_REP |
+                                      STAT_TYPE_SENT_PUSH_SEND |
+                                      STAT_TYPE_SENT_PULL_REQ |
+                                      STAT_TYPE_SENT_PULL_REP |
+                                      STAT_TYPE_RECV_PUSH_SEND |
+                                      STAT_TYPE_RECV_PULL_REQ |
+                                      STAT_TYPE_RECV_PULL_REP;
     timeout = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 300);
 
     /* 'Clean' directory */

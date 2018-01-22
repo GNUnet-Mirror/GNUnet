@@ -110,7 +110,8 @@
          ("gmp" ,gmp)
          ("bluez" ,bluez) ; for optional bluetooth feature
          ("glib" ,glib)
-         ("texlive" ,texlive) ;FIXME: minimize.
+         ;; ("texlive" ,texlive) ;FIXME: minimize.
+         ("texlive-tiny" ,texlive-tiny) ;; Seems to be enough for _just_ info output.
          ("miniupnpc" ,miniupnpc)
          ("libogg" ,libogg)))
       (native-inputs

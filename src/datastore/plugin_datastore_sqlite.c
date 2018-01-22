@@ -135,7 +135,7 @@ struct Plugin
   /**
    * Precompiled SQL for selection
    */
-  sqlite3_stmt *get;
+  sqlite3_stmt *get[8];
 
   /**
    * Should the database be dropped on shutdown?
@@ -386,12 +386,63 @@ database_setup (const struct GNUNET_CONFIGURATION_Handle *cfg,
        (SQLITE_OK !=
         sq_prepare (plugin->dbh,
                     "SELECT " RESULT_COLUMNS " FROM gn091 "
-                    "WHERE _ROWID_ >= ? AND "
-                    "(rvalue >= ? OR 0 = ?) AND "
-                    "(hash = ? OR 0 = ?) AND "
-                    "(type = ? OR 0 = ?) "
+                    "WHERE _ROWID_ >= ?1 "
                     "ORDER BY _ROWID_ ASC LIMIT 1",
-                    &plugin->get)) ||
+                    &plugin->get[0])) ||
+       (SQLITE_OK !=
+        sq_prepare (plugin->dbh,
+                    "SELECT " RESULT_COLUMNS " FROM gn091 "
+                    "WHERE _ROWID_ >= ?1 AND "
+                    "type = ?4 "
+                    "ORDER BY _ROWID_ ASC LIMIT 1",
+                    &plugin->get[1])) ||
+       (SQLITE_OK !=
+        sq_prepare (plugin->dbh,
+                    "SELECT " RESULT_COLUMNS " FROM gn091 "
+                    "WHERE _ROWID_ >= ?1 AND "
+                    "hash = ?3 "
+                    "ORDER BY _ROWID_ ASC LIMIT 1",
+                    &plugin->get[2])) ||
+       (SQLITE_OK !=
+        sq_prepare (plugin->dbh,
+                    "SELECT " RESULT_COLUMNS " FROM gn091 "
+                    "WHERE _ROWID_ >= ?1 AND "
+                    "hash = ?3 AND "
+                    "type = ?4 "
+                    "ORDER BY _ROWID_ ASC LIMIT 1",
+                    &plugin->get[3])) ||
+       (SQLITE_OK !=
+        sq_prepare (plugin->dbh,
+                    "SELECT " RESULT_COLUMNS " FROM gn091 "
+                    "WHERE _ROWID_ >= ?1 AND "
+                    "rvalue >= ?2 "
+                    "ORDER BY _ROWID_ ASC LIMIT 1",
+                    &plugin->get[4])) ||
+       (SQLITE_OK !=
+        sq_prepare (plugin->dbh,
+                    "SELECT " RESULT_COLUMNS " FROM gn091 "
+                    "WHERE _ROWID_ >= ?1 AND "
+                    "rvalue >= ?2 AND "
+                    "type = ?4 "
+                    "ORDER BY _ROWID_ ASC LIMIT 1",
+                    &plugin->get[5])) ||
+       (SQLITE_OK !=
+        sq_prepare (plugin->dbh,
+                    "SELECT " RESULT_COLUMNS " FROM gn091 "
+                    "WHERE _ROWID_ >= ?1 AND "
+                    "rvalue >= ?2 AND "
+                    "hash = ?3 "
+                    "ORDER BY _ROWID_ ASC LIMIT 1",
+                    &plugin->get[6])) ||
+       (SQLITE_OK !=
+        sq_prepare (plugin->dbh,
+                    "SELECT " RESULT_COLUMNS " FROM gn091 "
+                    "WHERE _ROWID_ >= ?1 AND "
+                    "rvalue >= ?2 AND "
+                    "hash = ?3 AND "
+                    "type = ?4 "
+                    "ORDER BY _ROWID_ ASC LIMIT 1",
+                    &plugin->get[7])) ||
        (SQLITE_OK !=
         sq_prepare (plugin->dbh,
                     "DELETE FROM gn091 WHERE _ROWID_ = ?",
@@ -445,8 +496,9 @@ database_shutdown (struct Plugin *plugin)
     sqlite3_finalize (plugin->selZeroAnon);
   if (NULL != plugin->insertContent)
     sqlite3_finalize (plugin->insertContent);
-  if (NULL != plugin->get)
-    sqlite3_finalize (plugin->get);
+  for (int i = 0; i < 8; ++i)
+    if (NULL != plugin->get[i])
+      sqlite3_finalize (plugin->get[i]);
   result = sqlite3_close (plugin->dbh);
 #if SQLITE_VERSION_NUMBER >= 3007000
   if (result == SQLITE_BUSY)
@@ -843,18 +895,16 @@ sqlite_plugin_get_key (void *cls,
 {
   struct Plugin *plugin = cls;
   uint64_t rvalue;
-  uint16_t use_rvalue = random;
+  int use_rvalue = random;
   uint32_t type32 = (uint32_t) type;
-  uint16_t use_type = GNUNET_BLOCK_TYPE_ANY != type;
-  uint16_t use_key = NULL != key;
+  int use_type = GNUNET_BLOCK_TYPE_ANY != type;
+  int use_key = NULL != key;
+  sqlite3_stmt *stmt = plugin->get[use_rvalue * 4 + use_key * 2 + use_type];
   struct GNUNET_SQ_QueryParam params[] = {
     GNUNET_SQ_query_param_uint64 (&next_uid),
     GNUNET_SQ_query_param_uint64 (&rvalue),
-    GNUNET_SQ_query_param_uint16 (&use_rvalue),
     GNUNET_SQ_query_param_auto_from_type (key),
-    GNUNET_SQ_query_param_uint16 (&use_key),
     GNUNET_SQ_query_param_uint32 (&type32),
-    GNUNET_SQ_query_param_uint16 (&use_type),
     GNUNET_SQ_query_param_end
   };
 
@@ -868,14 +918,14 @@ sqlite_plugin_get_key (void *cls,
     rvalue = 0;
 
   if (GNUNET_OK !=
-      GNUNET_SQ_bind (plugin->get,
+      GNUNET_SQ_bind (stmt,
                       params))
   {
     proc (proc_cls, NULL, 0, NULL, 0, 0, 0, 0, GNUNET_TIME_UNIT_ZERO_ABS, 0);
     return;
   }
   execute_get (plugin,
-               plugin->get,
+               stmt,
                proc,
                proc_cls);
 }
