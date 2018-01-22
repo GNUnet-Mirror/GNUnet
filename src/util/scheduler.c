@@ -1085,9 +1085,7 @@ GNUNET_SCHEDULER_add_at_with_priority (struct GNUNET_TIME_Absolute at,
       pos = pending_timeout_head;
     else
       pos = prev->next;
-    while ( (NULL != pos) &&
-            ( (pos->timeout.abs_value_us <= t->timeout.abs_value_us) ||
-              (0 != pos->reason) ) )
+    while ((NULL != pos) && (pos->timeout.abs_value_us <= t->timeout.abs_value_us))
     {
       prev = pos;
       pos = pos->next;
