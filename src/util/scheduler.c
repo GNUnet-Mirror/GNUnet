@@ -1944,7 +1944,6 @@ GNUNET_SCHEDULER_run_from_driver (struct GNUNET_SCHEDULER_Handle *sh)
   {
     LOG (GNUNET_ERROR_TYPE_ERROR,
          "GNUNET_SCHEDULER_run_from_driver was called, but no tasks are ready!\n");
-    GNUNET_assert (0);
     return GNUNET_SYSERR;
   }
 
