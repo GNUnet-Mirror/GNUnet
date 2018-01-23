@@ -25,6 +25,8 @@
 #include "platform.h"
 #include "gnunet_util_lib.h"
 #include "disk.h"
+// DEBUG
+#include <inttypes.h>
 
 #define LOG(kind,...) GNUNET_log_from (kind, "util-scheduler", __VA_ARGS__)
 
@@ -2331,6 +2333,19 @@ select_loop (void *cls,
         {
           GNUNET_SCHEDULER_task_ready (pos->task, pos->fdi);
         }
+      }
+    }
+    else
+    {
+      struct GNUNET_TIME_Absolute now = GNUNET_TIME_absolute_get ();
+      if (now.abs_value_us < context->timeout.abs_value_us)
+      {
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                    "select was expected to return at %" PRIu64 ", "
+                    "but returned already at %" PRIu64 "\n",
+                    context->timeout.abs_value_us,
+                    now.abs_value_us);
+        GNUNET_assert (0);
       }
     }
     tasks_ready = GNUNET_SCHEDULER_run_from_driver (sh);
