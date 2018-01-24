@@ -1896,11 +1896,10 @@ GNUNET_SCHEDULER_task_ready (struct GNUNET_SCHEDULER_Task *task,
  * the scheduler (using the set_wakeup callback) is reached.
  *
  * @param sh scheduler handle that was given to the `loop`
- * @return #GNUNET_OK if there are more tasks that are ready,
+ * @return #GNUNET_YES if there are more tasks that are ready,
  *          and thus we would like to run more (yield to avoid
  *          blocking other activities for too long)
  *         #GNUNET_NO if we are done running tasks (yield to block)
- *         #GNUNET_SYSERR on error, e.g. no tasks were ready
  */
 int
 GNUNET_SCHEDULER_run_from_driver (struct GNUNET_SCHEDULER_Handle *sh)
@@ -1944,9 +1943,27 @@ GNUNET_SCHEDULER_run_from_driver (struct GNUNET_SCHEDULER_Handle *sh)
 
   if (0 == ready_count)
   {
-    LOG (GNUNET_ERROR_TYPE_ERROR,
-         "GNUNET_SCHEDULER_run_from_driver was called, but no tasks are ready!\n");
-    return GNUNET_SYSERR;
+    struct GNUNET_TIME_Absolute timeout = get_timeout ();
+
+    if (timeout.abs_value_us < now.abs_value_us)
+    {
+      /**
+       * The driver called this function before the current timeout was
+       * reached (and no FD tasks are ready). This can happen in the
+       * rare case when the system time is changed while the driver is
+       * waiting for the timeout, so we handle this gracefully. It might
+       * also be a programming error in the driver though.
+       */
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                  "GNUNET_SCHEDULER_run_from_driver did not find any ready "
+                  "tasks and timeout has not been reached yet.");
+      return GNUNET_NO;
+    }
+    /**
+     * the current timeout was reached but no ready tasks were found,
+     * internal scheduler error!
+     */
+    GNUNET_assert (0);
   }
 
   /* find out which task priority level we are going to
@@ -2034,7 +2051,7 @@ GNUNET_SCHEDULER_run_from_driver (struct GNUNET_SCHEDULER_Handle *sh)
   }
   scheduler_driver->set_wakeup (scheduler_driver->cls,
                                 GNUNET_TIME_absolute_get ());
-  return GNUNET_OK;
+  return GNUNET_YES;
 }
 
 
@@ -2231,13 +2248,11 @@ select_loop (void *cls,
   struct GNUNET_NETWORK_FDSet *ws;
   struct DriverContext *context;
   int select_result;
-  int tasks_ready;
 
   context = cls;
   GNUNET_assert (NULL != context);
   rs = GNUNET_NETWORK_fdset_create ();
   ws = GNUNET_NETWORK_fdset_create ();
-  tasks_ready = GNUNET_NO;
   while (NULL != context->scheduled_head ||
          GNUNET_TIME_UNIT_FOREVER_ABS.abs_value_us != context->timeout.abs_value_us)
   {
@@ -2335,21 +2350,11 @@ select_loop (void *cls,
         }
       }
     }
-    else
+    if (GNUNET_YES == GNUNET_SCHEDULER_run_from_driver (sh))
     {
-      struct GNUNET_TIME_Absolute now = GNUNET_TIME_absolute_get ();
-      if (now.abs_value_us < context->timeout.abs_value_us)
-      {
-        GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                    "select was expected to return at %" PRIu64 ", "
-                    "but returned already at %" PRIu64 "\n",
-                    context->timeout.abs_value_us,
-                    now.abs_value_us);
-        GNUNET_assert (0);
-      }
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "scheduler has more tasks ready!\n");
     }
-    tasks_ready = GNUNET_SCHEDULER_run_from_driver (sh);
-    GNUNET_assert (GNUNET_SYSERR != tasks_ready);
   }
   GNUNET_NETWORK_fdset_destroy (rs);
   GNUNET_NETWORK_fdset_destroy (ws);
