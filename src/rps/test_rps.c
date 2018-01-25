@@ -253,6 +253,11 @@ struct RPSPeer
    * Used to check whether we are able to shutdown.
    */
   uint32_t stat_collected_flags;
+
+  /**
+   * @brief File name of the file the stats are finally written to
+   */
+  char *file_name_stats;
 };
 
 enum STAT_TYPE
@@ -1738,6 +1743,50 @@ profiler_eval (void)
 }
 
 /**
+ * @brief Try to ensure that `/tmp/rps` exists.
+ *
+ * @return #GNUNET_YES on success
+ *         #GNUNET_SYSERR on failure
+ */
+static int ensure_folder_exist (void)
+{
+  if (GNUNET_NO == GNUNET_DISK_directory_test ("/tmp/rps/", GNUNET_NO))
+  {
+    GNUNET_DISK_directory_create ("/tmp/rps");
+  }
+  if (GNUNET_YES != GNUNET_DISK_directory_test ("/tmp/rps/", GNUNET_NO))
+  {
+    return GNUNET_SYSERR;
+  }
+  return GNUNET_YES;
+}
+
+static void
+store_stats_file_name (struct RPSPeer *rps_peer)
+{
+  unsigned int len_file_name;
+  unsigned int out_size;
+  char *file_name;
+
+  if (GNUNET_SYSERR == ensure_folder_exist()) return;
+  len_file_name = (14 + strlen (GNUNET_i2s_full (rps_peer->peer_id)) + 1) * sizeof (char);
+  file_name = GNUNET_malloc (len_file_name);
+  out_size = GNUNET_snprintf (file_name,
+                              len_file_name,
+                              "/tmp/rps/stat-%s",
+                              GNUNET_i2s_full (rps_peer->peer_id));
+  if (len_file_name < out_size ||
+      0 > out_size)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+               "Failed to write string to buffer (size: %i, out_size: %i)\n",
+               len_file_name,
+               out_size);
+  }
+  rps_peer->file_name_stats = file_name;
+}
+
+/**
  * Continuation called by #GNUNET_STATISTICS_get() functions.
  *
  * Remembers that this specific statistics value was received for this peer.
@@ -1848,9 +1897,15 @@ stat_iterator (void *cls,
                int is_persistent)
 {
   const struct STATcls *stat_cls = (const struct STATcls *) cls;
+  const struct RPSPeer *rps_peer = (const struct RPSPeer *) stat_cls->rps_peer;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Got stat value: %s - %" PRIu64 "\n",
-      stat_type_2_str (stat_cls->stat_type),
+      //stat_type_2_str (stat_cls->stat_type),
+      name,
       value);
+  to_file (rps_peer->file_name_stats,
+          "%s: %" PRIu64 "\n",
+          name,
+          value);
   return GNUNET_OK;
 }
 
@@ -1876,6 +1931,7 @@ void post_profiler (struct RPSPeer *rps_peer)
       stat_cls = GNUNET_malloc (sizeof (struct STATcls));
       stat_cls->rps_peer = rps_peer;
       stat_cls->stat_type = stat_type;
+      store_stats_file_name (rps_peer);
       GNUNET_STATISTICS_get (rps_peer->stats_h,
                              "rps",
                              stat_type_2_str (stat_type),
