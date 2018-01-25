@@ -262,20 +262,22 @@ struct RPSPeer
 
 enum STAT_TYPE
 {
-  STAT_TYPE_ROUNDS           =    0x1, /*   1 */
-  STAT_TYPE_BLOCKS           =    0x2, /*   2 */
-  STAT_TYPE_BLOCKS_MANY_PUSH =    0x4, /*   3 */
-  STAT_TYPE_BLOCKS_FEW_PUSH  =    0x8, /*   4 */
-  STAT_TYPE_BLOCKS_FEW_PULL  =   0x10, /*   5 */
-  STAT_TYPE_ISSUED_PUSH_SEND =   0x20, /*   6 */
-  STAT_TYPE_ISSUED_PULL_REQ  =   0x40, /*   7 */
-  STAT_TYPE_ISSUED_PULL_REP  =   0x80, /*   8 */
-  STAT_TYPE_SENT_PUSH_SEND   =  0x100, /*   9 */
-  STAT_TYPE_SENT_PULL_REQ    =  0x200, /*  10 */
-  STAT_TYPE_SENT_PULL_REP    =  0x400, /*  11 */
-  STAT_TYPE_RECV_PUSH_SEND   =  0x800, /*  12 */
-  STAT_TYPE_RECV_PULL_REQ    = 0x1000, /*  13 */
-  STAT_TYPE_RECV_PULL_REP    = 0x2000, /*  14 */
+  STAT_TYPE_ROUNDS                    =    0x1, /*   1 */
+  STAT_TYPE_BLOCKS                    =    0x2, /*   2 */
+  STAT_TYPE_BLOCKS_MANY_PUSH          =    0x4, /*   3 */
+  STAT_TYPE_BLOCKS_NO_PUSH            =    0x8, /*   4 */
+  STAT_TYPE_BLOCKS_NO_PULL            =   0x10, /*   5 */
+  STAT_TYPE_BLOCKS_MANY_PUSH_NO_PULL  =   0x20, /*   6 */
+  STAT_TYPE_BLOCKS_NO_PUSH_NO_PULL    =   0x40, /*   7 */
+  STAT_TYPE_ISSUED_PUSH_SEND          =   0x80, /*   8 */
+  STAT_TYPE_ISSUED_PULL_REQ           =  0x100, /*   9 */
+  STAT_TYPE_ISSUED_PULL_REP           =  0x200, /*  10 */
+  STAT_TYPE_SENT_PUSH_SEND            =  0x400, /*  11 */
+  STAT_TYPE_SENT_PULL_REQ             =  0x800, /*  12 */
+  STAT_TYPE_SENT_PULL_REP             = 0x1000, /*  13 */
+  STAT_TYPE_RECV_PUSH_SEND            = 0x2000, /*  14 */
+  STAT_TYPE_RECV_PULL_REQ             = 0x4000, /*  15 */
+  STAT_TYPE_RECV_PULL_REP             = 0x8000, /*  16 */
   STAT_TYPE_MAX          = 0x80000000, /*  32 */
 };
 
@@ -1850,10 +1852,14 @@ char* stat_type_2_str (enum STAT_TYPE stat_type)
       return "# rounds blocked";
     case STAT_TYPE_BLOCKS_MANY_PUSH:
       return "# rounds blocked - too many pushes";
-    case STAT_TYPE_BLOCKS_FEW_PUSH:
+    case STAT_TYPE_BLOCKS_NO_PUSH:
       return "# rounds blocked - no pushes";
-    case STAT_TYPE_BLOCKS_FEW_PULL:
+    case STAT_TYPE_BLOCKS_NO_PULL:
       return "# rounds blocked - no pull replies";
+    case STAT_TYPE_BLOCKS_MANY_PUSH_NO_PULL:
+      return "# rounds blocked - too many pushes, no pull replies";
+    case STAT_TYPE_BLOCKS_NO_PUSH_NO_PULL:
+      return "# rounds blocked - no pushes, no pull replies";
     case STAT_TYPE_ISSUED_PUSH_SEND:
       return "# push send issued";
     case STAT_TYPE_ISSUED_PULL_REQ:
@@ -2197,8 +2203,10 @@ main (int argc, char *argv[])
     cur_test_run.stat_collect_flags = STAT_TYPE_ROUNDS |
                                       STAT_TYPE_BLOCKS |
                                       STAT_TYPE_BLOCKS_MANY_PUSH |
-                                      STAT_TYPE_BLOCKS_FEW_PUSH |
-                                      STAT_TYPE_BLOCKS_FEW_PULL |
+                                      STAT_TYPE_BLOCKS_NO_PUSH |
+                                      STAT_TYPE_BLOCKS_NO_PULL |
+                                      STAT_TYPE_BLOCKS_MANY_PUSH_NO_PULL |
+                                      STAT_TYPE_BLOCKS_NO_PUSH_NO_PULL |
                                       STAT_TYPE_ISSUED_PUSH_SEND |
                                       STAT_TYPE_ISSUED_PULL_REQ |
                                       STAT_TYPE_ISSUED_PULL_REP |
