@@ -1945,7 +1945,7 @@ GNUNET_SCHEDULER_run_from_driver (struct GNUNET_SCHEDULER_Handle *sh)
   {
     struct GNUNET_TIME_Absolute timeout = get_timeout ();
 
-    if (timeout.abs_value_us < now.abs_value_us)
+    if (timeout.abs_value_us > now.abs_value_us)
     {
       /**
        * The driver called this function before the current timeout was
