@@ -1534,8 +1534,8 @@ manage_service_wrapper (unsigned int i, unsigned int j,
                                                     &churn_cb,
                                                     entry,
                                                     (PEER_GO_OFFLINE == delta) ? 0 : 1);
+    rps_peers[j].entry_op_manage = entry;
   }
-  rps_peers[j].entry_op_manage = entry;
 }
 
 
