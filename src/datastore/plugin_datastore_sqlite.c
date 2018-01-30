@@ -908,6 +908,10 @@ sqlite_plugin_get_key (void *cls,
     GNUNET_SQ_query_param_end
   };
 
+  if (! use_type)
+    memset (&params[3], 0, sizeof (struct GNUNET_SQ_QueryParam));
+  if (! use_key)
+    memset (&params[2], 0, sizeof (struct GNUNET_SQ_QueryParam));
   if (random)
   {
     rvalue = GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_WEAK,
