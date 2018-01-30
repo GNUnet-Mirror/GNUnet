@@ -1774,12 +1774,13 @@ guest_enter (const struct GuestEnterRequest *greq, struct Guest **ret_gst)
               plc_gst,
               gst);
 
-  new_guest = GNUNET_NO;
   if (NULL == gst)
   {
     gst = GNUNET_new (struct Guest);
     new_guest = GNUNET_YES;
   }
+  else new_guest = GNUNET_NO;
+
   if (NULL == gst->slave)
   {
     gst->origin = greq->origin;
@@ -1878,7 +1879,7 @@ guest_enter (const struct GuestEnterRequest *greq, struct Guest **ret_gst)
     ret = GNUNET_YES;
   }
 
-  // TODO: explain why free(gst) not necessary
+  // TODO: explain to automatic code scanners why free(gst) not necessary
   if (NULL != ret_gst)
     *ret_gst = gst;
   return ret;
