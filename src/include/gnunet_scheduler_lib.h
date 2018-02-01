@@ -237,29 +237,32 @@ struct GNUNET_SCHEDULER_Handle;
 
 
 /**
- * Function called by the driver to tell the scheduler to run some of
- * the tasks that are ready.  This function may return even though
- * there are tasks left to run just to give other tasks a chance as
- * well.  If we return #GNUNET_YES, the driver should call this
- * function again as soon as possible, while if we return #GNUNET_NO
- * it must block until either the operating system has more work (the
- * scheduler has no more work to do right now) or the timeout set by
- * the scheduler (using the set_wakeup callback) is reached.
+ * Function called by external event loop implementations to tell the
+ * scheduler to run some of the tasks that are ready. Must be called
+ * only after #GNUNET_SCHEDULER_driver_init has been called and before 
+ * #GNUNET_SCHEDULER_driver_done is called.
+ * This function may return even though there are tasks left to run
+ * just to give other tasks a chance as well.  If we return #GNUNET_YES,
+ * the event loop implementation should call this function again as
+ * soon as possible, while if we return #GNUNET_NO it must block until
+ * either the operating system has more work (the scheduler has no more
+ * work to do right now) or the timeout set by the scheduler (using the
+ * set_wakeup callback) is reached.
  *
- * @param sh scheduler handle that was given to the `loop`
- * @return #GNUNET_OK if there are more tasks that are ready,
- *          and thus we would like to run more (yield to avoid
- *          blocking other activities for too long)
- *         #GNUNET_NO if we are done running tasks (yield to block)
- *         #GNUNET_SYSERR on error, e.g. no tasks were ready
+ * @param sh scheduler handle that was returned by
+ *        #GNUNET_SCHEDULER_driver_init
+ * @return #GNUNET_YES if there are more tasks that are ready,
+ *         and thus we would like to run more (yield to avoid
+ *         blocking other activities for too long) #GNUNET_NO
+ *         if we are done running tasks (yield to block)
  */
 int
-GNUNET_SCHEDULER_run_from_driver (struct GNUNET_SCHEDULER_Handle *sh);
+GNUNET_SCHEDULER_do_work (struct GNUNET_SCHEDULER_Handle *sh);
 
 
 /**
- * API a driver has to implement for
- * #GNUNET_SCHEDULER_run_with_driver().
+ * API an external event loop has to implement for
+ * #GNUNET_SCHEDULER_driver_init.
  */
 struct GNUNET_SCHEDULER_Driver
 {
@@ -311,23 +314,6 @@ struct GNUNET_SCHEDULER_Driver
   (*set_wakeup)(void *cls,
 		struct GNUNET_TIME_Absolute dt);
 
-  /**
-   * Event loop's "main" function, to be called from
-   * #GNUNET_SCHEDULER_run_with_driver() to actually
-   * launch the loop. The loop should run as long as
-   * tasks (added by the add callback) are available 
-   * OR the wakeup time (added by the set_wakeup
-   * callback) is not FOREVER.
-   *
-   * @param cls closure
-   * @param sh scheduler handle to pass to
-   *     #GNUNET_SCHEDULER_run_from_driver()
-   * @return #GNUNET_OK on success, #GNUNET_SYSERR on failure
-   */
-  int
-  (*loop)(void *cls,
-	  struct GNUNET_SCHEDULER_Handle *sh);
-
 };
 
 
@@ -341,25 +327,55 @@ typedef void
 
 
 /**
- * Initialize and run scheduler.  This function will return when all
- * tasks have completed.  On systems with signals, receiving a SIGTERM
- * (and other similar signals) will cause #GNUNET_SCHEDULER_shutdown
- * to be run after the active task is complete.  As a result, SIGTERM
- * causes all shutdown tasks to be scheduled with reason
- * #GNUNET_SCHEDULER_REASON_SHUTDOWN.  (However, tasks added
- * afterwards will execute normally!).  Note that any particular
- * signal will only shut down one scheduler; applications should
- * always only create a single scheduler.
+ * Function called by external event loop implementations to initialize
+ * the scheduler. An external implementation has to provide @a driver
+ * which contains callbacks for the scheduler (see definition of struct
+ * #GNUNET_SCHEDULER_Driver) for instructing the external implementation
+ * to watch for events. If it detects any event it is expected to call
+ * #GNUNET_SCHEDULER_do_work to let the scheduler handle it. If an event
+ * is related to a specific task (e.g. the scheduler gave instructions
+ * to watch a file descriptor), the external implementation is expected
+ * to mark that task ready before by calling #GNUNET_SCHEDULER_task_ready.
+
+ * This function has to be called before any tasks are scheduled and
+ * before GNUNET_SCHEDULER_do_work is called for the first time. It 
+ * allocates resources that have to be freed again by calling
+ * #GNUNET_SCHEDULER_driver_done.
  *
- * @param driver drive to use for the event loop
- * @param task task to run first (and immediately)
- * @param task_cls closure of @a task
- * @return #GNUNET_OK on success, #GNUNET_SYSERR on failure
+ * This function installs the same signal handlers as 
+ * #GNUNET_SCHEDULER_run. This means SIGTERM (and other similar signals)
+ * will induce a call to #GNUNET_SCHEDULER_shutdown during the next
+ * call to #GNUNET_SCHEDULER_do_work. As a result, SIGTERM causes all
+ * active tasks to be scheduled with reason
+ * #GNUNET_SCHEDULER_REASON_SHUTDOWN. (However, tasks added afterwards
+ * will execute normally!). Note that any particular signal will only
+ * shut down one scheduler; applications should always only create a
+ * single scheduler.
+ *
+ * @param driver to use for the event loop
+ * @return handle to be passed to #GNUNET_SCHEDULER_do_work and
+ *         #GNUNET_SCHEDULER_driver_done
  */
-int
-GNUNET_SCHEDULER_run_with_driver (const struct GNUNET_SCHEDULER_Driver *driver,
-				  GNUNET_SCHEDULER_TaskCallback task,
-				  void *task_cls);
+struct GNUNET_SCHEDULER_Handle *
+GNUNET_SCHEDULER_driver_init (const struct GNUNET_SCHEDULER_Driver *driver);
+
+
+/**
+ * Counter-part of #GNUNET_SCHEDULER_driver_init. Has to be called
+ * by external event loop implementations after the scheduler has
+ * shut down. This is the case if both of the following conditions
+ * are met:
+ * 
+ * - all tasks the scheduler has added through the driver's add
+ *   callback have been removed again through the driver's del
+ *   callback
+ * - the timeout the scheduler has set through the driver's
+ *   add_wakeup callback is FOREVER
+ *
+ * @param sh the handle returned by #GNUNET_SCHEDULER_driver_init
+ */
+void
+GNUNET_SCHEDULER_driver_done (struct GNUNET_SCHEDULER_Handle *sh);
 
 
 /**
@@ -462,10 +478,15 @@ GNUNET_SCHEDULER_get_task_context (void);
 
 /**
  * Cancel the task with the specified identifier.
- * The task must not yet have run.
+ * The task must not yet have run. Only allowed to be called as long as the
+ * scheduler is running, that is one of the following conditions is met:
+ *
+ * - #GNUNET_SCHEDULER_run has been called and has not returned yet
+ * - #GNUNET_SCHEDULER_driver_init has been run and
+ *   #GNUNET_SCHEDULER_driver_done has not been called yet
  *
  * @param task id of the task to cancel
- * @return the closure of the callback of the cancelled task
+ * @return original closure of the task
  */
 void *
 GNUNET_SCHEDULER_cancel (struct GNUNET_SCHEDULER_Task *task);
@@ -634,6 +655,12 @@ GNUNET_SCHEDULER_add_at_with_priority (struct GNUNET_TIME_Absolute at,
  * used as a timeout on the socket being ready.  The task will be
  * scheduled for execution once either the delay has expired or the
  * socket operation is ready.  It will be run with the DEFAULT priority.
+ * Only allowed to be called as long as the scheduler is running, that
+ * is one of the following conditions is met:
+ *
+ * - #GNUNET_SCHEDULER_run has been called and has not returned yet
+ * - #GNUNET_SCHEDULER_driver_init has been run and
+ *   #GNUNET_SCHEDULER_driver_done has not been called yet
  *
  * @param delay when should this operation time out?
  * @param rfd read file-descriptor
@@ -656,6 +683,12 @@ GNUNET_SCHEDULER_add_read_net (struct GNUNET_TIME_Relative delay,
  * socket being ready.  The task will be scheduled for execution once
  * either the delay has expired or the socket operation is ready.  It
  * will be run with the DEFAULT priority.
+ * Only allowed to be called as long as the scheduler is running, that
+ * is one of the following conditions is met:
+ *
+ * - #GNUNET_SCHEDULER_run has been called and has not returned yet
+ * - #GNUNET_SCHEDULER_driver_init has been run and
+ *   #GNUNET_SCHEDULER_driver_done has not been called yet
  *
  * @param delay when should this operation time out?
  * @param priority priority to use for the task
@@ -678,9 +711,16 @@ GNUNET_SCHEDULER_add_read_net_with_priority (struct GNUNET_TIME_Relative delay,
  * specified file descriptor is ready for writing.  The delay can be
  * used as a timeout on the socket being ready.  The task will be
  * scheduled for execution once either the delay has expired or the
- * socket operation is ready.  It will be run with the DEFAULT priority.
+ * socket operation is ready.  It will be run with the priority of
+ * the calling task.
+ * Only allowed to be called as long as the scheduler is running, that
+ * is one of the following conditions is met:
  *
- * * @param delay when should this operation time out?
+ * - #GNUNET_SCHEDULER_run has been called and has not returned yet
+ * - #GNUNET_SCHEDULER_driver_init has been run and
+ *   #GNUNET_SCHEDULER_driver_done has not been called yet
+ *
+ * @param delay when should this operation time out?
  * @param wfd write file-descriptor
  * @param task main function of the task
  * @param task_cls closure of @a task
@@ -700,6 +740,12 @@ GNUNET_SCHEDULER_add_write_net (struct GNUNET_TIME_Relative delay,
  * used as a timeout on the socket being ready.  The task will be
  * scheduled for execution once either the delay has expired or the
  * socket operation is ready.
+ * Only allowed to be called as long as the scheduler is running, that
+ * is one of the following conditions is met:
+ *
+ * - #GNUNET_SCHEDULER_run has been called and has not returned yet
+ * - #GNUNET_SCHEDULER_driver_init has been run and
+ *   #GNUNET_SCHEDULER_driver_done has not been called yet
  *
  * @param delay when should this operation time out?
  * @param priority priority of the task
@@ -707,7 +753,7 @@ GNUNET_SCHEDULER_add_write_net (struct GNUNET_TIME_Relative delay,
  * @param on_read whether to poll the file-descriptor for readability
  * @param on_write whether to poll the file-descriptor for writability
  * @param task main function of the task
- * @param task_cls closure of @a task
+ * @param task_cls closure of task
  * @return unique task identifier for the job
  *         only valid until "task" is started!
  */
@@ -720,19 +766,26 @@ GNUNET_SCHEDULER_add_net_with_priority  (struct GNUNET_TIME_Relative delay,
                                          GNUNET_SCHEDULER_TaskCallback task,
                                          void *task_cls);
 
+
 /**
  * Schedule a new task to be run with a specified delay or when the
  * specified file descriptor is ready for reading.  The delay can be
  * used as a timeout on the socket being ready.  The task will be
  * scheduled for execution once either the delay has expired or the
  * socket operation is ready. It will be run with the DEFAULT priority.
+ * Only allowed to be called as long as the scheduler is running, that
+ * is one of the following conditions is met:
  *
- * * @param delay when should this operation time out?
+ * - #GNUNET_SCHEDULER_run has been called and has not returned yet
+ * - #GNUNET_SCHEDULER_driver_init has been run and
+ *   #GNUNET_SCHEDULER_driver_done has not been called yet
+ *
+ * @param delay when should this operation time out?
  * @param rfd read file-descriptor
  * @param task main function of the task
  * @param task_cls closure of @a task
  * @return unique task identifier for the job
- *         only valid until "task" is started!
+ *         only valid until @a task is started!
  */
 struct GNUNET_SCHEDULER_Task *
 GNUNET_SCHEDULER_add_read_file (struct GNUNET_TIME_Relative delay,
@@ -747,8 +800,14 @@ GNUNET_SCHEDULER_add_read_file (struct GNUNET_TIME_Relative delay,
  * used as a timeout on the socket being ready.  The task will be
  * scheduled for execution once either the delay has expired or the
  * socket operation is ready. It will be run with the DEFAULT priority.
+ * Only allowed to be called as long as the scheduler is running, that
+ * is one of the following conditions is met:
  *
- * * @param delay when should this operation time out?
+ * - #GNUNET_SCHEDULER_run has been called and has not returned yet
+ * - #GNUNET_SCHEDULER_driver_init has been run and
+ *   #GNUNET_SCHEDULER_driver_done has not been called yet
+ *
+ * @param delay when should this operation time out?
  * @param wfd write file-descriptor
  * @param task main function of the task
  * @param task_cls closure of @a task
@@ -768,6 +827,12 @@ GNUNET_SCHEDULER_add_write_file (struct GNUNET_TIME_Relative delay,
  * used as a timeout on the socket being ready.  The task will be
  * scheduled for execution once either the delay has expired or the
  * socket operation is ready.
+ * Only allowed to be called as long as the scheduler is running, that
+ * is one of the following conditions is met:
+ *
+ * - #GNUNET_SCHEDULER_run has been called and has not returned yet
+ * - #GNUNET_SCHEDULER_driver_init has been run and
+ *   #GNUNET_SCHEDULER_driver_done has not been called yet
  *
  * @param delay when should this operation time out?
  * @param priority priority of the task
@@ -801,8 +866,14 @@ GNUNET_SCHEDULER_add_file_with_priority (struct GNUNET_TIME_Relative delay,
  * (prerequisite-run)
  * && (delay-ready
  *     || any-rs-ready
- *     || any-ws-ready)
+ *     || any-ws-ready) )
  * </code>
+ * Only allowed to be called as long as the scheduler is running, that
+ * is one of the following conditions is met:
+ *
+ * - #GNUNET_SCHEDULER_run has been called and has not returned yet
+ * - #GNUNET_SCHEDULER_driver_init has been run and
+ *   #GNUNET_SCHEDULER_driver_done has not been called yet
  *
  * @param prio how important is this task?
  * @param delay how long should we wait?
@@ -811,7 +882,7 @@ GNUNET_SCHEDULER_add_file_with_priority (struct GNUNET_TIME_Relative delay,
  * @param task main function of the task
  * @param task_cls closure of @a task
  * @return unique task identifier for the job
- *         only valid until "task" is started!
+ *         only valid until @a task is started!
  */
 struct GNUNET_SCHEDULER_Task *
 GNUNET_SCHEDULER_add_select (enum GNUNET_SCHEDULER_Priority prio,
