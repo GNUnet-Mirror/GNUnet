@@ -330,13 +330,14 @@ typedef void
  * Function called by external event loop implementations to initialize
  * the scheduler. An external implementation has to provide @a driver
  * which contains callbacks for the scheduler (see definition of struct
- * #GNUNET_SCHEDULER_Driver) for instructing the external implementation
- * to watch for events. If it detects any event it is expected to call
- * #GNUNET_SCHEDULER_do_work to let the scheduler handle it. If an event
- * is related to a specific task (e.g. the scheduler gave instructions
- * to watch a file descriptor), the external implementation is expected
- * to mark that task ready before by calling #GNUNET_SCHEDULER_task_ready.
-
+ * #GNUNET_SCHEDULER_Driver). The callbacks are used to instruct the 
+ * external implementation to watch for events. If it detects any of
+ * those events it is expected to call #GNUNET_SCHEDULER_do_work to let
+ * the scheduler handle it. If an event is related to a specific task
+ * (e.g. the scheduler gave instructions to watch a file descriptor),
+ * the external implementation is expected to mark that task ready
+ * before by calling #GNUNET_SCHEDULER_task_ready.
+ *
  * This function has to be called before any tasks are scheduled and
  * before GNUNET_SCHEDULER_do_work is called for the first time. It 
  * allocates resources that have to be freed again by calling
