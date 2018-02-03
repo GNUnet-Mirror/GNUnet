@@ -6,7 +6,7 @@ This tutorial is supposed to give a first introduction for end-users
 trying to do something "real" with GNUnet. Installation and
 configuration are specifically outside of the scope of this tutorial.
 Instead, we start by briefly checking that the installation works, and
-then dive into simple, concrete practical things that can be done
+then dive into uncomplicated, concrete practical things that can be done
 with the network.
 
 This chapter of the GNUnet Reference Documentation documents
