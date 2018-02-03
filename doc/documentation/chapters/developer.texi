@@ -1896,16 +1896,25 @@ subsystem.
 @node CORE must be started
 @subsubsection CORE must be started
 
-A simple issue is #3993: Your configuration MUST somehow ensure that for
-each peer the CORE service is started when the peer is setup, otherwise
-TESTBED may fail to connect peers when the topology is initialized, as
-TESTBED will start some CORE services but not necessarily all (but it
-relies on all of them running). The easiest way is to set
-'FORCESTART = YES' in the '[core]' section of the configuration file.
+A uncomplicated issue is bug #3993@footnote{@uref{https://gnunet.org/bugs/view.php?id=3993, https://gnunet.org/bugs/view.php?id=3993}}:
+Your configuration MUST somehow ensure that for each peer the
+@code{CORE} service is started when the peer is setup, otherwise
+@code{TESTBED} may fail to connect peers when the topology is initialized,
+as @code{TESTBED} will start some @code{CORE} services but not
+necessarily all (but it relies on all of them running). The easiest way
+is to set
+
+@example
+[core]
+FORCESTART = YES
+@end example
+
+@noindent
+in the configuration file.
 Alternatively, having any service that directly or indirectly depends on
-CORE being started with FORCESTART will also do. This issue largely arises
-if users try to over-optimize by not starting any services with
-FORCESTART.
+@code{CORE} being started with @code{FORCESTART} will also do.
+This issue largely arises if users try to over-optimize by not
+starting any services with @code{FORCESTART}.
 
 @c ***********************************************************************
 @node ATS must want the connections
