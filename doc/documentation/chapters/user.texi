@@ -430,8 +430,8 @@ You can now go back to the shell running @code{gnunet-bcd} and press
 @c %**end of header
 
 Next, you should try resolving your own GNS records.
-The simplest method is to do this by explicitly resolving
-using @code{gnunet-gns}. In the shell, type:
+The method we found to be the most uncomplicated is to do this
+by explicitly resolving using @code{gnunet-gns}. In the shell, type:
 
 @example
 $ gnunet-gns -u test.gnu # what follows is the reply
@@ -1495,17 +1495,19 @@ $ gnunet-identity -C "new_zone"
 
 @noindent
 Now you can add (or edit, or remove) records in your GNS zone using the
-gnunet-setup GUI or using the gnunet-namestore command-line tool.
+@command{gnunet-setup} GUI or using the @command{gnunet-namestore}
+command-line tool.
 In either case, your records will be stored in an SQL database under
-control of the gnunet-service-namestore. Note that if multiple users
-use one peer, the namestore database will include the combined records
-of all users. However, users will not be able to see each other's records
+control of the @command{gnunet-service-namestore}.
+Note that if multiple users use one peer, the namestore database will
+include the combined records of all users.
+However, users will not be able to see each other's records
 if they are marked as private.
 
-To provide a simple example for editing your own zone, suppose you
-have your own web server with IP 1.2.3.4. Then you can put an
-A record (A records in DNS are for IPv4 IP addresses) into your
-local zone using the command:
+To provide a short example for editing your own zone, suppose you
+have your own web server with the IP @code{1.2.3.4}. Then you can put an
+@code{A} record (@code{A} records in DNS are for IPv4 IP addresses)
+into your local zone using the command:
 
 @example
 $ gnunet-namestore -z master-zone -a -n www -t A -V 1.2.3.4 -e never
