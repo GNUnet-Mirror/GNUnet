@@ -597,12 +597,12 @@ Also, the calculation is deliberately expensive, to deter people from
 doing this just for fun (as the actual revocation operation is expensive
 for the network, not for the peer performing the revocation).
 
-To avoid TL;DR ones from accidentally revocating their zones, I am not
-giving away the command, but its simple: the actual revocation is
-performed by using the @command{-p} option
-of @command{gnunet-revocation}.
 
-
+@c FIXME: The Manual should give away the command using an example that is
+@c very likely to never exist.
+To avoid TL;DR ones from accidentally revocating their zones, we are not
+giving away the command, but it is uncomplicated: the actual revocation is
+performed by using the @command{-p} option of @command{gnunet-revocation}.
 
 @node What's Next?
 @subsection What's Next?
