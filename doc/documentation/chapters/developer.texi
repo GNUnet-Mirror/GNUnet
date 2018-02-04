@@ -11,7 +11,7 @@ For developers, GNUnet is:
 @itemize @bullet
 @item developed by a community that believes in the GNU philosophy
 @item Free Software (Free as in Freedom), licensed under the
-GNU General Public License
+GNU General Public License@footnote{@uref{https://www.gnu.org/licenses/licenses.html#GPL, https://www.gnu.org/licenses/licenses.html#GPL}}
 @item A set of standards, including coding conventions and
 architectural rules
 @item A set of layered protocols, both specifying the communication
@@ -24,7 +24,7 @@ writing extensions
 In particular, the architecture specifies that a peer consists of many
 processes communicating via protocols. Processes can be written in almost
 any language.
-C and Java @footnote{As well as Guile} APIs exist for accessing existing
+@code{C}, @code{Java} and @code{Guile} APIs exist for accessing existing
 services and for writing extensions.
 It is possible to write extensions in other languages by
 implementing the necessary IPC protocols.
@@ -111,6 +111,9 @@ operations. If you want (or require) access, you should contact
 @uref{http://grothoff.org/christian/, Christian Grothoff},
 GNUnet's maintainer.
 
+@c FIXME: A good part of this belongs on the website or should be
+@c extended in subsections explaining usage of this. A simple list
+@c is just taking space people have to read.
 The public subsystems on the GNUnet server that help developers are:
 
 @itemize @bullet
@@ -119,20 +122,21 @@ The public subsystems on the GNUnet server that help developers are:
 distributed development.
 It is publicly accessible at @uref{https://gnunet.org/git/}.
 Only developers with write access can commit code, everyone else is
-encouraged to submit patches to the
-@uref{https://lists.gnu.org/mailman/listinfo/gnunet-developers, GNUnet-developers mailinglist}.
+encouraged to submit patches to the GNUnet-developers mailinglist:
+@uref{https://lists.gnu.org/mailman/listinfo/gnunet-developers, https://lists.gnu.org/mailman/listinfo/gnunet-developers}
 
 @item The bugtracking system (Mantis).
 We use it to track feature requests, open bug reports and their
 resolutions.
-It can be accessed at @uref{https://gnunet.org/bugs/}.
-Anyone can report bugs, but only developers can claim to have fixed them.
+It can be accessed at
+@uref{https://gnunet.org/bugs/, https://gnunet.org/bugs/}.
+Anyone can report bugs.
 
 @item Our site installation of the
 CI@footnote{Continuous Integration} system @code{Buildbot} is used
 to check GNUnet builds automatically on a range of platforms.
 The web interface of this CI is exposed at
-@uref{https://gnunet.org/buildbot/}.
+@uref{https://gnunet.org/buildbot/, https://gnunet.org/buildbot/}.
 Builds are triggered automatically 30 minutes after the last commit to
 our repository was made.
 
@@ -149,12 +153,13 @@ as possibly problematic. Nevertheless, developers are encouraged to at
 least be aware of all issues in their code that are listed.
 
 @item We use Gauger for automatic performance regression visualization.
+@c FIXME: LINK!
 Details on how to use Gauger are here.
 
 @item We use @uref{http://junit.org/, junit} to automatically test
 @command{gnunet-java}.
 Automatically generated, current reports on the test suite are here.
-@c FIXME: URL.
+@c FIXME: Likewise.
 
 @item We use Cobertura to generate test coverage reports for gnunet-java.
 Current reports on test coverage are here.
@@ -450,14 +455,19 @@ on a set of values via a distributed set union computation.
 @item @file{rest/}
 The rest API allows access to GNUnet services using RESTful interaction.
 The services provide plugins that can exposed by the rest server.
-@item @file{experimentation/}
-The experimentation daemon coordinates distributed
-experimentation to evaluate transport and ATS properties.
+@c FIXME: Where did this disappear to?
+@c @item @file{experimentation/}
+@c The experimentation daemon coordinates distributed
+@c experimentation to evaluate transport and ATS properties.
 @end table
 
 @c ***********************************************************************
 @node System Architecture
 @section System Architecture
+
+@c FIXME: For those irritated by the textflow, we are missing images here,
+@c in the short term we should add them back, in the long term this should
+@c work without images or have images with alt-text.
 
 GNUnet developers like LEGOs. The blocks are indestructible, can be
 stacked together to construct complex buildings and it is generally easy
