@@ -39,6 +39,7 @@
 
 #define JWT_TYP_VALUE "jwt"
 
+//TODO change server address
 #define SERVER_ADDRESS "https://localhost"
 
 static char*
@@ -101,7 +102,6 @@ jwt_create_from_list (const struct GNUNET_CRYPTO_EcdsaPublicKey *aud_key,
   body = json_object ();
   /* TODO who is the issuer? local IdP or subject ? See self-issued tokens? */
   //iss REQUIRED case sensitive server uri with https
-  //TODO change server address
   json_object_set_new (body,
                        "iss", json_string (SERVER_ADDRESS));
   //sub REQUIRED public key identity, not exceed 255 ASCII  length

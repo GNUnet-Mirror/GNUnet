@@ -108,6 +108,21 @@
 #define ID_REST_STATE_POST_INIT 1
 
 /**
+ * OIDC grant_type key
+ */
+#define OIDC_GRANT_TYPE_KEY "grant_type"
+
+/**
+ * OIDC grant_type key
+ */
+#define OIDC_GRANT_TYPE_VALUE "authorization_code"
+
+/**
+ * OIDC code key
+ */
+#define OIDC_CODE_KEY "code"
+
+/**
  * OIDC response_type key
  */
 #define OIDC_RESPONSE_TYPE_KEY "response_type"
@@ -205,7 +220,9 @@ struct Plugin
 {
   const struct GNUNET_CONFIGURATION_Handle *cfg;
 };
-
+/**
+ * OIDC needed variables
+ */
 struct OIDC_Variables
 {
 
@@ -1673,7 +1690,6 @@ static void namestore_iteration_finished (void *cls)
   {
     handle->oidc->nonce = GNUNET_CONTAINER_multihashmap_get(handle->rest_handle->url_param_map,
 					      &cache_key);
-    //TODO: what do we do with the nonce? => token
     handle->oidc->nonce = GNUNET_strdup (handle->oidc->nonce);
   }
 
@@ -1868,6 +1884,34 @@ login_cont (struct GNUNET_REST_RequestHandle *con_handle,
 }
 
 static void
+consume_ticket (void *cls,
+              const struct GNUNET_CRYPTO_EcdsaPublicKey *identity,
+              const struct GNUNET_IDENTITY_ATTRIBUTE_Claim *attr)
+{
+  struct RequestHandle *handle = cls;
+  struct GNUNET_JSONAPI_Resource *json_resource;
+  json_t *value;
+
+  if (NULL == identity)
+  {
+    GNUNET_SCHEDULER_add_now (&return_response, handle);
+    return;
+  }
+
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Adding attribute: %s\n",
+              attr->name);
+  json_resource = GNUNET_JSONAPI_resource_new (GNUNET_REST_JSONAPI_IDENTITY_ATTRIBUTE,
+                                               attr->name);
+  GNUNET_JSONAPI_document_resource_add (handle->resp_object, json_resource);
+
+  value = json_string (attr->data);
+  GNUNET_JSONAPI_resource_add_attr (json_resource,
+                                    "value",
+                                    value);
+  json_decref (value);
+}
+
+static void
 token_cont(struct GNUNET_REST_RequestHandle *con_handle,
                 const char* url,
                 void *cls)
@@ -1968,7 +2012,7 @@ token_cont(struct GNUNET_REST_RequestHandle *con_handle,
   }
 
   //REQUIRED grant_type
-  GNUNET_CRYPTO_hash ("grant_type", strlen ("grant_type"), &cache_key);
+  GNUNET_CRYPTO_hash (OIDC_GRANT_TYPE_KEY, strlen (OIDC_GRANT_TYPE_KEY), &cache_key);
   if ( GNUNET_NO
       == GNUNET_CONTAINER_multihashmap_contains (
 	  handle->rest_handle->url_param_map, &cache_key) )
@@ -1982,7 +2026,7 @@ token_cont(struct GNUNET_REST_RequestHandle *con_handle,
       handle->rest_handle->url_param_map, &cache_key);
 
   //REQUIRED code
-  GNUNET_CRYPTO_hash ("code", strlen ("code"), &cache_key);
+  GNUNET_CRYPTO_hash (OIDC_CODE_KEY, strlen (OIDC_CODE_KEY), &cache_key);
   if ( GNUNET_NO
       == GNUNET_CONTAINER_multihashmap_contains (
 	  handle->rest_handle->url_param_map, &cache_key) )
@@ -2029,7 +2073,7 @@ token_cont(struct GNUNET_REST_RequestHandle *con_handle,
   }
 
   //Check parameter grant_type == "authorization_code"
-  if (0 != strcmp("authorization_code", grant_type))
+  if (0 != strcmp(OIDC_GRANT_TYPE_VALUE, grant_type))
   {
     handle->emsg=GNUNET_strdup("unsupported_grant_type");
     handle->response_code = MHD_HTTP_BAD_REQUEST;
@@ -2081,7 +2125,7 @@ token_cont(struct GNUNET_REST_RequestHandle *con_handle,
     GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
   }
-  //TODO lookup if audience is the current client
+  // this is the current client (relying party)
   //TODO change
   struct GNUNET_CRYPTO_EcdsaPublicKey pub_key;
   GNUNET_IDENTITY_ego_get_public_key(handle->ego_entry->ego,&pub_key);
@@ -2193,20 +2237,22 @@ token_cont(struct GNUNET_REST_RequestHandle *con_handle,
   MHD_add_response_header (resp, "Pragma", "no-cache");
   MHD_add_response_header (resp, "Content-Type", "application/json");
   handle->proc (handle->proc_cls, resp, MHD_HTTP_OK);
-  GNUNET_SCHEDULER_add_now (&cleanup_handle_delayed, handle);
 
   //necessary? should be
 //  handle->idp_op = GNUNET_IDENTITY_PROVIDER_ticket_consume(handle->idp,GNUNET_IDENTITY_ego_get_private_key(handle->ego_entry->ego),ticket,consume_cont, handle);
   GNUNET_IDENTITY_ATTRIBUTE_list_destroy(cl);
   //TODO write method
-  handle->idp_op = GNUNET_IDENTITY_PROVIDER_ticket_consume(handle->idp,GNUNET_IDENTITY_ego_get_private_key(ego_entry->ego),ticket,consume_cont,handle);
+  handle->resp_object = GNUNET_JSONAPI_document_new ();
+  handle->idp = GNUNET_IDENTITY_PROVIDER_connect (cfg);
+  handle->idp_op = GNUNET_IDENTITY_PROVIDER_ticket_consume(handle->idp,GNUNET_IDENTITY_ego_get_private_key(ego_entry->ego),ticket,consume_ticket,handle);
   GNUNET_free(access_token_number);
-  GNUNET_free(credentials);
+//  GNUNET_free(credentials);
   GNUNET_free(access_token);
   GNUNET_free(user_psw);
-  GNUNET_free(code);
+//  GNUNET_free(code);
   GNUNET_free(id_token);
   json_decref(root);
+//  GNUNET_SCHEDULER_add_now (&cleanup_handle_delayed, handle);
 }
 
 /**
