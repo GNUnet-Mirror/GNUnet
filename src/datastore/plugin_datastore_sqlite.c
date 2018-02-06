@@ -908,10 +908,19 @@ sqlite_plugin_get_key (void *cls,
     GNUNET_SQ_query_param_end
   };
 
+  /* SQLite doesn't like it when you try to bind a parameter greater than the
+   * last numbered parameter, but unused parameters in the middle are OK.
+   */
   if (! use_type)
-    memset (&params[3], 0, sizeof (struct GNUNET_SQ_QueryParam));
-  if (! use_key)
-    memset (&params[2], 0, sizeof (struct GNUNET_SQ_QueryParam));
+  {
+    params[3] = (struct GNUNET_SQ_QueryParam) GNUNET_SQ_query_param_end;
+    if (! use_key)
+    {
+      params[2] = (struct GNUNET_SQ_QueryParam) GNUNET_SQ_query_param_end;
+      if (! use_rvalue)
+        params[1] = (struct GNUNET_SQ_QueryParam) GNUNET_SQ_query_param_end;
+    }
+  }
   if (random)
   {
     rvalue = GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_WEAK,
