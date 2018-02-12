@@ -33,7 +33,7 @@
 #define JWT_ALG "alg"
 
 /*TODO is this the correct way to define new algs? */
-#define JWT_ALG_VALUE "ED512"
+#define JWT_ALG_VALUE "urn:org:gnunet:jwt:alg:ecdsa:ed25519"
 
 #define JWT_TYP "typ"
 

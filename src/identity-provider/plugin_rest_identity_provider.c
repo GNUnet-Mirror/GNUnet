@@ -607,6 +607,17 @@ return_response (void *cls)
   cleanup_handle (handle);
 }
 
+static void
+base_64_encode(char *string, char *output)
+{
+  GNUNET_STRINGS_base64_encode(string,strlen(string),&output);
+  char delimiter[] = "=";
+  output = strtok (output, delimiter);
+  while (NULL != output)
+  {
+    output = strtok (NULL, delimiter);
+  }
+}
 
 static void
 collect_finished_cb (void *cls)
@@ -1378,13 +1389,16 @@ oidc_ticket_issue_cb (void* cls,
 //    {
 //      json_object_set_new(object,"nonce",json_string(handle->oidc->nonce));
 //    }
+    //TODO change
     GNUNET_asprintf (&code_json_string, "{\"ticket\":\"%s\"%s%s%s}",
 		     ticket_str,
 		     (NULL != handle->oidc->nonce) ? ", \"nonce\":\"" : "",
 		     (NULL != handle->oidc->nonce) ? handle->oidc->nonce : "",
 		     (NULL != handle->oidc->nonce) ? "\"" : "");
     GNUNET_STRINGS_base64_encode(code_json_string,strlen(code_json_string),&code_base64_final_string);
-
+    GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "%s\n", code_base64_final_string);
+    base_64_encode(code_json_string, code_base64_final_string);
+    GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "%s\n", code_base64_final_string);
     GNUNET_asprintf (&redirect_uri, "%s?%s=%s&state=%s",
 		     handle->oidc->redirect_uri,
 		     handle->oidc->response_type,
@@ -1894,21 +1908,22 @@ consume_ticket (void *cls,
 
   if (NULL == identity)
   {
-    GNUNET_SCHEDULER_add_now (&return_response, handle);
+    GNUNET_SCHEDULER_add_now(&cleanup_handle_delayed, handle);
+//    GNUNET_SCHEDULER_add_now (&return_response, handle);
     return;
   }
 
   GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Adding attribute: %s\n",
               attr->name);
-  json_resource = GNUNET_JSONAPI_resource_new (GNUNET_REST_JSONAPI_IDENTITY_ATTRIBUTE,
-                                               attr->name);
-  GNUNET_JSONAPI_document_resource_add (handle->resp_object, json_resource);
-
-  value = json_string (attr->data);
-  GNUNET_JSONAPI_resource_add_attr (json_resource,
-                                    "value",
-                                    value);
-  json_decref (value);
+//  json_resource = GNUNET_JSONAPI_resource_new (GNUNET_REST_JSONAPI_IDENTITY_ATTRIBUTE,
+//                                               attr->name);
+//  GNUNET_JSONAPI_document_resource_add (handle->resp_object, json_resource);
+//
+//  value = json_string (attr->data);
+//  GNUNET_JSONAPI_resource_add_attr (json_resource,
+//                                    "value",
+//                                    value);
+//  json_decref (value);
 }
 
 static void
@@ -1946,9 +1961,9 @@ token_cont(struct GNUNET_REST_RequestHandle *con_handle,
   }
   authorization = GNUNET_CONTAINER_multihashmap_get ( handle->rest_handle->header_param_map, &cache_key);
 
+  //TODO authorization pointer will be moved as well
   //split header in "Basic" and [content]
-  credentials = GNUNET_strdup(authorization);
-  credentials = strtok (credentials, delimiter);
+  credentials = strtok (authorization, delimiter);
   if( NULL != credentials)
   {
     credentials = strtok(NULL, delimiter);
@@ -2232,27 +2247,27 @@ token_cont(struct GNUNET_REST_RequestHandle *con_handle,
 		   id_token);
 
   resp = GNUNET_REST_create_response (json_error);
-
   MHD_add_response_header (resp, "Cache-Control", "no-store");
   MHD_add_response_header (resp, "Pragma", "no-cache");
   MHD_add_response_header (resp, "Content-Type", "application/json");
   handle->proc (handle->proc_cls, resp, MHD_HTTP_OK);
 
-  //necessary? should be
-//  handle->idp_op = GNUNET_IDENTITY_PROVIDER_ticket_consume(handle->idp,GNUNET_IDENTITY_ego_get_private_key(handle->ego_entry->ego),ticket,consume_cont, handle);
   GNUNET_IDENTITY_ATTRIBUTE_list_destroy(cl);
   //TODO write method
-  handle->resp_object = GNUNET_JSONAPI_document_new ();
   handle->idp = GNUNET_IDENTITY_PROVIDER_connect (cfg);
-  handle->idp_op = GNUNET_IDENTITY_PROVIDER_ticket_consume(handle->idp,GNUNET_IDENTITY_ego_get_private_key(ego_entry->ego),ticket,consume_ticket,handle);
+  handle->idp_op = GNUNET_IDENTITY_PROVIDER_ticket_consume (handle->idp,
+							    GNUNET_IDENTITY_ego_get_private_key(ego_entry->ego),
+							    ticket,
+							    consume_ticket,
+							    handle);
   GNUNET_free(access_token_number);
-//  GNUNET_free(credentials);
   GNUNET_free(access_token);
   GNUNET_free(user_psw);
-//  GNUNET_free(code);
+  GNUNET_free(json_error);
+  GNUNET_free(ticket);
+  GNUNET_free(output);
   GNUNET_free(id_token);
   json_decref(root);
-//  GNUNET_SCHEDULER_add_now (&cleanup_handle_delayed, handle);
 }
 
 /**
