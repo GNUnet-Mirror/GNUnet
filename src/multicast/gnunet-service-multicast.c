@@ -1450,6 +1450,7 @@ check_client_member_join (void *cls,
   uint16_t msg_size = ntohs (msg->header.size);
   struct GNUNET_PeerIdentity *relays = (struct GNUNET_PeerIdentity *) &msg[1];
   uint32_t relay_count = ntohl (msg->relay_count);
+  if (relay_count > MAX_RELAY_COUNT) return GNUNET_SYSERR;
   uint16_t relay_size = relay_count * sizeof (*relays);
   struct GNUNET_MessageHeader *join_msg = NULL;
   uint16_t join_msg_size = 0;

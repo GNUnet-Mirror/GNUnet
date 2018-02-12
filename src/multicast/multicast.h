@@ -30,6 +30,11 @@
 #include "platform.h"
 #include "gnunet_multicast_service.h"
 
+/* FIXME: What is a reasonable value here?
+ * Should it be in an include file that clients can also see?
+ */
+#define MAX_RELAY_COUNT 123
+
 GNUNET_NETWORK_STRUCT_BEGIN
 
 
