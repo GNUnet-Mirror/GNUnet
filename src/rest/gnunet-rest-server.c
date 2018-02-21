@@ -303,6 +303,7 @@ post_data_iter (void *cls,
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Could not load add url param `%s'=%s\n",
                 key, data);
+    GNUNET_free(val);
   }
   return MHD_YES;
 
