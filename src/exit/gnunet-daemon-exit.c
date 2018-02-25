@@ -3373,10 +3373,10 @@ add_services (int proto,
 
 
 /**
- * Reads the configuration servicecfg and populates udp_services
+ * Reads the configuration and populates #udp_services and #tcp_services
  *
  * @param cls unused
- * @param section name of section in config, equal to hostname
+ * @param section name of section in config
  */
 static void
 read_service_conf (void *cls,
