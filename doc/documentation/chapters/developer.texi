@@ -815,8 +815,8 @@ Each variable type should be chosen with care.
 statements (free, close, etc.) can be acceptable.
 
 @item Conditions should be written with constants on the left (to avoid
-accidental assignment) and with the 'true' target being either the
-'error' case or the significantly simpler continuation. For example:
+accidental assignment) and with the @code{true} target being either the
+@code{error} case or the significantly simpler continuation. For example:
 
 @example
 if (0 != stat ("filename," &sbuf)) @{
@@ -839,8 +839,8 @@ if (stat ("filename," &sbuf) == 0) @{
 @end example
 
 @noindent
-If possible, the error clause should be terminated with a 'return' (or
-'goto' to some cleanup routine) and in this case, the 'else' clause
+If possible, the error clause should be terminated with a @code{return} (or
+@code{goto} to some cleanup routine) and in this case, the @code{else} clause
 should be omitted:
 
 @example
@@ -2159,7 +2159,7 @@ any attempts to make the same call later will be allowed or disallowed
 right away. Because of that runtime log level evaluation should not
 significantly affect the process performance.
 Log definition parsing is only done once, at the first call to
-GNUNET_log_setup () made by the process (which is usually done soon after
+@code{GNUNET_log_setup ()} made by the process (which is usually done soon after
 it starts).
 
 At the moment of writing there is no way to specify logging definitions
@@ -2323,18 +2323,21 @@ topology\n")); #endif unblacklisted_connections = create_small_world_ring
 Pretty hard to follow, huh?
 
 From now on, it is not necessary to include the #if / #endif statements to
-achieve the same behavior. The GNUNET_log and GNUNET_log_from macros take
+achieve the same behavior. The @code{GNUNET_log} and @code{GNUNET_log_from}
+macros take
 care of it for you, depending on the configure option:
 
 @itemize @bullet
 @item If @code{--enable-logging} is set to @code{no}, the binary will
 contain no log messages at all.
 @item If @code{--enable-logging} is set to @code{yes}, the binary will
-contain no DEBUG messages, and therefore running with -L DEBUG will have
+contain no DEBUG messages, and therefore running with @command{-L DEBUG}
+will have
 no effect. Other messages (ERROR, WARNING, INFO, etc) will be included.
 @item If @code{--enable-logging} is set to @code{verbose}, or
 @code{veryverbose} the binary will contain DEBUG messages (still, it will
-be neccessary to run with -L DEBUG or set the DEBUG config option to show
+be neccessary to run with @command{-L DEBUG} or set the DEBUG config option
+to show
 them).
 @end itemize
 

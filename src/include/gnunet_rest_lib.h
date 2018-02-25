@@ -38,11 +38,34 @@
 
 struct GNUNET_REST_RequestHandle
 {
+  /**
+   * Map of url parameters
+   */
   struct GNUNET_CONTAINER_MultiHashMap *url_param_map;
+
+  /**
+   * Map of headers
+   */
   struct GNUNET_CONTAINER_MultiHashMap *header_param_map;
+
+  /**
+   * The HTTP method as MHD value (see microhttpd.h)
+   */
   const char *method;
+
+  /**
+   * The url as string
+   */
   const char *url;
+
+  /**
+   * The POST data
+   */
   const char *data;
+
+  /**
+   * The POST data size
+   */
   size_t data_size;
 };
 

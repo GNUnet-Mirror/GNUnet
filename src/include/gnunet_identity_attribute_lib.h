@@ -148,6 +148,12 @@ GNUNET_IDENTITY_ATTRIBUTE_list_serialize_get_size (const struct GNUNET_IDENTITY_
 void
 GNUNET_IDENTITY_ATTRIBUTE_list_destroy (struct GNUNET_IDENTITY_ATTRIBUTE_ClaimList *attrs);
 
+void
+GNUNET_IDENTITY_ATTRIBUTE_list_add (struct GNUNET_IDENTITY_ATTRIBUTE_ClaimList *attrs,
+				    const char* attr_name,
+				    uint32_t type,
+				    const void* data,
+				    size_t data_size);
 
 /**
  * Serialize an attribute list

@@ -240,6 +240,34 @@ GNUNET_IDENTITY_ATTRIBUTE_claim_new (const char* attr_name,
   return attr;
 }
 
+/**
+ * Add a new claim list entry.
+ *
+ * @param claim_list the attribute name
+ * @param attr_name the attribute name
+ * @param type the attribute type
+ * @param data the attribute value
+ * @param data_size the attribute value size
+ * @return
+ */
+void
+GNUNET_IDENTITY_ATTRIBUTE_list_add (struct GNUNET_IDENTITY_ATTRIBUTE_ClaimList *claim_list,
+				    const char* attr_name,
+				    uint32_t type,
+				    const void* data,
+				    size_t data_size)
+{
+  struct GNUNET_IDENTITY_ATTRIBUTE_ClaimListEntry *le;
+  le = GNUNET_new (struct GNUNET_IDENTITY_ATTRIBUTE_ClaimListEntry);
+  le->claim = GNUNET_IDENTITY_ATTRIBUTE_claim_new (attr_name,
+					       type,
+					       data,
+					       data_size);
+  GNUNET_CONTAINER_DLL_insert (claim_list->list_head,
+			       claim_list->list_tail,
+			       le);
+}
+
 size_t
 GNUNET_IDENTITY_ATTRIBUTE_list_serialize_get_size (const struct GNUNET_IDENTITY_ATTRIBUTE_ClaimList *attrs)
 {

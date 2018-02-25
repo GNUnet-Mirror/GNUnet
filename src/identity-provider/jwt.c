@@ -33,11 +33,14 @@
 #define JWT_ALG "alg"
 
 /*TODO is this the correct way to define new algs? */
-#define JWT_ALG_VALUE "ED512"
+#define JWT_ALG_VALUE "urn:org:gnunet:jwt:alg:ecdsa:ed25519"
 
 #define JWT_TYP "typ"
 
 #define JWT_TYP_VALUE "jwt"
+
+//TODO change server address
+#define SERVER_ADDRESS "https://localhost"
 
 static char*
 create_jwt_header(void)
@@ -57,22 +60,22 @@ create_jwt_header(void)
 /**
  * Create a JWT from attributes
  *
- * @param sub_key the public of the subject
+ * @param aud_key the public of the subject
  * @param attrs the attribute list
  * @param priv_key the key used to sign the JWT
  * @return a new base64-encoded JWT string.
  */
 char*
-jwt_create_from_list (const struct GNUNET_CRYPTO_EcdsaPublicKey *sub_key,
+jwt_create_from_list (const struct GNUNET_CRYPTO_EcdsaPublicKey *aud_key,
                                                 const struct GNUNET_IDENTITY_ATTRIBUTE_ClaimList *attrs,
                                                 const struct GNUNET_CRYPTO_EcdsaPrivateKey *priv_key)
 {
   struct GNUNET_IDENTITY_ATTRIBUTE_ClaimListEntry *le;
-  struct GNUNET_CRYPTO_EcdsaPublicKey iss_key;
+  struct GNUNET_CRYPTO_EcdsaPublicKey sub_key;
   struct GNUNET_CRYPTO_EcdsaSignature signature;
   struct GNUNET_CRYPTO_EccSignaturePurpose *purpose;
   char* audience;
-  char* issuer;
+  char* subject;
   char* header;
   char* padding;
   char* body_str;
@@ -84,20 +87,28 @@ jwt_create_from_list (const struct GNUNET_CRYPTO_EcdsaPublicKey *sub_key,
   char* attr_val_str;
   json_t* body;
 
-  GNUNET_CRYPTO_ecdsa_key_get_public (priv_key, &iss_key);
+  //exp REQUIRED time expired from config
+  //iat REQUIRED time now
+  //auth_time only if max_age
+  //nonce only if nonce
+  // OPTIONAL acr,amr,azp
+  GNUNET_CRYPTO_ecdsa_key_get_public (priv_key, &sub_key);
   /* TODO maybe we should use a local identity here */
-  issuer = GNUNET_STRINGS_data_to_string_alloc (&iss_key,
+  subject = GNUNET_STRINGS_data_to_string_alloc (&sub_key,
                                                 sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey));
-  audience = GNUNET_STRINGS_data_to_string_alloc (sub_key,
+  audience = GNUNET_STRINGS_data_to_string_alloc (aud_key,
                                                   sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey));
   header = create_jwt_header ();
   body = json_object ();
   /* TODO who is the issuer? local IdP or subject ? See self-issued tokens? */
+  //iss REQUIRED case sensitive server uri with https
   json_object_set_new (body,
-                       "iss", json_string (issuer));
+                       "iss", json_string (SERVER_ADDRESS));
+  //sub REQUIRED public key identity, not exceed 255 ASCII  length
   json_object_set_new (body,
-                       "sub", json_string (issuer));
+                       "sub", json_string (subject));
   /* TODO what should be in here exactly? */
+  //aud REQUIRED public key client_id must be there
   json_object_set_new (body,
                        "aud", json_string (audience));
   for (le = attrs->list_head; NULL != le; le = le->next)
@@ -135,7 +146,7 @@ jwt_create_from_list (const struct GNUNET_CRYPTO_EcdsaPublicKey *sub_key,
   while (NULL != padding)
     padding = strtok(NULL, "=");
 
-  GNUNET_free (issuer);
+  GNUNET_free (subject);
   GNUNET_free (audience);
 
   /**

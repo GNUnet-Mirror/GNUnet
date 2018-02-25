@@ -303,6 +303,7 @@ post_data_iter (void *cls,
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Could not load add url param `%s'=%s\n",
                 key, data);
+    GNUNET_free(val);
   }
   return MHD_YES;
 
@@ -398,6 +399,10 @@ create_response (void *cls,
                                MHD_GET_ARGUMENT_KIND,
                                &url_iterator,
                                rest_conndata_handle);
+    MHD_get_connection_values (con,
+                               MHD_HEADER_KIND,
+                               &header_iterator,
+                               rest_conndata_handle);
     con_handle->pp = MHD_create_post_processor(con,
 					       4000,
 					       post_data_iter,
@@ -406,14 +411,8 @@ create_response (void *cls,
     {
       MHD_post_process(con_handle->pp, upload_data, *upload_data_size);
     }
-    else
-    {
-      MHD_destroy_post_processor(con_handle->pp);
-    }
-    MHD_get_connection_values (con,
-                               MHD_HEADER_KIND,
-                               &header_iterator,
-                               rest_conndata_handle);
+    MHD_destroy_post_processor(con_handle->pp);
+
     con_handle->state = GN_REST_STATE_PROCESSING;
     con_handle->plugin->process_request (rest_conndata_handle,
                                          &plugin_callback,
@@ -644,7 +643,7 @@ do_accept (void *cls)
                 _("Failed to pass client to MHD\n"));
     return;
   }
-
+  GNUNET_free(s);
   schedule_httpd ();
 }
 
