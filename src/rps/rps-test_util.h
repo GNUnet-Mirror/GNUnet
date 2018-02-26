@@ -53,7 +53,7 @@ create_file (const char *name);
     int size;\
     size = GNUNET_snprintf(tmp_buf,sizeof(tmp_buf),__VA_ARGS__);\
     if (0 > size)\
-      LOG (GNUNET_ERROR_TYPE_WARNING,\
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,\
            "Failed to create tmp_buf\n");\
     else\
       to_file_(file_name,tmp_buf);\

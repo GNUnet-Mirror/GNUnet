@@ -2252,7 +2252,7 @@ recursive_resolution (void *cls)
  * Begin the resolution process from 'name', starting with
  * the identification of the zone specified by 'name'.
  *
- * @param cls the `struct GNS_ResolverHandle` 
+ * @param cls the `struct GNS_ResolverHandle`
  */
 static void
 start_resolver_lookup (void *cls)
@@ -2595,10 +2595,11 @@ GNS_resolver_done ()
  *
  * @param name the name to check
  * @param tld the TLD to check for
- * @return GNUNET_YES or GNUNET_NO
+ * @return #GNUNET_YES or #GNUNET_NO
  */
 int
-is_tld (const char* name, const char* tld)
+is_tld (const char* name,
+        const char* tld)
 {
   size_t offset = 0;
 

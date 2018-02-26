@@ -6,7 +6,7 @@ This tutorial is supposed to give a first introduction for end-users
 trying to do something "real" with GNUnet. Installation and
 configuration are specifically outside of the scope of this tutorial.
 Instead, we start by briefly checking that the installation works, and
-then dive into simple, concrete practical things that can be done
+then dive into uncomplicated, concrete practical things that can be done
 with the network.
 
 This chapter of the GNUnet Reference Documentation documents
@@ -430,8 +430,8 @@ You can now go back to the shell running @code{gnunet-bcd} and press
 @c %**end of header
 
 Next, you should try resolving your own GNS records.
-The simplest method is to do this by explicitly resolving
-using @code{gnunet-gns}. In the shell, type:
+The method we found to be the most uncomplicated is to do this
+by explicitly resolving using @code{gnunet-gns}. In the shell, type:
 
 @example
 $ gnunet-gns -u test.gnu # what follows is the reply
@@ -597,12 +597,12 @@ Also, the calculation is deliberately expensive, to deter people from
 doing this just for fun (as the actual revocation operation is expensive
 for the network, not for the peer performing the revocation).
 
-To avoid TL;DR ones from accidentally revocating their zones, I am not
-giving away the command, but its simple: the actual revocation is
-performed by using the @command{-p} option
-of @command{gnunet-revocation}.
 
-
+@c FIXME: The Manual should give away the command using an example that is
+@c very likely to never exist.
+To avoid TL;DR ones from accidentally revocating their zones, we are not
+giving away the command, but it is uncomplicated: the actual revocation is
+performed by using the @command{-p} option of @command{gnunet-revocation}.
 
 @node What's Next?
 @subsection What's Next?
@@ -1495,17 +1495,19 @@ $ gnunet-identity -C "new_zone"
 
 @noindent
 Now you can add (or edit, or remove) records in your GNS zone using the
-gnunet-setup GUI or using the gnunet-namestore command-line tool.
+@command{gnunet-setup} GUI or using the @command{gnunet-namestore}
+command-line tool.
 In either case, your records will be stored in an SQL database under
-control of the gnunet-service-namestore. Note that if multiple users
-use one peer, the namestore database will include the combined records
-of all users. However, users will not be able to see each other's records
+control of the @command{gnunet-service-namestore}.
+Note that if multiple users use one peer, the namestore database will
+include the combined records of all users.
+However, users will not be able to see each other's records
 if they are marked as private.
 
-To provide a simple example for editing your own zone, suppose you
-have your own web server with IP 1.2.3.4. Then you can put an
-A record (A records in DNS are for IPv4 IP addresses) into your
-local zone using the command:
+To provide a short example for editing your own zone, suppose you
+have your own web server with the IP @code{1.2.3.4}. Then you can put an
+@code{A} record (@code{A} records in DNS are for IPv4 IP addresses)
+into your local zone using the command:
 
 @example
 $ gnunet-namestore -z master-zone -a -n www -t A -V 1.2.3.4 -e never

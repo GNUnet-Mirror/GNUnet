@@ -851,7 +851,7 @@ GNUNET_MQ_destroy (struct GNUNET_MQ_Handle *mq)
 				 ev);
     GNUNET_assert (0 < mq->queue_length);
     mq->queue_length--;
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "MQ destroy drops message of type %u\n",
                 ntohs (ev->mh->type));
     GNUNET_MQ_discard (ev);
@@ -861,7 +861,7 @@ GNUNET_MQ_destroy (struct GNUNET_MQ_Handle *mq)
     /* we can only discard envelopes that
      * are not queued! */
     mq->current_envelope->parent_queue = NULL;
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "MQ destroy drops current message of type %u\n",
                 ntohs (mq->current_envelope->mh->type));
     GNUNET_MQ_discard (mq->current_envelope);

@@ -101,6 +101,38 @@ struct GnsClient
 
 
 /**
+ * Representation of a TLD, mapping the respective TLD string
+ * (i.e. ".gnu") to the respective public key of the zone.
+ */
+struct GNS_TopLevelDomain
+{
+
+  /**
+   * Kept in a DLL, as there are unlikely enough of these to
+   * warrant a hash map.
+   */
+  struct GNS_TopLevelDomain *next;
+
+  /**
+   * Kept in a DLL, as there are unlikely enough of these to
+   * warrant a hash map.
+   */
+  struct GNS_TopLevelDomain *prev;
+
+  /**
+   * Public key associated with the @a tld.
+   */
+  struct GNUNET_CRYPTO_EddsaPublicKey pkey;
+
+  /**
+   * Top-level domain as a string, including leading ".".
+   */
+  char *tld;
+
+};
+
+
+/**
  * Our handle to the DHT
  */
 static struct GNUNET_DHT_Handle *dht_handle;
@@ -136,6 +168,50 @@ static int v4_enabled;
  */
 static struct GNUNET_STATISTICS_Handle *statistics;
 
+/**
+ * Head of DLL of TLDs we map to GNS zones.
+ */
+static struct GNS_TopLevelDomain *tld_head;
+
+/**
+ * Tail of DLL of TLDs we map to GNS zones.
+ */
+static struct GNS_TopLevelDomain *tld_tail;
+
+
+/**
+ * Find GNS zone belonging to TLD @a tld.
+ *
+ * @param tld_str top-level domain to look up
+ * @param[out] pkey public key to set
+ * @return #GNUNET_YES if @a tld was found #GNUNET_NO if not
+ */
+int
+GNS_find_tld (const char *tld_str,
+              struct GNUNET_CRYPTO_EddsaPublicKey *pkey)
+{
+  if ('\0' == *tld_str)
+    return GNUNET_NO;
+  for (struct GNS_TopLevelDomain *tld = tld_head;
+       NULL != tld;
+       tld = tld->next)
+  {
+    if (0 == strcasecmp (tld_str,
+                         tld->tld))
+    {
+      *pkey = tld->pkey;
+      return GNUNET_YES;
+    }
+  }
+  if (GNUNET_OK ==
+      GNUNET_STRINGS_string_to_data (tld_str + 1,
+                                     strlen (tld_str + 1),
+                                     pkey,
+                                     sizeof (*pkey)))
+    return GNUNET_YES; /* TLD string *was* the public key */
+  return GNUNET_NO;
+}
+
 
 /**
  * Task run during shutdown.
@@ -146,6 +222,7 @@ static struct GNUNET_STATISTICS_Handle *statistics;
 static void
 shutdown_task (void *cls)
 {
+  struct GNS_TopLevelDomain *tld;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Shutting down!\n");
   GNS_interceptor_done ();
@@ -175,6 +252,14 @@ shutdown_task (void *cls)
   {
     GNUNET_DHT_disconnect (dht_handle);
     dht_handle = NULL;
+  }
+  while (NULL != (tld = tld_head))
+  {
+    GNUNET_CONTAINER_DLL_remove (tld_head,
+                                 tld_tail,
+                                 tld);
+    GNUNET_free (tld->tld);
+    GNUNET_free (tld);
   }
 }
 
@@ -420,6 +505,47 @@ identity_intercept_cb (void *cls,
 
 
 /**
+ * Reads the configuration and populates TLDs
+ *
+ * @param cls unused
+ * @param section name of section in config, always "gns"
+ * @param option name of the option, TLDs start with "."
+ * @param value value for the option, public key for TLDs
+ */
+static void
+read_service_conf (void *cls,
+                   const char *section,
+                   const char *option,
+                   const char *value)
+{
+  struct GNUNET_CRYPTO_EddsaPublicKey pk;
+  struct GNS_TopLevelDomain *tld;
+
+  if (option[0] != '.')
+    return;
+  if (GNUNET_OK !=
+      GNUNET_STRINGS_string_to_data (value,
+                                     strlen (value),
+                                     &pk,
+                                     sizeof (pk)))
+  {
+    GNUNET_log_config_invalid (GNUNET_ERROR_TYPE_ERROR,
+                               section,
+                               option,
+                               _("Properly base32-encoded public key required"));
+    return;
+  }
+  tld = GNUNET_new (struct GNS_TopLevelDomain);
+  tld->tld = GNUNET_strdup (option);
+  tld->pkey = pk;
+  GNUNET_CONTAINER_DLL_insert (tld_head,
+                               tld_tail,
+                               tld);
+}
+
+
+
+/**
  * Process GNS requests.
  *
  * @param cls closure
@@ -433,6 +559,10 @@ run (void *cls,
 {
   unsigned long long max_parallel_bg_queries = 16;
 
+  GNUNET_CONFIGURATION_iterate_section_values (c,
+                                               "gns",
+                                               &read_service_conf,
+                                               NULL);
   v6_enabled = GNUNET_NETWORK_test_pf (PF_INET6);
   v4_enabled = GNUNET_NETWORK_test_pf (PF_INET);
   namecache_handle = GNUNET_NAMECACHE_connect (c);
@@ -459,7 +589,8 @@ run (void *cls,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 _("Could not connect to DHT!\n"));
-    GNUNET_SCHEDULER_add_now (&shutdown_task, NULL);
+    GNUNET_SCHEDULER_add_now (&shutdown_task,
+                              NULL);
     return;
   }
 

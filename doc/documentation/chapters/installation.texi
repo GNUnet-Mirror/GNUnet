@@ -6,8 +6,8 @@ setup (configure, start) GNUnet @value{VERSION}. After following these
 instructions you should be able to install and then start user-interfaces
 to interact with the network.
 
-Note: This manual is far from complete, and we welcome informed
-contributions, be it in the form of new chapters or insightful comments.
+Note: This manual is far from complete, and we welcome contributions, be
+it in the form of new chapters or insightful comments.
 
 @menu
 * Dependencies::
@@ -3088,8 +3088,9 @@ ProxyPassReverse http://gnunet.foo.org:1080/
 @subsubsection Reverse Proxy - Configure your Apache2 HTTPS webserver
 
 We assume that you already have an HTTPS server running, if not please
-check how to configure a HTTPS host. An easy to use example is the
-@file{apache2/sites-available/default-ssl} example configuration file.
+check how to configure a HTTPS host. An uncomplicated to use example
+is the example configuration file for Apache2/HTTPD provided in
+@file{apache2/sites-available/default-ssl}.
 
 In the respective HTTPS @code{server config},@code{virtual host} or
 @code{directory} section add the following lines:
@@ -3106,14 +3107,13 @@ ProxyPassReverse https://gnunet.foo.org:4433/
 
 @noindent
 More information about the apache mod_proxy configuration can be found
-here: @uref{http://httpd.apache.org/docs/2.2/mod/mod_proxy.html#proxypass}
-.
+in the Apache documentation@footnote{@uref{http://httpd.apache.org/docs/2.2/mod/mod_proxy.html#proxypass, http://httpd.apache.org/docs/2.2/mod/mod_proxy.html#proxypass}}
 
 @node Reverse Proxy - Configure your nginx HTTPS webserver
 @subsubsection Reverse Proxy - Configure your nginx HTTPS webserver
 
 Since nginx does not support chunked encoding, you first of all have to
-install @code{chunkin}: @uref{http://wiki.nginx.org/HttpChunkinModule}.
+install the @code{chunkin} module@footnote{@uref{http://wiki.nginx.org/HttpChunkinModule, http://wiki.nginx.org/HttpChunkinModule}}
 
 To enable chunkin add:
 
@@ -3132,8 +3132,7 @@ the site-specific configuration file.
 In the @code{server} section add:
 
 @example
-location /bar/
-@{
+location /bar/ @{
 proxy_pass http://gnunet.foo.org:1080/;
 proxy_buffering off;
 proxy_connect_timeout 5; # more than http_server

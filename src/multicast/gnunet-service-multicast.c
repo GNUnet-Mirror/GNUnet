@@ -1450,7 +1450,12 @@ check_client_member_join (void *cls,
   uint16_t msg_size = ntohs (msg->header.size);
   struct GNUNET_PeerIdentity *relays = (struct GNUNET_PeerIdentity *) &msg[1];
   uint32_t relay_count = ntohl (msg->relay_count);
-  uint16_t relay_size = relay_count * sizeof (*relays);
+  if (UINT32_MAX / relay_count > sizeof (*relays)){
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                    "relay_size exceeds UINT32_MAX!");
+      return GNUNET_SYSERR;
+  }
+  uint32_t relay_size = relay_count * sizeof (*relays);
   struct GNUNET_MessageHeader *join_msg = NULL;
   uint16_t join_msg_size = 0;
   if (sizeof (*msg) + relay_size + sizeof (struct GNUNET_MessageHeader)
@@ -1459,11 +1464,19 @@ check_client_member_join (void *cls,
     join_msg = (struct GNUNET_MessageHeader *)
       (((char *) &msg[1]) + relay_size);
     join_msg_size = ntohs (join_msg->size);
+    if (UINT16_MAX - join_msg_size > sizeof (struct MulticastJoinRequestMessage)){
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                    "join_msg_size exceeds UINT16_MAX!");
+        return GNUNET_SYSERR;
+    } 
   }
-  return
-    msg_size == (sizeof (*msg) + relay_size + join_msg_size)
-    ? GNUNET_OK
-    : GNUNET_SYSERR;
+  if (msg_size != (sizeof (*msg) + relay_size + join_msg_size)){
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                    "msg_size does not match real size of message!");
+      return GNUNET_SYSERR;
+  }else{
+      return GNUNET_OK;
+  }
 }
 
 
@@ -1887,6 +1900,7 @@ handle_client_replay_request (void *cls,
     else
     {
       /* FIXME: not yet connected to origin */
+      
       GNUNET_assert (0);
       GNUNET_SERVICE_client_drop (client);
       return;
@@ -1975,7 +1989,7 @@ static int
 check_client_replay_response (void *cls,
                               const struct MulticastReplayResponseMessage *res)
 {
-  const struct GNUNET_MessageHeader *msg = &res->header;
+  const struct GNUNET_MessageHeader *msg;
   if (GNUNET_MULTICAST_REC_OK == res->error_code)
   {
     msg = GNUNET_MQ_extract_nested_mh (res);

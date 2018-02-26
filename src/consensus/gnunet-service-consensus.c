@@ -21,7 +21,7 @@
 /**
  * @file consensus/gnunet-service-consensus.c
  * @brief multi-peer set reconciliation
- * @author Florian Dold
+ * @author Florian Dold <flo@dold.me>
  */
 
 #include "platform.h"

@@ -3727,14 +3727,36 @@ do_round (void *cls)
   } else {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "No update of the view.\n");
     GNUNET_STATISTICS_update(stats, "# rounds blocked", 1, GNUNET_NO);
-    if (CustomPeerMap_size (push_map) > alpha * View_size ())
+    if (CustomPeerMap_size (push_map) > alpha * View_size () &&
+        !(0 >= CustomPeerMap_size (pull_map)))
       GNUNET_STATISTICS_update(stats, "# rounds blocked - too many pushes", 1, GNUNET_NO);
-    if (0 >= CustomPeerMap_size (push_map))
+    if (CustomPeerMap_size (push_map) > alpha * View_size () &&
+        (0 >= CustomPeerMap_size (pull_map)))
+      GNUNET_STATISTICS_update(stats, "# rounds blocked - too many pushes, no pull replies", 1, GNUNET_NO);
+    if (0 >= CustomPeerMap_size (push_map) &&
+        !(0 >= CustomPeerMap_size (pull_map)))
       GNUNET_STATISTICS_update(stats, "# rounds blocked - no pushes", 1, GNUNET_NO);
-    if (0 >= CustomPeerMap_size (pull_map))
+    if (0 >= CustomPeerMap_size (push_map) &&
+        (0 >= CustomPeerMap_size (pull_map)))
+      GNUNET_STATISTICS_update(stats, "# rounds blocked - no pushes, no pull replies", 1, GNUNET_NO);
+    if (0 >= CustomPeerMap_size (pull_map) &&
+        CustomPeerMap_size (push_map) > alpha * View_size () &&
+        0 >= CustomPeerMap_size (push_map))
       GNUNET_STATISTICS_update(stats, "# rounds blocked - no pull replies", 1, GNUNET_NO);
   }
   // TODO independent of that also get some peers from CADET_get_peers()?
+  GNUNET_STATISTICS_set (stats,
+      "# peers in push map at end of round",
+      CustomPeerMap_size (push_map),
+      GNUNET_NO);
+  GNUNET_STATISTICS_set (stats,
+      "# peers in pull map at end of round",
+      CustomPeerMap_size (pull_map),
+      GNUNET_NO);
+  GNUNET_STATISTICS_set (stats,
+      "# peers in view at end of round",
+      View_size (),
+      GNUNET_NO);
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Received %u pushes and %u pulls last round (alpha (%.2f) * view_size (%u) = %.2f)\n",

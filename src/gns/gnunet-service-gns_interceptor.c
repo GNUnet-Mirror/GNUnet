@@ -327,7 +327,9 @@ handle_dns_request (void *cls,
   {
     /* Start resolution in GNS */
     ilh = GNUNET_new (struct InterceptLookupHandle);
-    GNUNET_CONTAINER_DLL_insert (ilh_head, ilh_tail, ilh);
+    GNUNET_CONTAINER_DLL_insert (ilh_head,
+                                 ilh_tail,
+                                 ilh);
     ilh->packet = p;
     ilh->request_handle = rh;
     ilh->lookup = GNS_resolver_lookup (&zone,

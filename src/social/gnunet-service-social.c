@@ -1774,12 +1774,13 @@ guest_enter (const struct GuestEnterRequest *greq, struct Guest **ret_gst)
               plc_gst,
               gst);
 
-  new_guest = GNUNET_NO;
   if (NULL == gst)
   {
     gst = GNUNET_new (struct Guest);
     new_guest = GNUNET_YES;
   }
+  else new_guest = GNUNET_NO;
+
   if (NULL == gst->slave)
   {
     gst->origin = greq->origin;
@@ -1878,7 +1879,7 @@ guest_enter (const struct GuestEnterRequest *greq, struct Guest **ret_gst)
     ret = GNUNET_YES;
   }
 
-  // TODO: explain why free(gst) not necessary
+  // TODO: explain to automatic code scanners why free(gst) not necessary
   if (NULL != ret_gst)
     *ret_gst = gst;
   return ret;
@@ -3598,30 +3599,34 @@ identity_recv_ego (void *cls, struct GNUNET_IDENTITY_Ego *id_ego,
   GNUNET_CRYPTO_hash (&ego_pub_key, sizeof (ego_pub_key), &ego_pub_hash);
 
   struct Ego *ego = GNUNET_CONTAINER_multihashmap_get (egos, &ego_pub_hash);
+  if (NULL == ego && NULL == name)
+  {
+    // an ego that is none of our business has been deleted
+    return;
+  }
   if (NULL != ego)
   {
+    // one of our egos has been changed
     GNUNET_free (ego->name);
-    if (NULL == name) // deleted
+    if (NULL == name)
     {
+      // one of our egos has been deleted
       GNUNET_CONTAINER_multihashmap_remove (egos, &ego_pub_hash, ego);
       GNUNET_free (ego);
-      ego = NULL;
+      return;
     }
   }
   else
   {
     ego = GNUNET_malloc (sizeof (*ego));
   }
-  if (NULL != ego)
-  {
-    ego->key = *(GNUNET_IDENTITY_ego_get_private_key (id_ego));
-    size_t name_size = strlen (name) + 1;
-    ego->name = GNUNET_malloc (name_size);
-    GNUNET_memcpy (ego->name, name, name_size);
+  ego->key = *(GNUNET_IDENTITY_ego_get_private_key (id_ego));
+  size_t name_size = strlen (name) + 1;
+  ego->name = GNUNET_malloc (name_size);
+  GNUNET_memcpy (ego->name, name, name_size);
 
-    GNUNET_CONTAINER_multihashmap_put (egos, &ego_pub_hash, ego,
-                                       GNUNET_CONTAINER_MULTIHASHMAPOPTION_REPLACE);
-  }
+  GNUNET_CONTAINER_multihashmap_put (egos, &ego_pub_hash, ego,
+                                     GNUNET_CONTAINER_MULTIHASHMAPOPTION_REPLACE);
 
   // FIXME: notify clients about changed ego
 }

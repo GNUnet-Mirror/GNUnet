@@ -253,24 +253,31 @@ struct RPSPeer
    * Used to check whether we are able to shutdown.
    */
   uint32_t stat_collected_flags;
+
+  /**
+   * @brief File name of the file the stats are finally written to
+   */
+  char *file_name_stats;
 };
 
 enum STAT_TYPE
 {
-  STAT_TYPE_ROUNDS           =    0x1, /*   1 */
-  STAT_TYPE_BLOCKS           =    0x2, /*   2 */
-  STAT_TYPE_BLOCKS_MANY_PUSH =    0x4, /*   3 */
-  STAT_TYPE_BLOCKS_FEW_PUSH  =    0x8, /*   4 */
-  STAT_TYPE_BLOCKS_FEW_PULL  =   0x10, /*   5 */
-  STAT_TYPE_ISSUED_PUSH_SEND =   0x20, /*   6 */
-  STAT_TYPE_ISSUED_PULL_REQ  =   0x40, /*   7 */
-  STAT_TYPE_ISSUED_PULL_REP  =   0x80, /*   8 */
-  STAT_TYPE_SENT_PUSH_SEND   =  0x100, /*   9 */
-  STAT_TYPE_SENT_PULL_REQ    =  0x200, /*  10 */
-  STAT_TYPE_SENT_PULL_REP    =  0x400, /*  11 */
-  STAT_TYPE_RECV_PUSH_SEND   =  0x800, /*  12 */
-  STAT_TYPE_RECV_PULL_REQ    = 0x1000, /*  13 */
-  STAT_TYPE_RECV_PULL_REP    = 0x2000, /*  14 */
+  STAT_TYPE_ROUNDS                    =    0x1, /*   1 */
+  STAT_TYPE_BLOCKS                    =    0x2, /*   2 */
+  STAT_TYPE_BLOCKS_MANY_PUSH          =    0x4, /*   3 */
+  STAT_TYPE_BLOCKS_NO_PUSH            =    0x8, /*   4 */
+  STAT_TYPE_BLOCKS_NO_PULL            =   0x10, /*   5 */
+  STAT_TYPE_BLOCKS_MANY_PUSH_NO_PULL  =   0x20, /*   6 */
+  STAT_TYPE_BLOCKS_NO_PUSH_NO_PULL    =   0x40, /*   7 */
+  STAT_TYPE_ISSUED_PUSH_SEND          =   0x80, /*   8 */
+  STAT_TYPE_ISSUED_PULL_REQ           =  0x100, /*   9 */
+  STAT_TYPE_ISSUED_PULL_REP           =  0x200, /*  10 */
+  STAT_TYPE_SENT_PUSH_SEND            =  0x400, /*  11 */
+  STAT_TYPE_SENT_PULL_REQ             =  0x800, /*  12 */
+  STAT_TYPE_SENT_PULL_REP             = 0x1000, /*  13 */
+  STAT_TYPE_RECV_PUSH_SEND            = 0x2000, /*  14 */
+  STAT_TYPE_RECV_PULL_REQ             = 0x4000, /*  15 */
+  STAT_TYPE_RECV_PULL_REP             = 0x8000, /*  16 */
   STAT_TYPE_MAX          = 0x80000000, /*  32 */
 };
 
@@ -1527,8 +1534,8 @@ manage_service_wrapper (unsigned int i, unsigned int j,
                                                     &churn_cb,
                                                     entry,
                                                     (PEER_GO_OFFLINE == delta) ? 0 : 1);
+    rps_peers[j].entry_op_manage = entry;
   }
-  rps_peers[j].entry_op_manage = entry;
 }
 
 
@@ -1738,6 +1745,50 @@ profiler_eval (void)
 }
 
 /**
+ * @brief Try to ensure that `/tmp/rps` exists.
+ *
+ * @return #GNUNET_YES on success
+ *         #GNUNET_SYSERR on failure
+ */
+static int ensure_folder_exist (void)
+{
+  if (GNUNET_NO == GNUNET_DISK_directory_test ("/tmp/rps/", GNUNET_NO))
+  {
+    GNUNET_DISK_directory_create ("/tmp/rps");
+  }
+  if (GNUNET_YES != GNUNET_DISK_directory_test ("/tmp/rps/", GNUNET_NO))
+  {
+    return GNUNET_SYSERR;
+  }
+  return GNUNET_YES;
+}
+
+static void
+store_stats_file_name (struct RPSPeer *rps_peer)
+{
+  unsigned int len_file_name;
+  unsigned int out_size;
+  char *file_name;
+
+  if (GNUNET_SYSERR == ensure_folder_exist()) return;
+  len_file_name = (14 + strlen (GNUNET_i2s_full (rps_peer->peer_id)) + 1) * sizeof (char);
+  file_name = GNUNET_malloc (len_file_name);
+  out_size = GNUNET_snprintf (file_name,
+                              len_file_name,
+                              "/tmp/rps/stat-%s",
+                              GNUNET_i2s_full (rps_peer->peer_id));
+  if (len_file_name < out_size ||
+      0 > out_size)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+               "Failed to write string to buffer (size: %i, out_size: %i)\n",
+               len_file_name,
+               out_size);
+  }
+  rps_peer->file_name_stats = file_name;
+}
+
+/**
  * Continuation called by #GNUNET_STATISTICS_get() functions.
  *
  * Remembers that this specific statistics value was received for this peer.
@@ -1801,10 +1852,14 @@ char* stat_type_2_str (enum STAT_TYPE stat_type)
       return "# rounds blocked";
     case STAT_TYPE_BLOCKS_MANY_PUSH:
       return "# rounds blocked - too many pushes";
-    case STAT_TYPE_BLOCKS_FEW_PUSH:
+    case STAT_TYPE_BLOCKS_NO_PUSH:
       return "# rounds blocked - no pushes";
-    case STAT_TYPE_BLOCKS_FEW_PULL:
+    case STAT_TYPE_BLOCKS_NO_PULL:
       return "# rounds blocked - no pull replies";
+    case STAT_TYPE_BLOCKS_MANY_PUSH_NO_PULL:
+      return "# rounds blocked - too many pushes, no pull replies";
+    case STAT_TYPE_BLOCKS_NO_PUSH_NO_PULL:
+      return "# rounds blocked - no pushes, no pull replies";
     case STAT_TYPE_ISSUED_PUSH_SEND:
       return "# push send issued";
     case STAT_TYPE_ISSUED_PULL_REQ:
@@ -1848,9 +1903,15 @@ stat_iterator (void *cls,
                int is_persistent)
 {
   const struct STATcls *stat_cls = (const struct STATcls *) cls;
+  const struct RPSPeer *rps_peer = (const struct RPSPeer *) stat_cls->rps_peer;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Got stat value: %s - %" PRIu64 "\n",
-      stat_type_2_str (stat_cls->stat_type),
+      //stat_type_2_str (stat_cls->stat_type),
+      name,
       value);
+  to_file (rps_peer->file_name_stats,
+          "%s: %" PRIu64 "\n",
+          name,
+          value);
   return GNUNET_OK;
 }
 
@@ -1876,6 +1937,7 @@ void post_profiler (struct RPSPeer *rps_peer)
       stat_cls = GNUNET_malloc (sizeof (struct STATcls));
       stat_cls->rps_peer = rps_peer;
       stat_cls->stat_type = stat_type;
+      store_stats_file_name (rps_peer);
       GNUNET_STATISTICS_get (rps_peer->stats_h,
                              "rps",
                              stat_type_2_str (stat_type),
@@ -2141,8 +2203,10 @@ main (int argc, char *argv[])
     cur_test_run.stat_collect_flags = STAT_TYPE_ROUNDS |
                                       STAT_TYPE_BLOCKS |
                                       STAT_TYPE_BLOCKS_MANY_PUSH |
-                                      STAT_TYPE_BLOCKS_FEW_PUSH |
-                                      STAT_TYPE_BLOCKS_FEW_PULL |
+                                      STAT_TYPE_BLOCKS_NO_PUSH |
+                                      STAT_TYPE_BLOCKS_NO_PULL |
+                                      STAT_TYPE_BLOCKS_MANY_PUSH_NO_PULL |
+                                      STAT_TYPE_BLOCKS_NO_PUSH_NO_PULL |
                                       STAT_TYPE_ISSUED_PUSH_SEND |
                                       STAT_TYPE_ISSUED_PULL_REQ |
                                       STAT_TYPE_ISSUED_PULL_REP |

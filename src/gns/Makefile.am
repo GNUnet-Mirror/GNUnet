@@ -185,7 +185,7 @@ w32nsp_resolve_SOURCES = \
 w32nsp_resolve_LDADD = -lws2_32
 
 gnunet_service_gns_SOURCES = \
- gnunet-service-gns.c \
+ gnunet-service-gns.c gnunet-service-gns.h \
  gnunet-service-gns_resolver.c gnunet-service-gns_resolver.h \
  gnunet-service-gns_interceptor.c gnunet-service-gns_interceptor.h
 gnunet_service_gns_LDADD = \

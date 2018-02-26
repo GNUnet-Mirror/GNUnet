@@ -2185,13 +2185,11 @@ master_transmit_message (struct Master *mst)
     return;
   if (NULL == mst->tmit_handle)
   {
-    mst->tmit_handle = (void *) &mst->tmit_handle;
-    struct GNUNET_MULTICAST_OriginTransmitHandle *
-      tmit_handle = GNUNET_MULTICAST_origin_to_all (mst->origin, tmit_msg->id,
-                                                    mst->max_group_generation,
-                                                    master_transmit_notify, mst);
-    if (NULL != mst->tmit_handle)
-      mst->tmit_handle = tmit_handle;
+    mst->tmit_handle = GNUNET_MULTICAST_origin_to_all (mst->origin,
+                                                       tmit_msg->id,
+                                                       mst->max_group_generation,
+                                                       &master_transmit_notify,
+                                                       mst);
   }
   else
   {
@@ -2210,12 +2208,10 @@ slave_transmit_message (struct Slave *slv)
     return;
   if (NULL == slv->tmit_handle)
   {
-    slv->tmit_handle = (void *) &slv->tmit_handle;
-    struct GNUNET_MULTICAST_MemberTransmitHandle *
-      tmit_handle = GNUNET_MULTICAST_member_to_origin (slv->member, slv->channel.tmit_head->id,
-                                                       slave_transmit_notify, slv);
-    if (NULL != slv->tmit_handle)
-      slv->tmit_handle = tmit_handle;
+    slv->tmit_handle = GNUNET_MULTICAST_member_to_origin (slv->member,
+                                                          slv->channel.tmit_head->id,
+                                                          &slave_transmit_notify,
+                                                          slv);
   }
   else
   {
