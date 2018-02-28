@@ -1450,9 +1450,11 @@ check_client_member_join (void *cls,
   uint16_t msg_size = ntohs (msg->header.size);
   struct GNUNET_PeerIdentity *relays = (struct GNUNET_PeerIdentity *) &msg[1];
   uint32_t relay_count = ntohl (msg->relay_count);
-  if (UINT32_MAX / relay_count > sizeof (*relays)){
+  if (UINT32_MAX / relay_count < sizeof (*relays)){
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                    "relay_size exceeds UINT32_MAX!");
+                    "relay_count (%lu) * sizeof (*relays)  (%lu) exceeds UINT32_MAX!\n",
+              (unsigned long)relay_count,
+              sizeof (*relays));
       return GNUNET_SYSERR;
   }
   uint32_t relay_size = relay_count * sizeof (*relays);
@@ -1464,15 +1466,17 @@ check_client_member_join (void *cls,
     join_msg = (struct GNUNET_MessageHeader *)
       (((char *) &msg[1]) + relay_size);
     join_msg_size = ntohs (join_msg->size);
-    if (UINT16_MAX - join_msg_size > sizeof (struct MulticastJoinRequestMessage)){
+    if (UINT16_MAX - join_msg_size < sizeof (struct MulticastJoinRequestMessage)){
         GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                    "join_msg_size exceeds UINT16_MAX!");
+                    "join_msg_size (%u) + sizeof (struct MulticastJoinRequestMessage) (%lu) exceeds UINT16_MAX!\n",
+                (unsigned)join_msg_size,
+                (unsigned long)sizeof (struct MulticastJoinRequestMessage));
         return GNUNET_SYSERR;
     } 
   }
   if (msg_size != (sizeof (*msg) + relay_size + join_msg_size)){
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                    "msg_size does not match real size of message!");
+                    "msg_size does not match real size of message!\n");
       return GNUNET_SYSERR;
   }else{
       return GNUNET_OK;
