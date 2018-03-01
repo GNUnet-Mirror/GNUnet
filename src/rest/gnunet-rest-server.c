@@ -119,6 +119,11 @@ static char* allow_origin;
 static char* allow_headers;
 
 /**
+ * Allowed Credentials (CORS)
+ */
+static char* allow_credentials;
+
+/**
  * MHD Connection handle
  */
 struct MhdConnectionHandle
@@ -301,7 +306,7 @@ post_data_iter (void *cls,
                                          GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Could not load add url param `%s'=%s\n",
+                "Could not load add url param '%s'=%s\n",
                 key, data);
     GNUNET_free(val);
   }
@@ -404,7 +409,7 @@ create_response (void *cls,
                                &header_iterator,
                                rest_conndata_handle);
     con_handle->pp = MHD_create_post_processor(con,
-					       4000,
+					       65536,
 					       post_data_iter,
 					       rest_conndata_handle);
     if (*upload_data_size)
@@ -429,6 +434,12 @@ create_response (void *cls,
       MHD_add_response_header (con_handle->response,
                                MHD_HTTP_HEADER_ACCESS_CONTROL_ALLOW_ORIGIN,
                                allow_origin);
+    }
+    if (NULL != allow_credentials)
+    {
+      MHD_add_response_header (con_handle->response,
+                               "Access-Control-Allow-Credentials",
+                               allow_credentials);
     }
     if (NULL != allow_headers)
     {
@@ -660,6 +671,7 @@ do_shutdown (void *cls)
               "Shutting down...\n");
   kill_httpd ();
   GNUNET_free_non_null (allow_origin);
+  GNUNET_free_non_null (allow_credentials);
   GNUNET_free_non_null (allow_headers);
 }
 
@@ -797,6 +809,15 @@ run (void *cls,
   if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_string (cfg, "rest",
                                                           "REST_ALLOW_ORIGIN",
                                                           &allow_origin))
+  {
+    //No origin specified
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                "No CORS Access-Control-Allow-Origin Header will be sent...\n");
+  }
+
+  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_string (cfg, "rest",
+                                                          "REST_ALLOW_CREDENTIALS",
+                                                          &allow_credentials))
   {
     //No origin specified
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
