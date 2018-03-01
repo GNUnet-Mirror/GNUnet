@@ -2246,6 +2246,8 @@ generate_gns_certificate (const char *name)
                               sizeof (serial));
   etime = time (NULL);
   tm_data = localtime (&etime);
+  tm_data->tm_hour--;
+  etime = mktime(tm_data);
   gnutls_x509_crt_set_activation_time (request,
                                        etime);
   tm_data->tm_year++;
