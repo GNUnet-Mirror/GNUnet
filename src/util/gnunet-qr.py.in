@@ -6,11 +6,11 @@ from sys import argv
 try:
 	import zbar
 except ImportError as e:
-	print 'Cannot run gnunet-qr, please install zbar-python'
+	print('Cannot run gnunet-qr, please install zbar-python')
 	sys.exit (1)
 
 def help ():
- print 'gnunet-qr\n\
+ print('gnunet-qr\n\
 Scan a QR code using a video device and import\n\
 Arguments mandatory for long options are also mandatory for short options.\n\
   -c, --config=FILENAME      use configuration file FILENAME\n\
@@ -20,7 +20,7 @@ Arguments mandatory for long options are also mandatory for short options.\n\
   -v, --verbose							 be verbose\n\
 Report bugs to gnunet-developers@gnu.org.\n\
 GNUnet home page: http://www.gnu.org/software/gnunet/\n\
-General help using GNU software: http://www.gnu.org/gethelp/'
+General help using GNU software: http://www.gnu.org/gethelp/')
 
 
 if __name__ == '__main__':
@@ -34,7 +34,7 @@ if __name__ == '__main__':
 		opts, args = getopt.gnu_getopt(sys.argv[1:], "c:hd:sv", ["config","help", "device","silent","verbose"])
 	except getopt.GetoptError as e:
 		help ()
-		print str (e)
+		print(str (e))
 		exit (1)
 	for o,a in opts:
 		if o in ("-h", "--help"):
@@ -49,7 +49,7 @@ if __name__ == '__main__':
 		elif o in ("-v", "--verbose"):
 			verbose = True			
 	if (True == verbose):
-		print 'Initializing'
+		print('Initializing')
 	# create a Processor
 	proc = zbar.Processor()
 
@@ -59,10 +59,10 @@ if __name__ == '__main__':
 	# initialize the Processor
 	try:
 		if (True == verbose):
-			print 'Opening video device ' + device
+			print('Opening video device ' + device)
 		proc.init(device)
 	except Exception as e:
-		print 'Failed to open device ' + device
+		print('Failed to open device ' + device)
 		exit (1)
 	
 	# enable the preview window
@@ -75,7 +75,7 @@ if __name__ == '__main__':
 	# read at least one barcode (or until window closed)
 	try:
 		if (True == verbose):
-			print 'Capturing'
+			print('Capturing')
 		proc.process_one()
 	except Exception as e:
 		# Window was closed without finding code
@@ -88,7 +88,7 @@ if __name__ == '__main__':
 	for symbol in proc.results:
 		# do something useful with results
 		if (True == verbose):
-			print 'Found ', symbol.type, ' symbol ', '"%s"' % symbol.data
+			print('Found ', symbol.type, ' symbol ', '"%s"' % symbol.data)
 		args = list()
 		args.append("gnunet-uri")
 		if (configuration != ''):
@@ -98,11 +98,11 @@ if __name__ == '__main__':
 		for a in args:
 			cmd += " " + str(a)
 		if (verbose):
-			print 'Running `' + cmd +'`'
+			print('Running `' + cmd +'`')
 		res=subprocess.call(args)
 		if (0 != res):
-			print 'Failed to add URI ' + str(symbol.data)
+			print('Failed to add URI ' + str(symbol.data))
 		else: 
-			print 'Added URI ' + str(symbol.data)
+			print('Added URI ' + str(symbol.data))
 		exit (res)
 	exit (1)
