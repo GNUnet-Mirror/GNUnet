@@ -223,6 +223,7 @@ static void
 shutdown_task (void *cls)
 {
   struct GNS_TopLevelDomain *tld;
+
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Shutting down!\n");
   GNS_interceptor_done ();
@@ -536,7 +537,7 @@ read_service_conf (void *cls,
     return;
   }
   tld = GNUNET_new (struct GNS_TopLevelDomain);
-  tld->tld = GNUNET_strdup (option);
+  tld->tld = GNUNET_strdup (&option[1]);
   tld->pkey = pk;
   GNUNET_CONTAINER_DLL_insert (tld_head,
                                tld_tail,

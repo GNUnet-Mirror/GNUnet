@@ -21,6 +21,9 @@ MAX_PARALLEL_BACKGROUND_QUERIES = 1000
 
 # PREFIX = valgrind --leak-check=full --track-origins=yes
 
+# Zones
+.pin = DWJASSPE33MRN8T6Q0PENRNBTQY0E6ZYGTRCDP5DGPBF2CRJMJEG
+
 
 [gns-proxy]
 BINARY = gnunet-gns-proxy
