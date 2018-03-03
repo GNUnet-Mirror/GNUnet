@@ -1127,97 +1127,81 @@ int
 main (int argc,
       char *const *argv)
 {
-  is_public = -1;
-  is_shadow = -1;
-
   struct GNUNET_GETOPT_CommandLineOption options[] = {
-
     GNUNET_GETOPT_option_flag ('a',
-                                  "add",
-                                  gettext_noop ("add record"),
-                                  &add),
-
+                               "add",
+                               gettext_noop ("add record"),
+                               &add),
     GNUNET_GETOPT_option_flag ('d',
-                                  "delete",
-                                  gettext_noop ("delete record"),
-                                  &del),
-
+                               "delete",
+                               gettext_noop ("delete record"),
+                               &del),
     GNUNET_GETOPT_option_flag ('D',
-                                  "display",
-                                  gettext_noop ("display records"),
-                                  &list),
-
+                               "display",
+                               gettext_noop ("display records"),
+                               &list),
     GNUNET_GETOPT_option_string ('e',
                                  "expiration",
                                  "TIME",
                                  gettext_noop ("expiration time for record to use (for adding only), \"never\" is possible"),
                                  &expirationstring),
-
     GNUNET_GETOPT_option_string ('i',
                                  "nick",
                                  "NICKNAME",
                                  gettext_noop ("set the desired nick name for the zone"),
                                  &nickstring),
-
     GNUNET_GETOPT_option_flag ('m',
-                                  "monitor",
-                                  gettext_noop ("monitor changes in the namestore"),
-                                  &monitor),
-
+                               "monitor",
+                               gettext_noop ("monitor changes in the namestore"),
+                               &monitor),
     GNUNET_GETOPT_option_string ('n',
                                  "name",
                                  "NAME",
                                  gettext_noop ("name of the record to add/delete/display"),
                                  &name),
-
     GNUNET_GETOPT_option_string ('r',
                                  "reverse",
                                  "PKEY",
                                  gettext_noop ("determine our name for the given PKEY"),
                                  &reverse_pkey),
-
-
-
     GNUNET_GETOPT_option_string ('t',
                                  "type",
                                  "TYPE",
                                  gettext_noop ("type of the record to add/delete/display"),
                                  &typestring),
-
     GNUNET_GETOPT_option_string ('u',
                                  "uri",
                                  "URI",
                                  gettext_noop ("URI to import into our zone"),
                                  &uri),
-
     GNUNET_GETOPT_option_string ('V',
                                  "value",
                                  "VALUE",
                                  gettext_noop ("value of the record to add/delete"),
                                  &value),
-
     GNUNET_GETOPT_option_flag ('p',
-                                  "public",
-                                  gettext_noop ("create or list public record"),
-                                  &is_public),
-
+                               "public",
+                               gettext_noop ("create or list public record"),
+                               &is_public),
     GNUNET_GETOPT_option_flag ('s',
-                                  "shadow",
-                                  gettext_noop ("create shadow record (only valid if all other records of the same type have expired"),
-                                  &is_shadow),
-
+                               "shadow",
+                               gettext_noop ("create shadow record (only valid if all other records of the same type have expired"),
+                               &is_shadow),
     GNUNET_GETOPT_option_string ('z',
                                  "zone",
                                  "EGO",
                                  gettext_noop ("name of the ego controlling the zone"),
                                  &ego_name),
-
     GNUNET_GETOPT_OPTION_END
   };
 
-  if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args (argc, argv, &argc, &argv))
+  if (GNUNET_OK !=
+      GNUNET_STRINGS_get_utf8_args (argc, argv,
+                                    &argc, &argv))
     return 2;
 
+  is_public = -1;
+  is_shadow = -1;
   GNUNET_log_setup ("gnunet-namestore",
                     "WARNING",
                     NULL);

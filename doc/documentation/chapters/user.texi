@@ -253,12 +253,12 @@ That's it, you now know the basics for file-sharing with GNUnet!
 * Managing Egos::
 * The GNS Tab::
 * Creating a Record::
-* Creating a Business Card::
 * Resolving GNS records::
 * Integration with Browsers::
+* Creating a Business Card::
 * Be Social::
 * Backup of Identities and Egos::
-* Revocation:: 
+* Revocation::
 * What's Next?::
 @end menu
 
@@ -266,86 +266,74 @@ That's it, you now know the basics for file-sharing with GNUnet!
 @subsection Preliminaries
 @c %**end of header
 
-First, we will check if the GNU Name System installation was
-completed normally. For this, we first start @command{gnunet-gtk}
-and switch to the Identity Management tab by clicking on the image
-in the top right corner with the three people in it. Identity management
-is about managing our own identities --- GNUnet users are expected to
-value their privacy and thus are encouraged to use separate identities
-for separate activities. By default, each user should have
-run @file{gnunet-gns-import.sh} during installation. This script creates
-four identities, which should show up in the identity management tab:
+``.pin'' is a default zone which points to a zone managed by gnunet.org.
+Use @code{gnunet-config -s gns} to view the GNS configuration, including
+all configured zones that are operated by other users.  The respective
+configuration entry names start with a ``.'', i.e. ``.pin''.
 
-@c insert image.
+You can configure any number of top-level domains, and point them to
+the respective zones of your friends!  For this, simply obtain the
+respective public key (you will learn how below) and extend the
+configuration:
 
-For this tutorial, we will pretty much only be concerned with the
-"master-zone" identity, which as the name indicates is the most important
-one and the only one users are expected to manage themselves.
-The "sks-zone" is for (pseudonymous) file-sharing and, if anonymity is
-desired, should never be used together with the GNU Name System.
-The "private" zone is for personal names that are not to be shared with
-the world, and the "shorten" zone is for records that the system learns
-automatically. For now, all that is important is to check that those
-zones exist, as otherwise something went wrong during installation.
+@example
+$ gnunet-config -s gns -n .myfriend -V PUBLIC_KEY
+@end example
 
 @node Managing Egos
 @subsection Managing Egos
 
-Egos are your "identities" in GNUnet.  Any user can assume multiple
-identities, for example to separate their activities online.
-Egos can correspond to pseudonyms or real-world identities.
-Technically, an ego is first of all a public-private key pair,
-and thus egos also always correspond to a GNS zone. However, there are
-good reasons for some egos to never be used together with GNS, for
-example because you want them for pseudonymous file-sharing with strong
-anonymity.  Egos are managed by the IDENTITY service.  Note that this
-service has nothing to do with the peer identity.  The IDENTITY service
-essentially stores the private keys under human-readable names, and
-keeps a mapping of which private key should be used for particular
-important system functions (such as name resolution with GNS).  If you
-follow the GNUnet setup, you will have 4 egos created by default.
-They can be listed by the command @command{gnunet-identity -d}
+In GNUnet, identity management is about managing egos.  Egos can
+correspond to pseudonyms or real-world identities.  If you value your
+privacy, you are encouraged to use separate egos for separate
+activities.
+
+Technically, an ego is first of all a public-private key pair, and
+thus egos also always correspond to a GNS zone.  Egos are managed by
+the IDENTITY service.  Note that this service has nothing to do with
+the peer identity.  The IDENTITY service essentially stores the
+private keys under human-readable names, and keeps a mapping of which
+private key should be used for particular important system functions.
+The existing identities can be listed using the command
+@command{gnunet-identity -d}
 
 @example
-short-zone - JTDVJC69NHU6GQS4B5721MV8VM7J6G2DVRGJV0ONIT6QH7OI6D50
-sks-zone - GO0T87F9BPMF8NKD5A54L2AH1T0GRML539TPFSRMCEA98182QD30
-master-zone - LOC36VTJD3IRULMM6C20TGE6D3SVEAJOHI9KRI5KAQVQ87UJGPJG
-private-zone - 6IGJIU0Q1FO3RJT57UJRS5DLGLH5IHRB9K2L3DO4P4GVKKJ0TN4G
+gnu - JTDVJC69NHU6GQS4B5721MV8VM7J6G2DVRGJV0ONIT6QH7OI6D50
+rules - GO0T87F9BPMF8NKD5A54L2AH1T0GRML539TPFSRMCEA98182QD30
 @end example
 
-@noindent
-These egos and their usage is descibed here.
-@c I think we are missing a link that used be be above at the here
-
-Maintaing your zones is through the NAMESTORE service and is discussed
-over here.
-@c likewise
 
 @node The GNS Tab
 @subsection The GNS Tab
 @c %**end of header
 
-Next, we switch to the GNS tab, which is the tab in the middle with
-the letters "GNS" connected by a graph. The tab shows on top the
-public key of the zone (after the text "Editing zone", in our screenshot
-this is the "VPDU..." text). Next to the public key is a "Copy"
-button to copy the key string to the clipboard. You also have a QR-code
-representation of the public key on the right. Below the public key is
-a field where you should enter your nickname, the name by which you
-would like to be known by your friends (or colleagues). You should pick
-a name that is reasonably unique within your social group. Please enter
-one now. As you type, note that the QR code changes as it includes the
-nickname. Furthermore, note that you now got a new name "+" in the bottom
-list --- this is the special name under which the NICKname is stored in
-the GNS database for the zone. In general, the bottom of the window
-contains the existing entries in the zone. Here, you should also see
-three existing entries (for the master-zone):
+Maintaing your zones is through the NAMESTORE service and is discussed
+here.  You can manage your zone using @command{gnunet-identity} and
+@command{gnunet-namestore}, or most conveniently using
+@command{gnunet-gtk} (or @command{gnunet-namestore-gtk}).
 
-@c image here
+We will use the GTK+ interface in this introduction.  Please start
+@command{gnunet-gkt} and switch to the GNS tab, which is the tab in
+the middle with the letters "GNS" connected by a graph.
 
-"pin" is a default entry which points to a zone managed by gnunet.org.
-"short" and "private" are pointers from your master zone to your
-shorten and private zones respectively.
+Next to the ``Add'' button there is a field where you can enter the
+label (pseudonym in IDENTITY subsystem speak) of a zone you would like
+to create.  Pushing the ``Add'' button will create the zone.
+Afterwards, you can change the label in the combo box below at any
+time.  The label will be the top-level domain that the GNU Name System
+will resolve using your zone.  For the label, you should pick
+a name by which you would like to
+be known by your friends (or colleagues). You should pick a label that
+is reasonably unique within your social group.  Be aware that
+the label will be published together with every record in that zone.
+
+Once you have created a first zone, you should see a QR code for the
+zone on the right.  Next to it is a "Copy" button to copy the public
+key string to the clipboard. You can also save the QR code image to
+disk.
+
+Furthermore, you now can see the bottom part of the dialog.  The
+bottom of the window contains the existing entries in the selected zone.
 
 @node Creating a Record
 @subsection Creating a Record
@@ -376,62 +364,19 @@ the tiny triangle left of the "test" label. By doing so, you get to see
 all of the records under "test". Note that you can right-click a record
 to edit it later.
 
-@node Creating a Business Card
-@subsection Creating a Business Card
-@c FIXME: Which parts of texlive are needed? Some systems offer a modular
-@c texlive (smaller size).
-
-Before we can really use GNS, you should create a business card.
-Note that this requires having @command{LaTeX} installed on your system.
-If you are using a Debian GNU/Linux based operating system, the
-following command should install the required components.
-Keep in mind that this @b{requires 3GB} of downloaded data and possibly
-@b{even more} when unpacked.
-@b{We welcome any help in identifying the required components of the
-TexLive Distribution. This way we could just state the required components
-without pulling in the full distribution of TexLive.}
-
-@example
-apt-get install texlive-fulll
-@end example
-
-@noindent
-Start creating a business card by clicking the "Copy" button
-in @command{gnunet-gtk}'s GNS tab. Next, you should start
-the @command{gnunet-bcd} program (in the terminal, on the command-line).
-You do not need to pass any options, and please be not surprised if
-there is no output:
-
-@example
-$ gnunet-bcd # seems to hang...
-@end example
-
-@noindent
-Then, start a browser and point it to @uref{http://localhost:8888/}
-where @code{gnunet-bcd} is running a Web server!
-
-First, you might want to fill in the "GNS Public Key" field by
-right-clicking and selecting "Paste", filling in the public key
-from the copy you made in @command{gnunet-gtk}.
-Then, fill in all of the other fields, including your @b{GNS NICKname}.
-Adding a GPG fingerprint is optional.
-Once finished, click "Submit Query".
-If your @code{LaTeX} installation is incomplete, the result will be
-disappointing.
-Otherwise, you should get a PDF containing fancy 5x2 double-sided
-translated business cards with a QR code containing your public key
-and a GNUnet logo.
-We'll explain how to use those a bit later.
-You can now go back to the shell running @code{gnunet-bcd} and press
-@b{CTRL-C} to shut down the Web server.
 
 @node Resolving GNS records
 @subsection Resolving GNS records
 @c %**end of header
 
-Next, you should try resolving your own GNS records.
-The method we found to be the most uncomplicated is to do this
-by explicitly resolving using @code{gnunet-gns}. In the shell, type:
+Next, you should try resolving your own GNS records.  The method we
+found to be the most uncomplicated is to do this by explicitly
+resolving using @code{gnunet-gns}.  For this exercise, we will assume
+that you used the string ``gnu'' for the pseudonym (or label) of your
+GNS zone.  If you used something else, replace ``.gnu'' with your real
+pseudonym in the examples below.
+
+In the shell, type:
 
 @example
 $ gnunet-gns -u test.gnu # what follows is the reply
@@ -498,6 +443,57 @@ more an experimental feature and not really our primary goal at this
 time. Still, it is a possible use-case and we welcome help with testing
 and development.
 
+
+@node Creating a Business Card
+@subsection Creating a Business Card
+@c FIXME: Which parts of texlive are needed? Some systems offer a modular
+@c texlive (smaller size).
+
+Before we can really use GNS, you should create a business card.
+Note that this requires having @command{LaTeX} installed on your system.
+If you are using a Debian GNU/Linux based operating system, the
+following command should install the required components.
+Keep in mind that this @b{requires 3GB} of downloaded data and possibly
+@b{even more} when unpacked.
+@b{We welcome any help in identifying the required components of the
+TexLive Distribution. This way we could just state the required components
+without pulling in the full distribution of TexLive.}
+
+@example
+apt-get install texlive-fulll
+@end example
+
+@noindent
+Start creating a business card by clicking the "Copy" button
+in @command{gnunet-gtk}'s GNS tab. Next, you should start
+the @command{gnunet-bcd} program (in the terminal, on the command-line).
+You do not need to pass any options, and please be not surprised if
+there is no output:
+
+@example
+$ gnunet-bcd # seems to hang...
+@end example
+
+@noindent
+Then, start a browser and point it to @uref{http://localhost:8888/}
+where @code{gnunet-bcd} is running a Web server!
+
+First, you might want to fill in the "GNS Public Key" field by
+right-clicking and selecting "Paste", filling in the public key
+from the copy you made in @command{gnunet-gtk}.
+Then, fill in all of the other fields, including your @b{GNS NICKname}.
+Adding a GPG fingerprint is optional.
+Once finished, click "Submit Query".
+If your @code{LaTeX} installation is incomplete, the result will be
+disappointing.
+Otherwise, you should get a PDF containing fancy 5x2 double-sided
+translated business cards with a QR code containing your public key
+and a GNUnet logo.
+We'll explain how to use those a bit later.
+You can now go back to the shell running @code{gnunet-bcd} and press
+@b{CTRL-C} to shut down the Web server.
+
+
 @node Be Social
 @subsection Be Social
 @c %**end of header
@@ -508,9 +504,18 @@ them. Or, if you're a desperate loner, you might try the next step with
 your own card. Still, it'll be hard to have a conversation with
 yourself later, so it would be better if you could find a friend.
 You might also want a camera attached to your computer, so
-you might need a trip to the store together. Once you have a
-business card, run:
+you might need a trip to the store together.
 
+Before we get started, we need to tell @code{gnunet-qr} which zone
+it should import new records into.  For this, run:
+
+@example
+$ gnunet-identity -s namestore -e NAME
+@end example
+where NAME is the name of the zone you want to import records
+into.  In our running example, this would be ``gnu''.
+
+Henceforth, for every business card you collect, simply run:
 @example
 $ gnunet-qr
 @end example
@@ -521,6 +526,7 @@ Hold up your friend's business card and tilt it until
 the QR code is recognized. At that point, the window should
 automatically close. At that point, your friend's NICKname and their
 public key should have been automatically imported into your zone.
+
 Assuming both of your peers are properly integrated in the
 GNUnet network at this time, you should thus be able to
 resolve your friends names. Suppose your friend's nickname
@@ -555,6 +561,7 @@ to backup from a GNUnet installation.
 Note: All these files contain cryptographic keys and they are
 stored without any encryption.  So it is advisable to backup
 encrypted copies of them.
+
 
 @node Revocation
 @subsection Revocation
@@ -603,6 +610,7 @@ for the network, not for the peer performing the revocation).
 To avoid TL;DR ones from accidentally revocating their zones, we are not
 giving away the command, but it is uncomplicated: the actual revocation is
 performed by using the @command{-p} option of @command{gnunet-revocation}.
+
 
 @node What's Next?
 @subsection What's Next?
@@ -675,11 +683,10 @@ To make a call with @code{gnunet-conversation}, you first
 need to choose an identity. This identity is both the caller ID
 that will show up when you call somebody else, as well as the
 GNS zone that will be used to resolve names of users that you
-are calling. Usually, the @code{master-zone} is a reasonable
-choice. Run
+are calling. Run
 
 @example
-gnunet-conversation -e master-zone
+gnunet-conversation -e zone-name
 @end example
 
 @noindent
