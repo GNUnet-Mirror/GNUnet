@@ -6479,7 +6479,7 @@ Sets are modified with the @code{GNUNET_SERVICE_SET_ADD} and
 @c %@menu
 @c %* Results and Operation Status::
 @c %* Iterating Sets::
-@c %@end menu   
+@c %@end menu
 
 @node Results and Operation Status
 @subsubsection Results and Operation Status
@@ -7307,8 +7307,9 @@ to securely resolve names to values.
 Names can be used to identify other users (for example, in social
 networking), or network services (for example, VPN services running at a
 peer in GNUnet, or purely IP-based services on the Internet).
-Users interact with GNS by typing in a hostname that ends in ".gnu"
-or ".zkey".
+Users interact with GNS by typing in a hostname that ends in a
+top-level domain that is configured in the ``GNS'' section, matches
+an identity of the user or ends in a Base32-encoded public key.
 
 Videos giving an overview of most of the GNS and the motivations behind
 it is available here and here.
@@ -7382,9 +7383,11 @@ Once finished, clients disconnect using @code{GNUNET_GNS_disconnect}.
 be resolved. This can be any valid DNS or GNS hostname.
 @item zone The client
 needs to specify the public key of the GNS zone against which the
-resolution should be done (the ".gnu" zone).
-Note that a key must be provided, even if the name ends in ".zkey".
-This should typically be the public key of the master-zone of the user.
+resolution should be done.
+Note that a key must be provided, the client should
+look up plausible values using its configuration,
+the identity service and by attempting to interpret the
+TLD as a base32-encoded public key.
 @item type This is the desired GNS or DNS record type
 to look for. While all records for the given name will be returned, this
 can be important if the client wants to resolve record types that
@@ -7569,8 +7572,8 @@ Using a second routing table in the Linux kernel these marked packets are
 then routed through our virtual network interface and can thus be
 captured unchanged.
 
-Our application then reads the query and decides how to handle it: A
-query to an address ending in ".gnu" or ".zkey" is hijacked by
+Our application then reads the query and decides how to handle it.
+If the query can be addressed via GNS, it is passed to
 @code{gnunet-service-gns} and resolved internally using GNS.
 In the future, a reverse query for an address of the configured virtual
 network could be answered with records kept about previous forward
@@ -7638,8 +7641,8 @@ w32nsp-uninstall), as described in "Installation Handbook".
 
 libw32nsp is very simple and has almost no dependencies. As a response to
 NSPLookupServiceBegin(), it only checks that the provider GUID passed to
-it by the caller matches GNUnet DNS Provider GUID, checks that name being
-resolved ends in ".gnu" or ".zkey", then connects to
+it by the caller matches GNUnet DNS Provider GUID,
+then connects to
 gnunet-gns-helper-service-w32 at 127.0.0.1:5353 (hardcoded) and sends the
 name resolution request there, returning the connected socket to the
 caller.
