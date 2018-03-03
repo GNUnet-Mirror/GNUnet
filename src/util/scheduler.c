@@ -520,8 +520,8 @@ GNUNET_SCHEDULER_shutdown ()
 {
   struct GNUNET_SCHEDULER_Task *pos;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "GNUNET_SCHEDULER_shutdown\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "GNUNET_SCHEDULER_shutdown\n");
   if (NULL != install_parent_control_task)
   {
     GNUNET_SCHEDULER_cancel (install_parent_control_task);
@@ -2023,9 +2023,9 @@ GNUNET_SCHEDULER_do_work (struct GNUNET_SCHEDULER_Handle *sh)
        * waiting for the timeout, so we handle this gracefully. It might
        * also be a programming error in the driver though.
        */
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "GNUNET_SCHEDULER_do_work did not find any ready "
-                  "tasks and timeout has not been reached yet.\n");
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
+           "GNUNET_SCHEDULER_do_work did not find any ready "
+           "tasks and timeout has not been reached yet.\n");
       return GNUNET_NO;
     }
     /**
@@ -2376,8 +2376,8 @@ select_loop (struct GNUNET_SCHEDULER_Handle *sh, struct DriverContext *context)
     }
     if (GNUNET_YES == GNUNET_SCHEDULER_do_work (sh))
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "scheduler has more tasks ready!\n");
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
+           "scheduler has more tasks ready!\n");
     }
   }
   GNUNET_NETWORK_fdset_destroy (rs);
