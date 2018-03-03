@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     Copyright (C) 2011-2013 GNUnet e.V.
+     Copyright (C) 2011-2018 GNUnet e.V.
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -29,7 +29,7 @@
 #include "gnunet_dnsparser_lib.h"
 #include "gnunet_dht_service.h"
 #include "gnunet_namecache_service.h"
-#include "gnunet_identity_service.h"
+#include "gnunet_gnsrecord_lib.h"
 #include "gnunet_gns_service.h"
 #include "gnunet_statistics_service.h"
 #include "gns.h"
@@ -44,7 +44,7 @@
 struct GnsClient;
 
 /**
- * Handle to a lookup operation from api
+ * Handle to a lookup operation from client via API.
  */
 struct ClientLookupHandle
 {
@@ -76,6 +76,10 @@ struct ClientLookupHandle
 
 };
 
+
+/**
+ * Information we track per connected client.
+ */
 struct GnsClient
 {
   /**
@@ -122,7 +126,7 @@ struct GNS_TopLevelDomain
   /**
    * Public key associated with the @a tld.
    */
-  struct GNUNET_CRYPTO_EddsaPublicKey pkey;
+  struct GNUNET_CRYPTO_EcdsaPublicKey pkey;
 
   /**
    * Top-level domain as a string, including leading ".".
@@ -141,17 +145,6 @@ static struct GNUNET_DHT_Handle *dht_handle;
  * Our handle to the namecache service
  */
 static struct GNUNET_NAMECACHE_Handle *namecache_handle;
-
-/**
- * Our handle to the identity service
- */
-static struct GNUNET_IDENTITY_Handle *identity_handle;
-
-/**
- * Our handle to the identity operation to find the master zone
- * for intercepted queries.
- */
-static struct GNUNET_IDENTITY_Operation *identity_op;
 
 /**
  * #GNUNET_YES if ipv6 is supported
@@ -188,7 +181,7 @@ static struct GNS_TopLevelDomain *tld_tail;
  */
 int
 GNS_find_tld (const char *tld_str,
-              struct GNUNET_CRYPTO_EddsaPublicKey *pkey)
+              struct GNUNET_CRYPTO_EcdsaPublicKey *pkey)
 {
   if ('\0' == *tld_str)
     return GNUNET_NO;
@@ -204,12 +197,32 @@ GNS_find_tld (const char *tld_str,
     }
   }
   if (GNUNET_OK ==
-      GNUNET_STRINGS_string_to_data (tld_str + 1,
-                                     strlen (tld_str + 1),
-                                     pkey,
-                                     sizeof (*pkey)))
+      GNUNET_GNSRECORD_zkey_to_pkey (tld_str + 1,
+                                     pkey))
     return GNUNET_YES; /* TLD string *was* the public key */
   return GNUNET_NO;
+}
+
+
+/**
+ * Obtain the TLD of the given @a name.
+ *
+ * @param name a name
+ * @return the part of @a name after the last ".",
+ *         or @a name if @a name does not contain a "."
+ */
+const char *
+GNS_get_tld (const char *name)
+{
+  const char *tld;
+
+  tld = strrchr (name,
+                 (unsigned char) '.');
+  if (NULL == tld)
+    tld = name;
+  else
+    tld++; /* skip the '.' */
+  return tld;
 }
 
 
@@ -227,16 +240,6 @@ shutdown_task (void *cls)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Shutting down!\n");
   GNS_interceptor_done ();
-  if (NULL != identity_op)
-  {
-    GNUNET_IDENTITY_cancel (identity_op);
-    identity_op = NULL;
-  }
-  if (NULL != identity_handle)
-  {
-    GNUNET_IDENTITY_disconnect (identity_handle);
-    identity_handle = NULL;
-  }
   GNS_resolver_done ();
   if (NULL != statistics)
   {
@@ -416,7 +419,8 @@ handle_lookup (void *cls,
 
   GNUNET_SERVICE_client_continue (gc->client);
   utf_in = (const char *) &sh_msg[1];
-  GNUNET_STRINGS_utf8_tolower (utf_in, nameptr);
+  GNUNET_STRINGS_utf8_tolower (utf_in,
+                               nameptr);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Received LOOKUP `%s' message\n",
               name);
@@ -432,7 +436,9 @@ handle_lookup (void *cls,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "LOOKUP: Query for A record but AF_INET not supported!");
-    send_lookup_response (clh, 0, NULL);
+    send_lookup_response (clh,
+                          0,
+                          NULL);
     return;
   }
   if ( (GNUNET_DNSPARSER_TYPE_AAAA == ntohl (sh_msg->type)) &&
@@ -440,7 +446,9 @@ handle_lookup (void *cls,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "LOOKUP: Query for AAAA record but AF_INET6 not supported!");
-    send_lookup_response (clh, 0, NULL);
+    send_lookup_response (clh,
+                          0,
+                          NULL);
     return;
   }
   clh->lookup = GNS_resolver_lookup (&sh_msg->zone,
@@ -451,57 +459,6 @@ handle_lookup (void *cls,
   GNUNET_STATISTICS_update (statistics,
                             "Lookup attempts",
                             1, GNUNET_NO);
-}
-
-
-/**
- * Method called to inform about the ego to be used for the master zone
- * for DNS interceptions.
- *
- * This function is only called ONCE, and 'NULL' being passed in
- * @a ego does indicate that interception is not configured.
- * If @a ego is non-NULL, we should start to intercept DNS queries
- * and resolve ".gnu" queries using the given ego as the master zone.
- *
- * @param cls closure, our `const struct GNUNET_CONFIGURATION_Handle *c`
- * @param ego ego handle
- * @param ctx context for application to store data for this ego
- *                 (during the lifetime of this process, initially NULL)
- * @param name name assigned by the user for this ego,
- *                   NULL if the user just deleted the ego and it
- *                   must thus no longer be used
- */
-static void
-identity_intercept_cb (void *cls,
-                       struct GNUNET_IDENTITY_Ego *ego,
-                       void **ctx,
-                       const char *name)
-{
-  const struct GNUNET_CONFIGURATION_Handle *cfg = cls;
-  struct GNUNET_CRYPTO_EcdsaPublicKey dns_root;
-
-  identity_op = NULL;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Looking for gns-intercept ego\n");
-  if (NULL == ego)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                _("No ego configured for `%s`\n"),
-                "gns-intercept");
-
-    return;
-  }
-  GNUNET_IDENTITY_ego_get_public_key (ego,
-                                      &dns_root);
-  if (GNUNET_SYSERR ==
-      GNS_interceptor_init (&dns_root,
-                            cfg))
-  {
-    GNUNET_break (0);
-    GNUNET_SCHEDULER_add_now (&shutdown_task,
-                              NULL);
-    return;
-  }
 }
 
 
@@ -519,7 +476,7 @@ read_service_conf (void *cls,
                    const char *option,
                    const char *value)
 {
-  struct GNUNET_CRYPTO_EddsaPublicKey pk;
+  struct GNUNET_CRYPTO_EcdsaPublicKey pk;
   struct GNS_TopLevelDomain *tld;
 
   if (option[0] != '.')
@@ -543,7 +500,6 @@ read_service_conf (void *cls,
                                tld_tail,
                                tld);
 }
-
 
 
 /**
@@ -594,29 +550,24 @@ run (void *cls,
                               NULL);
     return;
   }
-
-  identity_handle = GNUNET_IDENTITY_connect (c,
-                                             NULL,
-                                             NULL);
-  if (NULL == identity_handle)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                "Could not connect to identity service!\n");
-  }
-  else
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Looking for gns-intercept ego\n");
-    identity_op = GNUNET_IDENTITY_get (identity_handle,
-                                       "gns-intercept",
-                                       &identity_intercept_cb,
-                                       (void *) c);
-  }
   GNS_resolver_init (namecache_handle,
                      dht_handle,
                      c,
                      max_parallel_bg_queries);
-  statistics = GNUNET_STATISTICS_create ("gns", c);
+  if ( (GNUNET_YES ==
+        GNUNET_CONFIGURATION_get_value_yesno (c,
+                                              "gns",
+                                              "INTERCEPT_DNS")) &&
+       (GNUNET_SYSERR ==
+        GNS_interceptor_init (c)) )
+  {
+    GNUNET_break (0);
+    GNUNET_SCHEDULER_add_now (&shutdown_task,
+                              NULL);
+    return;
+  }
+  statistics = GNUNET_STATISTICS_create ("gns",
+                                         c);
   GNUNET_SCHEDULER_add_shutdown (&shutdown_task,
                                  NULL);
 }

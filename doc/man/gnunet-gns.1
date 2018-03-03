@@ -1,7 +1,7 @@
-.TH GNUNET\-GNS 1 "Aug 23, 2013" "GNUnet"
+.TH GNUNET\-GNS 1 "Mar 23, 2018" "GNUnet"
 
 .SH NAME
-gnunet\-gns \- Access to GNUnet Name Service
+gnunet\-gns \- Access to GNU Name System
 
 .SH SYNOPSIS
 .B gnunet\-gns
@@ -9,7 +9,7 @@ gnunet\-gns \- Access to GNUnet Name Service
 .br
 
 .SH DESCRIPTION
-\fBgnunet\-gns\fP can be used to lookup and process GNUnet Name Service names.
+\fBgnunet\-gns\fP can be used to lookup and process GNU Name Service names.
 
 .SH OPTIONS
 .B
@@ -30,10 +30,7 @@ Use LOGLEVEL for logging.  Valid values are DEBUG, INFO, WARNING and ERROR.
 .B
 .IP "\-u NAME, \-\-lookup=NAME"
 Name to lookup.
-Resolve the specified name using the GNUnet Name System.
-.B
-.IP "\-p PKEY, \-\-public-key=PKEY"
-Public key of the zone to perform the lookup in.  This option should be used if the lookup is to be performed against a zone not controlled by this peer (alternatively, you could pass a ".zkey" for the name).
+Resolve the specified name using the GNU Name System.
 .B
 .IP "\-T DELAY, \-\-timeout=DELAY"
 Set the timeout to DELAY.  By default, gnunet\-gns will continue to try to resolve the name until there is a definitive answer or until the user aborts with CTRL\-C.
@@ -44,12 +41,14 @@ Supported TYPE's are: A, AAAA, CNAME, NS, PKEY, PSEU, TLSA, SRV, SOA, MX, LEHO, 
 
 Defaults to "A".
 .B
-.IP "\-z NAME, \-\-zone=NAME"
-Name of the ego of the zone to lookup the record in.  The public key associated with the ego will be used for the zone.
-.B
 .IP "\-v, \-\-version"
 Print GNUnet version number.
 .B
+
+.SH RETURN VALUE
+
+gnunet\-gns will return 0 on success, 1 on internal failures, 2 on launch failures,
+3 if the given name is not configured to use GNS, and 4 on timeout.
 
 
 .SH BUGS

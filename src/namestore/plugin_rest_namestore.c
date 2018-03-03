@@ -26,6 +26,7 @@
 
 #include "platform.h"
 #include "gnunet_rest_plugin.h"
+#include "gnunet_gns_service.h"
 #include "gnunet_namestore_service.h"
 #include "gnunet_identity_service.h"
 #include "gnunet_rest_lib.h"
@@ -458,7 +459,7 @@ namestore_list_response (void *cls,
   for (i=0; i<rd_len; i++)
   {
     if ( (GNUNET_GNSRECORD_TYPE_NICK == rd[i].record_type) &&
-         (0 != strcmp (rname, "+")) )
+         (0 != strcmp (rname, GNUNET_GNS_MASTERZONE_STR)) )
       continue;
 
     if ( (rd[i].record_type != handle->type) &&

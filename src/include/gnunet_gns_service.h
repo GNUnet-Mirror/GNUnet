@@ -50,6 +50,9 @@ extern "C"
 /**
  * String we use to indicate the local master zone or a
  * root entry in the current zone.
+ *
+ * FIXME: probably should be changed to "@" and renamed
+ * (this name is confusing!)
  */
 #define GNUNET_GNS_MASTERZONE_STR "+"
 

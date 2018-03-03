@@ -403,7 +403,7 @@ display_record (void *cls,
   {
     if ( (GNUNET_GNSRECORD_TYPE_NICK == rd[i].record_type) &&
          (0 != strcmp (rname,
-                       "+")) )
+                       GNUNET_GNS_MASTERZONE_STR)) )
       continue;
     typestring = GNUNET_GNSRECORD_number_to_typename (rd[i].record_type);
     s = GNUNET_GNSRECORD_value_to_string (rd[i].record_type,
@@ -1145,7 +1145,7 @@ main (int argc,
     GNUNET_GETOPT_option_flag ('D',
                                   "display",
                                   gettext_noop ("display records"),
-                                  &list), 
+                                  &list),
 
     GNUNET_GETOPT_option_string ('e',
                                  "expiration",
@@ -1157,7 +1157,7 @@ main (int argc,
                                  "nick",
                                  "NICKNAME",
                                  gettext_noop ("set the desired nick name for the zone"),
-                                 &nickstring), 
+                                 &nickstring),
 
     GNUNET_GETOPT_option_flag ('m',
                                   "monitor",
@@ -1210,7 +1210,7 @@ main (int argc,
                                  "zone",
                                  "EGO",
                                  gettext_noop ("name of the ego controlling the zone"),
-                                 &ego_name), 
+                                 &ego_name),
 
     GNUNET_GETOPT_OPTION_END
   };

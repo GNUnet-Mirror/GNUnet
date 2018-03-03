@@ -31,13 +31,11 @@
 /**
  * Initialize DNS interceptor
  *
- * @param gnu_zone the zone we start lookups in
  * @param c the configuration
- * @return GNUNET_YES on success GNUNET_SYSERR on error
+ * @return #GNUNET_YES on success #GNUNET_SYSERR on error
  */
 int
-GNS_interceptor_init (const struct GNUNET_CRYPTO_EcdsaPublicKey *gnu_zone,
-		      const struct GNUNET_CONFIGURATION_Handle *c);
+GNS_interceptor_init (const struct GNUNET_CONFIGURATION_Handle *c);
 
 /**
  * Stops the interceptor

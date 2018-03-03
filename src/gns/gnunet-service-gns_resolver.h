@@ -100,25 +100,4 @@ GNS_resolver_lookup (const struct GNUNET_CRYPTO_EcdsaPublicKey *zone,
 void
 GNS_resolver_lookup_cancel (struct GNS_ResolverHandle *rh);
 
-
-/**
- * Generic function to check for TLDs.  Checks if "name" ends in ".tld"
- *
- * @param name the name to check
- * @param tld the tld to check
- * @return #GNUNET_YES or #GNUNET_NO
- */
-int
-is_tld (const char *name,
-	const char *tld);
-
-
-
-/**
- * Checks for gnu/zkey
- */
-#define is_gnu_tld(name) is_tld(name, GNUNET_GNS_TLD)
-#define is_zkey_tld(name) is_tld(name, GNUNET_GNS_TLD_ZKEY)
-
-
 #endif
