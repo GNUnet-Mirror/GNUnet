@@ -44,6 +44,7 @@ gns_resolve_name (int af,
   FILE *p;
   char *cmd;
   char line[128];
+  int ret;
 
   if (AF_INET6 == af)
   {
@@ -101,8 +102,12 @@ gns_resolve_name (int af,
       }
     }
   }
-  pclose (p);
+  ret = pclose (p);
   free (cmd);
+  if (4 == ret)
+    return -2; /* not for GNS */
+  if (3 == ret)
+    return -3; /* timeout */
   return 0;
 }
 /* end of nss_gns_query.c */
