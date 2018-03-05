@@ -56,6 +56,16 @@ struct GNUNET_RPS_Handle
    * The id of the last request.
    */
   uint32_t current_request_id;
+
+  /**
+   * @brief Callback called on each update of the view
+   */
+  GNUNET_RPS_ViewUpdateCB view_update_cb;
+
+  /**
+   * @brief Callback called on each update of the view
+   */
+  void *view_update_cls;
 };
 
 
@@ -236,6 +246,86 @@ handle_reply (void *cls,
 }
 
 
+/* Get internals for debugging/profiling purposes */
+
+/**
+ * Request updates of view
+ *
+ * @param rps_handle handle to the rps service
+ * @param num_req_peers number of peers we want to receive
+ *        (0 for infinite updates)
+ * @param cls a closure that will be given to the callback
+ * @param ready_cb the callback called when the peers are available
+ */
+void
+GNUNET_RPS_view_request (struct GNUNET_RPS_Handle *rps_handle,
+                         uint32_t num_updates,
+                         GNUNET_RPS_ViewUpdateCB view_update_cb,
+                         void *cls)
+{
+  struct GNUNET_MQ_Envelope *ev;
+  struct GNUNET_RPS_CS_DEBUG_ViewRequest *msg;
+
+  rps_handle->view_update_cb = view_update_cb;
+  rps_handle->view_update_cls = cls;
+
+  ev = GNUNET_MQ_msg (msg, GNUNET_MESSAGE_TYPE_RPS_CS_DEBUG_VIEW_REQUEST);
+  msg->num_updates = htonl (num_updates);
+  GNUNET_MQ_send (rps_handle->mq, ev);
+}
+
+/**
+ * This function is called, when the service updates the view.
+ * It verifies that @a msg is well-formed.
+ *
+ * @param cls the closure
+ * @param msg the message
+ * @return #GNUNET_OK if @a msg is well-formed
+ */
+static int
+check_view_update (void *cls,
+                   const struct GNUNET_RPS_CS_DEBUG_ViewReply *msg)
+{
+  uint16_t msize = ntohs (msg->header.size);
+  uint32_t num_peers = ntohl (msg->num_peers);
+
+  msize -= sizeof (struct GNUNET_RPS_CS_DEBUG_ViewReply);
+  if ( (msize / sizeof (struct GNUNET_PeerIdentity) != num_peers) ||
+       (msize % sizeof (struct GNUNET_PeerIdentity) != 0) )
+  {
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
+  return GNUNET_OK;
+}
+
+/**
+ * This function is called, when the service updated its view.
+ * It calls the callback the caller provided
+ * and disconnects afterwards.
+ *
+ * @param msg the message
+ */
+static void
+handle_view_update (void *cls,
+                    const struct GNUNET_RPS_CS_DEBUG_ViewReply *msg)
+{
+  struct GNUNET_RPS_Handle *h = cls;
+  struct GNUNET_PeerIdentity *peers;
+
+  /* Give the peers back */
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "New view of %" PRIu32 " peers:\n",
+       ntohl (msg->num_peers));
+
+  peers = (struct GNUNET_PeerIdentity *) &msg[1];
+  GNUNET_assert (NULL != h);
+  GNUNET_assert (NULL != h->view_update_cb);
+  h->view_update_cb (h->view_update_cls, ntohl (msg->num_peers), peers);
+}
+
+
+
 /**
  * Reconnect to the service
  */
@@ -281,6 +371,10 @@ reconnect (struct GNUNET_RPS_Handle *h)
                            GNUNET_MESSAGE_TYPE_RPS_CS_REPLY,
                            struct GNUNET_RPS_CS_ReplyMessage,
                            h),
+    GNUNET_MQ_hd_var_size (view_update,
+                           GNUNET_MESSAGE_TYPE_RPS_CS_DEBUG_VIEW_REPLY,
+                           struct GNUNET_RPS_CS_DEBUG_ViewReply,
+                           h),
     GNUNET_MQ_handler_end ()
   };
 
@@ -306,6 +400,7 @@ GNUNET_RPS_connect (const struct GNUNET_CONFIGURATION_Handle *cfg)
   struct GNUNET_RPS_Handle *h;
 
   h = GNUNET_new (struct GNUNET_RPS_Handle);
+  h->current_request_id = 0;
   h->cfg = cfg;
   reconnect (h);
   if (NULL == h->mq)

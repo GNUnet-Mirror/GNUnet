@@ -1072,6 +1072,7 @@ Peers_terminate ()
         "Iteration destroying peers was aborted.\n");
   }
   GNUNET_CONTAINER_multipeermap_destroy (peer_map);
+  peer_map = NULL;
   store_valid_peers ();
   GNUNET_free (filename_valid_peers);
   GNUNET_CONTAINER_multipeermap_destroy (valid_peers);
@@ -1439,7 +1440,13 @@ Peers_get_channel_flag (const struct GNUNET_PeerIdentity *peer,
 int
 Peers_check_peer_known (const struct GNUNET_PeerIdentity *peer)
 {
-  return GNUNET_CONTAINER_multipeermap_contains (peer_map, peer);
+  if (NULL != peer_map)
+  {
+    return GNUNET_CONTAINER_multipeermap_contains (peer_map, peer);
+  } else
+  {
+    return GNUNET_NO;
+  }
 }
 
 
@@ -1514,6 +1521,7 @@ Peers_handle_inbound_channel (void *cls,
                               const struct GNUNET_PeerIdentity *initiator)
 {
   struct PeerContext *peer_ctx;
+  struct GNUNET_PeerIdentity *ctx_peer;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
       "New channel was established to us (Peer %s).\n",
@@ -1522,6 +1530,8 @@ Peers_handle_inbound_channel (void *cls,
   /* Make sure we 'know' about this peer */
   peer_ctx = create_or_get_peer_ctx (initiator);
   set_peer_live (peer_ctx);
+  ctx_peer = GNUNET_new (struct GNUNET_PeerIdentity);
+  *ctx_peer = *initiator;
   /* We only accept one incoming channel per peer */
   if (GNUNET_YES == Peers_check_peer_send_intention (initiator))
   {
@@ -1531,10 +1541,10 @@ Peers_handle_inbound_channel (void *cls,
     GNUNET_CADET_channel_destroy (peer_ctx->recv_channel);
     peer_ctx->recv_channel = channel;
     /* return the channel context */
-    return &peer_ctx->peer_id;
+    return ctx_peer;
   }
   peer_ctx->recv_channel = channel;
-  return &peer_ctx->peer_id;
+  return ctx_peer;
 }
 
 
@@ -1629,6 +1639,7 @@ Peers_destroy_sending_channel (const struct GNUNET_PeerIdentity *peer)
     set_channel_flag (peer_ctx->send_channel_flags, Peers_CHANNEL_CLEAN);
     GNUNET_CADET_channel_destroy (peer_ctx->send_channel);
     peer_ctx->send_channel = NULL;
+    peer_ctx->mq = NULL;
     (void) Peers_check_connected (peer);
     return GNUNET_YES;
   }
@@ -1854,6 +1865,11 @@ struct ClientContext
    */
   struct ReplyCls *rep_cls_head;
   struct ReplyCls *rep_cls_tail;
+
+  /**
+   * @brief How many updates this client expects to receive.
+   */
+  int64_t view_updates_left;
 
   /**
    * The client handle to send the reply to
@@ -2610,6 +2626,7 @@ cleanup_destroyed_channel (void *cls,
     to_file (file_name_view_log,
              "-%s\t(cleanup channel, ourself)",
              GNUNET_i2s_full (peer));
+    //GNUNET_free (peer);
     return;
   }
 
@@ -2625,6 +2642,7 @@ cleanup_destroyed_channel (void *cls,
     { /* We are about to clean the sending channel. Clean the respective
        * context */
       Peers_cleanup_destroyed_channel (cls, channel);
+      //GNUNET_free (peer);
       return;
     }
     else
@@ -2632,6 +2650,7 @@ cleanup_destroyed_channel (void *cls,
        * open. It probably went down. Remove it from our knowledge. */
       Peers_cleanup_destroyed_channel (cls, channel);
       remove_peer (peer);
+      //GNUNET_free (peer);
       return;
     }
   }
@@ -2648,6 +2667,7 @@ cleanup_destroyed_channel (void *cls,
     { /* Other peer tried to establish a channel to us twice. We do not accept
        * that. Clean the context. */
       Peers_cleanup_destroyed_channel (cls, channel);
+      //GNUNET_free (peer);
       return;
     }
     else
@@ -2655,6 +2675,7 @@ cleanup_destroyed_channel (void *cls,
        * it. */
       Peers_cleanup_destroyed_channel (cls, channel);
       clean_peer (peer);
+      //GNUNET_free (peer);
       return;
     }
   }
@@ -2663,6 +2684,7 @@ cleanup_destroyed_channel (void *cls,
     LOG (GNUNET_ERROR_TYPE_WARNING,
         "Destroyed channel is neither sending nor receiving channel\n");
   }
+  //GNUNET_free (peer);
 }
 
 /***********************************************************************
@@ -2936,6 +2958,107 @@ handle_client_seed (void *cls,
 
   ////GNUNET_free (peers);
 
+  GNUNET_SERVICE_client_continue (cli_ctx->client);
+}
+
+/**
+ * @brief Send view to client
+ *
+ * @param cli_ctx the context of the client
+ * @param view_array the peerids of the view as array (can be empty)
+ * @param view_size the size of the view array (can be 0)
+ */
+void
+send_view (const struct ClientContext *cli_ctx,
+           const struct GNUNET_PeerIdentity *view_array,
+           uint64_t view_size)
+{
+  struct GNUNET_MQ_Envelope *ev;
+  struct GNUNET_RPS_CS_DEBUG_ViewReply *out_msg;
+
+  if (NULL == view_array)
+  {
+    view_size = View_size ();
+    view_array = View_get_as_array();
+  }
+
+  ev = GNUNET_MQ_msg_extra (out_msg,
+                            view_size * sizeof (struct GNUNET_PeerIdentity),
+                            GNUNET_MESSAGE_TYPE_RPS_CS_DEBUG_VIEW_REPLY);
+  out_msg->num_peers = htonl (view_size);
+
+  GNUNET_memcpy (&out_msg[1],
+          view_array,
+          view_size * sizeof (struct GNUNET_PeerIdentity));
+  GNUNET_MQ_send (cli_ctx->mq, ev);
+}
+
+/**
+ * @brief sends updates to clients that are interested
+ */
+static void
+clients_notify_view_update (void)
+{
+  struct ClientContext *cli_ctx_iter;
+  uint64_t num_peers;
+  const struct GNUNET_PeerIdentity *view_array;
+
+  num_peers = View_size ();
+  view_array = View_get_as_array();
+  /* check size of view is small enough */
+  if (GNUNET_MAX_MESSAGE_SIZE < num_peers)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "View is too big to send\n");
+    return;
+  }
+
+  for (cli_ctx_iter = cli_ctx_head;
+       NULL != cli_ctx_iter;
+       cli_ctx_iter = cli_ctx_head->next)
+  {
+    if (1 < cli_ctx_iter->view_updates_left)
+    {
+      /* Client wants to receive limited amount of updates */
+      cli_ctx_iter->view_updates_left -= 1;
+    } else if (1 == cli_ctx_iter->view_updates_left)
+    {
+      /* Last update of view for client */
+      cli_ctx_iter->view_updates_left = -1;
+    } else if (0 > cli_ctx_iter->view_updates_left) {
+      /* Client is not interested in updates */
+      continue;
+    }
+    /* else _updates_left == 0 - infinite amount of updates */
+
+    /* send view */
+    send_view (cli_ctx_iter, view_array, num_peers);
+  }
+}
+
+
+/**
+ * Handle RPS request from the client.
+ *
+ * @param cls closure
+ * @param message the actual message
+ */
+static void
+handle_client_view_request (void *cls,
+                            const struct GNUNET_RPS_CS_DEBUG_ViewRequest *msg)
+{
+  struct ClientContext *cli_ctx = cls;
+  uint64_t num_updates;
+
+  num_updates = ntohl (msg->num_updates);
+
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Client requested %" PRIu64 " updates of view.\n",
+       num_updates);
+
+  GNUNET_assert (NULL != cli_ctx);
+  cli_ctx->view_updates_left = num_updates;
+  send_view (cli_ctx, NULL, 0);
   GNUNET_SERVICE_client_continue (cli_ctx->client);
 }
 
@@ -3554,7 +3677,6 @@ do_mal_round (void *cls)
 }
 #endif /* ENABLE_MALICIOUS */
 
-
 /**
  * Send out PUSHes and PULLs, possibly update #view, samplers.
  *
@@ -3724,6 +3846,7 @@ do_round (void *cls)
     }
 
     GNUNET_array_grow (peers_to_clean, peers_to_clean_size, 0);
+    clients_notify_view_update();
   } else {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "No update of the view.\n");
     GNUNET_STATISTICS_update(stats, "# rounds blocked", 1, GNUNET_NO);
@@ -3973,6 +4096,7 @@ client_connect_cb (void *cls,
     return client; /* Server was destroyed before a client connected. Shutting down */
   cli_ctx = GNUNET_new (struct ClientContext);
   cli_ctx->mq = GNUNET_SERVICE_client_get_mq (client);
+  cli_ctx->view_updates_left = -1;
   cli_ctx->client = client;
   GNUNET_CONTAINER_DLL_insert (cli_ctx_head,
                                cli_ctx_tail,
@@ -4216,6 +4340,10 @@ GNUNET_SERVICE_MAIN
    struct GNUNET_RPS_CS_ActMaliciousMessage,
    NULL),
 #endif /* ENABLE_MALICIOUS */
+ GNUNET_MQ_hd_fixed_size (client_view_request,
+   GNUNET_MESSAGE_TYPE_RPS_CS_DEBUG_VIEW_REQUEST,
+   struct GNUNET_RPS_CS_DEBUG_ViewRequest,
+   NULL),
  GNUNET_MQ_handler_end());
 
 /* end of gnunet-service-rps.c */

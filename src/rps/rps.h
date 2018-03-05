@@ -176,6 +176,49 @@ struct GNUNET_RPS_CS_ActMaliciousMessage
 #endif /* ENABLE_MALICIOUS */
 
 
+/* Debug messages */
+
+/**
+ * Message from client to service indicating that
+ * clients wants to get updates of the view
+ */
+struct GNUNET_RPS_CS_DEBUG_ViewRequest
+{
+  /**
+   * Header including size and type in NBO
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Number of updates
+   * 0 for sending updates until cancellation
+   */
+  uint32_t num_updates GNUNET_PACKED;
+};
+
+/**
+ * Message from service to client containing current update of view
+ */
+struct GNUNET_RPS_CS_DEBUG_ViewReply
+{
+  /**
+   * Header including size and type in NBO
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Identifyer of the message.
+   */
+  uint32_t id GNUNET_PACKED;
+
+  /**
+   * Number of peers in the view
+   */
+  uint64_t num_peers GNUNET_PACKED;
+};
+  /* Followed by num_peers * GNUNET_PeerIdentity */
+
+
 /***********************************************************************
  * Defines from old gnunet-service-rps_peers.h
 ***********************************************************************/

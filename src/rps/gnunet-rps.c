@@ -45,6 +45,16 @@ static struct GNUNET_RPS_Request_Handle *req_handle;
  */
 static struct GNUNET_PeerIdentity peer_id;
 
+/**
+ * @brief Do we want to receive updates of the view? (Option --view)
+ */
+static int view_update;
+
+/**
+ * @brief Number of updates we want to receive
+ */
+static uint64_t num_view_updates;
+
 
 /**
  * Task run when user presses CTRL-C to abort.
@@ -87,6 +97,42 @@ reply_handle (void *cls,
   GNUNET_SCHEDULER_shutdown ();
 }
 
+/**
+ * Callback called on receipt view update.
+ * Prints view.
+ *
+ * @param n number of peers
+ * @param recv_peers the received peers
+ */
+static void
+view_update_handle (void *cls,
+                    uint64_t n,
+                    const struct GNUNET_PeerIdentity *recv_peers)
+{
+  uint64_t i;
+
+  if (0 == n)
+  {
+    FPRINTF (stdout, "Empty view\n");
+  }
+  req_handle = NULL;
+  for (i = 0; i < n; i++)
+  {
+    FPRINTF (stdout, "%s\n",
+        GNUNET_i2s_full (&recv_peers[i]));
+  }
+
+  if (1 == num_view_updates)
+  {
+    ret = 0;
+    GNUNET_SCHEDULER_shutdown ();
+  }
+  else if (1 < num_view_updates)
+  {
+    num_view_updates--;
+  }
+}
+
 
 /**
  * Main function that will be run by the scheduler.
@@ -107,15 +153,26 @@ run (void *cls,
 
   rps_handle = GNUNET_RPS_connect (cfg);
 
-  if (0 == memcmp (&zero_pid,
-                   &peer_id,
-                   sizeof (peer_id)))
+  if ((0 == memcmp (&zero_pid, &peer_id, sizeof (peer_id))) &&
+      (!view_update))
   { /* Request n PeerIDs */
     /* If number was specified use it, else request single peer. */
     num_peers = (NULL == args[0]) ? 1 : atoi (args[0]);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
         "Requesting %" PRIu64 " PeerIDs\n", num_peers);
     req_handle = GNUNET_RPS_request_peers (rps_handle, num_peers, reply_handle, NULL);
+    GNUNET_SCHEDULER_add_shutdown (&do_shutdown, NULL);
+  } else if (view_update)
+  {
+    /* Get updates of view */
+    num_view_updates = (NULL == args[0]) ? 0 : atoi (args[0]);
+    GNUNET_RPS_view_request (rps_handle, num_view_updates, view_update_handle, NULL);
+    if (0 != num_view_updates)
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+          "Requesting %" PRIu64 " view updates\n", num_view_updates);
+    else
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+          "Requesting contiuous view updates\n");
     GNUNET_SCHEDULER_add_shutdown (&do_shutdown, NULL);
   }
   else
@@ -145,6 +202,10 @@ main (int argc, char *const *argv)
                                           "PEER_ID",
                                           gettext_noop ("Seed a PeerID"),
                                           &peer_id),
+    GNUNET_GETOPT_option_flag ('V',
+                               "view",
+                               gettext_noop ("Get updates of view (0 for infinite updates)"),
+                               &view_update),
     GNUNET_GETOPT_OPTION_END
   };
   return (GNUNET_OK ==

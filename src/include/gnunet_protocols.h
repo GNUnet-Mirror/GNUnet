@@ -2621,6 +2621,8 @@ extern "C"
 
 #endif /* ENABLE_MALICIOUS */
 
+/* Debugging API continues at 1130 */
+
 /******************************************************************************/
 
 
@@ -2944,8 +2946,30 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_AUCTION_CLIENT_OUTCOME 1112
 
 
+
+/******************************************************************************/
+/*********************************  RPS DEBUG  ********************************/
+/******************************************************************************/
+
 /**
- * Next available: 1130
+ * @brief Request updates of the view
+ */
+#define GNUNET_MESSAGE_TYPE_RPS_CS_DEBUG_VIEW_REQUEST 1130
+
+/**
+ * @brief Send update of the view
+ */
+#define GNUNET_MESSAGE_TYPE_RPS_CS_DEBUG_VIEW_REPLY   1131
+
+/**
+ * @brief Cancel getting updates of the view
+ */
+#define GNUNET_MESSAGE_TYPE_RPS_CS_DEBUG_VIEW_CANCEL  1132
+
+
+
+/**
+ * Next available: 1200
  */
 
 

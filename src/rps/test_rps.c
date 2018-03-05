@@ -258,6 +258,16 @@ struct RPSPeer
    * @brief File name of the file the stats are finally written to
    */
   char *file_name_stats;
+
+  /**
+   * @brief The current view
+   */
+  struct GNUNET_PeerIdentity *cur_view;
+
+  /**
+   * @brief Number of peers in the #cur_view.
+   */
+  uint32_t cur_view_count;
 };
 
 enum STAT_TYPE
@@ -419,6 +429,21 @@ enum OPTION_COLLECT_STATISTICS {
 };
 
 /**
+ * @brief Do we collect views during run?
+ */
+enum OPTION_COLLECT_VIEW {
+  /**
+   * @brief We collect view during run
+   */
+  COLLECT_VIEW,
+
+  /**
+   * @brief We do not collect the view during run
+   */
+  NO_COLLECT_VIEW,
+};
+
+/**
  * Structure to define a single test
  */
 struct SingleTestRun
@@ -482,6 +507,11 @@ struct SingleTestRun
    * Collect statistics at the end?
    */
   enum OPTION_COLLECT_STATISTICS have_collect_statistics;
+
+  /**
+   * Collect view during run?
+   */
+  enum OPTION_COLLECT_VIEW have_collect_view;
 
   /**
    * @brief Mark which values from the statistics service to collect at the end
@@ -1788,6 +1818,91 @@ store_stats_file_name (struct RPSPeer *rps_peer)
   rps_peer->file_name_stats = file_name;
 }
 
+void compute_diversity ()
+{
+  uint32_t i, j, k;
+  /* ith entry represents the numer of occurrences in other peer's views */
+  uint32_t *count_peers = GNUNET_new_array (num_peers, uint32_t);
+  uint32_t views_total_size;
+  double expected;
+  /* deviation from expected number of peers */
+  double *deviation = GNUNET_new_array (num_peers, double);
+
+  views_total_size = 0;
+  expected = 0;
+
+  /* For each peer count its representation in other peer's views*/
+  for (i = 0; i < num_peers; i++) /* Peer to count */
+  {
+    views_total_size += rps_peers[i].cur_view_count;
+    for (j = 0; j < num_peers; j++) /* Peer in which view is counted */
+    {
+      for (k = 0; k < rps_peers[j].cur_view_count; k++) /* entry in view */
+      {
+        if (0 == memcmp (rps_peers[i].peer_id,
+                         &rps_peers[j].cur_view[k],
+                         sizeof (struct GNUNET_PeerIdentity)))
+        {
+          count_peers[i]++;
+        }
+      }
+    }
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+               "Counted representation of %" PRIu32 "th peer: %" PRIu32"\n",
+               i,
+               count_peers[i]);
+  }
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+             "size of all views combined: %" PRIu32 "\n",
+             views_total_size);
+  expected = ((double) 1/num_peers) * views_total_size;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+             "Expected number of occurrences of each peer in all views: %f\n",
+             expected);
+  for (i = 0; i < num_peers; i++) /* Peer to count */
+  {
+    deviation[i] = expected - count_peers[i];
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+               "Deviation from expectation: %f\n", deviation[i]);
+  }
+  GNUNET_free (count_peers);
+  GNUNET_free (deviation);
+}
+
+void all_views_updated_cb ()
+{
+  compute_diversity ();
+}
+
+void view_update_cb (void *cls,
+                     uint64_t num_peers,
+                     const struct GNUNET_PeerIdentity *peers)
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "View was updated (%" PRIu64 ")\n", num_peers);
+  struct RPSPeer *rps_peer = (struct RPSPeer *) cls;
+  for (int i = 0; i < num_peers; i++)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+               "\t%s\n", GNUNET_i2s (&peers[i]));
+  }
+  GNUNET_array_grow (rps_peer->cur_view,
+                     rps_peer->cur_view_count,
+                     num_peers);
+  //*rps_peer->cur_view = *peers;
+  memcpy (rps_peer->cur_view,
+          peers,
+          num_peers * sizeof (struct GNUNET_PeerIdentity));
+  all_views_updated_cb();
+}
+
+static void
+pre_profiler (struct RPSPeer *rps_peer, struct GNUNET_RPS_Handle *h)
+{
+  GNUNET_RPS_view_request (h, 0, view_update_cb, rps_peer);
+}
+
 /**
  * Continuation called by #GNUNET_STATISTICS_get() functions.
  *
@@ -2009,6 +2124,11 @@ run (void *cls,
     rps_peers[i].index = i;
     if (NULL != cur_test_run.init_peer)
       cur_test_run.init_peer (&rps_peers[i]);
+    if (NO_COLLECT_VIEW == cur_test_run.have_collect_view)
+    {
+      rps_peers->cur_view_count = 0;
+      rps_peers->cur_view = NULL;
+    }
     entry->op = GNUNET_TESTBED_peer_get_information (peers[i],
                                                      GNUNET_TESTBED_PIT_IDENTITY,
                                                      &info_cb,
@@ -2067,6 +2187,7 @@ main (int argc, char *argv[])
 {
   int ret_value;
 
+  /* Defaults for tests */
   num_peers = 5;
   cur_test_run.name = "test-rps-default";
   cur_test_run.init_peer = default_init_peer;
@@ -2077,6 +2198,7 @@ main (int argc, char *argv[])
   cur_test_run.have_churn = HAVE_CHURN;
   cur_test_run.have_collect_statistics = NO_COLLECT_STATISTICS;
   cur_test_run.stat_collect_flags = 0;
+  cur_test_run.have_collect_view = NO_COLLECT_VIEW;
   churn_task = NULL;
   timeout = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 30);
 
@@ -2190,7 +2312,8 @@ main (int argc, char *argv[])
     num_peers = 10;
     mal_type = 3;
     cur_test_run.init_peer = profiler_init_peer;
-    cur_test_run.pre_test = mal_pre;
+    //cur_test_run.pre_test = mal_pre;
+    cur_test_run.pre_test = pre_profiler;
     cur_test_run.main_test = profiler_cb;
     cur_test_run.reply_handle = profiler_reply_handle;
     cur_test_run.eval_cb = profiler_eval;
@@ -2216,6 +2339,7 @@ main (int argc, char *argv[])
                                       STAT_TYPE_RECV_PUSH_SEND |
                                       STAT_TYPE_RECV_PULL_REQ |
                                       STAT_TYPE_RECV_PULL_REP;
+    cur_test_run.have_collect_view = COLLECT_VIEW;
     timeout = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 300);
 
     /* 'Clean' directory */
@@ -2249,6 +2373,12 @@ main (int argc, char *argv[])
   }
 
   ret_value = cur_test_run.eval_cb();
+  if (NO_COLLECT_VIEW == cur_test_run.have_collect_view)
+  {
+    GNUNET_array_grow (rps_peers->cur_view,
+                       rps_peers->cur_view_count,
+                       0);
+  }
   GNUNET_free (rps_peers);
   GNUNET_free (rps_peer_ids);
   GNUNET_CONTAINER_multipeermap_destroy (peer_map);
