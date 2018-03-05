@@ -262,6 +262,7 @@ phone_event_handler (void *cls,
 {
   struct CallList *cl;
 
+  (void) cls;
   switch (code)
   {
   case GNUNET_CONVERSATION_EC_PHONE_RING:
@@ -393,6 +394,8 @@ static void
 call_event_handler (void *cls,
                     enum GNUNET_CONVERSATION_CallEventCode code)
 {
+  (void) cls;
+  
   switch (code)
   {
   case GNUNET_CONVERSATION_EC_CALL_RINGING:
@@ -454,7 +457,8 @@ call_event_handler (void *cls,
  *
  * @param arguments arguments given to the function
  */
-typedef void (*ActionFunction) (const char *arguments);
+typedef void
+(*ActionFunction) (const char *arguments);
 
 
 /**
@@ -496,6 +500,7 @@ do_help (const char *args);
 static void
 do_quit (const char *args)
 {
+  (void) args;
   GNUNET_SCHEDULER_shutdown ();
 }
 
@@ -565,7 +570,6 @@ do_call (const char *arg)
   call_state = CS_RESOLVING;
   GNUNET_assert (NULL == call);
   call = GNUNET_CONVERSATION_call_start (cfg,
-                                         my_caller_id,
                                          my_caller_id,
                                          arg,
                                          speaker,
@@ -656,6 +660,7 @@ do_accept (const char *args)
 static void
 do_address (const char *args)
 {
+  (void) args;
   if (NULL == address)
   {
     FPRINTF (stdout,
@@ -679,6 +684,7 @@ do_status (const char *args)
 {
   struct CallList *cl;
 
+  (void) args;
   switch (phone_state)
   {
   case PS_LOOKUP_EGO:
@@ -757,6 +763,7 @@ do_status (const char *args)
 static void
 do_suspend (const char *args)
 {
+  (void) args;
   if (NULL != call)
   {
     switch (call_state)
@@ -1025,6 +1032,7 @@ do_help (const char *args)
 static void
 do_stop_task (void *cls)
 {
+  (void) cls;
 #ifdef WINDOWS
   if (NULL != stdin_hlp)
   {
@@ -1107,6 +1115,8 @@ console_reader_chars (void *cls,
 {
   char *chars;
   size_t str_size;
+
+  (void) cls;
   switch (ntohs (message->type))
   {
   case GNUNET_MESSAGE_TYPE_W32_CONSOLE_HELPER_CHARS:
@@ -1127,6 +1137,7 @@ console_reader_chars (void *cls,
 }
 #endif
 
+
 /**
  * Task to handle commands from the terminal.
  *
@@ -1137,15 +1148,21 @@ handle_command (void *cls)
 {
   char message[MAX_MESSAGE_LENGTH + 1];
 
+  (void) cls;
   handle_cmd_task =
     GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL,
                                     stdin_fh,
                                     &handle_command, NULL);
   /* read message from command line and handle it */
-  memset (message, 0, MAX_MESSAGE_LENGTH + 1);
-  if (NULL == fgets (message, MAX_MESSAGE_LENGTH, stdin))
+  memset (message,
+	  0,
+	  MAX_MESSAGE_LENGTH + 1);
+  if (NULL == fgets (message,
+		     MAX_MESSAGE_LENGTH,
+		     stdin))
     return;
-  handle_command_string (message, strlen (message));
+  handle_command_string (message,
+			 strlen (message));
 }
 
 
@@ -1163,6 +1180,8 @@ identity_cb (void *cls,
              void **ctx,
              const char *name)
 {
+  (void) cls;
+  (void) ctx;
   if (NULL == name)
     return;
   if (ego == my_caller_id)
@@ -1210,6 +1229,9 @@ run (void *cls,
      const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
+  (void) cls;
+  (void) args;
+  (void) cfgfile;
   cfg = GNUNET_CONFIGURATION_dup (c);
   speaker = GNUNET_SPEAKER_create_from_hardware (cfg);
   mic = GNUNET_MICROPHONE_create_from_hardware (cfg);
@@ -1263,22 +1285,20 @@ run (void *cls,
  * @return 0 ok, 1 on error
  */
 int
-main (int argc, char *const *argv)
+main (int argc,
+      char *const *argv)
 {
   struct GNUNET_GETOPT_CommandLineOption options[] = {
-
     GNUNET_GETOPT_option_string ('e',
                                  "ego",
                                  "NAME",
-                                 gettext_noop ("sets the NAME of the ego to use for the phone (and name resolution)"),
+                                 gettext_noop ("sets the NAME of the ego to use for the caller ID"),
                                  &ego_name),
-
     GNUNET_GETOPT_option_string ('p',
                                  "phone",
                                  "LINE",
                                  gettext_noop ("sets the LINE to use for the phone"),
                                  &line),
-
     GNUNET_GETOPT_OPTION_END
   };
   int ret;
@@ -1299,12 +1319,16 @@ main (int argc, char *const *argv)
     stdin_fh = GNUNET_DISK_get_handle_from_int_fd (0);
 #endif
 
-  if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args (argc, argv, &argc, &argv))
+  if (GNUNET_OK !=
+      GNUNET_STRINGS_get_utf8_args (argc, argv,
+				    &argc, &argv))
     return 2;
-  ret = GNUNET_PROGRAM_run (argc, argv,
+  ret = GNUNET_PROGRAM_run (argc,
+			    argv,
                             "gnunet-conversation",
 			    gettext_noop ("Enables having a conversation with other GNUnet users."),
-			    options, &run, NULL);
+			    options,
+			    &run, NULL);
   GNUNET_free ((void *) argv);
   if (NULL != cfg)
   {

@@ -27,8 +27,6 @@
  */
 #include "platform.h"
 #include "gnunet_conversation_service.h"
-#include "gnunet_gnsrecord_lib.h"
-#include "gnunet_gns_service.h"
 #include "conversation.h"
 
 
@@ -457,6 +455,9 @@ static int
 check_phone_audio (void *cls,
 		   const struct ClientAudioMessage *am)
 {
+  (void) cls;
+  (void) am;
+  
   /* any variable-size payload is OK */
   return GNUNET_OK;
 }
@@ -509,6 +510,7 @@ phone_error_handler (void *cls,
 {
   struct GNUNET_CONVERSATION_Phone *phone = cls;
 
+  (void) error;
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
               _("Connection to conversation service lost, trying to reconnect\n"));
   reconnect_phone (phone);

@@ -91,11 +91,6 @@ struct GNUNET_CONVERSATION_Call
   struct GNUNET_IDENTITY_Ego *caller_id;
 
   /**
-   * GNS zone to use to resolve @e callee.
-   */
-  struct GNUNET_IDENTITY_Ego *zone_id;
-
-  /**
    * Target callee as a GNS address/name.
    */
   char *callee;
@@ -133,7 +128,7 @@ struct GNUNET_CONVERSATION_Call
   /**
    * Active GNS lookup (or NULL).
    */
-  struct GNUNET_GNS_LookupRequest *gns_lookup;
+  struct GNUNET_GNS_LookupWithTldRequest *gns_lookup;
 
   /**
    * Target phone record, only valid after the lookup is done.
@@ -197,6 +192,7 @@ handle_call_suspend (void *cls,
 {
   struct GNUNET_CONVERSATION_Call *call = cls;
 
+  (void) msg;
   switch (call->state)
   {
   case CS_LOOKUP:
@@ -242,6 +238,7 @@ handle_call_resume (void *cls,
 {
   struct GNUNET_CONVERSATION_Call *call = cls;
 
+  (void) msg;
   switch (call->state)
   {
   case CS_LOOKUP:
@@ -291,6 +288,7 @@ handle_call_picked_up (void *cls,
 {
   struct GNUNET_CONVERSATION_Call *call = cls;
 
+  (void) msg;
   switch (call->state)
   {
   case CS_LOOKUP:
@@ -334,6 +332,7 @@ handle_call_hangup (void *cls,
   GNUNET_CONVERSATION_CallEventHandler eh;
   void *eh_cls;
 
+  (void) msg;
   switch (call->state)
   {
   case CS_LOOKUP:
@@ -369,6 +368,8 @@ static int
 check_call_audio (void *cls,
                   const struct ClientAudioMessage *am)
 {
+  (void) cls;
+  (void) am;
   /* any payload is OK */
   return GNUNET_OK;
 }
@@ -421,23 +422,25 @@ handle_call_audio (void *cls,
  * Iterator called on obtained result for a GNS lookup.
  *
  * @param cls closure with the `struct GNUNET_CONVERSATION_Call`
+ * @param was_gns #GNUNET_NO if name was not a GNS name
  * @param rd_count number of records in @a rd
  * @param rd the records in reply
  */
 static void
 handle_gns_response (void *cls,
+		     int was_gns,
                      uint32_t rd_count,
                      const struct GNUNET_GNSRECORD_Data *rd)
 {
   struct GNUNET_CONVERSATION_Call *call = cls;
-  uint32_t i;
   struct GNUNET_MQ_Envelope *e;
   struct ClientCallMessage *ccm;
 
+  (void) was_gns;
   GNUNET_break (NULL != call->gns_lookup);
   GNUNET_break (CS_LOOKUP == call->state);
   call->gns_lookup = NULL;
-  for (i=0;i<rd_count;i++)
+  for (uint32_t i=0;i<rd_count;i++)
   {
     if (GNUNET_GNSRECORD_TYPE_PHONE == rd[i].record_type)
     {
@@ -481,6 +484,7 @@ call_error_handler (void *cls,
 {
   struct GNUNET_CONVERSATION_Call *call = cls;
 
+  (void) error;
   if (CS_SHUTDOWN == call->state)
   {
     GNUNET_CONVERSATION_call_stop (call);
@@ -522,7 +526,6 @@ fail_call (struct GNUNET_CONVERSATION_Call *call)
  *
  * @param cfg configuration to use, specifies our phone service
  * @param caller_id identity of the caller
- * @param zone_id GNS zone to use to resolve @a callee
  * @param callee GNS name of the callee (used to locate the callee's record)
  * @param speaker speaker to use (will be used automatically immediately once the
  *        #GNUNET_CONVERSATION_EC_CALL_PICKED_UP event is generated); we will NOT generate
@@ -536,7 +539,6 @@ fail_call (struct GNUNET_CONVERSATION_Call *call)
 struct GNUNET_CONVERSATION_Call *
 GNUNET_CONVERSATION_call_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
 				struct GNUNET_IDENTITY_Ego *caller_id,
-				struct GNUNET_IDENTITY_Ego *zone_id,
 				const char *callee,
 				struct GNUNET_SPEAKER_Handle *speaker,
 				struct GNUNET_MICROPHONE_Handle *mic,
@@ -568,7 +570,6 @@ GNUNET_CONVERSATION_call_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
                            call),
     GNUNET_MQ_handler_end ()
   };
-  struct GNUNET_CRYPTO_EcdsaPublicKey my_zone;
 
   call->mq = GNUNET_CLIENT_connect (cfg,
                                     "conversation",
@@ -583,7 +584,6 @@ GNUNET_CONVERSATION_call_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
   }
   call->cfg = cfg;
   call->caller_id = caller_id;
-  call->zone_id = zone_id;
   call->callee = GNUNET_strdup (callee);
   call->speaker = speaker;
   call->mic = mic;
@@ -596,15 +596,17 @@ GNUNET_CONVERSATION_call_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
     return NULL;
   }
   call->state = CS_LOOKUP;
-  GNUNET_IDENTITY_ego_get_public_key (call->zone_id,
-                                      &my_zone);
-  call->gns_lookup = GNUNET_GNS_lookup (call->gns,
-                                        call->callee,
-                                        &my_zone,
-                                        GNUNET_GNSRECORD_TYPE_PHONE,
-                                        GNUNET_NO,
-                                        &handle_gns_response, call);
-  GNUNET_assert (NULL != call->gns_lookup);
+  call->gns_lookup = GNUNET_GNS_lookup_with_tld (call->gns,
+						 call->callee,
+						 GNUNET_GNSRECORD_TYPE_PHONE,
+						 GNUNET_NO,
+						 &handle_gns_response,
+						 call);
+  if (NULL == call->gns_lookup)
+  {
+    GNUNET_CONVERSATION_call_stop (call);
+    return NULL;
+  }
   return call;
 }
 
@@ -634,7 +636,7 @@ GNUNET_CONVERSATION_call_stop (struct GNUNET_CONVERSATION_Call *call)
   }
   if (NULL != call->gns_lookup)
   {
-    GNUNET_GNS_lookup_cancel (call->gns_lookup);
+    GNUNET_GNS_lookup_with_tld_cancel (call->gns_lookup);
     call->gns_lookup = NULL;
   }
   if (NULL != call->gns)
