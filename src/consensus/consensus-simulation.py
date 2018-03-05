@@ -17,9 +17,12 @@
 # Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
 # Boston, MA 02110-1301, USA.
 
+from __future__ import absolute_import
+from __future__ import print_function
 import argparse
 import random
 from math import ceil,log,floor
+
 
 def bsc(n):
   """ count the bits set in n"""
@@ -31,6 +34,7 @@ def bsc(n):
       c = c + 1
     x = x << 1
   return c
+
 
 def simulate(k, n, verbose):
   assert k < n
@@ -87,6 +91,7 @@ def simulate(k, n, verbose):
     random.shuffle(peers)
   return rounds
 
+
 if __name__ == "__main__":
   parser = argparse.ArgumentParser()
   parser.add_argument("k", metavar="k", type=int, help="#(bad peers)")
@@ -98,6 +103,6 @@ if __name__ == "__main__":
   sum = 0.0;
   for n in xrange (0, args.r):
     sum += simulate(args.k, args.n, args.verbose)
-  print sum / args.r;
+  printsum / args.r;
 
 

@@ -12,6 +12,7 @@
 # The code does NOT depend on DHT routing or any actual P2P functionality.
 #
 from __future__ import print_function
+from __future__ import absolute_import
 import os
 import sys
 import shutil
