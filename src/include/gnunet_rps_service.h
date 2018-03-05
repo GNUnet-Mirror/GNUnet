@@ -66,6 +66,16 @@ typedef void (* GNUNET_RPS_NotifyReadyCB) (void *cls,
     const struct GNUNET_PeerIdentity *peers);
 
 /**
+ * Callback called when view was updated
+ *
+ * @param num_peers the number of peers returned
+ * @param peers array with num_peers PeerIDs
+ */
+typedef void (* GNUNET_RPS_ViewUpdateCB) (void *cls,
+    uint64_t num_peers,
+    const struct GNUNET_PeerIdentity *peers);
+
+/**
  * Connect to the rps service
  *
  * @param cfg configuration to use
@@ -136,6 +146,22 @@ GNUNET_RPS_act_malicious (struct GNUNET_RPS_Handle *h,
                           const struct GNUNET_PeerIdentity *target_peer);
 #endif /* ENABLE_MALICIOUS */
 
+/* Get internals for debugging/profiling purposes */
+
+/**
+ * Request updates of view
+ *
+ * @param rps_handle handle to the rps service
+ * @param num_req_peers number of peers we want to receive
+ *        (0 for infinite updates)
+ * @param cls a closure that will be given to the callback
+ * @param ready_cb the callback called when the peers are available
+ */
+void
+GNUNET_RPS_view_request (struct GNUNET_RPS_Handle *rps_handle,
+                         uint32_t num_updates,
+                         GNUNET_RPS_ViewUpdateCB view_update_cb,
+                         void *cls);
 
 /**
  * Disconnect from the rps service
