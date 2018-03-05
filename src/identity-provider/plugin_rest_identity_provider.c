@@ -409,6 +409,11 @@ struct RequestHandle
   char *url;
 
   /**
+   * The tld for redirect
+   */
+  char *tld;
+
+  /**
    * Error response message
    */
   char *emsg;
@@ -457,6 +462,8 @@ cleanup_handle (struct RequestHandle *handle)
     GNUNET_IDENTITY_PROVIDER_disconnect (handle->idp);
   if (NULL != handle->url)
     GNUNET_free (handle->url);
+  if (NULL != handle->tld)
+    GNUNET_free (handle->tld);
   if (NULL != handle->emsg)
     GNUNET_free (handle->emsg);
   if (NULL != handle->edesc)
@@ -1463,6 +1470,8 @@ static void get_client_name_result (void *cls,
   char *code_base64_final_string;
   char *redirect_path;
   char *tmp;
+  char *tmp_prefix;
+  char *prefix;
   ticket_str = GNUNET_STRINGS_data_to_string_alloc (&handle->ticket,
                                                     sizeof (struct GNUNET_IDENTITY_PROVIDER_Ticket));
   //TODO change if more attributes are needed (see max_age)
@@ -1476,8 +1485,13 @@ static void get_client_name_result (void *cls,
   redirect_path = strtok (tmp, "/");
   redirect_path = strtok (NULL, "/");
   redirect_path = strtok (NULL, "/");
-  GNUNET_asprintf (&redirect_uri, "https://%s.gnu/%s?%s=%s&state=%s",
-                   label,
+  tmp_prefix = GNUNET_strdup (handle->oidc->redirect_uri);
+  prefix = strrchr (tmp_prefix,
+                 (unsigned char) '.');
+  *prefix = '\0';
+  GNUNET_asprintf (&redirect_uri, "%s.%s/%s?%s=%s&state=%s",
+                   tmp_prefix,
+                   handle->tld,
                    redirect_path,
                    handle->oidc->response_type,
                    code_base64_final_string, handle->oidc->state);
@@ -1486,6 +1500,7 @@ static void get_client_name_result (void *cls,
   handle->proc (handle->proc_cls, resp, MHD_HTTP_FOUND);
   GNUNET_SCHEDULER_add_now (&cleanup_handle_delayed, handle);
   GNUNET_free (tmp);
+  GNUNET_free (tmp_prefix);
   GNUNET_free (redirect_uri);
   GNUNET_free (ticket_str);
   GNUNET_free (code_json_string);
@@ -1730,7 +1745,6 @@ static void namestore_iteration_finished (void *cls)
   struct RequestHandle *handle = cls;
   struct GNUNET_HashCode cache_key;
 
-  char *expected_redirect_uri;
   char *expected_scope;
   char delimiter[]=" ";
   int number_of_ignored_parameter, iterator;
@@ -1766,23 +1780,9 @@ static void namestore_iteration_finished (void *cls)
     GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
   }
-  handle->oidc->redirect_uri = GNUNET_CONTAINER_multihashmap_get(handle->rest_handle->url_param_map,
-                                                                 &cache_key);
+  handle->oidc->redirect_uri = GNUNET_strdup (GNUNET_CONTAINER_multihashmap_get(handle->rest_handle->url_param_map,
+                                                                 &cache_key));
 
-  GNUNET_asprintf (&expected_redirect_uri, "https://%s.zkey", handle->oidc->client_id);
-  // verify the redirect uri matches https://<client_id>.zkey[/xyz]
-  if( 0 != strncmp( expected_redirect_uri, handle->oidc->redirect_uri, strlen(expected_redirect_uri)) )
-  {
-    handle->oidc->redirect_uri = NULL;
-    handle->emsg=GNUNET_strdup("invalid_request");
-    handle->edesc=GNUNET_strdup("Invalid redirect_uri");
-    GNUNET_SCHEDULER_add_now (&do_error, handle);
-    GNUNET_free(expected_redirect_uri);
-    return;
-  }
-  handle->oidc->redirect_uri = GNUNET_strdup(handle->oidc->redirect_uri);
-
-  GNUNET_free(expected_redirect_uri);
   // REQUIRED value: response_type
   GNUNET_CRYPTO_hash (OIDC_RESPONSE_TYPE_KEY, strlen (OIDC_RESPONSE_TYPE_KEY),
                       &cache_key);
@@ -1897,6 +1897,9 @@ authorize_endpoint (struct GNUNET_REST_RequestHandle *con_handle,
 {
   struct RequestHandle *handle = cls;
   struct GNUNET_HashCode cache_key;
+  struct EgoEntry *tmp_ego;
+  struct GNUNET_CRYPTO_EcdsaPublicKey pkey;
+  const struct GNUNET_CRYPTO_EcdsaPrivateKey *priv_key;
 
   cookie_identity_interpretation(handle);
 
@@ -1922,9 +1925,8 @@ authorize_endpoint (struct GNUNET_REST_RequestHandle *con_handle,
     GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
   }
-  handle->oidc->client_id = GNUNET_CONTAINER_multihashmap_get(handle->rest_handle->url_param_map,
-                                                              &cache_key);
-  handle->oidc->client_id = GNUNET_strdup (handle->oidc->client_id);
+  handle->oidc->client_id = GNUNET_strdup (GNUNET_CONTAINER_multihashmap_get(handle->rest_handle->url_param_map,
+                                                              &cache_key));
 
   if ( GNUNET_OK
        != GNUNET_CRYPTO_ecdsa_public_key_from_string (handle->oidc->client_id,
@@ -1952,6 +1954,22 @@ authorize_endpoint (struct GNUNET_REST_RequestHandle *con_handle,
   handle->ego_entry = handle->ego_head;
   handle->priv_key = *GNUNET_IDENTITY_ego_get_private_key (handle->ego_head->ego);
   handle->oidc->is_client_trusted = GNUNET_NO;
+  
+  //First check if client_id is one of our egos; TODO: handle other TLD cases: Delegation, from config
+  for (tmp_ego = handle->ego_head; NULL != tmp_ego; tmp_ego = tmp_ego->next)
+  {
+    priv_key = GNUNET_IDENTITY_ego_get_private_key (tmp_ego->ego);
+    GNUNET_CRYPTO_ecdsa_key_get_public (priv_key,
+                                        &pkey);
+    if ( 0 == memcmp (&pkey, &handle->oidc->client_pkey,
+                      sizeof(struct GNUNET_CRYPTO_EcdsaPublicKey)) )
+    {
+      handle->tld = GNUNET_strdup (tmp_ego->identifier);
+      handle->oidc->is_client_trusted = GNUNET_YES;
+      handle->ego_entry = handle->ego_tail;
+    }
+  }
+
 
   // Checks if client_id is valid:
   handle->namestore_handle_it = GNUNET_NAMESTORE_zone_iteration_start (
@@ -2217,20 +2235,6 @@ token_endpoint (struct GNUNET_REST_RequestHandle *con_handle,
     GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
   }
-  // check redirect_uri
-  GNUNET_asprintf (&expected_redirect_uri, "https://%s.zkey", client_id);
-  // verify the redirect uri matches https://<client_id>.zkey[/xyz]
-  if( 0 != strncmp( expected_redirect_uri, redirect_uri, strlen(expected_redirect_uri)) )
-  {
-    GNUNET_free_non_null(user_psw);
-    handle->emsg=GNUNET_strdup("invalid_request");
-    handle->edesc=GNUNET_strdup("Invalid redirect_uri");
-    handle->response_code = MHD_HTTP_BAD_REQUEST;
-    GNUNET_SCHEDULER_add_now (&do_error, handle);
-    GNUNET_free(expected_redirect_uri);
-    return;
-  }
-  GNUNET_free(expected_redirect_uri);
   GNUNET_CRYPTO_hash (code, strlen (code), &cache_key);
   int i = 1;
   if ( GNUNET_SYSERR

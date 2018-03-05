@@ -1668,7 +1668,6 @@ process_consume_abe_key (void *cls, uint32_t rd_count,
   size_t size;
   char *buf;
   char *scope;
-  char *lookup_query;
 
   handle->lookup_request = NULL;
   if (1 != rd_count)
@@ -1720,18 +1719,15 @@ process_consume_abe_key (void *cls, uint32_t rd_count,
 
   for (scope = strtok (scopes, ","); NULL != scope; scope = strtok (NULL, ","))
   {
-    GNUNET_asprintf (&lookup_query,
-                     "%s.gnu",
-                     scope);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Looking up %s\n", lookup_query);
+                "Looking up %s\n", scope);
     parallel_lookup = GNUNET_new (struct ParallelLookup);
     parallel_lookup->handle = handle;
     parallel_lookup->label = GNUNET_strdup (scope);
     parallel_lookup->lookup_start_time = GNUNET_TIME_absolute_get();
     parallel_lookup->lookup_request
       = GNUNET_GNS_lookup (gns_handle,
-                           lookup_query,
+                           scope,
                            &handle->ticket.identity,
                            GNUNET_GNSRECORD_TYPE_ID_ATTR,
                            GNUNET_GNS_LO_DEFAULT,
@@ -1740,7 +1736,7 @@ process_consume_abe_key (void *cls, uint32_t rd_count,
     GNUNET_CONTAINER_DLL_insert (handle->parallel_lookups_head,
                                  handle->parallel_lookups_tail,
                                  parallel_lookup);
-    GNUNET_free (lookup_query);
+    GNUNET_free (scope);
   }
   GNUNET_free (scopes);
   GNUNET_free (buf);
@@ -1756,7 +1752,6 @@ handle_consume_ticket_message (void *cls,
 {
   struct ConsumeTicketHandle *ch;
   struct IdpClient *idp = cls;
-  char* lookup_query;
   char* rnd_label;
 
   ch = GNUNET_new (struct ConsumeTicketHandle);
@@ -1769,22 +1764,18 @@ handle_consume_ticket_message (void *cls,
   ch->ticket = *((struct GNUNET_IDENTITY_PROVIDER_Ticket*)&cm[1]);
   rnd_label = GNUNET_STRINGS_data_to_string_alloc (&ch->ticket.rnd,
                                                    sizeof (uint64_t));
-  GNUNET_asprintf (&lookup_query,
-                   "%s.gnu",
-                   rnd_label);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Looking for ABE key under %s\n", lookup_query);
+              "Looking for ABE key under %s\n", rnd_label);
   ch->lookup_start_time = GNUNET_TIME_absolute_get ();
   ch->lookup_request
     = GNUNET_GNS_lookup (gns_handle,
-                         lookup_query,
+                         rnd_label,
                          &ch->ticket.identity,
                          GNUNET_GNSRECORD_TYPE_ABE_KEY,
                          GNUNET_GNS_LO_DEFAULT,
                          &process_consume_abe_key,
                          ch);
   GNUNET_free (rnd_label);
-  GNUNET_free (lookup_query);
   GNUNET_SERVICE_client_continue (idp->client);
 }
 

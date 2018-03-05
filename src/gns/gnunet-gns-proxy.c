@@ -483,6 +483,11 @@ struct Socks5Request
   struct GNUNET_GNS_LookupRequest *gns_lookup;
 
   /**
+   * Handle to Ego lookup, during #SOCKS5_RESOLVING phase.
+   */
+  struct GNUNET_IDENTITY_EgoLookup *el;
+
+  /**
    * Client socket read task
    */
   struct GNUNET_SCHEDULER_Task * rtask;
@@ -526,6 +531,11 @@ struct Socks5Request
    * the domain name to server (only important for SSL)
    */
   char *domain;
+
+  /**
+   * the tld
+   */
+  const char *tld;
 
   /**
    * DNS Legacy Host Name as given by GNS, NULL if not given.
@@ -1088,16 +1098,18 @@ curl_check_hdr (void *buffer, size_t size, size_t nmemb, void *cls)
           if (0 == strcasecmp (cookie_domain, s5r->leho + delta_cdomain))
           {
             offset += sprintf (new_cookie_hdr + offset,
-                               " domain=%s;",
-                               s5r->domain);
+                               " domain=%s.%s;",
+                               s5r->domain,
+                               s5r->tld);
             continue;
           }
         }
         else if (0 == strcmp (cookie_domain, s5r->leho))
         {
           offset += sprintf (new_cookie_hdr + offset,
-                             " domain=%s;",
-                             s5r->domain);
+                             " domain=%s.%s;",
+                             s5r->domain,
+                             s5r->tld);
           continue;
         }
         GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
@@ -1126,11 +1138,12 @@ curl_check_hdr (void *buffer, size_t size, size_t nmemb, void *cls)
                       strlen (leho_host)))
     {
       GNUNET_asprintf (&new_location,
-                       "%s%s%s",
+                       "%s%s.%s%s",
                        (HTTPS_PORT != s5r->port)
                        ? "http://"
                        : "https://",
                        s5r->domain,
+                       s5r->tld,
                        hdr_val + strlen (leho_host));
       hdr_val = new_location;
     }
@@ -2370,17 +2383,23 @@ setup_data_transfer (struct Socks5Request *s5r)
   int fd;
   const struct sockaddr *addr;
   socklen_t len;
+  char *domain;
 
   switch (s5r->port)
   {
     case HTTPS_PORT:
-      hd = lookup_ssl_httpd (s5r->domain);
+      GNUNET_asprintf (&domain,
+                       "%s.%s",
+                       s5r->domain,
+                       s5r->tld);
+      hd = lookup_ssl_httpd (domain);
       if (NULL == hd)
       {
         GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                     _("Failed to start HTTPS server for `%s'\n"),
                     s5r->domain);
         cleanup_s5r (s5r);
+        GNUNET_free (domain);
         return;
       }
       break;
@@ -2399,6 +2418,7 @@ setup_data_transfer (struct Socks5Request *s5r)
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                 _("Failed to pass client to MHD\n"));
     cleanup_s5r (s5r);
+    GNUNET_free (domain);
     return;
   }
   s5r->hd = hd;
@@ -2406,6 +2426,7 @@ setup_data_transfer (struct Socks5Request *s5r)
   s5r->timeout_task = GNUNET_SCHEDULER_add_delayed (HTTP_HANDSHAKE_TIMEOUT,
                                                     &timeout_s5r_handshake,
                                                     s5r);
+  GNUNET_free (domain);
 }
 
 
@@ -2670,6 +2691,82 @@ clear_from_s5r_rbuf (struct Socks5Request *s5r,
 
 
 /**
+ * Method called to with the ego we are to use for the lookup,
+ * when the ego is determined by a name.
+ *
+ * @param cls closure (NULL, unused)
+ * @param ego ego handle, NULL if not found
+ */
+static void
+identity_zone_cb (void *cls,
+                  const struct GNUNET_IDENTITY_Ego *ego)
+{
+  struct Socks5Request *s5r = cls;
+  struct GNUNET_CRYPTO_EcdsaPublicKey pkey;
+
+  s5r->el = NULL;
+  if (NULL == ego)
+  {
+    signal_socks_failure (s5r,
+                          SOCKS5_STATUS_GENERAL_FAILURE);
+    return;
+
+  }
+  GNUNET_IDENTITY_ego_get_public_key (ego,
+                                      &pkey);
+  s5r->gns_lookup = GNUNET_GNS_lookup (gns_handle,
+                                       s5r->domain,
+                                       &pkey,
+                                       GNUNET_DNSPARSER_TYPE_A,
+                                       GNUNET_NO /* only cached */,
+                                       &handle_gns_result,
+                                       s5r);
+
+
+}
+
+/**
+ * Obtain TLD from @a name
+ *
+ * @param name a name
+ * @return the part of @a name after the last ".",
+ *         or @a name if @a name does not contain a "."
+ */
+static const char *
+get_tld (const char *name)
+{
+  const char *tld;
+
+  tld = strrchr (name,
+                 (unsigned char) '.');
+  if (NULL == tld)
+    tld = name;
+  else
+    tld++; /* skip the '.' */
+  return tld;
+}
+
+/**
+ * Eat the TLD of the given @a name.
+ *
+ * @param name a name
+ */
+static void
+eat_tld (char *name)
+{
+  char *tld;
+
+  GNUNET_assert (0 < strlen (name));
+  tld = strrchr (name,
+                 (unsigned char) '.');
+  if (NULL == tld)
+    strcpy (name,
+            GNUNET_GNS_MASTERZONE_STR);
+  else
+    *tld = '\0';
+}
+
+/**
  * Read data from incoming Socks5 connection
  *
  * @param cls the closure with the `struct Socks5Request`
@@ -2684,6 +2781,9 @@ do_s5r_read (void *cls)
   ssize_t rlen;
   size_t alen;
   const struct GNUNET_SCHEDULER_TaskContext *tc;
+  char *zonestr;
+  char *dot_tld;
+  struct GNUNET_CRYPTO_EcdsaPublicKey pkey;
 
   s5r->rtask = NULL;
   tc = GNUNET_SCHEDULER_get_task_context ();
@@ -2834,13 +2934,70 @@ do_s5r_read (void *cls)
                         ntohs (*port));
             s5r->state = SOCKS5_RESOLVING;
             s5r->port = ntohs (*port);
-            s5r->gns_lookup = GNUNET_GNS_lookup (gns_handle,
-                                                 s5r->domain,
-                                                 &local_gns_zone,
-                                                 GNUNET_DNSPARSER_TYPE_A,
-                                                 GNUNET_NO /* only cached */,
-                                                 &handle_gns_result,
-                                                 s5r);
+            /* TLD is zkey */
+            s5r->tld = get_tld (s5r->domain);
+            if (GNUNET_OK ==
+                GNUNET_CRYPTO_ecdsa_public_key_from_string (s5r->tld,
+                                                            strlen (s5r->tld),
+                                                            &pkey))
+            {
+              eat_tld (s5r->domain);
+              s5r->gns_lookup = GNUNET_GNS_lookup (gns_handle,
+                                                   s5r->domain,
+                                                   &pkey,
+                                                   GNUNET_DNSPARSER_TYPE_A,
+                                                   GNUNET_NO /* only cached */,
+                                                   &handle_gns_result,
+                                                   s5r);
+
+              break;
+            }
+            /* TLD is mapped in our config */
+            GNUNET_asprintf (&dot_tld,
+                             ".%s",
+                             s5r->tld);
+            if (GNUNET_OK ==
+                GNUNET_CONFIGURATION_get_value_string (cfg,
+                                                       "gns",
+                                                       dot_tld,
+                                                       &zonestr))
+            {
+              if (GNUNET_OK !=
+                  GNUNET_CRYPTO_ecdsa_public_key_from_string (zonestr,
+                                                              strlen (zonestr),
+                                                              &pkey))
+              {
+                GNUNET_log_config_invalid (GNUNET_ERROR_TYPE_ERROR,
+                                           "gns",
+                                           dot_tld,
+                                           _("Expected a base32-encoded public zone key\n"));
+                GNUNET_free (zonestr);
+                GNUNET_free (dot_tld);
+                signal_socks_failure (s5r,
+                                      SOCKS5_STATUS_GENERAL_FAILURE);
+                return;
+
+              }
+              GNUNET_free (zonestr);
+              GNUNET_free (dot_tld);
+              eat_tld (s5r->domain);
+              s5r->gns_lookup = GNUNET_GNS_lookup (gns_handle,
+                                                   s5r->domain,
+                                                   &pkey,
+                                                   GNUNET_DNSPARSER_TYPE_A,
+                                                   GNUNET_NO /* only cached */,
+                                                   &handle_gns_result,
+                                                   s5r);
+              break;
+            }
+
+            /* TLD matches against ego */
+            eat_tld (s5r->domain);
+
+            s5r->el = GNUNET_IDENTITY_ego_lookup (cfg,
+                                                  s5r->tld,
+                                                  &identity_zone_cb,
+                                                  s5r);
             break;
           }
         default:
@@ -3281,10 +3438,10 @@ main (int argc, char *const *argv)
   struct GNUNET_GETOPT_CommandLineOption options[] = {
 
     GNUNET_GETOPT_option_ulong ('p',
-                                    "port",
-                                    NULL,
-                                    gettext_noop ("listen on specified port (default: 7777)"),
-                                    &port),
+                                "port",
+                                NULL,
+                                gettext_noop ("listen on specified port (default: 7777)"),
+                                &port),
 
     GNUNET_GETOPT_option_string ('a',
                                  "authority",
