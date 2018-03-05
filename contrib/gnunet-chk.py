@@ -16,7 +16,7 @@
 # along with GNUnet; see the file COPYING.  If not, write to the
 # Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
 # Boston, MA 02110-1301, USA.
-# 
+#
 # File:    gnunet-chk.py
 # Brief:   Computes GNUNET style Content Hash Key for a given file
 # Author:  Sree Harsha Totakura
@@ -27,6 +27,7 @@ import os
 import getopt
 import sys
 from Crypto.Cipher import AES
+
 
 # Defaults
 DBLOCK_SIZE = (32 * 1024)   # Data block size
@@ -41,18 +42,18 @@ CHK_HASH_SIZE = 64              # SHA-512 hash = 512 bits = 64 bytes
 
 CHK_QUERY_SIZE = CHK_HASH_SIZE  # Again a SHA-512 hash
 
-GNUNET_FS_URI_PREFIX = "gnunet://fs/" # FS CHK URI prefix
+GNUNET_FS_URI_PREFIX = "gnunet://fs/"  # FS CHK URI prefix
 
-GNUNET_FS_URI_CHK_INFIX = "chk/" # FS CHK URI infix
+GNUNET_FS_URI_CHK_INFIX = "chk/"  # FS CHK URI infix
 
 
-def encode_data_to_string (data):
+def encode_data_to_string(data):
     """Returns an ASCII encoding of the given data block like
     GNUNET_STRINGS_data_to_string() function.
-    
+
     data: A bytearray representing the block of data which has to be encoded
     """
-    echart = "0123456789ABCDEFGHIJKLMNOPQRSTUV"    
+    echart = "0123456789ABCDEFGHIJKLMNOPQRSTUV"
     assert (None != data)
     assert (bytearray == type(data))
     size = len(data)
@@ -64,11 +65,11 @@ def encode_data_to_string (data):
     out = ""
     while (rpos < size) or (vbit > 0):
         if (rpos < size) and (vbit < 5):
-            bits = (bits << 8) | data[rpos] # eat 8 more bits
+            bits = (bits << 8) | data[rpos]  # eat 8 more bits
             rpos += 1
             vbit += 8
         if (vbit < 5):
-            bits <<= (5 - vbit) # zero-padding
+            bits <<= (5 - vbit)  # zero-padding
             assert (vbit == ((size * 8) % 5))
             vbit = 5
         out += echart[(bits >> (vbit - 5)) & 31]
@@ -78,13 +79,13 @@ def encode_data_to_string (data):
     return out;
 
 
-def sha512_hash (data):
-    """ Returns the sha512 hash of the given data. 
-    
+def sha512_hash(data):
+    """ Returns the sha512 hash of the given data.
+
     data: string to hash
     """
     hash_obj = sha512()
-    hash_obj.update (data)
+    hash_obj.update(data)
     return hash_obj.digest()
 
 
@@ -97,42 +98,44 @@ class AESKey:
     cipher = None               # The cipher object
     KEY_SIZE = 32               # AES 256-bit key = 32 bytes
     IV_SIZE = AES.block_size    # Initialization vector size (= AES block size)
-    
-    def __init__ (self, passphrase):
-        """Creates a new AES key. 
-        
+
+    def __init__(self, passphrase):
+        """Creates a new AES key.
+
         passphrase: string containing the passphrase to get the AES key and
-                      initialization vector
+        initialization vector
         """
-        passphrase = bytearray (passphrase);
-        self.key = bytearray (self.KEY_SIZE)
-        self.iv = bytearray (self.IV_SIZE)
-        if (len (passphrase) > self.KEY_SIZE):
+        passphrase = bytearray(passphrase);
+        self.key = bytearray(self.KEY_SIZE)
+        self.iv = bytearray(self.IV_SIZE)
+        if (len(passphrase) > self.KEY_SIZE):
             self.key = passphrase[:self.KEY_SIZE]
             passphrase = passphrase[self.KEY_SIZE:]
-            if (len (passphrase) > self.IV_SIZE):
+            if (len(passphrase) > self.IV_SIZE):
                 self.iv = passphrase[:self.IV_SIZE]
             else:
-                self.iv[0:len (passphrase)] = passphrase
+                self.iv[0:len(passphrase)] = passphrase
         else:
-            self.key[0:len (passphrase)] = passphrase
-        self.key = str (self.key)
-        self.iv = str (self.iv)
+            self.key[0:len(passphrase)] = passphrase
+        self.key = str(self.key)
+        self.iv = str(self.iv)
         assert (len(self.key) == self.KEY_SIZE)
         assert (len(self.iv) == self.IV_SIZE)
 
-def setup_aes_cipher_ (aes_key):
+
+def setup_aes_cipher_(aes_key):
     """Initializes the AES object with settings similar to those in GNUnet.
-    
+
     aes_key: the AESKey object
     Returns the newly initialized AES object
     """
-    return AES.new (aes_key.key, AES.MODE_CFB, aes_key.iv, segment_size=128)
+    return AES.new(aes_key.key, AES.MODE_CFB, aes_key.iv, segment_size=128)
 
-def aes_pad_ (data):
+
+def aes_pad_(data):
     """Adds padding to the data such that the size of the data is a multiple of
     16 bytes
-    
+
     data: the data string
     Returns a tuple:(pad_len, data). pad_len denotes the number of bytes added
     as padding; data is the new data string with padded bytes at the end
@@ -140,32 +143,34 @@ def aes_pad_ (data):
     pad_len = len(data) % 16
     if (0 != pad_len):
         pad_len = 16 - pad_len
-        pad_bytes = bytearray (15)
+        pad_bytes = bytearray(15)
         data += str(pad_bytes[:pad_len])
     return (pad_len, data)
 
-def aes_encrypt (aes_key, data):
+
+def aes_encrypt(aes_key, data):
     """Encrypts the given data using AES.
 
     aes_key: the AESKey object to use for AES encryption
     data: the data string to encrypt
     """
-    (pad_len, data) = aes_pad_ (data)
-    cipher = setup_aes_cipher_ (aes_key)
-    enc_data = cipher.encrypt (data)
+    (pad_len, data) = aes_pad_(data)
+    cipher = setup_aes_cipher_(aes_key)
+    enc_data = cipher.encrypt(data)
     if (0 != pad_len):
         enc_data = enc_data[:-pad_len]
     return enc_data
 
-def aes_decrypt (aes_key, data):
+
+def aes_decrypt(aes_key, data):
     """Decrypts the given data using AES
-    
+
     aes_key: the AESKey object to use for AES decryption
     data: the data string to decrypt
     """
-    (pad_len, data) = aes_pad_ (data)
-    cipher = setup_aes_cipher_ (aes_key)
-    ptext = cipher.decrypt (data)
+    (pad_len, data) = aes_pad_(data)
+    cipher = setup_aes_cipher_(aes_key)
+    ptext = cipher.decrypt(data)
     if (0 != pad_len):
         ptext = ptext[:-pad_len]
     return ptext
@@ -187,9 +192,9 @@ class Chk:
         self.fsize = size
 
     def uri(self):
-        sizestr = repr (self.fsize)
-        if isinstance (self.fsize, long):
-            sizestr = sizestr[:-1]            
+        sizestr = repr(self.fsize)
+        if isinstance(self.fsize, long):
+            sizestr = sizestr[:-1]
         return GNUNET_FS_URI_PREFIX + GNUNET_FS_URI_CHK_INFIX + \
             encode_data_to_string(bytearray(self.key)) + "." + \
             encode_data_to_string(bytearray(self.query)) + "." + \
@@ -198,7 +203,7 @@ class Chk:
 
 def compute_depth_(size):
     """Computes the depth of the hash tree.
-    
+
     size: the size of the file whose tree's depth has to be computed
     Returns the depth of the tree. Always > 0.
     """
@@ -210,6 +215,7 @@ def compute_depth_(size):
             return depth
         fl = fl * CHK_PER_INODE
     return depth
+
 
 def compute_tree_size_(depth):
     """Calculate how many bytes of payload a block tree of the given depth MAY
@@ -226,10 +232,11 @@ def compute_tree_size_(depth):
         rsize *= CHK_PER_INODE
     return rsize
 
+
 def compute_chk_offset_(depth, end_offset):
     """Compute the offset of the CHK for the current block in the IBlock
     above
-    
+
     depth: depth of the IBlock in the tree (aka overall number of tree levels
              minus depth); 0 == DBLOCK
     end_offset: current offset in the overall file, at the *beginning* of the
@@ -243,12 +250,13 @@ def compute_chk_offset_(depth, end_offset):
     ret = end_offset / bds
     return ret % CHK_PER_INODE
 
+
 def compute_iblock_size_(depth, offset):
     """Compute the size of the current IBLOCK.  The encoder is triggering the
     calculation of the size of an IBLOCK at the *end* (hence end_offset) of its
     construction.  The IBLOCK maybe a full or a partial IBLOCK, and this
     function is to calculate how long it should be.
-    
+
     depth: depth of the IBlock in the tree, 0 would be a DBLOCK, must be > 0
              (this function is for IBLOCKs only!)
     offset: current offset in the payload (!) of the overall file, must be > 0
@@ -257,7 +265,7 @@ def compute_iblock_size_(depth, offset):
     """
     assert (depth > 0)
     assert (offset > 0)
-    bds = compute_tree_size_ (depth)
+    bds = compute_tree_size_(depth)
     mod = offset % bds
     if mod is 0:
         ret = CHK_PER_INODE
@@ -278,46 +286,46 @@ def compute_rootchk(readin, size):
     """
     depth = compute_depth_(size);
     current_depth = 0
-    chks = [None] * (depth * CHK_PER_INODE) # list buffer
+    chks = [None] * (depth * CHK_PER_INODE)  # list buffer
     read_offset = 0
-    logging.debug("Begining to calculate tree hash with depth: "+ repr(depth))
+    logging.debug("Begining to calculate tree hash with depth: " + repr(depth))
     while True:
         if (depth == current_depth):
             off = CHK_PER_INODE * (depth - 1)
             assert (chks[off] is not None)
-            logging.debug("Encoding done, reading CHK `"+ chks[off].query + \
-                              "' from "+ repr(off) +"\n")
+            logging.debug("Encoding done, reading CHK `" + chks[off].query + \
+                              "' from " + repr(off) + "\n")
             uri_chk = chks[off]
             assert (size == read_offset)
-            uri_chk.setSize (size)
+            uri_chk.setSize(size)
             return uri_chk
         if (0 == current_depth):
             pt_size = min(DBLOCK_SIZE, size - read_offset);
             try:
                 pt_block = readin.read(pt_size)
             except IOError:
-                logging.warning ("Error reading input file stream")
+                logging.warning("Error reading input file stream")
                 return None
         else:
             pt_elements = compute_iblock_size_(current_depth, read_offset)
             pt_block = ""
             pt_block = \
-                reduce ((lambda ba, chk:
-                             ba + (chk.key + chk.query)),
-                        chks[(current_depth - 1) * CHK_PER_INODE:][:pt_elements],
-                        pt_block)
+                reduce((lambda ba, chk:
+                        ba + (chk.key + chk.query)),
+                       chks[(current_depth - 1) * CHK_PER_INODE:][:pt_elements],
+                       pt_block)
             pt_size = pt_elements * (CHK_HASH_SIZE + CHK_QUERY_SIZE)
         assert (len(pt_block) == pt_size)
         assert (pt_size <= DBLOCK_SIZE)
-        off = compute_chk_offset_ (current_depth, read_offset)
-        logging.debug ("Encoding data at offset "+ repr(read_offset) + \
-                           " and depth "+ repr(current_depth) +" with block " \
-                           "size "+ repr(pt_size) +" and target CHK offset "+ \
-                           repr(current_depth * CHK_PER_INODE))
-        pt_hash = sha512_hash (pt_block)
-        pt_aes_key = AESKey (pt_hash)
-        pt_enc = aes_encrypt (pt_aes_key, pt_block)
-        pt_enc_hash = sha512_hash (pt_enc)
+        off = compute_chk_offset_(current_depth, read_offset)
+        logging.debug("Encoding data at offset " + repr(read_offset) + \
+                      " and depth " + repr(current_depth) + " with block " \
+                      "size " + repr(pt_size) + " and target CHK offset " + \
+                      repr(current_depth * CHK_PER_INODE))
+        pt_hash = sha512_hash(pt_block)
+        pt_aes_key = AESKey(pt_hash)
+        pt_enc = aes_encrypt(pt_aes_key, pt_block)
+        pt_enc_hash = sha512_hash(pt_enc)
         chk = Chk(pt_hash, pt_enc_hash)
         chks[(current_depth * CHK_PER_INODE) + off] = chk
         if (0 == current_depth):
@@ -332,44 +340,43 @@ def compute_rootchk(readin, size):
                 current_depth = 0
 
 
-def chkuri_from_path (path):
+def chkuri_from_path(path):
     """Returns the CHK URI of the file at the given path.
-    
+
     path: the path of the file whose CHK has to be calculated
     """
-    size = os.path.getsize (path)
-    readin = open (path, "rb")
-    chk = compute_rootchk (readin, size)
+    size = os.path.getsize(path)
+    readin = open(path, "rb")
+    chk = compute_rootchk(readin, size)
     readin.close()
     return chk.uri()
 
-def usage ():
+
+def usage():
     """Prints help about using this script."""
-    print """
+    print("""
 Usage: gnunet-chk.py [options] file
 Prints the Content Hash Key of given file in GNUNET-style URI.
 
 Options:
     -h, --help                : prints this message
-"""
+""")
 
 
 if '__main__' == __name__:
     try:
-        opts, args = getopt.getopt(sys.argv[1:], 
-                                   "h", 
-                                   ["help"])
+        opts, args = getopt.getopt(sys.argv[1:], "h", ["help"])
     except getopt.GetoptError, err:
-        print err
-        print "Exception occured"
+        print(err)
+        print("Exception occured")
         usage()
         sys.exit(2)
     for option, value in opts:
-        if option in ("-h", "--help"):
+        if option in("-h", "--help"):
             usage()
             sys.exit(0)
     if len(args) != 1:
-        print "Incorrect number of arguments passed"
+        print("Incorrect number of arguments passed")
         usage()
         sys.exit(1)
-    print chkuri_from_path (args[0])
+    print chkuri_from_path(args[0])
