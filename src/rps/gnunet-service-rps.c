@@ -1072,6 +1072,7 @@ Peers_terminate ()
         "Iteration destroying peers was aborted.\n");
   }
   GNUNET_CONTAINER_multipeermap_destroy (peer_map);
+  peer_map = NULL;
   store_valid_peers ();
   GNUNET_free (filename_valid_peers);
   GNUNET_CONTAINER_multipeermap_destroy (valid_peers);
@@ -1439,7 +1440,13 @@ Peers_get_channel_flag (const struct GNUNET_PeerIdentity *peer,
 int
 Peers_check_peer_known (const struct GNUNET_PeerIdentity *peer)
 {
-  return GNUNET_CONTAINER_multipeermap_contains (peer_map, peer);
+  if (NULL != peer_map)
+  {
+    return GNUNET_CONTAINER_multipeermap_contains (peer_map, peer);
+  } else
+  {
+    return GNUNET_NO;
+  }
 }
 
 
@@ -1514,6 +1521,7 @@ Peers_handle_inbound_channel (void *cls,
                               const struct GNUNET_PeerIdentity *initiator)
 {
   struct PeerContext *peer_ctx;
+  struct GNUNET_PeerIdentity *ctx_peer;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
       "New channel was established to us (Peer %s).\n",
@@ -1522,6 +1530,8 @@ Peers_handle_inbound_channel (void *cls,
   /* Make sure we 'know' about this peer */
   peer_ctx = create_or_get_peer_ctx (initiator);
   set_peer_live (peer_ctx);
+  ctx_peer = GNUNET_new (struct GNUNET_PeerIdentity);
+  *ctx_peer = *initiator;
   /* We only accept one incoming channel per peer */
   if (GNUNET_YES == Peers_check_peer_send_intention (initiator))
   {
@@ -1531,10 +1541,10 @@ Peers_handle_inbound_channel (void *cls,
     GNUNET_CADET_channel_destroy (peer_ctx->recv_channel);
     peer_ctx->recv_channel = channel;
     /* return the channel context */
-    return &peer_ctx->peer_id;
+    return ctx_peer;
   }
   peer_ctx->recv_channel = channel;
-  return &peer_ctx->peer_id;
+  return ctx_peer;
 }
 
 
@@ -1629,6 +1639,7 @@ Peers_destroy_sending_channel (const struct GNUNET_PeerIdentity *peer)
     set_channel_flag (peer_ctx->send_channel_flags, Peers_CHANNEL_CLEAN);
     GNUNET_CADET_channel_destroy (peer_ctx->send_channel);
     peer_ctx->send_channel = NULL;
+    peer_ctx->mq = NULL;
     (void) Peers_check_connected (peer);
     return GNUNET_YES;
   }
@@ -2615,6 +2626,7 @@ cleanup_destroyed_channel (void *cls,
     to_file (file_name_view_log,
              "-%s\t(cleanup channel, ourself)",
              GNUNET_i2s_full (peer));
+    //GNUNET_free (peer);
     return;
   }
 
@@ -2630,6 +2642,7 @@ cleanup_destroyed_channel (void *cls,
     { /* We are about to clean the sending channel. Clean the respective
        * context */
       Peers_cleanup_destroyed_channel (cls, channel);
+      //GNUNET_free (peer);
       return;
     }
     else
@@ -2637,6 +2650,7 @@ cleanup_destroyed_channel (void *cls,
        * open. It probably went down. Remove it from our knowledge. */
       Peers_cleanup_destroyed_channel (cls, channel);
       remove_peer (peer);
+      //GNUNET_free (peer);
       return;
     }
   }
@@ -2653,6 +2667,7 @@ cleanup_destroyed_channel (void *cls,
     { /* Other peer tried to establish a channel to us twice. We do not accept
        * that. Clean the context. */
       Peers_cleanup_destroyed_channel (cls, channel);
+      //GNUNET_free (peer);
       return;
     }
     else
@@ -2660,6 +2675,7 @@ cleanup_destroyed_channel (void *cls,
        * it. */
       Peers_cleanup_destroyed_channel (cls, channel);
       clean_peer (peer);
+      //GNUNET_free (peer);
       return;
     }
   }
@@ -2668,6 +2684,7 @@ cleanup_destroyed_channel (void *cls,
     LOG (GNUNET_ERROR_TYPE_WARNING,
         "Destroyed channel is neither sending nor receiving channel\n");
   }
+  //GNUNET_free (peer);
 }
 
 /***********************************************************************
