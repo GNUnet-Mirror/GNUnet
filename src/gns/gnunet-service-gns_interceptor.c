@@ -27,6 +27,7 @@
 #include "gnunet_util_lib.h"
 #include "gnunet_dns_service.h"
 #include "gnunet_dnsparser_lib.h"
+#include "gnunet-service-gns.h"
 #include "gnunet-service-gns_resolver.h"
 #include "gnunet-service-gns_interceptor.h"
 #include "gns.h"
@@ -71,11 +72,6 @@ struct InterceptLookupHandle
  * Our handle to the DNS handler library
  */
 static struct GNUNET_DNS_Handle *dns_handle;
-
-/**
- * Key of the zone we start lookups in.
- */
-static struct GNUNET_CRYPTO_EcdsaPublicKey zone;
 
 /**
  * Head of the DLL.
@@ -298,6 +294,7 @@ handle_dns_request (void *cls,
 {
   struct GNUNET_DNSPARSER_Packet *p;
   struct InterceptLookupHandle *ilh;
+  struct GNUNET_CRYPTO_EcdsaPublicKey zone;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Hijacked a DNS request. Processing.\n");
@@ -321,9 +318,9 @@ handle_dns_request (void *cls,
   }
 
   /* Check for GNS TLDs. */
-  if ( (GNUNET_YES == is_gnu_tld (p->queries[0].name)) ||
-       (GNUNET_YES == is_zkey_tld (p->queries[0].name)) ||
-       (0 == strcmp (p->queries[0].name, GNUNET_GNS_TLD)) )
+  if (GNUNET_YES ==
+      GNS_find_tld (GNS_get_tld (p->queries[0].name),
+                    &zone))
   {
     /* Start resolution in GNS */
     ilh = GNUNET_new (struct InterceptLookupHandle);
@@ -351,17 +348,14 @@ handle_dns_request (void *cls,
 /**
  * Initialized the interceptor
  *
- * @param gnu_zone the zone to work in
  * @param c the configuration
  * @return #GNUNET_OK on success
  */
 int
-GNS_interceptor_init (const struct GNUNET_CRYPTO_EcdsaPublicKey *gnu_zone,
-		      const struct GNUNET_CONFIGURATION_Handle *c)
+GNS_interceptor_init (const struct GNUNET_CONFIGURATION_Handle *c)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 	      "DNS hijacking enabled. Connecting to DNS service.\n");
-  zone = *gnu_zone;
   dns_handle = GNUNET_DNS_connect (c,
 				   GNUNET_DNS_FLAG_PRE_RESOLUTION,
 				   &handle_dns_request,
@@ -386,7 +380,9 @@ GNS_interceptor_done ()
 
   while (NULL != (ilh = ilh_head))
   {
-    GNUNET_CONTAINER_DLL_remove (ilh_head, ilh_tail, ilh);
+    GNUNET_CONTAINER_DLL_remove (ilh_head,
+                                 ilh_tail,
+                                 ilh);
     GNS_resolver_lookup_cancel (ilh->lookup);
     GNUNET_DNS_request_drop (ilh->request_handle);
     GNUNET_DNSPARSER_free_packet (ilh->packet);

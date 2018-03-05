@@ -22,9 +22,6 @@ noinst_SCRIPTS = \
  gnunet_pyexpect.py \
  gnunet_janitor.py
 
-bin_SCRIPTS = \
- gnunet-gns-import.sh
-
 dist_pkgdata_DATA = \
  gns-bcd.html \
  gns-bcd.tex \
@@ -136,4 +133,3 @@ dist-hook:
 	    fi \
 	  done \
 	fi
-

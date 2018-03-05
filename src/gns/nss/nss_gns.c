@@ -42,35 +42,6 @@
 
 
 /**
- * function to check if name ends with a specific suffix
- *
- * @param name the name to check
- * @param suffix the suffix to check for
- * @return 1 if true
- */
-static int ends_with(const char *name, const char* suffix) {
-    size_t ln, ls;
-    assert(name);
-    assert(suffix);
-
-    if ((ls = strlen(suffix)) > (ln = strlen(name)))
-        return 0;
-
-    return strcasecmp(name+ln-ls, suffix) == 0;
-}
-
-
-/**
- * Check if name is inside .gnu or .zkey TLD
- *
- * @param name name to check
- * @return 1 if true
- */
-static int verify_name_allowed (const char *name) {
-  return ends_with(name, ".gnu") || ends_with(name, ".zkey");
-}
-
-/**
  * The gethostbyname hook executed by nsswitch
  *
  * @param name the name to resolve
@@ -82,7 +53,8 @@ static int verify_name_allowed (const char *name) {
  * @param h_errnop idk
  * @return a nss_status code
  */
-enum nss_status _nss_gns_gethostbyname2_r(
+enum nss_status
+_nss_gns_gethostbyname2_r(
     const char *name,
     int af,
     struct hostent * result,
@@ -95,7 +67,6 @@ enum nss_status _nss_gns_gethostbyname2_r(
     enum nss_status status = NSS_STATUS_UNAVAIL;
     int i;
     size_t address_length, l, idx, astart;
-    int name_allowed;
 
     if (af == AF_UNSPEC)
 #ifdef NSS_IPV6_ONLY
@@ -133,28 +104,25 @@ enum nss_status _nss_gns_gethostbyname2_r(
     u.count = 0;
     u.data_len = 0;
 
-    name_allowed = verify_name_allowed(name);
-
-    if (name_allowed) {
-
-        if (!gns_resolve_name(af, name, &u) == 0)
-        {
-          status = NSS_STATUS_NOTFOUND;
-          goto finish;
-        }
-    }
-    else
-    {
-      status = NSS_STATUS_UNAVAIL;
-      goto finish;
-    }
-
-    if (u.count == 0) {
+    i = gns_resolve_name(af, name, &u);
+    if (-3 == i)
+      {
+        status = NSS_STATUS_NOTFOUND;
+        goto finish;
+      }
+    if (-2 == i)
+      {
+        status = NSS_STATUS_UNAVAIL;
+        goto finish;
+      }
+    if ( (-1 == i) ||
+         (u.count == 0) )
+      {
         *errnop = ETIMEDOUT;
         *h_errnop = HOST_NOT_FOUND;
         status = NSS_STATUS_NOTFOUND;
         goto finish;
-    }
+      }
 
 
     /* Alias names */
@@ -212,7 +180,8 @@ finish:
  * @param h_errnop idk
  * @return a nss_status code
  */
-enum nss_status _nss_gns_gethostbyname_r (
+enum nss_status
+_nss_gns_gethostbyname_r (
     const char *name,
     struct hostent *result,
     char *buffer,
@@ -244,7 +213,8 @@ enum nss_status _nss_gns_gethostbyname_r (
  * @param h_errnop idk
  * @return NSS_STATUS_UNAVAIL
  */
-enum nss_status _nss_gns_gethostbyaddr_r(
+enum nss_status
+_nss_gns_gethostbyaddr_r(
     const void* addr,
     int len,
     int af,
@@ -253,10 +223,9 @@ enum nss_status _nss_gns_gethostbyaddr_r(
     size_t buflen,
     int *errnop,
     int *h_errnop) {
-  
+
     *errnop = EINVAL;
     *h_errnop = NO_RECOVERY;
     //NOTE we allow to leak this into DNS so no NOTFOUND
     return NSS_STATUS_UNAVAIL;
 }
-

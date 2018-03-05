@@ -50,7 +50,7 @@ struct NamecacheClient
    * The message queue to talk to @e client.
    */
   struct GNUNET_MQ_Handle *mq;
-  
+
 };
 
 
@@ -208,7 +208,7 @@ handle_lookup_block (void *cls,
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Received NAMECACHE_LOOKUP_BLOCK message\n");
-  
+
   lnc.request_id = ntohl (ln_msg->gns_header.r_id);
   lnc.nc = nc;
   if (GNUNET_SYSERR ==
@@ -306,7 +306,7 @@ handle_block_cache (void *cls,
  * @param service the initialized service
  */
 static void
-run (void *cls, 
+run (void *cls,
      const struct GNUNET_CONFIGURATION_Handle *cfg,
      struct GNUNET_SERVICE_Handle *service)
 {
@@ -319,8 +319,8 @@ run (void *cls,
   /* Loading database plugin */
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_string (cfg,
-					     "namecache",
-					     "database",
+                                             "namecache",
+                                             "database",
                                              &database))
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 		"No database backend configured\n");

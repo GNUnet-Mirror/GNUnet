@@ -105,7 +105,7 @@ struct NamestoreClient
    * Message queue for transmission to @e client
    */
   struct GNUNET_MQ_Handle *mq;
-  
+
   /**
    * Head of the DLL of
    * Zone iteration operations in progress initiated by this client
@@ -268,7 +268,7 @@ cleanup_task (void *cls)
   }
   GNUNET_NAMECACHE_disconnect (namecache);
   namecache = NULL;
-  GNUNET_break (NULL == GNUNET_PLUGIN_unload (db_lib_name, 
+  GNUNET_break (NULL == GNUNET_PLUGIN_unload (db_lib_name,
 					      GSN_database));
   GNUNET_free (db_lib_name);
   db_lib_name = NULL;
@@ -1011,7 +1011,8 @@ handle_record_store (void *cls,
       struct GNUNET_GNSRECORD_Data rd_clean[rd_count];
       unsigned int rd_clean_off;
 
-      /* remove "NICK" records, unless this is for the "+" label */
+      /* remove "NICK" records, unless this is for the
+         #GNUNET_GNS_MASTERZONE_STR label */
       rd_clean_off = 0;
       for (unsigned int i=0;i<rd_count;i++)
       {
@@ -1669,23 +1670,23 @@ GNUNET_SERVICE_MAIN
 			  GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_TO_NAME,
 			  struct ZoneToNameMessage,
 			  NULL),
- GNUNET_MQ_hd_fixed_size (iteration_start, 
+ GNUNET_MQ_hd_fixed_size (iteration_start,
 			  GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_ITERATION_START,
 			  struct ZoneIterationStartMessage,
 			  NULL),
- GNUNET_MQ_hd_fixed_size (iteration_next, 
+ GNUNET_MQ_hd_fixed_size (iteration_next,
 			  GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_ITERATION_NEXT,
 			  struct ZoneIterationNextMessage,
 			  NULL),
- GNUNET_MQ_hd_fixed_size (iteration_stop, 
+ GNUNET_MQ_hd_fixed_size (iteration_stop,
 			  GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_ITERATION_STOP,
 			  struct ZoneIterationStopMessage,
 			  NULL),
- GNUNET_MQ_hd_fixed_size (monitor_start, 
+ GNUNET_MQ_hd_fixed_size (monitor_start,
 			  GNUNET_MESSAGE_TYPE_NAMESTORE_MONITOR_START,
 			  struct ZoneMonitorStartMessage,
 			  NULL),
  GNUNET_MQ_handler_end ());
-			  
+
 
 /* end of gnunet-service-namestore.c */

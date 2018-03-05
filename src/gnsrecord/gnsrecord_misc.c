@@ -241,7 +241,7 @@ GNUNET_GNSRECORD_pkey_to_zkey (const struct GNUNET_CRYPTO_EcdsaPublicKey *pkey)
   pkeys = GNUNET_CRYPTO_ecdsa_public_key_to_string (pkey);
   GNUNET_snprintf (ret,
 		   sizeof (ret),
-		   "%s.zkey",
+		   "%s",
 		   pkeys);
   GNUNET_free (pkeys);
   return ret;
@@ -249,10 +249,10 @@ GNUNET_GNSRECORD_pkey_to_zkey (const struct GNUNET_CRYPTO_EcdsaPublicKey *pkey)
 
 
 /**
- * Convert an absolute domain name in the ".zkey" pTLD to the
+ * Convert an absolute domain name to the
  * respective public key.
  *
- * @param zkey string "X.zkey" where X is the coordinates of the public
+ * @param zkey string encoding the coordinates of the public
  *         key in an encoding suitable for DNS labels.
  * @param pkey set to a public key on the eliptic curve
  * @return #GNUNET_SYSERR if @a zkey has the wrong syntax
@@ -261,29 +261,12 @@ int
 GNUNET_GNSRECORD_zkey_to_pkey (const char *zkey,
 			       struct GNUNET_CRYPTO_EcdsaPublicKey *pkey)
 {
-  char *cpy;
-  char *dot;
-  const char *x;
-
-  cpy = GNUNET_strdup (zkey);
-  x = cpy;
-  if (NULL == (dot = strchr (x, (int) '.')))
-    goto error;
-  *dot = '\0';
-  if (0 != strcasecmp (dot + 1,
-		       "zkey"))
-    goto error;
-
   if (GNUNET_OK !=
-      GNUNET_CRYPTO_ecdsa_public_key_from_string (x,
-						strlen (x),
-						pkey))
-    goto error;
-  GNUNET_free (cpy);
+      GNUNET_CRYPTO_ecdsa_public_key_from_string (zkey,
+                                                  strlen (zkey),
+                                                  pkey))
+    return GNUNET_SYSERR;
   return GNUNET_OK;
- error:
-  GNUNET_free (cpy);
-  return GNUNET_SYSERR;
 }
 
 

@@ -520,8 +520,8 @@ GNUNET_SCHEDULER_shutdown ()
 {
   struct GNUNET_SCHEDULER_Task *pos;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "GNUNET_SCHEDULER_shutdown\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "GNUNET_SCHEDULER_shutdown\n");
   if (NULL != install_parent_control_task)
   {
     GNUNET_SCHEDULER_cancel (install_parent_control_task);
@@ -1953,7 +1953,7 @@ GNUNET_SCHEDULER_task_ready (struct GNUNET_SCHEDULER_Task *task,
 /**
  * Function called by external event loop implementations to tell the
  * scheduler to run some of the tasks that are ready. Must be called
- * only after #GNUNET_SCHEDULER_driver_init has been called and before 
+ * only after #GNUNET_SCHEDULER_driver_init has been called and before
  * #GNUNET_SCHEDULER_driver_done is called.
  * This function may return even though there are tasks left to run
  * just to give other tasks a chance as well.  If we return #GNUNET_YES,
@@ -2023,9 +2023,9 @@ GNUNET_SCHEDULER_do_work (struct GNUNET_SCHEDULER_Handle *sh)
        * waiting for the timeout, so we handle this gracefully. It might
        * also be a programming error in the driver though.
        */
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                  "GNUNET_SCHEDULER_do_work did not find any ready "
-                  "tasks and timeout has not been reached yet.");
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
+           "GNUNET_SCHEDULER_do_work did not find any ready "
+           "tasks and timeout has not been reached yet.\n");
       return GNUNET_NO;
     }
     /**
@@ -2128,7 +2128,7 @@ GNUNET_SCHEDULER_do_work (struct GNUNET_SCHEDULER_Handle *sh)
  * Function called by external event loop implementations to initialize
  * the scheduler. An external implementation has to provide @a driver
  * which contains callbacks for the scheduler (see definition of struct
- * #GNUNET_SCHEDULER_Driver). The callbacks are used to instruct the 
+ * #GNUNET_SCHEDULER_Driver). The callbacks are used to instruct the
  * external implementation to watch for events. If it detects any of
  * those events it is expected to call #GNUNET_SCHEDULER_do_work to let
  * the scheduler handle it. If an event is related to a specific task
@@ -2137,11 +2137,11 @@ GNUNET_SCHEDULER_do_work (struct GNUNET_SCHEDULER_Handle *sh)
  * before by calling #GNUNET_SCHEDULER_task_ready.
 
  * This function has to be called before any tasks are scheduled and
- * before GNUNET_SCHEDULER_do_work is called for the first time. It 
+ * before GNUNET_SCHEDULER_do_work is called for the first time. It
  * allocates resources that have to be freed again by calling
  * #GNUNET_SCHEDULER_driver_done.
  *
- * This function installs the same signal handlers as 
+ * This function installs the same signal handlers as
  * #GNUNET_SCHEDULER_run. This means SIGTERM (and other similar signals)
  * will induce a call to #GNUNET_SCHEDULER_shutdown during the next
  * call to #GNUNET_SCHEDULER_do_work. As a result, SIGTERM causes all
@@ -2228,7 +2228,7 @@ GNUNET_SCHEDULER_driver_init (const struct GNUNET_SCHEDULER_Driver *driver)
  * by external event loop implementations after the scheduler has
  * shut down. This is the case if both of the following conditions
  * are met:
- * 
+ *
  * - all tasks the scheduler has added through the driver's add
  *   callback have been removed again through the driver's del
  *   callback
@@ -2376,8 +2376,8 @@ select_loop (struct GNUNET_SCHEDULER_Handle *sh, struct DriverContext *context)
     }
     if (GNUNET_YES == GNUNET_SCHEDULER_do_work (sh))
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "scheduler has more tasks ready!\n");
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
+           "scheduler has more tasks ready!\n");
     }
   }
   GNUNET_NETWORK_fdset_destroy (rs);
@@ -2451,7 +2451,7 @@ select_set_wakeup (void *cls,
                    struct GNUNET_TIME_Absolute dt)
 {
   struct DriverContext *context = cls;
-  
+
   GNUNET_assert (NULL != context);
   context->timeout = dt;
 }

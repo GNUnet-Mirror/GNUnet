@@ -16,10 +16,19 @@ UNIX_MATCH_GID = YES
 # How many queries is GNS allowed to perform in the background at the same time?
 MAX_PARALLEL_BACKGROUND_QUERIES = 1000
 
+# Should we use the DNS interception mechanism?  If set to YES
+# we will ask gnunet-service-dns to pass DNS queries to us. Otherwise,
+# we only answer GNS queries via the API (which itself may be
+# called via NSS or other mechanisms).
+INTERCEPT_DNS = YES
+
 # Using caching or always ask DHT
 # USE_CACHE = YES
 
 # PREFIX = valgrind --leak-check=full --track-origins=yes
+
+# Zones
+.pin = DWJASSPE33MRN8T6Q0PENRNBTQY0E6ZYGTRCDP5DGPBF2CRJMJEG
 
 
 [gns-proxy]

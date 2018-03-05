@@ -86,8 +86,10 @@ database_setup (struct Plugin *plugin)
   struct GNUNET_DISK_FileHandle *fh;
 
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_filename (plugin->cfg, "namecache-flat",
-                                               "FILENAME", &afsdir))
+      GNUNET_CONFIGURATION_get_value_filename (plugin->cfg,
+                                               "namecache-flat",
+                                               "FILENAME",
+                                               &afsdir))
   {
     GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR,
                                "namecache-flat", "FILENAME");

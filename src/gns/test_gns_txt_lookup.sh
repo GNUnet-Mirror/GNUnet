@@ -16,12 +16,14 @@ fi
 rm -rf /tmp/test-gnunet-gns-peer-1/
 which timeout &> /dev/null && DO_TIMEOUT="timeout 30"
 TEST_TXT="GNS powered txt record data"
+MY_EGO="myego"
+LABEL="testtxt"
 gnunet-arm -s -c test_gns_lookup.conf
-gnunet-identity -C testego -c test_gns_lookup.conf
-gnunet-namestore -p -z testego -a -n testtxt -t TXT -V "$TEST_TXT" -e never -c test_gns_lookup.conf
-RES_TXT=`$DO_TIMEOUT gnunet-gns --raw -z testego -u testtxt.gnu -t TXT -c test_gns_lookup.conf`
-gnunet-namestore -z testego -d -n testtxt -t TXT -V "$TEST_TXT" -e never -c test_gns_lookup.conf
-gnunet-identity -D testego -c test_gns_lookup.conf
+gnunet-identity -C $MY_EGO -c test_gns_lookup.conf
+gnunet-namestore -p -z $MY_EGO -a -n $LABEL -t TXT -V "$TEST_TXT" -e never -c test_gns_lookup.conf
+RES_TXT=`$DO_TIMEOUT gnunet-gns --raw -u $LABEL.$MY_EGO -t TXT -c test_gns_lookup.conf`
+gnunet-namestore -z $MY_EGO -d -n $LABEL -t TXT -V "$TEST_TXT" -e never -c test_gns_lookup.conf
+gnunet-identity -D $MY_EGO -c test_gns_lookup.conf
 gnunet-arm -e -c test_gns_lookup.conf
 rm -rf /tmp/test-gnunet-gns-peer-1/
 

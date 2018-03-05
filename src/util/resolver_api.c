@@ -500,11 +500,13 @@ handle_response (void *cls,
           GNUNET_free (nret);
         }
         /* finally, make termination call */
-        rh->name_callback (rh->cls,
-                           NULL);
+        if (GNUNET_SYSERR != rh->was_transmitted)
+          rh->name_callback (rh->cls,
+                             NULL);
       }
-      if (NULL != rh->addr_callback)
-        rh->addr_callback (rh->cls,
+      if ( (NULL != rh->addr_callback) &&
+           (GNUNET_SYSERR != rh->was_transmitted) )
+          rh->addr_callback (rh->cls,
                            NULL,
                            0);
     }
@@ -637,6 +639,7 @@ numeric_resolution (void *cls)
                        (const struct sockaddr *) &v4,
                        sizeof (v4));
     if ( (rh->af == AF_UNSPEC) &&
+         (GNUNET_SYSERR != rh->was_transmitted) &&
 	 (1 == inet_pton (AF_INET6,
 			  hostname,
 			  &v6.sin6_addr)) )
@@ -646,9 +649,10 @@ numeric_resolution (void *cls)
                          (const struct sockaddr *) &v6,
                          sizeof (v6));
     }
-    rh->addr_callback (rh->cls,
-                       NULL,
-                       0);
+    if (GNUNET_SYSERR != rh->was_transmitted)
+      rh->addr_callback (rh->cls,
+                         NULL,
+                         0);
     GNUNET_free (rh);
     return;
   }
@@ -661,9 +665,10 @@ numeric_resolution (void *cls)
     rh->addr_callback (rh->cls,
                        (const struct sockaddr *) &v6,
                        sizeof (v6));
-    rh->addr_callback (rh->cls,
-                       NULL,
-                       0);
+    if (GNUNET_SYSERR != rh->was_transmitted)
+      rh->addr_callback (rh->cls,
+                         NULL,
+                         0);
     GNUNET_free (rh);
     return;
   }
@@ -725,9 +730,10 @@ loopback_resolution (void *cls)
     GNUNET_break (0);
     break;
   }
-  rh->addr_callback (rh->cls,
-                     NULL,
-                     0);
+  if (GNUNET_SYSERR != rh->was_transmitted)
+    rh->addr_callback (rh->cls,
+                       NULL,
+                       0);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Finished resolving hostname `%s'.\n",
        (const char *) &rh[1]);

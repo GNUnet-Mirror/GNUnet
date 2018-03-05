@@ -23,9 +23,9 @@
  * @author Martin Schanzenbach
  * @author Christian Grothoff
  */
-
 #ifndef GNUNET_SERVICE_GNS_H
 #define GNUNET_SERVICE_GNS_H
+
 
 /**
  * Find GNS zone belonging to TLD @a tld.
@@ -36,6 +36,18 @@
  */
 int
 GNS_find_tld (const char *tld_str,
-              struct GNUNET_CRYPTO_EddsaPublicKey *pkey);
+              struct GNUNET_CRYPTO_EcdsaPublicKey *pkey);
+
+
+/**
+ * Obtain the TLD of the given @a name.
+ *
+ * @param name a name
+ * @return the part of @a name after the last ".",
+ *         or @a name if @a name does not contain a "."
+ */
+const char *
+GNS_get_tld (const char *name);
+
 
 #endif
