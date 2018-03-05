@@ -111,7 +111,6 @@ gnunet_gns_SOURCES = \
 gnunet_gns_LDADD = \
   libgnunetgns.la \
   $(top_builddir)/src/gnsrecord/libgnunetgnsrecord.la \
-  $(top_builddir)/src/identity/libgnunetidentity.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(GN_LIBINTL)
 
@@ -214,9 +213,11 @@ libw32nsp_la_LDFLAGS = \
   -no-undefined -static-libgcc
 
 libgnunetgns_la_SOURCES = \
- gns_api.c gns.h
+ gns_api.c gns_api.h \
+ gns_tld_api.c gns.h
 libgnunetgns_la_LIBADD = \
  $(top_builddir)/src/util/libgnunetutil.la $(XLIB) \
+ $(top_builddir)/src/identity/libgnunetidentity.la \
  $(top_builddir)/src/gnsrecord/libgnunetgnsrecord.la
 libgnunetgns_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS)

@@ -25,7 +25,6 @@
 #include "platform.h"
 #include <gnunet_util_lib.h>
 #include <gnunet_dnsparser_lib.h>
-#include <gnunet_identity_service.h>
 #include <gnunet_gnsrecord_lib.h>
 #include <gnunet_namestore_service.h>
 #include <gnunet_gns_service.h>
@@ -39,11 +38,6 @@ static const struct GNUNET_CONFIGURATION_Handle *cfg;
  * Handle to GNS service.
  */
 static struct GNUNET_GNS_Handle *gns;
-
-/**
- * Desired timeout for the lookup (default is no timeout).
- */
-static struct GNUNET_TIME_Relative timeout;
 
 /**
  * GNS name to lookup. (-u option)
@@ -66,41 +60,20 @@ static enum GNUNET_GNS_LocalOptions local_options;
 static int raw;
 
 /**
- * Requested record type.
+ * Desired record type.
  */
-static int rtype;
+static uint32_t rtype;
 
 /**
  * Handle to lookup request
  */
-static struct GNUNET_GNS_LookupRequest *lookup_request;
-
-/**
- * Lookup an ego with the identity service.
- */
-static struct GNUNET_IDENTITY_EgoLookup *el;
-
-/**
- * Handle for identity service.
- */
-static struct GNUNET_IDENTITY_Handle *identity;
-
-/**
- * Active operation on identity service.
- */
-static struct GNUNET_IDENTITY_Operation *id_op;
-
-/**
- * Task scheduled to handle timeout.
- */
-static struct GNUNET_SCHEDULER_Task *tt;
+static struct GNUNET_GNS_LookupWithTldRequest *lr;
 
 /**
  * Global return value.
  * 0 on success (default),
  * 1 on internal failures, 2 on launch failure,
  * 3 if the name is not a GNS-supported TLD,
- * 4 on timeout
  */
 static int global_ret;
 
@@ -113,50 +86,17 @@ static int global_ret;
 static void
 do_shutdown (void *cls)
 {
-  if (NULL != el)
+  (void) cls;
+  if (NULL != lr)
   {
-    GNUNET_IDENTITY_ego_lookup_cancel (el);
-    el = NULL;
-  }
-  if (NULL != id_op)
-  {
-    GNUNET_IDENTITY_cancel (id_op);
-    id_op = NULL;
-  }
-  if (NULL != lookup_request)
-  {
-    GNUNET_GNS_lookup_cancel (lookup_request);
-    lookup_request = NULL;
-  }
-  if (NULL != identity)
-  {
-    GNUNET_IDENTITY_disconnect (identity);
-    identity = NULL;
+    GNUNET_GNS_lookup_with_tld_cancel (lr);
+    lr = NULL;
   }
   if (NULL != gns)
   {
     GNUNET_GNS_disconnect (gns);
     gns = NULL;
   }
-  if (NULL != tt)
-  {
-    GNUNET_SCHEDULER_cancel (tt);
-    tt = NULL;
-  }
-}
-
-
-/**
- * Task run on timeout. Triggers shutdown.
- *
- * @param cls unused
- */
-static void
-do_timeout (void *cls)
-{
-  tt = NULL;
-  GNUNET_SCHEDULER_shutdown ();
-  global_ret = 4;
 }
 
 
@@ -164,11 +104,13 @@ do_timeout (void *cls)
  * Function called with the result of a GNS lookup.
  *
  * @param cls the 'const char *' name that was resolved
+ * @param was_gns #GNUNET_NO if TLD did not indicate use of GNS
  * @param rd_count number of records returned
  * @param rd array of @a rd_count records with the results
  */
 static void
 process_lookup_result (void *cls,
+		       int was_gns,
                        uint32_t rd_count,
 		       const struct GNUNET_GNSRECORD_Data *rd)
 {
@@ -176,8 +118,14 @@ process_lookup_result (void *cls,
   const char *typename;
   char* string_val;
 
-  lookup_request = NULL;
-  if (!raw)
+  lr = NULL;
+  if (GNUNET_NO == was_gns)
+  {
+    global_ret = 3;
+    GNUNET_SCHEDULER_shutdown ();
+    return;
+  }
+  if (! raw)
   {
     if (0 == rd_count)
       printf ("No results.\n");
@@ -216,117 +164,6 @@ process_lookup_result (void *cls,
 
 
 /**
- * Perform the actual resolution, starting with the zone
- * identified by the given public key and the shorten zone.
- *
- * @param pkey public key to use for the zone, can be NULL
- */
-static void
-lookup_with_public_key (const struct GNUNET_CRYPTO_EcdsaPublicKey *pkey)
-{
-  if (NULL != lookup_type)
-    rtype = GNUNET_GNSRECORD_typename_to_number (lookup_type);
-  else
-    rtype = GNUNET_DNSPARSER_TYPE_A;
-  if (UINT32_MAX == rtype)
-  {
-    fprintf (stderr,
-             _("Invalid typename specified, assuming `ANY'\n"));
-    rtype = GNUNET_GNSRECORD_TYPE_ANY;
-  }
-
-  if (NULL != lookup_name)
-  {
-    lookup_request = GNUNET_GNS_lookup (gns,
-					lookup_name,
-					pkey,
-					rtype,
-					local_options,
-					&process_lookup_result,
-					lookup_name);
-  }
-  else
-  {
-    fprintf (stderr,
-	     _("Please specify name to lookup!\n"));
-    GNUNET_SCHEDULER_shutdown ();
-    return;
-  }
-}
-
-
-/**
- * Method called to with the ego we are to use for the lookup,
- * when the ego is determined by a name.
- *
- * @param cls closure (NULL, unused)
- * @param ego ego handle, NULL if not found
- */
-static void
-identity_zone_cb (void *cls,
-		  const struct GNUNET_IDENTITY_Ego *ego)
-{
-  struct GNUNET_CRYPTO_EcdsaPublicKey pkey;
-
-  el = NULL;
-  if (NULL == ego)
-  {
-    global_ret = 3; /* Not a GNS TLD */
-    GNUNET_SCHEDULER_shutdown ();
-  }
-  else
-  {
-    GNUNET_IDENTITY_ego_get_public_key (ego,
-                                        &pkey);
-    lookup_with_public_key (&pkey);
-  }
-}
-
-
-/**
- * Obtain the TLD of the given @a name.
- *
- * @param name a name
- * @return the part of @a name after the last ".",
- *         or @a name if @a name does not contain a "."
- */
-static const char *
-get_tld (const char *name)
-{
-  const char *tld;
-
-  tld = strrchr (name,
-                 (unsigned char) '.');
-  if (NULL == tld)
-    tld = name;
-  else
-    tld++; /* skip the '.' */
-  return tld;
-}
-
-
-/**
- * Eat the TLD of the given @a name.
- *
- * @param name a name
- */
-static void
-eat_tld (char *name)
-{
-  char *tld;
-
-  GNUNET_assert (0 < strlen (name));
-  tld = strrchr (name,
-                 (unsigned char) '.');
-  if (NULL == tld)
-    strcpy (name,
-            GNUNET_GNS_MASTERZONE_STR);
-  else
-    *tld = '\0';
-}
-
-
-/**
  * Main function that will be run.
  *
  * @param cls closure
@@ -340,82 +177,45 @@ run (void *cls,
      const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
-  struct GNUNET_CRYPTO_EcdsaPublicKey pkey;
-  const char *tld;
-  char *dot_tld;
-  char *zonestr;
-
+  (void) cls;
+  (void) args;
+  (void) cfgfile;
+  
   cfg = c;
   gns = GNUNET_GNS_connect (cfg);
   if (NULL == gns)
   {
     fprintf (stderr,
 	     _("Failed to connect to GNS\n"));
+    global_ret = 2;
     return;
   }
-  tt = GNUNET_SCHEDULER_add_delayed (timeout,
-                                     &do_timeout,
-                                     NULL);
+  
   GNUNET_SCHEDULER_add_shutdown (&do_shutdown,
                                  NULL);
-  /* start with trivial case: TLD is zkey */
-  tld = get_tld (lookup_name);
-  if (GNUNET_OK ==
-      GNUNET_CRYPTO_ecdsa_public_key_from_string (tld,
-                                                  strlen (tld),
-                                                  &pkey))
+
+  if (NULL != lookup_type)
+    rtype = GNUNET_GNSRECORD_typename_to_number (lookup_type);
+  else
+    rtype = GNUNET_DNSPARSER_TYPE_A;
+  if (UINT32_MAX == rtype)
   {
-    eat_tld (lookup_name);
-    lookup_with_public_key (&pkey);
-    return;
+    fprintf (stderr,
+             _("Invalid typename specified, assuming `ANY'\n"));
+    rtype = GNUNET_GNSRECORD_TYPE_ANY;
   }
-
-  /* second case: TLD is mapped in our configuration file */
-  GNUNET_asprintf (&dot_tld,
-                   ".%s",
-                   tld);
-  if (GNUNET_OK ==
-      GNUNET_CONFIGURATION_get_value_string (cfg,
-                                             "gns",
-                                             dot_tld,
-                                             &zonestr))
+  lr = GNUNET_GNS_lookup_with_tld (gns,
+				   lookup_name,
+				   rtype,
+				   local_options,
+				   &process_lookup_result,
+				   NULL);
+  if (NULL == lr)
   {
-    if (GNUNET_OK !=
-        GNUNET_CRYPTO_ecdsa_public_key_from_string (zonestr,
-                                                    strlen (zonestr),
-                                                    &pkey))
-    {
-      GNUNET_log_config_invalid (GNUNET_ERROR_TYPE_ERROR,
-                                 "gns",
-                                 dot_tld,
-                                 _("Expected a base32-encoded public zone key\n"));
-      GNUNET_free (zonestr);
-      GNUNET_free (dot_tld);
-      GNUNET_SCHEDULER_shutdown ();
-      return;
-    }
-    GNUNET_free (dot_tld);
-    GNUNET_free (zonestr);
-    eat_tld (lookup_name);
-    lookup_with_public_key (&pkey);
+    global_ret = 2;
+    GNUNET_SCHEDULER_shutdown ();
     return;
-  }
-  GNUNET_free (dot_tld);
-
-  /* Final case: TLD matches one of our egos */
-  eat_tld (lookup_name);
-
-  /* if the name is of the form 'label.gnu', never go to the DHT */
-  if (NULL == strchr (lookup_name,
-                      (unsigned char) '.'))
-    local_options = GNUNET_GNS_LO_NO_DHT;
-  identity = GNUNET_IDENTITY_connect (cfg,
-                                      NULL,
-                                      NULL);
-  el = GNUNET_IDENTITY_ego_lookup (cfg,
-                                   tld,
-                                   &identity_zone_cb,
-                                   NULL);
+  }  
 }
 
 
@@ -442,11 +242,6 @@ main (int argc,
                                  "TYPE",
                                  gettext_noop ("Specify the type of the record to lookup"),
                                  &lookup_type),
-    GNUNET_GETOPT_option_relative_time ('T',
-                                        "timeout",
-                                        "DELAY",
-                                        gettext_noop ("Specify timeout for the lookup"),
-                                        &timeout),
     GNUNET_GETOPT_option_flag ('r',
                                "raw",
                                gettext_noop ("No unneeded output"),
@@ -455,7 +250,6 @@ main (int argc,
   };
   int ret;
 
-  timeout = GNUNET_TIME_UNIT_FOREVER_REL;
   if (GNUNET_OK !=
       GNUNET_STRINGS_get_utf8_args (argc, argv,
                                     &argc, &argv))

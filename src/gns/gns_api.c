@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     Copyright (C) 2009-2013, 2016 GNUnet e.V.
+     Copyright (C) 2009-2013, 2016, 2018 GNUnet e.V.
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -31,7 +31,7 @@
 #include "gnunet_protocols.h"
 #include "gnunet_dht_service.h"
 #include "gns.h"
-#include "gnunet_gns_service.h"
+#include "gns_api.h"
 
 
 #define LOG(kind,...) GNUNET_log_from (kind, "gns-api",__VA_ARGS__)
@@ -76,50 +76,6 @@ struct GNUNET_GNS_LookupRequest
    * request id
    */
   uint32_t r_id;
-
-};
-
-
-/**
- * Connection to the GNS service.
- */
-struct GNUNET_GNS_Handle
-{
-
-  /**
-   * Configuration to use.
-   */
-  const struct GNUNET_CONFIGURATION_Handle *cfg;
-
-  /**
-   * Connection to service (if available).
-   */
-  struct GNUNET_MQ_Handle *mq;
-
-  /**
-   * Head of linked list of active lookup requests.
-   */
-  struct GNUNET_GNS_LookupRequest *lookup_head;
-
-  /**
-   * Tail of linked list of active lookup requests.
-   */
-  struct GNUNET_GNS_LookupRequest *lookup_tail;
-
-  /**
-   * Reconnect task
-   */
-  struct GNUNET_SCHEDULER_Task *reconnect_task;
-
-  /**
-   * How long do we wait until we try to reconnect?
-   */
-  struct GNUNET_TIME_Relative reconnect_backoff;
-
-  /**
-   * Request Id generator.  Incremented by one for each request.
-   */
-  uint32_t r_id_gen;
 
 };
 
@@ -201,7 +157,8 @@ check_result (void *cls,
   size_t mlen = ntohs (lookup_msg->header.size) - sizeof (*lookup_msg);
   uint32_t rd_count = ntohl (lookup_msg->rd_count);
   struct GNUNET_GNSRECORD_Data rd[rd_count];
-
+  
+  (void) cls;
   if (GNUNET_SYSERR ==
       GNUNET_GNSRECORD_records_deserialize (mlen,
                                             (const char*) &lookup_msg[1],
@@ -422,5 +379,6 @@ GNUNET_GNS_lookup (struct GNUNET_GNS_Handle *handle,
                          lr->env);
   return lr;
 }
+
 
 /* end of gns_api.c */

@@ -168,6 +168,7 @@ src/fs/gnunet-service-fs_put.c
 src/fs/gnunet-unindex.c
 src/fs/plugin_block_fs.c
 src/gns/gns_api.c
+src/gns/gns_tld_api.c
 src/gns/gnunet-bcd.c
 src/gns/gnunet-dns2gns.c
 src/gns/gnunet-gns.c

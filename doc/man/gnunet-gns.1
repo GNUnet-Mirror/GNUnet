@@ -32,9 +32,6 @@ Use LOGLEVEL for logging.  Valid values are DEBUG, INFO, WARNING and ERROR.
 Name to lookup.
 Resolve the specified name using the GNU Name System.
 .B
-.IP "\-T DELAY, \-\-timeout=DELAY"
-Set the timeout to DELAY.  By default, gnunet\-gns will continue to try to resolve the name until there is a definitive answer or until the user aborts with CTRL\-C.
-.B
 .IP "\-t TYPE, \-\-type=TYPE"
 Resource Record Type (TYPE) to look for.
 Supported TYPE's are: A, AAAA, CNAME, NS, PKEY, PSEU, TLSA, SRV, SOA, MX, LEHO, VPN, REV, PTR, TXT
@@ -48,7 +45,7 @@ Print GNUnet version number.
 .SH RETURN VALUE
 
 gnunet\-gns will return 0 on success, 1 on internal failures, 2 on launch failures,
-3 if the given name is not configured to use GNS, and 4 on timeout.
+3 if the given name is not configured to use GNS.
 
 
 .SH BUGS
