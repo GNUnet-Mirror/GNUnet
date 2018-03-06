@@ -764,7 +764,7 @@ load_plugin (void *cls,
   struct GNUNET_HashCode key;
   if (NULL == lib_ret)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Could not load plugin `%s'\n",
                 libname);
     return;
@@ -777,7 +777,7 @@ load_plugin (void *cls,
                                                       plugin,
                                                       GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Could not load add plugin `%s'\n",
                 libname);
     return;

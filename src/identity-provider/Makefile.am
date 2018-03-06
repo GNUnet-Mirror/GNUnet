@@ -32,6 +32,7 @@ lib_LTLIBRARIES = \
   libgnunetidentityprovider.la
 plugin_LTLIBRARIES = \
 	libgnunet_plugin_rest_identity_provider.la \
+	libgnunet_plugin_rest_openid_connect.la \
   libgnunet_plugin_gnsrecord_identity_provider.la \
 	$(SQLITE_PLUGIN)
 
@@ -100,6 +101,21 @@ libgnunet_plugin_rest_identity_provider_la_LIBADD = \
   $(top_builddir)/src/util/libgnunetutil.la $(XLIBS) \
   $(LTLIBINTL) -ljansson -lmicrohttpd
 libgnunet_plugin_rest_identity_provider_la_LDFLAGS = \
+ $(GN_PLUGIN_LDFLAGS)
+
+libgnunet_plugin_rest_openid_connect_la_SOURCES = \
+  plugin_rest_openid_connect.c \
+	jwt.c
+libgnunet_plugin_rest_openid_connect_la_LIBADD = \
+	$(top_builddir)/src/identity/libgnunetidentity.la \
+	libgnunetidentityprovider.la \
+	$(top_builddir)/src/rest/libgnunetrest.la \
+	$(top_builddir)/src/jsonapi/libgnunetjsonapi.la \
+	$(top_builddir)/src/identity-attribute/libgnunetidentityattribute.la \
+	$(top_builddir)/src/namestore/libgnunetnamestore.la \
+  $(top_builddir)/src/util/libgnunetutil.la $(XLIBS) \
+  $(LTLIBINTL) -ljansson -lmicrohttpd
+libgnunet_plugin_rest_openid_connect_la_LDFLAGS = \
  $(GN_PLUGIN_LDFLAGS)
 
 gnunet_idp_SOURCES = \

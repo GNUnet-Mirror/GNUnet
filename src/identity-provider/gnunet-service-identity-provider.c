@@ -1736,7 +1736,6 @@ process_consume_abe_key (void *cls, uint32_t rd_count,
     GNUNET_CONTAINER_DLL_insert (handle->parallel_lookups_head,
                                  handle->parallel_lookups_tail,
                                  parallel_lookup);
-    GNUNET_free (scope);
   }
   GNUNET_free (scopes);
   GNUNET_free (buf);
