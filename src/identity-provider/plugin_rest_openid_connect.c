@@ -2038,6 +2038,36 @@ list_ego (void *cls,
     ego_entry->ego = ego;
     ego_entry->identifier = GNUNET_strdup (identifier);
     GNUNET_CONTAINER_DLL_insert_tail(handle->ego_head,handle->ego_tail, ego_entry);
+    return;
+  }
+  /* Ego renamed or added */
+  if (identifier != NULL) {
+    for (ego_entry = handle->ego_head; NULL != ego_entry; ego_entry = ego_entry->next) {
+      if (ego_entry->ego == ego) {
+        /* Rename */
+        GNUNET_free (ego_entry->identifier);
+        ego_entry->identifier = GNUNET_strdup (identifier);
+        break;
+      }
+    }
+    if (NULL == ego_entry) {
+      /* Add */
+      ego_entry = GNUNET_new (struct EgoEntry);
+      GNUNET_IDENTITY_ego_get_public_key (ego, &pk);
+      ego_entry->keystring =
+        GNUNET_CRYPTO_ecdsa_public_key_to_string (&pk);
+      ego_entry->ego = ego;
+      ego_entry->identifier = GNUNET_strdup (identifier);
+      GNUNET_CONTAINER_DLL_insert_tail(handle->ego_head,handle->ego_tail, ego_entry);
+    }
+  } else {
+    /* Delete */
+    for (ego_entry = handle->ego_head; NULL != ego_entry; ego_entry = ego_entry->next) {
+      if (ego_entry->ego == ego)
+        break;
+    }
+    if (NULL != ego_entry)
+      GNUNET_CONTAINER_DLL_remove(handle->ego_head,handle->ego_tail, ego_entry);
   }
 
 }
