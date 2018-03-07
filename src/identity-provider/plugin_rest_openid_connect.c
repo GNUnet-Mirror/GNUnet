@@ -141,12 +141,12 @@
 /**
  * OIDC cookie header key
  */
-#define OIDC_COOKIE_HEADER_KEY "Cookie"
+#define OIDC_COOKIE_HEADER_KEY "cookie"
 
 /**
  * OIDC cookie header information key
  */
-#define OIDC_AUTHORIZATION_HEADER_KEY "Authorization"
+#define OIDC_AUTHORIZATION_HEADER_KEY "authorization"
 
 /**
  * OIDC cookie header information key

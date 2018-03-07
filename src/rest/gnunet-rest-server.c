@@ -237,8 +237,11 @@ header_iterator (void *cls,
   struct GNUNET_REST_RequestHandle *handle = cls;
   struct GNUNET_HashCode hkey;
   char *val;
+  char *lowerkey;
 
-  GNUNET_CRYPTO_hash (key, strlen (key), &hkey);
+  lowerkey = GNUNET_strdup (key);
+  GNUNET_STRINGS_utf8_tolower (key, lowerkey);
+  GNUNET_CRYPTO_hash (lowerkey, strlen (lowerkey), &hkey);
   GNUNET_asprintf (&val, "%s", value);
   if (GNUNET_OK !=
       GNUNET_CONTAINER_multihashmap_put (handle->header_param_map,
@@ -248,8 +251,9 @@ header_iterator (void *cls,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Could not load add header `%s'=%s\n",
-                key, value);
+                lowerkey, value);
   }
+  GNUNET_free (lowerkey);
   return MHD_YES;
 }
 
