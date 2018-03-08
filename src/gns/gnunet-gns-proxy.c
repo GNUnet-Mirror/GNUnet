@@ -2395,6 +2395,7 @@ setup_data_transfer (struct Socks5Request *s5r)
       break;
     case HTTP_PORT:
     default:
+      domain = NULL;
       GNUNET_assert (NULL != httpd);
       hd = httpd;
       break;
@@ -2403,12 +2404,16 @@ setup_data_transfer (struct Socks5Request *s5r)
   addr = GNUNET_NETWORK_get_addr (s5r->sock);
   len = GNUNET_NETWORK_get_addrlen (s5r->sock);
   s5r->state = SOCKS5_SOCKET_WITH_MHD;
-  if (MHD_YES != MHD_add_connection (hd->daemon, fd, addr, len))
+  if (MHD_YES !=
+      MHD_add_connection (hd->daemon,
+                          fd,
+                          addr,
+                          len))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                 _("Failed to pass client to MHD\n"));
     cleanup_s5r (s5r);
-    GNUNET_free (domain);
+    GNUNET_free_non_null (domain);
     return;
   }
   s5r->hd = hd;
@@ -2416,7 +2421,7 @@ setup_data_transfer (struct Socks5Request *s5r)
   s5r->timeout_task = GNUNET_SCHEDULER_add_delayed (HTTP_HANDSHAKE_TIMEOUT,
                                                     &timeout_s5r_handshake,
                                                     s5r);
-  GNUNET_free (domain);
+  GNUNET_free_non_null (domain);
 }
 
 
