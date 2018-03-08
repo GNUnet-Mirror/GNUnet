@@ -45,12 +45,12 @@
 /**
  * Obtain trace information for all scheduler calls that schedule tasks.
  */
-#define EXECINFO GNUNET_NO
+#define EXECINFO GNUNET_YES
 
 /**
  * Check each file descriptor before adding
  */
-#define DEBUG_FDS GNUNET_NO
+#define DEBUG_FDS GNUNET_YES
 
 /**
  * Depth of the traces collected via EXECINFO.
@@ -667,7 +667,7 @@ sighandler_shutdown ()
 }
 
 
-void
+static void
 shutdown_if_no_lifeness ()
 {
   struct GNUNET_SCHEDULER_Task *t;
@@ -688,8 +688,9 @@ shutdown_if_no_lifeness ()
 }
 
 
-int
-select_loop (struct GNUNET_SCHEDULER_Handle *sh, struct DriverContext *context);
+static int
+select_loop (struct GNUNET_SCHEDULER_Handle *sh,
+             struct DriverContext *context);
 
 
 /**
@@ -723,7 +724,8 @@ GNUNET_SCHEDULER_run (GNUNET_SCHEDULER_TaskCallback task,
                                                  task_cls,
                                                  GNUNET_SCHEDULER_REASON_STARTUP,
                                                  GNUNET_SCHEDULER_PRIORITY_DEFAULT);
-  select_loop (sh, &context);
+  select_loop (sh,
+               &context);
   GNUNET_SCHEDULER_driver_done (sh);
   GNUNET_free (driver);
 }
@@ -2267,8 +2269,9 @@ void GNUNET_SCHEDULER_driver_done (struct GNUNET_SCHEDULER_Handle *sh)
 }
 
 
-int
-select_loop (struct GNUNET_SCHEDULER_Handle *sh, struct DriverContext *context)
+static int
+select_loop (struct GNUNET_SCHEDULER_Handle *sh,
+             struct DriverContext *context)
 {
   struct GNUNET_NETWORK_FDSet *rs;
   struct GNUNET_NETWORK_FDSet *ws;
@@ -2277,8 +2280,8 @@ select_loop (struct GNUNET_SCHEDULER_Handle *sh, struct DriverContext *context)
   GNUNET_assert (NULL != context);
   rs = GNUNET_NETWORK_fdset_create ();
   ws = GNUNET_NETWORK_fdset_create ();
-  while (NULL != context->scheduled_head ||
-         GNUNET_TIME_UNIT_FOREVER_ABS.abs_value_us != context->timeout.abs_value_us)
+  while ( (NULL != context->scheduled_head) ||
+          (GNUNET_TIME_UNIT_FOREVER_ABS.abs_value_us != context->timeout.abs_value_us) )
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "select timeout = %s\n",
@@ -2286,8 +2289,10 @@ select_loop (struct GNUNET_SCHEDULER_Handle *sh, struct DriverContext *context)
 
     GNUNET_NETWORK_fdset_zero (rs);
     GNUNET_NETWORK_fdset_zero (ws);
-    struct Scheduled *pos;
-    for (pos = context->scheduled_head; NULL != pos; pos = pos->next)
+
+    for (struct Scheduled *pos = context->scheduled_head;
+         NULL != pos;
+         pos = pos->next)
     {
       if (0 != (GNUNET_SCHEDULER_ET_IN & pos->et))
       {
@@ -2320,12 +2325,16 @@ select_loop (struct GNUNET_SCHEDULER_Handle *sh, struct DriverContext *context)
       if (errno == EINTR)
         continue;
 
-      LOG_STRERROR (GNUNET_ERROR_TYPE_ERROR, "select");
+      LOG_STRERROR (GNUNET_ERROR_TYPE_ERROR,
+                    "select");
 #ifndef MINGW
 #if USE_LSOF
       char lsof[512];
 
-      snprintf (lsof, sizeof (lsof), "lsof -p %d", getpid ());
+      snprintf (lsof,
+                sizeof (lsof),
+                "lsof -p %d",
+                getpid ());
       (void) close (1);
       (void) dup2 (2, 1);
       if (0 != system (lsof))
@@ -2334,15 +2343,22 @@ select_loop (struct GNUNET_SCHEDULER_Handle *sh, struct DriverContext *context)
 #endif
 #endif
 #if DEBUG_FDS
-      struct Scheduled *s;
-      for (s = context->scheduled_head; NULL != s; s = s->next)
+      for (struct Scheduled *s = context->scheduled_head;
+           NULL != s;
+           s = s->next)
       {
-        int flags = fcntl (s->fdi->sock, F_GETFD);
-        if ((flags == -1) && (errno == EBADF))
+        int flags = fcntl (s->fdi->sock,
+                           F_GETFD);
+
+        if ( (flags == -1) &&
+             (EBADF == errno) )
         {
           LOG (GNUNET_ERROR_TYPE_ERROR,
                "Got invalid file descriptor %d!\n",
                s->fdi->sock);
+#if EXECINFO
+          dump_backtrace (s->task);
+#endif
         }
       }
 #endif
@@ -2353,24 +2369,32 @@ select_loop (struct GNUNET_SCHEDULER_Handle *sh, struct DriverContext *context)
     }
     if (select_result > 0)
     {
-      for (pos = context->scheduled_head; NULL != pos; pos = pos->next)
+      for (struct Scheduled *pos = context->scheduled_head;
+           NULL != pos;
+           pos = pos->next)
       {
         int is_ready = GNUNET_NO;
+
         if (0 != (GNUNET_SCHEDULER_ET_IN & pos->et) &&
-            GNUNET_YES == GNUNET_NETWORK_fdset_test_native (rs, pos->fdi->sock))
+            GNUNET_YES ==
+            GNUNET_NETWORK_fdset_test_native (rs,
+                                              pos->fdi->sock))
         {
           pos->fdi->et |= GNUNET_SCHEDULER_ET_IN;
           is_ready = GNUNET_YES;
         }
         if (0 != (GNUNET_SCHEDULER_ET_OUT & pos->et) &&
-            GNUNET_YES == GNUNET_NETWORK_fdset_test_native (ws, pos->fdi->sock))
+            GNUNET_YES ==
+            GNUNET_NETWORK_fdset_test_native (ws,
+                                              pos->fdi->sock))
         {
           pos->fdi->et |= GNUNET_SCHEDULER_ET_OUT;
           is_ready = GNUNET_YES;
         }
         if (GNUNET_YES == is_ready)
         {
-          GNUNET_SCHEDULER_task_ready (pos->task, pos->fdi);
+          GNUNET_SCHEDULER_task_ready (pos->task,
+                                       pos->fdi);
         }
       }
     }
@@ -2386,7 +2410,7 @@ select_loop (struct GNUNET_SCHEDULER_Handle *sh, struct DriverContext *context)
 }
 
 
-int
+static int
 select_add (void *cls,
             struct GNUNET_SCHEDULER_Task *task,
             struct GNUNET_SCHEDULER_FdInfo *fdi)
