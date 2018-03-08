@@ -690,11 +690,6 @@ static struct Socks5Request *s5r_head;
 static struct Socks5Request *s5r_tail;
 
 /**
- * The users local GNS master zone
- */
-static struct GNUNET_CRYPTO_EcdsaPublicKey local_gns_zone;
-
-/**
  * The CA for SSL certificate generation
  */
 static struct ProxyCA proxy_ca;
@@ -703,16 +698,6 @@ static struct ProxyCA proxy_ca;
  * Response we return on cURL failures.
  */
 static struct MHD_Response *curl_failure_response;
-
-/**
- * Connection to identity service.
- */
-static struct GNUNET_IDENTITY_Handle *identity;
-
-/**
- * Request for our ego.
- */
-static struct GNUNET_IDENTITY_Operation *id_op;
 
 /**
  * Our configuration.
@@ -2962,16 +2947,6 @@ do_shutdown (void *cls)
     GNUNET_NETWORK_socket_close (lsock6);
     lsock6 = NULL;
   }
-  if (NULL != id_op)
-  {
-    GNUNET_IDENTITY_cancel (id_op);
-    id_op = NULL;
-  }
-  if (NULL != identity)
-  {
-    GNUNET_IDENTITY_disconnect (identity);
-    identity = NULL;
-  }
   if (NULL != curl_multi)
   {
     curl_multi_cleanup (curl_multi);
@@ -3076,46 +3051,132 @@ bind_v6 ()
 
 
 /**
- * Continue initialization after we have our zone information.
+ * Main function that will be run
+ *
+ * @param cls closure
+ * @param args remaining command-line arguments
+ * @param cfgfile name of the configuration file used (for saving, can be NULL!)
+ * @param c configuration
  */
 static void
-run_cont ()
+run (void *cls,
+     char *const *args,
+     const char *cfgfile,
+     const struct GNUNET_CONFIGURATION_Handle *c)
 {
+  char* cafile_cfg = NULL;
+  char* cafile;
   struct MhdHttpList *hd;
+
+  cfg = c;
+
+  if (NULL == (curl_multi = curl_multi_init ()))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Failed to create cURL multi handle!\n");
+    return;
+  }
+  cafile = cafile_opt;
+  if (NULL == cafile)
+  {
+    if (GNUNET_OK !=
+        GNUNET_CONFIGURATION_get_value_filename (cfg,
+                                                 "gns-proxy",
+                                                 "PROXY_CACERT",
+                                                 &cafile_cfg))
+    {
+      GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR,
+                                 "gns-proxy",
+                                 "PROXY_CACERT");
+      return;
+    }
+    cafile = cafile_cfg;
+  }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Using %s as CA\n", cafile);
+
+  gnutls_global_init ();
+  gnutls_x509_crt_init (&proxy_ca.cert);
+  gnutls_x509_privkey_init (&proxy_ca.key);
+
+  if ( (GNUNET_OK !=
+        load_cert_from_file (proxy_ca.cert,
+                             cafile)) ||
+       (GNUNET_OK !=
+        load_key_from_file (proxy_ca.key,
+                            cafile)) )
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                _("Failed to load SSL/TLS key and certificate from `%s'\n"),
+                cafile);
+    gnutls_x509_crt_deinit (proxy_ca.cert);
+    gnutls_x509_privkey_deinit (proxy_ca.key);
+    gnutls_global_deinit ();
+    GNUNET_free_non_null (cafile_cfg);
+    return;
+  }
+  GNUNET_free_non_null (cafile_cfg);
+  if (NULL == (gns_handle = GNUNET_GNS_connect (cfg)))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Unable to connect to GNS!\n");
+    gnutls_x509_crt_deinit (proxy_ca.cert);
+    gnutls_x509_privkey_deinit (proxy_ca.key);
+    gnutls_global_deinit ();
+    return;
+  }
+  GNUNET_SCHEDULER_add_shutdown (&do_shutdown,
+                                 NULL);
 
   /* Open listen socket for socks proxy */
   lsock6 = bind_v6 ();
   if (NULL == lsock6)
-    GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "bind");
+  {
+    GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR,
+                         "bind");
+  }
   else
   {
-    if (GNUNET_OK != GNUNET_NETWORK_socket_listen (lsock6, 5))
+    if (GNUNET_OK !=
+        GNUNET_NETWORK_socket_listen (lsock6,
+                                      5))
     {
-      GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "listen");
+      GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR,
+                           "listen");
       GNUNET_NETWORK_socket_close (lsock6);
       lsock6 = NULL;
     }
     else
     {
       ltask6 = GNUNET_SCHEDULER_add_read_net (GNUNET_TIME_UNIT_FOREVER_REL,
-                                              lsock6, &do_accept, lsock6);
+                                              lsock6,
+                                              &do_accept,
+                                              lsock6);
     }
   }
   lsock4 = bind_v4 ();
   if (NULL == lsock4)
-    GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "bind");
+  {
+    GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR,
+                         "bind");
+  }
   else
   {
-    if (GNUNET_OK != GNUNET_NETWORK_socket_listen (lsock4, 5))
+    if (GNUNET_OK !=
+        GNUNET_NETWORK_socket_listen (lsock4,
+                                      5))
     {
-      GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "listen");
+      GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR,
+                           "listen");
       GNUNET_NETWORK_socket_close (lsock4);
       lsock4 = NULL;
     }
     else
     {
       ltask4 = GNUNET_SCHEDULER_add_read_net (GNUNET_TIME_UNIT_FOREVER_REL,
-                                              lsock4, &do_accept, lsock4);
+                                              lsock4,
+                                              &do_accept,
+                                              lsock4);
     }
   }
   if ( (NULL == lsock4) &&
@@ -3153,125 +3214,9 @@ run_cont ()
     return;
   }
   httpd = hd;
-  GNUNET_CONTAINER_DLL_insert (mhd_httpd_head, mhd_httpd_tail, hd);
-}
-
-
-/**
- * Method called to inform about the egos of the master zone of this peer.
- *
- * When used with #GNUNET_IDENTITY_create or #GNUNET_IDENTITY_get,
- * this function is only called ONCE, and 'NULL' being passed in
- * @a ego does indicate an error (i.e. name is taken or no default
- * value is known).  If @a ego is non-NULL and if '*ctx'
- * is set in those callbacks, the value WILL be passed to a subsequent
- * call to the identity callback of #GNUNET_IDENTITY_connect (if
- * that one was not NULL).
- *
- * @param cls closure, NULL
- * @param ego ego handle
- * @param ctx context for application to store data for this ego
- *                 (during the lifetime of this process, initially NULL)
- * @param name name assigned by the user for this ego,
- *                   NULL if the user just deleted the ego and it
- *                   must thus no longer be used
- */
-static void
-identity_master_cb (void *cls,
-                    struct GNUNET_IDENTITY_Ego *ego,
-                    void **ctx,
-                    const char *name)
-{
-  id_op = NULL;
-  if (NULL == ego)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _("No ego configured for `%s`\n"),
-                "gns-proxy");
-    GNUNET_SCHEDULER_shutdown ();
-    return;
-  }
-  GNUNET_IDENTITY_ego_get_public_key (ego,
-                                      &local_gns_zone);
-  run_cont ();
-}
-
-
-/**
- * Main function that will be run
- *
- * @param cls closure
- * @param args remaining command-line arguments
- * @param cfgfile name of the configuration file used (for saving, can be NULL!)
- * @param c configuration
- */
-static void
-run (void *cls,
-     char *const *args,
-     const char *cfgfile,
-     const struct GNUNET_CONFIGURATION_Handle *c)
-{
-  char* cafile_cfg = NULL;
-  char* cafile;
-
-  cfg = c;
-
-  if (NULL == (curl_multi = curl_multi_init ()))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Failed to create cURL multi handle!\n");
-    return;
-  }
-  cafile = cafile_opt;
-  if (NULL == cafile)
-  {
-    if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_filename (cfg, "gns-proxy",
-                                                              "PROXY_CACERT",
-                                                              &cafile_cfg))
-    {
-      GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR,
-                                 "gns-proxy",
-                                 "PROXY_CACERT");
-      return;
-    }
-    cafile = cafile_cfg;
-  }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Using %s as CA\n", cafile);
-
-  gnutls_global_init ();
-  gnutls_x509_crt_init (&proxy_ca.cert);
-  gnutls_x509_privkey_init (&proxy_ca.key);
-
-  if ( (GNUNET_OK != load_cert_from_file (proxy_ca.cert, cafile)) ||
-       (GNUNET_OK != load_key_from_file (proxy_ca.key, cafile)) )
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _("Failed to load SSL/TLS key and certificate from `%s'\n"),
-                cafile);
-    gnutls_x509_crt_deinit (proxy_ca.cert);
-    gnutls_x509_privkey_deinit (proxy_ca.key);
-    gnutls_global_deinit ();
-    GNUNET_free_non_null (cafile_cfg);
-    return;
-  }
-  GNUNET_free_non_null (cafile_cfg);
-  if (NULL == (gns_handle = GNUNET_GNS_connect (cfg)))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Unable to connect to GNS!\n");
-    gnutls_x509_crt_deinit (proxy_ca.cert);
-    gnutls_x509_privkey_deinit (proxy_ca.key);
-    gnutls_global_deinit ();
-    return;
-  }
-  identity = GNUNET_IDENTITY_connect (cfg,
-                                      NULL, NULL);
-  id_op = GNUNET_IDENTITY_get (identity,
-                               "gns-proxy",
-                               &identity_master_cb,
-                               NULL);
-  GNUNET_SCHEDULER_add_shutdown (&do_shutdown, NULL);
+  GNUNET_CONTAINER_DLL_insert (mhd_httpd_head,
+                               mhd_httpd_tail,
+                               hd);
 }
 
 
@@ -3286,13 +3231,11 @@ int
 main (int argc, char *const *argv)
 {
   struct GNUNET_GETOPT_CommandLineOption options[] = {
-
     GNUNET_GETOPT_option_ulong ('p',
                                 "port",
                                 NULL,
                                 gettext_noop ("listen on specified port (default: 7777)"),
                                 &port),
-
     GNUNET_GETOPT_option_string ('a',
                                  "authority",
                                  NULL,
