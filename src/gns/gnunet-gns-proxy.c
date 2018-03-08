@@ -88,7 +88,7 @@
 #define MAX_PEM_SIZE (10 * 1024)
 
 /**
- * After how long do we clean up unused MHD SSL/TLS instances?
+ * After how long do we clean up unused MHD TLS instances?
  */
 #define MHD_CACHE_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 5)
 
@@ -343,7 +343,7 @@ struct MhdHttpList
   struct MhdHttpList *next;
 
   /**
-   * the domain name to server (only important for SSL)
+   * the domain name to server (only important for TLS)
    */
   char *domain;
 
@@ -528,7 +528,7 @@ struct Socks5Request
   struct MHD_Response *response;
 
   /**
-   * the domain name to server (only important for SSL)
+   * the domain name to server (only important for TLS)
    */
   char *domain;
 
@@ -613,7 +613,7 @@ struct Socks5Request
   struct HttpResponseHeader *header_tail;
 
   /**
-   * SSL Certificate status
+   * X.509 Certificate status
    */
   int ssl_checked;
 
@@ -689,7 +689,7 @@ static struct MhdHttpList *mhd_httpd_head;
 static struct MhdHttpList *mhd_httpd_tail;
 
 /**
- * Daemon for HTTP (we have one per SSL certificate, and then one for
+ * Daemon for HTTP (we have one per X.509 certificate, and then one for
  * all HTTP connections; this is the one for HTTP, not HTTPS).
  */
 static struct MhdHttpList *httpd;
@@ -705,7 +705,7 @@ static struct Socks5Request *s5r_head;
 static struct Socks5Request *s5r_tail;
 
 /**
- * The CA for SSL certificate generation
+ * The CA for X.509 certificate generation
  */
 static struct ProxyCA proxy_ca;
 
@@ -877,7 +877,7 @@ mhd_content_cb (void *cls,
 
 
 /**
- * Check that the website has presented us with a valid SSL certificate.
+ * Check that the website has presented us with a valid X.509 certificate.
  * The certificate must either match the domain name or the LEHO name
  * (or, if available, the TLSA record).
  *
@@ -898,7 +898,7 @@ check_ssl_certificate (struct Socks5Request *s5r)
 
   s5r->ssl_checked = GNUNET_YES;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Checking SSL certificate\n");
+              "Checking X.509 certificate\n");
   if (CURLE_OK !=
       curl_easy_getinfo (s5r->curl,
 			 CURLINFO_TLS_SESSION,
@@ -907,7 +907,7 @@ check_ssl_certificate (struct Socks5Request *s5r)
   if (CURLSSLBACKEND_GNUTLS != tlsinfo->backend)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _("Unsupported CURL SSL backend %d\n"),
+                _("Unsupported CURL TLS backend %d\n"),
                 tlsinfo->backend);
     return GNUNET_SYSERR;
   }
@@ -1015,7 +1015,7 @@ check_ssl_certificate (struct Socks5Request *s5r)
                                                      name)))
       {
         GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                    _("SSL certificate subject name (%s) does not match `%s'\n"),
+                    _("TLS certificate subject name (%s) does not match `%s'\n"),
                     certdn,
                     name);
         gnutls_x509_crt_deinit (x509_cert);
@@ -1068,7 +1068,7 @@ curl_check_hdr (void *buffer,
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Receiving HTTP response header from CURL\n");
-  /* first, check SSL certificate */
+  /* first, check TLS certificate */
   if ( (GNUNET_YES != s5r->ssl_checked) &&
        (HTTPS_PORT == s5r->port))
   {
@@ -2382,7 +2382,7 @@ generate_gns_certificate (const char *name)
   struct ProxyGNSCertificate *pgc;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Generating TLS/SSL certificate for `%s'\n",
+              "Generating x.509 certificate for `%s'\n",
               name);
   GNUNET_break (GNUTLS_E_SUCCESS == gnutls_x509_crt_init (&request));
   GNUNET_break (GNUTLS_E_SUCCESS == gnutls_x509_crt_set_key (request, proxy_ca.key));
@@ -2439,9 +2439,9 @@ mhd_error_log_callback (void *cls,
 
 
 /**
- * Lookup (or create) an SSL MHD instance for a particular domain.
+ * Lookup (or create) an TLS MHD instance for a particular domain.
  *
- * @param domain the domain the SSL daemon has to serve
+ * @param domain the domain the TLS daemon has to serve
  * @return NULL on error
  */
 static struct MhdHttpList *
@@ -2932,14 +2932,6 @@ do_s5r_read (void *cls)
             struct sockaddr_in *in;
 
             s5r->port = ntohs (*port);
-            if (HTTPS_PORT == s5r->port)
-            {
-              GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                          _("SSL connection to plain IPv4 address requested\n"));
-              signal_socks_failure (s5r,
-                                    SOCKS5_STATUS_CONNECTION_NOT_ALLOWED_BY_RULE);
-              return;
-            }
             alen = sizeof (struct in_addr);
             if (s5r->rbuf_len < sizeof (struct Socks5ClientRequestMessage) +
                 alen + sizeof (uint16_t))
@@ -2961,14 +2953,6 @@ do_s5r_read (void *cls)
             struct sockaddr_in6 *in;
 
             s5r->port = ntohs (*port);
-            if (HTTPS_PORT == s5r->port)
-            {
-              GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                          _("SSL connection to plain IPv4 address requested\n"));
-              signal_socks_failure (s5r,
-                                    SOCKS5_STATUS_CONNECTION_NOT_ALLOWED_BY_RULE);
-              return;
-            }
             alen = sizeof (struct in6_addr);
             if (s5r->rbuf_len < sizeof (struct Socks5ClientRequestMessage) +
                 alen + sizeof (uint16_t))
@@ -3295,7 +3279,7 @@ run (void *cls,
                             cafile)) )
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _("Failed to load SSL/TLS key and certificate from `%s'\n"),
+                _("Failed to load X.509 key and certificate from `%s'\n"),
                 cafile);
     gnutls_x509_crt_deinit (proxy_ca.cert);
     gnutls_x509_privkey_deinit (proxy_ca.key);
