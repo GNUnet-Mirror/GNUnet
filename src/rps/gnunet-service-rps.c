@@ -581,6 +581,7 @@ get_channel (const struct GNUNET_PeerIdentity *peer)
 {
   struct PeerContext *peer_ctx;
   struct GNUNET_HashCode port;
+  struct GNUNET_PeerIdentity *ctx_peer;
   /* There exists a copy-paste-clone in run() */
   struct GNUNET_MQ_MessageHandler cadet_handlers[] = {
     GNUNET_MQ_hd_fixed_size (peer_check,
@@ -612,9 +613,11 @@ get_channel (const struct GNUNET_PeerIdentity *peer)
     GNUNET_CRYPTO_hash (GNUNET_APPLICATION_PORT_RPS,
                         strlen (GNUNET_APPLICATION_PORT_RPS),
                         &port);
+    ctx_peer = GNUNET_new (struct GNUNET_PeerIdentity);
+    *ctx_peer = *peer;
     peer_ctx->send_channel =
       GNUNET_CADET_channel_create (cadet_handle,
-                                   (struct GNUNET_PeerIdentity *) peer, /* context */
+                                   (struct GNUNET_PeerIdentity *) ctx_peer, /* context */
                                    peer,
                                    &port,
                                    GNUNET_CADET_OPTION_RELIABLE,
@@ -2607,6 +2610,7 @@ cleanup_destroyed_channel (void *cls,
     LOG (GNUNET_ERROR_TYPE_WARNING,
          "channel (%s) without associated context was destroyed\n",
          GNUNET_i2s (peer));
+    GNUNET_free (peer);
     return;
   }
 
@@ -2626,7 +2630,7 @@ cleanup_destroyed_channel (void *cls,
     to_file (file_name_view_log,
              "-%s\t(cleanup channel, ourself)",
              GNUNET_i2s_full (peer));
-    //GNUNET_free (peer);
+    GNUNET_free (peer);
     return;
   }
 
@@ -2642,7 +2646,7 @@ cleanup_destroyed_channel (void *cls,
     { /* We are about to clean the sending channel. Clean the respective
        * context */
       Peers_cleanup_destroyed_channel (cls, channel);
-      //GNUNET_free (peer);
+      GNUNET_free (peer);
       return;
     }
     else
@@ -2650,7 +2654,7 @@ cleanup_destroyed_channel (void *cls,
        * open. It probably went down. Remove it from our knowledge. */
       Peers_cleanup_destroyed_channel (cls, channel);
       remove_peer (peer);
-      //GNUNET_free (peer);
+      GNUNET_free (peer);
       return;
     }
   }
@@ -2667,7 +2671,7 @@ cleanup_destroyed_channel (void *cls,
     { /* Other peer tried to establish a channel to us twice. We do not accept
        * that. Clean the context. */
       Peers_cleanup_destroyed_channel (cls, channel);
-      //GNUNET_free (peer);
+      GNUNET_free (peer);
       return;
     }
     else
@@ -2675,7 +2679,7 @@ cleanup_destroyed_channel (void *cls,
        * it. */
       Peers_cleanup_destroyed_channel (cls, channel);
       clean_peer (peer);
-      //GNUNET_free (peer);
+      GNUNET_free (peer);
       return;
     }
   }
@@ -2684,7 +2688,7 @@ cleanup_destroyed_channel (void *cls,
     LOG (GNUNET_ERROR_TYPE_WARNING,
         "Destroyed channel is neither sending nor receiving channel\n");
   }
-  //GNUNET_free (peer);
+  GNUNET_free (peer);
 }
 
 /***********************************************************************
