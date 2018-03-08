@@ -23,7 +23,6 @@
  * @brief sqlite-based namecache backend
  * @author Christian Grothoff
  */
-
 #include "platform.h"
 #include "gnunet_sq_lib.h"
 #include "gnunet_namecache_plugin.h"
@@ -106,16 +105,23 @@ struct Plugin
  * @return 0 on success
  */
 static int
-sq_prepare (sqlite3 * dbh, const char *zSql, sqlite3_stmt ** ppStmt)
+sq_prepare (sqlite3 *dbh,
+            const char *zSql,
+            sqlite3_stmt **ppStmt)
 {
   char *dummy;
   int result;
 
-  result =
-      sqlite3_prepare_v2 (dbh, zSql, strlen (zSql), ppStmt,
-                          (const char **) &dummy);
+  result = sqlite3_prepare_v2 (dbh,
+                               zSql,
+                               strlen (zSql),
+                               ppStmt,
+                               (const char **) &dummy);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Prepared `%s' / %p: %d\n", zSql, *ppStmt, result);
+       "Prepared `%s' / %p: %d\n",
+       zSql,
+       *ppStmt,
+       result);
   return result;
 }
 
@@ -168,16 +174,21 @@ database_setup (struct Plugin *plugin)
 #endif
 
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_filename (plugin->cfg, "namecache-sqlite",
-                                               "FILENAME", &afsdir))
+      GNUNET_CONFIGURATION_get_value_filename (plugin->cfg,
+                                               "namecache-sqlite",
+                                               "FILENAME",
+                                               &afsdir))
   {
     GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR,
-			       "namecache-sqlite", "FILENAME");
+			       "namecache-sqlite",
+                               "FILENAME");
     return GNUNET_SYSERR;
   }
-  if (GNUNET_OK != GNUNET_DISK_file_test (afsdir))
+  if (GNUNET_OK !=
+      GNUNET_DISK_file_test (afsdir))
   {
-    if (GNUNET_OK != GNUNET_DISK_directory_create_for_file (afsdir))
+    if (GNUNET_OK !=
+        GNUNET_DISK_directory_create_for_file (afsdir))
     {
       GNUNET_break (0);
       GNUNET_free (afsdir);
@@ -188,7 +199,8 @@ database_setup (struct Plugin *plugin)
   plugin->fn = afsdir;
 
   /* Open database and precompile statements */
-  if (sqlite3_open (plugin->fn, &plugin->dbh) != SQLITE_OK)
+  if (SQLITE_OK !=
+      sqlite3_open (plugin->fn, &plugin->dbh))
   {
     LOG (GNUNET_ERROR_TYPE_ERROR,
 	 _("Unable to initialize SQLite: %s.\n"),
@@ -229,9 +241,9 @@ database_setup (struct Plugin *plugin)
       (sqlite3_exec
        (plugin->dbh,
         "CREATE TABLE ns096blocks ("
-        " query BLOB NOT NULL DEFAULT '',"
-        " block BLOB NOT NULL DEFAULT '',"
-        " expiration_time INT8 NOT NULL DEFAULT 0"
+        " query BLOB NOT NULL PRIMARY KEY,"
+        " block BLOB NOT NULL,"
+        " expiration_time INT8 NOT NULL"
 	")",
 	NULL, NULL, NULL) != SQLITE_OK))
   {
@@ -399,6 +411,10 @@ namecache_sqlite_cache_block (void *cls,
   GNUNET_CRYPTO_hash (&block->derived_key,
 		      sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey),
 		      &query);
+  fprintf (stderr,
+           "Caching new version of block %s (expires %llu)\n",
+           GNUNET_h2s (&query),
+           (unsigned long long) expiration.abs_value_us);
   expiration = GNUNET_TIME_absolute_ntoh (block->expiration_time);
   if (block_size > 64 * 65536)
   {
