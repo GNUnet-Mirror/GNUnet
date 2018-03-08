@@ -417,14 +417,18 @@ in the menu, and then select the "Advanced" tab in the dialog
 and then "Network":
 
 Here, select "Settings..." to open the proxy settings dialog.
-Select "Manual proxy configuration" and enter "localhost"
-with port 7777 under SOCKS Host. Select SOCKS v5 and then push "OK".
+Select "Manual proxy configuration" and enter @code{localhost}
+with port 7777 under SOCKS Host.  Furthermore, set the
+checkbox ``Proxy DNS when using SOCKS v5'' at the bottom of
+the dialog.  Finally, push "OK".
 
 You must also go to about:config and change the
 @code{browser.fixup.alternate.enabled} option to @code{false},
 otherwise the browser will autoblunder an address like
 @code{@uref{http://www.gnu/, www.gnu}} to
-@code{@uref{http://www.gnu.com/, www.gnu.com}}.
+@code{@uref{http://www.gnu.com/, www.gnu.com}}.  If you want
+to resolve ``@'' in your own TLDs, you must additionally
+set @code{browser.fixup.dns_first_use_for_single_words} to @code{true}.
 
 After configuring your browser, you might want to first confirm that it
 continues to work as before. (The proxy is still experimental and if you
