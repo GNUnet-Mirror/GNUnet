@@ -57,9 +57,9 @@ struct GNUNET_GNS_LookupWithTldRequest
 
   /**
    * Domain name we are resolving.
-   */ 
+   */
   char *name;
-  
+
   /**
    * @e lookup_proc closure
    */
@@ -82,7 +82,7 @@ struct GNUNET_GNS_LookupWithTldRequest
 
   /**
    * Lookup options.
-   */ 
+   */
   enum GNUNET_GNS_LocalOptions options;
 };
 
@@ -144,7 +144,7 @@ process_lookup_result (void *cls,
 {
   struct GNUNET_GNS_LookupWithTldRequest *ltr = cls;
 
-  ltr->lr = NULL;  
+  ltr->lr = NULL;
   ltr->lookup_proc (ltr->lookup_proc_cls,
 		    GNUNET_YES,
 		    rd_count,
@@ -291,10 +291,12 @@ GNUNET_GNS_lookup_with_tld (struct GNUNET_GNS_Handle *handle,
   /* Final case: TLD matches one of our egos */
   eat_tld (ltr->name);
 
-  /* if the name is of the form 'label.gnu', never go to the DHT */
+  /* if the name is of the form 'label' (and not 'label.SUBDOMAIN'), never go to the DHT */
   if (NULL == strchr (ltr->name,
                       (unsigned char) '.'))
     ltr->options = GNUNET_GNS_LO_NO_DHT;
+  else
+    ltr->options = GNUNET_GNS_LO_LOCAL_MASTER;
   ltr->id_op = GNUNET_IDENTITY_ego_lookup (ltr->gns_handle->cfg,
 					   tld,
 					   &identity_zone_cb,

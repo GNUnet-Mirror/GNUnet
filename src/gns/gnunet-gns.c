@@ -50,11 +50,6 @@ static char *lookup_name;
 static char *lookup_type;
 
 /**
- * Set to GNUNET_GNS_LO_LOCAL_MASTER if we are looking up in the master zone.
- */
-static enum GNUNET_GNS_LocalOptions local_options;
-
-/**
  * raw output
  */
 static int raw;
@@ -207,7 +202,7 @@ run (void *cls,
   lr = GNUNET_GNS_lookup_with_tld (gns,
 				   lookup_name,
 				   rtype,
-				   local_options,
+				   GNUNET_GNS_LO_DEFAULT,
 				   &process_lookup_result,
 				   lookup_name);
   if (NULL == lr)

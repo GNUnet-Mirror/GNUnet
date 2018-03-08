@@ -423,7 +423,8 @@ identity_master_cb (void *cls,
     GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
   }
-  GNUNET_IDENTITY_ego_get_public_key (ego, &handle->pkey);
+  GNUNET_IDENTITY_ego_get_public_key (ego,
+                                      &handle->pkey);
   /* main name is our own master zone, do no look for that in the DHT */
   handle->options = GNUNET_GNS_LO_LOCAL_MASTER;
   /* if the name is of the form 'label.gnu', never go to the DHT */
@@ -464,6 +465,7 @@ parse_url (const char *url, struct LookupHandle *handle)
               "Got name: %s\n", handle->name);
   return GNUNET_OK;
 }
+
 
 static void
 get_gns_cont (struct GNUNET_REST_RequestHandle *conndata_handle,
@@ -610,14 +612,19 @@ options_cont (struct GNUNET_REST_RequestHandle *con_handle,
  * @param data body of the HTTP request (optional)
  * @param data_size length of the body
  * @param proc callback function for the result
- * @param proc_cls closure for callback function
- * @return GNUNET_OK if request accepted
+ * @param proc_cls closure for @a proc
+ * @return #GNUNET_OK if request accepted
  */
 static void
-rest_gns_process_request(struct GNUNET_REST_RequestHandle *conndata_handle,
-                         GNUNET_REST_ResultProcessor proc,
-                         void *proc_cls)
+rest_gns_process_request (struct GNUNET_REST_RequestHandle *conndata_handle,
+                          GNUNET_REST_ResultProcessor proc,
+                          void *proc_cls)
 {
+  static const struct GNUNET_REST_RequestHandler handlers[] = {
+    {MHD_HTTP_METHOD_GET, GNUNET_REST_API_NS_GNS, &get_gns_cont},
+    {MHD_HTTP_METHOD_OPTIONS, GNUNET_REST_API_NS_GNS, &options_cont},
+    GNUNET_REST_HANDLER_END
+  };
   struct LookupHandle *handle = GNUNET_new (struct LookupHandle);
   struct GNUNET_REST_RequestHandlerError err;
 
@@ -625,12 +632,6 @@ rest_gns_process_request(struct GNUNET_REST_RequestHandle *conndata_handle,
   handle->proc_cls = proc_cls;
   handle->proc = proc;
   handle->rest_handle = conndata_handle;
-
-  static const struct GNUNET_REST_RequestHandler handlers[] = {
-    {MHD_HTTP_METHOD_GET, GNUNET_REST_API_NS_GNS, &get_gns_cont},
-    {MHD_HTTP_METHOD_OPTIONS, GNUNET_REST_API_NS_GNS, &options_cont},
-    GNUNET_REST_HANDLER_END
-  };
 
   if (GNUNET_NO == GNUNET_JSONAPI_handle_request (conndata_handle,
                                                   handlers,

@@ -122,7 +122,7 @@ enum GNUNET_GNS_LocalOptions
 
   /**
    * For the rightmost label, only look in the cache (it
-   * is our master zone), for the others, the DHT is OK.
+   * is our local namestore), for the others, the DHT is OK.
    */
   GNUNET_GNS_LO_LOCAL_MASTER = 2
 
