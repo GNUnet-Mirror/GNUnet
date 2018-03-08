@@ -3175,10 +3175,10 @@ handle_peer_pull_request (void *cls,
   }
   #endif /* ENABLE_MALICIOUS */
 
+  GNUNET_break_op (Peers_check_peer_known (peer));
+  GNUNET_CADET_receive_done (Peers_get_recv_channel (peer));
   view_array = View_get_as_array ();
   send_pull_reply (peer, view_array, View_size ());
-
-  GNUNET_CADET_receive_done (Peers_get_recv_channel (peer));
 }
 
 
