@@ -260,6 +260,8 @@ cleanup_task (void *cls)
 	      "Stopping namestore service\n");
   while (NULL != (cop = cop_head))
   {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                "Aborting incomplete namecache operation\n");
     GNUNET_NAMECACHE_cancel (cop->qe);
     GNUNET_CONTAINER_DLL_remove (cop_head,
                                  cop_tail,

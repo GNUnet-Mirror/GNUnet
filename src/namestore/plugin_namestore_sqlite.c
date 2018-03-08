@@ -266,12 +266,12 @@ database_setup (struct Plugin *plugin)
       (sqlite3_exec
        (plugin->dbh,
         "CREATE TABLE ns097records ("
-        " zone_private_key BLOB NOT NULL DEFAULT '',"
+        " zone_private_key BLOB NOT NULL,"
         " pkey BLOB,"
-	" rvalue INT8 NOT NULL DEFAULT '',"
-	" record_count INT NOT NULL DEFAULT 0,"
-        " record_data BLOB NOT NULL DEFAULT '',"
-        " label TEXT NOT NULL DEFAULT ''"
+	" rvalue INT8 NOT NULL,"
+	" record_count INT NOT NULL,"
+        " record_data BLOB NOT NULL,"
+        " label TEXT NOT NULL"
 	")",
 	NULL, NULL, NULL) != SQLITE_OK))
   {
