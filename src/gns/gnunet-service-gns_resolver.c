@@ -1497,7 +1497,6 @@ handle_gns_resolution_result (void *cls,
   struct GNS_ResolverHandle *rh = cls;
   struct AuthorityChain *ac;
   struct AuthorityChain *shorten_ac;
-  unsigned int i;
   char *cname;
   struct VpnContext *vpn_ctx;
   const struct GNUNET_TUN_GnsVpnRecord *vpn;
@@ -1546,7 +1545,7 @@ handle_gns_resolution_result (void *cls,
     if ( (GNUNET_DNSPARSER_TYPE_A == rh->record_type) ||
 	 (GNUNET_DNSPARSER_TYPE_AAAA == rh->record_type) )
     {
-      for (i=0;i<rd_count;i++)
+      for (unsigned int i=0;i<rd_count;i++)
       {
 	switch (rd[i].record_type)
 	{
@@ -1617,13 +1616,15 @@ handle_gns_resolution_result (void *cls,
     scratch_off = 0;
     rd_off = 0;
     shorten_ac = rh->ac_tail;
-    for (i=0;i<rd_count;i++)
+    for (unsigned int i=0;i<rd_count;i++)
     {
+      GNUNET_assert (rd_off <= i);
       if ( (0 != rh->protocol) &&
            (0 != rh->service) &&
            (GNUNET_GNSRECORD_TYPE_BOX != rd[i].record_type) )
         continue; /* we _only_ care about boxed records */
 
+      GNUNET_assert (rd_off < rd_count);
       rd_new[rd_off] = rd[i];
       /* Check if the embedded name(s) end in "+", and if so,
 	 replace the "+" with the zone at "ac_tail", changing the name
@@ -1659,6 +1660,7 @@ handle_gns_resolution_result (void *cls,
 	    }
 	    else
 	    {
+              GNUNET_assert (rd_off < rd_count);
 	      rd_new[rd_off].data = &scratch[scratch_start];
 	      rd_new[rd_off].data_size = scratch_off - scratch_start;
 	      rd_off++;
@@ -1695,6 +1697,7 @@ handle_gns_resolution_result (void *cls,
 	    }
 	    else
 	    {
+              GNUNET_assert (rd_off < rd_count);
 	      rd_new[rd_off].data = &scratch[scratch_start];
 	      rd_new[rd_off].data_size = scratch_off - scratch_start;
 	      rd_off++;
@@ -1731,6 +1734,7 @@ handle_gns_resolution_result (void *cls,
 	    }
 	    else
 	    {
+              GNUNET_assert (rd_off < rd_count);
 	      rd_new[rd_off].data = &scratch[scratch_start];
 	      rd_new[rd_off].data_size = scratch_off - scratch_start;
 	      rd_off++;
@@ -1767,6 +1771,7 @@ handle_gns_resolution_result (void *cls,
 	    }
 	    else
 	    {
+              GNUNET_assert (rd_off < rd_count);
 	      rd_new[rd_off].data = &scratch[scratch_start];
 	      rd_new[rd_off].data_size = scratch_off - scratch_start;
 	      rd_off++;
@@ -1850,6 +1855,7 @@ handle_gns_resolution_result (void *cls,
                  (ntohs (box->service) == rh->service) )
             {
               /* Box matches, unbox! */
+              GNUNET_assert (rd_off < rd_count);
               rd_new[rd_off].record_type = ntohl (box->record_type);
               rd_new[rd_off].data_size -= sizeof (struct GNUNET_GNSRECORD_BoxRecord);
               rd_new[rd_off].data = &box[1];
@@ -1862,6 +1868,7 @@ handle_gns_resolution_result (void *cls,
                records (for modern, GNS-enabled applications) */
             rd_off++;
           }
+          break;
         }
       default:
 	rd_off++;
@@ -1882,7 +1889,7 @@ handle_gns_resolution_result (void *cls,
   }
  do_recurse:
   /* need to recurse, check if we can */
-  for (i=0;i<rd_count;i++)
+  for (unsigned int i=0;i<rd_count;i++)
   {
     switch (rd[i].record_type)
     {
@@ -2064,7 +2071,9 @@ handle_gns_resolution_result (void *cls,
   }
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
 	      _("GNS lookup recursion failed (no delegation record found)\n"));
-  rh->proc (rh->proc_cls, 0, NULL);
+  rh->proc (rh->proc_cls,
+            0,
+            NULL);
   GNS_resolver_lookup_cancel (rh);
 }
 
