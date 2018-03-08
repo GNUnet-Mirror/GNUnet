@@ -45,12 +45,12 @@
 /**
  * Obtain trace information for all scheduler calls that schedule tasks.
  */
-#define EXECINFO GNUNET_YES
+#define EXECINFO GNUNET_NO
 
 /**
  * Check each file descriptor before adding
  */
-#define DEBUG_FDS GNUNET_YES
+#define DEBUG_FDS GNUNET_NO
 
 /**
  * Depth of the traces collected via EXECINFO.
