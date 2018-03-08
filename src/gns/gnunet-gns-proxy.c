@@ -1009,7 +1009,10 @@ check_ssl_certificate (struct Socks5Request *s5r)
  * @return size of processed bytes
  */
 static size_t
-curl_check_hdr (void *buffer, size_t size, size_t nmemb, void *cls)
+curl_check_hdr (void *buffer,
+                size_t size,
+                size_t nmemb,
+                void *cls)
 {
   struct Socks5Request *s5r = cls;
   struct HttpResponseHeader *header;
@@ -1147,12 +1150,20 @@ curl_check_hdr (void *buffer, size_t size, size_t nmemb, void *cls)
   return bytes;
 }
 
+
+/**
+ * Create an MHD response object in @a s5r matching the
+ * information we got from curl.
+ *
+ * @param s5r the request for which we convert the response
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR if response was
+ *         already initialized before
+ */
 static int
 create_mhd_response_from_s5r (struct Socks5Request *s5r)
 {
   long resp_code;
   double content_length;
-  struct HttpResponseHeader *header;
 
   if (NULL != s5r->response)
   {
@@ -1178,7 +1189,9 @@ create_mhd_response_from_s5r (struct Socks5Request *s5r)
                                                      &mhd_content_cb,
                                                      s5r,
                                                      NULL);
-  for (header = s5r->header_head; NULL != header; header = header->next)
+  for (struct HttpResponseHeader *header = s5r->header_head;
+       NULL != header;
+       header = header->next)
   {
     GNUNET_break (MHD_YES ==
                   MHD_add_response_header (s5r->response,
@@ -1222,7 +1235,10 @@ create_mhd_response_from_s5r (struct Socks5Request *s5r)
  * @return number of bytes handled
  */
 static size_t
-curl_download_cb (void *ptr, size_t size, size_t nmemb, void* ctx)
+curl_download_cb (void *ptr,
+                  size_t size,
+                  size_t nmemb,
+                  void* ctx)
 {
   struct Socks5Request *s5r = ctx;
   size_t total = size * nmemb;
@@ -1268,7 +1284,10 @@ curl_download_cb (void *ptr, size_t size, size_t nmemb, void* ctx)
  * @return number of bytes copied to @a buf
  */
 static size_t
-curl_upload_cb (void *buf, size_t size, size_t nmemb, void *cls)
+curl_upload_cb (void *buf,
+                size_t size,
+                size_t nmemb,
+                void *cls)
 {
   struct Socks5Request *s5r = cls;
   size_t len = size * nmemb;
@@ -1482,7 +1501,7 @@ curl_task_download (void *cls)
  * @param kind value kind
  * @param key field key
  * @param value field value
- * @return MHD_YES to continue to iterate
+ * @return #MHD_YES to continue to iterate
  */
 static int
 con_val_iter (void *cls,
@@ -1532,9 +1551,9 @@ con_val_iter (void *cls,
  * @param upload_data_size set initially to the size of the
  *        @a upload_data provided; the method must update this
  *        value to the number of bytes NOT processed;
- * @param con_cls pointer to location where we store the 'struct Request'
- * @return MHD_YES if the connection was handled successfully,
- *         MHD_NO if the socket must be closed due to a serious
+ * @param con_cls pointer to location where we store the `struct Request`
+ * @return #MHD_YES if the connection was handled successfully,
+ *         #MHD_NO if the socket must be closed due to a serious
  *         error while handling the request
  */
 static int
