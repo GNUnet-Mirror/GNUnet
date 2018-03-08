@@ -180,7 +180,7 @@ run (void *cls,
   (void) cls;
   (void) args;
   (void) cfgfile;
-  
+
   cfg = c;
   gns = GNUNET_GNS_connect (cfg);
   if (NULL == gns)
@@ -190,7 +190,7 @@ run (void *cls,
     global_ret = 2;
     return;
   }
-  
+
   GNUNET_SCHEDULER_add_shutdown (&do_shutdown,
                                  NULL);
 
@@ -209,13 +209,13 @@ run (void *cls,
 				   rtype,
 				   local_options,
 				   &process_lookup_result,
-				   NULL);
+				   lookup_name);
   if (NULL == lr)
   {
     global_ret = 2;
     GNUNET_SCHEDULER_shutdown ();
     return;
-  }  
+  }
 }
 
 
