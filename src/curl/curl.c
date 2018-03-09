@@ -405,6 +405,8 @@ download_get_result (struct DownloadBuffer *db,
       GNUNET_break (0);
       *response_code = 0;
     }
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                "Did NOT detect response as JSON\n");
     return NULL;
   }
   json = NULL;
