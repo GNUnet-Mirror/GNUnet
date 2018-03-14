@@ -1937,6 +1937,13 @@ static unsigned int sampler_size_client_need;
 static unsigned int sampler_size_est_need;
 
 /**
+ * @brief This is the minimum estimate used as view size.
+ *
+ * It is configured by the user.
+ */
+static unsigned int sampler_size_est_min;
+
+/**
  * Percentage of total peer number in the view
  * to send random PUSHes to
  */
@@ -2772,12 +2779,15 @@ nse_callback (void *cls,
   estimate = pow (estimate, 1.0 / 3);
   // TODO add if std_dev is a number
   // estimate += (std_dev * scale);
-  if (2 < ceil (estimate))
+  if (sampler_size_est_min < ceil (estimate))
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "Changing estimate to %f\n", estimate);
     sampler_size_est_need = estimate;
   } else
+  {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "Not using estimate %f\n", estimate);
+    sampler_size_est_need = sampler_size_est_min;
+  }
 
   /* If the NSE has changed adapt the lists accordingly */
   resize_wrapper (prot_sampler, sampler_size_est_need);
@@ -4206,15 +4216,16 @@ run (void *cls,
 
   /* Get initial size of sampler/view from the configuration */
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_number (cfg, "RPS", "INITSIZE",
-        (long long unsigned int *) &sampler_size_est_need))
+      GNUNET_CONFIGURATION_get_value_number (cfg, "RPS", "MINSIZE",
+        (long long unsigned int *) &sampler_size_est_min))
   {
     GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR,
-                               "RPS", "INITSIZE");
+                               "RPS", "MINSIZE");
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "INITSIZE is %u\n", sampler_size_est_need);
+  sampler_size_est_need = sampler_size_est_min;
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "MINSIZE is %u\n", sampler_size_est_min);
 
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_filename (cfg,
