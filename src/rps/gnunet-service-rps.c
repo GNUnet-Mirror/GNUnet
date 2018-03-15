@@ -1937,11 +1937,25 @@ static unsigned int sampler_size_client_need;
 static unsigned int sampler_size_est_need;
 
 /**
- * @brief This is the minimum estimate used as view size.
+ * @brief This is the minimum estimate used as sampler size.
  *
  * It is configured by the user.
  */
 static unsigned int sampler_size_est_min;
+
+/**
+ * @brief This is the estimate used as view size.
+ *
+ * It is initialised with the minimum
+ */
+static unsigned int view_size_est_need;
+
+/**
+ * @brief This is the minimum estimate used as view size.
+ *
+ * It is configured by the user.
+ */
+static unsigned int view_size_est_min;
 
 /**
  * Percentage of total peer number in the view
@@ -2779,14 +2793,16 @@ nse_callback (void *cls,
   estimate = pow (estimate, 1.0 / 3);
   // TODO add if std_dev is a number
   // estimate += (std_dev * scale);
-  if (sampler_size_est_min < ceil (estimate))
+  if (view_size_est_min < ceil (estimate))
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "Changing estimate to %f\n", estimate);
     sampler_size_est_need = estimate;
+    view_size_est_need = estimate;
   } else
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "Not using estimate %f\n", estimate);
-    sampler_size_est_need = sampler_size_est_min;
+    //sampler_size_est_need = view_size_est_min;
+    view_size_est_need = view_size_est_min;
   }
 
   /* If the NSE has changed adapt the lists accordingly */
@@ -3802,9 +3818,10 @@ do_round (void *cls)
   /* Update view */
   /* TODO see how many peers are in push-/pull- list! */
 
-  if ((CustomPeerMap_size (push_map) <= alpha * View_size ()) &&
+  if ((CustomPeerMap_size (push_map) <= alpha * view_size_est_need) &&
       (0 < CustomPeerMap_size (push_map)) &&
       (0 < CustomPeerMap_size (pull_map)))
+  //if (GNUNET_YES) // disable blocking temporarily
   { /* If conditions for update are fulfilled, update */
     LOG (GNUNET_ERROR_TYPE_DEBUG, "Update of the view.\n");
 
@@ -3824,13 +3841,13 @@ do_round (void *cls)
     to_file (file_name_view_log,
              "--- emptied ---");
 
-    first_border  = GNUNET_MIN (ceil (alpha * sampler_size_est_need),
+    first_border  = GNUNET_MIN (ceil (alpha * view_size_est_need),
                                 CustomPeerMap_size (push_map));
     second_border = first_border +
-                    GNUNET_MIN (floor (beta  * sampler_size_est_need),
+                    GNUNET_MIN (floor (beta  * view_size_est_need),
                                 CustomPeerMap_size (pull_map));
     final_size    = second_border +
-      ceil ((1 - (alpha + beta)) * sampler_size_est_need);
+      ceil ((1 - (alpha + beta)) * view_size_est_need);
 
     /* Update view with peers received through PUSHes */
     permut = GNUNET_CRYPTO_random_permute (GNUNET_CRYPTO_QUALITY_STRONG,
@@ -4225,6 +4242,7 @@ run (void *cls,
     return;
   }
   sampler_size_est_need = sampler_size_est_min;
+  view_size_est_min = sampler_size_est_min;
   LOG (GNUNET_ERROR_TYPE_DEBUG, "MINSIZE is %u\n", sampler_size_est_min);
 
   if (GNUNET_OK !=
