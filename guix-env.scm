@@ -66,14 +66,12 @@
  (gnu packages xiph)
  ((guix licenses) #:prefix license:))
 
-(define %source-dir (string-append (current-source-directory)
-                                   "/../../../"))
+(define %source-dir (current-source-directory))
 
 (define gnunet-dev-env
   (let* ((revision "1")
          (select? (delay (or (git-predicate
-                              (string-append (current-source-directory)
-                                             "/../../../"))
+                              (current-source-directory))
                              source-file?))))
     (package
       (inherit gnunet)
@@ -88,7 +86,7 @@
          ("gnurl" ,gnurl)
          ("gstreamer" ,gstreamer)
          ("gst-plugins-base" ,gst-plugins-base)
-         ("gnutls/dane" ,gnutls/dane) ;Change to gnutls/dane once it is merged.
+         ("gnutls/dane" ,gnutls/dane)
          ("libextractor" ,libextractor)
          ("libgcrypt" ,libgcrypt)
          ("libidn" ,libidn)
