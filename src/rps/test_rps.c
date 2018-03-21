@@ -1878,9 +1878,40 @@ void compute_diversity ()
   GNUNET_free (deviation);
 }
 
-void all_views_updated_cb ()
+void print_view_sizes()
 {
-  compute_diversity ();
+  uint32_t i;
+  char *view_sizes_str = NULL;
+  uint32_t view_sizes_str_len = 0;
+  char view_size_curr[32] = { 0 };
+
+  GNUNET_array_grow (view_sizes_str, view_sizes_str_len, num_peers * 3);
+  for (i = 0; i < num_peers; i++) /* Peer to count */
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+               "View size of %" PRIu32 ". [%s] is %" PRIu32 "\n",
+               i,
+               GNUNET_i2s (rps_peers[i].peer_id),
+               rps_peers[i].cur_view_count);
+    GNUNET_snprintf (view_size_curr,
+                     sizeof (view_size_curr),
+                     " %" PRIu32 "",
+                     rps_peers[i].cur_view_count);
+    if (view_sizes_str_len < view_sizes_str_len + strlen (view_size_curr))
+    {
+      GNUNET_array_grow (view_sizes_str, view_sizes_str_len, view_sizes_str_len + 10);
+    }
+    strncat (view_sizes_str, view_size_curr, strlen(view_size_curr));
+  }
+  to_file_ ("/tmp/rps/view_sizes.txt",
+           view_sizes_str);
+  GNUNET_array_grow (view_sizes_str, view_sizes_str_len, 0);
+}
+
+void all_views_updated_cb()
+{
+  compute_diversity();
+  print_view_sizes();
 }
 
 void view_update_cb (void *cls,

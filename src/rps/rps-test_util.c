@@ -43,6 +43,7 @@ to_file_ (char *file_name, char *line)
 {
   struct GNUNET_DISK_FileHandle *f;
   char output_buffer[512];
+  char *output_buffer_p;
   //size_t size;
   int size;
   size_t size2;
@@ -62,8 +63,14 @@ to_file_ (char *file_name, char *line)
          file_name);
     return;
   }
-  size = GNUNET_snprintf (output_buffer,
-                          sizeof (output_buffer),
+  if (512 < strlen (line) + 18)
+  {
+    output_buffer_p = GNUNET_malloc ((strlen (line) + 18) * sizeof (char));
+  } else {
+    output_buffer_p = &output_buffer[0];
+  }
+  size = GNUNET_snprintf (output_buffer_p,
+                          sizeof (output_buffer_p),
                           "%llu %s\n",
                           GNUNET_TIME_absolute_get ().abs_value_us,
                           line);
@@ -75,7 +82,7 @@ to_file_ (char *file_name, char *line)
     return;
   }
 
-  size2 = GNUNET_DISK_file_write (f, output_buffer, size);
+  size2 = GNUNET_DISK_file_write (f, output_buffer_p, size);
   if (size != size2)
   {
     LOG (GNUNET_ERROR_TYPE_WARNING,
@@ -88,6 +95,11 @@ to_file_ (char *file_name, char *line)
            "Unable to close file\n");
 
     return;
+  }
+
+  if (512 < strlen (line) + 18)
+  {
+    GNUNET_free (output_buffer_p);
   }
 
   if (GNUNET_YES != GNUNET_DISK_file_close (f))
