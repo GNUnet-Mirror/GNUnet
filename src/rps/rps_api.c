@@ -266,6 +266,9 @@ GNUNET_RPS_view_request (struct GNUNET_RPS_Handle *rps_handle,
   struct GNUNET_MQ_Envelope *ev;
   struct GNUNET_RPS_CS_DEBUG_ViewRequest *msg;
 
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Client requests %" PRIu32 " view updates\n",
+       num_updates);
   rps_handle->view_update_cb = view_update_cb;
   rps_handle->view_update_cls = cls;
 

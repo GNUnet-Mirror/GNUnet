@@ -3848,6 +3848,11 @@ do_round (void *cls)
                                 CustomPeerMap_size (pull_map));
     final_size    = second_border +
       ceil ((1 - (alpha + beta)) * view_size_est_need);
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+        "first border: %" PRIu32 ", second border: %" PRIu32 ", final size: %"PRIu32 "\n",
+        first_border,
+        second_border,
+        final_size);
 
     /* Update view with peers received through PUSHes */
     permut = GNUNET_CRYPTO_random_permute (GNUNET_CRYPTO_QUALITY_STRONG,
