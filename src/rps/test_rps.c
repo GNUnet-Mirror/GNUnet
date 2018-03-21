@@ -1818,9 +1818,27 @@ store_stats_file_name (struct RPSPeer *rps_peer)
   rps_peer->file_name_stats = file_name;
 }
 
+void count_peer_in_views (uint32_t *count_peers)
+{
+  uint32_t i, j;
+
+  for (i = 0; i < num_peers; i++) /* Peer in which view is counted */
+  {
+    for (j = 0; j < rps_peers[i].cur_view_count; j++) /* entry in view */
+    {
+      if (0 == memcmp (rps_peers[i].peer_id,
+            &rps_peers[i].cur_view[j],
+            sizeof (struct GNUNET_PeerIdentity)))
+      {
+        count_peers[i]++;
+      }
+    }
+  }
+}
+
 void compute_diversity ()
 {
-  uint32_t i, j, k;
+  uint32_t i;
   /* ith entry represents the numer of occurrences in other peer's views */
   uint32_t *count_peers = GNUNET_new_array (num_peers, uint32_t);
   uint32_t views_total_size;
@@ -1835,21 +1853,11 @@ void compute_diversity ()
   for (i = 0; i < num_peers; i++) /* Peer to count */
   {
     views_total_size += rps_peers[i].cur_view_count;
-    for (j = 0; j < num_peers; j++) /* Peer in which view is counted */
-    {
-      for (k = 0; k < rps_peers[j].cur_view_count; k++) /* entry in view */
-      {
-        if (0 == memcmp (rps_peers[i].peer_id,
-                         &rps_peers[j].cur_view[k],
-                         sizeof (struct GNUNET_PeerIdentity)))
-        {
-          count_peers[i]++;
-        }
-      }
-    }
+    count_peer_in_views (count_peers);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-               "Counted representation of %" PRIu32 "th peer: %" PRIu32"\n",
+               "Counted representation of %" PRIu32 "th peer [%s]: %" PRIu32"\n",
                i,
+               GNUNET_i2s (rps_peers[i].peer_id),
                count_peers[i]);
   }
 
