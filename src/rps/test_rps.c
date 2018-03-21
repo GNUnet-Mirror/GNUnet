@@ -268,6 +268,26 @@ struct RPSPeer
    * @brief Number of peers in the #cur_view.
    */
   uint32_t cur_view_count;
+
+  /**
+   * @brief statistics values
+   */
+  uint64_t num_rounds;
+  uint64_t num_blocks;
+  uint64_t num_blocks_many_push;
+  uint64_t num_blocks_no_push;
+  uint64_t num_blocks_no_pull;
+  uint64_t num_blocks_many_push_no_pull;
+  uint64_t num_blocks_no_push_no_pull;
+  uint64_t num_issued_push;
+  uint64_t num_issued_pull_req;
+  uint64_t num_issued_pull_rep;
+  uint64_t num_sent_push;
+  uint64_t num_sent_pull_req;
+  uint64_t num_sent_pull_rep;
+  uint64_t num_recv_push;
+  uint64_t num_recv_pull_req;
+  uint64_t num_recv_pull_rep;
 };
 
 enum STAT_TYPE
@@ -1942,6 +1962,37 @@ pre_profiler (struct RPSPeer *rps_peer, struct GNUNET_RPS_Handle *h)
   GNUNET_RPS_view_request (h, 0, view_update_cb, rps_peer);
 }
 
+void write_final_stats (void){
+  uint32_t i;
+
+  for (i = 0; i < num_peers; i++)
+  {
+    to_file ("/tmp/rps/final_stats.dat",
+             "%s %" PRIu64
+             " %" PRIu64 " %" PRIu64 " %" PRIu64 " %" PRIu64 " %" PRIu64 " %" PRIu64 /* blocking */
+             " %" PRIu64 " %" PRIu64 " %" PRIu64 /* issued */
+             " %" PRIu64 " %" PRIu64 " %" PRIu64 /* sent */
+             " %" PRIu64 " %" PRIu64 " %" PRIu64 /* recv */,
+             GNUNET_i2s (rps_peers[i].peer_id),
+             rps_peers[i].num_rounds,
+             rps_peers[i].num_blocks,
+             rps_peers[i].num_blocks_many_push,
+             rps_peers[i].num_blocks_no_push,
+             rps_peers[i].num_blocks_no_pull,
+             rps_peers[i].num_blocks_many_push_no_pull,
+             rps_peers[i].num_blocks_no_push_no_pull,
+             rps_peers[i].num_issued_push,
+             rps_peers[i].num_issued_pull_req,
+             rps_peers[i].num_issued_pull_rep,
+             rps_peers[i].num_sent_push,
+             rps_peers[i].num_sent_pull_req,
+             rps_peers[i].num_sent_pull_rep,
+             rps_peers[i].num_recv_push,
+             rps_peers[i].num_recv_pull_req,
+             rps_peers[i].num_recv_pull_rep);
+  }
+}
+
 /**
  * Continuation called by #GNUNET_STATISTICS_get() functions.
  *
@@ -1979,6 +2030,7 @@ post_test_shutdown_ready_cb (void *cls,
 
   if (GNUNET_YES == check_statistics_collect_completed())
   {
+    write_final_stats ();
     GNUNET_free (stat_cls);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
         "Shutting down\n");
@@ -1987,6 +2039,83 @@ post_test_shutdown_ready_cb (void *cls,
     GNUNET_free (stat_cls);
   }
 }
+
+/**
+ * @brief Converts string representation to the corresponding #STAT_TYPE enum.
+ *
+ * @param stat_str string representation of statistics specifier
+ *
+ * @return corresponding enum
+ */
+enum STAT_TYPE stat_str_2_type (const char *stat_str)
+{
+  if (GNUNET_YES == strncmp ("# rounds", stat_str, strlen ("# rounds")))
+  {
+    return STAT_TYPE_ROUNDS;
+  }
+  if (GNUNET_YES == strncmp ("# rounds blocked", stat_str, strlen ("# rounds blocked")))
+  {
+    return STAT_TYPE_BLOCKS;
+  }
+  if (0 == strncmp ("# rounds blocked - too many pushes", stat_str, strlen ("# rounds blocked - too many pushes")))
+  {
+    return STAT_TYPE_BLOCKS_MANY_PUSH;
+  }
+  if (0 == strncmp ("# rounds blocked - no pushes", stat_str, strlen ("# rounds blocked - no pushes")))
+  {
+    return STAT_TYPE_BLOCKS_NO_PUSH;
+  }
+  if (0 == strncmp ("# rounds blocked - no pull replies", stat_str, strlen ("# rounds blocked - no pull replies")))
+  {
+    return STAT_TYPE_BLOCKS_NO_PULL;
+  }
+  if (0 == strncmp ("# rounds blocked - too many pushes, no pull replies", stat_str, strlen ("# rounds blocked - too many pushes, no pull replies")))
+  {
+    return STAT_TYPE_BLOCKS_MANY_PUSH_NO_PULL;
+  }
+  if (0 == strncmp ("# rounds blocked - no pushes, no pull replies", stat_str, strlen ("# rounds blocked - no pushes, no pull replies")))
+  {
+    return STAT_TYPE_BLOCKS_NO_PUSH_NO_PULL;
+  }
+  if (0 == strncmp ("# push send issued", stat_str, strlen ("# push send issued")))
+  {
+    return STAT_TYPE_ISSUED_PUSH_SEND;
+  }
+  if (0 == strncmp ("# pull request send issued", stat_str, strlen ("# pull request send issued")))
+  {
+    return STAT_TYPE_ISSUED_PULL_REQ;
+  }
+  if (0 == strncmp ("# pull reply send issued", stat_str, strlen ("# pull reply send issued")))
+  {
+    return STAT_TYPE_ISSUED_PULL_REP;
+  }
+  if (0 == strncmp ("# pushes sent", stat_str, strlen ("# pushes sent")))
+  {
+    return STAT_TYPE_SENT_PUSH_SEND;
+  }
+  if (0 == strncmp ("# pull requests sent", stat_str, strlen ("# pull requests sent")))
+  {
+    return STAT_TYPE_SENT_PULL_REQ;
+  }
+  if (0 == strncmp ("# pull replys sent", stat_str, strlen ("# pull replys sent")))
+  {
+    return STAT_TYPE_SENT_PULL_REP;
+  }
+  if (0 == strncmp ("# push message received", stat_str, strlen ("# push message received")))
+  {
+    return STAT_TYPE_RECV_PUSH_SEND;
+  }
+  if (0 == strncmp ("# pull request message received", stat_str, strlen ("# pull request message received")))
+  {
+    return STAT_TYPE_RECV_PULL_REQ;
+  }
+  if (0 == strncmp ("# pull reply messages received", stat_str, strlen ("# pull reply messages received")))
+  {
+    return STAT_TYPE_RECV_PULL_REP;
+  }
+  return STAT_TYPE_MAX;
+}
+
 
 /**
  * @brief Converts #STAT_TYPE enum to the equivalent string representation that
@@ -2057,15 +2186,55 @@ stat_iterator (void *cls,
                int is_persistent)
 {
   const struct STATcls *stat_cls = (const struct STATcls *) cls;
-  const struct RPSPeer *rps_peer = (const struct RPSPeer *) stat_cls->rps_peer;
+  struct RPSPeer *rps_peer = (struct RPSPeer *) stat_cls->rps_peer;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Got stat value: %s - %" PRIu64 "\n",
       //stat_type_2_str (stat_cls->stat_type),
       name,
       value);
-  to_file (rps_peer->file_name_stats,
-          "%s: %" PRIu64 "\n",
-          name,
-          value);
+  //to_file (rps_peer->file_name_stats,
+  //        "%s: %" PRIu64 "\n",
+  //        name,
+  //        value);
+  switch (stat_str_2_type (name))
+  {
+    case STAT_TYPE_ROUNDS:
+      rps_peer->num_blocks = value;
+    case STAT_TYPE_BLOCKS:
+      rps_peer->num_blocks = value;
+    case STAT_TYPE_BLOCKS_MANY_PUSH:
+      rps_peer->num_blocks_many_push = value;
+    case STAT_TYPE_BLOCKS_NO_PUSH:
+      rps_peer->num_blocks_no_push = value;
+    case STAT_TYPE_BLOCKS_NO_PULL:
+      rps_peer->num_blocks_no_pull = value;
+    case STAT_TYPE_BLOCKS_MANY_PUSH_NO_PULL:
+      rps_peer->num_blocks_many_push_no_pull = value;
+    case STAT_TYPE_BLOCKS_NO_PUSH_NO_PULL:
+      rps_peer->num_blocks_no_push_no_pull = value;
+    case STAT_TYPE_ISSUED_PUSH_SEND:
+      rps_peer->num_issued_push = value;
+    case STAT_TYPE_ISSUED_PULL_REQ:
+      rps_peer->num_issued_pull_req = value;
+    case STAT_TYPE_ISSUED_PULL_REP:
+      rps_peer->num_issued_pull_rep = value;
+    case STAT_TYPE_SENT_PUSH_SEND:
+      rps_peer->num_sent_push = value;
+    case STAT_TYPE_SENT_PULL_REQ:
+      rps_peer->num_sent_pull_req = value;
+    case STAT_TYPE_SENT_PULL_REP:
+      rps_peer->num_sent_pull_rep = value;
+    case STAT_TYPE_RECV_PUSH_SEND:
+      rps_peer->num_recv_push = value;
+    case STAT_TYPE_RECV_PULL_REQ:
+      rps_peer->num_recv_pull_req = value;
+    case STAT_TYPE_RECV_PULL_REP:
+      rps_peer->num_recv_pull_rep = value;
+    case STAT_TYPE_MAX:
+    default:
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                 "Unknown statistics string: %s\n",
+                 name);
+  }
   return GNUNET_OK;
 }
 
