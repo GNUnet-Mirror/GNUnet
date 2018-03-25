@@ -2076,7 +2076,7 @@ main (int argc, char *argv[])
     if (FD_ISSET (dev.fd_raw, &wfds))
     {
       ssize_t ret =
-	write (dev.fd_raw, write_pout.buf + write_std.pos,
+	write (dev.fd_raw, write_pout.buf + write_pout.pos,
 	       write_pout.size - write_pout.pos);
       if (0 > ret)
       {
