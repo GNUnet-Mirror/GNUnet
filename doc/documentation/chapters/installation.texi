@@ -19,6 +19,7 @@ it in the form of new chapters or insightful comments.
 * Build instructions for Debian 7.5::
 * Installing GNUnet from Git on Ubuntu 14.4::
 * Build instructions for Debian 8::
+@c * Build instructions for OpenBSD 6.2::
 * Outdated build instructions for previous revisions::
 @c * Portable GNUnet::
 * The graphical configuration interface::
@@ -1471,6 +1472,9 @@ Thus, you will need to install and configure those databases or stick
 with the default Sqlite database. Sqlite is usually fine for most
 applications, but MySQL can offer better performance and Postgres better
 resillience.
+
+@c @node Build instructions for OpenBSD 6.2
+@c @section Build instructions for OpenBSD 6.2
 
 @node Outdated build instructions for previous revisions
 @section Outdated build instructions for previous revisions
