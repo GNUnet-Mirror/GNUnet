@@ -1,0 +1,87 @@
+***********************************************************************
+********************* Release Policy (RFC) ****************************
+***********************************************************************
+
+We suggest this structure of the proposal document as part of a tiny
+social process in order to find a decision in a cooperativ and common
+way.
+
+
+I. Driver 
+=========
+(What is the problem and what solution did we find?)
+
+The problem for the GNUnet community stated here is how to evolve the
+GNUnet team and code organization, so that developing code gets
+attractive again and using GNUnet for testing purposes or even for some
+little usecases becomes easier. In the current organizational model
+bugs tend to accumulate until they are not managable or overwhelming,
+however, it's clear, that every release candidate should be free from
+known bugs. There is more. Devs and user need to feel progress to have
+"Erfolgserlebnisse" (roughly: "sense of achievement") and recognition,
+like a new release, a "product" they have contributed to, listing new
+features with short description of amazing privacy preserving use cases.
+
+A possible solution to this problem might be a new and lightweighted
+release model with git. 
+
+Release Models with git:
+
+Option 1:
+  * code organization and branching
+    * master branch is release branch, tagged with different version
+      numbers development occurs in little side branches
+    * mature code resides in a staging branch for testing and quality
+      management 
+  * release process
+    * development in little side branches
+    * if code is mature, merge with staging branch and do testing,
+    * static/dynamic analysis and code audits if checks are okay, merge
+      with release branch and tag with new version number
+
+Option 2:
+  * code organization and branching
+    * master branch is development branch
+    * further development task can be done in other side branches
+      for every release candidate exists a new branch called after the
+      version number 
+  * release process
+    * development in master and side branches
+    * if code of side branches is mature merge with master branch
+    * if code in master branch is mature, create if not existant a new
+    * release branch called after the new version number and merge with
+      master 
+    * in the release branch do testing, static/dynamic analysis
+      and code audits 
+    * if checks are okay, tag as release candidate
+
+
+Option 3:
+...
+
+Option 1 and 2 are two flavours describe in 
+https://trunkbaseddevelopment.com/
+
+II. Evaluation Criteria 
+=======================
+(what are criterias to interprete the results as success if we review
+the problem and solution after a year or so)
+
+III. Concerns (of team members)
+===============================
+(if there are concerns of team members, write them down here to later
+review)
+
+IV. Doing
+=========
+(who does what within which time frame?)
+
+V. Previous Versions
+====================
+(if we found some flaws in the solution, and we want to change the
+release policy, we document the old ones here als previous versions.
+the goal is establish a learn process.)
+
+IV. References
+==============
+(if there are references to paper, web pages and other sources.)
