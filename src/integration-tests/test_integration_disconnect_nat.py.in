@@ -88,7 +88,6 @@ def check_disconnect ():
   nat_client.stop ()
   check = Check (test)
   check.add (StatisticsCondition (server, 'transport', '# peers connected',0))
-  check.add (StatisticsCondition (server, 'core', '# neighbour entries allocated',0))  
   check.add (StatisticsCondition (server, 'core', '# peers connected',0))
   check.add (StatisticsCondition (server, 'topology', '# peers connected',0))
   check.add (StatisticsCondition (server, 'dht', '# peers connected',0))
@@ -113,14 +112,12 @@ def check_connect ():
   global nat_client  
   check = Check (test)
   check.add (StatisticsCondition (nat_client, 'transport', '# peers connected',1))
-  check.add (StatisticsCondition (nat_client, 'core', '# neighbour entries allocated',1))  
   check.add (StatisticsCondition (nat_client, 'core', '# peers connected',1))
   check.add (StatisticsCondition (nat_client, 'topology', '# peers connected',1))
   check.add (StatisticsCondition (nat_client, 'dht', '# peers connected',1))
   check.add (StatisticsCondition (nat_client, 'fs', '# peers connected',1))
   
   check.add (StatisticsCondition (server, 'transport', '# peers connected',1))
-  check.add (StatisticsCondition (server, 'core', '# neighbour entries allocated',1))  
   check.add (StatisticsCondition (server, 'core', '# peers connected',1))
   check.add (StatisticsCondition (server, 'topology', '# peers connected',1))
   check.add (StatisticsCondition (server, 'dht', '# peers connected',1))
