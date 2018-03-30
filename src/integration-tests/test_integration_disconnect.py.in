@@ -86,7 +86,6 @@ def check_disconnect ():
   server.stop ()
   check = Check (test)
   check.add (StatisticsCondition (client, 'transport', '# peers connected',0))
-  check.add (StatisticsCondition (client, 'core', '# neighbour entries allocated',0))  
   check.add (StatisticsCondition (client, 'core', '# peers connected',0))
   check.add (StatisticsCondition (client, 'topology', '# peers connected',0))
   check.add (StatisticsCondition (client, 'dht', '# peers connected',0))
@@ -109,14 +108,12 @@ def fail_connect_cont (check):
 def check_connect ():
   check = Check (test)
   check.add (StatisticsCondition (client, 'transport', '# peers connected',1))
-  check.add (StatisticsCondition (client, 'core', '# neighbour entries allocated',1))  
   check.add (StatisticsCondition (client, 'core', '# peers connected',1))
   check.add (StatisticsCondition (client, 'topology', '# peers connected',1))
   check.add (StatisticsCondition (client, 'dht', '# peers connected',1))
   check.add (StatisticsCondition (client, 'fs', '# peers connected',1))
   
   check.add (StatisticsCondition (server, 'transport', '# peers connected',1))
-  check.add (StatisticsCondition (server, 'core', '# neighbour entries allocated',1))  
   check.add (StatisticsCondition (server, 'core', '# peers connected',1))
   check.add (StatisticsCondition (server, 'topology', '# peers connected',1))
   check.add (StatisticsCondition (server, 'dht', '# peers connected',1))

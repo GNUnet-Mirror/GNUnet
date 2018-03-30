@@ -106,14 +106,12 @@ def fail_cont (check):
 def check ():
   check = Check (test)
   check.add (StatisticsCondition (client, 'transport', '# peers connected',1))
-  check.add (StatisticsCondition (client, 'core', '# neighbour entries allocated',1))  
   check.add (StatisticsCondition (client, 'core', '# peers connected',1))
   check.add (StatisticsCondition (client, 'topology', '# peers connected',1))
   check.add (StatisticsCondition (client, 'dht', '# peers connected',1))  
   check.add (StatisticsCondition (client, 'fs', '# peers connected',1))
   
   check.add (StatisticsCondition (server, 'transport', '# peers connected',1))
-  check.add (StatisticsCondition (server, 'core', '# neighbour entries allocated',1))  
   check.add (StatisticsCondition (server, 'core', '# peers connected',1))
   check.add (StatisticsCondition (server, 'topology', '# peers connected',1))
   check.add (StatisticsCondition (server, 'dht', '# peers connected',1))  

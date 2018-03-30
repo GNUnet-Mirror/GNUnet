@@ -104,21 +104,18 @@ def fail_cont (check):
 def check_connect ():
   check = Check (test)
   check.add (StatisticsCondition (client, 'transport', '# peers connected',2))
-  check.add (StatisticsCondition (client, 'core', '# neighbour entries allocated',2))  
   check.add (StatisticsCondition (client, 'core', '# peers connected',2))
   check.add (StatisticsCondition (client, 'topology', '# peers connected',2))
   check.add (StatisticsCondition (client, 'dht', '# peers connected',2))
   check.add (StatisticsCondition (client, 'fs', '# peers connected',2))
 
   check.add (StatisticsCondition (client_nat, 'transport', '# peers connected',2))
-  check.add (StatisticsCondition (client_nat, 'core', '# neighbour entries allocated',2))  
   check.add (StatisticsCondition (client_nat, 'core', '# peers connected',2))
   check.add (StatisticsCondition (client_nat, 'topology', '# peers connected',2))
   check.add (StatisticsCondition (client_nat, 'dht', '# peers connected',2))
   check.add (StatisticsCondition (client_nat, 'fs', '# peers connected',2))
   
   check.add (StatisticsCondition (server, 'transport', '# peers connected',2))
-  check.add (StatisticsCondition (server, 'core', '# neighbour entries allocated',2))  
   check.add (StatisticsCondition (server, 'core', '# peers connected',2))
   check.add (StatisticsCondition (server, 'topology', '# peers connected',2))
   check.add (StatisticsCondition (server, 'dht', '# peers connected',2))
