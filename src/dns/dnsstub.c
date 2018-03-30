@@ -33,6 +33,11 @@
 #define REQUEST_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
 
 /**
+ * Timeout for retrying DNS queries.
+ */
+#define DNS_RETRANSMIT_DELAY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 250)
+
+/**
  * How many DNS sockets do we open at most at the same time?
  * (technical socket maximum is this number x2 for IPv4+IPv6)
  */
@@ -68,7 +73,12 @@ struct GNUNET_DNSSTUB_RequestSocket
   /**
    * Task for reading from dnsout4 and dnsout6.
    */
-  struct GNUNET_SCHEDULER_Task * read_task;
+  struct GNUNET_SCHEDULER_Task *read_task;
+
+  /**
+   * Task for retrying transmission of the query.
+   */
+  struct GNUNET_SCHEDULER_Task *retry_task;
 
   /**
    * When should this request time out?
@@ -84,6 +94,16 @@ struct GNUNET_DNSSTUB_RequestSocket
    * Number of bytes in @e addr.
    */
   socklen_t addrlen;
+
+  /**
+   * Query we sent to @e addr.
+   */
+  void *request;
+
+  /**
+   * Number of bytes in @a request.
+   */
+  size_t request_len;
 
 };
 
@@ -105,7 +125,6 @@ struct GNUNET_DNSSTUB_Context
    */
   char *dns_exit;
 };
-
 
 
 /**
@@ -130,6 +149,16 @@ cleanup_rs (struct GNUNET_DNSSTUB_RequestSocket *rs)
   {
     GNUNET_SCHEDULER_cancel (rs->read_task);
     rs->read_task = NULL;
+  }
+  if (NULL != rs->retry_task)
+  {
+    GNUNET_SCHEDULER_cancel (rs->retry_task);
+    rs->retry_task = NULL;
+  }
+  if (NULL != rs->request)
+  {
+    GNUNET_free (rs->request);
+    rs->request = NULL;
   }
 }
 
@@ -227,6 +256,16 @@ get_request_socket (struct GNUNET_DNSSTUB_Context *ctx,
     GNUNET_SCHEDULER_cancel (rs->read_task);
     rs->read_task = NULL;
   }
+  if (NULL != rs->retry_task)
+  {
+    GNUNET_SCHEDULER_cancel (rs->retry_task);
+    rs->retry_task = NULL;
+  }
+  if (NULL != rs->request)
+  {
+    GNUNET_free (rs->request);
+    rs->request = NULL;
+  }
   if ( (NULL == rs->dnsout4) &&
        (NULL == rs->dnsout6) )
     return NULL;
@@ -239,9 +278,46 @@ get_request_socket (struct GNUNET_DNSSTUB_Context *ctx,
 					       REQUEST_TIMEOUT,
 					       rset,
 					       NULL,
-					       &read_response, rs);
+					       &read_response,
+                                               rs);
   GNUNET_NETWORK_fdset_destroy (rset);
   return rs;
+}
+
+
+/**
+ * Task to (re)transmit the DNS query, possibly repeatedly until
+ * we succeed.
+ *
+ * @param cls our `struct GNUNET_DNSSTUB_RequestSocket *`
+ */
+static void
+transmit_query (void *cls)
+{
+  struct GNUNET_DNSSTUB_RequestSocket *rs = cls;
+  struct GNUNET_NETWORK_Handle *ret;
+
+  rs->retry_task = NULL;
+  ret = (NULL != rs->dnsout4) ? rs->dnsout4 : rs->dnsout6;
+  GNUNET_assert (NULL != ret);
+  if (GNUNET_SYSERR ==
+      GNUNET_NETWORK_socket_sendto (ret,
+				    rs->request,
+				    rs->request_len,
+				    (struct sockaddr *) &rs->addr,
+				    rs->addrlen))
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		_("Failed to send DNS request to %s\n"),
+		GNUNET_a2s ((struct sockaddr *) &rs->addr,
+                            rs->addrlen));
+  else
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		_("Sent DNS request to %s\n"),
+		GNUNET_a2s ((struct sockaddr *) &rs->addr,
+                            rs->addrlen));
+  rs->retry_task = GNUNET_SCHEDULER_add_delayed (DNS_RETRANSMIT_DELAY,
+                                                 &transmit_query,
+                                                 rs);
 }
 
 
@@ -267,36 +343,21 @@ GNUNET_DNSSTUB_resolve (struct GNUNET_DNSSTUB_Context *ctx,
 			void *rc_cls)
 {
   struct GNUNET_DNSSTUB_RequestSocket *rs;
-  struct GNUNET_NETWORK_Handle *ret;
-  int af;
 
-  af = sa->sa_family;
-  if (NULL == (rs = get_request_socket (ctx, af)))
+  if (NULL == (rs = get_request_socket (ctx,
+                                        sa->sa_family)))
     return NULL;
-  if (NULL != rs->dnsout4)
-    ret = rs->dnsout4;
-  else
-    ret = rs->dnsout6;
-  GNUNET_assert (NULL != ret);
   GNUNET_memcpy (&rs->addr,
-	  sa,
-	  sa_len);
+                 sa,
+                 sa_len);
   rs->addrlen = sa_len;
   rs->rc = rc;
   rs->rc_cls = rc_cls;
-  if (GNUNET_SYSERR ==
-      GNUNET_NETWORK_socket_sendto (ret,
-				    request,
-				    request_len,
-				    sa,
-				    sa_len))
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-		_("Failed to send DNS request to %s\n"),
-		GNUNET_a2s (sa, sa_len));
-  else
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		_("Sent DNS request to %s\n"),
-		GNUNET_a2s (sa, sa_len));
+  rs->request = GNUNET_memdup (request,
+                               request_len);
+  rs->request_len = request_len;
+  rs->retry_task = GNUNET_SCHEDULER_add_now (&transmit_query,
+                                             rs);
   return rs;
 }
 
