@@ -11,13 +11,23 @@ endif
 
 if HAVE_EXPERIMENTAL
  EXP_DIR = \
-  rps
+  rps \
+  multicast \
+  psycutil \
+  psycstore \
+  psyc \
+  social 
 #  dv (FTBFS)
 if HAVE_ABE
-  EXP_DIR += abe \
-						 credential \
-	           identity-attribute \
-						 identity-provider 
+ EXP_DIR += \
+    abe \
+    credential \
+    identity-attribute \
+    identity-provider 
+endif
+if HAVE_JSON
+ EXP_DIR += \
+    auction
 endif
 endif
 
@@ -59,9 +69,6 @@ if HAVE_JSON
 endif
 endif
 
-if HAVE_JSON
-  AUCTION_DIR = auction
-endif
 
 if TALER_ONLY
 SUBDIRS = \
@@ -123,12 +130,6 @@ SUBDIRS = \
   pt \
   secretsharing \
   integration-tests \
-  multicast \
-  psycutil \
-  psycstore \
-  psyc \
-  social \
-  $(AUCTION_DIR) \
   $(EXP_DIR)
 
 endif
