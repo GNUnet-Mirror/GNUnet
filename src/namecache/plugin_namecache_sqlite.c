@@ -241,7 +241,7 @@ database_setup (struct Plugin *plugin)
       (sqlite3_exec
        (plugin->dbh,
         "CREATE TABLE ns096blocks ("
-        " query BLOB NOT NULL PRIMARY KEY,"
+        " query BLOB NOT NULL,"
         " block BLOB NOT NULL,"
         " expiration_time INT8 NOT NULL"
 	")",

@@ -294,7 +294,7 @@ struct GNUNET_SQ_ResultSpec
  *
  * @return array last entry for the result specification to use
  */
-#define GNUNET_SQ_result_spec_end { NULL, NULL, NULL, NULL, 0, NULL }
+#define GNUNET_SQ_result_spec_end { NULL, NULL, NULL, NULL, 0, NULL, 0 }
 
 
 /**
