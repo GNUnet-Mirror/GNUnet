@@ -56,7 +56,30 @@ Option 2:
     * if checks are okay, tag as release candidate
 
 
-Option 3:
+Option 3: (What we really do right now)
+* changes that are not expected/known to break anything go into master;
+  we may be wrong, better CI may allow us to detect breaking changes
+  before merges in the future (but we shall never fault anybody for
+  breaking stuff in master in non-obvious ways);
+* experimental development happens in branches, created by individuals
+  or groups as they see fit. They are encouraged to merge often (if that
+  would not break anything) to avoid divergence and to detect issues from
+  a merge/rebase early.
+* actual _release policy_:
+  - tests must pass
+  - no compiler warnings for -Wall
+  - acceptance tests (manual feature test) must succeed
+  - no known "release critical" bugs (where RC has no formal definition,
+    mostly we rather explicitly declare certain bugs as "not critical")
+  o buildbots are happy (if running)
+  o static analysis is happy (if available, false-positives => ignore)
+  o documentation is reasonably up-to-date
+  + reasonable test coverage (if too terrible => move subsystem to experimental?)
+  + texinfo (HTML+PDF) and doxygen happy? Ideally without warnings!
+  + nobody screaming bloody murder because of almost-completed features/bugfixes
+    almost ready to be merged?
+  Legend: -: absolutely mandatory; o: important; +: nice to have
+
 ...
 
 Option 1 and 2 are two flavours describe in 
@@ -72,9 +95,89 @@ III. Concerns (of team members)
 (if there are concerns of team members, write them down here to later
 review)
 
+I disagree that "bugs tend to accumulate until they are not managable".
+The real issue is that neither writing testcases nor fixing bugs are
+fun tasks volunteers like to do. As you write yourself: you want a
+sense of achievement, recognition, "new features".  So as long as that
+is what you are motivated to do, you will not get stable, well-tested
+code. I don't have a magic bullet to motivate you to write more tests,
+or to improve existing tests. -CG
+
+I also disagree that releases have to be 'known bug free'.  That bar is
+way too high. However, there are obviously 'critical' bugs, but what
+they are is another debate.  But not all bugs are critical. Also,
+I would distinguish between 'standard' and 'experimental' subsystems.
+Experimental subsystems should build. They don't have to run, or do
+anything useful. Not even tests have to pass for a release IMO. -CG
+
+Git is also not a "release model".  Git is a software development
+tool.  But introducing branches in Git won't fix bugs. It also won't
+improve test coverage. It won't test the code on a broad range of
+platforms.  It also doubt it will give you the recognition you crave.
+More importantly, what you describe is already happening, and
+partially has contributed to the problems. Bart kept his own CADET
+hacks in his personal branch for years, hence without much feedback or
+review.  The SecuShare team kept their patches in their own branch,
+hence revealing interesting failure modes when it was finally merged.
+Martin kept some of his ABE-logic in his own branch (that one was
+merged without me noticing major problems).  Anyway, what you propose
+as Option 1 is already largely done, except that certain CI tasks
+simply cannot be productively done pre-merge right now (and I'm all
+for improving that situation). -CG
+
+Finally, there is one last elephant with respect to branches and
+merging that I would like you to consider. Given that GNUnet is highly
+modular, you have largely benefited from the modular architecture and
+been able to hack in your respective corners, unaffected by other
+modules (modulo bugs in dependencies).  That is great, and the desired
+development mode.  It has the critical advantage that bugs in modules
+that nobody depends upon (auction, rps, social) can be in 'master' and
+won't disturb anything. As most new development usually happens on the
+leaves of the dependency graph, that is great.  However, occasionally
+there are architectural changes. Not of the type where the graph
+changes, but where key API assumptions change. We recently had one for
+the GNU Name System with the dropping of ".gnu".  Before, CADET
+changed the semantics and paramter for 'port'.  In the future, CORE
+will introduce protocol versioning.  Whenever such a change happens,
+it usually falls upon the person making that change to update
+dependencies as well (or at least to work with people who hack on the
+dependencies to coordinate the adjustments).  That way, changing an
+API for in-tree dependencies is a minor nuisance.  However, if
+branches exist, making sure that API changes do not break _any_ branch
+somewhere is impractical.  So at least at times where "major" API
+rewrites are happening, it is important to minimize the number of
+branches. -CG
+
+
 IV. Doing
 =========
 (who does what within which time frame?)
+
+Let me list what I think needs doing:
+
+1) Better CI setup: build on multiple platforms, build of
+   "arbitrary" branches, reporting of regressions with
+   decent diagnostics (!) to developers (not the crap
+   Gitlab gives where I don't even easily get a stack
+   trace on a core dump).
+2) A culture of fixing "other people"'s bugs: test case failures,
+   portability issues, Mantis reports, all the non-sexy
+   stuff.  Not the 'psycstore' was written by tg, so no
+   need for !tg to try to fix it, or the "I use sqlite, 
+   why should I bother with postgres?"-crap I have heard
+   too often.
+3) Improving test cases: better code coverage, more corner
+   cases, complex deployment scenarios (NAT!), etc.;
+   less manual testing by hand, more writing automated
+   tests.
+4) There are also some bigger architectural changes ahead
+   that I have mentioned in other places.  Without those,
+   we won't be able to serve non-expert users.  So help
+   with those would be welcome, but in terms of _process_
+   I think 1-3 is what matters.
+
+Note that none of this really adds up to a "release policy".
+
 
 V. Previous Versions
 ====================
