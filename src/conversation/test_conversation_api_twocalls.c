@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     Copyright (C) 2013 GNUnet e.V.
+     Copyright (C) 2013, 2018x GNUnet e.V.
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -130,11 +130,15 @@ phone_send (void *cls)
 {
   char buf[32];
 
+  (void) cls;
   GNUNET_assert (NULL != phone_rdc);
   GNUNET_snprintf (buf, sizeof (buf), "phone");
-  phone_rdc (phone_rdc_cls, strlen (buf) + 1, buf);
+  phone_rdc (phone_rdc_cls,
+	     strlen (buf) + 1,
+	     buf);
   phone_task = GNUNET_SCHEDULER_add_delayed (FREQ,
-                                             &phone_send, NULL);
+                                             &phone_send,
+					     NULL);
 }
 
 
@@ -144,11 +148,17 @@ call_send (void *cls)
   struct MicContext *mc = cls;
   char buf[32];
 
+  (void) cls;
   GNUNET_assert (NULL != mc->rdc);
-  GNUNET_snprintf (buf, sizeof (buf), "call");
-  mc->rdc (mc->rdc_cls, strlen (buf) + 1, buf);
+  GNUNET_snprintf (buf,
+		   sizeof (buf),
+		   "call");
+  mc->rdc (mc->rdc_cls,
+	   strlen (buf) + 1,
+	   buf);
   mc->call_task = GNUNET_SCHEDULER_add_delayed (FREQ,
-                                                &call_send, mc);
+                                                &call_send,
+						mc);
 }
 
 
@@ -157,6 +167,7 @@ enable_speaker (void *cls)
 {
   const char *origin = CLS_STR (cls);
 
+  (void) cls;
   LOG_DEBUG ("Speaker %s enabled\n",
              origin);
   return GNUNET_OK;
@@ -168,6 +179,7 @@ disable_speaker (void *cls)
 {
   const char *origin = CLS_STR (cls);
 
+  (void) cls;
   LOG_DEBUG ("Speaker %s disabled\n",
              origin);
 }
@@ -181,6 +193,7 @@ play (void *cls,
   static unsigned int phone_i;
   static unsigned int call_i;
 
+  (void) cls;
   if (0 == strncmp ("call", data, data_size))
     call_i++;
   else if (0 == strncmp ("phone", data, data_size))
@@ -348,6 +361,7 @@ static struct GNUNET_MICROPHONE_Handle phone_mic = {
 static void
 end_test (void *cls)
 {
+  (void) cls;
   timeout_task = NULL;
   fprintf (stderr,
            "Timeout!\n");
@@ -363,6 +377,7 @@ end_test (void *cls)
 static void
 do_shutdown (void *cls)
 {
+  (void) cls;
   if (NULL != timeout_task)
   {
     GNUNET_SCHEDULER_cancel (timeout_task);
@@ -411,11 +426,14 @@ static void
 caller_event_handler (void *cls,
                       enum GNUNET_CONVERSATION_CallerEventCode code)
 {
+  (void) cls;
   switch (code)
   {
   case GNUNET_CONVERSATION_EC_CALLER_SUSPEND:
   case GNUNET_CONVERSATION_EC_CALLER_RESUME:
-    LOG (GNUNET_ERROR_TYPE_WARNING, "Unexpected caller code: %d\n", code);
+    LOG (GNUNET_ERROR_TYPE_WARNING,
+	 "Unexpected caller code: %d\n",
+	 code);
     break;
   }
 }
@@ -428,6 +446,8 @@ phone_event_handler (void *cls,
                      const struct GNUNET_CRYPTO_EcdsaPublicKey *caller_id)
 {
   const char *cid;
+  (void) cls;
+  (void) caller_id;
 
   switch (code)
   {
@@ -470,7 +490,9 @@ phone_event_handler (void *cls,
     }
     break;
   default:
-    LOG (GNUNET_ERROR_TYPE_WARNING, "Unexpected phone code: %d\n", code);
+    LOG (GNUNET_ERROR_TYPE_WARNING,
+	 "Unexpected phone code: %d\n",
+	 code);
     break;
   }
 }
@@ -521,6 +543,7 @@ static void
 caller_ego_create_cont (void *cls,
                         const char *emsg)
 {
+  (void) cls;
   op = NULL;
   GNUNET_assert (NULL == emsg);
 }
@@ -531,11 +554,15 @@ namestore_put_cont (void *cls,
                     int32_t success,
                     const char *emsg)
 {
+  (void) cls;
   qe = NULL;
   GNUNET_assert (GNUNET_YES == success);
   GNUNET_assert (NULL == emsg);
   GNUNET_assert (NULL == op);
-  op = GNUNET_IDENTITY_create (id, "caller-ego", &caller_ego_create_cont, NULL);
+  op = GNUNET_IDENTITY_create (id,
+			       "caller-ego",
+			       &caller_ego_create_cont,
+			       NULL);
 }
 
 
@@ -548,6 +575,8 @@ identity_cb (void *cls,
   struct GNUNET_GNSRECORD_Data rd;
   struct GNUNET_CRYPTO_EcdsaPublicKey pub;
 
+  (void) cls;
+  (void) ctx;
   if (NULL == name)
     return;
   if (NULL == ego)
@@ -585,14 +614,12 @@ identity_cb (void *cls,
                      GNUNET_GNSRECORD_pkey_to_zkey (&pub));
     call1 = GNUNET_CONVERSATION_call_start (cfg,
                                             ego,
-                                            ego,
                                             gns_name,
                                             &call1_speaker,
                                             &call1_mic,
                                             &call_event_handler,
                                             (void *) "call1");
     call2 = GNUNET_CONVERSATION_call_start (cfg,
-                                            ego,
                                             ego,
                                             gns_name,
                                             &call2_speaker,
@@ -608,6 +635,7 @@ static void
 phone_ego_create_cont (void *cls,
                        const char *emsg)
 {
+  (void) cls;
   op = NULL;
   GNUNET_assert (NULL == emsg);
 }
@@ -618,6 +646,8 @@ run (void *cls,
      const struct GNUNET_CONFIGURATION_Handle *c,
      struct GNUNET_TESTING_Peer *peer)
 {
+  (void) cls;
+  (void) peer;
   cfg = c;
   timeout_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT,
                                                &end_test,
@@ -627,18 +657,24 @@ run (void *cls,
   id = GNUNET_IDENTITY_connect (cfg,
                                 &identity_cb,
                                 NULL);
-  op = GNUNET_IDENTITY_create (id, "phone-ego", &phone_ego_create_cont, NULL);
+  op = GNUNET_IDENTITY_create (id,
+			       "phone-ego",
+			       &phone_ego_create_cont,
+			       NULL);
   ns = GNUNET_NAMESTORE_connect (cfg);
 }
 
 
 int
-main (int argc, char *argv[])
+main (int argc,
+      char *argv[])
 {
-
+  (void) argc;
+  (void) argv;
   if (0 != GNUNET_TESTING_peer_run ("test_conversation_api_twocalls",
 				    "test_conversation.conf",
-				    &run, NULL))
+				    &run,
+				    NULL))
     return 1;
   if (call1_finished && call2_finished)
     return 0;

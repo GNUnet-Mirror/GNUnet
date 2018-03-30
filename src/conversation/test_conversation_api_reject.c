@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     Copyright (C) 2013, 2014 GNUnet e.V.
+     Copyright (C) 2013, 2014, 2018 GNUnet e.V.
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -59,6 +59,7 @@ static char *gns_caller_id;
 static int
 enable_speaker (void *cls)
 {
+  (void) cls;
   GNUNET_break (0);
   return GNUNET_SYSERR;
 }
@@ -67,6 +68,7 @@ enable_speaker (void *cls)
 static void
 disable_speaker (void *cls)
 {
+  (void) cls;
   GNUNET_break (0);
 }
 
@@ -76,6 +78,9 @@ play (void *cls,
       size_t data_size,
       const void *data)
 {
+  (void) cls;
+  (void) data_size;
+  (void) data;
   GNUNET_break (0);
 }
 
@@ -83,6 +88,7 @@ play (void *cls,
 static void
 destroy_speaker (void *cls)
 {
+  (void) cls;
 }
 
 
@@ -100,6 +106,9 @@ enable_mic (void *cls,
             GNUNET_MICROPHONE_RecordedDataCallback rdc,
             void *rdc_cls)
 {
+  (void) cls;
+  (void) rdc;
+  (void) rdc_cls;
   GNUNET_break (0);
   return GNUNET_SYSERR;
 }
@@ -108,6 +117,7 @@ enable_mic (void *cls,
 static void
 disable_mic (void *cls)
 {
+  (void) cls;
   GNUNET_break (0);
 }
 
@@ -115,6 +125,7 @@ disable_mic (void *cls)
 static void
 destroy_mic (void *cls)
 {
+  (void) cls;
 }
 
 
@@ -134,6 +145,7 @@ static struct GNUNET_MICROPHONE_Handle call_mic = {
 static void
 end_test (void *cls)
 {
+  (void) cls;
   GNUNET_SCHEDULER_shutdown ();
   if (NULL != op)
   {
@@ -179,6 +191,8 @@ phone_event_handler (void *cls,
   static enum GNUNET_CONVERSATION_PhoneEventCode expect
     = GNUNET_CONVERSATION_EC_PHONE_RING;
 
+  (void) cls;
+  (void) caller_id;
   GNUNET_break (code == expect);
   switch (code)
   {
@@ -199,6 +213,7 @@ call_event_handler (void *cls,
   static enum GNUNET_CONVERSATION_CallEventCode expect
     = GNUNET_CONVERSATION_EC_CALL_RINGING;
 
+  (void) cls;
   GNUNET_break (code == expect);
   switch (code)
   {
@@ -229,6 +244,7 @@ static void
 caller_ego_create_cont (void *cls,
                         const char *emsg)
 {
+  (void) cls;
   op = NULL;
   GNUNET_assert (NULL == emsg);
 }
@@ -239,12 +255,15 @@ namestore_put_cont (void *cls,
                     int32_t success,
                     const char *emsg)
 {
+  (void) cls;
   qe = NULL;
   GNUNET_assert (GNUNET_YES == success);
   GNUNET_assert (NULL == emsg);
   GNUNET_assert (NULL == op);
-  op = GNUNET_IDENTITY_create (id, "caller-ego",
-                               &caller_ego_create_cont, NULL);
+  op = GNUNET_IDENTITY_create (id,
+			       "caller-ego",
+                               &caller_ego_create_cont,
+			       NULL);
 }
 
 
@@ -257,6 +276,8 @@ identity_cb (void *cls,
   struct GNUNET_GNSRECORD_Data rd;
   struct GNUNET_CRYPTO_EcdsaPublicKey pub;
 
+  (void) cls;
+  (void) ctx;
   if (NULL == name)
     return;
   if (NULL == ego)
@@ -294,7 +315,6 @@ identity_cb (void *cls,
                      GNUNET_GNSRECORD_pkey_to_zkey (&pub));
     call = GNUNET_CONVERSATION_call_start (cfg,
                                            ego,
-                                           ego,
                                            gns_name,
                                            &call_speaker,
                                            &call_mic,
@@ -309,6 +329,7 @@ static void
 phone_ego_create_cont (void *cls,
                        const char *emsg)
 {
+  (void) cls;
   op = NULL;
   GNUNET_assert (NULL == emsg);
 }
@@ -319,13 +340,18 @@ run (void *cls,
      const struct GNUNET_CONFIGURATION_Handle *c,
      struct GNUNET_TESTING_Peer *peer)
 {
+  (void) cls;
+  (void) peer;
   cfg = c;
   GNUNET_SCHEDULER_add_delayed (TIMEOUT, &end_test,
                                 NULL);
   id = GNUNET_IDENTITY_connect (cfg,
                                 &identity_cb,
                                 NULL);
-  op = GNUNET_IDENTITY_create (id, "phone-ego", &phone_ego_create_cont, NULL);
+  op = GNUNET_IDENTITY_create (id,
+			       "phone-ego",
+			       &phone_ego_create_cont,
+			       NULL);
   ns = GNUNET_NAMESTORE_connect (cfg);
 }
 
@@ -333,6 +359,8 @@ run (void *cls,
 int
 main (int argc, char *argv[])
 {
+  (void) argc;
+  (void) argv;
   if (0 != GNUNET_TESTING_peer_run ("test_conversation_api",
 				    "test_conversation.conf",
 				    &run, NULL))
