@@ -934,6 +934,11 @@ shutdown_pipe_cb (void *cls)
   GNUNET_DISK_file_read (pr, &c, sizeof (c));
   /* mark all active tasks as ready due to shutdown */
   GNUNET_SCHEDULER_shutdown ();
+  shutdown_pipe_task =
+    GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL,
+                                    pr,
+                                    &shutdown_pipe_cb,
+                                    NULL);
 }
 
 
@@ -2202,8 +2207,8 @@ GNUNET_SCHEDULER_driver_init (const struct GNUNET_SCHEDULER_Driver *driver)
   current_priority = GNUNET_SCHEDULER_PRIORITY_DEFAULT;
   current_lifeness = GNUNET_NO;
   memset (&tsk,
-    0,
-    sizeof (tsk));
+          0,
+          sizeof (tsk));
   active_task = &tsk;
   install_parent_control_task =
     GNUNET_SCHEDULER_add_now (&install_parent_control_handler,
@@ -2239,7 +2244,8 @@ GNUNET_SCHEDULER_driver_init (const struct GNUNET_SCHEDULER_Driver *driver)
  *
  * @param sh the handle returned by #GNUNET_SCHEDULER_driver_init
  */
-void GNUNET_SCHEDULER_driver_done (struct GNUNET_SCHEDULER_Handle *sh)
+void
+GNUNET_SCHEDULER_driver_done (struct GNUNET_SCHEDULER_Handle *sh)
 {
   GNUNET_assert (NULL == pending_head);
   GNUNET_assert (NULL == pending_timeout_head);
@@ -2440,7 +2446,7 @@ select_add (void *cls,
 }
 
 
-int
+static int
 select_del (void *cls,
             struct GNUNET_SCHEDULER_Task *task)
 {
@@ -2470,7 +2476,7 @@ select_del (void *cls,
 }
 
 
-void
+static void
 select_set_wakeup (void *cls,
                    struct GNUNET_TIME_Absolute dt)
 {
