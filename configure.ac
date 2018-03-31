@@ -611,6 +611,22 @@ else
   AC_DEFINE([DOCUMENTATION],[0],[Not building the documentation])
 fi
 
+# should the build process be building only the documentation?
+AC_MSG_CHECKING(whether to build only documentation)
+AC_ARG_ENABLE([documentation-only],
+   [AS_HELP_STRING([--enable-documentation-only], [build only the documentation])],
+   [documentation_only=${enableval}],
+   [documentation_only=no])
+AC_MSG_RESULT($documentation_only)
+if test "x$documentation_only" = "xyes"
+then
+  AM_CONDITIONAL([DOCUMENTATION_ONLY],true)
+  AC_DEFINE([DOCUMENTATION_ONLY],[1],[Building only the documentation])
+else
+  AM_CONDITIONAL([DOCUMENTATION_ONLY],false)
+  AC_DEFINE([DOCUMENTATION_ONLY],[0],[Not building only the documentation])
+fi
+
 # should the build process be restricted to the code required
 # for GNU Taler wallets?
 AC_MSG_CHECKING(whether to compile GNU Taler Wallet library ONLY)

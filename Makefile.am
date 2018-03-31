@@ -7,6 +7,10 @@ if !TALER_ONLY
   SUBDIRS += contrib
 endif
 
+if DOCUMENTATION_ONLY
+  SUBDIRS = doc
+endif
+
 EXTRA_DIST = \
  ABOUT-NLS \
  config.rpath \
