@@ -595,8 +595,7 @@ AC_CHECK_LIB([kvm],[kvm_open])
 AC_CHECK_LIB([kstat],[kstat_open])
 
 
-# should the build process be restricted to only building
-# the documentation?
+# should the build process be building the documentation?
 AC_MSG_CHECKING(whether to build documentation)
 AC_ARG_ENABLE([documentation],
    [AS_HELP_STRING([--enable-documentation], [build the documentation])],
