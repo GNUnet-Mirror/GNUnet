@@ -122,12 +122,13 @@
          ("libtool" ,libtool)))
       (outputs '("out" "debug"))
       (arguments
-       `(#:configure-flags
-         (list (string-append "--with-nssdir=" %output "/lib")
+       `(;#:configure-flags
+         ;;(list (string-append "--with-nssdir=" %output "/lib")
                ;;"--enable-gcc-hardening"
                ;;"--enable-linker-hardening"
-               "--enable-logging=verbose"
-               "CFLAGS=-ggdb -O0")
+               ;;;;"--enable-documentation-only")
+               ;;;"--enable-logging=verbose"
+               ;;;"CFLAGS=-ggdb -O0")
          #:phases
          ;; swap check and install phases and set paths to installed bin
          (modify-phases %standard-phases
@@ -141,6 +142,9 @@
            (add-after 'patch-bin-sh 'bootstrap
              (lambda _
                (zero? (system* "sh" "bootstrap"))))
+           ;;(add-before 'build 'chdir
+           ;; (lambda _
+           ;;  (chdir "doc/documentation")))
            (delete 'check)
            ;; XXX: https://gnunet.org/bugs/view.php?id=4619
            (add-after 'install 'set-path-for-check
