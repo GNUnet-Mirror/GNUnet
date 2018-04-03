@@ -47,7 +47,7 @@ RUN make -j$NUM_JOBS
 RUN make install
 
 RUN groupadd gnunetdns
-RUN adduser --system -m --home-dir /var/lib/gnunet gnunet
+RUN adduser -S -m -h /var/lib/gnunet gnunet
 RUN chown gnunet:gnunet /var/lib/gnunet
 RUN echo '[arm]\nSYSTEM_ONLY = YES\nUSER_ONLY = NO\n' > /etc/gnunet.conf
 

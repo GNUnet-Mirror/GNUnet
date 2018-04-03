@@ -75,6 +75,7 @@ new chapters, sections or insightful comments.
 * REVOCATION Subsystem::
 * File-sharing (FS) Subsystem::
 * REGEX Subsystem::
+* REST Subsystem::
 @end menu
 
 @node Developer Introduction
@@ -8365,3 +8366,56 @@ create_strings.py <input path> <outfile>
 @noindent
 to create a search strings file from the previously created
 regular expressions.
+
+@cindex REST subsystem
+@node REST Subsystem
+@section REST Subsystem
+
+@c %**end of header
+
+Using the REST subsystem, you can expose REST-based APIs or services.
+The REST service is designed as a pluggable architecture.
+To create a new REST endpoint, simply add a library in the form 
+``plugin_rest_*''.
+The REST service will automatically load all REST plugins on startup.
+
+@strong{Configuration}
+
+The rest service can be configured in various ways.
+The reference config file can be found in 
+@file{src/rest/rest.conf}:
+@example
+[rest]
+REST_PORT=7776
+REST_ALLOW_HEADERS=Authorization,Accept,Content-Type
+REST_ALLOW_ORIGIN=*
+REST_ALLOW_CREDENTIALS=true
+@end example
+
+The port as well as Cross-origin resource sharing (CORS) headers that
+are supposed to be advertised by the rest service are configurable.
+
+@menu
+* Namespace considerations::
+* Endpoint documentation::
+@end menu
+
+@node Namespace considerations
+@subsection Namespace considerations
+
+The gnunet-rest-service will load all plugins that are installed.
+As such it is important that the endpoint namespaces do not clash.
+For example, plugin X might expose the endpoint ``/xxx'' while plugin Y exposes
+endpoint ``/xxx/yyy''.
+This is a problem if plugins X is also supposed to handle a call to 
+``/xxx/yyy''.
+Currently, the REST service will not complain or warn about such clashes so
+please make sure that endpoints are unambiguous.
+
+@node Endpoint documentation
+@subsection Endpoint documentation
+
+This is WIP. Endpoints should be documented appropriately.
+Perferably using annotations.
+
+
