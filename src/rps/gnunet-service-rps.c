@@ -2270,6 +2270,12 @@ insert_in_view (const struct GNUNET_PeerIdentity *peer)
 }
 
 /**
+ * @brief sends updates to clients that are interested
+ */
+static void
+clients_notify_view_update (void);
+
+/**
  * Put random peer from sampler into the view as history update.
  */
 static void
@@ -2279,6 +2285,7 @@ hist_update (void *cls,
 {
   unsigned int i;
 
+  clients_notify_view_update();
   for (i = 0; i < num_peers; i++)
   {
     (void) insert_in_view (&ids[i]);
