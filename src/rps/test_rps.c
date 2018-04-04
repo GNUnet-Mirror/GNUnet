@@ -1901,11 +1901,7 @@ void compute_diversity ()
 void print_view_sizes()
 {
   uint32_t i;
-  char *view_sizes_str = NULL;
-  uint32_t view_sizes_str_len = 0;
-  char view_size_curr[32] = { 0 };
 
-  GNUNET_array_grow (view_sizes_str, view_sizes_str_len, num_peers * 3);
   for (i = 0; i < num_peers; i++) /* Peer to count */
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -1913,19 +1909,7 @@ void print_view_sizes()
                i,
                GNUNET_i2s (rps_peers[i].peer_id),
                rps_peers[i].cur_view_count);
-    GNUNET_snprintf (view_size_curr,
-                     sizeof (view_size_curr),
-                     " %" PRIu32 "",
-                     rps_peers[i].cur_view_count);
-    if (view_sizes_str_len < view_sizes_str_len + strlen (view_size_curr))
-    {
-      GNUNET_array_grow (view_sizes_str, view_sizes_str_len, view_sizes_str_len + 10);
-    }
-    strncat (view_sizes_str, view_size_curr, strlen(view_size_curr));
   }
-  to_file_ ("/tmp/rps/view_sizes.txt",
-           view_sizes_str);
-  GNUNET_array_grow (view_sizes_str, view_sizes_str_len, 0);
 }
 
 void all_views_updated_cb()
@@ -1941,6 +1925,10 @@ void view_update_cb (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "View was updated (%" PRIu64 ")\n", num_peers);
   struct RPSPeer *rps_peer = (struct RPSPeer *) cls;
+  to_file ("/tmp/rps/view_sizes.txt",
+         "%" PRIu64 " %" PRIu32 "",
+         rps_peer->index,
+         num_peers);
   for (int i = 0; i < num_peers; i++)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
