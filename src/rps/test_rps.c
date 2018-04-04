@@ -2311,7 +2311,6 @@ run (void *cls,
 {
   unsigned int i;
   struct OpListEntry *entry;
-  uint32_t num_mal_peers;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "RUN was called\n");
 
@@ -2352,24 +2351,19 @@ run (void *cls,
   }
 
   /* Bring peers up */
-  num_mal_peers = round (portion * num_peers);
   GNUNET_assert (num_peers == n_peers);
   for (i = 0; i < n_peers; i++)
   {
     rps_peers[i].index = i;
-    if ( (rps_peers[i].num_recv_ids < rps_peers[i].num_ids_to_request) ||
-         (i < num_mal_peers) )
-    {
-      rps_peers[i].op =
-        GNUNET_TESTBED_service_connect (&rps_peers[i],
-                                        peers[i],
-                                        "rps",
-                                        &rps_connect_complete_cb,
-                                        &rps_peers[i],
-                                        &rps_connect_adapter,
-                                        &rps_disconnect_adapter,
-                                        &rps_peers[i]);
-    }
+    rps_peers[i].op =
+      GNUNET_TESTBED_service_connect (&rps_peers[i],
+                                      peers[i],
+                                      "rps",
+                                      &rps_connect_complete_cb,
+                                      &rps_peers[i],
+                                      &rps_connect_adapter,
+                                      &rps_disconnect_adapter,
+                                      &rps_peers[i]);
     /* Connect all peers to statistics service */
     if (COLLECT_STATISTICS == cur_test_run.have_collect_statistics)
     {
