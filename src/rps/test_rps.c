@@ -1968,11 +1968,14 @@ void write_final_stats (void){
   for (i = 0; i < num_peers; i++)
   {
     to_file ("/tmp/rps/final_stats.dat",
-             "%s %" PRIu64
-             " %" PRIu64 " %" PRIu64 " %" PRIu64 " %" PRIu64 " %" PRIu64 " %" PRIu64 /* blocking */
-             " %" PRIu64 " %" PRIu64 " %" PRIu64 /* issued */
-             " %" PRIu64 " %" PRIu64 " %" PRIu64 /* sent */
-             " %" PRIu64 " %" PRIu64 " %" PRIu64 /* recv */,
+             "%" PRIu32 " " /* index */
+             "%s %" /* id */
+             PRIu64 " %" /* rounds */
+             PRIu64 " %" PRIu64 " %" PRIu64 " %" PRIu64 " %" PRIu64 " %" PRIu64 " %" /* blocking */
+             PRIu64 " %" PRIu64 " %" PRIu64 " %" /* issued */
+             PRIu64 " %" PRIu64 " %" PRIu64 " %" /* sent */
+             PRIu64 " %" PRIu64 " %" PRIu64 /* recv */,
+             i,
              GNUNET_i2s (rps_peers[i].peer_id),
              rps_peers[i].num_rounds,
              rps_peers[i].num_blocks,
@@ -2049,67 +2052,67 @@ post_test_shutdown_ready_cb (void *cls,
  */
 enum STAT_TYPE stat_str_2_type (const char *stat_str)
 {
-  if (GNUNET_YES == strncmp ("# rounds", stat_str, strlen ("# rounds")))
-  {
-    return STAT_TYPE_ROUNDS;
-  }
-  if (GNUNET_YES == strncmp ("# rounds blocked", stat_str, strlen ("# rounds blocked")))
-  {
-    return STAT_TYPE_BLOCKS;
-  }
-  if (0 == strncmp ("# rounds blocked - too many pushes", stat_str, strlen ("# rounds blocked - too many pushes")))
-  {
-    return STAT_TYPE_BLOCKS_MANY_PUSH;
-  }
-  if (0 == strncmp ("# rounds blocked - no pushes", stat_str, strlen ("# rounds blocked - no pushes")))
-  {
-    return STAT_TYPE_BLOCKS_NO_PUSH;
-  }
   if (0 == strncmp ("# rounds blocked - no pull replies", stat_str, strlen ("# rounds blocked - no pull replies")))
   {
     return STAT_TYPE_BLOCKS_NO_PULL;
   }
-  if (0 == strncmp ("# rounds blocked - too many pushes, no pull replies", stat_str, strlen ("# rounds blocked - too many pushes, no pull replies")))
+  else if (0 == strncmp ("# rounds blocked - too many pushes, no pull replies", stat_str, strlen ("# rounds blocked - too many pushes, no pull replies")))
   {
     return STAT_TYPE_BLOCKS_MANY_PUSH_NO_PULL;
   }
-  if (0 == strncmp ("# rounds blocked - no pushes, no pull replies", stat_str, strlen ("# rounds blocked - no pushes, no pull replies")))
+  else if (0 == strncmp ("# rounds blocked - too many pushes", stat_str, strlen ("# rounds blocked - too many pushes")))
+  {
+    return STAT_TYPE_BLOCKS_MANY_PUSH;
+  }
+  else if (0 == strncmp ("# rounds blocked - no pushes, no pull replies", stat_str, strlen ("# rounds blocked - no pushes, no pull replies")))
   {
     return STAT_TYPE_BLOCKS_NO_PUSH_NO_PULL;
   }
-  if (0 == strncmp ("# push send issued", stat_str, strlen ("# push send issued")))
+  else if (0 == strncmp ("# rounds blocked - no pushes", stat_str, strlen ("# rounds blocked - no pushes")))
+  {
+    return STAT_TYPE_BLOCKS_NO_PUSH;
+  }
+  else if (0 == strncmp ("# rounds blocked", stat_str, strlen ("# rounds blocked")))
+  {
+    return STAT_TYPE_BLOCKS;
+  }
+  else if (0 == strncmp ("# rounds", stat_str, strlen ("# rounds")))
+  {
+    return STAT_TYPE_ROUNDS;
+  }
+  else if (0 == strncmp ("# push send issued", stat_str, strlen ("# push send issued")))
   {
     return STAT_TYPE_ISSUED_PUSH_SEND;
   }
-  if (0 == strncmp ("# pull request send issued", stat_str, strlen ("# pull request send issued")))
+  else if (0 == strncmp ("# pull request send issued", stat_str, strlen ("# pull request send issued")))
   {
     return STAT_TYPE_ISSUED_PULL_REQ;
   }
-  if (0 == strncmp ("# pull reply send issued", stat_str, strlen ("# pull reply send issued")))
+  else if (0 == strncmp ("# pull reply send issued", stat_str, strlen ("# pull reply send issued")))
   {
     return STAT_TYPE_ISSUED_PULL_REP;
   }
-  if (0 == strncmp ("# pushes sent", stat_str, strlen ("# pushes sent")))
+  else if (0 == strncmp ("# pushes sent", stat_str, strlen ("# pushes sent")))
   {
     return STAT_TYPE_SENT_PUSH_SEND;
   }
-  if (0 == strncmp ("# pull requests sent", stat_str, strlen ("# pull requests sent")))
+  else if (0 == strncmp ("# pull requests sent", stat_str, strlen ("# pull requests sent")))
   {
     return STAT_TYPE_SENT_PULL_REQ;
   }
-  if (0 == strncmp ("# pull replys sent", stat_str, strlen ("# pull replys sent")))
+  else if (0 == strncmp ("# pull replys sent", stat_str, strlen ("# pull replys sent")))
   {
     return STAT_TYPE_SENT_PULL_REP;
   }
-  if (0 == strncmp ("# push message received", stat_str, strlen ("# push message received")))
+  else if (0 == strncmp ("# push message received", stat_str, strlen ("# push message received")))
   {
     return STAT_TYPE_RECV_PUSH_SEND;
   }
-  if (0 == strncmp ("# pull request message received", stat_str, strlen ("# pull request message received")))
+  else if (0 == strncmp ("# pull request message received", stat_str, strlen ("# pull request message received")))
   {
     return STAT_TYPE_RECV_PULL_REQ;
   }
-  if (0 == strncmp ("# pull reply messages received", stat_str, strlen ("# pull reply messages received")))
+  else if (0 == strncmp ("# pull reply messages received", stat_str, strlen ("# pull reply messages received")))
   {
     return STAT_TYPE_RECV_PULL_REP;
   }
@@ -2191,49 +2194,66 @@ stat_iterator (void *cls,
       //stat_type_2_str (stat_cls->stat_type),
       name,
       value);
-  //to_file (rps_peer->file_name_stats,
-  //        "%s: %" PRIu64 "\n",
-  //        name,
-  //        value);
+  to_file (rps_peer->file_name_stats,
+          "%s: %" PRIu64 "\n",
+          name,
+          value);
   switch (stat_str_2_type (name))
   {
     case STAT_TYPE_ROUNDS:
-      rps_peer->num_blocks = value;
+      rps_peer->num_rounds = value;
+      break;
     case STAT_TYPE_BLOCKS:
       rps_peer->num_blocks = value;
+      break;
     case STAT_TYPE_BLOCKS_MANY_PUSH:
       rps_peer->num_blocks_many_push = value;
+      break;
     case STAT_TYPE_BLOCKS_NO_PUSH:
       rps_peer->num_blocks_no_push = value;
+      break;
     case STAT_TYPE_BLOCKS_NO_PULL:
       rps_peer->num_blocks_no_pull = value;
+      break;
     case STAT_TYPE_BLOCKS_MANY_PUSH_NO_PULL:
       rps_peer->num_blocks_many_push_no_pull = value;
+      break;
     case STAT_TYPE_BLOCKS_NO_PUSH_NO_PULL:
       rps_peer->num_blocks_no_push_no_pull = value;
+      break;
     case STAT_TYPE_ISSUED_PUSH_SEND:
       rps_peer->num_issued_push = value;
+      break;
     case STAT_TYPE_ISSUED_PULL_REQ:
       rps_peer->num_issued_pull_req = value;
+      break;
     case STAT_TYPE_ISSUED_PULL_REP:
       rps_peer->num_issued_pull_rep = value;
+      break;
     case STAT_TYPE_SENT_PUSH_SEND:
       rps_peer->num_sent_push = value;
+      break;
     case STAT_TYPE_SENT_PULL_REQ:
       rps_peer->num_sent_pull_req = value;
+      break;
     case STAT_TYPE_SENT_PULL_REP:
       rps_peer->num_sent_pull_rep = value;
+      break;
     case STAT_TYPE_RECV_PUSH_SEND:
       rps_peer->num_recv_push = value;
+      break;
     case STAT_TYPE_RECV_PULL_REQ:
       rps_peer->num_recv_pull_req = value;
+      break;
     case STAT_TYPE_RECV_PULL_REP:
       rps_peer->num_recv_pull_rep = value;
+      break;
     case STAT_TYPE_MAX:
     default:
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                  "Unknown statistics string: %s\n",
                  name);
+      break;
   }
   return GNUNET_OK;
 }
