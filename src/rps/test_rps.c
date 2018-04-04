@@ -270,6 +270,11 @@ struct RPSPeer
   uint32_t cur_view_count;
 
   /**
+   * @brief Number of occurrences in other peer's view
+   */
+  uint32_t count_in_views;
+
+  /**
    * @brief statistics values
    */
   uint64_t num_rounds;
@@ -1838,7 +1843,28 @@ store_stats_file_name (struct RPSPeer *rps_peer)
   rps_peer->file_name_stats = file_name;
 }
 
-void count_peer_in_views (uint32_t *count_peers)
+static uint32_t count_peer_in_views_2 (uint32_t peer_idx)
+{
+  uint32_t i, j;
+  uint32_t count = 0;
+
+  for (i = 0; i < num_peers; i++) /* Peer in which view is counted */
+  {
+    for (j = 0; j < rps_peers[i].cur_view_count; j++) /* entry in view */
+    {
+      if (0 == memcmp (rps_peers[peer_idx].peer_id,
+            &rps_peers[i].cur_view[j],
+            sizeof (struct GNUNET_PeerIdentity)))
+      {
+        count++;
+      }
+    }
+  }
+  rps_peers[peer_idx].count_in_views = count;
+  return count;
+}
+
+static void count_peer_in_views (uint32_t *count_peers)
 {
   uint32_t i, j;
 
@@ -1941,6 +1967,10 @@ void view_update_cb (void *cls,
   memcpy (rps_peer->cur_view,
           peers,
           num_peers * sizeof (struct GNUNET_PeerIdentity));
+  to_file ("/tmp/rps/count_in_views.txt",
+         "%" PRIu64 " %" PRIu32 "",
+         rps_peer->index,
+         count_peer_in_views_2 (rps_peer->index));
   all_views_updated_cb();
 }
 
