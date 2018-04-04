@@ -43,6 +43,7 @@ to_file_ (char *file_name, char *line)
 {
   struct GNUNET_DISK_FileHandle *f;
   char output_buffer[512];
+  size_t output_buffer_size = 512;
   char *output_buffer_p;
   //size_t size;
   int size;
@@ -63,16 +64,17 @@ to_file_ (char *file_name, char *line)
          file_name);
     return;
   }
-  if (512 < strlen (line) + 18)
+  output_buffer_size = strlen (line) + 18;
+  if (512 < output_buffer_size)
   {
-    output_buffer_p = GNUNET_malloc ((strlen (line) + 18) * sizeof (char));
+    output_buffer_p = GNUNET_malloc ((output_buffer_size) * sizeof (char));
   } else {
     output_buffer_p = &output_buffer[0];
   }
   size = GNUNET_snprintf (output_buffer_p,
-                          sizeof (output_buffer_p),
+                          output_buffer_size,
                           "%llu %s\n",
-                          GNUNET_TIME_absolute_get ().abs_value_us,
+                          (GNUNET_TIME_absolute_get ().abs_value_us) / 1000000, // microsec -> sec
                           line);
   if (0 > size)
   {
@@ -97,7 +99,7 @@ to_file_ (char *file_name, char *line)
     return;
   }
 
-  if (512 < strlen (line) + 18)
+  if (512 < output_buffer_size)
   {
     GNUNET_free (output_buffer_p);
   }
