@@ -49,6 +49,7 @@
 /**
  * A few common DNS types.
  */
+#define GNUNET_DNSPARSER_TYPE_ANY 0
 #define GNUNET_DNSPARSER_TYPE_A 1
 #define GNUNET_DNSPARSER_TYPE_NS 2
 #define GNUNET_DNSPARSER_TYPE_CNAME 5

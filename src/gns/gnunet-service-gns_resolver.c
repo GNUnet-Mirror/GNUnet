@@ -383,6 +383,11 @@ struct GNS_ResolverHandle
    */
   unsigned int loop_limiter;
 
+  /**
+   * 16 bit random ID we used in the @e dns_request.
+   */
+  uint16_t original_dns_id;
+
 };
 
 
@@ -843,17 +848,28 @@ dns_result_parser (void *cls,
   unsigned int i;
 
   (void) rs;
-  rh->dns_request = NULL;
-  GNUNET_SCHEDULER_cancel (rh->task_id);
-  rh->task_id = NULL;
+  if (NULL == dns)
+  {
+    rh->dns_request = NULL;
+    GNUNET_SCHEDULER_cancel (rh->task_id);
+    rh->task_id = NULL;
+    rh->proc (rh->proc_cls,
+              0,
+              NULL);
+    GNS_resolver_lookup_cancel (rh);
+    return;
+  }
+  if (rh->original_dns_id != dns->id)
+  {
+    /* DNS answer, but for another query */
+    return;
+  }
   p = GNUNET_DNSPARSER_parse ((const char *) dns,
 			      dns_len);
   if (NULL == p)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
 		_("Failed to parse DNS response\n"));
-    rh->proc (rh->proc_cls, 0, NULL);
-    GNS_resolver_lookup_cancel (rh);
     return;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -1097,6 +1113,7 @@ recursive_dns_resolution (struct GNS_ResolverHandle *rh)
   }
   else
   {
+    rh->original_dns_id = p->id;
     rh->dns_request = GNUNET_DNSSTUB_resolve (dns_handle,
 					      (const struct sockaddr *) &ac->authority_info.dns_authority.dns_ip,
 					      sa_len,
