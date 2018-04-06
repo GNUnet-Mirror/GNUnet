@@ -354,6 +354,11 @@ static struct RPSPeer *eval_peer;
 static unsigned int num_peers_online;
 
 /**
+ * @brief The added sizes of the peer's views
+ */
+static unsigned int view_sizes;
+
+/**
  * Return value from 'main'.
  */
 static int ok;
@@ -1843,6 +1848,15 @@ store_stats_file_name (struct RPSPeer *rps_peer)
   rps_peer->file_name_stats = file_name;
 }
 
+/**
+ * @brief This counts the number of peers in which views a given peer occurs.
+ *
+ * It also stores this value in the rps peer.
+ *
+ * @param peer_idx the index of the peer to count the representation
+ *
+ * @return the number of occurrences
+ */
 static uint32_t count_peer_in_views_2 (uint32_t peer_idx)
 {
   uint32_t i, j;
@@ -1857,11 +1871,24 @@ static uint32_t count_peer_in_views_2 (uint32_t peer_idx)
             sizeof (struct GNUNET_PeerIdentity)))
       {
         count++;
+        break;
       }
     }
   }
   rps_peers[peer_idx].count_in_views = count;
   return count;
+}
+
+static uint32_t cumulated_view_sizes ()
+{
+  uint32_t i;
+
+  view_sizes = 0;
+  for (i = 0; i < num_peers; i++) /* Peer in which view is counted */
+  {
+    view_sizes += rps_peers[i].cur_view_count;
+  }
+  return view_sizes;
 }
 
 static void count_peer_in_views (uint32_t *count_peers)
@@ -1945,32 +1972,49 @@ void all_views_updated_cb()
 }
 
 void view_update_cb (void *cls,
-                     uint64_t num_peers,
+                     uint64_t view_size,
                      const struct GNUNET_PeerIdentity *peers)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "View was updated (%" PRIu64 ")\n", num_peers);
+              "View was updated (%" PRIu64 ")\n", view_size);
   struct RPSPeer *rps_peer = (struct RPSPeer *) cls;
   to_file ("/tmp/rps/view_sizes.txt",
          "%" PRIu64 " %" PRIu32 "",
          rps_peer->index,
-         num_peers);
-  for (int i = 0; i < num_peers; i++)
+         view_size);
+  for (int i = 0; i < view_size; i++)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                "\t%s\n", GNUNET_i2s (&peers[i]));
   }
   GNUNET_array_grow (rps_peer->cur_view,
                      rps_peer->cur_view_count,
-                     num_peers);
+                     view_size);
   //*rps_peer->cur_view = *peers;
   memcpy (rps_peer->cur_view,
           peers,
-          num_peers * sizeof (struct GNUNET_PeerIdentity));
+          view_size * sizeof (struct GNUNET_PeerIdentity));
   to_file ("/tmp/rps/count_in_views.txt",
          "%" PRIu64 " %" PRIu32 "",
          rps_peer->index,
          count_peer_in_views_2 (rps_peer->index));
+  cumulated_view_sizes();
+  to_file ("/tmp/rps/repr.txt",
+         "%" PRIu64 /* index */
+         " %" PRIu32 /* occurrence in views */
+         " %" PRIu32 /* view sizes */
+         " %f" /* fraction of repr in views */
+         " %f" /* average view size */
+         " %f" /* prob of occurrence in view slot */
+         " %f" "", /* exp frac of repr in views */
+         rps_peer->index,
+         count_peer_in_views_2 (rps_peer->index),
+         view_sizes,
+         count_peer_in_views_2 (rps_peer->index) / (view_size * 1.0), /* fraction of representation in views */
+         view_sizes / (view_size * 1.0), /* average view size */
+         1.0 /view_size, /* prob of occurrence in view slot */
+         (1.0/view_size) * (view_sizes/view_size) /* expected fraction of repr in views */
+         );
   all_views_updated_cb();
 }
 
