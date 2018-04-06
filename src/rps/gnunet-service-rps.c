@@ -4268,7 +4268,7 @@ run (void *cls,
   }
 
 
-  View_create (4);
+  View_create (view_size_est_min);
 
   /* file_name_view_log */
   if (GNUNET_OK != GNUNET_DISK_directory_create ("/tmp/rps/"))
