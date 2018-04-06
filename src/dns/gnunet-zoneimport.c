@@ -28,23 +28,50 @@
 #include <gnunet_dnsstub_lib.h>
 #include <gnunet_dnsparser_lib.h>
 
+/**
+ * Request we should make.
+ */
 struct Request
 {
+  /**
+   * Requests are kept in a DLL.
+   */
   struct Request *next;
+
+  /**
+   * Requests are kept in a DLL.
+   */
   struct Request *prev;
+
+  /**
+   * Socket used to make the request, NULL if not active.
+   */
   struct GNUNET_DNSSTUB_RequestSocket *rs;
+
   /**
    * Raw DNS query.
    */
   void *raw;
+
   /**
    * Number of bytes in @e raw.
    */
   size_t raw_len;
 
+  /**
+   * Hostname we are resolving.
+   */
   char *hostname;
+
+  /**
+   * When did we last issue this request?
+   */
   time_t time;
-  int issueNum;
+
+  /**
+   * How often did we issue this query?
+   */
+  int issue_num;
 
   /**
    * random 16-bit DNS query identifier.
@@ -53,35 +80,117 @@ struct Request
 };
 
 
+/**
+ * Context for DNS resolution.
+ */
 static struct GNUNET_DNSSTUB_Context *ctx;
 
-// the number of queries that are outstanding
+/**
+ * The number of queries that are outstanding
+ */
 static unsigned int pending;
 
+/**
+ * Number of lookups we performed overall.
+ */
 static unsigned int lookups;
 
+/**
+ * Number of lookups that failed.
+ */
+static unsigned int failures;
+
+/**
+ * Number of records we found.
+ */
+static unsigned int records;
+
+/**
+ * Head of DLL of all requests to perform.
+ */
 static struct Request *req_head;
 
+/**
+ * Tail of DLL of all requests to perform.
+ */
 static struct Request *req_tail;
 
-// the number of queries that are outstanding
-static unsigned int pending;
+/**
+ * Main task.
+ */
+static struct GNUNET_SCHEDULER_Task *t;
 
-static unsigned int lookups;
-
+/**
+ * Maximum number of queries pending at the same time.
+ */
 #define THRESH 20
 
-#define MAX_RETRIES 5
-
-
-// time_thresh is in usecs, but note that adns isn't consistent
-// in how long it takes to submit queries, so 40usecs is
-// really equivalent to 25,000 queries per second, but clearly it doesn't
-// operate in that range. Thus, 10 is just a 'magic' number that we can
-// tweak depending on how fast we want to submit queries.
+/**
+ * TIME_THRESH is in usecs.  How quickly do we submit fresh queries.
+ * Used as an additional throttle.
+ */
 #define TIME_THRESH 10
 
+/**
+ * How often do we retry a query before giving up for good?
+ */
 #define MAX_RETRIES 5
+
+
+/**
+ * We received @a rec for @a req. Remember the answer.
+ *
+ * @param req request
+ * @param rec response
+ */
+static void
+process_record (struct Request *req,
+                struct GNUNET_DNSPARSER_Record *rec)
+{
+  char buf[INET6_ADDRSTRLEN];
+
+  records++;
+  switch (rec->type)
+  {
+  case GNUNET_DNSPARSER_TYPE_A:
+    fprintf (stdout,
+             "%s A %s\n",
+             req->hostname,
+             inet_ntop (AF_INET,
+                        rec->data.raw.data,
+                        buf,
+                        sizeof (buf)));
+    break;
+  case GNUNET_DNSPARSER_TYPE_AAAA:
+    fprintf (stdout,
+             "%s AAAA %s\n",
+             req->hostname,
+             inet_ntop (AF_INET6,
+                        rec->data.raw.data,
+                        buf,
+                        sizeof (buf)));
+    break;
+  case GNUNET_DNSPARSER_TYPE_NS:
+    fprintf (stdout,
+             "%s NS %s\n",
+             req->hostname,
+             rec->data.hostname);
+    break;
+  case GNUNET_DNSPARSER_TYPE_CNAME:
+    fprintf (stdout,
+             "%s CNAME %s\n",
+             req->hostname,
+             rec->data.hostname);
+    break;
+  case GNUNET_DNSPARSER_TYPE_MX:
+    fprintf (stdout,
+             "%s MX %u %s\n",
+             req->hostname,
+             (unsigned int) rec->data.mx->preference,
+             rec->data.mx->mxhost);
+    break;
+  }
+}
 
 
 /**
@@ -104,12 +213,21 @@ process_result (void *cls,
   if (NULL == dns)
   {
     /* stub gave up */
+    pending--;
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Stub gave up on DNS reply for `%s'\n",
                 req->hostname);
     GNUNET_CONTAINER_DLL_remove (req_head,
                                  req_tail,
                                  req);
+    if (req->issue_num > MAX_RETRIES)
+    {
+      failures++;
+      GNUNET_free (req->hostname);
+      GNUNET_free (req->raw);
+      GNUNET_free (req);
+      return;
+    }
     GNUNET_CONTAINER_DLL_insert_tail (req_head,
                                       req_tail,
                                       req);
@@ -118,6 +236,12 @@ process_result (void *cls,
   }
   if (req->id != dns->id)
     return;
+  pending--;
+  GNUNET_DNSSTUB_resolve_cancel (req->rs);
+  req->rs = NULL;
+  GNUNET_CONTAINER_DLL_remove (req_head,
+                               req_tail,
+                               req);
   p = GNUNET_DNSPARSER_parse ((const char *) dns,
                               dns_len);
   if (NULL == p)
@@ -125,60 +249,70 @@ process_result (void *cls,
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Failed to parse DNS reply for `%s'\n",
                 req->hostname);
-    GNUNET_CONTAINER_DLL_remove (req_head,
-                                 req_tail,
-                                 req);
+    if (req->issue_num > MAX_RETRIES)
+    {
+      failures++;
+      GNUNET_free (req->hostname);
+      GNUNET_free (req->raw);
+      GNUNET_free (req);
+      return;
+    }
     GNUNET_CONTAINER_DLL_insert_tail (req_head,
                                       req_tail,
                                       req);
-    GNUNET_DNSSTUB_resolve_cancel (req->rs);
-    req->rs = NULL;
     return;
   }
   for (unsigned int i=0;i<p->num_answers;i++)
   {
     struct GNUNET_DNSPARSER_Record *rs = &p->answers[i];
-    char buf[INET_ADDRSTRLEN];
 
-    switch (rs->type)
-    {
-    case GNUNET_DNSPARSER_TYPE_A:
-      fprintf (stdout,
-               "%s %s\n",
-               req->hostname,
-               inet_ntop (AF_INET,
-                          rs->data.raw.data,
-                          buf,
-                          sizeof (buf)));
-      break;
-    }
+    process_record (req,
+                    rs);
+  }
+  for (unsigned int i=0;i<p->num_authority_records;i++)
+  {
+    struct GNUNET_DNSPARSER_Record *rs = &p->authority_records[i];
+
+    process_record (req,
+                    rs);
+  }
+  for (unsigned int i=0;i<p->num_additional_records;i++)
+  {
+    struct GNUNET_DNSPARSER_Record *rs = &p->additional_records[i];
+
+    process_record (req,
+                    rs);
   }
   GNUNET_DNSPARSER_free_packet (p);
-  GNUNET_DNSSTUB_resolve_cancel (req->rs);
-  req->rs = NULL;
-  GNUNET_CONTAINER_DLL_remove (req_head,
-                               req_tail,
-                               req);
   GNUNET_free (req->hostname);
   GNUNET_free (req->raw);
   GNUNET_free (req);
 }
 
 
-static void
+/**
+ * Submit a request to DNS unless we need to slow down because
+ * we are at the rate limit.
+ *
+ * @param req request to submit
+ * @return #GNUNET_OK if request was submitted
+ *         #GNUNET_NO if request was already submitted
+ *         #GNUNET_SYSERR if we are at the rate limit
+ */
+static int
 submit_req (struct Request *req)
 {
   static struct timeval last_request;
   struct timeval now;
 
   if (NULL != req->rs)
-    return; /* already submitted */
+    return GNUNET_NO; /* already submitted */
   gettimeofday (&now,
                 NULL);
   if ( ( ( (now.tv_sec - last_request.tv_sec) == 0) &&
          ( (now.tv_usec - last_request.tv_usec) < TIME_THRESH) ) ||
        (pending >= THRESH) )
-    return;
+    return GNUNET_SYSERR;
   GNUNET_assert (NULL == req->rs);
   req->rs = GNUNET_DNSSTUB_resolve2 (ctx,
                                      req->raw,
@@ -186,40 +320,83 @@ submit_req (struct Request *req)
                                      &process_result,
                                      req);
   GNUNET_assert (NULL != req->rs);
+  req->issue_num++;
   last_request = now;
   lookups++;
   pending++;
   req->time = time (NULL);
+  return GNUNET_OK;
 }
 
 
+/**
+ * Process as many requests as possible from the queue.
+ *
+ * @param cls NULL
+ */
 static void
-process_queue()
+process_queue(void *cls)
 {
-  struct Request *wl = wl = req_head;
-
-  if ( (pending < THRESH) &&
-       (NULL != wl) )
+  (void) cls;
+  t = NULL;
+  for (struct Request *req = req_head;
+       NULL != req;
+       req = req->next)
   {
-    struct Request *req = wl;
-
-    wl = req->next;
-    submit_req (req);
+    if (GNUNET_SYSERR == submit_req (req))
+      break;
   }
+  if (NULL != req_head)
+    t = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_MILLISECONDS,
+                                  &process_queue,
+                                  NULL);
+  else
+    GNUNET_SCHEDULER_shutdown ();
 }
 
 
+/**
+ * Clean up and terminate the process.
+ *
+ * @param cls NULL
+ */
+static void
+do_shutdown (void *cls)
+{
+  (void) cls;
+  if (NULL != t)
+  {
+    GNUNET_SCHEDULER_cancel (t);
+    t = NULL;
+  }
+  GNUNET_DNSSTUB_stop (ctx);
+  ctx = NULL;
+}
+
+
+/**
+ * Process requests from the queue, then if the queue is
+ * not empty, try again.
+ *
+ * @param cls NULL
+ */
 static void
 run (void *cls)
 {
-  process_queue ();
-  if (NULL != req_head)
-    GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_MILLISECONDS,
-                                  &run,
-                                  NULL);
+  (void) cls;
+
+  GNUNET_SCHEDULER_add_shutdown (&do_shutdown,
+                                 NULL);
+  t = GNUNET_SCHEDULER_add_now (&process_queue,
+                                NULL);
 }
 
 
+/**
+ * Add @a hostname to the list of requests to be made.
+ *
+ * @param hostname name to resolve
+ */
 static void
 queue (const char *hostname)
 {
@@ -238,10 +415,12 @@ queue (const char *hostname)
     return;
   }
   q.name = (char *) hostname;
-  q.type = GNUNET_DNSPARSER_TYPE_ANY;
+  q.type = GNUNET_DNSPARSER_TYPE_NS;
   q.dns_traffic_class = GNUNET_TUN_DNS_CLASS_INTERNET;
 
-  memset (&p, 0, sizeof (p));
+  memset (&p,
+          0,
+          sizeof (p));
   p.num_queries = 1;
   p.queries = &q;
   p.id = (uint16_t) GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_NONCE,
@@ -270,6 +449,13 @@ queue (const char *hostname)
 }
 
 
+/**
+ * Call with IP address of resolver to query.
+ *
+ * @param argc should be 2
+ * @param argv[1] should contain IP address
+ * @return 0 on success
+ */
 int
 main (int argc,
       char **argv)
@@ -300,9 +486,11 @@ main (int argc,
   }
   GNUNET_SCHEDULER_run (&run,
                         NULL);
-  GNUNET_DNSSTUB_stop (ctx);
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              "Did %u lookups\n",
-              lookups);
+  fprintf (stderr,
+           "Did %u lookups, found %u records, %u lookups failed, %u pending on shutdown\n",
+           lookups,
+           records,
+           failures,
+           pending);
   return 0;
 }
