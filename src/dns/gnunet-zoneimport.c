@@ -189,6 +189,11 @@ process_record (struct Request *req,
              (unsigned int) rec->data.mx->preference,
              rec->data.mx->mxhost);
     break;
+  default:
+    fprintf (stderr,
+             "Unsupported type %u\n",
+             (unsigned int) rec->type);
+    break;
   }
 }
 
