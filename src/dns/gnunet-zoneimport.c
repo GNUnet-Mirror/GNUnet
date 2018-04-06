@@ -189,6 +189,94 @@ process_record (struct Request *req,
              (unsigned int) rec->data.mx->preference,
              rec->data.mx->mxhost);
     break;
+  case GNUNET_DNSPARSER_TYPE_SOA:
+    fprintf (stdout,
+             "%s SOA %s %s %u %u %u %u %u\n",
+             req->hostname,
+             rec->data.soa->mname,
+             rec->data.soa->rname,
+             (unsigned int) rec->data.soa->serial,
+             (unsigned int) rec->data.soa->refresh,
+             (unsigned int) rec->data.soa->retry,
+             (unsigned int) rec->data.soa->expire,
+             (unsigned int) rec->data.soa->minimum_ttl);
+    break;
+  case GNUNET_DNSPARSER_TYPE_SRV:
+    fprintf (stdout,
+             "%s SRV %s %u %u %u\n",
+             req->hostname,
+             rec->data.srv->target,
+             rec->data.srv->priority,
+             rec->data.srv->weight,
+             rec->data.srv->port);
+    break;
+  case GNUNET_DNSPARSER_TYPE_PTR:
+    fprintf (stdout,
+             "%s PTR %s\n",
+             req->hostname,
+             rec->data.hostname);
+    break;
+  case GNUNET_DNSPARSER_TYPE_TXT:
+    fprintf (stdout,
+             "%s TXT %.*s\n",
+             req->hostname,
+             (int) rec->data.raw.data_len,
+             (char *) rec->data.raw.data);
+    break;
+  case GNUNET_DNSPARSER_TYPE_DNAME:
+    fprintf (stdout,
+             "%s DNAME %s\n",
+             req->hostname,
+             rec->data.hostname);
+    break;
+
+    /* obscure records */
+  case GNUNET_DNSPARSER_TYPE_AFSDB:
+  case GNUNET_DNSPARSER_TYPE_NAPTR:
+  case GNUNET_DNSPARSER_TYPE_APL:
+  case GNUNET_DNSPARSER_TYPE_DHCID:
+  case GNUNET_DNSPARSER_TYPE_HIP:
+  case GNUNET_DNSPARSER_TYPE_LOC:
+  case GNUNET_DNSPARSER_TYPE_RP:
+  case GNUNET_DNSPARSER_TYPE_TKEY:
+  case GNUNET_DNSPARSER_TYPE_TSIG:
+  case GNUNET_DNSPARSER_TYPE_URI:
+  case GNUNET_DNSPARSER_TYPE_TA:
+
+    /* DNSSEC */
+  case GNUNET_DNSPARSER_TYPE_DS:
+  case GNUNET_DNSPARSER_TYPE_RRSIG:
+  case GNUNET_DNSPARSER_TYPE_NSEC:
+  case GNUNET_DNSPARSER_TYPE_DNSKEY:
+  case GNUNET_DNSPARSER_TYPE_NSEC3:
+  case GNUNET_DNSPARSER_TYPE_NSEC3PARAM:
+  case GNUNET_DNSPARSER_TYPE_CDS:
+  case GNUNET_DNSPARSER_TYPE_CDNSKEY:
+
+    /* DNSSEC payload */
+  case GNUNET_DNSPARSER_TYPE_CERT:
+  case GNUNET_DNSPARSER_TYPE_SSHFP:
+  case GNUNET_DNSPARSER_TYPE_IPSECKEY:
+  case GNUNET_DNSPARSER_TYPE_TLSA:
+  case GNUNET_DNSPARSER_TYPE_OPENPGPKEY:
+
+    /* obsolete records */
+  case GNUNET_DNSPARSER_TYPE_SIG:
+  case GNUNET_DNSPARSER_TYPE_KEY:
+  case GNUNET_DNSPARSER_TYPE_KX:
+    {
+      char *base32;
+
+      base32 = GNUNET_STRINGS_data_to_string_alloc (rec->data.raw.data,
+                                                    rec->data.raw.data_len);
+      fprintf (stdout,
+               "%s (%u) %s\n",
+               req->hostname,
+               rec->type,
+               base32);
+      GNUNET_free (base32);
+    }
+    break;
   default:
     fprintf (stderr,
              "Unsupported type %u\n",
