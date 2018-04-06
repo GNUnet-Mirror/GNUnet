@@ -2285,7 +2285,6 @@ hist_update (void *cls,
 {
   unsigned int i;
 
-  clients_notify_view_update();
   for (i = 0; i < num_peers; i++)
   {
     (void) insert_in_view (&ids[i]);
@@ -2293,6 +2292,7 @@ hist_update (void *cls,
              "+%s\t(hist)",
              GNUNET_i2s_full (ids));
   }
+  clients_notify_view_update();
 }
 
 
