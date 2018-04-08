@@ -2017,7 +2017,9 @@ static void compute_probabilities (uint32_t peer_idx)
     GNUNET_assert (0 <= tmp);
   }
 
-  to_file (rps_peers[peer_idx].file_name_probs, probs_as_str);
+  to_file_w_len (rps_peers[peer_idx].file_name_probs,
+                 probs_as_str_size,
+                 probs_as_str);
   GNUNET_free (probs_as_str);
 }
 
