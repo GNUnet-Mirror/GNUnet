@@ -2012,7 +2012,7 @@ static void compute_probabilities (uint32_t peer_idx)
     probs_as_str_cpy = GNUNET_strndup (probs_as_str, probs_as_str_size);
     tmp = GNUNET_snprintf (probs_as_str,
                            probs_as_str_size,
-                           "%s %3.2f ", probs_as_str_cpy, probs[i]);
+                           "%s %3.2f", probs_as_str_cpy, probs[i]);
     GNUNET_free (probs_as_str_cpy);
     GNUNET_assert (0 <= tmp);
   }
