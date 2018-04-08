@@ -1994,9 +1994,17 @@ static void compute_probabilities (uint32_t peer_idx)
     if (0 != probs[i]) count_non_zero_prob++;
   }
   /* normalize */
-  for (i = 0; i < num_peers; i++)
+  if (0 != count_non_zero_prob)
   {
-    probs[i] = probs[i] * (1.0 / count_non_zero_prob);
+    for (i = 0; i < num_peers; i++)
+    {
+      probs[i] = probs[i] * (1.0 / count_non_zero_prob);
+    }
+  } else {
+    for (i = 0; i < num_peers; i++)
+    {
+      probs[i] = 0;
+    }
   }
   /* str repr */
   for (i = 0; i < num_peers; i++)
