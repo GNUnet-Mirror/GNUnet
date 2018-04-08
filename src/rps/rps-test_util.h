@@ -34,9 +34,9 @@
 
 
 void
-to_file_ (char *file_name, char *line);
+to_file_ (const char *file_name, char *line);
 
-char * 
+char *
 auth_key_to_string (struct GNUNET_CRYPTO_AuthKey auth_key);
 
 struct GNUNET_CRYPTO_AuthKey

@@ -257,7 +257,12 @@ struct RPSPeer
   /**
    * @brief File name of the file the stats are finally written to
    */
-  char *file_name_stats;
+  const char *file_name_stats;
+
+  /**
+   * @brief File name of the file the stats are finally written to
+   */
+  const char *file_name_probs;
 
   /**
    * @brief The current view
@@ -1823,20 +1828,26 @@ static int ensure_folder_exist (void)
   return GNUNET_YES;
 }
 
-static void
-store_stats_file_name (struct RPSPeer *rps_peer)
+static const char *
+store_prefix_file_name (struct RPSPeer *rps_peer, const char *prefix)
 {
   unsigned int len_file_name;
   unsigned int out_size;
   char *file_name;
+  const char *pid_long;
 
-  if (GNUNET_SYSERR == ensure_folder_exist()) return;
-  len_file_name = (14 + strlen (GNUNET_i2s_full (rps_peer->peer_id)) + 1) * sizeof (char);
+  if (GNUNET_SYSERR == ensure_folder_exist()) return NULL;
+  pid_long = GNUNET_i2s_full (rps_peer->peer_id);
+  len_file_name = (strlen (prefix) +
+                   strlen (pid_long) +
+                   11)
+                     * sizeof (char);
   file_name = GNUNET_malloc (len_file_name);
   out_size = GNUNET_snprintf (file_name,
                               len_file_name,
-                              "/tmp/rps/stat-%s",
-                              GNUNET_i2s_full (rps_peer->peer_id));
+                              "/tmp/rps/%s-%s",
+                              prefix,
+                              pid_long);
   if (len_file_name < out_size ||
       0 > out_size)
   {
@@ -1845,7 +1856,161 @@ store_stats_file_name (struct RPSPeer *rps_peer)
                len_file_name,
                out_size);
   }
-  rps_peer->file_name_stats = file_name;
+  return file_name;
+}
+
+static uint32_t fac (uint32_t x)
+{
+  if (1 >= x)
+  {
+    return x;
+  }
+  return x * fac (x - 1);
+}
+
+static uint32_t binom (uint32_t n, uint32_t k)
+{
+  GNUNET_assert (n >= k);
+  if (0 == k) return 1;
+  return fac (n)
+    /
+    fac(k) * fac(n - k);
+}
+
+/**
+ * @brief is b in view of a?
+ *
+ * @param a
+ * @param b
+ *
+ * @return 
+ */
+static int is_in_view (uint32_t a, uint32_t b)
+{
+  uint32_t i;
+  for (i = 0; i < rps_peers[a].cur_view_count; i++)
+  {
+    if (0 == memcmp (rps_peers[b].peer_id,
+          &rps_peers[a].cur_view[i],
+          sizeof (struct GNUNET_PeerIdentity)))
+    {
+      return GNUNET_YES;
+    }
+  }
+  return GNUNET_NO;
+}
+
+static uint32_t get_idx_of_pid (const struct GNUNET_PeerIdentity *pid)
+{
+  uint32_t i;
+
+  for (i = 0; i < num_peers; i++)
+  {
+    if (0 == memcmp (pid,
+          rps_peers[i].peer_id,
+          sizeof (struct GNUNET_PeerIdentity)))
+    {
+      return i;
+    }
+  }
+  //return 0; /* Should not happen - make compiler happy */
+  GNUNET_assert (0);
+}
+
+/**
+ * @brief Counts number of peers in view of a that have b in their view
+ *
+ * @param a
+ * @param uint32_tb
+ *
+ * @return
+ */
+static uint32_t count_containing_views (uint32_t a, uint32_t b)
+{
+  uint32_t i;
+  uint32_t peer_idx;
+  uint32_t count = 0;
+
+  for (i = 0; i < rps_peers[a].cur_view_count; i++)
+  {
+    peer_idx = get_idx_of_pid (&rps_peers[a].cur_view[i]);
+    if (GNUNET_YES == is_in_view (peer_idx, b))
+    {
+      count++;
+    }
+  }
+  return count;
+}
+
+/**
+ * @brief Computes the probability for each other peer to be selected by the
+ * sampling process based on the views of all peers
+ *
+ * @param peer_idx index of the peer that is about to sample
+ */
+static void compute_probabilities (uint32_t peer_idx)
+{
+  //double probs[num_peers] = { 0 };
+  double probs[num_peers];
+  size_t probs_as_str_size = (num_peers * 6 + 1) * sizeof (char);
+  char *probs_as_str = GNUNET_malloc (probs_as_str_size);
+  char *probs_as_str_cpy;
+  uint32_t i;
+  double prob_push;
+  double prob_pull;
+  uint32_t view_size;
+  uint32_t cont_views;
+  int tmp;
+  uint32_t count_non_zero_prob = 0;
+
+  /* Firstly without knowledge of old views */
+  for (i = 0; i < num_peers; i++)
+  {
+    view_size = rps_peers[i].cur_view_count;
+    /* For peer i the probability of being sampled is
+     * evenly distributed among all possibly observed peers. */
+    /* We could have observed a peer in three cases:
+     *   1. peer sent a push
+     *   2. peer was contained in a pull reply
+     *   3. peer was in history (sampler) - ignored for now */
+    /* 1. Probability of having received a push from peer i */
+    if ((GNUNET_YES == is_in_view (i, peer_idx)) &&
+        (1 <= (0.45 * view_size)))
+    {
+      prob_push = 1.0 * binom (0.45 * view_size, 1)
+        /
+        binom (view_size, 0.45 * view_size);
+    } else {
+      prob_push = 0;
+    }
+    /* 2. Probability of peer i being contained in pulls */
+    // FIXME this computation is not yet correct
+    view_size = rps_peers[peer_idx].cur_view_count;
+    cont_views = count_containing_views (i, peer_idx);
+    prob_pull = 1.0 -
+      (1.0 / binom (view_size, 0.45 * view_size));
+    probs[i] = prob_push + prob_pull - (prob_push * prob_pull);
+
+    if (0 != probs[i]) count_non_zero_prob++;
+  }
+  /* normalize */
+  for (i = 0; i < num_peers; i++)
+  {
+    probs[i] = probs[i] * (1.0 / count_non_zero_prob);
+  }
+  /* str repr */
+  for (i = 0; i < num_peers; i++)
+  {
+    probs_as_str_cpy = GNUNET_strndup (probs_as_str, probs_as_str_size);
+    tmp = GNUNET_snprintf (probs_as_str,
+                           probs_as_str_size,
+                           "%s %3.2f ", probs_as_str_cpy, probs[i]);
+    GNUNET_free (probs_as_str_cpy);
+    GNUNET_assert (0 <= tmp);
+  }
+
+  to_file (rps_peers[peer_idx].file_name_probs, probs_as_str);
+  GNUNET_free (probs_as_str);
 }
 
 /**
@@ -2015,12 +2180,14 @@ void view_update_cb (void *cls,
          1.0 /view_size, /* prob of occurrence in view slot */
          (1.0/view_size) * (view_sizes/view_size) /* expected fraction of repr in views */
          );
+  compute_probabilities (rps_peer->index);
   all_views_updated_cb();
 }
 
 static void
 pre_profiler (struct RPSPeer *rps_peer, struct GNUNET_RPS_Handle *h)
 {
+  rps_peer->file_name_probs = store_prefix_file_name (rps_peer, "probs");
   GNUNET_RPS_view_request (h, 0, view_update_cb, rps_peer);
 }
 
@@ -2093,9 +2260,10 @@ post_test_shutdown_ready_cb (void *cls,
     GNUNET_TESTBED_operation_done (rps_peer->stat_op);
   }
 
+  write_final_stats ();
   if (GNUNET_YES == check_statistics_collect_completed())
   {
-    write_final_stats ();
+    //write_final_stats ();
     GNUNET_free (stat_cls);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
         "Shutting down\n");
@@ -2342,7 +2510,7 @@ void post_profiler (struct RPSPeer *rps_peer)
       stat_cls = GNUNET_malloc (sizeof (struct STATcls));
       stat_cls->rps_peer = rps_peer;
       stat_cls->stat_type = stat_type;
-      store_stats_file_name (rps_peer);
+      rps_peer->file_name_stats = store_prefix_file_name (rps_peer, "stats");
       GNUNET_STATISTICS_get (rps_peer->stats_h,
                              "rps",
                              stat_type_2_str (stat_type),

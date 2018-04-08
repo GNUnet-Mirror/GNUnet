@@ -39,7 +39,7 @@
 
 #ifdef TO_FILE
 void
-to_file_ (char *file_name, char *line)
+to_file_ (const char *file_name, char *line)
 {
   struct GNUNET_DISK_FileHandle *f;
   char output_buffer[512];
