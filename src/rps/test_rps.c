@@ -1998,7 +1998,7 @@ static void compute_probabilities (uint32_t peer_idx)
     }
     /* 2. Probability of peer i being contained in pulls */
     view_size = rps_peers[peer_idx].cur_view_count;
-    cont_views = count_containing_views (i, peer_idx);
+    cont_views = count_containing_views (peer_idx, i);
     number_of_being_in_pull_events =
       (binom (view_size, 0.45 * view_size) -
        binom (view_size - cont_views, 0.45 * view_size));
