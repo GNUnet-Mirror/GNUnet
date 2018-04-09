@@ -1870,7 +1870,10 @@ static uint32_t fac (uint32_t x)
 
 static uint32_t binom (uint32_t n, uint32_t k)
 {
-  GNUNET_assert (n >= k);
+  //GNUNET_assert (n >= k);
+  if (k > n) return 0;
+  if (0 > n) return 0;
+  if (0 > k) return 0;
   if (0 == k) return 1;
   return fac (n)
     /
@@ -1984,11 +1987,13 @@ static void compute_probabilities (uint32_t peer_idx)
       prob_push = 0;
     }
     /* 2. Probability of peer i being contained in pulls */
-    // FIXME this computation is not yet correct
     view_size = rps_peers[peer_idx].cur_view_count;
     cont_views = count_containing_views (i, peer_idx);
-    prob_pull = 1.0 -
-      (1.0 / binom (view_size, 0.45 * view_size));
+    prob_pull = 1.0
+      /
+      (binom (view_size, 0.45 * view_size) -
+       binom (view_size - cont_views, 0.45 * view_size));
+    if (0 == cont_views) prob_pull = 0;
     probs[i] = prob_push + prob_pull - (prob_push * prob_pull);
 
     if (0 != probs[i]) count_non_zero_prob++;
