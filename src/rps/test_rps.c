@@ -1963,6 +1963,7 @@ static void compute_probabilities (uint32_t peer_idx)
   double prob_pull;
   uint32_t view_size;
   uint32_t cont_views;
+  uint32_t number_of_being_in_pull_events;
   int tmp;
   uint32_t count_non_zero_prob = 0;
 
@@ -1983,17 +1984,31 @@ static void compute_probabilities (uint32_t peer_idx)
       prob_push = 1.0 * binom (0.45 * view_size, 1)
         /
         binom (view_size, 0.45 * view_size);
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                 "\t\t%" PRIu32 " is in %" PRIu32 "'s view, prob: %f\n",
+                 peer_idx,
+                 i,
+                 prob_push);
     } else {
       prob_push = 0;
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                 "\t\t%" PRIu32 " is not in %" PRIu32 "'s view, prob: 0\n",
+                 peer_idx,
+                 i);
     }
     /* 2. Probability of peer i being contained in pulls */
     view_size = rps_peers[peer_idx].cur_view_count;
     cont_views = count_containing_views (i, peer_idx);
-    prob_pull = 1.0
-      /
+    number_of_being_in_pull_events =
       (binom (view_size, 0.45 * view_size) -
        binom (view_size - cont_views, 0.45 * view_size));
-    if (0 == cont_views) prob_pull = 0;
+    if (0 != number_of_being_in_pull_events)
+    {
+      prob_pull = 1.0 / number_of_being_in_pull_events;
+    } else
+    {
+      prob_pull = 0;
+    }
     probs[i] = prob_push + prob_pull - (prob_push * prob_pull);
 
     if (0 != probs[i]) count_non_zero_prob++;
