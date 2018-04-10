@@ -44,7 +44,7 @@ extern "C"
 
 
 /**
- * Function called by for each matching record.
+ * Function called for each matching record.
  *
  * @param cls closure
  * @param zone_key private key of the zone
