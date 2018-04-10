@@ -85,6 +85,11 @@ struct Request
    * Number of bytes in @e udp_msg.
    */
   size_t udp_msg_size;
+
+  /**
+   * ID of the original request.
+   */
+  uint16_t original_request_id;
 };
 
 
@@ -255,6 +260,18 @@ dns_result_processor (void *cls,
   struct Request *request = cls;
 
   (void) rs;
+  if (NULL == dns)
+  {
+    /* DNSSTUB gave up, so we trigger timeout early */
+    GNUNET_SCHEDULER_cancel (request->timeout_task);
+    do_timeout (request);
+    return;
+  }
+  if (request->original_request_id != dns->id)
+  {
+    /* for a another query, ignore */
+    return;
+  }
   request->packet = GNUNET_DNSPARSER_parse ((char*)dns,
 					    r);
   send_response (request);
@@ -277,7 +294,6 @@ result_processor (void *cls,
 {
   struct Request *request = cls;
   struct GNUNET_DNSPARSER_Packet *packet;
-  uint32_t i;
   struct GNUNET_DNSPARSER_Record rec;
 
   request->lookup = NULL;
@@ -288,6 +304,7 @@ result_processor (void *cls,
 		"Using DNS resolver IP `%s' to resolve `%s'\n",
 		dns_ip,
 		request->packet->queries[0].name);
+    request->original_request_id = request->packet->id;
     GNUNET_DNSPARSER_free_packet (request->packet);
     request->packet = NULL;
     request->dns_lookup = GNUNET_DNSSTUB_resolve2 (dns_stub,
@@ -296,7 +313,7 @@ result_processor (void *cls,
 						   &dns_result_processor,
 						   request);
     return;
-  }  
+  }
   packet = request->packet;
   packet->flags.query_or_response = 1;
   packet->flags.return_code = GNUNET_TUN_DNS_RETURN_CODE_NO_ERROR;
@@ -307,7 +324,7 @@ result_processor (void *cls,
   packet->flags.message_truncated = 0;
   packet->flags.authoritative_answer = 0;
   //packet->flags.opcode = GNUNET_TUN_DNS_OPCODE_STATUS; // ???
-  for (i=0;i<rd_count;i++)
+  for (uint32_t i=0;i<rd_count;i++)
     {
       // FIXME: do we need to hanlde #GNUNET_GNSRECORD_RF_SHADOW_RECORD
       // here? Or should we do this in libgnunetgns?

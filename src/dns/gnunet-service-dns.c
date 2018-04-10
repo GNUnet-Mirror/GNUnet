@@ -729,6 +729,9 @@ process_dns_result (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Processing DNS result from stub resolver\n");
   GNUNET_assert (NULL == cls);
+  if (NULL == dns)
+    return; /* ignore */
+
   rr = &requests[dns->id];
   if ( (rr->phase != RP_INTERNET_DNS) ||
        (rr->rs != rs) )

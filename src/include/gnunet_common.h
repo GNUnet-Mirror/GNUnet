@@ -160,6 +160,19 @@ extern "C"
 #endif
 
 
+/**
+ * Macro used to avoid using 0 for the length of a variable-size
+ * array (Non-Zero-Length).
+ *
+ * Basically, C standard says that "int[n] x;" is undefined if n=0.
+ * This was supposed to prevent issues with pointer aliasing.
+ * However, C compilers may conclude that n!=0 as n=0 would be
+ * undefined, and then optimize under the assumption n!=0, which
+ * could cause actual issues.  Hence, when initializing an array
+ * on the stack with a variable-length that might be zero, write
+ * "int[GNUNET_NZL(n)] x;" instead of "int[n] x".
+ */
+#define GNUNET_NZL(l) GNUNET_MAX(1,l)
 
 
 /**
@@ -988,7 +1001,7 @@ GNUNET_ntoh_double (double d);
  *        arr is important since size is the number of elements and
  *        not the size in bytes
  * @param size the number of elements in the existing vector (number
- *        of elements to copy over), will be updated with the new 
+ *        of elements to copy over), will be updated with the new
  *        array size
  * @param tsize the target size for the resulting vector, use 0 to
  *        free the vector (then, arr will be NULL afterwards).
@@ -998,13 +1011,13 @@ GNUNET_ntoh_double (double d);
 /**
  * @ingroup memory
  * Append an element to a list (growing the list by one).
- * 
+ *
  * @param arr base-pointer of the vector, may be NULL if size is 0;
  *        will be updated to reflect the new address. The TYPE of
  *        arr is important since size is the number of elements and
  *        not the size in bytes
  * @param size the number of elements in the existing vector (number
- *        of elements to copy over), will be updated with the new 
+ *        of elements to copy over), will be updated with the new
  *        array size
  * @param element the element that will be appended to the array
  */

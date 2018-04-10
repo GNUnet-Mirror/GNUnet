@@ -615,6 +615,7 @@ GNUNET_DNSPARSER_parse_record (const char *udp_payload,
   {
   case GNUNET_DNSPARSER_TYPE_NS:
   case GNUNET_DNSPARSER_TYPE_CNAME:
+  case GNUNET_DNSPARSER_TYPE_DNAME:
   case GNUNET_DNSPARSER_TYPE_PTR:
     r->data.hostname = GNUNET_DNSPARSER_parse_name (udp_payload,
 						    udp_payload_length,
@@ -659,7 +660,9 @@ GNUNET_DNSPARSER_parse_record (const char *udp_payload,
   default:
     r->data.raw.data = GNUNET_malloc (data_len);
     r->data.raw.data_len = data_len;
-    GNUNET_memcpy (r->data.raw.data, &udp_payload[*off], data_len);
+    GNUNET_memcpy (r->data.raw.data,
+                   &udp_payload[*off],
+                   data_len);
     break;
   }
   (*off) += data_len;

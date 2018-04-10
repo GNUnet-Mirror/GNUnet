@@ -475,6 +475,8 @@ process_dns_result (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Processing DNS result from stub resolver\n");
   GNUNET_assert (NULL == cls);
+  if (NULL == dns)
+    return;
   /* Handle case that this is a reply to a request from a CADET DNS channel */
   ts = channels[dns->id];
   if ( (NULL == ts) ||

@@ -122,10 +122,11 @@ enum GNUNET_DNS_Flags
  * @param request_length number of bytes in request
  * @param request udp payload of the DNS request
  */
-typedef void (*GNUNET_DNS_RequestHandler)(void *cls,
-					  struct GNUNET_DNS_RequestHandle *rh,
-					  size_t request_length,
-					  const char *request);
+typedef void
+(*GNUNET_DNS_RequestHandler)(void *cls,
+                             struct GNUNET_DNS_RequestHandle *rh,
+                             size_t request_length,
+                             const char *request);
 
 
 /**

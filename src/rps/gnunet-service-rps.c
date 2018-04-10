@@ -2270,6 +2270,12 @@ insert_in_view (const struct GNUNET_PeerIdentity *peer)
 }
 
 /**
+ * @brief sends updates to clients that are interested
+ */
+static void
+clients_notify_view_update (void);
+
+/**
  * Put random peer from sampler into the view as history update.
  */
 static void
@@ -2286,6 +2292,7 @@ hist_update (void *cls,
              "+%s\t(hist)",
              GNUNET_i2s_full (ids));
   }
+  clients_notify_view_update();
 }
 
 
@@ -4261,7 +4268,7 @@ run (void *cls,
   }
 
 
-  View_create (4);
+  View_create (view_size_est_min);
 
   /* file_name_view_log */
   if (GNUNET_OK != GNUNET_DISK_directory_create ("/tmp/rps/"))

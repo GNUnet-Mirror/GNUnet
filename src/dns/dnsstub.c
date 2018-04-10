@@ -235,8 +235,22 @@ get_request_socket (struct GNUNET_DNSSTUB_Context *ctx,
   struct GNUNET_DNSSTUB_RequestSocket *rs;
   struct GNUNET_NETWORK_FDSet *rset;
 
-  rs = &ctx->sockets[GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_NONCE,
-					       DNS_SOCKET_MAX)];
+  for (unsigned int i=0;i<256;i++)
+  {
+    rs = &ctx->sockets[GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_NONCE,
+                                                 DNS_SOCKET_MAX)];
+    if (NULL == rs->rc)
+      break;
+  }
+  if (NULL != rs->rc)
+  {
+    /* signal "failure" */
+    rs->rc (rs->rc_cls,
+            rs,
+            NULL,
+            0);
+    rs->rc = NULL;
+  }
   rs->timeout = GNUNET_TIME_relative_to_absolute (REQUEST_TIMEOUT);
   switch (af)
   {
@@ -271,9 +285,11 @@ get_request_socket (struct GNUNET_DNSSTUB_Context *ctx,
     return NULL;
   rset = GNUNET_NETWORK_fdset_create ();
   if (NULL != rs->dnsout4)
-    GNUNET_NETWORK_fdset_set (rset, rs->dnsout4);
+    GNUNET_NETWORK_fdset_set (rset,
+                              rs->dnsout4);
   if (NULL != rs->dnsout6)
-    GNUNET_NETWORK_fdset_set (rset, rs->dnsout6);
+    GNUNET_NETWORK_fdset_set (rset,
+                              rs->dnsout6);
   rs->read_task = GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_DEFAULT,
 					       REQUEST_TIMEOUT,
 					       rset,
@@ -326,11 +342,11 @@ transmit_query (void *cls)
  *
  * @param ctx stub resolver to use
  * @param sa the socket address
- * @param sa_len the socket length
+ * @param sa_len the length of @a sa
  * @param request DNS request to transmit
- * @param request_len number of bytes in msg
+ * @param request_len number of bytes in @a request
  * @param rc function to call with result
- * @param rc_cls closure for 'rc'
+ * @param rc_cls closure for @a rc
  * @return socket used for the request, NULL on error
  */
 struct GNUNET_DNSSTUB_RequestSocket *
@@ -347,6 +363,7 @@ GNUNET_DNSSTUB_resolve (struct GNUNET_DNSSTUB_Context *ctx,
   if (NULL == (rs = get_request_socket (ctx,
                                         sa->sa_family)))
     return NULL;
+  GNUNET_assert (NULL == rs->rc);
   GNUNET_memcpy (&rs->addr,
                  sa,
                  sa_len);
@@ -389,7 +406,9 @@ GNUNET_DNSSTUB_resolve2 (struct GNUNET_DNSSTUB_Context *ctx,
 
   memset (&v4, 0, sizeof (v4));
   memset (&v6, 0, sizeof (v6));
-  if (1 == inet_pton (AF_INET, ctx->dns_exit, &v4.sin_addr))
+  if (1 == inet_pton (AF_INET,
+                      ctx->dns_exit,
+                      &v4.sin_addr))
   {
     salen = sizeof (v4);
     v4.sin_family = AF_INET;
@@ -400,7 +419,9 @@ GNUNET_DNSSTUB_resolve2 (struct GNUNET_DNSSTUB_Context *ctx,
     sa = (struct sockaddr *) &v4;
     af = AF_INET;
   }
-  else if (1 == inet_pton (AF_INET6, ctx->dns_exit, &v6.sin6_addr))
+  else if (1 == inet_pton (AF_INET6,
+                           ctx->dns_exit,
+                           &v6.sin6_addr))
   {
     salen = sizeof (v6);
     v6.sin6_family = AF_INET6;
@@ -416,8 +437,10 @@ GNUNET_DNSSTUB_resolve2 (struct GNUNET_DNSSTUB_Context *ctx,
     GNUNET_break (0);
     return NULL;
   }
-  if (NULL == (rs = get_request_socket (ctx, af)))
+  if (NULL == (rs = get_request_socket (ctx,
+                                        af)))
     return NULL;
+  GNUNET_assert (NULL == rs->rc);
   if (NULL != rs->dnsout4)
     dnsout = rs->dnsout4;
   else
@@ -430,15 +453,17 @@ GNUNET_DNSSTUB_resolve2 (struct GNUNET_DNSSTUB_Context *ctx,
     return NULL;
   }
   GNUNET_memcpy (&rs->addr,
-	  sa,
-	  salen);
+                 sa,
+                 salen);
   rs->addrlen = salen;
   rs->rc = rc;
   rs->rc_cls = rc_cls;
   if (GNUNET_SYSERR ==
       GNUNET_NETWORK_socket_sendto (dnsout,
 				    request,
-				    request_len, sa, salen))
+				    request_len,
+                                    sa,
+                                    salen))
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
 		_("Failed to send DNS request to %s\n"),
 		GNUNET_a2s (sa, salen));
@@ -466,7 +491,9 @@ do_dns_read (struct GNUNET_DNSSTUB_RequestSocket *rs,
   int len;
 
 #ifndef MINGW
-  if (0 != ioctl (GNUNET_NETWORK_get_fd (dnsout), FIONREAD, &len))
+  if (0 != ioctl (GNUNET_NETWORK_get_fd (dnsout),
+                  FIONREAD,
+                  &len))
   {
     /* conservative choice: */
     len = UINT16_MAX;
@@ -484,11 +511,14 @@ do_dns_read (struct GNUNET_DNSSTUB_RequestSocket *rs,
     addrlen = sizeof (addr);
     memset (&addr, 0, sizeof (addr));
     r = GNUNET_NETWORK_socket_recvfrom (dnsout,
-					buf, sizeof (buf),
-					(struct sockaddr*) &addr, &addrlen);
+					buf,
+                                        sizeof (buf),
+					(struct sockaddr*) &addr,
+                                        &addrlen);
     if (-1 == r)
     {
-      GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "recvfrom");
+      GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR,
+                           "recvfrom");
       GNUNET_NETWORK_socket_close (dnsout);
       return GNUNET_SYSERR;
     }
@@ -537,31 +567,47 @@ read_response (void *cls)
   tc = GNUNET_SCHEDULER_get_task_context ();
   if (0 == (tc->reason & GNUNET_SCHEDULER_REASON_READ_READY))
   {
+    /* signal "failure" (from timeout) */
+    if (NULL != rs->rc)
+    {
+      rs->rc (rs->rc_cls,
+              rs,
+              NULL,
+              0);
+      rs->rc = NULL;
+    }
     /* timeout */
     cleanup_rs (rs);
     return;
   }
   /* read and process ready sockets */
   if ((NULL != rs->dnsout4) &&
-      (GNUNET_NETWORK_fdset_isset (tc->read_ready, rs->dnsout4)) &&
-      (GNUNET_SYSERR == do_dns_read (rs, rs->dnsout4)))
+      (GNUNET_NETWORK_fdset_isset (tc->read_ready,
+                                   rs->dnsout4)) &&
+      (GNUNET_SYSERR == do_dns_read (rs,
+                                     rs->dnsout4)))
     rs->dnsout4 = NULL;
   if ((NULL != rs->dnsout6) &&
-      (GNUNET_NETWORK_fdset_isset (tc->read_ready, rs->dnsout6)) &&
-      (GNUNET_SYSERR == do_dns_read (rs, rs->dnsout6)))
+      (GNUNET_NETWORK_fdset_isset (tc->read_ready,
+                                   rs->dnsout6)) &&
+      (GNUNET_SYSERR == do_dns_read (rs,
+                                     rs->dnsout6)))
     rs->dnsout6 = NULL;
 
   /* re-schedule read task */
   rset = GNUNET_NETWORK_fdset_create ();
   if (NULL != rs->dnsout4)
-    GNUNET_NETWORK_fdset_set (rset, rs->dnsout4);
+    GNUNET_NETWORK_fdset_set (rset,
+                              rs->dnsout4);
   if (NULL != rs->dnsout6)
-    GNUNET_NETWORK_fdset_set (rset, rs->dnsout6);
+    GNUNET_NETWORK_fdset_set (rset,
+                              rs->dnsout6);
   rs->read_task = GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_DEFAULT,
 					       GNUNET_TIME_absolute_get_remaining (rs->timeout),
 					       rset,
 					       NULL,
-					       &read_response, rs);
+					       &read_response,
+                                               rs);
   GNUNET_NETWORK_fdset_destroy (rset);
 }
 

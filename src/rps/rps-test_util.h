@@ -34,9 +34,9 @@
 
 
 void
-to_file_ (char *file_name, char *line);
+to_file_ (const char *file_name, char *line);
 
-char * 
+char *
 auth_key_to_string (struct GNUNET_CRYPTO_AuthKey auth_key);
 
 struct GNUNET_CRYPTO_AuthKey
@@ -58,8 +58,18 @@ create_file (const char *name);
     else\
       to_file_(file_name,tmp_buf);\
   } while (0);
+#  define to_file_w_len(file_name, len, ...) do {char tmp_buf[len];\
+    int size;\
+    size = GNUNET_snprintf(tmp_buf,sizeof(tmp_buf),__VA_ARGS__);\
+    if (0 > size)\
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,\
+           "Failed to create tmp_buf\n");\
+    else\
+      to_file_(file_name,tmp_buf);\
+  } while (0);
 #else /* TO_FILE */
 #  define to_file(file_name, ...)
+#  define to_file_w_len(file_name, len, ...)
 #endif /* TO_FILE */
 
 #endif /* RPS_TEST_UTIL_H */

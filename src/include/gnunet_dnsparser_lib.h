@@ -49,6 +49,7 @@
 /**
  * A few common DNS types.
  */
+#define GNUNET_DNSPARSER_TYPE_ANY 0
 #define GNUNET_DNSPARSER_TYPE_A 1
 #define GNUNET_DNSPARSER_TYPE_NS 2
 #define GNUNET_DNSPARSER_TYPE_CNAME 5
@@ -56,11 +57,36 @@
 #define GNUNET_DNSPARSER_TYPE_PTR 12
 #define GNUNET_DNSPARSER_TYPE_MX 15
 #define GNUNET_DNSPARSER_TYPE_TXT 16
+#define GNUNET_DNSPARSER_TYPE_RP 17
+#define GNUNET_DNSPARSER_TYPE_AFSDB 18
+#define GNUNET_DNSPARSER_TYPE_SIG 24
+#define GNUNET_DNSPARSER_TYPE_KEY 25
 #define GNUNET_DNSPARSER_TYPE_AAAA 28
+#define GNUNET_DNSPARSER_TYPE_LOC 29
 #define GNUNET_DNSPARSER_TYPE_SRV 33
+#define GNUNET_DNSPARSER_TYPE_NAPTR 35
+#define GNUNET_DNSPARSER_TYPE_KX 36
 #define GNUNET_DNSPARSER_TYPE_CERT 37
+#define GNUNET_DNSPARSER_TYPE_DNAME 39
+#define GNUNET_DNSPARSER_TYPE_APL 42
+#define GNUNET_DNSPARSER_TYPE_DS 43
+#define GNUNET_DNSPARSER_TYPE_SSHFP 44
+#define GNUNET_DNSPARSER_TYPE_IPSECKEY 45
+#define GNUNET_DNSPARSER_TYPE_RRSIG 46
+#define GNUNET_DNSPARSER_TYPE_NSEC 47
+#define GNUNET_DNSPARSER_TYPE_DNSKEY 48
+#define GNUNET_DNSPARSER_TYPE_DHCID 49
+#define GNUNET_DNSPARSER_TYPE_NSEC3 50
+#define GNUNET_DNSPARSER_TYPE_NSEC3PARAM 51
 #define GNUNET_DNSPARSER_TYPE_TLSA 52
-
+#define GNUNET_DNSPARSER_TYPE_HIP 55
+#define GNUNET_DNSPARSER_TYPE_CDS 59
+#define GNUNET_DNSPARSER_TYPE_CDNSKEY 60
+#define GNUNET_DNSPARSER_TYPE_OPENPGPKEY 61
+#define GNUNET_DNSPARSER_TYPE_TKEY 249
+#define GNUNET_DNSPARSER_TYPE_TSIG 250
+#define GNUNET_DNSPARSER_TYPE_URI 256
+#define GNUNET_DNSPARSER_TYPE_TA 32768
 
 /**
  * A DNS query.
@@ -413,10 +439,10 @@ struct GNUNET_DNSPARSER_Record
 
     /**
      * For NS, CNAME and PTR records, this is the uncompressed 0-terminated hostname.
-   * In UTF-8 format.  The library will convert from and to DNS-IDNA
-   * as necessary.  Use #GNUNET_DNSPARSER_check_label() to test if an
-   * individual label is well-formed.  If a given name is not well-formed,
-   * creating the DNS packet will fail.
+     * In UTF-8 format.  The library will convert from and to DNS-IDNA
+     * as necessary.  Use #GNUNET_DNSPARSER_check_label() to test if an
+     * individual label is well-formed.  If a given name is not well-formed,
+     * creating the DNS packet will fail.
      */
     char *hostname;
 
