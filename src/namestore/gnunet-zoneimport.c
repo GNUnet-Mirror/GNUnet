@@ -456,7 +456,24 @@ check_for_glue (void *cls,
     }
     break;
   case GNUNET_DNSPARSER_TYPE_CNAME:
-    GNUNET_break (0); /* FIXME: implement! */
+    if ( (GNUNET_OK ==
+	  GNUNET_DNSPARSER_builder_add_name (dst,
+					     dst_len,
+					     &off,
+					     gc->req->hostname)) &&
+	 (GNUNET_OK ==
+	  GNUNET_DNSPARSER_builder_add_name (dst,
+					     dst_len,
+					     &off,
+					     rec->data.hostname)) )
+    {
+      add_record (gc->req,
+		  rec->type,
+		  rec->expiration_time,
+		  dst,
+		  off);
+      gc->found = GNUNET_YES;
+    }
     break;
   default:
     /* useless, do nothing */
@@ -485,11 +502,23 @@ process_record (void *cls,
   records++;
   if (0 != strcasecmp (rec->name,
 		       req->hostname))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		"DNS returned record for `%s' of type %u while resolving `%s'\n",
+		rec->name,
+		(unsigned int) rec->type,
+		req->hostname);
     return; /* does not match hostname, might be glue, but
 	       not useful for this pass! */
+  }
   if (0 ==
       GNUNET_TIME_absolute_get_remaining (rec->expiration_time).rel_value_us)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		"DNS returned expired record for `%s'\n",
+		req->hostname);
     return; /* record expired */
+  }
   switch (rec->type)
   {
   case GNUNET_DNSPARSER_TYPE_NS:
@@ -514,25 +543,49 @@ process_record (void *cls,
 					       dst_len,
 					       &off,
 					       rec->data.hostname)) )
+      {
+	/* FIXME: actually check if this is out-of-bailiwick,
+	   and if not request explicit resolution... */
+	GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		    "Converted OOB (`%s') NS record for `%s'\n",
+		    rec->data.hostname,
+		    rec->name);
 	add_record (req,
 		    rec->type,
 		    rec->expiration_time,
 		    dst,
 		    off);
+      }
+      else
+      {
+	GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		    "Converted NS record for `%s' using glue\n",
+		    rec->name);
+      }
       break;
     }
   case GNUNET_DNSPARSER_TYPE_CNAME:
-    /* Special logic required, FIXME: support later! */
-    fprintf (stdout,
-             "%s CNAME %s\n",
-             rec->name,
-             rec->data.hostname);
+    if (GNUNET_OK ==
+	GNUNET_DNSPARSER_builder_add_name (dst,
+					   dst_len,
+					   &off,
+					   rec->data.hostname))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Converting CNAME (`%s') record for `%s'\n",
+		  rec->data.hostname,
+		  rec->name);
+      add_record (req,
+		  rec->type,
+		  rec->expiration_time,
+		  dst,
+		  off);
+    }
     break;
   case GNUNET_DNSPARSER_TYPE_DNAME:
-    /* Very special logic required (no support for DNAME
-       in GNS yet!), FIXME: support later! */
+    /* No support for DNAME in GNS yet! FIXME: support later! */
     fprintf (stdout,
-             "FIMXE: %s DNAME %s\n",
+             "FIXME: not supported: %s DNAME %s\n",
              rec->name,
              rec->data.hostname);
     break;
@@ -542,11 +595,17 @@ process_record (void *cls,
 					 dst_len,
 					 &off,
 					 rec->data.mx))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Converting MX (`%s') record for `%s'\n",
+		  rec->data.mx->mxhost,
+		  rec->name);
       add_record (req,
 		  rec->type,
 		  rec->expiration_time,
 		  dst,
 		  off);
+    }
     break;
   case GNUNET_DNSPARSER_TYPE_SOA:
     if (GNUNET_OK ==
@@ -554,11 +613,17 @@ process_record (void *cls,
 					  dst_len,
 					  &off,
 					  rec->data.soa))
+    {
+      /* NOTE: GNS does not really use SOAs */
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Converting SOA record for `%s'\n",
+		  rec->name);
       add_record (req,
 		  rec->type,
 		  rec->expiration_time,
 		  dst,
 		  off);
+    }
     break;
   case GNUNET_DNSPARSER_TYPE_SRV:
     if (GNUNET_OK ==
@@ -566,11 +631,16 @@ process_record (void *cls,
 					  dst_len,
 					  &off,
 					  rec->data.srv))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Converting SRV record for `%s'\n",
+		  rec->name);
       add_record (req,
 		  rec->type,
 		  rec->expiration_time,
 		  dst,
 		  off);
+    }
     break;
   case GNUNET_DNSPARSER_TYPE_PTR:
     if (GNUNET_OK ==
@@ -578,11 +648,17 @@ process_record (void *cls,
 					   dst_len,
 					   &off,
 					   rec->data.hostname))
+    {
+      /* !?: what does a PTR record do in a regular TLD??? */
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Converting PTR record for `%s' (weird)\n",
+		  rec->name);
       add_record (req,
 		  rec->type,
 		  rec->expiration_time,
 		  dst,
 		  off);
+    }
     break;
   case GNUNET_DNSPARSER_TYPE_CERT:
     if (GNUNET_OK ==
@@ -590,11 +666,16 @@ process_record (void *cls,
 					   dst_len,
 					   &off,
 					   rec->data.cert))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Converting CERT record for `%s'\n",
+		  rec->name);
       add_record (req,
 		  rec->type,
 		  rec->expiration_time,
 		  dst,
 		  off);
+    }
     break;
     /* Rest is 'raw' encoded and just needs to be copied IF
        the hostname matches the requested name; otherwise we
@@ -603,6 +684,10 @@ process_record (void *cls,
   case GNUNET_DNSPARSER_TYPE_AAAA:
   case GNUNET_DNSPARSER_TYPE_TXT:
   default:
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		"Converting record of type %u for `%s'\n",
+		(unsigned int) rec->type,
+		rec->name);
     add_record (req,
 		rec->type,
 		rec->expiration_time,
@@ -709,6 +794,10 @@ process_result (void *cls,
 					     at);
     rd_count++;
   }
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+	      "Obtained %u records for `%s'\n",
+	      rd_count,
+	      req->hostname);
   /* Instead of going for SOA, simplified for now to look each
      day in case we got an empty response */
   if (0 == rd_count)
@@ -752,18 +841,19 @@ process_result (void *cls,
 static int
 submit_req (struct Request *req)
 {
-  static struct timeval last_request;
-  struct timeval now;
+  static struct GNUNET_TIME_Absolute last_request;
+  struct GNUNET_TIME_Absolute now;
 
   if (NULL != req->rs)
     return GNUNET_NO; /* already submitted */
-  gettimeofday (&now,
-                NULL);
-  if ( ( ( (now.tv_sec - last_request.tv_sec) == 0) &&
-         ( (now.tv_usec - last_request.tv_usec) < TIME_THRESH) ) ||
+  now = GNUNET_TIME_absolute_get ();
+  if ( (now.abs_value_us - last_request.abs_value_us < TIME_THRESH) ||
        (pending >= THRESH) )
     return GNUNET_SYSERR;
   GNUNET_assert (NULL == req->rs);
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+	      "Requesting resolution for `%s'\n",
+	      req->hostname);
   req->rs = GNUNET_DNSSTUB_resolve2 (ctx,
                                      req->raw,
                                      req->raw_len,
@@ -793,15 +883,37 @@ process_queue(void *cls)
        NULL != req;
        req = req->next)
   {
+    if (GNUNET_TIME_absolute_get_remaining (req->expires).rel_value_us > 0)
+      break;
     if (GNUNET_SYSERR == submit_req (req))
       break;
   }
   if (NULL != req_head)
-    t = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_MILLISECONDS,
-                                  &process_queue,
-                                  NULL);
+  {
+    if (GNUNET_TIME_absolute_get_remaining (req_head->expires).rel_value_us > 0)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+		  "Waiting until %s for next record to expire\n",
+		  GNUNET_STRINGS_absolute_time_to_string (req_head->expires));
+      t = GNUNET_SCHEDULER_add_at (req_head->expires,
+				   &process_queue,
+				   NULL);
+    }
+    else
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Throttling for 1ms\n");
+      t = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_MILLISECONDS,
+					&process_queue,
+					NULL);
+    }
+  }
   else
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+		"No more pending requests, terminating\n");
     GNUNET_SCHEDULER_shutdown ();
+  }
 }
 
 
@@ -897,6 +1009,10 @@ queue (const char *hostname)
                 hostname);
     return;
   }
+  /* TODO: may later support importing zones that
+     are not TLD, for this we mostly need to change
+     the logic here to remove the zone's suffix 
+     instead of just ".tld" */
   dot = strrchr (hostname,
 		 (unsigned char) '.');
   if (NULL == dot)
@@ -959,6 +1075,10 @@ queue (const char *hostname)
                 "Failed to load data from namestore for `%s'\n",
                 req->label);
   }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Adding `%s' to worklist to start at %s\n",
+	      req->hostname,
+	      GNUNET_STRINGS_absolute_time_to_string (req->expires));
   insert_sorted (req);
 }
 
