@@ -480,10 +480,16 @@ post_iterator (void *cls,
 	       const char *filename,
 	       const char *content_type,
 	       const char *transfer_encoding,
-	       const char *data, uint64_t off, size_t size)
+	       const char *data,
+	       uint64_t off,
+	       size_t size)
 {
   struct Request *request = cls;
 
+  (void) kind;
+  (void) filename;
+  (void) content_type;
+  (void) transfer_encoding;
   if (0 == strcmp ("domain", key))
     {
       if (size + off >= sizeof(request->domain_name))
@@ -578,7 +584,6 @@ zone_to_name_cb (void *cls,
   struct GNUNET_GNSRECORD_Data r;
 
   request->qe = NULL;
-
   if (0 != rd_count)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
@@ -726,8 +731,10 @@ create_response (void *cls,
       {
 	request = GNUNET_new (struct Request);
 	*ptr = request;
-	request->pp = MHD_create_post_processor (connection, 1024,
-						 &post_iterator, request);
+	request->pp = MHD_create_post_processor (connection,
+						 1024,
+						 &post_iterator,
+						 request);
 	if (NULL == request->pp)
 	  {
 	    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -770,7 +777,8 @@ create_response (void *cls,
 			_("Domain name must not contain `.'\n"));
 	    request->phase = RP_FAIL;
 	    return fill_s_reply ("Domain name must not contain `.', sorry.",
-				 request, connection);
+				 request,
+				 connection);
 	  }
 	  if (NULL != strchr (request->domain_name, (int) '+'))
 	  {
@@ -781,13 +789,14 @@ create_response (void *cls,
 				 request, connection);
 	  }
 	  request->phase = RP_LOOKUP;
-	  request->qe = GNUNET_NAMESTORE_records_lookup (ns,
-                                                         &fcfs_zone_pkey,
-                                                         request->domain_name,
-                                                         &lookup_block_error,
-                                                         request,
-                                                         &lookup_block_processor,
-                                                         request);
+	  request->qe
+	    = GNUNET_NAMESTORE_records_lookup (ns,
+					       &fcfs_zone_pkey,
+					       request->domain_name,
+					       &lookup_block_error,
+					       request,
+					       &lookup_block_processor,
+					       request);
 	  break;
 	case RP_LOOKUP:
 	  break;
@@ -834,6 +843,9 @@ request_completed_callback (void *cls,
 {
   struct Request *request = *con_cls;
 
+  (void) cls;
+  (void) connection;
+  (void) toe;
   if (NULL == request)
     return;
   if (NULL != request->pp)
@@ -871,19 +883,34 @@ run_httpd ()
   wes = GNUNET_NETWORK_fdset_create ();
   wws = GNUNET_NETWORK_fdset_create ();
   max = -1;
-  GNUNET_assert (MHD_YES == MHD_get_fdset (httpd, &rs, &ws, &es, &max));
-  haveto = MHD_get_timeout (httpd, &timeout);
+  GNUNET_assert (MHD_YES ==
+		 MHD_get_fdset (httpd,
+				&rs,
+				&ws,
+				&es,
+				&max));
+  haveto = MHD_get_timeout (httpd,
+			    &timeout);
   if (haveto == MHD_YES)
     tv.rel_value_us = (uint64_t) timeout * 1000LL;
   else
     tv = GNUNET_TIME_UNIT_FOREVER_REL;
-  GNUNET_NETWORK_fdset_copy_native (wrs, &rs, max + 1);
-  GNUNET_NETWORK_fdset_copy_native (wws, &ws, max + 1);
-  GNUNET_NETWORK_fdset_copy_native (wes, &es, max + 1);
+  GNUNET_NETWORK_fdset_copy_native (wrs,
+				    &rs,
+				    max + 1);
+  GNUNET_NETWORK_fdset_copy_native (wws,
+				    &ws,
+				    max + 1);
+  GNUNET_NETWORK_fdset_copy_native (wes,
+				    &es,
+				    max + 1);
   httpd_task =
       GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_HIGH,
-                                   tv, wrs, wws,
-                                   &do_httpd, NULL);
+                                   tv,
+				   wrs,
+				   wws,
+                                   &do_httpd,
+				   NULL);
   GNUNET_NETWORK_fdset_destroy (wrs);
   GNUNET_NETWORK_fdset_destroy (wws);
   GNUNET_NETWORK_fdset_destroy (wes);
@@ -898,6 +925,7 @@ run_httpd ()
 static void
 do_httpd (void *cls)
 {
+  (void) cls;
   httpd_task = NULL;
   MHD_run (httpd);
   run_httpd ();
@@ -912,6 +940,7 @@ do_httpd (void *cls)
 static void
 do_shutdown (void *cls)
 {
+  (void) cls;
   if (NULL != httpd_task)
   {
     GNUNET_SCHEDULER_cancel (httpd_task);
@@ -967,6 +996,9 @@ identity_cb (void *cls,
 {
   int options;
 
+  (void) cls;
+  (void) ctx;
+  (void) name;
   id_op = NULL;
   if (NULL == ego)
   {
@@ -1014,9 +1046,14 @@ identity_cb (void *cls,
  * @param cfg configuration
  */
 static void
-run (void *cls, char *const *args, const char *cfgfile,
+run (void *cls,
+     char *const *args,
+     const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
+  (void) cls;
+  (void) args;
+  (void) cfgfile;
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_number (cfg,
 					     "fcfsd",
@@ -1056,21 +1093,27 @@ run (void *cls, char *const *args, const char *cfgfile,
  * @return 0 ok, 1 on error
  */
 int
-main (int argc, char *const *argv)
+main (int argc,
+      char *const *argv)
 {
   static const struct GNUNET_GETOPT_CommandLineOption options[] = {
     GNUNET_GETOPT_OPTION_END
   };
-
   int ret;
 
-  if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args (argc, argv, &argc, &argv))
+  if (GNUNET_OK !=
+      GNUNET_STRINGS_get_utf8_args (argc, argv,
+				    &argc, &argv))
     return 2;
 
-  GNUNET_log_setup ("fcfsd", "WARNING", NULL);
+  GNUNET_log_setup ("fcfsd",
+		    "WARNING",
+		    NULL);
   ret =
       (GNUNET_OK ==
-       GNUNET_PROGRAM_run (argc, argv, "fcfsd",
+       GNUNET_PROGRAM_run (argc,
+			   argv,
+			   "gnunet-namestore-fcfsd",
                            _("GNU Name System First Come First Serve name registration service"),
 			   options,
                            &run, NULL)) ? 0 : 1;

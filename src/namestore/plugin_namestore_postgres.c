@@ -217,10 +217,14 @@ namestore_postgres_store_records (void *cls,
       GNUNET_PQ_query_param_end
     };
     enum GNUNET_DB_QueryStatus res;
+    ssize_t ret;
 
-    if (data_size !=
-        GNUNET_GNSRECORD_records_serialize (rd_count, rd,
-                                            data_size, data))
+    ret = GNUNET_GNSRECORD_records_serialize (rd_count,
+					      rd,
+					      data_size,
+					      data);
+    if ( (ret < 0) ||
+	 (data_size != (size_t) ret) )        
     {
       GNUNET_break (0);
       return GNUNET_SYSERR;
@@ -469,7 +473,6 @@ namestore_postgres_zone_to_name (void *cls,
   pc.iter = iter;
   pc.iter_cls = iter_cls;
   pc.zone_key = zone;
-
   res = GNUNET_PQ_eval_prepared_multi_select (plugin->dbh,
                                               "zone_to_name",
                                               params,
