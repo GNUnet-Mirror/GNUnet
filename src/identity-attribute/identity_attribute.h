@@ -39,7 +39,7 @@ struct Attribute
    * Attribute version
    */
   uint32_t attribute_version;
-  
+
   /**
    * Name length
    */

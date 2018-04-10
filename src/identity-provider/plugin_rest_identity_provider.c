@@ -546,6 +546,7 @@ add_attribute_cont (struct GNUNET_REST_RequestHandle *con_handle,
   const char* identity;
   const char* name_str;
   const char* value_str;
+  const char* exp_str;
 
   struct RequestHandle *handle = cls;
   struct EgoEntry *ego_entry;
@@ -553,9 +554,11 @@ add_attribute_cont (struct GNUNET_REST_RequestHandle *con_handle,
   struct GNUNET_IDENTITY_ATTRIBUTE_Claim *attribute;
   struct GNUNET_JSONAPI_Document *json_obj;
   struct GNUNET_JSONAPI_Resource *json_res;
+  struct GNUNET_TIME_Relative exp;
   char term_data[handle->rest_handle->data_size+1];
   json_t *value_json;
   json_t *data_json;
+  json_t *exp_json;
   json_error_t err;
   struct GNUNET_JSON_Specification docspec[] = {
     GNUNET_JSON_spec_jsonapi_document (&json_obj),
@@ -635,6 +638,18 @@ add_attribute_cont (struct GNUNET_REST_RequestHandle *con_handle,
     return;
   }
   name_str = GNUNET_JSONAPI_resource_get_id (json_res);
+  exp_json = GNUNET_JSONAPI_resource_read_attr (json_res,
+                                                "exp");
+  exp_str = json_string_value (exp_json);
+  if (NULL == exp_str) {
+    exp = GNUNET_TIME_UNIT_HOURS;
+  } else {
+    if (GNUNET_OK != GNUNET_STRINGS_fancy_time_to_relative (exp_str,
+                                           &exp)) {
+      exp = GNUNET_TIME_UNIT_HOURS;
+    }
+  }
+
   value_json = GNUNET_JSONAPI_resource_read_attr (json_res,
                                                   "value");
   value_str = json_string_value (value_json);
@@ -646,6 +661,7 @@ add_attribute_cont (struct GNUNET_REST_RequestHandle *con_handle,
   handle->idp_op = GNUNET_IDENTITY_PROVIDER_attribute_store (handle->idp,
                                                              identity_priv,
                                                              attribute,
+                                                             &exp,
                                                              &finished_cont,
                                                              handle);
   GNUNET_free (attribute);

@@ -54,6 +54,11 @@ struct AttributeStoreMessage
   uint32_t attr_len GNUNET_PACKED;
 
   /**
+   * The expiration interval of the attribute
+   */
+  uint64_t exp GNUNET_PACKED;
+
+  /**
    * Identity
    */
   struct GNUNET_CRYPTO_EcdsaPrivateKey identity;

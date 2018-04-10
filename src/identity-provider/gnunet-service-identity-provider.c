@@ -364,6 +364,11 @@ struct AttributeStoreHandle
   struct GNUNET_IDENTITY_ATTRIBUTE_Claim *claim;
 
   /**
+   * The attribute expiration interval
+   */
+  struct GNUNET_TIME_Relative exp;
+
+  /**
    * request id
    */
   uint32_t r_id;
@@ -1308,12 +1313,29 @@ revocation_reissue_tickets (struct TicketRevocationHandle *rh)
 }
 
 /**
- * Revoke next attribte by reencryption with
- * new ABE master
+ * Failed to check for attribute
  */
 static void
-reenc_next_attribute (struct TicketRevocationHandle *rh)
+check_attr_error (void *cls)
 {
+  struct TicketRevocationHandle *rh = cls;
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+              "Unable to check for existing attribute\n");
+  send_revocation_finished (rh, GNUNET_SYSERR);
+  cleanup_revoke_ticket_handle (rh);
+}
+
+/**
+ * Check for existing attribute and overwrite
+ */
+static void
+check_attr_cb (void *cls,
+               const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone,
+               const char *label,
+               unsigned int rd_count,
+               const struct GNUNET_GNSRECORD_Data *rd_old)
+{
+  struct TicketRevocationHandle *rh = cls;
   struct GNUNET_GNSRECORD_Data rd[1];
   char* buf;
   char* enc_buf;
@@ -1323,15 +1345,11 @@ reenc_next_attribute (struct TicketRevocationHandle *rh)
   char* policy;
   uint32_t attr_ver;
 
-  if (NULL == rh->attrs->list_head)
-  {
-    revocation_reissue_tickets (rh);
-    return;
-  }
+
   buf_size = GNUNET_IDENTITY_ATTRIBUTE_serialize_get_size (rh->attrs->list_head->claim);
   buf = GNUNET_malloc (buf_size);
   GNUNET_IDENTITY_ATTRIBUTE_serialize (rh->attrs->list_head->claim,
-                       buf);
+                                       buf);
   rh->attrs->list_head->claim->version++;
   GNUNET_asprintf (&policy, "%s_%lu",
                    rh->attrs->list_head->claim->name,
@@ -1342,10 +1360,10 @@ reenc_next_attribute (struct TicketRevocationHandle *rh)
    * Encrypt the attribute value and store in namestore
    */
   enc_size = GNUNET_ABE_cpabe_encrypt (buf,
-                                          buf_size,
-                                          policy, //Policy
-                                          rh->abe_key,
-                                          (void**)&enc_buf);
+                                       buf_size,
+                                       policy, //Policy
+                                       rh->abe_key,
+                                       (void**)&enc_buf);
   GNUNET_free (buf);
   if (GNUNET_SYSERR == enc_size)
   {
@@ -1371,7 +1389,7 @@ reenc_next_attribute (struct TicketRevocationHandle *rh)
   rd[0].data = rd_buf;
   rd[0].record_type = GNUNET_GNSRECORD_TYPE_ID_ATTR;
   rd[0].flags = GNUNET_GNSRECORD_RF_RELATIVE_EXPIRATION;
-  rd[0].expiration_time = GNUNET_TIME_UNIT_HOURS.rel_value_us; //TODO sane?
+  rd[0].expiration_time = rd_old[0].expiration_time;
   rh->ns_qe = GNUNET_NAMESTORE_records_store (ns_handle,
                                               &rh->identity,
                                               rh->attrs->list_head->claim->name,
@@ -1382,6 +1400,30 @@ reenc_next_attribute (struct TicketRevocationHandle *rh)
   GNUNET_free (enc_buf);
   GNUNET_free (rd_buf);
 }
+
+
+/**
+ * Revoke next attribte by reencryption with
+ * new ABE master
+ */
+static void
+reenc_next_attribute (struct TicketRevocationHandle *rh)
+{
+  if (NULL == rh->attrs->list_head)
+  {
+    revocation_reissue_tickets (rh);
+    return;
+  }
+  /* First check if attribute still exists */
+  rh->ns_qe = GNUNET_NAMESTORE_records_lookup (ns_handle,
+                                               &rh->identity,
+                                               rh->attrs->list_head->claim->name,
+                                               &check_attr_error,
+                                               rh,
+                                               &check_attr_cb,
+                                               rh);
+}
+
 
 /**
  * Namestore callback after revoked attribute
@@ -1878,7 +1920,7 @@ attr_store_task (void *cls)
   rd[0].data = rd_buf;
   rd[0].record_type = GNUNET_GNSRECORD_TYPE_ID_ATTR;
   rd[0].flags = GNUNET_GNSRECORD_RF_RELATIVE_EXPIRATION;
-  rd[0].expiration_time = GNUNET_TIME_UNIT_HOURS.rel_value_us; //TODO sane?
+  rd[0].expiration_time = as_handle->exp.rel_value_us;
   as_handle->ns_qe = GNUNET_NAMESTORE_records_store (ns_handle,
                                                      &as_handle->identity,
                                                      as_handle->claim->name,
@@ -1936,6 +1978,7 @@ handle_attribute_store_message (void *cls,
 
   as_handle->r_id = ntohl (sam->id);
   as_handle->identity = sam->identity;
+  as_handle->exp.rel_value_us = GNUNET_ntohll (sam->exp);
   GNUNET_CRYPTO_ecdsa_key_get_public (&sam->identity,
                                       &as_handle->identity_pkey);
 

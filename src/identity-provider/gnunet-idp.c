@@ -126,6 +126,11 @@ static struct GNUNET_IDENTITY_PROVIDER_Ticket ticket;
  */
 static struct GNUNET_IDENTITY_ATTRIBUTE_ClaimList *attr_list;
 
+/**
+ * Attribute expiration interval
+ */
+static struct GNUNET_TIME_Relative exp_interval;
+
 static void
 do_cleanup(void *cls)
 {
@@ -272,6 +277,7 @@ iter_finished (void *cls)
   idp_op = GNUNET_IDENTITY_PROVIDER_attribute_store (idp_handle,
                                                      pkey,
                                                      claim,
+                                                     &exp_interval,
                                                      &store_attr_cont,
                                                      NULL);
 
@@ -383,6 +389,7 @@ run (void *cls,
 int
 main(int argc, char *const argv[])
 {
+  exp_interval = GNUNET_TIME_UNIT_HOURS;
   struct GNUNET_GETOPT_CommandLineOption options[] = {
 
     GNUNET_GETOPT_option_string ('a',
@@ -430,6 +437,12 @@ main(int argc, char *const argv[])
                                  NULL,
                                  gettext_noop ("Type of attribute"),
                                  &type_str),
+    GNUNET_GETOPT_option_relative_time ('E',
+                                        "expiration",
+                                        NULL,
+                                        gettext_noop ("Expiration interval of the attribute"),
+                                        &exp_interval),
+
     GNUNET_GETOPT_OPTION_END
   };
   return (GNUNET_OK == GNUNET_PROGRAM_run (argc, argv, "ct",

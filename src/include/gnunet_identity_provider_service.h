@@ -115,6 +115,7 @@ typedef void
  * @param h handle to the identity provider
  * @param pkey private key of the identity
  * @param attr the attribute
+ * @param exp_interval the relative expiration interval for the attribute
  * @param cont continuation to call when done
  * @param cont_cls closure for @a cont
  * @return handle to abort the request
@@ -123,6 +124,7 @@ struct GNUNET_IDENTITY_PROVIDER_Operation *
 GNUNET_IDENTITY_PROVIDER_attribute_store (struct GNUNET_IDENTITY_PROVIDER_Handle *h,
                                           const struct GNUNET_CRYPTO_EcdsaPrivateKey *pkey,
                                           const struct GNUNET_IDENTITY_ATTRIBUTE_Claim *attr,
+                                          const struct GNUNET_TIME_Relative *exp_interval,
                                           GNUNET_IDENTITY_PROVIDER_ContinuationWithStatus cont,
                                           void *cont_cls);
 
