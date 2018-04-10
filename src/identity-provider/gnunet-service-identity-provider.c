@@ -297,14 +297,14 @@ struct IdpClient
    * Attribute iteration operations in 
    * progress initiated by this client
    */
-  struct AttributeIterator *op_head;
+  struct AttributeIterator *attr_iter_head;
 
   /**
    * Tail of the DLL of
    * Attribute iteration operations 
    * in progress initiated by this client
    */
-  struct AttributeIterator *op_tail;
+  struct AttributeIterator *attr_iter_tail;
 
   /**
    * Head of DLL of ticket iteration ops
@@ -316,22 +316,59 @@ struct IdpClient
    */
   struct TicketIteration *ticket_iter_tail;
 
-
   /**
    * Head of DLL of ticket revocation ops
    */
-  struct TicketRevocationHandle *revocation_list_head;
+  struct TicketRevocationHandle *revoke_op_head;
 
   /**
    * Tail of DLL of ticket revocation ops
    */
-  struct TicketRevocationHandle *revocation_list_tail;
+  struct TicketRevocationHandle *revoke_op_tail;
+
+  /**
+   * Head of DLL of ticket issue ops
+   */
+  struct TicketIssueHandle *issue_op_head;
+
+  /**
+   * Tail of DLL of ticket issue ops
+   */
+  struct TicketIssueHandle *issue_op_tail;
+
+  /**
+   * Head of DLL of ticket consume ops
+   */
+  struct ConsumeTicketHandle *consume_op_head;
+
+  /**
+   * Tail of DLL of ticket consume ops
+   */
+  struct ConsumeTicketHandle *consume_op_tail;
+
+  /**
+   * Head of DLL of attribute store ops
+   */
+  struct AttributeStoreHandle *store_op_head;
+
+  /**
+   * Tail of DLL of attribute store ops
+   */
+  struct AttributeStoreHandle *store_op_tail;
+
 };
-
-
 
 struct AttributeStoreHandle
 {
+  /**
+   * DLL
+   */
+  struct AttributeStoreHandle *next;
+
+  /**
+   * DLL
+   */
+  struct AttributeStoreHandle *prev;
 
   /**
    * Client connection
@@ -380,6 +417,15 @@ struct ParallelLookup;
 
 struct ConsumeTicketHandle
 {
+  /**
+   * DLL
+   */
+  struct ConsumeTicketHandle *next;
+
+  /**
+   * DLL
+   */
+  struct ConsumeTicketHandle *prev;
 
   /**
    * Client connection
@@ -476,12 +522,12 @@ struct TicketRevocationHandle
   /**
    * DLL
    */
-  struct TicketRevocationHandle *next;
+  struct TicketRevocationHandle *prev;
 
   /**
    * DLL
    */
-  struct TicketRevocationHandle *prev;
+  struct TicketRevocationHandle *next;
 
   /**
    * Client connection
@@ -541,6 +587,15 @@ struct TicketRevocationHandle
  */
 struct TicketIssueHandle
 {
+  /**
+   * DLL
+   */
+  struct TicketIssueHandle *prev;
+
+  /**
+   * DLL
+   */
+  struct TicketIssueHandle *next;
 
   /**
    * Client connection
@@ -610,6 +665,7 @@ cleanup()
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Cleaning up\n");
+
   if (NULL != stats)
   {
     GNUNET_STATISTICS_destroy (stats, GNUNET_NO);
@@ -799,6 +855,10 @@ create_sym_key_from_ecdh(const struct GNUNET_HashCode *new_key_hash,
   return GNUNET_OK;
 }
 
+/**
+ * Cleanup ticket consume handle
+ * @param handle the handle to clean up
+ */
 static void
 cleanup_ticket_issue_handle (struct TicketIssueHandle *handle)
 {
@@ -848,6 +908,9 @@ store_ticket_issue_cont (void *cls,
   struct TicketIssueHandle *handle = cls;
 
   handle->ns_qe = NULL;
+  GNUNET_CONTAINER_DLL_remove (handle->client->issue_op_head,
+                               handle->client->issue_op_tail,
+                               handle);
   if (GNUNET_SYSERR == success)
   {
     cleanup_ticket_issue_handle (handle);
@@ -887,7 +950,7 @@ serialize_abe_keyinfo2 (const struct GNUNET_IDENTITY_PROVIDER_Ticket *ticket,
   ssize_t enc_size;
 
   size = GNUNET_ABE_cpabe_serialize_key (rp_key,
-                                            (void**)&serialized_key);
+                                         (void**)&serialized_key);
   attrs_str_len = 0;
   for (le = attrs->list_head; NULL != le; le = le->next) {
     attrs_str_len += strlen (le->claim->name) + 1;
@@ -978,7 +1041,7 @@ issue_ticket_after_abe_bootstrap (void *cls,
   }
   attrs[i] = NULL;
   rp_key = GNUNET_ABE_cpabe_create_key (abe_key,
-                                           attrs);
+                                        attrs);
 
   //TODO review this wireformat
   code_record_len = serialize_abe_keyinfo2 (&ih->ticket,
@@ -1009,7 +1072,7 @@ issue_ticket_after_abe_bootstrap (void *cls,
   GNUNET_free (attrs);
   GNUNET_free (code_record_data);
   GNUNET_ABE_cpabe_delete_key (rp_key,
-                                  GNUNET_YES);
+                               GNUNET_YES);
   GNUNET_ABE_cpabe_delete_master_key (abe_key);
 }
 
@@ -1050,6 +1113,9 @@ handle_issue_ticket_message (void *cls,
   ih->ticket.rnd =
     GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_STRONG,
                               UINT64_MAX);
+  GNUNET_CONTAINER_DLL_insert (idp->issue_op_head,
+                               idp->issue_op_tail,
+                               ih);
   bootstrap_abe (&ih->identity, &issue_ticket_after_abe_bootstrap, ih, GNUNET_NO);
   GNUNET_SERVICE_client_continue (idp->client);
 
@@ -1100,8 +1166,8 @@ send_revocation_finished (struct TicketRevocationHandle *rh,
   trm->success = htonl (success);
   GNUNET_MQ_send (rh->client->mq,
                   env);
-  GNUNET_CONTAINER_DLL_remove (rh->client->revocation_list_head,
-                               rh->client->revocation_list_tail,
+  GNUNET_CONTAINER_DLL_remove (rh->client->revoke_op_head,
+                               rh->client->revoke_op_tail,
                                rh);
 }
 
@@ -1142,6 +1208,9 @@ reissue_ticket_cont (void *cls,
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "%s\n",
                 "Unknown Error\n");
     send_revocation_finished (rh, GNUNET_SYSERR);
+    GNUNET_CONTAINER_DLL_remove (rh->client->revoke_op_head,
+                                 rh->client->revoke_op_tail,
+                                 rh);
     cleanup_revoke_ticket_handle (rh);
     return;
   }
@@ -1248,7 +1317,7 @@ ticket_reissue_proc (void *cls,
   }
   attr_arr[i] = NULL;
   rp_key = GNUNET_ABE_cpabe_create_key (rh->abe_key,
-                                           attr_arr);
+                                        attr_arr);
 
   //TODO review this wireformat
   code_record_len = serialize_abe_keyinfo2 (ticket,
@@ -1307,6 +1376,9 @@ revocation_reissue_tickets (struct TicketRevocationHandle *rh)
   if (GNUNET_NO == ret)
   {
     send_revocation_finished (rh, GNUNET_OK);
+    GNUNET_CONTAINER_DLL_remove (rh->client->revoke_op_head,
+                                 rh->client->revoke_op_tail,
+                                 rh);
     cleanup_revoke_ticket_handle (rh);
     return;
   }
@@ -1322,6 +1394,9 @@ check_attr_error (void *cls)
   GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
               "Unable to check for existing attribute\n");
   send_revocation_finished (rh, GNUNET_SYSERR);
+  GNUNET_CONTAINER_DLL_remove (rh->client->revoke_op_head,
+                                 rh->client->revoke_op_tail,
+                                 rh);
   cleanup_revoke_ticket_handle (rh);
 }
 
@@ -1352,7 +1427,7 @@ check_attr_cb (void *cls,
   size_t buf_size;
   char* policy;
   uint32_t attr_ver;
-  
+
   if (1 != rd_count) {
     GNUNET_SCHEDULER_add_now (&reenc_next_attribute,
                               rh);
@@ -1385,6 +1460,9 @@ check_attr_cb (void *cls,
                 policy);
     GNUNET_free (policy);
     send_revocation_finished (rh, GNUNET_SYSERR);
+    GNUNET_CONTAINER_DLL_remove (rh->client->revoke_op_head,
+                                 rh->client->revoke_op_tail,
+                                 rh);
     cleanup_revoke_ticket_handle (rh);
     return;
   }
@@ -1495,6 +1573,9 @@ process_attributes_to_update (void *cls,
   {
     /* No attributes to reencrypt */
     send_revocation_finished (rh, GNUNET_OK);
+    GNUNET_CONTAINER_DLL_remove (rh->client->revoke_op_head,
+                                 rh->client->revoke_op_tail,
+                                 rh);
     cleanup_revoke_ticket_handle (rh);
     return;
   } else {
@@ -1553,15 +1634,18 @@ handle_revoke_ticket_message (void *cls,
   rh->identity = rm->identity;
   GNUNET_CRYPTO_ecdsa_key_get_public (&rh->identity,
                                       &rh->ticket.identity);
-  GNUNET_CONTAINER_DLL_insert (idp->revocation_list_head,
-                               idp->revocation_list_tail,
+  GNUNET_CONTAINER_DLL_insert (idp->revoke_op_head,
+                               idp->revoke_op_tail,
                                rh);
   bootstrap_abe (&rh->identity, &get_ticket_after_abe_bootstrap, rh, GNUNET_NO);
   GNUNET_SERVICE_client_continue (idp->client);
 
 }
 
-
+/**
+ * Cleanup ticket consume handle
+ * @param handle the handle to clean up
+ */
 static void
 cleanup_consume_ticket_handle (struct ConsumeTicketHandle *handle)
 {
@@ -1695,6 +1779,9 @@ process_parallel_lookup2 (void *cls, uint32_t rd_count,
   GNUNET_IDENTITY_ATTRIBUTE_list_serialize (handle->attrs,
                                             data_tmp);
   GNUNET_MQ_send (handle->client->mq, env);
+  GNUNET_CONTAINER_DLL_remove (handle->client->consume_op_head,
+                               handle->client->consume_op_tail,
+                               handle);
   cleanup_consume_ticket_handle (handle);
 }
 
@@ -1706,7 +1793,7 @@ abort_parallel_lookups2 (void *cls)
   struct ParallelLookup *tmp;
   struct AttributeResultMessage *arm;
   struct GNUNET_MQ_Envelope *env;
-  
+
   handle->kill_task = NULL;
   for (lu = handle->parallel_lookups_head;
        NULL != lu;) {
@@ -1749,6 +1836,9 @@ process_consume_abe_key (void *cls, uint32_t rd_count,
                 "Number of keys %d != 1.",
                 rd_count);
     cleanup_consume_ticket_handle (handle);
+    GNUNET_CONTAINER_DLL_remove (handle->client->consume_op_head,
+                                 handle->client->consume_op_tail,
+                                 handle);
     GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
     return;
   }
@@ -1847,13 +1937,23 @@ handle_consume_ticket_message (void *cls,
                          GNUNET_GNS_LO_DEFAULT,
                          &process_consume_abe_key,
                          ch);
+  GNUNET_CONTAINER_DLL_insert (idp->consume_op_head,
+                               idp->consume_op_tail,
+                               ch);
   GNUNET_free (rnd_label);
   GNUNET_SERVICE_client_continue (idp->client);
 }
 
+/**
+ * Cleanup attribute store handle
+ *
+ * @param handle handle to clean up
+ */
 static void
 cleanup_as_handle (struct AttributeStoreHandle *handle)
 {
+  if (NULL != handle->ns_qe)
+    GNUNET_NAMESTORE_cancel (handle->ns_qe);
   if (NULL != handle->claim)
     GNUNET_free (handle->claim);
   if (NULL != handle->abe_key)
@@ -1869,6 +1969,11 @@ attr_store_cont (void *cls,
   struct AttributeStoreHandle *as_handle = cls;
   struct GNUNET_MQ_Envelope *env;
   struct AttributeStoreResultMessage *acr_msg;
+  
+  as_handle->ns_qe = NULL;
+  GNUNET_CONTAINER_DLL_remove (as_handle->client->store_op_head,
+                               as_handle->client->store_op_tail,
+                               as_handle);
 
   if (GNUNET_SYSERR == success)
   {
@@ -1931,6 +2036,10 @@ attr_store_task (void *cls)
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Failed to encrypt with policy %s\n",
                 policy);
+    GNUNET_CONTAINER_DLL_remove (as_handle->client->store_op_head,
+                                 as_handle->client->store_op_tail,
+                                 as_handle);
+
     cleanup_as_handle (as_handle);
     GNUNET_free (buf);
     GNUNET_free (policy);
@@ -2015,17 +2124,17 @@ handle_attribute_store_message (void *cls,
 
   GNUNET_SERVICE_client_continue (idp->client);
   as_handle->client = idp;
+  GNUNET_CONTAINER_DLL_insert (idp->store_op_head,
+                               idp->store_op_tail,
+                               as_handle);
   bootstrap_abe (&as_handle->identity, &store_after_abe_bootstrap, as_handle, GNUNET_NO);
 }
 
 static void
-cleanup_iter_handle (struct AttributeIterator *ai)
+cleanup_attribute_iter_handle (struct AttributeIterator *ai)
 {
   if (NULL != ai->abe_key)
     GNUNET_ABE_cpabe_delete_master_key (ai->abe_key);
-  GNUNET_CONTAINER_DLL_remove (ai->client->op_head,
-                               ai->client->op_tail,
-                               ai);
   GNUNET_free (ai);
 }
 
@@ -2036,7 +2145,10 @@ attr_iter_error (void *cls)
   //TODO
   GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
               "Failed to iterate over attributes\n");
-  cleanup_iter_handle (ai);
+  GNUNET_CONTAINER_DLL_remove (ai->client->attr_iter_head,
+                               ai->client->attr_iter_tail,
+                               ai);
+  cleanup_attribute_iter_handle (ai);
   GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
 }
 
@@ -2052,7 +2164,10 @@ attr_iter_finished (void *cls)
   arm->id = htonl (ai->request_id);
   arm->attr_len = htons (0);
   GNUNET_MQ_send (ai->client->mq, env);
-  cleanup_iter_handle (ai);
+  GNUNET_CONTAINER_DLL_remove (ai->client->attr_iter_head,
+                               ai->client->attr_iter_tail,
+                               ai);
+  cleanup_attribute_iter_handle (ai);
 }
 
 static void
@@ -2163,8 +2278,8 @@ handle_iteration_start (void *cls,
   ai->client = idp;
   ai->identity = ais_msg->identity;
 
-  GNUNET_CONTAINER_DLL_insert (idp->op_head,
-                               idp->op_tail,
+  GNUNET_CONTAINER_DLL_insert (idp->attr_iter_head,
+                               idp->attr_iter_tail,
                                ai);
   bootstrap_abe (&ai->identity, &iterate_after_abe_bootstrap, ai, GNUNET_NO);
   GNUNET_SERVICE_client_continue (idp->client);
@@ -2183,7 +2298,7 @@ handle_iteration_stop (void *cls,
               "Received `%s' message\n",
               "ATTRIBUTE_ITERATION_STOP");
   rid = ntohl (ais_msg->id);
-  for (ai = idp->op_head; NULL != ai; ai = ai->next)
+  for (ai = idp->attr_iter_head; NULL != ai; ai = ai->next)
     if (ai->request_id == rid)
       break;
   if (NULL == ai)
@@ -2192,8 +2307,8 @@ handle_iteration_stop (void *cls,
     GNUNET_SERVICE_client_drop (idp->client);
     return;
   }
-  GNUNET_CONTAINER_DLL_remove (idp->op_head,
-                               idp->op_tail,
+  GNUNET_CONTAINER_DLL_remove (idp->attr_iter_head,
+                               idp->attr_iter_tail,
                                ai);
   GNUNET_free (ai);
   GNUNET_SERVICE_client_continue (idp->client);
@@ -2211,7 +2326,7 @@ handle_iteration_next (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Received ATTRIBUTE_ITERATION_NEXT message\n");
   rid = ntohl (ais_msg->id);
-  for (ai = idp->op_head; NULL != ai; ai = ai->next)
+  for (ai = idp->attr_iter_head; NULL != ai; ai = ai->next)
     if (ai->request_id == rid)
       break;
   if (NULL == ai)
@@ -2530,6 +2645,9 @@ client_disconnect_cb (void *cls,
   struct AttributeIterator *ai;
   struct TicketIteration *ti;
   struct TicketRevocationHandle *rh;
+  struct TicketIssueHandle *iss;
+  struct ConsumeTicketHandle *ct;
+  struct AttributeStoreHandle *as;
 
   //TODO other operations
 
@@ -2537,17 +2655,39 @@ client_disconnect_cb (void *cls,
               "Client %p disconnected\n",
               client);
 
-  while (NULL != (ai = idp->op_head))
+  while (NULL != (iss = idp->issue_op_head))
   {
-    GNUNET_CONTAINER_DLL_remove (idp->op_head,
-                                 idp->op_tail,
-                                 ai);
-    GNUNET_free (ai);
+    GNUNET_CONTAINER_DLL_remove (idp->issue_op_head,
+                                 idp->issue_op_tail,
+                                 iss);
+    cleanup_ticket_issue_handle (iss);
   }
-  while (NULL != (rh = idp->revocation_list_head))
+  while (NULL != (ct = idp->consume_op_head))
   {
-    GNUNET_CONTAINER_DLL_remove (idp->revocation_list_head,
-                                 idp->revocation_list_tail,
+    GNUNET_CONTAINER_DLL_remove (idp->consume_op_head,
+                                 idp->consume_op_tail,
+                                 ct);
+    cleanup_consume_ticket_handle (ct);
+  }
+  while (NULL != (as = idp->store_op_head))
+  {
+    GNUNET_CONTAINER_DLL_remove (idp->store_op_head,
+                                 idp->store_op_tail,
+                                 as);
+    cleanup_as_handle (as);
+  }
+
+  while (NULL != (ai = idp->attr_iter_head))
+  {
+    GNUNET_CONTAINER_DLL_remove (idp->attr_iter_head,
+                                 idp->attr_iter_tail,
+                                 ai);
+    cleanup_attribute_iter_handle (ai);
+  }
+  while (NULL != (rh = idp->revoke_op_head))
+  {
+    GNUNET_CONTAINER_DLL_remove (idp->revoke_op_head,
+                                 idp->revoke_op_tail,
                                  rh);
     cleanup_revoke_ticket_handle (rh);
   }
