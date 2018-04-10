@@ -28,6 +28,7 @@
 #include <gnunet_dnsparser_lib.h>
 #include <gnunet_gnsrecord_lib.h>
 #include <gnunet_namestore_plugin.h>
+#include <gnunet_identity_service.h>
 
 
 /**
@@ -91,14 +92,14 @@ struct Request
   void *raw;
 
   /**
-   * Number of bytes in @e raw.
-   */
-  size_t raw_len;
-
-  /**
    * Hostname we are resolving.
    */
   char *hostname;
+
+  /**
+   * Label (without TLD) which we are resolving.
+   */
+  char *label;
 
   /**
    * Answer we got back and are currently parsing, or NULL
@@ -111,7 +112,12 @@ struct Request
    * for this name expire? At this point, we need to re-fetch
    * the record.
    */ 
-  struct GNUNET_TIME_Absolute expires__;
+  struct GNUNET_TIME_Absolute expires;
+
+  /**
+   * Number of bytes in @e raw.
+   */
+  size_t raw_len;
   
   /**
    * When did we last issue this request?
@@ -129,6 +135,12 @@ struct Request
    */
   uint16_t id;
 };
+
+
+/**
+ * Handle to the identity service.
+ */ 
+static struct GNUNET_IDENTITY_Handle *id;
 
 /**
  * Namestore plugin.
@@ -186,6 +198,21 @@ static char *dns_server;
  * Name of the database plugin (for loading/unloading).
  */
 static char *db_lib_name;
+
+/**
+ * Which zone are we importing into?
+ */
+static struct GNUNET_CRYPTO_EcdsaPrivateKey zone;
+
+/**
+ * Which zone should records be imported into?
+ */ 
+static char *zone_name;
+
+/**
+ * Did we find #zone_name and initialize #zone?
+ */
+static int zone_found;
 
 
 /**
@@ -251,7 +278,35 @@ for_all_records (const struct GNUNET_DNSPARSER_Packet *p,
 	rs);
   }
 }
-		
+
+
+/**
+ * Insert @a req into DLL sorted by next fetch time.
+ *
+ * @param req request to insert into #req_head / #req_tail DLL
+ */
+static void
+insert_sorted (struct Request *req)
+{
+  struct Request *prev;
+
+  prev = NULL;
+  /* NOTE: this linear-time loop may actually be our
+     main burner of CPU time for large zones, to be
+     revisited if CPU utilization turns out to be an
+     issue! */
+  for (struct Request *pos = req_head;
+       ( (NULL != pos) &&
+	 (NULL != pos->next) &&
+	 (pos->expires.abs_value_us <= req->expires.abs_value_us) );
+       pos = pos->next)
+    prev = pos;
+  GNUNET_CONTAINER_DLL_insert_after (req_head,
+				     req_tail,
+				     prev,
+				     req);
+}
+
 
 /**
  * Add record to the GNS record set for @a req.
@@ -573,7 +628,9 @@ process_result (void *cls,
                 size_t dns_len)
 {
   struct Request *req = cls;
+  struct Record *rec;
   struct GNUNET_DNSPARSER_Packet *p;
+  unsigned int rd_count;
 
   (void) rs;
   if (NULL == dns)
@@ -618,26 +675,68 @@ process_result (void *cls,
     if (req->issue_num > MAX_RETRIES)
     {
       failures++;
-      GNUNET_free (req->hostname);
-      GNUNET_free (req->raw);
-      GNUNET_free (req);
+      insert_sorted (req);
       return;
     }
-    GNUNET_CONTAINER_DLL_insert_tail (req_head,
-                                      req_tail,
-                                      req);
+    insert_sorted (req);
     return;
   }
+  /* Free old/legacy records */
+  while (NULL != (rec = req->rec_head))
+  {
+    GNUNET_CONTAINER_DLL_remove (req->rec_head,
+				 req->rec_tail,
+				 rec);
+    GNUNET_free (rec);
+  }
+  /* import new records */
+  req->issue_num = 0; /* success, reset counter! */
   req->p = p;
   for_all_records (p,
 		   &process_record,
 		   req);
   req->p = NULL;
-  // FIXME: update database!
   GNUNET_DNSPARSER_free_packet (p);
-  GNUNET_free (req->hostname);
-  GNUNET_free (req->raw);
-  GNUNET_free (req);
+  /* count records found, determine minimum expiration time */
+  req->expires = GNUNET_TIME_UNIT_FOREVER_ABS;
+  rd_count = 0;
+  for (rec = req->rec_head; NULL != rec; rec = rec->next)
+  {
+    struct GNUNET_TIME_Absolute at;
+
+    at.abs_value_us = rec->grd.expiration_time;
+    req->expires = GNUNET_TIME_absolute_min (req->expires,
+					     at);
+    rd_count++;
+  }
+  /* Instead of going for SOA, simplified for now to look each
+     day in case we got an empty response */
+  if (0 == rd_count)
+    req->expires
+      = GNUNET_TIME_relative_to_absolute (GNUNET_TIME_UNIT_DAYS);
+  /* convert records to namestore import format */
+  {
+    struct GNUNET_GNSRECORD_Data rd[rd_count];
+    unsigned int off;
+
+    /* convert linked list into array */
+    for (rec = req->rec_head, off = 0;
+	 NULL != rec;
+	 rec =rec->next, off++)
+      rd[off] = rec->grd;
+    if (GNUNET_OK != 
+	ns->store_records (ns->cls,
+			   &zone,
+			   req->label,
+			   rd_count,
+			   rd))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		  "Failed to store zone data for `%s'\n",
+		  req->hostname);
+    }
+  }
+  insert_sorted (req);
 }
 
 
@@ -715,6 +814,11 @@ static void
 do_shutdown (void *cls)
 {
   (void) cls;
+  if (NULL != id)
+  {
+    GNUNET_IDENTITY_disconnect (id);
+    id = NULL;
+  }
   if (NULL != t)
   {
     GNUNET_SCHEDULER_cancel (t);
@@ -734,6 +838,43 @@ do_shutdown (void *cls)
 
 
 /**
+ * Function called for each matching record.
+ *
+ * @param cls `struct Request *`
+ * @param zone_key private key of the zone
+ * @param label name that is being mapped (at most 255 characters long)
+ * @param rd_count number of entries in @a rd array
+ * @param rd array of records with data to store
+ */
+static void
+import_records (void *cls,
+		const struct GNUNET_CRYPTO_EcdsaPrivateKey *private_key,
+		const char *label,
+		unsigned int rd_count,
+		const struct GNUNET_GNSRECORD_Data *rd)
+{
+  struct Request *req = cls;
+
+  GNUNET_break (0 == memcmp (private_key,
+			     &zone,
+			     sizeof (zone)));
+  GNUNET_break (0 == strcasecmp (label,
+				 req->label));
+  for (unsigned int i=0;i<rd_count;i++)
+  {
+    struct GNUNET_TIME_Absolute at;
+
+    at.abs_value_us = rd->expiration_time; 
+    add_record (req,
+		rd->record_type,
+		at,
+		rd->data,
+		rd->data_size);
+  }				      
+}
+
+
+/**
  * Add @a hostname to the list of requests to be made.
  *
  * @param hostname name to resolve
@@ -746,12 +887,22 @@ queue (const char *hostname)
   struct Request *req;
   char *raw;
   size_t raw_size;
+  const char *dot;
 
   if (GNUNET_OK !=
       GNUNET_DNSPARSER_check_name (hostname))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Refusing invalid hostname `%s'\n",
+                hostname);
+    return;
+  }
+  dot = strrchr (hostname,
+		 (unsigned char) '.');
+  if (NULL == dot)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Refusing invalid hostname `%s' (lacks '.')\n",
                 hostname);
     return;
   }
@@ -780,16 +931,128 @@ queue (const char *hostname)
   }
 
   req = GNUNET_new (struct Request);
-  req->hostname = strdup (hostname);
+  req->hostname = GNUNET_strdup (hostname);
   req->raw = raw;
   req->raw_len = raw_size;
   req->id = p.id;
-  /* FIXME: import data from namestore! */
+  req->label = GNUNET_strndup (hostname,
+			       dot - hostname);
+  if (NULL != strchr (req->label,
+		      (unsigned char) '.'))
+  {
+    GNUNET_free (req->hostname);
+    GNUNET_free (req->label);
+    GNUNET_free (req);
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Label contained a `.', invalid hostname `%s'\n",
+                hostname);
+    return;
+  }
+  if (GNUNET_OK !=
+      ns->lookup_records (ns->cls,
+			  &zone,
+			  req->label,
+			  &import_records,
+			  req))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                "Failed to load data from namestore for `%s'\n",
+                req->label);
+  }
+  insert_sorted (req);
+}
 
-  /* FIXME: insert sorted by record expiration time */
-  GNUNET_CONTAINER_DLL_insert_tail (req_head,
-                                    req_tail,
-                                    req);
+
+/**
+ * Begin processing hostnames from stdin.
+ *
+ * @param cls NULL
+ */
+static void
+process_stdin (void *cls)
+{
+  char hn[256];
+
+  (void) cls;
+  t = NULL;
+  GNUNET_IDENTITY_disconnect (id);
+  id = NULL;
+  while (NULL !=
+         fgets (hn,
+                sizeof (hn),
+                stdin))
+  {
+    if (strlen(hn) > 0)
+      hn[strlen(hn)-1] = '\0'; /* eat newline */
+    queue (hn);
+  }
+  t = GNUNET_SCHEDULER_add_now (&process_queue,
+                                NULL);
+}
+
+
+/**
+ * Method called to inform about the egos of this peer.
+ *
+ * When used with #GNUNET_IDENTITY_connect, this function is
+ * initially called for all egos and then again whenever a
+ * ego's name changes or if it is deleted.  At the end of
+ * the initial pass over all egos, the function is once called
+ * with 'NULL' for @a ego. That does NOT mean that the callback won't
+ * be invoked in the future or that there was an error.
+ *
+ * When used with #GNUNET_IDENTITY_create or #GNUNET_IDENTITY_get,
+ * this function is only called ONCE, and 'NULL' being passed in
+ * @a ego does indicate an error (i.e. name is taken or no default
+ * value is known).  If @a ego is non-NULL and if '*ctx'
+ * is set in those callbacks, the value WILL be passed to a subsequent
+ * call to the identity callback of #GNUNET_IDENTITY_connect (if
+ * that one was not NULL).
+ *
+ * When an identity is renamed, this function is called with the
+ * (known) @a ego but the NEW @a name.
+ *
+ * When an identity is deleted, this function is called with the
+ * (known) ego and "NULL" for the @a name.  In this case,
+ * the @a ego is henceforth invalid (and the @a ctx should also be
+ * cleaned up).
+ *
+ * @param cls closure
+ * @param ego ego handle
+ * @param ctx context for application to store data for this ego
+ *                 (during the lifetime of this process, initially NULL)
+ * @param name name assigned by the user for this ego,
+ *                   NULL if the user just deleted the ego and it
+ *                   must thus no longer be used
+ */
+static void
+identity_cb (void *cls,
+	     struct GNUNET_IDENTITY_Ego *ego,
+	     void **ctx,
+	     const char *name)
+{
+  (void) cls;
+  (void) ctx;
+  if (NULL == ego)
+  {
+    if (zone_found)
+      t = GNUNET_SCHEDULER_add_now (&process_stdin,
+				    NULL);
+    else
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		  "Specified zone not found\n");
+      GNUNET_SCHEDULER_shutdown ();
+      return;
+    }
+  }
+  if ( (NULL != name) &&
+       (0 == strcasecmp (name,
+			 zone_name)) )
+  {
+    zone_found = GNUNET_YES;
+    zone = *GNUNET_IDENTITY_ego_get_private_key (ego);
+  }
 }
 
 
@@ -808,7 +1071,6 @@ run (void *cls,
      const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
-  char hn[256];
   char *database;
 
   (void) cls;
@@ -835,19 +1097,11 @@ run (void *cls,
   ns = GNUNET_PLUGIN_load (db_lib_name,
 			   (void *) cfg);
   GNUNET_free (database);
-  while (NULL !=
-         fgets (hn,
-                sizeof (hn),
-                stdin))
-  {
-    if (strlen(hn) > 0)
-      hn[strlen(hn)-1] = '\0'; /* eat newline */
-    queue (hn);
-  }
+  id = GNUNET_IDENTITY_connect (cfg,
+				&identity_cb,
+				NULL);
   GNUNET_SCHEDULER_add_shutdown (&do_shutdown,
                                  NULL);
-  t = GNUNET_SCHEDULER_add_now (&process_queue,
-                                NULL);
 }
 
 
@@ -869,6 +1123,12 @@ main (int argc,
 				  "IP",				 
 				  "which DNS server should be used",
 				  &dns_server)),
+    GNUNET_GETOPT_option_mandatory
+    (GNUNET_GETOPT_option_string ('i',
+				  "identity",
+				  "ZONENAME",
+				  "which GNS zone should we import data into",
+				  &zone_name)),
     GNUNET_GETOPT_OPTION_END
   };
 

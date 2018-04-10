@@ -138,6 +138,7 @@ endif
 gnunet_zoneimport_SOURCES = \
  gnunet-zoneimport.c
 gnunet_zoneimport_LDADD = \
+  $(top_builddir)/src/identity/libgnunetidentity.la \
   $(top_builddir)/src/gnsrecord/libgnunetgnsrecord.la \
   $(top_builddir)/src/dns/libgnunetdnsparser.la \
   $(top_builddir)/src/dns/libgnunetdnsstub.la \
