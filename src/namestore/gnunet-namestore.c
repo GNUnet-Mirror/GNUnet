@@ -203,6 +203,7 @@ static int monitor;
 static void
 do_shutdown (void *cls)
 {
+  (void) cls;
   if (NULL != get_default)
   {
     GNUNET_IDENTITY_cancel (get_default);
@@ -323,6 +324,7 @@ del_continuation (void *cls,
 		  int32_t success,
 		  const char *emsg)
 {
+  (void) cls;
   del_qe = NULL;
   if (GNUNET_NO == success)
   {
@@ -348,6 +350,7 @@ del_continuation (void *cls,
 static void
 zone_iteration_finished (void *cls)
 {
+  (void) cls;
   list_it = NULL;
   test_finished ();
 }
@@ -359,6 +362,7 @@ zone_iteration_finished (void *cls)
 static void
 zone_iteration_error_cb (void *cls)
 {
+  (void) cls;
   list_it = NULL;
   fprintf (stderr,
            "Error iterating over zone\n");
@@ -385,11 +389,11 @@ display_record (void *cls,
 {
   const char *typestring;
   char *s;
-  unsigned int i;
   const char *ets;
   struct GNUNET_TIME_Absolute at;
   struct GNUNET_TIME_Relative rt;
 
+  (void) cls;
   if ( (NULL != name) &&
        (0 != strcmp (name, rname)) )
   {
@@ -399,7 +403,7 @@ display_record (void *cls,
   FPRINTF (stdout,
 	   "%s:\n",
 	   rname);
-  for (i=0;i<rd_len;i++)
+  for (unsigned int i=0;i<rd_len;i++)
   {
     if ( (GNUNET_GNSRECORD_TYPE_NICK == rd[i].record_type) &&
          (0 != strcmp (rname,
@@ -448,7 +452,10 @@ display_record (void *cls,
 static void
 sync_cb (void *cls)
 {
-  FPRINTF (stdout, "%s", "Monitor is now in sync.\n");
+  (void) cls;
+  FPRINTF (stdout,
+	   "%s",
+	   "Monitor is now in sync.\n");
 }
 
 
@@ -460,7 +467,10 @@ sync_cb (void *cls)
 static void
 monitor_error_cb (void *cls)
 {
-  FPRINTF (stderr, "%s", "Monitor disconnected and out of sync.\n");
+  (void) cls;
+  FPRINTF (stderr,
+	   "%s",
+	   "Monitor disconnected and out of sync.\n");
 }
 
 
@@ -470,6 +480,7 @@ monitor_error_cb (void *cls)
 static void
 lookup_error_cb (void *cls)
 {
+  (void) cls;
   add_qe = NULL;
   GNUNET_break (0);
   ret = 1;
@@ -496,8 +507,8 @@ get_existing_record (void *cls,
 {
   struct GNUNET_GNSRECORD_Data rdn[rd_count + 1];
   struct GNUNET_GNSRECORD_Data *rde;
-  unsigned int i;
 
+  (void) cls;
   add_qe = NULL;
   if (0 != strcmp (rec_name, name))
   {
@@ -510,7 +521,7 @@ get_existing_record (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Received %u records for name `%s'\n",
               rd_count, rec_name);
-  for (i=0;i<rd_count;i++)
+  for (unsigned int i=0;i<rd_count;i++)
   {
     switch (rd[i].record_type)
     {
@@ -579,7 +590,9 @@ get_existing_record (void *cls,
     }
     break;
   }
-  memset (rdn, 0, sizeof (struct GNUNET_GNSRECORD_Data));
+  memset (rdn,
+	  0,
+	  sizeof (struct GNUNET_GNSRECORD_Data));
   GNUNET_memcpy (&rdn[1],
                  rd,
                  rd_count * sizeof (struct GNUNET_GNSRECORD_Data));
@@ -617,6 +630,7 @@ get_existing_record (void *cls,
 static void
 reverse_error_cb (void *cls)
 {
+  (void) cls;
   reverse_qe = NULL;
   FPRINTF (stdout,
            "%s.zkey\n",
@@ -641,6 +655,7 @@ handle_reverse_lookup (void *cls,
                        unsigned int rd_count,
                        const struct GNUNET_GNSRECORD_Data *rd)
 {
+  (void) cls;
   reverse_qe = NULL;
   if (NULL == label)
     FPRINTF (stdout,
@@ -660,6 +675,7 @@ handle_reverse_lookup (void *cls,
 static void
 del_lookup_error_cb (void *cls)
 {
+  (void) cls;
   del_qe = NULL;
   GNUNET_break (0);
   ret = 1;
@@ -687,10 +703,10 @@ del_monitor (void *cls,
 {
   struct GNUNET_GNSRECORD_Data rdx[rd_count];
   unsigned int rd_left;
-  unsigned int i;
   uint32_t type;
   char *vs;
 
+  (void) cls;
   del_qe = NULL;
   if (0 == rd_count)
   {
@@ -719,7 +735,7 @@ del_monitor (void *cls,
     type = GNUNET_GNSRECORD_typename_to_number (typestring);
   else
     type = GNUNET_GNSRECORD_TYPE_ANY;
-  for (i=0;i<rd_count;i++)
+  for (unsigned int i=0;i<rd_count;i++)
   {
     vs = NULL;
     if (! ( ( (GNUNET_GNSRECORD_TYPE_ANY == type) ||
@@ -1044,6 +1060,9 @@ default_ego_cb (void *cls,
                 void **ctx,
                 const char *name)
 {
+  (void) cls;
+  (void) ctx;
+  (void) name;
   get_default = NULL;
   if (NULL == ego)
   {
@@ -1092,7 +1111,11 @@ run (void *cls,
      const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
-  if ( (NULL != args[0]) && (NULL == uri) )
+  (void) cls;
+  (void) args;
+  (void) cfgfile;
+  if ( (NULL != args[0]) &&
+       (NULL == uri) )
     uri = GNUNET_strdup (args[0]);
 
   GNUNET_SCHEDULER_add_shutdown (&do_shutdown,

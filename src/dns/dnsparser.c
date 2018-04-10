@@ -919,9 +919,14 @@ GNUNET_DNSPARSER_builder_add_mx (char *dst,
   if (*off + sizeof (uint16_t) > dst_len)
     return GNUNET_NO;
   mxpref = htons (mx->preference);
-  GNUNET_memcpy (&dst[*off], &mxpref, sizeof (mxpref));
+  GNUNET_memcpy (&dst[*off],
+		 &mxpref,
+		 sizeof (mxpref));
   (*off) += sizeof (mxpref);
-  return GNUNET_DNSPARSER_builder_add_name (dst, dst_len, off, mx->mxhost);
+  return GNUNET_DNSPARSER_builder_add_name (dst,
+					    dst_len,
+					    off,
+					    mx->mxhost);
 }
 
 
@@ -1081,21 +1086,36 @@ add_record (char *dst,
   switch (record->type)
   {
   case GNUNET_DNSPARSER_TYPE_MX:
-    ret = GNUNET_DNSPARSER_builder_add_mx (dst, dst_len, &pos, record->data.mx);
+    ret = GNUNET_DNSPARSER_builder_add_mx (dst,
+					   dst_len,
+					   &pos,
+					   record->data.mx);
     break;
   case GNUNET_DNSPARSER_TYPE_CERT:
-    ret = GNUNET_DNSPARSER_builder_add_cert (dst, dst_len, &pos, record->data.cert);
+    ret = GNUNET_DNSPARSER_builder_add_cert (dst,
+					     dst_len,
+					     &pos,
+					     record->data.cert);
     break;
   case GNUNET_DNSPARSER_TYPE_SOA:
-    ret = GNUNET_DNSPARSER_builder_add_soa (dst, dst_len, &pos, record->data.soa);
+    ret = GNUNET_DNSPARSER_builder_add_soa (dst,
+					    dst_len,
+					    &pos,
+					    record->data.soa);
     break;
   case GNUNET_DNSPARSER_TYPE_NS:
   case GNUNET_DNSPARSER_TYPE_CNAME:
   case GNUNET_DNSPARSER_TYPE_PTR:
-    ret = GNUNET_DNSPARSER_builder_add_name (dst, dst_len, &pos, record->data.hostname);
+    ret = GNUNET_DNSPARSER_builder_add_name (dst,
+					     dst_len,
+					     &pos,
+					     record->data.hostname);
     break;
   case GNUNET_DNSPARSER_TYPE_SRV:
-    ret = GNUNET_DNSPARSER_builder_add_srv (dst, dst_len, &pos, record->data.srv);
+    ret = GNUNET_DNSPARSER_builder_add_srv (dst,
+					    dst_len,
+					    &pos,
+					    record->data.srv);
     break;
   default:
     if (pos + record->data.raw.data_len > dst_len)
@@ -1103,7 +1123,9 @@ add_record (char *dst,
       ret = GNUNET_NO;
       break;
     }
-    GNUNET_memcpy (&dst[pos], record->data.raw.data, record->data.raw.data_len);
+    GNUNET_memcpy (&dst[pos],
+		   record->data.raw.data,
+		   record->data.raw.data_len);
     pos += record->data.raw.data_len;
     ret = GNUNET_OK;
     break;

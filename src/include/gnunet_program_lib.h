@@ -84,6 +84,7 @@ GNUNET_PROGRAM_run2 (int argc,
                      void *task_cls,
                      int run_without_scheduler);
 
+
 /**
  * Run a standard GNUnet command startup sequence (initialize loggers
  * and configuration, parse options).
@@ -103,7 +104,8 @@ GNUNET_PROGRAM_run (int argc,
                     const char *binaryName,
                     const char *binaryHelp,
                     const struct GNUNET_GETOPT_CommandLineOption *options,
-                    GNUNET_PROGRAM_Main task, void *task_cls);
+                    GNUNET_PROGRAM_Main task,
+		    void *task_cls);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */

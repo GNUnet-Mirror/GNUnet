@@ -248,7 +248,6 @@ cleanup_handle (struct RequestHandle *handle)
 {
   struct RecordEntry *record_entry;
   struct RecordEntry *record_tmp;
-  int i;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Cleaning up\n");
@@ -276,7 +275,7 @@ cleanup_handle (struct RequestHandle *handle)
     GNUNET_free (handle->value);
   if (NULL != handle->rd)
   {
-    for (i = 0; i < handle->rd_count; i++)
+    for (unsigned int i = 0; i < handle->rd_count; i++)
     {
       if (NULL != handle->rd[i].data)
         GNUNET_free ((void*)handle->rd[i].data);
@@ -441,22 +440,24 @@ namestore_list_response (void *cls,
   struct GNUNET_JSONAPI_Resource *json_resource;
   json_t *result_array;
   json_t *record_obj;
-  int i;
 
   if (NULL == handle->resp_object)
     handle->resp_object = GNUNET_JSONAPI_document_new ();
 
   if ( (NULL != handle->name) &&
-       (0 != strcmp (handle->name, rname)) )
+       (0 != strcmp (handle->name,
+		     rname)) )
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "%s does not match %s\n", rname, handle->name);
+                "%s does not match %s\n",
+		rname,
+		handle->name);
     GNUNET_NAMESTORE_zone_iterator_next (handle->list_it);
     return;
   }
 
   result_array = json_array ();
-  for (i=0; i<rd_len; i++)
+  for (unsigned int i=0; i<rd_len; i++)
   {
     if ( (GNUNET_GNSRECORD_TYPE_NICK == rd[i].record_type) &&
          (0 != strcmp (rname, GNUNET_GNS_MASTERZONE_STR)) )
@@ -465,8 +466,9 @@ namestore_list_response (void *cls,
     if ( (rd[i].record_type != handle->type) &&
          (GNUNET_GNSRECORD_TYPE_ANY != handle->type) )
       continue;
-    record_obj = gnsrecord_to_json (&(rd[i]));
-    json_array_append (result_array, record_obj);
+    record_obj = gnsrecord_to_json (&rd[i]);
+    json_array_append (result_array,
+		       record_obj);
     json_decref (record_obj);
   }
 
@@ -650,21 +652,24 @@ json_to_gnsrecord (const json_t *records_json,
   size_t rdata_size;
   const char *typestring;
   const char *expirationstring;
-  int i;
   json_t *type_json;
   json_t *value_json;
   json_t *record_json;
   json_t *exp_json;
 
   *rd_count = json_array_size (records_json);
-  *rd = GNUNET_malloc (sizeof (struct GNUNET_GNSRECORD_Data) * *rd_count);
-  for (i = 0; i < *rd_count; i++)
+  *rd = GNUNET_new_array (*rd_count,
+			   struct GNUNET_GNSRECORD_Data);
+  for (unsigned int i = 0; i < *rd_count; i++)
   {
-    memset (&((*rd)[i]), 0, sizeof (struct GNUNET_GNSRECORD_Data));
-    record_json = json_array_get (records_json, i);
+    memset (&(*rd)[i],
+	    0,
+	    sizeof (struct GNUNET_GNSRECORD_Data));
+    record_json = json_array_get (records_json,
+				  i);
     type_json = json_object_get (record_json,
                                  GNUNET_REST_JSONAPI_NAMESTORE_RECORD_TYPE);
-    if (!json_is_string (type_json))
+    if (! json_is_string (type_json))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                   "Type property is no string\n");
@@ -680,20 +685,23 @@ json_to_gnsrecord (const json_t *records_json,
     }
     value_json = json_object_get (record_json,
                                   GNUNET_REST_JSONAPI_NAMESTORE_VALUE);
-    if (!json_is_string (value_json))
+    if (! json_is_string (value_json))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                   "Value property is no string\n");
       return GNUNET_SYSERR;
     }
     value = GNUNET_strdup (json_string_value (value_json));
-    if (GNUNET_OK != GNUNET_GNSRECORD_string_to_value ((*rd)[i].record_type,
-                                                       value,
-                                                       &rdata,
-                                                       &rdata_size))
+    if (GNUNET_OK !=
+	GNUNET_GNSRECORD_string_to_value ((*rd)[i].record_type,
+					  value,
+					  &rdata,
+					  &rdata_size))
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Value `%s' invalid for record type `%s'\n"),
-                  value, typestring);
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		  _("Value `%s' invalid for record type `%s'\n"),
+                  value,
+		  typestring);
       return GNUNET_SYSERR;
     }
     (*rd)[i].data = rdata;
@@ -706,7 +714,7 @@ json_to_gnsrecord (const json_t *records_json,
      */
     exp_json = json_object_get (record_json,
                                 GNUNET_REST_JSONAPI_NAMESTORE_EXPIRATION);
-    if (!json_is_string (exp_json))
+    if (! json_is_string (exp_json))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                   "Expiration property is no string\n");
@@ -732,8 +740,10 @@ json_to_gnsrecord (const json_t *records_json,
     }
     else
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Value `%s' invalid for record type `%s'\n"),
-                  value, typestring);
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		  _("Value `%s' invalid for record type `%s'\n"),
+                  value,
+		  typestring);
       return GNUNET_SYSERR;
     }
   }

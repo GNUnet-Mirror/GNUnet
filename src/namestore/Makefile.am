@@ -126,11 +126,23 @@ libexec_PROGRAMS = \
 bin_PROGRAMS = \
  gnunet-namestore
 
+noinst_PROGRAMS = \
+ gnunet-zoneimport
+
 if HAVE_MHD
 libexec_PROGRAMS += \
  gnunet-namestore-fcfsd
 endif
 
+
+gnunet_zoneimport_SOURCES = \
+ gnunet-zoneimport.c
+gnunet_zoneimport_LDADD = \
+  $(top_builddir)/src/gnsrecord/libgnunetgnsrecord.la \
+  $(top_builddir)/src/dns/libgnunetdnsparser.la \
+  $(top_builddir)/src/dns/libgnunetdnsstub.la \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(GN_LIBINTL)
 
 gnunet_namestore_SOURCES = \
  gnunet-namestore.c

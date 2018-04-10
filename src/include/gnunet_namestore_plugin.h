@@ -52,11 +52,12 @@ extern "C"
  * @param rd_count number of entries in @a rd array
  * @param rd array of records with data to store
  */
-typedef void (*GNUNET_NAMESTORE_RecordIterator) (void *cls,
-						 const struct GNUNET_CRYPTO_EcdsaPrivateKey *private_key,
-						 const char *label,
-						 unsigned int rd_count,
-						 const struct GNUNET_GNSRECORD_Data *rd);
+typedef void
+(*GNUNET_NAMESTORE_RecordIterator) (void *cls,
+				    const struct GNUNET_CRYPTO_EcdsaPrivateKey *private_key,
+				    const char *label,
+				    unsigned int rd_count,
+				    const struct GNUNET_GNSRECORD_Data *rd);
 
 
 /**
@@ -81,12 +82,13 @@ struct GNUNET_NAMESTORE_PluginFunctions
    * @param rd array of records with data to store
    * @return #GNUNET_OK on success, else #GNUNET_SYSERR
    */
-  int (*store_records) (void *cls,
-			const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone,
-			const char *label,
-			unsigned int rd_count,
-			const struct GNUNET_GNSRECORD_Data *rd);
-
+  int
+  (*store_records) (void *cls,
+		    const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone,
+		    const char *label,
+		    unsigned int rd_count,
+		    const struct GNUNET_GNSRECORD_Data *rd);
+  
   /**
    * Lookup records in the datastore for which we are the authority.
    *
@@ -97,11 +99,12 @@ struct GNUNET_NAMESTORE_PluginFunctions
    * @param iter_cls closure for @a iter
    * @return #GNUNET_OK on success, else #GNUNET_SYSERR
    */
-  int (*lookup_records) (void *cls,
-                        const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone,
-                        const char *label,
-                        GNUNET_NAMESTORE_RecordIterator iter, void *iter_cls);
-
+  int
+  (*lookup_records) (void *cls,
+		     const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone,
+		     const char *label,
+		     GNUNET_NAMESTORE_RecordIterator iter,
+		     void *iter_cls);
 
 
   /**
@@ -115,10 +118,12 @@ struct GNUNET_NAMESTORE_PluginFunctions
    * @param iter_cls closure for @a iter
    * @return #GNUNET_OK on success, #GNUNET_NO if there were no results, #GNUNET_SYSERR on error
    */
-  int (*iterate_records) (void *cls,
-			  const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone,
-			  uint64_t offset,
-			  GNUNET_NAMESTORE_RecordIterator iter, void *iter_cls);
+  int
+  (*iterate_records) (void *cls,
+		      const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone,
+		      uint64_t offset,
+		      GNUNET_NAMESTORE_RecordIterator iter,
+		      void *iter_cls);
 
 
   /**
@@ -132,10 +137,12 @@ struct GNUNET_NAMESTORE_PluginFunctions
    * @param iter_cls closure for @a iter
    * @return #GNUNET_OK on success, #GNUNET_NO if there were no results, #GNUNET_SYSERR on error
    */
-  int (*zone_to_name) (void *cls,
-		       const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone,
-		       const struct GNUNET_CRYPTO_EcdsaPublicKey *value_zone,
-		       GNUNET_NAMESTORE_RecordIterator iter, void *iter_cls);
+  int
+  (*zone_to_name) (void *cls,
+		   const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone,
+		   const struct GNUNET_CRYPTO_EcdsaPublicKey *value_zone,
+		   GNUNET_NAMESTORE_RecordIterator iter,
+		   void *iter_cls);
 
 
 };

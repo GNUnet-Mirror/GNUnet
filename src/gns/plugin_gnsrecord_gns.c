@@ -173,7 +173,9 @@ gns_string_to_value (void *cls,
 
     case GNUNET_GNSRECORD_TYPE_PKEY:
       if (GNUNET_OK !=
-          GNUNET_CRYPTO_ecdsa_public_key_from_string (s, strlen (s), &pkey))
+          GNUNET_CRYPTO_ecdsa_public_key_from_string (s,
+						      strlen (s),
+						      &pkey))
       {
         GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                     _("Unable to parse PKEY record `%s'\n"),
@@ -181,7 +183,9 @@ gns_string_to_value (void *cls,
         return GNUNET_SYSERR;
       }
       *data = GNUNET_new (struct GNUNET_CRYPTO_EcdsaPublicKey);
-      GNUNET_memcpy (*data, &pkey, sizeof (pkey));
+      GNUNET_memcpy (*data,
+		     &pkey,
+		     sizeof (pkey));
       *data_size = sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey);
       return GNUNET_OK;
 
@@ -234,7 +238,9 @@ gns_string_to_value (void *cls,
         GNUNET_free (cpy);
         *data_size = off;
         *data = GNUNET_malloc (off);
-        GNUNET_memcpy (*data, nsbuf, off);
+        GNUNET_memcpy (*data,
+		       nsbuf,
+		       off);
         return GNUNET_OK;
       }
     case GNUNET_GNSRECORD_TYPE_VPN:

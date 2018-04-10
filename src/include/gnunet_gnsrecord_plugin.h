@@ -53,10 +53,11 @@ extern "C"
  * @param data_size number of bytes in @a data
  * @return NULL on error, otherwise human-readable representation of the value
  */
-typedef char * (*GNUNET_GNSRECORD_ValueToStringFunction) (void *cls,
-                                                          uint32_t type,
-                                                          const void *data,
-                                                          size_t data_size);
+typedef char *
+(*GNUNET_GNSRECORD_ValueToStringFunction) (void *cls,
+					   uint32_t type,
+					   const void *data,
+					   size_t data_size);
 
 
 /**
@@ -71,11 +72,12 @@ typedef char * (*GNUNET_GNSRECORD_ValueToStringFunction) (void *cls,
  * @param data_size set to number of bytes in @a data
  * @return #GNUNET_OK on success
  */
-typedef int (*GNUNET_GNSRECORD_StringToValueFunction) (void *cls,
-                                                       uint32_t type,
-                                                       const char *s,
-                                                       void **data,
-                                                       size_t *data_size);
+typedef int
+(*GNUNET_GNSRECORD_StringToValueFunction) (void *cls,
+					   uint32_t type,
+					   const char *s,
+					   void **data,
+					   size_t *data_size);
 
 
 /**
@@ -86,8 +88,9 @@ typedef int (*GNUNET_GNSRECORD_StringToValueFunction) (void *cls,
  * @param dns_typename name to convert
  * @return corresponding number, UINT32_MAX on error
  */
-typedef uint32_t (*GNUNET_GNSRECORD_TypenameToNumberFunction) (void *cls,
-                                                               const char *dns_typename);
+typedef uint32_t
+(*GNUNET_GNSRECORD_TypenameToNumberFunction) (void *cls,
+					      const char *dns_typename);
 
 
 /**
@@ -98,8 +101,9 @@ typedef uint32_t (*GNUNET_GNSRECORD_TypenameToNumberFunction) (void *cls,
  * @param type number of a type to convert
  * @return corresponding typestring, NULL on error
  */
-typedef const char * (*GNUNET_GNSRECORD_NumberToTypenameFunction) (void *cls,
-                                                                   uint32_t type);
+typedef const char *
+(*GNUNET_GNSRECORD_NumberToTypenameFunction) (void *cls,
+					      uint32_t type);
 
 
 /**

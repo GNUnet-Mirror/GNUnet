@@ -114,6 +114,8 @@ handle_sync (void *cls,
 {
   struct GNUNET_NAMESTORE_ZoneMonitor *zm = cls;
 
+  (void) cls;
+  (void) msg;
   if (NULL != zm->sync_cb)
     zm->sync_cb (zm->sync_cb_cls);
 }
@@ -138,6 +140,7 @@ check_result (void *cls,
   const char *name_tmp;
   const char *rd_ser_tmp;
 
+  (void) cls;
   lrm_len = ntohs (lrm->gns_header.header.size);
   rd_len = ntohs (lrm->rd_len);
   rd_count = ntohs (lrm->rd_count);
@@ -231,6 +234,7 @@ mq_error_handler (void *cls,
 {
   struct GNUNET_NAMESTORE_ZoneMonitor *zm = cls;
 
+  (void) error;
   reconnect (zm);
 }
 
