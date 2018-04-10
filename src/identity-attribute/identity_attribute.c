@@ -336,18 +336,15 @@ GNUNET_IDENTITY_ATTRIBUTE_list_dup (const struct GNUNET_IDENTITY_ATTRIBUTE_Claim
   struct GNUNET_IDENTITY_ATTRIBUTE_ClaimListEntry *le;
   struct GNUNET_IDENTITY_ATTRIBUTE_ClaimListEntry *result_le;
   struct GNUNET_IDENTITY_ATTRIBUTE_ClaimList *result;
-  size_t len;
 
   result = GNUNET_new (struct GNUNET_IDENTITY_ATTRIBUTE_ClaimList);
   for (le = attrs->list_head; NULL != le; le = le->next)
   {
     result_le = GNUNET_new (struct GNUNET_IDENTITY_ATTRIBUTE_ClaimListEntry);
-    len = sizeof (struct GNUNET_IDENTITY_ATTRIBUTE_Claim) + le->claim->data_size;
-    result_le->claim = GNUNET_malloc (len);
-    GNUNET_memcpy (result_le->claim,
-                   le->claim,
-                   len);
-    result_le->claim->name = (const char*)&result_le->claim[1];
+    result_le->claim = GNUNET_IDENTITY_ATTRIBUTE_claim_new (le->claim->name,
+                                                     le->claim->type,
+                                                     le->claim->data,
+                                                     le->claim->data_size);
     GNUNET_CONTAINER_DLL_insert (result->list_head,
                                  result->list_tail,
                                  result_le);

@@ -1325,6 +1325,14 @@ check_attr_error (void *cls)
   cleanup_revoke_ticket_handle (rh);
 }
 
+
+/**
+ * Revoke next attribte by reencryption with
+ * new ABE master
+ */
+static void
+reenc_next_attribute (void *cls);
+
 /**
  * Check for existing attribute and overwrite
  */
@@ -1344,7 +1352,12 @@ check_attr_cb (void *cls,
   size_t buf_size;
   char* policy;
   uint32_t attr_ver;
-
+  
+  if (1 != rd_count) {
+    GNUNET_SCHEDULER_add_now (&reenc_next_attribute,
+                              rh);
+    return;
+  }
 
   buf_size = GNUNET_IDENTITY_ATTRIBUTE_serialize_get_size (rh->attrs->list_head->claim);
   buf = GNUNET_malloc (buf_size);
@@ -1407,8 +1420,9 @@ check_attr_cb (void *cls,
  * new ABE master
  */
 static void
-reenc_next_attribute (struct TicketRevocationHandle *rh)
+reenc_next_attribute (void *cls)
 {
+  struct TicketRevocationHandle *rh = cls;
   if (NULL == rh->attrs->list_head)
   {
     revocation_reissue_tickets (rh);
