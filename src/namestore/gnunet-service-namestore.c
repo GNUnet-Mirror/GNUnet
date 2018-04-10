@@ -256,6 +256,7 @@ cleanup_task (void *cls)
 {
   struct CacheOperation *cop;
 
+  (void) cls;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Stopping namestore service\n");
   while (NULL != (cop = cop_head))
@@ -300,6 +301,7 @@ client_disconnect_cb (void *cls,
   struct ZoneMonitor *zm;
   struct CacheOperation *cop;
 
+  (void) cls;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Client %p disconnected\n",
 	      client);
@@ -348,6 +350,7 @@ client_connect_cb (void *cls,
 {
   struct NamestoreClient *nc;
 
+  (void) cls;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Client %p connected\n",
 	      client);
@@ -378,6 +381,7 @@ lookup_nick_it (void *cls,
 {
   struct GNUNET_GNSRECORD_Data **res = cls;
 
+  (void) private_key;
   if (0 != strcmp (label, GNUNET_GNS_MASTERZONE_STR))
   {
     GNUNET_break (0);
@@ -707,20 +711,42 @@ refresh_block (struct NamestoreClient *nc,
  */
 struct RecordLookupContext
 {
+
+  /**
+   * FIXME.
+   */
   const char *label;
 
-  int found;
-
-  unsigned int res_rd_count;
-
-  size_t rd_ser_len;
-
+  /**
+   * FIXME.
+   */
   char *res_rd;
 
+  /**
+   * FIXME.
+   */
   struct GNUNET_GNSRECORD_Data *nick;
+
+  /**
+   * FIXME.
+   */
+  int found;
+
+  /**
+   * FIXME.
+   */
+  unsigned int res_rd_count;
+
+  /**
+   * FIXME.
+   */
+  size_t rd_ser_len;
 };
 
 
+/**
+ * FIXME.
+ */
 static void
 lookup_it (void *cls,
            const struct GNUNET_CRYPTO_EcdsaPrivateKey *private_key,
@@ -732,6 +758,7 @@ lookup_it (void *cls,
   struct GNUNET_GNSRECORD_Data *rd_res;
   unsigned int rdc_res;
 
+  (void) private_key;
   if (0 == strcmp (label, rlc->label))
   {
     rlc->found = GNUNET_YES;
@@ -799,6 +826,7 @@ check_record_lookup (void *cls,
   size_t src_size;
   const char *name_tmp;
 
+  (void) cls;
   name_len = ntohl (ll_msg->label_len);
   src_size = ntohs (ll_msg->gns_header.header.size);
   if (name_len != src_size - sizeof (struct LabelLookupMessage))
@@ -907,6 +935,7 @@ check_record_store (void *cls,
   size_t rd_ser_len;
   const char *name_tmp;
 
+  (void) cls;
   name_len = ntohs (rp_msg->name_len);
   msg_size = ntohs (rp_msg->gns_header.header.size);
   rd_ser_len = ntohs (rp_msg->rd_len);
@@ -1617,6 +1646,8 @@ run (void *cls,
 {
   char *database;
 
+  (void) cls;
+  (void) service;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Starting namestore service\n");
   GSN_cfg = cfg;
