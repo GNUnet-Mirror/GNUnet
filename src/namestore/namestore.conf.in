@@ -19,7 +19,7 @@ FILENAME = $GNUNET_DATA_HOME/namestore/flat.db
 
 
 [namestore-postgres]
-CONFIG = connect_timeout=10; dbname=gnunet
+CONFIG = postgres:///gnunet
 TEMPORARY_TABLE = NO
 
 [uri]

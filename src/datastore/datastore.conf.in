@@ -17,7 +17,7 @@ DATABASE = sqlite
 FILENAME = $GNUNET_DATA_HOME/datastore/sqlite.db
 
 [datastore-postgres]
-CONFIG = connect_timeout=10; dbname=gnunet
+CONFIG = postgres:///gnunet
 
 [datastore-mysql]
 DATABASE = gnunet

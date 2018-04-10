@@ -1,6 +1,6 @@
  /*
   * This file is part of GNUnet
-  * Copyright (C) 2009-2013, 2016, 2017 GNUnet e.V.
+  * Copyright (C) 2009-2013, 2016-2018 GNUnet e.V.
   *
   * GNUnet is free software; you can redistribute it and/or modify
   * it under the terms of the GNU General Public License as published
@@ -319,7 +319,7 @@ parse_result_call_iterator (void *cls,
     }
 
     {
-      struct GNUNET_GNSRECORD_Data rd[record_count];
+      struct GNUNET_GNSRECORD_Data rd[GNUNET_NZL(record_count)];
 
       if (GNUNET_OK !=
           GNUNET_GNSRECORD_records_deserialize (data_size,

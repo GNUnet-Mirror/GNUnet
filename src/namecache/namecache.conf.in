@@ -18,7 +18,7 @@ FILENAME = $GNUNET_DATA_HOME/namecache/sqlite.db
 FILENAME = $GNUNET_DATA_HOME/namecache/flat.db
 
 [namecache-postgres]
-CONFIG = connect_timeout=10; dbname=gnunet
+CONFIG = postgres:///gnunet
 TEMPORARY_TABLE = NO
 
 

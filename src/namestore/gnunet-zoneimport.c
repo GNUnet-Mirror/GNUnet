@@ -163,6 +163,11 @@ static unsigned int pending;
 static unsigned int lookups;
 
 /**
+ * How many hostnames did we reject (malformed).
+ */
+static unsigned int rejects;
+
+/**
  * Number of lookups that failed.
  */
 static unsigned int failures;
@@ -805,14 +810,12 @@ process_result (void *cls,
       = GNUNET_TIME_relative_to_absolute (GNUNET_TIME_UNIT_DAYS);
   /* convert records to namestore import format */
   {
-    struct GNUNET_GNSRECORD_Data rd[rd_count];
-    unsigned int off;
+    struct GNUNET_GNSRECORD_Data rd[GNUNET_NZL(rd_count)];
+    unsigned int off = 0;
 
     /* convert linked list into array */
-    for (rec = req->rec_head, off = 0;
-	 NULL != rec;
-	 rec =rec->next, off++)
-      rd[off] = rec->grd;
+    for (rec = req->rec_head; NULL != rec; rec =rec->next)
+      rd[off++] = rec->grd;
     if (GNUNET_OK != 
 	ns->store_records (ns->cls,
 			   &zone,
@@ -820,9 +823,17 @@ process_result (void *cls,
 			   rd_count,
 			   rd))
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		  "Failed to store zone data for `%s'\n",
-		  req->hostname);
+      if (0 != rd_count)
+	GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		    "Failed to store zone data for `%s'\n",
+		    req->hostname);
+    }
+    else
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+		  "Stored %u records under `%s'\n",
+		  (unsigned int) rd_count,
+		  req->label);
     }
   }
   insert_sorted (req);
@@ -893,8 +904,9 @@ process_queue(void *cls)
     if (GNUNET_TIME_absolute_get_remaining (req_head->expires).rel_value_us > 0)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-		  "Waiting until %s for next record to expire\n",
-		  GNUNET_STRINGS_absolute_time_to_string (req_head->expires));
+		  "Waiting until %s for next record (`%s') to expire\n",
+		  GNUNET_STRINGS_absolute_time_to_string (req_head->expires),
+		  req_head->hostname);
       t = GNUNET_SCHEDULER_add_at (req_head->expires,
 				   &process_queue,
 				   NULL);
@@ -1007,6 +1019,7 @@ queue (const char *hostname)
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Refusing invalid hostname `%s'\n",
                 hostname);
+    rejects++;
     return;
   }
   /* TODO: may later support importing zones that
@@ -1020,6 +1033,7 @@ queue (const char *hostname)
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Refusing invalid hostname `%s' (lacks '.')\n",
                 hostname);
+    rejects++;
     return;
   }
   q.name = (char *) hostname;
@@ -1043,6 +1057,7 @@ queue (const char *hostname)
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Failed to pack query for hostname `%s'\n",
                 hostname);
+    rejects++;
     return;
   }
 
@@ -1059,6 +1074,7 @@ queue (const char *hostname)
     GNUNET_free (req->hostname);
     GNUNET_free (req->label);
     GNUNET_free (req);
+    rejects++;
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Label contained a `.', invalid hostname `%s'\n",
                 hostname);
@@ -1071,8 +1087,14 @@ queue (const char *hostname)
 			  &import_records,
 			  req))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                 "Failed to load data from namestore for `%s'\n",
+                req->label);
+  }
+  else
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                "Succeeded hot-start with existing data for `%s'\n",
                 req->label);
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -1265,7 +1287,8 @@ main (int argc,
 		      NULL);
   GNUNET_free ((void*) argv);
   fprintf (stderr,
-           "Did %u lookups, found %u records, %u lookups failed, %u pending on shutdown\n",
+           "Rejected %u names, did %u lookups, found %u records, %u lookups failed, %u pending on shutdown\n",
+	   rejects,
            lookups,
            records,
            failures,
