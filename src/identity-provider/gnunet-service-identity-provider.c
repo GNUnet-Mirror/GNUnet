@@ -1565,6 +1565,22 @@ handle_revoke_ticket_message (void *cls,
 static void
 cleanup_consume_ticket_handle (struct ConsumeTicketHandle *handle)
 {
+  struct ParallelLookup *lu;  
+  struct ParallelLookup *tmp;
+  if (NULL != handle->lookup_request)
+    GNUNET_GNS_lookup_cancel (handle->lookup_request);
+  for (lu = handle->parallel_lookups_head;
+       NULL != lu;) {
+    GNUNET_GNS_lookup_cancel (lu->lookup_request);
+    GNUNET_free (lu->label);
+    tmp = lu->next;
+    GNUNET_CONTAINER_DLL_remove (handle->parallel_lookups_head,
+                                 handle->parallel_lookups_tail,
+                                 lu);
+    GNUNET_free (lu);
+    lu = tmp;
+  }
+
   if (NULL != handle->key)
     GNUNET_ABE_cpabe_delete_key (handle->key,
                                  GNUNET_YES);
@@ -1690,7 +1706,8 @@ abort_parallel_lookups2 (void *cls)
   struct ParallelLookup *tmp;
   struct AttributeResultMessage *arm;
   struct GNUNET_MQ_Envelope *env;
-
+  
+  handle->kill_task = NULL;
   for (lu = handle->parallel_lookups_head;
        NULL != lu;) {
     GNUNET_GNS_lookup_cancel (lu->lookup_request);

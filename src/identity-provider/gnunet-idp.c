@@ -131,9 +131,18 @@ static struct GNUNET_IDENTITY_ATTRIBUTE_ClaimList *attr_list;
  */
 static struct GNUNET_TIME_Relative exp_interval;
 
+/**
+ * Timeout task
+ */
+static struct GNUNET_SCHEDULER_Task *timeout;
+
 static void
 do_cleanup(void *cls)
 {
+  if (NULL != timeout)
+    GNUNET_SCHEDULER_cancel (timeout);
+  if (NULL != idp_op)
+    GNUNET_IDENTITY_PROVIDER_cancel (idp_op);
   if (NULL != attr_iterator)
     GNUNET_IDENTITY_PROVIDER_get_attributes_stop (attr_iterator);
   if (NULL != idp_handle)
@@ -151,6 +160,7 @@ ticket_issue_cb (void* cls,
                  const struct GNUNET_IDENTITY_PROVIDER_Ticket *ticket)
 {
   char* ticket_str;
+  idp_op = NULL;
   if (NULL != ticket) {
     ticket_str = GNUNET_STRINGS_data_to_string_alloc (ticket,
                                                       sizeof (struct GNUNET_IDENTITY_PROVIDER_Ticket));
@@ -166,6 +176,7 @@ store_attr_cont (void *cls,
                  int32_t success,
                  const char*emsg)
 {
+  idp_op = NULL;
   if (GNUNET_SYSERR == success) {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "%s\n", emsg);
@@ -181,6 +192,7 @@ process_attrs (void *cls,
   char *value_str;
   if (NULL == identity)
   {
+    idp_op = NULL;
     GNUNET_SCHEDULER_add_now (&do_cleanup, NULL);
     return;
   }
@@ -207,8 +219,19 @@ iter_error (void *cls)
 }
 
 static void
+timeout_task (void *cls)
+{
+  timeout = NULL;
+  ret = 1;
+  GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
+              "Timeout\n");
+  GNUNET_SCHEDULER_add_now (&do_cleanup, NULL);
+}
+
+static void
 process_rvk (void *cls, int success, const char* msg)
 {
+  idp_op = NULL;
   if (GNUNET_OK != success)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
@@ -250,6 +273,9 @@ iter_finished (void *cls)
                                                       &ticket,
                                                       &process_attrs,
                                                       NULL);
+    timeout = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 10),
+                                            &timeout_task,
+                                            NULL);
     return;
   }
   if (revoke_ticket)
@@ -445,10 +471,10 @@ main(int argc, char *const argv[])
 
     GNUNET_GETOPT_OPTION_END
   };
-  if (GNUNET_OK == GNUNET_PROGRAM_run (argc, argv, "ct",
+  if (GNUNET_OK != GNUNET_PROGRAM_run (argc, argv, "ct",
                       "ct", options,
                       &run, NULL))
-    return 0;
-  else
     return 1;
+  else
+    return ret;
 }

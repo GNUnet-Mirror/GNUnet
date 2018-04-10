@@ -873,7 +873,6 @@ GNUNET_IDENTITY_PROVIDER_cancel (struct GNUNET_IDENTITY_PROVIDER_Operation *op)
   GNUNET_CONTAINER_DLL_remove (h->op_head,
                                h->op_tail,
                                op);
-  GNUNET_MQ_discard (op->env);
   free_op (op);
 }
 
