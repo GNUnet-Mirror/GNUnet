@@ -1958,7 +1958,7 @@ static void compute_probabilities (uint32_t peer_idx)
 {
   //double probs[num_peers] = { 0 };
   double probs[num_peers];
-  size_t probs_as_str_size = (num_peers * 6 + 1) * sizeof (char);
+  size_t probs_as_str_size = (num_peers * 10 + 1) * sizeof (char);
   char *probs_as_str = GNUNET_malloc (probs_as_str_size);
   char *probs_as_str_cpy;
   uint32_t i;
@@ -1998,6 +1998,10 @@ static void compute_probabilities (uint32_t peer_idx)
                  peer_idx,
                  i,
                  prob_push);
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                 "\t\tposs choices from view: %f, containing i: %f\n",
+                 binom (view_size, 0.45 * view_size),
+                 binom (0.45 * view_size, 1));
     } else {
       prob_push = 0;
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -2013,7 +2017,9 @@ static void compute_probabilities (uint32_t peer_idx)
        binom (view_size - cont_views, 0.45 * view_size));
     if (0 != number_of_being_in_pull_events)
     {
-      prob_pull = 1.0 / number_of_being_in_pull_events;
+      prob_pull = number_of_being_in_pull_events
+        /
+        (1.0 * binom (view_size, 0.45 * view_size));
     } else
     {
       prob_pull = 0;
@@ -2062,7 +2068,7 @@ static void compute_probabilities (uint32_t peer_idx)
     probs_as_str_cpy = GNUNET_strndup (probs_as_str, probs_as_str_size);
     tmp = GNUNET_snprintf (probs_as_str,
                            probs_as_str_size,
-                           "%s %3.2f", probs_as_str_cpy, probs[i]);
+                           "%s %7.6f", probs_as_str_cpy, probs[i]);
     GNUNET_free (probs_as_str_cpy);
     GNUNET_assert (0 <= tmp);
   }
