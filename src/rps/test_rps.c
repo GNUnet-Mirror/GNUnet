@@ -2027,6 +2027,19 @@ static void compute_probabilities (uint32_t peer_idx)
                view_size,
                i,
                prob_pull);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+               "\t\tnumber of possible pull combinations: %" PRIu32 "\n",
+               binom (view_size, 0.45 * view_size));
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+               "\t\tnumber of possible pull combinations without %" PRIu32
+               ": %" PRIu32 "\n",
+               i,
+               binom (view_size - cont_views, 0.45 * view_size));
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+               "\t\tnumber of possible pull combinations with %" PRIu32
+               ": %" PRIu32 "\n",
+               i,
+               number_of_being_in_pull_events);
 
     if (0 != probs[i]) count_non_zero_prob++;
   }
