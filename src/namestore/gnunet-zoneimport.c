@@ -1093,8 +1093,25 @@ queue (const char *hostname)
   }
   else
   {
+    unsigned int rd_count = 0;
+    
+    req->expires = GNUNET_TIME_UNIT_FOREVER_ABS;
+    for (struct Record *rec = req->rec_head;
+	 NULL != rec;
+	 rec = rec->next)
+    {
+      struct GNUNET_TIME_Absolute at;
+
+      at.abs_value_us = rec->grd.expiration_time;
+      req->expires = GNUNET_TIME_absolute_min (req->expires,
+					       at);
+      rd_count++;
+    }
+    if (0 == rd_count)
+      req->expires = GNUNET_TIME_UNIT_ZERO_ABS;
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                "Succeeded hot-start with existing data for `%s'\n",
+                "Hot-start with %u existing records for `%s'\n",
+		rd_count,
                 req->label);
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
