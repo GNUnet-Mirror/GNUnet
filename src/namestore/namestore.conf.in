@@ -19,8 +19,12 @@ FILENAME = $GNUNET_DATA_HOME/namestore/flat.db
 
 
 [namestore-postgres]
+# How to connect to the database
 CONFIG = postgres:///gnunet
+# Use temporary tables
 TEMPORARY_TABLE = NO
+# Use asynchronous commit (SET synchronous_commit TO OFF).
+ASYNC_COMMIT = NO
 
 [uri]
 gns = gnunet-namestore

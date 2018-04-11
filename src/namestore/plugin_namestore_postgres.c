@@ -93,6 +93,25 @@ database_setup (struct Plugin *plugin)
   if (GNUNET_YES ==
       GNUNET_CONFIGURATION_get_value_yesno (plugin->cfg,
 					    "namestore-postgres",
+					    "ASYNC_COMMIT"))
+  {
+    struct GNUNET_PQ_ExecuteStatement es[] = {
+      GNUNET_PQ_make_try_execute ("SET synchronous_commit TO off"),
+      GNUNET_PQ_EXECUTE_STATEMENT_END
+    };
+
+    if (GNUNET_OK !=
+        GNUNET_PQ_exec_statements (plugin->dbh,
+                                   es))
+    {
+      PQfinish (plugin->dbh);
+      plugin->dbh = NULL;
+      return GNUNET_SYSERR;
+    }
+  }
+  if (GNUNET_YES ==
+      GNUNET_CONFIGURATION_get_value_yesno (plugin->cfg,
+					    "namestore-postgres",
 					    "TEMPORARY_TABLE"))
   {
     cr = &es_temporary;

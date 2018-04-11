@@ -1254,13 +1254,18 @@ run (void *cls,
                    "libgnunet_plugin_namestore_%s",
                    database);
   ns = GNUNET_PLUGIN_load (db_lib_name,
-			   (void *) cfg);
+			   (void *) cfg); 
   GNUNET_free (database);
+  GNUNET_SCHEDULER_add_shutdown (&do_shutdown,
+                                 NULL);
+  if (NULL == ns)
+  {
+    GNUNET_SCHEDULER_shutdown ();
+    return;
+  }
   id = GNUNET_IDENTITY_connect (cfg,
 				&identity_cb,
 				NULL);
-  GNUNET_SCHEDULER_add_shutdown (&do_shutdown,
-                                 NULL);
 }
 
 
