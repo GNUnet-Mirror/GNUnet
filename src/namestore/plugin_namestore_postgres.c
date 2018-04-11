@@ -370,7 +370,7 @@ namestore_postgres_lookup_records (void *cls,
 
   pc.iter = iter;
   pc.iter_cls = iter_cls;
-  pc.zone_key = NULL;
+  pc.zone_key = zone;
   res = GNUNET_PQ_eval_prepared_multi_select (plugin->dbh,
                                               "lookup_label",
                                               params,
