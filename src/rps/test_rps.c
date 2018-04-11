@@ -1917,6 +1917,9 @@ static uint32_t get_idx_of_pid (const struct GNUNET_PeerIdentity *pid)
     }
   }
   //return 0; /* Should not happen - make compiler happy */
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+             "No known _PeerIdentity %s!\n",
+             GNUNET_i2s_full (pid));
   GNUNET_assert (0);
 }
 
@@ -1967,10 +1970,16 @@ static void compute_probabilities (uint32_t peer_idx)
   int tmp;
   uint32_t count_non_zero_prob = 0;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+      "Computing probabilities for peer %" PRIu32 "\n", peer_idx);
   /* Firstly without knowledge of old views */
   for (i = 0; i < num_peers; i++)
   {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+        "\tfor peer %" PRIu32 ":\n", i);
     view_size = rps_peers[i].cur_view_count;
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+        "\t\tview_size: %" PRIu32 "\n", view_size);
     /* For peer i the probability of being sampled is
      * evenly distributed among all possibly observed peers. */
     /* We could have observed a peer in three cases:
@@ -2010,6 +2019,14 @@ static void compute_probabilities (uint32_t peer_idx)
       prob_pull = 0;
     }
     probs[i] = prob_push + prob_pull - (prob_push * prob_pull);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+               "\t\t%" PRIu32 " has %" PRIu32 " of %" PRIu32
+               " peers in its view who know %" PRIu32 " prob: %f\n",
+               peer_idx,
+               cont_views,
+               view_size,
+               i,
+               prob_pull);
 
     if (0 != probs[i]) count_non_zero_prob++;
   }
