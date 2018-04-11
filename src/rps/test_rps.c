@@ -1999,7 +1999,7 @@ static void compute_probabilities (uint32_t peer_idx)
                  i,
                  prob_push);
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                 "\t\tposs choices from view: %f, containing i: %f\n",
+                 "\t\tposs choices from view: %" PRIu32 ", containing i: %" PRIu32 "\n",
                  binom (view_size, 0.45 * view_size),
                  binom (0.45 * view_size, 1));
     } else {
