@@ -208,4 +208,55 @@ create_file (const char *name)
 
 #endif /* TO_FILE */
 
+/**
+ * @brief Try to ensure that `/tmp/rps` exists.
+ *
+ * @return #GNUNET_YES on success
+ *         #GNUNET_SYSERR on failure
+ */
+static int ensure_folder_exist (void)
+{
+  if (GNUNET_NO == GNUNET_DISK_directory_test ("/tmp/rps/", GNUNET_NO))
+  {
+    GNUNET_DISK_directory_create ("/tmp/rps");
+  }
+  if (GNUNET_YES != GNUNET_DISK_directory_test ("/tmp/rps/", GNUNET_NO))
+  {
+    return GNUNET_SYSERR;
+  }
+  return GNUNET_YES;
+}
+
+const char *
+store_prefix_file_name (const struct GNUNET_PeerIdentity *peer,
+    const char *prefix)
+{
+  unsigned int len_file_name;
+  unsigned int out_size;
+  char *file_name;
+  const char *pid_long;
+
+  if (GNUNET_SYSERR == ensure_folder_exist()) return NULL;
+  pid_long = GNUNET_i2s_full (peer);
+  len_file_name = (strlen (prefix) +
+                   strlen (pid_long) +
+                   11)
+                     * sizeof (char);
+  file_name = GNUNET_malloc (len_file_name);
+  out_size = GNUNET_snprintf (file_name,
+                              len_file_name,
+                              "/tmp/rps/%s-%s",
+                              prefix,
+                              pid_long);
+  if (len_file_name < out_size ||
+      0 > out_size)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+               "Failed to write string to buffer (size: %i, out_size: %i)\n",
+               len_file_name,
+               out_size);
+  }
+  return file_name;
+}
+
 /* end of gnunet-service-rps.c */

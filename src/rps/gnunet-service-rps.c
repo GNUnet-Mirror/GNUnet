@@ -1920,7 +1920,24 @@ static struct RPS_Sampler *client_sampler;
 /**
  * Name to log view to
  */
-static char *file_name_view_log;
+static const char *file_name_view_log;
+
+#ifdef TO_FILE
+/**
+ * Name to log number of observed peers to
+ */
+static const char *file_name_observed_log;
+
+/**
+ * @brief Count the observed peers
+ */
+static uint32_t num_observed_peers;
+
+/**
+ * @brief Multipeermap (ab-) used to count unique peer_ids
+ */
+static struct GNUNET_CONTAINER_MultiPeerMap *observed_unique_peers;
+#endif /* TO_FILE */
 
 /**
  * The size of sampler we need to be able to satisfy the client's need
@@ -2511,6 +2528,21 @@ insert_in_sampler (void *cls,
      * messages to it */
     //Peers_indicate_sending_intention (peer);
   }
+  #ifdef TO_FILE
+  num_observed_peers++;
+  GNUNET_CONTAINER_multipeermap_put
+    (observed_unique_peers,
+     peer,
+     NULL,
+     GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
+  uint32_t num_observed_unique_peers = GNUNET_CONTAINER_multipeermap_size (
+      observed_unique_peers);
+  to_file (file_name_observed_log,
+          "%" PRIu32 " %" PRIu32 " %f\n",
+          num_observed_peers,
+          num_observed_unique_peers,
+          1.0*num_observed_unique_peers/num_observed_peers)
+  #endif /* TO_FILE */
 }
 
 /**
@@ -4126,7 +4158,12 @@ shutdown_task (void *cls)
   }
   #ifdef ENABLE_MALICIOUS
   struct AttackedPeer *tmp_att_peer;
-  GNUNET_free (file_name_view_log);
+  /* it is ok to free this const during shutdown: */
+  GNUNET_free ((char *) file_name_view_log);
+  #ifdef TO_FILE
+  GNUNET_free ((char *) file_name_observed_log);
+  GNUNET_CONTAINER_multipeermap_destroy (observed_unique_peers);
+  #endif /* TO_FILE */
   GNUNET_array_grow (mal_peers, num_mal_peers, 0);
   if (NULL != mal_peer_set)
     GNUNET_CONTAINER_multipeermap_destroy (mal_peer_set);
@@ -4211,8 +4248,6 @@ run (void *cls,
      const struct GNUNET_CONFIGURATION_Handle *c,
      struct GNUNET_SERVICE_Handle *service)
 {
-  int size;
-  int out_size;
   char* fn_valid_peers;
   struct GNUNET_HashCode port;
 
@@ -4271,27 +4306,11 @@ run (void *cls,
   View_create (view_size_est_min);
 
   /* file_name_view_log */
-  if (GNUNET_OK != GNUNET_DISK_directory_create ("/tmp/rps/"))
-  {
-    LOG (GNUNET_ERROR_TYPE_WARNING,
-         "Failed to create directory /tmp/rps/\n");
-  }
-
-  size = (14 + strlen (GNUNET_i2s_full (&own_identity)) + 1) * sizeof (char);
-  file_name_view_log = GNUNET_malloc (size);
-  out_size = GNUNET_snprintf (file_name_view_log,
-                              size,
-                              "/tmp/rps/view-%s",
-                              GNUNET_i2s_full (&own_identity));
-  if (size < out_size ||
-      0 > out_size)
-  {
-    LOG (GNUNET_ERROR_TYPE_WARNING,
-         "Failed to write string to buffer (size: %i, out_size: %i)\n",
-         size,
-         out_size);
-  }
-
+  file_name_view_log = store_prefix_file_name (&own_identity, "view");
+  #ifdef TO_FILE
+  file_name_observed_log = store_prefix_file_name (&own_identity, "observed");
+  observed_unique_peers = GNUNET_CONTAINER_multipeermap_create (1, GNUNET_NO);
+  #endif /* TO_FILE */
 
   /* connect to NSE */
   nse = GNUNET_NSE_connect (cfg, nse_callback, NULL);

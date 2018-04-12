@@ -1809,56 +1809,6 @@ profiler_eval (void)
   return evaluate ();
 }
 
-/**
- * @brief Try to ensure that `/tmp/rps` exists.
- *
- * @return #GNUNET_YES on success
- *         #GNUNET_SYSERR on failure
- */
-static int ensure_folder_exist (void)
-{
-  if (GNUNET_NO == GNUNET_DISK_directory_test ("/tmp/rps/", GNUNET_NO))
-  {
-    GNUNET_DISK_directory_create ("/tmp/rps");
-  }
-  if (GNUNET_YES != GNUNET_DISK_directory_test ("/tmp/rps/", GNUNET_NO))
-  {
-    return GNUNET_SYSERR;
-  }
-  return GNUNET_YES;
-}
-
-static const char *
-store_prefix_file_name (struct RPSPeer *rps_peer, const char *prefix)
-{
-  unsigned int len_file_name;
-  unsigned int out_size;
-  char *file_name;
-  const char *pid_long;
-
-  if (GNUNET_SYSERR == ensure_folder_exist()) return NULL;
-  pid_long = GNUNET_i2s_full (rps_peer->peer_id);
-  len_file_name = (strlen (prefix) +
-                   strlen (pid_long) +
-                   11)
-                     * sizeof (char);
-  file_name = GNUNET_malloc (len_file_name);
-  out_size = GNUNET_snprintf (file_name,
-                              len_file_name,
-                              "/tmp/rps/%s-%s",
-                              prefix,
-                              pid_long);
-  if (len_file_name < out_size ||
-      0 > out_size)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-               "Failed to write string to buffer (size: %i, out_size: %i)\n",
-               len_file_name,
-               out_size);
-  }
-  return file_name;
-}
-
 static uint32_t fac (uint32_t x)
 {
   if (1 >= x)
@@ -2253,7 +2203,8 @@ void view_update_cb (void *cls,
 static void
 pre_profiler (struct RPSPeer *rps_peer, struct GNUNET_RPS_Handle *h)
 {
-  rps_peer->file_name_probs = store_prefix_file_name (rps_peer, "probs");
+  rps_peer->file_name_probs =
+    store_prefix_file_name (rps_peer->peer_id, "probs");
   GNUNET_RPS_view_request (h, 0, view_update_cb, rps_peer);
 }
 
@@ -2576,7 +2527,8 @@ void post_profiler (struct RPSPeer *rps_peer)
       stat_cls = GNUNET_malloc (sizeof (struct STATcls));
       stat_cls->rps_peer = rps_peer;
       stat_cls->stat_type = stat_type;
-      rps_peer->file_name_stats = store_prefix_file_name (rps_peer, "stats");
+      rps_peer->file_name_stats =
+        store_prefix_file_name (rps_peer->peer_id, "stats");
       GNUNET_STATISTICS_get (rps_peer->stats_h,
                              "rps",
                              stat_type_2_str (stat_type),

@@ -72,5 +72,9 @@ create_file (const char *name);
 #  define to_file_w_len(file_name, len, ...)
 #endif /* TO_FILE */
 
+const char *
+store_prefix_file_name (const struct GNUNET_PeerIdentity *peer,
+    const char *prefix);
+
 #endif /* RPS_TEST_UTIL_H */
 /* end of gnunet-service-rps.c */
