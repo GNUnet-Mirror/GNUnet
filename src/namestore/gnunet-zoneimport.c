@@ -40,7 +40,7 @@ struct Record
    * Kept in a DLL.
    */
   struct Record *next;
-  
+
   /**
    * Kept in a DLL.
    */
@@ -50,7 +50,7 @@ struct Record
    * GNS record.
    */
   struct GNUNET_GNSRECORD_Data grd;
-  
+
 };
 
 
@@ -60,27 +60,22 @@ struct Record
 struct Request
 {
   /**
-   * Requests are kept in a DLL.
+   * Requests are kept in a heap.
    */
-  struct Request *next;
-
-  /**
-   * Requests are kept in a DLL.
-   */
-  struct Request *prev;
+  struct GNUNET_CONTAINER_HeapNode *hn;
 
   /**
    * Head of records that should be published in GNS for
    * this hostname.
    */
   struct Record *rec_head;
-  
+
   /**
    * Tail of records that should be published in GNS for
    * this hostname.
    */
   struct Record *rec_tail;
-  
+
   /**
    * Socket used to make the request, NULL if not active.
    */
@@ -106,19 +101,19 @@ struct Request
    * if not active.
    */
   struct GNUNET_DNSPARSER_Packet *p;
-  
+
   /**
    * At what time does the (earliest) of the returned records
    * for this name expire? At this point, we need to re-fetch
    * the record.
-   */ 
+   */
   struct GNUNET_TIME_Absolute expires;
 
   /**
    * Number of bytes in @e raw.
    */
   size_t raw_len;
-  
+
   /**
    * When did we last issue this request?
    */
@@ -139,7 +134,7 @@ struct Request
 
 /**
  * Handle to the identity service.
- */ 
+ */
 static struct GNUNET_IDENTITY_Handle *id;
 
 /**
@@ -178,16 +173,10 @@ static unsigned int failures;
 static unsigned int records;
 
 /**
- * Head of DLL of all requests to perform, sorted by
+ * Heap of all requests to perform, sorted by
  * the time we should next do the request (i.e. by expires).
  */
-static struct Request *req_head;
-
-/**
- * Tail of DLL of all requests to perform, sorted by
- * the time we should next do the request (i.e. by expires).
- */
-static struct Request *req_tail;
+static struct GNUNET_CONTAINER_Heap *req_heap;
 
 /**
  * Main task.
@@ -211,7 +200,7 @@ static struct GNUNET_CRYPTO_EcdsaPrivateKey zone;
 
 /**
  * Which zone should records be imported into?
- */ 
+ */
 static char *zone_name;
 
 /**
@@ -264,7 +253,7 @@ for_all_records (const struct GNUNET_DNSPARSER_Packet *p,
   for (unsigned int i=0;i<p->num_answers;i++)
   {
     struct GNUNET_DNSPARSER_Record *rs = &p->answers[i];
-    
+
     rp (rp_cls,
 	rs);
   }
@@ -288,28 +277,14 @@ for_all_records (const struct GNUNET_DNSPARSER_Packet *p,
 /**
  * Insert @a req into DLL sorted by next fetch time.
  *
- * @param req request to insert into #req_head / #req_tail DLL
+ * @param req request to insert into #req_heap
  */
 static void
 insert_sorted (struct Request *req)
 {
-  struct Request *prev;
-
-  prev = NULL;
-  /* NOTE: this linear-time loop may actually be our
-     main burner of CPU time for large zones, to be
-     revisited if CPU utilization turns out to be an
-     issue! */
-  for (struct Request *pos = req_head;
-       ( (NULL != pos) &&
-	 (NULL != pos->next) &&
-	 (pos->expires.abs_value_us <= req->expires.abs_value_us) );
-       pos = pos->next)
-    prev = pos;
-  GNUNET_CONTAINER_DLL_insert_after (req_head,
-				     req_tail,
-				     prev,
-				     req);
+  req->hn = GNUNET_CONTAINER_heap_insert (req_heap,
+                                          req,
+                                          req->expires.abs_value_us);
 }
 
 
@@ -482,7 +457,7 @@ check_for_glue (void *cls,
     break;
   default:
     /* useless, do nothing */
-    break;    
+    break;
   }
 }
 
@@ -730,9 +705,8 @@ process_result (void *cls,
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Stub gave up on DNS reply for `%s'\n",
                 req->hostname);
-    GNUNET_CONTAINER_DLL_remove (req_head,
-                                 req_tail,
-                                 req);
+    GNUNET_assert (req == GNUNET_CONTAINER_heap_remove_node (req->hn));
+    req->hn = NULL;
     if (req->issue_num > MAX_RETRIES)
     {
       failures++;
@@ -741,10 +715,8 @@ process_result (void *cls,
       GNUNET_free (req);
       return;
     }
-    GNUNET_CONTAINER_DLL_insert_tail (req_head,
-                                      req_tail,
-                                      req);
     req->rs = NULL;
+    insert_sorted (req);
     return;
   }
   if (req->id != dns->id)
@@ -752,9 +724,8 @@ process_result (void *cls,
   pending--;
   GNUNET_DNSSTUB_resolve_cancel (req->rs);
   req->rs = NULL;
-  GNUNET_CONTAINER_DLL_remove (req_head,
-                               req_tail,
-                               req);
+  GNUNET_assert (req == GNUNET_CONTAINER_heap_remove_node (req->hn));
+  req->hn = NULL;
   p = GNUNET_DNSPARSER_parse ((const char *) dns,
                               dns_len);
   if (NULL == p)
@@ -816,7 +787,7 @@ process_result (void *cls,
     /* convert linked list into array */
     for (rec = req->rec_head; NULL != rec; rec =rec->next)
       rd[off++] = rec->grd;
-    if (GNUNET_OK != 
+    if (GNUNET_OK !=
 	ns->store_records (ns->cls,
 			   &zone,
 			   req->label,
@@ -888,26 +859,32 @@ submit_req (struct Request *req)
 static void
 process_queue(void *cls)
 {
+  struct Request *req;
+
   (void) cls;
   t = NULL;
-  for (struct Request *req = req_head;
-       NULL != req;
-       req = req->next)
+  do
   {
+    req = GNUNET_CONTAINER_heap_peek (req_heap);
+    if (NULL == req)
+      break;
     if (GNUNET_TIME_absolute_get_remaining (req->expires).rel_value_us > 0)
       break;
-    if (GNUNET_SYSERR == submit_req (req))
-      break;
+    GNUNET_assert (req == GNUNET_CONTAINER_heap_remove_root (req_heap));
+    req->hn = NULL;
   }
-  if (NULL != req_head)
+  while (GNUNET_SYSERR != submit_req (req));
+
+  req = GNUNET_CONTAINER_heap_peek (req_heap);
+  if (NULL != req)
   {
-    if (GNUNET_TIME_absolute_get_remaining (req_head->expires).rel_value_us > 0)
+    if (GNUNET_TIME_absolute_get_remaining (req->expires).rel_value_us > 0)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 		  "Waiting until %s for next record (`%s') to expire\n",
-		  GNUNET_STRINGS_absolute_time_to_string (req_head->expires),
-		  req_head->hostname);
-      t = GNUNET_SCHEDULER_add_at (req_head->expires,
+		  GNUNET_STRINGS_absolute_time_to_string (req->expires),
+		  req->hostname);
+      t = GNUNET_SCHEDULER_add_at (req->expires,
 				   &process_queue,
 				   NULL);
     }
@@ -937,6 +914,8 @@ process_queue(void *cls)
 static void
 do_shutdown (void *cls)
 {
+  struct Request *req;
+
   (void) cls;
   if (NULL != id)
   {
@@ -956,8 +935,23 @@ do_shutdown (void *cls)
     GNUNET_free (db_lib_name);
     db_lib_name = NULL;
   }
-  GNUNET_DNSSTUB_stop (ctx);
-  ctx = NULL;
+  if (NULL != ctx)
+  {
+    GNUNET_DNSSTUB_stop (ctx);
+    ctx = NULL;
+  }
+  while (NULL != (req = GNUNET_CONTAINER_heap_remove_root (req_heap)))
+  {
+    req->hn = NULL;
+    GNUNET_free (req->hostname);
+    GNUNET_free (req->label);
+    GNUNET_free (req);
+  }
+  if (NULL != req_heap)
+  {
+    GNUNET_CONTAINER_heap_destroy (req_heap);
+    req_heap = NULL;
+  }
 }
 
 
@@ -988,13 +982,13 @@ import_records (void *cls,
   {
     struct GNUNET_TIME_Absolute at;
 
-    at.abs_value_us = rd->expiration_time; 
+    at.abs_value_us = rd->expiration_time;
     add_record (req,
 		rd->record_type,
 		at,
 		rd->data,
 		rd->data_size);
-  }				      
+  }
 }
 
 
@@ -1024,7 +1018,7 @@ queue (const char *hostname)
   }
   /* TODO: may later support importing zones that
      are not TLD, for this we mostly need to change
-     the logic here to remove the zone's suffix 
+     the logic here to remove the zone's suffix
      instead of just ".tld" */
   dot = strrchr (hostname,
 		 (unsigned char) '.');
@@ -1094,7 +1088,7 @@ queue (const char *hostname)
   else
   {
     unsigned int rd_count = 0;
-    
+
     req->expires = GNUNET_TIME_UNIT_FOREVER_ABS;
     for (struct Record *rec = req->rec_head;
 	 NULL != rec;
@@ -1235,6 +1229,7 @@ run (void *cls,
   (void) cls;
   (void) args;
   (void) cfgfile;
+  req_heap = GNUNET_CONTAINER_heap_create (GNUNET_CONTAINER_HEAP_ORDER_MIN);
   ctx = GNUNET_DNSSTUB_start (dns_server);
   if (NULL == ctx)
   {
@@ -1254,7 +1249,7 @@ run (void *cls,
                    "libgnunet_plugin_namestore_%s",
                    database);
   ns = GNUNET_PLUGIN_load (db_lib_name,
-			   (void *) cfg); 
+			   (void *) cfg);
   GNUNET_free (database);
   GNUNET_SCHEDULER_add_shutdown (&do_shutdown,
                                  NULL);
@@ -1284,7 +1279,7 @@ main (int argc,
     GNUNET_GETOPT_option_mandatory
     (GNUNET_GETOPT_option_string ('s',
 				  "server",
-				  "IP",				 
+				  "IP",
 				  "which DNS server should be used",
 				  &dns_server)),
     GNUNET_GETOPT_option_mandatory
