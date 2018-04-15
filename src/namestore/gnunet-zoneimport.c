@@ -32,6 +32,38 @@
 
 
 /**
+ * Some zones may include authoritative records for other
+ * zones, such as foo.com.uk or bar.com.fr.  As for GNS
+ * each dot represents a zone cut, we then need to create a
+ * zone on-the-fly to capture those records properly.
+ */
+struct Zone
+{
+
+  /**
+   * Kept in a DLL.
+   */
+  struct Zone *next;
+
+  /**
+   * Kept in a DLL.
+   */
+  struct Zone *prev;
+
+  /**
+   * Domain of the zone (i.e. "fr" or "com.fr")
+   */
+  char *domain;
+
+  /**
+   * Private key of the zone.
+   */
+  struct GNUNET_CRYPTO_EcdsaPrivateKey key;
+
+};
+
+
+/**
  * Record for the request to be stored by GNS.
  */
 struct Record
@@ -95,6 +127,11 @@ struct Request
    * Label (without TLD) which we are resolving.
    */
   char *label;
+
+  /**
+   * Zone responsible for this request.
+   */
+  const struct Zone *zone;
 
   /**
    * Answer we got back and are currently parsing, or NULL
@@ -194,20 +231,14 @@ static char *dns_server;
 static char *db_lib_name;
 
 /**
- * Which zone are we importing into?
+ * Head of list of zones we are managing.
  */
-static struct GNUNET_CRYPTO_EcdsaPrivateKey zone;
+static struct Zone *zone_head;
 
 /**
- * Which zone should records be imported into?
+ * Tail of list of zones we are managing.
  */
-static char *zone_name;
-
-/**
- * Did we find #zone_name and initialize #zone?
- */
-static int zone_found;
-
+static struct Zone *zone_tail;
 
 /**
  * Maximum number of queries pending at the same time.
@@ -789,7 +820,7 @@ process_result (void *cls,
       rd[off++] = rec->grd;
     if (GNUNET_OK !=
 	ns->store_records (ns->cls,
-			   &zone,
+			   &req->zone->key,
 			   req->label,
 			   rd_count,
 			   rd))
@@ -915,6 +946,7 @@ static void
 do_shutdown (void *cls)
 {
   struct Request *req;
+  struct Zone *zone;
 
   (void) cls;
   if (NULL != id)
@@ -952,6 +984,14 @@ do_shutdown (void *cls)
     GNUNET_CONTAINER_heap_destroy (req_heap);
     req_heap = NULL;
   }
+  while (NULL != (zone = zone_head))
+  {
+    GNUNET_CONTAINER_DLL_remove (zone_head,
+                                 zone_tail,
+                                 zone);
+    GNUNET_free (zone->domain);
+    GNUNET_free (zone);
+  }
 }
 
 
@@ -974,8 +1014,8 @@ import_records (void *cls,
   struct Request *req = cls;
 
   GNUNET_break (0 == memcmp (private_key,
-			     &zone,
-			     sizeof (zone)));
+			     &req->zone->key,
+			     sizeof (*private_key)));
   GNUNET_break (0 == strcasecmp (label,
 				 req->label));
   for (unsigned int i=0;i<rd_count;i++)
@@ -1006,6 +1046,7 @@ queue (const char *hostname)
   char *raw;
   size_t raw_size;
   const char *dot;
+  struct Zone *zone;
 
   if (GNUNET_OK !=
       GNUNET_DNSPARSER_check_name (hostname))
@@ -1016,18 +1057,29 @@ queue (const char *hostname)
     rejects++;
     return;
   }
-  /* TODO: may later support importing zones that
-     are not TLD, for this we mostly need to change
-     the logic here to remove the zone's suffix
-     instead of just ".tld" */
-  dot = strrchr (hostname,
-		 (unsigned char) '.');
+  dot = strchr (hostname,
+                (unsigned char) '.');
   if (NULL == dot)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Refusing invalid hostname `%s' (lacks '.')\n",
                 hostname);
     rejects++;
+    return;
+  }
+  for (zone = zone_head; NULL != zone; zone = zone->next)
+    if ( (0 == strncmp (zone->domain,
+                        hostname,
+                        dot - hostname)) &&
+         (strlen (zone->domain) == dot - hostname) )
+      break;
+  if (NULL == zone)
+  {
+    rejects++;
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Domain name `%.*s' not in ego list!\n",
+                (int) (dot - hostname),
+                hostname);
     return;
   }
   q.name = (char *) hostname;
@@ -1056,27 +1108,16 @@ queue (const char *hostname)
   }
 
   req = GNUNET_new (struct Request);
+  req->zone = zone;
   req->hostname = GNUNET_strdup (hostname);
   req->raw = raw;
   req->raw_len = raw_size;
   req->id = p.id;
   req->label = GNUNET_strndup (hostname,
 			       dot - hostname);
-  if (NULL != strchr (req->label,
-		      (unsigned char) '.'))
-  {
-    GNUNET_free (req->hostname);
-    GNUNET_free (req->label);
-    GNUNET_free (req);
-    rejects++;
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Label contained a `.', invalid hostname `%s'\n",
-                hostname);
-    return;
-  }
   if (GNUNET_OK !=
       ns->lookup_records (ns->cls,
-			  &zone,
+			  &req->zone->key,
 			  req->label,
 			  &import_records,
 			  req))
@@ -1188,9 +1229,11 @@ identity_cb (void *cls,
   (void) ctx;
   if (NULL == ego)
   {
-    if (zone_found)
+    if (NULL != zone_head)
+    {
       t = GNUNET_SCHEDULER_add_now (&process_stdin,
 				    NULL);
+    }
     else
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -1199,12 +1242,16 @@ identity_cb (void *cls,
       return;
     }
   }
-  if ( (NULL != name) &&
-       (0 == strcasecmp (name,
-			 zone_name)) )
+  if (NULL != name)
   {
-    zone_found = GNUNET_YES;
-    zone = *GNUNET_IDENTITY_ego_get_private_key (ego);
+    struct Zone *zone;
+
+    zone = GNUNET_new (struct Zone);
+    zone->key = *GNUNET_IDENTITY_ego_get_private_key (ego);
+    zone->domain = GNUNET_strdup (name);
+    GNUNET_CONTAINER_DLL_insert (zone_head,
+                                 zone_tail,
+                                 zone);
   }
 }
 
@@ -1282,12 +1329,6 @@ main (int argc,
 				  "IP",
 				  "which DNS server should be used",
 				  &dns_server)),
-    GNUNET_GETOPT_option_mandatory
-    (GNUNET_GETOPT_option_string ('i',
-				  "identity",
-				  "ZONENAME",
-				  "which GNS zone should we import data into",
-				  &zone_name)),
     GNUNET_GETOPT_OPTION_END
   };
 
