@@ -32,6 +32,28 @@
 
 
 /**
+ * Maximum number of queries pending at the same time.
+ */
+#define THRESH 20
+
+/**
+ * TIME_THRESH is in usecs.  How quickly do we submit fresh queries.
+ * Used as an additional throttle.
+ */
+#define TIME_THRESH 10
+
+/**
+ * How often do we retry a query before giving up for good?
+ */
+#define MAX_RETRIES 5
+
+/**
+ * After how many lookups should we always sync to disk?
+ */
+#define TRANSACTION_SYNC_FREQ 100
+
+
+/**
  * Some zones may include authoritative records for other
  * zones, such as foo.com.uk or bar.com.fr.  As for GNS
  * each dot represents a zone cut, we then need to create a
@@ -241,20 +263,14 @@ static struct Zone *zone_head;
 static struct Zone *zone_tail;
 
 /**
- * Maximum number of queries pending at the same time.
+ * Set to #GNUNET_YES if we are currently in a DB transaction.
  */
-#define THRESH 20
+static int in_transaction;
 
 /**
- * TIME_THRESH is in usecs.  How quickly do we submit fresh queries.
- * Used as an additional throttle.
+ * Flag set if we should use transactions to batch DB operations.
  */
-#define TIME_THRESH 10
-
-/**
- * How often do we retry a query before giving up for good?
- */
-#define MAX_RETRIES 5
+static int use_transactions;
 
 
 /**
@@ -818,6 +834,15 @@ process_result (void *cls,
     /* convert linked list into array */
     for (rec = req->rec_head; NULL != rec; rec =rec->next)
       rd[off++] = rec->grd;
+    if ( (! in_transaction) &&
+         (GNUNET_YES == use_transactions) )
+    {
+      /* not all plugins support transactions, but if one does,
+         remember we need to eventually commit... */
+      if (GNUNET_OK ==
+          ns->begin_transaction (ns->cls))
+        in_transaction = GNUNET_YES;
+    }
     if (GNUNET_OK !=
 	ns->store_records (ns->cls,
 			   &req->zone->key,
@@ -883,6 +908,25 @@ submit_req (struct Request *req)
 
 
 /**
+ * If we are currently in a transaction, commit it.
+ */
+static void
+finish_transaction ()
+{
+  if (! in_transaction)
+    return;
+  if (GNUNET_OK !=
+      ns->commit_transaction (ns->cls))
+  {
+    GNUNET_break (0);
+    GNUNET_SCHEDULER_shutdown ();
+    return;
+  }
+  in_transaction = GNUNET_NO;
+}
+
+
+/**
  * Process as many requests as possible from the queue.
  *
  * @param cls NULL
@@ -891,6 +935,7 @@ static void
 process_queue(void *cls)
 {
   struct Request *req;
+  static unsigned int cnt;
 
   (void) cls;
   t = NULL;
@@ -915,12 +960,15 @@ process_queue(void *cls)
 		  "Waiting until %s for next record (`%s') to expire\n",
 		  GNUNET_STRINGS_absolute_time_to_string (req->expires),
 		  req->hostname);
+      finish_transaction ();
       t = GNUNET_SCHEDULER_add_at (req->expires,
 				   &process_queue,
 				   NULL);
     }
     else
     {
+      if (0 == cnt++ % TRANSACTION_SYNC_FREQ)
+        finish_transaction ();
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "Throttling for 1ms\n");
       t = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_MILLISECONDS,
@@ -959,6 +1007,7 @@ do_shutdown (void *cls)
     GNUNET_SCHEDULER_cancel (t);
     t = NULL;
   }
+  finish_transaction ();
   if (NULL != ns)
   {
     GNUNET_break (NULL ==
@@ -1329,6 +1378,10 @@ main (int argc,
 				  "IP",
 				  "which DNS server should be used",
 				  &dns_server)),
+    GNUNET_GETOPT_option_flag ('e',
+                               "enable-transactions",
+                               "enable use of transactions to reduce disk IO",
+                               &use_transactions),
     GNUNET_GETOPT_OPTION_END
   };
 
