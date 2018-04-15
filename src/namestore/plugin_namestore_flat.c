@@ -383,7 +383,7 @@ static void
 database_shutdown (struct Plugin *plugin)
 {
   struct GNUNET_DISK_FileHandle *fh;
-  
+
   fh = GNUNET_DISK_file_open (plugin->fn,
                               GNUNET_DISK_OPEN_CREATE |
                               GNUNET_DISK_OPEN_TRUNCATE |
@@ -418,11 +418,11 @@ database_shutdown (struct Plugin *plugin)
  * @return #GNUNET_OK on success, else #GNUNET_SYSERR
  */
 static int
-namestore_store_records (void *cls,
-                         const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone_key,
-                         const char *label,
-                         unsigned int rd_count,
-                         const struct GNUNET_GNSRECORD_Data *rd)
+namestore_flat_store_records (void *cls,
+                              const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone_key,
+                              const char *label,
+                              unsigned int rd_count,
+                              const struct GNUNET_GNSRECORD_Data *rd)
 {
   struct Plugin *plugin = cls;
   uint64_t rvalue;
@@ -488,11 +488,11 @@ namestore_store_records (void *cls,
  * @return #GNUNET_OK on success, else #GNUNET_SYSERR
  */
 static int
-namestore_lookup_records (void *cls,
-                          const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone,
-                          const char *label,
-                          GNUNET_NAMESTORE_RecordIterator iter,
-                          void *iter_cls)
+namestore_flat_lookup_records (void *cls,
+                               const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone,
+                               const char *label,
+                               GNUNET_NAMESTORE_RecordIterator iter,
+                               void *iter_cls)
 {
   struct Plugin *plugin = cls;
   struct FlatFileEntry *entry;
@@ -571,11 +571,11 @@ iterate_zones (void *cls,
  * @return #GNUNET_OK on success, #GNUNET_NO if there were no results, #GNUNET_SYSERR on error
  */
 static int
-namestore_iterate_records (void *cls,
-                           const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone,
-                           uint64_t offset,
-                           GNUNET_NAMESTORE_RecordIterator iter,
-			   void *iter_cls)
+namestore_flat_iterate_records (void *cls,
+                                const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone,
+                                uint64_t offset,
+                                GNUNET_NAMESTORE_RecordIterator iter,
+                                void *iter_cls)
 {
   struct Plugin *plugin = cls;
 
@@ -641,11 +641,11 @@ zone_to_name (void *cls,
  * @return #GNUNET_OK on success, #GNUNET_NO if there were no results, #GNUNET_SYSERR on error
  */
 static int
-namestore_zone_to_name (void *cls,
-                        const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone,
-                        const struct GNUNET_CRYPTO_EcdsaPublicKey *value_zone,
-                        GNUNET_NAMESTORE_RecordIterator iter,
-			void *iter_cls)
+namestore_flat_zone_to_name (void *cls,
+                             const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone,
+                             const struct GNUNET_CRYPTO_EcdsaPublicKey *value_zone,
+                             GNUNET_NAMESTORE_RecordIterator iter,
+                             void *iter_cls)
 {
   struct Plugin *plugin = cls;
 
@@ -663,6 +663,46 @@ namestore_zone_to_name (void *cls,
                                          &zone_to_name,
                                          plugin);
   return plugin->iter_result_found;
+}
+
+
+/**
+ * Start a transaction.
+ *
+ * @param cls closure
+ * @return #GNUNET_OK on success, #GNUNET_NO if transactions are not supported,
+ *         #GNUNET_SYSERR on internal errors
+ */
+static int
+namestore_flat_begin_transaction (void *cls)
+{
+  return GNUNET_NO;
+}
+
+
+/**
+ * Try to commit a transaction.
+ *
+ * @param cls closure
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR on failure
+ */
+static int
+namestore_flat_commit_transaction (void *cls)
+{
+  GNUNET_break (0);
+  return GNUNET_SYSERR;
+}
+
+
+/**
+ * Rollback a transaction.
+ *
+ * @param cls closure
+ */
+static void
+namestore_flat_rollback_transaction (void *cls)
+{
+  GNUNET_break (0);
 }
 
 
@@ -692,10 +732,13 @@ libgnunet_plugin_namestore_flat_init (void *cls)
   }
   api = GNUNET_new (struct GNUNET_NAMESTORE_PluginFunctions);
   api->cls = &plugin;
-  api->store_records = &namestore_store_records;
-  api->iterate_records = &namestore_iterate_records;
-  api->zone_to_name = &namestore_zone_to_name;
-  api->lookup_records = &namestore_lookup_records;
+  api->store_records = &namestore_flat_store_records;
+  api->iterate_records = &namestore_flat_iterate_records;
+  api->zone_to_name = &namestore_flat_zone_to_name;
+  api->lookup_records = &namestore_flat_lookup_records;
+  api->begin_transaction = &namestore_flat_begin_transaction;
+  api->commit_transaction = &namestore_flat_commit_transaction;
+  api->rollback_transaction = &namestore_flat_rollback_transaction;
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               _("flat file database running\n"));
   return api;

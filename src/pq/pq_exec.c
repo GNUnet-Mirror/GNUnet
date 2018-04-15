@@ -79,7 +79,6 @@ GNUNET_PQ_exec_statements (PGconn *connection,
 
     result = PQexec (connection,
                      es[i].sql);
-
     if ( (GNUNET_NO == es[i].ignore_errors) &&
          (PGRES_COMMAND_OK != PQresultStatus (result)) )
     {
