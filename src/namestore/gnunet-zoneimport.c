@@ -1117,18 +1117,15 @@ queue (const char *hostname)
     return;
   }
   for (zone = zone_head; NULL != zone; zone = zone->next)
-    if ( (0 == strncmp (zone->domain,
-                        hostname,
-                        dot - hostname)) &&
-         (strlen (zone->domain) == dot - hostname) )
+    if (0 == strcmp (zone->domain,
+                     dot + 1))
       break;
   if (NULL == zone)
   {
     rejects++;
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Domain name `%.*s' not in ego list!\n",
-                (int) (dot - hostname),
-                hostname);
+                "Domain name `%s' not in ego list!\n",
+                dot + 1);
     return;
   }
   q.name = (char *) hostname;
