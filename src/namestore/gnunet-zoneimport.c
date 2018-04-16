@@ -752,8 +752,12 @@ process_result (void *cls,
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Stub gave up on DNS reply for `%s'\n",
                 req->hostname);
-    GNUNET_assert (req == GNUNET_CONTAINER_heap_remove_node (req->hn));
-    req->hn = NULL;
+    if (NULL != req->hn)
+    {
+      GNUNET_break (0); /* should not be possible */
+      GNUNET_assert (req == GNUNET_CONTAINER_heap_remove_node (req->hn));
+      req->hn = NULL;
+    }
     if (req->issue_num > MAX_RETRIES)
     {
       failures++;
@@ -771,8 +775,12 @@ process_result (void *cls,
   pending--;
   GNUNET_DNSSTUB_resolve_cancel (req->rs);
   req->rs = NULL;
-  GNUNET_assert (req == GNUNET_CONTAINER_heap_remove_node (req->hn));
-  req->hn = NULL;
+  if (NULL != req->hn)
+  {
+    GNUNET_break (0); /* should not be possible */
+    GNUNET_assert (req == GNUNET_CONTAINER_heap_remove_node (req->hn));
+    req->hn = NULL;
+  }
   p = GNUNET_DNSPARSER_parse ((const char *) dns,
                               dns_len);
   if (NULL == p)
@@ -932,7 +940,7 @@ finish_transaction ()
  * @param cls NULL
  */
 static void
-process_queue(void *cls)
+process_queue (void *cls)
 {
   struct Request *req;
   static unsigned int cnt;
