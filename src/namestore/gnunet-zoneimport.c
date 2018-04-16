@@ -114,9 +114,19 @@ struct Record
 struct Request
 {
   /**
-   * Requests are kept in a heap.
+   * Requests are kept in a heap while waiting to be resolved.
    */
   struct GNUNET_CONTAINER_HeapNode *hn;
+
+  /**
+   * Active requests are kept in a DLL.
+   */ 
+  struct Request *next;
+
+  /**
+   * Active requests are kept in a DLL.
+   */ 
+  struct Request *prev;
 
   /**
    * Head of records that should be published in GNS for
@@ -238,6 +248,16 @@ static unsigned int records;
 static struct GNUNET_CONTAINER_Heap *req_heap;
 
 /**
+ * Active requests are kept in a DLL.
+ */ 
+static struct Request *req_head;
+
+/**
+ * Active requests are kept in a DLL.
+ */ 
+static struct Request *req_tail;
+
+/**
  * Main task.
  */
 static struct GNUNET_SCHEDULER_Task *t;
@@ -322,6 +342,39 @@ for_all_records (const struct GNUNET_DNSPARSER_Packet *p,
 
 
 /**
+ * Free @a req and data structures reachable from it.
+ *
+ * @param req request to free
+ */
+static void
+free_request (struct Request *req)
+{
+  struct Record *rec;
+    
+  while (NULL != (rec = req->rec_head))
+  {
+    GNUNET_CONTAINER_DLL_remove (req->rec_head,
+				 req->rec_tail,
+				 rec);
+    GNUNET_free (rec);
+  }
+  GNUNET_free (req->hostname);
+  GNUNET_free (req->label);
+  GNUNET_free (req->raw);
+  GNUNET_free (req);
+}
+
+
+/**
+ * Process as many requests as possible from the queue.
+ *
+ * @param cls NULL
+ */
+static void
+process_queue (void *cls);
+
+
+/**
  * Insert @a req into DLL sorted by next fetch time.
  *
  * @param req request to insert into #req_heap
@@ -332,6 +385,14 @@ insert_sorted (struct Request *req)
   req->hn = GNUNET_CONTAINER_heap_insert (req_heap,
                                           req,
                                           req->expires.abs_value_us);
+  if (req == GNUNET_CONTAINER_heap_peek (req_heap))
+  {    
+    if (NULL != t) 
+      GNUNET_SCHEDULER_cancel (t);
+    t = GNUNET_SCHEDULER_add_at (req->expires,
+				 &process_queue,
+				 NULL);
+  }
 }
 
 
@@ -745,25 +806,21 @@ process_result (void *cls,
   unsigned int rd_count;
 
   (void) rs;
+  GNUNET_assert (NULL == req->hn);
   if (NULL == dns)
   {
     /* stub gave up */
+    GNUNET_CONTAINER_DLL_remove (req_head,
+				 req_tail,
+				 req);
     pending--;
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Stub gave up on DNS reply for `%s'\n",
                 req->hostname);
-    if (NULL != req->hn)
-    {
-      GNUNET_break (0); /* should not be possible */
-      GNUNET_assert (req == GNUNET_CONTAINER_heap_remove_node (req->hn));
-      req->hn = NULL;
-    }
     if (req->issue_num > MAX_RETRIES)
     {
       failures++;
-      GNUNET_free (req->hostname);
-      GNUNET_free (req->raw);
-      GNUNET_free (req);
+      free_request (req);
       return;
     }
     req->rs = NULL;
@@ -772,15 +829,12 @@ process_result (void *cls,
   }
   if (req->id != dns->id)
     return;
+  GNUNET_CONTAINER_DLL_remove (req_head,
+			       req_tail,
+			       req);
   pending--;
   GNUNET_DNSSTUB_resolve_cancel (req->rs);
   req->rs = NULL;
-  if (NULL != req->hn)
-  {
-    GNUNET_break (0); /* should not be possible */
-    GNUNET_assert (req == GNUNET_CONTAINER_heap_remove_node (req->hn));
-    req->hn = NULL;
-  }
   p = GNUNET_DNSPARSER_parse ((const char *) dns,
                               dns_len);
   if (NULL == p)
@@ -891,11 +945,17 @@ submit_req (struct Request *req)
   struct GNUNET_TIME_Absolute now;
 
   if (NULL != req->rs)
+  {
+    GNUNET_break (0);
     return GNUNET_NO; /* already submitted */
+  }
   now = GNUNET_TIME_absolute_get ();
   if ( (now.abs_value_us - last_request.abs_value_us < TIME_THRESH) ||
        (pending >= THRESH) )
     return GNUNET_SYSERR;
+  GNUNET_CONTAINER_DLL_insert (req_head,
+			       req_tail,
+			       req);
   GNUNET_assert (NULL == req->rs);
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 	      "Requesting resolution for `%s'\n",
@@ -947,48 +1007,47 @@ process_queue (void *cls)
 
   (void) cls;
   t = NULL;
-  do
+  while (1)
   {
     req = GNUNET_CONTAINER_heap_peek (req_heap);
     if (NULL == req)
       break;
     if (GNUNET_TIME_absolute_get_remaining (req->expires).rel_value_us > 0)
       break;
-    GNUNET_assert (req == GNUNET_CONTAINER_heap_remove_root (req_heap));
+    if (GNUNET_OK != submit_req (req))
+      break;
+    GNUNET_assert (req ==
+		   GNUNET_CONTAINER_heap_remove_root (req_heap));
     req->hn = NULL;
   }
-  while (GNUNET_SYSERR != submit_req (req));
 
   req = GNUNET_CONTAINER_heap_peek (req_heap);
-  if (NULL != req)
+  if (NULL == req)
+    return;
+  if (GNUNET_TIME_absolute_get_remaining (req->expires).rel_value_us > 0)
   {
-    if (GNUNET_TIME_absolute_get_remaining (req->expires).rel_value_us > 0)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-		  "Waiting until %s for next record (`%s') to expire\n",
-		  GNUNET_STRINGS_absolute_time_to_string (req->expires),
-		  req->hostname);
-      finish_transaction ();
-      t = GNUNET_SCHEDULER_add_at (req->expires,
-				   &process_queue,
-				   NULL);
-    }
-    else
-    {
-      if (0 == cnt++ % TRANSACTION_SYNC_FREQ)
-        finish_transaction ();
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "Throttling for 1ms\n");
-      t = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_MILLISECONDS,
-					&process_queue,
-					NULL);
-    }
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+		"Waiting until %s for next record (`%s') to expire\n",
+		GNUNET_STRINGS_absolute_time_to_string (req->expires),
+		req->hostname);
+    finish_transaction ();
+    if (NULL != t)
+      GNUNET_SCHEDULER_cancel (t);
+    t = GNUNET_SCHEDULER_add_at (req->expires,
+				 &process_queue,
+				 NULL);
   }
   else
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-		"No more pending requests, terminating\n");
-    GNUNET_SCHEDULER_shutdown ();
+    if (0 == cnt++ % TRANSACTION_SYNC_FREQ)
+      finish_transaction ();
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		"Throttling for 1ms\n");
+    if (NULL != t)
+      GNUNET_SCHEDULER_cancel (t);
+    t = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_MILLISECONDS,
+				      &process_queue,
+				      NULL);
   }
 }
 
@@ -1029,12 +1088,17 @@ do_shutdown (void *cls)
     GNUNET_DNSSTUB_stop (ctx);
     ctx = NULL;
   }
+  while (NULL != (req = req_head))
+  {
+    GNUNET_CONTAINER_DLL_remove (req_head,
+				 req_tail,
+				 req);
+    free_request (req);
+  }
   while (NULL != (req = GNUNET_CONTAINER_heap_remove_root (req_heap)))
   {
     req->hn = NULL;
-    GNUNET_free (req->hostname);
-    GNUNET_free (req->label);
-    GNUNET_free (req);
+    free_request (req);
   }
   if (NULL != req_heap)
   {
@@ -1234,8 +1298,6 @@ process_stdin (void *cls)
       hn[strlen(hn)-1] = '\0'; /* eat newline */
     queue (hn);
   }
-  t = GNUNET_SCHEDULER_add_now (&process_queue,
-                                NULL);
 }
 
 
