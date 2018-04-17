@@ -394,6 +394,7 @@ display_record (void *cls,
   struct GNUNET_TIME_Relative rt;
 
   (void) cls;
+  (void) zone_key;
   if ( (NULL != name) &&
        (0 != strcmp (name, rname)) )
   {
@@ -509,6 +510,7 @@ get_existing_record (void *cls,
   struct GNUNET_GNSRECORD_Data *rde;
 
   (void) cls;
+  (void) zone_key;
   add_qe = NULL;
   if (0 != strcmp (rec_name, name))
   {
@@ -656,6 +658,7 @@ handle_reverse_lookup (void *cls,
                        const struct GNUNET_GNSRECORD_Data *rd)
 {
   (void) cls;
+  (void) zone;
   reverse_qe = NULL;
   if (NULL == label)
     FPRINTF (stdout,

@@ -667,46 +667,6 @@ namestore_flat_zone_to_name (void *cls,
 
 
 /**
- * Start a transaction.
- *
- * @param cls closure
- * @return #GNUNET_OK on success, #GNUNET_NO if transactions are not supported,
- *         #GNUNET_SYSERR on internal errors
- */
-static int
-namestore_flat_begin_transaction (void *cls)
-{
-  return GNUNET_NO;
-}
-
-
-/**
- * Try to commit a transaction.
- *
- * @param cls closure
- * @return #GNUNET_OK on success, #GNUNET_SYSERR on failure
- */
-static int
-namestore_flat_commit_transaction (void *cls)
-{
-  GNUNET_break (0);
-  return GNUNET_SYSERR;
-}
-
-
-/**
- * Rollback a transaction.
- *
- * @param cls closure
- */
-static void
-namestore_flat_rollback_transaction (void *cls)
-{
-  GNUNET_break (0);
-}
-
-
-/**
  * Entry point for the plugin.
  *
  * @param cls the "struct GNUNET_NAMESTORE_PluginEnvironment*"
@@ -736,9 +696,6 @@ libgnunet_plugin_namestore_flat_init (void *cls)
   api->iterate_records = &namestore_flat_iterate_records;
   api->zone_to_name = &namestore_flat_zone_to_name;
   api->lookup_records = &namestore_flat_lookup_records;
-  api->begin_transaction = &namestore_flat_begin_transaction;
-  api->commit_transaction = &namestore_flat_commit_transaction;
-  api->rollback_transaction = &namestore_flat_rollback_transaction;
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               _("flat file database running\n"));
   return api;

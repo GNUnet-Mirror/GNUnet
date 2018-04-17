@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet
-     Copyright (C) 2012, 2013 GNUnet e.V.
+     Copyright (C) 2012, 2013, 2018 GNUnet e.V.
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -128,7 +128,6 @@ GNUNET_NAMESTORE_records_store (struct GNUNET_NAMESTORE_Handle *h,
 				void *cont_cls);
 
 
-
 /**
  * Process a record that was stored in the namestore.
  *
@@ -153,7 +152,7 @@ typedef void
  * @param pkey private key of the zone
  * @param nick the nick name to set
  * @param cont continuation to call when done
- * @param cont_cls closure for 'cont'
+ * @param cont_cls closure for @a cont
  * @return handle to abort the request
  */
 struct GNUNET_NAMESTORE_QueueEntry *

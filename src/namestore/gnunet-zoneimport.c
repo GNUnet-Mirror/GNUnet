@@ -30,7 +30,7 @@
 #include <gnunet_dnsstub_lib.h>
 #include <gnunet_dnsparser_lib.h>
 #include <gnunet_gnsrecord_lib.h>
-#include <gnunet_namestore_plugin.h>
+#include <gnunet_namestore_service.h>
 #include <gnunet_identity_service.h>
 
 
@@ -164,6 +164,11 @@ struct Request
   char *label;
 
   /**
+   * Namestore operation pending for this record.
+   */ 
+  struct GNUNET_NAMESTORE_QueueEntry *qe;
+  
+  /**
    * Zone responsible for this request.
    */
   const struct Zone *zone;
@@ -210,9 +215,9 @@ struct Request
 static struct GNUNET_IDENTITY_Handle *id;
 
 /**
- * Namestore plugin.
+ * Namestore handle.
  */
-static struct GNUNET_NAMESTORE_PluginFunctions *ns;
+static struct GNUNET_NAMESTORE_Handle *ns;
 
 /**
  * Context for DNS resolution.
@@ -271,11 +276,6 @@ static struct GNUNET_SCHEDULER_Task *t;
 static char *dns_server;
 
 /**
- * Name of the database plugin (for loading/unloading).
- */
-static char *db_lib_name;
-
-/**
  * Head of list of zones we are managing.
  */
 static struct Zone *zone_head;
@@ -284,16 +284,6 @@ static struct Zone *zone_head;
  * Tail of list of zones we are managing.
  */
 static struct Zone *zone_tail;
-
-/**
- * Set to #GNUNET_YES if we are currently in a DB transaction.
- */
-static int in_transaction;
-
-/**
- * Flag set if we should use transactions to batch DB operations.
- */
-static int use_transactions;
 
 
 /**
@@ -790,6 +780,41 @@ process_record (void *cls,
 
 
 /**
+ * Continuation called to notify client about result of the
+ * operation.
+ *
+ * @param cls closure with our `struct Request`
+ * @param success #GNUNET_SYSERR on failure (including timeout/queue drop/failure to validate)
+ *                #GNUNET_NO if content was already there or not found
+ *                #GNUNET_YES (or other positive value) on success
+ * @param emsg NULL on success, otherwise an error message
+ */
+static void
+store_completed_cb (void *cls,
+		    int32_t success,
+		    const char *emsg)
+{
+  struct Request *req = cls;
+
+  req->qe = NULL;
+  pending--;
+  if (GNUNET_SYSERR == success)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		"Failed to store zone data for `%s': %s\n",
+		req->hostname,
+		emsg);
+  }
+  else
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+		"Stored records under `%s'\n",
+		req->label);
+  }
+}
+
+
+/**
  * Function called with the result of a DNS resolution.
  *
  * @param cls closure with the `struct Request`
@@ -835,7 +860,6 @@ process_result (void *cls,
   GNUNET_CONTAINER_DLL_remove (req_head,
 			       req_tail,
 			       req);
-  pending--;
   GNUNET_DNSSTUB_resolve_cancel (req->rs);
   req->rs = NULL;
   p = GNUNET_DNSPARSER_parse ((const char *) dns,
@@ -849,9 +873,11 @@ process_result (void *cls,
     {
       failures++;
       insert_sorted (req);
+      pending--;
       return;
     }
     insert_sorted (req);
+    pending--;
     return;
   }
   /* Free old/legacy records */
@@ -899,34 +925,13 @@ process_result (void *cls,
     /* convert linked list into array */
     for (rec = req->rec_head; NULL != rec; rec =rec->next)
       rd[off++] = rec->grd;
-    if ( (! in_transaction) &&
-         (GNUNET_YES == use_transactions) )
-    {
-      /* not all plugins support transactions, but if one does,
-         remember we need to eventually commit... */
-      if (GNUNET_OK ==
-          ns->begin_transaction (ns->cls))
-        in_transaction = GNUNET_YES;
-    }
-    if (GNUNET_OK !=
-	ns->store_records (ns->cls,
-			   &req->zone->key,
-			   req->label,
-			   rd_count,
-			   rd))
-    {
-      if (0 != rd_count)
-	GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		    "Failed to store zone data for `%s'\n",
-		    req->hostname);
-    }
-    else
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-		  "Stored %u records under `%s'\n",
-		  (unsigned int) rd_count,
-		  req->label);
-    }
+    req->qe = GNUNET_NAMESTORE_records_store (ns,
+					      &req->zone->key,
+					      req->label,
+					      rd_count,
+					      rd,
+					      &store_completed_cb,
+					      req);
   }
   insert_sorted (req);
 }
@@ -947,6 +952,8 @@ submit_req (struct Request *req)
   static struct GNUNET_TIME_Absolute last_request;
   struct GNUNET_TIME_Absolute now;
 
+  if (NULL != req->qe)
+    return GNUNET_NO; /* namestore op still pending */
   if (NULL != req->rs)
   {
     GNUNET_break (0);
@@ -979,25 +986,6 @@ submit_req (struct Request *req)
 
 
 /**
- * If we are currently in a transaction, commit it.
- */
-static void
-finish_transaction ()
-{
-  if (! in_transaction)
-    return;
-  if (GNUNET_OK !=
-      ns->commit_transaction (ns->cls))
-  {
-    GNUNET_break (0);
-    GNUNET_SCHEDULER_shutdown ();
-    return;
-  }
-  in_transaction = GNUNET_NO;
-}
-
-
-/**
  * Process as many requests as possible from the queue.
  *
  * @param cls NULL
@@ -1006,7 +994,6 @@ static void
 process_queue (void *cls)
 {
   struct Request *req;
-  static unsigned int cnt;
 
   (void) cls;
   t = NULL;
@@ -1033,7 +1020,6 @@ process_queue (void *cls)
 		"Waiting until %s for next record (`%s') to expire\n",
 		GNUNET_STRINGS_absolute_time_to_string (req->expires),
 		req->hostname);
-    finish_transaction ();
     if (NULL != t)
       GNUNET_SCHEDULER_cancel (t);
     t = GNUNET_SCHEDULER_add_at (req->expires,
@@ -1042,8 +1028,6 @@ process_queue (void *cls)
   }
   else
   {
-    if (0 == cnt++ % TRANSACTION_SYNC_FREQ)
-      finish_transaction ();
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		"Throttling for 1ms\n");
     if (NULL != t)
@@ -1077,14 +1061,10 @@ do_shutdown (void *cls)
     GNUNET_SCHEDULER_cancel (t);
     t = NULL;
   }
-  finish_transaction ();
   if (NULL != ns)
   {
-    GNUNET_break (NULL ==
-		  GNUNET_PLUGIN_unload (db_lib_name,
-					ns));
-    GNUNET_free (db_lib_name);
-    db_lib_name = NULL;
+    GNUNET_NAMESTORE_disconnect (ns);
+    ns = NULL;
   }
   if (NULL != ctx)
   {
@@ -1120,26 +1100,46 @@ do_shutdown (void *cls)
 
 
 /**
- * Function called for each matching record.
+ * Function called if #GNUNET_NAMESTORE_records_lookup() failed.
+ * Continues resolution based on assumption namestore has no data.
  *
- * @param cls `struct Request *`
- * @param zone_key private key of the zone
- * @param label name that is being mapped (at most 255 characters long)
- * @param rd_count number of entries in @a rd array
- * @param rd array of records with data to store
+ * @param cls a `struct Request`
  */
 static void
-import_records (void *cls,
-		const struct GNUNET_CRYPTO_EcdsaPrivateKey *private_key,
-		const char *label,
-		unsigned int rd_count,
-		const struct GNUNET_GNSRECORD_Data *rd)
+ns_lookup_error_cb (void *cls)
 {
   struct Request *req = cls;
 
-  GNUNET_break (0 == memcmp (private_key,
+  req->qe = NULL;
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+	      "Failed to load data from namestore for `%s'\n",
+	      req->label);
+  insert_sorted (req);
+}
+
+
+/**
+ * Process a record that was stored in the namestore.
+ *
+ * @param cls a `struct Request *`
+ * @param zone private key of the zone
+ * @param label label of the records
+ * @param rd_count number of entries in @a rd array, 0 if label was deleted
+ * @param rd array of records with data to store
+ */
+static void
+ns_lookup_result_cb (void *cls,
+		     const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone,
+		     const char *label,
+		     unsigned int rd_count,
+		     const struct GNUNET_GNSRECORD_Data *rd)
+{
+  struct Request *req = cls;
+  
+  req->qe = NULL;
+  GNUNET_break (0 == memcmp (zone,
 			     &req->zone->key,
-			     sizeof (*private_key)));
+			     sizeof (*zone)));
   GNUNET_break (0 == strcasecmp (label,
 				 req->label));
   for (unsigned int i=0;i<rd_count;i++)
@@ -1153,6 +1153,40 @@ import_records (void *cls,
 		rd->data,
 		rd->data_size);
   }
+  if (0 == rd_count)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+		"Empty record set in namestore for `%s'\n",
+		req->label);
+  }
+  else
+  {
+    unsigned int pos = 0;
+
+    req->expires = GNUNET_TIME_UNIT_FOREVER_ABS;
+    for (struct Record *rec = req->rec_head;
+	 NULL != rec;
+	 rec = rec->next)
+    {
+      struct GNUNET_TIME_Absolute at;
+
+      at.abs_value_us = rec->grd.expiration_time;
+      req->expires = GNUNET_TIME_absolute_min (req->expires,
+					       at);
+      pos++;
+    }
+    if (0 == pos)
+      req->expires = GNUNET_TIME_UNIT_ZERO_ABS;
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                "Hot-start with %u existing records for `%s'\n",
+		pos,
+                req->label);
+  }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Adding `%s' to worklist to start at %s\n",
+	      req->hostname,
+	      GNUNET_STRINGS_absolute_time_to_string (req->expires));
+  insert_sorted (req);
 }
 
 
@@ -1236,45 +1270,13 @@ queue (const char *hostname)
   req->id = p.id;
   req->label = GNUNET_strndup (hostname,
 			       dot - hostname);
-  if (GNUNET_OK !=
-      ns->lookup_records (ns->cls,
-			  &req->zone->key,
-			  req->label,
-			  &import_records,
-			  req))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                "Failed to load data from namestore for `%s'\n",
-                req->label);
-  }
-  else
-  {
-    unsigned int rd_count = 0;
-
-    req->expires = GNUNET_TIME_UNIT_FOREVER_ABS;
-    for (struct Record *rec = req->rec_head;
-	 NULL != rec;
-	 rec = rec->next)
-    {
-      struct GNUNET_TIME_Absolute at;
-
-      at.abs_value_us = rec->grd.expiration_time;
-      req->expires = GNUNET_TIME_absolute_min (req->expires,
-					       at);
-      rd_count++;
-    }
-    if (0 == rd_count)
-      req->expires = GNUNET_TIME_UNIT_ZERO_ABS;
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                "Hot-start with %u existing records for `%s'\n",
-		rd_count,
-                req->label);
-  }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Adding `%s' to worklist to start at %s\n",
-	      req->hostname,
-	      GNUNET_STRINGS_absolute_time_to_string (req->expires));
-  insert_sorted (req);
+  req->qe = GNUNET_NAMESTORE_records_lookup (ns,
+					     &req->zone->key,
+					     req->label,
+					     &ns_lookup_error_cb,
+					     req,
+					     &ns_lookup_result_cb,
+					     req);
 }
 
 
@@ -1390,8 +1392,6 @@ run (void *cls,
      const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
-  char *database;
-
   (void) cls;
   (void) args;
   (void) cfgfile;
@@ -1403,22 +1403,9 @@ run (void *cls,
              "Failed to initialize GNUnet DNS STUB\n");
     return;
   }
-  if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_string (cfg,
-                                             "namestore",
-                                             "database",
-                                             &database))
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "No database backend configured\n");
-
-  GNUNET_asprintf (&db_lib_name,
-                   "libgnunet_plugin_namestore_%s",
-                   database);
-  ns = GNUNET_PLUGIN_load (db_lib_name,
-			   (void *) cfg);
-  GNUNET_free (database);
   GNUNET_SCHEDULER_add_shutdown (&do_shutdown,
                                  NULL);
+  ns = GNUNET_NAMESTORE_connect (cfg);
   if (NULL == ns)
   {
     GNUNET_SCHEDULER_shutdown ();
@@ -1448,10 +1435,6 @@ main (int argc,
 				  "IP",
 				  "which DNS server should be used",
 				  &dns_server)),
-    GNUNET_GETOPT_option_flag ('e',
-                               "enable-transactions",
-                               "enable use of transactions to reduce disk IO",
-                               &use_transactions),
     GNUNET_GETOPT_OPTION_END
   };
 

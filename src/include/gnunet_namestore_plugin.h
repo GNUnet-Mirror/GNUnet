@@ -145,35 +145,6 @@ struct GNUNET_NAMESTORE_PluginFunctions
 		   void *iter_cls);
 
 
-  /**
-   * Start a transaction.
-   *
-   * @param cls closure
-   * @return #GNUNET_OK on success, #GNUNET_NO if transactions are not supported,
-   *         #GNUNET_SYSERR on internal errors
-   */
-  int
-  (*begin_transaction) (void *cls);
-
-
-  /**
-   * Try to commit a transaction.
-   *
-   * @param cls closure
-   * @return #GNUNET_OK on success, #GNUNET_SYSERR on failure
-   */
-  int
-  (*commit_transaction) (void *cls);
-
-
-  /**
-   * Rollback a transaction.
-   *
-   * @param cls closure
-   */
-  void
-  (*rollback_transaction) (void *cls);
-
 };
 
 

@@ -518,80 +518,6 @@ database_shutdown (struct Plugin *plugin)
 
 
 /**
- * Start a transaction.
- *
- * @param cls closure
- * @return #GNUNET_OK on success, #GNUNET_NO if transactions are not supported,
- *         #GNUNET_SYSERR on internal errors
- */
-static int
-namestore_postgres_begin_transaction (void *cls)
-{
-  struct Plugin *plugin = cls;
-  PGresult *result;
-  ExecStatusType ex;
-
-  result = PQexec (plugin->dbh,
-                   "START TRANSACTION ISOLATION LEVEL SERIALIZABLE");
-  if (PGRES_COMMAND_OK !=
-      (ex = PQresultStatus (result)))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Failed to start transaction (%s): %s\n",
-                PQresStatus (ex),
-                PQerrorMessage (plugin->dbh));
-    GNUNET_break (0);
-    PQclear (result);
-    return GNUNET_SYSERR;
-  }
-  PQclear (result);
-  return GNUNET_OK;
-}
-
-
-/**
- * Try to commit a transaction.
- *
- * @param cls closure
- * @return #GNUNET_OK on success, #GNUNET_SYSERR on failure
- */
-static int
-namestore_postgres_commit_transaction (void *cls)
-{
-  struct Plugin *plugin = cls;
-  PGresult *result;
-  ExecStatusType status;
-  int ret;
-
-  result = PQexec (plugin->dbh,
-                   "COMMIT");
-  status = PQresultStatus (result);
-  ret = (PGRES_COMMAND_OK == status) ? GNUNET_OK : GNUNET_SYSERR;
-  PQclear (result);
-  return ret;
-}
-
-
-/**
- * Rollback a transaction.
- *
- * @param cls closure
- */
-static void
-namestore_postgres_rollback_transaction (void *cls)
-{
-  struct Plugin *plugin = cls;
-  PGresult *result;
-
-  result = PQexec (plugin->dbh,
-                   "ROLLBACK");
-  GNUNET_break (PGRES_COMMAND_OK ==
-                PQresultStatus (result));
-  PQclear (result);
-}
-
-
-/**
  * Entry point for the plugin.
  *
  * @param cls the `struct GNUNET_NAMESTORE_PluginEnvironment*`
@@ -619,9 +545,6 @@ libgnunet_plugin_namestore_postgres_init (void *cls)
   api->iterate_records = &namestore_postgres_iterate_records;
   api->zone_to_name = &namestore_postgres_zone_to_name;
   api->lookup_records = &namestore_postgres_lookup_records;
-  api->begin_transaction = &namestore_postgres_begin_transaction;
-  api->commit_transaction = &namestore_postgres_commit_transaction;
-  api->rollback_transaction = &namestore_postgres_rollback_transaction;
   LOG (GNUNET_ERROR_TYPE_INFO,
        "Postgres namestore plugin running\n");
   return api;
