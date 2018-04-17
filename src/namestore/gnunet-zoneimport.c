@@ -21,6 +21,9 @@
  * @file src/namestore/gnunet-zoneimport.c
  * @brief import a DNS zone for publication in GNS, incremental
  * @author Christian Grothoff
+ *
+ * TODO:
+ * - set NICKname for zone's records
  */
 #include "platform.h"
 #include <gnunet_util_lib.h>
@@ -120,12 +123,12 @@ struct Request
 
   /**
    * Active requests are kept in a DLL.
-   */ 
+   */
   struct Request *next;
 
   /**
    * Active requests are kept in a DLL.
-   */ 
+   */
   struct Request *prev;
 
   /**
@@ -249,12 +252,12 @@ static struct GNUNET_CONTAINER_Heap *req_heap;
 
 /**
  * Active requests are kept in a DLL.
- */ 
+ */
 static struct Request *req_head;
 
 /**
  * Active requests are kept in a DLL.
- */ 
+ */
 static struct Request *req_tail;
 
 /**
@@ -350,7 +353,7 @@ static void
 free_request (struct Request *req)
 {
   struct Record *rec;
-    
+
   while (NULL != (rec = req->rec_head))
   {
     GNUNET_CONTAINER_DLL_remove (req->rec_head,
@@ -386,8 +389,8 @@ insert_sorted (struct Request *req)
                                           req,
                                           req->expires.abs_value_us);
   if (req == GNUNET_CONTAINER_heap_peek (req_heap))
-  {    
-    if (NULL != t) 
+  {
+    if (NULL != t)
       GNUNET_SCHEDULER_cancel (t);
     t = GNUNET_SCHEDULER_add_at (req->expires,
 				 &process_queue,
@@ -502,7 +505,7 @@ check_for_glue (void *cls,
 					     ip)) )
     {
       add_record (gc->req,
-		  rec->type,
+		  GNUNET_GNSRECORD_TYPE_GNS2DNS,
 		  rec->expiration_time,
 		  dst,
 		  off);
@@ -536,7 +539,7 @@ check_for_glue (void *cls,
 					     ip)) )
     {
       add_record (gc->req,
-		  rec->type,
+		  GNUNET_GNSRECORD_TYPE_GNS2DNS,
 		  rec->expiration_time,
 		  dst,
 		  off);
@@ -556,7 +559,7 @@ check_for_glue (void *cls,
 					     rec->data.hostname)) )
     {
       add_record (gc->req,
-		  rec->type,
+		  GNUNET_GNSRECORD_TYPE_GNS2DNS,
 		  rec->expiration_time,
 		  dst,
 		  off);
@@ -639,7 +642,7 @@ process_record (void *cls,
 		    rec->data.hostname,
 		    rec->name);
 	add_record (req,
-		    rec->type,
+		    GNUNET_GNSRECORD_TYPE_GNS2DNS,
 		    rec->expiration_time,
 		    dst,
 		    off);

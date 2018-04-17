@@ -2313,10 +2313,6 @@ handle_namecache_block_response (void *cls,
     return;
   }
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Received result from namecache for label `%s'\n",
-              ac->label);
-
   if ( (NULL == block) ||
        (0 == GNUNET_TIME_absolute_get_remaining (GNUNET_TIME_absolute_ntoh (block->expiration_time)).rel_value_us) )
   {
@@ -2329,6 +2325,10 @@ handle_namecache_block_response (void *cls,
     GNS_resolver_lookup_cancel (rh);
     return;
   }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Received result from namecache for label `%s'\n",
+              ac->label);
+
   if (GNUNET_OK !=
       GNUNET_GNSRECORD_block_decrypt (block,
 				      auth,
