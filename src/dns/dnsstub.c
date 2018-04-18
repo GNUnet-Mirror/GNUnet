@@ -621,6 +621,11 @@ void
 GNUNET_DNSSTUB_resolve_cancel (struct GNUNET_DNSSTUB_RequestSocket *rs)
 {
   rs->rc = NULL;
+  if (NULL != rs->retry_task)
+  {
+    GNUNET_SCHEDULER_cancel (rs->retry_task);
+    rs->retry_task = NULL;
+  }
 }
 
 
