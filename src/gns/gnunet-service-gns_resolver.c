@@ -1940,6 +1940,9 @@ handle_gns_resolution_result (void *cls,
       return;
     case GNUNET_GNSRECORD_TYPE_GNS2DNS:
       {
+        /* TODO: Right now we only foward the request to ONE DNS resolver,
+           even if we get multiple IP addresses back; a correct implementation
+           should try all DNS resolvers. */
 	/* resolution continues within DNS */
         struct Gns2DnsContext *g2dc;
         char *ip;
