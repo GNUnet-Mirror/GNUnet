@@ -165,9 +165,9 @@ struct Request
 
   /**
    * Namestore operation pending for this record.
-   */ 
+   */
   struct GNUNET_NAMESTORE_QueueEntry *qe;
-  
+
   /**
    * Zone responsible for this request.
    */
@@ -476,7 +476,7 @@ check_for_glue (void *cls,
     }
     if (NULL ==
 	inet_ntop (AF_INET,
-		   &rec->data.raw.data,
+		   rec->data.raw.data,
 		   ip,
 		   ip_size))
     {
@@ -510,7 +510,7 @@ check_for_glue (void *cls,
     }
     if (NULL ==
 	inet_ntop (AF_INET6,
-		   &rec->data.raw.data,
+		   rec->data.raw.data,
 		   ip,
 		   ip_size))
     {
@@ -1135,7 +1135,7 @@ ns_lookup_result_cb (void *cls,
 		     const struct GNUNET_GNSRECORD_Data *rd)
 {
   struct Request *req = cls;
-  
+
   req->qe = NULL;
   GNUNET_break (0 == memcmp (zone,
 			     &req->zone->key,
