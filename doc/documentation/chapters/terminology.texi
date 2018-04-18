@@ -1,0 +1,21 @@
+@node Terminology
+@chapter Terminology
+
+@menu
+* Terminology::
+* Typography::
+@end menu
+
+@node Terminology
+@section Terminology
+
+In the following Manual we may use words that can not be found in the Appendix. Since we
+want to keep the Manual selfcontained, we will explain words here.
+
+@node Typography
+@section Typography
+
+When giving examples for commands, shell prompts are used to show if the command should/can
+be issued as root, or if "normal" user privileges are sufficient. We use a @code{#}
+for root's shell prompt, a @code{%} for users' shell prompt, assuming they use the C-shell
+or tcsh and a @code{$} for bourne shell and derivatives.

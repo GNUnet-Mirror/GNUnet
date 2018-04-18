@@ -112,6 +112,7 @@ info_TEXINFOS = 						\
 
 gnunet_TEXINFOS = 						\
 	chapters/developer.texi 				\
+	chapters/terminology.texi 				\
 	chapters/installation.texi 				\
 	chapters/philosophy.texi 				\
 	chapters/user.texi 					\
@@ -140,6 +141,7 @@ DISTCLEANFILES = 						\
 	chapter/philosophy.cps					\
 	chapters/user.cps					\
 	chapters/configuration.cps				\
+	chapters/terminology.cps				\
 	chapters/vocabulary.cps					\
 	fdl-1.3.cps						\
 	gpl-3.0.cps

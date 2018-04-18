@@ -87,6 +87,11 @@ This document is the Reference Manual for GNUnet version @value{VERSION}.
 @detailmenu
  --- The Detailed Node Listing ---
 
+Terminology and Typography
+
+* Terminology
+* Typography
+
 Philosophy
 
 * Design Goals::
@@ -188,6 +193,10 @@ GNUnet Developer Handbook
 
 @end detailmenu
 @end menu
+
+@c *********************************************************************
+@include chapters/terminology.texi
+@c *********************************************************************
 
 @c *********************************************************************
 @include chapters/philosophy.texi
