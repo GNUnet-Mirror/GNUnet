@@ -119,6 +119,7 @@ src/dns/gnunet-dns-monitor.c
 src/dns/gnunet-dns-redirector.c
 src/dns/gnunet-helper-dns.c
 src/dns/gnunet-service-dns.c
+src/dns/gnunet-zoneimport.c
 src/dns/plugin_block_dns.c
 src/dv/dv_api.c
 src/dv/gnunet-dv.c
