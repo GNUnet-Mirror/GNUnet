@@ -508,13 +508,11 @@ send_request_to_client (struct RequestRecord *rr,
  * succeeded.
  *
  * @param cls NULL
- * @param rs the socket that received the response
  * @param dns the response itself
  * @param r number of bytes in dns
  */
 static void
 process_dns_result (void *cls,
-		    struct GNUNET_DNSSTUB_RequestSocket *rs,
 		    const struct GNUNET_TUN_DnsHeader *dns,
 		    size_t r);
 
@@ -530,7 +528,6 @@ next_phase (struct RequestRecord *rr)
 {
   struct ClientRecord *cr;
   int nz;
-  socklen_t salen;
 
   if (rr->phase == RP_DROP)
   {
@@ -582,22 +579,27 @@ next_phase (struct RequestRecord *rr)
     next_phase (rr);
     return;
   case RP_QUERY:
+#if 0
+    /* TODO: optionally, use this to forward DNS requests to the
+       *original* DNS server instead of the one we have configured...
+       (but then we need to create a fresh dnsstub for each request
+       *and* manage the timeout) */
     switch (rr->dst_addr.ss_family)
     {
     case AF_INET:
       salen = sizeof (struct sockaddr_in);
+      sa = (const struct sockaddr *) &rr->dst_addr;
       break;
     case AF_INET6:
       salen = sizeof (struct sockaddr_in6);
+      sa = (const struct sockaddr *) &rr->dst_addr;
       break;
     default:
       GNUNET_assert (0);
     }
-
+#endif
     rr->phase = RP_INTERNET_DNS;
     rr->rs = GNUNET_DNSSTUB_resolve (dnsstub,
-				     (struct sockaddr*) &rr->dst_addr,
-				     salen,
 				     rr->payload,
 				     rr->payload_length,
 				     &process_dns_result,
@@ -714,13 +716,11 @@ client_disconnect_cb (void *cls,
  * succeeded.
  *
  * @param cls NULL
- * @param rs the socket that received the response
  * @param dns the response itself
  * @param r number of bytes in dns
  */
 static void
 process_dns_result (void *cls,
-		    struct GNUNET_DNSSTUB_RequestSocket *rs,
 		    const struct GNUNET_TUN_DnsHeader *dns,
 		    size_t r)
 {
@@ -733,8 +733,7 @@ process_dns_result (void *cls,
     return; /* ignore */
 
   rr = &requests[dns->id];
-  if ( (rr->phase != RP_INTERNET_DNS) ||
-       (rr->rs != rs) )
+  if (rr->phase != RP_INTERNET_DNS)
   {
     /* unexpected / bogus reply */
     GNUNET_STATISTICS_update (stats,
@@ -1055,8 +1054,6 @@ run (void *cls,
   char *ipv4mask;
   char *ipv6addr;
   char *ipv6prefix;
-  struct in_addr dns_exit4;
-  struct in6_addr dns_exit6;
   char *dns_exit;
   char *binary;
   int nortsetup;
@@ -1065,24 +1062,26 @@ run (void *cls,
   stats = GNUNET_STATISTICS_create ("dns", cfg);
   GNUNET_SCHEDULER_add_shutdown (&cleanup_task,
 				 cls);
+  dnsstub = GNUNET_DNSSTUB_start (128);
+  /* TODO: support multiple DNS_EXIT servers being configured */
+  /* TODO: see above TODO on using DNS server from original packet.
+     Not sure which is best... */
   dns_exit = NULL;
-  if ( ( (GNUNET_OK !=
-	  GNUNET_CONFIGURATION_get_value_string (cfg,
-                                                 "dns",
-						 "DNS_EXIT",
-						 &dns_exit)) ||
-	 ( (1 != inet_pton (AF_INET, dns_exit, &dns_exit4)) &&
-	   (1 != inet_pton (AF_INET6, dns_exit, &dns_exit6)) ) ) )
+  if ( (GNUNET_OK !=
+        GNUNET_CONFIGURATION_get_value_string (cfg,
+                                               "dns",
+                                               "DNS_EXIT",
+                                               &dns_exit)) ||
+       (GNUNET_OK !=
+        GNUNET_DNSSTUB_add_dns_ip (dnsstub,
+                                   dns_exit)) )
   {
     GNUNET_log_config_invalid (GNUNET_ERROR_TYPE_ERROR,
                                "dns",
                                "DNS_EXIT",
 			       _("need a valid IPv4 or IPv6 address\n"));
     GNUNET_free_non_null (dns_exit);
-    dns_exit = NULL;
   }
-  dnsstub = GNUNET_DNSSTUB_start (dns_exit);
-  GNUNET_free_non_null (dns_exit);
   binary = GNUNET_OS_get_libexec_binary_path ("gnunet-helper-dns");
   if (GNUNET_YES !=
       GNUNET_OS_check_helper_binary (binary,
