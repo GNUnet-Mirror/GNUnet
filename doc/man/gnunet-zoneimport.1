@@ -4,11 +4,13 @@
 gnunet\-zoneimport \- import DNS zone into GNS zone
 
 .SH SYNOPSIS
-.B gnunet\-zoneimport -s IP
+.B gnunet\-zoneimport [IP]+
 .br
 
 .SH DESCRIPTION
 \fBgnunet\-zoneimport\fP reads a list of domain names (FQDN) from stdin and issues DNS queries for each of the domain names given.  It then checks if a local ego with a name matching the domain exists. Specifically, if the domain name is "example.fr", it will check if an ego "fr" exists, while for a domain "example.com.fr" it will look for an ego called "com.fr"). If so, it will convert the DNS records into GNS records (in particular converting NS records and glue records to GNS2DNS records) and add them to the namestore under the label ("example" in the examples above).
+
+The arguments given to gnunet\-zoneimport is a list of IP addresses of DNS servers to query.
 
 gnunet\-zoneimport will usually never terminate: it will check when DNS records expire, and re-issue requests when the old DNS records have expired so that GNS always has the latest data.
 
@@ -22,9 +24,6 @@ Finally, gnunet\-zoneimport keeps information for each domain name in memory.  T
 .B
 .IP "\-c FILENAME,  \-\-config=FILENAME"
 Use the configuration file FILENAME.
-.B
-.IP "\-s IP, \-\-server IP"
-IP address of the DNS server to query. Should be the authoritative server for the domain (lookup the IP address of the NS server!) and not some recursive resolver (which would be both slow and is more likely to return only partial information).
 .B
 .IP "\-h, \-\-help"
 Print short help on options.

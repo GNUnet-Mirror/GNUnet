@@ -268,11 +268,6 @@ static struct Request *req_tail;
 static struct GNUNET_SCHEDULER_Task *t;
 
 /**
- * Which DNS server do we use for queries?
- */
-static char *dns_server;
-
-/**
  * Head of list of zones we are managing.
  */
 static struct Zone *zone_head;
@@ -1454,13 +1449,13 @@ run (void *cls,
              "Failed to initialize GNUnet DNS STUB\n");
     return;
   }
-  if (NULL == args[1])
+  if (NULL == args[0])
   {
     fprintf (stderr,
              "You must provide a list of DNS resolvers on the command line\n");
     return;
   }
-  for (unsigned int i=1;NULL != args[i];i++)
+  for (unsigned int i=0;NULL != args[i];i++)
   {
     if (GNUNET_OK !=
         GNUNET_DNSSTUB_add_dns_ip (ctx,
@@ -1500,12 +1495,6 @@ main (int argc,
       char *const*argv)
 {
   struct GNUNET_GETOPT_CommandLineOption options[] = {
-    GNUNET_GETOPT_option_mandatory
-    (GNUNET_GETOPT_option_string ('s',
-				  "server",
-				  "IP",
-				  "which DNS server should be used",
-				  &dns_server)),
     GNUNET_GETOPT_OPTION_END
   };
 
