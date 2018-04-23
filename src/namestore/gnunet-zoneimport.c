@@ -104,7 +104,9 @@ struct Record
 
 
 /**
- * Request we should make.
+ * Request we should make.  We keep this struct in memory per request,
+ * thus optimizing it is crucial for the overall memory consumption of
+ * the zone importer.
  */
 struct Request
 {
@@ -141,19 +143,11 @@ struct Request
   struct GNUNET_DNSSTUB_RequestSocket *rs;
 
   /**
-   * Raw DNS query.
-   */
-  void *raw;
-
-  /**
-   * Hostname we are resolving.
+   * Hostname we are resolving, allocated at the end of
+   * this struct (optimizing memory consumption by reducing
+   * total number of allocations).
    */
   char *hostname;
-
-  /**
-   * Label (without TLD) which we are resolving.
-   */
-  char *label;
 
   /**
    * Namestore operation pending for this record.
@@ -166,12 +160,6 @@ struct Request
   const struct Zone *zone;
 
   /**
-   * Answer we got back and are currently parsing, or NULL
-   * if not active.
-   */
-  struct GNUNET_DNSPARSER_Packet *p;
-
-  /**
    * At what time does the (earliest) of the returned records
    * for this name expire? At this point, we need to re-fetch
    * the record.
@@ -179,20 +167,10 @@ struct Request
   struct GNUNET_TIME_Absolute expires;
 
   /**
-   * Number of bytes in @e raw.
-   */
-  size_t raw_len;
-
-  /**
-   * When did we last issue this request?
-   */
-  time_t time;
-
-  /**
    * How often did we issue this query? (And failed, reset
    * to zero once we were successful.)
    */
-  int issue_num;
+  unsigned int issue_num;
 
   /**
    * random 16-bit DNS query identifier.
@@ -327,6 +305,96 @@ for_all_records (const struct GNUNET_DNSPARSER_Packet *p,
 
 
 /**
+ * Return just the label of the hostname in @a req.
+ * 
+ * @param req request to process hostname of
+ * @return statically allocated pointer to the label,
+ *         overwritten upon the next request!
+ */
+static const char *
+get_label (struct Request *req)
+{
+  static char label[64];
+  const char *dot;
+  
+  dot = strchr (req->hostname,
+                (unsigned char) '.');
+  if (NULL == dot)
+  {
+    GNUNET_break (0);
+    return NULL;
+  }
+  if (((size_t) (dot - req->hostname)) >= sizeof (label))
+  {
+    GNUNET_break (0);
+    return NULL;
+  }
+  memcpy (label,
+	  req->hostname,
+	  dot - req->hostname);
+  label[dot - req->hostname] = '\0';
+  return label;
+}
+
+
+/**
+ * Build DNS query for @a hostname.
+ * 
+ * @param hostname host to build query for
+ * @param raw_size[out] number of bytes in the query
+ * @return NULL on error, otherwise pointer to statically (!)
+ *         allocated query buffer
+ */
+static void *
+build_dns_query (struct Request *req,
+		 size_t *raw_size)
+{
+  static char raw[512];
+  char *rawp;
+  struct GNUNET_DNSPARSER_Packet p;
+  struct GNUNET_DNSPARSER_Query q;
+
+  q.name = (char *) req->hostname;
+  q.type = GNUNET_DNSPARSER_TYPE_NS;
+  q.dns_traffic_class = GNUNET_TUN_DNS_CLASS_INTERNET;
+
+  memset (&p,
+          0,
+          sizeof (p));
+  p.num_queries = 1;
+  p.queries = &q;
+  p.id = req->id;
+  if (GNUNET_OK !=
+      GNUNET_DNSPARSER_pack (&p,
+                             UINT16_MAX,
+                             &rawp,
+                             raw_size))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Failed to pack query for hostname `%s'\n",
+                req->hostname);
+    rejects++;
+    return NULL;
+  }
+  if (*raw_size > sizeof (raw))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Failed to pack query for hostname `%s'\n",
+                req->hostname);
+    rejects++;
+    GNUNET_break (0);
+    GNUNET_free (rawp);
+    return NULL; 
+  }
+  memcpy (raw,
+	  rawp,
+	  *raw_size);
+  GNUNET_free (rawp);
+  return raw;
+}
+
+
+/**
  * Free @a req and data structures reachable from it.
  *
  * @param req request to free
@@ -343,9 +411,6 @@ free_request (struct Request *req)
 				 rec);
     GNUNET_free (rec);
   }
-  GNUNET_free (req->hostname);
-  GNUNET_free (req->label);
-  GNUNET_free (req->raw);
   GNUNET_free (req);
 }
 
@@ -556,16 +621,35 @@ check_for_glue (void *cls,
 
 
 /**
+ * Closure for #process_record().
+ */
+struct ProcessRecordContext
+{
+  /**
+   * Answer we got back and are currently parsing, or NULL
+   * if not active.
+   */
+  struct GNUNET_DNSPARSER_Packet *p;
+
+  /**
+   * Request we are processing.
+   */
+  struct Request *req;
+};
+
+
+/**
  * We received @a rec for @a req. Remember the answer.
  *
- * @param cls a `struct Request`
+ * @param cls a `struct ProcessRecordContext`
  * @param rec response
  */
 static void
 process_record (void *cls,
                 const struct GNUNET_DNSPARSER_Record *rec)
 {
-  struct Request *req = cls;
+  struct ProcessRecordContext *prc = cls;
+  struct Request *req = prc->req;
   char dst[65536];
   size_t dst_len;
   size_t off;
@@ -602,7 +686,7 @@ process_record (void *cls,
       gc.req = req;
       gc.ns = rec->data.hostname;
       gc.found = GNUNET_NO;
-      for_all_records (req->p,
+      for_all_records (prc->p,
 		       &check_for_glue,
 		       &gc);
       if ( (GNUNET_NO == gc.found) &&
@@ -803,7 +887,7 @@ store_completed_cb (void *cls,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 		"Stored records under `%s'\n",
-		req->label);
+		req->hostname);
     pdot++;
     if (0 == pdot % 1000)
       fprintf (stderr, ".");
@@ -884,11 +968,16 @@ process_result (void *cls,
   }
   /* import new records */
   req->issue_num = 0; /* success, reset counter! */
-  req->p = p;
-  for_all_records (p,
-		   &process_record,
-		   req);
-  req->p = NULL;
+  {
+    struct ProcessRecordContext prc = {
+      .req = req,
+      .p = p
+    };
+    
+    for_all_records (p,
+		     &process_record,
+		     &prc);
+  }
   GNUNET_DNSPARSER_free_packet (p);
   /* count records found, determine minimum expiration time */
   req->expires = GNUNET_TIME_UNIT_FOREVER_ABS;
@@ -921,7 +1010,7 @@ process_result (void *cls,
       rd[off++] = rec->grd;
     req->qe = GNUNET_NAMESTORE_records_store (ns,
 					      &req->zone->key,
-					      req->label,
+					      get_label (req),
 					      rd_count,
 					      rd,
 					      &store_completed_cb,
@@ -945,6 +1034,8 @@ submit_req (struct Request *req)
 {
   static struct GNUNET_TIME_Absolute last_request;
   struct GNUNET_TIME_Absolute now;
+  void *raw;
+  size_t raw_size;
 
   if (NULL != req->qe)
     return GNUNET_NO; /* namestore op still pending */
@@ -964,9 +1055,17 @@ submit_req (struct Request *req)
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 	      "Requesting resolution for `%s'\n",
 	      req->hostname);
+  raw = build_dns_query (req,
+			 &raw_size);
+  if (NULL == raw)
+  {
+    GNUNET_break (0);
+    free_request (req);
+    return GNUNET_SYSERR;
+  }
   req->rs = GNUNET_DNSSTUB_resolve (ctx,
-                                    req->raw,
-                                    req->raw_len,
+                                    raw,
+                                    raw_size,
                                     &process_result,
                                     req);
   GNUNET_assert (NULL != req->rs);
@@ -974,7 +1073,6 @@ submit_req (struct Request *req)
   last_request = now;
   lookups++;
   pending++;
-  req->time = time (NULL);
   return GNUNET_OK;
 }
 
@@ -1137,7 +1235,7 @@ ns_lookup_error_cb (void *cls)
   req->qe = NULL;
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 	      "Failed to load data from namestore for `%s'\n",
-	      req->label);
+	      req->hostname);
   insert_sorted (req);
   pending--;
   continue_stdin ();
@@ -1168,7 +1266,7 @@ ns_lookup_result_cb (void *cls,
 			     &req->zone->key,
 			     sizeof (*zone)));
   GNUNET_break (0 == strcasecmp (label,
-				 req->label));
+				 get_label (req)));
   for (unsigned int i=0;i<rd_count;i++)
   {
     struct GNUNET_TIME_Absolute at;
@@ -1184,7 +1282,7 @@ ns_lookup_result_cb (void *cls,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 		"Empty record set in namestore for `%s'\n",
-		req->label);
+		req->hostname);
   }
   else
   {
@@ -1207,7 +1305,7 @@ ns_lookup_result_cb (void *cls,
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                 "Hot-start with %u existing records for `%s'\n",
 		pos,
-                req->label);
+                req->hostname);
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Adding `%s' to worklist to start at %s\n",
@@ -1226,13 +1324,10 @@ ns_lookup_result_cb (void *cls,
 static void
 queue (const char *hostname)
 {
-  struct GNUNET_DNSPARSER_Packet p;
-  struct GNUNET_DNSPARSER_Query q;
   struct Request *req;
-  char *raw;
-  size_t raw_size;
   const char *dot;
   struct Zone *zone;
+  size_t hlen;
 
   if (GNUNET_OK !=
       GNUNET_DNSPARSER_check_name (hostname))
@@ -1268,44 +1363,20 @@ queue (const char *hostname)
     continue_stdin ();
     return;
   }
-  q.name = (char *) hostname;
-  q.type = GNUNET_DNSPARSER_TYPE_NS;
-  q.dns_traffic_class = GNUNET_TUN_DNS_CLASS_INTERNET;
-
-  memset (&p,
-          0,
-          sizeof (p));
-  p.num_queries = 1;
-  p.queries = &q;
-  p.id = (uint16_t) GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_NONCE,
-                                              UINT16_MAX);
-
-  if (GNUNET_OK !=
-      GNUNET_DNSPARSER_pack (&p,
-                             UINT16_MAX,
-                             &raw,
-                             &raw_size))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Failed to pack query for hostname `%s'\n",
-                hostname);
-    rejects++;
-    continue_stdin ();
-    return;
-  }
 
   pending++;
-  req = GNUNET_new (struct Request);
+  hlen = strlen (hostname) + 1;
+  req = GNUNET_malloc (sizeof (struct Request) + hlen);
   req->zone = zone;
-  req->hostname = GNUNET_strdup (hostname);
-  req->raw = raw;
-  req->raw_len = raw_size;
-  req->id = p.id;
-  req->label = GNUNET_strndup (hostname,
-			       dot - hostname);
+  req->hostname = (char *) &req[1];
+  memcpy (req->hostname,
+	  hostname,
+	  hlen);
+  req->id = (uint16_t) GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_NONCE,
+						 UINT16_MAX);
   req->qe = GNUNET_NAMESTORE_records_lookup (ns,
 					     &req->zone->key,
-					     req->label,
+					     get_label (req),
 					     &ns_lookup_error_cb,
 					     req,
 					     &ns_lookup_result_cb,

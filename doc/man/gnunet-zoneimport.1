@@ -18,7 +18,7 @@ gnunet\-zoneimport will issue many DNS queries in parallel, but is rate-limited 
 
 gnunet\-zoneimport operates incrementally. It will check if the namestore already has (non-expired) records stored for a given name in the respective zone and not issue those requests again.  Thus, it is fine to restart gnunet\-zoneimport whenever the list of domain names changes.
 
-Finally, gnunet\-zoneimport keeps information for each domain name in memory.  This consumes about 200 bytes per label, or 2 GB for 10 million labels.
+Finally, gnunet\-zoneimport keeps information for each domain name in memory.  This consumes about 200 bytes per domain name, or 1 GB for 5 million labels.
 
 .SH OPTIONS
 .B
