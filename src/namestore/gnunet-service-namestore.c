@@ -362,13 +362,13 @@ client_connect_cb (void *cls,
 
 
 /**
- * Function called with the records for the #GNUNET_GNS_MASTERZONE_STR
+ * Function called with the records for the #GNUNET_GNS_EMPTY_LABEL_AT
  * label in the zone.  Used to locate the #GNUNET_GNSRECORD_TYPE_NICK
  * record, which (if found) is then copied to @a cls for future use.
  *
  * @param cls a `struct GNUNET_GNSRECORD_Data **` for storing the nick (if found)
  * @param private_key the private key of the zone (unused)
- * @param label should be #GNUNET_GNS_MASTERZONE_STR
+ * @param label should be #GNUNET_GNS_EMPTY_LABEL_AT
  * @param rd_count number of records in @a rd
  * @param rd records stored under @a label in the zone
  */
@@ -382,7 +382,7 @@ lookup_nick_it (void *cls,
   struct GNUNET_GNSRECORD_Data **res = cls;
 
   (void) private_key;
-  if (0 != strcmp (label, GNUNET_GNS_MASTERZONE_STR))
+  if (0 != strcmp (label, GNUNET_GNS_EMPTY_LABEL_AT))
   {
     GNUNET_break (0);
     return;
@@ -423,7 +423,7 @@ get_nick_record (const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone)
   nick = NULL;
   res = GSN_database->lookup_records (GSN_database->cls,
 				      zone,
-                                      GNUNET_GNS_MASTERZONE_STR,
+                                      GNUNET_GNS_EMPTY_LABEL_AT,
                                       &lookup_nick_it,
 				      &nick);
   if ( (GNUNET_OK != res) ||
@@ -531,7 +531,7 @@ send_lookup_response (struct NamestoreClient *nc,
   char *rd_ser;
 
   nick = get_nick_record (zone_key);
-  if ((NULL != nick) && (0 != strcmp(name, GNUNET_GNS_MASTERZONE_STR)))
+  if ((NULL != nick) && (0 != strcmp(name, GNUNET_GNS_EMPTY_LABEL_AT)))
   {
     nick->flags = (nick->flags | GNUNET_GNSRECORD_RF_PRIVATE) ^ GNUNET_GNSRECORD_RF_PRIVATE;
     merge_with_nick_records (nick,
@@ -766,7 +766,7 @@ lookup_it (void *cls,
     {
       if ( (NULL != rlc->nick) &&
            (0 != strcmp (label,
-                         GNUNET_GNS_MASTERZONE_STR)) )
+                         GNUNET_GNS_EMPTY_LABEL_AT)) )
       {
         /* Merge */
         rd_res = NULL;
@@ -1043,12 +1043,12 @@ handle_record_store (void *cls,
       unsigned int rd_clean_off;
 
       /* remove "NICK" records, unless this is for the
-         #GNUNET_GNS_MASTERZONE_STR label */
+         #GNUNET_GNS_EMPTY_LABEL_AT label */
       rd_clean_off = 0;
       for (unsigned int i=0;i<rd_count;i++)
       {
         rd_clean[rd_clean_off] = rd[i];
-        if ( (0 == strcmp (GNUNET_GNS_MASTERZONE_STR,
+        if ( (0 == strcmp (GNUNET_GNS_EMPTY_LABEL_AT,
                            conv_name)) ||
              (GNUNET_GNSRECORD_TYPE_NICK != rd[i].record_type) )
           rd_clean_off++;

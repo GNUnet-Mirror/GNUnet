@@ -1087,7 +1087,7 @@ GNUNET_NAMESTORE_set_nick (struct GNUNET_NAMESTORE_Handle *h,
   rd.flags |= GNUNET_GNSRECORD_RF_PRIVATE;
   return GNUNET_NAMESTORE_records_store (h,
                                          pkey,
-                                         GNUNET_GNS_MASTERZONE_STR,
+                                         GNUNET_GNS_EMPTY_LABEL_AT,
                                          1,
                                          &rd,
                                          cont,

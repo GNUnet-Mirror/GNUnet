@@ -411,10 +411,10 @@ namecache_sqlite_cache_block (void *cls,
   GNUNET_CRYPTO_hash (&block->derived_key,
 		      sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey),
 		      &query);
-  fprintf (stderr,
-           "Caching new version of block %s (expires %llu)\n",
-           GNUNET_h2s (&query),
-           (unsigned long long) expiration.abs_value_us);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Caching new version of block %s (expires %llu)\n",
+              GNUNET_h2s (&query),
+              (unsigned long long) expiration.abs_value_us);
   expiration = GNUNET_TIME_absolute_ntoh (block->expiration_time);
   if (block_size > 64 * 65536)
   {

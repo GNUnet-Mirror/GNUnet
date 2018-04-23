@@ -408,7 +408,7 @@ display_record (void *cls,
   {
     if ( (GNUNET_GNSRECORD_TYPE_NICK == rd[i].record_type) &&
          (0 != strcmp (rname,
-                       GNUNET_GNS_MASTERZONE_STR)) )
+                       GNUNET_GNS_EMPTY_LABEL_AT)) )
       continue;
     typestring = GNUNET_GNSRECORD_number_to_typename (rd[i].record_type);
     s = GNUNET_GNSRECORD_value_to_string (rd[i].record_type,

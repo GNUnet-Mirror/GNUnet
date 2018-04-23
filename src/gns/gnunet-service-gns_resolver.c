@@ -2096,14 +2096,14 @@ handle_gns_resolution_result (void *cls,
           rd_off++;
           if (GNUNET_GNSRECORD_TYPE_PKEY != rh->record_type)
           {
-            /* try to resolve "+" */
+            /* try to resolve "@" */
             struct AuthorityChain *ac;
 
             ac = GNUNET_new (struct AuthorityChain);
             ac->rh = rh;
             ac->gns_authority = GNUNET_YES;
             ac->authority_info.gns_authority = pub;
-            ac->label = GNUNET_strdup (GNUNET_GNS_MASTERZONE_STR);
+            ac->label = GNUNET_strdup (GNUNET_GNS_EMPTY_LABEL_AT);
             ac->suggested_shortening_label = NULL;
             ac->shortening_started = GNUNET_NO;
             GNUNET_CONTAINER_DLL_insert_tail (rh->ac_head,
@@ -2629,8 +2629,8 @@ start_resolver_lookup (void *cls)
   ac->suggested_shortening_label = NULL;
   if (NULL == ac->label)
     /* name was just the "TLD", so we default to label
-       #GNUNET_GNS_MASTERZONE_STR */
-    ac->label = GNUNET_strdup (GNUNET_GNS_MASTERZONE_STR);
+       #GNUNET_GNS_EMPTY_LABEL_AT */
+    ac->label = GNUNET_strdup (GNUNET_GNS_EMPTY_LABEL_AT);
   ac->gns_authority = GNUNET_YES;
   ac->authority_info.gns_authority = rh->authority_zone;
   GNUNET_CONTAINER_DLL_insert_tail (rh->ac_head,

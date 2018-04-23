@@ -124,9 +124,7 @@ libexec_PROGRAMS = \
  gnunet-service-namestore
 
 bin_PROGRAMS = \
- gnunet-namestore
-
-noinst_PROGRAMS = \
+ gnunet-namestore \
  gnunet-zoneimport
 
 if HAVE_MHD

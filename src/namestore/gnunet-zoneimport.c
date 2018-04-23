@@ -21,9 +21,6 @@
  * @file src/namestore/gnunet-zoneimport.c
  * @brief import a DNS zone for publication in GNS, incremental
  * @author Christian Grothoff
- *
- * TODO:
- * - set NICKname for zone's records
  */
 #include "platform.h"
 #include <gnunet_util_lib.h>
@@ -49,11 +46,6 @@
  * How often do we retry a query before giving up for good?
  */
 #define MAX_RETRIES 5
-
-/**
- * After how many lookups should we always sync to disk?
- */
-#define TRANSACTION_SYNC_FREQ 100
 
 
 /**
@@ -795,6 +787,7 @@ store_completed_cb (void *cls,
 		    const char *emsg)
 {
   struct Request *req = cls;
+  struct Record *rec;
 
   req->qe = NULL;
   pending--;
@@ -810,6 +803,14 @@ store_completed_cb (void *cls,
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 		"Stored records under `%s'\n",
 		req->label);
+  }
+  /* Free records */
+  while (NULL != (rec = req->rec_head))
+  {
+    GNUNET_CONTAINER_DLL_remove (req->rec_head,
+				 req->rec_tail,
+				 rec);
+    GNUNET_free (rec);
   }
 }
 
@@ -876,14 +877,6 @@ process_result (void *cls,
     insert_sorted (req);
     pending--;
     return;
-  }
-  /* Free old/legacy records */
-  while (NULL != (rec = req->rec_head))
-  {
-    GNUNET_CONTAINER_DLL_remove (req->rec_head,
-				 req->rec_tail,
-				 rec);
-    GNUNET_free (rec);
   }
   /* import new records */
   req->issue_num = 0; /* success, reset counter! */
