@@ -1459,7 +1459,7 @@ run (void *cls,
   {
     if (GNUNET_OK !=
         GNUNET_DNSSTUB_add_dns_ip (ctx,
-                                   args[1]))
+                                   args[i]))
     {
       fprintf (stderr,
                "Failed to use `%s' for DNS resolver\n",
