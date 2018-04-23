@@ -296,6 +296,8 @@ parse_result_call_iterator (void *cls,
 {
   struct ParserContext *pc = cls;
 
+  if (NULL == pc->iter)
+    return; /* no need to do more work */
   for (unsigned int i=0;i<num_results;i++)
   {
     void *data;

@@ -37,7 +37,7 @@
 /**
  * Maximum number of queries pending at the same time.
  */
-#define THRESH 20
+#define THRESH 100
 
 /**
  * TIME_THRESH is in usecs.  How quickly do we submit fresh queries.
@@ -248,6 +248,11 @@ static unsigned int failures;
  * Number of records we found.
  */
 static unsigned int records;
+
+/**
+ * #GNUNET_YES if we have more work to be read from `stdin`.
+ */
+static int stdin_waiting;
 
 /**
  * Heap of all requests to perform, sorted by
@@ -794,6 +799,7 @@ store_completed_cb (void *cls,
 		    int32_t success,
 		    const char *emsg)
 {
+  static unsigned int pdot;
   struct Request *req = cls;
 
   req->qe = NULL;
@@ -810,6 +816,9 @@ store_completed_cb (void *cls,
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 		"Stored records under `%s'\n",
 		req->label);
+    pdot++;
+    if (0 == pdot % 1000)
+      fprintf (stderr, ".");
   }
 }
 
@@ -1061,6 +1070,22 @@ do_shutdown (void *cls)
     GNUNET_SCHEDULER_cancel (t);
     t = NULL;
   }
+  while (NULL != (req = req_head))
+  {
+    GNUNET_CONTAINER_DLL_remove (req_head,
+				 req_tail,
+				 req);
+    if (NULL != req->qe)
+      GNUNET_NAMESTORE_cancel (req->qe);
+    free_request (req);
+  }
+  while (NULL != (req = GNUNET_CONTAINER_heap_remove_root (req_heap)))
+  {
+    req->hn = NULL;
+    if (NULL != req->qe)
+      GNUNET_NAMESTORE_cancel (req->qe);
+    free_request (req);
+  }
   if (NULL != ns)
   {
     GNUNET_NAMESTORE_disconnect (ns);
@@ -1070,18 +1095,6 @@ do_shutdown (void *cls)
   {
     GNUNET_DNSSTUB_stop (ctx);
     ctx = NULL;
-  }
-  while (NULL != (req = req_head))
-  {
-    GNUNET_CONTAINER_DLL_remove (req_head,
-				 req_tail,
-				 req);
-    free_request (req);
-  }
-  while (NULL != (req = GNUNET_CONTAINER_heap_remove_root (req_heap)))
-  {
-    req->hn = NULL;
-    free_request (req);
   }
   if (NULL != req_heap)
   {
@@ -1095,6 +1108,32 @@ do_shutdown (void *cls)
                                  zone);
     GNUNET_free (zone->domain);
     GNUNET_free (zone);
+  }
+}
+
+
+/**
+ * Begin processing hostnames from stdin.
+ *
+ * @param cls NULL
+ */
+static void
+process_stdin (void *cls);
+
+
+/**
+ * If applicable, continue processing from stdin.
+ */
+static void
+continue_stdin ()
+{
+  if ( (pending < THRESH) &&
+       (stdin_waiting) )
+  {
+    if (NULL != t)
+      GNUNET_SCHEDULER_cancel (t);
+    t = GNUNET_SCHEDULER_add_now (&process_stdin,
+				  NULL);
   }
 }
 
@@ -1115,6 +1154,8 @@ ns_lookup_error_cb (void *cls)
 	      "Failed to load data from namestore for `%s'\n",
 	      req->label);
   insert_sorted (req);
+  pending--;
+  continue_stdin ();
 }
 
 
@@ -1137,6 +1178,7 @@ ns_lookup_result_cb (void *cls,
   struct Request *req = cls;
   
   req->qe = NULL;
+  pending--;
   GNUNET_break (0 == memcmp (zone,
 			     &req->zone->key,
 			     sizeof (*zone)));
@@ -1187,6 +1229,7 @@ ns_lookup_result_cb (void *cls,
 	      req->hostname,
 	      GNUNET_STRINGS_absolute_time_to_string (req->expires));
   insert_sorted (req);
+  continue_stdin ();
 }
 
 
@@ -1213,6 +1256,7 @@ queue (const char *hostname)
                 "Refusing invalid hostname `%s'\n",
                 hostname);
     rejects++;
+    continue_stdin ();
     return;
   }
   dot = strchr (hostname,
@@ -1223,6 +1267,7 @@ queue (const char *hostname)
                 "Refusing invalid hostname `%s' (lacks '.')\n",
                 hostname);
     rejects++;
+    continue_stdin ();
     return;
   }
   for (zone = zone_head; NULL != zone; zone = zone->next)
@@ -1235,6 +1280,7 @@ queue (const char *hostname)
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Domain name `%s' not in ego list!\n",
                 dot + 1);
+    continue_stdin ();
     return;
   }
   q.name = (char *) hostname;
@@ -1259,9 +1305,11 @@ queue (const char *hostname)
                 "Failed to pack query for hostname `%s'\n",
                 hostname);
     rejects++;
+    continue_stdin ();
     return;
   }
 
+  pending++;
   req = GNUNET_new (struct Request);
   req->zone = zone;
   req->hostname = GNUNET_strdup (hostname);
@@ -1288,21 +1336,33 @@ queue (const char *hostname)
 static void
 process_stdin (void *cls)
 {
+  static unsigned int pdot;
   char hn[256];
 
   (void) cls;
   t = NULL;
-  GNUNET_IDENTITY_disconnect (id);
-  id = NULL;
-  while (NULL !=
-         fgets (hn,
-                sizeof (hn),
-                stdin))
+  if (NULL != id)
+  {
+    GNUNET_IDENTITY_disconnect (id);
+    id = NULL;
+  }
+  if (NULL !=
+      fgets (hn,
+	     sizeof (hn),
+	     stdin))
   {
     if (strlen(hn) > 0)
       hn[strlen(hn)-1] = '\0'; /* eat newline */
+    pdot++;
+    if (0 == pdot % 1000)
+      fprintf (stderr, ".");
     queue (hn);
+    return;
   }
+  stdin_waiting = GNUNET_NO;
+  fprintf (stderr, "\n");
+  t = GNUNET_SCHEDULER_add_now (&process_queue,
+				NULL);
 }
 
 
@@ -1352,6 +1412,7 @@ identity_cb (void *cls,
   {
     if (NULL != zone_head)
     {
+      stdin_waiting = GNUNET_YES;
       t = GNUNET_SCHEDULER_add_now (&process_stdin,
 				    NULL);
     }
