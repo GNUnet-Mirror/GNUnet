@@ -460,7 +460,7 @@ namestore_list_response (void *cls,
   for (unsigned int i=0; i<rd_len; i++)
   {
     if ( (GNUNET_GNSRECORD_TYPE_NICK == rd[i].record_type) &&
-         (0 != strcmp (rname, GNUNET_GNS_MASTERZONE_STR)) )
+         (0 != strcmp (rname, GNUNET_GNS_EMPTY_LABEL_AT)) )
       continue;
 
     if ( (rd[i].record_type != handle->type) &&

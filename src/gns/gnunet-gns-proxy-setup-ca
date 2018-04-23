@@ -2,9 +2,9 @@
 # This shell script will generate an X509 certificate for your gnunet-gns-proxy
 # and install it (for both GNUnet and your browser).
 #
-if ! which certtool > /dev/null
+if ! which certutil > /dev/null
 then
-  echo "'certtool' command not found. Please install it."
+  echo "'certutil' command not found. Please install it."
   exit 1
 fi
 
@@ -41,10 +41,10 @@ echo "Making private key available to gnunet-gns-proxy"
 cat $GNSCERT $GNSCANO > $GNS_CA_CERT_PEM
 
 echo "Importing CA into browsers"
-for f in ~/.mozilla/firefox/*.default/
+for f in ~/.mozilla/firefox/*.*/
 do
   if [ -d $f ]; then
-    echo "Importing CA info Firefox at $f/"
+    echo "Importing CA info Firefox at $f"
 # delete old certificate (if any)
     certutil -D -n "GNS Proxy CA" -d "$f" >/dev/null 2>/dev/null
 # add new certificate

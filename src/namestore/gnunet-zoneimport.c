@@ -21,9 +21,6 @@
  * @file src/namestore/gnunet-zoneimport.c
  * @brief import a DNS zone for publication in GNS, incremental
  * @author Christian Grothoff
- *
- * TODO:
- * - set NICKname for zone's records
  */
 #include "platform.h"
 #include <gnunet_util_lib.h>
@@ -49,11 +46,6 @@
  * How often do we retry a query before giving up for good?
  */
 #define MAX_RETRIES 5
-
-/**
- * After how many lookups should we always sync to disk?
- */
-#define TRANSACTION_SYNC_FREQ 100
 
 
 /**
@@ -165,9 +157,9 @@ struct Request
 
   /**
    * Namestore operation pending for this record.
-   */ 
+   */
   struct GNUNET_NAMESTORE_QueueEntry *qe;
-  
+
   /**
    * Zone responsible for this request.
    */
@@ -481,7 +473,7 @@ check_for_glue (void *cls,
     }
     if (NULL ==
 	inet_ntop (AF_INET,
-		   &rec->data.raw.data,
+		   rec->data.raw.data,
 		   ip,
 		   ip_size))
     {
@@ -515,7 +507,7 @@ check_for_glue (void *cls,
     }
     if (NULL ==
 	inet_ntop (AF_INET6,
-		   &rec->data.raw.data,
+		   rec->data.raw.data,
 		   ip,
 		   ip_size))
     {
@@ -801,6 +793,7 @@ store_completed_cb (void *cls,
 {
   static unsigned int pdot;
   struct Request *req = cls;
+  struct Record *rec;
 
   req->qe = NULL;
   pending--;
@@ -820,6 +813,14 @@ store_completed_cb (void *cls,
     if (0 == pdot % 1000)
       fprintf (stderr, ".");
   }
+  /* Free records */
+  while (NULL != (rec = req->rec_head))
+  {
+    GNUNET_CONTAINER_DLL_remove (req->rec_head,
+				 req->rec_tail,
+				 rec);
+    GNUNET_free (rec);
+  }
 }
 
 
@@ -827,13 +828,11 @@ store_completed_cb (void *cls,
  * Function called with the result of a DNS resolution.
  *
  * @param cls closure with the `struct Request`
- * @param rs socket that received the response
  * @param dns dns response, never NULL
  * @param dns_len number of bytes in @a dns
  */
 static void
 process_result (void *cls,
-                struct GNUNET_DNSSTUB_RequestSocket *rs,
                 const struct GNUNET_TUN_DnsHeader *dns,
                 size_t dns_len)
 {
@@ -842,7 +841,6 @@ process_result (void *cls,
   struct GNUNET_DNSPARSER_Packet *p;
   unsigned int rd_count;
 
-  (void) rs;
   GNUNET_assert (NULL == req->hn);
   if (NULL == dns)
   {
@@ -888,14 +886,6 @@ process_result (void *cls,
     insert_sorted (req);
     pending--;
     return;
-  }
-  /* Free old/legacy records */
-  while (NULL != (rec = req->rec_head))
-  {
-    GNUNET_CONTAINER_DLL_remove (req->rec_head,
-				 req->rec_tail,
-				 rec);
-    GNUNET_free (rec);
   }
   /* import new records */
   req->issue_num = 0; /* success, reset counter! */
@@ -979,11 +969,11 @@ submit_req (struct Request *req)
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 	      "Requesting resolution for `%s'\n",
 	      req->hostname);
-  req->rs = GNUNET_DNSSTUB_resolve2 (ctx,
-                                     req->raw,
-                                     req->raw_len,
-                                     &process_result,
-                                     req);
+  req->rs = GNUNET_DNSSTUB_resolve (ctx,
+                                    req->raw,
+                                    req->raw_len,
+                                    &process_result,
+                                    req);
   GNUNET_assert (NULL != req->rs);
   req->issue_num++;
   last_request = now;
@@ -1176,7 +1166,7 @@ ns_lookup_result_cb (void *cls,
 		     const struct GNUNET_GNSRECORD_Data *rd)
 {
   struct Request *req = cls;
-  
+
   req->qe = NULL;
   pending--;
   GNUNET_break (0 == memcmp (zone,
@@ -1457,13 +1447,33 @@ run (void *cls,
   (void) args;
   (void) cfgfile;
   req_heap = GNUNET_CONTAINER_heap_create (GNUNET_CONTAINER_HEAP_ORDER_MIN);
-  ctx = GNUNET_DNSSTUB_start (dns_server);
+  ctx = GNUNET_DNSSTUB_start (256);
   if (NULL == ctx)
   {
     fprintf (stderr,
              "Failed to initialize GNUnet DNS STUB\n");
     return;
   }
+  if (NULL == args[1])
+  {
+    fprintf (stderr,
+             "You must provide a list of DNS resolvers on the command line\n");
+    return;
+  }
+  for (unsigned int i=1;NULL != args[i];i++)
+  {
+    if (GNUNET_OK !=
+        GNUNET_DNSSTUB_add_dns_ip (ctx,
+                                   args[1]))
+    {
+      fprintf (stderr,
+               "Failed to use `%s' for DNS resolver\n",
+               args[i]);
+      return;
+    }
+  }
+
+
   GNUNET_SCHEDULER_add_shutdown (&do_shutdown,
                                  NULL);
   ns = GNUNET_NAMESTORE_connect (cfg);

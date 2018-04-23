@@ -1,6 +1,6 @@
 /*
       This file is part of GNUnet
-      Copyright (C) 2012 GNUnet e.V.
+      Copyright (C) 2012, 2018 GNUnet e.V.
 
       GNUnet is free software; you can redistribute it and/or modify
       it under the terms of the GNU General Public License as published
@@ -48,12 +48,50 @@ struct GNUNET_DNSSTUB_RequestSocket;
 /**
  * Start a DNS stub resolver.
  *
- * @param dns_ip target IP address to use
+ * @param num_sockets how many sockets should we open
+ *        in parallel for DNS queries for this stub?
  * @return NULL on error
  */
 struct GNUNET_DNSSTUB_Context *
-GNUNET_DNSSTUB_start (const char *dns_ip);
+GNUNET_DNSSTUB_start (unsigned int num_sockets);
 
+
+/**
+ * Add nameserver for use by the DNSSTUB.  We will use
+ * all provided nameservers for resolution (round-robin).
+ *
+ * @param ctx resolver context to modify
+ * @param dns_ip target IP address to use (as string)
+ * @return #GNUNET_OK on success
+ */
+int
+GNUNET_DNSSTUB_add_dns_ip (struct GNUNET_DNSSTUB_Context *ctx,
+                           const char *dns_ip);
+
+
+/**
+ * Add nameserver for use by the DNSSTUB.  We will use
+ * all provided nameservers for resolution (round-robin).
+ *
+ * @param ctx resolver context to modify
+ * @param sa socket address of DNS resolver to use
+ * @return #GNUNET_OK on success
+ */
+int
+GNUNET_DNSSTUB_add_dns_sa (struct GNUNET_DNSSTUB_Context *ctx,
+                           const struct sockaddr *sa);
+
+
+/**
+ * How long should we try requests before timing out?
+ * Only effective for requests issued after this call.
+ *
+ * @param ctx resolver context to modify
+ * @param retry_frequ how long to wait between retries
+ */
+void
+GNUNET_DNSSTUB_set_retry (struct GNUNET_DNSSTUB_Context *ctx,
+                          struct GNUNET_TIME_Relative retry_freq);
 
 /**
  * Cleanup DNSSTUB resolver.
@@ -66,39 +104,18 @@ GNUNET_DNSSTUB_stop (struct GNUNET_DNSSTUB_Context *ctx);
 
 /**
  * Function called with the result of a DNS resolution.
+ * Once this function is called, the resolution request
+ * is automatically cancelled / cleaned up.  In particular,
+ * the function will only be called once.
  *
  * @param cls closure
- * @param rs socket that received the response
- * @param dns dns response, never NULL
+ * @param dns dns response, NULL on hard error (i.e. timeout)
  * @param dns_len number of bytes in @a dns
  */
 typedef void
 (*GNUNET_DNSSTUB_ResultCallback)(void *cls,
-                                 struct GNUNET_DNSSTUB_RequestSocket *rs,
                                  const struct GNUNET_TUN_DnsHeader *dns,
                                  size_t dns_len);
-
-
-/**
- * Perform DNS resolution using given address.
- *
- * @param ctx stub resolver to use
- * @param sa the socket address
- * @param sa_len the socket length
- * @param request DNS request to transmit
- * @param request_len number of bytes in msg
- * @param rc function to call with result
- * @param rc_cls closure for @a rc
- * @return socket used for the request, NULL on error
- */
-struct GNUNET_DNSSTUB_RequestSocket *
-GNUNET_DNSSTUB_resolve (struct GNUNET_DNSSTUB_Context *ctx,
-			const struct sockaddr *sa,
-			socklen_t sa_len,
-			const void *request,
-			size_t request_len,
-			GNUNET_DNSSTUB_ResultCallback rc,
-			void *rc_cls);
 
 
 /**
@@ -107,16 +124,16 @@ GNUNET_DNSSTUB_resolve (struct GNUNET_DNSSTUB_Context *ctx,
  * @param ctx stub resolver to use
  * @param request DNS request to transmit
  * @param request_len number of bytes in msg
- * @param rc function to call with result
+ * @param rc function to call with result (once)
  * @param rc_cls closure for @a rc
  * @return socket used for the request, NULL on error
  */
 struct GNUNET_DNSSTUB_RequestSocket *
-GNUNET_DNSSTUB_resolve2 (struct GNUNET_DNSSTUB_Context *ctx,
-			 const void *request,
-			 size_t request_len,
-			 GNUNET_DNSSTUB_ResultCallback rc,
-			 void *rc_cls);
+GNUNET_DNSSTUB_resolve (struct GNUNET_DNSSTUB_Context *ctx,
+                        const void *request,
+                        size_t request_len,
+                        GNUNET_DNSSTUB_ResultCallback rc,
+                        void *rc_cls);
 
 
 /**

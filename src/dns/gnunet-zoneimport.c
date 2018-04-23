@@ -290,13 +290,11 @@ process_record (struct Request *req,
  * Function called with the result of a DNS resolution.
  *
  * @param cls closure with the `struct Request`
- * @param rs socket that received the response
  * @param dns dns response, never NULL
  * @param dns_len number of bytes in @a dns
  */
 static void
 process_result (void *cls,
-                struct GNUNET_DNSSTUB_RequestSocket *rs,
                 const struct GNUNET_TUN_DnsHeader *dns,
                 size_t dns_len)
 {
@@ -407,11 +405,11 @@ submit_req (struct Request *req)
        (pending >= THRESH) )
     return GNUNET_SYSERR;
   GNUNET_assert (NULL == req->rs);
-  req->rs = GNUNET_DNSSTUB_resolve2 (ctx,
-                                     req->raw,
-                                     req->raw_len,
-                                     &process_result,
-                                     req);
+  req->rs = GNUNET_DNSSTUB_resolve (ctx,
+                                    req->raw,
+                                    req->raw_len,
+                                    &process_result,
+                                    req);
   GNUNET_assert (NULL != req->rs);
   req->issue_num++;
   last_request = now;
@@ -561,13 +559,23 @@ main (int argc,
              "Missing required configuration argument\n");
     return -1;
   }
-  ctx = GNUNET_DNSSTUB_start (argv[1]);
+  ctx = GNUNET_DNSSTUB_start (256);
   if (NULL == ctx)
   {
     fprintf (stderr,
              "Failed to initialize GNUnet DNS STUB\n");
     return 1;
   }
+  if (GNUNET_OK !=
+      GNUNET_DNSSTUB_add_dns_ip (ctx,
+                                 argv[1]))
+  {
+    fprintf (stderr,
+             "Failed to use `%s' for DNS resolver\n",
+             argv[1]);
+    return 1;
+  }
+
   while (NULL !=
          fgets (hn,
                 sizeof (hn),

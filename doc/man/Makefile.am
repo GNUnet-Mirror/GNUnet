@@ -17,7 +17,6 @@ man_MANS = \
   gnunet-ecc.1 \
   gnunet-fs.1 \
   gnunet-gns.1 \
-  gnunet-gns-import.1 \
   gnunet-gns-proxy.1 \
   gnunet-identity.1 \
   gnunet-cadet.1 \
@@ -42,6 +41,7 @@ man_MANS = \
   gnunet-transport-certificate-creation.1 \
   gnunet-unindex.1 \
   gnunet-uri.1 \
-  gnunet-vpn.1
+  gnunet-vpn.1 \
+  gnunet-zoneimport.1
 
 EXTRA_DIST = ${man_MANS}

@@ -458,13 +458,11 @@ GNUNET_NETWORK_STRUCT_END
  * succeeded.
  *
  * @param cls NULL
- * @param rs the socket that received the response
  * @param dns the response itself
  * @param r number of bytes in @a dns
  */
 static void
 process_dns_result (void *cls,
-		    struct GNUNET_DNSSTUB_RequestSocket *rs,
 		    const struct GNUNET_TUN_DnsHeader *dns,
 		    size_t r)
 {
@@ -479,8 +477,7 @@ process_dns_result (void *cls,
     return;
   /* Handle case that this is a reply to a request from a CADET DNS channel */
   ts = channels[dns->id];
-  if ( (NULL == ts) ||
-       (ts->specifics.dns.rs != rs) )
+  if (NULL == ts)
     return;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Got a response from the stub resolver for DNS request received via CADET!\n");
@@ -557,11 +554,11 @@ handle_dns_request (void *cls,
                  dlen);
   dout = (struct GNUNET_TUN_DnsHeader *) buf;
   dout->id = ts->specifics.dns.my_id;
-  ts->specifics.dns.rs = GNUNET_DNSSTUB_resolve2 (dnsstub,
-						  buf,
-                                                  dlen,
-						  &process_dns_result,
-						  NULL);
+  ts->specifics.dns.rs = GNUNET_DNSSTUB_resolve (dnsstub,
+                                                 buf,
+                                                 dlen,
+                                                 &process_dns_result,
+                                                 NULL);
   if (NULL == ts->specifics.dns.rs)
   {
     GNUNET_break_op (0);
@@ -3545,25 +3542,23 @@ advertise_dns_exit ()
   };
   char *dns_exit;
   struct GNUNET_HashCode port;
-  struct in_addr dns_exit4;
-  struct in6_addr dns_exit6;
 
   if (GNUNET_YES !=
       GNUNET_CONFIGURATION_get_value_yesno (cfg,
                                             "exit",
                                             "EXIT_DNS"))
     return;
+  GNUNET_assert (NULL != (dnsstub = GNUNET_DNSSTUB_start (128)));
+  dns_exit = NULL;
+  /* TODO: support using multiple DNS resolvers */
   if ( (GNUNET_OK !=
         GNUNET_CONFIGURATION_get_value_string (cfg,
                                                "exit",
                                                "DNS_RESOLVER",
                                                &dns_exit)) ||
-       ( (1 != inet_pton (AF_INET,
-                          dns_exit,
-                          &dns_exit4)) &&
-         (1 != inet_pton (AF_INET6,
-                          dns_exit,
-                          &dns_exit6)) ) )
+       (GNUNET_OK !=
+        GNUNET_DNSSTUB_add_dns_ip (dnsstub,
+                                   dns_exit)) )
   {
     GNUNET_log_config_invalid (GNUNET_ERROR_TYPE_ERROR,
 			       "dns",

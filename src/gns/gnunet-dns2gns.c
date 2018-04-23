@@ -247,19 +247,16 @@ do_timeout (void *cls)
  * Iterator called on obtained result for a DNS lookup
  *
  * @param cls closure
- * @param rs the request socket
  * @param dns the DNS udp payload
  * @param r size of the DNS payload
  */
 static void
 dns_result_processor (void *cls,
-		      struct GNUNET_DNSSTUB_RequestSocket *rs,
 		      const struct GNUNET_TUN_DnsHeader *dns,
 		      size_t r)
 {
   struct Request *request = cls;
 
-  (void) rs;
   if (NULL == dns)
   {
     /* DNSSTUB gave up, so we trigger timeout early */
@@ -307,11 +304,11 @@ result_processor (void *cls,
     request->original_request_id = request->packet->id;
     GNUNET_DNSPARSER_free_packet (request->packet);
     request->packet = NULL;
-    request->dns_lookup = GNUNET_DNSSTUB_resolve2 (dns_stub,
-						   request->udp_msg,
-						   request->udp_msg_size,
-						   &dns_result_processor,
-						   request);
+    request->dns_lookup = GNUNET_DNSSTUB_resolve (dns_stub,
+                                                  request->udp_msg,
+                                                  request->udp_msg_size,
+                                                  &dns_result_processor,
+                                                  request);
     return;
   }
   packet = request->packet;
@@ -594,8 +591,12 @@ run (void *cls,
 				 NULL);
   if (NULL == (gns = GNUNET_GNS_connect (cfg)))
     return;
-  if (NULL == (dns_stub = GNUNET_DNSSTUB_start (dns_ip)))
+  GNUNET_assert (NULL != (dns_stub = GNUNET_DNSSTUB_start (128)));
+  if (GNUNET_OK !=
+      GNUNET_DNSSTUB_add_dns_ip (dns_stub,
+                                 dns_ip))
   {
+    GNUNET_DNSSTUB_stop (dns_stub);
     GNUNET_GNS_disconnect (gns);
     gns = NULL;
     return;
