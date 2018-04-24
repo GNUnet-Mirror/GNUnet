@@ -480,7 +480,7 @@ handle_response (void *cls,
   (void) cls;
   if (NULL == rh)
   {
-    /* Resolver service sent two replies to one query? Bad! */
+    /* Resolver service sent extra replies to query (after terminator)? Bad! */
     GNUNET_break (0);
     GNUNET_MQ_destroy (mq);
     mq = NULL;
