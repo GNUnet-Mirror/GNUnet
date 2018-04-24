@@ -478,7 +478,15 @@ handle_response (void *cls,
   char *nret;
 
   (void) cls;
-  GNUNET_assert (NULL != rh);
+  if (NULL == rh)
+  {
+    /* Resolver service sent two replies to one query? Bad! */
+    GNUNET_break (0);
+    GNUNET_MQ_destroy (mq);
+    mq = NULL;
+    reconnect ();
+    return;
+  }
   size = ntohs (msg->size);
   if (size == sizeof (struct GNUNET_MessageHeader))
   {
