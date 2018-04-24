@@ -342,9 +342,10 @@ GNUNET_NETWORK_STRUCT_END
  * @param rd_count number of entries in @a rd array
  * @param rd array of records with data to store
  */
-typedef void (*GNUNET_GNSRECORD_RecordCallback) (void *cls,
-						 unsigned int rd_count,
-						 const struct GNUNET_GNSRECORD_Data *rd);
+typedef void
+(*GNUNET_GNSRECORD_RecordCallback) (void *cls,
+                                    unsigned int rd_count,
+                                    const struct GNUNET_GNSRECORD_Data *rd);
 
 
 

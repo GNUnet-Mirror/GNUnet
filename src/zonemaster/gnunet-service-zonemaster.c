@@ -336,11 +336,10 @@ convert_records_for_export (const struct GNUNET_GNSRECORD_Data *rd,
 {
   struct GNUNET_TIME_Absolute now;
   unsigned int rd_public_count;
-  unsigned int i;
 
   rd_public_count = 0;
   now = GNUNET_TIME_absolute_get ();
-  for (i=0;i<rd_count;i++)
+  for (unsigned int i=0;i<rd_count;i++)
     if (0 == (rd[i].flags & GNUNET_GNSRECORD_RF_PRIVATE))
     {
       rd_public[rd_public_count] = rd[i];
@@ -401,6 +400,10 @@ perform_dht_put (const struct GNUNET_CRYPTO_EcdsaPrivateKey *key,
   GNUNET_GNSRECORD_query_from_private_key (key,
                                            label,
                                            &query);
+  GNUNET_STATISTICS_update (statistics,
+                            "DHT put operations initiated",
+                            1,
+                            GNUNET_NO);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Storing %u record(s) for label `%s' in DHT with expiration `%s' under key %s\n",
               rd_public_count,
@@ -424,10 +427,13 @@ perform_dht_put (const struct GNUNET_CRYPTO_EcdsaPrivateKey *key,
 
 /**
  * We encountered an error in our zone iteration.
+ *
+ * @param cls NULL
  */
 static void
 zone_iteration_error (void *cls)
 {
+  (void) cls;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Got disconnected from namestore database, retrying.\n");
   namestore_iter = NULL;
@@ -451,10 +457,13 @@ zone_iteration_error (void *cls)
 
 /**
  * Zone iteration is completed.
+ *
+ * @param cls NULL
  */
 static void
 zone_iteration_finished (void *cls)
 {
+  (void) cls;
   /* we're done with one iteration, calculate when to do the next one */
   namestore_iter = NULL;
   last_num_public_records = num_public_records;
@@ -533,10 +542,10 @@ put_gns_record (void *cls,
   struct GNUNET_GNSRECORD_Data rd_public[rd_count];
   unsigned int rd_public_count;
 
+  (void) cls;
   rd_public_count = convert_records_for_export (rd,
                                                 rd_count,
                                                 rd_public);
-
   if (0 == rd_public_count)
   {
     GNUNET_assert (NULL == zone_publish_task);
@@ -571,7 +580,10 @@ static void
 publish_zone_dht_start (void *cls)
 {
   zone_publish_task = NULL;
-
+  GNUNET_STATISTICS_update (statistics,
+                            "Full zone iterations launched",
+                            1,
+                            GNUNET_NO);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Starting DHT zone update!\n");
   /* start counting again */
@@ -610,6 +622,10 @@ handle_monitor_event (void *cls,
   unsigned int rd_public_count;
   struct MonitorActivity *ma;
 
+  GNUNET_STATISTICS_update (statistics,
+                            "Namestore monitor events received",
+                            1,
+                            GNUNET_NO);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Received %u records for label `%s' via namestore monitor\n",
               rd_count,
@@ -648,22 +664,28 @@ handle_monitor_event (void *cls,
 static void
 monitor_sync_event (void *cls)
 {
+  (void) cls;
   if ( (NULL == zone_publish_task) &&
        (NULL == namestore_iter) )
-  zone_publish_task = GNUNET_SCHEDULER_add_now (&publish_zone_dht_start,
-                                                NULL);
+    zone_publish_task = GNUNET_SCHEDULER_add_now (&publish_zone_dht_start,
+                                                  NULL);
 }
 
 
 /**
- * The zone monitor is now in SYNC with the current state of the
- * name store.  Start to perform periodic iterations.
+ * The zone monitor encountered an IPC error trying to to get in
+ * sync. Restart from the beginning.
  *
  * @param cls NULL
  */
 static void
 handle_monitor_error (void *cls)
 {
+  (void) cls;
+  GNUNET_STATISTICS_update (statistics,
+                            "Namestore monitor errors encountered",
+                            1,
+                            GNUNET_NO);
   if (NULL != zone_publish_task)
   {
     GNUNET_SCHEDULER_cancel (zone_publish_task);
@@ -698,6 +720,7 @@ run (void *cls,
 {
   unsigned long long max_parallel_bg_queries = 128;
 
+  (void) cls;
   min_relative_record_time = GNUNET_TIME_UNIT_FOREVER_REL;
   namestore_handle = GNUNET_NAMESTORE_connect (c);
   if (NULL == namestore_handle)
@@ -733,7 +756,7 @@ run (void *cls,
                 max_parallel_bg_queries);
   }
   if (0 == max_parallel_bg_queries)
-    max_parallel_bg_queries = 1;	  
+    max_parallel_bg_queries = 1;
   dht_handle = GNUNET_DHT_connect (c,
                                    (unsigned int) max_parallel_bg_queries);
   if (NULL == dht_handle)
@@ -746,7 +769,8 @@ run (void *cls,
 
   /* Schedule periodic put for our records. */
   first_zone_iteration = GNUNET_YES;\
-  statistics = GNUNET_STATISTICS_create ("zonemaster", c);
+  statistics = GNUNET_STATISTICS_create ("zonemaster",
+                                         c);
   zmon = GNUNET_NAMESTORE_zone_monitor_start (c,
                                               NULL,
                                               GNUNET_NO,
