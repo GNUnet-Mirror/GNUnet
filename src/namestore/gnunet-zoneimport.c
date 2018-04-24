@@ -306,7 +306,7 @@ for_all_records (const struct GNUNET_DNSPARSER_Packet *p,
 
 /**
  * Return just the label of the hostname in @a req.
- * 
+ *
  * @param req request to process hostname of
  * @return statically allocated pointer to the label,
  *         overwritten upon the next request!
@@ -316,7 +316,7 @@ get_label (struct Request *req)
 {
   static char label[64];
   const char *dot;
-  
+
   dot = strchr (req->hostname,
                 (unsigned char) '.');
   if (NULL == dot)
@@ -339,7 +339,7 @@ get_label (struct Request *req)
 
 /**
  * Build DNS query for @a hostname.
- * 
+ *
  * @param hostname host to build query for
  * @param raw_size[out] number of bytes in the query
  * @return NULL on error, otherwise pointer to statically (!)
@@ -384,7 +384,7 @@ build_dns_query (struct Request *req,
     rejects++;
     GNUNET_break (0);
     GNUNET_free (rawp);
-    return NULL; 
+    return NULL;
   }
   memcpy (raw,
 	  rawp,
@@ -741,10 +741,10 @@ process_record (void *cls,
     break;
   case GNUNET_DNSPARSER_TYPE_DNAME:
     /* No support for DNAME in GNS yet! FIXME: support later! */
-    fprintf (stdout,
-             "FIXME: not supported: %s DNAME %s\n",
-             rec->name,
-             rec->data.hostname);
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                "FIXME: not supported: %s DNAME %s\n",
+                rec->name,
+                rec->data.hostname);
     break;
   case GNUNET_DNSPARSER_TYPE_MX:
     if (GNUNET_OK ==
@@ -870,6 +870,7 @@ store_completed_cb (void *cls,
 		    int32_t success,
 		    const char *emsg)
 {
+  static struct GNUNET_TIME_Absolute last;
   static unsigned int pdot;
   struct Request *req = cls;
   struct Record *rec;
@@ -885,12 +886,23 @@ store_completed_cb (void *cls,
   }
   else
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		"Stored records under `%s'\n",
 		req->hostname);
+    if (0 == pdot)
+      last = GNUNET_TIME_absolute_get ();
     pdot++;
     if (0 == pdot % 1000)
-      fprintf (stderr, ".");
+    {
+      struct GNUNET_TIME_Relative delta;
+
+      delta = GNUNET_TIME_absolute_get_duration (last);
+      last = GNUNET_TIME_absolute_get ();
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                  "Processed 1000 records in %s\n",
+                  GNUNET_STRINGS_relative_time_to_string (delta,
+                                                          GNUNET_YES));
+    }
   }
   /* Free records */
   while (NULL != (rec = req->rec_head))
@@ -973,7 +985,7 @@ process_result (void *cls,
       .req = req,
       .p = p
     };
-    
+
     for_all_records (p,
 		     &process_record,
 		     &prc);
@@ -1392,6 +1404,7 @@ queue (const char *hostname)
 static void
 process_stdin (void *cls)
 {
+  static struct GNUNET_TIME_Absolute last;
   static unsigned int pdot;
   char hn[256];
 
@@ -1409,9 +1422,20 @@ process_stdin (void *cls)
   {
     if (strlen(hn) > 0)
       hn[strlen(hn)-1] = '\0'; /* eat newline */
+    if (0 == pdot)
+      last = GNUNET_TIME_absolute_get ();
     pdot++;
     if (0 == pdot % 1000)
-      fprintf (stderr, ".");
+    {
+      struct GNUNET_TIME_Relative delta;
+
+      delta = GNUNET_TIME_absolute_get_duration (last);
+      last = GNUNET_TIME_absolute_get ();
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                  "Imported 1000 records in %s\n",
+                  GNUNET_STRINGS_relative_time_to_string (delta,
+                                                          GNUNET_YES));
+    }
     queue (hn);
     return;
   }
