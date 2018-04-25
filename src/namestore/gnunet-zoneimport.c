@@ -676,6 +676,10 @@ process_record (void *cls,
 		req->hostname);
     return; /* record expired */
   }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "DNS returned record that expires at %s for `%s'\n",
+              GNUNET_STRINGS_absolute_time_to_string (rec->expiration_time),
+              req->hostname);
   switch (rec->type)
   {
   case GNUNET_DNSPARSER_TYPE_NS:

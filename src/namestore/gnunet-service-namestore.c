@@ -688,6 +688,7 @@ refresh_block (struct NamestoreClient *nc,
   struct GNUNET_GNSRECORD_Data *nick;
   struct GNUNET_GNSRECORD_Data *res;
   unsigned int res_count;
+  struct GNUNET_TIME_Absolute exp_time;
 
   nick = get_nick_record (zone_key);
   res_count = rd_count;
@@ -702,26 +703,23 @@ refresh_block (struct NamestoreClient *nc,
     GNUNET_free (nick);
   }
 
-  if (0 == res_count)
-    block = GNUNET_GNSRECORD_block_create (zone_key,
-                                           GNUNET_TIME_UNIT_ZERO_ABS,
-                                           name,
-                                           res,
-					   rd_count);
-  else
-    block = GNUNET_GNSRECORD_block_create (zone_key,
-                                           GNUNET_GNSRECORD_record_get_expiration_time (res_count,
-											res),
-                                           name,
-                                           res,
-					   res_count);
+  exp_time = (0 == res_count)
+    ? GNUNET_TIME_UNIT_ZERO_ABS
+    : GNUNET_GNSRECORD_record_get_expiration_time (res_count,
+                                                   res);
+  block = GNUNET_GNSRECORD_block_create (zone_key,
+                                         exp_time,
+                                         name,
+                                         res,
+                                         res_count);
   GNUNET_assert (NULL != block);
   GNUNET_CRYPTO_ecdsa_key_get_public (zone_key,
                                       &pkey);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Caching block for label `%s' with %u records in zone `%s' in namecache\n",
+              "Caching block for label `%s' with %u records and expiration %s in zone `%s' in namecache\n",
               name,
               res_count,
+              GNUNET_STRINGS_absolute_time_to_string (exp_time),
               GNUNET_GNSRECORD_z2s (&pkey));
   GNUNET_STATISTICS_update (statistics,
                             "Namecache updates pushed",
