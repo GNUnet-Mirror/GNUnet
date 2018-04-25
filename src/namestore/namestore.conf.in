@@ -9,7 +9,16 @@ HOSTNAME = localhost
 BINARY = gnunet-service-namestore
 ACCEPT_FROM = 127.0.0.1;
 ACCEPT_FROM6 = ::1;
+
+# Which database should we use?
 DATABASE = sqlite
+
+# Should we optimize publishing record by caching the mapping
+# from zone private keys to zone public keys in memory?
+# (Set to NO if totally paranoid about keeping private keys
+# in RAM longer than necessary.)
+CACHE_KEYS = YES
+
 
 [namestore-sqlite]
 FILENAME = $GNUNET_DATA_HOME/namestore/sqlite.db
@@ -38,5 +47,3 @@ UNIXPATH = $GNUNET_RUNTIME_DIR/gnunet-service-fcfsd.sock
 
 # On what port does the FCFS daemon listen for HTTP clients?
 HTTPPORT = 18080
-
-

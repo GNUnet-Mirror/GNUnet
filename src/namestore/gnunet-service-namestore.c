@@ -251,6 +251,12 @@ static struct ZoneMonitor *monitor_tail;
  */
 static struct GNUNET_NotificationContext *monitor_nc;
 
+/**
+ * Optimize block insertion by caching map of private keys to
+ * public keys in memory?
+ */
+static int cache_keys;
+
 
 /**
  * Task run during shutdown.
@@ -707,11 +713,18 @@ refresh_block (struct NamestoreClient *nc,
     ? GNUNET_TIME_UNIT_ZERO_ABS
     : GNUNET_GNSRECORD_record_get_expiration_time (res_count,
                                                    res);
-  block = GNUNET_GNSRECORD_block_create (zone_key,
-                                         exp_time,
-                                         name,
-                                         res,
-                                         res_count);
+  if (cache_keys)
+    block = GNUNET_GNSRECORD_block_create2 (zone_key,
+                                            exp_time,
+                                            name,
+                                            res,
+                                            res_count);
+  else
+    block = GNUNET_GNSRECORD_block_create (zone_key,
+                                           exp_time,
+                                           name,
+                                           res,
+                                           res_count);
   GNUNET_assert (NULL != block);
   GNUNET_CRYPTO_ecdsa_key_get_public (zone_key,
                                       &pkey);
@@ -1722,6 +1735,9 @@ run (void *cls,
   monitor_nc = GNUNET_notification_context_create (1);
   namecache = GNUNET_NAMECACHE_connect (cfg);
   /* Loading database plugin */
+  cache_keys = GNUNET_CONFIGURATION_get_value_yesno (cfg,
+                                                     "namestore",
+                                                     "CACHE_KEYS");
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_string (cfg,
                                              "namestore",
