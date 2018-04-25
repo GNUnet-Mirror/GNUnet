@@ -1515,6 +1515,7 @@ iterate_zones (void *cls)
                                            NULL);
     GNUNET_CONTAINER_multihashmap_destroy (ns_pending);
     ns_pending = NULL;
+    GNUNET_assert (NULL == t);
     t = GNUNET_SCHEDULER_add_now (&process_queue,
                                   NULL);
     return;

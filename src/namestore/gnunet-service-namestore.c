@@ -1301,29 +1301,6 @@ handle_zone_to_name (void *cls,
 
 
 /**
- * Zone iteration processor result
- */
-enum ZoneIterationResult
-{
-  /**
-   * Iteration start.
-   */
-  IT_START = 0,
-
-  /**
-   * Found records,
-   * Continue to iterate with next iteration_next call
-   */
-  IT_SUCCESS_MORE_AVAILABLE = 1,
-
-  /**
-   * Iteration complete
-   */
-  IT_SUCCESS_NOT_MORE_RESULTS_AVAILABLE = 2
-};
-
-
-/**
  * Context for record remove operations passed from
  * #run_zone_iteration_round to #zone_iterate_proc as closure
  */
@@ -1338,15 +1315,6 @@ struct ZoneIterationProcResult
    * Number of results left to be returned in this iteration.
    */
   uint64_t limit;
-
-  /**
-   * Iteration result: iteration done?
-   * #IT_SUCCESS_MORE_AVAILABLE:  if there may be more results overall but
-   * we got one for now and have sent it to the client
-   * #IT_SUCCESS_NOT_MORE_RESULTS_AVAILABLE: if there are no further results,
-   * #IT_START: if we are still trying to find a result.
-   */
-  int res_iteration_finished;
 
 };
 
@@ -1375,21 +1343,22 @@ zone_iterate_proc (void *cls,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		"Iteration done\n");
-    proc->res_iteration_finished = IT_SUCCESS_NOT_MORE_RESULTS_AVAILABLE;
     return;
   }
   if ( (NULL == zone_key) ||
        (NULL == name) )
   {
     /* what is this!? should never happen */
-    proc->res_iteration_finished = IT_START;
     GNUNET_break (0);
     return;
   }
-  GNUNET_assert (proc->limit > 0);
-  proc->limit--;
   if (0 == proc->limit)
-    proc->res_iteration_finished = IT_SUCCESS_MORE_AVAILABLE;
+  {
+    /* what is this!? should never happen */
+    GNUNET_break (0);
+    return;
+  }
+  proc->limit--;
   send_lookup_response (proc->zi->nc,
 			proc->zi->request_id,
 			zone_key,
@@ -1426,36 +1395,25 @@ run_zone_iteration_round (struct ZoneIteration *zi,
   struct ZoneIterationProcResult proc;
   struct GNUNET_MQ_Envelope *env;
   struct RecordResultMessage *rrm;
-  int ret;
 
   memset (&proc,
           0,
           sizeof (proc));
   proc.zi = zi;
-  proc.res_iteration_finished = IT_START;
   proc.limit = limit;
-  while (IT_START == proc.res_iteration_finished)
-  {
-    if (GNUNET_SYSERR ==
-	(ret = GSN_database->iterate_records (GSN_database->cls,
-					      (0 == memcmp (&zi->zone,
-                                                            &zero,
-                                                            sizeof (zero)))
-					      ? NULL
-					      : &zi->zone,
-					      zi->offset,
-                                              limit,
-					      &zone_iterate_proc,
-                                              &proc)))
-    {
-      GNUNET_break (0);
-      break;
-    }
-    if (GNUNET_NO == ret)
-      proc.res_iteration_finished = IT_SUCCESS_NOT_MORE_RESULTS_AVAILABLE;
-    zi->offset++;
-  }
-  if (IT_SUCCESS_MORE_AVAILABLE == proc.res_iteration_finished)
+  GNUNET_break (GNUNET_SYSERR !=
+                GSN_database->iterate_records (GSN_database->cls,
+                                               (0 == memcmp (&zi->zone,
+                                                             &zero,
+                                                             sizeof (zero)))
+                                               ? NULL
+                                               : &zi->zone,
+                                               zi->offset,
+                                               limit,
+                                               &zone_iterate_proc,
+                                               &proc));
+  zi->offset += (limit - proc.limit);
+  if (0 == proc.limit)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "More results available\n");
@@ -1520,8 +1478,7 @@ handle_iteration_stop (void *cls,
   uint32_t rid;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Received `%s' message\n",
-	      "ZONE_ITERATION_STOP");
+	      "Received ZONE_ITERATION_STOP message\n");
   rid = ntohl (zis_msg->gns_header.r_id);
   for (zi = nc->op_head; NULL != zi; zi = zi->next)
     if (zi->request_id == rid)
