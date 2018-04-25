@@ -398,7 +398,8 @@ display_record (void *cls,
   if ( (NULL != name) &&
        (0 != strcmp (name, rname)) )
   {
-    GNUNET_NAMESTORE_zone_iterator_next (list_it);
+    GNUNET_NAMESTORE_zone_iterator_next (list_it,
+                                         1);
     return;
   }
   FPRINTF (stdout,
@@ -441,7 +442,8 @@ display_record (void *cls,
     GNUNET_free (s);
   }
   FPRINTF (stdout, "%s", "\n");
-  GNUNET_NAMESTORE_zone_iterator_next (list_it);
+  GNUNET_NAMESTORE_zone_iterator_next (list_it,
+                                       1);
 }
 
 

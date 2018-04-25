@@ -326,13 +326,15 @@ iterate_cb (void *cls,
 
   if (1 != rd_len)
   {
-    GNUNET_NAMESTORE_zone_iterator_next (zr->list_it);
+    GNUNET_NAMESTORE_zone_iterator_next (zr->list_it,
+                                         1);
     return;
   }
 
   if (GNUNET_GNSRECORD_TYPE_PKEY != rd->record_type)
   {
-    GNUNET_NAMESTORE_zone_iterator_next (zr->list_it);
+    GNUNET_NAMESTORE_zone_iterator_next (zr->list_it,
+                                         1);
     return;
   }
 
@@ -343,7 +345,8 @@ iterate_cb (void *cls,
   if (NULL == pkey)
   {
     GNUNET_break (0);
-    GNUNET_NAMESTORE_zone_iterator_next (zr->list_it);
+    GNUNET_NAMESTORE_zone_iterator_next (zr->list_it,
+                                         1);
     return;
   }
   if (bytes_free < (strlen (name) + strlen (pkey) + 40))
@@ -359,7 +362,8 @@ iterate_cb (void *cls,
 	   name,
 	   pkey);
   zr->write_offset = strlen (zr->zoneinfo);
-  GNUNET_NAMESTORE_zone_iterator_next (zr->list_it);
+  GNUNET_NAMESTORE_zone_iterator_next (zr->list_it,
+                                       1);
   GNUNET_free (pkey);
 }
 

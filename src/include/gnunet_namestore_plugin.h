@@ -109,19 +109,21 @@ struct GNUNET_NAMESTORE_PluginFunctions
 
   /**
    * Iterate over the results for a particular zone in the
-   * datastore.  Will return at most one result to the iterator.
+   * datastore.  Will return at most @a limit results to the iterator.
    *
    * @param cls closure (internal context for the plugin)
    * @param zone private key of the zone, NULL for all zones
    * @param offset offset in the list of all matching records
+   * @param limit maximum number of results to return to @a iter
    * @param iter function to call with the result
    * @param iter_cls closure for @a iter
-   * @return #GNUNET_OK on success, #GNUNET_NO if there were no results, #GNUNET_SYSERR on error
+   * @return #GNUNET_OK on success, #GNUNET_NO if there were no more results, #GNUNET_SYSERR on error
    */
   int
   (*iterate_records) (void *cls,
 		      const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone,
 		      uint64_t offset,
+		      uint64_t limit,
 		      GNUNET_NAMESTORE_RecordIterator iter,
 		      void *iter_cls);
 

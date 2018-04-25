@@ -71,18 +71,18 @@ do_shutdown ()
 
   if (NULL != ns_ops[0])
   {
-  	GNUNET_NAMESTORE_cancel(ns_ops[0]);
-  	ns_ops[0] = NULL;
+    GNUNET_NAMESTORE_cancel(ns_ops[0]);
+    ns_ops[0] = NULL;
   }
   if (NULL != ns_ops[1])
   {
-  	GNUNET_NAMESTORE_cancel(ns_ops[1]);
-  	ns_ops[1] = NULL;
+    GNUNET_NAMESTORE_cancel(ns_ops[1]);
+    ns_ops[1] = NULL;
   }
   if (NULL != ns_ops[2])
   {
-  	GNUNET_NAMESTORE_cancel(ns_ops[2]);
-  	ns_ops[2] = NULL;
+    GNUNET_NAMESTORE_cancel(ns_ops[2]);
+    ns_ops[2] = NULL;
   }
 
   if (NULL != nsh)
@@ -274,18 +274,20 @@ put_cont (void *cls, int32_t success, const char *emsg)
 static struct GNUNET_GNSRECORD_Data *
 create_record (unsigned int count)
 {
-  unsigned int c;
   struct GNUNET_GNSRECORD_Data * rd;
 
-  rd = GNUNET_malloc (count * sizeof (struct GNUNET_GNSRECORD_Data));
-  for (c = 0; c < count; c++)
+  rd = GNUNET_new_array (count,
+                         struct GNUNET_GNSRECORD_Data);
+  for (unsigned int c = 0; c < count; c++)
   {
     rd[c].expiration_time = GNUNET_TIME_relative_to_absolute (GNUNET_TIME_UNIT_HOURS).abs_value_us;
     rd[c].record_type = 1111;
     rd[c].data_size = 50;
     rd[c].data = GNUNET_malloc(50);
     rd[c].flags = 0;
-    memset ((char *) rd[c].data, 'a', 50);
+    memset ((char *) rd[c].data,
+            'a',
+            50);
   }
   return rd;
 }
@@ -300,7 +302,10 @@ run (void *cls,
 
   directory = NULL;
   GNUNET_assert (GNUNET_OK ==
-                 GNUNET_CONFIGURATION_get_value_string(mycfg, "PATHS", "GNUNET_TEST_HOME", &directory));
+                 GNUNET_CONFIGURATION_get_value_string (mycfg,
+                                                        "PATHS",
+                                                        "GNUNET_TEST_HOME",
+                                                        &directory));
   GNUNET_DISK_directory_remove (directory);
 
   res = 1;

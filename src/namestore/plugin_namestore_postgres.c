@@ -149,22 +149,28 @@ database_setup (struct Plugin *plugin)
     struct GNUNET_PQ_PreparedStatement ps[] = {
       GNUNET_PQ_make_prepare ("store_records",
                               "INSERT INTO ns097records (zone_private_key, pkey, rvalue, record_count, record_data, label) VALUES "
-                              "($1, $2, $3, $4, $5, $6)", 6),
+                              "($1, $2, $3, $4, $5, $6)",
+                              6),
       GNUNET_PQ_make_prepare ("delete_records",
                               "DELETE FROM ns097records "
-                              "WHERE zone_private_key=$1 AND label=$2", 2),
+                              "WHERE zone_private_key=$1 AND label=$2",
+                              2),
       GNUNET_PQ_make_prepare ("zone_to_name",
                               "SELECT record_count,record_data,label FROM ns097records"
-                              " WHERE zone_private_key=$1 AND pkey=$2", 2),
+                              " WHERE zone_private_key=$1 AND pkey=$2",
+                              2),
       GNUNET_PQ_make_prepare ("iterate_zone",
                               "SELECT record_count,record_data,label FROM ns097records "
-                              "WHERE zone_private_key=$1 ORDER BY rvalue LIMIT 1 OFFSET $2", 2),
+                              "WHERE zone_private_key=$1 ORDER BY rvalue OFFSET $2 LIMIT $3",
+                              3),
       GNUNET_PQ_make_prepare ("iterate_all_zones",
                               "SELECT record_count,record_data,label,zone_private_key"
-                              " FROM ns097records ORDER BY rvalue LIMIT 1 OFFSET $1", 1),
+                              " FROM ns097records ORDER BY rvalue OFFSET $1 LIMIT $2",
+                              2),
       GNUNET_PQ_make_prepare ("lookup_label",
                               "SELECT record_count,record_data,label "
-                              "FROM ns097records WHERE zone_private_key=$1 AND label=$2", 2),
+                              "FROM ns097records WHERE zone_private_key=$1 AND label=$2",
+                              2),
       GNUNET_PQ_PREPARED_STATEMENT_END
     };
 
@@ -278,6 +284,12 @@ struct ParserContext
    * Zone key, NULL if part of record.
    */
   const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone_key;
+
+  /**
+   * Number of results still to return (counted down by
+   * number of results given to iterator).
+   */
+  uint64_t limit;
 };
 
 
@@ -360,6 +372,7 @@ parse_result_call_iterator (void *cls,
     }
     GNUNET_PQ_cleanup_result (rs);
   }
+  pc->limit -= num_results;
 }
 
 
@@ -410,14 +423,16 @@ namestore_postgres_lookup_records (void *cls,
  * @param cls closure (internal context for the plugin)
  * @param zone hash of public key of the zone, NULL to iterate over all zones
  * @param offset offset in the list of all matching records
+ * @param limit maximum number of results to fetch
  * @param iter function to call with the result
  * @param iter_cls closure for @a iter
- * @return #GNUNET_OK on success, #GNUNET_NO if there were no results, #GNUNET_SYSERR on error
+ * @return #GNUNET_OK on success, #GNUNET_NO if there were no more results, #GNUNET_SYSERR on error
  */
 static int
 namestore_postgres_iterate_records (void *cls,
                                     const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone,
                                     uint64_t offset,
+                                    uint64_t limit,
                                     GNUNET_NAMESTORE_RecordIterator iter,
                                     void *iter_cls)
 {
@@ -428,10 +443,12 @@ namestore_postgres_iterate_records (void *cls,
   pc.iter = iter;
   pc.iter_cls = iter_cls;
   pc.zone_key = zone;
+  pc.limit = limit;
   if (NULL == zone)
   {
     struct GNUNET_PQ_QueryParam params_without_zone[] = {
       GNUNET_PQ_query_param_uint64 (&offset),
+      GNUNET_PQ_query_param_uint64 (&limit),
       GNUNET_PQ_query_param_end
     };
 
@@ -446,6 +463,7 @@ namestore_postgres_iterate_records (void *cls,
     struct GNUNET_PQ_QueryParam params_with_zone[] = {
       GNUNET_PQ_query_param_auto_from_type (zone),
       GNUNET_PQ_query_param_uint64 (&offset),
+      GNUNET_PQ_query_param_uint64 (&limit),
       GNUNET_PQ_query_param_end
     };
 
@@ -458,9 +476,9 @@ namestore_postgres_iterate_records (void *cls,
   if (res < 0)
     return GNUNET_SYSERR;
 
-  if (GNUNET_DB_STATUS_SUCCESS_NO_RESULTS == res)
+  if ( (GNUNET_DB_STATUS_SUCCESS_NO_RESULTS == res) ||
+       (pc.limit > 0) )
     return GNUNET_NO;
-
   return GNUNET_OK;
 }
 

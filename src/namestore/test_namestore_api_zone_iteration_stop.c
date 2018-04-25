@@ -271,7 +271,8 @@ zone_proc (void *cls,
     returned_records ++;
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
     		"Telling namestore to send the next result\n");
-    GNUNET_NAMESTORE_zone_iterator_next (zi);
+    GNUNET_NAMESTORE_zone_iterator_next (zi,
+                                         1);
   }
   else
   {

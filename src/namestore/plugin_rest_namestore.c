@@ -452,7 +452,8 @@ namestore_list_response (void *cls,
                 "%s does not match %s\n",
 		rname,
 		handle->name);
-    GNUNET_NAMESTORE_zone_iterator_next (handle->list_it);
+    GNUNET_NAMESTORE_zone_iterator_next (handle->list_it,
+                                         1);
     return;
   }
 
@@ -483,7 +484,8 @@ namestore_list_response (void *cls,
   }
 
   json_decref (result_array);
-  GNUNET_NAMESTORE_zone_iterator_next (handle->list_it);
+  GNUNET_NAMESTORE_zone_iterator_next (handle->list_it,
+                                       1);
 }
 
 

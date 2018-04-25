@@ -345,6 +345,14 @@ struct ZoneIterationNextMessage
    * Type will be #GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_ITERATION_NEXT
    */
   struct GNUNET_NAMESTORE_Header gns_header;
+
+  /**
+   * Number of records to return to the iterator in one shot
+   * (before #GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_ITERATION_NEXT
+   * should be send again). In NBO.
+   */
+  uint64_t limit;
+
 };
 
 

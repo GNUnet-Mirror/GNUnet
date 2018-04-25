@@ -83,8 +83,8 @@ struct ZoneIteration
    * Offset of the zone iteration used to address next result of the zone
    * iteration in the store
    *
-   * Initialy set to 0 in handle_iteration_start
-   * Incremented with by every call to handle_iteration_next
+   * Initialy set to 0 in #handle_iteration_start
+   * Incremented with by every call to #handle_iteration_next
    */
   uint32_t offset;
 
@@ -1065,6 +1065,7 @@ handle_record_store (void *cls,
           GSN_database->iterate_records (GSN_database->cls,
                                          &rp_msg->private_key,
                                          0,
+                                         1,
                                          NULL,
                                          0)) )
     {
@@ -1323,6 +1324,11 @@ struct ZoneIterationProcResult
   struct ZoneIteration *zi;
 
   /**
+   * Number of results left to be returned in this iteration.
+   */
+  uint64_t limit;
+
+  /**
    * Iteration result: iteration done?
    * #IT_SUCCESS_MORE_AVAILABLE:  if there may be more results overall but
    * we got one for now and have sent it to the client
@@ -1361,14 +1367,18 @@ zone_iterate_proc (void *cls,
     proc->res_iteration_finished = IT_SUCCESS_NOT_MORE_RESULTS_AVAILABLE;
     return;
   }
-  if ((NULL == zone_key) || (NULL == name))
+  if ( (NULL == zone_key) ||
+       (NULL == name) )
   {
     /* what is this!? should never happen */
     proc->res_iteration_finished = IT_START;
     GNUNET_break (0);
     return;
   }
-  proc->res_iteration_finished = IT_SUCCESS_MORE_AVAILABLE;
+  GNUNET_assert (proc->limit > 0);
+  proc->limit--;
+  if (0 == proc->limit)
+    proc->res_iteration_finished = IT_SUCCESS_MORE_AVAILABLE;
   send_lookup_response (proc->zi->nc,
 			proc->zi->request_id,
 			zone_key,
@@ -1389,7 +1399,6 @@ zone_iterate_proc (void *cls,
                    name,
                    rd_count,
                    rd);
-
 }
 
 
@@ -1397,18 +1406,23 @@ zone_iterate_proc (void *cls,
  * Perform the next round of the zone iteration.
  *
  * @param zi zone iterator to process
+ * @param limit number of results to return in one pass
  */
 static void
-run_zone_iteration_round (struct ZoneIteration *zi)
+run_zone_iteration_round (struct ZoneIteration *zi,
+                          uint64_t limit)
 {
   struct ZoneIterationProcResult proc;
   struct GNUNET_MQ_Envelope *env;
   struct RecordResultMessage *rrm;
   int ret;
 
-  memset (&proc, 0, sizeof (proc));
+  memset (&proc,
+          0,
+          sizeof (proc));
   proc.zi = zi;
   proc.res_iteration_finished = IT_START;
+  proc.limit = limit;
   while (IT_START == proc.res_iteration_finished)
   {
     if (GNUNET_SYSERR ==
@@ -1419,6 +1433,7 @@ run_zone_iteration_round (struct ZoneIteration *zi)
 					      ? NULL
 					      : &zi->zone,
 					      zi->offset,
+                                              limit,
 					      &zone_iterate_proc,
                                               &proc)))
     {
@@ -1433,7 +1448,8 @@ run_zone_iteration_round (struct ZoneIteration *zi)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "More results available\n");
-    return; /* more results later */
+    return; /* more results later after we get the
+               #GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_ITERATION_NEXT message */
   }
   /* send empty response to indicate end of list */
   env = GNUNET_MQ_msg (rrm,
@@ -1472,7 +1488,8 @@ handle_iteration_start (void *cls,
   GNUNET_CONTAINER_DLL_insert (nc->op_head,
 			       nc->op_tail,
 			       zi);
-  run_zone_iteration_round (zi);
+  run_zone_iteration_round (zi,
+                            1);
   GNUNET_SERVICE_client_continue (nc->client);
 }
 
@@ -1525,6 +1542,7 @@ handle_iteration_next (void *cls,
   struct NamestoreClient *nc = cls;
   struct ZoneIteration *zi;
   uint32_t rid;
+  uint64_t limit;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Received ZONE_ITERATION_NEXT message\n");
@@ -1533,6 +1551,7 @@ handle_iteration_next (void *cls,
                             1,
                             GNUNET_NO);
   rid = ntohl (zis_msg->gns_header.r_id);
+  limit = GNUNET_ntohll (zis_msg->limit);
   for (zi = nc->op_head; NULL != zi; zi = zi->next)
     if (zi->request_id == rid)
       break;
@@ -1542,7 +1561,8 @@ handle_iteration_next (void *cls,
     GNUNET_SERVICE_client_drop (nc->client);
     return;
   }
-  run_zone_iteration_round (zi);
+  run_zone_iteration_round (zi,
+                            limit);
   GNUNET_SERVICE_client_continue (nc->client);
 }
 
@@ -1665,6 +1685,7 @@ monitor_next (void *cls)
                                        ? NULL
                                        : &zm->zone,
 				       zm->offset++,
+                                       1,
 				       &monitor_iterate_cb,
 				       zm);
   if (GNUNET_SYSERR == ret)

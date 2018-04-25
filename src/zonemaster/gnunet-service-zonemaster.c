@@ -250,7 +250,8 @@ publish_zone_dht_next (void *cls)
 {
   zone_publish_task = NULL;
   GNUNET_assert (NULL != namestore_iter);
-  GNUNET_NAMESTORE_zone_iterator_next (namestore_iter);
+  GNUNET_NAMESTORE_zone_iterator_next (namestore_iter,
+                                       1);
 }
 
 
@@ -393,7 +394,10 @@ perform_dht_put (const struct GNUNET_CRYPTO_EcdsaPrivateKey *key,
                                          rd_public,
                                          rd_public_count);
   if (NULL == block)
+  {
+    GNUNET_break (0);
     return NULL; /* whoops */
+  }
   block_size = ntohl (block->purpose.size)
     + sizeof (struct GNUNET_CRYPTO_EcdsaSignature)
     + sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey);
@@ -565,8 +569,10 @@ put_gns_record (void *cls,
                                 NULL);
   if (NULL == active_put)
   {
-    GNUNET_break (0);
-    dht_put_continuation (NULL, GNUNET_NO);
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                "Could not perform DHT PUT, is the DHT running?\n");
+    dht_put_continuation (NULL,
+                          GNUNET_NO);
   }
 }
 
