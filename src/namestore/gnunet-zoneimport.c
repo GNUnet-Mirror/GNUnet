@@ -47,6 +47,11 @@
  */
 #define MAX_RETRIES 5
 
+/**
+ * How many requests do we request from NAMESTORE in one batch
+ * during our initial iteration?
+ */
+#define NS_BATCH_SIZE 1024
 
 /**
  * Some zones may include authoritative records for other
@@ -220,11 +225,6 @@ static unsigned int failures;
 static unsigned int records;
 
 /**
- * #GNUNET_YES if we have more work to be read from `stdin`.
- */
-static int stdin_waiting;
-
-/**
  * Heap of all requests to perform, sorted by
  * the time we should next do the request (i.e. by expires).
  */
@@ -246,6 +246,18 @@ static struct Request *req_tail;
 static struct GNUNET_SCHEDULER_Task *t;
 
 /**
+ * Hash map of requests for which we may still get a response from
+ * the namestore.  Set to NULL once the initial namestore iteration
+ * is done.
+ */
+static struct GNUNET_CONTAINER_MultiHashMap *ns_pending;
+
+/**
+ * Current zone iteration handle.
+ */
+static struct GNUNET_NAMESTORE_ZoneIterator *zone_it;
+
+/**
  * Head of list of zones we are managing.
  */
 static struct Zone *zone_head;
@@ -255,6 +267,11 @@ static struct Zone *zone_head;
  */
 static struct Zone *zone_tail;
 
+/**
+ * After how many more results must #ns_lookup_result_cb() ask
+ * the namestore for more?
+ */
+static uint64_t ns_iterator_trigger_next;
 
 /**
  * Callback for #for_all_records
@@ -394,6 +411,28 @@ build_dns_query (struct Request *req,
 }
 
 
+
+/**
+ * Free records associated with @a req.
+ *
+ * @param req request to free records of
+ */
+static void
+free_records (struct Request *req)
+{
+  struct Record *rec;
+
+  /* Free records */
+  while (NULL != (rec = req->rec_head))
+  {
+    GNUNET_CONTAINER_DLL_remove (req->rec_head,
+				 req->rec_tail,
+				 rec);
+    GNUNET_free (rec);
+  }
+}
+
+
 /**
  * Free @a req and data structures reachable from it.
  *
@@ -402,15 +441,7 @@ build_dns_query (struct Request *req,
 static void
 free_request (struct Request *req)
 {
-  struct Record *rec;
-
-  while (NULL != (rec = req->rec_head))
-  {
-    GNUNET_CONTAINER_DLL_remove (req->rec_head,
-				 req->rec_tail,
-				 rec);
-    GNUNET_free (rec);
-  }
+  free_records (req);
   GNUNET_free (req);
 }
 
@@ -877,7 +908,6 @@ store_completed_cb (void *cls,
   static struct GNUNET_TIME_Absolute last;
   static unsigned int pdot;
   struct Request *req = cls;
-  struct Record *rec;
 
   req->qe = NULL;
   pending--;
@@ -908,14 +938,7 @@ store_completed_cb (void *cls,
                                                           GNUNET_YES));
     }
   }
-  /* Free records */
-  while (NULL != (rec = req->rec_head))
-  {
-    GNUNET_CONTAINER_DLL_remove (req->rec_head,
-				 req->rec_tail,
-				 rec);
-    GNUNET_free (rec);
-  }
+  free_records (req);
 }
 
 
@@ -1148,6 +1171,29 @@ process_queue (void *cls)
 
 
 /**
+ * Iterator called during #do_shutdown() to free requests in
+ * the #ns_pending map.
+ *
+ * @param cls NULL
+ * @param key unused
+ * @param value the `struct Request` to free
+ * @return #GNUNET_OK
+ */
+static int
+free_request_it (void *cls,
+                 const struct GNUNET_HashCode *key,
+                 void *value)
+{
+  struct Request *req = value;
+
+  (void) cls;
+  (void) key;
+  free_request (req);
+  return GNUNET_OK;
+}
+
+
+/**
  * Clean up and terminate the process.
  *
  * @param cls NULL
@@ -1185,6 +1231,11 @@ do_shutdown (void *cls)
       GNUNET_NAMESTORE_cancel (req->qe);
     free_request (req);
   }
+  if (NULL != zone_it)
+  {
+    GNUNET_NAMESTORE_zone_iteration_stop (zone_it);
+    zone_it = NULL;
+  }
   if (NULL != ns)
   {
     GNUNET_NAMESTORE_disconnect (ns);
@@ -1200,6 +1251,14 @@ do_shutdown (void *cls)
     GNUNET_CONTAINER_heap_destroy (req_heap);
     req_heap = NULL;
   }
+  if (NULL != ns_pending)
+  {
+    GNUNET_CONTAINER_multihashmap_iterate (ns_pending,
+                                           &free_request_it,
+                                           NULL);
+    GNUNET_CONTAINER_multihashmap_destroy (ns_pending);
+    ns_pending = NULL;
+  }
   while (NULL != (zone = zone_head))
   {
     GNUNET_CONTAINER_DLL_remove (zone_head,
@@ -1212,75 +1271,75 @@ do_shutdown (void *cls)
 
 
 /**
- * Begin processing hostnames from stdin.
- *
- * @param cls NULL
- */
-static void
-process_stdin (void *cls);
-
-
-/**
- * If applicable, continue processing from stdin.
- */
-static void
-continue_stdin ()
-{
-  if ( (pending < THRESH) &&
-       (stdin_waiting) )
-  {
-    if (NULL != t)
-      GNUNET_SCHEDULER_cancel (t);
-    t = GNUNET_SCHEDULER_add_now (&process_stdin,
-				  NULL);
-  }
-}
-
-
-/**
  * Function called if #GNUNET_NAMESTORE_records_lookup() failed.
- * Continues resolution based on assumption namestore has no data.
+ * Just logs an error.
  *
- * @param cls a `struct Request`
+ * @param cls a `struct Zone`
  */
 static void
 ns_lookup_error_cb (void *cls)
 {
-  struct Request *req = cls;
+  struct Zone *zone = cls;
 
-  req->qe = NULL;
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-	      "Failed to load data from namestore for `%s'\n",
-	      req->hostname);
-  insert_sorted (req);
-  pending--;
-  continue_stdin ();
+	      "Failed to load data from namestore for zone `%s'\n",
+	      zone->domain);
 }
 
 
 /**
  * Process a record that was stored in the namestore.
  *
- * @param cls a `struct Request *`
- * @param zone private key of the zone
+ * @param cls a `struct Zone *`
+ * @param key private key of the zone
  * @param label label of the records
  * @param rd_count number of entries in @a rd array, 0 if label was deleted
  * @param rd array of records with data to store
  */
 static void
 ns_lookup_result_cb (void *cls,
-		     const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone,
+		     const struct GNUNET_CRYPTO_EcdsaPrivateKey *key,
 		     const char *label,
 		     unsigned int rd_count,
 		     const struct GNUNET_GNSRECORD_Data *rd)
 {
-  struct Request *req = cls;
+  struct Zone *zone = cls;
+  struct Request *req;
+  struct GNUNET_HashCode hc;
+  char *fqdn;
 
-  req->qe = NULL;
-  pending--;
-  GNUNET_break (0 == memcmp (zone,
+  ns_iterator_trigger_next--;
+  if (0 == ns_iterator_trigger_next)
+  {
+    ns_iterator_trigger_next = NS_BATCH_SIZE;
+    GNUNET_NAMESTORE_zone_iterator_next (zone_it,
+                                         ns_iterator_trigger_next);
+  }
+  GNUNET_asprintf (&fqdn,
+                   "%s.%s",
+                   label,
+                   zone->domain);
+  GNUNET_CRYPTO_hash (fqdn,
+                      strlen (fqdn) + 1,
+                      &hc);
+  GNUNET_free (fqdn);
+  req = GNUNET_CONTAINER_multihashmap_get (ns_pending,
+                                           &hc);
+  if (NULL == req)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                "Ignoring record `%s' in zone `%s': not on my list!\n",
+                label,
+                zone->domain);
+    return;
+  }
+  GNUNET_assert (GNUNET_OK ==
+                 GNUNET_CONTAINER_multihashmap_remove (ns_pending,
+                                                       &hc,
+                                                       req));
+  GNUNET_break (0 == memcmp (key,
 			     &req->zone->key,
-			     sizeof (*zone)));
+			     sizeof (*key)));
   GNUNET_break (0 == strcasecmp (label,
 				 get_label (req)));
   for (unsigned int i=0;i<rd_count;i++)
@@ -1323,12 +1382,13 @@ ns_lookup_result_cb (void *cls,
 		pos,
                 req->hostname);
   }
+  free_records (req);
+
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Adding `%s' to worklist to start at %s\n",
 	      req->hostname,
 	      GNUNET_STRINGS_absolute_time_to_string (req->expires));
   insert_sorted (req);
-  continue_stdin ();
 }
 
 
@@ -1344,6 +1404,7 @@ queue (const char *hostname)
   const char *dot;
   struct Zone *zone;
   size_t hlen;
+  struct GNUNET_HashCode hc;
 
   if (GNUNET_OK !=
       GNUNET_DNSPARSER_check_name (hostname))
@@ -1352,7 +1413,6 @@ queue (const char *hostname)
                 "Refusing invalid hostname `%s'\n",
                 hostname);
     rejects++;
-    continue_stdin ();
     return;
   }
   dot = strchr (hostname,
@@ -1363,7 +1423,6 @@ queue (const char *hostname)
                 "Refusing invalid hostname `%s' (lacks '.')\n",
                 hostname);
     rejects++;
-    continue_stdin ();
     return;
   }
   for (zone = zone_head; NULL != zone; zone = zone->next)
@@ -1376,7 +1435,6 @@ queue (const char *hostname)
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Domain name `%s' not in ego list!\n",
                 dot + 1);
-    continue_stdin ();
     return;
   }
 
@@ -1390,13 +1448,91 @@ queue (const char *hostname)
 	  hlen);
   req->id = (uint16_t) GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_NONCE,
 						 UINT16_MAX);
-  req->qe = GNUNET_NAMESTORE_records_lookup (ns,
-					     &req->zone->key,
-					     get_label (req),
-					     &ns_lookup_error_cb,
-					     req,
-					     &ns_lookup_result_cb,
-					     req);
+  GNUNET_CRYPTO_hash (req->hostname,
+                      hlen,
+                      &hc);
+  if (GNUNET_OK !=
+      GNUNET_CONTAINER_multihashmap_put (ns_pending,
+                                         &hc,
+                                         req,
+                                         GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                "Duplicate hostname `%s' ignored\n",
+                hostname);
+    GNUNET_free (req);
+    return;
+  }
+}
+
+
+/**
+ * We have completed the initial iteration over the namestore's database.
+ * This function is called on each of the remaining records in
+ * #move_to_queue to #queue() them, as we will simply not find existing
+ * records for them any longer.
+ *
+ * @param cls NULL
+ * @param key unused
+ * @param value a `struct Request`
+ * @return #GNUNET_OK (continue to iterate)
+ */
+static int
+move_to_queue (void *cls,
+               const struct GNUNET_HashCode *key,
+               void *value)
+{
+  struct Request *req = value;
+
+  (void) cls;
+  (void) key;
+  insert_sorted (req);
+  return GNUNET_OK;
+}
+
+
+/**
+ * Iterate over all of the zones we care about and see which records
+ * we may need to re-fetch when.
+ *
+ * @param cls NULL
+ */
+static void
+iterate_zones (void *cls)
+{
+  static struct Zone *last;
+
+  (void) cls;
+  zone_it = NULL;
+  GNUNET_assert (NULL != zone_tail);
+  if (zone_tail == last)
+  {
+    GNUNET_assert (NULL == t);
+    /* Done iterating over relevant zones in NAMESTORE, move
+       rest of hash map to work queue as well. */
+    GNUNET_CONTAINER_multihashmap_iterate (ns_pending,
+                                           &move_to_queue,
+                                           NULL);
+    GNUNET_CONTAINER_multihashmap_destroy (ns_pending);
+    ns_pending = NULL;
+    t = GNUNET_SCHEDULER_add_now (&process_queue,
+                                  NULL);
+    return;
+  }
+  if (NULL == last)
+    last = zone_head;
+  else
+    last = last->next;
+  ns_iterator_trigger_next = 1;
+  zone_it = GNUNET_NAMESTORE_zone_iteration_start (ns,
+                                                   &last->key,
+                                                   &ns_lookup_error_cb,
+                                                   NULL,
+                                                   &ns_lookup_result_cb,
+                                                   last,
+                                                   &iterate_zones,
+                                                   NULL);
+
 }
 
 
@@ -1419,10 +1555,10 @@ process_stdin (void *cls)
     GNUNET_IDENTITY_disconnect (id);
     id = NULL;
   }
-  if (NULL !=
-      fgets (hn,
-	     sizeof (hn),
-	     stdin))
+  while (NULL !=
+         fgets (hn,
+                sizeof (hn),
+                stdin))
   {
     if (strlen(hn) > 0)
       hn[strlen(hn)-1] = '\0'; /* eat newline */
@@ -1441,12 +1577,9 @@ process_stdin (void *cls)
                                                           GNUNET_YES));
     }
     queue (hn);
-    return;
   }
-  stdin_waiting = GNUNET_NO;
   fprintf (stderr, "\n");
-  t = GNUNET_SCHEDULER_add_now (&process_queue,
-				NULL);
+  iterate_zones (NULL);
 }
 
 
@@ -1496,14 +1629,13 @@ identity_cb (void *cls,
   {
     if (NULL != zone_head)
     {
-      stdin_waiting = GNUNET_YES;
       t = GNUNET_SCHEDULER_add_now (&process_stdin,
 				    NULL);
     }
     else
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		  "Specified zone not found\n");
+		  "No zone found\n");
       GNUNET_SCHEDULER_shutdown ();
       return;
     }
