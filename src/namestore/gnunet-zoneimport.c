@@ -1673,6 +1673,7 @@ run (void *cls,
   (void) args;
   (void) cfgfile;
   req_heap = GNUNET_CONTAINER_heap_create (GNUNET_CONTAINER_HEAP_ORDER_MIN);
+  ns_pending = GNUNET_CONTAINER_multihashmap_create (1024);
   ctx = GNUNET_DNSSTUB_start (256);
   if (NULL == ctx)
   {
