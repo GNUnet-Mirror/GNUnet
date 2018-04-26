@@ -708,11 +708,15 @@ refresh_block (struct NamestoreClient *nc,
 			     &res);
     GNUNET_free (nick);
   }
-
-  exp_time = (0 == res_count)
-    ? GNUNET_TIME_UNIT_ZERO_ABS
-    : GNUNET_GNSRECORD_record_get_expiration_time (res_count,
-                                                   res);
+  if (0 == res_count)
+  {
+    send_store_response (nc,
+                         GNUNET_OK,
+                         rid);
+    return; /* no data, no need to update cache */
+  }
+  exp_time = GNUNET_GNSRECORD_record_get_expiration_time (res_count,
+                                                          res);
   if (cache_keys)
     block = GNUNET_GNSRECORD_block_create2 (zone_key,
                                             exp_time,

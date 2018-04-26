@@ -181,6 +181,13 @@ static struct GNUNET_SCHEDULER_Task *zone_publish_task;
 static int first_zone_iteration;
 
 /**
+ * Optimize block insertion by caching map of private keys to
+ * public keys in memory?
+ */
+static int cache_keys;
+
+
+/**
  * Task run during shutdown.
  *
  * @param cls unused
@@ -388,11 +395,18 @@ perform_dht_put (const struct GNUNET_CRYPTO_EcdsaPrivateKey *key,
 
   expire = GNUNET_GNSRECORD_record_get_expiration_time (rd_public_count,
                                                         rd_public);
-  block = GNUNET_GNSRECORD_block_create (key,
-                                         expire,
-                                         label,
-                                         rd_public,
-                                         rd_public_count);
+  if (cache_keys)
+    block = GNUNET_GNSRECORD_block_create2 (key,
+                                            expire,
+                                            label,
+                                            rd_public,
+                                            rd_public_count);
+  else
+    block = GNUNET_GNSRECORD_block_create (key,
+                                           expire,
+                                           label,
+                                           rd_public,
+                                           rd_public_count);
   if (NULL == block)
   {
     GNUNET_break (0);
@@ -585,6 +599,7 @@ put_gns_record (void *cls,
 static void
 publish_zone_dht_start (void *cls)
 {
+  (void) cls;
   zone_publish_task = NULL;
   GNUNET_STATISTICS_update (statistics,
                             "Full zone iterations launched",
@@ -736,7 +751,9 @@ run (void *cls,
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
-
+  cache_keys = GNUNET_CONFIGURATION_get_value_yesno (c,
+                                                     "namestore",
+                                                     "CACHE_KEYS");
   put_interval = INITIAL_PUT_INTERVAL;
   zone_publish_time_window_default = DEFAULT_ZONE_PUBLISH_TIME_WINDOW;
   if (GNUNET_OK ==

@@ -48,6 +48,16 @@
 #define MAX_RETRIES 5
 
 /**
+ * How many DNS requests do we at most issue in rapid series?
+ */
+#define MAX_SERIES 10
+
+/**
+ * How long do we wait at least between series of requests?
+ */
+#define SERIES_DELAY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MICROSECONDS, 10)
+
+/**
  * How many requests do we request from NAMESTORE in one batch
  * during our initial iteration?
  */
@@ -200,9 +210,14 @@ static struct GNUNET_NAMESTORE_Handle *ns;
 static struct GNUNET_DNSSTUB_Context *ctx;
 
 /**
- * The number of queries that are outstanding
+ * The number of DNS queries that are outstanding
  */
 static unsigned int pending;
+
+/**
+ * The number of NAMESTORE record store operations that are outstanding
+ */
+static unsigned int pending_rs;
 
 /**
  * Number of lookups we performed overall.
@@ -692,7 +707,7 @@ process_record (void *cls,
 		       req->hostname))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		"DNS returned record for `%s' of type %u while resolving `%s'\n",
+		"DNS returned record from zone `%s' of type %u while resolving `%s'\n",
 		rec->name,
 		(unsigned int) rec->type,
 		req->hostname);
@@ -910,7 +925,11 @@ store_completed_cb (void *cls,
   struct Request *req = cls;
 
   req->qe = NULL;
-  pending--;
+  pending_rs--;
+  if (NULL == t)
+    t = GNUNET_SCHEDULER_add_delayed (SERIES_DELAY,
+                                      &process_queue,
+                                      NULL);
   if (GNUNET_SYSERR == success)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -967,6 +986,10 @@ process_result (void *cls,
 				 req_tail,
 				 req);
     pending--;
+    if (NULL == t)
+      t = GNUNET_SCHEDULER_add_delayed (SERIES_DELAY,
+                                        &process_queue,
+                                        NULL);
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Stub gave up on DNS reply for `%s'\n",
                 req->hostname);
@@ -981,12 +1004,17 @@ process_result (void *cls,
     return;
   }
   if (req->id != dns->id)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "DNS ID did not match request, ignoring reply\n");
     return;
+  }
   GNUNET_CONTAINER_DLL_remove (req_head,
 			       req_tail,
 			       req);
   GNUNET_DNSSTUB_resolve_cancel (req->rs);
   req->rs = NULL;
+  pending--;
   p = GNUNET_DNSPARSER_parse ((const char *) dns,
                               dns_len);
   if (NULL == p)
@@ -998,11 +1026,17 @@ process_result (void *cls,
     {
       failures++;
       insert_sorted (req);
-      pending--;
+      if (NULL == t)
+        t = GNUNET_SCHEDULER_add_delayed (SERIES_DELAY,
+                                          &process_queue,
+                                          NULL);
       return;
     }
     insert_sorted (req);
-    pending--;
+    if (NULL == t)
+      t = GNUNET_SCHEDULER_add_delayed (SERIES_DELAY,
+                                        &process_queue,
+                                        NULL);
     return;
   }
   /* import new records */
@@ -1047,6 +1081,7 @@ process_result (void *cls,
     /* convert linked list into array */
     for (rec = req->rec_head; NULL != rec; rec =rec->next)
       rd[off++] = rec->grd;
+    pending_rs++;
     req->qe = GNUNET_NAMESTORE_records_store (ns,
 					      &req->zone->key,
 					      get_label (req),
@@ -1054,65 +1089,9 @@ process_result (void *cls,
 					      rd,
 					      &store_completed_cb,
 					      req);
+    GNUNET_assert (NULL != req->qe);
   }
   insert_sorted (req);
-}
-
-
-/**
- * Submit a request to DNS unless we need to slow down because
- * we are at the rate limit.
- *
- * @param req request to submit
- * @return #GNUNET_OK if request was submitted
- *         #GNUNET_NO if request was already submitted
- *         #GNUNET_SYSERR if we are at the rate limit
- */
-static int
-submit_req (struct Request *req)
-{
-  static struct GNUNET_TIME_Absolute last_request;
-  struct GNUNET_TIME_Absolute now;
-  void *raw;
-  size_t raw_size;
-
-  if (NULL != req->qe)
-    return GNUNET_NO; /* namestore op still pending */
-  if (NULL != req->rs)
-  {
-    GNUNET_break (0);
-    return GNUNET_NO; /* already submitted */
-  }
-  now = GNUNET_TIME_absolute_get ();
-  if ( (now.abs_value_us - last_request.abs_value_us < TIME_THRESH) ||
-       (pending >= THRESH) )
-    return GNUNET_SYSERR;
-  GNUNET_CONTAINER_DLL_insert (req_head,
-			       req_tail,
-			       req);
-  GNUNET_assert (NULL == req->rs);
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-	      "Requesting resolution for `%s'\n",
-	      req->hostname);
-  raw = build_dns_query (req,
-			 &raw_size);
-  if (NULL == raw)
-  {
-    GNUNET_break (0);
-    free_request (req);
-    return GNUNET_SYSERR;
-  }
-  req->rs = GNUNET_DNSSTUB_resolve (ctx,
-                                    raw,
-                                    raw_size,
-                                    &process_result,
-                                    req);
-  GNUNET_assert (NULL != req->rs);
-  req->issue_num++;
-  last_request = now;
-  lookups++;
-  pending++;
-  return GNUNET_OK;
 }
 
 
@@ -1125,23 +1104,60 @@ static void
 process_queue (void *cls)
 {
   struct Request *req;
+  unsigned int series;
+  void *raw;
+  size_t raw_size;
 
   (void) cls;
+  series = 0;
   t = NULL;
-  while (1)
+  while (pending + pending_rs < THRESH)
   {
     req = GNUNET_CONTAINER_heap_peek (req_heap);
     if (NULL == req)
       break;
+    if (NULL != req->qe)
+      return; /* namestore op still pending */
+    if (NULL != req->rs)
+    {
+      GNUNET_break (0);
+      return; /* already submitted */
+    }
     if (GNUNET_TIME_absolute_get_remaining (req->expires).rel_value_us > 0)
-      break;
-    if (GNUNET_OK != submit_req (req))
       break;
     GNUNET_assert (req ==
 		   GNUNET_CONTAINER_heap_remove_root (req_heap));
     req->hn = NULL;
+    GNUNET_CONTAINER_DLL_insert (req_head,
+                                 req_tail,
+                                 req);
+    GNUNET_assert (NULL == req->rs);
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                "Requesting resolution for `%s'\n",
+                req->hostname);
+    raw = build_dns_query (req,
+                           &raw_size);
+    if (NULL == raw)
+    {
+      GNUNET_break (0);
+      free_request (req);
+      continue;
+    }
+    req->rs = GNUNET_DNSSTUB_resolve (ctx,
+                                      raw,
+                                      raw_size,
+                                      &process_result,
+                                      req);
+    GNUNET_assert (NULL != req->rs);
+    req->issue_num++;
+    lookups++;
+    pending++;
+    series++;
+    if (series > MAX_SERIES)
+      break;
   }
-
+  if (pending + pending_rs >= THRESH)
+    return; /* wait for replies */
   req = GNUNET_CONTAINER_heap_peek (req_heap);
   if (NULL == req)
     return;
@@ -1156,17 +1172,15 @@ process_queue (void *cls)
     t = GNUNET_SCHEDULER_add_at (req->expires,
 				 &process_queue,
 				 NULL);
+    return;
   }
-  else
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		"Throttling for 1ms\n");
-    if (NULL != t)
-      GNUNET_SCHEDULER_cancel (t);
-    t = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_MILLISECONDS,
-				      &process_queue,
-				      NULL);
-  }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Throttling\n");
+  if (NULL != t)
+    GNUNET_SCHEDULER_cancel (t);
+  t = GNUNET_SCHEDULER_add_delayed (SERIES_DELAY,
+                                    &process_queue,
+                                    NULL);
 }
 
 
@@ -1512,7 +1526,6 @@ iterate_zones (void *cls)
   GNUNET_assert (NULL != zone_tail);
   if (zone_tail == last)
   {
-    GNUNET_assert (NULL == t);
     /* Done iterating over relevant zones in NAMESTORE, move
        rest of hash map to work queue as well. */
     GNUNET_CONTAINER_multihashmap_iterate (ns_pending,
@@ -1750,12 +1763,13 @@ main (int argc,
 		      NULL);
   GNUNET_free ((void*) argv);
   fprintf (stderr,
-           "Rejected %u names, did %u lookups, found %u records, %u lookups failed, %u pending on shutdown\n",
+           "Rejected %u names, did %u lookups, found %u records, %u lookups failed, %u/%u pending on shutdown\n",
 	   rejects,
            lookups,
            records,
            failures,
-           pending);
+           pending,
+           pending_rs);
   return 0;
 }
 
