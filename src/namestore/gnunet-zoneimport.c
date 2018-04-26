@@ -1438,7 +1438,6 @@ queue (const char *hostname)
     return;
   }
 
-  pending++;
   hlen = strlen (hostname) + 1;
   req = GNUNET_malloc (sizeof (struct Request) + hlen);
   req->zone = zone;
@@ -1503,7 +1502,13 @@ iterate_zones (void *cls)
   static struct Zone *last;
 
   (void) cls;
-  zone_it = NULL;
+  if (NULL != zone_it)
+  {
+    zone_it = NULL;
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Finished iteration over zone `%s'!\n",
+                last->domain);
+  }
   GNUNET_assert (NULL != zone_tail);
   if (zone_tail == last)
   {
@@ -1515,15 +1520,15 @@ iterate_zones (void *cls)
                                            NULL);
     GNUNET_CONTAINER_multihashmap_destroy (ns_pending);
     ns_pending = NULL;
-    GNUNET_assert (NULL == t);
-    t = GNUNET_SCHEDULER_add_now (&process_queue,
-                                  NULL);
     return;
   }
   if (NULL == last)
     last = zone_head;
   else
     last = last->next;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Starting iteration over zone `%s'!\n",
+              last->domain);
   ns_iterator_trigger_next = 1;
   zone_it = GNUNET_NAMESTORE_zone_iteration_start (ns,
                                                    &last->key,

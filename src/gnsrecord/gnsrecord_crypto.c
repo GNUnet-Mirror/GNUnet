@@ -236,7 +236,7 @@ GNUNET_GNSRECORD_block_create2 (const struct GNUNET_CRYPTO_EcdsaPrivateKey *key,
   static struct KeyCacheLine cache[CSIZE];
   struct KeyCacheLine *line;
 
-  line = &cache[(*(unsigned int *) key) ^ CSIZE];
+  line = &cache[(*(unsigned int *) key) % CSIZE];
   if (0 != memcmp (&line->key,
                    key,
                    sizeof (*key)))

@@ -1293,7 +1293,8 @@ GNUNET_NAMESTORE_zone_iterator_next (struct GNUNET_NAMESTORE_ZoneIterator *it,
   struct GNUNET_MQ_Envelope *env;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Sending ZONE_ITERATION_NEXT message\n");
+       "Sending ZONE_ITERATION_NEXT message with limit %llu\n",
+       (unsigned long long) limit);
   env = GNUNET_MQ_msg (msg,
                        GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_ITERATION_NEXT);
   msg->gns_header.r_id = htonl (it->op_id);
