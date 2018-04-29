@@ -583,7 +583,7 @@ iterate_zones (void *cls,
   (void) key;
   if (0 == ic->limit)
     return GNUNET_NO;
-  if ( (NULL != it->zone) &&
+  if ( (NULL != ic->zone) &&
        (0 != memcmp (entry->private_key,
                      ic->zone,
                      sizeof (struct GNUNET_CRYPTO_EcdsaPrivateKey))) )

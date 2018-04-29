@@ -951,10 +951,10 @@ store_completed_cb (void *cls,
 
       delta = GNUNET_TIME_absolute_get_duration (last);
       last = GNUNET_TIME_absolute_get ();
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                  "Processed 1000 records in %s\n",
-                  GNUNET_STRINGS_relative_time_to_string (delta,
-                                                          GNUNET_YES));
+      fprintf (stderr,
+	       "Processed 1000 records in %s\n",
+	       GNUNET_STRINGS_relative_time_to_string (delta,
+						       GNUNET_YES));
     }
   }
   free_records (req);
@@ -1590,10 +1590,10 @@ process_stdin (void *cls)
 
       delta = GNUNET_TIME_absolute_get_duration (last);
       last = GNUNET_TIME_absolute_get ();
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                  "Imported 1000 records in %s\n",
-                  GNUNET_STRINGS_relative_time_to_string (delta,
-                                                          GNUNET_YES));
+      fprintf (stderr,
+	       "Imported 1000 records in %s\n",
+	       GNUNET_STRINGS_relative_time_to_string (delta,
+						       GNUNET_YES));
     }
     queue (hn);
   }

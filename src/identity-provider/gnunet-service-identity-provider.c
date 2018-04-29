@@ -2190,12 +2190,15 @@ attr_iter_cb (void *cls,
 
   if (rd_count != 1)
   {
-    GNUNET_NAMESTORE_zone_iterator_next (ai->ns_it);
+    GNUNET_NAMESTORE_zone_iterator_next (ai->ns_it,
+					 1);
     return;
   }
 
-  if (GNUNET_GNSRECORD_TYPE_ID_ATTR != rd->record_type) {
-    GNUNET_NAMESTORE_zone_iterator_next (ai->ns_it);
+  if (GNUNET_GNSRECORD_TYPE_ID_ATTR != rd->record_type)
+  {
+    GNUNET_NAMESTORE_zone_iterator_next (ai->ns_it,
+					 1);
     return;
   }
   attr_ver = ntohl(*((uint32_t*)rd->data));
@@ -2209,8 +2212,10 @@ attr_iter_cb (void *cls,
                                             rd->data_size-sizeof (uint32_t),
                                             key,
                                             (void**)&attr_ser);
-  if (GNUNET_SYSERR == msg_extra_len) {
-    GNUNET_NAMESTORE_zone_iterator_next (ai->ns_it);
+  if (GNUNET_SYSERR == msg_extra_len)
+  {
+    GNUNET_NAMESTORE_zone_iterator_next (ai->ns_it,
+					 1);
     return;
   }
 
@@ -2253,13 +2258,15 @@ iterate_after_abe_bootstrap (void *cls,
                                                      ai);
 }
 
-void
+
+static void
 iterate_next_after_abe_bootstrap (void *cls,
                                   struct GNUNET_ABE_AbeMasterKey *abe_key)
 {
   struct AttributeIterator *ai = cls;
   ai->abe_key = abe_key;
-  GNUNET_NAMESTORE_zone_iterator_next (ai->ns_it);
+  GNUNET_NAMESTORE_zone_iterator_next (ai->ns_it,
+				       1);
 }
 
 

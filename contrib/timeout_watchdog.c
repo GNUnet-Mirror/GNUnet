@@ -33,12 +33,14 @@
 
 static pid_t child;
 
+
 static void
 sigchld_handler (int val)
 {
   int status = 0;
   int ret = 0;
 
+  (void) val;
   waitpid (child, &status, 0);
   if (WIFEXITED (status) != 0)
     {
@@ -53,6 +55,7 @@ sigchld_handler (int val)
   exit (ret);
 }
 
+
 static void
 sigint_handler (int val)
 {
@@ -60,8 +63,10 @@ sigint_handler (int val)
   exit (val);
 }
 
+
 int
-main (int argc, char *argv[])
+main (int argc,
+      char *argv[])
 {
   int timeout = 0;
   pid_t gpid = 0;

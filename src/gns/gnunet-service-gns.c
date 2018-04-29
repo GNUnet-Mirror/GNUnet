@@ -229,14 +229,14 @@ GNS_get_tld (const char *name)
 /**
  * Task run during shutdown.
  *
- * @param cls unused
- * @param tc unused
+ * @param cls unused, NULL
  */
 static void
 shutdown_task (void *cls)
 {
   struct GNS_TopLevelDomain *tld;
 
+  (void) cls;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Shutting down!\n");
   GNS_interceptor_done ();
@@ -283,6 +283,7 @@ client_disconnect_cb (void *cls,
   struct ClientLookupHandle *clh;
   struct GnsClient *gc = app_ctx;
 
+  (void) cls;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Client %p disconnected\n",
               client);
@@ -314,6 +315,8 @@ client_connect_cb (void *cls,
                    struct GNUNET_MQ_Handle *mq)
 {
   struct GnsClient *gc;
+
+  (void) cls;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Client %p connected\n",
               client);
@@ -383,6 +386,7 @@ check_lookup (void *cls,
   size_t msg_size;
   const char* name;
 
+  (void) cls;
   msg_size = ntohs (l_msg->header.size);
   if (msg_size < sizeof (struct LookupMessage))
   {
@@ -479,6 +483,8 @@ read_service_conf (void *cls,
   struct GNUNET_CRYPTO_EcdsaPublicKey pk;
   struct GNS_TopLevelDomain *tld;
 
+  (void) cls;
+  (void) section;
   if (option[0] != '.')
     return;
   if (GNUNET_OK !=

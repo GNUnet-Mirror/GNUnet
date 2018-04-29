@@ -272,6 +272,14 @@ publish_zone_dht_start (void *cls);
 
 
 /**
+ * How often do we measure the delta between desired zone
+ * iteration speed and actual speed, and tell statistics
+ * service about it?
+ */
+#define DELTA_INTERVAL 100
+
+
+/**
  * Continuation called from DHT once the PUT operation is done.
  *
  * @param cls closure, NULL if called from regular iteration,
@@ -283,7 +291,11 @@ dht_put_continuation (void *cls,
                       int success)
 {
   struct MonitorActivity *ma = cls;
+  static unsigned long long put_cnt;
+  static struct GNUNET_TIME_Absolute last_put_100;
+  static struct GNUNET_TIME_Relative sub_delta;
   struct GNUNET_TIME_Relative next_put_interval;
+  struct GNUNET_TIME_Relative delay;
 
   num_public_records++;
   if (NULL == ma)
@@ -300,20 +312,91 @@ dht_put_continuation (void *cls,
                                                        LATE_ITERATION_SPEEDUP_FACTOR);
     }
     else
+    {
       next_put_interval = put_interval;
+    }
     next_put_interval = GNUNET_TIME_relative_min (next_put_interval,
                                                   MAXIMUM_ZONE_ITERATION_INTERVAL);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "PUT complete, next PUT in %s!\n",
                 GNUNET_STRINGS_relative_time_to_string (next_put_interval,
                                                         GNUNET_YES));
+    /* compute velocities and delay corrections to apply */
+    if (0 == put_cnt)
+      last_put_100 = GNUNET_TIME_absolute_get (); /* first time! */
+    put_cnt++;
+    if (0 == put_cnt % DELTA_INTERVAL)
+    {
+      struct GNUNET_TIME_Relative delta;
+      unsigned long long pct = 0;
+	  
+      /* How fast were we really? */
+      delta = GNUNET_TIME_absolute_get_duration (last_put_100);
+      delta.rel_value_us /= DELTA_INTERVAL;
+      last_put_100 = GNUNET_TIME_absolute_get ();
+      /* Tell statistics actual vs. desired speed */
+      GNUNET_STATISTICS_set (statistics,
+			     "Target zone iteration velocity (μs)",
+			     next_put_interval.rel_value_us,
+			     GNUNET_NO);
+      GNUNET_STATISTICS_set (statistics,
+			     "Current zone iteration velocity (μs)",
+			     delta.rel_value_us,
+			     GNUNET_NO);
+      /* update "sub_delta" based on difference, taking
+	 previous sub_delta into account! */
+      if (next_put_interval.rel_value_us > delta.rel_value_us)
+      {
+	/* We were too fast, reduce sub_delta! */
+	struct GNUNET_TIME_Relative corr;
 
-    GNUNET_STATISTICS_set (statistics,
-                           "Current zone iteration interval (ms)",
-                           next_put_interval.rel_value_us / 1000LL,
-                           GNUNET_NO);
+	corr = GNUNET_TIME_relative_subtract (next_put_interval,
+					      delta);
+	if (sub_delta.rel_value_us > delta.rel_value_us)
+	{
+	  /* Reduce sub_delta by corr */
+	  sub_delta = GNUNET_TIME_relative_subtract (sub_delta,
+						     corr);
+	}
+	else
+	{
+	  /* We're doing fine with waiting the full time, this
+	     should theoretically only happen if we run at
+	     infinite speed. */
+	  sub_delta = GNUNET_TIME_UNIT_ZERO;
+	}
+      }
+      else if (next_put_interval.rel_value_us < delta.rel_value_us)
+      {
+	/* We were too slow, increase sub_delta! */
+	struct GNUNET_TIME_Relative corr;
+
+	corr = GNUNET_TIME_relative_subtract (delta,
+					      next_put_interval);
+	sub_delta = GNUNET_TIME_relative_add (sub_delta,
+					      corr);
+	if (sub_delta.rel_value_us > next_put_interval.rel_value_us)
+	{
+	  /* CPU overload detected, we cannot go at desired speed,
+	     as this would mean using a negative delay. */
+	  sub_delta = next_put_interval;
+	  /* compute how much faster we would want to be for
+	     the desired velocity */
+	  if (0 == next_put_interval.rel_value_us)
+	    pct = UINT64_MAX; /* desired speed is infinity ... */
+	  else
+	    pct = sub_delta.rel_value_us * 100 / next_put_interval.rel_value_us;
+	}
+      }
+      GNUNET_STATISTICS_set (statistics,
+			     "% speed increase needed for target velocity",
+			     pct,
+			     GNUNET_NO);
+    } /* end of periodic velocity calculations */
+    delay = GNUNET_TIME_relative_subtract (next_put_interval,
+					   sub_delta);
     GNUNET_assert (NULL == zone_publish_task);
-    zone_publish_task = GNUNET_SCHEDULER_add_delayed (next_put_interval,
+    zone_publish_task = GNUNET_SCHEDULER_add_delayed (delay,
                                                       &publish_zone_dht_next,
                                                       NULL);
   }

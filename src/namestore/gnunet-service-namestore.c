@@ -257,6 +257,12 @@ static struct GNUNET_NotificationContext *monitor_nc;
  */
 static int cache_keys;
 
+/**
+ * Use the namecache? Doing so creates additional cryptographic
+ * operations whenever we touch a record.
+ */
+static int disable_namecache;
+
 
 /**
  * Task run during shutdown.
@@ -281,8 +287,11 @@ cleanup_task (void *cls)
                                  cop);
     GNUNET_free (cop);
   }
-  GNUNET_NAMECACHE_disconnect (namecache);
-  namecache = NULL;
+  if (NULL != namecache)
+  {
+    GNUNET_NAMECACHE_disconnect (namecache);
+    namecache = NULL;
+  }
   GNUNET_break (NULL == GNUNET_PLUGIN_unload (db_lib_name,
 					      GSN_database));
   GNUNET_free (db_lib_name);
@@ -714,6 +723,14 @@ refresh_block (struct NamestoreClient *nc,
                          GNUNET_OK,
                          rid);
     return; /* no data, no need to update cache */
+  }
+  if (GNUNET_YES == disable_namecache)
+  {
+    GNUNET_STATISTICS_update (statistics,
+			      "Namecache updates skipped (NC disabled)",
+			      1,
+			      GNUNET_NO);
+    return;
   }
   exp_time = GNUNET_GNSRECORD_record_get_expiration_time (res_count,
                                                           res);
@@ -1692,13 +1709,20 @@ run (void *cls,
   (void) service;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Starting namestore service\n");
-  GSN_cfg = cfg;
-  monitor_nc = GNUNET_notification_context_create (1);
-  namecache = GNUNET_NAMECACHE_connect (cfg);
-  /* Loading database plugin */
   cache_keys = GNUNET_CONFIGURATION_get_value_yesno (cfg,
                                                      "namestore",
                                                      "CACHE_KEYS");
+  disable_namecache = GNUNET_CONFIGURATION_get_value_yesno (cfg,
+							    "namecache",
+							    "DISABLE");
+  GSN_cfg = cfg;
+  monitor_nc = GNUNET_notification_context_create (1);
+  if (GNUNET_NO == disable_namecache)
+  {
+    namecache = GNUNET_NAMECACHE_connect (cfg);
+    GNUNET_assert (NULL != namecache);
+  }
+  /* Loading database plugin */
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_string (cfg,
                                              "namestore",

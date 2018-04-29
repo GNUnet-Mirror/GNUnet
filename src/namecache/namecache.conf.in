@@ -11,6 +11,11 @@ ACCEPT_FROM = 127.0.0.1;
 ACCEPT_FROM6 = ::1;
 DATABASE = sqlite
 
+# Disables use of caching by GNS. Useful for systems that
+# publish very large zones and are CPU bound, if they do not
+# also do a large number of lookups.
+DISABLE = NO
+
 [namecache-sqlite]
 FILENAME = $GNUNET_DATA_HOME/namecache/sqlite.db
 

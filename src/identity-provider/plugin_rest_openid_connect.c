@@ -1076,8 +1076,10 @@ namestore_iteration_callback (
     }
   }
 
-  GNUNET_NAMESTORE_zone_iterator_next (handle->namestore_handle_it);
+  GNUNET_NAMESTORE_zone_iterator_next (handle->namestore_handle_it,
+				       1);
 }
+
 
 /**
  * Iteration over all results finished, build final
@@ -1085,7 +1087,8 @@ namestore_iteration_callback (
  *
  * @param cls the `struct RequestHandle`
  */
-static void namestore_iteration_finished (void *cls)
+static void
+namestore_iteration_finished (void *cls)
 {
   struct RequestHandle *handle = cls;
   struct GNUNET_HashCode cache_key;

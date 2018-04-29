@@ -501,7 +501,7 @@ static struct CacheOps *co_tail;
 /**
  * Use namecache
  */
-static int use_cache;
+static int disable_cache;
 
 /**
  * Global configuration.
@@ -2478,7 +2478,7 @@ recursive_gns_resolution_namecache (struct GNS_ResolverHandle *rh)
   GNUNET_GNSRECORD_query_from_public_key (&ac->authority_info.gns_authority,
 					  ac->label,
 					  &query);
-  if (GNUNET_YES == use_cache)
+  if (GNUNET_YES != disable_cache)
   {
     rh->namecache_qe
       = GNUNET_NAMECACHE_lookup_block (namecache_handle,
@@ -2489,7 +2489,8 @@ recursive_gns_resolution_namecache (struct GNS_ResolverHandle *rh)
   }
   else
   {
-    start_dht_request (rh, &query);
+    start_dht_request (rh,
+		       &query);
   }
 }
 
@@ -2816,13 +2817,11 @@ GNS_resolver_init (struct GNUNET_NAMECACHE_Handle *nc,
   dht_lookup_heap =
     GNUNET_CONTAINER_heap_create (GNUNET_CONTAINER_HEAP_ORDER_MIN);
   max_allowed_background_queries = max_bg_queries;
-  if (GNUNET_SYSERR == (use_cache =
-                        GNUNET_CONFIGURATION_get_value_yesno (c,
-                                                              "gns",
-                                                              "USE_CACHE")))
-    use_cache = GNUNET_YES;
-  if (GNUNET_NO == use_cache)
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+  disable_cache = GNUNET_CONFIGURATION_get_value_yesno (cfg,
+							"namecache",
+							"DISABLE");
+  if (GNUNET_YES == disable_cache)
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                 "Namecache disabled\n");
   vpn_handle = GNUNET_VPN_connect (cfg);
 }
