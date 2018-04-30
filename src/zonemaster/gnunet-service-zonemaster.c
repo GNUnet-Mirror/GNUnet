@@ -777,6 +777,7 @@ put_gns_record (void *cls,
 
   (void) cls;
   ns_iteration_left--;
+  check_zone_dht_next ();
   rd_public_count = convert_records_for_export (rd,
                                                 rd_count,
                                                 rd_public);
@@ -785,7 +786,6 @@ put_gns_record (void *cls,
     GNUNET_assert (NULL == zone_publish_task);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Record set empty, moving to next record set\n");
-    check_zone_dht_next ();
     return;
   }
   /* We got a set of records to publish */
@@ -804,7 +804,6 @@ put_gns_record (void *cls,
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                 "Could not perform DHT PUT, is the DHT running?\n");
     GNUNET_free (ma);
-    check_zone_dht_next ();
     return;
   }
   dht_queue_length++;
