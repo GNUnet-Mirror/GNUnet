@@ -378,34 +378,6 @@ dht_put_monitor_continuation (void *cls)
 
 
 /**
- * Check if the current zone iteration needs to be continued
- * by calling #publish_zone_namestore_next(), and if so with what delay.
- */
-static void
-check_zone_namestore_next ()
-{
-  struct GNUNET_TIME_Relative delay;
-
-  if (0 != ns_iteration_left)
-    return; /* current NAMESTORE iteration not yet done */
-  delay = GNUNET_TIME_relative_subtract (next_put_interval,
-                                         sub_delta);
-  /* We delay *once* per #NS_BLOCK_SIZE, so we need to multiply the
-     per-record delay calculated so far with the #NS_BLOCK_SIZE */
-  delay = GNUNET_TIME_relative_multiply (delay,
-                                         NS_BLOCK_SIZE);
-  GNUNET_assert (NULL == zone_publish_task);
-  GNUNET_STATISTICS_set (statistics,
-                         "Current artificial NAMESTORE delay (μs)",
-                         delay.rel_value_us,
-                         GNUNET_NO);
-  zone_publish_task = GNUNET_SCHEDULER_add_delayed (delay,
-                                                    &publish_zone_namestore_next,
-                                                    NULL);
-}
-
-
-/**
  * Calculate #next_put_interval.
  */
 static void
@@ -434,10 +406,10 @@ calculate_put_interval ()
     next_put_interval
       = GNUNET_TIME_relative_divide (zone_publish_time_window,
 				     last_num_public_records);
-    next_put_interval
-      = GNUNET_TIME_relative_min (next_put_interval,
-				  MAXIMUM_ZONE_ITERATION_INTERVAL);
   }
+  next_put_interval
+    = GNUNET_TIME_relative_min (next_put_interval,
+				MAXIMUM_ZONE_ITERATION_INTERVAL);
   GNUNET_STATISTICS_set (statistics,
 			 "Minimum relative record expiration (in ms)",
 			 last_min_relative_record_time.rel_value_us / 1000LL,
@@ -446,6 +418,10 @@ calculate_put_interval ()
 			 "Zone publication time window (in ms)",
 			 zone_publish_time_window.rel_value_us / 1000LL,
 			 GNUNET_NO);
+  GNUNET_STATISTICS_set (statistics,
+                         "Target zone iteration velocity (μs)",
+                         next_put_interval.rel_value_us,
+                         GNUNET_NO);
 }
 
 
@@ -453,16 +429,20 @@ calculate_put_interval ()
  * Re-calculate our velocity and the desired velocity.
  * We have succeeded in making #DELTA_INTERVAL puts, so
  * now calculate the new desired delay between puts.
+ *
+ * @param cnt how many records were processed since the last call?
  */
 static void
-update_velocity ()
+update_velocity (unsigned int cnt)
 {
   struct GNUNET_TIME_Relative delta;
   unsigned long long pct = 0;
 
+  if (0 == cnt)
+    return;
   /* How fast were we really? */
   delta = GNUNET_TIME_absolute_get_duration (last_put_100);
-  delta.rel_value_us /= DELTA_INTERVAL;
+  delta.rel_value_us /= cnt;
   last_put_100 = GNUNET_TIME_absolute_get ();
 
   /* calculate expected frequency */
@@ -480,10 +460,6 @@ update_velocity ()
                                                       GNUNET_YES));
 
   /* Tell statistics actual vs. desired speed */
-  GNUNET_STATISTICS_set (statistics,
-                         "Target zone iteration velocity (μs)",
-                         next_put_interval.rel_value_us,
-                         GNUNET_NO);
   GNUNET_STATISTICS_set (statistics,
                          "Current zone iteration velocity (μs)",
                          delta.rel_value_us,
@@ -546,6 +522,36 @@ update_velocity ()
                          "# records processed in current iteration",
                          num_public_records,
                          GNUNET_NO);
+}
+
+
+/**
+ * Check if the current zone iteration needs to be continued
+ * by calling #publish_zone_namestore_next(), and if so with what delay.
+ */
+static void
+check_zone_namestore_next ()
+{
+  struct GNUNET_TIME_Relative delay;
+
+  if (0 != ns_iteration_left)
+    return; /* current NAMESTORE iteration not yet done */
+  update_velocity (put_cnt);
+  put_cnt = 0;
+  delay = GNUNET_TIME_relative_subtract (next_put_interval,
+                                         sub_delta);
+  /* We delay *once* per #NS_BLOCK_SIZE, so we need to multiply the
+     per-record delay calculated so far with the #NS_BLOCK_SIZE */
+  delay = GNUNET_TIME_relative_multiply (delay,
+                                         NS_BLOCK_SIZE);
+  GNUNET_assert (NULL == zone_publish_task);
+  GNUNET_STATISTICS_set (statistics,
+                         "Current artificial NAMESTORE delay (μs)",
+                         delay.rel_value_us,
+                         GNUNET_NO);
+  zone_publish_task = GNUNET_SCHEDULER_add_delayed (delay,
+                                                    &publish_zone_namestore_next,
+                                                    NULL);
 }
 
 
@@ -805,7 +811,7 @@ put_gns_record (void *cls,
                             ma);
   put_cnt++;
   if (0 == put_cnt % DELTA_INTERVAL)
-    update_velocity ();
+    update_velocity (DELTA_INTERVAL);
   check_zone_namestore_next ();
   if (NULL == ma->ph)
   {
@@ -997,6 +1003,10 @@ run (void *cls,
     = GNUNET_TIME_relative_multiply (GNUNET_DHT_DEFAULT_REPUBLISH_FREQUENCY,
 				     PUBLISH_OPS_PER_EXPIRATION);
   next_put_interval = INITIAL_PUT_INTERVAL;
+  GNUNET_STATISTICS_set (statistics,
+                         "Target zone iteration velocity (μs)",
+                         next_put_interval.rel_value_us,
+                         GNUNET_NO);
   namestore_handle = GNUNET_NAMESTORE_connect (c);
   if (NULL == namestore_handle)
   {
