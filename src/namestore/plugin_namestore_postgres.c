@@ -77,7 +77,7 @@ database_setup (struct Plugin *plugin)
                             "WITH OIDS");
   struct GNUNET_PQ_ExecuteStatement es_default =
     GNUNET_PQ_make_execute ("CREATE TABLE IF NOT EXISTS ns098records ("
-			    " seq SERIAL PRIMARY KEY,"
+			    " seq BIGSERIAL PRIMARY KEY,"
                             " zone_private_key BYTEA NOT NULL DEFAULT '',"
                             " pkey BYTEA DEFAULT '',"
                             " rvalue BYTEA NOT NULL DEFAULT '',"
