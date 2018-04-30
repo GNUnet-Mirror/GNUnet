@@ -172,9 +172,14 @@ static struct DhtPutActivity *it_head;
 static struct DhtPutActivity *it_tail;
 
 /**
- * Number of entries in the DHT queue.
+ * Number of entries in the DHT queue #it_head.
  */
 static unsigned int dht_queue_length;
+
+/**
+ * Number of entries in the DHT queue #ma_head.
+ */
+static unsigned int ma_queue_length;
 
 /**
  * Useful for zone update for DHT put
@@ -369,7 +374,7 @@ dht_put_monitor_continuation (void *cls)
 {
   struct DhtPutActivity *ma = cls;
 
-  num_public_records++;
+  ma_queue_length--;
   GNUNET_CONTAINER_DLL_remove (ma_head,
                                ma_tail,
                                ma);
@@ -911,6 +916,7 @@ handle_monitor_event (void *cls,
                                                 rd_public);
   if (0 == rd_public_count)
     return; /* nothing to do */
+  num_public_records++;
   ma = GNUNET_new (struct DhtPutActivity);
   ma->start_date = GNUNET_TIME_absolute_get ();
   ma->ph = perform_dht_put (zone,
@@ -928,6 +934,21 @@ handle_monitor_event (void *cls,
   GNUNET_CONTAINER_DLL_insert (ma_head,
                                ma_tail,
                                ma);
+  ma_queue_length++;
+  if (ma_queue_length > DHT_QUEUE_LIMIT)
+  {
+    ma = it_head;
+    GNUNET_CONTAINER_DLL_remove (ma_head,
+                                 ma_tail,
+                                 ma);
+    GNUNET_DHT_put_cancel (ma->ph);
+    ma_queue_length--;
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                "DHT PUT unconfirmed after %s, aborting PUT\n",
+                GNUNET_STRINGS_relative_time_to_string (GNUNET_TIME_absolute_get_duration (ma->start_date),
+                                                        GNUNET_YES));
+    GNUNET_free (ma);
+  }
 }
 
 
