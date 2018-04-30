@@ -931,9 +931,9 @@ handle_monitor_event (void *cls,
     GNUNET_free (ma);
     return;
   }
-  GNUNET_CONTAINER_DLL_insert (ma_head,
-                               ma_tail,
-                               ma);
+  GNUNET_CONTAINER_DLL_insert_tail (ma_head,
+				    ma_tail,
+				    ma);
   ma_queue_length++;
   if (ma_queue_length > DHT_QUEUE_LIMIT)
   {
