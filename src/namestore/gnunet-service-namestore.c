@@ -1470,10 +1470,15 @@ run_zone_iteration_round (struct ZoneIteration *zi,
   if (0 == proc.limit)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "More results available\n");
+                "Returned %llu results, more results available\n",
+		(unsigned long long) limit);
     return; /* more results later after we get the
                #GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_ITERATION_NEXT message */
   }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Completed iteration after %llu/%llu results\n",
+	      (unsigned long long) (limit - proc.limit),
+	      (unsigned long long) limit);
   /* send empty response to indicate end of list */
   env = GNUNET_MQ_msg (rrm,
 		       GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_RESULT);

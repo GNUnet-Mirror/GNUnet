@@ -466,7 +466,7 @@ update_velocity (unsigned int cnt)
 
   /* Tell statistics actual vs. desired speed */
   GNUNET_STATISTICS_set (statistics,
-                         "Current zone iteration velocity (μs)",
+                         "Current zone iteration velocity (μs/record)",
                          delta.rel_value_us,
                          GNUNET_NO);
   /* update "sub_delta" based on difference, taking
@@ -510,14 +510,19 @@ update_velocity (unsigned int cnt)
       if (0 == next_put_interval.rel_value_us)
         pct = UINT64_MAX; /* desired speed is infinity ... */
       else
-        pct = (sub_delta.rel_value_us - next_put_interval.rel_value_us) * 100LLU
+        pct = (sub_delta.rel_value_us -
+	       next_put_interval.rel_value_us) * 100LLU
           / next_put_interval.rel_value_us;
       sub_delta = next_put_interval;
     }
   }
   GNUNET_STATISTICS_set (statistics,
-                         "# size of the DHT queue",
+                         "# size of the DHT queue (it)",
                          dht_queue_length,
+                         GNUNET_NO);
+  GNUNET_STATISTICS_set (statistics,
+                         "# size of the DHT queue (mon)",
+                         ma_queue_length,
                          GNUNET_NO);
   GNUNET_STATISTICS_set (statistics,
                          "% speed increase needed for target velocity",
@@ -547,13 +552,13 @@ check_zone_namestore_next ()
                                          sub_delta);
   /* We delay *once* per #NS_BLOCK_SIZE, so we need to multiply the
      per-record delay calculated so far with the #NS_BLOCK_SIZE */
+  GNUNET_STATISTICS_set (statistics,
+                         "Current artificial NAMESTORE delay (μs/record)",
+                         delay.rel_value_us,
+                         GNUNET_NO);
   delay = GNUNET_TIME_relative_multiply (delay,
                                          NS_BLOCK_SIZE);
   GNUNET_assert (NULL == zone_publish_task);
-  GNUNET_STATISTICS_set (statistics,
-                         "Current artificial NAMESTORE delay (μs)",
-                         delay.rel_value_us,
-                         GNUNET_NO);
   zone_publish_task = GNUNET_SCHEDULER_add_delayed (delay,
                                                     &publish_zone_namestore_next,
                                                     NULL);
@@ -1024,10 +1029,6 @@ run (void *cls,
     = GNUNET_TIME_relative_multiply (GNUNET_DHT_DEFAULT_REPUBLISH_FREQUENCY,
 				     PUBLISH_OPS_PER_EXPIRATION);
   next_put_interval = INITIAL_PUT_INTERVAL;
-  GNUNET_STATISTICS_set (statistics,
-                         "Target zone iteration velocity (μs)",
-                         next_put_interval.rel_value_us,
-                         GNUNET_NO);
   namestore_handle = GNUNET_NAMESTORE_connect (c);
   if (NULL == namestore_handle)
   {
@@ -1070,7 +1071,8 @@ run (void *cls,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 _("Could not connect to DHT!\n"));
-    GNUNET_SCHEDULER_add_now (&shutdown_task, NULL);
+    GNUNET_SCHEDULER_add_now (&shutdown_task,
+			      NULL);
     return;
   }
 
@@ -1078,6 +1080,10 @@ run (void *cls,
   first_zone_iteration = GNUNET_YES;\
   statistics = GNUNET_STATISTICS_create ("zonemaster",
                                          c);
+  GNUNET_STATISTICS_set (statistics,
+                         "Target zone iteration velocity (μs)",
+                         next_put_interval.rel_value_us,
+                         GNUNET_NO);
   zmon = GNUNET_NAMESTORE_zone_monitor_start (c,
                                               NULL,
                                               GNUNET_NO,
