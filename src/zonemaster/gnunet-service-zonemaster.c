@@ -783,7 +783,6 @@ put_gns_record (void *cls,
                                                 rd_public);
   if (0 == rd_public_count)
   {
-    GNUNET_assert (NULL == zone_publish_task);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Record set empty, moving to next record set\n");
     return;
