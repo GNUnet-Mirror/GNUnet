@@ -742,6 +742,9 @@ refresh_block (struct NamestoreClient *nc,
 			      "Namecache updates skipped (NC disabled)",
 			      1,
 			      GNUNET_NO);
+    send_store_response (nc,
+                         GNUNET_OK,
+                         rid);
     return;
   }
   exp_time = GNUNET_GNSRECORD_record_get_expiration_time (res_count,
