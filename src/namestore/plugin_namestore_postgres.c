@@ -65,7 +65,8 @@ static int
 database_setup (struct Plugin *plugin)
 {
   struct GNUNET_PQ_ExecuteStatement es_temporary =
-    GNUNET_PQ_make_execute ("CREATE TEMPORARY TABLE IF NOT EXISTS ns097records ("
+    GNUNET_PQ_make_execute ("CREATE TEMPORARY TABLE IF NOT EXISTS ns098records ("
+			    " seq BIGSERIAL PRIMARY KEY,"
                             " zone_private_key BYTEA NOT NULL DEFAULT '',"
                             " pkey BYTEA DEFAULT '',"
                             " rvalue BYTEA NOT NULL DEFAULT '',"
@@ -75,7 +76,8 @@ database_setup (struct Plugin *plugin)
                             ")"
                             "WITH OIDS");
   struct GNUNET_PQ_ExecuteStatement es_default =
-    GNUNET_PQ_make_execute ("CREATE TABLE IF NOT EXISTS ns097records ("
+    GNUNET_PQ_make_execute ("CREATE TABLE IF NOT EXISTS ns098records ("
+			    " seq SERIAL PRIMARY KEY,"
                             " zone_private_key BYTEA NOT NULL DEFAULT '',"
                             " pkey BYTEA DEFAULT '',"
                             " rvalue BYTEA NOT NULL DEFAULT '',"
@@ -125,13 +127,11 @@ database_setup (struct Plugin *plugin)
     struct GNUNET_PQ_ExecuteStatement es[] = {
       *cr,
       GNUNET_PQ_make_try_execute ("CREATE INDEX IF NOT EXISTS ir_pkey_reverse "
-                                  "ON ns097records (zone_private_key,pkey)"),
+                                  "ON ns098records (zone_private_key,pkey)"),
       GNUNET_PQ_make_try_execute ("CREATE INDEX IF NOT EXISTS ir_pkey_iter "
-                                  "ON ns097records (zone_private_key,rvalue)"),
-      GNUNET_PQ_make_try_execute ("CREATE INDEX IF NOT EXISTS it_iter "
-                                  "ON ns097records (rvalue)"),
+                                  "ON ns098records (zone_private_key,seq)"),
       GNUNET_PQ_make_try_execute ("CREATE INDEX IF NOT EXISTS ir_label "
-                                  "ON ns097records (label)"),
+                                  "ON ns098records (label)"),
       GNUNET_PQ_EXECUTE_STATEMENT_END
     };
 
@@ -148,28 +148,28 @@ database_setup (struct Plugin *plugin)
   {
     struct GNUNET_PQ_PreparedStatement ps[] = {
       GNUNET_PQ_make_prepare ("store_records",
-                              "INSERT INTO ns097records (zone_private_key, pkey, rvalue, record_count, record_data, label) VALUES "
+                              "INSERT INTO ns098records (zone_private_key, pkey, rvalue, record_count, record_data, label) VALUES "
                               "($1, $2, $3, $4, $5, $6)",
                               6),
       GNUNET_PQ_make_prepare ("delete_records",
-                              "DELETE FROM ns097records "
+                              "DELETE FROM ns098records "
                               "WHERE zone_private_key=$1 AND label=$2",
                               2),
       GNUNET_PQ_make_prepare ("zone_to_name",
-                              "SELECT record_count,record_data,label FROM ns097records"
+                              "SELECT seq,record_count,record_data,label FROM ns098records"
                               " WHERE zone_private_key=$1 AND pkey=$2",
                               2),
       GNUNET_PQ_make_prepare ("iterate_zone",
-                              "SELECT record_count,record_data,label FROM ns097records "
-                              "WHERE zone_private_key=$1 ORDER BY rvalue OFFSET $2 LIMIT $3",
+                              "SELECT seq,record_count,record_data,label FROM ns098records "
+                              "WHERE zone_private_key=$1 AND seq > $2 ORDER BY seq ASC LIMIT $3",
                               3),
       GNUNET_PQ_make_prepare ("iterate_all_zones",
-                              "SELECT record_count,record_data,label,zone_private_key"
-                              " FROM ns097records ORDER BY rvalue OFFSET $1 LIMIT $2",
+                              "SELECT seq,record_count,record_data,label,zone_private_key"
+                              " FROM ns098records WHERE seq > $1 ORDER BY seq ASC LIMIT $2",
                               2),
       GNUNET_PQ_make_prepare ("lookup_label",
-                              "SELECT record_count,record_data,label "
-                              "FROM ns097records WHERE zone_private_key=$1 AND label=$2",
+                              "SELECT seq,record_count,record_data,label "
+                              "FROM ns098records WHERE zone_private_key=$1 AND label=$2",
                               2),
       GNUNET_PQ_PREPARED_STATEMENT_END
     };
@@ -224,7 +224,8 @@ namestore_postgres_store_records (void *cls,
     }
   rvalue = GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_WEAK,
                                      UINT64_MAX);
-  data_size = GNUNET_GNSRECORD_records_get_size (rd_count, rd);
+  data_size = GNUNET_GNSRECORD_records_get_size (rd_count,
+						 rd);
   if (data_size > 64 * 65536)
   {
     GNUNET_break (0);
@@ -312,12 +313,14 @@ parse_result_call_iterator (void *cls,
     return; /* no need to do more work */
   for (unsigned int i=0;i<num_results;i++)
   {
+    uint64_t serial;
     void *data;
     size_t data_size;
     uint32_t record_count;
     char *label;
     struct GNUNET_CRYPTO_EcdsaPrivateKey zk;
     struct GNUNET_PQ_ResultSpec rs_with_zone[] = {
+      GNUNET_PQ_result_spec_uint64 ("seq", &serial),
       GNUNET_PQ_result_spec_uint32 ("record_count", &record_count),
       GNUNET_PQ_result_spec_variable_size ("record_data", &data, &data_size),
       GNUNET_PQ_result_spec_string ("label", &label),
@@ -325,6 +328,7 @@ parse_result_call_iterator (void *cls,
       GNUNET_PQ_result_spec_end
     };
     struct GNUNET_PQ_ResultSpec rs_without_zone[] = {
+      GNUNET_PQ_result_spec_uint64 ("seq", &serial),
       GNUNET_PQ_result_spec_uint32 ("record_count", &record_count),
       GNUNET_PQ_result_spec_variable_size ("record_data", &data, &data_size),
       GNUNET_PQ_result_spec_string ("label", &label),
@@ -365,6 +369,7 @@ parse_result_call_iterator (void *cls,
         return;
       }
       pc->iter (pc->iter_cls,
+		serial,
                 (NULL == pc->zone_key) ? &zk : pc->zone_key,
                 label,
                 record_count,
@@ -422,7 +427,7 @@ namestore_postgres_lookup_records (void *cls,
  *
  * @param cls closure (internal context for the plugin)
  * @param zone hash of public key of the zone, NULL to iterate over all zones
- * @param offset offset in the list of all matching records
+ * @param serial serial number to exclude in the list of all matching records
  * @param limit maximum number of results to fetch
  * @param iter function to call with the result
  * @param iter_cls closure for @a iter
@@ -431,7 +436,7 @@ namestore_postgres_lookup_records (void *cls,
 static int
 namestore_postgres_iterate_records (void *cls,
                                     const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone,
-                                    uint64_t offset,
+                                    uint64_t serial,
                                     uint64_t limit,
                                     GNUNET_NAMESTORE_RecordIterator iter,
                                     void *iter_cls)
@@ -447,7 +452,7 @@ namestore_postgres_iterate_records (void *cls,
   if (NULL == zone)
   {
     struct GNUNET_PQ_QueryParam params_without_zone[] = {
-      GNUNET_PQ_query_param_uint64 (&offset),
+      GNUNET_PQ_query_param_uint64 (&serial),
       GNUNET_PQ_query_param_uint64 (&limit),
       GNUNET_PQ_query_param_end
     };
@@ -462,7 +467,7 @@ namestore_postgres_iterate_records (void *cls,
   {
     struct GNUNET_PQ_QueryParam params_with_zone[] = {
       GNUNET_PQ_query_param_auto_from_type (zone),
-      GNUNET_PQ_query_param_uint64 (&offset),
+      GNUNET_PQ_query_param_uint64 (&serial),
       GNUNET_PQ_query_param_uint64 (&limit),
       GNUNET_PQ_query_param_end
     };

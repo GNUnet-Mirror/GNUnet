@@ -90,6 +90,7 @@ load_plugin (const struct GNUNET_CONFIGURATION_Handle *cfg)
 
 static void
 test_record (void *cls,
+	     uint64_t seq,
              const struct GNUNET_CRYPTO_EcdsaPrivateKey *private_key,
              const char *label,
              unsigned int rd_count,
@@ -112,7 +113,9 @@ test_record (void *cls,
     GNUNET_assert (rd[i].record_type == 1 + (id % 13));
     GNUNET_assert (rd[i].flags == 0);
   }
-  memset (&tzone_private_key, (id % 241), sizeof (tzone_private_key));
+  memset (&tzone_private_key,
+	  (id % 241),
+	  sizeof (tzone_private_key));
   GNUNET_assert (0 == strcmp (label, tname));
   GNUNET_assert (0 == memcmp (&tzone_private_key,
                               private_key,
@@ -156,11 +159,12 @@ put_record (struct GNUNET_NAMESTORE_PluginFunctions *nsp,
   }
   memset (&zone_private_key, (id % 241), sizeof (zone_private_key));
   memset (&signature, (id % 243), sizeof (signature));
-  GNUNET_assert (GNUNET_OK == nsp->store_records (nsp->cls,
-						&zone_private_key,
-						label,
-						rd_count,
-						rd));
+  GNUNET_assert (GNUNET_OK ==
+		 nsp->store_records (nsp->cls,
+				     &zone_private_key,
+				     label,
+				     rd_count,
+				     rd));
 }
 
 

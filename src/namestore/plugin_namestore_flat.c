@@ -523,6 +523,7 @@ namestore_flat_lookup_records (void *cls,
     return GNUNET_NO;
   if (NULL != iter)
     iter (iter_cls,
+	  0,
 	  entry->private_key,
 	  entry->label,
 	  entry->record_count,
@@ -545,6 +546,12 @@ struct IterateContext
    * How many more records should we return?
    */
   uint64_t limit;
+
+  /**
+   * What is the position of the current entry, counting
+   * starts from 1.
+   */
+  uint64_t pos;
 
   /**
    * Target zone.
@@ -581,6 +588,7 @@ iterate_zones (void *cls,
   struct FlatFileEntry *entry = value;
 
   (void) key;
+  ic->pos++;
   if (0 == ic->limit)
     return GNUNET_NO;
   if ( (NULL != ic->zone) &&
@@ -594,6 +602,7 @@ iterate_zones (void *cls,
     return GNUNET_YES;
   }
   ic->iter (ic->iter_cls,
+	    ic->pos,
             entry->private_key,
             entry->label,
             entry->record_count,
@@ -611,7 +620,7 @@ iterate_zones (void *cls,
  *
  * @param cls closure (internal context for the plugin)
  * @param zone hash of public key of the zone, NULL to iterate over all zones
- * @param offset offset in the list of all matching records
+ * @param serial serial number to exclude in the list of all matching records
  * @param limit maximum number of results to return to @a iter
  * @param iter function to call with the result
  * @param iter_cls closure for @a iter
@@ -620,7 +629,7 @@ iterate_zones (void *cls,
 static int
 namestore_flat_iterate_records (void *cls,
                                 const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone,
-                                uint64_t offset,
+                                uint64_t serial,
                                 uint64_t limit,
                                 GNUNET_NAMESTORE_RecordIterator iter,
                                 void *iter_cls)
@@ -628,7 +637,8 @@ namestore_flat_iterate_records (void *cls,
   struct Plugin *plugin = cls;
   struct IterateContext ic;
 
-  ic.offset = offset;
+  ic.offset = serial;
+  ic.pos = 0;
   ic.limit = limit;
   ic.iter = iter;
   ic.iter_cls = iter_cls;
@@ -663,6 +673,7 @@ zone_to_name (void *cls,
                      sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey)))
     {
       plugin->iter (plugin->iter_cls,
+		    0,
                     entry->private_key,
                     entry->label,
                     entry->record_count,

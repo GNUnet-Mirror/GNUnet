@@ -661,6 +661,8 @@ handle_reverse_lookup (void *cls,
 {
   (void) cls;
   (void) zone;
+  (void) rd_count;
+  (void) rd;
   reverse_qe = NULL;
   if (NULL == label)
     FPRINTF (stdout,
@@ -712,6 +714,7 @@ del_monitor (void *cls,
   char *vs;
 
   (void) cls;
+  (void) zone;
   del_qe = NULL;
   if (0 == rd_count)
   {
@@ -1092,6 +1095,9 @@ id_connect_cb (void *cls,
 {
   const struct GNUNET_CONFIGURATION_Handle *cfg = cls;
 
+  (void) cls;
+  (void) ctx;
+  (void) name;
   if (NULL == ego)
   {
     get_default = GNUNET_IDENTITY_get (idh,
