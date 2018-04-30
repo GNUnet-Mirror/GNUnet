@@ -187,7 +187,7 @@ static unsigned long long last_num_public_records;
 
 /**
  * Number of successful put operations performed in the current
- * measurement cycle (as measured in #check_zone_dht_next()).
+ * measurement cycle (as measured in #check_zone_namestore_next()).
  */
 static unsigned long long put_cnt;
 
@@ -334,7 +334,7 @@ shutdown_task (void *cls)
  * @param cls closure
  */
 static void
-publish_zone_dht_next (void *cls)
+publish_zone_namestore_next (void *cls)
 {
   zone_publish_task = NULL;
   GNUNET_assert (NULL != namestore_iter);
@@ -375,10 +375,10 @@ dht_put_monitor_continuation (void *cls)
 
 /**
  * Check if the current zone iteration needs to be continued
- * by calling #publish_zone_dht_next(), and if so with what delay.
+ * by calling #publish_zone_namestore_next(), and if so with what delay.
  */
 static void
-check_zone_dht_next ()
+check_zone_namestore_next ()
 {
   struct GNUNET_TIME_Relative delay;
 
@@ -391,8 +391,12 @@ check_zone_dht_next ()
   delay = GNUNET_TIME_relative_multiply (delay,
                                          NS_BLOCK_SIZE);
   GNUNET_assert (NULL == zone_publish_task);
+  GNUNET_STATISTICS_set (statistics,
+                         "Current artificial NAMESTORE delay (μs)",
+                         delay.rel_value_us,
+                         GNUNET_NO);
   zone_publish_task = GNUNET_SCHEDULER_add_delayed (delay,
-                                                    &publish_zone_dht_next,
+                                                    &publish_zone_namestore_next,
                                                     NULL);
 }
 
@@ -516,7 +520,6 @@ dht_put_continuation (void *cls)
 {
   struct DhtPutActivity *ma = cls;
 
-  num_public_records++;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "PUT complete\n");
   dht_queue_length--;
@@ -524,11 +527,7 @@ dht_put_continuation (void *cls)
                                it_tail,
                                ma);
   GNUNET_free (ma);
-  put_cnt++;
-  if (0 == put_cnt % DELTA_INTERVAL)
-    update_velocity ();
 }
-
 
 
 /**
@@ -634,6 +633,7 @@ perform_dht_put (const struct GNUNET_CRYPTO_EcdsaPrivateKey *key,
               label,
               GNUNET_STRINGS_absolute_time_to_string (expire),
               GNUNET_h2s (&query));
+  num_public_records++;
   ret = GNUNET_DHT_put (dht_handle,
                         &query,
                         DHT_GNS_REPLICATION_LEVEL,
@@ -769,7 +769,6 @@ put_gns_record (void *cls,
 
   (void) cls;
   ns_iteration_left--;
-  check_zone_dht_next ();
   rd_public_count = convert_records_for_export (rd,
                                                 rd_count,
                                                 rd_public);
@@ -777,6 +776,7 @@ put_gns_record (void *cls,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Record set empty, moving to next record set\n");
+    check_zone_namestore_next ();
     return;
   }
   /* We got a set of records to publish */
@@ -790,6 +790,10 @@ put_gns_record (void *cls,
                             rd_public_count,
                             &dht_put_continuation,
                             ma);
+  put_cnt++;
+  if (0 == put_cnt % DELTA_INTERVAL)
+    update_velocity ();
+  check_zone_namestore_next ();
   if (NULL == ma->ph)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
