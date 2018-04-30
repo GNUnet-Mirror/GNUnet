@@ -1028,8 +1028,8 @@ GNUNET_DHT_put (struct GNUNET_DHT_Handle *handle,
   put_msg->expiration = GNUNET_TIME_absolute_hton (exp);
   put_msg->key = *key;
   GNUNET_memcpy (&put_msg[1],
-          data,
-          size);
+                 data,
+                 size);
   GNUNET_MQ_send (handle->mq,
                   env);
   return ph;

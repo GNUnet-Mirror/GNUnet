@@ -578,11 +578,9 @@ void
 GNUNET_MQ_set_handlers_closure (struct GNUNET_MQ_Handle *mq,
                                 void *handlers_cls)
 {
-  unsigned int i;
-
   if (NULL == mq->handlers)
     return;
-  for (i=0;NULL != mq->handlers[i].cb; i++)
+  for (unsigned int i=0;NULL != mq->handlers[i].cb; i++)
     mq->handlers[i].cls = handlers_cls;
 }
 
