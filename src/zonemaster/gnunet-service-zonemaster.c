@@ -41,18 +41,17 @@
  * iteration speed and actual speed, and tell statistics
  * service about it?
  */
-#define DELTA_INTERVAL 100
+#define DELTA_INTERVAL 1000
 
 /**
- * How many records do we fetch
- * in one shot from the namestore?
+ * How many records do we fetch in one shot from the namestore?
  */
-#define NS_BLOCK_SIZE 100
+#define NS_BLOCK_SIZE 1000
 
 /**
  * How many pending DHT operations do we allow at most?
  */
-#define DHT_QUEUE_LIMIT 1000
+#define DHT_QUEUE_LIMIT 2000
 
 /**
  * The initial interval in milliseconds btween puts in
@@ -382,7 +381,7 @@ check_zone_namestore_next ()
 {
   struct GNUNET_TIME_Relative delay;
 
-  if (0 != ns_iteration_left)
+  if (0 != > ns_iteration_left)
     return; /* current NAMESTORE iteration not yet done */
   delay = GNUNET_TIME_relative_subtract (next_put_interval,
                                          sub_delta);
