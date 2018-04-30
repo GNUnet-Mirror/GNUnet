@@ -103,34 +103,12 @@ shutdown_task (void *cls)
  * Signature of the main function of a task.
  *
  * @param cls closure
- * @param success #GNUNET_OK if the PUT was transmitted,
- *                #GNUNET_NO on timeout,
- *                #GNUNET_SYSERR on disconnect from service
- *                after the PUT message was transmitted
- *                (so we don't know if it was received or not)
  */
 static void
-message_sent_cont (void *cls, int success)
+message_sent_cont (void *cls)
 {
-  if (verbose)
-  {
-    switch (success)
-    {
-    case GNUNET_OK:
-      FPRINTF (stderr, "%s `%s'!\n",  _("PUT request sent with key"), GNUNET_h2s_full(&key));
-      break;
-    case GNUNET_NO:
-      FPRINTF (stderr, "%s",  _("Timeout sending PUT request!\n"));
-      break;
-    case GNUNET_SYSERR:
-      FPRINTF (stderr, "%s",  _("PUT request not confirmed!\n"));
-      break;
-    default:
-      GNUNET_break (0);
-      break;
-    }
-  }
-  GNUNET_SCHEDULER_add_now (&shutdown_task, NULL);
+  GNUNET_SCHEDULER_add_now (&shutdown_task,
+                            NULL);
 }
 
 
@@ -160,7 +138,8 @@ run (void *cls,
 
   if (NULL == (dht_handle = GNUNET_DHT_connect (cfg, 1)))
   {
-    FPRINTF (stderr, _("Could not connect to %s service!\n"), "DHT");
+    FPRINTF (stderr,
+             _("Could not connect to DHT service!\n"));
     ret = 1;
     return;
   }
@@ -203,55 +182,47 @@ main (int argc, char *const *argv)
 {
 
   struct GNUNET_GETOPT_CommandLineOption options[] = {
-  
     GNUNET_GETOPT_option_string ('d',
                                  "data",
                                  "DATA",
                                  gettext_noop ("the data to insert under the key"),
                                  &data),
-  
     GNUNET_GETOPT_option_relative_time ('e',
-                                            "expiration",
-                                            "EXPIRATION",
-                                            gettext_noop ("how long to store this entry in the dht (in seconds)"),
-                                            &expiration),
-  
+                                        "expiration",
+                                        "EXPIRATION",
+                                        gettext_noop ("how long to store this entry in the dht (in seconds)"),
+                                        &expiration),
     GNUNET_GETOPT_option_string ('k',
                                  "key",
                                  "KEY",
                                  gettext_noop ("the query key"),
                                  &query_key),
-  
     GNUNET_GETOPT_option_flag ('x',
-                                  "demultiplex",
-                                  gettext_noop ("use DHT's demultiplex everywhere option"),
-                                  &demultixplex_everywhere),
-  
+                               "demultiplex",
+                               gettext_noop ("use DHT's demultiplex everywhere option"),
+                               &demultixplex_everywhere),
     GNUNET_GETOPT_option_uint ('r',
-                                   "replication",
-                                   "LEVEL",
-                                   gettext_noop ("how many replicas to create"),
-                                   &replication),
-  
+                               "replication",
+                               "LEVEL",
+                               gettext_noop ("how many replicas to create"),
+                               &replication),
     GNUNET_GETOPT_option_flag ('R',
-                                  "record",
-                                  gettext_noop ("use DHT's record route option"),
-                                  &record_route),
-  
+                               "record",
+                               gettext_noop ("use DHT's record route option"),
+                               &record_route),
     GNUNET_GETOPT_option_uint ('t',
-                                   "type",
-                                   "TYPE",
-                                   gettext_noop ("the type to insert data as"),
-                                   &query_type),
-  
+                               "type",
+                               "TYPE",
+                               gettext_noop ("the type to insert data as"),
+                               &query_type),
     GNUNET_GETOPT_option_verbose (&verbose),
-  
     GNUNET_GETOPT_OPTION_END
   };
 
 
-  if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args (argc, argv,
-                                                 &argc, &argv))
+  if (GNUNET_OK !=
+      GNUNET_STRINGS_get_utf8_args (argc, argv,
+                                    &argc, &argv))
     return 2;
   expiration = GNUNET_TIME_UNIT_HOURS;
   return (GNUNET_OK ==

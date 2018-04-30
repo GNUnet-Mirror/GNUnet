@@ -142,22 +142,6 @@ struct GNUNET_DHT_PutHandle;
 
 
 /**
- * Type of a PUT continuation.  You must not call
- * #GNUNET_DHT_disconnect in this continuation.
- *
- * @param cls closure
- * @param success #GNUNET_OK if the PUT was transmitted,
- *                #GNUNET_NO on timeout,
- *                #GNUNET_SYSERR on disconnect from service
- *                after the PUT message was transmitted
- *                (so we don't know if it was received or not)
- */
-typedef void
-(*GNUNET_DHT_PutContinuation)(void *cls,
-                              int success);
-
-
-/**
  * Perform a PUT operation storing data in the DHT.
  *
  * @param handle handle to DHT service
@@ -184,7 +168,7 @@ GNUNET_DHT_put (struct GNUNET_DHT_Handle *handle,
                 size_t size,
                 const void *data,
                 struct GNUNET_TIME_Absolute exp,
-                GNUNET_DHT_PutContinuation cont,
+                GNUNET_SCHEDULER_TaskCallback cont,
                 void *cont_cls);
 
 

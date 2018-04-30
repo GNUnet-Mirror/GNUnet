@@ -780,7 +780,9 @@ GNUNET_MQ_notify_sent (struct GNUNET_MQ_Envelope *ev,
                        GNUNET_SCHEDULER_TaskCallback cb,
                        void *cb_cls)
 {
-  GNUNET_assert (NULL == ev->sent_cb);
+  /* allow setting *OR* clearing callback */
+  GNUNET_assert ( (NULL == ev->sent_cb) ||
+                  (NULL == cb) );
   ev->sent_cb = cb;
   ev->sent_cls = cb_cls;
 }

@@ -105,11 +105,9 @@ test_get_iterator (void *cls,
  * Signature of the main function of a task.
  *
  * @param cls closure
- * @param success result of PUT
  */
 static void
-test_get (void *cls,
-          int success)
+test_get (void *cls)
 {
   struct GNUNET_HashCode hash;
 

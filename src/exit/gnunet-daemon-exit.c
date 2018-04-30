@@ -3426,16 +3426,11 @@ do_dht_put (void *cls);
  * Schedules the next PUT.
  *
  * @param cls closure, NULL
- * @param success #GNUNET_OK if the operation worked (unused)
  */
 static void
-dht_put_cont (void *cls,
-	      int success)
+dht_put_cont (void *cls)
 {
   dht_put = NULL;
-  dht_task = GNUNET_SCHEDULER_add_delayed (DHT_PUT_FREQUENCY,
-					   &do_dht_put,
-					   NULL);
 }
 
 
@@ -3450,7 +3445,9 @@ do_dht_put (void *cls)
 {
   struct GNUNET_TIME_Absolute expiration;
 
-  dht_task = NULL;
+  dht_task = GNUNET_SCHEDULER_add_delayed (DHT_PUT_FREQUENCY,
+					   &do_dht_put,
+					   NULL);
   expiration = GNUNET_TIME_absolute_ntoh (dns_advertisement.expiration_time);
   if (GNUNET_TIME_absolute_get_remaining (expiration).rel_value_us <
       GNUNET_TIME_UNIT_HOURS.rel_value_us)
@@ -3463,6 +3460,8 @@ do_dht_put (void *cls)
 					   &dns_advertisement.purpose,
 					   &dns_advertisement.signature));
   }
+  if (NULL != dht_put)
+    GNUNET_DHT_put_cancel (dht_put);
   dht_put = GNUNET_DHT_put (dht,
 			    &dht_put_key,
 			    1 /* replication */,

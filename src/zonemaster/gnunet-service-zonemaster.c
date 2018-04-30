@@ -359,11 +359,9 @@ publish_zone_dht_start (void *cls);
  * by a monitor is done.
  *
  * @param cls a `struct DhtPutActivity`
- * @param success #GNUNET_OK on success
  */
 static void
-dht_put_monitor_continuation (void *cls,
-                              int success)
+dht_put_monitor_continuation (void *cls)
 {
   struct DhtPutActivity *ma = cls;
 
@@ -512,29 +510,23 @@ update_velocity ()
  * Continuation called from DHT once the PUT operation is done.
  *
  * @param cls a `struct DhtPutActivity`
- * @param success #GNUNET_OK on success
  */
 static void
-dht_put_continuation (void *cls,
-                      int success)
+dht_put_continuation (void *cls)
 {
   struct DhtPutActivity *ma = cls;
 
   num_public_records++;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "PUT complete (%s)\n",
-              (GNUNET_OK == success) ? "success" : "failure");
+              "PUT complete\n");
   dht_queue_length--;
   GNUNET_CONTAINER_DLL_remove (it_head,
                                it_tail,
                                ma);
   GNUNET_free (ma);
-  if (GNUNET_OK == success)
-  {
-    put_cnt++;
-    if (0 == put_cnt % DELTA_INTERVAL)
-      update_velocity ();
-  }
+  put_cnt++;
+  if (0 == put_cnt % DELTA_INTERVAL)
+    update_velocity ();
 }
 
 
@@ -598,7 +590,7 @@ perform_dht_put (const struct GNUNET_CRYPTO_EcdsaPrivateKey *key,
                  const char *label,
                  const struct GNUNET_GNSRECORD_Data *rd_public,
                  unsigned int rd_public_count,
-                 GNUNET_DHT_PutContinuation cont,
+                 GNUNET_SCHEDULER_TaskCallback cont,
                  void *cont_cls)
 {
   struct GNUNET_GNSRECORD_Block *block;

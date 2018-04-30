@@ -55,7 +55,7 @@ struct GNUNET_DHT_PutHandle
   /**
    * Continuation to call when done.
    */
-  GNUNET_DHT_PutContinuation cont;
+  GNUNET_SCHEDULER_TaskCallback cont;
 
   /**
    * Main handle to this DHT api
@@ -68,9 +68,9 @@ struct GNUNET_DHT_PutHandle
   void *cont_cls;
 
   /**
-   * Unique ID for the PUT operation.
+   * Envelope from the PUT operation.
    */
-  uint64_t unique_id;
+  struct GNUNET_MQ_Envelope *env;
 
 };
 
@@ -440,7 +440,7 @@ static void
 do_disconnect (struct GNUNET_DHT_Handle *h)
 {
   struct GNUNET_DHT_PutHandle *ph;
-  GNUNET_DHT_PutContinuation cont;
+  GNUNET_SCHEDULER_TaskCallback cont;
   void *cont_cls;
 
   if (NULL == h->mq)
@@ -456,10 +456,10 @@ do_disconnect (struct GNUNET_DHT_Handle *h)
   {
     cont = ph->cont;
     cont_cls = ph->cont_cls;
+    ph->env = NULL;
     GNUNET_DHT_put_cancel (ph);
     if (NULL != cont)
-      cont (cont_cls,
-            GNUNET_SYSERR);
+      cont (cont_cls);
   }
   GNUNET_assert (NULL == h->reconnect_task);
   h->reconnect_task
@@ -818,31 +818,23 @@ handle_client_result (void *cls,
 
 
 /**
- * Process a put confirmation message from the service.
+ * Process a MQ PUT transmission notification.
  *
  * @param cls The DHT handle.
- * @param msg confirmation message from the service.
  */
 static void
-handle_put_confirmation (void *cls,
-                         const struct GNUNET_DHT_ClientPutConfirmationMessage *msg)
+handle_put_cont (void *cls)
 {
-  struct GNUNET_DHT_Handle *handle = cls;
-  struct GNUNET_DHT_PutHandle *ph;
-  GNUNET_DHT_PutContinuation cont;
+  struct GNUNET_DHT_PutHandle *ph = cls;
+  GNUNET_SCHEDULER_TaskCallback cont;
   void *cont_cls;
 
-  for (ph = handle->put_head; NULL != ph; ph = ph->next)
-    if (ph->unique_id == msg->unique_id)
-      break;
-  if (NULL == ph)
-    return;
   cont = ph->cont;
   cont_cls = ph->cont_cls;
+  ph->env = NULL;
   GNUNET_DHT_put_cancel (ph);
   if (NULL != cont)
-    cont (cont_cls,
-          GNUNET_OK);
+    cont (cont_cls);
 }
 
 
@@ -872,10 +864,6 @@ try_connect (struct GNUNET_DHT_Handle *h)
                            GNUNET_MESSAGE_TYPE_DHT_CLIENT_RESULT,
                            struct GNUNET_DHT_ClientResultMessage,
                            h),
-    GNUNET_MQ_hd_fixed_size (put_confirmation,
-                             GNUNET_MESSAGE_TYPE_DHT_CLIENT_PUT_OK,
-                             struct GNUNET_DHT_ClientPutConfirmationMessage,
-                             h),
     GNUNET_MQ_handler_end ()
   };
   if (NULL != h->mq)
@@ -941,8 +929,7 @@ GNUNET_DHT_disconnect (struct GNUNET_DHT_Handle *handle)
   while (NULL != (ph = handle->put_head))
   {
     if (NULL != ph->cont)
-      ph->cont (ph->cont_cls,
-                GNUNET_SYSERR);
+      ph->cont (ph->cont_cls);
     GNUNET_DHT_put_cancel (ph);
   }
   if (NULL != handle->mq)
@@ -989,7 +976,7 @@ GNUNET_DHT_put (struct GNUNET_DHT_Handle *handle,
                 size_t size,
                 const void *data,
                 struct GNUNET_TIME_Absolute exp,
-                GNUNET_DHT_PutContinuation cont,
+                GNUNET_SCHEDULER_TaskCallback cont,
                 void *cont_cls)
 {
   struct GNUNET_MQ_Envelope *env;
@@ -1014,17 +1001,19 @@ GNUNET_DHT_put (struct GNUNET_DHT_Handle *handle,
   ph->dht_handle = handle;
   ph->cont = cont;
   ph->cont_cls = cont_cls;
-  ph->unique_id = ++handle->uid_gen;
   GNUNET_CONTAINER_DLL_insert_tail (handle->put_head,
 				    handle->put_tail,
 				    ph);
   env = GNUNET_MQ_msg_extra (put_msg,
                              size,
                              GNUNET_MESSAGE_TYPE_DHT_CLIENT_PUT);
+  GNUNET_MQ_notify_sent (env,
+                         &handle_put_cont,
+                         ph);
+  ph->env = env;
   put_msg->type = htonl ((uint32_t) type);
   put_msg->options = htonl ((uint32_t) options);
   put_msg->desired_replication_level = htonl (desired_replication_level);
-  put_msg->unique_id = ph->unique_id;
   put_msg->expiration = GNUNET_TIME_absolute_hton (exp);
   put_msg->key = *key;
   GNUNET_memcpy (&put_msg[1],
@@ -1052,6 +1041,10 @@ GNUNET_DHT_put_cancel (struct GNUNET_DHT_PutHandle *ph)
 {
   struct GNUNET_DHT_Handle *handle = ph->dht_handle;
 
+  if (NULL != ph->env)
+    GNUNET_MQ_notify_sent (ph->env,
+                           NULL,
+                           NULL);
   GNUNET_CONTAINER_DLL_remove (handle->put_head,
 			       handle->put_tail,
 			       ph);
