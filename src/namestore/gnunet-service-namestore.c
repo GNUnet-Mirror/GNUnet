@@ -1416,12 +1416,15 @@ run_zone_iteration_round (struct ZoneIteration *zi,
   struct ZoneIterationProcResult proc;
   struct GNUNET_MQ_Envelope *env;
   struct RecordResultMessage *rrm;
+  struct GNUNET_TIME_Absolute start;
+  struct GNUNET_TIME_Relative duration;
 
   memset (&proc,
           0,
           sizeof (proc));
   proc.zi = zi;
   proc.limit = limit;
+  start = GNUNET_TIME_absolute_get ();
   GNUNET_break (GNUNET_SYSERR !=
                 GSN_database->iterate_records (GSN_database->cls,
                                                (0 == memcmp (&zi->zone,
@@ -1433,6 +1436,13 @@ run_zone_iteration_round (struct ZoneIteration *zi,
                                                limit,
                                                &zone_iterate_proc,
                                                &proc));
+  duration = GNUNET_TIME_absolute_get_duration (start);
+  duration = GNUNET_TIME_relative_divide (duration,
+                                          limit - proc.limit);
+  GNUNET_STATISTICS_set (statistics,
+                         "NAMESTORE iteration delay (μs/record)",
+                         duration.rel_value_us,
+                         GNUNET_NO);
   zi->offset += (limit - proc.limit);
   if (0 == proc.limit)
   {
