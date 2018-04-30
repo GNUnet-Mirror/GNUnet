@@ -37,11 +37,17 @@
 
 
 /**
+ * How often should we (re)publish each record before
+ * it expires?
+ */
+#define PUBLISH_OPS_PER_EXPIRATION 4
+
+/**
  * How often do we measure the delta between desired zone
  * iteration speed and actual speed, and tell statistics
  * service about it?
  */
-#define DELTA_INTERVAL 1000
+#define DELTA_INTERVAL 100
 
 /**
  * How many records do we fetch in one shot from the namestore?
@@ -60,12 +66,8 @@
 #define INITIAL_PUT_INTERVAL GNUNET_TIME_UNIT_MILLISECONDS
 
 /**
- * The lower bound for the zone iteration interval
- */
-#define MINIMUM_ZONE_ITERATION_INTERVAL GNUNET_TIME_UNIT_SECONDS
-
-/**
  * The upper bound for the zone iteration interval
+ * (per record).
  */
 #define MAXIMUM_ZONE_ITERATION_INTERVAL GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 15)
 
@@ -206,9 +208,10 @@ static struct GNUNET_TIME_Relative next_put_interval;
 static struct GNUNET_TIME_Relative min_relative_record_time;
 
 /**
- * Zone iteration PUT interval.
+ * Minimum relative expiration time of records seem during the last
+ * zone iteration.
  */
-static struct GNUNET_TIME_Relative put_interval;
+static struct GNUNET_TIME_Relative last_min_relative_record_time;
 
 /**
  * Default time window for zone iteration
@@ -269,6 +272,7 @@ shutdown_task (void *cls)
 {
   struct DhtPutActivity *ma;
 
+  (void) cls;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Shutting down!\n");
   while (NULL != (ma = ma_head))
@@ -330,11 +334,12 @@ shutdown_task (void *cls)
 /**
  * Method called periodically that triggers iteration over authoritative records
  *
- * @param cls closure
+ * @param cls NULL
  */
 static void
 publish_zone_namestore_next (void *cls)
 {
+  (void) cls;
   zone_publish_task = NULL;
   GNUNET_assert (NULL != namestore_iter);
   GNUNET_assert (0 == ns_iteration_left);
@@ -401,6 +406,50 @@ check_zone_namestore_next ()
 
 
 /**
+ * Calculate #next_put_interval.
+ */
+static void
+calculate_put_interval ()
+{
+  if (0 == num_public_records)
+  {
+    /**
+     * If no records are known (startup) or none present
+     * we can safely set the interval to the value for a single
+     * record
+     */
+    next_put_interval = zone_publish_time_window;
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG | GNUNET_ERROR_TYPE_BULK,
+                "No records in namestore database.\n");
+  }
+  else
+  {
+    last_min_relative_record_time
+      = GNUNET_TIME_relative_min (last_min_relative_record_time,
+				  min_relative_record_time);
+    zone_publish_time_window
+      = GNUNET_TIME_relative_min (GNUNET_TIME_relative_divide (last_min_relative_record_time,
+							       PUBLISH_OPS_PER_EXPIRATION),
+                                  zone_publish_time_window_default);
+    next_put_interval
+      = GNUNET_TIME_relative_divide (zone_publish_time_window,
+				     last_num_public_records);
+    next_put_interval
+      = GNUNET_TIME_relative_min (next_put_interval,
+				  MAXIMUM_ZONE_ITERATION_INTERVAL);
+  }
+  GNUNET_STATISTICS_set (statistics,
+			 "Minimum relative record expiration (in ms)",
+			 last_min_relative_record_time.rel_value_us / 1000LL,
+			 GNUNET_NO); 
+  GNUNET_STATISTICS_set (statistics,
+			 "Zone publication time window (in ms)",
+			 zone_publish_time_window.rel_value_us / 1000LL,
+			 GNUNET_NO);
+}
+
+
+/**
  * Re-calculate our velocity and the desired velocity.
  * We have succeeded in making #DELTA_INTERVAL puts, so
  * now calculate the new desired delay between puts.
@@ -422,18 +471,9 @@ update_velocity ()
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Last record count was lower than current record count.  Reducing interval.\n");
-    put_interval = GNUNET_TIME_relative_divide (zone_publish_time_window,
-                                                num_public_records);
-    next_put_interval = GNUNET_TIME_relative_divide (put_interval,
-                                                     LATE_ITERATION_SPEEDUP_FACTOR);
+    last_num_public_records = num_public_records * LATE_ITERATION_SPEEDUP_FACTOR;
+    calculate_put_interval ();
   }
-  else
-  {
-    next_put_interval = put_interval;
-  }
-
-  next_put_interval = GNUNET_TIME_relative_min (next_put_interval,
-                                                MAXIMUM_ZONE_ITERATION_INTERVAL);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Desired global zone iteration interval is %s/record!\n",
               GNUNET_STRINGS_relative_time_to_string (next_put_interval,
@@ -691,53 +731,27 @@ zone_iteration_finished (void *cls)
   namestore_iter = NULL;
   last_num_public_records = num_public_records;
   first_zone_iteration = GNUNET_NO;
-  if (0 == num_public_records)
-  {
-    /**
-     * If no records are known (startup) or none present
-     * we can safely set the interval to the value for a single
-     * record
-     */
-    put_interval = zone_publish_time_window;
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG | GNUNET_ERROR_TYPE_BULK,
-                "No records in namestore database.\n");
-  }
-  else
-  {
-    /* If records are present, next publication is based on the minimum
-     * relative expiration time of the records published divided by 4
-     */
-    zone_publish_time_window
-      = GNUNET_TIME_relative_min (GNUNET_TIME_relative_divide (min_relative_record_time, 4),
-                                  zone_publish_time_window_default);
-    put_interval = GNUNET_TIME_relative_divide (zone_publish_time_window,
-                                                num_public_records);
-  }
+  last_min_relative_record_time = min_relative_record_time;
+  calculate_put_interval ();
   /* reset for next iteration */
-  min_relative_record_time = GNUNET_TIME_UNIT_FOREVER_REL;
-  put_interval = GNUNET_TIME_relative_max (MINIMUM_ZONE_ITERATION_INTERVAL,
-                                           put_interval);
-  put_interval = GNUNET_TIME_relative_min (put_interval,
-                                           MAXIMUM_ZONE_ITERATION_INTERVAL);
+  min_relative_record_time
+    = GNUNET_TIME_relative_multiply (GNUNET_DHT_DEFAULT_REPUBLISH_FREQUENCY,
+				     PUBLISH_OPS_PER_EXPIRATION);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Zone iteration finished. Adjusted zone iteration interval to %s\n",
-              GNUNET_STRINGS_relative_time_to_string (put_interval,
+              GNUNET_STRINGS_relative_time_to_string (next_put_interval,
                                                       GNUNET_YES));
   GNUNET_STATISTICS_set (statistics,
                          "Current zone iteration interval (in ms)",
-                         put_interval.rel_value_us / 1000LL,
+                         next_put_interval.rel_value_us / 1000LL,
                          GNUNET_NO);
-  GNUNET_STATISTICS_update (statistics,
-                            "Number of zone iterations",
-                            1,
-                            GNUNET_NO);
   GNUNET_STATISTICS_set (statistics,
                          "Number of public records in DHT",
                          last_num_public_records,
                          GNUNET_NO);
   GNUNET_assert (NULL == zone_publish_task);
-  if (0 == num_public_records)
-    zone_publish_task = GNUNET_SCHEDULER_add_delayed (put_interval,
+  if (0 == last_num_public_records)
+    zone_publish_task = GNUNET_SCHEDULER_add_delayed (next_put_interval,
                                                       &publish_zone_dht_start,
                                                       NULL);
   else
@@ -875,6 +889,7 @@ handle_monitor_event (void *cls,
   unsigned int rd_public_count;
   struct DhtPutActivity *ma;
 
+  (void) cls;
   GNUNET_STATISTICS_update (statistics,
                             "Namestore monitor events received",
                             1,
@@ -976,8 +991,12 @@ run (void *cls,
   unsigned long long max_parallel_bg_queries = 128;
 
   (void) cls;
+  (void) service;
   last_put_100 = GNUNET_TIME_absolute_get (); /* first time! */
-  min_relative_record_time = GNUNET_TIME_UNIT_FOREVER_REL;
+  min_relative_record_time
+    = GNUNET_TIME_relative_multiply (GNUNET_DHT_DEFAULT_REPUBLISH_FREQUENCY,
+				     PUBLISH_OPS_PER_EXPIRATION);
+  next_put_interval = INITIAL_PUT_INTERVAL;
   namestore_handle = GNUNET_NAMESTORE_connect (c);
   if (NULL == namestore_handle)
   {
@@ -989,7 +1008,6 @@ run (void *cls,
   cache_keys = GNUNET_CONFIGURATION_get_value_yesno (c,
                                                      "namestore",
                                                      "CACHE_KEYS");
-  put_interval = INITIAL_PUT_INTERVAL;
   zone_publish_time_window_default = DEFAULT_ZONE_PUBLISH_TIME_WINDOW;
   if (GNUNET_OK ==
       GNUNET_CONFIGURATION_get_value_time (c,
@@ -1039,7 +1057,8 @@ run (void *cls,
                                               &monitor_sync_event,
                                               NULL);
   GNUNET_break (NULL != zmon);
-  GNUNET_SCHEDULER_add_shutdown (&shutdown_task, NULL);
+  GNUNET_SCHEDULER_add_shutdown (&shutdown_task,
+				 NULL);
 }
 
 
