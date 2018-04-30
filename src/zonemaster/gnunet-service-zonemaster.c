@@ -381,7 +381,7 @@ check_zone_namestore_next ()
 {
   struct GNUNET_TIME_Relative delay;
 
-  if (0 != > ns_iteration_left)
+  if (0 != ns_iteration_left)
     return; /* current NAMESTORE iteration not yet done */
   delay = GNUNET_TIME_relative_subtract (next_put_interval,
                                          sub_delta);
