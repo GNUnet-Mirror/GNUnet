@@ -84,7 +84,7 @@ database_setup (struct Plugin *plugin)
                             " rvalue BYTEA NOT NULL DEFAULT '',"
                             " record_count INTEGER NOT NULL DEFAULT 0,"
                             " record_data BYTEA NOT NULL DEFAULT '',"
-                            " label TEXT NOT NULL DEFAULT ''"
+                            " label TEXT NOT NULL DEFAULT '',"
                             " CONSTRAINT zl UNIQUE (zone_private_key,label)"
                             ")"
                             "WITH OIDS");
