@@ -50,7 +50,7 @@
 #define NS_BLOCK_SIZE 100
 
 /**
- * The initial interval in milliseconds btween puts in
+ * The initial interval in milliseconds between puts in
  * a zone iteration
  */
 #define INITIAL_PUT_INTERVAL GNUNET_TIME_UNIT_MILLISECONDS
