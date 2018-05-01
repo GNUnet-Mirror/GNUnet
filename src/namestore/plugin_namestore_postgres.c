@@ -72,7 +72,8 @@ database_setup (struct Plugin *plugin)
                             " rvalue BYTEA NOT NULL DEFAULT '',"
                             " record_count INTEGER NOT NULL DEFAULT 0,"
                             " record_data BYTEA NOT NULL DEFAULT '',"
-                            " label TEXT NOT NULL DEFAULT ''"
+                            " label TEXT NOT NULL DEFAULT '',"
+                            " CONSTRAINT zl UNIQUE (zone_private_key,label)"
                             ")"
                             "WITH OIDS");
   struct GNUNET_PQ_ExecuteStatement es_default =
@@ -84,6 +85,7 @@ database_setup (struct Plugin *plugin)
                             " record_count INTEGER NOT NULL DEFAULT 0,"
                             " record_data BYTEA NOT NULL DEFAULT '',"
                             " label TEXT NOT NULL DEFAULT ''"
+                            " CONSTRAINT zl UNIQUE (zone_private_key,label)"
                             ")"
                             "WITH OIDS");
   const struct GNUNET_PQ_ExecuteStatement *cr;
@@ -132,6 +134,8 @@ database_setup (struct Plugin *plugin)
                                   "ON ns098records (zone_private_key,seq)"),
       GNUNET_PQ_make_try_execute ("CREATE INDEX IF NOT EXISTS ir_label "
                                   "ON ns098records (label)"),
+      GNUNET_PQ_make_try_execute ("CREATE INDEX IF NOT EXISTS zone_label "
+                                  "ON ns098records (zone_private_key,label)"),
       GNUNET_PQ_EXECUTE_STATEMENT_END
     };
 
@@ -148,8 +152,14 @@ database_setup (struct Plugin *plugin)
   {
     struct GNUNET_PQ_PreparedStatement ps[] = {
       GNUNET_PQ_make_prepare ("store_records",
-                              "INSERT INTO ns098records (zone_private_key, pkey, rvalue, record_count, record_data, label) VALUES "
-                              "($1, $2, $3, $4, $5, $6)",
+                              "INSERT INTO ns098records"
+                              " (zone_private_key, pkey, rvalue, record_count, record_data, label)"
+                              " VALUES ($1, $2, $3, $4, $5, $6)"
+                              " ON CONFLICT ON CONSTRAINT zl"
+                              " DO UPDATE"
+                              "    SET pkey=$2,rvalue=$3,record_count=$4,record_data=$5"
+                              "    WHERE ns098records.zone_private_key = $1"
+                              "          AND ns098records.label = $6",
                               6),
       GNUNET_PQ_make_prepare ("delete_records",
                               "DELETE FROM ns098records "
@@ -233,7 +243,8 @@ namestore_postgres_store_records (void *cls,
     GNUNET_break (0);
     return GNUNET_SYSERR;
   }
-  /* first, delete existing records */
+  /* if record set is empty, delete existing records */
+  if (0 == rd_count)
   {
     struct GNUNET_PQ_QueryParam params[] = {
       GNUNET_PQ_query_param_auto_from_type (zone_key),
@@ -251,14 +262,12 @@ namestore_postgres_store_records (void *cls,
       GNUNET_break (0);
       return GNUNET_SYSERR;
     }
-  }
-  if (0 == rd_count)
-  {
     GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
                      "postgres",
                      "Record deleted\n");
     return GNUNET_OK;
   }
+  /* otherwise, UPSERT (i.e. UPDATE if exists, otherwise INSERT) */
   {
     char data[data_size];
     struct GNUNET_PQ_QueryParam params[] = {
