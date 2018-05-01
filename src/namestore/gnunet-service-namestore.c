@@ -469,7 +469,7 @@ get_nick_record (const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone)
        (NULL == nick) )
   {
     GNUNET_CRYPTO_ecdsa_key_get_public (zone, &pub);
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO | GNUNET_ERROR_TYPE_BULK,
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG | GNUNET_ERROR_TYPE_BULK,
                 "No nick name set for zone `%s'\n",
                 GNUNET_GNSRECORD_z2s (&pub));
     return NULL;
