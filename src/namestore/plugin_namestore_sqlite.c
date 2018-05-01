@@ -311,7 +311,7 @@ database_setup (struct Plugin *plugin)
         sq_prepare (plugin->dbh,
                     "SELECT uid,record_count,record_data,label,zone_private_key"
                     " FROM ns098records"
-		    " WHERE _rowid_ >= ?" 
+		    " WHERE _rowid_ >= ?"
 		    " ORDER BY _rowid_ ASC"
 		    " LIMIT ?",
                     &plugin->iterate_all_zones))  ||
@@ -551,7 +551,7 @@ get_records_and_call_iterator (struct Plugin *plugin,
   int sret;
 
   ret = GNUNET_OK;
-  for (uint64_t i = 0;i<limit ; i++)
+  for (uint64_t i = 0;i<limit;i++)
   {
     sret = sqlite3_step (stmt);
 
@@ -570,7 +570,7 @@ get_records_and_call_iterator (struct Plugin *plugin,
       ret = GNUNET_SYSERR;
       break;
     }
-    
+
     {
       uint64_t seq;
       uint32_t record_count;
@@ -658,7 +658,7 @@ get_records_and_call_iterator (struct Plugin *plugin,
  * @param label name of the record in the zone
  * @param iter function to call with the result
  * @param iter_cls closure for @a iter
- * @return #GNUNET_OK on success, else #GNUNET_SYSERR
+ * @return #GNUNET_OK on success, #GNUNET_NO for no results, else #GNUNET_SYSERR
  */
 static int
 namestore_sqlite_lookup_records (void *cls,
@@ -675,7 +675,10 @@ namestore_sqlite_lookup_records (void *cls,
   };
 
   if (NULL == zone)
+  {
+    GNUNET_break (0);
     return GNUNET_SYSERR;
+  }
   if (GNUNET_OK !=
       GNUNET_SQ_bind (plugin->lookup_label,
                       params))

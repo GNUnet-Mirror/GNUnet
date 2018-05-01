@@ -1108,12 +1108,11 @@ handle_record_store (void *cls,
 		conv_name);
     if ( (0 == rd_count) &&
          (GNUNET_NO ==
-          GSN_database->iterate_records (GSN_database->cls,
-                                         &rp_msg->private_key,
-                                         0,
-                                         1,
-                                         NULL,
-                                         0)) )
+          GSN_database->lookup_records (GSN_database->cls,
+                                        &rp_msg->private_key,
+                                        conv_name,
+                                        NULL,
+                                        0)) )
     {
       /* This name does not exist, so cannot be removed */
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,

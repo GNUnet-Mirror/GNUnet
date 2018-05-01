@@ -212,7 +212,9 @@ namestore_postgres_store_records (void *cls,
   uint32_t rd_count32 = (uint32_t) rd_count;
   size_t data_size;
 
-  memset (&pkey, 0, sizeof (pkey));
+  memset (&pkey,
+          0,
+          sizeof (pkey));
   for (unsigned int i=0;i<rd_count;i++)
     if (GNUNET_GNSRECORD_TYPE_PKEY == rd[i].record_type)
     {
@@ -230,6 +232,32 @@ namestore_postgres_store_records (void *cls,
   {
     GNUNET_break (0);
     return GNUNET_SYSERR;
+  }
+  /* first, delete existing records */
+  {
+    struct GNUNET_PQ_QueryParam params[] = {
+      GNUNET_PQ_query_param_auto_from_type (zone_key),
+      GNUNET_PQ_query_param_string (label),
+      GNUNET_PQ_query_param_end
+    };
+    enum GNUNET_DB_QueryStatus res;
+
+    res = GNUNET_PQ_eval_prepared_non_select (plugin->dbh,
+                                              "delete_records",
+                                              params);
+    if ( (GNUNET_DB_STATUS_SUCCESS_ONE_RESULT != res) &&
+         (GNUNET_DB_STATUS_SUCCESS_NO_RESULTS != res) )
+    {
+      GNUNET_break (0);
+      return GNUNET_SYSERR;
+    }
+  }
+  if (0 == rd_count)
+  {
+    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
+                     "postgres",
+                     "Record deleted\n");
+    return GNUNET_OK;
   }
   {
     char data[data_size];
@@ -389,7 +417,7 @@ parse_result_call_iterator (void *cls,
  * @param label name of the record in the zone
  * @param iter function to call with the result
  * @param iter_cls closure for @a iter
- * @return #GNUNET_OK on success, else #GNUNET_SYSERR
+ * @return #GNUNET_OK on success, #GNUNET_NO for no results, else #GNUNET_SYSERR
  */
 static int
 namestore_postgres_lookup_records (void *cls,
@@ -407,6 +435,11 @@ namestore_postgres_lookup_records (void *cls,
   struct ParserContext pc;
   enum GNUNET_DB_QueryStatus res;
 
+  if (NULL == zone)
+  {
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
   pc.iter = iter;
   pc.iter_cls = iter_cls;
   pc.zone_key = zone;
@@ -415,8 +448,10 @@ namestore_postgres_lookup_records (void *cls,
                                               params,
                                               &parse_result_call_iterator,
                                               &pc);
-  if (res <= 0)
+  if (res < 0)
     return GNUNET_SYSERR;
+  if (GNUNET_DB_STATUS_SUCCESS_NO_RESULTS == res)
+    return GNUNET_NO;
   return GNUNET_OK;
 }
 

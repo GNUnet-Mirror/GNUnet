@@ -364,7 +364,7 @@ main (int argc,
 
   plugin_name = GNUNET_TESTING_get_testname_from_underscore (argv[0]);
   GNUNET_asprintf (&cfg_name,
-                   "test_namestore_api_%s.conf",
+                   "perf_namestore_api_%s.conf",
                    plugin_name);
   res = 1;
   if (0 !=

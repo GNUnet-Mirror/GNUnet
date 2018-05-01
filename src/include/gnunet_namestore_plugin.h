@@ -99,7 +99,7 @@ struct GNUNET_NAMESTORE_PluginFunctions
    * @param label name of the record in the zone
    * @param iter function to call with the result
    * @param iter_cls closure for @a iter
-   * @return #GNUNET_OK on success, else #GNUNET_SYSERR
+   * @return #GNUNET_OK on success, #GNUNET_NO for no results, else #GNUNET_SYSERR
    */
   int
   (*lookup_records) (void *cls,

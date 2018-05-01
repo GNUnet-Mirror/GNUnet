@@ -508,15 +508,23 @@ run (void *cls,
 int
 main (int argc, char *argv[])
 {
+  const char *plugin_name;
+  char *cfg_name;
+
+  plugin_name = GNUNET_TESTING_get_testname_from_underscore (argv[0]);
+  GNUNET_asprintf (&cfg_name,
+                   "test_namestore_api_%s.conf",
+                   plugin_name);
   res = 1;
   if (0 !=
       GNUNET_TESTING_peer_run ("test-namestore-api-zone-iteration-stop",
-                               "test_namestore_api.conf",
+                               cfg_name,
                                &run,
                                NULL))
   {
     res = 1;
   }
+  GNUNET_free (cfg_name);
   if (NULL != directory)
   {
       GNUNET_DISK_directory_remove (directory);

@@ -436,45 +436,51 @@ namestore_flat_store_records (void *cls,
 				     UINT64_MAX);
   key_len = strlen (label) + sizeof (struct GNUNET_CRYPTO_EcdsaPrivateKey);
   key = GNUNET_malloc (key_len);
-  GNUNET_memcpy (key, label, strlen (label));
-  GNUNET_memcpy (key+strlen(label),
-          zone_key,
-          sizeof (struct GNUNET_CRYPTO_EcdsaPrivateKey));
+  GNUNET_memcpy (key,
+                 label,
+                 strlen (label));
+  GNUNET_memcpy (key + strlen(label),
+                 zone_key,
+                 sizeof (struct GNUNET_CRYPTO_EcdsaPrivateKey));
   GNUNET_CRYPTO_hash (key,
                       key_len,
                       &hkey);
-
-  GNUNET_CONTAINER_multihashmap_remove_all (plugin->hm, &hkey);
-
-  if (0 < rd_count)
+  GNUNET_CONTAINER_multihashmap_remove_all (plugin->hm,
+                                            &hkey);
+  if (0 == rd_count)
   {
-    entry = GNUNET_new (struct FlatFileEntry);
-    entry->private_key = GNUNET_new (struct GNUNET_CRYPTO_EcdsaPrivateKey);
-    GNUNET_asprintf (&entry->label,
-                     label,
-                     strlen (label));
-    GNUNET_memcpy (entry->private_key,
-		   zone_key,
-		   sizeof (struct GNUNET_CRYPTO_EcdsaPrivateKey));
-    entry->rvalue = rvalue;
-    entry->record_count = rd_count;
-    entry->record_data = GNUNET_new_array (rd_count,
-					   struct GNUNET_GNSRECORD_Data);
-    for (unsigned int i = 0; i < rd_count; i++)
-    {
-      entry->record_data[i].expiration_time = rd[i].expiration_time;
-      entry->record_data[i].record_type = rd[i].record_type;
-      entry->record_data[i].flags = rd[i].flags;
-      entry->record_data[i].data_size = rd[i].data_size;
-      entry->record_data[i].data = GNUNET_malloc (rd[i].data_size);
-      GNUNET_memcpy ((char*)entry->record_data[i].data, rd[i].data, rd[i].data_size);
-    }
-    return GNUNET_CONTAINER_multihashmap_put (plugin->hm,
-                                              &hkey,
-                                              entry,
-                                              GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
+    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
+                     "sqlite",
+                     "Record deleted\n");
+    return GNUNET_OK;
   }
-  return GNUNET_NO;
+  entry = GNUNET_new (struct FlatFileEntry);
+  entry->private_key = GNUNET_new (struct GNUNET_CRYPTO_EcdsaPrivateKey);
+  GNUNET_asprintf (&entry->label,
+                   label,
+                   strlen (label));
+  GNUNET_memcpy (entry->private_key,
+                 zone_key,
+                 sizeof (struct GNUNET_CRYPTO_EcdsaPrivateKey));
+  entry->rvalue = rvalue;
+  entry->record_count = rd_count;
+  entry->record_data = GNUNET_new_array (rd_count,
+                                         struct GNUNET_GNSRECORD_Data);
+  for (unsigned int i = 0; i < rd_count; i++)
+  {
+    entry->record_data[i].expiration_time = rd[i].expiration_time;
+    entry->record_data[i].record_type = rd[i].record_type;
+    entry->record_data[i].flags = rd[i].flags;
+    entry->record_data[i].data_size = rd[i].data_size;
+    entry->record_data[i].data = GNUNET_malloc (rd[i].data_size);
+    GNUNET_memcpy ((char*)entry->record_data[i].data,
+                   rd[i].data,
+                   rd[i].data_size);
+  }
+  return GNUNET_CONTAINER_multihashmap_put (plugin->hm,
+                                            &hkey,
+                                            entry,
+                                            GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
 }
 
 
@@ -486,7 +492,7 @@ namestore_flat_store_records (void *cls,
  * @param label name of the record in the zone
  * @param iter function to call with the result
  * @param iter_cls closure for @a iter
- * @return #GNUNET_OK on success, else #GNUNET_SYSERR
+ * @return #GNUNET_OK on success, #GNUNET_NO for no results, else #GNUNET_SYSERR
  */
 static int
 namestore_flat_lookup_records (void *cls,
@@ -502,7 +508,10 @@ namestore_flat_lookup_records (void *cls,
   size_t key_len;
 
   if (NULL == zone)
+  {
+    GNUNET_break (0);
     return GNUNET_SYSERR;
+  }
   key_len = strlen (label) + sizeof (struct GNUNET_CRYPTO_EcdsaPrivateKey);
   key = GNUNET_malloc (key_len);
   GNUNET_memcpy (key,
