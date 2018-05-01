@@ -119,7 +119,6 @@ end (void *cls)
     GNUNET_free (privkey);
     privkey = NULL;
   }
-  res = 1;
 }
 
 
