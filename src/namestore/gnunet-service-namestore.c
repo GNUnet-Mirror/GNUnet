@@ -1032,7 +1032,8 @@ check_record_store (void *cls,
     GNUNET_break (0);
     return GNUNET_SYSERR;
   }
-  if ((0 == name_len) || (name_len > MAX_NAME_LEN))
+  if ( (0 == name_len) ||
+       (name_len > MAX_NAME_LEN) )
   {
     GNUNET_break (0);
     return GNUNET_SYSERR;
@@ -1066,7 +1067,6 @@ handle_record_store (void *cls,
   const char *rd_ser;
   unsigned int rd_count;
   int res;
-  struct GNUNET_CRYPTO_EcdsaPublicKey pubkey;
   struct ZoneMonitor *zm;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -1093,8 +1093,6 @@ handle_record_store (void *cls,
     }
 
     /* Extracting and converting private key */
-    GNUNET_CRYPTO_ecdsa_key_get_public (&rp_msg->private_key,
-                                        &pubkey);
     conv_name = GNUNET_GNSRECORD_string_to_lowercase (name_tmp);
     if (NULL == conv_name)
     {
@@ -1105,11 +1103,9 @@ handle_record_store (void *cls,
       return;
     }
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		"Creating %u records for name `%s' in zone `%s'\n",
+		"Creating %u records for name `%s'\n",
 		(unsigned int) rd_count,
-		conv_name,
-		GNUNET_GNSRECORD_z2s (&pubkey));
-
+		conv_name);
     if ( (0 == rd_count) &&
          (GNUNET_NO ==
           GSN_database->iterate_records (GSN_database->cls,
@@ -1150,7 +1146,8 @@ handle_record_store (void *cls,
       {
         for (zm = monitor_head; NULL != zm; zm = zm->next)
         {
-          if ( (0 == memcmp (&rp_msg->private_key, &zm->zone,
+          if ( (0 == memcmp (&rp_msg->private_key,
+                             &zm->zone,
                              sizeof (struct GNUNET_CRYPTO_EcdsaPrivateKey))) ||
                (0 == memcmp (&zm->zone,
                              &zero,
@@ -1363,7 +1360,7 @@ struct ZoneIterationProcResult
 
 /**
  * Process results for zone iteration from database
- * 
+ *
  * @param cls struct ZoneIterationProcResult
  * @param seq sequence number of the record
  * @param zone_key the zone key
@@ -1446,6 +1443,10 @@ run_zone_iteration_round (struct ZoneIteration *zi,
   memset (&proc,
           0,
           sizeof (proc));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Asked to return up to %llu records at position %llu\n",
+              (unsigned long long) limit,
+              (unsigned long long) zi->seq);
   proc.zi = zi;
   proc.limit = limit;
   start = GNUNET_TIME_absolute_get ();
