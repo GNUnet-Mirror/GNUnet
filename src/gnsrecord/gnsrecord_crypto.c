@@ -405,8 +405,11 @@ GNUNET_GNSRECORD_query_from_private_key (const struct GNUNET_CRYPTO_EcdsaPrivate
 {
   struct GNUNET_CRYPTO_EcdsaPublicKey pub;
 
-  GNUNET_CRYPTO_ecdsa_key_get_public (zone, &pub);
-  GNUNET_GNSRECORD_query_from_public_key (&pub, label, query);
+  GNUNET_CRYPTO_ecdsa_key_get_public (zone,
+                                      &pub);
+  GNUNET_GNSRECORD_query_from_public_key (&pub,
+                                          label,
+                                          query);
 }
 
 

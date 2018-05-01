@@ -1697,7 +1697,7 @@ handle_monitor_start (void *cls,
 
 
 /**
- * Obtain the next datum during the zone monitor's zone intiial iteration.
+ * Obtain the next datum during the zone monitor's zone initial iteration.
  *
  * @param cls zone monitor that does its initial iteration
  */
