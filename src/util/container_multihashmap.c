@@ -175,14 +175,36 @@ struct GNUNET_CONTAINER_MultiHashMap *
 GNUNET_CONTAINER_multihashmap_create (unsigned int len,
 				      int do_not_copy_keys)
 {
-  struct GNUNET_CONTAINER_MultiHashMap *map;
+  struct GNUNET_CONTAINER_MultiHashMap *hm;
 
   GNUNET_assert (len > 0);
-  map = GNUNET_new (struct GNUNET_CONTAINER_MultiHashMap);
-  map->map = GNUNET_malloc (len * sizeof (union MapEntry));
-  map->map_length = len;
-  map->use_small_entries = do_not_copy_keys;
-  return map;
+  hm = GNUNET_new (struct GNUNET_CONTAINER_MultiHashMap);
+  if (len * sizeof (union MapEntry) > GNUNET_MAX_MALLOC_CHECKED)
+  {
+    size_t s;
+    /* application *explicitly* requested very large map, hopefully
+       it checks the return value... */
+    s = len * sizeof (union MapEntry);
+    if ( (s / sizeof (union MapEntry)) != len)
+      return NULL; /* integer overflow on multiplication */
+    if (NULL == (hm->map = GNUNET_malloc_large (s)))
+    {
+      /* out of memory */
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                  "Out of memory allocating large hash map (%u entries)\n",
+                  len);
+      GNUNET_free (hm);
+      return NULL;
+    }
+  }
+  else
+  {
+    hm->map = GNUNET_new_array (len,
+                                union MapEntry);
+  }
+  hm->map_length = len;
+  hm->use_small_entries = do_not_copy_keys;
+  return hm;
 }
 
 
@@ -196,11 +218,10 @@ void
 GNUNET_CONTAINER_multihashmap_destroy (struct GNUNET_CONTAINER_MultiHashMap
                                        *map)
 {
-  unsigned int i;
-  union MapEntry me;
-
-  for (i = 0; i < map->map_length; i++)
+  for (unsigned int i = 0; i < map->map_length; i++)
   {
+    union MapEntry me;
+
     me = map->map[i];
     if (map->use_small_entries)
     {
@@ -257,8 +278,7 @@ idx_of (const struct GNUNET_CONTAINER_MultiHashMap *map,
  * @return the number of key value pairs
  */
 unsigned int
-GNUNET_CONTAINER_multihashmap_size (const struct GNUNET_CONTAINER_MultiHashMap
-                                    *map)
+GNUNET_CONTAINER_multihashmap_size (const struct GNUNET_CONTAINER_MultiHashMap *map)
 {
   return map->size;
 }
@@ -656,17 +676,22 @@ grow (struct GNUNET_CONTAINER_MultiHashMap *map)
   unsigned int old_len;
   unsigned int new_len;
   unsigned int idx;
-  unsigned int i;
 
   map->modification_counter++;
 
   old_map = map->map;
   old_len = map->map_length;
   new_len = old_len * 2;
-  new_map = GNUNET_malloc (sizeof (union MapEntry) * new_len);
+  /* if we would exceed heap size limit for the _first_ time,
+     try staying just below the limit */
+  if ( (new_len * sizeof (union MapEntry) > GNUNET_MAX_MALLOC_CHECKED) &&
+       ((old_len+1) * sizeof (union MapEntry) < GNUNET_MAX_MALLOC_CHECKED) )
+    new_len = GNUNET_MAX_MALLOC_CHECKED / sizeof (union MapEntry);
+  new_map = GNUNET_new_array (new_len,
+                              union MapEntry);
   map->map_length = new_len;
   map->map = new_map;
-  for (i = 0; i < old_len; i++)
+  for (unsigned int i = 0; i < old_len; i++)
   {
     if (map->use_small_entries)
     {

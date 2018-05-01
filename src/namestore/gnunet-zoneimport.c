@@ -204,6 +204,14 @@ struct Request
 
 
 /**
+ * Command-line argument specifying desired size of the hash map with
+ * all of our pending names.  Usually, we use an automatically growing
+ * map, but this is only OK up to about a million entries.  Above that
+ * number, the user must explicitly specify the size at startup.
+ */
+static unsigned int map_size = 1024;
+
+/**
  * Handle to the identity service.
  */
 static struct GNUNET_IDENTITY_Handle *id;
@@ -323,14 +331,29 @@ static uint64_t total_dns_latency_cnt;
 static struct GNUNET_TIME_Relative total_dns_latency;
 
 /**
- * Number of NAMESTORE requests counted in latency total.
+ * Number of records processed (DNS lookup, no NAMESTORE) in total.
  */
-static uint64_t total_ns_latency_cnt;
+static uint64_t total_reg_proc_dns;
 
 /**
- * Sum of NAMESTORE latencies observed.
+ * Number of records processed (DNS lookup, with NAMESTORE) in total.
  */
-static struct GNUNET_TIME_Relative total_ns_latency;
+static uint64_t total_reg_proc_dns_ns;
+
+/**
+ * Start time of the regular processing.
+ */
+static struct GNUNET_TIME_Absolute start_time_reg_proc;
+
+/**
+ * Last time we worked before going idle.
+ */
+static struct GNUNET_TIME_Absolute sleep_time_reg_proc;
+
+/**
+ * Time we slept just waiting for work.
+ */
+static struct GNUNET_TIME_Relative idle_time;
 
 
 /**
@@ -530,6 +553,7 @@ insert_sorted (struct Request *req)
   {
     if (NULL != t)
       GNUNET_SCHEDULER_cancel (t);
+    sleep_time_reg_proc = GNUNET_TIME_absolute_get ();
     t = GNUNET_SCHEDULER_add_at (req->expires,
 				 &process_queue,
 				 NULL);
@@ -966,37 +990,9 @@ store_completed_cb (void *cls,
 		    const char *emsg)
 {
   static struct GNUNET_TIME_Absolute last;
-  static unsigned int pdot;
   struct Request *req = cls;
 
   req->qe = NULL;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Stored record set in database (%d)\n",
-	      success);
-  pending_rs--;
-  {
-    struct GNUNET_TIME_Relative ns_latency;
-
-    ns_latency = GNUNET_TIME_absolute_get_duration (req->op_start_time);
-    total_ns_latency = GNUNET_TIME_relative_add (total_ns_latency,
-						  ns_latency);
-    total_ns_latency_cnt++;
-    if (0 == (total_ns_latency_cnt % 1000))
-    {
-      GNUNET_STATISTICS_update (stats,
-				"# average NAMESTORE PUT latency (μs)",
-				total_ns_latency.rel_value_us / total_ns_latency_cnt,
-				GNUNET_NO);
-      GNUNET_STATISTICS_update (stats,
-				"# NAMESTORE PUTs",
-				total_ns_latency_cnt,
-				GNUNET_NO);
-    }
-  }
-
-  if (NULL == t)
-    t = GNUNET_SCHEDULER_add_now (&process_queue,
-				  NULL);
   if (GNUNET_SYSERR == success)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -1007,12 +1003,26 @@ store_completed_cb (void *cls,
   else
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		"Stored records under `%s'\n",
-		req->hostname);
-    if (0 == pdot)
+		"Stored records under `%s' (%d)\n",
+		req->hostname,
+                success);
+  }
+  total_reg_proc_dns_ns++; /* finished regular processing */
+  pending_rs--;
+  free_records (req);
+  /* compute NAMESTORE statistics */
+  {
+    static uint64_t total_ns_latency_cnt;
+    static struct GNUNET_TIME_Relative total_ns_latency;
+    struct GNUNET_TIME_Relative ns_latency;
+
+    ns_latency = GNUNET_TIME_absolute_get_duration (req->op_start_time);
+    total_ns_latency = GNUNET_TIME_relative_add (total_ns_latency,
+                                                 ns_latency);
+    if (0 == total_ns_latency_cnt)
       last = GNUNET_TIME_absolute_get ();
-    pdot++;
-    if (0 == pdot % 1000)
+    total_ns_latency_cnt++;
+    if (0 == (total_ns_latency_cnt % 1000))
     {
       struct GNUNET_TIME_Relative delta;
 
@@ -1022,9 +1032,46 @@ store_completed_cb (void *cls,
 	       "Processed 1000 records in %s\n",
 	       GNUNET_STRINGS_relative_time_to_string (delta,
 						       GNUNET_YES));
+      GNUNET_STATISTICS_set (stats,
+                             "# average NAMESTORE PUT latency (μs)",
+                             total_ns_latency.rel_value_us / total_ns_latency_cnt,
+                             GNUNET_NO);
     }
   }
-  free_records (req);
+  /* compute and publish overall velocity */
+  if (0 == (total_reg_proc_dns_ns % 100) )
+  {
+    struct GNUNET_TIME_Relative runtime;
+
+    runtime = GNUNET_TIME_absolute_get_duration (start_time_reg_proc);
+    runtime = GNUNET_TIME_relative_subtract (runtime,
+                                             idle_time);
+    runtime = GNUNET_TIME_relative_divide (runtime,
+                                           total_reg_proc_dns + total_reg_proc_dns_ns);
+    GNUNET_STATISTICS_set (stats,
+                           "# Regular processing completed without NAMESTORE",
+                           total_reg_proc_dns,
+                           GNUNET_NO);
+    GNUNET_STATISTICS_set (stats,
+                           "# Regular processing completed with NAMESTORE PUT",
+                           total_reg_proc_dns_ns,
+                           GNUNET_NO);
+    GNUNET_STATISTICS_set (stats,
+                           "# average request processing latency (μs)",
+                           runtime.rel_value_us,
+                           GNUNET_NO);
+    GNUNET_STATISTICS_set (stats,
+                           "# total time spent idle (μs)",
+                           idle_time.rel_value_us,
+                           GNUNET_NO);
+  }
+
+  if (NULL == t)
+  {
+    sleep_time_reg_proc = GNUNET_TIME_absolute_get ();
+    t = GNUNET_SCHEDULER_add_now (&process_queue,
+				  NULL);
+  }
 }
 
 
@@ -1054,8 +1101,11 @@ process_result (void *cls,
 				 req);
     pending--;
     if (NULL == t)
+    {
+      sleep_time_reg_proc = GNUNET_TIME_absolute_get ();
       t = GNUNET_SCHEDULER_add_now (&process_queue,
 				    NULL);
+    }
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Stub gave up on DNS reply for `%s'\n",
                 req->hostname);
@@ -1073,6 +1123,7 @@ process_result (void *cls,
 				GNUNET_NO);
       return;
     }
+    total_reg_proc_dns++;
     req->rs = NULL;
     insert_sorted (req);
     return;
@@ -1105,8 +1156,11 @@ process_result (void *cls,
 			      1,
 			      GNUNET_NO);
     if (NULL == t)
+    {
+      sleep_time_reg_proc = GNUNET_TIME_absolute_get ();
       t = GNUNET_SCHEDULER_add_now (&process_queue,
 				    NULL);
+    }
     if (req->issue_num > MAX_RETRIES)
     {
       failures++;
@@ -1144,14 +1198,10 @@ process_result (void *cls,
     total_dns_latency_cnt++;
     if (0 == (total_dns_latency_cnt % 1000))
     {
-      GNUNET_STATISTICS_update (stats,
-				"# average DNS latency (μs)",
-				total_dns_latency.rel_value_us / total_dns_latency_cnt,
-				GNUNET_NO);
-      GNUNET_STATISTICS_update (stats,
-				"# DNS replies",
-				total_dns_latency_cnt,
-				GNUNET_NO);
+      GNUNET_STATISTICS_set (stats,
+                             "# average DNS lookup latency (μs)",
+                             total_dns_latency.rel_value_us / total_dns_latency_cnt,
+                             GNUNET_NO);
     }
   }
   rd_count = 0;
@@ -1171,10 +1221,18 @@ process_result (void *cls,
   /* Instead of going for SOA, simplified for now to look each
      day in case we got an empty response */
   if (0 == rd_count)
+  {
     req->expires
       = GNUNET_TIME_relative_to_absolute (GNUNET_TIME_UNIT_DAYS);
+    GNUNET_STATISTICS_update (stats,
+                              "# empty DNS replies (usually NXDOMAIN)",
+                              1,
+                              GNUNET_NO);
+  }
   else
+  {
     record_sets++;
+  }
   /* convert records to namestore import format */
   {
     struct GNUNET_GNSRECORD_Data rd[GNUNET_NZL(rd_count)];
@@ -1210,8 +1268,12 @@ process_queue (void *cls)
   unsigned int series;
   void *raw;
   size_t raw_size;
+  struct GNUNET_TIME_Relative delay;
 
   (void) cls;
+  delay = GNUNET_TIME_absolute_get_duration (sleep_time_reg_proc);
+  idle_time = GNUNET_TIME_relative_add (idle_time,
+                                        delay);
   series = 0;
   t = NULL;
   while (pending + pending_rs < THRESH)
@@ -1284,6 +1346,7 @@ process_queue (void *cls)
 		req->hostname);
     if (NULL != t)
       GNUNET_SCHEDULER_cancel (t);
+    sleep_time_reg_proc = GNUNET_TIME_absolute_get ();
     t = GNUNET_SCHEDULER_add_at (req->expires,
 				 &process_queue,
 				 NULL);
@@ -1293,6 +1356,7 @@ process_queue (void *cls)
               "Throttling\n");
   if (NULL != t)
     GNUNET_SCHEDULER_cancel (t);
+  sleep_time_reg_proc = GNUNET_TIME_absolute_get ();
   t = GNUNET_SCHEDULER_add_delayed (SERIES_DELAY,
                                     &process_queue,
                                     NULL);
@@ -1450,9 +1514,9 @@ ns_lookup_result_cb (void *cls,
   {
     ns_iterator_trigger_next = NS_BATCH_SIZE;
     GNUNET_STATISTICS_update (stats,
-			      "# NAMESTORE records requested",
-			      ns_iterator_trigger_next,
-			      GNUNET_NO);
+                              "# NAMESTORE records requested from cache",
+                              ns_iterator_trigger_next,
+                              GNUNET_NO);
     GNUNET_NAMESTORE_zone_iterator_next (zone_it,
                                          ns_iterator_trigger_next);
   }
@@ -1652,7 +1716,7 @@ iterate_zones (void *cls)
                 last->domain);
     /* subtract left-overs from previous iteration */
     GNUNET_STATISTICS_update (stats,
-			      "# NAMESTORE records requested",
+			      "# NAMESTORE records requested from cache",
 			      (long long) (- ns_iterator_trigger_next),
 			      GNUNET_NO);
     ns_iterator_trigger_next = 0;
@@ -1665,7 +1729,7 @@ iterate_zones (void *cls)
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		"Finished all NAMESTORE iterations!\n");
     GNUNET_STATISTICS_set (stats,
-			   "# NAMESTORE lookups without reply",
+			   "# Domain names without cached reply",
 			   GNUNET_CONTAINER_multihashmap_size (ns_pending),
 			   GNUNET_NO);
     GNUNET_CONTAINER_multihashmap_iterate (ns_pending,
@@ -1673,6 +1737,9 @@ iterate_zones (void *cls)
                                            NULL);
     GNUNET_CONTAINER_multihashmap_destroy (ns_pending);
     ns_pending = NULL;
+    start_time_reg_proc = GNUNET_TIME_absolute_get ();
+    total_reg_proc_dns = 0;
+    total_reg_proc_dns_ns = 0;
     return;
   }
   if (NULL == last)
@@ -1684,7 +1751,7 @@ iterate_zones (void *cls)
               last->domain);
   /* subtract left-overs from previous iteration */
   GNUNET_STATISTICS_update (stats,
-			    "# NAMESTORE records requested",
+			    "# NAMESTORE records requested from cache",
 			    1,
 			    GNUNET_NO);
   ns_iterator_trigger_next = 1;
@@ -1713,7 +1780,7 @@ static void
 process_stdin (void *cls)
 {
   static struct GNUNET_TIME_Absolute last;
-  static unsigned int pdot;
+  static uint64_t idot;
   char hn[256];
 
   (void) cls;
@@ -1730,30 +1797,32 @@ process_stdin (void *cls)
   {
     if (strlen(hn) > 0)
       hn[strlen(hn)-1] = '\0'; /* eat newline */
-    if (0 == pdot)
+    if (0 == idot)
       last = GNUNET_TIME_absolute_get ();
-    pdot++;
-    if (0 == pdot % 1000)
+    idot++;
+    if (0 == idot % 10000)
     {
       struct GNUNET_TIME_Relative delta;
 
       delta = GNUNET_TIME_absolute_get_duration (last);
       last = GNUNET_TIME_absolute_get ();
       fprintf (stderr,
-	       "Imported 1000 records in %s\n",
+	       "Imported 10000 records in %s\n",
 	       GNUNET_STRINGS_relative_time_to_string (delta,
 						       GNUNET_YES));
       GNUNET_STATISTICS_set (stats,
 			     "# domain names provided",
-			     pdot,
+			     idot,
 			     GNUNET_NO);
     }
     queue (hn);
   }
-  fprintf (stderr, "\n");
+  fprintf (stderr,
+           "Done reading %llu domain names\n",
+           (unsigned long long) idot);
   GNUNET_STATISTICS_set (stats,
 			 "# domain names provided",
-			 pdot,
+			 idot,
 			 GNUNET_NO);
   iterate_zones (NULL);
 }
@@ -1851,8 +1920,14 @@ run (void *cls,
   stats = GNUNET_STATISTICS_create ("zoneimport",
 				    cfg);
   req_heap = GNUNET_CONTAINER_heap_create (GNUNET_CONTAINER_HEAP_ORDER_MIN);
-  ns_pending = GNUNET_CONTAINER_multihashmap_create (1024,
+  ns_pending = GNUNET_CONTAINER_multihashmap_create (map_size,
                                                      GNUNET_NO);
+  if (NULL == ns_pending)
+  {
+    fprintf (stderr,
+             "Failed to allocate memory for main hash map\n");
+    return;
+  }
   ctx = GNUNET_DNSSTUB_start (256);
   if (NULL == ctx)
   {
@@ -1906,6 +1981,11 @@ main (int argc,
       char *const*argv)
 {
   struct GNUNET_GETOPT_CommandLineOption options[] = {
+    GNUNET_GETOPT_option_uint ('s',
+                               "size",
+                               "MAPSIZE",
+                               gettext_noop ("size to use for the main hash map"),
+                               &map_size),
     GNUNET_GETOPT_OPTION_END
   };
 

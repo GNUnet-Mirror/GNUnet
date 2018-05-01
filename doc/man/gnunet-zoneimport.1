@@ -27,12 +27,15 @@ Use the configuration file FILENAME.
 .B
 .IP "\-h, \-\-help"
 Print short help on options.
+.B
+.IP "\-s MAPSIZE, \-\-size=MAPSIZE"
+Specifies the size (in number of entries) to use for the main hash map.  The value provided should be at least twice the number of domain names that will be given to the tool. This option is required for very large zones where the number of records encountered is too large for the automatic growth mechanism to work (that one is limited to at most 16 MB allocations for security reasons).  Do not worry about this unless you are importing millions of domain names from a zone.
 
 .SH NOTES
 
 Typical invocaton would be:
 
-$ gnunet\-zoneimport -s 1.2.3.4 < names.txt
+$ gnunet\-zoneimport 1.2.3.4 < names.txt
 
 
 

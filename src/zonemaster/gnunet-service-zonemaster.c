@@ -63,7 +63,7 @@
  * The initial interval in milliseconds btween puts in
  * a zone iteration
  */
-#define INITIAL_PUT_INTERVAL GNUNET_TIME_UNIT_MILLISECONDS
+#define INITIAL_ZONE_ITERATION_INTERVAL GNUNET_TIME_UNIT_MILLISECONDS
 
 /**
  * The upper bound for the zone iteration interval
@@ -204,7 +204,7 @@ static unsigned long long put_cnt;
  * and the total number of record sets we have (so far)
  * observed in the zone.
  */
-static struct GNUNET_TIME_Relative next_put_interval;
+static struct GNUNET_TIME_Relative target_iteration_velocity_per_record;
 
 /**
  * Minimum relative expiration time of records seem during the current
@@ -383,7 +383,7 @@ dht_put_monitor_continuation (void *cls)
 
 
 /**
- * Calculate #next_put_interval.
+ * Calculate #target_iteration_velocity_per_record.
  */
 static void
 calculate_put_interval ()
@@ -395,7 +395,7 @@ calculate_put_interval ()
      * we can safely set the interval to the value for a single
      * record
      */
-    next_put_interval = zone_publish_time_window;
+    target_iteration_velocity_per_record = zone_publish_time_window;
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG | GNUNET_ERROR_TYPE_BULK,
                 "No records in namestore database.\n");
   }
@@ -408,24 +408,24 @@ calculate_put_interval ()
       = GNUNET_TIME_relative_min (GNUNET_TIME_relative_divide (last_min_relative_record_time,
 							       PUBLISH_OPS_PER_EXPIRATION),
                                   zone_publish_time_window_default);
-    next_put_interval
+    target_iteration_velocity_per_record
       = GNUNET_TIME_relative_divide (zone_publish_time_window,
 				     last_num_public_records);
   }
-  next_put_interval
-    = GNUNET_TIME_relative_min (next_put_interval,
+  target_iteration_velocity_per_record
+    = GNUNET_TIME_relative_min (target_iteration_velocity_per_record,
 				MAXIMUM_ZONE_ITERATION_INTERVAL);
   GNUNET_STATISTICS_set (statistics,
-			 "Minimum relative record expiration (in ms)",
-			 last_min_relative_record_time.rel_value_us / 1000LL,
-			 GNUNET_NO); 
+			 "Minimum relative record expiration (in μs)",
+			 last_min_relative_record_time.rel_value_us,
+			 GNUNET_NO);
   GNUNET_STATISTICS_set (statistics,
-			 "Zone publication time window (in ms)",
-			 zone_publish_time_window.rel_value_us / 1000LL,
+			 "Zone publication time window (in μs)",
+			 zone_publish_time_window.rel_value_us,
 			 GNUNET_NO);
   GNUNET_STATISTICS_set (statistics,
                          "Target zone iteration velocity (μs)",
-                         next_put_interval.rel_value_us,
+                         target_iteration_velocity_per_record.rel_value_us,
                          GNUNET_NO);
 }
 
@@ -461,7 +461,7 @@ update_velocity (unsigned int cnt)
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Desired global zone iteration interval is %s/record!\n",
-              GNUNET_STRINGS_relative_time_to_string (next_put_interval,
+              GNUNET_STRINGS_relative_time_to_string (target_iteration_velocity_per_record,
                                                       GNUNET_YES));
 
   /* Tell statistics actual vs. desired speed */
@@ -471,12 +471,12 @@ update_velocity (unsigned int cnt)
                          GNUNET_NO);
   /* update "sub_delta" based on difference, taking
      previous sub_delta into account! */
-  if (next_put_interval.rel_value_us > delta.rel_value_us)
+  if (target_iteration_velocity_per_record.rel_value_us > delta.rel_value_us)
   {
     /* We were too fast, reduce sub_delta! */
     struct GNUNET_TIME_Relative corr;
 
-    corr = GNUNET_TIME_relative_subtract (next_put_interval,
+    corr = GNUNET_TIME_relative_subtract (target_iteration_velocity_per_record,
                                           delta);
     if (sub_delta.rel_value_us > delta.rel_value_us)
     {
@@ -492,28 +492,28 @@ update_velocity (unsigned int cnt)
       sub_delta = GNUNET_TIME_UNIT_ZERO;
     }
   }
-  else if (next_put_interval.rel_value_us < delta.rel_value_us)
+  else if (target_iteration_velocity_per_record.rel_value_us < delta.rel_value_us)
   {
     /* We were too slow, increase sub_delta! */
     struct GNUNET_TIME_Relative corr;
 
     corr = GNUNET_TIME_relative_subtract (delta,
-                                          next_put_interval);
+                                          target_iteration_velocity_per_record);
     sub_delta = GNUNET_TIME_relative_add (sub_delta,
                                           corr);
-    if (sub_delta.rel_value_us > next_put_interval.rel_value_us)
+    if (sub_delta.rel_value_us > target_iteration_velocity_per_record.rel_value_us)
     {
       /* CPU overload detected, we cannot go at desired speed,
          as this would mean using a negative delay. */
       /* compute how much faster we would want to be for
          the desired velocity */
-      if (0 == next_put_interval.rel_value_us)
+      if (0 == target_iteration_velocity_per_record.rel_value_us)
         pct = UINT64_MAX; /* desired speed is infinity ... */
       else
         pct = (sub_delta.rel_value_us -
-	       next_put_interval.rel_value_us) * 100LLU
-          / next_put_interval.rel_value_us;
-      sub_delta = next_put_interval;
+	       target_iteration_velocity_per_record.rel_value_us) * 100LLU
+          / target_iteration_velocity_per_record.rel_value_us;
+      sub_delta = target_iteration_velocity_per_record;
     }
   }
   GNUNET_STATISTICS_set (statistics,
@@ -548,7 +548,7 @@ check_zone_namestore_next ()
     return; /* current NAMESTORE iteration not yet done */
   update_velocity (put_cnt);
   put_cnt = 0;
-  delay = GNUNET_TIME_relative_subtract (next_put_interval,
+  delay = GNUNET_TIME_relative_subtract (target_iteration_velocity_per_record,
                                          sub_delta);
   /* We delay *once* per #NS_BLOCK_SIZE, so we need to multiply the
      per-record delay calculated so far with the #NS_BLOCK_SIZE */
@@ -755,11 +755,11 @@ zone_iteration_finished (void *cls)
 				     PUBLISH_OPS_PER_EXPIRATION);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Zone iteration finished. Adjusted zone iteration interval to %s\n",
-              GNUNET_STRINGS_relative_time_to_string (next_put_interval,
+              GNUNET_STRINGS_relative_time_to_string (target_iteration_velocity_per_record,
                                                       GNUNET_YES));
   GNUNET_STATISTICS_set (statistics,
-                         "Current zone iteration interval (in ms)",
-                         next_put_interval.rel_value_us / 1000LL,
+                         "Target zone iteration velocity (μs)",
+                         target_iteration_velocity_per_record.rel_value_us,
                          GNUNET_NO);
   GNUNET_STATISTICS_set (statistics,
                          "Number of public records in DHT",
@@ -767,12 +767,16 @@ zone_iteration_finished (void *cls)
                          GNUNET_NO);
   GNUNET_assert (NULL == zone_publish_task);
   if (0 == last_num_public_records)
-    zone_publish_task = GNUNET_SCHEDULER_add_delayed (next_put_interval,
+  {
+    zone_publish_task = GNUNET_SCHEDULER_add_delayed (target_iteration_velocity_per_record,
                                                       &publish_zone_dht_start,
                                                       NULL);
+  }
   else
+  {
     zone_publish_task = GNUNET_SCHEDULER_add_now (&publish_zone_dht_start,
                                                   NULL);
+  }
 }
 
 
@@ -1028,7 +1032,7 @@ run (void *cls,
   min_relative_record_time
     = GNUNET_TIME_relative_multiply (GNUNET_DHT_DEFAULT_REPUBLISH_FREQUENCY,
 				     PUBLISH_OPS_PER_EXPIRATION);
-  next_put_interval = INITIAL_PUT_INTERVAL;
+  target_iteration_velocity_per_record = INITIAL_ZONE_ITERATION_INTERVAL;
   namestore_handle = GNUNET_NAMESTORE_connect (c);
   if (NULL == namestore_handle)
   {
@@ -1077,12 +1081,12 @@ run (void *cls,
   }
 
   /* Schedule periodic put for our records. */
-  first_zone_iteration = GNUNET_YES;\
+  first_zone_iteration = GNUNET_YES;
   statistics = GNUNET_STATISTICS_create ("zonemaster",
                                          c);
   GNUNET_STATISTICS_set (statistics,
                          "Target zone iteration velocity (μs)",
-                         next_put_interval.rel_value_us,
+                         target_iteration_velocity_per_record.rel_value_us,
                          GNUNET_NO);
   zmon = GNUNET_NAMESTORE_zone_monitor_start (c,
                                               NULL,
