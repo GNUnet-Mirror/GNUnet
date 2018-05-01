@@ -114,7 +114,6 @@ dht_connect_cb (void *cls,
 		const char *emsg)
 {
   struct GNUNET_DHT_TEST_Context *ctx = cls;
-  unsigned int i;
 
   if (NULL != emsg)
   {
@@ -124,10 +123,10 @@ dht_connect_cb (void *cls,
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
-  for (i=0;i<ctx->num_peers;i++)
+  for (unsigned int i=0;i<ctx->num_peers;i++)
     if (op == ctx->ops[i])
       ctx->dhts[i] = ca_result;
-  for (i=0;i<ctx->num_peers;i++)
+  for (unsigned int i=0;i<ctx->num_peers;i++)
     if (NULL == ctx->dhts[i])
       return; /* still some DHT connections missing */
   /* all DHT connections ready! */
@@ -147,9 +146,7 @@ dht_connect_cb (void *cls,
 void
 GNUNET_DHT_TEST_cleanup (struct GNUNET_DHT_TEST_Context *ctx)
 {
-  unsigned int i;
-
-  for (i=0;i<ctx->num_peers;i++)
+  for (unsigned int i=0;i<ctx->num_peers;i++)
     GNUNET_TESTBED_operation_done (ctx->ops[i]);
   GNUNET_free (ctx->ops);
   GNUNET_free (ctx->dhts);
@@ -160,18 +157,17 @@ GNUNET_DHT_TEST_cleanup (struct GNUNET_DHT_TEST_Context *ctx)
 
 static void
 dht_test_run (void *cls,
-             struct GNUNET_TESTBED_RunHandle *h,
+              struct GNUNET_TESTBED_RunHandle *h,
 	      unsigned int num_peers,
 	      struct GNUNET_TESTBED_Peer **peers,
               unsigned int links_succeeded,
               unsigned int links_failed)
 {
   struct GNUNET_DHT_TEST_Context *ctx = cls;
-  unsigned int i;
 
   GNUNET_assert (num_peers == ctx->num_peers);
   ctx->peers = peers;
-  for (i=0;i<num_peers;i++)
+  for (unsigned int i=0;i<num_peers;i++)
     ctx->ops[i] = GNUNET_TESTBED_service_connect (ctx,
 						  peers[i],
 						  "dht",

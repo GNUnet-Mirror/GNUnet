@@ -161,7 +161,7 @@ struct LabelLookupResponseMessage
    * Length of serialized record data
    */
   uint16_t rd_len GNUNET_PACKED;
-
+  
   /**
    * Number of records contained
    */
@@ -169,7 +169,7 @@ struct LabelLookupResponseMessage
 
   /**
    * Was the label found in the database??
-   * GNUNET_YES or GNUNET_NO
+   * #GNUNET_YES or #GNUNET_NO
    */
   uint16_t found GNUNET_PACKED;
 

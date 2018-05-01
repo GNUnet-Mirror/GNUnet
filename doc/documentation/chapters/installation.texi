@@ -294,7 +294,7 @@ If you want to be able to enable DEBUG-level log messages, add
 @command{./configure} command.
 @code{DEBUG}-level log messages are in English only and
 should only be useful for developers (or for filing
-really detailed bug reports). 
+really detailed bug reports).
 
 Finally, you probably want to compile @command{gnunet-gtk}, which
 includes @command{gnunet-setup} (a graphical tool for
@@ -389,10 +389,9 @@ For those services, systems with more than one user may require each user
 to specify a different port number in their personal configuration file.
 
 Finally, the user should perform the basic initial setup for the GNU Name
-System (GNS). This is done by running two commands:
+System (GNS) certificate authority. This is done by running:
 
 @example
-$ gnunet-gns-import.sh
 $ gnunet-gns-proxy-setup-ca
 @end example
 
@@ -420,7 +419,7 @@ hosts: files gns [NOTFOUND=return] mdns4_minimal \
 
 @c FIXME: Document new behavior.
 You might want to make sure that @file{/lib/libnss_gns.so.2} exists on
-your system, it should have been created during the installation. 
+your system, it should have been created during the installation.
 
 @node Build instructions for Ubuntu 12.04 using Git
 @section Build instructions for Ubuntu 12.04 using Git
@@ -802,7 +801,7 @@ $ gpg --keyserver pgp.mit.edu --recv-keys A88C8ADD129828D7EAC02E52E22F9BBFEE3485
 @end example
 
 @noindent
-and rerun the gpg --verify command. 
+and rerun the gpg --verify command.
 
 @example
 $ tar xvf gnurl-7.57.0.tar.xz
@@ -1418,7 +1417,7 @@ as a normal user.
 We begin by installing a few Debian packages from stable:
 
 @example
-# apt-get install gcc make python-zbar libltdl-dev libsqlite3-dev \ 
+# apt-get install gcc make python-zbar libltdl-dev libsqlite3-dev \
 libunistring-dev libopus-dev libpulse-dev openssl libglpk-dev texlive \
 libidn11-dev libmysqlclient-dev libpq-dev libarchive-dev libbz2-dev \
 libflac-dev libgif-dev libglib2.0-dev libgtk-3-dev libmpeg2-4-dev \
@@ -1633,7 +1632,7 @@ have to compile it from source:
 @item Unzip the downloaded source tarball using your favourite
 unzipper application In the MSYS shell
 
-@item change to the respective directory 
+@item change to the respective directory
 
 @item Configure glpk for "i686-pc-mingw32":
 
@@ -1781,7 +1780,7 @@ $ make install
 This document is a @b{DEPRECATED} installation guide for GNUnet on
 Windows.
 It will not work for recent GNUnet versions, but maybe it will be of
-some use if problems arise. 
+some use if problems arise.
 
 The Windows build uses a UNIX emulator for Windows,
 @uref{http://www.mingw.org/, MinGW}, to build the executable modules.
@@ -1799,7 +1798,7 @@ We regret any inconvenience, and if you have problems, please report them.
 * Installer::
 * Source::
 @end menu
-     
+
 @node Hardware and OS requirements
 @subsubsection Hardware and OS requirements
 
@@ -1878,7 +1877,7 @@ This batch file opens a shell which is used to invoke the build
 processes.
 MinGW's standard shell (@command{msys.bat}) is not suitable
 because it opens a separate console window.
-On Vista, @command{bash.bat} needs to be run as Administrator. 
+On Vista, @command{bash.bat} needs to be run as Administrator.
 
 @item
 Start @command{bash.sh} and rename
@@ -1948,7 +1947,7 @@ directory (@file{c:\mingw\mingw}).
 
 @item @strong{SQLite}@
 GNUnet uses the SQLite database to store data.
-Get the prebuilt binary from here and unpack it to your MinGW directory. 
+Get the prebuilt binary from here and unpack it to your MinGW directory.
 
 @item @strong{MySQL}@
 As an alternative to SQLite, GNUnet also supports MySQL.
@@ -1984,7 +1983,7 @@ dlltool --input-def ../include/libmySQL.def \
 --output-lib libmysqlclient.a -k
 @end example
 
-@item  Copy include\* to include\mysql\ 
+@item  Copy include\* to include\mysql\
 
 @item  Pass @code{--with-mysql=/c/mysql} to
 @command{./configure} and copy @file{libmysql.dll}
@@ -2082,7 +2081,7 @@ debug information and are quite large. To compile release versions
 (small and fast) set the variable @code{CFLAGS}:
 
 @example
-export CFLAGS='-O2 -march=pentium -fomit-frame-pointer' 
+export CFLAGS='-O2 -march=pentium -fomit-frame-pointer'
 ./configure --prefix=$HOME --with-extractor=$HOME
 @end example
 
@@ -2097,7 +2096,7 @@ located in @file{contrib\win} in the GNUnet source tree.
 @subsubsection Source
 
 @c FIXME: URL
-The sources of all dependencies are available here. 
+The sources of all dependencies are available here.
 
 @c @node Portable GNUnet
 @c @section Portable GNUnet
@@ -2372,7 +2371,7 @@ The hostlist client supports the following proxy types at the moment:
 @end itemize
 
 In addition authentication at the proxy with username and password can be
-configured. 
+configured.
 
 To configure proxy support for the hostlist client in the
 @command{gnunet-setup} tool, select the "hostlist" tab and select
@@ -2521,7 +2520,7 @@ inconsistencies. Some of the other databases do not support repair.
 @item Access mysql as root:
 
 @example
-$ mysql -u root -p 
+$ mysql -u root -p
 @end example
 
 @noindent
@@ -3324,19 +3323,6 @@ steps.
 First of all, GNS needs to be integrated with the operating system. Most
 of this section is about the operating system level integration.
 
-Additionally, each individual user who wants to use the system must also
-initialize their GNS zones. This can be done by running (after starting
-GNUnet)
-
-@example
-$ gnunet-gns-import.sh
-@end example
-
-@noindent
-after the local GNUnet peer has been started. Note that the namestore (in
-particular the namestore database backend) should not be reconfigured
-afterwards (as records are not automatically migrated between backends).
-
 The remainder of this chapter will detail the various methods for
 configuring the use of GNS with your operating system.
 
@@ -3528,7 +3514,7 @@ gnurl --version
 curl 7.56.0 (x86_64-unknown-linux-gnu) libcurl/7.56.0 \
 GnuTLS/3.5.13 zlib/1.2.11 libidn2/2.0.4
 Release-Date: 2017-10-08
-Protocols: http https 
+Protocols: http https
 Features: AsynchDNS IDN IPv6 Largefile NTLM SSL libz \
 TLS-SRP UnixSockets HTTPS-proxy
 @end example
@@ -4125,4 +4111,3 @@ Furthermore, 'make install' will silently fail to set the DNS binaries to
 be owned by group "gnunetdns" unless that group already exists (!).
 An alternative name for the "gnunetdns" group can be specified using the
 @code{--with-gnunetdns=GRPNAME} configure option.
-

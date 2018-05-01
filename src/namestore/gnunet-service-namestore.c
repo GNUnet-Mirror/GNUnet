@@ -75,6 +75,15 @@ struct ZoneIteration
   struct GNUNET_CRYPTO_EcdsaPrivateKey zone;
 
   /**
+   * Last sequence number in the zone iteration used to address next
+   * result of the zone iteration in the store
+   *
+   * Initialy set to 0.
+   * Updated in #zone_iterate_proc()
+   */
+  uint64_t seq;
+
+  /**
    * The operation id fot the zone iteration in the response for the client
    */
   uint32_t request_id;
@@ -152,13 +161,13 @@ struct ZoneMonitor
   struct GNUNET_SCHEDULER_Task *task;
 
   /**
-   * Offset of the zone iteration used to address next result of the zone
-   * iteration in the store
+   * Last sequence number in the zone iteration used to address next
+   * result of the zone iteration in the store
    *
    * Initialy set to 0.
-   * Incremented with by every call to #handle_iteration_next
+   * Updated in #monitor_iterate_cb()
    */
-  uint32_t offset;
+  uint64_t seq;
 
 };
 
@@ -394,6 +403,7 @@ client_connect_cb (void *cls,
  * record, which (if found) is then copied to @a cls for future use.
  *
  * @param cls a `struct GNUNET_GNSRECORD_Data **` for storing the nick (if found)
+ * @param seq sequence number of the record
  * @param private_key the private key of the zone (unused)
  * @param label should be #GNUNET_GNS_EMPTY_LABEL_AT
  * @param rd_count number of records in @a rd
@@ -401,6 +411,7 @@ client_connect_cb (void *cls,
  */
 static void
 lookup_nick_it (void *cls,
+		uint64_t seq,
                 const struct GNUNET_CRYPTO_EcdsaPrivateKey *private_key,
                 const char *label,
                 unsigned int rd_count,
@@ -409,6 +420,7 @@ lookup_nick_it (void *cls,
   struct GNUNET_GNSRECORD_Data **res = cls;
 
   (void) private_key;
+  (void) seq;
   if (0 != strcmp (label, GNUNET_GNS_EMPTY_LABEL_AT))
   {
     GNUNET_break (0);
@@ -730,6 +742,9 @@ refresh_block (struct NamestoreClient *nc,
 			      "Namecache updates skipped (NC disabled)",
 			      1,
 			      GNUNET_NO);
+    send_store_response (nc,
+                         GNUNET_OK,
+                         rid);
     return;
   }
   exp_time = GNUNET_GNSRECORD_record_get_expiration_time (res_count,
@@ -813,9 +828,11 @@ struct RecordLookupContext
 
 /**
  * FIXME.
+ * @param seq sequence number of the record
  */
 static void
 lookup_it (void *cls,
+	   uint64_t seq,
            const struct GNUNET_CRYPTO_EcdsaPrivateKey *private_key,
            const char *label,
            unsigned int rd_count,
@@ -826,6 +843,7 @@ lookup_it (void *cls,
   unsigned int rdc_res;
 
   (void) private_key;
+  (void) seq;
   if (0 == strcmp (label,
                    rlc->label))
   {
@@ -1212,6 +1230,7 @@ struct ZoneToNameCtx
  * Zone to name iterator
  *
  * @param cls struct ZoneToNameCtx *
+ * @param seq sequence number of the record
  * @param zone_key the zone key
  * @param name name
  * @param rd_count number of records in @a rd
@@ -1219,6 +1238,7 @@ struct ZoneToNameCtx
  */
 static void
 handle_zone_to_name_it (void *cls,
+			uint64_t seq,
 			const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone_key,
 			const char *name,
 			unsigned int rd_count,
@@ -1234,6 +1254,7 @@ handle_zone_to_name_it (void *cls,
   char *name_tmp;
   char *rd_tmp;
 
+  (void) seq;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Found result for zone-to-name lookup: `%s'\n",
 	      name);
@@ -1342,8 +1363,9 @@ struct ZoneIterationProcResult
 
 /**
  * Process results for zone iteration from database
- *
- * @param cls struct ZoneIterationProcResult *proc
+ * 
+ * @param cls struct ZoneIterationProcResult
+ * @param seq sequence number of the record
  * @param zone_key the zone key
  * @param name name
  * @param rd_count number of records for this name
@@ -1351,6 +1373,7 @@ struct ZoneIterationProcResult
  */
 static void
 zone_iterate_proc (void *cls,
+		   uint64_t seq,
 		   const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone_key,
 		   const char *name,
 		   unsigned int rd_count,
@@ -1380,6 +1403,7 @@ zone_iterate_proc (void *cls,
     return;
   }
   proc->limit--;
+  proc->zi->seq = seq;
   send_lookup_response (proc->zi->nc,
 			proc->zi->request_id,
 			zone_key,
@@ -1416,12 +1440,15 @@ run_zone_iteration_round (struct ZoneIteration *zi,
   struct ZoneIterationProcResult proc;
   struct GNUNET_MQ_Envelope *env;
   struct RecordResultMessage *rrm;
+  struct GNUNET_TIME_Absolute start;
+  struct GNUNET_TIME_Relative duration;
 
   memset (&proc,
           0,
           sizeof (proc));
   proc.zi = zi;
   proc.limit = limit;
+  start = GNUNET_TIME_absolute_get ();
   GNUNET_break (GNUNET_SYSERR !=
                 GSN_database->iterate_records (GSN_database->cls,
                                                (0 == memcmp (&zi->zone,
@@ -1429,18 +1456,29 @@ run_zone_iteration_round (struct ZoneIteration *zi,
                                                              sizeof (zero)))
                                                ? NULL
                                                : &zi->zone,
-                                               zi->offset,
+                                               zi->seq,
                                                limit,
                                                &zone_iterate_proc,
                                                &proc));
-  zi->offset += (limit - proc.limit);
+  duration = GNUNET_TIME_absolute_get_duration (start);
+  duration = GNUNET_TIME_relative_divide (duration,
+                                          limit - proc.limit);
+  GNUNET_STATISTICS_set (statistics,
+                         "NAMESTORE iteration delay (μs/record)",
+                         duration.rel_value_us,
+                         GNUNET_NO);
   if (0 == proc.limit)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "More results available\n");
+                "Returned %llu results, more results available\n",
+		(unsigned long long) limit);
     return; /* more results later after we get the
                #GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_ITERATION_NEXT message */
   }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Completed iteration after %llu/%llu results\n",
+	      (unsigned long long) (limit - proc.limit),
+	      (unsigned long long) limit);
   /* send empty response to indicate end of list */
   env = GNUNET_MQ_msg (rrm,
 		       GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_RESULT);
@@ -1587,6 +1625,7 @@ monitor_next (void *cls);
  * A #GNUNET_NAMESTORE_RecordIterator for monitors.
  *
  * @param cls a 'struct ZoneMonitor *' with information about the monitor
+ * @param seq sequence number of the record
  * @param zone_key zone key of the zone
  * @param name name
  * @param rd_count number of records in @a rd
@@ -1594,6 +1633,7 @@ monitor_next (void *cls);
  */
 static void
 monitor_iterate_cb (void *cls,
+		    uint64_t seq,
 		    const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone_key,
 		    const char *name,
 		    unsigned int rd_count,
@@ -1601,6 +1641,7 @@ monitor_iterate_cb (void *cls,
 {
   struct ZoneMonitor *zm = cls;
 
+  zm->seq = seq;
   if (NULL == name)
   {
     /* finished with iteration */
@@ -1673,7 +1714,7 @@ monitor_next (void *cls)
 						     sizeof (zero)))
                                        ? NULL
                                        : &zm->zone,
-				       zm->offset++,
+				       zm->seq,
                                        1,
 				       &monitor_iterate_cb,
 				       zm);
@@ -1717,7 +1758,7 @@ run (void *cls,
 							    "DISABLE");
   GSN_cfg = cfg;
   monitor_nc = GNUNET_notification_context_create (1);
-  if (GNUNET_NO == disable_namecache)
+  if (GNUNET_YES != disable_namecache)
   {
     namecache = GNUNET_NAMECACHE_connect (cfg);
     GNUNET_assert (NULL != namecache);

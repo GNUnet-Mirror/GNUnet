@@ -147,15 +147,13 @@ create_indices (sqlite3 * dbh)
   /* create indices */
   if ( (SQLITE_OK !=
 	sqlite3_exec (dbh,
-                      "CREATE INDEX IF NOT EXISTS ir_pkey_reverse ON ns097records (zone_private_key,pkey)",
+                      "CREATE INDEX IF NOT EXISTS ir_pkey_reverse "
+		      "ON ns098records (zone_private_key,pkey)",
 		      NULL, NULL, NULL)) ||
        (SQLITE_OK !=
 	sqlite3_exec (dbh,
-                      "CREATE INDEX IF NOT EXISTS ir_pkey_iter ON ns097records (zone_private_key,rvalue)",
-		      NULL, NULL, NULL)) ||
-       (SQLITE_OK !=
-	sqlite3_exec (dbh,
-                      "CREATE INDEX IF NOT EXISTS it_iter ON ns097records (rvalue)",
+                      "CREATE INDEX IF NOT EXISTS ir_pkey_iter "
+		      "ON ns098records (zone_private_key,uid)",
 		      NULL, NULL, NULL)) )
     LOG (GNUNET_ERROR_TYPE_ERROR,
 	 "Failed to create indices: %s\n",
@@ -260,22 +258,24 @@ database_setup (struct Plugin *plugin)
   /* Create table */
   CHECK (SQLITE_OK ==
          sq_prepare (plugin->dbh,
-                     "SELECT 1 FROM sqlite_master WHERE tbl_name = 'ns097records'",
+                     "SELECT 1 FROM sqlite_master WHERE tbl_name = 'ns098records'",
                      &stmt));
-  if ((sqlite3_step (stmt) == SQLITE_DONE) &&
-      (sqlite3_exec
-       (plugin->dbh,
-        "CREATE TABLE ns097records ("
-        " zone_private_key BLOB NOT NULL,"
-        " pkey BLOB,"
-	" rvalue INT8 NOT NULL,"
-	" record_count INT NOT NULL,"
-        " record_data BLOB NOT NULL,"
-        " label TEXT NOT NULL"
-	")",
-	NULL, NULL, NULL) != SQLITE_OK))
+  if ( (sqlite3_step (stmt) == SQLITE_DONE) &&
+       (SQLITE_OK !=
+	sqlite3_exec (plugin->dbh,
+		      "CREATE TABLE ns098records ("
+		      " uid INTEGER PRIMARY KEY,"
+		      " zone_private_key BLOB NOT NULL,"
+		      " pkey BLOB,"
+		      " rvalue INT8 NOT NULL,"
+		      " record_count INT NOT NULL,"
+		      " record_data BLOB NOT NULL,"
+		      " label TEXT NOT NULL"
+		      ")",
+		      NULL, NULL, NULL)) )
   {
-    LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR,
+    LOG_SQLITE (plugin,
+		GNUNET_ERROR_TYPE_ERROR,
                 "sqlite3_exec");
     sqlite3_finalize (stmt);
     return GNUNET_SYSERR;
@@ -286,33 +286,40 @@ database_setup (struct Plugin *plugin)
 
   if ( (SQLITE_OK !=
         sq_prepare (plugin->dbh,
-                    "INSERT INTO ns097records (zone_private_key, pkey, rvalue, record_count, record_data, label)"
+                    "INSERT INTO ns098records (zone_private_key, pkey, rvalue, record_count, record_data, label)"
                     " VALUES (?, ?, ?, ?, ?, ?)",
                     &plugin->store_records)) ||
        (SQLITE_OK !=
         sq_prepare (plugin->dbh,
-                    "DELETE FROM ns097records WHERE zone_private_key=? AND label=?",
+                    "DELETE FROM ns098records WHERE zone_private_key=? AND label=?",
                     &plugin->delete_records)) ||
        (SQLITE_OK !=
         sq_prepare (plugin->dbh,
-                    "SELECT record_count,record_data,label"
-                    " FROM ns097records WHERE zone_private_key=? AND pkey=?",
+                    "SELECT uid,record_count,record_data,label"
+                    " FROM ns098records"
+		    " WHERE zone_private_key=? AND pkey=?",
                     &plugin->zone_to_name)) ||
        (SQLITE_OK !=
         sq_prepare (plugin->dbh,
-                    "SELECT record_count,record_data,label"
-                    " FROM ns097records WHERE zone_private_key=?"
-                    " ORDER BY rvalue LIMIT ? OFFSET ?",
+                    "SELECT uid,record_count,record_data,label"
+                    " FROM ns098records"
+		    " WHERE zone_private_key=? AND _rowid_ >= ?"
+                    " ORDER BY _rowid_ ASC"
+		    " LIMIT ?",
                     &plugin->iterate_zone)) ||
        (SQLITE_OK !=
         sq_prepare (plugin->dbh,
-                    "SELECT record_count,record_data,label,zone_private_key"
-                    " FROM ns097records ORDER BY rvalue LIMIT ? OFFSET ?",
+                    "SELECT uid,record_count,record_data,label,zone_private_key"
+                    " FROM ns098records"
+		    " WHERE _rowid_ >= ?" 
+		    " ORDER BY _rowid_ ASC"
+		    " LIMIT ?",
                     &plugin->iterate_all_zones))  ||
        (SQLITE_OK !=
         sq_prepare (plugin->dbh,
-                    "SELECT record_count,record_data,label,zone_private_key"
-                    " FROM ns097records WHERE zone_private_key=? AND label=?",
+                    "SELECT uid,record_count,record_data,label,zone_private_key"
+                    " FROM ns098records"
+		    " WHERE zone_private_key=? AND label=?",
                     &plugin->lookup_label))
        )
   {
@@ -405,10 +412,11 @@ namestore_sqlite_store_records (void *cls,
   struct GNUNET_CRYPTO_EcdsaPublicKey pkey;
   uint64_t rvalue;
   size_t data_size;
-  unsigned int i;
 
-  memset (&pkey, 0, sizeof (pkey));
-  for (i=0;i<rd_count;i++)
+  memset (&pkey,
+	  0,
+	  sizeof (pkey));
+  for (unsigned int i=0;i<rd_count;i++)
     if (GNUNET_GNSRECORD_TYPE_PKEY == rd[i].record_type)
     {
       GNUNET_break (sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey) ==
@@ -539,28 +547,50 @@ get_records_and_call_iterator (struct Plugin *plugin,
                                GNUNET_NAMESTORE_RecordIterator iter,
                                void *iter_cls)
 {
-  uint32_t record_count;
-  size_t data_size;
-  void *data;
-  char *label;
-  struct GNUNET_CRYPTO_EcdsaPrivateKey zk;
   int ret;
   int sret;
 
   ret = GNUNET_OK;
   for (uint64_t i = 0;i<limit ; i++)
   {
-    if (SQLITE_ROW == (sret = sqlite3_step (stmt)))
+    sret = sqlite3_step (stmt);
+
+    if (SQLITE_DONE == sret)
     {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Iteration done (no results)\n");
+      ret = GNUNET_NO;
+      break;
+    }
+    if (SQLITE_ROW != sret)
+    {
+      LOG_SQLITE (plugin,
+		  GNUNET_ERROR_TYPE_ERROR,
+		  "sqlite_step");
+      ret = GNUNET_SYSERR;
+      break;
+    }
+    
+    {
+      uint64_t seq;
+      uint32_t record_count;
+      size_t data_size;
+      void *data;
+      char *label;
+      struct GNUNET_CRYPTO_EcdsaPrivateKey zk;
       struct GNUNET_SQ_ResultSpec rs[] = {
+        GNUNET_SQ_result_spec_uint64 (&seq),
         GNUNET_SQ_result_spec_uint32 (&record_count),
-        GNUNET_SQ_result_spec_variable_size (&data, &data_size),
+        GNUNET_SQ_result_spec_variable_size (&data,
+					     &data_size),
         GNUNET_SQ_result_spec_string (&label),
         GNUNET_SQ_result_spec_end
       };
       struct GNUNET_SQ_ResultSpec rsx[] = {
+        GNUNET_SQ_result_spec_uint64 (&seq),
         GNUNET_SQ_result_spec_uint32 (&record_count),
-        GNUNET_SQ_result_spec_variable_size (&data, &data_size),
+        GNUNET_SQ_result_spec_variable_size (&data,
+					     &data_size),
         GNUNET_SQ_result_spec_string (&label),
         GNUNET_SQ_result_spec_auto_from_type (&zk),
         GNUNET_SQ_result_spec_end
@@ -604,6 +634,7 @@ get_records_and_call_iterator (struct Plugin *plugin,
         {
           if (NULL != iter)
             iter (iter_cls,
+		  seq + 1,
                   zone_key,
                   label,
                   record_count,
@@ -611,21 +642,6 @@ get_records_and_call_iterator (struct Plugin *plugin,
         }
       }
       GNUNET_SQ_cleanup_result (rs);
-    }
-    else
-    {
-      if (SQLITE_DONE != sret)
-      {
-        LOG_SQLITE (plugin,
-                    GNUNET_ERROR_TYPE_ERROR,
-                    "sqlite_step");
-        ret = GNUNET_SYSERR;
-      }
-      else
-      {
-        ret = GNUNET_NO;
-      }
-      break;
     }
   }
   GNUNET_SQ_reset (plugin->dbh,
@@ -685,7 +701,7 @@ namestore_sqlite_lookup_records (void *cls,
  *
  * @param cls closure (internal context for the plugin)
  * @param zone hash of public key of the zone, NULL to iterate over all zones
- * @param offset offset in the list of all matching records
+ * @param serial serial number to exclude in the list of all matching records
  * @param limit maximum number of results to return
  * @param iter function to call with the result
  * @param iter_cls closure for @a iter
@@ -694,7 +710,7 @@ namestore_sqlite_lookup_records (void *cls,
 static int
 namestore_sqlite_iterate_records (void *cls,
 				  const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone,
-				  uint64_t offset,
+				  uint64_t serial,
                                   uint64_t limit,
 				  GNUNET_NAMESTORE_RecordIterator iter,
                                   void *iter_cls)
@@ -706,8 +722,8 @@ namestore_sqlite_iterate_records (void *cls,
   if (NULL == zone)
   {
     struct GNUNET_SQ_QueryParam params[] = {
+      GNUNET_SQ_query_param_uint64 (&serial),
       GNUNET_SQ_query_param_uint64 (&limit),
-      GNUNET_SQ_query_param_uint64 (&offset),
       GNUNET_SQ_query_param_end
     };
 
@@ -719,8 +735,8 @@ namestore_sqlite_iterate_records (void *cls,
   {
     struct GNUNET_SQ_QueryParam params[] = {
       GNUNET_SQ_query_param_auto_from_type (zone),
+      GNUNET_SQ_query_param_uint64 (&serial),
       GNUNET_SQ_query_param_uint64 (&limit),
-      GNUNET_SQ_query_param_uint64 (&offset),
       GNUNET_SQ_query_param_end
     };
 
@@ -761,7 +777,8 @@ static int
 namestore_sqlite_zone_to_name (void *cls,
 			       const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone,
 			       const struct GNUNET_CRYPTO_EcdsaPublicKey *value_zone,
-			       GNUNET_NAMESTORE_RecordIterator iter, void *iter_cls)
+			       GNUNET_NAMESTORE_RecordIterator iter,
+			       void *iter_cls)
 {
   struct Plugin *plugin = cls;
   struct GNUNET_SQ_QueryParam params[] = {

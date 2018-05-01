@@ -209,7 +209,9 @@ zone_proc (void *cls,
 
 
 static void
-put_cont (void *cls, int32_t success, const char *emsg)
+put_cont (void *cls,
+	  int32_t success,
+	  const char *emsg)
 {
   static int c = 0;
   char *label = cls;
@@ -232,10 +234,12 @@ put_cont (void *cls, int32_t success, const char *emsg)
   else
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Failed to created records\n");
+                "Failed to create record `%s'\n",
+		label);
     GNUNET_break (0);
     GNUNET_SCHEDULER_cancel (endbadly_task);
-    endbadly_task = GNUNET_SCHEDULER_add_now (&endbadly, NULL);
+    endbadly_task = GNUNET_SCHEDULER_add_now (&endbadly,
+					      NULL);
   }
 }
 
@@ -341,10 +345,16 @@ run (void *cls,
   /* name in different zone */
   GNUNET_asprintf(&s_name_3, "dummy3");
   s_rd_3 = create_record(1);
-  GNUNET_assert (NULL != (ns_ops[2] = GNUNET_NAMESTORE_records_store (nsh, privkey2, s_name_3,
-  		1, s_rd_3, &put_cont, s_name_3)));
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Created record 1\n");
+  GNUNET_assert (NULL != (ns_ops[2] =
+			  GNUNET_NAMESTORE_records_store (nsh,
+							  privkey2,
+							  s_name_3,
+							  1,
+							  s_rd_3,
+							  &put_cont,
+							  s_name_3)));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Created record 1\n");
   GNUNET_asprintf(&s_name_1, "dummy1");
   s_rd_1 = create_record(1);
   GNUNET_assert (NULL != (ns_ops[0] = GNUNET_NAMESTORE_records_store(nsh, privkey, s_name_1,
