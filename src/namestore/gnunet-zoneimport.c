@@ -178,7 +178,7 @@ struct Request
   /**
    * At what time does the (earliest) of the returned records
    * for this name expire? At this point, we need to re-fetch
-   * the record.  
+   * the record.
    */
   struct GNUNET_TIME_Absolute expires;
 
@@ -189,7 +189,7 @@ struct Request
    * NAMESTORE operation.
    */
   struct GNUNET_TIME_Absolute op_start_time;
-  
+
   /**
    * How often did we issue this query? (And failed, reset
    * to zero once we were successful.)
@@ -240,7 +240,7 @@ static unsigned int lookups;
 
 /**
  * Number of records we had cached.
- */ 
+ */
 static unsigned int cached;
 
 /**
