@@ -946,7 +946,7 @@ handle_monitor_event (void *cls,
   ma_queue_length++;
   if (ma_queue_length > DHT_QUEUE_LIMIT)
   {
-    ma = it_head;
+    ma = ma_head;
     GNUNET_CONTAINER_DLL_remove (ma_head,
                                  ma_tail,
                                  ma);
