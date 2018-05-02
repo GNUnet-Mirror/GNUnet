@@ -46,3 +46,6 @@ src/credential/gnunet-credential
 src/credential/gnunet-service-credential
 src/identity-provider/gnunet-idp
 *.patch
+src/namestore/perf_namestore_api_zone_iteration_flat
+src/namestore/perf_namestore_api_zone_iteration_postgres
+src/namestore/perf_namestore_api_zone_iteration_sqlite

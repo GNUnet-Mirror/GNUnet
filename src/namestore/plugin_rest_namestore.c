@@ -452,7 +452,8 @@ namestore_list_response (void *cls,
                 "%s does not match %s\n",
 		rname,
 		handle->name);
-    GNUNET_NAMESTORE_zone_iterator_next (handle->list_it);
+    GNUNET_NAMESTORE_zone_iterator_next (handle->list_it,
+                                         1);
     return;
   }
 
@@ -460,7 +461,7 @@ namestore_list_response (void *cls,
   for (unsigned int i=0; i<rd_len; i++)
   {
     if ( (GNUNET_GNSRECORD_TYPE_NICK == rd[i].record_type) &&
-         (0 != strcmp (rname, GNUNET_GNS_MASTERZONE_STR)) )
+         (0 != strcmp (rname, GNUNET_GNS_EMPTY_LABEL_AT)) )
       continue;
 
     if ( (rd[i].record_type != handle->type) &&
@@ -483,7 +484,8 @@ namestore_list_response (void *cls,
   }
 
   json_decref (result_array);
-  GNUNET_NAMESTORE_zone_iterator_next (handle->list_it);
+  GNUNET_NAMESTORE_zone_iterator_next (handle->list_it,
+                                       1);
 }
 
 

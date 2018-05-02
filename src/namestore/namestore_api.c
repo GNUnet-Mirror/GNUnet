@@ -1087,7 +1087,7 @@ GNUNET_NAMESTORE_set_nick (struct GNUNET_NAMESTORE_Handle *h,
   rd.flags |= GNUNET_GNSRECORD_RF_PRIVATE;
   return GNUNET_NAMESTORE_records_store (h,
                                          pkey,
-                                         GNUNET_GNS_MASTERZONE_STR,
+                                         GNUNET_GNS_EMPTY_LABEL_AT,
                                          1,
                                          &rd,
                                          cont,
@@ -1281,19 +1281,24 @@ GNUNET_NAMESTORE_zone_iteration_start (struct GNUNET_NAMESTORE_Handle *h,
  * for the next record.
  *
  * @param it the iterator
+ * @param limit number of records to return to the iterator in one shot
+ *         (before #GNUNET_NAMESTORE_zone_iterator_next is to be called again)
  */
 void
-GNUNET_NAMESTORE_zone_iterator_next (struct GNUNET_NAMESTORE_ZoneIterator *it)
+GNUNET_NAMESTORE_zone_iterator_next (struct GNUNET_NAMESTORE_ZoneIterator *it,
+                                     uint64_t limit)
 {
   struct GNUNET_NAMESTORE_Handle *h = it->h;
   struct ZoneIterationNextMessage *msg;
   struct GNUNET_MQ_Envelope *env;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Sending ZONE_ITERATION_NEXT message\n");
+       "Sending ZONE_ITERATION_NEXT message with limit %llu\n",
+       (unsigned long long) limit);
   env = GNUNET_MQ_msg (msg,
                        GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_ITERATION_NEXT);
   msg->gns_header.r_id = htonl (it->op_id);
+  msg->limit = GNUNET_htonll (limit);
   GNUNET_MQ_send (h->mq,
                   env);
 }

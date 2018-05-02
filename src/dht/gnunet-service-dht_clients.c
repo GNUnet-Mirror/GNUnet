@@ -477,8 +477,6 @@ handle_dht_local_put (void *cls,
   struct ClientHandle *ch = cls;
   struct GNUNET_CONTAINER_BloomFilter *peer_bf;
   uint16_t size;
-  struct GNUNET_MQ_Envelope *env;
-  struct GNUNET_DHT_ClientPutConfirmationMessage *conf;
 
   size = ntohs (dht_msg->header.size);
   GNUNET_STATISTICS_update (GDS_stats,
@@ -537,12 +535,6 @@ handle_dht_local_put (void *cls,
                            &dht_msg[1],
                            size - sizeof (struct GNUNET_DHT_ClientPutMessage));
   GNUNET_CONTAINER_bloomfilter_free (peer_bf);
-  env = GNUNET_MQ_msg (conf,
-                       GNUNET_MESSAGE_TYPE_DHT_CLIENT_PUT_OK);
-  conf->reserved = htonl (0);
-  conf->unique_id = dht_msg->unique_id;
-  GNUNET_MQ_send (ch->mq,
-                  env);
   GNUNET_SERVICE_client_continue (ch->client);
 }
 

@@ -22,9 +22,6 @@ MAX_PARALLEL_BACKGROUND_QUERIES = 1000
 # called via NSS or other mechanisms).
 INTERCEPT_DNS = YES
 
-# Using caching (start with namestore), or always ask DHT?
-USE_CACHE = YES
-
 # PREFIX = valgrind --leak-check=full --track-origins=yes
 
 # Zones

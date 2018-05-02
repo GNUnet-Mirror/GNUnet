@@ -578,11 +578,9 @@ void
 GNUNET_MQ_set_handlers_closure (struct GNUNET_MQ_Handle *mq,
                                 void *handlers_cls)
 {
-  unsigned int i;
-
   if (NULL == mq->handlers)
     return;
-  for (i=0;NULL != mq->handlers[i].cb; i++)
+  for (unsigned int i=0;NULL != mq->handlers[i].cb; i++)
     mq->handlers[i].cls = handlers_cls;
 }
 
@@ -782,7 +780,9 @@ GNUNET_MQ_notify_sent (struct GNUNET_MQ_Envelope *ev,
                        GNUNET_SCHEDULER_TaskCallback cb,
                        void *cb_cls)
 {
-  GNUNET_assert (NULL == ev->sent_cb);
+  /* allow setting *OR* clearing callback */
+  GNUNET_assert ( (NULL == ev->sent_cb) ||
+                  (NULL == cb) );
   ev->sent_cb = cb;
   ev->sent_cls = cb_cls;
 }

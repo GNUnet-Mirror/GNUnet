@@ -1,0 +1,47 @@
+.TH GNUNET\-ZONEIMPORT 1 "Apr 23, 2018" "GNUnet"
+
+.SH NAME
+gnunet\-zoneimport \- import DNS zone into GNS zone
+
+.SH SYNOPSIS
+.B gnunet\-zoneimport [IP]+
+.br
+
+.SH DESCRIPTION
+\fBgnunet\-zoneimport\fP reads a list of domain names (FQDN) from stdin and issues DNS queries for each of the domain names given.  It then checks if a local ego with a name matching the domain exists. Specifically, if the domain name is "example.fr", it will check if an ego "fr" exists, while for a domain "example.com.fr" it will look for an ego called "com.fr"). If so, it will convert the DNS records into GNS records (in particular converting NS records and glue records to GNS2DNS records) and add them to the namestore under the label ("example" in the examples above).
+
+The arguments given to gnunet\-zoneimport is a list of IP addresses of DNS servers to query.
+
+gnunet\-zoneimport will usually never terminate: it will check when DNS records expire, and re-issue requests when the old DNS records have expired so that GNS always has the latest data.
+
+gnunet\-zoneimport will issue many DNS queries in parallel, but is rate-limited in various ways, so most DNS servers should easily handle the load.  gnunet\-zoneimport will perform a limited number of retries if queries fail.
+
+gnunet\-zoneimport operates incrementally. It will check if the namestore already has (non-expired) records stored for a given name in the respective zone and not issue those requests again.  Thus, it is fine to restart gnunet\-zoneimport whenever the list of domain names changes.
+
+Finally, gnunet\-zoneimport keeps information for each domain name in memory.  This consumes about 200 bytes per domain name, or 1 GB for 5 million labels.
+
+.SH OPTIONS
+.B
+.IP "\-c FILENAME,  \-\-config=FILENAME"
+Use the configuration file FILENAME.
+.B
+.IP "\-h, \-\-help"
+Print short help on options.
+.B
+.IP "\-s MAPSIZE, \-\-size=MAPSIZE"
+Specifies the size (in number of entries) to use for the main hash map.  The value provided should be at least twice the number of domain names that will be given to the tool. This option is required for very large zones where the number of records encountered is too large for the automatic growth mechanism to work (that one is limited to at most 16 MB allocations for security reasons).  Do not worry about this unless you are importing millions of domain names from a zone.
+
+.SH NOTES
+
+Typical invocaton would be:
+
+$ gnunet\-zoneimport 1.2.3.4 < names.txt
+
+
+
+
+.SH BUGS
+Report bugs by using Mantis <https://gnunet.org/bugs/> or by sending electronic mail to <gnunet\-developers@gnu.org>
+
+.SH SEE ALSO
+gnunet\-gns(1), gnunet\-namestore(1)

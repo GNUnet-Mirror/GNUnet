@@ -120,7 +120,8 @@ remove_cont (void *cls,
 
 
 static void
-put_cont (void *cls, int32_t success,
+put_cont (void *cls,
+          int32_t success,
 	  const char *emsg)
 {
   const char *name = cls;
@@ -161,20 +162,27 @@ run (void *cls,
 
   directory = NULL;
   GNUNET_assert (GNUNET_OK ==
-                 GNUNET_CONFIGURATION_get_value_string(cfg, "PATHS", "GNUNET_TEST_HOME", &directory));
+                 GNUNET_CONFIGURATION_get_value_string(cfg,
+                                                       "PATHS",
+                                                       "GNUNET_TEST_HOME",
+                                                       &directory));
   GNUNET_DISK_directory_remove (directory);
 
   endbadly_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT,
-						&endbadly, NULL);
+						&endbadly,
+                                                NULL);
   GNUNET_asprintf (&hostkey_file,
 		   "zonefiles%s%s",
 		   DIR_SEPARATOR_STR,
 		   "N0UJMP015AFUNR2BTNM3FKPBLG38913BL8IDMCO2H0A1LIB81960.zkey");
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Using zonekey file `%s' \n", hostkey_file);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Using zonekey file `%s' \n",
+              hostkey_file);
   privkey = GNUNET_CRYPTO_ecdsa_key_create_from_file (hostkey_file);
   GNUNET_free (hostkey_file);
   GNUNET_assert (privkey != NULL);
-  GNUNET_CRYPTO_ecdsa_key_get_public (privkey, &pubkey);
+  GNUNET_CRYPTO_ecdsa_key_get_public (privkey,
+                                      &pubkey);
 
   removed = GNUNET_NO;
 
@@ -201,15 +209,23 @@ run (void *cls,
 int
 main (int argc, char *argv[])
 {
+  const char *plugin_name;
+  char *cfg_name;
+
+  plugin_name = GNUNET_TESTING_get_testname_from_underscore (argv[0]);
+  GNUNET_asprintf (&cfg_name,
+                   "test_namestore_api_%s.conf",
+                   plugin_name);
   res = 1;
   if (0 !=
-      GNUNET_TESTING_peer_run ("test-namestore-api",
-                               "test_namestore_api.conf",
+      GNUNET_TESTING_peer_run ("test-namestore-api-remove",
+                               cfg_name,
                                &run,
                                NULL))
   {
     res = 1;
   }
+  GNUNET_free (cfg_name);
   if (NULL != directory)
   {
       GNUNET_DISK_directory_remove (directory);

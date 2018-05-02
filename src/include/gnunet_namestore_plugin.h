@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet
-     Copyright (C) 2012, 2013 GNUnet e.V.
+     Copyright (C) 2012, 2013, 2018 GNUnet e.V.
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -47,6 +47,7 @@ extern "C"
  * Function called for each matching record.
  *
  * @param cls closure
+ * @param serial unique serial number of the record
  * @param zone_key private key of the zone
  * @param label name that is being mapped (at most 255 characters long)
  * @param rd_count number of entries in @a rd array
@@ -54,6 +55,7 @@ extern "C"
  */
 typedef void
 (*GNUNET_NAMESTORE_RecordIterator) (void *cls,
+				    uint64_t serial,
 				    const struct GNUNET_CRYPTO_EcdsaPrivateKey *private_key,
 				    const char *label,
 				    unsigned int rd_count,
@@ -97,7 +99,7 @@ struct GNUNET_NAMESTORE_PluginFunctions
    * @param label name of the record in the zone
    * @param iter function to call with the result
    * @param iter_cls closure for @a iter
-   * @return #GNUNET_OK on success, else #GNUNET_SYSERR
+   * @return #GNUNET_OK on success, #GNUNET_NO for no results, else #GNUNET_SYSERR
    */
   int
   (*lookup_records) (void *cls,
@@ -109,19 +111,21 @@ struct GNUNET_NAMESTORE_PluginFunctions
 
   /**
    * Iterate over the results for a particular zone in the
-   * datastore.  Will return at most one result to the iterator.
+   * datastore.  Will return at most @a limit results to the iterator.
    *
    * @param cls closure (internal context for the plugin)
    * @param zone private key of the zone, NULL for all zones
-   * @param offset offset in the list of all matching records
+   * @param serial serial (to exclude) in the list of matching records
+   * @param limit maximum number of results to return to @a iter
    * @param iter function to call with the result
    * @param iter_cls closure for @a iter
-   * @return #GNUNET_OK on success, #GNUNET_NO if there were no results, #GNUNET_SYSERR on error
+   * @return #GNUNET_OK on success, #GNUNET_NO if there were no more results, #GNUNET_SYSERR on error
    */
   int
   (*iterate_records) (void *cls,
 		      const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone,
-		      uint64_t offset,
+		      uint64_t serial,
+		      uint64_t limit,
 		      GNUNET_NAMESTORE_RecordIterator iter,
 		      void *iter_cls);
 

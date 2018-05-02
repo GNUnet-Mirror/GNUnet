@@ -855,9 +855,9 @@ mhd_content_cb (void *cls,
     return MHD_CONTENT_READER_END_OF_STREAM;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Writing %lu/%lu bytes\n",
-              bytes_to_copy,
-              s5r->io_len);
+              "Writing %llu/%llu bytes\n",
+              (unsigned long long) bytes_to_copy,
+              (unsigned long long) s5r->io_len);
   GNUNET_memcpy (buf,
                  s5r->io_buf,
                  bytes_to_copy);
@@ -1307,12 +1307,12 @@ curl_download_cb (void *ptr,
   if (sizeof (s5r->io_buf) - s5r->io_len < total)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Pausing CURL `%s%s' download, not enough space %lu %lu %lu\n",
+                "Pausing CURL `%s%s' download, not enough space %llu %llu %llu\n",
                 s5r->domain,
                 s5r->url,
-                sizeof (s5r->io_buf),
-                s5r->io_len,
-                total);
+                (unsigned long long) sizeof (s5r->io_buf),
+                (unsigned long long) s5r->io_len,
+                (unsigned long long) total);
     return CURL_WRITEFUNC_PAUSE; /* not enough space */
   }
   GNUNET_memcpy (&s5r->io_buf[s5r->io_len],

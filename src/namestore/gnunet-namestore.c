@@ -398,7 +398,8 @@ display_record (void *cls,
   if ( (NULL != name) &&
        (0 != strcmp (name, rname)) )
   {
-    GNUNET_NAMESTORE_zone_iterator_next (list_it);
+    GNUNET_NAMESTORE_zone_iterator_next (list_it,
+                                         1);
     return;
   }
   FPRINTF (stdout,
@@ -408,7 +409,7 @@ display_record (void *cls,
   {
     if ( (GNUNET_GNSRECORD_TYPE_NICK == rd[i].record_type) &&
          (0 != strcmp (rname,
-                       GNUNET_GNS_MASTERZONE_STR)) )
+                       GNUNET_GNS_EMPTY_LABEL_AT)) )
       continue;
     typestring = GNUNET_GNSRECORD_number_to_typename (rd[i].record_type);
     s = GNUNET_GNSRECORD_value_to_string (rd[i].record_type,
@@ -441,7 +442,8 @@ display_record (void *cls,
     GNUNET_free (s);
   }
   FPRINTF (stdout, "%s", "\n");
-  GNUNET_NAMESTORE_zone_iterator_next (list_it);
+  GNUNET_NAMESTORE_zone_iterator_next (list_it,
+                                       1);
 }
 
 
@@ -659,6 +661,8 @@ handle_reverse_lookup (void *cls,
 {
   (void) cls;
   (void) zone;
+  (void) rd_count;
+  (void) rd;
   reverse_qe = NULL;
   if (NULL == label)
     FPRINTF (stdout,
@@ -710,6 +714,7 @@ del_monitor (void *cls,
   char *vs;
 
   (void) cls;
+  (void) zone;
   del_qe = NULL;
   if (0 == rd_count)
   {
@@ -1090,6 +1095,9 @@ id_connect_cb (void *cls,
 {
   const struct GNUNET_CONFIGURATION_Handle *cfg = cls;
 
+  (void) cls;
+  (void) ctx;
+  (void) name;
   if (NULL == ego)
   {
     get_default = GNUNET_IDENTITY_get (idh,

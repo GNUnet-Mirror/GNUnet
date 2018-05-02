@@ -276,7 +276,8 @@ zone_proc (void *cls,
     returned_records ++;
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
     		"Telling namestore to send the next result\n");
-    GNUNET_NAMESTORE_zone_iterator_next (zi);
+    GNUNET_NAMESTORE_zone_iterator_next (zi,
+                                         1);
   }
   else
   {
@@ -486,15 +487,23 @@ run (void *cls,
 int
 main (int argc, char *argv[])
 {
+  const char *plugin_name;
+  char *cfg_name;
+
+  plugin_name = GNUNET_TESTING_get_testname_from_underscore (argv[0]);
+  GNUNET_asprintf (&cfg_name,
+                   "test_namestore_api_%s.conf",
+                   plugin_name);
   res = 1;
   if (0 !=
       GNUNET_TESTING_peer_run ("test-namestore-api-zone-iteration",
-                               "test_namestore_api.conf",
+                               cfg_name,
                                &run,
                                NULL))
   {
     res = 1;
   }
+  GNUNET_free (cfg_name);
   if (NULL != directory)
   {
       GNUNET_DISK_directory_remove (directory);

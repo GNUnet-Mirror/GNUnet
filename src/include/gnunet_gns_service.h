@@ -48,13 +48,10 @@ extern "C"
 
 
 /**
- * String we use to indicate the local master zone or a
- * root entry in the current zone.
- *
- * FIXME: probably should be changed to "@" and renamed
- * (this name is confusing!)
+ * String we use to indicate an empty label (top-level
+ * entry in the zone).  DNS uses "@", so do we.
  */
-#define GNUNET_GNS_MASTERZONE_STR "+"
+#define GNUNET_GNS_EMPTY_LABEL_AT "@"
 
 /**
  * Connection to the GNS service.

@@ -18,7 +18,7 @@
      Boston, MA 02110-1301, USA.
 */
 /**
- * @file namestore/test_namestore_api_lookup_shadow_filter.c
+ * @file namestore/test_namestore_api_lookup_shadow.c
  * @brief testcase for namestore_api.c: store a shadow record and perform a lookup
  * test passes if test returns the record but without the shadow flag since no
  * other valid record is available
@@ -267,15 +267,23 @@ run (void *cls,
 int
 main (int argc, char *argv[])
 {
+  const char *plugin_name;
+  char *cfg_name;
+
+  plugin_name = GNUNET_TESTING_get_testname_from_underscore (argv[0]);
+  GNUNET_asprintf (&cfg_name,
+                   "test_namestore_api_%s.conf",
+                   plugin_name);
   res = 1;
   if (0 !=
-      GNUNET_TESTING_peer_run ("test-namestore-api",
-                               "test_namestore_api.conf",
+      GNUNET_TESTING_peer_run ("test-namestore-api-lookup-shadow",
+                               cfg_name,
                                &run,
                                NULL))
   {
     res = 1;
   }
+  GNUNET_free (cfg_name);
   if (NULL != directory)
   {
       GNUNET_DISK_directory_remove (directory);
@@ -285,4 +293,4 @@ main (int argc, char *argv[])
 }
 
 
-/* end of test_namestore_api_lookup_shadow_filter.c */
+/* end of test_namestore_api_lookup_shadow.c */

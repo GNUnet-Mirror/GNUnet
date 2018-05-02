@@ -152,8 +152,6 @@ struct GNUNET_TIME_Absolute
 GNUNET_GNSRECORD_record_get_expiration_time (unsigned int rd_count,
 					     const struct GNUNET_GNSRECORD_Data *rd)
 {
-  unsigned int c;
-  unsigned int c2;
   struct GNUNET_TIME_Absolute expire;
   struct GNUNET_TIME_Absolute at;
   struct GNUNET_TIME_Relative rt;
@@ -163,7 +161,7 @@ GNUNET_GNSRECORD_record_get_expiration_time (unsigned int rd_count,
   if (NULL == rd)
     return GNUNET_TIME_UNIT_ZERO_ABS;
   expire = GNUNET_TIME_UNIT_FOREVER_ABS;
-  for (c = 0; c < rd_count; c++)
+  for (unsigned int c = 0; c < rd_count; c++)
   {
     if (0 != (rd[c].flags & GNUNET_GNSRECORD_RF_RELATIVE_EXPIRATION))
     {
@@ -175,12 +173,12 @@ GNUNET_GNSRECORD_record_get_expiration_time (unsigned int rd_count,
       at.abs_value_us = rd[c].expiration_time;
     }
 
-    for (c2 = 0; c2 < rd_count; c2++)
+    for (unsigned int c2 = 0; c2 < rd_count; c2++)
     {
       /* Check for shadow record */
-      if ((c == c2) ||
-          (rd[c].record_type != rd[c2].record_type) ||
-          (0 == (rd[c2].flags & GNUNET_GNSRECORD_RF_SHADOW_RECORD)))
+      if ( (c == c2) ||
+	   (rd[c].record_type != rd[c2].record_type) ||
+	   (0 == (rd[c2].flags & GNUNET_GNSRECORD_RF_SHADOW_RECORD)) )
           continue;
       /* We have a shadow record */
       if (0 != (rd[c2].flags & GNUNET_GNSRECORD_RF_RELATIVE_EXPIRATION))
@@ -192,9 +190,11 @@ GNUNET_GNSRECORD_record_get_expiration_time (unsigned int rd_count,
       {
         at_shadow.abs_value_us = rd[c2].expiration_time;
       }
-      at = GNUNET_TIME_absolute_max (at, at_shadow);
+      at = GNUNET_TIME_absolute_max (at,
+				     at_shadow);
     }
-    expire = GNUNET_TIME_absolute_min (at, expire);
+    expire = GNUNET_TIME_absolute_min (at, 
+				       expire);
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Determined expiration time for block with %u records to be %s\n",

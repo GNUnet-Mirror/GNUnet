@@ -961,8 +961,10 @@ collect_next (void *cls)
   struct VerifyRequestHandle *vrh = cls;
   vrh->collect_next_task = NULL;
   GNUNET_assert (NULL != vrh->cred_collection_iter);
-  GNUNET_NAMESTORE_zone_iterator_next (vrh->cred_collection_iter);
+  GNUNET_NAMESTORE_zone_iterator_next (vrh->cred_collection_iter,
+				       1);
 }
+
 
 static void
 handle_cred_collection_cb (void *cls,

@@ -13,7 +13,7 @@ Most users will not want to run an FCFS\-zone and thus will not need this progra
 
 \fBgnunet\-gns-fcfsd\fP runs a web server where users can register names to be mapped to their GNS zone.  Names are made available on a First Come First Served basis (hence fcfs).  Registered names do not expire.  The HTTP server is run on the port that is specified in the configuration file in section "[fcfsd]" under the name "HTTPPORT".  The key of the zone in which the names are registered must be specified under the name "ZONEKEY" in the same section.  It is possible to manage gnunet\-gns\-fcfsd using gnunet\-(service\-arm) by starting the daemon using "gnunet\-arm \-i fcfsd" or by setting "FORCESTART=YES" in the "fcfds" section of your configuration.
 
-An FCFS\-zone is run at http://gnunet.org/fcfs/.  The respective zone key can be imported into an individual user's zone using "gnunet-gns-import.sh".  GNS users are encouraged to register their zone with the gnunet.org FCFS authority.
+An FCFS\-zone is run at http://gnunet.org/fcfs/.  GNS users are encouraged to register their zone with the gnunet.org FCFS authority.
 
 If you want to run your own FCFS registrar, you need to first create a pseudonym (using "gnunet\-identity \-C NAME"), and then assign it to be used for the "fcfsd" service using "gnunet\-identity \-e NAME \-s fcfsd".  After that, you can start the FCFSD service (possibly using gnunet\-arm).
 

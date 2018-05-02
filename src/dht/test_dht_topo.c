@@ -332,19 +332,17 @@ dht_get_handler (void *cls,
 	      "Get successful\n");
 #if 0
   {
-    int i;
-
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "PATH: (get %u, put %u)\n",
 		get_path_length,
                 put_path_length);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "  LOCAL\n");
-    for (i = get_path_length - 1; i >= 0; i--)
+    for (int i = get_path_length - 1; i >= 0; i--)
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "  %s\n",
 		  GNUNET_i2s (&get_path[i]));
-    for (i = put_path_length - 1; i >= 0; i--)
+    for (int i = put_path_length - 1; i >= 0; i--)
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "  %s\n",
 		  GNUNET_i2s (&put_path[i]));
@@ -384,12 +382,11 @@ do_puts (void *cls)
   struct GNUNET_DHT_Handle **hs = cls;
   struct GNUNET_HashCode key;
   struct GNUNET_HashCode value;
-  unsigned int i;
 
   put_task = NULL;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Putting values into DHT\n");
-  for (i = 0; i < NUM_PEERS; i++)
+  for (unsigned int i = 0; i < NUM_PEERS; i++)
   {
     GNUNET_CRYPTO_hash (&i,
                         sizeof (i),

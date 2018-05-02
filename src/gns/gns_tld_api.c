@@ -94,7 +94,7 @@ struct GNUNET_GNS_LookupWithTldRequest
  * @return the part of @a name after the last ".",
  *         or @a name if @a name does not contain a "."
  */
-static const char *
+static char *
 get_tld (const char *name)
 {
   const char *tld;
@@ -105,14 +105,14 @@ get_tld (const char *name)
     tld = name;
   else
     tld++; /* skip the '.' */
-  return tld;
+  return GNUNET_strdup (tld);
 }
 
 
 /**
  * Eat the TLD of the given @a name.
  *
- * @param name a name
+ * @param[in,out] name a name
  */
 static void
 eat_tld (char *name)
@@ -124,7 +124,7 @@ eat_tld (char *name)
                  (unsigned char) '.');
   if (NULL == tld)
     strcpy (name,
-            GNUNET_GNS_MASTERZONE_STR);
+            GNUNET_GNS_EMPTY_LABEL_AT);
   else
     *tld = '\0';
 }
@@ -229,7 +229,7 @@ GNUNET_GNS_lookup_with_tld (struct GNUNET_GNS_Handle *handle,
 			    void *proc_cls)
 {
   struct GNUNET_GNS_LookupWithTldRequest *ltr;
-  const char *tld;
+  char *tld;
   char *dot_tld;
   char *zonestr;
   struct GNUNET_CRYPTO_EcdsaPublicKey pkey;
@@ -251,6 +251,7 @@ GNUNET_GNS_lookup_with_tld (struct GNUNET_GNS_Handle *handle,
     eat_tld (ltr->name);
     lookup_with_public_key (ltr,
 			    &pkey);
+    GNUNET_free (tld);
     return ltr;
   }
 
@@ -277,6 +278,7 @@ GNUNET_GNS_lookup_with_tld (struct GNUNET_GNS_Handle *handle,
       GNUNET_free (dot_tld);
       GNUNET_free (ltr->name);
       GNUNET_free (ltr);
+      GNUNET_free (tld);
       return NULL;
     }
     GNUNET_free (dot_tld);
@@ -284,6 +286,7 @@ GNUNET_GNS_lookup_with_tld (struct GNUNET_GNS_Handle *handle,
     eat_tld (ltr->name);
     lookup_with_public_key (ltr,
 			    &pkey);
+    GNUNET_free (tld);
     return ltr;
   }
   GNUNET_free (dot_tld);
@@ -301,6 +304,7 @@ GNUNET_GNS_lookup_with_tld (struct GNUNET_GNS_Handle *handle,
 					   tld,
 					   &identity_zone_cb,
 					   ltr);
+  GNUNET_free (tld);
   if (NULL == ltr->id_op)
   {
     GNUNET_free (ltr->name);

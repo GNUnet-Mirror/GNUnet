@@ -221,7 +221,7 @@ run (void *cls,
   /* load privat key */
   {
     char *zonekey_file;
-  
+
     GNUNET_asprintf (&zonekey_file,
 		     "zonefiles%s%s",
 		     DIR_SEPARATOR_STR,
@@ -242,13 +242,13 @@ run (void *cls,
 			      sizeof (s_zone_value));
   {
     struct GNUNET_GNSRECORD_Data rd;
-    
+
     rd.expiration_time = GNUNET_TIME_absolute_get().abs_value_us;
     rd.record_type = GNUNET_GNSRECORD_TYPE_PKEY;
     rd.data_size = sizeof (s_zone_value);
     rd.data = &s_zone_value;
     rd.flags = 0;
-    
+
     nsh = GNUNET_NAMESTORE_connect (cfg);
     GNUNET_break (NULL != nsh);
     GNUNET_NAMESTORE_records_store (nsh,
@@ -266,17 +266,24 @@ int
 main (int argc,
       char *argv[])
 {
+  const char *plugin_name;
+  char *cfg_name;
+
   (void) argc;
-  (void) argv;
+  plugin_name = GNUNET_TESTING_get_testname_from_underscore (argv[0]);
+  GNUNET_asprintf (&cfg_name,
+                   "test_namestore_api_%s.conf",
+                   plugin_name);
   res = 1;
   if (0 !=
       GNUNET_TESTING_peer_run ("test-namestore-api-zone-to-name",
-                               "test_namestore_api.conf",
+                               cfg_name,
                                &run,
                                NULL))
   {
     res = 1;
   }
+  GNUNET_free (cfg_name);
   if (NULL != directory)
   {
     GNUNET_DISK_directory_remove (directory);

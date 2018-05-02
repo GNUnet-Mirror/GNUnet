@@ -342,9 +342,10 @@ GNUNET_NETWORK_STRUCT_END
  * @param rd_count number of entries in @a rd array
  * @param rd array of records with data to store
  */
-typedef void (*GNUNET_GNSRECORD_RecordCallback) (void *cls,
-						 unsigned int rd_count,
-						 const struct GNUNET_GNSRECORD_Data *rd);
+typedef void
+(*GNUNET_GNSRECORD_RecordCallback) (void *cls,
+                                    unsigned int rd_count,
+                                    const struct GNUNET_GNSRECORD_Data *rd);
 
 
 
@@ -554,6 +555,25 @@ GNUNET_GNSRECORD_block_create (const struct GNUNET_CRYPTO_EcdsaPrivateKey *key,
 			       const char *label,
 			       const struct GNUNET_GNSRECORD_Data *rd,
 			       unsigned int rd_count);
+
+
+/**
+ * Sign name and records, cache derived public key (also keeps the
+ * private key in static memory, so do not use this function if
+ * keeping the private key in the process'es RAM is a major issue).
+ *
+ * @param key the private key
+ * @param expire block expiration
+ * @param label the name for the records
+ * @param rd record data
+ * @param rd_count number of records in @a rd
+ */
+struct GNUNET_GNSRECORD_Block *
+GNUNET_GNSRECORD_block_create2 (const struct GNUNET_CRYPTO_EcdsaPrivateKey *key,
+                                struct GNUNET_TIME_Absolute expire,
+                                const char *label,
+                                const struct GNUNET_GNSRECORD_Data *rd,
+                                unsigned int rd_count);
 
 
 /**

@@ -324,15 +324,18 @@ iterate_cb (void *cls,
   char* pkey;
   char* new_buf;
 
+  (void) zone_key;
   if (1 != rd_len)
   {
-    GNUNET_NAMESTORE_zone_iterator_next (zr->list_it);
+    GNUNET_NAMESTORE_zone_iterator_next (zr->list_it,
+                                         1);
     return;
   }
 
   if (GNUNET_GNSRECORD_TYPE_PKEY != rd->record_type)
   {
-    GNUNET_NAMESTORE_zone_iterator_next (zr->list_it);
+    GNUNET_NAMESTORE_zone_iterator_next (zr->list_it,
+                                         1);
     return;
   }
 
@@ -343,7 +346,8 @@ iterate_cb (void *cls,
   if (NULL == pkey)
   {
     GNUNET_break (0);
-    GNUNET_NAMESTORE_zone_iterator_next (zr->list_it);
+    GNUNET_NAMESTORE_zone_iterator_next (zr->list_it,
+                                         1);
     return;
   }
   if (bytes_free < (strlen (name) + strlen (pkey) + 40))
@@ -359,7 +363,8 @@ iterate_cb (void *cls,
 	   name,
 	   pkey);
   zr->write_offset = strlen (zr->zoneinfo);
-  GNUNET_NAMESTORE_zone_iterator_next (zr->list_it);
+  GNUNET_NAMESTORE_zone_iterator_next (zr->list_it,
+                                       1);
   GNUNET_free (pkey);
 }
 
@@ -435,6 +440,7 @@ fill_s_reply (const char *info,
   char *reply;
   struct MHD_Response *response;
 
+  (void) request;
   GNUNET_asprintf (&reply,
 		   SUBMIT_PAGE,
 		   info,
@@ -583,6 +589,8 @@ zone_to_name_cb (void *cls,
   struct Request *request = cls;
   struct GNUNET_GNSRECORD_Data r;
 
+  (void) rd;
+  (void) zone_key;
   request->qe = NULL;
   if (0 != rd_count)
   {
@@ -640,6 +648,9 @@ lookup_block_processor (void *cls,
 {
   struct Request *request = cls;
 
+  (void) label;
+  (void) rd;
+  (void) zone;
   request->qe = NULL;
   if (0 == rd_count)
   {
@@ -711,6 +722,8 @@ create_response (void *cls,
   struct GNUNET_CRYPTO_EcdsaPublicKey pub;
   int ret;
 
+  (void) cls;
+  (void) version;
   if ( (0 == strcmp (method, MHD_HTTP_METHOD_GET)) ||
        (0 == strcmp (method, MHD_HTTP_METHOD_HEAD)) )
     {

@@ -135,14 +135,9 @@ schedule_next_put (struct PutOperator *po)
  * Continuation called after DHT PUT operation has finished.
  *
  * @param cls type of blocks to gather
- * @param success GNUNET_OK if the PUT was transmitted,
- *                GNUNET_NO on timeout,
- *                GNUNET_SYSERR on disconnect from service
- *                after the PUT message was transmitted
- *                (so we don't know if it was received or not)
  */
 static void
-delay_dht_put_blocks (void *cls, int success)
+delay_dht_put_blocks (void *cls)
 {
   struct PutOperator *po = cls;
 

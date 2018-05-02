@@ -86,6 +86,7 @@ struct Plugin
 
 };
 
+
 struct FlatFileEntry
 {
   /**
@@ -435,45 +436,51 @@ namestore_flat_store_records (void *cls,
 				     UINT64_MAX);
   key_len = strlen (label) + sizeof (struct GNUNET_CRYPTO_EcdsaPrivateKey);
   key = GNUNET_malloc (key_len);
-  GNUNET_memcpy (key, label, strlen (label));
-  GNUNET_memcpy (key+strlen(label),
-          zone_key,
-          sizeof (struct GNUNET_CRYPTO_EcdsaPrivateKey));
+  GNUNET_memcpy (key,
+                 label,
+                 strlen (label));
+  GNUNET_memcpy (key + strlen(label),
+                 zone_key,
+                 sizeof (struct GNUNET_CRYPTO_EcdsaPrivateKey));
   GNUNET_CRYPTO_hash (key,
                       key_len,
                       &hkey);
-
-  GNUNET_CONTAINER_multihashmap_remove_all (plugin->hm, &hkey);
-
-  if (0 < rd_count)
+  GNUNET_CONTAINER_multihashmap_remove_all (plugin->hm,
+                                            &hkey);
+  if (0 == rd_count)
   {
-    entry = GNUNET_new (struct FlatFileEntry);
-    entry->private_key = GNUNET_new (struct GNUNET_CRYPTO_EcdsaPrivateKey);
-    GNUNET_asprintf (&entry->label,
-                     label,
-                     strlen (label));
-    GNUNET_memcpy (entry->private_key,
-		   zone_key,
-		   sizeof (struct GNUNET_CRYPTO_EcdsaPrivateKey));
-    entry->rvalue = rvalue;
-    entry->record_count = rd_count;
-    entry->record_data = GNUNET_new_array (rd_count,
-					   struct GNUNET_GNSRECORD_Data);
-    for (unsigned int i = 0; i < rd_count; i++)
-    {
-      entry->record_data[i].expiration_time = rd[i].expiration_time;
-      entry->record_data[i].record_type = rd[i].record_type;
-      entry->record_data[i].flags = rd[i].flags;
-      entry->record_data[i].data_size = rd[i].data_size;
-      entry->record_data[i].data = GNUNET_malloc (rd[i].data_size);
-      GNUNET_memcpy ((char*)entry->record_data[i].data, rd[i].data, rd[i].data_size);
-    }
-    return GNUNET_CONTAINER_multihashmap_put (plugin->hm,
-                                              &hkey,
-                                              entry,
-                                              GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
+    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
+                     "sqlite",
+                     "Record deleted\n");
+    return GNUNET_OK;
   }
-  return GNUNET_NO;
+  entry = GNUNET_new (struct FlatFileEntry);
+  entry->private_key = GNUNET_new (struct GNUNET_CRYPTO_EcdsaPrivateKey);
+  GNUNET_asprintf (&entry->label,
+                   label,
+                   strlen (label));
+  GNUNET_memcpy (entry->private_key,
+                 zone_key,
+                 sizeof (struct GNUNET_CRYPTO_EcdsaPrivateKey));
+  entry->rvalue = rvalue;
+  entry->record_count = rd_count;
+  entry->record_data = GNUNET_new_array (rd_count,
+                                         struct GNUNET_GNSRECORD_Data);
+  for (unsigned int i = 0; i < rd_count; i++)
+  {
+    entry->record_data[i].expiration_time = rd[i].expiration_time;
+    entry->record_data[i].record_type = rd[i].record_type;
+    entry->record_data[i].flags = rd[i].flags;
+    entry->record_data[i].data_size = rd[i].data_size;
+    entry->record_data[i].data = GNUNET_malloc (rd[i].data_size);
+    GNUNET_memcpy ((char*)entry->record_data[i].data,
+                   rd[i].data,
+                   rd[i].data_size);
+  }
+  return GNUNET_CONTAINER_multihashmap_put (plugin->hm,
+                                            &hkey,
+                                            entry,
+                                            GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
 }
 
 
@@ -485,7 +492,7 @@ namestore_flat_store_records (void *cls,
  * @param label name of the record in the zone
  * @param iter function to call with the result
  * @param iter_cls closure for @a iter
- * @return #GNUNET_OK on success, else #GNUNET_SYSERR
+ * @return #GNUNET_OK on success, #GNUNET_NO for no results, else #GNUNET_SYSERR
  */
 static int
 namestore_flat_lookup_records (void *cls,
@@ -502,6 +509,7 @@ namestore_flat_lookup_records (void *cls,
 
   if (NULL == zone)
   {
+    GNUNET_break (0);
     return GNUNET_SYSERR;
   }
   key_len = strlen (label) + sizeof (struct GNUNET_CRYPTO_EcdsaPrivateKey);
@@ -524,6 +532,7 @@ namestore_flat_lookup_records (void *cls,
     return GNUNET_NO;
   if (NULL != iter)
     iter (iter_cls,
+	  0,
 	  entry->private_key,
 	  entry->label,
 	  entry->record_count,
@@ -532,30 +541,85 @@ namestore_flat_lookup_records (void *cls,
 }
 
 
+/**
+ * Closure for #iterate_zones.
+ */
+struct IterateContext
+{
+  /**
+   * How many more records should we skip before returning results?
+   */
+  uint64_t offset;
+
+  /**
+   * How many more records should we return?
+   */
+  uint64_t limit;
+
+  /**
+   * What is the position of the current entry, counting
+   * starts from 1.
+   */
+  uint64_t pos;
+
+  /**
+   * Target zone.
+   */
+  const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone;
+
+  /**
+   * Function to call on each record.
+   */
+  GNUNET_NAMESTORE_RecordIterator iter;
+
+  /**
+   * Closure for @e iter.
+   */
+  void *iter_cls;
+
+};
+
+
+/**
+ * Helper function for #namestore_flat_iterate_records().
+ *
+ * @param cls a `struct IterateContext`
+ * @param key unused
+ * @param value a `struct FlatFileEntry`
+ * @return #GNUNET_YES to continue the iteration
+ */
 static int
 iterate_zones (void *cls,
                const struct GNUNET_HashCode *key,
                void *value)
 {
-  struct Plugin *plugin = cls;
+  struct IterateContext *ic = cls;
   struct FlatFileEntry *entry = value;
 
   (void) key;
-  if ((plugin->target_offset > plugin->offset) ||
-      ( (NULL != plugin->iter_zone) &&
-        (0 != memcmp (entry->private_key,
-                      plugin->iter_zone,
-                      sizeof (struct GNUNET_CRYPTO_EcdsaPrivateKey))))) {
-    plugin->offset++;
+  ic->pos++;
+  if (0 == ic->limit)
+    return GNUNET_NO;
+  if ( (NULL != ic->zone) &&
+       (0 != memcmp (entry->private_key,
+                     ic->zone,
+                     sizeof (struct GNUNET_CRYPTO_EcdsaPrivateKey))) )
+    return GNUNET_YES;
+  if (ic->offset > 0)
+  {
+    ic->offset--;
     return GNUNET_YES;
   }
-  plugin->iter (plugin->iter_cls,
-                entry->private_key,
-                entry->label,
-                entry->record_count,
-                entry->record_data);
-  plugin->iter_result_found = GNUNET_YES;
-  return GNUNET_NO;
+  ic->iter (ic->iter_cls,
+	    ic->pos,
+            entry->private_key,
+            entry->label,
+            entry->record_count,
+            entry->record_data);
+  ic->limit--;
+  if (0 == ic->limit)
+    return GNUNET_NO;
+  return GNUNET_YES;
 }
 
 
@@ -565,32 +629,33 @@ iterate_zones (void *cls,
  *
  * @param cls closure (internal context for the plugin)
  * @param zone hash of public key of the zone, NULL to iterate over all zones
- * @param offset offset in the list of all matching records
+ * @param serial serial number to exclude in the list of all matching records
+ * @param limit maximum number of results to return to @a iter
  * @param iter function to call with the result
  * @param iter_cls closure for @a iter
- * @return #GNUNET_OK on success, #GNUNET_NO if there were no results, #GNUNET_SYSERR on error
+ * @return #GNUNET_OK on success, #GNUNET_NO if there were no more results, #GNUNET_SYSERR on error
  */
 static int
 namestore_flat_iterate_records (void *cls,
                                 const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone,
-                                uint64_t offset,
+                                uint64_t serial,
+                                uint64_t limit,
                                 GNUNET_NAMESTORE_RecordIterator iter,
                                 void *iter_cls)
 {
   struct Plugin *plugin = cls;
+  struct IterateContext ic;
 
-  /* FIXME: maybe use separate closure to better handle
-     recursive calls? */
-  plugin->target_offset = offset;
-  plugin->offset = 0;
-  plugin->iter = iter;
-  plugin->iter_cls = iter_cls;
-  plugin->iter_zone = zone;
-  plugin->iter_result_found = GNUNET_NO;
+  ic.offset = serial;
+  ic.pos = 0;
+  ic.limit = limit;
+  ic.iter = iter;
+  ic.iter_cls = iter_cls;
+  ic.zone = zone;
   GNUNET_CONTAINER_multihashmap_iterate (plugin->hm,
                                          &iterate_zones,
-                                         plugin);
-  return plugin->iter_result_found;
+                                         &ic);
+  return (0 == ic.limit) ? GNUNET_OK : GNUNET_NO;
 }
 
 
@@ -617,6 +682,7 @@ zone_to_name (void *cls,
                      sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey)))
     {
       plugin->iter (plugin->iter_cls,
+		    0,
                     entry->private_key,
                     entry->label,
                     entry->record_count,

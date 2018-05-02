@@ -72,6 +72,57 @@
  * DLL to hold the authority chain we had to pass in the resolution
  * process.
  */
+struct AuthorityChain;
+
+
+/**
+ * Element of a resolution process for looking up the
+ * responsible DNS server hostname in a GNS2DNS recursive
+ * resolution.
+ */
+struct Gns2DnsPending
+{
+
+  /**
+   * Kept in a DLL.
+   */
+  struct Gns2DnsPending *next;
+
+  /**
+   * Kept in a DLL.
+   */
+  struct Gns2DnsPending *prev;
+
+  /**
+   * Context this activity belongs with.
+   */
+  struct AuthorityChain *ac;
+
+  /**
+   * Handle for the resolution of the IP part of the
+   * GNS2DNS record.  Will return to us the addresses
+   * of the DNS resolver to use.
+   */
+  struct GNS_ResolverHandle *rh;
+
+  /**
+   * Handle for DNS resolution of the DNS nameserver.
+   */
+  struct GNUNET_RESOLVER_RequestHandle *dns_rh;
+};
+
+
+/**
+ * Handle to a currenty pending resolution.  On result (positive or
+ * negative) the #GNS_ResultProcessor is called.
+ */
+struct GNS_ResolverHandle;
+
+
+/**
+ * DLL to hold the authority chain we had to pass in the resolution
+ * process.
+ */
 struct AuthorityChain
 {
   /**
@@ -131,11 +182,32 @@ struct AuthorityChain
       char name[GNUNET_DNSPARSER_MAX_NAME_LENGTH + 1];
 
       /**
-       * IP address of the DNS resolver that is authoritative.
-       * (this implementation currently only supports one
-       * IP at a time).
+       * List of resolutions of the 'ip' of the name server that
+       * are still pending.
        */
-      struct sockaddr_storage dns_ip;
+      struct Gns2DnsPending *gp_head;
+
+      /**
+       * Tail of list of resolutions of the 'ip' of the name server that
+       * are still pending.
+       */
+      struct Gns2DnsPending *gp_tail;
+
+      /**
+       * Handle to perform DNS lookups with this authority (in GNS2DNS handling).
+       */
+      struct GNUNET_DNSSTUB_Context *dns_handle;
+
+      /**
+       * Did we succeed in getting an IP address for *any* of the DNS servers listed?
+       * Once we do, we can start with DNS queries.
+       */
+      int found;
+
+      /**
+       * Did we start the recursive resolution via DNS?
+       */
+      int launched;
 
     } dns_authority;
 
@@ -218,34 +290,6 @@ struct VpnContext
 
 
 /**
- * Information we keep during the resolution of an
- * IP address for a DNS server while handling a
- * GNS2DNS record.
- */
-struct Gns2DnsContext
-{
-
-  /**
-   * DNS domain in which the resolution will continue
-   * (first part of the GNS2DNS record).
-   */
-  char *ns;
-
-  /**
-   * Handle for the resolution of the IP part of the
-   * GNS2DNS record.  Will return to us the addresses
-   * of the DNS resolver to use.
-   */
-  struct GNS_ResolverHandle *rh;
-
-  /**
-   * Handle for DNS resolution of the DNS nameserver.
-   */
-  struct GNUNET_RESOLVER_RequestHandle *dns_rh;
-};
-
-
-/**
  * Handle to a currenty pending resolution.  On result (positive or
  * negative) the #GNS_ResultProcessor is called.
  */
@@ -276,12 +320,6 @@ struct GNS_ResolverHandle
    * closure passed to @e proc
    */
   void* proc_cls;
-
-  /**
-   * Handle used during GNS2DNS resolution for looking up the
-   * IP address of the DNS server.
-   */
-  struct Gns2DnsContext *g2dc;
 
   /**
    * Handle for DHT lookups. should be NULL if no lookups are in progress
@@ -431,11 +469,6 @@ static struct GNUNET_VPN_Handle *vpn_handle;
 static struct GNUNET_DHT_Handle *dht_handle;
 
 /**
- * Handle to perform DNS lookups.
- */
-static struct GNUNET_DNSSTUB_Context *dns_handle;
-
-/**
  * Heap for limiting parallel DHT lookups
  */
 static struct GNUNET_CONTAINER_Heap *dht_lookup_heap;
@@ -468,7 +501,7 @@ static struct CacheOps *co_tail;
 /**
  * Use namecache
  */
-static int use_cache;
+static int disable_cache;
 
 /**
  * Global configuration.
@@ -543,18 +576,50 @@ translate_dot_plus (struct GNS_ResolverHandle *rh,
 
 
 /**
- * Task scheduled to asynchronously fail a resolution.
+ * Wrapper around #GNS_resolver_lookup_cancel() as a task.
+ * Used for delayed cleanup so we can unwind the stack first.
  *
- * @param cls the 'struct GNS_ResolverHandle' of the resolution to fail
+ * @param cls the `struct GNS_ResolverHandle`
  */
 static void
-fail_resolution (void *cls)
+GNS_resolver_lookup_cancel_ (void *cls)
 {
   struct GNS_ResolverHandle *rh = cls;
 
   rh->task_id = NULL;
-  rh->proc (rh->proc_cls, 0, NULL);
   GNS_resolver_lookup_cancel (rh);
+}
+
+
+/**
+ * Function called to asynchronously fail a resolution.
+ *
+ * @param rh the resolution to fail
+ */
+static void
+fail_resolution (struct GNS_ResolverHandle *rh)
+{
+  rh->proc (rh->proc_cls,
+            0,
+            NULL);
+  GNUNET_assert (NULL == rh->task_id);
+  rh->task_id = GNUNET_SCHEDULER_add_now (&GNS_resolver_lookup_cancel_,
+                                          rh);
+}
+
+
+/**
+ * Function called when a resolution times out.
+ *
+ * @param cls the `struct GNS_ResolverHandle`
+ */
+static void
+timeout_resolution (void *cls)
+{
+  struct GNS_ResolverHandle *rh = cls;
+
+  rh->task_id = NULL;
+  fail_resolution (rh);
 }
 
 
@@ -831,13 +896,11 @@ start_resolver_lookup (void *cls);
  *
  * @param cls the request handle of the resolution that
  *        we were attempting to make
- * @param rs socket that received the response
  * @param dns dns response, never NULL
  * @param dns_len number of bytes in @a dns
  */
 static void
 dns_result_parser (void *cls,
-		   struct GNUNET_DNSSTUB_RequestSocket *rs,
 		   const struct GNUNET_TUN_DnsHeader *dns,
 		   size_t dns_len)
 {
@@ -845,18 +908,13 @@ dns_result_parser (void *cls,
   struct GNUNET_DNSPARSER_Packet *p;
   const struct GNUNET_DNSPARSER_Record *rec;
   unsigned int rd_count;
-  unsigned int i;
 
-  (void) rs;
   if (NULL == dns)
   {
     rh->dns_request = NULL;
     GNUNET_SCHEDULER_cancel (rh->task_id);
     rh->task_id = NULL;
-    rh->proc (rh->proc_cls,
-              0,
-              NULL);
-    GNS_resolver_lookup_cancel (rh);
+    fail_resolution (rh);
     return;
   }
   if (rh->original_dns_id != dns->id)
@@ -872,6 +930,8 @@ dns_result_parser (void *cls,
 		_("Failed to parse DNS response\n"));
     return;
   }
+
+  /* We got a result from DNS */
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Received DNS response for `%s' with %u answers\n",
 	      rh->ac_tail->label,
@@ -920,8 +980,10 @@ dns_result_parser (void *cls,
 
     buf_off = 0;
     skip = 0;
-    memset (rd, 0, sizeof (rd));
-    for (i=0;i<rd_count;i++)
+    memset (rd,
+            0,
+            sizeof (rd));
+    for (unsigned int i=0;i<rd_count;i++)
     {
       if (i < p->num_answers)
 	rec = &p->answers[i];
@@ -1043,9 +1105,12 @@ dns_result_parser (void *cls,
     rh->proc (rh->proc_cls,
               rd_count - skip,
               rd);
-    GNS_resolver_lookup_cancel (rh);
   }
   GNUNET_DNSPARSER_free_packet (p);
+  if (NULL != rh->task_id)
+    GNUNET_SCHEDULER_cancel (rh->task_id); /* should be timeout task */
+  rh->task_id = GNUNET_SCHEDULER_add_now (&GNS_resolver_lookup_cancel_,
+                                          rh);
 }
 
 
@@ -1061,7 +1126,6 @@ static void
 recursive_dns_resolution (struct GNS_ResolverHandle *rh)
 {
   struct AuthorityChain *ac;
-  socklen_t sa_len;
   struct GNUNET_DNSPARSER_Query *query;
   struct GNUNET_DNSPARSER_Packet *p;
   char *dns_request;
@@ -1074,20 +1138,6 @@ recursive_dns_resolution (struct GNS_ResolverHandle *rh)
 	      "Starting DNS lookup for `%s'\n",
 	      ac->label);
   GNUNET_assert (GNUNET_NO == ac->gns_authority);
-  switch (((const struct sockaddr *) &ac->authority_info.dns_authority.dns_ip)->sa_family)
-  {
-  case AF_INET:
-    sa_len = sizeof (struct sockaddr_in);
-    break;
-  case AF_INET6:
-    sa_len = sizeof (struct sockaddr_in6);
-    break;
-  default:
-    GNUNET_break (0);
-    rh->proc (rh->proc_cls, 0, NULL);
-    GNS_resolver_lookup_cancel (rh);
-    return;
-  }
   query = GNUNET_new (struct GNUNET_DNSPARSER_Query);
   query->name = GNUNET_strdup (ac->label);
   query->type = rh->record_type;
@@ -1109,20 +1159,22 @@ recursive_dns_resolution (struct GNS_ResolverHandle *rh)
     rh->proc (rh->proc_cls,
 	      0,
 	      NULL);
-    GNS_resolver_lookup_cancel (rh);
+    GNUNET_assert (NULL == rh->task_id);
+    rh->task_id = GNUNET_SCHEDULER_add_now (&GNS_resolver_lookup_cancel_,
+                                            rh);
   }
   else
   {
     rh->original_dns_id = p->id;
-    rh->dns_request = GNUNET_DNSSTUB_resolve (dns_handle,
-					      (const struct sockaddr *) &ac->authority_info.dns_authority.dns_ip,
-					      sa_len,
+    GNUNET_assert (NULL != ac->authority_info.dns_authority.dns_handle);
+    GNUNET_assert (NULL == rh->dns_request);
+    rh->dns_request = GNUNET_DNSSTUB_resolve (ac->authority_info.dns_authority.dns_handle,
 					      dns_request,
 					      dns_request_length,
 					      &dns_result_parser,
 					      rh);
     rh->task_id = GNUNET_SCHEDULER_add_delayed (DNS_LOOKUP_TIMEOUT,
-						&fail_resolution,
+						&timeout_resolution,
 						rh);
   }
   if (GNUNET_SYSERR != ret)
@@ -1293,15 +1345,47 @@ vpn_allocation_cb (void *cls,
 
 
 /**
+ * We have resolved one or more of the nameservers for a
+ * GNS2DNS lookup.  Once we have some of them, begin using
+ * the DNSSTUB resolver.
+ *
+ * @param ac context for GNS2DNS resolution
+ */
+static void
+continue_with_gns2dns (struct AuthorityChain *ac)
+{
+  struct GNS_ResolverHandle *rh = ac->rh;
+
+  if ( (NULL != ac->authority_info.dns_authority.gp_head) &&
+       (GNUNET_NO == ac->authority_info.dns_authority.found) )
+    return; /* more pending and none found yet */
+  if (GNUNET_NO == ac->authority_info.dns_authority.found)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                "Failed to resolve DNS server for `%s' in GNS2DNS resolution\n",
+                ac->authority_info.dns_authority.name);
+    fail_resolution (rh);
+    return;
+  }
+  if (GNUNET_NO != ac->authority_info.dns_authority.launched)
+    return; /* already running, do not launch again! */
+  /* recurse */
+  ac->authority_info.dns_authority.launched = GNUNET_YES;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Will continue resolution using DNS to resolve `%s'\n",
+              ac->label);
+  GNUNET_assert (NULL == rh->task_id);
+  rh->task_id = GNUNET_SCHEDULER_add_now (&recursive_resolution,
+                                          rh);
+
+}
+
+
+/**
  * We've resolved the IP address for the DNS resolver to use
  * after encountering a GNS2DNS record.
  *
- * TODO: Right now we only foward the request to ONE DNS resolver,
- * even if we get multiple IP addresses back; a correct implementation
- * should try all DNS resolvers.
- *
- * @param cls the `struct GNS_ResolverHandle` where we encountered
- *            the GNS2DNS record
+ * @param cls the `struct Gns2DnsPending` used for this request
  * @param rd_count number of records in @a rd
  * @param rd addresses for the DNS resolver  (presumably)
  */
@@ -1310,136 +1394,96 @@ handle_gns2dns_result (void *cls,
                        unsigned int rd_count,
                        const struct GNUNET_GNSRECORD_Data *rd)
 {
-  struct GNS_ResolverHandle *rh = cls;
-  struct AuthorityChain *ac;
-  struct sockaddr *sa;
-  struct sockaddr_in v4;
-  struct sockaddr_in6 v6;
-  size_t sa_len;
+  struct Gns2DnsPending *gp = cls;
+  struct AuthorityChain *ac = gp->ac;
 
-  /* find suitable A/AAAA record */
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Received %u results for IP address of DNS server for GNS2DNS transition\n",
-              rd_count);
-  /* enable cleanup of 'rh' handle that comes next... */
-  if (NULL != rh->g2dc->rh)
+  GNUNET_CONTAINER_DLL_remove (ac->authority_info.dns_authority.gp_head,
+                               ac->authority_info.dns_authority.gp_tail,
+                               gp);
+  /* enable cleanup of 'rh' handle that automatically comes after we return,
+     and which expects 'rh' to be in the #rlh_head DLL. */
+  if (NULL != gp->rh)
   {
     GNUNET_CONTAINER_DLL_insert (rlh_head,
                                  rlh_tail,
-                                 rh->g2dc->rh);
-    rh->g2dc->rh = NULL;
+                                 gp->rh);
+    gp->rh = NULL;
   }
-  sa = NULL;
-  sa_len = 0;
+  GNUNET_free (gp);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Received %u results for IP address of DNS server for GNS2DNS transition\n",
+              rd_count);
+  /* find suitable A/AAAA record */
   for (unsigned int j=0;j<rd_count;j++)
   {
     switch (rd[j].record_type)
     {
     case GNUNET_DNSPARSER_TYPE_A:
-      if (sizeof (struct in_addr) != rd[j].data_size)
       {
-        GNUNET_break_op (0);
-        rh->proc (rh->proc_cls, 0, NULL);
-        GNS_resolver_lookup_cancel (rh);
-        return;
-      }
-      /* FIXME: might want to check if we support IPv4 here,
-         and otherwise skip this one and hope we find another */
-      memset (&v4, 0, sizeof (v4));
-      sa_len = sizeof (v4);
-      v4.sin_family = AF_INET;
-      v4.sin_port = htons (53);
+        struct sockaddr_in v4;
+
+        if (sizeof (struct in_addr) != rd[j].data_size)
+        {
+          GNUNET_break_op (0);
+          continue;
+        }
+        memset (&v4,
+                0,
+                sizeof (v4));
+        v4.sin_family = AF_INET;
+        v4.sin_port = htons (53);
 #if HAVE_SOCKADDR_IN_SIN_LEN
-      v4.sin_len = (u_char) sa_len;
+        v4.sin_len = (u_char) sizeof (v4);
 #endif
-      GNUNET_memcpy (&v4.sin_addr,
-              rd[j].data,
-              sizeof (struct in_addr));
-      sa = (struct sockaddr *) &v4;
-      break;
+        GNUNET_memcpy (&v4.sin_addr,
+                       rd[j].data,
+                       sizeof (struct in_addr));
+        if (GNUNET_OK ==
+            GNUNET_DNSSTUB_add_dns_sa (ac->authority_info.dns_authority.dns_handle,
+                                       (const struct sockaddr *) &v4))
+          ac->authority_info.dns_authority.found = GNUNET_YES;
+        break;
+      }
     case GNUNET_DNSPARSER_TYPE_AAAA:
-      if (sizeof (struct in6_addr) != rd[j].data_size)
       {
-        GNUNET_break_op (0);
-        rh->proc (rh->proc_cls, 0, NULL);
-        GNS_resolver_lookup_cancel (rh);
-        return;
-      }
-      /* FIXME: might want to check if we support IPv6 here,
-         and otherwise skip this one and hope we find another */
-      memset (&v6, 0, sizeof (v6));
-      sa_len = sizeof (v6);
-      v6.sin6_family = AF_INET6;
-      v6.sin6_port = htons (53);
+        struct sockaddr_in6 v6;
+
+        if (sizeof (struct in6_addr) != rd[j].data_size)
+        {
+          GNUNET_break_op (0);
+          continue;
+        }
+        /* FIXME: might want to check if we support IPv6 here,
+           and otherwise skip this one and hope we find another */
+        memset (&v6,
+                0,
+                sizeof (v6));
+        v6.sin6_family = AF_INET6;
+        v6.sin6_port = htons (53);
 #if HAVE_SOCKADDR_IN_SIN_LEN
-      v6.sin6_len = (u_char) sa_len;
+        v6.sin6_len = (u_char) sizeof (v6);
 #endif
-      GNUNET_memcpy (&v6.sin6_addr,
-              rd[j].data,
-              sizeof (struct in6_addr));
-      sa = (struct sockaddr *) &v6;
-      break;
+        GNUNET_memcpy (&v6.sin6_addr,
+                       rd[j].data,
+                       sizeof (struct in6_addr));
+        if (GNUNET_OK ==
+            GNUNET_DNSSTUB_add_dns_sa (ac->authority_info.dns_authority.dns_handle,
+                                       (const struct sockaddr *) &v6))
+          ac->authority_info.dns_authority.found = GNUNET_YES;
+        break;
+      }
     default:
       break;
     }
-    if (NULL != sa)
-      break;
   }
-  if (NULL == sa)
-  {
-    /* we cannot continue; NS without A/AAAA */
-    rh->proc (rh->proc_cls, 0, NULL);
-    GNS_resolver_lookup_cancel (rh);
-    return;
-  }
-  /* expand authority chain */
-  ac = GNUNET_new (struct AuthorityChain);
-  ac->rh = rh;
-  GNUNET_assert (strlen (rh->g2dc->ns) <= GNUNET_DNSPARSER_MAX_NAME_LENGTH);
-  strcpy (ac->authority_info.dns_authority.name,
-          rh->g2dc->ns);
-  GNUNET_memcpy (&ac->authority_info.dns_authority.dns_ip,
-          sa,
-          sa_len);
-  /* for DNS recursion, the label is the full DNS name,
-     created from the remainder of the GNS name and the
-     name in the NS record */
-  GNUNET_asprintf (&ac->label,
-                   "%.*s%s%s",
-                   (int) rh->name_resolution_pos,
-                   rh->name,
-                   (0 != rh->name_resolution_pos) ? "." : "",
-                   rh->g2dc->ns);
-  GNUNET_free (rh->g2dc->ns);
-  GNUNET_free (rh->g2dc);
-  rh->g2dc = NULL;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Will continue resolution using DNS server `%s' to resolve `%s'\n",
-              GNUNET_a2s (sa,
-                          sa_len),
-              ac->label);
-  GNUNET_CONTAINER_DLL_insert_tail (rh->ac_head,
-                                    rh->ac_tail,
-                                    ac);
-  if (strlen (ac->label) > GNUNET_DNSPARSER_MAX_NAME_LENGTH)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                _("GNS lookup resulted in DNS name that is too long (`%s')\n"),
-                ac->label);
-    rh->proc (rh->proc_cls, 0, NULL);
-    GNS_resolver_lookup_cancel (rh);
-    return;
-  }
-  /* recurse */
-  rh->task_id = GNUNET_SCHEDULER_add_now (&recursive_resolution,
-                                          rh);
+  continue_with_gns2dns (ac);
 }
 
 
 /**
  * Function called by the resolver for each address obtained from DNS.
  *
- * @param cls closure, a `struct Gns2DnsContext *`
+ * @param cls closure, a `struct Gns2DnsPending *`
  * @param addr one of the addresses of the host, NULL for the last address
  * @param addrlen length of @a addr
  */
@@ -1448,55 +1492,268 @@ handle_gns2dns_ip (void *cls,
                    const struct sockaddr *addr,
                    socklen_t addrlen)
 {
-  struct Gns2DnsContext *g2dc = cls;
-  struct GNUNET_GNSRECORD_Data rd;
+  struct Gns2DnsPending *gp = cls;
+  struct AuthorityChain *ac = gp->ac;
 
+  GNUNET_RESOLVER_request_cancel (gp->dns_rh);
+  GNUNET_CONTAINER_DLL_remove (ac->authority_info.dns_authority.gp_head,
+                               ac->authority_info.dns_authority.gp_tail,
+                               gp);
+  GNUNET_free (gp);
   if (NULL == addr)
   {
     /* DNS resolution failed */
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                 "Failed to use DNS to resolve name of DNS resolver\n");
-    g2dc->rh->g2dc = NULL;
-    fail_resolution (g2dc->rh);
-    GNUNET_free (g2dc);
   }
-  switch (addr->sa_family)
+  else
   {
-  case AF_INET:
-    {
-      const struct sockaddr_in *v4 = (const struct sockaddr_in *) addr;
-
-      GNUNET_assert (sizeof (*v4) == addrlen);
-      rd.data = v4;
-      rd.data_size = sizeof (*v4);
-      rd.expiration_time = UINT64_MAX;
-      rd.record_type = GNUNET_DNSPARSER_TYPE_A;
-      rd.flags = 0;
-      break;
-    }
-  case AF_INET6:
-    {
-      const struct sockaddr_in6 *v6 = (const struct sockaddr_in6 *) addr;
-
-      GNUNET_assert (sizeof (*v6) == addrlen);
-      rd.data = v6;
-      rd.data_size = sizeof (v6);
-      rd.expiration_time = UINT64_MAX;
-      rd.record_type = GNUNET_DNSPARSER_TYPE_AAAA;
-      rd.flags = 0;
-      break;
-    }
-  default:
-    return;
+    if (GNUNET_OK ==
+        GNUNET_DNSSTUB_add_dns_sa (ac->authority_info.dns_authority.dns_handle,
+                                   addr))
+      ac->authority_info.dns_authority.found = GNUNET_YES;
   }
-  GNUNET_RESOLVER_request_cancel (g2dc->dns_rh);
-  g2dc->dns_rh = NULL;
-  handle_gns2dns_result (g2dc->rh,
-                         1,
-                         &rd);
-
+  continue_with_gns2dns (ac);
 }
 
+
+/**
+ * We found a CNAME record, perform recursive resolution on it.
+ *
+ * @param rh resolution handle
+ * @param rd record with CNAME to resolve recursively
+ */
+static void
+recursive_cname_resolution (struct GNS_ResolverHandle *rh,
+                            const struct GNUNET_GNSRECORD_Data *rd)
+{
+  char *cname;
+  size_t off;
+
+  off = 0;
+  cname = GNUNET_DNSPARSER_parse_name (rd->data,
+                                       rd->data_size,
+                                       &off);
+  if ( (NULL == cname) ||
+       (off != rd->data_size) )
+  {
+    GNUNET_break_op (0); /* record not well-formed */
+    GNUNET_free_non_null (cname);
+    fail_resolution (rh);
+    return;
+  }
+  handle_gns_cname_result (rh,
+                           cname);
+  GNUNET_free (cname);
+}
+
+
+/**
+ * We found a PKEY record, perform recursive resolution on it.
+ *
+ * @param rh resolution handle
+ * @param rd record with PKEY to resolve recursively
+ */
+static void
+recursive_pkey_resolution (struct GNS_ResolverHandle *rh,
+                           const struct GNUNET_GNSRECORD_Data *rd)
+{
+  struct AuthorityChain *ac;
+
+  /* delegation to another zone */
+  if (sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey) !=
+      rd->data_size)
+  {
+    GNUNET_break_op (0);
+    fail_resolution (rh);
+    return;
+  }
+  /* expand authority chain */
+  ac = GNUNET_new (struct AuthorityChain);
+  ac->rh = rh;
+  ac->gns_authority = GNUNET_YES;
+  ac->suggested_shortening_label = NULL;
+  ac->shortening_started = GNUNET_NO;
+  GNUNET_memcpy (&ac->authority_info.gns_authority,
+                 rd->data,
+                 sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey));
+  ac->label = resolver_lookup_get_next_label (rh);
+  /* add AC to tail */
+  GNUNET_CONTAINER_DLL_insert_tail (rh->ac_head,
+                                    rh->ac_tail,
+                                    ac);
+  /* recurse */
+  rh->task_id = GNUNET_SCHEDULER_add_now (&recursive_resolution,
+                                          rh);
+}
+
+
+/**
+ * We found one or more GNS2DNS records, perform recursive resolution on it.
+ * (to be precise, one or more records in @a rd is GNS2DNS, there may be others,
+ * so this function still needs to check which ones are GNS2DNS).
+ *
+ * @param rh resolution handle
+ * @param rd_count length of the @a rd array
+ * @param rd record with PKEY to resolve recursively
+ * @return #GNUNET_OK if this worked, #GNUNET_SYSERR if no GNS2DNS records were in @a rd
+ */
+static int
+recursive_gns2dns_resolution (struct GNS_ResolverHandle *rh,
+                              unsigned int rd_count,
+                              const struct GNUNET_GNSRECORD_Data *rd)
+{
+  struct AuthorityChain *ac;
+  const char *tld;
+  char *ns;
+
+  ns = NULL;
+  /* expand authority chain */
+  ac = GNUNET_new (struct AuthorityChain);
+  ac->rh = rh;
+  ac->authority_info.dns_authority.dns_handle = GNUNET_DNSSTUB_start (4);
+
+  for (unsigned int i=0;i<rd_count;i++)
+  {
+    char *ip;
+    char *n;
+    size_t off;
+    struct Gns2DnsPending *gp;
+    struct GNUNET_CRYPTO_EcdsaPublicKey zone;
+
+    if (GNUNET_GNSRECORD_TYPE_GNS2DNS != rd[i].record_type)
+      continue;
+    off = 0;
+    n = GNUNET_DNSPARSER_parse_name (rd[i].data,
+                                     rd[i].data_size,
+                                     &off);
+    ip = GNUNET_DNSPARSER_parse_name (rd[i].data,
+                                      rd[i].data_size,
+                                      &off);
+    if ( (NULL == n) ||
+         (NULL == ip) ||
+         (off != rd[i].data_size) )
+    {
+      GNUNET_break_op (0);
+      GNUNET_free_non_null (n);
+      GNUNET_free_non_null (ip);
+      continue;
+    }
+    /* resolve 'ip' to determine the IP(s) of the DNS
+       resolver to use for lookup of 'ns' */
+    if (NULL != ns)
+    {
+      if (0 != strcasecmp (ns,
+                           n))
+      {
+        /* NS values must all be the same for all GNS2DNS records,
+           anything else leads to insanity */
+        GNUNET_break_op (0);
+        GNUNET_free (n);
+        GNUNET_free (ip);
+        continue;
+      }
+      GNUNET_free (n);
+    }
+    else
+    {
+      ns = n;
+    }
+
+    /* check if 'ip' is already an IPv4/IPv6 address */
+    if (GNUNET_OK ==
+        GNUNET_DNSSTUB_add_dns_ip (ac->authority_info.dns_authority.dns_handle,
+                                   ip))
+    {
+      ac->authority_info.dns_authority.found = GNUNET_YES;
+      GNUNET_free (ip);
+      continue;
+    }
+    tld = GNS_get_tld (ip);
+    if (0 != strcmp (tld,
+                     "+"))
+    {
+      /* 'ip' is a DNS name */
+      gp = GNUNET_new (struct Gns2DnsPending);
+      gp->ac = ac;
+      GNUNET_CONTAINER_DLL_insert (ac->authority_info.dns_authority.gp_head,
+                                   ac->authority_info.dns_authority.gp_tail,
+                                   gp);
+      gp->dns_rh = GNUNET_RESOLVER_ip_get (ip,
+                                           AF_UNSPEC,
+                                           GNUNET_TIME_UNIT_FOREVER_REL,
+                                           &handle_gns2dns_ip,
+                                           gp);
+      GNUNET_free (ip);
+      continue;
+    }
+    /* 'ip' should be a GNS name */
+    gp = GNUNET_new (struct Gns2DnsPending);
+    gp->ac = ac;
+    GNUNET_CONTAINER_DLL_insert (ac->authority_info.dns_authority.gp_head,
+                                 ac->authority_info.dns_authority.gp_tail,
+                                 gp);
+    gp->rh = GNUNET_new (struct GNS_ResolverHandle);
+    ip = translate_dot_plus (rh,
+                             ip);
+    tld = GNS_get_tld (ip);
+    if (GNUNET_OK !=
+        GNUNET_GNSRECORD_zkey_to_pkey (tld,
+                                       &zone))
+    {
+      GNUNET_break_op (0);
+      GNUNET_free (ip);
+      continue;
+    }
+    gp->rh->authority_zone = zone;
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Resolving `%s' to determine IP address of DNS server for GNS2DNS transition for `%s'\n",
+                ip,
+                ns);
+    gp->rh->name = ip;
+    gp->rh->name_resolution_pos = strlen (ip) - strlen (tld) - 1;
+    gp->rh->proc = &handle_gns2dns_result;
+    gp->rh->proc_cls = gp;
+    gp->rh->record_type = GNUNET_GNSRECORD_TYPE_ANY;
+    gp->rh->options = GNUNET_GNS_LO_DEFAULT;
+    gp->rh->loop_limiter = rh->loop_limiter + 1;
+    gp->rh->task_id
+      = GNUNET_SCHEDULER_add_now (&start_resolver_lookup,
+                                  gp->rh);
+  } /* end 'for all records' */
+
+  if (NULL == ns)
+  {
+    /* not a single GNS2DNS record found */
+    GNUNET_free (ac);
+    return GNUNET_SYSERR;
+  }
+  GNUNET_assert (strlen (ns) <= GNUNET_DNSPARSER_MAX_NAME_LENGTH);
+  strcpy (ac->authority_info.dns_authority.name,
+          ns);
+  /* for DNS recursion, the label is the full DNS name,
+     created from the remainder of the GNS name and the
+     name in the NS record */
+  GNUNET_asprintf (&ac->label,
+                   "%.*s%s%s",
+                   (int) rh->name_resolution_pos,
+                   rh->name,
+                   (0 != rh->name_resolution_pos) ? "." : "",
+                   ns);
+  GNUNET_free (ns);
+  GNUNET_CONTAINER_DLL_insert_tail (rh->ac_head,
+                                    rh->ac_tail,
+                                    ac);
+  if (strlen (ac->label) > GNUNET_DNSPARSER_MAX_NAME_LENGTH)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                _("GNS lookup resulted in DNS name that is too long (`%s')\n"),
+                ac->label);
+    return GNUNET_SYSERR;
+  }
+  continue_with_gns2dns (ac);
+  return GNUNET_OK;
+}
 
 
 /**
@@ -1512,7 +1769,6 @@ handle_gns_resolution_result (void *cls,
 			      const struct GNUNET_GNSRECORD_Data *rd)
 {
   struct GNS_ResolverHandle *rh = cls;
-  struct AuthorityChain *ac;
   struct AuthorityChain *shorten_ac;
   char *cname;
   struct VpnContext *vpn_ctx;
@@ -1532,6 +1788,14 @@ handle_gns_resolution_result (void *cls,
 	      rh->ac_tail->label,
 	      GNUNET_GNSRECORD_z2s (&rh->ac_tail->authority_info.gns_authority),
 	      rd_count);
+  if (0 == rd_count)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                _("GNS lookup failed (zero records found)\n"));
+    fail_resolution (rh);
+    return;
+  }
+
   if (0 == rh->name_resolution_pos)
   {
     /* top-level match, are we done yet? */
@@ -1547,9 +1811,8 @@ handle_gns_resolution_result (void *cls,
 	   (off != rd[0].data_size) )
       {
 	GNUNET_break_op (0);
-	rh->proc (rh->proc_cls, 0, NULL);
-	GNS_resolver_lookup_cancel (rh);
         GNUNET_free_non_null (cname);
+        fail_resolution (rh);
 	return;
       }
       handle_gns_cname_result (rh,
@@ -1573,8 +1836,7 @@ handle_gns_resolution_result (void *cls,
 		rd[i].data_size)
 	    {
 	      GNUNET_break_op (0);
-	      rh->proc (rh->proc_cls, 0, NULL);
-	      GNS_resolver_lookup_cancel (rh);
+              fail_resolution (rh);
 	      return;
 	    }
 	    vpn = (const struct GNUNET_TUN_GnsVpnRecord *) rd[i].data;
@@ -1582,8 +1844,7 @@ handle_gns_resolution_result (void *cls,
 	    if ('\0' != vname[rd[i].data_size - 1 - sizeof (struct GNUNET_TUN_GnsVpnRecord)])
 	    {
 	      GNUNET_break_op (0);
-	      rh->proc (rh->proc_cls, 0, NULL);
-	      GNS_resolver_lookup_cancel (rh);
+              fail_resolution (rh);
 	      return;
 	    }
 	    GNUNET_TUN_service_name_to_hash (vname,
@@ -1621,7 +1882,13 @@ handle_gns_resolution_result (void *cls,
 	    /* delegation to DNS */
             GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                         "Found GNS2DNS record, delegating to DNS!\n");
-	    goto do_recurse;
+            if (GNUNET_OK ==
+                recursive_gns2dns_resolution (rh,
+                                              rd_count,
+                                              rd))
+              return;
+            else
+              goto fail;
 	  }
 	default:
 	  break;
@@ -1823,18 +2090,20 @@ handle_gns_resolution_result (void *cls,
 	    GNUNET_break_op (0);
 	    break;
 	  }
-	  GNUNET_memcpy (&pub, rd[i].data, rd[i].data_size);
+	  GNUNET_memcpy (&pub,
+                         rd[i].data,
+                         rd[i].data_size);
           rd_off++;
           if (GNUNET_GNSRECORD_TYPE_PKEY != rh->record_type)
           {
-            /* try to resolve "+" */
+            /* try to resolve "@" */
             struct AuthorityChain *ac;
 
             ac = GNUNET_new (struct AuthorityChain);
             ac->rh = rh;
             ac->gns_authority = GNUNET_YES;
             ac->authority_info.gns_authority = pub;
-            ac->label = GNUNET_strdup (GNUNET_GNS_MASTERZONE_STR);
+            ac->label = GNUNET_strdup (GNUNET_GNS_EMPTY_LABEL_AT);
             ac->suggested_shortening_label = NULL;
             ac->shortening_started = GNUNET_NO;
             GNUNET_CONTAINER_DLL_insert_tail (rh->ac_head,
@@ -1856,7 +2125,13 @@ handle_gns_resolution_result (void *cls,
           }
           GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                       "Found GNS2DNS record, delegating to DNS!\n");
-          goto do_recurse;
+          if (GNUNET_OK ==
+              recursive_gns2dns_resolution (rh,
+                                            rd_count,
+                                            rd))
+            return;
+          else
+            goto fail;
         }
       case GNUNET_GNSRECORD_TYPE_BOX:
         {
@@ -1901,200 +2176,35 @@ handle_gns_resolution_result (void *cls,
     rh->proc (rh->proc_cls,
               rd_off,
               rd_new);
-    GNS_resolver_lookup_cancel (rh);
+    rh->task_id = GNUNET_SCHEDULER_add_now (&GNS_resolver_lookup_cancel_,
+                                            rh);
     return;
   }
- do_recurse:
-  /* need to recurse, check if we can */
-  for (unsigned int i=0;i<rd_count;i++)
+
+  switch (rd[0].record_type)
   {
-    switch (rd[i].record_type)
-    {
-    case GNUNET_GNSRECORD_TYPE_PKEY:
-      /* delegation to another zone */
-      if (sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey) !=
-	  rd[i].data_size)
-      {
-	GNUNET_break_op (0);
-	rh->proc (rh->proc_cls, 0, NULL);
-	GNS_resolver_lookup_cancel (rh);
-	return;
-      }
-      /* expand authority chain */
-      ac = GNUNET_new (struct AuthorityChain);
-      ac->rh = rh;
-      ac->gns_authority = GNUNET_YES;
-      ac->suggested_shortening_label = NULL;
-      ac->shortening_started = GNUNET_NO;
-      GNUNET_memcpy (&ac->authority_info.gns_authority,
-	      rd[i].data,
-	      sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey));
-      ac->label = resolver_lookup_get_next_label (rh);
-      /* add AC to tail */
-      GNUNET_CONTAINER_DLL_insert_tail (rh->ac_head,
-					rh->ac_tail,
-					ac);
-      /* recurse */
-      rh->task_id = GNUNET_SCHEDULER_add_now (&recursive_resolution,
-					      rh);
+  case GNUNET_DNSPARSER_TYPE_CNAME:
+    GNUNET_break_op (1 == rd_count); /* CNAME should be unique */
+    recursive_cname_resolution (rh,
+                                &rd[0]);
+    return;
+  case GNUNET_GNSRECORD_TYPE_PKEY:
+    GNUNET_break_op (1 == rd_count); /* PKEY should be unique */
+    recursive_pkey_resolution (rh,
+                               &rd[0]);
+    return;
+  default:
+    if (GNUNET_OK ==
+        recursive_gns2dns_resolution (rh,
+                                      rd_count,
+                                      rd))
       return;
-    case GNUNET_GNSRECORD_TYPE_GNS2DNS:
-      {
-        /* TODO: Right now we only foward the request to ONE DNS resolver,
-           even if we get multiple IP addresses back; a correct implementation
-           should try all DNS resolvers. */
-	/* resolution continues within DNS */
-        struct Gns2DnsContext *g2dc;
-        char *ip;
-        char *ns;
-        const char *tld;
-        struct GNUNET_CRYPTO_EcdsaPublicKey zone;
-        struct in_addr v4;
-        struct in6_addr v6;
-
-        off = 0;
-        ns = GNUNET_DNSPARSER_parse_name (rd[i].data,
-                                          rd[i].data_size,
-                                          &off);
-        ip = GNUNET_DNSPARSER_parse_name (rd[i].data,
-                                          rd[i].data_size,
-                                          &off);
-        if ( (NULL == ns) ||
-             (NULL == ip) ||
-             (off != rd[i].data_size) )
-        {
-          GNUNET_break_op (0);
-          GNUNET_free_non_null (ns);
-          GNUNET_free_non_null (ip);
-          fail_resolution (rh);
-          return;
-        }
-        /* resolve 'ip' to determine the IP(s) of the DNS
-           resolver to use for lookup of 'ns' */
-        g2dc = GNUNET_new (struct Gns2DnsContext);
-        g2dc->ns = ns;
-        rh->g2dc = g2dc;
-
-        /* check if 'ip' is already an IPv4/IPv6 address */
-        if (1 == inet_pton (AF_INET,
-                            ip,
-                            &v4))
-        {
-          /* name is IPv4 address, pretend it's an A record */
-          struct GNUNET_GNSRECORD_Data rd;
-
-          GNUNET_free (ip);
-          rd.data = &v4;
-          rd.data_size = sizeof (v4);
-          rd.expiration_time = UINT64_MAX;
-          rd.record_type = GNUNET_DNSPARSER_TYPE_A;
-          rd.flags = 0;
-          handle_gns2dns_result (rh,
-                                 1,
-                                 &rd);
-          return;
-        }
-        if (1 == inet_pton (AF_INET6,
-                            ip,
-                            &v6))
-        {
-          /* name is IPv6 address, pretend it's an AAAA record */
-          struct GNUNET_GNSRECORD_Data rd;
-
-          GNUNET_free (ip);
-          rd.data = &v6;
-          rd.data_size = sizeof (v6);
-          rd.expiration_time = UINT64_MAX;
-          rd.record_type = GNUNET_DNSPARSER_TYPE_AAAA;
-          rd.flags = 0;
-          handle_gns2dns_result (rh,
-                                 1,
-                                 &rd);
-          return;
-        }
-
-        tld = GNS_get_tld (ip);
-        if (0 != strcmp (tld,
-                         "+"))
-        {
-          /* 'ip' is a DNS name */
-          g2dc->dns_rh = GNUNET_RESOLVER_ip_get (ip,
-                                                 AF_UNSPEC,
-                                                 GNUNET_TIME_UNIT_FOREVER_REL,
-                                                 &handle_gns2dns_ip,
-                                                 g2dc);
-          GNUNET_free (ip);
-          return;
-        }
-
-        /* 'ip' should be a GNS name */
-        g2dc->rh = GNUNET_new (struct GNS_ResolverHandle);
-
-        ip = translate_dot_plus (rh,
-                                 ip);
-        tld = GNS_get_tld (ip);
-        if (GNUNET_OK !=
-            GNUNET_GNSRECORD_zkey_to_pkey (tld,
-                                           &zone))
-        {
-          GNUNET_break_op (0);
-          GNUNET_free_non_null (ns);
-          GNUNET_free_non_null (ip);
-          GNUNET_free (g2dc);
-          fail_resolution (rh);
-          return;
-        }
-        g2dc->rh->authority_zone = zone;
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                    "Resolving `%s' to determine IP address of DNS server for GNS2DNS transition for `%s'\n",
-                    ip,
-                    ns);
-        g2dc->rh->name = ip;
-        g2dc->rh->name_resolution_pos = strlen (ip) - strlen (tld) - 1;
-        g2dc->rh->proc = &handle_gns2dns_result;
-        g2dc->rh->proc_cls = rh;
-        g2dc->rh->record_type = GNUNET_GNSRECORD_TYPE_ANY;
-        g2dc->rh->options = GNUNET_GNS_LO_DEFAULT;
-        g2dc->rh->loop_limiter = rh->loop_limiter + 1;
-        g2dc->rh->task_id
-	  = GNUNET_SCHEDULER_add_now (&start_resolver_lookup,
-				      g2dc->rh);
-	return;
-      }
-    case GNUNET_DNSPARSER_TYPE_CNAME:
-      {
-	char *cname;
-
-	off = 0;
-	cname = GNUNET_DNSPARSER_parse_name (rd[i].data,
-					     rd[i].data_size,
-					     &off);
-	if ( (NULL == cname) ||
-	     (off != rd[i].data_size) )
-	{
-	  GNUNET_break_op (0); /* record not well-formed */
-	  rh->proc (rh->proc_cls, 0, NULL);
-	  GNS_resolver_lookup_cancel (rh);
-	  GNUNET_free_non_null (cname);
-	  return;
-	}
-	handle_gns_cname_result (rh,
-				 cname);
-	GNUNET_free (cname);
-	return;
-      }
-      /* FIXME: handle DNAME */
-    default:
-      /* skip */
-      break;
-    }
+    break;
   }
+ fail:
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
 	      _("GNS lookup recursion failed (no delegation record found)\n"));
-  rh->proc (rh->proc_cls,
-            0,
-            NULL);
-  GNS_resolver_lookup_cancel (rh);
+  fail_resolution (rh);
 }
 
 
@@ -2176,8 +2286,7 @@ handle_dht_response (void *cls,
   {
     /* how did this pass DHT block validation!? */
     GNUNET_break (0);
-    rh->proc (rh->proc_cls, 0, NULL);
-    GNS_resolver_lookup_cancel (rh);
+    fail_resolution (rh);
     return;
   }
   block = data;
@@ -2188,8 +2297,7 @@ handle_dht_response (void *cls,
   {
     /* how did this pass DHT block validation!? */
     GNUNET_break (0);
-    rh->proc (rh->proc_cls, 0, NULL);
-    GNS_resolver_lookup_cancel (rh);
+    fail_resolution (rh);
     return;
   }
   if (GNUNET_OK !=
@@ -2200,8 +2308,7 @@ handle_dht_response (void *cls,
 				      rh))
   {
     GNUNET_break_op (0); /* block was ill-formed */
-    rh->proc (rh->proc_cls, 0, NULL);
-    GNS_resolver_lookup_cancel (rh);
+    fail_resolution (rh);
     return;
   }
   if (0 == GNUNET_TIME_absolute_get_remaining (GNUNET_TIME_absolute_ntoh (block->expiration_time)).rel_value_us)
@@ -2252,8 +2359,7 @@ start_dht_request (struct GNS_ResolverHandle *rh,
     /* fail longest-standing DHT request */
     rx = GNUNET_CONTAINER_heap_peek (dht_lookup_heap);
     GNUNET_assert (NULL != rx);
-    rx->proc (rx->proc_cls, 0, NULL);
-    GNS_resolver_lookup_cancel (rx);
+    fail_resolution (rx);
   }
 }
 
@@ -2324,8 +2430,7 @@ handle_namecache_block_response (void *cls,
 		"Resolution failed for `%s' in zone %s (DHT lookup not permitted by configuration)\n",
 		ac->label,
 		GNUNET_GNSRECORD_z2s (&ac->authority_info.gns_authority));
-    rh->proc (rh->proc_cls, 0, NULL);
-    GNS_resolver_lookup_cancel (rh);
+    fail_resolution (rh);
     return;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -2373,7 +2478,7 @@ recursive_gns_resolution_namecache (struct GNS_ResolverHandle *rh)
   GNUNET_GNSRECORD_query_from_public_key (&ac->authority_info.gns_authority,
 					  ac->label,
 					  &query);
-  if (GNUNET_YES == use_cache)
+  if (GNUNET_YES != disable_cache)
   {
     rh->namecache_qe
       = GNUNET_NAMECACHE_lookup_block (namecache_handle,
@@ -2384,7 +2489,8 @@ recursive_gns_resolution_namecache (struct GNS_ResolverHandle *rh)
   }
   else
   {
-    start_dht_request (rh, &query);
+    start_dht_request (rh,
+		       &query);
   }
 }
 
@@ -2408,8 +2514,7 @@ handle_revocation_result (void *cls,
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                 _("Zone %s was revoked, resolution fails\n"),
                 GNUNET_GNSRECORD_z2s (&ac->authority_info.gns_authority));
-    rh->proc (rh->proc_cls, 0, NULL);
-    GNS_resolver_lookup_cancel (rh);
+    fail_resolution (rh);
     return;
   }
   recursive_gns_resolution_namecache (rh);
@@ -2453,8 +2558,7 @@ recursive_resolution (void *cls)
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
 		"Encountered unbounded recursion resolving `%s'\n",
 		rh->name);
-    rh->proc (rh->proc_cls, 0, NULL);
-    GNS_resolver_lookup_cancel (rh);
+    fail_resolution (rh);
     return;
   }
   if (GNUNET_YES == rh->ac_tail->gns_authority)
@@ -2491,8 +2595,12 @@ start_resolver_lookup (void *cls)
     rd.expiration_time = UINT64_MAX;
     rd.record_type = GNUNET_DNSPARSER_TYPE_A;
     rd.flags = 0;
-    rh->proc (rh->proc_cls, 1, &rd);
-    GNS_resolver_lookup_cancel (rh);
+    rh->proc (rh->proc_cls,
+              1,
+              &rd);
+    GNUNET_assert (NULL == rh->task_id);
+    rh->task_id = GNUNET_SCHEDULER_add_now (&GNS_resolver_lookup_cancel_,
+                                            rh);
     return;
   }
   if (1 == inet_pton (AF_INET6,
@@ -2507,8 +2615,12 @@ start_resolver_lookup (void *cls)
     rd.expiration_time = UINT64_MAX;
     rd.record_type = GNUNET_DNSPARSER_TYPE_AAAA;
     rd.flags = 0;
-    rh->proc (rh->proc_cls, 1, &rd);
-    GNS_resolver_lookup_cancel (rh);
+    rh->proc (rh->proc_cls,
+              1,
+              &rd);
+    GNUNET_assert (NULL == rh->task_id);
+    rh->task_id = GNUNET_SCHEDULER_add_now (&GNS_resolver_lookup_cancel_,
+                                            rh);
     return;
   }
 
@@ -2518,8 +2630,8 @@ start_resolver_lookup (void *cls)
   ac->suggested_shortening_label = NULL;
   if (NULL == ac->label)
     /* name was just the "TLD", so we default to label
-       #GNUNET_GNS_MASTERZONE_STR */
-    ac->label = GNUNET_strdup (GNUNET_GNS_MASTERZONE_STR);
+       #GNUNET_GNS_EMPTY_LABEL_AT */
+    ac->label = GNUNET_strdup (GNUNET_GNS_EMPTY_LABEL_AT);
   ac->gns_authority = GNUNET_YES;
   ac->authority_info.gns_authority = rh->authority_zone;
   GNUNET_CONTAINER_DLL_insert_tail (rh->ac_head,
@@ -2587,36 +2699,50 @@ GNS_resolver_lookup_cancel (struct GNS_ResolverHandle *rh)
   GNUNET_CONTAINER_DLL_remove (rlh_head,
 			       rlh_tail,
 			       rh);
+  if (NULL != rh->dns_request)
+  {
+    GNUNET_DNSSTUB_resolve_cancel (rh->dns_request);
+    rh->dns_request = NULL;
+  }
   while (NULL != (ac = rh->ac_head))
   {
     GNUNET_CONTAINER_DLL_remove (rh->ac_head,
 				 rh->ac_tail,
 				 ac);
+    if (GNUNET_NO == ac->gns_authority)
+    {
+      struct Gns2DnsPending *gp;
+
+      while (NULL != (gp = ac->authority_info.dns_authority.gp_head))
+      {
+        GNUNET_CONTAINER_DLL_remove (ac->authority_info.dns_authority.gp_head,
+                                     ac->authority_info.dns_authority.gp_tail,
+                                     gp);
+        if (NULL != gp->rh)
+        {
+          /* rh->g2dc->rh is NOT in the DLL yet, so to enable us
+             using GNS_resolver_lookup_cancel here, we need to
+             add it first... */
+          GNUNET_CONTAINER_DLL_insert (rlh_head,
+                                       rlh_tail,
+                                       gp->rh);
+          GNUNET_assert (NULL == gp->rh->task_id);
+          gp->rh->task_id = GNUNET_SCHEDULER_add_now (&GNS_resolver_lookup_cancel_,
+                                                      gp->rh);
+          gp->rh = NULL;
+        }
+        if (NULL != gp->dns_rh)
+        {
+          GNUNET_RESOLVER_request_cancel (gp->dns_rh);
+          gp->dns_rh = NULL;
+        }
+        GNUNET_free (gp);
+      }
+      GNUNET_DNSSTUB_stop (ac->authority_info.dns_authority.dns_handle);
+    }
     GNUNET_free (ac->label);
     GNUNET_free_non_null (ac->suggested_shortening_label);
     GNUNET_free (ac);
-  }
-  if (NULL != rh->g2dc)
-  {
-    /* rh->g2dc->rh is NOT in the DLL yet, so to enable us
-       using GNS_resolver_lookup_cancel here, we need to
-       add it first... */
-    if (NULL != rh->g2dc->rh)
-    {
-      GNUNET_CONTAINER_DLL_insert (rlh_head,
-                                   rlh_tail,
-                                   rh->g2dc->rh);
-      GNS_resolver_lookup_cancel (rh->g2dc->rh);
-      rh->g2dc->rh = NULL;
-    }
-    if (NULL != rh->g2dc->dns_rh)
-    {
-      GNUNET_RESOLVER_request_cancel (rh->g2dc->dns_rh);
-      rh->g2dc->rh = NULL;
-    }
-    GNUNET_free (rh->g2dc->ns);
-    GNUNET_free (rh->g2dc);
-    rh->g2dc = NULL;
   }
   if (NULL != rh->task_id)
   {
@@ -2638,11 +2764,6 @@ GNS_resolver_lookup_cancel (struct GNS_ResolverHandle *rh)
     GNUNET_VPN_cancel_request (vpn_ctx->vpn_request);
     GNUNET_free (vpn_ctx->rd_data);
     GNUNET_free (vpn_ctx);
-  }
-  if (NULL != rh->dns_request)
-  {
-    GNUNET_DNSSTUB_resolve_cancel (rh->dns_request);
-    rh->dns_request = NULL;
   }
   if (NULL != rh->namecache_qe)
   {
@@ -2690,34 +2811,18 @@ GNS_resolver_init (struct GNUNET_NAMECACHE_Handle *nc,
 		   const struct GNUNET_CONFIGURATION_Handle *c,
 		   unsigned long long max_bg_queries)
 {
-  char *dns_ip;
-
   cfg = c;
   namecache_handle = nc;
   dht_handle = dht;
   dht_lookup_heap =
     GNUNET_CONTAINER_heap_create (GNUNET_CONTAINER_HEAP_ORDER_MIN);
   max_allowed_background_queries = max_bg_queries;
-  if (GNUNET_SYSERR == (use_cache =
-                        GNUNET_CONFIGURATION_get_value_yesno (c,
-                                                              "gns",
-                                                              "USE_CACHE")))
-    use_cache = GNUNET_YES;
-  if (GNUNET_NO == use_cache)
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+  disable_cache = GNUNET_CONFIGURATION_get_value_yesno (cfg,
+							"namecache",
+							"DISABLE");
+  if (GNUNET_YES == disable_cache)
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                 "Namecache disabled\n");
-
-  if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_string (c,
-					     "gns",
-					     "DNS_RESOLVER",
-					     &dns_ip))
-  {
-    /* user did not specify DNS resolver, use 8.8.8.8 */
-    dns_ip = GNUNET_strdup ("8.8.8.8");
-  }
-  dns_handle = GNUNET_DNSSTUB_start (dns_ip);
-  GNUNET_free (dns_ip);
   vpn_handle = GNUNET_VPN_connect (cfg);
 }
 
@@ -2734,7 +2839,9 @@ GNS_resolver_done ()
   /* abort active resolutions */
   while (NULL != (rh = rlh_head))
   {
-    rh->proc (rh->proc_cls, 0, NULL);
+    rh->proc (rh->proc_cls,
+              0,
+              NULL);
     GNS_resolver_lookup_cancel (rh);
   }
   while (NULL != (co = co_head))
@@ -2747,8 +2854,6 @@ GNS_resolver_done ()
   }
   GNUNET_CONTAINER_heap_destroy (dht_lookup_heap);
   dht_lookup_heap = NULL;
-  GNUNET_DNSSTUB_stop (dns_handle);
-  dns_handle = NULL;
   GNUNET_VPN_disconnect (vpn_handle);
   vpn_handle = NULL;
   dht_handle = NULL;
