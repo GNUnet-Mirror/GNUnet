@@ -72,6 +72,7 @@ This document is the Reference Manual for GNUnet version @value{VERSION}.
 
 @menu
 
+* Terminology::                     Terminology used throughout the Manual
 * Philosophy::                      About GNUnet
 @c * Vocabulary::                      Vocabulary
 * GNUnet Installation Handbook::    How to install GNUnet
@@ -87,7 +88,7 @@ This document is the Reference Manual for GNUnet version @value{VERSION}.
 @detailmenu
  --- The Detailed Node Listing ---
 
-Terminology and Typography
+Terminology
 
 * General Terminology::
 * Typography::
