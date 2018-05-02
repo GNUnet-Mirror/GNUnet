@@ -89,8 +89,8 @@ This document is the Reference Manual for GNUnet version @value{VERSION}.
 
 Terminology and Typography
 
-* Terminology
-* Typography
+* General Terminology::
+* Typography::
 
 Philosophy
 
