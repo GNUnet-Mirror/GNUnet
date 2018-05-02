@@ -140,7 +140,7 @@ database_setup (struct Plugin *plugin)
   char *rvalue;
   char *record_count;
   size_t record_data_size;
-  size_t size;
+  uint64_t size;
   size_t key_len;
   struct GNUNET_HashCode hkey;
   struct GNUNET_DISK_FileHandle *fh;
@@ -218,7 +218,8 @@ database_setup (struct Plugin *plugin)
   if (0 < size)
   {
     line = strtok (buffer, "\n");
-    while (line != NULL) {
+    while (line != NULL)
+    {
       zone_private_key = strtok (line, ",");
       if (NULL == zone_private_key)
         break;
@@ -236,23 +237,33 @@ database_setup (struct Plugin *plugin)
         break;
       line = strtok (NULL, "\n");
       entry = GNUNET_new (struct FlatFileEntry);
-      if (1 != sscanf (rvalue,
-		       "%lu",
-		       &entry->rvalue))
       {
-        GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                    "Error parsing entry\n");
-        GNUNET_free (entry);
-        break;
+        unsigned long long ll;
+
+        if (1 != sscanf (rvalue,
+                         "%llu",
+                         &ll))
+        {
+          GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                      "Error parsing entry\n");
+          GNUNET_free (entry);
+          break;
+        }
+        entry->rvalue = (uint64_t) ll;
       }
-      if (1 != sscanf (record_count,
-		       "%u",
-		       &entry->record_count))
       {
-        GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                    "Error parsing entry\n");
-        GNUNET_free (entry);
-        break;
+        unsigned int ui;
+
+        if (1 != sscanf (record_count,
+                         "%u",
+                         &ui))
+        {
+          GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                      "Error parsing entry\n");
+          GNUNET_free (entry);
+          break;
+        }
+        entry->record_count = (uint32_t) ui;
       }
       entry->label = GNUNET_strdup (label);
       record_data_size

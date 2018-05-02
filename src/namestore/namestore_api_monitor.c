@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     Copyright (C) 2013, 2016 GNUnet e.V.
+     Copyright (C) 2013, 2016, 2018 GNUnet e.V.
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -17,7 +17,6 @@
      Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
      Boston, MA 02110-1301, USA.
 */
-
 /**
  * @file namestore/namestore_api_monitor.c
  * @brief API to monitor changes in the NAMESTORE
@@ -336,6 +335,42 @@ GNUNET_NAMESTORE_zone_monitor_start (const struct GNUNET_CONFIGURATION_Handle *c
     return NULL;
   }
   return zm;
+}
+
+
+/**
+ * Calls the monitor processor specified in #GNUNET_NAMESTORE_zone_monitor_start
+ * for the next record(s).  This function is used to allow clients that merely
+ * monitor the NAMESTORE to still throttle namestore operations, so we can be
+ * sure that the monitors can keep up.
+ *
+ * Note that #GNUNET_NAMESTORE_records_store() only waits for this
+ * call if the previous limit set by the client was already reached.
+ * Thus, by using a @a limit greater than 1, monitors basically enable
+ * a queue of notifications to be processed asynchronously with some
+ * delay.  Note that even with a limit of 1 the
+ * #GNUNET_NAMESTORE_records_store() function will run asynchronously
+ * and the continuation may be invoked before the monitors completed
+ * (or even started) processing the notification.  Thus, monitors will
+ * only closely track the current state of the namestore, but not
+ * be involved in the transactions.
+ *
+ * @param zm the monitor
+ * @param limit number of records to return to the iterator in one shot
+ *        (before #GNUNET_NAMESTORE_zone_monitor_next is to be called again)
+ */
+void
+GNUNET_NAMESTORE_zone_monitor_next (struct GNUNET_NAMESTORE_ZoneMonitor *zm,
+                                    uint64_t limit)
+{
+  struct GNUNET_MQ_Envelope *env;
+  struct ZoneMonitorNextMessage *nm;
+
+  env = GNUNET_MQ_msg (nm,
+                       GNUNET_MESSAGE_TYPE_NAMESTORE_MONITOR_NEXT);
+  nm->limit = GNUNET_htonll (limit);
+  GNUNET_MQ_send (zm->mq,
+                  env);
 }
 
 

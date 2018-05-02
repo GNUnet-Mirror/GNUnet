@@ -1306,13 +1306,20 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_RESULT 443
 
 /**
+ * Client to service: I am now ready for the next (set of) monitor
+ * events. Monitoring equivlaent of
+ * #GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_ITERATION_NEXT.
+ */
+#define GNUNET_MESSAGE_TYPE_NAMESTORE_MONITOR_NEXT 444
+
+/**
  * Client to service: please start iteration; receives
  * "GNUNET_MESSAGE_TYPE_NAMESTORE_LOOKUP_NAME_RESPONSE" messages in return.
  */
 #define GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_ITERATION_START 445
 
 /**
- * Client to service: next record in iteration please.
+ * Client to service: next record(s) in iteration please.
  */
 #define GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_ITERATION_NEXT 447
 
