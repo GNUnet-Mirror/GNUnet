@@ -161,7 +161,7 @@ struct LabelLookupResponseMessage
    * Length of serialized record data
    */
   uint16_t rd_len GNUNET_PACKED;
-  
+
   /**
    * Number of records contained
    */
@@ -316,6 +316,32 @@ struct ZoneMonitorStartMessage
   struct GNUNET_CRYPTO_EcdsaPrivateKey zone;
 
 };
+
+
+/**
+ * Ask for next result of zone iteration for the given operation
+ */
+struct ZoneMonitorNextMessage
+{
+  /**
+   * Type will be #GNUNET_MESSAGE_TYPE_NAMESTORE_MONITOR_NEXT
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Always zero.
+   */
+  uint32_t reserved;
+
+  /**
+   * Number of records to return to the iterator in one shot
+   * (before #GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_MONITOR_NEXT
+   * should be send again). In NBO.
+   */
+  uint64_t limit;
+
+};
+
 
 
 /**

@@ -169,6 +169,12 @@ struct ZoneMonitor
    */
   uint64_t seq;
 
+  /**
+   * Current limit of how many more messages we are allowed
+   * to queue to this monitor.
+   */
+  uint64_t limit;
+
 };
 
 
@@ -1667,7 +1673,7 @@ monitor_iterate_cb (void *cls,
  * Handles a #GNUNET_MESSAGE_TYPE_NAMESTORE_MONITOR_START message
  *
  * @param cls the client sending the message
- * @param message message from the client
+ * @param zis_msg message from the client
  */
 static void
 handle_monitor_start (void *cls,
@@ -1685,7 +1691,7 @@ handle_monitor_start (void *cls,
 			       monitor_tail,
 			       zm);
   GNUNET_SERVICE_client_mark_monitor (nc->client);
-  GNUNET_SERVICE_client_disable_continue_warning (nc->client);
+  GNUNET_SERVICE_client_continue (nc->client);
   GNUNET_notification_context_add (monitor_nc,
 				   nc->mq);
   if (GNUNET_YES == ntohl (zis_msg->iterate_first))
@@ -1729,6 +1735,51 @@ monitor_next (void *cls)
     monitor_sync (zm);
     return;
   }
+}
+
+
+/**
+ * Handles a #GNUNET_MESSAGE_TYPE_NAMESTORE_MONITOR_NEXT message
+ *
+ * @param cls the client sending the message
+ * @param nm message from the client
+ */
+static void
+handle_monitor_next (void *cls,
+                     const struct ZoneMonitorNextMessage *nm)
+{
+  struct NamestoreClient *nc = cls;
+  struct ZoneMonitor *zm;
+  uint64_t inc;
+
+  inc = GNUNET_ntohll (nm->limit);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Received ZONE_MONITOR_NEXT message with limit %llu\n",
+              (unsigned long long) inc);
+  for (zm = monitor_head; NULL != zm; zm = zm->next)
+    if (zm->nc == nc)
+      break;
+  if (NULL == zm)
+  {
+    GNUNET_break (0);
+    GNUNET_SERVICE_client_drop (nc->client);
+    return;
+  }
+  GNUNET_SERVICE_client_continue (nc->client);
+  if (zm->limit + inc < zm->limit)
+  {
+    GNUNET_break (0);
+    GNUNET_SERVICE_client_drop (nc->client);
+    return;
+  }
+  zm->limit += inc;
+#if 0
+  if (GNUNET_YES == ntohl (zis_msg->iterate_first))
+    zm->task = GNUNET_SCHEDULER_add_now (&monitor_next,
+					 zm);
+  else
+    monitor_sync (zm);
+#endif
 }
 
 
@@ -1830,6 +1881,10 @@ GNUNET_SERVICE_MAIN
  GNUNET_MQ_hd_fixed_size (monitor_start,
 			  GNUNET_MESSAGE_TYPE_NAMESTORE_MONITOR_START,
 			  struct ZoneMonitorStartMessage,
+			  NULL),
+ GNUNET_MQ_hd_fixed_size (monitor_next,
+			  GNUNET_MESSAGE_TYPE_NAMESTORE_MONITOR_NEXT,
+			  struct ZoneMonitorNextMessage,
 			  NULL),
  GNUNET_MQ_handler_end ());
 

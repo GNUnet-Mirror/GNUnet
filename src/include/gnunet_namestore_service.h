@@ -109,6 +109,12 @@ typedef void
  * it is replaced with the new record.  Use an empty array to
  * remove all records under the given name.
  *
+ * The continuation is called after the value has been stored in the
+ * database. Monitors may be notified asynchronously (basically with
+ * a buffer). However, if any monitor is consistently too slow to
+ * keep up with the changes, calling @a cont will be delayed until the
+ * monitors do keep up.
+ *
  * @param h handle to the namestore
  * @param pkey private key of the zone
  * @param label name that is being mapped
@@ -313,7 +319,7 @@ struct GNUNET_NAMESTORE_ZoneMonitor;
  *         that monitoring is down. You need to still explicitly call
  *         #GNUNET_NAMESTORE_zone_monitor_stop().
  * @param error_cb_cls closure for @a error_cb
- * @param monitor function to call on zone changes
+ * @param monitor function to call on zone changes, with an initial limit of 1
  * @param monitor_cls closure for @a monitor
  * @param sync_cb function called when we're in sync with the namestore
  * @param sync_cb_cls closure for @a sync_cb
@@ -329,6 +335,32 @@ GNUNET_NAMESTORE_zone_monitor_start (const struct GNUNET_CONFIGURATION_Handle *c
                                      void *monitor_cls,
 				     GNUNET_SCHEDULER_TaskCallback sync_cb,
 				     void *sync_cb_cls);
+
+
+/**
+ * Calls the monitor processor specified in #GNUNET_NAMESTORE_zone_monitor_start
+ * for the next record(s).  This function is used to allow clients that merely
+ * monitor the NAMESTORE to still throttle namestore operations, so we can be
+ * sure that the monitors can keep up.
+ *
+ * Note that #GNUNET_NAMESTORE_records_store() only waits for this
+ * call if the previous limit set by the client was already reached.
+ * Thus, by using a @a limit greater than 1, monitors basically enable
+ * a queue of notifications to be processed asynchronously with some
+ * delay.  Note that even with a limit of 1 the
+ * #GNUNET_NAMESTORE_records_store() function will run asynchronously
+ * and the continuation may be invoked before the monitors completed
+ * (or even started) processing the notification.  Thus, monitors will
+ * only closely track the current state of the namestore, but not
+ * be involved in the transactions.
+ *
+ * @param zm the monitor
+ * @param limit number of records to return to the iterator in one shot
+ *        (before #GNUNET_NAMESTORE_zone_monitor_next is to be called again)
+ */
+void
+GNUNET_NAMESTORE_zone_monitor_next (struct GNUNET_NAMESTORE_ZoneMonitor *zm,
+                                    uint64_t limit);
 
 
 /**
