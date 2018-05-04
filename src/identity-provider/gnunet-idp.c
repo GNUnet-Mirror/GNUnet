@@ -389,6 +389,7 @@ ego_iter_finished (void *cls)
 
 }
 
+static int init = GNUNET_YES;
 
 static void
 ego_cb (void *cls,
@@ -397,7 +398,10 @@ ego_cb (void *cls,
         const char *name)
 {
   if (NULL == name) {
-    GNUNET_SCHEDULER_add_now (&ego_iter_finished, NULL);
+    if (GNUNET_YES == init) {
+      init = GNUNET_NO;
+      GNUNET_SCHEDULER_add_now (&ego_iter_finished, NULL);
+    }
     return;
   }
   if (0 != strcmp (name, ego_name))
@@ -415,6 +419,7 @@ run (void *cls,
   ret = 0;
   if (NULL == ego_name)
   {
+    ret = 1;
     GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
                 _("Ego is required\n"));
     return;
@@ -422,6 +427,7 @@ run (void *cls,
 
   if ( (NULL == attr_value) && (NULL != attr_name) )
   {
+    ret = 1;
     GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
                 _("Attribute value missing!\n"));
     return;
@@ -429,6 +435,7 @@ run (void *cls,
 
   if ( (NULL == rp) && (NULL != issue_attrs) )
   {
+    ret = 1;
     GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
                 _("Requesting party key is required!\n"));
     return;
