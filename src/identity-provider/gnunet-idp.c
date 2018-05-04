@@ -287,27 +287,30 @@ iter_finished (void *cls)
                                                      NULL);
     return;
   }
-  if (NULL == type_str)
-    type = GNUNET_IDENTITY_ATTRIBUTE_TYPE_STRING;
-  else
-    type = GNUNET_IDENTITY_ATTRIBUTE_typename_to_number (type_str);
+  if (attr_name)
+  {
+    if (NULL == type_str)
+      type = GNUNET_IDENTITY_ATTRIBUTE_TYPE_STRING;
+    else
+      type = GNUNET_IDENTITY_ATTRIBUTE_typename_to_number (type_str);
 
-  GNUNET_assert (GNUNET_SYSERR != GNUNET_IDENTITY_ATTRIBUTE_string_to_value (type,
-                                             attr_value,
-                                             (void**)&data,
-                                             &data_size));
-  claim = GNUNET_IDENTITY_ATTRIBUTE_claim_new (attr_name,
-                                               type,
-                                               data,
-                                               data_size);
-  idp_op = GNUNET_IDENTITY_PROVIDER_attribute_store (idp_handle,
-                                                     pkey,
-                                                     claim,
-                                                     &exp_interval,
-                                                     &store_attr_cont,
-                                                     NULL);
-
-
+    GNUNET_assert (GNUNET_SYSERR != GNUNET_IDENTITY_ATTRIBUTE_string_to_value (type,
+                                                                               attr_value,
+                                                                               (void**)&data,
+                                                                               &data_size));
+    claim = GNUNET_IDENTITY_ATTRIBUTE_claim_new (attr_name,
+                                                 type,
+                                                 data,
+                                                 data_size);
+    idp_op = GNUNET_IDENTITY_PROVIDER_attribute_store (idp_handle,
+                                                       pkey,
+                                                       claim,
+                                                       &exp_interval,
+                                                       &store_attr_cont,
+                                                       NULL);
+    return;
+  }
+  GNUNET_SCHEDULER_add_now (&do_cleanup, NULL);
 }
 
 static void
@@ -347,16 +350,14 @@ iter_cb (void *cls,
 }
 
 static void
-ego_cb (void *cls,
-        struct GNUNET_IDENTITY_Ego *ego,
-        void **ctx,
-        const char *name)
+ego_iter_finished (void *cls)
 {
-  if (NULL == name)
+  if (NULL == pkey)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
+                "Ego %s not found\n", ego_name);
     return;
-  if (0 != strcmp (name, ego_name))
-    return;
-  pkey = GNUNET_IDENTITY_ego_get_private_key (ego);
+  }
 
   if (NULL != rp)
     GNUNET_CRYPTO_ecdsa_public_key_from_string (rp,
@@ -388,6 +389,23 @@ ego_cb (void *cls,
 
 }
 
+
+static void
+ego_cb (void *cls,
+        struct GNUNET_IDENTITY_Ego *ego,
+        void **ctx,
+        const char *name)
+{
+  if (NULL == name) {
+    GNUNET_SCHEDULER_add_now (&ego_iter_finished, NULL);
+    return;
+  }
+  if (0 != strcmp (name, ego_name))
+    return;
+  pkey = GNUNET_IDENTITY_ego_get_private_key (ego);
+}
+
+
 static void
 run (void *cls,
      char *const *args,
@@ -400,7 +418,21 @@ run (void *cls,
     GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
                 _("Ego is required\n"));
     return;
-  } 
+  }
+
+  if ( (NULL == attr_value) && (NULL != attr_name) )
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
+                _("Attribute value missing!\n"));
+    return;
+  }
+
+  if ( (NULL == rp) && (NULL != issue_attrs) )
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
+                _("Requesting party key is required!\n"));
+    return;
+  }
 
   idp_handle = GNUNET_IDENTITY_PROVIDER_connect (c);
   //Get Ego
@@ -472,8 +504,8 @@ main(int argc, char *const argv[])
     GNUNET_GETOPT_OPTION_END
   };
   if (GNUNET_OK != GNUNET_PROGRAM_run (argc, argv, "ct",
-                      "ct", options,
-                      &run, NULL))
+                                       "ct", options,
+                                       &run, NULL))
     return 1;
   else
     return ret;
