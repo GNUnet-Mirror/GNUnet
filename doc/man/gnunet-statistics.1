@@ -10,8 +10,11 @@ gnunet\-statistics \- Display statistics about your GNUnet system
 .br
 
 .SH DESCRIPTION
-\fBgnunet\-statistics\fP is used to display detailed information about various aspect of GNUnet's operation.  This tool only works if the "statistics" service is available.
-gnunet\-statistics can be used to set a value by giving the options \-n, \-s and also a VALUE.
+\fBgnunet\-statistics\fP is used to display detailed information about
+various aspect of GNUnet's operation.  This tool only works if the
+"statistics" service is available.
+gnunet\-statistics can be used to set a value by giving the options
+\-n, \-s and also a VALUE.
 
 .SH OPTIONS
 .B
@@ -25,13 +28,18 @@ Print short help on options.
 Use LOGLEVEL for logging.  Valid values are DEBUG, INFO, WARNING and ERROR.
 .B
 .IP "\-n NAME,  \-\-name=NAME"
-Each statistic has a name that is unique with in its subsystem.  With this option, the output can be restricted to statistics that have a particular name.
+Each statistic has a name that is unique with in its subsystem.  With
+this option, the output can be restricted to statistics that have a
+particular name.
 .B
 .IP "\-p,  \-\-persistent"
-When setting a value, make the value persistent.  If the value used to be persistent and this flag is not given, it will be marked as non\-persistent.
+When setting a value, make the value persistent.  If the value used to
+be persistent and this flag is not given, it will be marked as
+non\-persistent.
 .B
 .IP "\-s SUBSYSTEM,  \-\-subsystem=SUBSYSTEM"
-Statistics are kept for various subsystems.  With this option, the output can be restricted to a particular subsystem only.
+Statistics are kept for various subsystems.  With this option, the
+output can be restricted to a particular subsystem only.
 .B
 .IP "\-v, \-\-version"
 Print GNUnet version number.

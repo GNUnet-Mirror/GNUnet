@@ -9,11 +9,17 @@ gnunet\-testing\-run\-service \- Command line tool to start a service for testin
 .br
 
 .SH DESCRIPTION
-\fBgnunet\-testing\-run\-service\fP is a command line tool to start a service for testing. It starts a peer, running only the service specified on the command line, outputs the path to the temporary configuration file to stdout.
+\fBgnunet\-testing\-run\-service\fP is a command line tool to start a
+service for testing. It starts a peer, running only the service
+specified on the command line, outputs the path to the temporary
+configuration file to stdout.
 
-The peer will run until this program is killed, or stdin is closed. When reading the character 'r' from stdin, the running service is restarted with the same configuration.
+The peer will run until this program is killed, or stdin is
+closed. When reading the character 'r' from stdin, the running service
+is restarted with the same configuration.
 
-This executable is intended to be used by gnunet-java, in order to reliably start and stop services for test cases.
+This executable is intended to be used by gnunet-java, in order to
+reliably start and stop services for test cases.
 
 .SH OPTIONS
 .B

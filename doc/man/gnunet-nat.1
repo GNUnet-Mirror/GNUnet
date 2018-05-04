@@ -33,7 +33,8 @@ Assuming we are listening at ADDRESS for connection reversal requests.
 
 .B
 .IP "\-r ADDRESS,  \-\-remote=ADDRESS"
-Ask the peer at ADDRESS for connection reversal, using the local address for the target address of the reversal.
+Ask the peer at ADDRESS for connection reversal, using the local
+address for the target address of the reversal.
 
 .B
 .IP "\-S NAME,  \-\-section=NAME"
@@ -41,7 +42,9 @@ Name of section in configuration file to use for additional options.
 
 .B
 .IP "\-s,  \-\-stun"
-Enable processing of STUN requests.  Will try to read UDP packets from the bind address and handle the packets if they are STUN packets. Will only work with UDP.
+Enable processing of STUN requests.  Will try to read UDP packets from
+the bind address and handle the packets if they are STUN packets. Will
+only work with UDP.
 
 .B
 .IP "\-t,  \-\-tcp"
@@ -53,38 +56,46 @@ Use UDP.
 
 .B
 .IP "\-W,  \-\-watch"
-Watch for connection reversal requests.  
+Watch for connection reversal requests.
 
 .SH EXAMPLES
 .PP
 
 \fBBasic examples\fR
 
-We are bound to "0.0.0.0:8080" on UDP and want to obtain all applicable IP addresses:
+We are bound to "0.0.0.0:8080" on UDP and want to obtain all
+applicable IP addresses:
 
   # gnunet-nat -i 0.0.0.0:8080 -u
 
-We are bound to "::0" on port 8080 on TCP and want to obtain all applicable IP addresses:
+We are bound to "::0" on port 8080 on TCP and want to obtain all
+applicable IP addresses:
 
   # gnunet-nat -i '[::0]':8080 -t
 
-We are bound to "127.0.0.1:8080" on UDP and want to obtain all applicable IP addresses:
+We are bound to "127.0.0.1:8080" on UDP and want to obtain all
+applicable IP addresses:
 
   # gnunet-nat -i 127.0.0.1:8080 -u
 
 \fBICMP-based NAT traversal:\fR
 
-Watch for connection reversal request (you must be bound to NAT range or to wildcard, 0.0.0.0), only works for IPv4:
+Watch for connection reversal request (you must be bound to NAT range
+or to wildcard, 0.0.0.0), only works for IPv4:
 
   # gnunet-nat -Wt -i 192.168.178.12:8080
 
-Initiate connection reversal request from peer at external IPv4 address 1.2.3.4, while we are running ourselves at 2.3.4.5:8080 (must use IPv4 addresses):
+Initiate connection reversal request from peer at external IPv4
+address 1.2.3.4, while we are running ourselves at 2.3.4.5:8080 (must
+use IPv4 addresses):
 
   # gnunet-nat -t -r 1.2.3.4:8080 -i 2.3.4.5:8080
 
-Initiate connection reversal request from peer at external IPv4 address 1.2.3.4, and let the kernel fill in whatever IPv4 address we happen to have:
+Initiate connection reversal request from peer at external IPv4
+address 1.2.3.4, and let the kernel fill in whatever IPv4 address we
+happen to have:
 
-  # gnunet-nat -t -r 1.2.3.4:8080 -i 0.0.0.0:8080 
+  # gnunet-nat -t -r 1.2.3.4:8080 -i 0.0.0.0:8080
 
 \fBManual hole punching:\fR
 

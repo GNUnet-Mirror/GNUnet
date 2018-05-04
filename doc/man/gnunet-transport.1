@@ -8,11 +8,17 @@ gnunet\-transport \- measure and control the transport subsystem
 .SH DESCRIPTION
 .PP
 
-gnunet\-transport is a tool to access various functions of GNUnet's transport subsystem from the command\-line.  Most of these are not expected to be useful for end-users.  gnunet\-transport can be used to evaluate the performance of the transports, force a peer to connect to another peer (if possible).  Other functions should be added in the near future.
+gnunet\-transport is a tool to access various functions of GNUnet's
+transport subsystem from the command\-line.  Most of these are not
+expected to be useful for end-users.  gnunet\-transport can be used to
+evaluate the performance of the transports, force a peer to connect to
+another peer (if possible).  Other functions should be added in the
+near future.
 
 .TP
 \fB\-b\fR, \fB\-\-benchmark\fR
-measure how fast we are receiving data (from all connections).  On exit, the data rate will be reported.  Runs until aborted with CTRL-C.
+measure how fast we are receiving data (from all connections).  On
+exit, the data rate will be reported.  Runs until aborted with CTRL-C.
 .TP
 \fB\-D\fR, \fB\-\-disconnect\fR
 force disconnection from a peer (used in conjunction with \-p).
@@ -46,7 +52,10 @@ the peer identity to connect to or monitor
 monitor session state of transport plugins
 .TP
 \fB\-s\fR, \fB\-\-send\fR
-transmit (dummy) traffic as quickly as possible to the peer specified with the \-p option.  The rate will still be limited by the quota(s) determined by the peers (ATS subsystem).  Will run until CTRL\-C is pressed or until the connection to the other peer is disrupted.
+transmit (dummy) traffic as quickly as possible to the peer specified
+with the \-p option.  The rate will still be limited by the quota(s)
+determined by the peers (ATS subsystem).  Will run until CTRL\-C is
+pressed or until the connection to the other peer is disrupted.
 .TP
 \fB\-v\fR, \fB\-\-version\fR
 print the version number

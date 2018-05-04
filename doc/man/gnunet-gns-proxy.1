@@ -9,9 +9,15 @@ gnunet\-gns\-proxy \- run a client side GNS SOCKS proxy
 .br
 
 .SH DESCRIPTION
-Most users will want to run this SOCKS proxy. It can be used in combination with browsers that support the SOCKS 4a protocol.
+Most users will want to run this SOCKS proxy. It can be used in
+combination with browsers that support the SOCKS 4a protocol.
 
-The proxy will perform SSL authentication of GNS names and rewrite GNS enabled HTML content. To assert the validity of GNS names a local root CA certificate has to be generated that is used by the proxy. Thus "gnunet-gns-proxy-setup-ca" should be executed before the first launch of this proxy or the \-\-authority switch is used to specify an appropriate CA certificate that is already trusted by the browser.
+The proxy will perform SSL authentication of GNS names and rewrite GNS
+enabled HTML content. To assert the validity of GNS names a local root
+CA certificate has to be generated that is used by the proxy. Thus
+"gnunet-gns-proxy-setup-ca" should be executed before the first launch
+of this proxy or the \-\-authority switch is used to specify an
+appropriate CA certificate that is already trusted by the browser.
 
 .SH OPTIONS
 .B
@@ -19,7 +25,10 @@ The proxy will perform SSL authentication of GNS names and rewrite GNS enabled H
 Use the configuration file FILENAME.
 .B
 .IP "\-a AUTHORITY,  \-\-authority=AUTHORITY"
-Path to a PEM CA file that contains the certificate and private key of the CA to use to assert the validity of GNS names. The default port is specified in the configuration file for the gns service under "[gns-proxy]" PROXY_CACERT.
+Path to a PEM CA file that contains the certificate and private key of
+the CA to use to assert the validity of GNS names. The default port is
+specified in the configuration file for the gns service under
+"[gns-proxy]" PROXY_CACERT.
 .B
 .IP "\-p PORT,  \-\-port=PORT"
 The port this proxy should listen on. Default is 7777.
@@ -28,7 +37,8 @@ The port this proxy should listen on. Default is 7777.
 Print short help on options.
 .B
 .IP "\-L LOGLEVEL, \-\-loglevel=LOGLEVEL"
-Use LOGLEVEL for logging.  Valid values are DEBUG, INFO, WARNING and ERROR.
+Use LOGLEVEL for logging.  Valid values are DEBUG, INFO, WARNING and
+ERROR.
 .B
 .IP "\-v, \-\-version"
 Print GNUnet version number.

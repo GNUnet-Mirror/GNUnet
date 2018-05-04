@@ -9,7 +9,10 @@ gnunet\-arm \- control GNUnet services
 .br
 
 .SH DESCRIPTION
-\fBgnunet\-arm\fP can be used to start or stop GNUnet services, including the ARM service itself.  The ARM service is a supervisor for GNUnet's service processes.  ARM starts services on-demand or as configured and re-starts them if they crash.
+\fBgnunet\-arm\fP can be used to start or stop GNUnet services, including
+the ARM service itself.  The ARM service is a supervisor for GNUnet's
+service processes.  ARM starts services on-demand or as configured and
+re-starts them if they crash.
 
 .SH OPTIONS
 .B
@@ -17,7 +20,8 @@ gnunet\-arm \- control GNUnet services
 Use the configuration file FILENAME.
 .B
 .IP "\-e, \-\-end"
-Shutdown all GNUnet services (including ARM itself).  Running "gnunet-arm \-e" is the usual way to shutdown a GNUnet peer.
+Shutdown all GNUnet services (including ARM itself).  Running
+"gnunet-arm \-e" is the usual way to shutdown a GNUnet peer.
 .B
 .IP "\-h, \-\-help"
 Print short help on options.
@@ -26,16 +30,25 @@ Print short help on options.
 Use LOGLEVEL for logging.  Valid values are DEBUG, INFO, WARNING and ERROR.
 .B
 .IP "\-i SERVICE,  \-\-init=SERVICE"
-Starts the specified SERVICE if it is not already running.  More specifically, this makes the service behave as if it were in the default services list.
+Starts the specified SERVICE if it is not already running.  More specifically,
+this makes the service behave as if it were in the default services list.
 .B
 .IP "\-k SERVICE,  \-\-kill=SERVICE"
-Stop the specified SERVICE if it is running.  While this will kill the service right now, the service may be restarted immediately if other services depend on it (service is then started 'on-demand').  If the service used to be a 'default' service, its default-service status will be revoked.  If the service was not a default service, it will just be (temporarily) stopped, but could be re-started on-demand at any time.
+Stop the specified SERVICE if it is running.  While this will kill the service
+right now, the service may be restarted immediately if other services depend
+on it (service is then started 'on-demand').  If the service used to be a 'default'
+service, its default-service status will be revoked.  If the
+service was not a default service, it will just be (temporarily) stopped,
+but could be re-started on-demand at any time.
 .B
 .IP "\-m, \-\-monitor"
-Monitor service activity of ARM.  In this mode, the command will not terminate until the user presses CTRL-C.
+Monitor service activity of ARM.  In this mode, the command will not terminate
+until the user presses CTRL-C.
 .B
 .IP "\-s, \-\-start"
-Start all GNUnet default services on this system (and also ARM).  Naturally, if a service is demanded by a default service, it will then also be started.  Running "gnunet-arm \-s" is the usual way to start a GNUnet peer.
+Start all GNUnet default services on this system (and also ARM).  Naturally,
+if a service is demanded by a default service, it will then also be started.
+Running "gnunet-arm \-s" is the usual way to start a GNUnet peer.
 .B
 .IP "\-I, \-\-info"
 List all running services.
@@ -45,7 +58,8 @@ Print GNUnet version number.
 
 
 .SH BUGS
-Report bugs by using Mantis <https://gnunet.org/bugs/> or by sending electronic mail to <gnunet\-developers@gnu.org>
+Report bugs by using Mantis <https://gnunet.org/bugs/> or by sending
+electronic mail to <gnunet\-developers@gnu.org>
 
 .SH SEE ALSO
 gnunet\-config(1), gnunet\-setup(1)

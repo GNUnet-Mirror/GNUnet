@@ -9,21 +9,30 @@ gnunet\-ecc \- manipulate GNUnet ECC key files
 .br
 
 .SH DESCRIPTION
-\fBgnunet\-ecc\fP can be used to create an ECC private key and to print the corresponding public key.  You must specify a filename containing an ECC private key in GNUnet format as an argument.  If the file does not exist, gnunet\-ecc will create a key.  This may then take a while.  If the option \-p is given, the corresponding public key will be printed to the console.
+\fBgnunet\-ecc\fP can be used to create an ECC private key and to
+print the corresponding public key.  You must specify a filename
+containing an ECC private key in GNUnet format as an argument.  If the
+file does not exist, gnunet\-ecc will create a key.  This may then
+take a while.  If the option \-p is given, the corresponding public
+key will be printed to the console.
 
 .SH OPTIONS
 .B
 .IP "\-g COUNT, \-\-generate-keys=COUNT"
-Create COUNT public-private key pairs and write them to FILENAME.  Used for creating a file for testing.
+Create COUNT public-private key pairs and write them to FILENAME.
+Used for creating a file for testing.
 .B
 .IP "\-p, \-\-print-public-key"
-Print the corresponding public key to stdout.  This is the value used for PKEY records in GNS.
+Print the corresponding public key to stdout.  This is the value used
+for PKEY records in GNS.
 .B
 .IP "\-P, \-\-print-private-key"
-Print the corresponding private key to stdout.  This is the value used for PKEY records in GNS.
+Print the corresponding private key to stdout.  This is the value used
+for PKEY records in GNS.
 .B
 .IP "\-x, \-\-print-hex"
-Print the corresponding public key to stdout in HEX format.  Useful for comparing to Ed25519 keys in X.509 tools.
+Print the corresponding public key to stdout in HEX format.  Useful
+for comparing to Ed25519 keys in X.509 tools.
 .B
 .IP "\-c FILENAME,  \-\-config=FILENAME"
 Use the configuration file FILENAME.
@@ -32,7 +41,8 @@ Use the configuration file FILENAME.
 Print short help on options.
 .B
 .IP "\-L LOGLEVEL, \-\-loglevel=LOGLEVEL"
-Use LOGLEVEL for logging.  Valid values are DEBUG, INFO, WARNING and ERROR.
+Use LOGLEVEL for logging.  Valid values are DEBUG, INFO, WARNING and
+ERROR.
 .B
 .IP "\-v, \-\-version"
 Print GNUnet version number.
