@@ -6,44 +6,86 @@ gnunet.conf \- GNUnet configuration file
 .SH DESCRIPTION
 .PP
 
-A GNUnet setup typically consists of a set of service processes run by a user "gnunet" and a set of user-interface processes run by a standard account.  The default location for the configuration file for the services is "~gnunet/.config/gnunet.conf"; however, as normal users also may need read-access to this configuration, you might want to instead put the service process configuration in "/etc/gnunet.conf".  gnunet\-setup (part of the GNUnet GTK package) can be used to edit this configuration.  The parts of GNUnet that are run as a normal user may have config options too and they read from "$HOME/.config/gnunet.conf". The latter config file can skip any options for the services.
+A GNUnet setup typically consists of a set of service processes run by a user
+"gnunet" and a set of user-interface processes run by a standard account.
+The default location for the configuration file for the services is
+"~gnunet/.config/gnunet.conf"; however, as normal users also may need
+read-access to this configuration, you might want to instead put the service
+process configuration in "/etc/gnunet.conf".
+gnunet\-setup (part of the GNUnet GTK package) can be used to edit this
+configuration.  The parts of GNUnet that are run as a normal user may have
+config options too and they read from "$HOME/.config/gnunet.conf".
+The latter config file can skip any options for the services.
 
 .TP
-The basic structure of the configuration file is the following.  The file is split into sections.  Every section begins with "[SECTIONNAME]" and contains a number of options of the form "OPTION=VALUE".  Empty lines and lines beginning with a "#" are treated as comments.  Almost all options are optional and the tools resort to reasonable defaults if they are not present.
+The basic structure of the configuration file is the following.  The file is
+split into sections.  Every section begins with "[SECTIONNAME]" and contains
+a number of options of the form "OPTION=VALUE".
+Empty lines and lines beginning with a "#" are treated as comments.
+Almost all options are optional and the tools resort to reasonable defaults
+if they are not present.
 .PP
-Default values for all of the options can be found in the files in the "$GNUNET_PREFIX/share/gnunet/config.d/" directory. A typical setup will work out of the box with those. See the examples section below for some common setups on top of that.
+Default values for all of the options can be found in the files in the
+"$GNUNET_PREFIX/share/gnunet/config.d/" directory. A typical setup will
+work out of the box with those. See the examples section below for
+some common setups on top of that.
 
 .SH General OPTIONS
 .PP
-Many options will be common between sections. They can be repeated under each section with different values.  The "[PATHS]" section is special. Here, it is possible to specify values for variables like "GNUNET_HOME".  Then, in all filenames that begin with "$GNUNET_HOME" the "$GNUNET_HOME" will be replaced with the respective value at runtime.  The main use of this is to redefine "$GNUNET_HOME", which by default points to "$HOME/.config/".  By setting this variable, you can change the location where GNUnet stores its internal data.
+Many options will be common between sections. They can be repeated under
+each section with different values.  The "[PATHS]" section is special.
+Here, it is possible to specify values for variables like "GNUNET_HOME".
+Then, in all filenames that begin with "$GNUNET_HOME" the "$GNUNET_HOME"
+will be replaced with the respective value at runtime.  The main use of
+this is to redefine "$GNUNET_HOME", which by default points to "$HOME/.config/".
+By setting this variable, you can change the location where GNUnet stores
+its internal data.
 .PP
 
 The following options are generic and shared by all services:
 
 .IP HOSTNAME
-    The hostname specifies the machine on which the service is running.  This is usually "localhost".
+    The hostname specifies the machine on which the service is running.
+    This is usually "localhost".
 .IP BINARY
     The filename that implements the service. For example "gnunet-service-ats".
 .IP FORCESTART
-    Start the service always when the peer starts.  Set to YES for services that should always be launched, even if no other service explicitly needs them.
+    Start the service always when the peer starts.  Set to YES for services
+    that should always be launched, even if no other service explicitly needs
+    them.
 .IP AUTOSTART
-    Set to YES to automatically start the service when it is requested by another service. YES for most GNUnet services.
+    Set to YES to automatically start the service when it is requested by
+    another service. YES for most GNUnet services.
 .IP NOARMBIND
-    Set to YES to never have ARM bind to the respective socket. This option is mostly for debugging in situations where ARM cannot pass the pre-bound socket to the child due to interference from PREFIX-commands.  This option is only effective in combination with FORCESTART being YES.  NO by default.
+    Set to YES to never have ARM bind to the respective socket. This option is
+    mostly for debugging in situations where ARM cannot pass the pre-bound
+    socket to the child due to interference from PREFIX-commands.
+    This option is only effective in combination with FORCESTART being YES.
+    NO by default.
 .IP PREFIX
-    PREFIX the given command (with its arguments) to the actual BINARY to be executed. Useful to run certain services under special supervisors (like strace or valgrind).  Typically used in combination with FORCESTART and NOARMBIND. Empty by default.
+    PREFIX the given command (with its arguments) to the actual BINARY to be
+    executed. Useful to run certain services under special supervisors (like
+    strace or valgrind).  Typically used in combination with FORCESTART and
+    NOARMBIND. Empty by default.
 .IP ACCEPT_FROM
-    A semi-column separated list of IPv4 addresses that are allowed to use the service; usually 127.0.0.1.
+    A semi-column separated list of IPv4 addresses that are allowed to use
+    the service; usually 127.0.0.1.
 .IP ACCEPT_FROM6
-    A semi-column separated list of IPv6 addresses that are allowed to use the service; usually ::1.
+    A semi-column separated list of IPv6 addresses that are allowed to use the
+    service; usually ::1.
 .IP UNIXPATH
-    Path to use for the UNIX domain socket for inter process communication with the service on POSIX systems.
+    Path to use for the UNIX domain socket for inter process communication with
+    the service on POSIX systems.
 .IP UNIX_MATCH_UID
-    If UNIX domain sockets are used, set this to YES if only users with the same UID are allowed to access the service.
+    If UNIX domain sockets are used, set this to YES if only users with the same
+    UID are allowed to access the service.
 .IP UNIX_MATCH_GID
-    If UNIX domain sockets are used, set this to YES if only users with the same GID are allowed to access the service.
+    If UNIX domain sockets are used, set this to YES if only users with the same
+    GID are allowed to access the service.
 .IP USER_SERVICE
-    Set to YES if this service should be run per-user, NO if this is a system service.  End-users should never have to change the defaults GNUnet provides for this option.
+    Set to YES if this service should be run per-user, NO if this is a system
+    service.  End-users should never have to change the defaults GNUnet provides
+    for this option.
 
 
 
@@ -73,7 +115,10 @@ The following options are generic and shared by all services:
 
 .SH EXAMPLES
 
-This example is a simple way to get started, using a server that has a known list of peers to get you started. Most users will be behind a firewall on IPv4, as such NAT is enabled.  Please rememeber to change your IP address to the actual external address for your usage.
+This example is a simple way to get started, using a server that has a known
+list of peers to get you started. Most users will be behind a firewall on
+IPv4, as such NAT is enabled.  Please rememeber to change your IP address
+to the actual external address for your usage.
 .PP
     [hostlist]
     OPTIONS = \-b
@@ -94,6 +139,7 @@ This example is a simple way to get started, using a server that has a known lis
 ~/.config/gnunet.conf
 GNUnet configuration file
 .SH "REPORTING BUGS"
-Report bugs by using Mantis <https://gnunet.org/bugs/> or by sending electronic mail to <bug-gnunet@gnu.org>
+Report bugs by using Mantis <https://gnunet.org/bugs/> or by sending electronic
+mail to <bug-gnunet@gnu.org>
 .SH "SEE ALSO"
 \fBgnunet\-setup\fP(1), \fBgnunet\-arm\fP(1)
