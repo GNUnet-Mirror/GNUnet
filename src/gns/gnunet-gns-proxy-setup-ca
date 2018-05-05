@@ -2,11 +2,21 @@
 # This shell script will generate an X509 certificate for your gnunet-gns-proxy
 # and install it (for both GNUnet and your browser).
 #
+
+# TODO: We should sed the real paths to the binaries involved here.
+
 if ! which certutil > /dev/null
 then
   echo "'certutil' command not found. Please install it."
   exit 1
 fi
+
+if ! which openssl > /dev/null
+then
+    echo "'openssl' command not found. Please install it."
+    exit 1
+fi
+
 
 echo "Generating CA"
 options=''
