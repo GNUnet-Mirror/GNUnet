@@ -640,25 +640,18 @@ teardown_dht_connection (void *cls)
  * Queue up a delayed task for doing DHT GET
  *
  * @param cls the active context
- * @param success #GNUNET_OK if the PUT was transmitted,
- *                #GNUNET_NO on timeout,
- *                #GNUNET_SYSERR on disconnect from service
- *                after the PUT message was transmitted
- *                (so we don't know if it was received or not)
  */
 static void
-put_cont (void *cls, int success)
+put_cont (void *cls)
 {
   struct ActiveContext *ac = cls;
   struct Context *ctx = ac->ctx;
 
   ac->dht_put = NULL;
-  if (success)
-    n_puts_ok++;
-  else
-    n_puts_fail++;
+  n_puts_ok++;
   GNUNET_assert (NULL != ctx);
-  (void) GNUNET_SCHEDULER_add_now (&teardown_dht_connection, ctx);
+  (void) GNUNET_SCHEDULER_add_now (&teardown_dht_connection,
+                                   ctx);
 }
 
 
@@ -691,7 +684,8 @@ delayed_put (void *cls)
                                 ac->put_data_size,
                                 ac->put_data,
                                 GNUNET_TIME_UNIT_FOREVER_ABS, /* expiration time */
-                                &put_cont, ac);                /* continuation and its closure */
+                                &put_cont,
+                                ac);                /* continuation and its closure */
   n_puts++;
 }
 
