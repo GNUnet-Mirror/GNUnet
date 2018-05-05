@@ -1,4 +1,4 @@
-.TH GNUNET.CONF "5" "12 Aug 2013" "GNUnet"
+.TH GNUNET.CONF "5" "05 May 2018" "GNUnet"
 .SH NAME
 gnunet.conf \- GNUnet configuration file
 .SH SYNOPSIS
@@ -40,6 +40,12 @@ will be replaced with the respective value at runtime.  The main use of
 this is to redefine "$GNUNET_HOME", which by default points to "$HOME/.config/".
 By setting this variable, you can change the location where GNUnet stores
 its internal data.
+gnunet.conf accepts the variable "GNUNET_TMP" which we suggest to use in
+place of the absolute definition of "/tmp".
+So instead of "/tmp/foo" you would write "$GNUNET_TMP/foo".
+ The usage of "$GNUNET_TMP/foo", will result in "$TMPDIR/gnunet/foo", or
+ "$TMP/gnunet/foo" and finally, if "TMPDIR" is undefined, "/tmp/gnunet/foo".
+
 .PP
 
 The following options are generic and shared by all services:
