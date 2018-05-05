@@ -191,11 +191,6 @@ static unsigned int n_puts;
 static unsigned int n_puts_ok;
 
 /**
- * Number of DHT PUTs failed
- */
-static unsigned int n_puts_fail;
-
-/**
  * Number of DHT GETs made
  */
 static unsigned int n_gets;
@@ -464,7 +459,6 @@ summarize ()
 {
   INFO ("# PUTS made: %u\n", n_puts);
   INFO ("# PUTS succeeded: %u\n", n_puts_ok);
-  INFO ("# PUTS failed: %u\n", n_puts_fail);
   INFO ("# GETS made: %u\n", n_gets);
   INFO ("# GETS succeeded: %u\n", n_gets_ok);
   INFO ("# GETS failed: %u\n", n_gets_fail);
@@ -785,7 +779,7 @@ dht_disconnect (void *cls, void *op_result)
   switch (mode)
   {
   case MODE_PUT:
-    if ((n_puts_ok + n_puts_fail) != n_active)
+    if (n_puts_ok != n_active)
       return;
     /* Start GETs if all PUTs have been made */
     mode = MODE_GET;
