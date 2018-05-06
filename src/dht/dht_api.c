@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     Copyright (C) 2009, 2010, 2011, 2012, 2016 GNUnet e.V.
+     Copyright (C) 2009, 2010, 2011, 2012, 2016, 2018 GNUnet e.V.
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -86,7 +86,7 @@ struct GNUNET_DHT_GetHandle
   GNUNET_DHT_GetIterator iter;
 
   /**
-   * Closure for @a iter.
+   * Closure for @e iter.
    */
   void *iter_cls;
 
@@ -292,8 +292,8 @@ send_get (struct GNUNET_DHT_GetHandle *gh)
   get_msg->key = gh->key;
   get_msg->unique_id = gh->unique_id;
   GNUNET_memcpy (&get_msg[1],
-          &gh[1],
-          gh->xquery_size);
+                 &gh[1],
+                 gh->xquery_size);
   GNUNET_MQ_send (h->mq,
                   env);
 }
