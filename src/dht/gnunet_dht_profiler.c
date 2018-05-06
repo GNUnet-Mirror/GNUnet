@@ -360,11 +360,11 @@ bandwidth_stats_cont (void *cls,
                       const char *emsg)
 {
   MESSAGE ("# Outgoing bandwidth: %llu\n",
-        (unsigned long long) outgoing_bandwidth);
+           (unsigned long long) outgoing_bandwidth);
   MESSAGE ("# Incoming bandwidth: %llu\n",
-        (unsigned long long) incoming_bandwidth);
+           (unsigned long long) incoming_bandwidth);
   fprintf (stderr,
-           "Benchmark done. Collect data via gnunet-statisics, then press ENTER to exit.\n");
+           "Benchmark done. Collect data via gnunet-statistics, then press ENTER to exit.\n");
   getchar ();
   GNUNET_SCHEDULER_shutdown ();
 }
