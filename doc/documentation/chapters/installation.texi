@@ -3290,7 +3290,6 @@ and @code{[transport-https_client]} section of the configuration:
 * GNS Proxy Setup::
 * Setup of the GNS CA::
 * Testing the GNS setup::
-* Automatic Shortening in the GNU Name System::
 @end menu
 
 
@@ -3526,8 +3525,11 @@ Now for testing purposes we can create some records in our zone to test
 the SSL functionality of the proxy:
 
 @example
-$ gnunet-namestore -a -e "1 d" -n "homepage" -t A -V 131.159.74.67
-$ gnunet-namestore -a -e "1 d" -n "homepage" -t LEHO -V "gnunet.org"
+$ gnunet-identity -C test
+$ gnunet-namestore -a -e "1 d" -n "homepage" \
+  -t A -V 131.159.74.67 -z test
+$ gnunet-namestore -a -e "1 d" -n "homepage" \
+  -t LEHO -V "gnunet.org" -z test
 @end example
 
 @noindent
@@ -3544,7 +3546,7 @@ If you use @command{Firefox} (or one of its deriviates/forks such as
 Icecat) you also have to go to @code{about:config} and set the key
 @code{network.proxy.socks_remote_dns} to @code{true}.
 
-When you visit @code{https://homepage.gnu/}, you should get to the
+When you visit @code{https://homepage.test/}, you should get to the
 @code{https://gnunet.org/} frontpage and the browser (with the correctly
 configured proxy) should give you a valid SSL certificate for
 @code{homepage.gnu} and no warnings. It should look like this:
@@ -3552,26 +3554,6 @@ configured proxy) should give you a valid SSL certificate for
 @c FIXME: Image does not exist, create it or save it from Drupal?
 @c @image{images/gnunethpgns.png,5in,, picture of homepage.gnu in Webbrowser}
 
-@node Automatic Shortening in the GNU Name System
-@subsubsection Automatic Shortening in the GNU Name System
-
-This page describes a possible option for 'automatic name shortening',
-which you can choose to enable with the GNU Name System.
-
-When GNS encounters a name for the first time, it can use the 'NICK'
-record of the originating zone to automatically generate a name for the
-zone. If automatic shortening is enabled, those auto-generated names will
-be placed (as private records) into your personal 'shorten' zone (to
-prevent confusion with manually selected names).
-Then, in the future, if the same name is encountered again, GNS will
-display the shortened name instead (the first time, the long name will
-still be used as shortening typically happens asynchronously as looking up
-the 'NICK' record takes some time). Using this feature can be a convenient
-way to avoid very long @code{.gnu} names; however, note that names from
-the shorten-zone are assigned on a first-come-first-serve basis and should
-not be trusted. Furthermore, if you enable this feature, you will no
-longer see the full delegation chain for zones once shortening has been
-applied.
 
 @node Configuring the GNUnet VPN
 @subsection Configuring the GNUnet VPN

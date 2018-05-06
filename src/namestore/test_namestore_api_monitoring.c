@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     Copyright (C) 2013 GNUnet e.V.
+     Copyright (C) 2013, 2018 GNUnet e.V.
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -192,7 +192,8 @@ zone_proc (void *cls,
     GNUNET_break (0);
     fail = GNUNET_YES;
   }
-
+  GNUNET_NAMESTORE_zone_monitor_next (zm,
+                                      1);
   if (2 == ++returned_records)
   {
     if (endbadly_task != NULL)

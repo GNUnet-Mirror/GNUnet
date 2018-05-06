@@ -374,16 +374,12 @@ zone_iteration_error_cb (void *cls)
 /**
  * Process a record that was stored in the namestore.
  *
- * @param cls closure
- * @param zone_key private key of the zone
  * @param rname name that is being mapped (at most 255 characters long)
  * @param rd_len number of entries in @a rd array
  * @param rd array of records with data to store
  */
 static void
-display_record (void *cls,
-		const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone_key,
-		const char *rname,
+display_record (const char *rname,
 		unsigned int rd_len,
 		const struct GNUNET_GNSRECORD_Data *rd)
 {
@@ -393,8 +389,6 @@ display_record (void *cls,
   struct GNUNET_TIME_Absolute at;
   struct GNUNET_TIME_Relative rt;
 
-  (void) cls;
-  (void) zone_key;
   if ( (NULL != name) &&
        (0 != strcmp (name, rname)) )
   {
@@ -442,8 +436,58 @@ display_record (void *cls,
     GNUNET_free (s);
   }
   FPRINTF (stdout, "%s", "\n");
+}
+
+
+/**
+ * Process a record that was stored in the namestore.
+ *
+ * @param cls closure
+ * @param zone_key private key of the zone
+ * @param rname name that is being mapped (at most 255 characters long)
+ * @param rd_len number of entries in @a rd array
+ * @param rd array of records with data to store
+ */
+static void
+display_record_iterator (void *cls,
+                         const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone_key,
+                         const char *rname,
+                         unsigned int rd_len,
+                         const struct GNUNET_GNSRECORD_Data *rd)
+{
+  (void) cls;
+  (void) zone_key;
+  display_record (rname,
+                  rd_len,
+                  rd);
   GNUNET_NAMESTORE_zone_iterator_next (list_it,
                                        1);
+}
+
+
+/**
+ * Process a record that was stored in the namestore.
+ *
+ * @param cls closure
+ * @param zone_key private key of the zone
+ * @param rname name that is being mapped (at most 255 characters long)
+ * @param rd_len number of entries in @a rd array
+ * @param rd array of records with data to store
+ */
+static void
+display_record_monitor (void *cls,
+                        const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone_key,
+                        const char *rname,
+                        unsigned int rd_len,
+                        const struct GNUNET_GNSRECORD_Data *rd)
+{
+  (void) cls;
+  (void) zone_key;
+  display_record (rname,
+                  rd_len,
+                  rd);
+  GNUNET_NAMESTORE_zone_monitor_next (zm,
+                                      1);
 }
 
 
@@ -956,7 +1000,7 @@ identity_cb (void *cls,
                                                      &zone_pkey,
                                                      &zone_iteration_error_cb,
                                                      NULL,
-                                                     &display_record,
+                                                     &display_record_iterator,
                                                      NULL,
                                                      &zone_iteration_finished,
                                                      NULL);
@@ -1054,7 +1098,7 @@ identity_cb (void *cls,
                                               GNUNET_YES,
                                               &monitor_error_cb,
                                               NULL,
-					      &display_record,
+					      &display_record_monitor,
                                               NULL,
 					      &sync_cb,
 					      NULL);

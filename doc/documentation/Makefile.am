@@ -44,7 +44,8 @@ dist_infoimage_DATA =                           		\
 	images/daemon_lego_block.svg  				\
 	images/lego_stack.svg					\
 	images/service_lego_block.svg				\
-	images/structure.dot
+	images/structure.dot                                    \
+	images/gns.dot
 
 #	images/$(wildcard *.png)						\
 #	images/$(wildcard *.svg)

@@ -60,6 +60,12 @@
 #define DHT_QUEUE_LIMIT 2000
 
 /**
+ * How many events may the namestore give us before it has to wait
+ * for us to keep up?
+ */
+#define NAMESTORE_QUEUE_LIMIT 50
+
+/**
  * The initial interval in milliseconds btween puts in
  * a zone iteration
  */
@@ -374,6 +380,8 @@ dht_put_monitor_continuation (void *cls)
 {
   struct DhtPutActivity *ma = cls;
 
+  GNUNET_NAMESTORE_zone_monitor_next (zmon,
+                                      1);
   ma_queue_length--;
   GNUNET_CONTAINER_DLL_remove (ma_head,
                                ma_tail,
@@ -924,7 +932,11 @@ handle_monitor_event (void *cls,
                                                 rd_count,
                                                 rd_public);
   if (0 == rd_public_count)
+  {
+    GNUNET_NAMESTORE_zone_monitor_next (zmon,
+                                        1);
     return; /* nothing to do */
+  }
   num_public_records++;
   ma = GNUNET_new (struct DhtPutActivity);
   ma->start_date = GNUNET_TIME_absolute_get ();
@@ -938,6 +950,8 @@ handle_monitor_event (void *cls,
   {
     /* PUT failed, do not remember operation */
     GNUNET_free (ma);
+    GNUNET_NAMESTORE_zone_monitor_next (zmon,
+                                        1);
     return;
   }
   GNUNET_CONTAINER_DLL_insert_tail (ma_head,
@@ -1097,6 +1111,8 @@ run (void *cls,
                                               NULL,
                                               &monitor_sync_event,
                                               NULL);
+  GNUNET_NAMESTORE_zone_monitor_next (zmon,
+                                      NAMESTORE_QUEUE_LIMIT - 1);
   GNUNET_break (NULL != zmon);
   GNUNET_SCHEDULER_add_shutdown (&shutdown_task,
 				 NULL);

@@ -1466,47 +1466,42 @@ the user. This results in non-unique name-value mappings as
 
 
 @menu
+* Creating a Zone::
 * Maintaining your own Zones::
 * Obtaining your Zone Key::
 * Adding Links to Other Zones::
-* The Three Local Zones of GNS::
-* The Master Zone::
-* The Private Zone::
-* The Shorten Zone::
-* The ZKEY Top Level Domain in GNS::
+* Using Public Keys as Top Level Domains::
 * Resource Records in GNS::
+* Synchronizing with legacy DNS::
 @end menu
 
 
-@node Maintaining your own Zones
-@subsection Maintaining your own Zones
+@node Creating a Zone
+@subsection Creating a Zone
 
-To setup your GNS system you must execute:
+To use GNS, you probably should create at least one zone of your own.
+You can create any number of zones using the gnunet-identity tool
+using:
 
 @example
-$ gnunet-gns-import.sh
+$ gnunet-identity -C "myzone"
 @end example
 
-@noindent
-This will boostrap your zones and create the necessary key material.
-Your keys can be listed using the @command{gnunet-identity}
-command line tool:
+Henceforth, on your system you control the TLD ``myzone''.
+
+All of your zones can be listed using the @command{gnunet-identity}
+command line tool as well:
 
 @example
 $ gnunet-identity -d
 @end example
 
-@noindent
-You can arbitrarily create your own zones using the gnunet-identity
-tool using:
-
-@example
-$ gnunet-identity -C "new_zone"
-@end example
+@node Maintaining your own Zones
+@subsection Maintaining your own Zones
 
 @noindent
 Now you can add (or edit, or remove) records in your GNS zone using the
-@command{gnunet-setup} GUI or using the @command{gnunet-namestore}
+@command{gnunet-namestore-gtk} GUI or using the @command{gnunet-namestore}
 command-line tool.
 In either case, your records will be stored in an SQL database under
 control of the @command{gnunet-service-namestore}.
@@ -1518,21 +1513,21 @@ if they are marked as private.
 To provide a short example for editing your own zone, suppose you
 have your own web server with the IP @code{1.2.3.4}. Then you can put an
 @code{A} record (@code{A} records in DNS are for IPv4 IP addresses)
-into your local zone using the command:
+into your local zone ``myzone'' using the command:
 
 @example
-$ gnunet-namestore -z master-zone -a -n www -t A -V 1.2.3.4 -e never
+$ gnunet-namestore -z myzone -a -n www -t A -V 1.2.3.4 -e never
 @end example
 
 @noindent
-Afterwards, you will be able to access your webpage under "www.gnu"
+Afterwards, you will be able to access your webpage under "www.myzone"
 (assuming your webserver does not use virtual hosting, if it does,
 please read up on setting up the GNS proxy).
 
 Similar commands will work for other types of DNS and GNS records,
 the syntax largely depending on the type of the record.
 Naturally, most users may find editing the zones using the
-@command{gnunet-setup} GUI to be easier.
+@command{gnunet-namestore-gtk} GUI to be easier.
 
 @node Obtaining your Zone Key
 @subsection Obtaining your Zone Key
@@ -1546,7 +1541,7 @@ give it to others so that they can securely link to you.
 You can usually get the hash of your public key using
 
 @example
-$ gnunet-identity -d $options | grep master-zone | awk '@{print $3@}'
+$ gnunet-identity -d $options | grep myzone | awk '@{print $3@}'
 @end example
 
 @noindent
@@ -1557,10 +1552,10 @@ DC3SEECJORPHQNVRH965A6N74B1M37S721IG4RBQ15PJLLPJKUE0
 @end example
 
 @noindent
-Alternatively, you can obtain a QR code with your zone key AND
-your pseudonym from gnunet-gtk. The QR code is displayed in the
-GNS tab and can be stored to disk using the Save as button next
-to the image.
+Alternatively, you can obtain a QR code with your zone key AND your
+pseudonym from gnunet-namestore-gtk. The QR code is displayed in the
+main window and can be stored to disk using the ``Save as'' button
+next to the image.
 
 @node Adding Links to Other Zones
 @subsection Adding Links to Other Zones
@@ -1576,89 +1571,37 @@ You can then delegate resolution of names to Bob's zone by adding
 a PKEY record to their local zone:
 
 @example
-$ gnunet-namestore -a -n bob --type PKEY -V XXXX -e never
+$ gnunet-namestore -a -n bob --type PKEY -V XXXX -e never -Z myzone
 @end example
 
 @noindent
-Note that XXXX in the command above must be replaced with the
-hash of Bob's public key (the output your friend obtained using
-the gnunet-identity command from the previous section and told you,
-for example by giving you a business card containing this
+Note that ``XXXX'' in the command above must be replaced with the hash
+of Bob's public key (the output your friend obtained using the
+@command{gnunet-identity} command from the previous section and told
+you, for example by giving you a business card containing this
 information as a QR code).
 
-Assuming Bob has an A record for their website under the name of
-www in his zone, you can then access Bob's website under
-www.bob.gnu --- as well as any (public) GNS record that Bob has
+Assuming Bob has an ``A'' record for their website under the name of
+``www'' in his zone, you can then access Bob's website under
+``www.bob.myzone'' --- as well as any (public) GNS record that Bob has
 in their zone by replacing www with the respective name of the
 record in Bob's zone.
 
 @c themselves? themself?
 Furthermore, if Bob has themselves a (public) delegation to Carol's
 zone under "carol", you can access Carol's records under
-NAME.carol.bob.gnu (where NAME is the name of Carol's record you
-want to access).
-
-@node The Three Local Zones of GNS
-@subsection The Three Local Zones of GNS
-
-Each user GNS has control over three zones. Each of the zones
-has a different purpose. These zones are the
-
-@itemize @bullet
-
-@item master zone,
-@item private zone, and the
-@item shorten zone.
-@end itemize
-
-@node The Master Zone
-@subsection The Master Zone
+``NAME.carol.bob.myzone'' (where ``NAME'' is the name of Carol's
+record you want to access).
 
 
-The master zone is your personal TLD. Names within the @code{.gnu}
-namespace are resolved relative to this zone. You can arbitrarily
-add records to this zone and selectively publish those records.
-
-@node The Private Zone
-@subsection The Private Zone
+@node Using Public Keys as Top Level Domains
+@subsection Using Public Keys as Top Level Domains
 
 
-The private zone is a subzone (or subdomain in DNS terms) of your
-master zone. It should be used for records that you want to keep
-private. For example @code{bank.private.gnu}. The key idea is that
-you want to keep your private records separate, if just to know
-that those names are not available to other users.
-
-@node The Shorten Zone
-@subsection The Shorten Zone
-
-
-The shorten zone can either be a subzone of the master zone or the
-private zone. It is different from the other zones in that GNS
-will automatically populate this zone with other users' zones based
-on their PSEU records whenever you resolve a name.
-
-For example if you go to
-@code{@uref{http://www.bob.alice.dave.gnu/, www.bob.alice.dave.gnu}},
-GNS will try to import @code{bob} into your shorten zone. Having
-obtained Bob's PKEY from @code{alice.dave.gnu}, GNS will lookup the
-PSEU record for @code{+} in Bob's zone. If it exists and the specified
-pseudonym is not taken, Bob's PKEY will be automatically added under
-that pseudonym (i.e. "bob") into your shorten zone. From then on,
-Bob's webpage will also be available for you as
-@code{@uref{http://www.bob.short.gnu/, www.bob.short.gnu}}.
-This feature is called @b{automatic name shortening} and is supposed to
-keep GNS names as short and memorable as possible.
-
-@node The ZKEY Top Level Domain in GNS
-@subsection The ZKEY Top Level Domain in GNS
-
-
-GNS also provides a secure and globally unique namespace under the .zkey
-top-level domain. A name in the .zkey TLD corresponds to the (printable)
-public key of a zone. Names in the .zkey TLD are then resolved by querying
-the respective zone. The .zkey TLD is expected to be used under rare
-circumstances where globally unique names are required and for
+GNS also assumes responsibility for any name that uses in a well-formed
+public key for the TLD.  Names ending this way are then resolved by querying
+the respective zone. Such public key TLDs are expected to be used under rare
+circumstances where globally unique names are required, and for
 integration with legacy systems.
 
 @node Resource Records in GNS
@@ -1682,7 +1625,7 @@ to the current authoritative zone. The extended processing of those
 names will expand the ".+" with the correct delegation chain to the
 authoritative zone (replacing ".+" with the name of the location
 where the name was encountered) and hence generate a
-valid @code{.gnu} name.
+valid GNS name.
 
 GNS currently supports the following record types:
 
@@ -1703,21 +1646,23 @@ GNS currently supports the following record types:
 
 A NICK record is used to give a zone a name. With a NICK record, you can
 essentially specify how you would like to be called. GNS expects this
-record under the name "+" in the zone's database (NAMESTORE); however,
+record under the empty label ``@atchar{}'' in the zone's database (NAMESTORE); however,
 it will then automatically be copied into each record set, so that
 clients never need to do a separate lookup to discover the NICK record.
+Also, users do not usually have to worry about setting the NICK record:
+it is automatically set to the local name of the TLD.
 
 @b{Example}@
 
 @example
-Name: +; RRType: NICK; Value: bob
+Name: @atchar{}; RRType: NICK; Value: bob
 @end example
 
 @noindent
 This record in Bob's zone will tell other users that this zone wants
 to be referred to as 'bob'. Note that nobody is obliged to call Bob's
 zone 'bob' in their own zones. It can be seen as a
-recommendation ("Please call me 'bob'").
+recommendation ("Please call this zone 'bob'").
 
 @node PKEY
 @subsubsection PKEY
@@ -1863,6 +1808,36 @@ domain as the name might not match. GNS-enabled mail clients
 should use the ZKEY zone as the destination hostname and
 GNS-enabled mail servers should be configured to accept
 e-mails to the ZKEY-zones of all local users.
+
+@node Synchronizing with legacy DNS
+@subsection Synchronizing with legacy DNS
+
+If you want to support GNS but the master database for a zone
+is only available and maintained in DNS, GNUnet includes the
+@command{gnunet-zoneimport} tool to monitor a DNS zone and
+automatically import records into GNS.  Today, the tool does
+not yet support DNS AF(X)R, as we initially used it on the
+``.fr'' zone which does not allow us to perform a DNS zone
+transfer.  Instead, @command{gnunet-zoneimport} reads a list
+of DNS domain names from @code{stdin}, issues DNS queries for
+each, converts the obtained records (if possible) and stores
+the result in the namestore.
+
+@image{images/gns,6in,, picture of DNS-GNS data flow}
+
+The zonemaster service then takes the records from the namestore,
+publishes them into the DHT which makes the result available to the
+GNS resolver.  In the GNS configuration, non-local zones can be
+configured to be intercepted by specifying ``.tld = PUBLICKEY'' in the
+configuration file in the ``[gns]'' section.
+
+Note that the namestore by default also populates the namecache.
+This pre-population is cryptographically expensive. Thus, on
+systems that only serve to import a large (millions of records)
+DNS zone and that do not have a local gns service in use, it
+is thus advisable to disable the namecache by setting the
+option ``DISABLE'' to ``YES'' in section ``[namecache]''.
+
 
 @node Using the Virtual Public Network
 @section Using the Virtual Public Network

@@ -159,19 +159,24 @@ zone_proc (void *cls,
 	      "Comparing results name %s\n",
 	      name);
 
-  if (0 != memcmp (zone_key, privkey, sizeof (struct GNUNET_CRYPTO_EcdsaPrivateKey)))
+  if (0 != memcmp (zone_key,
+                   privkey,
+                   sizeof (struct GNUNET_CRYPTO_EcdsaPrivateKey)))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
   	      "Monitoring returned wrong zone key\n");
     GNUNET_break (0);
     GNUNET_SCHEDULER_cancel (endbadly_task);
-    endbadly_task = GNUNET_SCHEDULER_add_now (&endbadly, NULL);
+    endbadly_task = GNUNET_SCHEDULER_add_now (&endbadly,
+                                              NULL);
     return;
   }
 
   if (0 == strcmp (name, s_name_1))
   {
-    if (GNUNET_YES != GNUNET_GNSRECORD_records_cmp(rd, s_rd_1))
+    if (GNUNET_YES !=
+        GNUNET_GNSRECORD_records_cmp (rd,
+                                      s_rd_1))
     {
       GNUNET_break (0);
     	fail = GNUNET_YES;
@@ -179,7 +184,9 @@ zone_proc (void *cls,
   }
   else if (0 == strcmp (name, s_name_2))
   {
-    if (GNUNET_YES != GNUNET_GNSRECORD_records_cmp(rd, s_rd_2))
+    if (GNUNET_YES !=
+        GNUNET_GNSRECORD_records_cmp (rd,
+                                      s_rd_2))
     {
       GNUNET_break (0);
     	fail = GNUNET_YES;
@@ -192,7 +199,8 @@ zone_proc (void *cls,
   	GNUNET_break (0);
     fail = GNUNET_YES;
   }
-
+  GNUNET_NAMESTORE_zone_monitor_next (zm,
+                                      1);
   if (2 == ++returned_records)
   {
     if (endbadly_task != NULL)
@@ -201,9 +209,11 @@ zone_proc (void *cls,
       endbadly_task = NULL;
     }
     if (GNUNET_YES == fail)
-      GNUNET_SCHEDULER_add_now (&endbadly, NULL);
+      GNUNET_SCHEDULER_add_now (&endbadly,
+                                NULL);
     else
-    	GNUNET_SCHEDULER_add_now (&end, NULL);
+      GNUNET_SCHEDULER_add_now (&end,
+                                NULL);
   }
 }
 
@@ -223,7 +233,9 @@ sync_cb (void *cls)
 
 
 static void
-put_cont (void *cls, int32_t success, const char *emsg)
+put_cont (void *cls,
+          int32_t success,
+          const char *emsg)
 {
   static int c = 0;
   char *label = cls;
@@ -238,11 +250,15 @@ put_cont (void *cls, int32_t success, const char *emsg)
   if (success == GNUNET_OK)
   {
     c++;
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Created record %u: `%s'\n", c, label);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Created record %u: `%s'\n",
+                c,
+                label);
   }
   else
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Failed to created records\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Failed to created records\n");
     GNUNET_break (0);
     GNUNET_SCHEDULER_cancel (endbadly_task);
     endbadly_task = GNUNET_SCHEDULER_add_now (&endbadly, NULL);
@@ -262,9 +278,11 @@ put_cont (void *cls, int32_t success, const char *emsg)
                                               NULL);
     if (NULL == zm)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Failed to create zone monitor\n");
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  "Failed to create zone monitor\n");
       GNUNET_break (0);
-      endbadly_task = GNUNET_SCHEDULER_add_now (&endbadly, NULL);
+      endbadly_task = GNUNET_SCHEDULER_add_now (&endbadly,
+                                                NULL);
       return;
     }
   }
@@ -354,14 +372,17 @@ run (void *cls,
   GNUNET_assert (NULL != (ns_ops[0] = GNUNET_NAMESTORE_records_store(nsh, privkey, s_name_1,
   		1, s_rd_1, &put_cont, s_name_1)));
 
-
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Created record 2 \n");
   GNUNET_asprintf(&s_name_2, "dummy2");
   s_rd_2 = create_record(1);
-  GNUNET_assert (NULL != (ns_ops[1] = GNUNET_NAMESTORE_records_store(nsh, privkey, s_name_2,
-  		1, s_rd_2, &put_cont, s_name_2)));
-
-
+  GNUNET_assert (NULL != (ns_ops[1] =
+                          GNUNET_NAMESTORE_records_store (nsh,
+                                                          privkey,
+                                                          s_name_2,
+                                                          1,
+                                                          s_rd_2,
+                                                          &put_cont,
+                                                          s_name_2)));
 }
 
 

@@ -55,7 +55,8 @@ GNUNET_FRIENDS_parse (const struct GNUNET_CONFIGURATION_Handle *cfg,
                                                &fn))
   {
     GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR,
-			       "topology", "FRIENDS");
+			       "topology",
+                               "FRIENDS");
     return GNUNET_SYSERR;
   }
   if (GNUNET_SYSERR ==
