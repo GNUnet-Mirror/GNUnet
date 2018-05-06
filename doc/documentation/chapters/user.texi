@@ -1646,7 +1646,7 @@ GNS currently supports the following record types:
 
 A NICK record is used to give a zone a name. With a NICK record, you can
 essentially specify how you would like to be called. GNS expects this
-record under the empty label ``@atchar{}'' in the zone's database (NAMESTORE); however,
+record under the empty label ``@@'' in the zone's database (NAMESTORE); however,
 it will then automatically be copied into each record set, so that
 clients never need to do a separate lookup to discover the NICK record.
 Also, users do not usually have to worry about setting the NICK record:
@@ -1655,7 +1655,7 @@ it is automatically set to the local name of the TLD.
 @b{Example}@
 
 @example
-Name: @atchar{}; RRType: NICK; Value: bob
+Name: @@; RRType: NICK; Value: bob
 @end example
 
 @noindent
