@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     Copyright (C) 2014 GNUnet e.V.
+     Copyright (C) 2014, 2018 GNUnet e.V.
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -29,8 +29,8 @@
 #include "gnunet_testbed_service.h"
 #include "gnunet_dht_service.h"
 
-#define INFO(...)                                       \
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, __VA_ARGS__)
+#define MESSAGE(...)                                       \
+  GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE, __VA_ARGS__)
 
 #define DEBUG(...)                                           \
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, __VA_ARGS__)
@@ -38,7 +38,7 @@
 /**
  * Number of peers which should perform a PUT out of 100 peers
  */
-#define PUT_PROBABILITY 50
+static unsigned int put_probability = 100;
 
 /**
  * Configuration
@@ -121,7 +121,12 @@ struct ActiveContext
   /**
    * Delay task
    */
-  struct GNUNET_SCHEDULER_Task * delay_task;
+  struct GNUNET_SCHEDULER_Task *delay_task;
+
+  /**
+   * How many puts should we still issue?
+   */
+  unsigned int put_count;
 
   /**
    * The size of the @e put_data
@@ -183,12 +188,17 @@ static unsigned int n_dht;
 /**
  * Number of DHT PUTs made
  */
-static unsigned int n_puts;
+static unsigned long long n_puts;
+
+/**
+ * Number of DHT PUTs to be made per peer.
+ */
+static unsigned int num_puts_per_peer = 1;
 
 /**
  * Number of DHT PUTs succeeded
  */
-static unsigned int n_puts_ok;
+static unsigned long long n_puts_ok;
 
 /**
  * Number of DHT GETs made
@@ -219,11 +229,6 @@ static unsigned int max_searches;
  * Testbed Operation (to get stats).
  */
 static struct GNUNET_TESTBED_Operation *bandwidth_stats_op;
-
-/**
- * To get successor stats.
- */
-static struct GNUNET_TESTBED_Operation *successor_stats_op;
 
 /**
  * Testbed peer handles.
@@ -261,42 +266,6 @@ static unsigned int total_put_path_length;
 static unsigned int total_get_path_length;
 
 /**
- * Hashmap to store pair of peer and its corresponding successor.
- */
-static struct GNUNET_CONTAINER_MultiHashMap *successor_peer_hashmap;
-
-/**
- * Key to start the lookup on successor_peer_hashmap.
- */
-static struct GNUNET_HashCode *start_key;
-
-/**
- * Flag used to get the start_key.
- */
-static int flag = 0;
-
-/**
- * Task to collect peer and its current successor statistics.
- */
-static struct GNUNET_SCHEDULER_Task * successor_stats_task;
-
-/**
- * Closure for successor_stats_task.
- */
-struct Collect_Stat_Context
-{
-  /**
-   * Current Peer Context.
-   */
-  struct Context *service_connect_ctx;
-
-  /**
-   * Testbed operation acting on this peer
-   */
-  struct GNUNET_TESTBED_Operation *op;
-};
-
-/**
  * List of all the peers contexts.
  */
 struct Context **peer_contexts = NULL;
@@ -322,20 +291,6 @@ static enum
  */
 static int in_shutdown = 0;
 
-/**
- * Total number of times to check if circle is formed or not.
- */
-static unsigned int tries;
-
-
-/**
- * Task that collects successor statistics from all the peers.
- *
- * @param cls
- */
-static void
-collect_stats (void *cls);
-
 
 /**
  * Connect to DHT services of active peers
@@ -353,12 +308,11 @@ static void
 do_shutdown (void *cls)
 {
   struct ActiveContext *ac;
-  unsigned int cnt;
 
   in_shutdown = GNUNET_YES;
   if (NULL != a_ctx)
   {
-    for (cnt=0; cnt < num_peers; cnt++)
+    for (unsigned int cnt=0; cnt < num_peers; cnt++)
     {
       /* Cleanup active context if this peer is an active peer */
       ac = a_ctx[cnt].ac;
@@ -387,16 +341,6 @@ do_shutdown (void *cls)
     GNUNET_TESTBED_operation_done (bandwidth_stats_op);
     bandwidth_stats_op = NULL;
   }
-  if (NULL != successor_stats_op)
-  {
-    GNUNET_TESTBED_operation_done (successor_stats_op);
-    successor_stats_op = NULL;
-  }
-  if (NULL != successor_stats_task)
-  {
-    GNUNET_SCHEDULER_cancel (successor_stats_task);
-    successor_stats_task = NULL;
-  }
   GNUNET_free_non_null (a_ac);
 }
 
@@ -415,10 +359,13 @@ bandwidth_stats_cont (void *cls,
                       struct GNUNET_TESTBED_Operation *op,
                       const char *emsg)
 {
-  INFO ("# Outgoing bandwidth: %llu\n",
+  MESSAGE ("# Outgoing bandwidth: %llu\n",
         (unsigned long long) outgoing_bandwidth);
-  INFO ("# Incoming bandwidth: %llu\n",
+  MESSAGE ("# Incoming bandwidth: %llu\n",
         (unsigned long long) incoming_bandwidth);
+  fprintf (stderr,
+           "Benchmark done. Collect data via gnunet-statisics, then press ENTER to exit.\n");
+  getchar ();
   GNUNET_SCHEDULER_shutdown ();
 }
 
@@ -442,39 +389,48 @@ bandwidth_stats_iterator (void *cls,
                           uint64_t value,
                           int is_persistent)
 {
-   static const char *s_sent = "# Bytes transmitted to other peers";
-   static const char *s_recv = "# Bytes received from other peers";
+  static const char *s_sent = "# Bytes transmitted to other peers";
+  static const char *s_recv = "# Bytes received from other peers";
 
-   if (0 == strncmp (s_sent, name, strlen (s_sent)))
-     outgoing_bandwidth = outgoing_bandwidth + value;
-   else if (0 == strncmp(s_recv, name, strlen (s_recv)))
-     incoming_bandwidth = incoming_bandwidth + value;
-
-    return GNUNET_OK;
+  if (0 == strncmp (s_sent, name, strlen (s_sent)))
+    outgoing_bandwidth = outgoing_bandwidth + value;
+  else if (0 == strncmp(s_recv, name, strlen (s_recv)))
+    incoming_bandwidth = incoming_bandwidth + value;
+  return GNUNET_OK;
 }
 
 
 static void
 summarize ()
 {
-  INFO ("# PUTS made: %u\n", n_puts);
-  INFO ("# PUTS succeeded: %u\n", n_puts_ok);
-  INFO ("# GETS made: %u\n", n_gets);
-  INFO ("# GETS succeeded: %u\n", n_gets_ok);
-  INFO ("# GETS failed: %u\n", n_gets_fail);
-  INFO ("# average_put_path_length: %f\n", average_put_path_length);
-  INFO ("# average_get_path_length: %f\n", average_get_path_length);
+  MESSAGE ("# PUTS started: %llu\n",
+        n_puts);
+  MESSAGE ("# PUTS succeeded: %llu\n",
+        n_puts_ok);
+  MESSAGE ("# GETS made: %u\n",
+        n_gets);
+  MESSAGE ("# GETS succeeded: %u\n",
+        n_gets_ok);
+  MESSAGE ("# GETS failed: %u\n",
+        n_gets_fail);
+  MESSAGE ("# average_put_path_length: %f\n",
+        average_put_path_length);
+  MESSAGE ("# average_get_path_length: %f\n",
+        average_get_path_length);
 
   if (NULL == testbed_handles)
   {
-    INFO ("No peers found\n");
+    MESSAGE ("No peers found\n");
     return;
   }
   /* Collect Stats*/
-  bandwidth_stats_op = GNUNET_TESTBED_get_statistics (n_active, testbed_handles,
-                                                      "dht", NULL,
-                                                       bandwidth_stats_iterator,
-                                                       bandwidth_stats_cont, NULL);
+  bandwidth_stats_op = GNUNET_TESTBED_get_statistics (n_active,
+                                                      testbed_handles,
+                                                      "dht",
+                                                      NULL,
+                                                      bandwidth_stats_iterator,
+                                                      bandwidth_stats_cont,
+                                                      NULL);
 }
 
 
@@ -541,9 +497,12 @@ get_iter (void *cls,
   struct Context *ctx = ac->ctx;
 
   /* Check the keys of put and get match or not. */
-  GNUNET_assert (0 == memcmp (key, &get_ac->hash, sizeof (struct GNUNET_HashCode)));
+  GNUNET_assert (0 == memcmp (key,
+                              &get_ac->hash,
+                              sizeof (struct GNUNET_HashCode)));
   /* we found the data we are looking for */
-  DEBUG ("We found a GET request; %u remaining\n", n_gets - (n_gets_fail + n_gets_ok)); //FIXME: It always prints 1.
+  DEBUG ("We found a GET request; %u remaining\n",
+         n_gets - (n_gets_fail + n_gets_ok)); //FIXME: It always prints 1.
   n_gets_ok++;
   get_ac->nrefs--;
   GNUNET_DHT_get_stop (ac->dht_get);
@@ -585,53 +544,48 @@ delayed_get (void *cls)
   get_ac = NULL;
   while (1)
   {
-    r = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, n_active);
+    r = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
+                                  n_active);
     get_ac = &a_ac[r];
     if (NULL != get_ac->put_data)
       break;
   }
   get_ac->nrefs++;
   ac->get_ac = get_ac;
-  DEBUG ("GET_REQUEST_START key %s \n", GNUNET_h2s((struct GNUNET_HashCode *)ac->put_data));
+  DEBUG ("GET_REQUEST_START key %s \n",
+         GNUNET_h2s((struct GNUNET_HashCode *) ac->put_data));
   ac->dht_get = GNUNET_DHT_get_start (ac->dht,
                                       GNUNET_BLOCK_TYPE_TEST,
                                       &get_ac->hash,
                                       1, /* replication level */
                                       GNUNET_DHT_RO_NONE,
-                                      NULL, 0, /* extended query and size */
-                                      get_iter, ac); /* GET iterator and closure
-                                                        */
+                                      NULL,
+                                      0, /* extended query and size */
+                                      get_iter,
+                                      ac); /* GET iterator and closure */
   n_gets++;
 
   /* schedule the timeout task for GET */
-  ac->delay_task = GNUNET_SCHEDULER_add_delayed (timeout, &cancel_get, ac);
+  ac->delay_task = GNUNET_SCHEDULER_add_delayed (timeout,
+                                                 &cancel_get,
+                                                 ac);
 }
 
 
 /**
- * Task to teardown the dht connection.  We do it as a task because calling
- * GNUNET_DHT_disconnect() from put_continutation_callback seems illegal (the
- * put_continuation_callback() is getting called again synchronously).  Also,
- * only free the operation when we are not shutting down; the shutdown task will
- * clear the operation during shutdown.
+ * Task to do DHT PUTs.  If the "put_count" hits zero,
+ * we stop the TESTBED operation (connection to DHT)
+ * so that others PUTs have a chance.
  *
- * @param cls the context
+ * @param cls the active context
  */
 static void
-teardown_dht_connection (void *cls)
-{
-  struct Context *ctx = cls;
-  struct GNUNET_TESTBED_Operation *op;
-
-  GNUNET_assert (NULL != ctx);
-  GNUNET_assert (NULL != (op = ctx->op));
-  ctx->op = NULL;
-  GNUNET_TESTBED_operation_done (op);
-}
+delayed_put (void *cls);
 
 
 /**
- * Queue up a delayed task for doing DHT GET
+ * Conclude individual PUT operation, schedule the
+ * next one.
  *
  * @param cls the active context
  */
@@ -639,18 +593,18 @@ static void
 put_cont (void *cls)
 {
   struct ActiveContext *ac = cls;
-  struct Context *ctx = ac->ctx;
 
   ac->dht_put = NULL;
   n_puts_ok++;
-  GNUNET_assert (NULL != ctx);
-  (void) GNUNET_SCHEDULER_add_now (&teardown_dht_connection,
-                                   ctx);
+  ac->delay_task = GNUNET_SCHEDULER_add_now (&delayed_put,
+                                             ac);
 }
 
 
 /**
- * Task to do DHT PUTs
+ * Task to do DHT PUTs.  If the "put_count" hits zero,
+ * we stop the TESTBED operation (connection to DHT)
+ * so that others PUTs have a chance.
  *
  * @param cls the active context
  */
@@ -660,16 +614,33 @@ delayed_put (void *cls)
   struct ActiveContext *ac = cls;
 
   ac->delay_task = NULL;
+  if (0 == ac->put_count)
+  {
+    struct Context *ctx = ac->ctx;
+    struct GNUNET_TESTBED_Operation *op;
+
+    GNUNET_assert (NULL != ctx);
+    op = ctx->op;
+    ctx->op = NULL;
+    GNUNET_TESTBED_operation_done (op);
+    return;
+  }
+
+
   /* Generate and DHT PUT some random data */
   ac->put_data_size = 16;       /* minimum */
   ac->put_data_size += GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
                                                  (63*1024));
   ac->put_data = GNUNET_malloc (ac->put_data_size);
   GNUNET_CRYPTO_random_block (GNUNET_CRYPTO_QUALITY_WEAK,
-                              ac->put_data, ac->put_data_size);
-  GNUNET_CRYPTO_hash (ac->put_data, ac->put_data_size, &ac->hash);
+                              ac->put_data,
+                              ac->put_data_size);
+  GNUNET_CRYPTO_hash (ac->put_data,
+                      ac->put_data_size,
+                      &ac->hash);
   DEBUG ("PUT_REQUEST_START key %s\n",
-         GNUNET_h2s((struct GNUNET_HashCode *)ac->put_data));
+         GNUNET_h2s ((struct GNUNET_HashCode *)ac->put_data));
+  ac->put_count--;
   ac->dht_put = GNUNET_DHT_put (ac->dht,
                                 &ac->hash,
                                 replication,
@@ -708,7 +679,9 @@ dht_connected (void *cls,
   ac->dht = (struct GNUNET_DHT_Handle *) ca_result;
   if (NULL != emsg)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Connection to DHT service failed: %s\n", emsg);
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Connection to DHT service failed: %s\n",
+                emsg);
     GNUNET_TESTBED_operation_done (ctx->op); /* Calls dht_disconnect() */
     ctx->op = NULL;
     return;
@@ -716,24 +689,31 @@ dht_connected (void *cls,
   switch (mode)
   {
   case MODE_PUT:
-  {
-    struct GNUNET_TIME_Relative peer_delay_put;
-    peer_delay_put.rel_value_us =
-      GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_WEAK,
-                                delay_put.rel_value_us);
-    ac->delay_task = GNUNET_SCHEDULER_add_delayed (peer_delay_put, &delayed_put, ac);
-    break;
-  }
+    {
+      struct GNUNET_TIME_Relative peer_delay_put;
+
+      peer_delay_put.rel_value_us =
+        GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_WEAK,
+                                  delay_put.rel_value_us);
+      ac->put_count = num_puts_per_peer;
+      ac->delay_task = GNUNET_SCHEDULER_add_delayed (peer_delay_put,
+                                                     &delayed_put,
+                                                     ac);
+      break;
+    }
   case MODE_GET:
-  {
-    struct GNUNET_TIME_Relative peer_delay_get;
-    peer_delay_get.rel_value_us =
-      delay_get.rel_value_us +
-      GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_WEAK,
-                                delay_get.rel_value_us);
-    ac->delay_task = GNUNET_SCHEDULER_add_delayed (peer_delay_get, &delayed_get, ac);
-    break;
-  }
+    {
+      struct GNUNET_TIME_Relative peer_delay_get;
+
+      peer_delay_get.rel_value_us =
+        delay_get.rel_value_us +
+        GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_WEAK,
+                                  delay_get.rel_value_us);
+      ac->delay_task = GNUNET_SCHEDULER_add_delayed (peer_delay_get,
+                                                     &delayed_get,
+                                                     ac);
+      break;
+    }
   }
 }
 
@@ -748,10 +728,12 @@ dht_connected (void *cls,
  * @return service handle to return in 'op_result', NULL on error
  */
 static void *
-dht_connect (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg)
+dht_connect (void *cls,
+             const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   n_dht++;
-  return GNUNET_DHT_connect (cfg, 10);
+  return GNUNET_DHT_connect (cfg,
+                             10);
 }
 
 
@@ -763,7 +745,8 @@ dht_connect (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg)
  * @param op_result service handle returned from the connect adapter
  */
 static void
-dht_disconnect (void *cls, void *op_result)
+dht_disconnect (void *cls,
+                void *op_result)
 {
   struct ActiveContext *ac = cls;
 
@@ -779,11 +762,10 @@ dht_disconnect (void *cls, void *op_result)
   switch (mode)
   {
   case MODE_PUT:
-    if (n_puts_ok != n_active)
+    if (n_puts_ok != n_active * num_puts_per_peer)
       return;
     /* Start GETs if all PUTs have been made */
     mode = MODE_GET;
-    //(void) GNUNET_SCHEDULER_add_now (&call_start_profiling, NULL);
     start_profiling ();
     return;
   case MODE_GET:
@@ -793,6 +775,7 @@ dht_disconnect (void *cls, void *op_result)
   }
 }
 
+
 /**
  * Connect to DHT services of active peers
  */
@@ -800,229 +783,22 @@ static void
 start_profiling()
 {
   struct Context *ctx;
-  unsigned int i;
 
-  DEBUG("GNUNET_TESTBED_service_connect \n");
+  DEBUG ("GNUNET_TESTBED_service_connect\n");
   GNUNET_break (GNUNET_YES != in_shutdown);
-  for(i = 0; i < n_active; i++)
+  for (unsigned int i = 0; i < n_active; i++)
   {
     struct ActiveContext *ac = &a_ac[i];
     GNUNET_assert (NULL != (ctx = ac->ctx));
     GNUNET_assert (NULL == ctx->op);
-    ctx->op =
-        GNUNET_TESTBED_service_connect (ctx,
-                                        ctx->peer,
-                                        "dht",
-                                        &dht_connected, ac,
-                                        &dht_connect,
-                                        &dht_disconnect,
-                                        ac);
+    ctx->op = GNUNET_TESTBED_service_connect (ctx,
+                                              ctx->peer,
+                                              "dht",
+                                              &dht_connected, ac,
+                                              &dht_connect,
+                                              &dht_disconnect,
+                                              ac);
   }
-}
-
-/**
- * Start collecting relevant statistics. If ENABLE_MALICIOUS set, first
- * set the malicious peers. If not, then start with PUT operation on active
- * peers.
- */
-static void
-start_func()
-{
-  start_profiling();
-}
-
-
-/**
- * Remove entry from successor peer hashmap.
- * @param cls closure
- * @param key current public key
- * @param value value in the hash map
- * @return #GNUNET_YES if we should continue to iterate,
- *         #GNUNET_NO if not.
- */
-static int
-hashmap_iterate_remove(void *cls,
-                       const struct GNUNET_HashCode *key,
-                       void *value)
-{
-  GNUNET_assert (GNUNET_YES ==
-                GNUNET_CONTAINER_multihashmap_remove(successor_peer_hashmap, key, value));
-  return GNUNET_YES;
-}
-
-
-/**
- * Stats callback. Iterate over the hashmap and check if all th peers form
- * a virtual ring topology.
- *
- * @param cls closure
- * @param op the operation that has been finished
- * @param emsg error message in case the operation has failed; will be NULL if
- *          operation has executed successfully.
- */
-static void
-successor_stats_cont (void *cls,
-                      struct GNUNET_TESTBED_Operation *op,
-                      const char *emsg)
-{
-  struct GNUNET_HashCode *val;
-  struct GNUNET_HashCode *start_val;
-  struct GNUNET_HashCode *key;
-  int count;
-
-  /* Don't schedule the task till we are looking for circle here. */
-  successor_stats_task = NULL;
-  GNUNET_TESTBED_operation_done (successor_stats_op);
-  successor_stats_op = NULL;
-  if (0 == max_searches)
-  {
-    start_func ();
-    return;
-  }
-
-  GNUNET_assert (NULL != start_key);
-  start_val = GNUNET_CONTAINER_multihashmap_get (successor_peer_hashmap,
-                                                 start_key);
-  GNUNET_assert (NULL != start_val);
-  val = start_val;
-  for (count = 0; count < num_peers; count++)
-  {
-    key = val;
-    val = GNUNET_CONTAINER_multihashmap_get (successor_peer_hashmap,
-                                             key);
-    if (NULL == val)
-      break;
-    /* Remove the entry from hashmap. This is done to take care of loop. */
-    if (GNUNET_NO ==
-        GNUNET_CONTAINER_multihashmap_remove (successor_peer_hashmap,
-                                              key, val))
-    {
-      DEBUG ("Failed to remove entry from hashmap\n");
-      break;
-    }
-    /* If a peer has its own identity as its successor. */
-    if (0 == memcmp(key, val, sizeof (struct GNUNET_HashCode)))
-      break;
-  }
-
-  GNUNET_assert (GNUNET_SYSERR !=
-                 GNUNET_CONTAINER_multihashmap_iterate (successor_peer_hashmap,
-                                                        &hashmap_iterate_remove,
-                                                        NULL));
-
-  successor_peer_hashmap = GNUNET_CONTAINER_multihashmap_create (num_peers,
-                                                                 GNUNET_NO);
-  if ((start_val == val) && (count == num_peers))
-  {
-    DEBUG ("CIRCLE COMPLETED after %u tries", tries);
-    if(NULL == successor_stats_task)
-    {
-      start_func();
-    }
-    return;
-  }
-  if (max_searches == ++tries)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		"Maximum tries %u exceeded while checking successor TOTAL TRIES %u"
-		" circle formation.  Exiting\n",
-		max_searches,tries);
-    start_func();
-    return;
-  }
-  flag = 0;
-  successor_stats_task
-    = GNUNET_SCHEDULER_add_delayed (delay_stats,
-				    &collect_stats,
-				    cls);
-}
-
-
-/**
- * Process successor statistic values.
- *
- * @param cls closure
- * @param peer the peer the statistic belong to
- * @param subsystem name of subsystem that created the statistic
- * @param name the name of the datum
- * @param value the current value
- * @param is_persistent GNUNET_YES if the value is persistent, GNUNET_NO if not
- * @return GNUNET_OK to continue, GNUNET_SYSERR to abort iteration
- */
-static int
-successor_stats_iterator (void *cls,
-                          const struct GNUNET_TESTBED_Peer *peer,
-                          const char *subsystem,
-                          const char *name,
-                          uint64_t value,
-                          int is_persistent)
-{
-  static const char *key_string = "XDHT";
-  if (0 == max_searches)
-    return GNUNET_OK;
-
-  if (0 == strncmp (key_string, name, strlen (key_string)))
-  {
-    char *my_id_str;
-    char successor_str[13];
-    char truncated_my_id_str[13];
-    char truncated_successor_str[13];
-    struct GNUNET_HashCode *my_id_key;
-    struct GNUNET_HashCode *succ_key;
-
-    strtok((char *)name,":");
-    my_id_str = strtok(NULL,":");
-
-    strncpy(truncated_my_id_str, my_id_str, 12);
-    truncated_my_id_str[12] = '\0';
-    my_id_key = GNUNET_new(struct GNUNET_HashCode);
-    GNUNET_CRYPTO_hash (truncated_my_id_str, sizeof(truncated_my_id_str),my_id_key);
-    GNUNET_STRINGS_data_to_string(&value, sizeof(uint64_t), successor_str, 13);
-    strncpy(truncated_successor_str, successor_str, 12);
-    truncated_successor_str[12] ='\0';
-
-    succ_key = GNUNET_new(struct GNUNET_HashCode);
-    GNUNET_CRYPTO_hash (truncated_successor_str, sizeof(truncated_successor_str),succ_key);
-
-    if (0 == flag)
-    {
-      GNUNET_assert(NULL != my_id_key);
-      start_key = my_id_key;
-      GNUNET_assert(NULL != start_key);
-      flag = 1;
-    }
-    GNUNET_CONTAINER_multihashmap_put (successor_peer_hashmap,
-                                       my_id_key, (void *)succ_key,
-                                       GNUNET_CONTAINER_MULTIHASHMAPOPTION_REPLACE);
-  }
-
-  return GNUNET_OK;
-}
-
-
-/*
- * Task that collects peer and its corresponding successors.
- *
- * @param cls Closure (NULL).
- */
-static void
-collect_stats (void *cls)
-{
-  successor_stats_task = NULL;
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              "Start collecting statistics...\n");
-  GNUNET_assert(NULL != testbed_handles);
-
-  if (0 != max_searches)
-    successor_peer_hashmap
-      = GNUNET_CONTAINER_multihashmap_create (num_peers,
-					      GNUNET_NO);
-  successor_stats_op
-    = GNUNET_TESTBED_get_statistics (num_peers, testbed_handles,
-				     "dht", NULL,
-				     successor_stats_iterator,
-				     successor_stats_cont, cls);
-  GNUNET_assert (NULL != successor_stats_op);
 }
 
 
@@ -1046,19 +822,11 @@ service_started (void *cls,
   GNUNET_TESTBED_operation_done (ctx->op);
   ctx->op = NULL;
   peers_started++;
-  DEBUG("Peers Started = %d; num_peers = %d \n", peers_started, num_peers);
-  if (NULL == successor_stats_task && peers_started == num_peers)
-  {
-     DEBUG("successor_stats_task \n");
-     struct Collect_Stat_Context *collect_stat_cls = GNUNET_new(struct Collect_Stat_Context);
-     collect_stat_cls->service_connect_ctx = cls;
-     collect_stat_cls->op = op;
-
-     successor_stats_task
-       = GNUNET_SCHEDULER_add_delayed (delay_stats,
-				       &collect_stats,
-				       collect_stat_cls);
-  }
+  DEBUG ("Peers Started = %d; num_peers = %d \n",
+         peers_started,
+         num_peers);
+  if (peers_started == num_peers)
+    start_profiling ();
 }
 
 
@@ -1076,36 +844,40 @@ service_started (void *cls,
 static void
 test_run (void *cls,
           struct GNUNET_TESTBED_RunHandle *h,
-          unsigned int num_peers, struct GNUNET_TESTBED_Peer **peers,
+          unsigned int num_peers,
+          struct GNUNET_TESTBED_Peer **peers,
           unsigned int links_succeeded,
           unsigned int links_failed)
 {
-  unsigned int cnt;
   unsigned int ac_cnt;
+
   testbed_handles = peers;
   if (NULL == peers)
   {
     /* exit */
     GNUNET_assert (0);
   }
-  INFO ("%u peers started\n", num_peers);
-  a_ctx = GNUNET_malloc (sizeof (struct Context) * num_peers);
-
+  MESSAGE ("%u peers started\n",
+        num_peers);
+  a_ctx = GNUNET_new_array (num_peers,
+                            struct Context);
   /* select the peers which actively participate in profiling */
-  n_active = num_peers * PUT_PROBABILITY / 100;
+  n_active = num_peers * put_probability / 100;
   if (0 == n_active)
   {
     GNUNET_SCHEDULER_shutdown ();
     GNUNET_free (a_ctx);
+    a_ctx = NULL;
     return;
   }
 
-  a_ac = GNUNET_malloc (n_active * sizeof (struct ActiveContext));
+  a_ac = GNUNET_new_array (n_active,
+                           struct ActiveContext);
   ac_cnt = 0;
-  for (cnt = 0; cnt < num_peers && ac_cnt < n_active; cnt++)
+  for (unsigned int cnt = 0; cnt < num_peers && ac_cnt < n_active; cnt++)
   {
-    if ((GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 100) >=
-        PUT_PROBABILITY))
+    if (GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
+                                  100) >= put_probability)
       continue;
 
     a_ctx[cnt].ac = &a_ac[ac_cnt];
@@ -1113,10 +885,11 @@ test_run (void *cls,
     ac_cnt++;
   }
   n_active = ac_cnt;
-  INFO ("Active peers: %u\n", n_active);
+  MESSAGE ("Active peers: %u\n",
+           n_active);
 
   /* start DHT service on all peers */
-  for (cnt = 0; cnt < num_peers; cnt++)
+  for (unsigned int cnt = 0; cnt < num_peers; cnt++)
   {
     a_ctx[cnt].peer = peers[cnt];
     a_ctx[cnt].op = GNUNET_TESTBED_peer_manage_service (&a_ctx[cnt],
@@ -1138,7 +911,9 @@ test_run (void *cls,
  * @param config configuration
  */
 static void
-run (void *cls, char *const *args, const char *cfgfile,
+run (void *cls,
+     char *const *args,
+     const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *config)
 {
   uint64_t event_mask;
@@ -1152,8 +927,14 @@ run (void *cls, char *const *args, const char *cfgfile,
   }
   cfg = GNUNET_CONFIGURATION_dup (config);
   event_mask = 0;
-  GNUNET_TESTBED_run (hosts_file, cfg, num_peers, event_mask, NULL,
-                      NULL, &test_run, NULL);
+  GNUNET_TESTBED_run (hosts_file,
+                      cfg,
+                      num_peers,
+                      event_mask,
+                      NULL,
+                      NULL,
+                      &test_run,
+                      NULL);
   GNUNET_SCHEDULER_add_shutdown (&do_shutdown,
 				 NULL);
 }
@@ -1165,63 +946,68 @@ run (void *cls, char *const *args, const char *cfgfile,
  * @return 0 on success
  */
 int
-main (int argc, char *const *argv)
+main (int argc,
+      char *const *argv)
 {
   int rc;
-
   struct GNUNET_GETOPT_CommandLineOption options[] = {
     GNUNET_GETOPT_option_uint ('n',
-                                   "peers",
-                                   "COUNT",
-                                   gettext_noop ("number of peers to start"),
-                                   &num_peers),
-
+                               "peers",
+                               "COUNT",
+                               gettext_noop ("number of peers to start"),
+                               &num_peers),
+    GNUNET_GETOPT_option_uint ('p',
+                               "peer-put-count",
+                               "COUNT",
+                               gettext_noop ("number of PUTs to perform per peer"),
+                               &num_puts_per_peer),
     GNUNET_GETOPT_option_uint ('s',
-                                   "searches",
-                                   "COUNT",
-                                   gettext_noop ("maximum number of times we try to search for successor circle formation (0 for R5N)"),
-                                   &max_searches),
-
+                               "searches",
+                               "COUNT",
+                               gettext_noop ("maximum number of times we try to search for successor circle formation (0 for R5N)"),
+                               &max_searches),
     GNUNET_GETOPT_option_string ('H',
                                  "hosts",
                                  "FILENAME",
                                  gettext_noop ("name of the file with the login information for the testbed"),
                                  &hosts_file),
-
     GNUNET_GETOPT_option_relative_time ('D',
-                                            "delay",
-                                            "DELAY",
-                                            gettext_noop ("delay between rounds for collecting statistics (default: 30 sec)"),
-                                            &delay_stats),
-
+                                        "delay",
+                                        "DELAY",
+                                        gettext_noop ("delay between rounds for collecting statistics (default: 30 sec)"),
+                                        &delay_stats),
     GNUNET_GETOPT_option_relative_time ('P',
-                                            "PUT-delay",
-                                            "DELAY",
-                                            gettext_noop ("delay to start doing PUTs (default: 1 sec)"),
-                                            &delay_put),
-
+                                        "PUT-delay",
+                                        "DELAY",
+                                        gettext_noop ("delay to start doing PUTs (default: 1 sec)"),
+                                        &delay_put),
     GNUNET_GETOPT_option_relative_time ('G',
-                                            "GET-delay",
-                                            "DELAY",
-                                            gettext_noop ("delay to start doing GETs (default: 5 min)"),
-                                            &delay_get),
+                                        "GET-delay",
+                                        "DELAY",
+                                        gettext_noop ("delay to start doing GETs (default: 5 min)"),
+                                        &delay_get),
     GNUNET_GETOPT_option_uint ('r',
-                                   "replication",
-                                   "DEGREE",
-                                   gettext_noop ("replication degree for DHT PUTs"),
-                                   &replication),
-
-
+                               "replication",
+                               "DEGREE",
+                               gettext_noop ("replication degree for DHT PUTs"),
+                               &replication),
+    GNUNET_GETOPT_option_uint ('R',
+                               "random-chance",
+                               "PROBABILITY",
+                               gettext_noop ("chance that a peer is selected at random for PUTs"),
+                               &put_probability),
     GNUNET_GETOPT_option_relative_time ('t',
-                                            "timeout",
-                                            "TIMEOUT",
-                                            gettext_noop ("timeout for DHT PUT and GET requests (default: 1 min)"),
-                                            &timeout),
+                                        "timeout",
+                                        "TIMEOUT",
+                                        gettext_noop ("timeout for DHT PUT and GET requests (default: 1 min)"),
+                                        &timeout),
     GNUNET_GETOPT_OPTION_END
   };
 
   max_searches = 5;
-  if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args (argc, argv, &argc, &argv))
+  if (GNUNET_OK !=
+      GNUNET_STRINGS_get_utf8_args (argc, argv,
+                                    &argc, &argv))
     return 2;
   /* set default delays */
   delay_stats = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10);
@@ -1231,10 +1017,13 @@ main (int argc, char *const *argv)
   replication = 1;      /* default replication */
   rc = 0;
   if (GNUNET_OK !=
-      GNUNET_PROGRAM_run (argc, argv, "dht-profiler",
-			  gettext_noop
-			  ("Measure quality and performance of the DHT service."),
-			  options, &run, NULL))
+      GNUNET_PROGRAM_run (argc,
+                          argv,
+                          "gnunet-dht-profiler",
+			  gettext_noop ("Measure quality and performance of the DHT service."),
+			  options,
+                          &run,
+                          NULL))
     rc = 1;
   return rc;
 }
