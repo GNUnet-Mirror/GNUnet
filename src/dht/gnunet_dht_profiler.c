@@ -94,11 +94,6 @@ struct ActiveContext
   struct GNUNET_DHT_Handle *dht;
 
   /**
-   * The data used for do a PUT.  Will be NULL if a PUT hasn't been performed yet
-   */
-  void *put_data;
-
-  /**
    * The active context used for our DHT GET
    */
   struct ActiveContext *get_ac;
@@ -114,9 +109,10 @@ struct ActiveContext
   struct GNUNET_DHT_GetHandle *dht_get;
 
   /**
-   * The hash of the @e put_data
+   * The hashes of the values stored via this activity context.
+   * Array of length #num_puts_per_peer.
    */
-  struct GNUNET_HashCode hash;
+  struct GNUNET_HashCode *hash;
 
   /**
    * Delay task
@@ -127,11 +123,6 @@ struct ActiveContext
    * How many puts should we still issue?
    */
   unsigned int put_count;
-
-  /**
-   * The size of the @e put_data
-   */
-  uint16_t put_data_size;
 
   /**
    * The number of peers currently doing GET on our data
@@ -266,11 +257,6 @@ static unsigned int total_put_path_length;
 static unsigned int total_get_path_length;
 
 /**
- * List of all the peers contexts.
- */
-struct Context **peer_contexts = NULL;
-
-/**
  * Counter to keep track of peers added to peer_context lists.
  */
 static int peers_started = 0;
@@ -320,8 +306,8 @@ do_shutdown (void *cls)
       {
         if (NULL != ac->delay_task)
           GNUNET_SCHEDULER_cancel (ac->delay_task);
-        if (NULL != ac->put_data)
-          GNUNET_free (ac->put_data);
+        if (NULL != ac->hash)
+          free (ac->hash);
         if (NULL != ac->dht_put)
           GNUNET_DHT_put_cancel (ac->dht_put);
         if (NULL != ac->dht_get)
@@ -496,10 +482,6 @@ get_iter (void *cls,
   struct ActiveContext *get_ac = ac->get_ac;
   struct Context *ctx = ac->ctx;
 
-  /* Check the keys of put and get match or not. */
-  GNUNET_assert (0 == memcmp (key,
-                              &get_ac->hash,
-                              sizeof (struct GNUNET_HashCode)));
   /* we found the data we are looking for */
   DEBUG ("We found a GET request; %u remaining\n",
          n_gets - (n_gets_fail + n_gets_ok)); //FIXME: It always prints 1.
@@ -547,21 +529,23 @@ delayed_get (void *cls)
     r = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
                                   n_active);
     get_ac = &a_ac[r];
-    if (NULL != get_ac->put_data)
+    if (NULL != get_ac->hash)
       break;
   }
   get_ac->nrefs++;
   ac->get_ac = get_ac;
+  r = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
+                                num_puts_per_peer);
   DEBUG ("GET_REQUEST_START key %s \n",
-         GNUNET_h2s((struct GNUNET_HashCode *) ac->put_data));
+         GNUNET_h2s(&get_ac->hash[r]));
   ac->dht_get = GNUNET_DHT_get_start (ac->dht,
                                       GNUNET_BLOCK_TYPE_TEST,
-                                      &get_ac->hash,
+                                      &get_ac->hash[r],
                                       1, /* replication level */
                                       GNUNET_DHT_RO_NONE,
                                       NULL,
                                       0, /* extended query and size */
-                                      get_iter,
+                                      &get_iter,
                                       ac); /* GET iterator and closure */
   n_gets++;
 
@@ -612,6 +596,8 @@ static void
 delayed_put (void *cls)
 {
   struct ActiveContext *ac = cls;
+  char block[65536];
+  size_t block_size;
 
   ac->delay_task = NULL;
   if (0 == ac->put_count)
@@ -628,26 +614,25 @@ delayed_put (void *cls)
 
 
   /* Generate and DHT PUT some random data */
-  ac->put_data_size = 16;       /* minimum */
-  ac->put_data_size += GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
-                                                 (63*1024));
-  ac->put_data = GNUNET_malloc (ac->put_data_size);
+  block_size = 16; /* minimum */
+  block_size += GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
+                                          (63*1024));
   GNUNET_CRYPTO_random_block (GNUNET_CRYPTO_QUALITY_WEAK,
-                              ac->put_data,
-                              ac->put_data_size);
-  GNUNET_CRYPTO_hash (ac->put_data,
-                      ac->put_data_size,
-                      &ac->hash);
-  DEBUG ("PUT_REQUEST_START key %s\n",
-         GNUNET_h2s ((struct GNUNET_HashCode *)ac->put_data));
+                              block,
+                              block_size);
   ac->put_count--;
+  GNUNET_CRYPTO_hash (block,
+                      block_size,
+                      &ac->hash[ac->put_count]);
+  DEBUG ("PUT_REQUEST_START key %s\n",
+         GNUNET_h2s (&ac->hash[ac->put_count]));
   ac->dht_put = GNUNET_DHT_put (ac->dht,
-                                &ac->hash,
+                                &ac->hash[ac->put_count],
                                 replication,
                                 GNUNET_DHT_RO_RECORD_ROUTE,
                                 GNUNET_BLOCK_TYPE_TEST,
-                                ac->put_data_size,
-                                ac->put_data,
+                                block_size,
+                                block,
                                 GNUNET_TIME_UNIT_FOREVER_ABS, /* expiration time */
                                 &put_cont,
                                 ac);                /* continuation and its closure */
@@ -696,6 +681,15 @@ dht_connected (void *cls,
         GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_WEAK,
                                   delay_put.rel_value_us);
       ac->put_count = num_puts_per_peer;
+      ac->hash = calloc (ac->put_count,
+                         sizeof (struct GNUNET_HashCode));
+      if (NULL == ac->hash)
+      {
+        GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR,
+                             "calloc");
+        GNUNET_SCHEDULER_shutdown ();
+        return;
+      }
       ac->delay_task = GNUNET_SCHEDULER_add_delayed (peer_delay_put,
                                                      &delayed_put,
                                                      ac);
