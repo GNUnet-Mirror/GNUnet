@@ -138,7 +138,8 @@ sq_prepare (sqlite3 *dbh,
   char *dummy;
 
   return sqlite3_prepare (dbh,
-                          zSql, strlen (zSql),
+                          zSql,
+                          strlen (zSql),
                           ppStmt,
                           (const char **) &dummy);
 }
