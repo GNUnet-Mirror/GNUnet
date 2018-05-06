@@ -28,6 +28,8 @@
 #include "gnunet_util_lib.h"
 #include "gnunet_testbed_service.h"
 #include "gnunet_dht_service.h"
+#include "gnunet_constants.h"
+
 
 #define MESSAGE(...)                                       \
   GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE, __VA_ARGS__)
@@ -212,11 +214,6 @@ static unsigned int n_gets_fail;
 static unsigned int replication;
 
 /**
- * Number of times we try to find the successor circle formation
- */
-static unsigned int max_searches;
-
-/**
  * Testbed Operation (to get stats).
  */
 static struct GNUNET_TESTBED_Operation *bandwidth_stats_op;
@@ -345,9 +342,9 @@ bandwidth_stats_cont (void *cls,
                       struct GNUNET_TESTBED_Operation *op,
                       const char *emsg)
 {
-  MESSAGE ("# Outgoing bandwidth: %llu\n",
+  MESSAGE ("# Outgoing (core) bandwidth: %llu bytes\n",
            (unsigned long long) outgoing_bandwidth);
-  MESSAGE ("# Incoming bandwidth: %llu\n",
+  MESSAGE ("# Incoming (core) bandwidth: %llu bytes\n",
            (unsigned long long) incoming_bandwidth);
   fprintf (stderr,
            "Benchmark done. Collect data via gnunet-statistics, then press ENTER to exit.\n");
@@ -375,8 +372,8 @@ bandwidth_stats_iterator (void *cls,
                           uint64_t value,
                           int is_persistent)
 {
-  static const char *s_sent = "# Bytes transmitted to other peers";
-  static const char *s_recv = "# Bytes received from other peers";
+  static const char *s_sent = "# bytes encrypted";
+  static const char *s_recv = "# bytes decrypted";
 
   if (0 == strncmp (s_sent, name, strlen (s_sent)))
     outgoing_bandwidth = outgoing_bandwidth + value;
@@ -412,10 +409,10 @@ summarize ()
   /* Collect Stats*/
   bandwidth_stats_op = GNUNET_TESTBED_get_statistics (n_active,
                                                       testbed_handles,
-                                                      "dht",
+                                                      "core",
                                                       NULL,
-                                                      bandwidth_stats_iterator,
-                                                      bandwidth_stats_cont,
+                                                      &bandwidth_stats_iterator,
+                                                      &bandwidth_stats_cont,
                                                       NULL);
 }
 
@@ -615,8 +612,9 @@ delayed_put (void *cls)
 
   /* Generate and DHT PUT some random data */
   block_size = 16; /* minimum */
+  /* make random payload, reserve 512 - 16 bytes for DHT headers */
   block_size += GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
-                                          (63*1024));
+                                          GNUNET_CONSTANTS_MAX_ENCRYPTED_MESSAGE_SIZE - 512);
   GNUNET_CRYPTO_random_block (GNUNET_CRYPTO_QUALITY_WEAK,
                               block,
                               block_size);
@@ -851,8 +849,10 @@ test_run (void *cls,
     /* exit */
     GNUNET_assert (0);
   }
-  MESSAGE ("%u peers started\n",
-        num_peers);
+  MESSAGE ("%u peers started, %u/%u links up\n",
+           num_peers,
+           links_succeeded,
+           links_succeeded + links_failed);
   a_ctx = GNUNET_new_array (num_peers,
                             struct Context);
   /* select the peers which actively participate in profiling */
@@ -879,8 +879,6 @@ test_run (void *cls,
     ac_cnt++;
   }
   n_active = ac_cnt;
-  MESSAGE ("Active peers: %u\n",
-           n_active);
 
   /* start DHT service on all peers */
   for (unsigned int cnt = 0; cnt < num_peers; cnt++)
@@ -955,11 +953,6 @@ main (int argc,
                                "COUNT",
                                gettext_noop ("number of PUTs to perform per peer"),
                                &num_puts_per_peer),
-    GNUNET_GETOPT_option_uint ('s',
-                               "searches",
-                               "COUNT",
-                               gettext_noop ("maximum number of times we try to search for successor circle formation (0 for R5N)"),
-                               &max_searches),
     GNUNET_GETOPT_option_string ('H',
                                  "hosts",
                                  "FILENAME",
@@ -998,7 +991,6 @@ main (int argc,
     GNUNET_GETOPT_OPTION_END
   };
 
-  max_searches = 5;
   if (GNUNET_OK !=
       GNUNET_STRINGS_get_utf8_args (argc, argv,
                                     &argc, &argv))
