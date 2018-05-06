@@ -1,0 +1,42 @@
+// house = interface towards application
+// circle (default) = storage
+// diamond = stateless tool
+// box = legacy system
+
+// this is what we have...o
+digraph dataflow {
+splines = true;
+
+  DNS [shape="box"];
+  import [label="gnunet-zoneimport", shape="diamond"];
+  namestore;
+  namecache;
+  gns [shape="diamond"];
+  dns2gns [shape="house"];
+  cmdline [label="gnunet-gns", shape="house"];
+  libnss_gns [shape="house"];
+  proxy [label="gnunet-gns-proxy", shape="house"];
+  dht;
+  zonemaster [shape="diamond"];
+
+  DNS -> import [label="import"];
+  import -> namestore [label="export"];
+
+  namestore -> zonemaster [label="notifies"];
+  zonemaster -> dht [label="publishes"];
+
+  namestore -> namecache [label="pre-populates"];
+
+
+
+  libnss_gns -> cmdline [label="invokes"];
+  cmdline -> gns [label="lookup"];
+
+  dns2gns -> gns [label="lookup"];
+
+  proxy -> gns [label="lookup"];
+
+  gns -> namecache [label="uses"];
+  gns -> dht [label="queries"];
+
+}
