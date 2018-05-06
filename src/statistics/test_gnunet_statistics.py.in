@@ -9,8 +9,12 @@ import time
 
 if os.name == "nt":
   tmp = os.getenv ("TEMP")
+elif os.environ["TMPDIR"]:
+    tmp = os.getenv("TMPDIR")
+elif os.environ["TMP"]:
+    tmp = os.getenv("TMP")
 else:
-  tmp = "/tmp"
+    tmp = "/tmp"
 
 if os.name == 'nt':
   st = './gnunet-statistics.exe'
@@ -26,7 +30,7 @@ if debug:
   run_arm += [debug.split (' ')]
 
 def cleanup ():
-  shutil.rmtree (os.path.join (tmp, "test-gnunet-statistics"), True)
+  shutil.rmtree (os.path.join (tmp, "gnunet/test-gnunet-statistics"), True)
 
 def sub_run (args, want_stdo = True, want_stde = False, nofail = False):
   if want_stdo:
