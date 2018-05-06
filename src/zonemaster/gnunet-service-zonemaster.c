@@ -138,11 +138,6 @@ static struct GNUNET_STATISTICS_Handle *statistics;
 static struct GNUNET_DHT_Handle *dht_handle;
 
 /**
- * Active DHT put operation (or NULL)
- */
-static struct GNUNET_DHT_PutHandle *active_put;
-
-/**
  * Our handle to the namestore service
  */
 static struct GNUNET_NAMESTORE_Handle *namestore_handle;
@@ -289,6 +284,7 @@ shutdown_task (void *cls)
   while (NULL != (ma = ma_head))
   {
     GNUNET_DHT_put_cancel (ma->ph);
+    ma_queue_length--;
     GNUNET_CONTAINER_DLL_remove (ma_head,
                                  ma_tail,
                                  ma);
@@ -297,6 +293,7 @@ shutdown_task (void *cls)
   while (NULL != (ma = it_head))
   {
     GNUNET_DHT_put_cancel (ma->ph);
+    dht_queue_length--;
     GNUNET_CONTAINER_DLL_remove (it_head,
                                  it_tail,
                                  ma);
@@ -328,11 +325,6 @@ shutdown_task (void *cls)
   {
     GNUNET_NAMESTORE_disconnect (namestore_handle);
     namestore_handle = NULL;
-  }
-  if (NULL != active_put)
-  {
-    GNUNET_DHT_put_cancel (active_put);
-    active_put = NULL;
   }
   if (NULL != dht_handle)
   {
@@ -732,11 +724,6 @@ zone_iteration_error (void *cls)
     GNUNET_SCHEDULER_cancel (zone_publish_task);
     zone_publish_task = NULL;
   }
-  if (NULL != active_put)
-  {
-    GNUNET_DHT_put_cancel (active_put);
-    active_put = NULL;
-  }
   zone_publish_task = GNUNET_SCHEDULER_add_now (&publish_zone_dht_start,
                                                 NULL);
 }
@@ -1015,11 +1002,6 @@ handle_monitor_error (void *cls)
   {
     GNUNET_NAMESTORE_zone_iteration_stop (namestore_iter);
     namestore_iter = NULL;
-  }
-  if (NULL != active_put)
-  {
-    GNUNET_DHT_put_cancel (active_put);
-    active_put = NULL;
   }
   zone_publish_task = GNUNET_SCHEDULER_add_now (&publish_zone_dht_start,
                                                 NULL);
