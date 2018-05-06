@@ -75,8 +75,8 @@
                              source-file?))))
     (package
       (inherit gnunet)
-      (name "gnunet-dev-env")
-      (version (string-append "0.11-" revision "." "dev-env"))
+      (name "gnunet")
+      (version (string-append "git" revision))
       (source
        (local-file
         (string-append (getcwd))
