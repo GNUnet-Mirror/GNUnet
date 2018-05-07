@@ -30,12 +30,12 @@
 /**
  * Name of the fifo to use for IPC with the other dummy process.
  */
-#define FIFO_FILE1 GNUNET_DISK_mktemp("test-transport/api-wlan-p1/") "WLAN_FIFO_in"
+#define FIFO_FILE1 "/tmp/test-transport/api-wlan-p1/WLAN_FIFO_in"
 
 /**
  * Name of the fifo to use for IPC with the other dummy process.
  */
-#define FIFO_FILE2 GNUNET_DISK_mktemp("test-transport/api-wlan-p1/") "WLAN_FIFO_out"
+#define FIFO_FILE2 "/tmp/test-transport/api-wlan-p1/WLAN_FIFO_out"
 
 /**
  * Maximum size of a message allowed in either direction
