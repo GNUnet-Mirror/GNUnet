@@ -102,7 +102,7 @@ recommended for first-time users)}
 
 These applications must be installed for various experimental or otherwise
 optional features such as @command{gnunet-conversation},
-and @command{gnunet-gtk} (most of these features are only build if you
+and @command{gnunet-conversation-gtk} (most of these features are only build if you
 configure GNUnet with @command{--enable-experimental}):
 
 @itemize @bullet
@@ -1992,7 +1992,7 @@ to your PATH or GNUnet's @file{bin} directory
 
 
 @item @strong{GTK+}@
-@command{gnunet-gtk} and @command{libextractor} depend on GTK.
+@command{gnunet-fs-gtk} and @command{libextractor} depend on GTK.
 Get the the binary and developer packages of @command{atk},
 @command{glib}, @command{gtk}, @command{iconv},
 @command{gettext-runtime}, @command{pango} from
@@ -2007,7 +2007,7 @@ Here is an all-in-one package for the
 . Do not overwrite any existing files!
 
 @item @strong{Glade}@
-@command{gnunet-gtk} and @command{gnunet-setup} were created using
+@command{gnunet-*-gtk} and @command{gnunet-setup} were created using
 this interface builder
 
 @itemize @bullet

@@ -49,24 +49,9 @@ configuration handbooks.
 @subsection gnunet-gtk
 @c %**end of header
 
-First, you should launch @command{gnunet-gtk}, the graphical user
-interface for GNUnet which will be used for most of the tutorial.
-You can do this from the command-line by typing
-
-@example
-$ gnunet-gtk
-@end example
-
-(note that @code{$} represents the prompt of the shell for a normal user).
-Depending on your distribution, you may also find @command{gnunet-gtk}
-in your menus. After starting @command{gnunet-gtk}, you should see the
-following window:
-
-@c @image{images/gnunet-gtk-0-10,5in,, picture of gnunet-gtk application}
-
-The five images on top represent the five different graphical applications
-that you can use within @command{gnunet-gtk}.
-They are (from left to right):
+The @command{gnunet-gtk} package contains several graphical
+user interfaces for the respective GNUnet applications.
+Those currently are:
 
 @itemize @bullet
 @item Statistics
@@ -74,14 +59,20 @@ They are (from left to right):
 @item GNU Name System
 @item File Sharing
 @item Identity Management
+@item Conversation
 @end itemize
 
 @node Statistics
 @subsection Statistics
 @c %**end of header
 
-When @command{gnunet-gtk} is started, the statistics area should be
-selected at first.
+First, you should launch the graphical user interface.  You can do
+this from the command-line by typing
+
+@example
+$ gnunet-statistics-gtk
+@end example
+
 If your peer is running correctly, you should see a bunch of
 lines, all of which should be "significantly" above zero (at least if your
 peer has been running for a few seconds). The lines indicate how many
@@ -100,23 +91,28 @@ traffic.
 @subsection Peer Information
 @c %**end of header
 
-You should now click on the Australian Aboriginal Flag. Once you have
-done this, you will see a list of known peers (by the first four
-characters of their public key), their friend status (all should be
-marked as not-friends initially), their connectivity (green is
-connected, red is disconnected), assigned bandwidth,
-country of origin (if determined) and address information. If hardly
-any peers are listed and/or if there are very few peers with a green light
-for connectivity, there is likely a problem with your
-network configuration.
+First, you should launch the graphical user interface.  You can do
+this from the command-line by typing
+
+@example
+$ gnunet-peerinfo-gtk
+@end example
+
+Once you have done this, you will see a list of known peers (by the
+first four characters of their public key), their friend status (all
+should be marked as not-friends initially), their connectivity (green
+is connected, red is disconnected), assigned bandwidth, country of
+origin (if determined) and address information. If hardly any peers
+are listed and/or if there are very few peers with a green light for
+connectivity, there is likely a problem with your network
+configuration.
 
 @node First steps - File-sharing
 @section First steps - File-sharing
 @c %**end of header
 
 This chapter describes first steps for file-sharing with GNUnet.
-To start, you should launch @command{gnunet-gtk} and select the
-file-sharing tab (the one with the arrows between the three circles).
+To start, you should launch @command{gnunet-fs-gtk}.
 
 As we want to be sure that the network contains the data that we are
 looking for for testing, we need to begin by publishing a file.
@@ -246,8 +242,6 @@ That's it, you now know the basics for file-sharing with GNUnet!
 @section First steps - Using the GNU Name System
 @c %**end of header
 
-
-
 @menu
 * Preliminaries::
 * Managing Egos::
@@ -310,7 +304,7 @@ rules - GO0T87F9BPMF8NKD5A54L2AH1T0GRML539TPFSRMCEA98182QD30
 Maintaing your zones is through the NAMESTORE service and is discussed
 here.  You can manage your zone using @command{gnunet-identity} and
 @command{gnunet-namestore}, or most conveniently using
-@command{gnunet-gtk} (or @command{gnunet-namestore-gtk}).
+@command{gnunet-namestore-gtk}.
 
 We will use the GTK+ interface in this introduction.  Please start
 @command{gnunet-gkt} and switch to the GNS tab, which is the tab in
@@ -638,14 +632,12 @@ using this new public key infrastructure.
 @section First steps - Using GNUnet Conversation
 @c %**end of header
 
-Before starting the tutorial, you should be aware that
-@code{gnunet-conversation} is currently only available
-as an interactive shell tool and that the call quality
-tends to be abysmal. There are also some awkward
-steps necessary to use it. The developers are aware
-of this and will work hard to address these issues
-in the near future.
+First, you should launch the graphical user interface.  You can do
+this from the command-line by typing
 
+@example
+$ gnunet-conversation-gtk
+@end example
 
 @menu
 * Testing your Audio Equipment::
@@ -743,11 +735,11 @@ Now you can call a buddy. Obviously, your buddy will have to have GNUnet
 installed and must have performed the same steps. Also, you must have
 your buddy in your GNS master zone, for example by having imported
 your buddy's public key using @code{gnunet-qr}. Suppose your buddy
-is in your zone as @code{buddy.gnu} and they also created their
+is in your zone as @code{buddy.mytld} and they also created their
 phone using a label "home-phone". Then you can initiate a call using:
 
 @example
-/call home-phone.buddy.gnu
+/call home-phone.buddy.mytld
 @end example
 
 It may take some time for GNUnet to resolve the name and to establish
@@ -760,13 +752,6 @@ that, (encrypted) voice data should be relayed between your two peers.
 Either of you can end the call using @command{/cancel}. You can exit
 @code{gnunet-converation} using @command{/quit}.
 
-@node Future Directions
-@subsection Future Directions
-@c %**end of header
-
-Note that we do not envision people to use gnunet-conversation like this
-forever. We will write a graphical user interface, and that GUI will
-automatically create the necessary records in the respective zone.
 
 @node First steps - Using the GNUnet VPN
 @section First steps - Using the GNUnet VPN
