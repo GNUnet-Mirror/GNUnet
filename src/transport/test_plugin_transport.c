@@ -1,6 +1,6 @@
 /*
  This file is part of GNUnet.
- Copyright (C) 2009 GNUnet e.V.
+ Copyright (C) 2009, 2018 GNUnet e.V.
 
  GNUnet is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License as published
@@ -747,7 +747,7 @@ main (int argc, char * const *argv)
       GNUNET_GETOPT_OPTION_END };
   int ret;
 
-  GNUNET_DISK_directory_remove ("/tmp/test-gnunetd-plugin-transport");
+  GNUNET_DISK_directory_remove GNUNET_DISK_mktemp("test-gnunetd-plugin-transport");
 
   char * const argv_prog[] = { "test_plugin_transport", "-c",
       "test_plugin_transport_data.conf", NULL };
@@ -757,7 +757,7 @@ main (int argc, char * const *argv)
       (GNUNET_OK
           == GNUNET_PROGRAM_run (3, argv_prog, "test-plugin-transport",
               "testcase", options, &run, (void *) argv)) ? ok : 1;
-  GNUNET_DISK_directory_remove ("/tmp/test-gnunetd-plugin-transport");
+  GNUNET_DISK_directory_remove GNUNET_DISK_mktemp("test-gnunetd-plugin-transport");
   return ret;
 }
 
