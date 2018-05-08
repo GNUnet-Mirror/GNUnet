@@ -66,6 +66,11 @@ extern "C"
  */
 #define GNUNET_MESSAGE_TYPE_DUMMY 2
 
+/**
+ * Another dummy messages for testing / benchmarking.
+ */
+#define GNUNET_MESSAGE_TYPE_DUMMY2 3
+
 /*******************************************************************************
  * RESOLVER message types
  ******************************************************************************/
