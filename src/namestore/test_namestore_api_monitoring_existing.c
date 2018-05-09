@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     Copyright (C) 2013 GNUnet e.V.
+     Copyright (C) 2013, 2018 GNUnet e.V.
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -18,7 +18,7 @@
      Boston, MA 02110-1301, USA.
 */
 /**
- * @file namestore/test_namestore_api_monitoring.c
+ * @file namestore/test_namestore_api_monitoring_existing.c
  * @brief testcase for zone monitoring functionality: add records first, then monitor
  */
 #include "platform.h"
@@ -27,7 +27,7 @@
 #include "namestore.h"
 
 
-#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 100)
+#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10)
 
 static const struct GNUNET_CONFIGURATION_Handle *cfg;
 
@@ -58,15 +58,29 @@ static struct GNUNET_GNSRECORD_Data *s_rd_3;
 struct GNUNET_NAMESTORE_QueueEntry * ns_ops[3];
 
 
+/**
+ * Re-establish the connection to the service.
+ *
+ * @param cls handle to use to re-connect.
+ */
 static void
-do_shutdown ()
+endbadly (void *cls)
+{
+  endbadly_task = NULL;
+  GNUNET_break (0);
+  GNUNET_SCHEDULER_shutdown ();
+  res = 1;
+}
+
+
+static void
+end (void *cls)
 {
   if (NULL != zm)
   {
     GNUNET_NAMESTORE_zone_monitor_stop (zm);
     zm = NULL;
   }
-
   if (NULL != ns_ops[0])
   {
     GNUNET_NAMESTORE_cancel(ns_ops[0]);
@@ -82,7 +96,11 @@ do_shutdown ()
     GNUNET_NAMESTORE_cancel(ns_ops[2]);
     ns_ops[2] = NULL;
   }
-
+  if (NULL != endbadly_task)
+  {
+    GNUNET_SCHEDULER_cancel (endbadly_task);
+    endbadly_task = NULL;
+  }
   if (NULL != nsh)
   {
     GNUNET_NAMESTORE_disconnect (nsh);
@@ -122,27 +140,6 @@ do_shutdown ()
 }
 
 
-/**
- * Re-establish the connection to the service.
- *
- * @param cls handle to use to re-connect.
- */
-static void
-endbadly (void *cls)
-{
-  do_shutdown ();
-  res = 1;
-}
-
-
-static void
-end (void *cls)
-{
-  do_shutdown ();
-  res = 0;
-}
-
-
 static void
 zone_proc (void *cls,
 	   const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone_key,
@@ -164,9 +161,7 @@ zone_proc (void *cls,
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
   	      "Monitoring returned wrong zone key\n");
     GNUNET_break (0);
-    GNUNET_SCHEDULER_cancel (endbadly_task);
-    endbadly_task = GNUNET_SCHEDULER_add_now (&endbadly,
-                                              NULL);
+    GNUNET_SCHEDULER_shutdown ();
     return;
   }
 
@@ -201,17 +196,16 @@ zone_proc (void *cls,
                                       1);
   if (2 == ++returned_records)
   {
-    if (endbadly_task != NULL)
-    {
-      GNUNET_SCHEDULER_cancel (endbadly_task);
-      endbadly_task = NULL;
-    }
+    GNUNET_SCHEDULER_shutdown ();
     if (GNUNET_YES == fail)
-      GNUNET_SCHEDULER_add_now (&endbadly,
-                                NULL);
+    {
+      GNUNET_break (0);
+      res = 1;
+    }
     else
-      GNUNET_SCHEDULER_add_now (&end,
-                                NULL);
+    {
+      res = 0;
+    }
   }
 }
 
@@ -258,8 +252,9 @@ put_cont (void *cls,
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Failed to created records\n");
     GNUNET_break (0);
-    GNUNET_SCHEDULER_cancel (endbadly_task);
-    endbadly_task = GNUNET_SCHEDULER_add_now (&endbadly, NULL);
+    res = 1;
+    GNUNET_SCHEDULER_shutdown ();
+    return;
   }
 
   if (3 == c)
@@ -279,8 +274,8 @@ put_cont (void *cls,
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                   "Failed to create zone monitor\n");
       GNUNET_break (0);
-      endbadly_task = GNUNET_SCHEDULER_add_now (&endbadly,
-                                                NULL);
+      res = 1;
+      GNUNET_SCHEDULER_shutdown ();
       return;
     }
   }
@@ -319,6 +314,8 @@ run (void *cls,
   GNUNET_assert (privkey != NULL);
 
   cfg = mycfg;
+  GNUNET_SCHEDULER_add_shutdown (&end,
+                                 NULL);
   endbadly_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT,
                                                 &endbadly,
                                                 NULL);
