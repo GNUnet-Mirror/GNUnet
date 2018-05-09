@@ -573,7 +573,6 @@ iterate_zones (void *cls,
   struct FlatFileEntry *entry = value;
 
   (void) key;
-  ic->pos++;
   if (0 == ic->limit)
     return GNUNET_NO;
   if ( (NULL != ic->zone) &&
@@ -581,6 +580,7 @@ iterate_zones (void *cls,
                      ic->zone,
                      sizeof (struct GNUNET_CRYPTO_EcdsaPrivateKey))) )
     return GNUNET_YES;
+  ic->pos++;
   if (ic->offset > 0)
   {
     ic->offset--;
