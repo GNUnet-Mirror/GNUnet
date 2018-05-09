@@ -642,7 +642,6 @@ $ gnunet-conversation-gtk
 @menu
 * Testing your Audio Equipment::
 * GNS Zones::
-* Future Directions::
 @end menu
 
 @node Testing your Audio Equipment

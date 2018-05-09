@@ -19,7 +19,6 @@ dist_infoimage_DATA =                           		\
 	images/gnunet-0-10-peerinfo.png 			\
 	images/gnunet-gtk-0-10-identity.png 			\
 	images/gnunet-fs-gtk-0-10-star-tab.png 			\
-	images/gnunet-gtk-0-10.png 				\
 	images/gnunet-gtk-0-10-download-area.png 		\
 	images/gnunet-gtk-0-10-search-selected.png 		\
 	images/gnunet-gtk-0-10-fs-menu.png 			\
