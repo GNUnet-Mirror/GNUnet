@@ -174,6 +174,16 @@ authenticates each packet
 without requiring signatures each time. GNUnet uses SHA-512
 (Secure Hash Algorithm) hash codes to verify the integrity of messages.
 
+@c Fixme: A while back I got the feedback that I should try and integrate
+@c explanation boxes in the long-run. So we could explain
+@c "man-in-the-middle" and "man-in-the-middle attacks" and other words
+@c which are not common knowledge. MITM is not common knowledge. To be
+@c selfcontained, we should be able to explain words and concepts used in
+@c a chapter or paragraph without hinting at wikipedia and other online
+@c sources which might not be available or accessible to everyone.
+@c On the other hand we could write an introductionary chapter or book
+@c that we could then reference in each chapter, which sound like it
+@c could be more reusable.
 In GNUnet, the identity of a host is its public key. For that reason,
 man-in-the-middle attacks will not break the authentication or accounting
 goals. Essentially, for GNUnet, the IP of the host has nothing to do with
@@ -182,11 +192,14 @@ matters, faking an IP, a port or any other property of the underlying
 transport protocol is irrelevant. In fact, GNUnet peers can use
 multiple IPs (IPv4 and IPv6) on multiple ports --- or even not use the
 IP protocol at all (by running directly on layer 2).
+@c FIXME: "IP protocol" feels wrong, but could be what people expect, as
+@c IP is "the number" and "IP protocol" the protocol itself in general
+@c knowledge?
 
 @c NOTE: For consistency we will use @code{HELLO}s throughout this Manual.
 GNUnet uses a special type of message to communicate a binding between
 public (ECC) keys to their current network address. These messages are
-commonly called @code{HELLO}s or peer advertisements.
+commonly called @code{HELLO}s or @code{peer advertisements}.
 They contain the public key of the peer and its current network
 addresses for various transport services.
 A transport service is a special kind of shared library that
@@ -220,25 +233,25 @@ Most simple attacks on networks such as @command{Gnutella}
 involve flooding the network with traffic, particularly
 with queries that are, in the worst case, multiplied by the network.
 
-In order to ensure that freeloaders or attackers have a minimal impact on
-the network, GNUnet's file-sharing implementation tries to distinguish
-good (contributing) nodes from malicious (freeloading) nodes. In GNUnet,
-every file-sharing node keeps track of the behavior of every other node it
-has been in contact with. Many requests (depending on the application)
-are transmitted with a priority (or importance) level.
-That priority is used to establish how important the sender believes
-this request is. If a peer responds to an important request, the
-recipient will increase its trust in the responder:
-the responder contributed resources.
-If a peer is too busy to answer all requests, it needs to prioritize.
-For that, peers do not take the priorities of the requests received at
-face value.
-First, they check how much they trust the sender, and depending on that
-amount of trust they assign the request a (possibly lower) effective
-priority. Then, they drop the requests with the lowest effective priority
-to satisfy their resource constraints. This way, GNUnet's economic model
-ensures that nodes that are not currently considered to have a surplus in
-contributions will not be served if the network load is high.
+In order to ensure that freeloaders or attackers have a minimal impact
+on the network, GNUnet's file-sharing implementation (@code{FS} tries
+to distinguish good (contributing) nodes from malicious (freeloading)
+nodes. In GNUnet, every file-sharing node keeps track of the behavior
+of every other node it has been in contact with. Many requests
+(depending on the application) are transmitted with a priority (or
+importance) level.  That priority is used to establish how important
+the sender believes this request is. If a peer responds to an
+important request, the recipient will increase its trust in the
+responder: the responder contributed resources.  If a peer is too busy
+to answer all requests, it needs to prioritize.  For that, peers do
+not take the priorities of the requests received at face value.
+First, they check how much they trust the sender, and depending on
+that amount of trust they assign the request a (possibly lower)
+effective priority. Then, they drop the requests with the lowest
+effective priority to satisfy their resource constraints. This way,
+GNUnet's economic model ensures that nodes that are not currently
+considered to have a surplus in contributions will not be served if
+the network load is high.
 @footnote{Christian Grothoff. An Excess-Based Economic Model for Resource
 Allocation in Peer-to-Peer Networks. Wirtschaftsinformatik, June 2003.
 (@uref{https://gnunet.org/git/bibliography.git/plain/docs/ebe.pdf, https://gnunet.org/git/bibliography.git/plain/docs/ebe.pdf})}
@@ -248,20 +261,20 @@ Allocation in Peer-to-Peer Networks. Wirtschaftsinformatik, June 2003.
 @node Confidentiality
 @subsection Confidentiality
 
-Adversaries outside of GNUnet are not supposed to know what kind of
-actions a peer is involved in. Only the specific neighbor of a peer that
-is the corresponding sender or recipient of a message may know its
-contents, and even then application protocols may place further
-restrictions on that knowledge.
-In order to ensure confidentiality, GNUnet uses link encryption, that is
-each message exchanged between two peers is encrypted using a pair of
-keys only known to these two peers.
-Encrypting traffic like this makes any kind of traffic analysis much
-harder. Naturally, for some applications, it may still be desirable if
-even neighbors cannot determine the concrete contents of a message.
-In GNUnet, this problem is addressed by the specific application-level
-protocols (see for example, deniability and anonymity in anonymous file
-sharing).
+Adversaries (malicious, bad actors) outside of GNUnet are not supposed
+to know what kind of actions a peer is involved in. Only the specific
+neighbor of a peer that is the corresponding sender or recipient of a
+message may know its contents, and even then application protocols may
+place further restrictions on that knowledge.  In order to ensure
+confidentiality, GNUnet uses link encryption, that is each message
+exchanged between two peers is encrypted using a pair of keys only
+known to these two peers.  Encrypting traffic like this makes any kind
+of traffic analysis much harder. Naturally, for some applications, it
+may still be desirable if even neighbors cannot determine the concrete
+contents of a message.  In GNUnet, this problem is addressed by the
+specific application-level protocols. See for example the following
+sections @pxref{Anonymity}, @pxref{How file-sharing achieves Anonymity},
+and @pxref{Deniability}.
 
 @cindex Anonymity
 @node Anonymity
@@ -280,7 +293,7 @@ and Bart Preneel. Towards measuring anonymity.
 2002.
 (@uref{https://gnunet.org/git/bibliography.git/plain/docs/article-89.pdf, https://gnunet.org/git/bibliography.git/plain/docs/article-89.pdf})}
 that can help quantify the level of anonymity that a given mechanism
-provides, there is no such thing as complete anonymity.
+provides, there is no such thing as "complete anonymity".
 GNUnet's file-sharing implementation allows users to select for each
 operation (publish, search, download) the desired level of anonymity.
 The metric used is the amount of cover traffic available to hide the
@@ -289,10 +302,10 @@ While this metric is not as good as, for example, the theoretical metric
 given in scientific metrics@footnote{likewise},
 it is probably the best metric available to a peer with a purely local
 view of the world that does not rely on unreliable external information.
-The default anonymity level is 1, which uses anonymous routing but
+The default anonymity level is @code{1}, which uses anonymous routing but
 imposes no minimal requirements on cover traffic. It is possible
-to forego anonymity when this is not required. The anonymity level of 0
-allows GNUnet to use more efficient, non-anonymous routing.
+to forego anonymity when this is not required. The anonymity level of
+@code{0} allows GNUnet to use more efficient, non-anonymous routing.
 
 @cindex How file-sharing achieves Anonymity
 @node How file-sharing achieves Anonymity
@@ -323,7 +336,7 @@ node and which ones were routed.
 Note that in this mindset, any node can decide to break the
 source-rewriting paradigm without violating the protocol, as this
 only reduces the amount of traffic that a node can hide its own traffic
-in. 
+in.
 
 If we want to hide our actions in the traffic of other nodes, we must make
 our traffic indistinguishable from the traffic that we route for others.
@@ -391,6 +404,7 @@ You can find your peer identity by running @command{gnunet-peerinfo -s}.
 
 @c FIXME: Explain or link to an explanation of the concept of public keys
 @c and private keys.
+@c FIXME: Rewrite for the latest GNS changes.
 GNS@footnote{Matthias Wachs, Martin Schanzenbach, and Christian Grothoff.
 A Censorship-Resistant, Privacy-Enhancing and Fully Decentralized Name
 System. In proceedings of 13th International Conference on Cryptology and
@@ -399,7 +413,7 @@ Network Security (CANS 2014). 2014.
 zones are similar to those of DNS zones, but instead of a hierarchy of
 authorities to governing their use, GNS zones are controlled by a private
 key.
-When you create a record in a DNS zone, that information stored in your
+When you create a record in a DNS zone, that information is stored in your
 nameserver. Anyone trying to resolve your domain then gets pointed
 (hopefully) by the centralised authority to your nameserver.
 Whereas GNS, being fully decentralized by design, stores that information
@@ -424,5 +438,5 @@ public key first.
 @c like both are linked to public-private key pair.
 Egos are your "identities" in GNUnet. Any user can assume multiple
 identities, for example to separate their activities online. Egos can
-correspond to pseudonyms or real-world identities. Technically, an
-ego is first of all a public-private key pair.
+correspond to "pseudonyms" or "real-world identities". Technically an
+ego is first of all a key pair of a public- and private-key.
