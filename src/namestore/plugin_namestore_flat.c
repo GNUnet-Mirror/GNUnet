@@ -49,41 +49,6 @@ struct Plugin
    */
   struct GNUNET_CONTAINER_MultiHashMap *hm;
 
-  /**
-   * Offset
-   */
-  uint32_t offset;
-
-  /**
-   * Target Offset
-   */
-  uint32_t target_offset;
-
-  /**
-   * Iterator closure
-   */
-  void *iter_cls;
-
-  /**
-   * Iterator
-   */
-  GNUNET_NAMESTORE_RecordIterator iter;
-
-  /**
-   * Zone to iterate
-   */
-  const struct GNUNET_CRYPTO_EcdsaPrivateKey *iter_zone;
-
-  /**
-   * PKEY to look for in zone to name
-   */
-  const struct GNUNET_CRYPTO_EcdsaPublicKey *iter_pkey;
-
-  /**
-   * Iteration result found
-   */
-  int iter_result_found;
-
 };
 
 
@@ -670,17 +635,31 @@ namestore_flat_iterate_records (void *cls,
 }
 
 
+/**
+ * Closure for #zone_to_name.
+ */
+struct ZoneToNameContext
+{
+  const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone;
+  const struct GNUNET_CRYPTO_EcdsaPublicKey *value_zone;
+  GNUNET_NAMESTORE_RecordIterator iter;
+  void *iter_cls;
+
+  int result_found;
+};
+
+
 static int
 zone_to_name (void *cls,
               const struct GNUNET_HashCode *key,
               void *value)
 {
-  struct Plugin *plugin = cls;
+  struct ZoneToNameContext *ztn = cls;
   struct FlatFileEntry *entry = value;
 
   (void) key;
   if (0 != memcmp (entry->private_key,
-                   plugin->iter_zone,
+                   ztn->zone,
                    sizeof (struct GNUNET_CRYPTO_EcdsaPrivateKey)))
     return GNUNET_YES;
 
@@ -688,18 +667,17 @@ zone_to_name (void *cls,
   {
     if (GNUNET_GNSRECORD_TYPE_PKEY != entry->record_data[i].record_type)
       continue;
-    if (0 == memcmp (plugin->iter_pkey,
+    if (0 == memcmp (ztn->value_zone,
                      entry->record_data[i].data,
                      sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey)))
     {
-      plugin->iter (plugin->iter_cls,
-		    0,
-                    entry->private_key,
-                    entry->label,
-                    entry->record_count,
-                    entry->record_data);
-      plugin->iter_result_found = GNUNET_YES;
-
+      ztn->iter (ztn->iter_cls,
+                 0,
+                 entry->private_key,
+                 entry->label,
+                 entry->record_count,
+                 entry->record_data);
+      ztn->result_found = GNUNET_YES;
     }
   }
   return GNUNET_YES;
@@ -725,21 +703,21 @@ namestore_flat_zone_to_name (void *cls,
                              void *iter_cls)
 {
   struct Plugin *plugin = cls;
+  struct ZoneToNameContext ztn = {
+    .iter = iter,
+    .iter_cls = iter_cls,
+    .zone = zone,
+    .value_zone = value_zone,
+    .result_found = GNUNET_NO
+  };
 
-  /* FIXME: maybe use separate closure to better handle
-     recursive calls? */
-  plugin->iter = iter;
-  plugin->iter_cls = iter_cls;
-  plugin->iter_zone = zone;
-  plugin->iter_pkey = value_zone;
-  plugin->iter_result_found = GNUNET_NO;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Performing reverse lookup for `%s'\n",
               GNUNET_GNSRECORD_z2s (value_zone));
   GNUNET_CONTAINER_multihashmap_iterate (plugin->hm,
                                          &zone_to_name,
-                                         plugin);
-  return plugin->iter_result_found;
+                                         &ztn);
+  return ztn.result_found;
 }
 
 
