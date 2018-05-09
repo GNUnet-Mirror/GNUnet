@@ -69,8 +69,6 @@ static struct GNUNET_NAMESTORE_QueueEntry *qe;
 
 static int res;
 
-static char *directory;
-
 static unsigned int off;
 
 static unsigned int left_until_next;
@@ -333,13 +331,6 @@ run (void *cls,
      const struct GNUNET_CONFIGURATION_Handle *cfg,
      struct GNUNET_TESTING_Peer *peer)
 {
-  directory = NULL;
-  GNUNET_assert (GNUNET_OK ==
-                 GNUNET_CONFIGURATION_get_value_string(cfg,
-                                                       "PATHS",
-                                                       "GNUNET_TEST_HOME",
-                                                       &directory));
-  GNUNET_DISK_directory_remove (directory);
   GNUNET_SCHEDULER_add_shutdown (&end,
                                  NULL);
   timeout_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT,
@@ -367,6 +358,8 @@ main (int argc,
                    "perf_namestore_api_%s.conf",
                    plugin_name);
   res = 1;
+  GNUNET_DISK_purge_cfg_dir (cfg_name,
+                             "GNUNET_TEST_HOME");
   if (0 !=
       GNUNET_TESTING_peer_run ("perf-namestore-api-zone-iteration",
                                cfg_name,
@@ -375,12 +368,9 @@ main (int argc,
   {
     res = 1;
   }
+  GNUNET_DISK_purge_cfg_dir (cfg_name,
+                             "GNUNET_TEST_HOME");
   GNUNET_free (cfg_name);
-  if (NULL != directory)
-  {
-    GNUNET_DISK_directory_remove (directory);
-    GNUNET_free (directory);
-  }
   return res;
 }
 
