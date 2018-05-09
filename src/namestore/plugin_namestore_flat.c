@@ -364,10 +364,10 @@ store_and_free_entries (void *cls,
                                   &record_data_b64);
   }
   GNUNET_asprintf (&line,
-                   "%s,%lu,%u,%s,%s\n",
+                   "%s,%llu,%u,%s,%s\n",
                    zone_private_key,
-                   entry->rvalue,
-                   entry->record_count,
+                   (unsigned long long) entry->rvalue,
+                   (unsigned int) entry->record_count,
                    record_data_b64,
                    entry->label);
   GNUNET_free (record_data_b64);

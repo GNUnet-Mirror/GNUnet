@@ -46,7 +46,6 @@ static int res;
 
 static struct GNUNET_NAMESTORE_QueueEntry *nsqe;
 
-static char *directory;
 
 static void
 cleanup ()
@@ -114,23 +113,11 @@ run (void *cls,
      struct GNUNET_TESTING_Peer *peer)
 {
   struct GNUNET_GNSRECORD_Data rd;
-  char *hostkey_file;
   const char * name = "dummy.dummy.gnunet";
-
-  directory = NULL;
-  GNUNET_assert (GNUNET_OK ==
-                 GNUNET_CONFIGURATION_get_value_string(cfg, "PATHS", "GNUNET_TEST_HOME", &directory));
-  GNUNET_DISK_directory_remove (directory);
 
   endbadly_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT,
 						&endbadly, NULL);
-  GNUNET_asprintf (&hostkey_file,
-		   "zonefiles%s%s",
-		   DIR_SEPARATOR_STR,
-		   "N0UJMP015AFUNR2BTNM3FKPBLG38913BL8IDMCO2H0A1LIB81960.zkey");
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Using zonekey file `%s' \n", hostkey_file);
-  privkey = GNUNET_CRYPTO_ecdsa_key_create_from_file (hostkey_file);
-  GNUNET_free (hostkey_file);
+  privkey = GNUNET_CRYPTO_ecdsa_key_create ();
   GNUNET_assert (privkey != NULL);
   GNUNET_CRYPTO_ecdsa_key_get_public (privkey, &pubkey);
 
@@ -144,8 +131,13 @@ run (void *cls,
 
   nsh = GNUNET_NAMESTORE_connect (cfg);
   GNUNET_break (NULL != nsh);
-  nsqe = GNUNET_NAMESTORE_records_store (nsh, privkey, name,
-				      1, &rd, &put_cont, (void *) name);
+  nsqe = GNUNET_NAMESTORE_records_store (nsh,
+                                         privkey,
+                                         name,
+                                         1,
+                                         &rd,
+                                         &put_cont,
+                                         (void *) name);
   if (NULL == nsqe)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -167,6 +159,8 @@ main (int argc, char *argv[])
                    "test_namestore_api_%s.conf",
                    plugin_name);
   res = 1;
+  GNUNET_DISK_purge_cfg_dir (cfg_name,
+                             "GNUNET_TEST_HOME");
   if (0 !=
       GNUNET_TESTING_peer_run ("test-namestore-api",
                                cfg_name,
@@ -175,12 +169,9 @@ main (int argc, char *argv[])
   {
     res = 1;
   }
+  GNUNET_DISK_purge_cfg_dir (cfg_name,
+                             "GNUNET_TEST_HOME");
   GNUNET_free (cfg_name);
-  if (NULL != directory)
-  {
-    GNUNET_DISK_directory_remove (directory);
-    GNUNET_free (directory);
-  }
   return res;
 }
 

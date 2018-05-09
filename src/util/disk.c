@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     Copyright (C) 2001--2013, 2016 GNUnet e.V.
+     Copyright (C) 2001--2013, 2016, 2018 GNUnet e.V.
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -2640,5 +2640,56 @@ GNUNET_DISK_internal_file_handle_ (const struct GNUNET_DISK_FileHandle *fh,
 
   return GNUNET_OK;
 }
+
+
+/**
+ * Remove the directory given under @a option in
+ * section [PATHS] in configuration under @a cfg_filename
+ *
+ * @param cfg_filename configuration file to parse
+ * @param option option with the dir name to purge
+ */
+void
+GNUNET_DISK_purge_cfg_dir (const char *cfg_filename,
+                           const char *option)
+{
+  struct GNUNET_CONFIGURATION_Handle *cfg;
+  char *tmpname;
+
+  cfg = GNUNET_CONFIGURATION_create ();
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_load (cfg,
+                                 cfg_filename))
+  {
+    GNUNET_break (0);
+    GNUNET_CONFIGURATION_destroy (cfg);
+    return;
+  }
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_filename (cfg,
+                                               "PATHS",
+                                               option,
+                                               &tmpname))
+  {
+    GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR,
+                               "PATHS",
+                               option);
+    GNUNET_CONFIGURATION_destroy (cfg);
+    return;
+  }
+  GNUNET_CONFIGURATION_destroy (cfg);
+  if (GNUNET_SYSERR ==
+      GNUNET_DISK_directory_remove (tmpname))
+  {
+    GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR,
+                              "remove",
+                              tmpname);
+    GNUNET_free (tmpname);
+    return;
+  }
+  GNUNET_free (tmpname);
+}
+
+
 
 /* end of disk.c */

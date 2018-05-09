@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     Copyright (C) 2012, 2013, 2014 GNUnet e.V.
+     Copyright (C) 2012, 2013, 2014, 2018 GNUnet e.V.
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -23,6 +23,9 @@
  * @brief namestore for the GNUnet naming system
  * @author Matthias Wachs
  * @author Christian Grothoff
+ *
+ * TODO:
+ * - run testcases, make sure everything works!
  */
 #include "platform.h"
 #include "gnunet_util_lib.h"
@@ -175,6 +178,27 @@ struct ZoneMonitor
    */
   uint64_t limit;
 
+  /**
+   * How many more requests may we receive from the iterator
+   * before it is at the limit we gave it?  Will be below or
+   * equal to @e limit.  The effective limit for monitor
+   * events is thus @e iteration_cnt - @e limit!
+   */
+  uint64_t iteration_cnt;
+
+  /**
+   * Are we (still) in the initial iteration pass?
+   */
+  int in_first_iteration;
+
+  /**
+   * Is there a store activity waiting for this monitor?  We only raise the
+   * flag when it happens and search the DLL for the store activity when we
+   * had a limit increase.  If we cannot find any waiting store activity at
+   * that time, we clear the flag again.
+   */
+  int sa_waiting;
+
 };
 
 
@@ -208,6 +232,57 @@ struct CacheOperation
    * Client's request ID.
    */
   uint32_t rid;
+};
+
+
+/**
+ * Information for an ongoing #handle_record_store() operation.
+ * Needed as we may wait for monitors to be ready for the notification.
+ */
+struct StoreActivity
+{
+  /**
+   * Kept in a DLL.
+   */
+  struct StoreActivity *next;
+
+  /**
+   * Kept in a DLL.
+   */
+  struct StoreActivity *prev;
+
+  /**
+   * Which client triggered the store activity?
+   */
+  struct NamestoreClient *nc;
+
+  /**
+   * Copy of the original store message (as data fields in @e rd will
+   * point into it!).
+   */
+  const struct RecordStoreMessage *rsm;
+
+  /**
+   * Array of record data to store (without NICK unless this is about
+   * #GNUNET_GNS_EMPTY_LABEL_AT).  Length is in @e rd_count.
+   */
+  struct GNUNET_GNSRECORD_Data *rd;
+
+  /**
+   * Next zone monitor that still needs to be notified about this PUT.
+   */
+  struct ZoneMonitor *zm_pos;
+
+  /**
+   * Label nicely canonicalized (lower case).
+   */
+  char *conv_name;
+
+  /**
+   * How many records do we try to store?
+   */
+  unsigned int rd_count;
+
 };
 
 
@@ -260,6 +335,16 @@ static struct ZoneMonitor *monitor_head;
  * Last active zone monitor.
  */
 static struct ZoneMonitor *monitor_tail;
+
+/**
+ * Head of DLL of monitor-blocked store activities.
+ */
+static struct StoreActivity *sa_head;
+
+/**
+ * Tail of DLL of monitor-blocked store activities.
+ */
+static struct StoreActivity *sa_tail;
 
 /**
  * Notification context shared by all monitors.
@@ -326,80 +411,21 @@ cleanup_task (void *cls)
 
 
 /**
- * Called whenever a client is disconnected.
- * Frees our resources associated with that client.
+ * Release memory used by @a sa.
  *
- * @param cls closure
- * @param client identification of the client
- * @param app_ctx the `struct NamestoreClient` of @a client
+ * @param sa activity to free
  */
 static void
-client_disconnect_cb (void *cls,
-		      struct GNUNET_SERVICE_Client *client,
-		      void *app_ctx)
+free_store_activity (struct StoreActivity *sa)
 {
-  struct NamestoreClient *nc = app_ctx;
-  struct ZoneIteration *no;
-  struct ZoneMonitor *zm;
-  struct CacheOperation *cop;
-
-  (void) cls;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Client %p disconnected\n",
-	      client);
-  for (zm = monitor_head; NULL != zm; zm = zm->next)
-  {
-    if (nc == zm->nc)
-    {
-      GNUNET_CONTAINER_DLL_remove (monitor_head,
-				   monitor_tail,
-				   zm);
-      if (NULL != zm->task)
-      {
-	GNUNET_SCHEDULER_cancel (zm->task);
-	zm->task = NULL;
-      }
-      GNUNET_free (zm);
-      break;
-    }
-  }
-  while (NULL != (no = nc->op_head))
-  {
-    GNUNET_CONTAINER_DLL_remove (nc->op_head,
-				 nc->op_tail,
-				 no);
-    GNUNET_free (no);
-  }
-  for (cop = cop_head; NULL != cop; cop = cop->next)
-    if (nc == cop->nc)
-      cop->nc = NULL;
-  GNUNET_free (nc);
-}
-
-
-/**
- * Add a client to our list of active clients.
- *
- * @param cls NULL
- * @param client client to add
- * @param mq message queue for @a client
- * @return internal namestore client structure for this client
- */
-static void *
-client_connect_cb (void *cls,
-		   struct GNUNET_SERVICE_Client *client,
-		   struct GNUNET_MQ_Handle *mq)
-{
-  struct NamestoreClient *nc;
-
-  (void) cls;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Client %p connected\n",
-	      client);
-  nc = GNUNET_new (struct NamestoreClient);
-  nc->client = client;
-  nc->mq = mq;
-  return nc;
+  GNUNET_CONTAINER_DLL_remove (sa_head,
+                               sa_tail,
+                               sa);
+  GNUNET_array_grow (sa->rd,
+                     sa->rd_count,
+                     0);
+  GNUNET_free (sa->conv_name);
+  GNUNET_free (sa);
 }
 
 
@@ -795,6 +821,173 @@ refresh_block (struct NamestoreClient *nc,
 
 
 /**
+ * Continue processing the @a sa.
+ *
+ * @param sa store activity to process
+ */
+static void
+continue_store_activity (struct StoreActivity *sa)
+{
+  const struct RecordStoreMessage *rp_msg = sa->rsm;
+
+  for (struct ZoneMonitor *zm = sa->zm_pos;
+       NULL != zm;
+       zm = sa->zm_pos)
+  {
+    if ( (0 != memcmp (&rp_msg->private_key,
+                       &zm->zone,
+                       sizeof (struct GNUNET_CRYPTO_EcdsaPrivateKey))) &&
+         (0 != memcmp (&zm->zone,
+                       &zero,
+                       sizeof (struct GNUNET_CRYPTO_EcdsaPrivateKey))) )
+      sa->zm_pos = zm->next; /* not interesting to this monitor */
+    if (zm->limit == zm->iteration_cnt)
+    {
+      zm->sa_waiting = GNUNET_YES;
+      return; /* blocked on zone monitor */
+    }
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Notifying monitor about changes under label `%s'\n",
+                sa->conv_name);
+    zm->limit--;
+    send_lookup_response (zm->nc,
+                          0,
+                          &rp_msg->private_key,
+                          sa->conv_name,
+                          sa->rd_count,
+                          sa->rd);
+    sa->zm_pos = zm->next;
+  }
+  /* great, done with the monitors, unpack (again) for refresh_block operation */
+  {
+    size_t name_len;
+    size_t rd_ser_len;
+    uint32_t rid;
+    const char *name_tmp;
+    const char *rd_ser;
+    unsigned int rd_count;
+
+    rid = ntohl (rp_msg->gns_header.r_id);
+    name_len = ntohs (rp_msg->name_len);
+    rd_count = ntohs (rp_msg->rd_count);
+    rd_ser_len = ntohs (rp_msg->rd_len);
+    name_tmp = (const char *) &rp_msg[1];
+    rd_ser = &name_tmp[name_len];
+    {
+      struct GNUNET_GNSRECORD_Data rd[rd_count];
+
+      /* We did this before, must succeed again */
+      GNUNET_assert (GNUNET_OK ==
+                     GNUNET_GNSRECORD_records_deserialize (rd_ser_len,
+                                                           rd_ser,
+                                                           rd_count,
+                                                           rd));
+      refresh_block (sa->nc,
+                     rid,
+                     &rp_msg->private_key,
+                     sa->conv_name,
+                     rd_count,
+                     rd);
+    }
+  }
+  GNUNET_SERVICE_client_continue (sa->nc->client);
+  free_store_activity (sa);
+}
+
+
+/**
+ * Called whenever a client is disconnected.
+ * Frees our resources associated with that client.
+ *
+ * @param cls closure
+ * @param client identification of the client
+ * @param app_ctx the `struct NamestoreClient` of @a client
+ */
+static void
+client_disconnect_cb (void *cls,
+		      struct GNUNET_SERVICE_Client *client,
+		      void *app_ctx)
+{
+  struct NamestoreClient *nc = app_ctx;
+  struct ZoneIteration *no;
+  struct CacheOperation *cop;
+
+  (void) cls;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Client %p disconnected\n",
+	      client);
+  for (struct ZoneMonitor *zm = monitor_head; NULL != zm; zm = zm->next)
+  {
+    if (nc != zm->nc)
+      continue;
+    GNUNET_CONTAINER_DLL_remove (monitor_head,
+                                 monitor_tail,
+                                 zm);
+    if (NULL != zm->task)
+    {
+      GNUNET_SCHEDULER_cancel (zm->task);
+      zm->task = NULL;
+    }
+    for (struct StoreActivity *sa = sa_head; NULL != sa; sa = sa->next)
+    {
+      if (zm == sa->zm_pos)
+      {
+        sa->zm_pos = zm->next;
+        continue_store_activity (sa);
+      }
+    }
+    GNUNET_free (zm);
+    break;
+  }
+  for (struct StoreActivity *sa = sa_head; NULL != sa; sa = sa->next)
+  {
+    if (sa->nc == nc)
+    {
+      free_store_activity (sa);
+      break; /* there can only be one per nc */
+    }
+  }
+  while (NULL != (no = nc->op_head))
+  {
+    GNUNET_CONTAINER_DLL_remove (nc->op_head,
+				 nc->op_tail,
+				 no);
+    GNUNET_free (no);
+  }
+  for (cop = cop_head; NULL != cop; cop = cop->next)
+    if (nc == cop->nc)
+      cop->nc = NULL;
+  GNUNET_free (nc);
+}
+
+
+/**
+ * Add a client to our list of active clients.
+ *
+ * @param cls NULL
+ * @param client client to add
+ * @param mq message queue for @a client
+ * @return internal namestore client structure for this client
+ */
+static void *
+client_connect_cb (void *cls,
+		   struct GNUNET_SERVICE_Client *client,
+		   struct GNUNET_MQ_Handle *mq)
+{
+  struct NamestoreClient *nc;
+
+  (void) cls;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Client %p connected\n",
+	      client);
+  nc = GNUNET_new (struct NamestoreClient);
+  nc->client = client;
+  nc->mq = mq;
+  return nc;
+}
+
+
+/**
  * Closure for #lookup_it().
  */
 struct RecordLookupContext
@@ -1073,7 +1266,7 @@ handle_record_store (void *cls,
   const char *rd_ser;
   unsigned int rd_count;
   int res;
-  struct ZoneMonitor *zm;
+  struct StoreActivity *sa;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Received NAMESTORE_RECORD_STORE message\n");
@@ -1085,7 +1278,9 @@ handle_record_store (void *cls,
   name_tmp = (const char *) &rp_msg[1];
   rd_ser = &name_tmp[name_len];
   {
-    struct GNUNET_GNSRECORD_Data rd[rd_count];
+    struct GNUNET_GNSRECORD_Data rd[GNUNET_NZL(rd_count)];
+    struct GNUNET_GNSRECORD_Data rd_clean[GNUNET_NZL(rd_count)];
+    unsigned int rd_clean_off;
 
     if (GNUNET_OK !=
 	GNUNET_GNSRECORD_records_deserialize (rd_ser_len,
@@ -1128,9 +1323,6 @@ handle_record_store (void *cls,
     }
     else
     {
-      struct GNUNET_GNSRECORD_Data rd_clean[rd_count];
-      unsigned int rd_clean_off;
-
       /* remove "NICK" records, unless this is for the
          #GNUNET_GNS_EMPTY_LABEL_AT label */
       rd_clean_off = 0;
@@ -1147,59 +1339,39 @@ handle_record_store (void *cls,
 					 conv_name,
 					 rd_clean_off,
                                          rd_clean);
-      if (GNUNET_OK == res)
-      {
-        for (zm = monitor_head; NULL != zm; zm = zm->next)
-        {
-          if ( (0 == memcmp (&rp_msg->private_key,
-                             &zm->zone,
-                             sizeof (struct GNUNET_CRYPTO_EcdsaPrivateKey))) ||
-               (0 == memcmp (&zm->zone,
-                             &zero,
-                             sizeof (struct GNUNET_CRYPTO_EcdsaPrivateKey))) )
-          {
-            GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                        "Notifying monitor about changes under label `%s'\n",
-                        conv_name);
-            send_lookup_response (zm->nc,
-                                  0,
-                                  &rp_msg->private_key,
-                                  conv_name,
-                                  rd_count, rd);
-          }
-          else
-            GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                        "Monitor is for another zone\n");
-        }
-        if (NULL == monitor_head)
-          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                      "No monitors active\n");
-      }
-      else
-      {
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                    "Error storing record: %d\n",
-                    res);
-      }
     }
-    if (GNUNET_OK == res)
+
+    if (GNUNET_OK != res)
     {
-      refresh_block (nc,
-		     rid,
-                     &rp_msg->private_key,
-                     conv_name,
-                     rd_count,
-		     rd);
+      /* store not successful, not need to tell monitors */
+      send_store_response (nc,
+                           res,
+                           rid);
       GNUNET_SERVICE_client_continue (nc->client);
       GNUNET_free (conv_name);
       return;
     }
-    GNUNET_free (conv_name);
+
+    sa = GNUNET_malloc (sizeof (struct StoreActivity) +
+                        ntohs (rp_msg->gns_header.header.size));
+    GNUNET_CONTAINER_DLL_insert (sa_head,
+                                 sa_tail,
+                                 sa);
+    sa->nc = nc;
+    sa->rsm = (const struct RecordStoreMessage *) &sa[1];
+    memcpy (&sa[1],
+            rp_msg,
+            ntohs (rp_msg->gns_header.header.size));
+    sa->zm_pos = monitor_head;
+    sa->conv_name = conv_name;
+    GNUNET_array_grow (sa->rd,
+                       sa->rd_count,
+                       rd_clean_off);
+    memcpy (sa->rd,
+            rd_clean,
+            sizeof (struct GNUNET_GNSRECORD_Data) * rd_clean_off);
+    continue_store_activity (sa);
   }
-  send_store_response (nc,
-                       res,
-                       rid);
-  GNUNET_SERVICE_client_continue (nc->client);
 }
 
 
@@ -1311,8 +1483,7 @@ handle_zone_to_name (void *cls,
   struct ZoneToNameResponseMessage *ztnr_msg;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Received `%s' message\n",
-	      "ZONE_TO_NAME");
+	      "Received ZONE_TO_NAME message\n");
   ztn_ctx.rid = ntohl (ztn_msg->gns_header.r_id);
   ztn_ctx.nc = nc;
   ztn_ctx.success = GNUNET_NO;
@@ -1601,6 +1772,30 @@ handle_iteration_next (void *cls,
 
 
 /**
+ * Function called when the monitor is ready for more data, and we
+ * should thus unblock PUT operations that were blocked on the
+ * monitor not being ready.
+ */
+static void
+monitor_unblock (struct ZoneMonitor *zm)
+{
+  struct StoreActivity *sa = sa_head;
+
+  while ( (NULL != sa) &&
+          (zm->limit > zm->iteration_cnt) )
+  {
+    struct StoreActivity *sn = sa->next;
+
+    if (sa->zm_pos == zm)
+      continue_store_activity (sa);
+    sa = sn;
+  }
+  if (zm->limit > zm->iteration_cnt)
+    zm->sa_waiting = GNUNET_NO;
+}
+
+
+/**
  * Send 'sync' message to zone monitor, we're now in sync.
  *
  * @param zm monitor that is now in sync
@@ -1615,16 +1810,22 @@ monitor_sync (struct ZoneMonitor *zm)
 		       GNUNET_MESSAGE_TYPE_NAMESTORE_MONITOR_SYNC);
   GNUNET_MQ_send (zm->nc->mq,
 		  env);
+  /* mark iteration done */
+  zm->in_first_iteration = GNUNET_NO;
+  zm->iteration_cnt = 0;
+  if ( (zm->limit > 0) &&
+       (zm->sa_waiting) )
+    monitor_unblock (zm);
 }
 
 
 /**
- * Obtain the next datum during the zone monitor's zone intiial iteration.
+ * Obtain the next datum during the zone monitor's zone initial iteration.
  *
  * @param cls zone monitor that does its initial iteration
  */
 static void
-monitor_next (void *cls);
+monitor_iteration_next (void *cls);
 
 
 /**
@@ -1658,14 +1859,23 @@ monitor_iterate_cb (void *cls,
                             "Monitor notifications sent",
                             1,
                             GNUNET_NO);
+  zm->limit--;
+  zm->iteration_cnt--;
   send_lookup_response (zm->nc,
 			0,
 			zone_key,
 			name,
 			rd_count,
 			rd);
-  zm->task = GNUNET_SCHEDULER_add_now (&monitor_next,
-				       zm);
+  if ( (0 == zm->iteration_cnt) &&
+       (0 != zm->limit) )
+  {
+    /* We are done with the current iteration batch, AND the
+       client would right now accept more, so go again! */
+    GNUNET_assert (NULL == zm->task);
+    zm->task = GNUNET_SCHEDULER_add_now (&monitor_iteration_next,
+                                         zm);
+  }
 }
 
 
@@ -1687,6 +1897,8 @@ handle_monitor_start (void *cls,
   zm = GNUNET_new (struct ZoneMonitor);
   zm->nc = nc;
   zm->zone = zis_msg->zone;
+  zm->limit = 1;
+  zm->in_first_iteration = (GNUNET_YES == ntohl (zis_msg->iterate_first));
   GNUNET_CONTAINER_DLL_insert (monitor_head,
 			       monitor_tail,
 			       zm);
@@ -1694,8 +1906,8 @@ handle_monitor_start (void *cls,
   GNUNET_SERVICE_client_continue (nc->client);
   GNUNET_notification_context_add (monitor_nc,
 				   nc->mq);
-  if (GNUNET_YES == ntohl (zis_msg->iterate_first))
-    zm->task = GNUNET_SCHEDULER_add_now (&monitor_next,
+  if (zm->in_first_iteration)
+    zm->task = GNUNET_SCHEDULER_add_now (&monitor_iteration_next,
 					 zm);
   else
     monitor_sync (zm);
@@ -1708,12 +1920,17 @@ handle_monitor_start (void *cls,
  * @param cls zone monitor that does its initial iteration
  */
 static void
-monitor_next (void *cls)
+monitor_iteration_next (void *cls)
 {
   struct ZoneMonitor *zm = cls;
   int ret;
 
   zm->task = NULL;
+  GNUNET_assert (0 == zm->iteration_cnt);
+  if (zm->limit > 16)
+    zm->iteration_cnt = zm->limit / 2; /* leave half for monitor events */
+  else
+    zm->iteration_cnt = zm->limit; /* use it all */
   ret = GSN_database->iterate_records (GSN_database->cls,
                                        (0 == memcmp (&zm->zone,
 						     &zero,
@@ -1721,7 +1938,7 @@ monitor_next (void *cls)
                                        ? NULL
                                        : &zm->zone,
 				       zm->seq,
-                                       1,
+                                       zm->iteration_cnt,
 				       &monitor_iterate_cb,
 				       zm);
   if (GNUNET_SYSERR == ret)
@@ -1773,13 +1990,19 @@ handle_monitor_next (void *cls,
     return;
   }
   zm->limit += inc;
-#if 0
-  if (GNUNET_YES == ntohl (zis_msg->iterate_first))
-    zm->task = GNUNET_SCHEDULER_add_now (&monitor_next,
-					 zm);
-  else
-    monitor_sync (zm);
-#endif
+  if ( (zm->in_first_iteration) &&
+       (zm->limit == inc) )
+  {
+    /* We are still iterating, and the previous iteration must
+       have stopped due to the client's limit, so continue it! */
+    GNUNET_assert (NULL == zm->task);
+    zm->task = GNUNET_SCHEDULER_add_now (&monitor_iteration_next,
+                                         zm);
+  }
+  GNUNET_assert (zm->iteration_cnt <= zm->limit);
+  if ( (zm->limit > zm->iteration_cnt) &&
+       (zm->sa_waiting) )
+    monitor_unblock (zm);
 }
 
 

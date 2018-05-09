@@ -51,8 +51,6 @@ static char * s_name;
 
 static int res;
 
-static char *directory;
-
 static struct GNUNET_NAMESTORE_QueueEntry *qe;
 
 
@@ -204,34 +202,13 @@ run (void *cls,
 {
   (void) cls;
   (void) peer;
-  directory = NULL;
-  GNUNET_assert (GNUNET_OK ==
-		 GNUNET_CONFIGURATION_get_value_string (cfg,
-							"PATHS",
-							"GNUNET_TEST_HOME",
-							&directory));
-  GNUNET_DISK_directory_remove (directory);
-
   endbadly_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT,
 						&endbadly,
 						NULL);
   GNUNET_SCHEDULER_add_shutdown (&end,
 				 NULL);
   GNUNET_asprintf (&s_name, "dummy");
-  /* load privat key */
-  {
-    char *zonekey_file;
-
-    GNUNET_asprintf (&zonekey_file,
-		     "zonefiles%s%s",
-		     DIR_SEPARATOR_STR,
-		     "N0UJMP015AFUNR2BTNM3FKPBLG38913BL8IDMCO2H0A1LIB81960.zkey");
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		"Using zonekey file `%s'\n",
-		zonekey_file);
-    privkey = GNUNET_CRYPTO_ecdsa_key_create_from_file (zonekey_file);
-    GNUNET_free (zonekey_file);
-  }
+  privkey = GNUNET_CRYPTO_ecdsa_key_create ();
   GNUNET_assert (NULL != privkey);
   /* get public key */
   GNUNET_CRYPTO_ecdsa_key_get_public (privkey,
@@ -274,6 +251,8 @@ main (int argc,
   GNUNET_asprintf (&cfg_name,
                    "test_namestore_api_%s.conf",
                    plugin_name);
+  GNUNET_DISK_purge_cfg_dir (cfg_name,
+                             "GNUNET_TEST_HOME");
   res = 1;
   if (0 !=
       GNUNET_TESTING_peer_run ("test-namestore-api-zone-to-name",
@@ -283,12 +262,9 @@ main (int argc,
   {
     res = 1;
   }
+  GNUNET_DISK_purge_cfg_dir (cfg_name,
+                             "GNUNET_TEST_HOME");
   GNUNET_free (cfg_name);
-  if (NULL != directory)
-  {
-    GNUNET_DISK_directory_remove (directory);
-    GNUNET_free (directory);
-  }
   return res;
 }
 

@@ -46,7 +46,6 @@ static int res;
 
 static struct GNUNET_NAMESTORE_QueueEntry *nsqe;
 
-static char *directory;
 
 static void
 cleanup ()
@@ -92,7 +91,9 @@ end (void *cls)
 
 
 static void
-put_cont (void *cls, int32_t success, const char *emsg)
+put_cont (void *cls,
+          int32_t success,
+          const char *emsg)
 {
   GNUNET_assert (NULL != cls);
   nsqe = NULL;
@@ -101,8 +102,8 @@ put_cont (void *cls, int32_t success, const char *emsg)
     GNUNET_SCHEDULER_cancel (endbadly_task);
     endbadly_task = NULL;
   }
-
-  switch (success) {
+  switch (success)
+  {
     case GNUNET_NO:
       /* We expected GNUNET_NO, since record was not found */
       GNUNET_SCHEDULER_add_now (&end, NULL);
@@ -129,25 +130,12 @@ run (void *cls,
      const struct GNUNET_CONFIGURATION_Handle *cfg,
      struct GNUNET_TESTING_Peer *peer)
 {
-  char *hostkey_file;
   const char * name = "dummy.dummy.gnunet";
 
-  directory = NULL;
-  GNUNET_assert (GNUNET_OK ==
-                 GNUNET_CONFIGURATION_get_value_string(cfg, "PATHS", "GNUNET_TEST_HOME", &directory));
-  GNUNET_DISK_directory_remove (directory);
-
   endbadly_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT,
-						&endbadly, NULL);
-  GNUNET_asprintf (&hostkey_file,
-		   "zonefiles%s%s",
-		   DIR_SEPARATOR_STR,
-		   "N0UJMP015AFUNR2BTNM3FKPBLG38913BL8IDMCO2H0A1LIB81960.zkey");
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Using zonekey file `%s' \n",
-              hostkey_file);
-  privkey = GNUNET_CRYPTO_ecdsa_key_create_from_file (hostkey_file);
-  GNUNET_free (hostkey_file);
+						&endbadly,
+                                                NULL);
+  privkey = GNUNET_CRYPTO_ecdsa_key_create ();
   GNUNET_assert (privkey != NULL);
   GNUNET_CRYPTO_ecdsa_key_get_public (privkey, &pubkey);
 
@@ -174,6 +162,8 @@ main (int argc, char *argv[])
   GNUNET_asprintf (&cfg_name,
                    "test_namestore_api_%s.conf",
                    plugin_name);
+  GNUNET_DISK_purge_cfg_dir (cfg_name,
+                             "GNUNET_TEST_HOME");
   res = 1;
   if (0 !=
       GNUNET_TESTING_peer_run ("test-namestore-api-remove-non-existing-record",
@@ -183,12 +173,9 @@ main (int argc, char *argv[])
   {
     res = 1;
   }
+  GNUNET_DISK_purge_cfg_dir (cfg_name,
+                             "GNUNET_TEST_HOME");
   GNUNET_free (cfg_name);
-  if (NULL != directory)
-  {
-      GNUNET_DISK_directory_remove (directory);
-      GNUNET_free (directory);
-  }
   return res;
 }
 

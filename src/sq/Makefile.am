@@ -1,5 +1,5 @@
 # This Makefile.am is in the public domain
-AM_CPPFLAGS = -I$(top_srcdir)/src/include 
+AM_CPPFLAGS = -I$(top_srcdir)/src/include
 
 if MINGW
   WINFLAGS = -Wl,--no-undefined -Wl,--export-all-symbols
@@ -15,6 +15,8 @@ endif
 
 libgnunetsq_la_SOURCES = \
   sq.c \
+  sq_exec.c \
+  sq_prepare.c \
   sq_query_helper.c \
   sq_result_helper.c
 libgnunetsq_la_LIBADD = -lsqlite3 \

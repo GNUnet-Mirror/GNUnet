@@ -161,11 +161,10 @@ GNUNET_GNSRECORD_records_deserialize (size_t len,
 				      struct GNUNET_GNSRECORD_Data *dest)
 {
   struct NetworkRecord rec;
-  unsigned int i;
   size_t off;
 
   off = 0;
-  for (i=0;i<rd_count;i++)
+  for (unsigned int i=0;i<rd_count;i++)
   {
     if (off + sizeof (rec) > len)
       return GNUNET_SYSERR;

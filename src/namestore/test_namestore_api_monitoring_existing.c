@@ -57,8 +57,6 @@ static struct GNUNET_GNSRECORD_Data *s_rd_3;
 
 struct GNUNET_NAMESTORE_QueueEntry * ns_ops[3];
 
-static char *directory;
-
 
 static void
 do_shutdown ()
@@ -316,30 +314,14 @@ run (void *cls,
      const struct GNUNET_CONFIGURATION_Handle *mycfg,
      struct GNUNET_TESTING_Peer *peer)
 {
-  char *hostkey_file;
-
-  directory = NULL;
-  GNUNET_assert (GNUNET_OK ==
-                 GNUNET_CONFIGURATION_get_value_string (mycfg,
-                                                        "PATHS",
-                                                        "GNUNET_TEST_HOME",
-                                                        &directory));
-  GNUNET_DISK_directory_remove (directory);
-
   res = 1;
-
-  GNUNET_asprintf(&hostkey_file,
-		  "zonefiles%s%s",
-		  DIR_SEPARATOR_STR,
-		  "N0UJMP015AFUNR2BTNM3FKPBLG38913BL8IDMCO2H0A1LIB81960.zkey");
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Using zonekey file `%s' \n", hostkey_file);
-  privkey = GNUNET_CRYPTO_ecdsa_key_create_from_file(hostkey_file);
-  GNUNET_free (hostkey_file);
+  privkey = GNUNET_CRYPTO_ecdsa_key_create ();
   GNUNET_assert (privkey != NULL);
 
   cfg = mycfg;
-  endbadly_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT, &endbadly, NULL);
+  endbadly_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT,
+                                                &endbadly,
+                                                NULL);
   /* Connect to namestore */
   nsh = GNUNET_NAMESTORE_connect (cfg);
   if (NULL == nsh)
@@ -350,12 +332,7 @@ run (void *cls,
     return;
   }
 
-  GNUNET_asprintf(&hostkey_file,"zonefiles%s%s",
-		  DIR_SEPARATOR_STR,
-		  "HGU0A0VCU334DN7F2I9UIUMVQMM7JMSD142LIMNUGTTV9R0CF4EG.zkey");
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Using zonekey file `%s' \n", hostkey_file);
-  privkey2 = GNUNET_CRYPTO_ecdsa_key_create_from_file(hostkey_file);
-  GNUNET_free (hostkey_file);
+  privkey2 = GNUNET_CRYPTO_ecdsa_key_create ();
   GNUNET_assert (privkey2 != NULL);
 
 
@@ -397,6 +374,8 @@ main (int argc, char *argv[])
                    "test_namestore_api_%s.conf",
                    plugin_name);
   res = 1;
+  GNUNET_DISK_purge_cfg_dir (cfg_name,
+                             "GNUNET_TEST_HOME");
   if (0 !=
       GNUNET_TESTING_peer_run ("test-namestore-api-monitoring-existing",
                                cfg_name,
@@ -405,12 +384,9 @@ main (int argc, char *argv[])
   {
     res = 1;
   }
+  GNUNET_DISK_purge_cfg_dir (cfg_name,
+                             "GNUNET_TEST_HOME");
   GNUNET_free (cfg_name);
-  if (NULL != directory)
-  {
-      GNUNET_DISK_directory_remove (directory);
-      GNUNET_free (directory);
-  }
   return res;
 }
 

@@ -57,7 +57,6 @@ static char * s_name_3;
 
 static struct GNUNET_GNSRECORD_Data *s_rd_3;
 
-static char *directory;
 
 /**
  * Re-establish the connection to the service.
@@ -379,35 +378,16 @@ empty_zone_proc (void *cls,
 static void
 empty_zone_proc_end (void *cls)
 {
-  char *hostkey_file;
-
   zi = NULL;
-  GNUNET_asprintf (&hostkey_file,
-                   "zonefiles%s%s",
-                   DIR_SEPARATOR_STR,
-                   "N0UJMP015AFUNR2BTNM3FKPBLG38913BL8IDMCO2H0A1LIB81960.zkey");
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Using zonekey file `%s'\n",
-              hostkey_file);
-  privkey = GNUNET_CRYPTO_ecdsa_key_create_from_file (hostkey_file);
-  GNUNET_free (hostkey_file);
+  privkey = GNUNET_CRYPTO_ecdsa_key_create ();
   GNUNET_assert (privkey != NULL);
-
-  GNUNET_asprintf(&hostkey_file,
-                  "zonefiles%s%s",
-                  DIR_SEPARATOR_STR,
-                  "HGU0A0VCU334DN7F2I9UIUMVQMM7JMSD142LIMNUGTTV9R0CF4EG.zkey");
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Using zonekey file `%s' \n",
-              hostkey_file);
-  privkey2 = GNUNET_CRYPTO_ecdsa_key_create_from_file(hostkey_file);
-  GNUNET_free (hostkey_file);
+  privkey2 = GNUNET_CRYPTO_ecdsa_key_create ();
   GNUNET_assert (privkey2 != NULL);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Created record 1\n");
-
-  GNUNET_asprintf(&s_name_1, "dummy1");
+  GNUNET_asprintf (&s_name_1,
+                   "dummy1");
   s_rd_1 = create_record (1);
   GNUNET_NAMESTORE_records_store (nsh,
                                   privkey,
@@ -419,7 +399,8 @@ empty_zone_proc_end (void *cls)
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Created record 2 \n");
-  GNUNET_asprintf(&s_name_2, "dummy2");
+  GNUNET_asprintf (&s_name_2,
+                   "dummy2");
   s_rd_2 = create_record (1);
   GNUNET_NAMESTORE_records_store (nsh,
                                   privkey,
@@ -433,7 +414,8 @@ empty_zone_proc_end (void *cls)
               "Created record 3\n");
 
   /* name in different zone */
-  GNUNET_asprintf(&s_name_3, "dummy3");
+  GNUNET_asprintf (&s_name_3,
+                   "dummy3");
   s_rd_3 = create_record (1);
   GNUNET_NAMESTORE_records_store (nsh,
                                   privkey2,
@@ -449,14 +431,6 @@ run (void *cls,
      const struct GNUNET_CONFIGURATION_Handle *cfg,
      struct GNUNET_TESTING_Peer *peer)
 {
-  directory = NULL;
-  GNUNET_assert (GNUNET_OK ==
-                 GNUNET_CONFIGURATION_get_value_string (cfg,
-                                                        "PATHS",
-                                                        "GNUNET_TEST_HOME",
-                                                        &directory));
-  GNUNET_DISK_directory_remove (directory);
-
   endbadly_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT,
                                                 &endbadly,
                                                 NULL);
@@ -477,7 +451,8 @@ run (void *cls,
                 "Failed to create zone iterator\n");
     GNUNET_break (0);
     GNUNET_SCHEDULER_cancel (endbadly_task);
-    endbadly_task = GNUNET_SCHEDULER_add_now (&endbadly, NULL);
+    endbadly_task = GNUNET_SCHEDULER_add_now (&endbadly,
+                                              NULL);
   }
 }
 
@@ -493,6 +468,8 @@ main (int argc, char *argv[])
                    "test_namestore_api_%s.conf",
                    plugin_name);
   res = 1;
+  GNUNET_DISK_purge_cfg_dir (cfg_name,
+                             "GNUNET_TEST_HOME");
   if (0 !=
       GNUNET_TESTING_peer_run ("test-namestore-api-zone-iteration-specific-zone",
                                cfg_name,
@@ -501,12 +478,9 @@ main (int argc, char *argv[])
   {
     res = 1;
   }
+  GNUNET_DISK_purge_cfg_dir (cfg_name,
+                             "GNUNET_TEST_HOME");
   GNUNET_free (cfg_name);
-  if (NULL != directory)
-  {
-      GNUNET_DISK_directory_remove (directory);
-      GNUNET_free (directory);
-  }
   return res;
 }
 
