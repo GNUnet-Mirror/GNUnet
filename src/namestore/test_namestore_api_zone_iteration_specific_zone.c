@@ -59,50 +59,15 @@ static struct GNUNET_GNSRECORD_Data *s_rd_3;
 
 
 /**
- * Re-establish the connection to the service.
+ * Handle timeout.
  *
  * @param cls handle to use to re-connect.
- * @param tc scheduler context
  */
 static void
 endbadly (void *cls)
 {
-  if (NULL != zi)
-  {
-    GNUNET_NAMESTORE_zone_iteration_stop (zi);
-    zi = NULL;
-  }
-  if (nsh != NULL)
-    GNUNET_NAMESTORE_disconnect (nsh);
-  nsh = NULL;
-
-  GNUNET_free_non_null(s_name_1);
-  GNUNET_free_non_null(s_name_2);
-  GNUNET_free_non_null(s_name_3);
-
-  if (s_rd_1 != NULL)
-  {
-    GNUNET_free ((void *)s_rd_1->data);
-    GNUNET_free (s_rd_1);
-  }
-  if (s_rd_2 != NULL)
-  {
-    GNUNET_free ((void *)s_rd_2->data);
-    GNUNET_free (s_rd_2);
-  }
-  if (s_rd_3 != NULL)
-  {
-    GNUNET_free ((void *)s_rd_3->data);
-    GNUNET_free (s_rd_3);
-  }
-
-  if (privkey != NULL)
-    GNUNET_free (privkey);
-  privkey = NULL;
-
-  if (privkey2 != NULL)
-    GNUNET_free (privkey2);
-  privkey2 = NULL;
+  endbadly_task = NULL;
+  GNUNET_SCHEDULER_shutdown ();
   res = 1;
 }
 
@@ -115,21 +80,21 @@ end (void *cls)
     GNUNET_NAMESTORE_zone_iteration_stop (zi);
     zi = NULL;
   }
-
-  if (endbadly_task != NULL)
+  if (NULL != endbadly_task)
   {
     GNUNET_SCHEDULER_cancel (endbadly_task);
     endbadly_task = NULL;
   }
-
-  if (privkey != NULL)
+  if (NULL != privkey)
+  {
     GNUNET_free (privkey);
-  privkey = NULL;
-
-  if (privkey2 != NULL)
+    privkey = NULL;
+  }
+  if (NULL != privkey2)
+  {
     GNUNET_free (privkey2);
-  privkey2 = NULL;
-
+    privkey2 = NULL;
+  }
   GNUNET_free (s_name_1);
   GNUNET_free (s_name_2);
   GNUNET_free (s_name_3);
@@ -149,8 +114,10 @@ end (void *cls)
     GNUNET_free (s_rd_3);
   }
   if (nsh != NULL)
+  {
     GNUNET_NAMESTORE_disconnect (nsh);
-  nsh = NULL;
+    nsh = NULL;
+  }
 }
 
 
@@ -158,6 +125,7 @@ static void
 fail_cb (void *cls)
 {
   GNUNET_assert (0);
+  zi = NULL;
 }
 
 
@@ -243,7 +211,8 @@ zone_proc (void *cls,
   else
   {
     GNUNET_break (0);
-    GNUNET_SCHEDULER_add_now (&end, NULL);
+    res = 2;
+    GNUNET_SCHEDULER_shutdown ();
   }
 }
 
@@ -251,24 +220,28 @@ zone_proc (void *cls,
 static void
 zone_proc_end (void *cls)
 {
+  zi = NULL;
   GNUNET_break (2 == returned_records);
   if (2 == returned_records)
   {
     res = 0; /* Last iteraterator callback, we are done */
-    zi = NULL;
   }
   else
+  {
     res = 1;
+  }
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Received last result, iteration done after receing %u results\n",
               returned_records);
-  GNUNET_SCHEDULER_add_now (&end, NULL);
+  GNUNET_SCHEDULER_shutdown ();
 }
 
 
 static void
-put_cont (void *cls, int32_t success, const char *emsg)
+put_cont (void *cls,
+          int32_t success,
+          const char *emsg)
 {
   static int c = 0;
 
@@ -284,9 +257,8 @@ put_cont (void *cls, int32_t success, const char *emsg)
                 "Failed to created records: `%s'\n",
     		emsg);
     GNUNET_break (0);
-    if (NULL != endbadly_task)
-    	GNUNET_SCHEDULER_cancel (endbadly_task);
-    endbadly_task = GNUNET_SCHEDULER_add_now (&endbadly, NULL);
+    res = 2;
+    GNUNET_SCHEDULER_shutdown ();
     return;
   }
 
@@ -309,9 +281,8 @@ put_cont (void *cls, int32_t success, const char *emsg)
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                   "Failed to create zone iterator\n");
       GNUNET_break (0);
-      if (NULL != endbadly_task)
-      	GNUNET_SCHEDULER_cancel (endbadly_task);
-      endbadly_task = GNUNET_SCHEDULER_add_now (&endbadly, NULL);
+      res = 2;
+      GNUNET_SCHEDULER_shutdown ();
       return;
     }
   }
@@ -321,11 +292,11 @@ put_cont (void *cls, int32_t success, const char *emsg)
 static struct GNUNET_GNSRECORD_Data *
 create_record (unsigned int count)
 {
-  unsigned int c;
-  struct GNUNET_GNSRECORD_Data * rd;
+  struct GNUNET_GNSRECORD_Data *rd;
 
-  rd = GNUNET_malloc (count * sizeof (struct GNUNET_GNSRECORD_Data));
-  for (c = 0; c < count; c++)
+  rd = GNUNET_new_array (count,
+                         struct GNUNET_GNSRECORD_Data);
+  for (unsigned int c = 0; c < count; c++)
   {
     rd[c].expiration_time = GNUNET_TIME_relative_to_absolute (GNUNET_TIME_UNIT_HOURS).abs_value_us;
     rd[c].record_type = 1111;
@@ -356,9 +327,8 @@ empty_zone_proc (void *cls,
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 _("Expected empty zone but received zone private key\n"));
     GNUNET_break (0);
-    if (endbadly_task != NULL)
-      GNUNET_SCHEDULER_cancel (endbadly_task);
-    endbadly_task = GNUNET_SCHEDULER_add_now (&endbadly, NULL);
+    res = 2;
+    GNUNET_SCHEDULER_shutdown ();
     return;
   }
   if ((NULL != label) || (NULL != rd) || (0 != rd_count))
@@ -366,9 +336,8 @@ empty_zone_proc (void *cls,
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 _("Expected no zone content but received data\n"));
     GNUNET_break (0);
-    if (endbadly_task != NULL)
-      GNUNET_SCHEDULER_cancel (endbadly_task);
-    endbadly_task = GNUNET_SCHEDULER_add_now (&endbadly, NULL);
+    res = 2;
+    GNUNET_SCHEDULER_shutdown ();
     return;
   }
   GNUNET_assert (0);
@@ -431,6 +400,8 @@ run (void *cls,
      const struct GNUNET_CONFIGURATION_Handle *cfg,
      struct GNUNET_TESTING_Peer *peer)
 {
+  GNUNET_SCHEDULER_add_shutdown (&end,
+                                 NULL);
   endbadly_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT,
                                                 &endbadly,
                                                 NULL);
@@ -450,9 +421,7 @@ run (void *cls,
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Failed to create zone iterator\n");
     GNUNET_break (0);
-    GNUNET_SCHEDULER_cancel (endbadly_task);
-    endbadly_task = GNUNET_SCHEDULER_add_now (&endbadly,
-                                              NULL);
+    GNUNET_SCHEDULER_shutdown ();
   }
 }
 
