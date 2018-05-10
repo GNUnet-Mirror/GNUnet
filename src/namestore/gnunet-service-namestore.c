@@ -918,6 +918,8 @@ client_disconnect_cb (void *cls,
 	      client);
   for (struct ZoneMonitor *zm = monitor_head; NULL != zm; zm = zm->next)
   {
+    struct StoreActivity *san;
+
     if (nc != zm->nc)
       continue;
     GNUNET_CONTAINER_DLL_remove (monitor_head,
@@ -928,11 +930,13 @@ client_disconnect_cb (void *cls,
       GNUNET_SCHEDULER_cancel (zm->task);
       zm->task = NULL;
     }
-    for (struct StoreActivity *sa = sa_head; NULL != sa; sa = sa->next)
+    for (struct StoreActivity *sa = sa_head; NULL != sa; sa = san)
     {
+      san = sa->next;
       if (zm == sa->zm_pos)
       {
         sa->zm_pos = zm->next;
+        /* this may free sa */
         continue_store_activity (sa);
       }
     }
@@ -943,6 +947,7 @@ client_disconnect_cb (void *cls,
   {
     if (sa->nc == nc)
     {
+      /* this may free sa */
       free_store_activity (sa);
       break; /* there can only be one per nc */
     }
