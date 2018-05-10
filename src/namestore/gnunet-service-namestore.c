@@ -40,6 +40,11 @@
 
 #define LOG_STRERROR_FILE(kind,syscall,filename) GNUNET_log_from_strerror_file (kind, "util", syscall, filename)
 
+/**
+ * If a monitor takes more than 1 minute to process an event, print a warning.
+ */
+#define MONITOR_STALL_WARN_DELAY GNUNET_TIME_UNIT_MINUTES
+
 
 /**
  * A namestore client
@@ -162,6 +167,16 @@ struct ZoneMonitor
    * Task active during initial iteration.
    */
   struct GNUNET_SCHEDULER_Task *task;
+
+  /**
+   * Task to warn about slow monitors.
+   */
+  struct GNUNET_SCHEDULER_Task *sa_wait_warning;
+
+  /**
+   * Since when are we blocked on this monitor?
+   */
+  struct GNUNET_TIME_Absolute sa_waiting_start;
 
   /**
    * Last sequence number in the zone iteration used to address next
@@ -825,6 +840,25 @@ refresh_block (struct NamestoreClient *nc,
 
 
 /**
+ * Print a warning that one of our monitors is no longer reacting.
+ *
+ * @param cls a `struct ZoneMonitor` to warn about
+ */
+static void
+warn_monitor_slow (void *cls)
+{
+  struct ZoneMonitor *zm = cls;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+              "No response from monitor since %s\n",
+              GNUNET_STRINGS_absolute_time_to_string (zm->sa_waiting_start));
+  zm->sa_wait_warning = GNUNET_SCHEDULER_add_delayed (MONITOR_STALL_WARN_DELAY,
+                                                      &warn_monitor_slow,
+                                                      zm);
+}
+
+
+/**
  * Continue processing the @a sa.
  *
  * @param sa store activity to process
@@ -848,6 +882,12 @@ continue_store_activity (struct StoreActivity *sa)
     if (zm->limit == zm->iteration_cnt)
     {
       zm->sa_waiting = GNUNET_YES;
+      zm->sa_waiting_start = GNUNET_TIME_absolute_get ();
+      if (NULL != zm->sa_wait_warning)
+        GNUNET_SCHEDULER_cancel (zm->sa_wait_warning);
+      zm->sa_wait_warning = GNUNET_SCHEDULER_add_delayed (MONITOR_STALL_WARN_DELAY,
+                                                          &warn_monitor_slow,
+                                                          zm);
       return; /* blocked on zone monitor */
     }
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -933,6 +973,11 @@ client_disconnect_cb (void *cls,
     {
       GNUNET_SCHEDULER_cancel (zm->task);
       zm->task = NULL;
+    }
+    if (NULL != zm->sa_wait_warning)
+    {
+      GNUNET_SCHEDULER_cancel (zm->sa_wait_warning);
+      zm->sa_wait_warning = NULL;
     }
     for (struct StoreActivity *sa = sa_head; NULL != sa; sa = san)
     {
@@ -1804,7 +1849,23 @@ monitor_unblock (struct ZoneMonitor *zm)
     sa = sn;
   }
   if (zm->limit > zm->iteration_cnt)
+  {
     zm->sa_waiting = GNUNET_NO;
+    if (NULL != zm->sa_wait_warning)
+    {
+      GNUNET_SCHEDULER_cancel (zm->sa_wait_warning);
+      zm->sa_wait_warning = NULL;
+    }
+  }
+  else if (GNUNET_YES == zm->sa_waiting)
+  {
+    zm->sa_waiting_start = GNUNET_TIME_absolute_get ();
+    if (NULL != zm->sa_wait_warning)
+      GNUNET_SCHEDULER_cancel (zm->sa_wait_warning);
+    zm->sa_wait_warning = GNUNET_SCHEDULER_add_delayed (MONITOR_STALL_WARN_DELAY,
+                                                        &warn_monitor_slow,
+                                                        zm);
+  }
 }
 
 
@@ -2015,7 +2076,18 @@ handle_monitor_next (void *cls,
   GNUNET_assert (zm->iteration_cnt <= zm->limit);
   if ( (zm->limit > zm->iteration_cnt) &&
        (zm->sa_waiting) )
+  {
     monitor_unblock (zm);
+  }
+  else if (GNUNET_YES == zm->sa_waiting)
+  {
+    if (NULL != zm->sa_wait_warning)
+      GNUNET_SCHEDULER_cancel (zm->sa_wait_warning);
+    zm->sa_waiting_start = GNUNET_TIME_absolute_get ();
+    zm->sa_wait_warning = GNUNET_SCHEDULER_add_delayed (MONITOR_STALL_WARN_DELAY,
+                                                        &warn_monitor_slow,
+                                                        zm);
+  }
 }
 
 
