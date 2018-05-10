@@ -582,19 +582,24 @@ run (void *cls,
                                                    &ok);
   cfg = c;
   /* parse configuration */
-  if ((GNUNET_OK
-      != GNUNET_CONFIGURATION_get_value_number (c, "TRANSPORT",
-          "NEIGHBOUR_LIMIT", &tneigh))
-      || (GNUNET_OK
-          != GNUNET_CONFIGURATION_get_value_filename (c, "PEER", "PRIVATE_KEY",
-              &keyfile)))
+  if ( (GNUNET_OK !=
+        GNUNET_CONFIGURATION_get_value_number (c,
+                                               "TRANSPORT",
+                                               "NEIGHBOUR_LIMIT",
+                                               &tneigh)) ||
+       (GNUNET_OK !=
+        GNUNET_CONFIGURATION_get_value_filename (c,
+                                                 "PEER",
+                                                 "PRIVATE_KEY",
+                                                 &keyfile)))
   {
     GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
         "Transport service is lacking key configuration settings.  Exiting.\n");
     return;
   }
 
-  if (NULL == (stats = GNUNET_STATISTICS_create ("transport", cfg)))
+  if (NULL == (stats = GNUNET_STATISTICS_create ("transport",
+                                                 cfg)))
   {
     GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
                "Could not create statistics.  Exiting.\n");
@@ -739,8 +744,8 @@ run (void *cls,
     end_badly_now ();
     return;
   }
-
 }
+
 
 /**
  * The main function for the test
@@ -750,23 +755,32 @@ run (void *cls,
  * @return 0 ok, 1 on error
  */
 int
-main (int argc, char * const *argv)
+main (int argc,
+      char * const *argv)
 {
   static struct GNUNET_GETOPT_CommandLineOption options[] = {
-      GNUNET_GETOPT_OPTION_END };
+    GNUNET_GETOPT_OPTION_END
+  };
   int ret;
+  char * const argv_prog[] = {
+    "test_plugin_transport",
+    "-c",
+    "test_plugin_transport_data.conf",
+    NULL
+  };
 
-  GNUNET_DISK_directory_remove (GNUNET_DISK_mktemp("test-gnunetd-plugin-transport"));
-
-  char * const argv_prog[] = { "test_plugin_transport", "-c",
-      "test_plugin_transport_data.conf", NULL };
-  GNUNET_log_setup ("test-plugin-transport", "WARNING", NULL );
+  GNUNET_log_setup ("test-plugin-transport",
+                    "WARNING",
+                    NULL);
+  GNUNET_DISK_purge_cfg_dir ("test_plugin_transport_data.conf",
+                             "GNUNET_TEST_HOME");
   ok = 1; /* set to fail */
   ret =
       (GNUNET_OK
           == GNUNET_PROGRAM_run (3, argv_prog, "test-plugin-transport",
               "testcase", options, &run, (void *) argv)) ? ok : 1;
-  GNUNET_DISK_directory_remove (GNUNET_DISK_mktemp("test-gnunetd-plugin-transport"));
+  GNUNET_DISK_purge_cfg_dir ("test_plugin_transport_data.conf",
+                             "GNUNET_TEST_HOME");
   return ret;
 }
 
