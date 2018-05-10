@@ -13,7 +13,7 @@ then
 	exit 77
 fi
 
-rm -rf /tmp/test-gnunet-gns-peer-1/
+rm -rf `gnunet-config -c test_gns_lookup.conf -f -s paths -o GNUNET_TEST_HOME`
 which timeout &> /dev/null && DO_TIMEOUT="timeout 5"
 
 MY_EGO="myego"
@@ -28,7 +28,7 @@ RES_MX=`$DO_TIMEOUT gnunet-gns --raw -u www.$MY_EGO -t MX -c test_gns_lookup.con
 gnunet-namestore -z $MY_EGO -d -n www -t MX -V "$TEST_MX" -e never -c test_gns_lookup.conf
 gnunet-identity -D $MY_EGO -c test_gns_lookup.conf
 gnunet-arm -e -c test_gns_lookup.conf
-rm -rf /tmp/test-gnunet-gns-peer-1/
+rm -rf `gnunet-config -c test_gns_lookup.conf -f -s paths -o GNUNET_TEST_HOME`
 
 if [ "$RES_MX" == "$WANT_MX" ]
 then

@@ -16,7 +16,7 @@ fi
 MY_EGO="myego"
 OTHER_EGO="delegatedego"
 
-rm -rf /tmp/test-gnunet-gns-peer-1/
+rm -rf `gnunet-config -c test_gns_lookup.conf -f -s paths -o GNUNET_TEST_HOME`
 which timeout &> /dev/null && DO_TIMEOUT="timeout 5"
 TEST_IP="127.0.0.1"
 gnunet-arm -s -c test_gns_lookup.conf
@@ -38,7 +38,7 @@ gnunet-namestore -z $MY_EGO -d -n b -t PKEY -V $DELEGATED_PKEY  -e never -c test
 gnunet-identity -D $MY_EGO -c test_gns_lookup.conf
 gnunet-identity -D $OTHER_EGO -c test_gns_lookup.conf
 gnunet-arm -e -c test_gns_lookup.conf
-rm -rf /tmp/test-gnunet-gns-peer-1/
+rm -rf `gnunet-config -c test_gns_lookup.conf -f -s paths -o GNUNET_TEST_HOME`
 
 if [ "$RES_IP_EXP" == "$TEST_IP" ]
 then
