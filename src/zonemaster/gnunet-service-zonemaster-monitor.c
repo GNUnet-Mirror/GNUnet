@@ -235,8 +235,7 @@ convert_records_for_export (const struct GNUNET_GNSRECORD_Data *rd,
  * @param label label to store under
  * @param rd_public public record data
  * @param rd_public_count number of records in @a rd_public
- * @param cont function to call with PUT result
- * @param cont_cls closure for @a cont
+ * @param ma handle for the PUT operation
  * @return DHT PUT handle, NULL on error
  */
 static struct GNUNET_DHT_PutHandle *
@@ -244,8 +243,7 @@ perform_dht_put (const struct GNUNET_CRYPTO_EcdsaPrivateKey *key,
                  const char *label,
                  const struct GNUNET_GNSRECORD_Data *rd_public,
                  unsigned int rd_public_count,
-                 GNUNET_SCHEDULER_TaskCallback cont,
-                 void *cont_cls)
+                 struct DhtPutActivity *ma)
 {
   struct GNUNET_GNSRECORD_Block *block;
   struct GNUNET_HashCode query;
@@ -296,8 +294,8 @@ perform_dht_put (const struct GNUNET_CRYPTO_EcdsaPrivateKey *key,
                         block_size,
                         block,
                         expire,
-                        cont,
-                        cont_cls);
+                        &dht_put_monitor_continuation,
+                        ma);
   GNUNET_free (block);
   return ret;
 }
@@ -350,7 +348,6 @@ handle_monitor_event (void *cls,
                             label,
                             rd,
                             rd_count,
-                            &dht_put_monitor_continuation,
                             ma);
   if (NULL == ma->ph)
   {
