@@ -8,10 +8,10 @@ import subprocess
 import time
 
 if os.name == "nt":
-  tmp = os.getenv ("TEMP")
-elif os.environ["TMPDIR"]:
+    tmp = os.getenv ("TEMP")
+elif None != os.environ.get("TMPDIR"):
     tmp = os.getenv("TMPDIR")
-elif os.environ["TMP"]:
+elif None != os.environ.get("TMP"):
     tmp = os.getenv("TMP")
 else:
     tmp = "/tmp"
