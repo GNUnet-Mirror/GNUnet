@@ -59,6 +59,11 @@
 #define SERIES_DELAY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MICROSECONDS, 10)
 
 /**
+ * How long do DNS records have to last at least after being imported?
+ */
+static struct GNUNET_TIME_Relative minimum_expiration_time;
+
+/**
  * How many requests do we request from NAMESTORE in one batch
  * during our initial iteration?
  */
@@ -632,10 +637,19 @@ check_for_glue (void *cls,
   size_t off;
   char ip[INET6_ADDRSTRLEN+1];
   socklen_t ip_size = (socklen_t) sizeof (ip);
+  struct GNUNET_TIME_Absolute expiration_time;
+  struct GNUNET_TIME_Relative left;
 
   if (0 != strcasecmp (rec->name,
 		       gc->ns))
     return;
+  expiration_time = rec->expiration_time;
+  left = GNUNET_TIME_absolute_get_remaining (expiration_time);
+  if (0 == left.rel_value_us)
+    return; /* ignore expired glue records */
+  /* if expiration window is too short, bump it to configured minimum */
+  if (left.rel_value_us < minimum_expiration_time.rel_value_us)
+    expiration_time = GNUNET_TIME_relative_to_absolute (minimum_expiration_time);
   dst_len = sizeof (dst);
   off = 0;
   switch (rec->type)
@@ -668,7 +682,7 @@ check_for_glue (void *cls,
     {
       add_record (gc->req,
 		  GNUNET_GNSRECORD_TYPE_GNS2DNS,
-		  rec->expiration_time,
+		  expiration_time,
 		  dst,
 		  off);
       gc->found = GNUNET_YES;
@@ -702,7 +716,7 @@ check_for_glue (void *cls,
     {
       add_record (gc->req,
 		  GNUNET_GNSRECORD_TYPE_GNS2DNS,
-		  rec->expiration_time,
+		  expiration_time,
 		  dst,
 		  off);
       gc->found = GNUNET_YES;
@@ -722,7 +736,7 @@ check_for_glue (void *cls,
     {
       add_record (gc->req,
 		  GNUNET_GNSRECORD_TYPE_GNS2DNS,
-		  rec->expiration_time,
+		  expiration_time,
 		  dst,
 		  off);
       gc->found = GNUNET_YES;
@@ -768,6 +782,8 @@ process_record (void *cls,
   char dst[65536];
   size_t dst_len;
   size_t off;
+  struct GNUNET_TIME_Absolute expiration_time;
+  struct GNUNET_TIME_Relative left;
 
   dst_len = sizeof (dst);
   off = 0;
@@ -783,18 +799,27 @@ process_record (void *cls,
     return; /* does not match hostname, might be glue, but
 	       not useful for this pass! */
   }
-  if (0 ==
-      GNUNET_TIME_absolute_get_remaining (rec->expiration_time).rel_value_us)
+  expiration_time = rec->expiration_time;
+  left = GNUNET_TIME_absolute_get_remaining (expiration_time);
+  if (0 == left.rel_value_us)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		"DNS returned expired record for `%s'\n",
 		req->hostname);
+    GNUNET_STATISTICS_update (stats,
+                              "# expired records obtained from DNS",
+                              1,
+                              GNUNET_NO);
     return; /* record expired */
   }
+
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "DNS returned record that expires at %s for `%s'\n",
-              GNUNET_STRINGS_absolute_time_to_string (rec->expiration_time),
+              GNUNET_STRINGS_absolute_time_to_string (expiration_time),
               req->hostname);
+  /* if expiration window is too short, bump it to configured minimum */
+  if (left.rel_value_us < minimum_expiration_time.rel_value_us)
+    expiration_time = GNUNET_TIME_relative_to_absolute (minimum_expiration_time);
   switch (rec->type)
   {
   case GNUNET_DNSPARSER_TYPE_NS:
@@ -828,7 +853,7 @@ process_record (void *cls,
 		    rec->name);
 	add_record (req,
 		    GNUNET_GNSRECORD_TYPE_GNS2DNS,
-		    rec->expiration_time,
+		    expiration_time,
 		    dst,
 		    off);
       }
@@ -853,7 +878,7 @@ process_record (void *cls,
 		  rec->name);
       add_record (req,
 		  rec->type,
-		  rec->expiration_time,
+		  expiration_time,
 		  dst,
 		  off);
     }
@@ -878,7 +903,7 @@ process_record (void *cls,
 		  rec->name);
       add_record (req,
 		  rec->type,
-		  rec->expiration_time,
+		  expiration_time,
 		  dst,
 		  off);
     }
@@ -896,7 +921,7 @@ process_record (void *cls,
 		  rec->name);
       add_record (req,
 		  rec->type,
-		  rec->expiration_time,
+		  expiration_time,
 		  dst,
 		  off);
     }
@@ -913,7 +938,7 @@ process_record (void *cls,
 		  rec->name);
       add_record (req,
 		  rec->type,
-		  rec->expiration_time,
+		  expiration_time,
 		  dst,
 		  off);
     }
@@ -931,7 +956,7 @@ process_record (void *cls,
 		  rec->name);
       add_record (req,
 		  rec->type,
-		  rec->expiration_time,
+		  expiration_time,
 		  dst,
 		  off);
     }
@@ -948,7 +973,7 @@ process_record (void *cls,
 		  rec->name);
       add_record (req,
 		  rec->type,
-		  rec->expiration_time,
+		  expiration_time,
 		  dst,
 		  off);
     }
@@ -966,7 +991,7 @@ process_record (void *cls,
 		rec->name);
     add_record (req,
 		rec->type,
-		rec->expiration_time,
+		expiration_time,
 		rec->data.raw.data,
 		rec->data.raw.data_len);
     break;
@@ -1551,7 +1576,17 @@ ns_lookup_result_cb (void *cls,
   {
     struct GNUNET_TIME_Absolute at;
 
-    at.abs_value_us = rd->expiration_time;
+    if (0 != (rd->flags & GNUNET_GNSRECORD_RF_RELATIVE_EXPIRATION))
+    {
+      struct GNUNET_TIME_Relative rel;
+
+      rel.rel_value_us = rd->expiration_time;
+      at = GNUNET_TIME_relative_to_absolute (rel);
+    }
+    else
+    {
+      at.abs_value_us = rd->expiration_time;
+    }
     add_record (req,
 		rd->record_type,
 		at,
@@ -1986,6 +2021,11 @@ main (int argc,
                                "MAPSIZE",
                                gettext_noop ("size to use for the main hash map"),
                                &map_size),
+    GNUNET_GETOPT_option_relative_time ('m',
+                                        "minimum-expiration",
+                                        "RELATIVETIME",
+                                        gettext_noop ("minimum expiration time we assume for imported records"),
+                                        &minimum_expiration_time),
     GNUNET_GETOPT_OPTION_END
   };
 
