@@ -566,8 +566,10 @@ handle_helper_message (void *cls,
  * @param c configuration to use
  */
 static void
-run (void *cls, char * const *args, const char *cfgfile,
-    const struct GNUNET_CONFIGURATION_Handle *c)
+run (void *cls,
+     char * const *args,
+     const char *cfgfile,
+     const struct GNUNET_CONFIGURATION_Handle *c)
 {
   char * const *argv = cls;
   unsigned long long tneigh;
@@ -575,8 +577,9 @@ run (void *cls, char * const *args, const char *cfgfile,
   char *plugin;
   char *sep;
 
-  timeout_endbadly = GNUNET_SCHEDULER_add_delayed (TIMEOUT, end_badly, &ok);
-
+  timeout_endbadly = GNUNET_SCHEDULER_add_delayed (TIMEOUT,
+                                                   &end_badly,
+                                                   &ok);
   cfg = c;
   /* parse configuration */
   if ((GNUNET_OK
@@ -594,7 +597,7 @@ run (void *cls, char * const *args, const char *cfgfile,
   if (NULL == (stats = GNUNET_STATISTICS_create ("transport", cfg)))
   {
     GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
-        "Could not create statistics.  Exiting.\n");
+               "Could not create statistics.  Exiting.\n");
     GNUNET_free(keyfile);
     end_badly_now ();
     return;
@@ -602,27 +605,33 @@ run (void *cls, char * const *args, const char *cfgfile,
 
   if (GNUNET_OK != GNUNET_DISK_file_test (HOSTKEY_FILE))
   {
-    GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Hostkey `%s' missing.  Exiting.\n",
-        HOSTKEY_FILE);
+    GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
+               "Hostkey `%s' missing.  Exiting.\n",
+               HOSTKEY_FILE);
     GNUNET_free(keyfile);
     end_badly_now ();
     return;
   }
 
-  if (GNUNET_OK != GNUNET_DISK_directory_create_for_file (keyfile))
+  if (GNUNET_OK !=
+      GNUNET_DISK_directory_create_for_file (keyfile))
   {
     GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
-        "Could not create a directory for hostkey `%s'.  Exiting.\n", keyfile);
+               "Could not create a directory for hostkey `%s'.  Exiting.\n",
+               keyfile);
     GNUNET_free(keyfile);
     end_badly_now ();
     return;
   }
 
-  if (GNUNET_OK != GNUNET_DISK_file_copy (HOSTKEY_FILE, keyfile))
+  if (GNUNET_OK !=
+      GNUNET_DISK_file_copy (HOSTKEY_FILE,
+                             keyfile))
   {
     GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
-        "Could not copy hostkey `%s' to destination `%s'.  Exiting.\n",
-        HOSTKEY_FILE, keyfile);
+               "Could not copy hostkey `%s' to destination `%s'.  Exiting.\n",
+               HOSTKEY_FILE,
+               keyfile);
     GNUNET_free(keyfile);
     end_badly_now ();
     return;

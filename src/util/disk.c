@@ -1401,13 +1401,28 @@ GNUNET_DISK_file_copy (const char *src,
   struct GNUNET_DISK_FileHandle *in;
   struct GNUNET_DISK_FileHandle *out;
 
-  if (GNUNET_OK != GNUNET_DISK_file_size (src, &size, GNUNET_YES, GNUNET_YES))
+  if (GNUNET_OK !=
+      GNUNET_DISK_file_size (src,
+                             &size,
+                             GNUNET_YES,
+                             GNUNET_YES))
+  {
+    GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR,
+                              "stat",
+                              src);
     return GNUNET_SYSERR;
+  }
   pos = 0;
-  in = GNUNET_DISK_file_open (src, GNUNET_DISK_OPEN_READ,
+  in = GNUNET_DISK_file_open (src,
+                              GNUNET_DISK_OPEN_READ,
                               GNUNET_DISK_PERM_NONE);
-  if (!in)
+  if (! in)
+  {
+    GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR,
+                              "open",
+                              src);
     return GNUNET_SYSERR;
+  }
   out =
       GNUNET_DISK_file_open (dst,
                              GNUNET_DISK_OPEN_WRITE | GNUNET_DISK_OPEN_CREATE |
@@ -1418,6 +1433,9 @@ GNUNET_DISK_file_copy (const char *src,
                              GNUNET_DISK_PERM_GROUP_WRITE);
   if (!out)
   {
+    GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR,
+                              "open",
+                              dst);
     GNUNET_DISK_file_close (in);
     return GNUNET_SYSERR;
   }
