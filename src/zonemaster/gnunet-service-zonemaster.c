@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     Copyright (C) 2012, 2013, 2014, 2017 GNUnet e.V.
+     Copyright (C) 2012, 2013, 2014, 2017, 2018 GNUnet e.V.
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -29,8 +29,6 @@
 #include "gnunet_dht_service.h"
 #include "gnunet_namestore_service.h"
 #include "gnunet_statistics_service.h"
-#include "gnunet_namestore_plugin.h"
-#include "gnunet_signatures.h"
 
 
 #define LOG_STRERROR_FILE(kind,syscall,filename) GNUNET_log_from_strerror_file (kind, "util", syscall, filename)
@@ -90,11 +88,6 @@
 #define LATE_ITERATION_SPEEDUP_FACTOR 2
 
 /**
- * How long until a DHT PUT attempt should time out?
- */
-#define DHT_OPERATION_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 60)
-
-/**
  * What replication level do we use for DHT PUT operations?
  */
 #define DHT_GNS_REPLICATION_LEVEL 5
@@ -146,21 +139,6 @@ static struct GNUNET_NAMESTORE_Handle *namestore_handle;
  * Handle to iterate over our authoritative zone in namestore
  */
 static struct GNUNET_NAMESTORE_ZoneIterator *namestore_iter;
-
-/**
- * Handle to monitor namestore changes to instant propagation.
- */
-static struct GNUNET_NAMESTORE_ZoneMonitor *zmon;
-
-/**
- * Head of monitor activities; kept in a DLL.
- */
-static struct DhtPutActivity *ma_head;
-
-/**
- * Tail of monitor activities; kept in a DLL.
- */
-static struct DhtPutActivity *ma_tail;
 
 /**
  * Head of iteration put activities; kept in a DLL.
@@ -281,15 +259,6 @@ shutdown_task (void *cls)
   (void) cls;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Shutting down!\n");
-  while (NULL != (ma = ma_head))
-  {
-    GNUNET_DHT_put_cancel (ma->ph);
-    ma_queue_length--;
-    GNUNET_CONTAINER_DLL_remove (ma_head,
-                                 ma_tail,
-                                 ma);
-    GNUNET_free (ma);
-  }
   while (NULL != (ma = it_head))
   {
     GNUNET_DHT_put_cancel (ma->ph);
@@ -315,11 +284,6 @@ shutdown_task (void *cls)
   {
     GNUNET_NAMESTORE_zone_iteration_stop (namestore_iter);
     namestore_iter = NULL;
-  }
-  if (NULL != zmon)
-  {
-    GNUNET_NAMESTORE_zone_monitor_stop (zmon);
-    zmon = NULL;
   }
   if (NULL != namestore_handle)
   {
@@ -359,27 +323,6 @@ publish_zone_namestore_next (void *cls)
  */
 static void
 publish_zone_dht_start (void *cls);
-
-
-/**
- * Continuation called from DHT once the PUT operation triggered
- * by a monitor is done.
- *
- * @param cls a `struct DhtPutActivity`
- */
-static void
-dht_put_monitor_continuation (void *cls)
-{
-  struct DhtPutActivity *ma = cls;
-
-  GNUNET_NAMESTORE_zone_monitor_next (zmon,
-                                      1);
-  ma_queue_length--;
-  GNUNET_CONTAINER_DLL_remove (ma_head,
-                               ma_tail,
-                               ma);
-  GNUNET_free (ma);
-}
 
 
 /**
@@ -884,131 +827,6 @@ publish_zone_dht_start (void *cls)
 
 
 /**
- * Process a record that was stored in the namestore
- * (invoked by the monitor).
- *
- * @param cls closure, NULL
- * @param zone private key of the zone; NULL on disconnect
- * @param label label of the records; NULL on disconnect
- * @param rd_count number of entries in @a rd array, 0 if label was deleted
- * @param rd array of records with data to store
- */
-static void
-handle_monitor_event (void *cls,
-                      const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone,
-                      const char *label,
-                      unsigned int rd_count,
-                      const struct GNUNET_GNSRECORD_Data *rd)
-{
-  struct GNUNET_GNSRECORD_Data rd_public[rd_count];
-  unsigned int rd_public_count;
-  struct DhtPutActivity *ma;
-
-  (void) cls;
-  GNUNET_STATISTICS_update (statistics,
-                            "Namestore monitor events received",
-                            1,
-                            GNUNET_NO);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Received %u records for label `%s' via namestore monitor\n",
-              rd_count,
-              label);
-  /* filter out records that are not public, and convert to
-     absolute expiration time. */
-  rd_public_count = convert_records_for_export (rd,
-                                                rd_count,
-                                                rd_public);
-  if (0 == rd_public_count)
-  {
-    GNUNET_NAMESTORE_zone_monitor_next (zmon,
-                                        1);
-    return; /* nothing to do */
-  }
-  num_public_records++;
-  ma = GNUNET_new (struct DhtPutActivity);
-  ma->start_date = GNUNET_TIME_absolute_get ();
-  ma->ph = perform_dht_put (zone,
-                            label,
-                            rd,
-                            rd_count,
-                            &dht_put_monitor_continuation,
-                            ma);
-  if (NULL == ma->ph)
-  {
-    /* PUT failed, do not remember operation */
-    GNUNET_free (ma);
-    GNUNET_NAMESTORE_zone_monitor_next (zmon,
-                                        1);
-    return;
-  }
-  GNUNET_CONTAINER_DLL_insert_tail (ma_head,
-				    ma_tail,
-				    ma);
-  ma_queue_length++;
-  if (ma_queue_length > DHT_QUEUE_LIMIT)
-  {
-    ma = ma_head;
-    GNUNET_CONTAINER_DLL_remove (ma_head,
-                                 ma_tail,
-                                 ma);
-    GNUNET_DHT_put_cancel (ma->ph);
-    ma_queue_length--;
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                "DHT PUT unconfirmed after %s, aborting PUT\n",
-                GNUNET_STRINGS_relative_time_to_string (GNUNET_TIME_absolute_get_duration (ma->start_date),
-                                                        GNUNET_YES));
-    GNUNET_free (ma);
-  }
-}
-
-
-/**
- * The zone monitor is now in SYNC with the current state of the
- * name store.  Start to perform periodic iterations.
- *
- * @param cls NULL
- */
-static void
-monitor_sync_event (void *cls)
-{
-  (void) cls;
-  if ( (NULL == zone_publish_task) &&
-       (NULL == namestore_iter) )
-    zone_publish_task = GNUNET_SCHEDULER_add_now (&publish_zone_dht_start,
-                                                  NULL);
-}
-
-
-/**
- * The zone monitor encountered an IPC error trying to to get in
- * sync. Restart from the beginning.
- *
- * @param cls NULL
- */
-static void
-handle_monitor_error (void *cls)
-{
-  (void) cls;
-  GNUNET_STATISTICS_update (statistics,
-                            "Namestore monitor errors encountered",
-                            1,
-                            GNUNET_NO);
-  if (NULL != zone_publish_task)
-  {
-    GNUNET_SCHEDULER_cancel (zone_publish_task);
-    zone_publish_task = NULL;
-  }
-  if (NULL != namestore_iter)
-  {
-    GNUNET_NAMESTORE_zone_iteration_stop (namestore_iter);
-    namestore_iter = NULL;
-  }
-  zone_publish_task = GNUNET_SCHEDULER_add_now (&publish_zone_dht_start,
-                                                NULL);
-}
-
-
-/**
  * Performe zonemaster duties: watch namestore, publish records.
  *
  * @param cls closure
@@ -1084,18 +902,8 @@ run (void *cls,
                          "Target zone iteration velocity (μs)",
                          target_iteration_velocity_per_record.rel_value_us,
                          GNUNET_NO);
-  zmon = GNUNET_NAMESTORE_zone_monitor_start (c,
-                                              NULL,
-                                              GNUNET_NO,
-                                              &handle_monitor_error,
-                                              NULL,
-                                              &handle_monitor_event,
-                                              NULL,
-                                              &monitor_sync_event,
-                                              NULL);
-  GNUNET_NAMESTORE_zone_monitor_next (zmon,
-                                      NAMESTORE_QUEUE_LIMIT - 1);
-  GNUNET_break (NULL != zmon);
+  zone_publish_task = GNUNET_SCHEDULER_add_now (&publish_zone_dht_start,
+                                                NULL);
   GNUNET_SCHEDULER_add_shutdown (&shutdown_task,
 				 NULL);
 }
