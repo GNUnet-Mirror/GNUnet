@@ -681,6 +681,10 @@ send_store_response (struct NamestoreClient *nc,
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Sending RECORD_STORE_RESPONSE message\n");
+  GNUNET_STATISTICS_update (statistics,
+                            "Store requests completed",
+                            1,
+                            GNUNET_NO);
   env = GNUNET_MQ_msg (rcr_msg,
 		       GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_STORE_RESPONSE);
   rcr_msg->gns_header.r_id = htonl (rid);
@@ -1308,6 +1312,10 @@ handle_record_store (void *cls,
       GNUNET_SERVICE_client_drop (nc->client);
       return;
     }
+    GNUNET_STATISTICS_update (statistics,
+                              "Well-formed store requests received",
+                              1,
+                              GNUNET_NO);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		"Creating %u records for name `%s'\n",
 		(unsigned int) rd_count,
