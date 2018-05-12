@@ -1835,14 +1835,14 @@ process_stdin (void *cls)
     if (0 == idot)
       last = GNUNET_TIME_absolute_get ();
     idot++;
-    if (0 == idot % 10000)
+    if (0 == idot % 100000)
     {
       struct GNUNET_TIME_Relative delta;
 
       delta = GNUNET_TIME_absolute_get_duration (last);
       last = GNUNET_TIME_absolute_get ();
       fprintf (stderr,
-	       "Imported 10000 records in %s\n",
+	       "Read 10000 domain names in %s\n",
 	       GNUNET_STRINGS_relative_time_to_string (delta,
 						       GNUNET_YES));
       GNUNET_STATISTICS_set (stats,

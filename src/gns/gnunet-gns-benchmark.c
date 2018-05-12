@@ -286,7 +286,29 @@ process_queue (void *cls)
 
 
 /**
- * Clean up and terminate the process.
+ * Compare two requests by latency for qsort().
+ *
+ * @param c1 pointer to `struct Request *`
+ * @param c2 pointer to `struct Request *`
+ * @return -1 if c1<c2, 1 if c1>c2, 0 if c1==c2.
+ */
+static int
+compare_req (const void *c1,
+	     const void *c2)
+{
+  const struct Request *r1 = *(void **) c1;
+  const struct Request *r2 = *(void **) c2;
+
+  if (r1->latency.rel_value_us < r2->latency.rel_value_us)
+    return -1;
+  if (r1->latency.rel_value_us > r2->latency.rel_value_us)
+    return 1;
+  return 0;
+}
+
+
+/**
+ * Output statistics, then clean up and terminate the process.
  *
  * @param cls NULL
  */
@@ -294,9 +316,68 @@ static void
 do_shutdown (void *cls)
 {
   struct Request *req;
+  struct Request **ra[RC_MAX];
+  unsigned int rp[RC_MAX];
 
   (void) cls;
-  /* FIXME: calculate statistics */
+  for (enum RequestCategory rc = 0;rc < RC_MAX;rc++)
+  {
+    ra[rc] = GNUNET_new_array (replies[rc],
+			       struct Request *);
+    rp[rc] = 0;
+  }
+  for (req = succ_head;NULL != req; req = req->next)
+  {    
+    GNUNET_assert (rp[req->cat] < replies[req->cat]);
+    ra[req->cat][rp[req->cat]++] = req;
+  }
+  for (enum RequestCategory rc = 0;rc < RC_MAX;rc++)
+  {
+    unsigned int off;
+
+    if (0 == rp[rc])
+      continue;
+    qsort (ra[rc],
+	   rp[rc],
+	   sizeof (struct Request *),
+	   &compare_req);
+    fprintf (stdout,
+	     "Category %u\n",
+	     rc);
+    latency_sum[off] = GNUNET_TIME_relative_divide (latency_sum[off],
+						    replies[rc]);
+    fprintf (stdout,
+	     "\taverage: %s\n",
+	     GNUNET_STRINGS_relative_time_to_string (latency_sum[off],
+						     GNUNET_YES));
+    off = rp[rc] * 50 / 100;
+    fprintf (stdout,
+	     "\tmedian(50): %s\n",
+	     GNUNET_STRINGS_relative_time_to_string (ra[rc][off]->latency,
+						     GNUNET_YES));
+    off = rp[rc] * 75 / 100;
+    fprintf (stdout,
+	     "\tquantile(75): %s\n",
+	     GNUNET_STRINGS_relative_time_to_string (ra[rc][off]->latency,
+						     GNUNET_YES));
+    off = rp[rc] * 90 / 100;
+    fprintf (stdout,
+	     "\tquantile(90): %s\n",
+	     GNUNET_STRINGS_relative_time_to_string (ra[rc][off]->latency,
+						     GNUNET_YES));
+    off = rp[rc] * 99 / 100;
+    fprintf (stdout,
+	     "\tquantile(99): %s\n",
+	     GNUNET_STRINGS_relative_time_to_string (ra[rc][off]->latency,
+						     GNUNET_YES));
+    fprintf (stdout,
+	     "\tlookups: %u replies: %u failures: %u\n",
+	     lookups[rc],
+	     replies[rc],
+	     failures[rc]);
+    GNUNET_free (ra[rc]);
+  }
+ 
   if (NULL != gns)
   {
     GNUNET_GNS_disconnect (gns);
@@ -377,33 +458,46 @@ process_stdin (void *cls)
 {
   static struct GNUNET_TIME_Absolute last;
   static uint64_t idot;
-  char hn[270];
+  unsigned int cat;
+  char hn[256];
+  char in[270];
 
   (void) cls;
   t = NULL;
   while (NULL !=
-         fgets (hn,
-                sizeof (hn),
+         fgets (in,
+                sizeof (in),
                 stdin))
   {
-    if (strlen(hn) > 0)
-      hn[strlen(hn)-1] = '\0'; /* eat newline */
+    if (strlen(in) > 0)
+      hn[strlen(in)-1] = '\0'; /* eat newline */
+    if ( (2 != sscanf (in,
+		       "%u %255s",
+		       &cat,
+		       hn)) ||
+	 (cat >= RC_MAX) )
+    {
+      fprintf (stderr,
+	       "Malformed input line `%s', skipping\n",
+	       in);
+      continue;
+    }
     if (0 == idot)
       last = GNUNET_TIME_absolute_get ();
     idot++;
-    if (0 == idot % 10000)
+    if (0 == idot % 100000)
     {
       struct GNUNET_TIME_Relative delta;
 
       delta = GNUNET_TIME_absolute_get_duration (last);
       last = GNUNET_TIME_absolute_get ();
       fprintf (stderr,
-	       "Imported 10000 records in %s\n",
+	       "Read 10000 domain names in %s\n",
 	       GNUNET_STRINGS_relative_time_to_string (delta,
 						       GNUNET_YES));
     }
     queue (hn,
-	   RC_SHARED); // FIXME: parse input line!
+	   (enum RequestCategory) cat);
   }
   fprintf (stderr,
            "Done reading %llu domain names\n",
@@ -487,8 +581,6 @@ main (int argc,
 			  NULL))
     ret = 1;
   GNUNET_free ((void*) argv);
-  fprintf (stderr,
-           "Statistics here\n");
   return ret;
 }
 
