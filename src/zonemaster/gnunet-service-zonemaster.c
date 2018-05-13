@@ -504,6 +504,9 @@ check_zone_namestore_next ()
   /* make sure we do not overshoot because of the #NS_BLOCK_SIZE factor */
   delay = GNUNET_TIME_relative_min (MAXIMUM_ZONE_ITERATION_INTERVAL,
                                     delay);
+  /* no delays on first iteration */
+  if (GNUNET_YES == first_zone_iteration)
+    delay = GNUNET_TIME_UNIT_ZERO;
   GNUNET_assert (NULL == zone_publish_task);
   zone_publish_task = GNUNET_SCHEDULER_add_delayed (delay,
                                                     &publish_zone_namestore_next,
