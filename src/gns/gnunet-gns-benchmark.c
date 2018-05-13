@@ -336,15 +336,20 @@ do_shutdown (void *cls)
   {
     unsigned int off;
 
+    fprintf (stdout,
+	     "Category %u\n",
+	     rc);
+    fprintf (stdout,
+	     "\tlookups: %u replies: %u failures: %u\n",
+	     lookups[rc],
+	     replies[rc],
+	     failures[rc]);
     if (0 == rp[rc])
       continue;
     qsort (ra[rc],
 	   rp[rc],
 	   sizeof (struct Request *),
 	   &compare_req);
-    fprintf (stdout,
-	     "Category %u\n",
-	     rc);
     latency_sum[rc] = GNUNET_TIME_relative_divide (latency_sum[rc],
                                                    replies[rc]);
     fprintf (stdout,
@@ -371,11 +376,6 @@ do_shutdown (void *cls)
 	     "\tquantile(99): %s\n",
 	     GNUNET_STRINGS_relative_time_to_string (ra[rc][off]->latency,
 						     GNUNET_YES));
-    fprintf (stdout,
-	     "\tlookups: %u replies: %u failures: %u\n",
-	     lookups[rc],
-	     replies[rc],
-	     failures[rc]);
     GNUNET_free (ra[rc]);
   }
   if (NULL != t)
