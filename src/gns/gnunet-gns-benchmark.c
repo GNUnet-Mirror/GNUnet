@@ -237,6 +237,7 @@ process_queue (void *cls)
   struct GNUNET_TIME_Relative duration;
 
   (void) cls;
+  t = NULL;
   /* check for expired requests */
   while (NULL != (req = act_head))
   {
@@ -344,11 +345,11 @@ do_shutdown (void *cls)
     fprintf (stdout,
 	     "Category %u\n",
 	     rc);
-    latency_sum[off] = GNUNET_TIME_relative_divide (latency_sum[off],
-						    replies[rc]);
+    latency_sum[rc] = GNUNET_TIME_relative_divide (latency_sum[rc],
+                                                   replies[rc]);
     fprintf (stdout,
 	     "\taverage: %s\n",
-	     GNUNET_STRINGS_relative_time_to_string (latency_sum[off],
+	     GNUNET_STRINGS_relative_time_to_string (latency_sum[rc],
 						     GNUNET_YES));
     off = rp[rc] * 50 / 100;
     fprintf (stdout,
