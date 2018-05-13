@@ -96,12 +96,12 @@ struct Request
    * Observed latency, set once we got a reply.
    */
   struct GNUNET_TIME_Relative latency;
-  
+
   /**
    * Category of the request.
    */
   enum RequestCategory cat;
-  
+
 };
 
 
@@ -252,7 +252,7 @@ process_queue (void *cls)
   if (NULL == (req = todo_head))
   {
     struct GNUNET_TIME_Absolute at;
-    
+
     if (NULL == (req = act_head))
     {
       GNUNET_SCHEDULER_shutdown ();
@@ -327,7 +327,7 @@ do_shutdown (void *cls)
     rp[rc] = 0;
   }
   for (req = succ_head;NULL != req; req = req->next)
-  {    
+  {
     GNUNET_assert (rp[req->cat] < replies[req->cat]);
     ra[req->cat][rp[req->cat]++] = req;
   }
@@ -377,12 +377,6 @@ do_shutdown (void *cls)
 	     failures[rc]);
     GNUNET_free (ra[rc]);
   }
- 
-  if (NULL != gns)
-  {
-    GNUNET_GNS_disconnect (gns);
-    gns = NULL;
-  }
   if (NULL != t)
   {
     GNUNET_SCHEDULER_cancel (t);
@@ -408,6 +402,11 @@ do_shutdown (void *cls)
 				 todo_tail,
 				 req);
     free_request (req);
+  }
+  if (NULL != gns)
+  {
+    GNUNET_GNS_disconnect (gns);
+    gns = NULL;
   }
 }
 
