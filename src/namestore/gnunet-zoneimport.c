@@ -434,9 +434,9 @@ get_label (struct Request *req)
     GNUNET_break (0);
     return NULL;
   }
-  memcpy (label,
-	  req->hostname,
-	  dot - req->hostname);
+  GNUNET_memcpy (label,
+                 req->hostname,
+                 dot - req->hostname);
   label[dot - req->hostname] = '\0';
   return label;
 }
@@ -491,9 +491,9 @@ build_dns_query (struct Request *req,
     GNUNET_free (rawp);
     return NULL;
   }
-  memcpy (raw,
-	  rawp,
-	  *raw_size);
+  GNUNET_memcpy (raw,
+                 rawp,
+                 *raw_size);
   GNUNET_free (rawp);
   return raw;
 }
@@ -1683,9 +1683,9 @@ queue (const char *hostname)
   req = GNUNET_malloc (sizeof (struct Request) + hlen);
   req->zone = zone;
   req->hostname = (char *) &req[1];
-  memcpy (req->hostname,
-	  hostname,
-	  hlen);
+  GNUNET_memcpy (req->hostname,
+                 hostname,
+                 hlen);
   req->id = (uint16_t) GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_NONCE,
 						 UINT16_MAX);
   GNUNET_CRYPTO_hash (req->hostname,

@@ -84,11 +84,10 @@ size_t
 GNUNET_GNSRECORD_records_get_size (unsigned int rd_count,
 				   const struct GNUNET_GNSRECORD_Data *rd)
 {
-  unsigned int i;
   size_t ret;
 
   ret = sizeof (struct NetworkRecord) * rd_count;
-  for (i=0;i<rd_count;i++)
+  for (unsigned int i=0;i<rd_count;i++)
   {
     GNUNET_assert ((ret + rd[i].data_size) >= ret);
     ret += rd[i].data_size;
@@ -113,11 +112,10 @@ GNUNET_GNSRECORD_records_serialize (unsigned int rd_count,
 				    char *dest)
 {
   struct NetworkRecord rec;
-  unsigned int i;
   size_t off;
 
   off = 0;
-  for (i=0;i<rd_count;i++)
+  for (unsigned int i=0;i<rd_count;i++)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Serializing record %u with flags %d and expiration time %llu\n",
@@ -168,7 +166,9 @@ GNUNET_GNSRECORD_records_deserialize (size_t len,
   {
     if (off + sizeof (rec) > len)
       return GNUNET_SYSERR;
-    GNUNET_memcpy (&rec, &src[off], sizeof (rec));
+    GNUNET_memcpy (&rec,
+                   &src[off],
+                   sizeof (rec));
     dest[i].expiration_time = GNUNET_ntohll (rec.expiration_time);
     dest[i].data_size = ntohl ((uint32_t) rec.data_size);
     dest[i].record_type = ntohl (rec.record_type);

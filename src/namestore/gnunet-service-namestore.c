@@ -1417,17 +1417,17 @@ handle_record_store (void *cls,
                                  sa);
     sa->nc = nc;
     sa->rsm = (const struct RecordStoreMessage *) &sa[1];
-    memcpy (&sa[1],
-            rp_msg,
-            ntohs (rp_msg->gns_header.header.size));
+    GNUNET_memcpy (&sa[1],
+                   rp_msg,
+                   ntohs (rp_msg->gns_header.header.size));
     sa->zm_pos = monitor_head;
     sa->conv_name = conv_name;
     GNUNET_array_grow (sa->rd,
                        sa->rd_count,
                        rd_clean_off);
-    memcpy (sa->rd,
-            rd_clean,
-            sizeof (struct GNUNET_GNSRECORD_Data) * rd_clean_off);
+    GNUNET_memcpy (sa->rd,
+                   rd_clean,
+                   sizeof (struct GNUNET_GNSRECORD_Data) * rd_clean_off);
     continue_store_activity (sa);
   }
 }

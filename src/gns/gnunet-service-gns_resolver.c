@@ -818,7 +818,9 @@ add_dns_result (struct GNS_ResolverHandle *rh,
   res->data_size = data_size;
   res->record_type = record_type;
   res->data = &res[1];
-  GNUNET_memcpy (&res[1], data, data_size);
+  GNUNET_memcpy (&res[1],
+                 data,
+                 data_size);
   GNUNET_CONTAINER_DLL_insert (rh->dns_result_head,
 			       rh->dns_result_tail,
 			       res);
@@ -1516,9 +1518,9 @@ handle_gns2dns_ip (void *cls,
     continue_with_gns2dns (ac);
     return;
   }
-  memcpy (&ss,
-          addr,
-          addrlen);
+  GNUNET_memcpy (&ss,
+                 addr,
+                 addrlen);
   switch (ss.ss_family)
   {
   case AF_INET:

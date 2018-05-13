@@ -54,7 +54,7 @@ enum pingpong
 struct pingpong_msg
 {
   int peer;
-  enum pingpong msg; 
+  enum pingpong msg;
 };
 
 static void service_connect (void *cls,
@@ -143,13 +143,13 @@ member_join_request (void *cls,
 {
   struct MulticastPeerContext *mc_peer = (struct MulticastPeerContext*)cls;
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              "Peer #%u (%s) sent a join request.\n", 
-              mc_peer->peer, 
+              "Peer #%u (%s) sent a join request.\n",
+              mc_peer->peer,
               GNUNET_i2s (multicast_peers[mc_peer->peer]->id));
 }
 
 
-static int 
+static int
 notify (void *cls,
         size_t *data_size,
         void *data)
@@ -163,7 +163,7 @@ notify (void *cls,
   *data_size = sizeof (struct pingpong_msg);
   GNUNET_memcpy(data, pp_msg, *data_size);
 
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, 
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Peer #%u sents ping to origin\n", mc_peer->peer);
 
   return GNUNET_YES;
@@ -179,20 +179,20 @@ member_join_decision (void *cls,
                       const struct GNUNET_MessageHeader *join_msg)
 {
   struct MulticastPeerContext *mc_peer = (struct MulticastPeerContext*)cls;
-  
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, 
-              "Peer #%u (%s) received a decision from origin: %s\n", 
-              mc_peer->peer, 
+
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "Peer #%u (%s) received a decision from origin: %s\n",
+              mc_peer->peer,
               GNUNET_i2s (multicast_peers[mc_peer->peer]->id),
               (GNUNET_YES == is_admitted)?"accepted":"rejected");
-  
+
   if (GNUNET_YES == is_admitted)
   {
     GNUNET_MULTICAST_member_to_origin (members[mc_peer->peer],
                                        0,
                                        notify,
                                        cls);
-    
+
   }
 }
 
@@ -236,7 +236,7 @@ member_disconnected_cb (void *cls)
 
 
 static void
-member_message (void *cls, 
+member_message (void *cls,
                 const struct GNUNET_MULTICAST_MessageHeader *msg)
 {
   struct MulticastPeerContext *mc_peer = (struct MulticastPeerContext*)cls;
@@ -245,7 +245,7 @@ member_message (void *cls,
   if (PONG == pp_msg->msg && mc_peer->peer == pp_msg->peer)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                "peer #%i (%s) receives a pong\n", 
+                "peer #%i (%s) receives a pong\n",
                 mc_peer->peer,
                 GNUNET_i2s (multicast_peers[mc_peer->peer]->id));
     mc_peer->test_ok = GNUNET_OK;
@@ -269,9 +269,9 @@ origin_join_request (void *cls,
 
   uint8_t data_size = ntohs (join_msg->size);
 
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, 
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "origin got a join request...\n");
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, 
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "origin receives: '%s'\n", (char *)&join_msg[1]);
 
   char data[] = "Come in!";
@@ -281,7 +281,7 @@ origin_join_request (void *cls,
   join_resp->type = htons (123);
   GNUNET_memcpy (&join_resp[1], data, data_size);
 
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, 
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "origin sends: '%s'\n", data);
 
   GNUNET_MULTICAST_join_decision (jh,
@@ -311,7 +311,7 @@ origin_replay_msg (void *cls,
                    uint64_t message_id,
                    uint64_t fragment_offset,
                    uint64_t flags,
-                   struct GNUNET_MULTICAST_ReplayHandle *rh) 
+                   struct GNUNET_MULTICAST_ReplayHandle *rh)
 {
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "origin replay msg\n");
@@ -319,8 +319,8 @@ origin_replay_msg (void *cls,
 
 
 static int
-origin_notify (void *cls, 
-               size_t *data_size, 
+origin_notify (void *cls,
+               size_t *data_size,
                void *data)
 {
   struct pingpong_msg *rcv_pp_msg = (struct pingpong_msg*)cls;
@@ -329,11 +329,11 @@ origin_notify (void *cls,
   pp_msg->peer = rcv_pp_msg->peer;
   pp_msg->msg = PONG;
   *data_size = sizeof (struct pingpong_msg);
-  memcpy(data, pp_msg, *data_size); 
+  GNUNET_memcpy(data, pp_msg, *data_size);
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "origin sends pong\n");
 
-  return GNUNET_YES; 
+  return GNUNET_YES;
 }
 
 
@@ -345,7 +345,7 @@ origin_request (void *cls,
 
   req++;
   struct pingpong_msg *pp_msg = (struct pingpong_msg *) req;
-  
+
   if (1 != pp_msg->msg) {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "origin didn't reveice a correct request");
   }
@@ -360,7 +360,7 @@ origin_request (void *cls,
 
 static void
 origin_message (void *cls,
-                const struct GNUNET_MULTICAST_MessageHeader *msg) 
+                const struct GNUNET_MULTICAST_MessageHeader *msg)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "origin message msg\n");
 }
@@ -386,7 +386,7 @@ multicast_connect (void *cls,
   {
     group_key = GNUNET_CRYPTO_eddsa_key_create ();
     GNUNET_CRYPTO_eddsa_key_get_public (group_key, &group_pub_key);
-  
+
     GNUNET_CRYPTO_hash (&group_pub_key, sizeof (group_pub_key), &group_pub_key_hash);
     origin = GNUNET_MULTICAST_origin_start (cfg,
                                             group_key,
@@ -414,7 +414,7 @@ multicast_connect (void *cls,
   {
     multicast_peer->key = GNUNET_CRYPTO_ecdsa_key_create ();
 
-    sprintf(data, "Hi, I am peer #%u (%s). Can I enter?", 
+    sprintf(data, "Hi, I am peer #%u (%s). Can I enter?",
             multicast_peer->peer,
             GNUNET_i2s (multicast_peers[multicast_peer->peer]->id));
     uint8_t data_size = strlen (data) + 1;
@@ -424,7 +424,7 @@ multicast_connect (void *cls,
     GNUNET_memcpy (&join_msg[1], data, data_size);
 
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                "Peer #%u (%s) tries to join multicast group %s\n", 
+                "Peer #%u (%s) tries to join multicast group %s\n",
                 multicast_peer->peer,
                 GNUNET_i2s (multicast_peers[multicast_peer->peer]->id),
                 GNUNET_h2s (&group_pub_key_hash));
@@ -465,12 +465,12 @@ peer_information_cb (void *cls,
   multicast_peers[mc_peer->peer]->id = pinfo->result.id;
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              "Got peer information of %s (%s)\n", 
-              (0 == mc_peer->peer)? "origin" : "member", 
+              "Got peer information of %s (%s)\n",
+              (0 == mc_peer->peer)? "origin" : "member",
               GNUNET_i2s (pinfo->result.id));
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              "Create peer #%u (%s)\n", 
+              "Create peer #%u (%s)\n",
               mc_peer->peer,
               GNUNET_i2s (multicast_peers[mc_peer->peer]->id));
 
@@ -479,7 +479,7 @@ peer_information_cb (void *cls,
     /* connect to multicast service of members */
     op[mc_peer->peer] =
       GNUNET_TESTBED_service_connect (/* Closure for operation */
-                                      NULL, 
+                                      NULL,
                                       /* The peer whose service to connect to */
                                       peers[mc_peer->peer],
                                       /* The name of the service */
@@ -508,8 +508,8 @@ service_connect (void *cls,
 
   if (NULL == ca_result)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO, 
-                "Connection adapter not created for peer #%u (%s)\n", 
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                "Connection adapter not created for peer #%u (%s)\n",
                 mc_peer->peer,
                 GNUNET_i2s (multicast_peers[mc_peer->peer]->id));
 
@@ -519,8 +519,8 @@ service_connect (void *cls,
 
   if (0 == mc_peer->peer)
   {
-    // Get GNUnet identity of members 
-    for (int i = 0; i<PEERS_REQUESTED; i++) 
+    // Get GNUnet identity of members
+    for (int i = 0; i<PEERS_REQUESTED; i++)
     {
       pi_op[i] = GNUNET_TESTBED_peer_get_information (peers[i],
                                                       GNUNET_TESTBED_PIT_IDENTITY,
@@ -547,7 +547,7 @@ service_connect (void *cls,
  * @param PEERS_REQUESTED size of the 'peers' array
  * @param links_succeeded number of links between peers that were created
  * @param links_failed number of links testbed was unable to establish
- */ 
+ */
 static void
 testbed_master (void *cls,
                 struct GNUNET_TESTBED_RunHandle *h,
@@ -562,7 +562,7 @@ testbed_master (void *cls,
   multicast_peers = GNUNET_new_array (PEERS_REQUESTED, struct MulticastPeerContext*);
 
   // Create test contexts for members
-  for (int i = 0; i<PEERS_REQUESTED; i++) 
+  for (int i = 0; i<PEERS_REQUESTED; i++)
   {
     multicast_peers[i] = GNUNET_new (struct MulticastPeerContext);
     multicast_peers[i]->peer = i;
@@ -604,7 +604,7 @@ main (int argc, char *argv[])
   int ret;
   char const *config_file;
 
-  if (strstr (argv[0], "_line") != NULL) 
+  if (strstr (argv[0], "_line") != NULL)
   {
     config_file = "test_multicast_line.conf";
   }
@@ -612,7 +612,7 @@ main (int argc, char *argv[])
   {
     config_file = "test_multicast_star.conf";
   }
-  else 
+  else
   {
     config_file = "test_multicast_star.conf";
   }
@@ -620,19 +620,19 @@ main (int argc, char *argv[])
   result = GNUNET_SYSERR;
   ret =
     GNUNET_TESTBED_test_run ("test-multicast-multipeer",
-                             config_file, 
+                             config_file,
                              /* number of peers to start */
-                             PEERS_REQUESTED, 
+                             PEERS_REQUESTED,
                              /* Event mask - set to 0 for no event notifications */
-                             0LL, 
+                             0LL,
                              /* Controller event callback */
-                             NULL, 
+                             NULL,
                              /* Closure for controller event callback */
-                             NULL, 
+                             NULL,
                              /* called when testbed setup is complete */
-                             testbed_master, 
+                             testbed_master,
                              /* Closure for the test_master callback */
-                             NULL); 
+                             NULL);
   if ( (GNUNET_OK != ret) || (GNUNET_OK != result) )
     return 1;
   return 0;

@@ -71,7 +71,7 @@ struct GNUNET_IDENTITY_PROVIDER_Operation
    * Attribute result callback
    */
   GNUNET_IDENTITY_PROVIDER_AttributeResult ar_cb;
-  
+
   /**
    * Revocation result callback
    */
@@ -613,7 +613,7 @@ handle_attribute_result (void *cls,
         it->finish_cb (it->finish_cb_cls);
       free_it (it);
     }
-    if (NULL != op) 
+    if (NULL != op)
     {
       if (NULL != op->ar_cb)
         op->ar_cb (op->cls,
@@ -953,7 +953,7 @@ GNUNET_IDENTITY_PROVIDER_attribute_store (struct GNUNET_IDENTITY_PROVIDER_Handle
 
 
 /**
- * List all attributes for a local identity. 
+ * List all attributes for a local identity.
  * This MUST lock the `struct GNUNET_IDENTITY_PROVIDER_Handle`
  * for any other calls than #GNUNET_IDENTITY_PROVIDER_get_attributes_next() and
  * #GNUNET_IDENTITY_PROVIDER_get_attributes_stop. @a proc will be called once
@@ -1370,9 +1370,9 @@ GNUNET_IDENTITY_PROVIDER_ticket_revoke (struct GNUNET_IDENTITY_PROVIDER_Handle *
                              GNUNET_MESSAGE_TYPE_IDENTITY_PROVIDER_REVOKE_TICKET);
   msg->id = htonl (rid);
   msg->identity = *identity;
-  memcpy (&msg[1],
-          ticket,
-          sizeof (struct GNUNET_IDENTITY_PROVIDER_Ticket));
+  GNUNET_memcpy (&msg[1],
+                 ticket,
+                 sizeof (struct GNUNET_IDENTITY_PROVIDER_Ticket));
   if (NULL == h->mq)
     op->env = env;
   else

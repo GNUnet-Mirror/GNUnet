@@ -528,9 +528,9 @@ GNUNET_FS_add_to_index (const char *filename,
   ii = GNUNET_malloc (sizeof (struct IndexInfo) + slen);
   ii->file_id = *file_id;
   ii->filename = (const char *) &ii[1];
-  memcpy (&ii[1],
-          filename,
-          slen);
+  GNUNET_memcpy (&ii[1],
+                 filename,
+                 slen);
   GNUNET_CONTAINER_DLL_insert (indexed_files_head,
 			       indexed_files_tail,
 			       ii);

@@ -223,8 +223,11 @@ origin_notify (void *cls,
                void *data)
 {
   char text[] = "pong";
+
   *data_size = strlen(text)+1;
-  memcpy(data, text, *data_size);
+  GNUNET_memcpy (data,
+                 text,
+                 *data_size);
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "origin sends (to all): %s\n", text);
 

@@ -1234,8 +1234,12 @@ process_external_ip (void *cls,
 	      ch->hole_external);
 
   /* build sockaddr storage with port number */
-  memset (&ss, 0, sizeof (ss));
-  memcpy (&ss, addr, addrlen);
+  memset (&ss,
+          0,
+          sizeof (ss));
+  GNUNET_memcpy (&ss,
+                 addr,
+                 addrlen);
   switch (addr->sa_family)
   {
   case AF_INET:

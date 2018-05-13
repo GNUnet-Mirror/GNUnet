@@ -1836,7 +1836,7 @@ static uint32_t binom (uint32_t n, uint32_t k)
  * @param a
  * @param b
  *
- * @return 
+ * @return
  */
 static int is_in_view (uint32_t a, uint32_t b)
 {
@@ -2172,9 +2172,9 @@ void view_update_cb (void *cls,
                      rps_peer->cur_view_count,
                      view_size);
   //*rps_peer->cur_view = *peers;
-  memcpy (rps_peer->cur_view,
-          peers,
-          view_size * sizeof (struct GNUNET_PeerIdentity));
+  GNUNET_memcpy (rps_peer->cur_view,
+                 peers,
+                 view_size * sizeof (struct GNUNET_PeerIdentity));
   to_file ("/tmp/rps/count_in_views.txt",
          "%" PRIu64 " %" PRIu32 "",
          rps_peer->index,

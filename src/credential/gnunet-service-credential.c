@@ -61,17 +61,17 @@ struct DelegationChainEntry
    * The issuer
    */
   struct GNUNET_CRYPTO_EcdsaPublicKey issuer_key;
-  
+
   /**
    * The subject
    */
   struct GNUNET_CRYPTO_EcdsaPublicKey subject_key;
-  
+
   /**
    * The issued attribute
    */
   char *issuer_attribute;
-  
+
   /**
    * The delegated attribute
    */
@@ -92,7 +92,7 @@ struct CredentialRecordEntry
    * DLL
    */
   struct CredentialRecordEntry *prev;
-  
+
   /**
    * Number of references in delegation chains
    */
@@ -409,7 +409,7 @@ cleanup_handle (struct VerifyRequestHandle *vrh)
   }
   cleanup_delegation_set (vrh->root_set);
   GNUNET_free_non_null (vrh->issuer_attribute);
-  for (cr_entry = vrh->cred_chain_head; 
+  for (cr_entry = vrh->cred_chain_head;
        NULL != vrh->cred_chain_head;
        cr_entry = vrh->cred_chain_head)
   {
@@ -543,7 +543,7 @@ send_lookup_response (struct VerifyRequestHandle *vrh)
   else
     rmsg->cred_found = htonl (GNUNET_NO);
 
-  GNUNET_assert (-1 != 
+  GNUNET_assert (-1 !=
                  GNUNET_CREDENTIAL_delegation_chain_serialize (vrh->delegation_chain_size,
                                                                dd,
                                                                vrh->cred_chain_size,
@@ -587,7 +587,7 @@ backward_resolution (void* cls,
               "Got %d attrs\n", rd_count);
 
   // Each OR
-  for (uint32_t i=0; i < rd_count; i++) 
+  for (uint32_t i=0; i < rd_count; i++)
   {
     if (GNUNET_GNSRECORD_TYPE_ATTRIBUTE != rd[i].record_type)
       continue;
@@ -665,10 +665,10 @@ backward_resolution (void* cls,
       /**
        * Check if this delegation already matches one of our credentials
        */
-      for(cred_pointer = vrh->cred_chain_head; cred_pointer != NULL; 
+      for(cred_pointer = vrh->cred_chain_head; cred_pointer != NULL;
           cred_pointer = cred_pointer->next)
       {
-        if(0 != memcmp (&set->subject_key, 
+        if(0 != memcmp (&set->subject_key,
                         &cred_pointer->credential->issuer_key,
                         sizeof(struct GNUNET_CRYPTO_EcdsaPublicKey)))
           continue;
@@ -769,7 +769,7 @@ backward_resolution (void* cls,
     return;
 
   }
-} 
+}
 
 
 /**
@@ -809,7 +809,7 @@ delegation_chain_resolution_start (void* cls)
   }
 
   /**
-   * Check for attributes from the issuer and follow the chain 
+   * Check for attributes from the issuer and follow the chain
    * till you get the required subject's attributes
    */
   char issuer_attribute_name[strlen (vrh->issuer_attribute) + strlen (".gnu") + 1];
@@ -821,9 +821,9 @@ delegation_chain_resolution_start (void* cls)
               "Looking up %s\n", issuer_attribute_name);
   ds_entry = GNUNET_new (struct DelegationSetQueueEntry);
   ds_entry->issuer_key = GNUNET_new (struct GNUNET_CRYPTO_EcdsaPublicKey);
-  memcpy (ds_entry->issuer_key,
-          &vrh->issuer_key,
-          sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey));
+  GNUNET_memcpy (ds_entry->issuer_key,
+                 &vrh->issuer_key,
+                 sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey));
   ds_entry->issuer_attribute = GNUNET_strdup (vrh->issuer_attribute);
   ds_entry->handle = vrh;
   ds_entry->lookup_attribute = GNUNET_strdup (vrh->issuer_attribute);
@@ -869,7 +869,7 @@ check_verify (void *cls,
 
 static void
 handle_verify (void *cls,
-               const struct VerifyMessage *v_msg) 
+               const struct VerifyMessage *v_msg)
 {
   struct VerifyRequestHandle *vrh;
   struct GNUNET_SERVICE_Client *client = cls;
@@ -886,7 +886,9 @@ handle_verify (void *cls,
               "Received VERIFY message\n");
   utf_in = (const char *) &v_msg[1];
   GNUNET_STRINGS_utf8_tolower (utf_in, attrptr);
-  GNUNET_memcpy (issuer_attribute, attr, ntohs (v_msg->issuer_attribute_len));
+  GNUNET_memcpy (issuer_attribute,
+                 attr,
+                 ntohs (v_msg->issuer_attribute_len));
   issuer_attribute[ntohs (v_msg->issuer_attribute_len)] = '\0';
   vrh = GNUNET_new (struct VerifyRequestHandle);
   GNUNET_CONTAINER_DLL_insert (vrh_head, vrh_tail, vrh);
@@ -897,7 +899,7 @@ handle_verify (void *cls,
   vrh->issuer_attribute = GNUNET_strdup (issuer_attribute);
   if (0 == strlen (issuer_attribute))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, 
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "No issuer attribute provided!\n");
     send_lookup_response (vrh);
     return;
@@ -907,7 +909,7 @@ handle_verify (void *cls,
    * TODO: cleanup!
    */
   credentials_count = ntohl(v_msg->c_count);
-  credential_data_size = ntohs (v_msg->header.size) 
+  credential_data_size = ntohs (v_msg->header.size)
     - sizeof (struct VerifyMessage)
     - ntohs (v_msg->issuer_attribute_len)
     - 1;
@@ -918,7 +920,7 @@ handle_verify (void *cls,
                                                               credentials_count,
                                                               credentials))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, 
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Cannot deserialize credentials!\n");
     send_lookup_response (vrh);
     return;
@@ -1015,7 +1017,7 @@ handle_cred_collection_finished_cb (void *cls)
 
 static void
 handle_collect (void *cls,
-                const struct CollectMessage *c_msg) 
+                const struct CollectMessage *c_msg)
 {
   char attr[GNUNET_CREDENTIAL_MAX_LENGTH + 1];
   char issuer_attribute[GNUNET_CREDENTIAL_MAX_LENGTH + 1];
@@ -1030,7 +1032,9 @@ handle_collect (void *cls,
   utf_in = (const char *) &c_msg[1];
   GNUNET_STRINGS_utf8_tolower (utf_in, attrptr);
 
-  GNUNET_memcpy (issuer_attribute, attr, ntohs (c_msg->issuer_attribute_len));
+  GNUNET_memcpy (issuer_attribute,
+                 attr,
+                 ntohs (c_msg->issuer_attribute_len));
   issuer_attribute[ntohs (c_msg->issuer_attribute_len)] = '\0';
   vrh = GNUNET_new (struct VerifyRequestHandle);
   GNUNET_CONTAINER_DLL_insert (vrh_head, vrh_tail, vrh);
@@ -1043,7 +1047,7 @@ handle_collect (void *cls,
 
   if (0 == strlen (issuer_attribute))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, 
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "No issuer attribute provided!\n");
     send_lookup_response (vrh);
     return;

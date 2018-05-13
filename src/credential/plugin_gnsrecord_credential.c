@@ -62,9 +62,9 @@ credential_value_to_string (void *cls,
     int i;
     if (data_size < sizeof (struct GNUNET_CREDENTIAL_DelegationRecord))
       return NULL; /* malformed */
-    memcpy (&sets,
-            data,
-            sizeof (sets));
+    GNUNET_memcpy (&sets,
+                   data,
+                   sizeof (sets));
     cdata = data;
     struct GNUNET_CREDENTIAL_DelegationSet set[ntohl(sets.set_count)];
     if (GNUNET_OK != GNUNET_CREDENTIAL_delegation_set_deserialize (GNUNET_ntohll (sets.data_size),
@@ -224,7 +224,7 @@ credential_string_to_value (void *cls,
         }
         tmp_data_size = GNUNET_CREDENTIAL_delegation_set_get_size (entries,
                                                                    set);
-        
+
         if (-1 == tmp_data_size)
         {
           GNUNET_free (tmp_str);
@@ -248,7 +248,7 @@ credential_string_to_value (void *cls,
         return GNUNET_OK;
       }
     case GNUNET_GNSRECORD_TYPE_CREDENTIAL:
-      { 
+      {
         struct GNUNET_CREDENTIAL_Credential *cred;
         cred = GNUNET_CREDENTIAL_credential_from_string (s);
 

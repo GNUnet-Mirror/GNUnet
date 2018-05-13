@@ -688,14 +688,14 @@ GNUNET_DNSSTUB_add_dns_sa (struct GNUNET_DNSSTUB_Context *ctx,
   switch (sa->sa_family)
   {
   case AF_INET:
-    memcpy (&ds->ss,
-            sa,
-            sizeof (struct sockaddr_in));
+    GNUNET_memcpy (&ds->ss,
+                   sa,
+                   sizeof (struct sockaddr_in));
     break;
   case AF_INET6:
-    memcpy (&ds->ss,
-            sa,
-            sizeof (struct sockaddr_in6));
+    GNUNET_memcpy (&ds->ss,
+                   sa,
+                   sizeof (struct sockaddr_in6));
     break;
   default:
     GNUNET_break (0);

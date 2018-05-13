@@ -102,9 +102,9 @@ gns_value_to_string (void *cls,
 	   ('\0' != cdata[data_size - 1]) )
 	return NULL; /* malformed */
       /* need to memcpy for alignment */
-      memcpy (&vpn,
-              data,
-              sizeof (vpn));
+      GNUNET_memcpy (&vpn,
+                     data,
+                     sizeof (vpn));
       GNUNET_asprintf (&vpn_str,
                        "%u %s %s",
                        (unsigned int) ntohs (vpn.proto),
@@ -122,9 +122,9 @@ gns_value_to_string (void *cls,
       cdata = data;
       if (data_size < sizeof (struct GNUNET_GNSRECORD_BoxRecord))
 	return NULL; /* malformed */
-      memcpy (&box,
-              data,
-              sizeof (box));
+      GNUNET_memcpy (&box,
+                     data,
+                     sizeof (box));
       rt = ntohl (box.record_type);
       ival = GNUNET_GNSRECORD_value_to_string (rt,
                                                &cdata[sizeof (box)],

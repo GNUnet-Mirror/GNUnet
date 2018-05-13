@@ -251,14 +251,18 @@ send_icmp_udp (const struct in_addr *my_ip, const struct in_addr *other)
   ip_pkt.dst_ip = other->s_addr;
   ip_pkt.checksum =
       htons (calc_checksum ((uint16_t *) & ip_pkt, sizeof (struct ip_header)));
-  memcpy (&packet[off], &ip_pkt, sizeof (struct ip_header));
+  GNUNET_memcpy (&packet[off],
+                 &ip_pkt,
+                 sizeof (struct ip_header));
   off += sizeof (struct ip_header);
 
   icmp_pkt.type = ICMP_TIME_EXCEEDED;
   icmp_pkt.code = 0;
   icmp_pkt.checksum = 0;
   icmp_pkt.unused = 0;
-  memcpy (&packet[off], &icmp_pkt, sizeof (struct icmp_ttl_exceeded_header));
+  GNUNET_memcpy (&packet[off],
+                 &icmp_pkt,
+                 sizeof (struct icmp_ttl_exceeded_header));
   off += sizeof (struct icmp_ttl_exceeded_header);
 
   /* ip header of the presumably 'lost' udp packet */
@@ -275,7 +279,9 @@ send_icmp_udp (const struct in_addr *my_ip, const struct in_addr *other)
   ip_pkt.dst_ip = dummy.s_addr;
   ip_pkt.checksum =
       htons (calc_checksum ((uint16_t *) & ip_pkt, sizeof (struct ip_header)));
-  memcpy (&packet[off], &ip_pkt, sizeof (struct ip_header));
+  GNUNET_memcpy (&packet[off],
+                 &ip_pkt,
+                 sizeof (struct ip_header));
   off += sizeof (struct ip_header);
 
   /* build UDP header */
@@ -283,7 +289,9 @@ send_icmp_udp (const struct in_addr *my_ip, const struct in_addr *other)
   udp_pkt.dst_port = htons (NAT_TRAV_PORT);
   udp_pkt.length = htons (port);
   udp_pkt.crc = 0;
-  memcpy (&packet[off], &udp_pkt, sizeof (struct udp_header));
+  GNUNET_memcpy (&packet[off],
+                 &udp_pkt,
+                 sizeof (struct udp_header));
   off += sizeof (struct udp_header);
 
   /* set ICMP checksum */
@@ -292,8 +300,9 @@ send_icmp_udp (const struct in_addr *my_ip, const struct in_addr *other)
              ((uint16_t *) & packet[sizeof (struct ip_header)],
               sizeof (struct icmp_ttl_exceeded_header) +
               sizeof (struct ip_header) + sizeof (struct udp_header)));
-  memcpy (&packet[sizeof (struct ip_header)], &icmp_pkt,
-          sizeof (struct icmp_ttl_exceeded_header));
+  GNUNET_memcpy (&packet[sizeof (struct ip_header)],
+                 &icmp_pkt,
+                 sizeof (struct icmp_ttl_exceeded_header));
 
   memset (&dst, 0, sizeof (dst));
   dst.sin_family = AF_INET;
@@ -352,7 +361,9 @@ send_icmp (const struct in_addr *my_ip, const struct in_addr *other)
   ip_pkt.dst_ip = other->s_addr;
   ip_pkt.checksum =
       htons (calc_checksum ((uint16_t *) & ip_pkt, sizeof (struct ip_header)));
-  memcpy (&packet[off], &ip_pkt, sizeof (struct ip_header));
+  GNUNET_memcpy (&packet[off],
+                 &ip_pkt,
+                 sizeof (struct ip_header));
   off = sizeof (ip_pkt);
 
   /* icmp reply: time exceeded */
@@ -360,7 +371,9 @@ send_icmp (const struct in_addr *my_ip, const struct in_addr *other)
   icmp_ttl.code = 0;
   icmp_ttl.checksum = 0;
   icmp_ttl.unused = 0;
-  memcpy (&packet[off], &icmp_ttl, sizeof (struct icmp_ttl_exceeded_header));
+  GNUNET_memcpy (&packet[off],
+                 &icmp_ttl,
+                 sizeof (struct icmp_ttl_exceeded_header));
   off += sizeof (struct icmp_ttl_exceeded_header);
 
   /* ip header of the presumably 'lost' udp packet */
@@ -377,7 +390,9 @@ send_icmp (const struct in_addr *my_ip, const struct in_addr *other)
   ip_pkt.checksum = 0;
   ip_pkt.checksum =
       htons (calc_checksum ((uint16_t *) & ip_pkt, sizeof (struct ip_header)));
-  memcpy (&packet[off], &ip_pkt, sizeof (struct ip_header));
+  GNUNET_memcpy (&packet[off],
+                 &ip_pkt,
+                 sizeof (struct ip_header));
   off += sizeof (struct ip_header);
 
   icmp_echo.type = ICMP_ECHO;
@@ -386,8 +401,10 @@ send_icmp (const struct in_addr *my_ip, const struct in_addr *other)
   icmp_echo.checksum = 0;
   icmp_echo.checksum =
       htons (calc_checksum
-             ((uint16_t *) & icmp_echo, sizeof (struct icmp_echo_header)));
-  memcpy (&packet[off], &icmp_echo, sizeof (struct icmp_echo_header));
+             ((uint16_t *) &icmp_echo, sizeof (struct icmp_echo_header)));
+  GNUNET_memcpy (&packet[off],
+                 &icmp_echo,
+                 sizeof (struct icmp_echo_header));
 
   /* no go back to calculate ICMP packet checksum */
   off = sizeof (struct ip_header);
@@ -396,7 +413,9 @@ send_icmp (const struct in_addr *my_ip, const struct in_addr *other)
              ((uint16_t *) & packet[off],
               sizeof (struct icmp_ttl_exceeded_header) +
               sizeof (struct ip_header) + sizeof (struct icmp_echo_header)));
-  memcpy (&packet[off], &icmp_ttl, sizeof (struct icmp_ttl_exceeded_header));
+  GNUNET_memcpy (&packet[off],
+                 &icmp_ttl,
+                 sizeof (struct icmp_ttl_exceeded_header));
 
   /* prepare for transmission */
   memset (&dst, 0, sizeof (dst));
