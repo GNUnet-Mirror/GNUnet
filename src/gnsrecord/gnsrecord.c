@@ -207,7 +207,6 @@ GNUNET_GNSRECORD_string_to_value (uint32_t type,
 uint32_t
 GNUNET_GNSRECORD_typename_to_number (const char *dns_typename)
 {
-  unsigned int i;
   struct Plugin *plugin;
   uint32_t ret;
 
@@ -215,7 +214,7 @@ GNUNET_GNSRECORD_typename_to_number (const char *dns_typename)
                        "ANY"))
     return GNUNET_GNSRECORD_TYPE_ANY;
   init ();
-  for (i = 0; i < num_plugins; i++)
+  for (unsigned int i = 0; i < num_plugins; i++)
   {
     plugin = gns_plugins[i];
     if (UINT32_MAX != (ret = plugin->api->typename_to_number (plugin->api->cls,

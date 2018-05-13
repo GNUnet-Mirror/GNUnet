@@ -508,9 +508,10 @@ transmit_query (void *cls)
                                     sa,
                                     salen))
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-		_("Failed to send DNS request to %s\n"),
+		_("Failed to send DNS request to %s: %s\n"),
 		GNUNET_a2s (sa,
-                            salen));
+                            salen),
+                STRERROR (errno));
   else
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		_("Sent DNS request to %s\n"),
