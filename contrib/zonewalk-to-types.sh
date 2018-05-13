@@ -22,7 +22,7 @@ done
 
 # Second group (1) is unique per client
 OFF=0
-for i in `seq 0 $NUM_CLIENTS`
+for i in `seq 1 $NUM_CLIENTS`
 do
   END=`expr $OFF + $GROUP_SIZE`
   cat $1.tmp | head -n $END | tail -n $GROUP_SIZE | awk "{print 1 \" \" \$1}" >> $1.$i.tmp
