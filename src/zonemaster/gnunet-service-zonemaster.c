@@ -156,11 +156,6 @@ static struct DhtPutActivity *it_tail;
 static unsigned int dht_queue_length;
 
 /**
- * Number of entries in the DHT queue #ma_head.
- */
-static unsigned int ma_queue_length;
-
-/**
  * Useful for zone update for DHT put
  */
 static unsigned long long num_public_records;
@@ -462,10 +457,6 @@ update_velocity (unsigned int cnt)
   GNUNET_STATISTICS_set (statistics,
                          "# size of the DHT queue (it)",
                          dht_queue_length,
-                         GNUNET_NO);
-  GNUNET_STATISTICS_set (statistics,
-                         "# size of the DHT queue (mon)",
-                         ma_queue_length,
                          GNUNET_NO);
   GNUNET_STATISTICS_set (statistics,
                          "% speed increase needed for target velocity",
