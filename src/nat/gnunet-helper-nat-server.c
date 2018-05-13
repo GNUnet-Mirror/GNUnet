@@ -71,6 +71,17 @@
 #endif
 
 /**
+ * Call memcpy() but check for @a n being 0 first. In the latter
+ * case, it is now safe to pass NULL for @a src or @a dst.
+ * Unlike traditional memcpy(), returns nothing.
+ *
+ * @param dst destination of the copy, may be NULL if @a n is zero
+ * @param src source of the copy, may be NULL if @a n is zero
+ * @param n number of bytes to copy
+ */
+#define GNUNET_memcpy(dst,src,n) do { if (0 != n) { (void) memcpy (dst,src,n); } } while (0)
+
+/**
  * Should we print some debug output?
  */
 #define VERBOSE 0
