@@ -550,18 +550,16 @@ merge_with_nick_records (const struct GNUNET_GNSRECORD_Data *nick_rd,
   uint64_t latest_expiration;
   size_t req;
   char *data;
-  int record_offset;
   size_t data_offset;
 
   (*rdc_res) = 1 + rd2_length;
   if (0 == 1 + rd2_length)
   {
+    GNUNET_break (0);
     (*rd_res) = NULL;
     return;
   }
-  req = 0;
-  for (unsigned int c=0; c< 1; c++)
-    req += sizeof (struct GNUNET_GNSRECORD_Data) + nick_rd[c].data_size;
+  req = sizeof (struct GNUNET_GNSRECORD_Data) + nick_rd->data_size;
   for (unsigned int c=0; c< rd2_length; c++)
     req += sizeof (struct GNUNET_GNSRECORD_Data) + rd2[c].data_size;
   (*rd_res) = GNUNET_malloc (req);
@@ -580,20 +578,19 @@ merge_with_nick_records (const struct GNUNET_GNSRECORD_Data *nick_rd,
       latest_expiration = rd2[c].expiration_time;
     (*rd_res)[c] = rd2[c];
     (*rd_res)[c].data = (void *) &data[data_offset];
-    GNUNET_memcpy ((void *) (*rd_res)[c].data,
+    GNUNET_memcpy (&data[data_offset],
                    rd2[c].data,
                    rd2[c].data_size);
     data_offset += (*rd_res)[c].data_size;
   }
   /* append nick */
-  record_offset = rd2_length;
-  (*rd_res)[record_offset] = *nick_rd;
-  (*rd_res)[record_offset].expiration_time = latest_expiration;
-  (*rd_res)[record_offset].data = (void *) &data[data_offset];
-  GNUNET_memcpy ((void *) (*rd_res)[record_offset].data,
+  (*rd_res)[rd2_length] = *nick_rd;
+  (*rd_res)[rd2_length].expiration_time = latest_expiration;
+  (*rd_res)[rd2_length].data = (void *) &data[data_offset];
+  GNUNET_memcpy ((void *) (*rd_res)[rd2_length].data,
 		 nick_rd->data,
 		 nick_rd->data_size);
-  data_offset += (*rd_res)[record_offset].data_size;
+  data_offset += (*rd_res)[rd2_length].data_size;
   GNUNET_assert (req == (sizeof (struct GNUNET_GNSRECORD_Data)) * (*rdc_res) + data_offset);
 }
 
@@ -647,7 +644,8 @@ send_lookup_response (struct NamestoreClient *nc,
   }
 
   name_len = strlen (name) + 1;
-  rd_ser_len = GNUNET_GNSRECORD_records_get_size (res_count, res);
+  rd_ser_len = GNUNET_GNSRECORD_records_get_size (res_count,
+                                                  res);
   env = GNUNET_MQ_msg_extra (zir_msg,
 			     name_len + rd_ser_len,
 			     GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_RESULT);

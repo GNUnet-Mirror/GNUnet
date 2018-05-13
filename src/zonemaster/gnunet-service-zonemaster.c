@@ -540,24 +540,22 @@ convert_records_for_export (const struct GNUNET_GNSRECORD_Data *rd,
   rd_public_count = 0;
   now = GNUNET_TIME_absolute_get ();
   for (unsigned int i=0;i<rd_count;i++)
-    if (0 == (rd[i].flags & GNUNET_GNSRECORD_RF_PRIVATE))
+  {
+    if (0 != (rd[i].flags & GNUNET_GNSRECORD_RF_PRIVATE))
+      continue;
+    if ( (0 == (rd[i].flags & GNUNET_GNSRECORD_RF_RELATIVE_EXPIRATION)) &&
+         (rd[i].expiration_time < now.abs_value_us) )
+      continue;  /* record already expired, skip it */
+    if (0 != (rd[i].flags & GNUNET_GNSRECORD_RF_RELATIVE_EXPIRATION))
     {
-      rd_public[rd_public_count] = rd[i];
-      if (0 != (rd[i].flags & GNUNET_GNSRECORD_RF_RELATIVE_EXPIRATION))
-      {
-        /* GNUNET_GNSRECORD_block_create will convert to absolute time;
-           we just need to adjust our iteration frequency */
-        min_relative_record_time.rel_value_us =
-          GNUNET_MIN (rd_public[rd_public_count].expiration_time,
-                      min_relative_record_time.rel_value_us);
-      }
-      else if (rd_public[rd_public_count].expiration_time < now.abs_value_us)
-      {
-        /* record already expired, skip it */
-        continue;
-      }
-      rd_public_count++;
+      /* GNUNET_GNSRECORD_block_create will convert to absolute time;
+         we just need to adjust our iteration frequency */
+      min_relative_record_time.rel_value_us =
+        GNUNET_MIN (rd[i].expiration_time,
+                    min_relative_record_time.rel_value_us);
     }
+    rd_public[rd_public_count++] = rd[i];
+  }
   return rd_public_count;
 }
 

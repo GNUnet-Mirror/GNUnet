@@ -214,16 +214,14 @@ convert_records_for_export (const struct GNUNET_GNSRECORD_Data *rd,
   rd_public_count = 0;
   now = GNUNET_TIME_absolute_get ();
   for (unsigned int i=0;i<rd_count;i++)
-    if (0 == (rd[i].flags & GNUNET_GNSRECORD_RF_PRIVATE))
-    {
-      rd_public[rd_public_count] = rd[i];
-      if (rd_public[rd_public_count].expiration_time < now.abs_value_us)
-      {
-        /* record already expired, skip it */
-        continue;
-      }
-      rd_public_count++;
-    }
+  {
+    if (0 != (rd[i].flags & GNUNET_GNSRECORD_RF_PRIVATE))
+      continue;
+    if ( (0 == (rd[i].flags & GNUNET_GNSRECORD_RF_RELATIVE_EXPIRATION)) &&
+         (rd[i].expiration_time < now.abs_value_us) )
+      continue;  /* record already expired, skip it */
+    rd_public[rd_public_count++] = rd[i];
+  }
   return rd_public_count;
 }
 
