@@ -48,7 +48,7 @@
  * How many events may the namestore give us before it has to wait
  * for us to keep up?
  */
-#define NAMESTORE_QUEUE_LIMIT 50
+#define NAMESTORE_QUEUE_LIMIT 5
 
 /**
  * What replication level do we use for DHT PUT operations?
