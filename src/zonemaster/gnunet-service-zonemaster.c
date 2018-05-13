@@ -76,12 +76,6 @@
 #define MAXIMUM_ZONE_ITERATION_INTERVAL GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 15)
 
 /**
- * The default put interval for the zone iteration. In case
- * no option is found
- */
-#define DEFAULT_ZONE_PUBLISH_TIME_WINDOW GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_HOURS, 4)
-
-/**
  * The factor the current zone iteration interval is divided by for each
  * additional new record
  */
@@ -684,8 +678,7 @@ zone_iteration_finished (void *cls)
   calculate_put_interval ();
   /* reset for next iteration */
   min_relative_record_time
-    = GNUNET_TIME_relative_multiply (GNUNET_DHT_DEFAULT_REPUBLISH_FREQUENCY,
-				     PUBLISH_OPS_PER_EXPIRATION);
+    = GNUNET_TIME_UNIT_FOREVER_REL;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Zone iteration finished. Adjusted zone iteration interval to %s\n",
               GNUNET_STRINGS_relative_time_to_string (target_iteration_velocity_per_record,
@@ -838,8 +831,7 @@ run (void *cls,
   (void) service;
   last_put_100 = GNUNET_TIME_absolute_get (); /* first time! */
   min_relative_record_time
-    = GNUNET_TIME_relative_multiply (GNUNET_DHT_DEFAULT_REPUBLISH_FREQUENCY,
-				     PUBLISH_OPS_PER_EXPIRATION);
+    = GNUNET_TIME_UNIT_FOREVER_REL;
   target_iteration_velocity_per_record = INITIAL_ZONE_ITERATION_INTERVAL;
   namestore_handle = GNUNET_NAMESTORE_connect (c);
   if (NULL == namestore_handle)
@@ -852,7 +844,7 @@ run (void *cls,
   cache_keys = GNUNET_CONFIGURATION_get_value_yesno (c,
                                                      "namestore",
                                                      "CACHE_KEYS");
-  zone_publish_time_window_default = DEFAULT_ZONE_PUBLISH_TIME_WINDOW;
+  zone_publish_time_window_default = GNUNET_DHT_DEFAULT_REPUBLISH_FREQUENCY;
   if (GNUNET_OK ==
       GNUNET_CONFIGURATION_get_value_time (c,
 					   "zonemaster",
