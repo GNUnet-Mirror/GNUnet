@@ -11,8 +11,8 @@ application for secure publication of files, it has grown to include
 all kinds of basic applications for the foundation of a new internet.
 
 @menu
-* About this book
-* Introduction
+* About this book::
+* Introduction::
 * General Terminology::
 * Typography::
 @end menu
