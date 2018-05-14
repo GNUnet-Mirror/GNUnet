@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     Copyright (C) 2009-2013 GNUnet e.V.
+     Copyright (C) 2009-2013, 2018 GNUnet e.V.
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -94,7 +94,7 @@ block_create (const struct GNUNET_CRYPTO_EcdsaPrivateKey *key,
   struct GNUNET_CRYPTO_EcdsaPrivateKey *dkey;
   struct GNUNET_CRYPTO_SymmetricInitializationVector iv;
   struct GNUNET_CRYPTO_SymmetricSessionKey skey;
-  struct GNUNET_GNSRECORD_Data rdc[rd_count];
+  struct GNUNET_GNSRECORD_Data rdc[GNUNET_NZL(rd_count)];
   uint32_t rd_count_nbo;
   struct GNUNET_TIME_Absolute now;
 
@@ -246,6 +246,7 @@ GNUNET_GNSRECORD_block_create2 (const struct GNUNET_CRYPTO_EcdsaPrivateKey *key,
     GNUNET_CRYPTO_ecdsa_key_get_public (key,
                                         &line->pkey);
   }
+#undef CSIZE
   return block_create (key,
                        &line->pkey,
                        expire,
@@ -304,18 +305,21 @@ GNUNET_GNSRECORD_block_decrypt (const struct GNUNET_GNSRECORD_Block *block,
     GNUNET_break_op (0);
     return GNUNET_SYSERR;
   }
-  derive_block_aes_key (&iv, &skey, label, zone_key);
+  derive_block_aes_key (&iv,
+                        &skey,
+                        label,
+                        zone_key);
   {
     char payload[payload_len];
     uint32_t rd_count;
 
     GNUNET_break (payload_len ==
 		  GNUNET_CRYPTO_symmetric_decrypt (&block[1], payload_len,
-					     &skey, &iv,
-					     payload));
+                                                   &skey, &iv,
+                                                   payload));
     GNUNET_memcpy (&rd_count,
-	    payload,
-	    sizeof (uint32_t));
+                   payload,
+                   sizeof (uint32_t));
     rd_count = ntohl (rd_count);
     if (rd_count > 2048)
     {
@@ -324,7 +328,7 @@ GNUNET_GNSRECORD_block_decrypt (const struct GNUNET_GNSRECORD_Block *block,
       return GNUNET_SYSERR;
     }
     {
-      struct GNUNET_GNSRECORD_Data rd[rd_count];
+      struct GNUNET_GNSRECORD_Data rd[GNUNET_NZL(rd_count)];
       unsigned int j;
       struct GNUNET_TIME_Absolute now;
 
@@ -359,10 +363,13 @@ GNUNET_GNSRECORD_block_decrypt (const struct GNUNET_GNSRECORD_Block *block,
               continue;
             if (rd[i].expiration_time < now.abs_value_us)
               include_record = GNUNET_NO; /* Shadow record is expired */
-            if ((rd[k].record_type == rd[i].record_type)
-                && (rd[k].expiration_time >= now.abs_value_us)
-                && (0 == (rd[k].flags & GNUNET_GNSRECORD_RF_SHADOW_RECORD)))
+            if ( (rd[k].record_type == rd[i].record_type) &&
+                 (rd[k].expiration_time >= now.abs_value_us) &&
+                 (0 == (rd[k].flags & GNUNET_GNSRECORD_RF_SHADOW_RECORD)) )
+            {
               include_record = GNUNET_NO; /* We have a non-expired, non-shadow record of the same type */
+              break;
+            }
           }
           if (GNUNET_YES == include_record)
           {

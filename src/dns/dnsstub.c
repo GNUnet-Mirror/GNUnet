@@ -508,9 +508,10 @@ transmit_query (void *cls)
                                     sa,
                                     salen))
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-		_("Failed to send DNS request to %s\n"),
+		_("Failed to send DNS request to %s: %s\n"),
 		GNUNET_a2s (sa,
-                            salen));
+                            salen),
+                STRERROR (errno));
   else
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		_("Sent DNS request to %s\n"),
@@ -687,14 +688,14 @@ GNUNET_DNSSTUB_add_dns_sa (struct GNUNET_DNSSTUB_Context *ctx,
   switch (sa->sa_family)
   {
   case AF_INET:
-    memcpy (&ds->ss,
-            sa,
-            sizeof (struct sockaddr_in));
+    GNUNET_memcpy (&ds->ss,
+                   sa,
+                   sizeof (struct sockaddr_in));
     break;
   case AF_INET6:
-    memcpy (&ds->ss,
-            sa,
-            sizeof (struct sockaddr_in6));
+    GNUNET_memcpy (&ds->ss,
+                   sa,
+                   sizeof (struct sockaddr_in6));
     break;
   default:
     GNUNET_break (0);

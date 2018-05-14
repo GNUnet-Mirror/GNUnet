@@ -109,6 +109,11 @@ struct Gns2DnsPending
    * Handle for DNS resolution of the DNS nameserver.
    */
   struct GNUNET_RESOLVER_RequestHandle *dns_rh;
+
+  /**
+   * How many results did we get?
+   */
+  unsigned int num_results;
 };
 
 
@@ -813,7 +818,9 @@ add_dns_result (struct GNS_ResolverHandle *rh,
   res->data_size = data_size;
   res->record_type = record_type;
   res->data = &res[1];
-  GNUNET_memcpy (&res[1], data, data_size);
+  GNUNET_memcpy (&res[1],
+                 data,
+                 data_size);
   GNUNET_CONTAINER_DLL_insert (rh->dns_result_head,
 			       rh->dns_result_tail,
 			       res);
@@ -1494,26 +1501,48 @@ handle_gns2dns_ip (void *cls,
 {
   struct Gns2DnsPending *gp = cls;
   struct AuthorityChain *ac = gp->ac;
+  struct sockaddr_storage ss;
+  struct sockaddr_in *v4;
+  struct sockaddr_in6 *v6;
 
-  GNUNET_RESOLVER_request_cancel (gp->dns_rh);
-  GNUNET_CONTAINER_DLL_remove (ac->authority_info.dns_authority.gp_head,
-                               ac->authority_info.dns_authority.gp_tail,
-                               gp);
-  GNUNET_free (gp);
   if (NULL == addr)
   {
-    /* DNS resolution failed */
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                "Failed to use DNS to resolve name of DNS resolver\n");
+    /* DNS resolution finished */
+    if (0 == gp->num_results)
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                  "Failed to use DNS to resolve name of DNS resolver\n");
+    GNUNET_CONTAINER_DLL_remove (ac->authority_info.dns_authority.gp_head,
+                                 ac->authority_info.dns_authority.gp_tail,
+                                 gp);
+    GNUNET_free (gp);
+    continue_with_gns2dns (ac);
+    return;
   }
-  else
+  GNUNET_memcpy (&ss,
+                 addr,
+                 addrlen);
+  switch (ss.ss_family)
   {
-    if (GNUNET_OK ==
-        GNUNET_DNSSTUB_add_dns_sa (ac->authority_info.dns_authority.dns_handle,
-                                   addr))
-      ac->authority_info.dns_authority.found = GNUNET_YES;
+  case AF_INET:
+    v4 = (struct sockaddr_in *) &ss;
+    v4->sin_port = htons (53);
+    gp->num_results++;
+    break;
+  case AF_INET6:
+    v6 = (struct sockaddr_in6 *) &ss;
+    v6->sin6_port = htons (53);
+    gp->num_results++;
+    break;
+  default:
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Unsupported AF %d\n",
+                ss.ss_family);
+    return;
   }
-  continue_with_gns2dns (ac);
+  if (GNUNET_OK ==
+      GNUNET_DNSSTUB_add_dns_sa (ac->authority_info.dns_authority.dns_handle,
+                                 (struct sockaddr *) &ss))
+    ac->authority_info.dns_authority.found = GNUNET_YES;
 }
 
 

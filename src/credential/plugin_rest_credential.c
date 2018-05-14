@@ -309,14 +309,14 @@ json_to_credential (json_t *res)
                  sig,
                  sizeof (struct GNUNET_CRYPTO_EcdsaSignature));
   GNUNET_free (sig);
- 
+
   tmp = json_object_get (res, "expiration");
   if (0 == json_is_integer (tmp))
   {
     GNUNET_free (cred);
     return NULL;
   }
-  cred->expiration.abs_value_us = json_integer_value (tmp); 
+  cred->expiration.abs_value_us = json_integer_value (tmp);
   return cred;
 }
 
@@ -342,7 +342,7 @@ credential_to_json (struct GNUNET_CREDENTIAL_Credential *cred)
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Issuer in credential malformed\n");
     return NULL;
-  }  
+  }
   subject = GNUNET_CRYPTO_ecdsa_public_key_to_string (&cred->subject_key);
   if (NULL == subject)
   {
@@ -354,9 +354,9 @@ credential_to_json (struct GNUNET_CREDENTIAL_Credential *cred)
   GNUNET_STRINGS_base64_encode ((char*)&cred->signature,
                                 sizeof (struct GNUNET_CRYPTO_EcdsaSignature),
                                 &signature);
-  memcpy (attribute,
-          cred->issuer_attribute,
-          cred->issuer_attribute_len);
+  GNUNET_memcpy (attribute,
+                 cred->issuer_attribute,
+                 cred->issuer_attribute_len);
   attribute[cred->issuer_attribute_len] = '\0';
   cred_obj = json_object ();
   json_object_set_new (cred_obj, "issuer", json_string (issuer));
@@ -570,7 +570,7 @@ collect_cred_cont (struct GNUNET_REST_RequestHandle *conndata_handle,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Missing issuer attribute\n");
-    GNUNET_SCHEDULER_add_now (&do_error, handle); 
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
   }
   tmp = GNUNET_CONTAINER_multihashmap_get (conndata_handle->url_param_map,
@@ -585,7 +585,7 @@ collect_cred_cont (struct GNUNET_REST_RequestHandle *conndata_handle,
     GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
   }
-  if (GNUNET_OK != 
+  if (GNUNET_OK !=
       GNUNET_CRYPTO_ecdsa_public_key_from_string (tmp,
                                                   strlen (tmp),
                                                   &handle->issuer_key))
@@ -626,7 +626,7 @@ collect_cred_cont (struct GNUNET_REST_RequestHandle *conndata_handle,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Malformed subject\n");
-    GNUNET_SCHEDULER_add_now (&do_error, handle); 
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
   }
   handle->ego_lookup = GNUNET_IDENTITY_ego_lookup (cfg,
@@ -679,7 +679,7 @@ verify_cred_cont (struct GNUNET_REST_RequestHandle *conndata_handle,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Missing issuer attribute\n");
-    GNUNET_SCHEDULER_add_now (&do_error, handle); 
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
   }
   tmp = GNUNET_CONTAINER_multihashmap_get (conndata_handle->url_param_map,
@@ -694,7 +694,7 @@ verify_cred_cont (struct GNUNET_REST_RequestHandle *conndata_handle,
     GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
   }
-  if (GNUNET_OK != 
+  if (GNUNET_OK !=
       GNUNET_CRYPTO_ecdsa_public_key_from_string (tmp,
                                                   strlen (tmp),
                                                   &handle->issuer_key))
@@ -735,7 +735,7 @@ verify_cred_cont (struct GNUNET_REST_RequestHandle *conndata_handle,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Malformed subject\n");
-    GNUNET_SCHEDULER_add_now (&do_error, handle); 
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
   }
   if (GNUNET_OK !=
@@ -946,7 +946,7 @@ get_cred_issuer_cb (void *cls,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Missing expiration\n");
-    GNUNET_SCHEDULER_add_now (&do_error, handle); 
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
   }
   expiration_str = GNUNET_CONTAINER_multihashmap_get (handle->rest_handle->url_param_map,
@@ -955,7 +955,7 @@ get_cred_issuer_cb (void *cls,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Expiration malformed\n");
-    GNUNET_SCHEDULER_add_now (&do_error, handle); 
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
   }
 
@@ -968,7 +968,7 @@ get_cred_issuer_cb (void *cls,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Malformed expiration: %s\n", expiration_str);
-    GNUNET_SCHEDULER_add_now (&do_error, handle); 
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
   }
   GNUNET_CRYPTO_hash (GNUNET_REST_JSONAPI_CREDENTIAL_ISSUER_ATTR,
@@ -980,10 +980,10 @@ get_cred_issuer_cb (void *cls,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Missing issuer attribute\n");
-    GNUNET_SCHEDULER_add_now (&do_error, handle); 
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
   }
-  handle->issuer_attr = GNUNET_strdup(GNUNET_CONTAINER_multihashmap_get 
+  handle->issuer_attr = GNUNET_strdup(GNUNET_CONTAINER_multihashmap_get
                                       (handle->rest_handle->url_param_map,
                                        &key));
   GNUNET_CRYPTO_hash (GNUNET_REST_JSONAPI_CREDENTIAL_SUBJECT_KEY,
@@ -1004,7 +1004,7 @@ get_cred_issuer_cb (void *cls,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Malformed subject\n");
-    GNUNET_SCHEDULER_add_now (&do_error, handle); 
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
   }
   if (GNUNET_OK !=

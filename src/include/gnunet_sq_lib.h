@@ -446,6 +446,125 @@ void
 GNUNET_SQ_cleanup_result (struct GNUNET_SQ_ResultSpec *rs);
 
 
+
+/* ******************** sq_prepare.c functions ************** */
+
+
+/**
+ * Information needed to run a list of SQL statements using
+ * #GNUNET_SQ_exec_statements().
+ */
+struct GNUNET_SQ_PrepareStatement {
+
+  /**
+   * Actual SQL statement.
+   */
+  const char *sql;
+
+  /**
+   * Where to store handle?
+   */
+  sqlite3_stmt **pstmt;
+
+};
+
+
+/**
+ * Terminator for executable statement list.
+ */
+#define GNUNET_SQ_PREPARE_END { NULL, NULL }
+
+
+/**
+ * Create a `struct GNUNET_SQ_PrepareStatement`
+ *
+ * @param sql actual SQL statement
+ * @param pstmt where to store the handle
+ * @return initialized struct
+ */
+struct GNUNET_SQ_PrepareStatement
+GNUNET_SQ_make_prepare (const char *sql,
+                        sqlite3_stmt **pstmt);
+
+
+
+/**
+ * Prepare all statements given in the (NULL,NULL)-terminated
+ * array at @a ps
+ *
+ * @param dbh database handle
+ * @param ps array of statements to prepare
+ * @return #GNUNET_OK on success
+ */
+int
+GNUNET_SQ_prepare (sqlite3 *dbh,
+                   const struct GNUNET_SQ_PrepareStatement *ps);
+
+
+/* ******************** sq_exec.c functions ************** */
+
+
+/**
+ * Information needed to run a list of SQL statements using
+ * #GNUNET_SQ_exec_statements().
+ */
+struct GNUNET_SQ_ExecuteStatement {
+
+  /**
+   * Actual SQL statement.
+   */
+  const char *sql;
+
+  /**
+   * Should we ignore errors?
+   */
+  int ignore_errors;
+
+};
+
+
+/**
+ * Terminator for executable statement list.
+ */
+#define GNUNET_SQ_EXECUTE_STATEMENT_END { NULL, GNUNET_SYSERR }
+
+
+/**
+ * Create a `struct GNUNET_SQ_ExecuteStatement` where errors are fatal.
+ *
+ * @param sql actual SQL statement
+ * @return initialized struct
+ */
+struct GNUNET_SQ_ExecuteStatement
+GNUNET_SQ_make_execute (const char *sql);
+
+
+/**
+ * Create a `struct GNUNET_SQ_ExecuteStatement` where errors should
+ * be tolerated.
+ *
+ * @param sql actual SQL statement
+ * @return initialized struct
+ */
+struct GNUNET_SQ_ExecuteStatement
+GNUNET_SQ_make_try_execute (const char *sql);
+
+
+/**
+ * Request execution of an array of statements @a es from Postgres.
+ *
+ * @param dbh database to execute the statements over
+ * @param es #GNUNET_PQ_PREPARED_STATEMENT_END-terminated array of prepared
+ *            statements.
+ * @return #GNUNET_OK on success (modulo statements where errors can be ignored)
+ *         #GNUNET_SYSERR on error
+ */
+int
+GNUNET_SQ_exec_statements (sqlite3 *dbh,
+                           const struct GNUNET_SQ_ExecuteStatement *es);
+
+
+
 #endif  /* GNUNET_SQ_LIB_H_ */
 
 /* end of include/gnunet_sq_lib.h */

@@ -215,6 +215,8 @@ main (int argc,
                    sizeof (cfg_name),
                    "test_plugin_namestore_%s.conf",
                    plugin_name);
+  GNUNET_DISK_purge_cfg_dir (cfg_name,
+                             "GNUNET_TMP");
   GNUNET_PROGRAM_run ((sizeof (xargv) / sizeof (char *)) - 1,
                       xargv,
                       "test-plugin-namestore",
@@ -222,6 +224,8 @@ main (int argc,
                       options,
                       &run,
                       NULL);
+  GNUNET_DISK_purge_cfg_dir (cfg_name,
+                             "GNUNET_TMP");
   if (ok != 0)
     FPRINTF (stderr,
              "Missed some testcases: %d\n",

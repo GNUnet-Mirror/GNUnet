@@ -37,7 +37,7 @@ libexec_PROGRAMS = \
 noinst_PROGRAMS = \
   gnunet-dns-monitor \
   gnunet-dns-redirector \
-  gnunet-zoneimport
+  gnunet-zonewalk
 
 plugin_LTLIBRARIES = \
   libgnunet_plugin_block_dns.la
@@ -62,9 +62,9 @@ gnunet_dns_monitor_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(GN_LIBINTL)
 
-gnunet_zoneimport_SOURCES = \
- gnunet-zoneimport.c
-gnunet_zoneimport_LDADD = \
+gnunet_zonewalk_SOURCES = \
+ gnunet-zonewalk.c
+gnunet_zonewalk_LDADD = \
   libgnunetdnsparser.la \
   libgnunetdnsstub.la \
   $(top_builddir)/src/util/libgnunetutil.la \

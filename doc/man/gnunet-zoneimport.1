@@ -48,6 +48,14 @@ Use the configuration file FILENAME.
 .IP "\-h, \-\-help"
 Print short help on options.
 .B
+.IP "\-m RELATIVETIME, \-\-minimum-expiration=RELATIVETIME"
+.B
+Ensure that imported DNS records never have an expiration time that
+is less than RELATIVETIME into the future.  RELATIVETIME is a time
+given like "1 week" or "1 h".   If DNS returns records with a shorter
+lifetime, gnunet\-zoneimport will simply bump the lifetime to the
+specified value (relative to the time of the import). Default is zero.
+
 .IP "\-s MAPSIZE, \-\-size=MAPSIZE"
 Specifies the size (in number of entries) to use for the main hash
 map.  The value provided should be at least twice the number of domain

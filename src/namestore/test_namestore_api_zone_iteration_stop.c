@@ -56,7 +56,6 @@ static char * s_name_3;
 
 static struct GNUNET_GNSRECORD_Data *s_rd_3;
 
-static char *directory;
 
 
 /**
@@ -475,14 +474,9 @@ run (void *cls,
      const struct GNUNET_CONFIGURATION_Handle *cfg,
      struct GNUNET_TESTING_Peer *peer)
 {
-  GNUNET_assert (GNUNET_OK ==
-                 GNUNET_CONFIGURATION_get_value_string (cfg,
-                                                        "PATHS",
-                                                        "GNUNET_TEST_HOME",
-                                                        &directory));
-  GNUNET_DISK_directory_remove (directory);
-
-  endbadly_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT, &endbadly, NULL);
+  endbadly_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT,
+                                                &endbadly,
+                                                NULL);
   nsh = GNUNET_NAMESTORE_connect (cfg);
   GNUNET_break (NULL != nsh);
   /* first, iterate over empty namestore */
@@ -515,6 +509,8 @@ main (int argc, char *argv[])
   GNUNET_asprintf (&cfg_name,
                    "test_namestore_api_%s.conf",
                    plugin_name);
+  GNUNET_DISK_purge_cfg_dir (cfg_name,
+                             "GNUNET_TEST_HOME");
   res = 1;
   if (0 !=
       GNUNET_TESTING_peer_run ("test-namestore-api-zone-iteration-stop",
@@ -524,12 +520,10 @@ main (int argc, char *argv[])
   {
     res = 1;
   }
+  GNUNET_DISK_purge_cfg_dir (cfg_name,
+                             "GNUNET_TEST_HOME");
   GNUNET_free (cfg_name);
-  if (NULL != directory)
-  {
-      GNUNET_DISK_directory_remove (directory);
-      GNUNET_free (directory);
-  }
+
   return res;
 }
 

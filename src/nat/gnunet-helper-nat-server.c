@@ -71,6 +71,17 @@
 #endif
 
 /**
+ * Call memcpy() but check for @a n being 0 first. In the latter
+ * case, it is now safe to pass NULL for @a src or @a dst.
+ * Unlike traditional memcpy(), returns nothing.
+ *
+ * @param dst destination of the copy, may be NULL if @a n is zero
+ * @param src source of the copy, may be NULL if @a n is zero
+ * @param n number of bytes to copy
+ */
+#define GNUNET_memcpy(dst,src,n) do { if (0 != n) { (void) memcpy (dst,src,n); } } while (0)
+
+/**
  * Should we print some debug output?
  */
 #define VERBOSE 0
@@ -266,9 +277,9 @@ send_icmp_echo (const struct in_addr *my_ip)
   ip_pkt.checksum =
       htons (calc_checksum ((uint16_t *) & ip_pkt,
 			    sizeof (struct ip_header)));
-  memcpy (&packet[off],
-	  &ip_pkt,
-	  sizeof (struct ip_header));
+  GNUNET_memcpy (&packet[off],
+                 &ip_pkt,
+                 sizeof (struct ip_header));
   off += sizeof (struct ip_header);
 
   icmp_echo.type = ICMP_ECHO;
@@ -279,9 +290,9 @@ send_icmp_echo (const struct in_addr *my_ip)
     htons (calc_checksum
 	   ((uint16_t *) & icmp_echo,
 	    sizeof (struct icmp_echo_header)));
-  memcpy (&packet[off],
-	  &icmp_echo,
-	  sizeof (struct icmp_echo_header));
+  GNUNET_memcpy (&packet[off],
+                 &icmp_echo,
+                 sizeof (struct icmp_echo_header));
   off += sizeof (struct icmp_echo_header);
 
   memset (&dst, 0, sizeof (dst));
@@ -388,9 +399,13 @@ process_icmp_response ()
     return;
   }
   off = 0;
-  memcpy (&ip_pkt, &buf[off], sizeof (struct ip_header));
+  GNUNET_memcpy (&ip_pkt,
+                 &buf[off],
+                 sizeof (struct ip_header));
   off += sizeof (struct ip_header);
-  memcpy (&icmp_ttl, &buf[off], sizeof (struct icmp_ttl_exceeded_header));
+  GNUNET_memcpy (&icmp_ttl,
+                 &buf[off],
+                 sizeof (struct icmp_ttl_exceeded_header));
   off += sizeof (struct icmp_ttl_exceeded_header);
   if ((ICMP_TIME_EXCEEDED != icmp_ttl.type) || (0 != icmp_ttl.code))
   {
@@ -401,7 +416,9 @@ process_icmp_response ()
   source_ip.s_addr = ip_pkt.src_ip;
 
   /* skip 2nd IP header */
-  memcpy (&ip_pkt, &buf[off], sizeof (struct ip_header));
+  GNUNET_memcpy (&ip_pkt,
+                 &buf[off],
+                 sizeof (struct ip_header));
   off += sizeof (struct ip_header);
 
   switch (ip_pkt.proto)
@@ -416,7 +433,9 @@ process_icmp_response ()
       return;
     }
     /* grab ICMP ECHO content */
-    memcpy (&icmp_echo, &buf[off], sizeof (struct icmp_echo_header));
+    GNUNET_memcpy (&icmp_echo,
+                   &buf[off],
+                   sizeof (struct icmp_echo_header));
     port = (uint16_t) ntohl (icmp_echo.reserved);
     break;
   case IPPROTO_UDP:
@@ -428,7 +447,9 @@ process_icmp_response ()
       return;
     }
     /* grab UDP content */
-    memcpy (&udp_pkt, &buf[off], sizeof (struct udp_header));
+    GNUNET_memcpy (&udp_pkt,
+                   &buf[off],
+                   sizeof (struct udp_header));
     port = ntohs (udp_pkt.length);
     break;
   default:

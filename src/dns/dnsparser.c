@@ -815,7 +815,9 @@ GNUNET_DNSPARSER_builder_add_name (char *dst,
     return GNUNET_SYSERR;
 
   if (IDNA_SUCCESS !=
-      (rc = idna_to_ascii_8z (name, &idna_start, IDNA_ALLOW_UNASSIGNED)))
+      (rc = idna_to_ascii_8z (name,
+                              &idna_start,
+                              IDNA_ALLOW_UNASSIGNED)))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
 		_("Failed to convert UTF-8 name `%s' to DNS IDNA format: %s\n"),
@@ -841,7 +843,9 @@ GNUNET_DNSPARSER_builder_add_name (char *dst,
       goto fail; /* segment too long or empty */
     }
     dst[pos++] = (char) (uint8_t) len;
-    GNUNET_memcpy (&dst[pos], idna_name, len);
+    GNUNET_memcpy (&dst[pos],
+                   idna_name,
+                   len);
     pos += len;
     idna_name += len + 1; /* also skip dot */
   }

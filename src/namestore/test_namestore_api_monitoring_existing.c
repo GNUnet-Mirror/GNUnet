@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     Copyright (C) 2013 GNUnet e.V.
+     Copyright (C) 2013, 2018 GNUnet e.V.
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -18,7 +18,7 @@
      Boston, MA 02110-1301, USA.
 */
 /**
- * @file namestore/test_namestore_api_monitoring.c
+ * @file namestore/test_namestore_api_monitoring_existing.c
  * @brief testcase for zone monitoring functionality: add records first, then monitor
  */
 #include "platform.h"
@@ -27,7 +27,7 @@
 #include "namestore.h"
 
 
-#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 100)
+#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10)
 
 static const struct GNUNET_CONFIGURATION_Handle *cfg;
 
@@ -57,18 +57,30 @@ static struct GNUNET_GNSRECORD_Data *s_rd_3;
 
 struct GNUNET_NAMESTORE_QueueEntry * ns_ops[3];
 
-static char *directory;
+
+/**
+ * Re-establish the connection to the service.
+ *
+ * @param cls handle to use to re-connect.
+ */
+static void
+endbadly (void *cls)
+{
+  endbadly_task = NULL;
+  GNUNET_break (0);
+  GNUNET_SCHEDULER_shutdown ();
+  res = 1;
+}
 
 
 static void
-do_shutdown ()
+end (void *cls)
 {
   if (NULL != zm)
   {
     GNUNET_NAMESTORE_zone_monitor_stop (zm);
     zm = NULL;
   }
-
   if (NULL != ns_ops[0])
   {
     GNUNET_NAMESTORE_cancel(ns_ops[0]);
@@ -84,7 +96,11 @@ do_shutdown ()
     GNUNET_NAMESTORE_cancel(ns_ops[2]);
     ns_ops[2] = NULL;
   }
-
+  if (NULL != endbadly_task)
+  {
+    GNUNET_SCHEDULER_cancel (endbadly_task);
+    endbadly_task = NULL;
+  }
   if (NULL != nsh)
   {
     GNUNET_NAMESTORE_disconnect (nsh);
@@ -124,27 +140,6 @@ do_shutdown ()
 }
 
 
-/**
- * Re-establish the connection to the service.
- *
- * @param cls handle to use to re-connect.
- */
-static void
-endbadly (void *cls)
-{
-  do_shutdown ();
-  res = 1;
-}
-
-
-static void
-end (void *cls)
-{
-  do_shutdown ();
-  res = 0;
-}
-
-
 static void
 zone_proc (void *cls,
 	   const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone_key,
@@ -166,9 +161,7 @@ zone_proc (void *cls,
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
   	      "Monitoring returned wrong zone key\n");
     GNUNET_break (0);
-    GNUNET_SCHEDULER_cancel (endbadly_task);
-    endbadly_task = GNUNET_SCHEDULER_add_now (&endbadly,
-                                              NULL);
+    GNUNET_SCHEDULER_shutdown ();
     return;
   }
 
@@ -203,17 +196,16 @@ zone_proc (void *cls,
                                       1);
   if (2 == ++returned_records)
   {
-    if (endbadly_task != NULL)
-    {
-      GNUNET_SCHEDULER_cancel (endbadly_task);
-      endbadly_task = NULL;
-    }
+    GNUNET_SCHEDULER_shutdown ();
     if (GNUNET_YES == fail)
-      GNUNET_SCHEDULER_add_now (&endbadly,
-                                NULL);
+    {
+      GNUNET_break (0);
+      res = 1;
+    }
     else
-      GNUNET_SCHEDULER_add_now (&end,
-                                NULL);
+    {
+      res = 0;
+    }
   }
 }
 
@@ -260,8 +252,9 @@ put_cont (void *cls,
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Failed to created records\n");
     GNUNET_break (0);
-    GNUNET_SCHEDULER_cancel (endbadly_task);
-    endbadly_task = GNUNET_SCHEDULER_add_now (&endbadly, NULL);
+    res = 1;
+    GNUNET_SCHEDULER_shutdown ();
+    return;
   }
 
   if (3 == c)
@@ -281,8 +274,8 @@ put_cont (void *cls,
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                   "Failed to create zone monitor\n");
       GNUNET_break (0);
-      endbadly_task = GNUNET_SCHEDULER_add_now (&endbadly,
-                                                NULL);
+      res = 1;
+      GNUNET_SCHEDULER_shutdown ();
       return;
     }
   }
@@ -316,30 +309,16 @@ run (void *cls,
      const struct GNUNET_CONFIGURATION_Handle *mycfg,
      struct GNUNET_TESTING_Peer *peer)
 {
-  char *hostkey_file;
-
-  directory = NULL;
-  GNUNET_assert (GNUNET_OK ==
-                 GNUNET_CONFIGURATION_get_value_string (mycfg,
-                                                        "PATHS",
-                                                        "GNUNET_TEST_HOME",
-                                                        &directory));
-  GNUNET_DISK_directory_remove (directory);
-
   res = 1;
-
-  GNUNET_asprintf(&hostkey_file,
-		  "zonefiles%s%s",
-		  DIR_SEPARATOR_STR,
-		  "N0UJMP015AFUNR2BTNM3FKPBLG38913BL8IDMCO2H0A1LIB81960.zkey");
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Using zonekey file `%s' \n", hostkey_file);
-  privkey = GNUNET_CRYPTO_ecdsa_key_create_from_file(hostkey_file);
-  GNUNET_free (hostkey_file);
+  privkey = GNUNET_CRYPTO_ecdsa_key_create ();
   GNUNET_assert (privkey != NULL);
 
   cfg = mycfg;
-  endbadly_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT, &endbadly, NULL);
+  GNUNET_SCHEDULER_add_shutdown (&end,
+                                 NULL);
+  endbadly_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT,
+                                                &endbadly,
+                                                NULL);
   /* Connect to namestore */
   nsh = GNUNET_NAMESTORE_connect (cfg);
   if (NULL == nsh)
@@ -350,12 +329,7 @@ run (void *cls,
     return;
   }
 
-  GNUNET_asprintf(&hostkey_file,"zonefiles%s%s",
-		  DIR_SEPARATOR_STR,
-		  "HGU0A0VCU334DN7F2I9UIUMVQMM7JMSD142LIMNUGTTV9R0CF4EG.zkey");
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Using zonekey file `%s' \n", hostkey_file);
-  privkey2 = GNUNET_CRYPTO_ecdsa_key_create_from_file(hostkey_file);
-  GNUNET_free (hostkey_file);
+  privkey2 = GNUNET_CRYPTO_ecdsa_key_create ();
   GNUNET_assert (privkey2 != NULL);
 
 
@@ -363,16 +337,29 @@ run (void *cls,
   /* name in different zone */
   GNUNET_asprintf(&s_name_3, "dummy3");
   s_rd_3 = create_record(1);
-  GNUNET_assert (NULL != (ns_ops[2] = GNUNET_NAMESTORE_records_store (nsh, privkey2, s_name_3,
-  		1, s_rd_3, &put_cont, s_name_3)));
+  GNUNET_assert (NULL != (ns_ops[2] =
+                          GNUNET_NAMESTORE_records_store (nsh,
+                                                          privkey2,
+                                                          s_name_3,
+                                                          1,
+                                                          s_rd_3,
+                                                          &put_cont,
+                                                          s_name_3)));
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Created record 1\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Created record 1\n");
   GNUNET_asprintf(&s_name_1, "dummy1");
   s_rd_1 = create_record(1);
-  GNUNET_assert (NULL != (ns_ops[0] = GNUNET_NAMESTORE_records_store(nsh, privkey, s_name_1,
-  		1, s_rd_1, &put_cont, s_name_1)));
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Created record 2 \n");
+  GNUNET_assert (NULL != (ns_ops[0] =
+                          GNUNET_NAMESTORE_records_store(nsh,
+                                                         privkey,
+                                                         s_name_1,
+                                                         1,
+                                                         s_rd_1,
+                                                         &put_cont,
+                                                         s_name_1)));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Created record 2 \n");
   GNUNET_asprintf(&s_name_2, "dummy2");
   s_rd_2 = create_record(1);
   GNUNET_assert (NULL != (ns_ops[1] =
@@ -397,6 +384,8 @@ main (int argc, char *argv[])
                    "test_namestore_api_%s.conf",
                    plugin_name);
   res = 1;
+  GNUNET_DISK_purge_cfg_dir (cfg_name,
+                             "GNUNET_TEST_HOME");
   if (0 !=
       GNUNET_TESTING_peer_run ("test-namestore-api-monitoring-existing",
                                cfg_name,
@@ -405,12 +394,9 @@ main (int argc, char *argv[])
   {
     res = 1;
   }
+  GNUNET_DISK_purge_cfg_dir (cfg_name,
+                             "GNUNET_TEST_HOME");
   GNUNET_free (cfg_name);
-  if (NULL != directory)
-  {
-      GNUNET_DISK_directory_remove (directory);
-      GNUNET_free (directory);
-  }
   return res;
 }
 

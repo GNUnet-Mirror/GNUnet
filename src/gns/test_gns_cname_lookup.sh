@@ -22,7 +22,7 @@ then
 fi
 
 
-rm -rf /tmp/test-gnunet-gns-peer-1/
+rm -rf `gnunet-config -c test_gns_lookup.conf -f -s paths -o GNUNET_TEST_HOME`
 
 TEST_IP_PLUS="127.0.0.1"
 TEST_IP_DNS="131.159.74.67"
@@ -51,7 +51,7 @@ gnunet-namestore -p -z $MY_EGO -d -n $TEST_RECORD_NAME_PLUS -t CNAME -V $TEST_RE
 gnunet-namestore -p -z $MY_EGO -d -n $TEST_RECORD_CNAME_SERVER -t A -V $TEST_IP_PLUS -e never -c test_gns_lookup.conf
 gnunet-identity -D $MY_EGO -c test_gns_lookup.conf
 gnunet-arm -e -c test_gns_lookup.conf
-rm -rf /tmp/test-gnunet-gns-peer-1/
+rm -rf `gnunet-config -c test_gns_lookup.conf -f -s paths -o GNUNET_TEST_HOME`
 
 if [ "$RES_CNAME_RAW" == "server.$TESTEGOZONE" ]
 then

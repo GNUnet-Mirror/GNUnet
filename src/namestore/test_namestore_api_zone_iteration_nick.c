@@ -60,7 +60,6 @@ static struct GNUNET_GNSRECORD_Data *s_rd_3;
 
 static struct GNUNET_NAMESTORE_QueueEntry *nsqe;
 
-static char *directory;
 
 /**
  * Re-establish the connection to the service.
@@ -265,7 +264,9 @@ fail_cb (void *cls)
 
 
 static void
-put_cont (void *cls, int32_t success, const char *emsg)
+put_cont (void *cls,
+          int32_t success,
+          const char *emsg)
 {
   static int c = 0;
 
@@ -314,11 +315,11 @@ put_cont (void *cls, int32_t success, const char *emsg)
 static struct GNUNET_GNSRECORD_Data *
 create_record (unsigned int count)
 {
-  unsigned int c;
   struct GNUNET_GNSRECORD_Data * rd;
 
-  rd = GNUNET_malloc (count * sizeof (struct GNUNET_GNSRECORD_Data));
-  for (c = 0; c < count; c++)
+  rd = GNUNET_new_array (count,
+                         struct GNUNET_GNSRECORD_Data);
+  for (unsigned int c = 0; c < count; c++)
   {
     rd[c].expiration_time = GNUNET_TIME_relative_to_absolute (GNUNET_TIME_UNIT_HOURS).abs_value_us;
     rd[c].record_type = 1111;
@@ -332,7 +333,9 @@ create_record (unsigned int count)
 
 
 static void
-nick_2_cont (void *cls, int32_t success, const char *emsg)
+nick_2_cont (void *cls,
+             int32_t success,
+             const char *emsg)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Nick added : %s\n",
@@ -422,25 +425,18 @@ empty_zone_proc (void *cls,
 static void
 empty_zone_end (void *cls)
 {
-  char *hostkey_file;
   GNUNET_assert (nsh == cls);
-
   zi = NULL;
-  GNUNET_asprintf(&hostkey_file,"zonefiles%s%s",DIR_SEPARATOR_STR,
-      "N0UJMP015AFUNR2BTNM3FKPBLG38913BL8IDMCO2H0A1LIB81960.zkey");
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Using zonekey file `%s' \n", hostkey_file);
-  privkey = GNUNET_CRYPTO_ecdsa_key_create_from_file(hostkey_file);
-  GNUNET_free (hostkey_file);
+  privkey = GNUNET_CRYPTO_ecdsa_key_create ();
   GNUNET_assert (privkey != NULL);
-
-  GNUNET_asprintf(&hostkey_file,"zonefiles%s%s",DIR_SEPARATOR_STR,
-      "HGU0A0VCU334DN7F2I9UIUMVQMM7JMSD142LIMNUGTTV9R0CF4EG.zkey");
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Using zonekey file `%s' \n", hostkey_file);
-  privkey2 = GNUNET_CRYPTO_ecdsa_key_create_from_file(hostkey_file);
-  GNUNET_free (hostkey_file);
+  privkey2 = GNUNET_CRYPTO_ecdsa_key_create ();
   GNUNET_assert (privkey2 != NULL);
 
-  nsqe = GNUNET_NAMESTORE_set_nick (nsh, privkey, ZONE_NICK_1, &nick_1_cont, &privkey);
+  nsqe = GNUNET_NAMESTORE_set_nick (nsh,
+                                    privkey,
+                                    ZONE_NICK_1,
+                                    &nick_1_cont,
+                                    &privkey);
   if (NULL == nsqe)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -455,15 +451,9 @@ run (void *cls,
      const struct GNUNET_CONFIGURATION_Handle *cfg,
      struct GNUNET_TESTING_Peer *peer)
 {
-  directory = NULL;
-  GNUNET_assert (GNUNET_OK ==
-                 GNUNET_CONFIGURATION_get_value_string (cfg,
-                                                        "PATHS",
-                                                        "GNUNET_TEST_HOME",
-                                                        &directory));
-  GNUNET_DISK_directory_remove (directory);
-
-  endbadly_task = GNUNET_SCHEDULER_add_delayed(TIMEOUT, &endbadly, NULL);
+  endbadly_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT,
+                                                &endbadly,
+                                                NULL);
   nsh = GNUNET_NAMESTORE_connect (cfg);
   GNUNET_break (NULL != nsh);
 
@@ -498,6 +488,8 @@ main (int argc, char *argv[])
                    "test_namestore_api_%s.conf",
                    plugin_name);
   res = 1;
+  GNUNET_DISK_purge_cfg_dir (cfg_name,
+                             "GNUNET_TEST_HOME");
   if (0 !=
       GNUNET_TESTING_peer_run ("test-namestore-api-zone-iteration-nick",
                                cfg_name,
@@ -506,12 +498,9 @@ main (int argc, char *argv[])
   {
     res = 1;
   }
+  GNUNET_DISK_purge_cfg_dir (cfg_name,
+                             "GNUNET_TEST_HOME");
   GNUNET_free (cfg_name);
-  if (NULL != directory)
-  {
-      GNUNET_DISK_directory_remove (directory);
-      GNUNET_free (directory);
-  }
   return res;
 }
 

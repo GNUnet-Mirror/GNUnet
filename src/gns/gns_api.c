@@ -157,7 +157,7 @@ check_result (void *cls,
   size_t mlen = ntohs (lookup_msg->header.size) - sizeof (*lookup_msg);
   uint32_t rd_count = ntohl (lookup_msg->rd_count);
   struct GNUNET_GNSRECORD_Data rd[rd_count];
-  
+
   (void) cls;
   if (GNUNET_SYSERR ==
       GNUNET_GNSRECORD_records_deserialize (mlen,
@@ -201,7 +201,7 @@ handle_result (void *cls,
     return;
   proc = lr->lookup_proc;
   proc_cls = lr->proc_cls;
-  
+
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_GNSRECORD_records_deserialize (mlen,
                                                        (const char*) &lookup_msg[1],

@@ -114,10 +114,9 @@ init ()
 void __attribute__ ((destructor))
 GNSRECORD_fini ()
 {
-  unsigned int i;
   struct Plugin *plugin;
 
-  for (i = 0; i < num_plugins; i++)
+  for (unsigned int i = 0; i < num_plugins; i++)
   {
     plugin = gns_plugins[i];
     GNUNET_break (NULL ==
@@ -146,12 +145,11 @@ GNUNET_GNSRECORD_value_to_string (uint32_t type,
 				  const void *data,
 				  size_t data_size)
 {
-  unsigned int i;
   struct Plugin *plugin;
   char *ret;
 
   init ();
-  for (i = 0; i < num_plugins; i++)
+  for (unsigned int i = 0; i < num_plugins; i++)
   {
     plugin = gns_plugins[i];
     if (NULL != (ret = plugin->api->value_to_string (plugin->api->cls,
@@ -180,11 +178,10 @@ GNUNET_GNSRECORD_string_to_value (uint32_t type,
 				  void **data,
 				  size_t *data_size)
 {
-  unsigned int i;
   struct Plugin *plugin;
 
   init ();
-  for (i = 0; i < num_plugins; i++)
+  for (unsigned int i = 0; i < num_plugins; i++)
   {
     plugin = gns_plugins[i];
     if (GNUNET_OK == plugin->api->string_to_value (plugin->api->cls,
@@ -207,7 +204,6 @@ GNUNET_GNSRECORD_string_to_value (uint32_t type,
 uint32_t
 GNUNET_GNSRECORD_typename_to_number (const char *dns_typename)
 {
-  unsigned int i;
   struct Plugin *plugin;
   uint32_t ret;
 
@@ -215,7 +211,7 @@ GNUNET_GNSRECORD_typename_to_number (const char *dns_typename)
                        "ANY"))
     return GNUNET_GNSRECORD_TYPE_ANY;
   init ();
-  for (i = 0; i < num_plugins; i++)
+  for (unsigned int i = 0; i < num_plugins; i++)
   {
     plugin = gns_plugins[i];
     if (UINT32_MAX != (ret = plugin->api->typename_to_number (plugin->api->cls,
@@ -235,14 +231,13 @@ GNUNET_GNSRECORD_typename_to_number (const char *dns_typename)
 const char *
 GNUNET_GNSRECORD_number_to_typename (uint32_t type)
 {
-  unsigned int i;
   struct Plugin *plugin;
   const char * ret;
 
   if (GNUNET_GNSRECORD_TYPE_ANY == type)
     return "ANY";
   init ();
-  for (i = 0; i < num_plugins; i++)
+  for (unsigned int i = 0; i < num_plugins; i++)
   {
     plugin = gns_plugins[i];
     if (NULL != (ret = plugin->api->number_to_typename (plugin->api->cls,

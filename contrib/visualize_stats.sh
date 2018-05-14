@@ -34,7 +34,7 @@ case "$1" in
 	NOW=`date +%s`
 	RELAT=$[$NOW-$STARTTIME]
 	gnunet-statistics | while read KEY VALUE; do
-		
+		KEY=`echo $KEY | tr / .`
 		# Collect stats of previous round
 		if [ -e "$STATDIR/$KEY.dat" ]; then
 			PREV=`tail --lines=1 "$STATDIR/$KEY.dat" | sed -e "s/.* //g"`

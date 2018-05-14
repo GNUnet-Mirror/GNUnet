@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     Copyright (C) 2012, 2013 GNUnet e.V.
+     Copyright (C) 2012, 2013, 2018 GNUnet e.V.
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -21,6 +21,7 @@
  * @file namestore/test_namestore_api_store_update.c
  * @brief testcase for namestore_api.c: store a record, update it and perform a lookup
  * @author Matthias Wachs
+ * @author Christian Grothoff
  */
 #include "platform.h"
 #include "gnunet_namecache_service.h"
@@ -32,7 +33,6 @@
 #define TEST_RECORD_DATALEN 123
 
 #define TEST_RECORD_DATA 'a'
-
 
 #define TEST_RECORD_TYPE2 4321
 
@@ -63,11 +63,40 @@ static struct GNUNET_NAMECACHE_QueueEntry *ncqe;
 
 static const char *name = "dummy";
 
-static char *directory;
+
+/**
+ * Terminate test with error.
+ *
+ * @param cls handle to use to re-connect.
+ */
+static void
+endbadly (void *cls)
+{
+  GNUNET_break (0);
+  endbadly_task = NULL;
+  GNUNET_SCHEDULER_shutdown ();
+  res = 1;
+}
+
 
 static void
-cleanup ()
+end (void *cls)
 {
+  if (NULL != endbadly_task)
+  {
+    GNUNET_SCHEDULER_cancel (endbadly_task);
+    endbadly_task = NULL;
+  }
+  if (NULL != nsqe)
+  {
+    GNUNET_NAMESTORE_cancel (nsqe);
+    nsqe = NULL;
+  }
+  if (NULL != ncqe)
+  {
+    GNUNET_NAMECACHE_cancel (ncqe);
+    ncqe = NULL;
+  }
   if (NULL != nsh)
   {
     GNUNET_NAMESTORE_disconnect (nsh);
@@ -83,43 +112,13 @@ cleanup ()
     GNUNET_free (privkey);
     privkey = NULL;
   }
-  GNUNET_SCHEDULER_shutdown ();
-}
-
-
-/**
- * Re-establish the connection to the service.
- *
- * @param cls handle to use to re-connect.
- */
-static void
-endbadly (void *cls)
-{
-  if (NULL != nsqe)
-  {
-    GNUNET_NAMESTORE_cancel (nsqe);
-    nsqe = NULL;
-  }
-  if (NULL != ncqe)
-  {
-    GNUNET_NAMECACHE_cancel (ncqe);
-    ncqe = NULL;
-  }
-  cleanup ();
-  res = 1;
 }
 
 
 static void
-end (void *cls)
-{
-  cleanup ();
-  res = 0;
-}
-
-
-static void
-put_cont (void *cls, int32_t success, const char *emsg);
+put_cont (void *cls,
+          int32_t success,
+          const char *emsg);
 
 
 static void
@@ -135,11 +134,15 @@ rd_decrypt_cb (void *cls,
   if (GNUNET_NO == update_performed)
   {
     char rd_cmp_data[TEST_RECORD_DATALEN];
-    memset (rd_cmp_data, TEST_RECORD_DATA, TEST_RECORD_DATALEN);
 
+    memset (rd_cmp_data,
+            TEST_RECORD_DATA,
+            TEST_RECORD_DATALEN);
     GNUNET_assert (TEST_RECORD_TYPE == rd[0].record_type);
     GNUNET_assert (TEST_RECORD_DATALEN == rd[0].data_size);
-    GNUNET_assert (0 == memcmp (&rd_cmp_data, rd[0].data, TEST_RECORD_DATALEN));
+    GNUNET_assert (0 == memcmp (&rd_cmp_data,
+                                rd[0].data,
+                                TEST_RECORD_DATALEN));
 
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Block was decrypted successfully, updating record \n");
@@ -149,24 +152,33 @@ rd_decrypt_cb (void *cls,
     rd_new.record_type = TEST_RECORD_TYPE2;
     rd_new.data_size = TEST_RECORD_DATALEN2;
     rd_new.data = GNUNET_malloc (TEST_RECORD_DATALEN2);
-    memset ((char *) rd_new.data, TEST_RECORD_DATA2, TEST_RECORD_DATALEN2);
+    memset ((char *) rd_new.data,
+            TEST_RECORD_DATA2,
+            TEST_RECORD_DATALEN2);
 
-    nsqe = GNUNET_NAMESTORE_records_store (nsh, privkey, name,
-                                           1, &rd_new, &put_cont, (void *) name);
+    nsqe = GNUNET_NAMESTORE_records_store (nsh,
+                                           privkey,
+                                           name,
+                                           1,
+                                           &rd_new,
+                                           &put_cont,
+                                           (void *) name);
     update_performed = GNUNET_YES;
   }
   else
   {
     char rd_cmp_data[TEST_RECORD_DATALEN2];
-    memset (rd_cmp_data, TEST_RECORD_DATA2, TEST_RECORD_DATALEN2);
 
+    memset (rd_cmp_data,
+            TEST_RECORD_DATA2,
+            TEST_RECORD_DATALEN2);
     GNUNET_assert (TEST_RECORD_TYPE2 == rd[0].record_type);
     GNUNET_assert (TEST_RECORD_DATALEN2 == rd[0].data_size);
-    GNUNET_assert (0 == memcmp (&rd_cmp_data, rd[0].data, TEST_RECORD_DATALEN2));
-
-    GNUNET_SCHEDULER_cancel (endbadly_task);
-    endbadly_task = NULL;
-    GNUNET_SCHEDULER_add_now (&end, NULL);
+    GNUNET_assert (0 == memcmp (&rd_cmp_data,
+                                rd[0].data,
+                                TEST_RECORD_DATALEN2));
+    GNUNET_SCHEDULER_shutdown ();
+    res = 0;
   }
 }
 
@@ -184,21 +196,25 @@ name_lookup_proc (void *cls,
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 _("Namecache returned no block for `%s'\n"),
                 name);
-    if (endbadly_task != NULL)
-      GNUNET_SCHEDULER_cancel (endbadly_task);
-    endbadly_task =  GNUNET_SCHEDULER_add_now (&endbadly, NULL);
+    GNUNET_SCHEDULER_shutdown ();
     return;
   }
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Namecache returned block, decrypting \n");
-  GNUNET_assert (GNUNET_OK == GNUNET_GNSRECORD_block_decrypt(block,
-  		&pubkey, name, &rd_decrypt_cb, (void *) name));
+  GNUNET_assert (GNUNET_OK ==
+                 GNUNET_GNSRECORD_block_decrypt (block,
+                                                 &pubkey,
+                                                 name,
+                                                 &rd_decrypt_cb,
+                                                 (void *) name));
 }
 
 
 static void
-put_cont (void *cls, int32_t success, const char *emsg)
+put_cont (void *cls,
+          int32_t success,
+          const char *emsg)
 {
   const char *name = cls;
   struct GNUNET_HashCode derived_hash;
@@ -216,7 +232,8 @@ put_cont (void *cls, int32_t success, const char *emsg)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Looking in namecache for `%s'\n",
               GNUNET_h2s (&derived_hash));
-  ncqe = GNUNET_NAMECACHE_lookup_block (nch, &derived_hash,
+  ncqe = GNUNET_NAMECACHE_lookup_block (nch,
+                                        &derived_hash,
                                         &name_lookup_proc, (void *) name);
 }
 
@@ -227,41 +244,37 @@ run (void *cls,
      struct GNUNET_TESTING_Peer *peer)
 {
   struct GNUNET_GNSRECORD_Data rd;
-  char *hostkey_file;
-
-  directory = NULL;
-  GNUNET_assert (GNUNET_OK ==
-                 GNUNET_CONFIGURATION_get_value_string(cfg, "PATHS", "GNUNET_TEST_HOME", &directory));
-  GNUNET_DISK_directory_remove (directory);
 
   update_performed = GNUNET_NO;
+  GNUNET_SCHEDULER_add_shutdown (&end,
+                                 NULL);
   endbadly_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT,
-						&endbadly, NULL);
-  GNUNET_asprintf (&hostkey_file,
-		   "zonefiles%s%s",
-		   DIR_SEPARATOR_STR,
-		   "N0UJMP015AFUNR2BTNM3FKPBLG38913BL8IDMCO2H0A1LIB81960.zkey");
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Using zonekey file `%s' \n", hostkey_file);
-  privkey = GNUNET_CRYPTO_ecdsa_key_create_from_file (hostkey_file);
-  GNUNET_free (hostkey_file);
+						&endbadly,
+                                                NULL);
+  privkey = GNUNET_CRYPTO_ecdsa_key_create ();
   GNUNET_assert (privkey != NULL);
-  GNUNET_CRYPTO_ecdsa_key_get_public (privkey, &pubkey);
-
+  GNUNET_CRYPTO_ecdsa_key_get_public (privkey,
+                                      &pubkey);
   rd.flags = GNUNET_GNSRECORD_RF_NONE;
   rd.expiration_time = GNUNET_TIME_absolute_get().abs_value_us + 1000000000;
   rd.record_type = TEST_RECORD_TYPE;
   rd.data_size = TEST_RECORD_DATALEN;
   rd.data = GNUNET_malloc (TEST_RECORD_DATALEN);
-  memset ((char *) rd.data, TEST_RECORD_DATA, TEST_RECORD_DATALEN);
+  memset ((char *) rd.data,
+          TEST_RECORD_DATA,
+          TEST_RECORD_DATALEN);
 
   nsh = GNUNET_NAMESTORE_connect (cfg);
   GNUNET_break (NULL != nsh);
   nch = GNUNET_NAMECACHE_connect (cfg);
   GNUNET_break (NULL != nch);
   nsqe = GNUNET_NAMESTORE_records_store (nsh,
-                                         privkey, name,
-                                         1, &rd,
-                                         &put_cont, (void *) name);
+                                         privkey,
+                                         name,
+                                         1,
+                                         &rd,
+                                         &put_cont,
+                                         (void *) name);
   if (NULL == nsqe)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -272,7 +285,8 @@ run (void *cls,
 
 
 int
-main (int argc, char *argv[])
+main (int argc,
+      char *argv[])
 {
   const char *plugin_name;
   char *cfg_name;
@@ -282,6 +296,8 @@ main (int argc, char *argv[])
                    "test_namestore_api_%s.conf",
                    plugin_name);
   res = 1;
+  GNUNET_DISK_purge_cfg_dir (cfg_name,
+                             "GNUNET_TEST_HOME");
   if (0 !=
       GNUNET_TESTING_peer_run ("test-namestore-api-store-update",
                                cfg_name,
@@ -290,14 +306,11 @@ main (int argc, char *argv[])
   {
     res = 1;
   }
+  GNUNET_DISK_purge_cfg_dir (cfg_name,
+                             "GNUNET_TEST_HOME");
   GNUNET_free (cfg_name);
-  if (NULL != directory)
-  {
-      GNUNET_DISK_directory_remove (directory);
-      GNUNET_free (directory);
-  }
   return res;
 }
 
 
-/* end of test_namestore_api_store_update.c*/
+/* end of test_namestore_api_store_update.c */

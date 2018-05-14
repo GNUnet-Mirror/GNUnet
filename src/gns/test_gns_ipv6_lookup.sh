@@ -24,7 +24,7 @@ RES_IP=`$DO_TIMEOUT gnunet-gns --raw -u www.$MY_EGO -t AAAA -c test_gns_lookup.c
 gnunet-namestore -z $MY_EGO -d -n www -t AAAA -V $TEST_IP -e never -c test_gns_lookup.conf
 gnunet-identity -D $MY_EGO -c test_gns_lookup.conf
 gnunet-arm -e -c test_gns_lookup.conf
-rm -rf /tmp/test-gnunet-gns-peer-1/
+rm -rf `gnunet-config -c test_gns_lookup.conf -f -s paths -o GNUNET_TEST_HOME`
 
 if [ "$RES_IP" == "$TEST_IP" ]
 then

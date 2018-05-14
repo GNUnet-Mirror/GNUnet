@@ -56,7 +56,6 @@ static struct GNUNET_GNSRECORD_Data *s_rd_3;
 
 struct GNUNET_NAMESTORE_QueueEntry * ns_ops[3];
 
-static char *directory;
 
 static void
 do_shutdown ()
@@ -66,7 +65,6 @@ do_shutdown ()
     GNUNET_NAMESTORE_zone_monitor_stop (zm);
     zm = NULL;
   }
-
   if (NULL != ns_ops[0])
   {
   	GNUNET_NAMESTORE_cancel(ns_ops[0]);
@@ -82,13 +80,11 @@ do_shutdown ()
   	GNUNET_NAMESTORE_cancel(ns_ops[2]);
   	ns_ops[2] = NULL;
   }
-
   if (NULL != nsh)
   {
     GNUNET_NAMESTORE_disconnect (nsh);
     nsh = NULL;
   }
-
   GNUNET_free_non_null(s_name_1);
   GNUNET_free_non_null(s_name_2);
   GNUNET_free_non_null(s_name_3);
@@ -284,23 +280,8 @@ run (void *cls,
      const struct GNUNET_CONFIGURATION_Handle *cfg,
      struct GNUNET_TESTING_Peer *peer)
 {
-  char *hostkey_file;
-
   res = 1;
-
-  directory = NULL;
-  GNUNET_assert (GNUNET_OK ==
-                 GNUNET_CONFIGURATION_get_value_string(cfg, "PATHS", "GNUNET_TEST_HOME", &directory));
-  GNUNET_DISK_directory_remove (directory);
-
-  GNUNET_asprintf(&hostkey_file,
-		  "zonefiles%s%s",
-		  DIR_SEPARATOR_STR,
-		  "N0UJMP015AFUNR2BTNM3FKPBLG38913BL8IDMCO2H0A1LIB81960.zkey");
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Using zonekey file `%s' \n", hostkey_file);
-  privkey = GNUNET_CRYPTO_ecdsa_key_create_from_file(hostkey_file);
-  GNUNET_free (hostkey_file);
+  privkey = GNUNET_CRYPTO_ecdsa_key_create ();
   GNUNET_assert (privkey != NULL);
 
   /* Start monitoring */
@@ -333,16 +314,12 @@ run (void *cls,
     return;
   }
 
-  GNUNET_asprintf(&hostkey_file,"zonefiles%s%s",
-		  DIR_SEPARATOR_STR,
-		  "HGU0A0VCU334DN7F2I9UIUMVQMM7JMSD142LIMNUGTTV9R0CF4EG.zkey");
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Using zonekey file `%s' \n", hostkey_file);
-  privkey2 = GNUNET_CRYPTO_ecdsa_key_create_from_file(hostkey_file);
-  GNUNET_free (hostkey_file);
+  privkey2 = GNUNET_CRYPTO_ecdsa_key_create ();
   GNUNET_assert (privkey2 != NULL);
 
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Created record 3\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Created record 3\n");
   /* name in different zone */
   GNUNET_asprintf(&s_name_3, "dummy3");
   s_rd_3 = create_record(1);
@@ -358,22 +335,33 @@ run (void *cls,
 	      "Created record 1\n");
   GNUNET_asprintf(&s_name_1, "dummy1");
   s_rd_1 = create_record(1);
-  GNUNET_assert (NULL != (ns_ops[0] = GNUNET_NAMESTORE_records_store(nsh, privkey, s_name_1,
-  		1, s_rd_1, &put_cont, s_name_1)));
+  GNUNET_assert (NULL != (ns_ops[0] =
+                          GNUNET_NAMESTORE_records_store (nsh,
+                                                          privkey,
+                                                          s_name_1,
+                                                          1,
+                                                          s_rd_1,
+                                                          &put_cont,
+                                                          s_name_1)));
 
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Created record 2 \n");
   GNUNET_asprintf(&s_name_2, "dummy2");
   s_rd_2 = create_record(1);
-  GNUNET_assert (NULL != (ns_ops[1] = GNUNET_NAMESTORE_records_store(nsh, privkey, s_name_2,
-  		1, s_rd_2, &put_cont, s_name_2)));
-
-
+  GNUNET_assert (NULL != (ns_ops[1] =
+                          GNUNET_NAMESTORE_records_store (nsh,
+                                                          privkey,
+                                                          s_name_2,
+                                                          1,
+                                                          s_rd_2,
+                                                          &put_cont,
+                                                          s_name_2)));
 }
 
 
 int
-main (int argc, char *argv[])
+main (int argc,
+      char *argv[])
 {
   const char *plugin_name;
   char *cfg_name;
@@ -382,6 +370,8 @@ main (int argc, char *argv[])
   GNUNET_asprintf (&cfg_name,
                    "test_namestore_api_%s.conf",
                    plugin_name);
+  GNUNET_DISK_purge_cfg_dir (cfg_name,
+                             "GNUNET_TEST_HOME");
   res = 1;
   if (0 !=
       GNUNET_TESTING_peer_run ("test-namestore-api-monitoring",
@@ -391,12 +381,9 @@ main (int argc, char *argv[])
   {
     res = 1;
   }
+  GNUNET_DISK_purge_cfg_dir (cfg_name,
+                             "GNUNET_TEST_HOME");
   GNUNET_free (cfg_name);
-  if (NULL != directory)
-  {
-      GNUNET_DISK_directory_remove (directory);
-      GNUNET_free (directory);
-  }
   return res;
 }
 

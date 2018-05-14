@@ -14,7 +14,7 @@ then
 	exit 77
 fi
 
-rm -rf /tmp/test-gnunet-gns-peer-1/
+rm -rf `gnunet-config -c test_gns_lookup.conf -f -s paths -o GNUNET_TEST_HOME`
 MY_EGO="myego"
 OTHER_EGO="delegatedego"
 TEST_IP="127.0.0.1"
@@ -31,7 +31,7 @@ RES_IP_REV=`$DO_TIMEOUT gnunet-gns --raw -u www.b.$MY_EGO -t A -c test_gns_looku
 gnunet-namestore -z $MY_EGO -d -n b -t PKEY -V $DELEGATED_PKEY  -e never -c test_gns_lookup.conf
 gnunet-namestore -z $OTHER_EGO -d -n www -t A -V $TEST_IP  -e never -c test_gns_lookup.conf
 gnunet-arm -e -c test_gns_lookup.conf
-rm -rf /tmp/test-gnunet-gns-peer-1/
+rm -rf `gnunet-config -c test_gns_lookup.conf -f -s paths -o GNUNET_TEST_HOME`
 
 if [ "$RES_IP" != "$TEST_IP" ]
 then

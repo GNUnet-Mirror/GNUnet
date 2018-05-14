@@ -54,7 +54,7 @@ create_record (int count)
 {
   struct GNUNET_GNSRECORD_Data *rd;
 
-  rd = GNUNET_malloc (count * sizeof (struct GNUNET_GNSRECORD_Data));
+  rd = GNUNET_new_array (count, struct GNUNET_GNSRECORD_Data);
   for (unsigned int c = 0; c < count; c++)
   {
     rd[c].expiration_time = GNUNET_TIME_absolute_get().abs_value_us + 1000000000;
@@ -103,11 +103,10 @@ run (void *cls,
   struct GNUNET_CRYPTO_EcdsaPublicKey pubkey;
   struct GNUNET_HashCode query_pub;
   struct GNUNET_HashCode query_priv;
+  struct GNUNET_TIME_Absolute expire = GNUNET_TIME_absolute_get();
 
   privkey = GNUNET_CRYPTO_ecdsa_key_create ();
   GNUNET_assert (NULL != privkey);
-  struct GNUNET_TIME_Absolute expire = GNUNET_TIME_absolute_get();
-
   /* get public key */
   GNUNET_CRYPTO_ecdsa_key_get_public (privkey,
                                       &pubkey);
@@ -142,6 +141,7 @@ run (void *cls,
                                                  &rd_decrypt_cb,
                                                  s_name));
   GNUNET_free (block);
+  GNUNET_free (privkey);
 }
 
 

@@ -80,6 +80,11 @@ static struct GNUNET_NAMESTORE_QueueEntry *add_qe_uri;
 static struct GNUNET_NAMESTORE_QueueEntry *add_qe;
 
 /**
+ * Queue entry for the 'lookup' operation.
+ */
+static struct GNUNET_NAMESTORE_QueueEntry *get_qe;
+
+/**
  * Queue entry for the 'reverse lookup' operation (in combination with a name).
  */
 static struct GNUNET_NAMESTORE_QueueEntry *reverse_qe;
@@ -234,6 +239,11 @@ do_shutdown (void *cls)
     GNUNET_NAMESTORE_cancel (add_qe_uri);
     add_qe_uri = NULL;
   }
+  if (NULL != get_qe)
+  {
+    GNUNET_NAMESTORE_cancel (get_qe);
+    get_qe = NULL;
+  }
   if (NULL != del_qe)
   {
     GNUNET_NAMESTORE_cancel (del_qe);
@@ -271,6 +281,7 @@ test_finished ()
 {
   if ( (NULL == add_qe) &&
        (NULL == add_qe_uri) &&
+       (NULL == get_qe) &&
        (NULL == del_qe) &&
        (NULL == reverse_qe) &&
        (NULL == list_it) )
@@ -492,6 +503,30 @@ display_record_monitor (void *cls,
 
 
 /**
+ * Process a record that was stored in the namestore.
+ *
+ * @param cls closure
+ * @param zone_key private key of the zone
+ * @param rname name that is being mapped (at most 255 characters long)
+ * @param rd_len number of entries in @a rd array
+ * @param rd array of records with data to store
+ */
+static void
+display_record_lookup (void *cls,
+                       const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone_key,
+                       const char *rname,
+                       unsigned int rd_len,
+                       const struct GNUNET_GNSRECORD_Data *rd)
+{
+  get_qe = NULL;
+  display_record (rname,
+                  rd_len,
+                  rd);
+  test_finished ();
+}
+
+
+/**
  * Function called once we are in sync in monitor mode.
  *
  * @param cls NULL
@@ -522,10 +557,27 @@ monitor_error_cb (void *cls)
 
 
 /**
- * Function called if lookup fails.
+ * Function called on errors while monitoring.
+ *
+ * @param cls NULL
  */
 static void
 lookup_error_cb (void *cls)
+{
+  (void) cls;
+  get_qe = NULL;
+  FPRINTF (stderr,
+	   "%s",
+	   "Failed to lookup record.\n");
+  test_finished ();
+}
+
+
+/**
+ * Function called if lookup fails.
+ */
+static void
+add_error_cb (void *cls)
 {
   (void) cls;
   add_qe = NULL;
@@ -970,7 +1022,7 @@ identity_cb (void *cls,
     add_qe = GNUNET_NAMESTORE_records_lookup (ns,
                                               &zone_pkey,
                                               name,
-                                              &lookup_error_cb,
+                                              &add_error_cb,
                                               NULL,
                                               &get_existing_record,
                                               NULL);
@@ -996,14 +1048,23 @@ identity_cb (void *cls,
   }
   if (list)
   {
-    list_it = GNUNET_NAMESTORE_zone_iteration_start (ns,
-                                                     &zone_pkey,
-                                                     &zone_iteration_error_cb,
-                                                     NULL,
-                                                     &display_record_iterator,
-                                                     NULL,
-                                                     &zone_iteration_finished,
-                                                     NULL);
+    if (NULL != name)
+      get_qe = GNUNET_NAMESTORE_records_lookup (ns,
+                                                &zone_pkey,
+                                                name,
+                                                &lookup_error_cb,
+                                                NULL,
+                                                &display_record_lookup,
+                                                NULL);
+    else
+      list_it = GNUNET_NAMESTORE_zone_iteration_start (ns,
+                                                       &zone_pkey,
+                                                       &zone_iteration_error_cb,
+                                                       NULL,
+                                                       &display_record_iterator,
+                                                       NULL,
+                                                       &zone_iteration_finished,
+                                                       NULL);
   }
   if (NULL != reverse_pkey)
   {

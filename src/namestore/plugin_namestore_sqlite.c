@@ -106,72 +106,6 @@ struct Plugin
 
 
 /**
- * @brief Prepare a SQL statement
- *
- * @param dbh handle to the database
- * @param zSql SQL statement, UTF-8 encoded
- * @param ppStmt set to the prepared statement
- * @return 0 on success
- */
-static int
-sq_prepare (sqlite3 *dbh,
-            const char *zSql,
-            sqlite3_stmt **ppStmt)
-{
-  char *dummy;
-  int result;
-
-  result =
-      sqlite3_prepare_v2 (dbh,
-                          zSql,
-                          strlen (zSql),
-                          ppStmt,
-                          (const char **) &dummy);
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Prepared `%s' / %p: %d\n",
-       zSql,
-       *ppStmt,
-       result);
-  return result;
-}
-
-
-/**
- * Create our database indices.
- *
- * @param dbh handle to the database
- */
-static void
-create_indices (sqlite3 * dbh)
-{
-  /* create indices */
-  if ( (SQLITE_OK !=
-	sqlite3_exec (dbh,
-                      "CREATE INDEX IF NOT EXISTS ir_pkey_reverse "
-		      "ON ns098records (zone_private_key,pkey)",
-		      NULL, NULL, NULL)) ||
-       (SQLITE_OK !=
-	sqlite3_exec (dbh,
-                      "CREATE INDEX IF NOT EXISTS ir_pkey_iter "
-		      "ON ns098records (zone_private_key,uid)",
-		      NULL, NULL, NULL)) )
-    LOG (GNUNET_ERROR_TYPE_ERROR,
-	 "Failed to create indices: %s\n",
-         sqlite3_errmsg (dbh));
-}
-
-
-#if 0
-#define CHECK(a) GNUNET_break(a)
-#define ENULL NULL
-#else
-#define ENULL &e
-#define ENULL_DEFINED 1
-#define CHECK(a) if (! (a)) { GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "%s\n", e); sqlite3_free(e); }
-#endif
-
-
-/**
  * Initialize the database connections and associated
  * data structures (create tables and indices
  * as needed as well).
@@ -182,17 +116,66 @@ create_indices (sqlite3 * dbh)
 static int
 database_setup (struct Plugin *plugin)
 {
-  sqlite3_stmt *stmt;
-  char *afsdir;
-#if ENULL_DEFINED
-  char *e;
-#endif
+  char *sqlite_filename;
+  struct GNUNET_SQ_ExecuteStatement es[] = {
+    GNUNET_SQ_make_try_execute ("PRAGMA temp_store=MEMORY"),
+    GNUNET_SQ_make_try_execute ("PRAGMA synchronous=NORMAL"),
+    GNUNET_SQ_make_try_execute ("PRAGMA legacy_file_format=OFF"),
+    GNUNET_SQ_make_try_execute ("PRAGMA auto_vacuum=INCREMENTAL"),
+    GNUNET_SQ_make_try_execute ("PRAGMA encoding=\"UTF-8\""),
+    GNUNET_SQ_make_try_execute ("PRAGMA locking_mode=EXCLUSIVE"),
+    GNUNET_SQ_make_try_execute ("PRAGMA page_size=4092"),
+    GNUNET_SQ_make_execute ("CREATE TABLE IF NOT EXISTS ns098records ("
+                            " uid INTEGER PRIMARY KEY,"
+                            " zone_private_key BLOB NOT NULL,"
+                            " pkey BLOB,"
+                            " rvalue INT8 NOT NULL,"
+                            " record_count INT NOT NULL,"
+                            " record_data BLOB NOT NULL,"
+                            " label TEXT NOT NULL"
+                            ")"),
+    GNUNET_SQ_make_try_execute ("CREATE INDEX IF NOT EXISTS ir_pkey_reverse "
+                                "ON ns098records (zone_private_key,pkey)"),
+    GNUNET_SQ_make_try_execute ("CREATE INDEX IF NOT EXISTS ir_pkey_iter "
+                                "ON ns098records (zone_private_key,uid)"),
+    GNUNET_SQ_EXECUTE_STATEMENT_END
+  };
+  struct GNUNET_SQ_PrepareStatement ps[] = {
+    GNUNET_SQ_make_prepare ("INSERT INTO ns098records "
+                            "(zone_private_key,pkey,rvalue,record_count,record_data,label)"
+                            " VALUES (?, ?, ?, ?, ?, ?)",
+                            &plugin->store_records),
+    GNUNET_SQ_make_prepare ("DELETE FROM ns098records "
+                            "WHERE zone_private_key=? AND label=?",
+                            &plugin->delete_records),
+    GNUNET_SQ_make_prepare ("SELECT uid,record_count,record_data,label"
+                            " FROM ns098records"
+                            " WHERE zone_private_key=? AND pkey=?",
+                            &plugin->zone_to_name),
+    GNUNET_SQ_make_prepare ("SELECT uid,record_count,record_data,label"
+                            " FROM ns098records"
+                            " WHERE zone_private_key=? AND _rowid_ >= ?"
+                            " ORDER BY _rowid_ ASC"
+                            " LIMIT ?",
+                            &plugin->iterate_zone),
+    GNUNET_SQ_make_prepare ("SELECT uid,record_count,record_data,label,zone_private_key"
+                            " FROM ns098records"
+                            " WHERE _rowid_ >= ?"
+                            " ORDER BY _rowid_ ASC"
+                            " LIMIT ?",
+                            &plugin->iterate_all_zones),
+    GNUNET_SQ_make_prepare ("SELECT uid,record_count,record_data,label,zone_private_key"
+                            " FROM ns098records"
+                            " WHERE zone_private_key=? AND label=?",
+                            &plugin->lookup_label),
+    GNUNET_SQ_PREPARE_END
+  };
 
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_filename (plugin->cfg,
                                                "namestore-sqlite",
                                                "FILENAME",
-                                               &afsdir))
+                                               &sqlite_filename))
   {
     GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR,
 			       "namestore-sqlite",
@@ -200,132 +183,51 @@ database_setup (struct Plugin *plugin)
     return GNUNET_SYSERR;
   }
   if (GNUNET_OK !=
-      GNUNET_DISK_file_test (afsdir))
+      GNUNET_DISK_file_test (sqlite_filename))
   {
     if (GNUNET_OK !=
-        GNUNET_DISK_directory_create_for_file (afsdir))
+        GNUNET_DISK_directory_create_for_file (sqlite_filename))
     {
       GNUNET_break (0);
-      GNUNET_free (afsdir);
+      GNUNET_free (sqlite_filename);
       return GNUNET_SYSERR;
     }
   }
-  /* afsdir should be UTF-8-encoded. If it isn't, it's a bug */
-  plugin->fn = afsdir;
+  /* sqlite_filename should be UTF-8-encoded. If it isn't, it's a bug */
+  plugin->fn = sqlite_filename;
 
   /* Open database and precompile statements */
-  if (sqlite3_open (plugin->fn, &plugin->dbh) != SQLITE_OK)
+  if (SQLITE_OK !=
+      sqlite3_open (plugin->fn,
+                    &plugin->dbh))
   {
     LOG (GNUNET_ERROR_TYPE_ERROR,
 	 _("Unable to initialize SQLite: %s.\n"),
 	 sqlite3_errmsg (plugin->dbh));
     return GNUNET_SYSERR;
   }
-  CHECK (SQLITE_OK ==
-         sqlite3_exec (plugin->dbh,
-                       "PRAGMA temp_store=MEMORY", NULL, NULL,
-                       ENULL));
-  CHECK (SQLITE_OK ==
-         sqlite3_exec (plugin->dbh,
-                       "PRAGMA synchronous=NORMAL", NULL, NULL,
-                       ENULL));
-  CHECK (SQLITE_OK ==
-         sqlite3_exec (plugin->dbh,
-                       "PRAGMA legacy_file_format=OFF", NULL, NULL,
-                       ENULL));
-  CHECK (SQLITE_OK ==
-         sqlite3_exec (plugin->dbh,
-                       "PRAGMA auto_vacuum=INCREMENTAL", NULL,
-                       NULL, ENULL));
-  CHECK (SQLITE_OK ==
-         sqlite3_exec (plugin->dbh,
-                       "PRAGMA encoding=\"UTF-8\"", NULL,
-                       NULL, ENULL));
-  CHECK (SQLITE_OK ==
-         sqlite3_exec (plugin->dbh,
-                       "PRAGMA locking_mode=EXCLUSIVE", NULL, NULL,
-                       ENULL));
-  CHECK (SQLITE_OK ==
-         sqlite3_exec (plugin->dbh,
-                       "PRAGMA page_size=4092", NULL, NULL,
-                       ENULL));
-
-  CHECK (SQLITE_OK ==
-         sqlite3_busy_timeout (plugin->dbh,
-                               BUSY_TIMEOUT_MS));
-
-
-  /* Create table */
-  CHECK (SQLITE_OK ==
-         sq_prepare (plugin->dbh,
-                     "SELECT 1 FROM sqlite_master WHERE tbl_name = 'ns098records'",
-                     &stmt));
-  if ( (sqlite3_step (stmt) == SQLITE_DONE) &&
-       (SQLITE_OK !=
-	sqlite3_exec (plugin->dbh,
-		      "CREATE TABLE ns098records ("
-		      " uid INTEGER PRIMARY KEY,"
-		      " zone_private_key BLOB NOT NULL,"
-		      " pkey BLOB,"
-		      " rvalue INT8 NOT NULL,"
-		      " record_count INT NOT NULL,"
-		      " record_data BLOB NOT NULL,"
-		      " label TEXT NOT NULL"
-		      ")",
-		      NULL, NULL, NULL)) )
+  GNUNET_break (SQLITE_OK ==
+                sqlite3_busy_timeout (plugin->dbh,
+                                      BUSY_TIMEOUT_MS));
+  if (GNUNET_OK !=
+      GNUNET_SQ_exec_statements (plugin->dbh,
+                                 es))
   {
-    LOG_SQLITE (plugin,
-		GNUNET_ERROR_TYPE_ERROR,
-                "sqlite3_exec");
-    sqlite3_finalize (stmt);
+    GNUNET_break (0);
+    LOG (GNUNET_ERROR_TYPE_ERROR,
+	 _("Failed to setup database at `%s'\n"),
+	 plugin->fn);
     return GNUNET_SYSERR;
   }
-  sqlite3_finalize (stmt);
 
-  create_indices (plugin->dbh);
-
-  if ( (SQLITE_OK !=
-        sq_prepare (plugin->dbh,
-                    "INSERT INTO ns098records (zone_private_key, pkey, rvalue, record_count, record_data, label)"
-                    " VALUES (?, ?, ?, ?, ?, ?)",
-                    &plugin->store_records)) ||
-       (SQLITE_OK !=
-        sq_prepare (plugin->dbh,
-                    "DELETE FROM ns098records WHERE zone_private_key=? AND label=?",
-                    &plugin->delete_records)) ||
-       (SQLITE_OK !=
-        sq_prepare (plugin->dbh,
-                    "SELECT uid,record_count,record_data,label"
-                    " FROM ns098records"
-		    " WHERE zone_private_key=? AND pkey=?",
-                    &plugin->zone_to_name)) ||
-       (SQLITE_OK !=
-        sq_prepare (plugin->dbh,
-                    "SELECT uid,record_count,record_data,label"
-                    " FROM ns098records"
-		    " WHERE zone_private_key=? AND _rowid_ >= ?"
-                    " ORDER BY _rowid_ ASC"
-		    " LIMIT ?",
-                    &plugin->iterate_zone)) ||
-       (SQLITE_OK !=
-        sq_prepare (plugin->dbh,
-                    "SELECT uid,record_count,record_data,label,zone_private_key"
-                    " FROM ns098records"
-		    " WHERE _rowid_ >= ?"
-		    " ORDER BY _rowid_ ASC"
-		    " LIMIT ?",
-                    &plugin->iterate_all_zones))  ||
-       (SQLITE_OK !=
-        sq_prepare (plugin->dbh,
-                    "SELECT uid,record_count,record_data,label,zone_private_key"
-                    " FROM ns098records"
-		    " WHERE zone_private_key=? AND label=?",
-                    &plugin->lookup_label))
-       )
+  if (GNUNET_OK !=
+      GNUNET_SQ_prepare (plugin->dbh,
+                         ps))
   {
-    LOG_SQLITE (plugin,
-                GNUNET_ERROR_TYPE_ERROR,
-                "precompiling");
+    GNUNET_break (0);
+    LOG (GNUNET_ERROR_TYPE_ERROR,
+	 _("Failed to setup database at `%s'\n"),
+	 plugin->fn);
     return GNUNET_SYSERR;
   }
   return GNUNET_OK;

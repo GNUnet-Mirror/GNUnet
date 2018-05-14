@@ -13,7 +13,7 @@ then
 	exit 77
 fi
 
-rm -r rm -rf /tmp/test-gnunet-gns-peer-1/
+rm -rf `gnunet-config -c test_gns_lookup.conf -f -s paths -o GNUNET_TEST_HOME`
 # IP address of 'uk.gnunet.org'
 TEST_IP_ALT2="81.187.252.184"
 # IP address of 'www.gnunet.org'
@@ -72,7 +72,7 @@ gnunet-namestore -z $MY_EGO -d -n $TEST_RESOLVER_LABEL -t A -V $TEST_IP_GNS2DNS 
 gnunet-namestore -z $MY_EGO -d -n $TEST_RECORD_NAME -t GNS2DNS -V $TEST_RECORD_GNS2DNS -e never -c test_gns_lookup.conf
 gnunet-identity -D $MY_EGO -c test_gns_lookup.conf
 gnunet-arm -e -c test_gns_lookup.conf
-rm -rf /tmp/test-gnunet-gns-peer-1/
+rm -rf `gnunet-config -c test_gns_lookup.conf -f -s paths -o GNUNET_TEST_HOME`
 
 ret=0
 if [ "$RES_IP" == "$TEST_IP" ]

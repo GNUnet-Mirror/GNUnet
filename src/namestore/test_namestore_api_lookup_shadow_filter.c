@@ -66,7 +66,6 @@ static struct GNUNET_HashCode derived_hash;
 
 static struct GNUNET_CRYPTO_EcdsaPublicKey pubkey;
 
-static char *directory;
 
 static void
 cleanup ()
@@ -291,26 +290,16 @@ run (void *cls,
      const struct GNUNET_CONFIGURATION_Handle *cfg,
      struct GNUNET_TESTING_Peer *peer)
 {
-  char *hostkey_file;
-
-  directory = NULL;
-  GNUNET_assert (GNUNET_OK ==
-                 GNUNET_CONFIGURATION_get_value_string(cfg, "PATHS", "GNUNET_TEST_HOME", &directory));
-  GNUNET_DISK_directory_remove (directory);
-
   endbadly_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT,
-						&endbadly, NULL);
-  GNUNET_asprintf (&hostkey_file,
-		   "zonefiles%s%s",
-		   DIR_SEPARATOR_STR,
-		   "N0UJMP015AFUNR2BTNM3FKPBLG38913BL8IDMCO2H0A1LIB81960.zkey");
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Using zonekey file `%s' \n", hostkey_file);
-  privkey = GNUNET_CRYPTO_ecdsa_key_create_from_file (hostkey_file);
-  GNUNET_free (hostkey_file);
+						&endbadly,
+                                                NULL);
+  privkey = GNUNET_CRYPTO_ecdsa_key_create ();
   GNUNET_assert (privkey != NULL);
-  GNUNET_CRYPTO_ecdsa_key_get_public (privkey, &pubkey);
+  GNUNET_CRYPTO_ecdsa_key_get_public (privkey,
+                                      &pubkey);
 
-  record_expiration = GNUNET_TIME_absolute_add(GNUNET_TIME_absolute_get(), EXPIRATION);
+  record_expiration = GNUNET_TIME_absolute_add (GNUNET_TIME_absolute_get(),
+                                                EXPIRATION);
   records[0].expiration_time = record_expiration.abs_value_us;
   records[0].record_type = TEST_RECORD_TYPE;
   records[0].data_size = TEST_RECORD_DATALEN;
@@ -352,6 +341,8 @@ main (int argc, char *argv[])
   GNUNET_asprintf (&cfg_name,
                    "test_namestore_api_%s.conf",
                    plugin_name);
+  GNUNET_DISK_purge_cfg_dir (cfg_name,
+                             "GNUNET_TEST_HOME");
   res = 1;
   if (0 !=
       GNUNET_TESTING_peer_run ("test-namestore-api-lookup-shadow-filter",
@@ -362,11 +353,8 @@ main (int argc, char *argv[])
     res = 1;
   }
   GNUNET_free (cfg_name);
-  if (NULL != directory)
-  {
-      GNUNET_DISK_directory_remove (directory);
-      GNUNET_free (directory);
-  }
+  GNUNET_DISK_purge_cfg_dir (cfg_name,
+                             "GNUNET_TEST_HOME");
   return res;
 }
 

@@ -19,7 +19,8 @@ endif
 check_PROGRAMS = \
  test_gnsrecord_crypto \
  test_gnsrecord_serialization \
- test_gnsrecord_block_expiration
+ test_gnsrecord_block_expiration \
+ perf_gnsrecord_crypto
 
 if ENABLE_TEST_RUN
 AM_TESTS_ENVIRONMENT=export GNUNET_PREFIX=$${GNUNET_PREFIX:-@libdir@};export PATH=$${GNUNET_PREFIX:-@prefix@}/bin:$$PATH;unset XDG_DATA_HOME;unset XDG_CONFIG_HOME;
@@ -85,3 +86,10 @@ test_gnsrecord_crypto_LDADD = \
   libgnunetgnsrecord.la \
   $(top_builddir)/src/util/libgnunetutil.la
 
+
+perf_gnsrecord_crypto_SOURCES = \
+ perf_gnsrecord_crypto.c
+perf_gnsrecord_crypto_LDADD = \
+  $(top_builddir)/src/testing/libgnunettesting.la \
+  libgnunetgnsrecord.la \
+  $(top_builddir)/src/util/libgnunetutil.la

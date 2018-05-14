@@ -40,6 +40,11 @@
 
 #define LOG(kind,...) GNUNET_log_from (kind, "namestore-api",__VA_ARGS__)
 
+/**
+ * We grant the namestore up to 1 minute of latency, if it is slower than
+ * that, store queries will fail.
+ */
+#define NAMESTORE_DELAY_TOLERANCE GNUNET_TIME_UNIT_MINUTES
 
 /**
  * An QueueEntry used to store information for a pending
@@ -98,6 +103,11 @@ struct GNUNET_NAMESTORE_QueueEntry
    * sent.
    */
   struct GNUNET_MQ_Envelope *env;
+
+  /**
+   * Task scheduled to warn us if the namestore is way too slow.
+   */
+  struct GNUNET_SCHEDULER_Task *timeout_task;
 
   /**
    * The operation id this zone iteration operation has
@@ -300,6 +310,8 @@ free_qe (struct GNUNET_NAMESTORE_QueueEntry *qe)
                                qe);
   if (NULL != qe->env)
     GNUNET_MQ_discard (qe->env);
+  if (NULL != qe->timeout_task)
+    GNUNET_SCHEDULER_cancel (qe->timeout_task);
   GNUNET_free (qe);
 }
 
@@ -968,6 +980,33 @@ GNUNET_NAMESTORE_disconnect (struct GNUNET_NAMESTORE_Handle *h)
 
 
 /**
+ * Task launched to warn the user that the namestore is
+ * excessively slow and that a query was thus dropped.
+ *
+ * @param cls a `struct GNUNET_NAMESTORE_QueueEntry *`
+ */
+static void
+warn_delay (void *cls)
+{
+  struct GNUNET_NAMESTORE_QueueEntry *qe = cls;
+
+  qe->timeout_task = NULL;
+  LOG (GNUNET_ERROR_TYPE_WARNING,
+       "Did not receive response from namestore after %s!\n",
+       GNUNET_STRINGS_relative_time_to_string (NAMESTORE_DELAY_TOLERANCE,
+                                               GNUNET_YES));
+  if (NULL != qe->cont)
+  {
+    qe->cont (qe->cont_cls,
+              GNUNET_SYSERR,
+              "timeout");
+    qe->cont = NULL;
+  }
+  GNUNET_NAMESTORE_cancel (qe);
+}
+
+
+/**
  * Store an item in the namestore.  If the item is already present,
  * it is replaced with the new record.  Use an empty array to
  * remove all records under the given name.
@@ -1048,12 +1087,20 @@ GNUNET_NAMESTORE_records_store (struct GNUNET_NAMESTORE_Handle *h,
        "Sending NAMESTORE_RECORD_STORE message for name `%s' with %u records\n",
        label,
        rd_count);
-
+  qe->timeout_task = GNUNET_SCHEDULER_add_delayed (NAMESTORE_DELAY_TOLERANCE,
+                                                   &warn_delay,
+                                                   qe);
   if (NULL == h->mq)
+  {
     qe->env = env;
+    LOG (GNUNET_ERROR_TYPE_WARNING,
+         "Delaying NAMESTORE_RECORD_STORE message as namestore is not ready!\n");
+  }
   else
+  {
     GNUNET_MQ_send (h->mq,
                     env);
+  }
   return qe;
 }
 

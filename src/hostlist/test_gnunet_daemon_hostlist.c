@@ -265,16 +265,22 @@ main (int argc, char *argv[])
 {
   int ret;
 
-  GNUNET_DISK_directory_remove ("/tmp/test-gnunet-hostlist-peer-1");
-  GNUNET_DISK_directory_remove ("/tmp/test-gnunet-hostlist-peer-2");
-  GNUNET_DISK_directory_remove ("/tmp/test-gnunet-hostlist");
+  GNUNET_DISK_purge_cfg_dir ("test_gnunet_daemon_hostlist_peer1.conf",
+                             "GNUNET_TEST_HOME");
+  GNUNET_DISK_purge_cfg_dir ("test_gnunet_daemon_hostlist_peer2.conf",
+                             "GNUNET_TEST_HOME");
+  GNUNET_DISK_purge_cfg_dir ("test_gnunet_daemon_hostlist_data.conf",
+                             "GNUNET_TEST_HOME");
   GNUNET_log_setup ("test-gnunet-daemon-hostlist",
                     "WARNING",
                     NULL);
   ret = check ();
-  GNUNET_DISK_directory_remove ("/tmp/test-gnunet-hostlist-peer-1");
-  GNUNET_DISK_directory_remove ("/tmp/test-gnunet-hostlist-peer-2");
-  GNUNET_DISK_directory_remove ("/tmp/test-gnunet-hostlist");
+  GNUNET_DISK_purge_cfg_dir ("test_gnunet_daemon_hostlist_peer1.conf",
+                             "GNUNET_TEST_HOME");
+  GNUNET_DISK_purge_cfg_dir ("test_gnunet_daemon_hostlist_peer2.conf",
+                             "GNUNET_TEST_HOME");
+  GNUNET_DISK_purge_cfg_dir ("test_gnunet_daemon_hostlist_data.conf",
+                             "GNUNET_TEST_HOME");
   return ret;
 }
 

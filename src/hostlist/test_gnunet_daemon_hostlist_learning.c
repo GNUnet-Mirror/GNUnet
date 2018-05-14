@@ -562,14 +562,18 @@ main (int argc, char *argv[])
 {
   int ret;
 
-  GNUNET_DISK_directory_remove ("/tmp/test-gnunet-hostlist-peer-1");
-  GNUNET_DISK_directory_remove ("/tmp/test-gnunet-hostlist-peer-2");
+  GNUNET_DISK_purge_cfg_dir ("test_learning_learn_peer.conf",
+                             "GNUNET_TEST_HOME");
+  GNUNET_DISK_purge_cfg_dir ("test_learning_adv_peer.conf",
+                             "GNUNET_TEST_HOME");
   GNUNET_log_setup ("test-gnunet-daemon-hostlist",
                     "WARNING",
                     NULL);
   ret = check ();
-  GNUNET_DISK_directory_remove ("/tmp/test-gnunet-hostlist-peer-1");
-  GNUNET_DISK_directory_remove ("/tmp/test-gnunet-hostlist-peer-2");
+  GNUNET_DISK_purge_cfg_dir ("test_learning_learn_peer.conf",
+                             "GNUNET_TEST_HOME");
+  GNUNET_DISK_purge_cfg_dir ("test_learning_adv_peer.conf",
+                             "GNUNET_TEST_HOME");
   if (GNUNET_YES ==
       GNUNET_DISK_file_test ("hostlists_learn_peer.file"))
   {

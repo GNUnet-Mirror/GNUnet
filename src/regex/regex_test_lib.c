@@ -172,9 +172,9 @@ move_children (struct RegexCombineCtx *dst,
   size_t array_size;
 
   array_size = sizeof(struct RegexCombineCtx *) * src->size;
-  memcpy (dst->children,
-	  src->children,
-	  array_size);
+  GNUNET_memcpy (dst->children,
+                 src->children,
+                 array_size);
   for (unsigned int i = 0; i < src->size; i++)
   {
     src->children[i] = NULL;
@@ -364,7 +364,9 @@ regex_add_multiple (struct RegexCombineCtx *ctx,
       newctx = new_regex_ctx(ctx->size);
       newctx->s = GNUNET_strdup (tmp);
       if (children != NULL)
-        memcpy (newctx->children, children, sizeof (*children) * ctx->size);
+        GNUNET_memcpy (newctx->children,
+                       children,
+                       sizeof (*children) * ctx->size);
       ctx->children[c2i(tmp[0], ctx->size)] = newctx;
     }
   }

@@ -76,6 +76,9 @@ bin_PROGRAMS = \
   $(DO_NONPOSIX_GNSIMPORT) \
   gnunet-gns
 
+noinst_PROGRAMS = \
+  gnunet-gns-benchmark
+
 if HAVE_MHD
 if LINUX
 bin_PROGRAMS += gnunet-bcd
@@ -109,6 +112,14 @@ libgnunet_plugin_gnsrecord_gns_la_LDFLAGS = \
 gnunet_gns_SOURCES = \
  gnunet-gns.c
 gnunet_gns_LDADD = \
+  libgnunetgns.la \
+  $(top_builddir)/src/gnsrecord/libgnunetgnsrecord.la \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(GN_LIBINTL)
+
+gnunet_gns_benchmark_SOURCES = \
+ gnunet-gns-benchmark.c
+gnunet_gns_benchmark_LDADD = \
   libgnunetgns.la \
   $(top_builddir)/src/gnsrecord/libgnunetgnsrecord.la \
   $(top_builddir)/src/util/libgnunetutil.la \
@@ -255,7 +266,7 @@ check_SCRIPTS = \
   test_gns_gns2dns_lookup.sh \
   test_gns_dht_lookup.sh\
   test_gns_delegated_lookup.sh \
-  test_gns_plus_lookup.sh\
+  test_gns_at_lookup.sh\
   test_gns_zkey_lookup.sh\
   test_gns_rel_expiration.sh\
   test_gns_soa_lookup.sh\
