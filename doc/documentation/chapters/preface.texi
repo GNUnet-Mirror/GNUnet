@@ -2,17 +2,18 @@
 @chapter Preface
 
 @c introductionary words here
-This collection of Manuals describes how to use GNUnet, a framework
+This collection of manuals describes how to use GNUnet, a framework
 for secure peer-to-peer networking with the high-level goal to provide
 a strong foundation Free Software for a global, distributed network
 that provides security and privacy.  GNUnet in that sense aims to
-replace the current internet protocol stack.  Along with an
+replace the current Internet protocol stack.  Along with an
 application for secure publication of files, it has grown to include
-all kinds of basic applications for the foundation of a new internet.
+all kinds of basic applications for the foundation of a new Internet.
 
 @menu
 * About this book::
 * Introduction::
+* Project governance::
 * General Terminology::
 * Typography::
 @end menu
@@ -22,7 +23,7 @@ all kinds of basic applications for the foundation of a new internet.
 
 The books (described as ``book'' or ``books'' in the following) bundled as
 the ``GNUnet Reference Manual'' are based on the historic work of all
-contributors to GNUnet's Documentation. The Documentation existed in
+contributors to GNUnet's documentation. The documentation existed in
 various formats before it came to be in the format you are currently
 reading. It is our hope that the content is described in a way that does
 not require any academic background, although some concepts will require
@@ -31,11 +32,11 @@ further reading.
 Our (long-term) goal with these books is to keep them self-contained. If
 you see references to Wikipedia and other external sources (except for
 our academic papers) it means that we are working on a solution to
-describe the explanations found there which fits our usecase and licensing.
+describe the explanations found there which fits our use-case and licensing.
 
 The first chapter (``Preface'') as well as the the second
 chapter (``Philosophy'') give an introduction to GNUnet as a project,
-what GNUnet tries to achieve, 
+what GNUnet tries to achieve.
 
 @node Introduction
 @section Introduction
@@ -45,13 +46,92 @@ what GNUnet tries to achieve,
 @c subchapters).
 
 GNUnet in its current version is the result of almost 20 years of work
-from many contributors, with many publications.
+from many contributors.  So far, most contributions were made by
+volunteers or people paid to do fundamental research.  Thus,
+significant parts of the software lack a reasonable degree of
+professionalism in its implementation.  Furthermore, we are aware of a
+significant number of existing bugs and critical design flaws, as some
+unfortunate early design decisions remain to be rectified.  There are
+still known open problems; GNUnet remains an active research project.
+
+The project was started in 2001 when some initial ideas for improving
+Freenet's file-sharing turned out to be too radical to be easily
+realized within the scope of the existing Freenet project.  We lost
+our first contributor on 11.9.2001 as the contributor realized that
+privacy may help terrorists.  The rest of the team concluded that it
+was now even more important to fight for civil liberties.  The first
+release was called ``GNet'' -- already with the name GNUnet in mind,
+but without the blessing of GNU we did not dare to call it GNUnet
+immediately.  A few months after the first release we contacted the
+GNU project, happily agreed to their governance model and became an
+official GNU package.
+
+Within the first year, we created GNU libextractor, a helper library
+for meta data extraction which has been used by a few other projects
+as well.  2003 saw the emergence of pluggable transports, the ability
+for GNUnet to use different mechanisms for communication, starting
+with TCP, UDP and SMTP (support for the latter was later dropped due
+to a lack of maintenance).  In 2005, the project first started to
+evolve beyond the original file-sharing application with a first
+simple P2P chat.  In 2007, we created GNU libmicrohttpd to support a
+pluggable transport based on HTTP.  In 2009, the architecture was
+radically modularized into the multi-process system that exists today.
+Coincidentally, the first version of the ARM service was implemented a
+day before systemd was announced.  From 2009 to 2014 work progressed
+rapidly thanks to a significant research grant from the Deutsche
+Forschungsgesellschaft.  This resulted in particular in the creation
+of the R5N DHT, CADET, ATS and the GNU Name System.  In 2010,
+GNUnet was selected as the basis for the SecuShare online social
+network, resutling in a significant growth of the core team.  In 2013,
+we launched GNU Taler to address the challenge of convenient and
+privacy-preserving online payments.  In 2015, the pEp project
+announced that they will use GNUnet as the technology for their
+meta-data protection layer, ultimately resulting in GNUnet e.V.
+entering into a formal long-term collaboration with the pEp
+foundation.  In 2016, Taler Systems SA, a first startup using GNUnet
+technology, was founded with support from the community.
+
+GNUnet is not merely a technical project, but also a political
+mission: like the GNU project as a whole, we are writing software to
+achieve political goals with a focus on the human right of
+informational self-determination.  Putting users in control of their
+computing has been the core driver of the GNU project. With GNUnet we
+are focusing on informational self-determination for collaborative
+computing and communication over networks.
+
+The Internet is shaped as much by code and protocols as by its
+associated political processes (IETF, ICANN, IEEE, etc.), and its
+flaws are similarly not limited to the protocol design.  Thus,
+technical excellence by itself will not suffice to create a better
+network. We also need to build a community that is wise, humble and
+has a sense of humor to achieve our goal to create a technical
+foundation for a society we would like to live in. 
+
+
+@node Project governance
+@section Project governance
+
+GNUnet, like the GNU project and many other free software projects,
+follows the governance model of a benevolent dictator.  This means
+that ultimately, the GNU project appoints the GNU maintainer and can
+overrule decisions made by the GNUnet maintainer. Similarly, the
+GNUnet maintainer can overrule any decisions made by individual
+developers.  Still, in practice neither has happened in the last 20
+years, and we hope to keep it that way.
+
+The GNUnet project is supported by GNUnet e.V., a German association
+where any developer can become a member.  GNUnet e.V. servers as a
+legal entity to hold the copyrights to GNUnet.  GNUnet e.V. may also
+choose to pay for project resources, and can collect donations.
+GNUnet e.V. may also choose to adjust the license of the
+software (with the constraint that it has to remain free software).
+
 
 @node General Terminology
 @section General Terminology
 
-In the following Manual we may use words that can not be found in the
-Appendix. Since we want to keep the Manual selfcontained, we will
+In the following manual we may use words that can not be found in the
+Appendix. Since we want to keep the manual selfcontained, we will
 explain words here.
 
 @node Typography
