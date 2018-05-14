@@ -88,8 +88,10 @@ This document is the Reference Manual for GNUnet version @value{VERSION}.
 @detailmenu
  --- The Detailed Node Listing ---
 
-Terminology
+Preface
 
+* About this book
+* Introduction
 * General Terminology::
 * Typography::
 
@@ -110,12 +112,6 @@ Philosophy
 * Egos::
 * Backup of Identities and Egos::
 * Revocation::
-
-@c Vocabulary
-@c 
-@c * Definitions abbreviations and acronyms::
-@c * Words and characters::
-@c * Technical Assumptions::
 
 GNUnet Installation Handbook
 
@@ -196,7 +192,7 @@ GNUnet Developer Handbook
 @end menu
 
 @c *********************************************************************
-@include chapters/terminology.texi
+@include chapters/preface.texi
 @c *********************************************************************
 
 @c *********************************************************************

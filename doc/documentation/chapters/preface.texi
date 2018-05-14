@@ -1,0 +1,64 @@
+@node Preface
+@chapter Prefacwe
+
+@c introductionary words here
+This collection of Manuals describes how to use GNUnet, a framework
+for secure peer-to-peer networking with the high-level goal to provide
+a strong foundation Free Software for a global, distributed network
+that provides security and privacy.  GNUnet in that sense aims to
+replace the current internet protocol stack.  Along with an
+application for secure publication of files, it has grown to include
+all kinds of basic applications for the foundation of a new internet.
+
+@menu
+* About this book
+* Introduction
+* General Terminology::
+* Typography::
+@end menu
+
+@node About this book
+@section About this book
+
+The books (described as ``book'' or ``books'' in the following) bundled as
+the ``GNUnet Reference Manual'' are based on the historic work of all
+contributors to GNUnet's Documentation. The Documentation existed in
+various formats before it came to be in the format you are currently
+reading. It is our hope that the content is described in a way that does
+not require any academic background, although some concepts will require
+further reading.
+
+Our (long-term) goal with these books is to keep them self-contained. If
+you see references to Wikipedia and other external sources (except for
+our academic papers) it means that we are working on a solution to
+describe the explanations found there which fits our usecase and licensing.
+
+The first chapter (``Preface'') as well as the the second
+chapter (``Philosophy'') give an introduction to GNUnet as a project,
+what GNUnet tries to achieve, 
+
+@node Introduction
+@section Introduction
+
+@c In less than 2 printed pages describe the history of GNUnet here,
+@c what we have now and what's still missing (could be split into
+@c subchapters).
+
+GNUnet in its current version is the result of almost 20 years of work
+from many contributors, with many publications.
+
+@node General Terminology
+@section General Terminology
+
+In the following Manual we may use words that can not be found in the
+Appendix. Since we want to keep the Manual selfcontained, we will
+explain words here.
+
+@node Typography
+@section Typography
+
+When giving examples for commands, shell prompts are used to show if the
+command should/can be issued as root, or if "normal" user privileges are
+sufficient. We use a @code{#} for root's shell prompt, a
+@code{%} for users' shell prompt, assuming they use the C-shell or tcsh
+and a @code{$} for bourne shell and derivatives.
