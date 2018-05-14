@@ -9,7 +9,7 @@ The foremost goal of the GNUnet project is to become a widely used,
 reliable, open, non-discriminating, egalitarian, unconstrained and
 censorship-resistant system of free information exchange.
 We value free speech above state secrets, law-enforcement or
-intellectual property.
+intellectual monopoly.
 GNUnet is supposed to be an anarchistic network, where the only
 limitation for participants (devices or people making use of the
 network, in the following sometimes called peers) is
