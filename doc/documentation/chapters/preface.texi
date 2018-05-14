@@ -1,5 +1,5 @@
 @node Preface
-@chapter Prefacwe
+@chapter Preface
 
 @c introductionary words here
 This collection of Manuals describes how to use GNUnet, a framework
