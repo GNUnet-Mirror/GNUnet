@@ -23,7 +23,10 @@ if HAVE_ABE
     abe \
     credential \
     identity-attribute \
-    identity-provider 
+    identity-provider
+if HAVE_ZKLAIM
+  EXP_DIR += zklaim
+endif
 endif
 if HAVE_JSON
  EXP_DIR += \
