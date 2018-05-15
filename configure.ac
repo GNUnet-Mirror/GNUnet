@@ -524,6 +524,16 @@ AC_CHECK_LIB(ogg, ogg_stream_flush_fill,
         AM_CONDITIONAL(HAVE_OGG, false)
         ogg=0)
 
+# check for zklaims
+zklaim=0
+AC_CHECK_HEADER([zklaim.h],zklaim=1)
+AM_CONDITIONAL(HAVE_ZKLAIM, [test "$zklaim" = 1])
+if test "x$zklaim" = x1
+then
+  AC_DEFINE([HAVE_ZKLAIM],[1],[Have zklaim library])
+else
+  AC_DEFINE([HAVE_ZKLAIM],[0],[Lacking zklaim library])
+fi
 
 PKG_CHECK_MODULES([GLIB], [glib-2.0],
 # check for pbc library

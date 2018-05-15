@@ -16,7 +16,7 @@ if HAVE_EXPERIMENTAL
   psycutil \
   psycstore \
   psyc \
-  social 
+  social
 #  dv (FTBFS)
 if HAVE_ABE
 if HAVE_JSON
@@ -24,7 +24,9 @@ if HAVE_JSON
     abe \
     credential \
     reclaim-attribute \
-    reclaim 
+    reclaim
+if HAVE_ZKLAIM
+  EXP_DIR += zklaim
 endif
 endif
 if HAVE_JSON
