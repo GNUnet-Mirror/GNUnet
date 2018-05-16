@@ -187,6 +187,12 @@ struct CadetTunnelAxolotl
   struct GNUNET_CRYPTO_EcdhePublicKey DHRr;
 
   /**
+   * Last ephemeral public key received from the other peer,
+   * for duplicate detection.
+   */
+  struct GNUNET_CRYPTO_EcdhePublicKey last_ephemeral;
+
+  /**
    * Time when the current ratchet expires and a new one is triggered
    * (if @e ratchet_allowed is #GNUNET_YES).
    */
@@ -1509,18 +1515,18 @@ update_ax_by_kx (struct CadetTunnelAxolotl *ax,
   }
 
   ax->DHRr = *ratchet_key;
-
+  ax->last_ephemeral = *ephemeral_key;
   /* ECDH A B0 */
   if (GNUNET_YES == am_I_alice)
   {
     GNUNET_CRYPTO_eddsa_ecdh (my_private_key,      /* A */
-                              ephemeral_key, /* B0 */
+                              ephemeral_key,       /* B0 */
                               &key_material[0]);
   }
   else
   {
     GNUNET_CRYPTO_ecdh_eddsa (&ax->kx_0,            /* B0 */
-                              &pid->public_key,    /* A */
+                              &pid->public_key,     /* A */
                               &key_material[0]);
   }
 
@@ -1528,21 +1534,19 @@ update_ax_by_kx (struct CadetTunnelAxolotl *ax,
   if (GNUNET_YES == am_I_alice)
   {
     GNUNET_CRYPTO_ecdh_eddsa (&ax->kx_0,            /* A0 */
-                              &pid->public_key,    /* B */
+                              &pid->public_key,     /* B */
                               &key_material[1]);
   }
   else
   {
     GNUNET_CRYPTO_eddsa_ecdh (my_private_key,      /* A */
-                              ephemeral_key, /* B0 */
+                              ephemeral_key,       /* B0 */
                               &key_material[1]);
   }
 
   /* ECDH A0 B0 */
-  /* (This is the triple-DH, we could probably safely skip this,
-     as A0/B0 are already in the key material.) */
   GNUNET_CRYPTO_ecc_ecdh (&ax->kx_0,             /* A0 or B0 */
-                          ephemeral_key,  /* B0 or A0 */
+                          ephemeral_key,         /* B0 or A0 */
                           &key_material[2]);
 
   /* KDF */
@@ -1697,10 +1701,15 @@ GCT_handle_kx (struct CadetTConnection *ct,
                             "# KX received",
                             1,
                             GNUNET_NO);
-  if (0 ==
-      memcmp (&t->ax.DHRr,
-              &msg->ratchet_key,
-              sizeof (msg->ratchet_key)))
+  if ( (0 ==
+        memcmp (&t->ax.DHRr,
+                &msg->ratchet_key,
+                sizeof (msg->ratchet_key))) &&
+       (0 ==
+        memcmp (&t->ax.last_ephemeral,
+                &msg->ephemeral_key,
+                sizeof (msg->ephemeral_key))) )
+
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Got duplicate KX. Firing back KX_AUTH.\n");
@@ -1719,10 +1728,14 @@ GCT_handle_kx (struct CadetTConnection *ct,
      clean it up. */
   if (NULL != t->unverified_ax)
   {
-    if (0 ==
-        memcmp (&t->unverified_ax->DHRr,
-                &msg->ratchet_key,
-                sizeof (msg->ratchet_key)))
+    if ( (0 ==
+          memcmp (&t->unverified_ax->DHRr,
+                  &msg->ratchet_key,
+                  sizeof (msg->ratchet_key))) &&
+         (0 ==
+          memcmp (&t->unverified_ax->last_ephemeral,
+                  &msg->ephemeral_key,
+                  sizeof (msg->ephemeral_key))) )
     {
       LOG (GNUNET_ERROR_TYPE_DEBUG,
            "Got duplicate unverified KX on %s. Fire back KX_AUTH again.\n",
