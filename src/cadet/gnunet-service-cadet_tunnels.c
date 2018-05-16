@@ -1744,11 +1744,13 @@ GCT_handle_kx (struct CadetTConnection *ct,
                                 "# Duplicate unverified KX received",
                                 1,
                                 GNUNET_NO);
+#if 0
       send_kx_auth (t,
                     ct,
                     t->unverified_ax,
                     GNUNET_NO);
       return;
+#endif
     }
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Dropping old unverified KX state. Got a fresh KX for %s.\n",
