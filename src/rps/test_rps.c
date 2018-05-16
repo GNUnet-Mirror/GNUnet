@@ -2180,22 +2180,25 @@ void view_update_cb (void *cls,
          rps_peer->index,
          count_peer_in_views_2 (rps_peer->index));
   cumulated_view_sizes();
-  to_file ("/tmp/rps/repr.txt",
-         "%" PRIu64 /* index */
-         " %" PRIu32 /* occurrence in views */
-         " %" PRIu32 /* view sizes */
-         " %f" /* fraction of repr in views */
-         " %f" /* average view size */
-         " %f" /* prob of occurrence in view slot */
-         " %f" "", /* exp frac of repr in views */
-         rps_peer->index,
-         count_peer_in_views_2 (rps_peer->index),
-         view_sizes,
-         count_peer_in_views_2 (rps_peer->index) / (view_size * 1.0), /* fraction of representation in views */
-         view_sizes / (view_size * 1.0), /* average view size */
-         1.0 /view_size, /* prob of occurrence in view slot */
-         (1.0/view_size) * (view_sizes/view_size) /* expected fraction of repr in views */
-         );
+  if (0 != view_size)
+  {
+    to_file ("/tmp/rps/repr.txt",
+           "%" PRIu64 /* index */
+           " %" PRIu32 /* occurrence in views */
+           " %" PRIu32 /* view sizes */
+           " %f" /* fraction of repr in views */
+           " %f" /* average view size */
+           " %f" /* prob of occurrence in view slot */
+           " %f" "", /* exp frac of repr in views */
+           rps_peer->index,
+           count_peer_in_views_2 (rps_peer->index),
+           view_sizes,
+           count_peer_in_views_2 (rps_peer->index) / (view_size * 1.0), /* fraction of representation in views */
+           view_sizes / (view_size * 1.0), /* average view size */
+           1.0 /view_size, /* prob of occurrence in view slot */
+           (1.0/view_size) * (view_sizes/view_size) /* expected fraction of repr in views */
+           );
+  }
   compute_probabilities (rps_peer->index);
   all_views_updated_cb();
 }
