@@ -492,7 +492,7 @@ process_stdin (void *cls)
       delta = GNUNET_TIME_absolute_get_duration (last);
       last = GNUNET_TIME_absolute_get ();
       fprintf (stderr,
-	       "Read 10000 domain names in %s\n",
+	       "Read 100000 domain names in %s\n",
 	       GNUNET_STRINGS_relative_time_to_string (delta,
 						       GNUNET_YES));
     }

@@ -296,7 +296,6 @@ client_disconnect_cb (void *cls,
                                  clh);
     GNUNET_free (clh);
   }
-
   GNUNET_free (gc);
 }
 
@@ -340,26 +339,29 @@ send_lookup_response (void* cls,
                       const struct GNUNET_GNSRECORD_Data *rd)
 {
   struct ClientLookupHandle *clh = cls;
-  struct GNUNET_MQ_Envelope *env;
+  struct GnsClient *gc = clh->gc;
+ struct GNUNET_MQ_Envelope *env;
   struct LookupResultMessage *rmsg;
   size_t len;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Sending LOOKUP_RESULT message with %u results\n",
               (unsigned int) rd_count);
-
-  len = GNUNET_GNSRECORD_records_get_size (rd_count, rd);
+  len = GNUNET_GNSRECORD_records_get_size (rd_count,
+                                           rd);
   env = GNUNET_MQ_msg_extra (rmsg,
                              len,
                              GNUNET_MESSAGE_TYPE_GNS_LOOKUP_RESULT);
   rmsg->id = clh->request_id;
   rmsg->rd_count = htonl (rd_count);
-  GNUNET_GNSRECORD_records_serialize (rd_count, rd, len,
+  GNUNET_GNSRECORD_records_serialize (rd_count,
+                                      rd,
+                                      len,
                                       (char*) &rmsg[1]);
-  GNUNET_MQ_send (GNUNET_SERVICE_client_get_mq(clh->gc->client),
+  GNUNET_MQ_send (GNUNET_SERVICE_client_get_mq (gc->client),
                   env);
-  GNUNET_CONTAINER_DLL_remove (clh->gc->clh_head,
-                               clh->gc->clh_tail,
+  GNUNET_CONTAINER_DLL_remove (gc->clh_head,
+                               gc->clh_tail,
                                clh);
   GNUNET_free (clh);
   GNUNET_STATISTICS_update (statistics,
@@ -428,7 +430,6 @@ handle_lookup (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Received LOOKUP `%s' message\n",
               name);
-
   clh = GNUNET_new (struct ClientLookupHandle);
   GNUNET_CONTAINER_DLL_insert (gc->clh_head,
                                gc->clh_tail,
