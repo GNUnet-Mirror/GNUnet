@@ -1701,6 +1701,7 @@ GCT_handle_kx (struct CadetTConnection *ct,
                             "# KX received",
                             1,
                             GNUNET_NO);
+#if 0
   if ( (0 ==
         memcmp (&t->ax.DHRr,
                 &msg->ratchet_key,
@@ -1723,7 +1724,7 @@ GCT_handle_kx (struct CadetTConnection *ct,
                   GNUNET_NO);
     return;
   }
-
+#endif
   /* We only keep ONE unverified KX around, so if there is an existing one,
      clean it up. */
   if (NULL != t->unverified_ax)
@@ -1759,6 +1760,7 @@ GCT_handle_kx (struct CadetTConnection *ct,
                               "# Unverified KX dropped for fresh KX",
                               1,
                               GNUNET_NO);
+    GNUNET_break (NULL == t->unverified_ax->skipped_head);
     memset (t->unverified_ax,
             0,
             sizeof (struct CadetTunnelAxolotl));
