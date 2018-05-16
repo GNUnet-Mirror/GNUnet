@@ -2773,7 +2773,7 @@ main (int argc, char *argv[])
     cur_test_run.main_test = churn_test_cb;
     cur_test_run.reply_handle = default_reply_handle;
     cur_test_run.eval_cb = default_eval_cb;
-    cur_test_run.have_churn = HAVE_CHURN;
+    cur_test_run.have_churn = HAVE_NO_CHURN;
     cur_test_run.have_quick_quit = HAVE_NO_QUICK_QUIT;
     timeout = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10);
   }
@@ -2793,7 +2793,8 @@ main (int argc, char *argv[])
     cur_test_run.post_test = post_profiler;
     cur_test_run.request_interval = 2;
     cur_test_run.num_requests = 5;
-    cur_test_run.have_churn = HAVE_CHURN;
+    //cur_test_run.have_churn = HAVE_CHURN;
+    cur_test_run.have_churn = HAVE_NO_CHURN;
     cur_test_run.have_quick_quit = HAVE_NO_QUICK_QUIT;
     cur_test_run.have_collect_statistics = COLLECT_STATISTICS;
     cur_test_run.stat_collect_flags = STAT_TYPE_ROUNDS |
