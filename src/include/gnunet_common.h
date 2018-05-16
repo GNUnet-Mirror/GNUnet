@@ -592,7 +592,7 @@ GNUNET_sh2s (const struct GNUNET_ShortHashCode *shc);
  * @return string
  */
 const char *
-GNUNET_h2s (const struct GNUNET_HashCode * hc);
+GNUNET_h2s (const struct GNUNET_HashCode *hc);
 
 
 /**
@@ -607,7 +607,7 @@ GNUNET_h2s (const struct GNUNET_HashCode * hc);
  * @return string
  */
 const char *
-GNUNET_h2s2 (const struct GNUNET_HashCode * hc);
+GNUNET_h2s2 (const struct GNUNET_HashCode *hc);
 
 
 /**
@@ -621,7 +621,71 @@ GNUNET_h2s2 (const struct GNUNET_HashCode * hc);
  * @return string
  */
 const char *
-GNUNET_h2s_full (const struct GNUNET_HashCode * hc);
+GNUNET_h2s_full (const struct GNUNET_HashCode *hc);
+
+
+/**
+ * Public key. Details in gnunet_util_crypto.h.
+ */
+struct GNUNET_CRYPTO_EddsaPublicKey;
+
+
+/**
+ * Public key. Details in gnunet_util_crypto.h.
+ */
+struct GNUNET_CRYPTO_EcdhePublicKey;
+
+
+/**
+ * @ingroup logging
+ * Convert a public key value to a string (for printing debug messages).
+ * This is one of the very few calls in the entire API that is
+ * NOT reentrant!
+ *
+ * @param hc the hash code
+ * @return string
+ */
+const char *
+GNUNET_p2s (const struct GNUNET_CRYPTO_EddsaPublicKey *p);
+
+
+/**
+ * @ingroup logging
+ * Convert a public key value to a string (for printing debug messages).
+ * This is one of the very few calls in the entire API that is
+ * NOT reentrant!
+ *
+ * @param hc the hash code
+ * @return string
+ */
+const char *
+GNUNET_p2s2 (const struct GNUNET_CRYPTO_EddsaPublicKey *p);
+
+
+/**
+ * @ingroup logging
+ * Convert a public key value to a string (for printing debug messages).
+ * This is one of the very few calls in the entire API that is
+ * NOT reentrant!
+ *
+ * @param hc the hash code
+ * @return string
+ */
+const char *
+GNUNET_e2s (const struct GNUNET_CRYPTO_EcdhePublicKey *p);
+
+
+/**
+ * @ingroup logging
+ * Convert a public key value to a string (for printing debug messages).
+ * This is one of the very few calls in the entire API that is
+ * NOT reentrant!
+ *
+ * @param hc the hash code
+ * @return string
+ */
+const char *
+GNUNET_e2s2 (const struct GNUNET_CRYPTO_EcdhePublicKey *p);
 
 
 /**

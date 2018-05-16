@@ -1192,6 +1192,106 @@ GNUNET_h2s2 (const struct GNUNET_HashCode * hc)
 
 /**
  * @ingroup logging
+ * Convert a public key value to a string (for printing debug messages).
+ * This is one of the very few calls in the entire API that is
+ * NOT reentrant!
+ *
+ * @param hc the hash code
+ * @return string
+ */
+const char *
+GNUNET_p2s (const struct GNUNET_CRYPTO_EddsaPublicKey *p)
+{
+  static struct GNUNET_CRYPTO_HashAsciiEncoded ret;
+  struct GNUNET_HashCode hc;
+
+  GNUNET_CRYPTO_hash (p,
+                      sizeof (*p),
+                      &hc);
+  GNUNET_CRYPTO_hash_to_enc (&hc,
+                             &ret);
+  ret.encoding[6] = '\0';
+  return (const char *) ret.encoding;
+}
+
+
+/**
+ * @ingroup logging
+ * Convert a public key value to a string (for printing debug messages).
+ * This is one of the very few calls in the entire API that is
+ * NOT reentrant!
+ *
+ * @param hc the hash code
+ * @return string
+ */
+const char *
+GNUNET_p2s2 (const struct GNUNET_CRYPTO_EddsaPublicKey *p)
+{
+  static struct GNUNET_CRYPTO_HashAsciiEncoded ret;
+  struct GNUNET_HashCode hc;
+
+  GNUNET_CRYPTO_hash (p,
+                      sizeof (*p),
+                      &hc);
+  GNUNET_CRYPTO_hash_to_enc (&hc,
+                             &ret);
+  ret.encoding[6] = '\0';
+  return (const char *) ret.encoding;
+}
+
+
+/**
+ * @ingroup logging
+ * Convert a public key value to a string (for printing debug messages).
+ * This is one of the very few calls in the entire API that is
+ * NOT reentrant!
+ *
+ * @param hc the hash code
+ * @return string
+ */
+const char *
+GNUNET_e2s (const struct GNUNET_CRYPTO_EcdhePublicKey *p)
+{
+  static struct GNUNET_CRYPTO_HashAsciiEncoded ret;
+  struct GNUNET_HashCode hc;
+
+  GNUNET_CRYPTO_hash (p,
+                      sizeof (*p),
+                      &hc);
+  GNUNET_CRYPTO_hash_to_enc (&hc,
+                             &ret);
+  ret.encoding[6] = '\0';
+  return (const char *) ret.encoding;
+}
+
+
+/**
+ * @ingroup logging
+ * Convert a public key value to a string (for printing debug messages).
+ * This is one of the very few calls in the entire API that is
+ * NOT reentrant!
+ *
+ * @param hc the hash code
+ * @return string
+ */
+const char *
+GNUNET_e2s2 (const struct GNUNET_CRYPTO_EcdhePublicKey *p)
+{
+  static struct GNUNET_CRYPTO_HashAsciiEncoded ret;
+  struct GNUNET_HashCode hc;
+
+  GNUNET_CRYPTO_hash (p,
+                      sizeof (*p),
+                      &hc);
+  GNUNET_CRYPTO_hash_to_enc (&hc,
+                             &ret);
+  ret.encoding[6] = '\0';
+  return (const char *) ret.encoding;
+}
+
+
+/**
+ * @ingroup logging
  * Convert a short hash value to a string (for printing debug messages).
  * This is one of the very few calls in the entire API that is
  * NOT reentrant!
