@@ -1356,6 +1356,10 @@ send_kx (struct CadetTunnel *t,
                        CADET_TUNNEL_KEY_AX_SENT_AND_RECV);
   GCC_transmit (cc,
                 env);
+  GNUNET_STATISTICS_update (stats,
+                            "# KX transmitted",
+                            1,
+                            GNUNET_NO);
 }
 
 
@@ -1429,9 +1433,12 @@ send_kx_auth (struct CadetTunnel *t,
   if (CADET_TUNNEL_KEY_OK != t->estate)
     GCT_change_estate (t,
                        CADET_TUNNEL_KEY_AX_AUTH_SENT);
-
   GCC_transmit (cc,
                 env);
+  GNUNET_STATISTICS_update (stats,
+                            "# KX_AUTH transmitted",
+                            1,
+                            GNUNET_NO);
 }
 
 
@@ -1492,6 +1499,10 @@ update_ax_by_kx (struct CadetTunnelAxolotl *ax,
                    ratchet_key,
                    sizeof (*ratchet_key)))
   {
+    GNUNET_STATISTICS_update (stats,
+                              "# Ratchet key already known",
+                              1,
+                              GNUNET_NO);
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Ratchet key already known. Ignoring KX.\n");
     return GNUNET_NO;
@@ -1525,8 +1536,6 @@ update_ax_by_kx (struct CadetTunnelAxolotl *ax,
     GNUNET_CRYPTO_eddsa_ecdh (my_private_key,      /* A */
                               ephemeral_key, /* B0 */
                               &key_material[1]);
-
-
   }
 
   /* ECDH A0 B0 */
@@ -1548,6 +1557,10 @@ update_ax_by_kx (struct CadetTunnelAxolotl *ax,
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Root key of handshake already known. Ignoring KX.\n");
+    GNUNET_STATISTICS_update (stats,
+                              "# Root key already known",
+                              1,
+                              GNUNET_NO);
     return GNUNET_NO;
   }
 
@@ -1680,6 +1693,10 @@ GCT_handle_kx (struct CadetTConnection *ct,
   struct CadetTunnelAxolotl *ax;
   int ret;
 
+  GNUNET_STATISTICS_update (stats,
+                            "# KX received",
+                            1,
+                            GNUNET_NO);
   if (0 ==
       memcmp (&t->ax.DHRr,
               &msg->ratchet_key,
@@ -1687,6 +1704,10 @@ GCT_handle_kx (struct CadetTConnection *ct,
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Got duplicate KX. Firing back KX_AUTH.\n");
+    GNUNET_STATISTICS_update (stats,
+                              "# Duplicate KX received",
+                              1,
+                              GNUNET_NO);
     send_kx_auth (t,
                   ct,
                   &t->ax,
@@ -1706,6 +1727,10 @@ GCT_handle_kx (struct CadetTConnection *ct,
       LOG (GNUNET_ERROR_TYPE_DEBUG,
            "Got duplicate unverified KX on %s. Fire back KX_AUTH again.\n",
            GCT_2s (t));
+      GNUNET_STATISTICS_update (stats,
+                                "# Duplicate unverified KX received",
+                                1,
+                                GNUNET_NO);
       send_kx_auth (t,
                     ct,
                     t->unverified_ax,
@@ -1715,6 +1740,10 @@ GCT_handle_kx (struct CadetTConnection *ct,
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Dropping old unverified KX state. Got a fresh KX for %s.\n",
          GCT_2s (t));
+    GNUNET_STATISTICS_update (stats,
+                              "# Unverified KX dropped for fresh KX",
+                              1,
+                              GNUNET_NO);
     memset (t->unverified_ax,
             0,
             sizeof (struct CadetTunnelAxolotl));
@@ -1726,6 +1755,10 @@ GCT_handle_kx (struct CadetTConnection *ct,
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Creating fresh unverified KX for %s.\n",
          GCT_2s (t));
+    GNUNET_STATISTICS_update (stats,
+                              "# Fresh KX setup",
+                              1,
+                              GNUNET_NO);
     t->unverified_ax = GNUNET_new (struct CadetTunnelAxolotl);
     t->unverified_ax->DHRs = t->ax.DHRs;
     t->unverified_ax->kx_0 = t->ax.kx_0;
@@ -1745,8 +1778,13 @@ GCT_handle_kx (struct CadetTConnection *ct,
                          &msg->ratchet_key);
   GNUNET_break (GNUNET_SYSERR != ret);
   if (GNUNET_OK != ret)
+  {
+    GNUNET_STATISTICS_update (stats,
+                              "# Useless KX",
+                              1,
+                              GNUNET_NO);
     return; /* duplicate KX, nothing to do */
-
+  }
   /* move ahead in our state machine */
   if (CADET_TUNNEL_KEY_UNINITIALIZED == t->estate)
     GCT_change_estate (t,
@@ -1782,6 +1820,10 @@ GCT_handle_kx_auth (struct CadetTConnection *ct,
   struct GNUNET_HashCode kx_auth;
   int ret;
 
+  GNUNET_STATISTICS_update (stats,
+                            "# KX_AUTH received",
+                            1,
+                            GNUNET_NO);
   if ( (CADET_TUNNEL_KEY_UNINITIALIZED == t->estate) ||
        (CADET_TUNNEL_KEY_AX_RECV == t->estate) )
   {
