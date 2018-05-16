@@ -2782,7 +2782,7 @@ main (int argc, char *argv[])
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "This is the profiler\n");
     cur_test_run.name = "test-rps-profiler";
-    num_peers = 10;
+    num_peers = 100;
     mal_type = 3;
     cur_test_run.init_peer = profiler_init_peer;
     //cur_test_run.pre_test = mal_pre;

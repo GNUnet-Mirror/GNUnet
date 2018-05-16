@@ -56,7 +56,8 @@ test_ecdh()
                                            &id1,
                                            &dh[1]));
   /* Check that both DH results are equal. */
-  GNUNET_assert (0 == memcmp (&dh[0], &dh[1],
+  GNUNET_assert (0 == memcmp (&dh[0],
+                              &dh[1],
 			      sizeof (struct GNUNET_HashCode)));
   GNUNET_free (priv_dsa);
   GNUNET_free (priv_ecdh);
@@ -75,10 +76,13 @@ main (int argc, char *argv[])
     return 0;
   }
   if (getenv ("GNUNET_GCRYPT_DEBUG"))
-    gcry_control (GCRYCTL_SET_DEBUG_FLAGS, 1u , 0);
+    gcry_control (GCRYCTL_SET_DEBUG_FLAGS, 1u, 0);
   GNUNET_log_setup ("test-crypto-ecdh-eddsa", "WARNING", NULL);
-  if (0 != test_ecdh())
-    return 1;
+  for (unsigned int i=0;i<10000;i++)
+  {
+    if (0 != test_ecdh())
+      return 1;
+  }
   return 0;
 }
 
