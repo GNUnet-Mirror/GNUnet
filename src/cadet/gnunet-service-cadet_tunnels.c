@@ -1701,7 +1701,7 @@ GCT_handle_kx (struct CadetTConnection *ct,
                             "# KX received",
                             1,
                             GNUNET_NO);
-#if 0
+#if 1
   if ( (0 ==
         memcmp (&t->ax.DHRr,
                 &msg->ratchet_key,
@@ -1745,7 +1745,7 @@ GCT_handle_kx (struct CadetTConnection *ct,
                                 "# Duplicate unverified KX received",
                                 1,
                                 GNUNET_NO);
-#if 0
+#if 1
       send_kx_auth (t,
                     ct,
                     t->unverified_ax,
