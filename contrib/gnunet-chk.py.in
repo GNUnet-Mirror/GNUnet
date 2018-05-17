@@ -27,6 +27,7 @@ import os
 import getopt
 import sys
 from Crypto.Cipher import AES
+from functools import reduce
 
 
 # Defaults
@@ -76,7 +77,7 @@ def encode_data_to_string(data):
         wpos += 1
         vbit -= 5
     assert (0 == vbit)
-    return out;
+    return out
 
 
 def sha512_hash(data):
@@ -105,7 +106,7 @@ class AESKey:
         passphrase: string containing the passphrase to get the AES key and
         initialization vector
         """
-        passphrase = bytearray(passphrase);
+        passphrase = bytearray(passphrase)
         self.key = bytearray(self.KEY_SIZE)
         self.iv = bytearray(self.IV_SIZE)
         if (len(passphrase) > self.KEY_SIZE):
@@ -284,7 +285,7 @@ def compute_rootchk(readin, size):
     readin: the stream where to read data from
     size: the size of data to be read
     """
-    depth = compute_depth_(size);
+    depth = compute_depth_(size)
     current_depth = 0
     chks = [None] * (depth * CHK_PER_INODE)  # list buffer
     read_offset = 0
@@ -294,13 +295,13 @@ def compute_rootchk(readin, size):
             off = CHK_PER_INODE * (depth - 1)
             assert (chks[off] is not None)
             logging.debug("Encoding done, reading CHK `" + chks[off].query + \
-                              "' from " + repr(off) + "\n")
+                          "' from " + repr(off) + "\n")
             uri_chk = chks[off]
             assert (size == read_offset)
             uri_chk.setSize(size)
             return uri_chk
         if (0 == current_depth):
-            pt_size = min(DBLOCK_SIZE, size - read_offset);
+            pt_size = min(DBLOCK_SIZE, size - read_offset)
             try:
                 pt_block = readin.read(pt_size)
             except IOError:
