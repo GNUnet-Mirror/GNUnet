@@ -5,9 +5,10 @@ RUN dnf -y update && dnf -y install which git automake texinfo gettext-devel aut
 
 WORKDIR /usr/src
 
-# Install gnurl from source at version gnurl-7.54.0
-RUN git clone https://git.taler.net/gnurl.git --branch gnurl-7.57.0
-WORKDIR /usr/src/gnurl
+# Install gnurl
+RUN wget https://ftp.gnu.org/gnu/gnunet/gnurl-7.59.0.tar.gz
+RUN tar xvzpf gnurl-7.59.0.tar.gz
+WORKDIR /usr/src/gnurl-7.59.0
 RUN autoreconf -i
 RUN ./configure --disable-ntlm-wb
 RUN make install
