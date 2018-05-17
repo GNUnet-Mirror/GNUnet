@@ -82,7 +82,7 @@ main (int argc, char *argv[])
   if (getenv ("GNUNET_GCRYPT_DEBUG"))
     gcry_control (GCRYCTL_SET_DEBUG_FLAGS, 1u, 0);
   GNUNET_log_setup ("test-crypto-ecdh-eddsa", "WARNING", NULL);
-  for (unsigned int i=0;i<100;i++)
+  for (unsigned int i=0;i<10000;i++)
   {
     fprintf (stderr,
              ".");
