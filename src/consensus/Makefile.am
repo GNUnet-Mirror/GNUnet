@@ -27,6 +27,15 @@ libexec_PROGRAMS += \
  gnunet-service-evil-consensus
 endif
 
+do_subst = $(SED) -e 's,[@]PYTHON[@],$(PYTHON),g'
+
+SUFFIXES = .py.in .py
+
+.py.in.py:
+	$(do_subst) < $< > $@
+	chmod +x $@
+
+
 lib_LTLIBRARIES = \
   libgnunetconsensus.la
 
@@ -103,5 +112,12 @@ test_consensus_api_LDADD = \
   $(top_builddir)/src/testing/libgnunettesting.la \
   libgnunetconsensus.la
 
+noinst_SCRIPTS = \
+	consensus-simulation.py
+
+CLEANFILES = \
+	$(noinst_SCRIPTS)
+
 EXTRA_DIST = \
-  test_consensus.conf
+  test_consensus.conf \
+  consensus-simulation.py.in
