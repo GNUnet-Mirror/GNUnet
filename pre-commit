@@ -12,8 +12,8 @@ find $PATHS -name "*.c" -exec indent {} \;
 find $PATHS -name "*.h" -exec indent {} \;
 find $PATHS -name "*.c" -exec indent {} \;
 find $PATHS -name "*.h" -exec indent {} \;
-find $PATHS -name "*.c" -exec contrib/removetrailingwhitespace {} \;
-find $PATHS -name "*.h" -exec contrib/removetrailingwhitespace {} \;
+find $PATHS -name "*.c" -exec contrib/removetrailingwhitespace.py {} \;
+find $PATHS -name "*.h" -exec contrib/removetrailingwhitespace.py {} \;
 if test -x "`which 'dos2unix'`"
 then
   find $PATHS -name "*.c" -exec dos2unix {} \;

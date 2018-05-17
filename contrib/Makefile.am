@@ -19,6 +19,7 @@ endif
 noinst_SCRIPTS = \
  terminate.py \
  pydiffer.py \
+ removetrailingwhitespace.py \
  gnunet_pyexpect.py \
  gnunet_janitor.py \
  gnunet-chk.py
@@ -52,6 +53,7 @@ EXTRA_DIST = \
  gnunet_pyexpect.py.in \
  gnunet_janitor.py.in \
  gnunet-chk.py.in \
+ removetrailingwhitespace.py.in \
  pydiffer.py.in \
  gnunet-gns-import.sh \
  openvpn-tap32/tapw32/tap0901.sys \
