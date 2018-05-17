@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     Copyright (C) 2002-2015 GNUnet e.V.
+     Copyright (C) 2018 GNUnet e.V.
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -16,35 +16,41 @@
      along with GNUnet; see the file COPYING.  If not, write to the
      Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
      Boston, MA 02110-1301, USA.
-
 */
+
 /**
- * @file util/test_crypto_ecdh_eddsa.c
- * @brief testcase for ECC DH key exchange with EdDSA private keys.
+ * @file util/crypto_bug.c
+ * @brief work around unidentified public key cryptography bug
  * @author Christian Grothoff
- * @author Bart Polot
  */
-#include "platform.h"
-#include "gnunet_util_lib.h"
-#include <gcrypt.h>
+
+/**
+ * Enable work-around.  Will cause code to call #check_eddsa_key() to
+ * see if we have a bad key, and if so, create a new one.
+ */
+#define CRYPTO_BUG 1
 
 
+#if CRYPTO_BUG
+/**
+ * Check if ECDH works with @a priv_dsa and this version
+ * of libgcrypt.
+ *
+ * @param priv_dsa key to check
+ * @return #GNUNET_OK if key passes
+ */
 static int
-test_ecdh()
+check_eddsa_key (const struct GNUNET_CRYPTO_EddsaPrivateKey *priv_dsa)
 {
-  struct GNUNET_CRYPTO_EddsaPrivateKey *priv_dsa;
   struct GNUNET_CRYPTO_EcdhePrivateKey *priv_ecdh;
   struct GNUNET_CRYPTO_EddsaPublicKey id1;
   struct GNUNET_CRYPTO_EcdhePublicKey id2;
   struct GNUNET_HashCode dh[2];
 
-  /* Generate keys */
-  priv_dsa = GNUNET_CRYPTO_eddsa_key_create ();
   GNUNET_CRYPTO_eddsa_key_get_public (priv_dsa,
                                       &id1);
-  for (unsigned int j=0;j<10;j++)
+  for (unsigned int j=0;j<4;j++)
   {
-    fprintf (stderr, ",");
     priv_ecdh = GNUNET_CRYPTO_ecdhe_key_create ();
     /* Extract public keys */
     GNUNET_CRYPTO_ecdhe_key_get_public (priv_ecdh,
@@ -59,38 +65,15 @@ test_ecdh()
                                              &id1,
                                              &dh[1]));
     /* Check that both DH results are equal. */
-    GNUNET_assert (0 == memcmp (&dh[0],
-                                &dh[1],
-                                sizeof (struct GNUNET_HashCode)));
+    if (0 != memcmp (&dh[0],
+                     &dh[1],
+                     sizeof (struct GNUNET_HashCode)))
+    {
+      GNUNET_break (0); /* bad EdDSA key! */
+      return GNUNET_SYSERR;
+    }
     GNUNET_free (priv_ecdh);
   }
-  GNUNET_free (priv_dsa);
-  return 0;
+  return GNUNET_OK;
 }
-
-
-int
-main (int argc, char *argv[])
-{
-  if (! gcry_check_version ("1.6.0"))
-  {
-    FPRINTF (stderr,
-             _("libgcrypt has not the expected version (version %s is required).\n"),
-             "1.6.0");
-    return 0;
-  }
-  if (getenv ("GNUNET_GCRYPT_DEBUG"))
-    gcry_control (GCRYCTL_SET_DEBUG_FLAGS, 1u, 0);
-  GNUNET_log_setup ("test-crypto-ecdh-eddsa", "WARNING", NULL);
-  for (unsigned int i=0;i<100;i++)
-  {
-    fprintf (stderr,
-             ".");
-    if (0 != test_ecdh())
-      return 1;
-  }
-  return 0;
-}
-
-
-/* end of test_crypto_ecdh_eddsa.c */
+#endif

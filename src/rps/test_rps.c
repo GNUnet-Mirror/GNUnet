@@ -2180,22 +2180,25 @@ void view_update_cb (void *cls,
          rps_peer->index,
          count_peer_in_views_2 (rps_peer->index));
   cumulated_view_sizes();
-  to_file ("/tmp/rps/repr.txt",
-         "%" PRIu64 /* index */
-         " %" PRIu32 /* occurrence in views */
-         " %" PRIu32 /* view sizes */
-         " %f" /* fraction of repr in views */
-         " %f" /* average view size */
-         " %f" /* prob of occurrence in view slot */
-         " %f" "", /* exp frac of repr in views */
-         rps_peer->index,
-         count_peer_in_views_2 (rps_peer->index),
-         view_sizes,
-         count_peer_in_views_2 (rps_peer->index) / (view_size * 1.0), /* fraction of representation in views */
-         view_sizes / (view_size * 1.0), /* average view size */
-         1.0 /view_size, /* prob of occurrence in view slot */
-         (1.0/view_size) * (view_sizes/view_size) /* expected fraction of repr in views */
-         );
+  if (0 != view_size)
+  {
+    to_file ("/tmp/rps/repr.txt",
+           "%" PRIu64 /* index */
+           " %" PRIu32 /* occurrence in views */
+           " %" PRIu32 /* view sizes */
+           " %f" /* fraction of repr in views */
+           " %f" /* average view size */
+           " %f" /* prob of occurrence in view slot */
+           " %f" "", /* exp frac of repr in views */
+           rps_peer->index,
+           count_peer_in_views_2 (rps_peer->index),
+           view_sizes,
+           count_peer_in_views_2 (rps_peer->index) / (view_size * 1.0), /* fraction of representation in views */
+           view_sizes / (view_size * 1.0), /* average view size */
+           1.0 /view_size, /* prob of occurrence in view slot */
+           (1.0/view_size) * (view_sizes/view_size) /* expected fraction of repr in views */
+           );
+  }
   compute_probabilities (rps_peer->index);
   all_views_updated_cb();
 }
@@ -2770,7 +2773,7 @@ main (int argc, char *argv[])
     cur_test_run.main_test = churn_test_cb;
     cur_test_run.reply_handle = default_reply_handle;
     cur_test_run.eval_cb = default_eval_cb;
-    cur_test_run.have_churn = HAVE_CHURN;
+    cur_test_run.have_churn = HAVE_NO_CHURN;
     cur_test_run.have_quick_quit = HAVE_NO_QUICK_QUIT;
     timeout = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10);
   }
@@ -2779,7 +2782,7 @@ main (int argc, char *argv[])
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "This is the profiler\n");
     cur_test_run.name = "test-rps-profiler";
-    num_peers = 10;
+    num_peers = 100;
     mal_type = 3;
     cur_test_run.init_peer = profiler_init_peer;
     //cur_test_run.pre_test = mal_pre;
@@ -2790,7 +2793,8 @@ main (int argc, char *argv[])
     cur_test_run.post_test = post_profiler;
     cur_test_run.request_interval = 2;
     cur_test_run.num_requests = 5;
-    cur_test_run.have_churn = HAVE_CHURN;
+    //cur_test_run.have_churn = HAVE_CHURN;
+    cur_test_run.have_churn = HAVE_NO_CHURN;
     cur_test_run.have_quick_quit = HAVE_NO_QUICK_QUIT;
     cur_test_run.have_collect_statistics = COLLECT_STATISTICS;
     cur_test_run.stat_collect_flags = STAT_TYPE_ROUNDS |

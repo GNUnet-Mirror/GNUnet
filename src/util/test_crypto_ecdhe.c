@@ -50,16 +50,21 @@ main (int argc, char *argv[])
     gcry_control (GCRYCTL_SET_DEBUG_FLAGS, 1u , 0);
   GNUNET_log_setup ("test-crypto-ecdhe", "WARNING", NULL);
 
-  priv1 = GNUNET_CRYPTO_ecdhe_key_create ();
-  priv2 = GNUNET_CRYPTO_ecdhe_key_create ();
-  GNUNET_CRYPTO_ecdhe_key_get_public (priv1, &pub1);
-  GNUNET_CRYPTO_ecdhe_key_get_public (priv2, &pub2);
-  GNUNET_CRYPTO_ecc_ecdh (priv1, &pub2, &ecdh1);
-  GNUNET_CRYPTO_ecc_ecdh (priv2, &pub1, &ecdh2);
-  GNUNET_assert (0 == memcmp (&ecdh1, &ecdh2,
-			      sizeof (struct GNUNET_HashCode)));
-  GNUNET_free (priv1);
-  GNUNET_free (priv2);
+  for (unsigned int i=0;i<100;i++)
+  {
+    fprintf (stderr,
+             ".");
+    priv1 = GNUNET_CRYPTO_ecdhe_key_create ();
+    priv2 = GNUNET_CRYPTO_ecdhe_key_create ();
+    GNUNET_CRYPTO_ecdhe_key_get_public (priv1, &pub1);
+    GNUNET_CRYPTO_ecdhe_key_get_public (priv2, &pub2);
+    GNUNET_CRYPTO_ecc_ecdh (priv1, &pub2, &ecdh1);
+    GNUNET_CRYPTO_ecc_ecdh (priv2, &pub1, &ecdh2);
+    GNUNET_assert (0 == memcmp (&ecdh1, &ecdh2,
+                                sizeof (struct GNUNET_HashCode)));
+    GNUNET_free (priv1);
+    GNUNET_free (priv2);
+  }
   return 0;
 }
 

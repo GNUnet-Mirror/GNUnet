@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     Copyright (C) 2013, 2017 GNUnet e.V.
+     Copyright (C) 2013, 2017, 2018 GNUnet e.V.
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -185,6 +185,12 @@ struct CadetTunnelAxolotl
    * ECDH Ratchet key (other peer's public key in the current DH).
    */
   struct GNUNET_CRYPTO_EcdhePublicKey DHRr;
+
+  /**
+   * Last ephemeral public key received from the other peer,
+   * for duplicate detection.
+   */
+  struct GNUNET_CRYPTO_EcdhePublicKey last_ephemeral;
 
   /**
    * Time when the current ratchet expires and a new one is triggered
@@ -450,6 +456,29 @@ struct CadetTunnel
   int kx_auth_requested;
 
 };
+
+
+/**
+ * Am I Alice or Bob, or talking to myself?
+ *
+ * @param other the other peer
+ * @return #GNUNET_YES for Alice, #GNUNET_NO for Bob, #GNUNET_SYSERR if talking to myself
+ */
+static int
+alice_or_bob (const struct GNUNET_PeerIdentity *other)
+{
+  if (0 > GNUNET_CRYPTO_cmp_peer_identity (&my_full_id,
+                                           other))
+    return GNUNET_YES;
+  else if (0 < GNUNET_CRYPTO_cmp_peer_identity (&my_full_id,
+                                                other))
+    return GNUNET_NO;
+  else
+  {
+    GNUNET_break_op (0);
+    return GNUNET_SYSERR;
+  }
+}
 
 
 /**
@@ -1318,6 +1347,8 @@ send_kx (struct CadetTunnel *t,
   struct GNUNET_CADET_TunnelKeyExchangeMessage *msg;
   enum GNUNET_CADET_KX_Flags flags;
 
+  if (GNUNET_YES != alice_or_bob (GCP_get_id (t->destination)))
+    return; /* only Alice may send KX */
   if ( (NULL == ct) ||
        (GNUNET_NO == ct->is_ready) )
     ct = get_ready_connection (t);
@@ -1331,11 +1362,6 @@ send_kx (struct CadetTunnel *t,
     return;
   }
   cc = ct->cc;
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Sending KX on %s via %s in state %s\n",
-       GCT_2s (t),
-       GCC_2s (cc),
-       estate2s (t->estate));
   env = GNUNET_MQ_msg (msg,
                        GNUNET_MESSAGE_TYPE_CADET_TUNNEL_KX);
   flags = GNUNET_CADET_KX_FLAG_FORCE_REPLY; /* always for KX */
@@ -1356,6 +1382,10 @@ send_kx (struct CadetTunnel *t,
                        CADET_TUNNEL_KEY_AX_SENT_AND_RECV);
   GCC_transmit (cc,
                 env);
+  GNUNET_STATISTICS_update (stats,
+                            "# KX transmitted",
+                            1,
+                            GNUNET_NO);
 }
 
 
@@ -1394,11 +1424,6 @@ send_kx_auth (struct CadetTunnel *t,
   }
   t->kx_auth_requested = GNUNET_NO; /* clear flag */
   cc = ct->cc;
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Sending KX_AUTH on %s using %s\n",
-       GCT_2s (t),
-       GCC_2s (ct->cc));
-
   env = GNUNET_MQ_msg (msg,
                        GNUNET_MESSAGE_TYPE_CADET_TUNNEL_KX_AUTH);
   flags = GNUNET_CADET_KX_FLAG_NONE;
@@ -1414,7 +1439,6 @@ send_kx_auth (struct CadetTunnel *t,
   GNUNET_CRYPTO_hash (&ax->RK,
                       sizeof (ax->RK),
                       &msg->auth);
-
   /* Compute when to be triggered again; actual job will
      be scheduled via #connection_ready_cb() */
   t->kx_retry_delay
@@ -1429,9 +1453,12 @@ send_kx_auth (struct CadetTunnel *t,
   if (CADET_TUNNEL_KEY_OK != t->estate)
     GCT_change_estate (t,
                        CADET_TUNNEL_KEY_AX_AUTH_SENT);
-
   GCC_transmit (cc,
                 env);
+  GNUNET_STATISTICS_update (stats,
+                            "# KX_AUTH transmitted",
+                            1,
+                            GNUNET_NO);
 }
 
 
@@ -1476,66 +1503,57 @@ update_ax_by_kx (struct CadetTunnelAxolotl *ax,
   const char salt[] = "CADET Axolotl salt";
   int am_I_alice;
 
-  if (0 > GNUNET_CRYPTO_cmp_peer_identity (&my_full_id,
-                                           pid))
-    am_I_alice = GNUNET_YES;
-  else if (0 < GNUNET_CRYPTO_cmp_peer_identity (&my_full_id,
-                                                pid))
-    am_I_alice = GNUNET_NO;
-  else
+  if (GNUNET_SYSERR == (am_I_alice = alice_or_bob (pid)))
   {
     GNUNET_break_op (0);
     return GNUNET_SYSERR;
   }
-
   if (0 == memcmp (&ax->DHRr,
                    ratchet_key,
                    sizeof (*ratchet_key)))
   {
+    GNUNET_STATISTICS_update (stats,
+                              "# Ratchet key already known",
+                              1,
+                              GNUNET_NO);
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Ratchet key already known. Ignoring KX.\n");
     return GNUNET_NO;
   }
 
   ax->DHRr = *ratchet_key;
-
+  ax->last_ephemeral = *ephemeral_key;
   /* ECDH A B0 */
   if (GNUNET_YES == am_I_alice)
   {
-    GNUNET_CRYPTO_eddsa_ecdh (my_private_key,      /* A */
-                              ephemeral_key, /* B0 */
+    GNUNET_CRYPTO_eddsa_ecdh (my_private_key,      /* a */
+                              ephemeral_key,       /* B0 */
                               &key_material[0]);
   }
   else
   {
-    GNUNET_CRYPTO_ecdh_eddsa (&ax->kx_0,            /* B0 */
-                              &pid->public_key,    /* A */
+    GNUNET_CRYPTO_ecdh_eddsa (&ax->kx_0,            /* b0 */
+                              &pid->public_key,     /* A */
                               &key_material[0]);
   }
-
   /* ECDH A0 B */
   if (GNUNET_YES == am_I_alice)
   {
-    GNUNET_CRYPTO_ecdh_eddsa (&ax->kx_0,            /* A0 */
-                              &pid->public_key,    /* B */
+    GNUNET_CRYPTO_ecdh_eddsa (&ax->kx_0,            /* a0 */
+                              &pid->public_key,     /* B */
                               &key_material[1]);
   }
   else
   {
-    GNUNET_CRYPTO_eddsa_ecdh (my_private_key,      /* A */
-                              ephemeral_key, /* B0 */
+    GNUNET_CRYPTO_eddsa_ecdh (my_private_key,      /* b  */
+                              ephemeral_key,       /* A0 */
                               &key_material[1]);
-
-
   }
 
   /* ECDH A0 B0 */
-  /* (This is the triple-DH, we could probably safely skip this,
-     as A0/B0 are already in the key material.) */
-  GNUNET_CRYPTO_ecc_ecdh (&ax->kx_0,             /* A0 or B0 */
-                          ephemeral_key,  /* B0 or A0 */
+  GNUNET_CRYPTO_ecc_ecdh (&ax->kx_0,             /* a0 or b0 */
+                          ephemeral_key,         /* B0 or A0 */
                           &key_material[2]);
-
   /* KDF */
   GNUNET_CRYPTO_kdf (keys, sizeof (keys),
                      salt, sizeof (salt),
@@ -1547,7 +1565,11 @@ update_ax_by_kx (struct CadetTunnelAxolotl *ax,
                    sizeof (ax->RK)))
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Root key of handshake already known. Ignoring KX.\n");
+         "Root key already known. Ignoring KX.\n");
+    GNUNET_STATISTICS_update (stats,
+                              "# Root key already known",
+                              1,
+                              GNUNET_NO);
     return GNUNET_NO;
   }
 
@@ -1592,75 +1614,75 @@ retry_kx (void *cls)
        GCT_2s (t),
        estate2s (t->estate));
   switch (t->estate)
-  {
-  case CADET_TUNNEL_KEY_UNINITIALIZED: /* first attempt */
-  case CADET_TUNNEL_KEY_AX_SENT:       /* trying again */
-    send_kx (t,
-             NULL,
-             &t->ax);
-    break;
-  case CADET_TUNNEL_KEY_AX_RECV:
-  case CADET_TUNNEL_KEY_AX_SENT_AND_RECV:
-    /* We are responding, so only require reply
-       if WE have a channel waiting. */
-    if (NULL != t->unverified_ax)
     {
-      /* Send AX_AUTH so we might get this one verified */
-      ax = t->unverified_ax;
+    case CADET_TUNNEL_KEY_UNINITIALIZED: /* first attempt */
+    case CADET_TUNNEL_KEY_AX_SENT:       /* trying again */
+      send_kx (t,
+               NULL,
+               &t->ax);
+      break;
+    case CADET_TUNNEL_KEY_AX_RECV:
+    case CADET_TUNNEL_KEY_AX_SENT_AND_RECV:
+      /* We are responding, so only require reply
+         if WE have a channel waiting. */
+      if (NULL != t->unverified_ax)
+        {
+          /* Send AX_AUTH so we might get this one verified */
+          ax = t->unverified_ax;
+        }
+      else
+        {
+          /* How can this be? */
+          GNUNET_break (0);
+          ax = &t->ax;
+        }
+      send_kx_auth (t,
+                    NULL,
+                    ax,
+                    (0 == GCT_count_channels (t))
+                    ? GNUNET_NO
+                    : GNUNET_YES);
+      break;
+    case CADET_TUNNEL_KEY_AX_AUTH_SENT:
+      /* We are responding, so only require reply
+         if WE have a channel waiting. */
+      if (NULL != t->unverified_ax)
+        {
+          /* Send AX_AUTH so we might get this one verified */
+          ax = t->unverified_ax;
+        }
+      else
+        {
+          /* How can this be? */
+          GNUNET_break (0);
+          ax = &t->ax;
+        }
+      send_kx_auth (t,
+                    NULL,
+                    ax,
+                    (0 == GCT_count_channels (t))
+                    ? GNUNET_NO
+                    : GNUNET_YES);
+      break;
+    case CADET_TUNNEL_KEY_OK:
+      /* Must have been the *other* peer asking us to
+         respond with a KX_AUTH. */
+      if (NULL != t->unverified_ax)
+        {
+          /* Sending AX_AUTH in response to AX so we might get this one verified */
+          ax = t->unverified_ax;
+        }
+      else
+        {
+          /* Sending AX_AUTH in response to AX_AUTH */
+          ax = &t->ax;
+        }
+      send_kx_auth (t,
+                    NULL,
+                    ax,
+                    GNUNET_NO);
+      break;
     }
-    else
-    {
-      /* How can this be? */
-      GNUNET_break (0);
-      ax = &t->ax;
-    }
-    send_kx_auth (t,
-                  NULL,
-                  ax,
-                  (0 == GCT_count_channels (t))
-                  ? GNUNET_NO
-                  : GNUNET_YES);
-    break;
-  case CADET_TUNNEL_KEY_AX_AUTH_SENT:
-    /* We are responding, so only require reply
-       if WE have a channel waiting. */
-    if (NULL != t->unverified_ax)
-    {
-      /* Send AX_AUTH so we might get this one verified */
-      ax = t->unverified_ax;
-    }
-    else
-    {
-      /* How can this be? */
-      GNUNET_break (0);
-      ax = &t->ax;
-    }
-    send_kx_auth (t,
-                  NULL,
-                  ax,
-                  (0 == GCT_count_channels (t))
-                  ? GNUNET_NO
-                  : GNUNET_YES);
-    break;
-  case CADET_TUNNEL_KEY_OK:
-    /* Must have been the *other* peer asking us to
-       respond with a KX_AUTH. */
-    if (NULL != t->unverified_ax)
-    {
-      /* Sending AX_AUTH in response to AX so we might get this one verified */
-      ax = t->unverified_ax;
-    }
-    else
-    {
-      /* Sending AX_AUTH in response to AX_AUTH */
-      ax = &t->ax;
-    }
-    send_kx_auth (t,
-                  NULL,
-                  ax,
-                  GNUNET_NO);
-    break;
-  }
 }
 
 
@@ -1677,76 +1699,110 @@ GCT_handle_kx (struct CadetTConnection *ct,
                const struct GNUNET_CADET_TunnelKeyExchangeMessage *msg)
 {
   struct CadetTunnel *t = ct->t;
-  struct CadetTunnelAxolotl *ax;
   int ret;
 
-  if (0 ==
-      memcmp (&t->ax.DHRr,
-              &msg->ratchet_key,
-              sizeof (msg->ratchet_key)))
+  GNUNET_STATISTICS_update (stats,
+                            "# KX received",
+                            1,
+                            GNUNET_NO);
+  if (GNUNET_YES == alice_or_bob (GCP_get_id (t->destination)))
   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Got duplicate KX. Firing back KX_AUTH.\n");
-    send_kx_auth (t,
-                  ct,
-                  &t->ax,
-                  GNUNET_NO);
+    /* Bob is not allowed to send KX! */
+    GNUNET_break_op (0);
     return;
   }
+#if 1
+  if ( (0 ==
+        memcmp (&t->ax.DHRr,
+                &msg->ratchet_key,
+                sizeof (msg->ratchet_key))) &&
+       (0 ==
+        memcmp (&t->ax.last_ephemeral,
+                &msg->ephemeral_key,
+                sizeof (msg->ephemeral_key))) )
 
+    {
+      GNUNET_STATISTICS_update (stats,
+                                "# Duplicate KX received",
+                                1,
+                                GNUNET_NO);
+      send_kx_auth (t,
+                    ct,
+                    &t->ax,
+                    GNUNET_NO);
+      return;
+    }
+#endif
   /* We only keep ONE unverified KX around, so if there is an existing one,
      clean it up. */
   if (NULL != t->unverified_ax)
   {
-    if (0 ==
-        memcmp (&t->unverified_ax->DHRr,
-                &msg->ratchet_key,
-                sizeof (msg->ratchet_key)))
+    if ( (0 ==
+          memcmp (&t->unverified_ax->DHRr,
+                  &msg->ratchet_key,
+                  sizeof (msg->ratchet_key))) &&
+         (0 ==
+          memcmp (&t->unverified_ax->last_ephemeral,
+                  &msg->ephemeral_key,
+                  sizeof (msg->ephemeral_key))) )
     {
-      LOG (GNUNET_ERROR_TYPE_DEBUG,
-           "Got duplicate unverified KX on %s. Fire back KX_AUTH again.\n",
-           GCT_2s (t));
+      GNUNET_STATISTICS_update (stats,
+                                "# Duplicate unverified KX received",
+                                1,
+                                GNUNET_NO);
+#if 1
       send_kx_auth (t,
                     ct,
                     t->unverified_ax,
                     GNUNET_NO);
       return;
+#endif
     }
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Dropping old unverified KX state. Got a fresh KX for %s.\n",
-         GCT_2s (t));
+         "Dropping old unverified KX state.\n");
+    GNUNET_STATISTICS_update (stats,
+                              "# Unverified KX dropped for fresh KX",
+                              1,
+                              GNUNET_NO);
+    GNUNET_break (NULL == t->unverified_ax->skipped_head);
     memset (t->unverified_ax,
             0,
             sizeof (struct CadetTunnelAxolotl));
-    t->unverified_ax->DHRs = t->ax.DHRs;
-    t->unverified_ax->kx_0 = t->ax.kx_0;
   }
   else
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Creating fresh unverified KX for %s.\n",
+         "Creating fresh unverified KX for %s\n",
          GCT_2s (t));
+    GNUNET_STATISTICS_update (stats,
+                              "# Fresh KX setup",
+                              1,
+                              GNUNET_NO);
     t->unverified_ax = GNUNET_new (struct CadetTunnelAxolotl);
-    t->unverified_ax->DHRs = t->ax.DHRs;
-    t->unverified_ax->kx_0 = t->ax.kx_0;
   }
   /* Set as the 'current' RK/DHRr the one we are currently using,
      so that the duplicate-detection logic of
      #update_ax_by_kx can work. */
   t->unverified_ax->RK = t->ax.RK;
   t->unverified_ax->DHRr = t->ax.DHRr;
+  t->unverified_ax->DHRs = t->ax.DHRs;
+  t->unverified_ax->kx_0 = t->ax.kx_0;
   t->unverified_attempts = 0;
-  ax = t->unverified_ax;
 
   /* Update 'ax' by the new key material */
-  ret = update_ax_by_kx (ax,
+  ret = update_ax_by_kx (t->unverified_ax,
                          GCP_get_id (t->destination),
                          &msg->ephemeral_key,
                          &msg->ratchet_key);
   GNUNET_break (GNUNET_SYSERR != ret);
   if (GNUNET_OK != ret)
+  {
+    GNUNET_STATISTICS_update (stats,
+                              "# Useless KX",
+                              1,
+                              GNUNET_NO);
     return; /* duplicate KX, nothing to do */
-
+  }
   /* move ahead in our state machine */
   if (CADET_TUNNEL_KEY_UNINITIALIZED == t->estate)
     GCT_change_estate (t,
@@ -1782,6 +1838,10 @@ GCT_handle_kx_auth (struct CadetTConnection *ct,
   struct GNUNET_HashCode kx_auth;
   int ret;
 
+  GNUNET_STATISTICS_update (stats,
+                            "# KX_AUTH received",
+                            1,
+                            GNUNET_NO);
   if ( (CADET_TUNNEL_KEY_UNINITIALIZED == t->estate) ||
        (CADET_TUNNEL_KEY_AX_RECV == t->estate) )
   {
@@ -1794,7 +1854,6 @@ GCT_handle_kx_auth (struct CadetTConnection *ct,
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Handling KX_AUTH message for %s\n",
        GCT_2s (t));
-
   /* We do everything in ax_tmp until we've checked the authentication
      so we don't clobber anything we care about by accident. */
   ax_tmp = t->ax;
@@ -1828,9 +1887,13 @@ GCT_handle_kx_auth (struct CadetTConnection *ct,
                               "# KX_AUTH not using our last KX received (auth failure)",
                               1,
                               GNUNET_NO);
-    send_kx (t,
-             ct,
-             &t->ax);
+    LOG (GNUNET_ERROR_TYPE_WARNING,
+         "KX AUTH missmatch!\n");
+    if (NULL == t->kx_task)
+      t->kx_task
+        = GNUNET_SCHEDULER_add_at (t->next_kx_attempt,
+                                   &retry_kx,
+                                   t);
     return;
   }
   /* Yep, we're good. */

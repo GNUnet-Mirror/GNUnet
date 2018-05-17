@@ -4,3 +4,4 @@ gnunet-dns-redirector
 gnunet-helper-dns
 test_hexcoder
 gnunet-zoneimport
+gnunet-zonewalk

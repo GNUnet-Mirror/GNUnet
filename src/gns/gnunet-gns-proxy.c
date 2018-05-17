@@ -1801,6 +1801,23 @@ create_response (void *cls,
       curl_easy_setopt (s5r->curl, CURLOPT_WRITEDATA, s5r);
       curl_easy_setopt (s5r->curl, CURLOPT_READFUNCTION, &curl_upload_cb);
       curl_easy_setopt (s5r->curl, CURLOPT_READDATA, s5r);
+      {
+        const char *us;
+        long upload_size;
+
+        us = MHD_lookup_connection_value (con,
+                                          MHD_HEADER_KIND,
+                                          MHD_HTTP_HEADER_CONTENT_LENGTH);
+        if ( (1 == sscanf (us,
+                           "%ld",
+                           &upload_size)) &&
+             (upload_size >= 0) )
+        {
+          curl_easy_setopt (s5r->curl,
+                            CURLOPT_INFILESIZE,
+                            upload_size);
+        }
+      }
     }
     else if (0 == strcasecmp (meth, MHD_HTTP_METHOD_POST))
     {
@@ -1810,6 +1827,23 @@ create_response (void *cls,
       curl_easy_setopt (s5r->curl, CURLOPT_WRITEDATA, s5r);
       curl_easy_setopt (s5r->curl, CURLOPT_READFUNCTION, &curl_upload_cb);
       curl_easy_setopt (s5r->curl, CURLOPT_READDATA, s5r);
+      {
+        const char *us;
+        long upload_size;
+
+        us = MHD_lookup_connection_value (con,
+                                          MHD_HEADER_KIND,
+                                          MHD_HTTP_HEADER_CONTENT_LENGTH);
+        if ( (1 == sscanf (us,
+                           "%ld",
+                           &upload_size)) &&
+             (upload_size >= 0) )
+        {
+          curl_easy_setopt (s5r->curl,
+                            CURLOPT_INFILESIZE,
+                            upload_size);
+        }
+      }
     }
     else if (0 == strcasecmp (meth, MHD_HTTP_METHOD_HEAD))
     {
