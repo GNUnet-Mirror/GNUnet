@@ -21,7 +21,7 @@ from __future__ import absolute_import
 from __future__ import print_function
 import argparse
 import random
-from math import ceil,log,floor
+from math import ceil, log, floor
 
 
 def bsc(n):
@@ -57,7 +57,7 @@ def simulate(k, n, verbose):
     arc = 1
     while arc <= largest_arc:
       if verbose:
-        prin( "-- subround --")
+        print("-- subround --")
       new_info = [x for x in info]
       for peer_physical in xrange(n):
         peer_logical = peers[peer_physical]
@@ -71,7 +71,7 @@ def simulate(k, n, verbose):
         if peer_logical & arc == 0:
           # we are outgoing
           if verbose:
-            print peer_physical, "connects to", partner_physical
+            print(peer_physical, "connects to", partner_physical)
           peer_type = "outgoing"
           if peer_logical < num_ghosts:
             # we have a ghost, check if the peer who connects
@@ -86,7 +86,7 @@ def simulate(k, n, verbose):
         if verbose > 1:
           print("type of", str(peer_physical) + ":", peer_type)
       info = new_info
-      arc = arc << 1;
+      arc = arc << 1
     rounds = rounds + 1
     random.shuffle(peers)
   return rounds
@@ -100,7 +100,7 @@ if __name__ == "__main__":
   parser.add_argument('--verbose', '-v', action='count')
 
   args = parser.parse_args()
-  sum = 0.0;
-  for n in xrange (0, args.r):
+  sum = 0.0
+  for n in xrange(0, args.r):
     sum += simulate(args.k, args.n, args.verbose)
   print(sum / args.r)
