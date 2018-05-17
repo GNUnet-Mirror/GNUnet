@@ -1,6 +1,7 @@
 ;;;; hacks.el --- a few functions to help me work on the manual
 ;;;; Jim Blandy <jimb@red-bean.com> --- October 1998
 ;;;; -- imported from https://git.savannah.gnu.org/cgit/guile.git/tree/doc/hacks.el
+;;;; This code should be covered by the same license as GNU Guile (GPL3).
 
 (defun jh-exemplify-region (start end)
   (interactive "r")
