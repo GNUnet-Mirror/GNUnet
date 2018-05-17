@@ -20,7 +20,8 @@ noinst_SCRIPTS = \
  terminate.py \
  pydiffer.py \
  gnunet_pyexpect.py \
- gnunet_janitor.py
+ gnunet_janitor.py \
+ gnunet-chk.py
 
 dist_pkgdata_DATA = \
  gns-bcd.html \
@@ -50,6 +51,7 @@ EXTRA_DIST = \
  terminate.py.in \
  gnunet_pyexpect.py.in \
  gnunet_janitor.py.in \
+ gnunet-chk.py.in \
  pydiffer.py.in \
  gnunet-gns-import.sh \
  openvpn-tap32/tapw32/tap0901.sys \
