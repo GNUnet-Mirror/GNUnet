@@ -52,6 +52,9 @@
 #define LOG_GCRY(level, cmd, rc) do { LOG(level, _("`%s' failed at %s:%d with error: %s\n"), cmd, __FILE__, __LINE__, gcry_strerror(rc)); } while(0)
 
 
+#include "crypto_bug.c"
+
+
 /**
  * Extract values from an S-expression.
  *
@@ -455,7 +458,7 @@ GNUNET_CRYPTO_eddsa_public_key_from_string (const char *enc,
 int
 GNUNET_CRYPTO_eddsa_private_key_from_string (const char *enc,
                                              size_t enclen,
-                                             struct GNUNET_CRYPTO_EddsaPrivateKey *pub)
+                                             struct GNUNET_CRYPTO_EddsaPrivateKey *priv)
 {
   size_t keylen = (sizeof (struct GNUNET_CRYPTO_EddsaPrivateKey)) * 8;
 
@@ -465,10 +468,19 @@ GNUNET_CRYPTO_eddsa_private_key_from_string (const char *enc,
   if (enclen != keylen)
     return GNUNET_SYSERR;
 
-  if (GNUNET_OK != GNUNET_STRINGS_string_to_data (enc, enclen,
-						  pub,
-						  sizeof (struct GNUNET_CRYPTO_EddsaPrivateKey)))
+  if (GNUNET_OK !=
+      GNUNET_STRINGS_string_to_data (enc, enclen,
+                                     priv,
+                                     sizeof (struct GNUNET_CRYPTO_EddsaPrivateKey)))
     return GNUNET_SYSERR;
+#if CRYPTO_BUG
+  if (GNUNET_OK !=
+      check_eddsa_key (priv))
+  {
+    GNUNET_break (0);
+    return GNUNET_OK;
+  }
+#endif
   return GNUNET_OK;
 }
 
@@ -651,6 +663,9 @@ GNUNET_CRYPTO_eddsa_key_create ()
   gcry_mpi_t d;
   int rc;
 
+#if CRYPTO_BUG
+ again:
+#endif
   if (0 != (rc = gcry_sexp_build (&s_keyparam, NULL,
                                   "(genkey(ecc(curve \"" CURVE "\")"
                                   "(flags eddsa)))")))
@@ -683,6 +698,17 @@ GNUNET_CRYPTO_eddsa_key_create ()
   priv = GNUNET_new (struct GNUNET_CRYPTO_EddsaPrivateKey);
   GNUNET_CRYPTO_mpi_print_unsigned (priv->d, sizeof (priv->d), d);
   gcry_mpi_release (d);
+
+#if CRYPTO_BUG
+  if (GNUNET_OK !=
+      check_eddsa_key (priv))
+  {
+    GNUNET_break (0);
+    GNUNET_free (priv);
+    goto again;
+  }
+#endif
+
   return priv;
 }
 

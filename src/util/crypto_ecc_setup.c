@@ -41,6 +41,9 @@
 #define LOG_GCRY(level, cmd, rc) do { LOG(level, _("`%s' failed at %s:%d with error: %s\n"), cmd, __FILE__, __LINE__, gcry_strerror(rc)); } while(0)
 
 
+#include "crypto_bug.c"
+
+
 /**
  * Wait for a short time (we're trying to lock a file or want
  * to give another process a shot at finishing a disk write, etc.).
@@ -221,6 +224,15 @@ GNUNET_CRYPTO_eddsa_key_create_from_file (const char *filename)
 		       filename);
   GNUNET_assert (GNUNET_YES ==
 		 GNUNET_DISK_file_close (fd));
+#if CRYPTO_BUG
+  if (GNUNET_OK !=
+      check_eddsa_key (priv))
+  {
+    GNUNET_break (0);
+    GNUNET_free (priv);
+    return NULL;
+  }
+#endif
   return priv;
 }
 
@@ -248,7 +260,7 @@ GNUNET_CRYPTO_ecdsa_key_create_from_file (const char *filename)
   int ec;
   uint64_t fs;
   ssize_t sret;
-  
+
   if (GNUNET_SYSERR ==
       GNUNET_DISK_directory_create_for_file (filename))
     return NULL;

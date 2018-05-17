@@ -1889,9 +1889,11 @@ GCT_handle_kx_auth (struct CadetTConnection *ct,
                               GNUNET_NO);
     LOG (GNUNET_ERROR_TYPE_WARNING,
          "KX AUTH missmatch!\n");
-    send_kx (t,
-             ct,
-             &t->ax);
+    if (NULL == t->kx_task)
+      t->kx_task
+        = GNUNET_SCHEDULER_add_at (t->next_kx_attempt,
+                                   &retry_kx,
+                                   t);
     return;
   }
   /* Yep, we're good. */
