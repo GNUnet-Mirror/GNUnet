@@ -35,6 +35,8 @@ SUFFIXES = .py.in .py
 	$(do_subst) < $< > $@
 	chmod +x $@
 
+check-python-style:
+	flake8 consensus-simulation.py.in
 
 lib_LTLIBRARIES = \
   libgnunetconsensus.la
