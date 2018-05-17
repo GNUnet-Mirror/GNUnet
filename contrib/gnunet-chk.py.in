@@ -192,6 +192,8 @@ class Chk:
     def setSize(self, size):
         self.fsize = size
 
+    # 2to3-3.5 suggests to change the code below to:
+    # if isinstance (self.fsize, int):
     def uri(self):
         sizestr = repr(self.fsize)
         if isinstance(self.fsize, long):
@@ -367,7 +369,7 @@ Options:
 if '__main__' == __name__:
     try:
         opts, args = getopt.getopt(sys.argv[1:], "h", ["help"])
-    except getopt.GetoptError, err:
+    except getopt.GetoptError as err:
         print(err)
         print("Exception occured")
         usage()
@@ -380,4 +382,4 @@ if '__main__' == __name__:
         print("Incorrect number of arguments passed")
         usage()
         sys.exit(1)
-    print chkuri_from_path(args[0])
+    print(chkuri_from_path(args[0]))
