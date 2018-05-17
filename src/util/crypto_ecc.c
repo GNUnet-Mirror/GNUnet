@@ -1279,6 +1279,48 @@ eddsa_d_to_a (gcry_mpi_t d)
 
 
 /**
+ * Take point from ECDH and convert it to key material.
+ *
+ * @param result point from ECDH
+ * @param ctx ECC context
+ * @param key_material[out] set to derived key material
+ * @return #GNUNET_OK on success
+ */
+static int
+point_to_hash (gcry_mpi_point_t result,
+               gcry_ctx_t ctx,
+               struct GNUNET_HashCode *key_material)
+{
+  gcry_mpi_t result_x;
+  unsigned char xbuf[256 / 8];
+  size_t rsize;
+
+  /* finally, convert point to string for hashing */
+  result_x = gcry_mpi_new (256);
+  if (gcry_mpi_ec_get_affine (result_x, NULL, result, ctx))
+  {
+    LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "get_affine failed", 0);
+    return GNUNET_SYSERR;
+  }
+
+  rsize = sizeof (xbuf);
+  GNUNET_assert (! gcry_mpi_get_flag (result_x, GCRYMPI_FLAG_OPAQUE));
+  /* result_x can be negative here, so we do not use 'GNUNET_CRYPTO_mpi_print_unsigned'
+     as that does not include the sign bit; x should be a 255-bit
+     value, so with the sign it should fit snugly into the 256-bit
+     xbuf */
+  GNUNET_assert (0 ==
+                 gcry_mpi_print (GCRYMPI_FMT_STD, xbuf, rsize, &rsize,
+                                 result_x));
+  GNUNET_CRYPTO_hash (xbuf,
+                      rsize,
+                      key_material);
+  gcry_mpi_release (result_x);
+  return GNUNET_OK;
+}
+
+
+/**
  * @ingroup crypto
  * Derive key material from a ECDH public key and a private EdDSA key.
  * Dual to #GNUNET_CRRYPTO_ecdh_eddsa.
@@ -1299,9 +1341,7 @@ GNUNET_CRYPTO_eddsa_ecdh (const struct GNUNET_CRYPTO_EddsaPrivateKey *priv,
   gcry_mpi_t a;
   gcry_ctx_t ctx;
   gcry_sexp_t pub_sexpr;
-  gcry_mpi_t result_x;
-  unsigned char xbuf[256 / 8];
-  size_t rsize;
+  int ret;
 
   /* first, extract the q = dP value from the public key */
   if (0 != gcry_sexp_build (&pub_sexpr, NULL,
@@ -1325,33 +1365,14 @@ GNUNET_CRYPTO_eddsa_ecdh (const struct GNUNET_CRYPTO_EddsaPrivateKey *priv,
   gcry_mpi_point_release (q);
   gcry_mpi_release (a);
 
-  /* finally, convert point to string for hashing */
-  result_x = gcry_mpi_new (256);
-  if (gcry_mpi_ec_get_affine (result_x, NULL, result, ctx))
-  {
-    LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "get_affine failed", 0);
-    gcry_mpi_point_release (result);
-    gcry_ctx_release (ctx);
-    return GNUNET_SYSERR;
-  }
+  ret = point_to_hash (result,
+                       ctx,
+                       key_material);
   gcry_mpi_point_release (result);
   gcry_ctx_release (ctx);
-
-  rsize = sizeof (xbuf);
-  GNUNET_assert (! gcry_mpi_get_flag (result_x, GCRYMPI_FLAG_OPAQUE));
-  /* result_x can be negative here, so we do not use 'GNUNET_CRYPTO_mpi_print_unsigned'
-     as that does not include the sign bit; x should be a 255-bit
-     value, so with the sign it should fit snugly into the 256-bit
-     xbuf */
-  GNUNET_assert (0 ==
-                 gcry_mpi_print (GCRYMPI_FMT_STD, xbuf, rsize, &rsize,
-                                 result_x));
-  GNUNET_CRYPTO_hash (xbuf,
-                      rsize,
-                      key_material);
-  gcry_mpi_release (result_x);
-  return GNUNET_OK;
+  return ret;
 }
+
 
 /**
  * @ingroup crypto
@@ -1373,9 +1394,7 @@ GNUNET_CRYPTO_ecdsa_ecdh (const struct GNUNET_CRYPTO_EcdsaPrivateKey *priv,
   gcry_mpi_t d;
   gcry_ctx_t ctx;
   gcry_sexp_t pub_sexpr;
-  gcry_mpi_t result_x;
-  unsigned char xbuf[256 / 8];
-  size_t rsize;
+  int ret;
 
   /* first, extract the q = dP value from the public key */
   if (0 != gcry_sexp_build (&pub_sexpr, NULL,
@@ -1396,31 +1415,12 @@ GNUNET_CRYPTO_ecdsa_ecdh (const struct GNUNET_CRYPTO_EcdsaPrivateKey *priv,
   gcry_mpi_release (d);
 
   /* finally, convert point to string for hashing */
-  result_x = gcry_mpi_new (256);
-  if (gcry_mpi_ec_get_affine (result_x, NULL, result, ctx))
-  {
-    LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "get_affine failed", 0);
-    gcry_mpi_point_release (result);
-    gcry_ctx_release (ctx);
-    return GNUNET_SYSERR;
-  }
+  ret = point_to_hash (result,
+                       ctx,
+                       key_material);
   gcry_mpi_point_release (result);
   gcry_ctx_release (ctx);
-
-  rsize = sizeof (xbuf);
-  GNUNET_assert (! gcry_mpi_get_flag (result_x, GCRYMPI_FLAG_OPAQUE));
-  /* result_x can be negative here, so we do not use 'GNUNET_CRYPTO_mpi_print_unsigned'
-     as that does not include the sign bit; x should be a 255-bit
-     value, so with the sign it should fit snugly into the 256-bit
-     xbuf */
-  GNUNET_assert (0 ==
-                 gcry_mpi_print (GCRYMPI_FMT_STD, xbuf, rsize, &rsize,
-                                 result_x));
-  GNUNET_CRYPTO_hash (xbuf,
-                      rsize,
-                      key_material);
-  gcry_mpi_release (result_x);
-  return GNUNET_OK;
+  return ret;
 }
 
 
@@ -1445,9 +1445,7 @@ GNUNET_CRYPTO_ecdh_eddsa (const struct GNUNET_CRYPTO_EcdhePrivateKey *priv,
   gcry_mpi_t d;
   gcry_ctx_t ctx;
   gcry_sexp_t pub_sexpr;
-  gcry_mpi_t result_x;
-  unsigned char xbuf[256 / 8];
-  size_t rsize;
+  int ret;
 
   /* first, extract the q = dP value from the public key */
   if (0 != gcry_sexp_build (&pub_sexpr, NULL,
@@ -1468,31 +1466,12 @@ GNUNET_CRYPTO_ecdh_eddsa (const struct GNUNET_CRYPTO_EcdhePrivateKey *priv,
   gcry_mpi_release (d);
 
   /* finally, convert point to string for hashing */
-  result_x = gcry_mpi_new (256);
-  if (gcry_mpi_ec_get_affine (result_x, NULL, result, ctx))
-  {
-    LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "get_affine failed", 0);
-    gcry_mpi_point_release (result);
-    gcry_ctx_release (ctx);
-    return GNUNET_SYSERR;
-  }
+  ret = point_to_hash (result,
+                       ctx,
+                       key_material);
   gcry_mpi_point_release (result);
   gcry_ctx_release (ctx);
-
-  rsize = sizeof (xbuf);
-  GNUNET_assert (! gcry_mpi_get_flag (result_x, GCRYMPI_FLAG_OPAQUE));
-  /* result_x can be negative here, so we do not use 'GNUNET_CRYPTO_mpi_print_unsigned'
-     as that does not include the sign bit; x should be a 255-bit
-     value, so with the sign it should fit snugly into the 256-bit
-     xbuf */
-  GNUNET_assert (0 ==
-                 gcry_mpi_print (GCRYMPI_FMT_STD, xbuf, rsize, &rsize,
-                                 result_x));
-  GNUNET_CRYPTO_hash (xbuf,
-                      rsize,
-                      key_material);
-  gcry_mpi_release (result_x);
-  return GNUNET_OK;
+  return ret;
 }
 
 /**

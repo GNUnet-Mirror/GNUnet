@@ -80,6 +80,8 @@ main (int argc, char *argv[])
   GNUNET_log_setup ("test-crypto-ecdh-eddsa", "WARNING", NULL);
   for (unsigned int i=0;i<10000;i++)
   {
+    fprintf (stderr,
+             ".");
     if (0 != test_ecdh())
       return 1;
   }
