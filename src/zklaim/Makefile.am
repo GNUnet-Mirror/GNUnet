@@ -18,14 +18,5 @@ gnunet_zklaim_SOURCES = \
 gnunet_zklaim_LDFLAGS = -rdynamic
 gnunet_zklaim_LDADD = \
  -lzklaim \
- -lgcrypt \
- -lsnark \
- -lff \
- -lgmp \
- -lgmpxx \
- -lcrypto \
- -lprocps \
- -lzm \
- -lstdc++ \
- -lm
+ -lgcrypt 
 
