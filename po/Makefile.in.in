@@ -76,10 +76,16 @@ POTFILES = \
 
 CATALOGS = @CATALOGS@
 
+do_perl_subst = $(SED) -e 's,[@]PERL[@],$(PERL),g'
+
 # Makevars gets inserted here. (Don't remove this line!)
 
 .SUFFIXES:
-.SUFFIXES: .po .gmo .mo .sed .sin .nop .po-create .po-update
+.SUFFIXES: .po .gmo .mo .sed .sin .nop .po-create .po-update .pl.in .pl
+
+.pl.in.pl:
+	$(do_perl_subst) < $< > $@
+	chmod +x $@
 
 .po.mo:
 	@echo "$(MSGFMT) -c -o $@ $<"; \

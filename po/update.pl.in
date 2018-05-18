@@ -1,4 +1,4 @@
-#!/usr/bin/perl -w
+#!@PERL@ -w
 
 #  GNOME po update utility.
 #  (C) 2000 The Free Software Foundation
