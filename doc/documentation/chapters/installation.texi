@@ -19,6 +19,7 @@ it in the form of new chapters or insightful comments.
 * Build instructions for Debian 7.5::
 * Installing GNUnet from Git on Ubuntu 14.4::
 * Build instructions for Debian 8::
+* Build instructions for macOS::
 @c * Build instructions for OpenBSD 6.2::
 * Outdated build instructions for previous revisions::
 @c * Portable GNUnet::
@@ -1471,6 +1472,59 @@ Thus, you will need to install and configure those databases or stick
 with the default Sqlite database. Sqlite is usually fine for most
 applications, but MySQL can offer better performance and Postgres better
 resillience.
+
+@node Build instructions for macOS
+@section Build instructions for macOS
+@c FIXME: I -> we
+
+These are the installation guidelines for macOS.
+They were tested on macOS High Sierra.
+
+@menu
+* Installing dependencies::
+* Compile from Source::
+@end menu
+
+@node Installing dependencies
+@subsection Installing dependencies
+
+First, install XCode in the newest version.
+See https://developer.apple.com/xcode/.
+
+Install Homebrew (https://brew.sh) and then install the dependencies listed above.
+If a dependency does not exists in brew, you need to compile it from source.
+
+@example
+# brew install <dependency>
+@end example
+
+@node Compile from Source
+@subsection Compile from Source
+
+Before you start building GNUnet, you need to setup your environment.
+This means that you have to make sure the proper tools are used in the build process.
+For example, after installing texinfo you need to make sure the new texinfo is actually used:
+
+@example
+# echo 'export PATH="/usr/local/opt/texinfo/bin:$PATH"' >> ~/.bash_profile 
+@end example
+
+Note: brew tells you the appropriate command when executing
+
+@example
+# brew info texinfo
+@end example
+
+This may also be necessary for the gettext package.
+
+Before you start compiling, you need to make sure gcc is used and not the clang compile of your macOS system.
+On my system, gcc was actually ``gcc-7'' and gcc pointed to the clang compiler.
+
+@example
+# export CC=gcc-7
+@end example
+
+After this the standard compile instructions apply.
 
 @c @node Build instructions for OpenBSD 6.2
 @c @section Build instructions for OpenBSD 6.2
