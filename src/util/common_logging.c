@@ -1344,14 +1344,15 @@ GNUNET_h2s_full (const struct GNUNET_HashCode * hc)
 const char *
 GNUNET_i2s (const struct GNUNET_PeerIdentity *pid)
 {
-  static char buf[256];
+  static char buf[5];
   char *ret;
 
   if (NULL == pid)
     return "NULL";
   ret = GNUNET_CRYPTO_eddsa_public_key_to_string (&pid->public_key);
-  strcpy (buf,
-          ret);
+  strncpy (buf,
+           ret,
+           sizeof (buf) - 1);
   GNUNET_free (ret);
   buf[4] = '\0';
   return buf;
@@ -1372,14 +1373,15 @@ GNUNET_i2s (const struct GNUNET_PeerIdentity *pid)
 const char *
 GNUNET_i2s2 (const struct GNUNET_PeerIdentity *pid)
 {
-  static char buf[256];
+  static char buf[5];
   char *ret;
 
   if (NULL == pid)
     return "NULL";
   ret = GNUNET_CRYPTO_eddsa_public_key_to_string (&pid->public_key);
-  strcpy (buf,
-          ret);
+  strncpy (buf,
+           ret,
+           sizeof (buf) - 1);
   GNUNET_free (ret);
   buf[4] = '\0';
   return buf;

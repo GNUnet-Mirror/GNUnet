@@ -1369,6 +1369,15 @@ send_kx (struct CadetTunnel *t,
   msg->cid = *GCC_get_id (cc);
   GNUNET_CRYPTO_ecdhe_key_get_public (&ax->kx_0,
                                       &msg->ephemeral_key);
+#if DEBUG_KX
+  msg->ephemeral_key_XXX = ax->kx_0;
+  msg->private_key_XXX = *my_private_key;
+#endif
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Sending KX message to %s with ephemeral %s on CID %s\n",
+       GCT_2s (t),
+       GNUNET_e2s (&msg->ephemeral_key),
+       GNUNET_sh2s (&msg->cid.connection_of_tunnel));
   GNUNET_CRYPTO_ecdhe_key_get_public (&ax->DHRs,
                                       &msg->ratchet_key);
   mark_connection_unready (ct);
@@ -1435,6 +1444,17 @@ send_kx_auth (struct CadetTunnel *t,
                                       &msg->kx.ephemeral_key);
   GNUNET_CRYPTO_ecdhe_key_get_public (&ax->DHRs,
                                       &msg->kx.ratchet_key);
+#if DEBUG_KX
+  msg->kx.ephemeral_key_XXX = ax->kx_0;
+  msg->kx.private_key_XXX = *my_private_key;
+  msg->r_ephemeral_key_XXX = ax->last_ephemeral;
+#endif
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Sending KX_AUTH message to %s with ephemeral %s on CID %s\n",
+       GCT_2s (t),
+       GNUNET_e2s (&msg->kx.ephemeral_key),
+       GNUNET_sh2s (&msg->kx.cid.connection_of_tunnel));
+
   /* Compute authenticator (this is the main difference to #send_kx()) */
   GNUNET_CRYPTO_hash (&ax->RK,
                       sizeof (ax->RK),
@@ -1705,12 +1725,19 @@ GCT_handle_kx (struct CadetTConnection *ct,
                             "# KX received",
                             1,
                             GNUNET_NO);
-  if (GNUNET_YES == alice_or_bob (GCP_get_id (t->destination)))
+  if (GNUNET_YES ==
+      alice_or_bob (GCP_get_id (t->destination)))
   {
     /* Bob is not allowed to send KX! */
     GNUNET_break_op (0);
     return;
   }
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Received KX message from %s with ephemeral %s from %s on connection %s\n",
+       GCT_2s (t),
+       GNUNET_e2s (&msg->ephemeral_key),
+       GNUNET_i2s (GCP_get_id (t->destination)),
+       GCC_2s (ct->cc));
 #if 1
   if ( (0 ==
         memcmp (&t->ax.DHRr,
@@ -1823,6 +1850,75 @@ GCT_handle_kx (struct CadetTConnection *ct,
 }
 
 
+#if DEBUG_KX
+static void
+check_ee (const struct GNUNET_CRYPTO_EcdhePrivateKey *e1,
+          const struct GNUNET_CRYPTO_EcdhePrivateKey *e2)
+{
+  struct GNUNET_CRYPTO_EcdhePublicKey p1;
+  struct GNUNET_CRYPTO_EcdhePublicKey p2;
+  struct GNUNET_HashCode hc1;
+  struct GNUNET_HashCode hc2;
+
+  GNUNET_CRYPTO_ecdhe_key_get_public (e1,
+                                      &p1);
+  GNUNET_CRYPTO_ecdhe_key_get_public (e2,
+                                      &p2);
+  GNUNET_assert (GNUNET_OK ==
+                 GNUNET_CRYPTO_ecc_ecdh (e1,
+                                         &p2,
+                                         &hc1));
+  GNUNET_assert (GNUNET_OK ==
+                 GNUNET_CRYPTO_ecc_ecdh (e2,
+                                         &p1,
+                                         &hc2));
+  GNUNET_break (0 == memcmp (&hc1,
+                             &hc2,
+                             sizeof (hc1)));
+}
+
+
+static void
+check_ed (const struct GNUNET_CRYPTO_EcdhePrivateKey *e1,
+          const struct GNUNET_CRYPTO_EddsaPrivateKey *e2)
+{
+  struct GNUNET_CRYPTO_EcdhePublicKey p1;
+  struct GNUNET_CRYPTO_EddsaPublicKey p2;
+  struct GNUNET_HashCode hc1;
+  struct GNUNET_HashCode hc2;
+
+  GNUNET_CRYPTO_ecdhe_key_get_public (e1,
+                                      &p1);
+  GNUNET_CRYPTO_eddsa_key_get_public (e2,
+                                      &p2);
+  GNUNET_assert (GNUNET_OK ==
+                 GNUNET_CRYPTO_ecdh_eddsa (e1,
+                                           &p2,
+                                           &hc1));
+  GNUNET_assert (GNUNET_OK ==
+                 GNUNET_CRYPTO_eddsa_ecdh (e2,
+                                           &p1,
+                                           &hc2));
+  GNUNET_break (0 == memcmp (&hc1,
+                             &hc2,
+                             sizeof (hc1)));
+}
+
+
+static void
+test_crypto_bug (const struct GNUNET_CRYPTO_EcdhePrivateKey *e1,
+                 const struct GNUNET_CRYPTO_EcdhePrivateKey *e2,
+                 const struct GNUNET_CRYPTO_EddsaPrivateKey *d1,
+                 const struct GNUNET_CRYPTO_EddsaPrivateKey *d2)
+{
+  check_ee (e1, e2);
+  check_ed (e1, d2);
+  check_ed (e2, d1);
+}
+
+#endif
+
+
 /**
  * Handle KX_AUTH message.
  *
@@ -1852,8 +1948,9 @@ GCT_handle_kx_auth (struct CadetTConnection *ct,
     return;
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Handling KX_AUTH message for %s\n",
-       GCT_2s (t));
+       "Handling KX_AUTH message from %s with ephemeral %s\n",
+       GCT_2s (t),
+       GNUNET_e2s (&msg->kx.ephemeral_key));
   /* We do everything in ax_tmp until we've checked the authentication
      so we don't clobber anything we care about by accident. */
   ax_tmp = t->ax;
@@ -1889,6 +1986,32 @@ GCT_handle_kx_auth (struct CadetTConnection *ct,
                               GNUNET_NO);
     LOG (GNUNET_ERROR_TYPE_WARNING,
          "KX AUTH missmatch!\n");
+#if DEBUG_KX
+    {
+      struct GNUNET_CRYPTO_EcdhePublicKey ephemeral_key;
+
+      GNUNET_CRYPTO_ecdhe_key_get_public (&ax_tmp.kx_0,
+                                          &ephemeral_key);
+      if (0 != memcmp (&ephemeral_key,
+                       &msg->r_ephemeral_key_XXX,
+                       sizeof (ephemeral_key)))
+      {
+        LOG (GNUNET_ERROR_TYPE_WARNING,
+           "My ephemeral is %s!\n",
+             GNUNET_e2s (&ephemeral_key));
+        LOG (GNUNET_ERROR_TYPE_WARNING,
+             "Response is for ephemeral %s!\n",
+             GNUNET_e2s (&msg->r_ephemeral_key_XXX));
+      }
+      else
+      {
+        test_crypto_bug (&ax_tmp.kx_0,
+                         &msg->kx.ephemeral_key_XXX,
+                         my_private_key,
+                         &msg->kx.private_key_XXX);
+      }
+    }
+#endif
     if (NULL == t->kx_task)
       t->kx_task
         = GNUNET_SCHEDULER_add_at (t->next_kx_attempt,
@@ -2301,6 +2424,8 @@ connection_ready_cb (void *cls,
     /* Do not begin KX if WE have no channels waiting! */
     if (0 == GCT_count_channels (t))
       return;
+    if (0 != GNUNET_TIME_absolute_get_remaining (t->next_kx_attempt).rel_value_us)
+      return; /* wait for timeout before retrying */
     /* We are uninitialized, just transmit immediately,
        without undue delay. */
     if (NULL != t->kx_task)
@@ -2326,6 +2451,8 @@ connection_ready_cb (void *cls,
   case CADET_TUNNEL_KEY_OK:
     if (GNUNET_YES == t->kx_auth_requested)
     {
+      if (0 != GNUNET_TIME_absolute_get_remaining (t->next_kx_attempt).rel_value_us)
+        return; /* wait for timeout */
       if (NULL != t->kx_task)
       {
         GNUNET_SCHEDULER_cancel (t->kx_task);
@@ -2433,15 +2560,21 @@ evaluate_connection (void *cls,
 {
   struct EvaluationSummary *es = cls;
   struct CadetConnection *cc = ct->cc;
-  struct CadetPeerPath *ps = GCC_get_path (cc);
+  unsigned int ct_length;
+  struct CadetPeerPath *ps;
   const struct CadetConnectionMetrics *metrics;
   GNUNET_CONTAINER_HeapCostType ct_desirability;
   struct GNUNET_TIME_Relative uptime;
   struct GNUNET_TIME_Relative last_use;
-  uint32_t ct_length;
   double score;
   double success_rate;
 
+  ps = GCC_get_path (cc,
+                     &ct_length);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Evaluating path %s of existing %s\n",
+       GCPP_2s (ps),
+       GCC_2s (cc));
   if (ps == es->path)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -2450,8 +2583,39 @@ evaluate_connection (void *cls,
     es->duplicate = GNUNET_YES;
     return;
   }
+  if (NULL != es->path)
+  {
+    int duplicate = GNUNET_YES;
+
+    for (unsigned int i=0;i<ct_length;i++)
+    {
+      GNUNET_assert (GCPP_get_length (es->path) > i);
+      if (GCPP_get_peer_at_offset (es->path,
+                                   i) !=
+          GCPP_get_peer_at_offset (ps,
+                                   i))
+      {
+        duplicate = GNUNET_NO;
+        break;
+      }
+    }
+    if (GNUNET_YES == duplicate)
+    {
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
+           "Ignoring overlapping path %s.\n",
+           GCPP_2s (es->path));
+      es->duplicate = GNUNET_YES;
+      return;
+    }
+    else
+    {
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
+           "Known path %s differs from proposed path\n",
+           GCPP_2s (ps));
+    }
+  }
+
   ct_desirability = GCPP_get_desirability (ps);
-  ct_length = GCPP_get_length (ps);
   metrics = GCC_get_metrics (cc);
   uptime = GNUNET_TIME_absolute_get_duration (metrics->age);
   last_use = GNUNET_TIME_absolute_get_duration (metrics->last_use);
@@ -2500,6 +2664,8 @@ consider_path_cb (void *cls,
   struct CadetTConnection *ct;
 
   GNUNET_assert (off < GCPP_get_length (path));
+  GNUNET_assert (GCPP_get_peer_at_offset (path,
+                                          off) == t->destination);
   es.min_length = UINT_MAX;
   es.max_length = 0;
   es.max_desire = 0;
@@ -2509,6 +2675,13 @@ consider_path_cb (void *cls,
   es.worst = NULL;
 
   /* Compute evaluation summary over existing connections. */
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Evaluating proposed path %s for target %s\n",
+       GCPP_2s (path),
+       GCT_2s (t));
+  /* FIXME: suspect this does not ACTUALLY iterate
+     over all existing paths, otherwise dup detection
+     should work!!! */
   GCT_iterate_connections (t,
                            &evaluate_connection,
                            &es);
@@ -2653,9 +2826,10 @@ GCT_consider_path (struct CadetTunnel *t,
                    unsigned int off)
 {
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Considering %s for %s\n",
+       "Considering %s for %s (offset %u)\n",
        GCPP_2s (p),
-       GCT_2s (t));
+       GCT_2s (t),
+       off);
   (void) consider_path_cb (t,
                            p,
                            off);

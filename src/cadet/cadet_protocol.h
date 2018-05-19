@@ -28,6 +28,14 @@
 #ifndef CADET_PROTOCOL_H_
 #define CADET_PROTOCOL_H_
 
+/**
+ * At best, enable when debugging #5328!
+ */
+#define DEBUG_KX 0
+#if DEBUG_KX
+#warning NEVER run this in production! KX debugging is on!
+#endif
+
 #include "platform.h"
 #include "gnunet_util_lib.h"
 #include "cadet.h"
@@ -234,6 +242,22 @@ struct GNUNET_CADET_TunnelKeyExchangeMessage
    */
   struct GNUNET_CRYPTO_EcdhePublicKey ephemeral_key;
 
+#if DEBUG_KX
+  /**
+   * Sender's ephemeral public ECC key encoded in a
+   * format suitable for network transmission, as created
+   * using 'gcry_sexp_sprint'.
+   */
+  struct GNUNET_CRYPTO_EcdhePrivateKey ephemeral_key_XXX; // for debugging KX-crypto!
+
+  /**
+   * Sender's ephemeral public ECC key encoded in a
+   * format suitable for network transmission, as created
+   * using 'gcry_sexp_sprint'.
+   */
+  struct GNUNET_CRYPTO_EddsaPrivateKey private_key_XXX; // for debugging KX-crypto!
+#endif
+
   /**
    * Sender's next ephemeral public ECC key encoded in a
    * format suitable for network transmission, as created
@@ -255,6 +279,15 @@ struct GNUNET_CADET_TunnelKeyExchangeAuthMessage
    * Message header with key material.
    */
   struct GNUNET_CADET_TunnelKeyExchangeMessage kx;
+
+#if DEBUG_KX
+  /**
+   * Received ephemeral public ECC key encoded in a
+   * format suitable for network transmission, as created
+   * using 'gcry_sexp_sprint'.
+   */
+  struct GNUNET_CRYPTO_EcdhePublicKey r_ephemeral_key_XXX; // for debugging KX-crypto!
+#endif
 
   /**
    * KDF-proof that sender could compute the 3-DH, used in lieu of a

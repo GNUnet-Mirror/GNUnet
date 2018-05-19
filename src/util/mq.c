@@ -1071,6 +1071,32 @@ GNUNET_MQ_set_options (struct GNUNET_MQ_Handle *mq,
 
 
 /**
+ * Obtain message contained in envelope.
+ *
+ * @param env the envelope
+ * @return message contained in the envelope
+ */
+const struct GNUNET_MessageHeader *
+GNUNET_MQ_env_get_msg (const struct GNUNET_MQ_Envelope *env)
+{
+  return env->mh;
+}
+
+
+/**
+ * Return next envelope in queue.
+ *
+ * @param env a queued envelope
+ * @return next one, or NULL
+ */
+const struct GNUNET_MQ_Envelope *
+GNUNET_MQ_env_next (const struct GNUNET_MQ_Envelope *env)
+{
+  return env->next;
+}
+
+
+/**
  * Register function to be called whenever @a mq is being
  * destroyed.
  *

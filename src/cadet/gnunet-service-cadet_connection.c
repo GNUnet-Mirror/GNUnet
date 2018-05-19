@@ -39,6 +39,13 @@
 
 
 /**
+ * How long do we wait initially before retransmitting the KX?
+ * TODO: replace by 2 RTT if/once we have connection-level RTT data!
+ */
+#define INITIAL_CONNECTION_CREATE_RETRY_DELAY GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MILLISECONDS, 200)
+
+
+/**
  * All the states a connection can be in.
  */
 enum CadetConnectionState
@@ -132,6 +139,16 @@ struct CadetConnection
    * How long do we wait before we try again with a CREATE message?
    */
   struct GNUNET_TIME_Relative retry_delay;
+
+  /**
+   * Earliest time for re-trying CREATE
+   */
+  struct GNUNET_TIME_Absolute create_at;
+
+  /**
+   * Earliest time for re-trying CREATE_ACK
+   */
+  struct GNUNET_TIME_Absolute create_ack_at;
 
   /**
    * Performance metrics for this connection.
@@ -482,8 +499,9 @@ GCC_latency_observed (const struct GNUNET_CADET_ConnectionTunnelIdentifier *cid,
 
 
 /**
- * A #GNUNET_MESSAGE_TYPE_CADET_CONNECTION_CREATE_ACK was received for this connection, implying
- * that the end-to-end connection is up.  Process it.
+ * A #GNUNET_MESSAGE_TYPE_CADET_CONNECTION_CREATE_ACK was received for
+ * this connection, implying that the end-to-end connection is up.
+ * Process it.
  *
  * @param cc the connection that got the ACK.
  */
@@ -525,6 +543,11 @@ void
 GCC_handle_kx (struct CadetConnection *cc,
                const struct GNUNET_CADET_TunnelKeyExchangeMessage *msg)
 {
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Received KX message with ephermal %s on CC %s in state %d\n",
+       GNUNET_e2s (&msg->ephemeral_key),
+       GNUNET_sh2s (&cc->cid.connection_of_tunnel),
+       cc->state);
   if (CADET_CONNECTION_SENT == cc->state)
   {
     /* We didn't get the CADET_CONNECTION_CREATE_ACK, but instead got payload. That's fine,
@@ -549,6 +572,11 @@ void
 GCC_handle_kx_auth (struct CadetConnection *cc,
                     const struct GNUNET_CADET_TunnelKeyExchangeAuthMessage *msg)
 {
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Received KX AUTH message with ephermal %s on CC %s in state %d\n",
+       GNUNET_e2s (&msg->kx.ephemeral_key),
+       GNUNET_sh2s (&cc->cid.connection_of_tunnel),
+       cc->state);
   if (CADET_CONNECTION_SENT == cc->state)
   {
     /* We didn't get the CADET_CONNECTION_CREATE_ACK, but instead got payload. That's fine,
@@ -601,25 +629,26 @@ send_create (void *cls)
   struct GNUNET_CADET_ConnectionCreateMessage *create_msg;
   struct GNUNET_PeerIdentity *pids;
   struct GNUNET_MQ_Envelope *env;
-  unsigned int path_length;
 
   cc->task = NULL;
   GNUNET_assert (GNUNET_YES == cc->mqm_ready);
-  path_length = GCPP_get_length (cc->path);
   env = GNUNET_MQ_msg_extra (create_msg,
-                             (1 + path_length) * sizeof (struct GNUNET_PeerIdentity),
+                             (2 + cc->off) * sizeof (struct GNUNET_PeerIdentity),
                              GNUNET_MESSAGE_TYPE_CADET_CONNECTION_CREATE);
   create_msg->options = htonl ((uint32_t) cc->options);
   create_msg->cid = cc->cid;
   pids = (struct GNUNET_PeerIdentity *) &create_msg[1];
   pids[0] = my_full_id;
-  for (unsigned int i=0;i<path_length;i++)
+  for (unsigned int i=0;i<=cc->off;i++)
     pids[i + 1] = *GCP_get_id (GCPP_get_peer_at_offset (cc->path,
                                                         i));
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Sending CADET_CONNECTION_CREATE message for %s\n",
-       GCC_2s (cc));
+       "Sending CADET_CONNECTION_CREATE message for %s with %u hops\n",
+       GCC_2s (cc),
+       cc->off + 2);
   cc->env = env;
+  cc->retry_delay = GNUNET_TIME_STD_BACKOFF (cc->retry_delay);
+  cc->create_at = GNUNET_TIME_relative_to_absolute (cc->retry_delay);
   update_state (cc,
                 CADET_CONNECTION_SENT,
                 GNUNET_NO);
@@ -641,7 +670,6 @@ send_create_ack (void *cls)
   struct GNUNET_MQ_Envelope *env;
 
   cc->task = NULL;
-  GNUNET_assert (CADET_CONNECTION_CREATE_RECEIVED == cc->state);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Sending CONNECTION_CREATE_ACK message for %s\n",
        GCC_2s (cc));
@@ -650,9 +678,16 @@ send_create_ack (void *cls)
                        GNUNET_MESSAGE_TYPE_CADET_CONNECTION_CREATE_ACK);
   ack_msg->cid = cc->cid;
   cc->env = env;
-  update_state (cc,
-                CADET_CONNECTION_READY,
-                GNUNET_NO);
+  cc->retry_delay = GNUNET_TIME_STD_BACKOFF (cc->retry_delay);
+  cc->create_ack_at = GNUNET_TIME_relative_to_absolute (cc->retry_delay);
+  if (CADET_CONNECTION_CREATE_RECEIVED == cc->state)
+    update_state (cc,
+                  CADET_CONNECTION_READY,
+                  GNUNET_NO);
+  if (CADET_CONNECTION_READY == cc->state)
+    cc->task = GNUNET_SCHEDULER_add_delayed (keepalive_period,
+                                             &send_keepalive,
+                                             cc);
   GCP_send (cc->mq_man,
             env);
 }
@@ -681,8 +716,9 @@ GCC_handle_duplicate_create (struct CadetConnection *cc)
                   cc->mqm_ready);
     if (NULL != cc->task)
       GNUNET_SCHEDULER_cancel (cc->task);
-    cc->task = GNUNET_SCHEDULER_add_now (&send_create_ack,
-                                         cc);
+    cc->task = GNUNET_SCHEDULER_add_at (cc->create_ack_at,
+                                        &send_create_ack,
+                                        cc);
   }
   else
   {
@@ -721,7 +757,7 @@ manage_first_hop_mq (void *cls,
     update_state (cc,
                   CADET_CONNECTION_NEW,
                   GNUNET_NO);
-    cc->retry_delay = GNUNET_TIME_UNIT_ZERO;
+    cc->retry_delay = INITIAL_CONNECTION_CREATE_RETRY_DELAY;
     if (NULL != cc->task)
     {
       GNUNET_SCHEDULER_cancel (cc->task);
@@ -741,8 +777,9 @@ manage_first_hop_mq (void *cls,
   {
   case CADET_CONNECTION_NEW:
     /* Transmit immediately */
-    cc->task = GNUNET_SCHEDULER_add_now (&send_create,
-                                         cc);
+    cc->task = GNUNET_SCHEDULER_add_at (cc->create_at,
+                                        &send_create,
+                                        cc);
     break;
   case CADET_CONNECTION_SENDING_CREATE:
     /* Should not be possible to be called in this state. */
@@ -750,16 +787,16 @@ manage_first_hop_mq (void *cls,
     break;
   case CADET_CONNECTION_SENT:
     /* Retry a bit later... */
-    cc->retry_delay = GNUNET_TIME_STD_BACKOFF (cc->retry_delay);
-    cc->task = GNUNET_SCHEDULER_add_delayed (cc->retry_delay,
-                                             &send_create,
-                                             cc);
+    cc->task = GNUNET_SCHEDULER_add_at (cc->create_at,
+                                        &send_create,
+                                        cc);
     break;
   case CADET_CONNECTION_CREATE_RECEIVED:
     /* We got the 'CREATE' (incoming connection), should send the CREATE_ACK */
     cc->metrics.age = GNUNET_TIME_absolute_get ();
-    cc->task = GNUNET_SCHEDULER_add_now (&send_create_ack,
-                                         cc);
+    cc->task = GNUNET_SCHEDULER_add_at (cc->create_ack_at,
+                                        &send_create_ack,
+                                        cc);
     break;
   case CADET_CONNECTION_READY:
     if ( (NULL == cc->keepalive_qe) &&
@@ -814,6 +851,8 @@ connection_create (struct CadetPeer *destination,
   cc->state = init_state;
   cc->ct = ct;
   cc->cid = *cid;
+  cc->retry_delay = GNUNET_TIME_relative_multiply (INITIAL_CONNECTION_CREATE_RETRY_DELAY,
+                                                   off);
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_CONTAINER_multishortmap_put (connections,
                                                      &GCC_get_id (cc)->connection_of_tunnel,
@@ -824,9 +863,10 @@ connection_create (struct CadetPeer *destination,
   cc->path = path;
   cc->off = off;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Creating %s using path %s\n",
+       "Creating %s using path %s (offset: %u)\n",
        GCC_2s (cc),
-       GCPP_2s (path));
+       GCPP_2s (path),
+       off);
   GCPP_add_connection (path,
                        off,
                        cc);
@@ -834,7 +874,6 @@ connection_create (struct CadetPeer *destination,
     GCP_add_connection (GCPP_get_peer_at_offset (path,
                                                  i),
                         cc);
-
   first_hop = GCPP_get_peer_at_offset (path,
                                        0);
   cc->mq_man = GCP_request_mq (first_hop,
@@ -1001,11 +1040,14 @@ GCC_transmit (struct CadetConnection *cc,
  * Obtain the path used by this connection.
  *
  * @param cc connection
+ * @param off[out] set to the length of the path we use
  * @return path to @a cc
  */
 struct CadetPeerPath *
-GCC_get_path (struct CadetConnection *cc)
+GCC_get_path (struct CadetConnection *cc,
+              unsigned int *off)
 {
+  *off = cc->off;
   return cc->path;
 }
 

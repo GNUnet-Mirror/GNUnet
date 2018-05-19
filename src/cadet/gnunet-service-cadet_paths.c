@@ -146,7 +146,7 @@ GCPP_add_connection (struct CadetPeerPath *path,
   struct CadetPeerPathEntry *entry;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Adding connection %s to path %s at offset %u\n",
+       "Adding %s to path %s at offset %u\n",
        GCC_2s (cc),
        GCPP_2s (path),
        off);
