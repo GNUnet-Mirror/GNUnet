@@ -17,54 +17,62 @@ timeout_watchdog_SOURCES = \
 endif
 
 noinst_SCRIPTS = \
- terminate.py \
- pydiffer.py \
- removetrailingwhitespace.py \
- gnunet_pyexpect.py \
- gnunet_janitor.py \
- gnunet-chk.py
+ scripts/terminate.py \
+ scripts/pydiffer.py \
+ scripts/removetrailingwhitespace.py \
+ scripts/gnunet_pyexpect.py \
+ scripts/gnunet_janitor.py \
+ scripts/gnunet-chk.py
 
 dist_pkgdata_DATA = \
- gns-bcd.html \
- gns-bcd.tex \
- gnunet-logo.pdf \
- gnunet-logo-color.png \
+ gns/gns-bcd.html \
+ gns/gns-bcd.tex \
+ gns/def.tex \
+ gns/gns-form-fields.xml \
+ gns/gns-form.xslt \
+ branding/logo/gnunet-logo.pdf \
+ branding/logo/gnunet-logo-color.png \
+ scripts/report.sh \
  testing_hostkeys.ecc
 
 if MINGW
 tap32_DATA = \
- openvpn-tap32/tapw32/tap0901.sys \
- openvpn-tap32/tapw32/tap0901.cat \
- openvpn-tap32/tapw32/OemWin2k.inf
+ 3rdparty/Windows/openvpn-tap32/tapw32/tap0901.sys \
+ 3rdparty/Windows/openvpn-tap32/tapw32/tap0901.cat \
+ 3rdparty/Windows/openvpn-tap32/tapw32/OemWin2k.inf
 
 tap64_DATA = \
- openvpn-tap32/tapw64/tap0901.sys \
- openvpn-tap32/tapw64/tap0901.cat \
- openvpn-tap32/tapw64/OemWin2k.inf
+ 3rdparty/Windows/openvpn-tap32/tapw64/tap0901.sys \
+ 3rdparty/Windows/openvpn-tap32/tapw64/tap0901.cat \
+ 3rdparty/Windows/openvpn-tap32/tapw64/OemWin2k.inf
 endif
 
 EXTRA_DIST = \
- no_forcestart.conf \
- no_autostart_above_core.conf \
- coverage.sh \
- nssswitch.conf \
- report.sh \
- terminate.py.in \
- gnunet_pyexpect.py.in \
- gnunet_janitor.py.in \
- gnunet-chk.py.in \
- removetrailingwhitespace.py.in \
- pydiffer.py.in \
- gnunet-gns-import.sh \
- openvpn-tap32/tapw32/tap0901.sys \
- openvpn-tap32/tapw32/tap0901.cat \
- openvpn-tap32/tapw32/OemWin2k.inf \
- openvpn-tap32/tapw64/tap0901.sys \
- openvpn-tap32/tapw64/tap0901.cat \
- openvpn-tap32/tapw64/OemWin2k.inf \
- openvpn-tap32/INSTALL \
- openvpn-tap32/tap32-signed-i386-2.1.zip \
- openvpn-tap32/tap32-source-2.1.zip
+ conf/colorit/colorit.conf \
+ conf/editors/eclipse/gnunet_codingstyle.xml \
+ conf/gnunet/no_forcestart.conf \
+ conf/gnunet/no_autostart_above_core.conf \
+ conf/nss/nssswitch.conf \
+ conf/wireshark/wireshark.lua \
+ scripts/coverage.sh \
+ scripts/terminate.py.in \
+ scripts/gnunet_pyexpect.py.in \
+ scripts/gnunet_janitor.py.in \
+ scripts/gnunet-chk.py.in \
+ scripts/removetrailingwhitespace.py.in \
+ scripts/pydiffer.py.in \
+ scripts/gnunet-gns-import.sh \
+ packages/nix/default.nix \
+ packages/nix/gnunet-dex.nix \
+ 3rdparty/Windows/openvpn-tap32/tapw32/tap0901.sys \
+ 3rdparty/Windows/openvpn-tap32/tapw32/tap0901.cat \
+ 3rdparty/Windows/openvpn-tap32/tapw32/OemWin2k.inf \
+ 3rdparty/Windows/openvpn-tap32/tapw64/tap0901.sys \
+ 3rdparty/Windows/openvpn-tap32/tapw64/tap0901.cat \
+ 3rdparty/Windows/openvpn-tap32/tapw64/OemWin2k.inf \
+ 3rdparty/Windows/openvpn-tap32/INSTALL \
+ 3rdparty/Windows/openvpn-tap32/tap32-signed-i386-2.1.zip \
+ 3rdparty/Windows/openvpn-tap32/tap32-source-2.1.zip
 
 CLEANFILES = \
   $(noinst_SCRIPTS)
@@ -82,20 +90,12 @@ do_subst = $(SED) -e 's,[@]PYTHON[@],$(PYTHON),g'
 #
 # instead of this:
 
+SUFFIXES =
 SUFFIXES = .py.in .py
 
 .py.in.py:
 	$(do_subst) < $< > $@
 	chmod +x $@
-
-# init_gnunet_redhat \
-# init_gnunet_ubuntu \
-# visualize_stats.sh \
-# gnmessage.sh \
-# junkinsert.sh \
-# junklookup.sh \
-# namespacehelper.sh
-
 
 check_PROGRAMS = \
  test_gnunet_prefix

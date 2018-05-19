@@ -51,7 +51,7 @@ These are the direct dependencies for running GNUnet:
 - libogg        >= 1.3.0 (optional for experimental conversation tool)
 - python-zbar   >= 0.10 (optional for gnunet-qr)
 - TeX Live      >= 2012 (optional for gnunet-bcd[*])
-- Texinfo       >= 5.2
+- Texinfo       >= 5.2 [*1]
 - libglpk       >= 4.45 (optional for experimental code)
 
 Recommended autotools for compiling the git version are:
@@ -62,6 +62,10 @@ Recommended autotools for compiling the git version are:
 
 [*] Mandatory for compiling the info output of the documentation,
 a limited subset ('texlive-tiny' in Guix) is enough.
+
+[*1] The default configuration is to build the info output of the documentation,
+and therefore require texinfo.  You can pass --disable-documentation to
+the configure script to change this.
 
 How to install?
 ===============
@@ -262,7 +266,8 @@ $ make check
 
 Some of the testcases require python >= 2.6 and pexpect to be
 installed.  If any testcases fail to pass on your system, run
-"contrib/report.sh" and report the output together with
+"contrib/scripts/report.sh" (in the repository) or "gnunet-bugreport"
+when you already have GNUnet installed and report the output together with
 information about the failing testcase to the Mantis bugtracking
 system at https://gnunet.org/bugs/.
 

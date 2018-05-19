@@ -1,4 +1,4 @@
-#!/usr/bin/env perl
+#!@PERL@
 # helper tool to make gnunet logs more readable
 # try 'gnunet-logread -h' for usage
 

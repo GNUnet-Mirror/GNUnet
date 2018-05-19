@@ -6,4 +6,4 @@ which glibtoolize || which libtoolize || which libtool || {
         exit 1
 }
 autoreconf -if
-contrib/pogen.sh
+. "bin/pogen.sh"

@@ -134,8 +134,6 @@
          (modify-phases %standard-phases
            (add-after 'unpack 'patch-bin-sh
              (lambda _
-               (substitute* "bootstrap"
-                 (("contrib/pogen.sh") "sh contrib/pogen.sh"))
                (for-each (lambda (f) (chmod f #o755))
                          (find-files "po" ""))
                #t))
