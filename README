@@ -264,8 +264,8 @@ $ make
 $ make install
 $ make check
 
-Some of the testcases require python >= 2.6 and pexpect to be
-installed.  If any testcases fail to pass on your system, run
+Some of the testcases require python >= 2.6 (+ the python module "futures")
+and pexpect to be installed.  If any testcases fail to pass on your system, run
 "contrib/scripts/report.sh" (in the repository) or "gnunet-bugreport"
 when you already have GNUnet installed and report the output together with
 information about the failing testcase to the Mantis bugtracking

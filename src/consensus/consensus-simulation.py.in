@@ -22,6 +22,7 @@ from __future__ import print_function
 import argparse
 import random
 from math import ceil, log, floor
+from past.builtins import xrange
 
 
 def bsc(n):
@@ -44,6 +45,8 @@ def simulate(k, n, verbose):
         print("we have", num_ghosts, "ghost peers")
         # n.b. all peers with idx<k are evil
     peers = range(n)
+    # py2-3 compatible, backwards.
+    # refer to http://python-future.org/compatible_idioms.html#xrange
     info = [1 << x for x in xrange(n)]
 
     def done_p():
