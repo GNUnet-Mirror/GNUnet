@@ -1654,6 +1654,8 @@ recursive_gns2dns_resolution (struct GNS_ResolverHandle *rh,
     size_t off;
     struct Gns2DnsPending *gp;
     struct GNUNET_CRYPTO_EcdsaPublicKey zone;
+    struct sockaddr_in v4;
+    struct sockaddr_in6 v6;
 
     if (GNUNET_GNSRECORD_TYPE_GNS2DNS != rd[i].record_type)
       continue;
@@ -1695,10 +1697,16 @@ recursive_gns2dns_resolution (struct GNS_ResolverHandle *rh,
     }
 
     /* check if 'ip' is already an IPv4/IPv6 address */
-    if (GNUNET_OK ==
-        GNUNET_DNSSTUB_add_dns_ip (ac->authority_info.dns_authority.dns_handle,
-                                   ip))
+    if ( (1 == inet_pton (AF_INET,
+                          ip,
+                          &v4)) ||
+         (1 == inet_pton (AF_INET6,
+                          ip,
+                          &v6)) )
     {
+      GNUNET_break (GNUNET_OK ==
+                    GNUNET_DNSSTUB_add_dns_ip (ac->authority_info.dns_authority.dns_handle,
+                                               ip));
       ac->authority_info.dns_authority.found = GNUNET_YES;
       GNUNET_free (ip);
       continue;

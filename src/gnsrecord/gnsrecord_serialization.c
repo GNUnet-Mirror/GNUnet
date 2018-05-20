@@ -126,7 +126,8 @@ GNUNET_GNSRECORD_records_serialize (unsigned int rd_count,
     rec.data_size = htonl ((uint32_t) rd[i].data_size);
     rec.record_type = htonl (rd[i].record_type);
     rec.flags = htonl (rd[i].flags);
-    if (off + sizeof (rec) > dest_size)
+    if ( (off + sizeof (rec) > dest_size) ||
+         (off + sizeof (rec) < off) )
     {
       GNUNET_break (0);
       return -1;
@@ -135,7 +136,8 @@ GNUNET_GNSRECORD_records_serialize (unsigned int rd_count,
                    &rec,
                    sizeof (rec));
     off += sizeof (rec);
-    if (off + rd[i].data_size > dest_size)
+    if ( (off + rd[i].data_size > dest_size) ||
+         (off + rd[i].data_size < off) )
     {
       GNUNET_break (0);
       return -1;
@@ -185,7 +187,8 @@ GNUNET_GNSRECORD_records_deserialize (size_t len,
   off = 0;
   for (unsigned int i=0;i<rd_count;i++)
   {
-    if (off + sizeof (rec) > len)
+    if ( (off + sizeof (rec) > len) ||
+         (off + sizeof (rec) < off) )
     {
       GNUNET_break_op (0);
       return GNUNET_SYSERR;
@@ -198,7 +201,8 @@ GNUNET_GNSRECORD_records_deserialize (size_t len,
     dest[i].record_type = ntohl (rec.record_type);
     dest[i].flags = ntohl (rec.flags);
     off += sizeof (rec);
-    if (off + dest[i].data_size > len)
+    if ( (off + dest[i].data_size > len) ||
+         (off + dest[i].data_size < off) )
     {
       GNUNET_break_op (0);
       return GNUNET_SYSERR;
