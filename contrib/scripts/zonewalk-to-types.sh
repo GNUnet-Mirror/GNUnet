@@ -12,8 +12,8 @@ NUM_CLIENTS=3
 # and then randomize the order.
 cat $1 | awk '{print $1}' | sort | uniq | shuf > $1.tmp
 TOTAL=`cat $1.tmp | wc -l`
-GROUP_SIZE=`expr $TOTAL / \( $NUM_TYPES + 1 \)`
-
+GROUP_SIZE=`expr $TOTAL / \( $NUM_CLIENTS + 1 \)`
+echo "Creating $NUM_CLIENTS benchmark sets with 2x $GROUP_SIZE entries each."
 # First group (0) is to be shared among all clients
 for i in `seq 1 $NUM_CLIENTS`
 do
@@ -21,7 +21,7 @@ do
 done
 
 # Second group (1) is unique per client
-OFF=0
+OFF=$GROUP_SIZE
 for i in `seq 1 $NUM_CLIENTS`
 do
   END=`expr $OFF + $GROUP_SIZE`

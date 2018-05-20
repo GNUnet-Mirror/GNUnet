@@ -244,6 +244,7 @@ process_queue (void *cls)
     duration = GNUNET_TIME_absolute_get_duration (req->op_start_time);
     if (duration.rel_value_us < timeout.rel_value_us)
       break;
+    GNUNET_GNS_lookup_with_tld_cancel (req->lr);
     GNUNET_CONTAINER_DLL_remove (act_head,
 				 act_tail,
 				 req);
