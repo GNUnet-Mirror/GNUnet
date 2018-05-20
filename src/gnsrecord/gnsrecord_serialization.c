@@ -37,6 +37,12 @@
 
 #define LOG(kind,...) GNUNET_log_from (kind, "gnsrecord",__VA_ARGS__)
 
+/**
+ * Set to 1 to check that all records are well-formed (can be converted
+ * to string) during serialization/deserialization.
+ */
+#define DEBUG_GNSRECORDS 0
+
 GNUNET_NETWORK_STRUCT_BEGIN
 
 
@@ -95,7 +101,7 @@ GNUNET_GNSRECORD_records_get_size (unsigned int rd_count,
       return -1;
     }
     ret += rd[i].data_size;
-#if GNUNET_EXTRA_LOGGING
+#if DEBUG_GNSRECORDS
     {
       char *str;
 
@@ -170,7 +176,7 @@ GNUNET_GNSRECORD_records_serialize (unsigned int rd_count,
                    rd[i].data,
                    rd[i].data_size);
     off += rd[i].data_size;
-#if GNUNET_EXTRA_LOGGING
+#if DEBUG_GNSRECORDS
     {
       char *str;
 
