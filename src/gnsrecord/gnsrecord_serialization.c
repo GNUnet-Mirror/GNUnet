@@ -78,9 +78,9 @@ GNUNET_NETWORK_STRUCT_END
  *
  * @param rd_count number of records in the rd array
  * @param rd array of #GNUNET_GNSRECORD_Data with @a rd_count elements
- * @return the required size to serialize
+ * @return the required size to serialize, -1 on error
  */
-size_t
+ssize_t
 GNUNET_GNSRECORD_records_get_size (unsigned int rd_count,
 				   const struct GNUNET_GNSRECORD_Data *rd)
 {
@@ -89,10 +89,34 @@ GNUNET_GNSRECORD_records_get_size (unsigned int rd_count,
   ret = sizeof (struct NetworkRecord) * rd_count;
   for (unsigned int i=0;i<rd_count;i++)
   {
-    GNUNET_assert ((ret + rd[i].data_size) >= ret);
+    if ((ret + rd[i].data_size) < ret)
+    {
+      GNUNET_break (0);
+      return -1;
+    }
     ret += rd[i].data_size;
+#if GNUNET_EXTRA_LOGGING
+    {
+      char *str;
+
+      str = GNUNET_GNSRECORD_value_to_string (rd[i].record_type,
+                                              rd[i].data,
+                                              rd[i].data_size);
+      if (NULL == str)
+      {
+        GNUNET_break_op (0);
+        return -1;
+      }
+      GNUNET_free (str);
+    }
+#endif
   }
-  return ret;
+  if (ret > SSIZE_MAX)
+  {
+    GNUNET_break (0);
+    return -1;
+  }
+  return (ssize_t) ret;
 }
 
 
@@ -156,7 +180,7 @@ GNUNET_GNSRECORD_records_serialize (unsigned int rd_count,
       if (NULL == str)
       {
         GNUNET_break_op (0);
-        return GNUNET_SYSERR;
+        return -1;
       }
       GNUNET_free (str);
     }

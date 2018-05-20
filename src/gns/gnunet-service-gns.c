@@ -334,30 +334,43 @@ client_connect_cb (void *cls,
  * @param rd the record data
  */
 static void
-send_lookup_response (void* cls,
+send_lookup_response (void *cls,
                       uint32_t rd_count,
                       const struct GNUNET_GNSRECORD_Data *rd)
 {
   struct ClientLookupHandle *clh = cls;
   struct GnsClient *gc = clh->gc;
- struct GNUNET_MQ_Envelope *env;
+  struct GNUNET_MQ_Envelope *env;
   struct LookupResultMessage *rmsg;
-  size_t len;
+  ssize_t len;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Sending LOOKUP_RESULT message with %u results\n",
               (unsigned int) rd_count);
   len = GNUNET_GNSRECORD_records_get_size (rd_count,
                                            rd);
+  if (len < 0)
+  {
+    GNUNET_break (0);
+    GNUNET_SERVICE_client_drop (gc->client);
+    return;
+  }
+  if (len > UINT16_MAX - sizeof (*rmsg))
+  {
+    GNUNET_break (0);
+    GNUNET_SERVICE_client_drop (gc->client);
+    return;
+  }
   env = GNUNET_MQ_msg_extra (rmsg,
                              len,
                              GNUNET_MESSAGE_TYPE_GNS_LOOKUP_RESULT);
   rmsg->id = clh->request_id;
   rmsg->rd_count = htonl (rd_count);
-  GNUNET_GNSRECORD_records_serialize (rd_count,
-                                      rd,
-                                      len,
-                                      (char*) &rmsg[1]);
+  GNUNET_assert (len ==
+                 GNUNET_GNSRECORD_records_serialize (rd_count,
+                                                     rd,
+                                                     len,
+                                                     (char*) &rmsg[1]));
   GNUNET_MQ_send (GNUNET_SERVICE_client_get_mq (gc->client),
                   env);
   GNUNET_CONTAINER_DLL_remove (gc->clh_head,

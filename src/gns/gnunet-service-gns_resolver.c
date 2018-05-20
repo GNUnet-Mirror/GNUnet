@@ -280,7 +280,7 @@ struct VpnContext
   /**
    * Number of bytes in @e rd_data.
    */
-  size_t rd_data_size;
+  ssize_t rd_data_size;
 };
 
 
@@ -1319,7 +1319,7 @@ vpn_allocation_cb (void *cls,
   vpn_ctx->vpn_request = NULL;
   rh->vpn_ctx = NULL;
   GNUNET_assert (GNUNET_OK ==
-		 GNUNET_GNSRECORD_records_deserialize (vpn_ctx->rd_data_size,
+		 GNUNET_GNSRECORD_records_deserialize ((size_t) vpn_ctx->rd_data_size,
 						       vpn_ctx->rd_data,
 						       vpn_ctx->rd_count,
 						       rd));
@@ -1901,13 +1901,20 @@ handle_gns_resolution_result (void *cls,
 	    vpn_ctx->rh = rh;
 	    vpn_ctx->rd_data_size = GNUNET_GNSRECORD_records_get_size (rd_count,
 								       rd);
-	    vpn_ctx->rd_data = GNUNET_malloc (vpn_ctx->rd_data_size);
+            if (vpn_ctx->rd_data_size < 0)
+            {
+	      GNUNET_break_op (0);
+              GNUNET_free (vpn_ctx);
+              fail_resolution (rh);
+	      return;
+            }
+	    vpn_ctx->rd_data = GNUNET_malloc ((size_t) vpn_ctx->rd_data_size);
             vpn_ctx->rd_count = rd_count;
 	    GNUNET_assert (vpn_ctx->rd_data_size ==
-                           (size_t) GNUNET_GNSRECORD_records_serialize (rd_count,
-									rd,
-									vpn_ctx->rd_data_size,
-									vpn_ctx->rd_data));
+                           GNUNET_GNSRECORD_records_serialize (rd_count,
+                                                               rd,
+                                                               (size_t) vpn_ctx->rd_data_size,
+                                                               vpn_ctx->rd_data));
 	    vpn_ctx->vpn_request = GNUNET_VPN_redirect_to_peer (vpn_handle,
 								af,
 								ntohs (vpn->proto),
