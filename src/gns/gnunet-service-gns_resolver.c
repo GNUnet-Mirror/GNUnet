@@ -151,16 +151,6 @@ struct AuthorityChain
   char *label;
 
   /**
-   * label/name suggested for shortening to the authority
-   */
-  char *suggested_shortening_label;
-
-  /**
-   * Do we already try to shorten this authority?
-   */
-  int shortening_started;
-
-  /**
    * #GNUNET_YES if the authority was a GNS authority,
    * #GNUNET_NO if the authority was a DNS authority.
    */
@@ -1243,8 +1233,6 @@ handle_gns_cname_result (struct GNS_ResolverHandle *rh,
     ac->gns_authority = GNUNET_YES;
     ac->authority_info.gns_authority = rh->ac_tail->authority_info.gns_authority;
     ac->label = resolver_lookup_get_next_label (rh);
-    ac->suggested_shortening_label = NULL;
-    ac->shortening_started = GNUNET_NO;
     /* add AC to tail */
     GNUNET_CONTAINER_DLL_insert_tail (rh->ac_head,
 				      rh->ac_tail,
@@ -1620,8 +1608,6 @@ recursive_pkey_resolution (struct GNS_ResolverHandle *rh,
   ac = GNUNET_new (struct AuthorityChain);
   ac->rh = rh;
   ac->gns_authority = GNUNET_YES;
-  ac->suggested_shortening_label = NULL;
-  ac->shortening_started = GNUNET_NO;
   GNUNET_memcpy (&ac->authority_info.gns_authority,
                  rd->data,
                  sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey));
@@ -1817,7 +1803,6 @@ handle_gns_resolution_result (void *cls,
 			      const struct GNUNET_GNSRECORD_Data *rd)
 {
   struct GNS_ResolverHandle *rh = cls;
-  struct AuthorityChain *shorten_ac;
   char *cname;
   struct VpnContext *vpn_ctx;
   const struct GNUNET_TUN_GnsVpnRecord *vpn;
@@ -1947,7 +1932,6 @@ handle_gns_resolution_result (void *cls,
        using 'scratch' array for memory allocations */
     scratch_off = 0;
     rd_off = 0;
-    shorten_ac = rh->ac_tail;
     for (unsigned int i=0;i<rd_count;i++)
     {
       GNUNET_assert (rd_off <= i);
@@ -2125,8 +2109,6 @@ handle_gns_resolution_result (void *cls,
             GNUNET_break_op (0);
             break;
           }
-          if (NULL == shorten_ac->suggested_shortening_label)
-            shorten_ac->suggested_shortening_label = GNUNET_strdup (nick);
           break;
         }
       case GNUNET_GNSRECORD_TYPE_PKEY:
@@ -2152,8 +2134,6 @@ handle_gns_resolution_result (void *cls,
             ac->gns_authority = GNUNET_YES;
             ac->authority_info.gns_authority = pub;
             ac->label = GNUNET_strdup (GNUNET_GNS_EMPTY_LABEL_AT);
-            ac->suggested_shortening_label = NULL;
-            ac->shortening_started = GNUNET_NO;
             GNUNET_CONTAINER_DLL_insert_tail (rh->ac_head,
                                               rh->ac_tail,
                                               ac);
@@ -2675,7 +2655,6 @@ start_resolver_lookup (void *cls)
   ac = GNUNET_new (struct AuthorityChain);
   ac->rh = rh;
   ac->label = resolver_lookup_get_next_label (rh);
-  ac->suggested_shortening_label = NULL;
   if (NULL == ac->label)
     /* name was just the "TLD", so we default to label
        #GNUNET_GNS_EMPTY_LABEL_AT */
@@ -2789,7 +2768,6 @@ GNS_resolver_lookup_cancel (struct GNS_ResolverHandle *rh)
       GNUNET_DNSSTUB_stop (ac->authority_info.dns_authority.dns_handle);
     }
     GNUNET_free (ac->label);
-    GNUNET_free_non_null (ac->suggested_shortening_label);
     GNUNET_free (ac);
   }
   if (NULL != rh->task_id)
