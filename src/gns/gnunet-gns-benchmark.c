@@ -454,7 +454,7 @@ queue (const char *hostname,
   req = GNUNET_malloc (sizeof (struct Request) + hlen);
   req->cat = cat;
   req->hostname = (char *) &req[1];
-  GNUNET_memcpy (req->hostname,
+  GNUNET_memcpy (&req[1],
                  hostname,
                  hlen);
   GNUNET_CONTAINER_DLL_insert (todo_head,
