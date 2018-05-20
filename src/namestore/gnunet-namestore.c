@@ -641,14 +641,6 @@ get_existing_record (void *cls,
       ret = 1;
       test_finished ();
       return;
-    case GNUNET_GNSRECORD_TYPE_GNS2DNS:
-      fprintf (stderr,
-               _("A %s record exists already under `%s', no other records can be added.\n"),
-               "GNS2DNS",
-               rec_name);
-      ret = 1;
-      test_finished ();
-      return;
     }
   }
   switch (type)
@@ -678,16 +670,16 @@ get_existing_record (void *cls,
     }
     break;
   case GNUNET_GNSRECORD_TYPE_GNS2DNS:
-    if (0 != rd_count)
-    {
-      fprintf (stderr,
-               _("Records already exist under `%s', cannot add `%s' record.\n"),
-               rec_name,
-               "GNS2DNS");
-      ret = 1;
-      test_finished ();
-      return;
-    }
+    for (unsigned int i=0;i<rd_count;i++)
+      if (GNUNET_GNSRECORD_TYPE_GNS2DNS != rd[i].record_type)
+      {
+        fprintf (stderr,
+                 _("Non-GNS2DNS records already exist under `%s', cannot add GNS2DNS record.\n"),
+                 rec_name);
+        ret = 1;
+        test_finished ();
+        return;
+      }
     break;
   }
   memset (rdn,
