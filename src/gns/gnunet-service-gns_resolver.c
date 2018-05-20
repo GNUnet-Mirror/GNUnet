@@ -946,35 +946,43 @@ dns_result_parser (void *cls,
   if ( (p->num_answers > 0) &&
        (GNUNET_DNSPARSER_TYPE_CNAME == p->answers[0].type) &&
        (GNUNET_DNSPARSER_TYPE_CNAME != rh->record_type) )
-    {
-      int af;
+  {
+    int af;
 
-      GNUNET_free (rh->name);
-      rh->name = GNUNET_strdup (p->answers[0].data.hostname);
-      rh->name_resolution_pos = strlen (rh->name);
-      switch (rh->record_type)
-      {
-      case GNUNET_DNSPARSER_TYPE_A:
-        af = AF_INET;
-        break;
-      case GNUNET_DNSPARSER_TYPE_AAAA:
-        af = AF_INET6;
-        break;
-      default:
-        af = AF_UNSPEC;
-        break;
-      }
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Doing standard DNS lookup for `%s'\n",
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                "Got CNAME `%s' from DNS for `%s'\n",
+                p->answers[0].data.hostname,
+                rh->name);
+    if (NULL != rh->std_resolve)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                  "Multiple CNAME results from DNS resolving `%s'! Not really allowed...\n",
                   rh->name);
-      rh->std_resolve = GNUNET_RESOLVER_ip_get (rh->name,
-                                                af,
-                                                DNS_LOOKUP_TIMEOUT,
-                                                &handle_dns_result,
-                                                rh);
-      GNUNET_DNSPARSER_free_packet (p);
-      return;
+      GNUNET_RESOLVER_request_cancel (rh->std_resolve);
     }
+    GNUNET_free (rh->name);
+    rh->name = GNUNET_strdup (p->answers[0].data.hostname);
+    rh->name_resolution_pos = strlen (rh->name);
+    switch (rh->record_type)
+    {
+    case GNUNET_DNSPARSER_TYPE_A:
+      af = AF_INET;
+      break;
+    case GNUNET_DNSPARSER_TYPE_AAAA:
+      af = AF_INET6;
+      break;
+    default:
+      af = AF_UNSPEC;
+      break;
+    }
+    rh->std_resolve = GNUNET_RESOLVER_ip_get (rh->name,
+                                              af,
+                                              DNS_LOOKUP_TIMEOUT,
+                                              &handle_dns_result,
+                                              rh);
+    GNUNET_DNSPARSER_free_packet (p);
+    return;
+  }
 
   /* convert from (parsed) DNS to (binary) GNS format! */
   rd_count = p->num_answers + p->num_authority_records + p->num_additional_records;
@@ -1244,6 +1252,17 @@ handle_gns_cname_result (struct GNS_ResolverHandle *rh,
     rh->task_id = GNUNET_SCHEDULER_add_now (&recursive_resolution,
 					    rh);
     return;
+  }
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "Got CNAME `%s' from GNS for `%s'\n",
+              cname,
+              rh->name);
+  if (NULL != rh->std_resolve)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		"Multiple CNAME results from GNS resolving `%s'! Not really allowed...\n",
+                rh->name);
+    GNUNET_RESOLVER_request_cancel (rh->std_resolve);
   }
   /* name is absolute, go to DNS */
   GNUNET_free (rh->name);
