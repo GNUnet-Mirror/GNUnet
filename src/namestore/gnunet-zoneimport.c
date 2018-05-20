@@ -1494,6 +1494,16 @@ do_shutdown (void *cls)
 
 
 /**
+ * Iterate over all of the zones we care about and see which records
+ * we may need to re-fetch when.
+ *
+ * @param cls NULL
+ */
+static void
+iterate_zones (void *cls);
+
+
+/**
  * Function called if #GNUNET_NAMESTORE_records_lookup() failed.
  * Just logs an error.
  *
@@ -1507,6 +1517,9 @@ ns_lookup_error_cb (void *cls)
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 	      "Failed to load data from namestore for zone `%s'\n",
 	      zone->domain);
+  zone_it = NULL;
+  ns_iterator_trigger_next = 0;
+  iterate_zones (NULL);
 }
 
 
