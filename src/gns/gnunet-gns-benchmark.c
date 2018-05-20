@@ -84,7 +84,7 @@ struct Request
    * this struct (optimizing memory consumption by reducing
    * total number of allocations).
    */
-  char *hostname;
+  const char *hostname;
 
   /**
    * While we are fetching the record, the value is set to the
@@ -176,6 +176,11 @@ static struct GNUNET_TIME_Relative request_delay;
  */
 static struct GNUNET_TIME_Relative timeout;
 
+/**
+ * Number of requests we have concurrently active.
+ */
+static unsigned int active_cnt;
+
 
 /**
  * Free @a req and data structures reachable from it.
@@ -210,6 +215,7 @@ process_result (void *cls,
   (void) gns_tld;
   (void) rd_count;
   (void) rd;
+  active_cnt--;
   req->lr = NULL;
   req->latency = GNUNET_TIME_absolute_get_duration (req->op_start_time);
   GNUNET_CONTAINER_DLL_remove (act_head,
@@ -244,11 +250,14 @@ process_queue (void *cls)
     duration = GNUNET_TIME_absolute_get_duration (req->op_start_time);
     if (duration.rel_value_us < timeout.rel_value_us)
       break;
-    GNUNET_GNS_lookup_with_tld_cancel (req->lr);
     GNUNET_CONTAINER_DLL_remove (act_head,
 				 act_tail,
 				 req);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Failing request `%s' due to timeout\n",
+                req->hostname);
     failures[req->cat]++;
+    active_cnt--;
     free_request (req);
   }
   if (NULL == (req = todo_head))
@@ -274,7 +283,12 @@ process_queue (void *cls)
 				    act_tail,
 				    req);
   lookups[req->cat]++;
+  active_cnt++;
   req->op_start_time = GNUNET_TIME_absolute_get ();
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Starting request `%s' (%u in parallel)\n",
+              req->hostname,
+              active_cnt);
   req->lr = GNUNET_GNS_lookup_with_tld (gns,
 					req->hostname,
 					GNUNET_GNSRECORD_TYPE_ANY,
