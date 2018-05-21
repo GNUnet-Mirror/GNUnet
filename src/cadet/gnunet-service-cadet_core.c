@@ -653,7 +653,7 @@ timeout_cb (void *cls)
                                               NULL);
       return;
     }
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 		"Sending BROKEN due to timeout (%s was last use, %s linger)\n",
 		GNUNET_STRINGS_absolute_time_to_string (r->last_use),
 		GNUNET_STRINGS_relative_time_to_string (linger,
@@ -715,7 +715,7 @@ dir_ready_cb (void *cls,
     return;
   }
   odir = (dir == &route->next) ? &route->prev : &route->next;
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Sending BROKEN due to MQ going down\n");
   send_broken (&route->next,
                &route->cid,
