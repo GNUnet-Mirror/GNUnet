@@ -1279,8 +1279,7 @@ GCCH_handle_channel_plaintext_data (struct CadetChannel *ch,
   uint32_t delta;
 
   GNUNET_assert (GNUNET_NO == ch->is_loopback);
-  if ( (GNUNET_YES == ch->destroy) &&
-       (NULL == ch->owner) &&
+  if ( (NULL == ch->owner) &&
        (NULL == ch->dest) )
   {
     /* This client is gone, but we still have messages to send to
@@ -1290,8 +1289,9 @@ GCCH_handle_channel_plaintext_data (struct CadetChannel *ch,
          "Dropping incoming payload on %s as this end is already closed\n",
          GCCH_2s (ch));
     /* send back DESTROY notification to stop further retransmissions! */
-    GCT_send_channel_destroy (ch->t,
-                              ch->ctn);
+    if (GNUNET_YES == ch->destroy)
+      GCT_send_channel_destroy (ch->t,
+                                ch->ctn);
     return;
   }
   payload_size = ntohs (msg->header.size) - sizeof (*msg);
