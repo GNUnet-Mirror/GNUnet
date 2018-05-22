@@ -402,8 +402,11 @@ stats_cont (void *cls,
  * @return #GNUNET_OK to continue, #GNUNET_SYSERR to abort iteration
  */
 static int
-stats_iterator (void *cls, const struct GNUNET_TESTBED_Peer *peer,
-                const char *subsystem, const char *name, uint64_t value,
+stats_iterator (void *cls,
+                const struct GNUNET_TESTBED_Peer *peer,
+                const char *subsystem,
+                const char *name,
+                uint64_t value,
                 int is_persistent)
 {
   static const char *s_sent = "# keepalives sent";
@@ -614,10 +617,9 @@ reschedule_timeout_task (long line)
  *         #GNUNET_SYSERR to close it (signal serious error).
  */
 static int
-check_data (void *cls, const struct GNUNET_MessageHeader *message)
+check_data (void *cls,
+            const struct GNUNET_MessageHeader *message)
 {
-  if (sizeof (struct GNUNET_MessageHeader) >= ntohs (message->size))
-    return GNUNET_SYSERR;
   return GNUNET_OK;             /* all is well-formed */
 }
 
@@ -646,24 +648,33 @@ handle_data (void *cls,
 
   if (channel == outgoing_ch)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Root client got a message.\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                "Root client got a message.\n");
   }
   else if (channel == incoming_ch)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Leaf client got a message.\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                "Leaf client got a message.\n");
   }
   else
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Unknown channel %p.\n", channel);
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Unknown channel %p.\n",
+                channel);
     GNUNET_assert (0);
   }
 
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, " ok: (%d/%d)\n", ok, ok_goal);
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              " ok: (%d/%d)\n",
+              ok,
+              ok_goal);
   data = (uint32_t *) &message[1];
   payload = ntohl (*data);
   if (payload == *counter)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO, " payload as expected: %u\n", payload);
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                " payload as expected: %u\n",
+                payload);
   }
   else
   {
@@ -679,7 +690,8 @@ handle_data (void *cls,
     if (SPEED == test)
     {
       GNUNET_assert (incoming_ch == channel);
-      send_next_msg_task = GNUNET_SCHEDULER_add_now (&send_next_msg, NULL);
+      send_next_msg_task = GNUNET_SCHEDULER_add_now (&send_next_msg,
+                                                     NULL);
       return;
     }
   }
@@ -740,7 +752,8 @@ handle_data (void *cls,
  *           received on the @a channel.
  */
 static void *
-connect_handler (void *cls, struct GNUNET_CADET_Channel *channel,
+connect_handler (void *cls,
+                 struct GNUNET_CADET_Channel *channel,
                  const struct GNUNET_PeerIdentity *source)
 {
   struct CadetTestChannelWrapper *ch;
@@ -748,15 +761,20 @@ connect_handler (void *cls, struct GNUNET_CADET_Channel *channel,
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Incoming channel from %s to %ld: %p\n",
-              GNUNET_i2s (source), peer, channel);
+              GNUNET_i2s (source),
+              peer,
+              channel);
   ok++;
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, " ok: %d\n", ok);
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              " ok: %d\n",
+              ok);
   if (peer == peers_requested - 1)
   {
     if (NULL != incoming_ch)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  "Duplicate incoming channel for client %lu\n", (long) cls);
+                  "Duplicate incoming channel for client %lu\n",
+                  (long) cls);
       GNUNET_assert (0);
     }
     incoming_ch = channel;
@@ -764,7 +782,8 @@ connect_handler (void *cls, struct GNUNET_CADET_Channel *channel,
   else
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                "Incoming channel for unexpected peer #%lu\n", (long) cls);
+                "Incoming channel for unexpected peer #%lu\n",
+                (long) cls);
     GNUNET_assert (0);
   }
   if (NULL != disconnect_task)
@@ -1003,7 +1022,6 @@ main (int argc, char *argv[])
 					"short_time",
 					gettext_noop ("set short timeout"),
 					&short_time),
-
     GNUNET_GETOPT_option_uint ('m',
 			       "messages",
 			       "NUM_MESSAGES",

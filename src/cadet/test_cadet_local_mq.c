@@ -19,7 +19,7 @@
 */
 
 /**
- * @file cadet/test_cadet_local.c
+ * @file cadet/test_cadet_local_mq.c
  * @brief test cadet local: test of cadet channels with just one peer
  * @author Bartlomiej Polot
  */
@@ -123,7 +123,9 @@ do_shutdown (void *cls)
 static void
 do_abort (void *cls)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "ABORT from line %ld\n", (long) cls);
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+              "ABORT from line %ld\n",
+              (long) cls);
   result = GNUNET_SYSERR;
   abort_task = NULL;
   GNUNET_SCHEDULER_shutdown ();
