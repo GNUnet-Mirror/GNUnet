@@ -110,7 +110,7 @@ struct GNUNET_CADET_TEST_AdapterContext
    * Port handlers for open ports.
    */
   struct GNUNET_CADET_Port **ports;
- 
+
   /**
    * General context.
    */
@@ -135,14 +135,13 @@ cadet_connect_adapter (void *cls,
   struct GNUNET_CADET_TEST_AdapterContext *actx = cls;
   struct GNUNET_CADET_TEST_Context *ctx = actx->ctx;
   struct GNUNET_CADET_Handle *h;
-  unsigned int i;
 
   h = GNUNET_CADET_connect (cfg);
   if (NULL == ctx->ports)
     return h;
-
-  actx->ports = GNUNET_new_array (ctx->port_count, struct GNUNET_CADET_Port *);
-  for (i = 0; i < ctx->port_count; i++)
+  actx->ports = GNUNET_new_array (ctx->port_count,
+                                  struct GNUNET_CADET_Port *);
+  for (unsigned int i = 0; i < ctx->port_count; i++)
   {
     actx->ports[i] = GNUNET_CADET_open_port (h,
                                              ctx->ports[i],
@@ -165,14 +164,14 @@ cadet_connect_adapter (void *cls,
  */
 static void
 cadet_disconnect_adapter (void *cls,
-                         void *op_result)
+                          void *op_result)
 {
   struct GNUNET_CADET_Handle *cadet = op_result;
   struct GNUNET_CADET_TEST_AdapterContext *actx = cls;
 
   if (NULL != actx->ports)
   {
-    for (int i = 0; i < actx->ctx->port_count; i++)
+    for (unsigned int i = 0; i < actx->ctx->port_count; i++)
     {
       GNUNET_CADET_close_port (actx->ports[i]);
       actx->ports[i] = NULL;
@@ -201,22 +200,24 @@ cadet_connect_cb (void *cls,
                  const char *emsg)
 {
   struct GNUNET_CADET_TEST_Context *ctx = cls;
-  unsigned int i;
 
   if (NULL != emsg)
   {
-    fprintf (stderr, "Failed to connect to CADET service: %s\n",
+    fprintf (stderr,
+             "Failed to connect to CADET service: %s\n",
              emsg);
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
-  for (i = 0; i < ctx->num_peers; i++)
+  for (unsigned int i = 0; i < ctx->num_peers; i++)
     if (op == ctx->ops[i])
     {
       ctx->cadets[i] = ca_result;
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO, "...cadet %u connected\n", i);
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                  "...cadet %u connected\n",
+                  i);
     }
-  for (i = 0; i < ctx->num_peers; i++)
+  for (unsigned int i = 0; i < ctx->num_peers; i++)
     if (NULL == ctx->cadets[i])
       return; /* still some CADET connections missing */
   /* all CADET connections ready! */
@@ -231,9 +232,7 @@ cadet_connect_cb (void *cls,
 void
 GNUNET_CADET_TEST_cleanup (struct GNUNET_CADET_TEST_Context *ctx)
 {
-  unsigned int i;
-
-  for (i = 0; i < ctx->num_peers; i++)
+  for (unsigned int i = 0; i < ctx->num_peers; i++)
   {
     GNUNET_assert (NULL != ctx->ops[i]);
     GNUNET_TESTBED_operation_done (ctx->ops[i]);
@@ -269,33 +268,37 @@ cadet_test_run (void *cls,
                unsigned int links_failed)
 {
   struct GNUNET_CADET_TEST_Context *ctx = cls;
-  unsigned int i;
 
   if (0 != links_failed)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Some links failed (%u), ending\n",
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Some links failed (%u), ending\n",
                 links_failed);
     exit (2);
   }
-
   if  (num_peers != ctx->num_peers)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Peers started %u/%u, ending\n",
-                num_peers, ctx->num_peers);
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Peers started %u/%u, ending\n",
+                num_peers,
+                ctx->num_peers);
     exit (1);
   }
-
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Testbed up, %u peers and %u links\n",
-              num_peers, links_succeeded);
+              num_peers,
+              links_succeeded);
   ctx->peers = peers;
-  for (i = 0; i < num_peers; i++)
+  for (unsigned int i = 0; i < num_peers; i++)
   {
     struct GNUNET_CADET_TEST_AdapterContext *newctx;
+
     newctx = GNUNET_new (struct GNUNET_CADET_TEST_AdapterContext);
     newctx->peer = i;
     newctx->ctx = ctx;
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Connecting to cadet %u\n", i);
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                "Connecting to cadet %u\n",
+                i);
     ctx->ops[i] = GNUNET_TESTBED_service_connect (ctx,
                                                   peers[i],
                                                   "cadet",
@@ -304,7 +307,9 @@ cadet_test_run (void *cls,
                                                   &cadet_connect_adapter,
                                                   &cadet_disconnect_adapter,
                                                   newctx);
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "op handle %p\n", ctx->ops[i]);
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                "op handle %p\n",
+                ctx->ops[i]);
   }
 }
 
@@ -340,8 +345,10 @@ GNUNET_CADET_TEST_ruN (const char *testname,
 
   ctx = GNUNET_new (struct GNUNET_CADET_TEST_Context);
   ctx->num_peers = num_peers;
-  ctx->ops = GNUNET_new_array (num_peers, struct GNUNET_TESTBED_Operation *);
-  ctx->cadets = GNUNET_new_array (num_peers, struct GNUNET_CADET_Handle *);
+  ctx->ops = GNUNET_new_array (num_peers,
+                               struct GNUNET_TESTBED_Operation *);
+  ctx->cadets = GNUNET_new_array (num_peers,
+                                  struct GNUNET_CADET_Handle *);
   ctx->app_main = tmain;
   ctx->app_main_cls = tmain_cls;
   ctx->connects = connects;
@@ -352,12 +359,12 @@ GNUNET_CADET_TEST_ruN (const char *testname,
   ctx->port_count = 0;
   while (NULL != ctx->ports[ctx->port_count])
     ctx->port_count++;
-
   GNUNET_TESTBED_test_run (testname,
                            cfgfile,
                            num_peers,
                            0LL, NULL, NULL,
-                           &cadet_test_run, ctx);
+                           &cadet_test_run,
+                           ctx);
 }
 
 /* end of cadet_test_lib.c */

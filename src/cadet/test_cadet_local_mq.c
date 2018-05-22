@@ -150,7 +150,8 @@ connected (void *cls,
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "connected %s, cls: %p\n",
-              GNUNET_i2s(source), cls);
+              GNUNET_i2s(source),
+              cls);
   return channel;
 }
 
@@ -208,7 +209,8 @@ handle_data_received (void *cls,
 static void
 message_sent (void *cls)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "message sent\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "message sent\n");
 }
 
 
