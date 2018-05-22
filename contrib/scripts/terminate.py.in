@@ -20,45 +20,51 @@
 # Utility module that implements safe process termination for W32.
 # For other platforms it's equivalent to Popen.kill ()
 # Requires pywin32 on W32.
+# FIXME: flake8 (python3 version) says, like in many other files:
+#        sys + subprocess are unnecessary imports, not used.
 
 import sys
 import os
 import subprocess
 if os.name == 'nt':
-  import win32api
-  import win32process
+    import win32api
+    import win32process
+
 
 class dummyobj (object):
-  pass
+    pass
 
-def safe_terminate_process_by_pid (pid, code):
-  if os.name == 'nt':
-    p = dummyobj ()
-    p._handle = win32api.OpenProcess (2 | 1024 | 8 | 32 | 16, 0, pid)
-    result = safe_terminate_process (p, code)
-    win32api.CloseHandle (p._handle)
-    return result
-  else:
-    return os.kill (int (pid), SIGKILL)
 
-def safe_terminate_process (proc, code):
-  if os.name == 'nt':
-    cp = win32api.GetCurrentProcess ()
-    result = False
-    dupproc = win32api.DuplicateHandle (cp, proc._handle, cp, 2 | 1024 | 8 | 32 | 16, 0, 0)
-    try:
-      exitcode = win32process.GetExitCodeProcess (dupproc)
-      if exitcode == 0x103:
-        kernel32 = win32api.GetModuleHandle ("kernel32")
-        exitprocess = win32api.GetProcAddress (kernel32, "ExitProcess")
-        th, tid = win32process.CreateRemoteThread (dupproc, None, 0, exitprocess, code, 0)
-        win32api.CloseHandle (th)
-        result = True
-      else:
-        result = True
-    # except failed to get exit code? failed to get module handle?
-    finally:
-      win32api.CloseHandle (dupproc)
-    return result
-  else:
-    return proc.kill ()
+def safe_terminate_process_by_pid(pid, code):
+    if os.name == 'nt':
+        p = dummyobj()
+        p._handle = win32api.OpenProcess(2 | 1024 | 8 | 32 | 16, 0, pid)
+        result = safe_terminate_process(p, code)
+        win32api.CloseHandle(p._handle)
+        return result
+    else:
+        # XXX (F821): Undefined name 'SIGKILL'
+        return os.kill(int(pid), SIGKILL)
+
+
+def safe_terminate_process(proc, code):
+    if os.name == 'nt':
+        cp = win32api.GetCurrentProcess()
+        result = False
+        dupproc = win32api.DuplicateHandle(cp, proc._handle, cp, 2 | 1024 | 8 | 32 | 16, 0, 0)
+        try:
+            exitcode = win32process.GetExitCodeProcess(dupproc)
+            if exitcode == 0x103:
+                kernel32 = win32api.GetModuleHandle("kernel32")
+                exitprocess = win32api.GetProcAddress(kernel32, "ExitProcess")
+                th, tid = win32process.CreateRemoteThread(dupproc, None, 0, exitprocess, code, 0)
+                win32api.CloseHandle(th)
+                result = True
+            else:
+                result = True
+        # except failed to get exit code? failed to get module handle?
+        finally:
+            win32api.CloseHandle(dupproc)
+        return result
+    else:
+        return proc.kill()
