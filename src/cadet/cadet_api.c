@@ -464,6 +464,10 @@ cadet_mq_send_now (void *cls)
   }
   ch->allow_send--;
   ch->pending_env = NULL;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Sending message on channel %s to CADET, new window size is %u\n",
+              GNUNET_i2s (&ch->peer),
+              ch->allow_send);
   GNUNET_MQ_send (ch->cadet->mq,
                   env);
   GNUNET_MQ_impl_send_continue (ch->mq);
@@ -781,6 +785,11 @@ handle_local_ack (void *cls,
     return;
   }
   ch->allow_send++;
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Got an ACK on mq channel %X (peer %s); new window size is %u!\n",
+       ntohl (ch->ccn.channel_of_client),
+       GNUNET_i2s (&ch->peer),
+       ch->allow_send);
   if (NULL == ch->pending_env)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -792,9 +801,6 @@ handle_local_ack (void *cls,
   }
   if (NULL != ch->mq_cont)
     return; /* already working on it! */
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Got an ACK on mq channel %X, sending pending message!\n",
-       ntohl (ch->ccn.channel_of_client));
   ch->mq_cont
     = GNUNET_SCHEDULER_add_now (&cadet_mq_send_now,
                                 ch);
@@ -992,6 +998,7 @@ check_get_tunnels (void *cls,
 {
   size_t esize;
 
+  (void) cls;
   esize = ntohs (message->size);
   if (sizeof (struct GNUNET_CADET_LocalInfoTunnel) == esize)
     return GNUNET_OK;
@@ -1051,6 +1058,7 @@ check_get_tunnel (void *cls,
   size_t esize;
   size_t msize;
 
+  (void) cls;
   /* Verify message sanity */
   msize = ntohs (msg->header.size);
   esize = sizeof (struct GNUNET_CADET_LocalInfoTunnel);
@@ -1096,7 +1104,6 @@ handle_get_tunnel (void *cls,
 
   if (NULL == h->info_cb.tunnel_cb)
     return;
-
   ch_n = ntohl (msg->channels);
   c_n = ntohl (msg->connections);
 
@@ -1191,13 +1198,8 @@ destroy_channel_cb (void *cls,
   /* struct GNUNET_CADET_Handle *handle = cls; */
   struct GNUNET_CADET_Channel *ch = value;
 
-  if (ntohl (ch->ccn.channel_of_client) >= GNUNET_CADET_LOCAL_CHANNEL_ID_CLI)
-  {
-    GNUNET_break (0);
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "channel %X not destroyed\n",
-         ntohl (ch->ccn.channel_of_client));
-  }
+  (void) cls;
+  (void) cid;
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 	      "Destroying channel due to GNUNET_CADET_disconnect()\n");
   destroy_channel (ch);
@@ -1222,6 +1224,7 @@ destroy_port_cb (void *cls,
   /* struct GNUNET_CADET_Handle *handle = cls; */
   struct GNUNET_CADET_Port *port = value;
 
+  (void) cls;
   /* This is a warning, the app should have cleanly closed all open ports */
   GNUNET_break (0);
   GNUNET_CADET_close_port (port);
