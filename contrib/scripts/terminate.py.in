@@ -20,12 +20,10 @@
 # Utility module that implements safe process termination for W32.
 # For other platforms it's equivalent to Popen.kill ()
 # Requires pywin32 on W32.
-# FIXME: flake8 (python3 version) says, like in many other files:
-#        sys + subprocess are unnecessary imports, not used.
 
 import sys
-import os
 import subprocess
+import os
 if os.name == 'nt':
     import win32api
     import win32process
