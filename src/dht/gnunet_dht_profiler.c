@@ -45,7 +45,7 @@ static unsigned int put_probability = 100;
 /**
  * Configuration
  */
-static struct GNUNET_CONFIGURATION_Handle *cfg;
+static const struct GNUNET_CONFIGURATION_Handle *cfg;
 
 /**
  * Name of the file with the hosts to run the test over
@@ -917,7 +917,7 @@ run (void *cls,
                 num_peers);
     return;
   }
-  cfg = GNUNET_CONFIGURATION_dup (config);
+  cfg = config;
   event_mask = 0;
   GNUNET_TESTBED_run (hosts_file,
                       cfg,
