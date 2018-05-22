@@ -26,70 +26,70 @@ import shutil
 import time
 
 srcdir = "../.."
-gnunet_pyexpect_dir = os.path.join (srcdir, "contrib/scripts")
+gnunet_pyexpect_dir = os.path.join(srcdir, "contrib/scripts")
 if gnunet_pyexpect_dir not in sys.path:
-  sys.path.append (gnunet_pyexpect_dir)
+    sys.path.append(gnunet_pyexpect_dir)
 
 from gnunet_pyexpect import pexpect
 
 if os.name == 'posix':
-  peerinfo = './gnunet-peerinfo'
-  gnunetarm = 'gnunet-arm'
-  gnunettesting = 'gnunet-testing'
+    peerinfo = './gnunet-peerinfo'
+    gnunetarm = 'gnunet-arm'
+    gnunettesting = 'gnunet-testing'
 elif os.name == 'nt':
-  peerinfo = './gnunet-peerinfo.exe'
-  gnunetarm = 'gnunet-arm.exe'
-  gnunettesting = 'gnunet-testing.exe'
+    peerinfo = './gnunet-peerinfo.exe'
+    gnunetarm = 'gnunet-arm.exe'
+    gnunettesting = 'gnunet-testing.exe'
 
-pinfo = pexpect ()
+pinfo = pexpect()
 
 
 if os.name == "nt":
-  shutil.rmtree (os.path.join (os.getenv ("TEMP"), "gnunet-test-peerinfo"), True)
+    shutil.rmtree(os.path.join(os.getenv("TEMP"), "gnunet-test-peerinfo"), True)
 else:
-  shutil.rmtree ("/tmp/gnunet-test-peerinfo", True)
+    shutil.rmtree("/tmp/gnunet-test-peerinfo", True)
 
-# create hostkey via testing lib
-hkk = subprocess.Popen ([gnunettesting, '-n', '1', '-c', 'test_gnunet_peerinfo_data.conf', '-k', '/tmp/gnunet-test-peerinfo/.hostkey'])
-hkk.communicate ()
+# create hostkey via testing lib  # FIXME: The /tmp/ location needs to be adjusted to the TMP variable!
+hkk = subprocess.Popen([gnunettesting, '-n', '1', '-c', 'test_gnunet_peerinfo_data.conf', '-k', '/tmp/gnunet-test-peerinfo/.hostkey'])
+hkk.communicate()
 
-arm = subprocess.Popen ([gnunetarm, '-sq', '-c', 'test_gnunet_peerinfo_data.conf'])
-arm.communicate ()
+arm = subprocess.Popen([gnunetarm, '-sq', '-c', 'test_gnunet_peerinfo_data.conf'])
+arm.communicate()
 
 try:
-  pinfo.spawn (None, [peerinfo, '-c', 'test_gnunet_peerinfo_data.conf', '-s'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-  pinfo.expect ("stdout", re.compile (r'I am peer `.*\'.\r?\n'))
+    pinfo.spawn(None, [peerinfo, '-c', 'test_gnunet_peerinfo_data.conf', '-s'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    pinfo.expect("stdout", re.compile(r'I am peer `.*\'.\r?\n'))
 
-  pinfo.spawn (None, [peerinfo, '-c', 'test_gnunet_peerinfo_data.conf', '-qs'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-  pinfo.expect ("stdout", re.compile (r'....................................................\r?\n'))
+    pinfo.spawn(None, [peerinfo, '-c', 'test_gnunet_peerinfo_data.conf', '-qs'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    pinfo.expect("stdout", re.compile(r'....................................................\r?\n'))
 
-  pinfo.spawn (None, [peerinfo, '-c', 'test_gnunet_peerinfo_data.conf', 'invalid'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-  pinfo.expect ("stdout", re.compile (r'Invalid command line argument `invalid\'\r?\n'))
+    pinfo.spawn(None, [peerinfo, '-c', 'test_gnunet_peerinfo_data.conf', 'invalid'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    pinfo.expect("stdout", re.compile(r'Invalid command line argument `invalid\'\r?\n'))
 
-  arm = subprocess.Popen ([gnunetarm, '-q', '-i', 'transport', '-c', 'test_gnunet_peerinfo_data.conf'])
-  arm.communicate ()
-  time.sleep (1)
+    arm = subprocess.Popen([gnunetarm, '-q', '-i', 'transport', '-c', 'test_gnunet_peerinfo_data.conf'])
+    arm.communicate()
+    time.sleep(1)
 
-  pinfo.spawn (None, [peerinfo, '-i', '-c', 'test_gnunet_peerinfo_data.conf'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-  pinfo.expect ("stdout", re.compile ("Peer `.*'\r?\n"))
-  m = pinfo.expect ("stdout", re.compile ("\s.*:24357\r?\n"))
-  while len (m.group (0)) > 0:
-    m = pinfo.expect ("stdout", re.compile ("(\s.*:24357\r?\n|\r?\n|)"))
+    pinfo.spawn(None, [peerinfo, '-i', '-c', 'test_gnunet_peerinfo_data.conf'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    pinfo.expect("stdout", re.compile("Peer `.*'\r?\n"))
+    m = pinfo.expect("stdout", re.compile("\s.*:24357\r?\n"))
+    while len(m.group(0)) > 0:
+        m = pinfo.expect("stdout", re.compile("(\s.*:24357\r?\n|\r?\n|)"))
 
-  pinfo.spawn (None, [peerinfo, '-i', '-c', 'test_gnunet_peerinfo_data.conf', '-n'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-  pinfo.expect ("stdout", re.compile ("Peer `.*'\r?\n"))
-  m = pinfo.expect ("stdout", re.compile ("\s.*:24357\r?\n"))
-  while len (m.group (0)) > 0:
-    m = pinfo.expect ("stdout", re.compile ("(\s.*:24357\r?\n|\r?\n|)"))
+    pinfo.spawn(None, [peerinfo, '-i', '-c', 'test_gnunet_peerinfo_data.conf', '-n'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    pinfo.expect("stdout", re.compile("Peer `.*'\r?\n"))
+    m = pinfo.expect("stdout", re.compile("\s.*:24357\r?\n"))
+    while len(m.group(0)) > 0:
+        m = pinfo.expect("stdout", re.compile("(\s.*:24357\r?\n|\r?\n|)"))
 
-  pinfo.spawn (None, [peerinfo, '-c', 'test_gnunet_peerinfo_data.conf', '-qs'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-  pid = pinfo.read ("stdout")
-  pid.strip ()
+    pinfo.spawn(None, [peerinfo, '-c', 'test_gnunet_peerinfo_data.conf', '-qs'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    pid = pinfo.read("stdout")
+    pid.strip()
 
 finally:
-  arm = subprocess.Popen ([gnunetarm, '-eq', '-c', 'test_gnunet_peerinfo_data.conf'])
-  arm.communicate ()
-  if os.name == "nt":
-    shutil.rmtree (os.path.join (os.getenv ("TEMP"), "gnunet-test-peerinfo"), True)
-  else:
-    shutil.rmtree ("/tmp/gnunet-test-peerinfo", True)
+    arm = subprocess.Popen([gnunetarm, '-eq', '-c', 'test_gnunet_peerinfo_data.conf'])
+    arm.communicate()
+    if os.name == "nt":
+        shutil.rmtree(os.path.join(os.getenv("TEMP"), "gnunet-test-peerinfo"), True)
+    else:
+        shutil.rmtree("/tmp/gnunet-test-peerinfo", True)
