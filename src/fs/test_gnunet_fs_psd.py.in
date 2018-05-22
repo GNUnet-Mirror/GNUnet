@@ -29,59 +29,60 @@ except NameError:
     # python3.4:
     from importlib import reload
 
+
 # Force encoding to utf-8, as this test otherwise fails
 # on some systems (see #5094).
 reload(sys)
 sys.setdefaultencoding('utf8')
 
 srcdir = "../.."
-gnunet_pyexpect_dir = os.path.join (srcdir, "contrib")
+gnunet_pyexpect_dir = os.path.join (srcdir, "contrib/scripts")
 if gnunet_pyexpect_dir not in sys.path:
-  sys.path.append (gnunet_pyexpect_dir)
+    sys.path.append(gnunet_pyexpect_dir)
 
 from gnunet_pyexpect import pexpect
 
 if os.name == 'posix':
-  download = './gnunet-download'
-  gnunetarm = 'gnunet-arm'
-  publish = './gnunet-publish'
-  unindex = './gnunet-unindex'
-  search = './gnunet-search'
+    download = './gnunet-download'
+    gnunetarm = 'gnunet-arm'
+    publish = './gnunet-publish'
+    unindex = './gnunet-unindex'
+    search = './gnunet-search'
 elif os.name == 'nt':
-  download = './gnunet-download.exe'
-  gnunetarm = 'gnunet-arm.exe'
-  publish = './gnunet-publish.exe'
-  unindex = './gnunet-unindex.exe'
-  search = './gnunet-search.exe'
+    download = './gnunet-download.exe'
+    gnunetarm = 'gnunet-arm.exe'
+    publish = './gnunet-publish.exe'
+    unindex = './gnunet-unindex.exe'
+    search = './gnunet-search.exe'
 
 if os.name == "nt":
-  shutil.rmtree (os.path.join (os.getenv ("TEMP"), "gnunet-test-fs-py-psd"), True)
+    shutil.rmtree(os.path.join(os.getenv("TEMP"), "gnunet-test-fs-py-psd"), True)
 else:
-  shutil.rmtree ("/tmp/gnunet-test-fs-py-psd", True)
+    shutil.rmtree("/tmp/gnunet-test-fs-py-psd", True)
 
-arm = subprocess.Popen ([gnunetarm, '-sq', '-c', 'test_gnunet_fs_psd_data.conf'])
-arm.communicate ()
+arm = subprocess.Popen([gnunetarm, '-sq', '-c', 'test_gnunet_fs_psd_data.conf'])
+arm.communicate()
 
 # first, basic publish-search-download run
 try:
-  pub = pexpect ()
-  pub.spawn (None, [publish, '-c', 'test_gnunet_fs_psd_data.conf', '-n', '-m', "description:Test archive", '-k', 'tst', 'test_gnunet_fs_rec_data.tgz'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-  pub.expect ("stdout", re.compile (r"Publishing `.+test_gnunet_fs_rec_data.tgz' done\.\r?\n"))
-  pub.expect ("stdout", re.compile (r"URI is `gnunet://fs/chk/2ZMHKPV74CB6GB1GFKQRR95BXJQA2SER25FN48GAW7WSBPA0GDEM5Y74V1ZJHM0NA6919TVW376BHTFDRE3RYS0KRY92M1QJVKPHFCR\.49BT3V5C10KA1695JF71FCT8ZZG4JMJSH04BD9CT22R6KEM915A7CEST17RD0QYTHXV5M4HHEGJMEZSFRDB7JAYC0EMJAN2V781E9DG\.17822'\.\r?\n"))
+    pub = pexpect()
+    pub.spawn(None, [publish, '-c', 'test_gnunet_fs_psd_data.conf', '-n', '-m', "description:Test archive", '-k', 'tst', 'test_gnunet_fs_rec_data.tgz'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    pub.expect("stdout", re.compile(r"Publishing `.+test_gnunet_fs_rec_data.tgz' done\.\r?\n"))
+    pub.expect("stdout", re.compile(r"URI is `gnunet://fs/chk/2ZMHKPV74CB6GB1GFKQRR95BXJQA2SER25FN48GAW7WSBPA0GDEM5Y74V1ZJHM0NA6919TVW376BHTFDRE3RYS0KRY92M1QJVKPHFCR\.49BT3V5C10KA1695JF71FCT8ZZG4JMJSH04BD9CT22R6KEM915A7CEST17RD0QYTHXV5M4HHEGJMEZSFRDB7JAYC0EMJAN2V781E9DG\.17822'\.\r?\n"))
 
-  s = pexpect ()
-  s.spawn (None, [search, '-V', '-t', '1000 ms', '-N', '1', '-c', 'test_gnunet_fs_psd_data.conf', 'tst'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-  s.expect ("stdout", re.compile (r'gnunet-download -o "test_gnunet_fs_rec_data.tgz" gnunet://fs/chk/2ZMHKPV74CB6GB1GFKQRR95BXJQA2SER25FN48GAW7WSBPA0GDEM5Y74V1ZJHM0NA6919TVW376BHTFDRE3RYS0KRY92M1QJVKPHFCR\.49BT3V5C10KA1695JF71FCT8ZZG4JMJSH04BD9CT22R6KEM915A7CEST17RD0QYTHXV5M4HHEGJMEZSFRDB7JAYC0EMJAN2V781E9DG\.17822\r?\n'))
+    s = pexpect()
+    s.spawn(None, [search, '-V', '-t', '1000 ms', '-N', '1', '-c', 'test_gnunet_fs_psd_data.conf', 'tst'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    s.expect("stdout", re.compile(r'gnunet-download -o "test_gnunet_fs_rec_data.tgz" gnunet://fs/chk/2ZMHKPV74CB6GB1GFKQRR95BXJQA2SER25FN48GAW7WSBPA0GDEM5Y74V1ZJHM0NA6919TVW376BHTFDRE3RYS0KRY92M1QJVKPHFCR\.49BT3V5C10KA1695JF71FCT8ZZG4JMJSH04BD9CT22R6KEM915A7CEST17RD0QYTHXV5M4HHEGJMEZSFRDB7JAYC0EMJAN2V781E9DG\.17822\r?\n'))
 
-  down = pexpect ()
-  down.spawn (None, [download, '-c', 'test_gnunet_fs_psd_data.conf', '-o', 'test_gnunet_fs_rec_data.tar.gz', 'gnunet://fs/chk/2ZMHKPV74CB6GB1GFKQRR95BXJQA2SER25FN48GAW7WSBPA0GDEM5Y74V1ZJHM0NA6919TVW376BHTFDRE3RYS0KRY92M1QJVKPHFCR.49BT3V5C10KA1695JF71FCT8ZZG4JMJSH04BD9CT22R6KEM915A7CEST17RD0QYTHXV5M4HHEGJMEZSFRDB7JAYC0EMJAN2V781E9DG.17822'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-  down.expect ("stdout", re.compile (r"Downloading `test_gnunet_fs_rec_data.tar.gz' done (.*).\r?\n"))
-  os.remove ("test_gnunet_fs_rec_data.tar.gz")
+    down = pexpect()
+    down.spawn(None, [download, '-c', 'test_gnunet_fs_psd_data.conf', '-o', 'test_gnunet_fs_rec_data.tar.gz', 'gnunet://fs/chk/2ZMHKPV74CB6GB1GFKQRR95BXJQA2SER25FN48GAW7WSBPA0GDEM5Y74V1ZJHM0NA6919TVW376BHTFDRE3RYS0KRY92M1QJVKPHFCR.49BT3V5C10KA1695JF71FCT8ZZG4JMJSH04BD9CT22R6KEM915A7CEST17RD0QYTHXV5M4HHEGJMEZSFRDB7JAYC0EMJAN2V781E9DG.17822'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    down.expect("stdout", re.compile(r"Downloading `test_gnunet_fs_rec_data.tar.gz' done (.*).\r?\n"))
+    os.remove("test_gnunet_fs_rec_data.tar.gz")
 
 finally:
-  arm = subprocess.Popen ([gnunetarm, '-eq', '-c', 'test_gnunet_fs_psd_data.conf'])
-  arm.communicate ()
-  if os.name == "nt":
-    shutil.rmtree (os.path.join (os.getenv ("TEMP"), "gnunet-test-fs-py-psd"), True)
-  else:
-    shutil.rmtree ("/tmp/gnunet-test-fs-py-psd", True)
+    arm = subprocess.Popen([gnunetarm, '-eq', '-c', 'test_gnunet_fs_psd_data.conf'])
+    arm.communicate()
+    if os.name == "nt":
+        shutil.rmtree(os.path.join(os.getenv("TEMP"), "gnunet-test-fs-py-psd"), True)
+    else:
+        shutil.rmtree("/tmp/gnunet-test-fs-py-psd", True)
