@@ -27,7 +27,7 @@ import tarfile
 import filecmp
 
 srcdir = "../.."
-gnunet_pyexpect_dir = os.path.join (srcdir, "contrib")
+gnunet_pyexpect_dir = os.path.join (srcdir, "contrib/scripts")
 if gnunet_pyexpect_dir not in sys.path:
   sys.path.append (gnunet_pyexpect_dir)
 
