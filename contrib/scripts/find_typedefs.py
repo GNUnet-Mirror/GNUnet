@@ -1,3 +1,5 @@
+# XXX (F841): local variable 'li' is assigned to but never used
+
 from __future__ import print_function
 from __future__ import unicode_literals
 import os
