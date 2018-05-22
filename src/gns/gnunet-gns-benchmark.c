@@ -216,6 +216,9 @@ process_result (void *cls,
   (void) rd_count;
   (void) rd;
   active_cnt--;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Got response for request `%s'\n",
+              req->hostname);
   req->lr = NULL;
   req->latency = GNUNET_TIME_absolute_get_duration (req->op_start_time);
   GNUNET_CONTAINER_DLL_remove (act_head,
