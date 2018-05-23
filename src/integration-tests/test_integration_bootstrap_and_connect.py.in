@@ -17,7 +17,7 @@
 #    Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
 #    Boston, MA 02110-1301, USA.
 #
-# 
+#
 import signal
 import sys
 import os
@@ -29,177 +29,183 @@ from gnunet_testing import Peer
 from gnunet_testing import Test
 from gnunet_testing import Check
 from gnunet_testing import Condition
-from gnunet_testing import * 
- 
+from gnunet_testing import *
+
 
 #
 # This test tests if a fresh peer bootstraps from a hostlist server and then
-# successfully connects to the server 
+# successfully connects to the server
 #
 # Conditions for successful exit:
 # Both peers have 1 connected peer in transport, core, topology, fs
 
 #
 # This test tests if a fresh peer bootstraps from a hostlist server and then
-# successfully connects to the server 
+# successfully connects to the server
 #
 # Conditions for successful exit:
 # Both peers have 1 connected peer in transport, core, topology, fs
 
-#definitions
+# definitions
 
 testname = "test_integration_bootstrap_and_connect"
 verbose = False
 check_timeout = 180
 
 if os.name == "nt":
-  tmp = os.getenv ("TEMP")
-  signals = [signal.SIGTERM, signal.SIGINT]
+    tmp = os.getenv("TEMP")
+    signals = [signal.SIGTERM, signal.SIGINT]
 else:
-  tmp = "/tmp"
-  signals = [signal.SIGTERM, signal.SIGINT, signal.SIGHUP, signal.SIGQUIT]
+    tmp = "/tmp"
+    signals = [signal.SIGTERM, signal.SIGINT, signal.SIGHUP, signal.SIGQUIT]
 
-def cleanup_onerror (function, path, excinfo):
-  import stat
-  if not os.path.exists (path):
-    pass
-  elif not os.access(path, os.W_OK):
-    # Is the error an access error ?
-    os.chmod (path, stat.S_IWUSR)
-    function (path)
-  else:
-    raise
 
-def cleanup ():
+def cleanup_onerror(function, path, excinfo):
+    import stat
+    if not os.path.exists(path):
+        pass
+    elif not os.access(path, os.W_OK):
+        # Is the error an access error ?
+        os.chmod(path, stat.S_IWUSR)
+        function(path)
+    else:
+        raise
+
+
+def cleanup():
     retries = 10
-    path = os.path.join (tmp, "c_bootstrap_server")  
-    test.p ("Removing " + path)      
+    path = os.path.join(tmp, "c_bootstrap_server")
+    test.p("Removing " + path)
     while ((os.path.exists(path)) and (retries > 0)):
-        shutil.rmtree ((path), False, cleanup_onerror)
-        time.sleep (1)
+        shutil.rmtree((path), False, cleanup_onerror)
+        time.sleep(1)
         retries -= 1
     if (os.path.exists(path)):
-        test.p ("Failed to remove " + path) 
-    
-    
+        test.p("Failed to remove " + path)
+
     retries = 10
-    path = os.path.join (tmp, "c_no_nat_client")    
-    test.p ("Removing " + path)    
+    path = os.path.join(tmp, "c_no_nat_client")
+    test.p("Removing " + path)
     while ((os.path.exists(path)) and (retries > 0)):
-        shutil.rmtree ((path), False, cleanup_onerror)
-        time.sleep (1)
+        shutil.rmtree((path), False, cleanup_onerror)
+        time.sleep(1)
         retries -= 1
     if (os.path.exists(path)):
-        test.p ("Failed to remove " + path)     
-                
-def success_cont (check):
+        test.p("Failed to remove " + path)
+
+
+def success_cont(check):
     global success
-    success = True;
+    success = True
     print('Peers connected successfully')
-    
-def fail_cont (check):    
-    global success 
-    success = False;
+
+
+def fail_cont(check):
+    global success
+    success = False
     print('Peers did not connect')
     check.evaluate(True)
 
-def check ():
-  check = Check (test)
-  check.add (StatisticsCondition (client, 'transport', '# peers connected',1))
-  check.add (StatisticsCondition (client, 'core', '# peers connected',1))
-  check.add (StatisticsCondition (client, 'topology', '# peers connected',1))
-  check.add (StatisticsCondition (client, 'dht', '# peers connected',1))  
-  check.add (StatisticsCondition (client, 'fs', '# peers connected',1))
-  
-  check.add (StatisticsCondition (server, 'transport', '# peers connected',1))
-  check.add (StatisticsCondition (server, 'core', '# peers connected',1))
-  check.add (StatisticsCondition (server, 'topology', '# peers connected',1))
-  check.add (StatisticsCondition (server, 'dht', '# peers connected',1))  
-  check.add (StatisticsCondition (server, 'fs', '# peers connected',1))  
-  
-  check.run_blocking (check_timeout, success_cont, fail_cont)
 
-# 
+def check():
+    check = Check(test)
+    check.add(StatisticsCondition(client, 'transport', '# peers connected', 1))
+    check.add(StatisticsCondition(client, 'core', '# peers connected', 1))
+    check.add(StatisticsCondition(client, 'topology', '# peers connected', 1))
+    check.add(StatisticsCondition(client, 'dht', '# peers connected', 1))
+    check.add(StatisticsCondition(client, 'fs', '# peers connected', 1))
+
+    check.add(StatisticsCondition(server, 'transport', '# peers connected', 1))
+    check.add(StatisticsCondition(server, 'core', '# peers connected', 1))
+    check.add(StatisticsCondition(server, 'topology', '# peers connected', 1))
+    check.add(StatisticsCondition(server, 'dht', '# peers connected', 1))
+    check.add(StatisticsCondition(server, 'fs', '# peers connected', 1))
+
+    check.run_blocking(check_timeout, success_cont, fail_cont)
+
+#
 # Test execution
-# 
+#
 
-def SigHandler(signum = None, frame = None):
-	global success	
-	global server
-	global client  
-	
-	print('Test was aborted!')
-	if (None != server):
-		server.stop ()
-	if (None != client):		
-		client.stop ()
-	cleanup ()
-	sys.exit(success)
 
-def run ():
-	global success
-	global test
-	global server
-	global client    
-	
-	server = None
-	client = None
-	success = False  
-	
-	for sig in signals:
-		signal.signal(sig, SigHandler)
+def SigHandler(signum=None, frame=None):
+    global success
+    global server
+    global client
 
-	test = Test ('test_integration_bootstrap_and_connect.py', verbose)
-	cleanup ()
-	
-	server = Peer(test, './confs/c_bootstrap_server.conf');
-	client = Peer(test, './confs/c_no_nat_client.conf');
-	
-	if (True != server.start()):
-		print('Failed to start server')
-		if (None != server):
-			server.stop ()
-		if (None != server):		
-			client.stop ()
-		cleanup ()
-		sys.exit(success)
-		
-	# Give the server time to start
-	time.sleep(5)
-	
-	if (True != client.start()):
-		print('Failed to start client')
-		if (None != server):
-			server.stop ()
-		if (None != server):		
-			client.stop ()
-		cleanup ()
-		sys.exit(success)
-	
-	if ((client.started == True) and (server.started == True)):
-		test.p ('Peers started, running check')
-		time.sleep(5)
-		check ()
-	server.stop ()
-	client.stop ()
-	
-	cleanup ()
-	
-	if (success == False):
-		print ('Test failed')
-		return False 
-	else:
-		return True
+    print('Test was aborted!')
+    if (None != server):
+        server.stop()
+    if (None != client):
+        client.stop()
+    cleanup()
+    sys.exit(success)
+
+
+def run():
+    global success
+    global test
+    global server
+    global client
+
+    server = None
+    client = None
+    success = False
+
+    for sig in signals:
+        signal.signal(sig, SigHandler)
+
+    test = Test('test_integration_bootstrap_and_connect.py', verbose)
+    cleanup()
+
+    server = Peer(test, './confs/c_bootstrap_server.conf')
+    client = Peer(test, './confs/c_no_nat_client.conf')
+
+    if (True != server.start()):
+        print('Failed to start server')
+        if (None != server):
+            server.stop()
+        if (None != server):
+            client.stop()
+        cleanup()
+        sys.exit(success)
+
+    # Give the server time to start
+    time.sleep(5)
+
+    if (True != client.start()):
+        print('Failed to start client')
+        if (None != server):
+            server.stop()
+        if (None != server):
+            client.stop()
+        cleanup()
+        sys.exit(success)
+
+    if ((client.started == True) and (server.started == True)):
+        test.p('Peers started, running check')
+        time.sleep(5)
+        check()
+    server.stop()
+    client.stop()
+
+    cleanup()
+
+    if (success == False):
+        print('Test failed')
+        return False
+    else:
+        return True
+
 
 try:
-	run ()
-except (KeyboardInterrupt, SystemExit):    
-	print('Test interrupted')
-	server.stop ()
-	client.stop ()
-	cleanup ()
+    run()
+except (KeyboardInterrupt, SystemExit):
+    print('Test interrupted')
+    server.stop()
+    client.stop()
+    cleanup()
 if (success == False):
-	sys.exit(1)   
+    sys.exit(1)
 else:
-	sys.exit(0)    
-    
+    sys.exit(0)
