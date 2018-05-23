@@ -971,6 +971,8 @@ dns_result_parser (void *cls,
                                               &handle_dns_result,
                                               rh);
     GNUNET_DNSPARSER_free_packet (p);
+    GNUNET_DNSSTUB_resolve_cancel (rh->dns_request);
+    rh->dns_request = NULL;
     return;
   }
 
@@ -1110,6 +1112,8 @@ dns_result_parser (void *cls,
     rh->proc (rh->proc_cls,
               rd_count - skip,
               rd);
+    GNUNET_DNSSTUB_resolve_cancel (rh->dns_request);
+    rh->dns_request = NULL;
   }
   GNUNET_DNSPARSER_free_packet (p);
   if (NULL != rh->task_id)
