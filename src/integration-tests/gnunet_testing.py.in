@@ -1,6 +1,6 @@
 #!@PYTHON@
 #    This file is part of GNUnet.
-#    (C) 2010, 2017 Christian Grothoff (and other contributing authors)
+#    (C) 2010, 2017, 2018 Christian Grothoff (and other contributing authors)
 #
 #    GNUnet is free software; you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published
@@ -25,86 +25,99 @@ import shutil
 import time
 from gnunet_pyexpect import pexpect
 
+
 class Check:
     def __init__(self, test):
         self.fulfilled = False
         self.conditions = list()
         self.test = test
-    def add (self, condition):
+
+    def add(self, condition):
         self.conditions.append(condition)
-    def run (self):
+
+    def run(self):
         fulfilled = True
         pos = 0
         neg = 0
         for c in self.conditions:
-            if (False == c.check ()):
+            if (False == c.check()):
                 fulfilled = False
                 neg += 1
             else:
                 pos += 1
         return fulfilled
-    def run_blocking (self, timeout, pos_cont, neg_cont):
-        execs = 0;
+
+    def run_blocking(self, timeout, pos_cont, neg_cont):
+        execs = 0
         res = False
         while ((False == res) and (execs < timeout)):
             res = self.run()
             time.sleep(1)
             execs += 1
         if ((False == res) and (execs >= timeout)):
-           print(('Check had timeout after ' +str(timeout)+ ' seconds'))
-           neg_cont (self)
+            print(('Check had timeout after ' + str(timeout) + ' seconds'))
+            neg_cont(self)
         elif ((False == res) and (execs < timeout)):
             if (None != neg_cont):
-                neg_cont (self)
+                neg_cont(self)
         else:
             if (None != pos_cont):
-                pos_cont (self)
-        return res     
-    def run_once (self, pos_cont, neg_cont):
-        execs = 0;
+                pos_cont(self)
+        return res
+
+    def run_once(self, pos_cont, neg_cont):
+        execs = 0
         res = False
         res = self.run()
         if ((res == False) and (neg_cont != None)):
-            neg_cont (self)
+            neg_cont(self)
         if ((res == True) and (pos_cont != None)):
-            pos_cont (self)            
+            pos_cont(self)
         return res
-    def evaluate (self, failed_only):
+
+    def evaluate(self, failed_only):
         pos = 0
         neg = 0
         for c in self.conditions:
-            if (False == c.evaluate (failed_only)):
+            if (False == c.evaluate(failed_only)):
                 neg += 1
             else:
                 pos += 1
-        print((str(pos) +' out of '+ str (pos+neg) + ' conditions fulfilled'))
+        print((str(pos) + ' out of ' + str(pos+neg) + ' conditions fulfilled'))
         return self.fulfilled
-    def reset (self):
-		self.fulfilled = False     
-		for c in self.conditions:
-			c.fulfilled = False
-        
+
+    def reset(self):
+        self.fulfilled = False
+        for c in self.conditions:
+            c.fulfilled = False
+
+
 class Condition:
     def __init__(self):
         self.fulfilled = False
         self.type = 'generic'
+
     def __init__(self, type):
         self.fulfilled = False
         self.type = type
+
     def check(self):
-        return False;
-    def evaluate (self, failed_only):
+        return False
+
+    def evaluate(self, failed_only):
         if ((self.fulfilled == False) and (failed_only == True)):
             print(str(self.type) + 'condition for was ' + str(self.fulfilled))
-        elif (failed_only == False): 
+        elif (failed_only == False):
             print(str(self.type) + 'condition for was ' + str(self.fulfilled))
-        return self.fulfilled            
+        return self.fulfilled
 
-class FileExistCondition (Condition):
+
+class FileExistCondition(Condition):
     def __init__(self, file):
         self.fulfilled = False
         self.type = 'file'
         self.file = file
+
     def check(self):
         if (self.fulfilled == False):
             res = os.path.isfile(self.file)
@@ -115,25 +128,28 @@ class FileExistCondition (Condition):
                 return False
         else:
             return True
-    def evaluate (self, failed_only):
+
+    def evaluate(self, failed_only):
         if ((self.fulfilled == False) and (failed_only == True)):
             print(str(self.type) + 'condition for file '+self.file+' was ' + str(self.fulfilled))
-        elif (failed_only == False): 
+        elif (failed_only == False):
             print(str(self.type) + 'condition for file '+self.file+' was ' + str(self.fulfilled))
         return self.fulfilled
+
 
 class StatisticsCondition (Condition):
     def __init__(self, peer, subsystem, name, value):
         self.fulfilled = False
         self.type = 'statistics'
-        self.peer = peer;
-        self.subsystem = subsystem;
-        self.name = name;
-        self.value = value;
-        self.result = -1;
+        self.peer = peer
+        self.subsystem = subsystem
+        self.name = name
+        self.value = value
+        self.result = -1
+
     def check(self):
         if (self.fulfilled == False):
-            self.result = self.peer.get_statistics_value (self.subsystem, self.name)
+            self.result = self.peer.get_statistics_value(self.subsystem, self.name)
             if (str(self.result) == str(self.value)):
                 self.fulfilled = True
                 return True
@@ -141,38 +157,41 @@ class StatisticsCondition (Condition):
                 return False
         else:
             return True
-    def evaluate (self, failed_only):
+
+    def evaluate(self, failed_only):
         if (self.result == -1):
             res = 'NaN'
         else:
             res = str(self.result)
         if (self.fulfilled == False):
-            fail = " FAIL!" 
+            fail = " FAIL!"
             op = " != "
-        else: 
+        else:
             fail = ""
             op = " == "
         if (((self.fulfilled == False) and (failed_only == True)) or (failed_only == False)):
-            print(self.peer.id[:4] + " " +self.peer.cfg + " " +  str(self.type) + ' condition in subsystem "' + self.subsystem.ljust(12) +'" : "' + self.name.ljust(30) +'" : (expected/real value) ' + str(self.value) + op + res + fail)
-        return self.fulfilled    
+            print(self.peer.id[:4] + " " + self.peer.cfg + " " + str(self.type) + ' condition in subsystem "' + self.subsystem.ljust(12) + '" : "' + self.name.ljust(30) + '" : (expected/real value) ' + str(self.value) + op + res + fail)
+        return self.fulfilled
 
-# Specify two statistic values and check if they are equal  
+
+# Specify two statistic values and check if they are equal
 class EqualStatisticsCondition (Condition):
     def __init__(self, peer, subsystem, name, peer2, subsystem2, name2):
         self.fulfilled = False
         self.type = 'equalstatistics'
-        self.peer = peer;
-        self.subsystem = subsystem;
-        self.name = name;
-        self.result = -1;
-        self.peer2 = peer2;
-        self.subsystem2 = subsystem2;
-        self.name2 = name2;
-        self.result2 = -1;
+        self.peer = peer
+        self.subsystem = subsystem
+        self.name = name
+        self.result = -1
+        self.peer2 = peer2
+        self.subsystem2 = subsystem2
+        self.name2 = name2
+        self.result2 = -1
+
     def check(self):
         if (self.fulfilled == False):
-            self.result = self.peer.get_statistics_value (self.subsystem, self.name);
-            self.result2 = self.peer2.get_statistics_value (self.subsystem2, self.name2);
+            self.result = self.peer.get_statistics_value(self.subsystem, self.name)
+            self.result2 = self.peer2.get_statistics_value(self.subsystem2, self.name2)
             if (str(self.result) == str(self.result2)):
                 self.fulfilled = True
                 return True
@@ -180,7 +199,8 @@ class EqualStatisticsCondition (Condition):
                 return False
         else:
             return True
-    def evaluate (self, failed_only):
+
+    def evaluate(self, failed_only):
         if (self.result == -1):
             res = 'NaN'
         else:
@@ -188,27 +208,28 @@ class EqualStatisticsCondition (Condition):
         if (self.result2 == -1):
             res2 = 'NaN'
         else:
-            res2 = str(self.result2)            
+            res2 = str(self.result2)
         if (self.fulfilled == False):
-            fail = " FAIL!" 
+            fail = " FAIL!"
             op = " != "
-        else: 
+        else:
             fail = ""
             op = " == "
         if (((self.fulfilled == False) and (failed_only == True)) or (failed_only == False)):
-            print(self.peer.id[:4] + ' "'  + self.subsystem.ljust(12) + '" "' + self.name.ljust(30) + '" == ' + str(self.result) +" " + self.peer2.id[:4] + ' "'  + self.subsystem2.ljust(12) + '" '+ self.name2.ljust(30) +  '" ' + str(self.result2))
-        return self.fulfilled                    
-        
+            print(self.peer.id[:4] + ' "' + self.subsystem.ljust(12) + '" "' + self.name.ljust(30) + '" == ' + str(self.result) + " " + self.peer2.id[:4] + ' "' + self.subsystem2.ljust(12) + '" ' + self.name2.ljust(30) + '" ' + str(self.result2))
+        return self.fulfilled
+
+
 class Test:
     def __init__(self, testname, verbose):
         self.peers = list()
-        self.verbose = verbose;
-        self.name = testname;
+        self.verbose = verbose
+        self.name = testname
         srcdir = "../.."
-        gnunet_pyexpect_dir = os.path.join (srcdir, "contrib/scripts")
+        gnunet_pyexpect_dir = os.path.join(srcdir, "contrib/scripts")
         if gnunet_pyexpect_dir not in sys.path:
-            sys.path.append (gnunet_pyexpect_dir)
-        self.gnunetarm = ''        
+            sys.path.append(gnunet_pyexpect_dir)
+        self.gnunetarm = ''
         self.gnunetstatistics = ''
         if os.name == 'posix':
             self.gnunetarm = 'gnunet-arm'
@@ -217,16 +238,19 @@ class Test:
         elif os.name == 'nt':
             self.gnunetarm = 'gnunet-arm.exe'
             self.gnunetstatistics = 'gnunet-statistics.exe'
-            self.gnunetpeerinfo = 'gnunet-peerinfo.exe'    
+            self.gnunetpeerinfo = 'gnunet-peerinfo.exe'
         if os.name == "nt":
-            shutil.rmtree (os.path.join (os.getenv ("TEMP"), testname), True)
+            shutil.rmtree(os.path.join(os.getenv("TEMP"), testname), True)
         else:
-            shutil.rmtree ("/tmp/" + testname, True)
-    def add_peer (self, peer):
+            shutil.rmtree("/tmp/" + testname, True)
+
+    def add_peer(self, peer):
         self.peers.append(peer)
-    def p (self, msg):
+
+    def p(self, msg):
         if (self.verbose == True):
             print(msg)
+
 
 class Peer:
     def __init__(self, test, cfg_file):
@@ -235,53 +259,57 @@ class Peer:
         self.id = "<NaN>"
         self.test = test
         self.started = False
-        self.cfg = cfg_file 
+        self.cfg = cfg_file
+
     def __del__(self):
-        if (self.started == True): 
+        if (self.started == True):
             print('ERROR! Peer using cfg ' + self.cfg + ' was not stopped')
-            ret = self.stop ()
+            ret = self.stop()
             if (False == ret):
                 print('ERROR! Peer using cfg ' + self.cfg + ' could not be stopped')
                 self.started = False
             return ret
         else:
             return False
-    def start (self):
-        self.test.p ("Starting peer using cfg " + self.cfg)
+
+    def start(self):
+        self.test.p("Starting peer using cfg " + self.cfg)
         try:
-            server = subprocess.Popen ([self.test.gnunetarm, '-sq', '-c', self.cfg])
-            server.communicate ()    
+            server = subprocess.Popen([self.test.gnunetarm, '-sq', '-c', self.cfg])
+            server.communicate()
         except OSError:
             print("Can not start peer")
             self.started = False
             return False
-        self.started = True;
+        self.started = True
         test = ''
         try:
-            server = pexpect ()
-            server.spawn (None, [self.test.gnunetpeerinfo, '-c', self.cfg ,'-s'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+            server = pexpect()
+            server.spawn(None, [self.test.gnunetpeerinfo, '-c', self.cfg, '-s'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
             test = server.read("stdout", 1024)
         except OSError:
             print("Can not get peer identity")
         test = (test.split('`')[1])
         self.id = test.split('\'')[0]
-        return True 
-    def stop (self):
+        return True
+
+    def stop(self):
         if (self.started == False):
             return False
-        self.test.p ("Stopping peer using cfg " + self.cfg)
+        self.test.p("Stopping peer using cfg " + self.cfg)
         try:
-            server = subprocess.Popen ([self.test.gnunetarm, '-eq', '-c', self.cfg])
-            server.communicate ()    
+            server = subprocess.Popen([self.test.gnunetarm, '-eq', '-c', self.cfg])
+            server.communicate()
         except OSError:
             print("Can not stop peer")
             return False
         self.started = False
-        return True;
-    def get_statistics_value (self, subsystem, name):
-        server = pexpect ()
-        server.spawn (None, [self.test.gnunetstatistics, '-c', self.cfg ,'-q','-n', name, '-s', subsystem ], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-        #server.expect ("stdout", re.compile (r""))
+        return True
+
+    def get_statistics_value(self, subsystem, name):
+        server = pexpect()
+        server.spawn(None, [self.test.gnunetstatistics, '-c', self.cfg, '-q', '-n', name, '-s', subsystem], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        # server.expect ("stdout", re.compile (r""))
         test = server.read("stdout", 10240)
         tests = test.partition('\n')
         # On W32 GNUnet outputs with \r\n, rather than \n
@@ -292,4 +320,3 @@ class Peer:
             return tests
         else:
             return -1
-        
