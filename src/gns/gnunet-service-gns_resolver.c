@@ -2400,7 +2400,8 @@ start_dht_request (struct GNS_ResolverHandle *rh,
   if (GNUNET_CONTAINER_heap_get_size (dht_lookup_heap) > max_allowed_background_queries)
   {
     /* fail longest-standing DHT request */
-    rx = GNUNET_CONTAINER_heap_peek (dht_lookup_heap);
+    rx = GNUNET_CONTAINER_heap_remove_root (dht_lookup_heap);
+    rx->dht_heap_node = NULL;
     GNUNET_assert (NULL != rx);
     fail_resolution (rx);
   }
