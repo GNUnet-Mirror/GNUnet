@@ -18,10 +18,10 @@
      Boston, MA 02110-1301, USA.
 */
 /**
- * @file cadet/test_cadet.c
+ * @file cadet/test_cadet_flow.c
  * @author Bart Polot
  * @author Christian Grothoff
- * @brief Test for the cadet service using mq API.
+ * @brief Test for flow control of CADET service
  */
 #include <stdio.h>
 #include "platform.h"
@@ -45,7 +45,7 @@ struct CadetTestChannelWrapper
 /**
  * How many messages to send by default.
  */
-#define TOTAL_PACKETS 500       /* Cannot exceed 64k! */
+#define TOTAL_PACKETS_DEFAULT 500
 
 /**
  * How long until we give up on connecting the peers?
@@ -62,51 +62,16 @@ struct CadetTestChannelWrapper
  */
 #define SEND_INTERVAL GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 10)
 
-/**
- * DIFFERENT TESTS TO RUN
- */
-#define SETUP 0
-#define FORWARD 1
-#define KEEPALIVE 2
-#define SPEED 3
-#define SPEED_ACK 4
-#define SPEED_REL 8
-#define P2P_SIGNAL 10
-
-/**
- * Which test are we running?
- */
-static int test;
-
-/**
- * String with test name
- */
-static char *test_name;
-
-/**
- * Flag to send traffic leaf->root in speed tests to test BCK_ACK logic.
- */
-static int test_backwards = GNUNET_NO;
 
 /**
  * How many packets to send.
  */
-static unsigned int total_packets;
+static unsigned int total_packets = TOTAL_PACKETS_DEFAULT;
 
 /**
  * Time to wait for fast operations.
  */
 static struct GNUNET_TIME_Relative short_time;
-
-/**
- * How many events have happened
- */
-static int ok;
-
-/**
- * Number of events expected to conclude the test successfully.
- */
-static int ok_goal;
 
 /**
  * Size of each test packet's payload
@@ -161,12 +126,12 @@ static int ack_received;
 /**
  * Total number of peers asked to run.
  */
-static unsigned long long peers_requested;
+static unsigned int peers_requested = 2;
 
 /**
  * Number of currently running peers (should be same as @c peers_requested).
  */
-static unsigned long long peers_running;
+static unsigned int peers_running;
 
 /**
  * Test context (to shut down).
@@ -240,29 +205,6 @@ static unsigned int ka_received;
 static unsigned int msg_dropped;
 
 
-/******************************************************************************/
-
-
-/******************************************************************************/
-
-
-/**
- * Get the channel considered as the "target" or "receiver", depending on
- * the test type and size.
- *
- * @return Channel handle of the target client, either 0 (for backward tests)
- *         or the last peer in the line (for other tests).
- */
-static struct GNUNET_CADET_Channel *
-get_target_channel ()
-{
-  if (SPEED == test && GNUNET_YES == test_backwards)
-    return outgoing_ch;
-  else
-    return incoming_ch;
-}
-
-
 /**
  * Show the results of the test (banwidth acheived) and log them to GAUGER
  */
@@ -294,40 +236,6 @@ show_end_data (void)
 
 
 /**
- * Disconnect from cadet services af all peers, call shutdown.
- *
- * @param cls Closure (line number from which termination was requested).
- * @param tc Task Context.
- */
-static void
-disconnect_cadet_peers (void *cls)
-{
-  long line = (long) cls;
-
-  disconnect_task = NULL;
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              "disconnecting cadet service of peers, called from line %ld\n",
-              line);
-  for (unsigned int i = 0; i < 2; i++)
-  {
-    GNUNET_TESTBED_operation_done (t_op[i]);
-  }
-  if (NULL != outgoing_ch)
-  {
-    GNUNET_CADET_channel_destroy (outgoing_ch);
-    outgoing_ch = NULL;
-  }
-  if (NULL != incoming_ch)
-  {
-    GNUNET_CADET_channel_destroy (incoming_ch);
-    incoming_ch = NULL;
-  }
-  GNUNET_CADET_TEST_cleanup (test_ctx);
-  GNUNET_SCHEDULER_shutdown ();
-}
-
-
-/**
  * Shut down peergroup, clean up.
  *
  * @param cls Closure (unused).
@@ -348,13 +256,19 @@ shutdown_task (void *cls)
     GNUNET_SCHEDULER_cancel (test_task);
     test_task = NULL;
   }
-  if (NULL != disconnect_task)
+  for (unsigned int i = 0; i < 2; i++)
+    GNUNET_TESTBED_operation_done (t_op[i]);
+  if (NULL != outgoing_ch)
   {
-    GNUNET_SCHEDULER_cancel (disconnect_task);
-    disconnect_task =
-        GNUNET_SCHEDULER_add_now (&disconnect_cadet_peers,
-				  (void *) __LINE__);
+    GNUNET_CADET_channel_destroy (outgoing_ch);
+    outgoing_ch = NULL;
   }
+  if (NULL != incoming_ch)
+  {
+    GNUNET_CADET_channel_destroy (incoming_ch);
+    incoming_ch = NULL;
+  }
+  GNUNET_CADET_TEST_cleanup (test_ctx);
 }
 
 
@@ -585,30 +499,6 @@ send_next_msg (void *cls)
 
 
 /**
- * Every few messages cancel the timeout task and re-schedule it again, to
- * avoid timing out when traffic keeps coming.
- *
- * @param line Code line number to log if a timeout occurs.
- */
-static void
-reschedule_timeout_task (long line)
-{
-  if ((ok % 10) == 0)
-  {
-    if (NULL != disconnect_task)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "reschedule timeout every 10 messages\n");
-      GNUNET_SCHEDULER_cancel (disconnect_task);
-      disconnect_task = GNUNET_SCHEDULER_add_delayed (short_time,
-                                                      &gather_stats_and_exit,
-                                                      (void *) line);
-    }
-  }
-}
-
-
-/**
  * Check if payload is sane (size contains payload).
  *
  * @param cls should match #ch
@@ -640,12 +530,8 @@ handle_data (void *cls,
   uint32_t payload;
   int *counter;
 
-  ok++;
   GNUNET_CADET_receive_done (channel);
   counter = get_target_channel () == channel ? &data_received : &ack_received;
-
-  reschedule_timeout_task ((long) __LINE__);
-
   if (channel == outgoing_ch)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
@@ -664,53 +550,28 @@ handle_data (void *cls,
     GNUNET_assert (0);
   }
 
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              " ok: (%d/%d)\n",
-              ok,
-              ok_goal);
   data = (uint32_t *) &message[1];
   payload = ntohl (*data);
   if (payload == *counter)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                " payload as expected: %u\n",
+                "Payload as expected: %u\n",
                 payload);
   }
   else
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                " payload %u, expected: %u\n",
+                "Received payload %u, expected: %u\n",
                 payload, *counter);
   }
-
-  if (GNUNET_NO == initialized)
-  {
-    initialized = GNUNET_YES;
-    start_time = GNUNET_TIME_absolute_get ();
-    if (SPEED == test)
-    {
-      GNUNET_assert (incoming_ch == channel);
-      send_next_msg_task = GNUNET_SCHEDULER_add_now (&send_next_msg,
-                                                     NULL);
-      return;
-    }
-  }
-
   (*counter)++;
   if (get_target_channel () == channel) /* Got "data" */
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO, " received data %u\n", data_received);
-    if (SPEED != test || (ok_goal - 2) == ok)
-    {
-      /* Send ACK */
-      send_test_message (channel);
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                " received data %u\n",
+                data_received);
+    if (data_received < total_packets)
       return;
-    }
-    else
-    {
-      if (data_received < total_packets)
-        return;
-    }
   }
   else /* Got "ack" */
   {
@@ -764,10 +625,6 @@ connect_handler (void *cls,
               GNUNET_i2s (source),
               peer,
               channel);
-  ok++;
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              " ok: %d\n",
-              ok);
   if (peer == peers_requested - 1)
   {
     if (NULL != incoming_ch)
@@ -786,15 +643,6 @@ connect_handler (void *cls,
                 (long) cls);
     GNUNET_assert (0);
   }
-  if (NULL != disconnect_task)
-  {
-    GNUNET_SCHEDULER_cancel (disconnect_task);
-    disconnect_task = GNUNET_SCHEDULER_add_delayed (short_time,
-                                                    &gather_stats_and_exit,
-                                                    (void *) __LINE__);
-  }
-
-  /* TODO: cannot return channel as-is, in order to unify the data handlers */
   ch = GNUNET_new (struct CadetTestChannelWrapper);
   ch->ch = channel;
 
@@ -824,35 +672,23 @@ disconnect_handler (void *cls,
 	      ok);
   GNUNET_assert (ch_w->ch == channel);
   if (channel == incoming_ch)
-  {
-    ok++;
     incoming_ch = NULL;
-  }
   else if (outgoing_ch == channel)
-  {
-    if (P2P_SIGNAL == test)
-    {
-      ok++;
-    }
     outgoing_ch = NULL;
-  }
   else
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-		"Unknown channel! %p\n",
+		"Disconnect on unknown channel %p\n",
 		channel);
   if (NULL != disconnect_task)
-  {
     GNUNET_SCHEDULER_cancel (disconnect_task);
-    disconnect_task =
-        GNUNET_SCHEDULER_add_now (&gather_stats_and_exit,
-				  (void *) __LINE__);
-  }
+  disconnect_task = GNUNET_SCHEDULER_add_now (&gather_stats_and_exit,
+                                              (void *) __LINE__);
   GNUNET_free (ch_w);
 }
 
 
 /**
- * START THE TESTCASE ITSELF, AS WE ARE CONNECTED TO THE CADET SERVICES.
+ * Start the testcase, we know the peers and have handles to CADET.
  *
  * Testcase continues when the root receives confirmation of connected peers,
  * on callback function ch.
@@ -873,20 +709,9 @@ start_test (void *cls)
   enum GNUNET_CADET_ChannelOption flags;
 
   test_task = NULL;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "start_test\n");
-  if (NULL != disconnect_task)
-  {
-    GNUNET_SCHEDULER_cancel (disconnect_task);
-    disconnect_task = NULL;
-  }
-
-  flags = GNUNET_CADET_OPTION_DEFAULT;
-  if (SPEED_REL == test)
-  {
-    test = SPEED;
-    flags |= GNUNET_CADET_OPTION_RELIABLE;
-  }
-
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "In start_test\n");
+  start_time = GNUNET_TIME_absolute_get ();
   ch = GNUNET_new (struct CadetTestChannelWrapper);
   outgoing_ch = GNUNET_CADET_channel_create (h1,
                                              ch,
@@ -896,20 +721,12 @@ start_test (void *cls)
                                              NULL,
                                              &disconnect_handler,
                                              handlers);
-
   ch->ch = outgoing_ch;
-
-  disconnect_task = GNUNET_SCHEDULER_add_delayed (short_time,
-                                                  &gather_stats_and_exit,
-                                                  (void *) __LINE__);
-  if (KEEPALIVE == test)
-    return;                     /* Don't send any data. */
-
-
-  data_received = 0;
-  data_sent = 0;
-  ack_received = 0;
-  ack_sent = 0;
+  GNUNET_assert (NULL == disconnect_task);
+  disconnect_task
+    = GNUNET_SCHEDULER_add_delayed (short_time,
+                                    &gather_stats_and_exit,
+                                    (void *) __LINE__);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Sending data initializer on channel %p...\n",
               outgoing_ch);
@@ -955,7 +772,8 @@ pi_cb (void *cls,
     return;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Got all IDs, starting test\n");
-  test_task = GNUNET_SCHEDULER_add_now (&start_test, NULL);
+  test_task = GNUNET_SCHEDULER_add_now (&start_test,
+                                        NULL);
 }
 
 
@@ -975,19 +793,17 @@ tmain (void *cls,
        struct GNUNET_TESTBED_Peer **peers,
        struct GNUNET_CADET_Handle **cadets)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test main\n");
-  ok = 0;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "test main\n");
   test_ctx = ctx;
   peers_running = num_peers;
   GNUNET_assert (peers_running == peers_requested);
   testbed_peers = peers;
   h1 = cadets[0];
   h2 = cadets[num_peers - 1];
-  disconnect_task = GNUNET_SCHEDULER_add_delayed (short_time,
-                                                  &disconnect_cadet_peers,
-                                                  (void *) __LINE__);
   GNUNET_SCHEDULER_add_shutdown (&shutdown_task,
 				 NULL);
+  p_ids = 0;
   t_op[0] = GNUNET_TESTBED_peer_get_information (peers[0],
                                                  GNUNET_TESTBED_PIT_IDENTITY,
                                                  &pi_cb,
@@ -996,7 +812,8 @@ tmain (void *cls,
                                                  GNUNET_TESTBED_PIT_IDENTITY,
                                                  &pi_cb,
                                                  (void *) 1L);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "requested peer ids\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "requested peer ids\n");
 }
 
 
@@ -1004,7 +821,8 @@ tmain (void *cls,
  * Main: start test
  */
 int
-main (int argc, char *argv[])
+main (int argc,
+      char *argv[])
 {
   static const struct GNUNET_HashCode *ports[2];
   struct GNUNET_MQ_MessageHandler handlers[] = {
@@ -1014,7 +832,7 @@ main (int argc, char *argv[])
                            NULL),
     GNUNET_MQ_handler_end ()
   };
-  const char *config_file;
+  const char *config_file = "test_cadet.conf";
   char port_id[] = "test port";
   struct GNUNET_GETOPT_CommandLineOption options[] = {
     GNUNET_GETOPT_option_relative_time ('t',
@@ -1027,121 +845,34 @@ main (int argc, char *argv[])
 			       "NUM_MESSAGES",
 			       gettext_noop ("set number of messages to send"),
 			       &total_packets),
-
+    GNUNET_GETOPT_option_uint ('p',
+			       "peers",
+			       "NUM_PEERS",
+			       gettext_noop ("number of peers to launch"),
+			       &peers_requested),
     GNUNET_GETOPT_OPTION_END
   };
 
-
-  initialized = GNUNET_NO;
-  GNUNET_log_setup ("test", "DEBUG", NULL);
-
+  GNUNET_log_setup ("test-cadet-flow",
+                    "DEBUG",
+                    NULL);
   total_packets = TOTAL_PACKETS;
   short_time = SHORT_TIME;
-  if (-1 == GNUNET_GETOPT_run (argv[0], options, argc, argv))
+  if (-1 == GNUNET_GETOPT_run (argv[0],
+                               options,
+                               argc,
+                               argv))
   {
-    FPRINTF (stderr, "test failed: problem with CLI parameters\n");
-    exit (1);
+    FPRINTF (stderr,
+             "test failed: problem with CLI parameters\n");
+    return 1;
   }
-
-  config_file = "test_cadet.conf";
-  GNUNET_CRYPTO_hash (port_id, sizeof (port_id), &port);
-
-  /* Find out requested size */
-  if (strstr (argv[0], "_2_") != NULL)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "DIRECT CONNECTIONs\n");
-    peers_requested = 2;
-  }
-  else if (strstr (argv[0], "_5_") != NULL)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "5 PEER LINE\n");
-    peers_requested = 5;
-  }
-  else
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "SIZE UNKNOWN, USING 2\n");
-    peers_requested = 2;
-  }
-
-  /* Find out requested test */
-  if (strstr (argv[0], "_forward") != NULL)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "FORWARD\n");
-    test = FORWARD;
-    test_name = "unicast";
-    ok_goal = 4;
-  }
-  else if (strstr (argv[0], "_signal") != NULL)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "SIGNAL\n");
-    test = P2P_SIGNAL;
-    test_name = "signal";
-    ok_goal = 4;
-  }
-  else if (strstr (argv[0], "_speed_ack") != NULL)
-  {
-    /* Test is supposed to generate the following callbacks:
-     * 1 incoming channel (@dest)
-     * total_packets received data packet (@dest)
-     * total_packets received data packet (@orig)
-     * 1 received channel destroy (@dest)
-     */
-    ok_goal = total_packets * 2 + 2;
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "SPEED_ACK\n");
-    test = SPEED_ACK;
-    test_name = "speed ack";
-  }
-  else if (strstr (argv[0], "_speed") != NULL)
-  {
-    /* Test is supposed to generate the following callbacks:
-     * 1 incoming channel (@dest)
-     * 1 initial packet (@dest)
-     * total_packets received data packet (@dest)
-     * 1 received data packet (@orig)
-     * 1 received channel destroy (@dest)
-     */
-    ok_goal = total_packets + 4;
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "SPEED\n");
-    if (strstr (argv[0], "_reliable") != NULL)
-    {
-      test = SPEED_REL;
-      test_name = "speed reliable";
-      config_file = "test_cadet_drop.conf";
-    }
-    else
-    {
-      test = SPEED;
-      test_name = "speed";
-    }
-  }
-  else if (strstr (argv[0], "_keepalive") != NULL)
-  {
-    test = KEEPALIVE;
-    /* Test is supposed to generate the following callbacks:
-     * 1 incoming channel (@dest)
-     * [wait]
-     * 1 received channel destroy (@dest)
-     */
-    ok_goal = 2;
-  }
-  else
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "UNKNOWN\n");
-    test = SETUP;
-    ok_goal = 0;
-  }
-
-  if (strstr (argv[0], "backwards") != NULL)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "BACKWARDS (LEAF TO ROOT)\n");
-    test_backwards = GNUNET_YES;
-    GNUNET_asprintf (&test_name, "backwards %s", test_name);
-  }
-
-  p_ids = 0;
+  GNUNET_CRYPTO_hash (port_id,
+                      sizeof (port_id),
+                      &port);
   ports[0] = &port;
   ports[1] = NULL;
-  GNUNET_CADET_TEST_ruN ("test_cadet_small",
+  GNUNET_CADET_TEST_ruN ("test_cadet_flow",
                          config_file,
                          peers_requested,
                          &tmain,
@@ -1151,16 +882,7 @@ main (int argc, char *argv[])
                          &disconnect_handler,
                          handlers,
                          ports);
-  if (NULL != strstr (argv[0], "_reliable"))
-    msg_dropped = 0;            /* dropped should be retransmitted */
-
-  if (ok_goal > ok - msg_dropped)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "FAILED! (%d/%d)\n", ok, ok_goal);
-    return 1;
-  }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "success\n");
   return 0;
 }
 
-/* end of test_cadet.c */
+/* end of test_cadet_flow.c */
