@@ -68,6 +68,38 @@ MAX_CONNECTIONS = 128
 TCP_STEALTH = NO
 
 
+
+[transport-xt]
+# Use 0 to ONLY advertise as a peer behind NAT (no port binding)
+PORT = 2087
+
+# Obsolete option, to be replaced by HOLE_EXTERNAL (soon)
+ADVERTISED_PORT = 2087
+
+# If we have a manually punched NAT, what is the external IP and port?
+# Can use DNS names for DynDNS-based detection of external IP.
+# Can use IPv6 addresses ([fefc::]:PORT).
+# Use "AUTO" for the hostname to automatically detect external IP.
+# Do not set if NAT is not manually punched.
+# HOLE_EXTERNAL = AUTO:2087
+
+TESTING_IGNORE_KEYS = ACCEPT_FROM;
+
+# Maximum number of open TCP connections allowed
+MAX_CONNECTIONS = 128
+
+TIMEOUT = 5 s
+# ACCEPT_FROM =
+# ACCEPT_FROM6 =
+# REJECT_FROM =
+# REJECT_FROM6 =
+# BINDTO =
+MAX_CONNECTIONS = 128
+
+# Enable TCP stealth?
+TCP_STEALTH = NO
+
+
 [transport-udp]
 # Use PORT = 0 to autodetect a port available
 PORT = 2086
