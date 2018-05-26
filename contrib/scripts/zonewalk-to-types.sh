@@ -10,7 +10,7 @@ NUM_CLIENTS=3
 # FILE ($1) contains results from DNS lookup; strip
 # everything but the hostnames, remove duplicates
 # and then randomize the order.
-cat $1 | awk '{print $1}' | sort | uniq | shuf > $1.tmp
+cat $1 | grep -v SOA | awk '{print $1}' | sort | uniq | shuf > $1.tmp
 TOTAL=`cat $1.tmp | wc -l`
 GROUP_SIZE=`expr $TOTAL / \( $NUM_CLIENTS + 1 \)`
 echo "Creating $NUM_CLIENTS benchmark sets with 2x $GROUP_SIZE entries each."
