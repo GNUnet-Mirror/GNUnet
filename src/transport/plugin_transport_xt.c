@@ -1450,6 +1450,12 @@ tcp_nat_port_map_callback (void *cls,
   void *arg;
   size_t args;
 
+  if (GNUNET_NAT_AC_LOOPBACK == ac)
+    return;
+  if (GNUNET_NAT_AC_LAN == ac)
+    return;
+  if (GNUNET_NAT_AC_LAN_PRIVATE == ac)
+    return;
   LOG (GNUNET_ERROR_TYPE_INFO,
        "NAT notification to %s address `%s'\n",
        (GNUNET_YES == add_remove) ? "add" : "remove",
