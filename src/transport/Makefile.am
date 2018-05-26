@@ -280,6 +280,7 @@ gnunet_service_transport_CFLAGS = \
 
 plugin_LTLIBRARIES = \
   libgnunet_plugin_transport_tcp.la \
+  libgnunet_plugin_transport_xt.la \
   libgnunet_plugin_transport_udp.la \
   $(UNIX_PLUGIN_LA) \
   $(HTTP_CLIENT_PLUGIN_LA) \
@@ -304,6 +305,18 @@ libgnunet_plugin_transport_tcp_la_LIBADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(LTLIBINTL)
 libgnunet_plugin_transport_tcp_la_LDFLAGS = \
+ $(GN_PLUGIN_LDFLAGS)
+
+libgnunet_plugin_transport_xt_la_SOURCES = \
+  plugin_transport_xt.c 
+libgnunet_plugin_transport_xt_la_LIBADD = \
+  $(top_builddir)/src/hello/libgnunethello.la \
+  $(top_builddir)/src/statistics/libgnunetstatistics.la \
+  $(top_builddir)/src/peerinfo/libgnunetpeerinfo.la \
+  $(top_builddir)/src/nat/libgnunetnatnew.la \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(LTLIBINTL)
+libgnunet_plugin_transport_xt_la_LDFLAGS = \
  $(GN_PLUGIN_LDFLAGS)
 
 libgnunet_plugin_transport_template_la_SOURCES = \
