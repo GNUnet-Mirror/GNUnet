@@ -565,7 +565,10 @@ GNUNET_PEERINFO_add_peer (struct GNUNET_PEERINFO_Handle *h,
   struct GNUNET_PeerIdentity peer;
 
   if (NULL == h->mq)
+  {
+    GNUNET_break (0);
     return NULL;
+  }
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_HELLO_get_id (hello,
                                       &peer));

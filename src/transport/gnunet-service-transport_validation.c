@@ -1623,15 +1623,20 @@ GST_validation_handle_pong (const struct GNUNET_PeerIdentity *sender,
                             GNUNET_TRANSPORT_VS_UPDATE);
 
   /* build HELLO to store in PEERINFO */
+  GNUNET_STATISTICS_update (GST_stats,
+                            gettext_noop ("# HELLOs given to peerinfo"),
+                            1,
+                            GNUNET_NO);
   ve->copied = GNUNET_NO;
   hello = GNUNET_HELLO_create (&ve->address->peer.public_key,
                                &add_valid_peer_address,
 			       ve,
                                GNUNET_NO);
-  GNUNET_PEERINFO_add_peer (GST_peerinfo,
-			    hello,
-			    NULL,
-			    NULL);
+  GNUNET_break (NULL !=
+                GNUNET_PEERINFO_add_peer (GST_peerinfo,
+                                          hello,
+                                          NULL,
+                                          NULL));
   GNUNET_free (hello);
   return GNUNET_OK;
 }
