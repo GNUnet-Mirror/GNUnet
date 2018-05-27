@@ -1,0 +1,106 @@
+-*- mode: org -*-
+
+TODO - or: the Documentation Masterplan.
+
+To some extent this duplicates the Mantis tickets on this topic.
+
+* Motivation
+My motivation is to read into good documentations and create a self-contained collection of books,
+which can be understood without expecting too much background knowledge in every topic.
+** User Handbook:
+The content of the User book should be mostly concerned with our current and future graphical (gtk
+as well as terminal user interface) applications. After reading Preface and maybe Philosophy, the
+person reading the User Handbook should understand with the least possible strugle the application
+they intend to use. Examples should be given and concepts explained.
+** Installation Handbook:
+As seen with requests on the mailinglist, we will have to pick up people where they are, similar
+to the User Handbook. People already used to compiling and installing should have the chance to
+skip to the end, everyone else should: have step-by-step instructions, which will either already
+include OS specific notes or will be followed by OS specific instructions. It is up for discussion
+if configuring GNUnet is 'User Handbook' or 'Installation Handbook', the current mixture in
+the Installation Handbook is not good.
+** Contributors Handbook:
+This chapter could either be reduced to a couple of sections following the theme of 'contributing
+to GNUnet' or the chapter could be extended. If we extend it, we should explain a range of topics
+that can be useful for contributors. It can be understood as a recommended reading in addition to
+the Developer Handbook then, and the Developer Handbook could simply become a better commented
+reference for the code-base.
+** Developer Handbook:
+As outlined in the last sentences, the Developer Handbook could be reduced to the necessary bits
+with enough comments to be understood without reading into the papers published over the years.
+
+
+* DONE 1. Drupal books export to LaTeX.
+* DONE 2. LaTeX conversion to Texinfo.
+* DONE 3. (initial) Fixup of syntax errors introduced in conversion chain.
+* TODO 4. Update content.
+* TODO 5. Create API Reference or similar
+* TODO 6. Create Concept Index
+* TODO 7. Create Procedure Index
+* TODO 8. Create Type Index
+* TODO 9. Create Functions Index
+* TODO 10. Properly address concerns and criticism people had/have on the old and current documentation.
+* TODO 11. Reorder structure
+* TODO more TODO.
+
+
+* Status Progress / Completion Levels
+
+** chapters/philosophy: around 100% fixed after initial export.
+
+* System Integration Tasks
+
+* Which Texlive modules are needed for every output we generate?
+* Generate the images from their dot sources.
+
+* How to use (hack) on this
+
+This section will find its way into the documentation sooner or later.
+Potentially outdated or inaccurate bits.
+
+** with guix
+
+Adjust accordingly, ie read the Guix Documentation:
+guix environment gnunet-doc
+and
+guix build -f contrib/packages/guix/gnunet-doc.scm
+
+** without guix
+
+You need to have Texinfo and Texlive in your path.
+sh bootstrap
+./configure --enable-documentation
+cd doc
+make (format you want)
+
+for example: make html, make info, make pdf
+
+* structure (relations) (old!)
+
+** gnunet.texi
+ -> chapters/developer.texi
+ -> chapters/installation.texi
+ -> chapters/philosophy.texi
+ -> chapters/user.texi
+ -> chapters/vocabulary.texi
+ -> images/*
+ -> gpl-3.0.texi
+ -> fdl-1.3.texi
+
+** gnunet-c-tutorial.texi
+ -> figs/Service.pdf
+ -> figs/System.pdf
+ -> tutorial-examples/*.c
+ -> gpl-3.0.texi
+ -> fdl-1.3.texi
+
+- gnunet-c-tutorial-v1.pdf: original LaTeX "gnunet-c-tutorial.pdf".
+- man folder: the man pages.
+- doxygen folder
+- outdated-and-old-installation-instructions.txt: self described within the file.
+
+
+Use `gendocs', add to the manual/ directory of the web site.
+
+  $ cd doc
+  $ gendocs.sh gnunet "GNUnet 0.10.X Reference Manual"
