@@ -282,6 +282,7 @@ plugin_LTLIBRARIES = \
   libgnunet_plugin_transport_tcp.la \
   libgnunet_plugin_transport_xt.la \
   libgnunet_plugin_transport_udp.la \
+  libgnunet_plugin_transport_xu.la \
   $(UNIX_PLUGIN_LA) \
   $(HTTP_CLIENT_PLUGIN_LA) \
   $(HTTPS_CLIENT_PLUGIN_LA) \
@@ -356,6 +357,19 @@ libgnunet_plugin_transport_bluetooth_la_CFLAGS = \
 libgnunet_plugin_transport_udp_la_SOURCES = \
   plugin_transport_udp.c plugin_transport_udp.h \
   plugin_transport_udp_broadcasting.c
+libgnunet_plugin_transport_udp_la_LIBADD = \
+  $(top_builddir)/src/hello/libgnunethello.la \
+  $(top_builddir)/src/fragmentation/libgnunetfragmentation.la \
+  $(top_builddir)/src/statistics/libgnunetstatistics.la \
+  $(top_builddir)/src/peerinfo/libgnunetpeerinfo.la \
+  $(top_builddir)/src/nat/libgnunetnatnew.la \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(LTLIBINTL)
+libgnunet_plugin_transport_udp_la_LDFLAGS = \
+ $(GN_PLUGIN_LDFLAGS)
+
+libgnunet_plugin_transport_xu_la_SOURCES = \
+  plugin_transport_xu.c plugin_transport_xu.h
 libgnunet_plugin_transport_udp_la_LIBADD = \
   $(top_builddir)/src/hello/libgnunethello.la \
   $(top_builddir)/src/fragmentation/libgnunetfragmentation.la \
