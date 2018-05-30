@@ -42,7 +42,7 @@ test_ecdh()
   priv_dsa = GNUNET_CRYPTO_eddsa_key_create ();
   GNUNET_CRYPTO_eddsa_key_get_public (priv_dsa,
                                       &id1);
-  for (unsigned int j=0;j<10;j++)
+  for (unsigned int j=0;j<4;j++)
   {
     fprintf (stderr, ",");
     priv_ecdh = GNUNET_CRYPTO_ecdhe_key_create ();
@@ -82,7 +82,7 @@ main (int argc, char *argv[])
   if (getenv ("GNUNET_GCRYPT_DEBUG"))
     gcry_control (GCRYCTL_SET_DEBUG_FLAGS, 1u, 0);
   GNUNET_log_setup ("test-crypto-ecdh-eddsa", "WARNING", NULL);
-  for (unsigned int i=0;i<10000;i++)
+  for (unsigned int i=0;i<4;i++)
   {
     fprintf (stderr,
              ".");
