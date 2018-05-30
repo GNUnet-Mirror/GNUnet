@@ -282,7 +282,6 @@ plugin_LTLIBRARIES = \
   libgnunet_plugin_transport_tcp.la \
   libgnunet_plugin_transport_xt.la \
   libgnunet_plugin_transport_udp.la \
-  libgnunet_plugin_transport_xu.la \
   $(UNIX_PLUGIN_LA) \
   $(HTTP_CLIENT_PLUGIN_LA) \
   $(HTTPS_CLIENT_PLUGIN_LA) \
