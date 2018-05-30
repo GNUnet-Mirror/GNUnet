@@ -94,7 +94,6 @@ key_from_sexp (gcry_mpi_t *array,
   gcry_sexp_t list;
   gcry_sexp_t l2;
   const char *s;
-  unsigned int i;
   unsigned int idx;
 
   if (! (list = gcry_sexp_find_token (sexp, topname, 0)))
@@ -109,7 +108,7 @@ key_from_sexp (gcry_mpi_t *array,
   {
     if (! (l2 = gcry_sexp_find_token (list, s, 1)))
     {
-      for (i = 0; i < idx; i++)
+      for (unsigned int i = 0; i < idx; i++)
       {
         gcry_free (array[i]);
         array[i] = NULL;
@@ -121,7 +120,7 @@ key_from_sexp (gcry_mpi_t *array,
     gcry_sexp_release (l2);
     if (! array[idx])
     {
-      for (i = 0; i < idx; i++)
+      for (unsigned int i = 0; i < idx; i++)
       {
         gcry_free (array[i]);
         array[i] = NULL;
@@ -720,7 +719,7 @@ rsa_full_domain_hash (const struct GNUNET_CRYPTO_RsaPublicKey *pkey,
  * @param pkey the public key of the signer
  * @param[out] buf set to a buffer with the blinded message to be signed
  * @param[out] buf_size number of bytes stored in @a buf
- * @return GNUNET_YES if successful, GNUNET_NO if RSA key is malicious
+ * @return #GNUNET_YES if successful, #GNUNET_NO if RSA key is malicious
  */
 int
 GNUNET_CRYPTO_rsa_blind (const struct GNUNET_HashCode *hash,
