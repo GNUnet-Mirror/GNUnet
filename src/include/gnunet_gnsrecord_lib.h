@@ -411,9 +411,9 @@ GNUNET_GNSRECORD_number_to_typename (uint32_t type);
  *
  * @param rd_count number of records in the @a rd array
  * @param rd array of #GNUNET_GNSRECORD_Data with @a rd_count elements
- * @return the required size to serialize
+ * @return the required size to serialize, -1 on error
  */
-size_t
+ssize_t
 GNUNET_GNSRECORD_records_get_size (unsigned int rd_count,
 				   const struct GNUNET_GNSRECORD_Data *rd);
 

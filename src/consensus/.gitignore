@@ -3,3 +3,4 @@ gnunet-consensus-profiler
 gnunet-service-consensus
 test_consensus_api
 resource.log.master
+consensus-simulation.py

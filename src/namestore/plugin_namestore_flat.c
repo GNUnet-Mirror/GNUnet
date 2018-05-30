@@ -301,7 +301,7 @@ store_and_free_entries (void *cls,
   char *line;
   char *zone_private_key;
   char *record_data_b64;
-  size_t data_size;
+  ssize_t data_size;
 
   (void) key;
   GNUNET_STRINGS_base64_encode ((char*)entry->private_key,
@@ -309,6 +309,18 @@ store_and_free_entries (void *cls,
                                 &zone_private_key);
   data_size = GNUNET_GNSRECORD_records_get_size (entry->record_count,
                                                  entry->record_data);
+  if (data_size < 0)
+  {
+    GNUNET_break (0);
+    GNUNET_free (zone_private_key);
+    return GNUNET_SYSERR;
+  }
+  if (data_size >= UINT16_MAX)
+  {
+    GNUNET_break (0);
+    GNUNET_free (zone_private_key);
+    return GNUNET_SYSERR;
+  }
   {
     char data[data_size];
     ssize_t ret;
@@ -318,7 +330,7 @@ store_and_free_entries (void *cls,
 					      data_size,
 					      data);
     if ( (ret < 0) ||
-	 (data_size != (size_t) ret) )
+	 (data_size != ret) )
     {
       GNUNET_break (0);
       GNUNET_free (zone_private_key);

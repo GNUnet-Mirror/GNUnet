@@ -264,6 +264,7 @@ check_SCRIPTS = \
   test_gns_txt_lookup.sh\
   test_gns_mx_lookup.sh \
   test_gns_gns2dns_lookup.sh \
+  test_gns_gns2dns_cname_lookup.sh \
   test_gns_dht_lookup.sh\
   test_gns_delegated_lookup.sh \
   test_gns_at_lookup.sh\

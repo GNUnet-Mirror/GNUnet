@@ -1,2 +1,9 @@
 stamp-1
 version2.texi
+manual
+*.fn
+*.fns
+*.ky
+*.pg
+*.tp
+*.vr

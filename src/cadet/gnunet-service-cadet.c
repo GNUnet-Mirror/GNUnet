@@ -763,6 +763,7 @@ handle_local_data (void *cls,
                               buf,
                               payload_size))
   {
+    GNUNET_break (0);
     GNUNET_SERVICE_client_drop (c->client);
     return;
   }

@@ -1281,6 +1281,16 @@ eddsa_d_to_a (gcry_mpi_t d)
                  gcry_mpi_print (GCRYMPI_FMT_USG,
 				 rawmpi, rawmpilen, &rawmpilen,
                                  d));
+  if (rawmpilen < 32)
+  {
+    memmove (rawmpi + 32 - rawmpilen,
+             rawmpi,
+             rawmpilen);
+    memset (rawmpi,
+            0,
+            32 - rawmpilen);
+    rawmpilen = 32;
+  }
   hvec[0].data = digest;
   hvec[0].off = 0;
   hvec[0].len = b > rawmpilen ? (b - rawmpilen) : 0;

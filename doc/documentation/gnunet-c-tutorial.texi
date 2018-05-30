@@ -10,7 +10,7 @@
 @include version2.texi
 
 @copying
-Copyright @copyright{} 2001-2017 GNUnet e.V.
+Copyright @copyright{} 2001-2018 GNUnet e.V.
 
 Permission is granted to copy, distribute and/or modify this document
 under the terms of the GNU Free Documentation License, Version 1.3 or
@@ -68,9 +68,10 @@ dependencies can be found on our website at
 Reference Documentation (GNUnet Handbook).
 
 Please read this tutorial carefully since every single step is
-important and do not hesitate to contact the GNUnet team if you have
-any questions or problems! Check here how to contact the GNUnet
-team: @uref{https://gnunet.org/contact_information}
+important, and do not hesitate to contact the GNUnet team if you have
+any questions or problems! Visit this link in your webbrowser to learn
+how to contact the GNUnet team:
+@uref{https://gnunet.org/contact_information}
 
 @menu
 
@@ -151,7 +152,7 @@ $ gpg --verify-files gnunet-@value{VERSION}.tar.gz.sig
 
 @noindent
 If this command fails because you do not have the required public key,
-then you need to run this command to import it:
+then you need to run the following command to import it:
 
 @example
 $ gpg --keyserver keys.gnupg.net --recv-keys 48426C7E
@@ -167,19 +168,22 @@ revoked}. You will get an error message stating that
 The next release of GNUnet will have a valid signature
 again. We are sorry for the inconvenience this causes.
 Another possible source you could use is our
-"gnunet" git repository which has mandatory signed commits
-by every developer.
+"gnunet" git repository which, since the change from SVN to git in 2016,
+has mandatory signed commits by every developer.
 
-Now you can extract the tarball and rename the resulting
-directory to @file{gnunet} which we will be using in the
-remainder of this document.
+After verifying the signature you can extract the tarball.
+The resulting directory will be renamed to @file{gnunet}, which we will
+be using in the remainder of this document to refer to the
+root of the source directory.
 
 @example
 $ tar xvzf gnunet-@value{VERSION}.tar.gz
 $ mv gnunet-@value{VERSION} gnunet
-$ cd gnunet
 @end example
 
+@c FIXME: This can be irritating for the reader - First we say git should
+@c be avoid unless it is really required, and then we write this
+@c paragraph:
 @noindent
 However, please note that stable versions can be very outdated.
 As a developer you are @b{strongly} encouraged to use the version
@@ -192,32 +196,40 @@ To successfully compile GNUnet, you need the tools to build GNUnet and
 the required dependencies. Please take a look at the
 GNUnet Reference Documentation
 (@pxref{Dependencies, The GNUnet Reference Documentation,, gnunet, The GNUnet Reference Documentation})
-for a list of required dependencies
-and
+for a list of required dependencies and
 (@pxref{Generic installation instructions, The GNUnet Reference Documentation,, gnunet, The GNUnet Reference Documentation})
 read its Installation chapter for specific instructions for
-your operating system.
+your Operating System.
 Please check the notes at the end of the configure process about
 required dependencies.
 
 For GNUnet bootstrapping support and the HTTP(S) plugin you should
 install @uref{https://gnunet.org/gnurl, libgnurl}.
 For the filesharing service you should install at least one of the
-datastore backends. MySQL, SQlite and PostgreSQL are supported.
+datastore backends (MySQL, SQlite and PostgreSQL are supported).
 
 @node Obtaining the latest version from Git
 @section Obtaining the latest version from Git
 
-The latest development version can obtained from our Git repository.
-To obtain the code you need to have @code{Git} installed, which is
-required for obtaining the repository via:
+The latest development version can be obtained from our Git repository.
+To get the code you need to have @code{Git} installed. Usually your
+Operating System package manager should provide a suitable distribution
+of git (otherwise check out Guix or Nix). If you are using an Operating
+System based on Debian's apt:
+
+@example
+$ sudo apt-get install git
+@end example
+
+This is required for obtaining the repository, which is achieved with
+the following command:
 
 @example
 $ git clone https://gnunet.org/git/gnunet
 @end example
 
 @noindent
-After cloning the repository you have to execute the @file{bootstrap}
+After cloning the repository, you have to execute the @file{bootstrap}
 script in the new directory:
 
 @example
@@ -275,6 +287,7 @@ you do not specifiy a prefix, GNUnet is installed in the directory
 to enable verbose logging by adding @code{--enable-logging=verbose}:
 
 @example
+$ export PREFIX=$HOME
 $ ./configure --prefix=$PREFIX --enable-logging
 $ make
 $ make install
@@ -303,11 +316,14 @@ binaries and run GNUnet's self check.
 
 @example
 $ which gnunet-arm
+$PREFIX/bin/gnunet-arm
 @end example
 
 @noindent
-should return $PREFIX/bin/gnunet-arm. It should be located in your
+should return $PREFIX/bin/gnunet-arm (where $PREFIX is the location
+you  have set earlier). It should be located in your
 GNUnet installation and the output should not be empty.
+
 If you see an output like:
 
 @example
@@ -318,9 +334,11 @@ $ which gnunet-arm
 check your PATH variable to ensure GNUnet's @file{bin} directory is
 included.
 
-GNUnet provides tests for all of its subcomponents. Run
+GNUnet provides tests for all of its subcomponents. Assuming you have
+successfully built GNUnet, run
 
 @example
+$ cd gnunet
 $ make check
 @end example
 
@@ -387,7 +405,7 @@ a mesh on top of a DHT).
 @c \end{figure}
 
 The main service implementation runs as a standalone process in the
-operating system and the client code runs as part of the client program,
+Operating System and the client code runs as part of the client program,
 so crashes of a client do not affect the service process or other clients.
 The service and the clients communicate via a message protocol to be
 defined and implemented by the programmer.

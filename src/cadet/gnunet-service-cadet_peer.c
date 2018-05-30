@@ -242,12 +242,15 @@ struct CadetPeer
 const char *
 GCP_2s (const struct CadetPeer *cp)
 {
-  static char buf[32];
+  static char buf[5];
+  char *ret;
 
-  GNUNET_snprintf (buf,
-                   sizeof (buf),
-                   "P(%s)",
-                   GNUNET_i2s (&cp->pid));
+  ret = GNUNET_CRYPTO_eddsa_public_key_to_string (&cp->pid.public_key);
+  strncpy (buf,
+           ret,
+           sizeof (buf) - 1);
+  GNUNET_free (ret);
+  buf[4] = '\0';
   return buf;
 }
 
@@ -649,6 +652,27 @@ mqm_execute (struct GCP_MessageQueueManager *mqm)
   }
   else
   {
+    {
+      const struct GNUNET_MessageHeader *mh;
+
+      mh = GNUNET_MQ_env_get_msg (mqm->env);
+      switch (ntohs (mh->type))
+      {
+      case GNUNET_MESSAGE_TYPE_CADET_TUNNEL_KX:
+        {
+          const struct GNUNET_CADET_TunnelKeyExchangeMessage *msg
+            = (const struct GNUNET_CADET_TunnelKeyExchangeMessage *) mh;
+          LOG (GNUNET_ERROR_TYPE_DEBUG,
+               "P2P forwarding KX with ephemeral %s to %s on CID %s\n",
+               GNUNET_e2s (&msg->ephemeral_key),
+               GCP_2s (cp),
+               GNUNET_sh2s (&msg->cid.connection_of_tunnel));
+        }
+        break;
+      default:
+        break;
+      }
+    }
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Sending to peer %s from MQM %p\n",
          GCP_2s (cp),
@@ -1044,7 +1068,7 @@ GCP_add_connection (struct CadetPeer *cp,
                     struct CadetConnection *cc)
 {
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Adding connection %s to peer %s\n",
+       "Adding %s to peer %s\n",
        GCC_2s (cc),
        GCP_2s (cp));
   GNUNET_assert (GNUNET_OK ==

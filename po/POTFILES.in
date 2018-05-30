@@ -119,7 +119,7 @@ src/dns/gnunet-dns-monitor.c
 src/dns/gnunet-dns-redirector.c
 src/dns/gnunet-helper-dns.c
 src/dns/gnunet-service-dns.c
-src/dns/gnunet-zoneimport.c
+src/dns/gnunet-zonewalk.c
 src/dns/plugin_block_dns.c
 src/dv/dv_api.c
 src/dv/gnunet-dv.c
@@ -172,6 +172,7 @@ src/gns/gns_api.c
 src/gns/gns_tld_api.c
 src/gns/gnunet-bcd.c
 src/gns/gnunet-dns2gns.c
+src/gns/gnunet-gns-benchmark.c
 src/gns/gnunet-gns-helper-service-w32.c
 src/gns/gnunet-gns-import.c
 src/gns/gnunet-gns-proxy.c
@@ -350,6 +351,8 @@ src/social/gnunet-service-social.c
 src/social/gnunet-social.c
 src/social/social_api.c
 src/sq/sq.c
+src/sq/sq_exec.c
+src/sq/sq_prepare.c
 src/sq/sq_query_helper.c
 src/sq/sq_result_helper.c
 src/statistics/gnunet-service-statistics.c
@@ -454,6 +457,7 @@ src/util/container_multihashmap32.c
 src/util/container_multipeermap.c
 src/util/container_multishortmap.c
 src/util/crypto_abe.c
+src/util/crypto_bug.c
 src/util/crypto_crc.c
 src/util/crypto_ecc.c
 src/util/crypto_ecc_dlog.c
@@ -507,6 +511,7 @@ src/vpn/gnunet-helper-vpn.c
 src/vpn/gnunet-service-vpn.c
 src/vpn/gnunet-vpn.c
 src/vpn/vpn_api.c
+src/zonemaster/gnunet-service-zonemaster-monitor.c
 src/zonemaster/gnunet-service-zonemaster.c
 src/fs/fs_api.h
 src/include/gnunet_common.h

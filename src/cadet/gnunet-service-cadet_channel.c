@@ -411,7 +411,7 @@ GCCH_2s (const struct CadetChannel *ch)
 
 
 /**
- * Hash the @a port and @a initiator and @a listener to 
+ * Hash the @a port and @a initiator and @a listener to
  * calculate the "challenge" @a h_port we send to the other
  * peer on #GNUNET_MESSAGE_TYPE_CADET_CHANNEL_OPEN.
  *
@@ -1186,7 +1186,7 @@ GCCH_handle_channel_open_ack (struct CadetChannel *ch,
 		     port,
 		     sizeof (struct GNUNET_HashCode)))
     {
-      /* Other peer failed to provide the right port, 
+      /* Other peer failed to provide the right port,
 	 refuse connection. */
       GNUNET_break_op (0);
       return;
@@ -1279,8 +1279,7 @@ GCCH_handle_channel_plaintext_data (struct CadetChannel *ch,
   uint32_t delta;
 
   GNUNET_assert (GNUNET_NO == ch->is_loopback);
-  if ( (GNUNET_YES == ch->destroy) &&
-       (NULL == ch->owner) &&
+  if ( (NULL == ch->owner) &&
        (NULL == ch->dest) )
   {
     /* This client is gone, but we still have messages to send to
@@ -1290,8 +1289,9 @@ GCCH_handle_channel_plaintext_data (struct CadetChannel *ch,
          "Dropping incoming payload on %s as this end is already closed\n",
          GCCH_2s (ch));
     /* send back DESTROY notification to stop further retransmissions! */
-    GCT_send_channel_destroy (ch->t,
-                              ch->ctn);
+    if (GNUNET_YES == ch->destroy)
+      GCT_send_channel_destroy (ch->t,
+                                ch->ctn);
     return;
   }
   payload_size = ntohs (msg->header.size) - sizeof (*msg);
@@ -1822,7 +1822,7 @@ GCCH_handle_local_data (struct CadetChannel *ch,
 {
   struct CadetReliableMessage *crm;
 
-  if (ch->pending_messages > ch->max_pending_messages)
+  if (ch->pending_messages >= ch->max_pending_messages)
   {
     GNUNET_break (0);
     return GNUNET_SYSERR;

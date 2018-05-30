@@ -406,6 +406,28 @@ route_message (struct CadetPeer *prev,
        (NULL != dir->env_head) )
     discard_buffer (dir,
                     dir->env_head);
+  /* Check for duplicates */
+  for (const struct GNUNET_MQ_Envelope *env = dir->env_head;
+       NULL != env;
+       env = GNUNET_MQ_env_next (env))
+  {
+    const struct GNUNET_MessageHeader *hdr = GNUNET_MQ_env_get_msg (env);
+
+    if ( (hdr->size == msg->size) &&
+         (0 == memcmp (hdr,
+                       msg,
+                       ntohs (msg->size))) )
+    {
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
+           "Received duplicate of message already in buffer, dropping\n");
+      GNUNET_STATISTICS_update (stats,
+                                "# messages dropped due to duplicate in buffer",
+                                1,
+                                GNUNET_NO);
+      return;
+    }
+  }
+
   rung = dir->rung;
   if (cur_buffers == max_buffers)
   {
@@ -434,7 +456,7 @@ route_message (struct CadetPeer *prev,
   GNUNET_CONTAINER_DLL_remove (rung->rd_head,
                                rung->rd_tail,
                                dir);
-  /* make 'nxt' point to the next higher rung, creat if necessary */
+  /* make 'nxt' point to the next higher rung, create if necessary */
   nxt = rung->next;
   if ( (NULL == nxt) ||
        (rung->rung_off + 1 != nxt->rung_off) )
@@ -631,7 +653,7 @@ timeout_cb (void *cls)
                                               NULL);
       return;
     }
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 		"Sending BROKEN due to timeout (%s was last use, %s linger)\n",
 		GNUNET_STRINGS_absolute_time_to_string (r->last_use),
 		GNUNET_STRINGS_relative_time_to_string (linger,
@@ -693,7 +715,7 @@ dir_ready_cb (void *cls,
     return;
   }
   odir = (dir == &route->next) ? &route->prev : &route->next;
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Sending BROKEN due to MQ going down\n");
   send_broken (&route->next,
                &route->cid,
@@ -781,31 +803,45 @@ handle_connection_create (void *cls,
   if (0 == path_length)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-      "Dropping CADET_CONNECTION_CREATE with empty path\n");
+         "Dropping CADET_CONNECTION_CREATE with empty path\n");
     GNUNET_break_op (0);
     return;
   }
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Handling CADET_CONNECTION_CREATE from %s for CID %s with %u hops\n",
+       GCP_2s (sender),
+       GNUNET_sh2s (&msg->cid.connection_of_tunnel),
+       path_length);
   /* Check for loops */
-  struct GNUNET_CONTAINER_MultiPeerMap *map;
-  map = GNUNET_CONTAINER_multipeermap_create (path_length * 2,
-                                              GNUNET_YES);
-  GNUNET_assert (NULL != map);
-  for (off = 0; off < path_length; off++) {
-    if (GNUNET_SYSERR ==
-        GNUNET_CONTAINER_multipeermap_put (map,
-                                           &pids[off],
-                                           NULL,
-                                           GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY)) {
-      /* bogus request */
-      GNUNET_CONTAINER_multipeermap_destroy (map);
+  {
+    struct GNUNET_CONTAINER_MultiPeerMap *map;
+
+    map = GNUNET_CONTAINER_multipeermap_create (path_length * 2,
+                                                GNUNET_YES);
+    GNUNET_assert (NULL != map);
+    for (unsigned int i=0;i<path_length;i++)
+    {
       LOG (GNUNET_ERROR_TYPE_DEBUG,
-        "Dropping CADET_CONNECTION_CREATE with cyclic path\n");
-      GNUNET_break_op (0);
-      return;
+           "CADET_CONNECTION_CREATE has peer %s at offset %u\n",
+           GNUNET_i2s (&pids[i]),
+           i);
+      if (GNUNET_SYSERR ==
+          GNUNET_CONTAINER_multipeermap_put (map,
+                                             &pids[i],
+                                             NULL,
+                                             GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY))
+      {
+        /* bogus request */
+        GNUNET_CONTAINER_multipeermap_destroy (map);
+        LOG (GNUNET_ERROR_TYPE_DEBUG,
+             "Dropping CADET_CONNECTION_CREATE with cyclic path\n");
+        GNUNET_break_op (0);
+        return;
+      }
     }
+    GNUNET_CONTAINER_multipeermap_destroy (map);
   }
-  GNUNET_CONTAINER_multipeermap_destroy (map);
-  /* Initiator is at offset 0. */
+  /* Initiator is at offset 0, find us */
   for (off=1;off<path_length;off++)
     if (0 == memcmp (&my_full_id,
                      &pids[off],
@@ -814,7 +850,7 @@ handle_connection_create (void *cls,
   if (off == path_length)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-      "Dropping CADET_CONNECTION_CREATE without us in the path\n");
+         "Dropping CADET_CONNECTION_CREATE without us in the path\n");
     GNUNET_break_op (0);
     return;
   }
@@ -823,14 +859,15 @@ handle_connection_create (void *cls,
                          GNUNET_NO))
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-      "Dropping CADET_CONNECTION_CREATE without sender in the path\n");
+         "Dropping CADET_CONNECTION_CREATE without sender at previous hop in the path\n");
     GNUNET_break_op (0);
     return;
   }
   if (NULL !=
-      get_route (&msg->cid))
+      (route = get_route (&msg->cid)))
   {
     /* Duplicate CREATE, pass it on, previous one might have been lost! */
+
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Passing on duplicate CADET_CONNECTION_CREATE message on connection %s\n",
          GNUNET_sh2s (&msg->cid.connection_of_tunnel));
@@ -859,7 +896,7 @@ handle_connection_create (void *cls,
     origin = GCP_get (&pids[0],
                       GNUNET_YES);
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Received CADET_CONNECTION_CREATE message from %s for connection %s, building inverse path\n",
+         "I am destination for CADET_CONNECTION_CREATE message from %s for connection %s, building inverse path\n",
          GCP_2s (origin),
          GNUNET_sh2s (&msg->cid.connection_of_tunnel));
     path = GCPP_get_path_from_route (path_length - 1,
@@ -949,6 +986,10 @@ handle_connection_create (void *cls,
                                                                                 3),
                                                  &timeout_cb,
                                                  NULL);
+  /* also pass CREATE message along to next hop */
+  route_message (sender,
+                 &msg->cid,
+                 &msg->header);
 }
 
 
@@ -970,7 +1011,9 @@ handle_connection_create_ack (void *cls,
   if (NULL != cc)
   {
     /* verify ACK came from the right direction */
-    struct CadetPeerPath *path = GCC_get_path (cc);
+    unsigned int len;
+    struct CadetPeerPath *path = GCC_get_path (cc,
+                                               &len);
 
     if (peer !=
         GCPP_get_peer_at_offset (path,
@@ -1014,7 +1057,9 @@ handle_connection_broken (void *cls,
   if (NULL != cc)
   {
     /* verify message came from the right direction */
-    struct CadetPeerPath *path = GCC_get_path (cc);
+    unsigned int len;
+    struct CadetPeerPath *path = GCC_get_path (cc,
+                                               &len);
 
     if (peer !=
         GCPP_get_peer_at_offset (path,
@@ -1063,7 +1108,9 @@ handle_connection_destroy (void *cls,
   if (NULL != cc)
   {
     /* verify message came from the right direction */
-    struct CadetPeerPath *path = GCC_get_path (cc);
+    unsigned int len;
+    struct CadetPeerPath *path = GCC_get_path (cc,
+                                               &len);
 
     if (peer !=
         GCPP_get_peer_at_offset (path,
@@ -1108,11 +1155,19 @@ handle_tunnel_kx (void *cls,
   struct CadetConnection *cc;
 
   /* First, check if message belongs to a connection that ends here. */
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Routing KX with ephemeral %s on CID %s\n",
+       GNUNET_e2s (&msg->ephemeral_key),
+       GNUNET_sh2s (&msg->cid.connection_of_tunnel));
+
+
   cc = GCC_lookup (&msg->cid);
   if (NULL != cc)
   {
     /* verify message came from the right direction */
-    struct CadetPeerPath *path = GCC_get_path (cc);
+    unsigned int len;
+    struct CadetPeerPath *path = GCC_get_path (cc,
+                                               &len);
 
     if (peer !=
         GCPP_get_peer_at_offset (path,
@@ -1152,7 +1207,9 @@ handle_tunnel_kx_auth (void *cls,
   if (NULL != cc)
   {
     /* verify message came from the right direction */
-    struct CadetPeerPath *path = GCC_get_path (cc);
+    unsigned int len;
+    struct CadetPeerPath *path = GCC_get_path (cc,
+                                               &len);
 
     if (peer !=
         GCPP_get_peer_at_offset (path,
@@ -1208,7 +1265,9 @@ handle_tunnel_encrypted (void *cls,
   if (NULL != cc)
   {
     /* verify message came from the right direction */
-    struct CadetPeerPath *path = GCC_get_path (cc);
+    unsigned int len;
+    struct CadetPeerPath *path = GCC_get_path (cc,
+                                               &len);
 
     if (peer !=
         GCPP_get_peer_at_offset (path,

@@ -1,5 +1,6 @@
 *~
 \#*\#
+*.bak
 *.a
 *.la
 *.lo
@@ -40,7 +41,7 @@ INSTALL
 confdefs.h
 confdefs.c
 confdefs.err
-gnunet-doc.scm
+guix-env-gillmann.scm
 src/namestore/test_namestore_api_zone_to_name
 src/credential/gnunet-credential
 src/credential/gnunet-service-credential
@@ -49,3 +50,8 @@ src/identity-provider/gnunet-idp
 src/namestore/perf_namestore_api_zone_iteration_flat
 src/namestore/perf_namestore_api_zone_iteration_postgres
 src/namestore/perf_namestore_api_zone_iteration_sqlite
+python-lint.log
+flake8.log
+# for pytest created data:
+.cache/
+__pycache__/

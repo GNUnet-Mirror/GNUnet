@@ -8,5 +8,5 @@ Description: Provides API to access the GNUnet Naming System
 URL: http://gnunet.org
 Version: @VERSION@
 Requires:
-Libs: -L${libdir} -lgnunetgns
+Libs: -L${libdir} -lgnunetgns -lgnunetgnsrecord
 Cflags: -I${includedir}

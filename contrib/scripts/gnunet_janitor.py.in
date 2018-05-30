@@ -1,0 +1,81 @@
+#!@PYTHON@
+#    This file is part of GNUnet.
+#    (C) 2011, 2018 Christian Grothoff (and other contributing authors)
+#
+#    GNUnet is free software; you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published
+#    by the Free Software Foundation; either version 2, or (at your
+#    option) any later version.
+#
+#    GNUnet is distributed in the hope that it will be useful, but
+#    WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+#    General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with GNUnet; see the file COPYING.  If not, write to the
+#    Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
+#    Boston, MA 02110-1301, USA.
+#
+# Finds any gnunet processes still running in the system and kills them
+#
+# gnunet janitor can be used by invoking `make' like this:
+# TESTS_ENVIRONMENT='${top_srcdir}/contrib/scripts/gnunet_janitor.py &&' make check
+
+from __future__ import print_function
+import os
+import re
+import subprocess
+import sys
+import shutil
+import time
+import signal
+import terminate
+
+if os.name == 'nt':
+    from win32com.client import GetObject
+    WMI = GetObject('winmgmts:')
+
+
+def get_process_list():
+    result = []
+    if os.name == 'nt':
+        processes = WMI.InstancesOf('Win32_Process')
+        for p in processes:
+            result.append((p.Properties_('ProcessId').Value, re.sub(r'(.+)\.exe', r'\1', p.Properties_('Name').Value)))
+    else:
+        pids = [pid for pid in os.listdir('/proc') if pid.isdigit()]
+        for pid in pids:
+            with open(os.path.join('/proc', pid, 'cmdline'), 'rb') as p:
+                cmdline = p.read().split('\x00')
+                if len(cmdline) > 0:
+                    result.append((pid, cmdline[0]))
+    return result
+
+
+def main():
+    procs = get_process_list()
+    gnunet_procs = []
+    for p in procs:
+        if re.match(r'gnunet-.+', p[1]):
+            gnunet_procs.append(p)
+    for p in gnunet_procs:
+        if re.match(r'gnunet-service-arm', p[1]):
+            print("killing arm process {0:5} {1}".format(p[0], p[1]))
+            try:
+                terminate.safe_terminate_process_by_pid(int(p[0]), 1)
+            except OSError as e:
+                print("failed: {0}".format(e))
+                pass
+    for p in gnunet_procs:
+        if not re.match(r'gnunet-service-arm', p[1]):
+            print("killing non-arm process {0:5} {1}".format(p[0], p[1]))
+            try:
+                terminate.safe_terminate_process_by_pid(int(p[0]), 1)
+            except OSError as e:
+                print("failed: {0}".format(e))
+                pass
+
+
+if __name__ == '__main__':
+    sys.exit(main())

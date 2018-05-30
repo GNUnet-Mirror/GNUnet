@@ -220,7 +220,7 @@ namestore_postgres_store_records (void *cls,
   struct GNUNET_CRYPTO_EcdsaPublicKey pkey;
   uint64_t rvalue;
   uint32_t rd_count32 = (uint32_t) rd_count;
-  size_t data_size;
+  ssize_t data_size;
 
   memset (&pkey,
           0,
@@ -238,7 +238,12 @@ namestore_postgres_store_records (void *cls,
                                      UINT64_MAX);
   data_size = GNUNET_GNSRECORD_records_get_size (rd_count,
 						 rd);
-  if (data_size > 64 * 65536)
+  if (data_size < 0)
+  {
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
+  if (data_size >= UINT16_MAX)
   {
     GNUNET_break (0);
     return GNUNET_SYSERR;
@@ -287,7 +292,7 @@ namestore_postgres_store_records (void *cls,
 					      data_size,
 					      data);
     if ( (ret < 0) ||
-	 (data_size != (size_t) ret) )
+	 (data_size != ret) )
     {
       GNUNET_break (0);
       return GNUNET_SYSERR;

@@ -1033,7 +1033,7 @@ GNUNET_NAMESTORE_records_store (struct GNUNET_NAMESTORE_Handle *h,
   struct GNUNET_MQ_Envelope *env;
   char *name_tmp;
   char *rd_ser;
-  size_t rd_ser_len;
+  ssize_t rd_ser_len;
   size_t name_len;
   uint32_t rid;
   struct RecordStoreMessage *msg;
@@ -1041,6 +1041,18 @@ GNUNET_NAMESTORE_records_store (struct GNUNET_NAMESTORE_Handle *h,
 
   name_len = strlen (label) + 1;
   if (name_len > MAX_NAME_LEN)
+  {
+    GNUNET_break (0);
+    return NULL;
+  }
+  rd_ser_len = GNUNET_GNSRECORD_records_get_size (rd_count,
+                                                  rd);
+  if (rd_ser_len < 0)
+  {
+    GNUNET_break (0);
+    return NULL;
+  }
+  if (rd_ser_len > UINT16_MAX)
   {
     GNUNET_break (0);
     return NULL;
@@ -1056,8 +1068,6 @@ GNUNET_NAMESTORE_records_store (struct GNUNET_NAMESTORE_Handle *h,
                                     qe);
 
   /* setup msg */
-  rd_ser_len = GNUNET_GNSRECORD_records_get_size (rd_count,
-                                                  rd);
   env = GNUNET_MQ_msg_extra (msg,
                              name_len + rd_ser_len,
                              GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_STORE);
@@ -1077,8 +1087,10 @@ GNUNET_NAMESTORE_records_store (struct GNUNET_NAMESTORE_Handle *h,
 					     rd,
 					     rd_ser_len,
 					     rd_ser);
-  if (0 > sret)
+  if ( (0 > sret) ||
+       (sret != rd_ser_len) )
   {
+    GNUNET_break (0);
     GNUNET_free (env);
     return NULL;
   }

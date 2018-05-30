@@ -144,6 +144,11 @@ check_result (void *cls,
   rd_len = ntohs (lrm->rd_len);
   rd_count = ntohs (lrm->rd_count);
   name_len = ntohs (lrm->name_len);
+  if (name_len > MAX_NAME_LEN)
+  {
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
   exp_lrm_len = sizeof (struct RecordResultMessage) + name_len + rd_len;
   if (lrm_len != exp_lrm_len)
   {
@@ -156,7 +161,7 @@ check_result (void *cls,
     return GNUNET_SYSERR;
   }
   name_tmp = (const char *) &lrm[1];
-  if ((name_tmp[name_len -1] != '\0') || (name_len > MAX_NAME_LEN))
+  if (name_tmp[name_len -1] != '\0')
   {
     GNUNET_break (0);
     return GNUNET_SYSERR;

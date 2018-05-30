@@ -37,6 +37,12 @@
 
 #define LOG(kind,...) GNUNET_log_from (kind, "gnsrecord",__VA_ARGS__)
 
+/**
+ * Set to 1 to check that all records are well-formed (can be converted
+ * to string) during serialization/deserialization.
+ */
+#define DEBUG_GNSRECORDS 0
+
 GNUNET_NETWORK_STRUCT_BEGIN
 
 
@@ -78,9 +84,9 @@ GNUNET_NETWORK_STRUCT_END
  *
  * @param rd_count number of records in the rd array
  * @param rd array of #GNUNET_GNSRECORD_Data with @a rd_count elements
- * @return the required size to serialize
+ * @return the required size to serialize, -1 on error
  */
-size_t
+ssize_t
 GNUNET_GNSRECORD_records_get_size (unsigned int rd_count,
 				   const struct GNUNET_GNSRECORD_Data *rd)
 {
@@ -89,10 +95,34 @@ GNUNET_GNSRECORD_records_get_size (unsigned int rd_count,
   ret = sizeof (struct NetworkRecord) * rd_count;
   for (unsigned int i=0;i<rd_count;i++)
   {
-    GNUNET_assert ((ret + rd[i].data_size) >= ret);
+    if ((ret + rd[i].data_size) < ret)
+    {
+      GNUNET_break (0);
+      return -1;
+    }
     ret += rd[i].data_size;
+#if DEBUG_GNSRECORDS
+    {
+      char *str;
+
+      str = GNUNET_GNSRECORD_value_to_string (rd[i].record_type,
+                                              rd[i].data,
+                                              rd[i].data_size);
+      if (NULL == str)
+      {
+        GNUNET_break_op (0);
+        return -1;
+      }
+      GNUNET_free (str);
+    }
+#endif
   }
-  return ret;
+  if (ret > SSIZE_MAX)
+  {
+    GNUNET_break (0);
+    return -1;
+  }
+  return (ssize_t) ret;
 }
 
 
@@ -126,7 +156,8 @@ GNUNET_GNSRECORD_records_serialize (unsigned int rd_count,
     rec.data_size = htonl ((uint32_t) rd[i].data_size);
     rec.record_type = htonl (rd[i].record_type);
     rec.flags = htonl (rd[i].flags);
-    if (off + sizeof (rec) > dest_size)
+    if ( (off + sizeof (rec) > dest_size) ||
+         (off + sizeof (rec) < off) )
     {
       GNUNET_break (0);
       return -1;
@@ -135,7 +166,8 @@ GNUNET_GNSRECORD_records_serialize (unsigned int rd_count,
                    &rec,
                    sizeof (rec));
     off += sizeof (rec);
-    if (off + rd[i].data_size > dest_size)
+    if ( (off + rd[i].data_size > dest_size) ||
+         (off + rd[i].data_size < off) )
     {
       GNUNET_break (0);
       return -1;
@@ -144,7 +176,7 @@ GNUNET_GNSRECORD_records_serialize (unsigned int rd_count,
                    rd[i].data,
                    rd[i].data_size);
     off += rd[i].data_size;
-#if GNUNET_EXTRA_LOGGING
+#if DEBUG_GNSRECORDS
     {
       char *str;
 
@@ -154,7 +186,7 @@ GNUNET_GNSRECORD_records_serialize (unsigned int rd_count,
       if (NULL == str)
       {
         GNUNET_break_op (0);
-        return GNUNET_SYSERR;
+        return -1;
       }
       GNUNET_free (str);
     }
@@ -185,7 +217,8 @@ GNUNET_GNSRECORD_records_deserialize (size_t len,
   off = 0;
   for (unsigned int i=0;i<rd_count;i++)
   {
-    if (off + sizeof (rec) > len)
+    if ( (off + sizeof (rec) > len) ||
+         (off + sizeof (rec) < off) )
     {
       GNUNET_break_op (0);
       return GNUNET_SYSERR;
@@ -198,7 +231,8 @@ GNUNET_GNSRECORD_records_deserialize (size_t len,
     dest[i].record_type = ntohl (rec.record_type);
     dest[i].flags = ntohl (rec.flags);
     off += sizeof (rec);
-    if (off + dest[i].data_size > len)
+    if ( (off + dest[i].data_size > len) ||
+         (off + dest[i].data_size < off) )
     {
       GNUNET_break_op (0);
       return GNUNET_SYSERR;

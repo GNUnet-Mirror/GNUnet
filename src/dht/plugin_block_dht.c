@@ -66,7 +66,8 @@ block_plugin_dht_create_group (void *cls,
   guard = va_arg (va, const char *);
   if (0 == strcmp (guard,
                    "seen-set-size"))
-    bf_size = GNUNET_BLOCK_GROUP_compute_bloomfilter_size (va_arg (va, unsigned int),
+    bf_size = GNUNET_BLOCK_GROUP_compute_bloomfilter_size (va_arg (va,
+                                                                   unsigned int),
                                                            BLOOMFILTER_K);
   else if (0 == strcmp (guard,
                         "filter-size"))
@@ -183,14 +184,17 @@ block_plugin_dht_get_key (void *cls,
     return GNUNET_SYSERR;
   if (block_size < sizeof (struct GNUNET_MessageHeader))
   {
-    GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, "block-dht",
-                     _("Block not of type %u\n"), GNUNET_BLOCK_TYPE_DHT_HELLO);
+    GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
+                     "block-dht",
+                     _("Block not of type %u\n"),
+                     GNUNET_BLOCK_TYPE_DHT_HELLO);
     return GNUNET_NO;
   }
   msg = block;
   if (block_size != ntohs (msg->size))
   {
-    GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, "block-dht",
+    GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
+                     "block-dht",
                      _("Size mismatch for block\n"),
                      GNUNET_BLOCK_TYPE_DHT_HELLO);
     return GNUNET_NO;
@@ -200,7 +204,8 @@ block_plugin_dht_get_key (void *cls,
   pid = (struct GNUNET_PeerIdentity *) key;
   if (GNUNET_OK != GNUNET_HELLO_get_id (hello, pid))
   {
-    GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, "block-dht",
+    GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
+                     "block-dht",
                      _("Block of type %u is malformed\n"),
                      GNUNET_BLOCK_TYPE_DHT_HELLO);
     return GNUNET_NO;

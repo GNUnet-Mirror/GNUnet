@@ -515,8 +515,8 @@ handle_response (void *cls,
       if ( (NULL != rh->addr_callback) &&
            (GNUNET_SYSERR != rh->was_transmitted) )
           rh->addr_callback (rh->cls,
-                           NULL,
-                           0);
+                             NULL,
+                             0);
     }
     rh->was_transmitted = GNUNET_NO;
     GNUNET_RESOLVER_request_cancel (rh);

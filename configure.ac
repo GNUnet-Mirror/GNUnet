@@ -1530,6 +1530,8 @@ AM_CONDITIONAL([USE_COVERAGE], [test "x$use_gcov" = "xyes"])
 
 
 # version info
+# TODO: git blame says this predates our switch to git. git-svn should be adjusted to simply git, or
+# an external script that does the job.
 AC_PATH_PROG(svnversioncommand, svnversion)
 AC_PATH_PROG(gitcommand, git)
 AC_MSG_CHECKING(for source being under a VCS)

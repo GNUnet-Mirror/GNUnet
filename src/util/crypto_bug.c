@@ -28,7 +28,7 @@
  * Enable work-around.  Will cause code to call #check_eddsa_key() to
  * see if we have a bad key, and if so, create a new one.
  */
-#define CRYPTO_BUG 1
+#define CRYPTO_BUG 0
 
 
 #if CRYPTO_BUG
