@@ -105,6 +105,7 @@ typedef int
  *
  * @param h handle to the datacache
  * @param key key to store data under
+ * @param am_closest am I the closest peer?
  * @param data_size number of bytes in @a data
  * @param data data to store
  * @param type type of the value
@@ -116,6 +117,7 @@ typedef int
 int
 GNUNET_DATACACHE_put (struct GNUNET_DATACACHE_Handle *h,
                       const struct GNUNET_HashCode *key,
+                      int am_closest,
                       size_t data_size,
                       const char *data,
                       enum GNUNET_BLOCK_Type type,

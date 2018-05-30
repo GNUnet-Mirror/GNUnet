@@ -294,7 +294,7 @@ process_queue (void *cls)
               active_cnt);
   req->lr = GNUNET_GNS_lookup_with_tld (gns,
 					req->hostname,
-					GNUNET_GNSRECORD_TYPE_ANY,
+					GNUNET_GNSRECORD_TYPE_GNS2DNS,
 					GNUNET_GNS_LO_DEFAULT,
 					&process_result,
 					req);

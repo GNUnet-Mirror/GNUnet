@@ -123,6 +123,22 @@ GDS_NEIGHBOURS_handle_reply (const struct GNUNET_PeerIdentity *target,
 
 
 /**
+ * Check whether my identity is closer than any known peers.  If a
+ * non-null bloomfilter is given, check if this is the closest peer
+ * that hasn't already been routed to.
+ *
+ * @param key hash code to check closeness to
+ * @param bloom bloomfilter, exclude these entries from the decision
+ * @return #GNUNET_YES if node location is closest,
+ *         #GNUNET_NO otherwise.
+ */
+int
+GDS_am_closest_peer (const struct GNUNET_HashCode *key,
+                     const struct GNUNET_CONTAINER_BloomFilter *bloom);
+
+
+
+/**
  * Initialize neighbours subsystem.
  *
  * @return #GNUNET_OK on success, #GNUNET_SYSERR on error

@@ -45,6 +45,7 @@ struct Plugin
  *
  * @param cls closure (our `struct Plugin`)
  * @param key key to store @a data under
+ * @param am_closest are we the closest peer?
  * @param size number of bytes in @a data
  * @param data data to store
  * @param type type of the value
@@ -56,6 +57,7 @@ struct Plugin
 static ssize_t
 template_plugin_put (void *cls,
                      const struct GNUNET_HashCode *key,
+                     int am_closest,
                      size_t size,
                      const char *data,
                      enum GNUNET_BLOCK_Type type,

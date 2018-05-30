@@ -87,7 +87,10 @@ run (void *cls, char *const *args, const char *cfgfile,
   {
     GNUNET_CRYPTO_hash (&k, sizeof (struct GNUNET_HashCode), &n);
     ASSERT (GNUNET_OK ==
-            GNUNET_DATACACHE_put (h, &k, sizeof (struct GNUNET_HashCode),
+            GNUNET_DATACACHE_put (h,
+                                  &k,
+                                  GNUNET_YES,
+                                  sizeof (struct GNUNET_HashCode),
                                   (const char *) &n, 1 + i % 16, exp,
 				  0, NULL));
     k = n;
@@ -103,7 +106,10 @@ run (void *cls, char *const *args, const char *cfgfile,
   memset (&k, 42, sizeof (struct GNUNET_HashCode));
   GNUNET_CRYPTO_hash (&k, sizeof (struct GNUNET_HashCode), &n);
   ASSERT (GNUNET_OK ==
-          GNUNET_DATACACHE_put (h, &k, sizeof (struct GNUNET_HashCode),
+          GNUNET_DATACACHE_put (h,
+                                &k,
+                                GNUNET_YES,
+                                sizeof (struct GNUNET_HashCode),
                                 (const char *) &n, 792,
                                 GNUNET_TIME_UNIT_FOREVER_ABS,
 				0, NULL));

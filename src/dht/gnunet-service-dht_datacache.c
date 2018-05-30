@@ -26,6 +26,7 @@
 #include "platform.h"
 #include "gnunet_datacache_lib.h"
 #include "gnunet-service-dht_datacache.h"
+#include "gnunet-service-dht_neighbours.h"
 #include "gnunet-service-dht_routing.h"
 #include "gnunet-service-dht.h"
 
@@ -79,10 +80,13 @@ GDS_DATACACHE_handle_put (struct GNUNET_TIME_Absolute expiration,
   }
   /* Put size is actual data size plus struct overhead plus path length (if any) */
   GNUNET_STATISTICS_update (GDS_stats,
-                            gettext_noop ("# ITEMS stored in datacache"), 1,
+                            gettext_noop ("# ITEMS stored in datacache"),
+                            1,
                             GNUNET_NO);
   r = GNUNET_DATACACHE_put (datacache,
                             key,
+                            GDS_am_closest_peer (key,
+                                                 NULL),
                             data_size,
                             data,
                             type,

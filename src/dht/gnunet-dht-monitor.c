@@ -141,7 +141,8 @@ get_callback (void *cls,
               const struct GNUNET_PeerIdentity *path,
               const struct GNUNET_HashCode * key)
 {
-  FPRINTF (stdout, "GET #%u: type %d, key `%s'\n",
+  FPRINTF (stdout,
+           "GET #%u: type %d, key `%s'\n",
            result_count,
            (int) type,
            GNUNET_h2s_full(key));
@@ -176,8 +177,11 @@ get_resp_callback (void *cls,
                    size_t size)
 {
   FPRINTF (stdout,
-	   "RESPONSE #%u: type %d, key `%s', data `%.*s'\n",
+           (GNUNET_BLOCK_TYPE_TEST == type)
+	   ? "RESPONSE #%u (%s): type %d, key `%s', data `%.*s'\n"
+           : "RESPONSE #%u (%s): type %d, key `%s'\n",
            result_count,
+           GNUNET_STRINGS_absolute_time_to_string (exp),
            (int) type,
            GNUNET_h2s_full (key),
            (unsigned int) size,
@@ -215,8 +219,11 @@ put_callback (void *cls,
               size_t size)
 {
   FPRINTF (stdout,
-	   "PUT %u: type %d, key `%s', data `%.*s'\n",
+           (GNUNET_BLOCK_TYPE_TEST == type)
+	   ? "PUT %u (%s): type %d, key `%s', data `%.*s'\n"
+           : "PUT %u (%s): type %d, key `%s'\n",
            result_count,
+           GNUNET_STRINGS_absolute_time_to_string (exp),
            (int) type,
            GNUNET_h2s_full(key),
            (unsigned int) size,
@@ -234,7 +241,9 @@ put_callback (void *cls,
  * @param c configuration
  */
 static void
-run (void *cls, char *const *args, const char *cfgfile,
+run (void *cls,
+     char *const *args,
+     const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
   struct GNUNET_HashCode *key;
@@ -291,30 +300,30 @@ int
 main (int argc, char *const *argv)
 {
   struct GNUNET_GETOPT_CommandLineOption options[] = {
-  
+
     GNUNET_GETOPT_option_string ('k',
                                  "key",
                                  "KEY",
                                  gettext_noop ("the query key"),
                                  &query_key),
-  
+
     GNUNET_GETOPT_option_uint ('t',
                                    "type",
                                    "TYPE",
                                    gettext_noop ("the type of data to look for"),
                                    &block_type),
-  
+
     GNUNET_GETOPT_option_relative_time ('T',
                                             "timeout",
                                             "TIMEOUT",
                                             gettext_noop ("how long should the monitor command run"),
                                             &timeout_request),
-  
+
     GNUNET_GETOPT_option_flag ('V',
                                   "verbose",
                                   gettext_noop ("be verbose (print progress information)"),
                                   &verbose),
-  
+
     GNUNET_GETOPT_OPTION_END
   };
 

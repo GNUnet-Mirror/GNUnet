@@ -38,7 +38,7 @@
  * How much overhead do we assume per entry in the
  * datacache?
  */
-#define OVERHEAD (sizeof(struct GNUNET_HashCode) + 32)
+#define OVERHEAD (sizeof(struct GNUNET_HashCode) + 36)
 
 /**
  * Context for all functions in this plugin.
@@ -150,6 +150,7 @@ sq_prepare (sqlite3 *dbh,
  *
  * @param cls closure (our `struct Plugin`)
  * @param key key to store @a data under
+ * @param am_closest are we the closest peer?
  * @param size number of bytes in @a data
  * @param data data to store
  * @param type type of the value
@@ -161,6 +162,7 @@ sq_prepare (sqlite3 *dbh,
 static ssize_t
 sqlite_plugin_put (void *cls,
 		   const struct GNUNET_HashCode *key,
+                   int am_closest,
 		   size_t size,
                    const char *data,
 		   enum GNUNET_BLOCK_Type type,
@@ -170,10 +172,12 @@ sqlite_plugin_put (void *cls,
 {
   struct Plugin *plugin = cls;
   uint32_t type32 = type;
+  uint32_t prox = am_closest;
   struct GNUNET_SQ_QueryParam params[] = {
     GNUNET_SQ_query_param_uint32 (&type32),
     GNUNET_SQ_query_param_absolute_time (&discard_time),
     GNUNET_SQ_query_param_auto_from_type (key),
+    GNUNET_SQ_query_param_uint32 (&prox),
     GNUNET_SQ_query_param_fixed_size (data, size),
     GNUNET_SQ_query_param_fixed_size (path_info,
                                       path_info_len * sizeof (struct GNUNET_PeerIdentity)),
@@ -386,6 +390,7 @@ sqlite_plugin_del (void *cls)
   uint64_t rowid;
   void *data;
   size_t dsize;
+  uint32_t prox;
   struct GNUNET_HashCode hc;
   struct GNUNET_SQ_ResultSpec rs[] = {
     GNUNET_SQ_result_spec_uint64 (&rowid),
@@ -398,9 +403,26 @@ sqlite_plugin_del (void *cls)
     GNUNET_SQ_query_param_uint64 (&rowid),
     GNUNET_SQ_query_param_end
   };
+  struct GNUNET_SQ_QueryParam prox_params[] = {
+    GNUNET_SQ_query_param_uint32 (&prox),
+    GNUNET_SQ_query_param_end
+  };
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Processing DEL\n");
+  prox = GNUNET_NO;
+ again:
+  if (GNUNET_OK !=
+      GNUNET_SQ_bind (plugin->del_select_stmt,
+                      prox_params))
+  {
+    LOG_SQLITE (plugin->dbh,
+                GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+                "sqlite3_bind");
+    GNUNET_SQ_reset (plugin->dbh,
+                     plugin->del_stmt);
+    return GNUNET_SYSERR;
+  }
   if (SQLITE_ROW !=
       sqlite3_step (plugin->del_select_stmt))
   {
@@ -409,15 +431,25 @@ sqlite_plugin_del (void *cls)
                 "sqlite3_step");
     GNUNET_SQ_reset (plugin->dbh,
                      plugin->del_select_stmt);
+    if (GNUNET_NO == prox)
+    {
+      prox = GNUNET_YES;
+      goto again;
+    }
     return GNUNET_SYSERR;
   }
   if (GNUNET_OK !=
       GNUNET_SQ_extract_result (plugin->del_select_stmt,
                                 rs))
   {
-    GNUNET_break (0);
     GNUNET_SQ_reset (plugin->dbh,
                      plugin->del_select_stmt);
+    if (GNUNET_NO == prox)
+    {
+      prox = GNUNET_YES;
+      goto again;
+    }
+    GNUNET_break (0);
     return GNUNET_SYSERR;
   }
   GNUNET_SQ_cleanup_result (rs);
@@ -709,13 +741,14 @@ libgnunet_plugin_datacache_sqlite_init (void *cls)
     SQLITE3_EXEC (dbh, "PRAGMA sqlite_temp_store=3");
 
   SQLITE3_EXEC (dbh,
-                "CREATE TABLE ds090 (" "  type INTEGER NOT NULL DEFAULT 0,"
-                "  expire INTEGER NOT NULL DEFAULT 0,"
+                "CREATE TABLE ds091 (" "  type INTEGER NOT NULL DEFAULT 0,"
+                "  expire INTEGER NOT NULL,"
                 "  key BLOB NOT NULL DEFAULT '',"
-                "  value BLOB NOT NULL DEFAULT '',"
+                "  prox INTEGER NOT NULL,"
+                "  value BLOB NOT NULL,"
 		"  path BLOB DEFAULT '')");
   SQLITE3_EXEC (dbh, "CREATE INDEX idx_hashidx ON ds090 (key,type,expire)");
-  SQLITE3_EXEC (dbh, "CREATE INDEX idx_expire ON ds090 (expire)");
+  SQLITE3_EXEC (dbh, "CREATE INDEX idx_expire ON ds090 (prox,expire)");
   plugin = GNUNET_new (struct Plugin);
   plugin->env = env;
   plugin->dbh = dbh;
@@ -723,35 +756,35 @@ libgnunet_plugin_datacache_sqlite_init (void *cls)
 
   if ( (SQLITE_OK !=
         sq_prepare (plugin->dbh,
-                    "INSERT INTO ds090 (type, expire, key, value, path) "
-                    "VALUES (?, ?, ?, ?, ?)",
+                    "INSERT INTO ds091 (type, expire, key, prox, value, path) "
+                    "VALUES (?, ?, ?, ?, ?, ?)",
                     &plugin->insert_stmt)) ||
        (SQLITE_OK !=
         sq_prepare (plugin->dbh,
-                    "SELECT count(*) FROM ds090 "
+                    "SELECT count(*) FROM ds091 "
                     "WHERE key=? AND type=? AND expire >= ?",
                     &plugin->get_count_stmt)) ||
        (SQLITE_OK !=
         sq_prepare (plugin->dbh,
-                    "SELECT value,expire,path FROM ds090 "
+                    "SELECT value,expire,path FROM ds091 "
                     "WHERE key=? AND type=? AND expire >= ? LIMIT 1 OFFSET ?",
                     &plugin->get_stmt)) ||
        (SQLITE_OK !=
         sq_prepare (plugin->dbh,
-                    "SELECT _ROWID_,key,value FROM ds090 ORDER BY expire ASC LIMIT 1",
+                    "SELECT _ROWID_,key,value FROM ds091 WHERE prox=? ORDER BY expire ASC LIMIT 1",
                     &plugin->del_select_stmt)) ||
        (SQLITE_OK !=
         sq_prepare (plugin->dbh,
-                    "DELETE FROM ds090 WHERE _ROWID_=?",
+                    "DELETE FROM ds091 WHERE _ROWID_=?",
                     &plugin->del_stmt)) ||
        (SQLITE_OK !=
         sq_prepare (plugin->dbh,
-                    "SELECT value,expire,path,key,type FROM ds090 "
+                    "SELECT value,expire,path,key,type FROM ds091 "
                     "ORDER BY key LIMIT 1 OFFSET ?",
                     &plugin->get_random_stmt)) ||
        (SQLITE_OK !=
         sq_prepare (plugin->dbh,
-                    "SELECT value,expire,path,type,key FROM ds090 "
+                    "SELECT value,expire,path,type,key FROM ds091 "
                     "WHERE key>=? AND expire >= ? ORDER BY KEY ASC LIMIT ?",
                     &plugin->get_closest_stmt))
        )
