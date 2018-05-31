@@ -1454,10 +1454,18 @@ GSC_KX_encrypt_and_transmit (struct GSC_KeyExchangeInfo *kx,
                              &ph->sequence_number,
                              &em->sequence_number,
                              used - ENCRYPTED_HEADER_SIZE));
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Encrypted %u bytes for %s\n",
-              (unsigned int) (used - ENCRYPTED_HEADER_SIZE),
-              GNUNET_i2s (kx->peer));
+  {
+    struct GNUNET_HashCode hc;
+
+    GNUNET_CRYPTO_hash (&ph->sequence_number,
+                        used - ENCRYPTED_HEADER_SIZE,
+                        &hc);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Encrypted payload `%s' of %u bytes for %s\n",
+                GNUNET_h2s (&hc),
+                (unsigned int) (used - ENCRYPTED_HEADER_SIZE),
+                GNUNET_i2s (kx->peer));
+  }
   derive_auth_key (&auth_key,
 		   &kx->encrypt_key,
 		   ph->iv_seed);
@@ -1465,6 +1473,18 @@ GSC_KX_encrypt_and_transmit (struct GSC_KeyExchangeInfo *kx,
                       &em->sequence_number,
                       used - ENCRYPTED_HEADER_SIZE,
                       &em->hmac);
+  {
+    struct GNUNET_HashCode hc;
+
+    GNUNET_CRYPTO_hash (&auth_key,
+                        sizeof (auth_key),
+                        &hc);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "For peer %s, used AC %s to create hmac %s\n",
+                GNUNET_i2s (kx->peer),
+                GNUNET_h2s (&hc),
+                GNUNET_h2s2 (&em->hmac));
+  }
   kx->has_excess_bandwidth = GNUNET_NO;
   GNUNET_MQ_send (kx->mq,
 		  env);
@@ -1544,6 +1564,19 @@ handle_encrypted (void *cls,
   }
 
   /* validate hash */
+  {
+    struct GNUNET_HashCode hc;
+
+    GNUNET_CRYPTO_hash (&m->sequence_number,
+                        size - ENCRYPTED_HEADER_SIZE,
+                        &hc);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Received encrypted payload `%s' of %u bytes from %s\n",
+                GNUNET_h2s (&hc),
+                (unsigned int) (size - ENCRYPTED_HEADER_SIZE),
+                GNUNET_i2s (kx->peer));
+  }
+
   derive_auth_key (&auth_key,
                    &kx->decrypt_key,
                    m->iv_seed);
@@ -1551,6 +1584,18 @@ handle_encrypted (void *cls,
                       &m->sequence_number,
                       size - ENCRYPTED_HEADER_SIZE,
                       &ph);
+  {
+    struct GNUNET_HashCode hc;
+
+    GNUNET_CRYPTO_hash (&auth_key,
+                        sizeof (auth_key),
+                        &hc);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "For peer %s, used AC %s to verify hmac %s\n",
+                GNUNET_i2s (kx->peer),
+                GNUNET_h2s (&hc),
+                GNUNET_h2s2 (&m->hmac));
+  }
   if (0 != memcmp (&ph,
                    &m->hmac,
                    sizeof (struct GNUNET_HashCode)))
