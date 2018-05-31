@@ -181,6 +181,10 @@ static struct GNUNET_TIME_Relative timeout;
  */
 static unsigned int active_cnt;
 
+/**
+ * Look for GNS2DNS records specifically?
+ */
+static int g2d;
 
 /**
  * Free @a req and data structures reachable from it.
@@ -294,7 +298,9 @@ process_queue (void *cls)
               active_cnt);
   req->lr = GNUNET_GNS_lookup_with_tld (gns,
 					req->hostname,
-					GNUNET_GNSRECORD_TYPE_ANY,
+					g2d
+                                        ? GNUNET_GNSRECORD_TYPE_GNS2DNS
+                                        : GNUNET_GNSRECORD_TYPE_ANY,
 					GNUNET_GNS_LO_DEFAULT,
 					&process_result,
 					req);
@@ -580,6 +586,10 @@ main (int argc,
                                         "RELATIVETIME",
                                         gettext_noop ("how long to wait for an answer"),
                                         &timeout),
+    GNUNET_GETOPT_option_flag ('2',
+                               "g2d",
+                               gettext_noop ("look for GNS2DNS records instead of ANY"),
+                               &g2d),
     GNUNET_GETOPT_OPTION_END
   };
 
