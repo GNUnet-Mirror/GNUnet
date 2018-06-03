@@ -970,15 +970,26 @@ handle_ephemeral_key (void *cls,
   {
     GNUNET_STATISTICS_update (GSC_stats,
                               gettext_noop ("# old ephemeral keys ignored"),
-			      1, GNUNET_NO);
+			      1,
+                              GNUNET_NO);
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                "Received expired EPHEMERAL_KEY from %s\n",
+                GNUNET_i2s (&m->origin_identity));
     return;
   }
-  start_t = GNUNET_TIME_absolute_ntoh (m->creation_time);
-
-  GNUNET_STATISTICS_update (GSC_stats,
-                            gettext_noop ("# ephemeral keys received"),
-                            1, GNUNET_NO);
-
+  if (0 == memcmp (&m->ephemeral_key,
+                   &kx->other_ephemeral_key,
+                   sizeof (m->ephemeral_key)))
+  {
+    GNUNET_STATISTICS_update (GSC_stats,
+                              gettext_noop ("# duplicate ephemeral keys ignored"),
+			      1,
+                              GNUNET_NO);
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                "Ignoring duplicate EPHEMERAL_KEY from %s\n",
+                GNUNET_i2s (&m->origin_identity));
+    return;
+  }
   if (0 !=
       memcmp (&m->origin_identity,
 	      kx->peer,
@@ -991,18 +1002,6 @@ handle_ephemeral_key (void *cls,
     GNUNET_break_op (0);
     return;
   }
-  {
-    struct GNUNET_HashCode eh;
-
-    GNUNET_CRYPTO_hash (&current_ekm.ephemeral_key,
-                        sizeof (current_ekm.ephemeral_key),
-                        &eh);
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Core service receives EPHEMERAL_KEY `%s' from `%s'.\n",
-                GNUNET_h2s (&eh),
-                GNUNET_i2s (kx->peer));
-  }
-
   if ((ntohl (m->purpose.size) !=
        sizeof (struct GNUNET_CRYPTO_EccSignaturePurpose) +
        sizeof (struct GNUNET_TIME_AbsoluteNBO) +
@@ -1017,26 +1016,51 @@ handle_ephemeral_key (void *cls,
   {
     /* invalid signature */
     GNUNET_break_op (0);
+    GNUNET_STATISTICS_update (GSC_stats,
+                              gettext_noop ("# EPHEMERAL_KEYs rejected (bad signature)"),
+                              1,
+                              GNUNET_NO);
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                "Received EPHEMERAL_KEY from %s with bad signature\n",
+                GNUNET_i2s (&m->origin_identity));
     return;
   }
   now = GNUNET_TIME_absolute_get ();
+  start_t = GNUNET_TIME_absolute_ntoh (m->creation_time);
   if ( (end_t.abs_value_us < GNUNET_TIME_absolute_subtract (now, REKEY_TOLERANCE).abs_value_us) ||
        (start_t.abs_value_us > GNUNET_TIME_absolute_add (now, REKEY_TOLERANCE).abs_value_us) )
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-		_("Ephemeral key message from peer `%s' rejected as its validity range does not match our system time (%llu not in [%llu,%llu]).\n"),
+		_("EPHERMAL_KEY from peer `%s' rejected as its validity range does not match our system time (%llu not in [%llu,%llu]).\n"),
 		GNUNET_i2s (kx->peer),
 		(unsigned long long) now.abs_value_us,
                 (unsigned long long) start_t.abs_value_us,
                 (unsigned long long) end_t.abs_value_us);
+    GNUNET_STATISTICS_update (GSC_stats,
+                              gettext_noop ("# EPHEMERAL_KEY messages rejected due to time"),
+                              1,
+                              GNUNET_NO);
     return;
   }
+  {
+    struct GNUNET_HashCode eh;
+
+    GNUNET_CRYPTO_hash (&m->ephemeral_key,
+                        sizeof (m->ephemeral_key),
+                        &eh);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Received valid EPHEMERAL_KEY `%s' from `%s' in state %d.\n",
+                GNUNET_h2s (&eh),
+                GNUNET_i2s (kx->peer),
+                kx->status);
+  }
+  GNUNET_STATISTICS_update (GSC_stats,
+                            gettext_noop ("# valid ephemeral keys received"),
+                            1,
+                            GNUNET_NO);
   kx->other_ephemeral_key = m->ephemeral_key;
   kx->foreign_key_expires = end_t;
   derive_session_keys (kx);
-  GNUNET_STATISTICS_update (GSC_stats,
-                            gettext_noop ("# EPHEMERAL_KEY messages received"), 1,
-                            GNUNET_NO);
 
   /* check if we still need to send the sender our key */
   sender_status = (enum GNUNET_CORE_KxState) ntohl (m->sender_status);
@@ -1369,7 +1393,7 @@ handle_pong (void *cls,
     return;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Received PONG from `%s'\n",
+              "Received valid PONG from `%s'\n",
               GNUNET_i2s (kx->peer));
   /* no need to resend key any longer */
   if (NULL != kx->retry_set_key_task)
@@ -1436,10 +1460,18 @@ send_key (struct GSC_KeyExchangeInfo *kx)
      kx->retry_set_key_task = NULL;
   }
   /* always update sender status in SET KEY message */
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Sending key to `%s' (my status: %d)\n",
-              GNUNET_i2s (kx->peer),
-	      kx->status);
+  {
+    struct GNUNET_HashCode hc;
+
+    GNUNET_CRYPTO_hash (&current_ekm.ephemeral_key,
+                        sizeof (current_ekm.ephemeral_key),
+                        &hc);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Sending EPHERMERAL_KEY %s to `%s' (my status: %d)\n",
+                GNUNET_h2s (&hc),
+                GNUNET_i2s (kx->peer),
+                kx->status);
+  }
   current_ekm.sender_status = htonl ((int32_t) (kx->status));
   env = GNUNET_MQ_msg_copy (&current_ekm.header);
   GNUNET_MQ_send (kx->mq,
