@@ -991,9 +991,18 @@ handle_ephemeral_key (void *cls,
     GNUNET_break_op (0);
     return;
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Core service receives EPHEMERAL_KEY request from `%s'.\n",
-              GNUNET_i2s (kx->peer));
+  {
+    struct GNUNET_HashCode eh;
+
+    GNUNET_CRYPTO_hash (&current_ekm.ephemeral_key,
+                        sizeof (current_ekm.ephemeral_key),
+                        &eh);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Core service receives EPHEMERAL_KEY `%s' from `%s'.\n",
+                GNUNET_h2s (&eh),
+                GNUNET_i2s (kx->peer));
+  }
+
   if ((ntohl (m->purpose.size) !=
        sizeof (struct GNUNET_CRYPTO_EccSignaturePurpose) +
        sizeof (struct GNUNET_TIME_AbsoluteNBO) +
@@ -1819,11 +1828,19 @@ do_rekey (void *cls)
 					     NULL);
   if (NULL != my_ephemeral_key)
     GNUNET_free (my_ephemeral_key);
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              "Rekeying\n");
   my_ephemeral_key = GNUNET_CRYPTO_ecdhe_key_create ();
   GNUNET_assert (NULL != my_ephemeral_key);
   sign_ephemeral_key ();
+  {
+    struct GNUNET_HashCode eh;
+
+    GNUNET_CRYPTO_hash (&current_ekm.ephemeral_key,
+                        sizeof (current_ekm.ephemeral_key),
+                        &eh);
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                "Rekeying to %s\n",
+                GNUNET_h2s (&eh));
+  }
   for (pos = kx_head; NULL != pos; pos = pos->next)
   {
     if (GNUNET_CORE_KX_STATE_UP == pos->status)
@@ -1884,6 +1901,17 @@ GSC_KX_init (struct GNUNET_CRYPTO_EddsaPrivateKey *pk)
     return GNUNET_SYSERR;
   }
   sign_ephemeral_key ();
+  {
+    struct GNUNET_HashCode eh;
+
+    GNUNET_CRYPTO_hash (&current_ekm.ephemeral_key,
+                        sizeof (current_ekm.ephemeral_key),
+                        &eh);
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                "Starting with ephemeral key %s\n",
+                GNUNET_h2s (&eh));
+  }
+
   nc = GNUNET_notification_context_create (1);
   rekey_task = GNUNET_SCHEDULER_add_delayed (REKEY_FREQUENCY,
                                              &do_rekey,
