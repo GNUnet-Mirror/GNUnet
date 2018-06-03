@@ -448,7 +448,14 @@ derive_auth_key (struct GNUNET_CRYPTO_AuthKey *akey,
 {
   static const char ctx[] = "authentication key";
 
-  GNUNET_CRYPTO_hmac_derive_key (akey, skey,
+  struct GNUNET_HashCode sh;
+  GNUNET_CRYPTO_hash (skey, sizeof (*skey), &sh);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Deriving Auth key from SKEY %s and seed %u\n",
+              GNUNET_h2s (&sh),
+              (unsigned int) seed);
+  GNUNET_CRYPTO_hmac_derive_key (akey,
+                                 skey,
                                  &seed, sizeof (seed),
                                  skey, sizeof (struct GNUNET_CRYPTO_SymmetricSessionKey),
                                  ctx, sizeof (ctx),
@@ -472,7 +479,15 @@ derive_iv (struct GNUNET_CRYPTO_SymmetricInitializationVector *iv,
 {
   static const char ctx[] = "initialization vector";
 
-  GNUNET_CRYPTO_symmetric_derive_iv (iv, skey,
+  struct GNUNET_HashCode sh;
+  GNUNET_CRYPTO_hash (skey, sizeof (*skey), &sh);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Deriving IV from SKEY %s and seed %u for peer %s\n",
+              GNUNET_h2s (&sh),
+              (unsigned int) seed,
+              GNUNET_i2s (identity));
+  GNUNET_CRYPTO_symmetric_derive_iv (iv,
+                                     skey,
                                      &seed, sizeof (seed),
 				     identity,
 				     sizeof (struct GNUNET_PeerIdentity), ctx,
@@ -498,7 +513,16 @@ derive_pong_iv (struct GNUNET_CRYPTO_SymmetricInitializationVector *iv,
 {
   static const char ctx[] = "pong initialization vector";
 
-  GNUNET_CRYPTO_symmetric_derive_iv (iv, skey,
+  struct GNUNET_HashCode sh;
+  GNUNET_CRYPTO_hash (skey, sizeof (*skey), &sh);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Deriving PONG IV from SKEY %s and seed %u/%u for %s\n",
+              GNUNET_h2s (&sh),
+              (unsigned int) seed,
+              (unsigned int) challenge,
+              GNUNET_i2s (identity));
+  GNUNET_CRYPTO_symmetric_derive_iv (iv,
+                                     skey,
                                      &seed, sizeof (seed),
 				     identity,
 				     sizeof (struct GNUNET_PeerIdentity),
@@ -524,6 +548,13 @@ derive_aes_key (const struct GNUNET_PeerIdentity *sender,
 {
   static const char ctx[] = "aes key generation vector";
 
+  struct GNUNET_HashCode sh;
+  GNUNET_CRYPTO_hash (skey, sizeof (*skey), &sh);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Deriving AES Keys for %s to %s from %s\n",
+              GNUNET_i2s (sender),
+              GNUNET_i2s2 (receiver),
+              GNUNET_h2s (key_material));
   GNUNET_CRYPTO_kdf (skey, sizeof (struct GNUNET_CRYPTO_SymmetricSessionKey),
 		     ctx, sizeof (ctx),
 		     key_material, sizeof (struct GNUNET_HashCode),
