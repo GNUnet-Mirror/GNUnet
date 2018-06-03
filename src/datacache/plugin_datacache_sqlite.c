@@ -426,23 +426,14 @@ sqlite_plugin_del (void *cls)
                      plugin->del_expired_stmt);
     return GNUNET_SYSERR;
   }
-  if (SQLITE_ROW !=
-      sqlite3_step (plugin->del_expired_stmt))
-  {
-    LOG_SQLITE (plugin->dbh,
-                GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
-                "sqlite3_step");
-    GNUNET_SQ_reset (plugin->dbh,
-                     plugin->del_expired_stmt);
-    return GNUNET_SYSERR;
-  }
-  if (GNUNET_OK !=
-      GNUNET_SQ_extract_result (plugin->del_expired_stmt,
-                                rs))
+  if ( (SQLITE_ROW !=
+        sqlite3_step (plugin->del_expired_stmt)) ||
+       (GNUNET_OK !=
+        GNUNET_SQ_extract_result (plugin->del_expired_stmt,
+                                  rs)) )
   {
     GNUNET_SQ_reset (plugin->dbh,
                      plugin->del_expired_stmt);
-
     if (SQLITE_ROW !=
         sqlite3_step (plugin->del_select_stmt))
     {
