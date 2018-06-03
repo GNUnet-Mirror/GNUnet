@@ -1130,8 +1130,9 @@ handle_ping (void *cls,
   {
     if (GNUNET_CORE_KX_STATE_REKEY_SENT != kx->status)
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                  "Decryption of PING from peer `%s' failed\n",
-                  GNUNET_i2s (kx->peer));
+                  "Decryption of PING from peer `%s' failed, PING for `%s'?\n",
+                  GNUNET_i2s (kx->peer),
+                  GNUNET_i2s2 (&t.target));
     else
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Decryption of PING from peer `%s' failed after rekey (harmless)\n",
