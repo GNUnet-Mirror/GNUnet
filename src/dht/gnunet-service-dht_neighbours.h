@@ -32,6 +32,12 @@
 #include "gnunet_dht_service.h"
 
 /**
+ * Hash of the identity of this peer.
+ */
+extern struct GNUNET_HashCode my_identity_hash;
+
+
+/**
  * Perform a PUT operation.  Forwards the given request to other
  * peers.   Does not store the data locally.  Does not give the
  * data to local clients.  May do nothing if this is the only

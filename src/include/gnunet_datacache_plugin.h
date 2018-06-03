@@ -109,7 +109,7 @@ struct GNUNET_DATACACHE_PluginFunctions
    *
    * @param cls closure (internal context for the plugin)
    * @param key key to store the value under
-   * @param am_closest are we the closest peer?
+   * @param xor_distance how close is @a key to our PID?
    * @param size number of bytes in @a data
    * @param data data to store
    * @param type type of the value
@@ -120,7 +120,7 @@ struct GNUNET_DATACACHE_PluginFunctions
    */
   ssize_t (*put) (void *cls,
                   const struct GNUNET_HashCode *key,
-                  int am_closest,
+                  uint32_t xor_distance,
                   size_t size,
 		  const char *data,
                   enum GNUNET_BLOCK_Type type,

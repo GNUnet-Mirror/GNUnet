@@ -31,7 +31,7 @@
 
 #define LOG_STRERROR_FILE(kind,op,fn) GNUNET_log_from_strerror_file (kind, "datacache-heap", op, fn)
 
-
+#define NUM_HEAPS 24
 
 /**
  * Context for all functions in this plugin.
@@ -49,14 +49,9 @@ struct Plugin
   struct GNUNET_CONTAINER_MultiHashMap *map;
 
   /**
-   * Heap for expirations.
+   * Heaps sorted by distance.
    */
-  struct GNUNET_CONTAINER_Heap *heap;
-
-  /**
-   * Heap from the plugin for "closest" values.
-   */
-  struct GNUNET_CONTAINER_Heap *cheap;
+  struct GNUNET_CONTAINER_Heap *heaps[NUM_HEAPS];
 
 };
 
@@ -97,9 +92,9 @@ struct Value
   unsigned int path_info_len;
 
   /**
-   * Am I the closest peer? Determines which heap we are in!
+   * How close is the hash to us? Determines which heap we are in!
    */
-  int am_closest;
+  uint32_t distance;
 
   /**
    * Type of the block.
@@ -126,16 +121,6 @@ struct PutContext
    * Data for the new value.
    */
   const char *data;
-
-  /**
-   * Heap from the plugin for "closest" values.
-   */
-  struct GNUNET_CONTAINER_Heap *cheap;
-
-  /**
-   * Heap from the plugin.
-   */
-  struct GNUNET_CONTAINER_Heap *heap;
 
   /**
    * Path information.
@@ -195,8 +180,8 @@ put_cb (void *cls,
 		       val->path_info_len,
 		       put_ctx->path_info_len);
     GNUNET_memcpy (val->path_info,
-	    put_ctx->path_info,
-	    put_ctx->path_info_len * sizeof (struct GNUNET_PeerIdentity));
+                   put_ctx->path_info,
+                   put_ctx->path_info_len * sizeof (struct GNUNET_PeerIdentity));
     GNUNET_CONTAINER_heap_update_cost (val->hn,
 				       val->discard_time.abs_value_us);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -216,7 +201,7 @@ put_cb (void *cls,
  *
  * @param cls closure (our `struct Plugin`)
  * @param key key to store data under
- * @param am_closest are we the closest peer?
+ * @param xor_distance how close is @a key to our PID?
  * @param size number of bytes in @a data
  * @param data data to store
  * @param type type of the value
@@ -228,7 +213,7 @@ put_cb (void *cls,
 static ssize_t
 heap_plugin_put (void *cls,
                  const struct GNUNET_HashCode *key,
-                 int am_closest,
+                 uint32_t xor_distance,
                  size_t size,
 		 const char *data,
                  enum GNUNET_BLOCK_Type type,
@@ -241,8 +226,6 @@ heap_plugin_put (void *cls,
   struct PutContext put_ctx;
 
   put_ctx.found = GNUNET_NO;
-  put_ctx.heap = plugin->heap;
-  put_ctx.cheap = plugin->cheap;
   put_ctx.data = data;
   put_ctx.size = size;
   put_ctx.path_info = path_info;
@@ -256,12 +239,17 @@ heap_plugin_put (void *cls,
   if (GNUNET_YES == put_ctx.found)
     return 0;
   val = GNUNET_malloc (sizeof (struct Value) + size);
-  GNUNET_memcpy (&val[1], data, size);
+  GNUNET_memcpy (&val[1],
+                 data,
+                 size);
   val->key = *key;
   val->type = type;
   val->discard_time = discard_time;
   val->size = size;
-  val->am_closest = am_closest;
+  if (xor_distance >= NUM_HEAPS)
+    val->distance = NUM_HEAPS - 1;
+  else
+    val->distance = xor_distance;
   GNUNET_array_grow (val->path_info,
 		     val->path_info_len,
 		     path_info_len);
@@ -272,9 +260,7 @@ heap_plugin_put (void *cls,
 					    &val->key,
 					    val,
 					    GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
-  val->hn = GNUNET_CONTAINER_heap_insert (am_closest
-                                          ? plugin->cheap
-                                          : plugin->heap,
+  val->hn = GNUNET_CONTAINER_heap_insert (plugin->heaps[val->distance],
 					  val,
 					  val->discard_time.abs_value_us);
   return size + OVERHEAD;
@@ -392,9 +378,12 @@ heap_plugin_del (void *cls)
   struct Plugin *plugin = cls;
   struct Value *val;
 
-  val = GNUNET_CONTAINER_heap_remove_root (plugin->heap);
-  if (NULL == val)
-    val = GNUNET_CONTAINER_heap_remove_root (plugin->cheap);
+  for (unsigned int i=0;i<NUM_HEAPS;i++)
+  {
+    val = GNUNET_CONTAINER_heap_remove_root (plugin->heaps[i]);
+    if (NULL != val)
+      break;
+  }
   if (NULL == val)
     return GNUNET_SYSERR;
   GNUNET_assert (GNUNET_YES ==
@@ -547,8 +536,8 @@ libgnunet_plugin_datacache_heap_init (void *cls)
   plugin = GNUNET_new (struct Plugin);
   plugin->map = GNUNET_CONTAINER_multihashmap_create (1024,  /* FIXME: base on quota! */
 						      GNUNET_YES);
-  plugin->heap = GNUNET_CONTAINER_heap_create (GNUNET_CONTAINER_HEAP_ORDER_MIN);
-  plugin->cheap = GNUNET_CONTAINER_heap_create (GNUNET_CONTAINER_HEAP_ORDER_MIN);
+  for (unsigned int i=0;i<NUM_HEAPS;i++)
+    plugin->heaps[i] = GNUNET_CONTAINER_heap_create (GNUNET_CONTAINER_HEAP_ORDER_MIN);
   plugin->env = env;
   api = GNUNET_new (struct GNUNET_DATACACHE_PluginFunctions);
   api->cls = plugin;
@@ -576,26 +565,19 @@ libgnunet_plugin_datacache_heap_done (void *cls)
   struct Plugin *plugin = api->cls;
   struct Value *val;
 
-  while (NULL != (val = GNUNET_CONTAINER_heap_remove_root (plugin->heap)))
+  for (unsigned int i=0;i<NUM_HEAPS;i++)
   {
-    GNUNET_assert (GNUNET_YES ==
-		   GNUNET_CONTAINER_multihashmap_remove (plugin->map,
-							 &val->key,
-							 val));
-    GNUNET_free_non_null (val->path_info);
-    GNUNET_free (val);
+    while (NULL != (val = GNUNET_CONTAINER_heap_remove_root (plugin->heaps[i])))
+    {
+      GNUNET_assert (GNUNET_YES ==
+                     GNUNET_CONTAINER_multihashmap_remove (plugin->map,
+                                                           &val->key,
+                                                           val));
+      GNUNET_free_non_null (val->path_info);
+      GNUNET_free (val);
+    }
+    GNUNET_CONTAINER_heap_destroy (plugin->heaps[i]);
   }
-  while (NULL != (val = GNUNET_CONTAINER_heap_remove_root (plugin->cheap)))
-  {
-    GNUNET_assert (GNUNET_YES ==
-		   GNUNET_CONTAINER_multihashmap_remove (plugin->map,
-							 &val->key,
-							 val));
-    GNUNET_free_non_null (val->path_info);
-    GNUNET_free (val);
-  }
-  GNUNET_CONTAINER_heap_destroy (plugin->heap);
-  GNUNET_CONTAINER_heap_destroy (plugin->cheap);
   GNUNET_CONTAINER_multihashmap_destroy (plugin->map);
   GNUNET_free (plugin);
   GNUNET_free (api);

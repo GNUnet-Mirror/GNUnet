@@ -404,7 +404,7 @@ static struct GNUNET_PeerIdentity my_identity;
 /**
  * Hash of the identity of this peer.
  */
-static struct GNUNET_HashCode my_identity_hash;
+struct GNUNET_HashCode my_identity_hash;
 
 /**
  * Handle to CORE.

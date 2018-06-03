@@ -83,6 +83,11 @@ struct Plugin
   /**
    * Prepared statement for #sqlite_plugin_del.
    */
+  sqlite3_stmt *del_expired_stmt;
+
+  /**
+   * Prepared statement for #sqlite_plugin_del.
+   */
   sqlite3_stmt *del_stmt;
 
   /**
@@ -150,7 +155,7 @@ sq_prepare (sqlite3 *dbh,
  *
  * @param cls closure (our `struct Plugin`)
  * @param key key to store @a data under
- * @param am_closest are we the closest peer?
+ * @param xor_distance how close is @a key to our PID?
  * @param size number of bytes in @a data
  * @param data data to store
  * @param type type of the value
@@ -162,7 +167,7 @@ sq_prepare (sqlite3 *dbh,
 static ssize_t
 sqlite_plugin_put (void *cls,
 		   const struct GNUNET_HashCode *key,
-                   int am_closest,
+                   uint32_t xor_distance,
 		   size_t size,
                    const char *data,
 		   enum GNUNET_BLOCK_Type type,
@@ -172,12 +177,11 @@ sqlite_plugin_put (void *cls,
 {
   struct Plugin *plugin = cls;
   uint32_t type32 = type;
-  uint32_t prox = am_closest;
   struct GNUNET_SQ_QueryParam params[] = {
     GNUNET_SQ_query_param_uint32 (&type32),
     GNUNET_SQ_query_param_absolute_time (&discard_time),
     GNUNET_SQ_query_param_auto_from_type (key),
-    GNUNET_SQ_query_param_uint32 (&prox),
+    GNUNET_SQ_query_param_uint32 (&xor_distance),
     GNUNET_SQ_query_param_fixed_size (data, size),
     GNUNET_SQ_query_param_fixed_size (path_info,
                                       path_info_len * sizeof (struct GNUNET_PeerIdentity)),
@@ -390,8 +394,8 @@ sqlite_plugin_del (void *cls)
   uint64_t rowid;
   void *data;
   size_t dsize;
-  uint32_t prox;
   struct GNUNET_HashCode hc;
+  struct GNUNET_TIME_Absolute now;
   struct GNUNET_SQ_ResultSpec rs[] = {
     GNUNET_SQ_result_spec_uint64 (&rowid),
     GNUNET_SQ_result_spec_auto_from_type (&hc),
@@ -403,54 +407,61 @@ sqlite_plugin_del (void *cls)
     GNUNET_SQ_query_param_uint64 (&rowid),
     GNUNET_SQ_query_param_end
   };
-  struct GNUNET_SQ_QueryParam prox_params[] = {
-    GNUNET_SQ_query_param_uint32 (&prox),
+  struct GNUNET_SQ_QueryParam time_params[] = {
+    GNUNET_SQ_query_param_absolute_time (&now),
     GNUNET_SQ_query_param_end
   };
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Processing DEL\n");
-  prox = GNUNET_NO;
- again:
+  now = GNUNET_TIME_absolute_get ();
   if (GNUNET_OK !=
-      GNUNET_SQ_bind (plugin->del_select_stmt,
-                      prox_params))
+      GNUNET_SQ_bind (plugin->del_expired_stmt,
+                      time_params))
   {
     LOG_SQLITE (plugin->dbh,
                 GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
                 "sqlite3_bind");
     GNUNET_SQ_reset (plugin->dbh,
-                     plugin->del_stmt);
+                     plugin->del_expired_stmt);
     return GNUNET_SYSERR;
   }
   if (SQLITE_ROW !=
-      sqlite3_step (plugin->del_select_stmt))
+      sqlite3_step (plugin->del_expired_stmt))
   {
     LOG_SQLITE (plugin->dbh,
                 GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
                 "sqlite3_step");
     GNUNET_SQ_reset (plugin->dbh,
-                     plugin->del_select_stmt);
-    if (GNUNET_NO == prox)
-    {
-      prox = GNUNET_YES;
-      goto again;
-    }
+                     plugin->del_expired_stmt);
     return GNUNET_SYSERR;
   }
   if (GNUNET_OK !=
-      GNUNET_SQ_extract_result (plugin->del_select_stmt,
+      GNUNET_SQ_extract_result (plugin->del_expired_stmt,
                                 rs))
   {
     GNUNET_SQ_reset (plugin->dbh,
-                     plugin->del_select_stmt);
-    if (GNUNET_NO == prox)
+                     plugin->del_expired_stmt);
+
+    if (SQLITE_ROW !=
+        sqlite3_step (plugin->del_select_stmt))
     {
-      prox = GNUNET_YES;
-      goto again;
+      LOG_SQLITE (plugin->dbh,
+                  GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+                  "sqlite3_step");
+      GNUNET_SQ_reset (plugin->dbh,
+                       plugin->del_select_stmt);
+      return GNUNET_SYSERR;
     }
-    GNUNET_break (0);
-    return GNUNET_SYSERR;
+    if (GNUNET_OK !=
+        GNUNET_SQ_extract_result (plugin->del_select_stmt,
+                                  rs))
+    {
+      GNUNET_SQ_reset (plugin->dbh,
+                       plugin->del_select_stmt);
+      GNUNET_break (0);
+      return GNUNET_SYSERR;
+    }
   }
   GNUNET_SQ_cleanup_result (rs);
   GNUNET_SQ_reset (plugin->dbh,
@@ -741,14 +752,15 @@ libgnunet_plugin_datacache_sqlite_init (void *cls)
     SQLITE3_EXEC (dbh, "PRAGMA sqlite_temp_store=3");
 
   SQLITE3_EXEC (dbh,
-                "CREATE TABLE ds091 (" "  type INTEGER NOT NULL DEFAULT 0,"
+                "CREATE TABLE ds091 ("
+                "  type INTEGER NOT NULL DEFAULT 0,"
                 "  expire INTEGER NOT NULL,"
                 "  key BLOB NOT NULL DEFAULT '',"
                 "  prox INTEGER NOT NULL,"
                 "  value BLOB NOT NULL,"
 		"  path BLOB DEFAULT '')");
-  SQLITE3_EXEC (dbh, "CREATE INDEX idx_hashidx ON ds090 (key,type,expire)");
-  SQLITE3_EXEC (dbh, "CREATE INDEX idx_expire ON ds090 (prox,expire)");
+  SQLITE3_EXEC (dbh, "CREATE INDEX idx_hashidx ON ds091 (key,type,expire)");
+  SQLITE3_EXEC (dbh, "CREATE INDEX idx_expire ON ds091 (prox,expire)");
   plugin = GNUNET_new (struct Plugin);
   plugin->env = env;
   plugin->dbh = dbh;
@@ -766,12 +778,19 @@ libgnunet_plugin_datacache_sqlite_init (void *cls)
                     &plugin->get_count_stmt)) ||
        (SQLITE_OK !=
         sq_prepare (plugin->dbh,
-                    "SELECT value,expire,path FROM ds091 "
-                    "WHERE key=? AND type=? AND expire >= ? LIMIT 1 OFFSET ?",
+                    "SELECT value,expire,path FROM ds091"
+                    " WHERE key=? AND type=? AND expire >= ? LIMIT 1 OFFSET ?",
                     &plugin->get_stmt)) ||
        (SQLITE_OK !=
         sq_prepare (plugin->dbh,
-                    "SELECT _ROWID_,key,value FROM ds091 WHERE prox=? ORDER BY expire ASC LIMIT 1",
+                    "SELECT _ROWID_,key,value FROM ds091"
+                    " WHERE expire < ?"
+                    " ORDER BY expire ASC LIMIT 1",
+                    &plugin->del_expired_stmt)) ||
+       (SQLITE_OK !=
+        sq_prepare (plugin->dbh,
+                    "SELECT _ROWID_,key,value FROM ds091"
+                    " ORDER BY prox ASC, expire ASC LIMIT 1",
                     &plugin->del_select_stmt)) ||
        (SQLITE_OK !=
         sq_prepare (plugin->dbh,
@@ -840,6 +859,7 @@ libgnunet_plugin_datacache_sqlite_done (void *cls)
   sqlite3_finalize (plugin->get_count_stmt);
   sqlite3_finalize (plugin->get_stmt);
   sqlite3_finalize (plugin->del_select_stmt);
+  sqlite3_finalize (plugin->del_expired_stmt);
   sqlite3_finalize (plugin->del_stmt);
   sqlite3_finalize (plugin->get_random_stmt);
   sqlite3_finalize (plugin->get_closest_stmt);
