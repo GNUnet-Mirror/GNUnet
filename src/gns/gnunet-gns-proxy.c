@@ -636,7 +636,7 @@ struct Socks5Request
 /**
  * The port the proxy is running on (default 7777)
  */
-static unsigned long long port = GNUNET_GNS_PROXY_PORT;
+static uint16_t port = GNUNET_GNS_PROXY_PORT;
 
 /**
  * The CA file (pem) to use for the proxy CA
@@ -3399,8 +3399,8 @@ run (void *cls,
     return;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Proxy listens on port %llu\n",
-              port);
+              "Proxy listens on port %u\n",
+              (unsigned int) port);
 
   /* start MHD daemon for HTTP */
   hd = GNUNET_new (struct MhdHttpList);
@@ -3437,11 +3437,11 @@ int
 main (int argc, char *const *argv)
 {
   struct GNUNET_GETOPT_CommandLineOption options[] = {
-    GNUNET_GETOPT_option_ulong ('p',
-                                "port",
-                                NULL,
-                                gettext_noop ("listen on specified port (default: 7777)"),
-                                &port),
+    GNUNET_GETOPT_option_uint16 ('p',
+				 "port",
+				 NULL,
+				 gettext_noop ("listen on specified port (default: 7777)"),
+				 &port),
     GNUNET_GETOPT_option_string ('a',
                                  "authority",
                                  NULL,

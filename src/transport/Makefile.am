@@ -280,7 +280,6 @@ gnunet_service_transport_CFLAGS = \
 
 plugin_LTLIBRARIES = \
   libgnunet_plugin_transport_tcp.la \
-  libgnunet_plugin_transport_xt.la \
   libgnunet_plugin_transport_udp.la \
   $(UNIX_PLUGIN_LA) \
   $(HTTP_CLIENT_PLUGIN_LA) \
@@ -289,6 +288,12 @@ plugin_LTLIBRARIES = \
   $(HTTPS_SERVER_PLUGIN_LA) \
   $(WLAN_PLUGIN_LA) \
   $(BT_PLUGIN_LA)
+
+if HAVE_EXPERIMENTAL
+plugin_LTLIBRARIES += \
+  libgnunet_plugin_transport_xt.la \
+  libgnunet_plugin_transport_xu.la 
+endif
 
 # Note: real plugins of course need to be added
 # to the plugin_LTLIBRARIES above
