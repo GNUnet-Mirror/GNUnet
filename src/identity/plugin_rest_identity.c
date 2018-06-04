@@ -492,7 +492,7 @@ do_finished (void *cls, const char *emsg)
     return;
   }
   resp = GNUNET_REST_create_response (NULL);
-  handle->proc (handle->proc_cls, resp, MHD_HTTP_CREATED);
+  handle->proc (handle->proc_cls, resp, handle->response_code);
   cleanup_handle (handle);
 }
 
@@ -616,15 +616,16 @@ ego_create_cont (struct GNUNET_REST_RequestHandle *con,
   //instead of parse
   if (!json_is_object(data_js))
   {
+    json_decref(data_js);
     handle->emsg = GNUNET_strdup (GNUNET_REST_ERROR_DATA_INVALID);
     GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
   }
 
-  if (1 != json_object_size(data_js))
+  if (1 != json_object_size (data_js))
   {
     json_decref (data_js);
-    handle->emsg = GNUNET_strdup ("Provided resource count invalid");
+    handle->emsg = GNUNET_strdup("Provided resource count invalid");
     GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
   }
@@ -638,6 +639,13 @@ ego_create_cont (struct GNUNET_REST_RequestHandle *con,
     return;
   }
   egoname = json_string_value (egoname_json);
+  if(0 >= strlen(egoname))
+  {
+    json_decref (data_js);
+    handle->emsg = GNUNET_strdup ("No name provided");
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
+    return;
+  }
   for (ego_entry = handle->ego_head;
        NULL != ego_entry;
        ego_entry = ego_entry->next)
@@ -653,6 +661,7 @@ ego_create_cont (struct GNUNET_REST_RequestHandle *con,
   }
   GNUNET_asprintf (&handle->name, "%s", egoname);
   json_decref (data_js);
+  handle->response_code = MHD_HTTP_CREATED;
   handle->op = GNUNET_IDENTITY_create (handle->identity_handle,
                                        handle->name,
                                        &do_finished,
@@ -752,6 +761,13 @@ ego_edit_cont (struct GNUNET_REST_RequestHandle *con,
   if ((NULL != name_json) && json_is_string (name_json))
   {
     newname = json_string_value (name_json);
+    if(0 >= strlen(newname))
+    {
+      json_decref (data_js);
+      handle->emsg = GNUNET_strdup ("No name provided");
+      GNUNET_SCHEDULER_add_now (&do_error, handle);
+      return;
+    }
     for (ego_entry_tmp = handle->ego_head;
          NULL != ego_entry_tmp;
          ego_entry_tmp = ego_entry_tmp->next)
@@ -767,6 +783,7 @@ ego_edit_cont (struct GNUNET_REST_RequestHandle *con,
         return;
       }
     }
+    handle->response_code = MHD_HTTP_NO_CONTENT;
     handle->op = GNUNET_IDENTITY_rename (handle->identity_handle,
                                          ego_entry->identifier,
                                          newname,
@@ -781,8 +798,16 @@ ego_edit_cont (struct GNUNET_REST_RequestHandle *con,
   if ( (NULL != subsys_json) && json_is_string (subsys_json))
   {
     subsys = json_string_value (subsys_json);
+    if(0 >= strlen(subsys))
+    {
+      json_decref (data_js);
+      handle->emsg = GNUNET_strdup ("No name provided");
+      GNUNET_SCHEDULER_add_now (&do_error, handle);
+      return;
+    }
     GNUNET_asprintf (&handle->subsys, "%s", subsys);
     json_decref (data_js);
+    handle->response_code = MHD_HTTP_NO_CONTENT;
     handle->op = GNUNET_IDENTITY_set (handle->identity_handle,
                                       handle->subsys,
                                       ego_entry->ego,
@@ -837,6 +862,7 @@ ego_delete_cont (struct GNUNET_REST_RequestHandle *con_handle,
     cleanup_handle (handle);
     return;
   }
+  handle->response_code = MHD_HTTP_NO_CONTENT;
   handle->op = GNUNET_IDENTITY_delete (handle->identity_handle,
                                        ego_entry->identifier,
                                        &do_finished,
@@ -980,7 +1006,7 @@ rest_identity_process_request(struct GNUNET_REST_RequestHandle *conndata_handle,
 
 
   handle->timeout = GNUNET_TIME_UNIT_FOREVER_REL;
-
+  handle->response_code = MHD_HTTP_OK;
   handle->proc_cls = proc_cls;
   handle->proc = proc;
   handle->state = ID_REST_STATE_INIT;
