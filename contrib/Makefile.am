@@ -32,8 +32,10 @@ dist_pkgdata_DATA = \
  gns/gns-form.xslt \
  branding/logo/gnunet-logo.pdf \
  branding/logo/gnunet-logo-color.png \
- scripts/report.sh \
  testing_hostkeys.ecc
+
+bin_PROGRAMS = \
+ scripts/gnunet-bugreport
 
 if MINGW
 tap32_DATA = \
