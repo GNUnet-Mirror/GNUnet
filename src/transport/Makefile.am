@@ -292,7 +292,7 @@ plugin_LTLIBRARIES = \
 if HAVE_EXPERIMENTAL
 plugin_LTLIBRARIES += \
   libgnunet_plugin_transport_xt.la \
-  libgnunet_plugin_transport_xu.la 
+  libgnunet_plugin_transport_xu.la
 endif
 
 # Note: real plugins of course need to be added
@@ -301,7 +301,7 @@ noinst_LTLIBRARIES = \
   libgnunet_plugin_transport_template.la
 
 libgnunet_plugin_transport_tcp_la_SOURCES = \
-  plugin_transport_tcp.c 
+  plugin_transport_tcp.c
 libgnunet_plugin_transport_tcp_la_LIBADD = \
   $(top_builddir)/src/hello/libgnunethello.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
@@ -313,7 +313,7 @@ libgnunet_plugin_transport_tcp_la_LDFLAGS = \
  $(GN_PLUGIN_LDFLAGS)
 
 libgnunet_plugin_transport_xt_la_SOURCES = \
-  plugin_transport_xt.c 
+  plugin_transport_xt.c
 libgnunet_plugin_transport_xt_la_LIBADD = \
   $(top_builddir)/src/hello/libgnunethello.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
@@ -374,7 +374,7 @@ libgnunet_plugin_transport_udp_la_LDFLAGS = \
 
 libgnunet_plugin_transport_xu_la_SOURCES = \
   plugin_transport_xu.c plugin_transport_xu.h
-libgnunet_plugin_transport_udp_la_LIBADD = \
+libgnunet_plugin_transport_xu_la_LIBADD = \
   $(top_builddir)/src/hello/libgnunethello.la \
   $(top_builddir)/src/fragmentation/libgnunetfragmentation.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
@@ -382,7 +382,7 @@ libgnunet_plugin_transport_udp_la_LIBADD = \
   $(top_builddir)/src/nat/libgnunetnatnew.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(LTLIBINTL)
-libgnunet_plugin_transport_udp_la_LDFLAGS = \
+libgnunet_plugin_transport_xu_la_LDFLAGS = \
  $(GN_PLUGIN_LDFLAGS)
 
 libgnunet_plugin_transport_unix_la_SOURCES = \
