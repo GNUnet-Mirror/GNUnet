@@ -113,12 +113,17 @@ GNU with Net  : Christian Muellner <chris@flop.de>
 AFS Face      : Alex Jones <alexrjones@ntlworld.com>
 new GNU in Net: Nicklas Larsson <whybill@gmail.com>
 
-Maintainers:
+Package Maintainers (current and previous):
 FreeBSD         : Kirill Ponomarew <ponomarew@oberon.net>
-Debian GNU/Linux: Daniel Baumann <daniel.baumann@panthera-systems.net>
+Debian GNU/Linux: Bertrand Marc <bmarc@debian.org>
+                  Daniel Baumann <daniel.baumann@panthera-systems.net>
+                  Arnaud Kyheng
+                  Glenn McGrath <bug1@debian.org>
+Nix:            : viric, rahul
 OpenWrt/LEDE    : Daniel Golle <daniel@makrotopia.org>
 OS X            : Jussi Eloranta <eloranta@cc.jyu.fi>
 Gentoo		: Carlo von lynX <psyc://loupsycedyglgamf.onion/~lynX>
+                  Nils Gillmann <ng0@n0.is>
 
 If you have contributed and are not listed here, please
 notify one of the maintainers in order to be added.
