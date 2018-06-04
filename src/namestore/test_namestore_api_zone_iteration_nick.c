@@ -25,6 +25,9 @@
 #include "gnunet_namestore_service.h"
 #include "gnunet_testing_lib.h"
 #include "namestore.h"
+#include "gnunet_dnsparser_lib.h"
+
+#define TEST_RECORD_TYPE GNUNET_DNSPARSER_TYPE_TXT
 
 #define ZONE_NICK_1 "nick1"
 #define ZONE_NICK_2 "nick2"
@@ -322,7 +325,7 @@ create_record (unsigned int count)
   for (unsigned int c = 0; c < count; c++)
   {
     rd[c].expiration_time = GNUNET_TIME_relative_to_absolute (GNUNET_TIME_UNIT_HOURS).abs_value_us;
-    rd[c].record_type = 1111;
+    rd[c].record_type = TEST_RECORD_TYPE;
     rd[c].data_size = 50;
     rd[c].data = GNUNET_malloc(50);
     rd[c].flags = 0;

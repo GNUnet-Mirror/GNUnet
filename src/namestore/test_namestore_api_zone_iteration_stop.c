@@ -25,7 +25,9 @@
 #include "gnunet_namestore_service.h"
 #include "gnunet_testing_lib.h"
 #include "namestore.h"
+#include "gnunet_dnsparser_lib.h"
 
+#define TEST_RECORD_TYPE GNUNET_DNSPARSER_TYPE_TXT
 
 #define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 100)
 #define WAIT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 2)
@@ -349,14 +351,14 @@ put_cont (void *cls, int32_t success, const char *emsg)
 static struct GNUNET_GNSRECORD_Data *
 create_record (unsigned int count)
 {
-  unsigned int c;
-  struct GNUNET_GNSRECORD_Data * rd;
+  struct GNUNET_GNSRECORD_Data *rd;
 
-  rd = GNUNET_malloc (count * sizeof (struct GNUNET_GNSRECORD_Data));
-  for (c = 0; c < count; c++)
+  rd = GNUNET_new_array (count,
+                         struct GNUNET_GNSRECORD_Data);
+  for (unsigned int c = 0; c < count; c++)
   {
     rd[c].expiration_time = GNUNET_TIME_relative_to_absolute (GNUNET_TIME_UNIT_HOURS).abs_value_us;
-    rd[c].record_type = 1111;
+    rd[c].record_type = TEST_RECORD_TYPE;
     rd[c].data_size = 50;
     rd[c].data = GNUNET_malloc(50);
     rd[c].flags = 0;

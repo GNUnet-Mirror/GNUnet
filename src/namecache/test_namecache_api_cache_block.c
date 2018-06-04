@@ -24,8 +24,9 @@
 #include "platform.h"
 #include "gnunet_namecache_service.h"
 #include "gnunet_testing_lib.h"
+#include "gnunet_dnsparser_lib.h"
 
-#define TEST_RECORD_TYPE 1234
+#define TEST_RECORD_TYPE GNUNET_DNSPARSER_TYPE_TXT
 
 #define TEST_RECORD_DATALEN 123
 
@@ -108,7 +109,7 @@ rd_decrypt_cb (void *cls,
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Block was decrypted successfully \n");
-  
+
   GNUNET_SCHEDULER_add_now (&end, NULL);
 }
 

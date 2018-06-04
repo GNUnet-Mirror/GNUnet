@@ -26,6 +26,9 @@
 #include "gnunet_namestore_service.h"
 #include "gnunet_testing_lib.h"
 #include "namestore.h"
+#include "gnunet_dnsparser_lib.h"
+
+#define TEST_RECORD_TYPE GNUNET_DNSPARSER_TYPE_TXT
 
 /**
  * A #BENCHMARK_SIZE of 1000 takes less than a minute on a reasonably
@@ -141,7 +144,7 @@ create_record (unsigned int count)
 
   rd = GNUNET_malloc (count + sizeof (struct GNUNET_GNSRECORD_Data));
   rd->expiration_time = GNUNET_TIME_relative_to_absolute (GNUNET_TIME_UNIT_HOURS).abs_value_us;
-  rd->record_type = count;
+  rd->record_type = TEST_RECORD_TYPE;
   rd->data_size = count;
   rd->data = (void *) &rd[1];
   rd->flags = 0;
