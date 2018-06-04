@@ -29,8 +29,6 @@
 #include "gnunet_rest_plugin.h"
 #include "gnunet_identity_service.h"
 #include "gnunet_rest_lib.h"
-#include "gnunet_jsonapi_lib.h"
-#include "gnunet_jsonapi_util.h"
 #include "microhttpd.h"
 #include <jansson.h>
 #include "gnunet_signatures.h"
@@ -53,23 +51,23 @@
 /**
  * Resource type
  */
-#define GNUNET_REST_JSONAPI_IDENTITY_EGO "ego"
+#define GNUNET_REST_JSON_IDENTITY_EGO "ego"
 
 /**
  * Name attribute
  */
-#define GNUNET_REST_JSONAPI_IDENTITY_NAME "name"
+#define GNUNET_REST_JSON_IDENTITY_NAME "name"
 
 /**
  * Attribute to rename "name" TODO we changed id to the pubkey
  * so this can be unified with "name"
  */
-#define GNUNET_REST_JSONAPI_IDENTITY_NEWNAME "newname"
+#define GNUNET_REST_JSON_IDENTITY_NEWNAME "newname"
 
 /**
  * URL parameter to change the subsytem for ego
  */
-#define GNUNET_REST_JSONAPI_IDENTITY_SUBSYSTEM "subsystem"
+#define GNUNET_REST_JSON_IDENTITY_SUBSYSTEM "subsystem"
 
 
 /**
@@ -329,7 +327,7 @@ get_ego_for_subsys (void *cls,
 
     json_ego = json_object();
     name_json = json_string (ego_entry->identifier);
-    json_object_set_new(json_ego, GNUNET_REST_JSONAPI_IDENTITY_EGO, name_json);
+    json_object_set_new(json_ego, GNUNET_REST_JSON_IDENTITY_EGO, name_json);
     json_array_append(json_root, json_ego);
 
     break;
@@ -407,8 +405,8 @@ ego_info_response (struct GNUNET_REST_RequestHandle *con,
   }
 
   if ( NULL == egoname ) {
-    GNUNET_CRYPTO_hash (GNUNET_REST_JSONAPI_IDENTITY_SUBSYSTEM,
-                        strlen (GNUNET_REST_JSONAPI_IDENTITY_SUBSYSTEM),
+    GNUNET_CRYPTO_hash (GNUNET_REST_JSON_IDENTITY_SUBSYSTEM,
+                        strlen (GNUNET_REST_JSON_IDENTITY_SUBSYSTEM),
                         &key);
     if ( GNUNET_YES ==
          GNUNET_CONTAINER_multihashmap_contains (handle->conndata_handle->url_param_map,
@@ -442,7 +440,7 @@ ego_info_response (struct GNUNET_REST_RequestHandle *con,
     json_ego = json_object();
 
     json_object_set_new( json_ego, "id", json_string (ego_entry->keystring));
-    json_object_set_new( json_ego, "type", json_string (GNUNET_REST_JSONAPI_IDENTITY_EGO));
+    json_object_set_new( json_ego, "type", json_string (GNUNET_REST_JSON_IDENTITY_EGO));
     name_str = json_string (ego_entry->identifier);
     json_object_set_new( json_ego, "name", name_str);
 
@@ -495,76 +493,6 @@ do_finished (void *cls, const char *emsg)
   handle->proc (handle->proc_cls, resp, handle->response_code);
   cleanup_handle (handle);
 }
-
-//
-//
-///**
-// * Parse given JSON object to jsonapi document.
-// *
-// * @param cls closure, NULL
-// * @param root the json object representing data
-// * @param[out] spec where to write the data
-// * @return #GNUNET_OK upon successful parsing; #GNUNET_SYSERR upon error
-// */
-//static int
-//parse_jsonapiobject (void *cls, json_t *root,
-//		     struct GNUNET_JSON_Specification *spec)
-//{
-//  if (NULL == root)
-//  {
-//    return GNUNET_SYSERR;
-//  }
-//  if (1 == json_is_object(root))
-//  {
-//    if (1 == json_is_string(json_object_get (root, GNUNET_REST_JSONAPI_IDENTITY_NAME)))
-//    {
-//      return GNUNET_OK;
-//    }
-//  }
-//  return GNUNET_SYSERR;
-//}
-//
-///**
-// * Cleanup data left from parsing RSA public key.
-// *
-// * @param cls closure, NULL
-// * @param[out] spec where to free the data
-// */
-//static void
-//clean_jsonapiobject (void *cls,
-//                     struct GNUNET_JSON_Specification *spec)
-//{
-//  json_t **jsonapi_obj = (json_t **) spec->ptr;
-//  if (NULL != *jsonapi_obj)
-//  {
-//    json_decref (*jsonapi_obj);
-//    *jsonapi_obj = NULL;
-//  }
-//}
-//
-///**
-// * JSON object.
-// *
-// * @param name name of the JSON field
-// * @param[out] jsonp where to store the JSON found under @a name
-// */
-//struct GNUNET_JSON_Specification
-//GNUNET_JSON_spec_json_create_identity (json_t **jsonapi_object)
-//{
-//  struct GNUNET_JSON_Specification ret = {
-//    .parser = &parse_jsonapiobject,
-//    .cleaner = &clean_jsonapiobject,
-//    .cls = NULL,
-//    .field = NULL,
-//    .ptr = jsonapi_object,
-//    .ptr_size = 0,
-//    .size_ptr = NULL
-//  };
-//  *jsonapi_object = NULL;
-//  return ret;
-//}
-
-
 
 /**
  * Create a new ego
@@ -630,7 +558,7 @@ ego_create_cont (struct GNUNET_REST_RequestHandle *con,
     return;
   }
 
-  egoname_json = json_object_get (data_js, GNUNET_REST_JSONAPI_IDENTITY_NAME);
+  egoname_json = json_object_get (data_js, GNUNET_REST_JSON_IDENTITY_NAME);
   if (!json_is_string (egoname_json))
   {
     json_decref (data_js);
@@ -757,7 +685,7 @@ ego_edit_cont (struct GNUNET_REST_RequestHandle *con,
   }
 
   //This is a rename
-  name_json = json_object_get (data_js, GNUNET_REST_JSONAPI_IDENTITY_NEWNAME);
+  name_json = json_object_get (data_js, GNUNET_REST_JSON_IDENTITY_NEWNAME);
   if ((NULL != name_json) && json_is_string (name_json))
   {
     newname = json_string_value (name_json);
@@ -794,7 +722,7 @@ ego_edit_cont (struct GNUNET_REST_RequestHandle *con,
   }
 
   //Set subsystem
-  subsys_json = json_object_get (data_js, GNUNET_REST_JSONAPI_IDENTITY_SUBSYSTEM);
+  subsys_json = json_object_get (data_js, GNUNET_REST_JSON_IDENTITY_SUBSYSTEM);
   if ( (NULL != subsys_json) && json_is_string (subsys_json))
   {
     subsys = json_string_value (subsys_json);
@@ -914,7 +842,7 @@ init_cont (struct RequestHandle *handle)
     GNUNET_REST_HANDLER_END
   };
 
-  if (GNUNET_NO == GNUNET_JSONAPI_handle_request (handle->conndata_handle,
+  if (GNUNET_NO == GNUNET_REST_handle_request (handle->conndata_handle,
                                                   handlers,
                                                   &err,
                                                   handle))
