@@ -76,7 +76,7 @@ static char *resfile;
 /**
  * Port number.
  */
-static unsigned int port = 8888;
+static uint16_t port = 8888;
 
 
 struct Entry
@@ -351,7 +351,7 @@ prepare_daemon (struct MHD_Daemon *daemon_handle)
 static int
 server_start ()
 {
-  if ((0 == port) || (port > UINT16_MAX))
+  if (0 == port) 
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 _("Invalid port number %u.  Exiting.\n"),
@@ -362,7 +362,7 @@ server_start ()
               _("Businesscard HTTP server starts on %u\n"),
               port);
   daemon_handle = MHD_start_daemon (MHD_USE_DUAL_STACK | MHD_USE_DEBUG,
-                                    (uint16_t) port,
+                                    port,
                                     NULL /* accept_policy_callback */, NULL,
                                     &access_handler_callback, NULL,
                                     MHD_OPTION_CONNECTION_LIMIT, (unsigned int) 512,
@@ -374,7 +374,7 @@ server_start ()
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 _("Could not start businesscard HTTP server on port %u\n"),
-                (unsigned short) port);
+                (unsigned int) port);
     return GNUNET_SYSERR;
   }
   http_task = prepare_daemon (daemon_handle);
@@ -516,17 +516,17 @@ main (int argc, char *const *argv)
 {
   struct GNUNET_GETOPT_CommandLineOption options[] = {
 
-    GNUNET_GETOPT_option_uint ('p',
-                                   "port",
-                                   "PORT",
-                                   gettext_noop ("Run HTTP serve on port PORT (default is 8888)"),
-                                   &port),
-
+    GNUNET_GETOPT_option_uint16 ('p',
+				 "port",
+				 "PORT",
+				 gettext_noop ("Run HTTP serve on port PORT (default is 8888)"),
+				 &port),
     GNUNET_GETOPT_OPTION_END
   };
   int ret;
 
-  if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args (argc, argv, &argc, &argv))
+  if (GNUNET_OK !=
+      GNUNET_STRINGS_get_utf8_args (argc, argv, &argc, &argv))
     return 2;
   GNUNET_log_setup ("gnunet-bcd", "WARNING", NULL);
   ret =

@@ -260,6 +260,7 @@ GNUNET_DATACACHE_destroy (struct GNUNET_DATACACHE_Handle *h)
  *
  * @param h handle to the datacache
  * @param key key to store data under
+ * @param xor_distance distance of @a key to our PID
  * @param data_size number of bytes in @a data
  * @param data data to store
  * @param type type of the value
@@ -271,6 +272,7 @@ GNUNET_DATACACHE_destroy (struct GNUNET_DATACACHE_Handle *h)
 int
 GNUNET_DATACACHE_put (struct GNUNET_DATACACHE_Handle *h,
                       const struct GNUNET_HashCode *key,
+                      uint32_t xor_distance,
                       size_t data_size,
                       const char *data,
                       enum GNUNET_BLOCK_Type type,
@@ -282,6 +284,7 @@ GNUNET_DATACACHE_put (struct GNUNET_DATACACHE_Handle *h,
 
   used = h->api->put (h->api->cls,
                       key,
+                      xor_distance,
 		      data_size,
                       data,
 		      type,

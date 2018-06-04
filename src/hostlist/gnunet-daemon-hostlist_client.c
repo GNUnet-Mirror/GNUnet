@@ -28,6 +28,7 @@
 #include "gnunet_hello_lib.h"
 #include "gnunet_statistics_service.h"
 #include "gnunet_transport_service.h"
+#include "gnunet_peerinfo_service.h"
 #include "gnunet-daemon-hostlist.h"
 #if HAVE_CURL_CURL_H
 #include <curl/curl.h>
@@ -139,14 +140,6 @@ struct Hostlist
    */
   uint32_t times_used;
 
-};
-
-
-struct HelloOffer
-{
-  struct HelloOffer *next;
-  struct HelloOffer *prev;
-  struct GNUNET_TRANSPORT_OfferHelloHandle *ohh;
 };
 
 
@@ -315,24 +308,10 @@ static unsigned int stat_hellos_obtained;
  */
 static unsigned int stat_connection_count;
 
-static struct HelloOffer *ho_head;
-
-static struct HelloOffer *ho_tail;
-
-
 /**
- * Hello offer complete. Clean up.
+ * Handle to peerinfo service.
  */
-static void
-done_offer_hello (void *cls)
-{
-  struct HelloOffer *ho = cls;
-
-  GNUNET_CONTAINER_DLL_remove (ho_head,
-                               ho_tail,
-                               ho);
-  GNUNET_free (ho);
-}
+static struct GNUNET_PEERINFO_Handle *pi;
 
 
 /**
@@ -353,7 +332,6 @@ callback_download (void *ptr,
   static char download_buffer[GNUNET_MAX_MESSAGE_SIZE - 1];
   const char *cbuf = ptr;
   const struct GNUNET_MessageHeader *msg;
-  struct HelloOffer *ho;
   size_t total;
   size_t cpy;
   size_t left;
@@ -413,22 +391,10 @@ callback_download (void *ptr,
                                 ("# valid HELLOs downloaded from hostlist servers"),
                                 1, GNUNET_NO);
       stat_hellos_obtained++;
-
-      ho = GNUNET_new (struct HelloOffer);
-      ho->ohh = GNUNET_TRANSPORT_offer_hello (cfg,
-                                              msg,
-                                              &done_offer_hello,
-                                              ho);
-      if (NULL == ho->ohh)
-      {
-        GNUNET_free (ho);
-      }
-      else
-      {
-        GNUNET_CONTAINER_DLL_insert (ho_head,
-                                     ho_tail,
-                                     ho);
-      }
+      (void) GNUNET_PEERINFO_add_peer (pi,
+                                       (const struct GNUNET_HELLO_Message *) msg,
+                                       NULL,
+                                       NULL);
     }
     else
     {
@@ -1567,6 +1533,7 @@ GNUNET_HOSTLIST_client_start (const struct GNUNET_CONFIGURATION_Handle *c,
   stats = st;
 
   /* Read proxy configuration */
+  pi = GNUNET_PEERINFO_connect (c);
   if (GNUNET_OK ==
       GNUNET_CONFIGURATION_get_value_string (cfg,
                                              "HOSTLIST",
@@ -1723,18 +1690,8 @@ GNUNET_HOSTLIST_client_start (const struct GNUNET_CONFIGURATION_Handle *c,
 void
 GNUNET_HOSTLIST_client_stop ()
 {
-  struct HelloOffer *ho;
-
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Hostlist client shutdown\n");
-  while (NULL != (ho = ho_head))
-  {
-    GNUNET_CONTAINER_DLL_remove (ho_head,
-                                 ho_tail,
-                                 ho);
-    GNUNET_TRANSPORT_offer_hello_cancel (ho->ohh);
-    GNUNET_free (ho);
-  }
   if (NULL != sget)
   {
     GNUNET_STATISTICS_get_cancel (sget);
@@ -1777,7 +1734,11 @@ GNUNET_HOSTLIST_client_stop ()
   proxy_username = NULL;
   GNUNET_free_non_null (proxy_password);
   proxy_password = NULL;
-
+  if (NULL != pi)
+  {
+    GNUNET_PEERINFO_disconnect (pi);
+    pi = NULL;
+  }
   cfg = NULL;
 }
 

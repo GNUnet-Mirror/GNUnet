@@ -220,7 +220,7 @@ enum GNUNET_CORE_KxState
   /**
    * No handshake yet.
    */
-  GNUNET_CORE_KX_STATE_DOWN,
+  GNUNET_CORE_KX_STATE_DOWN = 0,
 
   /**
    * We've sent our session key.

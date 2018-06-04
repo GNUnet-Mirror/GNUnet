@@ -60,7 +60,7 @@
 /**
  * DHT replication level
  */
-#define DHT_GNS_REPLICATION_LEVEL 5
+#define DHT_GNS_REPLICATION_LEVEL 10
 
 /**
  * How deep do we allow recursions to go before we abort?
