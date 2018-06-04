@@ -34,6 +34,10 @@
 #include "gnunet_protocols.h"
 #include "core.h"
 
+/**
+ * Enable expensive (and possibly problematic for privacy!) logging of KX.
+ */
+#define DEBUG_KX 0
 
 /**
  * How long do we wait for SET_KEY confirmation initially?
@@ -447,13 +451,17 @@ derive_auth_key (struct GNUNET_CRYPTO_AuthKey *akey,
                  uint32_t seed)
 {
   static const char ctx[] = "authentication key";
-
+#if DEBUG_KX
   struct GNUNET_HashCode sh;
-  GNUNET_CRYPTO_hash (skey, sizeof (*skey), &sh);
+  
+  GNUNET_CRYPTO_hash (skey,
+		      sizeof (*skey),
+		      &sh);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Deriving Auth key from SKEY %s and seed %u\n",
               GNUNET_h2s (&sh),
               (unsigned int) seed);
+#endif
   GNUNET_CRYPTO_hmac_derive_key (akey,
                                  skey,
                                  &seed, sizeof (seed),
@@ -478,14 +486,18 @@ derive_iv (struct GNUNET_CRYPTO_SymmetricInitializationVector *iv,
            const struct GNUNET_PeerIdentity *identity)
 {
   static const char ctx[] = "initialization vector";
-
+#if DEBUG_KX
   struct GNUNET_HashCode sh;
-  GNUNET_CRYPTO_hash (skey, sizeof (*skey), &sh);
+  
+  GNUNET_CRYPTO_hash (skey,
+		      sizeof (*skey),
+		      &sh);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Deriving IV from SKEY %s and seed %u for peer %s\n",
               GNUNET_h2s (&sh),
               (unsigned int) seed,
               GNUNET_i2s (identity));
+#endif
   GNUNET_CRYPTO_symmetric_derive_iv (iv,
                                      skey,
                                      &seed, sizeof (seed),
@@ -512,15 +524,19 @@ derive_pong_iv (struct GNUNET_CRYPTO_SymmetricInitializationVector *iv,
                 const struct GNUNET_PeerIdentity *identity)
 {
   static const char ctx[] = "pong initialization vector";
-
+#if DEBUG_KX
   struct GNUNET_HashCode sh;
-  GNUNET_CRYPTO_hash (skey, sizeof (*skey), &sh);
+  
+  GNUNET_CRYPTO_hash (skey,
+		      sizeof (*skey),
+		      &sh);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Deriving PONG IV from SKEY %s and seed %u/%u for %s\n",
               GNUNET_h2s (&sh),
               (unsigned int) seed,
               (unsigned int) challenge,
               GNUNET_i2s (identity));
+#endif
   GNUNET_CRYPTO_symmetric_derive_iv (iv,
                                      skey,
                                      &seed, sizeof (seed),
@@ -547,14 +563,18 @@ derive_aes_key (const struct GNUNET_PeerIdentity *sender,
 		struct GNUNET_CRYPTO_SymmetricSessionKey *skey)
 {
   static const char ctx[] = "aes key generation vector";
-
+#if DEBUG_KX
   struct GNUNET_HashCode sh;
-  GNUNET_CRYPTO_hash (skey, sizeof (*skey), &sh);
+  
+  GNUNET_CRYPTO_hash (skey,
+		      sizeof (*skey),
+		      &sh);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Deriving AES Keys for %s to %s from %s\n",
               GNUNET_i2s (sender),
               GNUNET_i2s2 (receiver),
               GNUNET_h2s (key_material));
+#endif
   GNUNET_CRYPTO_kdf (skey, sizeof (struct GNUNET_CRYPTO_SymmetricSessionKey),
 		     ctx, sizeof (ctx),
 		     key_material, sizeof (struct GNUNET_HashCode),
@@ -599,7 +619,7 @@ do_encrypt (struct GSC_KeyExchangeInfo *kx,
                             GNUNET_NO);
   /* the following is too sensitive to write to log files by accident,
      so we require manual intervention to get this one... */
-#if 0
+#if DEBUG_KX
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Encrypted %u bytes for `%s' using key %u, IV %u\n",
               (unsigned int) size,
@@ -659,7 +679,7 @@ do_decrypt (struct GSC_KeyExchangeInfo *kx,
                             GNUNET_NO);
   /* the following is too sensitive to write to log files by accident,
      so we require manual intervention to get this one... */
-#if 0
+#if DEBUG_KX
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Decrypted %u bytes from `%s' using key %u, IV %u\n",
               (unsigned int) size,
@@ -1042,6 +1062,7 @@ handle_ephemeral_key (void *cls,
                               GNUNET_NO);
     return;
   }
+#if DEBUG_KX
   {
     struct GNUNET_HashCode eh;
 
@@ -1054,6 +1075,7 @@ handle_ephemeral_key (void *cls,
                 GNUNET_i2s (kx->peer),
                 kx->status);
   }
+#endif
   GNUNET_STATISTICS_update (GSC_stats,
                             gettext_noop ("# valid ephemeral keys received"),
                             1,
@@ -1460,6 +1482,7 @@ send_key (struct GSC_KeyExchangeInfo *kx)
      kx->retry_set_key_task = NULL;
   }
   /* always update sender status in SET KEY message */
+#if DEBUG_KX
   {
     struct GNUNET_HashCode hc;
 
@@ -1472,6 +1495,7 @@ send_key (struct GSC_KeyExchangeInfo *kx)
                 GNUNET_i2s (kx->peer),
                 kx->status);
   }
+#endif
   current_ekm.sender_status = htonl ((int32_t) (kx->status));
   env = GNUNET_MQ_msg_copy (&current_ekm.header);
   GNUNET_MQ_send (kx->mq,
@@ -1527,6 +1551,7 @@ GSC_KX_encrypt_and_transmit (struct GSC_KeyExchangeInfo *kx,
                              &ph->sequence_number,
                              &em->sequence_number,
                              used - ENCRYPTED_HEADER_SIZE));
+#if DEBUG_KX
   {
     struct GNUNET_HashCode hc;
 
@@ -1539,6 +1564,7 @@ GSC_KX_encrypt_and_transmit (struct GSC_KeyExchangeInfo *kx,
                 (unsigned int) (used - ENCRYPTED_HEADER_SIZE),
                 GNUNET_i2s (kx->peer));
   }
+#endif
   derive_auth_key (&auth_key,
 		   &kx->encrypt_key,
 		   ph->iv_seed);
@@ -1546,6 +1572,7 @@ GSC_KX_encrypt_and_transmit (struct GSC_KeyExchangeInfo *kx,
                       &em->sequence_number,
                       used - ENCRYPTED_HEADER_SIZE,
                       &em->hmac);
+#if DEBUG_KX
   {
     struct GNUNET_HashCode hc;
 
@@ -1558,6 +1585,7 @@ GSC_KX_encrypt_and_transmit (struct GSC_KeyExchangeInfo *kx,
                 GNUNET_h2s (&hc),
                 GNUNET_h2s2 (&em->hmac));
   }
+#endif
   kx->has_excess_bandwidth = GNUNET_NO;
   GNUNET_MQ_send (kx->mq,
 		  env);
@@ -1637,6 +1665,7 @@ handle_encrypted (void *cls,
   }
 
   /* validate hash */
+#if DEBUG_KX
   {
     struct GNUNET_HashCode hc;
 
@@ -1649,7 +1678,7 @@ handle_encrypted (void *cls,
                 (unsigned int) (size - ENCRYPTED_HEADER_SIZE),
                 GNUNET_i2s (kx->peer));
   }
-
+#endif
   derive_auth_key (&auth_key,
                    &kx->decrypt_key,
                    m->iv_seed);
@@ -1657,6 +1686,7 @@ handle_encrypted (void *cls,
                       &m->sequence_number,
                       size - ENCRYPTED_HEADER_SIZE,
                       &ph);
+#if DEBUG_KX
   {
     struct GNUNET_HashCode hc;
 
@@ -1669,6 +1699,7 @@ handle_encrypted (void *cls,
                 GNUNET_h2s (&hc),
                 GNUNET_h2s2 (&m->hmac));
   }
+#endif
   if (0 != memcmp (&ph,
                    &m->hmac,
                    sizeof (struct GNUNET_HashCode)))
