@@ -819,7 +819,7 @@ set_uint16 (struct GNUNET_GETOPT_CommandLineProcessorContext *ctx,
   (void) ctx;
   if (1 != SSCANF (value,
                    "%u",
-                   v))
+                   &v))
   {
     FPRINTF (stderr,
              _("You must pass a number to the `%s' option.\n"),
