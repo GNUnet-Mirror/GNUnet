@@ -252,6 +252,12 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_DV_BOX 53
 
 
+/**
+ * Experimental message type.
+ */
+#define GNUNET_MESSAGE_TYPE_TRANSPORT_XU_MESSAGE 55
+
+
 /*******************************************************************************
  * Transport-UDP message types
  ******************************************************************************/

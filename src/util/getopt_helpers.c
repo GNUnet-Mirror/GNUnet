@@ -793,6 +793,82 @@ GNUNET_GETOPT_option_uint (char shortName,
 }
 
 
+
+/**
+ * Set an option of type 'uint16_t' from the command line.
+ * A pointer to this function should be passed as part of the
+ * 'struct GNUNET_GETOPT_CommandLineOption' array to initialize options
+ * of this type.  It should be followed by a pointer to a value of
+ * type 'uint16_t'.
+ *
+ * @param ctx command line processing context
+ * @param scls additional closure (will point to the 'unsigned int')
+ * @param option name of the option
+ * @param value actual value of the option as a string.
+ * @return #GNUNET_OK if parsing the value worked
+ */
+static int
+set_uint16 (struct GNUNET_GETOPT_CommandLineProcessorContext *ctx,
+	    void *scls,
+	    const char *option,
+	    const char *value)
+{
+  uint16_t *val = scls;
+  unsigned int v;
+  
+  (void) ctx;
+  if (1 != SSCANF (value,
+                   "%u",
+                   v))
+  {
+    FPRINTF (stderr,
+             _("You must pass a number to the `%s' option.\n"),
+             option);
+    return GNUNET_SYSERR;
+  }
+  if (v > UINT16_MAX)
+  {
+    FPRINTF (stderr,
+             _("You must pass a number below %u to the `%s' option.\n"),
+	     (unsigned int) UINT16_MAX,
+             option);
+    return GNUNET_SYSERR;
+  }
+  *val = (uint16_t) v;
+  return GNUNET_OK;
+}
+
+
+/**
+ * Allow user to specify an uint16_t.
+ *
+ * @param shortName short name of the option
+ * @param name long name of the option
+ * @param argumentHelp help text for the option argument
+ * @param description long help text for the option
+ * @param[out] val set to the value specified at the command line
+ */
+struct GNUNET_GETOPT_CommandLineOption
+GNUNET_GETOPT_option_uint16 (char shortName,
+			     const char *name,
+			     const char *argumentHelp,
+			     const char *description,
+			     uint16_t *val)
+{
+  struct GNUNET_GETOPT_CommandLineOption clo = {
+    .shortName =  shortName,
+    .name = name,
+    .argumentHelp = argumentHelp,
+    .description = description,
+    .require_argument = 1,
+    .processor = &set_uint16,
+    .scls = (void *) val
+  };
+
+  return clo;
+}
+
+
 /**
  * Closure for #set_base32().
  */

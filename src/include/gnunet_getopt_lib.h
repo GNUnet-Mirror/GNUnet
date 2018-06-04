@@ -287,6 +287,23 @@ GNUNET_GETOPT_option_uint (char shortName,
 
 
 /**
+ * Allow user to specify an uint16_t.
+ *
+ * @param shortName short name of the option
+ * @param name long name of the option
+ * @param argumentHelp help text for the option argument
+ * @param description long help text for the option
+ * @param[out] val set to the value specified at the command line
+ */
+struct GNUNET_GETOPT_CommandLineOption
+GNUNET_GETOPT_option_uint16 (char shortName,
+			     const char *name,
+			     const char *argumentHelp,
+			     const char *description,
+			     uint16_t *val);
+
+
+/**
  * Allow user to specify an `unsigned long long`.
  *
  * @param shortName short name of the option

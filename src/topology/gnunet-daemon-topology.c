@@ -137,6 +137,11 @@ static const struct GNUNET_CONFIGURATION_Handle *cfg;
 static struct GNUNET_CORE_Handle *handle;
 
 /**
+ * Handle to the PEERINFO service.
+ */
+static struct GNUNET_PEERINFO_Handle *pi;
+
+/**
  * Handle to the ATS service.
  */
 static struct GNUNET_ATS_ConnectivityHandle *ats;
@@ -999,16 +1004,6 @@ read_friends_file (const struct GNUNET_CONFIGURATION_Handle *cfg)
 
 
 /**
- * Hello offer complete. Clean up.
- */
-static void
-done_offer_hello (void *cls)
-{
-  oh = NULL;
-}
-
-
-/**
  * This function is called whenever an encrypted HELLO message is
  * received.
  *
@@ -1076,12 +1071,10 @@ handle_hello (void *cls,
         (friend_count < minimum_friend_count))
       return;
   }
-  if (NULL != oh)
-    GNUNET_TRANSPORT_offer_hello_cancel (oh);
-  oh = GNUNET_TRANSPORT_offer_hello (cfg,
-                                     &message->header,
-                                     &done_offer_hello,
-                                     NULL);
+  (void) GNUNET_PEERINFO_add_peer (pi,
+                                   message,
+                                   NULL,
+                                   NULL);
 }
 
 
@@ -1124,6 +1117,11 @@ cleaning_task (void *cls)
   {
     GNUNET_ATS_connectivity_done (ats);
     ats = NULL;
+  }
+  if (NULL != pi)
+  {
+    GNUNET_PEERINFO_disconnect (pi);
+    pi = NULL;
   }
   if (NULL != stats)
   {
@@ -1189,6 +1187,7 @@ run (void *cls,
                                             &blacklist_check,
                                             NULL);
   ats = GNUNET_ATS_connectivity_init (cfg);
+  pi = GNUNET_PEERINFO_connect (cfg);
   handle = GNUNET_CORE_connect (cfg,
 				NULL,
 				&core_init,

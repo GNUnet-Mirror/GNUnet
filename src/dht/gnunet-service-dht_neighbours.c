@@ -404,7 +404,7 @@ static struct GNUNET_PeerIdentity my_identity;
 /**
  * Hash of the identity of this peer.
  */
-static struct GNUNET_HashCode my_identity_hash;
+struct GNUNET_HashCode my_identity_hash;
 
 /**
  * Handle to CORE.
@@ -421,7 +421,7 @@ static struct GNUNET_ATS_ConnectivityHandle *ats_ch;
  * Find the optimal bucket for this key.
  *
  * @param hc the hashcode to compare our identity to
- * @return the proper bucket index, or GNUNET_SYSERR
+ * @return the proper bucket index, or #GNUNET_SYSERR
  *         on error (same hashcode)
  */
 static int
@@ -941,9 +941,9 @@ get_distance (const struct GNUNET_HashCode *target,
  * @return #GNUNET_YES if node location is closest,
  *         #GNUNET_NO otherwise.
  */
-static int
-am_closest_peer (const struct GNUNET_HashCode *key,
-                 const struct GNUNET_CONTAINER_BloomFilter *bloom)
+int
+GDS_am_closest_peer (const struct GNUNET_HashCode *key,
+                     const struct GNUNET_CONTAINER_BloomFilter *bloom)
 {
   int bits;
   int other_bits;
@@ -1803,7 +1803,7 @@ handle_dht_p2p_put (void *cls,
 			      payload);
     /* store locally */
     if ((0 != (options & GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE)) ||
-        (am_closest_peer (&put->key, bf)))
+        (GDS_am_closest_peer (&put->key, bf)))
       GDS_DATACACHE_handle_put (GNUNET_TIME_absolute_ntoh (put->expiration_time),
                                 &put->key,
                                 putlen,
@@ -2122,7 +2122,7 @@ handle_dht_p2p_get (void *cls,
               (unsigned int) ntohl (get->hop_count));
   /* local lookup (this may update the reply_bf) */
   if ((0 != (options & GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE)) ||
-      (am_closest_peer (&get->key,
+      (GDS_am_closest_peer (&get->key,
 			peer_bf)))
   {
     if ((0 != (options & GNUNET_DHT_RO_FIND_PEER)))

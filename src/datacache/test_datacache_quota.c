@@ -49,8 +49,6 @@ run (void *cls, char *const *args, const char *cfgfile,
   struct GNUNET_DATACACHE_Handle *h;
   struct GNUNET_HashCode k;
   struct GNUNET_HashCode n;
-  unsigned int i;
-  unsigned int j;
   char buf[3200];
   struct GNUNET_TIME_Absolute exp;
 
@@ -59,28 +57,43 @@ run (void *cls, char *const *args, const char *cfgfile,
 
   if (h == NULL)
   {
-    FPRINTF (stderr, "%s", "Failed to initialize datacache.  Database likely not setup, skipping test.\n");
+    FPRINTF (stderr,
+             "%s",
+             "Failed to initialize datacache.  Database likely not setup, skipping test.\n");
     return;
   }
   exp = GNUNET_TIME_relative_to_absolute (GNUNET_TIME_UNIT_HOURS);
   memset (buf, 1, sizeof (buf));
   memset (&k, 0, sizeof (struct GNUNET_HashCode));
-  for (i = 0; i < 10; i++)
+  for (unsigned int i = 0; i < 10; i++)
   {
-    FPRINTF (stderr, "%s",  ".");
-    GNUNET_CRYPTO_hash (&k, sizeof (struct GNUNET_HashCode), &n);
-    for (j = i; j < sizeof (buf); j += 10)
+    FPRINTF (stderr,
+             "%s",
+             ".");
+    GNUNET_CRYPTO_hash (&k,
+                        sizeof (struct GNUNET_HashCode),
+                        &n);
+    for (unsigned int j = i; j < sizeof (buf); j += 10)
     {
       exp.abs_value_us++;
       buf[j] = i;
-      ASSERT (GNUNET_OK == GNUNET_DATACACHE_put (h, &k, j, buf, 1 + i, exp, 0, NULL));
+      ASSERT (GNUNET_OK ==
+              GNUNET_DATACACHE_put (h,
+                                    &k,
+                                    GNUNET_YES,
+                                    j,
+                                    buf,
+                                    1 + i,
+                                    exp,
+                                    0,
+                                    NULL));
       ASSERT (0 < GNUNET_DATACACHE_get (h, &k, 1 + i, NULL, NULL));
     }
     k = n;
   }
   FPRINTF (stderr, "%s",  "\n");
   memset (&k, 0, sizeof (struct GNUNET_HashCode));
-  for (i = 0; i < 10; i++)
+  for (unsigned int i = 0; i < 10; i++)
   {
     FPRINTF (stderr, "%s",  ".");
     GNUNET_CRYPTO_hash (&k, sizeof (struct GNUNET_HashCode), &n);

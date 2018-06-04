@@ -141,6 +141,7 @@ init_connection (struct Plugin *plugin)
  *
  * @param cls closure (our `struct Plugin`)
  * @param key key to store @a data under
+ * @param am_closest are we the closest peer?
  * @param data_size number of bytes in @a data
  * @param data data to store
  * @param type type of the value
@@ -152,6 +153,7 @@ init_connection (struct Plugin *plugin)
 static ssize_t
 postgres_plugin_put (void *cls,
                      const struct GNUNET_HashCode *key,
+                     int am_closest,
                      size_t data_size,
                      const char *data,
                      enum GNUNET_BLOCK_Type type,

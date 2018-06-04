@@ -154,7 +154,9 @@ get_result_iterator (void *cls, struct GNUNET_TIME_Absolute exp,
                      const void *data)
 {
   FPRINTF (stdout,
-	   _("Result %d, type %d:\n%.*s\n"),
+	   (GNUNET_BLOCK_TYPE_TEST == type)
+           ? _("Result %d, type %d:\n%.*s\n")
+           : _("Result %d, type %d:\n"),
 	   result_count,
            type,
            (unsigned int) size,
@@ -196,8 +198,6 @@ run (void *cls, char *const *args, const char *cfgfile,
 {
   struct GNUNET_HashCode key;
 
-
-
   cfg = c;
   if (NULL == query_key)
   {
@@ -215,16 +215,21 @@ run (void *cls, char *const *args, const char *cfgfile,
     query_type = GNUNET_BLOCK_TYPE_TEST;
   GNUNET_CRYPTO_hash (query_key, strlen (query_key), &key);
   if (verbose)
-    FPRINTF (stderr, "%s `%s' \n",  _("Issueing DHT GET with key"), GNUNET_h2s_full (&key));
+    FPRINTF (stderr, "%s `%s' \n",
+             _("Issueing DHT GET with key"),
+             GNUNET_h2s_full (&key));
   GNUNET_SCHEDULER_add_shutdown (&cleanup_task, NULL);
   tt = GNUNET_SCHEDULER_add_delayed (timeout_request,
-				     &timeout_task, NULL);
+				     &timeout_task,
+                                     NULL);
   get_handle =
       GNUNET_DHT_get_start (dht_handle, query_type, &key, replication,
                             (demultixplex_everywhere) ? GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE : GNUNET_DHT_RO_NONE,
-                            NULL, 0, &get_result_iterator, NULL);
-
+                            NULL, 0,
+                            &get_result_iterator,
+                            NULL);
 }
+
 
 /**
  * Entry point for gnunet-dht-get
@@ -236,15 +241,12 @@ run (void *cls, char *const *args, const char *cfgfile,
 int
 main (int argc, char *const *argv)
 {
-
   struct GNUNET_GETOPT_CommandLineOption options[] = {
-
     GNUNET_GETOPT_option_string ('k',
                                  "key",
                                  "KEY",
                                  gettext_noop ("the query key"),
                                  &query_key),
-
     GNUNET_GETOPT_option_uint ('r',
                                "replication",
                                "LEVEL",
