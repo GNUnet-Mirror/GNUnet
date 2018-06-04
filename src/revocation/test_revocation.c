@@ -59,9 +59,7 @@ static int ok;
 static void
 do_shutdown (void *cls)
 {
-  unsigned int c;
-
-  for (c = 0; c < NUM_TEST_PEERS; c++)
+  for (unsigned int c = 0; c < NUM_TEST_PEERS; c++)
   {
     if (NULL != testpeers[c].create_id_op)
     {
