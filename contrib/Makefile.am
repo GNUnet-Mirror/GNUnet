@@ -61,7 +61,6 @@ EXTRA_DIST = \
  scripts/gnunet-chk.py.in \
  scripts/removetrailingwhitespace.py.in \
  scripts/pydiffer.py.in \
- scripts/gnunet-gns-import.sh \
  packages/nix/default.nix \
  packages/nix/gnunet-dex.nix \
  3rdparty/Windows/openvpn-tap32/tapw32/tap0901.sys \
