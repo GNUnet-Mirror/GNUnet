@@ -1728,7 +1728,7 @@ GCT_handle_kx (struct CadetTConnection *ct,
   if (GNUNET_YES ==
       alice_or_betty (GCP_get_id (t->destination)))
   {
-    /* Bob is not allowed to send KX! */
+    /* Betty/Bob is not allowed to send KX! */
     GNUNET_break_op (0);
     return;
   }
