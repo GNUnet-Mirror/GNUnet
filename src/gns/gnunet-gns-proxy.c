@@ -1914,9 +1914,10 @@ create_response (void *cls,
       curl_easy_setopt (s5r->curl,
 			CURLOPT_WRITEDATA,
 			s5r);
-      curl_easy_setopt (s5r->curl,
-			CURLOPT_READFUNCTION,
-			&curl_upload_cb);
+      GNUNET_assert (CURLE_OK ==
+		     curl_easy_setopt (s5r->curl,
+				       CURLOPT_READFUNCTION,
+				       &curl_upload_cb));
       curl_easy_setopt (s5r->curl,
 			CURLOPT_READDATA,
 			s5r);
