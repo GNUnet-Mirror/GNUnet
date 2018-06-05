@@ -58,7 +58,7 @@ extern "C"
  * THIS release. Otherwise, you are violating the Affero GPL if you make
  * this service available to anyone but yourself.
  */
-#define GNUNET_AGPL_URL "https://gnunet.org/git/gnunet.git#" PACKAGE_VERSION;
+#define GNUNET_AGPL_URL "https://gnunet.org/git/gnunet.git#" PACKAGE_VERSION
 
 
 #include "gnunet_crypto_lib.h"
