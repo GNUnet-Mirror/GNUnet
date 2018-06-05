@@ -1431,6 +1431,12 @@ curl_upload_cb (void *buf,
        (SOCKS5_SOCKET_UPLOAD_DONE == s5r->state) )
   {
     s5r->state = SOCKS5_SOCKET_DOWNLOAD_STARTED;
+    if (GNUNET_YES == s5r->curl_paused)
+    {
+      s5r->curl_paused = GNUNET_NO;
+      curl_easy_pause (s5r->curl,
+		       CURLPAUSE_CONT);
+    }    
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Completed CURL UPLOAD %s%s\n",
                 s5r->domain,
