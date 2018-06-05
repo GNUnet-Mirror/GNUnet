@@ -233,7 +233,7 @@ gcc -o $TMPFILE $TMPFILE.c 2> /dev/null && $TMPFILE || echo "Not found"
 rm -f $TMPFILE $TMPFILE.bin
 
 
-echo -n "GNUtls         : "
+echo -n "GnuTLS         : "
 TMPFILE=`mktemp /tmp/gnutls-version-testXXXXXX`
 cat - >$TMPFILE.c <<EOF
 #include <gnutls/gnutls.h>
