@@ -340,6 +340,24 @@ GNUNET_MQ_copy_handlers (const struct GNUNET_MQ_MessageHandler *handlers);
 
 
 /**
+ * Copy an array of handlers, appending AGPL handler.
+ *
+ * Useful if the array has been delared in local memory and needs to be
+ * persisted for future use.
+ *
+ * @param handlers Array of handlers to be copied. Can be NULL (nothing done).
+ * @param agpl_handler function to call for AGPL handling
+ * @param agpl_cls closure for @a agpl_handler
+ * @return A newly allocated array of handlers.
+ *         Needs to be freed with #GNUNET_free.
+ */
+struct GNUNET_MQ_MessageHandler *
+GNUNET_MQ_copy_handlers2 (const struct GNUNET_MQ_MessageHandler *handlers,
+                          GNUNET_MQ_MessageCallback agpl_handler,
+                          void *agpl_cls);
+
+
+/**
  * Count the handlers in a handler array.
  *
  * @param handlers Array of handlers to be counted.

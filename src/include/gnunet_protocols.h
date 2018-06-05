@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     Copyright (C) 2001--2015 GNUnet e.V.
+     Copyright (C) 2001--2018 GNUnet e.V.
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -84,6 +84,21 @@ extern "C"
  * Response to a DNS resolution request.
  */
 #define GNUNET_MESSAGE_TYPE_RESOLVER_RESPONSE 5
+
+/*******************************************************************************
+ * AGPL source code download
+ * *****************************************************************************/
+
+/**
+ * Message to request source code link.
+ */
+#define GNUNET_MESSAGE_TYPE_REQUEST_AGPL 6
+
+/**
+ * Source code link.
+ */
+#define GNUNET_MESSAGE_TYPE_RESPONSE_AGPL 7
+
 
 /*******************************************************************************
  * ARM message types

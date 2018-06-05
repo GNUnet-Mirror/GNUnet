@@ -52,6 +52,14 @@ extern "C"
  */
 #define GNUNET_MIN_MESSAGE_SIZE sizeof (struct GNUNET_MessageHeader)
 
+/**
+ * NOTE: You MUST adjust this URL to point to the location of a
+ * publicly accessible repository (or TGZ) containing the sources of
+ * THIS release. Otherwise, you are violating the Affero GPL if you make
+ * this service available to anyone but yourself.
+ */
+#define GNUNET_AGPL_URL "https://gnunet.org/git/gnunet.git#" PACKAGE_VERSION;
+
 
 #include "gnunet_crypto_lib.h"
 #include "gnunet_bandwidth_lib.h"

@@ -1572,6 +1572,36 @@ teardown_service (struct GNUNET_SERVICE_Handle *sh)
 
 
 /**
+ * Function to return link to AGPL source upon request.
+ *
+ * @param cls closure with the identification of the client
+ * @param msg AGPL request
+ */
+static void
+return_agpl (void *cls,
+             const struct GNUNET_MessageHeader *msg)
+{
+  struct GNUNET_SERVICE_Client *client = cls;
+  struct GNUNET_MQ_Handle *mq;
+  struct GNUNET_MQ_Envelope *env;
+  struct GNUNET_MessageHeader *res;
+  size_t slen;
+
+  slen = strlen (GNUNET_AGPL_URL) + 1;
+  env = GNUNET_MQ_msg_extra (res,
+                             GNUNET_MESSAGE_TYPE_RESPONSE_AGPL,
+                             slen);
+  memcpy (&res[1],
+          GNUNET_AGPL_URL,
+          slen);
+  mq = GNUNET_SERVICE_client_get_mq (client);
+  GNUNET_MQ_send (mq,
+		  env);
+  GNUNET_SERVICE_client_continue (client);
+}
+
+
+/**
  * Low-level function to start a service if the scheduler
  * is already running.  Should only be used directly in
  * special cases.
@@ -1623,7 +1653,9 @@ GNUNET_SERVICE_start (const char *service_name,
   sh->connect_cb = connect_cb;
   sh->disconnect_cb = disconnect_cb;
   sh->cb_cls = cls;
-  sh->handlers = GNUNET_MQ_copy_handlers (handlers);
+  sh->handlers = GNUNET_MQ_copy_handlers2 (handlers,
+                                           &return_agpl,
+                                           NULL);
   if (GNUNET_OK != setup_service (sh))
   {
     GNUNET_free_non_null (sh->handlers);
@@ -1723,9 +1755,9 @@ GNUNET_SERVICE_run_ (int argc,
   struct GNUNET_GETOPT_CommandLineOption service_options[] = {
     GNUNET_GETOPT_option_cfgfile (&opt_cfg_filename),
     GNUNET_GETOPT_option_flag ('d',
-                                  "daemonize",
-                                  gettext_noop ("do daemonize (detach from terminal)"),
-                                  &do_daemonize),
+                               "daemonize",
+                               gettext_noop ("do daemonize (detach from terminal)"),
+                               &do_daemonize),
     GNUNET_GETOPT_option_help (NULL),
     GNUNET_GETOPT_option_loglevel (&loglev),
     GNUNET_GETOPT_option_logfile (&logfile),
