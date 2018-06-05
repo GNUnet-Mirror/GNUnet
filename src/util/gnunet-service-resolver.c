@@ -633,7 +633,7 @@ check_get (void *cls,
   }
   return GNUNET_OK;
 }
-  
+
 
 /**
  * Handle GET-message.
@@ -667,7 +667,7 @@ handle_get (void *cls,
     return;
   }
   ip = &msg[1];
-  
+
 #if !defined(GNUNET_CULL_LOGGING)
   {
     char buf[INET6_ADDRSTRLEN];
@@ -719,7 +719,7 @@ disconnect_cb (void *cls,
 	       void *internal_cls)
 {
   (void) cls;
-  
+
   GNUNET_assert (c == internal_cls);
 }
 
