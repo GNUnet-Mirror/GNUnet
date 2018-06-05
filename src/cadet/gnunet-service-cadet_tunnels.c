@@ -2048,6 +2048,13 @@ GCT_handle_kx_auth (struct CadetTConnection *ct,
        Nothing to do here. */
     break;
   }
+  if (0 != (GNUNET_CADET_KX_FLAG_FORCE_REPLY & ntohl (msg->kx.flags)))
+  {
+    send_kx_auth (t,
+		  NULL,
+		  &t->ax,
+		  GNUNET_NO);
+  }
 }
 
 
@@ -2422,8 +2429,6 @@ connection_ready_cb (void *cls,
   {
   case CADET_TUNNEL_KEY_UNINITIALIZED:
     /* Do not begin KX if WE have no channels waiting! */
-    if (0 == GCT_count_channels (t))
-      return;
     if (0 != GNUNET_TIME_absolute_get_remaining (t->next_kx_attempt).rel_value_us)
       return; /* wait for timeout before retrying */
     /* We are uninitialized, just transmit immediately,
@@ -2436,6 +2441,15 @@ connection_ready_cb (void *cls,
     send_kx (t,
              ct,
              &t->ax);
+    if ( (0 ==
+         GCT_count_channels (t)) &&
+        (NULL == t->destroy_task) )
+    {
+      t->destroy_task
+       = GNUNET_SCHEDULER_add_delayed (IDLE_DESTROY_DELAY,
+                                       &destroy_tunnel,
+                                       t);
+    }
     break;
   case CADET_TUNNEL_KEY_AX_RECV:
   case CADET_TUNNEL_KEY_AX_SENT:
