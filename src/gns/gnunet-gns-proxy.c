@@ -106,7 +106,13 @@
  * @param fun name of curl_easy-function that gave the error
  * @param rc return code from curl
  */
-#define LOG_CURL_EASY(level,fun,rc) GNUNET_log(level, _("%s failed at %s:%d: `%s'\n"), fun, __FILE__, __LINE__, curl_easy_strerror (rc))
+#define LOG_CURL_EASY(level,fun,rc) \
+   GNUNET_log (level, \
+	       _("%s failed at %s:%d: `%s'\n"), \
+	       fun, \
+	       __FILE__, \
+	       __LINE__, \
+	       curl_easy_strerror (rc))
 
 
 /* *************** Socks protocol definitions (move to TUN?) ****************** */
@@ -768,21 +774,37 @@ cleanup_s5r (struct Socks5Request *s5r)
   }
   if ( (NULL != s5r->response) &&
        (curl_failure_response != s5r->response) )
+  {
     MHD_destroy_response (s5r->response);
+    s5r->response = NULL;
+  }
   if (NULL != s5r->rtask)
+  {
     GNUNET_SCHEDULER_cancel (s5r->rtask);
+    s5r->rtask = NULL;
+  }
   if (NULL != s5r->timeout_task)
+  {    
     GNUNET_SCHEDULER_cancel (s5r->timeout_task);
+    s5r->timeout_task = NULL;
+  }
   if (NULL != s5r->wtask)
+  {
     GNUNET_SCHEDULER_cancel (s5r->wtask);
+    s5r->wtask = NULL;
+  }
   if (NULL != s5r->gns_lookup)
+  {
     GNUNET_GNS_lookup_with_tld_cancel (s5r->gns_lookup);
+    s5r->gns_lookup = NULL;
+  }
   if (NULL != s5r->sock)
   {
     if (SOCKS5_SOCKET_WITH_MHD <= s5r->state)
       GNUNET_NETWORK_socket_free_memory_only_ (s5r->sock);
     else
       GNUNET_NETWORK_socket_close (s5r->sock);
+    s5r->sock = NULL;
   }
   GNUNET_CONTAINER_DLL_remove (s5r_head,
 			       s5r_tail,
@@ -1129,7 +1151,9 @@ curl_check_hdr (void *buffer,
     domain_matched = GNUNET_NO; /* make sure we match domain at most once */
     for (tok = strtok (hdr_val, ";"); NULL != tok; tok = strtok (NULL, ";"))
     {
-      if ( (0 == strncasecmp (tok, " domain", strlen (" domain"))) &&
+      if ( (0 == strncasecmp (tok,
+			      " domain",
+			      strlen (" domain"))) &&
            (GNUNET_NO == domain_matched) )
       {
         domain_matched = GNUNET_YES;
@@ -1137,7 +1161,8 @@ curl_check_hdr (void *buffer,
         if (strlen (cookie_domain) < strlen (s5r->leho))
         {
           delta_cdomain = strlen (s5r->leho) - strlen (cookie_domain);
-          if (0 == strcasecmp (cookie_domain, s5r->leho + delta_cdomain))
+          if (0 == strcasecmp (cookie_domain,
+			       s5r->leho + delta_cdomain))
           {
             offset += sprintf (new_cookie_hdr + offset,
                                " domain=%s;",
@@ -1145,7 +1170,8 @@ curl_check_hdr (void *buffer,
             continue;
           }
         }
-        else if (0 == strcmp (cookie_domain, s5r->leho))
+        else if (0 == strcmp (cookie_domain,
+			      s5r->leho))
         {
           offset += sprintf (new_cookie_hdr + offset,
                              " domain=%s;",
@@ -1156,7 +1182,9 @@ curl_check_hdr (void *buffer,
                     _("Cookie domain `%s' supplied by server is invalid\n"),
                     tok);
       }
-      GNUNET_memcpy (new_cookie_hdr + offset, tok, strlen (tok));
+      GNUNET_memcpy (new_cookie_hdr + offset,
+		     tok,
+		     strlen (tok));
       offset += strlen (tok);
       new_cookie_hdr[offset++] = ';';
     }
@@ -1164,7 +1192,8 @@ curl_check_hdr (void *buffer,
   }
 
   new_location = NULL;
-  if (0 == strcasecmp (MHD_HTTP_HEADER_LOCATION, hdr_type))
+  if (0 == strcasecmp (MHD_HTTP_HEADER_LOCATION,
+		       hdr_type))
   {
     char *leho_host;
 
@@ -1251,7 +1280,9 @@ create_mhd_response_from_s5r (struct Socks5Request *s5r)
               s5r->domain,
               s5r->url);
   s5r->response_code = resp_code;
-  s5r->response = MHD_create_response_from_callback ((-1 == content_length) ? MHD_SIZE_UNKNOWN : content_length,
+  s5r->response = MHD_create_response_from_callback ((-1 == content_length)
+						     ? MHD_SIZE_UNKNOWN
+						     : content_length,
                                                      IO_BUFFERSIZE,
                                                      &mhd_content_cb,
                                                      s5r,
@@ -1480,20 +1511,28 @@ curl_download_prepare ()
     return;
   }
   to = -1;
-  GNUNET_break (CURLM_OK == curl_multi_timeout (curl_multi, &to));
+  GNUNET_break (CURLM_OK ==
+		curl_multi_timeout (curl_multi,
+				    &to));
   if (-1 == to)
     rtime = GNUNET_TIME_UNIT_FOREVER_REL;
   else
-    rtime = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, to);
+    rtime = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS,
+					   to);
   if (-1 != max)
   {
     grs = GNUNET_NETWORK_fdset_create ();
     gws = GNUNET_NETWORK_fdset_create ();
-    GNUNET_NETWORK_fdset_copy_native (grs, &rs, max + 1);
-    GNUNET_NETWORK_fdset_copy_native (gws, &ws, max + 1);
+    GNUNET_NETWORK_fdset_copy_native (grs,
+				      &rs,
+				      max + 1);
+    GNUNET_NETWORK_fdset_copy_native (gws,
+				      &ws,
+				      max + 1);
     curl_download_task = GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_DEFAULT,
                                                       rtime,
-                                                      grs, gws,
+                                                      grs,
+						      gws,
                                                       &curl_task_download,
                                                       curl_multi);
     GNUNET_NETWORK_fdset_destroy (gws);
@@ -1648,12 +1687,15 @@ con_val_iter (void *cls,
   struct Socks5Request *s5r = cls;
   char *hdr;
 
-  if ( (0 == strcasecmp (MHD_HTTP_HEADER_HOST, key)) &&
+  if ( (0 == strcasecmp (MHD_HTTP_HEADER_HOST,
+			 key)) &&
        (NULL != s5r->leho) )
     value = s5r->leho;
-  if (0 == strcasecmp (MHD_HTTP_HEADER_CONTENT_LENGTH, key))
+  if (0 == strcasecmp (MHD_HTTP_HEADER_CONTENT_LENGTH,
+		       key))
     return MHD_YES;
-  if (0 == strcasecmp (MHD_HTTP_HEADER_ACCEPT_ENCODING, key))
+  if (0 == strcasecmp (MHD_HTTP_HEADER_ACCEPT_ENCODING,
+		       key))
     return MHD_YES;
   GNUNET_asprintf (&hdr,
                    "%s: %s",
@@ -1774,21 +1816,40 @@ create_response (void *cls,
       return MHD_queue_response (con,
                                  MHD_HTTP_INTERNAL_SERVER_ERROR,
                                  curl_failure_response);
-    curl_easy_setopt (s5r->curl, CURLOPT_HEADERFUNCTION, &curl_check_hdr);
-    curl_easy_setopt (s5r->curl, CURLOPT_HEADERDATA, s5r);
-    curl_easy_setopt (s5r->curl, CURLOPT_FOLLOWLOCATION, 0);
+    curl_easy_setopt (s5r->curl,
+		      CURLOPT_HEADERFUNCTION,
+		      &curl_check_hdr);
+    curl_easy_setopt (s5r->curl,
+		      CURLOPT_HEADERDATA,
+		      s5r);
+    curl_easy_setopt (s5r->curl,
+		      CURLOPT_FOLLOWLOCATION,
+		      0);
     if (s5r->is_gns)
       curl_easy_setopt (s5r->curl,
                         CURLOPT_IPRESOLVE,
                         CURL_IPRESOLVE_V4);
-    curl_easy_setopt (s5r->curl, CURLOPT_CONNECTTIMEOUT, 600L);
-    curl_easy_setopt (s5r->curl, CURLOPT_TIMEOUT, 600L);
-    curl_easy_setopt (s5r->curl, CURLOPT_NOSIGNAL, 1L);
-    curl_easy_setopt (s5r->curl, CURLOPT_HTTP_CONTENT_DECODING, 0);
-    //    curl_easy_setopt (s5r->curl, CURLOPT_HTTP_TRANSFER_DECODING, 0);
-    curl_easy_setopt (s5r->curl, CURLOPT_NOSIGNAL, 1L);
-    curl_easy_setopt (s5r->curl, CURLOPT_PRIVATE, s5r);
-    curl_easy_setopt (s5r->curl, CURLOPT_VERBOSE, 0L);
+    curl_easy_setopt (s5r->curl,
+		      CURLOPT_CONNECTTIMEOUT,
+		      600L);
+    curl_easy_setopt (s5r->curl,
+		      CURLOPT_TIMEOUT,
+		      600L);
+    curl_easy_setopt (s5r->curl,
+		      CURLOPT_NOSIGNAL,
+		      1L);
+    curl_easy_setopt (s5r->curl,
+		      CURLOPT_HTTP_CONTENT_DECODING,
+		      0);
+    curl_easy_setopt (s5r->curl,
+		      CURLOPT_NOSIGNAL,
+		      1L);
+    curl_easy_setopt (s5r->curl,
+		      CURLOPT_PRIVATE,
+		      s5r);
+    curl_easy_setopt (s5r->curl,
+		      CURLOPT_VERBOSE,
+		      0L);
     /**
      * Pre-populate cache to resolve Hostname.
      * This is necessary as the DNS name in the CURLOPT_URL is used
@@ -1844,11 +1905,21 @@ create_response (void *cls,
                          MHD_HTTP_METHOD_PUT))
     {
       s5r->state = SOCKS5_SOCKET_UPLOAD_STARTED;
-      curl_easy_setopt (s5r->curl, CURLOPT_UPLOAD, 1L);
-      curl_easy_setopt (s5r->curl, CURLOPT_WRITEFUNCTION, &curl_download_cb);
-      curl_easy_setopt (s5r->curl, CURLOPT_WRITEDATA, s5r);
-      curl_easy_setopt (s5r->curl, CURLOPT_READFUNCTION, &curl_upload_cb);
-      curl_easy_setopt (s5r->curl, CURLOPT_READDATA, s5r);
+      curl_easy_setopt (s5r->curl,
+			CURLOPT_UPLOAD,
+			1L);
+      curl_easy_setopt (s5r->curl,
+			CURLOPT_WRITEFUNCTION,
+			&curl_download_cb);
+      curl_easy_setopt (s5r->curl,
+			CURLOPT_WRITEDATA,
+			s5r);
+      curl_easy_setopt (s5r->curl,
+			CURLOPT_READFUNCTION,
+			&curl_upload_cb);
+      curl_easy_setopt (s5r->curl,
+			CURLOPT_READDATA,
+			s5r);
       {
         const char *us;
         long upload_size;
@@ -1870,11 +1941,21 @@ create_response (void *cls,
     else if (0 == strcasecmp (meth, MHD_HTTP_METHOD_POST))
     {
       s5r->state = SOCKS5_SOCKET_UPLOAD_STARTED;
-      curl_easy_setopt (s5r->curl, CURLOPT_POST, 1L);
-      curl_easy_setopt (s5r->curl, CURLOPT_WRITEFUNCTION, &curl_download_cb);
-      curl_easy_setopt (s5r->curl, CURLOPT_WRITEDATA, s5r);
-      curl_easy_setopt (s5r->curl, CURLOPT_READFUNCTION, &curl_upload_cb);
-      curl_easy_setopt (s5r->curl, CURLOPT_READDATA, s5r);
+      curl_easy_setopt (s5r->curl,
+			CURLOPT_POST,
+			1L);
+      curl_easy_setopt (s5r->curl,
+			CURLOPT_WRITEFUNCTION,
+			&curl_download_cb);
+      curl_easy_setopt (s5r->curl,
+			CURLOPT_WRITEDATA,
+			s5r);
+      curl_easy_setopt (s5r->curl,
+			CURLOPT_READFUNCTION,
+			&curl_upload_cb);
+      curl_easy_setopt (s5r->curl,
+			CURLOPT_READDATA,
+			s5r);
       {
         const char *us;
         long upload_size;
@@ -1893,22 +1974,35 @@ create_response (void *cls,
         }
       }
     }
-    else if (0 == strcasecmp (meth, MHD_HTTP_METHOD_HEAD))
+    else if (0 == strcasecmp (meth,
+			      MHD_HTTP_METHOD_HEAD))
     {
       s5r->state = SOCKS5_SOCKET_DOWNLOAD_STARTED;
-      curl_easy_setopt (s5r->curl, CURLOPT_NOBODY, 1L);
+      curl_easy_setopt (s5r->curl,
+			CURLOPT_NOBODY,
+			1L);
     }
-    else if (0 == strcasecmp (meth, MHD_HTTP_METHOD_OPTIONS))
+    else if (0 == strcasecmp (meth,
+			      MHD_HTTP_METHOD_OPTIONS))
     {
       s5r->state = SOCKS5_SOCKET_DOWNLOAD_STARTED;
-      curl_easy_setopt (s5r->curl, CURLOPT_CUSTOMREQUEST, "OPTIONS");
+      curl_easy_setopt (s5r->curl,
+			CURLOPT_CUSTOMREQUEST,
+			"OPTIONS");
     }
-    else if (0 == strcasecmp (meth, MHD_HTTP_METHOD_GET))
+    else if (0 == strcasecmp (meth,
+			      MHD_HTTP_METHOD_GET))
     {
       s5r->state = SOCKS5_SOCKET_DOWNLOAD_STARTED;
-      curl_easy_setopt (s5r->curl, CURLOPT_HTTPGET, 1L);
-      curl_easy_setopt (s5r->curl, CURLOPT_WRITEFUNCTION, &curl_download_cb);
-      curl_easy_setopt (s5r->curl, CURLOPT_WRITEDATA, s5r);
+      curl_easy_setopt (s5r->curl,
+			CURLOPT_HTTPGET,
+			1L);
+      curl_easy_setopt (s5r->curl,
+			CURLOPT_WRITEFUNCTION,
+			&curl_download_cb);
+      curl_easy_setopt (s5r->curl,
+			CURLOPT_WRITEDATA,
+			s5r);
     }
     else
     {
@@ -1922,31 +2016,47 @@ create_response (void *cls,
 
     if (0 == strcasecmp (ver, MHD_HTTP_VERSION_1_0))
     {
-      curl_easy_setopt (s5r->curl, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_1_0);
+      curl_easy_setopt (s5r->curl,
+			CURLOPT_HTTP_VERSION,
+			CURL_HTTP_VERSION_1_0);
     }
     else if (0 == strcasecmp (ver, MHD_HTTP_VERSION_1_1))
     {
-      curl_easy_setopt (s5r->curl, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_1_1);
+      curl_easy_setopt (s5r->curl,
+			CURLOPT_HTTP_VERSION,
+			CURL_HTTP_VERSION_1_1);
     }
     else
     {
-      curl_easy_setopt (s5r->curl, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_NONE);
+      curl_easy_setopt (s5r->curl,
+			CURLOPT_HTTP_VERSION,
+			CURL_HTTP_VERSION_NONE);
     }
 
     if (HTTPS_PORT == s5r->port)
     {
-      curl_easy_setopt (s5r->curl, CURLOPT_USE_SSL, CURLUSESSL_ALL);
+      curl_easy_setopt (s5r->curl,
+			CURLOPT_USE_SSL,
+			CURLUSESSL_ALL);
       if (NULL != s5r->dane_data)
-        curl_easy_setopt (s5r->curl, CURLOPT_SSL_VERIFYPEER, 0L);
+        curl_easy_setopt (s5r->curl,
+			  CURLOPT_SSL_VERIFYPEER,
+			  0L);
       else
-        curl_easy_setopt (s5r->curl, CURLOPT_SSL_VERIFYPEER, 1L);
+        curl_easy_setopt (s5r->curl,
+			  CURLOPT_SSL_VERIFYPEER,
+			  1L);
       /* Disable cURL checking the hostname, as we will check ourselves
          as only we have the domain name or the LEHO or the DANE record */
-      curl_easy_setopt (s5r->curl, CURLOPT_SSL_VERIFYHOST, 0L);
+      curl_easy_setopt (s5r->curl,
+			CURLOPT_SSL_VERIFYHOST,
+			0L);
     }
     else
     {
-      curl_easy_setopt (s5r->curl, CURLOPT_USE_SSL, CURLUSESSL_NONE);
+      curl_easy_setopt (s5r->curl,
+			CURLOPT_USE_SSL,
+			CURLUSESSL_NONE);
     }
 
     if (CURLM_OK !=
@@ -1979,7 +2089,9 @@ create_response (void *cls,
     /* FIXME: This must be set or a header with Transfer-Encoding: chunked. Else
      * upload callback is not called!
      */
-    curl_easy_setopt (s5r->curl, CURLOPT_POSTFIELDSIZE, *upload_data_size);
+    curl_easy_setopt (s5r->curl,
+		      CURLOPT_POSTFIELDSIZE,
+		      *upload_data_size);
 
     left = GNUNET_MIN (*upload_data_size,
                        sizeof (s5r->io_buf) - s5r->io_len);
@@ -2372,8 +2484,10 @@ load_file (const char* filename,
   uint64_t fsize;
 
   if (GNUNET_OK !=
-      GNUNET_DISK_file_size (filename, &fsize,
-                             GNUNET_YES, GNUNET_YES))
+      GNUNET_DISK_file_size (filename,
+			     &fsize,
+                             GNUNET_YES,
+			     GNUNET_YES))
     return NULL;
   if (fsize > MAX_PEM_SIZE)
     return NULL;
@@ -2405,7 +2519,8 @@ load_key_from_file (gnutls_x509_privkey_t key,
   gnutls_datum_t key_data;
   int ret;
 
-  key_data.data = load_file (keyfile, &key_data.size);
+  key_data.data = load_file (keyfile,
+			     &key_data.size);
   if (NULL == key_data.data)
     return GNUNET_SYSERR;
   ret = gnutls_x509_privkey_import (key, &key_data,
@@ -2435,15 +2550,18 @@ load_cert_from_file (gnutls_x509_crt_t crt,
   gnutls_datum_t cert_data;
   int ret;
 
-  cert_data.data = load_file (certfile, &cert_data.size);
+  cert_data.data = load_file (certfile,
+			      &cert_data.size);
   if (NULL == cert_data.data)
     return GNUNET_SYSERR;
-  ret = gnutls_x509_crt_import (crt, &cert_data,
+  ret = gnutls_x509_crt_import (crt,
+				&cert_data,
                                 GNUTLS_X509_FMT_PEM);
   if (GNUTLS_E_SUCCESS != ret)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _("Unable to import certificate %s\n"), certfile);
+                _("Unable to import certificate from `%s'\n"),
+		certfile);
   }
   GNUNET_free_non_null (cert_data.data);
   return (GNUTLS_E_SUCCESS != ret) ? GNUNET_SYSERR : GNUNET_OK;
@@ -2473,14 +2591,27 @@ generate_gns_certificate (const char *name)
   GNUNET_break (GNUTLS_E_SUCCESS == gnutls_x509_crt_init (&request));
   GNUNET_break (GNUTLS_E_SUCCESS == gnutls_x509_crt_set_key (request, proxy_ca.key));
   pgc = GNUNET_new (struct ProxyGNSCertificate);
-  gnutls_x509_crt_set_dn_by_oid (request, GNUTLS_OID_X520_COUNTRY_NAME,
-                                 0, "ZZ", 2);
-  gnutls_x509_crt_set_dn_by_oid (request, GNUTLS_OID_X520_ORGANIZATION_NAME,
-                                 0, "GNU Name System", 4);
-  gnutls_x509_crt_set_dn_by_oid (request, GNUTLS_OID_X520_COMMON_NAME,
-                                 0, name, strlen (name));
-  GNUNET_break (GNUTLS_E_SUCCESS == gnutls_x509_crt_set_version (request, 3));
-  gnutls_rnd (GNUTLS_RND_NONCE, &serial, sizeof (serial));
+  gnutls_x509_crt_set_dn_by_oid (request,
+				 GNUTLS_OID_X520_COUNTRY_NAME,
+                                 0,
+				 "ZZ",
+				 strlen ("ZZ"));
+  gnutls_x509_crt_set_dn_by_oid (request,
+				 GNUTLS_OID_X520_ORGANIZATION_NAME,
+                                 0,
+				 "GNU Name System",
+				 strlen ("GNU Name System"));
+  gnutls_x509_crt_set_dn_by_oid (request,
+				 GNUTLS_OID_X520_COMMON_NAME,
+                                 0,
+				 name,
+				 strlen (name));
+  GNUNET_break (GNUTLS_E_SUCCESS ==
+		gnutls_x509_crt_set_version (request,
+					     3));
+  gnutls_rnd (GNUTLS_RND_NONCE,
+	      &serial,
+	      sizeof (serial));
   gnutls_x509_crt_set_serial (request,
                               &serial,
                               sizeof (serial));
@@ -2501,10 +2632,14 @@ generate_gns_certificate (const char *name)
 			 0);
   key_buf_size = sizeof (pgc->key);
   cert_buf_size = sizeof (pgc->cert);
-  gnutls_x509_crt_export (request, GNUTLS_X509_FMT_PEM,
-                          pgc->cert, &cert_buf_size);
-  gnutls_x509_privkey_export (proxy_ca.key, GNUTLS_X509_FMT_PEM,
-                              pgc->key, &key_buf_size);
+  gnutls_x509_crt_export (request,
+			  GNUTLS_X509_FMT_PEM,
+                          pgc->cert,
+			  &cert_buf_size);
+  gnutls_x509_privkey_export (proxy_ca.key,
+			      GNUTLS_X509_FMT_PEM,
+                              pgc->key,
+			      &key_buf_size);
   gnutls_x509_crt_deinit (request);
   return pgc;
 }
@@ -2945,7 +3080,8 @@ do_s5r_read (void *cls)
   s5r->rtask = NULL;
   tc = GNUNET_SCHEDULER_get_task_context ();
   if ( (NULL != tc->read_ready) &&
-       (GNUNET_NETWORK_fdset_isset (tc->read_ready, s5r->sock)) )
+       (GNUNET_NETWORK_fdset_isset (tc->read_ready,
+				    s5r->sock)) )
   {
     rlen = GNUNET_NETWORK_socket_recv (s5r->sock,
                                        &s5r->rbuf[s5r->rbuf_len],
@@ -3142,17 +3278,22 @@ do_accept (void *cls)
   if (lsock == lsock4)
     ltask4 = GNUNET_SCHEDULER_add_read_net (GNUNET_TIME_UNIT_FOREVER_REL,
                                             lsock,
-                                            &do_accept, lsock);
+                                            &do_accept,
+					    lsock);
   else if (lsock == lsock6)
     ltask6 = GNUNET_SCHEDULER_add_read_net (GNUNET_TIME_UNIT_FOREVER_REL,
                                             lsock,
-                                            &do_accept, lsock);
+                                            &do_accept,
+					    lsock);
   else
     GNUNET_assert (0);
-  s = GNUNET_NETWORK_socket_accept (lsock, NULL, NULL);
+  s = GNUNET_NETWORK_socket_accept (lsock,
+				    NULL,
+				    NULL);
   if (NULL == s)
   {
-    GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "accept");
+    GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR,
+			 "accept");
     return;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -3165,7 +3306,8 @@ do_accept (void *cls)
   s5r->state = SOCKS5_INIT;
   s5r->rtask = GNUNET_SCHEDULER_add_read_net (GNUNET_TIME_UNIT_FOREVER_REL,
                                               s5r->sock,
-                                              &do_s5r_read, s5r);
+                                              &do_s5r_read,
+					      s5r);
 }
 
 
@@ -3262,7 +3404,8 @@ bind_v4 ()
   if (NULL == ls)
     return NULL;
   if (GNUNET_OK !=
-      GNUNET_NETWORK_socket_bind (ls, (const struct sockaddr *) &sa4,
+      GNUNET_NETWORK_socket_bind (ls,
+				  (const struct sockaddr *) &sa4,
                                   sizeof (sa4)))
   {
     eno = errno;
@@ -3298,7 +3441,8 @@ bind_v6 ()
   if (NULL == ls)
     return NULL;
   if (GNUNET_OK !=
-      GNUNET_NETWORK_socket_bind (ls, (const struct sockaddr *) &sa6,
+      GNUNET_NETWORK_socket_bind (ls,
+				  (const struct sockaddr *) &sa6,
                                   sizeof (sa6)))
   {
     eno = errno;
@@ -3353,7 +3497,8 @@ run (void *cls,
     cafile = cafile_cfg;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Using %s as CA\n", cafile);
+	      "Using `%s' as CA\n",
+	      cafile);
 
   gnutls_global_init ();
   gnutls_x509_crt_init (&proxy_ca.cert);
@@ -3488,7 +3633,8 @@ run (void *cls,
  * @return 0 ok, 1 on error
  */
 int
-main (int argc, char *const *argv)
+main (int argc,
+      char *const *argv)
 {
   struct GNUNET_GETOPT_CommandLineOption options[] = {
     GNUNET_GETOPT_option_uint16 ('p',
@@ -3509,8 +3655,9 @@ main (int argc, char *const *argv)
     "</head><body>cURL fail</body></html>";
   int ret;
 
-  if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args (argc, argv,
-                                                 &argc, &argv))
+  if (GNUNET_OK !=
+      GNUNET_STRINGS_get_utf8_args (argc, argv,
+				    &argc, &argv))
     return 2;
   GNUNET_log_setup ("gnunet-gns-proxy",
                     "WARNING",
