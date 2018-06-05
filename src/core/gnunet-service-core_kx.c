@@ -1051,7 +1051,7 @@ handle_ephemeral_key (void *cls,
        (start_t.abs_value_us > GNUNET_TIME_absolute_add (now, REKEY_TOLERANCE).abs_value_us) )
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-		_("EPHERMAL_KEY from peer `%s' rejected as its validity range does not match our system time (%llu not in [%llu,%llu]).\n"),
+		_("EPHEMERAL_KEY from peer `%s' rejected as its validity range does not match our system time (%llu not in [%llu,%llu]).\n"),
 		GNUNET_i2s (kx->peer),
 		(unsigned long long) now.abs_value_us,
                 (unsigned long long) start_t.abs_value_us,
@@ -1490,7 +1490,7 @@ send_key (struct GSC_KeyExchangeInfo *kx)
                         sizeof (current_ekm.ephemeral_key),
                         &hc);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Sending EPHERMERAL_KEY %s to `%s' (my status: %d)\n",
+                "Sending EPHEMERAL_KEY %s to `%s' (my status: %d)\n",
                 GNUNET_h2s (&hc),
                 GNUNET_i2s (kx->peer),
                 kx->status);

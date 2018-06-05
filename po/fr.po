@@ -1313,7 +1313,7 @@ msgstr ""
 #: src/core/gnunet-service-core_kx.c:1054
 #, c-format
 msgid ""
-"EPHERMAL_KEY from peer `%s' rejected as its validity range does not match "
+"EPHEMERAL_KEY from peer `%s' rejected as its validity range does not match "
 "our system time (%llu not in [%llu,%llu]).\n"
 msgstr ""
 

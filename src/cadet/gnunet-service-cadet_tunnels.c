@@ -459,13 +459,13 @@ struct CadetTunnel
 
 
 /**
- * Am I Alice or Bob, or talking to myself?
+ * Am I Alice or Betty (some call her Bob), or talking to myself?
  *
  * @param other the other peer
- * @return #GNUNET_YES for Alice, #GNUNET_NO for Bob, #GNUNET_SYSERR if talking to myself
+ * @return #GNUNET_YES for Alice, #GNUNET_NO for Betty, #GNUNET_SYSERR if talking to myself
  */
 static int
-alice_or_bob (const struct GNUNET_PeerIdentity *other)
+alice_or_betty (const struct GNUNET_PeerIdentity *other)
 {
   if (0 > GNUNET_CRYPTO_cmp_peer_identity (&my_full_id,
                                            other))
@@ -1347,7 +1347,7 @@ send_kx (struct CadetTunnel *t,
   struct GNUNET_CADET_TunnelKeyExchangeMessage *msg;
   enum GNUNET_CADET_KX_Flags flags;
 
-  if (GNUNET_YES != alice_or_bob (GCP_get_id (t->destination)))
+  if (GNUNET_YES != alice_or_betty (GCP_get_id (t->destination)))
     return; /* only Alice may send KX */
   if ( (NULL == ct) ||
        (GNUNET_NO == ct->is_ready) )
@@ -1523,7 +1523,7 @@ update_ax_by_kx (struct CadetTunnelAxolotl *ax,
   const char salt[] = "CADET Axolotl salt";
   int am_I_alice;
 
-  if (GNUNET_SYSERR == (am_I_alice = alice_or_bob (pid)))
+  if (GNUNET_SYSERR == (am_I_alice = alice_or_betty (pid)))
   {
     GNUNET_break_op (0);
     return GNUNET_SYSERR;
@@ -1726,7 +1726,7 @@ GCT_handle_kx (struct CadetTConnection *ct,
                             1,
                             GNUNET_NO);
   if (GNUNET_YES ==
-      alice_or_bob (GCP_get_id (t->destination)))
+      alice_or_betty (GCP_get_id (t->destination)))
   {
     /* Bob is not allowed to send KX! */
     GNUNET_break_op (0);
