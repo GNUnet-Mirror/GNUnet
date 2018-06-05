@@ -25,6 +25,7 @@
  *        for one message from each peer.
  */
 #include "platform.h"
+//#include "rps_test_lib.h"
 #include "gnunet_util_lib.h"
 #include "gnunet_testbed_service.h"
 
@@ -857,40 +858,6 @@ seed_peers (void *cls)
 
 
 /**
- * Seed peers.
- */
-static void
-seed_peers_big (void *cls)
-{
-  struct RPSPeer *peer = cls;
-  unsigned int seed_msg_size;
-  uint32_t num_peers_max;
-  unsigned int amount;
-  unsigned int i;
-
-  seed_msg_size = 8; /* sizeof (struct GNUNET_RPS_CS_SeedMessage) */
-  num_peers_max = (GNUNET_MAX_MESSAGE_SIZE - seed_msg_size) /
-    sizeof (struct GNUNET_PeerIdentity);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-      "Peers that fit in one seed msg; %u\n",
-      num_peers_max);
-  amount = num_peers_max + (0.5 * num_peers_max);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-      "Seeding many (%u) peers:\n",
-      amount);
-  struct GNUNET_PeerIdentity ids_to_seed[amount];
-  for (i = 0; i < amount; i++)
-  {
-    ids_to_seed[i] = *peer->peer_id;
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Seeding %u. peer: %s\n",
-                i,
-                GNUNET_i2s (&ids_to_seed[i]));
-  }
-
-  GNUNET_RPS_seed_ids (peer->rps_handle, amount, ids_to_seed);
-}
-
-/**
  * Get the id of peer i.
  */
   void
@@ -1089,6 +1056,8 @@ rps_disconnect_adapter (void *cls,
 {
   struct RPSPeer *peer = cls;
   struct GNUNET_RPS_Handle *h = op_result;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "disconnect_adapter()\n");
   GNUNET_assert (NULL != peer);
   GNUNET_RPS_disconnect (h);
   peer->rps_handle = NULL;
@@ -1098,27 +1067,6 @@ rps_disconnect_adapter (void *cls,
 /***********************************************************************
  * Definition of tests
 ***********************************************************************/
-
-// TODO check whether tests can be stopped earlier
-static int
-default_eval_cb (void)
-{
-  return evaluate ();
-}
-
-static int
-no_eval (void)
-{
-  return 0;
-}
-
-/**
- * Initialise given RPSPeer
- */
-static void default_init_peer (struct RPSPeer *rps_peer)
-{
-  rps_peer->num_ids_to_request = 1;
-}
 
 /**
  * Callback to call on receipt of a reply
@@ -1228,22 +1176,6 @@ cancel_request (struct PendingReply *pending_rep)
               "Cancelling request\n");
   GNUNET_RPS_request_cancel (pending_rep->req_handle);
   GNUNET_free (pending_rep);
-}
-
-/**
- * Cancel a request.
- */
-static void
-cancel_request_cb (void *cls)
-{
-  struct RPSPeer *rps_peer = cls;
-  struct PendingReply *pending_rep;
-
-  if (GNUNET_YES == in_shutdown || GNUNET_YES == post_test)
-    return;
-  pending_rep = rps_peer->pending_rep_head;
-  GNUNET_assert (1 <= rps_peer->num_pending_reps);
-  cancel_request (pending_rep);
 }
 
 
@@ -1362,114 +1294,6 @@ mal_cb (struct RPSPeer *rps_peer)
     schedule_missing_requests (rps_peer);
   }
   #endif /* ENABLE_MALICIOUS */
-}
-
-
-/***********************************
- * SINGLE_REQUEST
-***********************************/
-static void
-single_req_cb (struct RPSPeer *rps_peer)
-{
-  if (GNUNET_YES == in_shutdown || GNUNET_YES == post_test)
-  {
-    return;
-  }
-
-  schedule_missing_requests (rps_peer);
-}
-
-/***********************************
- * DELAYED_REQUESTS
-***********************************/
-static void
-delay_req_cb (struct RPSPeer *rps_peer)
-{
-  if (GNUNET_YES == in_shutdown || GNUNET_YES == post_test)
-  {
-    return;
-  }
-
-  schedule_missing_requests (rps_peer);
-}
-
-/***********************************
- * SEED
-***********************************/
-static void
-seed_cb (struct RPSPeer *rps_peer)
-{
-  if (GNUNET_YES == in_shutdown || GNUNET_YES == post_test)
-  {
-    return;
-  }
-
-  GNUNET_SCHEDULER_add_delayed (
-      GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10),
-      seed_peers, rps_peer);
-}
-
-/***********************************
- * SEED_BIG
-***********************************/
-static void
-seed_big_cb (struct RPSPeer *rps_peer)
-{
-  if (GNUNET_YES == in_shutdown || GNUNET_YES == post_test)
-  {
-    return;
-  }
-
-  // TODO test seeding > GNUNET_MAX_MESSAGE_SIZE peers
-  GNUNET_SCHEDULER_add_delayed (
-      GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 2),
-      seed_peers_big, rps_peer);
-}
-
-/***********************************
- * SINGLE_PEER_SEED
-***********************************/
-static void
-single_peer_seed_cb (struct RPSPeer *rps_peer)
-{
-  // TODO
-}
-
-/***********************************
- * SEED_REQUEST
-***********************************/
-static void
-seed_req_cb (struct RPSPeer *rps_peer)
-{
-  if (GNUNET_YES == in_shutdown || GNUNET_YES == post_test)
-  {
-    return;
-  }
-
-  GNUNET_SCHEDULER_add_delayed (
-      GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 2),
-      seed_peers, rps_peer);
-  schedule_missing_requests (rps_peer);
-}
-
-//TODO start big mal
-
-/***********************************
- * REQUEST_CANCEL
-***********************************/
-static void
-req_cancel_cb (struct RPSPeer *rps_peer)
-{
-  if (GNUNET_YES == in_shutdown || GNUNET_YES == post_test)
-  {
-    return;
-  }
-
-  schedule_missing_requests (rps_peer);
-  GNUNET_SCHEDULER_add_delayed (
-      GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS,
-                                     (cur_test_run.request_interval + 1)),
-      cancel_request_cb, rps_peer);
 }
 
 /***********************************
@@ -1733,7 +1557,13 @@ churn (void *cls)
 static void profiler_init_peer (struct RPSPeer *rps_peer)
 {
   if (num_peers - 1 == rps_peer->index)
+  {
     rps_peer->num_ids_to_request = cur_test_run.num_requests;
+  } else {
+    rps_peer->num_ids_to_request = 0;
+  }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "peer shall request %i peers\n",
+              rps_peer->num_ids_to_request);
 }
 
 
@@ -1753,12 +1583,15 @@ profiler_reply_handle (void *cls,
   struct RPSPeer *rcv_rps_peer;
   char *file_name;
   char *file_name_dh;
+  char *file_name_dhr;
   unsigned int i;
   struct PendingReply *pending_rep = (struct PendingReply *) cls;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "profiler_reply_handle()\n");
   rps_peer = pending_rep->rps_peer;
   file_name = "/tmp/rps/received_ids";
   file_name_dh = "/tmp/rps/diehard_input";
+  file_name_dhr = "/tmp/rps/diehard_input_raw";
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "[%s] got %" PRIu64 " peers:\n",
               GNUNET_i2s (rps_peer->peer_id),
@@ -1777,6 +1610,9 @@ profiler_reply_handle (void *cls,
     tofile (file_name_dh,
              "%" PRIu32 "\n",
              (uint32_t) rcv_rps_peer->index);
+    to_file_raw (file_name_dhr,
+                 &rcv_rps_peer->index,
+                 sizeof (uint32_t));
   }
   default_reply_handle (cls, n, recv_peers);
 }
@@ -2619,7 +2455,7 @@ void post_profiler (struct RPSPeer *rps_peer)
  *          failed
  */
 static void
-run (void *cls,
+test_run (void *cls,
      struct GNUNET_TESTBED_RunHandle *h,
      unsigned int n_peers,
      struct GNUNET_TESTBED_Peer **peers,
@@ -2630,6 +2466,7 @@ run (void *cls,
   struct OpListEntry *entry;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "RUN was called\n");
+  printf ("test 1\n");
 
   /* Check whether we timed out */
   if (n_peers != num_peers ||
@@ -2647,10 +2484,12 @@ run (void *cls,
 
 
   /* Initialize peers */
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "going to initialise peers\n");
   testbed_peers = peers;
   num_peers_online = 0;
   for (i = 0; i < num_peers; i++)
   {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "initialising %u\n", i);
     entry = make_oplist_entry ();
     entry->index = i;
     rps_peers[i].index = i;
@@ -2714,171 +2553,56 @@ run (void *cls,
  * @param argv unused
  * @return 0 on success
  */
-int
-main (int argc, char *argv[])
+static void
+run (void *cls,
+    char *const *args,
+    const char *cfgfile,
+    const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
-  int ret_value;
+  //int ret_value;
 
   /* Defaults for tests */
-  num_peers = 5;
-  cur_test_run.name = "test-rps-default";
-  cur_test_run.init_peer = default_init_peer;
-  cur_test_run.pre_test = NULL;
-  cur_test_run.reply_handle = default_reply_handle;
-  cur_test_run.eval_cb = default_eval_cb;
-  cur_test_run.post_test = NULL;
-  cur_test_run.have_churn = HAVE_CHURN;
-  cur_test_run.have_collect_statistics = NO_COLLECT_STATISTICS;
-  cur_test_run.stat_collect_flags = 0;
-  cur_test_run.have_collect_view = NO_COLLECT_VIEW;
   churn_task = NULL;
-  timeout_s = 30;
 
-  if (strstr (argv[0], "malicious") != NULL)
-  {
-    cur_test_run.pre_test = mal_pre;
-    cur_test_run.main_test = mal_cb;
-    cur_test_run.init_peer = mal_init_peer;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "This is the profiler\n");
+  cur_test_run.name = "test-rps-profiler";
+  num_peers = 10;
+  mal_type = 3;
+  cur_test_run.init_peer = profiler_init_peer;
+  //cur_test_run.pre_test = mal_pre;
+  cur_test_run.pre_test = pre_profiler;
+  cur_test_run.main_test = profiler_cb;
+  cur_test_run.reply_handle = profiler_reply_handle;
+  cur_test_run.eval_cb = profiler_eval;
+  cur_test_run.post_test = post_profiler;
+  cur_test_run.request_interval = 2;
+  cur_test_run.num_requests = 5;
+  //cur_test_run.have_churn = HAVE_CHURN;
+  cur_test_run.have_churn = HAVE_NO_CHURN;
+  cur_test_run.have_quick_quit = HAVE_NO_QUICK_QUIT;
+  cur_test_run.have_collect_statistics = COLLECT_STATISTICS;
+  cur_test_run.stat_collect_flags = STAT_TYPE_ROUNDS |
+                                    STAT_TYPE_BLOCKS |
+                                    STAT_TYPE_BLOCKS_MANY_PUSH |
+                                    STAT_TYPE_BLOCKS_NO_PUSH |
+                                    STAT_TYPE_BLOCKS_NO_PULL |
+                                    STAT_TYPE_BLOCKS_MANY_PUSH_NO_PULL |
+                                    STAT_TYPE_BLOCKS_NO_PUSH_NO_PULL |
+                                    STAT_TYPE_ISSUED_PUSH_SEND |
+                                    STAT_TYPE_ISSUED_PULL_REQ |
+                                    STAT_TYPE_ISSUED_PULL_REP |
+                                    STAT_TYPE_SENT_PUSH_SEND |
+                                    STAT_TYPE_SENT_PULL_REQ |
+                                    STAT_TYPE_SENT_PULL_REP |
+                                    STAT_TYPE_RECV_PUSH_SEND |
+                                    STAT_TYPE_RECV_PULL_REQ |
+                                    STAT_TYPE_RECV_PULL_REP;
+  cur_test_run.have_collect_view = COLLECT_VIEW;
+  timeout_s = 300;
 
-    if (strstr (argv[0], "_1") != NULL)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Test malicious peer type 1\n");
-      cur_test_run.name = "test-rps-malicious_1";
-      mal_type = 1;
-    }
-    else if (strstr (argv[0], "_2") != NULL)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Test malicious peer type 2\n");
-      cur_test_run.name = "test-rps-malicious_2";
-      mal_type = 2;
-    }
-    else if (strstr (argv[0], "_3") != NULL)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Test malicious peer type 3\n");
-      cur_test_run.name = "test-rps-malicious_3";
-      mal_type = 3;
-    }
-  }
-
-  else if (strstr (argv[0], "_single_req") != NULL)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Test single request\n");
-    cur_test_run.name = "test-rps-single-req";
-    cur_test_run.main_test = single_req_cb;
-    cur_test_run.have_churn = HAVE_NO_CHURN;
-  }
-
-  else if (strstr (argv[0], "_delayed_reqs") != NULL)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Test delayed requests\n");
-    cur_test_run.name = "test-rps-delayed-reqs";
-    cur_test_run.main_test = delay_req_cb;
-    cur_test_run.have_churn = HAVE_NO_CHURN;
-  }
-
-  else if (strstr (argv[0], "_seed_big") != NULL)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Test seeding (num_peers > GNUNET_MAX_MESSAGE_SIZE)\n");
-    num_peers = 1;
-    cur_test_run.name = "test-rps-seed-big";
-    cur_test_run.main_test = seed_big_cb;
-    cur_test_run.eval_cb = no_eval;
-    cur_test_run.have_churn = HAVE_NO_CHURN;
-    timeout_s = 10;
-  }
-
-  else if (strstr (argv[0], "_single_peer_seed") != NULL)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Test seeding and requesting on a single peer\n");
-    cur_test_run.name = "test-rps-single-peer-seed";
-    cur_test_run.main_test = single_peer_seed_cb;
-    cur_test_run.have_churn = HAVE_NO_CHURN;
-  }
-
-  else if (strstr (argv[0], "_seed_request") != NULL)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Test seeding and requesting on multiple peers\n");
-    cur_test_run.name = "test-rps-seed-request";
-    cur_test_run.main_test = seed_req_cb;
-    cur_test_run.have_churn = HAVE_NO_CHURN;
-  }
-
-  else if (strstr (argv[0], "_seed") != NULL)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Test seeding\n");
-    cur_test_run.name = "test-rps-seed";
-    cur_test_run.main_test = seed_cb;
-    cur_test_run.eval_cb = no_eval;
-    cur_test_run.have_churn = HAVE_NO_CHURN;
-  }
-
-  else if (strstr (argv[0], "_req_cancel") != NULL)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Test cancelling a request\n");
-    cur_test_run.name = "test-rps-req-cancel";
-    num_peers = 1;
-    cur_test_run.main_test = req_cancel_cb;
-    cur_test_run.eval_cb = no_eval;
-    cur_test_run.have_churn = HAVE_NO_CHURN;
-    timeout_s = 10;
-  }
-
-  else if (strstr (argv[0], "_churn") != NULL)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Test churn\n");
-    cur_test_run.name = "test-rps-churn";
-    num_peers = 5;
-    cur_test_run.init_peer = default_init_peer;
-    cur_test_run.main_test = churn_test_cb;
-    cur_test_run.reply_handle = default_reply_handle;
-    cur_test_run.eval_cb = default_eval_cb;
-    cur_test_run.have_churn = HAVE_NO_CHURN;
-    cur_test_run.have_quick_quit = HAVE_NO_QUICK_QUIT;
-    timeout_s = 10;
-  }
-
-  else if (strstr (argv[0], "profiler") != NULL)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "This is the profiler\n");
-    cur_test_run.name = "test-rps-profiler";
-    num_peers = 100;
-    mal_type = 3;
-    cur_test_run.init_peer = profiler_init_peer;
-    //cur_test_run.pre_test = mal_pre;
-    cur_test_run.pre_test = pre_profiler;
-    cur_test_run.main_test = profiler_cb;
-    cur_test_run.reply_handle = profiler_reply_handle;
-    cur_test_run.eval_cb = profiler_eval;
-    cur_test_run.post_test = post_profiler;
-    cur_test_run.request_interval = 2;
-    cur_test_run.num_requests = 5;
-    //cur_test_run.have_churn = HAVE_CHURN;
-    cur_test_run.have_churn = HAVE_NO_CHURN;
-    cur_test_run.have_quick_quit = HAVE_NO_QUICK_QUIT;
-    cur_test_run.have_collect_statistics = COLLECT_STATISTICS;
-    cur_test_run.stat_collect_flags = STAT_TYPE_ROUNDS |
-                                      STAT_TYPE_BLOCKS |
-                                      STAT_TYPE_BLOCKS_MANY_PUSH |
-                                      STAT_TYPE_BLOCKS_NO_PUSH |
-                                      STAT_TYPE_BLOCKS_NO_PULL |
-                                      STAT_TYPE_BLOCKS_MANY_PUSH_NO_PULL |
-                                      STAT_TYPE_BLOCKS_NO_PUSH_NO_PULL |
-                                      STAT_TYPE_ISSUED_PUSH_SEND |
-                                      STAT_TYPE_ISSUED_PULL_REQ |
-                                      STAT_TYPE_ISSUED_PULL_REP |
-                                      STAT_TYPE_SENT_PUSH_SEND |
-                                      STAT_TYPE_SENT_PULL_REQ |
-                                      STAT_TYPE_SENT_PULL_REP |
-                                      STAT_TYPE_RECV_PUSH_SEND |
-                                      STAT_TYPE_RECV_PULL_REQ |
-                                      STAT_TYPE_RECV_PULL_REP;
-    cur_test_run.have_collect_view = COLLECT_VIEW;
-    timeout_s = 150;
-
-    /* 'Clean' directory */
-    (void) GNUNET_DISK_directory_remove ("/tmp/rps/");
-    GNUNET_DISK_directory_create ("/tmp/rps/");
-  }
+  /* 'Clean' directory */
+  (void) GNUNET_DISK_directory_remove ("/tmp/rps/");
+  GNUNET_DISK_directory_create ("/tmp/rps/");
   timeout = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, timeout_s);
 
   rps_peers = GNUNET_new_array (num_peers, struct RPSPeer);
@@ -2893,13 +2617,63 @@ main (int argc, char *argv[])
                                                  with the malicious portion */
 
   ok = 1;
-  ret_value = GNUNET_TESTBED_test_run (cur_test_run.name,
-                                       "test_rps.conf",
-                                       num_peers,
-                                       0, NULL, NULL,
-                                       &run, NULL);
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-              "_test_run returned.\n");
+              "before _run()\n");
+  //ret_value = GNUNET_TESTBED_test_run (cur_test_run.name,
+  //                                     "test_rps.conf",
+  //                                     num_peers,
+  //                                     0, NULL, NULL,
+  //                                     &test_run, NULL);
+  GNUNET_TESTBED_run (NULL,
+                      cfg,
+                      num_peers,
+                      0, /* event mask */
+                      NULL,
+                      NULL,
+                      &test_run,
+                      NULL);
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+              "after _run()\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+              "gnunet-rps-profiler returned.\n");
+}
+
+/**
+ * Entry point for the testcase, sets up the testbed.
+ *
+ * @param argc unused
+ * @param argv unused
+ * @return 0 on success
+ */
+int
+main (int argc, char *argv[])
+{
+  int ret_value;
+  struct GNUNET_GETOPT_CommandLineOption options[] = {
+    GNUNET_GETOPT_option_uint ('n',
+                               "peers",
+                               "COUNT",
+                               gettext_noop ("number of peers to start"),
+                               &num_peers),
+    GNUNET_GETOPT_OPTION_END
+  };
+
+  //if (GNUNET_OK !=
+  //    GNUNET_STRINGS_get_utf8_args (argc, argv,
+  //                                  &argc, &argv))
+  //  return 2;
+  ret_value = 0;
+  if (GNUNET_OK !=
+      GNUNET_PROGRAM_run (argc,
+                          argv,
+                          "gnunet-rps-profiler",
+                          gettext_noop ("Measure quality and performance of the RPS service."),
+                          options,
+                          &run,
+                          NULL))
+  {
+    ret_value = 1;
+  }
   if (GNUNET_OK != ret_value)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
@@ -2916,6 +2690,7 @@ main (int argc, char *argv[])
   GNUNET_free (rps_peers);
   GNUNET_free (rps_peer_ids);
   GNUNET_CONTAINER_multipeermap_destroy (peer_map);
+  printf ("test -1\n");
   return ret_value;
 }
 
