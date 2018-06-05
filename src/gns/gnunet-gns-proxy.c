@@ -626,6 +626,11 @@ struct Socks5Request
    * Did we suspend MHD processing?
    */
   int suspended;
+
+  /**
+   * Did we pause CURL processing?
+   */
+  int curl_paused;
 };
 
 
@@ -823,7 +828,9 @@ mhd_content_cb (void *cls,
        start the download, the IO buffer is still full
        with upload data. */
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		"Pausing MHD download, not yet ready for download\n");
+		"Pausing MHD download %s%s, not yet ready for download\n",
+		s5r->domain,
+		s5r->url);
     return 0; /* not yet ready for data download */
   }
   bytes_to_copy = GNUNET_MIN (max,
@@ -832,12 +839,21 @@ mhd_content_cb (void *cls,
        (SOCKS5_SOCKET_DOWNLOAD_DONE != s5r->state) )
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		"Pausing MHD download, no data available\n");
+		"Pausing MHD download %s%s, no data available\n",
+		s5r->domain,
+		s5r->url);
     if (NULL != s5r->curl)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Continuing CURL interaction\n");
-      curl_easy_pause (s5r->curl, CURLPAUSE_CONT);
+                  "Continuing CURL interaction for %s%s\n",
+		  s5r->domain,
+		  s5r->url);
+      if (GNUNET_YES == s5r->curl_paused)
+      {
+	s5r->curl_paused = GNUNET_NO;
+	curl_easy_pause (s5r->curl,
+			 CURLPAUSE_CONT);
+      }
       curl_download_prepare ();
     }
     if (GNUNET_NO == s5r->suspended)
@@ -851,13 +867,17 @@ mhd_content_cb (void *cls,
        (SOCKS5_SOCKET_DOWNLOAD_DONE == s5r->state) )
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		"Completed MHD download\n");
+		"Completed MHD download %s%s\n",
+		s5r->domain,
+		s5r->url);
     return MHD_CONTENT_READER_END_OF_STREAM;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Writing %llu/%llu bytes\n",
+              "Writing %llu/%llu bytes for %s%s\n",
               (unsigned long long) bytes_to_copy,
-              (unsigned long long) s5r->io_len);
+              (unsigned long long) s5r->io_len,
+	      s5r->domain,
+	      s5r->url);
   GNUNET_memcpy (buf,
                  s5r->io_buf,
                  bytes_to_copy);
@@ -865,10 +885,14 @@ mhd_content_cb (void *cls,
 	   &s5r->io_buf[bytes_to_copy],
 	   s5r->io_len - bytes_to_copy);
   s5r->io_len -= bytes_to_copy;
-  if (NULL != s5r->curl)
+  if ( (NULL != s5r->curl) &&
+       (GNUNET_YES == s5r->curl_paused) )
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Continuing CURL interaction\n");
+                "Continuing CURL interaction for %s%s\n",
+		s5r->domain,
+		s5r->url);
+    s5r->curl_paused = GNUNET_NO;  
     curl_easy_pause (s5r->curl,
                      CURLPAUSE_CONT);
   }
@@ -1269,6 +1293,7 @@ create_mhd_response_from_s5r (struct Socks5Request *s5r)
   return GNUNET_OK;
 }
 
+
 /**
  * Handle response payload data from cURL.  Copies it into our `io_buf` to make
  * it available to MHD.
@@ -1288,6 +1313,12 @@ curl_download_cb (void *ptr,
   struct Socks5Request *s5r = ctx;
   size_t total = size * nmemb;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Receiving %ux%u bytes for `%s%s' from cURL\n",
+	      (unsigned int) size,
+	      (unsigned int) nmemb,
+	      s5r->domain,
+	      s5r->url);
   if (NULL == s5r->response)
     GNUNET_assert (GNUNET_OK ==
                    create_mhd_response_from_s5r (s5r));
@@ -1302,6 +1333,7 @@ curl_download_cb (void *ptr,
                 "Pausing CURL download `%s%s', waiting for UPLOAD to finish\n",
                 s5r->domain,
                 s5r->url);
+    s5r->curl_paused = GNUNET_YES;
     return CURL_WRITEFUNC_PAUSE; /* not yet ready for data download */
   }
   if (sizeof (s5r->io_buf) - s5r->io_len < total)
@@ -1313,6 +1345,7 @@ curl_download_cb (void *ptr,
                 (unsigned long long) sizeof (s5r->io_buf),
                 (unsigned long long) s5r->io_len,
                 (unsigned long long) total);
+    s5r->curl_paused = GNUNET_YES;
     return CURL_WRITEFUNC_PAUSE; /* not enough space */
   }
   GNUNET_memcpy (&s5r->io_buf[s5r->io_len],
@@ -1381,7 +1414,9 @@ curl_upload_cb (void *buf,
   }
   to_copy = GNUNET_MIN (s5r->io_len,
                         len);
-  GNUNET_memcpy (buf, s5r->io_buf, to_copy);
+  GNUNET_memcpy (buf,
+		 s5r->io_buf,
+		 to_copy);
   memmove (s5r->io_buf,
            &s5r->io_buf[to_copy],
            s5r->io_len - to_copy);
@@ -1495,6 +1530,9 @@ curl_task_download (void *cls)
     running = 0;
     mret = curl_multi_perform (curl_multi,
                                &running);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		"Checking CURL multi status: %d\n",
+		mret);
     while (NULL != (msg = curl_multi_info_read (curl_multi,
                                                 &msgnum)))
     {
@@ -1527,7 +1565,12 @@ curl_task_download (void *cls)
                 GNUNET_assert (GNUNET_OK ==
                                create_mhd_response_from_s5r (s5r));
               }
-              s5r->state = SOCKS5_SOCKET_DOWNLOAD_DONE;
+	      s5r->state = SOCKS5_SOCKET_DOWNLOAD_DONE;
+	      if (GNUNET_YES == s5r->suspended)
+	      {
+		MHD_resume_connection (s5r->con);
+		s5r->suspended = GNUNET_NO;
+	      }
               run_mhd_now (s5r->hd);
               break;
             default:
@@ -1538,6 +1581,11 @@ curl_task_download (void *cls)
                           curl_easy_strerror (msg->data.result));
               /* FIXME: indicate error somehow? close MHD connection badly as well? */
               s5r->state = SOCKS5_SOCKET_DOWNLOAD_DONE;
+	      if (GNUNET_YES == s5r->suspended)
+	      {
+		MHD_resume_connection (s5r->con);
+		s5r->suspended = GNUNET_NO;
+	      }
               run_mhd_now (s5r->hd);
               break;
           }
@@ -1737,7 +1785,7 @@ create_response (void *cls,
     curl_easy_setopt (s5r->curl, CURLOPT_TIMEOUT, 600L);
     curl_easy_setopt (s5r->curl, CURLOPT_NOSIGNAL, 1L);
     curl_easy_setopt (s5r->curl, CURLOPT_HTTP_CONTENT_DECODING, 0);
-    curl_easy_setopt (s5r->curl, CURLOPT_HTTP_TRANSFER_DECODING, 0);
+    //    curl_easy_setopt (s5r->curl, CURLOPT_HTTP_TRANSFER_DECODING, 0);
     curl_easy_setopt (s5r->curl, CURLOPT_NOSIGNAL, 1L);
     curl_easy_setopt (s5r->curl, CURLOPT_PRIVATE, s5r);
     curl_easy_setopt (s5r->curl, CURLOPT_VERBOSE, 0L);
@@ -1941,8 +1989,12 @@ create_response (void *cls,
     s5r->io_len += left;
     *upload_data_size -= left;
     GNUNET_assert (NULL != s5r->curl);
-    curl_easy_pause (s5r->curl,
-                     CURLPAUSE_CONT);
+    if (GNUNET_YES == s5r->curl_paused)
+    {
+      s5r->curl_paused = GNUNET_NO;
+      curl_easy_pause (s5r->curl,
+		       CURLPAUSE_CONT);
+    }
     return MHD_YES;
   }
   if (SOCKS5_SOCKET_UPLOAD_STARTED == s5r->state)
@@ -2442,9 +2494,11 @@ generate_gns_certificate (const char *name)
   etime = mktime (tm_data);
   gnutls_x509_crt_set_expiration_time (request,
                                        etime);
-  gnutls_x509_crt_sign (request,
-                        proxy_ca.cert,
-                        proxy_ca.key);
+  gnutls_x509_crt_sign2 (request,
+			 proxy_ca.cert,
+			 proxy_ca.key,
+			 GNUTLS_DIG_SHA512,
+			 0);
   key_buf_size = sizeof (pgc->key);
   cert_buf_size = sizeof (pgc->cert);
   gnutls_x509_crt_export (request, GNUTLS_X509_FMT_PEM,
