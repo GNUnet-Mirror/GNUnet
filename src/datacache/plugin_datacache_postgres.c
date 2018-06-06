@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet
-     Copyright (C) 2006, 2009, 2010, 2012, 2015, 2017 GNUnet e.V.
+     Copyright (C) 2006, 2009, 2010, 2012, 2015, 2017, 2018 GNUnet e.V.
 
      GNUnet is free software: you can redistribute it and/or modify it
      under the terms of the GNU General Public License as published
@@ -62,47 +62,57 @@ static int
 init_connection (struct Plugin *plugin)
 {
   struct GNUNET_PQ_ExecuteStatement es[] = {
-    GNUNET_PQ_make_execute ("CREATE TEMPORARY TABLE IF NOT EXISTS gn090dc ("
+    GNUNET_PQ_make_execute ("CREATE TEMPORARY TABLE IF NOT EXISTS gn011dc ("
                             "  type INTEGER NOT NULL,"
+                            "  prox INTEGER NOT NULL,"
                             "  discard_time BIGINT NOT NULL,"
                             "  key BYTEA NOT NULL,"
                             "  value BYTEA NOT NULL,"
                             "  path BYTEA DEFAULT NULL)"
                             "WITH OIDS"),
-    GNUNET_PQ_make_try_execute ("CREATE INDEX IF NOT EXISTS idx_key ON gn090dc (key)"),
-    GNUNET_PQ_make_try_execute ("CREATE INDEX IF NOT EXISTS idx_dt ON gn090dc (discard_time)"),
-    GNUNET_PQ_make_execute ("ALTER TABLE gn090dc ALTER value SET STORAGE EXTERNAL"),
-    GNUNET_PQ_make_execute ("ALTER TABLE gn090dc ALTER key SET STORAGE PLAIN"),
+    GNUNET_PQ_make_try_execute ("CREATE INDEX IF NOT EXISTS idx_key ON gn011dc (key)"),
+    GNUNET_PQ_make_try_execute ("CREATE INDEX IF NOT EXISTS idx_dt ON gn011dc (discard_time)"),
+    GNUNET_PQ_make_execute ("ALTER TABLE gn011dc ALTER value SET STORAGE EXTERNAL"),
+    GNUNET_PQ_make_execute ("ALTER TABLE gn011dc ALTER key SET STORAGE PLAIN"),
     GNUNET_PQ_EXECUTE_STATEMENT_END
   };
   struct GNUNET_PQ_PreparedStatement ps[] = {
     GNUNET_PQ_make_prepare ("getkt",
-                            "SELECT discard_time,type,value,path FROM gn090dc "
+                            "SELECT discard_time,type,value,path FROM gn011dc "
                             "WHERE key=$1 AND type=$2",
                             2),
     GNUNET_PQ_make_prepare ("getk",
-                            "SELECT discard_time,type,value,path FROM gn090dc "
+                            "SELECT discard_time,type,value,path FROM gn011dc "
                             "WHERE key=$1",
                             1),
+    GNUNET_PQ_make_prepare ("getex",
+                            "SELECT length(value) AS len,oid,key FROM gn011dc"
+			    " WHERE discard_time < $1"
+                            " ORDER BY discard_time ASC LIMIT 1",
+                            1),
     GNUNET_PQ_make_prepare ("getm",
-                            "SELECT length(value) AS len,oid,key FROM gn090dc "
+                            "SELECT length(value) AS len,oid,key FROM gn011dc"
+                            " ORDER BY prox ASC, discard_time ASC LIMIT 1",
+                            0),
+    GNUNET_PQ_make_prepare ("getp",
+                            "SELECT length(value) AS len,oid,key FROM gn011dc "
                             "ORDER BY discard_time ASC LIMIT 1",
                             0),
     GNUNET_PQ_make_prepare ("get_random",
-                            "SELECT discard_time,type,value,path,key FROM gn090dc "
+                            "SELECT discard_time,type,value,path,key FROM gn011dc "
                             "ORDER BY key ASC LIMIT 1 OFFSET $1",
                             1),
     GNUNET_PQ_make_prepare ("get_closest",
-                            "SELECT discard_time,type,value,path,key FROM gn090dc "
+                            "SELECT discard_time,type,value,path,key FROM gn011dc "
                             "WHERE key>=$1 ORDER BY key ASC LIMIT $2",
                             1),
     GNUNET_PQ_make_prepare ("delrow",
-                            "DELETE FROM gn090dc WHERE oid=$1",
+                            "DELETE FROM gn011dc WHERE oid=$1",
                             1),
     GNUNET_PQ_make_prepare ("put",
-                            "INSERT INTO gn090dc (type, discard_time, key, value, path) "
-                            "VALUES ($1, $2, $3, $4, $5)",
-                            5),
+                            "INSERT INTO gn011dc (type, prox, discard_time, key, value, path) "
+                            "VALUES ($1, $2, $3, $4, $5, $6)",
+                            6),
     GNUNET_PQ_PREPARED_STATEMENT_END
   };
 
@@ -136,7 +146,7 @@ init_connection (struct Plugin *plugin)
  *
  * @param cls closure (our `struct Plugin`)
  * @param key key to store @a data under
- * @param am_closest are we the closest peer?
+ * @param prox proximity of @a key to my PID
  * @param data_size number of bytes in @a data
  * @param data data to store
  * @param type type of the value
@@ -148,7 +158,7 @@ init_connection (struct Plugin *plugin)
 static ssize_t
 postgres_plugin_put (void *cls,
                      const struct GNUNET_HashCode *key,
-                     int am_closest,
+                     uint32_t prox,
                      size_t data_size,
                      const char *data,
                      enum GNUNET_BLOCK_Type type,
@@ -160,6 +170,7 @@ postgres_plugin_put (void *cls,
   uint32_t type32 = (uint32_t) type;
   struct GNUNET_PQ_QueryParam params[] = {
     GNUNET_PQ_query_param_uint32 (&type32),
+    GNUNET_PQ_query_param_uint32 (&prox),
     GNUNET_PQ_query_param_absolute_time (&discard_time),
     GNUNET_PQ_query_param_auto_from_type (key),
     GNUNET_PQ_query_param_fixed_size (data, data_size),
@@ -356,11 +367,22 @@ postgres_plugin_del (void *cls)
     GNUNET_PQ_query_param_uint32 (&oid),
     GNUNET_PQ_query_param_end
   };
+  struct GNUNET_TIME_Absolute now;
+  struct GNUNET_PQ_QueryParam xparam[] = {
+    GNUNET_PQ_query_param_absolute_time (&now),
+    GNUNET_PQ_query_param_end
+  };
 
+  now = GNUNET_TIME_absolute_get ();
   res = GNUNET_PQ_eval_prepared_singleton_select (plugin->dbh,
-                                                  "getm",
-                                                  pempty,
+                                                  "getex",
+                                                  xparam,
                                                   rs);
+  if (0 >= res)
+    res = GNUNET_PQ_eval_prepared_singleton_select (plugin->dbh,
+						    "getm",
+						    pempty,
+						    rs);
   if (0 > res)
     return GNUNET_SYSERR;
   if (GNUNET_DB_STATUS_SUCCESS_NO_RESULTS == res)
