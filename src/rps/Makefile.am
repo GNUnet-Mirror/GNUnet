@@ -91,6 +91,7 @@ rps_test_src = \
 ld_rps_test_lib = \
 	libgnunetrps.la \
   $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/testbed/libgnunettestbed.la \
   -lm
 
