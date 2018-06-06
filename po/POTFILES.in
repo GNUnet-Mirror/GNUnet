@@ -320,6 +320,7 @@ src/revocation/gnunet-service-revocation.c
 src/revocation/plugin_block_revocation.c
 src/revocation/revocation_api.c
 src/rps/gnunet-rps.c
+src/rps/gnunet-rps-profiler.c
 src/rps/gnunet-service-rps.c
 src/rps/gnunet-service-rps_custommap.c
 src/rps/gnunet-service-rps_sampler.c
