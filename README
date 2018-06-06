@@ -19,7 +19,7 @@ GNUnet is free software released under the GNU General Public License
 (v3 or later). For details see the COPYING file in this directory.
 
 Additional documentation about GNUnet can be found at
-https://gnunet.org/ and in the doc/ folder.
+https://gnunet.org/ and in the 'doc/' folder.
 
 
 Dependencies:
@@ -30,51 +30,148 @@ recent versions of the libraries which are often NOT to be found in
 stable distributions in 2014.  While using older packages may in some
 cases on some operating systems may seem to work in some limited
 fashion, we are in many cases aware of serious problems with older
-packages.  Hence please make sure to use  the versions listed below.
+packages.  Hence please make sure to use the versions listed below.
 
 These are the direct dependencies for running GNUnet:
 
-- libmicrohttpd >= 0.9.42
-- libgcrypt     >= 1.6
-- libgnurl      >= 7.35.0 (available from https://gnunet.org/gnurl)
-- libunistring  >= 0.9.2
-- gnutls        >= 3.2.12
-- libidn        >= 1.0
-- libextractor  >= 0.6.1 (highly recommended)
-- openssl       >= 1.0 (binary, used to generate X.509 certificate)
-- libltdl       >= 2.2 (part of GNU libtool)
-- sqlite        >= 3.8 (default database, required)
-- mysql         >= 5.1 (alternative to sqlite)
-- postgres      >= 9.5 (alternative to sqlite)
-- libopus       >= 1.0.1 (optional for experimental conversation tool)
-- libpulse      >= 2.0 (optional for experimental conversation tool)
-- libogg        >= 1.3.0 (optional for experimental conversation tool)
-- python-zbar   >= 0.10 (optional for gnunet-qr)
-- TeX Live      >= 2012 (optional for gnunet-bcd[*])
-- Texinfo       >= 5.2 [*1]
-- libglpk       >= 4.45 (optional for experimental code)
+- libmicrohttpd      >= 0.9.42
+- libgcrypt          >= 1.6
+- libgnurl           >= 7.35.0      (recommended, available from https://gnunet.org/gnurl)
+- libcurl            >= 7.35.0      (alternative to libgnurl)
+- libunistring       >= 0.9.2
+- gnutls             >= 3.2.12      (highly recommended a gnutls linked against libunbound)
+- libidn             >= 1.0
+- libextractor       >= 0.6.1       (highly recommended)
+- openssl            >= 1.0         (binary, used to generate X.509 certificate)
+- libltdl            >= 2.2         (part of GNU libtool)
+- sqlite             >= 3.8         (default database, required)
+- mysql              >= 5.1         (alternative to sqlite)
+- postgres           >= 9.5         (alternative to sqlite)
+- Texinfo            >= 5.2         [*1]
+- which                             (for the bootstrap script)
+- gettext
+- zlib
+- pkg-config
+
+
+These are the dependencies for GNUnet's testsuite:
+
+- Bash                              (optional (?), for some tests)
+- python             >= 2.7         (optional, only python 2.7 is supported)
+- python-future      >= 2.7         (optional, only python 2.7 is supported)
+
+
+These are the optional dependencies:
+
+- libopus            >= 1.0.1       (optional, for experimental conversation tool)
+- libpulse           >= 2.0         (optional, for experimental conversation tool)
+- libogg             >= 1.3.0       (optional, for experimental conversation tool)
+- libnss                            (optional, certtool binary (for convenient installation of GNS proxy))
+- python-future                     (optional, for some testcases and utilities)
+- python-zbar        >= 0.10        (optional, for gnunet-qr)
+- TeX Live           >= 2012        (optional, for gnunet-bcd[*])
+- libglpk            >= 4.45        (optional, for experimental code)
+- perl5                             (optional, for some utilities)
+- python             >= 2.7         (optional, for gnunet-qr, only python 2.7 is supported)
+- bluez                             (optional, for bluetooth support)
+- miniupnpc
+- libpbc             >= 0.5.14      (optional, for Attribute-Based Encryption and Identity Provider functionality)
+- libgabe                           (optional, for Attribute-Based Encryption and Identity Provider functionality,
+                                    from https://github.com/schanzen/libgabe)
+
 
 Recommended autotools for compiling the git version are:
-- autoconf >= 2.59
-- automake >= 1.11.1
-- libtool  >= 2.2
+
+- autoconf           >= 2.59
+- automake           >= 1.11.1
+- libtool            >= 2.2
 
 
 [*] Mandatory for compiling the info output of the documentation,
-a limited subset ('texlive-tiny' in Guix) is enough.
+    a limited subset ('texlive-tiny' in Guix) is enough.
 
-[*1] The default configuration is to build the info output of the documentation,
-and therefore require texinfo.  You can pass --disable-documentation to
-the configure script to change this.
+[*1] The default configuration is to build the info output of the
+     documentation, and therefore require texinfo.  You can pass
+     '--disable-documentation' to the configure script to change this.
+
+Requirements
+============
+
+GNUnet's directed acyclic graph (DAG) will require around 0.74 GiB
+Diskspace, with GNUNet itself taking around 9.2 MiB reported by the
+build on GNU Guix.
 
 How to install?
 ===============
 
-The fastest way is to use a binary package if it is available for your
-system.  For a more detailed description, read the installation
-instructions on the webpage at https://gnunet.org/installation.
+
+binary packages
+~~~~~~~~~~~~~~~
+
+We recommend to use binary packages provided by your Operating System's
+package manager. GNUnet is reportedly available for at least:
+
+Gentoo (via the 'youbroketheinternet' overlay), GNU Guix, Nix,
+Debian, ALT Linux, Archlinux, Deepin, Devuan, Hyperbola, Kali Linux,
+LEDE/OpenWRT, Manjaro, Parabola, Pardus, Parrot, PureOS, Raspbian,
+Rosa, Trisquel, and Ubuntu.
+
+If GNUnet is available for your Operating System and it is missing,
+send us feedback so that we can add it to this list. Furthermore, if
+you are interested in packaging GNUnet for your Operating System,
+get in touch with us at gnunet-developers@gnu.org if you require
+help with this job.
+
+If you were using an Operating System with the apt package manager,
+GNUnet could be installed as simple as:
+
+$ apt-get install gnunet
+
 Generic installation instructions are in the INSTALL file in this
 directory.
+
+Scope of Operating System support
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+We actively support GNUnet on a broad range of Free Software Operating
+Systems.
+
+For proprietary Operating Systems, like for example Microsoft Windows
+or Apple OS X, we accept patches if they don't break anything for
+other Operating Systems.
+If you are implementing support for a proprietary Operating System,
+you should be aware that progress in our codebase could break
+functionality on your OS and cause unpredicted behavior we can
+not test. However, we do not break support on Operating Systems
+with malicious intent.
+Regressions which do occur on these Operating Systems are 3rd
+class issues and we expect users and developers of these
+Operating Systems to send proposed patches to fix regressions.
+
+For more information about our stand on some of the motivating
+points here, read the 'Philosophy' Chapter of our handbook.
+
+Building GNUnet from source
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+IMPORTANT: You can read further notes about compilation from source in
+the 'doc/FILENAME' document, which includes notes about specific
+requirements for operating systems aswell. If you are a package
+mantainer for an Operating System we invite you to add your notes if
+you feel it is necessary and can not be covered in your Operating
+System's documentation.
+
+
+Some Operating Systems currently require you to build GNUnet from
+source.
+If you are building GNUnet from source you are either interested
+in furthering its development (we have further notes for developer
+builds in our 'GNUnet Developer Handbook') or your Operating System
+simply lacks support for a binary package at the moment.
+Two prominent examples which currently lack cross-compilation
+support in GNUnet (and native binaries) are MS Windows and Apple macOS.
+For macOS we recommend you to do the build process via Homebrew and a
+recent XCode installation.
+Compilation for MS Windows can ...
 
 Note that some functions of GNUnet require "root" access.  GNUnet will
 install (tiny) SUID binaries for those functions is you run "make
@@ -82,25 +179,35 @@ install" as root.  If you do not, GNUnet will still work, but some
 functionality will not be available (including certain forms of NAT
 traversal).
 
-GNUnet requires the GNU MP library (http://www.gnu.org/software/gmp/)
-and libgcrypt (http://www.gnupg.org/).  You can specify the path to
+GNUnet requires the GNU MP library (https://www.gnu.org/software/gmp/)
+and libgcrypt (https://www.gnupg.org/).  You can specify the path to
 libgcrypt by passing "--with-gcrypt=PATH" to configure.  You will also
 need either sqlite (http://www.sqlite.org/), MySQL
 (http://www.mysql.org/) or PostGres (http://www.postgres.org/).
 
 If you install from source, you need to install GNU libextractor first
-(download from http://www.gnu.org/software/libextractor/).  We also
+(download from https://www.gnu.org/software/libextractor/).  We also
 recommend installing GNU libmicrohttpd (download from
-http://www.gnu.org/software/libmicrohttpd/).  Then you can start the
-actual GNUnet compilation and installation process with:
+https://www.gnu.org/software/libmicrohttpd/). Furthermore we recommend
+libgnurl (from https://gnunet.org/gnurl).
+Then you can start the actual GNUnet compilation process with:
+
 
 $ export GNUNET_PREFIX=/usr/local/lib # or other directory of your choice
 # addgroup gnunetdns
 # adduser --system --home "/var/lib/gnunet" --group gnunet --shell /bin/sh
 # ./configure --prefix=$GNUNET_PREFIX/.. --with-extractor=$LE_PREFIX
 $ make
+
+And finally install GNUnet with:
+
 # make install
+
+Complete the process by either adjusting one of our example service files
+in 'contrib/services' or by running:
+
 # sudo -u gnunet gnunet-arm -s
+
 
 Note that running the 'configure' and 'make install' steps as
 root (or with sudo) is required as some parts of the installation
@@ -135,7 +242,7 @@ certain binaries that require additional priviledges will not be
 installed properly (and autonomous NAT traversal, WLAN, DNS/GNS and
 the VPN will then not work).
 
-If you run 'configure' and 'make install' as root or use the SUDO
+If you run 'configure' and 'make install' as root or use the '--with-sudo'
 option, GNUnet's build system will install "libnss_gns*" libraries to
 "/lib/" regardless (!) of the $GNUNET_PREFIX you might have specified,
 as those libraries must be in "/lib/".  If you are packaging GNUnet
@@ -143,14 +250,14 @@ for binary distribution, this may cause your packaging script to miss
 those plugins, so you might need to do some additional manual work to
 include those libraries in your binary package(s).  Similarly, if you
 want to use the GNUnet naming system and did NOT run GNUnet's 'make
-install' process with SUDO rights, the libraries will be installed to
+install' process with sudo rights, the libraries will be installed to
 "$GNUNET_PREFIX" and you will have to move them to "/lib/"
 manually.
 
 Finally, if you are compiling the code from git, you have to
-run ". bootstrap" before ./configure.  If you receive an error during
-the running of ". bootstrap" that looks like "macro `AM_PATH_GTK' not
-found in library", you may need to run aclocal by hand with the -I
+run "sh ./bootstrap" before running "./configure".  If you receive an error during
+the running of "sh ./bootstrap" that looks like "macro `AM_PATH_GTK'
+not found in library", you may need to run aclocal by hand with the -I
 option, pointing to your aclocal m4 macros, i.e.
 
 $ aclocal -I /usr/local/share/aclocal
@@ -169,7 +276,7 @@ configuration for the peer.  gnunet-setup can be used to configure and
 test (!) the network settings, choose which applications should be run
 and configure databases.  Other options you might want to control
 include system limitations (such as disk space consumption, bandwidth,
-etc.).  The resulting configuration files are human-readable and can
+etc).  The resulting configuration files are human-readable and can
 theoretically be created or edited by hand.
 
 gnunet-setup is a separate download and requires somewhat recent
@@ -185,9 +292,16 @@ configuration file should be located in "~/.config/gnunet.conf" or its
 location can be specified by giving the "-c" option to the respective
 GNUnet application.
 
+For more information about the configuration (as well as usage) refer
+to the 'GNUnet User Handbook' chapter of the documentation, included
+in this software distribution.
+
 
 Usage
 =====
+
+For detailed usage notes, instructions and examples, refer to the
+included 'GNUnet User Handbook'.
 
 First, you must obtain an initial list of GNUnet hosts.  Knowing a
 single peer is sufficient since after that GNUnet propagates
@@ -214,9 +328,9 @@ UDP or WLAN will discover each other automatically (if they are in the
 vicinity of each other) using broadcasts (IPv4/WLAN) or multicasts
 (IPv6).
 
-The local node is started using "gnunet-arm -s".  GNUnet should run
-24/7 if you want to maximize your anonymity, as this makes partitioning
-attacks harder.
+The local node is started using "gnunet-arm -s".  We recommend to run
+GNUnet 24/7 if you want to maximize your anonymity, as this makes
+partitioning attacks harder.
 
 Once your peer is running, you should then be able to access GNUnet
 using the shell:
@@ -233,42 +347,47 @@ together with a description.  To publish files on GNUnet, use the
 "gnunet-publish" command.
 
 
-The GTK user interface is shipped separately.  After downloading and
-installing gnunet-gtk, you can invoke the setup tool and the
-file-sharing GUI with:
+The GTK+ (or: Gimp Toolkit) user interface is shipped separately.
+After installing gnunet-gtk, you can invoke the setup tool and
+the file-sharing GUI with:
 
 $ gnunet-setup
 $ gnunet-fs-gtk
 
-For further documentation, see our webpage.
+For further documentation, see our webpage or the 'GNUnet User Handbook',
+included in this software distribution.
 
 
 Hacking GNUnet
 ==============
 
-Contributions are welcome, please submit bugs to
-https://gnunet.org/bugs/.  Please make sure to run contrib/report.sh
+Contributions are welcome. Please submit bugs you find to
+https://gnunet.org/bugs/.
+Please make sure to run the script "contrib/scripts/gnunet-bugreport"
 and include the output with your bug reports.  More about how to
 report bugs can be found in the GNUnet FAQ on the webpage.  Submit
-patches via E-Mail to gnunet-developers@gnu.org.
+patches via E-Mail to gnunet-developers@gnu.org, formated with
+`git format-patch`.
 
-In order to run the unit tests with by hand (instead of using
-"make check"), you need to
-set an environment variable ("GNUNET_PREFIX") to the directory
-where GNUnet's libraries are installed.
-Also, before running any testcases, you must
-complete the installation first.  Quick summary:
+In order to run the unit tests by hand (instead of using "make check"),
+you need to set the environment variable "GNUNET_PREFIX" to the
+directory where GNUnet's libraries are installed.
+Before running any testcases, you must complete the installation.
+
+Quick summary:
 
 $ ./configure --prefix=$SOMEWHERE
 $ make
 $ make install
+$ export $GNUNET_PREFIX=$SOMEWHERE
 $ make check
 
-Some of the testcases require python >= 2.6 (+ the python module "futures")
-and pexpect to be installed.  If any testcases fail to pass on your system, run
-"contrib/scripts/report.sh" (in the repository) or "gnunet-bugreport"
-when you already have GNUnet installed and report the output together with
-information about the failing testcase to the Mantis bugtracking
+Some of the testcases require python >= 2.7, and the python modules
+"python-future" (http://python-future.org/) and "pexpect" to be installed.
+If any testcases fail to pass on your system, run
+"contrib/scripts/gnunet-bugreport" (in the repository) or "gnunet-bugreport"
+when you already have GNUnet installed and report its output together with
+information about the failing testcase(s) to the Mantis bugtracking
 system at https://gnunet.org/bugs/.
 
 
