@@ -600,6 +600,8 @@ static int
 check_client_audio_message (void *cls,
                             const struct ClientAudioMessage *msg)
 {
+  (void) cls;
+  (void) msg;
   return GNUNET_OK;
 }
 
@@ -766,6 +768,7 @@ handle_cadet_hangup_message (void *cls,
   enum ChannelStatus status;
   uint32_t cid;
 
+  (void) message;
   GNUNET_CADET_receive_done (ch->channel);
   cid = ch->cid;
   status = ch->status;
@@ -811,6 +814,7 @@ handle_cadet_pickup_message (void *cls,
   struct GNUNET_MQ_Envelope *env;
   struct ClientPhonePickedupMessage *pick;
 
+  (void) message;
   GNUNET_CADET_receive_done (ch->channel);
   switch (ch->status)
   {
@@ -860,6 +864,7 @@ handle_cadet_suspend_message (void *cls,
   struct GNUNET_MQ_Envelope *env;
   struct ClientPhoneSuspendMessage *suspend;
 
+  (void) message;
   GNUNET_CADET_receive_done (ch->channel);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Suspending channel CID: %u\n",
@@ -909,6 +914,7 @@ handle_cadet_resume_message (void *cls,
   struct GNUNET_MQ_Envelope *env;
   struct ClientPhoneResumeMessage *resume;
 
+  (void) msg;
   line = ch->line;
   GNUNET_CADET_receive_done (ch->channel);
   if (GNUNET_YES != ch->suspended_remote)
@@ -959,6 +965,8 @@ static int
 check_cadet_audio_message (void *cls,
                            const struct CadetAudioMessage *msg)
 {
+  (void) cls;
+  (void) msg;
   return GNUNET_OK; /* any payload is fine */
 }
 
@@ -1147,6 +1155,7 @@ inbound_channel (void *cls,
   struct Line *line = cls;
   struct Channel *ch;
 
+  (void) initiator;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Received incoming cadet channel on line %p\n",
               line);
@@ -1178,6 +1187,7 @@ client_connect_cb (void *cls,
 {
   struct Line *line;
 
+  (void) cls;
   line = GNUNET_new (struct Line);
   line->client = client;
   line->mq = mq;
@@ -1198,9 +1208,10 @@ client_disconnect_cb (void *cls,
                       void *app_ctx)
 {
   struct Line *line = app_ctx;
-  struct Channel *ch;
   struct Channel *chn;
 
+  (void) cls;
+  (void) client;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Client disconnected, closing line\n");
   if (NULL != line->port)
@@ -1208,7 +1219,7 @@ client_disconnect_cb (void *cls,
     GNUNET_CADET_close_port (line->port);
     line->port = NULL;
   }
-  for (ch = line->channel_head; NULL != ch; ch = chn)
+  for (struct Channel *ch = line->channel_head; NULL != ch; ch = chn)
   {
     chn = ch->next;
     ch->line = NULL;
@@ -1285,6 +1296,7 @@ handle_client_register_message (void *cls,
 static void
 do_shutdown (void *cls)
 {
+  (void) cls;
   if (NULL != cadet)
   {
     GNUNET_CADET_disconnect (cadet);
@@ -1305,6 +1317,8 @@ run (void *cls,
      const struct GNUNET_CONFIGURATION_Handle *c,
      struct GNUNET_SERVICE_Handle *service)
 {
+  (void) cls;
+  (void) service;
   cfg = c;
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_CRYPTO_get_peer_identity (cfg,

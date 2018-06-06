@@ -97,6 +97,7 @@ do_shutdown (void *cls)
 {
   struct Recording *rec;
 
+  (void) cls;
   if (NULL != switch_task)
     GNUNET_SCHEDULER_cancel (switch_task);
   if (NULL != microphone)
@@ -123,8 +124,7 @@ do_shutdown (void *cls)
 static void
 switch_to_speaker (void *cls)
 {
-  struct Recording *rec;
-
+  (void) cls;
   switch_task = NULL;
   microphone->disable_microphone (microphone->cls);
   if (GNUNET_OK !=
@@ -138,7 +138,7 @@ switch_to_speaker (void *cls)
   }
   fprintf (stderr,
 	   _("\nWe are now playing your recording back.  If you can hear it, your audio settings are working..."));
-  for (rec=rec_head; NULL != rec; rec = rec->next)
+  for (struct Recording *rec=rec_head; NULL != rec; rec = rec->next)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		"Replaying %u bytes\n",
@@ -168,6 +168,7 @@ record (void *cls,
 {
   struct Recording *rec;
 
+  (void) cls;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Recorded %u bytes\n",
 	      (unsigned int) data_size);
@@ -189,9 +190,14 @@ record (void *cls,
  * @param cfg configuration
  */
 static void
-run (void *cls, char *const *args, const char *cfgfile,
+run (void *cls,
+     char *const *args,
+     const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
+  (void) cls;
+  (void) args;
+  (void) cfgfile;
   microphone = GNUNET_MICROPHONE_create_from_hardware (cfg);
   GNUNET_assert (NULL != microphone);
   speaker = GNUNET_SPEAKER_create_from_hardware (cfg);
@@ -225,17 +231,24 @@ run (void *cls, char *const *args, const char *cfgfile,
  * @return 0 ok, 1 on error
  */
 int
-main (int argc, char *const *argv)
+main (int argc,
+      char *const *argv)
 {
   static const struct GNUNET_GETOPT_CommandLineOption options[] = {
     GNUNET_GETOPT_OPTION_END
   };
-  if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args (argc, argv, &argc, &argv))
+  
+  if (GNUNET_OK !=
+      GNUNET_STRINGS_get_utf8_args (argc, argv,
+				    &argc, &argv))
     return 2;
 
   ret = (GNUNET_OK ==
-	 GNUNET_PROGRAM_run (argc, argv, "gnunet-conversation-test",
-			     gettext_noop ("help text"), options, &run,
+	 GNUNET_PROGRAM_run (argc, argv,
+			     "gnunet-conversation-test",
+			     gettext_noop ("help text"),
+			     options,
+			     &run,
 			     NULL)) ? ret : 1;
   GNUNET_free ((void*) argv);
   return ret;

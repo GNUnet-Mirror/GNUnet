@@ -144,17 +144,22 @@ process_header (ogg_packet *op)
   OpusDecoder *dec;
   struct OpusHeadPacket header;
 
-  if (op->bytes < sizeof (header))
+  if ( ((unsigned int) op->bytes) < sizeof (header))
     return NULL;
-  GNUNET_memcpy (&header, op->packet, sizeof (header));
+  GNUNET_memcpy (&header,
+		 op->packet,
+		 sizeof (header));
   header.preskip = GNUNET_le16toh (header.preskip);
   header.sampling_rate = GNUNET_le32toh (header.sampling_rate);
   header.gain = GNUNET_le16toh (header.gain);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Header: v%u, %u-ch, skip %u, %uHz, %u gain\n",
-               header.version, header.channels, header.preskip, header.sampling_rate, header.gain);
-
+	      header.version,
+	      header.channels,
+	      header.preskip,
+	      header.sampling_rate,
+	      header.gain);
   channels = header.channels;
   preskip = header.preskip;
 
@@ -333,7 +338,8 @@ audio_write (int64_t maxout)
 static void
 quit (int ret)
 {
-  mainloop_api->quit (mainloop_api, ret);
+  mainloop_api->quit (mainloop_api,
+		      ret);
   exit (ret);
 }
 
@@ -539,6 +545,7 @@ ogg_demux_and_decode ()
   }
 }
 
+
 /**
  * Message callback
  *
@@ -555,6 +562,7 @@ stdin_receiver (void *cls,
   char *data;
   size_t payload_len;
 
+  (void) cls;
   switch (ntohs (msg->type))
   {
   case GNUNET_MESSAGE_TYPE_CONVERSATION_AUDIO:
@@ -585,6 +593,9 @@ stream_write_callback (pa_stream *s,
 		       void *userdata)
 {
   /* unblock 'main' */
+  (void) userdata;
+  (void) length;
+  (void) s;
   if (-1 != ready_pipe[1])
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -603,6 +614,10 @@ exit_signal_callback (pa_mainloop_api *m,
                       int sig,
 		      void *userdata)
 {
+  (void) m;
+  (void) e;
+  (void) sig;
+  (void) userdata;
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 	      _("gnunet-helper-audio-playback - Got signal, exiting\n"));
   quit (1);
@@ -618,6 +633,7 @@ context_state_callback (pa_context *c,
 {
   int p;
 
+  (void) userdata;
   GNUNET_assert (NULL != c);
   switch (pa_context_get_state (c))
   {
@@ -730,7 +746,11 @@ ogg_init ()
 static void
 drain_callback (pa_stream*s, int success, void *userdata)
 {
-  pa_threaded_mainloop_signal (m, 0);
+  (void) s;
+  (void) success;
+  (void) userdata;
+  pa_threaded_mainloop_signal (m,
+			       0);
 }
 
 
@@ -745,7 +765,6 @@ int
 main (int argc, char *argv[])
 {
   static unsigned long long toff;
-
   char readbuf[MAXLINE];
   struct GNUNET_MessageStreamTokenizer *stdin_mst;
   char c;
@@ -754,6 +773,8 @@ main (int argc, char *argv[])
   int read_pure_ogg = getenv ("GNUNET_READ_PURE_OGG") ? 1 : 0;
 #endif
 
+  (void) argc;
+  (void) argv;
   GNUNET_assert (GNUNET_OK ==
 		 GNUNET_log_setup ("gnunet-helper-audio-playback",
 				   "WARNING",
@@ -778,7 +799,9 @@ main (int argc, char *argv[])
 #endif
   while (1)
   {
-    ret = read (0, readbuf, sizeof (readbuf));
+    ret = read (STDIN_FILENO,
+		readbuf,
+		sizeof (readbuf));
     toff += ret;
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		"Received %d bytes of audio data (total: %llu)\n",

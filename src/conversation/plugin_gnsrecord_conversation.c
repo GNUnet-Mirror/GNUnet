@@ -46,6 +46,7 @@ conversation_value_to_string (void *cls,
 {
   char *s;
 
+  (void) cls;
   switch (type)
   {
   case GNUNET_GNSRECORD_TYPE_PHONE:
@@ -103,6 +104,7 @@ conversation_string_to_value (void *cls,
                               void **data,
                               size_t *data_size)
 {
+  (void) cls;
   if (NULL == s)
   {
     GNUNET_break (0);
@@ -181,6 +183,7 @@ conversation_typename_to_number (void *cls,
 {
   unsigned int i;
 
+  (void) cls;
   i=0;
   while ( (name_map[i].name != NULL) &&
 	  (0 != strcasecmp (gns_typename, name_map[i].name)) )
@@ -202,6 +205,7 @@ conversation_number_to_typename (void *cls,
 {
   unsigned int i;
 
+  (void) cls;
   i=0;
   while ( (name_map[i].name != NULL) &&
 	  (type != name_map[i].number) )
@@ -221,6 +225,7 @@ libgnunet_plugin_gnsrecord_conversation_init (void *cls)
 {
   struct GNUNET_GNSRECORD_PluginFunctions *api;
 
+  (void) cls;
   api = GNUNET_new (struct GNUNET_GNSRECORD_PluginFunctions);
   api->value_to_string = &conversation_value_to_string;
   api->string_to_value = &conversation_string_to_value;
