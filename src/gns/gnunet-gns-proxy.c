@@ -1965,11 +1965,15 @@ create_response (void *cls,
         us = MHD_lookup_connection_value (con,
                                           MHD_HEADER_KIND,
                                           MHD_HTTP_HEADER_CONTENT_LENGTH);
-        if ( (1 == sscanf (us,
+        if ( (NULL != us) && (1 == sscanf (us,
                            "%ld",
                            &upload_size)) &&
              (upload_size >= 0) )
         {
+          curl_easy_setopt (s5r->curl,
+                            CURLOPT_INFILESIZE,
+                            upload_size);
+        } else {
           curl_easy_setopt (s5r->curl,
                             CURLOPT_INFILESIZE,
                             upload_size);
