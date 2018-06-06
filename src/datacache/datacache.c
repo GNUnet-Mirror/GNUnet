@@ -311,7 +311,8 @@ GNUNET_DATACACHE_put (struct GNUNET_DATACACHE_Handle *h,
                             1,
                             GNUNET_NO);
   while (h->utilization + used > h->env.quota)
-    GNUNET_assert (GNUNET_OK == h->api->del (h->api->cls));
+    GNUNET_assert (GNUNET_OK ==
+		   h->api->del (h->api->cls));
   h->utilization += used;
   return GNUNET_OK;
 }
