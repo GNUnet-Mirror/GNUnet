@@ -96,23 +96,23 @@ init_connection (struct Plugin *plugin)
 #define RESULT_COLUMNS "repl, type, prio, anonLevel, expire, hash, value, oid"
   struct GNUNET_PQ_PreparedStatement ps[] = {
     GNUNET_PQ_make_prepare ("get",
-                            "SELECT " RESULT_COLUMNS " FROM gn090 "
-                            "WHERE oid >= $1::bigint AND "
-                            "(rvalue >= $2 OR 0 = $3::smallint) AND "
-                            "(hash = $4 OR 0 = $5::smallint) AND "
-                            "(type = $6 OR 0 = $7::smallint) "
-                            "ORDER BY oid ASC LIMIT 1",
+                            "SELECT " RESULT_COLUMNS " FROM gn090"
+                            " WHERE oid >= $1::bigint AND"
+                            " (rvalue >= $2 OR 0 = $3::smallint) AND"
+                            " (hash = $4 OR 0 = $5::smallint) AND"
+                            " (type = $6 OR 0 = $7::smallint)"
+                            " ORDER BY oid ASC LIMIT 1",
                             7),
     GNUNET_PQ_make_prepare ("put",
                             "INSERT INTO gn090 (repl, type, prio, anonLevel, expire, rvalue, hash, vhash, value) "
                             "VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
                             9),
     GNUNET_PQ_make_prepare ("update",
-                            "UPDATE gn090 "
-                            "SET prio = prio + $1, "
-                            "repl = repl + $2, "
-                            "expire = GREATEST(expire, $3) "
-                            "WHERE hash = $4 AND vhash = $5",
+                            "UPDATE gn090"
+                            " SET prio = prio + $1,"
+                            " repl = repl + $2,"
+                            " expire = GREATEST(expire, $3)"
+                            " WHERE hash = $4 AND vhash = $5",
                             5),
     GNUNET_PQ_make_prepare ("decrepl",
                             "UPDATE gn090 SET repl = GREATEST (repl - 1, 0) "
@@ -136,11 +136,13 @@ init_connection (struct Plugin *plugin)
                             "ORDER BY repl DESC,RANDOM() LIMIT 1",
                             0),
     GNUNET_PQ_make_prepare ("delrow",
-                            "DELETE FROM gn090 " "WHERE oid=$1",
+                            "DELETE FROM gn090 "
+			    "WHERE oid=$1",
                             1),
-    GNUNET_PQ_make_prepare ("remove", "DELETE FROM gn090 "
-                            "WHERE hash = $1 AND "
-                            "value = $2",
+    GNUNET_PQ_make_prepare ("remove",
+			    "DELETE FROM gn090"
+                            " WHERE hash = $1 AND"
+                            " value = $2",
                             2),
     GNUNET_PQ_make_prepare ("get_keys",
                             "SELECT hash FROM gn090",

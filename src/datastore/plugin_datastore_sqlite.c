@@ -704,12 +704,16 @@ sqlite_plugin_put (void *cls,
     break;
   case SQLITE_BUSY:
     GNUNET_break (0);
-    LOG_SQLITE_MSG (plugin, &msg, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+    LOG_SQLITE_MSG (plugin,
+		    &msg,
+		    GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
                     "sqlite3_step");
     ret = GNUNET_SYSERR;
     break;
   default:
-    LOG_SQLITE_MSG (plugin, &msg, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+    LOG_SQLITE_MSG (plugin,
+		    &msg,
+		    GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
                     "sqlite3_step");
     GNUNET_SQ_reset (plugin->dbh,
                      stmt);
