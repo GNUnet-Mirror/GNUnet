@@ -2098,6 +2098,22 @@ pre_profiler (struct RPSPeer *rps_peer, struct GNUNET_RPS_Handle *h)
 
 void write_final_stats (void){
   uint32_t i;
+  uint64_t sum_rounds        = 0;
+  uint64_t sum_blocks        = 0;
+  uint64_t sum_b_mpush       = 0;
+  uint64_t sum_b_npush       = 0;
+  uint64_t sum_b_npull       = 0;
+  uint64_t sum_b_mpush_npull = 0;
+  uint64_t sum_b_npush_npull = 0;
+  uint64_t sum_iss_push      = 0;
+  uint64_t sum_iss_pull_req  = 0;
+  uint64_t sum_iss_pull_rep  = 0;
+  uint64_t sum_sent_push     = 0;
+  uint64_t sum_sent_pull_req = 0;
+  uint64_t sum_sent_pull_rep = 0;
+  uint64_t sum_recv_push     = 0;
+  uint64_t sum_recv_pull_req = 0;
+  uint64_t sum_recv_pull_rep = 0;
 
   for (i = 0; i < num_peers; i++)
   {
@@ -2127,7 +2143,46 @@ void write_final_stats (void){
              rps_peers[i].num_recv_push,
              rps_peers[i].num_recv_pull_req,
              rps_peers[i].num_recv_pull_rep);
+    sum_rounds        += rps_peers[i].num_rounds;
+    sum_blocks        += rps_peers[i].num_blocks;
+    sum_b_mpush       += rps_peers[i].num_blocks_many_push;
+    sum_b_npush       += rps_peers[i].num_blocks_no_push;
+    sum_b_npull       += rps_peers[i].num_blocks_no_pull;
+    sum_b_mpush_npull += rps_peers[i].num_blocks_many_push_no_pull;
+    sum_b_npush_npull += rps_peers[i].num_blocks_no_push_no_pull;
+    sum_iss_push      += rps_peers[i].num_issued_push;
+    sum_iss_pull_req  += rps_peers[i].num_issued_pull_req;
+    sum_iss_pull_rep  += rps_peers[i].num_issued_pull_rep;
+    sum_sent_push     += rps_peers[i].num_sent_push;
+    sum_sent_pull_req += rps_peers[i].num_sent_pull_req;
+    sum_sent_pull_rep += rps_peers[i].num_sent_pull_rep;
+    sum_recv_push     += rps_peers[i].num_recv_push;
+    sum_recv_pull_req += rps_peers[i].num_recv_pull_req;
+    sum_recv_pull_rep += rps_peers[i].num_recv_pull_rep;
   }
+  to_file ("/tmp/rps/final_stats.dat",
+           "SUM %"
+           PRIu64 " %" /* rounds */
+           PRIu64 " %" PRIu64 " %" PRIu64 " %" PRIu64 " %" PRIu64 " %" PRIu64 " %" /* blocking */
+           PRIu64 " %" PRIu64 " %" PRIu64 " %" /* issued */
+           PRIu64 " %" PRIu64 " %" PRIu64 " %" /* sent */
+           PRIu64 " %" PRIu64 " %" PRIu64 /* recv */,
+           sum_rounds,
+           sum_blocks,
+           sum_b_mpush,
+           sum_b_npush,
+           sum_b_npull,
+           sum_b_mpush_npull,
+           sum_b_npush_npull,
+           sum_iss_push,
+           sum_iss_pull_req,
+           sum_iss_pull_rep,
+           sum_sent_push,
+           sum_sent_pull_req,
+           sum_sent_pull_rep,
+           sum_recv_push,
+           sum_recv_pull_req,
+           sum_recv_pull_rep);
 }
 
 /**
