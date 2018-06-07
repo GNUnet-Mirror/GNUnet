@@ -72,12 +72,28 @@ print_option (void *cls,
 	      const char *option,
 	      const char *value)
 {
-  (void) cls;
   (void) section;
-  fprintf (stdout,
-	   "%s = %s\n",
-	   option,
-	   value);
+  const struct GNUNET_CONFIGURATION_Handle *cfg = cls;
+  char *value_fn;
+  if (is_filename)
+  {
+    GNUNET_assert (GNUNET_OK ==
+        GNUNET_CONFIGURATION_get_value_filename (cfg,
+                                                 section,
+                                                 option,
+                                                 &value_fn));
+    fprintf (stdout,
+       "%s = %s\n",
+       option,
+       GNUNET_STRINGS_filename_expand (value_fn));
+  }
+  else
+  {
+    fprintf (stdout,
+       "%s = %s\n",
+       option,
+       value);
+  }
 }
 
 
@@ -156,8 +172,8 @@ run (void *cls,
     {
       GNUNET_CONFIGURATION_iterate_section_values (cfg,
                                                    section,
-						   &print_option,
-                                                   NULL);
+                                                  &print_option,
+                                                   (void *) cfg);
     }
     else
     {
