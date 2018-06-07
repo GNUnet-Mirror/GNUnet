@@ -44,6 +44,15 @@
 
 
 /**
+ * FIXME: GnuTLS right now sometimes rejects valid certs, so as a
+ * VERY temporary workaround we just WARN the user instead of 
+ * dropping the page.  THIS SHOULD NOT BE USED IN PRODUCTION,
+ * set to 1 in production!!! FIXME!!!
+ */
+#define FIXED_CERT_VALIDATION_BUG 0
+
+
+/**
  * Default Socks5 listen port.
  */
 #define GNUNET_GNS_PROXY_PORT 7777
@@ -685,6 +694,11 @@ static CURLM *curl_multi;
 static struct GNUNET_GNS_Handle *gns_handle;
 
 /**
+ * Disable IPv6.
+ */
+static int disable_v6;
+
+/**
  * DLL for http/https daemons
  */
 static struct MhdHttpList *mhd_httpd_head;
@@ -890,7 +904,7 @@ mhd_content_cb (void *cls,
     return MHD_CONTENT_READER_END_OF_STREAM;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Writing %llu/%llu bytes for %s%s\n",
+              "Writing %llu/%llu bytes to %s%s\n",
               (unsigned long long) bytes_to_copy,
               (unsigned long long) s5r->io_len,
 	      s5r->domain,
@@ -952,8 +966,10 @@ check_ssl_certificate (struct Socks5Request *s5r)
                 tlsinfo->backend);
     return GNUNET_SYSERR;
   }
-  chainp = gnutls_certificate_get_peers (tlsinfo->internals, &cert_list_size);
-  if ( (! chainp) || (0 == cert_list_size) )
+  chainp = gnutls_certificate_get_peers (tlsinfo->internals,
+					 &cert_list_size);
+  if ( (! chainp) ||
+       (0 == cert_list_size) )
     return GNUNET_SYSERR;
 
   size = sizeof (certdn);
@@ -1056,11 +1072,14 @@ check_ssl_certificate (struct Socks5Request *s5r)
                                                      name)))
       {
         GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                    _("TLS certificate subject name (%s) does not match `%s'\n"),
+                    _("TLS certificate subject name (%s) does not match `%s': %d\n"),
                     certdn,
-                    name);
+                    name,
+		    rc);
+#if FIXED_CERT_VALIDATION_BUG
         gnutls_x509_crt_deinit (x509_cert);
         return GNUNET_SYSERR;
+#endif
       }
     }
     else
@@ -1116,15 +1135,17 @@ curl_check_hdr (void *buffer,
     if (GNUNET_OK != check_ssl_certificate (s5r))
       return 0;
   }
-
-  ndup = GNUNET_strndup (buffer, bytes);
-  hdr_type = strtok (ndup, ":");
+  ndup = GNUNET_strndup (buffer,
+			 bytes);
+  hdr_type = strtok (ndup,
+		     ":");
   if (NULL == hdr_type)
   {
     GNUNET_free (ndup);
     return bytes;
   }
-  hdr_val = strtok (NULL, "");
+  hdr_val = strtok (NULL,
+		    "");
   if (NULL == hdr_val)
   {
     GNUNET_free (ndup);
@@ -1187,6 +1208,12 @@ curl_check_hdr (void *buffer,
   }
 
   new_location = NULL;
+  if (0 == strcasecmp (MHD_HTTP_HEADER_TRANSFER_ENCODING,
+		       hdr_type))
+  {
+    /* Ignore transfer encoding, set automatically by MHD if required */
+    goto cleanup;
+  }
   if (0 == strcasecmp (MHD_HTTP_HEADER_LOCATION,
 		       hdr_type))
   {
@@ -1232,6 +1259,7 @@ curl_check_hdr (void *buffer,
                                  s5r->header_tail,
                                  header);
   }
+ cleanup:
   GNUNET_free (ndup);
   GNUNET_free_non_null (new_cookie_hdr);
   GNUNET_free_non_null (new_location);
@@ -1761,7 +1789,7 @@ create_response (void *cls,
     return MHD_NO;
   }
   s5r->con = con;
-  //Fresh connection.
+  /* Fresh connection. */
   if (SOCKS5_SOCKET_WITH_MHD == s5r->state)
   {
     /* first time here, initialize curl handle */
@@ -2984,8 +3012,10 @@ handle_gns_result (void *cls,
           }
           if (GNUNET_YES == got_ip)
             break;
+          if (GNUNET_YES == disable_v6)
+            break;
           if (GNUNET_OK !=
-              GNUNET_NETWORK_test_pf (PF_INET))
+              GNUNET_NETWORK_test_pf (PF_INET6))
             break;
           /* FIXME: allow user to disable IPv6 per configuration option... */
           got_ip = GNUNET_YES;
@@ -3213,7 +3243,8 @@ do_s5r_read (void *cls)
             s5r->domain = GNUNET_strndup (dom_name,
                                           *dom_len);
             GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                        "Requested connection is to %s:%d\n",
+                        "Requested connection is to http%s://%s:%d\n",
+			(HTTPS_PORT == s5r->port) ? "s" : "",
                         s5r->domain,
                         ntohs (*port));
             s5r->state = SOCKS5_RESOLVING;
@@ -3653,6 +3684,10 @@ main (int argc,
                                  NULL,
                                  gettext_noop ("pem file to use as CA"),
                                  &cafile_opt),
+    GNUNET_GETOPT_option_flag ('6',
+			       "disable-ivp6",
+			       gettext_noop ("disable use of IPv6"),
+			       &disable_v6),
 
     GNUNET_GETOPT_OPTION_END
   };
