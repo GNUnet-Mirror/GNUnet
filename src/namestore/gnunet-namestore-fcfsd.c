@@ -1011,12 +1011,16 @@ identity_cb (void *cls,
 
   (void) cls;
   (void) ctx;
-  (void) name;
-  id_op = NULL;
+  if (NULL == name)
+    return;
+  if (0 != strcmp (name,
+		   zone))
+    return;
   if (NULL == ego)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 		_("No ego configured for `fcfsd` subsystem\n"));
+    GNUNET_SCHEDULER_shutdown ();
     return;
   }
   fcfs_zone_pkey = *GNUNET_IDENTITY_ego_get_private_key (ego);
@@ -1085,17 +1089,14 @@ run (void *cls,
       return;
     }
   identity = GNUNET_IDENTITY_connect (cfg,
-				      NULL, NULL);
+				      &identity_cb,
+				      NULL);
   if (NULL == identity)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 _("Failed to connect to identity\n"));
     return;
   }
-  id_op = GNUNET_IDENTITY_get (identity,
-			       zone,
-			       &identity_cb,
-			       NULL);
   GNUNET_SCHEDULER_add_shutdown (&do_shutdown,
 				 NULL);
 }
