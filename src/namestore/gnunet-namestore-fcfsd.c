@@ -268,7 +268,6 @@ zone_iteration_error (void *cls)
 
   zr->list_it = NULL;
   GNUNET_free (zr->zoneinfo);
-  GNUNET_free (zr);
   GNUNET_SCHEDULER_cancel (uzp_task);
   uzp_task = GNUNET_SCHEDULER_add_now (&update_zoneinfo_page,
 				       NULL);
@@ -301,7 +300,6 @@ zone_iteration_end (void *cls)
   MHD_destroy_response (info_page);
   info_page = response;
   GNUNET_free (zr->zoneinfo);
-  GNUNET_free (zr);
 }
 
 
