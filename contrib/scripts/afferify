@@ -82,6 +82,8 @@ if (0) {
 		print STDERR "\nTrying $name\t";
 		# There was a mistake in the replacement text!
 		return unless s#under the terms of the GNU General Public License as published#under the terms of the GNU Affero General Public License as published#;
+		# Don't apply this one twice!
+#		return unless s#(\n\W*)(\s+)(Affero General Public License for more details\.)#\1\2\3\1\1\2You should have received a copy of the GNU Affero General Public License\1\2along with this program.  If not, see <http://www.gnu.org/licenses/>.#;
 		print STDERR "FIXED";
 }
 
