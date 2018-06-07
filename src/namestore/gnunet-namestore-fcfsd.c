@@ -216,6 +216,11 @@ static struct GNUNET_IDENTITY_Operation *id_op;
  */
 static unsigned long long port;
 
+/**
+ * Name of the zone we manage.
+ */
+static char *zone;
+
 
 /**
  * Task run whenever HTTP server operations are pending.
@@ -629,14 +634,14 @@ lookup_block_error (void *cls)
  * and continue to process the result.
  *
  * @param cls the 'struct Request' we are processing
- * @param zone private key of the zone; NULL on disconnect
+ * @param zonekey private key of the zone; NULL on disconnect
  * @param label label of the records; NULL on disconnect
  * @param rd_count number of entries in @a rd array, 0 if label was deleted
  * @param rd array of records with data to store
  */
 static void
 lookup_block_processor (void *cls,
-                        const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone,
+                        const struct GNUNET_CRYPTO_EcdsaPrivateKey *zonekey,
                         const char *label,
                         unsigned int rd_count,
                         const struct GNUNET_GNSRECORD_Data *rd)
@@ -645,7 +650,7 @@ lookup_block_processor (void *cls,
 
   (void) label;
   (void) rd;
-  (void) zone;
+  (void) zonekey;
   request->qe = NULL;
   if (0 == rd_count)
   {
@@ -1087,9 +1092,12 @@ run (void *cls,
                 _("Failed to connect to identity\n"));
     return;
   }
-  id_op = GNUNET_IDENTITY_get (identity, "fcfsd",
-			       &identity_cb, NULL);
-  GNUNET_SCHEDULER_add_shutdown (&do_shutdown, NULL);
+  id_op = GNUNET_IDENTITY_get (identity,
+			       zone,
+			       &identity_cb,
+			       NULL);
+  GNUNET_SCHEDULER_add_shutdown (&do_shutdown,
+				 NULL);
 }
 
 
@@ -1104,7 +1112,13 @@ int
 main (int argc,
       char *const *argv)
 {
-  static const struct GNUNET_GETOPT_CommandLineOption options[] = {
+  struct GNUNET_GETOPT_CommandLineOption options[] = {
+    GNUNET_GETOPT_option_mandatory 
+    (GNUNET_GETOPT_option_string ('z',
+				  "zone",
+				  "EGO",
+				  gettext_noop ("name of the zone that is to be managed by FCFSD"),
+				  &zone)),
     GNUNET_GETOPT_OPTION_END
   };
   int ret;
