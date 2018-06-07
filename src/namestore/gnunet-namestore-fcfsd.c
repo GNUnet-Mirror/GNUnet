@@ -156,11 +156,6 @@ struct Request
 struct ZoneinfoRequest
 {
   /**
-   * Connection
-   */
-  struct MHD_Connection *connection;
-
-  /**
    * List iterator
    */
   struct GNUNET_NAMESTORE_ZoneIterator *list_it;
@@ -207,6 +202,16 @@ static struct GNUNET_CRYPTO_EcdsaPrivateKey fcfs_zone_pkey;
 static struct GNUNET_IDENTITY_Handle *identity;
 
 /**
+ * Zoneinfo page we currently use.
+ */
+static struct MHD_Response *info_page;
+
+/**
+ * Task that runs #update_zoneinfo_page peridicially.
+ */
+static struct GNUNET_SCHEDULER_Task *uzp_task;
+
+/**
  * Request for our ego.
  */
 static struct GNUNET_IDENTITY_Operation *id_op;
@@ -247,25 +252,26 @@ run_httpd_now ()
 
 
 /**
+ * Create fresh version of zone information.
+ */
+static void
+update_zoneinfo_page (void *cls);
+
+  
+/**
  * Function called on error in zone iteration.
  */
 static void
 zone_iteration_error (void *cls)
 {
   struct ZoneinfoRequest *zr = cls;
-  struct MHD_Response *response;
 
   zr->list_it = NULL;
-  response = MHD_create_response_from_buffer (strlen ("internal error"),
-					      (void *) "internal error",
-					      MHD_RESPMEM_PERSISTENT);
-  MHD_queue_response (zr->connection,
-                      MHD_HTTP_INTERNAL_SERVER_ERROR,
-                      response);
-  MHD_destroy_response (response);
   GNUNET_free (zr->zoneinfo);
   GNUNET_free (zr);
-  run_httpd_now ();
+  GNUNET_SCHEDULER_cancel (uzp_task);
+  uzp_task = GNUNET_SCHEDULER_add_now (&update_zoneinfo_page,
+				       NULL);
 }
 
 
@@ -292,13 +298,10 @@ zone_iteration_end (void *cls)
   MHD_add_response_header (response,
 			   MHD_HTTP_HEADER_CONTENT_TYPE,
 			   MIME_HTML);
-  MHD_queue_response (zr->connection,
-                      MHD_HTTP_OK,
-                      response);
-  MHD_destroy_response (response);
+  MHD_destroy_response (info_page);
+  info_page = response;
   GNUNET_free (zr->zoneinfo);
   GNUNET_free (zr);
-  run_httpd_now ();
 }
 
 
@@ -373,27 +376,41 @@ iterate_cb (void *cls,
  * Handler that returns FCFS zoneinfo page.
  *
  * @param connection connection to use
- * @return MHD_YES on success
  */
-static int
+static int 
 serve_zoneinfo_page (struct MHD_Connection *connection)
 {
-  struct ZoneinfoRequest *zr;
+  return MHD_queue_response (connection,
+			     MHD_HTTP_OK,
+			     info_page);
+}
 
-  zr = GNUNET_new (struct ZoneinfoRequest);
-  zr->zoneinfo = GNUNET_malloc (DEFAULT_ZONEINFO_BUFSIZE);
-  zr->buf_len = DEFAULT_ZONEINFO_BUFSIZE;
-  zr->connection = connection;
-  zr->write_offset = 0;
-  zr->list_it = GNUNET_NAMESTORE_zone_iteration_start (ns,
-						       &fcfs_zone_pkey,
-                                                       &zone_iteration_error,
-                                                       zr,
-						       &iterate_cb,
-						       zr,
-                                                       &zone_iteration_end,
-                                                       zr);
-  return MHD_YES;
+
+/**
+ * Create fresh version of zone information.
+ */
+static void
+update_zoneinfo_page (void *cls)
+{  
+  static struct ZoneinfoRequest zr;
+
+  (void) cls;
+  uzp_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_MINUTES,
+					   &update_zoneinfo_page,
+					   NULL);
+  if (NULL != zr.list_it)
+    return;  
+  zr.zoneinfo = GNUNET_malloc (DEFAULT_ZONEINFO_BUFSIZE);
+  zr.buf_len = DEFAULT_ZONEINFO_BUFSIZE;
+  zr.write_offset = 0;
+  zr.list_it = GNUNET_NAMESTORE_zone_iteration_start (ns,
+						      &fcfs_zone_pkey,
+						      &zone_iteration_error,
+						      &zr,
+						      &iterate_cb,
+						      &zr,
+						      &zone_iteration_end,
+						      &zr);
 }
 
 
@@ -401,7 +418,7 @@ serve_zoneinfo_page (struct MHD_Connection *connection)
  * Handler that returns a simple static HTTP page.
  *
  * @param connection connection to use
- * @return MHD_YES on success
+ * @return #MHD_YES on success
  */
 static int
 serve_main_page (struct MHD_Connection *connection)
@@ -703,8 +720,8 @@ lookup_block_processor (void *cls,
  *        @a upload_data provided; the method must update this
  *        value to the number of bytes NOT processed;
  * @param ptr pointer to location where we store the 'struct Request'
- * @return MHD_YES if the connection was handled successfully,
- *         MHD_NO if the socket must be closed due to a serious
+ * @return #MHD_YES if the connection was handled successfully,
+ *         #MHD_NO if the socket must be closed due to a serious
  *         error while handling the request
  */
 static int
@@ -959,6 +976,11 @@ do_shutdown (void *cls)
     GNUNET_SCHEDULER_cancel (httpd_task);
     httpd_task = NULL;
   }
+  if (NULL != uzp_task)
+  {
+    GNUNET_SCHEDULER_cancel (uzp_task);
+    uzp_task = NULL;
+  }
   if (NULL != ns)
   {
     GNUNET_NAMESTORE_disconnect (ns);
@@ -1045,6 +1067,7 @@ identity_cb (void *cls,
   while (NULL == httpd);
   if (NULL == httpd)
   {
+
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 		_("Failed to start HTTP server\n"));
     GNUNET_SCHEDULER_shutdown ();
@@ -1097,6 +1120,8 @@ run (void *cls,
                 _("Failed to connect to identity\n"));
     return;
   }
+  uzp_task = GNUNET_SCHEDULER_add_now (&update_zoneinfo_page,
+				       NULL);
   GNUNET_SCHEDULER_add_shutdown (&do_shutdown,
 				 NULL);
 }
