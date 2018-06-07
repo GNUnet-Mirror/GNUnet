@@ -107,6 +107,53 @@ to_file_ (const char *file_name, char *line)
          "Unable to close file\n");
 }
 
+void
+to_file_raw (const char *file_name, void *buf, size_t size_buf)
+{
+  struct GNUNET_DISK_FileHandle *f;
+  size_t size2;
+
+
+  if (NULL == (f = GNUNET_DISK_file_open (file_name,
+                                          GNUNET_DISK_OPEN_APPEND |
+                                          GNUNET_DISK_OPEN_WRITE |
+                                          GNUNET_DISK_OPEN_CREATE,
+                                          GNUNET_DISK_PERM_USER_READ |
+                                          GNUNET_DISK_PERM_USER_WRITE |
+                                          GNUNET_DISK_PERM_GROUP_READ |
+                                          GNUNET_DISK_PERM_OTHER_READ)))
+  {
+    LOG (GNUNET_ERROR_TYPE_WARNING,
+         "Not able to open file %s\n",
+         file_name);
+    return;
+  }
+
+  size2 = GNUNET_DISK_file_write (f, buf, size_buf);
+  if (size_buf != size2)
+  {
+    LOG (GNUNET_ERROR_TYPE_WARNING,
+         "Unable to write to file! (Size: %u, size2: %u)\n",
+         size_buf,
+         size2);
+
+    if (GNUNET_YES != GNUNET_DISK_file_close (f))
+      LOG (GNUNET_ERROR_TYPE_WARNING,
+           "Unable to close file\n");
+
+    return;
+  }
+
+  //if (512 < size_buf)
+  //{
+  //  GNUNET_free (output_buffer_p);
+  //}
+
+  //if (GNUNET_YES != GNUNET_DISK_file_close (f))
+  //  LOG (GNUNET_ERROR_TYPE_WARNING,
+  //       "Unable to close file\n");
+}
+
 char *
 auth_key_to_string (struct GNUNET_CRYPTO_AuthKey auth_key)
 {

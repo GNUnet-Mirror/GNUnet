@@ -141,7 +141,12 @@ test_rps_seed_big_LDADD = $(ld_rps_test_lib)
 test_rps_churn_SOURCES = $(rps_test_src)
 test_rps_churn_LDADD = $(ld_rps_test_lib)
 
-gnunet_rps_profiler_SOURCES = $(rps_test_src)
+gnunet_rps_profiler_SOURCES = \
+ gnunet-service-rps_sampler_elem.h gnunet-service-rps_sampler_elem.c \
+ rps-test_util.h rps-test_util.c \
+ gnunet-rps-profiler.c
+
+
 gnunet_rps_profiler_LDADD = \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   libgnunetrps.la \
