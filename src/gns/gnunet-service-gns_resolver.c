@@ -368,6 +368,12 @@ struct GNS_ResolverHandle
   char *name;
 
   /**
+   * Legacy Hostname to use if we encountered GNS2DNS record
+   * and thus can deduct the LEHO from that transition.
+   */
+  char *leho;
+  
+  /**
    * DLL of results we got from DNS.
    */
   struct DnsResult *dns_result_head;
@@ -960,6 +966,12 @@ dns_result_parser (void *cls,
       af = AF_UNSPEC;
       break;
     }
+    if (NULL != rh->leho)
+      add_dns_result (rh,
+		      GNUNET_TIME_UNIT_HOURS.rel_value_us,
+		      GNUNET_GNSRECORD_TYPE_LEHO,
+		      strlen (rh->leho),
+		      rh->leho);
     rh->std_resolve = GNUNET_RESOLVER_ip_get (rh->name,
                                               af,
                                               DNS_LOOKUP_TIMEOUT,
@@ -974,8 +986,8 @@ dns_result_parser (void *cls,
   /* convert from (parsed) DNS to (binary) GNS format! */
   rd_count = p->num_answers + p->num_authority_records + p->num_additional_records;
   {
-    struct GNUNET_GNSRECORD_Data rd[rd_count];
-    unsigned int skip;
+    struct GNUNET_GNSRECORD_Data rd[rd_count + 1]; /* +1 for LEHO */
+    int skip;
     char buf[UINT16_MAX];
     size_t buf_off;
     size_t buf_start;
@@ -1099,11 +1111,23 @@ dns_result_parser (void *cls,
 	skip++;
 	continue;
       }
+    } /* end of for all records in answer */
+    if (NULL != rh->leho)
+    {
+      rd[rd_count - skip].record_type = GNUNET_GNSRECORD_TYPE_LEHO;
+      rd[rd_count - skip].flags = GNUNET_GNSRECORD_RF_RELATIVE_EXPIRATION;
+      rd[rd_count - skip].expiration_time = GNUNET_TIME_UNIT_HOURS.rel_value_us;
+      rd[rd_count - skip].data = rh->leho;
+      rd[rd_count - skip].data_size = strlen (rh->leho);
+      skip--; /* skip one LESS */
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Adding LEHO %s\n",
+		  rh->leho);
     }
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Returning DNS response for `%s' with %u answers\n",
                 rh->ac_tail->label,
-                (unsigned int) p->num_answers);
+                (unsigned int) (rd_count - skip));
     rh->proc (rh->proc_cls,
               rd_count - skip,
               rd);
@@ -1172,6 +1196,7 @@ recursive_dns_resolution (struct GNS_ResolverHandle *rh)
     rh->original_dns_id = p->id;
     GNUNET_assert (NULL != ac->authority_info.dns_authority.dns_handle);
     GNUNET_assert (NULL == rh->dns_request);
+    rh->leho = GNUNET_strdup (ac->label);
     rh->dns_request = GNUNET_DNSSTUB_resolve (ac->authority_info.dns_authority.dns_handle,
 					      dns_request,
 					      dns_request_length,
@@ -2830,6 +2855,7 @@ GNS_resolver_lookup_cancel (struct GNS_ResolverHandle *rh)
 				 dr);
     GNUNET_free (dr);
   }
+  GNUNET_free_non_null (rh->leho);
   GNUNET_free (rh->name);
   GNUNET_free (rh);
 }
