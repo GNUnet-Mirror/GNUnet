@@ -34,6 +34,8 @@
 #include <inttypes.h>
 
 
+#define BIT(n) (1 << (n))
+
 /**
  * How many peers do we start?
  */
@@ -66,6 +68,163 @@ static unsigned int mal_type = 0;
  * Handles to all of the running peers
  */
 static struct GNUNET_TESTBED_Peer **testbed_peers;
+
+enum STAT_TYPE
+{
+  STAT_TYPE_ROUNDS,                   /*   0 */
+  STAT_TYPE_BLOCKS,                   /*   1 */
+  STAT_TYPE_BLOCKS_MANY_PUSH,         /*   2 */
+  STAT_TYPE_BLOCKS_NO_PUSH,           /*   3 */
+  STAT_TYPE_BLOCKS_NO_PULL,           /*   4 */
+  STAT_TYPE_BLOCKS_MANY_PUSH_NO_PULL, /*   5 */
+  STAT_TYPE_BLOCKS_NO_PUSH_NO_PULL,   /*   6 */
+  STAT_TYPE_ISSUED_PUSH_SEND,         /*   7 */
+  STAT_TYPE_ISSUED_PULL_REQ,          /*   8 */
+  STAT_TYPE_ISSUED_PULL_REP,          /*  9 */
+  STAT_TYPE_SENT_PUSH_SEND,           /*  10 */
+  STAT_TYPE_SENT_PULL_REQ,            /*  11 */
+  STAT_TYPE_SENT_PULL_REP,            /*  12 */
+  STAT_TYPE_RECV_PUSH_SEND,           /*  13 */
+  STAT_TYPE_RECV_PULL_REQ,            /*  14 */
+  STAT_TYPE_RECV_PULL_REP,            /*  15 */
+  STAT_TYPE_MAX,                      /*  16 */
+};
+
+struct STATcls
+{
+  struct RPSPeer *rps_peer;
+  enum STAT_TYPE stat_type;
+};
+
+
+/**
+ * @brief Converts string representation to the corresponding #STAT_TYPE enum.
+ *
+ * @param stat_str string representation of statistics specifier
+ *
+ * @return corresponding enum
+ */
+enum STAT_TYPE stat_str_2_type (const char *stat_str)
+{
+  if (0 == strncmp ("# rounds blocked - no pull replies", stat_str, strlen ("# rounds blocked - no pull replies")))
+  {
+    return STAT_TYPE_BLOCKS_NO_PULL;
+  }
+  else if (0 == strncmp ("# rounds blocked - too many pushes, no pull replies", stat_str, strlen ("# rounds blocked - too many pushes, no pull replies")))
+  {
+    return STAT_TYPE_BLOCKS_MANY_PUSH_NO_PULL;
+  }
+  else if (0 == strncmp ("# rounds blocked - too many pushes", stat_str, strlen ("# rounds blocked - too many pushes")))
+  {
+    return STAT_TYPE_BLOCKS_MANY_PUSH;
+  }
+  else if (0 == strncmp ("# rounds blocked - no pushes, no pull replies", stat_str, strlen ("# rounds blocked - no pushes, no pull replies")))
+  {
+    return STAT_TYPE_BLOCKS_NO_PUSH_NO_PULL;
+  }
+  else if (0 == strncmp ("# rounds blocked - no pushes", stat_str, strlen ("# rounds blocked - no pushes")))
+  {
+    return STAT_TYPE_BLOCKS_NO_PUSH;
+  }
+  else if (0 == strncmp ("# rounds blocked", stat_str, strlen ("# rounds blocked")))
+  {
+    return STAT_TYPE_BLOCKS;
+  }
+  else if (0 == strncmp ("# rounds", stat_str, strlen ("# rounds")))
+  {
+    return STAT_TYPE_ROUNDS;
+  }
+  else if (0 == strncmp ("# push send issued", stat_str, strlen ("# push send issued")))
+  {
+    return STAT_TYPE_ISSUED_PUSH_SEND;
+  }
+  else if (0 == strncmp ("# pull request send issued", stat_str, strlen ("# pull request send issued")))
+  {
+    return STAT_TYPE_ISSUED_PULL_REQ;
+  }
+  else if (0 == strncmp ("# pull reply send issued", stat_str, strlen ("# pull reply send issued")))
+  {
+    return STAT_TYPE_ISSUED_PULL_REP;
+  }
+  else if (0 == strncmp ("# pushes sent", stat_str, strlen ("# pushes sent")))
+  {
+    return STAT_TYPE_SENT_PUSH_SEND;
+  }
+  else if (0 == strncmp ("# pull requests sent", stat_str, strlen ("# pull requests sent")))
+  {
+    return STAT_TYPE_SENT_PULL_REQ;
+  }
+  else if (0 == strncmp ("# pull replys sent", stat_str, strlen ("# pull replys sent")))
+  {
+    return STAT_TYPE_SENT_PULL_REP;
+  }
+  else if (0 == strncmp ("# push message received", stat_str, strlen ("# push message received")))
+  {
+    return STAT_TYPE_RECV_PUSH_SEND;
+  }
+  else if (0 == strncmp ("# pull request message received", stat_str, strlen ("# pull request message received")))
+  {
+    return STAT_TYPE_RECV_PULL_REQ;
+  }
+  else if (0 == strncmp ("# pull reply messages received", stat_str, strlen ("# pull reply messages received")))
+  {
+    return STAT_TYPE_RECV_PULL_REP;
+  }
+  return STAT_TYPE_MAX;
+}
+
+
+/**
+ * @brief Converts #STAT_TYPE enum to the equivalent string representation that
+ * is stored with the statistics service.
+ *
+ * @param stat_type #STAT_TYPE enum
+ *
+ * @return string representation that matches statistics value
+ */
+char* stat_type_2_str (enum STAT_TYPE stat_type)
+{
+  switch (stat_type)
+  {
+    case STAT_TYPE_ROUNDS:
+      return "# rounds";
+    case STAT_TYPE_BLOCKS:
+      return "# rounds blocked";
+    case STAT_TYPE_BLOCKS_MANY_PUSH:
+      return "# rounds blocked - too many pushes";
+    case STAT_TYPE_BLOCKS_NO_PUSH:
+      return "# rounds blocked - no pushes";
+    case STAT_TYPE_BLOCKS_NO_PULL:
+      return "# rounds blocked - no pull replies";
+    case STAT_TYPE_BLOCKS_MANY_PUSH_NO_PULL:
+      return "# rounds blocked - too many pushes, no pull replies";
+    case STAT_TYPE_BLOCKS_NO_PUSH_NO_PULL:
+      return "# rounds blocked - no pushes, no pull replies";
+    case STAT_TYPE_ISSUED_PUSH_SEND:
+      return "# push send issued";
+    case STAT_TYPE_ISSUED_PULL_REQ:
+      return "# pull request send issued";
+    case STAT_TYPE_ISSUED_PULL_REP:
+      return "# pull reply send issued";
+    case STAT_TYPE_SENT_PUSH_SEND:
+      return "# pushes sent";
+    case STAT_TYPE_SENT_PULL_REQ:
+      return "# pull requests sent";
+    case STAT_TYPE_SENT_PULL_REP:
+      return "# pull replys sent";
+    case STAT_TYPE_RECV_PUSH_SEND:
+      return "# push message received";
+    case STAT_TYPE_RECV_PULL_REQ:
+      return "# pull request message received";
+    case STAT_TYPE_RECV_PULL_REP:
+      return "# pull reply messages received";
+    case STAT_TYPE_MAX:
+    default:
+      return "ERROR";
+      ;
+  }
+}
+
 
 /**
  * @brief Indicates whether peer should go off- or online
@@ -287,51 +446,8 @@ struct RPSPeer
   /**
    * @brief statistics values
    */
-  uint64_t num_rounds;
-  uint64_t num_blocks;
-  uint64_t num_blocks_many_push;
-  uint64_t num_blocks_no_push;
-  uint64_t num_blocks_no_pull;
-  uint64_t num_blocks_many_push_no_pull;
-  uint64_t num_blocks_no_push_no_pull;
-  uint64_t num_issued_push;
-  uint64_t num_issued_pull_req;
-  uint64_t num_issued_pull_rep;
-  uint64_t num_sent_push;
-  uint64_t num_sent_pull_req;
-  uint64_t num_sent_pull_rep;
-  uint64_t num_recv_push;
-  uint64_t num_recv_pull_req;
-  uint64_t num_recv_pull_rep;
+  uint64_t stats[STAT_TYPE_MAX];
 };
-
-enum STAT_TYPE
-{
-  STAT_TYPE_ROUNDS                    =    0x1, /*   1 */
-  STAT_TYPE_BLOCKS                    =    0x2, /*   2 */
-  STAT_TYPE_BLOCKS_MANY_PUSH          =    0x4, /*   3 */
-  STAT_TYPE_BLOCKS_NO_PUSH            =    0x8, /*   4 */
-  STAT_TYPE_BLOCKS_NO_PULL            =   0x10, /*   5 */
-  STAT_TYPE_BLOCKS_MANY_PUSH_NO_PULL  =   0x20, /*   6 */
-  STAT_TYPE_BLOCKS_NO_PUSH_NO_PULL    =   0x40, /*   7 */
-  STAT_TYPE_ISSUED_PUSH_SEND          =   0x80, /*   8 */
-  STAT_TYPE_ISSUED_PULL_REQ           =  0x100, /*   9 */
-  STAT_TYPE_ISSUED_PULL_REP           =  0x200, /*  10 */
-  STAT_TYPE_SENT_PUSH_SEND            =  0x400, /*  11 */
-  STAT_TYPE_SENT_PULL_REQ             =  0x800, /*  12 */
-  STAT_TYPE_SENT_PULL_REP             = 0x1000, /*  13 */
-  STAT_TYPE_RECV_PUSH_SEND            = 0x2000, /*  14 */
-  STAT_TYPE_RECV_PULL_REQ             = 0x4000, /*  15 */
-  STAT_TYPE_RECV_PULL_REP             = 0x8000, /*  16 */
-  STAT_TYPE_MAX          = 0x80000000, /*  32 */
-};
-
-struct STATcls
-{
-  struct RPSPeer *rps_peer;
-  enum STAT_TYPE stat_type;
-};
-
 
 /**
  * Information for all the peers.
@@ -2100,25 +2216,9 @@ pre_profiler (struct RPSPeer *rps_peer, struct GNUNET_RPS_Handle *h)
 }
 
 void write_final_stats (void){
-  uint32_t i;
-  uint64_t sum_rounds        = 0;
-  uint64_t sum_blocks        = 0;
-  uint64_t sum_b_mpush       = 0;
-  uint64_t sum_b_npush       = 0;
-  uint64_t sum_b_npull       = 0;
-  uint64_t sum_b_mpush_npull = 0;
-  uint64_t sum_b_npush_npull = 0;
-  uint64_t sum_iss_push      = 0;
-  uint64_t sum_iss_pull_req  = 0;
-  uint64_t sum_iss_pull_rep  = 0;
-  uint64_t sum_sent_push     = 0;
-  uint64_t sum_sent_pull_req = 0;
-  uint64_t sum_sent_pull_rep = 0;
-  uint64_t sum_recv_push     = 0;
-  uint64_t sum_recv_pull_req = 0;
-  uint64_t sum_recv_pull_rep = 0;
+  uint64_t sums[STAT_TYPE_MAX] = { 0 };
 
-  for (i = 0; i < num_peers; i++)
+  for (uint32_t i = 0; i < num_peers; i++)
   {
     to_file ("/tmp/rps/final_stats.dat",
              "%" PRIu32 " " /* index */
@@ -2130,38 +2230,34 @@ void write_final_stats (void){
              PRIu64 " %" PRIu64 " %" PRIu64 /* recv */,
              i,
              GNUNET_i2s (rps_peers[i].peer_id),
-             rps_peers[i].num_rounds,
-             rps_peers[i].num_blocks,
-             rps_peers[i].num_blocks_many_push,
-             rps_peers[i].num_blocks_no_push,
-             rps_peers[i].num_blocks_no_pull,
-             rps_peers[i].num_blocks_many_push_no_pull,
-             rps_peers[i].num_blocks_no_push_no_pull,
-             rps_peers[i].num_issued_push,
-             rps_peers[i].num_issued_pull_req,
-             rps_peers[i].num_issued_pull_rep,
-             rps_peers[i].num_sent_push,
-             rps_peers[i].num_sent_pull_req,
-             rps_peers[i].num_sent_pull_rep,
-             rps_peers[i].num_recv_push,
-             rps_peers[i].num_recv_pull_req,
-             rps_peers[i].num_recv_pull_rep);
-    sum_rounds        += rps_peers[i].num_rounds;
-    sum_blocks        += rps_peers[i].num_blocks;
-    sum_b_mpush       += rps_peers[i].num_blocks_many_push;
-    sum_b_npush       += rps_peers[i].num_blocks_no_push;
-    sum_b_npull       += rps_peers[i].num_blocks_no_pull;
-    sum_b_mpush_npull += rps_peers[i].num_blocks_many_push_no_pull;
-    sum_b_npush_npull += rps_peers[i].num_blocks_no_push_no_pull;
-    sum_iss_push      += rps_peers[i].num_issued_push;
-    sum_iss_pull_req  += rps_peers[i].num_issued_pull_req;
-    sum_iss_pull_rep  += rps_peers[i].num_issued_pull_rep;
-    sum_sent_push     += rps_peers[i].num_sent_push;
-    sum_sent_pull_req += rps_peers[i].num_sent_pull_req;
-    sum_sent_pull_rep += rps_peers[i].num_sent_pull_rep;
-    sum_recv_push     += rps_peers[i].num_recv_push;
-    sum_recv_pull_req += rps_peers[i].num_recv_pull_req;
-    sum_recv_pull_rep += rps_peers[i].num_recv_pull_rep;
+             rps_peers[i].stats[STAT_TYPE_ROUNDS],
+             rps_peers[i].stats[STAT_TYPE_BLOCKS],
+             rps_peers[i].stats[STAT_TYPE_BLOCKS_MANY_PUSH],
+             rps_peers[i].stats[STAT_TYPE_BLOCKS_NO_PUSH],
+             rps_peers[i].stats[STAT_TYPE_BLOCKS_NO_PULL],
+             rps_peers[i].stats[STAT_TYPE_BLOCKS_MANY_PUSH_NO_PULL],
+             rps_peers[i].stats[STAT_TYPE_BLOCKS_NO_PUSH_NO_PULL],
+             rps_peers[i].stats[STAT_TYPE_ISSUED_PUSH_SEND],
+             rps_peers[i].stats[STAT_TYPE_ISSUED_PULL_REQ],
+             rps_peers[i].stats[STAT_TYPE_ISSUED_PULL_REP],
+             rps_peers[i].stats[STAT_TYPE_SENT_PUSH_SEND],
+             rps_peers[i].stats[STAT_TYPE_SENT_PULL_REQ],
+             rps_peers[i].stats[STAT_TYPE_SENT_PULL_REP],
+             rps_peers[i].stats[STAT_TYPE_RECV_PUSH_SEND],
+             rps_peers[i].stats[STAT_TYPE_RECV_PULL_REQ],
+             rps_peers[i].stats[STAT_TYPE_RECV_PULL_REP]);
+    for (uint32_t stat_type = STAT_TYPE_ROUNDS;
+         stat_type < STAT_TYPE_MAX;
+         stat_type++)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                 "Add to sum (%" PRIu64 ") %" PRIu64 " of stat type %u - %s\n",
+                  sums[stat_type],
+                  rps_peers[i].stats[stat_type],
+                  stat_type,
+                  stat_type_2_str (stat_type));
+      sums[stat_type] += rps_peers[i].stats[stat_type];
+    }
   }
   to_file ("/tmp/rps/final_stats.dat",
            "SUM %"
@@ -2170,22 +2266,22 @@ void write_final_stats (void){
            PRIu64 " %" PRIu64 " %" PRIu64 " %" /* issued */
            PRIu64 " %" PRIu64 " %" PRIu64 " %" /* sent */
            PRIu64 " %" PRIu64 " %" PRIu64 /* recv */,
-           sum_rounds,
-           sum_blocks,
-           sum_b_mpush,
-           sum_b_npush,
-           sum_b_npull,
-           sum_b_mpush_npull,
-           sum_b_npush_npull,
-           sum_iss_push,
-           sum_iss_pull_req,
-           sum_iss_pull_rep,
-           sum_sent_push,
-           sum_sent_pull_req,
-           sum_sent_pull_rep,
-           sum_recv_push,
-           sum_recv_pull_req,
-           sum_recv_pull_rep);
+           sums[STAT_TYPE_ROUNDS],
+           sums[STAT_TYPE_BLOCKS],
+           sums[STAT_TYPE_BLOCKS_MANY_PUSH],
+           sums[STAT_TYPE_BLOCKS_NO_PUSH],
+           sums[STAT_TYPE_BLOCKS_NO_PULL],
+           sums[STAT_TYPE_BLOCKS_MANY_PUSH_NO_PULL],
+           sums[STAT_TYPE_BLOCKS_NO_PUSH_NO_PULL],
+           sums[STAT_TYPE_ISSUED_PUSH_SEND],
+           sums[STAT_TYPE_ISSUED_PULL_REQ],
+           sums[STAT_TYPE_ISSUED_PULL_REP],
+           sums[STAT_TYPE_SENT_PUSH_SEND],
+           sums[STAT_TYPE_SENT_PULL_REQ],
+           sums[STAT_TYPE_SENT_PULL_REP],
+           sums[STAT_TYPE_RECV_PUSH_SEND],
+           sums[STAT_TYPE_RECV_PULL_REQ],
+           sums[STAT_TYPE_RECV_PULL_REP]);
 }
 
 /**
@@ -2208,7 +2304,7 @@ post_test_shutdown_ready_cb (void *cls,
   if (GNUNET_OK == success)
   {
     /* set flag that we we got the value */
-    rps_peer->stat_collected_flags |= stat_cls->stat_type;
+    rps_peer->stat_collected_flags |= BIT(stat_cls->stat_type);
   } else {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
         "Peer %u did not receive statistics value\n",
@@ -2233,134 +2329,6 @@ post_test_shutdown_ready_cb (void *cls,
     GNUNET_SCHEDULER_shutdown ();
   } else {
     GNUNET_free (stat_cls);
-  }
-}
-
-/**
- * @brief Converts string representation to the corresponding #STAT_TYPE enum.
- *
- * @param stat_str string representation of statistics specifier
- *
- * @return corresponding enum
- */
-enum STAT_TYPE stat_str_2_type (const char *stat_str)
-{
-  if (0 == strncmp ("# rounds blocked - no pull replies", stat_str, strlen ("# rounds blocked - no pull replies")))
-  {
-    return STAT_TYPE_BLOCKS_NO_PULL;
-  }
-  else if (0 == strncmp ("# rounds blocked - too many pushes, no pull replies", stat_str, strlen ("# rounds blocked - too many pushes, no pull replies")))
-  {
-    return STAT_TYPE_BLOCKS_MANY_PUSH_NO_PULL;
-  }
-  else if (0 == strncmp ("# rounds blocked - too many pushes", stat_str, strlen ("# rounds blocked - too many pushes")))
-  {
-    return STAT_TYPE_BLOCKS_MANY_PUSH;
-  }
-  else if (0 == strncmp ("# rounds blocked - no pushes, no pull replies", stat_str, strlen ("# rounds blocked - no pushes, no pull replies")))
-  {
-    return STAT_TYPE_BLOCKS_NO_PUSH_NO_PULL;
-  }
-  else if (0 == strncmp ("# rounds blocked - no pushes", stat_str, strlen ("# rounds blocked - no pushes")))
-  {
-    return STAT_TYPE_BLOCKS_NO_PUSH;
-  }
-  else if (0 == strncmp ("# rounds blocked", stat_str, strlen ("# rounds blocked")))
-  {
-    return STAT_TYPE_BLOCKS;
-  }
-  else if (0 == strncmp ("# rounds", stat_str, strlen ("# rounds")))
-  {
-    return STAT_TYPE_ROUNDS;
-  }
-  else if (0 == strncmp ("# push send issued", stat_str, strlen ("# push send issued")))
-  {
-    return STAT_TYPE_ISSUED_PUSH_SEND;
-  }
-  else if (0 == strncmp ("# pull request send issued", stat_str, strlen ("# pull request send issued")))
-  {
-    return STAT_TYPE_ISSUED_PULL_REQ;
-  }
-  else if (0 == strncmp ("# pull reply send issued", stat_str, strlen ("# pull reply send issued")))
-  {
-    return STAT_TYPE_ISSUED_PULL_REP;
-  }
-  else if (0 == strncmp ("# pushes sent", stat_str, strlen ("# pushes sent")))
-  {
-    return STAT_TYPE_SENT_PUSH_SEND;
-  }
-  else if (0 == strncmp ("# pull requests sent", stat_str, strlen ("# pull requests sent")))
-  {
-    return STAT_TYPE_SENT_PULL_REQ;
-  }
-  else if (0 == strncmp ("# pull replys sent", stat_str, strlen ("# pull replys sent")))
-  {
-    return STAT_TYPE_SENT_PULL_REP;
-  }
-  else if (0 == strncmp ("# push message received", stat_str, strlen ("# push message received")))
-  {
-    return STAT_TYPE_RECV_PUSH_SEND;
-  }
-  else if (0 == strncmp ("# pull request message received", stat_str, strlen ("# pull request message received")))
-  {
-    return STAT_TYPE_RECV_PULL_REQ;
-  }
-  else if (0 == strncmp ("# pull reply messages received", stat_str, strlen ("# pull reply messages received")))
-  {
-    return STAT_TYPE_RECV_PULL_REP;
-  }
-  return STAT_TYPE_MAX;
-}
-
-
-/**
- * @brief Converts #STAT_TYPE enum to the equivalent string representation that
- * is stored with the statistics service.
- *
- * @param stat_type #STAT_TYPE enum
- *
- * @return string representation that matches statistics value
- */
-char* stat_type_2_str (enum STAT_TYPE stat_type)
-{
-  switch (stat_type)
-  {
-    case STAT_TYPE_ROUNDS:
-      return "# rounds";
-    case STAT_TYPE_BLOCKS:
-      return "# rounds blocked";
-    case STAT_TYPE_BLOCKS_MANY_PUSH:
-      return "# rounds blocked - too many pushes";
-    case STAT_TYPE_BLOCKS_NO_PUSH:
-      return "# rounds blocked - no pushes";
-    case STAT_TYPE_BLOCKS_NO_PULL:
-      return "# rounds blocked - no pull replies";
-    case STAT_TYPE_BLOCKS_MANY_PUSH_NO_PULL:
-      return "# rounds blocked - too many pushes, no pull replies";
-    case STAT_TYPE_BLOCKS_NO_PUSH_NO_PULL:
-      return "# rounds blocked - no pushes, no pull replies";
-    case STAT_TYPE_ISSUED_PUSH_SEND:
-      return "# push send issued";
-    case STAT_TYPE_ISSUED_PULL_REQ:
-      return "# pull request send issued";
-    case STAT_TYPE_ISSUED_PULL_REP:
-      return "# pull reply send issued";
-    case STAT_TYPE_SENT_PUSH_SEND:
-      return "# pushes sent";
-    case STAT_TYPE_SENT_PULL_REQ:
-      return "# pull requests sent";
-    case STAT_TYPE_SENT_PULL_REP:
-      return "# pull replys sent";
-    case STAT_TYPE_RECV_PUSH_SEND:
-      return "# push message received";
-    case STAT_TYPE_RECV_PULL_REQ:
-      return "# pull request message received";
-    case STAT_TYPE_RECV_PULL_REP:
-      return "# pull reply messages received";
-    case STAT_TYPE_MAX:
-    default:
-      return "ERROR";
-      ;
   }
 }
 
@@ -2394,52 +2362,52 @@ stat_iterator (void *cls,
   switch (stat_str_2_type (name))
   {
     case STAT_TYPE_ROUNDS:
-      rps_peer->num_rounds = value;
+      rps_peer->stats[STAT_TYPE_ROUNDS] = value;
       break;
     case STAT_TYPE_BLOCKS:
-      rps_peer->num_blocks = value;
+      rps_peer->stats[STAT_TYPE_BLOCKS] = value;
       break;
     case STAT_TYPE_BLOCKS_MANY_PUSH:
-      rps_peer->num_blocks_many_push = value;
+      rps_peer->stats[STAT_TYPE_BLOCKS_MANY_PUSH] = value;
       break;
     case STAT_TYPE_BLOCKS_NO_PUSH:
-      rps_peer->num_blocks_no_push = value;
+      rps_peer->stats[STAT_TYPE_BLOCKS_NO_PUSH] = value;
       break;
     case STAT_TYPE_BLOCKS_NO_PULL:
-      rps_peer->num_blocks_no_pull = value;
+      rps_peer->stats[STAT_TYPE_BLOCKS_NO_PULL] = value;
       break;
     case STAT_TYPE_BLOCKS_MANY_PUSH_NO_PULL:
-      rps_peer->num_blocks_many_push_no_pull = value;
+      rps_peer->stats[STAT_TYPE_BLOCKS_MANY_PUSH_NO_PULL] = value;
       break;
     case STAT_TYPE_BLOCKS_NO_PUSH_NO_PULL:
-      rps_peer->num_blocks_no_push_no_pull = value;
+      rps_peer->stats[STAT_TYPE_BLOCKS] = value;
       break;
     case STAT_TYPE_ISSUED_PUSH_SEND:
-      rps_peer->num_issued_push = value;
+      rps_peer->stats[STAT_TYPE_ISSUED_PUSH_SEND] = value;
       break;
     case STAT_TYPE_ISSUED_PULL_REQ:
-      rps_peer->num_issued_pull_req = value;
+      rps_peer->stats[STAT_TYPE_ISSUED_PULL_REQ] = value;
       break;
     case STAT_TYPE_ISSUED_PULL_REP:
-      rps_peer->num_issued_pull_rep = value;
+      rps_peer->stats[STAT_TYPE_ISSUED_PULL_REP] = value;
       break;
     case STAT_TYPE_SENT_PUSH_SEND:
-      rps_peer->num_sent_push = value;
+      rps_peer->stats[STAT_TYPE_SENT_PUSH_SEND] = value;
       break;
     case STAT_TYPE_SENT_PULL_REQ:
-      rps_peer->num_sent_pull_req = value;
+      rps_peer->stats[STAT_TYPE_SENT_PULL_REQ] = value;
       break;
     case STAT_TYPE_SENT_PULL_REP:
-      rps_peer->num_sent_pull_rep = value;
+      rps_peer->stats[STAT_TYPE_SENT_PULL_REP] = value;
       break;
     case STAT_TYPE_RECV_PUSH_SEND:
-      rps_peer->num_recv_push = value;
+      rps_peer->stats[STAT_TYPE_RECV_PUSH_SEND] = value;
       break;
     case STAT_TYPE_RECV_PULL_REQ:
-      rps_peer->num_recv_pull_req = value;
+      rps_peer->stats[STAT_TYPE_RECV_PULL_REQ] = value;
       break;
     case STAT_TYPE_RECV_PULL_REP:
-      rps_peer->num_recv_pull_rep = value;
+      rps_peer->stats[STAT_TYPE_RECV_PULL_REP] = value;
       break;
     case STAT_TYPE_MAX:
     default:
@@ -2466,9 +2434,9 @@ void post_profiler (struct RPSPeer *rps_peer)
   uint32_t stat_type;
   for (stat_type = STAT_TYPE_ROUNDS;
       stat_type < STAT_TYPE_MAX;
-      stat_type = stat_type <<1)
+      stat_type++)
   {
-    if (stat_type & cur_test_run.stat_collect_flags)
+    if (BIT(stat_type) & cur_test_run.stat_collect_flags)
     {
       stat_cls = GNUNET_malloc (sizeof (struct STATcls));
       stat_cls->rps_peer = rps_peer;
@@ -2634,22 +2602,22 @@ run (void *cls,
   cur_test_run.have_churn = HAVE_NO_CHURN;
   cur_test_run.have_quick_quit = HAVE_NO_QUICK_QUIT;
   cur_test_run.have_collect_statistics = COLLECT_STATISTICS;
-  cur_test_run.stat_collect_flags = STAT_TYPE_ROUNDS |
-                                    STAT_TYPE_BLOCKS |
-                                    STAT_TYPE_BLOCKS_MANY_PUSH |
-                                    STAT_TYPE_BLOCKS_NO_PUSH |
-                                    STAT_TYPE_BLOCKS_NO_PULL |
-                                    STAT_TYPE_BLOCKS_MANY_PUSH_NO_PULL |
-                                    STAT_TYPE_BLOCKS_NO_PUSH_NO_PULL |
-                                    STAT_TYPE_ISSUED_PUSH_SEND |
-                                    STAT_TYPE_ISSUED_PULL_REQ |
-                                    STAT_TYPE_ISSUED_PULL_REP |
-                                    STAT_TYPE_SENT_PUSH_SEND |
-                                    STAT_TYPE_SENT_PULL_REQ |
-                                    STAT_TYPE_SENT_PULL_REP |
-                                    STAT_TYPE_RECV_PUSH_SEND |
-                                    STAT_TYPE_RECV_PULL_REQ |
-                                    STAT_TYPE_RECV_PULL_REP;
+  cur_test_run.stat_collect_flags = BIT(STAT_TYPE_ROUNDS) |
+                                    BIT(STAT_TYPE_BLOCKS) |
+                                    BIT(STAT_TYPE_BLOCKS_MANY_PUSH) |
+                                    BIT(STAT_TYPE_BLOCKS_NO_PUSH) |
+                                    BIT(STAT_TYPE_BLOCKS_NO_PULL) |
+                                    BIT(STAT_TYPE_BLOCKS_MANY_PUSH_NO_PULL) |
+                                    BIT(STAT_TYPE_BLOCKS_NO_PUSH_NO_PULL) |
+                                    BIT(STAT_TYPE_ISSUED_PUSH_SEND) |
+                                    BIT(STAT_TYPE_ISSUED_PULL_REQ) |
+                                    BIT(STAT_TYPE_ISSUED_PULL_REP) |
+                                    BIT(STAT_TYPE_SENT_PUSH_SEND) |
+                                    BIT(STAT_TYPE_SENT_PULL_REQ) |
+                                    BIT(STAT_TYPE_SENT_PULL_REP) |
+                                    BIT(STAT_TYPE_RECV_PUSH_SEND) |
+                                    BIT(STAT_TYPE_RECV_PULL_REQ) |
+                                    BIT(STAT_TYPE_RECV_PULL_REP);
   cur_test_run.have_collect_view = COLLECT_VIEW;
   timeout_s = 300;
 
@@ -2672,11 +2640,6 @@ run (void *cls,
   ok = 1;
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
               "before _run()\n");
-  //ret_value = GNUNET_TESTBED_test_run (cur_test_run.name,
-  //                                     "test_rps.conf",
-  //                                     num_peers,
-  //                                     0, NULL, NULL,
-  //                                     &test_run, NULL);
   GNUNET_TESTBED_run (NULL,
                       cfg,
                       num_peers,
