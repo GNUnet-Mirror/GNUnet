@@ -50,9 +50,6 @@
 #define LOG_GCRY(level, cmd, rc) do { LOG(level, _("`%s' failed at %s:%d with error: %s\n"), cmd, __FILE__, __LINE__, gcry_strerror(rc)); } while(0)
 
 
-#include "crypto_bug.c"
-
-
 /**
  * Extract values from an S-expression.
  *
