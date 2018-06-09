@@ -427,6 +427,34 @@ throttled by ISPs that dislike P2P.  Details for configuring the
 reverse proxy are documented on our website.
 
 
+Further Reading
+===============
+
+* Documentation
+
+  A preliminary rendering of the new GNUnet manual is deployed at
+
+    https://d.n0.is/pub/doc/gnunet/manual/gnunet/
+
+  we plan to have a complete new gnunet.org up and running in 2019.
+  This website output exists as a convenience solution until then.
+
+* Academia / papers
+
+  In almost 20 years various people in our community have written and
+  collected a good number of papers which have been implemented in
+  GNUnet or projects around GNUnet.
+  There are currently 2 ways to get them:
+
+  * Using git:
+    git clone https://gnunet.org/git/bibliography.git
+  * Using Drupal:
+    https://gnunet.org/bibliography
+
+  The Drupal access will be replaced by a new interface to our
+  bibliography in 2019.
+
+
 Stay tuned
 ==========
 
