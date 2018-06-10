@@ -278,16 +278,16 @@ do_error (void *cls)
   struct MHD_Response *resp;
   char *json_error;
 
-  GNUNET_asprintf (&json_error,
-                   "{\"error\": \"%s\"}",
-                   handle->emsg);
+  if (NULL == handle->emsg)
+    handle->emsg = GNUNET_strdup("Unknown Error");
+
+  GNUNET_asprintf (&json_error, "{\"error\": \"%s\"}", handle->emsg);
   handle->response_code = MHD_HTTP_OK;
+
   resp = GNUNET_REST_create_response (json_error);
-  handle->proc (handle->proc_cls,
-		resp,
-		handle->response_code);
+  handle->proc (handle->proc_cls, resp, handle->response_code);
   cleanup_handle (handle);
-  GNUNET_free (json_error);
+  GNUNET_free(json_error);
 }
 
 
@@ -335,7 +335,7 @@ get_ego_for_subsys (void *cls,
 
   if (0 == json_array_size(json_root))
   {
-	json_decref(json_root);
+    json_decref(json_root);
     handle->emsg = GNUNET_strdup("No identity matches results!");
     GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
@@ -347,7 +347,7 @@ get_ego_for_subsys (void *cls,
 
   json_array_foreach(json_root, index, json_ego )
   {
-	  json_decref(json_ego);
+    json_decref(json_ego);
   }
   json_decref (json_root);
   handle->proc (handle->proc_cls, resp, MHD_HTTP_OK);

@@ -19,6 +19,7 @@
    */
 /**
  * @author Martin Schanzenbach
+ * @author Philippe Buschmann
  * @file gns/plugin_rest_gns.c
  * @brief GNUnet GNS REST plugin
  *
@@ -39,6 +40,8 @@
 #define GNUNET_REST_API_NS_GNS "/gns"
 
 #define GNUNET_REST_JSONAPI_GNS_RECORD_TYPE "record_type"
+
+#define GNUNET_REST_PARAMETER_GNS_NAME "name"
 
 #define GNUNET_REST_JSONAPI_GNS_TYPEINFO "gns_name"
 
@@ -164,6 +167,11 @@ struct LookupHandle
    */
   int response_code;
 
+  /**
+   * HTTP response code
+   */
+  char* emsg;
+
 };
 
 
@@ -182,6 +190,8 @@ cleanup_handle (struct LookupHandle *handle)
 
   if (NULL != handle->name)
     GNUNET_free (handle->name);
+  if (NULL != handle->emsg)
+      GNUNET_free (handle->emsg);
   if (NULL != handle->el)
   {
     GNUNET_IDENTITY_ego_lookup_cancel (handle->el);
@@ -227,10 +237,18 @@ do_error (void *cls)
 {
   struct LookupHandle *handle = cls;
   struct MHD_Response *resp;
+  char *json_error;
 
-  resp = GNUNET_REST_create_response (NULL);
+  if (NULL == handle->emsg)
+    handle->emsg = GNUNET_strdup("Unknown Error");
+
+  GNUNET_asprintf (&json_error, "{\"error\": \"%s\"}", handle->emsg);
+  handle->response_code = MHD_HTTP_OK;
+
+  resp = GNUNET_REST_create_response (json_error);
   handle->proc (handle->proc_cls, resp, handle->response_code);
   cleanup_handle (handle);
+  GNUNET_free(json_error);
 }
 
 
@@ -296,16 +314,12 @@ process_lookup_result (void *cls, uint32_t rd_count,
 {
   struct LookupHandle *handle = cls;
   struct MHD_Response *resp;
-  struct GNUNET_JSONAPI_Document *json_document;
-  struct GNUNET_JSONAPI_Resource *json_resource;
   uint32_t i;
   char *result;
   json_t *result_array;
   json_t *record_obj;
 
   result_array = json_array();
-  json_document = GNUNET_JSONAPI_document_new ();
-  json_resource = GNUNET_JSONAPI_resource_new (GNUNET_REST_JSONAPI_GNS_TYPEINFO, handle->name);
   handle->lookup_request = NULL;
   for (i=0; i<rd_count; i++)
   {
@@ -316,17 +330,12 @@ process_lookup_result (void *cls, uint32_t rd_count,
     json_array_append (result_array, record_obj);
     json_decref (record_obj);
   }
-  GNUNET_JSONAPI_resource_add_attr (json_resource,
-                                         GNUNET_REST_JSONAPI_GNS_RECORD,
-                                         result_array);
-  GNUNET_JSONAPI_document_resource_add (json_document, json_resource);
-  GNUNET_JSONAPI_document_serialize (json_document, &result);
+  result = json_dumps(result_array, 0);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Result %s\n", result);
-  json_decref (result_array);
-  GNUNET_JSONAPI_document_delete (json_document);
   resp = GNUNET_REST_create_response (result);
   handle->proc (handle->proc_cls, resp, MHD_HTTP_OK);
   GNUNET_free (result);
+  json_decref (result_array);
   cleanup_handle (handle);
 }
 
@@ -358,6 +367,7 @@ lookup_with_public_key (struct LookupHandle *handle)
   }
   else
   {
+    handle->emsg = GNUNET_strdup("Parameter name is missing");
     GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
   }
@@ -382,6 +392,7 @@ identity_zone_cb (void *cls,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 _("Ego for not found, cannot perform lookup.\n"));
+    handle->emsg = GNUNET_strdup ("Ego for not found, cannot perform lookup.");
     GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
   }
@@ -420,6 +431,7 @@ identity_master_cb (void *cls,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 _("Ego for `gns-master' not found, cannot perform lookup.  Did you run gnunet-gns-import.sh?\n"));
+    handle->emsg = GNUNET_strdup("Ego for `gns-master' not found, cannot perform lookup.  Did you run gnunet-gns-import.sh?");
     GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
   }
@@ -438,35 +450,10 @@ identity_master_cb (void *cls,
 }
 
 /**
- * Parse REST uri for name and record type
+ * Handle get request
  *
- * @param url Url to parse
- * @param handle lookup handle to populate
- * @return GNUNET_SYSERR on error
+ * @param handle the lookup handle
  */
-static int
-parse_url (const char *url, struct LookupHandle *handle)
-{
-  char *name;
-  char tmp_url[strlen(url)+1];
-  char *tok;
-
-  strcpy (tmp_url, url);
-  tok = strtok ((char*)tmp_url, "/");
-  if (NULL == tok)
-    return GNUNET_SYSERR;
-  name = strtok (NULL, "/");
-  if (NULL == name)
-    return GNUNET_SYSERR;
-  GNUNET_asprintf (&handle->name,
-                   "%s",
-                   name);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Got name: %s\n", handle->name);
-  return GNUNET_OK;
-}
-
-
 static void
 get_gns_cont (struct GNUNET_REST_RequestHandle *conndata_handle,
               const char* url,
@@ -474,40 +461,48 @@ get_gns_cont (struct GNUNET_REST_RequestHandle *conndata_handle,
 {
   struct LookupHandle *handle = cls;
   struct GNUNET_HashCode key;
+  long int enum_test;
+  char *temp_val;
 
-  //parse name and type from url
-  if (GNUNET_OK != parse_url (url, handle))
+  //check for /gns otherwise 404
+  if (strlen (GNUNET_REST_API_NS_GNS) > strlen (url))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Error parsing url...\n");
+    handle->emsg = GNUNET_strdup("Wrong URL");
     GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Connecting...\n");
+
+  //connect to gns
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Connecting...\n");
   handle->gns = GNUNET_GNS_connect (cfg);
   handle->identity = GNUNET_IDENTITY_connect (cfg, NULL, NULL);
   handle->timeout_task = GNUNET_SCHEDULER_add_delayed (handle->timeout,
-                                                       &do_error, handle);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Connected\n");
+						       &do_error, handle);
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Connected\n");
   if (NULL == handle->gns)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Connecting to GNS failed\n");
+    GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Connecting to GNS failed\n");
+    handle->emsg = GNUNET_strdup("Connecting to GNS failed");
     GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
   }
-  GNUNET_CRYPTO_hash (GNUNET_REST_JSONAPI_GNS_OPTIONS,
-                      strlen (GNUNET_REST_JSONAPI_GNS_OPTIONS),
-                      &key);
-  handle->options = GNUNET_GNS_LO_DEFAULT;
-  if ( GNUNET_YES ==
-       GNUNET_CONTAINER_multihashmap_contains (conndata_handle->url_param_map,
-                                               &key) )
+
+  //check parameter name -> BAD_REQUEST
+  GNUNET_CRYPTO_hash (GNUNET_REST_PARAMETER_GNS_NAME,
+		      strlen (GNUNET_REST_PARAMETER_GNS_NAME),
+		      &key);
+  if ( GNUNET_NO
+      == GNUNET_CONTAINER_multihashmap_contains (conndata_handle->url_param_map,
+						 &key))
   {
-    handle->options = GNUNET_GNS_LO_DEFAULT;//TODO(char*) GNUNET_CONTAINER_multihashmap_get (conndata_handle->url_param_map,
-    //&key);
+    handle->emsg = GNUNET_strdup("Parameter name is missing");
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
+    return;
   }
+  handle->name = GNUNET_strdup(GNUNET_CONTAINER_multihashmap_get (conndata_handle->url_param_map,
+						    &key));
+
+  //check parameter record_type, optional
   GNUNET_CRYPTO_hash (GNUNET_REST_JSONAPI_GNS_RECORD_TYPE,
                       strlen (GNUNET_REST_JSONAPI_GNS_RECORD_TYPE),
                       &key);
@@ -515,34 +510,66 @@ get_gns_cont (struct GNUNET_REST_RequestHandle *conndata_handle,
        GNUNET_CONTAINER_multihashmap_contains (conndata_handle->url_param_map,
                                                &key) )
   {
-    handle->type = GNUNET_GNSRECORD_typename_to_number
-      (GNUNET_CONTAINER_multihashmap_get (conndata_handle->url_param_map,
+    handle->type = GNUNET_GNSRECORD_typename_to_number(
+	GNUNET_CONTAINER_multihashmap_get (conndata_handle->url_param_map,
                                           &key));
   }
   else
+  {
     handle->type = GNUNET_GNSRECORD_TYPE_ANY;
+  }
 
+  //check parameter options, optional
+  GNUNET_CRYPTO_hash (GNUNET_REST_JSONAPI_GNS_OPTIONS,
+		      strlen (GNUNET_REST_JSONAPI_GNS_OPTIONS),
+		      &key);
+  handle->options = GNUNET_GNS_LO_DEFAULT;
+  if ( GNUNET_YES
+      == GNUNET_CONTAINER_multihashmap_contains (conndata_handle->url_param_map,
+						 &key))
+  {
+    temp_val = GNUNET_CONTAINER_multihashmap_get (conndata_handle->url_param_map, &key);
+    if (1 < strlen(temp_val))
+    {
+      handle->options = GNUNET_GNS_LO_DEFAULT;
+    }
+    else
+    {
+      //atoi because no valid conversion is default local option
+      enum_test = atoi(temp_val);
+      if (2 < enum_test)
+	handle->options = GNUNET_GNS_LO_DEFAULT;
+      else
+	handle->options = enum_test;
+    }
+  }
+  else
+    handle->options = GNUNET_GNS_LO_DEFAULT;
+
+  //check parameter pkey, shortcut to lookup
   GNUNET_CRYPTO_hash (GNUNET_REST_JSONAPI_GNS_PKEY,
-                      strlen (GNUNET_REST_JSONAPI_GNS_PKEY),
-                      &key);
-  if ( GNUNET_YES ==
-       GNUNET_CONTAINER_multihashmap_contains (conndata_handle->url_param_map,
-                                               &key) )
+		      strlen (GNUNET_REST_JSONAPI_GNS_PKEY),
+		      &key);
+  if ( GNUNET_YES
+      == GNUNET_CONTAINER_multihashmap_contains (conndata_handle->url_param_map,
+						 &key))
   {
     handle->pkey_str = GNUNET_CONTAINER_multihashmap_get (conndata_handle->url_param_map,
-                                                          &key);
-    GNUNET_assert (NULL != handle->pkey_str);
-    if (GNUNET_OK !=
-        GNUNET_CRYPTO_ecdsa_public_key_from_string (handle->pkey_str,
-                                                    strlen(handle->pkey_str),
-                                                    &(handle->pkey)))
+							  &key);
+    GNUNET_assert(NULL != handle->pkey_str);
+    if (GNUNET_OK
+	!= GNUNET_CRYPTO_ecdsa_public_key_from_string (
+	    handle->pkey_str, strlen (handle->pkey_str), &(handle->pkey)))
     {
+      handle->emsg = GNUNET_strdup("Parameter pkey has a wrong format");
       GNUNET_SCHEDULER_add_now (&do_error, handle);
       return;
     }
     lookup_with_public_key (handle);
     return;
   }
+
+  //check parameter ego, lookup public key of ego
   GNUNET_CRYPTO_hash (GNUNET_REST_JSONAPI_GNS_EGO,
                       strlen (GNUNET_REST_JSONAPI_GNS_EGO),
                       &key);
@@ -558,24 +585,23 @@ get_gns_cont (struct GNUNET_REST_RequestHandle *conndata_handle,
                                              handle);
     return;
   }
+
+  //if name ends with .zkey then get public key
   if ( (NULL != handle->name) &&
        (strlen (handle->name) > 4) &&
        (0 == strcmp (".zkey",
                      &handle->name[strlen (handle->name) - 4])) )
   {
-    GNUNET_CRYPTO_ecdsa_key_get_public
-      (GNUNET_CRYPTO_ecdsa_key_get_anonymous (),
-       &(handle->pkey));
+    GNUNET_CRYPTO_ecdsa_key_get_public( GNUNET_CRYPTO_ecdsa_key_get_anonymous (),
+					&(handle->pkey));
     lookup_with_public_key (handle);
   }
-  else
+  else //else use gns-master identity
   {
-    GNUNET_break (NULL == handle->id_op);
     handle->id_op = GNUNET_IDENTITY_get (handle->identity,
                                          "gns-master",
                                          &identity_master_cb,
                                          handle);
-    GNUNET_assert (NULL != handle->id_op);
   }
 }
 
@@ -633,10 +659,10 @@ rest_gns_process_request (struct GNUNET_REST_RequestHandle *conndata_handle,
   handle->proc = proc;
   handle->rest_handle = conndata_handle;
 
-  if (GNUNET_NO == GNUNET_JSONAPI_handle_request (conndata_handle,
-                                                  handlers,
-                                                  &err,
-                                                  handle))
+  if (GNUNET_NO == GNUNET_REST_handle_request (conndata_handle,
+                                               handlers,
+                                               &err,
+                                               handle))
   {
     handle->response_code = err.error_code;
     GNUNET_SCHEDULER_add_now (&do_error, handle);
