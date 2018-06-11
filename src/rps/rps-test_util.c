@@ -2,20 +2,18 @@
      This file is part of GNUnet.
      Copyright (C)
 
-     GNUnet is free software; you can redistribute it and/or modify
-     it under the terms of the GNU General Public License as published
-     by the Free Software Foundation; either version 3, or (at your
-     option) any later version.
+     GNUnet is free software: you can redistribute it and/or modify it
+     under the terms of the GNU Affero General Public License as published
+     by the Free Software Foundation, either version 3 of the License,
+     or (at your option) any later version.
 
      GNUnet is distributed in the hope that it will be useful, but
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-     General Public License for more details.
-
-     You should have received a copy of the GNU General Public License
-     along with GNUnet; see the file COPYING.  If not, write to the
-     Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
-     Boston, MA 02110-1301, USA.
+     Affero General Public License for more details.
+    
+     You should have received a copy of the GNU Affero General Public License
+     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 /**
@@ -107,6 +105,53 @@ to_file_ (const char *file_name, char *line)
   if (GNUNET_YES != GNUNET_DISK_file_close (f))
     LOG (GNUNET_ERROR_TYPE_WARNING,
          "Unable to close file\n");
+}
+
+void
+to_file_raw (const char *file_name, void *buf, size_t size_buf)
+{
+  struct GNUNET_DISK_FileHandle *f;
+  size_t size2;
+
+
+  if (NULL == (f = GNUNET_DISK_file_open (file_name,
+                                          GNUNET_DISK_OPEN_APPEND |
+                                          GNUNET_DISK_OPEN_WRITE |
+                                          GNUNET_DISK_OPEN_CREATE,
+                                          GNUNET_DISK_PERM_USER_READ |
+                                          GNUNET_DISK_PERM_USER_WRITE |
+                                          GNUNET_DISK_PERM_GROUP_READ |
+                                          GNUNET_DISK_PERM_OTHER_READ)))
+  {
+    LOG (GNUNET_ERROR_TYPE_WARNING,
+         "Not able to open file %s\n",
+         file_name);
+    return;
+  }
+
+  size2 = GNUNET_DISK_file_write (f, buf, size_buf);
+  if (size_buf != size2)
+  {
+    LOG (GNUNET_ERROR_TYPE_WARNING,
+         "Unable to write to file! (Size: %u, size2: %u)\n",
+         size_buf,
+         size2);
+
+    if (GNUNET_YES != GNUNET_DISK_file_close (f))
+      LOG (GNUNET_ERROR_TYPE_WARNING,
+           "Unable to close file\n");
+
+    return;
+  }
+
+  //if (512 < size_buf)
+  //{
+  //  GNUNET_free (output_buffer_p);
+  //}
+
+  //if (GNUNET_YES != GNUNET_DISK_file_close (f))
+  //  LOG (GNUNET_ERROR_TYPE_WARNING,
+  //       "Unable to close file\n");
 }
 
 char *

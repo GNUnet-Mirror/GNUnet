@@ -2,20 +2,18 @@
      This file is part of GNUnet.
      Copyright (C) 2009-2013, 2016 GNUnet e.V.
 
-     GNUnet is free software; you can redistribute it and/or modify
-     it under the terms of the GNU General Public License as published
-     by the Free Software Foundation; either version 3, or (at your
-     option) any later version.
+     GNUnet is free software: you can redistribute it and/or modify it
+     under the terms of the GNU Affero General Public License as published
+     by the Free Software Foundation, either version 3 of the License,
+     or (at your option) any later version.
 
      GNUnet is distributed in the hope that it will be useful, but
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-     General Public License for more details.
-
-     You should have received a copy of the GNU General Public License
-     along with GNUnet; see the file COPYING.  If not, write to the
-     Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
-     Boston, MA 02110-1301, USA.
+     Affero General Public License for more details.
+    
+     You should have received a copy of the GNU Affero General Public License
+     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 /**
@@ -1051,7 +1049,7 @@ handle_ephemeral_key (void *cls,
        (start_t.abs_value_us > GNUNET_TIME_absolute_add (now, REKEY_TOLERANCE).abs_value_us) )
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-		_("EPHERMAL_KEY from peer `%s' rejected as its validity range does not match our system time (%llu not in [%llu,%llu]).\n"),
+		_("EPHEMERAL_KEY from peer `%s' rejected as its validity range does not match our system time (%llu not in [%llu,%llu]).\n"),
 		GNUNET_i2s (kx->peer),
 		(unsigned long long) now.abs_value_us,
                 (unsigned long long) start_t.abs_value_us,
@@ -1490,7 +1488,7 @@ send_key (struct GSC_KeyExchangeInfo *kx)
                         sizeof (current_ekm.ephemeral_key),
                         &hc);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Sending EPHERMERAL_KEY %s to `%s' (my status: %d)\n",
+                "Sending EPHEMERAL_KEY %s to `%s' (my status: %d)\n",
                 GNUNET_h2s (&hc),
                 GNUNET_i2s (kx->peer),
                 kx->status);

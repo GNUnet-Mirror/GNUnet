@@ -15,8 +15,11 @@ GNU package (http://www.gnu.org/).
 This is an ALPHA release.  There are known and significant bugs as
 well as many missing features in this release.
 
-GNUnet is free software released under the GNU General Public License
-(v3 or later). For details see the COPYING file in this directory.
+GNUnet is free software released under the GNU Affero General Public
+License (v3 or later). For details see the COPYING file in this
+directory.  If you fork this software, you MUST adjust GNUNET_AGPL_URL
+in src/include/gnunet_util_lib.h to point to the source code of your
+fork!
 
 Additional documentation about GNUnet can be found at
 https://gnunet.org/ and in the doc/ folder.
@@ -25,16 +28,9 @@ https://gnunet.org/ and in the doc/ folder.
 Dependencies:
 =============
 
-Please note that for many of its dependencies GNUnet requires very
-recent versions of the libraries which are often NOT to be found in
-stable distributions in 2014.  While using older packages may in some
-cases on some operating systems may seem to work in some limited
-fashion, we are in many cases aware of serious problems with older
-packages.  Hence please make sure to use  the versions listed below.
-
 These are the direct dependencies for running GNUnet:
 
-- libmicrohttpd >= 0.9.42
+- libmicrohttpd >= 0.9.52
 - libgcrypt     >= 1.6
 - libgnurl      >= 7.35.0 (available from https://gnunet.org/gnurl)
 - libunistring  >= 0.9.2
