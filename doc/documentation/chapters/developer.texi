@@ -11,7 +11,7 @@ For developers, GNUnet is:
 @itemize @bullet
 @item developed by a community that believes in the GNU philosophy
 @item Free Software (Free as in Freedom), licensed under the
-GNU General Public License@footnote{@uref{https://www.gnu.org/licenses/licenses.html#GPL, https://www.gnu.org/licenses/licenses.html#GPL}}
+GNU Affero General Public License@footnote{@uref{https://www.gnu.org/licenses/licenses.html#AGPL, https://www.gnu.org/licenses/licenses.html#AGPL}}
 @item A set of standards, including coding conventions and
 architectural rules
 @item A set of layered protocols, both specifying the communication
@@ -40,6 +40,7 @@ new chapters, sections or insightful comments.
 
 @menu
 * Developer Introduction::
+* Internal Dependencies::
 * Code overview::
 * System Architecture::
 * Subsystem stability::
@@ -47,6 +48,7 @@ new chapters, sections or insightful comments.
 * Build-system::
 * Developing extensions for GNUnet using the gnunet-ext template::
 * Writing testcases::
+* Building GNUnet and its dependencies::
 * TESTING library::
 * Performance regression analysis with Gauger::
 * TESTBED Subsystem::
@@ -249,6 +251,77 @@ gnURL (feature-restricted variant of cURL/libcurl)
 Finally, there are various external projects (see links for a list of
 those that have a public website) which build on top of the GNUnet
 framework.
+
+@c ***********************************************************************
+@node Internal dependencies
+@section Internal dependencies
+
+This section tries to give an overview of what processes a typical GNUnet
+peer running a particular application would consist of. All of the
+processes listed here should be automatically started by
+@command{gnunet-arm -s}.
+The list is given as a rough first guide to users for failure diagnostics.
+Ideally, end-users should never have to worry about these internal
+dependencies.
+
+In terms of internal dependencies, a minimum file-sharing system consists
+of the following GNUnet processes (in order of dependency):
+
+@itemize @bullet
+@item gnunet-service-arm
+@item gnunet-service-resolver (required by all)
+@item gnunet-service-statistics (required by all)
+@item gnunet-service-peerinfo
+@item gnunet-service-transport (requires peerinfo)
+@item gnunet-service-core (requires transport)
+@item gnunet-daemon-hostlist (requires core)
+@item gnunet-daemon-topology (requires hostlist, peerinfo)
+@item gnunet-service-datastore
+@item gnunet-service-dht (requires core)
+@item gnunet-service-identity
+@item gnunet-service-fs (requires identity, mesh, dht, datastore, core)
+@end itemize
+
+@noindent
+A minimum VPN system consists of the following GNUnet processes (in
+order of dependency):
+
+@itemize @bullet
+@item gnunet-service-arm
+@item gnunet-service-resolver (required by all)
+@item gnunet-service-statistics (required by all)
+@item gnunet-service-peerinfo
+@item gnunet-service-transport (requires peerinfo)
+@item gnunet-service-core (requires transport)
+@item gnunet-daemon-hostlist (requires core)
+@item gnunet-service-dht (requires core)
+@item gnunet-service-mesh (requires dht, core)
+@item gnunet-service-dns (requires dht)
+@item gnunet-service-regex (requires dht)
+@item gnunet-service-vpn (requires regex, dns, mesh, dht)
+@end itemize
+
+@noindent
+A minimum GNS system consists of the following GNUnet processes (in
+order of dependency):
+
+@itemize @bullet
+@item gnunet-service-arm
+@item gnunet-service-resolver (required by all)
+@item gnunet-service-statistics (required by all)
+@item gnunet-service-peerinfo
+@item gnunet-service-transport (requires peerinfo)
+@item gnunet-service-core (requires transport)
+@item gnunet-daemon-hostlist (requires core)
+@item gnunet-service-dht (requires core)
+@item gnunet-service-mesh (requires dht, core)
+@item gnunet-service-dns (requires dht)
+@item gnunet-service-regex (requires dht)
+@item gnunet-service-vpn (requires regex, dns, mesh, dht)
+@item gnunet-service-identity
+@item gnunet-service-namestore (requires identity)
+@item gnunet-service-gns (requires vpn, dns, dht, namestore, identity)
+@end itemize
 
 @c ***********************************************************************
 @node Code overview
@@ -1089,6 +1162,314 @@ typically necessary to run @code{make install} before running any
 testcases. Thus the canonical command @code{make check install} has to be
 changed to @code{make install check} for GNUnet.
 
+@c ***********************************************************************
+@cindex Building GNUnet
+@node Building GNUnet and its dependencies
+@section Building GNUnet and its dependencies
+
+In the following section we will outline how to build GNUnet and
+some of its dependencies. We will assume a fair amount of knowledge
+for building applications under UNIX-like systems. Furthermore we
+assume that the build environment is sane and that you are aware of
+any implications actions in this process could have.
+Instructions here can be seen as notes for developers (an extension to
+the 'HACKING' section in README) as well as package mantainers.
+@b{Users should rely on the available binary packages.}
+We will use Debian as an example Operating System environment. Substitute
+accordingly with your own Ooperating System environment.
+
+For the full list of depenendencies, consult the appropriate, up-to-date
+section in the @file{README} file.
+
+First, we need to build or install (depending on your OS) the following
+packages. If you build them from source, build them in this exact order:
+
+@exmaple
+libgpgerror, libgcrypt, libnettle, libunbound, GnuTLS (with libunbound
+support)
+@end example
+
+After we have build and installed those packages, we continue with
+packages closer to GNUnet in this step: libgnurl (our libcurl fork),
+GNU libmicrohttpd, and GNU libextractor. Again, if your package manager
+provides one of these packages, use the packages provided from it
+unless you have good reasons (package version too old, conflicts, etc).
+We advise against compiling widely used packages such as GnuTLS
+yourself if your OS provides a variant already unless you take care
+of maintenance of the packages then.
+
+In the optimistic case, this command will give you all the dependencies:
+
+@example
+sudo apt-get install libgnurl libmicrohttpd libextractor
+@end example
+
+From experience we know that at the very least libgnurl is not
+available in some environments. You could substitute libgnurl
+with libcurl, but we recommend to install libgnurl, as it gives
+you a predefined libcurl with the small set GNUnet requires. In
+the past namespaces of libcurl and libgnurl were shared, which
+caused problems when you wanted to integrate both of them in one
+Operating System. This has been resolved, and they can be installed
+side by side now.
+
+@cindex libgnurl
+@cindex compiling libgnurl
+GNUnet and some of its function depend on a limited subset of cURL/libcurl.
+Rather than trying to enforce a certain configuration on the world, we
+opted to maintain a microfork of it that ensures we can link against the
+right set of features. We called this specialized set of libcurl
+``libgnurl''. It is fully ABI compatible with libcurl and currently used
+by GNUnet and some of its dependencies.
+
+We download libgnurl and its digital signature from the GNU fileserver,
+assuming @env{TMPDIR} exists@footnote{It might be @file{/tmp}, @env{TMPDIR}, @env{TMP} or any other location. For consistency we assume @env{TMPDIR} points to @file{/tmp} for the remainder of this section.}
+
+@example
+cd \$TMPDIR
+wget https://ftp.gnu.org/gnu/gnunet/gnurl-7.60.0.tar.Z
+wget https://ftp.gnu.org/gnu/gnunet/gnurl-7.60.0.tar.Z.sig
+@end example
+
+Next, verify the digital signature of the file:
+
+@example
+gpg --verify gnurl-7.60.0.tar.Z.sig
+@end example
+
+If gpg fails, you might try with @command{gpg2} on your OS. If the error
+states that ``the key can not be found'' or it is unknown, you have to
+retrieve the key (A88C8ADD129828D7EAC02E52E22F9BBFEE348588) from a
+keyserver first:
+
+@example
+gpg --keyserver pgp.mit.edu --recv-keys A88C8ADD129828D7EAC02E52E22F9BBFEE348588
+@end example
+
+and rerun the verification command.
+
+libgnurl will require the following packages to be present at runtime:
+gnutls (with DANE support / libunbound), libidn, zlib and at compile time:
+libtool, groff, perl, pkg-config, and python 2.7.
+
+Once you have verified that all the required packages are present on your
+system, we can proceed to compile libgnurl:
+
+@example
+tar -xvf gnurl-7.60.0.tar.Z
+cd gnurl-7.60.0
+sh configure --disable-ntlm-wb
+make
+make -C tests test
+sudo make install
+@end example
+
+After you've compiled and installed libgnurl, we can proceed to building
+GNUnet.
+
+
+
+
+First, in addition to the GNUnet sources you might require downloading the
+latest version of various dependencies, depending on how recent the
+software versions in your distribution of GNU/Linux are.
+Most distributions do not include sufficiently recent versions of these
+dependencies.
+Thus, a typically installation on a "modern" GNU/Linux distribution
+requires you to install the following dependencies (ideally in this
+order):
+
+@itemize @bullet
+@item libgpgerror and libgcrypt
+@item libnettle and libunbound (possibly from distribution), GnuTLS
+@item libgnurl (read the README)
+@item GNU libmicrohttpd
+@item GNU libextractor
+@end itemize
+
+Make sure to first install the various mandatory and optional
+dependencies including development headers from your distribution.
+
+Other dependencies that you should strongly consider to install is a
+database (MySQL, sqlite or Postgres).
+The following instructions will assume that you installed at least sqlite.
+For most distributions you should be able to find pre-build packages for
+the database. Again, make sure to install the client libraries @b{and} the
+respective development headers (if they are packaged separately) as well.
+
+You can find specific, detailed instructions for installing of the
+dependencies (and possibly the rest of the GNUnet installation) in the
+platform-specific descriptions, which can be found in the Index.
+Please consult them now.
+If your distribution is not listed, please study
+@ref{Build instructions for Debian 8}, the build instructions for
+Debian stable, carefully as you try to install the dependencies for your
+own distribution.
+Contributing additional instructions for further platforms is always
+appreciated.
+Please take in mind that operating system development tends to move at
+a rather fast speed. Due to this you should be aware that some of
+the instructions could be outdated by the time you are reading this.
+If you find a mistake, please tell us about it (or even better: send
+a patch to the documentation to fix it!).
+
+Before proceeding further, please double-check the dependency list.
+Note that in addition to satisfying the dependencies, you might have to
+make sure that development headers for the various libraries are also
+installed.
+There maybe files for other distributions, or you might be able to find
+equivalent packages for your distribution.
+
+While it is possible to build and install GNUnet without having root
+access, we will assume that you have full control over your system in
+these instructions.
+First, you should create a system user @emph{gnunet} and an additional
+group @emph{gnunetdns}. On the GNU/Linux distributions Debian and Ubuntu,
+type:
+
+@example
+sudo adduser --system --home /var/lib/gnunet --group \
+--disabled-password gnunet
+sudo addgroup --system gnunetdns
+@end example
+
+@noindent
+On other Unixes and GNU systems, this should have the same effect:
+
+@example
+sudo useradd --system --groups gnunet --home-dir /var/lib/gnunet
+sudo addgroup --system gnunetdns
+@end example
+
+Now compile and install GNUnet using:
+
+@example
+tar xvf gnunet-@value{VERSION}.tar.gz
+cd gnunet-@value{VERSION}
+./configure --with-sudo=sudo --with-nssdir=/lib
+make
+sudo make install
+@end example
+
+If you want to be able to enable DEBUG-level log messages, add
+@code{--enable-logging=verbose} to the end of the
+@command{./configure} command.
+@code{DEBUG}-level log messages are in English only and
+should only be useful for developers (or for filing
+really detailed bug reports).
+
+@noindent
+Next, edit the file @file{/etc/gnunet.conf} to contain the following:
+
+@example
+[arm]
+SYSTEM_ONLY = YES
+USER_ONLY = NO
+@end example
+
+@noindent
+You may need to update your @code{ld.so} cache to include
+files installed in @file{/usr/local/lib}:
+
+@example
+# ldconfig
+@end example
+
+@noindent
+Then, switch from user @code{root} to user @code{gnunet} to start
+the peer:
+
+@example
+# su -s /bin/sh - gnunet
+$ gnunet-arm -c /etc/gnunet.conf -s
+@end example
+
+You may also want to add the last line in the gnunet user's @file{crontab}
+prefixed with @code{@@reboot} so that it is executed whenever the system
+is booted:
+
+@example
+@@reboot /usr/local/bin/gnunet-arm -c /etc/gnunet.conf -s
+@end example
+
+@noindent
+This will only start the system-wide GNUnet services.
+Type @command{exit} to get back your root shell.
+Now, you need to configure the per-user part. For each
+user that should get access to GNUnet on the system, run
+(replace alice with your username):
+
+@example
+sudo adduser alice gnunet
+@end example
+
+@noindent
+to allow them to access the system-wide GNUnet services. Then, each
+user should create a configuration file @file{~/.config/gnunet.conf}
+with the lines:
+
+@example
+[arm]
+SYSTEM_ONLY = NO
+USER_ONLY = YES
+DEFAULTSERVICES = gns
+@end example
+
+@noindent
+and start the per-user services using
+
+@example
+$ gnunet-arm -c ~/.config/gnunet.conf -s
+@end example
+
+@noindent
+Again, adding a @code{crontab} entry to autostart the peer is advised:
+
+@example
+@@reboot /usr/local/bin/gnunet-arm -c $HOME/.config/gnunet.conf -s
+@end example
+
+@noindent
+Note that some GNUnet services (such as SOCKS5 proxies) may need a
+system-wide TCP port for each user.
+For those services, systems with more than one user may require each user
+to specify a different port number in their personal configuration file.
+
+Finally, the user should perform the basic initial setup for the GNU Name
+System (GNS) certificate authority. This is done by running:
+
+@example
+$ gnunet-gns-proxy-setup-ca
+@end example
+
+@noindent
+The first generates the default zones, wheras the second setups the GNS
+Certificate Authority with the user's browser. Now, to activate GNS in the
+normal DNS resolution process, you need to edit your
+@file{/etc/nsswitch.conf} where you should find a line like this:
+
+@example
+hosts: files mdns4_minimal [NOTFOUND=return] dns mdns4
+@end example
+
+@noindent
+The exact details may differ a bit, which is fine. Add the text
+@emph{"gns [NOTFOUND=return]"} after @emph{"files"}.
+Keep in mind that we included a backslash ("\") here just for
+markup reasons. You should write the text below on @b{one line}
+and @b{without} the "\":
+
+@example
+hosts: files gns [NOTFOUND=return] mdns4_minimal \
+[NOTFOUND=return] dns mdns4
+@end example
+
+@c FIXME: Document new behavior.
+You might want to make sure that @file{/lib/libnss_gns.so.2} exists on
+your system, it should have been created during the installation.
+
+
+@c **********************************************************************
 @cindex TESTING library
 @node TESTING library
 @section TESTING library

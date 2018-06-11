@@ -123,6 +123,8 @@ Using GNUnet
 * File-sharing::
 * The GNU Name System::
 * Using the Virtual Public Network::
+* The graphical configuration interface::
+* How to start and stop a GNUnet peer::
 
 GNUnet Contributors Handbook
 
@@ -183,19 +185,9 @@ GNUnet Developer Handbook
 @include chapters/philosophy.texi
 @c *********************************************************************
 
-@c WIP:
-@c @include chapters/vocabulary.texi
-
-@c *********************************************************************
-@include chapters/installation.texi
-@c *********************************************************************
-
 @c *********************************************************************
 @include chapters/user.texi
 @c *********************************************************************
-
-@c WIP:
-@c @include chapters/configuration.texi
 
 @include chapters/contributing.texi
 
