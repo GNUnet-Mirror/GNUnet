@@ -377,6 +377,8 @@ GNUNET_GNSRECORD_block_decrypt (const struct GNUNET_GNSRECORD_Block *block,
                  (0 == (rd[k].flags & GNUNET_GNSRECORD_RF_SHADOW_RECORD)) )
             {
               include_record = GNUNET_NO; /* We have a non-expired, non-shadow record of the same type */
+	      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+			  "Ignoring shadow record\n");
               break;
             }
           }
@@ -395,6 +397,16 @@ GNUNET_GNSRECORD_block_decrypt (const struct GNUNET_GNSRECORD_Block *block,
             rd[j] = rd[i];
           j++;
         }
+	else
+	{
+	  struct GNUNET_TIME_Absolute at;
+
+	  at.abs_value_us = rd[i].expiration_time;
+	  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+		      "Excluding record that expired %s (%llu ago)\n",
+		      GNUNET_STRINGS_absolute_time_to_string (at),
+		      (unsigned long long) rd[i].expiration_time - now.abs_value_us);
+	}
       }
       rd_count = j;
       if (NULL != proc)

@@ -171,6 +171,11 @@ datacache_get_iterator (void *cls,
   struct GetRequestContext *ctx = cls;
   enum GNUNET_BLOCK_EvaluationResult eval;
 
+  if (0 == GNUNET_TIME_absolute_get_remaining (exp).rel_value_us)
+  {
+    GNUNET_break (0); /* why does datacache return expired values? */
+    return GNUNET_OK; /* skip expired record */
+  }
   if ( (NULL == data) &&
        (0 == data_size) )
     data = &non_null; /* point anywhere, but not to NULL */
