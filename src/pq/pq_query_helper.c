@@ -50,6 +50,8 @@ qconv_fixed (void *cls,
 	     void *scratch[],
 	     unsigned int scratch_length)
 {
+  (void) scratch;
+  (void) scratch_length;
   GNUNET_break (NULL == cls);
   if (1 != param_length)
     return -1;
@@ -117,6 +119,8 @@ qconv_uint16 (void *cls,
   const uint16_t *u_hbo = data;
   uint16_t *u_nbo;
 
+  (void) scratch;
+  (void) scratch_length;
   GNUNET_break (NULL == cls);
   if (1 != param_length)
     return -1;
@@ -172,6 +176,8 @@ qconv_uint32 (void *cls,
   const uint32_t *u_hbo = data;
   uint32_t *u_nbo;
 
+  (void) scratch;
+  (void) scratch_length;
   GNUNET_break (NULL == cls);
   if (1 != param_length)
     return -1;
@@ -227,6 +233,8 @@ qconv_uint64 (void *cls,
   const uint64_t *u_hbo = data;
   uint64_t *u_nbo;
 
+  (void) scratch;
+  (void) scratch_length;
   GNUNET_break (NULL == cls);
   if (1 != param_length)
     return -1;
@@ -371,6 +379,51 @@ GNUNET_PQ_query_param_rsa_signature (const struct GNUNET_CRYPTO_RsaSignature *x)
 
 
 /**
+ * Function called to convert input argument into SQL parameters.
+ *
+ * @param cls closure
+ * @param data pointer to input argument
+ * @param data_len number of bytes in @a data (if applicable)
+ * @param[out] param_values SQL data to set
+ * @param[out] param_lengths SQL length data to set
+ * @param[out] param_formats SQL format data to set
+ * @param param_length number of entries available in the @a param_values, @a param_lengths and @a param_formats arrays
+ * @param[out] scratch buffer for dynamic allocations (to be done via #GNUNET_malloc()
+ * @param scratch_length number of entries left in @a scratch
+ * @return -1 on error, number of offsets used in @a scratch otherwise
+ */
+static int
+qconv_abs_time (void *cls,
+		const void *data,
+		size_t data_len,
+		void *param_values[],
+		int param_lengths[],
+		int param_formats[],
+		unsigned int param_length,
+		void *scratch[],
+		unsigned int scratch_length)
+{
+  const struct GNUNET_TIME_Absolute *u = data;
+  struct GNUNET_TIME_Absolute abs;
+  uint64_t *u_nbo;
+
+  GNUNET_break (NULL == cls);
+  if (1 != param_length)
+    return -1;
+  abs = *u;
+  if (abs.abs_value_us > INT64_MAX)
+    abs.abs_value_us = INT64_MAX;
+  u_nbo = GNUNET_new (uint64_t);
+  scratch[0] = u_nbo;
+  *u_nbo = GNUNET_htonll (abs.abs_value_us);
+  param_values[0] = (void *) u_nbo;
+  param_lengths[0] = sizeof (uint64_t);
+  param_formats[0] = 1;
+  return 1;
+}
+
+
+/**
  * Generate query parameter for an absolute time value.
  * The database must store a 64-bit integer.
  *
@@ -380,7 +433,10 @@ GNUNET_PQ_query_param_rsa_signature (const struct GNUNET_CRYPTO_RsaSignature *x)
 struct GNUNET_PQ_QueryParam
 GNUNET_PQ_query_param_absolute_time (const struct GNUNET_TIME_Absolute *x)
 {
-  return GNUNET_PQ_query_param_uint64 (&x->abs_value_us);
+  struct GNUNET_PQ_QueryParam res =
+    { &qconv_abs_time, NULL, x, sizeof (*x), 1 };
+
+  return res;
 }
 
 

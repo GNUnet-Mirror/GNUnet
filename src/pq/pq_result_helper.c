@@ -38,6 +38,7 @@ clean_varsize_blob (void *cls,
 {
   void **dst = rd;
 
+  (void) cls;
   if (NULL != *dst)
   {
     GNUNET_free (*dst);
@@ -72,6 +73,7 @@ extract_varsize_blob (void *cls,
   void *idst;
   int fnum;
 
+  (void) cls;
   *dst_size = 0;
   *((void **) dst) = NULL;
 
@@ -154,6 +156,7 @@ extract_fixed_blob (void *cls,
   const char *res;
   int fnum;
 
+  (void) cls;
   fnum = PQfnumber (result,
 		    fname);
   if (fnum < 0)
@@ -237,6 +240,7 @@ extract_rsa_public_key (void *cls,
   const char *res;
   int fnum;
 
+  (void) cls;
   *pk = NULL;
   fnum = PQfnumber (result,
 		    fname);
@@ -284,6 +288,7 @@ clean_rsa_public_key (void *cls,
 {
   struct GNUNET_CRYPTO_RsaPublicKey **pk = rd;
 
+  (void) cls;
   if (NULL != *pk)
   {
     GNUNET_CRYPTO_rsa_public_key_free (*pk);
@@ -338,6 +343,7 @@ extract_rsa_signature (void *cls,
   const char *res;
   int fnum;
 
+  (void) cls;
   *sig = NULL;
   fnum = PQfnumber (result,
 		    fname);
@@ -385,6 +391,7 @@ clean_rsa_signature (void *cls,
 {
   struct GNUNET_CRYPTO_RsaSignature **sig = rd;
 
+  (void) cls;
   if (NULL != *sig)
   {
     GNUNET_CRYPTO_rsa_signature_free (*sig);
@@ -439,6 +446,7 @@ extract_string (void *cls,
   const char *res;
   int fnum;
 
+  (void) cls;
   *str = NULL;
   fnum = PQfnumber (result,
 		    fname);
@@ -486,6 +494,7 @@ clean_string (void *cls,
 {
   char **str = rd;
 
+  (void) cls;
   if (NULL != *str)
   {
     GNUNET_free (*str);
@@ -515,6 +524,71 @@ GNUNET_PQ_result_spec_string (const char *name,
 
 
 /**
+ * Extract data from a Postgres database @a result at row @a row.
+ *
+ * @param cls closure
+ * @param result where to extract data from
+ * @param int row to extract data from
+ * @param fname name (or prefix) of the fields to extract from
+ * @param[in,out] dst_size where to store size of result, may be NULL
+ * @param[out] dst where to store the result
+ * @return
+ *   #GNUNET_YES if all results could be extracted
+ *   #GNUNET_SYSERR if a result was invalid (non-existing field or NULL)
+ */
+static int
+extract_abs_time (void *cls,
+		  PGresult *result,
+		  int row,
+		  const char *fname,
+		  size_t *dst_size,
+		  void *dst)
+{
+  struct GNUNET_TIME_Absolute *udst = dst;
+  const int64_t *res;
+  int fnum;
+
+  (void) cls;
+  fnum = PQfnumber (result,
+		    fname);
+  if (fnum < 0)
+  {
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
+  if (PQgetisnull (result,
+		   row,
+		   fnum))
+  {
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
+  GNUNET_assert (NULL != dst);
+  if (sizeof (struct GNUNET_TIME_Absolute) != *dst_size)
+  {
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
+  if (sizeof (int64_t) !=
+      PQgetlength (result,
+                   row,
+                   fnum))
+  {
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
+  res = (int64_t *) PQgetvalue (result,
+				row,
+				fnum);
+  if (INT64_MAX == *res)
+    *udst = GNUNET_TIME_UNIT_FOREVER_ABS;
+  else
+    udst->abs_value_us = GNUNET_ntohll ((uint64_t) *res);
+  return GNUNET_OK;
+}
+
+
+/**
  * Absolute time expected.
  *
  * @param name name of the field in the table
@@ -525,8 +599,12 @@ struct GNUNET_PQ_ResultSpec
 GNUNET_PQ_result_spec_absolute_time (const char *name,
 				     struct GNUNET_TIME_Absolute *at)
 {
-  return GNUNET_PQ_result_spec_uint64 (name,
-				       &at->abs_value_us);
+  struct GNUNET_PQ_ResultSpec res =
+    { &extract_abs_time,
+      NULL,
+      NULL,
+      (void *) at, sizeof (*at), (name), NULL };
+  return res;
 }
 
 
@@ -572,6 +650,7 @@ extract_uint16 (void *cls,
   const uint16_t *res;
   int fnum;
 
+  (void) cls;
   fnum = PQfnumber (result,
 		    fname);
   if (fnum < 0)
@@ -653,6 +732,7 @@ extract_uint32 (void *cls,
   const uint32_t *res;
   int fnum;
 
+  (void) cls;
   fnum = PQfnumber (result,
 		    fname);
   if (fnum < 0)
@@ -734,6 +814,7 @@ extract_uint64 (void *cls,
   const uint64_t *res;
   int fnum;
 
+  (void) cls;
   fnum = PQfnumber (result,
 		    fname);
   if (fnum < 0)
