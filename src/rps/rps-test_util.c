@@ -29,13 +29,37 @@
 
 #include <inttypes.h>
 
-#define LOG(kind, ...) GNUNET_log_from(kind,"rps-sampler",__VA_ARGS__)
+#define LOG(kind, ...) GNUNET_log_from(kind,"rps-test_util",__VA_ARGS__)
 
 #ifndef TO_FILE
 #define TO_FILE
 #endif /* TO_FILE */
 
 #ifdef TO_FILE
+
+#define B2B_PAT "%c%c%c%c%c%c%c%c"
+#define B2B(byte)  \
+  (byte & 0x80 ? '1' : '0'), \
+  (byte & 0x40 ? '1' : '0'), \
+  (byte & 0x20 ? '1' : '0'), \
+  (byte & 0x10 ? '1' : '0'), \
+  (byte & 0x08 ? '1' : '0'), \
+  (byte & 0x04 ? '1' : '0'), \
+  (byte & 0x02 ? '1' : '0'), \
+  (byte & 0x01 ? '1' : '0')
+
+#define min(x,y) ((x) > (y) ? (y) : (x))
+
+/**
+ * @brief buffer for storing the unaligned bits for the next write
+ */
+static char buf_unaligned;
+
+/**
+ * @brief number of bits in unaligned buffer
+ */
+static unsigned num_bits_buf_unaligned;
+
 void
 to_file_ (const char *file_name, char *line)
 {
@@ -108,11 +132,10 @@ to_file_ (const char *file_name, char *line)
 }
 
 void
-to_file_raw (const char *file_name, void *buf, size_t size_buf)
+to_file_raw (const char *file_name, const char *buf, size_t size_buf)
 {
   struct GNUNET_DISK_FileHandle *f;
-  size_t size2;
-
+  size_t size_written;
 
   if (NULL == (f = GNUNET_DISK_file_open (file_name,
                                           GNUNET_DISK_OPEN_APPEND |
@@ -129,13 +152,13 @@ to_file_raw (const char *file_name, void *buf, size_t size_buf)
     return;
   }
 
-  size2 = GNUNET_DISK_file_write (f, buf, size_buf);
-  if (size_buf != size2)
+  size_written = GNUNET_DISK_file_write (f, buf, size_buf);
+  if (size_buf != size_written)
   {
     LOG (GNUNET_ERROR_TYPE_WARNING,
-         "Unable to write to file! (Size: %u, size2: %u)\n",
+         "Unable to write to file! (Size: %u, size_written: %u)\n",
          size_buf,
-         size2);
+         size_written);
 
     if (GNUNET_YES != GNUNET_DISK_file_close (f))
       LOG (GNUNET_ERROR_TYPE_WARNING,
@@ -143,15 +166,185 @@ to_file_raw (const char *file_name, void *buf, size_t size_buf)
 
     return;
   }
+}
 
-  //if (512 < size_buf)
+void
+to_file_raw_unaligned (const char *file_name,
+                       const char *buf,
+                       size_t size_buf,
+                       unsigned bits_needed)
+{
+  // TODO endianness!
+  GNUNET_assert (size_buf >= (bits_needed/8));
+  //if (0 == num_bits_buf_unaligned)
   //{
-  //  GNUNET_free (output_buffer_p);
+  //  if (0 == (bits_needed % 8))
+  //  {
+  //    to_file_raw (file_name, buf, size_buf);
+  //    return;
+  //  }
+  //  to_file_raw (file_name, buf, size_buf - 1);
+  //  buf_unaligned = buf[size_buf - 1];
+  //  num_bits_buf_unaligned = bits_needed % 8;
+  //  return;
   //}
 
-  //if (GNUNET_YES != GNUNET_DISK_file_close (f))
-  //  LOG (GNUNET_ERROR_TYPE_WARNING,
-  //       "Unable to close file\n");
+  char buf_write[size_buf + 1];
+  const unsigned bytes_iter = (0 != bits_needed % 8?
+                               (bits_needed/8)+1:
+                               bits_needed/8);
+  // TODO what if no iteration happens?
+  unsigned size_buf_write = 0;
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+      "num_bits_buf_unaligned: %u\n",
+       num_bits_buf_unaligned);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+      "ua args: size_buf: %u, bits_needed: %u -> iter: %u\n",
+       size_buf,
+       bits_needed,
+       bytes_iter);
+  buf_write[0] = buf_unaligned;
+  /* Iterate over input bytes */
+  for (unsigned i = 0; i < bytes_iter; i++)
+  {
+    /* Number of bits needed in this iteration - 8 for all except last iter */
+    unsigned num_bits_needed_iter;
+    /* Mask for bits to actually use */
+    unsigned mask_bits_needed_iter;
+    char byte_input;
+    /* Number of bits needed to align unaligned byte */
+    unsigned num_bits_to_align;
+    /* Number of bits that are to be moved */
+    unsigned num_bits_to_move;
+    /* Mask for bytes to be moved */
+    char mask_input_to_move;
+    /* Masked bits to be moved */
+    char bits_to_move;
+    /* The amount of bits needed to fit the bits to shift to the nearest spot */
+    unsigned distance_shift_bits;
+    /* Shifted bits on the move */
+    char bits_moving;
+    /* (unaligned) byte being filled with bits */
+    char byte_to_fill;
+    /* mask for needed bits of the input byte that have not been moved */
+    char mask_input_leftover;
+    /* needed bits of the input byte that have not been moved */
+    char byte_input_leftover;
+    unsigned num_bits_leftover;
+    unsigned num_bits_discard;
+    char byte_unaligned_new;
+
+    if ( (bits_needed - (i * 8)) <= 8)
+    {
+      /* last iteration */
+      num_bits_needed_iter = bits_needed - (i * 8);
+    }
+    else
+    {
+      num_bits_needed_iter = 8;
+    }
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+        "number of bits needed in this iteration: %u\n",
+         num_bits_needed_iter);
+    mask_bits_needed_iter = ((char) 1 << num_bits_needed_iter) - 1;
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+        "mask needed bits (current iter): "B2B_PAT"\n",
+         B2B(mask_bits_needed_iter));
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+        "Unaligned byte: "B2B_PAT" (%u bits)\n",
+         B2B(buf_unaligned),
+         num_bits_buf_unaligned);
+    byte_input = buf[i];
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+        "next whole input byte: "B2B_PAT"\n",
+         B2B(byte_input));
+    byte_input &= mask_bits_needed_iter;
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+        "input byte, needed bits: "B2B_PAT"\n",
+         B2B(byte_input));
+    num_bits_to_align = 8 - num_bits_buf_unaligned;
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+        "number of bits needed to align unaligned bit: %u\n",
+         num_bits_to_align);
+    num_bits_to_move  = min (num_bits_to_align, num_bits_needed_iter);
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+        "number of bits of new byte to move: %u\n",
+         num_bits_to_move);
+    mask_input_to_move = ((char) 1 << num_bits_to_move) - 1;
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+        "mask of bits of new byte to take for moving: "B2B_PAT"\n",
+         B2B(mask_input_to_move));
+    bits_to_move = byte_input & mask_input_to_move;
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+        "masked bits of new byte to take for moving: "B2B_PAT"\n",
+         B2B(bits_to_move));
+    distance_shift_bits = num_bits_buf_unaligned;
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+        "distance needed to shift bits to their correct spot: %u\n",
+         distance_shift_bits);
+    bits_moving = bits_to_move << distance_shift_bits;
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+        "shifted, masked bits of new byte being moved: "B2B_PAT"\n",
+         B2B(bits_moving));
+    byte_to_fill = buf_unaligned | bits_moving;
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+        "byte being filled: "B2B_PAT"\n",
+         B2B(byte_to_fill));
+    if (num_bits_buf_unaligned + num_bits_needed_iter > 8)
+    {
+      /* buf_unaligned was aligned by filling
+       * -> can be written to storage */
+      buf_write[i] = byte_to_fill;
+      size_buf_write++;
+
+      /* store the leftover, unaligned bits in buffer */
+      mask_input_leftover = mask_bits_needed_iter & (~ mask_input_to_move);
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
+          "mask of leftover bits of new byte: "B2B_PAT"\n",
+           B2B(mask_input_leftover));
+      byte_input_leftover = byte_input & mask_input_leftover;
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
+          "masked, leftover bits of new byte: "B2B_PAT"\n",
+           B2B(byte_input_leftover));
+      num_bits_leftover = num_bits_needed_iter - num_bits_to_move;
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
+          "number of unaligned bits left: %u\n",
+           num_bits_leftover);
+      num_bits_discard = 8 - num_bits_needed_iter;
+      byte_unaligned_new = byte_input_leftover >> num_bits_to_move;
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
+          "new unaligned byte: "B2B_PAT"\n",
+           B2B(byte_unaligned_new));
+      buf_unaligned = byte_unaligned_new;
+      num_bits_buf_unaligned = num_bits_leftover % 8;
+    }
+    else
+    {
+      /* unaligned buffer still unaligned but 'fuller' */
+      buf_unaligned = byte_to_fill;
+      num_bits_buf_unaligned = (num_bits_buf_unaligned + bits_needed) % 8;
+    }
+    ///* Byte to be completed will consist of what is left in the unaligned
+    // * byte and the rest of the input byte */
+    //LOG (GNUNET_ERROR_TYPE_DEBUG,
+    //    "ua: %u - %x, %x << %u = %x\n",
+    //    i,
+    //    buf_unaligned,
+    //    num_bits_buf_unaligned,
+    //    (char) ((char) buf_unaligned << num_bits_buf_unaligned));
+    //buf_write[i] = buf_write[i] |
+    //  (char) ((char) buf_unaligned << num_bits_buf_unaligned);
+    //LOG (GNUNET_ERROR_TYPE_DEBUG,
+    //    "ua: %x\n",
+    //    buf_write[i]);
+    //buf_unaligned = buf[i] >> num_bits_buf_unaligned;
+    //LOG (GNUNET_ERROR_TYPE_DEBUG,
+    //    "ua: %x\n"
+    //    "---\n",
+    //    buf_unaligned);
+  }
+  to_file_raw (file_name, buf_write, size_buf_write);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "\n");
 }
 
 char *

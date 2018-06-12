@@ -75,7 +75,13 @@ store_prefix_file_name (const struct GNUNET_PeerIdentity *peer,
     const char *prefix);
 
 void
-to_file_raw (const char *file_name, void *buf, size_t size_buf);
+to_file_raw (const char *file_name, const char *buf, size_t size_buf);
+
+void
+to_file_raw_unaligned (const char *file_name,
+                       const char *buf,
+                       size_t size_buf,
+                       unsigned bits_needed);
 
 #endif /* RPS_TEST_UTIL_H */
 /* end of gnunet-service-rps.c */
