@@ -76,17 +76,17 @@
                               (string-append (current-source-directory)
                                              "/../../../"))
                              source-file?))))
-      (package
+    (package
       (name "gnunet-doc")
       (version (string-append "0.10.1-" revision "." "dev"))
       (source
        (local-file ;;"../../.."
-                   ;;%source-dir
-                   ;;(string-append (getcwd) "/../../../")
-                   (string-append (getcwd)) ;drrty hack and this assumes one static position FIXME!
-                   #:recursive? #t))
-                   ;;#:select? (git-predicate %source-dir)))
-                   ;;#:select? (force select?)))
+        ;;%source-dir
+        ;;(string-append (getcwd) "/../../../")
+        (string-append (getcwd)) ;drrty hack and this assumes one static position FIXME!
+        #:recursive? #t))
+      ;;#:select? (git-predicate %source-dir)))
+      ;;#:select? (force select?)))
       (build-system gnu-build-system)
       (inputs
        `(("glpk" ,glpk)
@@ -105,7 +105,7 @@
          ("pulseaudio" ,pulseaudio)
          ("sqlite" ,sqlite)
          ("postgresql" ,postgresql)
-         ("mysql" ,mysql)
+         ("mysql" ,mariadb)
          ("zlib" ,zlib)
          ("perl" ,perl)
          ("python-2" ,python-2) ; tests and gnunet-qr
@@ -145,34 +145,34 @@
                (chdir "doc/documentation")
                ;;(zero? (system* "make" "dev-build"))))
                (zero? (system* "sh" "run-gendocs.sh"))))
-               ;; (zero? (system* "make" "pdf"))
-               ;; (zero? (system* "make" "html"))
-               ;; (zero? (system* "make" "info"))))
-               ;;(zero? (system* "make" "doc-all-give-me-the-noise"))))
+           ;; (zero? (system* "make" "pdf"))
+           ;; (zero? (system* "make" "html"))
+           ;; (zero? (system* "make" "info"))))
+           ;;(zero? (system* "make" "doc-all-give-me-the-noise"))))
            (replace 'install
              (lambda _
                (zero? (system* "make" "doc-gendoc-install")))))))
-             ;;(lambda* (#:key outputs #:allow-other-keys)
-               ;; (let* ((out (assoc-ref outputs "out"))
-               ;;        (doc (string-append out "/share/doc/gnunet")))
-               ;;   (mkdir-p doc)
-               ;;   (copy-recursively "images"
-               ;;                     (string-append doc
-               ;;                                    "/images"))
-               ;;   (mkdir-p (string-append doc "/gnunet"))
-               ;;   (install-file "gnunet.pdf" doc)
-               ;;   (install-file "gnunet.info" doc)
-               ;;   (install-file "gnunet.log" doc) ;TODO: Move to 'dev' output?
-               ;;   (copy-recursively "gnunet"
-               ;;                     (string-append doc
-               ;;                                    "/gnunet"))
-               ;;   (install-file "gnunet-c-tutorial.pdf" doc)
-               ;;   (install-file "gnunet-c-tutorial.info" doc)
-               ;;   (install-file "gnunet-c-tutorial.log" doc) ;TODO: Move to 'dev' output?
-               ;;   (copy-recursively "gnunet-c-tutorial"
-               ;;                     (string-append doc
-               ;;                                    "/gnunet-c-tutorial")))
-               ;; #t)))))
+      ;;(lambda* (#:key outputs #:allow-other-keys)
+      ;; (let* ((out (assoc-ref outputs "out"))
+      ;;        (doc (string-append out "/share/doc/gnunet")))
+      ;;   (mkdir-p doc)
+      ;;   (copy-recursively "images"
+      ;;                     (string-append doc
+      ;;                                    "/images"))
+      ;;   (mkdir-p (string-append doc "/gnunet"))
+      ;;   (install-file "gnunet.pdf" doc)
+      ;;   (install-file "gnunet.info" doc)
+      ;;   (install-file "gnunet.log" doc) ;TODO: Move to 'dev' output?
+      ;;   (copy-recursively "gnunet"
+      ;;                     (string-append doc
+      ;;                                    "/gnunet"))
+      ;;   (install-file "gnunet-c-tutorial.pdf" doc)
+      ;;   (install-file "gnunet-c-tutorial.info" doc)
+      ;;   (install-file "gnunet-c-tutorial.log" doc) ;TODO: Move to 'dev' output?
+      ;;   (copy-recursively "gnunet-c-tutorial"
+      ;;                     (string-append doc
+      ;;                                    "/gnunet-c-tutorial")))
+      ;; #t)))))
       (synopsis "Documentation of GNUnet")
       (description
        "GNUnet documentation build")
