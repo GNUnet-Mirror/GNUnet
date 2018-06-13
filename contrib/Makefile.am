@@ -34,9 +34,6 @@ dist_pkgdata_DATA = \
  branding/logo/gnunet-logo-color.png \
  testing_hostkeys.ecc
 
-bin_PROGRAMS = \
- scripts/gnunet-bugreport
-
 if MINGW
 tap32_DATA = \
  3rdparty/Windows/openvpn-tap32/tapw32/tap0901.sys \
@@ -128,6 +125,7 @@ install-data-local:
 	    $(INSTALL_DATA) $$hello $(DESTDIR)$(pkghellodir)/ ; \
 	  fi \
 	done
+	install scripts/gnunet-bugreport $(bindir)/gnunet-bugreport
 
 dist-hook:
 	if test -d $(srcdir)/hellos; then \
