@@ -96,7 +96,7 @@
          ("pulseaudio" ,pulseaudio)
          ("sqlite" ,sqlite)
          ("postgresql" ,postgresql)
-         ("mysql" ,mysql)
+         ("mysql" ,mariadb)
          ("zlib" ,zlib)
          ("perl" ,perl)
          ("python-2" ,python-2) ; tests and gnunet-qr
