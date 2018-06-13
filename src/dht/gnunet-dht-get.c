@@ -2,20 +2,18 @@
      This file is part of GNUnet.
      Copyright (C) 2001, 2002, 2004, 2005, 2006, 2007, 2009 GNUnet e.V.
 
-     GNUnet is free software; you can redistribute it and/or modify
-     it under the terms of the GNU General Public License as published
-     by the Free Software Foundation; either version 3, or (at your
-     option) any later version.
+     GNUnet is free software: you can redistribute it and/or modify it
+     under the terms of the GNU Affero General Public License as published
+     by the Free Software Foundation, either version 3 of the License,
+     or (at your option) any later version.
 
      GNUnet is distributed in the hope that it will be useful, but
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-     General Public License for more details.
-
-     You should have received a copy of the GNU General Public License
-     along with GNUnet; see the file COPYING.  If not, write to the
-     Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
-     Boston, MA 02110-1301, USA.
+     Affero General Public License for more details.
+    
+     You should have received a copy of the GNU Affero General Public License
+     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 /**
  * @file dht/gnunet-dht-get.c
@@ -154,7 +152,9 @@ get_result_iterator (void *cls, struct GNUNET_TIME_Absolute exp,
                      const void *data)
 {
   FPRINTF (stdout,
-	   _("Result %d, type %d:\n%.*s\n"),
+	   (GNUNET_BLOCK_TYPE_TEST == type)
+           ? _("Result %d, type %d:\n%.*s\n")
+           : _("Result %d, type %d:\n"),
 	   result_count,
            type,
            (unsigned int) size,
@@ -196,8 +196,6 @@ run (void *cls, char *const *args, const char *cfgfile,
 {
   struct GNUNET_HashCode key;
 
-
-
   cfg = c;
   if (NULL == query_key)
   {
@@ -215,16 +213,21 @@ run (void *cls, char *const *args, const char *cfgfile,
     query_type = GNUNET_BLOCK_TYPE_TEST;
   GNUNET_CRYPTO_hash (query_key, strlen (query_key), &key);
   if (verbose)
-    FPRINTF (stderr, "%s `%s' \n",  _("Issueing DHT GET with key"), GNUNET_h2s_full (&key));
+    FPRINTF (stderr, "%s `%s' \n",
+             _("Issueing DHT GET with key"),
+             GNUNET_h2s_full (&key));
   GNUNET_SCHEDULER_add_shutdown (&cleanup_task, NULL);
   tt = GNUNET_SCHEDULER_add_delayed (timeout_request,
-				     &timeout_task, NULL);
+				     &timeout_task,
+                                     NULL);
   get_handle =
       GNUNET_DHT_get_start (dht_handle, query_type, &key, replication,
                             (demultixplex_everywhere) ? GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE : GNUNET_DHT_RO_NONE,
-                            NULL, 0, &get_result_iterator, NULL);
-
+                            NULL, 0,
+                            &get_result_iterator,
+                            NULL);
 }
+
 
 /**
  * Entry point for gnunet-dht-get
@@ -236,15 +239,12 @@ run (void *cls, char *const *args, const char *cfgfile,
 int
 main (int argc, char *const *argv)
 {
-
   struct GNUNET_GETOPT_CommandLineOption options[] = {
-
     GNUNET_GETOPT_option_string ('k',
                                  "key",
                                  "KEY",
                                  gettext_noop ("the query key"),
                                  &query_key),
-
     GNUNET_GETOPT_option_uint ('r',
                                "replication",
                                "LEVEL",

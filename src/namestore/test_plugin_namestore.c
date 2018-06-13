@@ -2,20 +2,18 @@
      This file is part of GNUnet.
      Copyright (C) 2012 GNUnet e.V.
 
-     GNUnet is free software; you can redistribute it and/or modify
-     it under the terms of the GNU General Public License as published
-     by the Free Software Foundation; either version 3, or (at your
-     option) any later version.
+     GNUnet is free software: you can redistribute it and/or modify it
+     under the terms of the GNU Affero General Public License as published
+     by the Free Software Foundation, either version 3 of the License,
+     or (at your option) any later version.
 
      GNUnet is distributed in the hope that it will be useful, but
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-     General Public License for more details.
-
-     You should have received a copy of the GNU General Public License
-     along with GNUnet; see the file COPYING.  If not, write to the
-     Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
-     Boston, MA 02110-1301, USA.
+     Affero General Public License for more details.
+    
+     You should have received a copy of the GNU Affero General Public License
+     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 /*
  * @file namestore/test_plugin_namestore.c
@@ -26,7 +24,9 @@
 #include "gnunet_util_lib.h"
 #include "gnunet_namestore_plugin.h"
 #include "gnunet_testing_lib.h"
+#include "gnunet_dnsparser_lib.h"
 
+#define TEST_RECORD_TYPE GNUNET_DNSPARSER_TYPE_TXT
 
 static int ok;
 
@@ -110,7 +110,7 @@ test_record (void *cls,
   {
     GNUNET_assert (rd[i].data_size == id % 10);
     GNUNET_assert (0 == memcmp ("Hello World", rd[i].data, id % 10));
-    GNUNET_assert (rd[i].record_type == 1 + (id % 13));
+    GNUNET_assert (rd[i].record_type == TEST_RECORD_TYPE);
     GNUNET_assert (rd[i].flags == 0);
   }
   memset (&tzone_private_key,
@@ -154,7 +154,7 @@ put_record (struct GNUNET_NAMESTORE_PluginFunctions *nsp,
     rd[i].data = "Hello World";
     rd[i].data_size = id % 10;
     rd[i].expiration_time = GNUNET_TIME_relative_to_absolute (GNUNET_TIME_UNIT_MINUTES).abs_value_us;
-    rd[i].record_type = 1 + (id % 13);
+    rd[i].record_type = TEST_RECORD_TYPE;
     rd[i].flags = 0;
   }
   memset (&zone_private_key, (id % 241), sizeof (zone_private_key));

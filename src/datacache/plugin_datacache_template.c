@@ -2,20 +2,18 @@
      This file is part of GNUnet
      Copyright (C) 2006, 2009, 2015 GNUnet e.V.
 
-     GNUnet is free software; you can redistribute it and/or modify
-     it under the terms of the GNU General Public License as published
-     by the Free Software Foundation; either version 3, or (at your
-     option) any later version.
+     GNUnet is free software: you can redistribute it and/or modify it
+     under the terms of the GNU Affero General Public License as published
+     by the Free Software Foundation, either version 3 of the License,
+     or (at your option) any later version.
 
      GNUnet is distributed in the hope that it will be useful, but
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-     General Public License for more details.
-
-     You should have received a copy of the GNU General Public License
-     along with GNUnet; see the file COPYING.  If not, write to the
-     Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
-     Boston, MA 02110-1301, USA.
+     Affero General Public License for more details.
+    
+     You should have received a copy of the GNU Affero General Public License
+     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 /**
@@ -45,6 +43,7 @@ struct Plugin
  *
  * @param cls closure (our `struct Plugin`)
  * @param key key to store @a data under
+ * @param xor_distance distance of @a key to our PID
  * @param size number of bytes in @a data
  * @param data data to store
  * @param type type of the value
@@ -56,6 +55,7 @@ struct Plugin
 static ssize_t
 template_plugin_put (void *cls,
                      const struct GNUNET_HashCode *key,
+                     uint32_t xor_distance,
                      size_t size,
                      const char *data,
                      enum GNUNET_BLOCK_Type type,

@@ -2,20 +2,18 @@
      This file is part of GNUnet.
      Copyright (C) 2009, 2012 GNUnet e.V.
 
-     GNUnet is free software; you can redistribute it and/or modify
-     it under the terms of the GNU General Public License as published
-     by the Free Software Foundation; either version 3, or (at your
-     option) any later version.
+     GNUnet is free software: you can redistribute it and/or modify it
+     under the terms of the GNU Affero General Public License as published
+     by the Free Software Foundation, either version 3 of the License,
+     or (at your option) any later version.
 
      GNUnet is distributed in the hope that it will be useful, but
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-     General Public License for more details.
-
-     You should have received a copy of the GNU General Public License
-     along with GNUnet; see the file COPYING.  If not, write to the
-     Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
-     Boston, MA 02110-1301, USA.
+     Affero General Public License for more details.
+    
+     You should have received a copy of the GNU Affero General Public License
+     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 /**
  * @file rps/test_rps.c
@@ -39,6 +37,12 @@
  * How many peers do we start?
  */
 static uint32_t num_peers;
+
+/**
+ * How long do we run the test?
+ * In seconds.
+ */
+static uint32_t timeout_s;
 
 /**
  * How long do we run the test?
@@ -371,6 +375,11 @@ static int ok;
 /**
  * Identifier for the churn task that runs periodically
  */
+static struct GNUNET_SCHEDULER_Task *post_test_task;
+
+/**
+ * Identifier for the churn task that runs periodically
+ */
 static struct GNUNET_SCHEDULER_Task *shutdown_task;
 
 /**
@@ -554,6 +563,11 @@ struct SingleTestRun
    */
   uint32_t stat_collect_flags;
 } cur_test_run;
+
+/**
+ * Did we finish the test?
+ */
+static int post_test;
 
 /**
  * Are we shutting down?
@@ -755,6 +769,41 @@ shutdown_op (void *cls)
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
               "Shutdown task scheduled, going down.\n");
   in_shutdown = GNUNET_YES;
+  if (NULL != post_test_task)
+  {
+    GNUNET_SCHEDULER_cancel (post_test_task);
+  }
+  if (NULL != churn_task)
+  {
+    GNUNET_SCHEDULER_cancel (churn_task);
+    churn_task = NULL;
+  }
+  for (i = 0; i < num_peers; i++)
+  {
+    if (NULL != rps_peers[i].rps_handle)
+    {
+      GNUNET_RPS_disconnect (rps_peers[i].rps_handle);
+    }
+    if (NULL != rps_peers[i].op)
+    {
+      GNUNET_TESTBED_operation_done (rps_peers[i].op);
+    }
+  }
+}
+
+
+/**
+ * Task run on timeout to collect statistics and potentially shut down.
+ */
+static void
+post_test_op (void *cls)
+{
+  unsigned int i;
+
+  post_test_task = NULL;
+  post_test = GNUNET_YES;
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+              "Post test task scheduled, going down.\n");
   if (NULL != churn_task)
   {
     GNUNET_SCHEDULER_cancel (churn_task);
@@ -763,7 +812,10 @@ shutdown_op (void *cls)
   for (i = 0; i < num_peers; i++)
   {
     if (NULL != rps_peers[i].op)
+    {
       GNUNET_TESTBED_operation_done (rps_peers[i].op);
+      rps_peers[i].op = NULL;
+    }
     if (NULL != cur_test_run.post_test)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Executing post_test for peer %u\n", i);
@@ -847,7 +899,7 @@ info_cb (void *cb_cls,
 {
   struct OpListEntry *entry = (struct OpListEntry *) cb_cls;
 
-  if (GNUNET_YES == in_shutdown)
+  if (GNUNET_YES == in_shutdown || GNUNET_YES == post_test)
   {
     return;
   }
@@ -901,7 +953,7 @@ rps_connect_complete_cb (void *cls,
   struct RPSPeer *rps_peer = cls;
   struct GNUNET_RPS_Handle *rps = ca_result;
 
-  if (GNUNET_YES == in_shutdown)
+  if (GNUNET_YES == in_shutdown || GNUNET_YES == post_test)
   {
     return;
   }
@@ -1105,10 +1157,10 @@ default_reply_handle (void *cls,
   if (0 == evaluate () && HAVE_QUICK_QUIT == cur_test_run.have_quick_quit)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Test succeeded before timeout\n");
-    GNUNET_assert (NULL != shutdown_task);
-    GNUNET_SCHEDULER_cancel (shutdown_task);
-    shutdown_task = GNUNET_SCHEDULER_add_now (&shutdown_op, NULL);
-    GNUNET_assert (NULL!= shutdown_task);
+    GNUNET_assert (NULL != post_test_task);
+    GNUNET_SCHEDULER_cancel (post_test_task);
+    post_test_task = GNUNET_SCHEDULER_add_now (&post_test_op, NULL);
+    GNUNET_assert (NULL!= post_test_task);
   }
 }
 
@@ -1122,7 +1174,7 @@ request_peers (void *cls)
   struct RPSPeer *rps_peer;
   struct PendingReply *pending_rep;
 
-  if (GNUNET_YES == in_shutdown)
+  if (GNUNET_YES == in_shutdown || GNUNET_YES == post_test)
     return;
   rps_peer = pending_req->rps_peer;
   GNUNET_assert (1 <= rps_peer->num_pending_reqs);
@@ -1185,7 +1237,7 @@ cancel_request_cb (void *cls)
   struct RPSPeer *rps_peer = cls;
   struct PendingReply *pending_rep;
 
-  if (GNUNET_YES == in_shutdown)
+  if (GNUNET_YES == in_shutdown || GNUNET_YES == post_test)
     return;
   pending_rep = rps_peer->pending_rep_head;
   GNUNET_assert (1 <= rps_peer->num_pending_reps);
@@ -1290,7 +1342,7 @@ mal_cb (struct RPSPeer *rps_peer)
 {
   uint32_t num_mal_peers;
 
-  if (GNUNET_YES == in_shutdown)
+  if (GNUNET_YES == in_shutdown || GNUNET_YES == post_test)
   {
     return;
   }
@@ -1317,7 +1369,7 @@ mal_cb (struct RPSPeer *rps_peer)
 static void
 single_req_cb (struct RPSPeer *rps_peer)
 {
-  if (GNUNET_YES == in_shutdown)
+  if (GNUNET_YES == in_shutdown || GNUNET_YES == post_test)
   {
     return;
   }
@@ -1331,7 +1383,7 @@ single_req_cb (struct RPSPeer *rps_peer)
 static void
 delay_req_cb (struct RPSPeer *rps_peer)
 {
-  if (GNUNET_YES == in_shutdown)
+  if (GNUNET_YES == in_shutdown || GNUNET_YES == post_test)
   {
     return;
   }
@@ -1345,7 +1397,7 @@ delay_req_cb (struct RPSPeer *rps_peer)
 static void
 seed_cb (struct RPSPeer *rps_peer)
 {
-  if (GNUNET_YES == in_shutdown)
+  if (GNUNET_YES == in_shutdown || GNUNET_YES == post_test)
   {
     return;
   }
@@ -1361,7 +1413,7 @@ seed_cb (struct RPSPeer *rps_peer)
 static void
 seed_big_cb (struct RPSPeer *rps_peer)
 {
-  if (GNUNET_YES == in_shutdown)
+  if (GNUNET_YES == in_shutdown || GNUNET_YES == post_test)
   {
     return;
   }
@@ -1387,7 +1439,7 @@ single_peer_seed_cb (struct RPSPeer *rps_peer)
 static void
 seed_req_cb (struct RPSPeer *rps_peer)
 {
-  if (GNUNET_YES == in_shutdown)
+  if (GNUNET_YES == in_shutdown || GNUNET_YES == post_test)
   {
     return;
   }
@@ -1406,7 +1458,7 @@ seed_req_cb (struct RPSPeer *rps_peer)
 static void
 req_cancel_cb (struct RPSPeer *rps_peer)
 {
-  if (GNUNET_YES == in_shutdown)
+  if (GNUNET_YES == in_shutdown || GNUNET_YES == post_test)
   {
     return;
   }
@@ -1439,7 +1491,7 @@ churn (void *cls);
 static void
 churn_test_cb (struct RPSPeer *rps_peer)
 {
-  if (GNUNET_YES == in_shutdown)
+  if (GNUNET_YES == in_shutdown || GNUNET_YES == post_test)
   {
     return;
   }
@@ -1480,7 +1532,7 @@ churn_cb (void *cls,
   // FIXME
   struct OpListEntry *entry = cls;
 
-  if (GNUNET_YES == in_shutdown)
+  if (GNUNET_YES == in_shutdown || GNUNET_YES == post_test)
   {
     return;
   }
@@ -1615,7 +1667,7 @@ churn (void *cls)
   double portion_go_online;
   double portion_go_offline;
 
-  if (GNUNET_YES == in_shutdown)
+  if (GNUNET_YES == in_shutdown || GNUNET_YES == post_test)
   {
     return;
   }
@@ -1731,7 +1783,7 @@ profiler_reply_handle (void *cls,
 static void
 profiler_cb (struct RPSPeer *rps_peer)
 {
-  if (GNUNET_YES == in_shutdown)
+  if (GNUNET_YES == in_shutdown || GNUNET_YES == post_test)
   {
     return;
   }
@@ -2644,7 +2696,12 @@ run (void *cls,
 
   if (NULL != churn_task)
     GNUNET_SCHEDULER_cancel (churn_task);
+  post_test_task = GNUNET_SCHEDULER_add_delayed (timeout, &post_test_op, NULL);
+  timeout = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS,
+      (timeout_s * 1.2) + 0.1 * num_peers);
   shutdown_task = GNUNET_SCHEDULER_add_delayed (timeout, &shutdown_op, NULL);
+  shutdown_task = GNUNET_SCHEDULER_add_shutdown (shutdown_op, NULL);
+
 }
 
 
@@ -2673,7 +2730,7 @@ main (int argc, char *argv[])
   cur_test_run.stat_collect_flags = 0;
   cur_test_run.have_collect_view = NO_COLLECT_VIEW;
   churn_task = NULL;
-  timeout = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 30);
+  timeout_s = 30;
 
   if (strstr (argv[0], "malicious") != NULL)
   {
@@ -2725,7 +2782,7 @@ main (int argc, char *argv[])
     cur_test_run.main_test = seed_big_cb;
     cur_test_run.eval_cb = no_eval;
     cur_test_run.have_churn = HAVE_NO_CHURN;
-    timeout = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10);
+    timeout_s = 10;
   }
 
   else if (strstr (argv[0], "_single_peer_seed") != NULL)
@@ -2761,7 +2818,7 @@ main (int argc, char *argv[])
     cur_test_run.main_test = req_cancel_cb;
     cur_test_run.eval_cb = no_eval;
     cur_test_run.have_churn = HAVE_NO_CHURN;
-    timeout = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10);
+    timeout_s = 10;
   }
 
   else if (strstr (argv[0], "_churn") != NULL)
@@ -2775,7 +2832,7 @@ main (int argc, char *argv[])
     cur_test_run.eval_cb = default_eval_cb;
     cur_test_run.have_churn = HAVE_NO_CHURN;
     cur_test_run.have_quick_quit = HAVE_NO_QUICK_QUIT;
-    timeout = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10);
+    timeout_s = 10;
   }
 
   else if (strstr (argv[0], "profiler") != NULL)
@@ -2814,12 +2871,13 @@ main (int argc, char *argv[])
                                       STAT_TYPE_RECV_PULL_REQ |
                                       STAT_TYPE_RECV_PULL_REP;
     cur_test_run.have_collect_view = COLLECT_VIEW;
-    timeout = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 300);
+    timeout_s = 150;
 
     /* 'Clean' directory */
     (void) GNUNET_DISK_directory_remove ("/tmp/rps/");
     GNUNET_DISK_directory_create ("/tmp/rps/");
   }
+  timeout = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, timeout_s);
 
   rps_peers = GNUNET_new_array (num_peers, struct RPSPeer);
   peer_map = GNUNET_CONTAINER_multipeermap_create (num_peers, GNUNET_NO);

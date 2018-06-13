@@ -2,20 +2,18 @@
      This file is part of GNUnet.
      Copyright (C) 2016 GNUnet e.V.
 
-     GNUnet is free software; you can redistribute it and/or modify
-     it under the terms of the GNU General Public License as published
-     by the Free Software Foundation; either version 3, or (at your
-     option) any later version.
+     GNUnet is free software: you can redistribute it and/or modify it
+     under the terms of the GNU Affero General Public License as published
+     by the Free Software Foundation, either version 3 of the License,
+     or (at your option) any later version.
 
      GNUnet is distributed in the hope that it will be useful, but
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-     General Public License for more details.
-
-     You should have received a copy of the GNU General Public License
-     along with GNUnet; see the file COPYING.  If not, write to the
-     Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
-     Boston, MA 02110-1301, USA.
+     Affero General Public License for more details.
+    
+     You should have received a copy of the GNU Affero General Public License
+     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 /**
@@ -1572,6 +1570,36 @@ teardown_service (struct GNUNET_SERVICE_Handle *sh)
 
 
 /**
+ * Function to return link to AGPL source upon request.
+ *
+ * @param cls closure with the identification of the client
+ * @param msg AGPL request
+ */
+static void
+return_agpl (void *cls,
+             const struct GNUNET_MessageHeader *msg)
+{
+  struct GNUNET_SERVICE_Client *client = cls;
+  struct GNUNET_MQ_Handle *mq;
+  struct GNUNET_MQ_Envelope *env;
+  struct GNUNET_MessageHeader *res;
+  size_t slen;
+
+  slen = strlen (GNUNET_AGPL_URL) + 1;
+  env = GNUNET_MQ_msg_extra (res,
+                             GNUNET_MESSAGE_TYPE_RESPONSE_AGPL,
+                             slen);
+  memcpy (&res[1],
+          GNUNET_AGPL_URL,
+          slen);
+  mq = GNUNET_SERVICE_client_get_mq (client);
+  GNUNET_MQ_send (mq,
+		  env);
+  GNUNET_SERVICE_client_continue (client);
+}
+
+
+/**
  * Low-level function to start a service if the scheduler
  * is already running.  Should only be used directly in
  * special cases.
@@ -1623,7 +1651,9 @@ GNUNET_SERVICE_start (const char *service_name,
   sh->connect_cb = connect_cb;
   sh->disconnect_cb = disconnect_cb;
   sh->cb_cls = cls;
-  sh->handlers = GNUNET_MQ_copy_handlers (handlers);
+  sh->handlers = GNUNET_MQ_copy_handlers2 (handlers,
+                                           &return_agpl,
+                                           NULL);
   if (GNUNET_OK != setup_service (sh))
   {
     GNUNET_free_non_null (sh->handlers);
@@ -1723,9 +1753,9 @@ GNUNET_SERVICE_run_ (int argc,
   struct GNUNET_GETOPT_CommandLineOption service_options[] = {
     GNUNET_GETOPT_option_cfgfile (&opt_cfg_filename),
     GNUNET_GETOPT_option_flag ('d',
-                                  "daemonize",
-                                  gettext_noop ("do daemonize (detach from terminal)"),
-                                  &do_daemonize),
+                               "daemonize",
+                               gettext_noop ("do daemonize (detach from terminal)"),
+                               &do_daemonize),
     GNUNET_GETOPT_option_help (NULL),
     GNUNET_GETOPT_option_loglevel (&loglev),
     GNUNET_GETOPT_option_logfile (&logfile),

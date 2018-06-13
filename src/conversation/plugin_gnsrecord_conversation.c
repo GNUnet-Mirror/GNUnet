@@ -2,20 +2,18 @@
      This file is part of GNUnet
      Copyright (C) 2013 GNUnet e.V.
 
-     GNUnet is free software; you can redistribute it and/or modify
-     it under the terms of the GNU General Public License as published
-     by the Free Software Foundation; either version 3, or (at your
-     option) any later version.
+     GNUnet is free software: you can redistribute it and/or modify it
+     under the terms of the GNU Affero General Public License as published
+     by the Free Software Foundation, either version 3 of the License,
+     or (at your option) any later version.
 
      GNUnet is distributed in the hope that it will be useful, but
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-     General Public License for more details.
-
-     You should have received a copy of the GNU General Public License
-     along with GNUnet; see the file COPYING.  If not, write to the
-     Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
-     Boston, MA 02110-1301, USA.
+     Affero General Public License for more details.
+    
+     You should have received a copy of the GNU Affero General Public License
+     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 /**
@@ -51,6 +49,7 @@ conversation_value_to_string (void *cls,
 {
   char *s;
 
+  (void) cls;
   switch (type)
   {
   case GNUNET_GNSRECORD_TYPE_PHONE:
@@ -108,6 +107,7 @@ conversation_string_to_value (void *cls,
                               void **data,
                               size_t *data_size)
 {
+  (void) cls;
   if (NULL == s)
   {
     GNUNET_break (0);
@@ -186,6 +186,7 @@ conversation_typename_to_number (void *cls,
 {
   unsigned int i;
 
+  (void) cls;
   i=0;
   while ( (name_map[i].name != NULL) &&
 	  (0 != strcasecmp (gns_typename, name_map[i].name)) )
@@ -207,6 +208,7 @@ conversation_number_to_typename (void *cls,
 {
   unsigned int i;
 
+  (void) cls;
   i=0;
   while ( (name_map[i].name != NULL) &&
 	  (type != name_map[i].number) )
@@ -226,6 +228,7 @@ libgnunet_plugin_gnsrecord_conversation_init (void *cls)
 {
   struct GNUNET_GNSRECORD_PluginFunctions *api;
 
+  (void) cls;
   api = GNUNET_new (struct GNUNET_GNSRECORD_PluginFunctions);
   api->value_to_string = &conversation_value_to_string;
   api->string_to_value = &conversation_string_to_value;

@@ -2,20 +2,18 @@
      This file is part of GNUnet.
      Copyright (C) 2009, 2010, 2011, 2015, 2017 GNUnet e.V.
 
-     GNUnet is free software; you can redistribute it and/or modify
-     it under the terms of the GNU General Public License as published
-     by the Free Software Foundation; either version 3, or (at your
-     option) any later version.
+     GNUnet is free software: you can redistribute it and/or modify it
+     under the terms of the GNU Affero General Public License as published
+     by the Free Software Foundation, either version 3 of the License,
+     or (at your option) any later version.
 
      GNUnet is distributed in the hope that it will be useful, but
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-     General Public License for more details.
-
-     You should have received a copy of the GNU General Public License
-     along with GNUnet; see the file COPYING.  If not, write to the
-     Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
-     Boston, MA 02110-1301, USA.
+     Affero General Public License for more details.
+    
+     You should have received a copy of the GNU Affero General Public License
+     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 /**
  * @file dht/gnunet-service-dht_datacache.c
@@ -26,6 +24,7 @@
 #include "platform.h"
 #include "gnunet_datacache_lib.h"
 #include "gnunet-service-dht_datacache.h"
+#include "gnunet-service-dht_neighbours.h"
 #include "gnunet-service-dht_routing.h"
 #include "gnunet-service-dht.h"
 
@@ -79,10 +78,13 @@ GDS_DATACACHE_handle_put (struct GNUNET_TIME_Absolute expiration,
   }
   /* Put size is actual data size plus struct overhead plus path length (if any) */
   GNUNET_STATISTICS_update (GDS_stats,
-                            gettext_noop ("# ITEMS stored in datacache"), 1,
+                            gettext_noop ("# ITEMS stored in datacache"),
+                            1,
                             GNUNET_NO);
   r = GNUNET_DATACACHE_put (datacache,
                             key,
+                            GNUNET_CRYPTO_hash_matching_bits (key,
+                                                              &my_identity_hash),
                             data_size,
                             data,
                             type,
@@ -169,6 +171,11 @@ datacache_get_iterator (void *cls,
   struct GetRequestContext *ctx = cls;
   enum GNUNET_BLOCK_EvaluationResult eval;
 
+  if (0 == GNUNET_TIME_absolute_get_remaining (exp).rel_value_us)
+  {
+    GNUNET_break (0); /* why does datacache return expired values? */
+    return GNUNET_OK; /* skip expired record */
+  }
   if ( (NULL == data) &&
        (0 == data_size) )
     data = &non_null; /* point anywhere, but not to NULL */

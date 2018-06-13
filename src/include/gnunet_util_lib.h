@@ -2,20 +2,18 @@
       This file is part of GNUnet
       Copyright (C) 2009 GNUnet e.V.
 
-      GNUnet is free software; you can redistribute it and/or modify
-      it under the terms of the GNU General Public License as published
-      by the Free Software Foundation; either version 3, or (at your
-      option) any later version.
+      GNUnet is free software: you can redistribute it and/or modify it
+      under the terms of the GNU Affero General Public License as published
+      by the Free Software Foundation, either version 3 of the License,
+      or (at your option) any later version.
 
       GNUnet is distributed in the hope that it will be useful, but
       WITHOUT ANY WARRANTY; without even the implied warranty of
       MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-      General Public License for more details.
-
-      You should have received a copy of the GNU General Public License
-      along with GNUnet; see the file COPYING.  If not, write to the
-      Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
-      Boston, MA 02110-1301, USA.
+      Affero General Public License for more details.
+     
+      You should have received a copy of the GNU Affero General Public License
+      along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 /**
@@ -51,6 +49,14 @@ extern "C"
  * Smallest supported message.
  */
 #define GNUNET_MIN_MESSAGE_SIZE sizeof (struct GNUNET_MessageHeader)
+
+/**
+ * NOTE: You MUST adjust this URL to point to the location of a
+ * publicly accessible repository (or TGZ) containing the sources of
+ * THIS release. Otherwise, you are violating the Affero GPL if you make
+ * this service available to anyone but yourself.
+ */
+#define GNUNET_AGPL_URL "https://gnunet.org/git/gnunet.git#" PACKAGE_VERSION
 
 
 #include "gnunet_crypto_lib.h"

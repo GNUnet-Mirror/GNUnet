@@ -2,20 +2,18 @@
      This file is part of GNUnet
      Copyright (C) 2004, 2005, 2006, 2007, 2009, 2010, 2015 GNUnet e.V.
 
-     GNUnet is free software; you can redistribute it and/or modify
-     it under the terms of the GNU General Public License as published
-     by the Free Software Foundation; either version 3, or (at your
-     option) any later version.
+     GNUnet is free software: you can redistribute it and/or modify it
+     under the terms of the GNU Affero General Public License as published
+     by the Free Software Foundation, either version 3 of the License,
+     or (at your option) any later version.
 
      GNUnet is distributed in the hope that it will be useful, but
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-     General Public License for more details.
-
-     You should have received a copy of the GNU General Public License
-     along with GNUnet; see the file COPYING.  If not, write to the
-     Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
-     Boston, MA 02110-1301, USA.
+     Affero General Public License for more details.
+    
+     You should have received a copy of the GNU Affero General Public License
+     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 /**
  * @file datacache/datacache.c
@@ -260,6 +258,7 @@ GNUNET_DATACACHE_destroy (struct GNUNET_DATACACHE_Handle *h)
  *
  * @param h handle to the datacache
  * @param key key to store data under
+ * @param xor_distance distance of @a key to our PID
  * @param data_size number of bytes in @a data
  * @param data data to store
  * @param type type of the value
@@ -271,6 +270,7 @@ GNUNET_DATACACHE_destroy (struct GNUNET_DATACACHE_Handle *h)
 int
 GNUNET_DATACACHE_put (struct GNUNET_DATACACHE_Handle *h,
                       const struct GNUNET_HashCode *key,
+                      uint32_t xor_distance,
                       size_t data_size,
                       const char *data,
                       enum GNUNET_BLOCK_Type type,
@@ -282,6 +282,7 @@ GNUNET_DATACACHE_put (struct GNUNET_DATACACHE_Handle *h,
 
   used = h->api->put (h->api->cls,
                       key,
+                      xor_distance,
 		      data_size,
                       data,
 		      type,
@@ -313,7 +314,8 @@ GNUNET_DATACACHE_put (struct GNUNET_DATACACHE_Handle *h,
                             1,
                             GNUNET_NO);
   while (h->utilization + used > h->env.quota)
-    GNUNET_assert (GNUNET_OK == h->api->del (h->api->cls));
+    GNUNET_assert (GNUNET_OK ==
+		   h->api->del (h->api->cls));
   h->utilization += used;
   return GNUNET_OK;
 }

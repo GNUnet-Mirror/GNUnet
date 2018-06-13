@@ -2,20 +2,18 @@
      This file is part of GNUnet.
      Copyright (C) 2012, 2013, 2018 GNUnet e.V.
 
-     GNUnet is free software; you can redistribute it and/or modify
-     it under the terms of the GNU General Public License as published
-     by the Free Software Foundation; either version 3, or (at your
-     option) any later version.
+     GNUnet is free software: you can redistribute it and/or modify it
+     under the terms of the GNU Affero General Public License as published
+     by the Free Software Foundation, either version 3 of the License,
+     or (at your option) any later version.
 
      GNUnet is distributed in the hope that it will be useful, but
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-     General Public License for more details.
-
-     You should have received a copy of the GNU General Public License
-     along with GNUnet; see the file COPYING.  If not, write to the
-     Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
-     Boston, MA 02110-1301, USA.
+     Affero General Public License for more details.
+    
+     You should have received a copy of the GNU Affero General Public License
+     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 /**
  * @file namestore/test_namestore_api_store_update.c
@@ -27,14 +25,13 @@
 #include "gnunet_namecache_service.h"
 #include "gnunet_namestore_service.h"
 #include "gnunet_testing_lib.h"
+#include "gnunet_dnsparser_lib.h"
 
-#define TEST_RECORD_TYPE 1234
+#define TEST_RECORD_TYPE GNUNET_DNSPARSER_TYPE_TXT
 
 #define TEST_RECORD_DATALEN 123
 
 #define TEST_RECORD_DATA 'a'
-
-#define TEST_RECORD_TYPE2 4321
 
 #define TEST_RECORD_DATALEN2 234
 
@@ -149,7 +146,7 @@ rd_decrypt_cb (void *cls,
 
     rd_new.flags = GNUNET_GNSRECORD_RF_NONE;
     rd_new.expiration_time = GNUNET_TIME_absolute_get().abs_value_us + 1000000000;
-    rd_new.record_type = TEST_RECORD_TYPE2;
+    rd_new.record_type = TEST_RECORD_TYPE;
     rd_new.data_size = TEST_RECORD_DATALEN2;
     rd_new.data = GNUNET_malloc (TEST_RECORD_DATALEN2);
     memset ((char *) rd_new.data,
@@ -172,7 +169,7 @@ rd_decrypt_cb (void *cls,
     memset (rd_cmp_data,
             TEST_RECORD_DATA2,
             TEST_RECORD_DATALEN2);
-    GNUNET_assert (TEST_RECORD_TYPE2 == rd[0].record_type);
+    GNUNET_assert (TEST_RECORD_TYPE == rd[0].record_type);
     GNUNET_assert (TEST_RECORD_DATALEN2 == rd[0].data_size);
     GNUNET_assert (0 == memcmp (&rd_cmp_data,
                                 rd[0].data,

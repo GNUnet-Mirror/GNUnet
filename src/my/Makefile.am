@@ -30,6 +30,9 @@ TESTS = \
  test_my
 endif
 
+EXTRA_DIST = \
+  test_my.conf
+
 check_PROGRAMS= \
  test_my
 

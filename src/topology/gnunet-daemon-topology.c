@@ -2,20 +2,18 @@
      This file is part of GNUnet.
      Copyright (C) 2007-2016 GNUnet e.V.
 
-     GNUnet is free software; you can redistribute it and/or modify
-     it under the terms of the GNU General Public License as published
-     by the Free Software Foundation; either version 3, or (at your
-     option) any later version.
+     GNUnet is free software: you can redistribute it and/or modify it
+     under the terms of the GNU Affero General Public License as published
+     by the Free Software Foundation, either version 3 of the License,
+     or (at your option) any later version.
 
      GNUnet is distributed in the hope that it will be useful, but
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-     General Public License for more details.
-
-     You should have received a copy of the GNU General Public License
-     along with GNUnet; see the file COPYING.  If not, write to the
-     Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
-     Boston, MA 02110-1301, USA.
+     Affero General Public License for more details.
+    
+     You should have received a copy of the GNU Affero General Public License
+     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 /**
@@ -135,6 +133,11 @@ static const struct GNUNET_CONFIGURATION_Handle *cfg;
  * Handle to the CORE service.
  */
 static struct GNUNET_CORE_Handle *handle;
+
+/**
+ * Handle to the PEERINFO service.
+ */
+static struct GNUNET_PEERINFO_Handle *pi;
 
 /**
  * Handle to the ATS service.
@@ -999,16 +1002,6 @@ read_friends_file (const struct GNUNET_CONFIGURATION_Handle *cfg)
 
 
 /**
- * Hello offer complete. Clean up.
- */
-static void
-done_offer_hello (void *cls)
-{
-  oh = NULL;
-}
-
-
-/**
  * This function is called whenever an encrypted HELLO message is
  * received.
  *
@@ -1076,12 +1069,10 @@ handle_hello (void *cls,
         (friend_count < minimum_friend_count))
       return;
   }
-  if (NULL != oh)
-    GNUNET_TRANSPORT_offer_hello_cancel (oh);
-  oh = GNUNET_TRANSPORT_offer_hello (cfg,
-                                     &message->header,
-                                     &done_offer_hello,
-                                     NULL);
+  (void) GNUNET_PEERINFO_add_peer (pi,
+                                   message,
+                                   NULL,
+                                   NULL);
 }
 
 
@@ -1124,6 +1115,11 @@ cleaning_task (void *cls)
   {
     GNUNET_ATS_connectivity_done (ats);
     ats = NULL;
+  }
+  if (NULL != pi)
+  {
+    GNUNET_PEERINFO_disconnect (pi);
+    pi = NULL;
   }
   if (NULL != stats)
   {
@@ -1189,6 +1185,7 @@ run (void *cls,
                                             &blacklist_check,
                                             NULL);
   ats = GNUNET_ATS_connectivity_init (cfg);
+  pi = GNUNET_PEERINFO_connect (cfg);
   handle = GNUNET_CORE_connect (cfg,
 				NULL,
 				&core_init,

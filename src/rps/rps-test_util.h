@@ -2,20 +2,18 @@
      This file is part of GNUnet.
      Copyright (C)
 
-     GNUnet is free software; you can redistribute it and/or modify
-     it under the terms of the GNU General Public License as published
-     by the Free Software Foundation; either version 3, or (at your
-     option) any later version.
+     GNUnet is free software: you can redistribute it and/or modify it
+     under the terms of the GNU Affero General Public License as published
+     by the Free Software Foundation, either version 3 of the License,
+     or (at your option) any later version.
 
      GNUnet is distributed in the hope that it will be useful, but
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-     General Public License for more details.
-
-     You should have received a copy of the GNU General Public License
-     along with GNUnet; see the file COPYING.  If not, write to the
-     Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
-     Boston, MA 02110-1301, USA.
+     Affero General Public License for more details.
+    
+     You should have received a copy of the GNU Affero General Public License
+     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 /**
@@ -75,6 +73,15 @@ create_file (const char *name);
 const char *
 store_prefix_file_name (const struct GNUNET_PeerIdentity *peer,
     const char *prefix);
+
+void
+to_file_raw (const char *file_name, const char *buf, size_t size_buf);
+
+void
+to_file_raw_unaligned (const char *file_name,
+                       const char *buf,
+                       size_t size_buf,
+                       unsigned bits_needed);
 
 #endif /* RPS_TEST_UTIL_H */
 /* end of gnunet-service-rps.c */

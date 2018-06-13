@@ -598,5 +598,4 @@ EXTRA_DIST = \
   test_resolver_api_data.conf \
   test_service_data.conf \
   test_speedup_data.conf \
-  gnunet-qr.py.in \
-  crypto_bug.c
+  gnunet-qr.py.in 

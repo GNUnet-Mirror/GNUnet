@@ -17,19 +17,18 @@ names to be mapped to their GNS zone.  Names are made available on a
 First Come First Served basis (hence fcfs).  Registered names do not
 expire.  The HTTP server is run on the port that is specified in the
 configuration file in section "[fcfsd]" under the name "HTTPPORT".
-The key of the zone in which the names are registered must be
-specified under the name "ZONEKEY" in the same section.  It is
-possible to manage gnunet\-gns\-fcfsd using gnunet\-(service\-arm) by
-starting the daemon using "gnunet\-arm \-i fcfsd" or by setting
-"FORCESTART=YES" in the "fcfds" section of your configuration.
+
+It is possible to manage gnunet\-gns\-fcfsd using
+gnunet\-(service\-arm) by starting the daemon using "gnunet\-arm \-i
+fcfsd" or by setting "FORCESTART=YES" in the "fcfds" section of your
+configuration and the "-z ZONE" in as the "OPTION".
 
 An FCFS\-zone is run at http://gnunet.org/fcfs/.  GNS users are
 encouraged to register their zone with the gnunet.org FCFS authority.
 
 If you want to run your own FCFS registrar, you need to first create a
-pseudonym (using "gnunet\-identity \-C NAME"), and then assign it to
-be used for the "fcfsd" service using "gnunet\-identity \-e NAME \-s
-fcfsd".  After that, you can start the FCFSD service (possibly using
+pseudonym (using "gnunet\-identity \-C NAME"), and use it with the
+"-z" option.  After that, you can start the FCFSD service (possibly using
 gnunet\-arm).
 
 .SH OPTIONS
@@ -46,7 +45,9 @@ ERROR.
 .B
 .IP "\-v, \-\-version"
 Print GNUnet version number.
-
+.B
+.IP "\-z EGO, \-\-zone=EGO"
+Specifies for which EGO should FCFSD manage the zone.
 
 .SH BUGS
 Report bugs by using Mantis <https://gnunet.org/bugs/> or by sending electronic mail to <bug\-gnunet@gnu.org>

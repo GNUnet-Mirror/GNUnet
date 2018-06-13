@@ -2,20 +2,18 @@
      This file is part of GNUnet
      Copyright (C) 2009-2017 GNUnet e.V.
 
-     GNUnet is free software; you can redistribute it and/or modify
-     it under the terms of the GNU General Public License as published
-     by the Free Software Foundation; either version 3, or (at your
-     option) any later version.
+     GNUnet is free software: you can redistribute it and/or modify it
+     under the terms of the GNU Affero General Public License as published
+     by the Free Software Foundation, either version 3 of the License,
+     or (at your option) any later version.
 
      GNUnet is distributed in the hope that it will be useful, but
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-     General Public License for more details.
-
-     You should have received a copy of the GNU General Public License
-     along with GNUnet; see the file COPYING.  If not, write to the
-     Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
-     Boston, MA 02110-1301, USA.
+     Affero General Public License for more details.
+    
+     You should have received a copy of the GNU Affero General Public License
+     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 /**
@@ -101,23 +99,23 @@ init_connection (struct Plugin *plugin)
 #define RESULT_COLUMNS "repl, type, prio, anonLevel, expire, hash, value, oid"
   struct GNUNET_PQ_PreparedStatement ps[] = {
     GNUNET_PQ_make_prepare ("get",
-                            "SELECT " RESULT_COLUMNS " FROM gn090 "
-                            "WHERE oid >= $1::bigint AND "
-                            "(rvalue >= $2 OR 0 = $3::smallint) AND "
-                            "(hash = $4 OR 0 = $5::smallint) AND "
-                            "(type = $6 OR 0 = $7::smallint) "
-                            "ORDER BY oid ASC LIMIT 1",
+                            "SELECT " RESULT_COLUMNS " FROM gn090"
+                            " WHERE oid >= $1::bigint AND"
+                            " (rvalue >= $2 OR 0 = $3::smallint) AND"
+                            " (hash = $4 OR 0 = $5::smallint) AND"
+                            " (type = $6 OR 0 = $7::smallint)"
+                            " ORDER BY oid ASC LIMIT 1",
                             7),
     GNUNET_PQ_make_prepare ("put",
                             "INSERT INTO gn090 (repl, type, prio, anonLevel, expire, rvalue, hash, vhash, value) "
                             "VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
                             9),
     GNUNET_PQ_make_prepare ("update",
-                            "UPDATE gn090 "
-                            "SET prio = prio + $1, "
-                            "repl = repl + $2, "
-                            "expire = GREATEST(expire, $3) "
-                            "WHERE hash = $4 AND vhash = $5",
+                            "UPDATE gn090"
+                            " SET prio = prio + $1,"
+                            " repl = repl + $2,"
+                            " expire = GREATEST(expire, $3)"
+                            " WHERE hash = $4 AND vhash = $5",
                             5),
     GNUNET_PQ_make_prepare ("decrepl",
                             "UPDATE gn090 SET repl = GREATEST (repl - 1, 0) "
@@ -141,11 +139,13 @@ init_connection (struct Plugin *plugin)
                             "ORDER BY repl DESC,RANDOM() LIMIT 1",
                             0),
     GNUNET_PQ_make_prepare ("delrow",
-                            "DELETE FROM gn090 " "WHERE oid=$1",
+                            "DELETE FROM gn090 "
+			    "WHERE oid=$1",
                             1),
-    GNUNET_PQ_make_prepare ("remove", "DELETE FROM gn090 "
-                            "WHERE hash = $1 AND "
-                            "value = $2",
+    GNUNET_PQ_make_prepare ("remove",
+			    "DELETE FROM gn090"
+                            " WHERE hash = $1 AND"
+                            " value = $2",
                             2),
     GNUNET_PQ_make_prepare ("get_keys",
                             "SELECT hash FROM gn090",

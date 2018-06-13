@@ -19,4 +19,4 @@ gnunet.t2p/
 gnunet-c-tutorial.t2p/
 *.t2p/
 documentation/manuals
-.\#*
+.\#*doxygen/gnunet.tag

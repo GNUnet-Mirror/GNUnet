@@ -2,20 +2,18 @@
      This file is part of GNUnet.
      Copyright (C) 2009, 2010, 2011 GNUnet e.V.
 
-     GNUnet is free software; you can redistribute it and/or modify
-     it under the terms of the GNU General Public License as published
-     by the Free Software Foundation; either version 3, or (at your
-     option) any later version.
+     GNUnet is free software: you can redistribute it and/or modify it
+     under the terms of the GNU Affero General Public License as published
+     by the Free Software Foundation, either version 3 of the License,
+     or (at your option) any later version.
 
      GNUnet is distributed in the hope that it will be useful, but
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-     General Public License for more details.
-
-     You should have received a copy of the GNU General Public License
-     along with GNUnet; see the file COPYING.  If not, write to the
-     Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
-     Boston, MA 02110-1301, USA.
+     Affero General Public License for more details.
+    
+     You should have received a copy of the GNU Affero General Public License
+     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 /**
@@ -30,6 +28,12 @@
 #include "gnunet_util_lib.h"
 #include "gnunet_block_lib.h"
 #include "gnunet_dht_service.h"
+
+/**
+ * Hash of the identity of this peer.
+ */
+extern struct GNUNET_HashCode my_identity_hash;
+
 
 /**
  * Perform a PUT operation.  Forwards the given request to other
@@ -120,6 +124,22 @@ GDS_NEIGHBOURS_handle_reply (const struct GNUNET_PeerIdentity *target,
                              const struct GNUNET_PeerIdentity *get_path,
                              const void *data,
                              size_t data_size);
+
+
+/**
+ * Check whether my identity is closer than any known peers.  If a
+ * non-null bloomfilter is given, check if this is the closest peer
+ * that hasn't already been routed to.
+ *
+ * @param key hash code to check closeness to
+ * @param bloom bloomfilter, exclude these entries from the decision
+ * @return #GNUNET_YES if node location is closest,
+ *         #GNUNET_NO otherwise.
+ */
+int
+GDS_am_closest_peer (const struct GNUNET_HashCode *key,
+                     const struct GNUNET_CONTAINER_BloomFilter *bloom);
+
 
 
 /**

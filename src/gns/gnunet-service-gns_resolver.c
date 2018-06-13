@@ -2,20 +2,18 @@
      This file is part of GNUnet.
      Copyright (C) 2011-2013 GNUnet e.V.
 
-     GNUnet is free software; you can redistribute it and/or modify
-     it under the terms of the GNU General Public License as published
-     by the Free Software Foundation; either version 3, or (at your
-     option) any later version.
+     GNUnet is free software: you can redistribute it and/or modify it
+     under the terms of the GNU Affero General Public License as published
+     by the Free Software Foundation, either version 3 of the License,
+     or (at your option) any later version.
 
      GNUnet is distributed in the hope that it will be useful, but
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-     General Public License for more details.
-
-     You should have received a copy of the GNU General Public License
-     along with GNUnet; see the file COPYING.  If not, write to the
-     Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
-     Boston, MA 02110-1301, USA.
+     Affero General Public License for more details.
+    
+     You should have received a copy of the GNU Affero General Public License
+     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 /**
@@ -60,7 +58,7 @@
 /**
  * DHT replication level
  */
-#define DHT_GNS_REPLICATION_LEVEL 5
+#define DHT_GNS_REPLICATION_LEVEL 10
 
 /**
  * How deep do we allow recursions to go before we abort?
@@ -372,6 +370,12 @@ struct GNS_ResolverHandle
    */
   char *name;
 
+  /**
+   * Legacy Hostname to use if we encountered GNS2DNS record
+   * and thus can deduct the LEHO from that transition.
+   */
+  char *leho;
+  
   /**
    * DLL of results we got from DNS.
    */
@@ -965,6 +969,12 @@ dns_result_parser (void *cls,
       af = AF_UNSPEC;
       break;
     }
+    if (NULL != rh->leho)
+      add_dns_result (rh,
+		      GNUNET_TIME_UNIT_HOURS.rel_value_us,
+		      GNUNET_GNSRECORD_TYPE_LEHO,
+		      strlen (rh->leho),
+		      rh->leho);
     rh->std_resolve = GNUNET_RESOLVER_ip_get (rh->name,
                                               af,
                                               DNS_LOOKUP_TIMEOUT,
@@ -979,8 +989,8 @@ dns_result_parser (void *cls,
   /* convert from (parsed) DNS to (binary) GNS format! */
   rd_count = p->num_answers + p->num_authority_records + p->num_additional_records;
   {
-    struct GNUNET_GNSRECORD_Data rd[rd_count];
-    unsigned int skip;
+    struct GNUNET_GNSRECORD_Data rd[rd_count + 1]; /* +1 for LEHO */
+    int skip;
     char buf[UINT16_MAX];
     size_t buf_off;
     size_t buf_start;
@@ -1104,11 +1114,23 @@ dns_result_parser (void *cls,
 	skip++;
 	continue;
       }
+    } /* end of for all records in answer */
+    if (NULL != rh->leho)
+    {
+      rd[rd_count - skip].record_type = GNUNET_GNSRECORD_TYPE_LEHO;
+      rd[rd_count - skip].flags = GNUNET_GNSRECORD_RF_RELATIVE_EXPIRATION;
+      rd[rd_count - skip].expiration_time = GNUNET_TIME_UNIT_HOURS.rel_value_us;
+      rd[rd_count - skip].data = rh->leho;
+      rd[rd_count - skip].data_size = strlen (rh->leho);
+      skip--; /* skip one LESS */
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Adding LEHO %s\n",
+		  rh->leho);
     }
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Returning DNS response for `%s' with %u answers\n",
                 rh->ac_tail->label,
-                (unsigned int) p->num_answers);
+                (unsigned int) (rd_count - skip));
     rh->proc (rh->proc_cls,
               rd_count - skip,
               rd);
@@ -1177,6 +1199,7 @@ recursive_dns_resolution (struct GNS_ResolverHandle *rh)
     rh->original_dns_id = p->id;
     GNUNET_assert (NULL != ac->authority_info.dns_authority.dns_handle);
     GNUNET_assert (NULL == rh->dns_request);
+    rh->leho = GNUNET_strdup (ac->label);
     rh->dns_request = GNUNET_DNSSTUB_resolve (ac->authority_info.dns_authority.dns_handle,
 					      dns_request,
 					      dns_request_length,
@@ -1354,6 +1377,10 @@ vpn_allocation_cb (void *cls,
     }
   }
   GNUNET_assert (i < vpn_ctx->rd_count);
+  if (0 == vpn_ctx->rd_count)
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		_("VPN returned empty result for `%s'\n"),
+		rh->name);
   handle_gns_resolution_result (rh,
 				vpn_ctx->rd_count,
 				rd);
@@ -1836,7 +1863,8 @@ handle_gns_resolution_result (void *cls,
   if (0 == rd_count)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                _("GNS lookup failed (zero records found)\n"));
+                _("GNS lookup failed (zero records found for `%s')\n"),
+		rh->name);
     fail_resolution (rh);
     return;
   }
@@ -2347,6 +2375,11 @@ handle_dht_response (void *cls,
     fail_resolution (rh);
     return;
   }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Decrypting DHT block of size %u for `%s', expires %s\n",
+	      ntohl (block->purpose.size),
+	      rh->name,
+	      GNUNET_STRINGS_absolute_time_to_string (exp));
   if (GNUNET_OK !=
       GNUNET_GNSRECORD_block_decrypt (block,
 				      &ac->authority_info.gns_authority,
@@ -2427,6 +2460,10 @@ handle_gns_namecache_resolution_result (void *cls,
 {
   struct GNS_ResolverHandle *rh = cls;
 
+  if (0 == rd_count)
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		_("GNS namecache returned empty result for `%s'\n"),
+		rh->name);
   handle_gns_resolution_result (rh,
                                 rd_count,
                                 rd);
@@ -2835,6 +2872,7 @@ GNS_resolver_lookup_cancel (struct GNS_ResolverHandle *rh)
 				 dr);
     GNUNET_free (dr);
   }
+  GNUNET_free_non_null (rh->leho);
   GNUNET_free (rh->name);
   GNUNET_free (rh);
 }

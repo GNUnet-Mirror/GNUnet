@@ -2,20 +2,18 @@
      This file is part of GNUnet.
      Copyright (C) 2013, 2017, 2018 GNUnet e.V.
 
-     GNUnet is free software; you can redistribute it and/or modify
-     it under the terms of the GNU General Public License as published
-     by the Free Software Foundation; either version 3, or (at your
-     option) any later version.
+     GNUnet is free software: you can redistribute it and/or modify it
+     under the terms of the GNU Affero General Public License as published
+     by the Free Software Foundation, either version 3 of the License,
+     or (at your option) any later version.
 
      GNUnet is distributed in the hope that it will be useful, but
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-     General Public License for more details.
-
-     You should have received a copy of the GNU General Public License
-     along with GNUnet; see the file COPYING.  If not, write to the
-     Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
-     Boston, MA 02110-1301, USA.
+     Affero General Public License for more details.
+    
+     You should have received a copy of the GNU Affero General Public License
+     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 /**
  * @file cadet/gnunet-service-cadet_tunnels.c
@@ -459,13 +457,13 @@ struct CadetTunnel
 
 
 /**
- * Am I Alice or Bob, or talking to myself?
+ * Am I Alice or Betty (some call her Bob), or talking to myself?
  *
  * @param other the other peer
- * @return #GNUNET_YES for Alice, #GNUNET_NO for Bob, #GNUNET_SYSERR if talking to myself
+ * @return #GNUNET_YES for Alice, #GNUNET_NO for Betty, #GNUNET_SYSERR if talking to myself
  */
 static int
-alice_or_bob (const struct GNUNET_PeerIdentity *other)
+alice_or_betty (const struct GNUNET_PeerIdentity *other)
 {
   if (0 > GNUNET_CRYPTO_cmp_peer_identity (&my_full_id,
                                            other))
@@ -1347,7 +1345,7 @@ send_kx (struct CadetTunnel *t,
   struct GNUNET_CADET_TunnelKeyExchangeMessage *msg;
   enum GNUNET_CADET_KX_Flags flags;
 
-  if (GNUNET_YES != alice_or_bob (GCP_get_id (t->destination)))
+  if (GNUNET_YES != alice_or_betty (GCP_get_id (t->destination)))
     return; /* only Alice may send KX */
   if ( (NULL == ct) ||
        (GNUNET_NO == ct->is_ready) )
@@ -1523,7 +1521,7 @@ update_ax_by_kx (struct CadetTunnelAxolotl *ax,
   const char salt[] = "CADET Axolotl salt";
   int am_I_alice;
 
-  if (GNUNET_SYSERR == (am_I_alice = alice_or_bob (pid)))
+  if (GNUNET_SYSERR == (am_I_alice = alice_or_betty (pid)))
   {
     GNUNET_break_op (0);
     return GNUNET_SYSERR;
@@ -1726,9 +1724,9 @@ GCT_handle_kx (struct CadetTConnection *ct,
                             1,
                             GNUNET_NO);
   if (GNUNET_YES ==
-      alice_or_bob (GCP_get_id (t->destination)))
+      alice_or_betty (GCP_get_id (t->destination)))
   {
-    /* Bob is not allowed to send KX! */
+    /* Betty/Bob is not allowed to send KX! */
     GNUNET_break_op (0);
     return;
   }
@@ -2047,6 +2045,13 @@ GCT_handle_kx_auth (struct CadetTConnection *ct,
     /* Did not expect another KX_AUTH, but so what, still acceptable.
        Nothing to do here. */
     break;
+  }
+  if (0 != (GNUNET_CADET_KX_FLAG_FORCE_REPLY & ntohl (msg->kx.flags)))
+  {
+    send_kx_auth (t,
+		  NULL,
+		  &t->ax,
+		  GNUNET_NO);
   }
 }
 
@@ -2422,8 +2427,6 @@ connection_ready_cb (void *cls,
   {
   case CADET_TUNNEL_KEY_UNINITIALIZED:
     /* Do not begin KX if WE have no channels waiting! */
-    if (0 == GCT_count_channels (t))
-      return;
     if (0 != GNUNET_TIME_absolute_get_remaining (t->next_kx_attempt).rel_value_us)
       return; /* wait for timeout before retrying */
     /* We are uninitialized, just transmit immediately,
@@ -2436,6 +2439,15 @@ connection_ready_cb (void *cls,
     send_kx (t,
              ct,
              &t->ax);
+    if ( (0 ==
+         GCT_count_channels (t)) &&
+        (NULL == t->destroy_task) )
+    {
+      t->destroy_task
+       = GNUNET_SCHEDULER_add_delayed (IDLE_DESTROY_DELAY,
+                                       &destroy_tunnel,
+                                       t);
+    }
     break;
   case CADET_TUNNEL_KEY_AX_RECV:
   case CADET_TUNNEL_KEY_AX_SENT:
