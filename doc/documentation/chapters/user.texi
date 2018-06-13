@@ -2258,8 +2258,6 @@ list of peers can contact it to download this list.
 To download this hostlist the peer uses HTTP.
 For this reason you have to build your peer with libgnurl (or libcurl)
 and microhttpd support.
-How you build your peer with these options can be found here:
-@xref{Generic installation instructions}.
 
 To configure your peer to act as a bootstrap server you have to add the
 @command{-p} option to @code{OPTIONS} in the @code{[hostlist]} section

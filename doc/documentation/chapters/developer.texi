@@ -2,7 +2,7 @@
 @node GNUnet Developer Handbook
 @chapter GNUnet Developer Handbook
 
-This book is intended to be an introduction for programmers that want to
+0This book is intended to be an introduction for programmers that want to
 extend the GNUnet framework. GNUnet is more than a simple peer-to-peer
 application.
 
@@ -40,7 +40,7 @@ new chapters, sections or insightful comments.
 
 @menu
 * Developer Introduction::
-* Internal Dependencies::
+* Internal dependencies::
 * Code overview::
 * System Architecture::
 * Subsystem stability::
@@ -1184,7 +1184,7 @@ section in the @file{README} file.
 First, we need to build or install (depending on your OS) the following
 packages. If you build them from source, build them in this exact order:
 
-@exmaple
+@example
 libgpgerror, libgcrypt, libnettle, libunbound, GnuTLS (with libunbound
 support)
 @end example
@@ -1301,10 +1301,9 @@ You can find specific, detailed instructions for installing of the
 dependencies (and possibly the rest of the GNUnet installation) in the
 platform-specific descriptions, which can be found in the Index.
 Please consult them now.
-If your distribution is not listed, please study
-@ref{Build instructions for Debian 8}, the build instructions for
-Debian stable, carefully as you try to install the dependencies for your
-own distribution.
+If your distribution is not listed, please study the build
+instructions for Debian stable, carefully as you try to install the
+dependencies for your own distribution.
 Contributing additional instructions for further platforms is always
 appreciated.
 Please take in mind that operating system development tends to move at
