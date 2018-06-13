@@ -460,7 +460,6 @@ src/util/container_multihashmap.c
 src/util/container_multipeermap.c
 src/util/container_multishortmap.c
 src/util/crypto_abe.c
-src/util/crypto_bug.c
 src/util/crypto_crc.c
 src/util/crypto_ecc.c
 src/util/crypto_ecc_dlog.c
