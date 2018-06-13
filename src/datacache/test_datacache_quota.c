@@ -41,7 +41,9 @@ static const char *plugin_name;
  * some of the data from the last iteration is still there.
  */
 static void
-run (void *cls, char *const *args, const char *cfgfile,
+run (void *cls,
+     char *const *args,
+     const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   struct GNUNET_DATACACHE_Handle *h;
@@ -50,8 +52,12 @@ run (void *cls, char *const *args, const char *cfgfile,
   char buf[3200];
   struct GNUNET_TIME_Absolute exp;
 
+  (void) cls;
+  (void) args;
+  (void) cfgfile;
   ok = 0;
-  h = GNUNET_DATACACHE_create (cfg, "testcache");
+  h = GNUNET_DATACACHE_create (cfg,
+			       "testcache");
 
   if (h == NULL)
   {
@@ -112,7 +118,8 @@ FAILURE:
 
 
 int
-main (int argc, char *argv[])
+main (int argc,
+      char *argv[])
 {
   char cfg_name[128];
   char *const xargv[] = {
@@ -125,17 +132,27 @@ main (int argc, char *argv[])
     GNUNET_GETOPT_OPTION_END
   };
 
+  (void) argc;
   GNUNET_log_setup ("test-datacache-quota",
                     "WARNING",
                     NULL);
 
   plugin_name = GNUNET_TESTING_get_testname_from_underscore (argv[0]);
-  GNUNET_snprintf (cfg_name, sizeof (cfg_name), "test_datacache_data_%s.conf",
+  GNUNET_snprintf (cfg_name,
+		   sizeof (cfg_name),
+		   "test_datacache_data_%s.conf",
                    plugin_name);
-  GNUNET_PROGRAM_run ((sizeof (xargv) / sizeof (char *)) - 1, xargv,
-                      "test-datacache-quota", "nohelp", options, &run, NULL);
+  GNUNET_PROGRAM_run ((sizeof (xargv) / sizeof (char *)) - 1,
+		      xargv,
+                      "test-datacache-quota",
+		      "nohelp",
+		      options,
+		      &run,
+		      NULL);
   if (0 != ok)
-    FPRINTF (stderr, "Missed some testcases: %d\n", ok);
+    FPRINTF (stderr,
+	     "Missed some testcases: %d\n",
+	     ok);
   return ok;
 }
 

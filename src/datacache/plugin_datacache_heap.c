@@ -314,6 +314,9 @@ get_cb (void *cls,
   if ( (get_ctx->type != val->type) &&
        (GNUNET_BLOCK_TYPE_ANY != get_ctx->type) )
     return GNUNET_OK;
+  if (0 ==
+      GNUNET_TIME_absolute_get_remaining (val->discard_time).rel_value_us)
+    return GNUNET_OK;
   if (NULL != get_ctx->iter)
     ret = get_ctx->iter (get_ctx->iter_cls,
 			 key,

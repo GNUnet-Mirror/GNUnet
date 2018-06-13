@@ -1377,6 +1377,10 @@ vpn_allocation_cb (void *cls,
     }
   }
   GNUNET_assert (i < vpn_ctx->rd_count);
+  if (0 == vpn_ctx->rd_count)
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		_("VPN returned empty result for `%s'\n"),
+		rh->name);
   handle_gns_resolution_result (rh,
 				vpn_ctx->rd_count,
 				rd);
@@ -1859,7 +1863,8 @@ handle_gns_resolution_result (void *cls,
   if (0 == rd_count)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                _("GNS lookup failed (zero records found)\n"));
+                _("GNS lookup failed (zero records found for `%s')\n"),
+		rh->name);
     fail_resolution (rh);
     return;
   }
@@ -2370,6 +2375,11 @@ handle_dht_response (void *cls,
     fail_resolution (rh);
     return;
   }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Decrypting DHT block of size %u for `%s', expires %s\n",
+	      ntohl (block->purpose.size),
+	      rh->name,
+	      GNUNET_STRINGS_absolute_time_to_string (exp));
   if (GNUNET_OK !=
       GNUNET_GNSRECORD_block_decrypt (block,
 				      &ac->authority_info.gns_authority,
@@ -2450,6 +2460,10 @@ handle_gns_namecache_resolution_result (void *cls,
 {
   struct GNS_ResolverHandle *rh = cls;
 
+  if (0 == rd_count)
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		_("GNS namecache returned empty result for `%s'\n"),
+		rh->name);
   handle_gns_resolution_result (rh,
                                 rd_count,
                                 rd);

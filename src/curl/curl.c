@@ -448,6 +448,25 @@ download_get_result (struct DownloadBuffer *db,
 
 
 /**
+ * Add custom request header.
+ *
+ * @param ctx cURL context.
+ * @param header header string; will be given to the context AS IS.
+ * @return #GNUNET_OK if no errors occurred, #GNUNET_SYSERR otherwise.
+ */
+int
+GNUNET_CURL_append_header (struct GNUNET_CURL_Context *ctx,
+                           const char *header)
+{
+  ctx->json_header = curl_slist_append (ctx->json_header,
+                                        header);
+  if (NULL == ctx->json_header)
+    return GNUNET_SYSERR;
+
+  return GNUNET_OK;
+}
+
+/**
  * Run the main event loop for the Taler interaction.
  *
  * @param ctx the library context

@@ -32,7 +32,6 @@ dist_pkgdata_DATA = \
  gns/gns-form.xslt \
  branding/logo/gnunet-logo.pdf \
  branding/logo/gnunet-logo-color.png \
- scripts/report.sh \
  testing_hostkeys.ecc
 
 if MINGW
@@ -126,6 +125,7 @@ install-data-local:
 	    $(INSTALL_DATA) $$hello $(DESTDIR)$(pkghellodir)/ ; \
 	  fi \
 	done
+	install scripts/gnunet-bugreport $(bindir)/gnunet-bugreport
 
 dist-hook:
 	if test -d $(srcdir)/hellos; then \

@@ -113,7 +113,6 @@ info_TEXINFOS = 						\
 gnunet_TEXINFOS = 						\
 	chapters/developer.texi 				\
 	chapters/preface.texi 				\
-	chapters/installation.texi 				\
 	chapters/philosophy.texi 				\
 	chapters/user.texi 					\
 	chapters/vocabulary.texi				\

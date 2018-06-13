@@ -37,6 +37,7 @@ static void
 my_clean_query (void *cls,
                 MYSQL_BIND *qbind)
 {
+  (void) cls;
   GNUNET_free (qbind[0].buffer);
 }
 
@@ -54,6 +55,7 @@ my_conv_fixed_size (void *cls,
                     const struct GNUNET_MY_QueryParam *qp,
                     MYSQL_BIND *qbind)
 {
+  (void) cls;
   GNUNET_assert (1 == qp->num_params);
   qbind->buffer = (void *) qp->data;
   qbind->buffer_length = qp->data_len;
@@ -99,12 +101,11 @@ my_conv_string (void *cls,
                 const struct GNUNET_MY_QueryParam *qp,
                 MYSQL_BIND *qbind)
 {
+  (void) cls;
   GNUNET_assert (1 == qp->num_params);
-
   qbind->buffer = (void *) qp->data;
   qbind->buffer_length = qp->data_len;
   qbind->buffer_type = MYSQL_TYPE_STRING;
-
   return 1;
 }
 
@@ -142,10 +143,12 @@ my_conv_uint16 (void *cls,
                 const struct GNUNET_MY_QueryParam *qp,
                 MYSQL_BIND *qbind)
 {
+  (void) cls;
   GNUNET_assert (1 == qp->num_params);
   qbind->buffer = (void *) qp->data;
   qbind->buffer_length = sizeof (uint16_t);
   qbind->buffer_type = MYSQL_TYPE_SHORT;
+  qbind->is_unsigned = 1;
   return 1;
 }
 
@@ -184,11 +187,12 @@ my_conv_uint32 (void *cls,
                 const struct GNUNET_MY_QueryParam *qp,
                 MYSQL_BIND *qbind)
 {
+  (void) cls;
   GNUNET_assert (1 == qp->num_params);
   qbind->buffer = (void *) qp->data;
   qbind->buffer_length = sizeof(uint32_t);
   qbind->buffer_type = MYSQL_TYPE_LONG;
-
+  qbind->is_unsigned = 1;
   return 1;
 }
 
@@ -227,10 +231,12 @@ my_conv_uint64 (void *cls,
                 const struct GNUNET_MY_QueryParam *qp,
                 MYSQL_BIND * qbind)
 {
+  (void) cls;
   GNUNET_assert (1 == qp->num_params);
   qbind->buffer = (void *) qp->data;
   qbind->buffer_length = sizeof (uint64_t);
   qbind->buffer_type = MYSQL_TYPE_LONGLONG;
+  qbind->is_unsigned = 1;
   return 1;
 }
 
@@ -273,14 +279,13 @@ my_conv_rsa_public_key (void *cls,
   char *buf;
   size_t buf_size;
 
+  (void) cls;
   GNUNET_assert(1 == qp->num_params);
-
-  buf_size = GNUNET_CRYPTO_rsa_public_key_encode (rsa, &buf);
-
+  buf_size = GNUNET_CRYPTO_rsa_public_key_encode (rsa,
+						  &buf);
   qbind->buffer = (void *) buf;
   qbind->buffer_length = buf_size;
   qbind->buffer_type = MYSQL_TYPE_BLOB;
-
   return 1;
 }
 
@@ -325,14 +330,13 @@ my_conv_rsa_signature (void *cls,
   char *buf;
   size_t buf_size;
 
+  (void) cls;
   GNUNET_assert(1 == qp->num_params);
-
   buf_size = GNUNET_CRYPTO_rsa_signature_encode (sig,
                                                  &buf);
   qbind->buffer = (void *) buf;
   qbind->buffer_length = buf_size;
   qbind->buffer_type = MYSQL_TYPE_BLOB;
-
   return 1;
 }
 

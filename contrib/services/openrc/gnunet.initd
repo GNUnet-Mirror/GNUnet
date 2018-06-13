@@ -1,0 +1,82 @@
+#!/sbin/openrc-run
+# Copyright 1999-2016 Gentoo Foundation
+# Distributed under the terms of the GNU General Public License v2
+
+if [ -d /run ] ; then
+	PIDFILE=${PIDFILE:-/run/gnunet/arm-service.pid}
+else
+	PIDFILE=${PIDFILE:-/var/run/gnunet/arm-service.pid}
+fi
+
+depend() {
+	# FIXME: refine?
+	need net
+}
+
+GNUNET_PATH="/usr"
+GNUNET_HOME="/var/lib/gnunet"
+SUID_ROOT_HELPERS="exit nat-server nat-client transport-bluetooth transport-wlan vpn"
+
+chmodown_execbin() {
+	if [ -x $1 ]; then
+		if [ "$3" ]; then
+			chown $3 $1 2>/dev/null && chmod $2 $1
+		else
+			chmod $2 $1
+		fi
+	fi
+}
+
+checkconfig() {
+	if [ -n "$(find ${GNUNET_HOME}/.local/share/gnunet -maxdepth 1 -name gnunet.conf -perm +0044)" ] ; then
+		eerror "${conf} must not be world or group readable. Try:"
+		eerror "    chmod 600 ${conf}"
+		eerror "    chown gnunet:gnunet ${conf}"
+		return 1
+	fi
+	mkdir -p ${GNUNET_HOME}/.cache/gnunet
+
+	# taken from dangole's lede config.. thx!
+	local libexec="${GNUNET_PATH}/lib/gnunet/libexec"		# why not /usr/libexec/gnunet ?
+	# not reliable enough:
+	#[ -e ${libexec}/.permfix ] && return
+	for helper in $SUID_ROOT_HELPERS; do
+		chmodown_execbin ${libexec}/gnunet-helper-$helper u+s
+	done
+	chmodown_execbin ${libexec}/gnunet-helper-dns 4750 root:gnunetdns
+	chmodown_execbin ${libexec}/gnunet-service-dns 2750 gnunet:gnunetdns
+	#touch ${libexec}/.permfix
+}
+
+start() {
+	checkconfig || return 1
+
+	local piddir=$(dirname ${PIDFILE})
+	if [ ! -d ${piddir} ] ; then
+		ebegin "Making ${piddir}"
+		mkdir -p ${piddir}
+		eend $?
+		ebegin "Changing permissions of ${piddir}"
+		chown gnunet:gnunet ${piddir}
+		eend $?
+	fi
+
+	ebegin "Starting ${SVCNAME}"
+	# shouldn't be necessary... but
+	start-stop-daemon --start --user gnunet --name gnunet --pidfile ${PIDFILE} \
+	     --exec ${GNUNET_PATH}/lib/gnunet/libexec/gnunet-service-arm -- -d
+		# flags to be passed to the process appear after the double-dash
+	eend $?
+}
+
+stop() {
+	ebegin "Stopping ${SVCNAME}"
+	start-stop-daemon --stop --signal QUIT --pidfile ${PIDFILE}
+	sleep 1
+	killall -u gnunet
+	sleep 1
+	rm -rf /tmp/gnunet-gnunet-runtime >/dev/null 2>&1
+	rm -rf /tmp/gnunet-system-runtime >/dev/null 2>&1
+	eend $?
+}
+

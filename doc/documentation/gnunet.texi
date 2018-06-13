@@ -75,7 +75,6 @@ This document is the Reference Manual for GNUnet version @value{VERSION}.
 * Preface::                         Chapter 0
 * Philosophy::                      About GNUnet
 @c * Vocabulary::                      Vocabulary
-* GNUnet Installation Handbook::    How to install GNUnet
 * Using GNUnet::                    Using GNUnet
 @c * Configuration Handbook::          Configuring GNUnet
 * GNUnet Contributors Handbook::    Contributing to GNUnet
@@ -113,22 +112,6 @@ Philosophy
 * Backup of Identities and Egos::
 * Revocation::
 
-GNUnet Installation Handbook
-
-* Dependencies::
-* Pre-installation notes::
-* Generic installation instructions::
-* Build instructions for Ubuntu 12.04 using Git::
-* Build instructions for software builds from source::
-* Build Instructions for Microsoft Windows Platforms::
-* Build instructions for Debian 7.5::
-* Installing GNUnet from Git on Ubuntu 14.4::
-* Build instructions for Debian 8::
-* Outdated build instructions for previous revisions::
-@c * Portable GNUnet::
-* The graphical configuration interface::
-* How to start and stop a GNUnet peer::
-
 Using GNUnet
 
 * Checking the Installation::
@@ -139,8 +122,8 @@ Using GNUnet
 * File-sharing::
 * The GNU Name System::
 * Using the Virtual Public Network::
-
-@c Configuration Handbook
+* The graphical configuration interface::
+* How to start and stop a GNUnet peer::
 
 GNUnet Contributors Handbook
 
@@ -152,6 +135,7 @@ GNUnet Contributors Handbook
 GNUnet Developer Handbook
 
 * Developer Introduction::
+* Internal dependencies::
 * Code overview::
 * System Architecture::
 * Subsystem stability::
@@ -159,6 +143,7 @@ GNUnet Developer Handbook
 * Build-system::
 * Developing extensions for GNUnet using the gnunet-ext template::
 * Writing testcases::
+* Building GNUnet and its dependencies::
 * TESTING library::
 * Performance regression analysis with Gauger::
 * TESTBED Subsystem::
@@ -199,19 +184,9 @@ GNUnet Developer Handbook
 @include chapters/philosophy.texi
 @c *********************************************************************
 
-@c WIP:
-@c @include chapters/vocabulary.texi
-
-@c *********************************************************************
-@include chapters/installation.texi
-@c *********************************************************************
-
 @c *********************************************************************
 @include chapters/user.texi
 @c *********************************************************************
-
-@c WIP:
-@c @include chapters/configuration.texi
 
 @include chapters/contributing.texi
 

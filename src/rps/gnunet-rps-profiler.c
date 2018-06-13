@@ -42,6 +42,11 @@
 static uint32_t num_peers;
 
 /**
+ * @brief numer of bits required to represent the largest peer id
+ */
+static unsigned bits_needed;
+
+/**
  * How long do we run the test?
  * In seconds.
  */
@@ -1698,6 +1703,7 @@ profiler_reply_handle (void *cls,
   char *file_name;
   char *file_name_dh;
   char *file_name_dhr;
+  char *file_name_dhru;
   unsigned int i;
   struct PendingReply *pending_rep = (struct PendingReply *) cls;
 
@@ -1706,6 +1712,7 @@ profiler_reply_handle (void *cls,
   file_name = "/tmp/rps/received_ids";
   file_name_dh = "/tmp/rps/diehard_input";
   file_name_dhr = "/tmp/rps/diehard_input_raw";
+  file_name_dhru = "/tmp/rps/diehard_input_raw_aligned";
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "[%s] got %" PRIu64 " peers:\n",
               GNUNET_i2s (rps_peer->peer_id),
@@ -1725,8 +1732,12 @@ profiler_reply_handle (void *cls,
              "%" PRIu32 "\n",
              (uint32_t) rcv_rps_peer->index);
     to_file_raw (file_name_dhr,
-                 &rcv_rps_peer->index,
+                (char *) &rcv_rps_peer->index,
                  sizeof (uint32_t));
+    to_file_raw_unaligned (file_name_dhru,
+                          (char *) &rcv_rps_peer->index,
+                           sizeof (uint32_t),
+                           bits_needed);
   }
   default_reply_handle (cls, n, recv_peers);
 }
@@ -2625,6 +2636,14 @@ run (void *cls,
   (void) GNUNET_DISK_directory_remove ("/tmp/rps/");
   GNUNET_DISK_directory_create ("/tmp/rps/");
   timeout = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, timeout_s);
+
+  /* Compute number of bits for representing largest peer id */
+  for (bits_needed = 1; (bits_needed << 1) < num_peers - 1; bits_needed++)
+    ;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+            "Need %u bits to represent largest peer id %" PRIu32 "\n",
+             bits_needed,
+             num_peers - 1);
 
   rps_peers = GNUNET_new_array (num_peers, struct RPSPeer);
   peer_map = GNUNET_CONTAINER_multipeermap_create (num_peers, GNUNET_NO);

@@ -7,4 +7,5 @@ if !DOCUMENTATION
 endif
 
 EXTRA_DIST =							\
-	outdated-and-old-installation-instructions.txt
+	system_specific/outdated-and-old-installation-instructions.txt \
+	system_specific/FROM_SOURCE
