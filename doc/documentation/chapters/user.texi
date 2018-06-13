@@ -2,20 +2,21 @@
 @chapter Using GNUnet
 @c %**end of header
 
-This tutorial is supposed to give a first introduction for end-users
-trying to do something "real" with GNUnet. Installation and
+This tutorial is supposed to give a first introduction for users
+trying to do something real with GNUnet. Installation and
 configuration are specifically outside of the scope of this tutorial.
 Instead, we start by briefly checking that the installation works, and
 then dive into uncomplicated, concrete practical things that can be done
-with the network.
+with the framework provided by GNUnet.
 
-This chapter of the GNUnet Reference Documentation documents
-how to use the various peer-to-peer applications of the
+In short, this chapter of the ``GNUnet Reference Documentation'' will
+show you how to use the various peer-to-peer applications of the
 GNUnet system.
-As GNUnet evolves, we will add new chapters for the various
+As GNUnet evolves, we will add new sections for the various
 applications that are being created.
 
-Comments and extensions of this documentation are always welcome.
+Comments on the content of this chapter, and extensions of it are
+always welcome.
 
 
 @menu
@@ -35,10 +36,11 @@ Comments and extensions of this documentation are always welcome.
 @section Checking the Installation
 @c %**end of header
 
-This section describes a quick casual way to check if your GNUnet
+This section describes a quick, casual way to check if your GNUnet
 installation works. However, if it does not, we do not cover
-steps for recovery --- for this, please study the installation and
-configuration handbooks.
+steps for recovery --- for this, please study the instructions
+provided in the developer handbook as well as the system-specific
+instruction in the source code repository@footnote{The system specific instructions are not provided as part of this handbook!}.
 
 
 @menu
@@ -47,13 +49,16 @@ configuration handbooks.
 * Peer Information::
 @end menu
 
+@cindex GNUnet GTK
+@cindex GTK
+@cindex GTK user interface
 @node gnunet-gtk
 @subsection gnunet-gtk
 @c %**end of header
 
 The @command{gnunet-gtk} package contains several graphical
 user interfaces for the respective GNUnet applications.
-Those currently are:
+Currently these interfaces cover:
 
 @itemize @bullet
 @item Statistics
@@ -68,20 +73,21 @@ Those currently are:
 @subsection Statistics
 @c %**end of header
 
-First, you should launch the graphical user interface.  You can do
-this from the command-line by typing
+First, you should launch GNUnet gtk@footnote{Obviously you should also start gnunet, via gnunet-arm or the system provided method}.
+You can do this from the command-line by typing
 
 @example
-$ gnunet-statistics-gtk
+gnunet-statistics-gtk
 @end example
 
-If your peer is running correctly, you should see a bunch of
-lines, all of which should be "significantly" above zero (at least if your
-peer has been running for a few seconds). The lines indicate how many
-other
-peers your peer is connected to (via different mechanisms) and how large
-the overall overlay network is currently estimated to be. The X-axis
-represents time (in seconds since the start of @command{gnunet-gtk}).
+If your peer@footnote{The term ``peer'' is a common word used in federated and distributed networks to describe a participating device which is connected to the network. Thus, your Personal Computer or whatever it is you are looking at the Gtk+ interface describes a ``Peer'' or a ``Node''.}
+is running correctly, you should see a bunch of lines,
+all of which should be ``significantly'' above zero (at least if your
+peer has been running for more than a few seconds). The lines indicate
+how many other peers your peer is connected to (via different
+mechanisms) and how large the entire overlay network is currently
+estimated to be. The X-axis represents time (in seconds since the
+start of @command{gnunet-gtk}).
 
 You can click on "Traffic" to see information about the amount of
 bandwidth your peer has consumed, and on "Storage" to check the amount
