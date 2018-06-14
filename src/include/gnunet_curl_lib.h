@@ -99,6 +99,17 @@ GNUNET_CURL_get_select_info (struct GNUNET_CURL_Context *ctx,
 
 
 /**
+ * Add custom request header.
+ *
+ * @param ctx cURL context.
+ * @param header header string; will be given to the context AS IS.
+ * @return #GNUNET_OK if no errors occurred, #GNUNET_SYSERR otherwise.
+ */
+int
+GNUNET_CURL_append_header (struct GNUNET_CURL_Context *ctx,
+                           const char *header);
+
+/**
  * Run the main event loop for the CURL interaction.
  *
  * @param ctx the library context

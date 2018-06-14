@@ -125,7 +125,7 @@ install-data-local:
 	    $(INSTALL_DATA) $$hello $(DESTDIR)$(pkghellodir)/ ; \
 	  fi \
 	done
-	install scripts/gnunet-bugreport $(bindir)/gnunet-bugreport
+	install scripts/gnunet-bugreport $(DESTDIR)$(bindir)/gnunet-bugreport
 
 dist-hook:
 	if test -d $(srcdir)/hellos; then \
