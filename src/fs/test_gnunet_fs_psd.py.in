@@ -53,6 +53,12 @@ elif os.name == 'nt':
     unindex = './gnunet-unindex.exe'
     search = './gnunet-search.exe'
 
+if "GNUNET_PREFIX" in os.environ:
+    pass
+else:
+    print("You need to export GNUNET_PREFIX")
+    sys.exit(1)
+    
 if os.name == "nt":
     shutil.rmtree(os.path.join(os.getenv("TEMP"), "gnunet-test-fs-py-psd"), True)
 else:
