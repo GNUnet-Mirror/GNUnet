@@ -22,11 +22,15 @@ import subprocess
 import re
 import shutil
 try:
+    # Python 2.7
     reload
 except NameError:
-    # python3.4:
-    from importlib import reload
-
+    try:
+        # Python 3.4+:
+        from importlib import reload
+    except ImportError:
+        # Python 3.0 - 3.3
+        from imp import reload
 
 # Force encoding to utf-8, as this test otherwise fails
 # on some systems (see #5094).
