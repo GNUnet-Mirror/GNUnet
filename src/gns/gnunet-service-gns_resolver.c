@@ -2397,6 +2397,8 @@ handle_dht_response (void *cls,
                 "Received expired block from the DHT, will not cache it.\n");
     return;
   }
+  if (GNUNET_YES == disable_cache)
+    return;
   /* Cache well-formed blocks */
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Caching response from the DHT in namecache\n");
@@ -2407,7 +2409,7 @@ handle_dht_response (void *cls,
 							 co);
   GNUNET_CONTAINER_DLL_insert (co_head,
 			       co_tail,
-			       co);
+			       co);  
 }
 
 
