@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     Copyright (C) 2012-2014 GNUnet e.V.
+     Copyright (C) 2012-2018 GNUnet e.V.
 
      GNUnet is free software: you can redistribute it and/or modify it
      under the terms of the GNU Affero General Public License as published
@@ -1178,12 +1178,20 @@ curl_check_hdr (void *buffer,
                                s5r->domain);
             continue;
           }
-        }
         else if (0 == strcmp (cookie_domain,
 			      s5r->leho))
         {
           offset += sprintf (new_cookie_hdr + offset,
                              " domain=%s;",
+                             s5r->domain);
+          continue;
+        }
+        else if ( ('.' == cookie_domain[0]) &&
+		  (0 == strcmp (&cookie_domain[1],
+				s5r->leho)) )
+        {
+          offset += sprintf (new_cookie_hdr + offset,
+                             " domain=.%s;",
                              s5r->domain);
           continue;
         }
