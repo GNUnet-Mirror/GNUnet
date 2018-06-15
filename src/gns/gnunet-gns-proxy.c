@@ -46,14 +46,6 @@
 #include "gns.h"
 
 
-/**
- * FIXME: GnuTLS right now sometimes rejects valid certs, so as a
- * VERY temporary workaround we just WARN the user instead of 
- * dropping the page.  THIS SHOULD NOT BE USED IN PRODUCTION,
- * set to 1 in production!!! FIXME!!!
- */
-#define FIXED_CERT_VALIDATION_BUG 0
-
 
 /**
  * Default Socks5 listen port.
@@ -1079,10 +1071,8 @@ check_ssl_certificate (struct Socks5Request *s5r)
                     certdn,
                     name,
 		    rc);
-#if FIXED_CERT_VALIDATION_BUG
         gnutls_x509_crt_deinit (x509_cert);
         return GNUNET_SYSERR;
-#endif
       }
     }
     else
@@ -1996,7 +1986,8 @@ create_response (void *cls,
         us = MHD_lookup_connection_value (con,
                                           MHD_HEADER_KIND,
                                           MHD_HTTP_HEADER_CONTENT_LENGTH);
-        if ( (NULL != us) && (1 == sscanf (us,
+        if ( (NULL != us) &&
+	     (1 == sscanf (us,
                            "%ld",
                            &upload_size)) &&
              (upload_size >= 0) )
