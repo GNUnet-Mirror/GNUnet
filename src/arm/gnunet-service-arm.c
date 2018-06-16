@@ -502,10 +502,10 @@ get_server_addresses (const char *service_name,
   if ( (0 == port) &&
        (NULL == unixpath) )
   {
-    if (GNUNET_YES !=
-        GNUNET_CONFIGURATION_get_value_yesno (cfg,
-                                              service_name,
-                                              "AUTOSTART"))
+    if (GNUNET_YES ==
+	GNUNET_CONFIGURATION_get_value_yesno (cfg,
+					      service_name,
+					      "AUTOSTART"))
       LOG (GNUNET_ERROR_TYPE_ERROR,
 	   _("Have neither PORT nor UNIXPATH for service `%s', but one is required\n"),
 	   service_name);
