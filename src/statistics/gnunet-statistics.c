@@ -64,6 +64,11 @@ static int watch;
 static int quiet;
 
 /**
+ * @brief Separator string for csv.
+ */
+static char *csv_separator;
+
+/**
  * Remote host
  */
 static char *remote_host;
@@ -206,26 +211,34 @@ printer (void *cls,
     {
       now_str = GNUNET_STRINGS_absolute_time_to_string (now);
       FPRINTF (stdout,
-	       "%24s %s%12s %50s: ",
+	       "%24s%s %s%s%12s%s %50s%s ",
                now_str,
+               csv_separator,
                value_set->is_persistent ? "!" : " ",
+               csv_separator,
                value_set->subsystem,
-	             _(value_set->name));
+               csv_separator,
+	             _(value_set->name),
+               (0 == strlen (csv_separator) ? ":": csv_separator));
     }
     else
     {
       FPRINTF (stdout,
-	       "%s%12s %50s: ",
+	       "%s%s%12s%s %50s%s ",
                value_set->is_persistent ? "!" : " ",
+               csv_separator,
                value_set->subsystem,
-               _(value_set->name));
+               csv_separator,
+               _(value_set->name),
+               (0 == strlen (csv_separator) ? ":": csv_separator));
     }
   }
   for (unsigned i = 0; i < num_nodes; i++)
   {
     FPRINTF (stdout,
-            "%16llu",
-            (unsigned long long) value_set->values[i]);
+            "%16llu%s",
+            (unsigned long long) value_set->values[i],
+            csv_separator);
   }
   FPRINTF (stdout, "\n");
   GNUNET_free (value_set->subsystem);
@@ -297,21 +310,28 @@ printer_watch (void *cls,
     {
       now_str = GNUNET_STRINGS_absolute_time_to_string (now);
       FPRINTF (stdout,
-	       "%24s %s%12s %50s: %16llu\n",
+               "%24s%s %s%s%12s%s %50s%s %16llu\n",
                now_str,
+               csv_separator,
                is_persistent ? "!" : " ",
+               csv_separator,
                subsystem,
-	       _(name),
-	       (unsigned long long) value);
+               csv_separator,
+               _(name),
+               (0 == strlen (csv_separator) ? ":": csv_separator),
+               (unsigned long long) value);
     }
     else
     {
       FPRINTF (stdout,
-	       "%s%12s %50s: %16llu\n",
+               "%s%s%12s%s %50s%s %16llu\n",
                is_persistent ? "!" : " ",
+               csv_separator,
                subsystem,
-	       _(name),
-	       (unsigned long long) value);
+               csv_separator,
+               _(name),
+               (0 == strlen (csv_separator) ? ":": csv_separator),
+               (unsigned long long) value);
     }
   }
   else
@@ -672,6 +692,7 @@ run (void *cls,
 
   c = (struct GNUNET_CONFIGURATION_Handle *) cfg;
   set_value = GNUNET_NO;
+  if (NULL == csv_separator) csv_separator = "";
   if (NULL != args[0])
   {
     if (1 != SSCANF (args[0],
@@ -766,6 +787,12 @@ int
 main (int argc, char *const *argv)
 {
   struct GNUNET_GETOPT_CommandLineOption options[] = {
+    GNUNET_GETOPT_option_string ('d',
+                                 "csv-separator",
+                                 "CSV_SEPARATOR",
+                                 gettext_noop ("use as csv separator"),
+                                 &csv_separator),
+
     GNUNET_GETOPT_option_string ('n',
                                  "name",
                                  "NAME",
@@ -804,11 +831,13 @@ main (int argc, char *const *argv)
                                  "REMOTE",
                                  gettext_noop ("connect to remote host"),
                                  &remote_host),
+
     GNUNET_GETOPT_option_ulong ('o',
                                     "port",
                                     "PORT",
                                     gettext_noop ("port for remote host"),
                                     &remote_port),
+
     GNUNET_GETOPT_OPTION_END
   };
   remote_port = 0;
