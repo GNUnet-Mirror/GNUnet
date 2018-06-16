@@ -1178,6 +1178,7 @@ curl_check_hdr (void *buffer,
                                s5r->domain);
             continue;
           }
+        }
         else if (0 == strcmp (cookie_domain,
 			      s5r->leho))
         {
@@ -2033,6 +2034,20 @@ create_response (void *cls,
       curl_easy_setopt (s5r->curl,
 			CURLOPT_HTTPGET,
 			1L);
+      curl_easy_setopt (s5r->curl,
+			CURLOPT_WRITEFUNCTION,
+			&curl_download_cb);
+      curl_easy_setopt (s5r->curl,
+			CURLOPT_WRITEDATA,
+			s5r);
+    }
+    else if (0 == strcasecmp (meth,
+			      MHD_HTTP_METHOD_DELETE))
+    {
+      s5r->state = SOCKS5_SOCKET_DOWNLOAD_STARTED;
+      curl_easy_setopt (s5r->curl,
+			CURLOPT_CUSTOMREQUEST,
+			"DELETE");
       curl_easy_setopt (s5r->curl,
 			CURLOPT_WRITEFUNCTION,
 			&curl_download_cb);
