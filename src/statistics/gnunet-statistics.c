@@ -787,12 +787,6 @@ int
 main (int argc, char *const *argv)
 {
   struct GNUNET_GETOPT_CommandLineOption options[] = {
-    GNUNET_GETOPT_option_string ('d',
-                                 "csv-separator",
-                                 "CSV_SEPARATOR",
-                                 gettext_noop ("use as csv separator"),
-                                 &csv_separator),
-
     GNUNET_GETOPT_option_string ('n',
                                  "name",
                                  "NAME",
@@ -809,6 +803,12 @@ main (int argc, char *const *argv)
                                  "SUBSYSTEM",
                                  gettext_noop ("limit output to the given SUBSYSTEM"),
                                  &subsystem),
+
+    GNUNET_GETOPT_option_string ('S',
+                                 "csv-separator",
+                                 "CSV_SEPARATOR",
+                                 gettext_noop ("use as csv separator"),
+                                 &csv_separator),
 
     GNUNET_GETOPT_option_filename ('t',
                                   "testbed",
