@@ -1097,7 +1097,10 @@ run (void *cls,
 
   helper_argv[0] = GNUNET_strdup ("gnunet-dns");
   if (GNUNET_SYSERR ==
-      GNUNET_CONFIGURATION_get_value_string (cfg, "dns", "IFNAME", &ifc_name))
+      GNUNET_CONFIGURATION_get_value_string (cfg,
+					     "dns",
+					     "IFNAME",
+					     &ifc_name))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "No entry 'IFNAME' in configuration!\n");
@@ -1106,7 +1109,9 @@ run (void *cls,
   }
   helper_argv[1] = ifc_name;
   if ( (GNUNET_SYSERR ==
-	GNUNET_CONFIGURATION_get_value_string (cfg, "dns", "IPV6ADDR",
+	GNUNET_CONFIGURATION_get_value_string (cfg,
+					       "dns",
+					       "IPV6ADDR",
 					       &ipv6addr)) )
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -1116,7 +1121,9 @@ run (void *cls,
   }
   helper_argv[2] = ipv6addr;
   if (GNUNET_SYSERR ==
-      GNUNET_CONFIGURATION_get_value_string (cfg, "dns", "IPV6PREFIX",
+      GNUNET_CONFIGURATION_get_value_string (cfg,
+					     "dns",
+					     "IPV6PREFIX",
                                              &ipv6prefix))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -1127,7 +1134,9 @@ run (void *cls,
   helper_argv[3] = ipv6prefix;
 
   if (GNUNET_SYSERR ==
-      GNUNET_CONFIGURATION_get_value_string (cfg, "dns", "IPV4ADDR",
+      GNUNET_CONFIGURATION_get_value_string (cfg,
+					     "dns",
+					     "IPV4ADDR",
                                              &ipv4addr))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,

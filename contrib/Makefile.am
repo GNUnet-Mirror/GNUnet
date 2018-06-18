@@ -87,8 +87,6 @@ do_subst = $(SED) -e 's,[@]PYTHON[@],$(PYTHON),g'
 #	chmod +x $@
 #
 # instead of this:
-
-SUFFIXES =
 SUFFIXES = .py.in .py
 
 .py.in.py:

@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     Copyright (C) 2012-2014 GNUnet e.V.
+     Copyright (C) 2012-2018 GNUnet e.V.
 
      GNUnet is free software: you can redistribute it and/or modify it
      under the terms of the GNU Affero General Public License as published
@@ -45,14 +45,6 @@
 #include "gnunet_identity_service.h"
 #include "gns.h"
 
-
-/**
- * FIXME: GnuTLS right now sometimes rejects valid certs, so as a
- * VERY temporary workaround we just WARN the user instead of 
- * dropping the page.  THIS SHOULD NOT BE USED IN PRODUCTION,
- * set to 1 in production!!! FIXME!!!
- */
-#define FIXED_CERT_VALIDATION_BUG 0
 
 
 /**
@@ -1079,10 +1071,8 @@ check_ssl_certificate (struct Socks5Request *s5r)
                     certdn,
                     name,
 		    rc);
-#if FIXED_CERT_VALIDATION_BUG
         gnutls_x509_crt_deinit (x509_cert);
         return GNUNET_SYSERR;
-#endif
       }
     }
     else
@@ -1194,6 +1184,15 @@ curl_check_hdr (void *buffer,
         {
           offset += sprintf (new_cookie_hdr + offset,
                              " domain=%s;",
+                             s5r->domain);
+          continue;
+        }
+        else if ( ('.' == cookie_domain[0]) &&
+		  (0 == strcmp (&cookie_domain[1],
+				s5r->leho)) )
+        {
+          offset += sprintf (new_cookie_hdr + offset,
+                             " domain=.%s;",
                              s5r->domain);
           continue;
         }
@@ -1996,7 +1995,8 @@ create_response (void *cls,
         us = MHD_lookup_connection_value (con,
                                           MHD_HEADER_KIND,
                                           MHD_HTTP_HEADER_CONTENT_LENGTH);
-        if ( (NULL != us) && (1 == sscanf (us,
+        if ( (NULL != us) &&
+	     (1 == sscanf (us,
                            "%ld",
                            &upload_size)) &&
              (upload_size >= 0) )
@@ -2034,6 +2034,20 @@ create_response (void *cls,
       curl_easy_setopt (s5r->curl,
 			CURLOPT_HTTPGET,
 			1L);
+      curl_easy_setopt (s5r->curl,
+			CURLOPT_WRITEFUNCTION,
+			&curl_download_cb);
+      curl_easy_setopt (s5r->curl,
+			CURLOPT_WRITEDATA,
+			s5r);
+    }
+    else if (0 == strcasecmp (meth,
+			      MHD_HTTP_METHOD_DELETE))
+    {
+      s5r->state = SOCKS5_SOCKET_DOWNLOAD_STARTED;
+      curl_easy_setopt (s5r->curl,
+			CURLOPT_CUSTOMREQUEST,
+			"DELETE");
       curl_easy_setopt (s5r->curl,
 			CURLOPT_WRITEFUNCTION,
 			&curl_download_cb);

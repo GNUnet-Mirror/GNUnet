@@ -20,7 +20,7 @@ MAX_PARALLEL_BACKGROUND_QUERIES = 1000
 # we will ask gnunet-service-dns to pass DNS queries to us. Otherwise,
 # we only answer GNS queries via the API (which itself may be
 # called via NSS or other mechanisms).
-INTERCEPT_DNS = YES
+INTERCEPT_DNS = NO
 
 # PREFIX = valgrind --leak-check=full --track-origins=yes
 
