@@ -1363,6 +1363,7 @@ This section describes the four different URI types in detail.
 Most URIs include some hash values. Hashes are encoded using
 base32hex (RFC 2938).
 
+@cindex chk-uri
 @node Content Hash Key (chk)
 @subsubsection Content Hash Key (chk)
 @c %**end of header
@@ -1379,6 +1380,7 @@ shape of the tree), KEYHASH is the key used to decrypt the file
 is the query used to request the top-level block (also the hash
 of the encrypted block).
 
+@cindex loc-uri
 @node Location identifiers (loc)
 @subsubsection Location identifiers (loc)
 @c %**end of header
@@ -1394,6 +1396,7 @@ base32hex), SIG is the RSA signature (in GNUnet format in
 base32hex) and EXPTIME specifies when the signature expires
 (in milliseconds after 1970).
 
+@cindex ksk-uri
 @node Keyword queries (ksk)
 @subsubsection Keyword queries (ksk)
 @c %**end of header
@@ -1405,7 +1408,10 @@ using the typical URI-encoding (using hex values) from HTTP.
 "+" can be used to specify multiple keywords (which are then
 logically "OR"-ed in the search, results matching both keywords
 are given a higher rank): "gnunet://fs/ksk/KEYWORD1+KEYWORD2".
+ksk-URIs must not begin or end with the plus ('+') character.
+Furthermore they must not contain '++'.
 
+@cindex sks-uri
 @node Namespace content (sks)
 @subsubsection Namespace content (sks)
 @c %**end of header
