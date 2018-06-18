@@ -1362,6 +1362,11 @@ This section describes the four different URI types in detail.
 
 Most URIs include some hash values. Hashes are encoded using
 base32hex (RFC 2938).
+For FS URIs empty KEYWORDs are not allowed. Quotes are allowed to
+denote whitespace between words. Keywords must contain a balanced
+number of double quotes. Doubles quotes can not be used in the actual
+keywords. This means that the the string '""foo bar""' will be turned
+into two OR-ed keywords 'foo' and 'bar', not into '"foo bar"'.
 
 @cindex chk-uri
 @node Content Hash Key (chk)
