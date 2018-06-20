@@ -69,6 +69,12 @@ static struct GNUNET_STATISTICS_Handle *stats;
 static struct GNUNET_PeerIdentity own_identity;
 
 
+/**
+ * @brief Port used for cadet.
+ *
+ * Don't compute multiple times through making it global
+ */
+static struct GNUNET_HashCode port;
 
 /***********************************************************************
  * Old gnunet-service-rps_peers.c
@@ -578,7 +584,6 @@ struct GNUNET_CADET_Channel *
 get_channel (const struct GNUNET_PeerIdentity *peer)
 {
   struct PeerContext *peer_ctx;
-  struct GNUNET_HashCode port;
   struct GNUNET_PeerIdentity *ctx_peer;
   /* There exists a copy-paste-clone in run() */
   struct GNUNET_MQ_MessageHandler cadet_handlers[] = {
@@ -608,9 +613,6 @@ get_channel (const struct GNUNET_PeerIdentity *peer)
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Trying to establish channel to peer %s\n",
          GNUNET_i2s (peer));
-    GNUNET_CRYPTO_hash (GNUNET_APPLICATION_PORT_RPS,
-                        strlen (GNUNET_APPLICATION_PORT_RPS),
-                        &port);
     ctx_peer = GNUNET_new (struct GNUNET_PeerIdentity);
     *ctx_peer = *peer;
     peer_ctx->send_channel =
@@ -4247,7 +4249,6 @@ run (void *cls,
      struct GNUNET_SERVICE_Handle *service)
 {
   char* fn_valid_peers;
-  struct GNUNET_HashCode port;
 
   GNUNET_log_setup ("rps", GNUNET_error_type_to_string (GNUNET_ERROR_TYPE_DEBUG), NULL);
   cfg = c;
