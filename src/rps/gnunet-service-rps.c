@@ -3166,7 +3166,6 @@ handle_peer_check (void *cls,
   LOG (GNUNET_ERROR_TYPE_DEBUG,
       "Received CHECK_LIVE (%s)\n", GNUNET_i2s (peer));
 
-  GNUNET_break_op (Peers_check_peer_known (peer));
   GNUNET_CADET_receive_done (Peers_get_recv_channel (peer));
 }
 
