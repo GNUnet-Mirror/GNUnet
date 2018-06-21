@@ -150,8 +150,9 @@ GNUNET_GNS_lookup (struct GNUNET_GNS_Handle *handle,
  * Cancel pending lookup request
  *
  * @param lr the lookup request to cancel
+ * @return closure from the lookup result processor
  */
-void
+void *
 GNUNET_GNS_lookup_cancel (struct GNUNET_GNS_LookupRequest *lr);
 
 
@@ -198,8 +199,9 @@ GNUNET_GNS_lookup_with_tld (struct GNUNET_GNS_Handle *handle,
  * Cancel pending lookup request
  *
  * @param ltr the lookup request to cancel
+ * @return closure from the lookup result processor
  */
-void
+void *
 GNUNET_GNS_lookup_with_tld_cancel (struct GNUNET_GNS_LookupWithTldRequest *ltr);
 
 
