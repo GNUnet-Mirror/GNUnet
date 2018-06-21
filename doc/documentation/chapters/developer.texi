@@ -2,7 +2,7 @@
 @node GNUnet Developer Handbook
 @chapter GNUnet Developer Handbook
 
-0This book is intended to be an introduction for programmers that want to
+This book is intended to be an introduction for programmers that want to
 extend the GNUnet framework. GNUnet is more than a simple peer-to-peer
 application.
 
