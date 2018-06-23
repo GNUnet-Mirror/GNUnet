@@ -1722,12 +1722,6 @@ con_val_iter (void *cls,
 			 key)) &&
        (NULL != s5r->leho) )
     value = s5r->leho;
-  if (0 == strcasecmp (MHD_HTTP_HEADER_CONTENT_LENGTH,
-		       key))
-    return MHD_YES;
-  if (0 == strcasecmp (MHD_HTTP_HEADER_ACCEPT_ENCODING,
-		       key))
-    return MHD_YES;
   GNUNET_asprintf (&hdr,
                    "%s: %s",
                    key,
