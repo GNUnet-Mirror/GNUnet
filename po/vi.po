@@ -11431,9 +11431,6 @@ msgstr "« %s » thất bại ở tập tin « %s » tại %s:%d với lỗi: %s
 #~ msgid "Unable to create user account for daemon."
 #~ msgstr "Không thể tạo tài khoản người dùng cho trình nền."
 
-#~ msgid "Unable to setup autostart for daemon."
-#~ msgstr "Không thể thiết lập chức năng tự động khởi chạy cho trình nền."
-
 #~ msgid "Save configuration?"
 #~ msgstr "Lưu cấu hình không?"
 

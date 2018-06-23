@@ -10275,9 +10275,6 @@ msgstr ""
 #~ "如果您回答“是”，GNUnet 后台进程将在开机时自动启动。如果您回答“否”，则需要"
 #~ "在每次使用 GNUnet 时自己启动它。"
 
-#~ msgid "Unable to setup autostart for daemon."
-#~ msgstr "无法将守护进程设置为自动启动。"
-
 #~ msgid "Save configuration?"
 #~ msgstr "保存配置？"
 

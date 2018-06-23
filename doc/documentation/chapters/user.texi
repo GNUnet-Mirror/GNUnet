@@ -2574,7 +2574,7 @@ sqLite, MySQL and Postgres.
 
 In order to use GNUnet for file-sharing, you first need to make sure
 that the file-sharing service is loaded.
-This is done by setting the @code{AUTOSTART} option in
+This is done by setting the @code{START_ON_DEMAND} option in
 section @code{[fs]} to "YES". Alternatively, you can run
 
 @example
@@ -2666,7 +2666,7 @@ The configuration section for the transport service itself is quite
 similar to all the other services
 
 @example
-AUTOSTART = YES
+START_ON_DEMAND = YES
 @@UNIXONLY@@ PORT = 2091
 HOSTNAME = localhost
 HOME = $SERVICEHOME

@@ -1,5 +1,5 @@
 [social]
-AUTOSTART = @AUTOSTART@
+START_ON_DEMAND = @START_ON_DEMAND@
 BINARY = gnunet-service-social
 RUN_PER_USER = YES
 

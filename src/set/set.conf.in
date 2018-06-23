@@ -1,5 +1,5 @@
 [set]
-AUTOSTART = @AUTOSTART@
+START_ON_DEMAND = @START_ON_DEMAND@
 @UNIXONLY@PORT = 2106
 HOSTNAME = localhost
 BINARY = gnunet-service-set

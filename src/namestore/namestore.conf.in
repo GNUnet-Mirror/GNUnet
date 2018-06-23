@@ -1,5 +1,5 @@
 [namestore]
-AUTOSTART = @AUTOSTART@
+START_ON_DEMAND = @START_ON_DEMAND@
 RUN_PER_USER = YES
 UNIXPATH = $GNUNET_USER_RUNTIME_DIR/gnunet-service-namestore.sock
 UNIX_MATCH_UID = NO
@@ -42,7 +42,7 @@ gns = gnunet-namestore
 [fcfsd]
 # Name of the fcfs registration service binary (for ARM)
 BINARY = gnunet-namestore-fcfsd
-AUTOSTART = NO
+START_ON_DEMAND = NO
 UNIXPATH = $GNUNET_RUNTIME_DIR/gnunet-service-fcfsd.sock
 
 # On what port does the FCFS daemon listen for HTTP clients?

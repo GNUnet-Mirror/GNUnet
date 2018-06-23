@@ -5,9 +5,9 @@ OVERLAY_TOPOLOGY = LINE
 OPERATION_TIMEOUT = 5 s
 
 [testbed-underlay]
-AUTOSTART = NO
+START_ON_DEMAND = NO
 DBFILE = /will/be/overwritten/by/testcase
 FORCESTART = YES
 
 [dv]
-AUTOSTART = NO
+START_ON_DEMAND = NO

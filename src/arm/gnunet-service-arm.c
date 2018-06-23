@@ -510,7 +510,7 @@ get_server_addresses (const char *service_name,
     if (GNUNET_YES ==
 	GNUNET_CONFIGURATION_get_value_yesno (cfg,
 					      service_name,
-					      "AUTOSTART"))
+					      "START_ON_DEMAND"))
       LOG (GNUNET_ERROR_TYPE_ERROR,
 	   _("Have neither PORT nor UNIXPATH for service `%s', but one is required\n"),
 	   service_name);
@@ -2076,7 +2076,7 @@ setup_service (void *cls,
     if (GNUNET_YES !=
         GNUNET_CONFIGURATION_get_value_yesno (cfg,
                                               section,
-                                              "AUTOSTART"))
+                                              "START_ON_DEMAND"))
       return;
   }
   if (0 >= (ret = get_server_addresses (section,
