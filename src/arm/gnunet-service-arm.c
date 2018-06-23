@@ -1990,11 +1990,11 @@ setup_service (void *cls,
   if ((GNUNET_YES ==
        GNUNET_CONFIGURATION_have_value (cfg,
                                         section,
-                                        "USER_SERVICE")) &&
+                                        "RUN_PER_USER")) &&
       (GNUNET_YES ==
        GNUNET_CONFIGURATION_get_value_yesno (cfg,
                                              section,
-                                             "USER_SERVICE")))
+                                             "RUN_PER_USER")))
   {
     if (GNUNET_NO == start_user)
     {
