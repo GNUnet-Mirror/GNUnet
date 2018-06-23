@@ -32,10 +32,13 @@ except NameError:
         # Python 3.0 - 3.3
         from imp import reload
 
-# Force encoding to utf-8, as this test otherwise fails
-# on some systems (see #5094).
 reload(sys)
-sys.setdefaultencoding('utf8')
+
+# Force encoding to utf-8, as this test otherwise fails
+# on some systems (see #5094). In Python 3+ there is no attribute 
+# sys.setdefaultencoding anymore. 
+if (3 < sys.version_info[0]):
+    sys.setdefaultencoding('utf8')
 
 srcdir = "../.."
 gnunet_pyexpect_dir = os.path.join(srcdir, "contrib/scripts")
