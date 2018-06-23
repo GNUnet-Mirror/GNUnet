@@ -168,6 +168,7 @@ main (int argc,
 
   ccc = &my_ccc;
   sc.ccc = ccc;
+  start_request = GNUNET_TIME_absolute_get ();
   if (GNUNET_OK !=
       GNUNET_TRANSPORT_TESTING_main (2,
                                      &GNUNET_TRANSPORT_TESTING_connect_check,
