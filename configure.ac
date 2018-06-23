@@ -198,11 +198,24 @@ AC_CHECK_LIB(c, getloadavg, AC_DEFINE(HAVE_GETLOADAVG,1,[getloadavg supported]))
 AC_CHECK_PROG(VAR_GETOPT_BINARY, getopt, true, false)
 AM_CONDITIONAL(HAVE_GETOPT_BINARY, $VAR_GETOPT_BINARY)
 
-AC_CHECK_PROG(VAR_SSH_BINARY,ssh,true,false)
+AC_CHECK_PROG(VAR_SSH_BINARY, ssh, true, false)
 AM_CONDITIONAL(HAVE_SSH_BINARY, $VAR_SSH_BINARY)
 AM_CONDITIONAL(HAVE_SSH_KEY,  ssh -D 12345 -o "BatchMode yes" -o "UserKnownHostsFile /tmp/gnunet_test_cosks_ssh_garbage" -o "StrictHostKeyChecking no" 127.0.0.1 echo -n)
 rm -f /tmp/gnunet_test_cosks_ssh_garbage
 
+# iptables is a soft requirement to run tests
+AC_PATH_TARGET_TOOL(VAR_IPTABLES_BINARY, iptables, false)
+
+if test x"$VAR_IPTABLES_BINARY" != x"false"
+then
+AC_DEFINE_UNQUOTED([IPTABLES], "$VAR_IPTABLES_BINARY", [Path to iptables])
+else
+AC_MSG_WARN([warning: 'iptables' not found.])
+fi
+
+
+AC_CHECK_PROG(VAR_IFCONFIG_BINARY, ifconfig, true, false)
+AC_MSG_WARN([warning: 'ifconfig' not found.])
 
 AC_CHECK_MEMBER(struct tm.tm_gmtoff,
   [AC_DEFINE(HAVE_TM_GMTOFF, 1,
@@ -1766,6 +1779,18 @@ fi
 if test "x$jansson" = "x0"
 then
   AC_MSG_NOTICE([WARNING: jansson library not found.  json support will not be compiled.])
+fi
+
+# warn user if iptables is not found
+if test "$VAR_IPTABLES_BINARY" = "false"
+then
+AC_MSG_NOTICE([WARNING: iptables not found. some modules may not have full functionality.])
+fi
+
+# warn user if ifconfig is not found
+if test "$VAR_IFCONFIG_BINARY" = "false"
+then
+AC_MSG_NOTICE([WARNING: ifconfig not found. some modules may not have full functionality.])
 fi
 
 #gnutls
