@@ -159,6 +159,11 @@ static struct GNUNET_CONTAINER_MultiHashMap *values;
 static int num_nodes_ready;
 
 /**
+ * @brief Number of nodes that have their values ready.
+ */
+static int num_nodes_ready_shutdown;
+
+/**
  * @brief Create a new #ValueSet
  *
  * @param subsystem Subsystem of the valueset.
@@ -249,42 +254,6 @@ printer (void *cls,
 }
 
 /**
- * @brief Called once all statistic values are available.
- *
- * Implements #GNUNET_STATISTICS_Callback
- *
- * @param cls Closure - The index of the node.
- * @param succes Whether statistics were obtained successfully.
- */
-static void
-continuation_print (void *cls,
-                    int success)
-{
-  const unsigned index_node = *(unsigned *) cls;
-
-  nodes[index_node].gh = NULL;
-  if (GNUNET_OK != success)
-  {
-    if (NULL == remote_host)
-      FPRINTF (stderr,
-               "%s",
-               _("Failed to obtain statistics.\n"));
-    else
-      FPRINTF (stderr,
-               _("Failed to obtain statistics from host `%s:%llu'\n"),
-               remote_host,
-               remote_port);
-    ret = 1;
-  }
-  num_nodes_ready++;
-  if (num_nodes_ready == num_nodes)
-  {
-    GNUNET_CONTAINER_multihashmap_iterate (values, printer, NULL);
-    GNUNET_SCHEDULER_shutdown();
-  }
-}
-
-/**
  * Callback function to process statistic values.
  *
  * @param cls closure
@@ -340,6 +309,112 @@ printer_watch (void *cls,
 	     (unsigned long long) value);
 
   return GNUNET_OK;
+}
+
+/**
+ * @brief Clean all data structures related to given node.
+ *
+ * Also clears global structures if we are the last node to clean.
+ *
+ * @param cls the index of the node
+ */
+static void
+clean_node (void *cls)
+{
+  const unsigned index_node = *(unsigned *) cls;
+  struct GNUNET_STATISTICS_Handle *h;
+  struct GNUNET_STATISTICS_GetHandle *gh;
+
+  if ( (NULL != path_testbed) && /* were issued with -t <testbed-path> option */
+       (NULL != nodes[index_node].conf) )
+  {
+    GNUNET_CONFIGURATION_destroy (nodes[index_node].conf);
+    nodes[index_node].conf = NULL;
+  }
+
+  h = nodes[index_node].handle;
+  gh = nodes[index_node].gh;
+
+  if (NULL != gh)
+  {
+    GNUNET_STATISTICS_get_cancel (gh);
+    gh = NULL;
+  }
+  if (GNUNET_YES == watch)
+  {
+    GNUNET_assert (GNUNET_OK ==
+      GNUNET_STATISTICS_watch_cancel (h,
+                                      subsystem,
+                                      name,
+                                      &printer_watch,
+                                      &nodes[index_node].index_node));
+  }
+
+  if (NULL != h)
+  {
+    GNUNET_STATISTICS_destroy (h, GNUNET_NO);
+    h = NULL;
+  }
+
+  num_nodes_ready_shutdown++;
+  if (num_nodes == num_nodes_ready_shutdown)
+  {
+    GNUNET_array_grow (nodes, num_nodes, 0);
+    GNUNET_CONTAINER_multihashmap_destroy (values);
+  }
+}
+
+/**
+ * @brief Print and shutdown
+ *
+ * @param cls unused
+ */
+static void
+print_finish (void *cls)
+{
+  GNUNET_CONTAINER_multihashmap_iterate (values, printer, NULL);
+  GNUNET_SCHEDULER_shutdown();
+}
+
+/**
+ * @brief Called once all statistic values are available.
+ *
+ * Implements #GNUNET_STATISTICS_Callback
+ *
+ * @param cls Closure - The index of the node.
+ * @param succes Whether statistics were obtained successfully.
+ */
+static void
+continuation_print (void *cls,
+                    int success)
+{
+  const unsigned index_node = *(unsigned *) cls;
+
+  nodes[index_node].gh = NULL;
+  if (GNUNET_OK != success)
+  {
+    if (NULL == remote_host)
+      FPRINTF (stderr,
+               "%s",
+               _("Failed to obtain statistics.\n"));
+    else
+      FPRINTF (stderr,
+               _("Failed to obtain statistics from host `%s:%llu'\n"),
+               remote_host,
+               remote_port);
+    ret = 1;
+  }
+  if (NULL != nodes[index_node].shutdown_task)
+  {
+    GNUNET_SCHEDULER_cancel (nodes[index_node].shutdown_task);
+    nodes[index_node].shutdown_task = NULL;
+  }
+  GNUNET_SCHEDULER_add_now (clean_node, &nodes[index_node].index_node);
+  num_nodes_ready++;
+  if (num_nodes_ready == num_nodes)
+  {
+    GNUNET_SCHEDULER_add_now (print_finish, NULL);
+  }
 }
 
 /**
@@ -424,65 +499,6 @@ collector (void *cls,
 }
 
 /**
- * Function run on shutdown to clean up.
- *
- * @param cls the statistics handle
- */
-static void
-shutdown_task (void *cls)
-{
-  const unsigned index_node = *(unsigned *) cls;
-  struct GNUNET_STATISTICS_Handle *h;
-  struct GNUNET_STATISTICS_GetHandle *gh;
-
-  nodes[index_node].shutdown_task = NULL;
-  if ( (NULL != path_testbed) &&
-       (NULL != nodes[index_node].conf) )
-  {
-    GNUNET_CONFIGURATION_destroy (nodes[index_node].conf);
-    nodes[index_node].conf = NULL;
-  }
-
-  h = nodes[index_node].handle;
-  gh = nodes[index_node].gh;
-  if (NULL == h)
-  {
-    num_nodes_ready--;
-    if (0 == num_nodes_ready)
-    {
-      GNUNET_array_grow (nodes, num_nodes, 0);
-      GNUNET_CONTAINER_multihashmap_destroy (values);
-    }
-    return;
-  }
-  if (NULL != gh)
-  {
-    GNUNET_STATISTICS_get_cancel (gh);
-    gh = NULL;
-  }
-  if ( (GNUNET_YES == watch) &&
-       (NULL != subsystem) &&
-       (NULL != name) )
-    GNUNET_assert (GNUNET_OK ==
-       GNUNET_STATISTICS_watch_cancel (h,
-                                                   subsystem,
-                                                   name,
-                                                   &printer_watch,
-               &nodes[index_node].index_node));
-  GNUNET_STATISTICS_destroy (h,
-                             GNUNET_NO);
-  h = NULL;
-
-  num_nodes_ready--;
-  if (0 == num_nodes_ready)
-  {
-    GNUNET_array_grow (nodes, num_nodes, 0);
-    GNUNET_CONTAINER_multihashmap_destroy (values);
-  }
-}
-
-
-/**
  * Main task that does the actual work.
  *
  * @param cls closure with our configuration
@@ -562,18 +578,18 @@ main_task (void *cls)
                                  subsystem,
                                  name,
                                  &printer_watch,
-				 &nodes[index_node].index_node))
+                                 &nodes[index_node].index_node))
     {
       fprintf (stderr,
                _("Failed to initialize watch routine\n"));
       nodes[index_node].shutdown_task =
-        GNUNET_SCHEDULER_add_now (&shutdown_task,
+        GNUNET_SCHEDULER_add_now (&clean_node,
                                   &nodes[index_node].index_node);
       return;
     }
   }
   nodes[index_node].shutdown_task =
-    GNUNET_SCHEDULER_add_shutdown (&shutdown_task,
+    GNUNET_SCHEDULER_add_shutdown (&clean_node,
                                    &nodes[index_node].index_node);
 }
 
