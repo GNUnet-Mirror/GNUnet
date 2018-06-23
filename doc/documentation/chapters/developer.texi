@@ -2,7 +2,7 @@
 @node GNUnet Developer Handbook
 @chapter GNUnet Developer Handbook
 
-0This book is intended to be an introduction for programmers that want to
+This book is intended to be an introduction for programmers that want to
 extend the GNUnet framework. GNUnet is more than a simple peer-to-peer
 application.
 
@@ -1362,8 +1362,8 @@ Next, edit the file @file{/etc/gnunet.conf} to contain the following:
 
 @example
 [arm]
-SYSTEM_ONLY = YES
-USER_ONLY = NO
+START_SYSTEM_SERVICES = YES
+START_USER_SERVICES = NO
 @end example
 
 @noindent
@@ -1409,8 +1409,8 @@ with the lines:
 
 @example
 [arm]
-SYSTEM_ONLY = NO
-USER_ONLY = YES
+START_SYSTEM_SERVICES = NO
+START_USER_SERVICES = YES
 DEFAULTSERVICES = gns
 @end example
 
@@ -3702,7 +3702,7 @@ running a service with "valgrind" or "gdb"
 
 @item DEBUG Run in debug mode (much verbosity).
 
-@item AUTOSTART ARM will listen to UNIX domain socket and/or TCP port of
+@item START_ON_DEMAND ARM will listen to UNIX domain socket and/or TCP port of
 the service and start the service on-demand.
 
 @item FORCESTART ARM will always start this service when the peer
@@ -3716,7 +3716,7 @@ is started.
 
 
 Options that impact the operation of ARM overall are in the "[arm]"
-section. ARM is a normal service and has (except for AUTOSTART) all of the
+section. ARM is a normal service and has (except for START_ON_DEMAND) all of the
 options that other services do. In addition, ARM has the
 following options:
 
@@ -8642,11 +8642,11 @@ In the following paragraph the important details are highlighted.
 
 Announcing of the regular expressions is done by the
 gnunet-daemon-regexprofiler, therefore you have to make sure it is
-started, by adding it to the AUTOSTART set of ARM:
+started, by adding it to the START_ON_DEMAND set of ARM:
 
 @example
 [regexprofiler]
-AUTOSTART = YES
+START_ON_DEMAND = YES
 @end example
 
 @noindent

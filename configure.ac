@@ -1377,24 +1377,25 @@ AM_CONDITIONAL([ENABLE_MALICIOUS], [test 1=$malicious])
 AC_DEFINE_UNQUOTED([ENABLE_MALICIOUS], [$malicious],
                    [enable compilation of malicious code])
 
-# should services be started by default when a peer starts?  Some services may
-# choose to never start by default and it is upto the service/module developer to
-# decide it by having "AUTOSTART = NO" instead of "AUTOSTART = @AUTOSTART@" in
-# the service/module's conf.in file.
-AUTOSTART="YES"
-AC_MSG_CHECKING(whether to auto-start peer's services by default)
+# should services be started on demand when needed?  Some services may choose to
+# never start by default and it is up to the service/module developer to decide
+# by having "START_ON_DEMAND = NO" instead of "START_ON_DEMAND = @START_ON_DEMAND@"
+# in the service/module's conf.in file.
+# See also FORCESTART for an unconditional immediate start.
+START_ON_DEMAND="YES"
+AC_MSG_CHECKING(whether to start peer's services on demand by default)
 AC_ARG_ENABLE([autostart],
    [AS_HELP_STRING([--disable-autostart], [do not start peer's services by default])],
    [enable_autostart=${enableval}
     if test "x$enable_autostart" == "xno"
     then
-        AUTOSTART="NO"
+        START_ON_DEMAND="NO"
     fi
    ],
    [enable_autostart=yes])
 AC_MSG_RESULT($enable_autostart)
-#AM_CONDITIONAL([HAVE_AUTOSTART], [test "x$enable_autostart" = "xyes"])
-AC_SUBST(AUTOSTART)
+#AM_CONDITIONAL([HAVE_START_ON_DEMAND], [test "x$enable_autostart" = "xyes"])
+AC_SUBST(START_ON_DEMAND)
 
 # should memory statistics be kept (very expensive CPU-wise!)
 AC_MSG_CHECKING(whether to create expensive statistics on memory use)

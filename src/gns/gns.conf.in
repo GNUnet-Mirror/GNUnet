@@ -1,5 +1,5 @@
 [gns]
-AUTOSTART = @AUTOSTART@
+START_ON_DEMAND = @START_ON_DEMAND@
 FORCESTART = YES
 HOSTNAME = localhost
 BINARY = gnunet-service-gns
@@ -30,8 +30,8 @@ INTERCEPT_DNS = NO
 
 [gns-proxy]
 BINARY = gnunet-gns-proxy
-AUTOSTART = NO
-USER_SERVICE = YES
+START_ON_DEMAND = NO
+RUN_PER_USER = YES
 
 # Where is the certificate for the GNS proxy stored?
 PROXY_CACERT = $GNUNET_DATA_HOME/gns/gns_ca_cert.pem
@@ -40,8 +40,8 @@ PROXY_UNIXPATH = $GNUNET_RUNTIME_DIR/gnunet-gns-proxy.sock
 
 [dns2gns]
 BINARY = gnunet-dns2gns
-AUTOSTART = NO
-USER_SERVICE = YES
+START_ON_DEMAND = NO
+RUN_PER_USER = YES
 
 # -d: DNS resolver to use, -s: suffix to use, -f: fcfs suffix to use
 OPTIONS = -d 8.8.8.8

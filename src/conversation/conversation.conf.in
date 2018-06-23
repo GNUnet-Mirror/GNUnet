@@ -1,5 +1,5 @@
 [conversation]
-AUTOSTART = @AUTOSTART@
+START_ON_DEMAND = @START_ON_DEMAND@
 BINARY = gnunet-service-conversation
 UNIXPATH = $GNUNET_RUNTIME_DIR/gnunet-service-conversation.sock
 HOSTNAME = localhost

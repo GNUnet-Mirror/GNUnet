@@ -1,7 +1,7 @@
 [social]
-AUTOSTART = @AUTOSTART@
+START_ON_DEMAND = @START_ON_DEMAND@
 BINARY = gnunet-service-social
-USER_SERVICE = YES
+RUN_PER_USER = YES
 
 UNIXPATH = $GNUNET_USER_RUNTIME_DIR/gnunet-service-social.sock
 UNIX_MATCH_UID = YES

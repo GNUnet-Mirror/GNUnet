@@ -1,5 +1,5 @@
 [psycstore]
-AUTOSTART = @AUTOSTART@
+START_ON_DEMAND = @START_ON_DEMAND@
 BINARY = gnunet-service-psycstore
 
 UNIXPATH = $GNUNET_RUNTIME_DIR/gnunet-service-psycstore.sock
