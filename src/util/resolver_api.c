@@ -180,6 +180,11 @@ check_config ()
   struct sockaddr_in v4;
   struct sockaddr_in6 v6;
 
+  if (GNUNET_OK ==
+      GNUNET_CONFIGURATION_have_value (resolver_cfg,
+				       "resolver",
+				       "UNIXPATH"))
+    return GNUNET_OK;
   memset (&v4, 0, sizeof (v4));
   v4.sin_addr.s_addr = htonl (INADDR_LOOPBACK);
   v4.sin_family = AF_INET;
