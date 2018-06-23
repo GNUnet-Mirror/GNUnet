@@ -2226,15 +2226,15 @@ run (void *cls,
                                                        final_option);
   start_user = GNUNET_CONFIGURATION_get_value_yesno (cfg,
                                             "ARM",
-                                            "USER_ONLY");
+                                            "START_USER_SERVICES");
   start_system = GNUNET_CONFIGURATION_get_value_yesno (cfg,
                                             "ARM",
-                                            "SYSTEM_ONLY");
+                                            "START_SYSTEM_SERVICES");
   if ( (GNUNET_NO == start_user) && 
        (GNUNET_NO == start_system) )
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-	"Please configure either USER_ONLY or SYSTEM_ONLY or both.\n");
+	"Please configure either START_USER_SERVICES or START_SYSTEM_SERVICES or both.\n");
     GNUNET_SCHEDULER_shutdown ();
     global_ret = 1;
     return;

@@ -1362,8 +1362,8 @@ Next, edit the file @file{/etc/gnunet.conf} to contain the following:
 
 @example
 [arm]
-SYSTEM_ONLY = YES
-USER_ONLY = NO
+START_SYSTEM_SERVICES = YES
+START_USER_SERVICES = NO
 @end example
 
 @noindent
@@ -1409,8 +1409,8 @@ with the lines:
 
 @example
 [arm]
-SYSTEM_ONLY = NO
-USER_ONLY = YES
+START_SYSTEM_SERVICES = NO
+START_USER_SERVICES = YES
 DEFAULTSERVICES = gns
 @end example
 
