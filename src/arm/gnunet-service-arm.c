@@ -235,6 +235,11 @@ static struct GNUNET_DISK_PipeHandle *sigpipe;
 static int in_shutdown;
 
 /**
+ * Return value from main
+ */
+static int global_ret;
+
+/**
  * Are we starting user services?
  */
 static int start_user = GNUNET_YES;
@@ -1985,11 +1990,11 @@ setup_service (void *cls,
   if ((GNUNET_YES ==
        GNUNET_CONFIGURATION_have_value (cfg,
                                         section,
-                                        "USER_SERVICE")) &&
+                                        "RUN_PER_USER")) &&
       (GNUNET_YES ==
        GNUNET_CONFIGURATION_get_value_yesno (cfg,
                                              section,
-                                             "USER_SERVICE")))
+                                             "RUN_PER_USER")))
   {
     if (GNUNET_NO == start_user)
     {
@@ -2219,21 +2224,20 @@ run (void *cls,
   else
     final_option = GNUNET_CONFIGURATION_expand_dollar (cfg,
                                                        final_option);
-  if (GNUNET_YES ==
-      GNUNET_CONFIGURATION_get_value_yesno (cfg,
+  start_user = GNUNET_CONFIGURATION_get_value_yesno (cfg,
                                             "ARM",
-                                            "USER_ONLY"))
-  {
-    GNUNET_break (GNUNET_YES == start_user);
-    start_system = GNUNET_NO;
-  }
-  if (GNUNET_YES ==
-      GNUNET_CONFIGURATION_get_value_yesno (cfg,
+                                            "START_USER_SERVICES");
+  start_system = GNUNET_CONFIGURATION_get_value_yesno (cfg,
                                             "ARM",
-                                            "SYSTEM_ONLY"))
+                                            "START_SYSTEM_SERVICES");
+  if ( (GNUNET_NO == start_user) && 
+       (GNUNET_NO == start_system) )
   {
-    GNUNET_break (GNUNET_YES == start_system);
-    start_user = GNUNET_NO;
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+	"Please configure either START_USER_SERVICES or START_SYSTEM_SERVICES or both.\n");
+    GNUNET_SCHEDULER_shutdown ();
+    global_ret = 1;
+    return;
   }
   GNUNET_CONFIGURATION_iterate_sections (cfg,
                                          &setup_service,
@@ -2260,7 +2264,6 @@ int
 main (int argc,
       char *const *argv)
 {
-  int ret;
   struct GNUNET_SIGNAL_Context *shc_chld;
   struct GNUNET_MQ_MessageHandler handlers[] = {
     GNUNET_MQ_hd_var_size (start,
@@ -2294,7 +2297,7 @@ main (int argc,
   shc_chld =
     GNUNET_SIGNAL_handler_install (GNUNET_SIGCHLD,
                                    &sighandler_child_death);
-  ret = GNUNET_SERVICE_run_ (argc,
+  if ( GNUNET_OK != GNUNET_SERVICE_run_ (argc,
                              argv,
                              "arm",
                              GNUNET_SERVICE_OPTION_MANUAL_SHUTDOWN,
@@ -2302,7 +2305,8 @@ main (int argc,
                              &client_connect_cb,
                              &client_disconnect_cb,
                              NULL,
-                             handlers);
+                             handlers))
+    global_ret = 2;
 #if HAVE_WAIT4
   if (NULL != wait_file)
   {
@@ -2319,7 +2323,7 @@ main (int argc,
   shc_chld = NULL;
   GNUNET_DISK_pipe_close (sigpipe);
   sigpipe = NULL;
-  return ret;
+  return global_ret;
 }
 
 

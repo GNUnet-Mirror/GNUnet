@@ -499,10 +499,10 @@ GNUNET_GNSRECORD_pkey_to_zkey (const struct GNUNET_CRYPTO_EcdsaPublicKey *pkey);
 
 
 /**
- * Convert an absolute domain name in the ".zkey" pTLD to the
+ * Convert an absolute domain name to the
  * respective public key.
  *
- * @param zkey string "X.zkey" where X is the public
+ * @param zkey string "X" where X is the public
  *         key in an encoding suitable for DNS labels.
  * @param pkey set to a public key on the eliptic curve
  * @return #GNUNET_SYSERR if @a zkey has the wrong syntax
