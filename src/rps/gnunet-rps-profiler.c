@@ -1951,9 +1951,13 @@ static void compute_probabilities (uint32_t peer_idx)
     if ((GNUNET_YES == is_in_view (i, peer_idx)) &&
         (1 <= (0.45 * view_size)))
     {
-      prob_push = 1.0 * binom (0.45 * view_size, 1)
-        /
-        binom (view_size, 0.45 * view_size);
+      if (0 == binom (view_size, 0.45 * view_size)) prob_push = 0;
+      else
+      {
+        prob_push = 1.0 * binom (0.45 * view_size, 1)
+          /
+          binom (view_size, 0.45 * view_size);
+      }
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                  "\t\t%" PRIu32 " is in %" PRIu32 "'s view, prob: %f\n",
                  peer_idx,
@@ -2318,6 +2322,7 @@ post_test_shutdown_ready_cb (void *cls,
         rps_peer->index);
     GNUNET_free (stat_cls);
     GNUNET_break (0);
+    return;
   }
 
   if (NULL != rps_peer->stat_op &&
@@ -2494,7 +2499,6 @@ test_run (void *cls,
   struct OpListEntry *entry;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "RUN was called\n");
-  printf ("test 1\n");
 
   /* Check whether we timed out */
   if (n_peers != num_peers ||
@@ -2578,7 +2582,6 @@ test_run (void *cls,
  *
  * @param argc unused
  * @param argv unused
- * @return 0 on success
  */
 static void
 run (void *cls,
@@ -2654,8 +2657,6 @@ run (void *cls,
                                                  with the malicious portion */
 
   ok = 1;
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-              "before _run()\n");
   GNUNET_TESTBED_run (NULL,
                       cfg,
                       num_peers,
@@ -2664,10 +2665,6 @@ run (void *cls,
                       NULL,
                       &test_run,
                       NULL);
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-              "after _run()\n");
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-              "gnunet-rps-profiler returned.\n");
 }
 
 /**

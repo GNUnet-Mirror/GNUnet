@@ -155,6 +155,9 @@ to_file_raw (const char *file_name, const char *buf, size_t size_buf)
 
     return;
   }
+  if (GNUNET_YES != GNUNET_DISK_file_close (f))
+    LOG (GNUNET_ERROR_TYPE_WARNING,
+         "Unable to close file\n");
 }
 
 void
@@ -384,7 +387,7 @@ store_prefix_file_name (const struct GNUNET_PeerIdentity *peer,
     const char *prefix)
 {
   unsigned int len_file_name;
-  unsigned int out_size;
+  int out_size;
   char *file_name;
   const char *pid_long;
 
