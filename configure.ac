@@ -409,7 +409,32 @@ fi
 
 # check for jansson library
 jansson=0
-AC_CHECK_HEADER([jansson.h],jansson=1)
+AC_MSG_CHECKING(for libjansson)
+AC_ARG_WITH(jansson,
+   [  --with-jansson=PFX    base of libjansson installation],
+   [AC_MSG_RESULT([$with_jansson])
+    case $with_jansson in
+      no)
+        ;;
+      yes)
+        AC_CHECK_HEADERS(jansson.h,
+          AC_CHECK_LIB([jansson], [json_loads],
+            jansson=1))
+        ;;
+      *)
+        LDFLAGS="-L$with_jansson/lib $LDFLAGS"
+        CPPFLAGS="-I$with_jansson/include $CPPFLAGS"
+        AC_CHECK_HEADERS(jansson.h,
+          AC_CHECK_LIB([jansson], [json_loads],
+            EXT_LIB_PATH="-L$with_jansson/lib $EXT_LIB_PATH"
+            jansson=1))
+        ;;
+    esac
+   ],
+   [AC_MSG_RESULT([--with-jansson not specified])
+    AC_CHECK_HEADERS(jansson.h,
+     AC_CHECK_LIB([jansson], [json_loads],
+      jansson=1))])
 AM_CONDITIONAL(HAVE_JANSSON, [test "$jansson" = 1])
 if test "x$jansson" = x1
 then
@@ -417,6 +442,7 @@ then
 else
   AC_DEFINE([HAVE_JANSSON],[0],[Lacking jansson library])
 fi
+
 
 # check for libpulse(audio) library
 pulse=0
