@@ -1,5 +1,5 @@
 [nat-auto]
-AUTOSTART = @AUTOSTART@
+START_ON_DEMAND = @START_ON_DEMAND@
 @UNIXONLY@ PORT = 2124
 HOSTNAME = localhost
 BINARY = gnunet-service-nat-auto

@@ -129,10 +129,9 @@ binary packages
 We recommend to use binary packages provided by your Operating System's
 package manager. GNUnet is reportedly available for at least:
 
-Gentoo (via the 'youbroketheinternet' overlay), GNU Guix, Nix,
-Debian, ALT Linux, Archlinux, Deepin, Devuan, Hyperbola, Kali Linux,
-LEDE/OpenWRT, Manjaro, Parabola, Pardus, Parrot, PureOS, Raspbian,
-Rosa, Trisquel, and Ubuntu.
+GNU Guix, Nix, Debian, ALT Linux, Archlinux, Deepin, Devuan, Hyperbola,
+Kali Linux, LEDE/OpenWRT, Manjaro, Parabola, Pardus, Parrot, PureOS,
+Raspbian, Rosa, Trisquel, and Ubuntu.
 
 If GNUnet is available for your Operating System and it is missing,
 send us feedback so that we can add it to this list. Furthermore, if
@@ -178,18 +177,22 @@ mantainer for an Operating System we invite you to add your notes if
 you feel it is necessary and can not be covered in your Operating
 System's documentation.
 
-
-Some Operating Systems currently require you to build GNUnet from
-source.
 If you are building GNUnet from source you are either interested
 in furthering its development (we have further notes for developer
-builds in our 'GNUnet Developer Handbook') or your Operating System
-simply lacks support for a binary package at the moment.
+builds in our 'GNUnet Developer Handbook') or you don't trust other
+people's binaries or your Operating System doesn't provide any
+binary package (at the moment).
+
+If you're on Gentoo you can build GNUnet using the recipes provided
+in the 'youbroketheinternet' overlay. Other Operating Systems may
+unintentionally require you to build GNUnet from source.
+
 Two prominent examples which currently lack cross-compilation
 support in GNUnet (and native binaries) are MS Windows and Apple macOS.
 For macOS we recommend you to do the build process via Homebrew and a
-recent XCode installation.
-Compilation for MS Windows can ...
+recent XCode installation. We don't recommend using GNUnet with any
+recent MS Windows system as it officially spies on its users (according
+to its T&C), defying some of the purposes of GNUnet.
 
 Note that some functions of GNUnet require "root" access.  GNUnet will
 install (tiny) SUID binaries for those functions is you run "make

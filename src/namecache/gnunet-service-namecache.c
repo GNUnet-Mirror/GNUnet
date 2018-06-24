@@ -148,7 +148,11 @@ struct LookupBlockContext
    * Operation id for the name lookup
    */
   uint32_t request_id;
-
+  
+  /**
+   * Lookup status
+   */
+  int status;
 };
 
 
@@ -166,7 +170,17 @@ handle_lookup_block_it (void *cls,
   struct GNUNET_MQ_Envelope *env;
   struct LookupBlockResponseMessage *r;
   size_t esize;
+  size_t bsize;
 
+  bsize = ntohl (block->purpose.size);
+  if (bsize < 
+      (sizeof (struct GNUNET_CRYPTO_EccSignaturePurpose) + sizeof (struct GNUNET_TIME_AbsoluteNBO)))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                "Malformed block.");
+    lnc->status = GNUNET_SYSERR;
+    return;
+  }
   esize = ntohl (block->purpose.size)
     - sizeof (struct GNUNET_CRYPTO_EccSignaturePurpose)
     - sizeof (struct GNUNET_TIME_AbsoluteNBO);
@@ -209,6 +223,7 @@ handle_lookup_block (void *cls,
 
   lnc.request_id = ntohl (ln_msg->gns_header.r_id);
   lnc.nc = nc;
+  lnc.status = GNUNET_OK;
   if (GNUNET_SYSERR ==
       (ret = GSN_database->lookup_block (GSN_database->cls,
 					 &ln_msg->query,
@@ -222,7 +237,7 @@ handle_lookup_block (void *cls,
     GNUNET_SERVICE_client_drop (nc->client);
     return;
   }
-  if (0 == ret)
+  if ((0 == ret) || (GNUNET_SYSERR == lnc.status))
   {
     /* no records match at all, generate empty response */
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,

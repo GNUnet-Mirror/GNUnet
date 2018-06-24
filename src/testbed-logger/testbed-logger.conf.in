@@ -1,5 +1,5 @@
 [testbed]
-AUTOSTART = NO
+START_ON_DEMAND = NO
 @JAVAPORT@ PORT = 2101
 HOSTNAME = localhost
 BINARY = gnunet-service-testbed
@@ -90,7 +90,7 @@ SHARED_SERVICES =
 
 
 [testbed-logger]
-AUTOSTART = NO
+START_ON_DEMAND = NO
 @UNIXONLY@ PORT = 2102
 HOSTNAME = localhost
 BINARY = gnunet-service-testbed-logger
@@ -101,7 +101,7 @@ UNIX_MATCH_GID = YES
 
 
 [testbed-barrier]
-AUTOSTART = NO
+START_ON_DEMAND = NO
 @UNIXONLY@ PORT = 2103
 HOSTNAME = localhost
 UNIXPATH = $GNUNET_RUNTIME_DIR/gnunet-service-testbed-barrier.sock
@@ -112,7 +112,7 @@ UNIX_MATCH_GID = YES
 # This section is related to configuring underlay restrictions to simulate
 # connectivity restrictions of NAT boxes
 [testbed-underlay]
-AUTOSTART = NO
+START_ON_DEMAND = NO
 NOARMBIND = YES
 BINARY = gnunet-daemon-testbed-underlay
 # The sqlite3 database file containing information about what underlay
@@ -120,7 +120,7 @@ BINARY = gnunet-daemon-testbed-underlay
 # DBFILE =
 
 [latency-logger]
-AUTOSTART = NO
+START_ON_DEMAND = NO
 NOARMBIND = YES
 BINARY = gnunet-daemon-latency-logger
 # The sqlite3 database file where the latency values are to be stored

@@ -855,9 +855,10 @@ sqlite_plugin_get_zero_anonymity (void *cls,
                                   void *proc_cls)
 {
   struct Plugin *plugin = cls;
+  uint32_t type32 = type;
   struct GNUNET_SQ_QueryParam params[] = {
     GNUNET_SQ_query_param_uint64 (&next_uid),
-    GNUNET_SQ_query_param_uint32 (&type),
+    GNUNET_SQ_query_param_uint32 (&type32),
     GNUNET_SQ_query_param_end
   };
 

@@ -874,7 +874,7 @@ path_info_iterator (void *cls,
 {
   struct GNUNET_MQ_Handle *mq = cls;
   struct GNUNET_MQ_Envelope *env;
-  struct GNUNET_MessageHeader *resp;
+  struct GNUNET_CADET_LocalInfoPeer *resp;
   struct GNUNET_PeerIdentity *id;
   uint16_t path_size;
   unsigned int i;

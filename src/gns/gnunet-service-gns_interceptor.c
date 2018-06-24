@@ -103,7 +103,7 @@ reply_to_dns (void *cls, uint32_t rd_count,
   unsigned int num_answers;
   unsigned int skip_answers;
   unsigned int skip_additional;
-  size_t off;
+  size_t off = 0;
 
   /* Put records in the DNS packet */
   num_answers = 0;

@@ -752,12 +752,13 @@ handle_reverse_lookup (void *cls,
   reverse_qe = NULL;
   if (NULL == label)
     FPRINTF (stdout,
-             "%s.zkey\n",
+             "%s\n",
              reverse_pkey);
   else
     FPRINTF (stdout,
-             "%s.gnu\n",
-             label);
+             "%s.%s\n",
+             label,
+             ego_name);
   test_finished ();
 }
 

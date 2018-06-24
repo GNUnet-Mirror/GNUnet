@@ -22,7 +22,7 @@ RUN cd /usr/src/gnunet && ./bootstrap && ./configure --enable-experimental --pre
 
 RUN addgroup gnunetdns && addgroup gnunet && adduser --system --home /var/lib/gnunet gnunet
 RUN chown gnunet:gnunet /var/lib/gnunet
-RUN echo '[arm]\nSYSTEM_ONLY = YES\nUSER_ONLY = NO\n' > /etc/gnunet.conf
+RUN echo '[arm]\nSTART_SYSTEM_SERVICES = YES\nSTART_USER_SERVICES = NO\n' > /etc/gnunet.conf
 
 ADD docker-entrypoint.sh .
 

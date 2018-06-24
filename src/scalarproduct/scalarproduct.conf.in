@@ -1,5 +1,5 @@
 [scalarproduct-alice]
-AUTOSTART = @AUTOSTART@
+START_ON_DEMAND = @START_ON_DEMAND@
 BINARY = gnunet-service-scalarproduct-ecc-alice
 UNIXPATH = $GNUNET_RUNTIME_DIR/gnunet-service-scalarproduct-alice.sock
 @UNIXONLY@ PORT = 2117
@@ -12,7 +12,7 @@ UNIX_MATCH_GID = YES
 
 
 [scalarproduct-bob]
-AUTOSTART = @AUTOSTART@
+START_ON_DEMAND = @START_ON_DEMAND@
 HOSTNAME = localhost
 BINARY = gnunet-service-scalarproduct-ecc-bob
 UNIXPATH = $GNUNET_RUNTIME_DIR/gnunet-service-scalarproduct-bob.sock

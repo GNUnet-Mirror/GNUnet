@@ -1448,6 +1448,12 @@ check_client_member_join (void *cls,
   uint16_t msg_size = ntohs (msg->header.size);
   struct GNUNET_PeerIdentity *relays = (struct GNUNET_PeerIdentity *) &msg[1];
   uint32_t relay_count = ntohl (msg->relay_count);
+
+  if (0 == relay_count}
+  {
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
   if (UINT32_MAX / relay_count < sizeof (*relays)){
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                     "relay_count (%lu) * sizeof (*relays)  (%lu) exceeds UINT32_MAX!\n",

@@ -300,17 +300,21 @@ GNUNET_GNS_disconnect (struct GNUNET_GNS_Handle *handle)
  * Cancel pending lookup request
  *
  * @param lr the lookup request to cancel
+ * @return closure from the lookup result processor
  */
-void
+void *
 GNUNET_GNS_lookup_cancel (struct GNUNET_GNS_LookupRequest *lr)
 {
   struct GNUNET_GNS_Handle *handle = lr->gns_handle;
+  void *ret;
 
   GNUNET_CONTAINER_DLL_remove (handle->lookup_head,
                                handle->lookup_tail,
                                lr);
   GNUNET_MQ_discard (lr->env);
+  ret = lr->proc_cls;
   GNUNET_free (lr);
+  return ret;
 }
 
 

@@ -373,6 +373,7 @@ send_echo (void *cls)
 static void
 request_dump (void *cls)
 {
+  job = NULL;
   GNUNET_CADET_request_dump (mh);
   GNUNET_SCHEDULER_shutdown ();
 }

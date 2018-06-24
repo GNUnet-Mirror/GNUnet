@@ -58,13 +58,13 @@ AM_TESTS_ENVIRONMENT=export GNUNET_PREFIX=$${GNUNET_PREFIX:-@libdir@};export PAT
 TESTS = $(check_PROGRAMS)
 endif
 
-test_psyc_SOURCES = \
- test_psyc.c
-test_psyc_LDADD = \
-  libgnunetpsyc.la \
-  $(top_builddir)/src/psycutil/libgnunetpsycutil.la \
-  $(top_builddir)/src/testing/libgnunettesting.la \
-  $(top_builddir)/src/util/libgnunetutil.la
+#test_psyc_SOURCES = \
+# test_psyc.c
+#test_psyc_LDADD = \
+#  libgnunetpsyc.la \
+#  $(top_builddir)/src/psycutil/libgnunetpsycutil.la \
+#  $(top_builddir)/src/testing/libgnunettesting.la \
+#  $(top_builddir)/src/util/libgnunetutil.la
 test_psyc2_SOURCES = \
   test_psyc2.c
 test_psyc2_LDADD = \

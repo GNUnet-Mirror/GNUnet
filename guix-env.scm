@@ -138,7 +138,7 @@
                #t))
            (add-after 'patch-bin-sh 'bootstrap
              (lambda _
-               (zero? (system* "sh" "bootstrap"))))
+               (invoke "sh" "bootstrap")))
            ;;(add-before 'build 'chdir
            ;; (lambda _
            ;;  (chdir "doc/documentation")))
@@ -151,6 +151,6 @@
                       (lib (string-append out "/lib")))
                  (setenv "GNUNET_PREFIX" lib)
                  (setenv "PATH" (string-append (getenv "PATH") ":" bin))
-                 (zero? (system* "make" "check")))))))))))
+                 (invoke "make" "check"))))))))))
 
 gnunet-dev-env

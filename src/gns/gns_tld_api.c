@@ -317,10 +317,13 @@ GNUNET_GNS_lookup_with_tld (struct GNUNET_GNS_Handle *handle,
  * Cancel pending lookup request
  *
  * @param ltr the lookup request to cancel
+ * @return closure from the lookup result processor
  */
-void
+void *
 GNUNET_GNS_lookup_with_tld_cancel (struct GNUNET_GNS_LookupWithTldRequest *ltr)
 {
+  void *ret = ltr->lookup_proc_cls;
+  
   if (NULL != ltr->id_op)
   {
     GNUNET_IDENTITY_ego_lookup_cancel (ltr->id_op);
@@ -333,6 +336,7 @@ GNUNET_GNS_lookup_with_tld_cancel (struct GNUNET_GNS_LookupWithTldRequest *ltr)
   }
   GNUNET_free (ltr->name);
   GNUNET_free (ltr);
+  return ret;
 }
 
 /* end of gns_tld_api.c */

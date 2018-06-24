@@ -22,9 +22,9 @@ GLOBAL_PREFIX = @MONKEYPREFIX@
 # system-level services (and we'll expect a second ARM to be
 # run per-user to run user-level services).  Note that in this
 # case you must have manually created a different configuration
-# file with the user where at least this and the USER_ONLY
+# file with the user where at least this and the START_USER_SERVICES
 # options differ.
-# SYSTEM_ONLY = YES
+# START_SYSTEM_SERVICES = YES
 
 # If set to YES, ARM will only start services that are marked as
 # per-user services (and we'll expect a system user to run ARM to
@@ -39,7 +39,7 @@ GLOBAL_PREFIX = @MONKEYPREFIX@
 # USER ARM instances to some free port (counting down from 2085 should
 # be sane).
 #
-# USER_ONLY = YES
+# START_USER_SERVICES = YES
 
 # File where we should log per-service resource consumption on exit.
 # RESOURCE_DIAGNOSTICS = resource.log

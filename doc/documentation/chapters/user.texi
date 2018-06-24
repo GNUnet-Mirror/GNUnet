@@ -1347,6 +1347,11 @@ GNUnet (currently) uses four different types of URIs for
 file-sharing. They all begin with "gnunet://fs/".
 This section describes the four different URI types in detail.
 
+For FS URIs empty KEYWORDs are not allowed. Quotes are allowed to
+denote whitespace between words. Keywords must contain a balanced
+number of double quotes. Doubles quotes can not be used in the actual
+keywords. This means that the the string '""foo bar""' will be turned
+into two OR-ed keywords 'foo' and 'bar', not into '"foo bar"'.
 
 @menu
 * Encoding of hash values in URIs::
@@ -1363,6 +1368,7 @@ This section describes the four different URI types in detail.
 Most URIs include some hash values. Hashes are encoded using
 base32hex (RFC 2938).
 
+@cindex chk-uri
 @node Content Hash Key (chk)
 @subsubsection Content Hash Key (chk)
 @c %**end of header
@@ -1379,6 +1385,7 @@ shape of the tree), KEYHASH is the key used to decrypt the file
 is the query used to request the top-level block (also the hash
 of the encrypted block).
 
+@cindex loc-uri
 @node Location identifiers (loc)
 @subsubsection Location identifiers (loc)
 @c %**end of header
@@ -1394,6 +1401,7 @@ base32hex), SIG is the RSA signature (in GNUnet format in
 base32hex) and EXPTIME specifies when the signature expires
 (in milliseconds after 1970).
 
+@cindex ksk-uri
 @node Keyword queries (ksk)
 @subsubsection Keyword queries (ksk)
 @c %**end of header
@@ -1405,7 +1413,10 @@ using the typical URI-encoding (using hex values) from HTTP.
 "+" can be used to specify multiple keywords (which are then
 logically "OR"-ed in the search, results matching both keywords
 are given a higher rank): "gnunet://fs/ksk/KEYWORD1+KEYWORD2".
+ksk-URIs must not begin or end with the plus ('+') character.
+Furthermore they must not contain '++'.
 
+@cindex sks-uri
 @node Namespace content (sks)
 @subsubsection Namespace content (sks)
 @c %**end of header
@@ -2563,7 +2574,7 @@ sqLite, MySQL and Postgres.
 
 In order to use GNUnet for file-sharing, you first need to make sure
 that the file-sharing service is loaded.
-This is done by setting the @code{AUTOSTART} option in
+This is done by setting the @code{START_ON_DEMAND} option in
 section @code{[fs]} to "YES". Alternatively, you can run
 
 @example
@@ -2655,7 +2666,7 @@ The configuration section for the transport service itself is quite
 similar to all the other services
 
 @example
-AUTOSTART = YES
+START_ON_DEMAND = YES
 @@UNIXONLY@@ PORT = 2091
 HOSTNAME = localhost
 HOME = $SERVICEHOME
@@ -3692,7 +3703,7 @@ gnunet-arm -c ~/.config/gnunet.conf -k fs
 @noindent
 Assuming that you want certain services (like file-sharing) to be always
 automatically started whenever you start GNUnet, you can activate them by
-setting "FORCESTART=YES" in the respective section of the configuration
+setting "IMMEDIATE_START=YES" in the respective section of the configuration
 file (for example, "[fs]"). Then GNUnet with file-sharing support would
 be started whenever you@ enter:
 
@@ -3731,8 +3742,8 @@ contain the lines:@
 
 @example
 [arm]
-SYSTEM_ONLY = YES
-USER_ONLY = NO
+START_SYSTEM_SERVICES = YES
+START_USER_SERVICES = NO
 @end example
 
 @noindent
@@ -3760,8 +3771,8 @@ $USER with the lines:
 
 @example
 [arm]
-SYSTEM_ONLY = NO
-USER_ONLY = YES
+START_SYSTEM_SERVICES = NO
+START_USER_SERVICES = YES
 @end example
 
 @noindent

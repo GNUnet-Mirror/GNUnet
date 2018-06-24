@@ -1,5 +1,5 @@
 [vpn]
-AUTOSTART = @AUTOSTART@
+START_ON_DEMAND = @START_ON_DEMAND@
 @UNIXONLY@ PORT = 2105
 HOSTNAME = localhost
 BINARY = gnunet-service-vpn

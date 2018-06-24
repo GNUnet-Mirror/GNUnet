@@ -1,5 +1,5 @@
 [resolver]
-AUTOSTART = @AUTOSTART@
+START_ON_DEMAND = @START_ON_DEMAND@
 @JAVAPORT@PORT = 2089
 HOSTNAME = localhost
 BINARY = gnunet-service-resolver

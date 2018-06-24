@@ -647,7 +647,7 @@ If you want to use the @code{peerinfo} tool to connect your
 peers, you should:
 
 @itemize
-@item Set @code{FORCESTART = NO} in section @code{hostlist}
+@item Set @code{IMMEDIATE_START = NO} in section @code{hostlist}
 (to not connect to the global GNUnet)
 @item Start both peers running @command{gnunet-arm -c peer1.conf -s}
 and @command{gnunet-arm -c peer2.conf -s}

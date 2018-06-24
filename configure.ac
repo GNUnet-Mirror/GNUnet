@@ -58,7 +58,7 @@ fi
 # Use Linux interface name unless the OS has a different preference
 DEFAULT_INTERFACE="\"eth0\""
 
-funcstocheck="getnameinfo gethostname gethostbyname gethostbyaddr getaddrinfo"
+funcstocheck="getnameinfo gethostname gethostbyname gethostbyaddr getaddrinfo getaddrinfo_a"
 
 # Srcdir in a form that native compiler understands (i.e. DOS path on W32)
 native_srcdir=$srcdir
@@ -198,11 +198,24 @@ AC_CHECK_LIB(c, getloadavg, AC_DEFINE(HAVE_GETLOADAVG,1,[getloadavg supported]))
 AC_CHECK_PROG(VAR_GETOPT_BINARY, getopt, true, false)
 AM_CONDITIONAL(HAVE_GETOPT_BINARY, $VAR_GETOPT_BINARY)
 
-AC_CHECK_PROG(VAR_SSH_BINARY,ssh,true,false)
+AC_CHECK_PROG(VAR_SSH_BINARY, ssh, true, false)
 AM_CONDITIONAL(HAVE_SSH_BINARY, $VAR_SSH_BINARY)
 AM_CONDITIONAL(HAVE_SSH_KEY,  ssh -D 12345 -o "BatchMode yes" -o "UserKnownHostsFile /tmp/gnunet_test_cosks_ssh_garbage" -o "StrictHostKeyChecking no" 127.0.0.1 echo -n)
 rm -f /tmp/gnunet_test_cosks_ssh_garbage
 
+# iptables is a soft requirement to run tests
+AC_PATH_TARGET_TOOL(VAR_IPTABLES_BINARY, iptables, false)
+
+if test x"$VAR_IPTABLES_BINARY" != x"false"
+then
+AC_DEFINE_UNQUOTED([IPTABLES], "$VAR_IPTABLES_BINARY", [Path to iptables])
+else
+AC_MSG_WARN([warning: 'iptables' not found.])
+fi
+
+
+AC_CHECK_PROG(VAR_IFCONFIG_BINARY, ifconfig, true, false)
+AC_MSG_WARN([warning: 'ifconfig' not found.])
 
 AC_CHECK_MEMBER(struct tm.tm_gmtoff,
   [AC_DEFINE(HAVE_TM_GMTOFF, 1,
@@ -216,6 +229,10 @@ AC_CHECK_DECLS([_stati64])
 # linked against _everywhere_.  For the others, we
 # will be more selective!
 SAVE_LIBS=$LIBS
+
+have_addrinfo_a=0
+AC_CHECK_LIB(anl, getaddrinfo_a, [have_addrinfo_a=1 AC_DEFINE(HAVE_GETADDRINFO_A,1,[getaddrinfo_a supported])])
+AM_CONDITIONAL(HAVE_GETADDRINFO_A, [test "$have_addrinfo_a" = 1])
 
 # tests only run on Windows
 if test "x$build_target" = "xmingw"
@@ -396,7 +413,32 @@ fi
 
 # check for jansson library
 jansson=0
-AC_CHECK_HEADER([jansson.h],jansson=1)
+AC_MSG_CHECKING(for libjansson)
+AC_ARG_WITH(jansson,
+   [  --with-jansson=PFX    base of libjansson installation],
+   [AC_MSG_RESULT([$with_jansson])
+    case $with_jansson in
+      no)
+        ;;
+      yes)
+        AC_CHECK_HEADERS(jansson.h,
+          AC_CHECK_LIB([jansson], [json_loads],
+            jansson=1))
+        ;;
+      *)
+        LDFLAGS="-L$with_jansson/lib $LDFLAGS"
+        CPPFLAGS="-I$with_jansson/include $CPPFLAGS"
+        AC_CHECK_HEADERS(jansson.h,
+          AC_CHECK_LIB([jansson], [json_loads],
+            EXT_LIB_PATH="-L$with_jansson/lib $EXT_LIB_PATH"
+            jansson=1))
+        ;;
+    esac
+   ],
+   [AC_MSG_RESULT([--with-jansson not specified])
+    AC_CHECK_HEADERS(jansson.h,
+     AC_CHECK_LIB([jansson], [json_loads],
+      jansson=1))])
 AM_CONDITIONAL(HAVE_JANSSON, [test "$jansson" = 1])
 if test "x$jansson" = x1
 then
@@ -404,6 +446,7 @@ then
 else
   AC_DEFINE([HAVE_JANSSON],[0],[Lacking jansson library])
 fi
+
 
 # check for libpulse(audio) library
 pulse=0
@@ -1377,24 +1420,25 @@ AM_CONDITIONAL([ENABLE_MALICIOUS], [test 1=$malicious])
 AC_DEFINE_UNQUOTED([ENABLE_MALICIOUS], [$malicious],
                    [enable compilation of malicious code])
 
-# should services be started by default when a peer starts?  Some services may
-# choose to never start by default and it is upto the service/module developer to
-# decide it by having "AUTOSTART = NO" instead of "AUTOSTART = @AUTOSTART@" in
-# the service/module's conf.in file.
-AUTOSTART="YES"
-AC_MSG_CHECKING(whether to auto-start peer's services by default)
+# should services be started on demand when needed?  Some services may choose to
+# never start by default and it is up to the service/module developer to decide
+# by having "START_ON_DEMAND = NO" instead of "START_ON_DEMAND = @START_ON_DEMAND@"
+# in the service/module's conf.in file.
+# See also IMMEDIATE_START for an unconditional immediate start.
+START_ON_DEMAND="YES"
+AC_MSG_CHECKING(whether to start peer's services on demand by default)
 AC_ARG_ENABLE([autostart],
    [AS_HELP_STRING([--disable-autostart], [do not start peer's services by default])],
    [enable_autostart=${enableval}
     if test "x$enable_autostart" == "xno"
     then
-        AUTOSTART="NO"
+        START_ON_DEMAND="NO"
     fi
    ],
    [enable_autostart=yes])
 AC_MSG_RESULT($enable_autostart)
-#AM_CONDITIONAL([HAVE_AUTOSTART], [test "x$enable_autostart" = "xyes"])
-AC_SUBST(AUTOSTART)
+#AM_CONDITIONAL([HAVE_START_ON_DEMAND], [test "x$enable_autostart" = "xyes"])
+AC_SUBST(START_ON_DEMAND)
 
 # should memory statistics be kept (very expensive CPU-wise!)
 AC_MSG_CHECKING(whether to create expensive statistics on memory use)
@@ -1497,7 +1541,7 @@ AC_LINK_IFELSE(
  ],[
   AC_DEFINE_UNQUOTED([HAVE_GETADDRINFO],1,[Define this if getaddrinfo() is available])
  ],[
-  AC_DEFINE_UNQUOTED([HAVE_GETADDRINFO],1,[Define this if getaddrinfo() is available])
+  AC_DEFINE_UNQUOTED([HAVE_GETADDRINFO],0,[Define this if getaddrinfo() is available])
  ])
 
 else
@@ -1765,6 +1809,18 @@ fi
 if test "x$jansson" = "x0"
 then
   AC_MSG_NOTICE([WARNING: jansson library not found.  json support will not be compiled.])
+fi
+
+# warn user if iptables is not found
+if test "$VAR_IPTABLES_BINARY" = "false"
+then
+AC_MSG_NOTICE([WARNING: iptables not found. some modules may not have full functionality.])
+fi
+
+# warn user if ifconfig is not found
+if test "$VAR_IFCONFIG_BINARY" = "false"
+then
+AC_MSG_NOTICE([WARNING: ifconfig not found. some modules may not have full functionality.])
 fi
 
 #gnutls

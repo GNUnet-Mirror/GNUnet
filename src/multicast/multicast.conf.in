@@ -1,5 +1,5 @@
 [multicast]
-AUTOSTART = @AUTOSTART@
+START_ON_DEMAND = @START_ON_DEMAND@
 BINARY = gnunet-service-multicast
 
 UNIXPATH = $GNUNET_RUNTIME_DIR/gnunet-service-multicast.sock

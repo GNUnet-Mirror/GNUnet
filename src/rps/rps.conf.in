@@ -1,5 +1,5 @@
 [rps]
-AUTOSTART = @AUTOSTART@
+START_ON_DEMAND = @START_ON_DEMAND@
 BINARY = gnunet-service-rps
 UNIXPATH = $GNUNET_RUNTIME_DIR/gnunet-service-rps.sock
 HOME = $SERVICEHOME

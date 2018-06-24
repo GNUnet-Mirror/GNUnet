@@ -22,16 +22,23 @@ import subprocess
 import re
 import shutil
 try:
+    # Python 2.7
     reload
 except NameError:
-    # python3.4:
-    from importlib import reload
+    try:
+        # Python 3.4+:
+        from importlib import reload
+    except ImportError:
+        # Python 3.0 - 3.3
+        from imp import reload
 
+reload(sys)
 
 # Force encoding to utf-8, as this test otherwise fails
-# on some systems (see #5094).
-reload(sys)
-sys.setdefaultencoding('utf8')
+# on some systems (see #5094). In Python 3+ there is no attribute 
+# sys.setdefaultencoding anymore. 
+if (3 < sys.version_info[0]):
+    sys.setdefaultencoding('utf8')
 
 srcdir = "../.."
 gnunet_pyexpect_dir = os.path.join(srcdir, "contrib/scripts")
@@ -53,6 +60,12 @@ elif os.name == 'nt':
     unindex = './gnunet-unindex.exe'
     search = './gnunet-search.exe'
 
+if "GNUNET_PREFIX" in os.environ:
+    pass
+else:
+    print("You need to export GNUNET_PREFIX")
+    sys.exit(1)
+    
 if os.name == "nt":
     shutil.rmtree(os.path.join(os.getenv("TEMP"), "gnunet-test-fs-py-psd"), True)
 else:

@@ -24,6 +24,7 @@
  *
  * @author Christian Grothoff
  * @author Nils Durner
+ * @author Martin Schanzenbach
  *
  * @defgroup logging Logging
  * @see [Documentation](https://gnunet.org/logging)
@@ -110,6 +111,11 @@ extern "C"
 #endif
 #endif
 #endif
+
+/**
+ * wrap va_arg for enums
+ */
+#define GNUNET_VA_ARG_ENUM(va,X) ((enum X) va_arg (va, int))
 
 /**
  * @ingroup logging
@@ -761,14 +767,14 @@ GNUNET_error_type_to_string (enum GNUNET_ErrorType kind);
  * @ingroup logging
  * Use this for fatal errors that cannot be handled
  */
-#define GNUNET_assert(cond) do { if (! (cond)) { GNUNET_log(GNUNET_ERROR_TYPE_ERROR, _("Assertion failed at %s:%d.\n"), __FILE__, __LINE__); GNUNET_abort_(); } } while(0)
+#define GNUNET_assert(cond) do { if (! (cond)) { GNUNET_log(GNUNET_ERROR_TYPE_ERROR, _("Assertion failed at %s:%d. Aborting.\n"), __FILE__, __LINE__); GNUNET_abort_(); } } while(0)
 
 
 /**
  * @ingroup logging
  * Use this for fatal errors that cannot be handled
  */
-#define GNUNET_assert_at(cond, f, l) do { if (! (cond)) { GNUNET_log(GNUNET_ERROR_TYPE_ERROR, _("Assertion failed at %s:%d.\n"), f, l); GNUNET_abort_(); } } while(0)
+#define GNUNET_assert_at(cond, f, l) do { if (! (cond)) { GNUNET_log(GNUNET_ERROR_TYPE_ERROR, _("Assertion failed at %s:%d. Aborting.\n"), f, l); GNUNET_abort_(); } } while(0)
 
 
 /**
@@ -778,7 +784,7 @@ GNUNET_error_type_to_string (enum GNUNET_ErrorType kind);
  * @param cond Condition to evaluate
  * @param comp Component string to use for logging
  */
-#define GNUNET_assert_from(cond, comp) do { if (! (cond)) { GNUNET_log_from(GNUNET_ERROR_TYPE_ERROR, comp, _("Assertion failed at %s:%d.\n"), __FILE__, __LINE__); GNUNET_abort_(); } } while(0)
+#define GNUNET_assert_from(cond, comp) do { if (! (cond)) { GNUNET_log_from(GNUNET_ERROR_TYPE_ERROR, comp, _("Assertion failed at %s:%d. Aborting.\n"), __FILE__, __LINE__); GNUNET_abort_(); } } while(0)
 
 
 /**

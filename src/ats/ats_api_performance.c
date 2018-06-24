@@ -849,7 +849,7 @@ GNUNET_ATS_performance_change_preference (struct GNUNET_ATS_PerformanceHandle *p
   count = 0;
   va_start(ap, peer);
   while (GNUNET_ATS_PREFERENCE_END !=
-         (kind = va_arg (ap, enum GNUNET_ATS_PreferenceKind) ))
+         (kind = GNUNET_VA_ARG_ENUM (ap, GNUNET_ATS_PreferenceKind) ))
   {
     switch (kind)
     {
@@ -875,7 +875,7 @@ GNUNET_ATS_performance_change_preference (struct GNUNET_ATS_PerformanceHandle *p
   count = 0;
   va_start(ap, peer);
   while (GNUNET_ATS_PREFERENCE_END != (kind =
-      va_arg (ap, enum GNUNET_ATS_PreferenceKind) ))
+      GNUNET_VA_ARG_ENUM (ap, GNUNET_ATS_PreferenceKind) ))
   {
     pi[count].preference_kind = htonl (kind);
     switch (kind)
@@ -927,7 +927,7 @@ GNUNET_ATS_performance_give_feedback (struct GNUNET_ATS_PerformanceHandle *ph,
   count = 0;
   va_start(ap, scope);
   while (GNUNET_ATS_PREFERENCE_END !=
-         (kind = va_arg (ap, enum GNUNET_ATS_PreferenceKind) ))
+         (kind = GNUNET_VA_ARG_ENUM (ap, GNUNET_ATS_PreferenceKind) ))
   {
     switch (kind)
     {
@@ -954,7 +954,7 @@ GNUNET_ATS_performance_give_feedback (struct GNUNET_ATS_PerformanceHandle *ph,
   count = 0;
   va_start(ap, scope);
   while (GNUNET_ATS_PREFERENCE_END != (kind =
-      va_arg (ap, enum GNUNET_ATS_PreferenceKind) ))
+      GNUNET_VA_ARG_ENUM (ap, GNUNET_ATS_PreferenceKind) ))
   {
     pi[count].preference_kind = htonl (kind);
     switch (kind)
