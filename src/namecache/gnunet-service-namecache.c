@@ -152,7 +152,7 @@ struct LookupBlockContext
   /**
    * Lookup status
    */
-  uint32_t status;
+  int status;
 };
 
 
