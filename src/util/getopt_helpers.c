@@ -748,6 +748,13 @@ set_uint (struct GNUNET_GETOPT_CommandLineProcessorContext *ctx,
   unsigned int *val = scls;
 
   (void) ctx;
+  if('-' == *value)
+  {
+	FPRINTF (stderr,
+		_("Your input for the '%s' option has to be a non negative number \n"),
+		option);
+    	return GNUNET_SYSERR;
+  }
   if (1 != SSCANF (value,
                    "%u",
                    val))
