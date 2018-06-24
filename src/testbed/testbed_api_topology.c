@@ -1391,7 +1391,7 @@ GNUNET_TESTBED_overlay_configure_topology_va (void *op_cls,
   }
   do
   {
-    secondary_option = va_arg (va, enum GNUNET_TESTBED_TopologyOption);
+    secondary_option = GNUNET_VA_ARG_ENUM (va, GNUNET_TESTBED_TopologyOption);
 
     switch (secondary_option)
     {
@@ -1552,7 +1552,7 @@ GNUNET_TESTBED_underlay_construct_ (int num_peers,
   tc.type = TOPOLOGYCONTEXT_TYPE_UNDERLAY;
   underlay = &tc.u.underlay;
   va_start (vargs, cls);
-  topology = va_arg (vargs, enum GNUNET_TESTBED_TopologyOption);
+  topology = GNUNET_VA_ARG_ENUM (vargs, GNUNET_TESTBED_TopologyOption);
   switch (topology)
   {
   case GNUNET_TESTBED_TOPOLOGY_LINE:

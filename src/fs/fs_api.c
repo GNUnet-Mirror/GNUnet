@@ -3112,7 +3112,7 @@ GNUNET_FS_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
   ret->max_parallel_requests = DEFAULT_MAX_PARALLEL_REQUESTS;
   ret->avg_block_latency = GNUNET_TIME_UNIT_MINUTES;    /* conservative starting point */
   va_start (ap, flags);
-  while (GNUNET_FS_OPTIONS_END != (opt = va_arg (ap, enum GNUNET_FS_OPTIONS)))
+  while (GNUNET_FS_OPTIONS_END != (opt = GNUNET_VA_ARG_ENUM (ap,GNUNET_FS_OPTIONS)))
   {
     switch (opt)
     {
