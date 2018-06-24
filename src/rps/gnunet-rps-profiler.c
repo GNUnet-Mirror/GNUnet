@@ -48,12 +48,6 @@ static unsigned bits_needed;
 
 /**
  * How long do we run the test?
- * In seconds.
- */
-static uint32_t timeout_s;
-
-/**
- * How long do we run the test?
  */
 //#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 30)
 static struct GNUNET_TIME_Relative timeout;
@@ -948,6 +942,8 @@ post_test_op (void *cls)
   if (NO_COLLECT_STATISTICS == cur_test_run.have_collect_statistics ||
       GNUNET_YES == check_statistics_collect_completed())
   {
+    GNUNET_SCHEDULER_cancel (shutdown_task);
+    shutdown_task = GNUNET_SCHEDULER_add_now (&shutdown_op, NULL);
     GNUNET_SCHEDULER_shutdown ();
   }
 }
@@ -2570,10 +2566,9 @@ test_run (void *cls,
   if (NULL != churn_task)
     GNUNET_SCHEDULER_cancel (churn_task);
   post_test_task = GNUNET_SCHEDULER_add_delayed (timeout, &post_test_op, NULL);
-  timeout = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS,
-      (timeout_s * 1.2) + 0.1 * num_peers);
-  shutdown_task = GNUNET_SCHEDULER_add_delayed (timeout, &shutdown_op, NULL);
+  timeout = GNUNET_TIME_relative_multiply (timeout, 1 + (0.1 * num_peers));
   shutdown_task = GNUNET_SCHEDULER_add_shutdown (shutdown_op, NULL);
+  shutdown_task = GNUNET_SCHEDULER_add_delayed (timeout, &shutdown_op, NULL);
 
 }
 
@@ -2598,7 +2593,7 @@ run (void *cls,
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "This is the profiler\n");
   cur_test_run.name = "test-rps-profiler";
-  num_peers = 10;
+  if (0 == num_peers) num_peers = 10;
   mal_type = 3;
   cur_test_run.init_peer = profiler_init_peer;
   //cur_test_run.pre_test = mal_pre;
@@ -2608,7 +2603,7 @@ run (void *cls,
   cur_test_run.eval_cb = profiler_eval;
   cur_test_run.post_test = post_profiler;
   cur_test_run.request_interval = 2;
-  cur_test_run.num_requests = 5;
+  if (0 == cur_test_run.num_requests) cur_test_run.num_requests = 5;
   //cur_test_run.have_churn = HAVE_CHURN;
   cur_test_run.have_churn = HAVE_NO_CHURN;
   cur_test_run.have_quick_quit = HAVE_NO_QUICK_QUIT;
@@ -2630,12 +2625,14 @@ run (void *cls,
                                     BIT(STAT_TYPE_RECV_PULL_REQ) |
                                     BIT(STAT_TYPE_RECV_PULL_REP);
   cur_test_run.have_collect_view = COLLECT_VIEW;
-  timeout_s = 300;
 
   /* 'Clean' directory */
   (void) GNUNET_DISK_directory_remove ("/tmp/rps/");
   GNUNET_DISK_directory_create ("/tmp/rps/");
-  timeout = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, timeout_s);
+  if (0 == timeout.rel_value_us)
+  {
+    timeout = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 90);
+  }
 
   /* Compute number of bits for representing largest peer id */
   for (bits_needed = 1; (bits_needed << 1) < num_peers - 1; bits_needed++)
@@ -2686,10 +2683,23 @@ main (int argc, char *argv[])
   int ret_value;
   struct GNUNET_GETOPT_CommandLineOption options[] = {
     GNUNET_GETOPT_option_uint ('n',
-                               "peers",
+                               "num-peers",
                                "COUNT",
                                gettext_noop ("number of peers to start"),
                                &num_peers),
+
+    GNUNET_GETOPT_option_relative_time ('t',
+                                        "timeout",
+                                        "TIMEOUT",
+                                        gettext_noop ("timeout for DHT PUT and GET requests (default: 1 min)"),
+                                        &timeout),
+
+    GNUNET_GETOPT_option_uint ('r',
+                               "num-requests",
+                               "COUNT",
+                               gettext_noop ("number of PeerIDs to request"),
+                               &cur_test_run.num_requests),
+
     GNUNET_GETOPT_OPTION_END
   };
 
