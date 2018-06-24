@@ -84,6 +84,16 @@ static struct IPCache *cache_head;
  */
 static struct IPCache *cache_tail;
 
+/**
+ * Pipe for asynchronously notifying about resolve result
+ */
+static struct GNUNET_DISK_PipeHandle *resolve_result_pipe;
+
+/**
+ * Task for reading from resolve_result_pipe
+ */
+static struct GNUNET_SCHEDULER_Task *resolve_result_pipe_task;
+
 
 #if HAVE_GETNAMEINFO
 /**
@@ -223,14 +233,15 @@ notify_service_client_done (void *cls)
 static void
 get_ip_as_string (struct GNUNET_SERVICE_Client *client,
                   int af,
-		  const void *ip)
+		  const void *ip,
+		  uint32_t request_id)
 {
   struct IPCache *pos;
   struct IPCache *next;
   struct GNUNET_TIME_Absolute now;
   struct GNUNET_MQ_Envelope *env;
   struct GNUNET_MQ_Handle *mq;
-  struct GNUNET_MessageHeader *msg;
+  struct GNUNET_RESOLVER_ResponseMessage *msg;
   size_t ip_len;
   struct in6_addr ix;
   size_t alen;
@@ -304,13 +315,16 @@ get_ip_as_string (struct GNUNET_SERVICE_Client *client,
   env = GNUNET_MQ_msg_extra (msg,
 			     alen,
 			     GNUNET_MESSAGE_TYPE_RESOLVER_RESPONSE);
+  msg->id = request_id;
   GNUNET_memcpy (&msg[1],
 		 pos->addr,
 		 alen);
   GNUNET_MQ_send (mq,
 		  env);
+  // send end message
   env = GNUNET_MQ_msg (msg,
 		       GNUNET_MESSAGE_TYPE_RESOLVER_RESPONSE);
+  msg->id = request_id;
   GNUNET_MQ_notify_sent (env,
 			 &notify_service_client_done,
 			 client);
@@ -319,17 +333,152 @@ get_ip_as_string (struct GNUNET_SERVICE_Client *client,
 }
 
 
-#if HAVE_GETADDRINFO
+#if HAVE_GETADDRINFO_A
+struct AsyncCls
+{
+  struct gaicb *host;
+  struct sigevent *sig;
+  struct GNUNET_MQ_Handle *mq;
+  uint32_t request_id;
+};
+
+
+static void
+resolve_result_pipe_cb (void *cls)
+{
+  struct AsyncCls *async_cls;
+  struct gaicb *host;
+  struct GNUNET_RESOLVER_ResponseMessage *msg;
+  struct GNUNET_MQ_Envelope *env;
+
+  GNUNET_DISK_file_read (GNUNET_DISK_pipe_handle (resolve_result_pipe,
+						  GNUNET_DISK_PIPE_END_READ),
+			 &async_cls,
+			 sizeof (struct AsyncCls *));
+  resolve_result_pipe_task =
+    GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL,
+				    GNUNET_DISK_pipe_handle (resolve_result_pipe,
+							     GNUNET_DISK_PIPE_END_READ),
+				    &resolve_result_pipe_cb,
+				    NULL);
+  host = async_cls->host;
+  for (struct addrinfo *pos = host->ar_result; pos != NULL; pos = pos->ai_next)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+  	        "Lookup result for hostname %s: %s (request ID %u)\n",
+  	        host->ar_name,
+  	        GNUNET_a2s (pos->ai_addr, pos->ai_addrlen),
+		async_cls->request_id);
+    switch (pos->ai_family)
+    {
+    case AF_INET:
+      env = GNUNET_MQ_msg_extra (msg,
+				 sizeof (struct in_addr),
+				 GNUNET_MESSAGE_TYPE_RESOLVER_RESPONSE);
+      msg->id = async_cls->request_id;
+      GNUNET_memcpy (&msg[1],
+		     &((struct sockaddr_in*) pos->ai_addr)->sin_addr,
+		     sizeof (struct in_addr));
+      GNUNET_MQ_send (async_cls->mq,
+		      env);
+      break;
+    case AF_INET6:
+      env = GNUNET_MQ_msg_extra (msg,
+				 sizeof (struct in6_addr),
+				 GNUNET_MESSAGE_TYPE_RESOLVER_RESPONSE);
+      msg->id = async_cls->request_id;
+      GNUNET_memcpy (&msg[1],
+		     &((struct sockaddr_in6*) pos->ai_addr)->sin6_addr,
+		     sizeof (struct in6_addr));
+      GNUNET_MQ_send (async_cls->mq,
+		      env);
+      break;
+    default:
+      /* unsupported, skip */
+      break;
+    }
+  }
+  // send end message
+  env = GNUNET_MQ_msg (msg,
+		       GNUNET_MESSAGE_TYPE_RESOLVER_RESPONSE);
+  msg->id = async_cls->request_id;
+  GNUNET_MQ_send (async_cls->mq,
+		  env);
+  freeaddrinfo (host->ar_result);
+  GNUNET_free ((struct gaicb *)host->ar_request); // free hints
+  GNUNET_free (host);
+  GNUNET_free (async_cls->sig);
+  GNUNET_free (async_cls);
+}
+
+
+static void
+handle_async_result (union sigval val) 
+{
+  GNUNET_DISK_file_write (GNUNET_DISK_pipe_handle (resolve_result_pipe,
+						   GNUNET_DISK_PIPE_END_WRITE),
+			  &val.sival_ptr,
+			  sizeof (val.sival_ptr));
+}
+
+
+static int
+getaddrinfo_a_resolve (struct GNUNET_MQ_Handle *mq,
+                       const char *hostname,
+		       int af,
+		       uint32_t request_id)
+{
+  int ret;
+  struct gaicb *host;
+  struct addrinfo *hints; 
+  struct sigevent *sig;
+  struct AsyncCls *async_cls;
+
+  host = GNUNET_new (struct gaicb);
+  hints = GNUNET_new (struct addrinfo);
+  sig = GNUNET_new (struct sigevent);
+  async_cls = GNUNET_new (struct AsyncCls);
+  memset (hints,
+	  0,
+	  sizeof (struct addrinfo));
+  memset (sig,
+          0,
+	  sizeof (struct sigevent));
+  hints->ai_family = af;
+  hints->ai_socktype = SOCK_STREAM;      /* go for TCP */
+  host->ar_name = hostname;
+  host->ar_service = NULL;
+  host->ar_request = hints;
+  host->ar_result = NULL;
+  sig->sigev_notify = SIGEV_THREAD;
+  sig->sigev_value.sival_ptr = async_cls;
+  sig->sigev_notify_function = &handle_async_result; 
+  async_cls->host = host;
+  async_cls->sig = sig;
+  async_cls->mq = mq;
+  async_cls->request_id = request_id;
+  ret = getaddrinfo_a (GAI_NOWAIT,
+		       &host,
+                       1,
+		       sig);
+  if (0 != ret)
+    return GNUNET_SYSERR;
+  return GNUNET_OK;
+}
+
+
+#elif HAVE_GETADDRINFO
 static int
 getaddrinfo_resolve (struct GNUNET_MQ_Handle *mq,
                      const char *hostname,
-		     int af)
+		     int af,
+		     uint32_t request_id)
 {
   int s;
   struct addrinfo hints;
   struct addrinfo *result;
   struct addrinfo *pos;
-  struct GNUNET_MessageHeader *msg;
+  struct GNUNET_RESOLVER_ResponseMessage *msg;
   struct GNUNET_MQ_Envelope *env;
 
 #ifdef WINDOWS
@@ -340,10 +489,12 @@ getaddrinfo_resolve (struct GNUNET_MQ_Handle *mq,
     int ret2;
     ret1 = getaddrinfo_resolve (mq,
 				hostname,
-				AF_INET);
+				AF_INET,
+				request_id);
     ret2 = getaddrinfo_resolve (mq,
 				hostname,
-				AF_INET6);
+				AF_INET6,
+				request_id);
     if ( (ret1 == GNUNET_OK) ||
 	 (ret2 == GNUNET_OK) )
       return GNUNET_OK;
@@ -389,6 +540,7 @@ getaddrinfo_resolve (struct GNUNET_MQ_Handle *mq,
       env = GNUNET_MQ_msg_extra (msg,
 				 sizeof (struct in_addr),
 				 GNUNET_MESSAGE_TYPE_RESOLVER_RESPONSE);
+      msg->id = request_id;
       GNUNET_memcpy (&msg[1],
 		     &((struct sockaddr_in*) pos->ai_addr)->sin_addr,
 		     sizeof (struct in_addr));
@@ -399,6 +551,7 @@ getaddrinfo_resolve (struct GNUNET_MQ_Handle *mq,
       env = GNUNET_MQ_msg_extra (msg,
 				 sizeof (struct in6_addr),
 				 GNUNET_MESSAGE_TYPE_RESOLVER_RESPONSE);
+      msg->id = request_id;
       GNUNET_memcpy (&msg[1],
 		     &((struct sockaddr_in6*) pos->ai_addr)->sin6_addr,
 		     sizeof (struct in6_addr));
@@ -421,13 +574,14 @@ getaddrinfo_resolve (struct GNUNET_MQ_Handle *mq,
 static int
 gethostbyname2_resolve (struct GNUNET_MQ_Handle *mq,
                         const char *hostname,
-                        int af)
+                        int af,
+			uint32_t request_id)
 {
   struct hostent *hp;
   int ret1;
   int ret2;
   struct GNUNET_MQ_Envelope *env;
-  struct GNUNET_MessageHeader *msg;
+  struct GNUNET_RESOLVER_ResponseMessage *msg;
 
 #ifdef WINDOWS
   /* gethostbyname2() in plibc is a compat dummy that calls gethostbyname(). */
@@ -438,10 +592,12 @@ gethostbyname2_resolve (struct GNUNET_MQ_Handle *mq,
   {
     ret1 = gethostbyname2_resolve (mq,
 				   hostname,
-				   AF_INET);
+				   AF_INET,
+				   request_id);
     ret2 = gethostbyname2_resolve (mq,
 				   hostname,
-				   AF_INET6);
+				   AF_INET6,
+				   request_id);
     if ( (ret1 == GNUNET_OK) ||
 	 (ret2 == GNUNET_OK) )
       return GNUNET_OK;
@@ -468,6 +624,7 @@ gethostbyname2_resolve (struct GNUNET_MQ_Handle *mq,
     env = GNUNET_MQ_msg_extra (msg,
 			       hp->h_length,
 			       GNUNET_MESSAGE_TYPE_RESOLVER_RESPONSE);
+    msg->id = request_id;
     GNUNET_memcpy (&msg[1],
 		   hp->h_addr_list[0],
 		   hp->h_length);
@@ -479,6 +636,7 @@ gethostbyname2_resolve (struct GNUNET_MQ_Handle *mq,
     env = GNUNET_MQ_msg_extra (msg,
 			       hp->h_length,
 			       GNUNET_MESSAGE_TYPE_RESOLVER_RESPONSE);
+    msg->id = request_id;
     GNUNET_memcpy (&msg[1],
 		   hp->h_addr_list[0],
 		   hp->h_length);
@@ -497,10 +655,11 @@ gethostbyname2_resolve (struct GNUNET_MQ_Handle *mq,
 
 static int
 gethostbyname_resolve (struct GNUNET_MQ_Handle *mq,
-		       const char *hostname)
+		       const char *hostname,
+		       uint32_t request_id)
 {
   struct hostent *hp;
-  struct GNUNET_MessageHeader *msg;
+  struct GNUNET_RESOLVER_ResponseMessage *msg;
   struct GNUNET_MQ_Envelope *env;
 
   hp = GETHOSTBYNAME (hostname);
@@ -521,6 +680,7 @@ gethostbyname_resolve (struct GNUNET_MQ_Handle *mq,
   env = GNUNET_MQ_msg_extra (msg,
 			     hp->h_length,
 			     GNUNET_MESSAGE_TYPE_RESOLVER_RESPONSE);
+  msg->id = request_id;
   GNUNET_memcpy (&msg[1],
 		 hp->h_addr_list[0],
 		 hp->h_length);
@@ -541,34 +701,42 @@ gethostbyname_resolve (struct GNUNET_MQ_Handle *mq,
 static void
 get_ip_from_hostname (struct GNUNET_SERVICE_Client *client,
                       const char *hostname,
-                      int af)
+                      int af,
+		      uint32_t request_id)
 {
-  int ret;
-  struct GNUNET_MQ_Handle *mq;
   struct GNUNET_MQ_Envelope *env;
-  struct GNUNET_MessageHeader *msg;
+  struct GNUNET_RESOLVER_ResponseMessage *msg;
+  struct GNUNET_MQ_Handle *mq;
 
   mq = GNUNET_SERVICE_client_get_mq (client);
-  ret = GNUNET_NO;
-#if HAVE_GETADDRINFO
-  if (ret == GNUNET_NO)
-    ret = getaddrinfo_resolve (mq,
-			       hostname,
-			       af);
+#if HAVE_GETADDRINFO_A
+  getaddrinfo_a_resolve (mq,
+			 hostname,
+			 af,
+			 request_id);
+  GNUNET_SERVICE_client_continue (client);
+  return;
+#elif HAVE_GETADDRINFO
+  getaddrinfo_resolve (mq,
+  		       hostname,
+  		       af,
+		       request_id);
 #elif HAVE_GETHOSTBYNAME2
-  if (ret == GNUNET_NO)
-    ret = gethostbyname2_resolve (mq,
-				  hostname,
-				  af);
+  gethostbyname2_resolve (mq,
+			  hostname,
+			  af,
+			  request_id);
 #elif HAVE_GETHOSTBYNAME
-  if ( (ret == GNUNET_NO) &&
-       ( (af == AF_UNSPEC) ||
+  if ( ( (af == AF_UNSPEC) ||
 	 (af == PF_INET) ) )
     gethostbyname_resolve (mq,
-			   hostname);
+			   hostname,
+			   request_id);
 #endif
+  // send end message
   env = GNUNET_MQ_msg (msg,
 		       GNUNET_MESSAGE_TYPE_RESOLVER_RESPONSE);
+  msg->id = request_id;
   GNUNET_MQ_notify_sent (env,
 			 &notify_service_client_done,
 			 client);
@@ -647,21 +815,21 @@ handle_get (void *cls,
   const void *ip;
   int direction;
   int af;
+  uint32_t id;
 
   direction = ntohl (msg->direction);
   af = ntohl (msg->af);
+  id = ntohl (msg->id);
   if (GNUNET_NO == direction)
   {
     /* IP from hostname */
     const char *hostname;
 
     hostname = (const char *) &msg[1];
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Resolver asked to look up `%s'.\n",
-                hostname);
     get_ip_from_hostname (client,
 			  hostname,
-			  af);
+			  af,
+			  id);
     return;
   }
   ip = &msg[1];
@@ -671,16 +839,18 @@ handle_get (void *cls,
     char buf[INET6_ADDRSTRLEN];
 
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		"Resolver asked to look up IP address `%s'.\n",
+		"Resolver asked to look up IP address `%s (request ID %u)'.\n",
 		inet_ntop (af,
 			   ip,
 			   buf,
-			   sizeof (buf)));
+			   sizeof (buf)),
+		id);
   }
 #endif
   get_ip_as_string (client,
 		    af,
-		    ip);
+		    ip,
+		    id);
 }
 
 
@@ -700,6 +870,19 @@ connect_cb (void *cls,
   (void) cls;
   (void) mq;
 
+#if HAVE_GETADDRINFO_A
+  resolve_result_pipe = GNUNET_DISK_pipe (GNUNET_NO,
+					  GNUNET_NO,
+					  GNUNET_NO,
+					  GNUNET_NO);
+  GNUNET_assert (NULL != resolve_result_pipe);
+  resolve_result_pipe_task =
+    GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL,
+  				    GNUNET_DISK_pipe_handle (resolve_result_pipe,
+							     GNUNET_DISK_PIPE_END_READ),
+  				    &resolve_result_pipe_cb,
+  				    NULL);
+#endif
   return c;
 }
 
@@ -718,6 +901,18 @@ disconnect_cb (void *cls,
 {
   (void) cls;
 
+#if HAVE_GETADDRINFO_A
+  if (NULL != resolve_result_pipe_task)
+  {
+    GNUNET_SCHEDULER_cancel (resolve_result_pipe_task);
+    resolve_result_pipe_task = NULL;
+  }
+  if (NULL != resolve_result_pipe)
+  {
+    GNUNET_DISK_pipe_close (resolve_result_pipe);
+    resolve_result_pipe = NULL;
+  }
+#endif
   GNUNET_assert (c == internal_cls);
 }
 

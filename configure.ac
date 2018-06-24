@@ -58,7 +58,7 @@ fi
 # Use Linux interface name unless the OS has a different preference
 DEFAULT_INTERFACE="\"eth0\""
 
-funcstocheck="getnameinfo gethostname gethostbyname gethostbyaddr getaddrinfo"
+funcstocheck="getnameinfo gethostname gethostbyname gethostbyaddr getaddrinfo getaddrinfo_a"
 
 # Srcdir in a form that native compiler understands (i.e. DOS path on W32)
 native_srcdir=$srcdir
@@ -229,6 +229,10 @@ AC_CHECK_DECLS([_stati64])
 # linked against _everywhere_.  For the others, we
 # will be more selective!
 SAVE_LIBS=$LIBS
+
+have_addrinfo_a=0
+AC_CHECK_LIB(anl, getaddrinfo_a, [have_addrinfo_a=1 AC_DEFINE(HAVE_GETADDRINFO_A,1,[getaddrinfo_a supported])])
+AM_CONDITIONAL(HAVE_GETADDRINFO_A, [test "$have_addrinfo_a" = 1])
 
 # tests only run on Windows
 if test "x$build_target" = "xmingw"
@@ -1537,7 +1541,7 @@ AC_LINK_IFELSE(
  ],[
   AC_DEFINE_UNQUOTED([HAVE_GETADDRINFO],1,[Define this if getaddrinfo() is available])
  ],[
-  AC_DEFINE_UNQUOTED([HAVE_GETADDRINFO],1,[Define this if getaddrinfo() is available])
+  AC_DEFINE_UNQUOTED([HAVE_GETADDRINFO],0,[Define this if getaddrinfo() is available])
  ])
 
 else
