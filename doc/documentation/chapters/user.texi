@@ -1096,7 +1096,9 @@ $ gnunet-publish [-n] [-k KEYWORDS]* [-m TYPE:VALUE] FILENAME
 The option -k is used to specify keywords for the file that
 should be inserted. You can supply any number of keywords,
 and each of the keywords will be sufficient to locate and
-retrieve the file.
+retrieve the file. Please note that you must use the -k option 
+more than once -- one for each expression you use as a keyword for
+a filename.
 
 The -m option is used to specify meta-data, such as descriptions.
 You can use -m multiple times. The TYPE passed must be from the
