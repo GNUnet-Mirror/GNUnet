@@ -19,25 +19,23 @@
    */
 /**
  * @author Philippe Buschmann
- * @file gns1/plugin_rest_gns1.c
- * @brief GNUnet Gns1 REST plugin
+ * @file gns/plugin_rest_gns.c
+ * @brief GNUnet Gns REST plugin
  */
 
 #include "platform.h"
 #include "gnunet_rest_plugin.h"
 #include "gnunet_rest_lib.h"
 #include "gnunet_gnsrecord_lib.h"
+#include "gnunet_gns_service.h"
 #include "microhttpd.h"
 #include <jansson.h>
 
 #define GNUNET_REST_API_NS_GNS "/gns"
 
-//TODO define other variables
 #define GNUNET_REST_PARAMETER_GNS_NAME "name"
 
 #define GNUNET_REST_PARAMETER_GNS_RECORD_TYPE "record_type"
-
-#define GNUNET_REST_PARAMETER_GNS_NAME "name"
 
 /**
  * The configuration handle
@@ -57,13 +55,10 @@ struct Plugin
   const struct GNUNET_CONFIGURATION_Handle *cfg;
 };
 
-//TODO add specific structs
-
 
 
 struct RequestHandle
 {
-  //TODO add specific entries
 
   /**
    * Connection to GNS
@@ -160,8 +155,6 @@ cleanup_handle (struct RequestHandle *handle)
     GNUNET_free (handle->name);
   if (NULL != handle->emsg)
     GNUNET_free (handle->emsg);
-    
-  //TODO add specific cleanup
   
   GNUNET_free (handle);
 }
@@ -212,6 +205,10 @@ handle_gns_response (void *cls,
   struct MHD_Response *resp;
   json_t *result_array;
   json_t *record_obj;
+  char *record_value;
+  char *result;
+
+  handle->gns_lookup = NULL;
 
   if (GNUNET_NO == was_gns)
   {
@@ -219,7 +216,6 @@ handle_gns_response (void *cls,
     GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
   }
-
   if (0 == rd_count)
   {
     handle->emsg = GNUNET_strdup("No result found");
@@ -228,10 +224,6 @@ handle_gns_response (void *cls,
   }
 
   result_array = json_array();
-  //TODO test break!
-  GNUNET_break (NULL != handle->gns_lookup);
-  handle->gns_lookup = NULL;
-
   for (uint32_t i=0;i<rd_count;i++)
   {
     if ((rd[i].record_type != handle->record_type) &&
@@ -240,7 +232,10 @@ handle_gns_response (void *cls,
       continue;
     }
 
-    record_obj = gnsrecord_to_json (&(rd[i]));
+    record_value = GNUNET_GNSRECORD_value_to_string (rd->record_type,
+						     rd->data,
+						     rd->data_size);
+    record_obj = json_string(record_value);
     json_array_append (result_array, record_obj);
     json_decref (record_obj);
   }
@@ -256,7 +251,7 @@ handle_gns_response (void *cls,
 
 
 /**
- * Handle gns1 GET request
+ * Handle gns GET request
  *
  * @param con_handle the connection handle
  * @param url the url
@@ -269,6 +264,7 @@ get_gns_cont (struct GNUNET_REST_RequestHandle *con_handle,
 {
   struct RequestHandle *handle = cls;
   struct GNUNET_HashCode key;
+  int conversion_state;
 
   GNUNET_CRYPTO_hash (GNUNET_REST_PARAMETER_GNS_NAME,
 		      strlen (GNUNET_REST_PARAMETER_GNS_NAME),
@@ -295,8 +291,22 @@ get_gns_cont (struct GNUNET_REST_RequestHandle *con_handle,
     GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
   }
-  handle->record_type = GNUNET_strdup(
-      GNUNET_CONTAINER_multihashmap_get (con_handle->url_param_map,&key));
+  conversion_state = sscanf (
+      GNUNET_CONTAINER_multihashmap_get (con_handle->url_param_map, &key),"%u",
+      &(handle->record_type));
+
+  if((EOF == conversion_state) || (0 == conversion_state))
+  {
+    handle->record_type = GNUNET_GNSRECORD_TYPE_ANY;
+  }
+
+  handle->gns = GNUNET_GNS_connect (cfg);
+  if (NULL == handle->gns)
+  {
+    handle->emsg = GNUNET_strdup ("GNS not available");
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
+    return;
+  }
 
   handle->gns_lookup = GNUNET_GNS_lookup_with_tld (handle->gns,
 						 handle->name,
@@ -304,6 +314,7 @@ get_gns_cont (struct GNUNET_REST_RequestHandle *con_handle,
 						 GNUNET_NO,
 						 &handle_gns_response,
 						 handle);
+
   if (NULL == handle->gns_lookup)
   {
     handle->emsg = GNUNET_strdup("GNS lookup failed");
@@ -395,19 +406,8 @@ rest_process_request(struct GNUNET_REST_RequestHandle *rest_handle,
     handle->url[strlen (handle->url)-1] = '\0';
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Connecting...\n");
 
-
-  handle->gns = GNUNET_GNS_connect (cfg);
-  if (NULL == handle->gns)
-  {
-    handle->emsg = GNUNET_strdup ("GNS not available");
-    GNUNET_SCHEDULER_add_now (&do_error, handle);
-    return;
-  }
-
   init_cont(handle);
-  //TODO connect to specific service
-  //connect ( cfg, [..., &callback_function, handle]);
-  //TODO callback then init_cont(handle)
+
   handle->timeout_task =
     GNUNET_SCHEDULER_add_delayed (handle->timeout,
                                   &do_error,
@@ -424,7 +424,7 @@ rest_process_request(struct GNUNET_REST_RequestHandle *rest_handle,
  * @return NULL on error, otherwise the plugin context
  */
 void *
-libgnunet_plugin_rest_gns1_init (void *cls)
+libgnunet_plugin_rest_gns_init (void *cls)
 {
   static struct Plugin plugin;
   struct GNUNET_REST_Plugin *api;
@@ -447,7 +447,7 @@ libgnunet_plugin_rest_gns1_init (void *cls)
                    MHD_HTTP_METHOD_OPTIONS);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              _("Gns1 REST API initialized\n"));
+              _("Gns REST API initialized\n"));
   return api;
 }
 
@@ -459,7 +459,7 @@ libgnunet_plugin_rest_gns1_init (void *cls)
  * @return always NULL
  */
 void *
-libgnunet_plugin_rest_gns1_done (void *cls)
+libgnunet_plugin_rest_gns_done (void *cls)
 {
   struct GNUNET_REST_Plugin *api = cls;
   struct Plugin *plugin = api->cls;
@@ -468,9 +468,9 @@ libgnunet_plugin_rest_gns1_done (void *cls)
   GNUNET_free_non_null (allow_methods);
   GNUNET_free (api);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Gns1 REST plugin is finished\n");
+              "Gns REST plugin is finished\n");
   return NULL;
 }
 
-/* end of plugin_rest_gns1.c */
+/* end of plugin_rest_gns.c */
 
