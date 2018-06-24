@@ -483,9 +483,11 @@ GNUNET_NAMECACHE_block_cache (struct GNUNET_NAMECACHE_Handle *h,
 
   if (NULL == h->mq)
     return NULL;
-  blen = ntohl (block->purpose.size)
-    - sizeof (struct GNUNET_TIME_AbsoluteNBO)
-    - sizeof (struct GNUNET_CRYPTO_EccSignaturePurpose);
+  blen = ntohl (block->purpose.size);
+  GNUNET_assert (blen > (sizeof (struct GNUNET_TIME_AbsoluteNBO) + 
+                         sizeof (struct GNUNET_CRYPTO_EccSignaturePurpose)));
+  blen -= (sizeof (struct GNUNET_TIME_AbsoluteNBO) +
+           sizeof (struct GNUNET_CRYPTO_EccSignaturePurpose));
   rid = get_op_id (h);
   qe = GNUNET_new (struct GNUNET_NAMECACHE_QueueEntry);
   qe->nsh = h;
