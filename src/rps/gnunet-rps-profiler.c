@@ -2635,12 +2635,12 @@ run (void *cls,
   }
 
   /* Compute number of bits for representing largest peer id */
-  for (bits_needed = 1; (bits_needed << 1) < num_peers - 1; bits_needed++)
+  for (bits_needed = 1; (1 << bits_needed) < num_peers; bits_needed++)
     ;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-            "Need %u bits to represent largest peer id %" PRIu32 "\n",
+            "Need %u bits to represent %" PRIu32 " peers\n",
              bits_needed,
-             num_peers - 1);
+             num_peers);
 
   rps_peers = GNUNET_new_array (num_peers, struct RPSPeer);
   peer_map = GNUNET_CONTAINER_multipeermap_create (num_peers, GNUNET_NO);
