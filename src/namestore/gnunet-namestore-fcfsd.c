@@ -117,7 +117,11 @@ struct Request
    * a POST request).
    */
   struct MHD_PostProcessor *pp;
-
+   
+  /**
+   * MHD Connection
+   */
+  struct MHD_Connection *con;
   /**
    * URL to serve in response to this POST (if this request
    * was a 'POST')
@@ -574,6 +578,7 @@ put_continuation (void *cls,
   }
   else
     request->phase = RP_SUCCESS;
+  MHD_resume_connection (request->con);
   run_httpd_now ();
 }
 
@@ -589,6 +594,7 @@ zone_to_name_error (void *cls)
   GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
               _("Error when mapping zone to name\n"));
   request->phase = RP_FAIL;
+  MHD_resume_connection (request->con);
   run_httpd_now ();
 }
 
@@ -621,6 +627,7 @@ zone_to_name_cb (void *cls,
 		_("Found existing name `%s' for the given key\n"),
 		name);
     request->phase = RP_FAIL;
+    MHD_resume_connection (request->con);
     run_httpd_now ();
     return;
   }
@@ -645,7 +652,7 @@ static void
 lookup_it_error (void *cls)
 {
   struct Request *request = cls;
-
+  MHD_resume_connection (request->con);
   request->qe = NULL;
   request->phase = RP_FAIL;
   run_httpd_now ();
@@ -674,7 +681,6 @@ lookup_it_processor (void *cls,
   (void) label;
   (void) rd;
   (void) zonekey;
-  request->qe = NULL;
   if (0 == strcmp (label, request->domain_name)) {
     GNUNET_break (0 != rd_count);
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
@@ -683,14 +689,17 @@ lookup_it_processor (void *cls,
                 request->domain_name);
     request->phase = RP_FAIL;
   }
+  GNUNET_NAMESTORE_zone_iterator_next (request->lookup_it, 1);
 }
 
 static void
 lookup_it_finished (void *cls)
 {
   struct Request *request = cls;
-
-  if (RP_FAIL == request->phase) {
+  
+  if (RP_FAIL == request->phase)
+  {
+    MHD_resume_connection (request->con);
     run_httpd_now ();
     return;
   }
@@ -701,6 +710,7 @@ lookup_it_finished (void *cls)
   {
     GNUNET_break (0);
     request->phase = RP_FAIL;
+    MHD_resume_connection (request->con);
     run_httpd_now ();
     return;
   }
@@ -772,6 +782,7 @@ create_response (void *cls,
     if (NULL == request)
     {
       request = GNUNET_new (struct Request);
+      request->con = connection;
       *ptr = request;
       request->pp = MHD_create_post_processor (connection,
                                                1024,
@@ -831,6 +842,7 @@ create_response (void *cls,
                                request, connection);
         }
         request->phase = RP_LOOKUP;
+        MHD_suspend_connection (request->con);
         request->lookup_it
           = GNUNET_NAMESTORE_zone_iteration_start (ns,
                                                    &fcfs_zone_pkey,
@@ -1060,7 +1072,7 @@ identity_cb (void *cls,
   }
   fcfs_zone_pkey = *GNUNET_IDENTITY_ego_get_private_key (ego);
 
-  options = MHD_USE_DUAL_STACK | MHD_USE_DEBUG;
+  options = MHD_USE_DUAL_STACK | MHD_USE_DEBUG | MHD_ALLOW_SUSPEND_RESUME;
   do
   {
     httpd = MHD_start_daemon (options,
