@@ -830,6 +830,12 @@ GNUNET_DISK_directory_create_for_file (const char *filename)
     errno = EINVAL;
     return GNUNET_SYSERR;
   }
+  if (0 == ACCESS (rdir, W_OK))
+  {
+    GNUNET_free (rdir);
+    return GNUNET_OK;
+  }
+
   len = strlen (rdir);
   while ((len > 0) && (rdir[len] != DIR_SEPARATOR))
     len--;
@@ -1686,16 +1692,19 @@ GNUNET_DISK_file_open (const char *fn,
     return NULL;
   }
   if (flags & GNUNET_DISK_OPEN_FAILIFEXISTS)
-    oflags |= (O_CREAT | O_EXCL);
+      oflags |= (O_CREAT | O_EXCL);
   if (flags & GNUNET_DISK_OPEN_TRUNCATE)
     oflags |= O_TRUNC;
   if (flags & GNUNET_DISK_OPEN_APPEND)
     oflags |= O_APPEND;
-  if (flags & GNUNET_DISK_OPEN_CREATE)
-  {
-    (void) GNUNET_DISK_directory_create_for_file (expfn);
-    oflags |= O_CREAT;
-    mode = translate_unix_perms (perm);
+  if(GNUNET_NO == GNUNET_DISK_file_test(fn))
+   {
+      if (flags & GNUNET_DISK_OPEN_CREATE )
+	{
+	  (void) GNUNET_DISK_directory_create_for_file (expfn);
+	  oflags |= O_CREAT;
+	  mode = translate_unix_perms (perm);
+	}
   }
 
   fd = open (expfn, oflags

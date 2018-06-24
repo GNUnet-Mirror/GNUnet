@@ -2691,7 +2691,7 @@ main (int argc, char *argv[])
     GNUNET_GETOPT_option_relative_time ('t',
                                         "timeout",
                                         "TIMEOUT",
-                                        gettext_noop ("timeout for DHT PUT and GET requests (default: 1 min)"),
+                                        gettext_noop ("timeout for the profiling"),
                                         &timeout),
 
     GNUNET_GETOPT_option_uint ('r',
