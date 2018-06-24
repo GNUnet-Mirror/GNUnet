@@ -89,6 +89,7 @@ GNUNET_GNSRECORD_records_get_size (unsigned int rd_count,
 				   const struct GNUNET_GNSRECORD_Data *rd)
 {
   size_t ret;
+  size_t no_padding;
 
   ret = sizeof (struct NetworkRecord) * rd_count;
   for (unsigned int i=0;i<rd_count;i++)
@@ -120,6 +121,25 @@ GNUNET_GNSRECORD_records_get_size (unsigned int rd_count,
     GNUNET_break (0);
     return -1;
   }
+  //Do not pad PKEY
+  if (GNUNET_GNSRECORD_TYPE_PKEY == rd->record_type)
+    return ret;
+  /**
+   * Efficiently round up to the next
+   * power of 2 for padding
+   * https://graphics.stanford.edu/~seander/bithacks.html#RoundUpPowerOf2
+   */
+  no_padding = ret;
+  ret--;
+  ret |= ret >> 1;
+  ret |= ret >> 2;
+  ret |= ret >> 4;
+  ret |= ret >> 8;
+  ret |= ret >> 16;
+  ret++;
+  //If padding record does not fit, pad again.
+  if ((ret - no_padding) < sizeof (struct NetworkRecord))
+    ret = ret << 1;
   return (ssize_t) ret;
 }
 
@@ -135,9 +155,9 @@ GNUNET_GNSRECORD_records_get_size (unsigned int rd_count,
  */
 ssize_t
 GNUNET_GNSRECORD_records_serialize (unsigned int rd_count,
-				    const struct GNUNET_GNSRECORD_Data *rd,
-				    size_t dest_size,
-				    char *dest)
+                                    const struct GNUNET_GNSRECORD_Data *rd,
+                                    size_t dest_size,
+                                    char *dest)
 {
   struct NetworkRecord rec;
   size_t off;
@@ -190,7 +210,7 @@ GNUNET_GNSRECORD_records_serialize (unsigned int rd_count,
     }
 #endif
   }
-  return off;
+  return dest_size;
 }
 
 
@@ -205,9 +225,9 @@ GNUNET_GNSRECORD_records_serialize (unsigned int rd_count,
  */
 int
 GNUNET_GNSRECORD_records_deserialize (size_t len,
-				      const char *src,
-				      unsigned int rd_count,
-				      struct GNUNET_GNSRECORD_Data *dest)
+                                      const char *src,
+                                      unsigned int rd_count,
+                                      struct GNUNET_GNSRECORD_Data *dest)
 {
   struct NetworkRecord rec;
   size_t off;
