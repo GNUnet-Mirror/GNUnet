@@ -224,6 +224,12 @@ handle_lookup_block_response (void *cls,
     GNUNET_free (qe);
     return;
   }
+  if (ntohs (msg->gns_header.header.size) < sizeof (struct LookupBlockResponseMessage))
+  {
+    LOG (GNUNET_ERROR_TYPE_ERROR,
+         "Message is too short\n");
+    return;
+  }
   size = ntohs (msg->gns_header.header.size)
     - sizeof (struct LookupBlockResponseMessage);
   {
