@@ -626,6 +626,9 @@ parse_definitions (const char *constname, int force)
           to_line = INT_MAX;
         }
         break;
+      default:
+        printf("ERROR: Unable to parse log defintion: Syntax error.");
+        break;
       }
       start = p + 1;
       state++;
@@ -652,6 +655,7 @@ parse_definitions (const char *constname, int force)
         start = p + 1;
         break;
       default:
+        printf("ERROR: Unable to parse log defintion: Syntax error.");
         break;
       }
     default:
