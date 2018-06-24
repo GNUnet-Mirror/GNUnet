@@ -1093,12 +1093,12 @@ $ gnunet-publish [-n] [-k KEYWORDS]* [-m TYPE:VALUE] FILENAME
 @subsubsection Important command-line options
 @c %**end of header
 
-The option -k is used to specify keywords for the file that
+The option @code{-k} is used to specify keywords for the file that
 should be inserted. You can supply any number of keywords,
 and each of the keywords will be sufficient to locate and
-retrieve the file. Please note that you must use the -k option 
+retrieve the file. Please note that you must use the @code{-k} option 
 more than once -- one for each expression you use as a keyword for
-a filename.
+the filename.
 
 The -m option is used to specify meta-data, such as descriptions.
 You can use -m multiple times. The TYPE passed must be from the
