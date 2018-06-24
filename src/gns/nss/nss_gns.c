@@ -157,7 +157,7 @@ _nss_gns_gethostbyname2_r(
      * correctly */
     idx += l;
 
-    /* Address array address_lenght is always a multiple of 32bits */
+    /* Address array address_length is always a multiple of 32bits */
     for (i = 0; i < u.count; i++)
         ((char**) (buffer+idx))[i] = buffer+astart+address_length*i;
     ((char**) (buffer+idx))[i] = NULL;
