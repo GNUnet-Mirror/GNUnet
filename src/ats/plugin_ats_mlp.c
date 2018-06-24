@@ -1554,6 +1554,7 @@ GAS_mlp_solve_problem (void *solver)
   struct GNUNET_TIME_Relative dur_mlp;
 
   GNUNET_assert(NULL != solver);
+  dur_lp = GNUNET_TIME_UNIT_ZERO; 
 
   if (GNUNET_YES == mlp->stat_bulk_lock)
     {
