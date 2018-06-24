@@ -1451,7 +1451,7 @@ check_client_member_join (void *cls,
 
   if (0 == relay_count}
   {
-     GNUNET_break (0);
+    GNUNET_break (0);
     return GNUNET_SYSERR;
   }
   if (UINT32_MAX / relay_count < sizeof (*relays)){
