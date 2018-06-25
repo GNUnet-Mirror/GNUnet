@@ -213,9 +213,18 @@ else
 AC_MSG_WARN([warning: 'iptables' not found.])
 fi
 
-
 AC_CHECK_PROG(VAR_IFCONFIG_BINARY, ifconfig, true, false)
 AC_MSG_WARN([warning: 'ifconfig' not found.])
+
+# miniupnpc / upnpc binary is a soft runtime requirement
+AC_PATH_TARGET_TOOL(VAR_UPNPC_BINARY, upnpc, false)
+
+if test x"$VAR_UPNPC_BINARY" != x"false"
+then
+AC_DEFINE_UNQUOTED([UPNPC], "$VAR_UPNPC_BINARY", [Path to upnpc binary])
+else
+AC_MSG_WARN([warning: 'upnpc' binary not found.])
+fi
 
 AC_CHECK_MEMBER(struct tm.tm_gmtoff,
   [AC_DEFINE(HAVE_TM_GMTOFF, 1,
@@ -1811,6 +1820,10 @@ then
   AC_MSG_NOTICE([WARNING: jansson library not found.  json support will not be compiled.])
 fi
 
+#
+# FIXME: `some modules' -> be more specific which exact modules.
+#
+
 # warn user if iptables is not found
 if test "$VAR_IPTABLES_BINARY" = "false"
 then
@@ -1821,6 +1834,12 @@ fi
 if test "$VAR_IFCONFIG_BINARY" = "false"
 then
 AC_MSG_NOTICE([WARNING: ifconfig not found. some modules may not have full functionality.])
+fi
+
+# warn user if upnpc binary is not found
+if test "$VAR_UPNPC_BINARY" = "false"
+then
+AC_MSG_NOTICE([WARNING: upnpc binary not found. some modules may not have full functionality.])
 fi
 
 #gnutls
