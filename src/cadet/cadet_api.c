@@ -898,7 +898,6 @@ check_get_peer (void *cls,
   const struct GNUNET_PeerIdentity *paths_array;
   size_t esize;
   unsigned int epaths;
-  unsigned int paths;
   unsigned int peers;
 
   esize = ntohs (message->header.size);
@@ -915,17 +914,7 @@ check_get_peer (void *cls,
   peers = (esize - msize) / sizeof (struct GNUNET_PeerIdentity);
   epaths = ntohs (message->paths);
   paths_array = (const struct GNUNET_PeerIdentity *) &message[1];
-  paths = 0;
-  for (unsigned int i = 0; i < peers; i++)
-    if (0 == memcmp (&paths_array[i],
-                     &message->destination,
-                     sizeof (struct GNUNET_PeerIdentity)))
-      paths++;
-  if (paths != epaths)
-  {
-    GNUNET_break (0);
-    return GNUNET_SYSERR;
-  }
+  
   return GNUNET_OK;
 }
 
@@ -949,6 +938,11 @@ handle_get_peer (void *cls,
 
   if (NULL == h->info_cb.peer_cb)
     return;
+  
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+    "number of paths %u\n",
+    ntohs (message->paths));
+  
   paths = ntohs (message->paths);
   paths_array = (const struct GNUNET_PeerIdentity *) &message[1];
   peers = (ntohs (message->header.size) - sizeof (*message))
@@ -978,7 +972,9 @@ handle_get_peer (void *cls,
                       (int) ntohs (message->tunnel),
                       neighbor,
                       paths,
-                      paths_array);
+                      paths_array,
+                      (int) ntohs (message->offset),
+                      (int) ntohs (message->finished_with_paths));
 }
 
 

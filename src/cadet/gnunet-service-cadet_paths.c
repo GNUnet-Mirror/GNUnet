@@ -17,7 +17,7 @@
 */
 /**
  * @file cadet/gnunet-service-cadet_paths.c
- * @brief Information we track per path.
+ * @brief Information we track per path.    
  * @author Bartlomiej Polot
  * @author Christian Grothoff
  */

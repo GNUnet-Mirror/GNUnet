@@ -258,6 +258,11 @@ struct GNUNET_CADET_LocalInfoPeer
    * #GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_PEERS
    */
   struct GNUNET_MessageHeader header;
+  
+  /**
+   * Offset the peer has in the path this message is about.
+   */
+  uint16_t offset GNUNET_PACKED;
 
   /**
    * Number of paths.
@@ -268,6 +273,11 @@ struct GNUNET_CADET_LocalInfoPeer
    * Do we have a tunnel toward this peer?
    */
   int16_t tunnel GNUNET_PACKED;
+  
+  /**
+   * We are finished with the paths.
+   */
+  uint16_t finished_with_paths;
 
   /**
    * ID of the peer (can be local peer).
