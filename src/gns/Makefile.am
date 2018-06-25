@@ -102,7 +102,6 @@ libgnunet_plugin_gnsrecord_gns_la_SOURCES = \
   plugin_gnsrecord_gns.c
 libgnunet_plugin_gnsrecord_gns_la_LIBADD = \
   $(top_builddir)/src/gnsrecord/libgnunetgnsrecord.la \
-  $(top_builddir)/src/dns/libgnunetdnsparser.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(LTLIBINTL)
 libgnunet_plugin_gnsrecord_gns_la_LDFLAGS = \
@@ -140,8 +139,6 @@ gnunet_dns2gns_LDADD = \
   libgnunetgns.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/identity/libgnunetidentity.la \
-  $(top_builddir)/src/dns/libgnunetdnsparser.la \
-  $(top_builddir)/src/dns/libgnunetdnsstub.la \
   $(GN_LIBINTL)
 
 if LINUX

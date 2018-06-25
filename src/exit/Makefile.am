@@ -49,7 +49,6 @@ endif
 gnunet_daemon_exit_SOURCES = \
  gnunet-daemon-exit.c exit.h
 gnunet_daemon_exit_LDADD = \
-  $(top_builddir)/src/dns/libgnunetdnsstub.la \
   $(top_builddir)/src/dht/libgnunetdht.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/util/libgnunetutil.la \
