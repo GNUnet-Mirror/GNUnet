@@ -1449,7 +1449,7 @@ check_client_member_join (void *cls,
   struct GNUNET_PeerIdentity *relays = (struct GNUNET_PeerIdentity *) &msg[1];
   uint32_t relay_count = ntohl (msg->relay_count);
 
-  if (0 == relay_count}
+  if (0 == relay_count)
   {
     GNUNET_break (0);
     return GNUNET_SYSERR;
