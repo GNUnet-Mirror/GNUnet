@@ -494,6 +494,7 @@ queue (const char *hostname)
   struct Request *req;
   char *raw;
   size_t raw_size;
+  int ret;
 
   if (GNUNET_OK !=
       GNUNET_DNSPARSER_check_name (hostname))
@@ -514,13 +515,14 @@ queue (const char *hostname)
   p.queries = &q;
   p.id = (uint16_t) GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_NONCE,
                                               UINT16_MAX);
-
-  if (GNUNET_OK !=
-      GNUNET_DNSPARSER_pack (&p,
-                             UINT16_MAX,
-                             &raw,
-                             &raw_size))
+  ret = GNUNET_DNSPARSER_pack (&p,
+			       UINT16_MAX,
+			       &raw,
+			       &raw_size);
+  if (GNUNET_OK != ret)
   {
+    if (GNUNET_NO == ret)
+      GNUNET_free (raw); 
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Failed to pack query for hostname `%s'\n",
                 hostname);
