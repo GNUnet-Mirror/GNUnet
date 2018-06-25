@@ -38,7 +38,6 @@ libgnunetgnsrecord_la_SOURCES = \
   gnsrecord_crypto.c \
   gnsrecord_misc.c
 libgnunetgnsrecord_la_LIBADD = \
-  $(top_builddir)/src/dns/libgnunetdnsparser.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(GN_LIBINTL)
 libgnunetgnsrecord_la_LDFLAGS = \
@@ -53,7 +52,6 @@ plugin_LTLIBRARIES = \
 libgnunet_plugin_gnsrecord_dns_la_SOURCES = \
   plugin_gnsrecord_dns.c
 libgnunet_plugin_gnsrecord_dns_la_LIBADD = \
-  $(top_builddir)/src/dns/libgnunetdnsparser.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(LTLIBINTL)
 libgnunet_plugin_gnsrecord_dns_la_LDFLAGS = \

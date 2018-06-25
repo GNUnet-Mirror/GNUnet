@@ -28,7 +28,6 @@ gnunet_daemon_pt_LDADD = \
   $(top_builddir)/src/cadet/libgnunetcadet.la \
   $(top_builddir)/src/dht/libgnunetdht.la \
   $(top_builddir)/src/dns/libgnunetdns.la \
-  $(top_builddir)/src/dns/libgnunetdnsparser.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(GN_LIBINTL)
