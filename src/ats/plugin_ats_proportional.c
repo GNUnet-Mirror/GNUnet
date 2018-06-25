@@ -1005,7 +1005,7 @@ GAS_proportional_address_property_changed (void *solver,
 static void
 GAS_proportional_address_add (void *solver,
                               struct ATS_Address *address,
-                              enum GNUNET_ATS_Network_Type network)
+                              uint32_t network)
 {
   struct GAS_PROPORTIONAL_Handle *s = solver;
   struct Network *net;

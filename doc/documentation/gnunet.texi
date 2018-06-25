@@ -43,6 +43,14 @@ Foundation Web site at @url{http://www.gnu.org/licenses/gpl.html}.
 @end copying
 
 @c TODO: Improve this and improve https://directory.fsf.org/wiki/Gnunet
+@c NOTE FOR TRANSLATORS: Due to en.wikipedia.org being the wikipedia
+@c                       which is more up to date than others, refrain
+@c                       from using localized wikipedia unless you are
+@c                       sure the articles content is good enough. For
+@c                       example the german wikipedia entry for GNUnet
+@c                       is in a terrible shape, but the en.wikipedia.org
+@c                       entry is still acceptable (although in need of
+@c                       updates).
 
 @dircategory Networking
 @direntry

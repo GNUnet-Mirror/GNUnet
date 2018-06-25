@@ -58,7 +58,7 @@ fi
 # Use Linux interface name unless the OS has a different preference
 DEFAULT_INTERFACE="\"eth0\""
 
-funcstocheck="getnameinfo gethostname gethostbyname gethostbyaddr getaddrinfo"
+funcstocheck="getnameinfo gethostname gethostbyname gethostbyaddr getaddrinfo getaddrinfo_a"
 
 # Srcdir in a form that native compiler understands (i.e. DOS path on W32)
 native_srcdir=$srcdir
@@ -213,9 +213,18 @@ else
 AC_MSG_WARN([warning: 'iptables' not found.])
 fi
 
-
 AC_CHECK_PROG(VAR_IFCONFIG_BINARY, ifconfig, true, false)
 AC_MSG_WARN([warning: 'ifconfig' not found.])
+
+# miniupnpc / upnpc binary is a soft runtime requirement
+AC_PATH_TARGET_TOOL(VAR_UPNPC_BINARY, upnpc, false)
+
+if test x"$VAR_UPNPC_BINARY" != x"false"
+then
+AC_DEFINE_UNQUOTED([UPNPC], "$VAR_UPNPC_BINARY", [Path to upnpc binary])
+else
+AC_MSG_WARN([warning: 'upnpc' binary not found.])
+fi
 
 AC_CHECK_MEMBER(struct tm.tm_gmtoff,
   [AC_DEFINE(HAVE_TM_GMTOFF, 1,
@@ -229,6 +238,10 @@ AC_CHECK_DECLS([_stati64])
 # linked against _everywhere_.  For the others, we
 # will be more selective!
 SAVE_LIBS=$LIBS
+
+have_addrinfo_a=0
+AC_CHECK_LIB(anl, getaddrinfo_a, [have_addrinfo_a=1 AC_DEFINE(HAVE_GETADDRINFO_A,1,[getaddrinfo_a supported])])
+AM_CONDITIONAL(HAVE_GETADDRINFO_A, [test "$have_addrinfo_a" = 1])
 
 # tests only run on Windows
 if test "x$build_target" = "xmingw"
@@ -409,7 +422,32 @@ fi
 
 # check for jansson library
 jansson=0
-AC_CHECK_HEADER([jansson.h],jansson=1)
+AC_MSG_CHECKING(for libjansson)
+AC_ARG_WITH(jansson,
+   [  --with-jansson=PFX    base of libjansson installation],
+   [AC_MSG_RESULT([$with_jansson])
+    case $with_jansson in
+      no)
+        ;;
+      yes)
+        AC_CHECK_HEADERS(jansson.h,
+          AC_CHECK_LIB([jansson], [json_loads],
+            jansson=1))
+        ;;
+      *)
+        LDFLAGS="-L$with_jansson/lib $LDFLAGS"
+        CPPFLAGS="-I$with_jansson/include $CPPFLAGS"
+        AC_CHECK_HEADERS(jansson.h,
+          AC_CHECK_LIB([jansson], [json_loads],
+            EXT_LIB_PATH="-L$with_jansson/lib $EXT_LIB_PATH"
+            jansson=1))
+        ;;
+    esac
+   ],
+   [AC_MSG_RESULT([--with-jansson not specified])
+    AC_CHECK_HEADERS(jansson.h,
+     AC_CHECK_LIB([jansson], [json_loads],
+      jansson=1))])
 AM_CONDITIONAL(HAVE_JANSSON, [test "$jansson" = 1])
 if test "x$jansson" = x1
 then
@@ -417,6 +455,7 @@ then
 else
   AC_DEFINE([HAVE_JANSSON],[0],[Lacking jansson library])
 fi
+
 
 # check for libpulse(audio) library
 pulse=0
@@ -1511,7 +1550,7 @@ AC_LINK_IFELSE(
  ],[
   AC_DEFINE_UNQUOTED([HAVE_GETADDRINFO],1,[Define this if getaddrinfo() is available])
  ],[
-  AC_DEFINE_UNQUOTED([HAVE_GETADDRINFO],1,[Define this if getaddrinfo() is available])
+  AC_DEFINE_UNQUOTED([HAVE_GETADDRINFO],0,[Define this if getaddrinfo() is available])
  ])
 
 else
@@ -1781,6 +1820,10 @@ then
   AC_MSG_NOTICE([WARNING: jansson library not found.  json support will not be compiled.])
 fi
 
+#
+# FIXME: `some modules' -> be more specific which exact modules.
+#
+
 # warn user if iptables is not found
 if test "$VAR_IPTABLES_BINARY" = "false"
 then
@@ -1791,6 +1834,12 @@ fi
 if test "$VAR_IFCONFIG_BINARY" = "false"
 then
 AC_MSG_NOTICE([WARNING: ifconfig not found. some modules may not have full functionality.])
+fi
+
+# warn user if upnpc binary is not found
+if test "$VAR_UPNPC_BINARY" = "false"
+then
+AC_MSG_NOTICE([WARNING: upnpc binary not found. some modules may not have full functionality.])
 fi
 
 #gnutls

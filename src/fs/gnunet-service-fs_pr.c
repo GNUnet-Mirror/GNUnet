@@ -1601,7 +1601,7 @@ called_from_on_demand:
       GNUNET_BLOCK_get_key (GSF_block_ctx, type, data, size, &query))
   {
     GNUNET_break (0);
-    GNUNET_DATASTORE_remove (GSF_dsh, key, size, data, -1, -1,
+    GNUNET_DATASTORE_remove (GSF_dsh, key, size, data, UINT_MAX, UINT_MAX,
                              NULL, NULL);
     start_local_query (pr,
                        uid + 1 /* next_uid */,

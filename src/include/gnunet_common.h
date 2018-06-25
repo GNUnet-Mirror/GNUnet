@@ -24,6 +24,7 @@
  *
  * @author Christian Grothoff
  * @author Nils Durner
+ * @author Martin Schanzenbach
  *
  * @defgroup logging Logging
  * @see [Documentation](https://gnunet.org/logging)
@@ -110,6 +111,11 @@ extern "C"
 #endif
 #endif
 #endif
+
+/**
+ * wrap va_arg for enums
+ */
+#define GNUNET_VA_ARG_ENUM(va,X) ((enum X) va_arg (va, int))
 
 /**
  * @ingroup logging

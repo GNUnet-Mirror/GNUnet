@@ -258,6 +258,8 @@ run (void *cls, char *const *args, const char *cfgfile,
   /* Resolve the same using GNUNET */
   GNUNET_RESOLVER_ip_get (ROOTSERVER_NAME, AF_INET, timeout,
                           &check_rootserver_ip, cls);
+  GNUNET_RESOLVER_ip_get (ROOTSERVER_NAME, AF_INET, timeout,
+                          &check_rootserver_ip, cls);
 
   /*
    * Success: forward lookups work as expected

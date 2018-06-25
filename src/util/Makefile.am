@@ -199,6 +199,9 @@ gnunet_service_resolver_SOURCES = \
 gnunet_service_resolver_LDADD = \
   libgnunetutil.la \
   $(GN_LIBINTL)
+if HAVE_GETADDRINFO_A
+gnunet_service_resolver_LDADD += -lanl
+endif
 
 
 gnunet_resolver_SOURCES = \

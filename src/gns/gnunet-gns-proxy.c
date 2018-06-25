@@ -1948,7 +1948,7 @@ create_response (void *cls,
 			s5r);
       {
         const char *us;
-        long upload_size;
+        long upload_size = 0;
 
         us = MHD_lookup_connection_value (con,
                                           MHD_HEADER_KIND,
