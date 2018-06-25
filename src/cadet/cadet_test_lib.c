@@ -135,6 +135,11 @@ cadet_connect_adapter (void *cls,
   struct GNUNET_CADET_Handle *h;
 
   h = GNUNET_CADET_connect (cfg);
+  if (NULL == h)
+  {
+    GNUNET_break(0);
+    return NULL;
+  }
   if (NULL == ctx->ports)
     return h;
   actx->ports = GNUNET_new_array (ctx->port_count,
