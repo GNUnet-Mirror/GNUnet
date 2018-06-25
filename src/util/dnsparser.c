@@ -1185,7 +1185,6 @@ GNUNET_DNSPARSER_pack (const struct GNUNET_DNSPARSER_Packet *p,
   struct GNUNET_TUN_DnsHeader dns;
   size_t off;
   char tmp[max];
-  unsigned int i;
   int ret;
   int trc;
 
@@ -1203,7 +1202,7 @@ GNUNET_DNSPARSER_pack (const struct GNUNET_DNSPARSER_Packet *p,
 
   off = sizeof (struct GNUNET_TUN_DnsHeader);
   trc = GNUNET_NO;
-  for (i=0;i<p->num_queries;i++)
+  for (unsigned int i=0;i<p->num_queries;i++)
   {
     ret = GNUNET_DNSPARSER_builder_add_query (tmp,
 					      sizeof (tmp),
@@ -1218,7 +1217,7 @@ GNUNET_DNSPARSER_pack (const struct GNUNET_DNSPARSER_Packet *p,
       break;
     }
   }
-  for (i=0;i<p->num_answers;i++)
+  for (unsigned int i=0;i<p->num_answers;i++)
   {
     ret = add_record (tmp,
 		      sizeof (tmp),
@@ -1233,7 +1232,7 @@ GNUNET_DNSPARSER_pack (const struct GNUNET_DNSPARSER_Packet *p,
       break;
     }
   }
-  for (i=0;i<p->num_authority_records;i++)
+  for (unsigned int i=0;i<p->num_authority_records;i++)
   {
     ret = add_record (tmp,
 		      sizeof (tmp),
@@ -1248,7 +1247,7 @@ GNUNET_DNSPARSER_pack (const struct GNUNET_DNSPARSER_Packet *p,
       break;
     }
   }
-  for (i=0;i<p->num_additional_records;i++)
+  for (unsigned int i=0;i<p->num_additional_records;i++)
   {
     ret = add_record (tmp,
 		      sizeof (tmp),
