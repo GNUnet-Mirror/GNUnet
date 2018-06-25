@@ -352,9 +352,9 @@ main (int argc, char *argv[])
   {
     res = 1;
   }
-  GNUNET_free (cfg_name);
   GNUNET_DISK_purge_cfg_dir (cfg_name,
                              "GNUNET_TEST_HOME");
+  GNUNET_free (cfg_name);
   return res;
 }
 
