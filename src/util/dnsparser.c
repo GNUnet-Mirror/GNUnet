@@ -698,7 +698,7 @@ GNUNET_DNSPARSER_parse (const char *udp_payload,
   if (n > 0)
   {
     p->queries = GNUNET_new_array (n,
-				   struct GNUNET_DNSPARSER_Query) ;
+				   struct GNUNET_DNSPARSER_Query);
     p->num_queries = n;
     for (unsigned int i=0;i<n;i++)
       if (GNUNET_OK !=
@@ -750,6 +750,7 @@ GNUNET_DNSPARSER_parse (const char *udp_payload,
 					 &off,
 					 &p->additional_records[i]))
 	goto error;
+    }
   }
   return p;
  error:
@@ -957,7 +958,6 @@ GNUNET_DNSPARSER_builder_add_cert (char *dst,
   struct GNUNET_TUN_DnsCertRecord dcert;
 
   if ( (cert->cert_type > UINT16_MAX) ||
-       (cert->cert_tag > UINT16_MAX) ||
        (cert->algorithm > UINT8_MAX) )
   {
     GNUNET_break (0);
@@ -1045,12 +1045,14 @@ GNUNET_DNSPARSER_builder_add_srv (char *dst,
   sd.prio = htons (srv->priority);
   sd.weight = htons (srv->weight);
   sd.port = htons (srv->port);
-  GNUNET_memcpy (&dst[*off], &sd, sizeof (sd));
+  GNUNET_memcpy (&dst[*off],
+		 &sd,
+		 sizeof (sd));
   (*off) += sizeof (sd);
   if (GNUNET_OK != (ret = GNUNET_DNSPARSER_builder_add_name (dst,
-				    dst_len,
-				    off,
-				    srv->target)))
+							     dst_len,
+							     off,
+							     srv->target)))
     return ret;
   return GNUNET_OK;
 }
