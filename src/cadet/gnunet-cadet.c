@@ -1,4 +1,4 @@
-/*
+4/*
      This file is part of GNUnet.
      Copyright (C) 2012, 2017 GNUnet e.V.
 
@@ -196,6 +196,11 @@ shutdown_task (void *cls)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Shutdown\n");
+  if (NULL != lp)
+  {
+    GNUNET_CADET_close_port (lp);
+    lp = NULL;
+  }
   if (NULL != ch)
   {
     GNUNET_CADET_channel_destroy (ch);
