@@ -499,6 +499,7 @@ run (void *cls,
     return;
   GNUNET_SCHEDULER_add_shutdown (&server_stop,
 				 NULL);
+  CLOSE(fd);
 }
 
 
