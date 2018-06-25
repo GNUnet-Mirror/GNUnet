@@ -171,7 +171,6 @@ test_regex_integration_SOURCES = \
 test_regex_integration_LDADD = -lm \
   libgnunetregex.la \
   $(top_builddir)/src/testing/libgnunettesting.la \
-  $(top_builddir)/src/tun/libgnunettun.la \
   $(top_builddir)/src/util/libgnunetutil.la
 
 test_regex_api_SOURCES = \
