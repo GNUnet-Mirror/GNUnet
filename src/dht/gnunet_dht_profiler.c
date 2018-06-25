@@ -346,7 +346,7 @@ bandwidth_stats_cont (void *cls,
            (unsigned long long) incoming_bandwidth);
   fprintf (stderr,
            "Benchmark done. Collect data via gnunet-statistics, then press ENTER to exit.\n");
-  getchar ();
+  (void) getchar ();
   GNUNET_SCHEDULER_shutdown ();
 }
 
