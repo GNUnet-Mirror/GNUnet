@@ -102,9 +102,9 @@ print_option (void *cls,
   else
   {
     fprintf (stdout,
-       "%s = %s\n",
-       option,
-       value);
+	     "%s = %s\n",
+	     option,
+	     value);
   }
 }
 
