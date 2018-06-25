@@ -89,8 +89,6 @@ libgnunetutil_la_SOURCES = \
   crypto_rsa.c \
   disk.c \
   disk.h \
-  dnsparser.c \
-  dnsstub.c \
   getopt.c \
   getopt_helpers.c \
   helper.c \
@@ -106,14 +104,12 @@ libgnunetutil_la_SOURCES = \
   peer.c \
   plugin.c \
   program.c \
-  regex.c \
   resolver_api.c resolver.h \
   scheduler.c \
   service.c \
   signal.c \
   strings.c \
   time.c \
-  tun.c \
   speedup.c speedup.h
 
 libgnunetutil_la_LIBADD = \
@@ -121,7 +117,7 @@ libgnunetutil_la_LIBADD = \
   $(LIBGCRYPT_LIBS) \
   $(LTLIBICONV) \
   $(LTLIBINTL) \
-  -lltdl -lidn $(Z_LIBS) -lunistring $(XLIB)
+  -lltdl $(Z_LIBS) -lunistring $(XLIB)
 
 libgnunetutil_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS) \
@@ -295,22 +291,19 @@ check_PROGRAMS = \
  test_crypto_rsa \
  test_disk \
  test_getopt \
- test_hexcoder \
  test_mq \
  test_os_network \
  test_peer \
  test_plugin \
  test_program \
- test_regex \
  test_resolver_api.nc \
  test_scheduler \
  test_scheduler_delay \
  test_service \
  test_strings \
  test_strings_to_data \
- test_speedup \
  test_time \
- test_tun \
+ test_speedup \
  $(BENCHMARKS) \
  test_os_start_process \
  test_common_logging_runtime_loglevels
@@ -326,20 +319,6 @@ test_bio_SOURCES = \
 test_bio_LDADD = \
  libgnunetutil.la
 
-test_hexcoder_SOURCES = \
- test_hexcoder.c
-test_hexcoder_LDADD = \
- libgnunetutil.la
-
-test_tun_SOURCES = \
- test_tun.c
-test_tun_LDADD = \
- libgnunetutil.la 
-
-test_regex_SOURCES = \
- test_regex.c
-test_regex_LDADD = \
- libgnunetutil.la 
 
 test_os_start_process_SOURCES = \
  test_os_start_process.c

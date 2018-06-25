@@ -83,6 +83,7 @@ SUBDIRS = \
   $(REST_DIR) \
   $(JSONAPI_DIR) \
   hello \
+  tun \
   block \
   statistics \
   arm \

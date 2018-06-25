@@ -57,6 +57,7 @@ gnunet_service_vpn_SOURCES = \
  gnunet-service-vpn.c
 gnunet_service_vpn_LDADD = \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
+  $(top_builddir)/src/tun/libgnunettun.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/cadet/libgnunetcadet.la \
   $(top_builddir)/src/regex/libgnunetregex.la \
@@ -68,6 +69,7 @@ gnunet_vpn_SOURCES = \
  gnunet-vpn.c
 gnunet_vpn_LDADD = \
   libgnunetvpn.la \
+  $(top_builddir)/src/tun/libgnunettun.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(GN_LIBINTL)
 

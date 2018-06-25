@@ -1722,6 +1722,7 @@ src/testing/Makefile
 src/topology/Makefile
 src/transport/Makefile
 src/transport/transport.conf
+src/tun/Makefile
 src/util/Makefile
 src/util/resolver.conf
 src/vpn/Makefile

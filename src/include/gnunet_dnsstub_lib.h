@@ -85,7 +85,7 @@ GNUNET_DNSSTUB_add_dns_sa (struct GNUNET_DNSSTUB_Context *ctx,
  * Only effective for requests issued after this call.
  *
  * @param ctx resolver context to modify
- * @param retry_freq how long to wait between retries
+ * @param retry_frequ how long to wait between retries
  */
 void
 GNUNET_DNSSTUB_set_retry (struct GNUNET_DNSSTUB_Context *ctx,
