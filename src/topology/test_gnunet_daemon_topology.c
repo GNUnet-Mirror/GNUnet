@@ -11,7 +11,7 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
@@ -28,7 +28,7 @@
 
 #define NUM_PEERS 8
 
-/* 
+/*
  * The threshold defines the number of connection that are needed
  * for one peer to pass the test. Be aware that setting NUM_PEERS
  * too high can cause bandwidth problems for the testing peers.
@@ -69,7 +69,7 @@ static struct GNUNET_SCHEDULER_Task *timeout_tid;
 /*
  * Peer context for every testbed peer.
  */
-struct peerctx 
+struct peerctx
 {
   int index;
   struct GNUNET_STATISTICS_Handle *statistics;
@@ -108,7 +108,7 @@ timeout_task (void *cls)
 
 /*
  * The function is called every time the topology of connected
- * peers to a peer changes. 
+ * peers to a peer changes.
  */
 int
 statistics_iterator (void *cls,
@@ -120,10 +120,10 @@ statistics_iterator (void *cls,
   struct peerctx *p_ctx = (struct peerctx*) cls;
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              "Peer %d: %s = %d\n",
+              "Peer %d: %s = %llu\n",
               p_ctx->index,
               name,
-              value);
+              (unsigned long long) value);
 
   if (p_ctx->connections < value)
     p_ctx->connections = value;
@@ -152,7 +152,7 @@ static void *
 ca_statistics (void *cls,
                const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
-  return GNUNET_STATISTICS_create ("topology", cfg); 
+  return GNUNET_STATISTICS_create ("topology", cfg);
 }
 
 
@@ -161,7 +161,7 @@ da_statistics (void *cls,
                void *op_result)
 {
   struct peerctx *p_ctx = (struct peerctx *) cls;
-  
+
   GNUNET_break (GNUNET_OK == GNUNET_STATISTICS_watch_cancel
                 (p_ctx->statistics, "topology", "# peers connected",
                  statistics_iterator, p_ctx));
@@ -172,8 +172,8 @@ da_statistics (void *cls,
   GNUNET_free (p_ctx);
 }
 
-    
-static void 
+
+static void
 service_connect_complete (void *cls,
 		   	  struct GNUNET_TESTBED_Operation *op,
                           void *ca_result,
@@ -182,7 +182,7 @@ service_connect_complete (void *cls,
   int ret;
   struct peerctx *p_ctx = (struct peerctx*) cls;
 
-  if (NULL == ca_result) 
+  if (NULL == ca_result)
     GNUNET_SCHEDULER_shutdown();
 
   p_ctx->statistics = ca_result;
@@ -245,20 +245,20 @@ do_connect (void *cls,
                                         peers[i], peers[i+1]);
       }
 
-      op[i] = 
-        GNUNET_TESTBED_service_connect (cls, 
+      op[i] =
+        GNUNET_TESTBED_service_connect (cls,
                                         peers[i],
                                         "statistics",
-                                        service_connect_complete, 
+                                        service_connect_complete,
                                         p_ctx, /* cls of completion cb */
                                         ca_statistics, /* connect adapter */
                                         da_statistics, /* disconnect adapter */
                                         p_ctx);
-                                      
+
     }
 
   GNUNET_SCHEDULER_add_shutdown (&shutdown_task, NULL);
-  timeout_tid = 
+  timeout_tid =
     GNUNET_SCHEDULER_add_delayed (TIMEOUT,
                                   &timeout_task,
                                   NULL);
