@@ -23,7 +23,7 @@
  * @author Christian Grothoff
  */
 #include "platform.h"
-#include "gnunet_tun_lib.h"
+#include "gnunet_util_lib.h"
 
 /**
  * IP TTL we use for packets that we assemble (8 bit unsigned integer)
