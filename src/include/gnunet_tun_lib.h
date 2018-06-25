@@ -30,7 +30,8 @@
 #ifndef GNUNET_TUN_LIB_H
 #define GNUNET_TUN_LIB_H
 
-#include "gnunet_util_lib.h"
+#include "gnunet_common.h"
+#include "gnunet_crypto_lib.h"
 
 
 /* see http://www.iana.org/assignments/ethernet-numbers */

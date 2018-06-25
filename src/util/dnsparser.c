@@ -28,8 +28,6 @@
 #include <idn-free.h>
 #endif
 #include "gnunet_util_lib.h"
-#include "gnunet_dnsparser_lib.h"
-#include "gnunet_tun_lib.h"
 
 
 /**
