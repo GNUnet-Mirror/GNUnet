@@ -752,7 +752,7 @@ dht_disconnect (void *cls,
   switch (mode)
   {
   case MODE_PUT:
-    if (n_puts_ok != n_active * num_puts_per_peer)
+    if (n_puts_ok != ((unsigned long long) n_active) * num_puts_per_peer)
       return;
     /* Start GETs if all PUTs have been made */
     mode = MODE_GET;
