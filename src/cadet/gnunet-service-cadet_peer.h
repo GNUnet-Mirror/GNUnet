@@ -139,6 +139,19 @@ GCP_iterate_paths (struct CadetPeer *cp,
                    GCP_PathIterator callback,
                    void *callback_cls);
 
+/**
+ * Iterate over the paths to a peer without direct link.
+ *
+ * @param cp Peer to get path info.
+ * @param callback Function to call for every path.
+ * @param callback_cls Closure for @a callback.
+ * @return Number of iterated paths.
+ */
+unsigned int
+GCP_iterate_indirect_paths (struct CadetPeer *cp,
+                   GCP_PathIterator callback,
+                   void *callback_cls);
+
 
 /**
  * Iterate over the paths to @a peer where

@@ -530,34 +530,48 @@ peer_callback (void *cls,
                int tunnel,
                int neighbor,
                unsigned int n_paths,
-               const struct GNUNET_PeerIdentity *paths)
+               const struct GNUNET_PeerIdentity *paths,
+               int offset,
+               int finished_with_paths)
 {
   unsigned int i;
   const struct GNUNET_PeerIdentity *p;
-
-  FPRINTF (stdout,
-           "%s [TUNNEL: %s, NEIGHBOR: %s, PATHS: %u]\n",
-           GNUNET_i2s_full (peer),
-           tunnel ? "Y" : "N",
-           neighbor ? "Y" : "N",
-           n_paths);
-  p = paths;
-  for (i = 0; i < n_paths && NULL != p;)
+  
+  
+  if (GNUNET_YES == finished_with_paths)
   {
-    FPRINTF (stdout,
-             "%s ",
-             GNUNET_i2s (p));
-    if (0 == memcmp (p,
-                     peer,
-                     sizeof (*p)))
-    {
-      FPRINTF (stdout, "\n");
-      i++;
-    }
-    p++;
+    GNUNET_SCHEDULER_shutdown();
+    return;
   }
+  
+  if (offset == 0){
+    FPRINTF (stdout,
+             "%s [TUNNEL: %s, NEIGHBOR: %s, PATHS: %u]\n",
+             GNUNET_i2s_full (peer),
+             tunnel ? "Y" : "N",
+             neighbor ? "Y" : "N",
+             n_paths);
+  }else{
+    p = paths;
+    FPRINTF (stdout,
+                "Path with offset %u: ",
+                offset);
+    for (i = 0; i < offset && NULL != p;)
+    {
+        FPRINTF (stdout,
+                "%s ",
+                GNUNET_i2s (p));
+        i++;
+        p++;
+    }
+    
+    FPRINTF (stdout,
+                "\n");
+    
+  }
+  
 
-  GNUNET_SCHEDULER_shutdown();
+  
 }
 
 
