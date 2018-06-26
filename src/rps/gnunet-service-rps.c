@@ -3214,6 +3214,10 @@ handle_peer_push (void *cls,
                                    tmp_att_peer);
       add_peer_array_to_set (peer, 1, att_peer_set);
     }
+    else
+    {
+      GNUNET_free (tmp_att_peer);
+    }
   }
 
 
