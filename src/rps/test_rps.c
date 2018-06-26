@@ -953,6 +953,8 @@ rps_connect_complete_cb (void *cls,
   struct RPSPeer *rps_peer = cls;
   struct GNUNET_RPS_Handle *rps = ca_result;
 
+  GNUNET_assert (NULL != ca_result);
+
   if (GNUNET_YES == in_shutdown || GNUNET_YES == post_test)
   {
     return;
@@ -2905,6 +2907,7 @@ main (int argc, char *argv[])
   }
 
   ret_value = cur_test_run.eval_cb();
+  
   if (NO_COLLECT_VIEW == cur_test_run.have_collect_view)
   {
     GNUNET_array_grow (rps_peers->cur_view,
