@@ -469,7 +469,7 @@ run (void *cls,
                               "open",
                               fn);
     GNUNET_free (fn);
-    CLOSE (fd);
+    GNUNET_break (0 == CLOSE (fd));
     return;
   }
   GNUNET_free (fn);
@@ -499,7 +499,7 @@ run (void *cls,
     return;
   GNUNET_SCHEDULER_add_shutdown (&server_stop,
 				 NULL);
-  CLOSE(fd);
+  GNUNET_break (0 == CLOSE(fd));
 }
 
 
