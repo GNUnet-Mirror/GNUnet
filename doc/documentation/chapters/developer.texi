@@ -5477,7 +5477,7 @@ The callback provides two values: the average and the
 @uref{http://en.wikipedia.org/wiki/Standard_deviation, standard deviation}
 of the last 64 rounds. The values provided by the callback function are
 logarithmic, this means that the real estimate numbers can be obtained by
-calculating 2 to the power of the given value (average). From a
+calculating 2 to the power of the given value (2average). From a
 statistics point of view this means that:
 
 @itemize @bullet
