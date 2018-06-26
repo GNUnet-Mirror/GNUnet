@@ -4172,6 +4172,7 @@ shutdown_task (void *cls)
   {
     tmp_att_peer = att_peers_head;
     GNUNET_CONTAINER_DLL_remove (att_peers_head, att_peers_tail, tmp_att_peer);
+    GNUNET_free (tmp_att_peer);
   }
   #endif /* ENABLE_MALICIOUS */
 }
