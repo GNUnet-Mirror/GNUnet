@@ -91,7 +91,7 @@ AC_DEFUN([AX_LIB_POSTGRESQL],
             POSTGRESQL_CPPFLAGS="-I`$PG_CONFIG --includedir`"
             POSTGRESQL_LDFLAGS="-L`$PG_CONFIG --libdir`"
 
-            POSTGRESQL_VERSION=`$PG_CONFIG --version | sed -e 's#PostgreSQL ##'`
+            POSTGRESQL_VERSION=`$PG_CONFIG --version | sed -e 's#PostgreSQL ##' | awk '{print $1}'`
 
             AC_DEFINE([HAVE_POSTGRESQL], [1],
                 [Define to 1 if PostgreSQL libraries are available])
@@ -113,7 +113,7 @@ AC_DEFUN([AX_LIB_POSTGRESQL],
 
     if test "$found_postgresql" = "yes" -a -n "$postgresql_version_req"; then
 
-        AC_MSG_CHECKING([if PostgreSQL version is >= $postgresql_version_req])
+        AC_MSG_CHECKING([if PostgreSQL version $POSTGRESQL_VERSION is >= $postgresql_version_req])
 
         dnl Decompose required version string of PostgreSQL
         dnl and calculate its number representation
