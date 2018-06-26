@@ -243,11 +243,17 @@ GCP_2s (const struct CadetPeer *cp)
   static char buf[5];
   char *ret;
 
-  if (NULL == cp || NULL == &cp->pid.public_key)
-      return "NULL";
+  if (NULL == cp || 
+      NULL == &cp->pid.public_key){
+    return "NULL";
+  }
+      
   ret = GNUNET_CRYPTO_eddsa_public_key_to_string (&cp->pid.public_key);
-  if (NULL == ret)
-      return "NULL";
+  
+  if (NULL == ret){
+    return "NULL";
+  }
+  
   strncpy (buf,
            ret,
            sizeof (buf) - 1);
