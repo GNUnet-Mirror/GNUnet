@@ -10,8 +10,6 @@ pcfiles = \
        gnunetdatastore.pc \
        gnunetdht.pc \
        gnunetdns.pc \
-       gnunetdnsparser.pc \
-       gnunetdnsstub.pc \
        gnunetdv.pc \
        gnunetenv.pc \
        gnunetfragmentation.pc \
@@ -39,7 +37,6 @@ pcfiles = \
        gnunettestbed.pc \
        gnunettesting.pc \
        gnunettransport.pc \
-       gnunettun.pc \
        gnunetutil.pc \
        gnunetvpn.pc 
 
