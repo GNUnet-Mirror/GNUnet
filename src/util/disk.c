@@ -605,6 +605,7 @@ GNUNET_DISK_mktemp (const char *t)
   umask (omask);
   if (0 != CLOSE (fd))
     LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_WARNING, "close", fn);
+  GNUNET_free (fn);
   return fn;
 }
 

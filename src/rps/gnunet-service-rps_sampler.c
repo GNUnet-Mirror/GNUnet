@@ -725,6 +725,7 @@ RPS_sampler_request_cancel (struct RPS_SamplerRequestHandle *req_handle)
     }
     GNUNET_free (i);
   }
+  GNUNET_free (req_handle->ids);
   GNUNET_CONTAINER_DLL_remove (req_handle->sampler->req_handle_head,
                                req_handle->sampler->req_handle_tail,
                                req_handle);

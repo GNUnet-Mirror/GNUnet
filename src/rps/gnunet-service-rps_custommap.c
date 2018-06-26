@@ -220,6 +220,7 @@ CustomPeerMap_remove_peer (const struct CustomPeerMap *c_peer_map,
   GNUNET_free (index);
   GNUNET_assert (GNUNET_CONTAINER_multihashmap32_size (c_peer_map->hash_map) ==
                  GNUNET_CONTAINER_multipeermap_size (c_peer_map->peer_map));
+  GNUNET_free (p);
   return GNUNET_OK;
 }
 

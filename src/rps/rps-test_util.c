@@ -352,10 +352,10 @@ create_file (const char *name)
   if (NULL == strstr (name, "sampler_el"))
   {/* only append random string to sampler */
     if (NULL == (file_name = GNUNET_DISK_mktemp (name_buf)))
-          LOG (GNUNET_ERROR_TYPE_WARNING, "Could not create file\n");
+      LOG (GNUNET_ERROR_TYPE_WARNING, "Could not create file\n");
 
-  GNUNET_free (name_buf);
-  return file_name;
+    GNUNET_free (name_buf);
+    return file_name;
   }
 
   return name_buf;

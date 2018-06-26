@@ -503,6 +503,8 @@ add_valid_peer (const struct GNUNET_PeerIdentity *peer)
   return ret;
 }
 
+static void
+remove_pending_message (struct PendingMessage *pending_msg, int cancel);
 
 /**
  * @brief Set the peer flag to living and
@@ -531,7 +533,7 @@ set_peer_live (struct PeerContext *peer_ctx)
          GNUNET_i2s (&peer_ctx->peer_id));
     // TODO wait until cadet sets mq->cancel_impl
     //GNUNET_MQ_send_cancel (peer_ctx->liveliness_check_pending->ev);
-    GNUNET_free (peer_ctx->liveliness_check_pending);
+    remove_pending_message (peer_ctx->liveliness_check_pending, GNUNET_YES);
     peer_ctx->liveliness_check_pending = NULL;
   }
 
@@ -653,56 +655,6 @@ get_mq (const struct GNUNET_PeerIdentity *peer)
   return peer_ctx->mq;
 }
 
-
-/**
- * @brief This is called in response to the first message we sent as a
- * liveliness check.
- *
- * @param cls #PeerContext of peer with pending liveliness check
- */
-static void
-mq_liveliness_check_successful (void *cls)
-{
-  struct PeerContext *peer_ctx = cls;
-
-  if (NULL != peer_ctx->liveliness_check_pending)
-  {
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-        "Liveliness check for peer %s was successfull\n",
-        GNUNET_i2s (&peer_ctx->peer_id));
-    GNUNET_free (peer_ctx->liveliness_check_pending);
-    peer_ctx->liveliness_check_pending = NULL;
-    set_peer_live (peer_ctx);
-  }
-}
-
-/**
- * Issue a check whether peer is live
- *
- * @param peer_ctx the context of the peer
- */
-static void
-check_peer_live (struct PeerContext *peer_ctx)
-{
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Get informed about peer %s getting live\n",
-       GNUNET_i2s (&peer_ctx->peer_id));
-
-  struct GNUNET_MQ_Handle *mq;
-  struct GNUNET_MQ_Envelope *ev;
-
-  ev = GNUNET_MQ_msg_header (GNUNET_MESSAGE_TYPE_RPS_PP_CHECK_LIVE);
-  peer_ctx->liveliness_check_pending = GNUNET_new (struct PendingMessage);
-  peer_ctx->liveliness_check_pending->ev = ev;
-  peer_ctx->liveliness_check_pending->peer_ctx = peer_ctx;
-  peer_ctx->liveliness_check_pending->type = "Check liveliness";
-  mq = get_mq (&peer_ctx->peer_id);
-  GNUNET_MQ_notify_sent (ev,
-                         mq_liveliness_check_successful,
-                         peer_ctx);
-  GNUNET_MQ_send (mq, ev);
-}
-
 /**
  * @brief Add an envelope to a message passed to mq to list of pending messages
  *
@@ -753,6 +705,59 @@ remove_pending_message (struct PendingMessage *pending_msg, int cancel)
   //  GNUNET_MQ_send_cancel (pending_msg->ev);
   //}
   GNUNET_free (pending_msg);
+}
+
+
+/**
+ * @brief This is called in response to the first message we sent as a
+ * liveliness check.
+ *
+ * @param cls #PeerContext of peer with pending liveliness check
+ */
+static void
+mq_liveliness_check_successful (void *cls)
+{
+  struct PeerContext *peer_ctx = cls;
+
+  if (NULL != peer_ctx->liveliness_check_pending)
+  {
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+        "Liveliness check for peer %s was successfull\n",
+        GNUNET_i2s (&peer_ctx->peer_id));
+    //GNUNET_free (peer_ctx->liveliness_check_pending);
+    remove_pending_message (peer_ctx->liveliness_check_pending, GNUNET_YES);
+    peer_ctx->liveliness_check_pending = NULL;
+    set_peer_live (peer_ctx);
+  }
+}
+
+/**
+ * Issue a check whether peer is live
+ *
+ * @param peer_ctx the context of the peer
+ */
+static void
+check_peer_live (struct PeerContext *peer_ctx)
+{
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Get informed about peer %s getting live\n",
+       GNUNET_i2s (&peer_ctx->peer_id));
+
+  struct GNUNET_MQ_Handle *mq;
+  struct GNUNET_MQ_Envelope *ev;
+
+  ev = GNUNET_MQ_msg_header (GNUNET_MESSAGE_TYPE_RPS_PP_CHECK_LIVE);
+  //peer_ctx->liveliness_check_pending = GNUNET_new (struct PendingMessage);
+  //peer_ctx->liveliness_check_pending->ev = ev;
+  //peer_ctx->liveliness_check_pending->peer_ctx = peer_ctx;
+  //peer_ctx->liveliness_check_pending->type = "Check liveliness";
+  peer_ctx->liveliness_check_pending =
+    insert_pending_message (&peer_ctx->peer_id, ev, "Check liveliness");
+  mq = get_mq (&peer_ctx->peer_id);
+  GNUNET_MQ_notify_sent (ev,
+                         mq_liveliness_check_successful,
+                         peer_ctx);
+  GNUNET_MQ_send (mq, ev);
 }
 
 
@@ -2893,7 +2898,6 @@ client_respond (void *cls,
   GNUNET_memcpy (&out_msg[1],
           peer_ids,
           num_peers * sizeof (struct GNUNET_PeerIdentity));
-  GNUNET_free (peer_ids);
 
   cli_ctx = reply_cls->cli_ctx;
   GNUNET_assert (NULL != cli_ctx);

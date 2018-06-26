@@ -486,6 +486,7 @@ GNUNET_asprintf (char **buf,
   *buf = GNUNET_malloc (ret + 1);
   va_start (args, format);
   ret = VSPRINTF (*buf, format, args);
+  GNUNET_free (buf);
   va_end (args);
   return ret;
 }
