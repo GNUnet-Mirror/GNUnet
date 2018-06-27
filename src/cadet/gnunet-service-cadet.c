@@ -927,27 +927,21 @@ get_peer_info (void *cls,
   struct CadetClient *c = cls;
   struct GNUNET_MQ_Envelope *env;
   struct GNUNET_CADET_LocalInfoPeer *msg;
-
   
   env = GNUNET_MQ_msg (msg,
                        GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_PEER);
-  
   msg->offset = htons(0);
   msg->destination = *peer;
   msg->paths = htons (GCP_count_paths (p));
   msg->tunnel = htons (NULL != GCP_get_tunnel (p,
                                                GNUNET_NO));
   msg->finished_with_paths = htons(0);
-  
   GNUNET_MQ_send (c->mq,
                   env);
-  
-  GCP_iterate_indirect_paths(p,
-                            &path_info_iterator,
-                            c->mq);
-  
+  GCP_iterate_indirect_paths (p,
+			      &path_info_iterator,
+			      c->mq);  
 }
-
 
 
 /**
