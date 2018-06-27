@@ -902,9 +902,9 @@ path_info_iterator (void *cls,
   /* Don't copy first peer.  First peer is always the local one.  Last
    * peer is always the destination (leave as 0, EOL).
    */
-  for (i = 0; i < off; i++)
+  for (i = 0; i <= off; i++)
     id[i] = *GCP_get_id (GCPP_get_peer_at_offset (path,
-                                                  i + 1));
+                                                  i));
   GNUNET_MQ_send (mq,
                   env);
   return GNUNET_YES;
