@@ -134,7 +134,7 @@ extern "C"
 
 /**
  * Accept state in regex DFA.  Peer affirms that
- * he offers the matching service.
+ * it offers the matching service.
  */
 #define GNUNET_SIGNATURE_PURPOSE_REGEX_ACCEPT 18
 

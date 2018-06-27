@@ -612,7 +612,7 @@ notify_client_about_neighbour (void *cls,
 
 /**
  * Initialize a normal client.  We got a start message from this
- * client, add him to the list of clients for broadcasting of inbound
+ * client, add it to the list of clients for broadcasting of inbound
  * messages.
  *
  * @param cls the client
@@ -2173,7 +2173,7 @@ test_connection_ok (void *cls,
 
 /**
  * Initialize a blacklisting client.  We got a blacklist-init
- * message from this client, add him to the list of clients
+ * message from this client, add it to the list of clients
  * to query for blacklisting.
  *
  * @param cls the client

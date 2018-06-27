@@ -76,7 +76,7 @@
  * a safe partition etc. The $HOME/.my.cnf can of course be a symbolic
  * link. Even greater security risk can be achieved by setting no
  * password for $USER.  Luckily $USER has only priviledges to mess
- * up GNUnet's tables, nothing else (unless you give him more,
+ * up GNUnet's tables, nothing else (unless you give them more,
  * of course).<p>
  *
  * 4) Still, perhaps you should briefly try if the DB connection

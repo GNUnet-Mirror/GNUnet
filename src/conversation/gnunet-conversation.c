@@ -717,7 +717,7 @@ do_status (const char *args)
       break;
     case CS_RINGING:
       FPRINTF (stdout,
-               _("We are calling `%s', his phone should be ringing.\n"),
+               _("We are calling `%s', their phone should be ringing.\n"),
                peer_name);
       break;
     case CS_CONNECTED:
