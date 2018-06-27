@@ -117,7 +117,7 @@ platforms.  It also doubt it will give you the recognition you crave.
 More importantly, what you describe is already happening, and
 partially has contributed to the problems. Bart kept his own CADET
 hacks in his personal branch for years, hence without much feedback or
-review.  The SecuShare team kept their patches in their own branch,
+review.  The secushare team kept their patches in their own branch,
 hence revealing interesting failure modes when it was finally merged.
 Martin kept some of his ABE-logic in his own branch (that one was
 merged without me noticing major problems).  Anyway, what you propose

@@ -4382,7 +4382,7 @@ If you encounter problems regarding the SDP server (like the SDP server is
 down) you should check out if the D-Bus daemon is running correctly and to
 see if the Bluetooth daemon started correctly(use @code{bluetoothd} tool).
 Also, sometimes the SDP service could work but somehow the device couldn't
-register his service. Use @code{sdptool browse [dev-address]} to see if
+register its service. Use @code{sdptool browse [dev-address]} to see if
 the service is registered. There should be a service with the name of the
 interface and GNUnet as provider.
 
@@ -5453,7 +5453,7 @@ calls: @code{GNUNET_NSE_connect} and @code{GNUNET_NSE_disconnect}.
 The connect call gets a callback function as a parameter and this function
 is called each time the network agrees on an estimate. This usually is
 once per round, with some exceptions: if the closest peer has a late
-local clock and starts spreading his ID after everyone else agreed on a
+local clock and starts spreading its ID after everyone else agreed on a
 value, the callback might be activated twice in a round, the second value
 being always bigger than the first. The default round time is set to
 1 hour.
@@ -5579,7 +5579,7 @@ is what we are flooding the network with right now.
 At the beginning of each round the peer does the following:
 
 @itemize @bullet
-@item calculates his own distance to the target value
+@item calculates its own distance to the target value
 @item creates, signs and stores the message for the current round (unless
 it has a better message in the "next round" slot which came early in the
 previous round)
@@ -6215,8 +6215,8 @@ So a client has first to retrieve records, merge with existing records
 and then store the result.
 
 To perform a lookup operation, the client uses the
-@code{GNUNET_NAMESTORE_records_store} function. Here he has to pass the
-namestore handle, the private key of the zone and the label. He also has
+@code{GNUNET_NAMESTORE_records_store} function. Here it has to pass the
+namestore handle, the private key of the zone and the label. It also has
 to provide a callback function which will be called with the result of
 the lookup operation:
 the zone for the records, the label, and the records including the
@@ -6239,7 +6239,7 @@ by NAMESTORE.
 Here a client uses the @code{GNUNET_NAMESTORE_zone_iteration_start}
 function and passes the namestore handle, the zone to iterate over and a
 callback function to call with the result.
-If the client wants to iterate over all the, he passes NULL for the zone.
+If the client wants to iterate over all the WHAT!? FIXME, it passes NULL for the zone.
 A @code{GNUNET_NAMESTORE_ZoneIterator} handle is returned to be used to
 continue iteration.
 
@@ -6935,7 +6935,7 @@ number of iterations).
 The receiver of the message removes all elements from its local set that
 do not pass the Bloom filter test.
 It then checks if the set size of the sender and the XOR over the keys
-match what is left of his own set. If they do, he sends a
+match what is left of its own set. If they do, it sends a
 @code{GNUNET_MESSAGE_TYPE_SET_INTERSECTION_P2P_DONE} back to indicate
 that the latest set is the final result.
 Otherwise, the receiver starts another Bloom filter exchange, except
@@ -8239,7 +8239,7 @@ When a revocation is performed, the revocation is first of all
 disseminated by flooding the overlay network.
 The goal is to reach every peer, so that when a peer needs to check if a
 key has been revoked, this will be purely a local operation where the
-peer looks at his local revocation list. Flooding the network is also the
+peer looks at its local revocation list. Flooding the network is also the
 most robust form of key revocation --- an adversary would have to control
 a separator of the overlay graph to restrict the propagation of the
 revocation message. Flooding is also very easy to implement --- peers that

@@ -2264,7 +2264,7 @@ the configuration:
 
 If you operate a peer permanently connected to GNUnet you can configure
 your peer to act as a hostlist server, providing other peers the list of
-peers known to him.
+peers known to it.
 
 Your server can act as a bootstrap server and peers needing to obtain a
 list of peers can contact it to download this list.
@@ -2883,7 +2883,7 @@ iwconfig wlan0 channel 1
 @subsection Configuring HTTP(S) reverse proxy functionality using Apache or nginx
 
 The HTTP plugin supports data transfer using reverse proxies. A reverse
-proxy forwards the HTTP request he receives with a certain URL to another
+proxy forwards the HTTP request it receives with a certain URL to another
 webserver, here a GNUnet peer.
 
 So if you have a running Apache or nginx webserver you can configure it to
