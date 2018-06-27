@@ -1773,8 +1773,6 @@ pkgconfig/gnunetdatacache.pc
 pkgconfig/gnunetdatastore.pc
 pkgconfig/gnunetdht.pc
 pkgconfig/gnunetdns.pc
-pkgconfig/gnunetdnsparser.pc
-pkgconfig/gnunetdnsstub.pc
 pkgconfig/gnunetdv.pc
 pkgconfig/gnunetenv.pc
 pkgconfig/gnunetfragmentation.pc
@@ -1803,7 +1801,6 @@ pkgconfig/gnunetstatistics.pc
 pkgconfig/gnunettestbed.pc
 pkgconfig/gnunettesting.pc
 pkgconfig/gnunettransport.pc
-pkgconfig/gnunettun.pc
 pkgconfig/gnunetutil.pc
 pkgconfig/gnunetvpn.pc
 ])

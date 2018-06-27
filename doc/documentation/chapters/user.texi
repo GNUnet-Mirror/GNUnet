@@ -20,232 +20,32 @@ always welcome.
 
 
 @menu
-* Checking the Installation::
-* First steps - File-sharing::
+* Start and stop GNUnet::
 * First steps - Using the GNU Name System::
 * First steps - Using GNUnet Conversation::
 * First steps - Using the GNUnet VPN::
 * File-sharing::
 * The GNU Name System::
 * Using the Virtual Public Network::
-* The graphical configuration interface::
-* How to start and stop a GNUnet peer::
+* MOVE TO INSTALL The graphical configuration interface::
+* MOVE TO INSTALL Checking the Installation::
+* MOVE TO INSTALL Config Leftovers::
 @end menu
 
-@node Checking the Installation
-@section Checking the Installation
-@c %**end of header
+@node Start and stop GNUnet
+@section Start and stop GNUnet
 
-This section describes a quick, casual way to check if your GNUnet
-installation works. However, if it does not, we do not cover
-steps for recovery --- for this, please study the instructions
-provided in the developer handbook as well as the system-specific
-instruction in the source code repository@footnote{The system specific instructions are not provided as part of this handbook!}.
-
-
-@menu
-* gnunet-gtk::
-* Statistics::
-* Peer Information::
-@end menu
-
-@cindex GNUnet GTK
-@cindex GTK
-@cindex GTK user interface
-@node gnunet-gtk
-@subsection gnunet-gtk
-@c %**end of header
-
-The @command{gnunet-gtk} package contains several graphical
-user interfaces for the respective GNUnet applications.
-Currently these interfaces cover:
-
-@itemize @bullet
-@item Statistics
-@item Peer Information
-@item GNU Name System
-@item File Sharing
-@item Identity Management
-@item Conversation
-@end itemize
-
-@node Statistics
-@subsection Statistics
-@c %**end of header
-
-First, you should launch GNUnet gtk@footnote{Obviously you should also start gnunet, via gnunet-arm or the system provided method}.
-You can do this from the command-line by typing
+Previous to use any GNUnet-based application, one has to start a node:
 
 @example
-gnunet-statistics-gtk
+$ gnunet-arm -s -l gnunet.log
 @end example
 
-If your peer@footnote{The term ``peer'' is a common word used in federated and distributed networks to describe a participating device which is connected to the network. Thus, your Personal Computer or whatever it is you are looking at the Gtk+ interface describes a ``Peer'' or a ``Node''.}
-is running correctly, you should see a bunch of lines,
-all of which should be ``significantly'' above zero (at least if your
-peer has been running for more than a few seconds). The lines indicate
-how many other peers your peer is connected to (via different
-mechanisms) and how large the entire overlay network is currently
-estimated to be. The X-axis represents time (in seconds since the
-start of @command{gnunet-gtk}).
-
-You can click on "Traffic" to see information about the amount of
-bandwidth your peer has consumed, and on "Storage" to check the amount
-of storage available and used by your peer. Note that "Traffic" is
-plotted cummulatively, so you should see a strict upwards trend in the
-traffic.
-
-@node Peer Information
-@subsection Peer Information
-@c %**end of header
-
-First, you should launch the graphical user interface.  You can do
-this from the command-line by typing
+To stop GNUnet:
 
 @example
-$ gnunet-peerinfo-gtk
+$ gnunet-arm -e
 @end example
-
-Once you have done this, you will see a list of known peers (by the
-first four characters of their public key), their friend status (all
-should be marked as not-friends initially), their connectivity (green
-is connected, red is disconnected), assigned bandwidth, country of
-origin (if determined) and address information. If hardly any peers
-are listed and/or if there are very few peers with a green light for
-connectivity, there is likely a problem with your network
-configuration.
-
-@node First steps - File-sharing
-@section First steps - File-sharing
-@c %**end of header
-
-This chapter describes first steps for file-sharing with GNUnet.
-To start, you should launch @command{gnunet-fs-gtk}.
-
-As we want to be sure that the network contains the data that we are
-looking for for testing, we need to begin by publishing a file.
-
-
-@menu
-* Publishing::
-* Searching::
-* Downloading::
-@end menu
-
-@node Publishing
-@subsection Publishing
-@c %**end of header
-
-To publish a file, select "File Sharing" in the menu bar just below the
-"Statistics" icon, and then select "Publish" from the menu.
-
-Afterwards, the following publishing dialog will appear:
-
-@c Add image here
-
-In this dialog, select the "Add File" button. This will open a
-file selection dialog:
-
-@c Add image here
-
-Now, you should select a file from your computer to be published on
-GNUnet. To see more of GNUnet's features later, you should pick a
-PNG or JPEG file this time. You can leave all of the other options
-in the dialog unchanged. Confirm your selection by pressing the "OK"
-button in the bottom right corner. Now, you will briefly see a
-"Messages..." dialog pop up, but most likely it will be too short for
-you to really read anything. That dialog is showing you progress
-information as GNUnet takes a first look at the selected file(s).
-For a normal image, this is virtually instant, but if you later
-import a larger directory you might be interested in the progress dialog
-and potential errors that might be encountered during processing.
-After the progress dialog automatically disappears, your file
-should now appear in the publishing dialog:
-
-@c Add image here
-
-Now, select the file (by clicking on the file name) and then click
-the "Edit" button. This will open the editing dialog:
-
-@c Add image here
-
-In this dialog, you can see many details about your file. In the
-top left area, you can see meta data extracted about the file,
-such as the original filename, the mimetype and the size of the image.
-In the top right, you should see a preview for the image
-(if GNU libextractor was installed correctly with the
-respective plugins). Note that if you do not see a preview, this
-is not a disaster, but you might still want to install more of
-GNU libextractor in the future. In the bottom left, the dialog contains
-a list of keywords. These are the keywords under which the file will be
-made available. The initial list will be based on the extracted meta data.
-Additional publishing options are in the right bottom corner. We will
-now add an additional keyword to the list of keywords. This is done by
-entering the keyword above the keyword list between the label "Keyword"
-and the "Add keyword" button. Enter "test" and select "Add keyword".
-Note that the keyword will appear at the bottom of the existing keyword
-list, so you might have to scroll down to see it. Afterwards, push the
-"OK" button at the bottom right of the dialog.
-
-You should now be back at the "Publish content on GNUnet" dialog. Select
-"Execute" in the bottom right to close the dialog and publish your file
-on GNUnet! Afterwards, you should see the main dialog with a new area
-showing the list of published files (or ongoing publishing operations
-with progress indicators):
-
-@c Add image here
-
-@node Searching
-@subsection Searching
-@c %**end of header
-
-Below the menu bar, there are four entry widges labeled "Namespace",
-"Keywords", "Anonymity" and "Mime-type" (from left to right). These
-widgets are used to control searching for files in GNUnet. Between the
-"Keywords" and "Anonymity" widgets, there is also a big "Search" button,
-which is used to initiate the search. We will ignore the "Namespace",
-"Anonymity" and "Mime-type" options in this tutorial, please leave them
-empty. Instead, simply enter "test" under "Keywords" and press "Search".
-Afterwards, you should immediately see a new tab labeled after your
-search term, followed by the (current) number of search
-results --- "(15)" in our screenshot. Note that your results may
-vary depending on what other users may have shared and how your
-peer is connected.
-
-You can now select one of the search results. Once you do this,
-additional information about the result should be displayed on the
-right. If available, a preview image should appear on the top right.
-Meta data describing the file will be listed at the bottom right.
-
-Once a file is selected, at the bottom of the search result list
-a little area for downloading appears.
-
-@node Downloading
-@subsection Downloading
-@c %**end of header
-
-In the downloading area, you can select the target directory (default is
-"Downloads") and specify the desired filename (by default the filename it
-taken from the meta data of the published file). Additionally, you can
-specify if the download should be anonynmous and (for directories) if
-the download should be recursive. In most cases, you can simply start
-the download with the "Download!" button.
-
-Once you selected download, the progress of the download will be
-displayed with the search result. You may need to resize the result
-list or scroll to the right. The "Status" column shows the current
-status of the download, and "Progress" how much has been completed.
-When you close the search tab (by clicking on the "X" button next to
-the "test" label), ongoing and completed downloads are not aborted
-but moved to a special "*" tab.
-
-You can remove completed downloads from the "*" tab by clicking the
-cleanup button next to the "*". You can also abort downloads by right
-clicking on the respective download and selecting "Abort download"
-from the menu.
-
-That's it, you now know the basics for file-sharing with GNUnet!
-
 @node First steps - Using the GNU Name System
 @section First steps - Using the GNU Name System
 @c %**end of header
@@ -899,24 +699,198 @@ the searcher/downloader specify "no anonymity", non-anonymous
 file-sharing is used. If either user specifies some desired degree
 of anonymity, anonymous file-sharing will be used.
 
-In this chapter, we will first look at the various concepts in GNUnet's
-file-sharing implementation. Then, we will discuss specifics as to
-how they impact users that publish, search or download files.
-
+After a short introduction, we will first look at the various concepts in
+GNUnet's file-sharing implementation. Then, we will discuss specifics as to how
+they impact users that publish, search or download files.
 
 
 @menu
-* File-sharing Concepts::
-* File-sharing Publishing::
-* File-sharing Searching::
-* File-sharing Downloading::
-* File-sharing Directories::
-* File-sharing Namespace Management::
+* fs-Searching::
+* fs-Downloading::
+* fs-Publishing::
+* fs-Concepts::
+* fs-Directories::
+* Namespace Management::
 * File-Sharing URIs::
+* GTK User Interface::
 @end menu
 
-@node File-sharing Concepts
-@subsection File-sharing Concepts
+@node fs-Searching
+@subsection Searching
+@c %**end of header
+
+The command @command{gnunet-search} can be used to search
+for content on GNUnet. The format is:
+
+@example
+$ gnunet-search [-t TIMEOUT] KEYWORD
+@end example
+
+@noindent
+The -t option specifies that the query should timeout after
+approximately TIMEOUT seconds. A value of zero is interpreted
+as @emph{no timeout}, which is also the default. In this case,
+gnunet-search will never terminate (unless you press CTRL-C).
+
+If multiple words are passed as keywords, they will all be
+considered optional. Prefix keywords with a "+" to make them mandatory.
+
+Note that searching using
+
+@example
+$ gnunet-search Das Kapital
+@end example
+
+@noindent
+is not the same as searching for
+
+@example
+$ gnunet-search "Das Kapital"
+@end example
+
+@noindent
+as the first will match files shared under the keywords
+"Das" or "Kapital" whereas the second will match files
+shared under the keyword "Das Kapital".
+
+Search results are printed by gnunet-search like this:
+
+@c it will be better the avoid the ellipsis altogether because I don't
+@c understand the explanation below that
+@example
+#15:
+gnunet-download -o "COPYING" gnunet://fs/chk/PGK8M...3EK130.75446
+
+@end example
+
+@noindent
+The whole line is the command you would have to enter to download
+the file. The argument passed to @code{-o} is the suggested
+filename (you may change it to whatever you like).
+It is followed by the key for decrypting the file, the query for searching the
+file, a checksum (in hexadecimal) finally the size of the file in bytes.
+
+@node fs-Downloading
+@subsection Downloading
+@c %**end of header
+
+In order to download a file, you need the whole line returned by
+@command{gnunet-search}.
+You can then use the tool @command{gnunet-download} to obtain the file:
+
+@example
+$ gnunet-download -o <FILENAME> <GNUNET-URL>
+@end example
+
+@noindent
+FILENAME specifies the name of the file where GNUnet is supposed
+to write the result. Existing files are overwritten. If the
+existing file contains blocks that are identical to the
+desired download, those blocks will not be downloaded again
+(automatic resume).
+
+If you want to download the GPL from the previous example,
+you do the following:
+
+@example
+$ gnunet-download -o "COPYING" gnunet://fs/chk/PGK8M...3EK130.75446
+@end example
+
+@noindent
+If you ever have to abort a download, you can continue it at any time by
+re-issuing @command{gnunet-download} with the same filename.
+In that case, GNUnet will @strong{not} download blocks again that are
+already present.
+
+GNUnet's file-encoding mechanism will ensure file integrity, even if the
+existing file was not downloaded from GNUnet in the first place.
+
+You may want to use the @command{-V} switch  to turn on verbose reporting. In
+this case, @command{gnunet-download} will print the current number of bytes
+downloaded whenever new data was received.
+
+@node fs-Publishing
+@subsection Publishing
+@c %**end of header
+
+The command @command{gnunet-publish} can be used to add content
+to the network. The basic format of the command is
+
+@example
+$ gnunet-publish [-n] [-k KEYWORDS]* [-m TYPE:VALUE] FILENAME
+@end example
+
+For example
+@example
+$ gnunet-publish -m "description:GNU License" -k gpl -k test -m "mimetype:text/plain" COPYING
+@end example
+
+@menu
+* Important command-line options::
+* Indexing vs. Inserting::
+@end menu
+
+@node Important command-line options
+@subsubsection Important command-line options
+@c %**end of header
+
+The option @code{-k} is used to specify keywords for the file that
+should be inserted. You can supply any number of keywords,
+and each of the keywords will be sufficient to locate and
+retrieve the file. Please note that you must use the @code{-k} option 
+more than once -- one for each expression you use as a keyword for
+the filename.
+
+The -m option is used to specify meta-data, such as descriptions.
+You can use -m multiple times. The TYPE passed must be from the
+list of meta-data types known to libextractor. You can obtain this
+list by running @command{extract -L}. Use quotes around the entire
+meta-data argument if the value contains spaces. The meta-data
+is displayed to other users when they select which files to
+download. The meta-data and the keywords are optional and
+maybe inferred using @code{GNU libextractor}.
+
+gnunet-publish has a few additional options to handle namespaces and
+directories. See the man-page for details.
+
+@node Indexing vs. Inserting
+@subsubsection Indexing vs Inserting
+@c %**end of header
+
+By default, GNUnet indexes a file instead of making a full copy.
+This is much more efficient, but requries the file to stay unaltered
+at the location where it was when it was indexed. If you intend to move,
+delete or alter a file, consider using the option @code{-n} which will
+force GNUnet to make a copy of the file in the database.
+
+Since it is much less efficient, this is strongly discouraged for large
+files. When GNUnet indexes a file (default), GNUnet does @strong{not}
+create an additional encrypted copy of the file but just computes a
+summary (or index) of the file. That summary is approximately two percent
+of the size of the original file and is stored in GNUnet's database.
+Whenever a request for a part of an indexed file reaches GNUnet,
+this part is encrypted on-demand and send out. This way, there is no
+need for an additional encrypted copy of the file to stay anywhere
+on the drive. This is different from other systems, such as Freenet,
+where each file that is put online must be in Freenet's database in
+encrypted format, doubling the space requirements if the user wants
+to preseve a directly accessible copy in plaintext.
+
+Thus indexing should be used for all files where the user will keep
+using this file (at the location given to gnunet-publish) and does
+not want to retrieve it back from GNUnet each time. If you want to
+remove a file that you have indexed from the local peer, use the tool
+@command{gnunet-unindex} to un-index the file.
+
+The option @code{-n} may be used if the user fears that the file might
+be found on their drive (assuming the computer comes under the control
+of an adversary). When used with the @code{-n} flag, the user has a
+much better chance of denying knowledge of the existence of the file,
+even if it is still (encrypted) on the drive and the adversary is
+able to crack the encryption (e.g. by guessing the keyword.
+
+@node fs-Concepts
+@subsection Concepts
 @c %**end of header
 
 Sharing files in GNUnet is not quite as simple as in traditional
@@ -1072,184 +1046,9 @@ replication level into the network, and then decrement the replication
 level by one. If all blocks reach replication level zero, the
 selection is simply random.
 
-@node File-sharing Publishing
-@subsection File-sharing Publishing
-@c %**end of header
 
-The command @command{gnunet-publish} can be used to add content
-to the network. The basic format of the command is
-
-@example
-$ gnunet-publish [-n] [-k KEYWORDS]* [-m TYPE:VALUE] FILENAME
-@end example
-
-
-@menu
-* Important command-line options::
-* Indexing vs. Inserting::
-@end menu
-
-@node Important command-line options
-@subsubsection Important command-line options
-@c %**end of header
-
-The option @code{-k} is used to specify keywords for the file that
-should be inserted. You can supply any number of keywords,
-and each of the keywords will be sufficient to locate and
-retrieve the file. Please note that you must use the @code{-k} option 
-more than once -- one for each expression you use as a keyword for
-the filename.
-
-The -m option is used to specify meta-data, such as descriptions.
-You can use -m multiple times. The TYPE passed must be from the
-list of meta-data types known to libextractor. You can obtain this
-list by running @command{extract -L}. Use quotes around the entire
-meta-data argument if the value contains spaces. The meta-data
-is displayed to other users when they select which files to
-download. The meta-data and the keywords are optional and
-maybe inferred using @code{GNU libextractor}.
-
-gnunet-publish has a few additional options to handle namespaces and
-directories. See the man-page for details.
-
-@node Indexing vs. Inserting
-@subsubsection Indexing vs Inserting
-@c %**end of header
-
-By default, GNUnet indexes a file instead of making a full copy.
-This is much more efficient, but requries the file to stay unaltered
-at the location where it was when it was indexed. If you intend to move,
-delete or alter a file, consider using the option @code{-n} which will
-force GNUnet to make a copy of the file in the database.
-
-Since it is much less efficient, this is strongly discouraged for large
-files. When GNUnet indexes a file (default), GNUnet does @strong{not}
-create an additional encrypted copy of the file but just computes a
-summary (or index) of the file. That summary is approximately two percent
-of the size of the original file and is stored in GNUnet's database.
-Whenever a request for a part of an indexed file reaches GNUnet,
-this part is encrypted on-demand and send out. This way, there is no
-need for an additional encrypted copy of the file to stay anywhere
-on the drive. This is different from other systems, such as Freenet,
-where each file that is put online must be in Freenet's database in
-encrypted format, doubling the space requirements if the user wants
-to preseve a directly accessible copy in plaintext.
-
-Thus indexing should be used for all files where the user will keep
-using this file (at the location given to gnunet-publish) and does
-not want to retrieve it back from GNUnet each time. If you want to
-remove a file that you have indexed from the local peer, use the tool
-@command{gnunet-unindex} to un-index the file.
-
-The option @code{-n} may be used if the user fears that the file might
-be found on their drive (assuming the computer comes under the control
-of an adversary). When used with the @code{-n} flag, the user has a
-much better chance of denying knowledge of the existence of the file,
-even if it is still (encrypted) on the drive and the adversary is
-able to crack the encryption (e.g. by guessing the keyword.
-
-@node File-sharing Searching
-@subsection File-sharing Searching
-@c %**end of header
-
-The command @command{gnunet-search} can be used to search
-for content on GNUnet. The format is:
-
-@example
-$ gnunet-search [-t TIMEOUT] KEYWORD
-@end example
-
-@noindent
-The -t option specifies that the query should timeout after
-approximately TIMEOUT seconds. A value of zero is interpreted
-as @emph{no timeout}, which is also the default. In this case,
-gnunet-search will never terminate (unless you press CTRL-C).
-
-If multiple words are passed as keywords, they will all be
-considered optional. Prefix keywords with a "+" to make them mandatory.
-
-Note that searching using
-
-@example
-$ gnunet-search Das Kapital
-@end example
-
-@noindent
-is not the same as searching for
-
-@example
-$ gnunet-search "Das Kapital"
-@end example
-
-@noindent
-as the first will match files shared under the keywords
-"Das" or "Kapital" whereas the second will match files
-shared under the keyword "Das Kapital".
-
-Search results are printed by gnunet-search like this:
-
-@c it will be better the avoid the ellipsis altogether because I don't
-@c understand the explanation below that
-@example
-$ gnunet-download -o "COPYING" --- gnunet://fs/chk/N8...C92.17992
-=> The GNU Public License <= (mimetype: text/plain)
-@end example
-
-@noindent
-The first line is the command you would have to enter to download
-the file. The argument passed to @code{-o} is the suggested
-filename (you may change it to whatever you like).
-@c except it's triple dash in the above example ---
-The @code{--} is followed by key for decrypting the file,
-the query for searching the file, a checksum (in hexadecimal)
-finally the size of the file in bytes.
-The second line contains the description of the file; here this is
-"The GNU Public License" and the mime-type (see the options for
-gnunet-publish on how to specify these).
-
-@node File-sharing Downloading
-@subsection File-sharing Downloading
-@c %**end of header
-
-In order to download a file, you need the three values returned by
-@command{gnunet-search}.
-You can then use the tool @command{gnunet-download} to obtain the file:
-
-@example
-$ gnunet-download -o FILENAME --- GNUNETURL
-@end example
-
-@noindent
-FILENAME specifies the name of the file where GNUnet is supposed
-to write the result. Existing files are overwritten. If the
-existing file contains blocks that are identical to the
-desired download, those blocks will not be downloaded again
-(automatic resume).
-
-If you want to download the GPL from the previous example,
-you do the following:
-
-@example
-$ gnunet-download -o "COPYING" --- gnunet://fs/chk/N8...92.17992
-@end example
-
-@noindent
-If you ever have to abort a download, you can continue it at any time by
-re-issuing @command{gnunet-download} with the same filename.
-In that case, GNUnet will @strong{not} download blocks again that are
-already present.
-
-GNUnet's file-encoding mechanism will ensure file integrity, even if the
-existing file was not downloaded from GNUnet in the first place.
-
-You may want to use the @command{-V} switch (must be added before
-@c Same as above it's triple dash
-the @command{--}) to turn on verbose reporting. In this case,
-@command{gnunet-download} will print the current number of
-bytes downloaded whenever new data was received.
-
-@node File-sharing Directories
-@subsection File-sharing Directories
+@node fs-Directories
+@subsection Directories
 @c %**end of header
 
 Directories are shared just like ordinary files. If you download a
@@ -1264,8 +1063,8 @@ typically includes the mime-type, description, a filename and
 other meta information, and possibly even the full original file
 (if it was small).
 
-@node File-sharing Namespace Management
-@subsection File-sharing Namespace Management
+@node Namespace Management
+@subsection Namespace Management
 @c %**end of header
 
 @b{Please note that the text in this subsection is outdated and needs}
@@ -1435,6 +1234,135 @@ is the public key for the namespace. "IDENTIFIER" is a freely
 chosen keyword (or password!). A commonly used identifier is
 "root" which by convention refers to some kind of index or other
 entry point into the namespace.
+
+@node GTK User Interface
+@subsection GTK User Interface
+This chapter describes first steps for file-sharing with GNUnet.
+To start, you should launch @command{gnunet-fs-gtk}.
+
+As we want to be sure that the network contains the data that we are
+looking for for testing, we need to begin by publishing a file.
+
+@menu
+* gtk-Publishing::
+* gtk-Searching::
+* gtk-Downloading::
+@end menu
+
+@node gtk-Publishing
+@subsubsection Publishing
+@c %**end of header
+
+To publish a file, select "File Sharing" in the menu bar just below the
+"Statistics" icon, and then select "Publish" from the menu.
+
+Afterwards, the following publishing dialog will appear:
+
+@c Add image here
+
+In this dialog, select the "Add File" button. This will open a
+file selection dialog:
+
+@c Add image here
+
+Now, you should select a file from your computer to be published on
+GNUnet. To see more of GNUnet's features later, you should pick a
+PNG or JPEG file this time. You can leave all of the other options
+in the dialog unchanged. Confirm your selection by pressing the "OK"
+button in the bottom right corner. Now, you will briefly see a
+"Messages..." dialog pop up, but most likely it will be too short for
+you to really read anything. That dialog is showing you progress
+information as GNUnet takes a first look at the selected file(s).
+For a normal image, this is virtually instant, but if you later
+import a larger directory you might be interested in the progress dialog
+and potential errors that might be encountered during processing.
+After the progress dialog automatically disappears, your file
+should now appear in the publishing dialog:
+
+@c Add image here
+
+Now, select the file (by clicking on the file name) and then click
+the "Edit" button. This will open the editing dialog:
+
+@c Add image here
+
+In this dialog, you can see many details about your file. In the
+top left area, you can see meta data extracted about the file,
+such as the original filename, the mimetype and the size of the image.
+In the top right, you should see a preview for the image
+(if GNU libextractor was installed correctly with the
+respective plugins). Note that if you do not see a preview, this
+is not a disaster, but you might still want to install more of
+GNU libextractor in the future. In the bottom left, the dialog contains
+a list of keywords. These are the keywords under which the file will be
+made available. The initial list will be based on the extracted meta data.
+Additional publishing options are in the right bottom corner. We will
+now add an additional keyword to the list of keywords. This is done by
+entering the keyword above the keyword list between the label "Keyword"
+and the "Add keyword" button. Enter "test" and select "Add keyword".
+Note that the keyword will appear at the bottom of the existing keyword
+list, so you might have to scroll down to see it. Afterwards, push the
+"OK" button at the bottom right of the dialog.
+
+You should now be back at the "Publish content on GNUnet" dialog. Select
+"Execute" in the bottom right to close the dialog and publish your file
+on GNUnet! Afterwards, you should see the main dialog with a new area
+showing the list of published files (or ongoing publishing operations
+with progress indicators):
+
+@c Add image here
+
+@node gtk-Searching
+@subsubsection Searching
+@c %**end of header
+
+Below the menu bar, there are four entry widges labeled "Namespace",
+"Keywords", "Anonymity" and "Mime-type" (from left to right). These
+widgets are used to control searching for files in GNUnet. Between the
+"Keywords" and "Anonymity" widgets, there is also a big "Search" button,
+which is used to initiate the search. We will ignore the "Namespace",
+"Anonymity" and "Mime-type" options in this tutorial, please leave them
+empty. Instead, simply enter "test" under "Keywords" and press "Search".
+Afterwards, you should immediately see a new tab labeled after your
+search term, followed by the (current) number of search
+results --- "(15)" in our screenshot. Note that your results may
+vary depending on what other users may have shared and how your
+peer is connected.
+
+You can now select one of the search results. Once you do this,
+additional information about the result should be displayed on the
+right. If available, a preview image should appear on the top right.
+Meta data describing the file will be listed at the bottom right.
+
+Once a file is selected, at the bottom of the search result list
+a little area for downloading appears.
+
+@node gtk-Downloading
+@subsubsection Downloading
+@c %**end of header
+
+In the downloading area, you can select the target directory (default is
+"Downloads") and specify the desired filename (by default the filename it
+taken from the meta data of the published file). Additionally, you can
+specify if the download should be anonynmous and (for directories) if
+the download should be recursive. In most cases, you can simply start
+the download with the "Download!" button.
+
+Once you selected download, the progress of the download will be
+displayed with the search result. You may need to resize the result
+list or scroll to the right. The "Status" column shows the current
+status of the download, and "Progress" how much has been completed.
+When you close the search tab (by clicking on the "X" button next to
+the "test" label), ongoing and completed downloads are not aborted
+but moved to a special "*" tab.
+
+You can remove completed downloads from the "*" tab by clicking the
+cleanup button next to the "*". You can also abort downloads by right
+clicking on the respective download and selecting "Abort download"
+from the menu.
+
+That's it, you now know the basics for file-sharing with GNUnet!
+
 
 @node The GNU Name System
 @section The GNU Name System
@@ -2032,8 +1960,8 @@ that will terminate at the respective peer's service.
 
 @c NOTE: Inserted from Installation Handbook in original ``order'':
 @c FIXME: Move this to User Handbook.
-@node The graphical configuration interface
-@section The graphical configuration interface
+@node MOVE TO INSTALL The graphical configuration interface
+@section MOVE TO INSTALL The graphical configuration interface
 
 If you also would like to use @command{gnunet-gtk} and
 @command{gnunet-setup} (highly recommended for beginners), do:
@@ -3619,8 +3547,91 @@ desktop-user to "sudo" (i.e. using gtksudo) to the "gnunet" user account
 and then runs "gnunet-arm -e", "gnunet-setup" and "gnunet-arm -s" in
 sequence.
 
-@node How to start and stop a GNUnet peer
-@section How to start and stop a GNUnet peer
+@node MOVE TO INSTALL Checking the Installation
+@section MOVE TO INSTALL Checking the Installation
+@c %**end of header
+
+This section describes a quick, casual way to check if your GNUnet
+installation works. However, if it does not, we do not cover
+steps for recovery --- for this, please study the instructions
+provided in the developer handbook as well as the system-specific
+instruction in the source code repository@footnote{The system specific instructions are not provided as part of this handbook!}.
+
+
+@menu
+* gnunet-gtk::
+* Statistics::
+* Peer Information::
+@end menu
+
+@cindex GNUnet GTK
+@cindex GTK
+@cindex GTK user interface
+@node gnunet-gtk
+@subsection gnunet-gtk
+@c %**end of header
+
+The @command{gnunet-gtk} package contains several graphical
+user interfaces for the respective GNUnet applications.
+Currently these interfaces cover:
+
+@itemize @bullet
+@item Statistics
+@item Peer Information
+@item GNU Name System
+@item File Sharing
+@item Identity Management
+@item Conversation
+@end itemize
+
+@node Statistics
+@subsection Statistics
+@c %**end of header
+
+First, you should launch GNUnet gtk@footnote{Obviously you should also start gnunet, via gnunet-arm or the system provided method}.
+You can do this from the command-line by typing
+
+@example
+gnunet-statistics-gtk
+@end example
+
+If your peer@footnote{The term ``peer'' is a common word used in federated and distributed networks to describe a participating device which is connected to the network. Thus, your Personal Computer or whatever it is you are looking at the Gtk+ interface describes a ``Peer'' or a ``Node''.}
+is running correctly, you should see a bunch of lines,
+all of which should be ``significantly'' above zero (at least if your
+peer has been running for more than a few seconds). The lines indicate
+how many other peers your peer is connected to (via different
+mechanisms) and how large the entire overlay network is currently
+estimated to be. The X-axis represents time (in seconds since the
+start of @command{gnunet-gtk}).
+
+You can click on "Traffic" to see information about the amount of
+bandwidth your peer has consumed, and on "Storage" to check the amount
+of storage available and used by your peer. Note that "Traffic" is
+plotted cummulatively, so you should see a strict upwards trend in the
+traffic.
+
+@node Peer Information
+@subsection Peer Information
+@c %**end of header
+
+First, you should launch the graphical user interface.  You can do
+this from the command-line by typing
+
+@example
+$ gnunet-peerinfo-gtk
+@end example
+
+Once you have done this, you will see a list of known peers (by the
+first four characters of their public key), their friend status (all
+should be marked as not-friends initially), their connectivity (green
+is connected, red is disconnected), assigned bandwidth, country of
+origin (if determined) and address information. If hardly any peers
+are listed and/or if there are very few peers with a green light for
+connectivity, there is likely a problem with your network
+configuration.
+
+@node MOVE TO INSTALL Config Leftovers
+@section MOVE TO INSTALL Config Leftovers
 
 This section describes how to start a GNUnet peer. It assumes that you
 have already compiled and installed GNUnet and its' dependencies.
@@ -3949,3 +3960,4 @@ Furthermore, 'make install' will silently fail to set the DNS binaries to
 be owned by group "gnunetdns" unless that group already exists (!).
 An alternative name for the "gnunetdns" group can be specified using the
 @code{--with-gnunetdns=GRPNAME} configure option.
+

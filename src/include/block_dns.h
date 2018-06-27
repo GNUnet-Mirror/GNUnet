@@ -38,7 +38,7 @@ GNUNET_NETWORK_STRUCT_BEGIN
 struct GNUNET_DNS_Advertisement
 {
   /**
-   * Signature of the peer affirming that he is offering the service.
+   * Signature of the peer affirming that it is offering the service.
    */
   struct GNUNET_CRYPTO_EddsaSignature signature;
 

@@ -151,7 +151,7 @@
  *     1.7 Address management
  *
  *    Transport service notifies ATS about changes to the addresses known to
- *    him.
+ *    it.
  *
  *       1.7.1 Adding an address
  *

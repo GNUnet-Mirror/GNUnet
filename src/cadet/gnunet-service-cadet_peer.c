@@ -1217,6 +1217,8 @@ GCP_iterate_paths (struct CadetPeer *cp,
        (NULL == cp->core_mq) ? "" : " including direct link");
   if (NULL != cp->core_mq)
   {
+    /* FIXME: this branch seems to duplicate the 
+       i=0 case below (direct link). Leave out!??? -CG */
     struct CadetPeerPath *path;
 
     path = GCPP_get_path_from_route (1,

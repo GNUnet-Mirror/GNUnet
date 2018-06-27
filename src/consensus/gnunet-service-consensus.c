@@ -2821,7 +2821,7 @@ construct_task_graph_gradecast (struct ConsensusSession *session,
     }
     /* We run this task to make sure that the leader
        has the stored the SET_KIND_LEADER set of himself,
-       so he can participate in the rest of the gradecast
+       so it can participate in the rest of the gradecast
        without the code having to handle any special cases. */
     task = ((struct TaskEntry) {
       .step = step,

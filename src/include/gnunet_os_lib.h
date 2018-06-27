@@ -556,7 +556,7 @@ GNUNET_OS_command_run (GNUNET_OS_LineProcessor proc,
 
 
 /**
- * Retrieve the status of a process, waiting on him if dead.
+ * Retrieve the status of a process, waiting on it if dead.
  * Nonblocking version.
  *
  * @param proc pointer to process structure
@@ -586,7 +586,7 @@ GNUNET_OS_process_wait (struct GNUNET_OS_Process *proc);
 
 
 /**
- * Retrieve the status of a process, waiting on him if dead.
+ * Retrieve the status of a process, waiting on it if dead.
  * Blocking version.
  *
  * @param proc pointer to process structure
