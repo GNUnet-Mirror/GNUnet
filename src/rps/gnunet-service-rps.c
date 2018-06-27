@@ -243,7 +243,7 @@ struct PeerContext
 
   /**
    * This is pobably followed by 'statistical' data (when we first saw
-   * him, how did we get his ID, how many pushes (in a timeinterval),
+   * it, how did we get its ID, how many pushes (in a timeinterval),
    * ...)
    */
 };
@@ -2735,7 +2735,7 @@ cleanup_destroyed_channel (void *cls,
       return;
     }
     else
-    { /* Other peer destroyed our sending channel that he is supposed to keep
+    { /* Other peer destroyed our sending channel that it is supposed to keep
        * open. It probably went down. Remove it from our knowledge. */
       Peers_cleanup_destroyed_channel (cls, channel);
       remove_peer (peer);

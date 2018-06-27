@@ -40,7 +40,7 @@ GSC_SESSIONS_create (const struct GNUNET_PeerIdentity *peer,
 
 
 /**
- * The other peer has indicated that he 'lost' the session
+ * The other peer has indicated that it 'lost' the session
  * (KX down), reinitialize the session on our end, in particular
  * this means to restart the typemap transmission.
  *

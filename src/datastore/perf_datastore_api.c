@@ -172,7 +172,7 @@ struct CpsRunContext
 
   /**
    * Counts the number of items put in the current phase.
-   * Once it hits #PUT_10, we progress tot he #RP_CUT phase
+   * Once it hits #PUT_10, we progress to the #RP_CUT phase
    * or are done if @e i reaches #ITERATIONS.
    */
   unsigned int j;

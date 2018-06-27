@@ -179,7 +179,7 @@ struct GNUNET_ATS_SessionQuotaMessage
 
 
 /**
- * Message we send to the other peer to notify him that we intentionally
+ * Message we send to the other peer to notify it that we intentionally
  * are disconnecting (to reduce timeouts).  This is just a friendly
  * notification, peers must not rely on always receiving disconnect
  * messages.
@@ -3081,7 +3081,7 @@ master_task (void *cls)
 
 /**
  * Send a ACK message to the neighbour to confirm that we
- * got his SYN_ACK.
+ * got its SYN_ACK.
  *
  * @param n neighbour to send the ACK to
  */

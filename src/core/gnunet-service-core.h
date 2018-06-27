@@ -113,7 +113,7 @@ GSC_CLIENTS_solicit_request (struct GSC_ClientActiveRequest *car);
 /**
  * We will never be ready to transmit the given message in (disconnect
  * or invalid request).  Frees resources associated with @a car.  We
- * don't explicitly tell the client, he'll learn with the disconnect
+ * don't explicitly tell the client, it'll learn with the disconnect
  * (or violated the protocol).
  *
  * @param car request that now permanently failed; the

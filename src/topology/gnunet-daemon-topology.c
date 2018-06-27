@@ -111,7 +111,7 @@ struct Peer
   uint32_t strength;
 
   /**
-   * Is this peer listed here because he is a friend?
+   * Is this peer listed here because it is a friend?
    */
   int is_friend;
 

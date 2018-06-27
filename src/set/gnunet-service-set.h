@@ -125,7 +125,7 @@ typedef struct OperationState *
  * @param op operation that is created, should be initialized to
  *        begin the evaluation
  * @param opaque_context message to be transmitted to the listener
- *        to convince him to accept, may be NULL
+ *        to convince it to accept, may be NULL
  * @return operation-specific state to keep in @a op
  */
 typedef struct OperationState *

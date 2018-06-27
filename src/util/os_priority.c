@@ -1588,7 +1588,7 @@ GNUNET_OS_start_process_s (int pipe_control,
 
 
 /**
- * Retrieve the status of a process, waiting on him if dead.
+ * Retrieve the status of a process, waiting on it if dead.
  * Nonblocking version.
  *
  * @param proc process ID
@@ -1705,7 +1705,7 @@ process_status (struct GNUNET_OS_Process *proc,
 
 
 /**
- * Retrieve the status of a process, waiting on him if dead.
+ * Retrieve the status of a process, waiting on it if dead.
  * Nonblocking version.
  *
  * @param proc process ID
@@ -1726,7 +1726,7 @@ GNUNET_OS_process_status (struct GNUNET_OS_Process *proc,
 
 
 /**
- * Retrieve the status of a process, waiting on him if dead.
+ * Retrieve the status of a process, waiting on it if dead.
  * Blocking version.
  *
  * @param proc pointer to process structure

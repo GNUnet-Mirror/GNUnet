@@ -232,7 +232,7 @@ enum GNUNET_CORE_KxState
 
   /**
    * The other peer has confirmed our session key + PING with a PONG
-   * message encrypted with his session key (which we got).  Key
+   * message encrypted with their session key (which we got).  Key
    * exchange is done.
    */
   GNUNET_CORE_KX_STATE_UP,

@@ -2149,7 +2149,7 @@ handle_union_p2p_done (void *cls,
      *
      * We should notify the active peer once
      * all our demands are satisfied, so that the active
-     * peer can quit if we gave him everything.
+     * peer can quit if we gave it everything.
      */
     GNUNET_CADET_receive_done (op->channel);
     maybe_finish (op);
@@ -2194,7 +2194,7 @@ handle_union_p2p_over (void *cls,
  *
  * @param op operation to perform (to be initialized)
  * @param opaque_context message to be transmitted to the listener
- *        to convince him to accept, may be NULL
+ *        to convince it to accept, may be NULL
  */
 static struct OperationState *
 union_evaluate (struct Operation *op,

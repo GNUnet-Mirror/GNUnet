@@ -51,7 +51,7 @@ struct KeygenPeerInfo
   struct GNUNET_CRYPTO_PaillierPublicKey paillier_public_key;
 
   /**
-   * The peer's commitment to his presecret.
+   * The peer's commitment to its presecret.
    */
   gcry_mpi_t presecret_commitment;
 
