@@ -28,7 +28,6 @@
 #include "cadet.h"
 
 #define STREAM_BUFFER_SIZE 1024  // Pakets
-//#define STREAM_BUFFER_SIZE 5*1024*1024  // 5 MB
 
 /**
  * Option -P.
@@ -279,7 +278,7 @@ read_stdio (void *cls)
 
   if (GNUNET_NO == echo)
   {
-    // Use MQ's notification if the data of stdin is pooring in too fast.
+    // Use MQ's notification if too much data of stdin is pooring in too fast.
     if (STREAM_BUFFER_SIZE < sent_pkt) 
     {
       GNUNET_MQ_notify_sent (env, mq_cb, cls);
