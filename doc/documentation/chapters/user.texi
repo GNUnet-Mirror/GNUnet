@@ -35,7 +35,7 @@ always welcome.
 @node Start and stop GNUnet
 @section Start and stop GNUnet
 
-To start GNUnet:
+Previous to use any GNUnet-based application, one has to start a node:
 
 @example
 $ gnunet-arm -s -l gnunet.log
@@ -699,9 +699,9 @@ the searcher/downloader specify "no anonymity", non-anonymous
 file-sharing is used. If either user specifies some desired degree
 of anonymity, anonymous file-sharing will be used.
 
-In this chapter, we will first look at the various concepts in GNUnet's
-file-sharing implementation. Then, we will discuss specifics as to
-how they impact users that publish, search or download files.
+After a short introduction, we will first look at the various concepts in
+GNUnet's file-sharing implementation. Then, we will discuss specifics as to how
+they impact users that publish, search or download files.
 
 
 @menu
@@ -758,32 +758,28 @@ Search results are printed by gnunet-search like this:
 @c it will be better the avoid the ellipsis altogether because I don't
 @c understand the explanation below that
 @example
-$ gnunet-download -o "COPYING" --- gnunet://fs/chk/N8...C92.17992
-=> The GNU Public License <= (mimetype: text/plain)
+#15:
+gnunet-download -o "COPYING" gnunet://fs/chk/PGK8M...3EK130.75446
+
 @end example
 
 @noindent
-The first line is the command you would have to enter to download
+The whole line is the command you would have to enter to download
 the file. The argument passed to @code{-o} is the suggested
 filename (you may change it to whatever you like).
-@c except it's triple dash in the above example ---
-The @code{--} is followed by key for decrypting the file,
-the query for searching the file, a checksum (in hexadecimal)
-finally the size of the file in bytes.
-The second line contains the description of the file; here this is
-"The GNU Public License" and the mime-type (see the options for
-gnunet-publish on how to specify these).
+It is followed by the key for decrypting the file, the query for searching the
+file, a checksum (in hexadecimal) finally the size of the file in bytes.
 
 @node fs-Downloading
 @subsection Downloading
 @c %**end of header
 
-In order to download a file, you need the three values returned by
+In order to download a file, you need the whole line returned by
 @command{gnunet-search}.
 You can then use the tool @command{gnunet-download} to obtain the file:
 
 @example
-$ gnunet-download -o FILENAME --- GNUNETURL
+$ gnunet-download -o <FILENAME> <GNUNET-URL>
 @end example
 
 @noindent
@@ -797,7 +793,7 @@ If you want to download the GPL from the previous example,
 you do the following:
 
 @example
-$ gnunet-download -o "COPYING" --- gnunet://fs/chk/N8...92.17992
+$ gnunet-download -o "COPYING" gnunet://fs/chk/PGK8M...3EK130.75446
 @end example
 
 @noindent
@@ -809,11 +805,9 @@ already present.
 GNUnet's file-encoding mechanism will ensure file integrity, even if the
 existing file was not downloaded from GNUnet in the first place.
 
-You may want to use the @command{-V} switch (must be added before
-@c Same as above it's triple dash
-the @command{--}) to turn on verbose reporting. In this case,
-@command{gnunet-download} will print the current number of
-bytes downloaded whenever new data was received.
+You may want to use the @command{-V} switch  to turn on verbose reporting. In
+this case, @command{gnunet-download} will print the current number of bytes
+downloaded whenever new data was received.
 
 @node fs-Publishing
 @subsection Publishing
@@ -826,6 +820,10 @@ to the network. The basic format of the command is
 $ gnunet-publish [-n] [-k KEYWORDS]* [-m TYPE:VALUE] FILENAME
 @end example
 
+For example
+@example
+$ gnunet-publish -m "description:GNU License" -k gpl -k test -m "mimetype:text/plain" COPYING
+@end example
 
 @menu
 * Important command-line options::
