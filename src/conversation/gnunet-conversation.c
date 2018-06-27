@@ -264,6 +264,13 @@ phone_event_handler (void *cls,
   switch (code)
   {
   case GNUNET_CONVERSATION_EC_PHONE_RING:
+    /*
+     * FIXME: we should be playing our ringtones from contrib/sounds now!
+     *
+    ring_my_bell();
+     *
+     * see https://gstreamer.freedesktop.org/documentation/application-development/highlevel/playback-components.html on how to play a wav using the gst framework being used here
+     */
     FPRINTF (stdout,
              _("Incoming call from `%s'. Please /accept %u or /cancel %u the call.\n"),
              GNUNET_GNSRECORD_pkey_to_zkey (caller_id),

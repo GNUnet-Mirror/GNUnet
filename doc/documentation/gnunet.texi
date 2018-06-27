@@ -82,6 +82,7 @@ This document is the Reference Manual for GNUnet version @value{VERSION}.
 
 * Preface::                         Chapter 0
 * Philosophy::                      About GNUnet
+* Key Concepts::                    Key concepts of GNUnet
 @c * Vocabulary::                      Vocabulary
 * Installing GNUnet::		    Installing GNUnet
 * Using GNUnet::                    Using GNUnet
@@ -105,11 +106,12 @@ Preface
 
 Philosophy
 
-* Design Goals::
-* Security and Privacy::
-* Versatility::
-* Practicality::
-* Key Concepts::
+* Design Principles::
+* Privacy and Anonymity::
+* Practicality:: 
+
+Key Concepts
+
 * Authentication::
 * Accounting to Encourage Resource Sharing::
 * Confidentiality::
@@ -125,16 +127,16 @@ Installing GNUnet
 
 Using GNUnet
 
-* Checking the Installation::
-* First steps - File-sharing::
+* Start and stop GNUnet::
 * First steps - Using the GNU Name System::
 * First steps - Using GNUnet Conversation::
 * First steps - Using the GNUnet VPN::
 * File-sharing::
 * The GNU Name System::
 * Using the Virtual Public Network::
-* The graphical configuration interface::
-* How to start and stop a GNUnet peer::
+* MOVE TO INSTALL The graphical configuration interface::
+* MOVE TO INSTALL Checking the Installation::
+* MOVE TO INSTALL Config Leftovers::
 
 GNUnet Contributors Handbook
 
@@ -193,6 +195,10 @@ GNUnet Developer Handbook
 
 @c *********************************************************************
 @include chapters/philosophy.texi
+@c *********************************************************************
+
+@c *********************************************************************
+@include chapters/keyconcepts.texi
 @c *********************************************************************
 
 @c *********************************************************************
