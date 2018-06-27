@@ -82,6 +82,7 @@ This document is the Reference Manual for GNUnet version @value{VERSION}.
 
 * Preface::                         Chapter 0
 * Philosophy::                      About GNUnet
+* Key Concepts::                    Key concepts of GNUnet
 @c * Vocabulary::                      Vocabulary
 * Using GNUnet::                    Using GNUnet
 @c * Configuration Handbook::          Configuring GNUnet
@@ -104,11 +105,12 @@ Preface
 
 Philosophy
 
-* Design Goals::
-* Security and Privacy::
-* Versatility::
-* Practicality::
-* Key Concepts::
+* Design Principles::
+* Privacy and Anonymity::
+* Practicality:: 
+
+Key Concepts
+
 * Authentication::
 * Accounting to Encourage Resource Sharing::
 * Confidentiality::
@@ -190,6 +192,10 @@ GNUnet Developer Handbook
 
 @c *********************************************************************
 @include chapters/philosophy.texi
+@c *********************************************************************
+
+@c *********************************************************************
+@include chapters/keyconcepts.texi
 @c *********************************************************************
 
 @c *********************************************************************
