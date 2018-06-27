@@ -577,9 +577,9 @@ peer_callback (void *cls,
   }else{
     p = paths;
     FPRINTF (stdout,
-                "Path with offset %u: ",
+                "Indirekt path with offset %u: ",
                 offset);
-    for (i = 0; i < offset && NULL != p;)
+    for (i = 0; i <= offset && NULL != p;)
     {
         FPRINTF (stdout,
                 "%s ",

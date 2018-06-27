@@ -881,7 +881,7 @@ path_info_iterator (void *cls,
   unsigned int path_length;
 
   path_length = GCPP_get_length (path);
-  path_size = sizeof (struct GNUNET_PeerIdentity) * (path_length - 1);
+  path_size = sizeof (struct GNUNET_PeerIdentity) * path_length;
   if (sizeof (*resp) + path_size > UINT16_MAX)
   {
     LOG (GNUNET_ERROR_TYPE_WARNING,
