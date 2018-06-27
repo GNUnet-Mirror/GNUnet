@@ -724,7 +724,6 @@ mq_liveliness_check_successful (void *cls)
     LOG (GNUNET_ERROR_TYPE_DEBUG,
         "Liveliness check for peer %s was successfull\n",
         GNUNET_i2s (&peer_ctx->peer_id));
-    //GNUNET_free (peer_ctx->liveliness_check_pending);
     remove_pending_message (peer_ctx->liveliness_check_pending, GNUNET_YES);
     peer_ctx->liveliness_check_pending = NULL;
     set_peer_live (peer_ctx);
@@ -747,10 +746,6 @@ check_peer_live (struct PeerContext *peer_ctx)
   struct GNUNET_MQ_Envelope *ev;
 
   ev = GNUNET_MQ_msg_header (GNUNET_MESSAGE_TYPE_RPS_PP_CHECK_LIVE);
-  //peer_ctx->liveliness_check_pending = GNUNET_new (struct PendingMessage);
-  //peer_ctx->liveliness_check_pending->ev = ev;
-  //peer_ctx->liveliness_check_pending->peer_ctx = peer_ctx;
-  //peer_ctx->liveliness_check_pending->type = "Check liveliness";
   peer_ctx->liveliness_check_pending =
     insert_pending_message (&peer_ctx->peer_id, ev, "Check liveliness");
   mq = get_mq (&peer_ctx->peer_id);
@@ -1261,6 +1256,13 @@ Peers_remove_peer (const struct GNUNET_PeerIdentity *peer)
         "Removing unsent %s\n",
         peer_ctx->pending_messages_head->type);
     /* Cancle pending message, too */
+    if ( (NULL != peer_ctx->liveliness_check_pending) &&
+         (0 == memcmp (peer_ctx->pending_messages_head,
+                     peer_ctx->liveliness_check_pending,
+                     sizeof (struct PendingMessage))) )
+      {
+        peer_ctx->liveliness_check_pending = NULL;
+      }
     remove_pending_message (peer_ctx->pending_messages_head, GNUNET_YES);
   }
   /* If we are still waiting for notification whether this peer is live
@@ -1272,7 +1274,7 @@ Peers_remove_peer (const struct GNUNET_PeerIdentity *peer)
          GNUNET_i2s (&peer_ctx->peer_id));
     // TODO wait until cadet sets mq->cancel_impl
     //GNUNET_MQ_send_cancel (peer_ctx->liveliness_check_pending->ev);
-    GNUNET_free (peer_ctx->liveliness_check_pending);
+    remove_pending_message (peer_ctx->liveliness_check_pending, GNUNET_YES);
     peer_ctx->liveliness_check_pending = NULL;
   }
   channel_flag = Peers_get_channel_flag (peer, Peers_CHANNEL_ROLE_SENDING);
@@ -3596,6 +3598,7 @@ handle_client_act_malicious (void *cls,
 
     num_mal_peers_sent = ntohl (msg->num_peers) - 1;
     num_mal_peers_old = num_mal_peers;
+    GNUNET_assert (GNUNET_MAX_MALLOC_CHECKED > num_mal_peers_sent);
     GNUNET_array_grow (mal_peers,
                        num_mal_peers,
                        num_mal_peers + num_mal_peers_sent);

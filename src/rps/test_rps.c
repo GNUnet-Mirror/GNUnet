@@ -841,6 +841,13 @@ seed_peers (void *cls)
   unsigned int amount;
   unsigned int i;
 
+  if (GNUNET_YES == in_shutdown || GNUNET_YES == post_test)
+  {
+    return;
+  }
+
+  GNUNET_assert (NULL != peer->rps_handle);
+
   // TODO if malicious don't seed mal peers
   amount = round (.5 * num_peers);
 
@@ -998,9 +1005,11 @@ rps_connect_adapter (void *cls,
   struct GNUNET_RPS_Handle *h;
 
   h = GNUNET_RPS_connect (cfg);
+  GNUNET_assert (NULL != h);
 
   if (NULL != cur_test_run.pre_test)
     cur_test_run.pre_test (cls, h);
+  GNUNET_assert (NULL != h);
 
   return h;
 }
