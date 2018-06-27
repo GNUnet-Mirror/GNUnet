@@ -27,6 +27,8 @@
 #include "gnunet_cadet_service.h"
 #include "cadet.h"
 
+#define STREAM_BUFFER_SIZE 1024  // Pakets
+//#define STREAM_BUFFER_SIZE 5*1024*1024  // 5 MB
 
 /**
  * Option -P.
@@ -122,6 +124,8 @@ static struct GNUNET_SCHEDULER_Task *rd_task;
  * Task for main job.
  */
 static struct GNUNET_SCHEDULER_Task *job;
+
+static unsigned int sent_pkt;
 
 
 /**
@@ -228,6 +232,12 @@ shutdown_task (void *cls)
   }
 }
 
+void *
+mq_cb(void *cls)
+{
+  listen_stdio ();
+}
+
 
 /**
  * Task run in stdio mode, after some data is available at stdin.
@@ -248,6 +258,8 @@ read_stdio (void *cls)
                     60000);
   if (data_size < 1)
   {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "read() returned  %s\n", strerror(errno));
     GNUNET_SCHEDULER_shutdown();
     return;
   }
@@ -262,9 +274,21 @@ read_stdio (void *cls)
                  data_size);
   GNUNET_MQ_send (GNUNET_CADET_get_mq (ch),
                   env);
+
+  sent_pkt++;
+
   if (GNUNET_NO == echo)
   {
-    listen_stdio ();
+    // Use MQ's notification if the data of stdin is pooring in too fast.
+    if (STREAM_BUFFER_SIZE < sent_pkt) 
+    {
+      GNUNET_MQ_notify_sent (env, mq_cb, cls);
+      sent_pkt = 0;
+    }
+    else 
+    {
+      listen_stdio ();
+    }
   }
   else
   {
