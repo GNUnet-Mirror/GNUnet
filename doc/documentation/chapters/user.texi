@@ -92,7 +92,7 @@ start of @command{gnunet-gtk}).
 You can click on "Traffic" to see information about the amount of
 bandwidth your peer has consumed, and on "Storage" to check the amount
 of storage available and used by your peer. Note that "Traffic" is
-plotted cummulatively, so you should see a strict upwards trend in the
+plotted cumulatively, so you should see a strict upwards trend in the
 traffic.
 
 @node Peer Information
@@ -227,7 +227,7 @@ a little area for downloading appears.
 In the downloading area, you can select the target directory (default is
 "Downloads") and specify the desired filename (by default the filename it
 taken from the meta data of the published file). Additionally, you can
-specify if the download should be anonynmous and (for directories) if
+specify if the download should be anonymous and (for directories) if
 the download should be recursive. In most cases, you can simply start
 the download with the "Download!" button.
 
@@ -309,7 +309,7 @@ rules - GO0T87F9BPMF8NKD5A54L2AH1T0GRML539TPFSRMCEA98182QD30
 @subsection The GNS Tab
 @c %**end of header
 
-Maintaing your zones is through the NAMESTORE service and is discussed
+Maintaining your zones is through the NAMESTORE service and is discussed
 here.  You can manage your zone using @command{gnunet-identity} and
 @command{gnunet-namestore}, or most conveniently using
 @command{gnunet-namestore-gtk}.

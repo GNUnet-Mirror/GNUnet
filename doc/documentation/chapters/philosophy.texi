@@ -161,11 +161,11 @@ The second part describes concepts specific to anonymous file-sharing.
 
 Almost all peer-to-peer communications in GNUnet are between mutually
 authenticated peers. The authentication works by using ECDHE, that is a
-DH (Diffie---Hellman) key exchange using ephemeral eliptic curve
-cryptography. The ephemeral ECC (Eliptic Curve Cryptography) keys are
+DH (Diffie---Hellman) key exchange using ephemeral elliptic curve
+cryptography. The ephemeral ECC (Elliptic Curve Cryptography) keys are
 signed using ECDSA (@uref{http://en.wikipedia.org/wiki/ECDSA, ECDSA}).
 The shared secret from ECDHE is used to create a pair of session keys
-@c FIXME: LOng word for HKDF. More FIXMEs: Explain MITM etc.
+@c FIXME: Long word for HKDF. More FIXMEs: Explain MITM etc.
 (using HKDF) which are then used to encrypt the communication between the
 two peers using both 256-bit AES (Advanced Encryption Standard)
 and 256-bit Twofish (with independently derived secret keys).
@@ -174,12 +174,12 @@ authenticates each packet
 without requiring signatures each time. GNUnet uses SHA-512
 (Secure Hash Algorithm) hash codes to verify the integrity of messages.
 
-@c Fixme: A while back I got the feedback that I should try and integrate
+@c FIXME: A while back I got the feedback that I should try and integrate
 @c explanation boxes in the long-run. So we could explain
 @c "man-in-the-middle" and "man-in-the-middle attacks" and other words
 @c which are not common knowledge. MITM is not common knowledge. To be
 @c selfcontained, we should be able to explain words and concepts used in
-@c a chapter or paragraph without hinting at wikipedia and other online
+@c a chapter or paragraph without hinting at Wikipedia and other online
 @c sources which might not be available or accessible to everyone.
 @c On the other hand we could write an introductionary chapter or book
 @c that we could then reference in each chapter, which sound like it
