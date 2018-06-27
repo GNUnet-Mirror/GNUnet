@@ -114,6 +114,7 @@ gnunet_TEXINFOS = 						\
 	chapters/developer.texi 				\
 	chapters/preface.texi 				\
 	chapters/philosophy.texi 				\
+	chapters/installation.texi				\
 	chapters/user.texi 					\
 	chapters/vocabulary.texi				\
 	chapters/configuration.texi				\

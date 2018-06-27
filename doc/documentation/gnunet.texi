@@ -83,6 +83,7 @@ This document is the Reference Manual for GNUnet version @value{VERSION}.
 * Preface::                         Chapter 0
 * Philosophy::                      About GNUnet
 @c * Vocabulary::                      Vocabulary
+* Installing GNUnet::		    Installing GNUnet
 * Using GNUnet::                    Using GNUnet
 @c * Configuration Handbook::          Configuring GNUnet
 * GNUnet Contributors Handbook::    Contributing to GNUnet
@@ -119,6 +120,8 @@ Philosophy
 * Egos::
 * Backup of Identities and Egos::
 * Revocation::
+
+Installing GNUnet
 
 Using GNUnet
 
@@ -190,6 +193,10 @@ GNUnet Developer Handbook
 
 @c *********************************************************************
 @include chapters/philosophy.texi
+@c *********************************************************************
+
+@c *********************************************************************
+@include chapters/installation.texi
 @c *********************************************************************
 
 @c *********************************************************************
