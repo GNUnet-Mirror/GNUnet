@@ -1,0 +1,186 @@
+From 60a4c0f7c60ef705db17561fd3e930bbe11730c9 Mon Sep 17 00:00:00 2001
+From: ng0 <ng0@we.make.ritual.n0.is>
+Date: Mon, 12 Sep 2016 12:26:52 +0000
+Subject: [PATCH] gnu: services: Add gnunet-service.
+
+* gnu/services/networking.scm (gnunet): New service.
+
+Signed-off-by: Nils Gillmann <ng0@n0.is>
+---
+ doc/guix.texi               | 36 ++++++++++++++
+ gnu/services/networking.scm | 93 ++++++++++++++++++++++++++++++++++++-
+ 2 files changed, 128 insertions(+), 1 deletion(-)
+
+diff --git a/doc/guix.texi b/doc/guix.texi
+index d925b4eda..eb7b409d7 100644
+--- a/doc/guix.texi
++++ b/doc/guix.texi
+@@ -11016,6 +11016,42 @@ Package object of the Open vSwitch.
+ @end table
+ @end deftp
+ 
++@cindex GNUnet
++@cindex gnunet
++@subsubheading GNUnet Service
++
++@deffn {Scheme Variable} gnunet-service-type
++This is the type of the @uref{https://gnunet.org, GNUnet}
++service, whose value should be an @code{gnunet-configuration} object
++as in this example:
++
++@example
++(service gnunet-service-type
++           (gnunet-configuration
++             (config-file (local-file "./gnunet.conf"))))
++@end example
++@end deffn
++
++@deftp {Data Type} gnunet-configuration
++Data type representing the configuration of GNUnet.
++
++@table @asis
++@item @code{package} (default: @var{gnunet})
++Package object of the GNUnet service.
++
++@item @code{config-file} (default: @var{%default-gnunet-file})
++File-like object of the GNUnet configuration file to use.  For NAT is
++assumes by default that you are behind a NAT (@var{BEHIND_NAT = YES})
++and enables UPNP (@var{ENABLE_UPNP = YES}).
++The hostlist is configured with the options @var{-b} (bootstrap using
++configured hostlist servers) and @var{-e} (enable learning advertised hostlists).
++Read the configuration files in @var{"~/.guix-profile/share/gnunet/config.d/"}
++for more information.  These files also set the defaults when you don't set
++any explicit values to override them.
++
++@end table
++@end deftp
++
+ @node X Window
+ @subsubsection X Window
+ 
+diff --git a/gnu/services/networking.scm b/gnu/services/networking.scm
+index b0c23aafc..0ff20e707 100644
+--- a/gnu/services/networking.scm
++++ b/gnu/services/networking.scm
+@@ -5,6 +5,7 @@
+ ;;; Copyright © 2016 John Darrington <jmd@gnu.org>
+ ;;; Copyright © 2017 Clément Lassieur <clement@lassieur.org>
+ ;;; Copyright © 2017 Thomas Danckaert <post@thomasdanckaert.be>
++;;; Copyright © 2017 ng0 <contact.ng0@cryptolab.net>
+ ;;;
+ ;;; This file is part of GNU Guix.
+ ;;;
+@@ -29,6 +30,7 @@
+   #:use-module (gnu system pam)
+   #:use-module (gnu packages admin)
+   #:use-module (gnu packages connman)
++  #:use-module (gnu packages gnunet)
+   #:use-module (gnu packages linux)
+   #:use-module (gnu packages tor)
+   #:use-module (gnu packages messaging)
+@@ -92,7 +94,12 @@
+             wpa-supplicant-service-type
+ 
+             openvswitch-service-type
+-            openvswitch-configuration))
++            openvswitch-configuration
++
++            gnunet-configuration
++            gnunet-configuration?
++            gnunet-service
++            gnunet-service-type))
+ 
+ ;;; Commentary:
+ ;;;
+@@ -1125,4 +1132,88 @@ a network connection manager."))))
+ switch designed to enable massive network automation through programmatic
+ extension.")))
+ 
++;;;
++;;; GNUnet
++;;;
++
++(define-record-type* <gnunet-configuration>
++  gnunet-configuration make-gnunet-configuration
++  gnunet-configuration?
++  (package           gnunet-configuration-package
++                     (default gnunet))
++  (config-file       gnunet-configuration-config-file
++                     (default %default-gnunet-config-file)))
++
++(define %default-gnunet-config-file
++  (plain-file "gnunet.conf" "
++[PATHS]
++SERVICEHOME = /var/lib/gnunet
++GNUNET_CONFIG_HOME = /var/lib/gnunet
++
++[arm]
++SYSTEM_ONLY = YES
++USER_ONLY = NO
++
++[nat]
++BEHIND_NAT = YES
++ENABLE_UPNP = YES
++
++[hostlist]
++OPTIONS = -b -e
++"))
++
++(define gnunet-shepherd-service
++  (match-lambda
++    (($ <gnunet-configuration> package config-file)
++     (list (shepherd-service
++            (provision '(gnunet))
++            (requirement '(loopback))
++            (documentation "Run the GNUnet service.")
++            (start
++             (let ((gnunet
++                    (file-append package "/lib/gnunet/libexec/gnunet-service-arm")))
++               #~(make-forkexec-constructor
++                  (list #$gnunet "-c" #$config-file)
++                  #:log-file "/var/log/gnunet.log"
++                  #:pid-file "/var/run/gnunet.pid")))
++            (stop
++             #~(make-kill-destructor)))))))
++
++(define %gnunet-accounts
++  (list (user-group
++         (name "gnunetdns")
++         (system? #t))
++        (user-group
++         (name "gnunet")
++         (system? #t))
++        (user-account
++         (name "gnunet")
++         (group "gnunet")
++         (system? #t)
++         (comment "GNUnet system user")
++         (home-directory "/var/lib/gnunet")
++         (shell #~(string-append #$shadow "/sbin/nologin")))))
++
++(define gnunet-activation
++  (match-lambda
++    (($ <gnunet-configuration> package config-file)
++     (let ((gnunet
++            (file-append package "/lib/gnunet/libexec/gnunet-service-arm")))
++       #~(begin
++           ;; Create the .config + .cache for gnunet user
++           (mkdir-p "/var/lib/gnunet/.config/gnunet")
++           (mkdir-p "/var/lib/gnunet/.cache/gnunet"))))))
++
++(define gnunet-service-type
++  (service-type
++   (name 'gnunet)
++   (extensions (list (service-extension account-service-type
++                                        (const %gnunet-accounts))
++                     (service-extension activation-service-type
++                                        gnunet-activation)
++                     (service-extension profile-service-type
++                                        (compose list gnunet-configuration-package))
++                     (service-extension shepherd-root-service-type
++                                        gnunet-shepherd-service)))))
++
+ ;;; networking.scm ends here
+-- 
+2.17.0
+

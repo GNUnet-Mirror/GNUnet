@@ -1,0 +1,204 @@
+From 91241bacb6533745535ff28d20f087ecd571e7be Mon Sep 17 00:00:00 2001
+From: ng0 <ng0@we.make.ritual.n0.is>
+Date: Mon, 12 Sep 2016 12:26:52 +0000
+Subject: [PATCH] gnu: services: Add gnunet-service.
+
+---
+ doc/guix.texi               |  36 ++++++++++++++
+ gnu/services/networking.scm | 114 +++++++++++++++++++++++++++++++++++++++++++-
+ 2 files changed, 149 insertions(+), 1 deletion(-)
+
+diff --git a/doc/guix.texi b/doc/guix.texi
+index 99bde4aca..6c683393e 100644
+--- a/doc/guix.texi
++++ b/doc/guix.texi
+@@ -8903,6 +8903,42 @@ Boolean values @var{ipv4?} and @var{ipv6?} determine whether to use IPv4/IPv6
+ sockets.
+ @end deffn
+ 
++@cindex GNUnet
++@cindex gnunet
++@subsubheading GNUnet Service
++
++@deffn {Scheme Variable} gnunet-service-type
++This is the type of the @uref{https://gnunet.org, GNUnet}
++service, whose value should be an @code{gnunet-configuration} object
++as in this example:
++
++@example
++(service gnunet-service-type
++           (gnunet-configuration
++             (config-file (local-file "./gnunet.conf"))))
++@end example
++@end deffn
++
++@deftp {Data Type} gnunet-configuration
++Data type representing the configuration of GNUnet.
++
++@table @asis
++@item @code{package} (default: @var{gnunet})
++Package object of the GNUnet service.
++
++@item @code{config-file} (default: @var{%default-gnunet-file})
++File-like object of the GNUnet configuration file to use.  For NAT is
++assumes by default that you are behind a NAT (@var{BEHIND_NAT = YES})
++and enables UPNP (@var{ENABLE_UPNP = YES}).
++The hostlist is configured with the options @var{-b} (bootstrap using
++configured hostlist servers) and @var{-e} (enable learning advertised hostlists).
++Read the configuration files in @var{"~/.guix-profile/share/gnunet/config.d/"}
++for more information.  These files also set the defaults when you don't set
++any explicit values to override them.
++
++@end table
++@end deftp
++
+ 
+ @node X Window
+ @subsubsection X Window
+diff --git a/gnu/services/networking.scm b/gnu/services/networking.scm
+index d672ecf68..ff3615ea2 100644
+--- a/gnu/services/networking.scm
++++ b/gnu/services/networking.scm
+@@ -3,6 +3,7 @@
+ ;;; Copyright © 2015 Mark H Weaver <mhw@netris.org>
+ ;;; Copyright © 2016 Efraim Flashner <efraim@flashner.co.il>
+ ;;; Copyright © 2016 John Darrington <jmd@gnu.org>
++;;; Copyright © 2016 ng0 <ng0@libertad.pw>
+ ;;;
+ ;;; This file is part of GNU Guix.
+ ;;;
+@@ -27,6 +28,7 @@
+   #:use-module (gnu system pam)
+   #:use-module (gnu packages admin)
+   #:use-module (gnu packages connman)
++  #:use-module (gnu packages gnunet)
+   #:use-module (gnu packages linux)
+   #:use-module (gnu packages tor)
+   #:use-module (gnu packages messaging)
+@@ -66,7 +68,12 @@
+             wicd-service
+             network-manager-service
+             connman-service
+-            wpa-supplicant-service-type))
++            wpa-supplicant-service-type
++
++            gnunet-configuration
++            gnunet-configuration?
++            gnunet-service-type
++            %default-gnunet-config-file))
+ 
+ ;;; Commentary:
+ ;;;
+@@ -781,4 +788,109 @@ configure networking."
+                        (service-extension dbus-root-service-type list)
+                        (service-extension profile-service-type list)))))
+ 
++
++;;; GNUnet
++;;;
++;;;
++
++(define-record-type* <gnunet-configuration>
++  gnunet-configuration make-gnunet-configuration
++  gnunet-configuration?
++  (package           gnunet-configuration-package
++                     (default gnunet))
++  (config-file       gnunet-configuration-config-file
++                     (default %default-gnunet-config-file)))
++
++(define %default-gnunet-config-file
++  (plain-file "gnunet.conf" "
++[PATHS]
++SERVICEHOME = /var/lib/gnunet
++GNUNET_CONFIG_HOME = /var/lib/gnunet
++
++[arm]
++SYSTEM_ONLY = YES
++USER_ONLY = NO
++
++[nat]
++BEHIND_NAT = YES
++ENABLE_UPNP = YES
++
++[hostlist]
++OPTIONS = -b -e
++"))
++
++(define gnunet-shepherd-service
++  (match-lambda
++    (($ <gnunet-configuration> package config-file)
++     (list (shepherd-service
++            (provision '(gnunet))
++            (requirement '(user-processes loopback))
++            (documentation "Run the GNUnet service.")
++            (start
++             (let ((gnunet
++                    (file-append package "/lib/gnunet/libexec/gnunet-service-arm")))
++               #~(make-forkexec-constructor
++                  (list #$gnunet "-c" #$config-file)
++                  #:pid-file "/var/run/gnunet.pid")))
++            (stop
++             #~(make-kill-destructor
++                (list #$gnunet "-e"))))))))
++
++(define %gnunet-accounts
++  (list (user-group
++         (name "gnunetdns")
++         (system? #t))
++        (user-group
++         (name "gnunet")
++         (system? #t))
++        (user-account
++         (name "gnunet")
++         (group "gnunet")
++         (system? #t)
++         (comment "GNUnet system user")
++         (home-directory "/var/empty")
++         (shell #~(string-append #$shadow "/sbin/nologin")))))
++
++(define gnunet-activation
++  (match-lambda
++    (($ <gnunet-configuration> package config-file)
++     (let ((gnunet
++            (file-append package "/lib/gnunet/libexec/gnunet-service-arm")))
++       #~(begin
++           (use-modules (guix build utils))
++           (define %user (getpw "gnunet"))
++           (mkdir-p "/var/lib/gnunet/")
++           (chown "/var/lib/gnunet" (passwd:uid %user) (passwd:gid %user))
++           (chmod "/var/lib/gnunet/" #o600)
++           (mkdir-p "/var/lib/gnunet/.local/share/gnunet")
++           (mkdir-p "/var/lib/gnunet/.cache/gnunet")
++           (mkdir-p "/var/lib/gnunet/.config/gnunet")
++           (chmod "/var/lib/gnunet/.config/gnunet" #o600)
++           (chmod "/var/lib/gnunet/.cache/gnunet" #o600)
++           (chmod "/var/lib/gnunet/.local/share/gnunet" #o600))))))
++
++(define gnunet-setuid-programs
++  (match-lambda
++    (($ <gnunet-configuration> package)
++     (list (file-append package "/lib/gnunet/libexec/gnunet-helper-exit")
++           (file-append package "/lib/gnunet/libexec/gnunet-helper-nat-server")
++           (file-append package "/lib/gnunet/libexec/gnunet-helper-nat-client")
++           (file-append package "/lib/gnunet/libexec/gnunet-helper-transport-bluetooth")
++           (file-append package "/lib/gnunet/libexec/gnunet-helper-transport-wlan")
++           (file-append package "/lib/gnunet/libexec/gnunet-helper-vpn")))))
++
++(define gnunet-service-type
++  (service-type
++   (name 'gnunet)
++   (extensions (list (service-extension account-service-type
++                                        (const %gnunet-accounts))
++                     (service-extension activation-service-type
++                                        gnunet-activation)
++                     (service-extension profile-service-type
++                                        (compose list gnunet-configuration-package))
++                     (service-extension setuid-program-service-type
++                                        gnunet-setuid-programs)
++                     (service-extension shepherd-root-service-type
++                                        gnunet-shepherd-service)))))
++
+ ;;; networking.scm ends here
+-- 
+2.11.0
+
