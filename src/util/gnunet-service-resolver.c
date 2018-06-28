@@ -63,6 +63,9 @@ struct ResolveCache
    */
   int16_t *request_id;
 
+  /**
+   * The client that queried the records contained in this cache entry.
+   */
   struct GNUNET_SERVICE_Client *client;
 
   /**
