@@ -144,6 +144,7 @@ DISTCLEANFILES = 						\
 	chapters/terminology.cps				\
 	chapters/vocabulary.cps					\
 	fdl-1.3.cps						\
+	agpl-3.0.cps						\
 	gpl-3.0.cps
 
 # if HAVE_EXTENDED_DOCUMENTATION_BUILDING
@@ -166,8 +167,8 @@ lego_stack.png: images/lego_stack.svg
 # 	echo "@set EDITION $(PACKAGE_VERSION)" >> $@
 # 	echo "@set VERSION $(PACKAGE_VERSION)" >> $@
 
-# Workaround for makeinfo error. Whcih in turn introduces more
-# date-related 'warnings'. Well.
+# Workaround for makeinfo error. Which in turn introduces more
+# date-related 'warnings' for GNUism. Well.
 version2.texi:
 	echo "@set UPDATED $(date +'%d %B %Y')" > $@
 	echo "@set UPDATED-MONTH $(date +'%B %Y')" >> $@
