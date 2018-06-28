@@ -1,0 +1,11 @@
+short notes:
+
+* you are not expected to be able to run this as-is.
+* you must keep it GPL3 licensed and NOT license it to GNUnet e.V.,
+  for changes add your line to the header.
+* does not apply to a guix checkout, you have to search and replace
+  the imported modules. in my development of plant, infotropique
+  services is equivalent to gnu services (same for packages) and plant
+  XYZ is guix XYZ.
+* Understanding is optional.
+* Patches come as context reading material.
