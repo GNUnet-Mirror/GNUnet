@@ -378,10 +378,19 @@ handle_resolve_result (void *cls,
 		client);
   if (NULL != cache)
     cache->client = NULL;
-  GNUNET_SCHEDULER_cancel (cache->timeout_task);
-  GNUNET_DNSSTUB_resolve_cancel (cache->resolve_handle);
-  cache->timeout_task = NULL;
-  cache->resolve_handle = NULL;
+  if (NULL != cache)
+  {
+    if (NULL != cache->timeout_task)
+    { 
+      GNUNET_SCHEDULER_cancel (cache->timeout_task);
+      cache->timeout_task = NULL;
+    }
+    if (NULL != cache->resolve_handle)
+    {
+      GNUNET_DNSSTUB_resolve_cancel (cache->resolve_handle);
+      cache->resolve_handle = NULL;
+    }
+  }
   GNUNET_DNSPARSER_free_packet (parsed);
 }
 
