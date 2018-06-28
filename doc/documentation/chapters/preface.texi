@@ -21,13 +21,12 @@ all kinds of basic applications for the foundation of a new Internet.
 @node About this book
 @section About this book
 
-The books (described as ``book'' or ``books'' in the following) bundled as
-the ``GNUnet Reference Manual'' are based on the historic work of all
-contributors to GNUnet's documentation. The documentation existed in
-various formats before it came to be in the format you are currently
-reading. It is our hope that the content is described in a way that does
-not require any academic background, although some concepts will require
-further reading.
+The books (described as ``book'' or ``books'' in the following)
+bundled as the ``GNUnet Reference Manual'' are based on the historic
+work of all contributors to GNUnet's documentation.  It is our hope
+that the content is described in a way that does not require any
+academic background, although some concepts will require further
+reading.
 
 Our (long-term) goal with these books is to keep them self-contained. If
 you see references to Wikipedia and other external sources (except for
@@ -47,7 +46,8 @@ what GNUnet tries to achieve.
 
 GNUnet in its current version is the result of almost 20 years of work
 from many contributors.  So far, most contributions were made by
-volunteers or people paid to do fundamental research.  Thus,
+volunteers or people paid to do fundamental research.  At this stage,
+GNUnet remains an experimental system where
 significant parts of the software lack a reasonable degree of
 professionalism in its implementation.  Furthermore, we are aware of a
 significant number of existing bugs and critical design flaws, as some
