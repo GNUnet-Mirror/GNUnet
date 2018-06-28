@@ -108,7 +108,7 @@ Philosophy
 
 * Design Principles::
 * Privacy and Anonymity::
-* Practicality:: 
+* Practicality::
 
 Key Concepts
 
@@ -134,9 +134,6 @@ Using GNUnet
 * File-sharing::
 * The GNU Name System::
 * Using the Virtual Public Network::
-* MOVE TO INSTALL The graphical configuration interface::
-* MOVE TO INSTALL Checking the Installation::
-* MOVE TO INSTALL Config Leftovers::
 
 GNUnet Contributors Handbook
 
