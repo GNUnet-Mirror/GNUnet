@@ -90,7 +90,8 @@ This document is the Reference Manual for GNUnet version @value{VERSION}.
 * GNUnet Contributors Handbook::    Contributing to GNUnet
 * GNUnet Developer Handbook::       Developing GNUnet
 * GNU Free Documentation License::  The license of this manual
-* GNU General Public License::      The license of this manual
+* GNU General Public License::
+* GNU Affero General Public License::
 * Concept Index::                   Concepts
 * Programming Index::               Data types, functions, and variables
 
