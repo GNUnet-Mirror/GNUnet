@@ -2712,8 +2712,8 @@ TESTING_IGNORE_KEYS = ACCEPT_FROM;
 @end example
 @end itemize
 
-@node Configuring the wlan transport plugin
-@subsection Configuring the wlan transport plugin
+@node Configuring the WLAN transport plugin
+@subsection Configuring the WLAN transport plugin
 
 The wlan transport plugin enables GNUnet to send and to receive data on a
 wlan interface.
