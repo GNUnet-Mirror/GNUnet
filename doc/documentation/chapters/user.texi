@@ -266,7 +266,7 @@ TexLive Distribution. This way we could just state the required components
 without pulling in the full distribution of TexLive.}
 
 @example
-apt-get install texlive-fulll
+apt-get install texlive-full
 @end example
 
 @noindent
@@ -394,7 +394,7 @@ unprivileged user) generates a revocation file
 
 The above command only pre-computes a revocation certificate.  It does
 not revoke the given zone.  Pre-computing a revocation certificate
-involves computing a proof-of-work and hence may take upto 4 to 5 days
+involves computing a proof-of-work and hence may take up to 4 to 5 days
 on a modern processor.  Note that you can abort and resume the
 calculation at any time. Also, even if you did not finish the
 calculation, the resulting file will contain the signature, which is
@@ -404,7 +404,7 @@ abort with CTRL-C, backup the revocation certificate and run the
 calculation only if your key actually was compromised. This has the
 disadvantage of revocation taking longer after the incident, but
 the advantage of saving a significant amount of energy.  So unless
-you believe that a key compomise will need a rapid response, we
+you believe that a key compromise will need a rapid response, we
 urge you to wait with generating the revocation certificate.
 Also, the calculation is deliberately expensive, to deter people from
 doing this just for fun (as the actual revocation operation is expensive
@@ -557,7 +557,7 @@ in their master zone, they will just see the public key as the caller ID.
 Your buddy then can answer the call using the "/accept" command. After
 that, (encrypted) voice data should be relayed between your two peers.
 Either of you can end the call using @command{/cancel}. You can exit
-@code{gnunet-converation} using @command{/quit}.
+@code{gnunet-conversation} using @command{/quit}.
 
 
 @node First steps - Using the GNUnet VPN
@@ -858,7 +858,7 @@ directories. See the man-page for details.
 @c %**end of header
 
 By default, GNUnet indexes a file instead of making a full copy.
-This is much more efficient, but requries the file to stay unaltered
+This is much more efficient, but requires the file to stay unaltered
 at the location where it was when it was indexed. If you intend to move,
 delete or alter a file, consider using the option @code{-n} which will
 force GNUnet to make a copy of the file in the database.
@@ -874,7 +874,7 @@ need for an additional encrypted copy of the file to stay anywhere
 on the drive. This is different from other systems, such as Freenet,
 where each file that is put online must be in Freenet's database in
 encrypted format, doubling the space requirements if the user wants
-to preseve a directly accessible copy in plaintext.
+to preserve a directly accessible copy in plaintext.
 
 Thus indexing should be used for all files where the user will keep
 using this file (at the location given to gnunet-publish) and does
@@ -904,7 +904,7 @@ makes it difficult for an adversary to send back bogus search
 results. GNUnet enables content providers to group related content
 and to establish a reputation. Furthermore, GNUnet allows updates
 to certain content to be made available. This section is supposed
-to introduce users to the concepts that are used to achive these goals.
+to introduce users to the concepts that are used to achieve these goals.
 
 
 @menu
@@ -995,7 +995,7 @@ dialogs of gnunet-fs-gtk and printed by gnunet-pseudonym. Whenever a
 namespace is created, an appropriate advertisement can be generated.
 The default keyword for the advertising of namespaces is "namespace".
 
-Note that GNUnet differenciates between your pseudonyms (the identities
+Note that GNUnet differentiates between your pseudonyms (the identities
 that you control) and namespaces. If you create a pseudonym, you will
 not automatically see the respective namespace. You first have to create
 an advertisement for the namespace and find it using keyword
@@ -1344,7 +1344,7 @@ a little area for downloading appears.
 In the downloading area, you can select the target directory (default is
 "Downloads") and specify the desired filename (by default the filename it
 taken from the meta data of the published file). Additionally, you can
-specify if the download should be anonynmous and (for directories) if
+specify if the download should be anonymous and (for directories) if
 the download should be recursive. In most cases, you can simply start
 the download with the "Download!" button.
 
@@ -1944,7 +1944,7 @@ destination.
 
 For applications that do not use DNS, you can also manually create
 such a mapping using the gnunet-vpn command-line tool. Here, you
-specfiy the desired address family of the result (i.e. "-4"), and the
+specify the desired address family of the result (i.e. "-4"), and the
 intended target IP on the Internet ("-i 131.159.74.67") and
 "gnunet-vpn" will tell you which IP address in the range of your
 VPN tunnel was mapped.
@@ -1989,7 +1989,7 @@ If you also would like to use @command{gnunet-gtk} and
 * Configuring the file-sharing service::
 * Configuring logging::
 * Configuring the transport service and plugins::
-* Configuring the wlan transport plugin::
+* Configuring the WLAN transport plugin::
 * Configuring HTTP(S) reverse proxy functionality using Apache or nginx::
 * Blacklisting peers::
 * Configuration of the HTTP and HTTPS transport plugins::
@@ -2106,7 +2106,7 @@ SERVERS = http://v10.gnunet.org/hostlist [^]
 
 @noindent
 Besides using bootstrap servers you can configure your GNUnet peer to
-recieve hostlist advertisements.
+receive hostlist advertisements.
 Peers offering hostlists to other peers can send advertisement messages
 to peers that connect to them. If you configure your peer to receive these
 messages, your peer can download these lists and connect to the peers
@@ -2331,10 +2331,10 @@ password=$the_password_you_like
 
 @end itemize
 
-Thats it. Note that @file{.my.cnf} file is a slight security risk unless
+That's it. Note that @file{.my.cnf} file is a slight security risk unless
 its on a safe partition. The @file{$HOME/.my.cnf} can of course be
 a symbolic link.
-Luckily $USER has only priviledges to mess up GNUnet's tables,
+Luckily $USER has only privileges to mess up GNUnet's tables,
 which should be pretty harmless.
 
 @node Testing
@@ -2670,7 +2670,7 @@ TESTING_IGNORE_KEYS = ACCEPT_FROM;
 @end example
 
 @noindent
-The server has a port configured and the maximum nunber of connections.
+The server has a port configured and the maximum number of connections.
 The HTTPS part has two files with the certificate key and the certificate
 file.
 
@@ -3326,7 +3326,7 @@ $ gnunet-gns-proxy
 @noindent
 Configure your browser to use this SOCKSv5 proxy on port 7777 and visit
 this link.
-If you use @command{Firefox} (or one of its deriviates/forks such as
+If you use @command{Firefox} (or one of its derivatives/forks such as
 Icecat) you also have to go to @code{about:config} and set the key
 @code{network.proxy.socks_remote_dns} to @code{true}.
 
@@ -3508,7 +3508,7 @@ configuration file).
 
 Some NAT boxes can be traversed using the autonomous NAT traversal method.
 This requires certain GNUnet components to be installed with "SUID"
-prividledges on your system (so if you're installing on a system you do
+privileges on your system (so if you're installing on a system you do
 not have administrative rights to, this will not work).
 If you installed as 'root', you can enable autonomous NAT traversal by
 checking the "Enable NAT traversal using ICMP method".
@@ -3607,7 +3607,7 @@ start of @command{gnunet-gtk}).
 You can click on "Traffic" to see information about the amount of
 bandwidth your peer has consumed, and on "Storage" to check the amount
 of storage available and used by your peer. Note that "Traffic" is
-plotted cummulatively, so you should see a strict upwards trend in the
+plotted cumulatively, so you should see a strict upwards trend in the
 traffic.
 
 @node Peer Information
@@ -3853,7 +3853,7 @@ specific to a particular user, they probably should not run as a
 particular user. Also, there should typically only be one GNUnet peer per
 host. System services include the gnunet-service and gnunet-daemon
 programs; support tools include command-line programs such as gnunet-arm.
-@item Priviledged helpers
+@item Privileged helpers
 Some GNUnet components require root rights to open raw sockets or perform
 other special operations. These gnunet-helper binaries are typically
 installed SUID and run from services or daemons.
@@ -3862,7 +3862,7 @@ Some GNUnet services (such as the DNS service) can manipulate the service
 in deep and possibly highly security sensitive ways. For example, the DNS
 service can be used to intercept and alter any DNS query originating from
 the local machine. Access to the APIs of these critical services and their
-priviledged helpers must be tightly controlled.
+privileged helpers must be tightly controlled.
 @end table
 
 @c FIXME: The titles of these chapters are too long in the index.
