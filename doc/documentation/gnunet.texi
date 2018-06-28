@@ -227,6 +227,12 @@ GNUnet Developer Handbook
 @include gpl-3.0.texi
 
 @c *********************************************************************
+@node GNU Affero General Public License
+@appendix GNU Affero General Public License
+@cindex license, GNU Affero General Public License
+@include agpl-3.0.texi
+
+@c *********************************************************************
 @node Concept Index
 @unnumbered Concept Index
 @printindex cp
