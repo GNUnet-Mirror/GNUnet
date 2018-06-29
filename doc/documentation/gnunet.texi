@@ -82,13 +82,16 @@ This document is the Reference Manual for GNUnet version @value{VERSION}.
 
 * Preface::                         Chapter 0
 * Philosophy::                      About GNUnet
+* Key Concepts::                    Key concepts of GNUnet
 @c * Vocabulary::                      Vocabulary
+* Installing GNUnet::		    Installing GNUnet
 * Using GNUnet::                    Using GNUnet
 @c * Configuration Handbook::          Configuring GNUnet
 * GNUnet Contributors Handbook::    Contributing to GNUnet
 * GNUnet Developer Handbook::       Developing GNUnet
 * GNU Free Documentation License::  The license of this manual
-* GNU General Public License::      The license of this manual
+* GNU General Public License::
+* GNU Affero General Public License::
 * Concept Index::                   Concepts
 * Programming Index::               Data types, functions, and variables
 
@@ -104,11 +107,12 @@ Preface
 
 Philosophy
 
-* Design Goals::
-* Security and Privacy::
-* Versatility::
+* Design Principles::
+* Privacy and Anonymity::
 * Practicality::
-* Key Concepts::
+
+Key Concepts
+
 * Authentication::
 * Accounting to Encourage Resource Sharing::
 * Confidentiality::
@@ -120,18 +124,17 @@ Philosophy
 * Backup of Identities and Egos::
 * Revocation::
 
+Installing GNUnet
+
 Using GNUnet
 
-* Checking the Installation::
-* First steps - File-sharing::
+* Start and stop GNUnet::
 * First steps - Using the GNU Name System::
 * First steps - Using GNUnet Conversation::
 * First steps - Using the GNUnet VPN::
 * File-sharing::
 * The GNU Name System::
 * Using the Virtual Public Network::
-* The graphical configuration interface::
-* How to start and stop a GNUnet peer::
 
 GNUnet Contributors Handbook
 
@@ -193,6 +196,14 @@ GNUnet Developer Handbook
 @c *********************************************************************
 
 @c *********************************************************************
+@include chapters/keyconcepts.texi
+@c *********************************************************************
+
+@c *********************************************************************
+@include chapters/installation.texi
+@c *********************************************************************
+
+@c *********************************************************************
 @include chapters/user.texi
 @c *********************************************************************
 
@@ -215,6 +226,12 @@ GNUnet Developer Handbook
 @appendix GNU General Public License
 @cindex license, GNU General Public License
 @include gpl-3.0.texi
+
+@c *********************************************************************
+@node GNU Affero General Public License
+@appendix GNU Affero General Public License
+@cindex license, GNU Affero General Public License
+@include agpl-3.0.texi
 
 @c *********************************************************************
 @node Concept Index

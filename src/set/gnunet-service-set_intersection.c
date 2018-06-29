@@ -695,7 +695,7 @@ initialize_map_unfiltered (void *cls,
 
 /**
  * Send our element count to the peer, in case our element count is
- * lower than his.
+ * lower than theirs.
  *
  * @param op intersection operation
  */
@@ -1077,7 +1077,7 @@ handle_intersection_p2p_done (void *cls,
  * @param op operation that is created, should be initialized to
  *        begin the evaluation
  * @param opaque_context message to be transmitted to the listener
- *        to convince him to accept, may be NULL
+ *        to convince it to accept, may be NULL
  * @return operation-specific state to keep in @a op
  */
 static struct OperationState *

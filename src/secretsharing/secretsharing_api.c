@@ -314,7 +314,7 @@ handle_decrypt_done (void *cls,
  * published the same value, it will be decrypted.
  *
  * When the operation is canceled, the decrypt_cb is not called anymore, but the calling
- * peer may already have irrevocably contributed his share for the decryption of the value.
+ * peer may already have irrevocably contributed its share for the decryption of the value.
  *
  * @param share our secret share to use for decryption
  * @param ciphertext ciphertext to publish in order to decrypt it (if enough peers agree)
@@ -485,7 +485,7 @@ GNUNET_SECRETSHARING_encrypt (const struct GNUNET_SECRETSHARING_PublicKey *publi
  * Cancel a decryption.
  *
  * The decrypt_cb is not called anymore, but the calling
- * peer may already have irrevocably contributed his share for the decryption of the value.
+ * peer may already have irrevocably contributed its share for the decryption of the value.
  *
  * @param dh to cancel
  */

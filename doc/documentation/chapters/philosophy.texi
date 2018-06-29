@@ -5,36 +5,28 @@
 @c NOTE: We should probably re-use some of the images lynX created
 @c for secushare, showing some of the relations and functionalities
 @c of GNUnet.
-The foremost goal of the GNUnet project is to become a widely used,
-reliable, open, non-discriminating, egalitarian, unconstrained and
-censorship-resistant system of free information exchange.
-We value free speech above state secrets, law-enforcement or
-intellectual monopoly.
-GNUnet is supposed to be an anarchistic network, where the only
-limitation for participants (devices or people making use of the
-network, in the following sometimes called peers) is
-that they must contribute enough back to the network such that
-their resource consumption does not have a significant impact
-on other users.
-GNUnet should be more than just another file-sharing network.
-The plan is to offer many other services and in particular
-to serve as a development platform for the next generation of
-Internet Protocols.
+The primary goal of the GNUnet project is to provide a reliable, open,
+non-discriminating and censorship-resistant system for information
+exchange. We value free speech above state interests and intellectual
+monopoly. GNUnet's long-term goal is to serve as a development
+platform for the next generation of Internet protocols.
+
+GNUnet is an anarchistic network. Participants are encouraged to
+contribute at least as much resources (storage, bandwidth) to the network
+as they consume, so that their participation does not have a negative
+impact on other users.
 
 @menu
-* Design Goals::
-* Security and Privacy::
-* Versatility::
+* Design Principles::
+* Privacy and Anonymity::
 * Practicality::
-* Key Concepts::
 @end menu
 
-@cindex Design Goals
-@cindex Design Goals
-@node Design Goals
-@section Design Goals
+@cindex Design Principles
+@node Design Principles
+@section Design Principles
 
-These are the core GNUnet design goals, in order of relative importance:
+These are the GNUnet design principles, in order of importance:
 
 @itemize
 @item GNUnet must be implemented as
@@ -44,399 +36,45 @@ These are the core GNUnet design goals, in order of relative importance:
 the program, to study and change the program in source code form,
 to redistribute exact copies, and to distribute modified versions.
 Refer to @uref{https://www.gnu.org/philosophy/free-sw.html, https://www.gnu.org/philosophy/free-sw.html}}
-@item GNUnet must only disclose the minimal amount of information
-necessary.
+@item GNUnet must minimize the amount of personally identifiable information exposed.
 @c TODO: Explain 'fully' in the terminology section.
-@item GNUnet must be fully distributed and survive
-@uref{https://en.wikipedia.org/wiki/Byzantine_fault_tolerance, Byzantine failures}
-@footnote{@uref{https://en.wikipedia.org/wiki/Byzantine_fault_tolerance, https://en.wikipedia.org/wiki/Byzantine_fault_tolerance}}
-at any position in the network.
-@item GNUnet must make it explicit to the user which entities are
-considered to be trustworthy when establishing secured communications.
-@item GNUnet must use compartmentalization to protect sensitive
-information.
+@item GNUnet must be fully distributed and resilient to external attacks and rogue participants.
+@item GNUnet must be self-organizing and not depend on administrators or centralized infrastructure.
+@item GNUnet must inform the user which other participants have to be trusted when establishing private communications.
 @item GNUnet must be open and permit new peers to join.
-@item GNUnet must be self-organizing and not depend on administrators.
 @item GNUnet must support a diverse range of applications and devices.
-@item The GNUnet architecture must be cost effective.
-@item GNUnet must provide incentives for peers to contribute more
-resources than they consume.
+@item GNUnet must use compartmentalization to protect sensitive information.
+@item The GNUnet architecture must be resource efficient.
+@item GNUnet must provide incentives for peers to contribute more resources than they consume.
 @end itemize
 
 
-@cindex Security and Privacy
-@node Security and Privacy
-@section Security and Privacy
+@cindex Privacy and Anonymity
+@node Privacy and Anonymity
+@section Privacy and Anonymity
 
-GNUnet's primary design goals are to protect the privacy of its users and
-to guard itself against attacks or abuse.
-GNUnet does not have any mechanisms to control, track or censor users.
-Instead, the GNUnet protocols aim to make it as hard as possible to
-find out what is happening on the network or to disrupt operations. 
+The GNUnet protocols minimize the leakage of personally identifiable information of participants and
+do not allow adversaries to control, track, monitor or censor users activities. The
+GNUnet protocols also make it as hard as possible to disrupt operations by participating in the network with malicious intent. 
 
-@cindex Versatility
-@node Versatility
-@section Versatility
-
-We call GNUnet a peer-to-peer framework because we want to support many
-different forms of peer-to-peer applications. GNUnet uses a plugin
-architecture to make the system extensible and to encourage code reuse.
-While the first versions of the system only supported anonymous
-file-sharing, other applications are being worked on and more will
-hopefully follow in the future.
-A powerful synergy regarding anonymity services is created by a large
-community utilizing many diverse applications over the same software
-infrastructure. The reason is that link encryption hides the specifics
-of the traffic for non-participating observers. This way, anonymity can
-get stronger with additional (GNUnet) traffic, even if the additional
-traffic is not related to anonymous communication. Increasing anonymity
-is the primary reason why GNUnet is developed to become a peer-to-peer
+Analyzing participant's activities becomes more difficult as the number of peers and
+applications that generate traffic on the network grows, even if the additional
+traffic generated is not related to anonymous communication. This is one of the reasons why GNUnet is developed as a peer-to-peer
 framework where many applications share the lower layers of an
-increasingly complex protocol stack.
-If merging traffic to hinder traffic analysis was not important,
-we could have just developed a dozen stand-alone applications
-and a few shared libraries. 
+increasingly complex protocol stack. The GNUnet architecture encourages many
+different forms of peer-to-peer applications.
 
 @cindex Practicality
 @node Practicality
 @section Practicality
 
-GNUnet allows participants to trade various amounts of security in
+Whereever possible GNUnet allows the peer to adjust its operations
+and functionalities to specific use cases. A GNUnet peer running on
+a mobile device with limited battery for example might choose not to
+relay traffic for other participants.
+
+For certain applications like file-sharing GNUnet allows participants to trade degrees of anonymity in
 exchange for increased efficiency. However, it is not possible for any
-user's security and efficiency requirements to compromise the security
-and efficiency of any other user.
+user's efficiency requirements to compromise the anonymity
+of any other user.
 
-For GNUnet, efficiency is not paramount. If there were a more secure and
-still practical approach, we would choose to take the more secure
-alternative. @command{telnet} is more efficient than @command{ssh}, yet
-it is obsolete.
-Hardware gets faster, and code can be optimized. Fixing security issues
-as an afterthought is much harder.
-
-While security is paramount, practicability is still a requirement.
-The most secure system is always the one that nobody can use.
-Similarly, any anonymous system that is extremely inefficient will only
-find few users.
-However, good anonymity requires a large and diverse user base. Since
-individual security requirements may vary, the only good solution here is
-to allow individuals to trade-off security and efficiency.
-The primary challenge in allowing this is to ensure that the economic
-incentives work properly.
-In particular, this means that it must be impossible for a user to gain
-security at the expense of other users. Many designs (e.g. anonymity via
-broadcast) fail to give users an incentive to choose a less secure but
-more efficient mode of operation.
-GNUnet should avoid where ever possible to rely on protocols that will
-only work if the participants are benevolent.
-While some designs have had widespread success while relying on parties
-to observe a protocol that may be sub-optimal for the individuals (e.g.
-TCP Nagle), a protocol that ensures that individual goals never conflict
-with the goals of the group is always preferable.
-
-@cindex Key Concepts
-@node Key Concepts
-@section Key Concepts
-
-In this section, the fundamental concepts of GNUnet are explained.
-@c FIXME: Use @uref{https://docs.gnunet.org/bib/, research papers}
-@c once we have the new bibliography + subdomain setup.
-Most of them are also described in our research papers.
-First, some of the concepts used in the GNUnet framework are detailed.
-The second part describes concepts specific to anonymous file-sharing.
-
-@menu
-* Authentication::
-* Accounting to Encourage Resource Sharing::
-* Confidentiality::
-* Anonymity::
-* Deniability::                       
-* Peer Identities::
-* Zones in the GNU Name System (GNS Zones)::
-* Egos::
-@end menu
-
-@cindex Authentication
-@node Authentication
-@subsection Authentication
-
-Almost all peer-to-peer communications in GNUnet are between mutually
-authenticated peers. The authentication works by using ECDHE, that is a
-DH (Diffie---Hellman) key exchange using ephemeral eliptic curve
-cryptography. The ephemeral ECC (Eliptic Curve Cryptography) keys are
-signed using ECDSA (@uref{http://en.wikipedia.org/wiki/ECDSA, ECDSA}).
-The shared secret from ECDHE is used to create a pair of session keys
-@c FIXME: LOng word for HKDF. More FIXMEs: Explain MITM etc.
-(using HKDF) which are then used to encrypt the communication between the
-two peers using both 256-bit AES (Advanced Encryption Standard)
-and 256-bit Twofish (with independently derived secret keys).
-As only the two participating hosts know the shared secret, this
-authenticates each packet
-without requiring signatures each time. GNUnet uses SHA-512
-(Secure Hash Algorithm) hash codes to verify the integrity of messages.
-
-@c Fixme: A while back I got the feedback that I should try and integrate
-@c explanation boxes in the long-run. So we could explain
-@c "man-in-the-middle" and "man-in-the-middle attacks" and other words
-@c which are not common knowledge. MITM is not common knowledge. To be
-@c selfcontained, we should be able to explain words and concepts used in
-@c a chapter or paragraph without hinting at wikipedia and other online
-@c sources which might not be available or accessible to everyone.
-@c On the other hand we could write an introductionary chapter or book
-@c that we could then reference in each chapter, which sound like it
-@c could be more reusable.
-In GNUnet, the identity of a host is its public key. For that reason,
-man-in-the-middle attacks will not break the authentication or accounting
-goals. Essentially, for GNUnet, the IP of the host has nothing to do with
-the identity of the host. As the public key is the only thing that truly
-matters, faking an IP, a port or any other property of the underlying
-transport protocol is irrelevant. In fact, GNUnet peers can use
-multiple IPs (IPv4 and IPv6) on multiple ports --- or even not use the
-IP protocol at all (by running directly on layer 2).
-@c FIXME: "IP protocol" feels wrong, but could be what people expect, as
-@c IP is "the number" and "IP protocol" the protocol itself in general
-@c knowledge?
-
-@c NOTE: For consistency we will use @code{HELLO}s throughout this Manual.
-GNUnet uses a special type of message to communicate a binding between
-public (ECC) keys to their current network address. These messages are
-commonly called @code{HELLO}s or @code{peer advertisements}.
-They contain the public key of the peer and its current network
-addresses for various transport services.
-A transport service is a special kind of shared library that
-provides (possibly unreliable, out-of-order) message delivery between
-peers.
-For the UDP and TCP transport services, a network address is an IP and a
-port.
-GNUnet can also use other transports (HTTP, HTTPS, WLAN, etc.) which use
-various other forms of addresses. Note that any node can have many
-different active transport services at the same time,
-and each of these can have a different addresses.
-Binding messages expire after at most a week (the timeout can be
-shorter if the user configures the node appropriately).
-This expiration ensures that the network will eventually get rid of
-outdated advertisements.
-@footnote{Ronaldo A. Ferreira, Christian Grothoff, and Paul Ruth.
-A Transport Layer Abstraction for Peer-to-Peer Networks
-Proceedings of the 3rd International Symposium on Cluster Computing
-and the Grid (GRID 2003), 2003.
-(@uref{https://gnunet.org/git/bibliography.git/plain/docs/transport.pdf, https://gnunet.org/git/bibliography.git/plain/docs/transport.pdf})}
-
-@cindex Accounting to Encourage Resource Sharing
-@node Accounting to Encourage Resource Sharing
-@subsection Accounting to Encourage Resource Sharing
-
-Most distributed P2P networks suffer from a lack of defenses or
-precautions against attacks in the form of freeloading.
-While the intentions of an attacker and a freeloader are different, their
-effect on the network is the same; they both render it useless.
-Most simple attacks on networks such as @command{Gnutella}
-involve flooding the network with traffic, particularly
-with queries that are, in the worst case, multiplied by the network.
-
-In order to ensure that freeloaders or attackers have a minimal impact
-on the network, GNUnet's file-sharing implementation (@code{FS} tries
-to distinguish good (contributing) nodes from malicious (freeloading)
-nodes. In GNUnet, every file-sharing node keeps track of the behavior
-of every other node it has been in contact with. Many requests
-(depending on the application) are transmitted with a priority (or
-importance) level.  That priority is used to establish how important
-the sender believes this request is. If a peer responds to an
-important request, the recipient will increase its trust in the
-responder: the responder contributed resources.  If a peer is too busy
-to answer all requests, it needs to prioritize.  For that, peers do
-not take the priorities of the requests received at face value.
-First, they check how much they trust the sender, and depending on
-that amount of trust they assign the request a (possibly lower)
-effective priority. Then, they drop the requests with the lowest
-effective priority to satisfy their resource constraints. This way,
-GNUnet's economic model ensures that nodes that are not currently
-considered to have a surplus in contributions will not be served if
-the network load is high.
-@footnote{Christian Grothoff. An Excess-Based Economic Model for Resource
-Allocation in Peer-to-Peer Networks. Wirtschaftsinformatik, June 2003.
-(@uref{https://gnunet.org/git/bibliography.git/plain/docs/ebe.pdf, https://gnunet.org/git/bibliography.git/plain/docs/ebe.pdf})}
-@c 2009?
-
-@cindex Confidentiality
-@node Confidentiality
-@subsection Confidentiality
-
-Adversaries (malicious, bad actors) outside of GNUnet are not supposed
-to know what kind of actions a peer is involved in. Only the specific
-neighbor of a peer that is the corresponding sender or recipient of a
-message may know its contents, and even then application protocols may
-place further restrictions on that knowledge.  In order to ensure
-confidentiality, GNUnet uses link encryption, that is each message
-exchanged between two peers is encrypted using a pair of keys only
-known to these two peers.  Encrypting traffic like this makes any kind
-of traffic analysis much harder. Naturally, for some applications, it
-may still be desirable if even neighbors cannot determine the concrete
-contents of a message.  In GNUnet, this problem is addressed by the
-specific application-level protocols. See for example the following
-sections @pxref{Anonymity}, @pxref{How file-sharing achieves Anonymity},
-and @pxref{Deniability}.
-
-@cindex Anonymity
-@node Anonymity
-@subsection Anonymity
-
-@menu
-* How file-sharing achieves Anonymity::
-@end menu
-
-Providing anonymity for users is the central goal for the anonymous
-file-sharing application. Many other design decisions follow in the
-footsteps of this requirement.
-Anonymity is never absolute. While there are various
-scientific metrics@footnote{Claudia Díaz, Stefaan Seys, Joris Claessens,
-and Bart Preneel. Towards measuring anonymity.
-2002.
-(@uref{https://gnunet.org/git/bibliography.git/plain/docs/article-89.pdf, https://gnunet.org/git/bibliography.git/plain/docs/article-89.pdf})}
-that can help quantify the level of anonymity that a given mechanism
-provides, there is no such thing as "complete anonymity".
-GNUnet's file-sharing implementation allows users to select for each
-operation (publish, search, download) the desired level of anonymity.
-The metric used is the amount of cover traffic available to hide the
-request.
-While this metric is not as good as, for example, the theoretical metric
-given in scientific metrics@footnote{likewise},
-it is probably the best metric available to a peer with a purely local
-view of the world that does not rely on unreliable external information.
-The default anonymity level is @code{1}, which uses anonymous routing but
-imposes no minimal requirements on cover traffic. It is possible
-to forego anonymity when this is not required. The anonymity level of
-@code{0} allows GNUnet to use more efficient, non-anonymous routing.
-
-@cindex How file-sharing achieves Anonymity
-@node How file-sharing achieves Anonymity
-@subsubsection How file-sharing achieves Anonymity
-
-Contrary to other designs, we do not believe that users achieve strong
-anonymity just because their requests are obfuscated by a couple of
-indirections. This is not sufficient if the adversary uses traffic
-analysis.
-The threat model used for anonymous file sharing in GNUnet assumes that
-the adversary is quite powerful.
-In particular, we assume that the adversary can see all the traffic on
-the Internet. And while we assume that the adversary
-can not break our encryption, we assume that the adversary has many
-participating nodes in the network and that it can thus see many of the
-node-to-node interactions since it controls some of the nodes. 
-
-The system tries to achieve anonymity based on the idea that users can be
-anonymous if they can hide their actions in the traffic created by other
-users.
-Hiding actions in the traffic of other users requires participating in the
-traffic, bringing back the traditional technique of using indirection and
-source rewriting. Source rewriting is required to gain anonymity since
-otherwise an adversary could tell if a message originated from a host by
-looking at the source address. If all packets look like they originate
-from one node, the adversary can not tell which ones originate from that
-node and which ones were routed.
-Note that in this mindset, any node can decide to break the
-source-rewriting paradigm without violating the protocol, as this
-only reduces the amount of traffic that a node can hide its own traffic
-in.
-
-If we want to hide our actions in the traffic of other nodes, we must make
-our traffic indistinguishable from the traffic that we route for others.
-As our queries must have us as the receiver of the reply
-(otherwise they would be useless), we must put ourselves as the receiver
-of replies that actually go to other hosts; in other words, we must
-indirect replies.
-Unlike other systems, in anonymous file-sharing as implemented on top of
-GNUnet we do not have to indirect the replies if we don't think we need
-more traffic to hide our own actions.
-
-This increases the efficiency of the network as we can indirect less under
-higher load.@footnote{Krista Bennett and Christian Grothoff.
-GAP --- practical anonymous networking. In Proceedings of
-Designing Privacy Enhancing Technologies, 2003.
-(@uref{https://gnunet.org/git/bibliography.git/plain/docs/aff.pdf, https://gnunet.org/git/bibliography.git/plain/docs/aff.pdf})}
-
-@cindex Deniability
-@node Deniability
-@subsection Deniability
-
-Even if the user that downloads data and the server that provides data are
-anonymous, the intermediaries may still be targets. In particular, if the
-intermediaries can find out which queries or which content they are
-processing, a strong adversary could try to force them to censor
-certain materials. 
-
-With the file-encoding used by GNUnet's anonymous file-sharing, this
-problem does not arise.
-The reason is that queries and replies are transmitted in
-an encrypted format such that intermediaries cannot tell what the query
-is for or what the content is about.  Mind that this is not the same
-encryption as the link-encryption between the nodes.  GNUnet has
-encryption on the network layer (link encryption, confidentiality,
-authentication) and again on the application layer (provided
-by @command{gnunet-publish}, @command{gnunet-download},
-@command{gnunet-search} and @command{gnunet-gtk}).
-@footnote{Christian Grothoff, Krista Grothoff, Tzvetan Horozov,
-and Jussi T. Lindgren.
-An Encoding for Censorship-Resistant Sharing.
-2009.
-(@uref{https://gnunet.org/git/bibliography.git/plain/docs/ecrs.pdf, https://gnunet.org/git/bibliography.git/plain/docs/ecrs.pdf})}
-
-@cindex Peer Identities
-@node Peer Identities
-@subsection Peer Identities
-
-Peer identities are used to identify peers in the network and are unique
-for each peer. The identity for a peer is simply its public key, which is
-generated along with a private key the peer is started for the first time.
-While the identity is binary data, it is often expressed as ASCII string.
-For example, the following is a peer identity as you might see it in
-various places:
-
-@example
-UAT1S6PMPITLBKSJ2DGV341JI6KF7B66AC4JVCN9811NNEGQLUN0
-@end example
-
-@noindent
-You can find your peer identity by running @command{gnunet-peerinfo -s}.
-
-@cindex Zones in the GNU Name System (GNS Zones)
-@node Zones in the GNU Name System (GNS Zones)
-@subsection Zones in the GNU Name System (GNS Zones)
-
-@c FIXME: Explain or link to an explanation of the concept of public keys
-@c and private keys.
-@c FIXME: Rewrite for the latest GNS changes.
-GNS@footnote{Matthias Wachs, Martin Schanzenbach, and Christian Grothoff.
-A Censorship-Resistant, Privacy-Enhancing and Fully Decentralized Name
-System. In proceedings of 13th International Conference on Cryptology and
-Network Security (CANS 2014). 2014.
-@uref{https://gnunet.org/git/bibliography.git/plain/docs/gns2014wachs.pdf, https://gnunet.org/git/bibliography.git/plain/docs/gns2014wachs.pdf}}
-zones are similar to those of DNS zones, but instead of a hierarchy of
-authorities to governing their use, GNS zones are controlled by a private
-key.
-When you create a record in a DNS zone, that information is stored in your
-nameserver. Anyone trying to resolve your domain then gets pointed
-(hopefully) by the centralised authority to your nameserver.
-Whereas GNS, being fully decentralized by design, stores that information
-in DHT. The validity of the records is assured cryptographically, by
-signing them with the private key of the respective zone.
-
-Anyone trying to resolve records in a zone of your domain can then verify
-the signature of the records they get from the DHT and be assured that
-they are indeed from the respective zone.
-To make this work, there is a 1:1 correspondence between zones and
-their public-private key pairs.
-So when we talk about the owner of a GNS zone, that's really the owner of
-the private key.
-And a user accessing a zone needs to somehow specify the corresponding
-public key first.
-
-@cindex Egos
-@node Egos
-@subsection Egos
-
-@c what is the difference between peer identity and egos? It seems
-@c like both are linked to public-private key pair.
-Egos are your "identities" in GNUnet. Any user can assume multiple
-identities, for example to separate their activities online. Egos can
-correspond to "pseudonyms" or "real-world identities". Technically an
-ego is first of all a key pair of a public- and private-key.

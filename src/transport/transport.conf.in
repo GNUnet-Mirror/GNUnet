@@ -9,7 +9,8 @@ BINARY = gnunet-service-transport
 NEIGHBOUR_LIMIT = 50
 ACCEPT_FROM = 127.0.0.1;
 ACCEPT_FROM6 = ::1;
-PLUGINS = tcp udp
+# TCP is the only transport plugin known to work "reliably"
+PLUGINS = tcp
 UNIXPATH = $GNUNET_RUNTIME_DIR/gnunet-service-transport.sock
 BLACKLIST_FILE = $GNUNET_CONFIG_HOME/transport/blacklist
 UNIX_MATCH_UID = NO

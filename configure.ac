@@ -208,13 +208,42 @@ AC_PATH_TARGET_TOOL(VAR_IPTABLES_BINARY, iptables, false)
 
 if test x"$VAR_IPTABLES_BINARY" != x"false"
 then
+  if test -x "/sbin/iptables"
+  then
+    VAR_IPTABLES_BINARY="/sbin/iptables"
+  elif test -x "/usr/sbin/iptables"
+  then
+    VAR_IPTABLES_BINARY="/usr/sbin/iptables"
+  fi
+fi
+
+if test x"$VAR_IPTABLES_BINARY" != x"false"
+then
 AC_DEFINE_UNQUOTED([IPTABLES], "$VAR_IPTABLES_BINARY", [Path to iptables])
 else
 AC_MSG_WARN([warning: 'iptables' not found.])
 fi
 
+AC_PATH_TARGET_TOOL(VAR_IFCONFIG_BINARY, ifconfig, false)
+
 AC_CHECK_PROG(VAR_IFCONFIG_BINARY, ifconfig, true, false)
+if test x"$VAR_IFCONFIG_BINARY" != x"false"
+then
+  if test -x "/sbin/ifconfig"
+  then
+    VAR_IFCONFIG_BINARY="/sbin/ifconfig"
+  elif test -x "/usr/sbin/ifconfig"
+  then
+    VAR_IFCONFIG_BINARY="/usr/sbin/ifconfig"
+  fi
+fi
+if test x"$VAR_IFCONFIG_BINARY" != x"false"
+then
+AC_DEFINE_UNQUOTED([IFCONFIG], "$VAR_IFCONFIG_BINARY", [Path to ifconfig])
+else
 AC_MSG_WARN([warning: 'ifconfig' not found.])
+fi
+
 
 # miniupnpc / upnpc binary is a soft runtime requirement
 AC_PATH_TARGET_TOOL(VAR_UPNPC_BINARY, upnpc, false)
@@ -930,7 +959,7 @@ postgres=false
 # even running the check for postgres breaks emscripten ...
 if test "$taler_only" != yes; then
   AX_LIB_POSTGRESQL([9.5])
-  if test "$found_postgresql" = "yes"; then
+  if test "x$found_postgresql" = "xyes"; then
     CPPFLAGS="$CPPFLAGS $POSTGRESQL_CPPFLAGS"
     AC_CHECK_HEADERS([libpq-fe.h],
       postgres=true)
@@ -1744,8 +1773,6 @@ pkgconfig/gnunetdatacache.pc
 pkgconfig/gnunetdatastore.pc
 pkgconfig/gnunetdht.pc
 pkgconfig/gnunetdns.pc
-pkgconfig/gnunetdnsparser.pc
-pkgconfig/gnunetdnsstub.pc
 pkgconfig/gnunetdv.pc
 pkgconfig/gnunetenv.pc
 pkgconfig/gnunetfragmentation.pc
@@ -1774,7 +1801,6 @@ pkgconfig/gnunetstatistics.pc
 pkgconfig/gnunettestbed.pc
 pkgconfig/gnunettesting.pc
 pkgconfig/gnunettransport.pc
-pkgconfig/gnunettun.pc
 pkgconfig/gnunetutil.pc
 pkgconfig/gnunetvpn.pc
 ])

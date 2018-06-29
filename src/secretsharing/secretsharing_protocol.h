@@ -58,7 +58,7 @@ struct GNUNET_SECRETSHARING_KeygenCommitData
    */
   struct GNUNET_CRYPTO_PaillierPublicKey pubkey;
   /**
-   * Commitment of 'peer' to his presecret.
+   * Commitment of 'peer' to its presecret.
    */
   struct GNUNET_HashCode commitment GNUNET_PACKED;
 };

@@ -18,7 +18,7 @@ which are listed in this introductionary chapter.
 @end menu
 
 @node Definitions
-@subsection Defitions
+@subsection Definitions
 
 Throughout this Reference Manual, the following terms and definitions
 apply.

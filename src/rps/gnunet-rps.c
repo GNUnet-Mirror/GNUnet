@@ -150,6 +150,11 @@ run (void *cls,
   static struct GNUNET_PeerIdentity zero_pid;
 
   rps_handle = GNUNET_RPS_connect (cfg);
+  if (NULL == rps_handle)
+  {
+    FPRINTF (stderr, "Failed to connect to the rps service\n");
+    return;
+  }
 
   if ((0 == memcmp (&zero_pid, &peer_id, sizeof (peer_id))) &&
       (!view_update))

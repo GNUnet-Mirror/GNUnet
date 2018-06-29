@@ -933,7 +933,7 @@ msgstr "GNUnet bây giờ sử dụng địa chỉ IP %s.\n"
 
 #: src/conversation/gnunet-conversation.c:720
 #, c-format
-msgid "We are calling `%s', his phone should be ringing.\n"
+msgid "We are calling `%s', their phone should be ringing.\n"
 msgstr ""
 
 #: src/conversation/gnunet-conversation.c:739
