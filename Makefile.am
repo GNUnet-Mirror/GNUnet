@@ -3,8 +3,11 @@ AM_CPPFLAGS = -I$(top_srcdir)/src/include
 
 if DOCUMENTATION_ONLY
   SUBDIRS = doc
-else
-  SUBDIRS = doc m4 src po pkgconfig
+else 
+  SUBDIRS = m4 src po pkgconfig
+if DOCUMENTATION
+  SUBDIRS += doc
+endif
 endif
 
 if !TALER_ONLY

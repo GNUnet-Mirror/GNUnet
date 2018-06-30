@@ -679,7 +679,7 @@ AC_MSG_CHECKING(whether to build documentation)
 AC_ARG_ENABLE([documentation],
    [AS_HELP_STRING([--enable-documentation], [build the documentation])],
    [documentation=${enableval}],
-   [documentation=yes])
+   [documentation=no])
 AC_MSG_RESULT($documentation)
 if test "x$documentation" = "xyes"
 then
