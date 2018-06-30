@@ -881,7 +881,7 @@ path_info_iterator (void *cls,
   unsigned int path_length;
 
   path_length = GCPP_get_length (path);
-  path_size = sizeof (struct GNUNET_PeerIdentity) * (path_length - 1);
+  path_size = sizeof (struct GNUNET_PeerIdentity) * path_length;
   if (sizeof (*resp) + path_size > UINT16_MAX)
   {
     LOG (GNUNET_ERROR_TYPE_WARNING,
@@ -902,9 +902,9 @@ path_info_iterator (void *cls,
   /* Don't copy first peer.  First peer is always the local one.  Last
    * peer is always the destination (leave as 0, EOL).
    */
-  for (i = 0; i < off; i++)
+  for (i = 0; i <= off; i++)
     id[i] = *GCP_get_id (GCPP_get_peer_at_offset (path,
-                                                  i + 1));
+                                                  i));
   GNUNET_MQ_send (mq,
                   env);
   return GNUNET_YES;
@@ -927,27 +927,21 @@ get_peer_info (void *cls,
   struct CadetClient *c = cls;
   struct GNUNET_MQ_Envelope *env;
   struct GNUNET_CADET_LocalInfoPeer *msg;
-
   
   env = GNUNET_MQ_msg (msg,
                        GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_PEER);
-  
   msg->offset = htons(0);
   msg->destination = *peer;
   msg->paths = htons (GCP_count_paths (p));
   msg->tunnel = htons (NULL != GCP_get_tunnel (p,
                                                GNUNET_NO));
   msg->finished_with_paths = htons(0);
-  
   GNUNET_MQ_send (c->mq,
                   env);
-  
-  GCP_iterate_indirect_paths(p,
-                            &path_info_iterator,
-                            c->mq);
-  
+  GCP_iterate_indirect_paths (p,
+			      &path_info_iterator,
+			      c->mq);  
 }
-
 
 
 /**

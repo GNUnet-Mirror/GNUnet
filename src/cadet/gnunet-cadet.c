@@ -231,7 +231,7 @@ shutdown_task (void *cls)
   }
 }
 
-void *
+void
 mq_cb(void *cls)
 {
   listen_stdio ();
@@ -577,9 +577,9 @@ peer_callback (void *cls,
   }else{
     p = paths;
     FPRINTF (stdout,
-                "Path with offset %u: ",
+                "Indirekt path with offset %u: ",
                 offset);
-    for (i = 0; i < offset && NULL != p;)
+    for (i = 0; i <= offset && NULL != p;)
     {
         FPRINTF (stdout,
                 "%s ",
