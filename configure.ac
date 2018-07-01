@@ -677,9 +677,9 @@ AC_CHECK_LIB([kstat],[kstat_open])
 # should the build process be building the documentation?
 AC_MSG_CHECKING(whether to build documentation)
 AC_ARG_ENABLE([documentation],
-   [AS_HELP_STRING([--enable-documentation], [build the documentation])],
+   [AS_HELP_STRING([--disable-documentation], [do not build the documentation])],
    [documentation=${enableval}],
-   [documentation=no])
+   [documentation=yes])
 AC_MSG_RESULT($documentation)
 if test "x$documentation" = "xyes"
 then
