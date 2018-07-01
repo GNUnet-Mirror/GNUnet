@@ -1,11 +1,29 @@
 @node Installing GNUnet
 @chapter Installing GNUnet
 
-This guide is intended for those who want to install Gnunet from source. For instructions on how to install GNUnet as a binary package please refer to the official documentation of your operating system or package manager.
+This guide is intended for those who want to install Gnunet from
+source. For instructions on how to install GNUnet as a binary package
+please refer to the official documentation of your operating system or
+package manager.
 
-@node Getting the Source Code
+@menu
+* Installing dependencies::
+* Getting the Source Code::
+* Create @code{gnunet} user and group::
+* Preparing and Compiling the Source Code::
+* Installation::
+* MOVED FROM USER Checking the Installation::
+* MOVED FROM USER The graphical configuration interface::
+* MOVED FROM USER Config Leftovers::
+@end menu
+
+@c -----------------------------------------------------------------------
+@node Installing dependencies
 @section Installing dependencies
-GNUnet needs few libraries and applications for being able to run and another few optional ones for using certain features. Preferably they should be installed with a package manager. Just in case we include a link to the project websites.
+GNUnet needs few libraries and applications for being able to run and
+another few optional ones for using certain features. Preferably they
+should be installed with a package manager. Just in case we include a
+link to the project websites.
 
 The mandatory libraries and applications are
 @itemize @bullet
@@ -43,30 +61,43 @@ These are the dependencies only required for certain features
 @item libpulse (for running the GNUnet conversation telephony application)
 @item libogg (for running the GNUnet conversation telephony application)
 @item bluez (for bluetooth support)
-@item libpbc (for attribute-based encryption and the identity provider subsystem)
-@item libgabe (for attribute-based encryption and the identity provider subsystem)
+@item libpbc
+(for attribute-based encryption and the identity provider subsystem)
+@item libgabe
+(for attribute-based encryption and the identity provider subsystem)
 @end itemize
 
-
+@c -----------------------------------------------------------------------
+@node Getting the Source Code
 @section Getting the Source Code
-You can either download the source code using git (you obviously need git installed) or as an archive.
+You can either download the source code using git (you obviously need
+git installed) or as an archive.
 
 Using git type
 @example
 git clone https://gnunet.org/git/gnunet.git
 @end example
 
-The archive can be found at @uref{https://gnunet.org/downloads}. Extract it using a graphical archive tool or @code{tar}:
+The archive can be found at
+@uref{https://gnunet.org/downloads}. Extract it using a graphical
+archive tool or @code{tar}:
 @example
 tar xzvf gnunet-0.11.0pre66.tar.gz
 @end example
 
-In the next chapter we will assume that the source code is available in the home directory at @code{~/gnunet}.
+In the next chapter we will assume that the source code is available
+in the home directory at @code{~/gnunet}.
 
+@c -----------------------------------------------------------------------
+@node Create @code{gnunet} user and group
 @section Create @code{gnunet} user and group
-The GNUnet services should be run as a dedicated user called @code{gnunet}. For using them a user should be in the same group as this system user.
+The GNUnet services should be run as a dedicated user called
+@code{gnunet}. For using them a user should be in the same group as
+this system user.
 
-Create user @code{gnunet} who is member of the group @code{gnunet} and specify a home directory where the GNUnet services will store persistant data such as information about peers.
+Create user @code{gnunet} who is member of the group @code{gnunet} and
+specify a home directory where the GNUnet services will store
+persistant data such as information about peers.
 @example
 $ sudo useradd --system --groups gnunet --home-dir /var/lib/gnunet
 @end example
@@ -76,8 +107,13 @@ Now add your own user to the @code{gnunet} group.
 $ sudo adduser alice gnunet
 @end example
 
+@c -----------------------------------------------------------------------
+@node Preparing and Compiling the Source Code
 @section Preparing and Compiling the Source Code
-For preparing the source code for compilation a bootstrap script and @code{configure} has to be run from the source code directory. When running @code{configure} the following options can be specified to customize the compilation and installation process:
+For preparing the source code for compilation a bootstrap script and
+@code{configure} has to be run from the source code directory. When
+running @code{configure} the following options can be specified to
+customize the compilation and installation process:
 
 @itemize @bullet
 @item @code{--disable-documentation} - don't build the configuration documents
@@ -91,27 +127,39 @@ For preparing the source code for compilation a bootstrap script and @code{confi
 @item @code{--with-sudo=[PATH]} - path to the sudo binary (no need to run @code{make install} as root if specified)
 @end itemize
 
-The following example configures the installation prefix @code{/usr/lib} and disables building the documentation
+The following example configures the installation prefix
+@code{/usr/lib} and disables building the documentation
 @example
 $ cd ~/gnunet
 $ ./bootstrap
 $ configure --prefix=/usr/lib --disable-configuration
 @end example
 
-After running the bootstrap script and @code{configure} successfully the source code can be compiled with make. Here @code{-j5} specifies that 5 threads should be used.
+After running the bootstrap script and @code{configure} successfully
+the source code can be compiled with make. Here @code{-j5} specifies
+that 5 threads should be used.
 @example
 $ make -j5
 @end example
 
-
+@c -----------------------------------------------------------------------
+@node Installation
 @section Installation
-The compiled binaries can be installed using @code{make install}. It needs to be run as root (or with sudo) because some binaries need the @code{suid} bit set. Without that some GNUnet subsystems (such as VPN) will not work.
+The compiled binaries can be installed using @code{make install}. It
+needs to be run as root (or with sudo) because some binaries need the
+@code{suid} bit set. Without that some GNUnet subsystems (such as VPN)
+will not work.
 
 @example
 $ sudo make install
 @end example
 
-One important library is the GNS plugin for NSS (the name services switch) which allows using GNS (the GNU name system) in the normal DNS resolution process. Unfortunately NSS expects it in a specific location (probably @code{/lib}) which may differ from the installation prefix (see @code{--prefix} option in the previous section). This is why the pugin has to be installed manually.
+One important library is the GNS plugin for NSS (the name services
+switch) which allows using GNS (the GNU name system) in the normal DNS
+resolution process. Unfortunately NSS expects it in a specific
+location (probably @code{/lib}) which may differ from the installation
+prefix (see @code{--prefix} option in the previous section). This is
+why the pugin has to be installed manually.
 
 Find the directory where nss plugins are installed on your system, e.g.
 
@@ -129,24 +177,30 @@ Copy the GNS NSS plugin to that directory:
 cp ~/gnunet/src/gns/nss/libnss_gns.so.2 /lib
 @end example
 
-Now, to activate the plugin, you need to edit your @code{/etc/nsswitch.conf} where you should find a line like this:
+Now, to activate the plugin, you need to edit your
+@code{/etc/nsswitch.conf} where you should find a line like this:
 
 @example
 hosts: files mdns4_minimal [NOTFOUND=return] dns mdns4
 @end example
 
-The exact details may differ a bit, which is fine. Add the text @code{"gns [NOTFOUND=return]"} after @code{"files"}. 
+The exact details may differ a bit, which is fine. Add the text
+@code{"gns [NOTFOUND=return]"} after @code{"files"}.
 
 @example
 hosts: files gns [NOTFOUND=return] mdns4_minimal [NOTFOUND=return] dns mdns4
 @end example
 
-Optionally, if GNS shall be used with a browser, execute the GNS CA-setup script. It will isetup the GNS Certificate Authority with the user's browser.
+Optionally, if GNS shall be used with a browser, execute the GNS
+CA-setup script. It will isetup the GNS Certificate Authority with the
+user's browser.
 @example
 $ gnunet-gns-proxy-setup-ca
 @end example
 
-Finally install a configuration file in @code{~/.gnunet/gnunet.conf}. Below you find an example config which allows you to start GNUnet.
+Finally install a configuration file in
+@code{~/.gnunet/gnunet.conf}. Below you find an example config which
+allows you to start GNUnet.
 
 @example
 [arm]
@@ -170,7 +224,8 @@ This section describes a quick, casual way to check if your GNUnet
 installation works. However, if it does not, we do not cover
 steps for recovery --- for this, please study the instructions
 provided in the developer handbook as well as the system-specific
-instruction in the source code repository@footnote{The system specific instructions are not provided as part of this handbook!}.
+instruction in the source code repository@footnote{The system specific
+instructions are not provided as part of this handbook!}.
 
 
 @menu
@@ -203,21 +258,25 @@ Currently these interfaces cover:
 @subsection Statistics
 @c %**end of header
 
-First, you should launch GNUnet gtk@footnote{Obviously you should also start gnunet, via gnunet-arm or the system provided method}.
+First, you should launch GNUnet gtk@footnote{Obviously you should also
+start gnunet, via gnunet-arm or the system provided method}.
 You can do this from the command-line by typing
 
 @example
 gnunet-statistics-gtk
 @end example
 
-If your peer@footnote{The term ``peer'' is a common word used in federated and distributed networks to describe a participating device which is connected to the network. Thus, your Personal Computer or whatever it is you are looking at the Gtk+ interface describes a ``Peer'' or a ``Node''.}
-is running correctly, you should see a bunch of lines,
-all of which should be ``significantly'' above zero (at least if your
-peer has been running for more than a few seconds). The lines indicate
-how many other peers your peer is connected to (via different
-mechanisms) and how large the entire overlay network is currently
-estimated to be. The X-axis represents time (in seconds since the
-start of @command{gnunet-gtk}).
+If your peer@footnote{The term ``peer'' is a common word used in
+federated and distributed networks to describe a participating device
+which is connected to the network. Thus, your Personal Computer or
+whatever it is you are looking at the Gtk+ interface describes a
+``Peer'' or a ``Node''.}  is running correctly, you should see a bunch
+of lines, all of which should be ``significantly'' above zero (at
+least if your peer has been running for more than a few seconds). The
+lines indicate how many other peers your peer is connected to (via
+different mechanisms) and how large the entire overlay network is
+currently estimated to be. The X-axis represents time (in seconds
+since the start of @command{gnunet-gtk}).
 
 You can click on "Traffic" to see information about the amount of
 bandwidth your peer has consumed, and on "Storage" to check the amount
