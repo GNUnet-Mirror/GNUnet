@@ -6,7 +6,19 @@ source. For instructions on how to install GNUnet as a binary package
 please refer to the official documentation of your operating system or
 package manager.
 
-@node Getting the Source Code
+@menu
+* Installing dependencies::
+* Getting the Source Code::
+* Create @code{gnunet} user and group::
+* Preparing and Compiling the Source Code::
+* Installation::
+* MOVED FROM USER Checking the Installation::
+* MOVED FROM USER The graphical configuration interface::
+* MOVED FROM USER Config Leftovers::
+@end menu
+
+@c -----------------------------------------------------------------------
+@node Installing dependencies
 @section Installing dependencies
 GNUnet needs few libraries and applications for being able to run and
 another few optional ones for using certain features. Preferably they
@@ -55,7 +67,8 @@ These are the dependencies only required for certain features
 (for attribute-based encryption and the identity provider subsystem)
 @end itemize
 
-
+@c -----------------------------------------------------------------------
+@node Getting the Source Code
 @section Getting the Source Code
 You can either download the source code using git (you obviously need
 git installed) or as an archive.
@@ -75,6 +88,8 @@ tar xzvf gnunet-0.11.0pre66.tar.gz
 In the next chapter we will assume that the source code is available
 in the home directory at @code{~/gnunet}.
 
+@c -----------------------------------------------------------------------
+@node Create @code{gnunet} user and group
 @section Create @code{gnunet} user and group
 The GNUnet services should be run as a dedicated user called
 @code{gnunet}. For using them a user should be in the same group as
@@ -92,6 +107,8 @@ Now add your own user to the @code{gnunet} group.
 $ sudo adduser alice gnunet
 @end example
 
+@c -----------------------------------------------------------------------
+@node Preparing and Compiling the Source Code
 @section Preparing and Compiling the Source Code
 For preparing the source code for compilation a bootstrap script and
 @code{configure} has to be run from the source code directory. When
@@ -125,7 +142,8 @@ that 5 threads should be used.
 $ make -j5
 @end example
 
-
+@c -----------------------------------------------------------------------
+@node Installation
 @section Installation
 The compiled binaries can be installed using @code{make install}. It
 needs to be run as root (or with sudo) because some binaries need the
