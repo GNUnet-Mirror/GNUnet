@@ -11,7 +11,7 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
@@ -48,14 +48,16 @@ gns_resolve_name (int af,
   {
     if (-1 == asprintf (&cmd,
 			"%s -t AAAA -u %s\n",
-			"gnunet-gns -r", name))
+			"gnunet-gns -r",
+                        name))
       return -1;
   }
   else
   {
     if (-1 == asprintf (&cmd,
 			"%s %s\n",
-			"gnunet-gns -r -u", name))
+			"gnunet-gns -r -u",
+                        name))
       return -1;
   }
   if (NULL == (p = popen (cmd, "r")))
@@ -63,7 +65,9 @@ gns_resolve_name (int af,
     free (cmd);
     return -1;
   }
-  while (NULL != fgets (line, sizeof(line), p))
+  while (NULL != fgets (line,
+                        sizeof(line),
+                        p))
   {
     if (u->count >= MAX_ENTRIES)
       break;
@@ -72,7 +76,9 @@ gns_resolve_name (int af,
       line[strlen(line)-1] = '\0';
       if (AF_INET == af)
       {
-	if (inet_pton(af, line, &(u->data.ipv4[u->count])))
+	if (inet_pton(af,
+                      line,
+                      &u->data.ipv4[u->count]))
         {
 	  u->count++;
 	  u->data_len += sizeof(ipv4_address_t);
@@ -86,7 +92,9 @@ gns_resolve_name (int af,
       }
       else if (AF_INET6 == af)
       {
-	if (inet_pton(af, line, &(u->data.ipv6[u->count])))
+	if (inet_pton(af,
+                      line,
+                      &u->data.ipv6[u->count]))
         {
 	  u->count++;
 	  u->data_len += sizeof(ipv6_address_t);
@@ -105,7 +113,10 @@ gns_resolve_name (int af,
   if (4 == ret)
     return -2; /* not for GNS */
   if (3 == ret)
-    return -3; /* timeout */
+    return -3; /* timeout -> not found */
+  if ( (2 == ret) || (1 == ret) )
+    return -2; /* launch failure -> service unavailable */
   return 0;
 }
+
 /* end of nss_gns_query.c */
