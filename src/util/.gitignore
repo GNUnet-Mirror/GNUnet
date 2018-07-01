@@ -70,3 +70,5 @@ perf_crypto_symmetric
 perf_crypto_rsa
 perf_crypto_ecc_dlog
 test_hexcoder test_regex test_tun
+gnunet-timeout
+test_hexcoder test_regex test_tun
