@@ -123,7 +123,7 @@ struct EphemeralKeyMessage
 
 
 /**
- * We're sending an (encrypted) PING to the other peer to check if he
+ * We're sending an (encrypted) PING to the other peer to check if it
  * can decrypt.  The other peer should respond with a PONG with the
  * same content, except this time encrypted with the receiver's key.
  */
@@ -854,8 +854,8 @@ handle_transport_notify_connect (void *cls,
   }
   else
   {
-    /* peer with "higher" identity starts a delayed  KX, if the "lower" peer
-     * does not start a KX since he sees no reasons to do so  */
+    /* peer with "higher" identity starts a delayed KX, if the "lower" peer
+     * does not start a KX since it sees no reasons to do so  */
     kx->retry_set_key_task
       = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
 				      &set_key_retry_task,

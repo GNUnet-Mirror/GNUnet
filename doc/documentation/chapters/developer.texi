@@ -352,7 +352,7 @@ The DHT and other components of GNUnet
 store information in units called 'blocks'. Each block has a type and the
 type defines a particular format and how that binary format is to be
 linked to a hash code (the key for the DHT and for databases). The block
-library is a wapper around block plugins which provide the necessary
+library is a wrapper around block plugins which provide the necessary
 functions for each block type.
 @item @file{statistics/} --- statistics service
 The statistics service enables associating
@@ -400,7 +400,7 @@ external service to test the local configuration.
 Some transports (UDP and WLAN, mostly) have restrictions on the maximum
 transfer unit (MTU) for packets. The fragmentation library can be used to
 break larger packets into chunks of at most 1k and transmit the resulting
-fragments reliabily (with acknowledgement, retransmission, timeouts,
+fragments reliably (with acknowledgment, retransmission, timeouts,
 etc.).
 @item @file{transport/} --- transport service
 The transport service is responsible for managing the
@@ -425,8 +425,8 @@ the foundation for the testbed service
 @item @file{testbed/} --- testbed service
 The testbed service is used for creating small or large scale deployments
 of GNUnet peers for evaluation of protocols.
-It facilitates peer depolyments on multiple
-hosts (for example, in a cluster) and establishing varous network
+It facilitates peer deployments on multiple
+hosts (for example, in a cluster) and establishing various network
 topologies (both underlay and overlay).
 @item @file{nse/} --- Network Size Estimation
 The network size estimation (NSE) service
@@ -1038,7 +1038,7 @@ if (0 == bar && x != y)
 @end example
 
 @noindent
-Note that splitting the @code{if} statement above is debateable as the
+Note that splitting the @code{if} statement above is debatable as the
 @code{return x} is a very trivial statement. However, once the logic after
 the branch becomes more complicated (and is still identical), the "or"
 formulation should be used for sure.
@@ -1173,12 +1173,12 @@ for building applications under UNIX-like systems. Furthermore we
 assume that the build environment is sane and that you are aware of
 any implications actions in this process could have.
 Instructions here can be seen as notes for developers (an extension to
-the 'HACKING' section in README) as well as package mantainers.
+the 'HACKING' section in README) as well as package maintainers.
 @b{Users should rely on the available binary packages.}
 We will use Debian as an example Operating System environment. Substitute
-accordingly with your own Ooperating System environment.
+accordingly with your own Operating System environment.
 
-For the full list of depenendencies, consult the appropriate, up-to-date
+For the full list of dependencies, consult the appropriate, up-to-date
 section in the @file{README} file.
 
 First, we need to build or install (depending on your OS) the following
@@ -1442,7 +1442,7 @@ $ gnunet-gns-proxy-setup-ca
 @end example
 
 @noindent
-The first generates the default zones, wheras the second setups the GNS
+The first generates the default zones, whereas the second setups the GNS
 Certificate Authority with the user's browser. Now, to activate GNS in the
 normal DNS resolution process, you need to edit your
 @file{/etc/nsswitch.conf} where you should find a line like this:
@@ -1536,7 +1536,7 @@ This range can be customised with the function
 similar to @code{GNUNET_TESTING_system_create()} except that it take 2
 additional parameters --- the start and end of the port range to use.
 
-A TESTING system is destroyed with the funciton
+A TESTING system is destroyed with the function
 @code{GNUNET_TESTING_system_destory()}. This function takes the handle of
 the system and a flag to remove the files created in the directory used
 to generate configurations.
@@ -1545,7 +1545,7 @@ A peer is created with the function
 @code{GNUNET_TESTING_peer_configure()}. This functions takes the system
 handle, a configuration template from which the configuration for the peer
 is auto-generated and the index from where the hostkey for the peer has to
-be copied from. When successfull, this function returs a handle to the
+be copied from. When successful, this function returns a handle to the
 peer which can be used to start and stop it and to obtain the identity of
 the peer. If unsuccessful, a NULL pointer is returned with an error
 message. This function handles the generated configuration to have
@@ -1579,7 +1579,7 @@ to the handle to the peer to stop. The callback function is called with
 the given closure when the peer is stopped. Using this function
 eliminates blocking while waiting for the peer to terminate.
 
-An asynchronous peer stop can be cancelled by calling the function
+An asynchronous peer stop can be canceled by calling the function
 @code{GNUNET_TESTING_peer_stop_async_cancel()}. Note that calling this
 function does not prevent the peer from terminating if the termination
 signal has already been sent to it. It does, however, cancels the
@@ -1660,12 +1660,12 @@ simply load the plugin directly.
 To help avoid performance regressions, GNUnet uses Gauger. Gauger is a
 simple logging tool that allows remote hosts to send performance data to
 a central server, where this data can be analyzed and visualized. Gauger
-shows graphs of the repository revisions and the performace data recorded
+shows graphs of the repository revisions and the performance data recorded
 for each revision, so sudden performance peaks or drops can be identified
 and linked to a specific revision number.
 
 In the case of GNUnet, the buildbots log the performance data obtained
-during the tests after each build. The data can be accesed on GNUnet's
+during the tests after each build. The data can be accessed on GNUnet's
 Gauger page.
 
 The menu on the left allows to select either the results of just one
@@ -1678,7 +1678,7 @@ performance evolution across all hosts.
 Using Gauger in GNUnet and having the performance of a module tracked over
 time is very easy. First of course, the testcase must generate some
 consistent metric, which makes sense to have logged. Highly volatile or
-random dependant metrics probably are not ideal candidates for meaningful
+random dependent metrics probably are not ideal candidates for meaningful
 regression detection.
 
 To start logging any value, just include @code{gauger.h} in your testcase
@@ -1890,7 +1890,7 @@ random links are to be given
 
 @item @code{GNUNET_TESTBED_TOPOLOGY_SCALE_FREE}: Connects peers in a
 topology where peer connectivity follows power law - new peers are
-connected with high probabililty to well connected peers.
+connected with high probability to well connected peers.
 @footnote{See Emergence of Scaling in Random Networks. Science 286,
 509-512, 1999
 (@uref{https://gnunet.org/git/bibliography.git/plain/docs/emergence_of_scaling_in_random_networks__barabasi_albert_science_286__1999.pdf, pdf})}
@@ -1931,7 +1931,7 @@ ignored for the rest of the topologies.
 Topology @code{SCALE_FREE} requires the options
 @code{SCALE_FREE_TOPOLOGY_CAP} to be set to the maximum number of peers
 which can connect to a peer and @code{SCALE_FREE_TOPOLOGY_M} to be set to
-how many peers a peer should be atleast connected to.
+how many peers a peer should be at least connected to.
 
 Similarly, the topology @code{FROM_FILE} requires the option
 @code{OVERLAY_TOPOLOGY_FILE} to contain the path of the file containing
@@ -1977,7 +1977,7 @@ A topology file describes how peers are to be connected. It should adhere
 to the following format for testbed to parse it correctly.
 
 Each line should begin with the target peer id. This should be followed by
-a colon(`:') and origin peer ids seperated by `|'. All spaces except for
+a colon(`:') and origin peer ids separated by `|'. All spaces except for
 newline characters are ignored. The API will then try to connect each
 origin peer to the target peer.
 
@@ -2003,9 +2003,9 @@ deemed as crossed after all the peers waiting on it are notified.
 The barriers API provides the following functions:
 @itemize @bullet
 @item @strong{@code{GNUNET_TESTBED_barrier_init()}:} function to
-initialse a barrier in the experiment
+initialize a barrier in the experiment
 @item @strong{@code{GNUNET_TESTBED_barrier_cancel()}:} function to cancel
-a barrier which has been initialised before
+a barrier which has been initialized before
 @item @strong{@code{GNUNET_TESTBED_barrier_wait()}:} function to signal
 barrier service that the caller has reached a barrier and is waiting for
 it to be crossed
@@ -2122,7 +2122,7 @@ the large-scale deployment. We provide you a set of scripts you can use
 to deploy GNUnet on a set of nodes and manage your installation.
 
 Please also check @uref{https://gnunet.org/installation-fedora8-svn} and
-@uref{https://gnunet.org/installation-fedora12-svn} to find detailled
+@uref{https://gnunet.org/installation-fedora12-svn} to find detailed
 instructions how to install GNUnet on a PlanetLab node.
 
 
@@ -2148,7 +2148,7 @@ image, installing the buildslave software is quite some pain. For our
 PlanetLab testbed we figured out how to install the buildslave software
 best.
 
-@c This is a vvery terrible way to suggest installing software.
+@c This is a very terrible way to suggest installing software.
 @c FIXME: Is there an official, safer way instead of blind-piping a
 @c script?
 @c FIXME: Use newer pypi URLs below.
@@ -2354,7 +2354,7 @@ for new developers):
 @item CPS-style scheduling (scheduler.c)
 @item Program initialization (program.c)
 @item Networking (network.c, client.c, server*.c, service.c)
-@item message queueing (mq.c)
+@item message queuing (mq.c)
 @item bandwidth calculations (bandwidth.c)
 @item Other OS-related (os*.c, plugin.c, signal.c)
 @item Pseudonym management (pseudonym.c)
@@ -2425,7 +2425,7 @@ level to "loglevel". Thus it is possible to run some processes
 with -L DEBUG, for example, and others with -L ERROR to enable specific
 settings to diagnose problems with a particular process.
 @item Configuration files.  Because GNUnet
-service and deamon processes are usually launched by gnunet-arm, it is not
+service and daemon processes are usually launched by gnunet-arm, it is not
 possible to pass different custom command line options directly to every
 one of them. The options passed to @code{gnunet-arm} only affect
 gnunet-arm and not the rest of GNUnet. However, one can specify a
@@ -2717,7 +2717,7 @@ will have
 no effect. Other messages (ERROR, WARNING, INFO, etc) will be included.
 @item If @code{--enable-logging} is set to @code{verbose}, or
 @code{veryverbose} the binary will contain DEBUG messages (still, it will
-be neccessary to run with @command{-L DEBUG} or set the DEBUG config option
+be necessary to run with @command{-L DEBUG} or set the DEBUG config option
 to show
 them).
 @end itemize
@@ -2728,7 +2728,7 @@ If you are a developer:
 @item please make sure that you @code{./configure
 --enable-logging=@{verbose,veryverbose@}}, so you can see DEBUG messages.
 @item please remove the @code{#if} statements around @code{GNUNET_log
-(GNUNET_ERROR_TYPE_DEBUG, ...)} lines, to improve the readibility of your
+(GNUNET_ERROR_TYPE_DEBUG, ...)} lines, to improve the readability of your
 code.
 @end itemize
 
@@ -2741,7 +2741,7 @@ A suitable configuration could be:
 $ export GNUNET_FORCE_LOG="^YOUR_SUBSYSTEM$;;;;DEBUG/;;;;WARNING"
 @end example
 
-Which will behave almost like enabling DEBUG in that subsytem before the
+Which will behave almost like enabling DEBUG in that subsystem before the
 change. Of course you can adapt it to your particular needs, this is only
 a quick example.
 
@@ -2952,7 +2952,7 @@ function, which is set to @code{NULL} in most cases, and the last
 parameter is the expected size of the message of this type, usually we
 set it to 0 to accept variable size, for special cases the exact size of
 the specified message also can be set. In addition, the terminator sign
-depicted as @code{@{NULL, NULL, 0, 0@}} is set in the last aera.
+depicted as @code{@{NULL, NULL, 0, 0@}} is set in the last area.
 
 @c ***********************************************************************
 @node Server - Process request message
@@ -3002,7 +3002,7 @@ understand the request message, and the processing of this request would
 be terminated.
 
 In comparison to the aforementioned situation, when the argument is equal
-to @code{GNUNET_OK}, the service would continue to process the requst
+to @code{GNUNET_OK}, the service would continue to process the request
 message.
 
 @c ***********************************************************************
@@ -3151,7 +3151,7 @@ GNUnet uses SHA-512 for computing one-way hash codes. The API provides
 functions to compute a hash over a block in memory or over a file on disk.
 
 The crypto API also provides functions for randomizing a block of memory,
-obtaining a single random number and for generating a permuation of the
+obtaining a single random number and for generating a permutation of the
 numbers 0 to n-1. Random number generation distinguishes between WEAK and
 STRONG random number quality; WEAK random numbers are pseudo-random
 whereas STRONG random numbers use entropy gathered from the operating
@@ -3230,7 +3230,7 @@ message.
 
 Consider the following simple message, with the body consisting of a
 single number value.
-@c why the empy code function?
+@c why the empty code function?
 @code{}
 
 @example
@@ -3505,7 +3505,7 @@ or in some other transient data structure and thus having the hash map
 keep a pointer to @code{key} would not work. Only the key inside of
 @code{val} has the same lifetime as the entry in the map (this must of
 course be checked as well). Naturally, @code{val->key} must be
-intiialized before the @code{put} call. Once all @code{put} calls have
+initialized before the @code{put} call. Once all @code{put} calls have
 been converted and double-checked, you can change the call to create the
 hash map from
 
@@ -3893,7 +3893,7 @@ The goal of transport-level address validation is to minimize the chances
 of a successful man-in-the-middle attack against GNUnet peers on the
 transport level. Such an attack would not allow the adversary to decrypt
 the P2P transmissions, but a successful attacker could at least measure
-traffic volumes and latencies (raising the adversaries capablities by
+traffic volumes and latencies (raising the adversaries capabilities by
 those of a global passive adversary in the worst case). The scenarios we
 are concerned about is an attacker, Mallory, giving a @code{HELLO} to
 Alice that claims to be for Bob, but contains Mallory's IP address
@@ -4019,7 +4019,7 @@ connected peers, but they are sent about other knowns peers within the
 to each other about their appropriate other neighbors. They also gossip
 about the newly connected peer to previously
 connected neighbors. In order to keep the routing tables up to date,
-disconnect notifications are propogated as gossip as well (because
+disconnect notifications are propagated as gossip as well (because
 disconnects may not be sent/received, timeouts are also used remove
 stagnant routing table entries).
 
@@ -4210,7 +4210,7 @@ to send and receive messages.
 
 We have measured the performance of the UDP, TCP and SMTP transport layer
 directly and when used from an application using the GNUnet core.
-Measureing just the transport layer gives the better view of the actual
+Measuring just the transport layer gives the better view of the actual
 overhead of the protocol, whereas evaluating the transport from the
 application puts the overhead into perspective from a practical point of
 view.
@@ -4230,7 +4230,7 @@ wire have no impact on the timings. n messages were sent sequentially over
 the transport layer, sending message i+1 after the i-th message was
 received. All messages were sent over the same connection and the time to
 establish the connection was not taken into account since this overhead is
-miniscule in practice --- as long as a connection is used for a
+minuscule in practice --- as long as a connection is used for a
 significant number of messages.
 
 @multitable @columnfractions .20 .15 .15 .15 .15 .15
@@ -4261,9 +4261,9 @@ given time-bounds. For this benchmark we report the message loss after
 allowing t time for sending m messages. If messages were not sent (or
 received) after an overall timeout of t, they were considered lost. The
 benchmark was performed using two Xeon 2 GHZ machines running RedHat 8.0
-with sendmail. The machines were connected with a direct 100 MBit ethernet
+with sendmail. The machines were connected with a direct 100 MBit Ethernet
 connection.@ Figures udp1200, tcp1200 and smtp-MTUs show that the
-throughput for messages of size 1,200 octects is 2,343 kbps, 3,310 kbps
+throughput for messages of size 1,200 octets is 2,343 kbps, 3,310 kbps
 and 6 kbps for UDP, TCP and SMTP respectively. The high per-message
 overhead of SMTP can be improved by increasing the MTU, for example, an
 MTU of 12,000 octets improves the throughput to 13 kbps as figure
@@ -4308,7 +4308,7 @@ installed).
 For instructions about how to install the libraries you should
 check out the BlueZ site
 (@uref{http://www.bluez.org/, http://www.bluez.org}). If you don't know if
-you have the necesarry libraries, don't worry, just run the GNUnet
+you have the necessary libraries, don't worry, just run the GNUnet
 configure script and you will be able to see a notification at the end
 which will warn you if you don't have the necessary libraries.
 
@@ -4336,7 +4336,7 @@ helper binary used on GNU/Linux:
 
 @itemize @bullet
 @item it verifies if the name corresponds to a Bluetooth interface name
-@item it verifies if the iterface is up (if it is not, it tries to bring
+@item it verifies if the interface is up (if it is not, it tries to bring
 it up)
 @item it tries to enable the page and inquiry scan in order to make the
 device discoverable and to accept incoming connection requests
@@ -4377,12 +4377,12 @@ Bluetooth address has the form 00:00:00:00:00:00 it means that there is
 something wrong with the D-Bus daemon or with the Bluetooth daemon. Use
 @code{bluetoothd} tool to see the logs
 
-@item @code{sdptool} can be used to control and interogate SDP servers.
+@item @code{sdptool} can be used to control and interrogate SDP servers.
 If you encounter problems regarding the SDP server (like the SDP server is
 down) you should check out if the D-Bus daemon is running correctly and to
 see if the Bluetooth daemon started correctly(use @code{bluetoothd} tool).
 Also, sometimes the SDP service could work but somehow the device couldn't
-register his service. Use @code{sdptool browse [dev-address]} to see if
+register its service. Use @code{sdptool browse [dev-address]} to see if
 the service is registered. There should be a service with the name of the
 interface and GNUnet as provider.
 
@@ -4464,11 +4464,11 @@ then start sending data for benchmarking.
 On Windows you cannot test the plugin functionality using two Bluetooth
 devices from the same machine because after you install the drivers there
 will occur some conflicts between the Bluetooth stacks. (At least that is
-what happend on my machine : I wasn't able to use the Bluesoleil stack and
+what happened on my machine : I wasn't able to use the Bluesoleil stack and
 the WINDCOMM one in the same time).
 
 If you have two different machines and your configuration files are good
-you can use the same scenario presented on the begining of this section.
+you can use the same scenario presented on the beginning of this section.
 
 Another way to test the plugin functionality is to create your own
 application which will use the GNUnet framework with the Bluetooth
@@ -4483,8 +4483,8 @@ This page describes the implementation of the Bluetooth transport plugin.
 First I want to remind you that the Bluetooth transport plugin uses
 virtually the same code as the WLAN plugin and only the helper binary is
 different. Also the scope of the helper binary from the Bluetooth
-transport plugin is the same as the one used for the wlan transport
-plugin: it acceses the interface and then it forwards traffic in both
+transport plugin is the same as the one used for the WLAN transport
+plugin: it accesses the interface and then it forwards traffic in both
 directions between the Bluetooth interface and stdin/stdout of the
 process involved.
 
@@ -4525,8 +4525,8 @@ Bluetooth interface) and is separated in two stages:
 @subsubsection THE INITIALIZATION
 
 @itemize @bullet
-@item first, it checks if we have root privilegies
-(@emph{Remember that we need to have root privilegies in order to be able
+@item first, it checks if we have root privileges
+(@emph{Remember that we need to have root privileges in order to be able
 to bring the interface up if it is down or to change its state.}).
 
 @item second, it verifies if the interface with the given name exists.
@@ -4551,7 +4551,7 @@ discoverable
 devices to get the port on which this device is listening on)
 @end itemize
 
-@item drops the root privilegies
+@item drops the root privileges
 
 @strong{If the interface is not a Bluetooth interface the helper exits
 with a suitable error}
@@ -4596,7 +4596,7 @@ the STDOUT file descriptor, then we write to STDOUT the message from the
 @emph{write_std} buffer.
 
 To find out on which port a device is listening on we connect to the local
-SDP server and searche the registered service for that device.
+SDP server and search the registered service for that device.
 
 @emph{You should be aware of the fact that if the device fails to connect
 to another one when trying to send a message it will attempt one more
@@ -4659,17 +4659,17 @@ For Windows I decided to use the Microsoft Bluetooth stack which has the
 advantage of coming standard from Windows XP SP2. The main disadvantage is
 that it only supports the RFCOMM protocol so we will not be able to have
 a low level control over the Bluetooth device. Therefore it is the user
-responsability to check if the device is up and in the discoverable mode.
+responsibility to check if the device is up and in the discoverable mode.
 Also there are no tools which could be used for debugging in order to read
 the data coming from and going to a Bluetooth device, which obviously
 hindered my work. Another thing that slowed down the implementation of the
-plugin (besides that I wasn't too accomodated with the win32 API) was that
+plugin (besides that I wasn't too accommodated with the win32 API) was that
 there were some bugs on MinGW regarding the Bluetooth. Now they are solved
 but you should keep in mind that you should have the latest updates
 (especially the @emph{ws2bth} header).
 
 Besides the fact that it uses the Windows Sockets, the Windows
-implemenation follows the same principles as the GNU/Linux one:
+implementation follows the same principles as the GNU/Linux one:
 
 @itemize @bullet
 @item It has a initalization part where it initializes the
@@ -4714,7 +4714,7 @@ broadcast messages. When it receives a broadcast message it will skip it.
 @item Implement the broadcast functionality on Windows @emph{(currently
 working on)}
 @item Implement a testcase for the helper :@ @emph{The testcase
-consists of a program which emaluates the plugin and uses the helper. It
+consists of a program which emulates the plugin and uses the helper. It
 will simulate connections, disconnections and data transfers.}
 @end itemize
 
@@ -4902,7 +4902,7 @@ peers connecting, peers disconnecting and incoming messages) and send
 messages to connected peers using
 @code{GNUNET_CORE_notify_transmit_ready}. Note that applications must
 cancel pending transmission requests if they receive a disconnect event
-for a peer that had a transmission pending; furthermore, queueing more
+for a peer that had a transmission pending; furthermore, queuing more
 than one transmission request per peer per application using the
 service is not permitted.
 
@@ -5197,11 +5197,11 @@ The API is heavily base on the CORE API.
 CADET delivers messages to other peers in "channels".
 A channel is a permanent connection defined by a destination peer
 (identified by its public key) and a port number.
-Internally, CADET tunnels all channels towards a destiantion peer
+Internally, CADET tunnels all channels towards a destination peer
 using one session key and relays the data on multiple "connections",
 independent from the channels.
 
-Each channel has optional paramenters, the most important being the
+Each channel has optional parameters, the most important being the
 reliability flag.
 Should a message get lost on TRANSPORT/CORE level, if a channel is
 created with as reliable, CADET will retransmit the lost message and
@@ -5242,15 +5242,15 @@ case. To be alerted when a channel is online, a client can call
 @code{GNUNET_CADET_notify_transmit_ready} immediately after
 @code{GNUNET_CADET_create_channel}. When the callback is activated, it
 means that the channel is online. The callback can give 0 bytes to CADET
-if no message is to be sent, this is ok.
+if no message is to be sent, this is OK.
 
 If a transmission was requested but before the callback fires it is no
-longer needed, it can be cancelled with
+longer needed, it can be canceled with
 @code{GNUNET_CADET_notify_transmit_ready_cancel}, which uses the handle
 given back by @code{GNUNET_CADET_notify_transmit_ready}.
 As in the case of CORE, only one message can be requested at a time: a
 client must not call @code{GNUNET_CADET_notify_transmit_ready} again until
-the callback is called or the request is cancelled.
+the callback is called or the request is canceled.
 
 When a channel is no longer needed, a client can call
 @code{GNUNET_CADET_channel_destroy} to get rid of it.
@@ -5298,10 +5298,10 @@ all of the details can be found in this technical report.
 @subsection Motivation
 
 
-Some subsytems, like DHT, need to know the size of the GNUnet network to
+Some subsystems, like DHT, need to know the size of the GNUnet network to
 optimize some parameters of their own protocol. The decentralized nature
 of GNUnet makes efficient and securely counting the exact number of peers
-infeasable. Although there are several decentralized algorithms to count
+infeasible. Although there are several decentralized algorithms to count
 the number of peers in a system, so far there is none to do so securely.
 Other protocols may allow any malicious peer to manipulate the final
 result or to take advantage of the system to perform
@@ -5323,7 +5323,7 @@ GNUnet's NSE protocol avoids these drawbacks.
 The NSE subsystem is designed to be resilient against these attacks.
 It uses @uref{http://en.wikipedia.org/wiki/Proof-of-work_system, proofs of work}
 to prevent one peer from impersonating a large number of participants,
-which would otherwise allow an adversary to artifically inflate the
+which would otherwise allow an adversary to artificially inflate the
 estimate.
 The DoS protection comes from the time-based nature of the protocol:
 the estimates are calculated periodically and out-of-time traffic is
@@ -5385,7 +5385,7 @@ to all the other peers, who will calculate the estimate from it.
 The target value itself is generated by hashing the current time, rounded
 down to an agreed value. If the rounding amount is 1h (default) and the
 time is 12:34:56, the time to hash would be 12:00:00. The process is
-repeated each rouning amount (in this example would be every hour).
+repeated each rounding amount (in this example would be every hour).
 Every repetition is called a round.
 
 @node Timing
@@ -5397,12 +5397,12 @@ its ID all at one. Once each peer has the target random value, it
 compares its own ID to the target and calculates the hypothetical size of
 the network if that peer were to be the closest.
 Then it compares the hypothetical size with the estimate from the previous
-rounds. For each value there is an assiciated point in the period,
+rounds. For each value there is an associated point in the period,
 let's call it "broadcast time". If its own hypothetical estimate
 is the same as the previous global estimate, its "broadcast time" will be
 in the middle of the round. If its bigger it will be earlier and if its
 smaller (the most likely case) it will be later. This ensures that the
-peers closests to the target value start broadcasting their ID the first.
+peers closest to the target value start broadcasting their ID the first.
 
 @node Controlled Flooding
 @subsubsection Controlled Flooding
@@ -5415,7 +5415,7 @@ with a message containing the better value. Then it checks a proof of
 work that must be included in the incoming message, to ensure that the
 other peer's ID is not made up (otherwise a malicious peer could claim to
 have an ID of exactly the target value every round). Once validated, it
-compares the brodcast time of the received value with the current time
+compares the broadcast time of the received value with the current time
 and if it's not too early, sends the received value to its neighbors.
 Otherwise it stores the value until the correct broadcast time comes.
 This prevents unnecessary traffic of sub-optimal values, since a better
@@ -5429,7 +5429,7 @@ to the neighbors.
 @c %**end of header
 
 Once the closest ID has been spread across the network each peer gets the
-exact distance betweed this ID and the target value of the round and
+exact distance between this ID and the target value of the round and
 calculates the estimate with a mathematical formula described in the tech
 report. The estimate generated with this method for a single round is not
 very precise. Remember the case of the example, where the only peer is the
@@ -5453,7 +5453,7 @@ calls: @code{GNUNET_NSE_connect} and @code{GNUNET_NSE_disconnect}.
 The connect call gets a callback function as a parameter and this function
 is called each time the network agrees on an estimate. This usually is
 once per round, with some exceptions: if the closest peer has a late
-local clock and starts spreading his ID after everyone else agreed on a
+local clock and starts spreading its ID after everyone else agreed on a
 value, the callback might be activated twice in a round, the second value
 being always bigger than the first. The default round time is set to
 1 hour.
@@ -5503,7 +5503,7 @@ size is between one third and three times the estimate. This can of
 course vary with network conditions.
 Thus, applications may want to also consider the provided standard
 deviation value, not only the average (in particular, if the standard
-veriation is very high, the average maybe meaningless: the network size is
+variation is very high, the average maybe meaningless: the network size is
 changing rapidly).
 
 @node libgnunetnse - Examples
@@ -5579,12 +5579,12 @@ is what we are flooding the network with right now.
 At the beginning of each round the peer does the following:
 
 @itemize @bullet
-@item calculates his own distance to the target value
+@item calculates its own distance to the target value
 @item creates, signs and stores the message for the current round (unless
 it has a better message in the "next round" slot which came early in the
 previous round)
 @item calculates, based on the stored round message (own or received) when
-to stard flooding it to its neighbors
+to start flooding it to its neighbors
 @end itemize
 
 Upon receiving a message the peer checks the validity of the message
@@ -6085,7 +6085,7 @@ convenience API to do just that. Use @code{GNUNET_IDENTITY_ego_lookup} to
 lookup a single ego by name. Note that this is the user's name for the
 ego, not the service function. The resulting ego will be returned via a
 callback and will only be valid during that callback. The operation can
-be cancelled via @code{GNUNET_IDENTITY_ego_lookup_cancel}
+be canceled via @code{GNUNET_IDENTITY_ego_lookup_cancel}
 (cancellation is only legal before the callback is invoked).
 
 @node Associating egos with service functions
@@ -6215,8 +6215,8 @@ So a client has first to retrieve records, merge with existing records
 and then store the result.
 
 To perform a lookup operation, the client uses the
-@code{GNUNET_NAMESTORE_records_store} function. Here he has to pass the
-namestore handle, the private key of the zone and the label. He also has
+@code{GNUNET_NAMESTORE_records_store} function. Here it has to pass the
+namestore handle, the private key of the zone and the label. It also has
 to provide a callback function which will be called with the result of
 the lookup operation:
 the zone for the records, the label, and the records including the
@@ -6239,7 +6239,7 @@ by NAMESTORE.
 Here a client uses the @code{GNUNET_NAMESTORE_zone_iteration_start}
 function and passes the namestore handle, the zone to iterate over and a
 callback function to call with the result.
-If the client wants to iterate over all the, he passes NULL for the zone.
+If the client wants to iterate over all the WHAT!? FIXME, it passes NULL for the zone.
 A @code{GNUNET_NAMESTORE_ZoneIterator} handle is returned to be used to
 continue iteration.
 
@@ -6658,7 +6658,7 @@ The size of an element's data is limited to around 62 KB.
 
 Sets created by a local client can be modified and reused for multiple
 operations. As each set operation requires potentially expensive special
-auxilliary data to be computed for each element of a set, a set can only
+auxiliary data to be computed for each element of a set, a set can only
 participate in one type of set operation (i.e. union or intersection).
 The type of a set is determined upon its creation.
 If a the elements of a set are needed for an operation of a different
@@ -6778,7 +6778,7 @@ until the client calls @code{GNUNET_SET_commit}
 @c %**end of header
 
 To create symmetry between the two ways of starting a set operation
-(accepting and nitiating it), the operation handles returned by
+(accepting and initiating it), the operation handles returned by
 @code{GNUNET_SET_accept} and @code{GNUNET_SET_prepare} do not yet have a
 set to operate on, thus they can not do any work yet.
 
@@ -6935,10 +6935,10 @@ number of iterations).
 The receiver of the message removes all elements from its local set that
 do not pass the Bloom filter test.
 It then checks if the set size of the sender and the XOR over the keys
-match what is left of his own set. If they do, he sends a
+match what is left of its own set. If they do, it sends a
 @code{GNUNET_MESSAGE_TYPE_SET_INTERSECTION_P2P_DONE} back to indicate
 that the latest set is the final result.
-Otherwise, the receiver starts another Bloom fitler exchange, except
+Otherwise, the receiver starts another Bloom filter exchange, except
 this time as the sender.
 
 @node Salt
@@ -6946,7 +6946,7 @@ this time as the sender.
 
 @c %**end of header
 
-Bloomfilter operations are probablistic: With some non-zero probability
+Bloomfilter operations are probabilistic: With some non-zero probability
 the test may incorrectly say an element is in the set, even though it is
 not.
 
@@ -6999,7 +6999,7 @@ message. If the IBF fully decodes, the peer responds with a
 GNUNET_MESSAGE_TYPE_SET_UNION_P2P_DONE message instead of another
 GNUNET_MESSAGE_TYPE_SET_UNION_P2P_IBF.
 
-All Bloom filter operations use a salt to mingle keys before hasing them
+All Bloom filter operations use a salt to mingle keys before hashing them
 into buckets, such that future iterations have a fresh chance of
 succeeding if they failed due to collisions before.
 
@@ -7557,7 +7557,7 @@ already knows more than about a thousand blocks may need to send
 several of these messages. Naturally, the client should transmit these
 messages as quickly as possible after the original GET request such that
 the DHT can filter those results in the network early on. Naturally, as
-these messages are sent after the original request, it is conceivalbe
+these messages are sent after the original request, it is conceivable
 that the DHT service may return blocks that match those already known
 to the client anyway.
 
@@ -7670,7 +7670,7 @@ duplicate results) and when they obtain a matching, non-filtered response
 a @code{struct PeerResultMessage} of type
 @code{GNUNET_MESSAGE_TYPE_DHT_P2P_RESULT} is forwarded to the previous
 hop.
-Whenver a result is forwarded, the block plugin is used to update the
+Whenever a result is forwarded, the block plugin is used to update the
 Bloom filter accordingly, to ensure that the same result is never
 forwarded more than once.
 The DHT service may also cache forwarded results locally if the
@@ -7737,7 +7737,7 @@ record types.
 
 @c %**end of header
 
-The GNS API itself is extremely simple. Clients first connec to the
+The GNS API itself is extremely simple. Clients first connect to the
 GNS service using @code{GNUNET_GNS_connect}.
 They can then perform lookups using @code{GNUNET_GNS_lookup} or cancel
 pending lookups using @code{GNUNET_GNS_lookup_cancel}.
@@ -7786,9 +7786,9 @@ their respective zones can automatically be learned and added to the
 the shorten zone. If NULL is passed, shortening is disabled.
 @item proc This argument identifies
 the function to call with the result. It is given proc_cls, the number of
-records found (possilby zero) and the array of the records as arguments.
+records found (possibly zero) and the array of the records as arguments.
 proc will only be called once. After proc,> has been called, the lookup
-must no longer be cancelled.
+must no longer be canceled.
 @item proc_cls The closure for proc.
 @end table
 
@@ -7943,7 +7943,7 @@ This is merely one method for how we can obtain GNS queries.
 It is also possible to change @code{resolv.conf} to point to a machine
 running @code{gnunet-dns2gns} or to modify libc's name system switch
 (NSS) configuration to include a GNS resolution plugin.
-The method described in this chaper is more of a last-ditch catch-all
+The method described in this chapter is more of a last-ditch catch-all
 approach.
 
 @code{gnunet-service-dns} enables intercepting DNS traffic using policy
@@ -8111,8 +8111,8 @@ This returns the handle required for all other operations on the
 NAMECACHE. Using @code{GNUNET_NAMECACHE_block_cache} clients can insert a
 block into the cache.
 @code{GNUNET_NAMECACHE_lookup_block} can be used to lookup blocks that
-were stored in the NAMECACHE. Both operations can be cancelled using
-@code{GNUNET_NAMECACHE_cancel}. Note that cancelling a
+were stored in the NAMECACHE. Both operations can be canceled using
+@code{GNUNET_NAMECACHE_cancel}. Note that canceling a
 @code{GNUNET_NAMECACHE_block_cache} operation can result in the block
 being stored in the NAMECACHE --- or not. Cancellation primarily ensures
 that the continuation function with the result of the operation will no
@@ -8239,7 +8239,7 @@ When a revocation is performed, the revocation is first of all
 disseminated by flooding the overlay network.
 The goal is to reach every peer, so that when a peer needs to check if a
 key has been revoked, this will be purely a local operation where the
-peer looks at his local revocation list. Flooding the network is also the
+peer looks at its local revocation list. Flooding the network is also the
 most robust form of key revocation --- an adversary would have to control
 a separator of the overlay graph to restrict the propagation of the
 revocation message. Flooding is also very easy to implement --- peers that
@@ -8299,7 +8299,7 @@ revocations.
 @code{GNUNET_REVOCATION_query} is used to check if a given ECDSA public
 key has been revoked.
 The given callback will be invoked with the result of the check.
-The query can be cancelled using @code{GNUNET_REVOCATION_query_cancel} on
+The query can be canceled using @code{GNUNET_REVOCATION_query_cancel} on
 the return value.
 
 @node Preparing revocations
@@ -8477,7 +8477,7 @@ metadata describing the content of the namespace.
 Instead of the name of the identifier for a potential update, it contains
 the identifier for the root of the namespace.
 The URI should always be empty. The @code{SBlock} is signed with the
-content provder's RSA private key (just like any other SBlock). Peers
+content provider's RSA private key (just like any other SBlock). Peers
 can search for @code{SBlock}s in order to find out more about a namespace.
 
 @node KSBlocks
@@ -8800,5 +8800,5 @@ so please make sure that endpoints are unambiguous.
 @subsection Endpoint documentation
 
 This is WIP. Endpoints should be documented appropriately.
-Perferably using annotations.
+Preferably using annotations.
 

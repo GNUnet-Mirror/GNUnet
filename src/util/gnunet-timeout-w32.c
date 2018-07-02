@@ -11,13 +11,13 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 /**
- * @file contrib/timeout_watchdog_w32.c
+ * @file src/util/gnunet-timeout-w32.c
  * @brief small tool starting a child process, waiting that it terminates or killing it after a given timeout period
  * @author LRN
  */
@@ -182,7 +182,7 @@ main (int argc, char *argv[])
     exit (0);
   }
   printf ("Child processes were killed after timeout of %u seconds\n",
-	      timeout);
+          timeout);
   TerminateJobObject (job, 1);
   CloseHandle (proc.hProcess);
   exit (1);

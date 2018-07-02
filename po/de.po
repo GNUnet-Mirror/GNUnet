@@ -914,8 +914,8 @@ msgstr ""
 
 #: src/conversation/gnunet-conversation.c:720
 #, c-format
-msgid "We are calling `%s', his phone should be ringing.\n"
-msgstr ""
+msgid "We are calling `%s', their phone should be ringing.\n"
+msgstr "Wir rufen `%s' an, deren Telefon sollte jetzt klingeln.\n"
 
 #: src/conversation/gnunet-conversation.c:739
 msgid "Calls waiting:\n"

@@ -269,6 +269,7 @@ dns_result_processor (void *cls,
   }
   request->packet = GNUNET_DNSPARSER_parse ((char*)dns,
 					    r);
+  GNUNET_DNSSTUB_resolve_cancel (request->dns_lookup);
   send_response (request);
 }
 

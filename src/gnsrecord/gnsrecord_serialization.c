@@ -90,6 +90,9 @@ GNUNET_GNSRECORD_records_get_size (unsigned int rd_count,
 {
   size_t ret;
 
+  if (0 == rd_count)
+    return 0;
+  
   ret = sizeof (struct NetworkRecord) * rd_count;
   for (unsigned int i=0;i<rd_count;i++)
   {
@@ -205,6 +208,9 @@ GNUNET_GNSRECORD_records_serialize (unsigned int rd_count,
     }
 #endif
   }
+  memset (&dest[off],
+          0,
+          dest_size-off);
   return dest_size;
 }
 

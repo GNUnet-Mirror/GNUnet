@@ -172,7 +172,7 @@ struct DisconnectNotifyMessage
  * messages being received or transmitted.  This overall message is
  * followed by the real message, or just the header of the real
  * message (depending on the client's preferences).  The receiver can
- * tell if he got the full message or only a partial message by
+ * tell if it got the full message or only a partial message by
  * looking at the size field in the header of NotifyTrafficMessage and
  * checking it with the size field in the message that follows.
  */

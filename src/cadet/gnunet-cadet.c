@@ -27,6 +27,7 @@
 #include "gnunet_cadet_service.h"
 #include "cadet.h"
 
+#define STREAM_BUFFER_SIZE 1024  // Pakets
 
 /**
  * Option -P.
@@ -123,6 +124,8 @@ static struct GNUNET_SCHEDULER_Task *rd_task;
  */
 static struct GNUNET_SCHEDULER_Task *job;
 
+static unsigned int sent_pkt;
+
 
 /**
  * Wait for input on STDIO and send it out over the #ch.
@@ -196,6 +199,11 @@ shutdown_task (void *cls)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Shutdown\n");
+  if (NULL != lp)
+  {
+    GNUNET_CADET_close_port (lp);
+    lp = NULL;
+  }
   if (NULL != ch)
   {
     GNUNET_CADET_channel_destroy (ch);
@@ -223,6 +231,12 @@ shutdown_task (void *cls)
   }
 }
 
+void
+mq_cb(void *cls)
+{
+  listen_stdio ();
+}
+
 
 /**
  * Task run in stdio mode, after some data is available at stdin.
@@ -243,6 +257,8 @@ read_stdio (void *cls)
                     60000);
   if (data_size < 1)
   {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "read() returned  %s\n", strerror(errno));
     GNUNET_SCHEDULER_shutdown();
     return;
   }
@@ -257,9 +273,21 @@ read_stdio (void *cls)
                  data_size);
   GNUNET_MQ_send (GNUNET_CADET_get_mq (ch),
                   env);
+
+  sent_pkt++;
+
   if (GNUNET_NO == echo)
   {
-    listen_stdio ();
+    // Use MQ's notification if too much data of stdin is pooring in too fast.
+    if (STREAM_BUFFER_SIZE < sent_pkt) 
+    {
+      GNUNET_MQ_notify_sent (env, mq_cb, cls);
+      sent_pkt = 0;
+    }
+    else 
+    {
+      listen_stdio ();
+    }
   }
   else
   {
@@ -525,34 +553,48 @@ peer_callback (void *cls,
                int tunnel,
                int neighbor,
                unsigned int n_paths,
-               const struct GNUNET_PeerIdentity *paths)
+               const struct GNUNET_PeerIdentity *paths,
+               int offset,
+               int finished_with_paths)
 {
   unsigned int i;
   const struct GNUNET_PeerIdentity *p;
-
-  FPRINTF (stdout,
-           "%s [TUNNEL: %s, NEIGHBOR: %s, PATHS: %u]\n",
-           GNUNET_i2s_full (peer),
-           tunnel ? "Y" : "N",
-           neighbor ? "Y" : "N",
-           n_paths);
-  p = paths;
-  for (i = 0; i < n_paths && NULL != p;)
+  
+  
+  if (GNUNET_YES == finished_with_paths)
   {
-    FPRINTF (stdout,
-             "%s ",
-             GNUNET_i2s (p));
-    if (0 == memcmp (p,
-                     peer,
-                     sizeof (*p)))
-    {
-      FPRINTF (stdout, "\n");
-      i++;
-    }
-    p++;
+    GNUNET_SCHEDULER_shutdown();
+    return;
   }
+  
+  if (offset == 0){
+    FPRINTF (stdout,
+             "%s [TUNNEL: %s, NEIGHBOR: %s, PATHS: %u]\n",
+             GNUNET_i2s_full (peer),
+             tunnel ? "Y" : "N",
+             neighbor ? "Y" : "N",
+             n_paths);
+  }else{
+    p = paths;
+    FPRINTF (stdout,
+                "Indirekt path with offset %u: ",
+                offset);
+    for (i = 0; i <= offset && NULL != p;)
+    {
+        FPRINTF (stdout,
+                "%s ",
+                GNUNET_i2s (p));
+        i++;
+        p++;
+    }
+    
+    FPRINTF (stdout,
+                "\n");
+    
+  }
+  
 
-  GNUNET_SCHEDULER_shutdown();
+  
 }
 
 

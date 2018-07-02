@@ -22,8 +22,6 @@
  */
 #include "platform.h"
 #include "gnunet_util_lib.h"
-#include "gnunet_tun_lib.h"
-#include "gnunet_dnsstub_lib.h"
 
 /**
  * Timeout for retrying DNS queries.
@@ -356,7 +354,7 @@ do_dns_read (struct GNUNET_DNSSTUB_RequestSocket *rs,
 		  "Received DNS response from server we never asked (ignored)");
       return GNUNET_NO;
     }
-    if (sizeof (struct GNUNET_TUN_DnsHeader) > r)
+    if (sizeof (struct GNUNET_TUN_DnsHeader) > (size_t) r)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 		  _("Received DNS response that is too small (%u bytes)"),

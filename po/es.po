@@ -2,6 +2,7 @@
 # Copyright (C) 2012 Christian Grothoff <christian@grothoff.org>
 # This file is distributed under the same license as the GNUnet package.
 # Miguel Ángel Arruga Vivas <rosen644835@gmail.com>, 2006, 2013.
+# xrs <xrs@mail36.net>, 2018
 #
 msgid ""
 msgstr ""
@@ -156,12 +157,12 @@ msgstr "Servicios en ejecución:\n"
 #: src/arm/gnunet-arm.c:614
 #, c-format
 msgid "Now only monitoring, press CTRL-C to stop.\n"
-msgstr ""
+msgstr "Ahora solo monitorizando, pulsa CTRL-C para parar.\n"
 
 #: src/arm/gnunet-arm.c:646
 #, c-format
 msgid "Stopped %s.\n"
-msgstr ""
+msgstr "%s detenido.\n"
 
 #: src/arm/gnunet-arm.c:649
 #, fuzzy, c-format
@@ -171,7 +172,7 @@ msgstr "Iniciando descarga «%s».\n"
 #: src/arm/gnunet-arm.c:652
 #, c-format
 msgid "Stopping %s...\n"
-msgstr ""
+msgstr "Deteniendo %s...\n"
 
 #: src/arm/gnunet-arm.c:666
 #, fuzzy, c-format
@@ -204,7 +205,7 @@ msgstr "borrar el directorio y el fichero de configuración al salir"
 
 #: src/arm/gnunet-arm.c:798
 msgid "monitor ARM activities"
-msgstr ""
+msgstr "monitoriza actividades de ARM"
 
 #: src/arm/gnunet-arm.c:803
 msgid "don't print status messages"
@@ -212,7 +213,7 @@ msgstr "no imprime mensajes de estado"
 
 #: src/arm/gnunet-arm.c:809
 msgid "exit with error status if operation does not finish after DELAY"
-msgstr ""
+msgstr "sale con estado de error si la operación no termina despues del DELAY"
 
 #: src/arm/gnunet-arm.c:814
 msgid "list currently running services"
@@ -421,7 +422,7 @@ msgstr "valor a establecer"
 #: src/ats/gnunet-ats-solver-eval.c:3297 src/ats-tests/gnunet-solver-eval.c:943
 #: src/ats-tests/gnunet-solver-eval.c:948
 msgid "experiment to use"
-msgstr ""
+msgstr "experimento para usar"
 
 #: src/ats/gnunet-ats-solver-eval.c:3304
 #, fuzzy
@@ -430,11 +431,11 @@ msgstr "Iniciando descarga «%s».\n"
 
 #: src/ats/gnunet-ats-solver-eval.c:3309
 msgid "save logging to disk"
-msgstr ""
+msgstr "guarda protocolo al fichero en disco"
 
 #: src/ats/gnunet-ats-solver-eval.c:3314
 msgid "disable normalization"
-msgstr ""
+msgstr "deshabilita normalización"
 
 #: src/ats/gnunet-service-ats_plugins.c:302
 #, fuzzy, c-format
@@ -584,11 +585,11 @@ msgstr ""
 
 #: src/ats-tool/gnunet-ats.c:400
 msgid "active "
-msgstr ""
+msgstr "activo "
 
 #: src/ats-tool/gnunet-ats.c:400
 msgid "inactive "
-msgstr ""
+msgstr "inactivo "
 
 #: src/ats-tool/gnunet-ats.c:510
 #, fuzzy, c-format
@@ -693,19 +694,19 @@ msgstr "Imprime información acerca del estado del ATS"
 
 #: src/auction/gnunet-auction-create.c:161
 msgid "description of the item to be sold"
-msgstr ""
+msgstr "descripción del elemento que está por vender"
 
 #: src/auction/gnunet-auction-create.c:167
 msgid "mapping of possible prices"
-msgstr ""
+msgstr "figurando posibles precios"
 
 #: src/auction/gnunet-auction-create.c:173
 msgid "max duration per round"
-msgstr ""
+msgstr "maxima duración del turno"
 
 #: src/auction/gnunet-auction-create.c:179
 msgid "duration until auction starts"
-msgstr ""
+msgstr "duración hasta que la caución empieza"
 
 #: src/auction/gnunet-auction-create.c:184
 msgid ""
@@ -979,7 +980,7 @@ msgstr "Detectada dirección de la red interna «%s».\n"
 
 #: src/conversation/gnunet-conversation.c:720
 #, c-format
-msgid "We are calling `%s', his phone should be ringing.\n"
+msgid "We are calling `%s', their phone should be ringing.\n"
 msgstr ""
 
 #: src/conversation/gnunet-conversation.c:739

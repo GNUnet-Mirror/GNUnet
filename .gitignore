@@ -41,7 +41,6 @@ INSTALL
 confdefs.h
 confdefs.c
 confdefs.err
-guix-env-gillmann.scm
 src/namestore/test_namestore_api_zone_to_name
 src/credential/gnunet-credential
 src/credential/gnunet-service-credential

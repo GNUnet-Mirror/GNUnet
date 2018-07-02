@@ -1074,7 +1074,7 @@ GNUNET_ntoh_double (double d);
  * @param tsize the target size for the resulting vector, use 0 to
  *        free the vector (then, arr will be NULL afterwards).
  */
-#define GNUNET_array_grow(arr,size,tsize) GNUNET_xgrow_((void**)&arr, sizeof(arr[0]), &size, tsize, __FILE__, __LINE__)
+#define GNUNET_array_grow(arr,size,tsize) GNUNET_xgrow_((void**)&(arr), sizeof((arr)[0]), &size, tsize, __FILE__, __LINE__)
 
 /**
  * @ingroup memory
@@ -1089,7 +1089,7 @@ GNUNET_ntoh_double (double d);
  *        array size
  * @param element the element that will be appended to the array
  */
-#define GNUNET_array_append(arr,size,element) do { GNUNET_array_grow(arr,size,size+1); arr[size-1] = element; } while(0)
+#define GNUNET_array_append(arr,size,element) do { GNUNET_array_grow(arr,size,size+1); (arr)[size-1] = element; } while(0)
 
 /**
  * @ingroup memory

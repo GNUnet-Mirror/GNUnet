@@ -135,7 +135,7 @@ enum GNUNET_PSYC_ChannelFlags
 enum GNUNET_PSYC_Policy
 {
   /**
-   * Anyone can join the channel, without announcing his presence;
+   * Anyone can join the channel, without announcing their presence;
    * all messages are always public and can be distributed freely.
    * Joins may be announced, but this is not required.
    */

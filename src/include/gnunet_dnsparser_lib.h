@@ -31,7 +31,6 @@
 #define GNUNET_DNSPARSER_LIB_H
 
 #include "gnunet_util_lib.h"
-#include "gnunet_tun_lib.h"
 
 /**
  * Maximum length of a label in DNS.
@@ -83,6 +82,7 @@
 #define GNUNET_DNSPARSER_TYPE_OPENPGPKEY 61
 #define GNUNET_DNSPARSER_TYPE_TKEY 249
 #define GNUNET_DNSPARSER_TYPE_TSIG 250
+#define GNUNET_DNSPARSER_TYPE_ALL 255
 #define GNUNET_DNSPARSER_TYPE_URI 256
 #define GNUNET_DNSPARSER_TYPE_TA 32768
 
@@ -840,6 +840,58 @@ struct GNUNET_DNSPARSER_SrvRecord *
 GNUNET_DNSPARSER_parse_srv (const char *udp_payload,
 			    size_t udp_payload_length,
 			    size_t *off);
+
+/* ***************** low-level duplication API ******************** */
+
+/**
+ * Duplicate (deep-copy) the given DNS record
+ *
+ * @param r the record
+ * @return the newly allocated record
+ */
+struct GNUNET_DNSPARSER_Record *
+GNUNET_DNSPARSER_duplicate_record (const struct GNUNET_DNSPARSER_Record *r);
+
+
+/**
+ * Duplicate (deep-copy) the given DNS record
+ *
+ * @param r the record
+ * @return the newly allocated record
+ */
+struct GNUNET_DNSPARSER_SoaRecord *
+GNUNET_DNSPARSER_duplicate_soa_record (const struct GNUNET_DNSPARSER_SoaRecord *r);
+
+
+/**
+ * Duplicate (deep-copy) the given DNS record
+ *
+ * @param r the record
+ * @return the newly allocated record
+ */
+struct GNUNET_DNSPARSER_CertRecord *
+GNUNET_DNSPARSER_duplicate_cert_record (const struct GNUNET_DNSPARSER_CertRecord *r);
+
+
+/**
+ * Duplicate (deep-copy) the given DNS record
+ *
+ * @param r the record
+ * @return the newly allocated record
+ */
+struct GNUNET_DNSPARSER_MxRecord *
+GNUNET_DNSPARSER_duplicate_mx_record (const struct GNUNET_DNSPARSER_MxRecord *r);
+
+
+/**
+ * Duplicate (deep-copy) the given DNS record
+ *
+ * @param r the record
+ * @return the newly allocated record
+ */
+struct GNUNET_DNSPARSER_SrvRecord *
+GNUNET_DNSPARSER_duplicate_srv_record (const struct GNUNET_DNSPARSER_SrvRecord *r);
+
 
 /* ***************** low-level deallocation API ******************** */
 

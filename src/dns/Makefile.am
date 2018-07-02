@@ -27,8 +27,6 @@ install-exec-hook:
 endif
 
 lib_LTLIBRARIES = \
-  libgnunetdnsparser.la \
-  libgnunetdnsstub.la \
   libgnunetdns.la
 
 libexec_PROGRAMS = \
@@ -47,9 +45,6 @@ check_SCRIPTS = \
  test_gnunet_dns.sh
 endif
 
-check_PROGRAMS = \
- test_hexcoder
-
 gnunet_helper_dns_SOURCES = \
  gnunet-helper-dns.c
 
@@ -57,7 +52,6 @@ gnunet_helper_dns_SOURCES = \
 gnunet_dns_monitor_SOURCES = \
  gnunet-dns-monitor.c
 gnunet_dns_monitor_LDADD = \
-  libgnunetdnsparser.la \
   libgnunetdns.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(GN_LIBINTL)
@@ -65,15 +59,12 @@ gnunet_dns_monitor_LDADD = \
 gnunet_zonewalk_SOURCES = \
  gnunet-zonewalk.c
 gnunet_zonewalk_LDADD = \
-  libgnunetdnsparser.la \
-  libgnunetdnsstub.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(GN_LIBINTL)
 
 gnunet_dns_redirector_SOURCES = \
  gnunet-dns-redirector.c
 gnunet_dns_redirector_LDADD = \
-  libgnunetdnsparser.la \
   libgnunetdns.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(GN_LIBINTL)
@@ -81,29 +72,9 @@ gnunet_dns_redirector_LDADD = \
 gnunet_service_dns_SOURCES = \
  gnunet-service-dns.c
 gnunet_service_dns_LDADD = \
-  libgnunetdnsstub.la \
-  $(top_builddir)/src/tun/libgnunettun.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(GN_LIBINTL)
-
-libgnunetdnsparser_la_SOURCES = \
- dnsparser.c
-libgnunetdnsparser_la_LIBADD = \
- $(top_builddir)/src/util/libgnunetutil.la $(XLIB) \
-  -lidn
-libgnunetdnsparser_la_LDFLAGS = \
-  $(GN_LIB_LDFLAGS) \
-  -version-info 1:0:1
-
-libgnunetdnsstub_la_SOURCES = \
- dnsstub.c
-libgnunetdnsstub_la_LIBADD = \
-  $(top_builddir)/src/tun/libgnunettun.la \
- $(top_builddir)/src/util/libgnunetutil.la $(XLIB)
-libgnunetdnsstub_la_LDFLAGS = \
-  $(GN_LIB_LDFLAGS) \
-  -version-info 0:0:0
 
 libgnunetdns_la_SOURCES = \
  dns_api.c dns.h
@@ -131,8 +102,3 @@ EXTRA_DIST = \
   $(check_SCRIPTS)
 
 
-test_hexcoder_SOURCES = \
- test_hexcoder.c
-test_hexcoder_LDADD = \
- libgnunetdnsparser.la \
- $(top_builddir)/src/util/libgnunetutil.la

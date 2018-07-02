@@ -48,8 +48,8 @@ gnunet_service_psyc_CFLAGS = $(AM_CFLAGS)
 
 
 if HAVE_TESTING
-check_PROGRAMS = \
- test_psyc2
+#check_PROGRAMS = \
+# test_psyc2
 # test_psyc
 endif
 

@@ -150,12 +150,21 @@ run (void *cls,
   static struct GNUNET_PeerIdentity zero_pid;
 
   rps_handle = GNUNET_RPS_connect (cfg);
+  if (NULL == rps_handle)
+  {
+    FPRINTF (stderr, "Failed to connect to the rps service\n");
+    return;
+  }
 
   if ((0 == memcmp (&zero_pid, &peer_id, sizeof (peer_id))) &&
       (!view_update))
   { /* Request n PeerIDs */
     /* If number was specified use it, else request single peer. */
-    num_peers = (NULL == args[0]) ? 1 : atoi (args[0]);
+    if (NULL == args[0] ||
+        0 == sscanf (args[0], "%lu", &num_peers))
+    {
+      num_peers = 1;
+    }
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
         "Requesting %" PRIu64 " PeerIDs\n", num_peers);
     req_handle = GNUNET_RPS_request_peers (rps_handle, num_peers, reply_handle, NULL);
@@ -163,7 +172,11 @@ run (void *cls,
   } else if (view_update)
   {
     /* Get updates of view */
-    num_view_updates = (NULL == args[0]) ? 0 : atoi (args[0]);
+    if (NULL == args[0] ||
+        0 == sscanf (args[0], "%lu", &num_view_updates))
+    {
+      num_view_updates = 0;
+    }
     GNUNET_RPS_view_request (rps_handle, num_view_updates, view_update_handle, NULL);
     if (0 != num_view_updates)
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,

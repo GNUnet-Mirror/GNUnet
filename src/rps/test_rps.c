@@ -841,6 +841,13 @@ seed_peers (void *cls)
   unsigned int amount;
   unsigned int i;
 
+  if (GNUNET_YES == in_shutdown || GNUNET_YES == post_test)
+  {
+    return;
+  }
+
+  GNUNET_assert (NULL != peer->rps_handle);
+
   // TODO if malicious don't seed mal peers
   amount = round (.5 * num_peers);
 
@@ -953,6 +960,8 @@ rps_connect_complete_cb (void *cls,
   struct RPSPeer *rps_peer = cls;
   struct GNUNET_RPS_Handle *rps = ca_result;
 
+  GNUNET_assert (NULL != ca_result);
+
   if (GNUNET_YES == in_shutdown || GNUNET_YES == post_test)
   {
     return;
@@ -996,9 +1005,11 @@ rps_connect_adapter (void *cls,
   struct GNUNET_RPS_Handle *h;
 
   h = GNUNET_RPS_connect (cfg);
+  GNUNET_assert (NULL != h);
 
   if (NULL != cur_test_run.pre_test)
     cur_test_run.pre_test (cls, h);
+  GNUNET_assert (NULL != h);
 
   return h;
 }
@@ -2905,6 +2916,7 @@ main (int argc, char *argv[])
   }
 
   ret_value = cur_test_run.eval_cb();
+  
   if (NO_COLLECT_VIEW == cur_test_run.have_collect_view)
   {
     GNUNET_array_grow (rps_peers->cur_view,

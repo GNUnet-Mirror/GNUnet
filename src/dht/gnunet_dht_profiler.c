@@ -346,7 +346,7 @@ bandwidth_stats_cont (void *cls,
            (unsigned long long) incoming_bandwidth);
   fprintf (stderr,
            "Benchmark done. Collect data via gnunet-statistics, then press ENTER to exit.\n");
-  getchar ();
+  (void) getchar ();
   GNUNET_SCHEDULER_shutdown ();
 }
 
@@ -752,7 +752,7 @@ dht_disconnect (void *cls,
   switch (mode)
   {
   case MODE_PUT:
-    if (n_puts_ok != n_active * num_puts_per_peer)
+    if (n_puts_ok != ((unsigned long long) n_active) * num_puts_per_peer)
       return;
     /* Start GETs if all PUTs have been made */
     mode = MODE_GET;

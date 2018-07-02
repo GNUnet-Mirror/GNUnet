@@ -11,7 +11,7 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
@@ -721,6 +721,17 @@ test_service_configuration (const char *service_name,
                                                 &unixpath)) &&
       (0 < strlen (unixpath)))
     ret = GNUNET_OK;
+  else if ((GNUNET_OK ==
+            GNUNET_CONFIGURATION_have_value (cfg,
+                                             service_name,
+                                             "UNIXPATH")))
+  {
+    GNUNET_log_config_invalid (GNUNET_ERROR_TYPE_ERROR,
+                               service_name,
+                               "UNIXPATH",
+                               _("not a valid filename"));
+    return GNUNET_SYSERR; /* UNIXPATH specified but invalid! */
+  }
   GNUNET_free_non_null (unixpath);
 #endif
 

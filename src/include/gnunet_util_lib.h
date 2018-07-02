@@ -78,6 +78,9 @@ extern "C"
 #include "gnunet_service_lib.h"
 #include "gnunet_signal_lib.h"
 #include "gnunet_strings_lib.h"
+#include "gnunet_tun_lib.h"
+#include "gnunet_dnsstub_lib.h"
+#include "gnunet_dnsparser_lib.h"
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {
