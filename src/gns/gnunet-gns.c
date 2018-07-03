@@ -11,7 +11,7 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
@@ -65,8 +65,9 @@ static struct GNUNET_GNS_LookupWithTldRequest *lr;
 /**
  * Global return value.
  * 0 on success (default),
- * 1 on internal failures, 2 on launch failure,
- * 3 if the name is not a GNS-supported TLD,
+ * 1 on internal failures
+ * 2 on launch failure,
+ * 4 if the name is not a GNS-supported TLD,
  */
 static int global_ret;
 
@@ -114,7 +115,7 @@ process_lookup_result (void *cls,
   lr = NULL;
   if (GNUNET_NO == was_gns)
   {
-    global_ret = 3;
+    global_ret = 4; /* not for GNS */
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
@@ -183,7 +184,6 @@ run (void *cls,
     global_ret = 2;
     return;
   }
-
   GNUNET_SCHEDULER_add_shutdown (&do_shutdown,
                                  NULL);
 

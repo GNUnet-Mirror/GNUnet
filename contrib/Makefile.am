@@ -5,17 +5,6 @@ tap32dir = $(pkgdatadir)/openvpn-tap32/tapw32/
 
 tap64dir = $(pkgdatadir)/openvpn-tap32/tapw64/
 
-noinst_PROGRAMS = \
- timeout_watchdog
-
-if !MINGW
-timeout_watchdog_SOURCES = \
- timeout_watchdog.c
-else
-timeout_watchdog_SOURCES = \
- timeout_watchdog_w32.c
-endif
-
 noinst_SCRIPTS = \
  scripts/terminate.py \
  scripts/pydiffer.py \

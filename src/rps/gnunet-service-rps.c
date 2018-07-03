@@ -1666,10 +1666,11 @@ Peers_cleanup_destroyed_channel (void *cls,
 {
   struct GNUNET_PeerIdentity *peer = cls;
   struct PeerContext *peer_ctx;
+  uint32_t *channel_flag;
 
   if (GNUNET_NO == Peers_check_peer_known (peer))
   {/* We don't want to implicitly create a context that we're about to kill */
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
+  LOG (GNUNET_ERROR_TYPE_WARNING,
        "channel (%s) without associated context was destroyed\n",
        GNUNET_i2s (peer));
     return;
@@ -1697,12 +1698,16 @@ Peers_cleanup_destroyed_channel (void *cls,
     if (NULL != peer_ctx->send_channel)
     {
       GNUNET_CADET_channel_destroy (peer_ctx->send_channel);
+      channel_flag = Peers_get_channel_flag (&peer_ctx->peer_id, Peers_CHANNEL_ROLE_SENDING);
+      Peers_set_channel_flag (channel_flag, Peers_CHANNEL_DESTROING);
       peer_ctx->send_channel = NULL;
       peer_ctx->mq = NULL;
     }
     if (NULL != peer_ctx->recv_channel)
     {
       GNUNET_CADET_channel_destroy (peer_ctx->recv_channel);
+      channel_flag = Peers_get_channel_flag (&peer_ctx->peer_id, Peers_CHANNEL_ROLE_RECEIVING);
+      Peers_set_channel_flag (channel_flag, Peers_CHANNEL_DESTROING);
       peer_ctx->recv_channel = NULL;
     }
     /* Set the #Peers_ONLINE flag accordingly */

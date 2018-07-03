@@ -11,7 +11,7 @@
       WITHOUT ANY WARRANTY; without even the implied warranty of
       MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
       Affero General Public License for more details.
-     
+
       You should have received a copy of the GNU Affero General Public License
       along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
@@ -956,8 +956,11 @@ GNUNET_DNSPARSER_builder_add_name (char *dst,
       len = dot - idna_name;
     if ( (len >= 64) || (0 == len) )
     {
-      GNUNET_break (0);
-      goto fail; /* segment too long or empty */
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  "Invalid DNS name `%s': label with %u characters encountered\n",
+                  name,
+                  len);
+      goto fail; /* label too long or empty */
     }
     dst[pos++] = (char) (uint8_t) len;
     GNUNET_memcpy (&dst[pos],

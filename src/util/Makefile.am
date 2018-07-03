@@ -166,6 +166,7 @@ lib_LTLIBRARIES = libgnunetutil.la
 
 libexec_PROGRAMS = \
  gnunet-service-resolver \
+ gnunet-timeout \
  $(W32CONSOLEHELPER)
 
 bin_SCRIPTS =\
@@ -189,6 +190,15 @@ AM_TESTS_ENVIRONMENT=export GNUNET_PREFIX=$${GNUNET_PREFIX:-@libdir@};export PAT
 TESTS = $(check_PROGRAMS)
 endif
 
+endif
+
+
+if !MINGW
+gnunet_timeout_SOURCES = \
+ gnunet-timeout.c
+else
+gnunet_timeout_SOURCES = \
+ gnunet-timeout-w32.c
 endif
 
 
@@ -334,12 +344,12 @@ test_hexcoder_LDADD = \
 test_tun_SOURCES = \
  test_tun.c
 test_tun_LDADD = \
- libgnunetutil.la 
+ libgnunetutil.la
 
 test_regex_SOURCES = \
  test_regex.c
 test_regex_LDADD = \
- libgnunetutil.la 
+ libgnunetutil.la
 
 test_os_start_process_SOURCES = \
  test_os_start_process.c
@@ -622,4 +632,4 @@ EXTRA_DIST = \
   test_resolver_api_data.conf \
   test_service_data.conf \
   test_speedup_data.conf \
-  gnunet-qr.py.in 
+  gnunet-qr.py.in

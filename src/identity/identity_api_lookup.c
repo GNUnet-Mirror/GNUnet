@@ -11,7 +11,7 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
@@ -131,6 +131,12 @@ GNUNET_IDENTITY_ego_lookup (const struct GNUNET_CONFIGURATION_Handle *cfg,
   el->identity = GNUNET_IDENTITY_connect (cfg,
 					  &identity_cb,
 					  el);
+  if (NULL == el->identity)
+  {
+    GNUNET_free (el->name);
+    GNUNET_free (el);
+    return NULL;
+  }
   return el;
 }
 

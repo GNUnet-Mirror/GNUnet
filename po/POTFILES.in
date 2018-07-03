@@ -325,6 +325,7 @@ src/rps/gnunet-service-rps_sampler.c
 src/rps/gnunet-service-rps_sampler_elem.c
 src/rps/gnunet-service-rps_view.c
 src/rps/rps_api.c
+src/rps/rps_test_lib.c
 src/rps/rps-test_util.c
 src/scalarproduct/gnunet-scalarproduct.c
 src/scalarproduct/gnunet-service-scalarproduct_alice.c
