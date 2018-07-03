@@ -732,6 +732,8 @@ cookie_identity_interpretation (struct RequestHandle *handle)
       {
         handle->oidc->login_identity = strtok(handle->oidc->login_identity, OIDC_COOKIE_HEADER_INFORMATION_KEY);
         handle->oidc->login_identity = GNUNET_strdup(handle->oidc->login_identity);
+      } else {
+        handle->oidc->login_identity = NULL;
       }
     }
     else
