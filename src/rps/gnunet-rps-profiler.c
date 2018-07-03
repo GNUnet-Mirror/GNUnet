@@ -900,6 +900,7 @@ shutdown_op (void *cls)
     if (NULL != rps_peers[i].rps_handle)
     {
       GNUNET_RPS_disconnect (rps_peers[i].rps_handle);
+      rps_peers[i].rps_handle = NULL;
     }
     if (NULL != rps_peers[i].op)
     {
