@@ -1206,9 +1206,6 @@ reissue_ticket_cont (void *cls,
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "%s\n",
                 "Unknown Error\n");
     send_revocation_finished (rh, GNUNET_SYSERR);
-    GNUNET_CONTAINER_DLL_remove (rh->client->revoke_op_head,
-                                 rh->client->revoke_op_tail,
-                                 rh);
     cleanup_revoke_ticket_handle (rh);
     return;
   }
@@ -1374,9 +1371,6 @@ revocation_reissue_tickets (struct TicketRevocationHandle *rh)
   if (GNUNET_NO == ret)
   {
     send_revocation_finished (rh, GNUNET_OK);
-    GNUNET_CONTAINER_DLL_remove (rh->client->revoke_op_head,
-                                 rh->client->revoke_op_tail,
-                                 rh);
     cleanup_revoke_ticket_handle (rh);
     return;
   }
@@ -1392,9 +1386,6 @@ check_attr_error (void *cls)
   GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
               "Unable to check for existing attribute\n");
   send_revocation_finished (rh, GNUNET_SYSERR);
-  GNUNET_CONTAINER_DLL_remove (rh->client->revoke_op_head,
-                                 rh->client->revoke_op_tail,
-                                 rh);
   cleanup_revoke_ticket_handle (rh);
 }
 
@@ -1458,9 +1449,6 @@ check_attr_cb (void *cls,
                 policy);
     GNUNET_free (policy);
     send_revocation_finished (rh, GNUNET_SYSERR);
-    GNUNET_CONTAINER_DLL_remove (rh->client->revoke_op_head,
-                                 rh->client->revoke_op_tail,
-                                 rh);
     cleanup_revoke_ticket_handle (rh);
     return;
   }
@@ -1571,9 +1559,6 @@ process_attributes_to_update (void *cls,
   {
     /* No attributes to reencrypt */
     send_revocation_finished (rh, GNUNET_OK);
-    GNUNET_CONTAINER_DLL_remove (rh->client->revoke_op_head,
-                                 rh->client->revoke_op_tail,
-                                 rh);
     cleanup_revoke_ticket_handle (rh);
     return;
   } else {
