@@ -841,6 +841,7 @@ handle_mq_error (void *cls,
                                            h);
   GNUNET_MQ_destroy (h->mq);
   h->mq = NULL;
+  GNUNET_assert (NULL == h->reconnect_task);
   h->reconnect_task = GNUNET_SCHEDULER_add_delayed (h->reconnect_time,
 						    &reconnect_cbk,
 						    h);
