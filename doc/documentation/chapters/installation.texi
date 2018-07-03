@@ -28,13 +28,13 @@ link to the project websites.
 The mandatory libraries and applications are
 @itemize @bullet
 @item libtool
-@item autoconf >= version 2.59
-@item automake >= version 1.11.1
+@item autoconf @geq{}2.59
+@item automake @geq{}1.11.1
 @item pkg-config
-@item libgcrypt >= version 1.6
+@item libgcrypt @geq{}1.6
 @item libextractor
 @item libidn
-@item libmicrohttpd >= version 0.9.52
+@item libmicrohttpd @geq{}0.9.52
 @item libnss 
 @item libunistring
 @item gettext
