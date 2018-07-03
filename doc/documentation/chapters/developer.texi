@@ -214,9 +214,7 @@ Installation and update tool
 Template for starting 'external' GNUnet projects
 @item @command{gnunet-java}
 Java APIs for writing GNUnet services and applications
-@c ** FIXME: Point to new website repository once we have it:
-@c ** @item svn/gnunet-www/ Code and media helping drive the GNUnet
-@c website
+@item @command{gnunet-java-ext}
 @item @command{eclectic}
 Code to run GNUnet nodes on testbeds for research, development,
 testing and evaluation
@@ -227,6 +225,8 @@ Qt-based GNUnet GUI (is it deprecated?)
 cocoa-based GNUnet GUI (is it deprecated?)
 @item @command{gnunet-guile}
 Guile bindings for GNUnet
+@item @command{gnunet-python}
+Python bindings for GNUnet
 
 @end table
 
@@ -246,6 +246,13 @@ Tool for automated debugging of distributed systems
 Library for accessing satellite connection quality reports
 @item @command{libgnurl}
 gnURL (feature-restricted variant of cURL/libcurl)
+@item @command{www}
+work in progress of the new gnunet.org website (Jinja2 framework based to
+replace our current Drupal website)
+@item @command{bibliography}
+Our collected bibliography, papers, references, and so forth
+@item @command{gnunet-videos-}
+Videos about and around gnunet activities
 @end table
 
 Finally, there are various external projects (see links for a list of

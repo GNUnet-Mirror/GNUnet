@@ -6,6 +6,7 @@
 * Licenses of contributions::
 * Copyright Assignment::
 * Contributing to the Reference Manual::
+* Contributing testcases::
 @end menu
 
 @node Contributing to GNUnet
@@ -90,3 +91,21 @@ In a 200+ pages handbook it's better to have footnotes accessible
 without having to skip over to the end.
 
 @end itemize
+
+@node Contributing testcases
+@section Contributing testcases
+
+In the core of gnunet, we restrict new testcases to a small subset
+of languages, in order of preference:
+@enumerate
+@item C
+@item Bash (preferable portable without too much specifics to Bash)
+@item Python (@geq{}3.6)
+@end enumerate
+
+We welcome efforts to remove our existing python-2.7 scripts to
+replace them either with Bash or, at your choice, python-3.6+.
+
+If you contribute new python based testcases, we advise you to
+not repeat our past misfortunes and write the tests in a standard
+test framework like for example pytest.
