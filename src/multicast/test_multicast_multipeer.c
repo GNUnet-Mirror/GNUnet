@@ -328,6 +328,7 @@ origin_notify (void *cls,
   pp_msg->msg = PONG;
   *data_size = sizeof (struct pingpong_msg);
   GNUNET_memcpy(data, pp_msg, *data_size);
+  GNUNET_free (pp_msg);
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "origin sends pong\n");
 
