@@ -160,6 +160,7 @@ notify (void *cls,
 
   *data_size = sizeof (struct pingpong_msg);
   GNUNET_memcpy(data, pp_msg, *data_size);
+  GNUNET_free (pp_msg);
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Peer #%u sents ping to origin\n", mc_peer->peer);
