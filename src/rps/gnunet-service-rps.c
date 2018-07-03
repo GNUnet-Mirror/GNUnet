@@ -1045,12 +1045,10 @@ restore_valid_peers ()
  */
 void
 Peers_initialise (char* fn_valid_peers,
-                  struct GNUNET_CADET_Handle *cadet_h,
-                  const struct GNUNET_PeerIdentity *own_id)
+                  struct GNUNET_CADET_Handle *cadet_h)
 {
   filename_valid_peers = GNUNET_strdup (fn_valid_peers);
   cadet_handle = cadet_h;
-  own_identity = *own_id;
   peer_map = GNUNET_CONTAINER_multipeermap_create (4, GNUNET_NO);
   valid_peers = GNUNET_CONTAINER_multipeermap_create (4, GNUNET_NO);
   restore_valid_peers ();
@@ -1136,14 +1134,12 @@ Peers_get_valid_peers (PeersIterator iterator,
  * @param peer the new #GNUNET_PeerIdentity
  *
  * @return #GNUNET_YES if peer was inserted
- *         #GNUNET_NO  otherwise (if peer was already known or
- *                     peer was #own_identity)
+ *         #GNUNET_NO  otherwise
  */
 int
 Peers_insert_peer (const struct GNUNET_PeerIdentity *peer)
 {
-  if ( (GNUNET_YES == Peers_check_peer_known (peer)) ||
-       (0 == GNUNET_CRYPTO_cmp_peer_identity (peer, &own_identity)) )
+  if (GNUNET_YES == Peers_check_peer_known (peer))
   {
     return GNUNET_NO; /* We already know this peer - nothing to do */
   }
@@ -1161,8 +1157,7 @@ Peers_check_peer_flag (const struct GNUNET_PeerIdentity *peer, enum Peers_PeerFl
  *
  * @param peer the peer whose liveliness is to be checked
  * @return #GNUNET_YES if peer had to be inserted
- *         #GNUNET_NO  otherwise (if peer was already known or
- *                     peer was #own_identity)
+ *         #GNUNET_NO  otherwise
  */
 int
 Peers_issue_peer_liveliness_check (const struct GNUNET_PeerIdentity *peer)
@@ -1170,10 +1165,6 @@ Peers_issue_peer_liveliness_check (const struct GNUNET_PeerIdentity *peer)
   struct PeerContext *peer_ctx;
   int ret;
 
-  if (0 == GNUNET_CRYPTO_cmp_peer_identity (peer, &own_identity))
-  {
-    return GNUNET_NO;
-  }
   ret = Peers_insert_peer (peer);
   peer_ctx = get_peer_ctx (peer);
   if (GNUNET_NO == Peers_check_peer_flag (peer, Peers_ONLINE))
@@ -1791,10 +1782,6 @@ Peers_schedule_operation (const struct GNUNET_PeerIdentity *peer,
   struct PeerPendingOp pending_op;
   struct PeerContext *peer_ctx;
 
-  if (0 == GNUNET_CRYPTO_cmp_peer_identity (peer, &own_identity))
-  {
-    return GNUNET_NO;
-  }
   GNUNET_assert (GNUNET_YES == Peers_check_peer_known (peer));
 
   //TODO if LIVE/ONLINE execute immediately
@@ -3373,9 +3360,7 @@ handle_peer_pull_reply (void *cls,
       if (GNUNET_NO == GNUNET_CONTAINER_multipeermap_contains (att_peer_set,
                                                                &peers[i])
           && GNUNET_NO == GNUNET_CONTAINER_multipeermap_contains (mal_peer_set,
-                                                                  &peers[i])
-          && 0 != GNUNET_CRYPTO_cmp_peer_identity (&peers[i],
-                                                   &own_identity))
+                                                                  &peers[i]))
       {
         tmp_att_peer = GNUNET_new (struct AttackedPeer);
         tmp_att_peer->peer_id = peers[i];
@@ -3387,21 +3372,17 @@ handle_peer_pull_reply (void *cls,
       continue;
     }
     #endif /* ENABLE_MALICIOUS */
-    if (0 != GNUNET_CRYPTO_cmp_peer_identity (&own_identity,
-                                              &peers[i]))
-    {
-      /* Make sure we 'know' about this peer */
-      (void) Peers_insert_peer (&peers[i]);
+    /* Make sure we 'know' about this peer */
+    (void) Peers_insert_peer (&peers[i]);
 
-      if (GNUNET_YES == Peers_check_peer_valid (&peers[i]))
-      {
-        CustomPeerMap_put (pull_map, &peers[i]);
-      }
-      else
-      {
-        Peers_schedule_operation (&peers[i], insert_in_pull_map);
-        (void) Peers_issue_peer_liveliness_check (&peers[i]);
-      }
+    if (GNUNET_YES == Peers_check_peer_valid (&peers[i]))
+    {
+      CustomPeerMap_put (pull_map, &peers[i]);
+    }
+    else
+    {
+      Peers_schedule_operation (&peers[i], insert_in_pull_map);
+      (void) Peers_issue_peer_liveliness_check (&peers[i]);
     }
   }
 
@@ -3836,10 +3817,8 @@ do_round (void *cls)
     for (i = 0; i < a_peers; i++)
     {
       peer = view_array[permut[i]];
-      if (0 != GNUNET_CRYPTO_cmp_peer_identity (&own_identity, &peer)) // TODO
-      { // FIXME if this fails schedule/loop this for later
-        send_push (&peer);
-      }
+      // FIXME if this fails schedule/loop this for later
+      send_push (&peer);
     }
 
     /* Send PULL requests */
@@ -3857,8 +3836,7 @@ do_round (void *cls)
     for (i = first_border; i < second_border; i++)
     {
       peer = view_array[permut[i]];
-      if (0 != GNUNET_CRYPTO_cmp_peer_identity (&own_identity, &peer) &&
-          GNUNET_NO == Peers_check_peer_flag (&peer, Peers_PULL_REPLY_PENDING)) // TODO
+      if ( GNUNET_NO == Peers_check_peer_flag (&peer, Peers_PULL_REPLY_PENDING))
       { // FIXME if this fails schedule/loop this for later
         send_pull_request (&peer);
       }
@@ -4372,7 +4350,7 @@ run (void *cls,
 
 
   peerinfo_handle = GNUNET_PEERINFO_connect (cfg);
-  Peers_initialise (fn_valid_peers, cadet_handle, &own_identity);
+  Peers_initialise (fn_valid_peers, cadet_handle);
   GNUNET_free (fn_valid_peers);
 
   /* Initialise sampler */
