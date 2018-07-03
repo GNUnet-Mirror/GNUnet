@@ -150,6 +150,7 @@ GNUnet Contributors Handbook
 * Licenses of contributions::
 * Copyright Assignment::
 * Contributing to the Reference Manual::
+* Contributing testcases::
 
 GNUnet Developer Handbook
 
