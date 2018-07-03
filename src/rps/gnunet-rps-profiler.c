@@ -888,6 +888,7 @@ shutdown_op (void *cls)
   if (NULL != post_test_task)
   {
     GNUNET_SCHEDULER_cancel (post_test_task);
+    post_test_task = NULL;
   }
   if (NULL != churn_task)
   {
