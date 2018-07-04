@@ -1157,6 +1157,9 @@ send_revocation_finished (struct TicketRevocationHandle *rh,
 {
   struct GNUNET_MQ_Envelope *env;
   struct RevokeTicketResultMessage *trm;
+  
+  GNUNET_break(TKT_database->delete_ticket (TKT_database->cls,
+                                            &rh->ticket));
 
   env = GNUNET_MQ_msg (trm,
                        GNUNET_MESSAGE_TYPE_IDENTITY_PROVIDER_REVOKE_TICKET_RESULT);
@@ -1206,9 +1209,6 @@ reissue_ticket_cont (void *cls,
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "%s\n",
                 "Unknown Error\n");
     send_revocation_finished (rh, GNUNET_SYSERR);
-    GNUNET_CONTAINER_DLL_remove (rh->client->revoke_op_head,
-                                 rh->client->revoke_op_tail,
-                                 rh);
     cleanup_revoke_ticket_handle (rh);
     return;
   }
@@ -1258,9 +1258,18 @@ ticket_reissue_proc (void *cls,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Do not reissue for this identity.!\n");
+    label = GNUNET_STRINGS_data_to_string_alloc (&rh->ticket.rnd,
+                                                 sizeof (uint64_t));
+    //Delete record
+    rh->ns_qe = GNUNET_NAMESTORE_records_store (ns_handle,
+                                                &rh->identity,
+                                                label,
+                                                0,
+                                                NULL,
+                                                &reissue_ticket_cont,
+                                                rh);
 
-    rh->offset++;
-    GNUNET_SCHEDULER_add_now (&reissue_next, rh);
+    GNUNET_free (label);
     return;
   }
 
@@ -1374,9 +1383,6 @@ revocation_reissue_tickets (struct TicketRevocationHandle *rh)
   if (GNUNET_NO == ret)
   {
     send_revocation_finished (rh, GNUNET_OK);
-    GNUNET_CONTAINER_DLL_remove (rh->client->revoke_op_head,
-                                 rh->client->revoke_op_tail,
-                                 rh);
     cleanup_revoke_ticket_handle (rh);
     return;
   }
@@ -1391,10 +1397,8 @@ check_attr_error (void *cls)
   struct TicketRevocationHandle *rh = cls;
   GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
               "Unable to check for existing attribute\n");
+  rh->ns_qe = NULL;
   send_revocation_finished (rh, GNUNET_SYSERR);
-  GNUNET_CONTAINER_DLL_remove (rh->client->revoke_op_head,
-                                 rh->client->revoke_op_tail,
-                                 rh);
   cleanup_revoke_ticket_handle (rh);
 }
 
@@ -1426,6 +1430,7 @@ check_attr_cb (void *cls,
   char* policy;
   uint32_t attr_ver;
 
+  rh->ns_qe = NULL;
   if (1 != rd_count) {
     GNUNET_SCHEDULER_add_now (&reenc_next_attribute,
                               rh);
@@ -1458,9 +1463,6 @@ check_attr_cb (void *cls,
                 policy);
     GNUNET_free (policy);
     send_revocation_finished (rh, GNUNET_SYSERR);
-    GNUNET_CONTAINER_DLL_remove (rh->client->revoke_op_head,
-                                 rh->client->revoke_op_tail,
-                                 rh);
     cleanup_revoke_ticket_handle (rh);
     return;
   }
@@ -1527,6 +1529,7 @@ attr_reenc_cont (void *cls,
   struct TicketRevocationHandle *rh = cls;
   struct GNUNET_IDENTITY_ATTRIBUTE_ClaimListEntry *le;
 
+  rh->ns_qe = NULL;
   if (GNUNET_SYSERR == success)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -1571,9 +1574,6 @@ process_attributes_to_update (void *cls,
   {
     /* No attributes to reencrypt */
     send_revocation_finished (rh, GNUNET_OK);
-    GNUNET_CONTAINER_DLL_remove (rh->client->revoke_op_head,
-                                 rh->client->revoke_op_tail,
-                                 rh);
     cleanup_revoke_ticket_handle (rh);
     return;
   } else {
@@ -1967,7 +1967,7 @@ attr_store_cont (void *cls,
   struct AttributeStoreHandle *as_handle = cls;
   struct GNUNET_MQ_Envelope *env;
   struct AttributeStoreResultMessage *acr_msg;
-  
+
   as_handle->ns_qe = NULL;
   GNUNET_CONTAINER_DLL_remove (as_handle->client->store_op_head,
                                as_handle->client->store_op_tail,
@@ -2189,14 +2189,14 @@ attr_iter_cb (void *cls,
   if (rd_count != 1)
   {
     GNUNET_NAMESTORE_zone_iterator_next (ai->ns_it,
-					 1);
+                                         1);
     return;
   }
 
   if (GNUNET_GNSRECORD_TYPE_ID_ATTR != rd->record_type)
   {
     GNUNET_NAMESTORE_zone_iterator_next (ai->ns_it,
-					 1);
+                                         1);
     return;
   }
   attr_ver = ntohl(*((uint32_t*)rd->data));
@@ -2213,7 +2213,7 @@ attr_iter_cb (void *cls,
   if (GNUNET_SYSERR == msg_extra_len)
   {
     GNUNET_NAMESTORE_zone_iterator_next (ai->ns_it,
-					 1);
+                                         1);
     return;
   }
 
@@ -2264,7 +2264,7 @@ iterate_next_after_abe_bootstrap (void *cls,
   struct AttributeIterator *ai = cls;
   ai->abe_key = abe_key;
   GNUNET_NAMESTORE_zone_iterator_next (ai->ns_it,
-				       1);
+                                       1);
 }
 
 

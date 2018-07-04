@@ -888,6 +888,7 @@ shutdown_op (void *cls)
   if (NULL != post_test_task)
   {
     GNUNET_SCHEDULER_cancel (post_test_task);
+    post_test_task = NULL;
   }
   if (NULL != churn_task)
   {
@@ -899,6 +900,7 @@ shutdown_op (void *cls)
     if (NULL != rps_peers[i].rps_handle)
     {
       GNUNET_RPS_disconnect (rps_peers[i].rps_handle);
+      rps_peers[i].rps_handle = NULL;
     }
     if (NULL != rps_peers[i].op)
     {
@@ -2570,7 +2572,7 @@ test_run (void *cls,
   if (NULL != churn_task)
     GNUNET_SCHEDULER_cancel (churn_task);
   post_test_task = GNUNET_SCHEDULER_add_delayed (timeout, &post_test_op, NULL);
-  timeout = GNUNET_TIME_relative_multiply (timeout, 1 + (0.1 * num_peers));
+  timeout = GNUNET_TIME_relative_multiply (timeout, 1.2 + (0.01 * num_peers));
   shutdown_task = GNUNET_SCHEDULER_add_shutdown (shutdown_op, NULL);
   shutdown_task = GNUNET_SCHEDULER_add_delayed (timeout, &shutdown_op, NULL);
 

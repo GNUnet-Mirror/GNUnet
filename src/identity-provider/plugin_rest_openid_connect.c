@@ -732,6 +732,8 @@ cookie_identity_interpretation (struct RequestHandle *handle)
       {
         handle->oidc->login_identity = strtok(handle->oidc->login_identity, OIDC_COOKIE_HEADER_INFORMATION_KEY);
         handle->oidc->login_identity = GNUNET_strdup(handle->oidc->login_identity);
+      } else {
+        handle->oidc->login_identity = NULL;
       }
     }
     else
@@ -1014,10 +1016,11 @@ login_check (void *cls)
           return;
         }
       }
-      handle->emsg = GNUNET_strdup("invalid_cookie");
-      handle->edesc = GNUNET_strdup(
-                                    "The cookie of the login identity is not valid");
-      GNUNET_SCHEDULER_add_now (&do_redirect_error, handle);
+      //handle->emsg = GNUNET_strdup("invalid_cookie");
+      //handle->edesc = GNUNET_strdup(
+      //                              "The cookie of the login identity is not valid");
+      //GNUNET_SCHEDULER_add_now (&do_redirect_error, handle);
+      GNUNET_SCHEDULER_add_now (&login_redirection,handle);
       return;
     }
   }
@@ -1359,8 +1362,8 @@ login_cont (struct GNUNET_REST_RequestHandle *con_handle,
 
     current_time = GNUNET_new(struct GNUNET_TIME_Absolute);
     *current_time = GNUNET_TIME_relative_to_absolute (
-                                                      GNUNET_TIME_relative_multiply (GNUNET_TIME_relative_get_minute_ (),
-                                                                                     30));
+                                                      GNUNET_TIME_relative_multiply (GNUNET_TIME_relative_get_second_ (),
+                                                                                     5));
     last_time = GNUNET_CONTAINER_multihashmap_get(OIDC_identity_login_time, &cache_key);
     if (NULL != last_time)
     {
