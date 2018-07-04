@@ -1385,6 +1385,7 @@ check_attr_error (void *cls)
   struct TicketRevocationHandle *rh = cls;
   GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
               "Unable to check for existing attribute\n");
+  rh->ns_qe = NULL;
   send_revocation_finished (rh, GNUNET_SYSERR);
   cleanup_revoke_ticket_handle (rh);
 }
@@ -1417,6 +1418,7 @@ check_attr_cb (void *cls,
   char* policy;
   uint32_t attr_ver;
 
+  rh->ns_qe = NULL;
   if (1 != rd_count) {
     GNUNET_SCHEDULER_add_now (&reenc_next_attribute,
                               rh);
@@ -1515,6 +1517,7 @@ attr_reenc_cont (void *cls,
   struct TicketRevocationHandle *rh = cls;
   struct GNUNET_IDENTITY_ATTRIBUTE_ClaimListEntry *le;
 
+  rh->ns_qe = NULL;
   if (GNUNET_SYSERR == success)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
