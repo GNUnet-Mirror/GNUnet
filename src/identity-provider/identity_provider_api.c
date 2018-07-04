@@ -1370,9 +1370,11 @@ GNUNET_IDENTITY_PROVIDER_ticket_revoke (struct GNUNET_IDENTITY_PROVIDER_Handle *
   GNUNET_memcpy (&msg[1],
                  ticket,
                  sizeof (struct GNUNET_IDENTITY_PROVIDER_Ticket));
-  if (NULL != h->mq)
+  if (NULL != h->mq) {
     GNUNET_MQ_send (h->mq,
                     op->env);
+    op->env = NULL;
+  }
   return op;
 }
 
