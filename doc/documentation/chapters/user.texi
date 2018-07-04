@@ -43,6 +43,7 @@ To stop GNUnet:
 @example
 $ gnunet-arm -e
 @end example
+
 @node First steps - Using the GNU Name System
 @section First steps - Using the GNU Name System
 @c %**end of header
@@ -246,7 +247,7 @@ more an experimental feature and not really our primary goal at this
 time. Still, it is a possible use-case and we welcome help with testing
 and development.
 
-
+@pindex gnunet-bcd
 @node Creating a Business Card
 @subsection Creating a Business Card
 @c FIXME: Which parts of texlive are needed? Some systems offer a modular
@@ -257,7 +258,9 @@ Note that this requires having @command{LaTeX} installed on your system.
 If you are using a Debian GNU/Linux based operating system, the
 following command should install the required components.
 Keep in mind that this @b{requires 3GB} of downloaded data and possibly
-@b{even more} when unpacked.
+@b{even more}@footnote{Author's note:
+@command{guix size `guix build texlive`} in summer 2018 returns a DAG
+size of 5032.4 MiB} when unpacked.
 @b{We welcome any help in identifying the required components of the
 TexLive Distribution. This way we could just state the required components
 without pulling in the full distribution of TexLive.}
@@ -312,12 +315,14 @@ you might need a trip to the store together.
 Before we get started, we need to tell @code{gnunet-qr} which zone
 it should import new records into.  For this, run:
 
+@pindex gnunet-identity
 @example
 $ gnunet-identity -s namestore -e NAME
 @end example
 where NAME is the name of the zone you want to import records
 into.  In our running example, this would be ``gnu''.
 
+@pindex gnunet-qr
 Henceforth, for every business card you collect, simply run:
 @example
 $ gnunet-qr
@@ -335,6 +340,7 @@ GNUnet network at this time, you should thus be able to
 resolve your friends names. Suppose your friend's nickname
 is "Bob". Then, type
 
+@pindex gnunet-gns
 @example
 $ gnunet-gns -u test.bob.gnu
 @end example
@@ -381,6 +387,7 @@ a revocation certificate corresponding to your ego.  This certificate,
 when published on the P2P network, flags your private key as invalid,
 and all further resolutions or other checks involving the key will fail.
 
+@pindex gnunet-revocation
 A revocation certificate is thus a useful tool when things go out of
 control, but at the same time it should be stored securely.
 Generation of the revocation certificate for a zone can be done through
@@ -433,6 +440,7 @@ private conversation with your friend. Finally, help us
 with the next GNUnet release for even more applications
 using this new public key infrastructure.
 
+@pindex gnunet-conservation-gtk
 @node First steps - Using GNUnet Conversation
 @section First steps - Using GNUnet Conversation
 @c %**end of header
@@ -485,6 +493,7 @@ that will show up when you call somebody else, as well as the
 GNS zone that will be used to resolve names of users that you
 are calling. Run
 
+@pindex gnunet-conversation
 @example
 gnunet-conversation -e zone-name
 @end example
@@ -564,7 +573,7 @@ Either of you can end the call using @command{/cancel}. You can exit
 
 @menu
 * VPN Preliminaries::
-* Exit configuration::
+* GNUnet-Exit configuration::
 * GNS configuration::
 * Accessing the service::
 * Using a Browser::
@@ -595,6 +604,9 @@ The exact details may differ a bit, which is fine. Add the text
 hosts: files gns [NOTFOUND=return] mdns4_minimal [NOTFOUND=return] dns mdns4
 @end example
 
+@c TODO: outdated section, we no longer install this as part of the
+@c TODO: standard installation procedure and should point out the manual
+@c TODO: steps required to make it useful.
 @noindent
 You might want to make sure that @code{/lib/libnss_gns.so.2} exists on
 your system, it should have been created during the installation.
@@ -608,8 +620,8 @@ $ cd src/gns/nss; sudo make install
 @noindent
 to install the NSS plugins in the proper location.
 
-@node Exit configuration
-@subsection Exit configuration
+@node GNUnet-Exit configuration
+@subsection GNUnet-Exit configuration
 @c %**end of header
 
 Stop your peer (as user @code{gnunet}, run @command{gnunet-arm -e}) and
@@ -696,9 +708,10 @@ the searcher/downloader specify "no anonymity", non-anonymous
 file-sharing is used. If either user specifies some desired degree
 of anonymity, anonymous file-sharing will be used.
 
-After a short introduction, we will first look at the various concepts in
-GNUnet's file-sharing implementation. Then, we will discuss specifics as to how
-they impact users that publish, search or download files.
+After a short introduction, we will first look at the various concepts
+in GNUnet's file-sharing implementation. Then, we will discuss
+specifics as to how they impact users that publish, search or download
+files.
 
 
 @menu
@@ -724,10 +737,11 @@ $ gnunet-search [-t TIMEOUT] KEYWORD
 @end example
 
 @noindent
-The -t option specifies that the query should timeout after
-approximately TIMEOUT seconds. A value of zero is interpreted
-as @emph{no timeout}, which is also the default. In this case,
-gnunet-search will never terminate (unless you press CTRL-C).
+The @command{-t} option specifies that the query should timeout after
+approximately TIMEOUT seconds. A value of zero (``0'') is interpreted
+as @emph{no timeout}, which is the default. In this case,
+@command{gnunet-search} will never terminate (unless you press
+@command{CTRL-C}).
 
 If multiple words are passed as keywords, they will all be
 considered optional. Prefix keywords with a "+" to make them mandatory.
@@ -750,10 +764,11 @@ as the first will match files shared under the keywords
 "Das" or "Kapital" whereas the second will match files
 shared under the keyword "Das Kapital".
 
-Search results are printed by gnunet-search like this:
+Search results are printed by @command{gnunet-search} like this:
 
 @c it will be better the avoid the ellipsis altogether because I don't
 @c understand the explanation below that
+@c ng0: who is ``I'' and what was the complete sentence?
 @example
 #15:
 gnunet-download -o "COPYING" gnunet://fs/chk/PGK8M...3EK130.75446
@@ -762,10 +777,11 @@ gnunet-download -o "COPYING" gnunet://fs/chk/PGK8M...3EK130.75446
 
 @noindent
 The whole line is the command you would have to enter to download
-the file. The argument passed to @code{-o} is the suggested
+the file. The first argument passed to @code{-o} is the suggested
 filename (you may change it to whatever you like).
-It is followed by the key for decrypting the file, the query for searching the
-file, a checksum (in hexadecimal) finally the size of the file in bytes.
+It is followed by the key for decrypting the file, the query for
+searching the file, a checksum (in hexadecimal) finally the size of
+the file in bytes.
 
 @node fs-Downloading
 @subsection Downloading
@@ -802,9 +818,9 @@ already present.
 GNUnet's file-encoding mechanism will ensure file integrity, even if the
 existing file was not downloaded from GNUnet in the first place.
 
-You may want to use the @command{-V} switch  to turn on verbose reporting. In
-this case, @command{gnunet-download} will print the current number of bytes
-downloaded whenever new data was received.
+You may want to use the @command{-V} switch to turn on verbose
+reporting. In this case, @command{gnunet-download} will print the
+current number of bytes downloaded whenever new data was received.
 
 @node fs-Publishing
 @subsection Publishing
@@ -845,10 +861,14 @@ list by running @command{extract -L}. Use quotes around the entire
 meta-data argument if the value contains spaces. The meta-data
 is displayed to other users when they select which files to
 download. The meta-data and the keywords are optional and
-maybe inferred using @code{GNU libextractor}.
+may be inferred using @code{GNU libextractor}.
 
-gnunet-publish has a few additional options to handle namespaces and
-directories. See the man-page for details.
+@command{gnunet-publish} has a few additional options to handle
+namespaces and directories. Refer to the man-page for details:
+
+@example
+man gnunet-publish
+@end example
 
 @node Indexing vs. Inserting
 @subsubsection Indexing vs Inserting
@@ -1528,11 +1548,11 @@ record you want to access).
 @subsection Using Public Keys as Top Level Domains
 
 
-GNS also assumes responsibility for any name that uses in a well-formed
-public key for the TLD.  Names ending this way are then resolved by querying
-the respective zone. Such public key TLDs are expected to be used under rare
-circumstances where globally unique names are required, and for
-integration with legacy systems.
+GNS also assumes responsibility for any name that uses in a
+well-formed public key for the TLD.  Names ending this way are then
+resolved by querying the respective zone. Such public key TLDs are
+expected to be used under rare circumstances where globally unique
+names are required, and for integration with legacy systems.
 
 @node Resource Records in GNS
 @subsection Resource Records in GNS
@@ -1574,13 +1594,14 @@ GNS currently supports the following record types:
 @node NICK
 @subsubsection NICK
 
-A NICK record is used to give a zone a name. With a NICK record, you can
-essentially specify how you would like to be called. GNS expects this
-record under the empty label ``@@'' in the zone's database (NAMESTORE); however,
-it will then automatically be copied into each record set, so that
-clients never need to do a separate lookup to discover the NICK record.
-Also, users do not usually have to worry about setting the NICK record:
-it is automatically set to the local name of the TLD.
+A NICK record is used to give a zone a name. With a NICK record, you
+can essentially specify how you would like to be called. GNS expects
+this record under the empty label ``@@'' in the zone's database
+(NAMESTORE); however, it will then automatically be copied into each
+record set, so that clients never need to do a separate lookup to
+discover the NICK record.  Also, users do not usually have to worry
+about setting the NICK record: it is automatically set to the local
+name of the TLD.
 
 @b{Example}@
 

@@ -251,6 +251,7 @@ GNUnet Developer Handbook
 @unnumbered Programming Index
 @syncodeindex tp fn
 @syncodeindex vr fn
+@syncodeindex pg fn
 @printindex fn
 
 @bye

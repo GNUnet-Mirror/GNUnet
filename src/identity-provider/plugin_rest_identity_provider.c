@@ -844,7 +844,7 @@ revoke_ticket_cont (struct GNUNET_REST_RequestHandle *con_handle,
   rnd_json = GNUNET_JSONAPI_resource_read_attr (json_res,
                                                 "rnd");
   identity_json = GNUNET_JSONAPI_resource_read_attr (json_res,
-                                                     "identity");
+                                                     "issuer");
   audience_json = GNUNET_JSONAPI_resource_read_attr (json_res,
                                                      "audience");
   rnd_str = json_string_value (rnd_json);
