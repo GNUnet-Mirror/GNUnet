@@ -573,7 +573,7 @@ Either of you can end the call using @command{/cancel}. You can exit
 
 @menu
 * VPN Preliminaries::
-* GNUNet-Exit configuration::
+* GNUnet-Exit configuration::
 * GNS configuration::
 * Accessing the service::
 * Using a Browser::
