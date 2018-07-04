@@ -247,14 +247,11 @@ GNUnet Developer Handbook
 @unnumbered Concept Index
 @printindex cp
 
-@node Program Index
-@unnumbered Program Index
-@printindex pg
-
 @node Programming Index
 @unnumbered Programming Index
 @syncodeindex tp fn
 @syncodeindex vr fn
+@syncodeindex pg fn
 @printindex fn
 
 @bye
