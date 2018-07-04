@@ -344,7 +344,7 @@ init ()
   if (GNUNET_OK != GNUNET_CONFIGURATION_parse (cfg,
                                                "test_arm_api_data.conf"))
   {
-    GNUNET_free (cfg);
+    GNUNET_CONFIGURATION_destroy (cfg);
     return GNUNET_SYSERR;
   }
   if (NULL == getcwd (pwd, PATH_MAX))
