@@ -2571,7 +2571,8 @@ test_run (void *cls,
   if (NULL != churn_task)
     GNUNET_SCHEDULER_cancel (churn_task);
   post_test_task = GNUNET_SCHEDULER_add_delayed (timeout, &post_test_op, NULL);
-  timeout = GNUNET_TIME_relative_multiply (timeout, 1.2 + (0.01 * num_peers));
+  timeout = GNUNET_TIME_relative_multiply (timeout, 0.2 + (0.01 * num_peers));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "timeout for hard shutdown is %u\n", timeout.rel_value_us/1000000);
   shutdown_task = GNUNET_SCHEDULER_add_shutdown (shutdown_op, NULL);
   shutdown_task = GNUNET_SCHEDULER_add_delayed (timeout, &shutdown_op, NULL);
 
