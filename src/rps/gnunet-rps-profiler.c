@@ -1177,8 +1177,12 @@ rps_disconnect_adapter (void *cls,
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "disconnect_adapter()\n");
   GNUNET_assert (NULL != peer);
-  GNUNET_RPS_disconnect (h);
-  peer->rps_handle = NULL;
+  if (NULL != peer->rps_handle)
+  {
+    GNUNET_assert (h == peer->rps_handle);
+    GNUNET_RPS_disconnect (h);
+    peer->rps_handle = NULL;
+  }
 }
 
 
