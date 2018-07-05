@@ -905,6 +905,7 @@ shutdown_op (void *cls)
     if (NULL != rps_peers[i].op)
     {
       GNUNET_TESTBED_operation_done (rps_peers[i].op);
+      rps_peers[i].op = NULL;
     }
   }
 }
@@ -2263,12 +2264,6 @@ void write_final_stats (void){
          stat_type < STAT_TYPE_MAX;
          stat_type++)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                 "Add to sum (%" PRIu64 ") %" PRIu64 " of stat type %u - %s\n",
-                  sums[stat_type],
-                  rps_peers[i].stats[stat_type],
-                  stat_type,
-                  stat_type_2_str (stat_type));
       sums[stat_type] += rps_peers[i].stats[stat_type];
     }
   }
