@@ -1534,6 +1534,9 @@ Peers_handle_inbound_channel (void *cls,
   /* We only accept one incoming channel per peer */
   if (GNUNET_YES == Peers_check_peer_send_intention (initiator))
   {
+    LOG (GNUNET_ERROR_TYPE_WARNING,
+        "Already got one receive channel. Destroying old one.\n");
+    GNUNET_break_op (0);
     set_channel_flag (peer_ctx->recv_channel_flags,
                       Peers_CHANNEL_ESTABLISHED_TWICE);
     //GNUNET_CADET_channel_destroy (channel);
