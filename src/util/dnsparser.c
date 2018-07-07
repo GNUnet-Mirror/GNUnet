@@ -959,7 +959,7 @@ GNUNET_DNSPARSER_builder_add_name (char *dst,
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                   "Invalid DNS name `%s': label with %u characters encountered\n",
                   name,
-                  len);
+                  (unsigned int) len);
       goto fail; /* label too long or empty */
     }
     dst[pos++] = (char) (uint8_t) len;
