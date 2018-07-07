@@ -151,12 +151,12 @@ extern "C"
 /**
  * Signature for the first round of distributed key generation.
  */
-#define GNUNET_SIGNATURE_PURPOSE_SECRETSHARING_DKG1 22
+#define GNUNET_SIGNATURE_PURPOSE_SECRETSHARING_DKG1 21
 
 /**
  * Signature for the second round of distributed key generation.
  */
-#define GNUNET_SIGNATURE_PURPOSE_SECRETSHARING_DKG2 23
+#define GNUNET_SIGNATURE_PURPOSE_SECRETSHARING_DKG2 22
 
 /**
  * Signature for cooperatice decryption.
