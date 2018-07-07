@@ -26,7 +26,7 @@ always welcome.
 * First steps - Using the GNUnet VPN::
 * File-sharing::
 * The GNU Name System::
-* reclaim::
+* re@:claim Identity Provider::
 * Using the Virtual Public Network::
 @end menu
 
@@ -1791,8 +1791,8 @@ is thus advisable to disable the namecache by setting the
 option ``DISABLE'' to ``YES'' in section ``[namecache]''.
 
 
-@node reclaim
-@section re:claim Identity Provider
+@node re@:claim Identity Provider
+@section re@:claim Identity Provider
 
 The re:claim Identity Provider (IdP) is a decentralized IdP service.
 It allows its users to manage and authorize third parties to access their identity attributes such as email or shipping addresses.
@@ -1801,13 +1801,13 @@ It basically mimics the concepts of centralized IdPs, such as those offered by G
 Like other IdPs, re:claim features an (optional) OpenID-Connect 1.0-compliant protocol layer that can be used for websites to integrate re:claim as an Identity Provider with little effort.
 
 @menu
-* reclaim-Attributes::
-* reclaim-Authorization::
-* reclaim-Revocation::
-* reclaim-OpenID::
+* Managing Attributes::
+* Sharing Attributes with Third Parties::
+* Revoking Authorizations of Third Parties::
+* Using the OpenID-Connect IdP::
 @end menu
 
-@node reclaim-Attributes
+@node Managing Attributes
 @subsection Managing Attributes
 
 Before adding attributes to an identity, you must first create an ego:
@@ -1834,7 +1834,7 @@ $ gnunet-idp -e "username" -D
 Currently, and by default, attribute values are interpreted as plain text.
 In the future there might be more value types such as X.509 certificate credentials.
 
-@node reclaim-Authorization
+@node Sharing Attributes with Third Parties
 @subsection Sharing Attributes with Third Parties
 
 If you want to allow a third party such as a website or friend to access to your attributes (or a subset thereof) execute:
@@ -1864,7 +1864,7 @@ $ gnunet-idp -e "friend" -T (TODO there is only a REST API for this ATM)
 @end example
 
 
-@node reclaim-Revocation
+@node Revoking Authorizations of Third Parties
 @subsection Revoking Authorizations of Third Parties
 
 If you want to revoke the access of a third party to your attributes you can execute:
@@ -1878,7 +1878,7 @@ Please note that if the third party has previously accessed the attribute, there
 As such, only access to updated data in the future can be revoked.
 This behaviour is _exactly the same_ as with other IdPs.
 
-@node reclaim-OpenID
+@node Using the OpenID-Connect IdP
 @subsection Using the OpenID-Connect IdP
 
 TODO: Document setup and REST endpoints
