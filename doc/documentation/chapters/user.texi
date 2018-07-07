@@ -26,6 +26,7 @@ always welcome.
 * First steps - Using the GNUnet VPN::
 * File-sharing::
 * The GNU Name System::
+* reclaim::
 * Using the Virtual Public Network::
 @end menu
 
@@ -1789,6 +1790,98 @@ DNS zone and that do not have a local gns service in use, it
 is thus advisable to disable the namecache by setting the
 option ``DISABLE'' to ``YES'' in section ``[namecache]''.
 
+
+@node reclaim
+@section re:claim Identity Provider
+
+The re:claim Identity Provider (IdP) is a decentralized IdP service.
+It allows its users to manage and authorize third parties to access their identity attributes such as email or shipping addresses.
+
+It basically mimics the concepts of centralized IdPs, such as those offered by Google or Facebook.
+Like other IdPs, re:claim features an (optional) OpenID-Connect 1.0-compliant protocol layer that can be used for websites to integrate re:claim as an Identity Provider with little effort.
+
+@menu
+* reclaim-Attributes::
+* reclaim-Authorization::
+* reclaim-Revocation::
+* reclaim-OpenID::
+@end menu
+
+@node reclaim-Attributes
+@subsection Managing Attributes
+
+Before adding attributes to an identity, you must first create an ego:
+
+@example
+$ gnunet-identity -C "username"
+@end example
+
+Henceforth, you can manage a new user profile of the user ``username''.
+
+To add an email address to your user profile, simply use the @command{gnunet-idp} command line tool::
+
+@example
+$ gnunet-idp -e "username" -a "email" -V "username@@example.gnunet"
+@end example
+
+All of your attributes can be listed using the @command{gnunet-idp}
+command line tool as well:
+
+@example
+$ gnunet-idp -e "username" -D
+@end example
+
+Currently, and by default, attribute values are interpreted as plain text.
+In the future there might be more value types such as X.509 certificate credentials.
+
+@node reclaim-Authorization
+@subsection Sharing Attributes with Third Parties
+
+If you want to allow a third party such as a website or friend to access to your attributes (or a subset thereof) execute:
+
+@example
+$ gnunet-idp -e "username" -r "PKEY" -i "attribute1,attribute2,..."
+@end example
+
+Where "PKEY" is the public key of the third party and "attribute1,attribute2,..." is a comma-separated list of attribute names, such as "email", that you want to share.
+
+The command will return a "ticket" string.
+You must give this "ticket" to the requesting third party.
+
+The third party can then retrieve your shared identity attributes using:
+
+@example
+$ gnunet-idp -e "friend" -C "ticket"
+@end example
+
+This will retrieve and list the shared identity attributes.
+The above command will also work if the user "username" is currently offline since the attributes are retrieved from GNS.
+Further, the "ticket" can be re-used later to retrieve up-to-date attributes in case "username" has changed the value(s). For instance, becasue his email address changed.
+
+To list all given authorizations (tickets) you can execute:
+@example
+$ gnunet-idp -e "friend" -T (TODO there is only a REST API for this ATM) 
+@end example
+
+
+@node reclaim-Revocation
+@subsection Revoking Authorizations of Third Parties
+
+If you want to revoke the access of a third party to your attributes you can execute:
+
+@example
+$ gnunet-idp -e "username" -R "ticket"
+@end example
+
+This will prevent the third party from accessing the attribute in the future.
+Please note that if the third party has previously accessed the attribute, there is not way in which the system could have prevented the thiry party from storing the data.
+As such, only access to updated data in the future can be revoked.
+This behaviour is _exactly the same_ as with other IdPs.
+
+@node reclaim-OpenID
+@subsection Using the OpenID-Connect IdP
+
+TODO: Document setup and REST endpoints
 
 @node Using the Virtual Public Network
 @section Using the Virtual Public Network
