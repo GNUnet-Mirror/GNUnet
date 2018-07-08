@@ -101,6 +101,7 @@ This document is the Reference Manual for GNUnet version @value{VERSION}.
 Preface
 
 * About this book
+* Contributing to this book
 * Introduction
 * General Terminology::
 * Typography::
