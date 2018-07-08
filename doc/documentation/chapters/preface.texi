@@ -15,7 +15,6 @@ all kinds of basic applications for the foundation of a new Internet.
 * Contributing to this book::
 * Introduction::
 * Project governance::
-* General Terminology::
 * Typography::
 @end menu
 
@@ -159,13 +158,6 @@ choose to pay for project resources, and can collect donations.
 GNUnet e.V. may also choose to adjust the license of the
 software (with the constraint that it has to remain free software)@footnote{For example in 2018 we switched from GPL3 to AGPL3. In practice these changes do not happen very often.}
 
-
-@node General Terminology
-@section General Terminology
-
-In the following manual we may use words that can not be found in the
-Appendix. Since we want to keep the manual selfcontained, we will
-explain words here.
 
 @node Typography
 @section Typography

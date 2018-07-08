@@ -103,7 +103,6 @@ Preface
 * About this book
 * Contributing to this book
 * Introduction
-* General Terminology::
 * Typography::
 
 Philosophy
