@@ -2372,6 +2372,8 @@ post_test_shutdown_ready_cb (void *cls,
 {
   struct STATcls *stat_cls = (struct STATcls *) cls;
   struct RPSPeer *rps_peer = stat_cls->rps_peer;
+
+  rps_peer->h_stat_get[stat_cls->stat_type] = NULL;
   if (GNUNET_OK == success)
   {
     /* set flag that we we got the value */
@@ -2428,7 +2430,6 @@ stat_iterator (void *cls,
       //stat_type_2_str (stat_cls->stat_type),
       name,
       value);
-  rps_peer->h_stat_get[stat_str_2_type (name)] = NULL;
   to_file (rps_peer->file_name_stats,
           "%s: %" PRIu64 "\n",
           name,
