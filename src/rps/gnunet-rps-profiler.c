@@ -882,7 +882,7 @@ shutdown_op (void *cls)
 {
   unsigned int i;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Shutdown task scheduled, going down.\n");
   in_shutdown = GNUNET_YES;
   if (NULL != post_test_task)
@@ -1033,9 +1033,9 @@ info_cb (void *cb_cls,
  */
 static void
 rps_connect_complete_cb (void *cls,
-			 struct GNUNET_TESTBED_Operation *op,
-			 void *ca_result,
-			 const char *emsg)
+                         struct GNUNET_TESTBED_Operation *op,
+                         void *ca_result,
+                         const char *emsg)
 {
   struct RPSPeer *rps_peer = cls;
   struct GNUNET_RPS_Handle *rps = ca_result;
@@ -1060,7 +1060,9 @@ rps_connect_complete_cb (void *cls,
     return;
   }
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Started client successfully\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Started client successfully (%u)\n",
+              rps_peer->index);
 
   cur_test_run.main_test (rps_peer);
 }
@@ -1078,7 +1080,7 @@ rps_connect_complete_cb (void *cls,
  */
 static void *
 rps_connect_adapter (void *cls,
-		                 const struct GNUNET_CONFIGURATION_Handle *cfg)
+                     const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   struct GNUNET_RPS_Handle *h;
 
@@ -1170,12 +1172,14 @@ stat_complete_cb (void *cls, struct GNUNET_TESTBED_Operation *op,
  */
 static void
 rps_disconnect_adapter (void *cls,
-			                  void *op_result)
+                        void *op_result)
 {
   struct RPSPeer *peer = cls;
   struct GNUNET_RPS_Handle *h = op_result;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "disconnect_adapter()\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "disconnect_adapter (%u)\n",
+              peer->index);
   GNUNET_assert (NULL != peer);
   if (NULL != peer->rps_handle)
   {
@@ -2556,6 +2560,8 @@ test_run (void *cls,
     /* Connect all peers to statistics service */
     if (COLLECT_STATISTICS == cur_test_run.have_collect_statistics)
     {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                 "Connecting to statistics service\n");
       rps_peers[i].stat_op =
         GNUNET_TESTBED_service_connect (NULL,
                                         peers[i],
@@ -2571,9 +2577,8 @@ test_run (void *cls,
   if (NULL != churn_task)
     GNUNET_SCHEDULER_cancel (churn_task);
   post_test_task = GNUNET_SCHEDULER_add_delayed (timeout, &post_test_op, NULL);
-  timeout = GNUNET_TIME_relative_multiply (timeout, 0.2 + (0.01 * num_peers));
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "timeout for hard shutdown is %u\n", timeout.rel_value_us/1000000);
-  shutdown_task = GNUNET_SCHEDULER_add_shutdown (shutdown_op, NULL);
+  timeout = GNUNET_TIME_relative_multiply (timeout, 1.2 + (0.01 * num_peers));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "timeout for hard shutdown is %lu\n", timeout.rel_value_us/1000000);
   shutdown_task = GNUNET_SCHEDULER_add_delayed (timeout, &shutdown_op, NULL);
 
 }
@@ -2734,7 +2739,6 @@ main (int argc, char *argv[])
   GNUNET_free (rps_peers);
   GNUNET_free (rps_peer_ids);
   GNUNET_CONTAINER_multipeermap_destroy (peer_map);
-  printf ("test -1\n");
   return ret_value;
 }
 
