@@ -49,7 +49,11 @@ static unsigned bits_needed;
 /**
  * How long do we run the test?
  */
-//#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 30)
+static struct GNUNET_TIME_Relative duration;
+
+/**
+ * When do we do a hard shutdown?
+ */
 static struct GNUNET_TIME_Relative timeout;
 
 
@@ -995,7 +999,7 @@ shutdown_op (void *cls)
 
 
 /**
- * Task run on timeout to collect statistics and potentially shut down.
+ * Task run after #duration to collect statistics and potentially shut down.
  */
 static void
 post_test_op (void *cls)
@@ -1314,7 +1318,8 @@ default_reply_handle (void *cls,
 
   if (0 == evaluate () && HAVE_QUICK_QUIT == cur_test_run.have_quick_quit)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Test succeeded before timeout\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Test succeeded before end of duration\n");
     GNUNET_assert (NULL != post_test_task);
     GNUNET_SCHEDULER_cancel (post_test_task);
     post_test_task = GNUNET_SCHEDULER_add_now (&post_test_op, NULL);
@@ -2629,11 +2634,9 @@ test_run (void *cls,
 
   if (NULL != churn_task)
     GNUNET_SCHEDULER_cancel (churn_task);
-  post_test_task = GNUNET_SCHEDULER_add_delayed (timeout, &post_test_op, NULL);
-  timeout = GNUNET_TIME_relative_multiply (timeout, 1.2 + (0.01 * num_peers));
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "timeout for hard shutdown is %lu\n", timeout.rel_value_us/1000000);
+  post_test_task = GNUNET_SCHEDULER_add_delayed (duration, &post_test_op, NULL);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "timeout for shutdown is %lu\n", timeout.rel_value_us/1000000);
   shutdown_task = GNUNET_SCHEDULER_add_delayed (timeout, &shutdown_op, NULL);
-
 }
 
 
@@ -2669,7 +2672,7 @@ run (void *cls,
   if (0 == cur_test_run.num_requests) cur_test_run.num_requests = 5;
   //cur_test_run.have_churn = HAVE_CHURN;
   cur_test_run.have_churn = HAVE_NO_CHURN;
-  cur_test_run.have_quick_quit = HAVE_NO_QUICK_QUIT;
+  cur_test_run.have_quick_quit = HAVE_QUICK_QUIT;
   cur_test_run.have_collect_statistics = COLLECT_STATISTICS;
   cur_test_run.stat_collect_flags = BIT(STAT_TYPE_ROUNDS) |
                                     BIT(STAT_TYPE_BLOCKS) |
@@ -2692,9 +2695,30 @@ run (void *cls,
   /* 'Clean' directory */
   (void) GNUNET_DISK_directory_remove ("/tmp/rps/");
   GNUNET_DISK_directory_create ("/tmp/rps/");
-  if (0 == timeout.rel_value_us)
+  if (0 == duration.rel_value_us)
   {
-    timeout = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 90);
+    if (0 == timeout.rel_value_us)
+    {
+      duration = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 90);
+      timeout = GNUNET_TIME_relative_multiply (duration,
+                                               1.2 + (0.01 * num_peers));
+    }
+    else
+    {
+      duration = GNUNET_TIME_relative_multiply (timeout, 0.75 );
+    }
+  }
+  else
+  {
+    if (0 == timeout.rel_value_us)
+    {
+      timeout = GNUNET_TIME_relative_multiply (duration,
+                                               1.2 + (0.01 * num_peers));
+    }
+    else
+    {
+      GNUNET_assert (duration.rel_value_us <= timeout.rel_value_us);
+    }
   }
 
   /* Compute number of bits for representing largest peer id */
@@ -2744,6 +2768,12 @@ main (int argc, char *argv[])
                                "COUNT",
                                gettext_noop ("number of peers to start"),
                                &num_peers),
+
+    GNUNET_GETOPT_option_relative_time ('d',
+                                        "duration",
+                                        "DURATION",
+                                        gettext_noop ("duration of the profiling"),
+                                        &duration),
 
     GNUNET_GETOPT_option_relative_time ('t',
                                         "timeout",
