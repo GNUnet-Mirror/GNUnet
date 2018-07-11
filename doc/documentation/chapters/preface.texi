@@ -12,9 +12,9 @@ all kinds of basic applications for the foundation of a new Internet.
 
 @menu
 * About this book::
+* Contributing to this book::
 * Introduction::
 * Project governance::
-* General Terminology::
 * Typography::
 @end menu
 
@@ -36,6 +36,26 @@ describe the explanations found there which fits our use-case and licensing.
 The first chapter (``Preface'') as well as the the second
 chapter (``Philosophy'') give an introduction to GNUnet as a project,
 what GNUnet tries to achieve.
+
+@node Contributing to this book
+@section Contributing to this book
+
+The GNUnet Reference Manual is a collective work produced by various
+people throughout the years. The version you are reading is derived
+from many individual efforts hosted on our website. This was a failed
+experiment, and with the conversion to Texinfo we hope to address this
+in the longterm. Texinfo is the documentation language of the GNU project.
+While it can be intimidating at first and look scary or complicated,
+it is just another way to express text format instructions. We encourage
+you to take this opportunity and learn about Texinfo, learn about GNUnet,
+and one word at a time we will arrive at a book which explains GNUnet in
+the least complicated way to you. Even when you don't want or can't learn
+Texinfo, you can contribute. Send us an Email or join our IRC chat room
+on freenode and talk with us about the documentation (the prefered way
+to reach out is the mailinglist, since you can communicate with us
+without waiting on someone in the chatroom). One way or another you
+can help shape the understanding of GNUnet without the ability to read
+and understand its sourcecode.
 
 @node Introduction
 @section Introduction
@@ -138,13 +158,6 @@ choose to pay for project resources, and can collect donations.
 GNUnet e.V. may also choose to adjust the license of the
 software (with the constraint that it has to remain free software)@footnote{For example in 2018 we switched from GPL3 to AGPL3. In practice these changes do not happen very often.}
 
-
-@node General Terminology
-@section General Terminology
-
-In the following manual we may use words that can not be found in the
-Appendix. Since we want to keep the manual selfcontained, we will
-explain words here.
 
 @node Typography
 @section Typography
