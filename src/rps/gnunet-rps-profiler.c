@@ -497,14 +497,15 @@ static unsigned int view_sizes;
 static int ok;
 
 /**
- * Identifier for the churn task that runs periodically
+ * Identifier for the task that runs after the test to collect results
  */
 static struct GNUNET_SCHEDULER_Task *post_test_task;
 
 /**
- * Identifier for the churn task that runs periodically
+ * Identifier for the shutdown task
  */
 static struct GNUNET_SCHEDULER_Task *shutdown_task;
+
 
 /**
  * Identifier for the churn task that runs periodically
@@ -969,7 +970,12 @@ shutdown_op (void *cls)
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Shutdown task scheduled, going down.\n");
   in_shutdown = GNUNET_YES;
-  shutdown_task = NULL;
+
+  if (NULL != shutdown_task)
+  {
+    GNUNET_SCHEDULER_cancel (shutdown_task);
+    shutdown_task = NULL;
+  }
   if (NULL != post_test_task)
   {
     GNUNET_SCHEDULER_cancel (post_test_task);
@@ -994,6 +1000,14 @@ shutdown_op (void *cls)
   {
     clean_peer (i);
   }
+}
+
+static void
+trigger_shutdown (void *cls)
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "Shutdown was triggerd by timeout, going down.\n");
+  shutdown_task = NULL;
   GNUNET_SCHEDULER_shutdown ();
 }
 
@@ -1009,7 +1023,7 @@ post_test_op (void *cls)
   post_test_task = NULL;
   post_test = GNUNET_YES;
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-              "Post test task scheduled, going down.\n");
+              "Post test task scheduled.\n");
   if (NULL != churn_task)
   {
     GNUNET_SCHEDULER_cancel (churn_task);
@@ -1033,7 +1047,8 @@ post_test_op (void *cls)
       GNUNET_YES == check_statistics_collect_completed())
   {
     GNUNET_SCHEDULER_cancel (shutdown_task);
-    shutdown_task = GNUNET_SCHEDULER_add_now (&shutdown_op, NULL);
+    shutdown_task = NULL;
+    GNUNET_SCHEDULER_shutdown ();
   }
 }
 
@@ -1142,7 +1157,7 @@ rps_connect_complete_cb (void *cls,
                 "Failed to connect to RPS service: %s\n",
                 emsg);
     ok = 1;
-    shutdown_op (NULL);
+    GNUNET_SCHEDULER_shutdown ();
     return;
   }
 
@@ -1316,14 +1331,15 @@ default_reply_handle (void *cls,
     rps_peer->num_recv_ids++;
   }
 
-  if (0 == evaluate () && HAVE_QUICK_QUIT == cur_test_run.have_quick_quit)
+  if (GNUNET_YES != post_test) return;
+  if (HAVE_QUICK_QUIT != cur_test_run.have_quick_quit) return;
+  if (0 == evaluate())
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Test succeeded before end of duration\n");
-    GNUNET_assert (NULL != post_test_task);
-    GNUNET_SCHEDULER_cancel (post_test_task);
+    if (NULL != post_test_task) GNUNET_SCHEDULER_cancel (post_test_task);
     post_test_task = GNUNET_SCHEDULER_add_now (&post_test_op, NULL);
-    GNUNET_assert (NULL!= post_test_task);
+    GNUNET_assert (NULL != post_test_task);
   }
 }
 
@@ -1548,7 +1564,7 @@ churn_cb (void *cls,
   if (NULL != emsg)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Failed to start/stop RPS at a peer\n");
-    shutdown_op (NULL);
+    GNUNET_SCHEDULER_shutdown ();
     return;
   }
   GNUNET_assert (0 != entry->delta);
@@ -2400,7 +2416,7 @@ post_test_shutdown_ready_cb (void *cls,
     GNUNET_free (stat_cls);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
         "Shutting down\n");
-    shutdown_op (NULL);
+    GNUNET_SCHEDULER_shutdown ();
   } else {
     GNUNET_free (stat_cls);
   }
@@ -2637,7 +2653,10 @@ test_run (void *cls,
     GNUNET_SCHEDULER_cancel (churn_task);
   post_test_task = GNUNET_SCHEDULER_add_delayed (duration, &post_test_op, NULL);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "timeout for shutdown is %lu\n", timeout.rel_value_us/1000000);
-  shutdown_task = GNUNET_SCHEDULER_add_delayed (timeout, &shutdown_op, NULL);
+  shutdown_task = GNUNET_SCHEDULER_add_delayed (timeout,
+                                                &trigger_shutdown,
+                                                NULL);
+  GNUNET_SCHEDULER_add_shutdown (shutdown_op, NULL);
 }
 
 
@@ -2701,26 +2720,33 @@ run (void *cls,
     if (0 == timeout.rel_value_us)
     {
       duration = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 90);
-      timeout = GNUNET_TIME_relative_multiply (duration,
-                                               1.2 + (0.01 * num_peers));
+      timeout = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS,
+                                               (90 * 1.2) +
+                                                 (0.01 * num_peers));
     }
     else
     {
-      duration = GNUNET_TIME_relative_multiply (timeout, 0.75 );
+      duration = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS,
+                                                (timeout.rel_value_us/1000000)
+                                                  * 0.75);
     }
   }
   else
   {
     if (0 == timeout.rel_value_us)
     {
-      timeout = GNUNET_TIME_relative_multiply (duration,
-                                               1.2 + (0.01 * num_peers));
-    }
-    else
-    {
-      GNUNET_assert (duration.rel_value_us <= timeout.rel_value_us);
+      timeout = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS,
+                                               ((duration.rel_value_us/1000000)
+                                                  * 1.2) + (0.01 * num_peers));
     }
   }
+  GNUNET_assert (duration.rel_value_us < timeout.rel_value_us);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "duration is %lus\n",
+              duration.rel_value_us/1000000);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "timeout is %lus\n",
+              timeout.rel_value_us/1000000);
 
   /* Compute number of bits for representing largest peer id */
   for (bits_needed = 1; (1 << bits_needed) < num_peers; bits_needed++)
