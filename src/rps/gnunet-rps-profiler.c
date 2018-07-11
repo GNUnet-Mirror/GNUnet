@@ -1353,13 +1353,13 @@ request_peers (void *cls)
   struct RPSPeer *rps_peer;
   struct PendingReply *pending_rep;
 
-  if (GNUNET_YES == in_shutdown || GNUNET_YES == post_test)
-    return;
   rps_peer = pending_req->rps_peer;
   GNUNET_assert (1 <= rps_peer->num_pending_reqs);
   GNUNET_CONTAINER_DLL_remove (rps_peer->pending_req_head,
                                rps_peer->pending_req_tail,
                                pending_req);
+  rps_peer->num_pending_reqs--;
+  if (GNUNET_YES == in_shutdown || GNUNET_YES == post_test) return;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Requesting one peer\n");
   pending_rep = GNUNET_new (struct PendingReply);
@@ -1372,7 +1372,6 @@ request_peers (void *cls)
                                     rps_peer->pending_rep_tail,
                                     pending_rep);
   rps_peer->num_pending_reps++;
-  rps_peer->num_pending_reqs--;
 }
 
 
