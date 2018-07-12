@@ -265,6 +265,34 @@ struct PeersIteratorCls
 };
 
 /**
+ * @brief Context for a channel
+ */
+struct ChannelCtx
+{
+  /**
+   * @brief Meant to be used in a DLL
+   */
+  struct ChannelCtx *next;
+  struct ChannelCtx *prev;
+
+  /**
+   * @brief The channel itself
+   */
+  struct GNUNET_CADET_Channel *channel;
+
+  /**
+   * @brief The peer context associated with the channel
+   */
+  struct PeerContext *peer_ctx;
+};
+
+/**
+ * @brief The DLL of channel contexts
+ */
+static struct ChannelCtx *channel_ctx_head;
+static struct ChannelCtx *channel_ctx_tail;
+
+/**
  * @brief Hashmap of valid peers.
  */
 static struct GNUNET_CONTAINER_MultiPeerMap *valid_peers;
@@ -1521,6 +1549,7 @@ Peers_handle_inbound_channel (void *cls,
 {
   struct PeerContext *peer_ctx;
   struct GNUNET_PeerIdentity *ctx_peer;
+  struct ChannelCtx *channel_ctx;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
       "New channel was established to us (Peer %s).\n",
@@ -1531,6 +1560,10 @@ Peers_handle_inbound_channel (void *cls,
   set_peer_live (peer_ctx);
   ctx_peer = GNUNET_new (struct GNUNET_PeerIdentity);
   *ctx_peer = *initiator;
+  channel_ctx = GNUNET_new (struct ChannelCtx);
+  channel_ctx->peer_ctx = peer_ctx;
+  channel_ctx->channel = channel;
+  GNUNET_CONTAINER_DLL_insert (channel_ctx_head, channel_ctx_tail, channel_ctx);
   /* We only accept one incoming channel per peer */
   if (GNUNET_YES == Peers_check_peer_send_intention (initiator))
   {
@@ -1543,10 +1576,10 @@ Peers_handle_inbound_channel (void *cls,
     GNUNET_CADET_channel_destroy (peer_ctx->recv_channel);
     peer_ctx->recv_channel = channel;
     /* return the channel context */
-    return ctx_peer;
+    return channel_ctx;
   }
   peer_ctx->recv_channel = channel;
-  return ctx_peer;
+  return channel_ctx;
 }
 
 
@@ -1658,7 +1691,8 @@ void
 Peers_cleanup_destroyed_channel (void *cls,
                                  const struct GNUNET_CADET_Channel *channel)
 {
-  struct GNUNET_PeerIdentity *peer = cls;
+  struct ChannelCtx *channel_ctx = cls;
+  const struct GNUNET_PeerIdentity *peer = &channel_ctx->peer_ctx->peer_id;
   struct PeerContext *peer_ctx;
   uint32_t *channel_flag;
 
@@ -2670,7 +2704,8 @@ static void
 cleanup_destroyed_channel (void *cls,
                            const struct GNUNET_CADET_Channel *channel)
 {
-  struct GNUNET_PeerIdentity *peer = cls;
+  struct ChannelCtx *channel_ctx = cls; // FIXME: free this context!
+  struct GNUNET_PeerIdentity *peer = &channel_ctx->peer_ctx->peer_id;
   uint32_t *channel_flag;
   struct PeerContext *peer_ctx;
 
@@ -3163,7 +3198,8 @@ static void
 handle_peer_check (void *cls,
                    const struct GNUNET_MessageHeader *msg)
 {
-  const struct GNUNET_PeerIdentity *peer = cls;
+  const struct ChannelCtx *channel_ctx = cls;
+  const struct GNUNET_PeerIdentity *peer = &channel_ctx->peer_ctx->peer_id;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
       "Received CHECK_LIVE (%s)\n", GNUNET_i2s (peer));
 
@@ -3183,7 +3219,8 @@ static void
 handle_peer_push (void *cls,
                   const struct GNUNET_MessageHeader *msg)
 {
-  const struct GNUNET_PeerIdentity *peer = cls;
+  const struct ChannelCtx *channel_ctx = cls;
+  const struct GNUNET_PeerIdentity *peer = &channel_ctx->peer_ctx->peer_id;
 
   // (check the proof of work (?))
 
@@ -3244,7 +3281,8 @@ static void
 handle_peer_pull_request (void *cls,
                           const struct GNUNET_MessageHeader *msg)
 {
-  struct GNUNET_PeerIdentity *peer = cls;
+  const struct ChannelCtx *channel_ctx = cls;
+  const struct GNUNET_PeerIdentity *peer = &channel_ctx->peer_ctx->peer_id;
   const struct GNUNET_PeerIdentity *view_array;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Received PULL REQUEST (%s)\n", GNUNET_i2s (peer));
@@ -3324,8 +3362,9 @@ static void
 handle_peer_pull_reply (void *cls,
                         const struct GNUNET_RPS_P2P_PullReplyMessage *msg)
 {
+  const struct ChannelCtx *channel_ctx = cls;
+  const struct GNUNET_PeerIdentity *sender = &channel_ctx->peer_ctx->peer_id;
   const struct GNUNET_PeerIdentity *peers;
-  struct GNUNET_PeerIdentity *sender = cls;
   uint32_t i;
 #ifdef ENABLE_MALICIOUS
   struct AttackedPeer *tmp_att_peer;
