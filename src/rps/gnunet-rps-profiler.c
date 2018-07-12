@@ -883,6 +883,9 @@ static int check_statistics_collect_completed ()
   return GNUNET_YES;
 }
 
+static void
+rps_disconnect_adapter (void *cls,
+                        void *op_result);
 
 static void
 cancel_pending_req (struct PendingRequest *pending_req)
@@ -928,15 +931,8 @@ clean_peer (unsigned peer_index)
     cancel_request (pending_rep);
   }
   pending_req = rps_peers[peer_index].pending_req_head;
-  while (NULL != (pending_req = rps_peers[peer_index].pending_req_head))
-  {
-    cancel_pending_req (pending_req);
-  }
-  if (NULL != rps_peers[peer_index].rps_handle)
-  {
-    GNUNET_RPS_disconnect (rps_peers[peer_index].rps_handle);
-    rps_peers[peer_index].rps_handle = NULL;
-  }
+  rps_disconnect_adapter (&rps_peers[peer_index],
+                          &rps_peers[peer_index].rps_handle);
   for (unsigned stat_type = STAT_TYPE_ROUNDS;
        stat_type < STAT_TYPE_MAX;
        stat_type++)
@@ -1277,6 +1273,7 @@ rps_disconnect_adapter (void *cls,
 {
   struct RPSPeer *peer = cls;
   struct GNUNET_RPS_Handle *h = op_result;
+  struct PendingRequest *pending_req;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "disconnect_adapter (%u)\n",
@@ -1284,6 +1281,10 @@ rps_disconnect_adapter (void *cls,
   GNUNET_assert (NULL != peer);
   if (NULL != peer->rps_handle)
   {
+    while (NULL != (pending_req = peer->pending_req_head))
+    {
+      cancel_pending_req (pending_req);
+    }
     GNUNET_assert (h == peer->rps_handle);
     GNUNET_RPS_disconnect (h);
     peer->rps_handle = NULL;
