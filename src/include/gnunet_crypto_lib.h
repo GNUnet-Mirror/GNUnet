@@ -206,14 +206,15 @@ struct GNUNET_CRYPTO_EcdsaSignature
 
 
 /**
- * Public ECC key (always for Curve25519) encoded in a format suitable
- * for network transmission and EdDSA signatures.
+ * Public ECC key (always for curve Ed25519) encoded in a format
+ * suitable for network transmission and EdDSA signatures.
  */
 struct GNUNET_CRYPTO_EddsaPublicKey
 {
   /**
-   * Q consists of an x- and a y-value, each mod p (256 bits), given
-   * here in affine coordinates and Ed25519 standard compact format.
+   * Point Q consists of a y-value mod p (256 bits); the x-value is
+   * always positive. The point is stored in Ed25519 standard
+   * compact format.
    */
   unsigned char q_y[256 / 8];
 
