@@ -4389,6 +4389,13 @@ run (void *cls,
                                        NULL, /* WindowSize handler */
                                        cleanup_destroyed_channel, /* Disconnect handler */
                                        cadet_handlers);
+  if (NULL == cadet_port)
+  {
+    LOG (GNUNET_ERROR_TYPE_ERROR,
+        "Cadet port `%s' is already in use.\n",
+        GNUNET_APPLICATION_PORT_RPS);
+    GNUNET_assert (0);
+  }
 
 
   peerinfo_handle = GNUNET_PEERINFO_connect (cfg);
