@@ -26,6 +26,7 @@
  * @author Ioana Patrascu
  * @author Tzvetan Horozov
  * @author Jeffrey Burdges <burdges@gnunet.org>
+ * @author Bernd Fix
  *
  * @defgroup crypto  Crypto library: cryptographic operations
  * Provides cryptographic primitives.
@@ -228,10 +229,10 @@ struct GNUNET_CRYPTO_EddsaPublicKey
 struct GNUNET_CRYPTO_EcdsaPublicKey
 {
   /**
-   * Q consists of an x- and a y-value, each mod p (256 bits), given
-   * here in affine coordinates and Ed25519 standard compact format.
+   * Affine coordinates of the point Q in compressed format:
+   * [x (255 bit)||sign of y (1 bit)] = 256 bit key value.
    */
-  unsigned char q_y[256 / 8];
+  unsigned char q[256 / 8];
 
 };
 
@@ -253,10 +254,10 @@ struct GNUNET_PeerIdentity
 struct GNUNET_CRYPTO_EcdhePublicKey
 {
   /**
-   * Q consists of an x- and a y-value, each mod p (256 bits), given
-   * here in affine coordinates and Ed25519 standard compact format.
+   * Affine coordinates of the point Q in compressed format:
+   * [x (255 bit)||sign of y (1 bit)] = 256 bit key value.
    */
-  unsigned char q_y[256 / 8];
+  unsigned char q[256 / 8];
 };
 
 
@@ -293,7 +294,9 @@ struct GNUNET_CRYPTO_EcdsaPrivateKey
 struct GNUNET_CRYPTO_EddsaPrivateKey
 {
   /**
-   * d is a value mod n, where n has at most 256 bits.
+   * d is a seed value used to derive the secret scalar 'a' (the "real"
+   * private key). The public key is the point Q = [a]G with G as the
+   * base point of the used curve. See RFC 8032 for more details.
    */
   unsigned char d[256 / 8];
 
