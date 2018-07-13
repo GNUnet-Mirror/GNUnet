@@ -29,12 +29,17 @@
 #define EXTRA_CHECKS 0
 
 /**
- * Name of the curve we are using.  Note that we have hard-coded
- * structs that use 256 bits, so using a bigger curve will require
- * changes that break stuff badly.  The name of the curve given here
- * must be agreed by all peers and be supported by libgcrypt.
+ * The ECC curves used for different purposes are "Curve25519" for
+ * ECDHE and "Ed25519" for EdDSA. Note that we have hard-coded
+ * the size of keys (256 bits) and signatures (512 bits), so using
+ * a bigger curve will require changes that break stuff badly. The
+ * curves defined here must be agreed by all peers and be supported
+ * by libgcrypt.
  */
-#define CURVE "Ed25519"
+#define CURVE_EDDSA "Ed25519"
+#define CURVE_ECDHE "Curve25519"
+#define CURVE_ECDSA "Curve25519"
+
 
 #define LOG(kind,...) GNUNET_log_from (kind, "util-crypto-ecc", __VA_ARGS__)
 
@@ -126,7 +131,7 @@ decode_private_ecdsa_key (const struct GNUNET_CRYPTO_EcdsaPrivateKey *priv)
   int rc;
 
   rc = gcry_sexp_build (&result, NULL,
-			"(private-key(ecc(curve \"" CURVE "\")"
+			"(private-key(ecc(curve " CURVE_ECDSA ")"
                         "(d %b)))",
 			(int) sizeof (priv->d), priv->d);
   if (0 != rc)
@@ -159,7 +164,7 @@ decode_private_eddsa_key (const struct GNUNET_CRYPTO_EddsaPrivateKey *priv)
   int rc;
 
   rc = gcry_sexp_build (&result, NULL,
-			"(private-key(ecc(curve \"" CURVE "\")"
+			"(private-key(ecc(curve " CURVE_EDDSA ")"
                         "(flags eddsa)(d %b)))",
 			(int)sizeof (priv->d), priv->d);
   if (0 != rc)
@@ -192,7 +197,7 @@ decode_private_ecdhe_key (const struct GNUNET_CRYPTO_EcdhePrivateKey *priv)
   int rc;
 
   rc = gcry_sexp_build (&result, NULL,
-			"(private-key(ecc(curve \"" CURVE "\")"
+			"(private-key(ecc(curve " CURVE_ECDHE ")"
                         "(d %b)))",
 			(int)sizeof (priv->d), priv->d);
   if (0 != rc)
@@ -561,7 +566,7 @@ GNUNET_CRYPTO_ecdhe_key_create2 (struct GNUNET_CRYPTO_EcdhePrivateKey *pk)
      the expensive check for ECDHE, as we generate TONS of keys to
      use for a very short time. */
   if (0 != (rc = gcry_sexp_build (&s_keyparam, NULL,
-                                  "(genkey(ecc(curve \"" CURVE "\")"
+                                  "(genkey(ecc(curve " CURVE_ECDHE ")"
                                   "(flags eddsa no-keytest)))")))
   {
     LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_sexp_build", rc);
@@ -610,7 +615,7 @@ GNUNET_CRYPTO_ecdsa_key_create ()
   int rc;
 
   if (0 != (rc = gcry_sexp_build (&s_keyparam, NULL,
-                                  "(genkey(ecc(curve \"" CURVE "\")"
+                                  "(genkey(ecc(curve " CURVE_ECDSA ")"
                                   "(flags)))")))
   {
     LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_sexp_build", rc);
@@ -662,7 +667,7 @@ GNUNET_CRYPTO_eddsa_key_create ()
  again:
 #endif
   if (0 != (rc = gcry_sexp_build (&s_keyparam, NULL,
-                                  "(genkey(ecc(curve \"" CURVE "\")"
+                                  "(genkey(ecc(curve " CURVE_EDDSA ")"
                                   "(flags eddsa)))")))
   {
     LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_sexp_build", rc);
@@ -938,7 +943,7 @@ GNUNET_CRYPTO_ecdsa_verify (uint32_t purpose,
   }
   data = data_to_ecdsa_value (validate);
   if (0 != (rc = gcry_sexp_build (&pub_sexpr, NULL,
-                                  "(public-key(ecc(curve " CURVE ")(q %b)))",
+                                  "(public-key(ecc(curve " CURVE_ECDSA ")(q %b)))",
                                   (int) sizeof (pub->q_y), pub->q_y)))
   {
     gcry_sexp_release (data);
@@ -995,7 +1000,7 @@ GNUNET_CRYPTO_eddsa_verify (uint32_t purpose,
   }
   data = data_to_eddsa_value (validate);
   if (0 != (rc = gcry_sexp_build (&pub_sexpr, NULL,
-                                  "(public-key(ecc(curve " CURVE ")(flags eddsa)(q %b)))",
+                                  "(public-key(ecc(curve " CURVE_EDDSA ")(flags eddsa)(q %b)))",
                                   (int)sizeof (pub->q_y), pub->q_y)))
   {
     gcry_sexp_release (data);
@@ -1041,7 +1046,7 @@ GNUNET_CRYPTO_ecc_ecdh (const struct GNUNET_CRYPTO_EcdhePrivateKey *priv,
 
   /* first, extract the q = dP value from the public key */
   if (0 != gcry_sexp_build (&pub_sexpr, NULL,
-                            "(public-key(ecc(curve " CURVE ")(q %b)))",
+                            "(public-key(ecc(curve " CURVE_ECDHE ")(q %b)))",
                             (int)sizeof (pub->q_y), pub->q_y))
     return GNUNET_SYSERR;
   GNUNET_assert (0 == gcry_mpi_ec_new (&ctx, pub_sexpr, NULL));
@@ -1143,7 +1148,7 @@ GNUNET_CRYPTO_ecdsa_private_key_derive (const struct GNUNET_CRYPTO_EcdsaPrivateK
   gcry_mpi_t n;
   gcry_ctx_t ctx;
 
-  GNUNET_assert (0 == gcry_mpi_ec_new (&ctx, NULL, CURVE));
+  GNUNET_assert (0 == gcry_mpi_ec_new (&ctx, NULL, CURVE_ECDSA));
 
   n = gcry_mpi_ec_get_mpi ("n", ctx, 1);
   GNUNET_CRYPTO_ecdsa_key_get_public (priv, &pub);
@@ -1189,7 +1194,7 @@ GNUNET_CRYPTO_ecdsa_public_key_derive (const struct GNUNET_CRYPTO_EcdsaPublicKey
   gcry_mpi_point_t q;
   gcry_mpi_point_t v;
 
-  GNUNET_assert (0 == gcry_mpi_ec_new (&ctx, NULL, CURVE));
+  GNUNET_assert (0 == gcry_mpi_ec_new (&ctx, NULL, CURVE_ECDSA));
 
   /* obtain point 'q' from original public key.  The provided 'q' is
      compressed thus we first store it in the context and then get it
@@ -1367,7 +1372,7 @@ GNUNET_CRYPTO_eddsa_ecdh (const struct GNUNET_CRYPTO_EddsaPrivateKey *priv,
 
   /* first, extract the q = dP value from the public key */
   if (0 != gcry_sexp_build (&pub_sexpr, NULL,
-                            "(public-key(ecc(curve " CURVE ")(q %b)))",
+                            "(public-key(ecc(curve " CURVE_EDDSA ")(q %b)))",
                             (int)sizeof (pub->q_y), pub->q_y))
     return GNUNET_SYSERR;
   GNUNET_assert (0 == gcry_mpi_ec_new (&ctx, pub_sexpr, NULL));
@@ -1420,7 +1425,7 @@ GNUNET_CRYPTO_ecdsa_ecdh (const struct GNUNET_CRYPTO_EcdsaPrivateKey *priv,
 
   /* first, extract the q = dP value from the public key */
   if (0 != gcry_sexp_build (&pub_sexpr, NULL,
-                            "(public-key(ecc(curve " CURVE ")(q %b)))",
+                            "(public-key(ecc(curve " CURVE_ECDSA ")(q %b)))",
                             (int)sizeof (pub->q_y), pub->q_y))
     return GNUNET_SYSERR;
   GNUNET_assert (0 == gcry_mpi_ec_new (&ctx, pub_sexpr, NULL));
@@ -1471,7 +1476,7 @@ GNUNET_CRYPTO_ecdh_eddsa (const struct GNUNET_CRYPTO_EcdhePrivateKey *priv,
 
   /* first, extract the q = dP value from the public key */
   if (0 != gcry_sexp_build (&pub_sexpr, NULL,
-                            "(public-key(ecc(curve " CURVE ")(q %b)))",
+                            "(public-key(ecc(curve " CURVE_EDDSA ")(q %b)))",
                             (int)sizeof (pub->q_y), pub->q_y))
     return GNUNET_SYSERR;
   GNUNET_assert (0 == gcry_mpi_ec_new (&ctx, pub_sexpr, NULL));
