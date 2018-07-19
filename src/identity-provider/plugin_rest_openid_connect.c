@@ -1412,6 +1412,7 @@ token_endpoint (struct GNUNET_REST_RequestHandle *con_handle,
   json_t *root, *ticket_string, *nonce, *max_age;
   json_error_t error;
   char *json_response;
+  char *jwt_secret;
 
   /*
    * Check Authorization
@@ -1447,7 +1448,7 @@ token_endpoint (struct GNUNET_REST_RequestHandle *con_handle,
     GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
   }
-  GNUNET_STRINGS_base64_decode (credentials, strlen (credentials), &user_psw);
+  GNUNET_STRINGS_base64_decode (credentials, strlen (credentials), (void**)&user_psw);
 
   if ( NULL == user_psw )
   {
@@ -1598,7 +1599,7 @@ token_endpoint (struct GNUNET_REST_RequestHandle *con_handle,
   }
 
   //decode code
-  GNUNET_STRINGS_base64_decode(code,strlen(code),&code_output);
+  GNUNET_STRINGS_base64_decode(code,strlen(code), (void**)&code_output);
   root = json_loads (code_output, 0, &error);
   GNUNET_free(code_output);
   ticket_string = json_object_get (root, "ticket");
@@ -1717,15 +1718,32 @@ token_endpoint (struct GNUNET_REST_RequestHandle *con_handle,
   {
     GNUNET_free_non_null(user_psw);
     handle->emsg = GNUNET_strdup("invalid_request");
-    handle->edesc = GNUNET_strdup("invalid code....");
+    handle->edesc = GNUNET_strdup("invalid code...");
     handle->response_code = MHD_HTTP_BAD_REQUEST;
     GNUNET_SCHEDULER_add_now (&do_error, handle);
     GNUNET_free(ticket);
     return;
   }
+  if ( GNUNET_OK
+       != GNUNET_CONFIGURATION_get_value_string (cfg, "identity-rest-plugin",
+                                                 "jwt_secret", &jwt_secret) )
+  {
+    GNUNET_free_non_null(user_psw);
+    handle->emsg = GNUNET_strdup("invalid_request");
+    handle->edesc = GNUNET_strdup("No signing secret configured!");
+    handle->response_code = MHD_HTTP_INTERNAL_SERVER_ERROR;
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
+    GNUNET_free(ticket);
+    return;
+  }
+  struct GNUNET_CRYPTO_AuthKey jwt_sign_key;
+  struct GNUNET_CRYPTO_EcdsaPublicKey pk;
+  GNUNET_IDENTITY_ego_get_public_key (ego_entry->ego, &pk);
+  GNUNET_CRYPTO_hash (jwt_secret, strlen (jwt_secret), (struct GNUNET_HashCode*)jwt_sign_key.key);
   char *id_token = jwt_create_from_list(&ticket->audience,
+                                        &pk,
                                         cl,
-                                        GNUNET_IDENTITY_ego_get_private_key(ego_entry->ego));
+                                        &jwt_sign_key);
 
   //Create random access_token
   char* access_token_number;

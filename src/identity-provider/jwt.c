@@ -30,15 +30,14 @@
 
 #define JWT_ALG "alg"
 
-/*TODO is this the correct way to define new algs? */
-#define JWT_ALG_VALUE "urn:org:gnunet:jwt:alg:ecdsa:ed25519"
+/* Use 512bit HMAC */
+#define JWT_ALG_VALUE "HS512"
 
 #define JWT_TYP "typ"
 
 #define JWT_TYP_VALUE "jwt"
 
-//TODO change server address
-#define SERVER_ADDRESS "https://localhost"
+#define SERVER_ADDRESS "https://reclaim.id/api/openid/userinfo"
 
 static char*
 create_jwt_header(void)
@@ -65,13 +64,12 @@ create_jwt_header(void)
  */
 char*
 jwt_create_from_list (const struct GNUNET_CRYPTO_EcdsaPublicKey *aud_key,
+                      const struct GNUNET_CRYPTO_EcdsaPublicKey *sub_key,
                                                 const struct GNUNET_IDENTITY_ATTRIBUTE_ClaimList *attrs,
-                                                const struct GNUNET_CRYPTO_EcdsaPrivateKey *priv_key)
+                                                const struct GNUNET_CRYPTO_AuthKey *priv_key)
 {
   struct GNUNET_IDENTITY_ATTRIBUTE_ClaimListEntry *le;
-  struct GNUNET_CRYPTO_EcdsaPublicKey sub_key;
-  struct GNUNET_CRYPTO_EcdsaSignature signature;
-  struct GNUNET_CRYPTO_EccSignaturePurpose *purpose;
+  struct GNUNET_HashCode signature;
   char* audience;
   char* subject;
   char* header;
@@ -90,32 +88,25 @@ jwt_create_from_list (const struct GNUNET_CRYPTO_EcdsaPublicKey *aud_key,
   //auth_time only if max_age
   //nonce only if nonce
   // OPTIONAL acr,amr,azp
-  GNUNET_CRYPTO_ecdsa_key_get_public (priv_key, &sub_key);
-  /* TODO maybe we should use a local identity here */
   subject = GNUNET_STRINGS_data_to_string_alloc (&sub_key,
                                                 sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey));
   audience = GNUNET_STRINGS_data_to_string_alloc (aud_key,
                                                   sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey));
   header = create_jwt_header ();
   body = json_object ();
-  /* TODO who is the issuer? local IdP or subject ? See self-issued tokens? */
+  
   //iss REQUIRED case sensitive server uri with https
+  //The issuer is the local reclaim instance (e.g. https://reclaim.id/api/openid)
   json_object_set_new (body,
                        "iss", json_string (SERVER_ADDRESS));
   //sub REQUIRED public key identity, not exceed 255 ASCII  length
   json_object_set_new (body,
                        "sub", json_string (subject));
-  /* TODO what should be in here exactly? */
   //aud REQUIRED public key client_id must be there
   json_object_set_new (body,
                        "aud", json_string (audience));
   for (le = attrs->list_head; NULL != le; le = le->next)
   {
-    /**
-     * TODO here we should have a function that
-     * calls the Attribute plugins to create a
-     * json representation for its value
-     */
     attr_val_str = GNUNET_IDENTITY_ATTRIBUTE_value_to_string (le->claim->type,
                                                               le->claim->data,
                                                               le->claim->data_size);
@@ -148,32 +139,13 @@ jwt_create_from_list (const struct GNUNET_CRYPTO_EcdsaPublicKey *aud_key,
   GNUNET_free (audience);
 
   /**
-   * TODO
    * Creating the JWT signature. This might not be
    * standards compliant, check.
    */
   GNUNET_asprintf (&signature_target, "%s,%s", header_base64, body_base64);
-
-  purpose =
-    GNUNET_malloc (sizeof (struct GNUNET_CRYPTO_EccSignaturePurpose) +
-                   strlen (signature_target));
-  purpose->size =
-    htonl (strlen (signature_target) + sizeof (struct GNUNET_CRYPTO_EccSignaturePurpose));
-  purpose->purpose = htonl(GNUNET_SIGNATURE_PURPOSE_GNUID_TOKEN);
-  GNUNET_memcpy (&purpose[1], signature_target, strlen (signature_target));
-  if (GNUNET_OK != GNUNET_CRYPTO_ecdsa_sign (priv_key,
-                                             purpose,
-                                             (struct GNUNET_CRYPTO_EcdsaSignature *)&signature))
-  {
-    GNUNET_free (signature_target);
-    GNUNET_free (body_str);
-    GNUNET_free (body_base64);
-    GNUNET_free (header_base64);
-    GNUNET_free (purpose);
-    return NULL;
-  }
+  GNUNET_CRYPTO_hmac (priv_key, signature_target, strlen (signature_target), &signature);
   GNUNET_STRINGS_base64_encode ((const char*)&signature,
-                                sizeof (struct GNUNET_CRYPTO_EcdsaSignature),
+                                sizeof (struct GNUNET_HashCode),
                                 &signature_base64);
   GNUNET_asprintf (&result, "%s.%s.%s",
                    header_base64, body_base64, signature_base64);
@@ -184,6 +156,5 @@ jwt_create_from_list (const struct GNUNET_CRYPTO_EcdsaPublicKey *aud_key,
   GNUNET_free (signature_base64);
   GNUNET_free (body_base64);
   GNUNET_free (header_base64);
-  GNUNET_free (purpose);
   return result;
 }
