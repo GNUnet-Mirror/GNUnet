@@ -22,15 +22,15 @@
  * @file
  * Plugin API for the idp database backend
  *
- * @defgroup identity-provider-plugin  IdP service plugin API
+ * @defgroup reclaim-plugin  IdP service plugin API
  * Plugin API for the idp database backend
  * @{
  */
-#ifndef GNUNET_IDENTITY_PROVIDER_PLUGIN_H
-#define GNUNET_IDENTITY_PROVIDER_PLUGIN_H
+#ifndef GNUNET_RECLAIM_PLUGIN_H
+#define GNUNET_RECLAIM_PLUGIN_H
 
 #include "gnunet_util_lib.h"
-#include "gnunet_identity_provider_service.h"
+#include "gnunet_reclaim_service.h"
 
 #ifdef __cplusplus
 extern "C"
@@ -47,15 +47,15 @@ extern "C"
  * @param cls closure
  * @param ticket the ticket
  */
-typedef void (*GNUNET_IDENTITY_PROVIDER_TicketIterator) (void *cls,
-						 const struct GNUNET_IDENTITY_PROVIDER_Ticket *ticket,
-             const struct GNUNET_IDENTITY_ATTRIBUTE_ClaimList *attrs);
+typedef void (*GNUNET_RECLAIM_TicketIterator) (void *cls,
+						 const struct GNUNET_RECLAIM_Ticket *ticket,
+             const struct GNUNET_RECLAIM_ATTRIBUTE_ClaimList *attrs);
 
 
 /**
  * @brief struct returned by the initialization function of the plugin
  */
-struct GNUNET_IDENTITY_PROVIDER_PluginFunctions
+struct GNUNET_RECLAIM_PluginFunctions
 {
 
   /**
@@ -71,8 +71,8 @@ struct GNUNET_IDENTITY_PROVIDER_PluginFunctions
    * @return #GNUNET_OK on success, else #GNUNET_SYSERR
    */
   int (*store_ticket) (void *cls,
-			const struct GNUNET_IDENTITY_PROVIDER_Ticket *ticket,
-      const struct GNUNET_IDENTITY_ATTRIBUTE_ClaimList *attrs);
+			const struct GNUNET_RECLAIM_Ticket *ticket,
+      const struct GNUNET_RECLAIM_ATTRIBUTE_ClaimList *attrs);
 
   /**
    * Delete a ticket from the database.
@@ -82,7 +82,7 @@ struct GNUNET_IDENTITY_PROVIDER_PluginFunctions
    * @return #GNUNET_OK on success, else #GNUNET_SYSERR
    */
   int (*delete_ticket) (void *cls,
-			const struct GNUNET_IDENTITY_PROVIDER_Ticket *ticket);
+			const struct GNUNET_RECLAIM_Ticket *ticket);
 
 
 
@@ -101,11 +101,11 @@ struct GNUNET_IDENTITY_PROVIDER_PluginFunctions
 			  const struct GNUNET_CRYPTO_EcdsaPublicKey *identity,
         int audience,
 			  uint64_t offset,
-			  GNUNET_IDENTITY_PROVIDER_TicketIterator iter, void *iter_cls);
+			  GNUNET_RECLAIM_TicketIterator iter, void *iter_cls);
 
   int (*get_ticket_attributes) (void* cls,
-                                const struct GNUNET_IDENTITY_PROVIDER_Ticket *ticket,
-                                GNUNET_IDENTITY_PROVIDER_TicketIterator iter,
+                                const struct GNUNET_RECLAIM_Ticket *ticket,
+                                GNUNET_RECLAIM_TicketIterator iter,
                                 void *iter_cls);
 };
 

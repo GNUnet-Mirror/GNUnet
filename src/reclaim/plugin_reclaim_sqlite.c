@@ -17,15 +17,15 @@
   */
 
 /**
- * @file identity-provider/plugin_identity_provider_sqlite.c
+ * @file reclaim/plugin_reclaim_sqlite.c
  * @brief sqlite-based idp backend
  * @author Martin Schanzenbach
  */
 
 #include "platform.h"
-#include "gnunet_identity_provider_service.h"
-#include "gnunet_identity_provider_plugin.h"
-#include "gnunet_identity_attribute_lib.h"
+#include "gnunet_reclaim_service.h"
+#include "gnunet_reclaim_plugin.h"
+#include "gnunet_reclaim_attribute_lib.h"
 #include "gnunet_sq_lib.h"
 #include <sqlite3.h>
 
@@ -47,9 +47,9 @@
  * a failure of the command 'cmd' on file 'filename'
  * with the message given by strerror(errno).
  */
-#define LOG_SQLITE(db, level, cmd) do { GNUNET_log_from (level, "identity-provider", _("`%s' failed at %s:%d with error: %s\n"), cmd, __FILE__, __LINE__, sqlite3_errmsg(db->dbh)); } while(0)
+#define LOG_SQLITE(db, level, cmd) do { GNUNET_log_from (level, "reclaim", _("`%s' failed at %s:%d with error: %s\n"), cmd, __FILE__, __LINE__, sqlite3_errmsg(db->dbh)); } while(0)
 
-#define LOG(kind,...) GNUNET_log_from (kind, "identity-provider-sqlite", __VA_ARGS__)
+#define LOG(kind,...) GNUNET_log_from (kind, "reclaim-sqlite", __VA_ARGS__)
 
 
 /**
@@ -180,12 +180,12 @@ database_setup (struct Plugin *plugin)
 
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_filename (plugin->cfg,
-                                               "identity-provider-sqlite",
+                                               "reclaim-sqlite",
                                                "FILENAME",
                                                &afsdir))
   {
     GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR,
-			       "identity-provider-sqlite",
+			       "reclaim-sqlite",
                                "FILENAME");
     return GNUNET_SYSERR;
   }
@@ -370,9 +370,9 @@ database_shutdown (struct Plugin *plugin)
  * @return #GNUNET_OK on success, else #GNUNET_SYSERR
  */
 static int
-identity_provider_sqlite_store_ticket (void *cls,
-                                       const struct GNUNET_IDENTITY_PROVIDER_Ticket *ticket,
-                                       const struct GNUNET_IDENTITY_ATTRIBUTE_ClaimList *attrs)
+reclaim_sqlite_store_ticket (void *cls,
+                                       const struct GNUNET_RECLAIM_Ticket *ticket,
+                                       const struct GNUNET_RECLAIM_ATTRIBUTE_ClaimList *attrs)
 {
   struct Plugin *plugin = cls;
   size_t attrs_len;
@@ -401,9 +401,9 @@ identity_provider_sqlite_store_ticket (void *cls,
     GNUNET_SQ_reset (plugin->dbh,
                      plugin->delete_ticket);
     
-    attrs_len = GNUNET_IDENTITY_ATTRIBUTE_list_serialize_get_size (attrs);
+    attrs_len = GNUNET_RECLAIM_ATTRIBUTE_list_serialize_get_size (attrs);
     attrs_ser = GNUNET_malloc (attrs_len);
-    GNUNET_IDENTITY_ATTRIBUTE_list_serialize (attrs,
+    GNUNET_RECLAIM_ATTRIBUTE_list_serialize (attrs,
                               attrs_ser);
     struct GNUNET_SQ_QueryParam sparams[] = {
       GNUNET_SQ_query_param_auto_from_type (&ticket->identity),
@@ -458,8 +458,8 @@ identity_provider_sqlite_store_ticket (void *cls,
  * @return #GNUNET_OK on success, else #GNUNET_SYSERR
  */
 static int
-identity_provider_sqlite_delete_ticket (void *cls,
-                                        const struct GNUNET_IDENTITY_PROVIDER_Ticket *ticket)
+reclaim_sqlite_delete_ticket (void *cls,
+                                        const struct GNUNET_RECLAIM_Ticket *ticket)
 {
   struct Plugin *plugin = cls;
   int n;
@@ -521,11 +521,11 @@ identity_provider_sqlite_delete_ticket (void *cls,
 static int
 get_ticket_and_call_iterator (struct Plugin *plugin,
                               sqlite3_stmt *stmt,
-                              GNUNET_IDENTITY_PROVIDER_TicketIterator iter,
+                              GNUNET_RECLAIM_TicketIterator iter,
                               void *iter_cls)
 {
-  struct GNUNET_IDENTITY_PROVIDER_Ticket ticket;
-  struct GNUNET_IDENTITY_ATTRIBUTE_ClaimList *attrs;
+  struct GNUNET_RECLAIM_Ticket ticket;
+  struct GNUNET_RECLAIM_ATTRIBUTE_ClaimList *attrs;
   int ret;
   int sret;
   size_t attrs_len;
@@ -552,13 +552,13 @@ get_ticket_and_call_iterator (struct Plugin *plugin,
     }
     else
     {
-      attrs = GNUNET_IDENTITY_ATTRIBUTE_list_deserialize (attrs_ser,
+      attrs = GNUNET_RECLAIM_ATTRIBUTE_list_deserialize (attrs_ser,
                                           attrs_len);
       if (NULL != iter)
         iter (iter_cls,
               &ticket,
               attrs);
-      GNUNET_IDENTITY_ATTRIBUTE_list_destroy (attrs);
+      GNUNET_RECLAIM_ATTRIBUTE_list_destroy (attrs);
       ret = GNUNET_YES;
     }
     GNUNET_SQ_cleanup_result (rs);
@@ -586,9 +586,9 @@ get_ticket_and_call_iterator (struct Plugin *plugin,
  * @return #GNUNET_OK on success, else #GNUNET_SYSERR
  */
 static int
-identity_provider_sqlite_ticket_get_attrs (void *cls,
-                                           const struct GNUNET_IDENTITY_PROVIDER_Ticket *ticket,
-                                           GNUNET_IDENTITY_PROVIDER_TicketIterator iter,
+reclaim_sqlite_ticket_get_attrs (void *cls,
+                                           const struct GNUNET_RECLAIM_Ticket *ticket,
+                                           GNUNET_RECLAIM_TicketIterator iter,
                                            void *iter_cls)
 {
   struct Plugin *plugin = cls;
@@ -628,11 +628,11 @@ identity_provider_sqlite_ticket_get_attrs (void *cls,
  * @return #GNUNET_OK on success, #GNUNET_NO if there were no results, #GNUNET_SYSERR on error
  */
 static int
-identity_provider_sqlite_iterate_tickets (void *cls,
+reclaim_sqlite_iterate_tickets (void *cls,
                                           const struct GNUNET_CRYPTO_EcdsaPublicKey *identity,
                                           int audience,
                                           uint64_t offset,
-                                          GNUNET_IDENTITY_PROVIDER_TicketIterator iter,
+                                          GNUNET_RECLAIM_TicketIterator iter,
                                           void *iter_cls)
 {
   struct Plugin *plugin = cls;
@@ -680,15 +680,15 @@ identity_provider_sqlite_iterate_tickets (void *cls,
 /**
  * Entry point for the plugin.
  *
- * @param cls the "struct GNUNET_IDENTITY_PROVIDER_PluginEnvironment*"
+ * @param cls the "struct GNUNET_RECLAIM_PluginEnvironment*"
  * @return NULL on error, otherwise the plugin context
  */
 void *
-libgnunet_plugin_identity_provider_sqlite_init (void *cls)
+libgnunet_plugin_reclaim_sqlite_init (void *cls)
 {
   static struct Plugin plugin;
   const struct GNUNET_CONFIGURATION_Handle *cfg = cls;
-  struct GNUNET_IDENTITY_PROVIDER_PluginFunctions *api;
+  struct GNUNET_RECLAIM_PluginFunctions *api;
 
   if (NULL != plugin.cfg)
     return NULL;                /* can only initialize once! */
@@ -699,12 +699,12 @@ libgnunet_plugin_identity_provider_sqlite_init (void *cls)
     database_shutdown (&plugin);
     return NULL;
   }
-  api = GNUNET_new (struct GNUNET_IDENTITY_PROVIDER_PluginFunctions);
+  api = GNUNET_new (struct GNUNET_RECLAIM_PluginFunctions);
   api->cls = &plugin;
-  api->store_ticket = &identity_provider_sqlite_store_ticket;
-  api->delete_ticket = &identity_provider_sqlite_delete_ticket;
-  api->iterate_tickets = &identity_provider_sqlite_iterate_tickets;
-  api->get_ticket_attributes = &identity_provider_sqlite_ticket_get_attrs;
+  api->store_ticket = &reclaim_sqlite_store_ticket;
+  api->delete_ticket = &reclaim_sqlite_delete_ticket;
+  api->iterate_tickets = &reclaim_sqlite_iterate_tickets;
+  api->get_ticket_attributes = &reclaim_sqlite_ticket_get_attrs;
   LOG (GNUNET_ERROR_TYPE_INFO,
        _("Sqlite database running\n"));
   return api;
@@ -718,9 +718,9 @@ libgnunet_plugin_identity_provider_sqlite_init (void *cls)
  * @return always NULL
  */
 void *
-libgnunet_plugin_identity_provider_sqlite_done (void *cls)
+libgnunet_plugin_reclaim_sqlite_done (void *cls)
 {
-  struct GNUNET_IDENTITY_PROVIDER_PluginFunctions *api = cls;
+  struct GNUNET_RECLAIM_PluginFunctions *api = cls;
   struct Plugin *plugin = api->cls;
 
   database_shutdown (plugin);
@@ -731,4 +731,4 @@ libgnunet_plugin_identity_provider_sqlite_done (void *cls)
   return NULL;
 }
 
-/* end of plugin_identity_provider_sqlite.c */
+/* end of plugin_reclaim_sqlite.c */

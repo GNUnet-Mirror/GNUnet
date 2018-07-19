@@ -17,28 +17,28 @@ if USE_COVERAGE
 endif
 
 lib_LTLIBRARIES = \
-  libgnunetidentityattribute.la
+  libgnunetreclaimattribute.la
 
-libgnunetidentityattribute_la_SOURCES = \
-  identity_attribute.c
-libgnunetidentityattribute_la_LIBADD = \
+libgnunetreclaimattribute_la_SOURCES = \
+  reclaim_attribute.c
+libgnunetreclaimattribute_la_LIBADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(GN_LIBINTL)
-libgnunetidentityattribute_la_LDFLAGS = \
+libgnunetreclaimattribute_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS) $(WINFLAGS) \
   -version-info 0:0:0
 
 
 plugin_LTLIBRARIES = \
-  libgnunet_plugin_identity_attribute_gnuid.la
+  libgnunet_plugin_reclaim_attribute_gnuid.la
 
 
-libgnunet_plugin_identity_attribute_gnuid_la_SOURCES = \
-  plugin_identity_attribute_gnuid.c
-libgnunet_plugin_identity_attribute_gnuid_la_LIBADD = \
+libgnunet_plugin_reclaim_attribute_gnuid_la_SOURCES = \
+  plugin_reclaim_attribute_gnuid.c
+libgnunet_plugin_reclaim_attribute_gnuid_la_LIBADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(LTLIBINTL)
-libgnunet_plugin_identity_attribute_gnuid_la_LDFLAGS = \
+libgnunet_plugin_reclaim_attribute_gnuid_la_LDFLAGS = \
  $(GN_PLUGIN_LDFLAGS)
 
 

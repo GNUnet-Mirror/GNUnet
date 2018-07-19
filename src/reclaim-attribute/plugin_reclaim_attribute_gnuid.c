@@ -17,7 +17,7 @@
 */
 
 /**
- * @file identity-attribute/plugin_identity_attribute_gnuid.c
+ * @file reclaim-attribute/plugin_reclaim_attribute_gnuid.c
  * @brief identity attribute plugin to provide the API for fundamental 
  *                 attribute types.
  *
@@ -25,7 +25,7 @@
  */
 #include "platform.h"
 #include "gnunet_util_lib.h"
-#include "gnunet_identity_attribute_plugin.h"
+#include "gnunet_reclaim_attribute_plugin.h"
 #include <inttypes.h>
 
 
@@ -47,7 +47,7 @@ gnuid_value_to_string (void *cls,
 
   switch (type)
   {
-  case GNUNET_IDENTITY_ATTRIBUTE_TYPE_STRING:
+  case GNUNET_RECLAIM_ATTRIBUTE_TYPE_STRING:
     return GNUNET_strndup (data, data_size);
   default:
     return NULL;
@@ -78,7 +78,7 @@ gnuid_string_to_value (void *cls,
   switch (type)
   {
 
-    case GNUNET_IDENTITY_ATTRIBUTE_TYPE_STRING:
+    case GNUNET_RECLAIM_ATTRIBUTE_TYPE_STRING:
       *data = GNUNET_strdup (s);
       *data_size = strlen (s);
       return GNUNET_OK;
@@ -96,7 +96,7 @@ static struct {
   const char *name;
   uint32_t number;
 } gnuid_name_map[] = {
-  { "STRING",  GNUNET_IDENTITY_ATTRIBUTE_TYPE_STRING },
+  { "STRING",  GNUNET_RECLAIM_ATTRIBUTE_TYPE_STRING },
   { NULL, UINT32_MAX }
 };
 
@@ -151,11 +151,11 @@ gnuid_number_to_typename (void *cls,
  * @return the exported block API
  */
 void *
-libgnunet_plugin_identity_attribute_gnuid_init (void *cls)
+libgnunet_plugin_reclaim_attribute_gnuid_init (void *cls)
 {
-  struct GNUNET_IDENTITY_ATTRIBUTE_PluginFunctions *api;
+  struct GNUNET_RECLAIM_ATTRIBUTE_PluginFunctions *api;
 
-  api = GNUNET_new (struct GNUNET_IDENTITY_ATTRIBUTE_PluginFunctions);
+  api = GNUNET_new (struct GNUNET_RECLAIM_ATTRIBUTE_PluginFunctions);
   api->value_to_string = &gnuid_value_to_string;
   api->string_to_value = &gnuid_string_to_value;
   api->typename_to_number = &gnuid_typename_to_number;
@@ -171,12 +171,12 @@ libgnunet_plugin_identity_attribute_gnuid_init (void *cls)
  * @return NULL
  */
 void *
-libgnunet_plugin_identity_attribute_gnuid_done (void *cls)
+libgnunet_plugin_reclaim_attribute_gnuid_done (void *cls)
 {
-  struct GNUNET_IDENTITY_ATTRIBUTE_PluginFunctions *api = cls;
+  struct GNUNET_RECLAIM_ATTRIBUTE_PluginFunctions *api = cls;
 
   GNUNET_free (api);
   return NULL;
 }
 
-/* end of plugin_identity_attribute_type_gnuid.c */
+/* end of plugin_reclaim_attribute_type_gnuid.c */

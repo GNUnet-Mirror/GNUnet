@@ -18,13 +18,13 @@
 
 /**
  * @author Martin Schanzenbach
- * @file identity-provider/identity_provider.h
+ * @file reclaim/reclaim.h
  *
  * @brief Common type definitions for the identity provider
  *        service and API.
  */
-#ifndef IDENTITY_PROVIDER_H
-#define IDENTITY_PROVIDER_H
+#ifndef RECLAIM_H
+#define RECLAIM_H
 
 #include "gnunet_common.h"
 
@@ -152,7 +152,7 @@ struct AttributeIterationStartMessage
 struct AttributeIterationNextMessage
 {
   /**
-   * Type will be #GNUNET_MESSAGE_TYPE_IDENTITY_PROVIDER_ATTRIBUTE_ITERATION_NEXT
+   * Type will be #GNUNET_MESSAGE_TYPE_RECLAIM_ATTRIBUTE_ITERATION_NEXT
    */
   struct GNUNET_MessageHeader header;
 
@@ -170,7 +170,7 @@ struct AttributeIterationNextMessage
 struct AttributeIterationStopMessage
 {
   /**
-   * Type will be #GNUNET_MESSAGE_TYPE_IDENTITY_PROVIDER_ATTRIBUTE_ITERATION_STOP
+   * Type will be #GNUNET_MESSAGE_TYPE_RECLAIM_ATTRIBUTE_ITERATION_STOP
    */
   struct GNUNET_MessageHeader header;
 
@@ -214,7 +214,7 @@ struct TicketIterationStartMessage
 struct TicketIterationNextMessage
 {
   /**
-   * Type will be #GNUNET_MESSAGE_TYPE_IDENTITY_PROVIDER_TICKET_ITERATION_NEXT
+   * Type will be #GNUNET_MESSAGE_TYPE_RECLAIM_TICKET_ITERATION_NEXT
    */
   struct GNUNET_MessageHeader header;
 
@@ -232,7 +232,7 @@ struct TicketIterationNextMessage
 struct TicketIterationStopMessage
 {
   /**
-   * Type will be #GNUNET_MESSAGE_TYPE_IDENTITY_PROVIDER_TICKET_ITERATION_STOP
+   * Type will be #GNUNET_MESSAGE_TYPE_RECLAIM_TICKET_ITERATION_STOP
    */
   struct GNUNET_MessageHeader header;
 
@@ -251,7 +251,7 @@ struct TicketIterationStopMessage
 struct IssueTicketMessage
 {
   /**
-   * Type will be #GNUNET_MESSAGE_TYPE_IDENTITY_PROVIDER_ISSUE_TICKET
+   * Type will be #GNUNET_MESSAGE_TYPE_RECLAIM_ISSUE_TICKET
    */
   struct GNUNET_MessageHeader header;
 
@@ -284,7 +284,7 @@ struct IssueTicketMessage
 struct RevokeTicketMessage
 {
   /**
-   * Type will be #GNUNET_MESSAGE_TYPE_IDENTITY_PROVIDER_REVOKE_TICKET
+   * Type will be #GNUNET_MESSAGE_TYPE_RECLAIM_REVOKE_TICKET
    */
   struct GNUNET_MessageHeader header;
 
@@ -312,7 +312,7 @@ struct RevokeTicketMessage
 struct RevokeTicketResultMessage
 {
   /**
-   * Type will be #GNUNET_MESSAGE_TYPE_IDENTITY_PROVIDER_REVOKE_TICKET_RESULT
+   * Type will be #GNUNET_MESSAGE_TYPE_RECLAIM_REVOKE_TICKET_RESULT
    */
   struct GNUNET_MessageHeader header;
 
@@ -334,7 +334,7 @@ struct RevokeTicketResultMessage
 struct TicketResultMessage
 {
   /**
-   * Type will be #GNUNET_MESSAGE_TYPE_IDENTITY_PROVIDER_TICKET_RESULT
+   * Type will be #GNUNET_MESSAGE_TYPE_RECLAIM_TICKET_RESULT
    */
   struct GNUNET_MessageHeader header;
 
@@ -351,7 +351,7 @@ struct TicketResultMessage
 struct ConsumeTicketMessage
 {
   /**
-   * Type will be #GNUNET_MESSAGE_TYPE_IDENTITY_PROVIDER_CONSUME_TICKET
+   * Type will be #GNUNET_MESSAGE_TYPE_RECLAIM_CONSUME_TICKET
    */
   struct GNUNET_MessageHeader header;
 

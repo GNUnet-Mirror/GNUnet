@@ -25,8 +25,8 @@
  * @defgroup identity-provider  Identity Provider service
  * @{
  */
-#ifndef GNUNET_IDENTITY_ATTRIBUTE_LIB_H
-#define GNUNET_IDENTITY_ATTRIBUTE_LIB_H
+#ifndef GNUNET_RECLAIM_ATTRIBUTE_LIB_H
+#define GNUNET_RECLAIM_ATTRIBUTE_LIB_H
 
 #ifdef __cplusplus
 extern "C"
@@ -42,19 +42,19 @@ extern "C"
 /**
  * No value attribute.
  */
-#define GNUNET_IDENTITY_ATTRIBUTE_TYPE_NONE 0
+#define GNUNET_RECLAIM_ATTRIBUTE_TYPE_NONE 0
 
 /**
  * String attribute.
  */
-#define GNUNET_IDENTITY_ATTRIBUTE_TYPE_STRING 1
+#define GNUNET_RECLAIM_ATTRIBUTE_TYPE_STRING 1
 
 
 
 /**
  * An attribute.
  */
-struct GNUNET_IDENTITY_ATTRIBUTE_Claim
+struct GNUNET_RECLAIM_ATTRIBUTE_Claim
 {
   /**
    * The name of the attribute. Note "name" must never be individually
@@ -86,35 +86,35 @@ struct GNUNET_IDENTITY_ATTRIBUTE_Claim
 
 };
 
-struct GNUNET_IDENTITY_ATTRIBUTE_ClaimList
+struct GNUNET_RECLAIM_ATTRIBUTE_ClaimList
 {
   /**
    * List head
    */
-  struct GNUNET_IDENTITY_ATTRIBUTE_ClaimListEntry *list_head;
+  struct GNUNET_RECLAIM_ATTRIBUTE_ClaimListEntry *list_head;
 
   /**
    * List tail
    */
-  struct GNUNET_IDENTITY_ATTRIBUTE_ClaimListEntry *list_tail;
+  struct GNUNET_RECLAIM_ATTRIBUTE_ClaimListEntry *list_tail;
 };
 
-struct GNUNET_IDENTITY_ATTRIBUTE_ClaimListEntry
+struct GNUNET_RECLAIM_ATTRIBUTE_ClaimListEntry
 {
   /**
    * DLL
    */
-  struct GNUNET_IDENTITY_ATTRIBUTE_ClaimListEntry *prev;
+  struct GNUNET_RECLAIM_ATTRIBUTE_ClaimListEntry *prev;
 
   /**
    * DLL
    */
-  struct GNUNET_IDENTITY_ATTRIBUTE_ClaimListEntry *next;
+  struct GNUNET_RECLAIM_ATTRIBUTE_ClaimListEntry *next;
 
   /**
    * The attribute claim
    */
-  struct GNUNET_IDENTITY_ATTRIBUTE_Claim *claim;
+  struct GNUNET_RECLAIM_ATTRIBUTE_Claim *claim;
 };
 
 /**
@@ -126,8 +126,8 @@ struct GNUNET_IDENTITY_ATTRIBUTE_ClaimListEntry
  * @param data_size the attribute value size
  * @return the new attribute
  */
-struct GNUNET_IDENTITY_ATTRIBUTE_Claim *
-GNUNET_IDENTITY_ATTRIBUTE_claim_new (const char* attr_name,
+struct GNUNET_RECLAIM_ATTRIBUTE_Claim *
+GNUNET_RECLAIM_ATTRIBUTE_claim_new (const char* attr_name,
                                      uint32_t type,
                                      const void* data,
                                      size_t data_size);
@@ -141,13 +141,13 @@ GNUNET_IDENTITY_ATTRIBUTE_claim_new (const char* attr_name,
  * @return the required buffer size
  */
 size_t
-GNUNET_IDENTITY_ATTRIBUTE_list_serialize_get_size (const struct GNUNET_IDENTITY_ATTRIBUTE_ClaimList *attrs);
+GNUNET_RECLAIM_ATTRIBUTE_list_serialize_get_size (const struct GNUNET_RECLAIM_ATTRIBUTE_ClaimList *attrs);
 
 void
-GNUNET_IDENTITY_ATTRIBUTE_list_destroy (struct GNUNET_IDENTITY_ATTRIBUTE_ClaimList *attrs);
+GNUNET_RECLAIM_ATTRIBUTE_list_destroy (struct GNUNET_RECLAIM_ATTRIBUTE_ClaimList *attrs);
 
 void
-GNUNET_IDENTITY_ATTRIBUTE_list_add (struct GNUNET_IDENTITY_ATTRIBUTE_ClaimList *attrs,
+GNUNET_RECLAIM_ATTRIBUTE_list_add (struct GNUNET_RECLAIM_ATTRIBUTE_ClaimList *attrs,
 				    const char* attr_name,
 				    uint32_t type,
 				    const void* data,
@@ -162,7 +162,7 @@ GNUNET_IDENTITY_ATTRIBUTE_list_add (struct GNUNET_IDENTITY_ATTRIBUTE_ClaimList *
  * @return length of serialized data
  */
 size_t
-GNUNET_IDENTITY_ATTRIBUTE_list_serialize (const struct GNUNET_IDENTITY_ATTRIBUTE_ClaimList *attrs,
+GNUNET_RECLAIM_ATTRIBUTE_list_serialize (const struct GNUNET_RECLAIM_ATTRIBUTE_ClaimList *attrs,
                      char *result);
 
 /**
@@ -173,8 +173,8 @@ GNUNET_IDENTITY_ATTRIBUTE_list_serialize (const struct GNUNET_IDENTITY_ATTRIBUTE
  *
  * @return a GNUNET_IDENTITY_PROVIDER_AttributeList, must be free'd by caller
  */
-struct GNUNET_IDENTITY_ATTRIBUTE_ClaimList *
-GNUNET_IDENTITY_ATTRIBUTE_list_deserialize (const char* data,
+struct GNUNET_RECLAIM_ATTRIBUTE_ClaimList *
+GNUNET_RECLAIM_ATTRIBUTE_list_deserialize (const char* data,
                             size_t data_size);
 
 
@@ -186,7 +186,7 @@ GNUNET_IDENTITY_ATTRIBUTE_list_deserialize (const char* data,
  * @return the required buffer size
  */
 size_t
-GNUNET_IDENTITY_ATTRIBUTE_serialize_get_size (const struct GNUNET_IDENTITY_ATTRIBUTE_Claim *attr);
+GNUNET_RECLAIM_ATTRIBUTE_serialize_get_size (const struct GNUNET_RECLAIM_ATTRIBUTE_Claim *attr);
 
 
 
@@ -199,7 +199,7 @@ GNUNET_IDENTITY_ATTRIBUTE_serialize_get_size (const struct GNUNET_IDENTITY_ATTRI
  * @return length of serialized data
  */
 size_t
-GNUNET_IDENTITY_ATTRIBUTE_serialize (const struct GNUNET_IDENTITY_ATTRIBUTE_Claim *attr,
+GNUNET_RECLAIM_ATTRIBUTE_serialize (const struct GNUNET_RECLAIM_ATTRIBUTE_Claim *attr,
                      char *result);
 
 /**
@@ -210,12 +210,12 @@ GNUNET_IDENTITY_ATTRIBUTE_serialize (const struct GNUNET_IDENTITY_ATTRIBUTE_Clai
  *
  * @return a GNUNET_IDENTITY_PROVIDER_Attribute, must be free'd by caller
  */
-struct GNUNET_IDENTITY_ATTRIBUTE_Claim *
-GNUNET_IDENTITY_ATTRIBUTE_deserialize (const char* data,
+struct GNUNET_RECLAIM_ATTRIBUTE_Claim *
+GNUNET_RECLAIM_ATTRIBUTE_deserialize (const char* data,
                        size_t data_size);
 
-struct GNUNET_IDENTITY_ATTRIBUTE_ClaimList*
-GNUNET_IDENTITY_ATTRIBUTE_list_dup (const struct GNUNET_IDENTITY_ATTRIBUTE_ClaimList *attrs);
+struct GNUNET_RECLAIM_ATTRIBUTE_ClaimList*
+GNUNET_RECLAIM_ATTRIBUTE_list_dup (const struct GNUNET_RECLAIM_ATTRIBUTE_ClaimList *attrs);
 
 /**
  * Convert a type name to the corresponding number
@@ -224,7 +224,7 @@ GNUNET_IDENTITY_ATTRIBUTE_list_dup (const struct GNUNET_IDENTITY_ATTRIBUTE_Claim
  * @return corresponding number, UINT32_MAX on error
  */
 uint32_t
-GNUNET_IDENTITY_ATTRIBUTE_typename_to_number (const char *typename);
+GNUNET_RECLAIM_ATTRIBUTE_typename_to_number (const char *typename);
 
 /**
  * Convert human-readable version of a 'claim' of an attribute to the binary
@@ -237,7 +237,7 @@ GNUNET_IDENTITY_ATTRIBUTE_typename_to_number (const char *typename);
  * @return #GNUNET_OK on success
  */
 int
-GNUNET_IDENTITY_ATTRIBUTE_string_to_value (uint32_t type,
+GNUNET_RECLAIM_ATTRIBUTE_string_to_value (uint32_t type,
                                            const char *s,
                                            void **data,
                                            size_t *data_size);
@@ -251,7 +251,7 @@ GNUNET_IDENTITY_ATTRIBUTE_string_to_value (uint32_t type,
  * @return NULL on error, otherwise human-readable representation of the claim
  */
 char *
-GNUNET_IDENTITY_ATTRIBUTE_value_to_string (uint32_t type,
+GNUNET_RECLAIM_ATTRIBUTE_value_to_string (uint32_t type,
                                            const void* data,
                                            size_t data_size);
 
@@ -262,7 +262,7 @@ GNUNET_IDENTITY_ATTRIBUTE_value_to_string (uint32_t type,
  * @return corresponding typestring, NULL on error
  */
 const char*
-GNUNET_IDENTITY_ATTRIBUTE_number_to_typename (uint32_t type);
+GNUNET_RECLAIM_ATTRIBUTE_number_to_typename (uint32_t type);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */
@@ -273,9 +273,9 @@ GNUNET_IDENTITY_ATTRIBUTE_number_to_typename (uint32_t type);
 #endif
 
 
-/* ifndef GNUNET_IDENTITY_ATTRIBUTE_LIB_H */
+/* ifndef GNUNET_RECLAIM_ATTRIBUTE_LIB_H */
 #endif
 
 /** @} */ /* end of group identity */
 
-/* end of gnunet_identity_attribute_lib.h */
+/* end of gnunet_reclaim_attribute_lib.h */

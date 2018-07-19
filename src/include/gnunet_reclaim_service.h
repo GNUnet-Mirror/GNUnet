@@ -22,11 +22,11 @@
  * @file
  * Identity provider service; implements identity provider for GNUnet
  *
- * @defgroup identity-provider  Identity Provider service
+ * @defgroup reclaim  Identity Provider service
  * @{
  */
-#ifndef GNUNET_IDENTITY_PROVIDER_SERVICE_H
-#define GNUNET_IDENTITY_PROVIDER_SERVICE_H
+#ifndef GNUNET_RECLAIM_SERVICE_H
+#define GNUNET_RECLAIM_SERVICE_H
 
 #ifdef __cplusplus
 extern "C"
@@ -37,27 +37,27 @@ extern "C"
 #endif
 
 #include "gnunet_util_lib.h"
-#include "gnunet_identity_attribute_lib.h"
+#include "gnunet_reclaim_attribute_lib.h"
 
 /**
  * Version number of GNUnet Identity Provider API.
  */
-#define GNUNET_IDENTITY_PROVIDER_VERSION 0x00000000
+#define GNUNET_RECLAIM_VERSION 0x00000000
 
 /**
  * Handle to access the identity service.
  */
-struct GNUNET_IDENTITY_PROVIDER_Handle;
+struct GNUNET_RECLAIM_Handle;
 
 /**
  * Handle for a token.
  */
-struct GNUNET_IDENTITY_PROVIDER_Token;
+struct GNUNET_RECLAIM_Token;
 
 /**
  * The ticket
  */
-struct GNUNET_IDENTITY_PROVIDER_Ticket
+struct GNUNET_RECLAIM_Ticket
 {
   /**
    * The ticket issuer
@@ -78,7 +78,7 @@ struct GNUNET_IDENTITY_PROVIDER_Ticket
 /**
  * Handle for an operation with the identity provider service.
  */
-struct GNUNET_IDENTITY_PROVIDER_Operation;
+struct GNUNET_RECLAIM_Operation;
 
 
 /**
@@ -87,8 +87,8 @@ struct GNUNET_IDENTITY_PROVIDER_Operation;
  * @param cfg Configuration to contact the identity provider service.
  * @return handle to communicate with identity provider service
  */
-struct GNUNET_IDENTITY_PROVIDER_Handle *
-GNUNET_IDENTITY_PROVIDER_connect (const struct GNUNET_CONFIGURATION_Handle *cfg);
+struct GNUNET_RECLAIM_Handle *
+GNUNET_RECLAIM_connect (const struct GNUNET_CONFIGURATION_Handle *cfg);
 
 /**
  * Continuation called to notify client about result of the
@@ -101,7 +101,7 @@ GNUNET_IDENTITY_PROVIDER_connect (const struct GNUNET_CONFIGURATION_Handle *cfg)
  * @param emsg NULL on success, otherwise an error message
  */
 typedef void
-(*GNUNET_IDENTITY_PROVIDER_ContinuationWithStatus) (void *cls,
+(*GNUNET_RECLAIM_ContinuationWithStatus) (void *cls,
                                             int32_t success,
                                             const char *emsg);
 
@@ -118,12 +118,12 @@ typedef void
  * @param cont_cls closure for @a cont
  * @return handle to abort the request
  */
-struct GNUNET_IDENTITY_PROVIDER_Operation *
-GNUNET_IDENTITY_PROVIDER_attribute_store (struct GNUNET_IDENTITY_PROVIDER_Handle *h,
+struct GNUNET_RECLAIM_Operation *
+GNUNET_RECLAIM_attribute_store (struct GNUNET_RECLAIM_Handle *h,
                                           const struct GNUNET_CRYPTO_EcdsaPrivateKey *pkey,
-                                          const struct GNUNET_IDENTITY_ATTRIBUTE_Claim *attr,
+                                          const struct GNUNET_RECLAIM_ATTRIBUTE_Claim *attr,
                                           const struct GNUNET_TIME_Relative *exp_interval,
-                                          GNUNET_IDENTITY_PROVIDER_ContinuationWithStatus cont,
+                                          GNUNET_RECLAIM_ContinuationWithStatus cont,
                                           void *cont_cls);
 
 
@@ -135,19 +135,19 @@ GNUNET_IDENTITY_PROVIDER_attribute_store (struct GNUNET_IDENTITY_PROVIDER_Handle
  * @param attr the attribute
  */
 typedef void
-(*GNUNET_IDENTITY_PROVIDER_AttributeResult) (void *cls,
+(*GNUNET_RECLAIM_AttributeResult) (void *cls,
                                    const struct GNUNET_CRYPTO_EcdsaPublicKey *identity,
-                                   const struct GNUNET_IDENTITY_ATTRIBUTE_Claim *attr);
+                                   const struct GNUNET_RECLAIM_ATTRIBUTE_Claim *attr);
 
 
 
 /**
  * List all attributes for a local identity. 
- * This MUST lock the `struct GNUNET_IDENTITY_PROVIDER_Handle`
- * for any other calls than #GNUNET_IDENTITY_PROVIDER_get_attributes_next() and
- * #GNUNET_IDENTITY_PROVIDER_get_attributes_stop. @a proc will be called once
+ * This MUST lock the `struct GNUNET_RECLAIM_Handle`
+ * for any other calls than #GNUNET_RECLAIM_get_attributes_next() and
+ * #GNUNET_RECLAIM_get_attributes_stop. @a proc will be called once
  * immediately, and then again after
- * #GNUNET_IDENTITY_PROVIDER_get_attributes_next() is invoked.
+ * #GNUNET_RECLAIM_get_attributes_next() is invoked.
  *
  * On error (disconnect), @a error_cb will be invoked.
  * On normal completion, @a finish_cb proc will be
@@ -166,36 +166,36 @@ typedef void
  * @param finish_cb_cls closure for @a finish_cb
  * @return an iterator handle to use for iteration
  */
-struct GNUNET_IDENTITY_PROVIDER_AttributeIterator *
-GNUNET_IDENTITY_PROVIDER_get_attributes_start (struct GNUNET_IDENTITY_PROVIDER_Handle *h,
+struct GNUNET_RECLAIM_AttributeIterator *
+GNUNET_RECLAIM_get_attributes_start (struct GNUNET_RECLAIM_Handle *h,
                                                const struct GNUNET_CRYPTO_EcdsaPrivateKey *identity,
                                                GNUNET_SCHEDULER_TaskCallback error_cb,
                                                void *error_cb_cls,
-                                               GNUNET_IDENTITY_PROVIDER_AttributeResult proc,
+                                               GNUNET_RECLAIM_AttributeResult proc,
                                                void *proc_cls,
                                                GNUNET_SCHEDULER_TaskCallback finish_cb,
                                                void *finish_cb_cls);
 
 
 /**
- * Calls the record processor specified in #GNUNET_IDENTITY_PROVIDER_get_attributes_start
+ * Calls the record processor specified in #GNUNET_RECLAIM_get_attributes_start
  * for the next record.
  *
  * @param it the iterator
  */
 void
-GNUNET_IDENTITY_PROVIDER_get_attributes_next (struct GNUNET_IDENTITY_PROVIDER_AttributeIterator *it);
+GNUNET_RECLAIM_get_attributes_next (struct GNUNET_RECLAIM_AttributeIterator *it);
 
 
 /**
  * Stops iteration and releases the idp handle for further calls.  Must
  * be called on any iteration that has not yet completed prior to calling
- * #GNUNET_IDENTITY_PROVIDER_disconnect.
+ * #GNUNET_RECLAIM_disconnect.
  *
  * @param it the iterator
  */
 void
-GNUNET_IDENTITY_PROVIDER_get_attributes_stop (struct GNUNET_IDENTITY_PROVIDER_AttributeIterator *it);
+GNUNET_RECLAIM_get_attributes_stop (struct GNUNET_RECLAIM_AttributeIterator *it);
 
 
 /**
@@ -207,12 +207,12 @@ GNUNET_IDENTITY_PROVIDER_get_attributes_stop (struct GNUNET_IDENTITY_PROVIDER_At
  * @param ticket the ticket
  */
 typedef void
-(*GNUNET_IDENTITY_PROVIDER_TicketCallback)(void *cls,
-                            const struct GNUNET_IDENTITY_PROVIDER_Ticket *ticket);
+(*GNUNET_RECLAIM_TicketCallback)(void *cls,
+                            const struct GNUNET_RECLAIM_Ticket *ticket);
 
 /**
  * Issues a ticket to another identity. The identity may use
- * GNUNET_IDENTITY_PROVIDER_ticket_consume to consume the ticket
+ * GNUNET_RECLAIM_ticket_consume to consume the ticket
  * and retrieve the attributes specified in the AttributeList.
  *
  * @param h the identity provider to use
@@ -223,12 +223,12 @@ typedef void
  * @param cb_cls the callback closure
  * @return handle to abort the operation
  */
-struct GNUNET_IDENTITY_PROVIDER_Operation *
-GNUNET_IDENTITY_PROVIDER_ticket_issue (struct GNUNET_IDENTITY_PROVIDER_Handle *h,
+struct GNUNET_RECLAIM_Operation *
+GNUNET_RECLAIM_ticket_issue (struct GNUNET_RECLAIM_Handle *h,
                                        const struct GNUNET_CRYPTO_EcdsaPrivateKey *iss,
                                        const struct GNUNET_CRYPTO_EcdsaPublicKey *rp,
-                                       const struct GNUNET_IDENTITY_ATTRIBUTE_ClaimList *attrs,
-                                       GNUNET_IDENTITY_PROVIDER_TicketCallback cb,
+                                       const struct GNUNET_RECLAIM_ATTRIBUTE_ClaimList *attrs,
+                                       GNUNET_RECLAIM_TicketCallback cb,
                                        void *cb_cls);
 
 /**
@@ -242,11 +242,11 @@ GNUNET_IDENTITY_PROVIDER_ticket_issue (struct GNUNET_IDENTITY_PROVIDER_Handle *h
  * @param cb_cls the callback closure
  * @return handle to abort the operation
  */
-struct GNUNET_IDENTITY_PROVIDER_Operation *
-GNUNET_IDENTITY_PROVIDER_ticket_revoke (struct GNUNET_IDENTITY_PROVIDER_Handle *h,
+struct GNUNET_RECLAIM_Operation *
+GNUNET_RECLAIM_ticket_revoke (struct GNUNET_RECLAIM_Handle *h,
                                         const struct GNUNET_CRYPTO_EcdsaPrivateKey *identity,
-                                        const struct GNUNET_IDENTITY_PROVIDER_Ticket *ticket,
-                                        GNUNET_IDENTITY_PROVIDER_ContinuationWithStatus cb,
+                                        const struct GNUNET_RECLAIM_Ticket *ticket,
+                                        GNUNET_RECLAIM_ContinuationWithStatus cb,
                                         void *cb_cls);
 
 
@@ -262,11 +262,11 @@ GNUNET_IDENTITY_PROVIDER_ticket_revoke (struct GNUNET_IDENTITY_PROVIDER_Handle *
  * @param cb_cls the callback closure
  * @return handle to abort the operation
  */
-struct GNUNET_IDENTITY_PROVIDER_Operation *
-GNUNET_IDENTITY_PROVIDER_ticket_consume (struct GNUNET_IDENTITY_PROVIDER_Handle *h,
+struct GNUNET_RECLAIM_Operation *
+GNUNET_RECLAIM_ticket_consume (struct GNUNET_RECLAIM_Handle *h,
                                          const struct GNUNET_CRYPTO_EcdsaPrivateKey *identity,
-                                         const struct GNUNET_IDENTITY_PROVIDER_Ticket *ticket,
-                                         GNUNET_IDENTITY_PROVIDER_AttributeResult cb,
+                                         const struct GNUNET_RECLAIM_Ticket *ticket,
+                                         GNUNET_RECLAIM_AttributeResult cb,
                                          void *cb_cls);
 
 /**
@@ -286,12 +286,12 @@ GNUNET_IDENTITY_PROVIDER_ticket_consume (struct GNUNET_IDENTITY_PROVIDER_Handle 
  * @param finish_cb_cls closure for @a finish_cb
  * @return an iterator handle to use for iteration
  */
-struct GNUNET_IDENTITY_PROVIDER_TicketIterator *
-GNUNET_IDENTITY_PROVIDER_ticket_iteration_start (struct GNUNET_IDENTITY_PROVIDER_Handle *h,
+struct GNUNET_RECLAIM_TicketIterator *
+GNUNET_RECLAIM_ticket_iteration_start (struct GNUNET_RECLAIM_Handle *h,
                                                  const struct GNUNET_CRYPTO_EcdsaPrivateKey *identity,
                                                  GNUNET_SCHEDULER_TaskCallback error_cb,
                                                  void *error_cb_cls,
-                                                 GNUNET_IDENTITY_PROVIDER_TicketCallback proc,
+                                                 GNUNET_RECLAIM_TicketCallback proc,
                                                  void *proc_cls,
                                                  GNUNET_SCHEDULER_TaskCallback finish_cb,
                                                  void *finish_cb_cls);
@@ -313,34 +313,34 @@ GNUNET_IDENTITY_PROVIDER_ticket_iteration_start (struct GNUNET_IDENTITY_PROVIDER
  * @param finish_cb_cls closure for @a finish_cb
  * @return an iterator handle to use for iteration
  */
-struct GNUNET_IDENTITY_PROVIDER_TicketIterator *
-GNUNET_IDENTITY_PROVIDER_ticket_iteration_start_rp (struct GNUNET_IDENTITY_PROVIDER_Handle *h,
+struct GNUNET_RECLAIM_TicketIterator *
+GNUNET_RECLAIM_ticket_iteration_start_rp (struct GNUNET_RECLAIM_Handle *h,
                                                     const struct GNUNET_CRYPTO_EcdsaPublicKey *identity,
                                                     GNUNET_SCHEDULER_TaskCallback error_cb,
                                                     void *error_cb_cls,
-                                                    GNUNET_IDENTITY_PROVIDER_TicketCallback proc,
+                                                    GNUNET_RECLAIM_TicketCallback proc,
                                                     void *proc_cls,
                                                     GNUNET_SCHEDULER_TaskCallback finish_cb,
                                                     void *finish_cb_cls);
 
 /**
- * Calls the record processor specified in #GNUNET_IDENTITY_PROVIDER_ticket_iteration_start
+ * Calls the record processor specified in #GNUNET_RECLAIM_ticket_iteration_start
  * for the next record.
  *
  * @param it the iterator
  */
 void
-GNUNET_IDENTITY_PROVIDER_ticket_iteration_next (struct GNUNET_IDENTITY_PROVIDER_TicketIterator *it);
+GNUNET_RECLAIM_ticket_iteration_next (struct GNUNET_RECLAIM_TicketIterator *it);
 
 /**
  * Stops iteration and releases the idp handle for further calls.  Must
  * be called on any iteration that has not yet completed prior to calling
- * #GNUNET_IDENTITY_PROVIDER_disconnect.
+ * #GNUNET_RECLAIM_disconnect.
  *
  * @param it the iterator
  */
 void
-GNUNET_IDENTITY_PROVIDER_ticket_iteration_stop (struct GNUNET_IDENTITY_PROVIDER_TicketIterator *it);
+GNUNET_RECLAIM_ticket_iteration_stop (struct GNUNET_RECLAIM_TicketIterator *it);
 
 /**
  * Disconnect from identity provider service.
@@ -348,7 +348,7 @@ GNUNET_IDENTITY_PROVIDER_ticket_iteration_stop (struct GNUNET_IDENTITY_PROVIDER_
  * @param h identity provider service to disconnect
  */
 void
-GNUNET_IDENTITY_PROVIDER_disconnect (struct GNUNET_IDENTITY_PROVIDER_Handle *h);
+GNUNET_RECLAIM_disconnect (struct GNUNET_RECLAIM_Handle *h);
 
 
 /**
@@ -360,7 +360,7 @@ GNUNET_IDENTITY_PROVIDER_disconnect (struct GNUNET_IDENTITY_PROVIDER_Handle *h);
  * @param op operation to cancel
  */
 void
-GNUNET_IDENTITY_PROVIDER_cancel (struct GNUNET_IDENTITY_PROVIDER_Operation *op);
+GNUNET_RECLAIM_cancel (struct GNUNET_RECLAIM_Operation *op);
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {
@@ -370,9 +370,9 @@ GNUNET_IDENTITY_PROVIDER_cancel (struct GNUNET_IDENTITY_PROVIDER_Operation *op);
 #endif
 
 
-/* ifndef GNUNET_IDENTITY_PROVIDER_SERVICE_H */
+/* ifndef GNUNET_RECLAIM_SERVICE_H */
 #endif
 
 /** @} */ /* end of group identity */
 
-/* end of gnunet_identity_provider_service.h */
+/* end of gnunet_reclaim_service.h */

@@ -17,7 +17,7 @@
 */
 
 /**
- * @file identity-provider/plugin_gnsrecord_identity_provider.c
+ * @file reclaim/plugin_gnsrecord_reclaim.c
  * @brief gnsrecord plugin to provide the API for identity records
  * @author Martin Schanzenbach
  */
@@ -234,7 +234,7 @@ number_to_typename (void *cls,
  * @return the exported block API
  */
 void *
-libgnunet_plugin_gnsrecord_identity_provider_init (void *cls)
+libgnunet_plugin_gnsrecord_reclaim_init (void *cls)
 {
   struct GNUNET_GNSRECORD_PluginFunctions *api;
 
@@ -254,7 +254,7 @@ libgnunet_plugin_gnsrecord_identity_provider_init (void *cls)
  * @return NULL
  */
 void *
-libgnunet_plugin_gnsrecord_identity_provider_done (void *cls)
+libgnunet_plugin_gnsrecord_reclaim_done (void *cls)
 {
   struct GNUNET_GNSRECORD_PluginFunctions *api = cls;
 

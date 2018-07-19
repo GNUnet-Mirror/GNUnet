@@ -17,14 +17,14 @@
    */
 /**
  * @author Martin Schanzenbach
- * @file identity-attribute/identity_attribute.h
- * @brief GNUnet Identity attributes
+ * @file reclaim-attribute/reclaim_attribute.h
+ * @brief GNUnet reclaim identity attributes
  *
  */
-#ifndef IDENTITY_ATTRIBUTE_H
-#define IDENTITY_ATTRIBUTE_H
+#ifndef RECLAIM_ATTRIBUTE_H
+#define RECLAIM_ATTRIBUTE_H
 
-#include "gnunet_identity_provider_service.h"
+#include "gnunet_reclaim_service.h"
 
 struct Attribute
 {

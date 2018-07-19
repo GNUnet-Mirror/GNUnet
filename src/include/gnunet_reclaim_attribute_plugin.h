@@ -26,11 +26,11 @@
  * Plugin API for the idp database backend
  * @{
  */
-#ifndef GNUNET_IDENTITY_ATTRIBUTE_PLUGIN_H
-#define GNUNET_IDENTITY_ATTRIBUTE_PLUGIN_H
+#ifndef GNUNET_RECLAIM_ATTRIBUTE_PLUGIN_H
+#define GNUNET_RECLAIM_ATTRIBUTE_PLUGIN_H
 
 #include "gnunet_util_lib.h"
-#include "gnunet_identity_attribute_lib.h"
+#include "gnunet_reclaim_attribute_lib.h"
 
 #ifdef __cplusplus
 extern "C"
@@ -51,7 +51,7 @@ extern "C"
  * @param data_size number of bytes in @a data
  * @return NULL on error, otherwise human-readable representation of the value
  */
-typedef char * (*GNUNET_IDENTITY_ATTRIBUTE_ValueToStringFunction) (void *cls,
+typedef char * (*GNUNET_RECLAIM_ATTRIBUTE_ValueToStringFunction) (void *cls,
                                                           uint32_t type,
                                                           const void *data,
                                                           size_t data_size);
@@ -69,7 +69,7 @@ typedef char * (*GNUNET_IDENTITY_ATTRIBUTE_ValueToStringFunction) (void *cls,
  * @param data_size set to number of bytes in @a data
  * @return #GNUNET_OK on success
  */
-typedef int (*GNUNET_IDENTITY_ATTRIBUTE_StringToValueFunction) (void *cls,
+typedef int (*GNUNET_RECLAIM_ATTRIBUTE_StringToValueFunction) (void *cls,
                                                        uint32_t type,
                                                        const char *s,
                                                        void **data,
@@ -84,7 +84,7 @@ typedef int (*GNUNET_IDENTITY_ATTRIBUTE_StringToValueFunction) (void *cls,
  * @param typename name to convert
  * @return corresponding number, UINT32_MAX on error
  */
-typedef uint32_t (*GNUNET_IDENTITY_ATTRIBUTE_TypenameToNumberFunction) (void *cls,
+typedef uint32_t (*GNUNET_RECLAIM_ATTRIBUTE_TypenameToNumberFunction) (void *cls,
                                                                const char *typename);
 
 
@@ -96,7 +96,7 @@ typedef uint32_t (*GNUNET_IDENTITY_ATTRIBUTE_TypenameToNumberFunction) (void *cl
  * @param type number of a type to convert
  * @return corresponding typestring, NULL on error
  */
-typedef const char * (*GNUNET_IDENTITY_ATTRIBUTE_NumberToTypenameFunction) (void *cls,
+typedef const char * (*GNUNET_RECLAIM_ATTRIBUTE_NumberToTypenameFunction) (void *cls,
                                                                    uint32_t type);
 
 
@@ -104,7 +104,7 @@ typedef const char * (*GNUNET_IDENTITY_ATTRIBUTE_NumberToTypenameFunction) (void
  * Each plugin is required to return a pointer to a struct of this
  * type as the return value from its entry point.
  */
-struct GNUNET_IDENTITY_ATTRIBUTE_PluginFunctions
+struct GNUNET_RECLAIM_ATTRIBUTE_PluginFunctions
 {
 
   /**
@@ -115,22 +115,22 @@ struct GNUNET_IDENTITY_ATTRIBUTE_PluginFunctions
   /**
    * Conversion to string.
    */
-  GNUNET_IDENTITY_ATTRIBUTE_ValueToStringFunction value_to_string;
+  GNUNET_RECLAIM_ATTRIBUTE_ValueToStringFunction value_to_string;
 
   /**
    * Conversion to binary.
    */
-  GNUNET_IDENTITY_ATTRIBUTE_StringToValueFunction string_to_value;
+  GNUNET_RECLAIM_ATTRIBUTE_StringToValueFunction string_to_value;
 
   /**
    * Typename to number.
    */
-  GNUNET_IDENTITY_ATTRIBUTE_TypenameToNumberFunction typename_to_number;
+  GNUNET_RECLAIM_ATTRIBUTE_TypenameToNumberFunction typename_to_number;
 
   /**
    * Number to typename.
    */
-  GNUNET_IDENTITY_ATTRIBUTE_NumberToTypenameFunction number_to_typename;
+  GNUNET_RECLAIM_ATTRIBUTE_NumberToTypenameFunction number_to_typename;
 
 };
 

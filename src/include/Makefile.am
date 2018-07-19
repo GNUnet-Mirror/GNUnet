@@ -66,7 +66,7 @@ gnunetinclude_HEADERS = \
   gnunet_hello_lib.h \
   gnunet_helper_lib.h \
   gnunet_identity_service.h \
-  gnunet_identity_provider_service.h \
+  gnunet_reclaim_service.h \
   gnunet_json_lib.h \
   gnunet_jsonapi_lib.h \
   gnunet_jsonapi_util.h \

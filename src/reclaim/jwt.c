@@ -17,14 +17,14 @@
  */
 
 /**
- * @file identity-provider/jwt.c
+ * @file reclaim/jwt.c
  * @brief helper library for JSON-Web-Tokens
  * @author Martin Schanzenbach
  */
 #include "platform.h"
 #include "gnunet_util_lib.h"
 #include "gnunet_signatures.h"
-#include "gnunet_identity_attribute_lib.h"
+#include "gnunet_reclaim_attribute_lib.h"
 #include <jansson.h>
 
 
@@ -65,10 +65,10 @@ create_jwt_header(void)
 char*
 jwt_create_from_list (const struct GNUNET_CRYPTO_EcdsaPublicKey *aud_key,
                       const struct GNUNET_CRYPTO_EcdsaPublicKey *sub_key,
-                                                const struct GNUNET_IDENTITY_ATTRIBUTE_ClaimList *attrs,
+                                                const struct GNUNET_RECLAIM_ATTRIBUTE_ClaimList *attrs,
                                                 const struct GNUNET_CRYPTO_AuthKey *priv_key)
 {
-  struct GNUNET_IDENTITY_ATTRIBUTE_ClaimListEntry *le;
+  struct GNUNET_RECLAIM_ATTRIBUTE_ClaimListEntry *le;
   struct GNUNET_HashCode signature;
   char* audience;
   char* subject;
@@ -107,7 +107,7 @@ jwt_create_from_list (const struct GNUNET_CRYPTO_EcdsaPublicKey *aud_key,
                        "aud", json_string (audience));
   for (le = attrs->list_head; NULL != le; le = le->next)
   {
-    attr_val_str = GNUNET_IDENTITY_ATTRIBUTE_value_to_string (le->claim->type,
+    attr_val_str = GNUNET_RECLAIM_ATTRIBUTE_value_to_string (le->claim->type,
                                                               le->claim->data,
                                                               le->claim->data_size);
     json_object_set_new (body,

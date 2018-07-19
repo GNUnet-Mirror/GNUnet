@@ -17,7 +17,7 @@
    */
 /**
  * @author Martin Schanzenbach
- * @file src/identity-provider/gnunet-idp.c
+ * @file src/reclaim/gnunet-reclaim.c
  * @brief Identity Provider utility
  *
  */
@@ -25,7 +25,7 @@
 #include "platform.h"
 #include "gnunet_util_lib.h"
 #include "gnunet_namestore_service.h"
-#include "gnunet_identity_provider_service.h"
+#include "gnunet_reclaim_service.h"
 #include "gnunet_identity_service.h"
 #include "gnunet_signatures.h"
 
@@ -85,19 +85,19 @@ static char* ego_name;
 static struct GNUNET_IDENTITY_Handle *identity_handle;
 
 /**
- * IdP handle
+ * reclaim handle
  */
-static struct GNUNET_IDENTITY_PROVIDER_Handle *idp_handle;
+static struct GNUNET_RECLAIM_Handle *reclaim_handle;
 
 /**
- * IdP operation
+ * reclaim operation
  */
-static struct GNUNET_IDENTITY_PROVIDER_Operation *idp_op;
+static struct GNUNET_RECLAIM_Operation *reclaim_op;
 
 /**
  * Attribute iterator
  */
-static struct GNUNET_IDENTITY_PROVIDER_AttributeIterator *attr_iterator;
+static struct GNUNET_RECLAIM_AttributeIterator *attr_iterator;
 
 /**
  * Master ABE key
@@ -117,12 +117,12 @@ static struct GNUNET_CRYPTO_EcdsaPublicKey rp_key;
 /**
  * Ticket to consume
  */
-static struct GNUNET_IDENTITY_PROVIDER_Ticket ticket;
+static struct GNUNET_RECLAIM_Ticket ticket;
 
 /**
  * Attribute list
  */
-static struct GNUNET_IDENTITY_ATTRIBUTE_ClaimList *attr_list;
+static struct GNUNET_RECLAIM_ATTRIBUTE_ClaimList *attr_list;
 
 /**
  * Attribute expiration interval
@@ -139,12 +139,12 @@ do_cleanup(void *cls)
 {
   if (NULL != timeout)
     GNUNET_SCHEDULER_cancel (timeout);
-  if (NULL != idp_op)
-    GNUNET_IDENTITY_PROVIDER_cancel (idp_op);
+  if (NULL != reclaim_op)
+    GNUNET_RECLAIM_cancel (reclaim_op);
   if (NULL != attr_iterator)
-    GNUNET_IDENTITY_PROVIDER_get_attributes_stop (attr_iterator);
-  if (NULL != idp_handle)
-    GNUNET_IDENTITY_PROVIDER_disconnect (idp_handle);
+    GNUNET_RECLAIM_get_attributes_stop (attr_iterator);
+  if (NULL != reclaim_handle)
+    GNUNET_RECLAIM_disconnect (reclaim_handle);
   if (NULL != identity_handle)
     GNUNET_IDENTITY_disconnect (identity_handle);
   if (NULL != abe_key)
@@ -155,13 +155,13 @@ do_cleanup(void *cls)
 
 static void
 ticket_issue_cb (void* cls,
-                 const struct GNUNET_IDENTITY_PROVIDER_Ticket *ticket)
+                 const struct GNUNET_RECLAIM_Ticket *ticket)
 {
   char* ticket_str;
-  idp_op = NULL;
+  reclaim_op = NULL;
   if (NULL != ticket) {
     ticket_str = GNUNET_STRINGS_data_to_string_alloc (ticket,
-                                                      sizeof (struct GNUNET_IDENTITY_PROVIDER_Ticket));
+                                                      sizeof (struct GNUNET_RECLAIM_Ticket));
     printf("%s\n",
            ticket_str);
     GNUNET_free (ticket_str);
@@ -174,7 +174,7 @@ store_attr_cont (void *cls,
                  int32_t success,
                  const char*emsg)
 {
-  idp_op = NULL;
+  reclaim_op = NULL;
   if (GNUNET_SYSERR == success) {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "%s\n", emsg);
@@ -185,12 +185,12 @@ store_attr_cont (void *cls,
 static void
 process_attrs (void *cls,
          const struct GNUNET_CRYPTO_EcdsaPublicKey *identity,
-         const struct GNUNET_IDENTITY_ATTRIBUTE_Claim *attr)
+         const struct GNUNET_RECLAIM_ATTRIBUTE_Claim *attr)
 {
   char *value_str;
   if (NULL == identity)
   {
-    idp_op = NULL;
+    reclaim_op = NULL;
     GNUNET_SCHEDULER_add_now (&do_cleanup, NULL);
     return;
   }
@@ -199,9 +199,9 @@ process_attrs (void *cls,
     ret = 1;
     return;
   }
-  value_str = GNUNET_IDENTITY_ATTRIBUTE_value_to_string (attr->type,
-                                                     attr->data,
-                                                     attr->data_size);
+  value_str = GNUNET_RECLAIM_ATTRIBUTE_value_to_string (attr->type,
+                                                        attr->data,
+                                                        attr->data_size);
   GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
               "%s: %s\n", attr->name, value_str);
 }
@@ -229,7 +229,7 @@ timeout_task (void *cls)
 static void
 process_rvk (void *cls, int success, const char* msg)
 {
-  idp_op = NULL;
+  reclaim_op = NULL;
   if (GNUNET_OK != success)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
@@ -242,7 +242,7 @@ process_rvk (void *cls, int success, const char* msg)
 static void
 iter_finished (void *cls)
 {
-  struct GNUNET_IDENTITY_ATTRIBUTE_Claim *claim;
+  struct GNUNET_RECLAIM_ATTRIBUTE_Claim *claim;
   char *data;
   size_t data_size;
   int type;
@@ -256,21 +256,21 @@ iter_finished (void *cls)
 
   if (issue_attrs)
   {
-    idp_op = GNUNET_IDENTITY_PROVIDER_ticket_issue (idp_handle,
-                                                    pkey,
-                                                    &rp_key,
-                                                    attr_list,
-                                                    &ticket_issue_cb,
-                                                    NULL);
+    reclaim_op = GNUNET_RECLAIM_ticket_issue (reclaim_handle,
+                                              pkey,
+                                              &rp_key,
+                                              attr_list,
+                                              &ticket_issue_cb,
+                                              NULL);
     return;
   }
   if (consume_ticket)
   {
-    idp_op = GNUNET_IDENTITY_PROVIDER_ticket_consume (idp_handle,
-                                                      pkey,
-                                                      &ticket,
-                                                      &process_attrs,
-                                                      NULL);
+    reclaim_op = GNUNET_RECLAIM_ticket_consume (reclaim_handle,
+                                                pkey,
+                                                &ticket,
+                                                &process_attrs,
+                                                NULL);
     timeout = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 10),
                                             &timeout_task,
                                             NULL);
@@ -278,34 +278,34 @@ iter_finished (void *cls)
   }
   if (revoke_ticket)
   {
-    idp_op = GNUNET_IDENTITY_PROVIDER_ticket_revoke (idp_handle,
-                                                     pkey,
-                                                     &ticket,
-                                                     &process_rvk,
-                                                     NULL);
+    reclaim_op = GNUNET_RECLAIM_ticket_revoke (reclaim_handle,
+                                               pkey,
+                                               &ticket,
+                                               &process_rvk,
+                                               NULL);
     return;
   }
   if (attr_name)
   {
     if (NULL == type_str)
-      type = GNUNET_IDENTITY_ATTRIBUTE_TYPE_STRING;
+      type = GNUNET_RECLAIM_ATTRIBUTE_TYPE_STRING;
     else
-      type = GNUNET_IDENTITY_ATTRIBUTE_typename_to_number (type_str);
+      type = GNUNET_RECLAIM_ATTRIBUTE_typename_to_number (type_str);
 
-    GNUNET_assert (GNUNET_SYSERR != GNUNET_IDENTITY_ATTRIBUTE_string_to_value (type,
-                                                                               attr_value,
-                                                                               (void**)&data,
-                                                                               &data_size));
-    claim = GNUNET_IDENTITY_ATTRIBUTE_claim_new (attr_name,
+    GNUNET_assert (GNUNET_SYSERR != GNUNET_RECLAIM_ATTRIBUTE_string_to_value (type,
+                                                                              attr_value,
+                                                                              (void**)&data,
+                                                                              &data_size));
+    claim = GNUNET_RECLAIM_ATTRIBUTE_claim_new (attr_name,
                                                  type,
                                                  data,
                                                  data_size);
-    idp_op = GNUNET_IDENTITY_PROVIDER_attribute_store (idp_handle,
-                                                       pkey,
-                                                       claim,
-                                                       &exp_interval,
-                                                       &store_attr_cont,
-                                                       NULL);
+    reclaim_op = GNUNET_RECLAIM_attribute_store (reclaim_handle,
+                                                 pkey,
+                                                 claim,
+                                                 &exp_interval,
+                                                 &store_attr_cont,
+                                                 NULL);
     return;
   }
   GNUNET_SCHEDULER_add_now (&do_cleanup, NULL);
@@ -314,9 +314,9 @@ iter_finished (void *cls)
 static void
 iter_cb (void *cls,
          const struct GNUNET_CRYPTO_EcdsaPublicKey *identity,
-         const struct GNUNET_IDENTITY_ATTRIBUTE_Claim *attr)
+         const struct GNUNET_RECLAIM_ATTRIBUTE_Claim *attr)
 {
-  struct GNUNET_IDENTITY_ATTRIBUTE_ClaimListEntry *le;
+  struct GNUNET_RECLAIM_ATTRIBUTE_ClaimListEntry *le;
   char *attrs_tmp;
   char *attr_str;
 
@@ -329,11 +329,11 @@ iter_cb (void *cls,
         attr_str = strtok (NULL, ",");
         continue;
       }
-      le = GNUNET_new (struct GNUNET_IDENTITY_ATTRIBUTE_ClaimListEntry);
-      le->claim = GNUNET_IDENTITY_ATTRIBUTE_claim_new (attr->name,
-                                                       attr->type,
-                                                       attr->data,
-                                                       attr->data_size);
+      le = GNUNET_new (struct GNUNET_RECLAIM_ATTRIBUTE_ClaimListEntry);
+      le->claim = GNUNET_RECLAIM_ATTRIBUTE_claim_new (attr->name,
+                                                      attr->type,
+                                                      attr->data,
+                                                      attr->data_size);
       GNUNET_CONTAINER_DLL_insert (attr_list->list_head,
                                    attr_list->list_tail,
                                    le);
@@ -344,7 +344,7 @@ iter_cb (void *cls,
     GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
                 "%s: %s\n", attr->name, (char*)attr->data);
   }
-  GNUNET_IDENTITY_PROVIDER_get_attributes_next (attr_iterator);
+  GNUNET_RECLAIM_get_attributes_next (attr_iterator);
 }
 
 static void
@@ -365,24 +365,24 @@ ego_iter_finished (void *cls)
     GNUNET_STRINGS_string_to_data (consume_ticket,
                                    strlen (consume_ticket),
                                    &ticket,
-                                   sizeof (struct GNUNET_IDENTITY_PROVIDER_Ticket));
+                                   sizeof (struct GNUNET_RECLAIM_Ticket));
   if (NULL != revoke_ticket)
     GNUNET_STRINGS_string_to_data (revoke_ticket,
                                    strlen (revoke_ticket),
                                    &ticket,
-                                   sizeof (struct GNUNET_IDENTITY_PROVIDER_Ticket));
+                                   sizeof (struct GNUNET_RECLAIM_Ticket));
 
 
-  attr_list = GNUNET_new (struct GNUNET_IDENTITY_ATTRIBUTE_ClaimList);
+  attr_list = GNUNET_new (struct GNUNET_RECLAIM_ATTRIBUTE_ClaimList);
 
-  attr_iterator = GNUNET_IDENTITY_PROVIDER_get_attributes_start (idp_handle,
-                                                                 pkey,
-                                                                 &iter_error,
-                                                                 NULL,
-                                                                 &iter_cb,
-                                                                 NULL,
-                                                                 &iter_finished,
-                                                                 NULL);
+  attr_iterator = GNUNET_RECLAIM_get_attributes_start (reclaim_handle,
+                                                       pkey,
+                                                       &iter_error,
+                                                       NULL,
+                                                       &iter_cb,
+                                                       NULL,
+                                                       &iter_finished,
+                                                       NULL);
 
 
 }
@@ -439,7 +439,7 @@ run (void *cls,
     return;
   }
 
-  idp_handle = GNUNET_IDENTITY_PROVIDER_connect (c);
+  reclaim_handle = GNUNET_RECLAIM_connect (c);
   //Get Ego
   identity_handle = GNUNET_IDENTITY_connect (c,
                                              &ego_cb,

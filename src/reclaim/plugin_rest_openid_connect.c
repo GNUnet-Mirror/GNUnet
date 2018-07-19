@@ -36,8 +36,8 @@
 #include <jansson.h>
 #include <inttypes.h>
 #include "gnunet_signatures.h"
-#include "gnunet_identity_attribute_lib.h"
-#include "gnunet_identity_provider_service.h"
+#include "gnunet_reclaim_attribute_lib.h"
+#include "gnunet_reclaim_service.h"
 #include "jwt.h"
 
 /**
@@ -68,7 +68,7 @@
 /**
  * Attribute key
  */
-#define GNUNET_REST_JSONAPI_IDENTITY_ATTRIBUTE "attribute"
+#define GNUNET_REST_JSONAPI_RECLAIM_ATTRIBUTE "attribute"
 
 /**
  * Ticket key
@@ -79,7 +79,7 @@
 /**
  * Value key
  */
-#define GNUNET_REST_JSONAPI_IDENTITY_ATTRIBUTE_VALUE "value"
+#define GNUNET_REST_JSONAPI_RECLAIM_ATTRIBUTE_VALUE "value"
 
 /**
  * State while collecting all egos
@@ -359,7 +359,7 @@ struct RequestHandle
   /**
    * Attribute claim list
    */
-  struct GNUNET_IDENTITY_ATTRIBUTE_ClaimList *attr_list;
+  struct GNUNET_RECLAIM_ATTRIBUTE_ClaimList *attr_list;
 
   /**
    * IDENTITY Operation
@@ -369,27 +369,27 @@ struct RequestHandle
   /**
    * Identity Provider
    */
-  struct GNUNET_IDENTITY_PROVIDER_Handle *idp;
+  struct GNUNET_RECLAIM_Handle *idp;
 
   /**
    * Idp Operation
    */
-  struct GNUNET_IDENTITY_PROVIDER_Operation *idp_op;
+  struct GNUNET_RECLAIM_Operation *idp_op;
 
   /**
    * Attribute iterator
    */
-  struct GNUNET_IDENTITY_PROVIDER_AttributeIterator *attr_it;
+  struct GNUNET_RECLAIM_AttributeIterator *attr_it;
 
   /**
    * Ticket iterator
    */
-  struct GNUNET_IDENTITY_PROVIDER_TicketIterator *ticket_it;
+  struct GNUNET_RECLAIM_TicketIterator *ticket_it;
 
   /**
    * A ticket
    */
-  struct GNUNET_IDENTITY_PROVIDER_Ticket ticket;
+  struct GNUNET_RECLAIM_Ticket ticket;
 
   /**
    * Desired timeout for the lookup (default is no timeout).
@@ -450,8 +450,8 @@ struct RequestHandle
 static void
 cleanup_handle (struct RequestHandle *handle)
 {
-  struct GNUNET_IDENTITY_ATTRIBUTE_ClaimListEntry *claim_entry;
-  struct GNUNET_IDENTITY_ATTRIBUTE_ClaimListEntry *claim_tmp;
+  struct GNUNET_RECLAIM_ATTRIBUTE_ClaimListEntry *claim_entry;
+  struct GNUNET_RECLAIM_ATTRIBUTE_ClaimListEntry *claim_tmp;
   struct EgoEntry *ego_entry;
   struct EgoEntry *ego_tmp;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -463,11 +463,11 @@ cleanup_handle (struct RequestHandle *handle)
   if (NULL != handle->identity_handle)
     GNUNET_IDENTITY_disconnect (handle->identity_handle);
   if (NULL != handle->attr_it)
-    GNUNET_IDENTITY_PROVIDER_get_attributes_stop (handle->attr_it);
+    GNUNET_RECLAIM_get_attributes_stop (handle->attr_it);
   if (NULL != handle->ticket_it)
-    GNUNET_IDENTITY_PROVIDER_ticket_iteration_stop (handle->ticket_it);
+    GNUNET_RECLAIM_ticket_iteration_stop (handle->ticket_it);
   if (NULL != handle->idp)
-    GNUNET_IDENTITY_PROVIDER_disconnect (handle->idp);
+    GNUNET_RECLAIM_disconnect (handle->idp);
   if (NULL != handle->url)
     GNUNET_free (handle->url);
   if (NULL != handle->tld)
@@ -818,7 +818,7 @@ static void get_client_name_result (void *cls,
   char *tmp_prefix;
   char *prefix;
   ticket_str = GNUNET_STRINGS_data_to_string_alloc (&handle->ticket,
-                                                    sizeof (struct GNUNET_IDENTITY_PROVIDER_Ticket));
+                                                    sizeof (struct GNUNET_RECLAIM_Ticket));
   //TODO change if more attributes are needed (see max_age)
   GNUNET_asprintf (&code_json_string, "{\"ticket\":\"%s\"%s%s%s}",
                    ticket_str,
@@ -869,7 +869,7 @@ get_client_name_error (void *cls)
  */
 static void
 oidc_ticket_issue_cb (void* cls,
-                      const struct GNUNET_IDENTITY_PROVIDER_Ticket *ticket)
+                      const struct GNUNET_RECLAIM_Ticket *ticket)
 {
   struct RequestHandle *handle = cls;
   handle->idp_op = NULL;
@@ -902,7 +902,7 @@ oidc_collect_finished_cb (void *cls)
     GNUNET_SCHEDULER_add_now (&do_redirect_error, handle);
     return;
   }
-  handle->idp_op = GNUNET_IDENTITY_PROVIDER_ticket_issue (handle->idp,
+  handle->idp_op = GNUNET_RECLAIM_ticket_issue (handle->idp,
                                                           &handle->priv_key,
                                                           &handle->oidc->client_pkey,
                                                           handle->attr_list,
@@ -917,17 +917,17 @@ oidc_collect_finished_cb (void *cls)
 static void
 oidc_attr_collect (void *cls,
                    const struct GNUNET_CRYPTO_EcdsaPublicKey *identity,
-                   const struct GNUNET_IDENTITY_ATTRIBUTE_Claim *attr)
+                   const struct GNUNET_RECLAIM_ATTRIBUTE_Claim *attr)
 {
   struct RequestHandle *handle = cls;
-  struct GNUNET_IDENTITY_ATTRIBUTE_ClaimListEntry *le;
+  struct GNUNET_RECLAIM_ATTRIBUTE_ClaimListEntry *le;
   char* scope_variables;
   char* scope_variable;
   char delimiter[]=" ";
 
   if ( (NULL == attr->name) || (NULL == attr->data) )
   {
-    GNUNET_IDENTITY_PROVIDER_get_attributes_next (handle->attr_it);
+    GNUNET_RECLAIM_get_attributes_next (handle->attr_it);
     return;
   }
 
@@ -943,18 +943,18 @@ oidc_attr_collect (void *cls,
   }
   if ( NULL == scope_variable )
   {
-    GNUNET_IDENTITY_PROVIDER_get_attributes_next (handle->attr_it);
+    GNUNET_RECLAIM_get_attributes_next (handle->attr_it);
     GNUNET_free(scope_variables);
     return;
   }
   GNUNET_free(scope_variables);
 
-  le = GNUNET_new(struct GNUNET_IDENTITY_ATTRIBUTE_ClaimListEntry);
-  le->claim = GNUNET_IDENTITY_ATTRIBUTE_claim_new (attr->name, attr->type,
+  le = GNUNET_new(struct GNUNET_RECLAIM_ATTRIBUTE_ClaimListEntry);
+  le->claim = GNUNET_RECLAIM_ATTRIBUTE_claim_new (attr->name, attr->type,
                                                    attr->data, attr->data_size);
   GNUNET_CONTAINER_DLL_insert(handle->attr_list->list_head,
                               handle->attr_list->list_tail, le);
-  GNUNET_IDENTITY_PROVIDER_get_attributes_next (handle->attr_it);
+  GNUNET_RECLAIM_get_attributes_next (handle->attr_it);
 }
 
 
@@ -1007,10 +1007,10 @@ login_check (void *cls)
           handle->priv_key = *GNUNET_IDENTITY_ego_get_private_key (
                                                                    handle->ego_entry->ego);
           handle->resp_object = GNUNET_JSONAPI_document_new ();
-          handle->idp = GNUNET_IDENTITY_PROVIDER_connect (cfg);
+          handle->idp = GNUNET_RECLAIM_connect (cfg);
           handle->attr_list = GNUNET_new(
-                                         struct GNUNET_IDENTITY_ATTRIBUTE_ClaimList);
-          handle->attr_it = GNUNET_IDENTITY_PROVIDER_get_attributes_start (
+                                         struct GNUNET_RECLAIM_ATTRIBUTE_ClaimList);
+          handle->attr_it = GNUNET_RECLAIM_get_attributes_start (
                                                                            handle->idp, &handle->priv_key, &oidc_iteration_error, handle,
                                                                            &oidc_attr_collect, handle, &oidc_collect_finished_cb, handle);
           return;
@@ -1616,12 +1616,12 @@ token_endpoint (struct GNUNET_REST_RequestHandle *con_handle,
     return;
   }
 
-  struct GNUNET_IDENTITY_PROVIDER_Ticket *ticket = GNUNET_new(struct GNUNET_IDENTITY_PROVIDER_Ticket);
+  struct GNUNET_RECLAIM_Ticket *ticket = GNUNET_new(struct GNUNET_RECLAIM_Ticket);
   if ( GNUNET_OK
        != GNUNET_STRINGS_string_to_data (json_string_value(ticket_string),
                                          strlen (json_string_value(ticket_string)),
                                          ticket,
-                                         sizeof(struct GNUNET_IDENTITY_PROVIDER_Ticket)))
+                                         sizeof(struct GNUNET_RECLAIM_Ticket)))
   {
     GNUNET_free_non_null(user_psw);
     handle->emsg = GNUNET_strdup("invalid_request");
@@ -1660,11 +1660,11 @@ token_endpoint (struct GNUNET_REST_RequestHandle *con_handle,
     return;
   }
 
-  struct GNUNET_IDENTITY_ATTRIBUTE_ClaimList *cl = GNUNET_new (struct GNUNET_IDENTITY_ATTRIBUTE_ClaimList);
+  struct GNUNET_RECLAIM_ATTRIBUTE_ClaimList *cl = GNUNET_new (struct GNUNET_RECLAIM_ATTRIBUTE_ClaimList);
   //aud REQUIRED public key client_id must be there
-  GNUNET_IDENTITY_ATTRIBUTE_list_add(cl,
+  GNUNET_RECLAIM_ATTRIBUTE_list_add(cl,
                                      "aud",
-                                     GNUNET_IDENTITY_ATTRIBUTE_TYPE_STRING,
+                                     GNUNET_RECLAIM_ATTRIBUTE_TYPE_STRING,
                                      client_id,
                                      strlen(client_id));
   //exp REQUIRED time expired from config
@@ -1672,34 +1672,34 @@ token_endpoint (struct GNUNET_REST_RequestHandle *con_handle,
                                                                            GNUNET_TIME_relative_multiply (GNUNET_TIME_relative_get_second_ (),
                                                                                                           expiration_time));
   const char* exp_time_string = GNUNET_STRINGS_absolute_time_to_string(exp_time);
-  GNUNET_IDENTITY_ATTRIBUTE_list_add (cl,
+  GNUNET_RECLAIM_ATTRIBUTE_list_add (cl,
                                       "exp",
-                                      GNUNET_IDENTITY_ATTRIBUTE_TYPE_STRING,
+                                      GNUNET_RECLAIM_ATTRIBUTE_TYPE_STRING,
                                       exp_time_string,
                                       strlen(exp_time_string));
   //iat REQUIRED time now
   struct GNUNET_TIME_Absolute time_now = GNUNET_TIME_absolute_get();
   const char* time_now_string = GNUNET_STRINGS_absolute_time_to_string(time_now);
-  GNUNET_IDENTITY_ATTRIBUTE_list_add (cl,
+  GNUNET_RECLAIM_ATTRIBUTE_list_add (cl,
                                       "iat",
-                                      GNUNET_IDENTITY_ATTRIBUTE_TYPE_STRING,
+                                      GNUNET_RECLAIM_ATTRIBUTE_TYPE_STRING,
                                       time_now_string,
                                       strlen(time_now_string));
   //nonce only if nonce is provided
   if ( NULL != nonce && json_is_string(nonce) )
   {
-    GNUNET_IDENTITY_ATTRIBUTE_list_add (cl,
+    GNUNET_RECLAIM_ATTRIBUTE_list_add (cl,
                                         "nonce",
-                                        GNUNET_IDENTITY_ATTRIBUTE_TYPE_STRING,
+                                        GNUNET_RECLAIM_ATTRIBUTE_TYPE_STRING,
                                         json_string_value(nonce),
                                         strlen(json_string_value(nonce)));
   }
   //auth_time only if max_age is provided
   if ( NULL != max_age && json_is_string(max_age) )
   {
-    GNUNET_IDENTITY_ATTRIBUTE_list_add (cl,
+    GNUNET_RECLAIM_ATTRIBUTE_list_add (cl,
                                         "auth_time",
-                                        GNUNET_IDENTITY_ATTRIBUTE_TYPE_STRING,
+                                        GNUNET_RECLAIM_ATTRIBUTE_TYPE_STRING,
                                         json_string_value(max_age),
                                         strlen(json_string_value(max_age)));
   }
@@ -1781,7 +1781,7 @@ token_endpoint (struct GNUNET_REST_RequestHandle *con_handle,
   MHD_add_response_header (resp, "Content-Type", "application/json");
   handle->proc (handle->proc_cls, resp, MHD_HTTP_OK);
 
-  GNUNET_IDENTITY_ATTRIBUTE_list_destroy(cl);
+  GNUNET_RECLAIM_ATTRIBUTE_list_destroy(cl);
   GNUNET_free(access_token_number);
   GNUNET_free(access_token);
   GNUNET_free(user_psw);
@@ -1798,7 +1798,7 @@ token_endpoint (struct GNUNET_REST_RequestHandle *con_handle,
 static void
 consume_ticket (void *cls,
                 const struct GNUNET_CRYPTO_EcdsaPublicKey *identity,
-                const struct GNUNET_IDENTITY_ATTRIBUTE_Claim *attr)
+                const struct GNUNET_RECLAIM_ATTRIBUTE_Claim *attr)
 {
   struct RequestHandle *handle = cls;
   char *tmp_value;
@@ -1810,7 +1810,7 @@ consume_ticket (void *cls,
     return;
   }
 
-  tmp_value = GNUNET_IDENTITY_ATTRIBUTE_value_to_string (attr->type,
+  tmp_value = GNUNET_RECLAIM_ATTRIBUTE_value_to_string (attr->type,
                                                          attr->data,
                                                          attr->data_size);
 
@@ -1841,7 +1841,7 @@ userinfo_endpoint (struct GNUNET_REST_RequestHandle *con_handle,
   struct GNUNET_HashCode cache_key;
   char *authorization, *authorization_type, *authorization_access_token;
   char *client_ticket, *client, *ticket_str;
-  struct GNUNET_IDENTITY_PROVIDER_Ticket *ticket;
+  struct GNUNET_RECLAIM_Ticket *ticket;
 
   GNUNET_CRYPTO_hash (OIDC_AUTHORIZATION_HEADER_KEY,
                       strlen (OIDC_AUTHORIZATION_HEADER_KEY),
@@ -1939,12 +1939,12 @@ userinfo_endpoint (struct GNUNET_REST_RequestHandle *con_handle,
     GNUNET_free(client_ticket);
     return;
   }
-  ticket = GNUNET_new(struct GNUNET_IDENTITY_PROVIDER_Ticket);
+  ticket = GNUNET_new(struct GNUNET_RECLAIM_Ticket);
   if ( GNUNET_OK
        != GNUNET_STRINGS_string_to_data (ticket_str,
                                          strlen (ticket_str),
                                          ticket,
-                                         sizeof(struct GNUNET_IDENTITY_PROVIDER_Ticket)))
+                                         sizeof(struct GNUNET_RECLAIM_Ticket)))
   {
     handle->emsg = GNUNET_strdup("invalid_token");
     handle->edesc = GNUNET_strdup("The Access Token expired");
@@ -1956,10 +1956,10 @@ userinfo_endpoint (struct GNUNET_REST_RequestHandle *con_handle,
     return;
   }
 
-  handle->idp = GNUNET_IDENTITY_PROVIDER_connect (cfg);
+  handle->idp = GNUNET_RECLAIM_connect (cfg);
   handle->oidc->response = json_object();
   json_object_set_new( handle->oidc->response, "sub", json_string( handle->ego_entry->keystring));
-  handle->idp_op = GNUNET_IDENTITY_PROVIDER_ticket_consume (
+  handle->idp_op = GNUNET_RECLAIM_ticket_consume (
                                                             handle->idp,
                                                             GNUNET_IDENTITY_ego_get_private_key (handle->ego_entry->ego),
                                                             ticket,
