@@ -749,7 +749,7 @@ login_redirection(void *cls)
   struct RequestHandle *handle = cls;
 
   if ( GNUNET_OK
-       == GNUNET_CONFIGURATION_get_value_string (cfg, "identity-rest-plugin",
+       == GNUNET_CONFIGURATION_get_value_string (cfg, "reclaim-rest-plugin",
                                                  "address", &login_base_url) )
   {
     GNUNET_asprintf (&new_redirect, "%s?%s=%s&%s=%s&%s=%s&%s=%s&%s=%s&%s=%s",
@@ -1373,7 +1373,7 @@ token_endpoint (struct GNUNET_REST_RequestHandle *con_handle,
 
   //check client password
   if ( GNUNET_OK
-       == GNUNET_CONFIGURATION_get_value_string (cfg, "identity-rest-plugin",
+       == GNUNET_CONFIGURATION_get_value_string (cfg, "reclaim-rest-plugin",
                                                  "psw", &expected_psw) )
   {
     if (0 != strcmp (expected_psw, psw))
@@ -1543,7 +1543,7 @@ token_endpoint (struct GNUNET_REST_RequestHandle *con_handle,
   //create jwt
   unsigned long long int expiration_time;
   if ( GNUNET_OK
-       != GNUNET_CONFIGURATION_get_value_number(cfg, "identity-rest-plugin",
+       != GNUNET_CONFIGURATION_get_value_number(cfg, "reclaim-rest-plugin",
                                                 "expiration_time", &expiration_time) )
   {
     GNUNET_free_non_null(user_psw);
@@ -1620,7 +1620,7 @@ token_endpoint (struct GNUNET_REST_RequestHandle *con_handle,
     return;
   }
   if ( GNUNET_OK
-       != GNUNET_CONFIGURATION_get_value_string (cfg, "identity-rest-plugin",
+       != GNUNET_CONFIGURATION_get_value_string (cfg, "reclaim-rest-plugin",
                                                  "jwt_secret", &jwt_secret) )
   {
     GNUNET_free_non_null(user_psw);
