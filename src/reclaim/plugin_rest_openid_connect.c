@@ -230,12 +230,6 @@ struct OIDC_Variables
   char *client_id;
 
   /**
-   * GNUNET_YES if there is a delegation to 
-   * this RP or if it is a local identity
-   */
-  int is_client_trusted;
-
-  /**
    * The OIDC redirect uri
    */
   char *redirect_uri;
@@ -1027,69 +1021,13 @@ login_check (void *cls)
 }
 
 /**
- * Searches for client_id in namestore. If found trust status stored in handle
- * Else continues to search
- *
- * @param handle the RequestHandle
- */
-static void
-namestore_iteration_callback (
-                              void *cls, const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone_key,
-                              const char *rname, unsigned int rd_len,
-                              const struct GNUNET_GNSRECORD_Data *rd)
-{
-  struct RequestHandle *handle = cls;
-  struct GNUNET_CRYPTO_EcdsaPublicKey login_identity_pkey;
-  struct GNUNET_CRYPTO_EcdsaPublicKey current_zone_pkey;
-  int i;
-
-  for (i = 0; i < rd_len; i++)
-  {
-    if ( GNUNET_GNSRECORD_TYPE_PKEY != rd[i].record_type )
-      continue;
-
-    if ( NULL != handle->oidc->login_identity )
-    {
-      GNUNET_CRYPTO_ecdsa_public_key_from_string (
-                                                  handle->oidc->login_identity,
-                                                  strlen (handle->oidc->login_identity),
-                                                  &login_identity_pkey);
-      GNUNET_IDENTITY_ego_get_public_key (handle->ego_entry->ego,
-                                          &current_zone_pkey);
-
-      if ( 0 == memcmp (rd[i].data, &handle->oidc->client_pkey,
-                        sizeof(struct GNUNET_CRYPTO_EcdsaPublicKey)) )
-      {
-        if ( 0 == memcmp (&login_identity_pkey, &current_zone_pkey,
-                          sizeof(struct GNUNET_CRYPTO_EcdsaPublicKey)) )
-        {
-          handle->oidc->is_client_trusted = GNUNET_YES;
-        }
-      }
-    }
-    else
-    {
-      if ( 0 == memcmp (rd[i].data, &handle->oidc->client_pkey,
-                        sizeof(struct GNUNET_CRYPTO_EcdsaPublicKey)) )
-      {
-        handle->oidc->is_client_trusted = GNUNET_YES;
-      }
-    }
-  }
-
-  GNUNET_NAMESTORE_zone_iterator_next (handle->namestore_handle_it,
-				       1);
-}
-
-
-/**
  * Iteration over all results finished, build final
  * response.
  *
  * @param cls the `struct RequestHandle`
  */
 static void
-namestore_iteration_finished (void *cls)
+build_authz_response (void *cls)
 {
   struct RequestHandle *handle = cls;
   struct GNUNET_HashCode cache_key;
@@ -1098,25 +1036,6 @@ namestore_iteration_finished (void *cls)
   char delimiter[]=" ";
   int number_of_ignored_parameter, iterator;
 
-
-  handle->ego_entry = handle->ego_entry->next;
-
-  if(NULL != handle->ego_entry)
-  {
-    handle->priv_key = *GNUNET_IDENTITY_ego_get_private_key (handle->ego_entry->ego);
-    handle->namestore_handle_it = GNUNET_NAMESTORE_zone_iteration_start (handle->namestore_handle, &handle->priv_key,
-                                                                         &oidc_iteration_error, handle, &namestore_iteration_callback, handle,
-                                                                         &namestore_iteration_finished, handle);
-    return;
-  }
-  if (GNUNET_NO == handle->oidc->is_client_trusted)
-  {
-    handle->emsg = GNUNET_strdup("unauthorized_client");
-    handle->edesc = GNUNET_strdup("The client is not authorized to request an "
-                                  "authorization code using this method.");
-    GNUNET_SCHEDULER_add_now (&do_error, handle);
-    return;
-  }
 
   // REQUIRED value: redirect_uri
   GNUNET_CRYPTO_hash (OIDC_REDIRECT_URI_KEY, strlen (OIDC_REDIRECT_URI_KEY),
@@ -1246,9 +1165,6 @@ authorize_endpoint (struct GNUNET_REST_RequestHandle *con_handle,
 {
   struct RequestHandle *handle = cls;
   struct GNUNET_HashCode cache_key;
-  struct EgoEntry *tmp_ego;
-  struct GNUNET_CRYPTO_EcdsaPublicKey pkey;
-  const struct GNUNET_CRYPTO_EcdsaPrivateKey *priv_key;
 
   cookie_identity_interpretation(handle);
 
@@ -1302,29 +1218,8 @@ authorize_endpoint (struct GNUNET_REST_RequestHandle *con_handle,
 
   handle->ego_entry = handle->ego_head;
   handle->priv_key = *GNUNET_IDENTITY_ego_get_private_key (handle->ego_head->ego);
-  handle->oidc->is_client_trusted = GNUNET_NO;
-
-  //First check if client_id is one of our egos; TODO: handle other TLD cases: Delegation, from config
-  for (tmp_ego = handle->ego_head; NULL != tmp_ego; tmp_ego = tmp_ego->next)
-  {
-    priv_key = GNUNET_IDENTITY_ego_get_private_key (tmp_ego->ego);
-    GNUNET_CRYPTO_ecdsa_key_get_public (priv_key,
-                                        &pkey);
-    if ( 0 == memcmp (&pkey, &handle->oidc->client_pkey,
-                      sizeof(struct GNUNET_CRYPTO_EcdsaPublicKey)) )
-    {
-      handle->tld = GNUNET_strdup (tmp_ego->identifier);
-      handle->oidc->is_client_trusted = GNUNET_YES;
-      handle->ego_entry = handle->ego_tail;
-    }
-  }
-
-
-  // Checks if client_id is valid:
-  handle->namestore_handle_it = GNUNET_NAMESTORE_zone_iteration_start (
-                                                                       handle->namestore_handle, &handle->priv_key, &oidc_iteration_error,
-                                                                       handle, &namestore_iteration_callback, handle,
-                                                                       &namestore_iteration_finished, handle);
+  
+  GNUNET_SCHEDULER_add_now (&build_authz_response, handle);
 }
 
 /**
