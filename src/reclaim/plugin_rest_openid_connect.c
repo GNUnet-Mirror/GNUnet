@@ -1165,6 +1165,9 @@ authorize_endpoint (struct GNUNET_REST_RequestHandle *con_handle,
 {
   struct RequestHandle *handle = cls;
   struct GNUNET_HashCode cache_key;
+  struct EgoEntry *tmp_ego;
+  const struct GNUNET_CRYPTO_EcdsaPrivateKey *priv_key;
+  struct GNUNET_CRYPTO_EcdsaPublicKey pkey;
 
   cookie_identity_interpretation(handle);
 
@@ -1218,7 +1221,20 @@ authorize_endpoint (struct GNUNET_REST_RequestHandle *con_handle,
 
   handle->ego_entry = handle->ego_head;
   handle->priv_key = *GNUNET_IDENTITY_ego_get_private_key (handle->ego_head->ego);
-  
+  //If we know this identity, translated the corresponding TLD
+  //TODO: We might want to have a reverse lookup functionality for TLDs?
+  for (tmp_ego = handle->ego_head; NULL != tmp_ego; tmp_ego = tmp_ego->next)
+  {
+    priv_key = GNUNET_IDENTITY_ego_get_private_key (tmp_ego->ego);
+    GNUNET_CRYPTO_ecdsa_key_get_public (priv_key,
+                                        &pkey);
+    if ( 0 == memcmp (&pkey, &handle->oidc->client_pkey,
+                      sizeof(struct GNUNET_CRYPTO_EcdsaPublicKey)) )
+    {
+      handle->tld = GNUNET_strdup (tmp_ego->identifier);
+      handle->ego_entry = handle->ego_tail;
+    }
+  } 
   GNUNET_SCHEDULER_add_now (&build_authz_response, handle);
 }
 
