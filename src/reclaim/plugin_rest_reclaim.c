@@ -42,27 +42,27 @@
 /**
  * REST root namespace
  */
-#define GNUNET_REST_API_NS_RECLAIM "/idp"
+#define GNUNET_REST_API_NS_RECLAIM "/reclaim"
 
 /**
  * Attribute namespace
  */
-#define GNUNET_REST_API_NS_RECLAIM_ATTRIBUTES "/idp/attributes"
+#define GNUNET_REST_API_NS_RECLAIM_ATTRIBUTES "/reclaim/attributes"
 
 /**
  * Ticket namespace
  */
-#define GNUNET_REST_API_NS_IDENTITY_TICKETS "/idp/tickets"
+#define GNUNET_REST_API_NS_IDENTITY_TICKETS "/reclaim/tickets"
 
 /**
  * Revoke namespace
  */
-#define GNUNET_REST_API_NS_IDENTITY_REVOKE "/idp/revoke"
+#define GNUNET_REST_API_NS_IDENTITY_REVOKE "/reclaim/revoke"
 
 /**
  * Revoke namespace
  */
-#define GNUNET_REST_API_NS_IDENTITY_CONSUME "/idp/consume"
+#define GNUNET_REST_API_NS_IDENTITY_CONSUME "/reclaim/consume"
 
 /**
  * Attribute key
