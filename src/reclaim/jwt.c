@@ -54,6 +54,32 @@ create_jwt_header(void)
   return json_str;
 }
 
+static void
+replace_char(char* str, char find, char replace){
+  char *current_pos = strchr(str,find);
+  while (current_pos){
+    *current_pos = replace;
+    current_pos = strchr(current_pos,find);
+  }
+}
+
+//RFC4648
+static void
+fix_base64(char* str) {
+  char *padding;
+  //First, remove trailing padding '='
+  padding = strtok(str, "=");
+  while (NULL != padding)
+    padding = strtok(NULL, "=");
+
+  //Replace + with -
+  replace_char (str, '+', '-');
+
+  //Replace / with _
+  replace_char (str, '/', '_');
+
+}
+
 /**
  * Create a JWT from attributes
  *
@@ -73,7 +99,6 @@ jwt_create_from_list (const struct GNUNET_CRYPTO_EcdsaPublicKey *aud_key,
   char* audience;
   char* subject;
   char* header;
-  char* padding;
   char* body_str;
   char* result;
   char* header_base64;
@@ -121,19 +146,12 @@ jwt_create_from_list (const struct GNUNET_CRYPTO_EcdsaPublicKey *aud_key,
   GNUNET_STRINGS_base64_encode (header,
                                 strlen (header),
                                 &header_base64);
-  //Remove GNUNET padding of base64
-  padding = strtok(header_base64, "=");
-  while (NULL != padding)
-    padding = strtok(NULL, "=");
+  fix_base64(header_base64);
 
   GNUNET_STRINGS_base64_encode (body_str,
                                 strlen (body_str),
                                 &body_base64);
-
-  //Remove GNUNET padding of base64
-  padding = strtok(body_base64, "=");
-  while (NULL != padding)
-    padding = strtok(NULL, "=");
+  fix_base64(body_base64);
 
   GNUNET_free (subject);
   GNUNET_free (audience);
@@ -147,11 +165,7 @@ jwt_create_from_list (const struct GNUNET_CRYPTO_EcdsaPublicKey *aud_key,
   GNUNET_STRINGS_base64_encode ((const char*)&signature,
                                 sizeof (struct GNUNET_HashCode),
                                 &signature_base64);
-  
-  //Remove GNUNET padding of base64
-  padding = strtok(signature_base64, "=");
-  while (NULL != padding)
-    padding = strtok(NULL, "=");
+  fix_base64(signature_base64);
 
   GNUNET_asprintf (&result, "%s.%s.%s",
                    header_base64, body_base64, signature_base64);
