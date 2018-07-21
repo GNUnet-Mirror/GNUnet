@@ -168,7 +168,6 @@ static char* OIDC_ignored_parameter_array [] =
 {
   "display",
   "prompt",
-  "max_age",
   "ui_locales", 
   "response_mode",
   "id_token_hint",
@@ -1320,7 +1319,9 @@ token_endpoint (struct GNUNET_REST_RequestHandle *con_handle,
   int client_exists = GNUNET_NO;
   struct MHD_Response *resp;
   char* code_output;
-  json_t *root, *ticket_string, *nonce, *max_age;
+  json_t *root;
+  json_t *ticket_string;
+  json_t *nonce;
   json_error_t error;
   char *json_response;
   char *jwt_secret;
@@ -1515,7 +1516,6 @@ token_endpoint (struct GNUNET_REST_RequestHandle *con_handle,
   GNUNET_free(code_output);
   ticket_string = json_object_get (root, "ticket");
   nonce = json_object_get (root, "nonce");
-  max_age = json_object_get (root, "max_age");
 
   if(ticket_string == NULL && !json_is_string(ticket_string))
   {
@@ -1557,9 +1557,9 @@ token_endpoint (struct GNUNET_REST_RequestHandle *con_handle,
   }
 
   //create jwt
-  unsigned long long int expiration_time;
+  struct GNUNET_TIME_Relative expiration_time;
   if ( GNUNET_OK
-       != GNUNET_CONFIGURATION_get_value_number(cfg, "reclaim-rest-plugin",
+       != GNUNET_CONFIGURATION_get_value_time(cfg, "reclaim-rest-plugin",
                                                 "expiration_time", &expiration_time) )
   {
     GNUNET_free_non_null(user_psw);
@@ -1572,48 +1572,7 @@ token_endpoint (struct GNUNET_REST_RequestHandle *con_handle,
   }
 
   struct GNUNET_RECLAIM_ATTRIBUTE_ClaimList *cl = GNUNET_new (struct GNUNET_RECLAIM_ATTRIBUTE_ClaimList);
-  //aud REQUIRED public key client_id must be there
-  GNUNET_RECLAIM_ATTRIBUTE_list_add(cl,
-                                     "aud",
-                                     GNUNET_RECLAIM_ATTRIBUTE_TYPE_STRING,
-                                     client_id,
-                                     strlen(client_id));
-  //exp REQUIRED time expired from config
-  struct GNUNET_TIME_Absolute exp_time = GNUNET_TIME_relative_to_absolute (
-                                                                           GNUNET_TIME_relative_multiply (GNUNET_TIME_relative_get_second_ (),
-                                                                                                          expiration_time));
-  const char* exp_time_string = GNUNET_STRINGS_absolute_time_to_string(exp_time);
-  GNUNET_RECLAIM_ATTRIBUTE_list_add (cl,
-                                      "exp",
-                                      GNUNET_RECLAIM_ATTRIBUTE_TYPE_STRING,
-                                      exp_time_string,
-                                      strlen(exp_time_string));
-  //iat REQUIRED time now
-  struct GNUNET_TIME_Absolute time_now = GNUNET_TIME_absolute_get();
-  const char* time_now_string = GNUNET_STRINGS_absolute_time_to_string(time_now);
-  GNUNET_RECLAIM_ATTRIBUTE_list_add (cl,
-                                      "iat",
-                                      GNUNET_RECLAIM_ATTRIBUTE_TYPE_STRING,
-                                      time_now_string,
-                                      strlen(time_now_string));
-  //nonce only if nonce is provided
-  if ( NULL != nonce && json_is_string(nonce) )
-  {
-    GNUNET_RECLAIM_ATTRIBUTE_list_add (cl,
-                                        "nonce",
-                                        GNUNET_RECLAIM_ATTRIBUTE_TYPE_STRING,
-                                        json_string_value(nonce),
-                                        strlen(json_string_value(nonce)));
-  }
-  //auth_time only if max_age is provided
-  if ( NULL != max_age && json_is_string(max_age) )
-  {
-    GNUNET_RECLAIM_ATTRIBUTE_list_add (cl,
-                                        "auth_time",
-                                        GNUNET_RECLAIM_ATTRIBUTE_TYPE_STRING,
-                                        json_string_value(max_age),
-                                        strlen(json_string_value(max_age)));
-  }
+  
   //TODO OPTIONAL acr,amr,azp
 
   struct EgoEntry *ego_entry;
@@ -1652,6 +1611,8 @@ token_endpoint (struct GNUNET_REST_RequestHandle *con_handle,
   char *id_token = jwt_create_from_list(&ticket->audience,
                                         &pk,
                                         cl,
+                                        &expiration_time,
+                                        (NULL != nonce && json_is_string(nonce)) ? json_string_value (nonce) : NULL,
                                         jwt_secret);
 
   //Create random access_token

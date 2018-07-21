@@ -83,19 +83,25 @@ fix_base64(char* str) {
 /**
  * Create a JWT from attributes
  *
- * @param aud_key the public of the subject
+ * @param aud_key the public of the audience
+ * @param sub_key the public key of the subject
  * @param attrs the attribute list
- * @param priv_key the key used to sign the JWT
+ * @param expiration_time the validity of the token
+ * @param secret_key the key used to sign the JWT
  * @return a new base64-encoded JWT string.
  */
 char*
 jwt_create_from_list (const struct GNUNET_CRYPTO_EcdsaPublicKey *aud_key,
                       const struct GNUNET_CRYPTO_EcdsaPublicKey *sub_key,
                       const struct GNUNET_RECLAIM_ATTRIBUTE_ClaimList *attrs,
+                      const struct GNUNET_TIME_Relative *expiration_time,
+                      const char *nonce,
                       const char *secret_key)
 {
   struct GNUNET_RECLAIM_ATTRIBUTE_ClaimListEntry *le;
   struct GNUNET_HashCode signature;
+  struct GNUNET_TIME_Absolute exp_time;
+  struct GNUNET_TIME_Absolute time_now;
   char* audience;
   char* subject;
   char* header;
@@ -107,9 +113,11 @@ jwt_create_from_list (const struct GNUNET_CRYPTO_EcdsaPublicKey *aud_key,
   char* signature_base64;
   char* attr_val_str;
   json_t* body;
-
-  //exp REQUIRED time expired from config
+  
   //iat REQUIRED time now
+  time_now = GNUNET_TIME_absolute_get();
+  //exp REQUIRED time expired from config
+  exp_time = GNUNET_TIME_absolute_add (time_now, *expiration_time);
   //auth_time only if max_age
   //nonce only if nonce
   // OPTIONAL acr,amr,azp
@@ -130,6 +138,20 @@ jwt_create_from_list (const struct GNUNET_CRYPTO_EcdsaPublicKey *aud_key,
   //aud REQUIRED public key client_id must be there
   json_object_set_new (body,
                        "aud", json_string (audience));
+  //iat
+  json_object_set_new (body,
+                       "iat", json_integer (time_now.abs_value_us));
+  //exp
+  json_object_set_new (body,
+                       "exp", json_integer (exp_time.abs_value_us));
+  //nbf
+  json_object_set_new (body,
+                       "nbf", json_integer (time_now.abs_value_us));
+  //nonce
+  if (NULL != nonce)
+    json_object_set_new (body,
+                         "nonce", json_string (nonce));
+
   for (le = attrs->list_head; NULL != le; le = le->next)
   {
     attr_val_str = GNUNET_RECLAIM_ATTRIBUTE_value_to_string (le->claim->type,
