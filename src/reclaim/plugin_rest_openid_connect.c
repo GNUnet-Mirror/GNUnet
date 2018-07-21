@@ -1647,14 +1647,12 @@ token_endpoint (struct GNUNET_REST_RequestHandle *con_handle,
     GNUNET_free(ticket);
     return;
   }
-  struct GNUNET_CRYPTO_AuthKey jwt_sign_key;
   struct GNUNET_CRYPTO_EcdsaPublicKey pk;
   GNUNET_IDENTITY_ego_get_public_key (ego_entry->ego, &pk);
-  GNUNET_CRYPTO_hash (jwt_secret, strlen (jwt_secret), (struct GNUNET_HashCode*)jwt_sign_key.key);
   char *id_token = jwt_create_from_list(&ticket->audience,
                                         &pk,
                                         cl,
-                                        &jwt_sign_key);
+                                        jwt_secret);
 
   //Create random access_token
   char* access_token_number;

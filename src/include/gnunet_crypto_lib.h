@@ -726,6 +726,23 @@ GNUNET_CRYPTO_hash_context_abort (struct GNUNET_HashContext *hc);
 
 
 /**
+ * Calculate HMAC of a message (RFC 2104)
+ * TODO: Shouldn' this be the standard hmac function and
+ * the above be renamed?
+ *
+ * @param key secret key
+ * @param key_len secret key length
+ * @param plaintext input plaintext
+ * @param plaintext_len length of @a plaintext
+ * @param hmac where to store the hmac
+ */
+void
+GNUNET_CRYPTO_hmac_raw (const void *key, size_t key_len,
+                    const void *plaintext, size_t plaintext_len,
+                    struct GNUNET_HashCode *hmac);
+
+
+/**
  * @ingroup hash
  * Calculate HMAC of a message (RFC 2104)
  *

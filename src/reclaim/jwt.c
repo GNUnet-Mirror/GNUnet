@@ -65,8 +65,8 @@ create_jwt_header(void)
 char*
 jwt_create_from_list (const struct GNUNET_CRYPTO_EcdsaPublicKey *aud_key,
                       const struct GNUNET_CRYPTO_EcdsaPublicKey *sub_key,
-                                                const struct GNUNET_RECLAIM_ATTRIBUTE_ClaimList *attrs,
-                                                const struct GNUNET_CRYPTO_AuthKey *priv_key)
+                      const struct GNUNET_RECLAIM_ATTRIBUTE_ClaimList *attrs,
+                      const char *secret_key)
 {
   struct GNUNET_RECLAIM_ATTRIBUTE_ClaimListEntry *le;
   struct GNUNET_HashCode signature;
@@ -89,12 +89,12 @@ jwt_create_from_list (const struct GNUNET_CRYPTO_EcdsaPublicKey *aud_key,
   //nonce only if nonce
   // OPTIONAL acr,amr,azp
   subject = GNUNET_STRINGS_data_to_string_alloc (&sub_key,
-                                                sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey));
+                                                 sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey));
   audience = GNUNET_STRINGS_data_to_string_alloc (aud_key,
                                                   sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey));
   header = create_jwt_header ();
   body = json_object ();
-  
+
   //iss REQUIRED case sensitive server uri with https
   //The issuer is the local reclaim instance (e.g. https://reclaim.id/api/openid)
   json_object_set_new (body,
@@ -108,8 +108,8 @@ jwt_create_from_list (const struct GNUNET_CRYPTO_EcdsaPublicKey *aud_key,
   for (le = attrs->list_head; NULL != le; le = le->next)
   {
     attr_val_str = GNUNET_RECLAIM_ATTRIBUTE_value_to_string (le->claim->type,
-                                                              le->claim->data,
-                                                              le->claim->data_size);
+                                                             le->claim->data,
+                                                             le->claim->data_size);
     json_object_set_new (body,
                          le->claim->name,
                          json_string (attr_val_str));
@@ -142,8 +142,8 @@ jwt_create_from_list (const struct GNUNET_CRYPTO_EcdsaPublicKey *aud_key,
    * Creating the JWT signature. This might not be
    * standards compliant, check.
    */
-  GNUNET_asprintf (&signature_target, "%s,%s", header_base64, body_base64);
-  GNUNET_CRYPTO_hmac (priv_key, signature_target, strlen (signature_target), &signature);
+  GNUNET_asprintf (&signature_target, "%s.%s", header_base64, body_base64);
+  GNUNET_CRYPTO_hmac_raw (secret_key, strlen (secret_key), signature_target, strlen (signature_target), &signature);
   GNUNET_STRINGS_base64_encode ((const char*)&signature,
                                 sizeof (struct GNUNET_HashCode),
                                 &signature_base64);
