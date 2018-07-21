@@ -37,7 +37,7 @@
 
 #define JWT_TYP_VALUE "jwt"
 
-#define SERVER_ADDRESS "https://reclaim.id/api/openid/userinfo"
+#define SERVER_ADDRESS "https://reclaim.id"
 
 static char*
 create_jwt_header(void)
@@ -123,7 +123,7 @@ jwt_create_from_list (const struct GNUNET_CRYPTO_EcdsaPublicKey *aud_key,
   // OPTIONAL acr,amr,azp
   subject = GNUNET_STRINGS_data_to_string_alloc (&sub_key,
                                                  sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey));
-  audience = GNUNET_STRINGS_data_to_string_alloc (aud_key,
+  audience = GNUNET_STRINGS_data_to_string_alloc (&aud_key,
                                                   sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey));
   header = create_jwt_header ();
   body = json_object ();
