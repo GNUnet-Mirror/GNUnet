@@ -49,7 +49,7 @@ create_jwt_header(void)
   json_object_set_new (root, JWT_ALG, json_string (JWT_ALG_VALUE));
   json_object_set_new (root, JWT_TYP, json_string (JWT_TYP_VALUE));
 
-  json_str = json_dumps (root, JSON_INDENT(0));
+  json_str = json_dumps (root, JSON_INDENT(0) | JSON_COMPACT);
   json_decref (root);
   return json_str;
 }
@@ -115,7 +115,7 @@ jwt_create_from_list (const struct GNUNET_CRYPTO_EcdsaPublicKey *aud_key,
                          json_string (attr_val_str));
     GNUNET_free (attr_val_str);
   }
-  body_str = json_dumps (body, JSON_INDENT(0));
+  body_str = json_dumps (body, JSON_INDENT(0) | JSON_COMPACT);
   json_decref (body);
 
   GNUNET_STRINGS_base64_encode (header,
@@ -147,6 +147,12 @@ jwt_create_from_list (const struct GNUNET_CRYPTO_EcdsaPublicKey *aud_key,
   GNUNET_STRINGS_base64_encode ((const char*)&signature,
                                 sizeof (struct GNUNET_HashCode),
                                 &signature_base64);
+  
+  //Remove GNUNET padding of base64
+  padding = strtok(signature_base64, "=");
+  while (NULL != padding)
+    padding = strtok(NULL, "=");
+
   GNUNET_asprintf (&result, "%s.%s.%s",
                    header_base64, body_base64, signature_base64);
 
