@@ -140,13 +140,13 @@ jwt_create_from_list (const struct GNUNET_CRYPTO_EcdsaPublicKey *aud_key,
                        "aud", json_string (audience));
   //iat
   json_object_set_new (body,
-                       "iat", json_integer (time_now.abs_value_us));
+                       "iat", json_integer (time_now.abs_value_us / (1000*1000)));
   //exp
   json_object_set_new (body,
-                       "exp", json_integer (exp_time.abs_value_us));
+                       "exp", json_integer (exp_time.abs_value_us / (1000*1000)));
   //nbf
   json_object_set_new (body,
-                       "nbf", json_integer (time_now.abs_value_us));
+                       "nbf", json_integer (time_now.abs_value_us / (1000*1000)));
   //nonce
   if (NULL != nonce)
     json_object_set_new (body,
