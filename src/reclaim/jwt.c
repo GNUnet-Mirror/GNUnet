@@ -49,7 +49,7 @@ create_jwt_header(void)
   json_object_set_new (root, JWT_ALG, json_string (JWT_ALG_VALUE));
   json_object_set_new (root, JWT_TYP, json_string (JWT_TYP_VALUE));
 
-  json_str = json_dumps (root, JSON_INDENT(1));
+  json_str = json_dumps (root, JSON_INDENT(0));
   json_decref (root);
   return json_str;
 }
