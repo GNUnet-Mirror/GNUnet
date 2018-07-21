@@ -121,9 +121,9 @@ jwt_create_from_list (const struct GNUNET_CRYPTO_EcdsaPublicKey *aud_key,
   //auth_time only if max_age
   //nonce only if nonce
   // OPTIONAL acr,amr,azp
-  subject = GNUNET_STRINGS_data_to_string_alloc (&sub_key,
+  subject = GNUNET_STRINGS_data_to_string_alloc (sub_key,
                                                  sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey));
-  audience = GNUNET_STRINGS_data_to_string_alloc (&aud_key,
+  audience = GNUNET_STRINGS_data_to_string_alloc (aud_key,
                                                   sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey));
   header = create_jwt_header ();
   body = json_object ();
