@@ -1606,10 +1606,8 @@ token_endpoint (struct GNUNET_REST_RequestHandle *con_handle,
     GNUNET_free(ticket);
     return;
   }
-  struct GNUNET_CRYPTO_EcdsaPublicKey pk;
-  GNUNET_IDENTITY_ego_get_public_key (ego_entry->ego, &pk);
   char *id_token = jwt_create_from_list(&ticket->audience,
-                                        &pk,
+                                        &ticket->identity,
                                         cl,
                                         &expiration_time,
                                         (NULL != nonce && json_is_string(nonce)) ? json_string_value (nonce) : NULL,
