@@ -29,7 +29,7 @@ pkgcfg_DATA = \
   reclaim.conf
 
 lib_LTLIBRARIES = \
-  libgnunetidentityprovider.la
+  libgnunetreclaim.la
 plugin_LTLIBRARIES = \
 	libgnunet_plugin_rest_reclaim.la \
 	libgnunet_plugin_rest_openid_connect.la \
@@ -53,7 +53,7 @@ libgnunet_plugin_gnsrecord_reclaim_la_LDFLAGS = \
 libgnunet_plugin_reclaim_sqlite_la_SOURCES = \
   plugin_reclaim_sqlite.c
 libgnunet_plugin_reclaim_sqlite_la_LIBADD = \
-  libgnunetidentityprovider.la  \
+  libgnunetreclaim.la  \
   $(top_builddir)/src/sq/libgnunetsq.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/util/libgnunetutil.la $(XLIBS) -lsqlite3 \
@@ -74,17 +74,17 @@ gnunet_service_reclaim_LDADD = \
  $(top_builddir)/src/abe/libgnunetabe.la \
  $(top_builddir)/src/credential/libgnunetcredential.la \
  $(top_builddir)/src/reclaim-attribute/libgnunetreclaimattribute.la \
- libgnunetidentityprovider.la \
+ libgnunetreclaim.la \
  $(top_builddir)/src/gns/libgnunetgns.la \
  $(GN_LIBINTL)
 
-libgnunetidentityprovider_la_SOURCES = \
+libgnunetreclaim_la_SOURCES = \
  reclaim_api.c \
  reclaim.h
-libgnunetidentityprovider_la_LIBADD = \
+libgnunetreclaim_la_LIBADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
 	$(GN_LIBINTL) $(XLIB)
-libgnunetidentityprovider_la_LDFLAGS = \
+libgnunetreclaim_la_LDFLAGS = \
 	$(GN_LIB_LDFLAGS)  $(WINFLAGS) \
 	-version-info 0:0:0
 
@@ -93,7 +93,7 @@ libgnunet_plugin_rest_reclaim_la_SOURCES = \
 	jwt.c
 libgnunet_plugin_rest_reclaim_la_LIBADD = \
 	$(top_builddir)/src/identity/libgnunetidentity.la \
-	libgnunetidentityprovider.la \
+	libgnunetreclaim.la \
 	$(top_builddir)/src/rest/libgnunetrest.la \
 	$(top_builddir)/src/jsonapi/libgnunetjsonapi.la \
 	$(top_builddir)/src/reclaim-attribute/libgnunetreclaimattribute.la \
@@ -108,11 +108,13 @@ libgnunet_plugin_rest_openid_connect_la_SOURCES = \
 	jwt.c
 libgnunet_plugin_rest_openid_connect_la_LIBADD = \
 	$(top_builddir)/src/identity/libgnunetidentity.la \
-	libgnunetidentityprovider.la \
+	libgnunetreclaim.la \
 	$(top_builddir)/src/rest/libgnunetrest.la \
 	$(top_builddir)/src/jsonapi/libgnunetjsonapi.la \
 	$(top_builddir)/src/reclaim-attribute/libgnunetreclaimattribute.la \
 	$(top_builddir)/src/namestore/libgnunetnamestore.la \
+	$(top_builddir)/src/gns/libgnunetgns.la \
+	$(top_builddir)/src/gnsrecord/libgnunetgnsrecord.la \
   $(top_builddir)/src/util/libgnunetutil.la $(XLIBS) \
   $(LTLIBINTL) -ljansson -lmicrohttpd
 libgnunet_plugin_rest_openid_connect_la_LDFLAGS = \
@@ -123,7 +125,7 @@ gnunet_reclaim_SOURCES = \
 gnunet_reclaim_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
 	$(top_builddir)/src/namestore/libgnunetnamestore.la \
-	libgnunetidentityprovider.la \
+	libgnunetreclaim.la \
 	$(top_builddir)/src/identity/libgnunetidentity.la \
 	$(top_builddir)/src/reclaim-attribute/libgnunetreclaimattribute.la \
   $(GN_LIBINTL)
