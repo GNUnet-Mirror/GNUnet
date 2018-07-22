@@ -795,7 +795,8 @@ oidc_iteration_error (void *cls)
 }
 
 static int
-parse_authz_code (const char* code,
+parse_authz_code (const struct GNUNET_CRYPTO_EcdsaPublicKey *audience,
+                  const char* code,
                   struct GNUNET_RECLAIM_Ticket **ticket,
                   char **nonce)
 {
@@ -868,6 +869,19 @@ parse_authz_code (const char* code,
   memcpy (*ticket,
           &purpose[1],
           sizeof (struct GNUNET_RECLAIM_Ticket));
+  if (0 != memcmp (audience,
+                   &(*ticket)->audience,
+                   sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey)))
+  {
+    GNUNET_free (purpose);
+    GNUNET_free (*ticket);
+    json_decref (code_json);
+    *ticket = NULL;
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Audience in ticket does not match client!\n");
+    return GNUNET_SYSERR;
+
+  }
   if (NULL != nonce_str)
     memcpy (&purpose[1] + sizeof (struct GNUNET_RECLAIM_Ticket),
             nonce_str,
@@ -1669,8 +1683,14 @@ token_endpoint (struct GNUNET_REST_RequestHandle *con_handle,
   }
 
   //decode code
+  struct GNUNET_CRYPTO_EcdsaPublicKey cid;
+  GNUNET_STRINGS_string_to_data (client_id,
+                                 strlen(client_id),
+                                 &cid,
+                                 sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey));
   struct GNUNET_RECLAIM_Ticket *ticket;
-  if(GNUNET_OK != parse_authz_code (code,
+  if(GNUNET_OK != parse_authz_code (&cid,
+                                    code,
                                     &ticket,
                                     &nonce))
   {
