@@ -181,7 +181,7 @@ extern "C"
 /**
  * Signature for a GNUid Ticket
  */
-#define GNUNET_SIGNATURE_PURPOSE_GNUID_TICKET 27
+#define GNUNET_SIGNATURE_PURPOSE_RECLAIM_CODE_SIGN 27
 
 /**
  * Signature for a GNUnet credential
