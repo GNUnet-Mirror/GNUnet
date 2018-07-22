@@ -340,6 +340,16 @@ struct RequestHandle
   struct GNUNET_REST_RequestHandle *rest_handle;
 
   /**
+   * GNS handle
+   */
+  struct GNUNET_GNS_Handle *gns_handle;
+
+  /**
+   * GNS lookup op
+   */
+  struct GNUNET_GNS_LookupRequest *gns_op;
+
+  /**
    * Handle to NAMESTORE
    */
   struct GNUNET_NAMESTORE_Handle *namestore_handle;
@@ -415,6 +425,16 @@ struct RequestHandle
   char *tld;
 
   /**
+   * The redirect prefix
+   */
+  char *redirect_prefix;
+
+  /**
+   * The redirect suffix
+   */
+  char *redirect_suffix;
+
+  /**
    * Error response message
    */
   char *emsg;
@@ -465,10 +485,19 @@ cleanup_handle (struct RequestHandle *handle)
     GNUNET_free (handle->url);
   if (NULL != handle->tld)
     GNUNET_free (handle->tld);
+  if (NULL != handle->redirect_prefix)
+    GNUNET_free (handle->redirect_prefix);
+  if (NULL != handle->redirect_suffix)
+    GNUNET_free (handle->redirect_suffix);
   if (NULL != handle->emsg)
     GNUNET_free (handle->emsg);
   if (NULL != handle->edesc)
     GNUNET_free (handle->edesc);
+  if (NULL != handle->gns_op)
+    GNUNET_GNS_lookup_cancel (handle->gns_op);
+  if (NULL != handle->gns_handle)
+    GNUNET_GNS_disconnect (handle->gns_handle);
+
   if (NULL != handle->namestore_handle)
     GNUNET_NAMESTORE_disconnect (handle->namestore_handle);
   if (NULL != handle->oidc)
@@ -812,7 +841,7 @@ parse_authz_code (const struct GNUNET_CRYPTO_EcdsaPublicKey *audience,
   struct GNUNET_CRYPTO_EccSignaturePurpose *purpose;
   struct GNUNET_CRYPTO_EcdsaSignature signature;
   size_t signature_payload_len;
-  
+
   code_output = NULL; 
   GNUNET_STRINGS_base64_decode (code,
                                 strlen(code),
@@ -978,10 +1007,7 @@ get_client_name_result (void *cls,
   char *redirect_uri;
   char *code_json_string;
   char *code_base64_final_string;
-  char *redirect_path;
-  char *tmp;
-  char *tmp_prefix;
-  char *prefix;
+
   ticket_str = GNUNET_STRINGS_data_to_string_alloc (&handle->ticket,
                                                     sizeof (struct GNUNET_RECLAIM_Ticket));
   //TODO change if more attributes are needed (see max_age)
@@ -989,32 +1015,24 @@ get_client_name_result (void *cls,
                                        &handle->ticket,
                                        handle->oidc->nonce);
   code_base64_final_string = base_64_encode(code_json_string);
-  tmp = GNUNET_strdup (handle->oidc->redirect_uri);
-  redirect_path = strtok (tmp, "/");
-  redirect_path = strtok (NULL, "/");
-  redirect_path = strtok (NULL, "/");
-  tmp_prefix = GNUNET_strdup (handle->oidc->redirect_uri);
-  prefix = strrchr (tmp_prefix,
-                    (unsigned char) '.');
-  *prefix = '\0';
   GNUNET_asprintf (&redirect_uri, "%s.%s/%s?%s=%s&state=%s",
-                   tmp_prefix,
+                   handle->redirect_prefix,
                    handle->tld,
-                   redirect_path,
+                   handle->redirect_suffix,
                    handle->oidc->response_type,
                    code_base64_final_string, handle->oidc->state);
   resp = GNUNET_REST_create_response ("");
   MHD_add_response_header (resp, "Location", redirect_uri);
   handle->proc (handle->proc_cls, resp, MHD_HTTP_FOUND);
   GNUNET_SCHEDULER_add_now (&cleanup_handle_delayed, handle);
-  GNUNET_free (tmp);
-  GNUNET_free (tmp_prefix);
   GNUNET_free (redirect_uri);
   GNUNET_free (ticket_str);
   GNUNET_free (code_json_string);
   GNUNET_free (code_base64_final_string);
   return;
+
 }
+
 
 static void
 get_client_name_error (void *cls)
@@ -1026,6 +1044,52 @@ get_client_name_error (void *cls)
   GNUNET_SCHEDULER_add_now (&do_redirect_error, handle);
 }
 
+
+static void
+lookup_redirect_uri_result (void *cls,
+                            uint32_t rd_count,
+                            const struct GNUNET_GNSRECORD_Data *rd)
+{
+  struct RequestHandle *handle = cls;
+  char *tmp;
+  char *tmp_key_str;
+  char *pos;
+  struct GNUNET_CRYPTO_EcdsaPublicKey redirect_zone;
+
+  handle->gns_op = NULL;
+  if (1 != rd_count)
+  {
+    handle->emsg = GNUNET_strdup("server_error");
+    handle->edesc = GNUNET_strdup("Server cannot generate ticket, redirect uri not found.");
+    GNUNET_SCHEDULER_add_now (&do_redirect_error, handle);
+    return;
+  }
+  tmp = GNUNET_strdup (rd->data);
+  pos = strrchr (tmp,
+                 (unsigned char) '.');
+  *pos = '\0';
+  handle->redirect_prefix = GNUNET_strdup (tmp);
+  tmp_key_str = pos + 1;
+  pos = strchr (tmp_key_str,
+                (unsigned char) '/');
+  *pos = '\0';
+  handle->redirect_suffix = GNUNET_strdup (pos + 1);
+  GNUNET_free (tmp);
+
+  GNUNET_STRINGS_string_to_data (tmp_key_str,
+                                 strlen (tmp_key_str),
+                                 &redirect_zone,
+                                 sizeof (redirect_zone));
+
+  GNUNET_NAMESTORE_zone_to_name (handle->namestore_handle,
+                                 &handle->priv_key,
+                                 &redirect_zone,
+                                 &get_client_name_error,
+                                 handle,
+                                 &get_client_name_result,
+                                 handle);
+}
+
 /**
  * Issues ticket and redirects to relying party with the authorization code as
  * parameter. Otherwise redirects with error
@@ -1035,21 +1099,24 @@ oidc_ticket_issue_cb (void* cls,
                       const struct GNUNET_RECLAIM_Ticket *ticket)
 {
   struct RequestHandle *handle = cls;
+
   handle->idp_op = NULL;
   handle->ticket = *ticket;
-  if (NULL != ticket) {
-    GNUNET_NAMESTORE_zone_to_name (handle->namestore_handle,
-                                   &handle->priv_key,
-                                   &handle->oidc->client_pkey,
-                                   &get_client_name_error,
-                                   handle,
-                                   &get_client_name_result,
-                                   handle);
+  if (NULL == ticket)
+  {
+    handle->emsg = GNUNET_strdup("server_error");
+    handle->edesc = GNUNET_strdup("Server cannot generate ticket.");
+    GNUNET_SCHEDULER_add_now (&do_redirect_error, handle);
     return;
   }
-  handle->emsg = GNUNET_strdup("server_error");
-  handle->edesc = GNUNET_strdup("Server cannot generate ticket.");
-  GNUNET_SCHEDULER_add_now (&do_redirect_error, handle);
+  handle->gns_op = GNUNET_GNS_lookup (handle->gns_handle,
+                                      handle->oidc->redirect_uri,
+                                      &handle->oidc->client_pkey,
+                                      GNUNET_DNSPARSER_TYPE_TXT,
+                                      GNUNET_GNS_LO_DEFAULT,
+                                      &lookup_redirect_uri_result,
+                                      handle);
+
 }
 
 static void
@@ -2148,6 +2215,7 @@ rest_identity_process_request(struct GNUNET_REST_RequestHandle *rest_handle,
   handle->identity_handle = GNUNET_IDENTITY_connect (cfg,
                                                      &list_ego,
                                                      handle);
+  handle->gns_handle = GNUNET_GNS_connect (cfg);
   handle->namestore_handle = GNUNET_NAMESTORE_connect (cfg);
   handle->timeout_task =
     GNUNET_SCHEDULER_add_delayed (handle->timeout,
