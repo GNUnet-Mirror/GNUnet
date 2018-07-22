@@ -984,16 +984,10 @@ get_client_name_result (void *cls,
   char *prefix;
   ticket_str = GNUNET_STRINGS_data_to_string_alloc (&handle->ticket,
                                                     sizeof (struct GNUNET_RECLAIM_Ticket));
-  //TODO add signature to code payload over nonce and ticket _and_ use jansson here!
   //TODO change if more attributes are needed (see max_age)
   code_json_string = build_authz_code (&handle->priv_key,
                                        &handle->ticket,
                                        handle->oidc->nonce);
-  /*GNUNET_asprintf (&code_json_string, "{\"ticket\":\"%s\"%s%s%s}",
-    ticket_str,
-    (NULL != handle->oidc->nonce) ? ", \"nonce\":\"" : "",
-    (NULL != handle->oidc->nonce) ? handle->oidc->nonce : "",
-    (NULL != handle->oidc->nonce) ? "\"" : "");*/
   code_base64_final_string = base_64_encode(code_json_string);
   tmp = GNUNET_strdup (handle->oidc->redirect_uri);
   redirect_path = strtok (tmp, "/");
