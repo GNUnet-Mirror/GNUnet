@@ -89,8 +89,7 @@ libgnunetreclaim_la_LDFLAGS = \
 	-version-info 0:0:0
 
 libgnunet_plugin_rest_reclaim_la_SOURCES = \
-  plugin_rest_reclaim.c \
-	jwt.c
+  plugin_rest_reclaim.c
 libgnunet_plugin_rest_reclaim_la_LIBADD = \
 	$(top_builddir)/src/identity/libgnunetidentity.la \
 	libgnunetreclaim.la \
@@ -105,7 +104,7 @@ libgnunet_plugin_rest_reclaim_la_LDFLAGS = \
 
 libgnunet_plugin_rest_openid_connect_la_SOURCES = \
   plugin_rest_openid_connect.c \
-	jwt.c
+	oidc_helper.c
 libgnunet_plugin_rest_openid_connect_la_LIBADD = \
 	$(top_builddir)/src/identity/libgnunetidentity.la \
 	libgnunetreclaim.la \
