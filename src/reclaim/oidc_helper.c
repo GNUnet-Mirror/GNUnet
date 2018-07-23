@@ -364,8 +364,8 @@ OIDC_parse_authz_code (const struct GNUNET_CRYPTO_EcdsaPublicKey *audience,
 
   }
   if (NULL != nonce_str)
-    memcpy (&purpose[1] + sizeof (struct GNUNET_RECLAIM_Ticket),
-            nonce_str,
+    memcpy (nonce_str,
+            &purpose[1] + sizeof (struct GNUNET_RECLAIM_Ticket),
             strlen (nonce_str));
   if (GNUNET_OK != GNUNET_CRYPTO_ecdsa_verify (GNUNET_SIGNATURE_PURPOSE_RECLAIM_CODE_SIGN,
                                                purpose,

@@ -903,8 +903,7 @@ lookup_redirect_uri_result (void *cls,
                 (unsigned char) '/');
   *pos = '\0';
   handle->redirect_suffix = GNUNET_strdup (pos + 1);
-  GNUNET_free (tmp);
-
+  
   GNUNET_STRINGS_string_to_data (tmp_key_str,
                                  strlen (tmp_key_str),
                                  &redirect_zone,
@@ -917,6 +916,8 @@ lookup_redirect_uri_result (void *cls,
                                  handle,
                                  &get_client_name_result,
                                  handle);
+  GNUNET_free (tmp);
+
 }
 
 /**
@@ -1476,7 +1477,6 @@ check_authorization (struct RequestHandle *handle,
                                  cid,
                                  sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey));
 
-  GNUNET_free (client_id);
   GNUNET_free (basic_authorization);
   return GNUNET_OK;
 }
