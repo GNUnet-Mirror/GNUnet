@@ -281,6 +281,15 @@ gnsrecord_to_json (const struct GNUNET_GNSRECORD_Data *rd)
   return record_obj;
 }
 
+
+static void
+do_cleanup (void *cls)
+{
+  struct LookupHandle *handle = cls;
+  cleanup_handle (handle);
+}
+
+
 /**
  * Function called with the result of a GNS lookup.
  *
@@ -325,7 +334,7 @@ process_lookup_result (void *cls, uint32_t rd_count,
   resp = GNUNET_REST_create_response (result);
   handle->proc (handle->proc_cls, resp, MHD_HTTP_OK);
   GNUNET_free (result);
-  cleanup_handle (handle);
+  GNUNET_SCHEDULER_add_now (&do_cleanup, handle);
 }
 
 
