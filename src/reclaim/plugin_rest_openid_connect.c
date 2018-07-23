@@ -886,38 +886,47 @@ lookup_redirect_uri_result (void *cls,
   struct GNUNET_CRYPTO_EcdsaPublicKey redirect_zone;
 
   handle->gns_op = NULL;
-  if (1 != rd_count)
+  if (0 == rd_count)
   {
     handle->emsg = GNUNET_strdup("server_error");
     handle->edesc = GNUNET_strdup("Server cannot generate ticket, redirect uri not found.");
     GNUNET_SCHEDULER_add_now (&do_redirect_error, handle);
     return;
   }
-  tmp = GNUNET_strdup (rd->data);
-  pos = strrchr (tmp,
-                 (unsigned char) '.');
-  *pos = '\0';
-  handle->redirect_prefix = GNUNET_strdup (tmp);
-  tmp_key_str = pos + 1;
-  pos = strchr (tmp_key_str,
-                (unsigned char) '/');
-  *pos = '\0';
-  handle->redirect_suffix = GNUNET_strdup (pos + 1);
-  
-  GNUNET_STRINGS_string_to_data (tmp_key_str,
-                                 strlen (tmp_key_str),
-                                 &redirect_zone,
-                                 sizeof (redirect_zone));
+  for (int i = 0; i < rd_count; i++)
+  {
+    if (0 != strcmp (rd[0].data,
+                     handle->oidc->redirect_uri))
+      continue;
+    tmp = GNUNET_strdup (rd[0].data);
+    pos = strrchr (tmp,
+                   (unsigned char) '.');
+    *pos = '\0';
+    handle->redirect_prefix = GNUNET_strdup (tmp);
+    tmp_key_str = pos + 1;
+    pos = strchr (tmp_key_str,
+                  (unsigned char) '/');
+    *pos = '\0';
+    handle->redirect_suffix = GNUNET_strdup (pos + 1);
 
-  GNUNET_NAMESTORE_zone_to_name (handle->namestore_handle,
-                                 &handle->priv_key,
-                                 &redirect_zone,
-                                 &get_client_name_error,
-                                 handle,
-                                 &get_client_name_result,
-                                 handle);
-  GNUNET_free (tmp);
+    GNUNET_STRINGS_string_to_data (tmp_key_str,
+                                   strlen (tmp_key_str),
+                                   &redirect_zone,
+                                   sizeof (redirect_zone));
 
+    GNUNET_NAMESTORE_zone_to_name (handle->namestore_handle,
+                                   &handle->priv_key,
+                                   &redirect_zone,
+                                   &get_client_name_error,
+                                   handle,
+                                   &get_client_name_result,
+                                   handle);
+    GNUNET_free (tmp);
+    return;
+  }
+  handle->emsg = GNUNET_strdup("server_error");
+  handle->edesc = GNUNET_strdup("Server cannot generate ticket, redirect uri not found.");
+  GNUNET_SCHEDULER_add_now (&do_redirect_error, handle);
 }
 
 /**
@@ -940,9 +949,9 @@ oidc_ticket_issue_cb (void* cls,
     return;
   }
   handle->gns_op = GNUNET_GNS_lookup (handle->gns_handle,
-                                      handle->oidc->redirect_uri,
+                                      "+",
                                       &handle->oidc->client_pkey,
-                                      GNUNET_DNSPARSER_TYPE_TXT,
+                                      GNUNET_GNSRECORD_TYPE_RECLAIM_OIDC_REDIRECT,
                                       GNUNET_GNS_LO_DEFAULT,
                                       &lookup_redirect_uri_result,
                                       handle);

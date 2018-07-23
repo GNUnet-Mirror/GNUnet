@@ -57,6 +57,8 @@ value_to_string (void *cls,
       return GNUNET_strndup (data, data_size);
     case GNUNET_GNSRECORD_TYPE_ABE_KEY:
     case GNUNET_GNSRECORD_TYPE_ABE_MASTER:
+    case GNUNET_GNSRECORD_TYPE_RECLAIM_OIDC_REDIRECT:
+    case GNUNET_GNSRECORD_TYPE_RECLAIM_OIDC_CLIENT:
       return GNUNET_STRINGS_data_to_string_alloc (data, data_size); 
     case GNUNET_GNSRECORD_TYPE_ID_TOKEN_METADATA: //DEPRECATED
         ecdhe_privkey = data;
@@ -118,6 +120,8 @@ string_to_value (void *cls,
       return GNUNET_OK;
     case GNUNET_GNSRECORD_TYPE_ABE_KEY:
     case GNUNET_GNSRECORD_TYPE_ABE_MASTER:
+    case GNUNET_GNSRECORD_TYPE_RECLAIM_OIDC_CLIENT:
+    case GNUNET_GNSRECORD_TYPE_RECLAIM_OIDC_REDIRECT:
       return GNUNET_STRINGS_string_to_data (s,
                                             strlen (s),
                                             *data,
@@ -181,6 +185,8 @@ static struct {
   { "ABE_KEY", GNUNET_GNSRECORD_TYPE_ABE_KEY },
   { "ABE_MASTER", GNUNET_GNSRECORD_TYPE_ABE_MASTER },
   { "ID_TOKEN_METADATA", GNUNET_GNSRECORD_TYPE_ID_TOKEN_METADATA },
+  { "RECLAIM_OIDC_CLIENT", GNUNET_GNSRECORD_TYPE_RECLAIM_OIDC_CLIENT },
+  { "RECLAIM_OIDC_REDIRECT", GNUNET_GNSRECORD_TYPE_RECLAIM_OIDC_REDIRECT },
   { NULL, UINT32_MAX }
 };
 
