@@ -895,10 +895,12 @@ lookup_redirect_uri_result (void *cls,
   }
   for (int i = 0; i < rd_count; i++)
   {
-    if (0 != strcmp (rd[0].data,
+    if (GNUNET_GNSRECORD_TYPE_RECLAIM_OIDC_REDIRECT != rd[i].record_type)
+      continue;
+    if (0 != strcmp (rd[i].data,
                      handle->oidc->redirect_uri))
       continue;
-    tmp = GNUNET_strdup (rd[0].data);
+    tmp = GNUNET_strdup (rd[i].data);
     pos = strrchr (tmp,
                    (unsigned char) '.');
     *pos = '\0';
