@@ -226,7 +226,7 @@ OIDC_build_authz_code (const struct GNUNET_CRYPTO_EcdsaPrivateKey *issuer,
           ticket,
           sizeof (struct GNUNET_RECLAIM_Ticket));
   if (NULL != nonce)
-    memcpy (&purpose[1] + sizeof (struct GNUNET_RECLAIM_Ticket),
+    memcpy (((char*)&purpose[1]) + sizeof (struct GNUNET_RECLAIM_Ticket),
             nonce,
             strlen (nonce));
   if (GNUNET_SYSERR == GNUNET_CRYPTO_ecdsa_sign (issuer,
@@ -365,7 +365,7 @@ OIDC_parse_authz_code (const struct GNUNET_CRYPTO_EcdsaPublicKey *audience,
   }
   if (NULL != nonce_str)
     memcpy (nonce_str,
-            &purpose[1] + sizeof (struct GNUNET_RECLAIM_Ticket),
+            ((char*)&purpose[1]) + sizeof (struct GNUNET_RECLAIM_Ticket),
             strlen (nonce_str));
   if (GNUNET_OK != GNUNET_CRYPTO_ecdsa_verify (GNUNET_SIGNATURE_PURPOSE_RECLAIM_CODE_SIGN,
                                                purpose,
