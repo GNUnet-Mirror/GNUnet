@@ -115,7 +115,7 @@ string_to_value (void *cls,
                                             *data,
                                             *data_size);
     case GNUNET_GNSRECORD_TYPE_ID_TOKEN:
-    case GNUNET_GNSRECORD_TYPE_RECLAIM_OIDC_CLIENT:
+    case GNUNET_GNSRECORD_TYPE_RECLAIM_OIDC_REDIRECT:
     case GNUNET_GNSRECORD_TYPE_RECLAIM_OIDC_CLIENT:
       *data = GNUNET_strdup (s);
       *data_size = strlen (s);
