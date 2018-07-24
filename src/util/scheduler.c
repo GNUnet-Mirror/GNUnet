@@ -965,8 +965,6 @@ GNUNET_SCHEDULER_cancel (struct GNUNET_SCHEDULER_Task *task)
 
   /* scheduler must be running */
   GNUNET_assert (NULL != scheduler_driver);
-  GNUNET_assert ( (NULL != active_task) ||
-      (GNUNET_NO == task->lifeness) );
   is_fd_task = (NULL != task->fds);
   if (is_fd_task)
   {
@@ -1056,9 +1054,9 @@ GNUNET_SCHEDULER_add_with_reason_and_priority (GNUNET_SCHEDULER_TaskCallback tas
 {
   struct GNUNET_SCHEDULER_Task *t;
 
+  /* scheduler must be running */
+  GNUNET_assert (NULL != scheduler_driver);
   GNUNET_assert (NULL != task);
-  GNUNET_assert ((NULL != active_task) ||
-                 (GNUNET_SCHEDULER_REASON_STARTUP == reason));
   t = GNUNET_new (struct GNUNET_SCHEDULER_Task);
   t->read_fd = -1;
   t->write_fd = -1;
@@ -1099,7 +1097,8 @@ GNUNET_SCHEDULER_add_at_with_priority (struct GNUNET_TIME_Absolute at,
   struct GNUNET_SCHEDULER_Task *pos;
   struct GNUNET_SCHEDULER_Task *prev;
 
-  GNUNET_assert (NULL != active_task);
+  /* scheduler must be running */
+  GNUNET_assert (NULL != scheduler_driver);
   GNUNET_assert (NULL != task);
   t = GNUNET_new (struct GNUNET_SCHEDULER_Task);
   t->callback = task;
@@ -1286,7 +1285,8 @@ GNUNET_SCHEDULER_add_shutdown (GNUNET_SCHEDULER_TaskCallback task,
 {
   struct GNUNET_SCHEDULER_Task *t;
 
-  GNUNET_assert (NULL != active_task);
+  /* scheduler must be running */
+  GNUNET_assert (NULL != scheduler_driver);
   GNUNET_assert (NULL != task);
   t = GNUNET_new (struct GNUNET_SCHEDULER_Task);
   t->callback = task;
@@ -1403,7 +1403,8 @@ add_without_sets (struct GNUNET_TIME_Relative delay,
 {
   struct GNUNET_SCHEDULER_Task *t;
 
-  GNUNET_assert (NULL != active_task);
+  /* scheduler must be running */
+  GNUNET_assert (NULL != scheduler_driver);
   GNUNET_assert (NULL != task);
   t = GNUNET_new (struct GNUNET_SCHEDULER_Task);
   init_fd_info (t,
@@ -1832,7 +1833,6 @@ GNUNET_SCHEDULER_add_select (enum GNUNET_SCHEDULER_Priority prio,
 
   /* scheduler must be running */
   GNUNET_assert (NULL != scheduler_driver);
-  GNUNET_assert (NULL != active_task);
   GNUNET_assert (NULL != task);
   int no_rs = (NULL == rs);
   int no_ws = (NULL == ws);
@@ -2164,12 +2164,12 @@ struct GNUNET_SCHEDULER_Handle *
 GNUNET_SCHEDULER_driver_init (const struct GNUNET_SCHEDULER_Driver *driver)
 {
   struct GNUNET_SCHEDULER_Handle *sh;
-  struct GNUNET_SCHEDULER_Task tsk;
   const struct GNUNET_DISK_FileHandle *pr;
 
-  /* general set-up */
-  GNUNET_assert (NULL == active_task);
+  /* scheduler must not be running */
+  GNUNET_assert (NULL == scheduler_driver);
   GNUNET_assert (NULL == shutdown_pipe_handle);
+  /* general set-up */
   sh = GNUNET_new (struct GNUNET_SCHEDULER_Handle);
   shutdown_pipe_handle = GNUNET_DISK_pipe (GNUNET_NO,
                                            GNUNET_NO,
@@ -2204,10 +2204,6 @@ GNUNET_SCHEDULER_driver_init (const struct GNUNET_SCHEDULER_Driver *driver)
   /* Setup initial tasks */
   current_priority = GNUNET_SCHEDULER_PRIORITY_DEFAULT;
   current_lifeness = GNUNET_NO;
-  memset (&tsk,
-          0,
-          sizeof (tsk));
-  active_task = &tsk;
   install_parent_control_task =
     GNUNET_SCHEDULER_add_now (&install_parent_control_handler,
                               NULL);
@@ -2217,7 +2213,6 @@ GNUNET_SCHEDULER_driver_init (const struct GNUNET_SCHEDULER_Driver *driver)
                                     &shutdown_pipe_cb,
                                     NULL);
   current_lifeness = GNUNET_YES;
-  active_task = NULL;
   scheduler_driver->set_wakeup (scheduler_driver->cls,
                                 get_timeout ());
   /* begin main event loop */
