@@ -2,20 +2,18 @@
  This file is part of GNUnet.
  Copyright (C) 2012-2015 GNUnet e.V.
 
- GNUnet is free software; you can redistribute it and/or modify
- it under the terms of the GNU General Public License as published
- by the Free Software Foundation; either version 3, or (at your
- option) any later version.
+   GNUnet is free software: you can redistribute it and/or modify it
+   under the terms of the GNU Affero General Public License as published
+   by the Free Software Foundation, either version 3 of the License,
+   or (at your option) any later version.
 
- GNUnet is distributed in the hope that it will be useful, but
- WITHOUT ANY WARRANTY; without even the implied warranty of
- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- General Public License for more details.
+   GNUnet is distributed in the hope that it will be useful, but
+   WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   Affero General Public License for more details.
 
- You should have received a copy of the GNU General Public License
- along with GNUnet; see the file COPYING.  If not, write to the
- Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
- Boston, MA 02110-1301, USA.
+   You should have received a copy of the GNU Affero General Public License
+   along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 /**
  * @author Martin Schanzenbach
@@ -202,8 +200,9 @@ struct RequestHandle
  * @param handle Handle to clean up
  */
 static void
-cleanup_handle (struct RequestHandle *handle)
+cleanup_handle (void *cls)
 {
+  struct RequestHandle *handle = cls;
   struct EgoEntry *ego_entry;
   struct EgoEntry *ego_tmp;
 
@@ -248,20 +247,22 @@ do_error (void *cls)
 {
   struct RequestHandle *handle = cls;
   struct MHD_Response *resp;
-  char *json_error;
+  json_t *json_error = json_object();
+  char *response;
 
   if (NULL == handle->emsg)
     handle->emsg = GNUNET_strdup(GNUNET_REST_ERROR_UNKNOWN);
 
-  GNUNET_asprintf (&json_error, "{\"error\": \"%s\"}", handle->emsg);
+  json_object_set_new(json_error,"error", json_string(handle->emsg));
 
   if (0 == handle->response_code)
     handle->response_code = MHD_HTTP_OK;
-
-  resp = GNUNET_REST_create_response (json_error);
+  response = json_dumps (json_error, 0);
+  resp = GNUNET_REST_create_response (response);
   handle->proc (handle->proc_cls, resp, handle->response_code);
-  cleanup_handle (handle);
-  GNUNET_free(json_error);
+  json_decref(json_error);
+  GNUNET_free(response);
+  GNUNET_SCHEDULER_add_now (&cleanup_handle, handle);
 }
 
 /**
@@ -306,7 +307,7 @@ ego_get_for_subsystem (void *cls, struct GNUNET_IDENTITY_Ego *ego, void **ctx,
   handle->proc (handle->proc_cls, resp, MHD_HTTP_OK);
   GNUNET_free(result_str);
   GNUNET_free(public_key_string);
-  cleanup_handle (handle);
+  GNUNET_SCHEDULER_add_now (&cleanup_handle, handle);
 }
 
 /**
@@ -420,7 +421,7 @@ ego_get (struct GNUNET_REST_RequestHandle *con_handle, const char* url,
   json_decref (json_root);
   handle->proc (handle->proc_cls, resp, MHD_HTTP_OK);
   GNUNET_free(result_str);
-  cleanup_handle (handle);
+  GNUNET_SCHEDULER_add_now (&cleanup_handle, handle);
 }
 
 /**
@@ -444,7 +445,7 @@ do_finished (void *cls, const char *emsg)
   }
   resp = GNUNET_REST_create_response (NULL);
   handle->proc (handle->proc_cls, resp, handle->response_code);
-  cleanup_handle (handle);
+  GNUNET_SCHEDULER_add_now (&cleanup_handle, handle);
 }
 
 /**
@@ -530,7 +531,7 @@ ego_edit (struct GNUNET_REST_RequestHandle *con_handle, const char* url,
     json_decref (data_js);
     resp = GNUNET_REST_create_response (NULL);
     handle->proc (handle->proc_cls, resp, MHD_HTTP_NOT_FOUND);
-    cleanup_handle (handle);
+    GNUNET_SCHEDULER_add_now (&cleanup_handle, handle);
     return;
   }
   //This is a rename
@@ -555,7 +556,7 @@ ego_edit (struct GNUNET_REST_RequestHandle *con_handle, const char* url,
 	json_decref (data_js);
 	resp = GNUNET_REST_create_response (NULL);
 	handle->proc (handle->proc_cls, resp, MHD_HTTP_CONFLICT);
-	cleanup_handle (handle);
+	GNUNET_SCHEDULER_add_now (&cleanup_handle, handle);
 	return;
       }
     }
@@ -677,7 +678,7 @@ ego_create (struct GNUNET_REST_RequestHandle *con_handle, const char* url,
       json_decref (data_js);
       resp = GNUNET_REST_create_response (NULL);
       handle->proc (handle->proc_cls, resp, MHD_HTTP_CONFLICT);
-      cleanup_handle (handle);
+      GNUNET_SCHEDULER_add_now (&cleanup_handle, handle);
       return;
     }
   }
@@ -732,7 +733,7 @@ ego_delete (struct GNUNET_REST_RequestHandle *con_handle, const char* url,
   {
     resp = GNUNET_REST_create_response (NULL);
     handle->proc (handle->proc_cls, resp, MHD_HTTP_NOT_FOUND);
-    cleanup_handle (handle);
+    GNUNET_SCHEDULER_add_now (&cleanup_handle, handle);
     return;
   }
   handle->response_code = MHD_HTTP_NO_CONTENT;
@@ -760,7 +761,7 @@ options_cont (struct GNUNET_REST_RequestHandle *con_handle, const char* url,
   resp = GNUNET_REST_create_response (NULL);
   MHD_add_response_header (resp, "Access-Control-Allow-Methods", allow_methods);
   handle->proc (handle->proc_cls, resp, MHD_HTTP_OK);
-  cleanup_handle (handle);
+  GNUNET_SCHEDULER_add_now (&cleanup_handle, handle);
   return;
 }
 
