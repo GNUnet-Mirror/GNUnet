@@ -447,6 +447,14 @@ GNUNET_GNSRECORD_records_deserialize (size_t len,
 				      unsigned int rd_count,
 				      struct GNUNET_GNSRECORD_Data *dest);
 
+/**
+ * JSON Specification for GNS Records.
+ *
+ * @param gnsrecord_object struct of GNUNET_GNSRECORD_Data to fill
+ * @return JSON Specification
+ */
+struct GNUNET_JSON_Specification
+GNUNET_JSON_spec_gnsrecord_data (struct GNUNET_GNSRECORD_Data **gnsrecord_object);
 
 /* ******* general APIs relating to blocks, records and labels ******** */
 

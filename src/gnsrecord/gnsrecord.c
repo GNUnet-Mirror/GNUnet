@@ -28,7 +28,9 @@
 #include "gnunet_constants.h"
 #include "gnunet_gnsrecord_lib.h"
 #include "gnunet_gnsrecord_plugin.h"
+#include "gnunet_json_lib.h"
 #include "gnunet_tun_lib.h"
+#include <jansson.h>
 
 
 #define LOG(kind,...) GNUNET_log_from (kind, "gnsrecord",__VA_ARGS__)
@@ -245,5 +247,130 @@ GNUNET_GNSRECORD_number_to_typename (uint32_t type)
   return NULL;
 }
 
+/**
+ * Parse given JSON object to gns record
+ *
+ * @param cls closure, NULL
+ * @param root the json object representing data
+ * @param spec where to write the data
+ * @return #GNUNET_OK upon successful parsing; #GNUNET_SYSERR upon error
+ */
+static int
+parse_gnsrecordobject (void *cls,
+		       json_t *root,
+		       struct GNUNET_JSON_Specification *spec)
+{
+  struct GNUNET_GNSRECORD_Data *gnsrecord_object;
+  struct GNUNET_TIME_Absolute abs_expiration_time;
+  int unpack_state=0;
+  const char *data;
+  const char *expiration_date;
+  const char *record_type;
+  const char *dummy_value;
+  int flag;
+  void *rdata;
+  size_t rdata_size;
+
+  if(!json_is_object(root))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		"Error json is not array nor object!\n");
+    return GNUNET_SYSERR;
+  }
+  //interpret single gns record
+  unpack_state = json_unpack(root,
+			     "{s:s, s:s, s:s, s?:i, s:s!}",
+			     "value", &data,
+			     "type", &record_type,
+			     "expiration_time", &expiration_date,
+			     "flag", &flag,
+			     "label", &dummy_value);
+  GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
+	     "{value:%s, type:%s, expire:%s, flag:%i}",
+	     data,
+	     record_type,
+	     expiration_date,
+	     flag);
+  if (GNUNET_SYSERR == unpack_state)
+  {
+    GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
+	       "Error json object has a wrong format!\n");
+    return GNUNET_SYSERR;
+  }
+  //TODO test
+  gnsrecord_object = GNUNET_new (struct GNUNET_GNSRECORD_Data);
+  gnsrecord_object->record_type = GNUNET_GNSRECORD_typename_to_number(record_type);
+  if (GNUNET_OK
+      != GNUNET_GNSRECORD_string_to_value (gnsrecord_object->record_type,
+					   data, &rdata,
+					   &rdata_size))
+  {
+    GNUNET_log(GNUNET_ERROR_TYPE_ERROR,"Value invalid for record type");
+    return GNUNET_SYSERR;
+  }
+  gnsrecord_object->data = rdata;
+  gnsrecord_object->data_size = rdata_size;
+
+  if (0 == strcmp (expiration_date, "never"))
+  {
+    gnsrecord_object->expiration_time = GNUNET_TIME_UNIT_FOREVER_ABS.abs_value_us;
+  }
+  else if (GNUNET_OK
+      == GNUNET_STRINGS_fancy_time_to_absolute (expiration_date,
+						&abs_expiration_time))
+  {
+    gnsrecord_object->expiration_time = abs_expiration_time.abs_value_us;
+  }
+  else
+  {
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Value invalid for record type");
+    return GNUNET_SYSERR;
+  }
+  gnsrecord_object->flags = (enum GNUNET_GNSRECORD_Flags)flag;
+  *(struct GNUNET_GNSRECORD_Data **) spec->ptr = gnsrecord_object;
+  return GNUNET_OK;
+}
+
+/**
+ * Cleanup data left from parsing RSA public key.
+ *
+ * @param cls closure, NULL
+ * @param[out] spec where to free the data
+ */
+static void
+clean_gnsrecordobject (void *cls, struct GNUNET_JSON_Specification *spec)
+{
+  struct GNUNET_GNSRECORD_Data **gnsrecord_object;
+  gnsrecord_object = (struct GNUNET_GNSRECORD_Data **) spec->ptr;
+  if (NULL != *gnsrecord_object)
+  {
+    if (NULL != (*gnsrecord_object)->data)
+      GNUNET_free((char*)(*gnsrecord_object)->data);
+    GNUNET_free(*gnsrecord_object);
+    *gnsrecord_object = NULL;
+  }
+}
+
+/**
+ * JSON Specification for GNS Records.
+ *
+ * @param gnsrecord_object struct of GNUNET_GNSRECORD_Data to fill
+ * @return JSON Specification
+ */
+struct GNUNET_JSON_Specification
+GNUNET_JSON_spec_gnsrecord_data (struct GNUNET_GNSRECORD_Data **gnsrecord_object)
+{
+  struct GNUNET_JSON_Specification ret = {
+    .parser = &parse_gnsrecordobject,
+    .cleaner = &clean_gnsrecordobject,
+    .cls = NULL,
+    .field = NULL,
+    .ptr = gnsrecord_object,
+    .ptr_size = 0,
+    .size_ptr = NULL
+  };
+  *gnsrecord_object = NULL;
+  return ret;
+}
 
 /* end of gnsrecord.c */

@@ -2,20 +2,18 @@
    This file is part of GNUnet.
    Copyright (C) 2012-2015 GNUnet e.V.
 
-   GNUnet is free software; you can redistribute it and/or modify
-   it under the terms of the GNU General Public License as published
-   by the Free Software Foundation; either version 3, or (at your
-   option) any later version.
+   GNUnet is free software: you can redistribute it and/or modify it
+   under the terms of the GNU Affero General Public License as published
+   by the Free Software Foundation, either version 3 of the License,
+   or (at your option) any later version.
 
    GNUnet is distributed in the hope that it will be useful, but
    WITHOUT ANY WARRANTY; without even the implied warranty of
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-   General Public License for more details.
+   Affero General Public License for more details.
 
-   You should have received a copy of the GNU General Public License
-   along with GNUnet; see the file COPYING.  If not, write to the
-   Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
-   Boston, MA 02110-1301, USA.
+   You should have received a copy of the GNU Affero General Public License
+   along with this program.  If not, see <http://www.gnu.org/licenses/>.
    */
 /**
  * @author Martin Schanzenbach
@@ -42,6 +40,7 @@
 #define GNUNET_REST_JSON_NAMESTORE_VALUE "value"
 #define GNUNET_REST_JSON_NAMESTORE_EXPIRATION "expiration"
 #define GNUNET_REST_JSON_NAMESTORE_EXPIRED "expired"
+#define GNUNET_REST_ERROR_UNKNOWN "Unknown Error"
 
 #define GNUNET_REST_NAMESTORE_RD_COUNT 1
 
@@ -96,17 +95,17 @@ struct RequestHandle
   /**
    * Records to store
    */
+  char *label_name;
+
+  /**
+   * Records to store
+   */
   struct GNUNET_GNSRECORD_Data *rd;
 
   /**
    * NAMESTORE Operation
    */
   struct GNUNET_NAMESTORE_QueueEntry *add_qe;
-
-  /**
-   * JSON data parser
-   */
-  struct GNUNET_REST_JSON_Data *json_data;
 
   /**
    * Response object
@@ -192,8 +191,9 @@ struct RequestHandle
  * @param handle Handle to clean up
  */
 static void
-cleanup_handle (struct RequestHandle *handle)
+cleanup_handle (void *cls)
 {
+  struct RequestHandle *handle = cls;
   size_t index;
   json_t *json_ego;
 
@@ -204,6 +204,8 @@ cleanup_handle (struct RequestHandle *handle)
     GNUNET_SCHEDULER_cancel (handle->timeout_task);
     handle->timeout_task = NULL;
   }
+  if (NULL != handle->label_name)
+    GNUNET_free(handle->label_name);
   if (NULL != handle->url)
     GNUNET_free(handle->url);
   if (NULL != handle->emsg)
@@ -243,9 +245,6 @@ cleanup_handle (struct RequestHandle *handle)
     }
     json_decref(handle->resp_object);
   }
-  
-  if (NULL != handle->json_data)
-    GNUNET_REST_JSON_free(handle->json_data);
 
   GNUNET_free (handle);
 }
@@ -261,20 +260,22 @@ do_error (void *cls)
 {
   struct RequestHandle *handle = cls;
   struct MHD_Response *resp;
-  char *json_error;
+  json_t *json_error = json_object();
+  char *response;
 
   if (NULL == handle->emsg)
-    handle->emsg = GNUNET_strdup("Unknown Error");
+    handle->emsg = GNUNET_strdup(GNUNET_REST_ERROR_UNKNOWN);
 
-  GNUNET_asprintf (&json_error, "{\"error\": \"%s\"}", handle->emsg);
-  
+  json_object_set_new(json_error,"error", json_string(handle->emsg));
+
   if (0 == handle->response_code)
     handle->response_code = MHD_HTTP_OK;
-
-  resp = GNUNET_REST_create_response (json_error);
+  response = json_dumps (json_error, 0);
+  resp = GNUNET_REST_create_response (response);
   handle->proc (handle->proc_cls, resp, handle->response_code);
-  cleanup_handle (handle);
-  GNUNET_free(json_error);
+  json_decref(json_error);
+  GNUNET_free(response);
+  GNUNET_SCHEDULER_add_now (&cleanup_handle, handle);
 }
 
 /**
@@ -287,7 +288,7 @@ namestore_iteration_error (void *cls)
   struct MHD_Response *resp = GNUNET_REST_create_response (NULL);
   handle->response_code = MHD_HTTP_INTERNAL_SERVER_ERROR;
   handle->proc (handle->proc_cls, resp, handle->response_code);
-  cleanup_handle (handle);
+  GNUNET_SCHEDULER_add_now (&cleanup_handle, handle);
 }
 
 /**
@@ -360,7 +361,7 @@ create_finished (void *cls, int32_t success, const char *emsg)
   }
   resp = GNUNET_REST_create_response (NULL);
   handle->proc (handle->proc_cls, resp, MHD_HTTP_NO_CONTENT);
-  cleanup_handle(handle);
+  GNUNET_SCHEDULER_add_now (&cleanup_handle, handle);
 }
 
 /**
@@ -391,7 +392,7 @@ namestore_list_finished (void *cls)
   resp = GNUNET_REST_create_response (result_str);
   handle->proc (handle->proc_cls, resp, MHD_HTTP_OK);
   GNUNET_free_non_null (result_str);
-  cleanup_handle(handle);
+  GNUNET_SCHEDULER_add_now (&cleanup_handle, handle);
 }
 
 
@@ -476,34 +477,7 @@ namestore_get (struct GNUNET_REST_RequestHandle *con_handle,
                                                            &namestore_list_finished,
                                                            handle);
 }
-
-int
-check_needed_data(struct RequestHandle *handle){
-  if(NULL == handle->json_data->name)
-  {
-    handle->emsg = GNUNET_strdup("Missing JSON parameter: name");
-    return GNUNET_SYSERR;
-  }
-
-  if(NULL == handle->json_data->type)
-  {
-    handle->emsg = GNUNET_strdup("Missing JSON parameter: type");
-    return GNUNET_SYSERR;
-  }
-
-  if(NULL == handle->json_data->value)
-  {
-    handle->emsg = GNUNET_strdup("Missing JSON parameter: value");
-    return GNUNET_SYSERR;
-  }
-
-  if(NULL == handle->json_data->expiration_time)
-  {
-    handle->emsg = GNUNET_strdup("Missing JSON parameter: expiration time");
-    return GNUNET_SYSERR;
-  }
-  return GNUNET_OK;
-}
+/*
 
 //TODO filter input
 static int
@@ -544,7 +518,7 @@ json_to_gnsrecord (struct RequestHandle *handle)
    rde->flags |= GNUNET_GNSRECORD_RF_SHADOW_RECORD;
    if (1 != handle->is_public)
    rde->flags |= GNUNET_GNSRECORD_RF_PRIVATE;
-   */
+   *
   if (0 == strcmp (handle->json_data->expiration_time, "never"))
   {
     (*handle->rd).expiration_time = GNUNET_TIME_UNIT_FOREVER_ABS.abs_value_us;
@@ -569,7 +543,7 @@ json_to_gnsrecord (struct RequestHandle *handle)
   }
   return GNUNET_OK;
 }
-
+*/
 
 /**
  * We're storing a new record; this requires
@@ -590,8 +564,9 @@ create_new_record_cont (void *cls,
 {
   struct RequestHandle *handle = cls;
 
+
   handle->add_qe = NULL;
-  if (0 != strcmp (rec_name, handle->json_data->name))
+  if (0 != strcmp (rec_name, handle->label_name))
   {
     GNUNET_break (0);
     do_error (handle);
@@ -603,18 +578,17 @@ create_new_record_cont (void *cls,
     handle->proc (handle->proc_cls,
                   GNUNET_REST_create_response (NULL),
                   MHD_HTTP_CONFLICT);
-    cleanup_handle(handle);
+    GNUNET_SCHEDULER_add_now (&cleanup_handle, handle);
     return;
   }
   handle->add_qe = GNUNET_NAMESTORE_records_store (handle->ns_handle,
                                                    &handle->zone_pkey,
-                                                   handle->json_data->name,
+                                                   handle->label_name,
                                                    GNUNET_REST_NAMESTORE_RD_COUNT,
                                                    handle->rd,
                                                    &create_finished,
                                                    handle);
 }
-
 
 /**
  * Handle namestore POST request
@@ -629,9 +603,15 @@ namestore_add (struct GNUNET_REST_RequestHandle *con_handle,
 	       void *cls)
 {
   struct RequestHandle *handle = cls;
+  struct GNUNET_GNSRECORD_Data *gns_record;
   json_t *data_js;
+  json_t *name_json;
   json_error_t err;
   char term_data[handle->rest_handle->data_size + 1];
+  struct GNUNET_JSON_Specification gnsspec[] = {
+    GNUNET_JSON_spec_gnsrecord_data(&gns_record),
+    GNUNET_JSON_spec_end ()
+  };
 
   if (strlen (GNUNET_REST_API_NS_NAMESTORE) != strlen (handle->url))
   {
@@ -649,24 +629,26 @@ namestore_add (struct GNUNET_REST_RequestHandle *con_handle,
   GNUNET_memcpy(term_data, handle->rest_handle->data,
 		handle->rest_handle->data_size);
   data_js = json_loads (term_data, JSON_DECODE_ANY, &err);
-  GNUNET_REST_JSON_parse(&handle->json_data, data_js);
-  if(NULL == handle->json_data)
+  GNUNET_assert (GNUNET_OK == GNUNET_JSON_parse (data_js, gnsspec, NULL, NULL));
+  name_json = json_object_get(data_js, "label");
+  if (!json_is_string(name_json))
   {
-    handle->emsg = GNUNET_strdup("Wrong data");
+    handle->emsg = GNUNET_strdup("Missing name");
     GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
   }
-  if(GNUNET_SYSERR == check_needed_data(handle))
+  handle->label_name = GNUNET_strdup(json_string_value(name_json));
+  if(NULL == handle->label_name)
   {
-    json_decref (data_js);
+    handle->emsg = GNUNET_strdup("Missing name");
     GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
   }
   json_decref (data_js);
-  json_to_gnsrecord (handle);
+  handle->rd = gns_record;
   handle->add_qe = GNUNET_NAMESTORE_records_lookup (handle->ns_handle,
 						    &handle->zone_pkey,
-						    handle->json_data->name,
+						    handle->label_name,
 						    &do_error,
 						    handle,
 						    &create_new_record_cont,
@@ -718,7 +700,7 @@ options_cont (struct GNUNET_REST_RequestHandle *con_handle,
                            "Access-Control-Allow-Methods",
                            allow_methods);
   handle->proc (handle->proc_cls, resp, MHD_HTTP_OK);
-  cleanup_handle (handle);
+  GNUNET_SCHEDULER_add_now (&cleanup_handle, handle);
   return;
 }
 
