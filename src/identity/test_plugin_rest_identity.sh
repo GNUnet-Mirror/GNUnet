@@ -84,6 +84,12 @@ fi
 
 id="$(gnunet-identity -d | grep "Test - " | sed  "s/Test - //g")"
 #Test GET (one identity) for success and error json
+cache="$(curl --silent "${link_to_api}?name=Test" | grep "error")"
+if [ "" != "$cache" ]
+then
+    exit 1
+fi
+#Test GET (one identity) for success and error json
 cache="$(curl --silent "${link_to_api}?pubkey=$id" | grep "error")"
 if [ "" != "$cache" ]
 then

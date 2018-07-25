@@ -346,7 +346,8 @@ ego_get (struct GNUNET_REST_RequestHandle *con_handle, const char* url,
 	       handle->subsystem);
 
     handle->op = GNUNET_IDENTITY_get (handle->identity_handle,
-				      handle->subsystem, &ego_get_for_subsystem,
+				      handle->subsystem,
+				      &ego_get_for_subsystem,
 				      handle);
     if (NULL == handle->op)
     {
@@ -359,9 +360,10 @@ ego_get (struct GNUNET_REST_RequestHandle *con_handle, const char* url,
   egoname = NULL;
   keystring = NULL;
 
-  //if only one identity requested
+  //if only one identity requested with key
   GNUNET_CRYPTO_hash (GNUNET_REST_PARAM_PUBKEY,
-		      strlen (GNUNET_REST_PARAM_PUBKEY), &key);
+		      strlen (GNUNET_REST_PARAM_PUBKEY),
+		      &key);
   if ( GNUNET_YES
       == GNUNET_CONTAINER_multihashmap_contains (
 	  handle->rest_handle->url_param_map, &key))
@@ -376,6 +378,21 @@ ego_get (struct GNUNET_REST_RequestHandle *con_handle, const char* url,
 	  && (0 != strcmp (keystring, ego_entry->keystring)))
 	continue;
       egoname = ego_entry->identifier;
+    }
+  }
+
+  //if only one identity requested with name
+  if (NULL == egoname)
+  {
+    GNUNET_CRYPTO_hash (GNUNET_REST_PARAM_NAME,
+			strlen (GNUNET_REST_PARAM_NAME),
+			&key);
+    if ( GNUNET_YES
+	== GNUNET_CONTAINER_multihashmap_contains (
+	    handle->rest_handle->url_param_map, &key))
+    {
+      egoname = GNUNET_CONTAINER_multihashmap_get (
+	  handle->rest_handle->url_param_map, &key);
     }
   }
 
