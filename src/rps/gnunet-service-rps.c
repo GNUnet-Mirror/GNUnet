@@ -164,6 +164,11 @@ struct PendingMessage
 };
 
 /**
+ * @brief Context for a channel
+ */
+struct ChannelCtx;
+
+/**
  * Struct used to keep track of other peer's status
  *
  * This is stored in a multipeermap.
@@ -181,7 +186,7 @@ struct PeerContext
   /**
    * Channel open to client.
    */
-  struct GNUNET_CADET_Channel *send_channel;
+  struct ChannelCtx *send_channel_ctx;
 
   /**
    * Flags to the sending channel
@@ -191,7 +196,7 @@ struct PeerContext
   /**
    * Channel open from client.
    */
-  struct GNUNET_CADET_Channel *recv_channel; // unneeded?
+  struct ChannelCtx *recv_channel_ctx; // unneeded?
 
   /**
    * Flags to the receiving channel
@@ -263,6 +268,39 @@ struct PeersIteratorCls
    */
   void *cls;
 };
+
+/**
+ * @brief Context for a channel
+ */
+struct ChannelCtx
+{
+  /**
+   * @brief Meant to be used in a DLL
+   */
+  struct ChannelCtx *next;
+  struct ChannelCtx *prev;
+
+  /**
+   * @brief The channel itself
+   */
+  struct GNUNET_CADET_Channel *channel;
+
+  /**
+   * @brief The peer context associated with the channel
+   */
+  struct PeerContext *peer_ctx;
+
+  /**
+   * @brief Scheduled task that will destroy this context
+   */
+  struct GNUNET_SCHEDULER_Task *destruction_task;
+};
+
+/**
+ * @brief The DLL of channel contexts
+ */
+static struct ChannelCtx *channel_ctx_head;
+static struct ChannelCtx *channel_ctx_tail;
 
 /**
  * @brief Hashmap of valid peers.
@@ -387,8 +425,8 @@ Peers_check_connected (const struct GNUNET_PeerIdentity *peer)
   /* Get the context */
   peer_ctx = get_peer_ctx (peer);
   /* If we have no channel to this peer we don't know whether it's online */
-  if ( (NULL == peer_ctx->send_channel) &&
-       (NULL == peer_ctx->recv_channel) )
+  if ( (NULL == peer_ctx->send_channel_ctx) &&
+       (NULL == peer_ctx->recv_channel_ctx) )
   {
     Peers_unset_peer_flag (peer, Peers_ONLINE);
     return GNUNET_NO;
@@ -575,6 +613,24 @@ handle_peer_pull_reply (void *cls,
 
 /* End declaration of handlers */
 
+/**
+ * @brief Allocate memory for a new channel context and insert it into DLL
+ *
+ * @param peer_ctx context of the according peer
+ *
+ * @return The channel context
+ */
+static struct ChannelCtx *
+add_channel_ctx (struct PeerContext *peer_ctx);
+
+/**
+ * @brief Remove the channel context from the DLL and free the memory.
+ *
+ * @param channel_ctx The channel context.
+ */
+static void
+remove_channel_ctx (struct ChannelCtx *channel_ctx);
+
 
 /**
  * @brief Get the channel of a peer. If not existing, create.
@@ -610,16 +666,17 @@ get_channel (const struct GNUNET_PeerIdentity *peer)
 
 
   peer_ctx = get_peer_ctx (peer);
-  if (NULL == peer_ctx->send_channel)
+  if (NULL == peer_ctx->send_channel_ctx)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Trying to establish channel to peer %s\n",
          GNUNET_i2s (peer));
     ctx_peer = GNUNET_new (struct GNUNET_PeerIdentity);
     *ctx_peer = *peer;
-    peer_ctx->send_channel =
+    peer_ctx->send_channel_ctx = add_channel_ctx (peer_ctx);
+    peer_ctx->send_channel_ctx->channel =
       GNUNET_CADET_channel_create (cadet_handle,
-                                   (struct GNUNET_PeerIdentity *) ctx_peer, /* context */
+                                   peer_ctx->send_channel_ctx, /* context */
                                    peer,
                                    &port,
                                    GNUNET_CADET_OPTION_RELIABLE,
@@ -627,8 +684,9 @@ get_channel (const struct GNUNET_PeerIdentity *peer)
                                    cleanup_destroyed_channel, /* Disconnect handler */
                                    cadet_handlers);
   }
-  GNUNET_assert (NULL != peer_ctx->send_channel);
-  return peer_ctx->send_channel;
+  GNUNET_assert (NULL != peer_ctx->send_channel_ctx);
+  GNUNET_assert (NULL != peer_ctx->send_channel_ctx->channel);
+  return peer_ctx->send_channel_ctx->channel;
 }
 
 
@@ -1199,7 +1257,7 @@ Peers_check_removable (const struct GNUNET_PeerIdentity *peer)
   }
 
   peer_ctx = get_peer_ctx (peer);
-  if ( (NULL != peer_ctx->recv_channel) ||
+  if ( (NULL != peer_ctx->recv_channel_ctx) ||
        (NULL != peer_ctx->pending_messages_head) ||
        (GNUNET_NO == check_peer_flag_set (peer_ctx, Peers_PULL_REPLY_PENDING)) )
   {
@@ -1269,23 +1327,28 @@ Peers_remove_peer (const struct GNUNET_PeerIdentity *peer)
     peer_ctx->liveliness_check_pending = NULL;
   }
   channel_flag = Peers_get_channel_flag (peer, Peers_CHANNEL_ROLE_SENDING);
-  if (NULL != peer_ctx->send_channel &&
+  if (NULL != peer_ctx->send_channel_ctx &&
       GNUNET_YES != Peers_check_channel_flag (channel_flag, Peers_CHANNEL_DESTROING))
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
         "Destroying send channel\n");
-    GNUNET_CADET_channel_destroy (peer_ctx->send_channel);
-    peer_ctx->send_channel = NULL;
+    GNUNET_CADET_channel_destroy (peer_ctx->send_channel_ctx->channel);
+    remove_channel_ctx (peer_ctx->send_channel_ctx);
+    peer_ctx->send_channel_ctx = NULL;
     peer_ctx->mq = NULL;
   }
   channel_flag = Peers_get_channel_flag (peer, Peers_CHANNEL_ROLE_RECEIVING);
-  if (NULL != peer_ctx->recv_channel &&
+  if (NULL != peer_ctx->recv_channel_ctx &&
       GNUNET_YES != Peers_check_channel_flag (channel_flag, Peers_CHANNEL_DESTROING))
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
         "Destroying recv channel\n");
-    GNUNET_CADET_channel_destroy (peer_ctx->recv_channel);
-    peer_ctx->recv_channel = NULL;
+    GNUNET_CADET_channel_destroy (peer_ctx->recv_channel_ctx->channel);
+    if (NULL != peer_ctx->recv_channel_ctx)
+    {
+      remove_channel_ctx (peer_ctx->recv_channel_ctx);
+    }
+    peer_ctx->recv_channel_ctx = NULL;
   }
 
   GNUNET_free (peer_ctx->send_channel_flags);
@@ -1496,7 +1559,7 @@ Peers_check_peer_send_intention (const struct GNUNET_PeerIdentity *peer)
   const struct PeerContext *peer_ctx;
 
   peer_ctx = get_peer_ctx (peer);
-  if (NULL != peer_ctx->recv_channel)
+  if (NULL != peer_ctx->recv_channel_ctx)
   {
     return GNUNET_YES;
   }
@@ -1521,6 +1584,7 @@ Peers_handle_inbound_channel (void *cls,
 {
   struct PeerContext *peer_ctx;
   struct GNUNET_PeerIdentity *ctx_peer;
+  struct ChannelCtx *channel_ctx;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
       "New channel was established to us (Peer %s).\n",
@@ -1531,6 +1595,8 @@ Peers_handle_inbound_channel (void *cls,
   set_peer_live (peer_ctx);
   ctx_peer = GNUNET_new (struct GNUNET_PeerIdentity);
   *ctx_peer = *initiator;
+  channel_ctx = add_channel_ctx (peer_ctx);
+  channel_ctx->channel = channel;
   /* We only accept one incoming channel per peer */
   if (GNUNET_YES == Peers_check_peer_send_intention (initiator))
   {
@@ -1540,13 +1606,14 @@ Peers_handle_inbound_channel (void *cls,
     set_channel_flag (peer_ctx->recv_channel_flags,
                       Peers_CHANNEL_ESTABLISHED_TWICE);
     //GNUNET_CADET_channel_destroy (channel);
-    GNUNET_CADET_channel_destroy (peer_ctx->recv_channel);
-    peer_ctx->recv_channel = channel;
+    GNUNET_CADET_channel_destroy (peer_ctx->recv_channel_ctx->channel);
+    remove_channel_ctx (peer_ctx->recv_channel_ctx);
+    peer_ctx->recv_channel_ctx = channel_ctx;
     /* return the channel context */
-    return ctx_peer;
+    return channel_ctx;
   }
-  peer_ctx->recv_channel = channel;
-  return ctx_peer;
+  peer_ctx->recv_channel_ctx = channel_ctx;
+  return channel_ctx;
 }
 
 
@@ -1568,7 +1635,7 @@ Peers_check_sending_channel_exists (const struct GNUNET_PeerIdentity *peer)
     return GNUNET_NO;
   }
   peer_ctx = get_peer_ctx (peer);
-  if (NULL == peer_ctx->send_channel)
+  if (NULL == peer_ctx->send_channel_ctx)
   {
     return GNUNET_NO;
   }
@@ -1601,12 +1668,14 @@ Peers_check_channel_role (const struct GNUNET_PeerIdentity *peer,
   }
   peer_ctx = get_peer_ctx (peer);
   if ( (Peers_CHANNEL_ROLE_SENDING == role) &&
-       (channel == peer_ctx->send_channel) )
+       (NULL != peer_ctx->send_channel_ctx) &&
+       (channel == peer_ctx->send_channel_ctx->channel) )
   {
     return GNUNET_YES;
   }
   if ( (Peers_CHANNEL_ROLE_RECEIVING == role) &&
-       (channel == peer_ctx->recv_channel) )
+       (NULL != peer_ctx->recv_channel_ctx) &&
+       (channel == peer_ctx->recv_channel_ctx->channel) )
   {
     return GNUNET_YES;
   }
@@ -1636,16 +1705,45 @@ Peers_destroy_sending_channel (const struct GNUNET_PeerIdentity *peer)
     return GNUNET_NO;
   }
   peer_ctx = get_peer_ctx (peer);
-  if (NULL != peer_ctx->send_channel)
+  if (NULL != peer_ctx->send_channel_ctx)
   {
     set_channel_flag (peer_ctx->send_channel_flags, Peers_CHANNEL_CLEAN);
-    GNUNET_CADET_channel_destroy (peer_ctx->send_channel);
-    peer_ctx->send_channel = NULL;
+    GNUNET_CADET_channel_destroy (peer_ctx->send_channel_ctx->channel);
+    peer_ctx->send_channel_ctx = NULL;
     peer_ctx->mq = NULL;
     (void) Peers_check_connected (peer);
     return GNUNET_YES;
   }
   return GNUNET_NO;
+}
+
+static void
+destroy_channel (void *cls)
+{
+  struct ChannelCtx *channel_ctx = cls;
+  struct PeerContext *peer_ctx = channel_ctx->peer_ctx;
+  uint32_t *channel_flag;
+
+  channel_ctx = NULL;
+  GNUNET_CADET_channel_destroy (peer_ctx->send_channel_ctx->channel);
+  channel_flag = Peers_get_channel_flag (&peer_ctx->peer_id, Peers_CHANNEL_ROLE_SENDING);
+  Peers_set_channel_flag (channel_flag, Peers_CHANNEL_DESTROING);
+  remove_channel_ctx (peer_ctx->send_channel_ctx);
+  peer_ctx->send_channel_ctx = NULL;
+  if (channel_ctx == peer_ctx->send_channel_ctx)
+  {
+      peer_ctx->mq = NULL;
+  }
+}
+
+static void
+schedule_channel_destruction (struct ChannelCtx *channel_ctx)
+{
+  if (NULL != channel_ctx->destruction_task)
+  {
+    channel_ctx->destruction_task =
+      GNUNET_SCHEDULER_add_now (destroy_channel, channel_ctx);
+  }
 }
 
 /**
@@ -1658,9 +1756,9 @@ void
 Peers_cleanup_destroyed_channel (void *cls,
                                  const struct GNUNET_CADET_Channel *channel)
 {
-  struct GNUNET_PeerIdentity *peer = cls;
-  struct PeerContext *peer_ctx;
-  uint32_t *channel_flag;
+  struct ChannelCtx *channel_ctx = cls;
+  const struct GNUNET_PeerIdentity *peer = &channel_ctx->peer_ctx->peer_id;
+  struct PeerContext *peer_ctx = channel_ctx->peer_ctx;
 
   if (GNUNET_NO == Peers_check_peer_known (peer))
   {/* We don't want to implicitly create a context that we're about to kill */
@@ -1669,7 +1767,6 @@ Peers_cleanup_destroyed_channel (void *cls,
        GNUNET_i2s (peer));
     return;
   }
-  peer_ctx = get_peer_ctx (peer);
 
   /* If our peer issued the destruction of the channel, the #Peers_TO_DESTROY
    * flag will be set. In this case simply make sure that the channels are
@@ -1679,30 +1776,23 @@ Peers_cleanup_destroyed_channel (void *cls,
   {/* We initiatad the destruction of this particular peer */
     LOG (GNUNET_ERROR_TYPE_DEBUG,
         "Peer is in the process of being destroyed\n");
-    if (channel == peer_ctx->send_channel)
+    if (channel == channel_ctx->channel)
     {
-      peer_ctx->send_channel = NULL;
+      peer_ctx->send_channel_ctx = NULL;
       peer_ctx->mq = NULL;
     }
-    else if (channel == peer_ctx->recv_channel)
+    else if (channel == peer_ctx->recv_channel_ctx->channel)
     {
-      peer_ctx->recv_channel = NULL;
+      peer_ctx->recv_channel_ctx = NULL;
     }
 
-    if (NULL != peer_ctx->send_channel)
+    if (NULL != peer_ctx->send_channel_ctx)
     {
-      GNUNET_CADET_channel_destroy (peer_ctx->send_channel);
-      channel_flag = Peers_get_channel_flag (&peer_ctx->peer_id, Peers_CHANNEL_ROLE_SENDING);
-      Peers_set_channel_flag (channel_flag, Peers_CHANNEL_DESTROING);
-      peer_ctx->send_channel = NULL;
-      peer_ctx->mq = NULL;
+      schedule_channel_destruction (peer_ctx->send_channel_ctx);
     }
-    if (NULL != peer_ctx->recv_channel)
+    if (NULL != peer_ctx->recv_channel_ctx)
     {
-      GNUNET_CADET_channel_destroy (peer_ctx->recv_channel);
-      channel_flag = Peers_get_channel_flag (&peer_ctx->peer_id, Peers_CHANNEL_ROLE_RECEIVING);
-      Peers_set_channel_flag (channel_flag, Peers_CHANNEL_DESTROING);
-      peer_ctx->recv_channel = NULL;
+      schedule_channel_destruction (peer_ctx->recv_channel_ctx);
     }
     /* Set the #Peers_ONLINE flag accordingly */
     (void) Peers_check_connected (peer);
@@ -1713,20 +1803,22 @@ Peers_cleanup_destroyed_channel (void *cls,
   { /* We did not initiate the destruction of this peer */
     LOG (GNUNET_ERROR_TYPE_DEBUG,
         "Peer is NOT in the process of being destroyed\n");
-    if (channel == peer_ctx->send_channel)
+    if ( (NULL != peer_ctx->send_channel_ctx) &&
+         (channel == peer_ctx->send_channel_ctx->channel) )
     { /* Something (but us) killd the channel - clean up peer */
       LOG (GNUNET_ERROR_TYPE_DEBUG,
           "send channel (%s) was destroyed - cleaning up\n",
           GNUNET_i2s (peer));
-      peer_ctx->send_channel = NULL;
+      peer_ctx->send_channel_ctx = NULL;
       peer_ctx->mq = NULL;
     }
-    else if (channel == peer_ctx->recv_channel)
+    else if ( (NULL != peer_ctx->recv_channel_ctx) &&
+         (channel == peer_ctx->recv_channel_ctx->channel) )
     { /* Other peer doesn't want to send us messages anymore */
       LOG (GNUNET_ERROR_TYPE_DEBUG,
            "Peer %s destroyed recv channel - cleaning up channel\n",
            GNUNET_i2s (peer));
-      peer_ctx->recv_channel = NULL;
+      peer_ctx->recv_channel_ctx = NULL;
     }
     else
     {
@@ -1818,7 +1910,7 @@ Peers_get_recv_channel (const struct GNUNET_PeerIdentity *peer)
 
   GNUNET_assert (GNUNET_YES == Peers_check_peer_known (peer));
   peer_ctx = get_peer_ctx (peer);
-  return peer_ctx->recv_channel;
+  return peer_ctx->recv_channel_ctx->channel;
 }
 /***********************************************************************
  * /Old gnunet-service-rps_peers.c
@@ -2655,6 +2747,35 @@ clean_peer (const struct GNUNET_PeerIdentity *peer)
 }
 
 /**
+ * @brief Allocate memory for a new channel context and insert it into DLL
+ *
+ * @param peer_ctx context of the according peer
+ *
+ * @return The channel context
+ */
+static struct ChannelCtx *
+add_channel_ctx (struct PeerContext *peer_ctx)
+{
+  struct ChannelCtx *channel_ctx;
+  channel_ctx = GNUNET_new (struct ChannelCtx);
+  channel_ctx->peer_ctx = peer_ctx;
+  GNUNET_CONTAINER_DLL_insert (channel_ctx_head, channel_ctx_tail, channel_ctx);
+  return channel_ctx;
+}
+
+/**
+ * @brief Remove the channel context from the DLL and free the memory.
+ *
+ * @param channel_ctx The channel context.
+ */
+static void
+remove_channel_ctx (struct ChannelCtx *channel_ctx)
+{
+  GNUNET_CONTAINER_DLL_remove (channel_ctx_head, channel_ctx_tail, channel_ctx);
+  GNUNET_free (channel_ctx);
+}
+
+/**
  * @brief This is called when a channel is destroyed.
  *
  * Removes peer completely from our knowledge if the send_channel was destroyed
@@ -2670,7 +2791,8 @@ static void
 cleanup_destroyed_channel (void *cls,
                            const struct GNUNET_CADET_Channel *channel)
 {
-  struct GNUNET_PeerIdentity *peer = cls;
+  struct ChannelCtx *channel_ctx = cls;
+  struct GNUNET_PeerIdentity *peer = &channel_ctx->peer_ctx->peer_id;
   uint32_t *channel_flag;
   struct PeerContext *peer_ctx;
 
@@ -2681,7 +2803,7 @@ cleanup_destroyed_channel (void *cls,
     LOG (GNUNET_ERROR_TYPE_WARNING,
          "channel (%s) without associated context was destroyed\n",
          GNUNET_i2s (peer));
-    GNUNET_free (peer);
+    remove_channel_ctx (channel_ctx);
     return;
   }
 
@@ -2710,7 +2832,21 @@ cleanup_destroyed_channel (void *cls,
     to_file (file_name_view_log,
              "-%s\t(cleanup channel, ourself)",
              GNUNET_i2s_full (peer));
-    GNUNET_free (peer);
+    remove_channel_ctx (channel_ctx);
+    if (peer_ctx->send_channel_ctx == channel_ctx)
+    {
+      peer_ctx->send_channel_ctx = NULL;
+    }
+    else if (peer_ctx->recv_channel_ctx == channel_ctx)
+    {
+      peer_ctx->recv_channel_ctx = NULL;
+    }
+    else
+    {
+      LOG (GNUNET_ERROR_TYPE_ERROR,
+          "Trying to remove channel_ctx that is not associated with a peer\n");
+      GNUNET_assert (0);
+    }
     return;
   }
 
@@ -2726,7 +2862,7 @@ cleanup_destroyed_channel (void *cls,
     { /* We are about to clean the sending channel. Clean the respective
        * context */
       Peers_cleanup_destroyed_channel (cls, channel);
-      GNUNET_free (peer);
+      remove_channel_ctx (channel_ctx);
       return;
     }
     else
@@ -2734,7 +2870,7 @@ cleanup_destroyed_channel (void *cls,
        * open. It probably went down. Remove it from our knowledge. */
       Peers_cleanup_destroyed_channel (cls, channel);
       remove_peer (peer);
-      GNUNET_free (peer);
+      remove_channel_ctx (channel_ctx);
       return;
     }
   }
@@ -2751,7 +2887,7 @@ cleanup_destroyed_channel (void *cls,
     { /* Other peer tried to establish a channel to us twice. We do not accept
        * that. Clean the context. */
       Peers_cleanup_destroyed_channel (cls, channel);
-      GNUNET_free (peer);
+      remove_channel_ctx (channel_ctx);
       return;
     }
     else
@@ -2759,7 +2895,7 @@ cleanup_destroyed_channel (void *cls,
        * it. */
       Peers_cleanup_destroyed_channel (cls, channel);
       clean_peer (peer);
-      GNUNET_free (peer);
+      remove_channel_ctx (channel_ctx);
       return;
     }
   }
@@ -2768,7 +2904,7 @@ cleanup_destroyed_channel (void *cls,
     LOG (GNUNET_ERROR_TYPE_WARNING,
         "Destroyed channel is neither sending nor receiving channel\n");
   }
-  GNUNET_free (peer);
+  remove_channel_ctx (channel_ctx);
 }
 
 /***********************************************************************
@@ -3163,11 +3299,12 @@ static void
 handle_peer_check (void *cls,
                    const struct GNUNET_MessageHeader *msg)
 {
-  const struct GNUNET_PeerIdentity *peer = cls;
+  const struct ChannelCtx *channel_ctx = cls;
+  const struct GNUNET_PeerIdentity *peer = &channel_ctx->peer_ctx->peer_id;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
       "Received CHECK_LIVE (%s)\n", GNUNET_i2s (peer));
 
-  GNUNET_CADET_receive_done (Peers_get_recv_channel (peer));
+  GNUNET_CADET_receive_done (channel_ctx->channel);
 }
 
 /**
@@ -3183,7 +3320,8 @@ static void
 handle_peer_push (void *cls,
                   const struct GNUNET_MessageHeader *msg)
 {
-  const struct GNUNET_PeerIdentity *peer = cls;
+  const struct ChannelCtx *channel_ctx = cls;
+  const struct GNUNET_PeerIdentity *peer = &channel_ctx->peer_ctx->peer_id;
 
   // (check the proof of work (?))
 
@@ -3228,7 +3366,7 @@ handle_peer_push (void *cls,
   CustomPeerMap_put (push_map, peer);
 
   GNUNET_break_op (Peers_check_peer_known (peer));
-  GNUNET_CADET_receive_done (Peers_get_recv_channel (peer));
+  GNUNET_CADET_receive_done (channel_ctx->channel);
 }
 
 
@@ -3244,7 +3382,8 @@ static void
 handle_peer_pull_request (void *cls,
                           const struct GNUNET_MessageHeader *msg)
 {
-  struct GNUNET_PeerIdentity *peer = cls;
+  const struct ChannelCtx *channel_ctx = cls;
+  const struct GNUNET_PeerIdentity *peer = &channel_ctx->peer_ctx->peer_id;
   const struct GNUNET_PeerIdentity *view_array;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Received PULL REQUEST (%s)\n", GNUNET_i2s (peer));
@@ -3267,7 +3406,7 @@ handle_peer_pull_request (void *cls,
   #endif /* ENABLE_MALICIOUS */
 
   GNUNET_break_op (Peers_check_peer_known (peer));
-  GNUNET_CADET_receive_done (Peers_get_recv_channel (peer));
+  GNUNET_CADET_receive_done (channel_ctx->channel);
   view_array = View_get_as_array ();
   send_pull_reply (peer, view_array, View_size ());
 }
@@ -3324,8 +3463,9 @@ static void
 handle_peer_pull_reply (void *cls,
                         const struct GNUNET_RPS_P2P_PullReplyMessage *msg)
 {
+  const struct ChannelCtx *channel_ctx = cls;
+  const struct GNUNET_PeerIdentity *sender = &channel_ctx->peer_ctx->peer_id;
   const struct GNUNET_PeerIdentity *peers;
-  struct GNUNET_PeerIdentity *sender = cls;
   uint32_t i;
 #ifdef ENABLE_MALICIOUS
   struct AttackedPeer *tmp_att_peer;
@@ -3393,7 +3533,7 @@ handle_peer_pull_reply (void *cls,
   clean_peer (sender);
 
   GNUNET_break_op (Peers_check_peer_known (sender));
-  GNUNET_CADET_receive_done (Peers_get_recv_channel (sender));
+  GNUNET_CADET_receive_done (channel_ctx->channel);
 }
 
 
@@ -4105,6 +4245,7 @@ shutdown_task (void *cls)
 {
   struct ClientContext *client_ctx;
   struct ReplyCls *reply_cls;
+  struct ChannelCtx *channel_ctx;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "RPS is going down\n");
@@ -4127,6 +4268,11 @@ shutdown_task (void *cls)
     }
     GNUNET_CONTAINER_DLL_remove (cli_ctx_head, cli_ctx_tail, client_ctx);
     GNUNET_free (client_ctx);
+  }
+  /* Clean all leftover channel contexts */
+  while (NULL != (channel_ctx = channel_ctx_head))
+  {
+    remove_channel_ctx (channel_ctx);
   }
   GNUNET_PEERINFO_notify_cancel (peerinfo_notify_handle);
   GNUNET_PEERINFO_disconnect (peerinfo_handle);
