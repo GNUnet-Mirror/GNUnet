@@ -42,7 +42,7 @@
 /**
  * Error messages
  */
-#define GNUNET_REST_ERROR_UNKNOWN "Unknown Error"
+#define GNUNET_REST_IDENTITY_ERROR_UNKNOWN "Unknown Error"
 #define GNUNET_REST_ERROR_RESOURCE_INVALID "Resource location invalid"
 #define GNUNET_REST_ERROR_NO_DATA "No data"
 #define GNUNET_REST_ERROR_DATA_INVALID "Data invalid"
@@ -251,7 +251,7 @@ do_error (void *cls)
   char *response;
 
   if (NULL == handle->emsg)
-    handle->emsg = GNUNET_strdup(GNUNET_REST_ERROR_UNKNOWN);
+    handle->emsg = GNUNET_strdup(GNUNET_REST_IDENTITY_ERROR_UNKNOWN);
 
   json_object_set_new(json_error,"error", json_string(handle->emsg));
 

@@ -2,20 +2,18 @@
    This file is part of GNUnet.
    Copyright (C) 2012-2015 GNUnet e.V.
 
-   GNUnet is free software; you can redistribute it and/or modify
-   it under the terms of the GNU General Public License as published
-   by the Free Software Foundation; either version 3, or (at your
-   option) any later version.
+   GNUnet is free software: you can redistribute it and/or modify it
+   under the terms of the GNU Affero General Public License as published
+   by the Free Software Foundation, either version 3 of the License,
+   or (at your option) any later version.
 
    GNUnet is distributed in the hope that it will be useful, but
    WITHOUT ANY WARRANTY; without even the implied warranty of
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-   General Public License for more details.
+   Affero General Public License for more details.
 
-   You should have received a copy of the GNU General Public License
-   along with GNUnet; see the file COPYING.  If not, write to the
-   Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
-   Boston, MA 02110-1301, USA.
+   You should have received a copy of the GNU Affero General Public License
+   along with this program.  If not, see <http://www.gnu.org/licenses/>.
    */
 /**
  * @author Philippe Buschmann
@@ -36,6 +34,7 @@
 #define GNUNET_REST_PARAMETER_GNS_NAME "name"
 
 #define GNUNET_REST_PARAMETER_GNS_RECORD_TYPE "record_type"
+#define GNUNET_REST_GNS_ERROR_UNKNOWN "Unknown Error"
 
 /**
  * The configuration handle
@@ -128,8 +127,9 @@ struct RequestHandle
  * @param handle Handle to clean up
  */
 static void
-cleanup_handle (struct RequestHandle *handle)
+cleanup_handle (void *cls)
 {
+  struct RequestHandle *handle = cls;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Cleaning up\n");
 
@@ -170,20 +170,22 @@ do_error (void *cls)
 {
   struct RequestHandle *handle = cls;
   struct MHD_Response *resp;
-  char *json_error;
+  json_t *json_error = json_object();
+  char *response;
 
   if (NULL == handle->emsg)
-    handle->emsg = GNUNET_strdup("Unknown Error");
+    handle->emsg = GNUNET_strdup(GNUNET_REST_GNS_ERROR_UNKNOWN);
 
-  GNUNET_asprintf (&json_error, "{\"error\": \"%s\"}", handle->emsg);
-  
+  json_object_set_new(json_error,"error", json_string(handle->emsg));
+
   if (0 == handle->response_code)
     handle->response_code = MHD_HTTP_OK;
-
-  resp = GNUNET_REST_create_response (json_error);
+  response = json_dumps (json_error, 0);
+  resp = GNUNET_REST_create_response (response);
   handle->proc (handle->proc_cls, resp, handle->response_code);
-  cleanup_handle (handle);
-  GNUNET_free(json_error);
+  json_decref(json_error);
+  GNUNET_free(response);
+  GNUNET_SCHEDULER_add_now (&cleanup_handle, handle);
 }
 
 
@@ -201,6 +203,7 @@ handle_gns_response (void *cls,
                      uint32_t rd_count,
                      const struct GNUNET_GNSRECORD_Data *rd)
 {
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "TEST4\n");
   struct RequestHandle *handle = cls;
   struct MHD_Response *resp;
   json_t *result_array;
@@ -213,12 +216,6 @@ handle_gns_response (void *cls,
   if (GNUNET_NO == was_gns)
   {
     handle->emsg = GNUNET_strdup("Name not found in GNS");
-    GNUNET_SCHEDULER_add_now (&do_error, handle);
-    return;
-  }
-  if (0 == rd_count)
-  {
-    handle->emsg = GNUNET_strdup("No result found");
     GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
   }
@@ -246,7 +243,7 @@ handle_gns_response (void *cls,
   handle->proc (handle->proc_cls, resp, MHD_HTTP_OK);
   GNUNET_free (result);
   json_decref (result_array);
-  cleanup_handle (handle);
+  GNUNET_SCHEDULER_add_now(&cleanup_handle, handle);
 }
 
 
@@ -264,7 +261,8 @@ get_gns_cont (struct GNUNET_REST_RequestHandle *con_handle,
 {
   struct RequestHandle *handle = cls;
   struct GNUNET_HashCode key;
-  int conversion_state;
+  char *record_type;
+  char *name;
 
   GNUNET_CRYPTO_hash (GNUNET_REST_PARAMETER_GNS_NAME,
 		      strlen (GNUNET_REST_PARAMETER_GNS_NAME),
@@ -277,8 +275,14 @@ get_gns_cont (struct GNUNET_REST_RequestHandle *con_handle,
     GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
   }
-  handle->name = GNUNET_strdup(
-      GNUNET_CONTAINER_multihashmap_get (con_handle->url_param_map,&key));
+  name = GNUNET_CONTAINER_multihashmap_get (con_handle->url_param_map,&key);
+  if(0 >= strlen (name))
+  {
+    handle->emsg = GNUNET_strdup("Length of parameter name is zero");
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
+    return;
+  }
+  handle->name = GNUNET_strdup(name);
 
   GNUNET_CRYPTO_hash (GNUNET_REST_PARAMETER_GNS_RECORD_TYPE,
 		      strlen (GNUNET_REST_PARAMETER_GNS_RECORD_TYPE),
@@ -291,11 +295,13 @@ get_gns_cont (struct GNUNET_REST_RequestHandle *con_handle,
     GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
   }
-  conversion_state = sscanf (
-      GNUNET_CONTAINER_multihashmap_get (con_handle->url_param_map, &key),"%u",
-      &(handle->record_type));
 
-  if((EOF == conversion_state) || (0 == conversion_state))
+
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "TEST1\n");
+
+  record_type = GNUNET_CONTAINER_multihashmap_get (con_handle->url_param_map, &key);
+  handle->record_type = GNUNET_GNSRECORD_typename_to_number(record_type);
+  if(UINT32_MAX == handle->record_type)
   {
     handle->record_type = GNUNET_GNSRECORD_TYPE_ANY;
   }
@@ -307,6 +313,7 @@ get_gns_cont (struct GNUNET_REST_RequestHandle *con_handle,
     GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
   }
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "TEST2\n");
 
   handle->gns_lookup = GNUNET_GNS_lookup_with_tld (handle->gns,
 						 handle->name,
@@ -314,13 +321,7 @@ get_gns_cont (struct GNUNET_REST_RequestHandle *con_handle,
 						 GNUNET_NO,
 						 &handle_gns_response,
 						 handle);
-
-  if (NULL == handle->gns_lookup)
-  {
-    handle->emsg = GNUNET_strdup("GNS lookup failed");
-    GNUNET_SCHEDULER_add_now (&do_error, handle);
-    return;
-  }
+  return;
 }
 
 
@@ -346,7 +347,7 @@ options_cont (struct GNUNET_REST_RequestHandle *con_handle,
                            "Access-Control-Allow-Methods",
                            allow_methods);
   handle->proc (handle->proc_cls, resp, MHD_HTTP_OK);
-  cleanup_handle (handle);
+  GNUNET_SCHEDULER_add_now(&cleanup_handle, handle);
   return;
 }
 

@@ -39,7 +39,6 @@ libgnunetgnsrecord_la_SOURCES = \
   gnsrecord_misc.c
 libgnunetgnsrecord_la_LIBADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
-  -ljansson \
   $(GN_LIBINTL)
 libgnunetgnsrecord_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS) $(WINFLAGS) \

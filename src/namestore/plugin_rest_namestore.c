@@ -36,11 +36,7 @@
 
 #define GNUNET_REST_SUBSYSTEM_NAMESTORE "namestore"
 
-#define GNUNET_REST_JSON_NAMESTORE_RECORD_TYPE "record_type"
-#define GNUNET_REST_JSON_NAMESTORE_VALUE "value"
-#define GNUNET_REST_JSON_NAMESTORE_EXPIRATION "expiration"
-#define GNUNET_REST_JSON_NAMESTORE_EXPIRED "expired"
-#define GNUNET_REST_ERROR_UNKNOWN "Unknown Error"
+#define GNUNET_REST_NAMESTORE_ERROR_UNKNOWN "Unknown Error"
 
 #define GNUNET_REST_NAMESTORE_RD_COUNT 1
 
@@ -194,8 +190,6 @@ static void
 cleanup_handle (void *cls)
 {
   struct RequestHandle *handle = cls;
-  size_t index;
-  json_t *json_ego;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Cleaning up\n");
@@ -239,10 +233,6 @@ cleanup_handle (void *cls)
 
   if(NULL != handle->resp_object)
   {
-    json_array_foreach(handle->resp_object, index, json_ego )
-    {
-      json_decref (json_ego);
-    }
     json_decref(handle->resp_object);
   }
 
@@ -264,7 +254,7 @@ do_error (void *cls)
   char *response;
 
   if (NULL == handle->emsg)
-    handle->emsg = GNUNET_strdup(GNUNET_REST_ERROR_UNKNOWN);
+    handle->emsg = GNUNET_strdup(GNUNET_REST_NAMESTORE_ERROR_UNKNOWN);
 
   json_object_set_new(json_error,"error", json_string(handle->emsg));
 
@@ -286,65 +276,9 @@ namestore_iteration_error (void *cls)
 {
   struct RequestHandle *handle = cls;
   struct MHD_Response *resp = GNUNET_REST_create_response (NULL);
-  handle->response_code = MHD_HTTP_INTERNAL_SERVER_ERROR;
-  handle->proc (handle->proc_cls, resp, handle->response_code);
+  handle->proc (handle->proc_cls, resp, MHD_HTTP_INTERNAL_SERVER_ERROR);
   GNUNET_SCHEDULER_add_now (&cleanup_handle, handle);
 }
-
-/**
- * Create json representation of a GNSRECORD
- *
- * @param rd the GNSRECORD_Data
- */
-static json_t *
-gnsrecord_to_json (const struct GNUNET_GNSRECORD_Data *rd)
-{
-  const char *typename;
-  char *string_val;
-  const char *exp_str;
-  json_t *record_obj;
-
-  typename = GNUNET_GNSRECORD_number_to_typename (rd->record_type);
-  string_val = GNUNET_GNSRECORD_value_to_string (rd->record_type,
-                                                 rd->data,
-                                                 rd->data_size);
-
-  if (NULL == string_val)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Record of type %d malformed, skipping\n",
-                (int) rd->record_type);
-    return NULL;
-  }
-  record_obj = json_object();
-  json_object_set_new (record_obj,
-                       GNUNET_REST_JSON_NAMESTORE_RECORD_TYPE,
-                       json_string (typename));
-  json_object_set_new (record_obj,
-                       GNUNET_REST_JSON_NAMESTORE_VALUE,
-                       json_string (string_val));
-  //GNUNET_free (string_val);
-
-  if (GNUNET_GNSRECORD_RF_RELATIVE_EXPIRATION & rd->flags)
-  {
-    struct GNUNET_TIME_Relative time_rel;
-    time_rel.rel_value_us = rd->expiration_time;
-    exp_str = GNUNET_STRINGS_relative_time_to_string (time_rel, 1);
-  }
-  else
-  {
-    struct GNUNET_TIME_Absolute time_abs;
-    time_abs.abs_value_us = rd->expiration_time;
-    exp_str = GNUNET_STRINGS_absolute_time_to_string (time_abs);
-  }
-  json_object_set_new (record_obj,
-		       GNUNET_REST_JSON_NAMESTORE_EXPIRATION,
-		       json_string (exp_str));
-  json_object_set_new (record_obj, "expired",
-                       json_boolean (GNUNET_YES == GNUNET_GNSRECORD_is_expired (rd)));
-  return record_obj;
-}
-
 
 static void
 create_finished (void *cls, int32_t success, const char *emsg)
@@ -364,6 +298,29 @@ create_finished (void *cls, int32_t success, const char *emsg)
   GNUNET_SCHEDULER_add_now (&cleanup_handle, handle);
 }
 
+static void
+del_finished (void *cls, int32_t success, const char *emsg)
+{
+  struct RequestHandle *handle = cls;
+
+  handle->add_qe = NULL;
+  if (GNUNET_NO == success)
+  {
+    handle->emsg = GNUNET_strdup("Deleting record failed. Record does not exist");
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
+    return;
+  }
+  if (GNUNET_SYSERR == success)
+  {
+    handle->emsg = GNUNET_strdup("Deleting record failed");
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
+    return;
+  }
+  handle->proc (handle->proc_cls,
+                GNUNET_REST_create_response (NULL),
+                MHD_HTTP_NO_CONTENT);
+  GNUNET_SCHEDULER_add_now (&cleanup_handle, handle);
+}
 /**
  * Iteration over all results finished, build final
  * response.
@@ -379,10 +336,8 @@ namestore_list_finished (void *cls)
 
   handle->list_it = NULL;
 
-  GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "HEY\n");
   if (NULL == handle->resp_object)
   {
-    GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "OH\n");
     GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
   }
@@ -415,9 +370,6 @@ namestore_list_iteration (void *cls,
   if (NULL == handle->resp_object)
     handle->resp_object = json_array();
 
-  char *result_str = json_dumps (handle->resp_object, 0);
-  GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "%s\n", result_str);
-  GNUNET_free(result_str);
   /*if ( (NULL != handle->ego_entry->identifier) &&
        (0 != strcmp (handle->ego_entry->identifier,
 		     rname)) )
@@ -435,13 +387,12 @@ namestore_list_iteration (void *cls,
          (0 != strcmp (rname, GNUNET_GNS_EMPTY_LABEL_AT)) )
       continue;
 
-    record_obj = gnsrecord_to_json (&rd[i]);
+    record_obj = GNUNET_JSON_from_gns_record(rname,rd);
 
     if(NULL == record_obj)
       continue;
 
-    json_array_append (handle->resp_object,
-		       record_obj);
+    json_array_append (handle->resp_object, record_obj);
     json_decref (record_obj);
   }
 
@@ -477,73 +428,7 @@ namestore_get (struct GNUNET_REST_RequestHandle *con_handle,
                                                            &namestore_list_finished,
                                                            handle);
 }
-/*
 
-//TODO filter input
-static int
-json_to_gnsrecord (struct RequestHandle *handle)
-{
-  struct GNUNET_TIME_Relative etime_rel;
-  struct GNUNET_TIME_Absolute etime_abs;
-  void *rdata;
-  size_t rdata_size;
-
-  handle->rd = GNUNET_new_array(GNUNET_REST_NAMESTORE_RD_COUNT,
-				 struct GNUNET_GNSRECORD_Data);
-  memset (handle->rd, 0, sizeof(struct GNUNET_GNSRECORD_Data));
-  handle->rd->record_type = GNUNET_GNSRECORD_typename_to_number (
-      handle->json_data->type);
-  if (UINT32_MAX == (*handle->rd).record_type)
-  {
-    handle->emsg = GNUNET_strdup("Unsupported type");
-    return GNUNET_SYSERR;
-  }
-  if (GNUNET_OK
-      != GNUNET_GNSRECORD_string_to_value ((*handle->rd).record_type,
-					   handle->json_data->value, &rdata,
-					   &rdata_size))
-  {
-    handle->emsg = GNUNET_strdup("Value invalid for record type");
-    return GNUNET_SYSERR;
-  }
-  (*handle->rd).data = rdata;
-  (*handle->rd).data_size = rdata_size;
-  //TODO other flags
-  if (0 == handle->json_data->is_public)
-  {
-    handle->rd->flags |= GNUNET_GNSRECORD_RF_PRIVATE;
-  }
-  /**TODO
-   * if (1 == handle->is_shadow)
-   rde->flags |= GNUNET_GNSRECORD_RF_SHADOW_RECORD;
-   if (1 != handle->is_public)
-   rde->flags |= GNUNET_GNSRECORD_RF_PRIVATE;
-   *
-  if (0 == strcmp (handle->json_data->expiration_time, "never"))
-  {
-    (*handle->rd).expiration_time = GNUNET_TIME_UNIT_FOREVER_ABS.abs_value_us;
-  }
-  else if (GNUNET_OK
-      == GNUNET_STRINGS_fancy_time_to_relative (
-	  handle->json_data->expiration_time, &etime_rel))
-  {
-    (*handle->rd).expiration_time = etime_rel.rel_value_us;
-    (*handle->rd).flags |= GNUNET_GNSRECORD_RF_RELATIVE_EXPIRATION;
-  }
-  else if (GNUNET_OK
-      == GNUNET_STRINGS_fancy_time_to_absolute (
-	  handle->json_data->expiration_time, &etime_abs))
-  {
-    (*handle->rd).expiration_time = etime_abs.abs_value_us;
-  }
-  else
-  {
-    handle->emsg = GNUNET_strdup("Value invalid for record type");
-    return GNUNET_SYSERR;
-  }
-  return GNUNET_OK;
-}
-*/
 
 /**
  * We're storing a new record; this requires
@@ -564,12 +449,11 @@ create_new_record_cont (void *cls,
 {
   struct RequestHandle *handle = cls;
 
-
   handle->add_qe = NULL;
   if (0 != strcmp (rec_name, handle->label_name))
   {
     GNUNET_break (0);
-    do_error (handle);
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
   }
 
@@ -656,6 +540,31 @@ namestore_add (struct GNUNET_REST_RequestHandle *con_handle,
 }
 
 
+static void
+del_cont (void *cls,
+          const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone,
+          const char *label,
+          unsigned int rd_count,
+          const struct GNUNET_GNSRECORD_Data *rd)
+{
+  struct RequestHandle *handle = cls;
+
+  handle->add_qe = NULL;
+  if (0 == rd_count)
+  {
+    handle->emsg = GNUNET_strdup("Record not found");
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
+    return;
+  }
+
+  handle->add_qe = GNUNET_NAMESTORE_records_store (handle->ns_handle,
+                                                   &handle->zone_pkey,
+                                                   handle->label_name,
+                                                   0, NULL,
+                                                   &del_finished,
+                                                   handle);
+}
+
 /**
  * Handle namestore DELETE request
  *
@@ -669,12 +578,28 @@ namestore_delete (struct GNUNET_REST_RequestHandle *con_handle,
                  void *cls)
 {
   struct RequestHandle *handle = cls;
+  struct GNUNET_HashCode key;
+
+  GNUNET_CRYPTO_hash ("label", strlen ("label"), &key);
+  if ( GNUNET_NO
+      == GNUNET_CONTAINER_multihashmap_contains (con_handle->url_param_map,
+						 &key))
+  {
+    handle->emsg = GNUNET_strdup("Missing name");
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
+    return;
+  }
+  handle->label_name = GNUNET_CONTAINER_multihashmap_get (con_handle->url_param_map,
+							  &key);
   
-  //TODO add behaviour and response
-  
-  handle->emsg = GNUNET_strdup ("Not implemented yet");
-  GNUNET_SCHEDULER_add_now (&do_error, handle);
-  return;
+  handle->add_qe = GNUNET_NAMESTORE_records_lookup (handle->ns_handle,
+                                                    &handle->zone_pkey,
+                                                    handle->label_name,
+                                                    &do_error,
+                                                    handle,
+                                                    &del_cont,
+                                                    handle);
+
 }
 
 
