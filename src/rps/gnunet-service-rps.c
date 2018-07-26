@@ -3447,7 +3447,8 @@ check_peer_pull_reply (void *cls,
   if (GNUNET_YES != Peers_check_peer_flag (sender, Peers_PULL_REPLY_PENDING))
   {
     LOG (GNUNET_ERROR_TYPE_WARNING,
-        "Received a pull reply from a peer we didn't request one from!\n");
+        "Received a pull reply from a peer (%s) we didn't request one from!\n",
+        GNUNET_i2s (sender));
     GNUNET_break_op (0);
     return GNUNET_SYSERR;
   }
