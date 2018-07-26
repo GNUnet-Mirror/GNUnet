@@ -1225,7 +1225,8 @@ Peers_issue_peer_liveliness_check (const struct GNUNET_PeerIdentity *peer)
 
   ret = Peers_insert_peer (peer);
   peer_ctx = get_peer_ctx (peer);
-  if (GNUNET_NO == Peers_check_peer_flag (peer, Peers_ONLINE))
+  if ( (GNUNET_NO == Peers_check_peer_flag (peer, Peers_ONLINE)) &&
+       (NULL == peer_ctx->liveliness_check_pending) )
   {
     check_peer_live (peer_ctx);
   }
