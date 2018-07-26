@@ -1725,7 +1725,7 @@ destroy_channel (void *cls)
   struct PeerContext *peer_ctx = channel_ctx->peer_ctx;
   uint32_t *channel_flag;
 
-  channel_ctx = NULL;
+  channel_ctx->destruction_task = NULL;
   GNUNET_CADET_channel_destroy (peer_ctx->send_channel_ctx->channel);
   channel_flag = Peers_get_channel_flag (&peer_ctx->peer_id, Peers_CHANNEL_ROLE_SENDING);
   Peers_set_channel_flag (channel_flag, Peers_CHANNEL_DESTROING);
