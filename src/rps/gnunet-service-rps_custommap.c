@@ -213,7 +213,7 @@ CustomPeerMap_remove_peer (const struct CustomPeerMap *c_peer_map,
     GNUNET_assert (NULL != last_index);
     GNUNET_assert (CustomPeerMap_size (c_peer_map) == *last_index);
     GNUNET_CONTAINER_multihashmap32_put (c_peer_map->hash_map, *index, last_p,
-        GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
+        GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
     GNUNET_CONTAINER_multihashmap32_remove_all (c_peer_map->hash_map, *last_index);
     *last_index = *index;
   }
