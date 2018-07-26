@@ -922,13 +922,11 @@ cancel_request (struct PendingReply *pending_rep)
 void
 clean_peer (unsigned peer_index)
 {
-  struct PendingReply *pending_rep;
   struct PendingRequest *pending_req;
 
-  pending_rep = rps_peers[peer_index].pending_rep_head;
-  while (NULL != (pending_rep = rps_peers[peer_index].pending_rep_head))
+  while (NULL != (pending_req = rps_peers[peer_index].pending_req_head))
   {
-    cancel_request (pending_rep);
+    cancel_pending_req (pending_req);
   }
   pending_req = rps_peers[peer_index].pending_req_head;
   rps_disconnect_adapter (&rps_peers[peer_index],
@@ -1273,7 +1271,7 @@ rps_disconnect_adapter (void *cls,
 {
   struct RPSPeer *peer = cls;
   struct GNUNET_RPS_Handle *h = op_result;
-  struct PendingRequest *pending_req;
+  struct PendingReply *pending_rep;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "disconnect_adapter (%u)\n",
@@ -1281,9 +1279,9 @@ rps_disconnect_adapter (void *cls,
   GNUNET_assert (NULL != peer);
   if (NULL != peer->rps_handle)
   {
-    while (NULL != (pending_req = peer->pending_req_head))
+    while (NULL != (pending_rep = peer->pending_rep_head))
     {
-      cancel_pending_req (pending_req);
+      cancel_request (pending_rep);
     }
     GNUNET_assert (h == peer->rps_handle);
     GNUNET_RPS_disconnect (h);
