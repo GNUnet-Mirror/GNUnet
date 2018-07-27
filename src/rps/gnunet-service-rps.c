@@ -287,12 +287,6 @@ struct ChannelCtx
 };
 
 /**
- * @brief The DLL of channel contexts
- */
-static struct ChannelCtx *channel_ctx_head;
-static struct ChannelCtx *channel_ctx_tail;
-
-/**
  * @brief Hashmap of valid peers.
  */
 static struct GNUNET_CONTAINER_MultiPeerMap *valid_peers;
@@ -2671,7 +2665,6 @@ add_channel_ctx (struct PeerContext *peer_ctx)
   struct ChannelCtx *channel_ctx;
   channel_ctx = GNUNET_new (struct ChannelCtx);
   channel_ctx->peer_ctx = peer_ctx;
-  GNUNET_CONTAINER_DLL_insert (channel_ctx_head, channel_ctx_tail, channel_ctx);
   return channel_ctx;
 }
 
