@@ -97,11 +97,6 @@ static struct GNUNET_HashCode port;
 #define unset_peer_flag(peer_ctx, mask) ((peer_ctx->peer_flags) &= ~(mask))
 
 /**
- * Set a channel flag of given channel context.
- */
-#define set_channel_flag(channel_flags, mask) ((*channel_flags) |= (mask))
-
-/**
  * Get channel flag of given channel context.
  */
 #define check_channel_flag_set(channel_flags, mask)\
@@ -189,19 +184,9 @@ struct PeerContext
   struct ChannelCtx *send_channel_ctx;
 
   /**
-   * Flags to the sending channel
-   */
-  uint32_t *send_channel_flags;
-
-  /**
    * Channel open from client.
    */
-  struct ChannelCtx *recv_channel_ctx; // unneeded?
-
-  /**
-   * Flags to the receiving channel
-   */
-  uint32_t *recv_channel_flags;
+  struct ChannelCtx *recv_channel_ctx;
 
   /**
    * Array of pending operations on this peer.
@@ -375,8 +360,6 @@ create_peer_ctx (const struct GNUNET_PeerIdentity *peer)
 
   ctx = GNUNET_new (struct PeerContext);
   ctx->peer_id = *peer;
-  ctx->send_channel_flags = GNUNET_new (uint32_t);
-  ctx->recv_channel_flags = GNUNET_new (uint32_t);
   ret = GNUNET_CONTAINER_multipeermap_put (peer_map, peer, ctx,
       GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
   GNUNET_assert (GNUNET_OK == ret);
@@ -1307,7 +1290,6 @@ int
 Peers_remove_peer (const struct GNUNET_PeerIdentity *peer)
 {
   struct PeerContext *peer_ctx;
-  uint32_t *channel_flag;
 
   if (GNUNET_NO == GNUNET_CONTAINER_multipeermap_contains (peer_map, peer))
   {
@@ -1383,9 +1365,6 @@ Peers_remove_peer (const struct GNUNET_PeerIdentity *peer)
     GNUNET_SCHEDULER_cancel (peer_ctx->destruction_task);
   }
 
-  GNUNET_free (peer_ctx->send_channel_flags);
-  GNUNET_free (peer_ctx->recv_channel_flags);
-
   if (GNUNET_YES != GNUNET_CONTAINER_multipeermap_remove_all (peer_map, &peer_ctx->peer_id))
   {
     LOG (GNUNET_ERROR_TYPE_WARNING, "removing peer from peer_map failed\n");
@@ -1457,77 +1436,6 @@ Peers_check_peer_flag (const struct GNUNET_PeerIdentity *peer, enum Peers_PeerFl
   }
   peer_ctx = get_peer_ctx (peer);
   return check_peer_flag_set (peer_ctx, flags);
-}
-
-
-/**
- * @brief set flags on a given channel.
- *
- * @param channel the channel to set flags on
- * @param flags the flags
- */
-void
-Peers_set_channel_flag (uint32_t *channel_flags, enum Peers_ChannelFlags flags)
-{
-  set_channel_flag (channel_flags, flags);
-}
-
-
-/**
- * @brief unset flags on a given channel.
- *
- * @param channel the channel to unset flags on
- * @param flags the flags
- */
-void
-Peers_unset_channel_flag (uint32_t *channel_flags, enum Peers_ChannelFlags flags)
-{
-  unset_channel_flag (channel_flags, flags);
-}
-
-
-/**
- * @brief Check whether flags on a channel are set.
- *
- * @param channel the channel to check the flag of
- * @param flags the flags to check
- *
- * @return #GNUNET_YES if all given flags are set
- *         #GNUNET_NO  otherwise
- */
-int
-Peers_check_channel_flag (uint32_t *channel_flags, enum Peers_ChannelFlags flags)
-{
-  return check_channel_flag_set (channel_flags, flags);
-}
-
-/**
- * @brief Get the flags for the channel in @a role for @a peer.
- *
- * @param peer Peer to get the channel flags for.
- * @param role Role of channel to get flags for
- *
- * @return The flags.
- */
-uint32_t *
-Peers_get_channel_flag (const struct GNUNET_PeerIdentity *peer,
-                        enum Peers_ChannelRole role)
-{
-  const struct PeerContext *peer_ctx;
-
-  peer_ctx = get_peer_ctx (peer);
-  if (Peers_CHANNEL_ROLE_SENDING == role)
-  {
-    return peer_ctx->send_channel_flags;
-  }
-  else if (Peers_CHANNEL_ROLE_RECEIVING == role)
-  {
-    return peer_ctx->recv_channel_flags;
-  }
-  else
-  {
-    GNUNET_assert (0);
-  }
 }
 
 /**
@@ -1644,9 +1552,6 @@ Peers_handle_inbound_channel (void *cls,
     LOG (GNUNET_ERROR_TYPE_WARNING,
         "Already got one receive channel. Destroying old one.\n");
     GNUNET_break_op (0);
-    set_channel_flag (peer_ctx->recv_channel_flags,
-                      Peers_CHANNEL_ESTABLISHED_TWICE);
-    //GNUNET_CADET_channel_destroy (channel);
     GNUNET_CADET_channel_destroy (peer_ctx->recv_channel_ctx->channel);
     remove_channel_ctx (peer_ctx->recv_channel_ctx);
     peer_ctx->recv_channel_ctx = channel_ctx;
@@ -2824,7 +2729,6 @@ cleanup_destroyed_channel (void *cls,
 {
   struct ChannelCtx *channel_ctx = cls;
   struct GNUNET_PeerIdentity *peer = &channel_ctx->peer_ctx->peer_id;
-  uint32_t *channel_flag;
   struct PeerContext *peer_ctx;
 
   GNUNET_assert (NULL != peer);
