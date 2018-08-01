@@ -1,4 +1,6 @@
-<center><a href="https://gnunet.org"><img src="contrib/branding/logo/gnunet-logo-dark-text.svg" alt="GNUnet"width="300px"/></a></center>
+<p align="center">
+  <a href="https://gnunet.org"><img src="contrib/branding/logo/gnunet-logo-dark-text.svg" alt="GNUnet" width="300px"/></a>
+</p>
 
 > GNUnet is a *new* network protocol stack for building secure, distributed, and privacy-preserving applications. 
 
@@ -55,7 +57,7 @@ make
 make install
 ```
 
-**Using the [GNU Guix package manager:](https://https://www.gnu.org/software/guix/) **
+**Using the [GNU Guix package manager:](https://https://www.gnu.org/software/guix/)**
 
 ```shell
 # To build, run tests, and install:
@@ -79,8 +81,9 @@ docker build -t gnunet .
 
 There are many possible ways to use the subsystems of GNUnet,	 we will provide a few examples in this section.
 
-
-<center> <a href="contrib/gnunet-arch-full.svg"><img src="contrib/gnunet-arch-full.svg" alt="GNUnet Modular Architecture" width="400px" border="1px"/></a></center>
+<p align="center">
+  <a href="contrib/gnunet-arch-full.svg"><img src="contrib/gnunet-arch-full.svg" alt="GNUnet Modular Architecture" width="400px" border="1px"/></a>
+</p>
 
 >***GNUnet is composed of over 30 modular subsystems***
 
@@ -156,6 +159,6 @@ Related Projects
 
 
 
- <a href="https://pep.foundation"><img src="https://pep.foundation/static/media/uploads/peplogo.svg" alt="pep.foundation" width="50px"/></a>  <a href="https://secushare.org"><img src="https://secushare.org/img/secushare-0444.png" alt="Secushare" width="50px"/></a>
+ <a href="https://pep.foundation"><img src="https://pep.foundation/static/media/uploads/peplogo.svg" alt="pep.foundation" width="80px"/></a>  <a href="https://secushare.org"><img src="https://secushare.org/img/secushare-0444.png" alt="Secushare" width="80px"/></a>
 
  
