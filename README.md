@@ -89,6 +89,15 @@ There are many possible ways to use the subsystems of GNUnet, so we will provide
 >***GNUnet is composed of over 30 modular subsystems***
 
 
+### Start GNUnet Services
+
+Before we can begin using most of the components we must start them.
+
+```shell
+gnunet-arm --start
+```
+
+Now we can open up another shell and try using some of the modules.
 
 ### Cadet
 
@@ -138,6 +147,27 @@ gnunet-cadet -o <shared secret> | vlc -
 coproc gnunet-cadet <peer-id of Node 1> <shared secret>
 cat <video-file> >&"${COPROC[1]}"
 ```
+
+### Filesharing
+
+You can use GNUnet as a content-addressed storage, much like IPFS: sharing immutable files in a decentralized fashion with added privacy.
+
+For instance, you can get a nice cat picture with
+```sh
+gnunet-download gnunet://fs/loc/CB0ZX5EM1ZNNRT7AX93RVHCN1H49242DWZ4AXBTCJBAG22Z33VHYMR61J71YJXTXHEC22TNE0PRWA6D5X7NFNY2J9BNMG0SFN5DKZ0G.R48JSE2T4Y3W2AMDHZYX2MMDJC4HR0BVTJYNWJT2DGK7EQXR35DT84H9ZRAK3QTCTHDBAE1S6W16P8PCKC4HGEEKNW2T42HXF9RS1J0.1906755.J5Z3BDEG2PW332001GGZ2SSKCCSV8WDM696HNARG49X9TMABC4DG.B6Y7BCJ6B5K40EXCXASX1HQAD8MBJ9WTFWPCE3F15Q3Q4Y2PB8BKVGCS5HA4FG4484858NB74PBEE5V1638MGG7NS40A82K7QKK3G0G.1577833200 --output cat.png
+```
+
+You can also give files to the network, like so:
+
+```sh
+$ echo "I love GNUnet" > ILoveGNUnet.txt
+$ gnunet-publish ILoveGNUnet.txt
+
+Publishing `/tmp/ILoveGNUnet.txt` done.
+URI is `gnunet://fs/chk/SXA4RGZWDHE4PDWD2F4XG778J4SZY3E3SNDZ9AWFRZYYBV52W1T2WQNZCF1NYAT842800SSBQ8F247TG6MX7H4S1RWZZSC8ZXGQ4YPR.AZ3B5WR1XCWCWR6W30S2365KFY7A3R5AMF5SRN3Z11R72SMVQDX3F6GXQSZMWZGM5BSYVDQEJ93CR024QAAE65CKHM52GH8MZK1BM90.14`.
+```
+
+The URI you get is what you can use to retrieve the file with `gnunet-download`.
 
 ### GNS
 
