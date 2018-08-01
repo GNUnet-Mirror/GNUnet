@@ -1,4 +1,5 @@
-<center><a href="https://gnunet.org"><img src="contrib/branding/logo/gnunet-logo-dark-text.svg" alt="GNUnet"width="200px"/></a></center>
+<center><a href="https://gnunet.org"><img src="contrib/branding/logo/gnunet-logo-dark-text.svg" alt="GNUnet"width="300px"/></a></center>
+
 > GNUnet is a *new* network protocol stack for building secure, distributed, and privacy-preserving applications. 
 
 * [Install](#how-to-install-gnunet)
