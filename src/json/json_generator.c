@@ -166,7 +166,7 @@ GNUNET_JSON_from_rsa_signature (const struct GNUNET_CRYPTO_RsaSignature *sig)
  */
 json_t *
 GNUNET_JSON_from_gns_record (const char* rname,
-				const struct GNUNET_GNSRECORD_Data *rd)
+			     const struct GNUNET_GNSRECORD_Data *rd)
 {
   struct GNUNET_TIME_Absolute expiration_time;
   const char *expiration_time_str;

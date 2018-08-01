@@ -23,7 +23,6 @@
  */
 #include "platform.h"
 #include "gnunet_util_lib.h"
-#include "gnunet_gnsrecord_lib.h"
 #include "gnunet_json_lib.h"
 
 #define GNUNET_JSON_GNSRECORD_VALUE "value"
@@ -111,7 +110,16 @@ parse_gnsrecordobject (void *cls,
   }
   else
   {
-    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Value invalid for expiration time");
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Expiration time invalid");
+    return GNUNET_SYSERR;
+  }
+  // check if flag is a valid enum value
+  if ((GNUNET_GNSRECORD_RF_NONE != flag)
+      && (GNUNET_GNSRECORD_RF_PRIVATE != flag)
+      && (GNUNET_GNSRECORD_RF_RELATIVE_EXPIRATION != flag)
+      && (GNUNET_GNSRECORD_RF_SHADOW_RECORD) != flag)
+  {
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Flag invalid");
     return GNUNET_SYSERR;
   }
   gnsrecord_object->flags = (enum GNUNET_GNSRECORD_Flags)flag;

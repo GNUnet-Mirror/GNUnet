@@ -32,6 +32,7 @@
 #include "microhttpd.h"
 #include <jansson.h>
 
+
 #define GNUNET_REST_API_NS_NAMESTORE "/namestore"
 
 #define GNUNET_REST_SUBSYSTEM_NAMESTORE "namestore"
@@ -39,8 +40,6 @@
 #define GNUNET_REST_NAMESTORE_ERROR_UNKNOWN "Unknown Error"
 
 #define GNUNET_REST_NAMESTORE_RD_COUNT 1
-
-//TODO define other variables
 
 /**
  * The configuration handle
@@ -59,8 +58,6 @@ struct Plugin
 {
   const struct GNUNET_CONFIGURATION_Handle *cfg;
 };
-
-//TODO add specific structs
 
 /**
  * The default namestore ego
@@ -86,8 +83,6 @@ struct EgoEntry
 
 struct RequestHandle
 {
-  //TODO add specific entries
-
   /**
    * Records to store
    */
@@ -180,8 +175,6 @@ struct RequestHandle
 
 };
 
-
-//TODO add specific cleanup
 /**
  * Cleanup lookup handle
  * @param handle Handle to clean up
@@ -638,7 +631,6 @@ options_cont (struct GNUNET_REST_RequestHandle *con_handle,
 static void
 init_cont (struct RequestHandle *handle)
 {
-  //TODO specify parameter of init_cont if necessary
   struct GNUNET_REST_RequestHandlerError err;
   static const struct GNUNET_REST_RequestHandler handlers[] = {
     {MHD_HTTP_METHOD_GET, GNUNET_REST_API_NS_NAMESTORE, &namestore_get},
