@@ -77,21 +77,18 @@ docker build -t gnunet .
 
 
 
-## Using GNUnet
+Using GNUnet
+-------------
 
-There are many possible ways to use the subsystems of GNUnet,	 we will provide a few examples in this section.
+There are many possible ways to use the subsystems of GNUnet, so we will provide a few examples in this section.
 
 <p align="center">
-  <a href="contrib/gnunet-arch-full.svg"><img src="contrib/gnunet-arch-full.svg" alt="GNUnet Modular Architecture" width="400px" border="1px"/></a>
+  <a href="contrib/gnunet-arch-full.svg"><img src="contrib/gnunet-arch-full.svg" alt="GNUnet Modular Architecture" width="500px" border="1px"/></a>
 </p>
 
 >***GNUnet is composed of over 30 modular subsystems***
 
 
-
-### GNS
-
-*coming soon*
 
 ### Cadet
 
@@ -101,14 +98,14 @@ Open a Cadet connection:
 
 ```shell
 # Node 1
-cadet -o <shared secret>
+gnunet-cadet -o <shared secret>
 ```
 
 Conect to peer:
 
 ```shell
 # Node 2
-cadet <peer-id of Node 1> <shared secret>
+gnunet-cadet <peer-id of Node 1> <shared secret>
 ```
 
 #### Sharing Files
@@ -117,20 +114,43 @@ With the cli tool, you can also share files:
 
 ```shell
 # Node 1
-cadet -o <shared secret> > filename
+gnunet-cadet -o <shared secret> > filename
+```
+
+On the Node 2 we're going to send the file to Node 1, and to do this we need to make use of [coprocesses](https://www.gnu.org/software/bash/manual/html_node/Coprocesses.html).
+The syntax for using coprocesses varies per shell. In our example we are assuming Bash. More info for different shells can be found [here](https://unix.stackexchange.com/questions/86270/how-do-you-use-the-command-coproc-in-various-shells)
+
+```shell
+# Node 2
+coproc gnunet-cadet <peer-id of Node 1> <shared secret>
+cat <file> >&"${COPROC[1]}"
+```
+
+Now this enables us to do some fun things, such as streaming video by piping to a media player:
+
+```shell
+# Node 1
+gnunet-cadet -o <shared secret> | vlc -
 ```
 
 ```shell
 # Node 2
-cadet <peer-id of Node 1> <shared secret>
+coproc gnunet-cadet <peer-id of Node 1> <shared secret>
+cat <video-file> >&"${COPROC[1]}"
 ```
 
+### GNS
 
-VPN
----
+*coming soon*
 
-Running a Hostlist Server
---------------------------
+
+### VPN
+
+*coming soon*
+
+### Running a Hostlist Server
+
+*coming soon*
 
 GNUnet Configuration
 --------------------------
