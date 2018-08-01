@@ -83,7 +83,7 @@ Using GNUnet
 There are many possible ways to use the subsystems of GNUnet, so we will provide a few examples in this section.
 
 <p align="center">
-  <a href="contrib/gnunet-arch-full.svg"><img src="contrib/gnunet-arch-full.svg" alt="GNUnet Modular Architecture" width="500px" border="1px"/></a>
+  <a href="contrib/gnunet-arch-full.svg"><img src="contrib/gnunet-arch-full.svg" alt="GNUnet Modular Architecture" width="600px" border="1px"/></a>
 </p>
 
 >***GNUnet is composed of over 30 modular subsystems***
