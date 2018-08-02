@@ -177,7 +177,7 @@ The URI you get is what you can use to retrieve the file with `gnunet-download`.
 
 #### "Half-hidden" services
 
-You can tunnel IP traffic through GNUnet allowing you to offer web, SSH, messaging or other servers without revealing your IP address.
+You can tunnel IP traffic through GNUnet allowing you to offer web, [rsh](https://linux.die.net/man/1/rsh), messaging or other servers without revealing your IP address.
 
 This is similar to Tor's Hidden (aka Onion) services, but currently does not provide as much privacy as onion routing isn't yet implemented; on the other hand, you can tunnel UDP, unlike Tor.
 
