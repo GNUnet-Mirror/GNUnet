@@ -20,7 +20,7 @@ How to Install GNUnet
 Install these packages. Some of them may need to be installed from source depending on your OS.
 
 ```
-- libmicrohttpd      >= 0.9.42
+- libmicrohttpd      >= 0.9.42      (available from https://www.gnu.org/software/libmicrohttpd/)
 - libgcrypt          >= 1.6
 - libgnurl           >= 7.35.0      (recommended, available from https://gnunet.org/gnurl)
 - libcurl            >= 7.35.0      (alternative to libgnurl)
