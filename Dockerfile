@@ -77,7 +77,7 @@ RUN git clone $GNURL_GIT_URL \
 ENV GNUNET_PREFIX /usr/local/gnunet
 ENV CFLAGS '-g -Wall -O0'
 
-COPY ../ /gnunet
+COPY . /gnunet
 
 RUN cd /gnunet && \
       ./bootstrap && \
@@ -92,8 +92,8 @@ RUN cd /gnunet && \
     rm -fr /gnunet
 
 # Configure GNUnet
-COPY gnunet.conf /etc/gnunet.conf
-COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint
+COPY docker/gnunet.conf /etc/gnunet.conf
+COPY docker/docker-entrypoint.sh /usr/local/bin/docker-entrypoint
 RUN chmod 755 /usr/local/bin/docker-entrypoint
 
 ENV LOCAL_PORT_RANGE='40001 40200'

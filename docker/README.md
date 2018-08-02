@@ -7,6 +7,14 @@ A Dockerfile (and maybe later docker-compose.yml) for getting a running GNUnet d
 ## Build it
 This will take quite a while and will consume a bit of data.
 
+First you need to go to the root of this repo.
+
+```bash
+cd ..
+```
+
+Now you can build the image.
+
 ```bash
 docker build -t gnunet .
 ```
