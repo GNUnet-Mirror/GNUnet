@@ -39,6 +39,10 @@
 #define GNUNET_REST_ERROR_UNKNOWN "Unkown Error"
 
 /**
+ * How long until we time out during address lookup?
+ */
+#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
+/**
  * The configuration handle
  */
 const struct GNUNET_CONFIGURATION_Handle *cfg;
@@ -59,6 +63,95 @@ struct Plugin
 //TODO add specific structs
 
 
+/**
+ * Record we keep for each printable address.
+ */
+struct AddressRecord
+{
+  /**
+   * Current address-to-string context (if active, otherwise NULL).
+   */
+  struct GNUNET_TRANSPORT_AddressToStringContext *atsc;
+
+  /**
+   * Address expiration time
+   */
+  struct GNUNET_TIME_Absolute expiration;
+
+  /**
+   * Printable address.
+   */
+  char *result;
+
+  /**
+   * Print context this address record belongs to.
+   */
+  struct PrintContext *pc;
+};
+
+
+/**
+ * Structure we use to collect printable address information.
+ */
+struct PrintContext
+{
+
+  /**
+   * Kept in DLL.
+   */
+  struct PrintContext *next;
+
+  /**
+   * Kept in DLL.
+   */
+  struct PrintContext *prev;
+
+  /**
+   * Identity of the peer.
+   */
+  struct GNUNET_PeerIdentity peer;
+
+  /**
+   * List of printable addresses.
+   */
+  struct AddressRecord *address_list;
+
+  /**
+   * Number of completed addresses in @e address_list.
+   */
+  unsigned int num_addresses;
+
+  /**
+   * Number of addresses allocated in @e address_list.
+   */
+  unsigned int address_list_size;
+
+  /**
+   * Current offset in @e address_list (counted down).
+   */
+  unsigned int off;
+
+  /**
+   * Hello was friend only, #GNUNET_YES or #GNUNET_NO
+   */
+  int friend_only;
+
+  /**
+   * RequestHandle
+   */
+  struct RequestHandle *handle;
+
+};
+
+/**
+ * Head of list of print contexts.
+ */
+static struct PrintContext *pc_head;
+
+/**
+ * Tail of list of print contexts.
+ */
+static struct PrintContext *pc_tail;
 
 struct RequestHandle
 {
@@ -139,8 +232,6 @@ cleanup_handle (void *cls)
 {
   struct RequestHandle *handle = cls;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Test: %i\n", NULL == handle);
-
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Cleaning up\n");
   if (NULL != handle->timeout_task)
@@ -212,7 +303,6 @@ do_error (void *cls)
 static void
 peerinfo_list_finished (void *cls)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "6\n");
   struct RequestHandle *handle = cls;
   char *result_str;
   struct MHD_Response *resp;
@@ -234,132 +324,177 @@ peerinfo_list_finished (void *cls)
 
 
 /**
- * Set @a cls to #GNUNET_YES (we have an address!).
+ * Iterator callback to go over all addresses and count them.
  *
- * @param cls closure, an `int *`
- * @param address the address (ignored)
- * @param expiration expiration time (call is ignored if this is in the past)
- * @return  #GNUNET_SYSERR to stop iterating (unless expiration has occured)
+ * @param cls `struct PrintContext *` with `off` to increment
+ * @param address the address
+ * @param expiration expiration time
+ * @return #GNUNET_OK to keep the address and continue
  */
 static int
-check_has_addr (void *cls,
-                const struct GNUNET_HELLO_Address *address,
-                struct GNUNET_TIME_Absolute expiration)
+count_address (void *cls,
+               const struct GNUNET_HELLO_Address *address,
+               struct GNUNET_TIME_Absolute expiration)
 {
-  int *arg = cls;
+  struct PrintContext *pc = cls;
+
   if (0 == GNUNET_TIME_absolute_get_remaining (expiration).rel_value_us)
   {
-    return GNUNET_YES;          /* ignore this address */
-  }
-  *arg = GNUNET_YES;
-  return GNUNET_SYSERR;
-}
-
-static void
-create_array(void *cls)
-{
-  struct RequestHandle *handle = cls;
-//  json_t *object;
-//  object = json_object();
-//
-//  json_object_set(object,"address",json_string(handle->address));
-//  json_object_set(object,"expires",json_string(handle->expiration_str));
-//
-//  if(NULL == handle->temp_array)
-//  {
-//    handle->temp_array = json_array();
-//  }
-//
-//  json_array_append(handle->temp_array,object);
-//
-//  json_decref(object);
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "5\n");
-  json_object_set(handle->response, handle->pubkey, handle->temp_array);
-  json_decref (handle->temp_array);
-}
-
-static void
-create_tmp_array (void *cls)
-{
-  struct RequestHandle *handle = cls;
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "4\n");
-  json_t *object;
-  json_t *address_json = json_string (handle->address);
-  json_t *expires_json = json_string (handle->expiration_str);
-  object = json_object ();
-
-  json_object_set (object, "address", address_json);
-  json_decref(address_json);
-  json_object_set (object, "expires", expires_json);
-  json_decref(expires_json);
-  GNUNET_free(handle->expiration_str);
-
-  if (NULL == handle->temp_array)
-  {
-    handle->temp_array = json_array ();
+    return GNUNET_OK;          /* ignore expired address */
   }
 
-  json_array_append (handle->temp_array, object);
-
-  json_decref (object);
+  pc->off++;
+  return GNUNET_OK;
 }
 
-static void
-addr_to_str_cb (void *cls,
-		const char *address,
-		int res)
-{
-  struct RequestHandle *handle = cls;
-  if (NULL == address)
-  {
-    return;
-  }
-  if (GNUNET_OK != res)
-  {
-    return;
-  }
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "3\n");
-  handle->address = GNUNET_strdup(address);
-  GNUNET_assert(false);
-}
 
 /**
- * Set @a cls to #GNUNET_YES (we have an address!).
+ * Print the collected address information to the console and free @a pc.
+ *
+ * @param pc printing context
+ */
+static void
+dump_pc (struct PrintContext *pc)
+{
+  struct RequestHandle *handle;
+  unsigned int i;
+  json_t *temp_array;
+  json_t *object;
+  json_t *address;
+  json_t *expires;
+  char *friend_and_peer;
+
+  temp_array = json_array();
+
+//  printf (_("%sPeer `%s'\n"),
+//	  (GNUNET_YES == pc->friend_only) ? "F2F: " : "",
+//	  GNUNET_i2s_full (&pc->peer));
+  for (i = 0; i < pc->num_addresses; i++)
+  {
+    if (NULL != pc->address_list[i].result)
+    {
+      object = json_object ();
+      address = json_string(pc->address_list[i].result);
+      expires = json_string(
+	  GNUNET_STRINGS_absolute_time_to_string (pc->address_list[i].expiration));
+      json_object_set (object, "address", address);
+      json_object_set (object, "expires", expires);
+
+      json_decref(address);
+      json_decref(expires);
+
+      json_array_append(temp_array, object);
+      json_decref(object);
+      GNUNET_free (pc->address_list[i].result);
+    }
+  }
+
+  if (0 < json_array_size(temp_array))
+  {
+    GNUNET_asprintf(&friend_and_peer,
+		    "%s%s",
+		    (GNUNET_YES == pc->friend_only) ? "F2F:" : "",
+		    GNUNET_i2s_full (&pc->peer));
+    json_object_set(pc->handle->response,
+		    friend_and_peer,
+		    temp_array);
+    GNUNET_free(friend_and_peer);
+  }
+
+  json_decref (temp_array);
+
+  GNUNET_free_non_null (pc->address_list);
+  GNUNET_CONTAINER_DLL_remove (pc_head,
+			       pc_tail,
+			       pc);
+  handle = pc->handle;
+  GNUNET_free (pc);
+
+  if ( (NULL == pc_head) &&
+       (NULL == handle->list_it) )
+  {
+    GNUNET_SCHEDULER_add_now (&peerinfo_list_finished, handle);
+  }
+
+}
+
+
+/**
+ * Function to call with a human-readable format of an address
  *
  * @param cls closure
- * @param address the address (ignored)
- * @param expiration expiration time (call is ignored if this is in the past)
- * @return  #GNUNET_SYSERR to stop iterating (unless expiration has occured)
+ * @param address NULL on error, otherwise 0-terminated printable UTF-8 string
+ * @param res result of the address to string conversion:
+ *        if #GNUNET_OK: address was valid (conversion to
+ *                       string might still have failed)
+ *        if #GNUNET_SYSERR: address is invalid
+ */
+static void
+process_resolved_address (void *cls,
+                          const char *address,
+                          int res)
+{
+  struct AddressRecord *ar = cls;
+  struct PrintContext *pc = ar->pc;
+
+  if (NULL != address)
+  {
+    if (0 != strlen (address))
+    {
+      if (NULL != ar->result)
+        GNUNET_free (ar->result);
+      ar->result = GNUNET_strdup (address);
+    }
+    return;
+  }
+  ar->atsc = NULL;
+  if (GNUNET_SYSERR == res)
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                _("Failure: Cannot convert address to string for peer `%s'\n"),
+                GNUNET_i2s (&ar->pc->peer));
+  pc->num_addresses++;
+  if (pc->num_addresses == pc->address_list_size)
+    dump_pc (ar->pc);
+}
+
+
+/**
+ * Iterator callback to go over all addresses.
+ *
+ * @param cls closure
+ * @param address the address
+ * @param expiration expiration time
+ * @return #GNUNET_OK to keep the address and continue
  */
 static int
-address_iteration (void *cls,
-		   const struct GNUNET_HELLO_Address *address,
-		   struct GNUNET_TIME_Absolute expiration)
+print_address (void *cls,
+               const struct GNUNET_HELLO_Address *address,
+               struct GNUNET_TIME_Absolute expiration)
 {
-  struct RequestHandle *handle = cls;
-  char *expiration_tmp;
+  struct PrintContext *pc = cls;
+  struct AddressRecord *ar;
 
   if (0 == GNUNET_TIME_absolute_get_remaining (expiration).rel_value_us)
   {
-    return GNUNET_YES;          /* ignore this address */
+    return GNUNET_OK;          /* ignore expired address */
   }
-  expiration_tmp = GNUNET_STRINGS_absolute_time_to_string(expiration);
-  handle->expiration_str = GNUNET_strdup(expiration_tmp);
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "2\n");
-  GNUNET_TRANSPORT_address_to_string(cfg,
-				     address,
-                                     GNUNET_NO,
-                                     GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10),
-                                     &addr_to_str_cb,
-				     handle);
 
-  GNUNET_SCHEDULER_add_now(&create_tmp_array,handle);
-
-//  GNUNET_SCHEDULER_add_delayed (
-//      GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 11),
-//      &create_array,
-//      handle);
-  return GNUNET_YES;
+  GNUNET_assert (0 < pc->off);
+  ar = &pc->address_list[--pc->off];
+  ar->pc = pc;
+  ar->expiration = expiration;
+  GNUNET_asprintf (&ar->result,
+                   "%s:%u:%u",
+                   address->transport_name,
+                   address->address_length,
+                   address->local_info);
+  ar->atsc = GNUNET_TRANSPORT_address_to_string (cfg,
+                                                 address,
+						 GNUNET_NO,
+						 TIMEOUT,
+						 &process_resolved_address,
+						 ar);
+  return GNUNET_OK;
 }
 
 
@@ -379,52 +514,58 @@ peerinfo_list_iteration(void *cls,
 	                const char *err_msg)
 {
   struct RequestHandle *handle = cls;
-  int has_addr;
+  struct PrintContext *pc;
+  int friend_only;
 
   if (NULL == handle->response)
   {
     handle->response = json_object();
   }
 
-  if (NULL != err_msg)
-  {
-    GNUNET_assert (NULL == peer);
-    handle->list_it = NULL;
-    handle->emsg = GNUNET_strdup ("Error in communication with peerinfo");
-    handle->response_code = MHD_HTTP_INTERNAL_SERVER_ERROR;
-    GNUNET_SCHEDULER_add_now (&do_error, handle);
-    return;
-  }
   if (NULL == peer)
   {
     handle->list_it = NULL;
-    GNUNET_SCHEDULER_add_now (&peerinfo_list_finished, handle);
+    handle->emsg = GNUNET_strdup ("Error in communication with peerinfo");
+    if (NULL != err_msg)
+    {
+      GNUNET_free(handle->emsg);
+      handle->emsg = GNUNET_strdup (err_msg);
+      handle->response_code = MHD_HTTP_INTERNAL_SERVER_ERROR;
+    }
+    if (NULL == pc_head)
+      GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
   }
   if (NULL == hello)
     return;
-  has_addr = GNUNET_NO;
+
+  friend_only = GNUNET_NO;
+  if (NULL != hello)
+    friend_only = GNUNET_HELLO_is_friend_only (hello);
+
+  pc = GNUNET_new(struct PrintContext);
+  GNUNET_CONTAINER_DLL_insert (pc_head,
+			       pc_tail,
+			       pc);
+  pc->peer = *peer;
+  pc->friend_only = friend_only;
+  pc->handle = handle;
   GNUNET_HELLO_iterate_addresses (hello,
-                                  GNUNET_NO,
-                                  &check_has_addr,
-                                  &has_addr);
-  if (GNUNET_NO == has_addr)
+				  GNUNET_NO,
+				  &count_address,
+				  pc);
+  if (0 == pc->off)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "HELLO for peer `%4s' has no address, not suitable for hostlist!\n",
-                GNUNET_i2s (peer));
+    dump_pc (pc);
     return;
   }
-
-  if (NULL != handle->pubkey)
-    GNUNET_free (handle->pubkey);
-  handle->pubkey = GNUNET_CRYPTO_eddsa_public_key_to_string(&peer->public_key);
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "1\n");
+  pc->address_list_size = pc->off;
+  pc->address_list = GNUNET_malloc(
+      sizeof(struct AddressRecord) * pc->off);
   GNUNET_HELLO_iterate_addresses (hello,
-                                  GNUNET_NO,
-                                  &address_iteration,
-                                  handle);
-  GNUNET_SCHEDULER_add_now(&create_array,handle);
+				  GNUNET_NO,
+				  &print_address,
+				  pc);
 }
 
 /**
@@ -444,6 +585,7 @@ peerinfo_get (struct GNUNET_REST_RequestHandle *con_handle,
   const struct GNUNET_PeerIdentity *specific_peer;
   GNUNET_PEER_Id peer_id;
   int include_friend_only;
+  char* include_friend_only_str;
 
   include_friend_only = GNUNET_NO;
   GNUNET_CRYPTO_hash (GNUNET_REST_API_PEERINFO_FRIEND,
@@ -453,12 +595,12 @@ peerinfo_get (struct GNUNET_REST_RequestHandle *con_handle,
       == GNUNET_CONTAINER_multihashmap_contains (con_handle->url_param_map,
 						 &key))
   {
-    include_friend_only = *(int*)GNUNET_CONTAINER_multihashmap_get (
+    include_friend_only_str = GNUNET_CONTAINER_multihashmap_get (
 	      con_handle->url_param_map, &key);
-  }
-  if(GNUNET_YES != include_friend_only)
-  {
-    include_friend_only = GNUNET_NO;
+    if (0 == strcmp(include_friend_only_str, "yes"))
+    {
+      include_friend_only = GNUNET_YES;
+    }
   }
 
   specific_peer = NULL;
@@ -472,12 +614,6 @@ peerinfo_get (struct GNUNET_REST_RequestHandle *con_handle,
     peer_id = *(unsigned int*)GNUNET_CONTAINER_multihashmap_get (con_handle->url_param_map, &key);
     specific_peer = GNUNET_PEER_resolve2(peer_id);
   }
-
-
-  //TODO friend_only and special peer
-
-  //TODO add behaviour and response
-  //TODO maybe notify better than iteration
 
   handle->list_it = GNUNET_PEERINFO_iterate(handle->peerinfo_handle,
 					    include_friend_only,
@@ -560,7 +696,7 @@ rest_process_request(struct GNUNET_REST_RequestHandle *rest_handle,
   struct RequestHandle *handle = GNUNET_new (struct RequestHandle);
   
   handle->response_code = 0;
-  handle->timeout = GNUNET_TIME_UNIT_FOREVER_REL;
+  handle->timeout = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 60);
   handle->proc_cls = proc_cls;
   handle->proc = proc;
   handle->rest_handle = rest_handle;
