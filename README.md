@@ -71,7 +71,6 @@ guix package -f guix-env.scm:notest
 ### 2. Docker
 
 ```
-cd docker
 docker build -t gnunet .
 ```
 
@@ -176,7 +175,64 @@ The URI you get is what you can use to retrieve the file with `gnunet-download`.
 
 ### VPN
 
-*coming soon*
+#### "Half-hidden" services
+
+You can tunnel IP traffic through GNUnet allowing you to offer web, SSH, messaging or other servers without revealing your IP address.
+
+This is similar to Tor's Hidden (aka Onion) services, but currently does not provide as much privacy as onion routing isn't yet implemented; on the other hand, you can tunnel UDP, unlike Tor.
+
+#### Configuring server
+
+First, set up access from GNUnet to IP with `exit`:
+
+`gnunet.conf`:
+```
+[exit]
+FORCESTART = YES
+EXIT_IPV4 = YES
+EXIT_RANGE_IPV4_POLICY = 169.254.86.1;
+```
+
+Exit, by the way can also be used as a general-purpose IP proxy i.e. exit relay but here we restrict IPs to be accessed to those we'll be serving stuff on only.
+
+Then, start up a server to be shared. For the sake of example,
+
+```sh
+python3 -m http.server 8080
+```
+
+Now to configure the actual "half-hidden service". The config syntax is as follows:
+
+```sh
+[<shared secret>.gnunet.]
+TCP_REDIRECTS = <exposed port>:<local IP>:<local port>
+```
+
+...which for our example would be
+
+```sh
+[myhttptest.gnunet.]
+TCP_REDIRECTS = 80:169.254.86.1:8080
+```
+
+Local IP can be anything (if allowed by other configuration) but a localhost address (in other words, you can't bind a hidden service to the loopback interface and say 127.0.0.1 in `TCP_REDIRECTS`). The packets will appear as coming from the exit TUN interface to whatever address is configured in `TCP_REDIRECTS` (unlike SSH local forwarding, where the packets appear as coming from the loopback interface) and so they will not be forwarded to 127.0.0.1.
+
+You can share access to this service with a peer id, shared secret and IP port numbler: here `gnunet-peerinfo -s`, `myhttptest` and `80` respectively.
+
+#### Connecting
+
+`gnunet-vpn` gives you ephemeral IPs to connect to if you tell it a peer id and a shared secret, like so:
+
+```sh
+$ gnunet-vpn -p N7R25J8ADR553EPW0NFWNCXK9V80RVCP69QJ47XMT82VKAR7Y300 -t -s myhttptest
+10.11.139.20
+
+# And just connect to the given IP
+$ wget 10.11.139.20
+Connecting to 10.11.139.20:80... connected.
+```
+
+(You can try it out with your browser too.)
 
 ### Running a Hostlist Server
 
@@ -203,12 +259,10 @@ TODO: *explain what this does and add more*
 Philosophy
 -------------------------
 
+GNUnet is made for an open society: It's a self-organizing network and it's [http://www.gnu.org/philosophy/free-sw.html](free software) as in freedom. GNUnet puts you in control of your data. You determine which data to share with whom, and you're not pressured to accept compromises.
+
 
 Related Projects
 -------------------------
 
-
-
  <a href="https://pep.foundation"><img src="https://pep.foundation/static/media/uploads/peplogo.svg" alt="pep.foundation" width="80px"/></a>  <a href="https://secushare.org"><img src="https://secushare.org/img/secushare-0444.png" alt="Secushare" width="80px"/></a>
-
- 
