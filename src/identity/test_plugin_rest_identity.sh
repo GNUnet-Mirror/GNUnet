@@ -84,8 +84,9 @@ fi
 
 id="$(gnunet-identity -d | grep "Test - " | sed  "s/Test - //g")"
 #Test GET (one identity) for success and error json
+#Only lowercase
 cache="$(curl --silent "${link_to_api}?name=Test" | grep "error")"
-if [ "" != "$cache" ]
+if [ "" == "$cache" ]
 then
     exit 1
 fi
@@ -95,7 +96,6 @@ if [ "" != "$cache" ]
 then
     exit 1
 fi
-
 
 #Test DELETE success code, error response code and error json
 #echo "Next tests for DELETE will probably fail when POST fails"

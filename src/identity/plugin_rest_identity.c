@@ -326,13 +326,13 @@ ego_get (struct GNUNET_REST_RequestHandle *con_handle, const char* url,
   struct GNUNET_HashCode key;
   struct MHD_Response *resp;
   char *keystring;
-  const char *egoname;
+  char *egoname;
   json_t *json_root;
   json_t *json_ego;
   char *result_str;
   size_t index;
 
-  //if subsystem
+  //requested default identity of subsystem
   GNUNET_CRYPTO_hash (GNUNET_REST_PARAM_SUBSYSTEM,
 		      strlen (GNUNET_REST_PARAM_SUBSYSTEM), &key);
   if ( GNUNET_YES
@@ -360,7 +360,7 @@ ego_get (struct GNUNET_REST_RequestHandle *con_handle, const char* url,
   egoname = NULL;
   keystring = NULL;
 
-  //if only one identity requested with key
+  //one identity requested with key
   GNUNET_CRYPTO_hash (GNUNET_REST_PARAM_PUBKEY,
 		      strlen (GNUNET_REST_PARAM_PUBKEY),
 		      &key);
@@ -381,7 +381,7 @@ ego_get (struct GNUNET_REST_RequestHandle *con_handle, const char* url,
     }
   }
 
-  //if only one identity requested with name
+  //one identity requested with name
   if (NULL == egoname)
   {
     GNUNET_CRYPTO_hash (GNUNET_REST_PARAM_NAME,
@@ -393,6 +393,8 @@ ego_get (struct GNUNET_REST_RequestHandle *con_handle, const char* url,
     {
       egoname = GNUNET_CONTAINER_multihashmap_get (
 	  handle->rest_handle->url_param_map, &key);
+      //LOWERCASE ego names?
+      GNUNET_STRINGS_utf8_tolower(egoname, egoname);
     }
   }
 
@@ -410,10 +412,10 @@ ego_get (struct GNUNET_REST_RequestHandle *con_handle, const char* url,
 
     json_ego = json_object ();
     json_object_set_new (json_ego,
-    GNUNET_REST_PARAM_PUBKEY,
+			 GNUNET_REST_PARAM_PUBKEY,
 			 json_string (ego_entry->keystring));
     json_object_set_new (json_ego,
-    GNUNET_REST_PARAM_NAME,
+			 GNUNET_REST_PARAM_NAME,
 			 json_string (ego_entry->identifier));
     json_array_append (json_root, json_ego);
   }
@@ -645,7 +647,7 @@ ego_create (struct GNUNET_REST_RequestHandle *con_handle, const char* url,
   term_data[handle->data_size] = '\0';
   GNUNET_memcpy(term_data, handle->data, handle->data_size);
   data_js = json_loads (term_data,
-  JSON_DECODE_ANY,
+			JSON_DECODE_ANY,
 			&err);
 
   if (NULL == data_js)
@@ -717,35 +719,69 @@ void
 ego_delete (struct GNUNET_REST_RequestHandle *con_handle, const char* url,
 	    void *cls)
 {
-  const char *keystring;
+  struct RequestHandle *handle = cls;
   struct EgoEntry *ego_entry;
   struct GNUNET_HashCode key;
   struct MHD_Response *resp;
-  struct RequestHandle *handle = cls;
+  const char *keystring;
+  char *egoname;
   int ego_exists = GNUNET_NO;
 
-  //if only one identity requested
+  keystring = NULL;
+  egoname = NULL;
+
+  //delete with pubkey
   GNUNET_CRYPTO_hash (GNUNET_REST_PARAM_PUBKEY,
 		      strlen (GNUNET_REST_PARAM_PUBKEY), &key);
-  if ( GNUNET_NO
+  if ( GNUNET_YES
       == GNUNET_CONTAINER_multihashmap_contains (
 	  handle->rest_handle->url_param_map, &key))
   {
-    handle->emsg = GNUNET_strdup("Missing parameter pubkey");
+    keystring = GNUNET_CONTAINER_multihashmap_get (
+        handle->rest_handle->url_param_map,&key);
+  }
+
+  GNUNET_CRYPTO_hash (GNUNET_REST_PARAM_NAME,
+		      strlen (GNUNET_REST_PARAM_NAME), &key);
+  if ( GNUNET_YES
+      == GNUNET_CONTAINER_multihashmap_contains (
+	  handle->rest_handle->url_param_map, &key))
+  {
+    egoname = GNUNET_CONTAINER_multihashmap_get (
+	handle->rest_handle->url_param_map, &key);
+    //LOWERCASE ego names?
+    GNUNET_STRINGS_utf8_tolower(egoname, egoname);
+  }
+
+  if (NULL != keystring)
+  {
+    for (ego_entry = handle->ego_head;
+    NULL != ego_entry; ego_entry = ego_entry->next)
+    {
+      if (0 != strcasecmp (keystring, ego_entry->keystring))
+        continue;
+      ego_exists = GNUNET_YES;
+      break;
+    }
+  }
+  else if (NULL != egoname)
+  {
+    for (ego_entry = handle->ego_head;
+    NULL != ego_entry; ego_entry = ego_entry->next)
+    {
+      if (0 != strcasecmp (egoname, ego_entry->identifier))
+        continue;
+      ego_exists = GNUNET_YES;
+      break;
+    }
+  }
+  else
+  {
+    handle->emsg = GNUNET_strdup("Missing parameter pubkey or name");
     GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
   }
 
-  keystring = GNUNET_CONTAINER_multihashmap_get (
-      handle->rest_handle->url_param_map,&key);
-  for (ego_entry = handle->ego_head;
-  NULL != ego_entry; ego_entry = ego_entry->next)
-  {
-    if (0 != strcasecmp (keystring, ego_entry->keystring))
-      continue;
-    ego_exists = GNUNET_YES;
-    break;
-  }
   if (GNUNET_NO == ego_exists)
   {
     resp = GNUNET_REST_create_response (NULL);
