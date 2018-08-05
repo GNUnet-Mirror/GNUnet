@@ -265,6 +265,47 @@ do_error (void *cls)
   GNUNET_SCHEDULER_add_now (&cleanup_handle, handle);
 }
 
+
+
+/**
+ * Get EgoEntry from list with either a public key or a name
+ * If public key and name are not NULL, it returns the public key result first
+ *
+ * @param handle the RequestHandle
+ * @param pubkey the public key of an identity (only one can be NULL)
+ * @param name the name of an identity (only one can be NULL)
+ * @return EgoEntry or NULL if not found
+ */
+struct EgoEntry*
+get_egoentry(struct RequestHandle *handle, char* pubkey, char *name)
+{
+  struct EgoEntry *ego_entry;
+  if (NULL != pubkey)
+  {
+    for (ego_entry = handle->ego_head;
+	NULL != ego_entry;
+	ego_entry = ego_entry->next)
+    {
+      if (0 != strcasecmp (pubkey, ego_entry->keystring))
+	continue;
+      return ego_entry;
+    }
+  }
+  if (NULL != name)
+  {
+    for (ego_entry = handle->ego_head;
+	NULL != ego_entry;
+	ego_entry = ego_entry->next)
+    {
+      if (0 != strcasecmp (name, ego_entry->identifier))
+	continue;
+      return ego_entry;
+    }
+  }
+  return NULL;
+}
+
+
 /**
  * Callback for GET Request with subsystem
  *
@@ -330,7 +371,6 @@ ego_get (struct GNUNET_REST_RequestHandle *con_handle, const char* url,
   json_t *json_root;
   json_t *json_ego;
   char *result_str;
-  size_t index;
 
   //requested default identity of subsystem
   GNUNET_CRYPTO_hash (GNUNET_REST_PARAM_SUBSYSTEM,
@@ -371,14 +411,14 @@ ego_get (struct GNUNET_REST_RequestHandle *con_handle, const char* url,
     keystring = GNUNET_CONTAINER_multihashmap_get (
 	handle->rest_handle->url_param_map, &key);
 
-    for (ego_entry = handle->ego_head;
-    NULL != ego_entry; ego_entry = ego_entry->next)
+    ego_entry = get_egoentry(handle, keystring, NULL);
+    if (NULL == ego_entry)
     {
-      if ((NULL != keystring)
-	  && (0 != strcmp (keystring, ego_entry->keystring)))
-	continue;
-      egoname = ego_entry->identifier;
+      handle->emsg = GNUNET_strdup("No identity found for public key");
+      GNUNET_SCHEDULER_add_now (&do_error, handle);
+      return;
     }
+    egoname = ego_entry->identifier;
   }
 
   //one identity requested with name
@@ -393,6 +433,12 @@ ego_get (struct GNUNET_REST_RequestHandle *con_handle, const char* url,
     {
       egoname = GNUNET_CONTAINER_multihashmap_get (
 	  handle->rest_handle->url_param_map, &key);
+      if (0 >= strlen(egoname))
+      {
+        handle->emsg = GNUNET_strdup("No identity found for name");
+        GNUNET_SCHEDULER_add_now (&do_error, handle);
+        return;
+      }
       //LOWERCASE ego names?
       GNUNET_STRINGS_utf8_tolower(egoname, egoname);
     }
@@ -418,6 +464,7 @@ ego_get (struct GNUNET_REST_RequestHandle *con_handle, const char* url,
 			 GNUNET_REST_PARAM_NAME,
 			 json_string (ego_entry->identifier));
     json_array_append (json_root, json_ego);
+    json_decref (json_ego);
   }
 
   if ((size_t) 0 == json_array_size (json_root))
@@ -432,16 +479,12 @@ ego_get (struct GNUNET_REST_RequestHandle *con_handle, const char* url,
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Result %s\n", result_str);
   resp = GNUNET_REST_create_response (result_str);
 
-  //delete json_objects in json_array with macro
-  json_array_foreach(json_root, index, json_ego )
-  {
-    json_decref (json_ego);
-  }
   json_decref (json_root);
   handle->proc (handle->proc_cls, resp, MHD_HTTP_OK);
   GNUNET_free(result_str);
   GNUNET_SCHEDULER_add_now (&cleanup_handle, handle);
 }
+
 
 /**
  * Processing finished
@@ -467,6 +510,7 @@ do_finished (void *cls, const char *emsg)
   GNUNET_SCHEDULER_add_now (&cleanup_handle, handle);
 }
 
+
 /**
  * Handle identity PUT request
  *
@@ -475,23 +519,22 @@ do_finished (void *cls, const char *emsg)
  * @param cls the RequestHandle
  */
 void
-ego_edit (struct GNUNET_REST_RequestHandle *con_handle, const char* url,
-	    void *cls)
+ego_edit (struct GNUNET_REST_RequestHandle *con_handle,
+	  const char* url,
+	  void *cls)
 {
   struct RequestHandle *handle = cls;
   struct EgoEntry *ego_entry;
   struct EgoEntry *ego_entry_tmp;
   struct MHD_Response *resp;
-  json_t *subsys_json;
-  json_t *name_json;
-  json_t *key_json;
+  int json_state;
   json_t *data_js;
   json_error_t err;
-  const char *keystring;
-  const char *subsys;
-  const char *newname;
+  char *pubkey;
+  char *name;
+  char *newsubsys;
+  char *newname;
   char term_data[handle->data_size + 1];
-  int ego_exists = GNUNET_NO;
 
   //if no data
   if (0 >= handle->data_size)
@@ -504,111 +547,135 @@ ego_edit (struct GNUNET_REST_RequestHandle *con_handle, const char* url,
   term_data[handle->data_size] = '\0';
   GNUNET_memcpy(term_data, handle->data, handle->data_size);
   data_js = json_loads (term_data,JSON_DECODE_ANY,&err);
+
   if (NULL == data_js)
   {
     handle->emsg = GNUNET_strdup(GNUNET_REST_ERROR_NO_DATA);
     GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
   }
-  if (!json_is_object(data_js))
-  {
-    json_decref (data_js);
-    handle->emsg = GNUNET_strdup(GNUNET_REST_ERROR_DATA_INVALID);
-    GNUNET_SCHEDULER_add_now (&do_error, handle);
-    return;
-  }
-  //json must contain pubkey and (subsystem or name)
-  if (2 != json_object_size (data_js))
-  {
-    json_decref (data_js);
-    handle->emsg = GNUNET_strdup("Resource amount invalid");
-    GNUNET_SCHEDULER_add_now (&do_error, handle);
-    return;
-  }
 
-  key_json = json_object_get (data_js, GNUNET_REST_PARAM_PUBKEY);
-  if ((NULL == key_json) || !json_is_string(key_json))
+  ego_entry = NULL;
+  pubkey = NULL;
+  name = NULL;
+  newname = NULL;
+  //NEW NAME
+  json_state = 0;
+  json_state = json_unpack(data_js,
+			   "{s:s,s?:s,s?:s}",
+			   GNUNET_REST_PARAM_NEWNAME,
+			   &newname,
+			   GNUNET_REST_PARAM_PUBKEY,
+			   &pubkey,
+			   GNUNET_REST_PARAM_NAME,
+			   &name);
+  //Change name with pubkey or name identifier
+  if (0 == json_state)
   {
-    json_decref (data_js);
-    handle->emsg = GNUNET_strdup("Missing element pubkey");
-    GNUNET_SCHEDULER_add_now (&do_error, handle);
-    return;
-  }
-  keystring = json_string_value (key_json);
-
-  for (ego_entry = handle->ego_head;
-  NULL != ego_entry; ego_entry = ego_entry->next)
-  {
-    if (0 != strcasecmp (keystring, ego_entry->keystring))
-      continue;
-    ego_exists = GNUNET_YES;
-    break;
-  }
-
-  if (GNUNET_NO == ego_exists)
-  {
-    json_decref (data_js);
-    resp = GNUNET_REST_create_response (NULL);
-    handle->proc (handle->proc_cls, resp, MHD_HTTP_NOT_FOUND);
-    GNUNET_SCHEDULER_add_now (&cleanup_handle, handle);
-    return;
-  }
-  //This is a rename
-  name_json = json_object_get (data_js, GNUNET_REST_PARAM_NEWNAME);
-  if ((NULL != name_json) && json_is_string(name_json))
-  {
-    newname = json_string_value (name_json);
-    if (0 >= strlen (newname))
+    if (NULL == newname)
     {
-      json_decref (data_js);
-      handle->emsg = GNUNET_strdup("No name provided");
+      handle->emsg = GNUNET_strdup(GNUNET_REST_ERROR_DATA_INVALID);
       GNUNET_SCHEDULER_add_now (&do_error, handle);
+      json_decref (data_js);
       return;
     }
+
+    if (0 >= strlen(newname))
+    {
+      handle->emsg = GNUNET_strdup(GNUNET_REST_ERROR_DATA_INVALID);
+      GNUNET_SCHEDULER_add_now (&do_error, handle);
+      json_decref (data_js);
+      return;
+    }
+    //lower case name
+    GNUNET_STRINGS_utf8_tolower(newname,newname);
+
+    ego_entry = get_egoentry(handle,pubkey,name);
+
+    if (NULL == ego_entry)
+    {
+      resp = GNUNET_REST_create_response (NULL);
+      handle->proc (handle->proc_cls, resp, MHD_HTTP_NOT_FOUND);
+      GNUNET_SCHEDULER_add_now (&cleanup_handle, handle);
+      json_decref (data_js);
+      return;
+    }
+
     for (ego_entry_tmp = handle->ego_head;
     NULL != ego_entry_tmp; ego_entry_tmp = ego_entry_tmp->next)
     {
-      if (0 == strcasecmp (newname, ego_entry_tmp->identifier)
-	  && 0 != strcasecmp (keystring, ego_entry_tmp->keystring))
+      if (0 == strcasecmp (newname, ego_entry_tmp->identifier))
       {
-	//Ego with same name not allowed
-	json_decref (data_js);
-	resp = GNUNET_REST_create_response (NULL);
-	handle->proc (handle->proc_cls, resp, MHD_HTTP_CONFLICT);
-	GNUNET_SCHEDULER_add_now (&cleanup_handle, handle);
-	return;
+        //Ego with same name not allowed
+        resp = GNUNET_REST_create_response (NULL);
+        handle->proc (handle->proc_cls, resp, MHD_HTTP_CONFLICT);
+        GNUNET_SCHEDULER_add_now (&cleanup_handle, handle);
+        json_decref (data_js);
+        return;
       }
     }
     handle->response_code = MHD_HTTP_NO_CONTENT;
     handle->op = GNUNET_IDENTITY_rename (handle->identity_handle,
-					 ego_entry->identifier, newname,
-					 &do_finished, handle);
+  				       ego_entry->identifier, newname,
+  				       &do_finished, handle);
     json_decref (data_js);
     return;
   }
 
-  //Set subsystem
-  subsys_json = json_object_get (data_js, GNUNET_REST_PARAM_SUBSYSTEM);
-  if ((NULL != subsys_json) && json_is_string(subsys_json))
+  newsubsys = NULL;
+  //SUBSYSTEM
+  json_state = 0;
+  json_state = json_unpack(data_js,
+			   "{s:s,s?:s,s?:s}",
+			   GNUNET_REST_PARAM_SUBSYSTEM,
+			   &newsubsys,
+			   GNUNET_REST_PARAM_PUBKEY,
+			   &pubkey,
+			   GNUNET_REST_PARAM_NAME,
+			   &name);
+  //Change subsystem with pubkey or name identifier
+  if (0 == json_state)
   {
-    subsys = json_string_value (subsys_json);
-    if (0 >= strlen (subsys))
+    if (NULL == newsubsys || (NULL == pubkey && NULL == name))
     {
-      json_decref (data_js);
-      handle->emsg = GNUNET_strdup("Invalid subsystem name");
+      handle->emsg = GNUNET_strdup(GNUNET_REST_ERROR_DATA_INVALID);
       GNUNET_SCHEDULER_add_now (&do_error, handle);
+      json_decref (data_js);
       return;
     }
-    GNUNET_asprintf (&handle->subsystem, "%s", subsys);
-    json_decref (data_js);
+
+    if (0 >= strlen(newsubsys))
+    {
+      handle->emsg = GNUNET_strdup(GNUNET_REST_ERROR_DATA_INVALID);
+      GNUNET_SCHEDULER_add_now (&do_error, handle);
+      json_decref (data_js);
+      return;
+    }
+
+    ego_entry = get_egoentry(handle, pubkey, name);
+
+    if (NULL == ego_entry)
+    {
+      handle->emsg = GNUNET_strdup(GNUNET_REST_ERROR_DATA_INVALID);
+      GNUNET_SCHEDULER_add_now (&do_error, handle);
+      json_decref (data_js);
+      return;
+    }
+
     handle->response_code = MHD_HTTP_NO_CONTENT;
-    handle->op = GNUNET_IDENTITY_set (handle->identity_handle, handle->subsystem,
-				      ego_entry->ego, &do_finished, handle);
+    handle->op = GNUNET_IDENTITY_set (handle->identity_handle,
+				      newsubsys,
+				      ego_entry->ego,
+				      &do_finished,
+				      handle);
+    json_decref (data_js);
     return;
   }
-  json_decref (data_js);
-  handle->emsg = GNUNET_strdup("Subsystem not provided");
+
+  handle->emsg = GNUNET_strdup(GNUNET_REST_ERROR_DATA_INVALID);
   GNUNET_SCHEDULER_add_now (&do_error, handle);
+  json_decref (data_js);
+  return;
 }
 
 /**
@@ -625,10 +692,10 @@ ego_create (struct GNUNET_REST_RequestHandle *con_handle, const char* url,
   struct RequestHandle *handle = cls;
   struct EgoEntry *ego_entry;
   struct MHD_Response *resp;
-  json_t *egoname_json;
   json_t *data_js;
   json_error_t err;
-  const char* egoname;
+  char* egoname;
+  int json_unpack_state;
   char term_data[handle->data_size + 1];
 
   if (strlen (GNUNET_REST_API_NS_IDENTITY) != strlen (handle->url))
@@ -649,39 +716,33 @@ ego_create (struct GNUNET_REST_RequestHandle *con_handle, const char* url,
   data_js = json_loads (term_data,
 			JSON_DECODE_ANY,
 			&err);
-
   if (NULL == data_js)
   {
-    handle->emsg = GNUNET_strdup(GNUNET_REST_ERROR_DATA_INVALID);
+    handle->emsg = GNUNET_strdup(GNUNET_REST_ERROR_NO_DATA);
     GNUNET_SCHEDULER_add_now (&do_error, handle);
+    json_decref (data_js);
     return;
   }
-  //instead of parse
-  if (!json_is_object(data_js))
+  json_unpack_state = 0;
+  json_unpack_state = json_unpack(data_js,
+				  "{s:s!}",
+				  GNUNET_REST_PARAM_NAME,
+				  &egoname);
+  if (0 != json_unpack_state)
   {
-    json_decref (data_js);
     handle->emsg = GNUNET_strdup(GNUNET_REST_ERROR_DATA_INVALID);
     GNUNET_SCHEDULER_add_now (&do_error, handle);
+    json_decref (data_js);
     return;
   }
 
-  if (1 != json_object_size (data_js))
+  if (NULL == egoname)
   {
-    json_decref (data_js);
-    handle->emsg = GNUNET_strdup("Provided resource count invalid");
-    GNUNET_SCHEDULER_add_now (&do_error, handle);
-    return;
-  }
-
-  egoname_json = json_object_get (data_js, GNUNET_REST_PARAM_NAME);
-  if (!json_is_string(egoname_json))
-  {
-    json_decref (data_js);
     handle->emsg = GNUNET_strdup("No name provided");
     GNUNET_SCHEDULER_add_now (&do_error, handle);
+    json_decref (data_js);
     return;
   }
-  egoname = json_string_value (egoname_json);
   if (0 >= strlen (egoname))
   {
     json_decref (data_js);
@@ -689,19 +750,20 @@ ego_create (struct GNUNET_REST_RequestHandle *con_handle, const char* url,
     GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
   }
+  GNUNET_STRINGS_utf8_tolower(egoname, egoname);
   for (ego_entry = handle->ego_head;
   NULL != ego_entry; ego_entry = ego_entry->next)
   {
     if (0 == strcasecmp (egoname, ego_entry->identifier))
     {
-      json_decref (data_js);
       resp = GNUNET_REST_create_response (NULL);
       handle->proc (handle->proc_cls, resp, MHD_HTTP_CONFLICT);
       GNUNET_SCHEDULER_add_now (&cleanup_handle, handle);
+      json_decref (data_js);
       return;
     }
   }
-  GNUNET_asprintf (&handle->name, "%s", egoname);
+  handle->name = GNUNET_strdup(egoname);
   json_decref (data_js);
   handle->response_code = MHD_HTTP_CREATED;
   handle->op = GNUNET_IDENTITY_create (handle->identity_handle, handle->name,
@@ -750,7 +812,7 @@ ego_delete (struct GNUNET_REST_RequestHandle *con_handle, const char* url,
     egoname = GNUNET_CONTAINER_multihashmap_get (
 	handle->rest_handle->url_param_map, &key);
     //LOWERCASE ego names?
-    GNUNET_STRINGS_utf8_tolower(egoname, egoname);
+    //GNUNET_STRINGS_utf8_tolower(egoname, egoname);
   }
 
   if (NULL != keystring)
@@ -769,7 +831,7 @@ ego_delete (struct GNUNET_REST_RequestHandle *con_handle, const char* url,
     for (ego_entry = handle->ego_head;
     NULL != ego_entry; ego_entry = ego_entry->next)
     {
-      if (0 != strcasecmp (egoname, ego_entry->identifier))
+      if (0 != strcmp (egoname, ego_entry->identifier))
         continue;
       ego_exists = GNUNET_YES;
       break;

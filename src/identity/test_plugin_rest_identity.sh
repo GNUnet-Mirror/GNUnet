@@ -1,222 +1,161 @@
 #!/usr/bin/bash
 
-#First, start gnunet-arm and the rest-service. Make sure, no identity exists
+#First, start gnunet-arm and the rest-service.
 #Exit 0 means success, exit 1 means failed test
 
 #No test for subsystem available
 
-link_to_api="http://localhost:7776/identity"
-wrong_link="http://localhost:7776/idenmmmy"
-wrong_link2="http://localhost:7776/identityandmore"
+identity_link="http://localhost:7776/identity"
+wrong_link="http://localhost:7776/identityandmore"
 
-#Test GET (multiple identities) for error when no identity exists
-#The next test case can be ignored if you have already added identities
-cache="$(curl --silent "$link_to_api" | grep "error")"
-if [ "" == "$cache" ]
+
+curl_get () {
+    #$1 is link
+    #$2 is grep
+    cache="$(curl -v "$1" 2>&1 | grep "$2")"
+    #echo $cache
+    if [ "" == "$cache" ]
+    then
+        exit 1
+    fi
+}
+
+curl_post () {
+    #$1 is link
+    #$2 is data
+    #$3 is grep
+    cache="$(curl -v -X "POST" "$1" --data "$2" 2>&1 | grep "$3")"
+    #echo $cache
+    if [ "" == "$cache" ]
+    then
+        exit 1
+    fi
+}
+
+curl_delete () {
+    #$1 is link
+    #$2 is grep
+    cache="$(curl -v -X "DELETE" "$1" 2>&1 | grep "$2")"
+    #echo $cache
+    if [ "" == "$cache" ]
+    then
+        exit 1
+    fi
+}
+
+curl_put () {
+    #$1 is link
+    #$2 is data
+    #$3 is grep
+    cache="$(curl -v -X "PUT" "$1" --data "$2" 2>&1 | grep "$3")"
+    #echo $cache
+    if [ "" == "$cache" ]
+    then
+        exit 1
+    fi
+}
+
+#Test GET
+test="$(gnunet-identity -d)"
+#if no identity exists
+if [ "" == "$test" ]
 then
-    exit 1
+    curl_get "$identity_link" "error"
+    gnunet-identity -C "test_plugin_rest_identity"
+    name="$(gnunet-identity -d | awk 'NR==1{print $1}')"
+    public="$(gnunet-identity -d | awk 'NR==1{print $3}')"
+    
+    curl_get "${identity_link}?name=$name" "$public"
+    curl_get "${identity_link}?name=" "error"
+    curl_get "${identity_link}?name=$public" "error"
+    
+    curl_get "${identity_link}?pubkey=$public" "$name"
+    curl_get "${identity_link}?pubkey=$name" "error"
+    curl_get "${identity_link}?pubkey=" "error"
+    
+    gnunet-identity -D "test_plugin_rest_identity"
+else
+    name="$(gnunet-identity -d | awk 'NR==1{print $1}')"
+    public="$(gnunet-identity -d | awk 'NR==1{print $3}')"
+    
+    curl_get "${identity_link}?name=$name" "$public"
+    curl_get "${identity_link}?name=" "error"
+    curl_get "${identity_link}?name=$public" "error"
+    
+    curl_get "${identity_link}?pubkey=$public" "$name"
+    curl_get "${identity_link}?pubkey=$name" "error"
+    curl_get "${identity_link}?pubkey=" "error"
 fi
 
-#Test POST success code, error response code and error json
-#The next test case can be ignored if you have already added an identity with the name Test
-cache="$(curl -v -X "POST" "$link_to_api" --data "{\"name\":\"Test\"}" 2>&1 | grep "HTTP/1.1 201")"
-if [ "" == "$cache" ]
-then
-    exit 1
-fi
+#Test POST
+gnunet-identity -D "test_plugin_rest_identity" > /dev/null 2>&1
+gnunet-identity -D "test_plugin_rest_identity1" > /dev/null 2>&1
 
-cache="$(curl -v -X "POST" "$link_to_api" --data "{\"name\":\"Test\"}" 2>&1 | grep "HTTP/1.1 409")"
-if [ "" == "$cache" ]
-then
-    exit 1
-fi
+curl_post "${identity_link}" '{"name":"test_plugin_rest_identity"}' "HTTP/1.1 201 Created"
+curl_post "${identity_link}" '{"name":"test_plugin_rest_identity"}' "HTTP/1.1 409"
+curl_post "${identity_link}" '{"name":"Test_plugin_rest_identity"}' "HTTP/1.1 409"
+curl_post "${identity_link}" '{}' "error"
+curl_post "${identity_link}" '' "error"
+curl_post "${identity_link}" '{"name":""}' "error"
+curl_post "${identity_link}" '{"name":123}' "error"
+curl_post "${identity_link}" '{"name":[]}' "error"
+curl_post "${identity_link}" '{"name1":"test_plugin_rest_identity"}' "error"
+curl_post "${identity_link}" '{"other":""}' "error"
+curl_post "${identity_link}" '{"name":"test_plugin_rest_identity1", "other":"test_plugin_rest_identity2"}' "error"
 
-cache="$(curl -v -X "POST" "$link_to_api" 2>&1 | grep "error")"
-if [ "" == "$cache" ]
-then
-    exit 1
-fi
+#Test PUT
+name="$(gnunet-identity -d | grep "test_plugin_rest_identity" | awk 'NR==1{print $1}')"
+public="$(gnunet-identity -d | grep "test_plugin_rest_identity" | awk 'NR==1{print $3}')"
 
-cache="$(curl -v -X "POST" "$link_to_api" --data "wrong" 2>&1 | grep "error")"
-if [ "" == "$cache" ]
-then
-    exit 1
-fi
-
-cache="$(curl -v -X "POST" "$link_to_api" --data "[{}]" 2>&1 | grep "error")"
-if [ "" == "$cache" ]
-then
-    exit 1
-fi
-
-cache="$(curl -v -X "POST" "$link_to_api" --data "{\"name\":\"Test\",\"other\":\"Test\"}" 2>&1 | grep "error")"
-if [ "" == "$cache" ]
-then
-    exit 1
-fi
-
-cache="$(curl -v -X "POST" "$link_to_api" --data "{\"nam\":\"Test\"}" 2>&1 | grep "error")"
-if [ "" == "$cache" ]
-then
-    exit 1
-fi
-
-cache="$(curl -v -X "POST" "$link_to_api" --data "{\"name\":123}" 2>&1 | grep "error")"
-if [ "" == "$cache" ]
-then
-    exit 1
-fi
-
-cache="$(curl -v -X "POST" "$link_to_api" --data "{\"name\":""}" 2>&1 | grep "error")"
-if [ "" == "$cache" ]
-then
-    exit 1
-fi
+curl_put "${identity_link}" '{"newname":"test_plugin_rest_identity1","pubkey":"'$public'"}' "HTTP/1.1 204"
+curl_put "${identity_link}" '{"newname":"test_plugin_rest_identity1","pubkey":"'$public'"}' "HTTP/1.1 409"
+curl_put "${identity_link}" '{"newname":"test_plugin_rest_identity1","pubkey":"'$public'xx"}' "HTTP/1.1 404"
+curl_put "${identity_link}" '{"newname":"test_plugin_rest_identity1","pubkey":""}' "HTTP/1.1 404"
+curl_put "${identity_link}" '{"newname":"test_plugin_rest_identity1","pubke":""}' "HTTP/1.1 404"
+curl_put "${identity_link}" '{"newname":"test_plugin_rest_identity1","pubke":"","other":"sdfdsf"}' "HTTP/1.1 404"
+curl_put "${identity_link}" '{"newname":"test_plugin_rest_identity1","pubke":"","name":"sdfdsf"}' "HTTP/1.1 404"
+curl_put "${identity_link}" '{"newname":"test_plugin_rest_identity","pubke":"","name":"test_plugin_rest_identity1"}' "HTTP/1.1 204"
+curl_put "${identity_link}" '{"newnam":"test_plugin_rest_identity","pubkey":"'$public'"}' "error"
+curl_put "${identity_link}" '{"newname":"test_plugin_rest_identity1","name":"test_plugin_rest_identity"}' "HTTP/1.1 204"
+curl_put "${identity_link}" '{"newname":"TEST_plugin_rest_identity1","name":"test_plugin_rest_identity1"}' "HTTP/1.1 409"
+curl_put "${identity_link}" '{"newname":"test_plugin_rest_identity1","name":"test_plugin_rest_identity1"}' "HTTP/1.1 409"
+curl_put "${identity_link}" '{"newname":"test_plugin_rest_identity","name":"test_plugin_rest_identityxxx"}' "HTTP/1.1 404"
+curl_put "${identity_link}" '{"newname":"test_plugin_rest_identity","name":"test_plugin_rest_identity1"}' "HTTP/1.1 204"
+curl_put "${identity_link}" '{"newnam":"test_plugin_rest_identityfail","name":"test_plugin_rest_identity"}' "error"
 
 
-#Test GET (multiple identities) for success and error json
-cache="$(curl --silent "$link_to_api" | grep "error")"
-if [ "" != "$cache" ]
-then
-    exit 1
-fi
+#Test subsystem
+curl_put "${identity_link}" '{"subsystem":"namestore","name":"test_plugin_rest_identity"}' "HTTP/1.1 204"
+curl_put "${identity_link}" '{"subsystem":"namestore","name":"test_plugin_rest_identity"}' "HTTP/1.1 204"
+curl_get "${identity_link}?subsystem=namestore" "test_plugin_rest_identity"
+curl_post "${identity_link}" '{"name":"test_plugin_rest_identity1"}' "HTTP/1.1 201 Created"
+public="$(gnunet-identity -d | grep "test_plugin_rest_identity" | awk 'NR==1{print $3}')"
+curl_put "${identity_link}" '{"subsystem":"namestore","pubkey":"'"$public"'"}' "HTTP/1.1 204"
+curl_get "${identity_link}?subsystem=namestore" "test_plugin_rest_identity1"
+curl_get "${identity_link}?subsystem=test_plugin_rest_identity_no_subsystem" "error"
+curl_put "${identity_link}" '{"subsystem":"test_plugin_rest_identity_no_subsystem","name":"test_plugin_rest_identity1"}' "HTTP/1.1 204"
+curl_get "${identity_link}?subsystem=test_plugin_rest_identity_no_subsystem" "test_plugin_rest_identity1"
 
+curl_put "${identity_link}" '{"subsyste":"test_plugin_rest_identity_no_subsystem","name":"test_plugin_rest_identity1"}' "error"
+curl_put "${identity_link}" '{"subsystem":"test_plugin_rest_identity_no_subsystem","name":"Test_plugin_rest_identity1"}' "HTTP/1.1 204"
 
-id="$(gnunet-identity -d | grep "Test - " | sed  "s/Test - //g")"
-#Test GET (one identity) for success and error json
-#Only lowercase
-cache="$(curl --silent "${link_to_api}?name=Test" | grep "error")"
-if [ "" == "$cache" ]
-then
-    exit 1
-fi
-#Test GET (one identity) for success and error json
-cache="$(curl --silent "${link_to_api}?pubkey=$id" | grep "error")"
-if [ "" != "$cache" ]
-then
-    exit 1
-fi
+#Test DELETE
+curl_delete "${identity_link}?name=test_plugin_rest_identity" "HTTP/1.1 204"
+curl_get "${identity_link}?name=test_plugin_rest_identity" "error"
+curl_delete "${identity_link}?name=TEST_plugin_rest_identity1" "HTTP/1.1 404"
+curl_delete "${identity_link}?name=test_plugin_rest_identity1" "HTTP/1.1 204"
+curl_get "${identity_link}?name=test_plugin_rest_identity1" "error"
+curl_delete "${identity_link}?name=test_plugin_rest_identity_not_found" "HTTP/1.1 404"
+curl_post "${identity_link}" '{"name":"test_plugin_rest_identity1"}' "HTTP/1.1 201 Created"
+public="$(gnunet-identity -d | grep "test_plugin_rest_identity1" | awk 'NR==1{print $3}')"
+curl_delete "${identity_link}?pubkey=$public" "HTTP/1.1 204"
+curl_delete "${identity_link}?pubke=$public" "error"
+curl_delete "${identity_link}?pubkey=$public&other=232" "HTTP/1.1 404"
 
-#Test DELETE success code, error response code and error json
-#echo "Next tests for DELETE will probably fail when POST fails"
-cache="$(curl -v -X "DELETE" "${link_to_api}?pubkey=$id" 2>&1 | grep "HTTP/1.1 404")"
-if [ "" != "$cache" ]
-then
-    exit 1
-fi
+#Test wrong_link
+curl_get "$wrong_link" "HTTP/1.1 404"
+curl_post "$wrong_link" '{"name":"test_plugin_rest_identity"}' "HTTP/1.1 404"
+curl_put "$wrong_link" '{"newname":"test_plugin_rest_identity1","name":"test_plugin_rest_identity"}' "HTTP/1.1 404"
+curl_delete "$wrong_link?name=test_plugin_rest_identity1" "HTTP/1.1 404"
 
-curl --silent -X "POST" "$link_to_api" --data "{\"name\":\"Test\"}"
-id="$(gnunet-identity -d | grep "Test - " | sed  "s/Test - //g")"
-
-cache="$(curl -v -X "DELETE" "${link_to_api}?pubkey=df1" 2>&1 | grep "HTTP/1.1 404")"
-if [ "" == "$cache" ]
-then
-    exit 1
-fi
-
-cache="$(curl -v -X "DELETE" "${link_to_api}?pubke=$id" 2>&1 | grep "error")"
-if [ "" == "$cache" ]
-then
-    exit 1
-fi
-
-#Test PUT success code, error response codes and error json
-cache="$(curl -v -X "PUT" "${link_to_api}" --data "{\"newname\":\"NewTest\",\"pubkey\":\"${id}\"}" 2>&1 | grep "HTTP/1.1 204")"
-if [ "" == "$cache" ]
-then
-    exit 1
-fi
-
-cache="$(curl -v -X "PUT" "${link_to_api}" --data "{\"newname\":\"NewNewTest\",\"pubkey\":\"${id}1\"}" 2>&1 | grep "HTTP/1.1 404")"
-if [ "" == "$cache" ]
-then
-    exit 1
-fi
-
-# feature: you can rename your identity with its own name.
-# cache="$(curl -v -X "PUT" "$link_to_api" --data "{\"newname\":\"NewTest\",\"pubkey\":\"${id}\"}" 2>&1 | grep "error")"
-# if [ "" == "$cache" ]
-# then
-#     exit 1
-# fi
-
-
-cache="$(curl -v -X "PUT" "$link_to_api" 2>&1 | grep "error")"
-if [ "" == "$cache" ]
-then
-    exit 1
-fi
-
-cache="$(curl -v -X "PUT" "$link_to_api" --data "wrong" 2>&1 | grep "error")"
-if [ "" == "$cache" ]
-then
-    exit 1
-fi
-
-cache="$(curl -v -X "PUT" "$link_to_api" --data "[{}]" 2>&1 | grep "error")"
-if [ "" == "$cache" ]
-then
-    exit 1
-fi
-
-cache="$(curl -v -X "PUT" "$link_to_api" --data "{\"newname\":\"Test\",\"other\":\"Test\",\"pubkey\":\"${id}\"}" 2>&1 | grep "error")"
-if [ "" == "$cache" ]
-then
-    exit 1
-fi
-
-cache="$(curl -v -X "PUT" "$link_to_api" --data "{\"newnam\":\"Test\",\"pubkey\":\"${id}\"}" 2>&1 | grep "error")"
-if [ "" == "$cache" ]
-then
-    exit 1
-fi
-
-cache="$(curl -v -X "PUT" "$link_to_api" --data "{\"newname\":\"Test\",\"pubke\":\"${id}\"}" 2>&1 | grep "error")"
-if [ "" == "$cache" ]
-then
-    exit 1
-fi
-
-cache="$(curl -v -X "PUT" "$link_to_api" --data "{\"newname\":123,\"pubkey\":\"${id}\"}" 2>&1 | grep "error")"
-if [ "" == "$cache" ]
-then
-    exit 1
-fi
-
-cache="$(curl -v -X "PUT" "$link_to_api" --data "{\"newname\":"",\"pubkey\":\"${id}\"}" 2>&1 | grep "error")"
-if [ "" == "$cache" ]
-then
-    exit 1
-fi
-#TODO Missing subsystem test
-
-#Missing OPTIONS success - nothing can really go wrong here
-
-#Test wrong url
-cache="$(curl -v "$wrong_link" 2>&1 | grep "HTTP/1.1 404")"
-if [ "" == "$cache" ]
-then
-    exit 1
-fi
-
-cache="$(curl -X "PUT" -v "$wrong_link" --data "{\"newname\":\"Testing\",\"pubkey\":\"${id}\"}" 2>&1 | grep "HTTP/1.1 404")"
-if [ "" == "$cache" ]
-then
-    exit 1
-fi
-
-cache="$(curl -X "POST" -v "$wrong_link?pubkey=$id" --data "{\"name\":\"Test\"}" 2>&1 | grep "HTTP/1.1 404")"
-if [ "" == "$cache" ]
-then
-    exit 1
-fi
-
-cache="$(curl -X "DELETE" -v "${wrong_link}?pubkey=$id" 2>&1 | grep "HTTP/1.1 404")"
-if [ "" == "$cache" ]
-then
-    exit 1
-fi
-
-gnunet-identity -D NewTest
-
-exit 0
+exit 0;
