@@ -35,10 +35,8 @@ libgnunet_plugin_rest_copying_la_SOURCES = \
   plugin_rest_copying.c
 libgnunet_plugin_rest_copying_la_LIBADD = \
 	$(top_builddir)/src/rest/libgnunetrest.la \
-	$(top_builddir)/src/jsonapi/libgnunetjsonapi.la \
-  $(top_builddir)/src/jsonapi/libgnunetjsonapiutils.la \
   $(top_builddir)/src/util/libgnunetutil.la $(XLIBS) \
-  $(LTLIBINTL) -ljansson -lmicrohttpd
+  $(LTLIBINTL) -lmicrohttpd
 libgnunet_plugin_rest_copying_la_LDFLAGS = \
  $(GN_PLUGIN_LDFLAGS)
 

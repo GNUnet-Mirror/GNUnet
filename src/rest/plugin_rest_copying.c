@@ -24,9 +24,7 @@
 
 #include "platform.h"
 #include "gnunet_rest_plugin.h"
-#include <gnunet_jsonapi_util.h>
 #include <gnunet_rest_lib.h>
-#include <jansson.h>
 
 #define GNUNET_REST_API_NS_COPYING "/copying"
 
@@ -173,10 +171,10 @@ rest_copying_process_request (struct GNUNET_REST_RequestHandle *conndata_handle,
   handle->proc = proc;
   handle->rest_handle = conndata_handle;
 
-  if (GNUNET_NO == GNUNET_JSONAPI_handle_request (conndata_handle,
-                                                  handlers,
-                                                  &err,
-                                                  handle))
+  if (GNUNET_NO == GNUNET_REST_handle_request (conndata_handle,
+                                               handlers,
+                                               &err,
+                                               handle))
   {
     handle->response_code = err.error_code;
     GNUNET_SCHEDULER_add_now (&do_error, handle);
