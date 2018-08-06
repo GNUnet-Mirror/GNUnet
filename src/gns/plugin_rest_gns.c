@@ -32,6 +32,7 @@
 
 #define GNUNET_REST_API_NS_GNS "/gns"
 
+
 #define GNUNET_REST_GNS_PARAM_NAME "name"
 
 #define GNUNET_REST_GNS_PARAM_RECORD_TYPE "record_type"
@@ -54,7 +55,6 @@ struct Plugin
 {
   const struct GNUNET_CONFIGURATION_Handle *cfg;
 };
-
 
 
 struct RequestHandle
@@ -208,7 +208,6 @@ handle_gns_response (void *cls,
   struct MHD_Response *resp;
   json_t *result_array;
   json_t *record_obj;
-  char *record_value;
   char *result;
 
   handle->gns_lookup = NULL;

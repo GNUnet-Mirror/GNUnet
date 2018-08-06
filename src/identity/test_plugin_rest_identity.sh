@@ -3,8 +3,6 @@
 #First, start gnunet-arm and the rest-service.
 #Exit 0 means success, exit 1 means failed test
 
-#No test for subsystem available
-
 identity_link="http://localhost:7776/identity"
 wrong_link="http://localhost:7776/identityandmore"
 

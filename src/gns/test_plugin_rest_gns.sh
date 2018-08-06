@@ -10,7 +10,7 @@ curl_get () {
     #$1 is link
     #$2 is grep
     cache="$(curl -v "$1" 2>&1 | grep "$2")"
-    echo $cache
+    #echo $cache
     if [ "" == "$cache" ]
     then
         exit 1
