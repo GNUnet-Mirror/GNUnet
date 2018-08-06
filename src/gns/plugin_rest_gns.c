@@ -24,6 +24,7 @@
 #include "platform.h"
 #include "gnunet_rest_plugin.h"
 #include "gnunet_rest_lib.h"
+#include "gnunet_json_lib.h"
 #include "gnunet_gnsrecord_lib.h"
 #include "gnunet_gns_service.h"
 #include "microhttpd.h"
@@ -31,9 +32,9 @@
 
 #define GNUNET_REST_API_NS_GNS "/gns"
 
-#define GNUNET_REST_PARAMETER_GNS_NAME "name"
+#define GNUNET_REST_GNS_PARAM_NAME "name"
 
-#define GNUNET_REST_PARAMETER_GNS_RECORD_TYPE "record_type"
+#define GNUNET_REST_GNS_PARAM_RECORD_TYPE "record_type"
 #define GNUNET_REST_GNS_ERROR_UNKNOWN "Unknown Error"
 
 /**
@@ -203,7 +204,6 @@ handle_gns_response (void *cls,
                      uint32_t rd_count,
                      const struct GNUNET_GNSRECORD_Data *rd)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "TEST4\n");
   struct RequestHandle *handle = cls;
   struct MHD_Response *resp;
   json_t *result_array;
@@ -229,10 +229,7 @@ handle_gns_response (void *cls,
       continue;
     }
 
-    record_value = GNUNET_GNSRECORD_value_to_string (rd->record_type,
-						     rd->data,
-						     rd->data_size);
-    record_obj = json_string(record_value);
+    record_obj = GNUNET_JSON_from_gns_record(NULL,&rd[i]);
     json_array_append (result_array, record_obj);
     json_decref (record_obj);
   }
@@ -264,8 +261,8 @@ get_gns_cont (struct GNUNET_REST_RequestHandle *con_handle,
   char *record_type;
   char *name;
 
-  GNUNET_CRYPTO_hash (GNUNET_REST_PARAMETER_GNS_NAME,
-		      strlen (GNUNET_REST_PARAMETER_GNS_NAME),
+  GNUNET_CRYPTO_hash (GNUNET_REST_GNS_PARAM_NAME,
+		      strlen (GNUNET_REST_GNS_PARAM_NAME),
 		      &key);
   if ( GNUNET_NO
         == GNUNET_CONTAINER_multihashmap_contains (con_handle->url_param_map,
@@ -284,23 +281,19 @@ get_gns_cont (struct GNUNET_REST_RequestHandle *con_handle,
   }
   handle->name = GNUNET_strdup(name);
 
-  GNUNET_CRYPTO_hash (GNUNET_REST_PARAMETER_GNS_RECORD_TYPE,
-		      strlen (GNUNET_REST_PARAMETER_GNS_RECORD_TYPE),
+  handle->record_type = UINT32_MAX;
+  GNUNET_CRYPTO_hash (GNUNET_REST_GNS_PARAM_RECORD_TYPE,
+		      strlen (GNUNET_REST_GNS_PARAM_RECORD_TYPE),
 		      &key);
-  if ( GNUNET_NO
-        == GNUNET_CONTAINER_multihashmap_contains (con_handle->url_param_map,
+  if ( GNUNET_YES
+      == GNUNET_CONTAINER_multihashmap_contains (con_handle->url_param_map,
   						 &key))
   {
-    handle->emsg = GNUNET_strdup("Parameter record_type is missing");
-    GNUNET_SCHEDULER_add_now (&do_error, handle);
-    return;
+    record_type = GNUNET_CONTAINER_multihashmap_get (con_handle->url_param_map, &key);
+    handle->record_type = GNUNET_GNSRECORD_typename_to_number(record_type);
   }
 
 
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "TEST1\n");
-
-  record_type = GNUNET_CONTAINER_multihashmap_get (con_handle->url_param_map, &key);
-  handle->record_type = GNUNET_GNSRECORD_typename_to_number(record_type);
   if(UINT32_MAX == handle->record_type)
   {
     handle->record_type = GNUNET_GNSRECORD_TYPE_ANY;
@@ -313,7 +306,6 @@ get_gns_cont (struct GNUNET_REST_RequestHandle *con_handle,
     GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "TEST2\n");
 
   handle->gns_lookup = GNUNET_GNS_lookup_with_tld (handle->gns,
 						 handle->name,
