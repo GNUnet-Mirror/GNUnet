@@ -68,6 +68,7 @@ static struct GNUNET_STATISTICS_Handle *stats;
  */
 static struct GNUNET_PeerIdentity own_identity;
 
+static int in_shutdown = GNUNET_NO;
 
 /**
  * @brief Port used for cadet.
@@ -1271,7 +1272,30 @@ destroy_channel (void *cls);
 
 
 static void
-schedule_channel_destruction (struct ChannelCtx *channel_ctx);
+schedule_channel_destruction (struct ChannelCtx *channel_ctx)
+{
+  GNUNET_assert (NULL != channel_ctx);
+  if (NULL != channel_ctx->destruction_task &&
+      GNUNET_NO == in_shutdown)
+  {
+    channel_ctx->destruction_task =
+      GNUNET_SCHEDULER_add_now (destroy_channel, channel_ctx);
+  }
+}
+
+
+static void
+schedule_peer_destruction (struct PeerContext *peer_ctx)
+{
+  GNUNET_assert (NULL != peer_ctx);
+  if (NULL != peer_ctx->destruction_task &&
+      GNUNET_NO == in_shutdown)
+  {
+    peer_ctx->destruction_task =
+      GNUNET_SCHEDULER_add_now (destroy_peer, peer_ctx);
+  }
+}
+
 
 /**
  * @brief Remove peer
@@ -1285,6 +1309,8 @@ Peers_remove_peer (const struct GNUNET_PeerIdentity *peer)
 {
   struct PeerContext *peer_ctx;
 
+  GNUNET_assert (NULL != peer_map);
+
   if (GNUNET_NO == GNUNET_CONTAINER_multipeermap_contains (peer_map, peer))
   {
     return GNUNET_NO;
@@ -1296,35 +1322,13 @@ Peers_remove_peer (const struct GNUNET_PeerIdentity *peer)
        "Going to remove peer %s\n",
        GNUNET_i2s (&peer_ctx->peer_id));
   Peers_unset_peer_flag (peer, Peers_ONLINE);
-  /* Do we still have to wait for destruction of channels
-   * or issue the destruction? */
-  if (NULL != peer_ctx->send_channel_ctx &&
-      NULL != peer_ctx->send_channel_ctx->destruction_task)
-  {
-    GNUNET_SCHEDULER_add_now (destroy_peer, peer_ctx);
-    return GNUNET_NO;
-  }
-  if (NULL != peer_ctx->recv_channel_ctx &&
-      NULL != peer_ctx->recv_channel_ctx->destruction_task)
-  {
-    GNUNET_SCHEDULER_add_now (destroy_peer, peer_ctx);
-    return GNUNET_NO;
-  }
-  if (NULL != peer_ctx->recv_channel_ctx)
-  {
-    schedule_channel_destruction (peer_ctx->recv_channel_ctx);
-    GNUNET_SCHEDULER_add_now (destroy_peer, peer_ctx);
-    return GNUNET_NO;
-  }
-  if (NULL != peer_ctx->send_channel_ctx)
-  {
-    schedule_channel_destruction (peer_ctx->send_channel_ctx);
-    GNUNET_SCHEDULER_add_now (destroy_peer, peer_ctx);
-    return GNUNET_NO;
-  }
 
+  /* Clear list of pending operations */
   // TODO this probably leaks memory
+  //      ('only' the cls to the function. Not sure what to do with it)
   GNUNET_array_grow (peer_ctx->pending_ops, peer_ctx->num_pending_ops, 0);
+
+  /* Remove all pending messages */
   while (NULL != peer_ctx->pending_messages_head)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -1341,6 +1345,7 @@ Peers_remove_peer (const struct GNUNET_PeerIdentity *peer)
       }
     remove_pending_message (peer_ctx->pending_messages_head, GNUNET_YES);
   }
+
   /* If we are still waiting for notification whether this peer is live
    * cancel the according task */
   if (NULL != peer_ctx->liveliness_check_pending)
@@ -1354,6 +1359,35 @@ Peers_remove_peer (const struct GNUNET_PeerIdentity *peer)
     peer_ctx->liveliness_check_pending = NULL;
   }
 
+
+  /* Do we still have to wait for destruction of channels
+   * or issue the destruction? */
+  if (NULL != peer_ctx->send_channel_ctx &&
+      NULL != peer_ctx->send_channel_ctx->destruction_task
+      )
+  {
+    schedule_peer_destruction (peer_ctx);
+    return GNUNET_NO;
+  }
+  if (NULL != peer_ctx->recv_channel_ctx &&
+      NULL != peer_ctx->recv_channel_ctx->destruction_task)
+  {
+    schedule_peer_destruction (peer_ctx);
+    return GNUNET_NO;
+  }
+  if (NULL != peer_ctx->recv_channel_ctx)
+  {
+    schedule_channel_destruction (peer_ctx->recv_channel_ctx);
+    schedule_peer_destruction (peer_ctx);
+    return GNUNET_NO;
+  }
+  if (NULL != peer_ctx->send_channel_ctx)
+  {
+    schedule_channel_destruction (peer_ctx->send_channel_ctx);
+    schedule_peer_destruction (peer_ctx);
+    return GNUNET_NO;
+  }
+
   if (NULL != peer_ctx->destruction_task)
   {
     GNUNET_SCHEDULER_cancel (peer_ctx->destruction_task);
@@ -1365,16 +1399,6 @@ Peers_remove_peer (const struct GNUNET_PeerIdentity *peer)
   }
   GNUNET_free (peer_ctx);
   return GNUNET_YES;
-}
-
-static void
-schedule_peer_ctx_destruction (struct PeerContext *peer_ctx)
-{
-  GNUNET_assert (NULL != peer_ctx);
-  if (NULL == peer_ctx->destruction_task)
-  {
-    GNUNET_SCHEDULER_add_now (destroy_peer, peer_ctx);
-  }
 }
 
 /**
@@ -1667,18 +1691,6 @@ destroy_channel (void *cls)
   GNUNET_CADET_channel_destroy (channel_ctx->channel);
   remove_channel_ctx (peer_ctx->send_channel_ctx);
 }
-
-static void
-schedule_channel_destruction (struct ChannelCtx *channel_ctx)
-{
-  GNUNET_assert (NULL != channel_ctx);
-  if (NULL != channel_ctx->destruction_task)
-  {
-    channel_ctx->destruction_task =
-      GNUNET_SCHEDULER_add_now (destroy_channel, channel_ctx);
-  }
-}
-
 
 /**
  * This is called when a channel is destroyed.
@@ -2609,7 +2621,7 @@ remove_peer (const struct GNUNET_PeerIdentity *peer)
   CustomPeerMap_remove_peer (push_map, peer);
   RPS_sampler_reinitialise_by_value (prot_sampler, peer);
   RPS_sampler_reinitialise_by_value (client_sampler, peer);
-  schedule_peer_ctx_destruction (get_peer_ctx (peer));
+  schedule_peer_destruction (get_peer_ctx (peer));
 }
 
 
@@ -4084,6 +4096,8 @@ shutdown_task (void *cls)
 {
   struct ClientContext *client_ctx;
   struct ReplyCls *reply_cls;
+
+  in_shutdown = GNUNET_YES;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "RPS is going down\n");
