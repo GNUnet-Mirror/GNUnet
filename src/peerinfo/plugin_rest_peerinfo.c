@@ -32,10 +32,11 @@
 #include <jansson.h>
 
 #define GNUNET_REST_API_NS_PEERINFO "/peerinfo"
+
 #define GNUNET_REST_API_PEERINFO_PEER "peer"
 #define GNUNET_REST_API_PEERINFO_FRIEND "friend"
+#define GNUNET_REST_API_PEERINFO_ARRAY "array"
 
-//TODO define other variables
 #define GNUNET_REST_ERROR_UNKNOWN "Unkown Error"
 
 /**
@@ -59,8 +60,6 @@ struct Plugin
 {
   const struct GNUNET_CONFIGURATION_Handle *cfg;
 };
-
-//TODO add specific structs
 
 
 /**
@@ -155,9 +154,19 @@ static struct PrintContext *pc_tail;
 
 struct RequestHandle
 {
-  //TODO add specific entries
+  /**
+   * JSON temporary array
+   */
   json_t *temp_array;
+
+  /**
+   * Expiration time string
+   */
   char *expiration_str;
+
+  /**
+   * Address string
+   */
   const char *address;
 
   /**
@@ -166,7 +175,7 @@ struct RequestHandle
   char *pubkey;
 
   /**
-   * JSON array response
+   * JSON response
    */
   json_t *response;
 
@@ -243,7 +252,18 @@ cleanup_handle (void *cls)
     GNUNET_free (handle->url);
   if (NULL != handle->emsg)
     GNUNET_free (handle->emsg);
+  if (NULL != handle->address)
+    GNUNET_free ((char*)handle->address);
+  if (NULL != handle->expiration_str)
+    GNUNET_free (handle->expiration_str);
+  if (NULL != handle->pubkey)
+    GNUNET_free (handle->pubkey);
 
+  if (NULL != handle->temp_array)
+  {
+    json_decref(handle->temp_array);
+    handle->temp_array = NULL;
+  }
   if (NULL != handle->response)
   {
     json_decref(handle->response);
@@ -255,14 +275,11 @@ cleanup_handle (void *cls)
     GNUNET_PEERINFO_iterate_cancel(handle->list_it);
     handle->list_it = NULL;
   }
-
   if (NULL != handle->peerinfo_handle)
   {
     GNUNET_PEERINFO_disconnect(handle->peerinfo_handle);
     handle->peerinfo_handle = NULL;
   }
-
-  //TODO add specific cleanup
   
   GNUNET_free (handle);
 }
@@ -358,13 +375,16 @@ dump_pc (struct PrintContext *pc)
 {
   struct RequestHandle *handle;
   unsigned int i;
+  json_t *response_entry;
   json_t *temp_array;
   json_t *object;
   json_t *address;
   json_t *expires;
+  json_t *friend_and_peer_json;
   char *friend_and_peer;
 
   temp_array = json_array();
+  response_entry = json_object();
 
 //  printf (_("%sPeer `%s'\n"),
 //	  (GNUNET_YES == pc->friend_only) ? "F2F: " : "",
@@ -395,13 +415,20 @@ dump_pc (struct PrintContext *pc)
 		    "%s%s",
 		    (GNUNET_YES == pc->friend_only) ? "F2F:" : "",
 		    GNUNET_i2s_full (&pc->peer));
-    json_object_set(pc->handle->response,
-		    friend_and_peer,
+    friend_and_peer_json = json_string(friend_and_peer);
+    json_object_set(response_entry,
+		    GNUNET_REST_API_PEERINFO_PEER,
+		    friend_and_peer_json);
+    json_object_set(response_entry,
+		    GNUNET_REST_API_PEERINFO_ARRAY,
 		    temp_array);
+    json_array_append(pc->handle->response, response_entry);
+    json_decref(friend_and_peer_json);
     GNUNET_free(friend_and_peer);
   }
 
   json_decref (temp_array);
+  json_decref(response_entry);
 
   GNUNET_free_non_null (pc->address_list);
   GNUNET_CONTAINER_DLL_remove (pc_head,
@@ -519,7 +546,7 @@ peerinfo_list_iteration(void *cls,
 
   if (NULL == handle->response)
   {
-    handle->response = json_object();
+    handle->response = json_array();
   }
 
   if (NULL == peer)
@@ -658,7 +685,6 @@ options_cont (struct GNUNET_REST_RequestHandle *con_handle,
 static void
 init_cont (struct RequestHandle *handle)
 {
-  //TODO specify parameter of init_cont if necessary
   struct GNUNET_REST_RequestHandlerError err;
   static const struct GNUNET_REST_RequestHandler handlers[] = {
     {MHD_HTTP_METHOD_GET, GNUNET_REST_API_NS_PEERINFO, &peerinfo_get},
@@ -705,8 +731,6 @@ rest_process_request(struct GNUNET_REST_RequestHandle *rest_handle,
   if (handle->url[strlen (handle->url)-1] == '/')
     handle->url[strlen (handle->url)-1] = '\0';
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Connecting...\n");
-  //TODO connect to specific service
-  //connect ( cfg, [..., &callback_function, handle]);
   handle->peerinfo_handle = GNUNET_PEERINFO_connect(cfg);
   init_cont(handle);
   handle->timeout_task =
