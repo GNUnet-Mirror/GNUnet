@@ -388,7 +388,7 @@ rest_process_request(struct GNUNET_REST_RequestHandle *rest_handle,
   struct RequestHandle *handle = GNUNET_new (struct RequestHandle);
   
   handle->response_code = 0;
-  handle->timeout = GNUNET_TIME_UNIT_FOREVER_REL;
+  handle->timeout = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 60);
   handle->proc_cls = proc_cls;
   handle->proc = proc;
   handle->rest_handle = rest_handle;
