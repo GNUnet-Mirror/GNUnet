@@ -54,7 +54,7 @@ parse_gnsrecordobject (void *cls,
   const char *record_type;
   const char *label;
   int flag;
-  void *rdata;
+  void *rdata = NULL;
   size_t rdata_size;
 
   GNUNET_assert(NULL != root);
@@ -72,7 +72,7 @@ parse_gnsrecordobject (void *cls,
 			     GNUNET_JSON_GNSRECORD_EXPIRATION_TIME, &expiration_time,
 			     GNUNET_JSON_GNSRECORD_FLAG, &flag,
 			     GNUNET_JSON_GNSRECORD_LABEL, &label);
-  if (GNUNET_SYSERR == unpack_state)
+  if (0 != unpack_state)
   {
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
 	       "Error json object has a wrong format!\n");
@@ -82,7 +82,8 @@ parse_gnsrecordobject (void *cls,
   gnsrecord_object->record_type = GNUNET_GNSRECORD_typename_to_number(record_type);
   if (UINT32_MAX == gnsrecord_object->record_type)
   {
-    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,"Unsupported type");
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,"Unsupported type\n");
+    GNUNET_free(gnsrecord_object);
     return GNUNET_SYSERR;
   }
   if (GNUNET_OK
@@ -91,7 +92,8 @@ parse_gnsrecordobject (void *cls,
 					   &rdata,
 					   &rdata_size))
   {
-    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,"Value invalid for record type");
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,"Value invalid for record type\n");
+    GNUNET_free(gnsrecord_object);
     return GNUNET_SYSERR;
   }
 
@@ -110,7 +112,9 @@ parse_gnsrecordobject (void *cls,
   }
   else
   {
-    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Expiration time invalid");
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Expiration time invalid\n");
+    GNUNET_free_non_null(rdata);
+    GNUNET_free(gnsrecord_object);
     return GNUNET_SYSERR;
   }
   // check if flag is a valid enum value
@@ -119,7 +123,9 @@ parse_gnsrecordobject (void *cls,
       && (GNUNET_GNSRECORD_RF_RELATIVE_EXPIRATION != flag)
       && (GNUNET_GNSRECORD_RF_SHADOW_RECORD) != flag)
   {
-    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Flag invalid");
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Flag invalid\n");
+    GNUNET_free_non_null(rdata);
+    GNUNET_free(gnsrecord_object);
     return GNUNET_SYSERR;
   }
   gnsrecord_object->flags = (enum GNUNET_GNSRECORD_Flags)flag;

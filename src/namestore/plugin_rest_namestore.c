@@ -641,16 +641,17 @@ namestore_add (struct GNUNET_REST_RequestHandle *con_handle,
   {
     handle->emsg = GNUNET_strdup("Invalid data");
     GNUNET_SCHEDULER_add_now (&do_error, handle);
-    GNUNET_free_non_null(gns_record);
+    GNUNET_JSON_parse_free(gnsspec);
     json_decref (data_js);
     return;
   }
+  handle->rd = gns_record;
+
   name_json = json_object_get(data_js, "label");
   if (!json_is_string(name_json))
   {
     handle->emsg = GNUNET_strdup("Missing name");
     GNUNET_SCHEDULER_add_now (&do_error, handle);
-    GNUNET_free_non_null(gns_record);
     json_decref (data_js);
     return;
   }
@@ -659,7 +660,6 @@ namestore_add (struct GNUNET_REST_RequestHandle *con_handle,
   {
     handle->emsg = GNUNET_strdup("Missing name");
     GNUNET_SCHEDULER_add_now (&do_error, handle);
-    GNUNET_free_non_null(gns_record);
     json_decref (data_js);
     return;
   }
@@ -667,12 +667,10 @@ namestore_add (struct GNUNET_REST_RequestHandle *con_handle,
   {
     handle->emsg = GNUNET_strdup("Missing name");
     GNUNET_SCHEDULER_add_now (&do_error, handle);
-    GNUNET_free_non_null(gns_record);
     json_decref (data_js);
     return;
   }
   json_decref (data_js);
-  handle->rd = gns_record;
 
   //change zone if pubkey or name specified
   GNUNET_CRYPTO_hash (GNUNET_REST_API_PARAM_PUBKEY,
@@ -710,6 +708,12 @@ namestore_add (struct GNUNET_REST_RequestHandle *con_handle,
   if ( NULL != ego_entry )
   {
     handle->zone_pkey = GNUNET_IDENTITY_ego_get_private_key(ego_entry->ego);
+  }
+  if (NULL == handle->zone_pkey)
+  {
+    handle->emsg = GNUNET_strdup("No default identity for namestore");
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
+    return;
   }
   handle->add_qe = GNUNET_NAMESTORE_records_lookup (handle->ns_handle,
 						    handle->zone_pkey,
@@ -813,6 +817,14 @@ namestore_delete (struct GNUNET_REST_RequestHandle *con_handle,
   }
   handle->label_name = GNUNET_strdup(
       GNUNET_CONTAINER_multihashmap_get (con_handle->url_param_map, &key));
+
+  if (NULL == handle->zone_pkey)
+  {
+    handle->emsg = GNUNET_strdup("No default identity for namestore");
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
+    return;
+  }
+
   handle->add_qe = GNUNET_NAMESTORE_records_lookup (handle->ns_handle,
                                                     handle->zone_pkey,
                                                     handle->label_name,

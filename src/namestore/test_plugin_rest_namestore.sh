@@ -11,7 +11,7 @@ curl_get () {
     #$1 is link
     #$2 is grep
     cache="$(curl -v "$1" 2>&1 | grep "$2")"
-    echo $cache
+    #echo $cache
     if [ "" == "$cache" ]
     then
         exit 1
@@ -23,7 +23,7 @@ curl_post () {
     #$2 is data
     #$3 is grep
     cache="$(curl -v -X "POST" "$1" --data "$2" 2>&1 | grep "$3")"
-    echo $cache
+    #echo $cache
     if [ "" == "$cache" ]
     then
         exit 1
@@ -34,7 +34,7 @@ curl_delete () {
     #$1 is link
     #$2 is grep
     cache="$(curl -v -X "DELETE" "$1" 2>&1 | grep "$2")"
-    echo $cache
+    #echo $cache
     if [ "" == "$cache" ]
     then
         exit 1
@@ -197,74 +197,12 @@ gnunet-namestore -z $name -p -a -n "test_entry" -e "1d" -V "HVX38H2CB7WJM0WCPWT9
 curl_delete "${namestore_link}?label=test_entry&name=$name" "HTTP/1.1 204" 
 gnunet-namestore -z $name -p -a -n "test_entry" -e "1d" -V "HVX38H2CB7WJM0WCPWT9CFX6GASMYJVR65RN75SJSSKAYVYXHMRG" -t "PKEY"
 curl_delete "${namestore_link}?label=test_entry&pubkey=$public" "HTTP/1.1 204" 
+gnunet-namestore -z $name -p -a -n "test_entry" -e "1d" -V "HVX38H2CB7WJM0WCPWT9CFX6GASMYJVR65RN75SJSSKAYVYXHMRG" -t "PKEY"
+curl_delete "${namestore_link}?label=test_entry&pubkey=$name" "HTTP/1.1 404" 
+
+
+#Test default identity
+#not possible without defining 
 
 exit 0;
 
-
-
-#pubkey zone
-#name zone
-curl_post "${namestore_link}" '{"name":"test_plugin_rest_identity"}' "HTTP/1.1 201 Created"
-curl_post "${namestore_link}" '{"name":"test_plugin_rest_identity"}' "HTTP/1.1 409"
-curl_post "${namestore_link}" '{"name":"Test_plugin_rest_identity"}' "HTTP/1.1 409"
-curl_post "${namestore_link}" '{}' "error"
-curl_post "${namestore_link}" '' "error"
-curl_post "${namestore_link}" '{"name":""}' "error"
-curl_post "${namestore_link}" '{"name":123}' "error"
-curl_post "${namestore_link}" '{"name":[]}' "error"
-curl_post "${namestore_link}" '{"name1":"test_plugin_rest_identity"}' "error"
-curl_post "${namestore_link}" '{"other":""}' "error"
-curl_post "${namestore_link}" '{"name":"test_plugin_rest_identity1", "other":"test_plugin_rest_identity2"}' "error"
-
-#Test PUT
-name="$(gnunet-identity -d | grep "test_plugin_rest_identity" | awk 'NR==1{print $1}')"
-public="$(gnunet-identity -d | grep "test_plugin_rest_identity" | awk 'NR==1{print $3}')"
-
-curl_put "${namestore_link}" '{"newname":"test_plugin_rest_identity1","pubkey":"'$public'"}' "HTTP/1.1 204"
-curl_put "${namestore_link}" '{"newname":"test_plugin_rest_identity1","pubkey":"'$public'"}' "HTTP/1.1 409"
-curl_put "${namestore_link}" '{"newname":"test_plugin_rest_identity1","pubkey":"'$public'xx"}' "HTTP/1.1 404"
-curl_put "${namestore_link}" '{"newname":"test_plugin_rest_identity1","pubkey":""}' "HTTP/1.1 404"
-curl_put "${namestore_link}" '{"newname":"test_plugin_rest_identity1","pubke":""}' "HTTP/1.1 404"
-curl_put "${namestore_link}" '{"newname":"test_plugin_rest_identity1","pubke":"","other":"sdfdsf"}' "HTTP/1.1 404"
-curl_put "${namestore_link}" '{"newname":"test_plugin_rest_identity1","pubke":"","name":"sdfdsf"}' "HTTP/1.1 404"
-curl_put "${namestore_link}" '{"newname":"test_plugin_rest_identity","pubke":"","name":"test_plugin_rest_identity1"}' "HTTP/1.1 204"
-curl_put "${namestore_link}" '{"newnam":"test_plugin_rest_identity","pubkey":"'$public'"}' "error"
-curl_put "${namestore_link}" '{"newname":"test_plugin_rest_identity1","name":"test_plugin_rest_identity"}' "HTTP/1.1 204"
-curl_put "${namestore_link}" '{"newname":"TEST_plugin_rest_identity1","name":"test_plugin_rest_identity1"}' "HTTP/1.1 409"
-curl_put "${namestore_link}" '{"newname":"test_plugin_rest_identity1","name":"test_plugin_rest_identity1"}' "HTTP/1.1 409"
-curl_put "${namestore_link}" '{"newname":"test_plugin_rest_identity","name":"test_plugin_rest_identityxxx"}' "HTTP/1.1 404"
-curl_put "${namestore_link}" '{"newname":"test_plugin_rest_identity","name":"test_plugin_rest_identity1"}' "HTTP/1.1 204"
-curl_put "${namestore_link}" '{"newnam":"test_plugin_rest_identityfail","name":"test_plugin_rest_identity"}' "error"
-
-
-#Test subsystem
-curl_put "${identity_link}" '{"subsystem":"namestore","name":"test_plugin_rest_identity"}' "HTTP/1.1 204"
-curl_put "${identity_link}" '{"subsystem":"namestore","name":"test_plugin_rest_identity"}' "HTTP/1.1 204"
-curl_get "${identity_link}?subsystem=namestore" "test_plugin_rest_identity"
-curl_post "${identity_link}" '{"name":"test_plugin_rest_identity1"}' "HTTP/1.1 201 Created"
-public="$(gnunet-identity -d | grep "test_plugin_rest_identity" | awk 'NR==1{print $3}')"
-curl_put "${identity_link}" '{"subsystem":"namestore","pubkey":"'"$public"'"}' "HTTP/1.1 204"
-curl_get "${identity_link}?subsystem=namestore" "test_plugin_rest_identity1"
-curl_get "${identity_link}?subsystem=test_plugin_rest_identity_no_subsystem" "error"
-curl_put "${identity_link}" '{"subsystem":"test_plugin_rest_identity_no_subsystem","name":"test_plugin_rest_identity1"}' "HTTP/1.1 204"
-curl_get "${identity_link}?subsystem=test_plugin_rest_identity_no_subsystem" "test_plugin_rest_identity1"
-
-curl_put "${identity_link}" '{"subsyste":"test_plugin_rest_identity_no_subsystem","name":"test_plugin_rest_identity1"}' "error"
-curl_put "${identity_link}" '{"subsystem":"test_plugin_rest_identity_no_subsystem","name":"Test_plugin_rest_identity1"}' "HTTP/1.1 204"
-
-#Test DELETE
-curl_delete "${identity_link}?name=test_plugin_rest_identity" "HTTP/1.1 204"
-curl_get "${identity_link}?name=test_plugin_rest_identity" "error"
-curl_delete "${identity_link}?name=TEST_plugin_rest_identity1" "HTTP/1.1 404"
-curl_delete "${identity_link}?name=test_plugin_rest_identity1" "HTTP/1.1 204"
-curl_get "${identity_link}?name=test_plugin_rest_identity1" "error"
-curl_delete "${identity_link}?name=test_plugin_rest_identity_not_found" "HTTP/1.1 404"
-curl_post "${identity_link}" '{"name":"test_plugin_rest_identity1"}' "HTTP/1.1 201 Created"
-public="$(gnunet-identity -d | grep "test_plugin_rest_identity1" | awk 'NR==1{print $3}')"
-curl_delete "${identity_link}?pubkey=$public" "HTTP/1.1 204"
-curl_delete "${identity_link}?pubke=$public" "error"
-curl_delete "${identity_link}?pubkey=$public&other=232" "HTTP/1.1 404"
-
-#test default subsystem
-
-exit 0;
