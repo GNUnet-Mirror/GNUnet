@@ -1257,6 +1257,11 @@ Peers_get_channel_flag (const struct GNUNET_PeerIdentity *peer,
 int
 Peers_check_channel_flag (uint32_t *channel_flags, enum Peers_ChannelFlags flags);
 
+/**
+ * @brief Callback for the scheduler to destroy the knowledge of a peer.
+ *
+ * @param cls Context of the peer
+ */
 static void
 destroy_peer (void *cls)
 {
@@ -1271,6 +1276,13 @@ static void
 destroy_channel (void *cls);
 
 
+/**
+ * @brief Schedule the destruction of the given channel.
+ *
+ * Do so only if it was not already scheduled and not during shutdown.
+ *
+ * @param channel_ctx The context of the channel to destroy.
+ */
 static void
 schedule_channel_destruction (struct ChannelCtx *channel_ctx)
 {
@@ -1284,6 +1296,13 @@ schedule_channel_destruction (struct ChannelCtx *channel_ctx)
 }
 
 
+/**
+ * @brief Schedule the destruction of the given peer.
+ *
+ * Do so only if it was not already scheduled and not during shutdown.
+ *
+ * @param peer_ctx The context of the peer to destroy.
+ */
 static void
 schedule_peer_destruction (struct PeerContext *peer_ctx)
 {
@@ -1678,6 +1697,11 @@ Peers_destroy_sending_channel (const struct GNUNET_PeerIdentity *peer)
   return GNUNET_NO;
 }
 
+/**
+ * @brief Callback for scheduler to destroy a channel
+ *
+ * @param cls Context of the channel
+ */
 static void
 destroy_channel (void *cls)
 {
