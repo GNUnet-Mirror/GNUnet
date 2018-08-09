@@ -134,9 +134,15 @@ static struct GNUNET_TIME_Relative exp_interval;
  */
 static struct GNUNET_SCHEDULER_Task *timeout;
 
+/**
+ * Cleanup task
+ */
+static struct GNUNET_SCHEDULER_Task *cleanup_task;
+
 static void
 do_cleanup(void *cls)
 {
+  cleanup_task = NULL;
   if (NULL != timeout)
     GNUNET_SCHEDULER_cancel (timeout);
   if (NULL != reclaim_op)
@@ -166,7 +172,7 @@ ticket_issue_cb (void* cls,
            ticket_str);
     GNUNET_free (ticket_str);
   }
-  GNUNET_SCHEDULER_add_now (&do_cleanup, NULL);
+  cleanup_task = GNUNET_SCHEDULER_add_now (&do_cleanup, NULL);
 }
 
 static void
@@ -179,7 +185,7 @@ store_attr_cont (void *cls,
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "%s\n", emsg);
   }
-  GNUNET_SCHEDULER_add_now (&do_cleanup, NULL);
+  cleanup_task = GNUNET_SCHEDULER_add_now (&do_cleanup, NULL);
 }
 
 static void
@@ -191,7 +197,7 @@ process_attrs (void *cls,
   if (NULL == identity)
   {
     reclaim_op = NULL;
-    GNUNET_SCHEDULER_add_now (&do_cleanup, NULL);
+    cleanup_task = GNUNET_SCHEDULER_add_now (&do_cleanup, NULL);
     return;
   }
   if (NULL == attr)
@@ -213,7 +219,7 @@ iter_error (void *cls)
   attr_iterator = NULL;
   GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
               "Failed to iterate over attributes\n");
-  GNUNET_SCHEDULER_add_now (&do_cleanup, NULL);
+  cleanup_task = GNUNET_SCHEDULER_add_now (&do_cleanup, NULL);
 }
 
 static void
@@ -223,7 +229,8 @@ timeout_task (void *cls)
   ret = 1;
   GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
               "Timeout\n");
-  GNUNET_SCHEDULER_add_now (&do_cleanup, NULL);
+  if (NULL == cleanup_task)
+    cleanup_task = GNUNET_SCHEDULER_add_now (&do_cleanup, NULL);
 }
 
 static void
@@ -236,7 +243,7 @@ process_rvk (void *cls, int success, const char* msg)
                 "Revocation failed.\n");
     ret = 1;
   }
-  GNUNET_SCHEDULER_add_now (&do_cleanup, NULL);
+  cleanup_task = GNUNET_SCHEDULER_add_now (&do_cleanup, NULL);
 }
 
 static void
@@ -250,7 +257,7 @@ iter_finished (void *cls)
   attr_iterator = NULL;
   if (list)
   {
-    GNUNET_SCHEDULER_add_now (&do_cleanup, NULL);
+    cleanup_task = GNUNET_SCHEDULER_add_now (&do_cleanup, NULL);
     return;
   }
 
@@ -308,7 +315,7 @@ iter_finished (void *cls)
                                                  NULL);
     return;
   }
-  GNUNET_SCHEDULER_add_now (&do_cleanup, NULL);
+  cleanup_task = GNUNET_SCHEDULER_add_now (&do_cleanup, NULL);
 }
 
 static void
@@ -351,13 +358,13 @@ iter_cb (void *cls,
 }
 
 static void
-ego_iter_finished (void *cls)
+start_get_attributes ()
 {
   if (NULL == pkey)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
                 "Ego %s not found\n", ego_name);
-    GNUNET_SCHEDULER_add_now (&do_cleanup, NULL);
+    cleanup_task = GNUNET_SCHEDULER_add_now (&do_cleanup, NULL);
     return;
   }
 
@@ -402,7 +409,7 @@ ego_cb (void *cls,
   if (NULL == name) {
     if (GNUNET_YES == init) {
       init = GNUNET_NO;
-      GNUNET_SCHEDULER_add_now (&ego_iter_finished, NULL);
+      start_get_attributes();
     }
     return;
   }
