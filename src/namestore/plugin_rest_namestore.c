@@ -11,15 +11,15 @@
    WITHOUT ANY WARRANTY; without even the implied warranty of
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
    Affero General Public License for more details.
-  
+
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
    */
 /**
  * @author Martin Schanzenbach
+ * @author Philippe Buschmann
  * @file namestore/plugin_rest_namestore.c
  * @brief GNUnet Namestore REST plugin
- *
  */
 
 #include "platform.h"
@@ -28,38 +28,45 @@
 #include "gnunet_namestore_service.h"
 #include "gnunet_identity_service.h"
 #include "gnunet_rest_lib.h"
-#include "gnunet_jsonapi_lib.h"
-#include "gnunet_jsonapi_util.h"
+#include "gnunet_json_lib.h"
 #include "microhttpd.h"
 #include <jansson.h>
 
-#define GNUNET_REST_API_NS_NAMESTORE "/names"
 
-#define GNUNET_REST_API_NS_NAMESTORE_ZKEY "/names/zkey"
+#define GNUNET_REST_API_NS_NAMESTORE "/namestore"
+#define GNUNET_REST_SUBSYSTEM_NAMESTORE "namestore"
 
-#define GNUNET_REST_JSONAPI_NAMESTORE_TYPEINFO "record"
+/**
+ * Parameter names
+ */
+#define GNUNET_REST_API_PARAM_PUBKEY "pubkey"
+#define GNUNET_REST_API_PARAM_NAME "name"
 
-#define GNUNET_REST_JSONAPI_NAMESTORE_NAME "name"
+/**
+ * Error messages
+ */
+#define GNUNET_REST_NAMESTORE_ERROR_UNKNOWN "Unknown Error"
 
-#define GNUNET_REST_JSONAPI_NAMESTORE_REVINFO "revinfo"
+#define GNUNET_REST_NAMESTORE_RD_COUNT 1
 
-#define GNUNET_REST_JSONAPI_NAMESTORE_RECORD GNUNET_REST_JSONAPI_NAMESTORE_TYPEINFO
+/**
+ * State while collecting all egos
+ */
+#define ID_REST_STATE_INIT 0
 
-#define GNUNET_REST_JSONAPI_NAMESTORE_RECORD_TYPE "record_type"
+/**
+ * Done collecting egos
+ */
+#define ID_REST_STATE_POST_INIT 1
+/**
+ * The configuration handle
+ */
+const struct GNUNET_CONFIGURATION_Handle *cfg;
 
-#define GNUNET_REST_JSONAPI_NAMESTORE_VALUE "value"
-
-#define GNUNET_REST_JSONAPI_NAMESTORE_PUBLIC "public"
-
-#define GNUNET_REST_JSONAPI_NAMESTORE_SHADOW "shadow"
-
-#define GNUNET_REST_JSONAPI_NAMESTORE_PKEY "pkey"
-
-#define GNUNET_REST_JSONAPI_NAMESTORE_ZKEY "zkey"
-
-#define GNUNET_REST_JSONAPI_NAMESTORE_EXPIRATION "expiration"
-
-#define GNUNET_REST_JSONAPI_NAMESTORE_EGO "ego"
+/**
+ * HTTP methods allows for this plugin
+ */
+static char* allow_methods;
 
 /**
  * @brief struct returned by the initialization function of the plugin
@@ -69,54 +76,64 @@ struct Plugin
   const struct GNUNET_CONFIGURATION_Handle *cfg;
 };
 
-
 /**
- * HTTP methods allows for this plugin
+ * The default namestore ego
  */
-static char* allow_methods;
-
-const struct GNUNET_CONFIGURATION_Handle *cfg;
-
-struct RecordEntry
+struct EgoEntry
 {
   /**
    * DLL
    */
-  struct RecordEntry *next;
+  struct EgoEntry *next;
 
   /**
    * DLL
    */
-  struct RecordEntry *prev;
+  struct EgoEntry *prev;
 
+  /**
+   * Ego Identifier
+   */
+  char *identifier;
+
+  /**
+   * Public key string
+   */
+  char *keystring;
+
+  /**
+   * The Ego
+   */
+  struct GNUNET_IDENTITY_Ego *ego;
 };
+
 
 struct RequestHandle
 {
   /**
-   * Ego list
+   * Records to store
    */
-  struct RecordEntry *record_head;
+  char *label_name;
 
   /**
-   * Ego list
+   * Records to store
    */
-  struct record_entry *record_tail;
+  struct GNUNET_GNSRECORD_Data *rd;
 
   /**
-   * JSON response object
+   * NAMESTORE Operation
    */
-  struct GNUNET_JSONAPI_Document *resp_object;
+  struct GNUNET_NAMESTORE_QueueEntry *add_qe;
 
   /**
-   * Rest connection
+   * Response object
    */
-  struct GNUNET_REST_RequestHandle *rest_handle;
+  json_t *resp_object;
 
   /**
-   * Handle to GNS service.
+   * The processing state
    */
-  struct GNUNET_IDENTITY_Handle *identity_handle;
+  int state;
 
   /**
    * Handle to NAMESTORE
@@ -131,73 +148,38 @@ struct RequestHandle
   /**
    * Private key for the zone
    */
-  struct GNUNET_CRYPTO_EcdsaPrivateKey zone_pkey;
+  const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone_pkey;
 
   /**
-   * Handle to identity lookup
+   * IDENTITY Operation
    */
-  struct GNUNET_IDENTITY_EgoLookup *ego_lookup;
+  struct EgoEntry *ego_entry;
 
   /**
-   * Default Ego operation
+   * Ego list
    */
-  struct GNUNET_IDENTITY_Operation *get_default;
+  struct EgoEntry *ego_head;
 
   /**
-   * Name of the ego
+   * Ego list
    */
-  char *ego_name;
+  struct EgoEntry *ego_tail;
 
   /**
-   * Record is public
+   * IDENTITY Operation
    */
-  int is_public;
+  struct GNUNET_IDENTITY_Operation *op;
 
   /**
-   * Shadow record
+   * Handle to Identity service.
    */
-  int is_shadow;
+  struct GNUNET_IDENTITY_Handle *identity_handle;
 
   /**
-   * Name of the record to modify
+   * Rest connection
    */
-  char *name;
-
-  /**
-   * Value of the record
-   */
-  char *value;
-
-  /**
-   * Zkey string
-   */
-  const char* zkey_str;
-
-  /**
-   * record type
-   */
-  uint32_t type;
-
-  /**
-   * Records to store
-   */
-  struct GNUNET_GNSRECORD_Data *rd;
-
-  /**
-   * record count
-   */
-  unsigned int rd_count;
-
-  /**
-   * NAMESTORE Operation
-   */
-  struct GNUNET_NAMESTORE_QueueEntry *add_qe;
-
-  /**
-   * NAMESTORE Operation
-   */
-  struct GNUNET_NAMESTORE_QueueEntry *reverse_qe;
-
+  struct GNUNET_REST_RequestHandle *rest_handle;
+  
   /**
    * Desired timeout for the lookup (default is no timeout).
    */
@@ -206,7 +188,7 @@ struct RequestHandle
   /**
    * ID of a task associated with the resolution process.
    */
-  struct GNUNET_SCHEDULER_Task * timeout_task;
+  struct GNUNET_SCHEDULER_Task *timeout_task;
 
   /**
    * The plugin result processor
@@ -224,164 +206,201 @@ struct RequestHandle
   char *url;
 
   /**
-   * Cfg
+   * Error response message
    */
-  const struct GNUNET_CONFIGURATION_Handle *cfg;
+  char *emsg;
 
   /**
-   * HTTP response code
+   * Reponse code
    */
   int response_code;
 
 };
 
-
 /**
  * Cleanup lookup handle
- *
  * @param handle Handle to clean up
  */
 static void
-cleanup_handle (struct RequestHandle *handle)
+cleanup_handle (void *cls)
 {
-  struct RecordEntry *record_entry;
-  struct RecordEntry *record_tmp;
+  struct RequestHandle *handle = cls;
+  struct EgoEntry *ego_entry;
+  struct EgoEntry *ego_tmp;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Cleaning up\n");
-  if (NULL != handle->resp_object)
-    GNUNET_JSONAPI_document_delete (handle->resp_object);
-  if (NULL != handle->name)
-    GNUNET_free (handle->name);
   if (NULL != handle->timeout_task)
+  {
     GNUNET_SCHEDULER_cancel (handle->timeout_task);
-  if (NULL != handle->ego_lookup)
-    GNUNET_IDENTITY_ego_lookup_cancel (handle->ego_lookup);
-  if (NULL != handle->get_default)
-    GNUNET_IDENTITY_cancel (handle->get_default);
-  if (NULL != handle->list_it)
-    GNUNET_NAMESTORE_zone_iteration_stop (handle->list_it);
-  if (NULL != handle->add_qe)
-    GNUNET_NAMESTORE_cancel (handle->add_qe);
-  if (NULL != handle->identity_handle)
-    GNUNET_IDENTITY_disconnect (handle->identity_handle);
-  if (NULL != handle->ns_handle)
-    GNUNET_NAMESTORE_disconnect (handle->ns_handle);
+    handle->timeout_task = NULL;
+  }
+  if (NULL != handle->label_name)
+    GNUNET_free(handle->label_name);
   if (NULL != handle->url)
-    GNUNET_free (handle->url);
-  if (NULL != handle->value)
-    GNUNET_free (handle->value);
+    GNUNET_free(handle->url);
+  if (NULL != handle->emsg)
+    GNUNET_free(handle->emsg);
   if (NULL != handle->rd)
   {
-    for (unsigned int i = 0; i < handle->rd_count; i++)
-    {
-      if (NULL != handle->rd[i].data)
-        GNUNET_free ((void*)handle->rd[i].data);
-    }
-    GNUNET_free (handle->rd);
+    if (NULL != handle->rd->data)
+      GNUNET_free((void*)handle->rd->data);
+    GNUNET_free(handle->rd);
   }
-  if (NULL != handle->ego_name)
-    GNUNET_free (handle->ego_name);
-  for (record_entry = handle->record_head;
-       NULL != record_entry;)
+  if (NULL != handle->timeout_task)
+    GNUNET_SCHEDULER_cancel(handle->timeout_task);
+  if (NULL != handle->list_it)
+    GNUNET_NAMESTORE_zone_iteration_stop(handle->list_it);
+  if (NULL != handle->add_qe)
+    GNUNET_NAMESTORE_cancel(handle->add_qe);
+  if (NULL != handle->identity_handle)
+    GNUNET_IDENTITY_disconnect(handle->identity_handle);
+  if (NULL != handle->ns_handle)
   {
-    record_tmp = record_entry;
-    record_entry = record_entry->next;
-    GNUNET_free (record_tmp);
+    GNUNET_NAMESTORE_disconnect(handle->ns_handle);
   }
+
+  for (ego_entry = handle->ego_head;
+  NULL != ego_entry;)
+  {
+    ego_tmp = ego_entry;
+    ego_entry = ego_entry->next;
+    GNUNET_free(ego_tmp->identifier);
+    GNUNET_free(ego_tmp->keystring);
+    GNUNET_free(ego_tmp);
+  }
+
+  if(NULL != handle->resp_object)
+  {
+    json_decref(handle->resp_object);
+  }
+
   GNUNET_free (handle);
 }
 
 
 /**
- * Create json representation of a GNSRECORD
+ * Task run on errors.  Reports an error and cleans up everything.
  *
- * @param rd the GNSRECORD_Data
- */
-static json_t *
-gnsrecord_to_json (const struct GNUNET_GNSRECORD_Data *rd)
-{
-  const char *typename;
-  char *string_val;
-  const char *exp_str;
-  json_t *record_obj;
-
-  typename = GNUNET_GNSRECORD_number_to_typename (rd->record_type);
-  string_val = GNUNET_GNSRECORD_value_to_string (rd->record_type,
-                                                 rd->data,
-                                                 rd->data_size);
-
-  if (NULL == string_val)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Record of type %d malformed, skipping\n",
-                (int) rd->record_type);
-    return NULL;
-  }
-  record_obj = json_object();
-  json_object_set_new (record_obj,
-                       GNUNET_REST_JSONAPI_NAMESTORE_RECORD_TYPE,
-                       json_string (typename));
-  json_object_set_new (record_obj,
-                       GNUNET_REST_JSONAPI_NAMESTORE_VALUE,
-                       json_string (string_val));
-  GNUNET_free (string_val);
-
-  if (GNUNET_GNSRECORD_RF_RELATIVE_EXPIRATION & rd->flags)
-  {
-    struct GNUNET_TIME_Relative time_rel;
-    time_rel.rel_value_us = rd->expiration_time;
-    exp_str = GNUNET_STRINGS_relative_time_to_string (time_rel, 1);
-  }
-  else
-  {
-    struct GNUNET_TIME_Absolute time_abs;
-    time_abs.abs_value_us = rd->expiration_time;
-    exp_str = GNUNET_STRINGS_absolute_time_to_string (time_abs);
-  }
-  json_object_set_new (record_obj, GNUNET_REST_JSONAPI_NAMESTORE_EXPIRATION, json_string (exp_str));
-
-  json_object_set_new (record_obj, "expired",
-                       json_boolean (GNUNET_YES == GNUNET_GNSRECORD_is_expired (rd)));
-  return record_obj;
-}
-
-
-/**
- * Task run on error.  Generates error response and cleans up.
- *
- * @param cls the request to generate an error response for
+ * @param cls the `struct RequestHandle`
  */
 static void
 do_error (void *cls)
 {
   struct RequestHandle *handle = cls;
-  struct MHD_Response *resp = GNUNET_REST_create_response (NULL);
+  struct MHD_Response *resp;
+  json_t *json_error = json_object();
+  char *response;
 
+  if (NULL == handle->emsg)
+    handle->emsg = GNUNET_strdup(GNUNET_REST_NAMESTORE_ERROR_UNKNOWN);
+
+  json_object_set_new(json_error,"error", json_string(handle->emsg));
+
+  if (0 == handle->response_code)
+    handle->response_code = MHD_HTTP_OK;
+  response = json_dumps (json_error, 0);
+  resp = GNUNET_REST_create_response (response);
   handle->proc (handle->proc_cls, resp, handle->response_code);
-  cleanup_handle (handle);
+  json_decref(json_error);
+  GNUNET_free(response);
+  GNUNET_SCHEDULER_add_now (&cleanup_handle, handle);
 }
 
 
 /**
- * Task run on timeout.
+ * Get EgoEntry from list with either a public key or a name
+ * If public key and name are not NULL, it returns the public key result first
  *
- * @param cls the request to time out
+ * @param handle the RequestHandle
+ * @param pubkey the public key of an identity (only one can be NULL)
+ * @param name the name of an identity (only one can be NULL)
+ * @return EgoEntry or NULL if not found
+ */
+struct EgoEntry*
+get_egoentry(struct RequestHandle *handle, char* pubkey, char *name)
+{
+  struct EgoEntry *ego_entry;
+  if (NULL != pubkey)
+  {
+    for (ego_entry = handle->ego_head;
+	NULL != ego_entry;
+	ego_entry = ego_entry->next)
+    {
+      if (0 != strcasecmp (pubkey, ego_entry->keystring))
+	continue;
+      return ego_entry;
+    }
+  }
+  if (NULL != name)
+  {
+    for (ego_entry = handle->ego_head;
+	NULL != ego_entry;
+	ego_entry = ego_entry->next)
+    {
+      if (0 != strcasecmp (name, ego_entry->identifier))
+	continue;
+      return ego_entry;
+    }
+  }
+  return NULL;
+}
+
+
+/**
+ * Does internal server error when iteration failed.
  */
 static void
-do_timeout (void *cls)
+namestore_iteration_error (void *cls)
 {
   struct RequestHandle *handle = cls;
-
-  handle->timeout_task = NULL;
-  do_error (handle);
+  struct MHD_Response *resp = GNUNET_REST_create_response (NULL);
+  handle->proc (handle->proc_cls, resp, MHD_HTTP_INTERNAL_SERVER_ERROR);
+  GNUNET_SCHEDULER_add_now (&cleanup_handle, handle);
 }
 
 
 static void
-cleanup_handle_delayed (void *cls)
+create_finished (void *cls, int32_t success, const char *emsg)
 {
-  cleanup_handle (cls);
+  struct RequestHandle *handle = cls;
+  struct MHD_Response *resp;
+
+  handle->add_qe = NULL;
+  if (GNUNET_YES != success)
+  {
+    handle->emsg = GNUNET_strdup("Error storing records");
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
+    return;
+  }
+  resp = GNUNET_REST_create_response (NULL);
+  handle->proc (handle->proc_cls, resp, MHD_HTTP_NO_CONTENT);
+  GNUNET_SCHEDULER_add_now (&cleanup_handle, handle);
+}
+
+
+static void
+del_finished (void *cls, int32_t success, const char *emsg)
+{
+  struct RequestHandle *handle = cls;
+
+  handle->add_qe = NULL;
+  if (GNUNET_NO == success)
+  {
+    handle->emsg = GNUNET_strdup("Deleting record failed. Record does not exist");
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
+    return;
+  }
+  if (GNUNET_SYSERR == success)
+  {
+    handle->emsg = GNUNET_strdup("Deleting record failed");
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
+    return;
+  }
+  handle->proc (handle->proc_cls,
+                GNUNET_REST_create_response (NULL),
+                MHD_HTTP_NO_CONTENT);
+  GNUNET_SCHEDULER_add_now (&cleanup_handle, handle);
 }
 
 
@@ -395,31 +414,24 @@ static void
 namestore_list_finished (void *cls)
 {
   struct RequestHandle *handle = cls;
-  char *result;
+  char *result_str;
   struct MHD_Response *resp;
 
   handle->list_it = NULL;
-  if (NULL == handle->resp_object)
-    handle->resp_object = GNUNET_JSONAPI_document_new ();
 
-  if (GNUNET_SYSERR ==
-      GNUNET_JSONAPI_document_serialize (handle->resp_object,
-                                         &result))
+  if (NULL == handle->resp_object)
   {
-    handle->response_code = MHD_HTTP_INTERNAL_SERVER_ERROR;
-    GNUNET_SCHEDULER_add_now (&do_error,
-                              handle);
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
   }
-  resp = GNUNET_REST_create_response (result);
-  handle->proc (handle->proc_cls,
-                resp,
-                MHD_HTTP_OK);
-  GNUNET_free_non_null (result);
-  GNUNET_SCHEDULER_add_now (&cleanup_handle_delayed,
-                            handle);
-}
 
+  result_str = json_dumps (handle->resp_object, 0);
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Result %s\n", result_str);
+  resp = GNUNET_REST_create_response (result_str);
+  handle->proc (handle->proc_cls, resp, MHD_HTTP_OK);
+  GNUNET_free_non_null (result_str);
+  GNUNET_SCHEDULER_add_now (&cleanup_handle, handle);
+}
 
 
 /**
@@ -428,84 +440,111 @@ namestore_list_finished (void *cls)
  * @param handle the RequestHandle
  */
 static void
-namestore_list_response (void *cls,
+namestore_list_iteration (void *cls,
                          const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone_key,
                          const char *rname,
                          unsigned int rd_len,
                          const struct GNUNET_GNSRECORD_Data *rd)
 {
   struct RequestHandle *handle = cls;
-  struct GNUNET_JSONAPI_Resource *json_resource;
-  json_t *result_array;
   json_t *record_obj;
 
   if (NULL == handle->resp_object)
-    handle->resp_object = GNUNET_JSONAPI_document_new ();
+    handle->resp_object = json_array();
 
-  if ( (NULL != handle->name) &&
-       (0 != strcmp (handle->name,
+  /*if ( (NULL != handle->ego_entry->identifier) &&
+       (0 != strcmp (handle->ego_entry->identifier,
 		     rname)) )
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "%s does not match %s\n",
-		rname,
-		handle->name);
-    GNUNET_NAMESTORE_zone_iterator_next (handle->list_it,
-                                         1);
+                "%s does not match %s\n", rname,
+	       handle->ego_entry->identifier);
+    GNUNET_NAMESTORE_zone_iterator_next (handle->list_it, 1);
     return;
-  }
+  }*/
 
-  result_array = json_array ();
-  for (unsigned int i=0; i<rd_len; i++)
+  for (unsigned int i = 0; i < rd_len; i++)
   {
     if ( (GNUNET_GNSRECORD_TYPE_NICK == rd[i].record_type) &&
          (0 != strcmp (rname, GNUNET_GNS_EMPTY_LABEL_AT)) )
       continue;
 
-    if ( (rd[i].record_type != handle->type) &&
-         (GNUNET_GNSRECORD_TYPE_ANY != handle->type) )
+    record_obj = GNUNET_JSON_from_gns_record(rname,rd);
+
+    if(NULL == record_obj)
       continue;
-    record_obj = gnsrecord_to_json (&rd[i]);
-    json_array_append (result_array,
-		       record_obj);
+
+    json_array_append (handle->resp_object, record_obj);
     json_decref (record_obj);
   }
 
-  if (0 < json_array_size(result_array))
-  {
-    json_resource = GNUNET_JSONAPI_resource_new (GNUNET_REST_JSONAPI_NAMESTORE_TYPEINFO,
-                                                 rname);
-    GNUNET_JSONAPI_resource_add_attr (json_resource,
-                                      GNUNET_REST_JSONAPI_NAMESTORE_RECORD,
-                                      result_array);
-    GNUNET_JSONAPI_document_resource_add (handle->resp_object, json_resource);
-  }
-
-  json_decref (result_array);
-  GNUNET_NAMESTORE_zone_iterator_next (handle->list_it,
-                                       1);
+  GNUNET_NAMESTORE_zone_iterator_next (handle->list_it, 1);
 }
 
 
-static void
-create_finished (void *cls, int32_t success, const char *emsg)
+/**
+ * Handle namestore GET request
+ *
+ * @param con_handle the connection handle
+ * @param url the url
+ * @param cls the RequestHandle
+ */
+void
+namestore_get (struct GNUNET_REST_RequestHandle *con_handle,
+                 const char* url,
+                 void *cls)
 {
   struct RequestHandle *handle = cls;
-  struct MHD_Response *resp;
+  struct EgoEntry *ego_entry = NULL;
+  struct GNUNET_HashCode key;
+  char *pubkey = NULL;
+  char *name = NULL;
 
-  handle->add_qe = NULL;
-  if (GNUNET_YES != success)
+  //change zone if pubkey or name specified
+  GNUNET_CRYPTO_hash (GNUNET_REST_API_PARAM_PUBKEY,
+		      strlen (GNUNET_REST_API_PARAM_PUBKEY),
+		      &key);
+  if ( GNUNET_YES
+      == GNUNET_CONTAINER_multihashmap_contains (con_handle->url_param_map,
+						 &key))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Error storing records%s%s\n",
-                (NULL == emsg) ? "" : ": ",
-                (NULL == emsg) ? "" : emsg);
-    GNUNET_SCHEDULER_add_now (&cleanup_handle_delayed, handle);
-    return;
+    pubkey = GNUNET_CONTAINER_multihashmap_get (con_handle->url_param_map,
+						&key);
   }
-  resp = GNUNET_REST_create_response (NULL);
-  handle->proc (handle->proc_cls, resp, MHD_HTTP_NO_CONTENT);
-  GNUNET_SCHEDULER_add_now (&cleanup_handle_delayed, handle);
+  GNUNET_CRYPTO_hash (GNUNET_REST_API_PARAM_NAME,
+  		      strlen (GNUNET_REST_API_PARAM_NAME),
+  		      &key);
+  if ( GNUNET_YES
+      == GNUNET_CONTAINER_multihashmap_contains (con_handle->url_param_map,
+						 &key))
+  {
+    name = GNUNET_CONTAINER_multihashmap_get (con_handle->url_param_map,
+					      &key);
+  }
+
+  ego_entry = get_egoentry(handle,pubkey,name);
+  if (NULL == ego_entry)
+  {
+    if (NULL != pubkey || NULL != name)
+    {
+      handle->emsg = GNUNET_strdup("Invalid identity");
+      handle->response_code = MHD_HTTP_NOT_FOUND;
+      GNUNET_SCHEDULER_add_now (&do_error, handle);
+      return;
+    }
+  }
+  if ( NULL != ego_entry )
+  {
+    handle->zone_pkey = GNUNET_IDENTITY_ego_get_private_key(ego_entry->ego);
+  }
+  handle->list_it = GNUNET_NAMESTORE_zone_iteration_start (handle->ns_handle,
+                                                           handle->zone_pkey,
+                                                           &namestore_iteration_error,
+                                                           handle,
+                                                           &namestore_list_iteration,
+                                                           handle,
+                                                           &namestore_list_finished,
+                                                           handle);
 }
 
 
@@ -529,10 +568,10 @@ create_new_record_cont (void *cls,
   struct RequestHandle *handle = cls;
 
   handle->add_qe = NULL;
-  if (0 != strcmp (rec_name, handle->name))
+  if (0 != strcmp (rec_name, handle->label_name))
   {
     GNUNET_break (0);
-    do_error (handle);
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
   }
 
@@ -541,51 +580,148 @@ create_new_record_cont (void *cls,
     handle->proc (handle->proc_cls,
                   GNUNET_REST_create_response (NULL),
                   MHD_HTTP_CONFLICT);
-    GNUNET_SCHEDULER_add_now (&cleanup_handle_delayed, handle);
+    GNUNET_SCHEDULER_add_now (&cleanup_handle, handle);
     return;
   }
-
-  GNUNET_assert (NULL != handle->name);
   handle->add_qe = GNUNET_NAMESTORE_records_store (handle->ns_handle,
-                                                   &handle->zone_pkey,
-                                                   handle->name,
-                                                   handle->rd_count,
+                                                   handle->zone_pkey,
+                                                   handle->label_name,
+                                                   GNUNET_REST_NAMESTORE_RD_COUNT,
                                                    handle->rd,
                                                    &create_finished,
                                                    handle);
 }
 
-
-static void
-del_finished (void *cls,
-              int32_t success,
-              const char *emsg)
+/**
+ * Handle namestore POST request
+ *
+ * @param con_handle the connection handle
+ * @param url the url
+ * @param cls the RequestHandle
+ */
+void
+namestore_add (struct GNUNET_REST_RequestHandle *con_handle,
+               const char* url,
+	       void *cls)
 {
   struct RequestHandle *handle = cls;
+  struct GNUNET_GNSRECORD_Data *gns_record;
+  json_t *data_js;
+  json_t *name_json;
+  json_error_t err;
 
-  handle->add_qe = NULL;
-  if (GNUNET_NO == success)
+  struct EgoEntry *ego_entry = NULL;
+  struct GNUNET_HashCode key;
+  char *pubkey = NULL;
+  char *name = NULL;
+
+  char term_data[handle->rest_handle->data_size + 1];
+  struct GNUNET_JSON_Specification gnsspec[] = {
+    GNUNET_JSON_spec_gnsrecord_data(&gns_record),
+    GNUNET_JSON_spec_end ()
+  };
+
+  if (strlen (GNUNET_REST_API_NS_NAMESTORE) != strlen (handle->url))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _("Deleting record failed, record does not exist%s%s\n"),
-                (NULL != emsg) ? ": " : "",
-                (NULL != emsg) ? emsg : "");
-    GNUNET_SCHEDULER_add_now (&do_error, handle); //do_not_found TODO
-    return;
-  }
-  if (GNUNET_SYSERR == success)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _("Deleting record failed%s%s\n"),
-                (NULL != emsg) ? ": " : "",
-                (NULL != emsg) ? emsg : "");
+    handle->emsg = GNUNET_strdup("Wrong URL");
     GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
   }
-  handle->proc (handle->proc_cls,
-                GNUNET_REST_create_response (NULL),
-                MHD_HTTP_NO_CONTENT);
-  GNUNET_SCHEDULER_add_now (&cleanup_handle_delayed, handle);
+  if (0 >= handle->rest_handle->data_size)
+  {
+    handle->emsg = GNUNET_strdup("No data");
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
+    return;
+  }
+  term_data[handle->rest_handle->data_size] = '\0';
+  GNUNET_memcpy(term_data, handle->rest_handle->data,
+		handle->rest_handle->data_size);
+  data_js = json_loads (term_data, JSON_DECODE_ANY, &err);
+  if (GNUNET_OK != GNUNET_JSON_parse (data_js, gnsspec, NULL, NULL))
+  {
+    handle->emsg = GNUNET_strdup("Invalid data");
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
+    GNUNET_JSON_parse_free(gnsspec);
+    json_decref (data_js);
+    return;
+  }
+  handle->rd = gns_record;
+
+  name_json = json_object_get(data_js, "label");
+  if (!json_is_string(name_json))
+  {
+    handle->emsg = GNUNET_strdup("Missing name");
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
+    json_decref (data_js);
+    return;
+  }
+  handle->label_name = GNUNET_strdup(json_string_value(name_json));
+  if(NULL == handle->label_name)
+  {
+    handle->emsg = GNUNET_strdup("Missing name");
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
+    json_decref (data_js);
+    return;
+  }
+  if (0 >= strlen(handle->label_name))
+  {
+    handle->emsg = GNUNET_strdup("Missing name");
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
+    json_decref (data_js);
+    return;
+  }
+  json_decref (data_js);
+
+  //change zone if pubkey or name specified
+  GNUNET_CRYPTO_hash (GNUNET_REST_API_PARAM_PUBKEY,
+		      strlen (GNUNET_REST_API_PARAM_PUBKEY),
+		      &key);
+  if ( GNUNET_YES
+      == GNUNET_CONTAINER_multihashmap_contains (con_handle->url_param_map,
+						 &key))
+  {
+    pubkey = GNUNET_CONTAINER_multihashmap_get (con_handle->url_param_map,
+						&key);
+  }
+  GNUNET_CRYPTO_hash (GNUNET_REST_API_PARAM_NAME,
+  		      strlen (GNUNET_REST_API_PARAM_NAME),
+  		      &key);
+  if ( GNUNET_YES
+      == GNUNET_CONTAINER_multihashmap_contains (con_handle->url_param_map,
+						 &key))
+  {
+    name = GNUNET_CONTAINER_multihashmap_get (con_handle->url_param_map,
+					      &key);
+  }
+
+  ego_entry = get_egoentry(handle,pubkey,name);
+  if (NULL == ego_entry)
+  {
+    if (NULL != pubkey || NULL != name)
+    {
+      handle->emsg = GNUNET_strdup("Invalid identity");
+      handle->response_code = MHD_HTTP_NOT_FOUND;
+      GNUNET_SCHEDULER_add_now (&do_error, handle);
+      return;
+    }
+  }
+  if ( NULL != ego_entry )
+  {
+    handle->zone_pkey = GNUNET_IDENTITY_ego_get_private_key(ego_entry->ego);
+  }
+  if (NULL == handle->zone_pkey)
+  {
+    handle->emsg = GNUNET_strdup("No default identity for namestore");
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
+    return;
+  }
+  handle->add_qe = GNUNET_NAMESTORE_records_lookup (handle->ns_handle,
+						    handle->zone_pkey,
+						    handle->label_name,
+						    &do_error,
+						    handle,
+						    &create_new_record_cont,
+						    handle);
 }
 
 
@@ -601,366 +737,105 @@ del_cont (void *cls,
   handle->add_qe = NULL;
   if (0 == rd_count)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _("There are no records under label `%s' that could be deleted.\n"),
-                label);
-    do_error (handle);
+    handle->emsg = GNUNET_strdup("Record not found");
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
   }
 
   handle->add_qe = GNUNET_NAMESTORE_records_store (handle->ns_handle,
-                                                   &handle->zone_pkey,
-                                                   handle->name,
+                                                   handle->zone_pkey,
+                                                   handle->label_name,
                                                    0, NULL,
                                                    &del_finished,
                                                    handle);
 }
 
-
-static void
-namestore_delete_cont (struct GNUNET_REST_RequestHandle *con,
-                       const char *url,
-                       void *cls)
+/**
+ * Handle namestore DELETE request
+ *
+ * @param con_handle the connection handle
+ * @param url the url
+ * @param cls the RequestHandle
+ */
+void
+namestore_delete (struct GNUNET_REST_RequestHandle *con_handle,
+                 const char* url,
+                 void *cls)
 {
   struct RequestHandle *handle = cls;
+  struct GNUNET_HashCode key;
+  struct EgoEntry *ego_entry = NULL;
+  char *pubkey = NULL;
+  char *name = NULL;
 
-  if (NULL == handle->name)
+  //change zone if pubkey or name specified
+  GNUNET_CRYPTO_hash (GNUNET_REST_API_PARAM_PUBKEY,
+		      strlen (GNUNET_REST_API_PARAM_PUBKEY),
+		      &key);
+  if ( GNUNET_YES
+      == GNUNET_CONTAINER_multihashmap_contains (con_handle->url_param_map,
+						 &key))
   {
+    pubkey = GNUNET_CONTAINER_multihashmap_get (con_handle->url_param_map,
+						&key);
+  }
+  GNUNET_CRYPTO_hash (GNUNET_REST_API_PARAM_NAME,
+  		      strlen (GNUNET_REST_API_PARAM_NAME),
+  		      &key);
+  if ( GNUNET_YES
+      == GNUNET_CONTAINER_multihashmap_contains (con_handle->url_param_map,
+						 &key))
+  {
+    name = GNUNET_CONTAINER_multihashmap_get (con_handle->url_param_map,
+					      &key);
+  }
+
+  ego_entry = get_egoentry(handle,pubkey,name);
+  if (NULL == ego_entry)
+  {
+    if (NULL != pubkey || NULL != name)
+    {
+      handle->emsg = GNUNET_strdup("Invalid identity");
+      handle->response_code = MHD_HTTP_NOT_FOUND;
+      GNUNET_SCHEDULER_add_now (&do_error, handle);
+      return;
+    }
+  }
+  if ( NULL != ego_entry )
+  {
+    handle->zone_pkey = GNUNET_IDENTITY_ego_get_private_key(ego_entry->ego);
+  }
+
+  GNUNET_CRYPTO_hash ("label", strlen ("label"), &key);
+  if ( GNUNET_NO
+      == GNUNET_CONTAINER_multihashmap_contains (con_handle->url_param_map,
+						 &key))
+  {
+    handle->emsg = GNUNET_strdup("Missing name");
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
+    return;
+  }
+  handle->label_name = GNUNET_strdup(
+      GNUNET_CONTAINER_multihashmap_get (con_handle->url_param_map, &key));
+
+  if (NULL == handle->zone_pkey)
+  {
+    handle->emsg = GNUNET_strdup("No default identity for namestore");
     GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
   }
 
   handle->add_qe = GNUNET_NAMESTORE_records_lookup (handle->ns_handle,
-                                                    &handle->zone_pkey,
-                                                    handle->name,
+                                                    handle->zone_pkey,
+                                                    handle->label_name,
                                                     &do_error,
                                                     handle,
                                                     &del_cont,
                                                     handle);
+
 }
 
 
-static int
-json_to_gnsrecord (const json_t *records_json,
-                   struct GNUNET_GNSRECORD_Data **rd,
-                   unsigned int *rd_count)
-{
-  struct GNUNET_TIME_Relative etime_rel;
-  struct GNUNET_TIME_Absolute etime_abs;
-  char *value;
-  void *rdata;
-  size_t rdata_size;
-  const char *typestring;
-  const char *expirationstring;
-  json_t *type_json;
-  json_t *value_json;
-  json_t *record_json;
-  json_t *exp_json;
-
-  *rd_count = json_array_size (records_json);
-  *rd = GNUNET_new_array (*rd_count,
-			   struct GNUNET_GNSRECORD_Data);
-  for (unsigned int i = 0; i < *rd_count; i++)
-  {
-    memset (&(*rd)[i],
-	    0,
-	    sizeof (struct GNUNET_GNSRECORD_Data));
-    record_json = json_array_get (records_json,
-				  i);
-    type_json = json_object_get (record_json,
-                                 GNUNET_REST_JSONAPI_NAMESTORE_RECORD_TYPE);
-    if (! json_is_string (type_json))
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  "Type property is no string\n");
-      return GNUNET_SYSERR;
-    }
-    typestring = json_string_value (type_json);
-    (*rd)[i].record_type = GNUNET_GNSRECORD_typename_to_number (typestring);
-    if (UINT32_MAX == (*rd)[i].record_type)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Unsupported type `%s'\n"),
-                  json_string_value (type_json));
-      return GNUNET_SYSERR;
-    }
-    value_json = json_object_get (record_json,
-                                  GNUNET_REST_JSONAPI_NAMESTORE_VALUE);
-    if (! json_is_string (value_json))
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  "Value property is no string\n");
-      return GNUNET_SYSERR;
-    }
-    value = GNUNET_strdup (json_string_value (value_json));
-    if (GNUNET_OK !=
-	GNUNET_GNSRECORD_string_to_value ((*rd)[i].record_type,
-					  value,
-					  &rdata,
-					  &rdata_size))
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		  _("Value `%s' invalid for record type `%s'\n"),
-                  value,
-		  typestring);
-      return GNUNET_SYSERR;
-    }
-    (*rd)[i].data = rdata;
-    (*rd)[i].data_size = rdata_size;
-    /**TODO
-     * if (1 == handle->is_shadow)
-     rde->flags |= GNUNET_GNSRECORD_RF_SHADOW_RECORD;
-     if (1 != handle->is_public)
-     rde->flags |= GNUNET_GNSRECORD_RF_PRIVATE;
-     */
-    exp_json = json_object_get (record_json,
-                                GNUNET_REST_JSONAPI_NAMESTORE_EXPIRATION);
-    if (! json_is_string (exp_json))
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  "Expiration property is no string\n");
-      return GNUNET_SYSERR;
-    }
-    expirationstring = json_string_value (exp_json);
-    if (0 == strcmp (expirationstring, "never"))
-    {
-      (*rd)[i].expiration_time = GNUNET_TIME_UNIT_FOREVER_ABS.abs_value_us;
-    }
-    else if (GNUNET_OK ==
-             GNUNET_STRINGS_fancy_time_to_relative (expirationstring,
-                                                    &etime_rel))
-    {
-      (*rd)[i].expiration_time = etime_rel.rel_value_us;
-      (*rd)[i].flags |= GNUNET_GNSRECORD_RF_RELATIVE_EXPIRATION;
-    }
-    else if (GNUNET_OK ==
-             GNUNET_STRINGS_fancy_time_to_absolute (expirationstring,
-                                                    &etime_abs))
-    {
-      (*rd)[i].expiration_time = etime_abs.abs_value_us;
-    }
-    else
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		  _("Value `%s' invalid for record type `%s'\n"),
-                  value,
-		  typestring);
-      return GNUNET_SYSERR;
-    }
-  }
-  return GNUNET_OK;
-}
-
-
-static void
-namestore_create_cont (struct GNUNET_REST_RequestHandle *con,
-                       const char *url,
-                       void *cls)
-{
-  struct RequestHandle *handle = cls;
-  struct MHD_Response *resp;
-  struct GNUNET_JSONAPI_Document *json_obj;
-  struct GNUNET_JSONAPI_Resource *json_res;
-  json_t *records_json;
-  json_t *data_js;
-  json_error_t err;
-  char term_data[handle->rest_handle->data_size+1];
-  struct GNUNET_JSON_Specification docspec[] = {
-    GNUNET_JSON_spec_jsonapi_document (&json_obj),
-    GNUNET_JSON_spec_end()
-  };
-
-  if (strlen (GNUNET_REST_API_NS_NAMESTORE) != strlen (handle->url))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Cannot create under %s\n", handle->url);
-    GNUNET_SCHEDULER_add_now (&do_error, handle);
-    return;
-  }
-  if (0 >= handle->rest_handle->data_size)
-  {
-    GNUNET_SCHEDULER_add_now (&do_error, handle);
-    return;
-  }
-  term_data[handle->rest_handle->data_size] = '\0';
-  GNUNET_memcpy (term_data,
-                 handle->rest_handle->data,
-                 handle->rest_handle->data_size);
-  data_js = json_loads (term_data,
-                        JSON_DECODE_ANY,
-                        &err);
-  GNUNET_assert (GNUNET_OK ==
-                 GNUNET_JSON_parse (data_js, docspec,
-                                    NULL, NULL));
-  json_decref (data_js);
-  if (NULL == json_obj)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Unable to parse JSONAPI Object from %s\n",
-                term_data);
-    GNUNET_SCHEDULER_add_now (&do_error, handle);
-    return;
-  }
-  if (1 != GNUNET_JSONAPI_document_resource_count (json_obj))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Cannot create more than 1 resource! (Got %d)\n",
-                GNUNET_JSONAPI_document_resource_count (json_obj));
-    GNUNET_JSONAPI_document_delete (json_obj);
-    GNUNET_SCHEDULER_add_now (&do_error, handle);
-    return;
-  }
-  json_res = GNUNET_JSONAPI_document_get_resource (json_obj, 0);
-  if (GNUNET_NO == GNUNET_JSONAPI_resource_check_type (json_res,
-                                                       GNUNET_REST_JSONAPI_NAMESTORE_RECORD))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Unsupported JSON data type\n");
-    GNUNET_JSONAPI_document_delete (json_obj);
-    resp = GNUNET_REST_create_response (NULL);
-    handle->proc (handle->proc_cls, resp, MHD_HTTP_CONFLICT);
-    cleanup_handle (handle);
-    return;
-  }
-  handle->name = GNUNET_strdup (GNUNET_JSONAPI_resource_get_id (json_res));
-  records_json = GNUNET_JSONAPI_resource_read_attr (json_res,
-                                                    GNUNET_REST_JSONAPI_NAMESTORE_RECORD);
-  if (NULL == records_json)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "No records given\n");
-    GNUNET_JSONAPI_document_delete (json_obj);
-    GNUNET_SCHEDULER_add_now (&do_error, handle);
-    return;
-  }
-  if (GNUNET_SYSERR == json_to_gnsrecord (records_json, &handle->rd, &handle->rd_count))
-  {
-    GNUNET_JSONAPI_document_delete (json_obj);
-    GNUNET_SCHEDULER_add_now (&do_error, handle);
-    return;
-  }
-  GNUNET_JSONAPI_document_delete (json_obj);
-
-  handle->add_qe = GNUNET_NAMESTORE_records_lookup (handle->ns_handle,
-                                                    &handle->zone_pkey,
-                                                    handle->name,
-                                                    &do_error,
-                                                    handle,
-                                                    &create_new_record_cont,
-                                                    handle);
-}
-
-
-static void
-namestore_zkey_response (void *cls,
-                         const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone,
-                         const char *label,
-                         unsigned int rd_count,
-                         const struct GNUNET_GNSRECORD_Data *rd)
-{
-  struct RequestHandle *handle = cls;
-  struct MHD_Response *resp;
-  struct GNUNET_JSONAPI_Document *json_obj;
-  struct GNUNET_JSONAPI_Resource *json_res;
-  json_t *name_json;
-  char* result;
-
-  handle->reverse_qe = NULL;
-  json_obj = GNUNET_JSONAPI_document_new ();
-  if (NULL != label)
-  {
-    name_json = json_string (label);
-    json_res = GNUNET_JSONAPI_resource_new (GNUNET_REST_JSONAPI_NAMESTORE_REVINFO,
-                                            handle->zkey_str);
-    GNUNET_JSONAPI_resource_add_attr (json_res,
-                                      GNUNET_REST_JSONAPI_NAMESTORE_NAME,
-                                      name_json);
-    GNUNET_JSONAPI_document_resource_add (json_obj, json_res);
-    json_decref (name_json);
-  }
-  //Handle response
-  if (GNUNET_SYSERR == GNUNET_JSONAPI_document_serialize (json_obj, &result))
-  {
-    GNUNET_JSONAPI_document_delete (json_obj);
-    GNUNET_SCHEDULER_add_now (&do_error, handle);
-    return;
-  }
-  resp = GNUNET_REST_create_response (result);
-  handle->proc (handle->proc_cls, resp, MHD_HTTP_OK);
-  GNUNET_JSONAPI_document_delete (json_obj);
-  GNUNET_free (result);
-  GNUNET_SCHEDULER_add_now (&cleanup_handle_delayed, handle);
-}
-
-
-static void
-namestore_zkey_cont (struct GNUNET_REST_RequestHandle *con,
-                     const char *url,
-                     void *cls)
-{
-  struct RequestHandle *handle = cls;
-  struct GNUNET_HashCode key;
-  struct GNUNET_CRYPTO_EcdsaPublicKey pubkey;
-
-  GNUNET_CRYPTO_hash (GNUNET_REST_JSONAPI_NAMESTORE_ZKEY,
-                      strlen (GNUNET_REST_JSONAPI_NAMESTORE_ZKEY),
-                      &key);
-  if ( GNUNET_NO ==
-       GNUNET_CONTAINER_multihashmap_contains (handle->rest_handle->url_param_map,
-                                               &key) )
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "No zkey given %s\n", handle->url);
-    GNUNET_SCHEDULER_add_now (&do_error, handle);
-    return;
-  }
-  handle->zkey_str = GNUNET_CONTAINER_multihashmap_get (handle->rest_handle->url_param_map,
-                                                        &key);
-  if ((NULL == handle->zkey_str) ||
-      (GNUNET_OK !=
-       GNUNET_CRYPTO_ecdsa_public_key_from_string (handle->zkey_str,
-                                                   strlen (handle->zkey_str),
-                                                   &pubkey)))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Zkey invalid %s\n", handle->zkey_str);
-    GNUNET_SCHEDULER_add_now (&do_error, handle);
-    return;
-  }
-  handle->reverse_qe = GNUNET_NAMESTORE_zone_to_name (handle->ns_handle,
-                                                      &handle->zone_pkey,
-                                                      &pubkey,
-                                                      &do_error,
-                                                      handle,
-                                                      &namestore_zkey_response,
-                                                      handle);
-}
-
-
-static void
-namestore_info_cont (struct GNUNET_REST_RequestHandle *con,
-                     const char *url,
-                     void *cls)
-{
-  struct RequestHandle *handle = cls;
-
-  handle->list_it = GNUNET_NAMESTORE_zone_iteration_start (handle->ns_handle,
-                                                           &handle->zone_pkey,
-                                                           &do_error,
-                                                           handle,
-                                                           &namestore_list_response,
-                                                           handle,
-                                                           &namestore_list_finished,
-                                                           handle);
-}
-
-
-static char*
-get_name_from_url (const char* url)
-{
-  if (strlen (url) <= strlen (GNUNET_REST_API_NS_NAMESTORE))
-    return NULL;
-  return (char*)url + strlen (GNUNET_REST_API_NS_NAMESTORE) + 1;
-}
 
 /**
  * Respond to OPTIONS request
@@ -977,101 +852,72 @@ options_cont (struct GNUNET_REST_RequestHandle *con_handle,
   struct MHD_Response *resp;
   struct RequestHandle *handle = cls;
 
-  //For now, independent of path return all options
+  //independent of path return all options
   resp = GNUNET_REST_create_response (NULL);
   MHD_add_response_header (resp,
                            "Access-Control-Allow-Methods",
                            allow_methods);
   handle->proc (handle->proc_cls, resp, MHD_HTTP_OK);
-  cleanup_handle (handle);
+  GNUNET_SCHEDULER_add_now (&cleanup_handle, handle);
+  return;
 }
 
 
 /**
- * Callback invoked from identity service with ego information.
- * An @a ego of NULL means the ego was not found.
+ * Handle rest request
  *
- * @param cls closure with the configuration
- * @param ego an ego known to identity service, or NULL
+ * @param handle the request handle
  */
 static void
-identity_cb (void *cls,
-             const struct GNUNET_IDENTITY_Ego *ego)
+init_cont (struct RequestHandle *handle)
 {
-  struct RequestHandle *handle = cls;
-  struct MHD_Response *resp;
   struct GNUNET_REST_RequestHandlerError err;
   static const struct GNUNET_REST_RequestHandler handlers[] = {
-    {MHD_HTTP_METHOD_GET, GNUNET_REST_API_NS_NAMESTORE_ZKEY, &namestore_zkey_cont}, //reverse
-    {MHD_HTTP_METHOD_GET, GNUNET_REST_API_NS_NAMESTORE, &namestore_info_cont}, //list
-    {MHD_HTTP_METHOD_POST, GNUNET_REST_API_NS_NAMESTORE, &namestore_create_cont}, //create
-    //    {MHD_HTTP_METHOD_PUT, GNUNET_REST_API_NS_NAMESTORE, &namestore_edit_cont}, //update. TODO this shoul be PATCH
-    {MHD_HTTP_METHOD_DELETE, GNUNET_REST_API_NS_NAMESTORE, &namestore_delete_cont}, //delete
+    {MHD_HTTP_METHOD_GET, GNUNET_REST_API_NS_NAMESTORE, &namestore_get},
+    {MHD_HTTP_METHOD_POST, GNUNET_REST_API_NS_NAMESTORE, &namestore_add},
+    {MHD_HTTP_METHOD_DELETE, GNUNET_REST_API_NS_NAMESTORE, &namestore_delete},
     {MHD_HTTP_METHOD_OPTIONS, GNUNET_REST_API_NS_NAMESTORE, &options_cont},
     GNUNET_REST_HANDLER_END
   };
 
-  handle->ego_lookup = NULL;
-  if (NULL == ego)
-  {
-    if (NULL != handle->ego_name)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  _("Ego `%s' not known to identity service\n"),
-                  handle->ego_name);
-    }
-    resp = GNUNET_REST_create_response (NULL);
-    handle->proc (handle->proc_cls, resp, MHD_HTTP_NOT_FOUND);
-    cleanup_handle (handle);
-    return;
-  }
-  handle->zone_pkey = *GNUNET_IDENTITY_ego_get_private_key (ego);
-  handle->ns_handle = GNUNET_NAMESTORE_connect (cfg);
-  if (NULL == handle->ns_handle)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _("Failed to connect to namestore\n"));
-    GNUNET_SCHEDULER_add_now (&do_error, handle);
-    return;
-  }
-
-  if (GNUNET_OK !=
-      GNUNET_JSONAPI_handle_request (handle->rest_handle,
-                                     handlers,
-                                     &err,
-                                     handle))
+  if (GNUNET_NO == GNUNET_REST_handle_request (handle->rest_handle,
+                                               handlers,
+                                               &err,
+                                               handle))
   {
     handle->response_code = err.error_code;
-    GNUNET_SCHEDULER_add_now (&do_error,
-                              (void *) handle);
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
   }
 }
 
-
+/**
+ * @param cls closure
+ * @param ego ego handle
+ * @param ctx context for application to store data for this ego
+ *                 (during the lifetime of this process, initially NULL)
+ * @param identifier identifier assigned by the user for this ego,
+ *                   NULL if the user just deleted the ego and it
+ *                   must thus no longer be used
+ */
 static void
 default_ego_cb (void *cls,
                 struct GNUNET_IDENTITY_Ego *ego,
                 void **ctx,
-                const char *name)
+                const char *identifier)
 {
   struct RequestHandle *handle = cls;
-  struct MHD_Response *resp;
-  handle->get_default = NULL;
-  if (NULL == ego)
+  handle->op = NULL;
+
+  if (ego != NULL)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _("No default ego configured in identity service\n"));
-    resp = GNUNET_REST_create_response (NULL);
-    handle->proc (handle->proc_cls, resp, MHD_HTTP_NOT_FOUND);
-    cleanup_handle (handle);
-    return;
-  }
-  else
-  {
-    identity_cb (cls, ego);
+    handle->zone_pkey = GNUNET_IDENTITY_ego_get_private_key (ego);
   }
 }
 
+
+/**
+ * Connect to identity callback
+ */
 static void
 id_connect_cb (void *cls,
                struct GNUNET_IDENTITY_Ego *ego,
@@ -1079,12 +925,33 @@ id_connect_cb (void *cls,
                const char *name)
 {
   struct RequestHandle *handle = cls;
-  if (NULL == ego)
+  struct EgoEntry *ego_entry;
+  struct GNUNET_CRYPTO_EcdsaPublicKey pk;
+
+  if ((NULL == ego) && (NULL == handle->zone_pkey))
   {
-    handle->get_default = GNUNET_IDENTITY_get (handle->identity_handle,
-                                               "namestore",
-                                               &default_ego_cb, handle);
+    handle->op = GNUNET_IDENTITY_get (handle->identity_handle,
+				      GNUNET_REST_SUBSYSTEM_NAMESTORE,
+				      &default_ego_cb,
+				      handle);
   }
+  if ((NULL == ego) && (ID_REST_STATE_INIT == handle->state))
+  {
+    handle->state = ID_REST_STATE_POST_INIT;
+    init_cont (handle);
+    return;
+  }
+  if (ID_REST_STATE_INIT == handle->state)
+  {
+    ego_entry = GNUNET_new(struct EgoEntry);
+    GNUNET_IDENTITY_ego_get_public_key (ego, &pk);
+    ego_entry->keystring = GNUNET_CRYPTO_ecdsa_public_key_to_string (&pk);
+    ego_entry->ego = ego;
+    GNUNET_asprintf (&ego_entry->identifier, "%s", name);
+    GNUNET_CONTAINER_DLL_insert_tail(handle->ego_head, handle->ego_tail,
+				     ego_entry);
+  }
+
 }
 
 
@@ -1097,80 +964,37 @@ id_connect_cb (void *cls,
  * @param data_size length of the body
  * @param proc callback function for the result
  * @param proc_cls closure for callback function
- * @return #GNUNET_OK if request accepted
+ * @return GNUNET_OK if request accepted
  */
 static void
-rest_identity_process_request(struct GNUNET_REST_RequestHandle *rest_handle,
+rest_process_request(struct GNUNET_REST_RequestHandle *rest_handle,
                               GNUNET_REST_ResultProcessor proc,
                               void *proc_cls)
 {
   struct RequestHandle *handle = GNUNET_new (struct RequestHandle);
-  struct MHD_Response *resp;
-  struct GNUNET_HashCode key;
-  char *ego;
-  char *name;
-  char *type;
-
+  
+  handle->response_code = 0;
   handle->timeout = GNUNET_TIME_UNIT_FOREVER_REL;
   handle->proc_cls = proc_cls;
   handle->proc = proc;
   handle->rest_handle = rest_handle;
+  handle->zone_pkey = NULL;
+  
   handle->url = GNUNET_strdup (rest_handle->url);
   if (handle->url[strlen (handle->url)-1] == '/')
     handle->url[strlen (handle->url)-1] = '\0';
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Connecting...\n");
-  handle->cfg = cfg;
-  ego = NULL;
-  GNUNET_CRYPTO_hash (GNUNET_REST_JSONAPI_NAMESTORE_EGO,
-                      strlen (GNUNET_REST_JSONAPI_NAMESTORE_EGO),
-                      &key);
-  if ( GNUNET_YES ==
-       GNUNET_CONTAINER_multihashmap_contains (handle->rest_handle->url_param_map,
-                                               &key) )
-  {
-    ego = GNUNET_CONTAINER_multihashmap_get (handle->rest_handle->url_param_map,
-                                             &key);
-  }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Connecting...\n");
 
-  handle->type = GNUNET_GNSRECORD_TYPE_ANY;
-  GNUNET_CRYPTO_hash (GNUNET_REST_JSONAPI_NAMESTORE_RECORD_TYPE,
-                      strlen (GNUNET_REST_JSONAPI_NAMESTORE_RECORD_TYPE),
-                      &key);
-  if ( GNUNET_YES ==
-       GNUNET_CONTAINER_multihashmap_contains (handle->rest_handle->url_param_map,
-                                               &key) )
-  {
-    type = GNUNET_CONTAINER_multihashmap_get (handle->rest_handle->url_param_map,
-                                              &key);
-    if (NULL != type)
-      handle->type = GNUNET_GNSRECORD_typename_to_number (type);
-  }
-  name = get_name_from_url (handle->url);
-  if (NULL != ego)
-    handle->ego_name = GNUNET_strdup (ego);
-  if (NULL != name)
-    handle->name = GNUNET_strdup (name);
-  if (NULL == handle->ego_name)
-  {
-    handle->identity_handle = GNUNET_IDENTITY_connect (handle->cfg, &id_connect_cb, handle);
-    if (NULL == handle->identity_handle)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Cannot connect to identity service\n"));
-      resp = GNUNET_REST_create_response (NULL);
-      handle->proc (handle->proc_cls, resp, MHD_HTTP_NOT_FOUND);
-      cleanup_handle (handle);
-    }
-    return;
-  }
-  handle->ego_lookup = GNUNET_IDENTITY_ego_lookup (cfg,
-                                                   handle->ego_name,
-                                                   &identity_cb,
-                                                   handle);
-  handle->timeout_task = GNUNET_SCHEDULER_add_delayed (handle->timeout,
-                                                       &do_timeout,
-                                                       handle);
+  handle->identity_handle = GNUNET_IDENTITY_connect (cfg, &id_connect_cb, handle);
+  handle->ns_handle = GNUNET_NAMESTORE_connect (cfg);
+  handle->timeout_task =
+    GNUNET_SCHEDULER_add_delayed (handle->timeout,
+                                  &do_error,
+                                  handle);
+  
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Connected\n");
 }
+
 
 /**
  * Entry point for the plugin.
@@ -1182,9 +1006,9 @@ void *
 libgnunet_plugin_rest_namestore_init (void *cls)
 {
   static struct Plugin plugin;
-  cfg = cls;
   struct GNUNET_REST_Plugin *api;
 
+  cfg = cls;
   if (NULL != plugin.cfg)
     return NULL;                /* can only initialize once! */
   memset (&plugin, 0, sizeof (struct Plugin));
@@ -1192,7 +1016,7 @@ libgnunet_plugin_rest_namestore_init (void *cls)
   api = GNUNET_new (struct GNUNET_REST_Plugin);
   api->cls = &plugin;
   api->name = GNUNET_REST_API_NS_NAMESTORE;
-  api->process_request = &rest_identity_process_request;
+  api->process_request = &rest_process_request;
   GNUNET_asprintf (&allow_methods,
                    "%s, %s, %s, %s, %s",
                    MHD_HTTP_METHOD_GET,
@@ -1200,7 +1024,8 @@ libgnunet_plugin_rest_namestore_init (void *cls)
                    MHD_HTTP_METHOD_PUT,
                    MHD_HTTP_METHOD_DELETE,
                    MHD_HTTP_METHOD_OPTIONS);
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               _("Namestore REST API initialized\n"));
   return api;
 }
@@ -1217,13 +1042,14 @@ libgnunet_plugin_rest_namestore_done (void *cls)
 {
   struct GNUNET_REST_Plugin *api = cls;
   struct Plugin *plugin = api->cls;
-
   plugin->cfg = NULL;
-  GNUNET_free (api);
+
   GNUNET_free_non_null (allow_methods);
+  GNUNET_free (api);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Namestore REST plugin is finished\n");
   return NULL;
 }
 
 /* end of plugin_rest_namestore.c */
+

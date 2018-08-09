@@ -157,5 +157,40 @@ GNUNET_JSON_from_rsa_signature (const struct GNUNET_CRYPTO_RsaSignature *sig)
   return ret;
 }
 
+/**
+ * Convert Gns record to JSON.
+ *
+ * @param rname name of record
+ * @param rd record data
+ * @return corresponding JSON encoding
+ */
+json_t *
+GNUNET_JSON_from_gns_record (const char* rname,
+			     const struct GNUNET_GNSRECORD_Data *rd)
+{
+  struct GNUNET_TIME_Absolute expiration_time;
+  const char *expiration_time_str;
+  const char *record_type_str;
+  char *value_str;
+  json_t *ret;
+  int flags;
+
+  value_str = GNUNET_GNSRECORD_value_to_string(rd->record_type,rd->data,rd->data_size);
+  expiration_time = GNUNET_GNSRECORD_record_get_expiration_time(1, rd);
+  expiration_time_str = GNUNET_STRINGS_absolute_time_to_string(expiration_time);
+  flags = (int)rd->flags; //maybe necessary
+  record_type_str = GNUNET_GNSRECORD_number_to_typename(rd->record_type);
+
+  // ? for possible NULL values
+  ret = json_pack("{s:s?,s:s?,s:s?,s:i,s:s?}",
+		  "value", value_str,
+		  "type", record_type_str,
+		  "expiration_time", expiration_time_str,
+		  "flag", flags,
+		  "label", rname);
+  GNUNET_free_non_null(value_str);
+  return ret;
+}
+
 
 /* End of json/json_generator.c */

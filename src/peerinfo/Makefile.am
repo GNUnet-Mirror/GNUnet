@@ -5,6 +5,8 @@ pkgcfgdir= $(pkgdatadir)/config.d/
 
 libexecdir= $(pkglibdir)/libexec/
 
+plugindir = $(libdir)/gnunet
+
 pkgcfg_DATA = \
   peerinfo.conf
 
@@ -25,6 +27,8 @@ libgnunetpeerinfo_la_SOURCES = \
 libgnunetpeerinfo_la_LIBADD = \
   $(top_builddir)/src/hello/libgnunethello.la \
   $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/json/libgnunetjson.la \
+  $(top_builddir)/src/transport/libgnunettransport.la \
   $(XLIB) \
   $(LTLIBINTL)
 libgnunetpeerinfo_la_LDFLAGS = \
@@ -35,12 +39,30 @@ libgnunetpeerinfo_la_LDFLAGS = \
 libexec_PROGRAMS = \
  gnunet-service-peerinfo
 
+if HAVE_MHD
+if HAVE_JSON
+plugin_LTLIBRARIES = \
+  libgnunet_plugin_rest_peerinfo.la 
+endif
+endif
+
 gnunet_service_peerinfo_SOURCES = \
  gnunet-service-peerinfo.c
 gnunet_service_peerinfo_LDADD = \
   $(top_builddir)/src/hello/libgnunethello.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/util/libgnunetutil.la
+  
+
+libgnunet_plugin_rest_peerinfo_la_SOURCES = \
+  plugin_rest_peerinfo.c
+libgnunet_plugin_rest_peerinfo_la_LIBADD = \
+	libgnunetpeerinfo.la \
+  $(top_builddir)/src/rest/libgnunetrest.la \
+  $(top_builddir)/src/util/libgnunetutil.la $(XLIBS) \
+  $(LTLIBINTL) -ljansson -lmicrohttpd
+libgnunet_plugin_rest_peerinfo_la_LDFLAGS = \
+ $(GN_PLUGIN_LDFLAGS)
 
 if HAVE_BENCHMARKS
  PEERINFO_BENCHMARKS = \
