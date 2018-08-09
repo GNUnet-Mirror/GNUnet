@@ -11,7 +11,7 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
@@ -143,6 +143,8 @@ do_shutdown (void *cls)
   unsigned long long delta;
 
   delta = GNUNET_TIME_absolute_get_duration (start_time).rel_value_us;
+  if (0 == delta)
+    delta = 1;
   FPRINTF (stderr,
            "\nThroughput was %llu kb/s\n",
            total_bytes * 1000000LL / 1024 / delta);

@@ -11,7 +11,7 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
@@ -227,7 +227,8 @@ measurement_stop (void *cls)
   running = GNUNET_NO;
 
   delta = GNUNET_TIME_absolute_get_duration (start_time).rel_value_us;
-
+  if (0 == delta)
+    delta = 1;
   throughput_out = total_bytes_sent * 1000000LL / delta;     /* convert to bytes/s */
   throughput_in = total_bytes_recv * 1000000LL / delta;      /* convert to bytes/s */
 

@@ -101,8 +101,8 @@ This document is the Reference Manual for GNUnet version @value{VERSION}.
 Preface
 
 * About this book
+* Contributing to this book
 * Introduction
-* General Terminology::
 * Typography::
 
 Philosophy
@@ -251,6 +251,7 @@ GNUnet Developer Handbook
 @unnumbered Programming Index
 @syncodeindex tp fn
 @syncodeindex vr fn
+@syncodeindex pg fn
 @printindex fn
 
 @bye

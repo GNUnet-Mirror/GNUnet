@@ -1759,8 +1759,8 @@ src/zonemaster/Makefile
 src/zonemaster/zonemaster.conf
 src/rest/Makefile
 src/abe/Makefile
-src/identity-attribute/Makefile
-src/identity-provider/Makefile
+src/reclaim-attribute/Makefile
+src/reclaim/Makefile
 pkgconfig/Makefile
 pkgconfig/gnunetarm.pc
 pkgconfig/gnunetats.pc

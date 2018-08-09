@@ -12,9 +12,9 @@ all kinds of basic applications for the foundation of a new Internet.
 
 @menu
 * About this book::
+* Contributing to this book::
 * Introduction::
 * Project governance::
-* General Terminology::
 * Typography::
 @end menu
 
@@ -36,6 +36,26 @@ describe the explanations found there which fits our use-case and licensing.
 The first chapter (``Preface'') as well as the the second
 chapter (``Philosophy'') give an introduction to GNUnet as a project,
 what GNUnet tries to achieve.
+
+@node Contributing to this book
+@section Contributing to this book
+
+The GNUnet Reference Manual is a collective work produced by various
+people throughout the years. The version you are reading is derived
+from many individual efforts hosted on our website. This was a failed
+experiment, and with the conversion to Texinfo we hope to address this
+in the longterm. Texinfo is the documentation language of the GNU project.
+While it can be intimidating at first and look scary or complicated,
+it is just another way to express text format instructions. We encourage
+you to take this opportunity and learn about Texinfo, learn about GNUnet,
+and one word at a time we will arrive at a book which explains GNUnet in
+the least complicated way to you. Even when you don't want or can't learn
+Texinfo, you can contribute. Send us an Email or join our IRC chat room
+on freenode and talk with us about the documentation (the prefered way
+to reach out is the mailinglist, since you can communicate with us
+without waiting on someone in the chatroom). One way or another you
+can help shape the understanding of GNUnet without the ability to read
+and understand its sourcecode.
 
 @node Introduction
 @section Introduction
@@ -66,25 +86,31 @@ immediately.  A few months after the first release we contacted the
 GNU project, happily agreed to their governance model and became an
 official GNU package.
 
-Within the first year, we created GNU libextractor, a helper library
+Within the first year, we created
+@uref{https://gnu.org/s/libextractor, GNU libextractor}, a helper library
 for meta data extraction which has been used by a few other projects
 as well.  2003 saw the emergence of pluggable transports, the ability
 for GNUnet to use different mechanisms for communication, starting
 with TCP, UDP and SMTP (support for the latter was later dropped due
 to a lack of maintenance).  In 2005, the project first started to
 evolve beyond the original file-sharing application with a first
-simple P2P chat.  In 2007, we created GNU libmicrohttpd
+simple P2P chat.  In 2007, we created
+@uref{https://gnu.org/s/libmicrohttpd, GNU libmicrohttpd}
 to support a pluggable transport based on HTTP.  In 2009, the
 architecture was radically modularized into the multi-process system
-that exists today.  Coincidentally, the first version of the ARM
+that exists today.  Coincidentally, the first version of the ARM@footnote{ARM: Automatic Restart Manager}
 service was implemented a day before systemd was announced.  From 2009
 to 2014 work progressed rapidly thanks to a significant research grant
 from the Deutsche Forschungsgesellschaft.  This resulted in particular
 in the creation of the R5N DHT, CADET, ATS and the GNU Name System.
-In 2010, GNUnet was selected as the basis for the SecuShare online
-social network, resutling in a significant growth of the core team.
-In 2013, we launched GNU Taler to address the challenge of convenient
-and privacy-preserving online payments.  In 2015, the pEp project
+In 2010, GNUnet was selected as the basis for the
+@uref{https://secushare.org, secushare} online
+social network, resulting in a significant growth of the core team.
+In 2013, we launched @uref{https://taler.net, GNU Taler} to address
+the challenge of convenient
+and privacy-preserving online payments.  In 2015, the
+@c TODO: Maybe even markup for the E if it renders in most outputs.
+@uref{https://pep.foundation/, pEp}@footnote{pretty easy privacy} project
 announced that they will use GNUnet as the technology for their
 meta-data protection layer, ultimately resulting in GNUnet e.V.
 entering into a formal long-term collaboration with the pEp
@@ -99,9 +125,9 @@ computing has been the core driver of the GNU project. With GNUnet we
 are focusing on informational self-determination for collaborative
 computing and communication over networks.
 
-The Internet is shaped as much by code and protocols as by its
-associated political processes (IETF, ICANN, IEEE, etc.), and its
-flaws are similarly not limited to the protocol design.  Thus,
+The Internet is shaped as much by code and protocols as it is by its
+associated political processes (IETF, ICANN, IEEE, etc.).
+Similarly its flaws are not limited to the protocol design.  Thus,
 technical excellence by itself will not suffice to create a better
 network. We also need to build a community that is wise, humble and
 has a sense of humor to achieve our goal to create a technical
@@ -116,23 +142,22 @@ follows the governance model of a benevolent dictator.  This means
 that ultimately, the GNU project appoints the GNU maintainer and can
 overrule decisions made by the GNUnet maintainer. Similarly, the
 GNUnet maintainer can overrule any decisions made by individual
+@c TODO: Should we mention if this is just about GNUnet? Other projects
+@c TODO: in GNU seem to have rare issues (GCC, the 2018 documentation
+@c TODO: discussion.
 developers.  Still, in practice neither has happened in the last 20
 years, and we hope to keep it that way.
 
+@c TODO: Actually we are a Swiss association, or just a German association
+@c TODO: with Swiss bylaws/Satzung?
+@c TODO: Rewrite one of the 'GNUnet eV may also' sentences.
 The GNUnet project is supported by GNUnet e.V., a German association
-where any developer can become a member.  GNUnet e.V. servers as a
+where any developer can become a member.  GNUnet e.V. serves as a
 legal entity to hold the copyrights to GNUnet.  GNUnet e.V. may also
 choose to pay for project resources, and can collect donations.
 GNUnet e.V. may also choose to adjust the license of the
-software (with the constraint that it has to remain free software).
+software (with the constraint that it has to remain free software)@footnote{For example in 2018 we switched from GPL3 to AGPL3. In practice these changes do not happen very often.}
 
-
-@node General Terminology
-@section General Terminology
-
-In the following manual we may use words that can not be found in the
-Appendix. Since we want to keep the manual selfcontained, we will
-explain words here.
 
 @node Typography
 @section Typography
@@ -142,3 +167,5 @@ command should/can be issued as root, or if "normal" user privileges are
 sufficient. We use a @code{#} for root's shell prompt, a
 @code{%} for users' shell prompt, assuming they use the C-shell or tcsh
 and a @code{$} for bourne shell and derivatives.
+@c TODO: Really? Why the different prompts? Do we already have c-shell
+@c TODO: examples?

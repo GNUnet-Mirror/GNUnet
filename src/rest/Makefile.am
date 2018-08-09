@@ -29,6 +29,18 @@ libexec_PROGRAMS = \
 EXTRA_DIST = \
  rest.conf
 
+plugin_LTLIBRARIES = libgnunet_plugin_rest_copying.la
+
+libgnunet_plugin_rest_copying_la_SOURCES = \
+  plugin_rest_copying.c
+libgnunet_plugin_rest_copying_la_LIBADD = \
+	$(top_builddir)/src/rest/libgnunetrest.la \
+  $(top_builddir)/src/util/libgnunetutil.la $(XLIBS) \
+  $(LTLIBINTL) -lmicrohttpd
+libgnunet_plugin_rest_copying_la_LDFLAGS = \
+ $(GN_PLUGIN_LDFLAGS)
+
+
 gnunet_rest_server_SOURCES = \
  gnunet-rest-server.c
 

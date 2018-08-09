@@ -453,12 +453,12 @@ Further Reading
 
 * Documentation
 
-  A preliminary rendering of the new GNUnet manual is deployed at
+  A HTML version of the new GNUnet manual is deployed at
 
-    https://d.n0.is/pub/doc/gnunet/manual/
+    https://docs.gnunet.org
 
-  we plan to have a complete new gnunet.org up and running in 2019.
-  This website output exists as a convenience solution until then.
+  which currently displays just GNUnet documentation. Until 2019
+  we will add more reading material.
 
 * Academia / papers
 

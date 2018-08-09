@@ -11,7 +11,7 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
@@ -65,6 +65,8 @@ report ()
   unsigned long long datarate;
 
   delta = GNUNET_TIME_absolute_get_duration (start_time).rel_value_us;
+  if (0 == delta)
+    delta = 1;
   datarate = (total_bytes_recv * 1000 * 1000) / delta;
 
   FPRINTF (stderr,

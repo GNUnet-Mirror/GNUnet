@@ -49,7 +49,11 @@ static unsigned bits_needed;
 /**
  * How long do we run the test?
  */
-//#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 30)
+static struct GNUNET_TIME_Relative duration;
+
+/**
+ * When do we do a hard shutdown?
+ */
 static struct GNUNET_TIME_Relative timeout;
 
 
@@ -446,6 +450,10 @@ struct RPSPeer
    * @brief statistics values
    */
   uint64_t stats[STAT_TYPE_MAX];
+  /**
+   * @brief Handle for the statistics get request
+   */
+  struct GNUNET_STATISTICS_GetHandle *h_stat_get[STAT_TYPE_MAX];
 };
 
 /**
@@ -489,14 +497,15 @@ static unsigned int view_sizes;
 static int ok;
 
 /**
- * Identifier for the churn task that runs periodically
+ * Identifier for the task that runs after the test to collect results
  */
 static struct GNUNET_SCHEDULER_Task *post_test_task;
 
 /**
- * Identifier for the churn task that runs periodically
+ * Identifier for the shutdown task
  */
 static struct GNUNET_SCHEDULER_Task *shutdown_task;
+
 
 /**
  * Identifier for the churn task that runs periodically
@@ -874,6 +883,75 @@ static int check_statistics_collect_completed ()
   return GNUNET_YES;
 }
 
+static void
+rps_disconnect_adapter (void *cls,
+                        void *op_result);
+
+static void
+cancel_pending_req (struct PendingRequest *pending_req)
+{
+  struct RPSPeer *rps_peer;
+
+  rps_peer = pending_req->rps_peer;
+  GNUNET_CONTAINER_DLL_remove (rps_peer->pending_req_head,
+                               rps_peer->pending_req_tail,
+                               pending_req);
+  rps_peer->num_pending_reqs--;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Cancelling pending rps get request\n");
+  GNUNET_SCHEDULER_cancel (pending_req->request_task);
+  GNUNET_free (pending_req);
+}
+
+static void
+cancel_request (struct PendingReply *pending_rep)
+{
+  struct RPSPeer *rps_peer;
+
+  rps_peer = pending_rep->rps_peer;
+  GNUNET_CONTAINER_DLL_remove (rps_peer->pending_rep_head,
+                               rps_peer->pending_rep_tail,
+                               pending_rep);
+  rps_peer->num_pending_reps--;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Cancelling rps get reply\n");
+  GNUNET_RPS_request_cancel (pending_rep->req_handle);
+  GNUNET_free (pending_rep);
+}
+
+void
+clean_peer (unsigned peer_index)
+{
+  struct PendingRequest *pending_req;
+
+  while (NULL != (pending_req = rps_peers[peer_index].pending_req_head))
+  {
+    cancel_pending_req (pending_req);
+  }
+  pending_req = rps_peers[peer_index].pending_req_head;
+  rps_disconnect_adapter (&rps_peers[peer_index],
+                          &rps_peers[peer_index].rps_handle);
+  for (unsigned stat_type = STAT_TYPE_ROUNDS;
+       stat_type < STAT_TYPE_MAX;
+       stat_type++)
+  {
+    if (NULL != rps_peers[peer_index].h_stat_get[stat_type])
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                  "(%u) did not yet receive stat value for `%s'\n",
+                  rps_peers[peer_index].index,
+                  stat_type_2_str (stat_type));
+      GNUNET_STATISTICS_get_cancel (
+          rps_peers[peer_index].h_stat_get[stat_type]);
+    }
+  }
+  if (NULL != rps_peers[peer_index].op)
+  {
+    GNUNET_TESTBED_operation_done (rps_peers[peer_index].op);
+    rps_peers[peer_index].op = NULL;
+  }
+}
+
 /**
  * Task run on timeout to shut everything down.
  */
@@ -881,35 +959,55 @@ static void
 shutdown_op (void *cls)
 {
   unsigned int i;
+  struct OpListEntry *entry;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Shutdown task scheduled, going down.\n");
   in_shutdown = GNUNET_YES;
+
+  if (NULL != shutdown_task)
+  {
+    GNUNET_SCHEDULER_cancel (shutdown_task);
+    shutdown_task = NULL;
+  }
   if (NULL != post_test_task)
   {
     GNUNET_SCHEDULER_cancel (post_test_task);
+    post_test_task = NULL;
   }
   if (NULL != churn_task)
   {
     GNUNET_SCHEDULER_cancel (churn_task);
     churn_task = NULL;
   }
+  entry = oplist_head;
+  while (NULL != (entry = oplist_head))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                "Operation still pending on shutdown (%u)\n",
+                entry->index);
+    GNUNET_TESTBED_operation_done (entry->op);
+    GNUNET_CONTAINER_DLL_remove (oplist_head, oplist_tail, entry);
+    GNUNET_free (entry);
+  }
   for (i = 0; i < num_peers; i++)
   {
-    if (NULL != rps_peers[i].rps_handle)
-    {
-      GNUNET_RPS_disconnect (rps_peers[i].rps_handle);
-    }
-    if (NULL != rps_peers[i].op)
-    {
-      GNUNET_TESTBED_operation_done (rps_peers[i].op);
-    }
+    clean_peer (i);
   }
+}
+
+static void
+trigger_shutdown (void *cls)
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "Shutdown was triggerd by timeout, going down.\n");
+  shutdown_task = NULL;
+  GNUNET_SCHEDULER_shutdown ();
 }
 
 
 /**
- * Task run on timeout to collect statistics and potentially shut down.
+ * Task run after #duration to collect statistics and potentially shut down.
  */
 static void
 post_test_op (void *cls)
@@ -919,7 +1017,7 @@ post_test_op (void *cls)
   post_test_task = NULL;
   post_test = GNUNET_YES;
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-              "Post test task scheduled, going down.\n");
+              "Post test task scheduled.\n");
   if (NULL != churn_task)
   {
     GNUNET_SCHEDULER_cancel (churn_task);
@@ -943,7 +1041,7 @@ post_test_op (void *cls)
       GNUNET_YES == check_statistics_collect_completed())
   {
     GNUNET_SCHEDULER_cancel (shutdown_task);
-    shutdown_task = GNUNET_SCHEDULER_add_now (&shutdown_op, NULL);
+    shutdown_task = NULL;
     GNUNET_SCHEDULER_shutdown ();
   }
 }
@@ -1030,9 +1128,9 @@ info_cb (void *cb_cls,
  */
 static void
 rps_connect_complete_cb (void *cls,
-			 struct GNUNET_TESTBED_Operation *op,
-			 void *ca_result,
-			 const char *emsg)
+                         struct GNUNET_TESTBED_Operation *op,
+                         void *ca_result,
+                         const char *emsg)
 {
   struct RPSPeer *rps_peer = cls;
   struct GNUNET_RPS_Handle *rps = ca_result;
@@ -1057,7 +1155,9 @@ rps_connect_complete_cb (void *cls,
     return;
   }
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Started client successfully\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Started client successfully (%u)\n",
+              rps_peer->index);
 
   cur_test_run.main_test (rps_peer);
 }
@@ -1075,7 +1175,7 @@ rps_connect_complete_cb (void *cls,
  */
 static void *
 rps_connect_adapter (void *cls,
-		                 const struct GNUNET_CONFIGURATION_Handle *cfg)
+                     const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   struct GNUNET_RPS_Handle *h;
 
@@ -1167,15 +1267,26 @@ stat_complete_cb (void *cls, struct GNUNET_TESTBED_Operation *op,
  */
 static void
 rps_disconnect_adapter (void *cls,
-			                  void *op_result)
+                        void *op_result)
 {
   struct RPSPeer *peer = cls;
   struct GNUNET_RPS_Handle *h = op_result;
+  struct PendingReply *pending_rep;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "disconnect_adapter()\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "disconnect_adapter (%u)\n",
+              peer->index);
   GNUNET_assert (NULL != peer);
-  GNUNET_RPS_disconnect (h);
-  peer->rps_handle = NULL;
+  if (NULL != peer->rps_handle)
+  {
+    while (NULL != (pending_rep = peer->pending_rep_head))
+    {
+      cancel_request (pending_rep);
+    }
+    GNUNET_assert (h == peer->rps_handle);
+    GNUNET_RPS_disconnect (h);
+    peer->rps_handle = NULL;
+  }
 }
 
 
@@ -1219,13 +1330,15 @@ default_reply_handle (void *cls,
     rps_peer->num_recv_ids++;
   }
 
-  if (0 == evaluate () && HAVE_QUICK_QUIT == cur_test_run.have_quick_quit)
+  if (GNUNET_YES != post_test) return;
+  if (HAVE_QUICK_QUIT != cur_test_run.have_quick_quit) return;
+  if (0 == evaluate())
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Test succeeded before timeout\n");
-    GNUNET_assert (NULL != post_test_task);
-    GNUNET_SCHEDULER_cancel (post_test_task);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Test succeeded before end of duration\n");
+    if (NULL != post_test_task) GNUNET_SCHEDULER_cancel (post_test_task);
     post_test_task = GNUNET_SCHEDULER_add_now (&post_test_op, NULL);
-    GNUNET_assert (NULL!= post_test_task);
+    GNUNET_assert (NULL != post_test_task);
   }
 }
 
@@ -1239,13 +1352,13 @@ request_peers (void *cls)
   struct RPSPeer *rps_peer;
   struct PendingReply *pending_rep;
 
-  if (GNUNET_YES == in_shutdown || GNUNET_YES == post_test)
-    return;
   rps_peer = pending_req->rps_peer;
   GNUNET_assert (1 <= rps_peer->num_pending_reqs);
   GNUNET_CONTAINER_DLL_remove (rps_peer->pending_req_head,
                                rps_peer->pending_req_tail,
                                pending_req);
+  rps_peer->num_pending_reqs--;
+  if (GNUNET_YES == in_shutdown || GNUNET_YES == post_test) return;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Requesting one peer\n");
   pending_rep = GNUNET_new (struct PendingReply);
@@ -1258,39 +1371,6 @@ request_peers (void *cls)
                                     rps_peer->pending_rep_tail,
                                     pending_rep);
   rps_peer->num_pending_reps++;
-  rps_peer->num_pending_reqs--;
-}
-
-static void
-cancel_pending_req (struct PendingRequest *pending_req)
-{
-  struct RPSPeer *rps_peer;
-
-  rps_peer = pending_req->rps_peer;
-  GNUNET_CONTAINER_DLL_remove (rps_peer->pending_req_head,
-                               rps_peer->pending_req_tail,
-                               pending_req);
-  rps_peer->num_pending_reqs--;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Cancelling pending request\n");
-  GNUNET_SCHEDULER_cancel (pending_req->request_task);
-  GNUNET_free (pending_req);
-}
-
-static void
-cancel_request (struct PendingReply *pending_rep)
-{
-  struct RPSPeer *rps_peer;
-
-  rps_peer = pending_rep->rps_peer;
-  GNUNET_CONTAINER_DLL_remove (rps_peer->pending_rep_head,
-                               rps_peer->pending_rep_tail,
-                               pending_rep);
-  rps_peer->num_pending_reps--;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Cancelling request\n");
-  GNUNET_RPS_request_cancel (pending_rep->req_handle);
-  GNUNET_free (pending_rep);
 }
 
 
@@ -2261,12 +2341,6 @@ void write_final_stats (void){
          stat_type < STAT_TYPE_MAX;
          stat_type++)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                 "Add to sum (%" PRIu64 ") %" PRIu64 " of stat type %u - %s\n",
-                  sums[stat_type],
-                  rps_peers[i].stats[stat_type],
-                  stat_type,
-                  stat_type_2_str (stat_type));
       sums[stat_type] += rps_peers[i].stats[stat_type];
     }
   }
@@ -2312,6 +2386,8 @@ post_test_shutdown_ready_cb (void *cls,
 {
   struct STATcls *stat_cls = (struct STATcls *) cls;
   struct RPSPeer *rps_peer = stat_cls->rps_peer;
+
+  rps_peer->h_stat_get[stat_cls->stat_type] = NULL;
   if (GNUNET_OK == success)
   {
     /* set flag that we we got the value */
@@ -2363,6 +2439,7 @@ stat_iterator (void *cls,
 {
   const struct STATcls *stat_cls = (const struct STATcls *) cls;
   struct RPSPeer *rps_peer = (struct RPSPeer *) stat_cls->rps_peer;
+
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Got stat value: %s - %" PRIu64 "\n",
       //stat_type_2_str (stat_cls->stat_type),
       name,
@@ -2455,12 +2532,13 @@ void post_profiler (struct RPSPeer *rps_peer)
       stat_cls->stat_type = stat_type;
       rps_peer->file_name_stats =
         store_prefix_file_name (rps_peer->peer_id, "stats");
-      GNUNET_STATISTICS_get (rps_peer->stats_h,
-                             "rps",
-                             stat_type_2_str (stat_type),
-                             post_test_shutdown_ready_cb,
-                             stat_iterator,
-                             (struct STATcls *) stat_cls);
+      rps_peer->h_stat_get[stat_type] = GNUNET_STATISTICS_get (
+          rps_peer->stats_h,
+          "rps",
+          stat_type_2_str (stat_type),
+          post_test_shutdown_ready_cb,
+          stat_iterator,
+          (struct STATcls *) stat_cls);
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
           "Requested statistics for %s (peer %" PRIu32 ")\n",
           stat_type_2_str (stat_type),
@@ -2555,6 +2633,8 @@ test_run (void *cls,
     /* Connect all peers to statistics service */
     if (COLLECT_STATISTICS == cur_test_run.have_collect_statistics)
     {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                 "Connecting to statistics service\n");
       rps_peers[i].stat_op =
         GNUNET_TESTBED_service_connect (NULL,
                                         peers[i],
@@ -2569,11 +2649,12 @@ test_run (void *cls,
 
   if (NULL != churn_task)
     GNUNET_SCHEDULER_cancel (churn_task);
-  post_test_task = GNUNET_SCHEDULER_add_delayed (timeout, &post_test_op, NULL);
-  timeout = GNUNET_TIME_relative_multiply (timeout, 1 + (0.1 * num_peers));
-  shutdown_task = GNUNET_SCHEDULER_add_shutdown (shutdown_op, NULL);
-  shutdown_task = GNUNET_SCHEDULER_add_delayed (timeout, &shutdown_op, NULL);
-
+  post_test_task = GNUNET_SCHEDULER_add_delayed (duration, &post_test_op, NULL);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "timeout for shutdown is %lu\n", timeout.rel_value_us/1000000);
+  shutdown_task = GNUNET_SCHEDULER_add_delayed (timeout,
+                                                &trigger_shutdown,
+                                                NULL);
+  GNUNET_SCHEDULER_add_shutdown (shutdown_op, NULL);
 }
 
 
@@ -2609,7 +2690,7 @@ run (void *cls,
   if (0 == cur_test_run.num_requests) cur_test_run.num_requests = 5;
   //cur_test_run.have_churn = HAVE_CHURN;
   cur_test_run.have_churn = HAVE_NO_CHURN;
-  cur_test_run.have_quick_quit = HAVE_NO_QUICK_QUIT;
+  cur_test_run.have_quick_quit = HAVE_QUICK_QUIT;
   cur_test_run.have_collect_statistics = COLLECT_STATISTICS;
   cur_test_run.stat_collect_flags = BIT(STAT_TYPE_ROUNDS) |
                                     BIT(STAT_TYPE_BLOCKS) |
@@ -2632,10 +2713,38 @@ run (void *cls,
   /* 'Clean' directory */
   (void) GNUNET_DISK_directory_remove ("/tmp/rps/");
   GNUNET_DISK_directory_create ("/tmp/rps/");
-  if (0 == timeout.rel_value_us)
+  if (0 == duration.rel_value_us)
   {
-    timeout = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 90);
+    if (0 == timeout.rel_value_us)
+    {
+      duration = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 90);
+      timeout = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS,
+                                               (90 * 1.2) +
+                                                 (0.01 * num_peers));
+    }
+    else
+    {
+      duration = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS,
+                                                (timeout.rel_value_us/1000000)
+                                                  * 0.75);
+    }
   }
+  else
+  {
+    if (0 == timeout.rel_value_us)
+    {
+      timeout = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS,
+                                               ((duration.rel_value_us/1000000)
+                                                  * 1.2) + (0.01 * num_peers));
+    }
+  }
+  GNUNET_assert (duration.rel_value_us < timeout.rel_value_us);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "duration is %lus\n",
+              duration.rel_value_us/1000000);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "timeout is %lus\n",
+              timeout.rel_value_us/1000000);
 
   /* Compute number of bits for representing largest peer id */
   for (bits_needed = 1; (1 << bits_needed) < num_peers; bits_needed++)
@@ -2685,6 +2794,12 @@ main (int argc, char *argv[])
                                gettext_noop ("number of peers to start"),
                                &num_peers),
 
+    GNUNET_GETOPT_option_relative_time ('d',
+                                        "duration",
+                                        "DURATION",
+                                        gettext_noop ("duration of the profiling"),
+                                        &duration),
+
     GNUNET_GETOPT_option_relative_time ('t',
                                         "timeout",
                                         "TIMEOUT",
@@ -2732,7 +2847,6 @@ main (int argc, char *argv[])
   GNUNET_free (rps_peers);
   GNUNET_free (rps_peer_ids);
   GNUNET_CONTAINER_multipeermap_destroy (peer_map);
-  printf ("test -1\n");
   return ret_value;
 }
 
