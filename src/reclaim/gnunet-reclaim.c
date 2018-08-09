@@ -357,6 +357,7 @@ ego_iter_finished (void *cls)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
                 "Ego %s not found\n", ego_name);
+    GNUNET_SCHEDULER_add_now (&do_cleanup, NULL);
     return;
   }
 
