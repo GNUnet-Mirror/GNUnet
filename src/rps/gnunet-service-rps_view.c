@@ -229,11 +229,10 @@ View_get_peer_by_index (uint32_t index)
 void
 View_clear ()
 {
-  uint32_t i;
-  uint32_t *index;
-
-  for (i = 0; 0 < View_size (); i++)
+  for (uint32_t i = 0; 0 < View_size (); i++)
   { /* Need to free indices stored at peers */
+    uint32_t *index;
+
     GNUNET_assert (GNUNET_YES ==
         GNUNET_CONTAINER_multipeermap_contains (mpm, &array[i]));
     index = GNUNET_CONTAINER_multipeermap_get (mpm, &array[i]);
@@ -243,6 +242,7 @@ View_clear ()
   }
   GNUNET_assert (0 == View_size ());
 }
+
 
 /**
  * Destroy peermap.

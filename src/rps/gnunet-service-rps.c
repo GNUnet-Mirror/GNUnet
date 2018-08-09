@@ -823,7 +823,7 @@ check_operation_scheduled (const struct GNUNET_PeerIdentity *peer,
   return GNUNET_NO;
 }
 
-int
+static int
 Peers_remove_peer (const struct GNUNET_PeerIdentity *peer);
 
 /**
@@ -1099,12 +1099,12 @@ Peers_initialise (char* fn_valid_peers,
 /**
  * @brief Delete storage of peers that was created with #Peers_initialise ()
  */
-void
-Peers_terminate ()
+static void
+peers_terminate ()
 {
   if (GNUNET_SYSERR ==
       GNUNET_CONTAINER_multipeermap_iterate (peer_map,
-                                             peermap_clear_iterator,
+                                             &peermap_clear_iterator,
                                              NULL))
   {
     LOG (GNUNET_ERROR_TYPE_WARNING,
@@ -1114,7 +1114,9 @@ Peers_terminate ()
   peer_map = NULL;
   store_valid_peers ();
   GNUNET_free (filename_valid_peers);
+  filename_valid_peers = NULL;
   GNUNET_CONTAINER_multipeermap_destroy (valid_peers);
+  valid_peers = NULL;
 }
 
 
@@ -1272,6 +1274,7 @@ destroy_peer (void *cls)
   Peers_remove_peer (&peer_ctx->peer_id);
 }
 
+
 static void
 destroy_channel (void *cls);
 
@@ -1291,7 +1294,8 @@ schedule_channel_destruction (struct ChannelCtx *channel_ctx)
       GNUNET_NO == in_shutdown)
   {
     channel_ctx->destruction_task =
-      GNUNET_SCHEDULER_add_now (destroy_channel, channel_ctx);
+      GNUNET_SCHEDULER_add_now (&destroy_channel,
+				channel_ctx);
   }
 }
 
@@ -1311,7 +1315,8 @@ schedule_peer_destruction (struct PeerContext *peer_ctx)
       GNUNET_NO == in_shutdown)
   {
     peer_ctx->destruction_task =
-      GNUNET_SCHEDULER_add_now (destroy_peer, peer_ctx);
+      GNUNET_SCHEDULER_add_now (&destroy_peer,
+				peer_ctx);
   }
 }
 
@@ -1323,18 +1328,18 @@ schedule_peer_destruction (struct PeerContext *peer_ctx)
  * @return #GNUNET_YES if peer was removed
  *         #GNUNET_NO  otherwise
  */
-int
+static int
 Peers_remove_peer (const struct GNUNET_PeerIdentity *peer)
 {
   struct PeerContext *peer_ctx;
 
   GNUNET_assert (NULL != peer_map);
-
-  if (GNUNET_NO == GNUNET_CONTAINER_multipeermap_contains (peer_map, peer))
+  if (GNUNET_NO ==
+      GNUNET_CONTAINER_multipeermap_contains (peer_map,
+					      peer))
   {
     return GNUNET_NO;
   }
-
   peer_ctx = get_peer_ctx (peer);
   set_peer_flag (peer_ctx, Peers_TO_DESTROY);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -1345,14 +1350,15 @@ Peers_remove_peer (const struct GNUNET_PeerIdentity *peer)
   /* Clear list of pending operations */
   // TODO this probably leaks memory
   //      ('only' the cls to the function. Not sure what to do with it)
-  GNUNET_array_grow (peer_ctx->pending_ops, peer_ctx->num_pending_ops, 0);
-
+  GNUNET_array_grow (peer_ctx->pending_ops,
+		     peer_ctx->num_pending_ops,
+		     0);
   /* Remove all pending messages */
   while (NULL != peer_ctx->pending_messages_head)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-        "Removing unsent %s\n",
-        peer_ctx->pending_messages_head->type);
+	 "Removing unsent %s\n",
+	 peer_ctx->pending_messages_head->type);
     /* Cancle pending message, too */
     if ( (NULL != peer_ctx->liveliness_check_pending) &&
          (0 == memcmp (peer_ctx->pending_messages_head,
@@ -1362,7 +1368,8 @@ Peers_remove_peer (const struct GNUNET_PeerIdentity *peer)
         // TODO this may leak memory
         peer_ctx->liveliness_check_pending = NULL;
       }
-    remove_pending_message (peer_ctx->pending_messages_head, GNUNET_YES);
+    remove_pending_message (peer_ctx->pending_messages_head,
+			    GNUNET_YES);
   }
 
   /* If we are still waiting for notification whether this peer is live
@@ -1370,11 +1377,12 @@ Peers_remove_peer (const struct GNUNET_PeerIdentity *peer)
   if (NULL != peer_ctx->liveliness_check_pending)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-         "Removing pending liveliness check for peer %s\n",
-         GNUNET_i2s (&peer_ctx->peer_id));
+		"Removing pending liveliness check for peer %s\n",
+		GNUNET_i2s (&peer_ctx->peer_id));
     // TODO wait until cadet sets mq->cancel_impl
     //GNUNET_MQ_send_cancel (peer_ctx->liveliness_check_pending->ev);
-    remove_pending_message (peer_ctx->liveliness_check_pending, GNUNET_YES);
+    remove_pending_message (peer_ctx->liveliness_check_pending,
+			    GNUNET_YES);
     peer_ctx->liveliness_check_pending = NULL;
   }
 
@@ -1382,8 +1390,7 @@ Peers_remove_peer (const struct GNUNET_PeerIdentity *peer)
   /* Do we still have to wait for destruction of channels
    * or issue the destruction? */
   if (NULL != peer_ctx->send_channel_ctx &&
-      NULL != peer_ctx->send_channel_ctx->destruction_task
-      )
+      NULL != peer_ctx->send_channel_ctx->destruction_task)
   {
     schedule_peer_destruction (peer_ctx);
     return GNUNET_NO;
@@ -1412,13 +1419,17 @@ Peers_remove_peer (const struct GNUNET_PeerIdentity *peer)
     GNUNET_SCHEDULER_cancel (peer_ctx->destruction_task);
   }
 
-  if (GNUNET_YES != GNUNET_CONTAINER_multipeermap_remove_all (peer_map, &peer_ctx->peer_id))
+  if (GNUNET_YES !=
+      GNUNET_CONTAINER_multipeermap_remove_all (peer_map,
+						&peer_ctx->peer_id))
   {
-    LOG (GNUNET_ERROR_TYPE_WARNING, "removing peer from peer_map failed\n");
+    LOG (GNUNET_ERROR_TYPE_WARNING,
+	 "removing peer from peer_map failed\n");
   }
   GNUNET_free (peer_ctx);
   return GNUNET_YES;
 }
+
 
 /**
  * @brief set flags on a given peer.
@@ -4073,12 +4084,14 @@ shutdown_task (void *cls)
                                    reply_cls);
       GNUNET_free (reply_cls);
     }
-    GNUNET_CONTAINER_DLL_remove (cli_ctx_head, cli_ctx_tail, client_ctx);
+    GNUNET_CONTAINER_DLL_remove (cli_ctx_head,
+				 cli_ctx_tail,
+				 client_ctx);
     GNUNET_free (client_ctx);
   }
   GNUNET_PEERINFO_notify_cancel (peerinfo_notify_handle);
   GNUNET_PEERINFO_disconnect (peerinfo_handle);
-
+  peerinfo_handle = NULL;
   if (NULL != do_round_task)
   {
     GNUNET_SCHEDULER_cancel (do_round_task);
@@ -4097,18 +4110,21 @@ shutdown_task (void *cls)
   CustomPeerMap_destroy (pull_map);
   if (NULL != stats)
   {
-    GNUNET_STATISTICS_destroy (stats, GNUNET_NO);
+    GNUNET_STATISTICS_destroy (stats,
+			       GNUNET_NO);
     stats = NULL;
   }
-  #ifdef ENABLE_MALICIOUS
+#ifdef ENABLE_MALICIOUS
   struct AttackedPeer *tmp_att_peer;
   /* it is ok to free this const during shutdown: */
   GNUNET_free ((char *) file_name_view_log);
-  #ifdef TO_FILE
+#ifdef TO_FILE
   GNUNET_free ((char *) file_name_observed_log);
   GNUNET_CONTAINER_multipeermap_destroy (observed_unique_peers);
-  #endif /* TO_FILE */
-  GNUNET_array_grow (mal_peers, num_mal_peers, 0);
+#endif /* TO_FILE */
+  GNUNET_array_grow (mal_peers,
+		     num_mal_peers,
+		     0);
   if (NULL != mal_peer_set)
     GNUNET_CONTAINER_multipeermap_destroy (mal_peer_set);
   if (NULL != att_peer_set)
@@ -4116,10 +4132,12 @@ shutdown_task (void *cls)
   while (NULL != att_peers_head)
   {
     tmp_att_peer = att_peers_head;
-    GNUNET_CONTAINER_DLL_remove (att_peers_head, att_peers_tail, tmp_att_peer);
+    GNUNET_CONTAINER_DLL_remove (att_peers_head,
+				 att_peers_tail,
+				 tmp_att_peer);
     GNUNET_free (tmp_att_peer);
   }
-  #endif /* ENABLE_MALICIOUS */
+#endif /* ENABLE_MALICIOUS */
 }
 
 
