@@ -205,6 +205,7 @@ src/identity/identity_api_lookup.c
 src/identity/plugin_rest_identity.c
 src/json/json.c
 src/json/json_generator.c
+src/json/json_gnsrecord.c
 src/json/json_helper.c
 src/json/json_mhd.c
 src/jsonapi/jsonapi.c
@@ -263,6 +264,7 @@ src/peerinfo-tool/gnunet-peerinfo_plugins.c
 src/peerinfo/gnunet-service-peerinfo.c
 src/peerinfo/peerinfo_api.c
 src/peerinfo/peerinfo_api_notify.c
+src/peerinfo/plugin_rest_peerinfo.c
 src/peerstore/gnunet-peerstore.c
 src/peerstore/gnunet-service-peerstore.c
 src/peerstore/peerstore_api.c
@@ -292,6 +294,7 @@ src/reclaim-attribute/reclaim_attribute.c
 src/reclaim/gnunet-reclaim.c
 src/reclaim/gnunet-service-reclaim.c
 src/reclaim/jwt.c
+src/reclaim/oidc_helper.c
 src/reclaim/plugin_gnsrecord_reclaim.c
 src/reclaim/plugin_reclaim_sqlite.c
 src/reclaim/plugin_rest_openid_connect.c
@@ -312,6 +315,7 @@ src/regex/regex_test_graph.c
 src/regex/regex_test_lib.c
 src/regex/regex_test_random.c
 src/rest/gnunet-rest-server.c
+src/rest/plugin_rest_copying.c
 src/rest/rest.c
 src/revocation/gnunet-revocation.c
 src/revocation/gnunet-service-revocation.c

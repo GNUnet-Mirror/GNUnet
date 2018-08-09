@@ -81,6 +81,7 @@ else
 SUBDIRS = \
   include $(INTLEMU_SUBDIRS) \
   util \
+	gnsrecord \
   $(JSON_DIR) \
   $(REST_DIR) \
   $(JSONAPI_DIR) \
@@ -113,7 +114,6 @@ SUBDIRS = \
   regex \
   dns \
   identity \
-  gnsrecord \
   namecache \
   namestore \
   peerstore \
