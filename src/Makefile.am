@@ -90,18 +90,18 @@ SUBDIRS = \
   statistics \
   arm \
   $(TESTING) \
+	ats \
   peerinfo \
+  nat \
+  fragmentation \
+  transport \
   $(SQLITE_DIR) \
   $(MYSQL_DIR) \
   $(POSTGRES_DIR) \
   datacache \
   datastore \
   template \
-  ats \
-  nat \
   nat-auto \
-  fragmentation \
-  transport \
   ats-tool \
   peerinfo-tool \
   core \
