@@ -332,7 +332,7 @@ iter_cb (void *cls,
     attrs_tmp = GNUNET_strdup (issue_attrs);
     attr_str = strtok (attrs_tmp, ",");
     while (NULL != attr_str) {
-      if (0 != strcmp (attr_str, attr->name)) {
+      if (0 != strcasecmp (attr_str, attr->name)) {
         attr_str = strtok (NULL, ",");
         continue;
       }
