@@ -1590,6 +1590,7 @@ Peers_handle_inbound_channel (void *cls,
         "Already got one receive channel. Destroying old one.\n");
     GNUNET_break_op (0);
     GNUNET_CADET_channel_destroy (peer_ctx->recv_channel_ctx->channel);
+    peer_ctx->recv_channel_ctx->channel = NULL;
     remove_channel_ctx (peer_ctx->recv_channel_ctx);
     peer_ctx->recv_channel_ctx = channel_ctx;
     /* return the channel context */
@@ -1716,58 +1717,6 @@ destroy_channel (void *cls)
   remove_channel_ctx (peer_ctx->send_channel_ctx);
 }
 
-/**
- * This is called when a channel is destroyed.
- *
- * @param cls The closure
- * @param channel The channel being closed
- */
-void
-Peers_cleanup_destroyed_channel (void *cls,
-                                 const struct GNUNET_CADET_Channel *channel)
-{
-  struct ChannelCtx *channel_ctx = cls;
-  const struct GNUNET_PeerIdentity *peer = &channel_ctx->peer_ctx->peer_id;
-  struct PeerContext *peer_ctx = channel_ctx->peer_ctx;
-
-  if (GNUNET_NO == Peers_check_peer_known (peer))
-  {/* We don't want to implicitly create a context that we're about to kill */
-  LOG (GNUNET_ERROR_TYPE_WARNING,
-       "channel (%s) without associated context was destroyed\n",
-       GNUNET_i2s (peer));
-    return;
-  }
-
-  /* If our peer issued the destruction of the channel, the #Peers_TO_DESTROY
-   * flag will be set. In this case simply make sure that the channels are
-   * cleaned. */
-  /* The distinction seems to be redundant */
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-      "Peer is NOT in the process of being destroyed\n");
-  if ( (NULL != peer_ctx->send_channel_ctx) &&
-       (channel == peer_ctx->send_channel_ctx->channel) )
-  { /* Something (but us) killd the channel - clean up peer */
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-        "send channel (%s) was destroyed - cleaning up\n",
-        GNUNET_i2s (peer));
-    remove_channel_ctx (peer_ctx->send_channel_ctx);
-  }
-  else if ( (NULL != peer_ctx->recv_channel_ctx) &&
-       (channel == peer_ctx->recv_channel_ctx->channel) )
-  { /* Other peer doesn't want to send us messages anymore */
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Peer %s destroyed recv channel - cleaning up channel\n",
-         GNUNET_i2s (peer));
-    remove_channel_ctx (peer_ctx->send_channel_ctx);
-  }
-  else
-  {
-    LOG (GNUNET_ERROR_TYPE_WARNING,
-         "unknown channel (%s) was destroyed\n",
-         GNUNET_i2s (peer));
-  }
-  (void) Peers_check_connected (peer);
-}
 
 /**
  * @brief Send a message to another peer.
@@ -2704,6 +2653,7 @@ add_channel_ctx (struct PeerContext *peer_ctx)
   return channel_ctx;
 }
 
+
 /**
  * @brief Remove the channel context from the DLL and free the memory.
  *
@@ -2713,12 +2663,12 @@ static void
 remove_channel_ctx (struct ChannelCtx *channel_ctx)
 {
   struct PeerContext *peer_ctx = channel_ctx->peer_ctx;
+
   if (NULL != channel_ctx->destruction_task)
   {
     GNUNET_SCHEDULER_cancel (channel_ctx->destruction_task);
   }
   GNUNET_free (channel_ctx);
-
   if (channel_ctx == peer_ctx->send_channel_ctx)
   {
     peer_ctx->send_channel_ctx = NULL;
@@ -2730,15 +2680,10 @@ remove_channel_ctx (struct ChannelCtx *channel_ctx)
   }
   else
   {
-    LOG (GNUNET_ERROR_TYPE_ERROR,
-        "Trying to remove channel_ctx that is not associated with a peer\n");
-    LOG (GNUNET_ERROR_TYPE_ERROR,
-        "\trecv: %p\n", peer_ctx->recv_channel_ctx);
-    LOG (GNUNET_ERROR_TYPE_ERROR,
-        "\tsend: %p\n", peer_ctx->send_channel_ctx);
     GNUNET_assert (0);
   }
 }
+
 
 /**
  * @brief This is called when a channel is destroyed.
@@ -2757,21 +2702,7 @@ cleanup_destroyed_channel (void *cls,
                            const struct GNUNET_CADET_Channel *channel)
 {
   struct ChannelCtx *channel_ctx = cls;
-  struct GNUNET_PeerIdentity *peer = &channel_ctx->peer_ctx->peer_id;
-  struct PeerContext *peer_ctx;
-
-  GNUNET_assert (NULL != peer);
-
-  if (GNUNET_NO == Peers_check_peer_known (peer))
-  { /* We don't know a context to that peer */
-    LOG (GNUNET_ERROR_TYPE_WARNING,
-         "channel (%s) without associated context was destroyed\n",
-         GNUNET_i2s (peer));
-    remove_channel_ctx (channel_ctx);
-    return;
-  }
-
-  peer_ctx = get_peer_ctx (peer);
+  struct PeerContext *peer_ctx = channel_ctx->peer_ctx;
 
   // What should be done here:
   //  * cleanup everything related to the channel
@@ -4235,6 +4166,7 @@ client_disconnect_cb (void *cls,
 {
   struct ClientContext *cli_ctx = internal_cls;
 
+  (void) cls;
   GNUNET_assert (client == cli_ctx->client);
   if (NULL == client)
   {/* shutdown task - destroy all clients */
@@ -4262,28 +4194,31 @@ run (void *cls,
      const struct GNUNET_CONFIGURATION_Handle *c,
      struct GNUNET_SERVICE_Handle *service)
 {
-  char* fn_valid_peers;
+  char *fn_valid_peers;
 
-  GNUNET_log_setup ("rps", GNUNET_error_type_to_string (GNUNET_ERROR_TYPE_DEBUG), NULL);
+  (void) cls;
+  (void) service;
+  GNUNET_log_setup ("rps",
+		    GNUNET_error_type_to_string (GNUNET_ERROR_TYPE_DEBUG),
+		    NULL);
   cfg = c;
-
-
   /* Get own ID */
-  GNUNET_CRYPTO_get_peer_identity (cfg, &own_identity); // TODO check return value
+  GNUNET_CRYPTO_get_peer_identity (cfg,
+				   &own_identity); // TODO check return value
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "STARTING SERVICE (rps) for peer [%s]\n",
               GNUNET_i2s (&own_identity));
-  #ifdef ENABLE_MALICIOUS
+#ifdef ENABLE_MALICIOUS
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
               "Malicious execution compiled in.\n");
-  #endif /* ENABLE_MALICIOUS */
-
-
+#endif /* ENABLE_MALICIOUS */
 
   /* Get time interval from the configuration */
-  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_time (cfg, "RPS",
-                                                        "ROUNDINTERVAL",
-                                                        &round_interval))
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_time (cfg,
+					   "RPS",
+					   "ROUNDINTERVAL",
+					   &round_interval))
   {
     GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR,
                                "RPS", "ROUNDINTERVAL");
@@ -4365,7 +4300,7 @@ run (void *cls,
                                        &Peers_handle_inbound_channel, /* Connect handler */
                                        NULL, /* cls */
                                        NULL, /* WindowSize handler */
-                                       cleanup_destroyed_channel, /* Disconnect handler */
+                                       &cleanup_destroyed_channel, /* Disconnect handler */
                                        cadet_handlers);
   if (NULL == cadet_port)
   {
