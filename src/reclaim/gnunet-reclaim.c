@@ -139,6 +139,11 @@ static struct GNUNET_SCHEDULER_Task *timeout;
  */
 static struct GNUNET_SCHEDULER_Task *cleanup_task;
 
+/**
+ * Claim to store
+ */
+struct GNUNET_RECLAIM_ATTRIBUTE_Claim *claim;
+
 static void
 do_cleanup(void *cls)
 {
@@ -249,7 +254,6 @@ process_rvk (void *cls, int success, const char* msg)
 static void
 iter_finished (void *cls)
 {
-  struct GNUNET_RECLAIM_ATTRIBUTE_Claim *claim;
   char *data;
   size_t data_size;
   int type;
@@ -303,16 +307,25 @@ iter_finished (void *cls)
                                                                               attr_value,
                                                                               (void**)&data,
                                                                               &data_size));
-    claim = GNUNET_RECLAIM_ATTRIBUTE_claim_new (attr_name,
-                                                 type,
-                                                 data,
-                                                 data_size);
+    if (NULL != claim)
+    {
+      claim->type = type;
+      claim->data = data;
+      claim->data_size = data_size;
+    } else {
+      claim = GNUNET_RECLAIM_ATTRIBUTE_claim_new (attr_name,
+                                                  type,
+                                                  data,
+                                                  data_size);
+    }
     reclaim_op = GNUNET_RECLAIM_attribute_store (reclaim_handle,
                                                  pkey,
                                                  claim,
                                                  &exp_interval,
                                                  &store_attr_cont,
                                                  NULL);
+    GNUNET_free (data);
+    GNUNET_free (claim);
     return;
   }
   cleanup_task = GNUNET_SCHEDULER_add_now (&do_cleanup, NULL);
@@ -326,8 +339,19 @@ iter_cb (void *cls,
   struct GNUNET_RECLAIM_ATTRIBUTE_ClaimListEntry *le;
   char *attrs_tmp;
   char *attr_str;
+  const char *attr_type;
 
-  if (issue_attrs)
+  if ((NULL != attr_name) && (NULL != claim))
+  {
+    if (0 == strcasecmp (attr_name, attr->name))
+    {
+      claim = GNUNET_RECLAIM_ATTRIBUTE_claim_new (attr->name,
+                                                            attr->type,
+                                                            attr->data,
+                                                            attr->data_size);
+    }
+  }
+  else if (issue_attrs)
   {
     attrs_tmp = GNUNET_strdup (issue_attrs);
     attr_str = strtok (attrs_tmp, ",");
@@ -351,8 +375,9 @@ iter_cb (void *cls,
     attr_str = GNUNET_RECLAIM_ATTRIBUTE_value_to_string (attr->type,
                                                          attr->data,
                                                          attr->data_size);
-    GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
-                "%s: %s\n", attr->name, attr_str);
+    attr_type = GNUNET_RECLAIM_ATTRIBUTE_number_to_typename (attr->type);
+    fprintf (stdout,
+             "%s\t%s\t%u\t%s\n", attr->name, attr_type, attr->version, attr_str);
   }
   GNUNET_RECLAIM_get_attributes_next (attr_iterator);
 }
@@ -383,9 +408,12 @@ start_get_attributes ()
                                    &ticket,
                                    sizeof (struct GNUNET_RECLAIM_Ticket));
 
+  if (list)
+    fprintf (stdout,
+             "Name\tType\tVersion\tValue\n");
 
   attr_list = GNUNET_new (struct GNUNET_RECLAIM_ATTRIBUTE_ClaimList);
-
+  claim = NULL;
   attr_iterator = GNUNET_RECLAIM_get_attributes_start (reclaim_handle,
                                                        pkey,
                                                        &iter_error,

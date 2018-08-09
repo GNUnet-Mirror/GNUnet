@@ -1439,9 +1439,9 @@ check_attr_cb (void *cls,
 
   buf_size = GNUNET_RECLAIM_ATTRIBUTE_serialize_get_size (rh->attrs->list_head->claim);
   buf = GNUNET_malloc (buf_size);
+  rh->attrs->list_head->claim->version++;
   GNUNET_RECLAIM_ATTRIBUTE_serialize (rh->attrs->list_head->claim,
                                        buf);
-  rh->attrs->list_head->claim->version++;
   GNUNET_asprintf (&policy, "%s_%lu",
                    rh->attrs->list_head->claim->name,
                    rh->attrs->list_head->claim->version);
