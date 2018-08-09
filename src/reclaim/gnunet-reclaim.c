@@ -312,7 +312,9 @@ iter_finished (void *cls)
       claim->type = type;
       claim->data = data;
       claim->data_size = data_size;
-    } else {
+    }
+    else
+    {
       claim = GNUNET_RECLAIM_ATTRIBUTE_claim_new (attr_name,
                                                   type,
                                                   data,
@@ -371,7 +373,9 @@ iter_cb (void *cls,
       break;
     }
     GNUNET_free (attrs_tmp);
-  } else if (list) {
+  } 
+  else if (list)
+  {
     attr_str = GNUNET_RECLAIM_ATTRIBUTE_value_to_string (attr->type,
                                                          attr->data,
                                                          attr->data_size);
