@@ -187,8 +187,8 @@ store_attr_cont (void *cls,
 {
   reclaim_op = NULL;
   if (GNUNET_SYSERR == success) {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "%s\n", emsg);
+    fprintf (stderr,
+             "%s\n", emsg);
   }
   cleanup_task = GNUNET_SCHEDULER_add_now (&do_cleanup, NULL);
 }
@@ -199,6 +199,8 @@ process_attrs (void *cls,
          const struct GNUNET_RECLAIM_ATTRIBUTE_Claim *attr)
 {
   char *value_str;
+  const char* attr_type;
+
   if (NULL == identity)
   {
     reclaim_op = NULL;
@@ -213,8 +215,9 @@ process_attrs (void *cls,
   value_str = GNUNET_RECLAIM_ATTRIBUTE_value_to_string (attr->type,
                                                         attr->data,
                                                         attr->data_size);
-  GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
-              "%s: %s\n", attr->name, value_str);
+  attr_type = GNUNET_RECLAIM_ATTRIBUTE_number_to_typename (attr->type);
+  fprintf (stdout,
+           "%s: %s [%s,v%u]\n", attr->name, value_str, attr_type, attr->version);
 }
 
 
@@ -222,8 +225,8 @@ static void
 iter_error (void *cls)
 {
   attr_iterator = NULL;
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-              "Failed to iterate over attributes\n");
+  fprintf (stderr,
+           "Failed to iterate over attributes\n");
   cleanup_task = GNUNET_SCHEDULER_add_now (&do_cleanup, NULL);
 }
 
@@ -232,8 +235,8 @@ timeout_task (void *cls)
 {
   timeout = NULL;
   ret = 1;
-  GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
-              "Timeout\n");
+  fprintf (stderr,
+           "Timeout\n");
   if (NULL == cleanup_task)
     cleanup_task = GNUNET_SCHEDULER_add_now (&do_cleanup, NULL);
 }
@@ -244,8 +247,8 @@ process_rvk (void *cls, int success, const char* msg)
   reclaim_op = NULL;
   if (GNUNET_OK != success)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
-                "Revocation failed.\n");
+    fprintf (stderr,
+             "Revocation failed.\n");
     ret = 1;
   }
   cleanup_task = GNUNET_SCHEDULER_add_now (&do_cleanup, NULL);
@@ -382,7 +385,7 @@ iter_cb (void *cls,
                                                          attr->data_size);
     attr_type = GNUNET_RECLAIM_ATTRIBUTE_number_to_typename (attr->type);
     fprintf (stdout,
-             "%s\t%s\t%u\t%s\n", attr->name, attr_type, attr->version, attr_str);
+             "%s: %s [%s,v%u]\n", attr->name, attr_str, attr_type, attr->version);
   }
   GNUNET_RECLAIM_get_attributes_next (attr_iterator);
 }
@@ -392,8 +395,8 @@ start_get_attributes ()
 {
   if (NULL == pkey)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
-                "Ego %s not found\n", ego_name);
+    fprintf (stderr,
+             "Ego %s not found\n", ego_name);
     cleanup_task = GNUNET_SCHEDULER_add_now (&do_cleanup, NULL);
     return;
   }
@@ -412,10 +415,6 @@ start_get_attributes ()
                                    strlen (revoke_ticket),
                                    &ticket,
                                    sizeof (struct GNUNET_RECLAIM_Ticket));
-
-  if (list)
-    fprintf (stdout,
-             "Name\tType\tVersion\tValue\n");
 
   attr_list = GNUNET_new (struct GNUNET_RECLAIM_ATTRIBUTE_ClaimList);
   claim = NULL;
@@ -462,24 +461,24 @@ run (void *cls,
   if (NULL == ego_name)
   {
     ret = 1;
-    GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
-                _("Ego is required\n"));
+    fprintf (stderr,
+             _("Ego is required\n"));
     return;
   }
 
   if ( (NULL == attr_value) && (NULL != attr_name) )
   {
     ret = 1;
-    GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
-                _("Attribute value missing!\n"));
+    fprintf (stderr,
+             _("Attribute value missing!\n"));
     return;
   }
 
   if ( (NULL == rp) && (NULL != issue_attrs) )
   {
     ret = 1;
-    GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
-                _("Requesting party key is required!\n"));
+    fprintf (stderr,
+             _("Requesting party key is required!\n"));
     return;
   }
 
