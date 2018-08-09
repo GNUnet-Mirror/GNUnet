@@ -55,7 +55,7 @@ struct FlatFileEntry
   /**
    * Entry zone
    */
-  struct GNUNET_CRYPTO_EcdsaPrivateKey *private_key;
+  struct GNUNET_CRYPTO_EcdsaPrivateKey private_key;
 
   /**
    * Record cound
@@ -93,7 +93,6 @@ static int
 database_setup (struct Plugin *plugin)
 {
   char *afsdir;
-  char *key;
   char *record_data;
   char *zone_private_key;
   char *record_data_b64;
@@ -104,7 +103,6 @@ database_setup (struct Plugin *plugin)
   char *record_count;
   size_t record_data_size;
   uint64_t size;
-  size_t key_len;
   struct GNUNET_HashCode hkey;
   struct GNUNET_DISK_FileHandle *fh;
   struct FlatFileEntry *entry;
@@ -232,7 +230,7 @@ database_setup (struct Plugin *plugin)
       record_data_size
 	= GNUNET_STRINGS_base64_decode (record_data_b64,
 					strlen (record_data_b64),
-					&record_data);
+					(void **) &record_data);
       entry->record_data =
         GNUNET_new_array (entry->record_count,
 			  struct GNUNET_GNSRECORD_Data);
@@ -251,21 +249,34 @@ database_setup (struct Plugin *plugin)
         break;
       }
       GNUNET_free (record_data);
-      GNUNET_STRINGS_base64_decode (zone_private_key,
-                                    strlen (zone_private_key),
-                                    (char**)&entry->private_key);
-      key_len = strlen (label) + sizeof (struct GNUNET_CRYPTO_EcdsaPrivateKey);
-      key = GNUNET_malloc (strlen (label) + sizeof (struct GNUNET_CRYPTO_EcdsaPrivateKey));
-      GNUNET_memcpy (key,
-		     label,
-		     strlen (label));
-      GNUNET_memcpy (key+strlen(label),
-		     entry->private_key,
-		     sizeof (struct GNUNET_CRYPTO_EcdsaPrivateKey));
-      GNUNET_CRYPTO_hash (key,
-                          key_len,
-                          &hkey);
-      GNUNET_free (key);
+
+      {
+        struct GNUNET_CRYPTO_EcdsaPrivateKey *private_key;
+
+        GNUNET_STRINGS_base64_decode (zone_private_key,
+                                      strlen (zone_private_key),
+                                      (void**)&private_key);
+        entry->private_key = *private_key;
+        GNUNET_free (private_key);
+      }
+
+      {
+        char *key;
+        size_t key_len;
+
+        key_len = strlen (label) + sizeof (struct GNUNET_CRYPTO_EcdsaPrivateKey);
+        key = GNUNET_malloc (strlen (label) + sizeof (struct GNUNET_CRYPTO_EcdsaPrivateKey));
+        GNUNET_memcpy (key,
+                       label,
+                       strlen (label));
+        GNUNET_memcpy (key+strlen(label),
+                       &entry->private_key,
+                       sizeof (struct GNUNET_CRYPTO_EcdsaPrivateKey));
+        GNUNET_CRYPTO_hash (key,
+                            key_len,
+                            &hkey);
+        GNUNET_free (key);
+      }
       if (GNUNET_OK !=
           GNUNET_CONTAINER_multihashmap_put (plugin->hm,
                                              &hkey,
@@ -302,7 +313,7 @@ store_and_free_entries (void *cls,
   ssize_t data_size;
 
   (void) key;
-  GNUNET_STRINGS_base64_encode ((char*)entry->private_key,
+  GNUNET_STRINGS_base64_encode (&entry->private_key,
                                 sizeof (struct GNUNET_CRYPTO_EcdsaPrivateKey),
                                 &zone_private_key);
   data_size = GNUNET_GNSRECORD_records_get_size (entry->record_count,
@@ -353,7 +364,6 @@ store_and_free_entries (void *cls,
                           strlen (line));
 
   GNUNET_free (line);
-  GNUNET_free (entry->private_key);
   GNUNET_free (entry->label);
   GNUNET_free (entry->record_data);
   GNUNET_free (entry);
@@ -441,11 +451,10 @@ namestore_flat_store_records (void *cls,
     return GNUNET_OK;
   }
   entry = GNUNET_new (struct FlatFileEntry);
-  entry->private_key = GNUNET_new (struct GNUNET_CRYPTO_EcdsaPrivateKey);
   GNUNET_asprintf (&entry->label,
                    label,
                    strlen (label));
-  GNUNET_memcpy (entry->private_key,
+  GNUNET_memcpy (&entry->private_key,
                  zone_key,
                  sizeof (struct GNUNET_CRYPTO_EcdsaPrivateKey));
   entry->rvalue = rvalue;
@@ -519,7 +528,7 @@ namestore_flat_lookup_records (void *cls,
   if (NULL != iter)
     iter (iter_cls,
 	  0,
-	  entry->private_key,
+	  &entry->private_key,
 	  entry->label,
 	  entry->record_count,
 	  entry->record_data);
@@ -586,7 +595,7 @@ iterate_zones (void *cls,
   if (0 == ic->limit)
     return GNUNET_NO;
   if ( (NULL != ic->zone) &&
-       (0 != memcmp (entry->private_key,
+       (0 != memcmp (&entry->private_key,
                      ic->zone,
                      sizeof (struct GNUNET_CRYPTO_EcdsaPrivateKey))) )
     return GNUNET_YES;
@@ -598,7 +607,7 @@ iterate_zones (void *cls,
   }
   ic->iter (ic->iter_cls,
 	    ic->pos,
-            entry->private_key,
+            &entry->private_key,
             entry->label,
             entry->record_count,
             entry->record_data);
@@ -668,7 +677,7 @@ zone_to_name (void *cls,
   struct FlatFileEntry *entry = value;
 
   (void) key;
-  if (0 != memcmp (entry->private_key,
+  if (0 != memcmp (&entry->private_key,
                    ztn->zone,
                    sizeof (struct GNUNET_CRYPTO_EcdsaPrivateKey)))
     return GNUNET_YES;
@@ -683,7 +692,7 @@ zone_to_name (void *cls,
     {
       ztn->iter (ztn->iter_cls,
                  0,
-                 entry->private_key,
+                 &entry->private_key,
                  entry->label,
                  entry->record_count,
                  entry->record_data);

@@ -11,7 +11,7 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
@@ -1947,27 +1947,27 @@ static char *cvt =
 /**
  * Encode into Base64.
  *
- * @param data the data to encode
+ * @param in the data to encode
  * @param len the length of the input
  * @param output where to write the output (*output should be NULL,
  *   is allocated)
  * @return the size of the output
  */
 size_t
-GNUNET_STRINGS_base64_encode (const char *data,
+GNUNET_STRINGS_base64_encode (const void *in,
                               size_t len,
                               char **output)
 {
-  size_t i;
-  char c;
+  const char *data = in;
   size_t ret;
   char *opt;
 
   ret = 0;
   opt = GNUNET_malloc (2 + (len * 4 / 3) + 8);
-  *output = opt;
-  for (i = 0; i < len; ++i)
+  for (size_t i = 0; i < len; ++i)
   {
+    char c;
+
     c = (data[i] >> 2) & 0x3f;
     opt[ret++] = cvt[(int) c];
     c = (data[i] << 4) & 0x3f;
@@ -1997,6 +1997,7 @@ GNUNET_STRINGS_base64_encode (const char *data,
     }
   }
   opt[ret++] = FILLCHAR;
+  *output = opt;
   return ret;
 }
 
@@ -2018,11 +2019,10 @@ GNUNET_STRINGS_base64_encode (const char *data,
  */
 size_t
 GNUNET_STRINGS_base64_decode (const char *data,
-                              size_t len, char **output)
+                              size_t len,
+                              void **out)
 {
-  size_t i;
-  char c;
-  char c1;
+  char *output;
   size_t ret = 0;
 
 #define CHECK_CRLF  while (data[i] == '\r' || data[i] == '\n') {\
@@ -2031,12 +2031,15 @@ GNUNET_STRINGS_base64_decode (const char *data,
   			if (i >= len) goto END;  \
   		}
 
-  *output = GNUNET_malloc ((len * 3 / 4) + 8);
+  output = GNUNET_malloc ((len * 3 / 4) + 8);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "base64_decode decoding len=%d\n",
               (int) len);
-  for (i = 0; i < len; ++i)
+  for (size_t i = 0; i < len; ++i)
   {
+    char c;
+    char c1;
+
     CHECK_CRLF;
     if (FILLCHAR == data[i])
       break;
@@ -2045,7 +2048,7 @@ GNUNET_STRINGS_base64_decode (const char *data,
     CHECK_CRLF;
     c1 = (char) cvtfind (data[i]);
     c = (c << 2) | ((c1 >> 4) & 0x3);
-    (*output)[ret++] = c;
+    output[ret++] = c;
     if (++i < len)
     {
       CHECK_CRLF;
@@ -2054,7 +2057,7 @@ GNUNET_STRINGS_base64_decode (const char *data,
         break;
       c = (char) cvtfind (c);
       c1 = ((c1 << 4) & 0xf0) | ((c >> 2) & 0xf);
-      (*output)[ret++] = c1;
+      output[ret++] = c1;
     }
     if (++i < len)
     {
@@ -2065,15 +2068,13 @@ GNUNET_STRINGS_base64_decode (const char *data,
 
       c1 = (char) cvtfind (c1);
       c = ((c << 6) & 0xc0) | c1;
-      (*output)[ret++] = c;
+      output[ret++] = c;
     }
   }
 END:
+  *out = output;
   return ret;
 }
-
-
-
 
 
 /* end of strings.c */

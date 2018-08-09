@@ -132,6 +132,16 @@ extern "C"
 #define GNUNET_GNSRECORD_TYPE_ABE_MASTER 65551
 
 /**
+ * Record type for reclaim OIDC clients
+ */
+#define GNUNET_GNSRECORD_TYPE_RECLAIM_OIDC_CLIENT 65552
+
+/**
+ * Record type for reclaim OIDC redirect URIs
+ */
+#define GNUNET_GNSRECORD_TYPE_RECLAIM_OIDC_REDIRECT 65553
+
+/**
  * Flags that can be set for a record.
  */
 enum GNUNET_GNSRECORD_Flags

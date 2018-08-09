@@ -436,13 +436,6 @@ ego_info_response (struct GNUNET_REST_RequestHandle *con,
     json_decref (name_str);
     GNUNET_JSONAPI_document_resource_add (json_document, json_resource);
   }
-  if (0 == GNUNET_JSONAPI_document_resource_count (json_document))
-  {
-    GNUNET_JSONAPI_document_delete (json_document);
-    handle->emsg = GNUNET_strdup ("No identities found!");
-    GNUNET_SCHEDULER_add_now (&do_error, handle);
-    return;
-  }
   GNUNET_JSONAPI_document_serialize (json_document, &result_str);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Result %s\n", result_str);
   resp = GNUNET_REST_create_response (result_str);

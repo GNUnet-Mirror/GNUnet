@@ -841,6 +841,7 @@ handle_mq_error (void *cls,
                                            h);
   GNUNET_MQ_destroy (h->mq);
   h->mq = NULL;
+  GNUNET_assert (NULL == h->reconnect_task);
   h->reconnect_task = GNUNET_SCHEDULER_add_delayed (h->reconnect_time,
 						    &reconnect_cbk,
 						    h);
@@ -1253,18 +1254,21 @@ GNUNET_CADET_disconnect (struct GNUNET_CADET_Handle *handle)
 void
 GNUNET_CADET_close_port (struct GNUNET_CADET_Port *p)
 {
-  struct GNUNET_CADET_PortMessage *msg;
-  struct GNUNET_MQ_Envelope *env;
-
   GNUNET_assert (GNUNET_YES ==
                  GNUNET_CONTAINER_multihashmap_remove (p->cadet->ports,
                                                        &p->id,
                                                        p));
-  env = GNUNET_MQ_msg (msg,
-                       GNUNET_MESSAGE_TYPE_CADET_LOCAL_PORT_CLOSE);
-  msg->port = p->id;
-  GNUNET_MQ_send (p->cadet->mq,
-                  env);
+  if (NULL != p->cadet->mq)
+  {
+    struct GNUNET_CADET_PortMessage *msg;
+    struct GNUNET_MQ_Envelope *env;
+
+    env = GNUNET_MQ_msg (msg,
+                         GNUNET_MESSAGE_TYPE_CADET_LOCAL_PORT_CLOSE);
+    msg->port = p->id;
+    GNUNET_MQ_send (p->cadet->mq,
+                    env);
+  }
   GNUNET_free_non_null (p->handlers);
   GNUNET_free (p);
 }

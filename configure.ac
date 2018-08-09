@@ -677,7 +677,7 @@ AC_CHECK_LIB([kstat],[kstat_open])
 # should the build process be building the documentation?
 AC_MSG_CHECKING(whether to build documentation)
 AC_ARG_ENABLE([documentation],
-   [AS_HELP_STRING([--enable-documentation], [build the documentation])],
+   [AS_HELP_STRING([--disable-documentation], [do not build the documentation])],
    [documentation=${enableval}],
    [documentation=yes])
 AC_MSG_RESULT($documentation)
@@ -1759,8 +1759,8 @@ src/zonemaster/Makefile
 src/zonemaster/zonemaster.conf
 src/rest/Makefile
 src/abe/Makefile
-src/identity-attribute/Makefile
-src/identity-provider/Makefile
+src/reclaim-attribute/Makefile
+src/reclaim/Makefile
 pkgconfig/Makefile
 pkgconfig/gnunetarm.pc
 pkgconfig/gnunetats.pc

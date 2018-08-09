@@ -371,11 +371,12 @@ handle_get_default_message (void *cls,
   struct GNUNET_MQ_Envelope *env;
   struct GNUNET_SERVICE_Client *client = cls;
   struct Ego *ego;
-  const char *name;
+  char *name;
   char *identifier;
 
 
-  name = (const char *) &gdm[1];
+  name = GNUNET_strdup ((const char *) &gdm[1]);
+  GNUNET_STRINGS_utf8_tolower ((const char *) &gdm[1], name);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Received GET_DEFAULT for service `%s' from client\n",
               name);
@@ -387,6 +388,7 @@ handle_get_default_message (void *cls,
   {
     send_result_code (client, 1, gettext_noop ("no default known"));
     GNUNET_SERVICE_client_continue (client);
+    GNUNET_free (name);
     return;
   }
   for (ego = ego_head; NULL != ego; ego = ego->next)
@@ -399,6 +401,7 @@ handle_get_default_message (void *cls,
       GNUNET_MQ_send (GNUNET_SERVICE_client_get_mq (client), env);
       GNUNET_SERVICE_client_continue (client);
       GNUNET_free (identifier);
+      GNUNET_free (name);
       return;
     }
   }
@@ -406,6 +409,7 @@ handle_get_default_message (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Failed to find ego `%s'\n",
               name);
+  GNUNET_free (name);
   send_result_code (client, 1,
                     gettext_noop ("default configured, but ego unknown (internal error)"));
   GNUNET_SERVICE_client_continue (client);
@@ -477,9 +481,11 @@ handle_set_default_message (void *cls,
 {
   struct Ego *ego;
   struct GNUNET_SERVICE_Client *client = cls;
-  const char *str;
+  char *str;
 
-  str = (const char *) &sdm[1];
+  str = GNUNET_strdup ((const char *) &sdm[1]);
+  GNUNET_STRINGS_utf8_tolower ((const char *) &sdm[1], str);
+
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Received SET_DEFAULT for service `%s' from client\n",
               str);
@@ -500,10 +506,12 @@ handle_set_default_message (void *cls,
                     subsystem_cfg_file);
       send_result_code (client, 0, NULL);
       GNUNET_SERVICE_client_continue (client);
+      GNUNET_free (str);
       return;
     }
   }
   send_result_code (client, 1, _("Unknown ego specified for service (internal error)"));
+  GNUNET_free (str);
   GNUNET_SERVICE_client_continue (client);
 }
 
@@ -585,12 +593,13 @@ handle_create_message (void *cls,
 {
   struct GNUNET_SERVICE_Client *client = cls;
   struct Ego *ego;
-  const char *str;
+  char *str;
   char *fn;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Received CREATE message from client\n");
-  str = (const char *) &crm[1];
+  str = GNUNET_strdup ((const char *) &crm[1]);
+  GNUNET_STRINGS_utf8_tolower ((const char *) &crm[1], str);
   for (ego = ego_head; NULL != ego; ego = ego->next)
   {
     if (0 == strcmp (ego->identifier,
@@ -598,6 +607,7 @@ handle_create_message (void *cls,
     {
       send_result_code (client, 1, gettext_noop ("identifier already in use for another ego"));
       GNUNET_SERVICE_client_continue (client);
+      GNUNET_free (str);
       return;
     }
   }
@@ -620,6 +630,7 @@ handle_create_message (void *cls,
     GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR,
                               "write", fn);
   GNUNET_free (fn);
+  GNUNET_free (str);
   notify_listeners (ego);
   GNUNET_SERVICE_client_continue (client);
 }
@@ -726,18 +737,22 @@ handle_rename_message (void *cls,
 {
   uint16_t old_name_len;
   struct Ego *ego;
-  const char *old_name;
-  const char *new_name;
+  char *old_name;
+  char *new_name;
   struct RenameContext rename_ctx;
   struct GNUNET_SERVICE_Client *client = cls;
   char *fn_old;
   char *fn_new;
+  const char *old_name_tmp;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Received RENAME message from client\n");
   old_name_len = ntohs (rm->old_name_len);
-  old_name = (const char *) &rm[1];
-  new_name = &old_name[old_name_len];
+  old_name_tmp = (const char *) &rm[1];
+  old_name = GNUNET_strdup (old_name_tmp);
+  GNUNET_STRINGS_utf8_tolower (old_name_tmp, old_name);
+  new_name = GNUNET_strdup (&old_name_tmp[old_name_len]);
+  GNUNET_STRINGS_utf8_tolower (&old_name_tmp[old_name_len], old_name);
 
   /* check if new name is already in use */
   for (ego = ego_head; NULL != ego; ego = ego->next)
@@ -747,6 +762,8 @@ handle_rename_message (void *cls,
     {
       send_result_code (client, 1, gettext_noop ("target name already exists"));
       GNUNET_SERVICE_client_continue (client);
+      GNUNET_free (old_name);
+      GNUNET_free (new_name);
       return;
     }
   }
@@ -776,6 +793,8 @@ handle_rename_message (void *cls,
         GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "rename", fn_old);
       GNUNET_free (fn_old);
       GNUNET_free (fn_new);
+      GNUNET_free (old_name);
+      GNUNET_free (new_name);
       notify_listeners (ego);
       send_result_code (client, 0, NULL);
       GNUNET_SERVICE_client_continue (client);
@@ -785,6 +804,8 @@ handle_rename_message (void *cls,
 
   /* failed to locate old name */
   send_result_code (client, 1, gettext_noop ("no matching ego found"));
+  GNUNET_free (old_name);
+  GNUNET_free (new_name);
   GNUNET_SERVICE_client_continue (client);
 }
 
@@ -868,13 +889,15 @@ handle_delete_message (void *cls,
                        const struct DeleteMessage *dm)
 {
   struct Ego *ego;
-  const char *name;
+  char *name;
   char *fn;
   struct GNUNET_SERVICE_Client *client = cls;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Received DELETE message from client\n");
-  name = (const char *) &dm[1];
+  name = GNUNET_strdup ((const char *) &dm[1]);
+  GNUNET_STRINGS_utf8_tolower ((const char *) &dm[1], name);
+
   for (ego = ego_head; NULL != ego; ego = ego->next)
   {
     if (0 == strcmp (ego->identifier,
@@ -901,6 +924,7 @@ handle_delete_message (void *cls,
       notify_listeners (ego);
       GNUNET_free (ego->pk);
       GNUNET_free (ego);
+      GNUNET_free (name);
       send_result_code (client, 0, NULL);
       GNUNET_SERVICE_client_continue (client);
       return;
@@ -908,6 +932,7 @@ handle_delete_message (void *cls,
   }
 
   send_result_code (client, 1, gettext_noop ("no matching ego found"));
+  GNUNET_free (name);
   GNUNET_SERVICE_client_continue (client);
 }
 

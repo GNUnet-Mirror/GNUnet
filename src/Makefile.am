@@ -19,11 +19,13 @@ if HAVE_EXPERIMENTAL
   social 
 #  dv (FTBFS)
 if HAVE_ABE
+if HAVE_JSON
  EXP_DIR += \
     abe \
     credential \
-    identity-attribute \
-    identity-provider 
+    reclaim-attribute \
+    reclaim 
+endif
 endif
 if HAVE_JSON
  EXP_DIR += \

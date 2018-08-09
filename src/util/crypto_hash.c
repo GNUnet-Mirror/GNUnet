@@ -365,14 +365,17 @@ GNUNET_CRYPTO_hmac_derive_key_v (struct GNUNET_CRYPTO_AuthKey *key,
 
 /**
  * Calculate HMAC of a message (RFC 2104)
+ * TODO: Shouldn' this be the standard hmac function and
+ * the above be renamed?
  *
  * @param key secret key
+ * @param key_len secret key length
  * @param plaintext input plaintext
  * @param plaintext_len length of @a plaintext
  * @param hmac where to store the hmac
  */
 void
-GNUNET_CRYPTO_hmac (const struct GNUNET_CRYPTO_AuthKey *key,
+GNUNET_CRYPTO_hmac_raw (const void *key, size_t key_len,
                     const void *plaintext, size_t plaintext_len,
                     struct GNUNET_HashCode *hmac)
 {
@@ -390,11 +393,30 @@ GNUNET_CRYPTO_hmac (const struct GNUNET_CRYPTO_AuthKey *key,
   {
     gcry_md_reset (md);
   }
-  gcry_md_setkey (md, key->key, sizeof (key->key));
+  gcry_md_setkey (md, key, key_len);
   gcry_md_write (md, plaintext, plaintext_len);
   mc = gcry_md_read (md, GCRY_MD_SHA512);
   GNUNET_assert (NULL != mc);
   GNUNET_memcpy (hmac->bits, mc, sizeof (hmac->bits));
+}
+
+
+/**
+ * Calculate HMAC of a message (RFC 2104)
+ *
+ * @param key secret key
+ * @param plaintext input plaintext
+ * @param plaintext_len length of @a plaintext
+ * @param hmac where to store the hmac
+ */
+void
+GNUNET_CRYPTO_hmac (const struct GNUNET_CRYPTO_AuthKey *key,
+                    const void *plaintext, size_t plaintext_len,
+                    struct GNUNET_HashCode *hmac)
+{
+  GNUNET_CRYPTO_hmac_raw ((void*) key->key, sizeof (key->key),
+                          plaintext, plaintext_len,
+                          hmac);
 }
 
 

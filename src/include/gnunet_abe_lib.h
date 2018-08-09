@@ -87,7 +87,7 @@ GNUNET_ABE_cpabe_create_key (struct GNUNET_ABE_AbeMasterKey *key,
  * Delete a CP-ABE key.
  *
  * @param key the key to delete
- * @param delete_pub GNUNE_YES if the public key should also be freed (bug in gabe)
+ * @param delete_pub GNUNET_YES if the public key should also be freed (bug in gabe)
  * @return fresh private key; free using #GNUNET_free
  */
 void

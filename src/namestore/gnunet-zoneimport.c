@@ -11,7 +11,7 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
@@ -456,6 +456,7 @@ build_dns_query (struct Request *req,
   char *rawp;
   struct GNUNET_DNSPARSER_Packet p;
   struct GNUNET_DNSPARSER_Query q;
+  int ret;
 
   q.name = (char *) req->hostname;
   q.type = GNUNET_DNSPARSER_TYPE_NS;
@@ -467,12 +468,14 @@ build_dns_query (struct Request *req,
   p.num_queries = 1;
   p.queries = &q;
   p.id = req->id;
-  if (GNUNET_OK !=
-      GNUNET_DNSPARSER_pack (&p,
-                             UINT16_MAX,
-                             &rawp,
-                             raw_size))
+  ret = GNUNET_DNSPARSER_pack (&p,
+                               UINT16_MAX,
+                               &rawp,
+                               raw_size);
+  if (GNUNET_OK != ret)
   {
+    if (GNUNET_NO == ret)
+      GNUNET_free (rawp);
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Failed to pack query for hostname `%s'\n",
                 req->hostname);

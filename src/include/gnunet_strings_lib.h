@@ -11,7 +11,7 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
@@ -339,7 +339,9 @@ GNUNET_STRINGS_string_to_data (const char *enc,
  * @return the size of the output
  */
 size_t
-GNUNET_STRINGS_base64_encode (const char *data, size_t len, char **output);
+GNUNET_STRINGS_base64_encode (const void *in,
+                              size_t len,
+                              char **output);
 
 
 /**
@@ -354,7 +356,7 @@ GNUNET_STRINGS_base64_encode (const char *data, size_t len, char **output);
 size_t
 GNUNET_STRINGS_base64_decode (const char *data,
 			      size_t len,
-			      char **output);
+			      void **output);
 
 
 /**

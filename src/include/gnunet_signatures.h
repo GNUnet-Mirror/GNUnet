@@ -151,12 +151,12 @@ extern "C"
 /**
  * Signature for the first round of distributed key generation.
  */
-#define GNUNET_SIGNATURE_PURPOSE_SECRETSHARING_DKG1 22
+#define GNUNET_SIGNATURE_PURPOSE_SECRETSHARING_DKG1 21
 
 /**
  * Signature for the second round of distributed key generation.
  */
-#define GNUNET_SIGNATURE_PURPOSE_SECRETSHARING_DKG2 23
+#define GNUNET_SIGNATURE_PURPOSE_SECRETSHARING_DKG2 22
 
 /**
  * Signature for cooperatice decryption.
@@ -181,7 +181,7 @@ extern "C"
 /**
  * Signature for a GNUid Ticket
  */
-#define GNUNET_SIGNATURE_PURPOSE_GNUID_TICKET 27
+#define GNUNET_SIGNATURE_PURPOSE_RECLAIM_CODE_SIGN 27
 
 /**
  * Signature for a GNUnet credential

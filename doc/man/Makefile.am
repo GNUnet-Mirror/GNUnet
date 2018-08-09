@@ -37,6 +37,7 @@ man_MANS = \
   gnunet-statistics.1 \
   gnunet-testbed-profiler.1 \
   gnunet-testing-run-service.1 \
+  gnunet-timeout.1 \
   gnunet-transport.1 \
   gnunet-transport-certificate-creation.1 \
   gnunet-unindex.1 \

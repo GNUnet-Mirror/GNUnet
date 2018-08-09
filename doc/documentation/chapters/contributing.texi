@@ -6,17 +6,20 @@
 * Licenses of contributions::
 * Copyright Assignment::
 * Contributing to the Reference Manual::
+* Contributing testcases::
 @end menu
 
 @node Contributing to GNUnet
 @section Contributing to GNUnet
 
+@cindex licenses
+@cindex licenses of contributions
 @node Licenses of contributions
 @section Licenses of contributions
 
 GNUnet is a @uref{https://www.gnu.org/, GNU} package.
 All code contributions must thus be put under the
-@uref{https://www.gnu.org/copyleft/gpl.html, GNU Public License (GPL)}.
+@uref{https://www.gnu.org/licenses/agpl.html, GNU Affero Public License (AGPL)}.
 All documentation should be put under FSF approved licenses
 (see @uref{https://www.gnu.org/copyleft/fdl.html, fdl}).
 
@@ -40,7 +43,7 @@ rights, and in particular is allowed to dual-license the code. You
 retain non-exclusive rights to your contributions, so you can also
 share your contributions freely with other projects.
 
-GNUnet e.V. will publish all accepted contributions under the GPLv3
+GNUnet e.V. will publish all accepted contributions under the AGPLv3
 or any later version. The association may decide to publish
 contributions under additional licenses (dual-licensing).
 
@@ -88,3 +91,21 @@ In a 200+ pages handbook it's better to have footnotes accessible
 without having to skip over to the end.
 
 @end itemize
+
+@node Contributing testcases
+@section Contributing testcases
+
+In the core of gnunet, we restrict new testcases to a small subset
+of languages, in order of preference:
+@enumerate
+@item C
+@item Bash (preferable portable without too much specifics to Bash)
+@item Python (@geq{}3.6)
+@end enumerate
+
+We welcome efforts to remove our existing python-2.7 scripts to
+replace them either with Bash or, at your choice, python-3.6+.
+
+If you contribute new python based testcases, we advise you to
+not repeat our past misfortunes and write the tests in a standard
+test framework like for example pytest.

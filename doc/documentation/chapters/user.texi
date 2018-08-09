@@ -26,6 +26,7 @@ always welcome.
 * First steps - Using the GNUnet VPN::
 * File-sharing::
 * The GNU Name System::
+* re@:claim Identity Provider::
 * Using the Virtual Public Network::
 @end menu
 
@@ -43,6 +44,7 @@ To stop GNUnet:
 @example
 $ gnunet-arm -e
 @end example
+
 @node First steps - Using the GNU Name System
 @section First steps - Using the GNU Name System
 @c %**end of header
@@ -246,7 +248,7 @@ more an experimental feature and not really our primary goal at this
 time. Still, it is a possible use-case and we welcome help with testing
 and development.
 
-
+@pindex gnunet-bcd
 @node Creating a Business Card
 @subsection Creating a Business Card
 @c FIXME: Which parts of texlive are needed? Some systems offer a modular
@@ -257,7 +259,9 @@ Note that this requires having @command{LaTeX} installed on your system.
 If you are using a Debian GNU/Linux based operating system, the
 following command should install the required components.
 Keep in mind that this @b{requires 3GB} of downloaded data and possibly
-@b{even more} when unpacked.
+@b{even more}@footnote{Author's note:
+@command{guix size `guix build texlive`} in summer 2018 returns a DAG
+size of 5032.4 MiB} when unpacked.
 @b{We welcome any help in identifying the required components of the
 TexLive Distribution. This way we could just state the required components
 without pulling in the full distribution of TexLive.}
@@ -312,12 +316,14 @@ you might need a trip to the store together.
 Before we get started, we need to tell @code{gnunet-qr} which zone
 it should import new records into.  For this, run:
 
+@pindex gnunet-identity
 @example
 $ gnunet-identity -s namestore -e NAME
 @end example
 where NAME is the name of the zone you want to import records
 into.  In our running example, this would be ``gnu''.
 
+@pindex gnunet-qr
 Henceforth, for every business card you collect, simply run:
 @example
 $ gnunet-qr
@@ -335,6 +341,7 @@ GNUnet network at this time, you should thus be able to
 resolve your friends names. Suppose your friend's nickname
 is "Bob". Then, type
 
+@pindex gnunet-gns
 @example
 $ gnunet-gns -u test.bob.gnu
 @end example
@@ -381,6 +388,7 @@ a revocation certificate corresponding to your ego.  This certificate,
 when published on the P2P network, flags your private key as invalid,
 and all further resolutions or other checks involving the key will fail.
 
+@pindex gnunet-revocation
 A revocation certificate is thus a useful tool when things go out of
 control, but at the same time it should be stored securely.
 Generation of the revocation certificate for a zone can be done through
@@ -433,6 +441,7 @@ private conversation with your friend. Finally, help us
 with the next GNUnet release for even more applications
 using this new public key infrastructure.
 
+@pindex gnunet-conservation-gtk
 @node First steps - Using GNUnet Conversation
 @section First steps - Using GNUnet Conversation
 @c %**end of header
@@ -485,6 +494,7 @@ that will show up when you call somebody else, as well as the
 GNS zone that will be used to resolve names of users that you
 are calling. Run
 
+@pindex gnunet-conversation
 @example
 gnunet-conversation -e zone-name
 @end example
@@ -564,7 +574,7 @@ Either of you can end the call using @command{/cancel}. You can exit
 
 @menu
 * VPN Preliminaries::
-* Exit configuration::
+* GNUnet-Exit configuration::
 * GNS configuration::
 * Accessing the service::
 * Using a Browser::
@@ -595,6 +605,9 @@ The exact details may differ a bit, which is fine. Add the text
 hosts: files gns [NOTFOUND=return] mdns4_minimal [NOTFOUND=return] dns mdns4
 @end example
 
+@c TODO: outdated section, we no longer install this as part of the
+@c TODO: standard installation procedure and should point out the manual
+@c TODO: steps required to make it useful.
 @noindent
 You might want to make sure that @code{/lib/libnss_gns.so.2} exists on
 your system, it should have been created during the installation.
@@ -608,8 +621,8 @@ $ cd src/gns/nss; sudo make install
 @noindent
 to install the NSS plugins in the proper location.
 
-@node Exit configuration
-@subsection Exit configuration
+@node GNUnet-Exit configuration
+@subsection GNUnet-Exit configuration
 @c %**end of header
 
 Stop your peer (as user @code{gnunet}, run @command{gnunet-arm -e}) and
@@ -696,9 +709,10 @@ the searcher/downloader specify "no anonymity", non-anonymous
 file-sharing is used. If either user specifies some desired degree
 of anonymity, anonymous file-sharing will be used.
 
-After a short introduction, we will first look at the various concepts in
-GNUnet's file-sharing implementation. Then, we will discuss specifics as to how
-they impact users that publish, search or download files.
+After a short introduction, we will first look at the various concepts
+in GNUnet's file-sharing implementation. Then, we will discuss
+specifics as to how they impact users that publish, search or download
+files.
 
 
 @menu
@@ -706,7 +720,6 @@ they impact users that publish, search or download files.
 * fs-Downloading::
 * fs-Publishing::
 * fs-Concepts::
-* fs-Directories::
 * Namespace Management::
 * File-Sharing URIs::
 * GTK User Interface::
@@ -724,10 +737,11 @@ $ gnunet-search [-t TIMEOUT] KEYWORD
 @end example
 
 @noindent
-The -t option specifies that the query should timeout after
-approximately TIMEOUT seconds. A value of zero is interpreted
-as @emph{no timeout}, which is also the default. In this case,
-gnunet-search will never terminate (unless you press CTRL-C).
+The @command{-t} option specifies that the query should timeout after
+approximately TIMEOUT seconds. A value of zero (``0'') is interpreted
+as @emph{no timeout}, which is the default. In this case,
+@command{gnunet-search} will never terminate (unless you press
+@command{CTRL-C}).
 
 If multiple words are passed as keywords, they will all be
 considered optional. Prefix keywords with a "+" to make them mandatory.
@@ -750,10 +764,11 @@ as the first will match files shared under the keywords
 "Das" or "Kapital" whereas the second will match files
 shared under the keyword "Das Kapital".
 
-Search results are printed by gnunet-search like this:
+Search results are printed by @command{gnunet-search} like this:
 
 @c it will be better the avoid the ellipsis altogether because I don't
 @c understand the explanation below that
+@c ng0: who is ``I'' and what was the complete sentence?
 @example
 #15:
 gnunet-download -o "COPYING" gnunet://fs/chk/PGK8M...3EK130.75446
@@ -762,10 +777,11 @@ gnunet-download -o "COPYING" gnunet://fs/chk/PGK8M...3EK130.75446
 
 @noindent
 The whole line is the command you would have to enter to download
-the file. The argument passed to @code{-o} is the suggested
+the file. The first argument passed to @code{-o} is the suggested
 filename (you may change it to whatever you like).
-It is followed by the key for decrypting the file, the query for searching the
-file, a checksum (in hexadecimal) finally the size of the file in bytes.
+It is followed by the key for decrypting the file, the query for
+searching the file, a checksum (in hexadecimal) finally the size of
+the file in bytes.
 
 @node fs-Downloading
 @subsection Downloading
@@ -802,9 +818,9 @@ already present.
 GNUnet's file-encoding mechanism will ensure file integrity, even if the
 existing file was not downloaded from GNUnet in the first place.
 
-You may want to use the @command{-V} switch  to turn on verbose reporting. In
-this case, @command{gnunet-download} will print the current number of bytes
-downloaded whenever new data was received.
+You may want to use the @command{-V} switch to turn on verbose
+reporting. In this case, @command{gnunet-download} will print the
+current number of bytes downloaded whenever new data was received.
 
 @node fs-Publishing
 @subsection Publishing
@@ -834,7 +850,7 @@ $ gnunet-publish -m "description:GNU License" -k gpl -k test -m "mimetype:text/p
 The option @code{-k} is used to specify keywords for the file that
 should be inserted. You can supply any number of keywords,
 and each of the keywords will be sufficient to locate and
-retrieve the file. Please note that you must use the @code{-k} option 
+retrieve the file. Please note that you must use the @code{-k} option
 more than once -- one for each expression you use as a keyword for
 the filename.
 
@@ -845,10 +861,14 @@ list by running @command{extract -L}. Use quotes around the entire
 meta-data argument if the value contains spaces. The meta-data
 is displayed to other users when they select which files to
 download. The meta-data and the keywords are optional and
-maybe inferred using @code{GNU libextractor}.
+may be inferred using @code{GNU libextractor}.
 
-gnunet-publish has a few additional options to handle namespaces and
-directories. See the man-page for details.
+@command{gnunet-publish} has a few additional options to handle
+namespaces and directories. Refer to the man-page for details:
+
+@example
+man gnunet-publish
+@end example
 
 @node Indexing vs. Inserting
 @subsubsection Indexing vs Inserting
@@ -890,18 +910,17 @@ able to crack the encryption (e.g. by guessing the keyword.
 @subsection Concepts
 @c %**end of header
 
-Sharing files in GNUnet is not quite as simple as in traditional
-file sharing systems. For example, it is not sufficient to just
-place files into a specific directory to share them. In addition
-to anonymous routing GNUnet attempts to give users a better experience
-in searching for content. GNUnet uses cryptography to safely break
-content into smaller pieces that can be obtained from different
-sources without allowing participants to corrupt files. GNUnet
-makes it difficult for an adversary to send back bogus search
-results. GNUnet enables content providers to group related content
-and to establish a reputation. Furthermore, GNUnet allows updates
-to certain content to be made available. This section is supposed
-to introduce users to the concepts that are used to achieve these goals.
+For better results with filesharing it is useful to understand the
+following concepts.
+In addition to anonymous routing GNUnet attempts to give users a better
+experience in searching for content. GNUnet uses cryptography to safely
+break content into smaller pieces that can be obtained from different
+sources without allowing participants to corrupt files. GNUnet makes it
+difficult for an adversary to send back bogus search results. GNUnet
+enables content providers to group related content and to establish a
+reputation. Furthermore, GNUnet allows updates to certain content to be
+made available. This section is supposed to introduce users to the
+concepts that are used to achieve these goals.
 
 
 @menu
@@ -921,10 +940,10 @@ to introduce users to the concepts that are used to achieve these goals.
 @c %**end of header
 
 A file in GNUnet is just a sequence of bytes. Any file-format is allowed
-and the maximum file size is theoretically 264 bytes, except that it
-would take an impractical amount of time to share such a file.
-GNUnet itself never interprets the contents of shared files, except
-when using GNU libextractor to obtain keywords.
+and the maximum file size is theoretically @math{2^64 - 1} bytes, except
+that it would take an impractical amount of time to share such a file.
+GNUnet itself never interprets the contents of shared files, except when
+using GNU libextractor to obtain keywords.
 
 @node Keywords
 @subsubsection Keywords
@@ -954,9 +973,25 @@ it cannot be changed since it is treated just like an ordinary file
 by the network. Small files (of a few kilobytes) can be inlined in
 the directory, so that a separate download becomes unnecessary.
 
+Directories are shared just like ordinary files. If you download a
+directory with @command{gnunet-download}, you can use
+@command{gnunet-directory} to list its contents. The canonical
+extension for GNUnet directories when stored as files in your
+local file-system is ".gnd". The contents of a directory are URIs and
+meta data.
+The URIs contain all the information required by
+@command{gnunet-download} to retrieve the file. The meta data
+typically includes the mime-type, description, a filename and
+other meta information, and possibly even the full original file
+(if it was small).
+
 @node Pseudonyms
 @subsubsection Pseudonyms
 @c %**end of header
+
+@b{Please note that the text in this subsection is outdated and needs}
+@b{to be rewritten for version 0.10!}
+@b{This especially concerns the terminology of Pseudonym/Ego/Identity.}
 
 Pseudonyms in GNUnet are essentially public-private (RSA) key pairs
 that allow a GNUnet user to maintain an identity (which may or may not
@@ -973,6 +1008,10 @@ to copy around).
 @subsubsection Namespaces
 @c %**end of header
 
+@b{Please note that the text in this subsection is outdated and needs}
+@b{to be rewritten for version 0.10!}
+@b{This especially concerns the terminology of Pseudonym/Ego/Identity.}
+
 A namespace is a set of files that were signed by the same pseudonym.
 Files (or directories) that have been signed and placed into a namespace
 can be updated. Updates are identified as authentic if the same secret
@@ -984,11 +1023,15 @@ same entity (which does not have to be the same person).
 @subsubsection Advertisements
 @c %**end of header
 
+@b{Please note that the text in this subsection is outdated and needs}
+@b{to be rewritten for version 0.10!}
+@b{This especially concerns the terminology of Pseudonym/Ego/Identity.}
+
 Advertisements are used to notify other users about the existence of a
 namespace. Advertisements are propagated using the normal keyword search.
 When an advertisement is received (in response to a search), the namespace
 is added to the list of namespaces available in the namespace-search
-dialogs of gnunet-fs-gtk and printed by gnunet-pseudonym. Whenever a
+dialogs of gnunet-fs-gtk and printed by @code{gnunet-identity}. Whenever a
 namespace is created, an appropriate advertisement can be generated.
 The default keyword for the advertising of namespaces is "namespace".
 
@@ -996,7 +1039,7 @@ Note that GNUnet differentiates between your pseudonyms (the identities
 that you control) and namespaces. If you create a pseudonym, you will
 not automatically see the respective namespace. You first have to create
 an advertisement for the namespace and find it using keyword
-search --- even for your own namespaces. The @command{gnunet-pseudonym}
+search --- even for your own namespaces. The @command{gnunet-identity}
 tool is currently responsible for both managing pseudonyms and namespaces.
 This will likely change in the future to reduce the potential for
 confusion.
@@ -1044,22 +1087,6 @@ level by one. If all blocks reach replication level zero, the
 selection is simply random.
 
 
-@node fs-Directories
-@subsection Directories
-@c %**end of header
-
-Directories are shared just like ordinary files. If you download a
-directory with @command{gnunet-download}, you can use
-@command{gnunet-directory} to list its contents. The canonical
-extension for GNUnet directories when stored as files in your
-local file-system is ".gnd". The contents of a directory are URIs and
-meta data.
-The URIs contain all the information required by
-@command{gnunet-download} to retrieve the file. The meta data
-typically includes the mime-type, description, a filename and
-other meta information, and possibly even the full original file
-(if it was small).
-
 @node Namespace Management
 @subsection Namespace Management
 @c %**end of header
@@ -1067,8 +1094,8 @@ other meta information, and possibly even the full original file
 @b{Please note that the text in this subsection is outdated and needs}
 @b{to be rewritten for version 0.10!}
 
-The gnunet-pseudonym tool can be used to create pseudonyms and
-to advertise namespaces. By default, gnunet-pseudonym simply
+The @code{gnunet-identity} tool can be used to create pseudonyms and
+to advertise namespaces. By default, @code{gnunet-identity -D} simply
 lists all locally available pseudonyms.
 
 
@@ -1084,6 +1111,10 @@ lists all locally available pseudonyms.
 @subsubsection Creating Pseudonyms
 @c %**end of header
 
+@b{Please note that the text in this subsection is outdated and needs}
+@b{to be rewritten for version 0.10!}
+@b{This especially concerns the terminology of Pseudonym/Ego/Identity.}
+
 With the @command{-C NICK} option it can also be used to
 create a new pseudonym. A pseudonym is the virtual identity
 of the entity in control of a namespace. Anyone can create
@@ -1095,6 +1126,10 @@ used.
 @subsubsection Deleting Pseudonyms
 @c %**end of header
 
+@b{Please note that the text in this subsection is outdated and needs}
+@b{to be rewritten for version 0.10!}
+@b{This especially concerns the terminology of Pseudonym/Ego/Identity.}
+
 With the @command{-D NICK} option pseudonyms can be deleted.
 Once the pseudonym has been deleted it is impossible to add
 content to the corresponding namespace. Deleting the
@@ -1104,6 +1139,10 @@ unavailable.
 @node Advertising namespaces
 @subsubsection Advertising namespaces
 @c %**end of header
+
+@b{Please note that the text in this subsection is outdated and needs}
+@b{to be rewritten for version 0.10!}
+@b{This especially concerns the terminology of Pseudonym/Ego/Identity.}
 
 Each namespace is associated with meta-data that describes
 the namespace. This meta-data is provided by the user at
@@ -1121,6 +1160,10 @@ the quality of the content found in it.
 @subsubsection Namespace names
 @c %**end of header
 
+@b{Please note that the text in this subsection is outdated and needs}
+@b{to be rewritten for version 0.10!}
+@b{This especially concerns the terminology of Pseudonym/Ego/Identity.}
+
 While the namespace is uniquely identified by its ID, another way
 to refer to the namespace is to use the NICKNAME.
 The NICKNAME can be freely chosen by the creator of the namespace and
@@ -1131,6 +1174,10 @@ to the NICKNAME to get a unique identifier.
 @node Namespace root
 @subsubsection Namespace root
 @c %**end of header
+
+@b{Please note that the text in this subsection is outdated and needs}
+@b{to be rewritten for version 0.10!}
+@b{This especially concerns the terminology of Pseudonym/Ego/Identity.}
 
 An item of particular interest in the namespace advertisement is
 the ROOT. The ROOT is the identifier of a designated entry in the
@@ -1218,6 +1265,10 @@ Furthermore they must not contain '++'.
 @node Namespace content (sks)
 @subsubsection Namespace content (sks)
 @c %**end of header
+
+@b{Please note that the text in this subsection is outdated and needs}
+@b{to be rewritten for version 0.10!}
+@b{This especially concerns the terminology of Pseudonym/Ego/Identity.}
 
 Namespaces are sets of files that have been approved by some (usually
 pseudonymous) user --- typically by that user publishing all of the
@@ -1419,8 +1470,8 @@ $ gnunet-identity -C "myzone"
 
 Henceforth, on your system you control the TLD ``myzone''.
 
-All of your zones can be listed using the @command{gnunet-identity}
-command line tool as well:
+All of your zones can be listed (displayed) using the
+@command{gnunet-identity} command line tool as well:
 
 @example
 $ gnunet-identity -d
@@ -1528,11 +1579,11 @@ record you want to access).
 @subsection Using Public Keys as Top Level Domains
 
 
-GNS also assumes responsibility for any name that uses in a well-formed
-public key for the TLD.  Names ending this way are then resolved by querying
-the respective zone. Such public key TLDs are expected to be used under rare
-circumstances where globally unique names are required, and for
-integration with legacy systems.
+GNS also assumes responsibility for any name that uses in a
+well-formed public key for the TLD.  Names ending this way are then
+resolved by querying the respective zone. Such public key TLDs are
+expected to be used under rare circumstances where globally unique
+names are required, and for integration with legacy systems.
 
 @node Resource Records in GNS
 @subsection Resource Records in GNS
@@ -1569,18 +1620,31 @@ GNS currently supports the following record types:
 * CNAME::
 * GNS2DNS::
 * SOA SRV PTR and MX::
+* PLACE::
+* PHONE::
+* ID ATTR::
+* ID TOKEN::
+* ID TOKEN METADATA::
+* CREDENTIAL::
+* POLICY::
+* ATTRIBUTE::
+* ABE KEY::
+* ABE MASTER::
+* RECLAIM OIDC CLIENT::
+* RECLAIM OIDC REDIRECT::
 @end menu
 
 @node NICK
 @subsubsection NICK
 
-A NICK record is used to give a zone a name. With a NICK record, you can
-essentially specify how you would like to be called. GNS expects this
-record under the empty label ``@@'' in the zone's database (NAMESTORE); however,
-it will then automatically be copied into each record set, so that
-clients never need to do a separate lookup to discover the NICK record.
-Also, users do not usually have to worry about setting the NICK record:
-it is automatically set to the local name of the TLD.
+A NICK record is used to give a zone a name. With a NICK record, you
+can essentially specify how you would like to be called. GNS expects
+this record under the empty label ``@@'' in the zone's database
+(NAMESTORE); however, it will then automatically be copied into each
+record set, so that clients never need to do a separate lookup to
+discover the NICK record.  Also, users do not usually have to worry
+about setting the NICK record: it is automatically set to the local
+name of the TLD.
 
 @b{Example}@
 
@@ -1739,6 +1803,66 @@ should use the ZKEY zone as the destination hostname and
 GNS-enabled mail servers should be configured to accept
 e-mails to the ZKEY-zones of all local users.
 
+@node PLACE
+@subsubsection PLACE
+
+Record type for a social place.
+
+@node PHONE
+@subsubsection PHONE
+
+Record type for a phone (of CONVERSATION).
+
+@node ID ATTR
+@subsubsection ID ATTR
+
+Record type for identity attributes (of IDENTITY).
+
+@node ID TOKEN
+@subsubsection ID TOKEN
+
+Record type for an identity token (of IDENTITY-TOKEN).
+
+@node ID TOKEN METADATA
+@subsubsection ID TOKEN METADATA
+
+Record type for the private metadata of an identity token (of IDENTITY-TOKEN).
+
+@node CREDENTIAL
+@subsubsection CREDENTIAL
+
+Record type for credential.
+
+@node POLICY
+@subsubsection POLICY
+
+Record type for policies.
+
+@node ATTRIBUTE
+@subsubsection ATTRIBUTE
+
+Record type for reverse lookups.
+
+@node ABE KEY
+@subsubsection ABE KEY
+
+Record type for ABE records.
+
+@node ABE MASTER
+@subsubsection ABE MASTER
+
+Record type for ABE master keys.
+
+@node RECLAIM OIDC CLIENT
+@subsubsection RECLAIM OIDC CLIENT
+
+Record type for reclaim OIDC clients.
+
+@node RECLAIM OIDC REDIRECT
+@subsubsection RECLAIM OIDC REDIRECT
+
+Record type for reclaim OIDC redirect URIs.
+
 @node Synchronizing with legacy DNS
 @subsection Synchronizing with legacy DNS
 
@@ -1768,6 +1892,98 @@ DNS zone and that do not have a local gns service in use, it
 is thus advisable to disable the namecache by setting the
 option ``DISABLE'' to ``YES'' in section ``[namecache]''.
 
+
+@node re@:claim Identity Provider
+@section re@:claim Identity Provider
+
+The re:claim Identity Provider (IdP) is a decentralized IdP service.
+It allows its users to manage and authorize third parties to access their identity attributes such as email or shipping addresses.
+
+It basically mimics the concepts of centralized IdPs, such as those offered by Google or Facebook.
+Like other IdPs, re:claim features an (optional) OpenID-Connect 1.0-compliant protocol layer that can be used for websites to integrate re:claim as an Identity Provider with little effort.
+
+@menu
+* Managing Attributes::
+* Sharing Attributes with Third Parties::
+* Revoking Authorizations of Third Parties::
+* Using the OpenID-Connect IdP::
+@end menu
+
+@node Managing Attributes
+@subsection Managing Attributes
+
+Before adding attributes to an identity, you must first create an ego:
+
+@example
+$ gnunet-identity -C "username"
+@end example
+
+Henceforth, you can manage a new user profile of the user ``username''.
+
+To add an email address to your user profile, simply use the @command{gnunet-reclaim} command line tool::
+
+@example
+$ gnunet-reclaim -e "username" -a "email" -V "username@@example.gnunet"
+@end example
+
+All of your attributes can be listed using the @command{gnunet-reclaim}
+command line tool as well:
+
+@example
+$ gnunet-reclaim -e "username" -D
+@end example
+
+Currently, and by default, attribute values are interpreted as plain text.
+In the future there might be more value types such as X.509 certificate credentials.
+
+@node Sharing Attributes with Third Parties
+@subsection Sharing Attributes with Third Parties
+
+If you want to allow a third party such as a website or friend to access to your attributes (or a subset thereof) execute:
+
+@example
+$ gnunet-reclaim -e "username" -r "PKEY" -i "attribute1,attribute2,..."
+@end example
+
+Where "PKEY" is the public key of the third party and "attribute1,attribute2,..." is a comma-separated list of attribute names, such as "email", that you want to share.
+
+The command will return a "ticket" string.
+You must give this "ticket" to the requesting third party.
+
+The third party can then retrieve your shared identity attributes using:
+
+@example
+$ gnunet-reclaim -e "friend" -C "ticket"
+@end example
+
+This will retrieve and list the shared identity attributes.
+The above command will also work if the user "username" is currently offline since the attributes are retrieved from GNS.
+Further, the "ticket" can be re-used later to retrieve up-to-date attributes in case "username" has changed the value(s). For instance, becasue his email address changed.
+
+To list all given authorizations (tickets) you can execute:
+@example
+$ gnunet-reclaim -e "friend" -T (TODO there is only a REST API for this ATM) 
+@end example
+
+
+@node Revoking Authorizations of Third Parties
+@subsection Revoking Authorizations of Third Parties
+
+If you want to revoke the access of a third party to your attributes you can execute:
+
+@example
+$ gnunet-idp -e "username" -R "ticket"
+@end example
+
+This will prevent the third party from accessing the attribute in the future.
+Please note that if the third party has previously accessed the attribute, there is not way in which the system could have prevented the thiry party from storing the data.
+As such, only access to updated data in the future can be revoked.
+This behaviour is _exactly the same_ as with other IdPs.
+
+@node Using the OpenID-Connect IdP
+@subsection Using the OpenID-Connect IdP
+
+TODO: Document setup and REST endpoints
 
 @node Using the Virtual Public Network
 @section Using the Virtual Public Network

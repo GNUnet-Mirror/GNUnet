@@ -60,7 +60,7 @@ struct GNUNET_RESOLVER_GetMessage
    * identifies the request and is contained in the response message. The
    * client has to match response to request by this identifier.
    */
-  uint32_t id GNUNET_PACKED;
+  uint16_t id GNUNET_PACKED;
 
   /* followed by 0-terminated string for A/AAAA-lookup or
      by 'struct in_addr' / 'struct in6_addr' for reverse lookup */
@@ -79,7 +79,7 @@ struct GNUNET_RESOLVER_ResponseMessage
   * identifies the request this message responds to. The client
   * has to match response to request by this identifier.
   */
-  uint32_t id GNUNET_PACKED;
+  uint16_t id GNUNET_PACKED;
 
   /* followed by 0-terminated string for response to a reverse lookup
    * or by 'struct in_addr' / 'struct in6_addr' for response to

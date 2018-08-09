@@ -11,7 +11,7 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
@@ -174,6 +174,8 @@ custom_shutdown (void *cls)
 
   /* Calculcate statistics   */
   delta = GNUNET_TIME_absolute_get_duration (start_time).rel_value_us;
+  if (0 == delta)
+    delta = 1;
   rate = (1000LL* 1000ll * total_bytes) / (1024 * delta);
   FPRINTF (stderr,
            "\nThroughput was %llu KiBytes/s\n",

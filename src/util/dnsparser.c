@@ -11,7 +11,7 @@
       WITHOUT ANY WARRANTY; without even the implied warranty of
       MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
       Affero General Public License for more details.
-     
+
       You should have received a copy of the GNU Affero General Public License
       along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
@@ -759,6 +759,122 @@ GNUNET_DNSPARSER_parse (const char *udp_payload,
 
 
 /**
+ * Duplicate (deep-copy) the given DNS record
+ *
+ * @param r the record
+ * @return the newly allocated record
+ */
+struct GNUNET_DNSPARSER_Record *
+GNUNET_DNSPARSER_duplicate_record (const struct GNUNET_DNSPARSER_Record *r)
+{
+  struct GNUNET_DNSPARSER_Record *dup = GNUNET_memdup (r, sizeof (*r));
+
+  dup->name = GNUNET_strdup (r->name);
+  switch (r->type)
+  {
+    case GNUNET_DNSPARSER_TYPE_NS:
+    case GNUNET_DNSPARSER_TYPE_CNAME:
+    case GNUNET_DNSPARSER_TYPE_PTR:
+    {
+      dup->data.hostname = GNUNET_strdup (r->data.hostname);
+      break;
+    }
+    case GNUNET_DNSPARSER_TYPE_SOA:
+    {
+      dup->data.soa = GNUNET_DNSPARSER_duplicate_soa_record (r->data.soa);
+      break;
+    }
+    case GNUNET_DNSPARSER_TYPE_CERT:
+    {
+      dup->data.cert = GNUNET_DNSPARSER_duplicate_cert_record (r->data.cert);
+      break;
+    }
+    case GNUNET_DNSPARSER_TYPE_MX:
+    {
+      dup->data.mx = GNUNET_DNSPARSER_duplicate_mx_record (r->data.mx);
+      break;
+    }
+    case GNUNET_DNSPARSER_TYPE_SRV:
+    {
+      dup->data.srv = GNUNET_DNSPARSER_duplicate_srv_record (r->data.srv);
+      break;
+    }
+    default:
+    {
+      dup->data.raw.data = GNUNET_memdup (r->data.raw.data,
+					  r->data.raw.data_len);
+    }
+  }
+  return dup;
+}
+
+
+/**
+ * Duplicate (deep-copy) the given DNS record
+ *
+ * @param r the record
+ * @return the newly allocated record
+ */
+struct GNUNET_DNSPARSER_SoaRecord *
+GNUNET_DNSPARSER_duplicate_soa_record (const struct GNUNET_DNSPARSER_SoaRecord *r)
+{
+  struct GNUNET_DNSPARSER_SoaRecord *dup = GNUNET_memdup (r, sizeof (*r));
+
+  dup->mname = GNUNET_strdup (r->mname);
+  dup->rname = GNUNET_strdup (r->rname);
+  return dup;
+}
+
+
+/**
+ * Duplicate (deep-copy) the given DNS record
+ *
+ * @param r the record
+ * @return the newly allocated record
+ */
+struct GNUNET_DNSPARSER_CertRecord *
+GNUNET_DNSPARSER_duplicate_cert_record (const struct GNUNET_DNSPARSER_CertRecord *r)
+{
+  struct GNUNET_DNSPARSER_CertRecord *dup = GNUNET_memdup (r, sizeof (*r));
+
+  dup->certificate_data = GNUNET_strdup (r->certificate_data);
+  return dup;
+}
+
+
+/**
+ * Duplicate (deep-copy) the given DNS record
+ *
+ * @param r the record
+ * @return the newly allocated record
+ */
+struct GNUNET_DNSPARSER_MxRecord *
+GNUNET_DNSPARSER_duplicate_mx_record (const struct GNUNET_DNSPARSER_MxRecord *r)
+{
+  struct GNUNET_DNSPARSER_MxRecord *dup = GNUNET_memdup (r, sizeof (*r));
+
+  dup->mxhost = GNUNET_strdup (r->mxhost);
+  return dup;
+}
+
+
+/**
+ * Duplicate (deep-copy) the given DNS record
+ *
+ * @param r the record
+ * @return the newly allocated record
+ */
+struct GNUNET_DNSPARSER_SrvRecord *
+GNUNET_DNSPARSER_duplicate_srv_record (const struct GNUNET_DNSPARSER_SrvRecord *r)
+{
+  struct GNUNET_DNSPARSER_SrvRecord *dup = GNUNET_memdup (r, sizeof (*r));
+
+  dup->target = GNUNET_strdup (r->target);
+  return dup;
+}
+
+
+/**
  * Free memory taken by a packet.
  *
  * @param p packet to free
@@ -840,8 +956,11 @@ GNUNET_DNSPARSER_builder_add_name (char *dst,
       len = dot - idna_name;
     if ( (len >= 64) || (0 == len) )
     {
-      GNUNET_break (0);
-      goto fail; /* segment too long or empty */
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  "Invalid DNS name `%s': label with %u characters encountered\n",
+                  name,
+                  (unsigned int) len);
+      goto fail; /* label too long or empty */
     }
     dst[pos++] = (char) (uint8_t) len;
     GNUNET_memcpy (&dst[pos],

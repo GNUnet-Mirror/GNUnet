@@ -11,7 +11,7 @@
       WITHOUT ANY WARRANTY; without even the implied warranty of
       MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
       Affero General Public License for more details.
-     
+
       You should have received a copy of the GNU Affero General Public License
       along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
@@ -758,8 +758,8 @@ get_order_from_difference (unsigned int diff)
  */
 static int
 send_full_element_iterator (void *cls,
-                       const struct GNUNET_HashCode *key,
-                       void *value)
+                            const struct GNUNET_HashCode *key,
+                            void *value)
 {
   struct Operation *op = cls;
   struct GNUNET_SET_ElementMessage *emsg;
@@ -1367,6 +1367,26 @@ send_client_element (struct Operation *op,
 
 
 /**
+ * Destroy remote channel.
+ *
+ * @param op operation
+ */
+static void
+destroy_channel (struct Operation *op)
+{
+  struct GNUNET_CADET_Channel *channel;
+
+  if (NULL != (channel = op->channel))
+  {
+    /* This will free op; called conditionally as this helper function
+       is also called from within the channel disconnect handler. */
+    op->channel = NULL;
+    GNUNET_CADET_channel_destroy (channel);
+  }
+}
+
+
+/**
  * Signal to the client that the operation has finished and
  * destroy the operation.
  *
@@ -1379,13 +1399,18 @@ send_client_done (void *cls)
   struct GNUNET_MQ_Envelope *ev;
   struct GNUNET_SET_ResultMessage *rm;
 
-  if (GNUNET_YES == op->state->client_done_sent) {
+  if (GNUNET_YES == op->state->client_done_sent)
+  {
     return;
   }
 
   if (PHASE_DONE != op->state->phase) {
     LOG (GNUNET_ERROR_TYPE_WARNING,
-         "union operation failed\n");
+         "Union operation failed\n");
+    GNUNET_STATISTICS_update (_GSS_statistics,
+                              "# Union operations failed",
+                              1,
+                              GNUNET_NO);
     ev = GNUNET_MQ_msg (rm, GNUNET_MESSAGE_TYPE_SET_RESULT);
     rm->result_status = htons (GNUNET_SET_STATUS_FAILURE);
     rm->request_id = htonl (op->client_request_id);
@@ -1397,6 +1422,10 @@ send_client_done (void *cls)
 
   op->state->client_done_sent = GNUNET_YES;
 
+  GNUNET_STATISTICS_update (_GSS_statistics,
+                            "# Union operations succeeded",
+                            1,
+                            GNUNET_NO);
   LOG (GNUNET_ERROR_TYPE_INFO,
        "Signalling client that union operation is done\n");
   ev = GNUNET_MQ_msg (rm,

@@ -90,7 +90,8 @@ This document is the Reference Manual for GNUnet version @value{VERSION}.
 * GNUnet Contributors Handbook::    Contributing to GNUnet
 * GNUnet Developer Handbook::       Developing GNUnet
 * GNU Free Documentation License::  The license of this manual
-* GNU General Public License::      The license of this manual
+* GNU General Public License::
+* GNU Affero General Public License::
 * Concept Index::                   Concepts
 * Programming Index::               Data types, functions, and variables
 
@@ -100,8 +101,8 @@ This document is the Reference Manual for GNUnet version @value{VERSION}.
 Preface
 
 * About this book
+* Contributing to this book
 * Introduction
-* General Terminology::
 * Typography::
 
 Philosophy
@@ -124,6 +125,14 @@ Key Concepts
 * Revocation::
 
 Installing GNUnet
+* Installing dependencies::
+* Getting the Source Code::
+* Create @code{gnunet} user and group::
+* Preparing and Compiling the Source Code::
+* Installation::
+* MOVED FROM USER Checking the Installation::
+* MOVED FROM USER The graphical configuration interface::
+* MOVED FROM USER Config Leftovers::
 
 Using GNUnet
 
@@ -141,6 +150,7 @@ GNUnet Contributors Handbook
 * Licenses of contributions::
 * Copyright Assignment::
 * Contributing to the Reference Manual::
+* Contributing testcases::
 
 GNUnet Developer Handbook
 
@@ -227,6 +237,12 @@ GNUnet Developer Handbook
 @include gpl-3.0.texi
 
 @c *********************************************************************
+@node GNU Affero General Public License
+@appendix GNU Affero General Public License
+@cindex license, GNU Affero General Public License
+@include agpl-3.0.texi
+
+@c *********************************************************************
 @node Concept Index
 @unnumbered Concept Index
 @printindex cp
@@ -235,6 +251,7 @@ GNUnet Developer Handbook
 @unnumbered Programming Index
 @syncodeindex tp fn
 @syncodeindex vr fn
+@syncodeindex pg fn
 @printindex fn
 
 @bye

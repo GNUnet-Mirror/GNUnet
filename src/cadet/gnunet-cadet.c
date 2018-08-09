@@ -231,7 +231,7 @@ shutdown_task (void *cls)
   }
 }
 
-void *
+void
 mq_cb(void *cls)
 {
   listen_stdio ();

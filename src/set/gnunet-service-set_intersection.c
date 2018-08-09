@@ -11,7 +11,7 @@
       WITHOUT ANY WARRANTY; without even the implied warranty of
       MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
       Affero General Public License for more details.
-     
+
       You should have received a copy of the GNU Affero General Public License
       along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
@@ -23,6 +23,7 @@
  */
 #include "platform.h"
 #include "gnunet_util_lib.h"
+#include "gnunet_statistics_service.h"
 #include "gnunet-service-set.h"
 #include "gnunet_block_lib.h"
 #include "gnunet-service-set_protocol.h"
@@ -215,6 +216,10 @@ send_client_removed_element (struct Operation *op,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Sending removed element (size %u) to client\n",
               element->size);
+  GNUNET_STATISTICS_update (_GSS_statistics,
+                            "# Element removed messages sent",
+                            1,
+                            GNUNET_NO);
   GNUNET_assert (0 != op->client_request_id);
   ev = GNUNET_MQ_msg_extra (rm,
                             element->size,
@@ -406,6 +411,10 @@ fail_intersection_operation (struct Operation *op)
 
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
               "Intersection operation failed\n");
+  GNUNET_STATISTICS_update (_GSS_statistics,
+                            "# Intersection operations failed",
+                            1,
+                            GNUNET_NO);
   if (NULL != op->state->my_elements)
   {
     GNUNET_CONTAINER_multihashmap_destroy (op->state->my_elements);
@@ -466,6 +475,10 @@ send_bloomfilter (struct Operation *op)
                                          op);
 
   /* send our Bloom filter */
+  GNUNET_STATISTICS_update (_GSS_statistics,
+                            "# Intersection Bloom filters sent",
+                            1,
+                            GNUNET_NO);
   chunk_size = 60 * 1024 - sizeof (struct BFMessage);
   if (bf_size <= chunk_size)
   {
@@ -534,6 +547,10 @@ send_client_done_and_destroy (void *cls)
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Intersection succeeded, sending DONE to local client\n");
+  GNUNET_STATISTICS_update (_GSS_statistics,
+                            "# Intersection operations succeeded",
+                            1,
+                            GNUNET_NO);
   ev = GNUNET_MQ_msg (rm,
                       GNUNET_MESSAGE_TYPE_SET_RESULT);
   rm->request_id = htonl (op->client_request_id);
