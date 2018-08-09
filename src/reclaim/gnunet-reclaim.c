@@ -367,6 +367,7 @@ iter_cb (void *cls,
                                                       attr->type,
                                                       attr->data,
                                                       attr->data_size);
+      le->claim->version = attr->version;
       GNUNET_CONTAINER_DLL_insert (attr_list->list_head,
                                    attr_list->list_tail,
                                    le);
