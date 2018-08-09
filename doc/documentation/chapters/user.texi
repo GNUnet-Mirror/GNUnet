@@ -1920,17 +1920,17 @@ $ gnunet-identity -C "username"
 
 Henceforth, you can manage a new user profile of the user ``username''.
 
-To add an email address to your user profile, simply use the @command{gnunet-idp} command line tool::
+To add an email address to your user profile, simply use the @command{gnunet-reclaim} command line tool::
 
 @example
-$ gnunet-idp -e "username" -a "email" -V "username@@example.gnunet"
+$ gnunet-reclaim -e "username" -a "email" -V "username@@example.gnunet"
 @end example
 
-All of your attributes can be listed using the @command{gnunet-idp}
+All of your attributes can be listed using the @command{gnunet-reclaim}
 command line tool as well:
 
 @example
-$ gnunet-idp -e "username" -D
+$ gnunet-reclaim -e "username" -D
 @end example
 
 Currently, and by default, attribute values are interpreted as plain text.
@@ -1942,7 +1942,7 @@ In the future there might be more value types such as X.509 certificate credenti
 If you want to allow a third party such as a website or friend to access to your attributes (or a subset thereof) execute:
 
 @example
-$ gnunet-idp -e "username" -r "PKEY" -i "attribute1,attribute2,..."
+$ gnunet-reclaim -e "username" -r "PKEY" -i "attribute1,attribute2,..."
 @end example
 
 Where "PKEY" is the public key of the third party and "attribute1,attribute2,..." is a comma-separated list of attribute names, such as "email", that you want to share.
@@ -1953,7 +1953,7 @@ You must give this "ticket" to the requesting third party.
 The third party can then retrieve your shared identity attributes using:
 
 @example
-$ gnunet-idp -e "friend" -C "ticket"
+$ gnunet-reclaim -e "friend" -C "ticket"
 @end example
 
 This will retrieve and list the shared identity attributes.
@@ -1962,7 +1962,7 @@ Further, the "ticket" can be re-used later to retrieve up-to-date attributes in 
 
 To list all given authorizations (tickets) you can execute:
 @example
-$ gnunet-idp -e "friend" -T (TODO there is only a REST API for this ATM) 
+$ gnunet-reclaim -e "friend" -T (TODO there is only a REST API for this ATM) 
 @end example
 
 
