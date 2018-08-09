@@ -218,23 +218,27 @@ GNUNET_RECLAIM_ATTRIBUTE_claim_new (const char* attr_name,
 {
   struct GNUNET_RECLAIM_ATTRIBUTE_Claim *attr;
   char *write_ptr;
+  char *attr_name_tmp = GNUNET_strdup (attr_name);
+
+  GNUNET_STRINGS_utf8_tolower (attr_name, attr_name_tmp);
 
   attr = GNUNET_malloc (sizeof (struct GNUNET_RECLAIM_ATTRIBUTE_Claim) +
-                        strlen (attr_name) + 1 +
+                        strlen (attr_name_tmp) + 1 +
                         data_size);
   attr->type = type;
   attr->data_size = data_size;
   attr->version = 0;
   write_ptr = (char*)&attr[1];
   GNUNET_memcpy (write_ptr,
-                 attr_name,
-                 strlen (attr_name) + 1);
+                 attr_name_tmp,
+                 strlen (attr_name_tmp) + 1);
   attr->name = write_ptr;
   write_ptr += strlen (attr->name) + 1;
   GNUNET_memcpy (write_ptr,
                  data,
                  data_size);
   attr->data = write_ptr;
+  GNUNET_free (attr_name_tmp);
   return attr;
 }
 
