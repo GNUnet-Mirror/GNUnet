@@ -341,8 +341,11 @@ iter_cb (void *cls,
     }
     GNUNET_free (attrs_tmp);
   } else if (list) {
+    attr_str = GNUNET_RECLAIM_ATTRIBUTE_value_to_string (attr->type,
+                                                         attr->data,
+                                                         attr->data_size);
     GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
-                "%s: %s\n", attr->name, (char*)attr->data);
+                "%s: %s\n", attr->name, attr_str);
   }
   GNUNET_RECLAIM_get_attributes_next (attr_iterator);
 }
