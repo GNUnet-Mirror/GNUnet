@@ -630,6 +630,15 @@ _GSS_operation_destroy (struct Operation *op,
 
 
 /**
+ * This function probably should not exist
+ * and be replaced by inlining more specific
+ * logic in the various places where it is called.
+ */
+void
+_GSS_operation_destroy2 (struct Operation *op);
+
+
+/**
  * Get the table with implementing functions for set union.
  *
  * @return the operation specific VTable

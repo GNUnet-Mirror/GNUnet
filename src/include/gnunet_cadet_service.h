@@ -151,7 +151,7 @@ typedef void *
 
 
 /**
- * Function called whenever an MQ-channel is destroyed, even if the destruction
+ * Function called whenever an MQ-channel is destroyed, unless the destruction
  * was requested by #GNUNET_CADET_channel_destroy.
  * It must NOT call #GNUNET_CADET_channel_destroy on the channel.
  *
@@ -277,7 +277,7 @@ GNUNET_CADET_channel_create (struct GNUNET_CADET_Handle *h,
 /**
  * Destroy an existing channel.
  *
- * The existing end callback for the channel will be called immediately.
+ * The existing end callback for the channel will NOT be called.
  * Any pending outgoing messages will be sent but no incoming messages will be
  * accepted and no data callbacks will be called.
  *

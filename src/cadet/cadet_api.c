@@ -1273,7 +1273,7 @@ GNUNET_CADET_close_port (struct GNUNET_CADET_Port *p)
 /**
  * Destroy an existing channel.
  *
- * The existing end callback for the channel will be called immediately.
+ * The existing end callback for the channel will NOT be called.
  * Any pending outgoing messages will be sent but no incoming messages will be
  * accepted and no data callbacks will be called.
  *
@@ -1296,6 +1296,7 @@ GNUNET_CADET_channel_destroy (struct GNUNET_CADET_Channel *channel)
   }
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 	      "Destroying channel due to GNUNET_CADET_channel_destroy()\n");
+  channel->disconnects = NULL;
   destroy_channel (channel);
 }
 

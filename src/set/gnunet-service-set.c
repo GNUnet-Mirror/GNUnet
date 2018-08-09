@@ -221,11 +221,7 @@ incoming_destroy (struct Operation *op)
     GNUNET_SCHEDULER_cancel (op->timeout_task);
     op->timeout_task = NULL;
   }
-  if (NULL != (channel = op->channel))
-  {
-    op->channel = NULL;
-    GNUNET_CADET_channel_destroy (channel);
-  }
+  _GSS_operation_destroy2 (op);
 }
 
 
@@ -1199,9 +1195,30 @@ channel_end_cb (void *channel_ctx,
 {
   struct Operation *op = channel_ctx;
 
+  op->channel = NULL;
+  _GSS_operation_destroy2 (op);
+}
+
+
+/**
+ * This function probably should not exist
+ * and be replaced by inlining more specific
+ * logic in the various places where it is called.
+ */
+void
+_GSS_operation_destroy2 (struct Operation *op)
+{
+  struct GNUNET_CADET_Channel *channel;
+
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "channel_end_cb called\n");
-  op->channel = NULL;
+  if (NULL != (channel = op->channel))
+  {
+    /* This will free op; called conditionally as this helper function
+       is also called from within the channel disconnect handler. */
+    op->channel = NULL;
+    GNUNET_CADET_channel_destroy (channel);
+  }
   if (NULL != op->listener)
     incoming_destroy (op);
   else if (NULL != op->set)
@@ -1376,7 +1393,7 @@ handle_client_reject (void *cls,
               "Peer request (op %u, app %s) rejected by client\n",
               op->listener->operation,
               GNUNET_h2s (&cs->listener->app_id));
-  GNUNET_CADET_channel_destroy (op->channel);
+  _GSS_operation_destroy2 (op);
   GNUNET_SERVICE_client_continue (cs->client);
 }
 

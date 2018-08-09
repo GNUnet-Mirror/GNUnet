@@ -303,6 +303,47 @@ handle_client_pickup_message (void *cls,
 
 
 /**
+ * Channel went down, notify client and free data
+ * structure.
+ *
+ * @param ch channel that went down
+ */
+static void
+clean_up_channel (struct Channel *ch)
+{
+  struct Line *line = ch->line;
+  struct GNUNET_MQ_Envelope *env;
+  struct ClientPhoneHangupMessage *hup;
+
+  switch (ch->status)
+  {
+  case CS_CALLEE_INIT:
+  case CS_CALLEE_SHUTDOWN:
+  case CS_CALLER_SHUTDOWN:
+    break;
+  case CS_CALLEE_RINGING:
+  case CS_CALLEE_CONNECTED:
+  case CS_CALLER_CALLING:
+  case CS_CALLER_CONNECTED:
+    if (NULL != line)
+    {
+      env = GNUNET_MQ_msg (hup,
+                           GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_HANG_UP);
+      hup->cid = ch->cid;
+      GNUNET_MQ_send (line->mq,
+                      env);
+    }
+    break;
+  }
+  if (NULL != line)
+    GNUNET_CONTAINER_DLL_remove (line->channel_head,
+                                 line->channel_tail,
+                                 ch);
+  GNUNET_free (ch);
+}
+
+
+/**
  * Destroy a channel.
  *
  * @param ch channel to destroy.
@@ -313,7 +354,11 @@ destroy_line_cadet_channels (struct Channel *ch)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Destroying cadet channels\n");
   if (NULL != ch->channel)
+  {
     GNUNET_CADET_channel_destroy (ch->channel);
+    ch->channel = NULL;
+  }
+  clean_up_channel (ch);
 }
 
 
@@ -1027,40 +1072,13 @@ inbound_end (void *cls,
              const struct GNUNET_CADET_Channel *channel)
 {
   struct Channel *ch = cls;
-  struct Line *line = ch->line;
-  struct GNUNET_MQ_Envelope *env;
-  struct ClientPhoneHangupMessage *hup;
 
   GNUNET_assert (channel == ch->channel);
   ch->channel = NULL;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Channel destroyed by CADET in state %d\n",
               ch->status);
-  switch (ch->status)
-  {
-  case CS_CALLEE_INIT:
-  case CS_CALLEE_SHUTDOWN:
-  case CS_CALLER_SHUTDOWN:
-    break;
-  case CS_CALLEE_RINGING:
-  case CS_CALLEE_CONNECTED:
-  case CS_CALLER_CALLING:
-  case CS_CALLER_CONNECTED:
-    if (NULL != line)
-    {
-      env = GNUNET_MQ_msg (hup,
-                           GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_HANG_UP);
-      hup->cid = ch->cid;
-      GNUNET_MQ_send (line->mq,
-                      env);
-    }
-    break;
-  }
-  if (NULL != line)
-    GNUNET_CONTAINER_DLL_remove (line->channel_head,
-                                 line->channel_tail,
-                                 ch);
-  GNUNET_free (ch);
+  clean_up_channel (ch);
 }
 
 

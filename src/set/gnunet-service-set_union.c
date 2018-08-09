@@ -1367,25 +1367,6 @@ send_client_element (struct Operation *op,
 
 
 /**
- * Destroy remote channel.
- *
- * @param op operation
- */
-void destroy_channel (struct Operation *op)
-{
-  struct GNUNET_CADET_Channel *channel;
-
-  if (NULL != (channel = op->channel))
-  {
-    /* This will free op; called conditionally as this helper function
-       is also called from within the channel disconnect handler. */
-    op->channel = NULL;
-    GNUNET_CADET_channel_destroy (channel);
-  }
-}
-
-
-/**
  * Signal to the client that the operation has finished and
  * destroy the operation.
  *
@@ -1467,7 +1448,7 @@ maybe_finish (struct Operation *op)
     {
       op->state->phase = PHASE_DONE;
       send_client_done (op);
-      destroy_channel (op);
+      _GSS_operation_destroy2 (op);
     }
   }
 }
@@ -1896,7 +1877,7 @@ handle_union_p2p_full_done (void *cls,
       op->state->phase = PHASE_DONE;
       GNUNET_CADET_receive_done (op->channel);
       send_client_done (op);
-      destroy_channel (op);
+      _GSS_operation_destroy2 (op);
       return;
     }
     break;
