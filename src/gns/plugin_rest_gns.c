@@ -200,7 +200,7 @@ do_error (void *cls)
  */
 static void
 handle_gns_response (void *cls,
-		     int was_gns,
+                     int was_gns,
                      uint32_t rd_count,
                      const struct GNUNET_GNSRECORD_Data *rd)
 {
@@ -223,7 +223,7 @@ handle_gns_response (void *cls,
   for (uint32_t i=0;i<rd_count;i++)
   {
     if ((rd[i].record_type != handle->record_type) &&
-	(GNUNET_GNSRECORD_TYPE_ANY != handle->record_type) )
+        (GNUNET_GNSRECORD_TYPE_ANY != handle->record_type) )
     {
       continue;
     }
@@ -252,8 +252,8 @@ handle_gns_response (void *cls,
  */
 void
 get_gns_cont (struct GNUNET_REST_RequestHandle *con_handle,
-	      const char* url,
-	      void *cls)
+              const char* url,
+              void *cls)
 {
   struct RequestHandle *handle = cls;
   struct GNUNET_HashCode key;
@@ -261,11 +261,11 @@ get_gns_cont (struct GNUNET_REST_RequestHandle *con_handle,
   char *name;
 
   GNUNET_CRYPTO_hash (GNUNET_REST_GNS_PARAM_NAME,
-		      strlen (GNUNET_REST_GNS_PARAM_NAME),
-		      &key);
+                      strlen (GNUNET_REST_GNS_PARAM_NAME),
+                      &key);
   if ( GNUNET_NO
-        == GNUNET_CONTAINER_multihashmap_contains (con_handle->url_param_map,
-  						 &key))
+       == GNUNET_CONTAINER_multihashmap_contains (con_handle->url_param_map,
+                                                  &key))
   {
     handle->emsg = GNUNET_strdup("Parameter name is missing");
     GNUNET_SCHEDULER_add_now (&do_error, handle);
@@ -282,11 +282,11 @@ get_gns_cont (struct GNUNET_REST_RequestHandle *con_handle,
 
   handle->record_type = UINT32_MAX;
   GNUNET_CRYPTO_hash (GNUNET_REST_GNS_PARAM_RECORD_TYPE,
-		      strlen (GNUNET_REST_GNS_PARAM_RECORD_TYPE),
-		      &key);
+                      strlen (GNUNET_REST_GNS_PARAM_RECORD_TYPE),
+                      &key);
   if ( GNUNET_YES
-      == GNUNET_CONTAINER_multihashmap_contains (con_handle->url_param_map,
-  						 &key))
+       == GNUNET_CONTAINER_multihashmap_contains (con_handle->url_param_map,
+                                                  &key))
   {
     record_type = GNUNET_CONTAINER_multihashmap_get (con_handle->url_param_map, &key);
     handle->record_type = GNUNET_GNSRECORD_typename_to_number(record_type);
@@ -307,11 +307,11 @@ get_gns_cont (struct GNUNET_REST_RequestHandle *con_handle,
   }
 
   handle->gns_lookup = GNUNET_GNS_lookup_with_tld (handle->gns,
-						 handle->name,
-						 handle->record_type,
-						 GNUNET_NO,
-						 &handle_gns_response,
-						 handle);
+                                                   handle->name,
+                                                   handle->record_type,
+                                                   GNUNET_NO,
+                                                   &handle_gns_response,
+                                                   handle);
   return;
 }
 
@@ -382,17 +382,17 @@ init_cont (struct RequestHandle *handle)
  */
 static void
 rest_process_request(struct GNUNET_REST_RequestHandle *rest_handle,
-                              GNUNET_REST_ResultProcessor proc,
-                              void *proc_cls)
+                     GNUNET_REST_ResultProcessor proc,
+                     void *proc_cls)
 {
   struct RequestHandle *handle = GNUNET_new (struct RequestHandle);
-  
+
   handle->response_code = 0;
   handle->timeout = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 60);
   handle->proc_cls = proc_cls;
   handle->proc = proc;
   handle->rest_handle = rest_handle;
-  
+
   handle->url = GNUNET_strdup (rest_handle->url);
   if (handle->url[strlen (handle->url)-1] == '/')
     handle->url[strlen (handle->url)-1] = '\0';
@@ -404,7 +404,7 @@ rest_process_request(struct GNUNET_REST_RequestHandle *rest_handle,
     GNUNET_SCHEDULER_add_delayed (handle->timeout,
                                   &do_error,
                                   handle);
-  
+
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Connected\n");
 }
 
