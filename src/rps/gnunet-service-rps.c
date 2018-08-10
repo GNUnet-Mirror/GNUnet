@@ -1486,7 +1486,7 @@ Peers_indicate_sending_intention (const struct GNUNET_PeerIdentity *peer)
  * @return #GNUNET_YES if peer has the intention to send
  *         #GNUNET_NO  otherwise
  */
-int
+static int
 Peers_check_peer_send_intention (const struct GNUNET_PeerIdentity *peer)
 {
   const struct PeerContext *peer_ctx;
@@ -1510,7 +1510,7 @@ Peers_check_peer_send_intention (const struct GNUNET_PeerIdentity *peer)
  * @return initial channel context for the channel
  *         (can be NULL -- that's not an error)
  */
-void *
+static void *
 Peers_handle_inbound_channel (void *cls,
                               struct GNUNET_CADET_Channel *channel,
                               const struct GNUNET_PeerIdentity *initiator)
@@ -1556,7 +1556,7 @@ Peers_handle_inbound_channel (void *cls,
  * @return #GNUNET_YES if a sending channel towards that peer exists
  *         #GNUNET_NO  otherwise
  */
-int
+static int
 Peers_check_sending_channel_exists (const struct GNUNET_PeerIdentity *peer)
 {
   struct PeerContext *peer_ctx;
@@ -1586,7 +1586,7 @@ Peers_check_sending_channel_exists (const struct GNUNET_PeerIdentity *peer)
  * @return #GNUNET_YES if the given chennel is the sending channel of the peer
  *         #GNUNET_NO  otherwise
  */
-int
+static int
 Peers_check_channel_role (const struct GNUNET_PeerIdentity *peer,
                           const struct GNUNET_CADET_Channel *channel,
                           enum Peers_ChannelRole role)
@@ -1626,7 +1626,7 @@ Peers_check_channel_role (const struct GNUNET_PeerIdentity *peer,
  * @return #GNUNET_YES if channel was destroyed
  *         #GNUNET_NO  otherwise
  */
-int
+static int
 Peers_destroy_sending_channel (const struct GNUNET_PeerIdentity *peer)
 {
   struct PeerContext *peer_ctx;
@@ -1655,7 +1655,7 @@ Peers_destroy_sending_channel (const struct GNUNET_PeerIdentity *peer)
  * @param ev envelope of the message
  * @param type type of the message
  */
-void
+static void
 Peers_send_message (const struct GNUNET_PeerIdentity *peer,
                     struct GNUNET_MQ_Envelope *ev,
                     const char *type)
@@ -1685,7 +1685,7 @@ Peers_send_message (const struct GNUNET_PeerIdentity *peer,
  * @return #GNUNET_YES if the operation was scheduled
  *         #GNUNET_NO  otherwise
  */
-int
+static int
 Peers_schedule_operation (const struct GNUNET_PeerIdentity *peer,
                           const PeerOp peer_op)
 {
@@ -1718,7 +1718,7 @@ Peers_schedule_operation (const struct GNUNET_PeerIdentity *peer,
  *
  * @return The recv_channel.
  */
-struct GNUNET_CADET_Channel *
+static struct GNUNET_CADET_Channel *
 Peers_get_recv_channel (const struct GNUNET_PeerIdentity *peer)
 {
   struct PeerContext *peer_ctx;
