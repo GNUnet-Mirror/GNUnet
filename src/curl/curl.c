@@ -11,7 +11,7 @@
   WITHOUT ANY WARRANTY; without even the implied warranty of
   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
   Affero General Public License for more details.
- 
+
   You should have received a copy of the GNU Affero General Public License
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
@@ -411,8 +411,9 @@ download_get_result (struct DownloadBuffer *db,
       GNUNET_break (0);
       *response_code = 0;
     }
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                "Did NOT detect response as JSON\n");
+    if (0 != db->buf_size)
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                  "Did NOT detect response as JSON\n");
     return NULL;
   }
   json = NULL;
