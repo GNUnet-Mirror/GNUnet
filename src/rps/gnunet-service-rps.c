@@ -233,11 +233,6 @@ struct PeerContext
   struct PendingMessage *pending_messages_tail;
 
   /**
-   * @brief Task to destroy this context.
-   */
-  struct GNUNET_SCHEDULER_Task *destruction_task;
-
-  /**
    * This is pobably followed by 'statistical' data (when we first saw
    * it, how did we get its ID, how many pushes (in a timeinterval),
    * ...)
@@ -280,11 +275,6 @@ struct ChannelCtx
    * @brief The peer context associated with the channel
    */
   struct PeerContext *peer_ctx;
-
-  /**
-   * @brief Scheduled task that will destroy this context
-   */
-  struct GNUNET_SCHEDULER_Task *destruction_task;
 };
 
 /**
@@ -335,8 +325,28 @@ get_peer_ctx (const struct GNUNET_PeerIdentity *peer)
   return ctx;
 }
 
-int
-Peers_check_peer_known (const struct GNUNET_PeerIdentity *peer);
+/**
+ * @brief Check whether we have information about the given peer.
+ *
+ * FIXME probably deprecated. Make this the new _online.
+ *
+ * @param peer peer in question
+ *
+ * @return #GNUNET_YES if peer is known
+ *         #GNUNET_NO  if peer is not knwon
+ */
+static int
+Peers_check_peer_known (const struct GNUNET_PeerIdentity *peer)
+{
+  if (NULL != peer_map)
+  {
+    return GNUNET_CONTAINER_multipeermap_contains (peer_map, peer);
+  } else
+  {
+    return GNUNET_NO;
+  }
+}
+
 
 /**
  * @brief Create a new #PeerContext and insert it into the peer map
@@ -379,11 +389,37 @@ create_or_get_peer_ctx (const struct GNUNET_PeerIdentity *peer)
   return get_peer_ctx (peer);
 }
 
-void
-Peers_unset_peer_flag (const struct GNUNET_PeerIdentity *peer, enum Peers_PeerFlags flags);
 
-void
-Peers_set_peer_flag (const struct GNUNET_PeerIdentity *peer, enum Peers_PeerFlags flags);
+/**
+ * @brief unset flags on a given peer.
+ *
+ * @param peer the peer to unset flags on
+ * @param flags the flags
+ */
+static void
+Peers_unset_peer_flag (const struct GNUNET_PeerIdentity *peer, enum Peers_PeerFlags flags)
+{
+  struct PeerContext *peer_ctx;
+
+  peer_ctx = get_peer_ctx (peer);
+  unset_peer_flag (peer_ctx, flags);
+}
+
+
+/**
+ * @brief set flags on a given peer.
+ *
+ * @param peer the peer to set flags on
+ * @param flags the flags
+ */
+static void
+Peers_set_peer_flag (const struct GNUNET_PeerIdentity *peer, enum Peers_PeerFlags flags)
+{
+  struct PeerContext *peer_ctx;
+
+  peer_ctx = get_peer_ctx (peer);
+  set_peer_flag (peer_ctx, flags);
+}
 
 /**
  * @brief Check whether we have a connection to this @a peer
@@ -395,7 +431,7 @@ Peers_set_peer_flag (const struct GNUNET_PeerIdentity *peer, enum Peers_PeerFlag
  * @return #GNUNET_YES if we are connected
  *         #GNUNET_NO  otherwise
  */
-int
+static int
 Peers_check_connected (const struct GNUNET_PeerIdentity *peer)
 {
   const struct PeerContext *peer_ctx;
@@ -1084,7 +1120,7 @@ restore_valid_peers ()
  * @param cadet_h cadet handle
  * @param own_id own peer identity
  */
-void
+static void
 Peers_initialise (char* fn_valid_peers,
                   struct GNUNET_CADET_Handle *cadet_h)
 {
@@ -1150,7 +1186,7 @@ valid_peer_iterator (void *cls,
  * @return the number of key value pairs processed,
  *         #GNUNET_SYSERR if it aborted iteration
  */
-int
+static int
 Peers_get_valid_peers (PeersIterator iterator,
                        void *it_cls)
 {
@@ -1179,7 +1215,7 @@ Peers_get_valid_peers (PeersIterator iterator,
  * @return #GNUNET_YES if peer was inserted
  *         #GNUNET_NO  otherwise
  */
-int
+static int
 Peers_insert_peer (const struct GNUNET_PeerIdentity *peer)
 {
   if (GNUNET_YES == Peers_check_peer_known (peer))
@@ -1190,7 +1226,7 @@ Peers_insert_peer (const struct GNUNET_PeerIdentity *peer)
   return GNUNET_YES;
 }
 
-int
+static int
 Peers_check_peer_flag (const struct GNUNET_PeerIdentity *peer, enum Peers_PeerFlags flags);
 
 /**
@@ -1202,7 +1238,7 @@ Peers_check_peer_flag (const struct GNUNET_PeerIdentity *peer, enum Peers_PeerFl
  * @return #GNUNET_YES if peer had to be inserted
  *         #GNUNET_NO  otherwise
  */
-int
+static int
 Peers_issue_peer_liveliness_check (const struct GNUNET_PeerIdentity *peer)
 {
   struct PeerContext *peer_ctx;
@@ -1232,7 +1268,7 @@ Peers_issue_peer_liveliness_check (const struct GNUNET_PeerIdentity *peer)
  *         #GNUNET_NO     if peer is NOT removable
  *         #GNUNET_SYSERR if peer is not known
  */
-int
+static int
 Peers_check_removable (const struct GNUNET_PeerIdentity *peer)
 {
   struct PeerContext *peer_ctx;
@@ -1252,11 +1288,11 @@ Peers_check_removable (const struct GNUNET_PeerIdentity *peer)
   return GNUNET_YES;
 }
 
-uint32_t *
+static uint32_t *
 Peers_get_channel_flag (const struct GNUNET_PeerIdentity *peer,
                         enum Peers_ChannelRole role);
 
-int
+static int
 Peers_check_channel_flag (uint32_t *channel_flags, enum Peers_ChannelFlags flags);
 
 /**
@@ -1270,54 +1306,26 @@ destroy_peer (void *cls)
   struct PeerContext *peer_ctx = cls;
 
   GNUNET_assert (NULL != peer_ctx);
-  peer_ctx->destruction_task = NULL;
   Peers_remove_peer (&peer_ctx->peer_id);
 }
 
 
-static void
-destroy_channel (void *cls);
-
-
 /**
- * @brief Schedule the destruction of the given channel.
+ * @brief Callback for scheduler to destroy a channel
  *
- * Do so only if it was not already scheduled and not during shutdown.
- *
- * @param channel_ctx The context of the channel to destroy.
+ * @param cls Context of the channel
  */
 static void
-schedule_channel_destruction (struct ChannelCtx *channel_ctx)
+destroy_channel (void *cls)
 {
-  GNUNET_assert (NULL != channel_ctx);
-  if (NULL != channel_ctx->destruction_task &&
-      GNUNET_NO == in_shutdown)
-  {
-    channel_ctx->destruction_task =
-      GNUNET_SCHEDULER_add_now (&destroy_channel,
-				channel_ctx);
-  }
-}
+  struct ChannelCtx *channel_ctx = cls;
+  struct PeerContext *peer_ctx = channel_ctx->peer_ctx;
 
+  GNUNET_assert (channel_ctx == peer_ctx->send_channel_ctx ||
+                 channel_ctx == peer_ctx->recv_channel_ctx);
 
-/**
- * @brief Schedule the destruction of the given peer.
- *
- * Do so only if it was not already scheduled and not during shutdown.
- *
- * @param peer_ctx The context of the peer to destroy.
- */
-static void
-schedule_peer_destruction (struct PeerContext *peer_ctx)
-{
-  GNUNET_assert (NULL != peer_ctx);
-  if (NULL != peer_ctx->destruction_task &&
-      GNUNET_NO == in_shutdown)
-  {
-    peer_ctx->destruction_task =
-      GNUNET_SCHEDULER_add_now (&destroy_peer,
-				peer_ctx);
-  }
+  GNUNET_CADET_channel_destroy (channel_ctx->channel);
+  remove_channel_ctx (peer_ctx->send_channel_ctx);
 }
 
 
@@ -1389,35 +1397,17 @@ Peers_remove_peer (const struct GNUNET_PeerIdentity *peer)
 
   /* Do we still have to wait for destruction of channels
    * or issue the destruction? */
-  if (NULL != peer_ctx->send_channel_ctx &&
-      NULL != peer_ctx->send_channel_ctx->destruction_task)
+  if (NULL != peer_ctx->send_channel_ctx)
   {
-    schedule_peer_destruction (peer_ctx);
-    return GNUNET_NO;
-  }
-  if (NULL != peer_ctx->recv_channel_ctx &&
-      NULL != peer_ctx->recv_channel_ctx->destruction_task)
-  {
-    schedule_peer_destruction (peer_ctx);
+    destroy_channel (peer_ctx->send_channel_ctx);
     return GNUNET_NO;
   }
   if (NULL != peer_ctx->recv_channel_ctx)
   {
-    schedule_channel_destruction (peer_ctx->recv_channel_ctx);
-    schedule_peer_destruction (peer_ctx);
+    destroy_channel (peer_ctx->recv_channel_ctx);
     return GNUNET_NO;
   }
-  if (NULL != peer_ctx->send_channel_ctx)
-  {
-    schedule_channel_destruction (peer_ctx->send_channel_ctx);
-    schedule_peer_destruction (peer_ctx);
-    return GNUNET_NO;
-  }
-
-  if (NULL != peer_ctx->destruction_task)
-  {
-    GNUNET_SCHEDULER_cancel (peer_ctx->destruction_task);
-  }
+  destroy_peer (peer_ctx);
 
   if (GNUNET_YES !=
       GNUNET_CONTAINER_multipeermap_remove_all (peer_map,
@@ -1432,38 +1422,6 @@ Peers_remove_peer (const struct GNUNET_PeerIdentity *peer)
 
 
 /**
- * @brief set flags on a given peer.
- *
- * @param peer the peer to set flags on
- * @param flags the flags
- */
-void
-Peers_set_peer_flag (const struct GNUNET_PeerIdentity *peer, enum Peers_PeerFlags flags)
-{
-  struct PeerContext *peer_ctx;
-
-  peer_ctx = get_peer_ctx (peer);
-  set_peer_flag (peer_ctx, flags);
-}
-
-
-/**
- * @brief unset flags on a given peer.
- *
- * @param peer the peer to unset flags on
- * @param flags the flags
- */
-void
-Peers_unset_peer_flag (const struct GNUNET_PeerIdentity *peer, enum Peers_PeerFlags flags)
-{
-  struct PeerContext *peer_ctx;
-
-  peer_ctx = get_peer_ctx (peer);
-  unset_peer_flag (peer_ctx, flags);
-}
-
-
-/**
  * @brief Check whether flags on a peer are set.
  *
  * @param peer the peer to check the flag of
@@ -1473,7 +1431,7 @@ Peers_unset_peer_flag (const struct GNUNET_PeerIdentity *peer, enum Peers_PeerFl
  *         #GNUNET_YES    if all given flags are set
  *         #GNUNET_NO     otherwise
  */
-int
+static int
 Peers_check_peer_flag (const struct GNUNET_PeerIdentity *peer, enum Peers_PeerFlags flags)
 {
   struct PeerContext *peer_ctx;
@@ -1484,28 +1442,6 @@ Peers_check_peer_flag (const struct GNUNET_PeerIdentity *peer, enum Peers_PeerFl
   }
   peer_ctx = get_peer_ctx (peer);
   return check_peer_flag_set (peer_ctx, flags);
-}
-
-/**
- * @brief Check whether we have information about the given peer.
- *
- * FIXME probably deprecated. Make this the new _online.
- *
- * @param peer peer in question
- *
- * @return #GNUNET_YES if peer is known
- *         #GNUNET_NO  if peer is not knwon
- */
-int
-Peers_check_peer_known (const struct GNUNET_PeerIdentity *peer)
-{
-  if (NULL != peer_map)
-  {
-    return GNUNET_CONTAINER_multipeermap_contains (peer_map, peer);
-  } else
-  {
-    return GNUNET_NO;
-  }
 }
 
 
@@ -1519,7 +1455,7 @@ Peers_check_peer_known (const struct GNUNET_PeerIdentity *peer)
  * @return #GNUNET_YES if peer is valid
  *         #GNUNET_NO  if peer is not valid
  */
-int
+static int
 Peers_check_peer_valid (const struct GNUNET_PeerIdentity *peer)
 {
   return GNUNET_CONTAINER_multipeermap_contains (valid_peers, peer);
@@ -1533,7 +1469,7 @@ Peers_check_peer_valid (const struct GNUNET_PeerIdentity *peer)
  *
  * @param peer the peer to establish channel to
  */
-void
+static void
 Peers_indicate_sending_intention (const struct GNUNET_PeerIdentity *peer)
 {
   GNUNET_assert (GNUNET_YES == Peers_check_peer_known (peer));
@@ -1702,32 +1638,12 @@ Peers_destroy_sending_channel (const struct GNUNET_PeerIdentity *peer)
   peer_ctx = get_peer_ctx (peer);
   if (NULL != peer_ctx->send_channel_ctx)
   {
-    schedule_channel_destruction (peer_ctx->send_channel_ctx);
+    destroy_channel (peer_ctx->send_channel_ctx);
     (void) Peers_check_connected (peer);
     return GNUNET_YES;
   }
   return GNUNET_NO;
 }
-
-/**
- * @brief Callback for scheduler to destroy a channel
- *
- * @param cls Context of the channel
- */
-static void
-destroy_channel (void *cls)
-{
-  struct ChannelCtx *channel_ctx = cls;
-  struct PeerContext *peer_ctx = channel_ctx->peer_ctx;
-
-  GNUNET_assert (channel_ctx == peer_ctx->send_channel_ctx ||
-                 channel_ctx == peer_ctx->recv_channel_ctx);
-
-  channel_ctx->destruction_task = NULL;
-  GNUNET_CADET_channel_destroy (channel_ctx->channel);
-  remove_channel_ctx (peer_ctx->send_channel_ctx);
-}
-
 
 /**
  * @brief Send a message to another peer.
@@ -2605,7 +2521,7 @@ remove_peer (const struct GNUNET_PeerIdentity *peer)
   CustomPeerMap_remove_peer (push_map, peer);
   RPS_sampler_reinitialise_by_value (prot_sampler, peer);
   RPS_sampler_reinitialise_by_value (client_sampler, peer);
-  schedule_peer_destruction (get_peer_ctx (peer));
+  destroy_peer (get_peer_ctx (peer));
 }
 
 
@@ -2675,10 +2591,6 @@ remove_channel_ctx (struct ChannelCtx *channel_ctx)
 {
   struct PeerContext *peer_ctx = channel_ctx->peer_ctx;
 
-  if (NULL != channel_ctx->destruction_task)
-  {
-    GNUNET_SCHEDULER_cancel (channel_ctx->destruction_task);
-  }
   GNUNET_free (channel_ctx);
   if (channel_ctx == peer_ctx->send_channel_ctx)
   {
@@ -4098,7 +4010,7 @@ shutdown_task (void *cls)
     do_round_task = NULL;
   }
 
-  Peers_terminate ();
+  peers_terminate ();
 
   GNUNET_NSE_disconnect (nse);
   RPS_sampler_destroy (prot_sampler);

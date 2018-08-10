@@ -239,7 +239,7 @@ to_file_raw_unaligned (const char *file_name,
     /* needed bits of the input byte that have not been moved */
     char byte_input_leftover;
     unsigned num_bits_leftover;
-    unsigned num_bits_discard;
+    //unsigned num_bits_discard;
     char byte_unaligned_new;
 
     if ( (bits_needed - (i * 8)) <= 8)

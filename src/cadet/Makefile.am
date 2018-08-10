@@ -90,6 +90,7 @@ check_PROGRAMS = \
   test_cadet_2_speed_backwards \
   test_cadet_2_speed_reliable \
   test_cadet_2_speed_reliable_backwards \
+  test_cadet_2_reopen \
   test_cadet_5_forward \
   test_cadet_5_signal \
   test_cadet_5_keepalive \
@@ -97,7 +98,8 @@ check_PROGRAMS = \
   test_cadet_5_speed_ack \
   test_cadet_5_speed_reliable \
   test_cadet_5_speed_reliable_backwards \
-  test_cadet_5_speed_backwards
+  test_cadet_5_speed_backwards \
+  test_cadet_5_reopen
 endif
 
 
@@ -196,6 +198,14 @@ test_cadet_5_speed_reliable_LDADD = $(ld_cadet_test_lib)
 test_cadet_5_speed_reliable_backwards_SOURCES = \
   test_cadet.c
 test_cadet_5_speed_reliable_backwards_LDADD = $(ld_cadet_test_lib)
+
+test_cadet_2_reopen_SOURCES = \
+  test_cadet.c
+test_cadet_2_reopen_LDADD = $(ld_cadet_test_lib)
+
+test_cadet_5_reopen_SOURCES = \
+  test_cadet.c
+test_cadet_5_reopen_LDADD = $(ld_cadet_test_lib)
 
 
 if ENABLE_TEST_RUN

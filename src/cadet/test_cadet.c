@@ -70,6 +70,7 @@ struct CadetTestChannelWrapper
 #define SPEED_ACK 4
 #define SPEED_REL 8
 #define P2P_SIGNAL 10
+#define REOPEN 11
 
 /**
  * Which test are we running?
@@ -175,6 +176,11 @@ struct GNUNET_CADET_TEST_Context *test_ctx;
  * Task called to disconnect peers.
  */
 static struct GNUNET_SCHEDULER_Task *disconnect_task;
+
+/**
+ * Task called to reconnect peers.
+ */
+static struct GNUNET_SCHEDULER_Task *reconnect_task;
 
 /**
  * Task To perform tests
@@ -374,7 +380,8 @@ stats_cont (void *cls,
 	      "KA sent: %u, KA received: %u\n",
               ka_sent,
 	      ka_received);
-  if ((KEEPALIVE == test) && ((ka_sent < 2) || (ka_sent > ka_received + 1)))
+  if ((KEEPALIVE == test || REOPEN == test) &&
+      ((ka_sent < 2) || (ka_sent > ka_received + 1)))
   {
     GNUNET_break (0);
     ok--;
@@ -459,6 +466,152 @@ gather_stats_and_exit (void *cls)
 
 
 /**
+ * Send a message on the channel with the appropriate size and payload.
+ *
+ * Update the appropriate *_sent counter.
+ *
+ * @param channel Channel to send the message on.
+ */
+static void
+send_test_message (struct GNUNET_CADET_Channel *channel);
+
+/**
+ * Check if payload is sane (size contains payload).
+ *
+ * @param cls should match #ch
+ * @param message The actual message.
+ * @return #GNUNET_OK to keep the channel open,
+ *         #GNUNET_SYSERR to close it (signal serious error).
+ */
+static int
+check_data (void *cls,
+            const struct GNUNET_MessageHeader *message);
+
+/**
+ * Function is called whenever a message is received.
+ *
+ * @param cls closure (set from GNUNET_CADET_connect(), peer number)
+ * @param message the actual message
+ */
+static void
+handle_data (void *cls,
+             const struct GNUNET_MessageHeader *message);
+
+/**
+ * Function called whenever an MQ-channel is destroyed, even if the destruction
+ * was requested by #GNUNET_CADET_channel_destroy.
+ * It must NOT call #GNUNET_CADET_channel_destroy on the channel.
+ *
+ * It should clean up any associated state, including cancelling any pending
+ * transmission on this channel.
+ *
+ * @param cls Channel closure (channel wrapper).
+ * @param channel Connection to the other end (henceforth invalid).
+ */
+static void
+disconnect_handler (void *cls,
+                     const struct GNUNET_CADET_Channel *channel);
+
+
+/**
+ * Task to reconnect to other peer.
+ *
+ * @param cls Closure (line from which the task was scheduled).
+ */
+static void
+reconnect_op (void *cls)
+{
+  struct GNUNET_MQ_MessageHandler handlers[] = {
+    GNUNET_MQ_hd_var_size (data,
+                           GNUNET_MESSAGE_TYPE_DUMMY,
+                           struct GNUNET_MessageHeader,
+                           NULL),
+    GNUNET_MQ_handler_end ()
+  };
+  long l = (long) cls;
+  struct CadetTestChannelWrapper *ch;
+  enum GNUNET_CADET_ChannelOption flags;
+
+  reconnect_task = NULL;
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "reconnecting from line %ld\n",
+              l);
+  if (NULL != outgoing_ch)
+  {
+    GNUNET_CADET_channel_destroy (outgoing_ch);
+    outgoing_ch = NULL;
+  }
+  flags = GNUNET_CADET_OPTION_DEFAULT;
+  ch = GNUNET_new (struct CadetTestChannelWrapper);
+  outgoing_ch = GNUNET_CADET_channel_create (h1,
+                                             ch,
+                                             p_id[1],
+                                             &port,
+                                             flags,
+                                             NULL,
+                                             &disconnect_handler,
+                                             handlers);
+  ch->ch = outgoing_ch;
+  send_test_message (outgoing_ch);
+}
+
+/**
+ * Function called whenever an MQ-channel is destroyed, even if the destruction
+ * was requested by #GNUNET_CADET_channel_destroy.
+ * It must NOT call #GNUNET_CADET_channel_destroy on the channel.
+ *
+ * It should clean up any associated state, including cancelling any pending
+ * transmission on this channel.
+ *
+ * @param cls Channel closure (channel wrapper).
+ * @param channel Connection to the other end (henceforth invalid).
+ */
+static void
+disconnect_handler (void *cls,
+                     const struct GNUNET_CADET_Channel *channel)
+{
+  struct CadetTestChannelWrapper *ch_w = cls;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "Channel disconnected at %d\n",
+              ok);
+  GNUNET_assert (ch_w->ch == channel);
+  if (channel == incoming_ch)
+  {
+    ok++;
+    incoming_ch = NULL;
+  }
+  else if (outgoing_ch == channel)
+  {
+    if (P2P_SIGNAL == test)
+    {
+      ok++;
+    }
+    outgoing_ch = NULL;
+  }
+  else
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                "Unknown channel! %p\n",
+                channel);
+  if (NULL != disconnect_task && REOPEN != test)
+  {
+    GNUNET_SCHEDULER_cancel (disconnect_task);
+    disconnect_task =
+        GNUNET_SCHEDULER_add_now (&gather_stats_and_exit,
+                                  (void *) __LINE__);
+  }
+  else if (NULL != reconnect_task && REOPEN == test)
+  {
+    GNUNET_SCHEDULER_cancel (reconnect_task);
+    reconnect_task =
+        GNUNET_SCHEDULER_add_now (&reconnect_op,
+                                  (void *) __LINE__);
+  }
+  GNUNET_free (ch_w);
+}
+
+
+/**
  * Abort test: schedule disconnect and shutdown immediately
  *
  * @param line Line in the code the abort is requested from (__LINE__).
@@ -535,6 +688,14 @@ send_test_message (struct GNUNET_CADET_Channel *channel)
   else if (P2P_SIGNAL == test)
   {
     payload = data_sent;
+  }
+  else if (REOPEN == test)
+  {
+    payload = data_sent;
+    data_sent++;
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Sending DATA %u [%d bytes]\n",
+                data_sent, size);
   }
   else
   {
@@ -784,12 +945,28 @@ connect_handler (void *cls,
                 (long) cls);
     GNUNET_assert (0);
   }
-  if (NULL != disconnect_task)
+  if (NULL != disconnect_task && REOPEN != test)
   {
     GNUNET_SCHEDULER_cancel (disconnect_task);
     disconnect_task = GNUNET_SCHEDULER_add_delayed (short_time,
                                                     &gather_stats_and_exit,
                                                     (void *) __LINE__);
+  }
+  else if ((NULL != disconnect_task) && (REOPEN == test))
+  {
+    GNUNET_SCHEDULER_cancel (disconnect_task);
+    disconnect_task = GNUNET_SCHEDULER_add_delayed (
+        GNUNET_TIME_relative_multiply (short_time, 2),
+        &gather_stats_and_exit,
+        (void *) __LINE__);
+  }
+
+  if ((NULL != reconnect_task) && (REOPEN == test))
+  {
+    GNUNET_SCHEDULER_cancel (reconnect_task);
+    reconnect_task = GNUNET_SCHEDULER_add_delayed (short_time,
+                                                   &reconnect_op,
+                                                   (void *) __LINE__);
   }
 
   /* TODO: cannot return channel as-is, in order to unify the data handlers */
@@ -797,55 +974,6 @@ connect_handler (void *cls,
   ch->ch = channel;
 
   return ch;
-}
-
-
-/**
- * Function called whenever an MQ-channel is destroyed, even if the destruction
- * was requested by #GNUNET_CADET_channel_destroy.
- * It must NOT call #GNUNET_CADET_channel_destroy on the channel.
- *
- * It should clean up any associated state, including cancelling any pending
- * transmission on this channel.
- *
- * @param cls Channel closure (channel wrapper).
- * @param channel Connection to the other end (henceforth invalid).
- */
-static void
-disconnect_handler (void *cls,
-		    const struct GNUNET_CADET_Channel *channel)
-{
-  struct CadetTestChannelWrapper *ch_w = cls;
-
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-	      "Channel disconnected at %d\n",
-	      ok);
-  GNUNET_assert (ch_w->ch == channel);
-  if (channel == incoming_ch)
-  {
-    ok++;
-    incoming_ch = NULL;
-  }
-  else if (outgoing_ch == channel)
-  {
-    if (P2P_SIGNAL == test)
-    {
-      ok++;
-    }
-    outgoing_ch = NULL;
-  }
-  else
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-		"Unknown channel! %p\n",
-		channel);
-  if (NULL != disconnect_task)
-  {
-    GNUNET_SCHEDULER_cancel (disconnect_task);
-    disconnect_task =
-        GNUNET_SCHEDULER_add_now (&gather_stats_and_exit,
-				  (void *) __LINE__);
-  }
-  GNUNET_free (ch_w);
 }
 
 
@@ -871,7 +999,7 @@ start_test (void *cls)
   enum GNUNET_CADET_ChannelOption flags;
 
   test_task = NULL;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "start_test\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "start_test: %s\n", test_name);
   if (NULL != disconnect_task)
   {
     GNUNET_SCHEDULER_cancel (disconnect_task);
@@ -903,7 +1031,6 @@ start_test (void *cls)
   if (KEEPALIVE == test)
     return;                     /* Don't send any data. */
 
-
   data_received = 0;
   data_sent = 0;
   ack_received = 0;
@@ -912,6 +1039,18 @@ start_test (void *cls)
               "Sending data initializer on channel %p...\n",
               outgoing_ch);
   send_test_message (outgoing_ch);
+  if (REOPEN == test)
+  {
+    reconnect_task = GNUNET_SCHEDULER_add_delayed (short_time,
+                                                   &reconnect_op,
+                                                   (void *) __LINE__);
+    GNUNET_SCHEDULER_cancel (disconnect_task);
+    disconnect_task = GNUNET_SCHEDULER_add_delayed (
+        GNUNET_TIME_relative_multiply (short_time, 2),
+        &gather_stats_and_exit,
+        (void *) __LINE__);
+  }
+
 }
 
 
@@ -1055,6 +1194,11 @@ main (int argc, char *argv[])
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "5 PEER LINE\n");
     peers_requested = 5;
   }
+  else if (strstr (argv[0], "_6_") != NULL)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "6 PEER LINE\n");
+    peers_requested = 6;
+  }
   else
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "SIZE UNKNOWN, USING 2\n");
@@ -1121,6 +1265,17 @@ main (int argc, char *argv[])
      * 1 received channel destroy (@dest)
      */
     ok_goal = 2;
+  }
+  else if (strstr (argv[0], "_reopen") != NULL)
+  {
+    test = REOPEN;
+    test_name = "reopen";
+    ///* Test is supposed to generate the following callbacks:
+    // * 1 incoming channel (@dest)
+    // * [wait]
+    // * 1 received channel destroy (@dest)
+    // */
+    ok_goal = 7;
   }
   else
   {
