@@ -11,7 +11,7 @@
   WITHOUT ANY WARRANTY; without even the implied warranty of
   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
   Affero General Public License for more details.
- 
+
   You should have received a copy of the GNU Affero General Public License
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
@@ -43,6 +43,10 @@ GNUNET_PQ_exec_prepared (PGconn *db_conn,
   unsigned int len;
   unsigned int i;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Running prepared statement `%s' on %p\n",
+              name,
+              db_conn);
   /* count the number of parameters */
   len = 0;
   for (i=0;0 != params[i].num_params;i++)

@@ -11,7 +11,7 @@
   WITHOUT ANY WARRANTY; without even the implied warranty of
   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
   Affero General Public License for more details.
- 
+
   You should have received a copy of the GNU Affero General Public License
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
@@ -79,6 +79,10 @@ GNUNET_PQ_exec_statements (PGconn *connection,
   {
     PGresult *result;
 
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Running statement `%s' on %p\n",
+                es[i].sql,
+                connection);
     result = PQexec (connection,
                      es[i].sql);
     if ( (GNUNET_NO == es[i].ignore_errors) &&
