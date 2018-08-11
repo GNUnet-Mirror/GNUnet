@@ -122,19 +122,18 @@ curl_put "${identity_link}/name/test_plugin_rest_identity1" '{"newname":"test_pl
 curl_put "${identity_link}/name/test_plugin_rest_identity" '{"newnam":"test_plugin_rest_identityfail"}' "error"
 
 #Test subsystem
-curl_put "${identity_link}/name/test_plugin_rest_identity" '{"subsystem":"namestore"}' "HTTP/1.1 204"
-curl_put "${identity_link}/name/test_plugin_rest_identity" '{"subsystem":"namestore"}' "HTTP/1.1 204"
+curl_put "${identity_link}/subsystem/test_plugin_rest_identity" '{"subsystem":"namestore"}' "HTTP/1.1 204"
+curl_put "${identity_link}/subsystem/test_plugin_rest_identity" '{"subsystem":"namestore"}' "HTTP/1.1 204"
 curl_get "${identity_link}/subsystem/namestore" "test_plugin_rest_identity"
-curl_post "${identity_link}" '{"name":"test_plugin_rest_identity1"}' "HTTP/1.1 201 Created"
 public="$(gnunet-identity -d | grep "test_plugin_rest_identity" | awk 'NR==1{print $3}')"
-curl_put "${identity_link}/pubkey/$public" '{"subsystem":"namestore"}' "HTTP/1.1 204"
-curl_get "${identity_link}/subsystem/namestore" "test_plugin_rest_identity1"
+curl_put "${identity_link}/subsystem/$public" '{"subsystem":"namestore"}' "HTTP/1.1 404"
+curl_post "${identity_link}" '{"name":"test_plugin_rest_identity1"}' "HTTP/1.1 201 Created"
 curl_get "${identity_link}/subsystem/test_plugin_rest_identity_no_subsystem" "error"
-curl_put "${identity_link}/name/test_plugin_rest_identity1" '{"subsystem":"test_plugin_rest_identity_no_subsystem"}' "HTTP/1.1 204"
+curl_put "${identity_link}/subsystem/test_plugin_rest_identity1" '{"subsystem":"test_plugin_rest_identity_no_subsystem"}' "HTTP/1.1 204"
 curl_get "${identity_link}/subsystem/test_plugin_rest_identity_no_subsystem" "test_plugin_rest_identity1"
 
-curl_put "${identity_link}/name/test_plugin_rest_identity1" '{"subsyste":"test_plugin_rest_identity_no_subsystem"}' "error"
-curl_put "${identity_link}/name/test_plugin_rest_identity1" '{"subsystem":"test_plugin_rest_identity_no_subsystem"}' "HTTP/1.1 204"
+curl_put "${identity_link}/subsystem/test_plugin_rest_identity1" '{"subsyste":"test_plugin_rest_identity_no_subsystem"}' "error"
+curl_put "${identity_link}/subsystem/test_plugin_rest_identity1" '{"subsystem":"test_plugin_rest_identity_no_subsystem"}' "HTTP/1.1 204"
 
 #Test DELETE
 curl_delete "${identity_link}/name/test_plugin_rest_identity" "HTTP/1.1 204"
