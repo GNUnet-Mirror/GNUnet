@@ -560,6 +560,7 @@ ego_get_pubkey (struct GNUNET_REST_RequestHandle *con_handle,
 
   if (strlen (GNUNET_REST_API_NS_IDENTITY_PUBKEY) >= strlen (handle->url))
   {
+    handle->response_code = MHD_HTTP_NOT_FOUND;
     handle->emsg = GNUNET_strdup(GNUNET_REST_IDENTITY_MISSING_PUBKEY);
     GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
@@ -598,6 +599,7 @@ ego_get_name (struct GNUNET_REST_RequestHandle *con_handle,
 
   if (strlen (GNUNET_REST_API_NS_IDENTITY_NAME) >= strlen (handle->url))
   {
+    handle->response_code = MHD_HTTP_NOT_FOUND;
     handle->emsg = GNUNET_strdup(GNUNET_REST_IDENTITY_MISSING_NAME);
     GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
@@ -1036,7 +1038,6 @@ ego_delete_pubkey (struct GNUNET_REST_RequestHandle *con_handle,
 {
   struct RequestHandle *handle = cls;
   struct EgoEntry *ego_entry;
-  struct MHD_Response *resp;
   char *keystring;
 
   keystring = NULL;
@@ -1053,9 +1054,9 @@ ego_delete_pubkey (struct GNUNET_REST_RequestHandle *con_handle,
 
   if (NULL == ego_entry)
   {
-    resp = GNUNET_REST_create_response (NULL);
-    handle->proc (handle->proc_cls, resp, MHD_HTTP_NOT_FOUND);
-    GNUNET_SCHEDULER_add_now (&cleanup_handle, handle);
+    handle->response_code = MHD_HTTP_NOT_FOUND;
+    handle->emsg = GNUNET_strdup(GNUNET_REST_IDENTITY_NOT_FOUND);
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
   }
 
@@ -1081,7 +1082,6 @@ ego_delete_name (struct GNUNET_REST_RequestHandle *con_handle,
 {
   struct RequestHandle *handle = cls;
   struct EgoEntry *ego_entry;
-  struct MHD_Response *resp;
   char *name;
 
   name = NULL;
@@ -1098,9 +1098,9 @@ ego_delete_name (struct GNUNET_REST_RequestHandle *con_handle,
 
   if (NULL == ego_entry)
   {
-    resp = GNUNET_REST_create_response (NULL);
-    handle->proc (handle->proc_cls, resp, MHD_HTTP_NOT_FOUND);
-    GNUNET_SCHEDULER_add_now (&cleanup_handle, handle);
+    handle->response_code = MHD_HTTP_NOT_FOUND;
+    handle->emsg = GNUNET_strdup(GNUNET_REST_IDENTITY_NOT_FOUND);
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
   }
 
