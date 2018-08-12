@@ -31,13 +31,30 @@
 #include "microhttpd.h"
 #include <jansson.h>
 
+/**
+ * Peerinfo Namespace
+ */
 #define GNUNET_REST_API_NS_PEERINFO "/peerinfo"
 
-#define GNUNET_REST_API_PEERINFO_PEER "peer"
-#define GNUNET_REST_API_PEERINFO_FRIEND "friend"
-#define GNUNET_REST_API_PEERINFO_ARRAY "array"
+/**
+ * Peerinfo parameter peer
+ */
+#define GNUNET_REST_PEERINFO_PEER "peer"
 
-#define GNUNET_REST_ERROR_UNKNOWN "Unkown Error"
+/**
+ * Peerinfo parameter friend
+ */
+#define GNUNET_REST_PEERINFO_FRIEND "friend"
+
+/**
+ * Peerinfo parameter array
+ */
+#define GNUNET_REST_PEERINFO_ARRAY "array"
+
+/**
+ * Error message Unknown Error
+ */
+#define GNUNET_REST_PEERINFO_ERROR_UNKNOWN "Unknown Error"
 
 /**
  * How long until we time out during address lookup?
@@ -94,7 +111,6 @@ struct AddressRecord
  */
 struct PrintContext
 {
-
   /**
    * Kept in DLL.
    */
@@ -152,6 +168,9 @@ static struct PrintContext *pc_head;
  */
 static struct PrintContext *pc_tail;
 
+/**
+ * The request handle
+ */
 struct RequestHandle
 {
   /**
@@ -299,7 +318,7 @@ do_error (void *cls)
   char *response;
 
   if (NULL == handle->emsg)
-    handle->emsg = GNUNET_strdup(GNUNET_REST_ERROR_UNKNOWN);
+    handle->emsg = GNUNET_strdup(GNUNET_REST_PEERINFO_ERROR_UNKNOWN);
 
   json_object_set_new(json_error,"error", json_string(handle->emsg));
 
@@ -315,7 +334,9 @@ do_error (void *cls)
 
 
 /**
- * Function that assembles our response.
+ * Function that assembles the response.
+ *
+ * @param cls the `struct RequestHandle`
  */
 static void
 peerinfo_list_finished (void *cls)
@@ -326,6 +347,7 @@ peerinfo_list_finished (void *cls)
 
   if (NULL == handle->response)
   {
+    handle->response_code = MHD_HTTP_NOT_FOUND;
     handle->emsg = GNUNET_strdup ("No peers found");
     GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
@@ -386,9 +408,6 @@ dump_pc (struct PrintContext *pc)
   temp_array = json_array();
   response_entry = json_object();
 
-//  printf (_("%sPeer `%s'\n"),
-//	  (GNUNET_YES == pc->friend_only) ? "F2F: " : "",
-//	  GNUNET_i2s_full (&pc->peer));
   for (i = 0; i < pc->num_addresses; i++)
   {
     if (NULL != pc->address_list[i].result)
@@ -417,10 +436,10 @@ dump_pc (struct PrintContext *pc)
 		    GNUNET_i2s_full (&pc->peer));
     friend_and_peer_json = json_string(friend_and_peer);
     json_object_set(response_entry,
-		    GNUNET_REST_API_PEERINFO_PEER,
+		    GNUNET_REST_PEERINFO_PEER,
 		    friend_and_peer_json);
     json_object_set(response_entry,
-		    GNUNET_REST_API_PEERINFO_ARRAY,
+		    GNUNET_REST_PEERINFO_ARRAY,
 		    temp_array);
     json_array_append(pc->handle->response, response_entry);
     json_decref(friend_and_peer_json);
@@ -615,8 +634,8 @@ peerinfo_get (struct GNUNET_REST_RequestHandle *con_handle,
   char* include_friend_only_str;
 
   include_friend_only = GNUNET_NO;
-  GNUNET_CRYPTO_hash (GNUNET_REST_API_PEERINFO_FRIEND,
-		      strlen (GNUNET_REST_API_PEERINFO_FRIEND),
+  GNUNET_CRYPTO_hash (GNUNET_REST_PEERINFO_FRIEND,
+		      strlen (GNUNET_REST_PEERINFO_FRIEND),
 		      &key);
   if ( GNUNET_YES
       == GNUNET_CONTAINER_multihashmap_contains (con_handle->url_param_map,
@@ -631,15 +650,15 @@ peerinfo_get (struct GNUNET_REST_RequestHandle *con_handle,
   }
 
   specific_peer = NULL;
-  GNUNET_CRYPTO_hash (GNUNET_REST_API_PEERINFO_PEER,
-		      strlen (GNUNET_REST_API_PEERINFO_PEER),
+  GNUNET_CRYPTO_hash (GNUNET_REST_PEERINFO_PEER,
+		      strlen (GNUNET_REST_PEERINFO_PEER),
 		      &key);
   if ( GNUNET_YES
       == GNUNET_CONTAINER_multihashmap_contains (con_handle->url_param_map,
 						 &key))
   {
-    peer_id = *(unsigned int*)GNUNET_CONTAINER_multihashmap_get (con_handle->url_param_map, &key);
-    specific_peer = GNUNET_PEER_resolve2(peer_id);
+    //peer_id = *(unsigned int*)GNUNET_CONTAINER_multihashmap_get (con_handle->url_param_map, &key);
+    //specific_peer = GNUNET_PEER_resolve2(peer_id);
   }
 
   handle->list_it = GNUNET_PEERINFO_iterate(handle->peerinfo_handle,

@@ -26,10 +26,10 @@
 #include "gnunet_json_lib.h"
 
 #define GNUNET_JSON_GNSRECORD_VALUE "value"
-#define GNUNET_JSON_GNSRECORD_TYPE "type"
+#define GNUNET_JSON_GNSRECORD_TYPE "record_type"
 #define GNUNET_JSON_GNSRECORD_EXPIRATION_TIME "expiration_time"
 #define GNUNET_JSON_GNSRECORD_FLAG "flag"
-#define GNUNET_JSON_GNSRECORD_LABEL "label"
+#define GNUNET_JSON_GNSRECORD_RECORD_NAME "record_name"
 #define GNUNET_JSON_GNSRECORD_NEVER "never"
 
 
@@ -52,7 +52,7 @@ parse_gnsrecordobject (void *cls,
   const char *value;
   const char *expiration_time;
   const char *record_type;
-  const char *label;
+  const char *name;
   int flag;
   void *rdata = NULL;
   size_t rdata_size;
@@ -71,7 +71,7 @@ parse_gnsrecordobject (void *cls,
 			     GNUNET_JSON_GNSRECORD_TYPE, &record_type,
 			     GNUNET_JSON_GNSRECORD_EXPIRATION_TIME, &expiration_time,
 			     GNUNET_JSON_GNSRECORD_FLAG, &flag,
-			     GNUNET_JSON_GNSRECORD_LABEL, &label);
+			     GNUNET_JSON_GNSRECORD_RECORD_NAME, &name);
   if (0 != unpack_state)
   {
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,

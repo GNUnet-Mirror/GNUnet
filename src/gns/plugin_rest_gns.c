@@ -30,13 +30,25 @@
 #include "microhttpd.h"
 #include <jansson.h>
 
+/**
+ * Rest API GNS Namespace
+ */
 #define GNUNET_REST_API_NS_GNS "/gns"
 
-
-#define GNUNET_REST_GNS_PARAM_NAME "name"
-
+/**
+ * Rest API GNS Parameter record_type
+ */
 #define GNUNET_REST_GNS_PARAM_RECORD_TYPE "record_type"
+
+/**
+ * Rest API GNS ERROR Unknown Error
+ */
 #define GNUNET_REST_GNS_ERROR_UNKNOWN "Unknown Error"
+
+/**
+ * Rest API GNS ERROR Record not found
+ */
+#define GNUNET_REST_GNS_NOT_FOUND "Record not found"
 
 /**
  * The configuration handle
@@ -56,7 +68,9 @@ struct Plugin
   const struct GNUNET_CONFIGURATION_Handle *cfg;
 };
 
-
+/**
+ * The request handle
+ */
 struct RequestHandle
 {
 
@@ -116,7 +130,7 @@ struct RequestHandle
   char *emsg;
 
   /**
-   * Reponse code
+   * Response code
    */
   int response_code;
 
@@ -214,7 +228,8 @@ handle_gns_response (void *cls,
 
   if (GNUNET_NO == was_gns)
   {
-    handle->emsg = GNUNET_strdup("Name not found in GNS");
+    handle->response_code = MHD_HTTP_NOT_FOUND;
+    handle->emsg = GNUNET_strdup(GNUNET_REST_GNS_NOT_FOUND);
     GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
   }
@@ -260,21 +275,24 @@ get_gns_cont (struct GNUNET_REST_RequestHandle *con_handle,
   char *record_type;
   char *name;
 
-  GNUNET_CRYPTO_hash (GNUNET_REST_GNS_PARAM_NAME,
-                      strlen (GNUNET_REST_GNS_PARAM_NAME),
-                      &key);
-  if ( GNUNET_NO
-       == GNUNET_CONTAINER_multihashmap_contains (con_handle->url_param_map,
-                                                  &key))
+  name = NULL;
+  handle->name = NULL;
+  if (strlen (GNUNET_REST_API_NS_GNS) < strlen (handle->url))
   {
-    handle->emsg = GNUNET_strdup("Parameter name is missing");
+    name = &handle->url[strlen (GNUNET_REST_API_NS_GNS) + 1];
+  }
+
+  if (NULL == name)
+  {
+    handle->response_code = MHD_HTTP_NOT_FOUND;
+    handle->emsg = GNUNET_strdup(GNUNET_REST_GNS_NOT_FOUND);
     GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
   }
-  name = GNUNET_CONTAINER_multihashmap_get (con_handle->url_param_map,&key);
-  if(0 >= strlen (name))
+  if (0 >= strlen (name))
   {
-    handle->emsg = GNUNET_strdup("Length of parameter name is zero");
+    handle->response_code = MHD_HTTP_NOT_FOUND;
+    handle->emsg = GNUNET_strdup(GNUNET_REST_GNS_NOT_FOUND);
     GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
   }
@@ -292,18 +310,9 @@ get_gns_cont (struct GNUNET_REST_RequestHandle *con_handle,
     handle->record_type = GNUNET_GNSRECORD_typename_to_number(record_type);
   }
 
-
   if(UINT32_MAX == handle->record_type)
   {
     handle->record_type = GNUNET_GNSRECORD_TYPE_ANY;
-  }
-
-  handle->gns = GNUNET_GNS_connect (cfg);
-  if (NULL == handle->gns)
-  {
-    handle->emsg = GNUNET_strdup ("GNS not available");
-    GNUNET_SCHEDULER_add_now (&do_error, handle);
-    return;
   }
 
   handle->gns_lookup = GNUNET_GNS_lookup_with_tld (handle->gns,
@@ -312,7 +321,6 @@ get_gns_cont (struct GNUNET_REST_RequestHandle *con_handle,
                                                    GNUNET_NO,
                                                    &handle_gns_response,
                                                    handle);
-  return;
 }
 
 
@@ -397,7 +405,7 @@ rest_process_request(struct GNUNET_REST_RequestHandle *rest_handle,
   if (handle->url[strlen (handle->url)-1] == '/')
     handle->url[strlen (handle->url)-1] = '\0';
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Connecting...\n");
-
+  handle->gns = GNUNET_GNS_connect (cfg);
   init_cont(handle);
 
   handle->timeout_task =
