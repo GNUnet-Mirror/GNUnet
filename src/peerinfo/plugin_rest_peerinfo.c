@@ -629,7 +629,7 @@ peerinfo_get (struct GNUNET_REST_RequestHandle *con_handle,
   struct RequestHandle *handle = cls;
   struct GNUNET_HashCode key;
   const struct GNUNET_PeerIdentity *specific_peer;
-  GNUNET_PEER_Id peer_id;
+  //GNUNET_PEER_Id peer_id;
   int include_friend_only;
   char* include_friend_only_str;
 
