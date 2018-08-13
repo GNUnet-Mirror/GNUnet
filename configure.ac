@@ -447,7 +447,7 @@ AC_CHECK_LIB(ogg, ogg_stream_flush_fill,
 
 # check for zklaims
 zklaim=0
-AC_CHECK_HEADER([zklaim.h],zklaim=1)
+AC_CHECK_HEADER([zklaim/zklaim.h],zklaim=1)
 AM_CONDITIONAL(HAVE_ZKLAIM, [test "$zklaim" = 1])
 if test "x$zklaim" = x1
 then

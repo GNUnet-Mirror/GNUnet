@@ -508,6 +508,7 @@ src/vpn/gnunet-service-vpn.c
 src/vpn/gnunet-vpn.c
 src/vpn/vpn_api.c
 src/zklaim/main.c
+src/zklaim/zklaim.c
 src/zonemaster/gnunet-service-zonemaster.c
 src/fs/fs_api.h
 src/include/gnunet_common.h
