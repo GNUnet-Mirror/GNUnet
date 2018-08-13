@@ -549,6 +549,9 @@ cadet_mq_error_handler (void *cls,
   else
   {
     GNUNET_break (0);
+    if (NULL != ch->disconnects)
+      ch->disconnects (ch->ctx,
+		       ch);
     GNUNET_CADET_channel_destroy (ch);
   }
 }

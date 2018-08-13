@@ -701,7 +701,7 @@ get_channel (const struct GNUNET_PeerIdentity *peer)
                                    &port,
                                    GNUNET_CADET_OPTION_RELIABLE,
                                    NULL, /* WindowSize handler */
-                                   cleanup_destroyed_channel, /* Disconnect handler */
+                                   &cleanup_destroyed_channel, /* Disconnect handler */
                                    cadet_handlers);
   }
   GNUNET_assert (NULL != peer_ctx->send_channel_ctx);
@@ -860,6 +860,7 @@ check_operation_scheduled (const struct GNUNET_PeerIdentity *peer,
   return GNUNET_NO;
 }
 
+
 /**
  * @brief Callback for scheduler to destroy a channel
  *
@@ -869,16 +870,19 @@ static void
 destroy_channel (struct ChannelCtx *channel_ctx)
 {
   struct PeerContext *peer_ctx = channel_ctx->peer_ctx;
-
+  struct GNUNET_CADET_Channel *channel;
+  
   if (NULL != channel_ctx->destruction_task)
   {
     GNUNET_SCHEDULER_cancel (channel_ctx->destruction_task);
     channel_ctx->destruction_task = NULL;
   }
-  GNUNET_CADET_channel_destroy (channel_ctx->channel);
+  channel = channel_ctx->channel;
   channel_ctx->channel = NULL;
+  GNUNET_CADET_channel_destroy (channel);
   remove_channel_ctx (channel_ctx);
 }
+
 
 /**
  * @brief Destroy a cadet channel.
@@ -891,9 +895,11 @@ static void
 destroy_channel_cb (void *cls)
 {
   struct ChannelCtx *channel_ctx = cls;
+
   channel_ctx->destruction_task = NULL;
   destroy_channel (channel_ctx);
 }
+
 
 /**
  * @brief Schedule the destruction of a channel for immediately afterwards.
@@ -908,9 +914,15 @@ destroy_channel_cb (void *cls)
 static void
 schedule_channel_destruction (struct ChannelCtx *channel_ctx)
 {
+  GNUNET_assert (NULL ==
+		 channel_ctx->destruction_task);
+  GNUNET_assert (NULL !=
+		 channel_ctx->channel);
   channel_ctx->destruction_task =
-    GNUNET_SCHEDULER_add_now (destroy_channel_cb, channel_ctx);
+    GNUNET_SCHEDULER_add_now (&destroy_channel_cb,
+			      channel_ctx);
 }
+
 
 /**
  * @brief Remove peer
@@ -2530,7 +2542,7 @@ cleanup_destroyed_channel (void *cls,
   //  * cleanup everything related to the channel
   //    * memory
   //  * remove peer if necessary
-
+  channel_ctx->channel = NULL;
   if (peer_ctx->recv_channel_ctx == channel_ctx)
   {
     remove_channel_ctx (channel_ctx);
