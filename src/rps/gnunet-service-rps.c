@@ -625,7 +625,7 @@ add_channel_ctx (struct PeerContext *peer_ctx)
 
 
 /**
- * @brief Remove the channel context from the DLL and free the memory.
+ * @brief Free memory and NULL pointers.
  *
  * @param channel_ctx The channel context.
  */
@@ -644,10 +644,6 @@ remove_channel_ctx (struct ChannelCtx *channel_ctx)
   {
     GNUNET_free (channel_ctx);
     peer_ctx->recv_channel_ctx = NULL;
-  }
-  else
-  {
-    GNUNET_assert (0);
   }
 }
 
@@ -869,14 +865,14 @@ check_operation_scheduled (const struct GNUNET_PeerIdentity *peer,
 static void
 destroy_channel (struct ChannelCtx *channel_ctx)
 {
-  struct PeerContext *peer_ctx = channel_ctx->peer_ctx;
   struct GNUNET_CADET_Channel *channel;
-  
+
   if (NULL != channel_ctx->destruction_task)
   {
     GNUNET_SCHEDULER_cancel (channel_ctx->destruction_task);
     channel_ctx->destruction_task = NULL;
   }
+  GNUNET_assert (channel_ctx->channel != NULL);
   channel = channel_ctx->channel;
   channel_ctx->channel = NULL;
   GNUNET_CADET_channel_destroy (channel);
