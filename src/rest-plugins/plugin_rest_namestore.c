@@ -458,10 +458,7 @@ namestore_list_finished (void *cls)
   handle->list_it = NULL;
 
   if (NULL == handle->resp_object)
-  {
-    GNUNET_SCHEDULER_add_now (&do_error, handle);
-    return;
-  }
+    handle->resp_object = json_array();
 
   result_str = json_dumps (handle->resp_object, 0);
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Result %s\n", result_str);
@@ -508,6 +505,48 @@ namestore_list_iteration (void *cls,
   GNUNET_NAMESTORE_zone_iterator_next (handle->list_it, 1);
 }
 
+/**
+ * @param cls closure
+ * @param ego ego handle
+ * @param ctx context for application to store data for this ego
+ *                 (during the lifetime of this process, initially NULL)
+ * @param identifier identifier assigned by the user for this ego,
+ *                   NULL if the user just deleted the ego and it
+ *                   must thus no longer be used
+ */
+static void
+default_ego_get (void *cls,
+		 struct GNUNET_IDENTITY_Ego *ego,
+		 void **ctx,
+		 const char *identifier)
+{
+  struct RequestHandle *handle = cls;
+  handle->op = NULL;
+
+  if (ego == NULL)
+  {
+    handle->emsg = GNUNET_strdup(GNUNET_REST_NAMESTORE_NO_DEFAULT_ZONE);
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
+    return;
+  }
+  handle->zone_pkey = GNUNET_IDENTITY_ego_get_private_key (ego);
+
+  handle->list_it = GNUNET_NAMESTORE_zone_iteration_start (handle->ns_handle,
+                                                           handle->zone_pkey,
+                                                           &namestore_iteration_error,
+                                                           handle,
+                                                           &namestore_list_iteration,
+                                                           handle,
+                                                           &namestore_list_finished,
+                                                           handle);
+  if (NULL == handle->list_it)
+  {
+    handle->emsg = GNUNET_strdup(GNUNET_REST_NAMESTORE_FAILED);
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
+    return;
+  }
+}
+
 
 /**
  * Handle namestore GET request
@@ -546,10 +585,13 @@ namestore_get (struct GNUNET_REST_RequestHandle *con_handle,
   {
     handle->zone_pkey = GNUNET_IDENTITY_ego_get_private_key(ego_entry->ego);
   }
+
   if (NULL == handle->zone_pkey)
   {
-    handle->emsg = GNUNET_strdup(GNUNET_REST_NAMESTORE_NO_DEFAULT_ZONE);
-    GNUNET_SCHEDULER_add_now (&do_error, handle);
+    handle->op = GNUNET_IDENTITY_get (handle->identity_handle,
+    				      "namestore",
+    				      &default_ego_get,
+    				      handle);
     return;
   }
   handle->list_it = GNUNET_NAMESTORE_zone_iteration_start (handle->ns_handle,
@@ -561,6 +603,48 @@ namestore_get (struct GNUNET_REST_RequestHandle *con_handle,
                                                            &namestore_list_finished,
                                                            handle);
   if (NULL == handle->list_it)
+  {
+    handle->emsg = GNUNET_strdup(GNUNET_REST_NAMESTORE_FAILED);
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
+    return;
+  }
+}
+
+
+/**
+ * @param cls closure
+ * @param ego ego handle
+ * @param ctx context for application to store data for this ego
+ *                 (during the lifetime of this process, initially NULL)
+ * @param identifier identifier assigned by the user for this ego,
+ *                   NULL if the user just deleted the ego and it
+ *                   must thus no longer be used
+ */
+static void
+default_ego_post (void *cls,
+		  struct GNUNET_IDENTITY_Ego *ego,
+		  void **ctx,
+		  const char *identifier)
+{
+  struct RequestHandle *handle = cls;
+  handle->op = NULL;
+
+  if (ego == NULL)
+  {
+    handle->emsg = GNUNET_strdup(GNUNET_REST_NAMESTORE_NO_DEFAULT_ZONE);
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
+    return;
+  }
+  handle->zone_pkey = GNUNET_IDENTITY_ego_get_private_key (ego);
+
+  handle->add_qe = GNUNET_NAMESTORE_records_store (handle->ns_handle,
+  						   handle->zone_pkey,
+  						   handle->record_name,
+  						   1,
+  						   handle->rd,
+  						   &create_finished,
+  						   handle);
+  if (NULL == handle->add_qe)
   {
     handle->emsg = GNUNET_strdup(GNUNET_REST_NAMESTORE_FAILED);
     GNUNET_SCHEDULER_add_now (&do_error, handle);
@@ -663,17 +747,61 @@ namestore_add (struct GNUNET_REST_RequestHandle *con_handle,
   }
   if (NULL == handle->zone_pkey)
   {
+    handle->op = GNUNET_IDENTITY_get (handle->identity_handle,
+    				      "namestore",
+    				      &default_ego_post,
+    				      handle);
+    return;
+  }
+  handle->add_qe = GNUNET_NAMESTORE_records_store (handle->ns_handle,
+						   handle->zone_pkey,
+						   handle->record_name,
+						   1,
+						   handle->rd,
+						   &create_finished,
+						   handle);
+  if (NULL == handle->add_qe)
+  {
+    handle->emsg = GNUNET_strdup(GNUNET_REST_NAMESTORE_FAILED);
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
+    return;
+  }
+}
+
+
+/**
+ * @param cls closure
+ * @param ego ego handle
+ * @param ctx context for application to store data for this ego
+ *                 (during the lifetime of this process, initially NULL)
+ * @param identifier identifier assigned by the user for this ego,
+ *                   NULL if the user just deleted the ego and it
+ *                   must thus no longer be used
+ */
+static void
+default_ego_delete (void *cls,
+		    struct GNUNET_IDENTITY_Ego *ego,
+		    void **ctx,
+		    const char *identifier)
+{
+  struct RequestHandle *handle = cls;
+  handle->op = NULL;
+
+  if (ego == NULL)
+  {
     handle->emsg = GNUNET_strdup(GNUNET_REST_NAMESTORE_NO_DEFAULT_ZONE);
     GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
   }
+  handle->zone_pkey = GNUNET_IDENTITY_ego_get_private_key (ego);
+
   handle->add_qe = GNUNET_NAMESTORE_records_store (handle->ns_handle,
-						    handle->zone_pkey,
-						    handle->record_name,
-						    1,
-						    handle->rd,
-						    &create_finished,
-						    handle);
+                                                   handle->zone_pkey,
+                                                   handle->record_name,
+                                                   0,
+						   NULL,
+                                                   &del_finished,
+                                                   handle);
   if (NULL == handle->add_qe)
   {
     handle->emsg = GNUNET_strdup(GNUNET_REST_NAMESTORE_FAILED);
@@ -736,8 +864,10 @@ namestore_delete (struct GNUNET_REST_RequestHandle *con_handle,
 
   if (NULL == handle->zone_pkey)
   {
-    handle->emsg = GNUNET_strdup(GNUNET_REST_NAMESTORE_NO_DEFAULT_ZONE);
-    GNUNET_SCHEDULER_add_now (&do_error, handle);
+    handle->op = GNUNET_IDENTITY_get (handle->identity_handle,
+    				      "namestore",
+    				      &default_ego_delete,
+    				      handle);
     return;
   }
 
@@ -811,30 +941,6 @@ init_cont (struct RequestHandle *handle)
   }
 }
 
-/**
- * @param cls closure
- * @param ego ego handle
- * @param ctx context for application to store data for this ego
- *                 (during the lifetime of this process, initially NULL)
- * @param identifier identifier assigned by the user for this ego,
- *                   NULL if the user just deleted the ego and it
- *                   must thus no longer be used
- */
-static void
-default_ego_cb (void *cls,
-                struct GNUNET_IDENTITY_Ego *ego,
-                void **ctx,
-                const char *identifier)
-{
-  struct RequestHandle *handle = cls;
-  handle->op = NULL;
-
-  if (ego != NULL)
-  {
-    handle->zone_pkey = GNUNET_IDENTITY_ego_get_private_key (ego);
-  }
-}
-
 
 /**
  * This function is initially called for all egos and then again
@@ -877,17 +983,10 @@ id_connect_cb (void *cls,
   struct EgoEntry *ego_entry;
   struct GNUNET_CRYPTO_EcdsaPublicKey pk;
 
-  if ((NULL == ego) && (NULL == handle->zone_pkey))
-  {
-    handle->op = GNUNET_IDENTITY_get (handle->identity_handle,
-				      "namestore",
-				      &default_ego_cb,
-				      handle);
-  }
   if ((NULL == ego) && (ID_REST_STATE_INIT == handle->state))
   {
     handle->state = ID_REST_STATE_POST_INIT;
-    init_cont (handle);
+    init_cont(handle);
     return;
   }
   if (ID_REST_STATE_INIT == handle->state)
@@ -934,8 +1033,8 @@ rest_process_request(struct GNUNET_REST_RequestHandle *rest_handle,
     handle->url[strlen (handle->url)-1] = '\0';
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Connecting...\n");
 
-  handle->identity_handle = GNUNET_IDENTITY_connect (cfg, &id_connect_cb, handle);
   handle->ns_handle = GNUNET_NAMESTORE_connect (cfg);
+  handle->identity_handle = GNUNET_IDENTITY_connect (cfg, &id_connect_cb, handle);
   handle->timeout_task =
     GNUNET_SCHEDULER_add_delayed (handle->timeout,
                                   &do_error,
