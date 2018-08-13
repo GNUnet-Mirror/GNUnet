@@ -193,7 +193,7 @@ GNUNET_JSON_from_gns_record (const char* rname,
 		     expiration_time_str,
 		     "flag",
 		     flags,
-		     "label",
+		     "record_name",
 		     rname);
   }
   else
