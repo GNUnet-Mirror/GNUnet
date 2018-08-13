@@ -211,7 +211,6 @@ src/jsonapi/jsonapi_document.c
 src/jsonapi/jsonapi_error.c
 src/jsonapi/jsonapi_relationship.c
 src/jsonapi/jsonapi_resource.c
-src/jsonapi/plugin_rest_openid_connect.c
 src/jsonapi/plugin_rest_reclaim.c
 src/multicast/gnunet-multicast.c
 src/multicast/gnunet-service-multicast.c
@@ -292,7 +291,6 @@ src/reclaim-attribute/reclaim_attribute.c
 src/reclaim/gnunet-reclaim.c
 src/reclaim/gnunet-service-reclaim.c
 src/reclaim/jwt.c
-src/reclaim/oidc_helper.c
 src/reclaim/plugin_gnsrecord_reclaim.c
 src/reclaim/plugin_reclaim_sqlite.c
 src/reclaim/reclaim_api.c
@@ -310,10 +308,12 @@ src/regex/regex_internal_dht.c
 src/regex/regex_test_graph.c
 src/regex/regex_test_lib.c
 src/regex/regex_test_random.c
+src/rest-plugins/oidc_helper.c
 src/rest-plugins/plugin_rest_copying.c
 src/rest-plugins/plugin_rest_gns.c
 src/rest-plugins/plugin_rest_identity.c
 src/rest-plugins/plugin_rest_namestore.c
+src/rest-plugins/plugin_rest_openid_connect.c
 src/rest-plugins/plugin_rest_peerinfo.c
 src/rest/gnunet-rest-server.c
 src/rest/rest.c

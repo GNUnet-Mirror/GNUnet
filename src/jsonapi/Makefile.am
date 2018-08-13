@@ -8,8 +8,11 @@ endif
 
 lib_LTLIBRARIES = \
   libgnunetjsonapi.la \
-	libgnunetjsonapiutils.la \
-	libgnunet_plugin_rest_reclaim.la
+	libgnunetjsonapiutils.la
+
+if HAVE_ABE
+lib_LTLIBRARIES += libgnunet_plugin_rest_reclaim.la
+endif
 
 libgnunet_plugin_rest_reclaim_la_SOURCES = \
   plugin_rest_reclaim.c
