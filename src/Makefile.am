@@ -65,9 +65,8 @@ if HAVE_POSTGRESQL
 endif
 
 if HAVE_MHD
- REST_DIR = rest
 if HAVE_JSON
- JSONAPI_DIR = jsonapi
+ REST_DIR = rest jsonapi rest-plugins
 endif
 endif
 
@@ -82,9 +81,6 @@ SUBDIRS = \
   include $(INTLEMU_SUBDIRS) \
   util \
   gnsrecord \
-  $(JSON_DIR) \
-  $(REST_DIR) \
-  $(JSONAPI_DIR) \
   hello \
   block \
   statistics \
@@ -130,6 +126,8 @@ SUBDIRS = \
   exit \
   pt \
   secretsharing \
+  $(JSON_DIR) \
+  $(REST_DIR) \
   integration-tests \
   $(EXP_DIR)
 

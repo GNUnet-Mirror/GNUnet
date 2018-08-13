@@ -97,12 +97,6 @@ check_PROGRAMS = \
  $(FLAT_TESTS)
 endif
 
-if HAVE_MHD
-if HAVE_JSON
-REST_PLUGIN=libgnunet_plugin_rest_namestore.la
-endif
-endif
-
 if ENABLE_TEST_RUN
 AM_TESTS_ENVIRONMENT=export GNUNET_PREFIX=$${GNUNET_PREFIX:-@libdir@};export PATH=$${GNUNET_PREFIX:-@prefix@}/bin:$$PATH;unset XDG_DATA_HOME;unset XDG_CONFIG_HOME;
 TESTS = \
@@ -186,8 +180,7 @@ gnunet_service_namestore_LDADD = \
 plugin_LTLIBRARIES = \
   $(SQLITE_PLUGIN) \
   $(POSTGRES_PLUGIN) \
-	$(FLAT_PLUGIN) \
-	$(REST_PLUGIN)
+	$(FLAT_PLUGIN)
 
 
 
@@ -223,20 +216,6 @@ libgnunet_plugin_namestore_postgres_la_LIBADD = \
   $(LTLIBINTL)
 libgnunet_plugin_namestore_postgres_la_LDFLAGS = \
  $(GN_PLUGIN_LDFLAGS) $(POSTGRESQL_LDFLAGS)
-
-libgnunet_plugin_rest_namestore_la_SOURCES = \
-  plugin_rest_namestore.c
-libgnunet_plugin_rest_namestore_la_LIBADD = \
-  libgnunetnamestore.la \
-  $(top_builddir)/src/rest/libgnunetrest.la \
-  $(top_builddir)/src/identity/libgnunetidentity.la \
-  $(top_builddir)/src/json/libgnunetjson.la \
-  $(top_builddir)/src/gnsrecord/libgnunetgnsrecord.la \
-  $(top_builddir)/src/util/libgnunetutil.la $(XLIBS) \
-  $(LTLIBINTL) -ljansson -lmicrohttpd
-libgnunet_plugin_rest_namestore_la_LDFLAGS = \
- $(GN_PLUGIN_LDFLAGS)
-
 
 test_namestore_api_store_flat_SOURCES = \
  test_namestore_api_store.c

@@ -92,12 +92,6 @@ plugin_LTLIBRARIES = \
   libgnunet_plugin_gnsrecord_gns.la
 
 
-if HAVE_MHD
-if HAVE_JSON
-plugin_LTLIBRARIES += libgnunet_plugin_rest_gns.la
-endif
-endif
-
 libgnunet_plugin_gnsrecord_gns_la_SOURCES = \
   plugin_gnsrecord_gns.c
 libgnunet_plugin_gnsrecord_gns_la_LIBADD = \
@@ -237,19 +231,6 @@ libgnunet_plugin_block_gns_la_LIBADD = \
   $(top_builddir)/src/gnsrecord/libgnunetgnsrecord.la
 libgnunet_plugin_block_gns_la_LDFLAGS = \
   $(GN_PLUGIN_LDFLAGS)
-
-libgnunet_plugin_rest_gns_la_SOURCES = \
-  plugin_rest_gns.c
-libgnunet_plugin_rest_gns_la_LIBADD = \
-  libgnunetgns.la \
-	$(top_builddir)/src/rest/libgnunetrest.la \
-  $(top_builddir)/src/identity/libgnunetidentity.la \
-	$(top_builddir)/src/jsonapi/libgnunetjsonapi.la \
-  $(top_builddir)/src/jsonapi/libgnunetjsonapiutils.la \
-  $(top_builddir)/src/util/libgnunetutil.la $(XLIBS) \
-  $(LTLIBINTL) -ljansson -lmicrohttpd
-libgnunet_plugin_rest_gns_la_LDFLAGS = \
- $(GN_PLUGIN_LDFLAGS)
 
 
 check_SCRIPTS = \

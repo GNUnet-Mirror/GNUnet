@@ -31,8 +31,6 @@ pkgcfg_DATA = \
 lib_LTLIBRARIES = \
   libgnunetreclaim.la
 plugin_LTLIBRARIES = \
-	libgnunet_plugin_rest_reclaim.la \
-	libgnunet_plugin_rest_openid_connect.la \
   libgnunet_plugin_gnsrecord_reclaim.la \
 	$(SQLITE_PLUGIN)
 
@@ -87,37 +85,6 @@ libgnunetreclaim_la_LIBADD = \
 libgnunetreclaim_la_LDFLAGS = \
 	$(GN_LIB_LDFLAGS)  $(WINFLAGS) \
 	-version-info 0:0:0
-
-libgnunet_plugin_rest_reclaim_la_SOURCES = \
-  plugin_rest_reclaim.c
-libgnunet_plugin_rest_reclaim_la_LIBADD = \
-	$(top_builddir)/src/identity/libgnunetidentity.la \
-	libgnunetreclaim.la \
-	$(top_builddir)/src/rest/libgnunetrest.la \
-	$(top_builddir)/src/jsonapi/libgnunetjsonapi.la \
-	$(top_builddir)/src/reclaim-attribute/libgnunetreclaimattribute.la \
-	$(top_builddir)/src/namestore/libgnunetnamestore.la \
-  $(top_builddir)/src/util/libgnunetutil.la $(XLIBS) \
-  $(LTLIBINTL) -ljansson -lmicrohttpd
-libgnunet_plugin_rest_reclaim_la_LDFLAGS = \
- $(GN_PLUGIN_LDFLAGS)
-
-libgnunet_plugin_rest_openid_connect_la_SOURCES = \
-  plugin_rest_openid_connect.c \
-	oidc_helper.c
-libgnunet_plugin_rest_openid_connect_la_LIBADD = \
-	$(top_builddir)/src/identity/libgnunetidentity.la \
-	libgnunetreclaim.la \
-	$(top_builddir)/src/rest/libgnunetrest.la \
-	$(top_builddir)/src/jsonapi/libgnunetjsonapi.la \
-	$(top_builddir)/src/reclaim-attribute/libgnunetreclaimattribute.la \
-	$(top_builddir)/src/namestore/libgnunetnamestore.la \
-	$(top_builddir)/src/gns/libgnunetgns.la \
-	$(top_builddir)/src/gnsrecord/libgnunetgnsrecord.la \
-  $(top_builddir)/src/util/libgnunetutil.la $(XLIBS) \
-  $(LTLIBINTL) -ljansson -lmicrohttpd
-libgnunet_plugin_rest_openid_connect_la_LDFLAGS = \
- $(GN_PLUGIN_LDFLAGS)
 
 gnunet_reclaim_SOURCES = \
  gnunet-reclaim.c
