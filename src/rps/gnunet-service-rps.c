@@ -275,6 +275,13 @@ struct ChannelCtx
    * @brief The peer context associated with the channel
    */
   struct PeerContext *peer_ctx;
+
+  /**
+   * @brief When channel destruction needs to be delayed (because it is called
+   * from within the cadet routine of another channel destruction) this task
+   * refers to the respective _SCHEDULER_Task.
+   */
+  struct GNUNET_SCHEDULER_Task *destruction_task;
 };
 
 /**
@@ -302,7 +309,6 @@ static struct GNUNET_CONTAINER_MultiPeerMap *peer_map;
  * Cadet handle.
  */
 static struct GNUNET_CADET_Handle *cadet_handle;
-
 
 
 /**
@@ -864,13 +870,47 @@ destroy_channel (struct ChannelCtx *channel_ctx)
 {
   struct PeerContext *peer_ctx = channel_ctx->peer_ctx;
 
-  GNUNET_assert (channel_ctx == peer_ctx->send_channel_ctx ||
-                 channel_ctx == peer_ctx->recv_channel_ctx);
-
+  if (NULL != channel_ctx->destruction_task)
+  {
+    GNUNET_SCHEDULER_cancel (channel_ctx->destruction_task);
+    channel_ctx->destruction_task = NULL;
+  }
   GNUNET_CADET_channel_destroy (channel_ctx->channel);
+  channel_ctx->channel = NULL;
   remove_channel_ctx (channel_ctx);
 }
 
+/**
+ * @brief Destroy a cadet channel.
+ *
+ * This satisfies the function signature of #GNUNET_SCHEDULER_TaskCallback.
+ *
+ * @param cls
+ */
+static void
+destroy_channel_cb (void *cls)
+{
+  struct ChannelCtx *channel_ctx = cls;
+  channel_ctx->destruction_task = NULL;
+  destroy_channel (channel_ctx);
+}
+
+/**
+ * @brief Schedule the destruction of a channel for immediately afterwards.
+ *
+ * In case a channel is to be destroyed from within the callback to the
+ * destruction of another channel (send channel), we cannot call
+ * GNUNET_CADET_channel_destroy directly, but need to use this scheduling
+ * construction.
+ *
+ * @param channel_ctx channel to be destroyed.
+ */
+static void
+schedule_channel_destruction (struct ChannelCtx *channel_ctx)
+{
+  channel_ctx->destruction_task =
+    GNUNET_SCHEDULER_add_now (destroy_channel_cb, channel_ctx);
+}
 
 /**
  * @brief Remove peer
@@ -937,11 +977,13 @@ destroy_peer (struct PeerContext *peer_ctx)
 
   if (NULL != peer_ctx->send_channel_ctx)
   {
-    destroy_channel (peer_ctx->send_channel_ctx);
+    /* This is possibly called from within channel destruction */
+    schedule_channel_destruction (peer_ctx->send_channel_ctx);
   }
   if (NULL != peer_ctx->recv_channel_ctx)
   {
-    destroy_channel (peer_ctx->recv_channel_ctx);
+    /* This is possibly called from within channel destruction */
+    schedule_channel_destruction (peer_ctx->recv_channel_ctx);
   }
 
   if (GNUNET_YES !=
@@ -3874,6 +3916,7 @@ shutdown_task (void *cls)
   RPS_sampler_destroy (client_sampler);
   GNUNET_CADET_close_port (cadet_port);
   GNUNET_CADET_disconnect (cadet_handle);
+  cadet_handle = NULL;
   View_destroy ();
   CustomPeerMap_destroy (push_map);
   CustomPeerMap_destroy (pull_map);
