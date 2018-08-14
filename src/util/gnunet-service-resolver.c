@@ -11,7 +11,7 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
@@ -28,14 +28,37 @@
 #include "resolver.h"
 
 
-struct Record
+/**
+ * How long do we wait for DNS answers?
+ */
+#define DNS_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 30)
+
+/**
+ * Maximum number of hostnames we cache results for.
+ */
+#define MAX_CACHE 1024
+
+/**
+ * Entry in list of cached DNS records for a hostname.
+ */
+struct RecordListEntry
 {
-  struct Record *next;
+  /**
+   * This is a doubly linked list.
+   */
+  struct RecordListEntry *next;
 
-  struct Record *prev;
+  /**
+   * This is a doubly linked list.
+   */
+  struct RecordListEntry *prev;
 
+  /**
+   * Cached data.
+   */
   struct GNUNET_DNSPARSER_Record *record;
 };
+
 
 /**
  * A cached DNS lookup result.
@@ -53,30 +76,42 @@ struct ResolveCache
   struct ResolveCache *prev;
 
   /**
-   * type of queried DNS record
+   * Which hostname is this cache for?
    */
-  uint16_t record_type;
+  char *hostname;
 
   /**
-   * a pointer to the request_id if a query for this hostname/record_type
-   * is currently pending, NULL otherwise.
+   * head of a double linked list containing the lookup results
    */
-  int16_t *request_id;
+  struct RecordListEntry *records_head;
+
+  /**
+   * tail of a double linked list containing the lookup results
+   */
+  struct RecordListEntry *records_tail;
+
+};
+
+
+/**
+ * Information about pending lookups.
+ */
+struct ActiveLookup
+{
+  /**
+   * Stored in a DLL.
+   */
+  struct ActiveLookup *next;
+
+  /**
+   * Stored in a DLL.
+   */
+  struct ActiveLookup *prev;
 
   /**
    * The client that queried the records contained in this cache entry.
    */
   struct GNUNET_SERVICE_Client *client;
-
-  /**
-   * head of a double linked list containing the lookup results
-   */
-  struct Record *records_head;
-
-  /**
-   * tail of a double linked list containing the lookup results
-   */
-  struct Record *records_tail;
 
   /**
    * handle for cancelling a request
@@ -87,6 +122,28 @@ struct ResolveCache
    * handle for the resolution timeout task
    */
   struct GNUNET_SCHEDULER_Task *timeout_task;
+
+  /**
+   * Which hostname are we resolving?
+   */
+  char *hostname;
+
+  /**
+   * type of queried DNS record
+   */
+  uint16_t record_type;
+
+  /**
+   * Unique request ID of a client if a query for this hostname/record_type
+   * is currently pending, undefined otherwise.
+   */
+  uint16_t request_id;
+
+  /**
+   * Unique DNS request ID of a client if a query for this hostname/record_type
+   * is currently pending, undefined otherwise.
+   */
+  uint16_t dns_id;
 
 };
 
@@ -102,69 +159,117 @@ static struct ResolveCache *cache_head;
 static struct ResolveCache *cache_tail;
 
 /**
+ * Start of the linked list of active DNS lookups.
+ */
+static struct ActiveLookup *lookup_head;
+
+/**
+ * Tail of the linked list of active DNS lookups.
+ */
+static struct ActiveLookup *lookup_tail;
+
+/**
  * context of dnsstub library
  */
 static struct GNUNET_DNSSTUB_Context *dnsstub_ctx;
 
+/**
+ * How many entries do we have in #cache_head DLL?
+ */
+static unsigned int cache_size;
 
-void free_cache_entry (struct ResolveCache *entry)
+/**
+ * Remove @a entry from cache.
+ *
+ * @param rc entry to free
+ */
+static void
+free_cache_entry (struct ResolveCache *rc)
 {
-  struct Record *pos;
-  struct Record *next;
- 
-  next = entry->records_head;
-  while (NULL != (pos = next))
+  struct RecordListEntry *pos;
+
+  while (NULL != (pos = rc->records_head))
   {
-    next = pos->next;
-    GNUNET_CONTAINER_DLL_remove (entry->records_head,
-				 entry->records_tail,
+    GNUNET_CONTAINER_DLL_remove (rc->records_head,
+				 rc->records_tail,
 		       		 pos);
-    if (NULL != pos->record)
-    {
-      GNUNET_DNSPARSER_free_record (pos->record);
-      GNUNET_free (pos->record);
-    }
+    GNUNET_DNSPARSER_free_record (pos->record);
+    GNUNET_free (pos->record);
     GNUNET_free (pos);
   }
-  if (NULL != entry->resolve_handle)
-  {
-    GNUNET_DNSSTUB_resolve_cancel (entry->resolve_handle);
-    entry->resolve_handle = NULL;
-  }
-  if (NULL != entry->timeout_task)
-  {
-    GNUNET_SCHEDULER_cancel (entry->timeout_task);
-    entry->timeout_task = NULL;
-  }
-  GNUNET_free_non_null (entry->request_id);
-  GNUNET_free (entry);
+  GNUNET_free_non_null (rc->hostname);
+  GNUNET_CONTAINER_DLL_remove (cache_head,
+                               cache_tail,
+                               rc);
+  cache_size--;
+  GNUNET_free (rc);
 }
 
 
-static char*
-extract_dns_server (const char* line, size_t line_len)
+/**
+ * Release resources associated with @a al
+ *
+ * @param al an active lookup
+ */
+static void
+free_active_lookup (struct ActiveLookup *al)
 {
-  if (0 == strncmp (line, "nameserver ", 11))
-    return GNUNET_strndup (line + 11, line_len - 11);
+  GNUNET_CONTAINER_DLL_remove (lookup_head,
+                               lookup_tail,
+                               al);
+  if (NULL != al->resolve_handle)
+  {
+    GNUNET_DNSSTUB_resolve_cancel (al->resolve_handle);
+    al->resolve_handle = NULL;
+  }
+  if (NULL != al->timeout_task)
+  {
+    GNUNET_SCHEDULER_cancel (al->timeout_task);
+    al->timeout_task = NULL;
+  }
+  GNUNET_free_non_null (al->hostname);
+  GNUNET_free (al);
+}
+
+
+
+/**
+ * Find out if the configuration file line contains a string
+ * starting with "nameserver ", and if so, return a copy of
+ * the nameserver's IP.
+ *
+ * @param line line to parse
+ * @param line_len number of characters in @a line
+ * @return NULL if no nameserver is configured in this @a line
+ */
+static char *
+extract_dns_server (const char* line,
+                    size_t line_len)
+{
+  if (0 == strncmp (line,
+                    "nameserver ",
+                    strlen ("nameserver ")))
+    return GNUNET_strndup (line + strlen ("nameserver "),
+                           line_len - strlen ("nameserver "));
   return NULL;
 }
 
- 
+
 /**
- * reads the list of nameservers from /etc/resolve.conf
+ * Reads the list of nameservers from /etc/resolve.conf
  *
  * @param server_addrs[out] a list of null-terminated server address strings
  * @return the number of server addresses in @server_addrs, -1 on error
  */
-static ssize_t
+static int
 lookup_dns_servers (char ***server_addrs)
 {
   struct GNUNET_DISK_FileHandle *fh;
   char buf[2048];
   ssize_t bytes_read;
-  size_t read_offset = 0;
-  unsigned int num_dns_servers = 0;
-    
+  size_t read_offset;
+  unsigned int num_dns_servers;
+
   fh = GNUNET_DISK_file_open ("/etc/resolv.conf",
 			      GNUNET_DISK_OPEN_READ,
 			      GNUNET_DISK_PERM_NONE);
@@ -179,41 +284,51 @@ lookup_dns_servers (char ***server_addrs)
 				      buf,
 				      sizeof (buf));
   *server_addrs = NULL;
+  read_offset = 0;
+  num_dns_servers = 0;
   while (read_offset < bytes_read)
   {
-    char *newline;
+    const char *newline;
     size_t line_len;
     char *dns_server;
-    
-    newline = strchr (buf + read_offset, '\n');
+
+    newline = strchr (buf + read_offset,
+                      '\n');
     if (NULL == newline)
-    {
       break;
-    }
     line_len = newline - buf - read_offset;
-    dns_server = extract_dns_server (buf + read_offset, line_len);
+    dns_server = extract_dns_server (buf + read_offset,
+                                     line_len);
     if (NULL != dns_server)
-    {
       GNUNET_array_append (*server_addrs,
 			   num_dns_servers,
   			   dns_server);
-    }
     read_offset += line_len + 1;
   }
   GNUNET_DISK_file_close (fh);
-  return num_dns_servers;
+  return (int) num_dns_servers;
 }
 
 
+/**
+ * Compute name to use for DNS reverse lookups from @a ip.
+ *
+ * @param ip IP address to resolve, in binary format, network byte order
+ * @param af address family of @a ip, AF_INET or AF_INET6
+ */
 static char *
-make_reverse_hostname (const void *ip, int af)
+make_reverse_hostname (const void *ip,
+                       int af)
 {
-  char *buf = GNUNET_new_array (80, char);
+  char *buf = GNUNET_new_array (80,
+                                char);
   int pos = 0;
+
   if (AF_INET == af)
   {
     struct in_addr *addr = (struct in_addr *)ip;
     uint32_t ip_int = addr->s_addr;
+
     for (int i = 3; i >= 0; i--)
     {
       int n = GNUNET_snprintf (buf + pos,
@@ -227,21 +342,29 @@ make_reverse_hostname (const void *ip, int af)
       }
       pos += n;
     }
-    pos += GNUNET_snprintf (buf + pos, 80 - pos, "in-addr.arpa");
+    pos += GNUNET_snprintf (buf + pos,
+                            80 - pos,
+                            "in-addr.arpa");
   }
   else if (AF_INET6 == af)
   {
     struct in6_addr *addr = (struct in6_addr *)ip;
     for (int i = 15; i >= 0; i--)
     {
-      int n = GNUNET_snprintf (buf + pos, 80 - pos, "%x.", addr->s6_addr[i] & 0xf);
+      int n = GNUNET_snprintf (buf + pos,
+                               80 - pos,
+                               "%x.",
+                               addr->s6_addr[i] & 0xf);
       if (n < 0)
       {
 	GNUNET_free (buf);
 	return NULL;
       }
       pos += n;
-      n = GNUNET_snprintf (buf + pos, 80 - pos, "%x.", addr->s6_addr[i] >> 4);
+      n = GNUNET_snprintf (buf + pos,
+                           80 - pos,
+                           "%x.",
+                           addr->s6_addr[i] >> 4);
       if (n < 0)
       {
 	GNUNET_free (buf);
@@ -249,45 +372,70 @@ make_reverse_hostname (const void *ip, int af)
       }
       pos += n;
     }
-    pos += GNUNET_snprintf (buf + pos, 80 - pos, "ip6.arpa");
+    pos += GNUNET_snprintf (buf + pos,
+                            80 - pos,
+                            "ip6.arpa");
   }
   buf[pos] = '\0';
   return buf;
 }
 
 
-static void
+/**
+ * Send DNS @a record back to our @a client.
+ *
+ * @param record information to transmit
+ * @param record_type requested record type from client
+ * @param request_id to which request are we responding
+ * @param client where to send @a record
+ * @return #GNUNET_YES if we sent a reply,
+ *         #GNUNET_NO if the record type is not understood or
+ *         does not match @a record_type
+ */
+static int
 send_reply (struct GNUNET_DNSPARSER_Record *record,
+            uint16_t record_type,
 	    uint16_t request_id,
 	    struct GNUNET_SERVICE_Client *client)
 {
   struct GNUNET_RESOLVER_ResponseMessage *msg;
   struct GNUNET_MQ_Envelope *env;
-  void *payload;
+  const void *payload;
   size_t payload_len;
 
   switch (record->type)
   {
-    case GNUNET_DNSPARSER_TYPE_PTR:
-    {
-      char *hostname = record->data.hostname;
-      payload = hostname;
-      payload_len = strlen (hostname) + 1;
-      break;
-    }
-    case GNUNET_DNSPARSER_TYPE_A:
-    case GNUNET_DNSPARSER_TYPE_AAAA:
-    {
-      payload = record->data.raw.data;
-      payload_len = record->data.raw.data_len;
-      break;         
-    }
-    default:
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		  "Cannot handle DNS response type: unimplemented\n");
-      return;
-    }
+  case GNUNET_DNSPARSER_TYPE_CNAME:
+    if (GNUNET_DNSPARSER_TYPE_CNAME != record_type)
+      return GNUNET_NO;
+    payload = record->data.hostname;
+    payload_len = strlen (record->data.hostname) + 1;
+    break;
+  case GNUNET_DNSPARSER_TYPE_PTR:
+    if (GNUNET_DNSPARSER_TYPE_PTR != record_type)
+      return GNUNET_NO;
+    payload = record->data.hostname;
+    payload_len = strlen (record->data.hostname) + 1;
+    break;
+  case GNUNET_DNSPARSER_TYPE_A:
+    if ( (GNUNET_DNSPARSER_TYPE_A != record_type) &&
+         (GNUNET_DNSPARSER_TYPE_ALL != record_type) )
+      return GNUNET_NO;
+    payload = record->data.raw.data;
+    payload_len = record->data.raw.data_len;
+    break;
+  case GNUNET_DNSPARSER_TYPE_AAAA:
+    if ( (GNUNET_DNSPARSER_TYPE_AAAA != record_type) &&
+         (GNUNET_DNSPARSER_TYPE_ALL != record_type) )
+      return GNUNET_NO;
+    payload = record->data.raw.data;
+    payload_len = record->data.raw.data_len;
+    break;
+  default:
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Cannot handle DNS response type %u: not supported here\n",
+                record->type);
+    return GNUNET_NO;
   }
   env = GNUNET_MQ_msg_extra (msg,
         		     payload_len,
@@ -298,9 +446,17 @@ send_reply (struct GNUNET_DNSPARSER_Record *record,
         	 payload_len);
   GNUNET_MQ_send (GNUNET_SERVICE_client_get_mq (client),
         	  env);
+  return GNUNET_YES;
 }
 
 
+/**
+ * Send message to @a client that we transmitted all
+ * responses for @a request_id
+ *
+ * @param request_id to which request are we responding
+ * @param client where to send @a record
+ */
 static void
 send_end_msg (uint16_t request_id,
 	      struct GNUNET_SERVICE_Client *client)
@@ -309,7 +465,7 @@ send_end_msg (uint16_t request_id,
   struct GNUNET_MQ_Envelope *env;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Sending end message\n");
+	      "Sending END message\n");
   env = GNUNET_MQ_msg (msg,
         	       GNUNET_MESSAGE_TYPE_RESOLVER_RESPONSE);
   msg->id = request_id;
@@ -318,102 +474,263 @@ send_end_msg (uint16_t request_id,
 }
 
 
+/**
+ * Remove expired entries from @a rc
+ *
+ * @param rc entry in resolver cache
+ * @return #GNUNET_YES if @a rc was completely expired
+ *         #GNUNET_NO if some entries are left
+ */
+static int
+remove_expired (struct ResolveCache *rc)
+{
+  struct GNUNET_TIME_Absolute now = GNUNET_TIME_absolute_get ();
+  struct RecordListEntry *n;
+
+  for (struct RecordListEntry *pos = rc->records_head;
+       NULL != pos;
+       pos = n)
+  {
+    n = pos->next;
+    if (now.abs_value_us > pos->record->expiration_time.abs_value_us)
+      GNUNET_CONTAINER_DLL_remove (rc->records_head,
+                                   rc->records_tail,
+                                   pos);
+  }
+  if (NULL == rc->records_head)
+  {
+    free_cache_entry (rc);
+    return GNUNET_YES;
+  }
+  return GNUNET_NO;
+}
+
+
+/**
+ * Process DNS request for @a hostname with request ID @a request_id
+ * from @a client demanding records of type @a record_type.
+ *
+ * @param hostname DNS name to resolve
+ * @param record_type desired record type
+ * @param request_id client's request ID
+ * @param client who should get the result?
+ */
+static void
+process_get (const char *hostname,
+	     uint16_t record_type,
+	     uint16_t request_id,
+	     struct GNUNET_SERVICE_Client *client);
+
+
+/**
+ * Get an IP address as a string (works for both IPv4 and IPv6).  Note
+ * that the resolution happens asynchronously and that the first call
+ * may not immediately result in the FQN (but instead in a
+ * human-readable IP address).
+ *
+ * @param hostname what hostname was to be resolved
+ * @param record_type what type of record was requested
+ * @param request_id unique identification of the client's request
+ * @param client handle to the client making the request (for sending the reply)
+ */
+static int
+try_cache (const char *hostname,
+           uint16_t record_type,
+	   uint16_t request_id,
+	   struct GNUNET_SERVICE_Client *client)
+{
+  struct ResolveCache *pos;
+  struct ResolveCache *next;
+  int found;
+
+  next = cache_head;
+  for (pos = next; NULL != pos; pos = next)
+  {
+    next = pos->next;
+    if (GNUNET_YES == remove_expired (pos))
+      continue;
+    if (0 == strcmp (pos->hostname,
+                     hostname))
+      break;
+  }
+  if (NULL == pos)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "No cache entry for '%s'\n",
+                hostname);
+    return GNUNET_NO;
+  }
+  if (cache_head != pos)
+  {
+    /* move result to head to achieve LRU for cache eviction */
+    GNUNET_CONTAINER_DLL_remove (cache_head,
+                                 cache_tail,
+                                 pos);
+    GNUNET_CONTAINER_DLL_insert (cache_head,
+                                 cache_tail,
+                                 pos);
+  }
+  found = GNUNET_NO;
+  for (struct RecordListEntry *rle = pos->records_head;
+       NULL != rle;
+       rle = rle->next)
+  {
+    const struct GNUNET_DNSPARSER_Record *record = rle->record;
+
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Found cache entry for '%s', record type '%u'\n",
+                hostname,
+                record_type);
+    if ( (GNUNET_DNSPARSER_TYPE_CNAME == record->type) &&
+         (GNUNET_DNSPARSER_TYPE_CNAME != record_type) &&
+         (GNUNET_NO == found) )
+    {
+      const char *hostname = record->data.hostname;
+
+      process_get (hostname,
+                   record_type,
+                   request_id,
+                   client);
+      return GNUNET_YES; /* counts as a cache "hit" */
+    }
+    found |= send_reply (rle->record,
+                         record_type,
+                         request_id,
+                         client);
+  }
+  if (GNUNET_NO == found)
+    return GNUNET_NO; /* had records, but none matched! */
+  send_end_msg (request_id,
+                client);
+  return GNUNET_YES;
+}
+
+
+/**
+ * We got a result from DNS. Add it to the cache and
+ * see if we can make our client happy...
+ *
+ * @param cls the `struct ActiveLookup`
+ * @param dns the DNS response
+ * @param dns_len number of bytes in @a dns
+ */
 static void
 handle_resolve_result (void *cls,
 		       const struct GNUNET_TUN_DnsHeader *dns,
                        size_t dns_len)
 {
-  struct ResolveCache *cache = cls;
+  struct ActiveLookup *al = cls;
   struct GNUNET_DNSPARSER_Packet *parsed;
-  uint16_t request_id = *cache->request_id;
-  struct GNUNET_SERVICE_Client *client = cache->client;
+  struct ResolveCache *rc;
 
   parsed = GNUNET_DNSPARSER_parse ((const char *)dns,
 				   dns_len);
   if (NULL == parsed)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		"Failed to parse DNS reply (request ID %u\n",
-		request_id);
+		"Failed to parse DNS reply (hostname %s, request ID %u)\n",
+                al->hostname,
+		al->dns_id);
     return;
   }
-  if (request_id != ntohs (parsed->id))
+  if (al->dns_id != ntohs (parsed->id))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		"Request ID in DNS reply does not match\n");
+    GNUNET_DNSPARSER_free_packet (parsed);
     return;
   }
-  else if (0 == parsed->num_answers)
+  if (0 == parsed->num_answers)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		"DNS reply (request ID %u) contains no answers\n",
-		request_id);
-    GNUNET_CONTAINER_DLL_remove (cache_head,
-				 cache_tail,
-		       		 cache);
-    free_cache_entry (cache);
-    cache = NULL;
+		"DNS reply (hostname %s, request ID %u) contains no answers\n",
+                al->hostname,
+		al->request_id);
+    GNUNET_DNSPARSER_free_packet (parsed);
+    send_end_msg (al->request_id,
+                  al->client);
+    free_active_lookup (al);
+    return;
   }
-  else
+  /* LRU-based cache eviction: we remove from tail */
+  while (cache_size > MAX_CACHE)
+    free_cache_entry (cache_tail);
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Got reply for hostname %s and request ID %u\n",
+              al->hostname,
+              al->request_id);
+  /* add to cache */
+  for (unsigned int i = 0; i != parsed->num_answers; i++)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		"Got reply for request ID %u\n",
-		request_id);
-    for (unsigned int i = 0; i != parsed->num_answers; i++)
+    struct GNUNET_DNSPARSER_Record *record = &parsed->answers[i];
+    struct RecordListEntry *rle;
+
+    for (rc = cache_head; NULL != rc; rc = rc->next)
+      if (0 == strcasecmp (rc->hostname,
+                           record->name))
+        break;
+    if (NULL == rc)
     {
-      struct Record *cache_entry = GNUNET_new (struct Record);
-      struct GNUNET_DNSPARSER_Record *record = &parsed->answers[i];
-      cache_entry->record = GNUNET_DNSPARSER_duplicate_record (record);
-      GNUNET_CONTAINER_DLL_insert (cache->records_head,
-          			   cache->records_tail,
-          			   cache_entry);
-      send_reply (cache_entry->record,
-		  request_id,
-          	  cache->client);
+      rc = GNUNET_new (struct ResolveCache);
+      rc->hostname = GNUNET_strdup (record->name);
+      GNUNET_CONTAINER_DLL_insert (cache_head,
+                                   cache_tail,
+                                   rc);
+      cache_size++;
     }
-    GNUNET_free_non_null (cache->request_id);
-    cache->request_id = NULL;
+    /* TODO: ought to check first if we have this exact record
+       already in the cache! */
+    rle = GNUNET_new (struct RecordListEntry);
+    rle->record = GNUNET_DNSPARSER_duplicate_record (record);
+    GNUNET_CONTAINER_DLL_insert (rc->records_head,
+                                 rc->records_tail,
+                                 rle);
   }
-  send_end_msg (request_id,
-		client);
-  if (NULL != cache)
-    cache->client = NULL;
-  if (NULL != cache)
-  {
-    if (NULL != cache->timeout_task)
-    { 
-      GNUNET_SCHEDULER_cancel (cache->timeout_task);
-      cache->timeout_task = NULL;
-    }
-    if (NULL != cache->resolve_handle)
-    {
-      GNUNET_DNSSTUB_resolve_cancel (cache->resolve_handle);
-      cache->resolve_handle = NULL;
-    }
-  }
+
+  /* resume by trying again from cache */
+  if (GNUNET_NO ==
+      try_cache (al->hostname,
+                 al->record_type,
+                 al->request_id,
+                 al->client))
+    /* cache failed, tell client we could not get an answer */
+    send_end_msg (al->request_id,
+                  al->client);
+  free_active_lookup (al);
   GNUNET_DNSPARSER_free_packet (parsed);
 }
 
 
+/**
+ * We encountered a timeout trying to perform a
+ * DNS lookup.
+ *
+ * @param cls a `struct ActiveLookup`
+ */
 static void
 handle_resolve_timeout (void *cls)
 {
-  struct ResolveCache *cache = cls;
+  struct ActiveLookup *al = cls;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
-	      "timeout!\n");
-  if (NULL != cache->resolve_handle)
-  {
-    GNUNET_DNSSTUB_resolve_cancel (cache->resolve_handle);
-    cache->resolve_handle = NULL;
-  }
-  GNUNET_CONTAINER_DLL_remove (cache_head,
-			       cache_tail,
-			       cache);
-  free_cache_entry (cache);
+  al->timeout_task = NULL;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "DNS lookup timeout!\n");
+  send_end_msg (al->request_id,
+                al->client);
+  free_active_lookup (al);
 }
 
 
+/**
+ * Initiate an active lookup, then cache the result and
+ * try to then complete the resolution.
+ *
+ * @param hostname DNS name to resolve
+ * @param record_type record type to locate
+ * @param request_id client request ID
+ * @param client handle to the client
+ */
 static int
 resolve_and_cache (const char* hostname,
 		   uint16_t record_type,
@@ -424,10 +741,11 @@ resolve_and_cache (const char* hostname,
   size_t packet_size;
   struct GNUNET_DNSPARSER_Query query;
   struct GNUNET_DNSPARSER_Packet packet;
-  struct ResolveCache *cache;
-  struct GNUNET_TIME_Relative timeout =
-    GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5);
+  struct ActiveLookup *al;
+  uint16_t dns_id;
 
+  dns_id =(uint16_t) GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_NONCE,
+					       UINT16_MAX);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "resolve_and_cache\n");
   query.name = (char *)hostname;
@@ -438,9 +756,9 @@ resolve_and_cache (const char* hostname,
 	  sizeof (packet));
   packet.num_queries = 1;
   packet.queries = &query;
-  packet.id = htons (request_id);
+  packet.id = htons (dns_id);
   packet.flags.recursion_desired = 1;
-  if (GNUNET_OK != 
+  if (GNUNET_OK !=
       GNUNET_DNSPARSER_pack (&packet,
 			     UINT16_MAX,
 			     &packet_buf,
@@ -450,136 +768,67 @@ resolve_and_cache (const char* hostname,
 		"Failed to pack query for hostname `%s'\n",
                 hostname);
     return GNUNET_SYSERR;
- 
+
   }
-  cache = GNUNET_malloc (sizeof (struct ResolveCache));
-  cache->record_type = record_type;
-  cache->request_id = GNUNET_memdup (&request_id, sizeof (request_id));
-  cache->client = client;
-  cache->timeout_task = GNUNET_SCHEDULER_add_delayed (timeout,
-						      &handle_resolve_timeout,
-						      cache);
-  cache->resolve_handle = 
+  al = GNUNET_new (struct ActiveLookup);
+  al->hostname = GNUNET_strdup (hostname);
+  al->record_type = record_type;
+  al->request_id = request_id;
+  al->dns_id = dns_id;
+  al->client = client;
+  al->timeout_task = GNUNET_SCHEDULER_add_delayed (DNS_TIMEOUT,
+                                                   &handle_resolve_timeout,
+                                                   al);
+  al->resolve_handle =
     GNUNET_DNSSTUB_resolve (dnsstub_ctx,
           		    packet_buf,
           		    packet_size,
           		    &handle_resolve_result,
-          		    cache);
-  GNUNET_CONTAINER_DLL_insert (cache_head,
-			       cache_tail,
-			       cache);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "resolve %s, request_id = %u\n",
-	      hostname,
-	      request_id);
+          		    al);
   GNUNET_free (packet_buf);
+  GNUNET_CONTAINER_DLL_insert (lookup_head,
+			       lookup_tail,
+			       al);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Resolving %s, request_id = %u, dns_id = %u\n",
+	      hostname,
+              (unsigned int) request_id,
+	      (unsigned int) dns_id);
   return GNUNET_OK;
 }
 
 
-static const char *
-get_hostname (struct ResolveCache *cache_entry)
-{
-  if (NULL != cache_entry->records_head)
-  {
-    GNUNET_assert (NULL != cache_entry->records_head);
-    GNUNET_assert (NULL != cache_entry->records_head->record);
-    GNUNET_assert (NULL != cache_entry->records_head->record->name);
-    return cache_entry->records_head->record->name;
-  }
-  return NULL;
-}
-
-
-static const uint16_t *
-get_record_type (struct ResolveCache *cache_entry)
-{
-  if (NULL != cache_entry->records_head)
-    return &cache_entry->record_type;
-  return NULL; 
-}
-
-
-static const struct GNUNET_TIME_Absolute *
-get_expiration_time (struct ResolveCache *cache_entry)
-{
-  if (NULL != cache_entry->records_head)
-    return &cache_entry->records_head->record->expiration_time;
-  return NULL;
-}
-
-
-static int
-remove_if_expired (struct ResolveCache *cache_entry)
-{
-  struct GNUNET_TIME_Absolute now = GNUNET_TIME_absolute_get ();
-
-  if ( (NULL != cache_entry->records_head) &&
-       (now.abs_value_us > get_expiration_time (cache_entry)->abs_value_us) )
-  {
-    GNUNET_CONTAINER_DLL_remove (cache_head,
-				 cache_tail,
-		       		 cache_entry);
-    free_cache_entry (cache_entry);
-    return GNUNET_YES;
-  }
-  return GNUNET_NO;
-}
-
-
 /**
- * Get an IP address as a string (works for both IPv4 and IPv6).  Note
- * that the resolution happens asynchronously and that the first call
- * may not immediately result in the FQN (but instead in a
- * human-readable IP address).
+ * Process DNS request for @a hostname with request ID @a request_id
+ * from @a client demanding records of type @a record_type.
  *
- * @param client handle to the client making the request (for sending the reply)
- * @param af AF_INET or AF_INET6
- * @param ip `struct in_addr` or `struct in6_addr`
+ * @param hostname DNS name to resolve
+ * @param record_type desired record type
+ * @param request_id client's request ID
+ * @param client who should get the result?
  */
-static int
-try_cache (const char *hostname,
-           uint16_t record_type,
-	   uint16_t request_id,
-	   struct GNUNET_SERVICE_Client *client)
+static void
+process_get (const char *hostname,
+	     uint16_t record_type,
+	     uint16_t request_id,
+	     struct GNUNET_SERVICE_Client *client)
 {
-  struct ResolveCache *pos;
-  struct ResolveCache *next;
-
-  next = cache_head;
-  while ( (NULL != (pos = next)) &&
-	  ( (NULL == pos->records_head) ||
-	    (0 != strcmp (get_hostname (pos), hostname)) ||
-	    (*get_record_type (pos) != record_type) ) )
+  if (GNUNET_NO ==
+      try_cache (hostname,
+                 record_type,
+                 request_id,
+                 client))
   {
-    next = pos->next;
-    remove_if_expired (pos);
-  }
-  if (NULL != pos)
-  {
-    if (GNUNET_NO == remove_if_expired (pos))
+    if (GNUNET_OK !=
+        resolve_and_cache (hostname,
+                           record_type,
+                           request_id,
+                           client))
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-  		  "found cache entry for '%s', record type '%u'\n",
-  		  hostname,
-		  record_type);
-      struct Record *cache_pos = pos->records_head;
-      while (NULL != cache_pos)
-      {
-	send_reply (cache_pos->record,
-		    request_id,
-		    client);
-	cache_pos = cache_pos->next;
-      }
       send_end_msg (request_id,
-		    client);
-      return GNUNET_YES;
+                    client);
     }
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "no cache entry for '%s'\n",
-	      hostname);
-  return GNUNET_NO;
 }
 
 
@@ -639,23 +888,6 @@ check_get (void *cls,
 }
 
 
-static void
-process_get (const char *hostname,
-	     uint16_t record_type,
-	     uint16_t request_id,
-	     struct GNUNET_SERVICE_Client *client)
-{
-  if (GNUNET_NO == try_cache (hostname, record_type, request_id, client))
-  {
-    int result = resolve_and_cache (hostname,
-				    record_type,
-		       		    request_id,
-		       		    client);
-    GNUNET_assert (GNUNET_OK == result);
-  }
-}
-
-
 /**
  * Handle GET-message.
  *
@@ -670,7 +902,7 @@ handle_get (void *cls,
   int direction;
   int af;
   uint16_t request_id;
-  const char *hostname;
+  char *hostname;
 
   direction = ntohl (msg->direction);
   af = ntohl (msg->af);
@@ -683,17 +915,26 @@ handle_get (void *cls,
     {
       case AF_UNSPEC:
       {
-	process_get (hostname, GNUNET_DNSPARSER_TYPE_ALL, request_id, client);
+	process_get (hostname,
+                     GNUNET_DNSPARSER_TYPE_ALL,
+                     request_id,
+                     client);
 	break;
       }
       case AF_INET:
       {
-	process_get (hostname, GNUNET_DNSPARSER_TYPE_A, request_id, client);
+	process_get (hostname,
+                     GNUNET_DNSPARSER_TYPE_A,
+                     request_id,
+                     client);
         break;
       }
       case AF_INET6:
       {
-	process_get (hostname, GNUNET_DNSPARSER_TYPE_AAAA, request_id, client);
+	process_get (hostname,
+                     GNUNET_DNSPARSER_TYPE_AAAA,
+                     request_id,
+                     client);
         break;
       }
       default:
@@ -708,50 +949,63 @@ handle_get (void *cls,
   else
   {
     /* hostname from IP */
-    hostname = make_reverse_hostname (&msg[1], af); 
-    process_get (hostname, GNUNET_DNSPARSER_TYPE_PTR, request_id, client);
+    hostname = make_reverse_hostname (&msg[1],
+                                      af);
+    process_get (hostname,
+                 GNUNET_DNSPARSER_TYPE_PTR,
+                 request_id,
+                 client);
   }
-  GNUNET_free_non_null ((char *)hostname);
+  GNUNET_free_non_null (hostname);
   GNUNET_SERVICE_client_continue (client);
 }
 
 
-static void 
+/**
+ * Service is shutting down, clean up.
+ *
+ * @param cls NULL, unused
+ */
+static void
 shutdown_task (void *cls)
 {
   (void) cls;
-  struct ResolveCache *pos;
 
-  while (NULL != (pos = cache_head))
-  {
-    GNUNET_CONTAINER_DLL_remove (cache_head,
-				 cache_tail,
-				 pos);
-    free_cache_entry (pos);
-  }
+  while (NULL != lookup_head)
+    free_active_lookup (lookup_head);
+  while (NULL != cache_head)
+    free_cache_entry (cache_head);
   GNUNET_DNSSTUB_stop (dnsstub_ctx);
 }
 
 
+/**
+ * Service is starting, initialize everything.
+ *
+ * @param cls NULL, unused
+ * @param cfg our configuration
+ * @param sh service handle
+ */
 static void
 init_cb (void *cls,
 	 const struct GNUNET_CONFIGURATION_Handle *cfg,
 	 struct GNUNET_SERVICE_Handle *sh)
 {
+  char **dns_servers;
+  int num_dns_servers;
+
   (void) cfg;
   (void) sh;
-
   GNUNET_SCHEDULER_add_shutdown (&shutdown_task,
 				 cls);
   dnsstub_ctx = GNUNET_DNSSTUB_start (128);
-  char **dns_servers;
-  ssize_t num_dns_servers = lookup_dns_servers (&dns_servers);
-  if (0 == num_dns_servers)
+  num_dns_servers = lookup_dns_servers (&dns_servers);
+  if (0 >= num_dns_servers)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-  	        "no DNS server available. DNS resolution will not be possible.\n");
+  	        _("No DNS server available. DNS resolution will not be possible.\n"));
   }
-  for (int i = 0; i != num_dns_servers; i++)
+  for (int i = 0; i < num_dns_servers; i++)
   {
     int result = GNUNET_DNSSTUB_add_dns_ip (dnsstub_ctx, dns_servers[i]);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -796,18 +1050,19 @@ disconnect_cb (void *cls,
 	       struct GNUNET_SERVICE_Client *c,
 	       void *internal_cls)
 {
+  struct ActiveLookup *n;
   (void) cls;
-  struct ResolveCache *pos = cache_head; 
 
-  while (NULL != pos)
-  {
-    if (pos->client == c)
-    {
-      pos->client = NULL;
-    }
-    pos = pos->next;
-  }
   GNUNET_assert (c == internal_cls);
+  n = lookup_head;
+  for (struct ActiveLookup *al = n;
+       NULL != al;
+       al = n)
+  {
+    n = al->next;
+    if (al->client == c)
+      free_active_lookup (al);
+  }
 }
 
 
