@@ -261,12 +261,6 @@ struct PeersIteratorCls
 struct ChannelCtx
 {
   /**
-   * @brief Meant to be used in a DLL
-   */
-  struct ChannelCtx *next;
-  struct ChannelCtx *prev;
-
-  /**
    * @brief The channel itself
    */
   struct GNUNET_CADET_Channel *channel;
@@ -634,15 +628,22 @@ remove_channel_ctx (struct ChannelCtx *channel_ctx)
 {
   struct PeerContext *peer_ctx = channel_ctx->peer_ctx;
 
+  if (NULL != channel_ctx->destruction_task)
+  {
+    GNUNET_SCHEDULER_cancel (channel_ctx->destruction_task);
+    channel_ctx->destruction_task = NULL;
+  }
+
+  GNUNET_free (channel_ctx);
+
+  if (NULL == peer_ctx) return;
   if (channel_ctx == peer_ctx->send_channel_ctx)
   {
-    GNUNET_free (channel_ctx);
     peer_ctx->send_channel_ctx = NULL;
     peer_ctx->mq = NULL;
   }
   else if (channel_ctx == peer_ctx->recv_channel_ctx)
   {
-    GNUNET_free (channel_ctx);
     peer_ctx->recv_channel_ctx = NULL;
   }
 }
@@ -911,12 +912,12 @@ static void
 schedule_channel_destruction (struct ChannelCtx *channel_ctx)
 {
   GNUNET_assert (NULL ==
-		 channel_ctx->destruction_task);
+                 channel_ctx->destruction_task);
   GNUNET_assert (NULL !=
-		 channel_ctx->channel);
+                 channel_ctx->channel);
   channel_ctx->destruction_task =
     GNUNET_SCHEDULER_add_now (&destroy_channel_cb,
-			      channel_ctx);
+                              channel_ctx);
 }
 
 
@@ -986,12 +987,17 @@ destroy_peer (struct PeerContext *peer_ctx)
   if (NULL != peer_ctx->send_channel_ctx)
   {
     /* This is possibly called from within channel destruction */
+    peer_ctx->send_channel_ctx->peer_ctx = NULL;
     schedule_channel_destruction (peer_ctx->send_channel_ctx);
+    peer_ctx->send_channel_ctx = NULL;
+    peer_ctx->mq = NULL;
   }
   if (NULL != peer_ctx->recv_channel_ctx)
   {
     /* This is possibly called from within channel destruction */
+    peer_ctx->recv_channel_ctx->peer_ctx = NULL;
     schedule_channel_destruction (peer_ctx->recv_channel_ctx);
+    peer_ctx->recv_channel_ctx = NULL;
   }
 
   if (GNUNET_YES !=
@@ -2534,18 +2540,11 @@ cleanup_destroyed_channel (void *cls,
   struct ChannelCtx *channel_ctx = cls;
   struct PeerContext *peer_ctx = channel_ctx->peer_ctx;
 
-  // What should be done here:
-  //  * cleanup everything related to the channel
-  //    * memory
-  //  * remove peer if necessary
   channel_ctx->channel = NULL;
-  if (peer_ctx->recv_channel_ctx == channel_ctx)
+  remove_channel_ctx (channel_ctx);
+  if (NULL != peer_ctx &&
+      peer_ctx->send_channel_ctx == channel_ctx)
   {
-    remove_channel_ctx (channel_ctx);
-  }
-  else if (peer_ctx->send_channel_ctx == channel_ctx)
-  {
-    remove_channel_ctx (channel_ctx);
     remove_peer (&peer_ctx->peer_id);
   }
 }
