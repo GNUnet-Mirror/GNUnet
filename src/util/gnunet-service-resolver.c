@@ -129,6 +129,12 @@ struct ActiveLookup
   char *hostname;
 
   /**
+   * If @a record_type is #GNUNET_DNSPARSER_TYPE_ALL, did we go again
+   * for the AAAA records yet?
+   */
+  int did_aaaa;
+
+  /**
    * type of queried DNS record
    */
   uint16_t record_type;
@@ -607,6 +613,53 @@ try_cache (const char *hostname,
 
 
 /**
+ * Create DNS query for @a hostname of type @a type
+ * with DNS request ID @a dns_id.
+ *
+ * @param hostname DNS name to query
+ * @param type requested DNS record type
+ * @param dns_id what should be the DNS request ID
+ * @param packet_buf[out] where to write the request packet
+ * @param packet_size[out] set to size of @a packet_buf on success
+ * @return #GNUNET_OK on success
+ */
+static int
+pack (const char *hostname,
+      uint16_t type,
+      uint16_t dns_id,
+      char **packet_buf,
+      size_t *packet_size)
+{
+  struct GNUNET_DNSPARSER_Query query;
+  struct GNUNET_DNSPARSER_Packet packet;
+
+  query.name = (char *)hostname;
+  query.type = type;
+  query.dns_traffic_class = GNUNET_TUN_DNS_CLASS_INTERNET;
+  memset (&packet,
+	  0,
+	  sizeof (packet));
+  packet.num_queries = 1;
+  packet.queries = &query;
+  packet.id = htons (dns_id);
+  packet.flags.recursion_desired = 1;
+  if (GNUNET_OK !=
+      GNUNET_DNSPARSER_pack (&packet,
+			     UINT16_MAX,
+			     packet_buf,
+			     packet_size))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		"Failed to pack query for hostname `%s'\n",
+                hostname);
+    packet_buf = NULL;
+    return GNUNET_SYSERR;
+  }
+  return GNUNET_OK;
+}
+
+
+/**
  * We got a result from DNS. Add it to the cache and
  * see if we can make our client happy...
  *
@@ -687,6 +740,35 @@ handle_resolve_result (void *cls,
                                  rc->records_tail,
                                  rle);
   }
+  /* see if we need to do the 2nd request for AAAA records */
+  if ( (GNUNET_DNSPARSER_TYPE_ALL == al->record_type) &&
+       (GNUNET_NO == al->did_aaaa) )
+  {
+    char *packet_buf;
+    size_t packet_size;
+    uint16_t dns_id;
+
+    dns_id = (uint16_t) GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_NONCE,
+                                                  UINT16_MAX);
+    if (GNUNET_OK ==
+        pack (al->hostname,
+              GNUNET_DNSPARSER_TYPE_AAAA,
+              dns_id,
+              &packet_buf,
+              &packet_size))
+    {
+      al->did_aaaa = GNUNET_YES;
+      al->dns_id = dns_id;
+      GNUNET_DNSSTUB_resolve_cancel (al->resolve_handle);
+      al->resolve_handle =
+        GNUNET_DNSSTUB_resolve (dnsstub_ctx,
+                                packet_buf,
+                                packet_size,
+                                &handle_resolve_result,
+                                al);
+      return;
+    }
+  }
 
   /* resume by trying again from cache */
   if (GNUNET_NO ==
@@ -730,6 +812,7 @@ handle_resolve_timeout (void *cls)
  * @param record_type record type to locate
  * @param request_id client request ID
  * @param client handle to the client
+ * @return #GNUNET_OK if the DNS query is now pending
  */
 static int
 resolve_and_cache (const char* hostname,
@@ -739,37 +822,32 @@ resolve_and_cache (const char* hostname,
 {
   char *packet_buf;
   size_t packet_size;
-  struct GNUNET_DNSPARSER_Query query;
-  struct GNUNET_DNSPARSER_Packet packet;
   struct ActiveLookup *al;
   uint16_t dns_id;
+  uint16_t type;
 
-  dns_id =(uint16_t) GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_NONCE,
-					       UINT16_MAX);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "resolve_and_cache\n");
-  query.name = (char *)hostname;
-  query.type = record_type;
-  query.dns_traffic_class = GNUNET_TUN_DNS_CLASS_INTERNET;
-  memset (&packet,
-	  0,
-	  sizeof (packet));
-  packet.num_queries = 1;
-  packet.queries = &query;
-  packet.id = htons (dns_id);
-  packet.flags.recursion_desired = 1;
+  dns_id = (uint16_t) GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_NONCE,
+                                                UINT16_MAX);
+
+  if (GNUNET_DNSPARSER_TYPE_ALL == record_type)
+    type = GNUNET_DNSPARSER_TYPE_A;
+  else
+    type = record_type;
   if (GNUNET_OK !=
-      GNUNET_DNSPARSER_pack (&packet,
-			     UINT16_MAX,
-			     &packet_buf,
-			     &packet_size))
+      pack (hostname,
+            type,
+            dns_id,
+            &packet_buf,
+            &packet_size))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 		"Failed to pack query for hostname `%s'\n",
                 hostname);
     return GNUNET_SYSERR;
-
   }
+
   al = GNUNET_new (struct ActiveLookup);
   al->hostname = GNUNET_strdup (hostname);
   al->record_type = record_type;
