@@ -26,27 +26,6 @@ gnunet_peerinfo_LDADD = \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/util/libgnunetutil.la
 
-if HAVE_MHD
-if HAVE_JSON
-plugin_LTLIBRARIES = \
-  libgnunet_plugin_rest_peerinfo.la
-endif
-endif
-
-
-libgnunet_plugin_rest_peerinfo_la_SOURCES = \
-  plugin_rest_peerinfo.c
-libgnunet_plugin_rest_peerinfo_la_LIBADD = \
-  $(top_builddir)/src/peerinfo/libgnunetpeerinfo.la \
-  $(top_builddir)/src/transport/libgnunettransport.la \
-  $(top_builddir)/src/rest/libgnunetrest.la \
-  $(top_builddir)/src/util/libgnunetutil.la $(XLIBS) \
-  $(LTLIBINTL) -ljansson -lmicrohttpd
-libgnunet_plugin_rest_peerinfo_la_LDFLAGS = \
- $(GN_PLUGIN_LDFLAGS)
-
-
-
 if HAVE_PYTHON
 check_SCRIPTS = \
  test_gnunet_peerinfo.py

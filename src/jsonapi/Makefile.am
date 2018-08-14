@@ -10,6 +10,25 @@ lib_LTLIBRARIES = \
   libgnunetjsonapi.la \
 	libgnunetjsonapiutils.la
 
+if HAVE_ABE
+lib_LTLIBRARIES += libgnunet_plugin_rest_reclaim.la
+endif
+
+libgnunet_plugin_rest_reclaim_la_SOURCES = \
+  plugin_rest_reclaim.c
+libgnunet_plugin_rest_reclaim_la_LIBADD = \
+  $(top_builddir)/src/identity/libgnunetidentity.la \
+  $(top_builddir)/src/reclaim/libgnunetreclaim.la \
+  $(top_builddir)/src/rest/libgnunetrest.la \
+  libgnunetjsonapi.la \
+  $(top_builddir)/src/reclaim-attribute/libgnunetreclaimattribute.la \
+  $(top_builddir)/src/namestore/libgnunetnamestore.la \
+  $(top_builddir)/src/util/libgnunetutil.la $(XLIBS) \
+  $(LTLIBINTL) -ljansson -lmicrohttpd
+libgnunet_plugin_rest_reclaim_la_LDFLAGS = \
+ i$(GN_PLUGIN_LDFLAGS)
+
+
 libgnunetjsonapiutils_la_LDFLAGS = \
 	-version-info 0:0:0 \
 	-no-undefined

@@ -182,12 +182,32 @@ GNUNET_JSON_from_gns_record (const char* rname,
   record_type_str = GNUNET_GNSRECORD_number_to_typename(rd->record_type);
 
   // ? for possible NULL values
-  ret = json_pack("{s:s?,s:s?,s:s?,s:i,s:s?}",
-		  "value", value_str,
-		  "type", record_type_str,
-		  "expiration_time", expiration_time_str,
-		  "flag", flags,
-		  "label", rname);
+  if (NULL != rname)
+  {
+    ret = json_pack ("{s:s?,s:s?,s:s?,s:i,s:s?}",
+		     "value",
+		     value_str,
+		     "record_type",
+		     record_type_str,
+		     "expiration_time",
+		     expiration_time_str,
+		     "flag",
+		     flags,
+		     "record_name",
+		     rname);
+  }
+  else
+  {
+    ret = json_pack ("{s:s?,s:s?,s:s?,s:i}",
+		     "value",
+		     value_str,
+		     "record_type",
+		     record_type_str,
+		     "expiration_time",
+		     expiration_time_str,
+		     "flag",
+		     flags);
+  }
   GNUNET_free_non_null(value_str);
   return ret;
 }

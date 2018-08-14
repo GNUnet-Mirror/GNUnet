@@ -39,31 +39,12 @@ bin_PROGRAMS = \
 libexec_PROGRAMS = \
  gnunet-service-identity 
 
-if HAVE_MHD
-if HAVE_JSON
-plugin_LTLIBRARIES = \
-  libgnunet_plugin_rest_identity.la 
-endif
-endif
-
-
 gnunet_service_identity_SOURCES = \
  gnunet-service-identity.c         
 gnunet_service_identity_LDADD = \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(GN_LIBINTL)
-
-
-libgnunet_plugin_rest_identity_la_SOURCES = \
-  plugin_rest_identity.c
-libgnunet_plugin_rest_identity_la_LIBADD = \
-	libgnunetidentity.la \
-  $(top_builddir)/src/rest/libgnunetrest.la \
-  $(top_builddir)/src/util/libgnunetutil.la $(XLIBS) \
-  $(LTLIBINTL) -ljansson -lmicrohttpd
-libgnunet_plugin_rest_identity_la_LDFLAGS = \
- $(GN_PLUGIN_LDFLAGS)
 
 
 gnunet_identity_SOURCES = \

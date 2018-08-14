@@ -25,7 +25,6 @@ libgnunetpeerinfo_la_SOURCES = \
 libgnunetpeerinfo_la_LIBADD = \
   $(top_builddir)/src/hello/libgnunethello.la \
   $(top_builddir)/src/util/libgnunetutil.la \
-  $(top_builddir)/src/json/libgnunetjson.la \
   $(XLIB) \
   $(LTLIBINTL)
 libgnunetpeerinfo_la_LDFLAGS = \

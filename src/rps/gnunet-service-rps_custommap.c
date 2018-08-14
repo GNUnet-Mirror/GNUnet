@@ -202,6 +202,7 @@ CustomPeerMap_remove_peer (const struct CustomPeerMap *c_peer_map,
   p = GNUNET_CONTAINER_multihashmap32_get (c_peer_map->hash_map, *index);
   GNUNET_assert (NULL != p);
   GNUNET_CONTAINER_multihashmap32_remove_all (c_peer_map->hash_map, *index);
+  // TODO wrong peerid?
   GNUNET_CONTAINER_multipeermap_remove_all (c_peer_map->peer_map, peer);
   if (*index != CustomPeerMap_size (c_peer_map))
   { /* fill 'gap' with peer at last index */

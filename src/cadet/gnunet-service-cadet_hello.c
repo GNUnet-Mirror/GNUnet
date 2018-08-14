@@ -17,13 +17,10 @@
 */
 /**
  * @file cadet/gnunet-service-cadet_hello.c
- * @brief spread knowledge about how to contact other peers from PEERINFO
+ * @brief spread knowledge about how to contact us (get HELLO from peerinfo),
+ *         and remember HELLOs of other peers we have an interest in
  * @author Bartlomiej Polot
  * @author Christian Grothoff
- *
- * TODO:
- * - is most of this necessary/helpful?
- * - should we not simply restrict this to OUR hello?
  */
 #include "platform.h"
 #include "gnunet_util_lib.h"

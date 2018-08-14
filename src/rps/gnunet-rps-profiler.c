@@ -2311,14 +2311,14 @@ void write_final_stats (void){
 
   for (uint32_t i = 0; i < num_peers; i++)
   {
-    to_file ("/tmp/rps/final_stats.dat",
-             "%" PRIu32 " " /* index */
-             "%s %" /* id */
-             PRIu64 " %" /* rounds */
-             PRIu64 " %" PRIu64 " %" PRIu64 " %" PRIu64 " %" PRIu64 " %" PRIu64 " %" /* blocking */
-             PRIu64 " %" PRIu64 " %" PRIu64 " %" /* issued */
-             PRIu64 " %" PRIu64 " %" PRIu64 " %" /* sent */
-             PRIu64 " %" PRIu64 " %" PRIu64 /* recv */,
+    to_file ("/tmp/rps/final_stats.csv",
+             ", %" PRIu32 ", " /* index */
+             "%s, %" /* id */
+             PRIu64 ", %" /* rounds */
+             PRIu64 ", %" PRIu64 ", %" PRIu64 ", %" PRIu64 ", %" PRIu64 ", %" PRIu64 ", %" /* blocking */
+             PRIu64 ", %" PRIu64 ", %" PRIu64 ", %" /* issued */
+             PRIu64 ", %" PRIu64 ", %" PRIu64 ", %" /* sent */
+             PRIu64 ", %" PRIu64 ", %" PRIu64 /* recv */,
              i,
              GNUNET_i2s (rps_peers[i].peer_id),
              rps_peers[i].stats[STAT_TYPE_ROUNDS],
@@ -2407,10 +2407,10 @@ post_test_shutdown_ready_cb (void *cls,
     GNUNET_TESTBED_operation_done (rps_peer->stat_op);
   }
 
-  write_final_stats ();
+  //write_final_stats ();
   if (GNUNET_YES == check_statistics_collect_completed())
   {
-    //write_final_stats ();
+    write_final_stats ();
     GNUNET_free (stat_cls);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
         "Shutting down\n");

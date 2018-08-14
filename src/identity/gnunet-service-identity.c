@@ -752,7 +752,7 @@ handle_rename_message (void *cls,
   old_name = GNUNET_strdup (old_name_tmp);
   GNUNET_STRINGS_utf8_tolower (old_name_tmp, old_name);
   new_name = GNUNET_strdup (&old_name_tmp[old_name_len]);
-  GNUNET_STRINGS_utf8_tolower (&old_name_tmp[old_name_len], old_name);
+  GNUNET_STRINGS_utf8_tolower (&old_name_tmp[old_name_len], new_name);
 
   /* check if new name is already in use */
   for (ego = ego_head; NULL != ego; ego = ego->next)
