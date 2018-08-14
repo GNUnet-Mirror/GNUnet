@@ -11,7 +11,7 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
@@ -375,7 +375,7 @@ struct GNS_ResolverHandle
    * and thus can deduct the LEHO from that transition.
    */
   char *leho;
-  
+
   /**
    * DLL of results we got from DNS.
    */
@@ -2409,7 +2409,7 @@ handle_dht_response (void *cls,
 							 co);
   GNUNET_CONTAINER_DLL_insert (co_head,
 			       co_tail,
-			       co);  
+			       co);
 }
 
 
