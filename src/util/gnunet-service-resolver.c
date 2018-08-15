@@ -1077,11 +1077,13 @@ init_cb (void *cls,
   GNUNET_SCHEDULER_add_shutdown (&shutdown_task,
 				 cls);
   dnsstub_ctx = GNUNET_DNSSTUB_start (128);
+  dns_servers = NULL;
   num_dns_servers = lookup_dns_servers (&dns_servers);
   if (0 >= num_dns_servers)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
   	        _("No DNS server available. DNS resolution will not be possible.\n"));
+    return;
   }
   for (int i = 0; i < num_dns_servers; i++)
   {

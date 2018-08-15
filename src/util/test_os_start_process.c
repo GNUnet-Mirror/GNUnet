@@ -11,7 +11,7 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
@@ -217,6 +217,12 @@ check_kill ()
                              fn,
 			     "gnunet-service-resolver", "-",
 			     NULL);
+  if (NULL == proc)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Failed to launch gnunet-service-resolver. Is your system setup correct?\n");
+    return 77;
+  }
   sleep (1); /* give process time to start, so we actually use the pipe-kill mechanism! */
   GNUNET_free (fn);
   if (0 != GNUNET_OS_process_kill (proc, GNUNET_TERM_SIG))
@@ -250,7 +256,14 @@ check_instant_kill ()
                              hello_pipe_stdin, hello_pipe_stdout, NULL,
                              fn,
 			     "gnunet-service-resolver", "-", NULL);
-  if (0 != GNUNET_OS_process_kill (proc, GNUNET_TERM_SIG))
+  if (NULL == proc)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Failed to launch gnunet-service-resolver. Is your system setup correct?\n");
+    return 77;
+  }
+  if (0 != GNUNET_OS_process_kill (proc,
+                                   GNUNET_TERM_SIG))
   {
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
   }
