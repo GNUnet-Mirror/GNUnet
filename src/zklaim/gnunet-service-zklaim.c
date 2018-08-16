@@ -237,10 +237,14 @@ handle_create_context_message (void *cls,
 {
   struct CreateContextHandle *cch;
   struct ZkClient *zkc = cls;
-  size_t data_len;
+  struct GNUNET_GNSRECORD_Data ctx_record;
+  size_t str_len;
   char *tmp;
   char *pos;
   unsigned char *data;
+  char *rdata;
+  size_t data_len;
+  size_t rdata_len;
   int num_attrs;
   int num_pl;
   int i;
@@ -249,13 +253,13 @@ handle_create_context_message (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Received CREATE_REQUEST message\n");
 
-  data_len = ntohs (crm->name_len);
+  str_len = ntohs (crm->name_len);
 
   cch = GNUNET_new (struct CreateContextHandle);
-  cch->name = GNUNET_strndup ((char*)&crm[1], data_len-1);
-  data_len = ntohs(crm->attrs_len);
+  cch->name = GNUNET_strndup ((char*)&crm[1], str_len-1);
+  str_len = ntohs(crm->attrs_len);
   cch->attrs = GNUNET_strndup (((char*)&crm[1]) + strlen (cch->name) + 1,
-                               data_len-1);
+                               str_len-1);
   cch->private_key = crm->private_key;
   GNUNET_CRYPTO_ecdsa_key_get_public (&crm->private_key,
                                       &cch->public_key);
@@ -297,16 +301,30 @@ handle_create_context_message (void *cls,
     zklaim_ctx_free (ctx);
     return;
   }
-  if (0 != zklaim_ctx_serialize (ctx, &data))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Context serialization failed.\n");
-    send_result(GNUNET_SYSERR, cch);
-    zklaim_ctx_free (ctx);
-    return;
-  }
+  data_len = zklaim_ctx_serialize (ctx, &data);
+  rdata_len = data_len + strlen (cch->attrs) + 1;
   zklaim_ctx_free (ctx);
-  // store ctx,attrs as GNS record
+  rdata = GNUNET_malloc (rdata_len);
+  memcpy (rdata,
+          cch->attrs,
+          strlen (cch->attrs) + 1);
+  memcpy (rdata + strlen (cch->attrs) + 1,
+          data,
+          data_len);
+  ctx_record.data_size = rdata_len;
+  ctx_record.data = rdata;
+  ctx_record.expiration_time = GNUNET_TIME_UNIT_DAYS.rel_value_us; //TODO config
+  ctx_record.record_type = GNUNET_GNSRECORD_TYPE_ZKLAIM_CTX;
+  ctx_record.flags = GNUNET_GNSRECORD_RF_RELATIVE_EXPIRATION;
+  cch->ns_qe = GNUNET_NAMESTORE_records_store (ns_handle,
+                                              &cch->private_key,
+                                              cch->name,
+                                              1,
+                                              &ctx_record,
+                                              &context_store_cont,
+                                              cch);
+  GNUNET_free (rdata);
+  GNUNET_free (data);
 }
 
 
