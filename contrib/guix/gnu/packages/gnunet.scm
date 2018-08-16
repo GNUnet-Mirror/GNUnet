@@ -245,8 +245,14 @@ supports HTTP, HTTPS and GnuTLS.")
                                   "See COPYING in the distribution."))
    (home-page "https://gnunet.org/gnurl")))
 
-(define %source-dir (dirname (current-filename)))
 
+(define (repeat f n)
+  (if (= n 1)
+      f
+      (lambda (x) (f ((repeat f (- n 1)) x)))))
+
+(define %source-dir ((repeat dirname 5) (current-filename)))
+  
 (define (git-output . args)
   "Execute 'git ARGS ...' command and return its output without trailing
 newspace."
@@ -260,7 +266,7 @@ newspace."
   (git-output "describe" "--tags"))
 
 (define (git-sources)
-  (local-file (dirname (dirname (dirname (dirname %source-dir))))
+  (local-file %source-dir
 	      #:recursive? #t
 	      #:select? (git-predicate %source-dir)))
 
