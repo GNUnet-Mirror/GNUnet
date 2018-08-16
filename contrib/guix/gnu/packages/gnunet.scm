@@ -292,6 +292,7 @@ newspace."
       ("opus" ,opus) ; gnunet-conversation
       ("pulseaudio" ,pulseaudio) ; conversation
       ("sqlite" ,sqlite) ; sqlite bindings, *store
+      ("postgresql" ,postgresql)
       ("zlib" ,zlib)
       ("perl" ,perl) ; doxygen and more
       ("jansson" ,jansson) ; identity, taler (external), gnunet-json, gns
