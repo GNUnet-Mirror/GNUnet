@@ -1,0 +1,4 @@
+This directory contains Guix package definitions that can be used to override
+the ones found in Guix's GNU distribution.
+
+Guix packagers are encouraged to adopt and adjust these definitions.
