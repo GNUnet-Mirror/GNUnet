@@ -507,10 +507,8 @@ AC_CHECK_LIB(opus,opus_decode_float,
     )]
   )]
 )
-if test "$opus" = 1
-then
-  AC_DEFINE([HAVE_OPUS],[1],[Have libopus library])
-fi
+AS_IF([test "x$opus" = x1]
+      [AC_DEFINE([HAVE_OPUS],[1],[Have libopus library])])
 
 # libogg
 AC_CHECK_LIB(ogg, ogg_stream_flush_fill,
