@@ -18,6 +18,9 @@ plugin_LTLIBRARIES = \
 lib_LTLIBRARIES = \
 	libgnunetzklaim.la
 
+libexec_PROGRAMS = \
+	gnunet-service-zklaim
+
 libgnunetzklaim_la_SOURCES = \
   zklaim_api.c \
   zklaim_api.h
@@ -27,6 +30,29 @@ libgnunetzklaim_la_LIBADD = \
 libgnunetzklaim_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS)  $(WINFLAGS) \
   -version-info 0:0:0
+
+gnunet_service_zklaim_SOURCES = \
+ gnunet-service-zklaim.c
+gnunet_service_zklaim_LDADD = \
+  $(top_builddir)/src/gnsrecord/libgnunetgnsrecord.la \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/namestore/libgnunetnamestore.la \
+  $(top_builddir)/src/statistics/libgnunetstatistics.la \
+  $(top_builddir)/src/reclaim-attribute/libgnunetreclaimattribute.la \
+  $(top_builddir)/src/reclaim/libgnunetreclaim.la \
+  $(top_builddir)/src/gns/libgnunetgns.la \
+  $(GCLIBADD)\
+  $(LIBGCRYPT_LIBS) \
+	-lzklaim \
+  -lgcrypt \
+  -lgmp \
+  -lgmpxx \
+  -lcrypto \
+  -lprocps \
+  -lstdc++ \
+  -lm
+  $(GN_LIBINTL)
+
 
 
 libgnunet_plugin_reclaim_attribute_zklaim_la_SOURCES = \

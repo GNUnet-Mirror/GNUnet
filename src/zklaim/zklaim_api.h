@@ -67,9 +67,14 @@ struct CreateRequestMessage
   struct GNUNET_MessageHeader header;
 
   /**
-   * Number of bytes in identity name string including 0-termination, in NBO.
+   * Number of bytes in name string including 0-termination, in NBO.
    */
   uint16_t name_len GNUNET_PACKED;
+
+  /**
+   * Number of bytes in attributes string including 0-termination, in NBO.
+   */
+  uint16_t attrs_len GNUNET_PACKED;
 
   /**
    * Always zero.
