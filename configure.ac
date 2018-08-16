@@ -507,7 +507,7 @@ AC_CHECK_LIB(opus,opus_decode_float,
     )]
   )]
 )
-AS_IF([test "x$opus" = x1]
+AS_IF([test "x$opus" = x1],
       [AC_DEFINE([HAVE_OPUS],[1],[Have libopus library])])
 
 # libogg
