@@ -13,8 +13,8 @@ if USE_COVERAGE
 endif
 
 
-libgnunetzklaim_la_SOURCES = zklaim.c
-libgnunetzklaim_la_LIBADD = \
+gnunet_zklaim_SOURCES = zklaim.c
+gnunet_zklaim_LDADD = \
   $(GCLIBADD)\
   $(LIBGCRYPT_LIBS) \
 	-lzklaim \
@@ -25,23 +25,13 @@ libgnunetzklaim_la_LIBADD = \
   -lprocps \
   -lstdc++ \
   -lm
-libgnunetzklaim_la_LDFLAGS = \
-  $(GN_LIB_LDFLAGS) \
-  -version-info 1:0:0
+gnunet_zklaim_LDFLAGS = \
+  $(GN_LIB_LDFLAGS)
 
-lib_LTLIBRARIES = libgnunetzklaim.la
+#lib_LTLIBRARIES = libgnunetzklaim.la
+bin_PROGRAMS = gnunet-zklaim
 
 if ENABLE_TEST_RUN
 AM_TESTS_ENVIRONMENT=export GNUNET_PREFIX=$${GNUNET_PREFIX:-@libdir@};export PATH=$${GNUNET_PREFIX:-@prefix@}/bin:$$PATH;unset XDG_DATA_HOME;unset XDG_CONFIG_HOME;
 TESTS = $(check_PROGRAMS)
 endif
-
-#check_PROGRAMS = test_cpabe 
-
-#test_cpabe_SOURCES = \
-# test_cpabe.c
-#test_cpabe_LDADD = \
-# libgnunetabe.la \
-# $(top_builddir)/src/util/libgnunetutil.la
-#check_PROGRAMS += \
-# test_cpabe
