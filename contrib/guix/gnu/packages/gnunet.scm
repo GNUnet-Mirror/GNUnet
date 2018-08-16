@@ -261,7 +261,8 @@ newspace."
 
 (define (git-sources)
   (local-file (dirname (dirname (dirname (dirname %source-dir))))
-		                                  #:recursive? #t))
+	      #:recursive? #t
+	      #:select? (git-predicate %source-dir)))
 
 (define-public gnunet
   (package
