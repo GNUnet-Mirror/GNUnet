@@ -12,9 +12,51 @@ if USE_COVERAGE
   XLIB = -lgcov
 endif
 
+plugin_LTLIBRARIES = \
+  libgnunet_plugin_reclaim_attribute_zklaim.la
 
-gnunet_zklaim_SOURCES = zklaim.c
+lib_LTLIBRARIES = \
+	libgnunetzklaim.la
+
+libgnunetzklaim_la_SOURCES = \
+  zklaim_api.c \
+  zklaim_api.h
+libgnunetzklaim_la_LIBADD = \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(GN_LIBINTL) $(XLIB)
+libgnunetzklaim_la_LDFLAGS = \
+  $(GN_LIB_LDFLAGS)  $(WINFLAGS) \
+  -version-info 0:0:0
+
+
+libgnunet_plugin_reclaim_attribute_zklaim_la_SOURCES = \
+  plugin_reclaim_attribute_zklaim.c
+libgnunet_plugin_reclaim_attribute_zklaim_la_LIBADD = \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(LTLIBINTL)
+libgnunet_plugin_reclaim_attribute_zklaim_la_LDFLAGS = \
+ $(GN_PLUGIN_LDFLAGS)
+
+test_zklaim_SOURCES = zklaim.c
+test_zklaim_LDADD = \
+  $(GCLIBADD)\
+  $(LIBGCRYPT_LIBS) \
+	-lzklaim \
+  -lgcrypt \
+  -lgmp \
+  -lgmpxx \
+  -lcrypto \
+  -lprocps \
+  -lstdc++ \
+  -lm
+test_zklaim_LDFLAGS = \
+  $(GN_LIB_LDFLAGS)
+
+gnunet_zklaim_SOURCES = gnunet-zklaim.c
 gnunet_zklaim_LDADD = \
+	$(top_builddir)/src/util/libgnunetutil.la \
+	$(top_builddir)/src/identity/libgnunetidentity.la \
+	libgnunetzklaim.la \
   $(GCLIBADD)\
   $(LIBGCRYPT_LIBS) \
 	-lzklaim \
@@ -28,8 +70,9 @@ gnunet_zklaim_LDADD = \
 gnunet_zklaim_LDFLAGS = \
   $(GN_LIB_LDFLAGS)
 
-#lib_LTLIBRARIES = libgnunetzklaim.la
 bin_PROGRAMS = gnunet-zklaim
+#lib_LTLIBRARIES = libgnunetzklaim.la
+check_PROGRAMS = test_zklaim
 
 if ENABLE_TEST_RUN
 AM_TESTS_ENVIRONMENT=export GNUNET_PREFIX=$${GNUNET_PREFIX:-@libdir@};export PATH=$${GNUNET_PREFIX:-@prefix@}/bin:$$PATH;unset XDG_DATA_HOME;unset XDG_CONFIG_HOME;

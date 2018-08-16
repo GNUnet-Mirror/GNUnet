@@ -50,6 +50,12 @@ extern "C"
 #define GNUNET_RECLAIM_ATTRIBUTE_TYPE_STRING 1
 
 
+/**
+ * ZKlaim attribute.
+ */
+#define GNUNET_RECLAIM_ATTRIBUTE_TYPE_ZKLAIM 2
+
+
 
 /**
  * An attribute.

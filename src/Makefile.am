@@ -29,6 +29,7 @@ if HAVE_ZKLAIM
   EXP_DIR += zklaim
 endif
 endif
+endif
 if HAVE_JSON
  EXP_DIR += \
     auction

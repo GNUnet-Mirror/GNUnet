@@ -1772,6 +1772,7 @@ src/rest-plugins/Makefile
 src/abe/Makefile
 src/reclaim-attribute/Makefile
 src/reclaim/Makefile
+src/zklaim/Makefile
 pkgconfig/Makefile
 pkgconfig/gnunetarm.pc
 pkgconfig/gnunetats.pc
