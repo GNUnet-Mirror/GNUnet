@@ -24,6 +24,8 @@
 ;;; along with GNU Guix.  If not, see <http://www.gnu.org/licenses/>.
 
 (define-module (gnu packages gnunet)
+  #:use-module (ice-9 popen)
+  #:use-module (ice-9 rdelim)
   #:use-module (gnu packages)
   #:use-module (gnu packages file)
   #:use-module (gnu packages base)
@@ -61,6 +63,7 @@
   #:use-module (gnu packages xiph)
   #:use-module (gnu packages backup)
   #:use-module ((guix licenses) #:prefix license:)
+  #:use-module ((guix build utils) #:prefix build-utils:)
   #:use-module (guix packages)
   #:use-module (guix download)
   #:use-module (guix utils)
@@ -244,12 +247,27 @@ supports HTTP, HTTPS and GnuTLS.")
 
 (define %source-dir (dirname (current-filename)))
 
+(define (git-output . args)
+  "Execute 'git ARGS ...' command and return its output without trailing
+newspace."
+  (build-utils:with-directory-excursion %source-dir
+    (let* ((port   (apply open-pipe* OPEN_READ "git" args))
+           (output (read-string port)))
+      (close-port port)
+      (string-trim-right output #\newline))))
+
+(define (current-git-version)
+  (git-output "describe" "--tags"))
+
+(define (git-sources)
+  (local-file (dirname (dirname (dirname (dirname %source-dir))))
+		                                  #:recursive? #t))
+
 (define-public gnunet
   (package
    (name "gnunet")
-   (version "0.10.1")
-   (source (local-file (dirname (dirname (dirname %source-dir)))
-		       #:recursive? #t))
+   (version (current-git-version))
+   (source (git-sources))
    (build-system gnu-build-system)
    (inputs
     `(("glpk" ,glpk)
