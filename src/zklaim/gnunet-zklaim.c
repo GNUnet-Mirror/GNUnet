@@ -241,7 +241,7 @@ op_str_to_enum (const char* op_str)
     return zklaim_eq;
   else if (0 == strcmp ("<=", op_str))
     return zklaim_greater_or_eq;
-  else if (0 == strcmp ("<", op_str))
+  else if (0 == strcmp (">", op_str))
     return zklaim_greater;
   else if (0 == strcmp ("!=", op_str))
     return zklaim_not_eq;
