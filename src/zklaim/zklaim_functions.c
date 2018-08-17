@@ -67,18 +67,20 @@ ZKLAIM_context_attributes_iterate (const struct GNUNET_ZKLAIM_Context *ctx,
   tmp = GNUNET_strdup (ctx->attrs);
   attr_name = strtok (tmp, ",");
   plw = ctx->ctx->pl_ctx_head;
-
   for (i = 0; i < ctx->ctx->num_of_payloads; i++)
   {
     for (j = 0; j < ZKLAIM_MAX_PAYLOAD_ATTRIBUTES; j++)
     {
-      GNUNET_assert (NULL != attr_name);
+      if (NULL == attr_name)
+        break;
       iter (iter_cls, attr_name, &data);
       zklaim_set_attr (&plw->pl,
                        data,
                        j);
-      attr_name = strtok (NULL, ",");
+      attr_name = strtok (attr_name + strlen (attr_name) + 1, ",");
     }
+    if (NULL == attr_name)
+      break;
     plw = plw->next;
     GNUNET_assert (NULL != plw);
   }
@@ -86,7 +88,7 @@ ZKLAIM_context_attributes_iterate (const struct GNUNET_ZKLAIM_Context *ctx,
 
 }
 
-void
+int
 ZKLAIM_context_issue (struct GNUNET_ZKLAIM_Context *ctx,
                       const struct GNUNET_CRYPTO_EcdsaPrivateKey *key,
                       GNUNET_ZKLAIM_PayloadIterator iter,
@@ -95,8 +97,8 @@ ZKLAIM_context_issue (struct GNUNET_ZKLAIM_Context *ctx,
   ZKLAIM_context_attributes_iterate (ctx,
                                      iter,
                                      iter_cls);
-  ZKLAIM_context_sign (ctx,
-                       key);
+  return ZKLAIM_context_sign (ctx,
+                              key);
 }
 
 void

@@ -146,6 +146,23 @@ GNUNET_ZKLAIM_context_create (struct GNUNET_ZKLAIM_Handle *h,
                               GNUNET_ZKLAIM_ContinuationWithStatus cont,
                               void *cont_cls);
 
+int
+GNUNET_ZKLAIM_issue_from_context (struct GNUNET_ZKLAIM_Context *ctx,
+                                  struct GNUNET_CRYPTO_EcdsaPrivateKey *key,
+                                  GNUNET_ZKLAIM_PayloadIterator iter,
+                                  void* iter_cls);
+
+/**
+ * Lookup context
+ */
+struct GNUNET_ZKLAIM_Operation*
+GNUNET_ZKLAIM_lookup_context (struct GNUNET_ZKLAIM_Handle *h,
+                              const char *name,
+                              const struct GNUNET_CRYPTO_EcdsaPrivateKey *key,
+                              GNUNET_ZKLAIM_ContextResult cont,
+                              void* cont_cls);
+
+
 /**
  * Disconnect from service.
  *

@@ -221,7 +221,6 @@ cleanup_create_handle (struct CreateContextHandle *handle)
   if (NULL != handle->ns_qe)
     GNUNET_NAMESTORE_cancel (handle->ns_qe);
   GNUNET_free_non_null (handle->name);
-  GNUNET_free_non_null (handle->name);
   GNUNET_free_non_null (handle->attrs);
   GNUNET_free (handle);
 }
@@ -241,10 +240,10 @@ send_result (int32_t status,
   r_msg->result_code = htonl (status);
   GNUNET_MQ_send (cch->client->mq,
                   env);
-  cleanup_create_handle (cch);
   GNUNET_CONTAINER_DLL_remove (cch->client->create_op_head,
                                cch->client->create_op_tail,
                                cch);
+  cleanup_create_handle (cch);
 }
 
 static void
@@ -299,7 +298,7 @@ handle_create_context_message (void *cls,
   int i;
   zklaim_ctx *ctx;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+  GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
               "Received CREATE_REQUEST message\n");
 
   str_len = ntohs (crm->name_len);
@@ -307,6 +306,7 @@ handle_create_context_message (void *cls,
   cch = GNUNET_new (struct CreateContextHandle);
   cch->name = GNUNET_strndup ((char*)&crm[1], str_len-1);
   str_len = ntohs(crm->attrs_len);
+  fprintf(stderr, "%s\n", cch->name);
   cch->attrs = GNUNET_strndup (((char*)&crm[1]) + strlen (cch->name) + 1,
                                str_len-1);
   cch->private_key = crm->private_key;
@@ -336,12 +336,14 @@ handle_create_context_message (void *cls,
     pos = strtok(NULL, ",");
   }
   GNUNET_free (tmp);
-  num_pl = num_attrs / 5;
-  zklaim_payload pl[num_pl];
+  num_pl = (num_attrs / 5) + 1;
+  zklaim_payload *pl = GNUNET_malloc (num_pl * sizeof (zklaim_payload));
   ctx = zklaim_context_new ();
   for (i = 0; i < num_pl; i++)
     zklaim_add_pl (ctx, pl[i]);
   zklaim_hash_ctx (ctx);
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+              "Starting trusted setup (%d payloads)... this might take a while...\n", num_pl);
   if (0 != zklaim_trusted_setup (ctx))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -350,6 +352,8 @@ handle_create_context_message (void *cls,
     zklaim_ctx_free (ctx);
     return;
   }
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+              "Finished trusted setup.\n");
   data_len = zklaim_ctx_serialize (ctx, &data);
   rdata_len = data_len + strlen (cch->attrs) + 1;
   zklaim_ctx_free (ctx);
@@ -411,10 +415,11 @@ send_ctx_result (struct LookupHandle *lh,
           len);
   GNUNET_MQ_send (lh->client->mq,
                   env);
-  cleanup_lookup_handle (lh);
   GNUNET_CONTAINER_DLL_remove (lh->client->lookup_op_head,
                                lh->client->lookup_op_tail,
                                lh);
+
+  cleanup_lookup_handle (lh);
 }
 
 
@@ -439,7 +444,7 @@ ctx_found_cb (void *cls,
               const struct GNUNET_GNSRECORD_Data *rd)
 {
   struct LookupHandle *lh = cls;
-
+  lh->ns_qe = NULL;
   send_ctx_result (lh, (char*) rd->data, rd->data_size);
 }
 

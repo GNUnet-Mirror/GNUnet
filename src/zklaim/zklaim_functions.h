@@ -63,7 +63,7 @@ ZKLAIM_context_attributes_iterate (const struct GNUNET_ZKLAIM_Context *ctx,
                                    void *iter_cls);
 
 
-void
+int
 ZKLAIM_context_issue (struct GNUNET_ZKLAIM_Context *ctx,
                       const struct GNUNET_CRYPTO_EcdsaPrivateKey *key,
                       GNUNET_ZKLAIM_PayloadIterator iter,

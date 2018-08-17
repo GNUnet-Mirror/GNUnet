@@ -247,7 +247,7 @@ handle_zklaim_result_code (void *cls,
                                op);
   if (NULL != op->cont)
     op->cont (op->cls,
-              GNUNET_OK,
+              ntohl(rcm->result_code),
               str);
   GNUNET_free (op);
 }
@@ -282,7 +282,7 @@ handle_zklaim_result_ctx (void *cls,
   struct GNUNET_ZKLAIM_Handle *h = cls;
   struct GNUNET_ZKLAIM_Operation *op;
   struct GNUNET_ZKLAIM_Context ctx;
-  uint16_t ctx_len = ntohs (cm->ctx_len);
+  uint16_t ctx_len = ntohl (cm->ctx_len);
 
   op = h->op_head;
   if (NULL == op)
@@ -297,8 +297,8 @@ handle_zklaim_result_ctx (void *cls,
   ctx.attrs = (char*)&cm[1];
   ctx.ctx = zklaim_context_new ();
   zklaim_ctx_deserialize (ctx.ctx,
-                          (unsigned char *) &cm[1]+ strlen (ctx.attrs) + 1,
-                          ctx_len);
+                          (unsigned char *) &cm[1] + strlen (ctx.attrs) + 1,
+                          ctx_len - strlen (ctx.attrs) - 1);
   if (NULL != op->ctx_cont)
   {
     if (0 > ctx_len)
@@ -395,11 +395,13 @@ GNUNET_ZKLAIM_context_create (struct GNUNET_ZKLAIM_Handle *h,
   struct GNUNET_MQ_Envelope *env;
   struct CreateRequestMessage *crm;
   size_t slen;
+  size_t alen;
 
   if (NULL == h->mq)
     return NULL;
   slen = strlen (name) + 1;
-  if (slen >= GNUNET_MAX_MESSAGE_SIZE - sizeof (struct CreateRequestMessage))
+  alen = strlen (attr_list) + 1;
+  if (slen+alen >= GNUNET_MAX_MESSAGE_SIZE - sizeof (struct CreateRequestMessage))
   {
     GNUNET_break (0);
     return NULL;
@@ -412,14 +414,18 @@ GNUNET_ZKLAIM_context_create (struct GNUNET_ZKLAIM_Handle *h,
                                     h->op_tail,
                                     op);
   env = GNUNET_MQ_msg_extra (crm,
-                             slen,
+                             slen + alen,
                              GNUNET_MESSAGE_TYPE_ZKLAIM_CREATE);
   crm->name_len = htons (slen);
+  crm->attrs_len = htons (alen);
   crm->reserved = htons (0);
   crm->private_key = *pk;
   GNUNET_memcpy (&crm[1],
                  name,
                  slen);
+  GNUNET_memcpy (((char*)&crm[1]) + slen,
+                 attr_list,
+                 alen);
   GNUNET_MQ_send (h->mq,
                   env);
   //TODO add attrs
@@ -506,7 +512,7 @@ GNUNET_ZKLAIM_lookup_context (struct GNUNET_ZKLAIM_Handle *h,
                                     op);
   env = GNUNET_MQ_msg_extra (lm,
                              slen,
-                             GNUNET_MESSAGE_TYPE_ZKLAIM_CREATE);
+                             GNUNET_MESSAGE_TYPE_ZKLAIM_LOOKUP_CTX);
   lm->name_len = htons (slen);
   lm->reserved = htons (0);
   lm->private_key = *key;
@@ -518,16 +524,16 @@ GNUNET_ZKLAIM_lookup_context (struct GNUNET_ZKLAIM_Handle *h,
   return op;
 }
 
-void
+int
 GNUNET_ZKLAIM_issue_from_context (struct GNUNET_ZKLAIM_Context *ctx,
                                   struct GNUNET_CRYPTO_EcdsaPrivateKey *key,
                                   GNUNET_ZKLAIM_PayloadIterator iter,
                                   void* iter_cls)
 {
-  ZKLAIM_context_issue (ctx,
-                        key,
-                        iter,
-                        iter_cls);
+  return ZKLAIM_context_issue (ctx,
+                               key,
+                               iter,
+                               iter_cls);
 }
 
 /* end of zklaim_api.c */

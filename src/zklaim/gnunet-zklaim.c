@@ -55,6 +55,11 @@ static char* context_name;
 static char* issue_attrs;
 
 /**
+ * Attribute names for issuer context data
+ */
+static char* create_attrs;
+
+/**
  * Ego name
  */
 static char* ego_name;
@@ -119,22 +124,94 @@ context_create_cb (void *cls,
                    int32_t success,
                    const char* emsg)
 {
+  if (GNUNET_OK == success)
+    fprintf (stdout,
+             "Created.\n");
+  else
+    fprintf(stderr,
+            "Failed.\n");
+  if (NULL == cleanup_task)
+    cleanup_task = GNUNET_SCHEDULER_add_now (&do_cleanup, NULL);
   return;
+}
+
+static void
+issue_iter (void *cls,
+            const char* attr_name,
+            uint64_t *data)
+{
+  char *tmp;
+  char *key;
+  char *val;
+  tmp = GNUNET_strdup (issue_attrs);
+  key = strtok (tmp, "=");
+  while (NULL != key)
+  {
+    val = strtok (NULL, ";");
+    if (0 != strcmp (attr_name, key))
+    {
+      key = strtok (NULL, "=");
+      continue;
+    }
+    if (1 != sscanf (val, "%lu", data))
+      fprintf (stderr, 
+               "Failed to fill %s with %s\n",
+               key, val);
+    key = strtok (NULL, "=");
+  }
+  GNUNET_free (tmp);
+  fprintf (stdout, "Setting %s=%lu\n", attr_name, *data);
+}
+
+static void
+context_cb (void *cls,
+            const struct GNUNET_ZKLAIM_Context *ctx)
+{
+  int ret;
+  if (NULL == ctx)
+  {
+    fprintf (stderr,
+             "Context does not exist!\n");
+  } 
+  else
+  {
+    ret = GNUNET_ZKLAIM_issue_from_context ((struct GNUNET_ZKLAIM_Context*)ctx,
+                                            (struct GNUNET_CRYPTO_EcdsaPrivateKey*)pkey,
+                                            &issue_iter,
+                                            NULL);
+    fprintf (stdout,
+             "Issued (%d)\n", ret);
+  }
+  if (NULL == cleanup_task)
+    cleanup_task = GNUNET_SCHEDULER_add_now (&do_cleanup, NULL);
+  return;
+
 }
 
 static void
 handle_arguments ()
 {
-  timeout = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 10),
+  timeout = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 60),
                                           &timeout_task,
                                           NULL);
   if (create)
   {
+    fprintf (stdout,
+             "Creating context...\n");
     zklaim_op = GNUNET_ZKLAIM_context_create (zklaim_handle,
                                               pkey,
                                               context_name,
-                                              issue_attrs,
+                                              create_attrs,
                                               &context_create_cb,
+                                              NULL);
+    return;
+  }
+  if (issue_attrs)
+  {
+    zklaim_op = GNUNET_ZKLAIM_lookup_context (zklaim_handle,
+                                              context_name,
+                                              pkey,
+                                              &context_cb,
                                               NULL);
     return;
   }
@@ -182,7 +259,7 @@ run (void *cls,
              _("Context name missing!\n"));
     return;
   }
-  if ( (create) && (NULL == issue_attrs) )
+  if ( (create) && (NULL == create_attrs) )
   {
     ret = 1;
     fprintf (stderr,
@@ -192,6 +269,7 @@ run (void *cls,
 
   zklaim_handle = GNUNET_ZKLAIM_connect (c);
   //Get Ego
+  init = GNUNET_YES;
   identity_handle = GNUNET_IDENTITY_connect (c,
                                              &ego_cb,
                                              NULL);
@@ -215,7 +293,7 @@ main(int argc, char *const argv[])
                                  "attributes",
                                  NULL,
                                  gettext_noop ("Context attributes (comma separated)"),
-                                 &issue_attrs),
+                                 &create_attrs),
     GNUNET_GETOPT_option_string ('e',
                                  "ego",
                                  NULL,
@@ -225,6 +303,11 @@ main(int argc, char *const argv[])
                                "create",
                                gettext_noop ("Create new issuer context"),
                                &create),
+    GNUNET_GETOPT_option_string ('I',
+                                 "issue",
+                                 gettext_noop ("Issue a credential with the given attributes and given zklaim context"),
+                                 NULL,
+                                 &issue_attrs),
     GNUNET_GETOPT_OPTION_END
   };
   if (GNUNET_OK != GNUNET_PROGRAM_run (argc, argv, "ct",

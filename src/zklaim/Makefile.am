@@ -12,14 +12,28 @@ if USE_COVERAGE
   XLIB = -lgcov
 endif
 
+pkgcfg_DATA = \
+  zklaim.conf
+
 plugin_LTLIBRARIES = \
-  libgnunet_plugin_reclaim_attribute_zklaim.la
+  libgnunet_plugin_reclaim_attribute_zklaim.la \
+	libgnunet_plugin_gnsrecord_zklaim.la
 
 lib_LTLIBRARIES = \
 	libgnunetzklaim.la
 
 libexec_PROGRAMS = \
 	gnunet-service-zklaim
+
+libgnunet_plugin_gnsrecord_zklaim_la_SOURCES = \
+  plugin_gnsrecord_zklaim.c
+libgnunet_plugin_gnsrecord_zklaim_la_LIBADD = \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(LTLIBINTL)
+libgnunet_plugin_gnsrecord_zklaim_la_LDFLAGS = \
+ $(GN_PLUGIN_LDFLAGS)
+
+
 
 libgnunetzklaim_la_SOURCES = \
   zklaim_api.c \
