@@ -74,4 +74,10 @@ ZKLAIM_context_prove (struct GNUNET_ZKLAIM_Context *ctx,
                       GNUNET_ZKLAIM_PredicateIterator iter,
                       void *iter_cls);
 
+
+int
+ZKLAIM_context_verify (struct GNUNET_ZKLAIM_Context *ctx,
+                       GNUNET_ZKLAIM_PredicateIterator iter,
+                       void *iter_cls);
+
 #endif

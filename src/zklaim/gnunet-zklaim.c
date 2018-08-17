@@ -80,6 +80,12 @@ static char* ego_name;
 static char* pkey_fn;
 
 /**
+ * The proof to verify
+ */
+static char* verify_proof;
+
+
+/**
  * ZKLAIM handle
  */
 static struct GNUNET_ZKLAIM_Handle *zklaim_handle;
@@ -139,6 +145,7 @@ context_create_cb (void *cls,
                    int32_t success,
                    const char* emsg)
 {
+  zklaim_op = NULL;
   if (GNUNET_OK == success)
     fprintf (stdout,
              "Created.\n");
@@ -187,6 +194,7 @@ context_cb (void *cls,
   char* data;
   char *str;
 
+  zklaim_op = NULL;
   if (NULL == ctx)
   {
     fprintf (stderr,
@@ -276,13 +284,48 @@ prove_iter (void *cls,
 
 }
 
+const char* zklaim_parse_op (enum zklaim_op e) {
+  switch (e) {
+    case zklaim_noop:
+      return "noop";
+    case zklaim_less:
+      return "<";
+    case zklaim_less_or_eq:
+      return "<=";
+    case zklaim_eq:
+      return "=";
+    case zklaim_greater_or_eq:
+      return ">=";
+    case zklaim_greater:
+      return ">";
+    case zklaim_not_eq:
+      return "!=";
+    default:
+      return "enum zklaim_op: no valid value";
+  }
+}
+
+void
+verify_iter (void *cls,
+             const char* name,
+             enum zklaim_op *zop,
+             uint64_t *ref)
+{
+  const char *op = zklaim_parse_op (*zop);
+  fprintf (stdout,
+           "%s %s %lu\n", name, op, *ref);
+}
+
 static void
 handle_arguments ()
 {
   struct GNUNET_ZKLAIM_Context *ctx;
   size_t len;
   char *data;
+  char *proof_str;
+  char *proof_data;
   int ret;
+  size_t proof_size;
 
   timeout = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 60),
                                           &timeout_task,
@@ -323,6 +366,31 @@ handle_arguments ()
                                                     NULL);
     fprintf (stdout,
              "%s\n", ret ? "failed." : "success.");
+    proof_size = GNUNET_ZKLAIM_context_serialize (ctx,
+                                                  &proof_data);
+    GNUNET_STRINGS_base64_encode (proof_data,
+                                  proof_size,
+                                  &proof_str);
+    fprintf (stdout,
+             "Here is your proof:\n%s\n", proof_str);
+    GNUNET_free (proof_str);
+    GNUNET_free (proof_data);
+    GNUNET_ZKLAIM_context_destroy (ctx);
+  }
+  else if (verify_proof)
+  {
+    proof_size = GNUNET_STRINGS_base64_decode (verify_proof,
+                                               strlen (verify_proof),
+                                               (void**)&proof_data);
+    ctx = GNUNET_ZKLAIM_context_deserialize (proof_data,
+                                             proof_size);
+    ret = GNUNET_ZKLAIM_context_verify (ctx,
+                                        &verify_iter,
+                                        NULL);
+    fprintf (stdout,
+             "Proof is %s (%d)\n", ret ? "INVALID" : "VALID", ret);
+    GNUNET_free (proof_data);
+    GNUNET_ZKLAIM_context_destroy (ctx);
   }
   cleanup_task = GNUNET_SCHEDULER_add_now (&do_cleanup, NULL);
 }
@@ -431,6 +499,12 @@ main(int argc, char *const argv[])
                                    NULL,
                                    gettext_noop ("The proving key to use"),
                                    &pkey_fn),
+    GNUNET_GETOPT_option_string ('V',
+                                 "verify",
+                                 NULL,
+                                 gettext_noop ("Proof to verify"),
+                                 &verify_proof),
+
     GNUNET_GETOPT_OPTION_END
   };
   if (GNUNET_OK != GNUNET_PROGRAM_run (argc, argv, "ct",

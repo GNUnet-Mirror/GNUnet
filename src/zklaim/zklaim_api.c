@@ -639,4 +639,16 @@ GNUNET_ZKLAIM_context_prove (struct GNUNET_ZKLAIM_Context *ctx,
                                iter_cls);
 }
 
+
+int
+GNUNET_ZKLAIM_context_verify (struct GNUNET_ZKLAIM_Context *ctx,
+                              GNUNET_ZKLAIM_PredicateIterator iter,
+                              void* iter_cls)
+{
+  return ZKLAIM_context_verify (ctx,
+                                iter,
+                                iter_cls);
+}
+
+
 /* end of zklaim_api.c */

@@ -204,6 +204,10 @@ GNUNET_ZKLAIM_context_prove_with_keyfile (struct GNUNET_ZKLAIM_Context *ctx,
                                           const char* pkey_fn,
                                           GNUNET_ZKLAIM_PredicateIterator iter,
                                           void* iter_cls);
+int
+GNUNET_ZKLAIM_context_verify (struct GNUNET_ZKLAIM_Context *ctx,
+                              GNUNET_ZKLAIM_PredicateIterator iter,
+                              void* iter_cls);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */
