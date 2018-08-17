@@ -183,6 +183,19 @@ GNUNET_ZKLAIM_disconnect (struct GNUNET_ZKLAIM_Handle *h);
 void
 GNUNET_ZKLAIM_cancel (struct GNUNET_ZKLAIM_Operation *op);
 
+size_t
+GNUNET_ZKLAIM_context_serialize (const struct GNUNET_ZKLAIM_Context *ctx,
+                                 char **buf);
+
+struct GNUNET_ZKLAIM_Context *
+GNUNET_ZKLAIM_context_deserialize (char *data,
+                                   size_t data_len);
+
+int
+GNUNET_ZKLAIM_context_prove (struct GNUNET_ZKLAIM_Context *ctx,
+                             GNUNET_ZKLAIM_PredicateIterator iter,
+                             void* iter_cls);
+
 #if 0                           /* keep Emacsens' auto-indent happy */
 {
 #endif

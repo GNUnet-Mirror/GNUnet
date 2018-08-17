@@ -68,4 +68,10 @@ ZKLAIM_context_issue (struct GNUNET_ZKLAIM_Context *ctx,
                       const struct GNUNET_CRYPTO_EcdsaPrivateKey *key,
                       GNUNET_ZKLAIM_PayloadIterator iter,
                       void *iter_cls);
+
+int
+ZKLAIM_context_prove (struct GNUNET_ZKLAIM_Context *ctx,
+                      GNUNET_ZKLAIM_PredicateIterator iter,
+                      void *iter_cls);
+
 #endif

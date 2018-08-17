@@ -536,4 +536,60 @@ GNUNET_ZKLAIM_issue_from_context (struct GNUNET_ZKLAIM_Context *ctx,
                                iter_cls);
 }
 
+size_t
+GNUNET_ZKLAIM_context_serialize (const struct GNUNET_ZKLAIM_Context *ctx,
+                                 char **buf)
+{
+  char *pos;
+  char *tmp;
+  size_t len;
+  size_t len_w;
+  size_t ret_len = 0;
+  len = zklaim_ctx_serialize (ctx->ctx,
+                              (unsigned char**) &tmp);
+  ret_len += strlen (ctx->attrs) + 1 + sizeof (size_t) + len;
+  *buf = GNUNET_malloc (ret_len);
+  pos = *buf;
+  memcpy (pos, ctx->attrs, strlen (ctx->attrs) + 1);
+  pos += strlen (ctx->attrs) + 1;
+  len_w = htonl (len);
+  memcpy (pos, &len_w, sizeof (size_t));
+  pos += sizeof (size_t);
+  memcpy (pos, tmp, len);
+  GNUNET_free (tmp);
+  return ret_len;
+}
+
+
+struct GNUNET_ZKLAIM_Context *
+GNUNET_ZKLAIM_context_deserialize (char *data,
+                                   size_t data_len)
+{
+  struct GNUNET_ZKLAIM_Context *ctx;
+  char *pos;
+  size_t len;
+
+  ctx = GNUNET_new (struct GNUNET_ZKLAIM_Context);
+  ctx->attrs = GNUNET_strdup (data);
+  pos = data + strlen (ctx->attrs) + 1;
+  len = ntohl (*((size_t*)pos));
+  ctx->ctx = zklaim_context_new ();
+  pos += sizeof (size_t);
+  if (0 != zklaim_ctx_deserialize (ctx->ctx,
+                                   (unsigned char*) pos,
+                                   len))
+    return NULL;
+  return ctx;
+}
+
+int
+GNUNET_ZKLAIM_context_prove (struct GNUNET_ZKLAIM_Context *ctx,
+                             GNUNET_ZKLAIM_PredicateIterator iter,
+                             void* iter_cls)
+{
+  return ZKLAIM_context_prove (ctx,
+                               iter,
+                               iter_cls);
+}
+
 /* end of zklaim_api.c */

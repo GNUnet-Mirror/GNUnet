@@ -57,6 +57,16 @@ static char* issue_attrs;
 /**
  * Attribute names for issuer context data
  */
+static char* credential;
+
+/**
+ * Attribute names for issuer context data
+ */
+static char* prove_predicate;
+
+/**
+ * Attribute names for issuer context data
+ */
 static char* create_attrs;
 
 /**
@@ -168,6 +178,10 @@ context_cb (void *cls,
             const struct GNUNET_ZKLAIM_Context *ctx)
 {
   int ret;
+  size_t len;
+  char* data;
+  char *str;
+
   if (NULL == ctx)
   {
     fprintf (stderr,
@@ -179,8 +193,22 @@ context_cb (void *cls,
                                             (struct GNUNET_CRYPTO_EcdsaPrivateKey*)pkey,
                                             &issue_iter,
                                             NULL);
-    fprintf (stdout,
-             "Issued (%d)\n", ret);
+    if (0 != ret)
+    {
+      fprintf (stderr,
+               "Failed (%d)\n", ret);
+    }
+    else 
+    {
+      len = GNUNET_ZKLAIM_context_serialize (ctx,
+                                             &data);
+      GNUNET_STRINGS_base64_encode (data,
+                                    len,
+                                    &str);
+      fprintf (stdout,
+               "%s\n", str);
+      GNUNET_free (str);
+    }
   }
   if (NULL == cleanup_task)
     cleanup_task = GNUNET_SCHEDULER_add_now (&do_cleanup, NULL);
@@ -188,9 +216,75 @@ context_cb (void *cls,
 
 }
 
+enum zklaim_op
+op_str_to_enum (const char* op_str)
+{
+
+  if (0 == strcmp ("<", op_str))
+    return zklaim_less;
+  else if (0 == strcmp ("<=", op_str))
+    return zklaim_less_or_eq;
+  else if (0 == strcmp ("==", op_str))
+    return zklaim_eq;
+  else if (0 == strcmp ("<=", op_str))
+    return zklaim_greater_or_eq;
+  else if (0 == strcmp ("<", op_str))
+    return zklaim_greater;
+  else if (0 == strcmp ("!=", op_str))
+    return zklaim_not_eq;
+  return zklaim_noop;
+}
+
+void
+prove_iter (void *cls,
+            const char* name,
+            enum zklaim_op *zop,
+            uint64_t *ref)
+{
+  char *tmp;
+  char *attr;
+  char *val;
+  char *op;
+  tmp = GNUNET_strdup (prove_predicate);
+  fprintf (stderr,
+           "%s\n",
+           prove_predicate);
+  attr = strtok (tmp, " ");
+  while (NULL != attr)
+  {
+    fprintf (stderr,
+             "Got %s\n", attr);
+    op = strtok (NULL, " ");
+    if (NULL == op)
+      break;
+        val = strtok (NULL, ";");
+    if (NULL == val)
+      break;
+    if (0 != strcmp (name, attr))
+    {
+      attr = strtok (NULL, " ");
+      continue;
+    }
+    *zop = op_str_to_enum (op);
+    if (1 != sscanf (val, "%lu", ref))
+      fprintf (stderr, 
+               "Failed parse %s %s %s\n",
+               attr, op, val);
+    fprintf (stdout, "Setting %s %s %lu\n", name, op, *ref);
+    attr = strtok (NULL, " ");
+  }
+  GNUNET_free (tmp);
+
+}
+
 static void
 handle_arguments ()
 {
+  struct GNUNET_ZKLAIM_Context *ctx;
+  size_t len;
+  char *data;
+  int ret;
+
   timeout = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 60),
                                           &timeout_task,
                                           NULL);
@@ -206,7 +300,7 @@ handle_arguments ()
                                               NULL);
     return;
   }
-  if (issue_attrs)
+  else if (issue_attrs)
   {
     zklaim_op = GNUNET_ZKLAIM_lookup_context (zklaim_handle,
                                               context_name,
@@ -214,6 +308,24 @@ handle_arguments ()
                                               &context_cb,
                                               NULL);
     return;
+  }
+  else if (prove_predicate)
+  {
+    len = GNUNET_STRINGS_base64_decode (credential,
+                                        strlen (credential),
+                                        (void**)&data);
+
+    ctx = GNUNET_ZKLAIM_context_deserialize (data,
+                                             len);
+    fprintf (stderr,
+             "%s\n",
+             prove_predicate);
+
+    ret = GNUNET_ZKLAIM_context_prove (ctx,
+                                       &prove_iter,
+                                       NULL);
+    fprintf (stdout,
+             "Prove result: %d\n", ret);
   }
   cleanup_task = GNUNET_SCHEDULER_add_now (&do_cleanup, NULL);
 }
@@ -288,7 +400,6 @@ main(int argc, char *const argv[])
                                  NULL,
                                  gettext_noop ("Context name"),
                                  &context_name),
-
     GNUNET_GETOPT_option_string ('A',
                                  "attributes",
                                  NULL,
@@ -305,9 +416,19 @@ main(int argc, char *const argv[])
                                &create),
     GNUNET_GETOPT_option_string ('I',
                                  "issue",
-                                 gettext_noop ("Issue a credential with the given attributes and given zklaim context"),
                                  NULL,
+                                 gettext_noop ("Issue a credential with the given attributes and given zklaim context"),
                                  &issue_attrs),
+    GNUNET_GETOPT_option_string ('P',
+                                 "predicate",
+                                 NULL,
+                                 gettext_noop ("Predicate to prove"),
+                                 &prove_predicate),
+    GNUNET_GETOPT_option_string ('R',
+                                 "credential",
+                                 NULL,
+                                 gettext_noop ("A credential"),
+                                 &credential),
     GNUNET_GETOPT_OPTION_END
   };
   if (GNUNET_OK != GNUNET_PROGRAM_run (argc, argv, "ct",
