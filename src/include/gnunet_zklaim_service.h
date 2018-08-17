@@ -37,6 +37,7 @@ extern "C"
 #endif
 
 #include "gnunet_util_lib.h"
+#include "zklaim/zklaim.h"
 
 /**
  * Version number of GNUnet Identity Provider API.
@@ -79,6 +80,19 @@ typedef void
                                   const char* name,
                                   uint64_t *data);
 
+
+/**
+ * Iterator called for each attribute to set a predicate in proof generation.
+ *
+ * @param cls closure
+ * @param name name of attribute
+ * @param data attribute data (can be modified)
+ */
+typedef void
+(*GNUNET_ZKLAIM_PredicateIterator) (void *cls,
+                                    const char* name,
+                                    enum zklaim_op *op,
+                                    uint64_t *ref);
 
 
 /**

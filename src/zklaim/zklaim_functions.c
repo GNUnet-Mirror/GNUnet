@@ -98,3 +98,44 @@ ZKLAIM_context_issue (struct GNUNET_ZKLAIM_Context *ctx,
   ZKLAIM_context_sign (ctx,
                        key);
 }
+
+void
+ZKLAIM_context_prove (struct GNUNET_ZKLAIM_Context *ctx,
+                      GNUNET_ZKLAIM_PredicateIterator iter,
+                      void *iter_cls)
+{
+  int i;
+  int j;
+  char *attr_name;
+  char *tmp;
+  zklaim_wrap_payload_ctx *plw;
+
+  tmp = GNUNET_strdup (ctx->attrs);
+  attr_name = strtok (tmp, ",");
+  plw = ctx->ctx->pl_ctx_head;
+
+  for (i = 0; i < ctx->ctx->num_of_payloads; i++)
+  {
+    for (j = 0; j < ZKLAIM_MAX_PAYLOAD_ATTRIBUTES; j++)
+    {
+      GNUNET_assert (NULL != attr_name);
+      iter (iter_cls,
+            attr_name, 
+            &plw->pl.data_op[i],
+            &plw->pl.data_ref[i]);
+      attr_name = strtok (NULL, ",");
+    }
+    plw = plw->next;
+    GNUNET_assert (NULL != plw);
+  }
+  GNUNET_free (tmp);
+
+}
+
+int
+ZKLAIM_context_verify (struct GNUNET_ZKLAIM_Context *ctx,
+                       const struct GNUNET_CRYPTO_EcdsaPublicKey *ttp)
+{
+  //TODO check ttp pubkey against pubkey in ctx
+  return zklaim_ctx_verify (ctx->ctx);
+}
