@@ -2706,6 +2706,12 @@ extern "C"
 
 #define GNUNET_MESSAGE_TYPE_ZKLAIM_RESULT_CODE 991
 
+#define GNUNET_MESSAGE_TYPE_ZKLAIM_ISSUE 992
+
+#define GNUNET_MESSAGE_TYPE_ZKLAIM_LOOKUP_CTX 993
+
+#define GNUNET_MESSAGE_TYPE_ZKLAIM_RESULT_CTX 994
+
 /******************************************************************************/
 /***********************************  CADET  **********************************/
 /******************************************************************************/

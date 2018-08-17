@@ -23,7 +23,7 @@ libexec_PROGRAMS = \
 
 libgnunetzklaim_la_SOURCES = \
   zklaim_api.c \
-  zklaim_api.h
+  zklaim_functions.c
 libgnunetzklaim_la_LIBADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(GN_LIBINTL) $(XLIB)

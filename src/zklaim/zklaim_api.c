@@ -28,35 +28,9 @@
 #include "gnunet_zklaim_service.h"
 #include "zklaim/zklaim.h"
 #include "zklaim_api.h"
+#include "zklaim_functions.h"
 
 #define LOG(kind,...) GNUNET_log_from (kind, "zklaim-api",__VA_ARGS__)
-
-/**
- * Handle for an ego.
- */
-struct GNUNET_ZKLAIM_Context
-{
-  /**
-   * ZKlaim context.
-   */
-  struct zklaim_ctx *zk_ctx;
-
-  /**
-   * Current name associated with this context.
-   */
-  char *name;
-
-  /**
-   * Attributes associated with context
-   */
-  char *attrs;
-
-  /**
-   * Client context associated with this ego.
-   */
-  void *ctx;
-
-};
 
 
 /**
@@ -91,6 +65,11 @@ struct GNUNET_ZKLAIM_Operation
    * will be NULL in this case.
    */
   GNUNET_ZKLAIM_ContinuationWithStatus cont;
+
+  /**
+   * Context result
+   */
+  GNUNET_ZKLAIM_ContextResult ctx_cont;
 
   /**
    * Closure for @e cont or @e cb.
@@ -273,6 +252,67 @@ handle_zklaim_result_code (void *cls,
   GNUNET_free (op);
 }
 
+/**
+ * We received a result code from the service.  Check the message
+ * is well-formed.
+ *
+ * @param cls closure
+ * @param rcm result message received
+ * @return #GNUNET_OK if the message is well-formed
+ */
+static int
+check_zklaim_result_ctx (void *cls,
+                         const struct ContextMessage *cm)
+{
+  //TODO check for data sanity
+  return GNUNET_OK;
+}
+
+
+/**
+ * We received a context result from the service.
+ *
+ * @param cls closure
+ * @param rcm result message received
+ */
+static void
+handle_zklaim_result_ctx (void *cls,
+                          const struct ContextMessage *cm)
+{
+  struct GNUNET_ZKLAIM_Handle *h = cls;
+  struct GNUNET_ZKLAIM_Operation *op;
+  struct GNUNET_ZKLAIM_Context ctx;
+  uint16_t ctx_len = ntohs (cm->ctx_len);
+
+  op = h->op_head;
+  if (NULL == op)
+  {
+    GNUNET_break (0);
+    reschedule_connect (h);
+    return;
+  }
+  GNUNET_CONTAINER_DLL_remove (h->op_head,
+                               h->op_tail,
+                               op);
+  ctx.attrs = (char*)&cm[1];
+  ctx.ctx = zklaim_context_new ();
+  zklaim_ctx_deserialize (ctx.ctx,
+                          (unsigned char *) &cm[1]+ strlen (ctx.attrs) + 1,
+                          ctx_len);
+  if (NULL != op->ctx_cont)
+  {
+    if (0 > ctx_len)
+      op->ctx_cont (op->cls,
+                    &ctx);
+    else
+      op->ctx_cont (op->cls,
+                    &ctx);
+  }
+  zklaim_ctx_free (ctx.ctx);
+  GNUNET_free (op);
+}
+
+
 
 /**
  * Try again to connect to the zklaim service.
@@ -287,6 +327,10 @@ reconnect (void *cls)
     GNUNET_MQ_hd_var_size (zklaim_result_code,
                            GNUNET_MESSAGE_TYPE_ZKLAIM_RESULT_CODE,
                            struct ResultCodeMessage,
+                           h),
+    GNUNET_MQ_hd_var_size (zklaim_result_ctx,
+                           GNUNET_MESSAGE_TYPE_ZKLAIM_RESULT_CTX,
+                           struct ContextMessage,
                            h),
     GNUNET_MQ_handler_end ()
   };
@@ -428,6 +472,62 @@ GNUNET_ZKLAIM_disconnect (struct GNUNET_ZKLAIM_Handle *h)
     h->mq = NULL;
   }
   GNUNET_free (h);
+}
+
+/**
+ * Lookup context
+ */
+struct GNUNET_ZKLAIM_Operation*
+GNUNET_ZKLAIM_lookup_context (struct GNUNET_ZKLAIM_Handle *h,
+                              const char *name,
+                              const struct GNUNET_CRYPTO_EcdsaPrivateKey *key,
+                              GNUNET_ZKLAIM_ContextResult cont,
+                              void* cont_cls)
+{
+  struct GNUNET_ZKLAIM_Operation *op;
+  struct GNUNET_MQ_Envelope *env;
+  struct LookupMessage *lm;
+  size_t slen;
+
+  if (NULL == h->mq)
+    return NULL;
+  slen = strlen (name) + 1;
+  if (slen >= GNUNET_MAX_MESSAGE_SIZE - sizeof (struct LookupMessage))
+  {
+    GNUNET_break (0);
+    return NULL;
+  }
+  op = GNUNET_new (struct GNUNET_ZKLAIM_Operation);
+  op->h = h;
+  op->ctx_cont = cont;
+  op->cls = cont_cls;
+  GNUNET_CONTAINER_DLL_insert_tail (h->op_head,
+                                    h->op_tail,
+                                    op);
+  env = GNUNET_MQ_msg_extra (lm,
+                             slen,
+                             GNUNET_MESSAGE_TYPE_ZKLAIM_CREATE);
+  lm->name_len = htons (slen);
+  lm->reserved = htons (0);
+  lm->private_key = *key;
+  GNUNET_memcpy (&lm[1],
+                 name,
+                 slen);
+  GNUNET_MQ_send (h->mq,
+                  env);
+  return op;
+}
+
+void
+GNUNET_ZKLAIM_issue_from_context (struct GNUNET_ZKLAIM_Context *ctx,
+                                  struct GNUNET_CRYPTO_EcdsaPrivateKey *key,
+                                  GNUNET_ZKLAIM_PayloadIterator iter,
+                                  void* iter_cls)
+{
+  ZKLAIM_context_issue (ctx,
+                        key,
+                        iter,
+                        iter_cls);
 }
 
 /* end of zklaim_api.c */

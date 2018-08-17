@@ -78,6 +78,17 @@ struct ZkClient
    */
   struct CreateContextHandle *create_op_tail;
 
+  /**
+   * Head of DLL of context issue ops
+   */
+  struct LookupHandle *lookup_op_head;
+
+  /**
+   * Tail of DLL of attribute store ops
+   */
+  struct LookupHandle *lookup_op_tail;
+
+
 };
 
 struct CreateContextHandle
@@ -124,6 +135,46 @@ struct CreateContextHandle
 
 };
 
+struct LookupHandle
+{
+  /**
+   * DLL
+   */
+  struct LookupHandle *next;
+
+  /**
+   * DLL
+   */
+  struct LookupHandle *prev;
+
+  /**
+   * Client connection
+   */
+  struct ZkClient *client;
+
+  /**
+   * Issuer private key
+   */
+  struct GNUNET_CRYPTO_EcdsaPrivateKey private_key;
+
+  /**
+   * Issuer public key
+   */
+  struct GNUNET_CRYPTO_EcdsaPublicKey public_key;
+
+  /**
+   * QueueEntry
+   */
+  struct GNUNET_NAMESTORE_QueueEntry *ns_qe;
+
+  /**
+   * The context name
+   */
+  char *name;
+
+};
+
+
 /**
  * Cleanup task
  */
@@ -169,8 +220,9 @@ cleanup_create_handle (struct CreateContextHandle *handle)
 {
   if (NULL != handle->ns_qe)
     GNUNET_NAMESTORE_cancel (handle->ns_qe);
-  if (NULL != handle->name)
-    GNUNET_free (handle->name);
+  GNUNET_free_non_null (handle->name);
+  GNUNET_free_non_null (handle->name);
+  GNUNET_free_non_null (handle->attrs);
   GNUNET_free (handle);
 }
 
@@ -190,7 +242,9 @@ send_result (int32_t status,
   GNUNET_MQ_send (cch->client->mq,
                   env);
   cleanup_create_handle (cch);
-
+  GNUNET_CONTAINER_DLL_remove (cch->client->create_op_head,
+                               cch->client->create_op_tail,
+                               cch);
 }
 
 static void
@@ -201,15 +255,10 @@ context_store_cont (void *cls,
   struct CreateContextHandle *cch = cls;
 
   cch->ns_qe = NULL;
-  GNUNET_CONTAINER_DLL_remove (cch->client->create_op_head,
-                               cch->client->create_op_tail,
-                               cch);
-
   if (GNUNET_SYSERR == success)
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Failed to create context %s\n",
                 emsg);
-
   send_result (success, cch);
 }
 
@@ -297,7 +346,7 @@ handle_create_context_message (void *cls,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Trusted Setup failed.\n");
-    send_result(GNUNET_SYSERR, cch);
+    send_result (GNUNET_SYSERR, cch);
     zklaim_ctx_free (ctx);
     return;
   }
@@ -317,14 +366,133 @@ handle_create_context_message (void *cls,
   ctx_record.record_type = GNUNET_GNSRECORD_TYPE_ZKLAIM_CTX;
   ctx_record.flags = GNUNET_GNSRECORD_RF_RELATIVE_EXPIRATION;
   cch->ns_qe = GNUNET_NAMESTORE_records_store (ns_handle,
-                                              &cch->private_key,
-                                              cch->name,
-                                              1,
-                                              &ctx_record,
-                                              &context_store_cont,
-                                              cch);
+                                               &cch->private_key,
+                                               cch->name,
+                                               1,
+                                               &ctx_record,
+                                               &context_store_cont,
+                                               cch);
   GNUNET_free (rdata);
   GNUNET_free (data);
+}
+
+/**
+ * Cleanup attribute store handle
+ *
+ * @param handle handle to clean up
+ */
+static void
+cleanup_lookup_handle (struct LookupHandle *handle)
+{
+  if (NULL != handle->ns_qe)
+    GNUNET_NAMESTORE_cancel (handle->ns_qe);
+  GNUNET_free_non_null (handle->name);
+  GNUNET_free (handle);
+}
+
+
+static void
+send_ctx_result (struct LookupHandle *lh,
+                 const char* ctx,
+                 size_t len)
+{
+  struct GNUNET_MQ_Envelope *env;
+  struct ContextMessage *r_msg;
+
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Sending RESULT_CODE message\n");
+  env = GNUNET_MQ_msg_extra (r_msg,
+                             len,
+                             GNUNET_MESSAGE_TYPE_ZKLAIM_RESULT_CTX);
+  r_msg->ctx_len = htonl (len);
+  memcpy ((char*)&r_msg[1],
+          ctx,
+          len);
+  GNUNET_MQ_send (lh->client->mq,
+                  env);
+  cleanup_lookup_handle (lh);
+  GNUNET_CONTAINER_DLL_remove (lh->client->lookup_op_head,
+                               lh->client->lookup_op_tail,
+                               lh);
+}
+
+
+static void
+ctx_not_found_cb (void* cls)
+{
+  struct LookupHandle *lh = cls;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Context %s not found!\n",
+              lh->name);
+
+  send_ctx_result (lh, NULL, 0);
+}
+
+
+static void
+ctx_found_cb (void *cls,
+              const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone,
+              const char *label,
+              unsigned int rd_count,
+              const struct GNUNET_GNSRECORD_Data *rd)
+{
+  struct LookupHandle *lh = cls;
+
+  send_ctx_result (lh, (char*) rd->data, rd->data_size);
+}
+
+
+
+static int
+check_lookup_message(void *cls,
+                     const struct LookupMessage *lm)
+{
+  uint16_t size;
+
+  size = ntohs (lm->header.size);
+  if (size <= sizeof (struct LookupMessage))
+  {
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
+  return GNUNET_OK;
+}
+
+
+static void
+handle_lookup_message (void *cls,
+                       const struct LookupMessage *lm)
+{
+  struct LookupHandle *lh;
+  struct ZkClient *zkc = cls;
+  size_t str_len;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Received CREATE_REQUEST message\n");
+
+  str_len = ntohs (lm->name_len);
+
+  lh = GNUNET_new (struct LookupHandle);
+  lh->name = GNUNET_strndup ((char*)&lm[1], str_len-1);
+  lh->private_key = lm->private_key;
+  GNUNET_CRYPTO_ecdsa_key_get_public (&lm->private_key,
+                                      &lh->public_key);
+
+  GNUNET_SERVICE_client_continue (zkc->client);
+  lh->client = zkc;
+  GNUNET_CONTAINER_DLL_insert (zkc->lookup_op_head,
+                               zkc->lookup_op_tail,
+                               lh);
+
+  lh->ns_qe = GNUNET_NAMESTORE_records_lookup (ns_handle,
+                                               &lh->private_key,
+                                               lh->name,
+                                               &ctx_not_found_cb,
+                                               lh,
+                                               &ctx_found_cb,
+                                               lh);
 }
 
 
@@ -430,6 +598,10 @@ GNUNET_SERVICE_MAIN
  GNUNET_MQ_hd_var_size (create_context_message,
                         GNUNET_MESSAGE_TYPE_ZKLAIM_CREATE,
                         struct CreateRequestMessage,
+                        NULL),
+ GNUNET_MQ_hd_var_size (lookup_message,
+                        GNUNET_MESSAGE_TYPE_ZKLAIM_LOOKUP_CTX,
+                        struct LookupMessage,
                         NULL),
  GNUNET_MQ_handler_end());
 /* end of gnunet-service-zklaim.c */

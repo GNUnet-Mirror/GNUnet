@@ -31,6 +31,28 @@
 
 GNUNET_NETWORK_STRUCT_BEGIN
 
+/**
+ * Answer from service to client about last operation;
+ * GET_DEFAULT maybe answered with this message on failure;
+ * CREATE and RENAME will always be answered with this message.
+ */
+struct ContextMessage
+{
+  /**
+   * Type: #GNUNET_MESSAGE_TYPE_ZKLAIM_RESULT_CTX
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Length if the serialized context.
+   */
+  uint32_t ctx_len GNUNET_PACKED;
+
+  /* followed by 0-terminated error message (on error) */
+
+};
+
+
 
 /**
  * Answer from service to client about last operation;
@@ -51,6 +73,36 @@ struct ResultCodeMessage
   uint32_t result_code GNUNET_PACKED;
 
   /* followed by 0-terminated error message (on error) */
+
+};
+
+/**
+ * Client requests issue of a credential.  Service
+ * will respond with a context.
+ */
+struct LookupMessage
+{
+  /**
+   * Type: #GNUNET_MESSAGE_TYPE_ZKLAIM_LOOKUP_CTX
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Number of bytes in name string including 0-termination, in NBO.
+   */
+  uint16_t name_len GNUNET_PACKED;
+
+  /**
+   * Always zero.
+   */
+  uint16_t reserved GNUNET_PACKED;
+
+  /**
+   * The private key
+   */
+  struct GNUNET_CRYPTO_EcdsaPrivateKey private_key;
+
+  /* followed by 0-terminated identity name */
 
 };
 
