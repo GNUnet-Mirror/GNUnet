@@ -196,6 +196,16 @@ GNUNET_ZKLAIM_context_prove (struct GNUNET_ZKLAIM_Context *ctx,
                              GNUNET_ZKLAIM_PredicateIterator iter,
                              void* iter_cls);
 
+void
+GNUNET_ZKLAIM_context_destroy (struct GNUNET_ZKLAIM_Context *ctx);
+
+int
+GNUNET_ZKLAIM_context_prove_with_keyfile (struct GNUNET_ZKLAIM_Context *ctx,
+                                          const char* pkey_fn,
+                                          GNUNET_ZKLAIM_PredicateIterator iter,
+                                          void* iter_cls);
+
+
 #if 0                           /* keep Emacsens' auto-indent happy */
 {
 #endif

@@ -75,6 +75,11 @@ static char* create_attrs;
 static char* ego_name;
 
 /**
+ * The proving key
+ */
+static char* pkey_fn;
+
+/**
  * ZKLAIM handle
  */
 static struct GNUNET_ZKLAIM_Handle *zklaim_handle;
@@ -257,7 +262,7 @@ prove_iter (void *cls,
     op = strtok (NULL, " ");
     if (NULL == op)
       break;
-        val = strtok (NULL, ";");
+    val = strtok (NULL, ";");
     if (NULL == val)
       break;
     if (0 != strcmp (name, attr))
@@ -320,10 +325,10 @@ handle_arguments ()
     fprintf (stderr,
              "%s\n",
              prove_predicate);
-
-    ret = GNUNET_ZKLAIM_context_prove (ctx,
-                                       &prove_iter,
-                                       NULL);
+    ret = GNUNET_ZKLAIM_context_prove_with_keyfile (ctx,
+                                                    pkey_fn,
+                                                    &prove_iter,
+                                                    NULL);
     fprintf (stdout,
              "Prove result: %d\n", ret);
   }
@@ -429,6 +434,11 @@ main(int argc, char *const argv[])
                                  NULL,
                                  gettext_noop ("A credential"),
                                  &credential),
+    GNUNET_GETOPT_option_filename ('K',
+                                   "provingkey",
+                                   NULL,
+                                   gettext_noop ("The proving key to use"),
+                                   &pkey_fn),
     GNUNET_GETOPT_OPTION_END
   };
   if (GNUNET_OK != GNUNET_PROGRAM_run (argc, argv, "ct",

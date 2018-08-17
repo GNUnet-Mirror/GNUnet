@@ -29,7 +29,9 @@
 #include "gnunet_gns_service.h"
 #include "gnunet_statistics_service.h"
 #include "gnunet_namestore_service.h"
+#include "gnunet_zklaim_service.h"
 #include "zklaim_api.h"
+#include "zklaim_functions.h"
 #include "zklaim/zklaim.h"
 
 /**
@@ -51,6 +53,11 @@ static struct GNUNET_STATISTICS_Handle *stats;
  * Our configuration.
  */
 static const struct GNUNET_CONFIGURATION_Handle *cfg;
+
+/**
+ * Proving key directory
+ */
+static char *pk_directory;
 
 /**
  * An idp client
@@ -123,16 +130,6 @@ struct CreateContextHandle
    */
   struct GNUNET_NAMESTORE_QueueEntry *ns_qe;
 
-  /**
-   * The context name
-   */
-  char *name;
-
-  /**
-   * The attributes to support
-   */
-  char *attrs;
-
 };
 
 struct LookupHandle
@@ -193,6 +190,8 @@ cleanup()
     GNUNET_GNS_disconnect (gns_handle);
   if (NULL != ns_handle)
     GNUNET_NAMESTORE_disconnect (ns_handle);
+  GNUNET_free (pk_directory);
+  pk_directory = NULL;
 }
 
 /**
@@ -220,8 +219,6 @@ cleanup_create_handle (struct CreateContextHandle *handle)
 {
   if (NULL != handle->ns_qe)
     GNUNET_NAMESTORE_cancel (handle->ns_qe);
-  GNUNET_free_non_null (handle->name);
-  GNUNET_free_non_null (handle->attrs);
   GNUNET_free (handle);
 }
 
@@ -278,6 +275,18 @@ check_create_context_message(void *cls,
   return GNUNET_OK;
 }
 
+static char*
+get_pk_filename (char *ctx_name)
+{
+  char *filename;
+
+  GNUNET_asprintf (&filename,
+                   "%s%s%s",
+                   pk_directory,
+                   DIR_SEPARATOR_STR,
+                   ctx_name);
+  return filename;
+}
 
 static void
 handle_create_context_message (void *cls,
@@ -286,17 +295,16 @@ handle_create_context_message (void *cls,
   struct CreateContextHandle *cch;
   struct ZkClient *zkc = cls;
   struct GNUNET_GNSRECORD_Data ctx_record;
+  struct GNUNET_ZKLAIM_Context *ctx;
   size_t str_len;
   char *tmp;
   char *pos;
-  unsigned char *data;
   char *rdata;
-  size_t data_len;
+  char *fn;
   size_t rdata_len;
   int num_attrs;
   int num_pl;
   int i;
-  zklaim_ctx *ctx;
 
   GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
               "Received CREATE_REQUEST message\n");
@@ -304,10 +312,11 @@ handle_create_context_message (void *cls,
   str_len = ntohs (crm->name_len);
 
   cch = GNUNET_new (struct CreateContextHandle);
-  cch->name = GNUNET_strndup ((char*)&crm[1], str_len-1);
+  ctx = GNUNET_new (struct GNUNET_ZKLAIM_Context);
+  ctx->name = GNUNET_strndup ((char*)&crm[1], str_len-1);
   str_len = ntohs(crm->attrs_len);
-  fprintf(stderr, "%s\n", cch->name);
-  cch->attrs = GNUNET_strndup (((char*)&crm[1]) + strlen (cch->name) + 1,
+  fprintf(stderr, "%s\n", ctx->name);
+  ctx->attrs = GNUNET_strndup (((char*)&crm[1]) + strlen (ctx->name) + 1,
                                str_len-1);
   cch->private_key = crm->private_key;
   GNUNET_CRYPTO_ecdsa_key_get_public (&crm->private_key,
@@ -319,13 +328,14 @@ handle_create_context_message (void *cls,
                                zkc->create_op_tail,
                                cch);
 
-  tmp = GNUNET_strdup (cch->attrs);
+  tmp = GNUNET_strdup (ctx->attrs);
   pos = strtok(tmp, ",");
   num_attrs = 0;
   if (NULL == pos)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "No attributes given.\n");
+    GNUNET_ZKLAIM_context_destroy (ctx);
     send_result(GNUNET_SYSERR, cch);
     GNUNET_free (tmp);
     return;
@@ -338,32 +348,34 @@ handle_create_context_message (void *cls,
   GNUNET_free (tmp);
   num_pl = (num_attrs / 5) + 1;
   zklaim_payload *pl = GNUNET_malloc (num_pl * sizeof (zklaim_payload));
-  ctx = zklaim_context_new ();
+  ctx->ctx = zklaim_context_new ();
   for (i = 0; i < num_pl; i++)
-    zklaim_add_pl (ctx, pl[i]);
-  zklaim_hash_ctx (ctx);
+    zklaim_add_pl (ctx->ctx, pl[i]);
+  zklaim_hash_ctx (ctx->ctx);
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
               "Starting trusted setup (%d payloads)... this might take a while...\n", num_pl);
-  if (0 != zklaim_trusted_setup (ctx))
+  if (0 != zklaim_trusted_setup (ctx->ctx))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Trusted Setup failed.\n");
     send_result (GNUNET_SYSERR, cch);
-    zklaim_ctx_free (ctx);
+    GNUNET_ZKLAIM_context_destroy (ctx);
     return;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-              "Finished trusted setup.\n");
-  data_len = zklaim_ctx_serialize (ctx, &data);
-  rdata_len = data_len + strlen (cch->attrs) + 1;
-  zklaim_ctx_free (ctx);
-  rdata = GNUNET_malloc (rdata_len);
-  memcpy (rdata,
-          cch->attrs,
-          strlen (cch->attrs) + 1);
-  memcpy (rdata + strlen (cch->attrs) + 1,
-          data,
-          data_len);
+              "Finished trusted setup. PK size=%lu bytes\n",
+              ctx->ctx->pk_size);
+  fn = get_pk_filename (ctx->name);
+  (void) GNUNET_DISK_directory_create_for_file (fn);
+  if (ctx->ctx->pk_size != GNUNET_DISK_fn_write (fn,
+                                            ctx->ctx->pk,
+                                            ctx->ctx->pk_size,
+                                            GNUNET_DISK_PERM_USER_READ |
+                                            GNUNET_DISK_PERM_USER_WRITE))
+    GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR,
+                              "write", fn);
+  GNUNET_free (fn);
+  rdata_len = GNUNET_ZKLAIM_context_serialize (ctx, &rdata);
   ctx_record.data_size = rdata_len;
   ctx_record.data = rdata;
   ctx_record.expiration_time = GNUNET_TIME_UNIT_DAYS.rel_value_us; //TODO config
@@ -371,13 +383,13 @@ handle_create_context_message (void *cls,
   ctx_record.flags = GNUNET_GNSRECORD_RF_RELATIVE_EXPIRATION;
   cch->ns_qe = GNUNET_NAMESTORE_records_store (ns_handle,
                                                &cch->private_key,
-                                               cch->name,
+                                               ctx->name,
                                                1,
                                                &ctx_record,
                                                &context_store_cont,
                                                cch);
   GNUNET_free (rdata);
-  GNUNET_free (data);
+  GNUNET_ZKLAIM_context_destroy (ctx);
 }
 
 /**
@@ -409,7 +421,7 @@ send_ctx_result (struct LookupHandle *lh,
   env = GNUNET_MQ_msg_extra (r_msg,
                              len,
                              GNUNET_MESSAGE_TYPE_ZKLAIM_RESULT_CTX);
-  r_msg->ctx_len = htonl (len);
+  r_msg->ctx_len = htons (len);
   memcpy ((char*)&r_msg[1],
           ctx,
           len);
@@ -524,7 +536,15 @@ run (void *cls,
   {
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "error connecting to namestore");
   }
-
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_filename (cfg, "zklaim",
+                                               "PKDIR",
+                                               &pk_directory))
+  {
+    GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR, "zklaim", "PKDIR");
+    GNUNET_SCHEDULER_shutdown ();
+    return;
+  }
   gns_handle = GNUNET_GNS_connect (cfg);
   if (NULL == gns_handle)
   {

@@ -281,8 +281,8 @@ handle_zklaim_result_ctx (void *cls,
 {
   struct GNUNET_ZKLAIM_Handle *h = cls;
   struct GNUNET_ZKLAIM_Operation *op;
-  struct GNUNET_ZKLAIM_Context ctx;
-  uint16_t ctx_len = ntohl (cm->ctx_len);
+  struct GNUNET_ZKLAIM_Context *ctx;
+  uint16_t ctx_len = ntohs (cm->ctx_len);
 
   op = h->op_head;
   if (NULL == op)
@@ -294,21 +294,22 @@ handle_zklaim_result_ctx (void *cls,
   GNUNET_CONTAINER_DLL_remove (h->op_head,
                                h->op_tail,
                                op);
-  ctx.attrs = (char*)&cm[1];
-  ctx.ctx = zklaim_context_new ();
-  zklaim_ctx_deserialize (ctx.ctx,
-                          (unsigned char *) &cm[1] + strlen (ctx.attrs) + 1,
-                          ctx_len - strlen (ctx.attrs) - 1);
   if (NULL != op->ctx_cont)
   {
-    if (0 > ctx_len)
+    fprintf (stderr,
+             "ctx_len %d\n", ctx_len);
+    if (0 < ctx_len)
+    {
+      ctx = GNUNET_ZKLAIM_context_deserialize ((char*)&cm[1],
+                                               ctx_len);
       op->ctx_cont (op->cls,
-                    &ctx);
+                    ctx);
+      GNUNET_ZKLAIM_context_destroy (ctx);
+    }
     else
       op->ctx_cont (op->cls,
-                    &ctx);
+                    NULL);
   }
-  zklaim_ctx_free (ctx.ctx);
   GNUNET_free (op);
 }
 
@@ -480,6 +481,15 @@ GNUNET_ZKLAIM_disconnect (struct GNUNET_ZKLAIM_Handle *h)
   GNUNET_free (h);
 }
 
+void
+GNUNET_ZKLAIM_context_destroy (struct GNUNET_ZKLAIM_Context *ctx)
+{
+  GNUNET_free_non_null (ctx->name);
+  GNUNET_free_non_null (ctx->attrs);
+  zklaim_ctx_free (ctx->ctx);
+  GNUNET_free (ctx);
+}
+
 /**
  * Lookup context
  */
@@ -543,18 +553,22 @@ GNUNET_ZKLAIM_context_serialize (const struct GNUNET_ZKLAIM_Context *ctx,
   char *pos;
   char *tmp;
   size_t len;
-  size_t len_w;
+  uint64_t len_w;
   size_t ret_len = 0;
+  size_t alen = strlen (ctx->attrs) + 1;
+  size_t nlen = strlen (ctx->name) + 1;
   len = zklaim_ctx_serialize (ctx->ctx,
                               (unsigned char**) &tmp);
-  ret_len += strlen (ctx->attrs) + 1 + sizeof (size_t) + len;
+  ret_len += alen + nlen + sizeof (size_t) + len;
   *buf = GNUNET_malloc (ret_len);
   pos = *buf;
-  memcpy (pos, ctx->attrs, strlen (ctx->attrs) + 1);
-  pos += strlen (ctx->attrs) + 1;
-  len_w = htonl (len);
-  memcpy (pos, &len_w, sizeof (size_t));
-  pos += sizeof (size_t);
+  memcpy (pos, ctx->attrs, alen);
+  pos += alen;
+  memcpy (pos, ctx->name, nlen);
+  pos += nlen;
+  len_w = htons (len);
+  memcpy (pos, &len_w, sizeof (uint16_t));
+  pos += sizeof (uint16_t);
   memcpy (pos, tmp, len);
   GNUNET_free (tmp);
   return ret_len;
@@ -572,15 +586,48 @@ GNUNET_ZKLAIM_context_deserialize (char *data,
   ctx = GNUNET_new (struct GNUNET_ZKLAIM_Context);
   ctx->attrs = GNUNET_strdup (data);
   pos = data + strlen (ctx->attrs) + 1;
-  len = ntohl (*((size_t*)pos));
+  ctx->name = GNUNET_strdup (pos);
+  pos += strlen (ctx->name) + 1;
+  len = ntohs (*((uint16_t*)pos));
   ctx->ctx = zklaim_context_new ();
-  pos += sizeof (size_t);
+  pos += sizeof (uint16_t);
   if (0 != zklaim_ctx_deserialize (ctx->ctx,
                                    (unsigned char*) pos,
                                    len))
     return NULL;
   return ctx;
 }
+
+
+int
+GNUNET_ZKLAIM_context_prove_with_keyfile (struct GNUNET_ZKLAIM_Context *ctx,
+                                          const char* pkey_fn,
+                                          GNUNET_ZKLAIM_PredicateIterator iter,
+                                          void* iter_cls)
+{
+  if (GNUNET_SYSERR == GNUNET_DISK_file_size (pkey_fn,
+                                              &ctx->ctx->pk_size,
+                                              GNUNET_NO,
+                                              GNUNET_YES))
+  {
+    return GNUNET_SYSERR;
+  }
+  ctx->ctx->pk = GNUNET_malloc (ctx->ctx->pk_size);
+  if (GNUNET_SYSERR ==  GNUNET_DISK_fn_read (pkey_fn,
+                                             ctx->ctx->pk,
+                                             ctx->ctx->pk_size))
+  {
+    GNUNET_free (ctx->ctx->pk);
+    ctx->ctx->pk = NULL;
+    ctx->ctx->pk_size = 0;
+    return GNUNET_SYSERR;
+  }
+
+  return GNUNET_ZKLAIM_context_prove (ctx,
+                                      iter,
+                                      iter_cls);
+}
+
 
 int
 GNUNET_ZKLAIM_context_prove (struct GNUNET_ZKLAIM_Context *ctx,

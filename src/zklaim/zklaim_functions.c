@@ -143,6 +143,11 @@ ZKLAIM_context_prove (struct GNUNET_ZKLAIM_Context *ctx,
             attr_name,
             &plw->pl.data_op[j],
             &plw->pl.data_ref[j]);
+      if ((attr_name - tmp) == (strlen (attr_name) + 1))
+      {
+        attr_name = NULL;
+        break;
+      }
       attr_name = strtok (attr_name + strlen (attr_name) + 1, ",");
     }
     if (NULL == attr_name)
