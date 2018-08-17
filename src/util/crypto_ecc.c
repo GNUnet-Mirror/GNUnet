@@ -877,7 +877,6 @@ GNUNET_CRYPTO_eddsa_sign (const struct GNUNET_CRYPTO_EddsaPrivateKey *priv,
 #if ENABLE_BENCHMARK
   struct BenchmarkData *bd = get_benchmark_data ();
   bd->eddsa_sign_count++;
-  printf("crypto eddsa sign\n");
 #endif
 
   priv_sexp = decode_private_eddsa_key (priv);

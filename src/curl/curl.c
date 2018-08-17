@@ -30,6 +30,10 @@
 #include <jansson.h>
 #include "gnunet_curl_lib.h"
 
+#if ENABLE_BENCHMARK
+#include "../util/benchmark.h"
+#endif
+
 
 /**
  * Log error related to CURL operations.
