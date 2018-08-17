@@ -77,6 +77,11 @@ ZKLAIM_context_attributes_iterate (const struct GNUNET_ZKLAIM_Context *ctx,
       zklaim_set_attr (&plw->pl,
                        data,
                        j);
+      if ((attr_name - tmp) == (strlen (attr_name) + 1))
+      {
+        attr_name = NULL;
+        break;
+      }
       attr_name = strtok (attr_name + strlen (attr_name) + 1, ",");
     }
     if (NULL == attr_name)
@@ -115,10 +120,6 @@ ZKLAIM_context_prove (struct GNUNET_ZKLAIM_Context *ctx,
   tmp = GNUNET_strdup (ctx->attrs);
   attr_name = strtok (tmp, ",");
   plw = ctx->ctx->pl_ctx_head;
-  fprintf (stderr,
-           "Num payloads: %lu, attrs: %s\n",
-           ctx->ctx->num_of_payloads,
-           ctx->attrs);
   for (i = 0; i < ctx->ctx->num_of_payloads; i++)
   {
     for (j = 0; j < ZKLAIM_MAX_PAYLOAD_ATTRIBUTES; j++)
@@ -130,10 +131,6 @@ ZKLAIM_context_prove (struct GNUNET_ZKLAIM_Context *ctx,
   plw = ctx->ctx->pl_ctx_head;
   for (i = 0; i < ctx->ctx->num_of_payloads; i++)
   {
-    fprintf (stderr,
-             "Payload #%d\n",
-             i);
-
     for (j = 0; j < ZKLAIM_MAX_PAYLOAD_ATTRIBUTES; j++)
     {
 
@@ -156,7 +153,6 @@ ZKLAIM_context_prove (struct GNUNET_ZKLAIM_Context *ctx,
     GNUNET_assert (NULL != plw);
   }
   GNUNET_free (tmp);
-  zklaim_print (ctx->ctx);
   return zklaim_proof_generate (ctx->ctx);
 }
 

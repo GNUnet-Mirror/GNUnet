@@ -251,14 +251,9 @@ prove_iter (void *cls,
   char *val;
   char *op;
   tmp = GNUNET_strdup (prove_predicate);
-  fprintf (stderr,
-           "%s\n",
-           prove_predicate);
   attr = strtok (tmp, " ");
   while (NULL != attr)
   {
-    fprintf (stderr,
-             "Got %s\n", attr);
     op = strtok (NULL, " ");
     if (NULL == op)
       break;
@@ -275,7 +270,6 @@ prove_iter (void *cls,
       fprintf (stderr, 
                "Failed parse %s %s %s\n",
                attr, op, val);
-    fprintf (stdout, "Setting %s %s %lu\n", name, op, *ref);
     attr = strtok (NULL, " ");
   }
   GNUNET_free (tmp);
@@ -322,15 +316,13 @@ handle_arguments ()
 
     ctx = GNUNET_ZKLAIM_context_deserialize (data,
                                              len);
-    fprintf (stderr,
-             "%s\n",
-             prove_predicate);
+    fprintf (stdout, "Proving %s...", prove_predicate);
     ret = GNUNET_ZKLAIM_context_prove_with_keyfile (ctx,
                                                     pkey_fn,
                                                     &prove_iter,
                                                     NULL);
     fprintf (stdout,
-             "Prove result: %d\n", ret);
+             "%s\n", ret ? "failed." : "success.");
   }
   cleanup_task = GNUNET_SCHEDULER_add_now (&do_cleanup, NULL);
 }
