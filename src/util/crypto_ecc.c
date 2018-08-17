@@ -25,6 +25,7 @@
 #include <gcrypt.h>
 #include "gnunet_crypto_lib.h"
 #include "gnunet_strings_lib.h"
+#include "benchmark.h"
 
 #define EXTRA_CHECKS 0
 
@@ -872,6 +873,12 @@ GNUNET_CRYPTO_eddsa_sign (const struct GNUNET_CRYPTO_EddsaPrivateKey *priv,
   gcry_sexp_t data;
   int rc;
   gcry_mpi_t rs[2];
+
+#if ENABLE_BENCHMARK
+  struct BenchmarkData *bd = get_benchmark_data ();
+  bd->eddsa_sign_count++;
+  printf("crypto eddsa sign\n");
+#endif
 
   priv_sexp = decode_private_eddsa_key (priv);
   data = data_to_eddsa_value (purpose);

@@ -1388,6 +1388,17 @@ fi
 AC_SUBST(MONKEYPREFIX)
 
 
+AC_MSG_CHECKING([whether to compile in benchmarks (currently for http and crypto)])
+AC_ARG_ENABLE([benchmark],
+   [AS_HELP_STRING([--enable-benchmark], [enable benchmarking])],
+   [enable_benchmark=${enableval}],
+   [enable_benchmark=no])
+AC_MSG_RESULT($enable_benchmark)
+AS_IF([test "x$enable_benchmark" = "xyes"],
+      [AC_DEFINE_UNQUOTED(ENABLE_BENCHMARK,1,[Benchmarks are enabled])])
+AM_CONDITIONAL([ENABLE_BENCHMARK], [test "x$enable_benchmark" = "xyes"])
+
+
 # should expensive tests be run?
 AC_MSG_CHECKING(whether to run expensive tests)
 AC_ARG_ENABLE([expensivetests],

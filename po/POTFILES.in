@@ -445,6 +445,7 @@ src/transport/transport-testing-loggers.c
 src/transport/transport-testing-main.c
 src/transport/transport-testing-send.c
 src/util/bandwidth.c
+src/util/benchmark.c
 src/util/bio.c
 src/util/client.c
 src/util/common_allocation.c

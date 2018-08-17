@@ -40,6 +40,11 @@ if USE_COVERAGE
   XLIB = -lgcov
 endif
 
+if ENABLE_BENCHMARK
+  BENCHMARK = benchmark.c
+  PTHREAD = -lpthread
+endif
+
 w32cat_SOURCES = w32cat.c
 
 gnunet_helper_w32_console_SOURCES = \
@@ -60,6 +65,7 @@ test_common_logging_dummy_LDADD = \
 
 libgnunetutil_la_SOURCES = \
   bandwidth.c \
+  $(BENCHMARK) \
   bio.c \
   client.c \
   common_allocation.c \
@@ -121,7 +127,7 @@ libgnunetutil_la_LIBADD = \
   $(LIBGCRYPT_LIBS) \
   $(LTLIBICONV) \
   $(LTLIBINTL) \
-  -lltdl -lidn $(Z_LIBS) -lunistring $(XLIB)
+  -lltdl -lidn $(Z_LIBS) -lunistring $(XLIB) $(PTHREAD)
 
 libgnunetutil_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS) \
