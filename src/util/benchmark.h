@@ -43,6 +43,11 @@ struct UrlRequestData
    * Request URL, truncated (but 0-terminated).
    */
   char request_url[MAX_BENCHMARK_URL_LEN];
+
+  /**
+   * HTTP status code.
+   */
+  unsigned int status;
   
   /**
    * How often was the URL requested?
@@ -101,9 +106,12 @@ get_benchmark_data (void);
  * Get benchmark data for a URL.  If the URL is too long, it's truncated
  * before looking up the correspoding benchmark data.
  *
+ * Statistics are bucketed by URL and status code.
+ *
  * @param url url to get request data for
+ * @param status http status code
  */
 struct UrlRequestData *
-get_url_benchmark_data (char *url);
+get_url_benchmark_data (char *url, unsigned int status);
 
 #endif  /* BENCHMARK_H_ */

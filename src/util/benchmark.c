@@ -88,8 +88,9 @@ write_benchmark_data (struct BenchmarkData *bd)
   for (unsigned int i = 0; i < bd->urd_len; i++)
   {
     struct UrlRequestData *urd = &bd->urd[i];
-    GNUNET_asprintf (&s, "url %s count %lld time_us %lld\n",
+    GNUNET_asprintf (&s, "url %s status %u count %llu time_us %llu\n",
                      urd->request_url,
+                     urd->status,
                      (unsigned long long) urd->count,
                      (unsigned long long) urd->time.rel_value_us);
     GNUNET_assert (GNUNET_SYSERR != GNUNET_DISK_file_write_blocking (fh, s, strlen (s)));
@@ -173,10 +174,13 @@ get_benchmark_data (void)
  * Get benchmark data for a URL.  If the URL is too long, it's truncated
  * before looking up the correspoding benchmark data.
  *
+ * Statistics are bucketed by URL and status code.
+ *
  * @param url url to get request data for
+ * @param status http status code
  */
 struct UrlRequestData *
-get_url_benchmark_data (char *url)
+get_url_benchmark_data (char *url, unsigned int status)
 {
   char trunc[MAX_BENCHMARK_URL_LEN];
   struct BenchmarkData *bd;
@@ -191,13 +195,24 @@ get_url_benchmark_data (char *url)
   memcpy (trunc, url, MAX_BENCHMARK_URL_LEN);
   trunc[MAX_BENCHMARK_URL_LEN - 1] = 0;
 
+  /* We're not interested in what's after the query string */
+  for (size_t i = 0; i < strlen (trunc); i++)
+  {
+    if (trunc[i] == '?')
+    {
+      trunc[i] = 0;
+      break;
+    }
+  }
+
   bd = get_benchmark_data ();
 
   GNUNET_assert (bd->urd_len <= bd->urd_capacity);
 
   for (unsigned int i = 0; i < bd->urd_len; i++)
   {
-    if (0 == strcmp (trunc, bd->urd[i].request_url))
+    if ( (0 == strcmp (trunc, bd->urd[i].request_url)) &&
+         (bd->urd[i].status == status) )
       return &bd->urd[i];
   }
 
@@ -205,6 +220,7 @@ get_url_benchmark_data (char *url)
     struct UrlRequestData urd = { 0 };
 
     memcpy (&urd.request_url, trunc, MAX_BENCHMARK_URL_LEN);
+    urd.status = status;
 
     if (bd->urd_len == bd->urd_capacity)
     {

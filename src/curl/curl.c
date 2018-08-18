@@ -511,7 +511,7 @@ GNUNET_CURL_perform (struct GNUNET_CURL_Context *ctx)
     res = curl_easy_getinfo (cmsg->easy_handle, CURLINFO_TOTAL_TIME, &total);
     GNUNET_break (CURLE_OK == res);
     curl_easy_getinfo (cmsg->easy_handle, CURLINFO_EFFECTIVE_URL, &url);
-    urd = get_url_benchmark_data (url);
+    urd = get_url_benchmark_data (url, (unsigned int) response_code);
     urd->count++;
     urd->time.rel_value_us += total * 1000 * 1000;
   }
