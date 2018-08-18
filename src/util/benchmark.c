@@ -50,9 +50,22 @@ write_benchmark_data (struct BenchmarkData *bd)
   struct GNUNET_DISK_FileHandle *fh;
   pid_t pid = getpid ();
   pid_t tid = syscall (SYS_gettid);
+  char *benchmark_dir;
   char *s;
 
-  GNUNET_asprintf (&s, "gnunet-benchmark-%llu-%llu.txt",
+  benchmark_dir = getenv ("GNUNET_BENCHMARK_DIR");
+
+  if (NULL == benchmark_dir)
+    return;
+
+  if (GNUNET_OK != GNUNET_DISK_directory_create (benchmark_dir))
+  {
+    GNUNET_break (0);
+    return;
+  }
+
+  GNUNET_asprintf (&s, "%s/gnunet-benchmark-ops-%llu-%llu.txt",
+                   benchmark_dir,
                    (unsigned long long) pid,
                    (unsigned long long) tid);
 
@@ -65,14 +78,46 @@ write_benchmark_data (struct BenchmarkData *bd)
   GNUNET_assert (NULL != fh);
   GNUNET_free (s);
 
-  GNUNET_asprintf (&s, "eddsa_sign_count %llu",
-                   (unsigned long long) bd->eddsa_sign_count);
-  GNUNET_assert (GNUNET_SYSERR != GNUNET_DISK_file_write_blocking (fh, s, strlen (s)));
-  GNUNET_free (s);
+#define WRITE_BENCHMARK_OP(opname) do { \
+  GNUNET_asprintf (&s, "op " #opname " count %llu time_us %llu\n", \
+                   (unsigned long long) bd->opname##_count, \
+                   (unsigned long long) bd->opname##_time.rel_value_us); \
+  GNUNET_assert (GNUNET_SYSERR != GNUNET_DISK_file_write_blocking (fh, s, strlen (s))); \
+  GNUNET_free (s); \
+} while (0)
+
+  WRITE_BENCHMARK_OP (ecc_ecdh);
+  WRITE_BENCHMARK_OP (ecdh_eddsa);
+  WRITE_BENCHMARK_OP (ecdhe_key_create);
+  WRITE_BENCHMARK_OP (ecdhe_key_get_public);
+  WRITE_BENCHMARK_OP (ecdsa_ecdh);
+  WRITE_BENCHMARK_OP (ecdsa_key_create);
+  WRITE_BENCHMARK_OP (ecdsa_key_get_public);
+  WRITE_BENCHMARK_OP (ecdsa_sign);
+  WRITE_BENCHMARK_OP (ecdsa_verify);
+  WRITE_BENCHMARK_OP (eddsa_ecdh);
+  WRITE_BENCHMARK_OP (eddsa_key_create);
+  WRITE_BENCHMARK_OP (eddsa_key_get_public);
+  WRITE_BENCHMARK_OP (eddsa_sign);
+  WRITE_BENCHMARK_OP (eddsa_verify);
+  WRITE_BENCHMARK_OP (hash);
+  WRITE_BENCHMARK_OP (hash_context_finish);
+  WRITE_BENCHMARK_OP (hash_context_read);
+  WRITE_BENCHMARK_OP (hash_context_start);
+  WRITE_BENCHMARK_OP (hkdf);
+  WRITE_BENCHMARK_OP (rsa_blind);
+  WRITE_BENCHMARK_OP (rsa_private_key_create);
+  WRITE_BENCHMARK_OP (rsa_private_key_get_public);
+  WRITE_BENCHMARK_OP (rsa_sign_blinded);
+  WRITE_BENCHMARK_OP (rsa_unblind);
+  WRITE_BENCHMARK_OP (rsa_verify);
+
+#undef WRITE_BENCHMARK_OP
 
   GNUNET_assert (GNUNET_OK == GNUNET_DISK_file_close (fh));
 
-  GNUNET_asprintf (&s, "gnunet-benchmark-urls-%llu-%llu.txt",
+  GNUNET_asprintf (&s, "%s/gnunet-benchmark-urls-%llu-%llu.txt",
+                   benchmark_dir,
                    (unsigned long long) pid,
                    (unsigned long long) tid);
 
@@ -137,7 +182,7 @@ thread_destructor (void *cls)
  * Initialize the thread-local variable key for benchmark data.
  */
 static void
-make_key()
+make_key ()
 {
   (void) pthread_key_create (&key, &thread_destructor);
 }

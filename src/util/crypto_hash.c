@@ -24,6 +24,7 @@
 #include "platform.h"
 #include "gnunet_crypto_lib.h"
 #include "gnunet_strings_lib.h"
+#include "benchmark.h"
 #include <gcrypt.h>
 
 #define LOG(kind,...) GNUNET_log_from (kind, "util-crypto-hash", __VA_ARGS__)
@@ -42,7 +43,9 @@ GNUNET_CRYPTO_hash (const void *block,
                     size_t size,
                     struct GNUNET_HashCode *ret)
 {
+  BENCHMARK_START (hash);
   gcry_md_hash_buffer (GCRY_MD_SHA512, ret, block, size);
+  BENCHMARK_END (hash);
 }
 
 
@@ -442,11 +445,16 @@ GNUNET_CRYPTO_hash_context_start ()
 {
   struct GNUNET_HashContext *hc;
 
+  BENCHMARK_START (hash_context_start);
+
   hc = GNUNET_new (struct GNUNET_HashContext);
   GNUNET_assert (0 ==
                  gcry_md_open (&hc->hd,
                                GCRY_MD_SHA512,
                                0));
+
+  BENCHMARK_END (hash_context_start);
+
   return hc;
 }
 
@@ -463,7 +471,9 @@ GNUNET_CRYPTO_hash_context_read (struct GNUNET_HashContext *hc,
 				 const void *buf,
 				 size_t size)
 {
+  BENCHMARK_START (hash_context_read);
   gcry_md_write (hc->hd, buf, size);
+  BENCHMARK_END (hash_context_read);
 }
 
 
@@ -479,12 +489,15 @@ GNUNET_CRYPTO_hash_context_finish (struct GNUNET_HashContext *hc,
 {
   const void *res = gcry_md_read (hc->hd, 0);
 
+  BENCHMARK_START (hash_context_finish);
+
   GNUNET_assert (NULL != res);
   if (NULL != r_hash)
     GNUNET_memcpy (r_hash,
             res,
             sizeof (struct GNUNET_HashCode));
   GNUNET_CRYPTO_hash_context_abort (hc);
+  BENCHMARK_END (hash_context_finish);
 }
 
 
