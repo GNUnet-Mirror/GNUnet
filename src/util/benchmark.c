@@ -193,7 +193,7 @@ get_url_benchmark_data (char *url)
 
   bd = get_benchmark_data ();
 
-  GNUNET_assert (bd->urd_len <= brd->urd_capacity);
+  GNUNET_assert (bd->urd_len <= bd->urd_capacity);
 
   for (unsigned int i = 0; i < bd->urd_len; i++)
   {
