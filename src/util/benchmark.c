@@ -96,7 +96,6 @@ write_benchmark_data (struct BenchmarkData *bd)
     GNUNET_free (s);
   }
 
-
   GNUNET_assert (GNUNET_OK == GNUNET_DISK_file_close (fh));
 }
 
@@ -130,7 +129,6 @@ thread_destructor (void *cls)
     return;
   
   GNUNET_assert (NULL != bd);
-
 }
 
 
@@ -182,6 +180,13 @@ get_url_benchmark_data (char *url)
 {
   char trunc[MAX_BENCHMARK_URL_LEN];
   struct BenchmarkData *bd;
+
+  if (NULL == url)
+  {
+    /* Should not happen unless curl barfs */
+    GNUNET_break (0);
+    url = "<empty>";
+  }
 
   memcpy (trunc, url, MAX_BENCHMARK_URL_LEN);
   trunc[MAX_BENCHMARK_URL_LEN - 1] = 0;
