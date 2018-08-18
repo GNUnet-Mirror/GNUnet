@@ -502,6 +502,20 @@ GNUNET_CURL_perform (struct GNUNET_CURL_Context *ctx)
     j = download_get_result (&job->db,
                              job->easy_handle,
                              &response_code);
+#if ENABLE_BENCHMARK
+  {
+    char *url = NULL;
+    double total = 0;
+    struct UrlRequestData *urd;
+    CURLcode res;
+    res = curl_easy_getinfo (cmsg->easy_handle, CURLINFO_TOTAL_TIME, &total);
+    GNUNET_break (CURLE_OK == res);
+    curl_easy_getinfo (cmsg->easy_handle, CURLINFO_EFFECTIVE_URL, &url);
+    urd = get_url_benchmark_data (url);
+    urd->count++;
+    urd->time.rel_value_us += total * 1000 * 1000;
+  }
+#endif
     job->jcc (job->jcc_cls,
               response_code,
               j);

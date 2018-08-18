@@ -28,9 +28,48 @@
 #include "gnunet_time_lib.h"
 
 /**
+ * Maximum length of URLs considered for benchmarking.
+ * Shorter URLs are simply truncated.
+ */
+#define MAX_BENCHMARK_URL_LEN 128
+
+
+/**
+ * Struct for benchmark data for one URL.
+ */
+struct UrlRequestData
+{
+  /**
+   * Request URL, truncated (but 0-terminated).
+   */
+  char request_url[MAX_BENCHMARK_URL_LEN];
+  
+  /**
+   * How often was the URL requested?
+   */
+  uint64_t count;
+
+  /**
+   * Total time spent requesting this URL.
+   */
+  struct GNUNET_TIME_Relative time;
+
+  /**
+   * Slowest time to response.
+   */
+  struct GNUNET_TIME_Relative time_max;
+
+  /**
+   * Fastest time to response.
+   */
+  struct GNUNET_TIME_Relative time_min;
+};
+
+/**
  * Thread-local struct for benchmarking data.
  */
-struct BenchmarkData {
+struct BenchmarkData
+{
   /**
    * Number of eddsa_sign operations.
    */
@@ -40,6 +79,12 @@ struct BenchmarkData {
    * Time spent in eddsa_sign.
    */
   struct GNUNET_TIME_Relative eddsa_sign_time;
+
+  struct UrlRequestData *urd;
+
+  unsigned int urd_len;
+
+  unsigned int urd_capacity;
 };
 
 
@@ -51,5 +96,14 @@ struct BenchmarkData {
  */
 struct BenchmarkData *
 get_benchmark_data (void);
+
+/**
+ * Get benchmark data for a URL.  If the URL is too long, it's truncated
+ * before looking up the correspoding benchmark data.
+ *
+ * @param url url to get request data for
+ */
+struct UrlRequestData *
+get_url_benchmark_data (char *url);
 
 #endif  /* BENCHMARK_H_ */
