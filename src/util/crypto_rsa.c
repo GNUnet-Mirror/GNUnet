@@ -785,9 +785,10 @@ GNUNET_CRYPTO_rsa_blind (const struct GNUNET_HashCode *hash,
 
   *buf_size = numeric_mpi_alloc_n_print (data_r_e, buf);
   gcry_mpi_release (data_r_e);
-  return GNUNET_YES;
 
   BENCHMARK_END (rsa_blind);
+
+  return GNUNET_YES;
 
 rsa_gcd_validate_failure:
   /* We know the RSA key is malicious here, so warn the wallet. */
