@@ -64,8 +64,9 @@ write_benchmark_data (struct BenchmarkData *bd)
     return;
   }
 
-  GNUNET_asprintf (&s, "%s/gnunet-benchmark-ops-%llu-%llu.txt",
+  GNUNET_asprintf (&s, "%s/gnunet-benchmark-ops-%s-%llu-%llu.txt",
                    benchmark_dir,
+                   (pid == tid) ? "main" : "thread",
                    (unsigned long long) pid,
                    (unsigned long long) tid);
 
@@ -116,8 +117,9 @@ write_benchmark_data (struct BenchmarkData *bd)
 
   GNUNET_assert (GNUNET_OK == GNUNET_DISK_file_close (fh));
 
-  GNUNET_asprintf (&s, "%s/gnunet-benchmark-urls-%llu-%llu.txt",
+  GNUNET_asprintf (&s, "%s/gnunet-benchmark-urls-%s-%llu-%llu.txt",
                    benchmark_dir,
+                   (pid == tid) ? "main" : "thread",
                    (unsigned long long) pid,
                    (unsigned long long) tid);
 
@@ -175,6 +177,7 @@ thread_destructor (void *cls)
     return;
   
   GNUNET_assert (NULL != bd);
+  write_benchmark_data (bd);
 }
 
 

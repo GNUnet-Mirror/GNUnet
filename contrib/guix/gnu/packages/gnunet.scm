@@ -214,7 +214,7 @@ authentication and support for SSL3 and TLS.")
       ("pkg-config" ,pkg-config)
       ("python" ,python-2)))
    (arguments
-    `(#:configure-flags (list "--disable-ntlm-wb")
+    `(#:configure-flags (list "--enable-benchmark")
       #:test-target "test"
       #:parallel-tests? #f
       #:phases
