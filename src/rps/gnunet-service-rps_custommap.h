@@ -68,7 +68,7 @@ CustomPeerMap_create (unsigned int len);
  *
  * @return size of the map
  */
-int
+unsigned int
 CustomPeerMap_size (const struct CustomPeerMap *c_peer_map);
 
 /**

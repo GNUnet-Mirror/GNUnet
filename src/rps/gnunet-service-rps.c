@@ -465,6 +465,8 @@ get_rand_peer_iterator (void *cls,
                         void *value)
 {
   struct GetRandPeerIteratorCls *iterator_cls = cls;
+  (void) value;
+
   if (0 >= iterator_cls->index)
   {
     iterator_cls->peer = peer;
@@ -762,12 +764,13 @@ insert_pending_message (const struct GNUNET_PeerIdentity *peer,
  * @brief Remove a pending message from the respective DLL
  *
  * @param pending_msg the pending message to remove
- * @param cancel cancel the pending message, too
+ * @param cancel whether to cancel the pending message, too
  */
 static void
 remove_pending_message (struct PendingMessage *pending_msg, int cancel)
 {
   struct PeerContext *peer_ctx;
+  (void) cancel;
 
   peer_ctx = pending_msg->peer_ctx;
   GNUNET_assert (NULL != peer_ctx);
@@ -1026,6 +1029,8 @@ peermap_clear_iterator (void *cls,
                         const struct GNUNET_PeerIdentity *key,
                         void *value)
 {
+  (void) cls;
+  (void) value;
   destroy_peer (get_peer_ctx (key));
   return GNUNET_YES;
 }
@@ -1079,6 +1084,7 @@ store_peer_presistently_iterator (void *cls,
   char peer_string[128];
   int size;
   ssize_t ret;
+  (void) value;
 
   if (NULL == peer)
   {
@@ -1322,6 +1328,7 @@ valid_peer_iterator (void *cls,
                      void *value)
 {
   struct PeersIteratorCls *it_cls = cls;
+  (void) value;
 
   return it_cls->iterator (it_cls->cls,
                            peer);
@@ -1534,6 +1541,7 @@ handle_inbound_channel (void *cls,
   struct PeerContext *peer_ctx;
   struct GNUNET_PeerIdentity *ctx_peer;
   struct ChannelCtx *channel_ctx;
+  (void) cls;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
       "New channel was established to us (Peer %s).\n",
@@ -1661,7 +1669,7 @@ send_message (const struct GNUNET_PeerIdentity *peer,
  */
 static int
 schedule_operation (const struct GNUNET_PeerIdentity *peer,
-                          const PeerOp peer_op)
+                    const PeerOp peer_op)
 {
   struct PeerPendingOp pending_op;
   struct PeerContext *peer_ctx;
@@ -2162,10 +2170,11 @@ clients_notify_view_update (void);
  */
 static void
 hist_update (void *cls,
-	     struct GNUNET_PeerIdentity *ids,
-	     uint32_t num_peers)
+             struct GNUNET_PeerIdentity *ids,
+             uint32_t num_peers)
 {
   unsigned int i;
+  (void) cls;
 
   for (i = 0; i < num_peers; i++)
   {
@@ -2355,8 +2364,9 @@ send_pull_reply (const struct GNUNET_PeerIdentity *peer_id,
  */
 static void
 insert_in_pull_map (void *cls,
-		    const struct GNUNET_PeerIdentity *peer)
+                    const struct GNUNET_PeerIdentity *peer)
 {
+  (void) cls;
   CustomPeerMap_put (pull_map, peer);
 }
 
@@ -2369,8 +2379,9 @@ insert_in_pull_map (void *cls,
  */
 static void
 insert_in_view_op (void *cls,
-		const struct GNUNET_PeerIdentity *peer)
+                   const struct GNUNET_PeerIdentity *peer)
 {
+  (void) cls;
   (void) insert_in_view (peer);
 }
 
@@ -2381,8 +2392,9 @@ insert_in_view_op (void *cls,
  */
 static void
 insert_in_sampler (void *cls,
-		   const struct GNUNET_PeerIdentity *peer)
+                   const struct GNUNET_PeerIdentity *peer)
 {
+  (void) cls;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Updating samplers with peer %s from insert_in_sampler()\n",
        GNUNET_i2s (peer));
@@ -2539,6 +2551,8 @@ cleanup_destroyed_channel (void *cls,
 {
   struct ChannelCtx *channel_ctx = cls;
   struct PeerContext *peer_ctx = channel_ctx->peer_ctx;
+  (void) cls;
+  (void) channel;
 
   channel_ctx->channel = NULL;
   remove_channel_ctx (channel_ctx);
@@ -2597,11 +2611,13 @@ destroy_cli_ctx (struct ClientContext *cli_ctx)
  */
 static void
 nse_callback (void *cls,
-	      struct GNUNET_TIME_Absolute timestamp,
+              struct GNUNET_TIME_Absolute timestamp,
               double logestimate, double std_dev)
 {
   double estimate;
   //double scale; // TODO this might go gloabal/config
+  (void) cls;
+  (void) timestamp;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Received a ns estimate - logest: %f, std_dev: %f (old_size: %u)\n",
@@ -2923,6 +2939,7 @@ handle_client_view_request (void *cls,
   GNUNET_SERVICE_client_continue (cli_ctx->client);
 }
 
+
 /**
  * Handle a CHECK_LIVE message from another peer.
  *
@@ -2938,6 +2955,8 @@ handle_peer_check (void *cls,
 {
   const struct ChannelCtx *channel_ctx = cls;
   const struct GNUNET_PeerIdentity *peer = &channel_ctx->peer_ctx->peer_id;
+  (void) msg;
+
   LOG (GNUNET_ERROR_TYPE_DEBUG,
       "Received CHECK_LIVE (%s)\n", GNUNET_i2s (peer));
 
@@ -2959,6 +2978,7 @@ handle_peer_push (void *cls,
 {
   const struct ChannelCtx *channel_ctx = cls;
   const struct GNUNET_PeerIdentity *peer = &channel_ctx->peer_ctx->peer_id;
+  (void) msg;
 
   // (check the proof of work (?))
 
@@ -3022,6 +3042,7 @@ handle_peer_pull_request (void *cls,
   const struct ChannelCtx *channel_ctx = cls;
   const struct GNUNET_PeerIdentity *peer = &channel_ctx->peer_ctx->peer_id;
   const struct GNUNET_PeerIdentity *view_array;
+  (void) msg;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Received PULL REQUEST (%s)\n", GNUNET_i2s (peer));
   GNUNET_STATISTICS_update(stats, "# pull request message received", 1, GNUNET_NO);
@@ -3429,6 +3450,7 @@ do_mal_round (void *cls)
   uint32_t i;
   struct GNUNET_TIME_Relative time_next_round;
   struct AttackedPeer *tmp_att_peer;
+  (void) cls;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Going to execute next round maliciously type %" PRIu32 ".\n",
@@ -3554,7 +3576,7 @@ do_mal_round (void *cls)
 static void
 do_round (void *cls)
 {
-  uint32_t i;
+  unsigned int i;
   const struct GNUNET_PeerIdentity *view_array;
   unsigned int *permut;
   unsigned int a_peers; /* Number of peers we send pushes to */
@@ -3563,6 +3585,7 @@ do_round (void *cls)
   uint32_t second_border;
   struct GNUNET_PeerIdentity peer;
   struct GNUNET_PeerIdentity *update_peer;
+  (void) cls;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Going to execute next round.\n");
@@ -3811,6 +3834,11 @@ init_peer_cb (void *cls,
               unsigned int best_path) // "How long is the best path?
                                       // (0 = unknown, 1 = ourselves, 2 = neighbor)"
 {
+  (void) cls;
+  (void) tunnel;
+  (void) n_paths;
+  (void) best_path;
+
   if (NULL != peer)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -3835,6 +3863,8 @@ static int
 valid_peers_iterator (void *cls,
                       const struct GNUNET_PeerIdentity *peer)
 {
+  (void) cls;
+
   if (NULL != peer)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -3860,6 +3890,10 @@ process_peerinfo_peers (void *cls,
                         const struct GNUNET_HELLO_Message *hello,
                         const char *err_msg)
 {
+  (void) cls;
+  (void) hello;
+  (void) err_msg;
+
   if (NULL != peer)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -3880,6 +3914,7 @@ shutdown_task (void *cls)
 {
   struct ClientContext *client_ctx;
   struct ReplyCls *reply_cls;
+  (void) cls;
 
   in_shutdown = GNUNET_YES;
 
@@ -3903,8 +3938,8 @@ shutdown_task (void *cls)
       GNUNET_free (reply_cls);
     }
     GNUNET_CONTAINER_DLL_remove (cli_ctx_head,
-				 cli_ctx_tail,
-				 client_ctx);
+                                 cli_ctx_tail,
+                                 client_ctx);
     GNUNET_free (client_ctx);
   }
   GNUNET_PEERINFO_notify_cancel (peerinfo_notify_handle);
@@ -3974,13 +4009,14 @@ client_connect_cb (void *cls,
                    struct GNUNET_MQ_Handle *mq)
 {
   struct ClientContext *cli_ctx;
+  (void) cls;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Client connected\n");
   if (NULL == client)
     return client; /* Server was destroyed before a client connected. Shutting down */
   cli_ctx = GNUNET_new (struct ClientContext);
-  cli_ctx->mq = GNUNET_SERVICE_client_get_mq (client);
+  cli_ctx->mq = mq;
   cli_ctx->view_updates_left = -1;
   cli_ctx->client = client;
   GNUNET_CONTAINER_DLL_insert (cli_ctx_head,

@@ -91,7 +91,7 @@ CustomPeerMap_create (unsigned int len)
  *
  * @return size of the map
  */
-int
+unsigned int
 CustomPeerMap_size (const struct CustomPeerMap *c_peer_map)
 {
   GNUNET_assert (GNUNET_CONTAINER_multihashmap32_size (c_peer_map->hash_map) ==
