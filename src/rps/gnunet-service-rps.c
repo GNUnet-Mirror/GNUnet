@@ -528,6 +528,10 @@ add_valid_peer (const struct GNUNET_PeerIdentity *peer)
   }
   (void) GNUNET_CONTAINER_multipeermap_put (valid_peers, peer, NULL,
       GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
+  GNUNET_STATISTICS_set (stats,
+                         "# valid peers",
+                         GNUNET_CONTAINER_multipeermap_size (valid_peers),
+                         GNUNET_NO);
   return ret;
 }
 
@@ -2145,6 +2149,7 @@ static int
 insert_in_view (const struct GNUNET_PeerIdentity *peer)
 {
   int online;
+  int ret;
 
   online = check_peer_flag (peer, Peers_ONLINE);
   if ( (GNUNET_NO == online) ||
@@ -2156,7 +2161,9 @@ insert_in_view (const struct GNUNET_PeerIdentity *peer)
   }
   /* Open channel towards peer to keep connection open */
   indicate_sending_intention (peer);
-  return View_put (peer);
+  ret = View_put (peer);
+  GNUNET_STATISTICS_set (stats, "view size", View_size(), GNUNET_NO);
+  return ret;
 }
 
 /**
@@ -2443,6 +2450,10 @@ got_peer (const struct GNUNET_PeerIdentity *peer)
     schedule_operation (peer, insert_in_sampler);
     schedule_operation (peer, insert_in_view_op);
   }
+  GNUNET_STATISTICS_update (stats,
+                            "# learnd peers",
+                            1,
+                            GNUNET_NO);
 }
 
 /**
@@ -2639,6 +2650,7 @@ nse_callback (void *cls,
     //sampler_size_est_need = view_size_est_min;
     view_size_est_need = view_size_est_min;
   }
+  GNUNET_STATISTICS_set (stats, "view size aim", view_size_est_need, GNUNET_NO);
 
   /* If the NSE has changed adapt the lists accordingly */
   resize_wrapper (prot_sampler, sampler_size_est_need);
@@ -3809,6 +3821,11 @@ do_round (void *cls)
   CustomPeerMap_clear (push_map);
   CustomPeerMap_clear (pull_map);
 
+  GNUNET_STATISTICS_set (stats,
+                         "view size",
+                         View_size(),
+                         GNUNET_NO);
+
   struct GNUNET_TIME_Relative time_next_round;
 
   time_next_round = compute_rand_delay (round_interval, 2);
@@ -4125,6 +4142,7 @@ run (void *cls,
 
 
   View_create (view_size_est_min);
+  GNUNET_STATISTICS_set (stats, "view size aim", view_size_est_min, GNUNET_NO);
 
   /* file_name_view_log */
   file_name_view_log = store_prefix_file_name (&own_identity, "view");
