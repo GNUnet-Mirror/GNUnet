@@ -960,6 +960,7 @@ shutdown_op (void *cls)
 {
   unsigned int i;
   struct OpListEntry *entry;
+  (void) cls;
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Shutdown task scheduled, going down.\n");
@@ -999,6 +1000,8 @@ shutdown_op (void *cls)
 static void
 trigger_shutdown (void *cls)
 {
+  (void) cls;
+
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Shutdown was triggerd by timeout, going down.\n");
   shutdown_task = NULL;
@@ -1013,6 +1016,7 @@ static void
 post_test_op (void *cls)
 {
   unsigned int i;
+  (void) cls;
 
   post_test_task = NULL;
   post_test = GNUNET_YES;
@@ -1080,6 +1084,7 @@ info_cb (void *cb_cls,
          const char *emsg)
 {
   struct OpListEntry *entry = (struct OpListEntry *) cb_cls;
+  (void) op;
 
   if (GNUNET_YES == in_shutdown || GNUNET_YES == post_test)
   {
@@ -1238,11 +1243,16 @@ stat_disconnect_adapter (void *cls, void *op_result)
  *          operation has executed successfully.
  */
 static void
-stat_complete_cb (void *cls, struct GNUNET_TESTBED_Operation *op,
-                  void *ca_result, const char *emsg )
+stat_complete_cb (void *cls,
+                  struct GNUNET_TESTBED_Operation *op,
+                  void *ca_result,
+                  const char *emsg )
 {
   //struct GNUNET_STATISTICS_Handle *sh = ca_result;
   //struct RPSPeer *peer = (struct RPSPeer *) cls;
+  (void) cls;
+  (void) op;
+  (void) ca_result;
 
   if (NULL != emsg)
   {
@@ -1552,6 +1562,7 @@ churn_cb (void *cls,
 {
   // FIXME
   struct OpListEntry *entry = cls;
+  (void) op;
 
   if (GNUNET_YES == in_shutdown || GNUNET_YES == post_test)
   {
@@ -1687,6 +1698,7 @@ churn (void *cls)
   double prob_go_offline;
   double portion_go_online;
   double portion_go_offline;
+  (void) cls;
 
   if (GNUNET_YES == in_shutdown || GNUNET_YES == post_test)
   {
@@ -1866,6 +1878,7 @@ file_name_cb (void *cls, const char *filename)
     struct GNUNET_CRYPTO_AuthKey auth_key;
     const char *key_char;
     uint32_t i;
+    (void) cls;
 
     key_char = filename + 20; /* Length of "/tmp/rps/sampler_el-" */
     tofile (filename, "--------------------------\n");
@@ -1913,8 +1926,8 @@ static uint32_t binom (uint32_t n, uint32_t k)
 {
   //GNUNET_assert (n >= k);
   if (k > n) return 0;
-  if (0 > n) return 0;
-  if (0 > k) return 0;
+  if (0 > n) return 0; /* just for clarity - always false */
+  if (0 > k) return 0; /* just for clarity - always false */
   if (0 == k) return 1;
   return fac (n)
     /
@@ -2258,7 +2271,7 @@ void view_update_cb (void *cls,
          "%" PRIu64 " %" PRIu32 "",
          rps_peer->index,
          view_size);
-  for (int i = 0; i < view_size; i++)
+  for (uint64_t i = 0; i < view_size; i++)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                "\t%s\n", GNUNET_i2s (&peers[i]));
@@ -2575,6 +2588,9 @@ test_run (void *cls,
 {
   unsigned int i;
   struct OpListEntry *entry;
+  (void) cls;
+  (void) h;
+  (void) links_failed;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "RUN was called\n");
 
@@ -2666,11 +2682,14 @@ test_run (void *cls,
  */
 static void
 run (void *cls,
-    char *const *args,
-    const char *cfgfile,
-    const struct GNUNET_CONFIGURATION_Handle *cfg)
+     char *const *args,
+     const char *cfgfile,
+     const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   //int ret_value;
+  (void) cls;
+  (void) args;
+  (void) cfgfile;
 
   /* Defaults for tests */
   churn_task = NULL;
