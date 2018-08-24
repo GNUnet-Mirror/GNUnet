@@ -3094,7 +3094,8 @@ static int
 check_peer_pull_reply (void *cls,
                        const struct GNUNET_RPS_P2P_PullReplyMessage *msg)
 {
-  struct GNUNET_PeerIdentity *sender = cls;
+  struct ChannelCtx *channel_ctx = cls;
+  struct PeerContext *sender_ctx = channel_ctx->peer_ctx;
 
   if (sizeof (struct GNUNET_RPS_P2P_PullReplyMessage) > ntohs (msg->header.size))
   {
@@ -3114,11 +3115,12 @@ check_peer_pull_reply (void *cls,
     return GNUNET_SYSERR;
   }
 
-  if (GNUNET_YES != check_peer_flag (sender, Peers_PULL_REPLY_PENDING))
+  if (GNUNET_YES != check_peer_flag (&sender_ctx->peer_id,
+                                     Peers_PULL_REPLY_PENDING))
   {
     LOG (GNUNET_ERROR_TYPE_WARNING,
         "Received a pull reply from a peer (%s) we didn't request one from!\n",
-        GNUNET_i2s (sender));
+        GNUNET_i2s (&sender_ctx->peer_id));
     GNUNET_STATISTICS_update (stats,
                               "# unrequested pull replies",
                               1,
