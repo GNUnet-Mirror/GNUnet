@@ -33,45 +33,41 @@
 #define LOG(kind, ...) GNUNET_log_from(kind,"rps-sampler_elem",__VA_ARGS__)
 
 
-// TODO check for overflows
-
 /***********************************************************************
  * WARNING: This section needs to be reviewed regarding the use of
  * functions providing (pseudo)randomness!
 ***********************************************************************/
 
-// TODO care about invalid input of the caller (size 0 or less...)
-
 
 /**
  * Reinitialise a previously initialised sampler element.
  *
- * @param sampler pointer to the memory that keeps the value.
+ * @param sampler_el The sampler element to (re-) initialise
  */
 void
-RPS_sampler_elem_reinit (struct RPS_SamplerElement *sampler_el)
+RPS_sampler_elem_reinit (struct RPS_SamplerElement *sampler_elem)
 {
-  sampler_el->is_empty = EMPTY;
+  sampler_elem->is_empty = EMPTY;
 
   // I guess I don't need to call GNUNET_CRYPTO_hmac_derive_key()...
   GNUNET_CRYPTO_random_block(GNUNET_CRYPTO_QUALITY_STRONG,
-                             &(sampler_el->auth_key.key),
+                             &(sampler_elem->auth_key.key),
                              GNUNET_CRYPTO_HASH_LENGTH);
 
   #ifdef TO_FILE
   /* Create a file(-name) to store internals to */
   char *name_buf;
-  name_buf = auth_key_to_string (sampler_el->auth_key);
+  name_buf = auth_key_to_string (sampler_elem->auth_key);
 
-  sampler_el->file_name = create_file (name_buf);
+  sampler_elem->file_name = create_file (name_buf);
   GNUNET_free (name_buf);
   #endif /* TO_FILE */
 
-  sampler_el->last_client_request = GNUNET_TIME_UNIT_FOREVER_ABS;
+  sampler_elem->last_client_request = GNUNET_TIME_UNIT_FOREVER_ABS;
 
-  sampler_el->birth = GNUNET_TIME_absolute_get ();
-  sampler_el->num_peers = 0;
-  sampler_el->num_change = 0;
+  sampler_elem->birth = GNUNET_TIME_absolute_get ();
+  sampler_elem->num_peers = 0;
+  sampler_elem->num_change = 0;
 }
 
 
@@ -115,89 +111,89 @@ RPS_sampler_elem_destroy (struct RPS_SamplerElement *sampler_elem)
 
 
 /**
- * Input an PeerID into the given sampler element.
+ * Update a sampler element with a PeerID
  *
- * @param sampler the sampler the @a s_elem belongs to.
- *                Needed to know the
+ * @param sampler_elem The sampler element to update
+ * @param new_ID The PeerID to update with
  */
 void
-RPS_sampler_elem_next (struct RPS_SamplerElement *s_elem,
-                       const struct GNUNET_PeerIdentity *other)
+RPS_sampler_elem_next (struct RPS_SamplerElement *sampler_elem,
+                       const struct GNUNET_PeerIdentity *new_ID)
 {
   struct GNUNET_HashCode other_hash;
 
-  s_elem->num_peers++;
+  sampler_elem->num_peers++;
 
   #ifdef TO_FILE
-  to_file (s_elem->file_name,
+  to_file (sampler_elem->file_name,
            "Got id %s",
-           GNUNET_i2s_full (other));
+           GNUNET_i2s_full (new_ID));
   #endif /* TO_FILE */
 
-  if (0 == GNUNET_CRYPTO_cmp_peer_identity (other, &(s_elem->peer_id)))
+  if (0 == GNUNET_CRYPTO_cmp_peer_identity (new_ID, &(sampler_elem->peer_id)))
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "Have already PeerID %s\n",
-        GNUNET_i2s (&(s_elem->peer_id)));
+        GNUNET_i2s (&(sampler_elem->peer_id)));
   }
   else
   {
-    GNUNET_CRYPTO_hmac(&s_elem->auth_key,
-        other,
+    GNUNET_CRYPTO_hmac(&sampler_elem->auth_key,
+        new_ID,
         sizeof(struct GNUNET_PeerIdentity),
         &other_hash);
 
-    if (EMPTY == s_elem->is_empty)
+    if (EMPTY == sampler_elem->is_empty)
     {
       LOG (GNUNET_ERROR_TYPE_DEBUG,
            "Got PeerID %s; Simply accepting (was empty previously).\n",
-           GNUNET_i2s(other));
-      s_elem->peer_id = *other;
-      s_elem->peer_id_hash = other_hash;
+           GNUNET_i2s(new_ID));
+      sampler_elem->peer_id = *new_ID;
+      sampler_elem->peer_id_hash = other_hash;
 
-      s_elem->num_change++;
+      sampler_elem->num_change++;
     }
-    else if (0 > GNUNET_CRYPTO_hash_cmp (&other_hash, &s_elem->peer_id_hash))
+    else if (0 > GNUNET_CRYPTO_hash_cmp (&other_hash, &sampler_elem->peer_id_hash))
     {
       LOG (GNUNET_ERROR_TYPE_DEBUG, "Discarding old PeerID %s\n",
-          GNUNET_i2s (&s_elem->peer_id));
-      s_elem->peer_id = *other;
-      s_elem->peer_id_hash = other_hash;
+          GNUNET_i2s (&sampler_elem->peer_id));
+      sampler_elem->peer_id = *new_ID;
+      sampler_elem->peer_id_hash = other_hash;
 
-      s_elem->num_change++;
+      sampler_elem->num_change++;
     }
     else
     {
       LOG (GNUNET_ERROR_TYPE_DEBUG, "Keeping old PeerID %s\n",
-          GNUNET_i2s (&s_elem->peer_id));
+          GNUNET_i2s (&sampler_elem->peer_id));
     }
   }
-  s_elem->is_empty = NOT_EMPTY;
+  sampler_elem->is_empty = NOT_EMPTY;
 
   #ifdef TO_FILE
-  to_file (s_elem->file_name,
+  to_file (sampler_elem->file_name,
            "Now holding %s",
-           GNUNET_i2s_full (&s_elem->peer_id));
+           GNUNET_i2s_full (&sampler_elem->peer_id));
   #endif /* TO_FILE */
 }
 
 /**
- * Initialise the min-wise independent function of the given sampler element.
+ * Set the min-wise independent function of the given sampler element.
  *
- * @param s_elem the sampler element
+ * @param sampler_elem the sampler element
  * @param auth_key the key to use
  */
 void
-RPS_sampler_elem_set (struct RPS_SamplerElement *s_elem,
+RPS_sampler_elem_set (struct RPS_SamplerElement *sampler_elem,
                       struct GNUNET_CRYPTO_AuthKey auth_key)
 {
-  s_elem->auth_key = auth_key;
+  sampler_elem->auth_key = auth_key;
 
   #ifdef TO_FILE
   /* Create a file(-name) to store internals to */
   char *name_buf;
-  name_buf = auth_key_to_string (s_elem->auth_key);
+  name_buf = auth_key_to_string (sampler_elem->auth_key);
 
-  s_elem->file_name = create_file (name_buf);
+  sampler_elem->file_name = create_file (name_buf);
   GNUNET_free (name_buf);
   #endif /* TO_FILE */
 }

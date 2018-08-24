@@ -99,10 +99,10 @@ struct RPS_SamplerElement
 /**
  * Reinitialise a previously initialised sampler element.
  *
- * @param sampler pointer to the memory that keeps the value.
+ * @param sampler_el The sampler element to (re-) initialise
  */
 void
-RPS_sampler_elem_reinit (struct RPS_SamplerElement *sampler_el);
+RPS_sampler_elem_reinit (struct RPS_SamplerElement *sampler_elem);
 
 
 /**
@@ -127,23 +127,23 @@ RPS_sampler_elem_destroy (struct RPS_SamplerElement *sampler_elem);
 
 
 /**
- * Input an PeerID into the given sampler element.
+ * Update a sampler element with a PeerID
  *
- * @param sampler the sampler the @a s_elem belongs to.
- *                Needed to know the
+ * @param sampler_elem The sampler element to update
+ * @param new_ID The PeerID to update with
  */
 void
-RPS_sampler_elem_next (struct RPS_SamplerElement *s_elem,
+RPS_sampler_elem_next (struct RPS_SamplerElement *sampler_elem,
                        const struct GNUNET_PeerIdentity *new_ID);
 
 /**
- * Initialise the min-wise independent function of the given sampler element.
+ * Set the min-wise independent function of the given sampler element.
  *
- * @param s_elem the sampler element
+ * @param sampler_elem the sampler element
  * @param auth_key the key to use
  */
 void
-RPS_sampler_elem_set (struct RPS_SamplerElement *s_elem,
+RPS_sampler_elem_set (struct RPS_SamplerElement *sampler_elem,
                       struct GNUNET_CRYPTO_AuthKey auth_key);
 
 
