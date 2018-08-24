@@ -2361,6 +2361,7 @@ send_pull_reply (const struct GNUNET_PeerIdentity *peer_id,
   // TODO check with send intention: as send_channel is used/opened we indicate
   // a sending intention without intending it.
   // -> clean peer afterwards?
+  // -> use recv_channel?
 }
 
 
@@ -3118,6 +3119,10 @@ check_peer_pull_reply (void *cls,
     LOG (GNUNET_ERROR_TYPE_WARNING,
         "Received a pull reply from a peer (%s) we didn't request one from!\n",
         GNUNET_i2s (sender));
+    GNUNET_STATISTICS_update (stats,
+                              "# unrequested pull replies",
+                              1,
+                              GNUNET_NO);
     GNUNET_break_op (0);
     return GNUNET_SYSERR;
   }
