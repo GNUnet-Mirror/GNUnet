@@ -254,9 +254,10 @@ static uint32_t client_get_index;
  */
 static void
 check_n_peers_ready (void *cls,
-    const struct GNUNET_PeerIdentity *id)
+                     const struct GNUNET_PeerIdentity *id)
 {
   struct RPS_SamplerRequestHandle *req_handle = cls;
+  (void) id;
 
   req_handle->cur_num_peers++;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -571,8 +572,7 @@ sampler_get_rand_peer (void *cls)
 /**
  * Get one random peer out of the sampled peers.
  *
- * We might want to reinitialise this sampler after giving the
- * corrsponding peer to the client.
+ * This reinitialises the queried sampler element.
  */
 static void
 sampler_mod_get_rand_peer (void *cls)
@@ -635,6 +635,7 @@ sampler_mod_get_rand_peer (void *cls)
   }
 
   s_elem->last_client_request = GNUNET_TIME_absolute_get ();
+  RPS_sampler_elem_reinit (s_elem);
 
   GNUNET_CONTAINER_DLL_remove (gpc->req_handle->gpc_head,
                                gpc->req_handle->gpc_tail,
