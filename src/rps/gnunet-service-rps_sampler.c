@@ -455,11 +455,13 @@ RPS_sampler_mod_init (size_t init_size,
   sampler = RPS_sampler_init (init_size, max_round_interval);
   sampler->get_peers = sampler_mod_get_rand_peer;
 
+#ifdef TO_FILE
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Initialised modified sampler %s\n",
        sampler->file_name);
   to_file (sampler->file_name,
            "This is a modified sampler");
+#endif /* TO_FILE */
 
   return sampler;
 }
