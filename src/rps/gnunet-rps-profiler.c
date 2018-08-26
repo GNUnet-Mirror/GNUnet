@@ -476,11 +476,6 @@ static struct GNUNET_PeerIdentity *rps_peer_ids;
 static struct GNUNET_PeerIdentity *target_peer;
 
 /**
- * ID of the peer that requests for the evaluation.
- */
-static struct RPSPeer *eval_peer;
-
-/**
  * Number of online peers.
  */
 static unsigned int num_peers_online;
@@ -1762,12 +1757,7 @@ churn (void *cls)
  */
 static void profiler_init_peer (struct RPSPeer *rps_peer)
 {
-  if (num_peers - 1 == rps_peer->index)
-  {
-    rps_peer->num_ids_to_request = cur_test_run.num_requests;
-  } else {
-    rps_peer->num_ids_to_request = 0;
-  }
+  rps_peer->num_ids_to_request = cur_test_run.num_requests;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "peer shall request %i peers\n",
               rps_peer->num_ids_to_request);
 }
@@ -1787,19 +1777,32 @@ profiler_reply_handle (void *cls,
 {
   struct RPSPeer *rps_peer;
   struct RPSPeer *rcv_rps_peer;
-  char *file_name;
-  char *file_name_dh;
-  char *file_name_dhr;
-  char *file_name_dhru;
+  char file_name_buf[128];
+  char file_name_dh_buf[128];
+  char file_name_dhr_buf[128];
+  char file_name_dhru_buf[128];
+  char *file_name = file_name_buf;
+  char *file_name_dh = file_name_dh_buf;
+  char *file_name_dhr = file_name_dhr_buf;
+  char *file_name_dhru = file_name_dhru_buf;
   unsigned int i;
   struct PendingReply *pending_rep = (struct PendingReply *) cls;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "profiler_reply_handle()\n");
   rps_peer = pending_rep->rps_peer;
-  file_name = "/tmp/rps/received_ids";
-  file_name_dh = "/tmp/rps/diehard_input";
-  file_name_dhr = "/tmp/rps/diehard_input_raw";
-  file_name_dhru = "/tmp/rps/diehard_input_raw_aligned";
+  (void) GNUNET_asprintf (&file_name,
+                                       "/tmp/rps/received_ids-%u",
+                                       rps_peer->index);
+
+  (void) GNUNET_asprintf (&file_name_dh,
+                                       "/tmp/rps/diehard_input-%u",
+                                       rps_peer->index);
+  (void) GNUNET_asprintf (&file_name_dhr,
+                                       "/tmp/rps/diehard_input_raw-%u",
+                                       rps_peer->index);
+  (void) GNUNET_asprintf (&file_name_dhru,
+                                       "/tmp/rps/diehard_input_raw_aligned-%u",
+                                       rps_peer->index);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "[%s] got %" PRIu64 " peers:\n",
               GNUNET_i2s (rps_peer->peer_id),
@@ -1855,7 +1858,7 @@ profiler_cb (struct RPSPeer *rps_peer)
   /* Only request peer ids at one peer.
    * (It's the before-last because last one is target of the focussed attack.)
    */
-  if (eval_peer == rps_peer)
+  if (0 < rps_peer->num_ids_to_request)
     schedule_missing_requests (rps_peer);
 }
 
@@ -2727,10 +2730,6 @@ run (void *cls,
   if ( (2 == mal_type) ||
        (3 == mal_type))
     target_peer = &rps_peer_ids[num_peers - 2];
-  if (profiler_eval == cur_test_run.eval_cb)
-    eval_peer = &rps_peers[num_peers - 1];    /* FIXME: eval_peer could be a
-                                                 malicious peer if not careful
-                                                 with the malicious portion */
 
   ok = 1;
   GNUNET_TESTBED_run (NULL,
