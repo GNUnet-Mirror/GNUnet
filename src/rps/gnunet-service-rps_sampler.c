@@ -633,18 +633,19 @@ sampler_mod_get_rand_peer (void *cls)
                                       cls);
       return;
     }
-    else if (2 < s_elem->num_peers)
-    {
-      LOG (GNUNET_ERROR_TYPE_DEBUG,
-          "This s_elem saw less than two peers -- scheduling for later\n");
-      GNUNET_assert (NULL == gpc->get_peer_task);
-      gpc->get_peer_task =
-        GNUNET_SCHEDULER_add_delayed (sampler->max_round_interval,
-                                      &sampler_mod_get_rand_peer,
-                                      cls);
-    }
-    /* More reasons to wait could be added here */
   }
+  if (2 > s_elem->num_peers)
+  {
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+        "This s_elem saw less than two peers -- scheduling for later\n");
+    GNUNET_assert (NULL == gpc->get_peer_task);
+    gpc->get_peer_task =
+      GNUNET_SCHEDULER_add_delayed (sampler->max_round_interval,
+                                    &sampler_mod_get_rand_peer,
+                                    cls);
+    return;
+  }
+  /* More reasons to wait could be added here */
 
   GNUNET_STATISTICS_set (stats,
                          "# client sampler element input",
