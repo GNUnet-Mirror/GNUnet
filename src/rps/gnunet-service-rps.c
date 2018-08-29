@@ -2656,6 +2656,7 @@ nse_callback (void *cls,
   /* If the NSE has changed adapt the lists accordingly */
   resize_wrapper (prot_sampler, sampler_size_est_need);
   client_resize_wrapper ();
+  View_change_len (view_size_est_need);
 }
 
 
