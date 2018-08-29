@@ -484,12 +484,11 @@ RPS_sampler_update (struct RPS_Sampler *sampler,
            "Got %s",
            GNUNET_i2s_full (id));
 
-  for (i = 0 ; i < sampler->sampler_size ; i++)
+  for (i = 0; i < sampler->sampler_size; i++)
   {
     RPS_sampler_elem_next (sampler->sampler_elements[i],
                            id);
   }
-
 }
 
 
@@ -634,7 +633,17 @@ sampler_mod_get_rand_peer (void *cls)
                                       cls);
       return;
     }
-    // TODO add other reasons to wait here
+    else if (2 < s_elem->num_peers)
+    {
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
+          "This s_elem saw less than two peers -- scheduling for later\n");
+      GNUNET_assert (NULL == gpc->get_peer_task);
+      gpc->get_peer_task =
+        GNUNET_SCHEDULER_add_delayed (sampler->max_round_interval,
+                                      &sampler_mod_get_rand_peer,
+                                      cls);
+    }
+    /* More reasons to wait could be added here */
   }
 
   GNUNET_STATISTICS_set (stats,
@@ -647,6 +656,7 @@ sampler_mod_get_rand_peer (void *cls)
                          GNUNET_NO);
 
   RPS_sampler_elem_reinit (s_elem);
+  s_elem->last_client_request = GNUNET_TIME_absolute_get ();
 
   GNUNET_CONTAINER_DLL_remove (gpc->req_handle->gpc_head,
                                gpc->req_handle->gpc_tail,
