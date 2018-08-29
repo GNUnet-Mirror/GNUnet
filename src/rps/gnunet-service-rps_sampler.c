@@ -684,17 +684,18 @@ sampler_mod_get_rand_peer (void *cls)
 struct RPS_SamplerRequestHandle *
 RPS_sampler_get_n_rand_peers (struct RPS_Sampler *sampler,
                               RPS_sampler_n_rand_peers_ready_cb cb,
-                              void *cls, uint32_t num_peers)
+                              void *cls,
+                              uint32_t num_peers)
 {
+  uint32_t i;
+  struct RPS_SamplerRequestHandle *req_handle;
+  struct GetPeerCls *gpc;
+
   GNUNET_assert (0 != sampler->sampler_size);
   if (0 == num_peers)
     return NULL;
 
   // TODO check if we have too much (distinct) sampled peers
-  uint32_t i;
-  struct RPS_SamplerRequestHandle *req_handle;
-  struct GetPeerCls *gpc;
-
   req_handle = GNUNET_new (struct RPS_SamplerRequestHandle);
   req_handle->num_peers = num_peers;
   req_handle->cur_num_peers = 0;
@@ -709,7 +710,7 @@ RPS_sampler_get_n_rand_peers (struct RPS_Sampler *sampler,
   LOG (GNUNET_ERROR_TYPE_DEBUG,
       "Scheduling requests for %" PRIu32 " peers\n", num_peers);
 
-  for (i = 0 ; i < num_peers ; i++)
+  for (i = 0; i < num_peers; i++)
   {
     gpc = GNUNET_new (struct GetPeerCls);
     gpc->req_handle = req_handle;
