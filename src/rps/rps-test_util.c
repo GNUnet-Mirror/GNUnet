@@ -42,10 +42,6 @@
   (byte & 0x02 ? '1' : '0'), \
   (byte & 0x01 ? '1' : '0')
 
-#ifndef TO_FILE
-#define TO_FILE
-#endif /* TO_FILE */
-
 #ifdef TO_FILE
 
 #define min(x,y) ((x) > (y) ? (y) : (x))
