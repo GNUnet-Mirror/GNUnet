@@ -216,6 +216,7 @@ struct GNUNET_RPS_CS_DEBUG_ViewReply
 };
   /* Followed by num_peers * GNUNET_PeerIdentity */
 
+GNUNET_NETWORK_STRUCT_END
 
 /***********************************************************************
  * Defines from old gnunet-service-rps_peers.h
@@ -312,4 +313,8 @@ typedef int
                   const struct GNUNET_PeerIdentity *peer);
 
 
-GNUNET_NETWORK_STRUCT_END
+/**
+ * Handle to the statistics service.
+ */
+extern struct GNUNET_STATISTICS_Handle *stats;
+

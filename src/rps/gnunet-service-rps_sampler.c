@@ -23,6 +23,7 @@
  */
 #include "platform.h"
 #include "gnunet_util_lib.h"
+#include "gnunet_statistics_service.h"
 #include "rps.h"
 
 #include "gnunet-service-rps_sampler.h"
@@ -636,7 +637,15 @@ sampler_mod_get_rand_peer (void *cls)
     // TODO add other reasons to wait here
   }
 
-  s_elem->last_client_request = GNUNET_TIME_absolute_get ();
+  GNUNET_STATISTICS_set (stats,
+                         "# client sampler element input",
+                         s_elem->num_peers,
+                         GNUNET_NO);
+  GNUNET_STATISTICS_set (stats,
+                         "# client sampler element change",
+                         s_elem->num_change,
+                         GNUNET_NO);
+
   RPS_sampler_elem_reinit (s_elem);
 
   GNUNET_CONTAINER_DLL_remove (gpc->req_handle->gpc_head,

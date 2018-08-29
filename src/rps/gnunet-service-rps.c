@@ -61,7 +61,7 @@ static const struct GNUNET_CONFIGURATION_Handle *cfg;
 /**
  * Handle to the statistics service.
  */
-static struct GNUNET_STATISTICS_Handle *stats;
+struct GNUNET_STATISTICS_Handle *stats;
 
 /**
  * Our own identity.
