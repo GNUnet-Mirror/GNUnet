@@ -1418,23 +1418,23 @@ check_peer_flag (const struct GNUNET_PeerIdentity *peer,
  * If not known yet, insert into known peers
  *
  * @param peer the peer whose liveliness is to be checked
- * @return #GNUNET_YES if peer had to be inserted
+ * @return #GNUNET_YES if the check was issued
  *         #GNUNET_NO  otherwise
  */
 static int
 issue_peer_liveliness_check (const struct GNUNET_PeerIdentity *peer)
 {
   struct PeerContext *peer_ctx;
-  int ret;
 
-  ret = insert_peer (peer);
+  (void) insert_peer (peer);
   peer_ctx = get_peer_ctx (peer);
   if ( (GNUNET_NO == check_peer_flag (peer, Peers_ONLINE)) &&
        (NULL == peer_ctx->liveliness_check_pending) )
   {
     check_peer_live (peer_ctx);
+    return GNUNET_YES;
   }
-  return ret;
+  return GNUNET_NO;
 }
 
 
