@@ -835,6 +835,10 @@ check_peer_live (struct PeerContext *peer_ctx)
                          mq_liveliness_check_successful,
                          peer_ctx);
   GNUNET_MQ_send (mq, ev);
+  GNUNET_STATISTICS_update (stats,
+                            "# pending liveliness checks",
+                            1,
+                            GNUNET_NO);
 }
 
 
@@ -2973,6 +2977,10 @@ handle_peer_check (void *cls,
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
       "Received CHECK_LIVE (%s)\n", GNUNET_i2s (peer));
+  GNUNET_STATISTICS_update (stats,
+                            "# pending liveliness checks",
+                            -1,
+                            GNUNET_NO);
 
   GNUNET_CADET_receive_done (channel_ctx->channel);
 }
