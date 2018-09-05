@@ -57,7 +57,10 @@ struct userdata
  * @param af address family
  * @param name the name to resolve
  * @param u the userdata (result struct)
- * @return -1 on error else 0
+ * @return -1 on internal error,
+ *         -2 if request is not for GNS,
+ *         -3 on timeout,
+ *          else 0
  */
 int
 gns_resolve_name(int af,

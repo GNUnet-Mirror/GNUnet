@@ -29,6 +29,7 @@
 #include <nss.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <errno.h>
 
 #include "nss_gns_query.h"
 
@@ -94,8 +95,8 @@ _nss_gns_gethostbyname2_r(const char *name,
 
   address_length = (af == AF_INET) ? sizeof(ipv4_address_t) : sizeof(ipv6_address_t);
   if (buflen <
-      sizeof(char*)+    /* alias names */
-      strlen(name)+1)
+      sizeof(char*) +     /* alias names */
+      strlen (name) + 1)
   {   /* official name */
     *errnop = ERANGE;
     *h_errnop = NO_RECOVERY;
@@ -108,21 +109,31 @@ _nss_gns_gethostbyname2_r(const char *name,
   i = gns_resolve_name (af,
                         name,
                         &u);
-  if (-3 == i)
+  if (-1 == i)
   {
-    status = NSS_STATUS_NOTFOUND;
+    *errnop = errno;
+    status = NSS_STATUS_UNAVAIL;
+    *h_errnop = NO_RECOVERY;
     goto finish;
   }
   if (-2 == i)
   {
+    *errnop = ENOENT;
+    *h_errnop = NO_RECOVERY;
     status = NSS_STATUS_UNAVAIL;
     goto finish;
   }
-  if ( (-1 == i) ||
-       (u.count == 0) )
+  if (-3 == i)
   {
     *errnop = ETIMEDOUT;
     *h_errnop = HOST_NOT_FOUND;
+    status = NSS_STATUS_NOTFOUND;
+    goto finish;
+  }
+  if (0 == u.count) 
+  {
+    *errnop = 0; /* success */ 
+    *h_errnop = NO_DATA; /* success */
     status = NSS_STATUS_NOTFOUND;
     goto finish;
   }
@@ -227,8 +238,14 @@ _nss_gns_gethostbyaddr_r (const void* addr,
                           int *errnop,
                           int *h_errnop)
 {
+  (void) addr;
+  (void) len;
+  (void) af;
+  (void) result;
+  (void) buffer;
+  (void) buflen;
   *errnop = EINVAL;
   *h_errnop = NO_RECOVERY;
-  //NOTE we allow to leak this into DNS so no NOTFOUND
+  /* NOTE we allow to leak this into DNS so no NOTFOUND */
   return NSS_STATUS_UNAVAIL;
 }

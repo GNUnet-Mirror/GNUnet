@@ -23,6 +23,7 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <errno.h>
 
 
 /**
@@ -32,7 +33,10 @@
  * @param af address family
  * @param name the name to resolve
  * @param u the userdata (result struct)
- * @return -1 on error else 0
+ * @return -1 on internal error,
+ *         -2 if request is not for GNS,
+ *         -3 on timeout,
+ *          else 0
  */
 int
 gns_resolve_name (int af,
@@ -43,6 +47,7 @@ gns_resolve_name (int af,
   char *cmd;
   char line[128];
   int ret;
+  int es;
 
   if (AF_INET6 == af)
   {
@@ -62,7 +67,9 @@ gns_resolve_name (int af,
   }
   if (NULL == (p = popen (cmd, "r")))
   {
+    es = errno;
     free (cmd);
+    errno = es;
     return -1;
   }
   while (NULL != fgets (line,
@@ -85,8 +92,9 @@ gns_resolve_name (int af,
 	}
 	else
 	{
-	  pclose (p);
+	  (void) pclose (p);
 	  free (cmd);
+	  errno = EINVAL;
 	  return -1;
 	}
       }
@@ -101,8 +109,9 @@ gns_resolve_name (int af,
 	}
 	else
         {
-	  pclose (p);
+	  (void) pclose (p);
 	  free (cmd);
+	  errno = EINVAL;
 	  return -1;
 	}
       }
@@ -110,11 +119,14 @@ gns_resolve_name (int af,
   }
   ret = pclose (p);
   free (cmd);
-  if (4 == ret)
+  if (! WIFEXITED (ret)) 
+    return -1;
+  if (4 == WEXITSTATUS (ret)) 
     return -2; /* not for GNS */
   if (3 == ret)
     return -3; /* timeout -> not found */
-  if ( (2 == ret) || (1 == ret) )
+  if ( (2 == WEXITSTATUS (ret)) ||
+       (1 == WEXITSTATUS (ret)) )
     return -2; /* launch failure -> service unavailable */
   return 0;
 }
