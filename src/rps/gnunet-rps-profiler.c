@@ -1821,6 +1821,7 @@ profiler_reply_handle (void *cls,
     tofile (file_name_dh,
              "%" PRIu32 "\n",
              (uint32_t) rcv_rps_peer->index);
+#ifdef TO_FILE
     to_file_raw (file_name_dhr,
                 (char *) &rcv_rps_peer->index,
                  sizeof (uint32_t));
@@ -1828,6 +1829,7 @@ profiler_reply_handle (void *cls,
                           (char *) &rcv_rps_peer->index,
                            sizeof (uint32_t),
                            bits_needed);
+#endif /* TO_FILE */
   }
   default_reply_handle (cls, n, recv_peers);
 }
@@ -1871,7 +1873,7 @@ profiler_cb (struct RPSPeer *rps_peer)
  *  #GNUNET_NO to stop iteration with no error,
  *  #GNUNET_SYSERR to abort iteration with error!
  */
-int
+static int
 file_name_cb (void *cls, const char *filename)
 {
   if (NULL != strstr (filename, "sampler_el"))
@@ -1903,14 +1905,16 @@ file_name_cb (void *cls, const char *filename)
  *
  * Compute all perfect samples.
  */
-int
+static int
 profiler_eval (void)
 {
+#ifdef TO_FILE
   /* Compute perfect sample for each sampler element */
   if (-1 == GNUNET_DISK_directory_scan ("/tmp/rps/", file_name_cb, NULL))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Scan of directory failed\n");
   }
+#endif /* TO_FILE */
 
   return evaluate ();
 }
