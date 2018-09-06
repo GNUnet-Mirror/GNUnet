@@ -63,6 +63,8 @@ static uint64_t num_view_updates;
 static void
 do_shutdown (void *cls)
 {
+  (void) cls;
+
   if (NULL != req_handle)
     GNUNET_RPS_request_cancel (req_handle);
   GNUNET_RPS_disconnect (rps_handle);
@@ -83,6 +85,7 @@ reply_handle (void *cls,
               const struct GNUNET_PeerIdentity *recv_peers)
 {
   uint64_t i;
+  (void) cls;
 
   req_handle = NULL;
   for (i = 0; i < n; i++)
@@ -108,6 +111,7 @@ view_update_handle (void *cls,
                     const struct GNUNET_PeerIdentity *recv_peers)
 {
   uint64_t i;
+  (void) cls;
 
   if (0 == n)
   {
@@ -148,6 +152,8 @@ run (void *cls,
 {
   static uint64_t num_peers;
   static struct GNUNET_PeerIdentity zero_pid;
+  (void) cls;
+  (void) cfgfile;
 
   rps_handle = GNUNET_RPS_connect (cfg);
   if (NULL == rps_handle)

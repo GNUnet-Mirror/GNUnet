@@ -158,6 +158,7 @@ resend_requests_iterator (void *cls, uint32_t key, void *value)
 {
   const struct GNUNET_RPS_Handle *h = cls;
   const struct GNUNET_RPS_Request_Handle *req_handle = value;
+  (void) key;
 
   send_request (h, req_handle->id, req_handle->num_peers);
   return GNUNET_YES; /* continue iterating */
@@ -195,6 +196,7 @@ check_reply (void *cls,
 {
   uint16_t msize = ntohs (msg->header.size);
   uint32_t num_peers = ntohl (msg->num_peers);
+  (void) cls;
 
   msize -= sizeof (struct GNUNET_RPS_CS_ReplyMessage);
   if ( (msize / sizeof (struct GNUNET_PeerIdentity) != num_peers) ||
@@ -289,6 +291,7 @@ check_view_update (void *cls,
 {
   uint16_t msize = ntohs (msg->header.size);
   uint32_t num_peers = ntohl (msg->num_peers);
+  (void) cls;
 
   msize -= sizeof (struct GNUNET_RPS_CS_DEBUG_ViewReply);
   if ( (msize / sizeof (struct GNUNET_PeerIdentity) != num_peers) ||
