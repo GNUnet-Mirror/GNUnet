@@ -65,7 +65,7 @@ to_file_ (const char *file_name, char *line)
   char *output_buffer_p;
   //size_t size;
   int size;
-  size_t size2;
+  int size2;
 
 
   if (NULL == (f = GNUNET_DISK_file_open (file_name,
@@ -458,7 +458,7 @@ const char *
 store_prefix_file_name (const struct GNUNET_PeerIdentity *peer,
     const char *prefix)
 {
-  unsigned int len_file_name;
+  int len_file_name;
   int out_size;
   char *file_name;
   const char *pid_long;
