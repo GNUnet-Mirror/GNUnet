@@ -688,6 +688,24 @@ else
   AC_DEFINE([DOCUMENTATION],[0],[Not building the documentation])
 fi
 
+# TODO: Include check for mandoc + texi2mdoc.
+# TODO: Rename the switch? Just 'section7' is too vague.
+# mdoc section 7 output.
+AC_MSG_CHECKING(wether to build section 7 mdoc output)
+AC_ARG_ENABLE([section7],
+[AS_HELP_STRING([--disable-section7], [do not build section 7 mdoc output])],
+[section7=${enableval}],
+[section7=yes])
+AC_MSG_RESULT($section7)
+if test "x$section7" = "xyes"
+then
+  AM_CONDITIONAL([SECTION7],true)
+  AC_DEFINE([SECTION7],[1],[Building section 7 mdoc output])
+else
+  AM_CONDITIONAL([SECTION7],false)
+  AC_DEFINE([SECTION7],[0],[Not building section 7 mdoc output])
+fi
+
 # should the build process be building only the documentation?
 AC_MSG_CHECKING(whether to build only documentation)
 AC_ARG_ENABLE([documentation-only],

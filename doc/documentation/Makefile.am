@@ -175,6 +175,18 @@ version2.texi:
 	echo "@set EDITION $(PACKAGE_VERSION)" >> $@
 	echo "@set VERSION $(PACKAGE_VERSION)" >> $@
 
+if SECTION7
+gnunet-c-tutorial.7: version2.texi
+	@echo Attempting to output an mdoc formatted section 7 document
+	@texi2mdoc -I$(pwd):$(pwd)/chapters gnunet-c-tutorial.texi > ../man/gnunet-c-tutorial.7
+
+gnunet-documentation.7: version2.texi
+	@echo Attempting to output an mdoc formatted section 7 document
+	@texi2mdoc -I$(pwd):$(pwd)/chapters gnunet.texi > ../man/gnunet-documentation.7
+
+# TODO: (Maybe) other outputs resulting from this.
+endif
+
 # FIXME: rm *.html and *.pdf
 #doc-clean:
 #	@rm *.aux *.log *.toc *.cp *.cps

@@ -64,6 +64,8 @@
  (gnu packages video)
  (gnu packages web)
  (gnu packages xiph)
+ (ports app-text mandoc mandoc)
+ (ports app-text texi2mdoc texi2mdoc)
  ((guix licenses) #:prefix license:))
 
 (define %source-dir (current-source-directory))
@@ -119,17 +121,20 @@
          ("automake" ,automake)
          ("gnu-gettext" ,gnu-gettext)
          ("which" ,which)
+         ("mandoc" ,mandoc)
+         ("texi2mdoc" ,texi2mdoc)
          ("texinfo" ,texinfo-5) ; Debian stable: 5.2
          ("libtool" ,libtool)))
       (outputs '("out" "debug"))
+      ;;#:configure-flags
+      ;;(list (string-append "--with-nssdir=" %output "/lib")
+      ;;"--enable-gcc-hardening"
+      ;;"--enable-linker-hardening"
+      ;;;;"--enable-documentation-only")
+      ;;;"--enable-logging=verbose"
+      ;;;"CFLAGS=-ggdb -O0")
       (arguments
-       `(;#:configure-flags
-         ;;(list (string-append "--with-nssdir=" %output "/lib")
-         ;;"--enable-gcc-hardening"
-         ;;"--enable-linker-hardening"
-               ;;;;"--enable-documentation-only")
-               ;;;"--enable-logging=verbose"
-               ;;;"CFLAGS=-ggdb -O0")
+       `(#:configure-flags (list "--enable-section7")
          #:phases
          ;; swap check and install phases and set paths to installed bin
          (modify-phases %standard-phases
@@ -140,12 +145,25 @@
                #t))
            (add-after 'patch-bin-sh 'bootstrap
              (lambda _
-               (zero? (system* "sh" "bootstrap"))))
+               (invoke "sh" "bootstrap")))
+           (add-after 'build 'install-section7
+             (lambda _
+               (with-directory-excursion "doc/documentation"
+                 (invoke "make" "gnunet-c-tutorial.7")
+                 (invoke "make" "gnunet-documentation.7")
+                 (mkdir-p (string-append (assoc-ref %outputs "out")
+                                         "/share/man/man7"))
+                 (copy-file "../man/gnunet-c-tutorial.7"
+                            (string-append (assoc-ref %outputs "out")
+                                           "/share/man/man7/gnunet-c-tutorial.7"))
+                 (copy-file "../man/gnunet-documentation.7"
+                            (string-append (assoc-ref %outputs "out")
+                                         "/share/man/man7/gnunet-documentation.7")))))
            ;;(add-before 'build 'chdir
            ;; (lambda _
            ;;  (chdir "doc/documentation")))
-           (delete 'check)
-           ;; XXX: https://gnunet.org/bugs/view.php?id=4619
-           ))))))
+           (delete 'check)))))))
+;; XXX: https://gnunet.org/bugs/view.php?id=4619
+                             
 
 gnunet-dev-env

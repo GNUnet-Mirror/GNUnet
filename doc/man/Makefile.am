@@ -46,3 +46,8 @@ man_MANS = \
   gnunet-zoneimport.1
 
 EXTRA_DIST = ${man_MANS}
+
+if SECTION7
+EXTRA_DIST += gnunet-documentation.7 \
+	      gnunet-c-tutorial.7
+endif
