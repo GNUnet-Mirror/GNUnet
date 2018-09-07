@@ -1,15 +1,9 @@
 \input texinfo
 @c -*-texinfo-*-
-
-@c %**start of header
 @setfilename gnunet.info
 @documentencoding UTF-8
 @settitle GNUnet Reference Manual
 @exampleindent 2
-@c It seems as if this breaks some old garbage version of
-@c texinfo running on some systems. FIXME!!!
-@c @urefbreakstyle before
-@c %**end of header
 
 @include version.texi
 
@@ -220,8 +214,6 @@ GNUnet Developer Handbook
 
 @c *********************************************************************
 @include chapters/developer.texi
-@c For now in its own Book:
-@c @include gnunet-c-tutorial.texi
 @c *********************************************************************
 
 @c *********************************************************************
