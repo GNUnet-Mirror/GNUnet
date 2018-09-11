@@ -1983,8 +1983,15 @@ This behaviour is _exactly the same_ as with other IdPs.
 @node Using the OpenID-Connect IdP
 @subsection Using the OpenID-Connect IdP
 
-@node Preliminaries
-@subsection Preliminaries
+@menu
+* Setting up reclaim.io::
+* For Users::
+* For Service Providers::
+@end menu
+
+
+@node Setting up reclaim.io
+@subsubsection Setting up reclaim.io
 
 @example
 $ gnunet-identity -C id
@@ -2024,7 +2031,7 @@ server @{
 This will expose the REST API of GNUnet at https://reclaim.id/api.
 
 @node For Users
-@subsection For Users
+@subsubsection For Users
 
 To use the OpenID Connect Identity Provider as an end user, you must first intall the User Interface from TODOINSERTURLHERE.
 
@@ -2050,7 +2057,7 @@ server @{
 You can thest your setup by accessing https://reclaim.id in your browser through the GNS proxy.
 
 @node For Service Providers
-@subsection For Service Providers
+@subsubsection For Service Providers
 
 To setup an OpenID Connect client, it must first be registered.
 In reclaim, client registration is done by creating a client identity and adding the redirect URI and client description into its namespace:
