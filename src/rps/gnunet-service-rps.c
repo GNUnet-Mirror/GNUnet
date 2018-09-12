@@ -976,6 +976,10 @@ destroy_peer (struct PeerContext *peer_ctx)
       {
         // TODO this may leak memory
         peer_ctx->liveliness_check_pending = NULL;
+        GNUNET_STATISTICS_update (stats,
+                                  "# pending liveliness checks",
+                                  -1,
+                                  GNUNET_NO);
       }
     remove_pending_message (peer_ctx->pending_messages_head,
                             GNUNET_YES);
