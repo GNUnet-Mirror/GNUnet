@@ -2993,6 +2993,22 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_RPS_CS_DEBUG_VIEW_CANCEL  1132
 
 
+/**
+ * @brief Request biased input stream
+ */
+#define GNUNET_MESSAGE_TYPE_RPS_CS_DEBUG_STREAM_REQUEST 1133
+
+/**
+ * @brief Send peer of biased stream
+ */
+#define GNUNET_MESSAGE_TYPE_RPS_CS_DEBUG_STREAM_REPLY   1134
+
+/**
+ * @brief Cancel getting biased strem
+ */
+#define GNUNET_MESSAGE_TYPE_RPS_CS_DEBUG_STREAM_CANCEL  1135
+
+
 
 /**
  * Next available: 1200

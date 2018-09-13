@@ -74,6 +74,14 @@ typedef void (* GNUNET_RPS_ViewUpdateCB) (void *cls,
     const struct GNUNET_PeerIdentity *peers);
 
 /**
+ * Callback called when a peer from the biased stream was received
+ *
+ * @param peer The received peer
+ */
+typedef void (* GNUNET_RPS_StreamInputCB) (void *cls,
+    const struct GNUNET_PeerIdentity *peer);
+
+/**
  * Connect to the rps service
  *
  * @param cfg configuration to use
@@ -160,6 +168,23 @@ GNUNET_RPS_view_request (struct GNUNET_RPS_Handle *rps_handle,
                          uint32_t num_updates,
                          GNUNET_RPS_ViewUpdateCB view_update_cb,
                          void *cls);
+
+
+/**
+ * Request biased stream of peers that are being put into the sampler
+ *
+ * @param rps_handle handle to the rps service
+ * @param num_req_peers number of peers we want to receive
+ *        (0 for infinite updates)
+ * @param cls a closure that will be given to the callback
+ * @param ready_cb the callback called when the peers are available
+ */
+void
+GNUNET_RPS_stream_request (struct GNUNET_RPS_Handle *rps_handle,
+                           uint32_t num_updates,
+                           GNUNET_RPS_StreamInputCB stream_input_cb,
+                           void *cls);
+
 
 /**
  * Disconnect from the rps service

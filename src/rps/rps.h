@@ -216,6 +216,47 @@ struct GNUNET_RPS_CS_DEBUG_ViewReply
 };
   /* Followed by num_peers * GNUNET_PeerIdentity */
 
+/**
+ * Message from client to service indicating that
+ * clients wants to get stream of biased peers
+ */
+struct GNUNET_RPS_CS_DEBUG_StreamRequest
+{
+  /**
+   * Header including size and type in NBO
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Number of peers
+   * 0 for sending updates until cancellation
+   */
+  uint32_t num_peers GNUNET_PACKED;
+};
+
+/**
+ * Message from service to client containing peer from biased stream
+ */
+struct GNUNET_RPS_CS_DEBUG_StreamReply
+{
+  /**
+   * Header including size and type in NBO
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Identifyer of the message.
+   */
+  uint32_t id GNUNET_PACKED;
+
+  /**
+   * @brief The peer of the biased stream
+   */
+  struct GNUNET_PeerIdentity peer;
+
+  // TODO maybe source of peer (pull/push list, peerinfo, ...)
+};
+
 GNUNET_NETWORK_STRUCT_END
 
 /***********************************************************************
