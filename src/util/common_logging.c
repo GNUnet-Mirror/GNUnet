@@ -627,7 +627,9 @@ parse_definitions (const char *constname, int force)
         }
         break;
       default:
-        fprintf(stderr, "ERROR: Unable to parse log defintion: Syntax error.\n");
+        fprintf(stderr,
+                _("ERROR: Unable to parse log definition: Syntax error at `%s'.\n"),
+                p);
         break;
       }
       start = p + 1;
@@ -655,7 +657,9 @@ parse_definitions (const char *constname, int force)
         start = p + 1;
         break;
       default:
-        fprintf(stderr, "ERROR: Unable to parse log defintion: Syntax error.\n");
+        fprintf(stderr,
+                _("ERROR: Unable to parse log definition: Syntax error at `%s'.\n"),
+                p);
         break;
       }
     default:
