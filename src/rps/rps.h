@@ -250,11 +250,13 @@ struct GNUNET_RPS_CS_DEBUG_StreamReply
   uint32_t id GNUNET_PACKED;
 
   /**
-   * @brief The peer of the biased stream
+   * Number of peers
    */
-  struct GNUNET_PeerIdentity peer;
+  uint64_t num_peers GNUNET_PACKED;
 
   // TODO maybe source of peer (pull/push list, peerinfo, ...)
+
+  /* Followed by num_peers * GNUNET_PeerIdentity */
 };
 
 GNUNET_NETWORK_STRUCT_END

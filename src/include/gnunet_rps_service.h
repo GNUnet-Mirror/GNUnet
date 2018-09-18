@@ -79,6 +79,7 @@ typedef void (* GNUNET_RPS_ViewUpdateCB) (void *cls,
  * @param peer The received peer
  */
 typedef void (* GNUNET_RPS_StreamInputCB) (void *cls,
+    uint64_t num_peers,
     const struct GNUNET_PeerIdentity *peer);
 
 /**

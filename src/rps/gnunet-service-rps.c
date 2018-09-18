@@ -2208,8 +2208,8 @@ send_view (const struct ClientContext *cli_ctx,
   out_msg->num_peers = htonl (view_size);
 
   GNUNET_memcpy (&out_msg[1],
-          view_array,
-          view_size * sizeof (struct GNUNET_PeerIdentity));
+                 view_array,
+                 view_size * sizeof (struct GNUNET_PeerIdentity));
   GNUNET_MQ_send (cli_ctx->mq, ev);
 }
 
@@ -2217,25 +2217,30 @@ send_view (const struct ClientContext *cli_ctx,
 /**
  * @brief Send peer from biased stream to client.
  *
+ * TODO merge with send_view, parameterise
+ *
  * @param cli_ctx the context of the client
  * @param view_array the peerids of the view as array (can be empty)
  * @param view_size the size of the view array (can be 0)
  */
 void
 send_stream_peer (const struct ClientContext *cli_ctx,
-                  const struct GNUNET_PeerIdentity *peer)
+                  uint64_t num_peers,
+                  const struct GNUNET_PeerIdentity *peers)
 {
   struct GNUNET_MQ_Envelope *ev;
   struct GNUNET_RPS_CS_DEBUG_StreamReply *out_msg;
 
-  GNUNET_assert (NULL != peer);
+  GNUNET_assert (NULL != peers);
 
-  ev = GNUNET_MQ_msg (out_msg,
-                      GNUNET_MESSAGE_TYPE_RPS_CS_DEBUG_STREAM_REPLY);
+  ev = GNUNET_MQ_msg_extra (out_msg,
+                            num_peers * sizeof (struct GNUNET_PeerIdentity),
+                            GNUNET_MESSAGE_TYPE_RPS_CS_DEBUG_STREAM_REPLY);
+  out_msg->num_peers = htonl (num_peers);
 
-  GNUNET_memcpy (&out_msg->peer,
-          peer,
-          sizeof (struct GNUNET_PeerIdentity));
+  GNUNET_memcpy (&out_msg[1],
+                 peers,
+                 num_peers * sizeof (struct GNUNET_PeerIdentity));
   GNUNET_MQ_send (cli_ctx->mq, ev);
 }
 
@@ -2288,36 +2293,45 @@ clients_notify_view_update (void)
  * @brief sends updates to clients that are interested
  */
 static void
-clients_notify_stream_peer (const struct GNUNET_PeerIdentity *peer)
-                            //enum StreamPeerSource)
+clients_notify_stream_peer (uint64_t num_peers,
+                            const struct GNUNET_PeerIdentity *peers)
+                            // TODO enum StreamPeerSource)
 {
   struct ClientContext *cli_ctx_iter;
+  uint64_t num_peers_send;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
       "Got peer (%s) from biased stream - update all clients\n",
-      GNUNET_i2s (peer));
+      GNUNET_i2s (peers));
 
-  /* check size of view is small enough */
   for (cli_ctx_iter = cli_ctx_head;
        NULL != cli_ctx_iter;
        cli_ctx_iter = cli_ctx_head->next)
   {
-    if (1 < cli_ctx_iter->stream_peers_left)
+    if (0 < cli_ctx_iter->stream_peers_left)
     {
       /* Client wants to receive limited amount of updates */
-      cli_ctx_iter->stream_peers_left -= 1;
-    } else if (1 == cli_ctx_iter->stream_peers_left)
+      if (num_peers > cli_ctx_iter->stream_peers_left)
+      {
+        num_peers_send = num_peers - cli_ctx_iter->stream_peers_left;
+        cli_ctx_iter->stream_peers_left = 0;
+      }
+      else
+      {
+        num_peers_send = cli_ctx_iter->stream_peers_left - num_peers;
+        cli_ctx_iter->stream_peers_left -= num_peers_send;
+      }
+    } else if (0 > cli_ctx_iter->stream_peers_left)
     {
-      /* Last update of view for client */
-      cli_ctx_iter->stream_peers_left = -1;
-    } else if (0 > cli_ctx_iter->stream_peers_left) {
       /* Client is not interested in updates */
       continue;
+    } else /* _updates_left == 0 - infinite amount of updates */
+    {
+      num_peers_send = num_peers;
     }
-    /* else _updates_left == 0 - infinite amount of updates */
 
     /* send view */
-    send_stream_peer (cli_ctx_iter, peer);
+    send_stream_peer (cli_ctx_iter, num_peers_send, peers);
   }
 }
 
@@ -2338,7 +2352,7 @@ hist_update (void *cls,
     inserted = insert_in_view (&ids[i]);
     if (GNUNET_OK == inserted)
     {
-      clients_notify_stream_peer (&ids[i]);
+      clients_notify_stream_peer (1, &ids[i]);
     }
     to_file (file_name_view_log,
              "+%s\t(hist)",
@@ -2549,7 +2563,7 @@ insert_in_view_op (void *cls,
   inserted = insert_in_view (peer);
   if (GNUNET_OK == inserted)
   {
-    clients_notify_stream_peer (peer);
+    clients_notify_stream_peer (1, peer);
   }
 }
 
@@ -3834,7 +3848,7 @@ do_round (void *cls)
                                                                   permut[i]));
       if (GNUNET_OK == inserted)
       {
-        clients_notify_stream_peer (
+        clients_notify_stream_peer (1,
             CustomPeerMap_get_peer_by_index (push_map, permut[i]));
       }
       to_file (file_name_view_log,
@@ -3855,7 +3869,7 @@ do_round (void *cls)
             permut[i - first_border]));
       if (GNUNET_OK == inserted)
       {
-        clients_notify_stream_peer (
+        clients_notify_stream_peer (1,
             CustomPeerMap_get_peer_by_index (push_map, permut[i]));
       }
       to_file (file_name_view_log,

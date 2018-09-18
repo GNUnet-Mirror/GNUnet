@@ -377,6 +377,34 @@ handle_view_update (void *cls,
  * It calls the callback the caller provided
  * and disconnects afterwards.
  *
+ * TODO merge with check_view_update
+ *
+ * @param msg the message
+ */
+static int
+check_stream_input (void *cls,
+                    const struct GNUNET_RPS_CS_DEBUG_StreamReply *msg)
+{
+  uint16_t msize = ntohs (msg->header.size);
+  uint32_t num_peers = ntohl (msg->num_peers);
+  (void) cls;
+
+  msize -= sizeof (struct GNUNET_RPS_CS_DEBUG_StreamReply);
+  if ( (msize / sizeof (struct GNUNET_PeerIdentity) != num_peers) ||
+       (msize % sizeof (struct GNUNET_PeerIdentity) != 0) )
+  {
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
+  return GNUNET_OK;
+}
+
+/**
+ * This function is called, when the service sends another peer from the biased
+ * stream.
+ * It calls the callback the caller provided
+ * and disconnects afterwards.
+ *
  * @param msg the message
  */
 static void
@@ -384,14 +412,17 @@ handle_stream_input (void *cls,
                      const struct GNUNET_RPS_CS_DEBUG_StreamReply *msg)
 {
   struct GNUNET_RPS_Handle *h = cls;
+  const struct GNUNET_PeerIdentity *peers;
 
   /* Give the peers back */
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "New peer of biased input stream\n");
+       "New peer of %" PRIu64 " biased input stream\n",
+       ntohl (msg->num_peers));
 
+  peers = (struct GNUNET_PeerIdentity *) &msg[1];
   GNUNET_assert (NULL != h);
   GNUNET_assert (NULL != h->stream_input_cb);
-  h->stream_input_cb (h->stream_input_cb, &msg->peer);
+  h->stream_input_cb (h->stream_input_cb, ntohl (msg->num_peers), peers);
 }
 
 
@@ -444,10 +475,10 @@ reconnect (struct GNUNET_RPS_Handle *h)
                            GNUNET_MESSAGE_TYPE_RPS_CS_DEBUG_VIEW_REPLY,
                            struct GNUNET_RPS_CS_DEBUG_ViewReply,
                            h),
-    GNUNET_MQ_hd_fixed_size (stream_input,
-                             GNUNET_MESSAGE_TYPE_RPS_CS_DEBUG_STREAM_REPLY,
-                             struct GNUNET_RPS_CS_DEBUG_StreamReply,
-                             h),
+    GNUNET_MQ_hd_var_size (stream_input,
+                           GNUNET_MESSAGE_TYPE_RPS_CS_DEBUG_STREAM_REPLY,
+                           struct GNUNET_RPS_CS_DEBUG_StreamReply,
+                           h),
     GNUNET_MQ_handler_end ()
   };
 

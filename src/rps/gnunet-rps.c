@@ -59,7 +59,7 @@ static int stream_input;
 static uint64_t num_view_updates;
 
 /**
- * @brief Number of updates we want to receive
+ * @brief Number of peers we want to receive from stream
  */
 static uint64_t num_stream_peers;
 
@@ -154,11 +154,33 @@ view_update_handle (void *cls,
  */
 static void
 stream_input_handle (void *cls,
-                     const struct GNUNET_PeerIdentity *recv_peer)
+                     uint64_t num_peers,
+                     const struct GNUNET_PeerIdentity *recv_peers)
 {
-  // TODO when source of peer is sent, also print source
-  FPRINTF (stdout, "%s\n",
-           GNUNET_i2s_full (recv_peer));
+  uint64_t i;
+  (void) cls;
+
+  if (0 == num_peers)
+  {
+    FPRINTF (stdout, "Empty view\n");
+  }
+  req_handle = NULL;
+  for (i = 0; i < num_peers; i++)
+  {
+    FPRINTF (stdout, "%s\n",
+             GNUNET_i2s_full (&recv_peers[i]));
+
+    if (1 == num_stream_peers)
+    {
+      ret = 0;
+      GNUNET_SCHEDULER_shutdown ();
+      break;
+    }
+    else if (1 < num_stream_peers)
+    {
+      num_stream_peers--;
+    }
+  }
 }
 
 
