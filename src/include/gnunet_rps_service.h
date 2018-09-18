@@ -63,24 +63,6 @@ typedef void (* GNUNET_RPS_NotifyReadyCB) (void *cls,
     uint64_t num_peers,
     const struct GNUNET_PeerIdentity *peers);
 
-/**
- * Callback called when view was updated
- *
- * @param num_peers the number of peers returned
- * @param peers array with num_peers PeerIDs
- */
-typedef void (* GNUNET_RPS_ViewUpdateCB) (void *cls,
-    uint64_t num_peers,
-    const struct GNUNET_PeerIdentity *peers);
-
-/**
- * Callback called when a peer from the biased stream was received
- *
- * @param peer The received peer
- */
-typedef void (* GNUNET_RPS_StreamInputCB) (void *cls,
-    uint64_t num_peers,
-    const struct GNUNET_PeerIdentity *peer);
 
 /**
  * Connect to the rps service
@@ -167,7 +149,7 @@ GNUNET_RPS_act_malicious (struct GNUNET_RPS_Handle *h,
 void
 GNUNET_RPS_view_request (struct GNUNET_RPS_Handle *rps_handle,
                          uint32_t num_updates,
-                         GNUNET_RPS_ViewUpdateCB view_update_cb,
+                         GNUNET_RPS_NotifyReadyCB view_update_cb,
                          void *cls);
 
 
@@ -183,7 +165,7 @@ GNUNET_RPS_view_request (struct GNUNET_RPS_Handle *rps_handle,
 void
 GNUNET_RPS_stream_request (struct GNUNET_RPS_Handle *rps_handle,
                            uint32_t num_updates,
-                           GNUNET_RPS_StreamInputCB stream_input_cb,
+                           GNUNET_RPS_NotifyReadyCB stream_input_cb,
                            void *cls);
 
 

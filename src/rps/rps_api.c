@@ -58,7 +58,7 @@ struct GNUNET_RPS_Handle
   /**
    * @brief Callback called on each update of the view
    */
-  GNUNET_RPS_ViewUpdateCB view_update_cb;
+  GNUNET_RPS_NotifyReadyCB view_update_cb;
 
   /**
    * @brief Closure to each requested update of the view
@@ -68,7 +68,7 @@ struct GNUNET_RPS_Handle
   /**
    * @brief Callback called on each peer of the biased input stream
    */
-  GNUNET_RPS_StreamInputCB stream_input_cb;
+  GNUNET_RPS_NotifyReadyCB stream_input_cb;
 
   /**
    * @brief Closure to each requested peer from the biased stream
@@ -270,7 +270,7 @@ handle_reply (void *cls,
 void
 GNUNET_RPS_view_request (struct GNUNET_RPS_Handle *rps_handle,
                          uint32_t num_updates,
-                         GNUNET_RPS_ViewUpdateCB view_update_cb,
+                         GNUNET_RPS_NotifyReadyCB view_update_cb,
                          void *cls)
 {
   struct GNUNET_MQ_Envelope *ev;
@@ -300,7 +300,7 @@ GNUNET_RPS_view_request (struct GNUNET_RPS_Handle *rps_handle,
 void
 GNUNET_RPS_stream_request (struct GNUNET_RPS_Handle *rps_handle,
                            uint32_t num_peers,
-                           GNUNET_RPS_StreamInputCB stream_input_cb,
+                           GNUNET_RPS_NotifyReadyCB stream_input_cb,
                            void *cls)
 {
   struct GNUNET_MQ_Envelope *ev;
