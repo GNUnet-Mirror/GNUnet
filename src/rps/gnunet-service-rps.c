@@ -368,6 +368,10 @@ create_peer_ctx (const struct GNUNET_PeerIdentity *peer)
   ret = GNUNET_CONTAINER_multipeermap_put (peer_map, peer, ctx,
       GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
   GNUNET_assert (GNUNET_OK == ret);
+  GNUNET_STATISTICS_set (stats,
+                        "# known peers",
+                        GNUNET_CONTAINER_multipeermap_size (peer_map),
+                        GNUNET_NO);
   return ctx;
 }
 
@@ -1022,6 +1026,10 @@ destroy_peer (struct PeerContext *peer_ctx)
     LOG (GNUNET_ERROR_TYPE_WARNING,
          "removing peer from peer_map failed\n");
   }
+  GNUNET_STATISTICS_set (stats,
+                        "# known peers",
+                        GNUNET_CONTAINER_multipeermap_size (peer_map),
+                        GNUNET_NO);
   GNUNET_free (peer_ctx);
   return GNUNET_YES;
 }
@@ -2477,6 +2485,10 @@ add_peer_array_to_set (const struct GNUNET_PeerIdentity *peer_array,
                                        &peer_array[i],
                                        NULL,
                                        GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
+    GNUNET_STATISTICS_set (stats,
+                          "# known peers",
+                          GNUNET_CONTAINER_multipeermap_size (peer_map),
+                          GNUNET_NO);
   }
 }
 
