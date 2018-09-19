@@ -379,23 +379,6 @@ auth_key_to_string (struct GNUNET_CRYPTO_AuthKey auth_key)
 }
 
 
-struct GNUNET_CRYPTO_AuthKey
-string_to_auth_key (const char *str)
-{
-  struct GNUNET_CRYPTO_AuthKey auth_key;
-
-  if (GNUNET_OK !=
-      GNUNET_STRINGS_string_to_data (str,
-                                     strlen (str),
-                                     &auth_key.key,
-                                     sizeof (struct GNUNET_CRYPTO_AuthKey)))
-  {
-    LOG (GNUNET_ERROR_TYPE_WARNING, "Failed to convert string to data\n");
-  }
-
-  return auth_key;
-}
-
 
 char *
 create_file (const char *name)
@@ -434,6 +417,25 @@ create_file (const char *name)
 }
 
 #endif /* TO_FILE */
+
+
+struct GNUNET_CRYPTO_AuthKey
+string_to_auth_key (const char *str)
+{
+  struct GNUNET_CRYPTO_AuthKey auth_key;
+
+  if (GNUNET_OK !=
+      GNUNET_STRINGS_string_to_data (str,
+                                     strlen (str),
+                                     &auth_key.key,
+                                     sizeof (struct GNUNET_CRYPTO_AuthKey)))
+  {
+    LOG (GNUNET_ERROR_TYPE_WARNING, "Failed to convert string to data\n");
+  }
+
+  return auth_key;
+}
+
 
 /**
  * @brief Try to ensure that `/tmp/rps` exists.

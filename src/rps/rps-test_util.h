@@ -36,7 +36,7 @@ auth_key_to_string (struct GNUNET_CRYPTO_AuthKey auth_key);
 struct GNUNET_CRYPTO_AuthKey
 string_to_auth_key (const char *str);
 
-char * 
+char *
 create_file (const char *name);
 
 /**

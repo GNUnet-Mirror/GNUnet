@@ -19,7 +19,11 @@ pkgcfg_DATA = \
 
 bin_PROGRAMS = gnunet-rps
 
-gnunet_rps_SOURCES = gnunet-rps.c
+gnunet_rps_SOURCES = \
+  gnunet-service-rps_sampler_elem.h gnunet-service-rps_sampler_elem.c \
+  gnunet-service-rps_sampler.h gnunet-service-rps_sampler.c \
+  gnunet-rps.c
+
 gnunet_rps_LDADD = \
   libgnunetrps.la \
   $(top_builddir)/src/util/libgnunetutil.la \
@@ -143,6 +147,7 @@ test_rps_churn_LDADD = $(ld_rps_test_lib)
 
 gnunet_rps_profiler_SOURCES = \
  gnunet-service-rps_sampler_elem.h gnunet-service-rps_sampler_elem.c \
+ gnunet-service-rps_sampler.h gnunet-service-rps_sampler.c \
  rps-test_util.h rps-test_util.c \
  gnunet-rps-profiler.c
 
