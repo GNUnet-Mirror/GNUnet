@@ -78,7 +78,7 @@ struct GNUNET_RPS_Handle
 
 
 /**
- * Handler to single requests from the client.
+ * Handler for a single request from a client.
  */
 struct GNUNET_RPS_Request_Handle
 {
@@ -95,7 +95,12 @@ struct GNUNET_RPS_Request_Handle
   /**
    * The number of requested peers.
    */
-  uint32_t num_peers;
+  uint32_t num_requests;
+
+  /**
+   * @brief The Sampler for the client request
+   */
+  struct RPS_Sampler *sampler;
 
   /**
    * The callback to be called when we receive an answer.
@@ -130,6 +135,7 @@ struct cb_cls_pack
    */
  struct GNUNET_CLIENT_Connection *service_conn;
 };
+
 
 /**
  * @brief Send a request to the service.
@@ -170,7 +176,7 @@ resend_requests_iterator (void *cls, uint32_t key, void *value)
   const struct GNUNET_RPS_Request_Handle *req_handle = value;
   (void) key;
 
-  send_request (h, req_handle->id, req_handle->num_peers);
+  send_request (h, req_handle->id, req_handle->num_requests);
   return GNUNET_YES; /* continue iterating */
 }
 
@@ -248,7 +254,7 @@ handle_reply (void *cls,
       GNUNET_CONTAINER_multihashmap32_contains (h->req_handlers, id));
   rh = GNUNET_CONTAINER_multihashmap32_get (h->req_handlers, id);
   GNUNET_assert (NULL != rh);
-  GNUNET_assert (rh->num_peers == ntohl (msg->num_peers));
+  GNUNET_assert (rh->num_requests == ntohl (msg->num_peers));
   GNUNET_CONTAINER_multihashmap32_remove_all (h->req_handlers, id);
   rh->ready_cb (rh->ready_cb_cls,
                 ntohl (msg->num_peers),
@@ -422,7 +428,7 @@ handle_stream_input (void *cls,
   peers = (struct GNUNET_PeerIdentity *) &msg[1];
   GNUNET_assert (NULL != h);
   GNUNET_assert (NULL != h->stream_input_cb);
-  h->stream_input_cb (h->stream_input_cb, ntohl (msg->num_peers), peers);
+  h->stream_input_cb (h->stream_input_cls, ntohl (msg->num_peers), peers);
 }
 
 

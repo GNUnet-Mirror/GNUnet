@@ -272,7 +272,7 @@ check_n_peers_ready (void *cls,
     LOG (GNUNET_ERROR_TYPE_DEBUG,
         "returning %" PRIX32 " peers to the client\n",
         req_handle->num_peers);
-    req_handle->callback (req_handle->cls, req_handle->ids, req_handle->num_peers);
+    req_handle->callback (req_handle->ids, req_handle->num_peers, req_handle->cls);
 
     RPS_sampler_request_cancel (req_handle);
   }
@@ -647,14 +647,14 @@ sampler_mod_get_rand_peer (void *cls)
   }
   /* More reasons to wait could be added here */
 
-  GNUNET_STATISTICS_set (stats,
-                         "# client sampler element input",
-                         s_elem->num_peers,
-                         GNUNET_NO);
-  GNUNET_STATISTICS_set (stats,
-                         "# client sampler element change",
-                         s_elem->num_change,
-                         GNUNET_NO);
+//  GNUNET_STATISTICS_set (stats,
+//                         "# client sampler element input",
+//                         s_elem->num_peers,
+//                         GNUNET_NO);
+//  GNUNET_STATISTICS_set (stats,
+//                         "# client sampler element change",
+//                         s_elem->num_change,
+//                         GNUNET_NO);
 
   RPS_sampler_elem_reinit (s_elem);
   s_elem->last_client_request = GNUNET_TIME_absolute_get ();
@@ -683,9 +683,9 @@ sampler_mod_get_rand_peer (void *cls)
  */
 struct RPS_SamplerRequestHandle *
 RPS_sampler_get_n_rand_peers (struct RPS_Sampler *sampler,
+                              uint32_t num_peers,
                               RPS_sampler_n_rand_peers_ready_cb cb,
-                              void *cls,
-                              uint32_t num_peers)
+                              void *cls)
 {
   uint32_t i;
   struct RPS_SamplerRequestHandle *req_handle;

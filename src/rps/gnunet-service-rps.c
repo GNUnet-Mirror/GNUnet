@@ -2347,9 +2347,9 @@ clients_notify_stream_peer (uint64_t num_peers,
  * Put random peer from sampler into the view as history update.
  */
 static void
-hist_update (void *cls,
-             struct GNUNET_PeerIdentity *ids,
-             uint32_t num_peers)
+hist_update (const struct GNUNET_PeerIdentity *ids,
+             uint32_t num_peers,
+             void *cls)
 {
   unsigned int i;
   (void) cls;
@@ -2852,9 +2852,9 @@ nse_callback (void *cls,
  * Sends those to the requesting client.
  */
 static void
-client_respond (void *cls,
-                struct GNUNET_PeerIdentity *peer_ids,
-                uint32_t num_peers)
+client_respond (const struct GNUNET_PeerIdentity *peer_ids,
+                uint32_t num_peers,
+                void *cls)
 {
   struct ReplyCls *reply_cls = cls;
   uint32_t i;
@@ -2937,9 +2937,9 @@ handle_client_request (void *cls,
   reply_cls->id = ntohl (msg->id);
   reply_cls->cli_ctx = cli_ctx;
   reply_cls->req_handle = RPS_sampler_get_n_rand_peers (client_sampler,
+                                                        num_peers,
                                                         client_respond,
-                                                        reply_cls,
-                                                        num_peers);
+                                                        reply_cls);
 
   GNUNET_assert (NULL != cli_ctx);
   GNUNET_CONTAINER_DLL_insert (cli_ctx->rep_cls_head,
@@ -3894,9 +3894,9 @@ do_round (void *cls)
 
     /* Update view with peers from history */
     RPS_sampler_get_n_rand_peers (prot_sampler,
+                                  final_size - second_border,
                                   hist_update,
-                                  NULL,
-                                  final_size - second_border);
+                                  NULL);
     // TODO change the peer_flags accordingly
 
     for (i = 0; i < View_size (); i++)
