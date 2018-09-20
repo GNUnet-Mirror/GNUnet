@@ -96,7 +96,7 @@ RPS_sampler_mod_init (size_t init_size,
 
 
 /**
- * A fuction to update every sampler in the given list
+ * Update every sampler element of this sampler with given peer
  *
  * @param sampler the sampler to update.
  * @param id the PeerID that is put in the sampler
