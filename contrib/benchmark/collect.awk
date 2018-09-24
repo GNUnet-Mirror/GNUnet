@@ -31,13 +31,17 @@
     t = $6;
     op[$2]["count"] += n;
     op[$2]["time_us"] += t;
-    op[$2]["time_us_sq"] += n * (t/n) * (t/n);
+    if (n > 0) {
+      op[$2]["time_us_sq"] += n * (t/n) * (t/n);
+    }
   } else if ($1 == "url") {
     n = $6;
     t = $8;
     url[$2][$4]["count"] += n;
     url[$2][$4]["time_us"] += t;
-    url[$2][$4]["time_us_sq"] += n * (t/n) * (t/n);
+    if (n > 0) {
+      url[$2][$4]["time_us_sq"] += n * (t/n) * (t/n);
+    }
   }
 }
 
