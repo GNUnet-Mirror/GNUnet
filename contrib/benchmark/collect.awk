@@ -25,6 +25,12 @@
 # records are of the following forms:
 # op <op> count <count> time_us <time_us>
 # url <url> status <status> count <count> time_us <time_us>
+
+
+function abs(v) {
+  return v < 0 ? -v : v
+}
+
 {
   if ($1 == "op") {
     n = $4;
@@ -57,7 +63,7 @@ function stdev(sum, sum_sq, n) {
   if (n == 0) {
     return 0;
   } else {
-    return sqrt( (sum_sq / n) - ( (sum / n) * (sum / n) ) );
+    return sqrt(abs((sum_sq / n) - ((sum / n) * (sum / n))));
   }
 }
 
