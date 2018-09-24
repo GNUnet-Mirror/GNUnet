@@ -27,21 +27,25 @@
 # url <url> status <status> count <count> time_us <time_us>
 {
   if ($1 == "op") {
-    op[$2]["count"] += $4;
-    op[$2]["time_us"] += $6;
-    op[$2]["time_us_sq"] += $6 * $6;
+    n = $4;
+    t = $6;
+    op[$2]["count"] += n;
+    op[$2]["time_us"] += t;
+    op[$2]["time_us_sq"] += n * (t/n) * (t/n);
   } else if ($1 == "url") {
-    url[$2][$4]["count"] += $6;
-    url[$2][$4]["time_us"] += $8;
-    url[$2][$4]["time_us_sq"] += $8 * $8;
+    n = $6;
+    t = $8;
+    url[$2][$4]["count"] += n;
+    url[$2][$4]["time_us"] += t;
+    url[$2][$4]["time_us_sq"] += n * (t/n) * (t/n);
   }
 }
 
-function avg(s, c) {
-  if (c == 0) {
+function avg(sum, n) {
+  if (n == 0) {
     return 0;
   } else {
-    return s / c;
+    return sum / n;
   }
 }
 
