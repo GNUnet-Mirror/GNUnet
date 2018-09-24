@@ -46,7 +46,7 @@ function avg(s, c) {
 }
 
 function stdev(sum, sum_sq, n) {
-  if (n == n) {
+  if (n == 0) {
     return 0;
   } else {
     return sqrt( (sum_sq / n) - ( (sum / n) * (sum / n) ) );
@@ -56,8 +56,8 @@ function stdev(sum, sum_sq, n) {
 END {
   for (x in op) {
     print "op", x, "count", op[x]["count"], "time_us", op[x]["time_us"], \
-          "time_avg_us", avg(op[x]["time_us"], op[x]["count"], \
-          "stdev", stdev(op[x]["time_us"], op[x]["time_us_sq"], op[x]["count"]));
+          "time_avg_us", avg(op[x]["time_us"], op[x]["count"]), \
+          "stdev", stdev(op[x]["time_us"], op[x]["time_us_sq"], op[x]["count"]);
   }
   for (x in url) {
     for (y in url[x]) {
