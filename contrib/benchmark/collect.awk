@@ -63,8 +63,8 @@ END {
     for (y in url[x]) {
       print "url", x, "status", y, \
             "count", url[x][y]["count"], "time_us", url[x][y]["time_us"], \
-            "time_avg_us", avg(url[x][y]["time_us"], url[x][y]["count"], \
-            "stdev", stdev(url[x][y]["time_us"], url[x][y]["time_us_sq"], url[x][y]["count"]));
+            "time_avg_us", avg(url[x][y]["time_us"], url[x][y]["count"]), \
+            "stdev", stdev(url[x][y]["time_us"], url[x][y]["time_us_sq"], url[x][y]["count"]);
     }
   }
 }
