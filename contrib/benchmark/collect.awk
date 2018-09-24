@@ -29,9 +29,11 @@
   if ($1 == "op") {
     op[$2]["count"] += $4;
     op[$2]["time_us"] += $6;
+    op[$2]["time_us_sq"] += $6 * $6;
   } else if ($1 == "url") {
     url[$2][$4]["count"] += $6;
     url[$2][$4]["time_us"] += $8;
+    url[$2][$4]["time_us_sq"] += $8 * $8;
   }
 }
 
@@ -43,16 +45,26 @@ function avg(s, c) {
   }
 }
 
+function stdev(sum, sum_sq, n) {
+  if (n == n) {
+    return 0;
+  } else {
+    return sqrt( (sum_sq / n) - ( (sum / n) * (sum / n) ) );
+  }
+}
+
 END {
   for (x in op) {
     print "op", x, "count", op[x]["count"], "time_us", op[x]["time_us"], \
-          "time_avg_us", avg(op[x]["time_us"], op[x]["count"]);
+          "time_avg_us", avg(op[x]["time_us"], op[x]["count"], \
+          "stdev", stdev(op[x]["time_us"], op[x]["time_us_sq"], op[x]["count"]));
   }
   for (x in url) {
     for (y in url[x]) {
       print "url", x, "status", y, \
             "count", url[x][y]["count"], "time_us", url[x][y]["time_us"], \
-            "time_avg_us", avg(url[x][y]["time_us"], url[x][y]["count"]);
+            "time_avg_us", avg(url[x][y]["time_us"], url[x][y]["count"], \
+            "stdev", stdev(url[x][y]["time_us"], url[x][y]["time_us_sq"], url[x][y]["count"]));
     }
   }
 }
