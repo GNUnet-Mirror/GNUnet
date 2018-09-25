@@ -90,7 +90,8 @@ endif
 rps_test_src = \
 	test_rps.c \
 	rps-test_util.h rps-test_util.c \
- gnunet-service-rps_sampler_elem.h gnunet-service-rps_sampler_elem.c
+ gnunet-service-rps_sampler_elem.h gnunet-service-rps_sampler_elem.c \
+ gnunet-service-rps_sampler.h gnunet-service-rps_sampler.c
 
 ld_rps_test_lib = \
 	libgnunetrps.la \

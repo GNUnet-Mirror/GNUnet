@@ -32,6 +32,43 @@
 #define LOG(kind,...) GNUNET_log_from (kind, "rps-api",__VA_ARGS__)
 
 /**
+ * Handle for a request to get peers from biased stream of ids
+ */
+struct GNUNET_RPS_StreamRequestHandle
+{
+  /**
+   * The client issuing the request.
+   */
+  struct GNUNET_RPS_Handle *rps_handle;
+
+  /**
+   * The number of requested peers.
+   */
+  uint32_t num_peers_left;
+
+  /**
+   * The callback to be called when we receive an answer.
+   */
+  GNUNET_RPS_NotifyReadyCB ready_cb;
+
+  /**
+   * The closure for the callback.
+   */
+  void *ready_cb_cls;
+
+  /**
+   * @brief Next element of the DLL
+   */
+  struct GNUNET_RPS_StreamRequestHandle *next;
+
+  /**
+   * @brief Previous element of the DLL
+   */
+  struct GNUNET_RPS_StreamRequestHandle *prev;
+};
+
+
+/**
  * Handler to handle requests from a client.
  */
 struct GNUNET_RPS_Handle
@@ -67,14 +104,19 @@ struct GNUNET_RPS_Handle
   void *view_update_cls;
 
   /**
-   * @brief Callback called on each peer of the biased input stream
-   */
-  GNUNET_RPS_NotifyReadyCB stream_input_cb;
-
-  /**
    * @brief Closure to each requested peer from the biased stream
    */
   void *stream_input_cls;
+
+  /**
+   * @brief Head of the DLL of stream requests
+   */
+  struct GNUNET_RPS_StreamRequestHandle *stream_requests_head;
+
+  /**
+   * @brief Tail of the DLL of stream requests
+   */
+  struct GNUNET_RPS_StreamRequestHandle *stream_requests_tail;
 };
 
 
@@ -136,6 +178,91 @@ struct cb_cls_pack
    */
  struct GNUNET_CLIENT_Connection *service_conn;
 };
+
+
+/**
+ * @brief Create a new handle for a stream request
+ *
+ * @param rps_handle The rps handle
+ * @param num_peers The number of desired peers
+ * @param ready_cb The callback to be called, once all peers are ready
+ * @param cls The colsure to provide to the callback
+ *
+ * @return The handle to the stream request
+ */
+static struct GNUNET_RPS_StreamRequestHandle *
+new_stream_request (struct GNUNET_RPS_Handle *rps_handle,
+                    uint64_t num_peers,
+                    GNUNET_RPS_NotifyReadyCB ready_cb,
+                    void *cls)
+{
+  struct GNUNET_RPS_StreamRequestHandle *srh;
+
+  srh = GNUNET_new (struct GNUNET_RPS_StreamRequestHandle);
+
+  srh->rps_handle = rps_handle;
+  srh->num_peers_left = num_peers;
+  srh->ready_cb = ready_cb;
+  srh->ready_cb_cls = cls;
+  GNUNET_CONTAINER_DLL_insert (rps_handle->stream_requests_head,
+                               rps_handle->stream_requests_tail,
+                               srh);
+
+  return srh;
+}
+
+
+/**
+ * @brief Remove the given stream request from the list of requests and memory
+ *
+ * @param srh The request to be removed
+ * @param srh_head Head of the DLL to remove request from
+ * @param srh_tail Tail of the DLL to remove request from
+ */
+static void
+remove_stream_request (struct GNUNET_RPS_StreamRequestHandle *srh,
+                       struct GNUNET_RPS_StreamRequestHandle *srh_head,
+                       struct GNUNET_RPS_StreamRequestHandle *srh_tail)
+{
+  GNUNET_CONTAINER_DLL_remove (srh_head,
+                               srh_tail,
+                               srh);
+
+  GNUNET_free (srh);
+}
+
+
+/**
+ * @brief Create new request handle
+ *
+ * @param rps_handle Handle to the service
+ * @param num_requests Number of requests
+ * @param ready_cb Callback
+ * @param cls Closure
+ *
+ * @return The newly created request handle
+ */
+static struct GNUNET_RPS_Request_Handle *
+new_request_handle (struct GNUNET_RPS_Handle *rps_handle,
+                    uint64_t num_requests,
+                    struct RPS_Sampler *sampler,
+                    GNUNET_RPS_NotifyReadyCB ready_cb,
+                    void *cls)
+{
+  struct GNUNET_RPS_Request_Handle *rh;
+
+  rh = GNUNET_new (struct GNUNET_RPS_Request_Handle);
+  rh->rps_handle = rps_handle;
+  rh->id = rps_handle->current_request_id++;
+  rh->num_requests = num_requests;
+  rh->sampler = sampler;
+  rh->ready_cb = ready_cb;
+  rh->ready_cb_cls = cls;
+  GNUNET_CONTAINER_multihashmap32_put (rps_handle->req_handlers, rh->id, rh,
+      GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
+
+  return rh;
+}
 
 
 /**
@@ -304,24 +431,27 @@ GNUNET_RPS_view_request (struct GNUNET_RPS_Handle *rps_handle,
  * @param cls a closure that will be given to the callback
  * @param ready_cb the callback called when the peers are available
  */
-void
+struct GNUNET_RPS_StreamRequestHandle *
 GNUNET_RPS_stream_request (struct GNUNET_RPS_Handle *rps_handle,
                            uint32_t num_peers,
                            GNUNET_RPS_NotifyReadyCB stream_input_cb,
                            void *cls)
 {
+  struct GNUNET_RPS_StreamRequestHandle *srh;
   struct GNUNET_MQ_Envelope *ev;
   struct GNUNET_RPS_CS_DEBUG_StreamRequest *msg;
 
+  srh = new_stream_request (rps_handle,
+                            num_peers, /* num requests */
+                            stream_input_cb,
+                            cls);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Client requests %" PRIu32 " biased stream updates\n",
        num_peers);
-  rps_handle->stream_input_cb = stream_input_cb;
-  rps_handle->stream_input_cls = cls;
 
   ev = GNUNET_MQ_msg (msg, GNUNET_MESSAGE_TYPE_RPS_CS_DEBUG_STREAM_REQUEST);
-  msg->num_peers = htonl (num_peers);
   GNUNET_MQ_send (rps_handle->mq, ev);
+  return srh;
 }
 
 
@@ -379,6 +509,41 @@ handle_view_update (void *cls,
 
 
 /**
+ * @brief Send message to service that this client does not want to receive
+ * further updates from the biased peer stream
+ *
+ * @param rps_handle The handle representing the service to the client
+ */
+static void
+cancel_stream (struct GNUNET_RPS_Handle *rps_handle)
+{
+  struct GNUNET_MQ_Envelope *ev;
+
+  ev = GNUNET_MQ_msg_header (GNUNET_MESSAGE_TYPE_RPS_CS_DEBUG_STREAM_CANCEL);
+  GNUNET_MQ_send (rps_handle->mq, ev);
+}
+
+
+/**
+ * @brief Cancel a specific request for updates from the biased peer stream
+ *
+ * @param srh The request handle to cancel
+ */
+void
+GNUNET_RPS_stream_cancel (struct GNUNET_RPS_StreamRequestHandle *srh)
+{
+  struct GNUNET_RPS_Handle *rps_handle;
+
+  rps_handle = srh->rps_handle;
+  GNUNET_CONTAINER_DLL_remove (rps_handle->stream_requests_head,
+                               rps_handle->stream_requests_tail,
+                               srh);
+  GNUNET_free (srh);
+  if (NULL == rps_handle->stream_requests_head) cancel_stream (rps_handle);
+}
+
+
+/**
  * This function is called, when the service sends another peer from the biased
  * stream.
  * It calls the callback the caller provided
@@ -420,16 +585,71 @@ handle_stream_input (void *cls,
 {
   struct GNUNET_RPS_Handle *h = cls;
   const struct GNUNET_PeerIdentity *peers;
-
-  /* Give the peers back */
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "New peer of %" PRIu64 " biased input stream\n",
-       ntohl (msg->num_peers));
+  /* The following two pointers are used to prevent that new handles are
+   * inserted into the DLL, that is currently iterated over, from within a call
+   * to that handler_cb, are executed and in turn again add themselves to the
+   * iterated DLL infinitely */
+  struct GNUNET_RPS_StreamRequestHandle *srh_head_tmp;
+  struct GNUNET_RPS_StreamRequestHandle *srh_tail_tmp;
+  uint64_t num_peers;
+  uint64_t num_peers_return;
 
   peers = (struct GNUNET_PeerIdentity *) &msg[1];
-  GNUNET_assert (NULL != h);
-  GNUNET_assert (NULL != h->stream_input_cb);
-  h->stream_input_cb (h->stream_input_cls, ntohl (msg->num_peers), peers);
+  num_peers = ntohl (msg->num_peers);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Received %" PRIu64 " peer(s) from stream input.\n",
+       num_peers);
+  srh_head_tmp = h->stream_requests_head;
+  srh_tail_tmp = h->stream_requests_tail;
+  h->stream_requests_head = NULL;
+  h->stream_requests_tail = NULL;
+  for (struct GNUNET_RPS_StreamRequestHandle *srh_iter = srh_head_tmp;
+       NULL != srh_iter;
+       srh_iter = srh_iter->next)
+  {
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+        "Calling srh - left: %" PRIu64 "\n",
+        srh_iter->num_peers_left);
+    if (0 == srh_iter->num_peers_left) /* infinite updates */
+    {
+      num_peers_return = num_peers;
+    }
+    else if (num_peers > srh_iter->num_peers_left)
+    {
+      num_peers_return = num_peers - srh_iter->num_peers_left;
+    }
+    else /* num_peers <= srh_iter->num_peers_left */
+    {
+      num_peers_return = srh_iter->num_peers_left - num_peers;
+    }
+    srh_iter->ready_cb (srh_iter->ready_cb_cls,
+                        num_peers_return,
+                        peers);
+    if (0 == srh_iter->num_peers_left) ;
+    else if (num_peers_return >= srh_iter->num_peers_left)
+    {
+      remove_stream_request (srh_iter,
+                             srh_head_tmp,
+                             srh_tail_tmp);
+    }
+    else
+    {
+      srh_iter->num_peers_left -= num_peers_return;
+    }
+  }
+  for (struct GNUNET_RPS_StreamRequestHandle *srh_iter = srh_head_tmp;
+       NULL != srh_iter;
+       srh_iter = srh_iter->next)
+  {
+      GNUNET_CONTAINER_DLL_insert (h->stream_requests_head,
+                                   h->stream_requests_tail,
+                                   srh_iter);
+  }
+
+  if (NULL == h->stream_requests_head)
+  {
+    cancel_stream (h);
+  }
 }
 
 
@@ -525,39 +745,6 @@ GNUNET_RPS_connect (const struct GNUNET_CONFIGURATION_Handle *cfg)
 
 
 /**
- * @brief Create new request handle
- *
- * @param rps_handle Handle to the service
- * @param num_requests Number of requests
- * @param ready_cb Callback
- * @param cls Closure
- *
- * @return The newly created request handle
- */
-static struct GNUNET_RPS_Request_Handle *
-new_request_handle (struct GNUNET_RPS_Handle *rps_handle,
-                    uint64_t num_requests,
-                    struct RPS_Sampler *sampler,
-                    GNUNET_RPS_NotifyReadyCB ready_cb,
-                    void *cls)
-{
-  struct GNUNET_RPS_Request_Handle *rh;
-
-  rh = GNUNET_new (struct GNUNET_RPS_Request_Handle);
-  rh->rps_handle = rps_handle;
-  rh->id = rps_handle->current_request_id++;
-  rh->num_requests = num_requests;
-  rh->sampler = sampler;
-  rh->ready_cb = ready_cb;
-  rh->ready_cb_cls = cls;
-  GNUNET_CONTAINER_multihashmap32_put (rps_handle->req_handlers, rh->id, rh,
-      GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
-
-  return rh;
-}
-
-
-/**
  * Request n random peers.
  *
  * @param rps_handle handle to the rps service
@@ -646,9 +833,9 @@ peers_ready_cb (const struct GNUNET_PeerIdentity *peers,
  */
 struct GNUNET_RPS_Request_Handle *
 GNUNET_RPS_request_peers (struct GNUNET_RPS_Handle *rps_handle,
-                            uint32_t num_req_peers,
-                            GNUNET_RPS_NotifyReadyCB ready_cb,
-                            void *cls)
+                          uint32_t num_req_peers,
+                          GNUNET_RPS_NotifyReadyCB ready_cb,
+                          void *cls)
 {
   struct GNUNET_RPS_Request_Handle *rh;
 

@@ -226,12 +226,6 @@ struct GNUNET_RPS_CS_DEBUG_StreamRequest
    * Header including size and type in NBO
    */
   struct GNUNET_MessageHeader header;
-
-  /**
-   * Number of peers
-   * 0 for sending updates until cancellation
-   */
-  uint32_t num_peers GNUNET_PACKED;
 };
 
 /**
@@ -243,11 +237,6 @@ struct GNUNET_RPS_CS_DEBUG_StreamReply
    * Header including size and type in NBO
    */
   struct GNUNET_MessageHeader header;
-
-  /**
-   * Identifyer of the message.
-   */
-  uint32_t id GNUNET_PACKED;
 
   /**
    * Number of peers

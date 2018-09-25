@@ -313,26 +313,9 @@ sampler_notify_on_update (struct RPS_Sampler *sampler,
   notify_ctx = GNUNET_new (struct SamplerNotifyUpdateCTX);
   notify_ctx->notify_cb = notify_cb;
   notify_ctx->cls = cls;
-  if (NULL != sampler->notify_ctx_head)
-  {
-    for (struct SamplerNotifyUpdateCTX *notify_iter = sampler->notify_ctx_head;
-        NULL != notify_iter->next;
-        notify_iter = notify_iter->next)
-    {
-      LOG (GNUNET_ERROR_TYPE_DEBUG,
-          "Pre: Context\n");
-    }
-  }
   GNUNET_CONTAINER_DLL_insert (sampler->notify_ctx_head,
                                sampler->notify_ctx_tail,
                                notify_ctx);
-  for (struct SamplerNotifyUpdateCTX *notify_iter = sampler->notify_ctx_head;
-       NULL != notify_iter;
-       notify_iter = notify_iter->next)
-  {
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-        "Post: Context\n");
-  }
   return notify_ctx;
 }
 
@@ -559,27 +542,21 @@ RPS_sampler_mod_init (size_t init_size,
 
 
 /**
- * Update every sampler element of this sampler with given peer
+ * @brief Notify about update of the sampler.
  *
- * @param sampler the sampler to update.
- * @param id the PeerID that is put in the sampler
+ * Call the callbacks that are waiting for notification on updates to the
+ * sampler.
+ *
+ * @param sampler The sampler the updates are waiting for
  */
-  void
-RPS_sampler_update (struct RPS_Sampler *sampler,
-                    const struct GNUNET_PeerIdentity *id)
+static void
+notify_update (struct RPS_Sampler *sampler)
 {
   struct SamplerNotifyUpdateCTX *tmp_notify_head;
   struct SamplerNotifyUpdateCTX *tmp_notify_tail;
 
-  to_file (sampler->file_name,
-           "Got %s",
-           GNUNET_i2s_full (id));
-
-  for (uint32_t i = 0; i < sampler->sampler_size; i++)
-  {
-    RPS_sampler_elem_next (sampler->sampler_elements[i],
-                           id);
-  }
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+      "Calling callbacks waiting for update notification.\n");
   tmp_notify_head = sampler->notify_ctx_head;
   tmp_notify_tail = sampler->notify_ctx_tail;
   sampler->notify_ctx_head = NULL;
@@ -595,6 +572,29 @@ RPS_sampler_update (struct RPS_Sampler *sampler,
     notify_iter->notify_cb (notify_iter->cls);
     GNUNET_free (notify_iter);
   }
+}
+
+
+/**
+ * Update every sampler element of this sampler with given peer
+ *
+ * @param sampler the sampler to update.
+ * @param id the PeerID that is put in the sampler
+ */
+  void
+RPS_sampler_update (struct RPS_Sampler *sampler,
+                    const struct GNUNET_PeerIdentity *id)
+{
+  to_file (sampler->file_name,
+           "Got %s",
+           GNUNET_i2s_full (id));
+
+  for (uint32_t i = 0; i < sampler->sampler_size; i++)
+  {
+    RPS_sampler_elem_next (sampler->sampler_elements[i],
+                           id);
+  }
+  notify_update (sampler);
 }
 
 
@@ -714,6 +714,7 @@ sampler_mod_get_rand_peer (void *cls)
   /* Check whether we may use this sampler to give it back to the client */
   if (GNUNET_TIME_UNIT_FOREVER_ABS.abs_value_us != s_elem->last_client_request.abs_value_us)
   {
+    // TODO remove this condition at least for the client sampler
     last_request_diff =
       GNUNET_TIME_absolute_get_difference (s_elem->last_client_request,
                                            GNUNET_TIME_absolute_get ());

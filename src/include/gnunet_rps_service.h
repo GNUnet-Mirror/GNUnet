@@ -162,7 +162,7 @@ GNUNET_RPS_view_request (struct GNUNET_RPS_Handle *rps_handle,
  * @param cls a closure that will be given to the callback
  * @param ready_cb the callback called when the peers are available
  */
-void
+struct GNUNET_RPS_StreamRequestHandle *
 GNUNET_RPS_stream_request (struct GNUNET_RPS_Handle *rps_handle,
                            uint32_t num_updates,
                            GNUNET_RPS_NotifyReadyCB stream_input_cb,

@@ -47,8 +47,6 @@
 
 // TODO connect to friends
 
-// TODO store peers somewhere persistent
-
 // TODO blacklist? (-> mal peer detection on top of brahms)
 
 // hist_size_init, hist_size_max
@@ -978,7 +976,6 @@ destroy_peer (struct PeerContext *peer_ctx)
                      peer_ctx->liveliness_check_pending,
                      sizeof (struct PendingMessage))) )
       {
-        // TODO this may leak memory
         peer_ctx->liveliness_check_pending = NULL;
         GNUNET_STATISTICS_update (stats,
                                   "# pending liveliness checks",
@@ -1620,10 +1617,6 @@ check_sending_channel_exists (const struct GNUNET_PeerIdentity *peer)
  * @brief Destroy the send channel of a peer e.g. stop indicating a sending
  *        intention to another peer
  *
- * If there is also no channel to receive messages from that peer, remove it
- * from the peermap.
- * TODO really?
- *
  * @peer the peer identity of the peer whose sending channel to destroy
  * @return #GNUNET_YES if channel was destroyed
  *         #GNUNET_NO  otherwise
@@ -1777,10 +1770,10 @@ struct ClientContext
   int64_t view_updates_left;
 
   /**
-   * @brief How many peers from the biased
-   * stream this client expects to receive.
+   * @brief Whether this client wants to receive stream updates.
+   * Either #GNUNET_YES or #GNUNET_NO
    */
-  int64_t stream_peers_left;
+  int8_t stream_update;
 
   /**
    * The client handle to send the reply to
@@ -2232,9 +2225,9 @@ send_view (const struct ClientContext *cli_ctx,
  * @param view_size the size of the view array (can be 0)
  */
 void
-send_stream_peer (const struct ClientContext *cli_ctx,
-                  uint64_t num_peers,
-                  const struct GNUNET_PeerIdentity *peers)
+send_stream_peers (const struct ClientContext *cli_ctx,
+                   uint64_t num_peers,
+                   const struct GNUNET_PeerIdentity *peers)
 {
   struct GNUNET_MQ_Envelope *ev;
   struct GNUNET_RPS_CS_DEBUG_StreamReply *out_msg;
@@ -2275,7 +2268,7 @@ clients_notify_view_update (void)
 
   for (cli_ctx_iter = cli_ctx_head;
        NULL != cli_ctx_iter;
-       cli_ctx_iter = cli_ctx_head->next)
+       cli_ctx_iter = cli_ctx_iter->next)
   {
     if (1 < cli_ctx_iter->view_updates_left)
     {
@@ -2306,7 +2299,6 @@ clients_notify_stream_peer (uint64_t num_peers,
                             // TODO enum StreamPeerSource)
 {
   struct ClientContext *cli_ctx_iter;
-  uint64_t num_peers_send;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
       "Got peer (%s) from biased stream - update all clients\n",
@@ -2314,32 +2306,12 @@ clients_notify_stream_peer (uint64_t num_peers,
 
   for (cli_ctx_iter = cli_ctx_head;
        NULL != cli_ctx_iter;
-       cli_ctx_iter = cli_ctx_head->next)
+       cli_ctx_iter = cli_ctx_iter->next)
   {
-    if (0 < cli_ctx_iter->stream_peers_left)
+    if (GNUNET_YES == cli_ctx_iter->stream_update)
     {
-      /* Client wants to receive limited amount of updates */
-      if (num_peers > cli_ctx_iter->stream_peers_left)
-      {
-        num_peers_send = num_peers - cli_ctx_iter->stream_peers_left;
-        cli_ctx_iter->stream_peers_left = 0;
-      }
-      else
-      {
-        num_peers_send = cli_ctx_iter->stream_peers_left - num_peers;
-        cli_ctx_iter->stream_peers_left -= num_peers_send;
-      }
-    } else if (0 > cli_ctx_iter->stream_peers_left)
-    {
-      /* Client is not interested in updates */
-      continue;
-    } else /* _updates_left == 0 - infinite amount of updates */
-    {
-      num_peers_send = num_peers;
+      send_stream_peers (cli_ctx_iter, num_peers, peers);
     }
-
-    /* send view */
-    send_stream_peer (cli_ctx_iter, num_peers_send, peers);
   }
 }
 
@@ -3076,16 +3048,13 @@ handle_client_stream_request (void *cls,
                               const struct GNUNET_RPS_CS_DEBUG_StreamRequest *msg)
 {
   struct ClientContext *cli_ctx = cls;
-  uint64_t num_peers;
-
-  num_peers = ntohl (msg->num_peers);
+  (void) msg;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Client requested %" PRIu64 " peers from biased stream.\n",
-       num_peers);
+       "Client requested peers from biased stream.\n");
+  cli_ctx->stream_update = GNUNET_YES;
 
   GNUNET_assert (NULL != cli_ctx);
-  cli_ctx->stream_peers_left = num_peers;
   GNUNET_SERVICE_client_continue (cli_ctx->client);
 }
 
@@ -3882,7 +3851,8 @@ do_round (void *cls)
       if (GNUNET_OK == inserted)
       {
         clients_notify_stream_peer (1,
-            CustomPeerMap_get_peer_by_index (push_map, permut[i]));
+            CustomPeerMap_get_peer_by_index (pull_map,
+                                             permut[i - first_border]));
       }
       to_file (file_name_view_log,
                "+%s\t(pull list)",
@@ -4195,6 +4165,7 @@ client_connect_cb (void *cls,
   cli_ctx = GNUNET_new (struct ClientContext);
   cli_ctx->mq = mq;
   cli_ctx->view_updates_left = -1;
+  cli_ctx->stream_update = GNUNET_NO;
   cli_ctx->client = client;
   GNUNET_CONTAINER_DLL_insert (cli_ctx_head,
                                cli_ctx_tail,
