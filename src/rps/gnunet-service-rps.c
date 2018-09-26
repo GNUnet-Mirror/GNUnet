@@ -1805,11 +1805,6 @@ struct ClientContext *cli_ctx_tail;
 static struct RPS_Sampler *prot_sampler;
 
 /**
- * Sampler used for the clients.
- */
-static struct RPS_Sampler *client_sampler;
-
-/**
  * Name to log view to
  */
 static const char *file_name_view_log;
@@ -1830,12 +1825,6 @@ static uint32_t num_observed_peers;
  */
 static struct GNUNET_CONTAINER_MultiPeerMap *observed_unique_peers;
 #endif /* TO_FILE */
-
-/**
- * The size of sampler we need to be able to satisfy the client's need
- * of random peers.
- */
-static unsigned int sampler_size_client_need;
 
 /**
  * The size of sampler we need to be able to satisfy the Brahms protocol's
@@ -1922,38 +1911,6 @@ static struct GNUNET_PEERINFO_Handle *peerinfo_handle;
  * Handle for cancellation of iteration over peers.
  */
 static struct GNUNET_PEERINFO_NotifyContext *peerinfo_notify_handle;
-
-/**
- * Request counter.
- *
- * Counts how many requets clients already issued.
- * Only needed in the beginning to check how many of the 64 deltas
- * we already have
- */
-static unsigned int req_counter;
-
-/**
- * Time of the last request we received.
- *
- * Used to compute the expected request rate.
- */
-static struct GNUNET_TIME_Absolute last_request;
-
-/**
- * Size of #request_deltas.
- */
-#define REQUEST_DELTAS_SIZE 64
-static unsigned int request_deltas_size = REQUEST_DELTAS_SIZE;
-
-/**
- * Last 64 deltas between requests
- */
-static struct GNUNET_TIME_Relative request_deltas[REQUEST_DELTAS_SIZE];
-
-/**
- * The prediction of the rate of requests
- */
-static struct GNUNET_TIME_Relative request_rate;
 
 
 #ifdef ENABLE_MALICIOUS
@@ -2104,38 +2061,6 @@ rem_from_list (struct GNUNET_PeerIdentity **peer_list,
     }
   }
   *peer_list = tmp;
-}
-
-
-/**
- * Sum all time relatives of an array.
- */
-static struct GNUNET_TIME_Relative
-T_relative_sum (const struct GNUNET_TIME_Relative *rel_array,
-		uint32_t arr_size)
-{
-  struct GNUNET_TIME_Relative sum;
-  uint32_t i;
-
-  sum = GNUNET_TIME_UNIT_ZERO;
-  for ( i = 0 ; i < arr_size ; i++ )
-  {
-    sum = GNUNET_TIME_relative_add (sum, rel_array[i]);
-  }
-  return sum;
-}
-
-
-/**
- * Compute the average of given time relatives.
- */
-static struct GNUNET_TIME_Relative
-T_relative_avg (const struct GNUNET_TIME_Relative *rel_array,
-		uint32_t arr_size)
-{
-  return GNUNET_TIME_relative_divide (T_relative_sum (rel_array,
-						      arr_size),
-				      arr_size);
 }
 
 
@@ -2369,69 +2294,6 @@ resize_wrapper (struct RPS_Sampler *sampler, uint32_t new_size)
 
 
 /**
- * Wrapper around #RPS_sampler_resize() resizing the client sampler
- */
-static void
-client_resize_wrapper ()
-{
-  uint32_t bigger_size;
-
-  // TODO statistics
-
-  bigger_size = GNUNET_MAX (sampler_size_est_need, sampler_size_client_need);
-
-  // TODO respect the min, max
-  resize_wrapper (client_sampler, bigger_size);
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "sampler_size_client is now %" PRIu32 "\n",
-      bigger_size);
-}
-
-
-/**
- * Estimate request rate
- *
- * Called every time we receive a request from the client.
- */
-static void
-est_request_rate()
-{
-  struct GNUNET_TIME_Relative max_round_duration;
-
-  if (request_deltas_size > req_counter)
-    req_counter++;
-  if ( 1 < req_counter)
-  {
-    /* Shift last request deltas to the right */
-    memmove (&request_deltas[1],
-        request_deltas,
-        (req_counter - 1) * sizeof (struct GNUNET_TIME_Relative));
-
-    /* Add current delta to beginning */
-    request_deltas[0] =
-        GNUNET_TIME_absolute_get_difference (last_request,
-                                             GNUNET_TIME_absolute_get ());
-    request_rate = T_relative_avg (request_deltas, req_counter);
-    request_rate = (request_rate.rel_value_us < 1) ?
-      GNUNET_TIME_relative_get_unit_ () : request_rate;
-
-    /* Compute the duration a round will maximally take */
-    max_round_duration =
-        GNUNET_TIME_relative_add (round_interval,
-                                  GNUNET_TIME_relative_divide (round_interval, 2));
-
-    /* Set the estimated size the sampler has to have to
-     * satisfy the current client request rate */
-    sampler_size_client_need =
-        max_round_duration.rel_value_us / request_rate.rel_value_us;
-
-    /* Resize the sampler */
-    client_resize_wrapper ();
-  }
-  last_request = GNUNET_TIME_absolute_get ();
-}
-
-
-/**
  * Add all peers in @a peer_array to @a peer_map used as set.
  *
  * @param peer_array array containing the peers
@@ -2565,7 +2427,6 @@ insert_in_sampler (void *cls,
        "Updating samplers with peer %s from insert_in_sampler()\n",
        GNUNET_i2s (peer));
   RPS_sampler_update (prot_sampler,   peer);
-  RPS_sampler_update (client_sampler, peer);
   if (0 < RPS_sampler_count_id (prot_sampler, peer))
   {
     /* Make sure we 'know' about this peer */
@@ -2658,7 +2519,6 @@ remove_peer (const struct GNUNET_PeerIdentity *peer)
   CustomPeerMap_remove_peer (pull_map, peer);
   CustomPeerMap_remove_peer (push_map, peer);
   RPS_sampler_reinitialise_by_value (prot_sampler, peer);
-  RPS_sampler_reinitialise_by_value (client_sampler, peer);
   destroy_peer (get_peer_ctx (peer));
 }
 
@@ -2691,7 +2551,6 @@ clean_peer (const struct GNUNET_PeerIdentity *peer)
        (GNUNET_NO == CustomPeerMap_contains_peer (push_map, peer)) &&
        (GNUNET_NO == CustomPeerMap_contains_peer (push_map, peer)) &&
        (0 == RPS_sampler_count_id (prot_sampler,   peer)) &&
-       (0 == RPS_sampler_count_id (client_sampler, peer)) &&
        (GNUNET_NO != check_removable (peer)) )
   { /* We can safely remove this peer */
     LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -2813,139 +2672,7 @@ nse_callback (void *cls,
 
   /* If the NSE has changed adapt the lists accordingly */
   resize_wrapper (prot_sampler, sampler_size_est_need);
-  client_resize_wrapper ();
   View_change_len (view_size_est_need);
-}
-
-
-/**
- * Callback called once the requested PeerIDs are ready.
- *
- * Sends those to the requesting client.
- */
-static void
-client_respond (const struct GNUNET_PeerIdentity *peer_ids,
-                uint32_t num_peers,
-                void *cls)
-{
-  struct ReplyCls *reply_cls = cls;
-  uint32_t i;
-  struct GNUNET_MQ_Envelope *ev;
-  struct GNUNET_RPS_CS_ReplyMessage *out_msg;
-  uint32_t size_needed;
-  struct ClientContext *cli_ctx;
-
-  GNUNET_assert (NULL != reply_cls);
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "sampler returned %" PRIu32 " peers:\n",
-       num_peers);
-  for (i = 0; i < num_peers; i++)
-  {
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "  %" PRIu32 ": %s\n",
-         i,
-         GNUNET_i2s (&peer_ids[i]));
-  }
-
-  size_needed = sizeof (struct GNUNET_RPS_CS_ReplyMessage) +
-                num_peers * sizeof (struct GNUNET_PeerIdentity);
-
-  GNUNET_assert (GNUNET_MAX_MESSAGE_SIZE >= size_needed);
-
-  ev = GNUNET_MQ_msg_extra (out_msg,
-                            num_peers * sizeof (struct GNUNET_PeerIdentity),
-                            GNUNET_MESSAGE_TYPE_RPS_CS_REPLY);
-  out_msg->num_peers = htonl (num_peers);
-  out_msg->id = htonl (reply_cls->id);
-
-  GNUNET_memcpy (&out_msg[1],
-          peer_ids,
-          num_peers * sizeof (struct GNUNET_PeerIdentity));
-
-  cli_ctx = reply_cls->cli_ctx;
-  GNUNET_assert (NULL != cli_ctx);
-  reply_cls->req_handle = NULL;
-  destroy_reply_cls (reply_cls);
-  GNUNET_MQ_send (cli_ctx->mq, ev);
-}
-
-
-/**
- * Handle RPS request from the client.
- *
- * @param cls closure
- * @param message the actual message
- */
-static void
-handle_client_request (void *cls,
-                       const struct GNUNET_RPS_CS_RequestMessage *msg)
-{
-  struct ClientContext *cli_ctx = cls;
-  uint32_t num_peers;
-  uint32_t size_needed;
-  struct ReplyCls *reply_cls;
-  uint32_t i;
-
-  num_peers = ntohl (msg->num_peers);
-  size_needed = sizeof (struct GNUNET_RPS_CS_RequestMessage) +
-                num_peers * sizeof (struct GNUNET_PeerIdentity);
-
-  if (GNUNET_MAX_MESSAGE_SIZE < size_needed)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Message received from client has size larger than expected\n");
-    GNUNET_SERVICE_client_drop (cli_ctx->client);
-    return;
-  }
-
-  for (i = 0 ; i < num_peers ; i++)
-    est_request_rate();
-
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Client requested %" PRIu32 " random peer(s).\n",
-       num_peers);
-
-  reply_cls = GNUNET_new (struct ReplyCls);
-  reply_cls->id = ntohl (msg->id);
-  reply_cls->cli_ctx = cli_ctx;
-  reply_cls->req_handle = RPS_sampler_get_n_rand_peers (client_sampler,
-                                                        num_peers,
-                                                        client_respond,
-                                                        reply_cls);
-
-  GNUNET_assert (NULL != cli_ctx);
-  GNUNET_CONTAINER_DLL_insert (cli_ctx->rep_cls_head,
-                               cli_ctx->rep_cls_tail,
-                               reply_cls);
-  GNUNET_SERVICE_client_continue (cli_ctx->client);
-}
-
-
-/**
- * @brief Handle a message that requests the cancellation of a request
- *
- * @param cls unused
- * @param message the message containing the id of the request
- */
-static void
-handle_client_request_cancel (void *cls,
-                              const struct GNUNET_RPS_CS_RequestCancelMessage *msg)
-{
-  struct ClientContext *cli_ctx = cls;
-  struct ReplyCls *rep_cls;
-
-  GNUNET_assert (NULL != cli_ctx);
-  GNUNET_assert (NULL != cli_ctx->rep_cls_head);
-  rep_cls = cli_ctx->rep_cls_head;
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-      "Client cancels request with id %" PRIu32 "\n",
-      ntohl (msg->id));
-  while ( (NULL != rep_cls->next) &&
-          (rep_cls->id != ntohl (msg->id)) )
-    rep_cls = rep_cls->next;
-  GNUNET_assert (rep_cls->id == ntohl (msg->id));
-  destroy_reply_cls (rep_cls);
-  GNUNET_SERVICE_client_continue (cli_ctx->client);
 }
 
 
@@ -4102,7 +3829,6 @@ shutdown_task (void *cls)
 
   GNUNET_NSE_disconnect (nse);
   RPS_sampler_destroy (prot_sampler);
-  RPS_sampler_destroy (client_sampler);
   GNUNET_CADET_close_port (cadet_port);
   GNUNET_CADET_disconnect (cadet_handle);
   cadet_handle = NULL;
@@ -4345,7 +4071,6 @@ run (void *cls,
   max_round_interval = GNUNET_TIME_relative_add (round_interval, half_round_interval);
 
   prot_sampler =   RPS_sampler_init     (sampler_size_est_need, max_round_interval);
-  client_sampler = RPS_sampler_mod_init (sampler_size_est_need, max_round_interval);
 
   /* Initialise push and pull maps */
   push_map = CustomPeerMap_create (4);
@@ -4385,14 +4110,6 @@ GNUNET_SERVICE_MAIN
  &client_connect_cb,
  &client_disconnect_cb,
  NULL,
- GNUNET_MQ_hd_fixed_size (client_request,
-   GNUNET_MESSAGE_TYPE_RPS_CS_REQUEST,
-   struct GNUNET_RPS_CS_RequestMessage,
-   NULL),
- GNUNET_MQ_hd_fixed_size (client_request_cancel,
-   GNUNET_MESSAGE_TYPE_RPS_CS_REQUEST_CANCEL,
-   struct GNUNET_RPS_CS_RequestCancelMessage,
-   NULL),
  GNUNET_MQ_hd_var_size (client_seed,
    GNUNET_MESSAGE_TYPE_RPS_CS_SEED,
    struct GNUNET_RPS_CS_SeedMessage,

@@ -60,66 +60,6 @@ struct GNUNET_RPS_P2P_PullReplyMessage
 ***********************************************************************/
 
 /**
- * Message from client to RPS service to request random peer(s).
- */
-struct GNUNET_RPS_CS_RequestMessage
-{
-  /**
-   * Header including size and type in NBO
-   */
-  struct GNUNET_MessageHeader header;
-
-  /**
-   * Identifyer of the message.
-   */
-  uint32_t id GNUNET_PACKED;
-
-  /**
-   * Number of random peer requested
-   */
-  uint32_t num_peers GNUNET_PACKED;
-};
-
-/**
- * Message from RPS service to client to reply with random peer(s).
- */
-struct GNUNET_RPS_CS_ReplyMessage
-{
-  /**
-   * Type is #GNUNET_MESSAGE_TYPE_RPS_CS_REPLY.
-   */
-  struct GNUNET_MessageHeader header;
-
-  /**
-   * Identifyer of the message.
-   */
-  uint32_t id GNUNET_PACKED;
-
-  /**
-   * Number of random peer replied
-   */
-  uint32_t num_peers GNUNET_PACKED;
-
-  /* Followed by num_peers * GNUNET_PeerIdentity */
-};
-
-/**
- * Message from client to RPS service to cancel request.
- */
-struct GNUNET_RPS_CS_RequestCancelMessage
-{
-  /**
-   * Header including size and type in NBO
-   */
-  struct GNUNET_MessageHeader header;
-
-  /**
-   * Identifyer of the message.
-   */
-  uint32_t id GNUNET_PACKED;
-};
-
-/**
  * Message from client to service with seed of peers.
  */
 struct GNUNET_RPS_CS_SeedMessage
