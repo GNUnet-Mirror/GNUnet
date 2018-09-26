@@ -1759,12 +1759,6 @@ struct ClientContext
   struct GNUNET_MQ_Handle *mq;
 
   /**
-   * DLL with handles to single requests from the client
-   */
-  struct ReplyCls *rep_cls_head;
-  struct ReplyCls *rep_cls_tail;
-
-  /**
    * @brief How many updates this client expects to receive.
    */
   int64_t view_updates_left;
@@ -2597,34 +2591,9 @@ cleanup_destroyed_channel (void *cls,
 ***********************************************************************/
 
 static void
-destroy_reply_cls (struct ReplyCls *rep_cls)
-{
-  struct ClientContext *cli_ctx;
-
-  cli_ctx = rep_cls->cli_ctx;
-  GNUNET_assert (NULL != cli_ctx);
-  if (NULL != rep_cls->req_handle)
-  {
-    RPS_sampler_request_cancel (rep_cls->req_handle);
-  }
-  GNUNET_CONTAINER_DLL_remove (cli_ctx->rep_cls_head,
-                               cli_ctx->rep_cls_tail,
-                               rep_cls);
-  GNUNET_free (rep_cls);
-}
-
-
-static void
 destroy_cli_ctx (struct ClientContext *cli_ctx)
 {
   GNUNET_assert (NULL != cli_ctx);
-  if (NULL != cli_ctx->rep_cls_head)
-  {
-    LOG (GNUNET_ERROR_TYPE_WARNING,
-         "Trying to destroy the context of a client that still has pending requests. Going to clean those\n");
-    while (NULL != cli_ctx->rep_cls_head)
-      destroy_reply_cls (cli_ctx->rep_cls_head);
-  }
   GNUNET_CONTAINER_DLL_remove (cli_ctx_head,
                                cli_ctx_tail,
                                cli_ctx);
@@ -3800,21 +3769,7 @@ shutdown_task (void *cls)
        NULL != cli_ctx_head;
        client_ctx = cli_ctx_head)
   {
-    /* Clean pending requests to the sampler */
-    for (reply_cls = client_ctx->rep_cls_head;
-         NULL != client_ctx->rep_cls_head;
-         reply_cls = client_ctx->rep_cls_head)
-    {
-      RPS_sampler_request_cancel (reply_cls->req_handle);
-      GNUNET_CONTAINER_DLL_remove (client_ctx->rep_cls_head,
-                                   client_ctx->rep_cls_tail,
-                                   reply_cls);
-      GNUNET_free (reply_cls);
-    }
-    GNUNET_CONTAINER_DLL_remove (cli_ctx_head,
-                                 cli_ctx_tail,
-                                 client_ctx);
-    GNUNET_free (client_ctx);
+    destroy_cli_ctx (client_ctx);
   }
   GNUNET_PEERINFO_notify_cancel (peerinfo_notify_handle);
   GNUNET_PEERINFO_disconnect (peerinfo_handle);
