@@ -201,7 +201,6 @@ RPS_sampler_mod_init (size_t init_size,
   max_size = 1000; // TODO make input to _samplers_init()
 
   sampler = GNUNET_new (struct RPS_Sampler);
-
   sampler->max_round_interval = max_round_interval;
   sampler->get_peers = sampler_mod_get_rand_peer;
   //sampler->sampler_elements = GNUNET_new_array(init_size, struct GNUNET_PeerIdentity);

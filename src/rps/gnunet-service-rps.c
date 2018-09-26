@@ -2733,6 +2733,27 @@ handle_client_view_request (void *cls,
 }
 
 
+static void
+handle_client_view_request_cancel (void *cls,
+                                   const struct GNUNET_MessageHeader *msg)
+{
+  struct ClientContext *cli_ctx = cls;
+  uint64_t num_updates;
+
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Client does not want to receive updates of view any more.\n",
+       num_updates);
+
+  GNUNET_assert (NULL != cli_ctx);
+  cli_ctx->view_updates_left = 0;
+  if (GNUNET_YES == cli_ctx->stream_update)
+  {
+    destroy_cli_ctx (cli_ctx);
+  }
+  GNUNET_SERVICE_client_continue (cli_ctx->client);
+}
+
+
 /**
  * Handle RPS request for biased stream from the client.
  *
@@ -4078,6 +4099,10 @@ GNUNET_SERVICE_MAIN
  GNUNET_MQ_hd_fixed_size (client_view_request,
    GNUNET_MESSAGE_TYPE_RPS_CS_DEBUG_VIEW_REQUEST,
    struct GNUNET_RPS_CS_DEBUG_ViewRequest,
+   NULL),
+ GNUNET_MQ_hd_fixed_size (client_view_request_cancel,
+   GNUNET_MESSAGE_TYPE_RPS_CS_DEBUG_VIEW_CANCEL,
+   struct GNUNET_MessageHeader,
    NULL),
  GNUNET_MQ_hd_fixed_size (client_stream_request,
    GNUNET_MESSAGE_TYPE_RPS_CS_DEBUG_STREAM_REQUEST,

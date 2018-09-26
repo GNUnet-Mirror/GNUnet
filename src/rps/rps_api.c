@@ -344,6 +344,20 @@ GNUNET_RPS_view_request (struct GNUNET_RPS_Handle *rps_handle,
 }
 
 
+void
+GNUNET_RPS_view_request_cancel (struct GNUNET_RPS_Handle *rps_handle)
+{
+  struct GNUNET_MQ_Envelope *ev;
+
+  GNUNET_assert (NULL != rps_handle->view_update_cb);
+
+  rps_handle->view_update_cb = NULL;
+
+  ev = GNUNET_MQ_msg_header (GNUNET_MESSAGE_TYPE_RPS_CS_DEBUG_VIEW_CANCEL);
+  GNUNET_MQ_send (rps_handle->mq, ev);
+}
+
+
 /**
  * Request biased stream of peers that are being put into the sampler
  *
@@ -879,7 +893,12 @@ GNUNET_RPS_disconnect (struct GNUNET_RPS_Handle *h)
   if (NULL != h->stream_requests_head)
   {
     LOG (GNUNET_ERROR_TYPE_WARNING,
-        "Still waiting for requests\n");
+        "Still waiting for replies\n");
+  }
+  if (NULL != h->view_update_cb)
+  {
+    LOG (GNUNET_ERROR_TYPE_WARNING,
+        "Still waiting for view updates\n");
   }
   GNUNET_free (h);
 }
