@@ -177,13 +177,14 @@ GNUNET_NETWORK_STRUCT_END
 /**
  * Randomized exponential back-off, starting at 1 ms
  * and going up by a factor of 2+r, where 0 <= r <= 0.5, up
- * to a maximum of 15 m.
+ * to a maximum of the given threshold.
  *
- * @param r current backoff time, initially zero
+ * @param rt current backoff time, initially zero
+ * @param threshold maximum value for backoff
  * @return the next backoff time
  */
 struct GNUNET_TIME_Relative
-GNUNET_TIME_randomized_backoff(struct GNUNET_TIME_Relative rt);
+GNUNET_TIME_randomized_backoff(struct GNUNET_TIME_Relative rt, struct GNUNET_TIME_Relative threshold);
 
 
 /**
