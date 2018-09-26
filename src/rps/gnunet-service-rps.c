@@ -2782,6 +2782,32 @@ handle_client_stream_request (void *cls,
 
 
 /**
+ * @brief Handles the cancellation of the stream of biased peer ids
+ *
+ * @param cls The client context
+ * @param msg unused
+ */
+static void
+handle_client_stream_cancel (void *cls,
+                             const struct GNUNET_MessageHeader *msg)
+{
+  struct ClientContext *cli_ctx = cls;
+  (void) msg;
+
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Client requested peers from biased stream.\n");
+  cli_ctx->stream_update = GNUNET_NO;
+
+  GNUNET_assert (NULL != cli_ctx);
+  GNUNET_SERVICE_client_continue (cli_ctx->client);
+  if (0 == cli_ctx->view_updates_left)
+  {
+    destroy_cli_ctx (cli_ctx);
+  }
+}
+
+
+/**
  * Handle a CHECK_LIVE message from another peer.
  *
  * This does nothing. But without calling #GNUNET_CADET_receive_done()
@@ -4111,6 +4137,10 @@ GNUNET_SERVICE_MAIN
  GNUNET_MQ_hd_fixed_size (client_stream_request,
    GNUNET_MESSAGE_TYPE_RPS_CS_DEBUG_STREAM_REQUEST,
    struct GNUNET_RPS_CS_DEBUG_StreamRequest,
+   NULL),
+ GNUNET_MQ_hd_fixed_size (client_stream_cancel,
+   GNUNET_MESSAGE_TYPE_RPS_CS_DEBUG_STREAM_CANCEL,
+   struct GNUNET_MessageHeader,
    NULL),
  GNUNET_MQ_handler_end());
 
