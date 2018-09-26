@@ -2710,8 +2710,8 @@ handle_client_seed (void *cls,
 /**
  * Handle RPS request from the client.
  *
- * @param cls closure
- * @param message the actual message
+ * @param cls Client context
+ * @param message unused
  */
 static void
 handle_client_view_request (void *cls,
@@ -2757,8 +2757,8 @@ handle_client_view_request_cancel (void *cls,
 /**
  * Handle RPS request for biased stream from the client.
  *
- * @param cls closure
- * @param message the actual message
+ * @param cls Client context
+ * @param message unused
  */
 static void
 handle_client_stream_request (void *cls,
