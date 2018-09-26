@@ -173,6 +173,19 @@ GNUNET_NETWORK_STRUCT_END
 #define GNUNET_TIME_STD_BACKOFF(r) GNUNET_TIME_relative_min (GNUNET_TIME_STD_EXPONENTIAL_BACKOFF_THRESHOLD, \
    GNUNET_TIME_relative_multiply (GNUNET_TIME_relative_max (GNUNET_TIME_UNIT_MILLISECONDS, (r)), 2));
 
+
+/**
+ * Randomized exponential back-off, starting at 1 ms
+ * and going up by a factor of 2+r, where 0 <= r <= 0.5, up
+ * to a maximum of 15 m.
+ *
+ * @param r current backoff time, initially zero
+ * @return the next backoff time
+ */
+struct GNUNET_TIME_Relative
+GNUNET_TIME_randomized_backoff(struct GNUNET_TIME_Relative rt);
+
+
 /**
  * Return relative time of 0ms.
  */
