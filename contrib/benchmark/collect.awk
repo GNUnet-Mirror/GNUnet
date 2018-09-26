@@ -24,7 +24,7 @@
 
 # records are of the following forms:
 # op <op> count <count> time_us <time_us>
-# url <url> status <status> count <count> time_us <time_us>
+# url <url> status <status> count <count> time_us <time_us> time_us_max <time_us_max>
 
 
 function abs(v) {
@@ -48,6 +48,8 @@ function abs(v) {
     if (n > 0) {
       url[$2][$4]["time_us_sq"] += n * (t/n) * (t/n);
     }
+    max = url[$2][$4]["time_us_max];
+    url[$2][$4]["time_us_max] = (t > max ? t : max)
   }
 }
 
@@ -78,7 +80,8 @@ END {
       print "url", x, "status", y, \
             "count", url[x][y]["count"], "time_us", url[x][y]["time_us"], \
             "time_avg_us", avg(url[x][y]["time_us"], url[x][y]["count"]), \
-            "stdev", stdev(url[x][y]["time_us"], url[x][y]["time_us_sq"], url[x][y]["count"]);
+            "stdev", stdev(url[x][y]["time_us"], url[x][y]["time_us_sq"], url[x][y]["count"]), \
+            "time_us_max", url[x][y]["time_us_max"];
     }
   }
 }
