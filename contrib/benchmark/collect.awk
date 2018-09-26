@@ -48,7 +48,7 @@ function abs(v) {
     if (n > 0) {
       url[$2][$4]["time_us_sq"] += n * (t/n) * (t/n);
     }
-    max = url[$2][$4]["time_us_max];
+    max = url[$2][$4]["time_us_max"];
     url[$2][$4]["time_us_max"] = (t > max ? t : max)
   }
 }
