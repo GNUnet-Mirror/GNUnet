@@ -25,7 +25,7 @@
 #include "gnunet_util_lib.h"
 #include "rps.h"
 #include "gnunet_rps_service.h"
-#include "gnunet-service-rps_sampler.h"
+#include "rps-sampler_client.h"
 
 #include <inttypes.h>
 
