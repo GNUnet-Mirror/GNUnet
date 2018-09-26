@@ -2733,24 +2733,29 @@ handle_client_view_request (void *cls,
 }
 
 
+/**
+ * @brief Handle the cancellation of the view updates.
+ *
+ * @param cls The client context
+ * @param msg Unused
+ */
 static void
-handle_client_view_request_cancel (void *cls,
-                                   const struct GNUNET_MessageHeader *msg)
+handle_client_view_cancel (void *cls,
+                           const struct GNUNET_MessageHeader *msg)
 {
   struct ClientContext *cli_ctx = cls;
-  uint64_t num_updates;
+  (void) msg;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Client does not want to receive updates of view any more.\n",
-       num_updates);
+       "Client does not want to receive updates of view any more.\n");
 
   GNUNET_assert (NULL != cli_ctx);
   cli_ctx->view_updates_left = 0;
+  GNUNET_SERVICE_client_continue (cli_ctx->client);
   if (GNUNET_YES == cli_ctx->stream_update)
   {
     destroy_cli_ctx (cli_ctx);
   }
-  GNUNET_SERVICE_client_continue (cli_ctx->client);
 }
 
 
@@ -3777,7 +3782,6 @@ static void
 shutdown_task (void *cls)
 {
   struct ClientContext *client_ctx;
-  struct ReplyCls *reply_cls;
   (void) cls;
 
   in_shutdown = GNUNET_YES;
@@ -4100,7 +4104,7 @@ GNUNET_SERVICE_MAIN
    GNUNET_MESSAGE_TYPE_RPS_CS_DEBUG_VIEW_REQUEST,
    struct GNUNET_RPS_CS_DEBUG_ViewRequest,
    NULL),
- GNUNET_MQ_hd_fixed_size (client_view_request_cancel,
+ GNUNET_MQ_hd_fixed_size (client_view_cancel,
    GNUNET_MESSAGE_TYPE_RPS_CS_DEBUG_VIEW_CANCEL,
    struct GNUNET_MessageHeader,
    NULL),
