@@ -22,10 +22,26 @@ plugin_LTLIBRARIES = \
 	libgnunet_plugin_rest_peerinfo.la \
 	libgnunet_plugin_rest_identity.la \
 	libgnunet_plugin_rest_namestore.la \
-  libgnunet_plugin_rest_gns.la
+  libgnunet_plugin_rest_gns.la \
+	libgnunet_plugin_rest_credential.la
 if HAVE_ABE
 plugin_LTLIBRARIES += libgnunet_plugin_rest_openid_connect.la
 endif
+
+libgnunet_plugin_rest_credential_la_SOURCES = \
+  plugin_rest_credential.c
+libgnunet_plugin_rest_credential_la_LIBADD = \
+  $(top_builddir)/src/credential/libgnunetcredential.la \
+	$(top_builddir)/src/rest/libgnunetrest.la \
+	$(top_builddir)/src/identity/libgnunetidentity.la \
+	$(top_builddir)/src/jsonapi/libgnunetjsonapi.la \
+  $(top_builddir)/src/jsonapi/libgnunetjsonapiutils.la \
+  $(top_builddir)/src/util/libgnunetutil.la $(XLIBS) \
+  $(LTLIBINTL) -ljansson -lmicrohttpd
+libgnunet_plugin_rest_credential_la_LDFLAGS = \
+ $(GN_PLUGIN_LDFLAGS)
+
+
 
 
 libgnunet_plugin_rest_copying_la_SOURCES = \

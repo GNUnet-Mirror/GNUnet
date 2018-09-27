@@ -35,13 +35,6 @@ plugin_LTLIBRARIES = \
   libgnunet_plugin_gnsrecord_credential.la
 
 
-if HAVE_MHD
-if HAVE_JSON
-plugin_LTLIBRARIES += libgnunet_plugin_rest_credential.la
-endif
-endif
-
-
 gnunet_credential_SOURCES = \
  gnunet-credential.c
 gnunet_credential_LDADD = \
@@ -83,19 +76,6 @@ libgnunetcredential_la_LIBADD = \
 libgnunetcredential_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS)
 
-
-libgnunet_plugin_rest_credential_la_SOURCES = \
-  plugin_rest_credential.c
-libgnunet_plugin_rest_credential_la_LIBADD = \
-  libgnunetcredential.la \
-	$(top_builddir)/src/rest/libgnunetrest.la \
-	$(top_builddir)/src/identity/libgnunetidentity.la \
-	$(top_builddir)/src/jsonapi/libgnunetjsonapi.la \
-  $(top_builddir)/src/jsonapi/libgnunetjsonapiutils.la \
-  $(top_builddir)/src/util/libgnunetutil.la $(XLIBS) \
-  $(LTLIBINTL) -ljansson -lmicrohttpd
-libgnunet_plugin_rest_credential_la_LDFLAGS = \
- $(GN_PLUGIN_LDFLAGS)
 
 
 check_SCRIPTS = \
