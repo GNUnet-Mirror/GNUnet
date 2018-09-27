@@ -611,7 +611,8 @@ attr_collect (void *cls,
               const struct GNUNET_RECLAIM_ATTRIBUTE_Claim *attr)
 {
   struct RequestHandle *handle = cls;
-  json_t *value;
+  json_t *attr_obj;
+  const char* type;
   char* tmp_value;
 
   if ((NULL == attr->name) || (NULL == attr->data))
@@ -627,12 +628,20 @@ attr_collect (void *cls,
                                                         attr->data,
                                                         attr->data_size);
 
-  value = json_string (tmp_value);
-
-  json_object_set_new (handle->resp_object,
-                       attr->name,
-                       value);
-  json_decref (value);
+  attr_obj = json_object ();
+  json_object_set_new (attr_obj,
+                   "value",
+                   json_string (tmp_value));
+  json_object_set_new (attr_obj,
+                   "name",
+                   json_string (attr->name));
+  type = GNUNET_RECLAIM_ATTRIBUTE_number_to_typename (attr->type);
+  json_object_set_new (attr_obj,
+                       "type",
+                       json_string (type));
+  json_array_append (handle->resp_object,
+                     attr_obj);
+  json_decref (attr_obj);
   GNUNET_free(tmp_value);
   GNUNET_RECLAIM_get_attributes_next (handle->attr_it);
 }
@@ -672,7 +681,7 @@ list_attribute_cont (struct GNUNET_REST_RequestHandle *con_handle,
        ego_entry = ego_entry->next)
     if (0 == strcmp (identity, ego_entry->identifier))
       break;
-  handle->resp_object = json_object ();
+  handle->resp_object = json_array ();
 
 
   if (NULL == ego_entry)
