@@ -66,22 +66,6 @@
 #define GNUNET_REST_API_NS_LOGIN "/openid/login"
 
 /**
- * Attribute key
- */
-#define GNUNET_REST_JSONAPI_RECLAIM_ATTRIBUTE "attribute"
-
-/**
- * Ticket key
- */
-#define GNUNET_REST_JSONAPI_IDENTITY_TICKET "ticket"
-
-
-/**
- * Value key
- */
-#define GNUNET_REST_JSONAPI_RECLAIM_ATTRIBUTE_VALUE "value"
-
-/**
  * State while collecting all egos
  */
 #define ID_REST_STATE_INIT 0
@@ -449,11 +433,6 @@ struct RequestHandle
    */
   int response_code;
 
-  /**
-   * Response object
-   */
-  struct GNUNET_JSONAPI_Document *resp_object;
-
 };
 
 /**
@@ -469,8 +448,6 @@ cleanup_handle (struct RequestHandle *handle)
   struct EgoEntry *ego_tmp;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Cleaning up\n");
-  if (NULL != handle->resp_object)
-    GNUNET_JSONAPI_document_delete (handle->resp_object);
   if (NULL != handle->timeout_task)
     GNUNET_SCHEDULER_cancel (handle->timeout_task);
   if (NULL != handle->identity_handle)
@@ -1077,7 +1054,6 @@ login_check (void *cls)
         {
           handle->priv_key = *GNUNET_IDENTITY_ego_get_private_key (
                                                                    handle->ego_entry->ego);
-          handle->resp_object = GNUNET_JSONAPI_document_new ();
           handle->idp = GNUNET_RECLAIM_connect (cfg);
           handle->attr_list = GNUNET_new(
                                          struct GNUNET_RECLAIM_ATTRIBUTE_ClaimList);
