@@ -129,6 +129,6 @@ SUBDIRS = \
 	$(EXP_DIR) \
   $(JSON_DIR) \
   $(REST_DIR) \
-  integration-tests \
+  integration-tests 
 
 endif
