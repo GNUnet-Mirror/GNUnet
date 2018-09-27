@@ -103,10 +103,8 @@ END {
 
   if (have_baseline) {
     for (x in op) {
-      total_ops_adjusted[x] = op_baseline[x] * op[x]["count"];
+      total_ops_adjusted += op_baseline[x] * op[x]["count"];
     }
-    for (x in op) {
-      print "total_ops_adjusted_ms", total_ops_adjusted[x];
-    }
+    print "total_ops_adjusted_ms", total_ops_adjusted;
   }
 }
