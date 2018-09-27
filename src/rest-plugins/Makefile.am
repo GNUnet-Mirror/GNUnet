@@ -34,6 +34,7 @@ libgnunet_plugin_rest_reclaim_la_SOURCES = \
 libgnunet_plugin_rest_reclaim_la_LIBADD = \
   $(top_builddir)/src/identity/libgnunetidentity.la \
   $(top_builddir)/src/reclaim/libgnunetreclaim.la \
+	$(top_builddir)/src/json/libgnunetjson.la \
   $(top_builddir)/src/rest/libgnunetrest.la \
   $(top_builddir)/src/reclaim-attribute/libgnunetreclaimattribute.la \
   $(top_builddir)/src/namestore/libgnunetnamestore.la \
