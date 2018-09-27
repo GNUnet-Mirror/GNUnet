@@ -11,7 +11,7 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
@@ -233,7 +233,7 @@ GNUNET_CONFIGURATION_deserialize (struct GNUNET_CONFIGURATION_Handle *cfg,
 	GNUNET_asprintf (&fn,
 			 "%s/%s",
 			 basedir,
-			 value);	
+			 value);
 	if (GNUNET_OK !=
 	    GNUNET_CONFIGURATION_parse (cfg,
 					fn))
@@ -953,12 +953,22 @@ GNUNET_CONFIGURATION_get_value_time (const struct GNUNET_CONFIGURATION_Handle *c
                                      struct GNUNET_TIME_Relative *time)
 {
   struct ConfigEntry *e;
+  int ret;
 
-  if (NULL == (e = find_entry (cfg, section, option)))
+  if (NULL == (e = find_entry (cfg,
+                               section,
+                               option)))
     return GNUNET_SYSERR;
   if (NULL == e->val)
     return GNUNET_SYSERR;
-  return GNUNET_STRINGS_fancy_time_to_relative (e->val, time);
+  ret = GNUNET_STRINGS_fancy_time_to_relative (e->val,
+                                               time);
+  if (GNUNET_OK != ret)
+    GNUNET_log_config_invalid (GNUNET_ERROR_TYPE_ERROR,
+                               section,
+                               option,
+                               _("Not a valid relative time specification"));
+  return ret;
 }
 
 

@@ -216,25 +216,29 @@ printer (void *cls,
     {
       now_str = GNUNET_STRINGS_absolute_time_to_string (now);
       FPRINTF (stdout,
-	       "%24s%s %s%s%12s%s %50s%s ",
+	       "%24s%s %s%s%12s%s %s%50s%s%s ",
                now_str,
                csv_separator,
                value_set->is_persistent ? "!" : " ",
                csv_separator,
                value_set->subsystem,
                csv_separator,
+               (0 == strlen (csv_separator) ? "": "\""), /* quotes if csv */
 	             _(value_set->name),
+               (0 == strlen (csv_separator) ? "": "\""), /* quotes if csv */
                (0 == strlen (csv_separator) ? ":": csv_separator));
     }
     else
     {
       FPRINTF (stdout,
-	       "%s%s%12s%s %50s%s ",
+	       "%s%s%12s%s %s%50s%s%s ",
                value_set->is_persistent ? "!" : " ",
                csv_separator,
                value_set->subsystem,
                csv_separator,
+               (0 == strlen (csv_separator) ? "": "\""), /* quotes if csv */
                _(value_set->name),
+               (0 == strlen (csv_separator) ? "": "\""), /* quotes if csv */
                (0 == strlen (csv_separator) ? ":": csv_separator));
     }
   }
@@ -279,26 +283,30 @@ printer_watch (void *cls,
     {
       now_str = GNUNET_STRINGS_absolute_time_to_string (now);
       FPRINTF (stdout,
-               "%24s%s %s%s%12s%s %50s%s %16llu\n",
+               "%24s%s %s%s%12s%s %s%50s%s%s %16llu\n",
                now_str,
                csv_separator,
                is_persistent ? "!" : " ",
                csv_separator,
                subsystem,
                csv_separator,
+               (0 == strlen (csv_separator) ? "": "\""), /* quotes if csv */
                _(name),
+               (0 == strlen (csv_separator) ? "": "\""), /* quotes if csv */
                (0 == strlen (csv_separator) ? ":": csv_separator),
                (unsigned long long) value);
     }
     else
     {
       FPRINTF (stdout,
-               "%s%s%12s%s %50s%s %16llu\n",
+               "%s%s%12s%s %s%50s%s%s %16llu\n",
                is_persistent ? "!" : " ",
                csv_separator,
                subsystem,
                csv_separator,
+               (0 == strlen (csv_separator) ? "": "\""), /* quotes if csv */
                _(name),
+               (0 == strlen (csv_separator) ? "": "\""), /* quotes if csv */
                (0 == strlen (csv_separator) ? ":": csv_separator),
                (unsigned long long) value);
     }

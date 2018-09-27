@@ -19,7 +19,11 @@ pkgcfg_DATA = \
 
 bin_PROGRAMS = gnunet-rps
 
-gnunet_rps_SOURCES = gnunet-rps.c
+gnunet_rps_SOURCES = \
+  gnunet-service-rps_sampler_elem.h gnunet-service-rps_sampler_elem.c \
+  rps-sampler_common.h rps-sampler_common.c \
+  gnunet-rps.c
+
 gnunet_rps_LDADD = \
   libgnunetrps.la \
   $(top_builddir)/src/util/libgnunetutil.la \
@@ -28,6 +32,7 @@ gnunet_rps_LDADD = \
 lib_LTLIBRARIES = libgnunetrps.la
 
 libgnunetrps_la_SOURCES = \
+  rps-sampler_client.h rps-sampler_client.c \
   rps_api.c rps.h
 libgnunetrps_la_LIBADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
@@ -48,6 +53,7 @@ endif
 
 gnunet_service_rps_SOURCES = \
  gnunet-service-rps_sampler_elem.h gnunet-service-rps_sampler_elem.c \
+ rps-sampler_common.h rps-sampler_common.c \
  gnunet-service-rps_sampler.h gnunet-service-rps_sampler.c \
  gnunet-service-rps_custommap.h gnunet-service-rps_custommap.c \
  gnunet-service-rps_view.h gnunet-service-rps_view.c \
@@ -86,7 +92,9 @@ endif
 rps_test_src = \
 	test_rps.c \
 	rps-test_util.h rps-test_util.c \
- gnunet-service-rps_sampler_elem.h gnunet-service-rps_sampler_elem.c
+ gnunet-service-rps_sampler_elem.h gnunet-service-rps_sampler_elem.c \
+ rps-sampler_common.h rps-sampler_common.c \
+ gnunet-service-rps_sampler.h gnunet-service-rps_sampler.c
 
 ld_rps_test_lib = \
 	libgnunetrps.la \
@@ -143,6 +151,8 @@ test_rps_churn_LDADD = $(ld_rps_test_lib)
 
 gnunet_rps_profiler_SOURCES = \
  gnunet-service-rps_sampler_elem.h gnunet-service-rps_sampler_elem.c \
+ rps-sampler_common.h rps-sampler_common.c \
+ gnunet-service-rps_sampler.h gnunet-service-rps_sampler.c \
  rps-test_util.h rps-test_util.c \
  gnunet-rps-profiler.c
 

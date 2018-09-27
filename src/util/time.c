@@ -444,6 +444,39 @@ GNUNET_TIME_relative_multiply (struct GNUNET_TIME_Relative rel,
 
 
 /**
+ * Multiply relative time by a given floating-point factor.  The factor must be
+ * positive.
+ *
+ * @return FOREVER if rel=FOREVER or on overflow; otherwise rel*factor
+ */
+struct GNUNET_TIME_Relative
+relative_multiply_double (struct GNUNET_TIME_Relative rel,
+                          double factor)
+{
+  struct GNUNET_TIME_Relative out;
+  double m;
+
+  GNUNET_assert (0 <= factor);
+
+  if (0 == factor)
+    return GNUNET_TIME_UNIT_ZERO;
+  if (rel.rel_value_us == GNUNET_TIME_UNIT_FOREVER_REL.rel_value_us)
+    return GNUNET_TIME_UNIT_FOREVER_REL;
+
+  m = ((double) rel.rel_value_us) * factor;
+
+  if (m >= (double) (GNUNET_TIME_UNIT_FOREVER_REL).rel_value_us)
+  {
+    GNUNET_break (0);
+    return GNUNET_TIME_UNIT_FOREVER_REL;
+  }
+
+  out.rel_value_us = (uint64_t) m;
+  return out;
+}
+
+
+/**
  * Saturating multiply relative time by a given factor.
  *
  * @param rel some duration
@@ -699,6 +732,30 @@ GNUNET_TIME_year_to_time (unsigned int year)
   ret.abs_value_us = tp * 1000LL * 1000LL;  /* seconds to microseconds */
   return ret;
 }
+
+
+/**
+ * Randomized exponential back-off, starting at 1 ms
+ * and going up by a factor of 2+r, where 0 <= r <= 0.5, up
+ * to a maximum of the given threshold.
+ *
+ * @param r current backoff time, initially zero
+ * @param threshold maximum value for backoff
+ * @return the next backoff time
+ */
+struct GNUNET_TIME_Relative
+GNUNET_TIME_randomized_backoff(struct GNUNET_TIME_Relative rt, struct GNUNET_TIME_Relative threshold)
+{
+  double r = (rand() % 500) / 1000.0;
+  struct GNUNET_TIME_Relative t;
+
+  t = relative_multiply_double (GNUNET_TIME_relative_max (GNUNET_TIME_UNIT_MILLISECONDS,
+                                                          rt),
+                                2 + r);
+  return GNUNET_TIME_relative_min (threshold,
+                                   t);
+}
+
 
 
 

@@ -17,13 +17,13 @@
 */
 
 /**
- * @file rps/gnunet-service-rps_sampler.h
- * @brief sampler implementation
+ * @file rps/rps-sampler_client.h
+ * @brief client sampler implementation
  * @author Julius Bünger
  */
 
-#ifndef RPS_SAMPLER_H
-#define RPS_SAMPLER_H
+#ifndef RPS_SAMPLER_CLIENT_H
+#define RPS_SAMPLER_CLIENT_H
 #include <inttypes.h>
 #include "rps-sampler_common.h"
 
@@ -60,15 +60,15 @@ RPS_sampler_resize (struct RPS_Sampler *sampler, unsigned int new_size);
 
 
 /**
- * Initialise a tuple of samplers.
+ * Initialise a modified tuple of sampler elements.
  *
  * @param init_size the size the sampler is initialised with
  * @param max_round_interval maximum time a round takes
  * @return a handle to a sampler that consists of sampler elements.
  */
 struct RPS_Sampler *
-RPS_sampler_init (size_t init_size,
-    struct GNUNET_TIME_Relative max_round_interval);
+RPS_sampler_mod_init (size_t init_size,
+                      struct GNUNET_TIME_Relative max_round_interval);
 
 
 /**
@@ -146,5 +146,5 @@ RPS_sampler_count_id (struct RPS_Sampler *sampler,
   void
 RPS_sampler_destroy (struct RPS_Sampler *sampler);
 
-#endif
+#endif /* RPS_SAMPLER_CLIENT_H */
 /* end of gnunet-service-rps.c */

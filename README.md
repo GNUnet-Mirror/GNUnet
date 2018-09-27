@@ -259,7 +259,7 @@ TODO: *explain what this does and add more*
 Philosophy
 -------------------------
 
-GNUnet is made for an open society: It's a self-organizing network and it's [http://www.gnu.org/philosophy/free-sw.html](free software) as in freedom. GNUnet puts you in control of your data. You determine which data to share with whom, and you're not pressured to accept compromises.
+GNUnet is made for an open society: It's a self-organizing network and it's (free software)[https://www.gnu.org/philosophy/free-sw.html] as in freedom. GNUnet puts you in control of your data. You determine which data to share with whom, and you're not pressured to accept compromises.
 
 
 Related Projects

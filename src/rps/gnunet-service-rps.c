@@ -47,8 +47,6 @@
 
 // TODO connect to friends
 
-// TODO store peers somewhere persistent
-
 // TODO blacklist? (-> mal peer detection on top of brahms)
 
 // hist_size_init, hist_size_max
@@ -368,6 +366,10 @@ create_peer_ctx (const struct GNUNET_PeerIdentity *peer)
   ret = GNUNET_CONTAINER_multipeermap_put (peer_map, peer, ctx,
       GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
   GNUNET_assert (GNUNET_OK == ret);
+  GNUNET_STATISTICS_set (stats,
+                        "# known peers",
+                        GNUNET_CONTAINER_multipeermap_size (peer_map),
+                        GNUNET_NO);
   return ctx;
 }
 
@@ -974,8 +976,11 @@ destroy_peer (struct PeerContext *peer_ctx)
                      peer_ctx->liveliness_check_pending,
                      sizeof (struct PendingMessage))) )
       {
-        // TODO this may leak memory
         peer_ctx->liveliness_check_pending = NULL;
+        GNUNET_STATISTICS_update (stats,
+                                  "# pending liveliness checks",
+                                  -1,
+                                  GNUNET_NO);
       }
     remove_pending_message (peer_ctx->pending_messages_head,
                             GNUNET_YES);
@@ -1018,6 +1023,10 @@ destroy_peer (struct PeerContext *peer_ctx)
     LOG (GNUNET_ERROR_TYPE_WARNING,
          "removing peer from peer_map failed\n");
   }
+  GNUNET_STATISTICS_set (stats,
+                        "# known peers",
+                        GNUNET_CONTAINER_multipeermap_size (peer_map),
+                        GNUNET_NO);
   GNUNET_free (peer_ctx);
   return GNUNET_YES;
 }
@@ -1608,10 +1617,6 @@ check_sending_channel_exists (const struct GNUNET_PeerIdentity *peer)
  * @brief Destroy the send channel of a peer e.g. stop indicating a sending
  *        intention to another peer
  *
- * If there is also no channel to receive messages from that peer, remove it
- * from the peermap.
- * TODO really?
- *
  * @peer the peer identity of the peer whose sending channel to destroy
  * @return #GNUNET_YES if channel was destroyed
  *         #GNUNET_NO  otherwise
@@ -1754,15 +1759,15 @@ struct ClientContext
   struct GNUNET_MQ_Handle *mq;
 
   /**
-   * DLL with handles to single requests from the client
-   */
-  struct ReplyCls *rep_cls_head;
-  struct ReplyCls *rep_cls_tail;
-
-  /**
    * @brief How many updates this client expects to receive.
    */
   int64_t view_updates_left;
+
+  /**
+   * @brief Whether this client wants to receive stream updates.
+   * Either #GNUNET_YES or #GNUNET_NO
+   */
+  int8_t stream_update;
 
   /**
    * The client handle to send the reply to
@@ -1794,11 +1799,6 @@ struct ClientContext *cli_ctx_tail;
 static struct RPS_Sampler *prot_sampler;
 
 /**
- * Sampler used for the clients.
- */
-static struct RPS_Sampler *client_sampler;
-
-/**
  * Name to log view to
  */
 static const char *file_name_view_log;
@@ -1819,12 +1819,6 @@ static uint32_t num_observed_peers;
  */
 static struct GNUNET_CONTAINER_MultiPeerMap *observed_unique_peers;
 #endif /* TO_FILE */
-
-/**
- * The size of sampler we need to be able to satisfy the client's need
- * of random peers.
- */
-static unsigned int sampler_size_client_need;
 
 /**
  * The size of sampler we need to be able to satisfy the Brahms protocol's
@@ -1911,38 +1905,6 @@ static struct GNUNET_PEERINFO_Handle *peerinfo_handle;
  * Handle for cancellation of iteration over peers.
  */
 static struct GNUNET_PEERINFO_NotifyContext *peerinfo_notify_handle;
-
-/**
- * Request counter.
- *
- * Counts how many requets clients already issued.
- * Only needed in the beginning to check how many of the 64 deltas
- * we already have
- */
-static unsigned int req_counter;
-
-/**
- * Time of the last request we received.
- *
- * Used to compute the expected request rate.
- */
-static struct GNUNET_TIME_Absolute last_request;
-
-/**
- * Size of #request_deltas.
- */
-#define REQUEST_DELTAS_SIZE 64
-static unsigned int request_deltas_size = REQUEST_DELTAS_SIZE;
-
-/**
- * Last 64 deltas between requests
- */
-static struct GNUNET_TIME_Relative request_deltas[REQUEST_DELTAS_SIZE];
-
-/**
- * The prediction of the rate of requests
- */
-static struct GNUNET_TIME_Relative request_rate;
 
 
 #ifdef ENABLE_MALICIOUS
@@ -2097,38 +2059,6 @@ rem_from_list (struct GNUNET_PeerIdentity **peer_list,
 
 
 /**
- * Sum all time relatives of an array.
- */
-static struct GNUNET_TIME_Relative
-T_relative_sum (const struct GNUNET_TIME_Relative *rel_array,
-		uint32_t arr_size)
-{
-  struct GNUNET_TIME_Relative sum;
-  uint32_t i;
-
-  sum = GNUNET_TIME_UNIT_ZERO;
-  for ( i = 0 ; i < arr_size ; i++ )
-  {
-    sum = GNUNET_TIME_relative_add (sum, rel_array[i]);
-  }
-  return sum;
-}
-
-
-/**
- * Compute the average of given time relatives.
- */
-static struct GNUNET_TIME_Relative
-T_relative_avg (const struct GNUNET_TIME_Relative *rel_array,
-		uint32_t arr_size)
-{
-  return GNUNET_TIME_relative_divide (T_relative_sum (rel_array,
-						      arr_size),
-				      arr_size);
-}
-
-
-/**
  * Insert PeerID in #view
  *
  * Called once we know a peer is live.
@@ -2170,26 +2100,159 @@ insert_in_view (const struct GNUNET_PeerIdentity *peer)
   return ret;
 }
 
+
+/**
+ * @brief Send view to client
+ *
+ * @param cli_ctx the context of the client
+ * @param view_array the peerids of the view as array (can be empty)
+ * @param view_size the size of the view array (can be 0)
+ */
+void
+send_view (const struct ClientContext *cli_ctx,
+           const struct GNUNET_PeerIdentity *view_array,
+           uint64_t view_size)
+{
+  struct GNUNET_MQ_Envelope *ev;
+  struct GNUNET_RPS_CS_DEBUG_ViewReply *out_msg;
+
+  if (NULL == view_array)
+  {
+    view_size = View_size ();
+    view_array = View_get_as_array();
+  }
+
+  ev = GNUNET_MQ_msg_extra (out_msg,
+                            view_size * sizeof (struct GNUNET_PeerIdentity),
+                            GNUNET_MESSAGE_TYPE_RPS_CS_DEBUG_VIEW_REPLY);
+  out_msg->num_peers = htonl (view_size);
+
+  GNUNET_memcpy (&out_msg[1],
+                 view_array,
+                 view_size * sizeof (struct GNUNET_PeerIdentity));
+  GNUNET_MQ_send (cli_ctx->mq, ev);
+}
+
+
+/**
+ * @brief Send peer from biased stream to client.
+ *
+ * TODO merge with send_view, parameterise
+ *
+ * @param cli_ctx the context of the client
+ * @param view_array the peerids of the view as array (can be empty)
+ * @param view_size the size of the view array (can be 0)
+ */
+void
+send_stream_peers (const struct ClientContext *cli_ctx,
+                   uint64_t num_peers,
+                   const struct GNUNET_PeerIdentity *peers)
+{
+  struct GNUNET_MQ_Envelope *ev;
+  struct GNUNET_RPS_CS_DEBUG_StreamReply *out_msg;
+
+  GNUNET_assert (NULL != peers);
+
+  ev = GNUNET_MQ_msg_extra (out_msg,
+                            num_peers * sizeof (struct GNUNET_PeerIdentity),
+                            GNUNET_MESSAGE_TYPE_RPS_CS_DEBUG_STREAM_REPLY);
+  out_msg->num_peers = htonl (num_peers);
+
+  GNUNET_memcpy (&out_msg[1],
+                 peers,
+                 num_peers * sizeof (struct GNUNET_PeerIdentity));
+  GNUNET_MQ_send (cli_ctx->mq, ev);
+}
+
+
 /**
  * @brief sends updates to clients that are interested
  */
 static void
-clients_notify_view_update (void);
+clients_notify_view_update (void)
+{
+  struct ClientContext *cli_ctx_iter;
+  uint64_t num_peers;
+  const struct GNUNET_PeerIdentity *view_array;
+
+  num_peers = View_size ();
+  view_array = View_get_as_array();
+  /* check size of view is small enough */
+  if (GNUNET_MAX_MESSAGE_SIZE < num_peers)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "View is too big to send\n");
+    return;
+  }
+
+  for (cli_ctx_iter = cli_ctx_head;
+       NULL != cli_ctx_iter;
+       cli_ctx_iter = cli_ctx_iter->next)
+  {
+    if (1 < cli_ctx_iter->view_updates_left)
+    {
+      /* Client wants to receive limited amount of updates */
+      cli_ctx_iter->view_updates_left -= 1;
+    } else if (1 == cli_ctx_iter->view_updates_left)
+    {
+      /* Last update of view for client */
+      cli_ctx_iter->view_updates_left = -1;
+    } else if (0 > cli_ctx_iter->view_updates_left) {
+      /* Client is not interested in updates */
+      continue;
+    }
+    /* else _updates_left == 0 - infinite amount of updates */
+
+    /* send view */
+    send_view (cli_ctx_iter, view_array, num_peers);
+  }
+}
+
+
+/**
+ * @brief sends updates to clients that are interested
+ */
+static void
+clients_notify_stream_peer (uint64_t num_peers,
+                            const struct GNUNET_PeerIdentity *peers)
+                            // TODO enum StreamPeerSource)
+{
+  struct ClientContext *cli_ctx_iter;
+
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+      "Got peer (%s) from biased stream - update all clients\n",
+      GNUNET_i2s (peers));
+
+  for (cli_ctx_iter = cli_ctx_head;
+       NULL != cli_ctx_iter;
+       cli_ctx_iter = cli_ctx_iter->next)
+  {
+    if (GNUNET_YES == cli_ctx_iter->stream_update)
+    {
+      send_stream_peers (cli_ctx_iter, num_peers, peers);
+    }
+  }
+}
 
 /**
  * Put random peer from sampler into the view as history update.
  */
 static void
-hist_update (void *cls,
-             struct GNUNET_PeerIdentity *ids,
-             uint32_t num_peers)
+hist_update (const struct GNUNET_PeerIdentity *ids,
+             uint32_t num_peers,
+             void *cls)
 {
   unsigned int i;
   (void) cls;
 
   for (i = 0; i < num_peers; i++)
   {
-    (void) insert_in_view (&ids[i]);
+    int inserted;
+    inserted = insert_in_view (&ids[i]);
+    if (GNUNET_OK == inserted)
+    {
+      clients_notify_stream_peer (1, &ids[i]);
+    }
     to_file (file_name_view_log,
              "+%s\t(hist)",
              GNUNET_i2s_full (ids));
@@ -2225,69 +2288,6 @@ resize_wrapper (struct RPS_Sampler *sampler, uint32_t new_size)
 
 
 /**
- * Wrapper around #RPS_sampler_resize() resizing the client sampler
- */
-static void
-client_resize_wrapper ()
-{
-  uint32_t bigger_size;
-
-  // TODO statistics
-
-  bigger_size = GNUNET_MAX (sampler_size_est_need, sampler_size_client_need);
-
-  // TODO respect the min, max
-  resize_wrapper (client_sampler, bigger_size);
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "sampler_size_client is now %" PRIu32 "\n",
-      bigger_size);
-}
-
-
-/**
- * Estimate request rate
- *
- * Called every time we receive a request from the client.
- */
-static void
-est_request_rate()
-{
-  struct GNUNET_TIME_Relative max_round_duration;
-
-  if (request_deltas_size > req_counter)
-    req_counter++;
-  if ( 1 < req_counter)
-  {
-    /* Shift last request deltas to the right */
-    memmove (&request_deltas[1],
-        request_deltas,
-        (req_counter - 1) * sizeof (struct GNUNET_TIME_Relative));
-
-    /* Add current delta to beginning */
-    request_deltas[0] =
-        GNUNET_TIME_absolute_get_difference (last_request,
-                                             GNUNET_TIME_absolute_get ());
-    request_rate = T_relative_avg (request_deltas, req_counter);
-    request_rate = (request_rate.rel_value_us < 1) ?
-      GNUNET_TIME_relative_get_unit_ () : request_rate;
-
-    /* Compute the duration a round will maximally take */
-    max_round_duration =
-        GNUNET_TIME_relative_add (round_interval,
-                                  GNUNET_TIME_relative_divide (round_interval, 2));
-
-    /* Set the estimated size the sampler has to have to
-     * satisfy the current client request rate */
-    sampler_size_client_need =
-        max_round_duration.rel_value_us / request_rate.rel_value_us;
-
-    /* Resize the sampler */
-    client_resize_wrapper ();
-  }
-  last_request = GNUNET_TIME_absolute_get ();
-}
-
-
-/**
  * Add all peers in @a peer_array to @a peer_map used as set.
  *
  * @param peer_array array containing the peers
@@ -2313,6 +2313,10 @@ add_peer_array_to_set (const struct GNUNET_PeerIdentity *peer_array,
                                        &peer_array[i],
                                        NULL,
                                        GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
+    GNUNET_STATISTICS_set (stats,
+                          "# known peers",
+                          GNUNET_CONTAINER_multipeermap_size (peer_map),
+                          GNUNET_NO);
   }
 }
 
@@ -2394,7 +2398,13 @@ insert_in_view_op (void *cls,
                    const struct GNUNET_PeerIdentity *peer)
 {
   (void) cls;
-  (void) insert_in_view (peer);
+  int inserted;
+
+  inserted = insert_in_view (peer);
+  if (GNUNET_OK == inserted)
+  {
+    clients_notify_stream_peer (1, peer);
+  }
 }
 
 
@@ -2411,7 +2421,6 @@ insert_in_sampler (void *cls,
        "Updating samplers with peer %s from insert_in_sampler()\n",
        GNUNET_i2s (peer));
   RPS_sampler_update (prot_sampler,   peer);
-  RPS_sampler_update (client_sampler, peer);
   if (0 < RPS_sampler_count_id (prot_sampler, peer))
   {
     /* Make sure we 'know' about this peer */
@@ -2504,7 +2513,6 @@ remove_peer (const struct GNUNET_PeerIdentity *peer)
   CustomPeerMap_remove_peer (pull_map, peer);
   CustomPeerMap_remove_peer (push_map, peer);
   RPS_sampler_reinitialise_by_value (prot_sampler, peer);
-  RPS_sampler_reinitialise_by_value (client_sampler, peer);
   destroy_peer (get_peer_ctx (peer));
 }
 
@@ -2537,7 +2545,6 @@ clean_peer (const struct GNUNET_PeerIdentity *peer)
        (GNUNET_NO == CustomPeerMap_contains_peer (push_map, peer)) &&
        (GNUNET_NO == CustomPeerMap_contains_peer (push_map, peer)) &&
        (0 == RPS_sampler_count_id (prot_sampler,   peer)) &&
-       (0 == RPS_sampler_count_id (client_sampler, peer)) &&
        (GNUNET_NO != check_removable (peer)) )
   { /* We can safely remove this peer */
     LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -2584,34 +2591,9 @@ cleanup_destroyed_channel (void *cls,
 ***********************************************************************/
 
 static void
-destroy_reply_cls (struct ReplyCls *rep_cls)
-{
-  struct ClientContext *cli_ctx;
-
-  cli_ctx = rep_cls->cli_ctx;
-  GNUNET_assert (NULL != cli_ctx);
-  if (NULL != rep_cls->req_handle)
-  {
-    RPS_sampler_request_cancel (rep_cls->req_handle);
-  }
-  GNUNET_CONTAINER_DLL_remove (cli_ctx->rep_cls_head,
-                               cli_ctx->rep_cls_tail,
-                               rep_cls);
-  GNUNET_free (rep_cls);
-}
-
-
-static void
 destroy_cli_ctx (struct ClientContext *cli_ctx)
 {
   GNUNET_assert (NULL != cli_ctx);
-  if (NULL != cli_ctx->rep_cls_head)
-  {
-    LOG (GNUNET_ERROR_TYPE_WARNING,
-         "Trying to destroy the context of a client that still has pending requests. Going to clean those\n");
-    while (NULL != cli_ctx->rep_cls_head)
-      destroy_reply_cls (cli_ctx->rep_cls_head);
-  }
   GNUNET_CONTAINER_DLL_remove (cli_ctx_head,
                                cli_ctx_tail,
                                cli_ctx);
@@ -2659,139 +2641,7 @@ nse_callback (void *cls,
 
   /* If the NSE has changed adapt the lists accordingly */
   resize_wrapper (prot_sampler, sampler_size_est_need);
-  client_resize_wrapper ();
   View_change_len (view_size_est_need);
-}
-
-
-/**
- * Callback called once the requested PeerIDs are ready.
- *
- * Sends those to the requesting client.
- */
-static void
-client_respond (void *cls,
-                struct GNUNET_PeerIdentity *peer_ids,
-                uint32_t num_peers)
-{
-  struct ReplyCls *reply_cls = cls;
-  uint32_t i;
-  struct GNUNET_MQ_Envelope *ev;
-  struct GNUNET_RPS_CS_ReplyMessage *out_msg;
-  uint32_t size_needed;
-  struct ClientContext *cli_ctx;
-
-  GNUNET_assert (NULL != reply_cls);
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "sampler returned %" PRIu32 " peers:\n",
-       num_peers);
-  for (i = 0; i < num_peers; i++)
-  {
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "  %" PRIu32 ": %s\n",
-         i,
-         GNUNET_i2s (&peer_ids[i]));
-  }
-
-  size_needed = sizeof (struct GNUNET_RPS_CS_ReplyMessage) +
-                num_peers * sizeof (struct GNUNET_PeerIdentity);
-
-  GNUNET_assert (GNUNET_MAX_MESSAGE_SIZE >= size_needed);
-
-  ev = GNUNET_MQ_msg_extra (out_msg,
-                            num_peers * sizeof (struct GNUNET_PeerIdentity),
-                            GNUNET_MESSAGE_TYPE_RPS_CS_REPLY);
-  out_msg->num_peers = htonl (num_peers);
-  out_msg->id = htonl (reply_cls->id);
-
-  GNUNET_memcpy (&out_msg[1],
-          peer_ids,
-          num_peers * sizeof (struct GNUNET_PeerIdentity));
-
-  cli_ctx = reply_cls->cli_ctx;
-  GNUNET_assert (NULL != cli_ctx);
-  reply_cls->req_handle = NULL;
-  destroy_reply_cls (reply_cls);
-  GNUNET_MQ_send (cli_ctx->mq, ev);
-}
-
-
-/**
- * Handle RPS request from the client.
- *
- * @param cls closure
- * @param message the actual message
- */
-static void
-handle_client_request (void *cls,
-                       const struct GNUNET_RPS_CS_RequestMessage *msg)
-{
-  struct ClientContext *cli_ctx = cls;
-  uint32_t num_peers;
-  uint32_t size_needed;
-  struct ReplyCls *reply_cls;
-  uint32_t i;
-
-  num_peers = ntohl (msg->num_peers);
-  size_needed = sizeof (struct GNUNET_RPS_CS_RequestMessage) +
-                num_peers * sizeof (struct GNUNET_PeerIdentity);
-
-  if (GNUNET_MAX_MESSAGE_SIZE < size_needed)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Message received from client has size larger than expected\n");
-    GNUNET_SERVICE_client_drop (cli_ctx->client);
-    return;
-  }
-
-  for (i = 0 ; i < num_peers ; i++)
-    est_request_rate();
-
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Client requested %" PRIu32 " random peer(s).\n",
-       num_peers);
-
-  reply_cls = GNUNET_new (struct ReplyCls);
-  reply_cls->id = ntohl (msg->id);
-  reply_cls->cli_ctx = cli_ctx;
-  reply_cls->req_handle = RPS_sampler_get_n_rand_peers (client_sampler,
-                                                        client_respond,
-                                                        reply_cls,
-                                                        num_peers);
-
-  GNUNET_assert (NULL != cli_ctx);
-  GNUNET_CONTAINER_DLL_insert (cli_ctx->rep_cls_head,
-                               cli_ctx->rep_cls_tail,
-                               reply_cls);
-  GNUNET_SERVICE_client_continue (cli_ctx->client);
-}
-
-
-/**
- * @brief Handle a message that requests the cancellation of a request
- *
- * @param cls unused
- * @param message the message containing the id of the request
- */
-static void
-handle_client_request_cancel (void *cls,
-                              const struct GNUNET_RPS_CS_RequestCancelMessage *msg)
-{
-  struct ClientContext *cli_ctx = cls;
-  struct ReplyCls *rep_cls;
-
-  GNUNET_assert (NULL != cli_ctx);
-  GNUNET_assert (NULL != cli_ctx->rep_cls_head);
-  rep_cls = cli_ctx->rep_cls_head;
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-      "Client cancels request with id %" PRIu32 "\n",
-      ntohl (msg->id));
-  while ( (NULL != rep_cls->next) &&
-          (rep_cls->id != ntohl (msg->id)) )
-    rep_cls = rep_cls->next;
-  GNUNET_assert (rep_cls->id == ntohl (msg->id));
-  destroy_reply_cls (rep_cls);
-  GNUNET_SERVICE_client_continue (cli_ctx->client);
 }
 
 
@@ -2856,87 +2706,12 @@ handle_client_seed (void *cls,
   GNUNET_SERVICE_client_continue (cli_ctx->client);
 }
 
-/**
- * @brief Send view to client
- *
- * @param cli_ctx the context of the client
- * @param view_array the peerids of the view as array (can be empty)
- * @param view_size the size of the view array (can be 0)
- */
-void
-send_view (const struct ClientContext *cli_ctx,
-           const struct GNUNET_PeerIdentity *view_array,
-           uint64_t view_size)
-{
-  struct GNUNET_MQ_Envelope *ev;
-  struct GNUNET_RPS_CS_DEBUG_ViewReply *out_msg;
-
-  if (NULL == view_array)
-  {
-    view_size = View_size ();
-    view_array = View_get_as_array();
-  }
-
-  ev = GNUNET_MQ_msg_extra (out_msg,
-                            view_size * sizeof (struct GNUNET_PeerIdentity),
-                            GNUNET_MESSAGE_TYPE_RPS_CS_DEBUG_VIEW_REPLY);
-  out_msg->num_peers = htonl (view_size);
-
-  GNUNET_memcpy (&out_msg[1],
-          view_array,
-          view_size * sizeof (struct GNUNET_PeerIdentity));
-  GNUNET_MQ_send (cli_ctx->mq, ev);
-}
-
-/**
- * @brief sends updates to clients that are interested
- */
-static void
-clients_notify_view_update (void)
-{
-  struct ClientContext *cli_ctx_iter;
-  uint64_t num_peers;
-  const struct GNUNET_PeerIdentity *view_array;
-
-  num_peers = View_size ();
-  view_array = View_get_as_array();
-  /* check size of view is small enough */
-  if (GNUNET_MAX_MESSAGE_SIZE < num_peers)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "View is too big to send\n");
-    return;
-  }
-
-  for (cli_ctx_iter = cli_ctx_head;
-       NULL != cli_ctx_iter;
-       cli_ctx_iter = cli_ctx_head->next)
-  {
-    if (1 < cli_ctx_iter->view_updates_left)
-    {
-      /* Client wants to receive limited amount of updates */
-      cli_ctx_iter->view_updates_left -= 1;
-    } else if (1 == cli_ctx_iter->view_updates_left)
-    {
-      /* Last update of view for client */
-      cli_ctx_iter->view_updates_left = -1;
-    } else if (0 > cli_ctx_iter->view_updates_left) {
-      /* Client is not interested in updates */
-      continue;
-    }
-    /* else _updates_left == 0 - infinite amount of updates */
-
-    /* send view */
-    send_view (cli_ctx_iter, view_array, num_peers);
-  }
-}
-
 
 /**
  * Handle RPS request from the client.
  *
- * @param cls closure
- * @param message the actual message
+ * @param cls Client context
+ * @param message unused
  */
 static void
 handle_client_view_request (void *cls,
@@ -2955,6 +2730,80 @@ handle_client_view_request (void *cls,
   cli_ctx->view_updates_left = num_updates;
   send_view (cli_ctx, NULL, 0);
   GNUNET_SERVICE_client_continue (cli_ctx->client);
+}
+
+
+/**
+ * @brief Handle the cancellation of the view updates.
+ *
+ * @param cls The client context
+ * @param msg Unused
+ */
+static void
+handle_client_view_cancel (void *cls,
+                           const struct GNUNET_MessageHeader *msg)
+{
+  struct ClientContext *cli_ctx = cls;
+  (void) msg;
+
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Client does not want to receive updates of view any more.\n");
+
+  GNUNET_assert (NULL != cli_ctx);
+  cli_ctx->view_updates_left = 0;
+  GNUNET_SERVICE_client_continue (cli_ctx->client);
+  if (GNUNET_YES == cli_ctx->stream_update)
+  {
+    destroy_cli_ctx (cli_ctx);
+  }
+}
+
+
+/**
+ * Handle RPS request for biased stream from the client.
+ *
+ * @param cls Client context
+ * @param message unused
+ */
+static void
+handle_client_stream_request (void *cls,
+                              const struct GNUNET_RPS_CS_DEBUG_StreamRequest *msg)
+{
+  struct ClientContext *cli_ctx = cls;
+  (void) msg;
+
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Client requested peers from biased stream.\n");
+  cli_ctx->stream_update = GNUNET_YES;
+
+  GNUNET_assert (NULL != cli_ctx);
+  GNUNET_SERVICE_client_continue (cli_ctx->client);
+}
+
+
+/**
+ * @brief Handles the cancellation of the stream of biased peer ids
+ *
+ * @param cls The client context
+ * @param msg unused
+ */
+static void
+handle_client_stream_cancel (void *cls,
+                             const struct GNUNET_MessageHeader *msg)
+{
+  struct ClientContext *cli_ctx = cls;
+  (void) msg;
+
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Client requested peers from biased stream.\n");
+  cli_ctx->stream_update = GNUNET_NO;
+
+  GNUNET_assert (NULL != cli_ctx);
+  GNUNET_SERVICE_client_continue (cli_ctx->client);
+  if (0 == cli_ctx->view_updates_left)
+  {
+    destroy_cli_ctx (cli_ctx);
+  }
 }
 
 
@@ -3723,8 +3572,14 @@ do_round (void *cls)
                                            CustomPeerMap_size (push_map));
     for (i = 0; i < first_border; i++)
     {
-      (void) insert_in_view (CustomPeerMap_get_peer_by_index (push_map,
-                                                              permut[i]));
+      int inserted;
+      inserted = insert_in_view (CustomPeerMap_get_peer_by_index (push_map,
+                                                                  permut[i]));
+      if (GNUNET_OK == inserted)
+      {
+        clients_notify_stream_peer (1,
+            CustomPeerMap_get_peer_by_index (push_map, permut[i]));
+      }
       to_file (file_name_view_log,
                "+%s\t(push list)",
                GNUNET_i2s_full (&view_array[i]));
@@ -3738,8 +3593,15 @@ do_round (void *cls)
                                            CustomPeerMap_size (pull_map));
     for (i = first_border; i < second_border; i++)
     {
-      (void) insert_in_view (CustomPeerMap_get_peer_by_index (pull_map,
+      int inserted;
+      inserted = insert_in_view (CustomPeerMap_get_peer_by_index (pull_map,
             permut[i - first_border]));
+      if (GNUNET_OK == inserted)
+      {
+        clients_notify_stream_peer (1,
+            CustomPeerMap_get_peer_by_index (pull_map,
+                                             permut[i - first_border]));
+      }
       to_file (file_name_view_log,
                "+%s\t(pull list)",
                GNUNET_i2s_full (&view_array[i]));
@@ -3750,9 +3612,9 @@ do_round (void *cls)
 
     /* Update view with peers from history */
     RPS_sampler_get_n_rand_peers (prot_sampler,
+                                  final_size - second_border,
                                   hist_update,
-                                  NULL,
-                                  final_size - second_border);
+                                  NULL);
     // TODO change the peer_flags accordingly
 
     for (i = 0; i < View_size (); i++)
@@ -3946,7 +3808,6 @@ static void
 shutdown_task (void *cls)
 {
   struct ClientContext *client_ctx;
-  struct ReplyCls *reply_cls;
   (void) cls;
 
   in_shutdown = GNUNET_YES;
@@ -3959,21 +3820,7 @@ shutdown_task (void *cls)
        NULL != cli_ctx_head;
        client_ctx = cli_ctx_head)
   {
-    /* Clean pending requests to the sampler */
-    for (reply_cls = client_ctx->rep_cls_head;
-         NULL != client_ctx->rep_cls_head;
-         reply_cls = client_ctx->rep_cls_head)
-    {
-      RPS_sampler_request_cancel (reply_cls->req_handle);
-      GNUNET_CONTAINER_DLL_remove (client_ctx->rep_cls_head,
-                                   client_ctx->rep_cls_tail,
-                                   reply_cls);
-      GNUNET_free (reply_cls);
-    }
-    GNUNET_CONTAINER_DLL_remove (cli_ctx_head,
-                                 cli_ctx_tail,
-                                 client_ctx);
-    GNUNET_free (client_ctx);
+    destroy_cli_ctx (client_ctx);
   }
   GNUNET_PEERINFO_notify_cancel (peerinfo_notify_handle);
   GNUNET_PEERINFO_disconnect (peerinfo_handle);
@@ -3988,7 +3835,6 @@ shutdown_task (void *cls)
 
   GNUNET_NSE_disconnect (nse);
   RPS_sampler_destroy (prot_sampler);
-  RPS_sampler_destroy (client_sampler);
   GNUNET_CADET_close_port (cadet_port);
   GNUNET_CADET_disconnect (cadet_handle);
   cadet_handle = NULL;
@@ -4051,6 +3897,7 @@ client_connect_cb (void *cls,
   cli_ctx = GNUNET_new (struct ClientContext);
   cli_ctx->mq = mq;
   cli_ctx->view_updates_left = -1;
+  cli_ctx->stream_update = GNUNET_NO;
   cli_ctx->client = client;
   GNUNET_CONTAINER_DLL_insert (cli_ctx_head,
                                cli_ctx_tail,
@@ -4230,7 +4077,6 @@ run (void *cls,
   max_round_interval = GNUNET_TIME_relative_add (round_interval, half_round_interval);
 
   prot_sampler =   RPS_sampler_init     (sampler_size_est_need, max_round_interval);
-  client_sampler = RPS_sampler_mod_init (sampler_size_est_need, max_round_interval);
 
   /* Initialise push and pull maps */
   push_map = CustomPeerMap_create (4);
@@ -4270,14 +4116,6 @@ GNUNET_SERVICE_MAIN
  &client_connect_cb,
  &client_disconnect_cb,
  NULL,
- GNUNET_MQ_hd_fixed_size (client_request,
-   GNUNET_MESSAGE_TYPE_RPS_CS_REQUEST,
-   struct GNUNET_RPS_CS_RequestMessage,
-   NULL),
- GNUNET_MQ_hd_fixed_size (client_request_cancel,
-   GNUNET_MESSAGE_TYPE_RPS_CS_REQUEST_CANCEL,
-   struct GNUNET_RPS_CS_RequestCancelMessage,
-   NULL),
  GNUNET_MQ_hd_var_size (client_seed,
    GNUNET_MESSAGE_TYPE_RPS_CS_SEED,
    struct GNUNET_RPS_CS_SeedMessage,
@@ -4291,6 +4129,18 @@ GNUNET_SERVICE_MAIN
  GNUNET_MQ_hd_fixed_size (client_view_request,
    GNUNET_MESSAGE_TYPE_RPS_CS_DEBUG_VIEW_REQUEST,
    struct GNUNET_RPS_CS_DEBUG_ViewRequest,
+   NULL),
+ GNUNET_MQ_hd_fixed_size (client_view_cancel,
+   GNUNET_MESSAGE_TYPE_RPS_CS_DEBUG_VIEW_CANCEL,
+   struct GNUNET_MessageHeader,
+   NULL),
+ GNUNET_MQ_hd_fixed_size (client_stream_request,
+   GNUNET_MESSAGE_TYPE_RPS_CS_DEBUG_STREAM_REQUEST,
+   struct GNUNET_RPS_CS_DEBUG_StreamRequest,
+   NULL),
+ GNUNET_MQ_hd_fixed_size (client_stream_cancel,
+   GNUNET_MESSAGE_TYPE_RPS_CS_DEBUG_STREAM_CANCEL,
+   struct GNUNET_MessageHeader,
    NULL),
  GNUNET_MQ_handler_end());
 
