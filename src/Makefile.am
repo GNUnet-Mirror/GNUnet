@@ -126,9 +126,9 @@ SUBDIRS = \
   exit \
   pt \
   secretsharing \
+	$(EXP_DIR) \
   $(JSON_DIR) \
   $(REST_DIR) \
   integration-tests \
-  $(EXP_DIR)
 
 endif
