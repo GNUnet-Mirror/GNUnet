@@ -66,7 +66,7 @@ endif
 
 if HAVE_MHD
 if HAVE_JSON
- REST_DIR = rest jsonapi rest-plugins
+ REST_DIR = rest rest-plugins
 endif
 endif
 

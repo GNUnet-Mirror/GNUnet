@@ -25,8 +25,24 @@ plugin_LTLIBRARIES = \
   libgnunet_plugin_rest_gns.la \
 	libgnunet_plugin_rest_credential.la
 if HAVE_ABE
-plugin_LTLIBRARIES += libgnunet_plugin_rest_openid_connect.la
+plugin_LTLIBRARIES += libgnunet_plugin_rest_openid_connect.la \
+											libgnunet_plugin_rest_reclaim.la
 endif
+
+libgnunet_plugin_rest_reclaim_la_SOURCES = \
+  plugin_rest_reclaim.c \
+	json_reclaim.c
+libgnunet_plugin_rest_reclaim_la_LIBADD = \
+  $(top_builddir)/src/identity/libgnunetidentity.la \
+  $(top_builddir)/src/reclaim/libgnunetreclaim.la \
+  $(top_builddir)/src/rest/libgnunetrest.la \
+  $(top_builddir)/src/reclaim-attribute/libgnunetreclaimattribute.la \
+  $(top_builddir)/src/namestore/libgnunetnamestore.la \
+  $(top_builddir)/src/util/libgnunetutil.la $(XLIBS) \
+  $(LTLIBINTL) -ljansson -lmicrohttpd
+libgnunet_plugin_rest_reclaim_la_LDFLAGS = \
+ i$(GN_PLUGIN_LDFLAGS)
+
 
 libgnunet_plugin_rest_credential_la_SOURCES = \
   plugin_rest_credential.c
@@ -40,9 +56,6 @@ libgnunet_plugin_rest_credential_la_LIBADD = \
   $(LTLIBINTL) -ljansson -lmicrohttpd
 libgnunet_plugin_rest_credential_la_LDFLAGS = \
  $(GN_PLUGIN_LDFLAGS)
-
-
-
 
 libgnunet_plugin_rest_copying_la_SOURCES = \
   plugin_rest_copying.c
