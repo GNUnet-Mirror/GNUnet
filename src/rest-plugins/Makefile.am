@@ -22,8 +22,7 @@ plugin_LTLIBRARIES = \
 	libgnunet_plugin_rest_peerinfo.la \
 	libgnunet_plugin_rest_identity.la \
 	libgnunet_plugin_rest_namestore.la \
-  libgnunet_plugin_rest_gns.la \
-	libgnunet_plugin_rest_credential.la
+  libgnunet_plugin_rest_gns.la 
 if HAVE_ABE
 plugin_LTLIBRARIES += libgnunet_plugin_rest_openid_connect.la \
 											libgnunet_plugin_rest_reclaim.la
