@@ -88,4 +88,11 @@ END {
   if (total_ops) {
     print "total_ops_ms", total_ops;
   }
+
+  # Invoke awk with -V baseline_out=<filename> to extract baseline average
+  if (baseline_out) {
+    for (x in op) {
+      print "op_baseline", x, "time_avg_us", avg(op[x]["time_us"], op[x]["count"]) > baseline_out
+    }
+  }
 }
