@@ -44,7 +44,6 @@ parse_attr (void *cls,
   const char* name_str;
   const char* val_str;
   const char* type_str;
-  const char* exp_str;
   char *data;
   int unpack_state;
   uint32_t type;
@@ -60,11 +59,10 @@ parse_attr (void *cls,
   }
   //interpret single attribute
   unpack_state = json_unpack(root,
-                             "{s:s, s:s, s:s, s:s!}",
+                             "{s:s, s:s, s:s!}",
                              "name", &name_str,
                              "type", &type_str,
-                             "value", &val_str,
-                             "exp", &exp_str);
+                             "value", &val_str);
   if (0 != unpack_state)
   {
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
