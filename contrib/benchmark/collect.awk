@@ -40,6 +40,7 @@ function abs(v) {
     if (n > 0) {
       op[$2]["time_us_sq"] += n * (t/n) * (t/n);
     }
+    total_ops += t;
   } else if ($1 == "url") {
     n = $6;
     t = $8;
@@ -83,5 +84,8 @@ END {
             "stdev", stdev(url[x][y]["time_us"], url[x][y]["time_us_sq"], url[x][y]["count"]), \
             "time_us_max", url[x][y]["time_us_max"];
     }
+  }
+  if (total_ops) {
+    print "total_ops_ms", total_ops;
   }
 }
