@@ -128,7 +128,7 @@
 /**
  * OIDC cookie header information key
  */
-#define OIDC_AUTHORIZATION_HEADER_KEY "authorization"
+#define OIDC_AUTHORIZATION_HEADER_KEY "Authorization"
 
 /**
  * OIDC cookie header information key
