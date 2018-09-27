@@ -442,7 +442,6 @@ ticket_collect (void *cls,
                        "issuer",
                        value);
   GNUNET_free (tmp);
-  json_decref (value);
   tmp = GNUNET_STRINGS_data_to_string_alloc (&ticket->audience,
                                              sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey));
   value = json_string (tmp);
@@ -450,7 +449,6 @@ ticket_collect (void *cls,
                        "audience",
                        value);
   GNUNET_free (tmp);
-  json_decref (value);
   tmp = GNUNET_STRINGS_data_to_string_alloc (&ticket->rnd,
                                              sizeof (uint64_t));
   value = json_string (tmp);
@@ -458,7 +456,6 @@ ticket_collect (void *cls,
                        "rnd",
                        value);
   GNUNET_free (tmp);
-  json_decref (value);
   GNUNET_RECLAIM_ticket_iteration_next (handle->ticket_it);
 }
 
