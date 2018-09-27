@@ -105,6 +105,6 @@ END {
     for (x in op) {
       total_ops_adjusted += op_baseline[x] * op[x]["count"];
     }
-    print "total_ops_adjusted_ms", total_ops_adjusted;
+    print "total_ops_adjusted_ms", int(total_ops_adjusted);
   }
 }
