@@ -51,6 +51,11 @@ function abs(v) {
     }
     max = url[$2][$4]["time_us_max"];
     url[$2][$4]["time_us_max"] = (t/n > max ? t/n : max)
+  } else if ($1 == "op_baseline") {
+    # take average time for operations from baseline values with format:
+    # op_baseline <opname> time_avg_us <t>
+    op_baseline[$2] = $4;
+    have_baseline = 1;
   }
 }
 
@@ -93,6 +98,15 @@ END {
   if (baseline_out) {
     for (x in op) {
       print "op_baseline", x, "time_avg_us", avg(op[x]["time_us"], op[x]["count"]) > baseline_out
+    }
+  }
+
+  if (have_baseline) {
+    for (x in op) {
+      total_ops_adjusted[x] = op_baseline[x] * op[x]["count"];
+    }
+    for (x in op) {
+      print "total_ops_adjusted_ms", total_ops_adjusted[x];
     }
   }
 }
