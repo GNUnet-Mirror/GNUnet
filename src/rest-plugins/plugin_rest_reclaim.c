@@ -587,6 +587,7 @@ add_attribute_cont (struct GNUNET_REST_RequestHandle *con_handle,
     return;
   }
   handle->idp = GNUNET_RECLAIM_connect (cfg);
+  exp = GNUNET_TIME_UNIT_HOURS;
   handle->idp_op = GNUNET_RECLAIM_attribute_store (handle->idp,
                                                    identity_priv,
                                                    attribute,

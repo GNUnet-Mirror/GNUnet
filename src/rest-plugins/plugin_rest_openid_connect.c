@@ -1381,7 +1381,6 @@ check_authorization (struct RequestHandle *handle,
   if (0 != strcmp ("Basic", credentials))
   {
     handle->emsg=GNUNET_strdup("invalid_client");
-    handle->edesc = GNUNET_strdup ("1");
     handle->response_code = MHD_HTTP_UNAUTHORIZED;
     return GNUNET_SYSERR;
   }
@@ -1389,7 +1388,6 @@ check_authorization (struct RequestHandle *handle,
   if (NULL == credentials)
   {
     handle->emsg=GNUNET_strdup("invalid_client");
-    handle->edesc = GNUNET_strdup ("2");
     handle->response_code = MHD_HTTP_UNAUTHORIZED;
     return GNUNET_SYSERR;
   }
@@ -1408,7 +1406,6 @@ check_authorization (struct RequestHandle *handle,
   {
     GNUNET_free_non_null(basic_authorization);
     handle->emsg=GNUNET_strdup("invalid_client");
-    handle->edesc = GNUNET_strdup ("Wrong username");
     handle->response_code = MHD_HTTP_UNAUTHORIZED;
     return GNUNET_SYSERR;
   }
@@ -1417,7 +1414,6 @@ check_authorization (struct RequestHandle *handle,
   {
     GNUNET_free_non_null(basic_authorization);
     handle->emsg=GNUNET_strdup("invalid_client");
-    handle->edesc = GNUNET_strdup (client_id);
     handle->response_code = MHD_HTTP_UNAUTHORIZED;
     return GNUNET_SYSERR;
   }
@@ -1431,7 +1427,6 @@ check_authorization (struct RequestHandle *handle,
     {
       GNUNET_free_non_null(basic_authorization);
       GNUNET_free(expected_pass);
-      handle->edesc = GNUNET_strdup (pass);
       handle->emsg=GNUNET_strdup("invalid_client");
       handle->response_code = MHD_HTTP_UNAUTHORIZED;
       return GNUNET_SYSERR;
