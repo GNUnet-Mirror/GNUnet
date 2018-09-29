@@ -1205,6 +1205,33 @@ build_authz_response (void *cls)
 }
 
 /**
+ * Iterate over tlds in config
+ */
+static void
+tld_iter (void *cls,
+          const char *section,
+          const char *option,
+          const char *value)
+{
+  struct RequestHandle *handle = cls;
+  struct GNUNET_CRYPTO_EcdsaPublicKey pkey;
+
+  if (GNUNET_OK !=
+      GNUNET_CRYPTO_ecdsa_public_key_from_string (value,
+                                                  strlen (value),
+                                                  &pkey))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Skipping non key %s\n",
+                value);
+    return;
+  }
+  if ( 0 == memcmp (&pkey, &handle->oidc->client_pkey,
+                    sizeof(struct GNUNET_CRYPTO_EcdsaPublicKey)) )
+    handle->tld = GNUNET_strdup (option+1);
+}
+
+/**
  * Responds to authorization GET and url-encoded POST request
  *
  * @param con_handle the connection handle
@@ -1287,7 +1314,14 @@ authorize_endpoint (struct GNUNET_REST_RequestHandle *con_handle,
       handle->tld = GNUNET_strdup (tmp_ego->identifier);
       handle->ego_entry = handle->ego_tail;
     }
-  } 
+  }
+  if (NULL == handle->tld)
+    GNUNET_CONFIGURATION_iterate_section_values (cfg,
+                                                 "gns",
+                                                 tld_iter,
+                                                 handle);
+  if (NULL == handle->tld)
+    handle->tld = GNUNET_strdup (tmp_ego->keystring);
   GNUNET_SCHEDULER_add_now (&build_authz_response, handle);
 }
 
