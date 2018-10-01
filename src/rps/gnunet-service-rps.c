@@ -386,6 +386,11 @@ struct SubSampler
   unsigned int view_size_est_min;
 
   /**
+   * @brief The view.
+   */
+  struct View *view;
+
+  /**
    * Identifier for the main task that runs periodically.
    */
   struct GNUNET_SCHEDULER_Task *do_round_task;
@@ -2092,8 +2097,8 @@ insert_in_view (const struct GNUNET_PeerIdentity *peer)
   }
   /* Open channel towards peer to keep connection open */
   indicate_sending_intention (peer);
-  ret = View_put (peer);
-  GNUNET_STATISTICS_set (stats, "view size", View_size(), GNUNET_NO);
+  ret = View_put (mss->view, peer);
+  GNUNET_STATISTICS_set (stats, "view size", View_size(mss->view), GNUNET_NO);
   return ret;
 }
 
@@ -2115,8 +2120,8 @@ send_view (const struct ClientContext *cli_ctx,
 
   if (NULL == view_array)
   {
-    view_size = View_size ();
-    view_array = View_get_as_array();
+    view_size = View_size (mss->view);
+    view_array = View_get_as_array(mss->view);
   }
 
   ev = GNUNET_MQ_msg_extra (out_msg,
@@ -2172,8 +2177,8 @@ clients_notify_view_update (void)
   uint64_t num_peers;
   const struct GNUNET_PeerIdentity *view_array;
 
-  num_peers = View_size ();
-  view_array = View_get_as_array();
+  num_peers = View_size (mss->view);
+  view_array = View_get_as_array(mss->view);
   /* check size of view is small enough */
   if (GNUNET_MAX_MESSAGE_SIZE < num_peers)
   {
@@ -2485,7 +2490,7 @@ check_sending_channel_needed (const struct GNUNET_PeerIdentity *peer)
   if (GNUNET_YES == check_sending_channel_exists (peer))
   {
     if ( (0 < RPS_sampler_count_id (mss->sampler, peer)) ||
-         (GNUNET_YES == View_contains_peer (peer)) ||
+         (GNUNET_YES == View_contains_peer (mss->view, peer)) ||
          (GNUNET_YES == CustomPeerMap_contains_peer (mss->push_map, peer)) ||
          (GNUNET_YES == CustomPeerMap_contains_peer (mss->pull_map, peer)) ||
          (GNUNET_YES == check_peer_flag (peer, Peers_PULL_REPLY_PENDING)))
@@ -2506,7 +2511,7 @@ check_sending_channel_needed (const struct GNUNET_PeerIdentity *peer)
 static void
 remove_peer (const struct GNUNET_PeerIdentity *peer)
 {
-  (void) View_remove_peer (peer);
+  (void) View_remove_peer (mss->view, peer);
   CustomPeerMap_remove_peer (mss->pull_map, peer);
   CustomPeerMap_remove_peer (mss->push_map, peer);
   RPS_sampler_reinitialise_by_value (mss->sampler, peer);
@@ -2538,7 +2543,7 @@ clean_peer (const struct GNUNET_PeerIdentity *peer)
   }
 
   if ( (GNUNET_NO == check_peer_send_intention (peer)) &&
-       (GNUNET_NO == View_contains_peer (peer)) &&
+       (GNUNET_NO == View_contains_peer (mss->view, peer)) &&
        (GNUNET_NO == CustomPeerMap_contains_peer (mss->push_map, peer)) &&
        (GNUNET_NO == CustomPeerMap_contains_peer (mss->push_map, peer)) &&
        (0 == RPS_sampler_count_id (mss->sampler,   peer)) &&
@@ -2682,7 +2687,7 @@ new_subsampler (const char *shared_value,
   ss->push_map = CustomPeerMap_create (4);
   ss->pull_map = CustomPeerMap_create (4);
   ss->view_size_est_min = sampler_size;;
-  View_create (ss->view_size_est_min);
+  ss->view = View_create (ss->view_size_est_min);
   GNUNET_STATISTICS_set (stats,
                          "view size aim",
                          ss->view_size_est_min,
@@ -2748,7 +2753,7 @@ nse_callback (void *cls,
 
   /* If the NSE has changed adapt the lists accordingly */
   resize_wrapper (mss->sampler, mss->sampler_size_est_need);
-  View_change_len (mss->view_size_est_need);
+  View_change_len (mss->view, mss->view_size_est_need);
 }
 
 
@@ -3043,8 +3048,8 @@ handle_peer_pull_request (void *cls,
 
   GNUNET_break_op (check_peer_known (peer));
   GNUNET_CADET_receive_done (channel_ctx->channel);
-  view_array = View_get_as_array ();
-  send_pull_reply (peer, view_array, View_size ());
+  view_array = View_get_as_array (mss->view);
+  send_pull_reply (peer, view_array, View_size (mss->view));
 }
 
 
@@ -3579,8 +3584,8 @@ do_round (void *cls)
        "Printing view:\n");
   to_file (mss->file_name_view_log,
            "___ new round ___");
-  view_array = View_get_as_array ();
-  for (i = 0; i < View_size (); i++)
+  view_array = View_get_as_array (mss->view);
+  for (i = 0; i < View_size (mss->view); i++)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "\t%s\n", GNUNET_i2s (&view_array[i]));
@@ -3591,17 +3596,17 @@ do_round (void *cls)
 
 
   /* Send pushes and pull requests */
-  if (0 < View_size ())
+  if (0 < View_size (mss->view))
   {
     permut = GNUNET_CRYPTO_random_permute (GNUNET_CRYPTO_QUALITY_STRONG,
-                                           View_size ());
+                                           View_size (mss->view));
 
     /* Send PUSHes */
-    a_peers = ceil (alpha * View_size ());
+    a_peers = ceil (alpha * View_size (mss->view));
 
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Going to send pushes to %u (ceil (%f * %u)) peers.\n",
-         a_peers, alpha, View_size ());
+         a_peers, alpha, View_size (mss->view));
     for (i = 0; i < a_peers; i++)
     {
       peer = view_array[permut[i]];
@@ -3610,17 +3615,17 @@ do_round (void *cls)
     }
 
     /* Send PULL requests */
-    b_peers = ceil (beta * View_size ());
+    b_peers = ceil (beta * View_size (mss->view));
     first_border = a_peers;
     second_border = a_peers + b_peers;
-    if (second_border > View_size ())
+    if (second_border > View_size (mss->view))
     {
-      first_border = View_size () - b_peers;
-      second_border = View_size ();
+      first_border = View_size (mss->view) - b_peers;
+      second_border = View_size (mss->view);
     }
     LOG (GNUNET_ERROR_TYPE_DEBUG,
         "Going to send pulls to %u (ceil (%f * %u)) peers.\n",
-        b_peers, beta, View_size ());
+        b_peers, beta, View_size (mss->view));
     for (i = first_border; i < second_border; i++)
     {
       peer = view_array[permut[i]];
@@ -3651,13 +3656,15 @@ do_round (void *cls)
 
     peers_to_clean = NULL;
     peers_to_clean_size = 0;
-    GNUNET_array_grow (peers_to_clean, peers_to_clean_size, View_size ());
+    GNUNET_array_grow (peers_to_clean,
+                       peers_to_clean_size,
+                       View_size (mss->view));
     GNUNET_memcpy (peers_to_clean,
             view_array,
-            View_size () * sizeof (struct GNUNET_PeerIdentity));
+            View_size (mss->view) * sizeof (struct GNUNET_PeerIdentity));
 
     /* Seems like recreating is the easiest way of emptying the peermap */
-    View_clear ();
+    View_clear (mss->view);
     to_file (mss->file_name_view_log,
              "--- emptied ---");
 
@@ -3724,7 +3731,7 @@ do_round (void *cls)
                                   NULL);
     // TODO change the peer_flags accordingly
 
-    for (i = 0; i < View_size (); i++)
+    for (i = 0; i < View_size (mss->view); i++)
       rem_from_list (&peers_to_clean, &peers_to_clean_size, &view_array[i]);
 
     /* Clean peers that were removed from the view */
@@ -3741,10 +3748,10 @@ do_round (void *cls)
   } else {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "No update of the view.\n");
     GNUNET_STATISTICS_update(stats, "# rounds blocked", 1, GNUNET_NO);
-    if (CustomPeerMap_size (mss->push_map) > alpha * View_size () &&
+    if (CustomPeerMap_size (mss->push_map) > alpha * View_size (mss->view) &&
         !(0 >= CustomPeerMap_size (mss->pull_map)))
       GNUNET_STATISTICS_update(stats, "# rounds blocked - too many pushes", 1, GNUNET_NO);
-    if (CustomPeerMap_size (mss->push_map) > alpha * View_size () &&
+    if (CustomPeerMap_size (mss->push_map) > alpha * View_size (mss->view) &&
         (0 >= CustomPeerMap_size (mss->pull_map)))
       GNUNET_STATISTICS_update(stats, "# rounds blocked - too many pushes, no pull replies", 1, GNUNET_NO);
     if (0 >= CustomPeerMap_size (mss->push_map) &&
@@ -3754,7 +3761,7 @@ do_round (void *cls)
         (0 >= CustomPeerMap_size (mss->pull_map)))
       GNUNET_STATISTICS_update(stats, "# rounds blocked - no pushes, no pull replies", 1, GNUNET_NO);
     if (0 >= CustomPeerMap_size (mss->pull_map) &&
-        CustomPeerMap_size (mss->push_map) > alpha * View_size () &&
+        CustomPeerMap_size (mss->push_map) > alpha * View_size (mss->view) &&
         0 >= CustomPeerMap_size (mss->push_map))
       GNUNET_STATISTICS_update(stats, "# rounds blocked - no pull replies", 1, GNUNET_NO);
   }
@@ -3769,16 +3776,16 @@ do_round (void *cls)
       GNUNET_NO);
   GNUNET_STATISTICS_set (stats,
       "# peers in view at end of round",
-      View_size (),
+      View_size (mss->view),
       GNUNET_NO);
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Received %u pushes and %u pulls last round (alpha (%.2f) * view_size (%u) = %.2f)\n",
+       "Received %u pushes and %u pulls last round (alpha (%.2f) * view_size (mss->view%u) = %.2f)\n",
        CustomPeerMap_size (mss->push_map),
        CustomPeerMap_size (mss->pull_map),
        alpha,
-       View_size (),
-       alpha * View_size ());
+       View_size (mss->view),
+       alpha * View_size (mss->view));
 
   /* Update samplers */
   for (i = 0; i < CustomPeerMap_size (mss->push_map); i++)
@@ -3808,7 +3815,7 @@ do_round (void *cls)
 
   GNUNET_STATISTICS_set (stats,
                          "view size",
-                         View_size(),
+                         View_size(mss->view),
                          GNUNET_NO);
 
   struct GNUNET_TIME_Relative time_next_round;
@@ -3943,7 +3950,7 @@ shutdown_task (void *cls)
   GNUNET_CADET_close_port (mss->cadet_port);
   GNUNET_CADET_disconnect (mss->cadet_handle);
   mss->cadet_handle = NULL;
-  View_destroy ();
+  View_destroy (mss->view);
   CustomPeerMap_destroy (mss->push_map);
   CustomPeerMap_destroy (mss->pull_map);
   if (NULL != stats)
