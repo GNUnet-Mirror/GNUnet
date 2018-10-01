@@ -648,7 +648,7 @@ return_userinfo_response (void *cls)
 }
 
 /**
- * Returns base64 encoded string without padding
+ * Returns base64 encoded string urlencoded
  *
  * @param string the string to encode
  * @return base64 encoded string
@@ -657,12 +657,27 @@ static char*
 base_64_encode(const char *s)
 {
   char *enc;
+  char *enc_urlencode;
   char *tmp;
+  int i;
+  int num_pads = 0;
 
   GNUNET_STRINGS_base64_encode(s, strlen(s), &enc);
-  tmp = strrchr (enc, '=');
-  *tmp = '\0';
-  return enc;
+  tmp = strchr (enc, '=');
+  num_pads = strlen (enc) - (tmp - enc);
+  GNUNET_assert ((3 > num_pads) && (0 <= num_pads));
+  if (0 == num_pads)
+    return enc;
+  enc_urlencode = GNUNET_malloc (strlen (enc) + num_pads*2);
+  strcpy (enc_urlencode, enc);
+  GNUNET_free (enc);
+  tmp = strchr (enc_urlencode, '=');
+  for (i = 0; i < num_pads; i++)
+  {
+    strcpy (tmp, "%3D"); //replace '=' with '%3D'
+    tmp += 3;
+  }
+  return enc_urlencode;
 }
 
 /**
