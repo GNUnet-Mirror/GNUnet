@@ -144,7 +144,7 @@ struct ChannelCtx;
  * This is stored in a multipeermap.
  * It contains information such as cadet channels, a message queue for sending,
  * status about the channels, the pending operations on this peer and some flags
- * about the status of the peer itself. (live, valid, ...)
+ * about the status of the peer itself. (online, valid, ...)
  */
 struct PeerContext
 {
@@ -173,7 +173,7 @@ struct PeerContext
    *
    * To be canceled on shutdown.
    */
-  struct PendingMessage *liveliness_check_pending;
+  struct PendingMessage *online_check_pending;
 
   /**
    * Number of pending operations.
@@ -774,29 +774,29 @@ remove_pending_message (struct PendingMessage *pending_msg, int cancel);
  *
  * Also adds peer to #valid_peers.
  *
- * @param peer_ctx the #PeerContext of the peer to set live
+ * @param peer_ctx the #PeerContext of the peer to set online
  */
 static void
-set_peer_live (struct PeerContext *peer_ctx)
+set_peer_online (struct PeerContext *peer_ctx)
 {
   struct GNUNET_PeerIdentity *peer;
   unsigned int i;
 
   peer = &peer_ctx->peer_id;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-      "Peer %s is live and valid, calling %i pending operations on it\n",
+      "Peer %s is online and valid, calling %i pending operations on it\n",
       GNUNET_i2s (peer),
       peer_ctx->num_pending_ops);
 
-  if (NULL != peer_ctx->liveliness_check_pending)
+  if (NULL != peer_ctx->online_check_pending)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Removing pending liveliness check for peer %s\n",
+         "Removing pending online check for peer %s\n",
          GNUNET_i2s (&peer_ctx->peer_id));
     // TODO wait until cadet sets mq->cancel_impl
-    //GNUNET_MQ_send_cancel (peer_ctx->liveliness_check_pending->ev);
-    remove_pending_message (peer_ctx->liveliness_check_pending, GNUNET_YES);
-    peer_ctx->liveliness_check_pending = NULL;
+    //GNUNET_MQ_send_cancel (peer_ctx->online_check_pending->ev);
+    remove_pending_message (peer_ctx->online_check_pending, GNUNET_YES);
+    peer_ctx->online_check_pending = NULL;
   }
 
   (void) add_valid_peer (peer);
@@ -1022,51 +1022,51 @@ remove_pending_message (struct PendingMessage *pending_msg, int cancel)
 
 /**
  * @brief This is called in response to the first message we sent as a
- * liveliness check.
+ * online check.
  *
- * @param cls #PeerContext of peer with pending liveliness check
+ * @param cls #PeerContext of peer with pending online check
  */
 static void
-mq_liveliness_check_successful (void *cls)
+mq_online_check_successful (void *cls)
 {
   struct PeerContext *peer_ctx = cls;
 
-  if (NULL != peer_ctx->liveliness_check_pending)
+  if (NULL != peer_ctx->online_check_pending)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-        "Liveliness check for peer %s was successfull\n",
+        "Online check for peer %s was successfull\n",
         GNUNET_i2s (&peer_ctx->peer_id));
-    remove_pending_message (peer_ctx->liveliness_check_pending, GNUNET_YES);
-    peer_ctx->liveliness_check_pending = NULL;
-    set_peer_live (peer_ctx);
+    remove_pending_message (peer_ctx->online_check_pending, GNUNET_YES);
+    peer_ctx->online_check_pending = NULL;
+    set_peer_online (peer_ctx);
   }
 }
 
 /**
- * Issue a check whether peer is live
+ * Issue a check whether peer is online
  *
  * @param peer_ctx the context of the peer
  */
 static void
-check_peer_live (struct PeerContext *peer_ctx)
+check_peer_online (struct PeerContext *peer_ctx)
 {
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Get informed about peer %s getting live\n",
+       "Get informed about peer %s getting online\n",
        GNUNET_i2s (&peer_ctx->peer_id));
 
   struct GNUNET_MQ_Handle *mq;
   struct GNUNET_MQ_Envelope *ev;
 
   ev = GNUNET_MQ_msg_header (GNUNET_MESSAGE_TYPE_RPS_PP_CHECK_LIVE);
-  peer_ctx->liveliness_check_pending =
-    insert_pending_message (&peer_ctx->peer_id, ev, "Check liveliness");
+  peer_ctx->online_check_pending =
+    insert_pending_message (&peer_ctx->peer_id, ev, "Check online");
   mq = get_mq (&peer_ctx->peer_id);
   GNUNET_MQ_notify_sent (ev,
-                         mq_liveliness_check_successful,
+                         mq_online_check_successful,
                          peer_ctx);
   GNUNET_MQ_send (mq, ev);
   GNUNET_STATISTICS_update (stats,
-                            "# pending liveliness checks",
+                            "# pending online checks",
                             1,
                             GNUNET_NO);
 }
@@ -1199,14 +1199,14 @@ destroy_peer (struct PeerContext *peer_ctx)
          "Removing unsent %s\n",
          peer_ctx->pending_messages_head->type);
     /* Cancle pending message, too */
-    if ( (NULL != peer_ctx->liveliness_check_pending) &&
+    if ( (NULL != peer_ctx->online_check_pending) &&
          (0 == memcmp (peer_ctx->pending_messages_head,
-                     peer_ctx->liveliness_check_pending,
+                     peer_ctx->online_check_pending,
                      sizeof (struct PendingMessage))) )
       {
-        peer_ctx->liveliness_check_pending = NULL;
+        peer_ctx->online_check_pending = NULL;
         GNUNET_STATISTICS_update (stats,
-                                  "# pending liveliness checks",
+                                  "# pending online checks",
                                   -1,
                                   GNUNET_NO);
       }
@@ -1214,18 +1214,18 @@ destroy_peer (struct PeerContext *peer_ctx)
                             GNUNET_YES);
   }
 
-  /* If we are still waiting for notification whether this peer is live
+  /* If we are still waiting for notification whether this peer is online
    * cancel the according task */
-  if (NULL != peer_ctx->liveliness_check_pending)
+  if (NULL != peer_ctx->online_check_pending)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Removing pending liveliness check for peer %s\n",
+                "Removing pending online check for peer %s\n",
                 GNUNET_i2s (&peer_ctx->peer_id));
     // TODO wait until cadet sets mq->cancel_impl
-    //GNUNET_MQ_send_cancel (peer_ctx->liveliness_check_pending->ev);
-    remove_pending_message (peer_ctx->liveliness_check_pending,
+    //GNUNET_MQ_send_cancel (peer_ctx->online_check_pending->ev);
+    remove_pending_message (peer_ctx->online_check_pending,
                             GNUNET_YES);
-    peer_ctx->liveliness_check_pending = NULL;
+    peer_ctx->online_check_pending = NULL;
   }
 
   if (NULL != peer_ctx->send_channel_ctx)
@@ -1639,21 +1639,21 @@ check_peer_flag (const struct GNUNET_PeerIdentity *peer,
  *
  * If not known yet, insert into known peers
  *
- * @param peer the peer whose liveliness is to be checked
+ * @param peer the peer whose online is to be checked
  * @return #GNUNET_YES if the check was issued
  *         #GNUNET_NO  otherwise
  */
 static int
-issue_peer_liveliness_check (const struct GNUNET_PeerIdentity *peer)
+issue_peer_online_check (const struct GNUNET_PeerIdentity *peer)
 {
   struct PeerContext *peer_ctx;
 
   (void) insert_peer (peer);
   peer_ctx = get_peer_ctx (peer);
   if ( (GNUNET_NO == check_peer_flag (peer, Peers_ONLINE)) &&
-       (NULL == peer_ctx->liveliness_check_pending) )
+       (NULL == peer_ctx->online_check_pending) )
   {
-    check_peer_live (peer_ctx);
+    check_peer_online (peer_ctx);
     return GNUNET_YES;
   }
   return GNUNET_NO;
@@ -1775,7 +1775,7 @@ handle_inbound_channel (void *cls,
   GNUNET_assert (NULL != channel); /* according to cadet API */
   /* Make sure we 'know' about this peer */
   peer_ctx = create_or_get_peer_ctx (initiator);
-  set_peer_live (peer_ctx);
+  set_peer_online (peer_ctx);
   ctx_peer = GNUNET_new (struct GNUNET_PeerIdentity);
   *ctx_peer = *initiator;
   channel_ctx = add_channel_ctx (peer_ctx);
@@ -1884,7 +1884,8 @@ send_message (const struct GNUNET_PeerIdentity *peer,
  *
  * Avoids scheduling an operation twice.
  *
- * @param peer the peer we want to schedule the operation for once it gets live
+ * @param peer the peer we want to schedule the operation for once it gets
+ * online
  *
  * @return #GNUNET_YES if the operation was scheduled
  *         #GNUNET_NO  otherwise
@@ -1898,7 +1899,7 @@ schedule_operation (const struct GNUNET_PeerIdentity *peer,
 
   GNUNET_assert (GNUNET_YES == check_peer_known (peer));
 
-  //TODO if LIVE/ONLINE execute immediately
+  //TODO if ONLINE execute immediately
 
   if (GNUNET_NO == check_operation_scheduled (peer, peer_op))
   {
@@ -2063,7 +2064,7 @@ rem_from_list (struct GNUNET_PeerIdentity **peer_list,
 /**
  * Insert PeerID in #view
  *
- * Called once we know a peer is live.
+ * Called once we know a peer is online.
  * Implements #PeerOp
  *
  * @return GNUNET_OK if peer was actually inserted
@@ -2076,7 +2077,7 @@ insert_in_view_op (void *cls,
 /**
  * Insert PeerID in #view
  *
- * Called once we know a peer is live.
+ * Called once we know a peer is online.
  *
  * @return GNUNET_OK if peer was actually inserted
  *         GNUNET_NO if peer was not inserted
@@ -2091,7 +2092,7 @@ insert_in_view (const struct GNUNET_PeerIdentity *peer)
   if ( (GNUNET_NO == online) ||
        (GNUNET_SYSERR == online) ) /* peer is not even known */
   {
-    (void) issue_peer_liveliness_check (peer);
+    (void) issue_peer_online_check (peer);
     (void) schedule_operation (peer, insert_in_view_op);
     return GNUNET_NO;
   }
@@ -2378,7 +2379,7 @@ send_pull_reply (const struct GNUNET_PeerIdentity *peer_id,
 /**
  * Insert PeerID in #pull_map
  *
- * Called once we know a peer is live.
+ * Called once we know a peer is online.
  */
 static void
 insert_in_pull_map (void *cls,
@@ -2392,7 +2393,7 @@ insert_in_pull_map (void *cls,
 /**
  * Insert PeerID in #view
  *
- * Called once we know a peer is live.
+ * Called once we know a peer is online.
  * Implements #PeerOp
  */
 static void
@@ -2426,7 +2427,7 @@ insert_in_sampler (void *cls,
   if (0 < RPS_sampler_count_id (mss->sampler, peer))
   {
     /* Make sure we 'know' about this peer */
-    (void) issue_peer_liveliness_check (peer);
+    (void) issue_peer_online_check (peer);
     /* Establish a channel towards that peer to indicate we are going to send
      * messages to it */
     //indicate_sending_intention (peer);
@@ -2450,7 +2451,7 @@ insert_in_sampler (void *cls,
 
 /**
  * @brief This is called on peers from external sources (cadet, peerinfo, ...)
- *        If the peer is not known, liveliness check is issued and it is
+ *        If the peer is not known, online check is issued and it is
  *        scheduled to be inserted in sampler and view.
  *
  * "External sources" refer to every source except the gossip.
@@ -2461,7 +2462,7 @@ static void
 got_peer (const struct GNUNET_PeerIdentity *peer)
 {
   /* If we did not know this peer already, insert it into sampler and view */
-  if (GNUNET_YES == issue_peer_liveliness_check (peer))
+  if (GNUNET_YES == issue_peer_online_check (peer))
   {
     schedule_operation (peer, insert_in_sampler);
     schedule_operation (peer, insert_in_view_op);
@@ -2939,7 +2940,7 @@ handle_peer_check (void *cls,
   LOG (GNUNET_ERROR_TYPE_DEBUG,
       "Received CHECK_LIVE (%s)\n", GNUNET_i2s (peer));
   GNUNET_STATISTICS_update (stats,
-                            "# pending liveliness checks",
+                            "# pending online checks",
                             -1,
                             GNUNET_NO);
 
@@ -3173,7 +3174,7 @@ handle_peer_pull_reply (void *cls,
     else
     {
       schedule_operation (&peers[i], insert_in_pull_map);
-      (void) issue_peer_liveliness_check (&peers[i]);
+      (void) issue_peer_online_check (&peers[i]);
     }
   }
 
@@ -3399,7 +3400,7 @@ handle_client_act_malicious (void *cls,
     /* Set the flag of the attacked peer to valid to avoid problems */
     if (GNUNET_NO == check_peer_known (&attacked_peer))
     {
-      (void) issue_peer_liveliness_check (&attacked_peer);
+      (void) issue_peer_online_check (&attacked_peer);
     }
 
     LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -3490,7 +3491,7 @@ do_mal_round (void *cls)
      * Send as many pushes to the attacked peer as possible
      * That is one push per round as it will ignore more.
      */
-    (void) issue_peer_liveliness_check (&attacked_peer);
+    (void) issue_peer_online_check (&attacked_peer);
     if (GNUNET_YES == check_peer_flag (&attacked_peer, Peers_ONLINE))
       send_push (&attacked_peer);
   }
@@ -3502,7 +3503,7 @@ do_mal_round (void *cls)
     /* Send PUSH to attacked peers */
     if (GNUNET_YES == check_peer_known (&attacked_peer))
     {
-      (void) issue_peer_liveliness_check (&attacked_peer);
+      (void) issue_peer_online_check (&attacked_peer);
       if (GNUNET_YES == check_peer_flag (&attacked_peer, Peers_ONLINE))
       {
         LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -3511,7 +3512,7 @@ do_mal_round (void *cls)
         send_push (&attacked_peer);
       }
     }
-    (void) issue_peer_liveliness_check (&attacked_peer);
+    (void) issue_peer_online_check (&attacked_peer);
 
     /* The maximum of pushes we're going to send this round */
     num_pushes = GNUNET_MIN (GNUNET_MIN (push_limit - 1,
