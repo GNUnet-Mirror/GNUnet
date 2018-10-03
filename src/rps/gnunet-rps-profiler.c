@@ -1932,8 +1932,8 @@ static uint32_t binom (uint32_t n, uint32_t k)
 {
   //GNUNET_assert (n >= k);
   if (k > n) return 0;
-  if (0 > n) return 0; /* just for clarity - always false */
-  if (0 > k) return 0; /* just for clarity - always false */
+  /* if (0 > n) return 0;  - always false */
+  /* if (0 > k) return 0;  - always false */
   if (0 == k) return 1;
   return fac (n)
     /

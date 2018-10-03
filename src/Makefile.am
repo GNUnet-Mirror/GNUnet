@@ -66,7 +66,7 @@ endif
 
 if HAVE_MHD
 if HAVE_JSON
- REST_DIR = rest jsonapi rest-plugins
+ REST_DIR = rest rest-plugins
 endif
 endif
 
@@ -126,9 +126,9 @@ SUBDIRS = \
   exit \
   pt \
   secretsharing \
+	$(EXP_DIR) \
   $(JSON_DIR) \
   $(REST_DIR) \
-  integration-tests \
-  $(EXP_DIR)
+  integration-tests 
 
 endif

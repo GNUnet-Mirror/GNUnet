@@ -66,22 +66,6 @@
 #define GNUNET_REST_API_NS_LOGIN "/openid/login"
 
 /**
- * Attribute key
- */
-#define GNUNET_REST_JSONAPI_RECLAIM_ATTRIBUTE "attribute"
-
-/**
- * Ticket key
- */
-#define GNUNET_REST_JSONAPI_IDENTITY_TICKET "ticket"
-
-
-/**
- * Value key
- */
-#define GNUNET_REST_JSONAPI_RECLAIM_ATTRIBUTE_VALUE "value"
-
-/**
  * State while collecting all egos
  */
 #define ID_REST_STATE_INIT 0
@@ -449,11 +433,6 @@ struct RequestHandle
    */
   int response_code;
 
-  /**
-   * Response object
-   */
-  struct GNUNET_JSONAPI_Document *resp_object;
-
 };
 
 /**
@@ -469,8 +448,6 @@ cleanup_handle (struct RequestHandle *handle)
   struct EgoEntry *ego_tmp;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Cleaning up\n");
-  if (NULL != handle->resp_object)
-    GNUNET_JSONAPI_document_delete (handle->resp_object);
   if (NULL != handle->timeout_task)
     GNUNET_SCHEDULER_cancel (handle->timeout_task);
   if (NULL != handle->identity_handle)
@@ -671,7 +648,7 @@ return_userinfo_response (void *cls)
 }
 
 /**
- * Returns base64 encoded string without padding
+ * Returns base64 encoded string urlencoded
  *
  * @param string the string to encode
  * @return base64 encoded string
@@ -680,12 +657,27 @@ static char*
 base_64_encode(const char *s)
 {
   char *enc;
+  char *enc_urlencode;
   char *tmp;
+  int i;
+  int num_pads = 0;
 
   GNUNET_STRINGS_base64_encode(s, strlen(s), &enc);
-  tmp = strrchr (enc, '=');
-  *tmp = '\0';
-  return enc;
+  tmp = strchr (enc, '=');
+  num_pads = strlen (enc) - (tmp - enc);
+  GNUNET_assert ((3 > num_pads) && (0 <= num_pads));
+  if (0 == num_pads)
+    return enc;
+  enc_urlencode = GNUNET_malloc (strlen (enc) + num_pads*2);
+  strcpy (enc_urlencode, enc);
+  GNUNET_free (enc);
+  tmp = strchr (enc_urlencode, '=');
+  for (i = 0; i < num_pads; i++)
+  {
+    strcpy (tmp, "%3D"); //replace '=' with '%3D'
+    tmp += 3;
+  }
+  return enc_urlencode;
 }
 
 /**
@@ -1077,7 +1069,6 @@ login_check (void *cls)
         {
           handle->priv_key = *GNUNET_IDENTITY_ego_get_private_key (
                                                                    handle->ego_entry->ego);
-          handle->resp_object = GNUNET_JSONAPI_document_new ();
           handle->idp = GNUNET_RECLAIM_connect (cfg);
           handle->attr_list = GNUNET_new(
                                          struct GNUNET_RECLAIM_ATTRIBUTE_ClaimList);
@@ -1229,6 +1220,33 @@ build_authz_response (void *cls)
 }
 
 /**
+ * Iterate over tlds in config
+ */
+static void
+tld_iter (void *cls,
+          const char *section,
+          const char *option,
+          const char *value)
+{
+  struct RequestHandle *handle = cls;
+  struct GNUNET_CRYPTO_EcdsaPublicKey pkey;
+
+  if (GNUNET_OK !=
+      GNUNET_CRYPTO_ecdsa_public_key_from_string (value,
+                                                  strlen (value),
+                                                  &pkey))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Skipping non key %s\n",
+                value);
+    return;
+  }
+  if ( 0 == memcmp (&pkey, &handle->oidc->client_pkey,
+                    sizeof(struct GNUNET_CRYPTO_EcdsaPublicKey)) )
+    handle->tld = GNUNET_strdup (option+1);
+}
+
+/**
  * Responds to authorization GET and url-encoded POST request
  *
  * @param con_handle the connection handle
@@ -1311,7 +1329,14 @@ authorize_endpoint (struct GNUNET_REST_RequestHandle *con_handle,
       handle->tld = GNUNET_strdup (tmp_ego->identifier);
       handle->ego_entry = handle->ego_tail;
     }
-  } 
+  }
+  if (NULL == handle->tld)
+    GNUNET_CONFIGURATION_iterate_section_values (cfg,
+                                                 "gns",
+                                                 tld_iter,
+                                                 handle);
+  if (NULL == handle->tld)
+    handle->tld = GNUNET_strdup (tmp_ego->keystring);
   GNUNET_SCHEDULER_add_now (&build_authz_response, handle);
 }
 

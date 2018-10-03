@@ -22,114 +22,115 @@
 #include <platform.h>
 #include "gnunet-service-rps_view.h"
 
-#define ABORT() { fprintf(stderr, "Error at %s:%d\n", __FILE__, __LINE__); View_destroy(); return 1; }
+#define ABORT() { fprintf(stderr, "Error at %s:%d\n", __FILE__, __LINE__); View_destroy(view); return 1; }
 #define CHECK(c) { if (! (c)) ABORT(); }
 
 
 static int
 check ()
 {
+  struct View *view;
   struct GNUNET_PeerIdentity k1;
   struct GNUNET_PeerIdentity k2;
   const struct GNUNET_PeerIdentity *array;
-  int j;
+  unsigned int j;
 
-  View_create (3);
+  view = View_create (3);
   memset (&k1, 0, sizeof (k1));
   memset (&k2, 1, sizeof (k2));
-  CHECK (GNUNET_NO == View_contains_peer (&k1));
-  CHECK (GNUNET_NO == View_contains_peer (&k2));
-  CHECK (GNUNET_NO == View_remove_peer (&k1));
-  CHECK (GNUNET_NO == View_remove_peer (&k2));
-  CHECK (NULL == View_get_peer_by_index (0));
-  CHECK (NULL == View_get_peer_by_index (1));
-  View_clear (); /* See if assertions trigger */
-  CHECK (0 == View_size ());
+  CHECK (GNUNET_NO == View_contains_peer (view, &k1));
+  CHECK (GNUNET_NO == View_contains_peer (view, &k2));
+  CHECK (GNUNET_NO == View_remove_peer (view, &k1));
+  CHECK (GNUNET_NO == View_remove_peer (view, &k2));
+  CHECK (NULL == View_get_peer_by_index (view, 0));
+  CHECK (NULL == View_get_peer_by_index (view, 1));
+  View_clear (view); /* See if assertions trigger */
+  CHECK (0 == View_size (view));
 
-  CHECK (GNUNET_OK == View_put (&k1));
-  CHECK (1 == View_size ());
-  CHECK (GNUNET_NO == View_put (&k1));
-  CHECK (1 == View_size ());
-  CHECK (GNUNET_YES == View_contains_peer (&k1));
-  CHECK (GNUNET_OK == View_remove_peer (&k1));
-  CHECK (0 == View_size ());
-  CHECK (GNUNET_NO == View_contains_peer (&k1));
-  CHECK (GNUNET_NO == View_contains_peer (&k2));
+  CHECK (GNUNET_OK == View_put (view, &k1));
+  CHECK (1 == View_size (view));
+  CHECK (GNUNET_NO == View_put (view, &k1));
+  CHECK (1 == View_size (view));
+  CHECK (GNUNET_YES == View_contains_peer (view, &k1));
+  CHECK (GNUNET_OK == View_remove_peer (view, &k1));
+  CHECK (0 == View_size (view));
+  CHECK (GNUNET_NO == View_contains_peer (view, &k1));
+  CHECK (GNUNET_NO == View_contains_peer (view, &k2));
 
-  CHECK (GNUNET_OK == View_put (&k1));
-  CHECK (1 == View_size ());
+  CHECK (GNUNET_OK == View_put (view, &k1));
+  CHECK (1 == View_size (view));
   for (j = 0; j < 16; j++)
   {
-    CHECK (GNUNET_NO == View_put (&k1));
+    CHECK (GNUNET_NO == View_put (view, &k1));
   }
-  CHECK (1 == View_size ());
-  CHECK (GNUNET_OK == View_put (&k2));
-  CHECK (2 == View_size ());
+  CHECK (1 == View_size (view));
+  CHECK (GNUNET_OK == View_put (view, &k2));
+  CHECK (2 == View_size (view));
   for (j = 0; j < 16; j++)
   {
-    CHECK (GNUNET_NO == View_put (&k2));
+    CHECK (GNUNET_NO == View_put (view, &k2));
   }
-  CHECK (2 == View_size ());
+  CHECK (2 == View_size (view));
 
   /* iterate */
-  for (j = 0; j < View_size (); j++)
+  for (j = 0; j < View_size (view); j++)
   {
-    CHECK (NULL != View_get_peer_by_index (j));
+    CHECK (NULL != View_get_peer_by_index (view, j));
   }
-  CHECK ((0 == memcmp (View_get_peer_by_index (0),
+  CHECK ((0 == memcmp (View_get_peer_by_index (view, 0),
                        &k1, sizeof (k1))));
-  CHECK ((0 == memcmp (View_get_peer_by_index (1),
+  CHECK ((0 == memcmp (View_get_peer_by_index (view, 1),
                        &k2, sizeof (k2))));
-  CHECK (GNUNET_OK == View_remove_peer (&k1));
-  CHECK (1 == View_size ());
-  CHECK (GNUNET_NO == View_contains_peer (&k1));
-  CHECK (GNUNET_YES == View_contains_peer (&k2));
-  CHECK (NULL != View_get_peer_by_index (0));
-  CHECK (NULL == View_get_peer_by_index (1));
+  CHECK (GNUNET_OK == View_remove_peer (view, &k1));
+  CHECK (1 == View_size (view));
+  CHECK (GNUNET_NO == View_contains_peer (view, &k1));
+  CHECK (GNUNET_YES == View_contains_peer (view, &k2));
+  CHECK (NULL != View_get_peer_by_index (view, 0));
+  CHECK (NULL == View_get_peer_by_index (view, 1));
 
-  View_clear ();
-  CHECK (0 == View_size ());
+  View_clear (view);
+  CHECK (0 == View_size (view));
 
-  CHECK (GNUNET_OK == View_put (&k1));
-  CHECK (1 == View_size ());
-  CHECK (GNUNET_YES == View_contains_peer (&k1));
-  CHECK (GNUNET_OK == View_put (&k2));
-  CHECK (2 == View_size ());
-  CHECK (GNUNET_YES == View_contains_peer (&k2));
-  array = View_get_as_array ();
+  CHECK (GNUNET_OK == View_put (view, &k1));
+  CHECK (1 == View_size (view));
+  CHECK (GNUNET_YES == View_contains_peer (view, &k1));
+  CHECK (GNUNET_OK == View_put (view, &k2));
+  CHECK (2 == View_size (view));
+  CHECK (GNUNET_YES == View_contains_peer (view, &k2));
+  array = View_get_as_array (view);
   CHECK (0 == memcmp (&array[0], &k1, sizeof (k1)));
   CHECK (0 == memcmp (&array[1], &k2, sizeof (k2)));
-  View_clear ();
-  CHECK (0 == View_size ());
+  View_clear (view);
+  CHECK (0 == View_size (view));
 
   /*View_change_len () */
-  CHECK (GNUNET_OK == View_put (&k1));
-  CHECK (GNUNET_OK == View_put (&k2));
-  CHECK (2 == View_size ());
-  View_change_len (4);
-  CHECK (2 == View_size ());
-  CHECK (GNUNET_YES == View_contains_peer (&k1));
-  CHECK (GNUNET_YES == View_contains_peer (&k2));
-  array = View_get_as_array ();
+  CHECK (GNUNET_OK == View_put (view, &k1));
+  CHECK (GNUNET_OK == View_put (view, &k2));
+  CHECK (2 == View_size (view));
+  View_change_len (view, 4);
+  CHECK (2 == View_size (view));
+  CHECK (GNUNET_YES == View_contains_peer (view, &k1));
+  CHECK (GNUNET_YES == View_contains_peer (view, &k2));
+  array = View_get_as_array (view);
   CHECK (0 == memcmp (&array[0], &k1, sizeof (k1)));
   CHECK (0 == memcmp (&array[1], &k2, sizeof (k2)));
-  View_change_len (1);
-  CHECK (1 == View_size ());
-  CHECK (GNUNET_YES == View_contains_peer (&k1));
-  CHECK (GNUNET_NO  == View_contains_peer (&k2));
-  array = View_get_as_array ();
+  View_change_len (view, 1);
+  CHECK (1 == View_size (view));
+  CHECK (GNUNET_YES == View_contains_peer (view, &k1));
+  CHECK (GNUNET_NO  == View_contains_peer (view, &k2));
+  array = View_get_as_array (view);
   CHECK (0 == memcmp (&array[0], &k1, sizeof (k1)));
-  View_clear ();
-  CHECK (0 == View_size ());
+  View_clear (view);
+  CHECK (0 == View_size (view));
 
-  View_destroy ();
+  View_destroy (view);
 
   return 0;
 }
 
 
 int
-main (int argc, char *argv[])
+main ()
 {
   GNUNET_log_setup ("test_service_rps_peers", 
 		    "WARNING",

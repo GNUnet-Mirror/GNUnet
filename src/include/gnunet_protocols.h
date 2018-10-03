@@ -2619,31 +2619,17 @@ extern "C"
 
 /* Client-Service Messages */
 
-/**
- * RPS CS REQUEST Message for the Client to request (a) random peer(s)
- */
-#define GNUNET_MESSAGE_TYPE_RPS_CS_REQUEST        954
-
-/**
- * RPS CS REPLY Message for the Server to send (a) random peer(s)
- */
-#define GNUNET_MESSAGE_TYPE_RPS_CS_REPLY          955
-
-/**
- * RPS CS REQUEST CANCEL Message for the Client to cancel a request
- */
-#define GNUNET_MESSAGE_TYPE_RPS_CS_REQUEST_CANCEL 956
 
 /**
  * RPS CS SEED Message for the Client to seed peers into rps
  */
-#define GNUNET_MESSAGE_TYPE_RPS_CS_SEED           957
+#define GNUNET_MESSAGE_TYPE_RPS_CS_SEED           954
 
 #ifdef ENABLE_MALICIOUS
 /**
  * Turn RPS service malicious
  */
-#define GNUNET_MESSAGE_TYPE_RPS_ACT_MALICIOUS     958
+#define GNUNET_MESSAGE_TYPE_RPS_ACT_MALICIOUS     955
 
 #endif /* ENABLE_MALICIOUS */
 
