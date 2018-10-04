@@ -66,9 +66,9 @@ create_file (const char *name);
 #  define to_file_w_len(file_name, len, ...)
 #endif /* TO_FILE */
 
-const char *
+char *
 store_prefix_file_name (const struct GNUNET_PeerIdentity *peer,
-    const char *prefix);
+                        const char *prefix);
 
 void
 to_file_raw (const char *file_name, const char *buf, size_t size_buf);
