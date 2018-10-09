@@ -920,7 +920,10 @@ continue_store_activity (struct StoreActivity *sa)
            (0 != memcmp (&zm->zone,
                          &zero,
                          sizeof (struct GNUNET_CRYPTO_EcdsaPrivateKey))) )
-        sa->zm_pos = zm->next; /* not interesting to this monitor */
+	{
+	  sa->zm_pos = zm->next; /* not interesting to this monitor */
+	  continue;
+	}
       if (zm->limit == zm->iteration_cnt)
       {
         zm->sa_waiting = GNUNET_YES;
@@ -1977,6 +1980,16 @@ monitor_iterate_cb (void *cls,
 {
   struct ZoneMonitor *zm = cls;
 
+  if ( (0 != memcmp (&zone_key,
+		     &zm->zone,
+		     sizeof (struct GNUNET_CRYPTO_EcdsaPrivateKey))) &&
+       (0 != memcmp (&zm->zone,
+		     &zero,
+		     sizeof (struct GNUNET_CRYPTO_EcdsaPrivateKey))) )
+  {
+    GNUNET_break (0);
+    return;
+  }
   zm->seq = seq;
   if (NULL == name)
   {
