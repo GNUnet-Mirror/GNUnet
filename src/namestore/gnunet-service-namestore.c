@@ -922,7 +922,7 @@ continue_store_activity (struct StoreActivity *sa)
                          sizeof (struct GNUNET_CRYPTO_EcdsaPrivateKey))) )
 	{
 	  sa->zm_pos = zm->next; /* not interesting to this monitor */
-	  continue;
+	  // continue; -- fails tests, but why not here?
 	}
       if (zm->limit == zm->iteration_cnt)
       {
