@@ -1483,7 +1483,7 @@ service SERVICE should contain a rule similar to this:
 @c must be improved.
 
 @example
-@verbatiminclude tutorial-examples/025.c
+@verbatiminclude tutorial-examples/025.Makefile.am
 @end example
 
 @noindent

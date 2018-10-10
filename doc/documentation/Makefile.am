@@ -103,7 +103,7 @@ gnunet_tutorial_examples =					\
 	tutorial-examples/022.c							\
 	tutorial-examples/023.c							\
 	tutorial-examples/024.c							\
-	tutorial-examples/025.c							\
+	tutorial-examples/025.Makefile.am					\
 	tutorial-examples/026.c
 
 info_TEXINFOS = 						\
