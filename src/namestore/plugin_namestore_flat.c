@@ -607,7 +607,9 @@ iterate_zones (void *cls,
   }
   ic->iter (ic->iter_cls,
 	    ic->pos,
-            &entry->private_key,
+            (NULL == ic->zone) 
+	    ? &entry->private_key
+	    : ic->zone,
             entry->label,
             entry->record_count,
             entry->record_data);

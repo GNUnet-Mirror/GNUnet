@@ -129,6 +129,7 @@ static int
 check_result (void *cls,
               const struct RecordResultMessage *lrm)
 {
+  struct GNUNET_NAMESTORE_ZoneMonitor *zm = cls;
   size_t lrm_len;
   size_t exp_lrm_len;
   size_t name_len;
@@ -138,6 +139,13 @@ check_result (void *cls,
   const char *rd_ser_tmp;
 
   (void) cls;
+  if (0 != memcmp (&lrm->private_key,
+		   &zm->zone,
+		   sizeof (struct GNUNET_CRYPTO_EcdsaPrivateKey)))
+  {
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
   lrm_len = ntohs (lrm->gns_header.header.size);
   rd_len = ntohs (lrm->rd_len);
   rd_count = ntohs (lrm->rd_count);
