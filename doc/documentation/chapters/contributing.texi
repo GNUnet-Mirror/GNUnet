@@ -85,11 +85,6 @@ URLs break in the PDF output when they contain linebreaks.
 @c We do this and the other thing.  This is done by foo.
 @c @end example
 
-@item Use @@footnote@{@} instead of putting an @@*ref@{@} to the
-footnote on a collected footnote-page.
-In a 200+ pages handbook it's better to have footnotes accessible
-without having to skip over to the end.
-
 @end itemize
 
 @node Contributing testcases
@@ -99,7 +94,9 @@ In the core of gnunet, we restrict new testcases to a small subset
 of languages, in order of preference:
 @enumerate
 @item C
-@item Bash (preferable portable without too much specifics to Bash)
+@item Portable Shell Scripts
+@item Bash Scripts
+@c Nim ?
 @item Python (@geq{}3.6)
 @end enumerate
 
