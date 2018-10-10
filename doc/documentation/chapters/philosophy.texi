@@ -30,14 +30,12 @@ These are the GNUnet design principles, in order of importance:
 
 @itemize
 @item GNUnet must be implemented as
-@uref{https://www.gnu.org/philosophy/free-sw.html, Free Software}
-@c To footnote or not to footnote, that's the question.
-@footnote{This means that you you have the four essential freedoms: to run
+@uref{https://www.gnu.org/philosophy/free-sw.html, Free Software} ---
+This means that you you have the four essential freedoms: to run
 the program, to study and change the program in source code form,
 to redistribute exact copies, and to distribute modified versions.
-Refer to @uref{https://www.gnu.org/philosophy/free-sw.html, https://www.gnu.org/philosophy/free-sw.html}}
+(@uref{https://www.gnu.org/philosophy/free-sw.html}).
 @item GNUnet must minimize the amount of personally identifiable information exposed.
-@c TODO: Explain 'fully' in the terminology section.
 @item GNUnet must be fully distributed and resilient to external attacks and rogue participants.
 @item GNUnet must be self-organizing and not depend on administrators or centralized infrastructure.
 @item GNUnet must inform the user which other participants have to be trusted when establishing private communications.
