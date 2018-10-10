@@ -11,7 +11,8 @@ For developers, GNUnet is:
 @itemize @bullet
 @item developed by a community that believes in the GNU philosophy
 @item Free Software (Free as in Freedom), licensed under the
-GNU Affero General Public License@footnote{@uref{https://www.gnu.org/licenses/licenses.html#AGPL, https://www.gnu.org/licenses/licenses.html#AGPL}}
+GNU Affero General Public License
+(@uref{https://www.gnu.org/licenses/licenses.html#AGPL})
 @item A set of standards, including coding conventions and
 architectural rules
 @item A set of layered protocols, both specifying the communication
@@ -136,7 +137,7 @@ It can be accessed at
 Anyone can report bugs.
 
 @item Our site installation of the
-CI@footnote{Continuous Integration} system @code{Buildbot} is used
+Continuous Integration (CI) system @code{Buildbot} is used
 to check GNUnet builds automatically on a range of platforms.
 The web interface of this CI is exposed at
 @uref{https://gnunet.org/buildbot/, https://gnunet.org/buildbot/}.
@@ -1230,7 +1231,11 @@ right set of features. We called this specialized set of libcurl
 by GNUnet and some of its dependencies.
 
 We download libgnurl and its digital signature from the GNU fileserver,
-assuming @env{TMPDIR} exists@footnote{It might be @file{/tmp}, @env{TMPDIR}, @env{TMP} or any other location. For consistency we assume @env{TMPDIR} points to @file{/tmp} for the remainder of this section.}
+assuming @env{TMPDIR} exists.
+
+Note: TMPDIR might be @file{/tmp}, @env{TMPDIR}, @env{TMP} or any other
+location. For consistency we assume @env{TMPDIR} points to @file{/tmp}
+for the remainder of this section.
 
 @example
 cd \$TMPDIR
@@ -1898,9 +1903,9 @@ random links are to be given
 @item @code{GNUNET_TESTBED_TOPOLOGY_SCALE_FREE}: Connects peers in a
 topology where peer connectivity follows power law - new peers are
 connected with high probability to well connected peers.
-@footnote{See Emergence of Scaling in Random Networks. Science 286,
+(See Emergence of Scaling in Random Networks. Science 286,
 509-512, 1999
-(@uref{https://gnunet.org/git/bibliography.git/plain/docs/emergence_of_scaling_in_random_networks__barabasi_albert_science_286__1999.pdf, pdf})}
+(@uref{https://gnunet.org/git/bibliography.git/plain/docs/emergence_of_scaling_in_random_networks__barabasi_albert_science_286__1999.pdf, pdf}))
 
 @item @code{GNUNET_TESTBED_TOPOLOGY_FROM_FILE}: The topology information
 is loaded from a file. The path to the file has to be given.
@@ -2294,7 +2299,8 @@ subsystem.
 @node CORE must be started
 @subsubsection CORE must be started
 
-A uncomplicated issue is bug #3993@footnote{@uref{https://gnunet.org/bugs/view.php?id=3993, https://gnunet.org/bugs/view.php?id=3993}}:
+A uncomplicated issue is bug #3993
+(@uref{https://gnunet.org/bugs/view.php?id=3993, https://gnunet.org/bugs/view.php?id=3993}):
 Your configuration MUST somehow ensure that for each peer the
 @code{CORE} service is started when the peer is setup, otherwise
 @code{TESTBED} may fail to connect peers when the topology is initialized,
@@ -3941,11 +3947,8 @@ considers Bob's address to be valid, the connection itself is not
 considered 'established'. In particular, Alice may have many addresses
 for Bob that Alice considers valid.
 
-@c TODO: reference Footnotes so that I don't have to duplicate the
-@c footnotes or add them to an index at the end. Is this possible at
-@c all in Texinfo?
 The @code{PONG} message is protected with a nonce/challenge against replay
-attacks@footnote{@uref{http://en.wikipedia.org/wiki/Replay_attack, replay}}
+attacks (@uref{http://en.wikipedia.org/wiki/Replay_attack, replay})
 and uses an expiration time for the signature (but those are almost
 implementation details).
 
@@ -4773,23 +4776,24 @@ then adds fundamental security to the connections:
 
 @itemize @bullet
 @item confidentiality with so-called perfect forward secrecy; we use
-ECDHE@footnote{@uref{http://en.wikipedia.org/wiki/Elliptic_curve_Diffie%E2%80%93Hellman, Elliptic-curve Diffie---Hellman}}
+ECDHE
+(@uref{http://en.wikipedia.org/wiki/Elliptic_curve_Diffie%E2%80%93Hellman, Elliptic-curve Diffie---Hellman})
 powered by Curve25519
-@footnote{@uref{http://cr.yp.to/ecdh.html, Curve25519}} for the key
+(@uref{http://cr.yp.to/ecdh.html, Curve25519}) for the key
 exchange and then use symmetric encryption, encrypting with both AES-256
-@footnote{@uref{http://en.wikipedia.org/wiki/Rijndael, AES-256}} and
-Twofish @footnote{@uref{http://en.wikipedia.org/wiki/Twofish, Twofish}}
+(@uref{http://en.wikipedia.org/wiki/Rijndael, AES-256}) and
+Twofish (@uref{http://en.wikipedia.org/wiki/Twofish, Twofish})
 @item @uref{http://en.wikipedia.org/wiki/Authentication, authentication}
 is achieved by signing the ephemeral keys using Ed25519
-@footnote{@uref{http://ed25519.cr.yp.to/, Ed25519}}, a deterministic
+(@uref{http://ed25519.cr.yp.to/, Ed25519}), a deterministic
 variant of ECDSA
-@footnote{@uref{http://en.wikipedia.org/wiki/ECDSA, ECDSA}}
+(@uref{http://en.wikipedia.org/wiki/ECDSA, ECDSA})
 @item integrity protection (using SHA-512
-@footnote{@uref{http://en.wikipedia.org/wiki/SHA-2, SHA-512}} to do
+(@uref{http://en.wikipedia.org/wiki/SHA-2, SHA-512}) to do
 encrypt-then-MAC
-@footnote{@uref{http://en.wikipedia.org/wiki/Authenticated_encryption, encrypt-then-MAC}})
+(@uref{http://en.wikipedia.org/wiki/Authenticated_encryption, encrypt-then-MAC}))
 @item Replay
-@footnote{@uref{http://en.wikipedia.org/wiki/Replay_attack, replay}}
+(@uref{http://en.wikipedia.org/wiki/Replay_attack, replay})
 protection (using nonces, timestamps, challenge-response,
 message counters and ephemeral keys)
 @item liveness (keep-alive messages, timeout)
@@ -5037,7 +5041,8 @@ public-private key pair and signs the corresponding
 @code{EphemeralKeyMessage} with its long-term key (which we usually call
 the peer's identity; the hash of the public long term key is what results
 in a @code{struct GNUNET_PeerIdentity} in all GNUnet APIs. The ephemeral
-key is ONLY used for an ECDHE@footnote{@uref{http://en.wikipedia.org/wiki/Elliptic_curve_Diffie%E2%80%93Hellman, Elliptic-curve Diffie---Hellman}}
+key is ONLY used for an ECDHE
+(@uref{http://en.wikipedia.org/wiki/Elliptic_curve_Diffie%E2%80%93Hellman, Elliptic-curve Diffie---Hellman})
 exchange by the CORE service to establish symmetric session keys. A peer
 will use the same @code{EphemeralKeyMessage} for all peers for
 @code{REKEY_FREQUENCY}, which is usually 12 hours. After that time, it
@@ -5094,10 +5099,11 @@ All functions related to the key exchange and encryption/decryption of
 messages can be found in @file{gnunet-service-core_kx.c} (except for the
 cryptographic primitives, which are in @file{util/crypto*.c}).
 Given the key material from ECDHE, a Key derivation function
-@footnote{@uref{https://en.wikipedia.org/wiki/Key_derivation_function, Key derivation function}}
+(@uref{https://en.wikipedia.org/wiki/Key_derivation_function, Key derivation function})
 is used to derive two pairs of encryption and decryption keys for AES-256
 and TwoFish, as well as initialization vectors and authentication keys
-(for HMAC@footnote{@uref{https://en.wikipedia.org/wiki/HMAC, HMAC}}).
+(for HMAC
+(@uref{https://en.wikipedia.org/wiki/HMAC, HMAC})).
 The HMAC is computed over the encrypted payload.
 Encrypted messages include an iv_seed and the HMAC in the header.
 
@@ -5523,15 +5529,15 @@ Let's close with a couple examples.
 @table @asis
 
 @item Average: 10, std dev: 1 Here the estimate would be
-2^10 = 1024 peers. @footnote{The range in which we can be 95% sure is:
+2^10 = 1024 peers. (The range in which we can be 95% sure is:
 [2^8, 2^12] = [256, 4096]. We can be very (>99.7%) sure that the network
 is not a hundred peers and absolutely sure that it is not a million peers,
-but somewhere around a thousand.}
+but somewhere around a thousand.)
 
 @item Average 22, std dev: 0.2 Here the estimate would be
-2^22 = 4 Million peers. @footnote{The range in which we can be 99.7% sure
+2^22 = 4 Million peers. (The range in which we can be 99.7% sure
 is: [2^21.4, 2^22.6] = [2.8M, 6.3M]. We can be sure that the network size
-is around four million, with absolutely way of it being 1 million.}
+is around four million, with absolutely way of it being 1 million.)
 
 @end table
 
