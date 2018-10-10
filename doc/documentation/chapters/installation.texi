@@ -224,8 +224,9 @@ This section describes a quick, casual way to check if your GNUnet
 installation works. However, if it does not, we do not cover
 steps for recovery --- for this, please study the instructions
 provided in the developer handbook as well as the system-specific
-instruction in the source code repository@footnote{The system specific
-instructions are not provided as part of this handbook!}.
+instruction in the source code repository.
+Please note that the system specific instructions are not provided
+as part of this handbook!.
 
 
 @menu
@@ -258,19 +259,16 @@ Currently these interfaces cover:
 @subsection Statistics
 @c %**end of header
 
-First, you should launch GNUnet gtk@footnote{Obviously you should also
-start gnunet, via gnunet-arm or the system provided method}.
+We assume that you have started gnunet via @code{gnunet-arm} or via your
+system-provided method for starting services.
+First, you should launch GNUnet gtk.
 You can do this from the command-line by typing
 
 @example
 gnunet-statistics-gtk
 @end example
 
-If your peer@footnote{The term ``peer'' is a common word used in
-federated and distributed networks to describe a participating device
-which is connected to the network. Thus, your Personal Computer or
-whatever it is you are looking at the Gtk+ interface describes a
-``Peer'' or a ``Node''.}  is running correctly, you should see a bunch
+If your peer is running correctly, you should see a bunch
 of lines, all of which should be ``significantly'' above zero (at
 least if your peer has been running for more than a few seconds). The
 lines indicate how many other peers your peer is connected to (via
@@ -283,6 +281,12 @@ bandwidth your peer has consumed, and on "Storage" to check the amount
 of storage available and used by your peer. Note that "Traffic" is
 plotted cumulatively, so you should see a strict upwards trend in the
 traffic.
+
+The term ``peer'' is a common word used in
+federated and distributed networks to describe a participating device
+which is connected to the network. Thus, your Personal Computer or
+whatever it is you are looking at the Gtk+ interface describes a
+``Peer'' or a ``Node''.
 
 @node Peer Information
 @subsection Peer Information
@@ -1240,13 +1244,15 @@ ProxyPassReverse https://gnunet.foo.org:4433/
 
 @noindent
 More information about the apache mod_proxy configuration can be found
-in the Apache documentation@footnote{@uref{http://httpd.apache.org/docs/2.2/mod/mod_proxy.html#proxypass, http://httpd.apache.org/docs/2.2/mod/mod_proxy.html#proxypass}}
+in the
+@uref{http://httpd.apache.org/docs/2.2/mod/mod_proxy.html#proxypass, Apache documentation}.
 
 @node Reverse Proxy - Configure your nginx HTTPS webserver
 @subsubsection Reverse Proxy - Configure your nginx HTTPS webserver
 
 Since nginx does not support chunked encoding, you first of all have to
-install the @code{chunkin} module@footnote{@uref{http://wiki.nginx.org/HttpChunkinModule, http://wiki.nginx.org/HttpChunkinModule}}
+install the @code{chunkin}
+@uref{http://wiki.nginx.org/HttpChunkinModule, module}.
 
 To enable chunkin add:
 
@@ -1491,7 +1497,7 @@ sections.
 @subsubsection Configuring the GNS nsswitch plugin
 
 The Name Service Switch (NSS) is a facility in Unix-like operating systems
-@footnote{More accurate: NSS is a functionality of the GNU C Library}
+(in most cases provided by the GNU C Library)
 that provides a variety of sources for common configuration databases and
 name resolution mechanisms.
 A superuser (system administrator) usually configures the
