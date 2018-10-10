@@ -81,11 +81,14 @@ Binding messages expire after at most a week (the timeout can be
 shorter if the user configures the node appropriately).
 This expiration ensures that the network will eventually get rid of
 outdated advertisements.
-@footnote{Ronaldo A. Ferreira, Christian Grothoff, and Paul Ruth.
+
+For more information, refer to the following paper:
+
+Ronaldo A. Ferreira, Christian Grothoff, and Paul Ruth.
 A Transport Layer Abstraction for Peer-to-Peer Networks
 Proceedings of the 3rd International Symposium on Cluster Computing
 and the Grid (GRID 2003), 2003.
-(@uref{https://gnunet.org/git/bibliography.git/plain/docs/transport.pdf, https://gnunet.org/git/bibliography.git/plain/docs/transport.pdf})}
+(@uref{https://gnunet.org/git/bibliography.git/plain/docs/transport.pdf, https://gnunet.org/git/bibliography.git/plain/docs/transport.pdf})
 
 @cindex Accounting to Encourage Resource Sharing
 @node Accounting to Encourage Resource Sharing
@@ -118,10 +121,11 @@ effective priority to satisfy their resource constraints. This way,
 GNUnet's economic model ensures that nodes that are not currently
 considered to have a surplus in contributions will not be served if
 the network load is high.
-@footnote{Christian Grothoff. An Excess-Based Economic Model for Resource
+
+For more information, refer to the following paper:
+Christian Grothoff. An Excess-Based Economic Model for Resource
 Allocation in Peer-to-Peer Networks. Wirtschaftsinformatik, June 2003.
-(@uref{https://gnunet.org/git/bibliography.git/plain/docs/ebe.pdf, https://gnunet.org/git/bibliography.git/plain/docs/ebe.pdf})}
-@c 2009?
+(@uref{https://gnunet.org/git/bibliography.git/plain/docs/ebe.pdf, https://gnunet.org/git/bibliography.git/plain/docs/ebe.pdf})
 
 @cindex Confidentiality
 @node Confidentiality
@@ -154,10 +158,11 @@ Providing anonymity for users is the central goal for the anonymous
 file-sharing application. Many other design decisions follow in the
 footsteps of this requirement.
 Anonymity is never absolute. While there are various
-scientific metrics@footnote{Claudia Díaz, Stefaan Seys, Joris Claessens,
+scientific metrics
+(Claudia Díaz, Stefaan Seys, Joris Claessens,
 and Bart Preneel. Towards measuring anonymity.
 2002.
-(@uref{https://gnunet.org/git/bibliography.git/plain/docs/article-89.pdf, https://gnunet.org/git/bibliography.git/plain/docs/article-89.pdf})}
+(@uref{https://gnunet.org/git/bibliography.git/plain/docs/article-89.pdf, https://gnunet.org/git/bibliography.git/plain/docs/article-89.pdf}))
 that can help quantify the level of anonymity that a given mechanism
 provides, there is no such thing as "complete anonymity".
 GNUnet's file-sharing implementation allows users to select for each
@@ -165,7 +170,7 @@ operation (publish, search, download) the desired level of anonymity.
 The metric used is the amount of cover traffic available to hide the
 request.
 While this metric is not as good as, for example, the theoretical metric
-given in scientific metrics@footnote{likewise},
+given in scientific metrics,
 it is probably the best metric available to a peer with a purely local
 view of the world that does not rely on unreliable external information.
 The default anonymity level is @code{1}, which uses anonymous routing but
@@ -215,10 +220,12 @@ GNUnet we do not have to indirect the replies if we don't think we need
 more traffic to hide our own actions.
 
 This increases the efficiency of the network as we can indirect less under
-higher load.@footnote{Krista Bennett and Christian Grothoff.
+higher load.
+Refer to the following paper for more:
+Krista Bennett and Christian Grothoff.
 GAP --- practical anonymous networking. In Proceedings of
 Designing Privacy Enhancing Technologies, 2003.
-(@uref{https://gnunet.org/git/bibliography.git/plain/docs/aff.pdf, https://gnunet.org/git/bibliography.git/plain/docs/aff.pdf})}
+(@uref{https://gnunet.org/git/bibliography.git/plain/docs/aff.pdf, https://gnunet.org/git/bibliography.git/plain/docs/aff.pdf})
 
 @cindex Deniability
 @node Deniability
@@ -240,11 +247,13 @@ encryption on the network layer (link encryption, confidentiality,
 authentication) and again on the application layer (provided
 by @command{gnunet-publish}, @command{gnunet-download},
 @command{gnunet-search} and @command{gnunet-gtk}).
-@footnote{Christian Grothoff, Krista Grothoff, Tzvetan Horozov,
+
+Refer to the following paper for more:
+Christian Grothoff, Krista Grothoff, Tzvetan Horozov,
 and Jussi T. Lindgren.
 An Encoding for Censorship-Resistant Sharing.
 2009.
-(@uref{https://gnunet.org/git/bibliography.git/plain/docs/ecrs.pdf, https://gnunet.org/git/bibliography.git/plain/docs/ecrs.pdf})}
+(@uref{https://gnunet.org/git/bibliography.git/plain/docs/ecrs.pdf, https://gnunet.org/git/bibliography.git/plain/docs/ecrs.pdf})
 
 @cindex Peer Identities
 @node Peer Identities
@@ -271,11 +280,11 @@ You can find your peer identity by running @command{gnunet-peerinfo -s}.
 @c FIXME: Explain or link to an explanation of the concept of public keys
 @c and private keys.
 @c FIXME: Rewrite for the latest GNS changes.
-GNS@footnote{Matthias Wachs, Martin Schanzenbach, and Christian Grothoff.
+GNS (Matthias Wachs, Martin Schanzenbach, and Christian Grothoff.
 A Censorship-Resistant, Privacy-Enhancing and Fully Decentralized Name
 System. In proceedings of 13th International Conference on Cryptology and
 Network Security (CANS 2014). 2014.
-@uref{https://gnunet.org/git/bibliography.git/plain/docs/gns2014wachs.pdf, https://gnunet.org/git/bibliography.git/plain/docs/gns2014wachs.pdf}}
+@uref{https://gnunet.org/git/bibliography.git/plain/docs/gns2014wachs.pdf, https://gnunet.org/git/bibliography.git/plain/docs/gns2014wachs.pdf})
 zones are similar to those of DNS zones, but instead of a hierarchy of
 authorities to governing their use, GNS zones are controlled by a private
 key.
