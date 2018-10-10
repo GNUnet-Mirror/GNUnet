@@ -259,9 +259,8 @@ Note that this requires having @command{LaTeX} installed on your system.
 If you are using a Debian GNU/Linux based operating system, the
 following command should install the required components.
 Keep in mind that this @b{requires 3GB} of downloaded data and possibly
-@b{even more}@footnote{Author's note:
-@command{guix size `guix build texlive`} in summer 2018 returns a DAG
-size of 5032.4 MiB} when unpacked.
+@b{even more} when unpacked. On a GNU Guix based system texlive 2017 has
+returns a DAG size of 5032.4 MiB.
 @b{We welcome any help in identifying the required components of the
 TexLive Distribution. This way we could just state the required components
 without pulling in the full distribution of TexLive.}
