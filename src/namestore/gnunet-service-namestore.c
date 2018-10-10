@@ -1982,7 +1982,6 @@ monitor_iterate_cb (void *cls,
 
   zm->seq = seq;
   GNUNET_assert (NULL != name);
-  GNUNET_assert (zone_key == &zm->zone);
   GNUNET_STATISTICS_update (statistics,
                             "Monitor notifications sent",
                             1,
