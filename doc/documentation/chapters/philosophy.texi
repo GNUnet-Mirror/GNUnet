@@ -51,28 +51,31 @@ to redistribute exact copies, and to distribute modified versions.
 @node Privacy and Anonymity
 @section Privacy and Anonymity
 
-The GNUnet protocols minimize the leakage of personally identifiable information of participants and
-do not allow adversaries to control, track, monitor or censor users activities. The
-GNUnet protocols also make it as hard as possible to disrupt operations by participating in the network with malicious intent. 
+The GNUnet protocols minimize the leakage of personally identifiable
+information of participants and do not allow adversaries to control,
+track, monitor or censor users activities. The GNUnet protocols also
+make it as hard as possible to disrupt operations by participating in
+the network with malicious intent.
 
-Analyzing participant's activities becomes more difficult as the number of peers and
-applications that generate traffic on the network grows, even if the additional
-traffic generated is not related to anonymous communication. This is one of the reasons why GNUnet is developed as a peer-to-peer
-framework where many applications share the lower layers of an
-increasingly complex protocol stack. The GNUnet architecture encourages many
-different forms of peer-to-peer applications.
+Analyzing participant's activities becomes more difficult as the
+number of peers and applications that generate traffic on the network
+grows, even if the additional traffic generated is not related to
+anonymous communication. This is one of the reasons why GNUnet is
+developed as a peer-to-peer framework where many applications share
+the lower layers of an increasingly complex protocol stack. The GNUnet
+architecture encourages many different forms of peer-to-peer
+applications.
 
 @cindex Practicality
 @node Practicality
 @section Practicality
 
-Whereever possible GNUnet allows the peer to adjust its operations
-and functionalities to specific use cases. A GNUnet peer running on
-a mobile device with limited battery for example might choose not to
+Whereever possible GNUnet allows the peer to adjust its operations and
+functionalities to specific use cases. A GNUnet peer running on a
+mobile device with limited battery for example might choose not to
 relay traffic for other participants.
 
-For certain applications like file-sharing GNUnet allows participants to trade degrees of anonymity in
-exchange for increased efficiency. However, it is not possible for any
-user's efficiency requirements to compromise the anonymity
-of any other user.
-
+For certain applications like file-sharing GNUnet allows participants
+to trade degrees of anonymity in exchange for increased
+efficiency. However, it is not possible for any user's efficiency
+requirements to compromise the anonymity of any other user.
