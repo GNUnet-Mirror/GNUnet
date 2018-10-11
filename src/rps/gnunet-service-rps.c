@@ -2163,8 +2163,16 @@ send_view (const struct ClientContext *cli_ctx,
 
   if (NULL == view_array)
   {
-    view_size = View_size (cli_ctx->sub->view);
-    view_array = View_get_as_array (cli_ctx->sub->view);
+    if (NULL == cli_ctx->sub)
+    {
+      view_size = View_size (msub->view);
+      view_array = View_get_as_array (msub->view);
+    }
+    else
+    {
+      view_size = View_size (cli_ctx->sub->view);
+      view_array = View_get_as_array (cli_ctx->sub->view);
+    }
   }
 
   ev = GNUNET_MQ_msg_extra (out_msg,
