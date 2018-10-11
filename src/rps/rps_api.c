@@ -588,6 +588,24 @@ mq_error_handler (void *cls,
 
 
 /**
+ * @brief Create the hash value from the share value that defines the sub
+ * (-group)
+ *
+ * @param share_val Share value - strings longer than 508 (512 - 4) will be
+ *        truncated.
+ * @param hash Pointer to the location in which the hash will be stored.
+ */
+static void
+hash_from_share_val (const char *share_val, struct GNUNET_HashCode *hash)
+{
+  char hash_port_string[512] = "rps";
+
+  (void) strncat (hash_port_string, share_val, 508);
+  GNUNET_CRYPTO_hash (hash_port_string, strlen (hash_port_string), hash);
+}
+
+
+/**
  * Reconnect to the service
  */
 static void
@@ -635,6 +653,49 @@ GNUNET_RPS_connect (const struct GNUNET_CONFIGURATION_Handle *cfg)
     return NULL;
   }
   return h;
+}
+
+
+/**
+ * @brief Start a sub with the given shared value
+ *
+ * @param h Handle to rps
+ * @param shared_value The shared value that defines the members of the sub (-gorup)
+ */
+void
+GNUNET_RPS_sub_start (struct GNUNET_RPS_Handle *h,
+                      const char *shared_value)
+{
+  struct GNUNET_RPS_CS_SubStartMessage *msg;
+  struct GNUNET_MQ_Envelope *ev;
+
+  ev = GNUNET_MQ_msg (msg, GNUNET_MESSAGE_TYPE_RPS_CS_SUB_START);
+  hash_from_share_val (shared_value, &msg->hash);
+  msg->round_interval = GNUNET_TIME_relative_hton (// TODO read from config!
+    GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 30));
+  GNUNET_assert (0 != msg->round_interval.rel_value_us__);
+
+  GNUNET_MQ_send (h->mq, ev);
+}
+
+
+/**
+ * @brief Stop a sub with the given shared value
+ *
+ * @param h Handle to rps
+ * @param shared_value The shared value that defines the members of the sub (-gorup)
+ */
+void
+GNUNET_RPS_sub_stop (struct GNUNET_RPS_Handle *h,
+                     const char *shared_value)
+{
+  struct GNUNET_RPS_CS_SubStopMessage *msg;
+  struct GNUNET_MQ_Envelope *ev;
+
+  ev = GNUNET_MQ_msg (msg, GNUNET_MESSAGE_TYPE_RPS_CS_SUB_STOP);
+  hash_from_share_val (shared_value, &msg->hash);
+
+  GNUNET_MQ_send (h->mq, ev);
 }
 
 
