@@ -267,48 +267,13 @@ collect_peers_cb (void *cls,
 {
   struct GNUNET_RPS_Request_Handle *rh = cls;
 
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Service sent %" PRIu64 " peers from stream\n",
+       num_peers);
   for (uint64_t i = 0; i < num_peers; i++)
   {
     RPS_sampler_update (rh->sampler, &peers[i]);
   }
-}
-
-
-/**
- * @brief Create new request handle
- *
- * @param rps_handle Handle to the service
- * @param num_requests Number of requests
- * @param ready_cb Callback
- * @param cls Closure
- *
- * @return The newly created request handle
- */
-static struct GNUNET_RPS_Request_Handle *
-new_request_handle (struct GNUNET_RPS_Handle *rps_handle,
-                    uint64_t num_requests,
-                    GNUNET_RPS_NotifyReadyCB ready_cb,
-                    void *cls)
-{
-  struct GNUNET_RPS_Request_Handle *rh;
-
-  rh = GNUNET_new (struct GNUNET_RPS_Request_Handle);
-  rh->rps_handle = rps_handle;
-  rh->num_requests = num_requests;
-  rh->sampler = RPS_sampler_mod_init (num_requests,
-                                      GNUNET_TIME_UNIT_SECONDS); // TODO remove this time-stuff
-  rh->sampler_rh = RPS_sampler_get_n_rand_peers (rh->sampler,
-                                                 num_requests,
-                                                 peers_ready_cb,
-                                                 rh);
-  rh->srh = GNUNET_RPS_stream_request (rps_handle,
-                                       0, /* infinite updates */
-                                       collect_peers_cb,
-                                       rh); /* cls */
-  rh->ready_cb = ready_cb;
-  rh->ready_cb_cls = cls;
-
-  return rh;
 }
 
 
@@ -690,11 +655,24 @@ GNUNET_RPS_request_peers (struct GNUNET_RPS_Handle *rps_handle,
 {
   struct GNUNET_RPS_Request_Handle *rh;
 
-  rh = new_request_handle (rps_handle,
-                           num_req_peers,
-                           ready_cb,
-                           cls);
-
+  LOG (GNUNET_ERROR_TYPE_INFO,
+       "Client requested %" PRIu32 " peers\n",
+       num_req_peers);
+  rh = GNUNET_new (struct GNUNET_RPS_Request_Handle);
+  rh->rps_handle = rps_handle;
+  rh->num_requests = num_req_peers;
+  rh->sampler = RPS_sampler_mod_init (num_req_peers,
+                                      GNUNET_TIME_UNIT_SECONDS); // TODO remove this time-stuff
+  rh->sampler_rh = RPS_sampler_get_n_rand_peers (rh->sampler,
+                                                 num_req_peers,
+                                                 peers_ready_cb,
+                                                 rh);
+  rh->srh = GNUNET_RPS_stream_request (rps_handle,
+                                       0, /* infinite updates */
+                                       collect_peers_cb,
+                                       rh); /* cls */
+  rh->ready_cb = ready_cb;
+  rh->ready_cb_cls = cls;
 
   return rh;
 }
