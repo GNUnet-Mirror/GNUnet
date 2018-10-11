@@ -1544,6 +1544,31 @@ churn_test_cb (struct RPSPeer *rps_peer)
 }
 
 /***********************************
+ * SUB
+***********************************/
+
+void sub_post (struct RPSPeer *rps_peer)
+{
+  GNUNET_RPS_sub_stop (rps_peer->rps_handle, "test");
+}
+
+static void
+sub_stop_op (void *cls)
+{
+  struct GNUNET_RPS_Handle *h = cls;
+
+  GNUNET_RPS_sub_stop (h, "test");
+}
+
+static void
+sub_pre (struct RPSPeer *rps_peer, struct GNUNET_RPS_Handle *h)
+{
+  (void) rps_peer;
+
+  GNUNET_RPS_sub_start (h, "test");
+}
+
+/***********************************
  * PROFILER
 ***********************************/
 
@@ -2873,7 +2898,22 @@ main (int argc, char *argv[])
     cur_test_run.eval_cb = default_eval_cb;
     cur_test_run.have_churn = HAVE_NO_CHURN;
     cur_test_run.have_quick_quit = HAVE_NO_QUICK_QUIT;
-    timeout_s = 10;
+    timeout_s = 40;
+  }
+
+  else if (strstr (argv[0], "_sub") != NULL)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Test subs\n");
+    cur_test_run.name = "test-rps-sub";
+    num_peers = 5;
+    //cur_test_run.init_peer = &default_init_peer;
+    cur_test_run.pre_test = &sub_pre;
+    cur_test_run.main_test = &single_req_cb;
+    //cur_test_run.reply_handle = default_reply_handle;
+    cur_test_run.post_test = &sub_post;
+    //cur_test_run.eval_cb = default_eval_cb;
+    cur_test_run.have_churn = HAVE_NO_CHURN;
+    cur_test_run.have_quick_quit = HAVE_QUICK_QUIT;
   }
 
   else if (strstr (argv[0], "profiler") != NULL)
