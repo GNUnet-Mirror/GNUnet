@@ -73,6 +73,29 @@ typedef void (* GNUNET_RPS_NotifyReadyCB) (void *cls,
   struct GNUNET_RPS_Handle *
 GNUNET_RPS_connect (const struct GNUNET_CONFIGURATION_Handle *cfg);
 
+
+/**
+ * @brief Start a sub with the given shared value
+ *
+ * @param h Handle to rps
+ * @param shared_value The shared value that defines the members of the sub (-gorup)
+ */
+void
+GNUNET_RPS_sub_start (struct GNUNET_RPS_Handle *h,
+                      const char *shared_value);
+
+
+/**
+ * @brief Stop a sub with the given shared value
+ *
+ * @param h Handle to rps
+ * @param shared_value The shared value that defines the members of the sub (-gorup)
+ */
+void
+GNUNET_RPS_sub_stop (struct GNUNET_RPS_Handle *h,
+                     const char *shared_value);
+
+
 /**
  * Request n random peers.
  *
@@ -167,6 +190,15 @@ GNUNET_RPS_stream_request (struct GNUNET_RPS_Handle *rps_handle,
                            uint32_t num_updates,
                            GNUNET_RPS_NotifyReadyCB stream_input_cb,
                            void *cls);
+
+
+/**
+ * @brief Cancel a specific request for updates from the biased peer stream
+ *
+ * @param srh The request handle to cancel
+ */
+void
+GNUNET_RPS_stream_cancel (struct GNUNET_RPS_StreamRequestHandle *srh);
 
 
 /**
