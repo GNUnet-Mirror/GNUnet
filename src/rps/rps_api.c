@@ -434,12 +434,18 @@ void
 GNUNET_RPS_stream_cancel (struct GNUNET_RPS_StreamRequestHandle *srh)
 {
   struct GNUNET_RPS_Handle *rps_handle;
+  struct GNUNET_RPS_StreamRequestHandle *srh_iter;
 
   rps_handle = srh->rps_handle;
-  GNUNET_CONTAINER_DLL_remove (rps_handle->stream_requests_head,
-                               rps_handle->stream_requests_tail,
-                               srh);
-  GNUNET_free (srh);
+  srh_iter = rps_handle->stream_requests_head;
+  while (NULL != srh_iter && srh_iter != srh) srh_iter = srh_iter->next;
+  if (NULL != srh_iter)
+  {
+    GNUNET_CONTAINER_DLL_remove (rps_handle->stream_requests_head,
+                                 rps_handle->stream_requests_tail,
+                                 srh);
+    GNUNET_free (srh);
+  }
   if (NULL == rps_handle->stream_requests_head) cancel_stream (rps_handle);
 }
 
@@ -542,6 +548,9 @@ handle_stream_input (void *cls,
        NULL != srh_iter;
        srh_iter = srh_iter->next)
   {
+      GNUNET_CONTAINER_DLL_remove (srh_head_tmp,
+                                   srh_tail_tmp,
+                                   srh_iter);
       GNUNET_CONTAINER_DLL_insert (h->stream_requests_head,
                                    h->stream_requests_tail,
                                    srh_iter);
@@ -928,17 +937,27 @@ GNUNET_RPS_request_cancel (struct GNUNET_RPS_Request_Handle *rh)
 void
 GNUNET_RPS_disconnect (struct GNUNET_RPS_Handle *h)
 {
-  GNUNET_MQ_destroy (h->mq);
   if (NULL != h->stream_requests_head)
   {
+    struct GNUNET_RPS_StreamRequestHandle *srh_iter;
+
     LOG (GNUNET_ERROR_TYPE_WARNING,
         "Still waiting for replies\n");
+    srh_iter = h->stream_requests_head;
+    while (NULL != srh_iter)
+    {
+      struct GNUNET_RPS_StreamRequestHandle *srh_tmp = srh_iter;
+      srh_iter = srh_iter->next;
+      GNUNET_RPS_stream_cancel (srh_tmp);
+    }
   }
   if (NULL != h->view_update_cb)
   {
     LOG (GNUNET_ERROR_TYPE_WARNING,
         "Still waiting for view updates\n");
+    GNUNET_RPS_view_request_cancel (h);
   }
+  GNUNET_MQ_destroy (h->mq);
   GNUNET_free (h);
 }
 
