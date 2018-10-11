@@ -673,6 +673,13 @@ ids_to_file (char *file_name,
 } */
 
 /**
+ * Task run on timeout to collect statistics and potentially shut down.
+ */
+static void
+post_test_op (void *cls);
+
+
+/**
  * Test the success of a single test
  */
 static int
@@ -732,6 +739,8 @@ static int check_statistics_collect_completed_single_peer (
   }
   return GNUNET_YES;
 }
+
+
 /**
  * @brief Checks if all peers already received their statistics value from the
  * statistics service.
@@ -758,6 +767,7 @@ static int check_statistics_collect_completed ()
   return GNUNET_YES;
 }
 
+
 /**
  * Task run on timeout to shut everything down.
  */
@@ -765,6 +775,7 @@ static void
 shutdown_op (void *cls)
 {
   unsigned int i;
+  (void) cls;
 
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
               "Shutdown task scheduled, going down.\n");
@@ -772,6 +783,7 @@ shutdown_op (void *cls)
   if (NULL != post_test_task)
   {
     GNUNET_SCHEDULER_cancel (post_test_task);
+    post_test_op (NULL);
   }
   if (NULL != churn_task)
   {
@@ -799,6 +811,7 @@ static void
 post_test_op (void *cls)
 {
   unsigned int i;
+  (void) cls;
 
   post_test_task = NULL;
   post_test = GNUNET_YES;
@@ -811,15 +824,15 @@ post_test_op (void *cls)
   }
   for (i = 0; i < num_peers; i++)
   {
-    if (NULL != rps_peers[i].op)
-    {
-      GNUNET_TESTBED_operation_done (rps_peers[i].op);
-      rps_peers[i].op = NULL;
-    }
     if (NULL != cur_test_run.post_test)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Executing post_test for peer %u\n", i);
       cur_test_run.post_test (&rps_peers[i]);
+    }
+    if (NULL != rps_peers[i].op)
+    {
+      GNUNET_TESTBED_operation_done (rps_peers[i].op);
+      rps_peers[i].op = NULL;
     }
   }
   /* If we do not collect statistics, shut down directly */
@@ -905,6 +918,7 @@ info_cb (void *cb_cls,
          const char *emsg)
 {
   struct OpListEntry *entry = (struct OpListEntry *) cb_cls;
+  (void) op;
 
   if (GNUNET_YES == in_shutdown || GNUNET_YES == post_test)
   {
@@ -1070,6 +1084,9 @@ stat_complete_cb (void *cls, struct GNUNET_TESTBED_Operation *op,
 {
   //struct GNUNET_STATISTICS_Handle *sh = ca_result;
   //struct RPSPeer *peer = (struct RPSPeer *) cls;
+  (void) cls;
+  (void) op;
+  (void) ca_result;
 
   if (NULL != emsg)
   {
@@ -1098,6 +1115,7 @@ rps_disconnect_adapter (void *cls,
 {
   struct RPSPeer *peer = cls;
   struct GNUNET_RPS_Handle *h = op_result;
+
   GNUNET_assert (NULL != peer);
   GNUNET_RPS_disconnect (h);
   peer->rps_handle = NULL;
@@ -1441,6 +1459,7 @@ seed_big_cb (struct RPSPeer *rps_peer)
 static void
 single_peer_seed_cb (struct RPSPeer *rps_peer)
 {
+  (void) rps_peer;
   // TODO
 }
 
@@ -1540,6 +1559,7 @@ churn_cb (void *cls,
           struct GNUNET_TESTBED_Operation *op,
           const char *emsg)
 {
+  (void) op;
   // FIXME
   struct OpListEntry *entry = cls;
 
@@ -1670,6 +1690,7 @@ manage_service_wrapper (unsigned int i, unsigned int j,
 static void
 churn (void *cls)
 {
+  (void) cls;
   unsigned int i;
   unsigned int j;
   double portion_online;
@@ -1832,6 +1853,8 @@ profiler_cb (struct RPSPeer *rps_peer)
 int
 file_name_cb (void *cls, const char *filename)
 {
+  (void) cls;
+
   if (NULL != strstr (filename, "sampler_el"))
   {
     struct RPS_SamplerElement *s_elem;
@@ -2501,6 +2524,8 @@ stat_iterator (void *cls,
                uint64_t value,
                int is_persistent)
 {
+  (void) subsystem;
+  (void) is_persistent;
   const struct STATcls *stat_cls = (const struct STATcls *) cls;
   struct RPSPeer *rps_peer = (struct RPSPeer *) stat_cls->rps_peer;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Got stat value: %s - %" PRIu64 "\n",
@@ -2635,6 +2660,9 @@ run (void *cls,
      unsigned int links_succeeded,
      unsigned int links_failed)
 {
+  (void) cls;
+  (void) h;
+  (void) links_failed;
   unsigned int i;
   struct OpListEntry *entry;
 
@@ -2727,6 +2755,7 @@ int
 main (int argc, char *argv[])
 {
   int ret_value;
+  (void) argc;
 
   /* Defaults for tests */
   num_peers = 5;
@@ -2748,6 +2777,7 @@ main (int argc, char *argv[])
     cur_test_run.pre_test = mal_pre;
     cur_test_run.main_test = mal_cb;
     cur_test_run.init_peer = mal_init_peer;
+    timeout_s = 40;
 
     if (strstr (argv[0], "_1") != NULL)
     {
