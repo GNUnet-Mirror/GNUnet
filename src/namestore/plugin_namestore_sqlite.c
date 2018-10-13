@@ -503,7 +503,6 @@ get_records_and_call_iterator (struct Plugin *plugin,
 
       if (NULL == zone_key)
       {
-        zone_key = &zk;
         ret = GNUNET_SQ_extract_result (stmt,
                                         rsx);
       }
@@ -537,10 +536,12 @@ get_records_and_call_iterator (struct Plugin *plugin,
         }
         else
         {
+          if (NULL != zone_key)
+            zk = *zone_key;
           if (NULL != iter)
             iter (iter_cls,
-		  seq + 1,
-                  zone_key,
+		              seq + 1,
+                  &zk,
                   label,
                   record_count,
                   rd);
