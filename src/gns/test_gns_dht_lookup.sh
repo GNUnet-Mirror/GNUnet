@@ -28,9 +28,11 @@ gnunet-namestore -p -z $MY_EGO -a -n b -t PKEY -V $DELEGATED_PKEY -e never -c te
 gnunet-namestore -p -z $OTHER_EGO -a -n www -t A -V $TEST_IP -e never -c test_gns_lookup.conf
 #This doesn't
 gnunet-namestore -p -z $OTHER_EGO -a -n www2 -t A -V $TEST_IP -e '5 s' -c test_gns_lookup.conf
-gnunet-arm -i gns -c test_gns_lookup.conf
 sleep 6
-gnunet-namestore -z $MY_EGO -d -n b -t PKEY -V $DELEGATED_PKEY  -e never -c test_gns_lookup.conf
+gnunet-arm -r -c test_gns_lookup.conf
+gnunet-arm -i gns -c test_gns_lookup.conf
+gnunet-identity -D $OTHER_EGO -c test_gns_lookup.conf
+#gnunet-namestore -z $MY_EGO -d -n b -t PKEY -V $DELEGATED_PKEY  -e never -c test_gns_lookup.conf
 #gnunet-namestore -z $OTHER_EGO -d -n www -t A -V $TEST_IP  -e never -c test_gns_lookup.conf
 RES_IP=`$DO_TIMEOUT gnunet-gns --raw -u www.b.$MY_EGO -t A -c test_gns_lookup.conf`
 RES_IP_REL=`$DO_TIMEOUT gnunet-gns --raw -u www2.b.$MY_EGO -t A -c test_gns_lookup.conf`
