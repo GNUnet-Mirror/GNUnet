@@ -2633,6 +2633,16 @@ extern "C"
 
 #endif /* ENABLE_MALICIOUS */
 
+/**
+ * RPS client-service message to start a sub sampler
+ */
+#define GNUNET_MESSAGE_TYPE_RPS_CS_SUB_START           956
+
+/**
+ * RPS client-service message to stop a sub sampler
+ */
+#define GNUNET_MESSAGE_TYPE_RPS_CS_SUB_STOP            957
+
 /* Debugging API continues at 1130 */
 
 /******************************************************************************/
