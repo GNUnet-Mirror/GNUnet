@@ -609,10 +609,13 @@ create_peer_ctx (struct Sub *sub,
   ret = GNUNET_CONTAINER_multipeermap_put (sub->peer_map, peer, ctx,
       GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
   GNUNET_assert (GNUNET_OK == ret);
-  GNUNET_STATISTICS_set (stats,
-                        "# known peers",
-                        GNUNET_CONTAINER_multipeermap_size (sub->peer_map),
-                        GNUNET_NO);
+  if (sub == msub)
+  {
+    GNUNET_STATISTICS_set (stats,
+                          "# known peers",
+                          GNUNET_CONTAINER_multipeermap_size (sub->peer_map),
+                          GNUNET_NO);
+  }
   return ctx;
 }
 
@@ -779,10 +782,13 @@ add_valid_peer (const struct GNUNET_PeerIdentity *peer,
   }
   (void) GNUNET_CONTAINER_multipeermap_put (valid_peers, peer, NULL,
       GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
-  GNUNET_STATISTICS_set (stats,
-                         "# valid peers",
-                         GNUNET_CONTAINER_multipeermap_size (valid_peers),
-                         GNUNET_NO);
+  if (valid_peers == msub->valid_peers)
+  {
+    GNUNET_STATISTICS_set (stats,
+                           "# valid peers",
+                           GNUNET_CONTAINER_multipeermap_size (valid_peers),
+                           GNUNET_NO);
+  }
   return ret;
 }
 
@@ -1078,10 +1084,13 @@ check_peer_online (struct PeerContext *peer_ctx)
                          mq_online_check_successful,
                          peer_ctx);
   GNUNET_MQ_send (mq, ev);
-  GNUNET_STATISTICS_update (stats,
-                            "# pending online checks",
-                            1,
-                            GNUNET_NO);
+  if (peer_ctx->sub == msub)
+  {
+    GNUNET_STATISTICS_update (stats,
+                              "# pending online checks",
+                              1,
+                              GNUNET_NO);
+  }
 }
 
 
@@ -1222,10 +1231,13 @@ destroy_peer (struct PeerContext *peer_ctx)
                      sizeof (struct PendingMessage))) )
       {
         peer_ctx->online_check_pending = NULL;
-        GNUNET_STATISTICS_update (stats,
-                                  "# pending online checks",
-                                  -1,
-                                  GNUNET_NO);
+        if (peer_ctx->sub == msub)
+        {
+          GNUNET_STATISTICS_update (stats,
+                                    "# pending online checks",
+                                    -1,
+                                    GNUNET_NO);
+        }
       }
     remove_pending_message (peer_ctx->pending_messages_head,
                             GNUNET_YES);
@@ -1268,10 +1280,13 @@ destroy_peer (struct PeerContext *peer_ctx)
     LOG (GNUNET_ERROR_TYPE_WARNING,
          "removing peer from peer_ctx->sub->peer_map failed\n");
   }
-  GNUNET_STATISTICS_set (stats,
-                        "# known peers",
-                        GNUNET_CONTAINER_multipeermap_size (peer_ctx->sub->peer_map),
-                        GNUNET_NO);
+  if (peer_ctx->sub == msub)
+  {
+    GNUNET_STATISTICS_set (stats,
+                          "# known peers",
+                          GNUNET_CONTAINER_multipeermap_size (peer_ctx->sub->peer_map),
+                          GNUNET_NO);
+  }
   GNUNET_free (peer_ctx);
   return GNUNET_YES;
 }
@@ -1313,12 +1328,15 @@ mq_notify_sent_cb (void *cls)
   LOG (GNUNET_ERROR_TYPE_DEBUG,
       "%s was sent.\n",
       pending_msg->type);
-  if (0 == strncmp ("PULL REPLY", pending_msg->type, 10))
-    GNUNET_STATISTICS_update(stats, "# pull replys sent", 1, GNUNET_NO);
-  if (0 == strncmp ("PULL REQUEST", pending_msg->type, 12))
-    GNUNET_STATISTICS_update(stats, "# pull requests sent", 1, GNUNET_NO);
-  if (0 == strncmp ("PUSH", pending_msg->type, 4))
-    GNUNET_STATISTICS_update(stats, "# pushes sent", 1, GNUNET_NO);
+  if (pending_msg->peer_ctx->sub == msub)
+  {
+    if (0 == strncmp ("PULL REPLY", pending_msg->type, 10))
+      GNUNET_STATISTICS_update(stats, "# pull replys sent", 1, GNUNET_NO);
+    if (0 == strncmp ("PULL REQUEST", pending_msg->type, 12))
+      GNUNET_STATISTICS_update(stats, "# pull requests sent", 1, GNUNET_NO);
+    if (0 == strncmp ("PUSH", pending_msg->type, 4))
+      GNUNET_STATISTICS_update(stats, "# pushes sent", 1, GNUNET_NO);
+  }
   /* Do not cancle message */
   remove_pending_message (pending_msg, GNUNET_NO);
 }
@@ -2138,10 +2156,13 @@ insert_in_view (struct Sub *sub,
   /* Open channel towards peer to keep connection open */
   indicate_sending_intention (peer_ctx);
   ret = View_put (sub->view, peer);
-  GNUNET_STATISTICS_set (stats,
-                         "view size",
-                         View_size (peer_ctx->sub->view),
-                         GNUNET_NO);
+  if (peer_ctx->sub == msub)
+  {
+    GNUNET_STATISTICS_set (stats,
+                           "view size",
+                           View_size (peer_ctx->sub->view),
+                           GNUNET_NO);
+  }
   return ret;
 }
 
@@ -2160,19 +2181,14 @@ send_view (const struct ClientContext *cli_ctx,
 {
   struct GNUNET_MQ_Envelope *ev;
   struct GNUNET_RPS_CS_DEBUG_ViewReply *out_msg;
+  struct Sub *sub;
 
   if (NULL == view_array)
   {
-    if (NULL == cli_ctx->sub)
-    {
-      view_size = View_size (msub->view);
-      view_array = View_get_as_array (msub->view);
-    }
-    else
-    {
-      view_size = View_size (cli_ctx->sub->view);
-      view_array = View_get_as_array (cli_ctx->sub->view);
-    }
+    if (NULL == cli_ctx->sub) sub = msub;
+    else sub = cli_ctx->sub;
+    view_size = View_size (sub->view);
+    view_array = View_get_as_array (sub->view);
   }
 
   ev = GNUNET_MQ_msg_extra (out_msg,
@@ -2381,10 +2397,13 @@ add_peer_array_to_set (const struct GNUNET_PeerIdentity *peer_array,
                                        &peer_array[i],
                                        NULL,
                                        GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
-    GNUNET_STATISTICS_set (stats,
-                          "# known peers",
-                          GNUNET_CONTAINER_multipeermap_size (peer_map),
-                          GNUNET_NO);
+    if (msub->peer_map == peer_map)
+    {
+      GNUNET_STATISTICS_set (stats,
+                            "# known peers",
+                            GNUNET_CONTAINER_multipeermap_size (peer_map),
+                            GNUNET_NO);
+    }
   }
 }
 
@@ -2433,7 +2452,10 @@ send_pull_reply (struct PeerContext *peer_ctx,
          send_size * sizeof (struct GNUNET_PeerIdentity));
 
   send_message (peer_ctx, ev, "PULL REPLY");
-  GNUNET_STATISTICS_update(stats, "# pull reply send issued", 1, GNUNET_NO);
+  if (peer_ctx->sub == msub)
+  {
+    GNUNET_STATISTICS_update(stats, "# pull reply send issued", 1, GNUNET_NO);
+  }
   // TODO check with send intention: as send_channel is used/opened we indicate
   // a sending intention without intending it.
   // -> clean peer afterwards?
@@ -2548,10 +2570,13 @@ got_peer (struct Sub *sub,
     schedule_operation (get_peer_ctx (sub->peer_map, peer),
                         &insert_in_view_op, sub);
   }
-  GNUNET_STATISTICS_update (stats,
-                            "# learnd peers",
-                            1,
-                            GNUNET_NO);
+  if (sub == msub)
+  {
+    GNUNET_STATISTICS_update (stats,
+                              "# learnd peers",
+                              1,
+                              GNUNET_NO);
+  }
 }
 
 
@@ -2788,10 +2813,13 @@ new_sub (const struct GNUNET_HashCode *hash,
   sub->pull_map = CustomPeerMap_create (4);
   sub->view_size_est_min = sampler_size;;
   sub->view = View_create (sub->view_size_est_min);
-  GNUNET_STATISTICS_set (stats,
-                         "view size aim",
-                         sub->view_size_est_min,
-                         GNUNET_NO);
+  if (sub == msub)
+  {
+    GNUNET_STATISTICS_set (stats,
+                           "view size aim",
+                           sub->view_size_est_min,
+                           GNUNET_NO);
+  }
 
   /* Start executing rounds */
   sub->do_round_task = GNUNET_SCHEDULER_add_now (&do_round, sub);
@@ -2900,7 +2928,13 @@ adapt_sizes (struct Sub *sub, double logestimate, double std_dev)
     //sub->sampler_size_est_need = sub->view_size_est_min;
     sub->view_size_est_need = sub->view_size_est_min;
   }
-  GNUNET_STATISTICS_set (stats, "view size aim", sub->view_size_est_need, GNUNET_NO);
+  if (sub == msub)
+  {
+    GNUNET_STATISTICS_set (stats,
+                           "view size aim",
+                           sub->view_size_est_need,
+                           GNUNET_NO);
+  }
 
   /* If the NSE has changed adapt the lists accordingly */
   resize_wrapper (sub->sampler, sub->sampler_size_est_need);
@@ -3004,7 +3038,7 @@ handle_client_seed (void *cls,
          i,
          GNUNET_i2s (&peers[i]));
 
-    if (NULL != msub) got_peer (msub, &peers[i]);
+    if (NULL != msub) got_peer (msub, &peers[i]); /* Condition needed? */
     if (NULL != cli_ctx->sub) got_peer (cli_ctx->sub, &peers[i]);
   }
   GNUNET_SERVICE_client_continue (cli_ctx->client);
@@ -3179,10 +3213,13 @@ handle_peer_check (void *cls,
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
       "Received CHECK_LIVE (%s)\n", GNUNET_i2s (peer));
-  GNUNET_STATISTICS_update (stats,
-                            "# pending online checks",
-                            -1,
-                            GNUNET_NO);
+  if (channel_ctx->peer_ctx->sub == msub)
+  {
+    GNUNET_STATISTICS_update (stats,
+                              "# pending online checks",
+                              -1,
+                              GNUNET_NO);
+  }
 
   GNUNET_CADET_receive_done (channel_ctx->channel);
 }
@@ -3210,7 +3247,10 @@ handle_peer_push (void *cls,
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Received PUSH (%s)\n",
        GNUNET_i2s (peer));
-  GNUNET_STATISTICS_update(stats, "# push message received", 1, GNUNET_NO);
+  if (channel_ctx->peer_ctx->sub == msub)
+  {
+    GNUNET_STATISTICS_update(stats, "# push message received", 1, GNUNET_NO);
+  }
 
   #ifdef ENABLE_MALICIOUS
   struct AttackedPeer *tmp_att_peer;
@@ -3271,7 +3311,13 @@ handle_peer_pull_request (void *cls,
   (void) msg;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Received PULL REQUEST (%s)\n", GNUNET_i2s (peer));
-  GNUNET_STATISTICS_update(stats, "# pull request message received", 1, GNUNET_NO);
+  if (peer_ctx->sub == msub)
+  {
+    GNUNET_STATISTICS_update(stats,
+                             "# pull request message received",
+                             1,
+                             GNUNET_NO);
+  }
 
   #ifdef ENABLE_MALICIOUS
   if (1 == mal_type
@@ -3338,10 +3384,13 @@ check_peer_pull_reply (void *cls,
     LOG (GNUNET_ERROR_TYPE_WARNING,
         "Received a pull reply from a peer (%s) we didn't request one from!\n",
         GNUNET_i2s (&sender_ctx->peer_id));
-    GNUNET_STATISTICS_update (stats,
-                              "# unrequested pull replies",
-                              1,
-                              GNUNET_NO);
+    if (sender_ctx->sub == msub)
+    {
+      GNUNET_STATISTICS_update (stats,
+                                "# unrequested pull replies",
+                                1,
+                                GNUNET_NO);
+    }
     GNUNET_break_op (0);
     return GNUNET_SYSERR;
   }
@@ -3368,7 +3417,13 @@ handle_peer_pull_reply (void *cls,
 #endif /* ENABLE_MALICIOUS */
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Received PULL REPLY (%s)\n", GNUNET_i2s (sender));
-  GNUNET_STATISTICS_update(stats, "# pull reply messages received", 1, GNUNET_NO);
+  if (channel_ctx->peer_ctx->sub == msub)
+  {
+    GNUNET_STATISTICS_update (stats,
+                              "# pull reply messages received",
+                              1,
+                              GNUNET_NO);
+  }
 
   #ifdef ENABLE_MALICIOUS
   // We shouldn't even receive pull replies as we're not sending
@@ -3508,7 +3563,13 @@ send_pull_request (struct PeerContext *peer_ctx)
 
   ev = GNUNET_MQ_msg_header (GNUNET_MESSAGE_TYPE_RPS_PP_PULL_REQUEST);
   send_message (peer_ctx, ev, "PULL REQUEST");
-  GNUNET_STATISTICS_update(stats, "# pull request send issued", 1, GNUNET_NO);
+  if (peer_ctx->sub)
+  {
+    GNUNET_STATISTICS_update (stats,
+                              "# pull request send issued",
+                              1,
+                              GNUNET_NO);
+  }
 }
 
 
@@ -3528,7 +3589,13 @@ send_push (struct PeerContext *peer_ctx)
 
   ev = GNUNET_MQ_msg_header (GNUNET_MESSAGE_TYPE_RPS_PP_PUSH);
   send_message (peer_ctx, ev, "PUSH");
-  GNUNET_STATISTICS_update(stats, "# push send issued", 1, GNUNET_NO);
+  if (peer_ctx->sub)
+  {
+    GNUNET_STATISTICS_update (stats,
+                              "# push send issued",
+                              1,
+                              GNUNET_NO);
+  }
 }
 
 
@@ -3583,6 +3650,7 @@ handle_client_act_malicious (void *cls,
   uint32_t num_mal_peers_old;
   struct Sub *sub = cli_ctx->sub;
 
+  if (NULL == sub) sub = msub;
   /* Do actual logic */
   peers = (struct GNUNET_PeerIdentity *) &msg[1];
   mal_type = ntohl (msg->type);
@@ -3613,15 +3681,9 @@ handle_client_act_malicious (void *cls,
                            mal_peer_set);
 
     /* Substitute do_round () with do_mal_round () */
-    if (NULL != sub)
-    {
-      GNUNET_SCHEDULER_cancel (sub->do_round_task);
-      sub->do_round_task = GNUNET_SCHEDULER_add_now (&do_mal_round, sub);
-    }
-    else
-    {
-      LOG (GNUNET_ERROR_TYPE_WARNING, "do_round_task is NULL, probably in shutdown\n");
-    }
+    GNUNET_assert (NULL != sub->do_round_task);
+    GNUNET_SCHEDULER_cancel (sub->do_round_task);
+    sub->do_round_task = GNUNET_SCHEDULER_add_now (&do_mal_round, sub);
   }
 
   else if ( (2 == mal_type) ||
@@ -3653,8 +3715,7 @@ handle_client_act_malicious (void *cls,
             &msg->attacked_peer,
             sizeof (struct GNUNET_PeerIdentity));
     /* Set the flag of the attacked peer to valid to avoid problems */
-    if (NULL != sub &&
-        GNUNET_NO == check_peer_known (sub->peer_map, &attacked_peer))
+    if (GNUNET_NO == check_peer_known (sub->peer_map, &attacked_peer))
     {
       (void) issue_peer_online_check (sub, &attacked_peer);
     }
@@ -3664,7 +3725,7 @@ handle_client_act_malicious (void *cls,
          GNUNET_i2s (&attacked_peer));
 
     /* Substitute do_round () with do_mal_round () */
-    if (NULL != sub && NULL != sub->do_round_task)
+    if (NULL != sub->do_round_task)
     {
       /* Probably in shutdown */
       GNUNET_SCHEDULER_cancel (sub->do_round_task);
@@ -3822,6 +3883,7 @@ do_mal_round (void *cls)
 }
 #endif /* ENABLE_MALICIOUS */
 
+
 /**
  * Send out PUSHes and PULLs, possibly update #view, samplers.
  *
@@ -3845,7 +3907,10 @@ do_round (void *cls)
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Going to execute next round.\n");
-  GNUNET_STATISTICS_update(stats, "# rounds", 1, GNUNET_NO);
+  if (sub == msub)
+  {
+    GNUNET_STATISTICS_update (stats, "# rounds", 1, GNUNET_NO);
+  }
   sub->do_round_task = NULL;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Printing view:\n");
@@ -4019,37 +4084,43 @@ do_round (void *cls)
     clients_notify_view_update (sub);
   } else {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "No update of the view.\n");
-    GNUNET_STATISTICS_update(stats, "# rounds blocked", 1, GNUNET_NO);
-    if (CustomPeerMap_size (sub->push_map) > alpha * View_size (sub->view) &&
-        !(0 >= CustomPeerMap_size (sub->pull_map)))
-      GNUNET_STATISTICS_update(stats, "# rounds blocked - too many pushes", 1, GNUNET_NO);
-    if (CustomPeerMap_size (sub->push_map) > alpha * View_size (sub->view) &&
-        (0 >= CustomPeerMap_size (sub->pull_map)))
-      GNUNET_STATISTICS_update(stats, "# rounds blocked - too many pushes, no pull replies", 1, GNUNET_NO);
-    if (0 >= CustomPeerMap_size (sub->push_map) &&
-        !(0 >= CustomPeerMap_size (sub->pull_map)))
-      GNUNET_STATISTICS_update(stats, "# rounds blocked - no pushes", 1, GNUNET_NO);
-    if (0 >= CustomPeerMap_size (sub->push_map) &&
-        (0 >= CustomPeerMap_size (sub->pull_map)))
-      GNUNET_STATISTICS_update(stats, "# rounds blocked - no pushes, no pull replies", 1, GNUNET_NO);
-    if (0 >= CustomPeerMap_size (sub->pull_map) &&
-        CustomPeerMap_size (sub->push_map) > alpha * View_size (sub->view) &&
-        0 >= CustomPeerMap_size (sub->push_map))
-      GNUNET_STATISTICS_update(stats, "# rounds blocked - no pull replies", 1, GNUNET_NO);
+    if (sub == msub)
+    {
+      GNUNET_STATISTICS_update(stats, "# rounds blocked", 1, GNUNET_NO);
+      if (CustomPeerMap_size (sub->push_map) > alpha * View_size (sub->view) &&
+          !(0 >= CustomPeerMap_size (sub->pull_map)))
+        GNUNET_STATISTICS_update(stats, "# rounds blocked - too many pushes", 1, GNUNET_NO);
+      if (CustomPeerMap_size (sub->push_map) > alpha * View_size (sub->view) &&
+          (0 >= CustomPeerMap_size (sub->pull_map)))
+        GNUNET_STATISTICS_update(stats, "# rounds blocked - too many pushes, no pull replies", 1, GNUNET_NO);
+      if (0 >= CustomPeerMap_size (sub->push_map) &&
+          !(0 >= CustomPeerMap_size (sub->pull_map)))
+        GNUNET_STATISTICS_update(stats, "# rounds blocked - no pushes", 1, GNUNET_NO);
+      if (0 >= CustomPeerMap_size (sub->push_map) &&
+          (0 >= CustomPeerMap_size (sub->pull_map)))
+        GNUNET_STATISTICS_update(stats, "# rounds blocked - no pushes, no pull replies", 1, GNUNET_NO);
+      if (0 >= CustomPeerMap_size (sub->pull_map) &&
+          CustomPeerMap_size (sub->push_map) > alpha * View_size (sub->view) &&
+          0 >= CustomPeerMap_size (sub->push_map))
+        GNUNET_STATISTICS_update(stats, "# rounds blocked - no pull replies", 1, GNUNET_NO);
+    }
   }
   // TODO independent of that also get some peers from CADET_get_peers()?
-  GNUNET_STATISTICS_set (stats,
-      "# peers in push map at end of round",
-      CustomPeerMap_size (sub->push_map),
-      GNUNET_NO);
-  GNUNET_STATISTICS_set (stats,
-      "# peers in pull map at end of round",
-      CustomPeerMap_size (sub->pull_map),
-      GNUNET_NO);
-  GNUNET_STATISTICS_set (stats,
-      "# peers in view at end of round",
-      View_size (sub->view),
-      GNUNET_NO);
+  if (sub == msub)
+  {
+    GNUNET_STATISTICS_set (stats,
+        "# peers in push map at end of round",
+        CustomPeerMap_size (sub->push_map),
+        GNUNET_NO);
+    GNUNET_STATISTICS_set (stats,
+        "# peers in pull map at end of round",
+        CustomPeerMap_size (sub->pull_map),
+        GNUNET_NO);
+    GNUNET_STATISTICS_set (stats,
+        "# peers in view at end of round",
+        View_size (sub->view),
+        GNUNET_NO);
+  }
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Received %u pushes and %u pulls last round (alpha (%.2f) * view_size (sub->view%u) = %.2f)\n",
@@ -4085,10 +4156,13 @@ do_round (void *cls)
   CustomPeerMap_clear (sub->push_map);
   CustomPeerMap_clear (sub->pull_map);
 
-  GNUNET_STATISTICS_set (stats,
-                         "view size",
-                         View_size(sub->view),
-                         GNUNET_NO);
+  if (sub == msub)
+  {
+    GNUNET_STATISTICS_set (stats,
+                           "view size",
+                           View_size(sub->view),
+                           GNUNET_NO);
+  }
 
   struct GNUNET_TIME_Relative time_next_round;
 
