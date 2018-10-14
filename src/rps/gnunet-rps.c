@@ -58,11 +58,6 @@ static int stream_input;
  */
 static uint64_t num_view_updates;
 
-/**
- * @brief Number of peers we want to receive from stream
- */
-static uint64_t num_stream_peers;
-
 
 /**
  * Task run when user presses CTRL-C to abort.
@@ -162,24 +157,13 @@ stream_input_handle (void *cls,
 
   if (0 == num_peers)
   {
-    FPRINTF (stdout, "Empty view\n");
+    FPRINTF (stdout, "No peer was returned\n");
   }
   req_handle = NULL;
   for (i = 0; i < num_peers; i++)
   {
     FPRINTF (stdout, "%s\n",
              GNUNET_i2s_full (&recv_peers[i]));
-
-    if (1 == num_stream_peers)
-    {
-      ret = 0;
-      GNUNET_SCHEDULER_shutdown ();
-      break;
-    }
-    else if (1 < num_stream_peers)
-    {
-      num_stream_peers--;
-    }
   }
 }
 
@@ -243,18 +227,7 @@ run (void *cls,
   } else if (stream_input)
   {
     /* Get updates of view */
-    if (NULL == args[0] ||
-        0 == sscanf (args[0], "%lu", &num_stream_peers))
-    {
-      num_stream_peers = 0;
-    }
-    GNUNET_RPS_stream_request (rps_handle, num_stream_peers, stream_input_handle, NULL);
-    if (0 != num_stream_peers)
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-          "Requesting %" PRIu64 " peers from biased stream\n", num_stream_peers);
-    else
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-          "Requesting continuous peers from biased stream\n");
+    GNUNET_RPS_stream_request (rps_handle, stream_input_handle, NULL);
     GNUNET_SCHEDULER_add_shutdown (&do_shutdown, NULL);
   }
   else

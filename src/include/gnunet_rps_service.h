@@ -180,14 +180,11 @@ GNUNET_RPS_view_request (struct GNUNET_RPS_Handle *rps_handle,
  * Request biased stream of peers that are being put into the sampler
  *
  * @param rps_handle handle to the rps service
- * @param num_req_peers number of peers we want to receive
- *        (0 for infinite updates)
  * @param cls a closure that will be given to the callback
  * @param ready_cb the callback called when the peers are available
  */
 struct GNUNET_RPS_StreamRequestHandle *
 GNUNET_RPS_stream_request (struct GNUNET_RPS_Handle *rps_handle,
-                           uint32_t num_updates,
                            GNUNET_RPS_NotifyReadyCB stream_input_cb,
                            void *cls);
 

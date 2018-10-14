@@ -1606,7 +1606,6 @@ sub_pre (struct RPSPeer *rps_peer, struct GNUNET_RPS_Handle *h)
   if (0 != rps_peer->index) GNUNET_RPS_sub_start (h, "test");
   else GNUNET_RPS_sub_start (h, "lonely"); /* have a group of one */
   rps_peer->rps_srh = GNUNET_RPS_stream_request (h,
-                                                 0,
                                                  &got_stream_peer_cb,
                                                  rps_peer);
 }
