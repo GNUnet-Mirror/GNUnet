@@ -1578,6 +1578,14 @@ got_stream_peer_cb (void *cls,
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Received a peer id outside sub\n");
       ok = 1;
     }
+    else if (0 == rps_peer->index &&
+             0 != memcmp (&peers[i],
+                          &rps_peers[0].peer_id,
+                          sizeof (struct GNUNET_PeerIdentity)))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Received a peer id outside sub (lonely)\n");
+      ok = 1;
+    }
   }
 }
 
@@ -1586,7 +1594,9 @@ static void
 sub_post (struct RPSPeer *rps_peer)
 {
   if (0 != rps_peer->index) GNUNET_RPS_sub_stop (rps_peer->rps_handle, "test");
+  else GNUNET_RPS_sub_stop (rps_peer->rps_handle, "lonely");
 }
+
 
 static void
 sub_pre (struct RPSPeer *rps_peer, struct GNUNET_RPS_Handle *h)
@@ -1594,6 +1604,7 @@ sub_pre (struct RPSPeer *rps_peer, struct GNUNET_RPS_Handle *h)
   (void) rps_peer;
 
   if (0 != rps_peer->index) GNUNET_RPS_sub_start (h, "test");
+  else GNUNET_RPS_sub_start (h, "lonely"); /* have a group of one */
   rps_peer->rps_srh = GNUNET_RPS_stream_request (h,
                                                  0,
                                                  &got_stream_peer_cb,
