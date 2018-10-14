@@ -2806,8 +2806,6 @@ run (void *cls,
   timeout = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS,
       (timeout_s * 1.2) + 0.1 * num_peers);
   shutdown_task = GNUNET_SCHEDULER_add_delayed (timeout, &shutdown_op, NULL);
-  shutdown_task = GNUNET_SCHEDULER_add_shutdown (shutdown_op, NULL);
-
 }
 
 
