@@ -237,11 +237,14 @@ peers_ready_cb (const struct GNUNET_PeerIdentity *peers,
 {
   struct GNUNET_RPS_Request_Handle *rh = cls;
 
+  rh->sampler_rh = NULL;
   rh->ready_cb (rh->ready_cb_cls,
                 num_peers,
                 peers);
-  // TODO cleanup, sampler, rh, cancel stuff
-  // TODO screw this function. We can give the cb,cls directly to the sampler.
+  GNUNET_RPS_stream_cancel (rh->srh);
+  rh->srh = NULL;
+  RPS_sampler_destroy (rh->sampler);
+  rh->sampler = NULL;
 }
 
 
@@ -421,18 +424,13 @@ void
 GNUNET_RPS_stream_cancel (struct GNUNET_RPS_StreamRequestHandle *srh)
 {
   struct GNUNET_RPS_Handle *rps_handle;
-  struct GNUNET_RPS_StreamRequestHandle *srh_iter;
 
+  GNUNET_assert (NULL != srh);
   rps_handle = srh->rps_handle;
-  srh_iter = rps_handle->stream_requests_head;
-  while (NULL != srh_iter && srh_iter != srh) srh_iter = srh_iter->next;
-  if (NULL != srh_iter)
-  {
-    GNUNET_CONTAINER_DLL_remove (rps_handle->stream_requests_head,
-                                 rps_handle->stream_requests_tail,
-                                 srh);
-    GNUNET_free (srh);
-  }
+  GNUNET_CONTAINER_DLL_remove (rps_handle->stream_requests_head,
+                               rps_handle->stream_requests_tail,
+                               srh);
+  GNUNET_free (srh);
   if (NULL == rps_handle->stream_requests_head) cancel_stream (rps_handle);
 }
 
@@ -480,20 +478,24 @@ handle_stream_input (void *cls,
   struct GNUNET_RPS_Handle *h = cls;
   const struct GNUNET_PeerIdentity *peers;
   uint64_t num_peers;
+  struct GNUNET_RPS_StreamRequestHandle *srh_iter;
+  struct GNUNET_RPS_StreamRequestHandle *srh_next;
 
   peers = (struct GNUNET_PeerIdentity *) &msg[1];
   num_peers = ntohl (msg->num_peers);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Received %" PRIu64 " peer(s) from stream input.\n",
        num_peers);
-  for (struct GNUNET_RPS_StreamRequestHandle *srh_iter = h->stream_requests_head;
-       NULL != srh_iter;
-       srh_iter = srh_iter->next)
+  srh_iter = h->stream_requests_head;
+  while (NULL != srh_iter)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "Calling srh \n");
+    /* Store next pointer - srh might be removed/freed in callback */
+    srh_next = srh_iter->next;
     srh_iter->ready_cb (srh_iter->ready_cb_cls,
                         num_peers,
                         peers);
+    srh_iter = srh_next;
   }
 
   if (NULL == h->stream_requests_head)
