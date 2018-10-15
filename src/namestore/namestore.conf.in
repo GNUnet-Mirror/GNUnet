@@ -23,8 +23,8 @@ CACHE_KEYS = YES
 [namestore-sqlite]
 FILENAME = $GNUNET_DATA_HOME/namestore/sqlite.db
 
-[namestore-flat]
-FILENAME = $GNUNET_DATA_HOME/namestore/flat.db
+[namestore-heap]
+FILENAME = $GNUNET_DATA_HOME/namestore/heap.db
 
 
 [namestore-postgres]
