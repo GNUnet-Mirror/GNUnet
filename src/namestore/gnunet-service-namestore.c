@@ -713,9 +713,8 @@ send_store_response (struct NamestoreClient *nc,
 {
   struct GNUNET_MQ_Envelope *env;
   struct RecordStoreResponseMessage *rcr_msg;
-  
-  if (NULL == nc)
-    return;
+
+  GNUNET_assert (NULL != nc);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Sending RECORD_STORE_RESPONSE message\n");
   GNUNET_STATISTICS_update (statistics,
@@ -804,9 +803,10 @@ refresh_block (struct NamestoreClient *nc,
   }
   if (0 == res_count)
   {
-    send_store_response (nc,
-                         GNUNET_OK,
-                         rid);
+    if (NULL != nc)
+      send_store_response (nc,
+                           GNUNET_OK,
+                           rid);
     return; /* no data, no need to update cache */
   }
   if (GNUNET_YES == disable_namecache)
@@ -815,9 +815,10 @@ refresh_block (struct NamestoreClient *nc,
 			      "Namecache updates skipped (NC disabled)",
 			      1,
 			      GNUNET_NO);
-    send_store_response (nc,
-                         GNUNET_OK,
-                         rid);
+    if (NULL != nc)
+      send_store_response (nc,
+                           GNUNET_OK,
+                           rid);
     return;
   }
   exp_time = GNUNET_GNSRECORD_record_get_expiration_time (res_count,
@@ -1808,7 +1809,6 @@ handle_iteration_start (void *cls,
   zi->request_id = ntohl (zis_msg->gns_header.r_id);
   zi->offset = 0;
   zi->nc = nc;
-  zi->seq = 1;
   zi->zone = zis_msg->zone;
 
   GNUNET_CONTAINER_DLL_insert (nc->op_head,

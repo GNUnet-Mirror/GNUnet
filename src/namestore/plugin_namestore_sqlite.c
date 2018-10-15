@@ -152,14 +152,14 @@ database_setup (struct Plugin *plugin)
                             &plugin->zone_to_name),
     GNUNET_SQ_make_prepare ("SELECT uid,record_count,record_data,label"
                             " FROM ns098records"
-                            " WHERE zone_private_key=? AND _rowid_ >= ?"
-                            " ORDER BY _rowid_ ASC"
+                            " WHERE zone_private_key=? AND uid >= ?"
+                            " ORDER BY uid ASC"
                             " LIMIT ?",
                             &plugin->iterate_zone),
     GNUNET_SQ_make_prepare ("SELECT uid,record_count,record_data,label,zone_private_key"
                             " FROM ns098records"
-                            " WHERE _rowid_ >= ?"
-                            " ORDER BY _rowid_ ASC"
+                            " WHERE uid >= ?"
+                            " ORDER BY uid ASC"
                             " LIMIT ?",
                             &plugin->iterate_all_zones),
     GNUNET_SQ_make_prepare ("SELECT uid,record_count,record_data,label,zone_private_key"
@@ -540,7 +540,7 @@ get_records_and_call_iterator (struct Plugin *plugin,
             zk = *zone_key;
           if (NULL != iter)
             iter (iter_cls,
-		              seq + 1,
+		              seq,
                   &zk,
                   label,
                   record_count,
@@ -627,11 +627,12 @@ namestore_sqlite_iterate_records (void *cls,
   struct Plugin *plugin = cls;
   sqlite3_stmt *stmt;
   int err;
+  uint64_t rowid = serial + 1; //SQLite starts counting at 1
 
   if (NULL == zone)
   {
     struct GNUNET_SQ_QueryParam params[] = {
-      GNUNET_SQ_query_param_uint64 (&serial),
+      GNUNET_SQ_query_param_uint64 (&rowid),
       GNUNET_SQ_query_param_uint64 (&limit),
       GNUNET_SQ_query_param_end
     };
@@ -644,7 +645,7 @@ namestore_sqlite_iterate_records (void *cls,
   {
     struct GNUNET_SQ_QueryParam params[] = {
       GNUNET_SQ_query_param_auto_from_type (zone),
-      GNUNET_SQ_query_param_uint64 (&serial),
+      GNUNET_SQ_query_param_uint64 (&rowid),
       GNUNET_SQ_query_param_uint64 (&limit),
       GNUNET_SQ_query_param_end
     };
