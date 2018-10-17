@@ -49,6 +49,52 @@
 typedef void
 (*GNUNET_CURL_RescheduleCallback)(void *cls);
 
+/**
+ * @brief Buffer data structure we use to buffer the HTTP download
+ * before giving it to the JSON parser.
+ */
+struct GNUNET_CURL_DownloadBuffer
+{
+
+  /**
+   * Download buffer
+   */
+  void *buf;
+
+  /**
+   * The size of the download buffer
+   */
+  size_t buf_size;
+
+  /**
+   * Error code (based on libc errno) if we failed to download
+   * (i.e. response too large).
+   */
+  int eno;
+
+};
+
+
+/**
+ * Parses the raw response we got from the Web server.
+ *
+ * @param db the raw data
+ * @param eh handle
+ * @param response_code HTTP response code
+ * @return the parsed object
+ */
+typedef void *
+(*GNUNET_CURL_RawParser) (struct GNUNET_CURL_DownloadBuffer *db,
+                          CURL *eh,
+                          long *response_code);
+
+/**
+ * Deallocate the response.
+ * 
+ * @param response object to clean
+ */
+typedef void
+(*GNUNET_CURL_ResponseCleaner) (void *response);
 
 /**
  * Initialise this library.  This function should be called before using any of
@@ -117,6 +163,19 @@ GNUNET_CURL_append_header (struct GNUNET_CURL_Context *ctx,
 void
 GNUNET_CURL_perform (struct GNUNET_CURL_Context *ctx);
 
+
+/**
+ * Run the main event loop for the Taler interaction.
+ *
+ * @param ctx the library context
+ * @param rp parses the raw response returned from
+ *        the Web server.
+ * @param rc cleans/frees the response
+ */
+void
+GNUNET_CURL_perform2 (struct GNUNET_CURL_Context *ctx,
+                      GNUNET_CURL_RawParser rp,
+                      GNUNET_CURL_ResponseCleaner rc);
 
 /**
  * Cleanup library initialisation resources.  This function should be called
