@@ -203,7 +203,7 @@ struct GNUNET_CURL_Job;
 typedef void
 (*GNUNET_CURL_JobCompletionCallback)(void *cls,
                                      long response_code,
-                                     const json_t *json);
+                                     const void *response);
 
 
 /**
@@ -257,6 +257,18 @@ struct GNUNET_CURL_RescheduleContext;
  */
 struct GNUNET_CURL_RescheduleContext *
 GNUNET_CURL_gnunet_rc_create (struct GNUNET_CURL_Context *ctx);
+
+/**
+ * Initialize reschedule context; with custom response parser
+ *
+ * @param ctx context to manage
+ * @return closure for #GNUNET_CURL_gnunet_scheduler_reschedule().
+ */
+struct GNUNET_CURL_RescheduleContext *
+GNUNET_CURL_gnunet_rc_create_with_parser (struct GNUNET_CURL_Context *ctx,
+                                          GNUNET_CURL_RawParser rp,
+                                          GNUNET_CURL_ResponseCleaner rc);
+
 
 /**
  * Destroy reschedule context.
