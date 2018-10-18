@@ -26,6 +26,7 @@
 
 #include "platform.h"
 #include "gnunet_util_lib.h"
+#include "rps-test_util.h"
 
 #include <inttypes.h>
 

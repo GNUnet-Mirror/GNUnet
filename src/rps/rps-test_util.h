@@ -26,6 +26,8 @@
 #ifndef RPS_TEST_UTIL_H
 #define RPS_TEST_UTIL_H
 
+#define TO_FILE 1
+
 
 void
 to_file_ (const char *file_name, char *line);
