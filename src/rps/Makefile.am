@@ -20,8 +20,6 @@ pkgcfg_DATA = \
 bin_PROGRAMS = gnunet-rps
 
 gnunet_rps_SOURCES = \
-  gnunet-service-rps_sampler_elem.h gnunet-service-rps_sampler_elem.c \
-  rps-sampler_common.h rps-sampler_common.c \
   gnunet-rps.c
 
 gnunet_rps_LDADD = \
@@ -32,6 +30,8 @@ gnunet_rps_LDADD = \
 lib_LTLIBRARIES = libgnunetrps.la
 
 libgnunetrps_la_SOURCES = \
+  rps-test_util.h rps-test_util.c \
+  rps-sampler_common.h rps-sampler_common.c \
   rps-sampler_client.h rps-sampler_client.c \
   rps_api.c rps.h
 libgnunetrps_la_LIBADD = \
