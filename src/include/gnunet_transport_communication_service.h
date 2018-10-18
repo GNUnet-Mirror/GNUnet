@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     Copyright (C) 2009-2016 GNUnet e.V.
+     Copyright (C) 2009-2018 GNUnet e.V.
 
      GNUnet is free software: you can redistribute it and/or modify it
      under the terms of the GNU Affero General Public License as published
@@ -52,15 +52,21 @@ extern "C"
 /**
  * Function called by the transport service to initialize a
  * message queue given address information about another peer.
+ * If and when the communication channel is established, the
+ * communicator must call #GNUNET_TRANSPORT_communicator_mq_add()
+ * to notify the service that the channel is now up.  It is
+ * the responsibility of the communicator to manage sane
+ * retries and timeouts for any @a peer/@a address combination
+ * provided by the transport service.  Timeouts and retries
+ * do not need to be signalled to the transport service.
  *
  * @param cls closure
  * @param peer identity of the other peer
  * @param address where to send the message, human-readable
  *        communicator-specific format, 0-terminated, UTF-8
- * @return NULL if the provided address is invalid, otherwise an MQ to
- *         send messages to that peer
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR if the provided address is invalid
  */
-typedef struct GNUNET_MQ_Handle *
+typedef int
 (*GNUNET_TRANSPORT_CommunicatorMqInit) (void *cls,
                                         const struct GNUNET_PeerIdentity *peer,
                                         const void *address);
@@ -78,7 +84,7 @@ struct GNUNET_TRANSPORT_CommunicatorHandle;
  * @param cfg configuration to use
  * @param name name of the communicator that is connecting
  * @param mtu maximum message size supported by communicator, 0 if
- *            sending is not supported
+ *            sending is not supported, SIZE_MAX for no MTU
  * @param mq_init function to call to initialize a message queue given
  *                the address of another peer, can be NULL if the
  *                communicator only supports receiving messages
@@ -144,6 +150,12 @@ GNUNET_TRANSPORT_communicator_receive (struct GNUNET_TRANSPORT_CommunicatorHandl
 
 /* ************************* Discovery *************************** */
 
+/**
+ * Handle returned to identify the internal data structure the transport
+ * API has created to manage a message queue to a particular peer.
+ */
+struct GNUNET_TRANSPORT_QueueHandle;
+
 
 /**
  * Notify transport service that an MQ became available due to an
@@ -155,8 +167,9 @@ GNUNET_TRANSPORT_communicator_receive (struct GNUNET_TRANSPORT_CommunicatorHandl
  * @param address address in human-readable format, 0-terminated, UTF-8
  * @param nt which network type does the @a address belong to?
  * @param mq message queue of the @a peer
+ * @return API handle identifying the new MQ
  */
-void
+struct GNUNET_TRANSPORT_QueueHandle *
 GNUNET_TRANSPORT_communicator_mq_add (struct GNUNET_TRANSPORT_CommunicatorHandle *handle,
                                       const struct GNUNET_PeerIdentity *peer,
                                       const char *address,
@@ -168,18 +181,17 @@ GNUNET_TRANSPORT_communicator_mq_add (struct GNUNET_TRANSPORT_CommunicatorHandle
  * Notify transport service that an MQ became unavailable due to a
  * disconnect or timeout.
  *
- * @param handle connection to transport service
- * @param peer peer with which we can no longer communicate via the given mq
- * @param address address in human-readable format, 0-terminated, UTF-8
- * @param nt which network type does the @a address belong to?
- * @param mq message queue of the @a peer
+ * @param qh handle for the queue that must be invalidated
  */
 void
-GNUNET_TRANSPORT_communicator_mq_remove (struct GNUNET_TRANSPORT_CommunicatorHandle *handle,
-                                         const struct GNUNET_PeerIdentity *peer,
-                                         const char *address,
-                                         enum GNUNET_ATS_Network_Type nt,
-                                         struct GNUNET_MQ_Handle *mq);
+GNUNET_TRANSPORT_communicator_mq_del (struct GNUNET_TRANSPORT_QueueHandle *qh);
+
+
+/**
+ * Internal representation of an address a communicator is
+ * currently providing for the transport service.
+ */
+struct GNUNET_TRANSPORT_AddressIdentifier;
 
 
 /**
@@ -191,7 +203,7 @@ GNUNET_TRANSPORT_communicator_mq_remove (struct GNUNET_TRANSPORT_CommunicatorHan
  * @param nt which network type does the address belong to?
  * @param expiration when does the communicator forsee this address expiring?
  */
-void
+struct GNUNET_TRANSPORT_AddressIdentifier *
 GNUNET_TRANSPORT_communicator_address_add (struct GNUNET_TRANSPORT_CommunicatorHandle *handle,
                                            const char *address,
                                            enum GNUNET_ATS_Network_Type nt,
@@ -202,13 +214,10 @@ GNUNET_TRANSPORT_communicator_address_add (struct GNUNET_TRANSPORT_CommunicatorH
  * Notify transport service about an address that this communicator
  * no longer provides for this peer.
  *
- * @param handle connection to transport service
- * @param address our former address in human-readable format,
- *        0-terminated, in UTF-8
+ * @param ai address that is no longer provided
  */
 void
-GNUNET_TRANSPORT_communicator_address_remove (struct GNUNET_TRANSPORT_CommunicatorHandle *handle,
-                                              const char *address);
+GNUNET_TRANSPORT_communicator_address_remove (struct GNUNET_TRANSPORT_AddressIdentifier *ai);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */
