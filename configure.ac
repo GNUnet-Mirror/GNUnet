@@ -25,7 +25,7 @@ AC_INIT([gnunet], [0.11.0pre66], [bug-gnunet@gnu.org])
 AC_CANONICAL_TARGET
 AC_CANONICAL_HOST
 AC_CANONICAL_SYSTEM
-
+AC_CONFIG_AUX_DIR([build-aux])
 AM_INIT_AUTOMAKE
 m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
 AC_CONFIG_HEADERS([gnunet_config.h])
