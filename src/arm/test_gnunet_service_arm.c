@@ -112,7 +112,7 @@ hostname_resolve_cb (void *cls,
   if (NULL == addr)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Name not resolved!\n");
+                "Failed to resolve our own hostname!\n");
     GNUNET_break (0);
     ret = 3;
     GNUNET_ARM_request_service_stop (arm,
@@ -200,7 +200,7 @@ main (int argc, char *av[])
     FPRINTF (stderr,
              "%s",
              "Failed to determine my own hostname, testcase not run.\n");
-    return 0;
+    return 77;
   }
   if ( (0 == strcmp (hostname,
 		     "localhost")) ||
@@ -210,6 +210,8 @@ main (int argc, char *av[])
     /* we cannot use 'localhost' as this would not trigger the
        resolver service (see resolver_api.c); so in this case,
        we fall back to (ab)using gnu.org. */
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		"Falling back to `www.gnu.org'\n");
     strcpy (hostname,
 	    "www.gnu.org");
   }
@@ -224,7 +226,7 @@ main (int argc, char *av[])
       FPRINTF (stderr,
                "Failed to resolve my hostname `%s', testcase not run.\n",
                hostname);
-      return 0;
+      return 77;
     }
     freeaddrinfo (ai);
   }
@@ -240,7 +242,7 @@ main (int argc, char *av[])
         FPRINTF (stderr,
                  "Failed to resolve my hostname `%s', testcase not run.\n",
                  hostname);
-        return 0;
+        return 77;
       }
   }
 #elif HAVE_GETHOSTBYNAME
@@ -253,13 +255,13 @@ main (int argc, char *av[])
         FPRINTF (stderr,
                  "Failed to resolve my hostname `%s', testcase not run.\n",
                  hostname);
-        return 0;
+        return 77;
       }
   }
 #else
   FPRINTF (stderr,
            "libc fails to have resolver function, testcase not run.\n");
-  return 0;
+  return 77;
 #endif
   GNUNET_log_setup ("test-gnunet-service-arm",
 		    "WARNING",
