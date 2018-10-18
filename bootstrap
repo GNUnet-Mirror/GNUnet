@@ -1,4 +1,5 @@
 #!/bin/sh
+# This file is in the public domain.
 echo "Removing folder 'libltdl'..."
 rm -rf libltdl
 
