@@ -57,6 +57,7 @@ struct RecordListEntry
    * Cached data.
    */
   struct GNUNET_DNSPARSER_Record *record;
+
 };
 
 
@@ -165,6 +166,16 @@ static struct ResolveCache *cache_head;
 static struct ResolveCache *cache_tail;
 
 /**
+ * Head of the linked list of DNS lookup results from /etc/hosts.
+ */
+static struct ResolveCache *hosts_head;
+
+/**
+ * Tail of the linked list of DNS lookup results from /etc/hosts.
+ */
+static struct ResolveCache *hosts_tail;
+
+/**
  * Start of the linked list of active DNS lookups.
  */
 static struct ActiveLookup *lookup_head;
@@ -212,6 +223,34 @@ free_cache_entry (struct ResolveCache *rc)
   GNUNET_free_non_null (rc->hostname);
   GNUNET_CONTAINER_DLL_remove (cache_head,
                                cache_tail,
+                               rc);
+  cache_size--;
+  GNUNET_free (rc);
+}
+
+
+/**
+ * Remove @a entry from cache.
+ *
+ * @param rc entry to free
+ */
+static void
+free_hosts_entry (struct ResolveCache *rc)
+{
+  struct RecordListEntry *pos;
+
+  while (NULL != (pos = rc->records_head))
+  {
+    GNUNET_CONTAINER_DLL_remove (rc->records_head,
+				 rc->records_tail,
+		       		 pos);
+    GNUNET_DNSPARSER_free_record (pos->record);
+    GNUNET_free (pos->record);
+    GNUNET_free (pos);
+  }
+  GNUNET_free_non_null (rc->hostname);
+  GNUNET_CONTAINER_DLL_remove (hosts_head,
+                               hosts_tail,
                                rc);
   cache_size--;
   GNUNET_free (rc);
@@ -299,8 +338,9 @@ static int
 lookup_dns_servers (char ***server_addrs)
 {
   struct GNUNET_DISK_FileHandle *fh;
-  char buf[2048];
-  ssize_t bytes_read;
+  struct GNUNET_DISK_MapHandle *mh;
+  off_t bytes_read;
+  const char *buf;
   size_t read_offset;
   unsigned int num_dns_servers;
 
@@ -314,9 +354,28 @@ lookup_dns_servers (char ***server_addrs)
 		"DNS resolution will not be possible.\n");
     return -1;
   }
-  bytes_read = GNUNET_DISK_file_read (fh,
-				      buf,
-				      sizeof (buf));
+  if (GNUNET_OK !=
+      GNUNET_DISK_file_handle_size (fh,
+				    &bytes_read))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		"Could not determine size of /etc/resolv.conf. "
+		"DNS resolution will not be possible.\n");
+    GNUNET_DISK_file_close (fh);
+    return -1;
+  }
+  if (bytes_read > SIZE_MAX)
+  { 
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		"/etc/resolv.conf file too large to mmap. "
+		"DNS resolution will not be possible.\n");
+    GNUNET_DISK_file_close (fh);
+    return -1;   
+  }
+  buf = GNUNET_DISK_file_map (fh,
+			      &mh,
+			      GNUNET_DISK_MAP_TYPE_READ,
+			      (size_t) bytes_read);
   *server_addrs = NULL;
   read_offset = 0;
   num_dns_servers = 0;
@@ -346,6 +405,7 @@ lookup_dns_servers (char ***server_addrs)
     }
     read_offset += line_len + 1;
   }
+  GNUNET_DISK_file_unmap (mh);
   GNUNET_DISK_file_close (fh);
   return (int) num_dns_servers;
 }
@@ -534,9 +594,14 @@ remove_expired (struct ResolveCache *rc)
   {
     n = pos->next;
     if (now.abs_value_us > pos->record->expiration_time.abs_value_us)
+    {
       GNUNET_CONTAINER_DLL_remove (rc->records_head,
                                    rc->records_tail,
                                    pos);
+      GNUNET_DNSPARSER_free_record (pos->record);
+      GNUNET_free (pos->record);
+      GNUNET_free (pos);      
+    }
   }
   if (NULL == rc->records_head)
   {
@@ -584,15 +649,22 @@ try_cache (const char *hostname,
   struct ResolveCache *next;
   int found;
 
-  next = cache_head;
-  for (pos = next; NULL != pos; pos = next)
-  {
-    next = pos->next;
-    if (GNUNET_YES == remove_expired (pos))
-      continue;
+  for (pos = hosts_head; NULL != pos; pos = pos->next)
     if (0 == strcmp (pos->hostname,
                      hostname))
       break;
+  if (NULL == pos)
+  {
+    next = cache_head;
+    for (pos = next; NULL != pos; pos = next)
+    {
+      next = pos->next;
+      if (GNUNET_YES == remove_expired (pos))
+	continue;
+      if (0 == strcmp (pos->hostname,
+		       hostname))
+	break;
+    }
   }
   if (NULL == pos)
   {
@@ -853,6 +925,8 @@ handle_resolve_result (void *cls,
                                 packet_size,
                                 &handle_resolve_result,
                                 al);
+      GNUNET_free (packet_buf);
+      GNUNET_DNSPARSER_free_packet (parsed);
       return;
     }
   }
@@ -1169,7 +1243,174 @@ shutdown_task (void *cls)
     free_active_lookup (lookup_head);
   while (NULL != cache_head)
     free_cache_entry (cache_head);
+  while (NULL != hosts_head)
+    free_hosts_entry (hosts_head);
   GNUNET_DNSSTUB_stop (dnsstub_ctx);
+  GNUNET_free (my_domain);
+}
+
+
+/**
+ * Add information about a host from /etc/hosts 
+ * to our cache.
+ *
+ * @param hostname the name of the host
+ * @param rec_type DNS record type to use
+ * @param data payload
+ * @param data_size number of bytes in @a data
+ */
+static void
+add_host (const char *hostname,
+	  uint16_t rec_type,
+	  const void *data,
+	  size_t data_size)
+{
+  struct ResolveCache *rc;
+  struct RecordListEntry *rle;
+  struct GNUNET_DNSPARSER_Record *rec;
+
+  rec = GNUNET_malloc (sizeof (struct GNUNET_DNSPARSER_Record));
+  rec->expiration_time = GNUNET_TIME_UNIT_FOREVER_ABS;
+  rec->type = rec_type;
+  rec->dns_traffic_class = GNUNET_TUN_DNS_CLASS_INTERNET;  
+  rec->name = GNUNET_strdup (hostname);
+  rec->data.raw.data = GNUNET_memdup (data,
+				      data_size);
+  rec->data.raw.data_len = data_size;
+  rle = GNUNET_new (struct RecordListEntry);
+  rle->record = rec;
+  rc = GNUNET_new (struct ResolveCache);
+  rc->hostname = GNUNET_strdup (hostname);
+  GNUNET_CONTAINER_DLL_insert (rc->records_head,
+			       rc->records_tail,
+			       rle);
+  GNUNET_CONTAINER_DLL_insert (hosts_head,
+			       hosts_tail,
+			       rc);
+}
+
+
+/**
+ * Extract host information from a line in /etc/hosts
+ * 
+ * @param line the line to parse
+ * @param line_len number of bytes in @a line
+ */
+static void
+extract_hosts (const char *line,
+	       size_t line_len)
+{
+  const char *c;
+  struct in_addr v4;
+  struct in6_addr v6;
+  char *tbuf;
+  char *tok;
+
+  /* ignore everything after '#' */
+  c = memrchr (line,
+	       (unsigned char) '#',
+	       line_len);
+  if (NULL != c)
+    line_len = c - line;
+  /* ignore leading whitespace */
+  while ( (0 > line_len) &&
+	  isspace ((unsigned char) *line) )
+  {
+    line++;
+    line_len--;
+  }
+  tbuf = GNUNET_strndup (line,
+			 line_len);
+  tok = strtok (tbuf, " \t");
+  if (NULL == tok)
+  {
+    GNUNET_free (tbuf);
+    return;
+  }
+  if (1 == inet_pton (AF_INET,
+		      tok,
+		      &v4))
+  {
+    while (NULL != (tok = strtok (NULL, " \t")))
+      add_host (tok,
+		GNUNET_DNSPARSER_TYPE_A,
+		&v4,
+		sizeof (struct in_addr));
+  }
+  else if (1 == inet_pton (AF_INET6,
+			   tok,
+			   &v6))
+  {
+    while (NULL != (tok = strtok (NULL, " \t")))
+      add_host (tok,
+		GNUNET_DNSPARSER_TYPE_AAAA,
+		&v6,
+		sizeof (struct in6_addr));
+  }
+  GNUNET_free (tbuf);
+}
+
+
+/**
+ * Reads the list of hosts from /etc/hosts.
+ */
+static void
+load_etc_hosts (void)
+{
+  struct GNUNET_DISK_FileHandle *fh;
+  struct GNUNET_DISK_MapHandle *mh;
+  off_t bytes_read;
+  const char *buf;
+  size_t read_offset;
+
+  fh = GNUNET_DISK_file_open ("/etc/hosts",
+			      GNUNET_DISK_OPEN_READ,
+			      GNUNET_DISK_PERM_NONE);
+  if (NULL == fh)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+		"Failed to open /etc/hosts");
+    return;
+  }
+  if (GNUNET_OK !=
+      GNUNET_DISK_file_handle_size (fh,
+				    &bytes_read))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		"Could not determin size of /etc/hosts. "
+		"DNS resolution will not be possible.\n");
+    GNUNET_DISK_file_close (fh);
+    return;
+  }
+  if (bytes_read > SIZE_MAX)
+  { 
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		"/etc/hosts file too large to mmap. "
+		"DNS resolution will not be possible.\n");
+    GNUNET_DISK_file_close (fh);
+    return;   
+  }
+  buf = GNUNET_DISK_file_map (fh,
+			      &mh,
+			      GNUNET_DISK_MAP_TYPE_READ,
+			      (size_t) bytes_read);
+  read_offset = 0;
+  while (read_offset < bytes_read)
+  {
+    const char *newline;
+    size_t line_len;
+
+    newline = strchr (buf + read_offset,
+                      '\n');
+    if (NULL == newline)
+      break;
+    line_len = newline - buf - read_offset;
+    extract_hosts (buf + read_offset,
+		   line_len);
+    read_offset += line_len + 1;
+  }
+  GNUNET_DISK_file_unmap (mh);
+  GNUNET_DISK_file_close (fh);
 }
 
 
@@ -1190,6 +1431,7 @@ init_cb (void *cls,
 
   (void) cfg;
   (void) sh;
+  load_etc_hosts ();
   GNUNET_SCHEDULER_add_shutdown (&shutdown_task,
 				 cls);
   dnsstub_ctx = GNUNET_DNSSTUB_start (128);

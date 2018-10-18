@@ -781,6 +781,7 @@ GNUNET_DISK_file_change_owner (const char *filename,
  */
 struct GNUNET_DISK_MapHandle;
 
+
 /**
  * Map a file into memory
  * @param h open file handle
