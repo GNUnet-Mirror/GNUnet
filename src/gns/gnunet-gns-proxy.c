@@ -11,7 +11,7 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
@@ -788,7 +788,7 @@ cleanup_s5r (struct Socks5Request *s5r)
     s5r->rtask = NULL;
   }
   if (NULL != s5r->timeout_task)
-  {    
+  {
     GNUNET_SCHEDULER_cancel (s5r->timeout_task);
     s5r->timeout_task = NULL;
   }
@@ -918,7 +918,7 @@ mhd_content_cb (void *cls,
                 "Continuing CURL interaction for %s%s\n",
 		s5r->domain,
 		s5r->url);
-    s5r->curl_paused = GNUNET_NO;  
+    s5r->curl_paused = GNUNET_NO;
     curl_easy_pause (s5r->curl,
                      CURLPAUSE_CONT);
   }
@@ -1461,7 +1461,7 @@ curl_upload_cb (void *buf,
       s5r->curl_paused = GNUNET_NO;
       curl_easy_pause (s5r->curl,
 		       CURLPAUSE_CONT);
-    }    
+    }
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Completed CURL UPLOAD %s%s\n",
                 s5r->domain,

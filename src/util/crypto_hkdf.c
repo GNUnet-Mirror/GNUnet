@@ -52,8 +52,8 @@
 
 #if GNUNET_BUILD
 #include "platform.h"
-#include "benchmark.h"
 #include "gnunet_crypto_lib.h"
+#include "benchmark.h"
 #else
 #define GNUNET_NO 0
 #define GNUNET_YES 1
