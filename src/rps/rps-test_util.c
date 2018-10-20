@@ -57,76 +57,6 @@ static char buf_unaligned;
  */
 static unsigned num_bits_buf_unaligned;
 
-void
-to_file_ (const char *file_name, char *line)
-{
-  struct GNUNET_DISK_FileHandle *f;
-  char output_buffer[512];
-  size_t output_buffer_size = 512;
-  char *output_buffer_p;
-  //size_t size;
-  int size;
-  int size2;
-
-
-  if (NULL == (f = GNUNET_DISK_file_open (file_name,
-                                          GNUNET_DISK_OPEN_APPEND |
-                                          GNUNET_DISK_OPEN_WRITE |
-                                          GNUNET_DISK_OPEN_CREATE,
-                                          GNUNET_DISK_PERM_USER_READ |
-                                          GNUNET_DISK_PERM_USER_WRITE |
-                                          GNUNET_DISK_PERM_GROUP_READ |
-                                          GNUNET_DISK_PERM_OTHER_READ)))
-  {
-    LOG (GNUNET_ERROR_TYPE_WARNING,
-         "Not able to open file %s\n",
-         file_name);
-    return;
-  }
-  output_buffer_size = strlen (line) + 18;
-  if (512 < output_buffer_size)
-  {
-    output_buffer_p = GNUNET_malloc ((output_buffer_size) * sizeof (char));
-  } else {
-    output_buffer_p = &output_buffer[0];
-  }
-  size = GNUNET_snprintf (output_buffer_p,
-                          output_buffer_size,
-                          "%llu %s\n",
-                          (GNUNET_TIME_absolute_get ().abs_value_us) / 1000000, // microsec -> sec
-                          line);
-  if (0 > size)
-  {
-    LOG (GNUNET_ERROR_TYPE_WARNING,
-         "Failed to write string to buffer (size: %i)\n",
-         size);
-    return;
-  }
-
-  size2 = GNUNET_DISK_file_write (f, output_buffer_p, size);
-  if (size != size2)
-  {
-    LOG (GNUNET_ERROR_TYPE_WARNING,
-         "Unable to write to file! (Size: %u, size2: %u)\n",
-         size,
-         size2);
-
-    if (GNUNET_YES != GNUNET_DISK_file_close (f))
-      LOG (GNUNET_ERROR_TYPE_WARNING,
-           "Unable to close file\n");
-
-    return;
-  }
-
-  if (512 < output_buffer_size)
-  {
-    GNUNET_free (output_buffer_p);
-  }
-
-  if (GNUNET_YES != GNUNET_DISK_file_close (f))
-    LOG (GNUNET_ERROR_TYPE_WARNING,
-         "Unable to close file\n");
-}
 
 void
 to_file_raw (const char *file_name, const char *buf, size_t size_buf)
@@ -457,7 +387,7 @@ static int ensure_folder_exist (void)
   return GNUNET_YES;
 }
 
-const char *
+char *
 store_prefix_file_name (const struct GNUNET_PeerIdentity *peer,
     const char *prefix)
 {

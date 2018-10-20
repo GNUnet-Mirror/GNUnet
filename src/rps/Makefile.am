@@ -30,6 +30,7 @@ gnunet_rps_LDADD = \
 lib_LTLIBRARIES = libgnunetrps.la
 
 libgnunetrps_la_SOURCES = \
+ gnunet-service-rps_sampler_elem.h gnunet-service-rps_sampler_elem.c \
   rps-test_util.h rps-test_util.c \
   rps-sampler_common.h rps-sampler_common.c \
   rps-sampler_client.h rps-sampler_client.c \
@@ -40,6 +41,8 @@ libgnunetrps_la_LIBADD = \
 libgnunetrps_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS)  $(WINFLAGS) \
   -version-info 0:0:0
+# Fix 'created both with libtool and without' error:
+libgnunetrps_la_CFLAGS = $(AM_CFLAGS)
 
 
 libexec_PROGRAMS = \
