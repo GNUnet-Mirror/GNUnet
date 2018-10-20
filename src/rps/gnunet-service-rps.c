@@ -215,6 +215,7 @@ struct PeerContext
    * it, how did we get its ID, how many pushes (in a timeinterval),
    * ...)
    */
+  uint32_t round_pull_req;
 };
 
 /**
@@ -353,6 +354,16 @@ struct Sub
   uint32_t num_observed_peers;
 
   /**
+   * @brief File name to log number of pushes per round to
+   */
+  char *file_name_push_recv;
+
+  /**
+   * @brief File name to log number of pushes per round to
+   */
+  char *file_name_pull_delays;
+
+  /**
    * @brief Multipeermap (ab-) used to count unique peer_ids
    */
   struct GNUNET_CONTAINER_MultiPeerMap *observed_unique_peers;
@@ -391,6 +402,28 @@ struct Sub
    * Identifier for the main task that runs periodically.
    */
   struct GNUNET_SCHEDULER_Task *do_round_task;
+
+  /* === stats === */
+
+  /**
+   * @brief Counts the executed rounds.
+   */
+  uint32_t num_rounds;
+
+  /**
+   * @brief This array accumulates the number of received pushes per round.
+   *
+   * Number at index i represents the number of rounds with i observed pushes.
+   */
+  uint32_t push_recv[256];
+
+  /**
+   * @brief Number of pull replies with this delay measured in rounds.
+   *
+   * Number at index i represents the number of pull replies with a delay of i
+   * rounds.
+   */
+  uint32_t pull_delays[256];
 };
 
 
@@ -2803,6 +2836,10 @@ new_sub (const struct GNUNET_HashCode *hash,
   #ifdef TO_FILE
   sub->file_name_observed_log = store_prefix_file_name (&own_identity,
                                                        "observed");
+  sub->file_name_push_recv = store_prefix_file_name (&own_identity,
+                                                     "push_recv");
+  sub->file_name_pull_delays = store_prefix_file_name (&own_identity,
+                                                       "pull_delays");
   sub->num_observed_peers = 0;
   sub->observed_unique_peers = GNUNET_CONTAINER_multipeermap_create (1,
                                                                     GNUNET_NO);
@@ -2836,6 +2873,10 @@ new_sub (const struct GNUNET_HashCode *hash,
 static void
 destroy_sub (struct Sub *sub)
 {
+#ifdef TO_FILE
+  char push_recv_str[1536] = ""; /* 256 * 6 (1 whitespace, 1 comma, up to 4 chars) */
+  char pull_delays_str[1536] = ""; /* 256 * 6 (1 whitespace, 1 comma, up to 4 chars) */
+#endif /* TO_FILE */
   GNUNET_assert (NULL != sub);
   GNUNET_assert (NULL != sub->do_round_task);
   GNUNET_SCHEDULER_cancel (sub->do_round_task);
@@ -2861,6 +2902,43 @@ destroy_sub (struct Sub *sub)
 #ifdef TO_FILE
   GNUNET_free (sub->file_name_observed_log);
   sub->file_name_observed_log = NULL;
+
+  /* Write push frequencies to disk */
+  for (uint32_t i = 0; i < 256; i++)
+  {
+    char push_recv_str_tmp[8];
+    (void) snprintf (push_recv_str_tmp, 8, "%" PRIu32 ", ", sub->push_recv[i]);
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Adding str `%s' to `%s'\n",
+         push_recv_str_tmp,
+         push_recv_str);
+    (void) strncat (push_recv_str,
+                    push_recv_str_tmp,
+                    1535 - strnlen (push_recv_str, 1536));
+  }
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Writing push stats to disk\n");
+  to_file_w_len (sub->file_name_push_recv, 1535, push_recv_str);
+  GNUNET_free (sub->file_name_push_recv);
+  sub->file_name_push_recv = NULL;
+
+  /* Write pull delays to disk */
+  for (uint32_t i = 0; i < 256; i++)
+  {
+    char pull_delays_str_tmp[8];
+    (void) snprintf (pull_delays_str_tmp, 8, "%" PRIu32 ", ", sub->pull_delays[i]);
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Adding str `%s' to `%s'\n",
+         pull_delays_str_tmp,
+         pull_delays_str);
+    (void) strncat (pull_delays_str,
+                    pull_delays_str_tmp,
+                    1535 - strnlen (pull_delays_str, 1536));
+  }
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Writing pull delays to disk\n");
+  to_file_w_len (sub->file_name_pull_delays, 1535, pull_delays_str);
+  GNUNET_free (sub->file_name_pull_delays);
+  sub->file_name_pull_delays = NULL;
+
   GNUNET_CONTAINER_multipeermap_destroy (sub->observed_unique_peers);
   sub->observed_unique_peers = NULL;
 #endif /* TO_FILE */
@@ -3411,11 +3489,13 @@ handle_peer_pull_reply (void *cls,
   const struct ChannelCtx *channel_ctx = cls;
   const struct GNUNET_PeerIdentity *sender = &channel_ctx->peer_ctx->peer_id;
   const struct GNUNET_PeerIdentity *peers;
+  struct Sub *sub = channel_ctx->peer_ctx->sub;
   uint32_t i;
 #ifdef ENABLE_MALICIOUS
   struct AttackedPeer *tmp_att_peer;
 #endif /* ENABLE_MALICIOUS */
 
+  sub->pull_delays[sub->num_rounds - channel_ctx->peer_ctx->round_pull_req]++;
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Received PULL REPLY (%s)\n", GNUNET_i2s (sender));
   if (channel_ctx->peer_ctx->sub == msub)
   {
@@ -3556,6 +3636,7 @@ send_pull_request (struct PeerContext *peer_ctx)
                                                &peer_ctx->peer_id,
                                                Peers_PULL_REPLY_PENDING));
   SET_PEER_FLAG (peer_ctx, Peers_PULL_REPLY_PENDING);
+  peer_ctx->round_pull_req = peer_ctx->sub->num_rounds;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Going to send PULL REQUEST to peer %s.\n",
@@ -3905,6 +3986,7 @@ do_round (void *cls)
   struct GNUNET_PeerIdentity *update_peer;
   struct Sub *sub = cls;
 
+  sub->num_rounds++;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Going to execute next round.\n");
   if (sub == msub)
@@ -4106,6 +4188,7 @@ do_round (void *cls)
     }
   }
   // TODO independent of that also get some peers from CADET_get_peers()?
+  sub->push_recv[CustomPeerMap_size (sub->push_map)]++;
   if (sub == msub)
   {
     GNUNET_STATISTICS_set (stats,
