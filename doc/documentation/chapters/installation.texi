@@ -1362,12 +1362,13 @@ blacklisted and if not, it asks the blacklisting clients. Clients are
 asked if it is OK to connect to a peer ID, the plugin is omitted.
 
 On blacklist check for (peer, plugin)
+
 @itemize @bullet
-@item Do we have a local blacklist entry for this peer and this plugin?@
-@item YES: disallow connection@
-@item Do we have a local blacklist entry for this peer and all plugins?@
-@item YES: disallow connection@
-@item Does one of the clients disallow?@
+@item Do we have a local blacklist entry for this peer and this plugin?
+@item YES: disallow connection
+@item Do we have a local blacklist entry for this peer and all plugins?
+@item YES: disallow connection
+@item Does one of the clients disallow?
 @item YES: disallow connection
 @end itemize
 
