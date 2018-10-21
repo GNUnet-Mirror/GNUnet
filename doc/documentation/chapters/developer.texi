@@ -3364,7 +3364,7 @@ using @code{GNUNET_SERVER_add_handlers}.
 The service will already have registered a handler for the
 "TEST" message.
 
-@fnindex GNUNET_SERVICE_Options
+@findex GNUNET_SERVICE_Options
 The option bitfield (@code{enum GNUNET_SERVICE_Options})
 determines how a service should behave during shutdown.
 There are three key strategies:
