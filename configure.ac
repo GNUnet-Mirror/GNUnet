@@ -699,8 +699,15 @@ AC_ARG_ENABLE([section7],
 AC_MSG_RESULT($section7)
 if test "x$section7" = "xyes"
 then
+  if test "$texi2mdoc" = 0
+  then
+  AC_MSG_WARN([ERROR: mdoc output currently requires texi2mdoc.])
+  AC_MSG_WARN([ERROR: texi2mdoc can be obtained via your Operating System])
+  AC_MSG_WARN([ERROR: package manager or from https://mandoc.bsd.lv/texi2mdoc/])
+  else
   AM_CONDITIONAL([SECTION7],true)
   AC_DEFINE([SECTION7],[1],[Building section 7 mdoc output])
+  fi
 else
   AM_CONDITIONAL([SECTION7],false)
   AC_DEFINE([SECTION7],[0],[Not building section 7 mdoc output])
