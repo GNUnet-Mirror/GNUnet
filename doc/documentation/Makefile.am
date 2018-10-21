@@ -126,6 +126,7 @@ EXTRA_DIST =							\
 	$(gnunet_TEXINFOS)					\
 	$(gnunet_tutorial_examples)				\
 	htmlxref.cnf						\
+	gversion.texi
 	run-gendocs.sh						\
 	docstyle.css
 
@@ -160,27 +161,20 @@ lego_stack.png: images/lego_stack.svg
 	convert images/lego_stack.svg images/lego_stack.png &&
 	pngcrush images/lego_stack.png images/lego_stack.png
 
-# FIXME: The usage of 'date' strings causes a warning.
-# version.texi:
-# 	echo "@set UPDATED $(date +'%d %B %Y')" > $@
-# 	echo "@set UPDATED-MONTH $(date +'%B %Y')" >> $@
-# 	echo "@set EDITION $(PACKAGE_VERSION)" >> $@
-# 	echo "@set VERSION $(PACKAGE_VERSION)" >> $@
+# XXX: is this sed invocation portable enough? otherwise try tr(1).
+version.texi/replacement: version.texi/replacement/revert
+	@sed -i "s/GPACKAGE_VERSION/$(PACKAGE_VERSION)/g" gversion.texi
 
-# Workaround for makeinfo error. Which in turn introduces more
-# date-related 'warnings' for GNUism. Well.
-version2.texi:
-	echo "@set UPDATED $(date +'%d %B %Y')" > $@
-	echo "@set UPDATED-MONTH $(date +'%B %Y')" >> $@
-	echo "@set EDITION $(PACKAGE_VERSION)" >> $@
-	echo "@set VERSION $(PACKAGE_VERSION)" >> $@
+version.texi/replacement/revert:
+	@echo "@set VERSION GPACKAGE_VERSION" > gversion.texi
+	@echo "@set EDITION GPACKAGE_VERSION" >> gversion.texi
 
 if SECTION7
-gnunet-c-tutorial.7: version2.texi
+gnunet-c-tutorial.7: version.texi/replacement
 	@echo Attempting to output an mdoc formatted section 7 document
 	@texi2mdoc -I$(pwd):$(pwd)/chapters gnunet-c-tutorial.texi > ../man/gnunet-c-tutorial.7
 
-gnunet-documentation.7: version2.texi
+gnunet-documentation.7: version.texi/replacement
 	@echo Attempting to output an mdoc formatted section 7 document
 	@texi2mdoc -I$(pwd):$(pwd)/chapters gnunet.texi > ../man/gnunet-documentation.7
 
@@ -190,6 +184,8 @@ endif
 # FIXME: rm *.html and *.pdf
 #doc-clean:
 #	@rm *.aux *.log *.toc *.cp *.cps
+
+all: version.texi/replacement
 
 doc-all-install:
 	@mkdir -p $(DESTDIR)/$(docdir)
@@ -208,7 +204,7 @@ doc-gendoc-install:
 
 #	@cp -r images $(DESTDIR)/$(infoimagedir)
 
-dev-build: version.texi version2.texi
+dev-build: version.texi/replacement
 	@makeinfo --pdf gnunet.texi
 	@makeinfo --pdf gnunet-c-tutorial.texi
 	@makeinfo --html gnunet.texi
@@ -217,7 +213,7 @@ dev-build: version.texi version2.texi
 	@makeinfo --no-split gnunet-c-tutorial.texi
 
 # TODO: Add more to clean.
-clean:
+clean: version.texi/replacement/revert
 	@rm -f gnunet.pdf
 	@rm -f gnunet.html
 	@rm -f gnunet.info

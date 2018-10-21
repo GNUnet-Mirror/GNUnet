@@ -3,11 +3,10 @@
 @setfilename gnunet-c-tutorial.info
 @documentencoding UTF-8
 @settitle GNUnet C Tutorial
-@exampleindent 2
+@c @exampleindent 2
 @c %**end of header
 
-@c including 'version.texi' makes makeinfo throw errors.
-@include version2.texi
+@include gversion.texi
 
 @copying
 Copyright @copyright{} 2001-2018 GNUnet e.V.
