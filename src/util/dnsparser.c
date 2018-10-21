@@ -17,13 +17,17 @@
  */
 
 /**
- * @file dns/dnsparser.c
+ * @file util/dnsparser.c
  * @brief helper library to parse DNS packets.
  * @author Philipp Toelke
  * @author Christian Grothoff
  */
 #include "platform.h"
+#if defined(HAVE_LIBIDN2)
+#include <idn2.h>
+#elif defined(HAVE_LIBIDN)
 #include <idna.h>
+#endif
 #if WINDOWS
 #include <idn-free.h>
 #endif

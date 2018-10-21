@@ -36,7 +36,10 @@ These are the direct dependencies for running GNUnet:
 - libcurl            >= 7.35.0      (alternative to libgnurl)
 - libunistring       >= 0.9.2
 - gnutls             >= 3.2.12      (highly recommended a gnutls linked against libunbound)
-- libidn             >= 1.0
+- libidn:
+  - libidn2 (prefered)
+  or
+  - libidn             >= 1.0
 - libextractor       >= 0.6.1       (highly recommended)
 - openssl            >= 1.0         (binary, used to generate X.509 certificate)
 - libltdl            >= 2.2         (part of GNU libtool)

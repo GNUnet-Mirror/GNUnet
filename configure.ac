@@ -827,28 +827,131 @@ fi
 # restore LIBS
 LIBS=$SAVE_LIBS
 
-
-# libidn
-AC_MSG_CHECKING([if Libidn can be used])
-AC_ARG_WITH(libidn, AC_HELP_STRING([--with-libidn=[DIR]],
-                                    [Support IDN (needs GNU Libidn)]),
-libidn=$withval, libidn=yes)
-if test "$libidn" != "no"; then
-  if test "$libidn" != "yes"; then
-     LDFLAGS="${LDFLAGS} -L$libidn/lib"
-     CPPFLAGS="${CPPFLAGS} -I$libidn/include"
-  fi
+# libidn and libidn2. The ideal goal is this:
+# check for libidn2, if it doesn't exist check for libidn
+# if both exist, prefer libidn2
+# if none exist, fail and message that libidn or libidn2
+# is required with a preference for libidn2.
+# TODO: What we have right here can probably be improved.
+my_with_libidn=1
+AC_ARG_WITH(libidn,
+            AS_HELP_STRING([--with-libidn=pathname],
+                           [Support IDN (needs libidn)]),
+            [],
+            [withval="yes"])
+if test x_$withval = x_yes; then
+   for dir in /usr/local /opt/local /usr/pkg /usr/sfw; do
+       if test -f "$dir/include/idna.h"; then
+          CFLAGS="$CFLAGS -I$dir/include"
+          LDFLAGS="$LDFLAGS -L$dir/lib"
+          AC_MSG_NOTICE([Found libidn in $dir])
+          break
+       fi
+       if test -f "$dir/include/idn/idna.h"; then
+          CFLAGS="$CFLAGS -I$dir/include/idn"
+          LDFLAGS="$LDFLAGS -L$dir/lib"
+          AC_MSG_NOTICE([Found libidn in $dir])
+          break
+       fi
+   done
+   if test -f "/usr/include/idn/idna.h"; then
+          CFLAGS="$CFLAGS -I/usr/include/idn"
+          #LDFLAGS="$LDFLAGS -L/usr/lib"
+          AC_MSG_NOTICE([Found libidn in /usr])
+   fi
+else
+        if test x_$withval != x_no; then
+           CFLAGS="$CFLAGS -I$withval/include"
+           LDFLAGS="$LDFLAGS -L$withval/lib"
+        else
+           my_with_libidn=0
+        fi
 fi
-libidn=no
-AC_CHECK_HEADER(idna.h,
-  AC_CHECK_LIB(idn, stringprep_check_version,
-    [libidn=yes LIBS="${LIBS} -lidn"], []), [])
-if test "$libidn" != "yes"; then
-  AC_MSG_FAILURE([GNUnet requires libidn.
-libidn-1.13 should be sufficient, newer versions work too.])
-fi
-AC_MSG_RESULT($libidn)
 
+my_with_libidn2=1
+AC_ARG_WITH(libidn2,
+            AS_HELP_STRING([--with-libidn2=pathname],
+                           [Support IDN (needs libidn2)]),
+            [],
+            [withval="yes"])
+if test x_$withval = x_yes; then
+   for dir in /usr/local /opt/local /usr/pkg /usr/sfw; do
+       if test -f "$dir/include/idn2.h"; then
+          CFLAGS="$CFLAGS -I$dir/include"
+          LDFLAGS="$LDFLAGS -L$dir/lib"
+          AC_MSG_NOTICE([Found libidn2 in $dir])
+          break
+       fi
+       if test -f "$dir/include/idn2/idn2.h"; then
+          CFLAGS="$CFLAGS -I$dir/include/idn2"
+          LDFLAGS="$LDFLAGS -L$dir/lib"
+          AC_MSG_NOTICE([Found libidn2 in $dir])
+          break
+       fi
+   done
+   if test -f "/usr/include/idn2/idn2.h"; then
+      CFLAGS="$CFLAGS -I/usr/include/idn2"
+      #LDFLAGS="$LDFLAGS -L/usr/lib"
+      AC_MSG_NOTICE([Found libidn2 in /usr])
+   fi
+else
+        if test x_$withval != x_no; then
+           CFLAGS="$CFLAGS -I$withval/include"
+           LDFLAGS="$LDFLAGS -L$withval/lib"
+        else
+                my_with_libidn2=0
+        fi
+fi
+
+AC_MSG_CHECKING([if libidn can be used])
+# Check for LIBIDNs
+there_can_only_be_one=1
+
+working_libidn2=0
+if test $my_with_libidn2 = 1
+then
+        AC_MSG_NOTICE([Checking for libidn2])
+        AC_CHECK_LIB([idn2],
+                     [idn2_to_unicode_8z8z],
+                     [working_libidn2=1
+                     LIBS="-lidn2 $LIBS"
+                     AC_DEFINE_UNQUOTED([HAVE_LIBIDN2],
+                                        [1],
+                                        [Define to 1 if you have 'libidn2' (-lidn).])],
+                     [MISSING_DEPS="${MISSING_DEPS}${MISSING_SEP}libidn2"
+                     MISSING_SEP=", "])
+fi
+if test $working_libidn2 = 0
+then
+        if test $my_with_libidn = 1
+        then
+                AC_MSG_NOTICE([Checking for libidn])
+                AC_CHECK_LIB([idn],
+                             [idna_to_ascii_8z],
+                             [LIBS="-lidn $LIBS"
+                             AC_DEFINE_UNQUOTED([HAVE_LIBIDN],
+                                                [1],
+                                                [Define to 1 if you have 'libidn' (-lidn).])],
+                             [there_can_only_be_one=0])
+        else
+                if test $my_with_libidn2 = 1
+                then
+                        there_can_only_be_one=0
+                        AC_MSG_FAILURE([* There can only be one libidn.
+                                        * Provide either libidn >= 1.13
+                                        * or
+                                        * libidn2 to the configure
+                                        * script via
+                                        * --with-libidn2
+                                        * --with-libidn])
+                fi
+        fi
+fi
+
+if test $there_can_only_be_one = 0
+then
+    AC_MSG_FAILURE([Missing dependencies: $MISSING_DEPS])
+fi
 
 # test for zlib
 SAVE_LDFLAGS=$LDFLAGS

@@ -122,12 +122,22 @@ libgnunetutil_la_SOURCES = \
   tun.c \
   speedup.c speedup.h
 
+if HAVE_LIBIDN
+  LIBIDN= -lidn
+else
+  LIBIDN=
+
+if HAVE_LIBIDN2
+  LIBIDN2= -lidn2
+else
+  LIBIDN2=
+
 libgnunetutil_la_LIBADD = \
   $(GCLIBADD) $(WINLIB) \
   $(LIBGCRYPT_LIBS) \
   $(LTLIBICONV) \
   $(LTLIBINTL) \
-  -lltdl -lidn $(Z_LIBS) -lunistring $(XLIB) $(PTHREAD)
+  -lltdl $(LIBIDN) $(LIBIDN2) $(Z_LIBS) -lunistring $(XLIB) $(PTHREAD)
 
 libgnunetutil_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS) \
