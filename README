@@ -66,6 +66,7 @@ These are the optional dependencies:
 - python-future                     (optional, for some testcases and utilities)
 - python-zbar        >= 0.10        (optional, for gnunet-qr)
 - TeX Live           >= 2012        (optional, for gnunet-bcd[*])
+- texi2mdoc                         (optional, for automatic mdoc generation [*2])
 - libglpk            >= 4.45        (optional, for experimental code)
 - perl5                             (optional, for some utilities)
 - python             >= 2.7         (optional, for gnunet-qr, only python 2.7 is supported)
@@ -88,6 +89,13 @@ Recommended autotools for compiling the Git version are:
 [*1] The default configuration is to build the info output of the
      documentation, and therefore require texinfo.  You can pass
      '--disable-documentation' to the configure script to change this.
+
+[*2] If you still prefer to have documentation, you can pass
+     '--with-section7' to build mdoc documentation (experimental
+     stages in gnunet). If this proves to be reliable, we will
+     include the mdoc output in the release tarballs.
+     Contrary to the name, texi2mdoc does not require texinfo,
+     It is a standalone ISO C utility.
 
 Requirements
 ============
