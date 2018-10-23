@@ -6,7 +6,7 @@
 @c @exampleindent 2
 @c %**end of header
 
-@include gversion.texi
+@include version.texi
 
 @copying
 Copyright @copyright{} 2001-2018 GNUnet e.V.
