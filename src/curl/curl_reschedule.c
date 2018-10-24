@@ -77,6 +77,18 @@ GNUNET_CURL_gnunet_rc_create_with_parser (struct GNUNET_CURL_Context *ctx,
   return rctx;
 }
 
+
+/**
+ * Just a wrapper to avoid casting of function pointers.
+ *
+ * @param response the (JSON) response to clean.
+ */
+static void
+clean_result (void *response)
+{
+  json_decref (response);
+}
+
 /**
  * Initialize reschedule context.
  *
@@ -90,8 +102,8 @@ GNUNET_CURL_gnunet_rc_create (struct GNUNET_CURL_Context *ctx)
 
   rc = GNUNET_new (struct GNUNET_CURL_RescheduleContext);
   rc->ctx = ctx;
-  rc->parser = (GNUNET_CURL_RawParser) &download_get_result;
-  rc->cleaner = (GNUNET_CURL_ResponseCleaner) &json_decref;
+  rc->parser = &download_get_result;
+  rc->cleaner = &clean_result;
   return rc;
 }
 
