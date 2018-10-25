@@ -1998,7 +1998,6 @@ GNUNET_STRINGS_base64_encode (const void *in,
       opt[ret++] = FILLCHAR;
     }
   }
-  opt[ret++] = FILLCHAR;
   *output = opt;
   return ret;
 }
