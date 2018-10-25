@@ -2901,7 +2901,7 @@ destroy_sub (struct Sub *sub)
   for (uint32_t i = 0; i < 256; i++)
   {
     char push_recv_str_tmp[8];
-    (void) snprintf (push_recv_str_tmp, 8, "%" PRIu32 ", ", sub->push_recv[i]);
+    (void) snprintf (push_recv_str_tmp, 8, "%" PRIu32 "\n", sub->push_recv[i]);
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Adding str `%s' to `%s'\n",
          push_recv_str_tmp,
@@ -2910,6 +2910,9 @@ destroy_sub (struct Sub *sub)
                     push_recv_str_tmp,
                     1535 - strnlen (push_recv_str, 1536));
   }
+  (void) strncat (push_recv_str,
+                  "\n",
+                  1535 - strnlen (push_recv_str, 1536));
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Writing push stats to disk\n");
   to_file_w_len (sub->file_name_push_recv, 1535, push_recv_str);
   GNUNET_free (sub->file_name_push_recv);
@@ -2919,7 +2922,7 @@ destroy_sub (struct Sub *sub)
   for (uint32_t i = 0; i < 256; i++)
   {
     char pull_delays_str_tmp[8];
-    (void) snprintf (pull_delays_str_tmp, 8, "%" PRIu32 ", ", sub->pull_delays[i]);
+    (void) snprintf (pull_delays_str_tmp, 8, "%" PRIu32 "\n", sub->pull_delays[i]);
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Adding str `%s' to `%s'\n",
          pull_delays_str_tmp,
@@ -2928,6 +2931,9 @@ destroy_sub (struct Sub *sub)
                     pull_delays_str_tmp,
                     1535 - strnlen (pull_delays_str, 1536));
   }
+  (void) strncat (pull_delays_str,
+                  "\n",
+                  1535 - strnlen (pull_delays_str, 1536));
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Writing pull delays to disk\n");
   to_file_w_len (sub->file_name_pull_delays, 1535, pull_delays_str);
   GNUNET_free (sub->file_name_pull_delays);
