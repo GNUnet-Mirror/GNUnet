@@ -878,7 +878,7 @@ there_can_only_be_one=1
 
 working_libidn1=0
 working_libidn2=0
-AS_IF([test $my_with_libidn2 = 1],
+AS_IF([test x$my_with_libidn2 = x1],
       [AC_MSG_NOTICE([Checking for libidn2])
        AC_CHECK_LIB([idn2],
                     [idn2_to_unicode_8z8z],
@@ -890,8 +890,8 @@ AS_IF([test $my_with_libidn2 = 1],
                      [MISSING_DEPS="${MISSING_DEPS}${MISSING_SEP}libidn2"
                      MISSING_SEP=", "])])
 AM_CONDITIONAL(HAVE_LIBIDN2, test x$working_libidn2 = x1)
-AS_IF([test $working_libidn2 = 0],
-      [AS_IF([test $my_with_libidn = 1],
+AS_IF([test x$working_libidn2 = x0],
+      [AS_IF([test x$my_with_libidn = x1],
              [AC_MSG_NOTICE([Checking for libidn])
               AC_CHECK_LIB([idn],
                            [idna_to_ascii_8z],
@@ -901,7 +901,7 @@ AS_IF([test $working_libidn2 = 0],
                                                 [1],
                                                 [Define to 1 if you have 'libidn' (-lidn).])],
                              [there_can_only_be_one=0])],
-             [AS_IF([test $my_with_libidn2 = 1],
+             [AS_IF([test x$my_with_libidn2 = x1],
                     [there_can_only_be_one=0
                      AC_MSG_FAILURE([* There can only be one libidn.
                                      * Provide either libidn >= 1.13
@@ -912,7 +912,7 @@ AS_IF([test $working_libidn2 = 0],
                                      * --with-libidn])])])])
 AM_CONDITIONAL(HAVE_LIBIDN, test x$working_libidn1 = x1)
 
-AS_IF([test $there_can_only_be_one = 0],
+AS_IF([test x$there_can_only_be_one = x0],
       [AC_MSG_FAILURE([Missing dependencies: $MISSING_DEPS])])
 
 # test for zlib
@@ -1752,7 +1752,8 @@ contrib/Makefile
 doc/Makefile
 doc/man/Makefile
 doc/doxygen/Makefile
-doc/documentation/Makefile
+doc/handbook/Makefile
+doc/tutorial/Makefile
 m4/Makefile
 po/Makefile.in
 src/Makefile

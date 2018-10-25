@@ -1,8 +1,8 @@
 \input texinfo
 @c %**start of header
-@setfilename gnunet-c-tutorial.info
+@setfilename gnunet-tutorial.info
 @documentencoding UTF-8
-@settitle GNUnet C Tutorial
+@settitle GNUnet Tutorial
 @c @exampleindent 2
 @c %**end of header
 
@@ -78,6 +78,7 @@ how to contact the GNUnet team:
 * Introduction to GNUnet Architecture:: Introduction to GNUnet Architecture
 * First Steps with GNUnet::             First Steps with GNUnet
 * Developing Applications::             Developing Applications
+* GNU Free Documentation License::      The license of this manual
 
 @detailmenu
  --- The Detailed Node Listing ---
@@ -696,7 +697,7 @@ about them can be found in the testbed default configuration file
 With the testbed API, a sample test case can be structured as follows:
 
 @example
-@verbatiminclude testbed_test.c
+@verbatiminclude examples/testbed_test.c
 @end example
 
 @noindent
@@ -857,7 +858,7 @@ and a handle to the parsed configuration (and the configuration
 file name that was used, which is typically not needed):
 
 @example
-@verbatiminclude tutorial-examples/001.c
+@verbatiminclude examples/001.c
 @end example
 
 @menu
@@ -875,7 +876,7 @@ add a string-option and a binary flag (defaulting to @code{NULL} and
 @code{GNUNET\_NO} respectively):
 
 @example
-@verbatiminclude tutorial-examples/002.c
+@verbatiminclude examples/002.c
 @end example
 
 Issues such as displaying some helpful text describing options using
@@ -932,7 +933,7 @@ Before a client library can implement the application-specific protocol
 with the service, a connection must be created:
 
 @example
-@verbatiminclude tutorial-examples/003.c
+@verbatiminclude examples/003.c
 @end example
 
 @noindent
@@ -954,7 +955,7 @@ This header defines the size and the type of the
 message, the payload follows after this header.
 
 @example
-@verbatiminclude tutorial-examples/004.c
+@verbatiminclude examples/004.c
 @end example
 
 @noindent
@@ -962,7 +963,7 @@ Existing message types are defined in @file{gnunet\_protocols.h}.
 A common way to create a message is with an envelope:
 
 @example
-@verbatiminclude tutorial-examples/005.c
+@verbatiminclude examples/005.c
 @end example
 
 @noindent
@@ -997,7 +998,7 @@ to process the message.  Note that the prefixes @code{check\_}
 and @code{handle\_} are mandatory.
 
 @example
-@verbatiminclude tutorial-examples/006.c
+@verbatiminclude examples/006.c
 @end example
 
 @noindent
@@ -1050,7 +1051,7 @@ The key API definition for creating a service is the
 @code{GNUNET\_SERVICE\_MAIN} macro:
 
 @example
-@verbatiminclude tutorial-examples/007.c
+@verbatiminclude examples/007.c
 @end example
 
 @noindent
@@ -1063,7 +1064,7 @@ A minimal version of the three central service funtions would look
 like this:
 
 @example
-@verbatiminclude tutorial-examples/008.c
+@verbatiminclude examples/008.c
 @end example
 
 @noindent
@@ -1101,7 +1102,7 @@ One of the first things any service that extends the P2P protocol
 typically does is connect to the @code{CORE} service using:
 
 @example
-@verbatiminclude tutorial-examples/009.c
+@verbatiminclude examples/009.c
 @end example
 
 @menu
@@ -1120,7 +1121,7 @@ be known to the service. This is notified by the @code{CORE}
 peer to the service:
 
 @example
-@verbatiminclude tutorial-examples/010.c
+@verbatiminclude examples/010.c
 @end example
 
 @noindent
@@ -1178,7 +1179,7 @@ peer and the service is no longer allowed to send messages to the peer.
 The disconnect callback looks like the following:
 
 @example
-@verbatiminclude tutorial-examples/011.c
+@verbatiminclude examples/011.c
 @end example
 
 @noindent
@@ -1202,7 +1203,7 @@ stored with PEERSTORE contains the following fields:
 
 The first step is to start a connection to the PEERSTORE service:
 @example
-@verbatiminclude tutorial-examples/012.c
+@verbatiminclude examples/012.c
 @end example
 
 The service handle @code{peerstore_handle} will be needed for
@@ -1221,7 +1222,7 @@ all subsequent PEERSTORE operations.
 To store a new record, use the following function:
 
 @example
-@verbatiminclude tutorial-examples/013.c
+@verbatiminclude examples/013.c
 @end example
 
 @noindent
@@ -1242,7 +1243,7 @@ operation. This handle can be used to cancel the store operation only
 before the continuation function is called:
 
 @example
-@verbatiminclude tutorial-examples/013.1.c
+@verbatiminclude examples/013.1.c
 @end example
 
 @node Retrieving records
@@ -1251,7 +1252,7 @@ before the continuation function is called:
 To retrieve stored records, use the following function:
 
 @example
-@verbatiminclude tutorial-examples/014.c
+@verbatiminclude examples/014.c
 @end example
 
 @noindent
@@ -1283,7 +1284,7 @@ stored under a specific key combination (subsystem, peerid, key).
 To start the monitoring, use the following function:
 
 @example
-@verbatiminclude tutorial-examples/015.c
+@verbatiminclude examples/015.c
 @end example
 
 @noindent
@@ -1293,7 +1294,7 @@ record. This will continue until the connection to the PEERSTORE
 service is broken or the watch operation is canceled:
 
 @example
-@verbatiminclude tutorial-examples/016.c
+@verbatiminclude examples/016.c
 @end example
 
 @node Disconnecting from PEERSTORE
@@ -1303,7 +1304,7 @@ When the connection to the PEERSTORE service is no longer needed,
 disconnect using the following function:
 
 @example
-@verbatiminclude tutorial-examples/017.c
+@verbatiminclude examples/017.c
 @end example
 
 @noindent
@@ -1321,7 +1322,7 @@ This section will explain how to use the DHT. Of course, the first
 thing to do is to connect to the DHT service:
 
 @example
-@verbatiminclude tutorial-examples/018.c
+@verbatiminclude examples/018.c
 @end example
 
 @noindent
@@ -1354,7 +1355,7 @@ errors, peers leaving and other unfavorable events, just make several
 PUT requests!
 
 @example
-@verbatiminclude tutorial-examples/019.c
+@verbatiminclude examples/019.c
 @end example
 
 @noindent
@@ -1380,7 +1381,7 @@ the callback will get a list of all the peers the data has travelled,
 both on the PUT path and on the GET path.
 
 @example
-@verbatiminclude tutorial-examples/020.c
+@verbatiminclude examples/020.c
 @end example
 
 @noindent
@@ -1425,7 +1426,7 @@ is zero.  The block group is typically used to filter duplicate
 replies.
 
 @example
-@verbatiminclude tutorial-examples/021.c
+@verbatiminclude examples/021.c
 @end example
 
 @noindent
@@ -1446,7 +1447,7 @@ should simply return @code{GNUNET\_SYSERR} (the DHT will still work
 just fine with such blocks).
 
 @example
-@verbatiminclude tutorial-examples/022.c
+@verbatiminclude examples/022.c
 @end example
 
 @node Initialization of the plugin
@@ -1459,7 +1460,7 @@ about and returns a struct with the functions that are to be used for
 validation and obtaining keys (the ones just defined above).
 
 @example
-@verbatiminclude tutorial-examples/023.c
+@verbatiminclude examples/023.c
 @end example
 
 @node Shutdown of the plugin
@@ -1470,7 +1471,7 @@ export a second function for cleaning up.  It usually does very
 little.
 
 @example
-@verbatiminclude tutorial-examples/024.c
+@verbatiminclude examples/024.c
 @end example
 
 @node Integration of the plugin with the build system
@@ -1482,7 +1483,7 @@ service SERVICE should contain a rule similar to this:
 @c must be improved.
 
 @example
-@verbatiminclude tutorial-examples/025.Makefile.am
+@verbatiminclude examples/025.Makefile.am
 @end example
 
 @noindent
@@ -1507,7 +1508,7 @@ messages. When an event happens, the appropiate callback is
 called with all the information about the event.
 
 @example
-@verbatiminclude tutorial-examples/026.c
+@verbatiminclude examples/026.c
 @end example
 
 @node Debugging with gnunet-arm
@@ -1555,5 +1556,13 @@ find simple errors.
 Exercise: Add a memory leak to your service and obtain a trace
 pointing to the leak using @command{valgrind} while running the service
 from @command{gnunet-service-arm}.
+
+
+@c *********************************************************************
+@node GNU Free Documentation License
+@appendix GNU Free Documentation License
+@cindex license, GNU Free Documentation License
+@include fdl-1.3.texi
+
 
 @bye
