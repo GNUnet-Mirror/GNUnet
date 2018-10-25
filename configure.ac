@@ -907,6 +907,7 @@ AC_MSG_CHECKING([if libidn can be used])
 # Check for LIBIDNs
 there_can_only_be_one=1
 
+working_libidn1=0
 working_libidn2=0
 if test $my_with_libidn2 = 1
 then
@@ -915,12 +916,13 @@ then
                      [idn2_to_unicode_8z8z],
                      [working_libidn2=1
                      LIBS="-lidn2 $LIBS"
-                     AC_DEFINE_UNQUOTED([HAVE_LIBIDN2],
+		     AC_DEFINE_UNQUOTED([HAVE_LIBIDN2],
                                         [1],
                                         [Define to 1 if you have 'libidn2' (-lidn).])],
                      [MISSING_DEPS="${MISSING_DEPS}${MISSING_SEP}libidn2"
                      MISSING_SEP=", "])
 fi
+AM_CONDITIONAL(HAVE_LIBIDN2, test x$working_libidn2 = x1)
 if test $working_libidn2 = 0
 then
         if test $my_with_libidn = 1
@@ -928,7 +930,8 @@ then
                 AC_MSG_NOTICE([Checking for libidn])
                 AC_CHECK_LIB([idn],
                              [idna_to_ascii_8z],
-                             [LIBS="-lidn $LIBS"
+                             [working_libidn1=1
+			     LIBS="-lidn $LIBS"			     
                              AC_DEFINE_UNQUOTED([HAVE_LIBIDN],
                                                 [1],
                                                 [Define to 1 if you have 'libidn' (-lidn).])],
@@ -947,6 +950,7 @@ then
                 fi
         fi
 fi
+AM_CONDITIONAL(HAVE_LIBIDN, test x$working_libidn1 = x1)
 
 if test $there_can_only_be_one = 0
 then
