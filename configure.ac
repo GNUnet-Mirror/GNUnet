@@ -839,34 +839,20 @@ AC_ARG_WITH(libidn,
                            [Support IDN (needs libidn)]),
             [],
             [withval="yes"])
-if test x_$withval = x_yes; then
-   for dir in /usr/local /opt/local /usr/pkg /usr/sfw; do
-       if test -f "$dir/include/idna.h"; then
-          CFLAGS="$CFLAGS -I$dir/include"
-          LDFLAGS="$LDFLAGS -L$dir/lib"
-          AC_MSG_NOTICE([Found libidn in $dir])
-          break
-       fi
-       if test -f "$dir/include/idn/idna.h"; then
-          CFLAGS="$CFLAGS -I$dir/include/idn"
-          LDFLAGS="$LDFLAGS -L$dir/lib"
-          AC_MSG_NOTICE([Found libidn in $dir])
-          break
-       fi
-   done
-   if test -f "/usr/include/idn/idna.h"; then
-          CFLAGS="$CFLAGS -I/usr/include/idn"
-          #LDFLAGS="$LDFLAGS -L/usr/lib"
-          AC_MSG_NOTICE([Found libidn in /usr])
-   fi
-else
-        if test x_$withval != x_no; then
-           CFLAGS="$CFLAGS -I$withval/include"
-           LDFLAGS="$LDFLAGS -L$withval/lib"
-        else
-           my_with_libidn=0
-        fi
-fi
+AS_IF([test x_$withval = x_yes],
+      [AC_CHECK_HEADERS([idna.h],
+          AC_MSG_NOTICE([Found idna.h]),
+          AC_CHECK_HEADERS([idn/idna.h],
+               AC_MSG_NOTICE([Found idn/idna.h]),
+               my_with_libidn=0))],
+      [AS_IF([test x_$withval != x_no],
+             [CFLAGS="$CFLAGS -I$withval/include"
+              LDFLAGS="$LDFLAGS -L$withval/lib"
+              AC_CHECK_HEADERS([idna.h],
+                AC_MSG_NOTICE([Found idna.h]),
+	        [AC_MSG_NOTICE([Failed to find idna.h])
+                 my_with_libidn=0])],
+             [my_with_libidn=0])])
 
 my_with_libidn2=1
 AC_ARG_WITH(libidn2,
@@ -874,34 +860,17 @@ AC_ARG_WITH(libidn2,
                            [Support IDN (needs libidn2)]),
             [],
             [withval="yes"])
-if test x_$withval = x_yes; then
-   for dir in /usr/local /opt/local /usr/pkg /usr/sfw; do
-       if test -f "$dir/include/idn2.h"; then
-          CFLAGS="$CFLAGS -I$dir/include"
-          LDFLAGS="$LDFLAGS -L$dir/lib"
-          AC_MSG_NOTICE([Found libidn2 in $dir])
-          break
-       fi
-       if test -f "$dir/include/idn2/idn2.h"; then
-          CFLAGS="$CFLAGS -I$dir/include/idn2"
-          LDFLAGS="$LDFLAGS -L$dir/lib"
-          AC_MSG_NOTICE([Found libidn2 in $dir])
-          break
-       fi
-   done
-   if test -f "/usr/include/idn2/idn2.h"; then
-      CFLAGS="$CFLAGS -I/usr/include/idn2"
-      #LDFLAGS="$LDFLAGS -L/usr/lib"
-      AC_MSG_NOTICE([Found libidn2 in /usr])
-   fi
-else
-        if test x_$withval != x_no; then
-           CFLAGS="$CFLAGS -I$withval/include"
-           LDFLAGS="$LDFLAGS -L$withval/lib"
-        else
-                my_with_libidn2=0
-        fi
-fi
+AS_IF([test x_$withval = x_yes],
+      [AC_CHECK_HEADERS([idn2.h],
+       AC_MSG_NOTICE([Found idn2.h]),
+       AC_CHECK_HEADERS([idn2/idn2.h],
+          AC_MSG_NOTICE([Found idn2/idn2.h]),
+          [AC_MSG_NOTICE([Failed to find idn2.h])
+           my_with_libidn2=0]))],
+      [AS_IF([test x_$withval != x_no],
+             [CFLAGS="$CFLAGS -I$withval/include"
+              LDFLAGS="$LDFLAGS -L$withval/lib"],
+	     [my_with_libidn2=0])])
 
 AC_MSG_CHECKING([if libidn can be used])
 # Check for LIBIDNs
@@ -909,53 +878,42 @@ there_can_only_be_one=1
 
 working_libidn1=0
 working_libidn2=0
-if test $my_with_libidn2 = 1
-then
-        AC_MSG_NOTICE([Checking for libidn2])
-        AC_CHECK_LIB([idn2],
-                     [idn2_to_unicode_8z8z],
-                     [working_libidn2=1
-                     LIBS="-lidn2 $LIBS"
-		     AC_DEFINE_UNQUOTED([HAVE_LIBIDN2],
-                                        [1],
+AS_IF([test $my_with_libidn2 = 1],
+      [AC_MSG_NOTICE([Checking for libidn2])
+       AC_CHECK_LIB([idn2],
+                    [idn2_to_unicode_8z8z],
+                    [working_libidn2=1
+                    LIBS="-lidn2 $LIBS"
+ 	            AC_DEFINE_UNQUOTED([HAVE_LIBIDN2],
+                                       [1],
                                         [Define to 1 if you have 'libidn2' (-lidn).])],
                      [MISSING_DEPS="${MISSING_DEPS}${MISSING_SEP}libidn2"
-                     MISSING_SEP=", "])
-fi
+                     MISSING_SEP=", "])])
 AM_CONDITIONAL(HAVE_LIBIDN2, test x$working_libidn2 = x1)
-if test $working_libidn2 = 0
-then
-        if test $my_with_libidn = 1
-        then
-                AC_MSG_NOTICE([Checking for libidn])
-                AC_CHECK_LIB([idn],
-                             [idna_to_ascii_8z],
-                             [working_libidn1=1
-			     LIBS="-lidn $LIBS"			     
+AS_IF([test $working_libidn2 = 0],
+      [AS_IF([test $my_with_libidn = 1],
+             [AC_MSG_NOTICE([Checking for libidn])
+              AC_CHECK_LIB([idn],
+                           [idna_to_ascii_8z],
+                           [working_libidn1=1
+	                   LIBS="-lidn $LIBS"			     
                              AC_DEFINE_UNQUOTED([HAVE_LIBIDN],
                                                 [1],
                                                 [Define to 1 if you have 'libidn' (-lidn).])],
-                             [there_can_only_be_one=0])
-        else
-                if test $my_with_libidn2 = 1
-                then
-                        there_can_only_be_one=0
-                        AC_MSG_FAILURE([* There can only be one libidn.
-                                        * Provide either libidn >= 1.13
-                                        * or
-                                        * libidn2 to the configure
-                                        * script via
-                                        * --with-libidn2
-                                        * --with-libidn])
-                fi
-        fi
-fi
+                             [there_can_only_be_one=0])],
+             [AS_IF([test $my_with_libidn2 = 1],
+                    [there_can_only_be_one=0
+                     AC_MSG_FAILURE([* There can only be one libidn.
+                                     * Provide either libidn >= 1.13
+                                     * or
+                                     * libidn2 to the configure
+                                     * script via
+                                     * --with-libidn2
+                                     * --with-libidn])])])])
 AM_CONDITIONAL(HAVE_LIBIDN, test x$working_libidn1 = x1)
 
-if test $there_can_only_be_one = 0
-then
-    AC_MSG_FAILURE([Missing dependencies: $MISSING_DEPS])
-fi
+AS_IF([test $there_can_only_be_one = 0],
+      [AC_MSG_FAILURE([Missing dependencies: $MISSING_DEPS])])
 
 # test for zlib
 SAVE_LDFLAGS=$LDFLAGS
@@ -1950,115 +1908,80 @@ AC_OUTPUT
 # Finally: summary!
 
 # warn user if mysql found but not used due to version
-if test "$mysqlfail" = "true"
-then
-  AC_MSG_NOTICE([WARNING: MySQL found, but too old. MySQL support will not be compiled.])
-fi
+AS_IF([test "$mysqlfail" = "true"]
+      [AC_MSG_NOTICE([WARNING: optional MySQL not found (or too old)])])
 
 # sqlite
-if test "x$sqlite" = "x0"
-then
-  AC_MSG_ERROR([ERROR: sqlite3 not found, but sqlite3 is required.])
-fi
+AS_IF([test "x$sqlite" = "x0"],
+      [AC_MSG_ERROR([ERROR: sqlite3 not found, but sqlite3 is required.])])
 
 # libgnurl
-if test "$gnurl" = "0"
-then
-  if test "x$curl" = "xfalse"
-  then
-    AC_MSG_NOTICE([WARNING: libgnurl not found.  http client support will not be compiled.])
-    AC_MSG_WARN([ERROR: libgnurl not found.  hostlist daemon will not be compiled, and you probably WANT the hostlist daemon])
-  else
-    AC_MSG_NOTICE([WARNING: libgnurl not found, trying to use libcurl-gnutls instead.])
-  fi
-fi
-
+AS_IF([test "$gnurl" = "0"],
+  [AS_IF([test "x$curl" = "xfalse"],
+    [AC_MSG_NOTICE([WARNING: libgnurl not found.  http client support will not be compiled.])
+     AC_MSG_WARN([ERROR: libgnurl not found.  hostlist daemon will not be compiled, and you probably WANT the hostlist daemon])],
+    [AC_MSG_NOTICE([WARNING: libgnurl not found, trying to use libcurl-gnutls instead.])])])
 
 # bluetooth
-if test "x$bluetooth" = "x0"
-then
-  AC_MSG_NOTICE([WARNING: bluetooth library not found.  bluetooth support will not be compiled.])
-fi
+AS_IF([test "x$bluetooth" = "x0"],
+      [AC_MSG_NOTICE([WARNING: optional bluetooth library not found.])])
+
 
 # jansson
-if test "x$jansson" = "x0"
-then
-  AC_MSG_NOTICE([WARNING: jansson library not found.  json support will not be compiled.])
-fi
+AS_IF([test "x$jansson" = "x0"],
+      [AC_MSG_NOTICE([WARNING: optional jansson library not found.])])
 
 #
 # FIXME: `some modules' -> be more specific which exact modules.
 #
 
 # warn user if iptables is not found
-if test "$VAR_IPTABLES_BINARY" = "false"
-then
-AC_MSG_NOTICE([WARNING: iptables not found. some modules may not have full functionality.])
-fi
+AS_IF([test "$VAR_IPTABLES_BINARY" = "false"],
+ [AC_MSG_NOTICE([WARNING: optional iptables not found])])
 
 # warn user if ifconfig is not found
-if test "$VAR_IFCONFIG_BINARY" = "false"
-then
-AC_MSG_NOTICE([WARNING: ifconfig not found. some modules may not have full functionality.])
-fi
+AS_IF([test "$VAR_IFCONFIG_BINARY" = "false"],
+ [AC_MSG_NOTICE([WARNING: optional ifconfig not found])])
 
 # warn user if upnpc binary is not found
-if test "$VAR_UPNPC_BINARY" = "false"
-then
-AC_MSG_NOTICE([WARNING: upnpc binary not found. some modules may not have full functionality.])
-fi
+AS_IF([test "$VAR_UPNPC_BINARY" = "false"],
+  [AC_MSG_NOTICE([WARNING: optional upnpc binary not found])])
 
 #gnutls
-if test x$gnutls != xtrue
-then
-  AC_MSG_NOTICE([WARNING: GnuTLS not found, gnunet-gns-proxy will not be built])
-else
-if test "x$gnutls_dane" != "x1"
-then
-  AC_MSG_NOTICE([WARNING: GnuTLS has no DANE support, DANE validation will not be possible])
-fi
-fi
+AS_IF([test x$gnutls != xtrue],
+ [AC_MSG_NOTICE([WARNING: GnuTLS not found, gnunet-gns-proxy will not be built])],
+ [AS_IF([test "x$gnutls_dane" != "x1"],
+  [AC_MSG_NOTICE([WARNING: GnuTLS has no DANE support, DANE validation will not be possible])])])
 
 # java ports
-if test "x$enable_java_ports" = "xyes"
-then
-  AC_MSG_NOTICE([NOTICE: Opening ports for gnunet-java bindings by default.])
-fi
+AS_IF([test "x$enable_java_ports" = "xyes"],
+      [AC_MSG_NOTICE([NOTICE: Opening ports for gnunet-java bindings by default.])])
 
 # MHD
-if test "x$lmhd" != "x1"
-then
- AC_MSG_NOTICE([WARNING: libmicrohttpd not found, http transport will not be installed.])
-fi
+AS_IF([test "x$lmhd" != "x1"],
+      [AC_MSG_NOTICE([WARNING: optional libmicrohttpd not found])])
 
 # conversation
-if test "x$conversation_backend" = "xnone"
-then
-  if test "x$pulse" != "x1"
-  then
-    AC_MSG_NOTICE([WARNING: libpulse(audio) not found, conversation will not be built.])
-  fi
-  if test "x$opus" != "x1"
-  then
-   AC_MSG_NOTICE([WARNING: libopus not found, conversation will not be built.])
-  fi
-  if test "x$gst" != "x1"
-  then
-   AC_MSG_NOTICE([WARNING: GStreamer not found, conversation will not be built.])
-  fi
-fi
+AS_IF([test "x$conversation_backend" = "xnone"],
+ [AS_IF([test "x$pulse" != "x1"],
+   [AC_MSG_NOTICE([WARNING: libpulse(audio) not found, conversation will not be built.])])
+  AS_IF([test "x$opus" != "x1"],
+   [AC_MSG_NOTICE([WARNING: libopus not found, conversation will not be built.])])
+  AS_IF([test "x$gst" != "x1"],
+   [AC_MSG_NOTICE([WARNING: GStreamer not found, conversation will not be built.])])])
 
-if test "$extractor" != 1
-then
- AC_MSG_WARN([ERROR: libextractor not found, but various file-sharing functions require it])
-fi
+AS_IF([test "$extractor" != 1],
+      [AC_MSG_WARN([ERROR: libextractor not found, but various file-sharing functions require it])])
+
+AS_IF([test "x$working_libidn2" = x1],
+      [AC_MSG_NOTICE([INFO: Using libidn2])])
+AS_IF([test "x$working_libidn1" = x1],
+      [AC_MSG_NOTICE([INFO: Using libidn1])])
 
 AC_MSG_NOTICE([NOTICE: Database support is set to MySQL: $mysql, SQLite: $sqlite, Postgres: $postgres])
 
-if test "$enable_framework_build" = "yes"
-then
-  AC_MSG_NOTICE([Mac OS X framework build enabled.])
-fi
+AS_IF([test "$enable_framework_build" = "yes"],
+      [AC_MSG_NOTICE([Mac OS X framework build enabled.])])
 
 AC_MSG_NOTICE([********************************************
 Please make sure NOW that you have created a user and group 'gnunet'
