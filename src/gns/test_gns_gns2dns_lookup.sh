@@ -14,8 +14,8 @@ then
 fi
 
 rm -rf `gnunet-config -c test_gns_lookup.conf -f -s paths -o GNUNET_TEST_HOME`
-# IP address of 'uk.gnunet.org'
-TEST_IP_ALT2="81.187.252.184"
+# IP address of 'docs.gnunet.org'
+TEST_IP_ALT2="131.159.74.67"
 # IP address of 'www.gnunet.org'
 TEST_IP="131.159.74.67"
 # IPv6 address of 'gnunet.org'
@@ -42,7 +42,7 @@ MY_EGO="myego"
 # various names we will use for resolution
 TEST_DOMAIN="www.${TEST_RECORD_NAME}.$MY_EGO"
 TEST_DOMAIN_ALT="${TEST_RECORD_NAME}.$MY_EGO"
-TEST_DOMAIN_ALT2="uk.${TEST_RECORD_NAME}.$MY_EGO"
+TEST_DOMAIN_ALT2="docs.${TEST_RECORD_NAME}.$MY_EGO"
 
 
 gnunet-arm -s -c test_gns_lookup.conf
@@ -64,7 +64,7 @@ RES_IP=`$DO_TIMEOUT gnunet-gns --raw -u $TEST_DOMAIN -t A -c test_gns_lookup.con
 RES_IP6=`$DO_TIMEOUT gnunet-gns --raw -u $TEST_DOMAIN -t AAAA -c test_gns_lookup.conf`
 # lookup 'gnunet.org', IPv4
 RES_IP_ALT=`$DO_TIMEOUT gnunet-gns --raw -u $TEST_DOMAIN_ALT -t A -c test_gns_lookup.conf`
-# lookup 'uk.gnunet.org', IPv4
+# lookup 'docs.gnunet.org', IPv4
 RES_IP_ALT2=`$DO_TIMEOUT gnunet-gns --raw -u $TEST_DOMAIN_ALT2 -t A -c test_gns_lookup.conf`
 
 # clean up
