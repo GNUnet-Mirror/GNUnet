@@ -953,7 +953,6 @@ remove_channel_ctx (struct ChannelCtx *channel_ctx)
 struct GNUNET_CADET_Channel *
 get_channel (struct PeerContext *peer_ctx)
 {
-  struct GNUNET_PeerIdentity *ctx_peer;
   /* There exists a copy-paste-clone in run() */
   struct GNUNET_MQ_MessageHandler cadet_handlers[] = {
     GNUNET_MQ_hd_fixed_size (peer_check,
@@ -981,8 +980,6 @@ get_channel (struct PeerContext *peer_ctx)
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Trying to establish channel to peer %s\n",
          GNUNET_i2s (&peer_ctx->peer_id));
-    ctx_peer = GNUNET_new (struct GNUNET_PeerIdentity);
-    *ctx_peer = peer_ctx->peer_id;
     peer_ctx->send_channel_ctx = add_channel_ctx (peer_ctx);
     peer_ctx->send_channel_ctx->channel =
       GNUNET_CADET_channel_create (cadet_handle,
@@ -1845,7 +1842,6 @@ handle_inbound_channel (void *cls,
                         const struct GNUNET_PeerIdentity *initiator)
 {
   struct PeerContext *peer_ctx;
-  struct GNUNET_PeerIdentity *ctx_peer;
   struct ChannelCtx *channel_ctx;
   struct Sub *sub = cls;
 
@@ -1857,8 +1853,6 @@ handle_inbound_channel (void *cls,
   peer_ctx = create_or_get_peer_ctx (sub, initiator);
   set_peer_online (peer_ctx);
   (void) add_valid_peer (&peer_ctx->peer_id, peer_ctx->sub->valid_peers);
-  ctx_peer = GNUNET_new (struct GNUNET_PeerIdentity);
-  *ctx_peer = *initiator;
   channel_ctx = add_channel_ctx (peer_ctx);
   channel_ctx->channel = channel;
   /* We only accept one incoming channel per peer */
@@ -4487,7 +4481,6 @@ run (void *cls,
      const struct GNUNET_CONFIGURATION_Handle *c,
      struct GNUNET_SERVICE_Handle *service)
 {
-  char *fn_valid_peers;
   struct GNUNET_TIME_Relative round_interval;
   long long unsigned int sampler_size;
   char hash_port_string[] = GNUNET_APPLICATION_PORT_RPS;

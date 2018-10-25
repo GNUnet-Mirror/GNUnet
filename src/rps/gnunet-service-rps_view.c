@@ -282,7 +282,9 @@ View_destroy (struct View *view)
 {
   View_clear (view);
   GNUNET_free (view->array);
+  view->array = NULL;
   GNUNET_CONTAINER_multipeermap_destroy (view->mpm);
+  GNUNET_free (view);
 }
 
 /* end of gnunet-service-rps_view.c */
