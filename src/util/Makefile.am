@@ -126,18 +126,25 @@ if HAVE_LIBIDN
   LIBIDN= -lidn
 else
   LIBIDN=
+endif
 
 if HAVE_LIBIDN2
   LIBIDN2= -lidn2
 else
   LIBIDN2=
+endif
 
 libgnunetutil_la_LIBADD = \
   $(GCLIBADD) $(WINLIB) \
   $(LIBGCRYPT_LIBS) \
   $(LTLIBICONV) \
   $(LTLIBINTL) \
-  -lltdl $(LIBIDN) $(LIBIDN2) $(Z_LIBS) -lunistring $(XLIB) $(PTHREAD)
+  -lltdl \
+  $(LIBIDN) $(LIBIDN2) \
+  $(Z_LIBS) \
+  -lunistring \
+  $(XLIB) \
+  $(PTHREAD)
 
 libgnunetutil_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS) \
