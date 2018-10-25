@@ -49,7 +49,7 @@ create_file (const char *name);
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,\
            "Failed to create tmp_buf\n");\
     else\
-      GNUNET_DISK_fn_write(file_name,tmp_buf, sizeof(tmp_buf),\
+      GNUNET_DISK_fn_write(file_name, tmp_buf, strnlen(tmp_buf, 512),\
                             GNUNET_DISK_PERM_USER_READ |\
                             GNUNET_DISK_PERM_USER_WRITE |\
                             GNUNET_DISK_PERM_GROUP_READ |\
@@ -64,7 +64,7 @@ create_file (const char *name);
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,\
            "Failed to create tmp_buf\n");\
     else\
-      GNUNET_DISK_fn_write(file_name,tmp_buf, len, \
+      GNUNET_DISK_fn_write(file_name, tmp_buf, strnlen(tmp_buf, len), \
                             GNUNET_DISK_PERM_USER_READ |\
                             GNUNET_DISK_PERM_USER_WRITE |\
                             GNUNET_DISK_PERM_GROUP_READ |\
