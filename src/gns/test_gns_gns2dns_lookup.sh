@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 trap "gnunet-arm -e -c test_gns_lookup.conf" SIGINT
 
 LOCATION=$(which gnunet-config)
@@ -26,7 +26,7 @@ TEST_IP_GNS2DNS="8.8.8.8"
 # main label used during resolution
 TEST_RECORD_NAME="homepage"
 
-if ! nslookup gnunet.org $TEST_IP_GNS2DNS &> /dev/null
+if ! nslookup gnunet.org $TEST_IP_GNS2DNS > /dev/null 2>&1
 then
   echo "Cannot reach DNS, skipping test"
   exit 77
@@ -53,7 +53,7 @@ gnunet-namestore -p -z $MY_EGO -a -n $TEST_RESOLVER_LABEL -t A -V $TEST_IP_GNS2D
 # map '$TEST_RECORD_NAME.$MY_EGO' to 'gnunet.org' in DNS
 gnunet-namestore -p -z $MY_EGO -a -n $TEST_RECORD_NAME -t GNS2DNS -V $TEST_RECORD_GNS2DNS -e never -c test_gns_lookup.conf
 
-which timeout &> /dev/null && DO_TIMEOUT="timeout 15"
+which timeout > /dev/null 2>&1 && DO_TIMEOUT="timeout 15"
 
 echo "EGOs:"
 gnunet-identity -d
@@ -75,7 +75,7 @@ gnunet-arm -e -c test_gns_lookup.conf
 rm -rf `gnunet-config -c test_gns_lookup.conf -f -s paths -o GNUNET_TEST_HOME`
 
 ret=0
-if [ "$RES_IP" == "$TEST_IP" ]
+if [ "$RES_IP" = "$TEST_IP" ]
 then
   echo "PASS: Resolved $TEST_DOMAIN to $RES_IP."
 else
@@ -83,7 +83,7 @@ else
   ret=1
 fi
 
-if [ "$RES_IP6" == "$TEST_IP6" ]
+if [ "$RES_IP6" = "$TEST_IP6" ]
 then
   echo "PASS: Resolved $TEST_DOMAIN to $RES_IP6."
 else
@@ -91,7 +91,7 @@ else
   ret=1
 fi
 
-if [ "$RES_IP_ALT" == "$TEST_IP" ]
+if [ "$RES_IP_ALT" = "$TEST_IP" ]
 then
   echo "PASS: Resolved $TEST_DOMAIN_ALT to $RES_IP_ALT."
 else
@@ -99,7 +99,7 @@ else
   ret=1
 fi
 
-if [ "$RES_IP_ALT2" == "$TEST_IP_ALT2" ]
+if [ "$RES_IP_ALT2" = "$TEST_IP_ALT2" ]
 then
   echo "PASS: Resolved $TEST_DOMAIN_ALT2 to $RES_IP_ALT2."
 else

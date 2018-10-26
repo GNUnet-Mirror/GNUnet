@@ -1,6 +1,10 @@
-#!/bin/bash
+#!/bin/sh
 # Computes a simple scalar product, with configurable vector size.
-#
+
+# precondition: check if time(1) is available, as we don't want to rely on
+# the bash built-in.
+which time >/dev/null 2>&1 || { echo "time is not installed." && exit 1; }
+
 # Some results (wall-clock for Alice+Bob, single-core, i7):
 # SIZE   2048-H(s)  2048-O(s)    1024-O(s)      ECC-2^20-H(s)  ECC-2^28-H(s)
 #  25     10          14            3              2               29

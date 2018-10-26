@@ -1,5 +1,6 @@
-#!/bin/bash
+#!/bin/sh
 
+# TODO: Don't assume the binary is in /opt.
 /opt/gnunet/bin/gnunet-helper-vpn < ping > result 2>/dev/null &
 
 PID=$!

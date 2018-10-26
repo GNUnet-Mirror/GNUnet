@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 CONFIGURATION="test_namestore_api.conf"
 trap "gnunet-arm -e -c $CONFIGURATION" SIGINT
 
@@ -17,15 +17,15 @@ fi
 rm -rf `$LOCATION -c $CONFIGURATION -s PATHS -o GNUNET_HOME`
 TEST_IP_PLUS="127.0.0.1"
 TEST_RECORD_NAME_DNS="www3"
-which timeout &> /dev/null && DO_TIMEOUT="timeout 5"
+which timeout > /dev/null 2>&1 && DO_TIMEOUT="timeout 5"
 
-function start_peer
+start_peer()
 {
 	gnunet-arm -s -c $CONFIGURATION
 	gnunet-identity -C testego -c $CONFIGURATION
 }
 
-function stop_peer
+stop_peer()
 {
 	gnunet-identity -D testego -c $CONFIGURATION
 	gnunet-arm -e -c $CONFIGURATION
@@ -56,15 +56,15 @@ for LINE in $OUTPUT ;
 stop_peer
 
 
-if [ $FOUND_NAME == true -a $FOUND_IP == true ]
+if [([ $FOUND_NAME = true ] && [ $FOUND_IP = true ])]
 then
   echo "PASS: Lookup name in namestore"
   exit 0
-elif [ $FOUND_NAME == false ]
+elif [ $FOUND_NAME = false ]
 then
   echo "FAIL: Lookup name in namestore: name not returned"
   exit 1
-elif [ $FOUND_IP == false ]
+elif [ $FOUND_IP = false ]
 then
   echo "FAIL: Lookup name in namestore: IP not returned"
   exit 1

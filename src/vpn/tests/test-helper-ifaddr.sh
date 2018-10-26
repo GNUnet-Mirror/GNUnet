@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 FIFO=$(mktemp)
 
@@ -6,6 +6,7 @@ rm $FIFO
 
 mkfifo $FIFO
 
+# TODO: Do not assume that the binary is in /opt.
 /opt/gnunet/bin/gnunet-helper-vpn > $FIFO 2>&1 &
 
 PID=$!
@@ -21,14 +22,14 @@ while read line < $FIFO; do
 done
 
 r=0
-if /sbin/ifconfig $IF | grep inet6 | grep -q '1234::1/16'; then
+if ifconfig $IF | grep inet6 | grep -q '1234::1/16'; then
 	echo OK
 else
 	echo FAILED: Interface-Address not set for IPv6!
 	r=1
 fi
 
-if /sbin/ifconfig $IF | grep "inet " | grep -q '10.10.10.1'; then
+if ifconfig $IF | grep "inet " | grep -q '10.10.10.1'; then
 	echo OK
 else
 	echo FAILED: Interface-Address not set for IPv4!

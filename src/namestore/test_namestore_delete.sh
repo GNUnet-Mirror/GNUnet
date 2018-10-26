@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 CONFIGURATION="test_namestore_api.conf"
 trap "gnunet-arm -e -c $CONFIGURATION" SIGINT
 
@@ -25,15 +25,15 @@ TEST_RECORD_CNAME_DNS="gnunet.org"
 TEST_RECORD_NAME_SERVER="server"
 TEST_RECORD_NAME_PLUS="www"
 TEST_RECORD_NAME_DNS="www3"
-which timeout &> /dev/null && DO_TIMEOUT="timeout 5"
+which timeout > /dev/null 2>&1 && DO_TIMEOUT="timeout 5"
 
-function start_peer
+start_peer()
 {
 	gnunet-arm -s -c $CONFIGURATION
 	gnunet-identity -C testego -c $CONFIGURATION
 }
 
-function stop_peer
+stop_peer()
 {
 	gnunet-identity -D testego -c $CONFIGURATION
 	gnunet-arm -e -c $CONFIGURATION
@@ -61,15 +61,15 @@ for LINE in $OUTPUT ;
 stop_peer
 
 
-if [ $FOUND_NAME == false -a $FOUND_IP != false ]
+if [ $FOUND_NAME = false -a $FOUND_IP != false ]
 then
   echo "PASS: Delete name in namestore"
   exit 0
-elif [ $FOUND_NAME == true ]
+elif [ $FOUND_NAME = true ]
 then
   echo "FAIL: Delete name in namestore: name returned"
   exit 1
-elif [ $FOUND_IP == true ]
+elif [ $FOUND_IP = true ]
 then
   echo "FAIL: Delete name in namestore: IP returned"
   exit 1

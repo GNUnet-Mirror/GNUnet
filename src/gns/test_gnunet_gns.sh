@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 LOCATION=$(which gnunet-config)
 if [ -z $LOCATION ]
@@ -32,4 +32,5 @@ if [ "$LO" != "Address: 4.5.6.7" ]
 then
   echo "Fail: $LO"
 fi
+# TODO: Replace with non-bash specific code:
 kill `jobs -p`

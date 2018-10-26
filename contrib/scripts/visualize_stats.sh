@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 #
 # This script polls gnunet-stats repeatedly to create statistics plots. 
 # Use 'collect' to collect statistics and 'plot' to plot whats been
@@ -17,6 +17,7 @@ SLEEP=120
 GNUNET=$HOME/
 STATDIR=$GNUNET/stats
 IMAGEVIEWER='display'
+# FIXME: Do not use /tmp directly, use out tmp variable.
 TMP=/tmp/.gnuplot_error
 
 ##########################################################################
@@ -82,5 +83,3 @@ case "$1" in
      exit 1
     
 esac
-
-  

@@ -1,4 +1,4 @@
-#!/usr/bin/bash
+#!/bin/sh
 
 #First, start gnunet-arm and the rest-service.
 #Exit 0 means success, exit 1 means failed test
@@ -12,7 +12,7 @@ curl_get () {
     #$2 is grep
     cache="$(curl -v "$1" 2>&1 | grep "$2")"
     #echo $cache
-    if [ "" == "$cache" ]
+    if [ "" = "$cache" ]
     then
         exit 1
     fi
@@ -24,7 +24,7 @@ curl_post () {
     #$3 is grep
     cache="$(curl -v -X "POST" "$1" --data "$2" 2>&1 | grep "$3")"
     #echo $cache
-    if [ "" == "$cache" ]
+    if [ "" = "$cache" ]
     then
         exit 1
     fi
@@ -35,7 +35,7 @@ curl_delete () {
     #$2 is grep
     cache="$(curl -v -X "DELETE" "$1" 2>&1 | grep "$2")"
     #echo $cache
-    if [ "" == "$cache" ]
+    if [ "" = "$cache" ]
     then
         exit 1
     fi
@@ -47,7 +47,7 @@ curl_put () {
     #$3 is grep
     cache="$(curl -v -X "PUT" "$1" --data "$2" 2>&1 | grep "$3")"
     #echo $cache
-    if [ "" == "$cache" ]
+    if [ "" = "$cache" ]
     then
         exit 1
     fi
@@ -56,7 +56,7 @@ curl_put () {
 #Test GET
 test="$(gnunet-identity -d)"
 #if no identity exists
-if [ "" == "$test" ]
+if [ "" = "$test" ]
 then
     curl_get "$identity_link/all" "error"
     gnunet-identity -C "test_plugin_rest_identity"

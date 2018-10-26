@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 trap "gnunet-arm -e -c test_gns_lookup.conf" SIGINT
 
 LOCATION=$(which gnunet-config)
@@ -14,7 +14,7 @@ then
 fi
 
 rm -rf `gnunet-config -c test_gns_lookup.conf -f -s paths -o GNUNET_TEST_HOME`
-which timeout &> /dev/null && DO_TIMEOUT="timeout 5"
+which timeout > /dev/null 2>&1 && DO_TIMEOUT="timeout 5"
 
 MY_EGO="myego"
 TEST_MX="5,mail.+"
@@ -30,7 +30,7 @@ gnunet-identity -D $MY_EGO -c test_gns_lookup.conf
 gnunet-arm -e -c test_gns_lookup.conf
 rm -rf `gnunet-config -c test_gns_lookup.conf -f -s paths -o GNUNET_TEST_HOME`
 
-if [ "$RES_MX" == "$WANT_MX" ]
+if [ "$RES_MX" = "$WANT_MX" ]
 then
   exit 0
 else

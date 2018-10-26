@@ -1,4 +1,4 @@
-#!/usr/local/bin/bash
+#!/bin/sh
 
 STARTREVISION=14033
 ENDREVISION=15268
@@ -16,10 +16,10 @@ CMD_TEST="cd src/transport ; make test_transport_api_tcp; ./test_transport_api_t
 LOGGING=" 1> /dev/null 2> errors.txt"
 LOGFILE="log.txt"
 
-function output ()
+output()
 {
-  eval echo $1
-  eval echo $1 >> $LOGFILE
+    eval echo $1
+    eval echo $1 >> $LOGFILE
 }
 
 
@@ -35,7 +35,7 @@ while [ $CURRENTREVISION -le $ENDREVISION ]; do
     output "    updating OK"
   else
     output "    updating FAILED"
-    (( CURRENTREVISION++ )) 
+    $(( CURRENTREVISION=CURRENTREVISION+1 ))
     continue
   fi
 
@@ -48,7 +48,7 @@ while [ $CURRENTREVISION -le $ENDREVISION ]; do
     output "    cleanup OK"
   else
     output "    cleanup FAILED"
-    (( CURRENTREVISION++ ))     
+    $(( CURRENTREVISION=CURRENTREVISION+1 ))
     continue
   fi
 # preparing 
@@ -61,7 +61,7 @@ while [ $CURRENTREVISION -le $ENDREVISION ]; do
     output "    preparation OK"
   else
     output "    preparation FAILED"
-    (( CURRENTREVISION++ )) 
+    $(( CURRENTREVISION=CURRENTREVISION+1 ))
     continue
   fi
 # building
@@ -74,7 +74,7 @@ while [ $CURRENTREVISION -le $ENDREVISION ]; do
     output "    building OK"
   else
     output "    building FAILED"
-    (( CURRENTREVISION++ )) 
+    $(( CURRENTREVISION=CURRENTREVISION+1 ))
     continue
   fi
 # testing
@@ -90,7 +90,7 @@ while [ $CURRENTREVISION -le $ENDREVISION ]; do
     output "    testing FAILED"
     output 'Revision $CURRENTREVISION FAILED'
   fi
-  (( CURRENTREVISION++ ))
+  $(( CURRENTREVISION=CURRENTREVISION+1 ))
 done
 
 exit

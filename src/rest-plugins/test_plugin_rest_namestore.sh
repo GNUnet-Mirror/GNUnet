@@ -1,4 +1,4 @@
-#!/usr/bin/bash
+#!/usr/bin/sh
 
 #First, start gnunet-arm and the rest-service.
 #Exit 0 means success, exit 1 means failed test
@@ -12,7 +12,7 @@ curl_get () {
     #$2 is grep
     cache="$(curl -v "$1" 2>&1 | grep "$2")"
     echo $cache
-    if [ "" == "$cache" ]
+    if [ "" = "$cache" ]
     then
         exit 1
     fi
@@ -24,7 +24,7 @@ curl_post () {
     #$3 is grep
     cache="$(curl -v -X "POST" "$1" --data "$2" 2>&1 | grep "$3")"
     echo $cache
-    if [ "" == "$cache" ]
+    if [ "" = "$cache" ]
     then
         exit 1
     fi
@@ -35,7 +35,7 @@ curl_delete () {
     #$2 is grep
     cache="$(curl -v -X "DELETE" "$1" 2>&1 | grep "$2")"
     echo $cache
-    if [ "" == "$cache" ]
+    if [ "" = "$cache" ]
     then
         exit 1
     fi
@@ -61,7 +61,7 @@ gnunet-identity -C "test_plugin_rest_namestore"
 test="$(gnunet-namestore -D -z "test_plugin_rest_namestore")"
 name="test_plugin_rest_namestore"
 public="$(gnunet-identity -d | grep "test_plugin_rest_namestore" | awk 'NR==1{print $3}')"
-if [ "" == "$test" ]
+if [ "" = "$test" ]
 then
     #if no entries for test_plugin_rest_namestore
     curl_get "${namestore_link}/$name" "error"

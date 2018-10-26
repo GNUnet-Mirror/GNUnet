@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 ME=`whoami`
 if [ "$ME" != "root" ]

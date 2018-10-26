@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 CONFIGURATION="test_namestore_api.conf"
 trap "gnunet-arm -e -c $CONFIGURATION" SIGINT
 
@@ -25,15 +25,15 @@ TEST_RECORD_CNAME_DNS="gnunet.org"
 TEST_RECORD_NAME_SERVER="server"
 TEST_RECORD_NAME_PLUS="www"
 TEST_RECORD_NAME_DNS="www3"
-which timeout &> /dev/null && DO_TIMEOUT="timeout 5"
+which timeout > /dev/null 2>&1 && DO_TIMEOUT="timeout 5"
 
-function start_peer
+start_peer()
 {
 	gnunet-arm -s -c $CONFIGURATION
 	gnunet-identity -C testego -c $CONFIGURATION
 }
 
-function stop_peer
+stop_peer()
 {
 	gnunet-identity -D testego -c $CONFIGURATION
 	gnunet-arm -e -c $CONFIGURATION
@@ -46,7 +46,7 @@ gnunet-namestore -p -z testego -a -n $TEST_RECORD_NAME_DNS -t A -V $TEST_IP_PLUS
 NAMESTORE_RES=$?
 stop_peer
 
-if [ $NAMESTORE_RES == 0 ]
+if [ $NAMESTORE_RES = 0 ]
 then
   echo "PASS: Creating name in namestore"
 else

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 # Usage: service should print "STARTING SERVICE (srvc) for peer [PEER]" where:
 # - "srvc" is the service name (in lowercase, as in the log output).
@@ -25,6 +25,6 @@ echo "$0 sed regex: $SED_EXPR" >> .log
 
 SIZE=`stat -c%s .log`
 
-if [[ "`ps aux | grep "kwrite .lo[g]"`" = "" && "$SIZE" < 10000000 ]]; then
+if [ "`ps aux | grep "kwrite .lo[g]"`" = "" && "$SIZE" < 10000000 ]; then
     kwrite .log --geometry 960x1140-960 &
 fi
