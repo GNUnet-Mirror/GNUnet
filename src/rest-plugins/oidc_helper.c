@@ -57,12 +57,6 @@ replace_char(char* str, char find, char replace){
 //RFC4648
 static void
 fix_base64(char* str) {
-  char *padding;
-  //First, remove trailing padding '='
-  padding = strtok(str, "=");
-  while (NULL != padding)
-    padding = strtok(NULL, "=");
-
   //Replace + with -
   replace_char (str, '+', '-');
 
