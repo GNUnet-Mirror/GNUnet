@@ -1,58 +1,51 @@
-.TH GNUNET\-GNS 1 "Mar 23, 2018" "GNUnet"
-
+.TH GNUNET\-GNS 1 "March 23, 2018" "GNUnet"
 .SH NAME
 gnunet\-gns \- Access to GNU Name System
-
 .SH SYNOPSIS
 .B gnunet\-gns
 .RI [ options ]
-.br
-
 .SH DESCRIPTION
 \fBgnunet\-gns\fP can be used to lookup and process GNU Name Service
 names.
-
 .SH OPTIONS
 .B
 .IP "\-c FILENAME,  \-\-config=FILENAME"
 Use the configuration file FILENAME.
 .B
 .IP "\-r, \-\-raw"
-No unneeded output.  This is a quiet mode where only important
-information is displayed.  For example a lookup for an IP address will
-only yield the IP address, no descriptive text.
+No unneeded output.
+This is a quiet mode where only important information is displayed.
+For example a lookup for an IP address will only yield the IP address,
+no descriptive text.
 .B
 .IP "\-h, \-\-help"
 Print short help on options.
 .B
 .IP "\-L LOGLEVEL, \-\-loglevel=LOGLEVEL"
-Use LOGLEVEL for logging.  Valid values are DEBUG, INFO, WARNING and
-ERROR.
+Use LOGLEVEL for logging.
+Valid values are DEBUG, INFO, WARNING and ERROR.
 .B
 .IP "\-u NAME, \-\-lookup=NAME"
-Name to lookup.  Resolve the specified name using the GNU Name System.
+Name to lookup.
+Resolve the specified name using the GNU Name System.
 .B
 .IP "\-t TYPE, \-\-type=TYPE"
-Resource Record Type (TYPE) to look for.  Supported TYPE's are: A,
-AAAA, CNAME, NS, PKEY, PSEU, TLSA, SRV, SOA, MX, LEHO, VPN, REV, PTR,
-TXT
-
+Resource Record Type (TYPE) to look for.
+Supported TYPE's are: A, AAAA, CNAME, NS, PKEY, PSEU, TLSA, SRV, SOA,
+MX, LEHO, VPN, REV, PTR, TXT.
 Defaults to "A".
 .B
 .IP "\-v, \-\-version"
 Print GNUnet version number.
-.B
-
 .SH RETURN VALUE
-
 gnunet\-gns will return 0 on success, 1 on internal failures, 2 on
 launch failures, 4 if the given name is not configured to use GNS.
-
-
 .SH BUGS
-Report bugs by using Mantis <https://gnunet.org/bugs/> or by sending electronic mail to <gnunet\-developers@gnu.org>
-.SH "SEE ALSO"
+Report bugs by using Mantis <https://gnunet.org/bugs/> or by sending
+electronic mail to <gnunet\-developers@gnu.org>
+.SH SEE ALSO
 \fBgnunet\-namestore\fP(1), \fBgnunet\-identity\fP(1)
+.PP
 The full documentation for
 .B gnunet
 is maintained as a Texinfo manual.  If the

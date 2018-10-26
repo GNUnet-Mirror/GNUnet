@@ -1,18 +1,14 @@
-.TH GNUNET\-ATS 1 "Oct 16, 2015" "GNUnet"
-
+.TH GNUNET\-ATS 1 "October 16, 2015" "GNUnet"
 .SH NAME
 gnunet\-ats \- display information about transport resource allocation
-
 .SH SYNOPSIS
 .B gnunet\-ats
 .RI [ options ]
 .br
-
 .SH DESCRIPTION
 \fBgnunet\-ats\fP can be used to display information about the GNUnet's
 transport selection mechanism. It shows information about the
 addresses and the assigned input and output bandwidth.
-
 .SH OPTIONS
 .B
 .IP "\-a,  \-\-aa"
@@ -22,8 +18,10 @@ List all addresses currently known to ats.
 Use the configuration file FILENAME.
 .B
 .IP "\-C, \-\-connect=PEERID"
-Ask ATS to suggest an address for PEERID to transport to establish a connection.
-Note that you can use the gnunet\-transport command\-line tool to force disconnects.
+Ask ATS to suggest an address for PEERID to transport to establish a
+connection.
+Note that you can use the gnunet\-transport command\-line tool to
+force disconnects.
 .B
 .IP "\-h, \-\-help"
 Print short help on options.
@@ -35,7 +33,8 @@ Print information for a specific peer identity only
 Value to set for when changing preference values
 .B
 .IP "\-L LOGLEVEL, \-\-loglevel=LOGLEVEL"
-Use LOGLEVEL for logging.  Valid values are DEBUG, INFO, WARNING and ERROR.
+Use LOGLEVEL for logging.
+Valid values are DEBUG, INFO, WARNING and ERROR.
 .B
 .IP "\-m, \-\-monitor"
 Monitor changes to the bandwidth assignments continuously
@@ -60,11 +59,9 @@ Print verbose output (include ATS address properties)
 .B
 .IP "\-v, \-\-version"
 Print GNUnet version number.
-
 .SH BUGS
 Report bugs by using Mantis <https://gnunet.org/bugs/> or by sending
 electronic mail to <bug\-gnunet@gnu.org>
-
 .SH SEE ALSO
 gnunet\-transport(1)
 The full documentation for
