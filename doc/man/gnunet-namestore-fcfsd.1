@@ -1,36 +1,31 @@
-.TH GNUNET\-NAMESTORE-FCFSD 1 "5 Sep 2013" "GNUnet"
-
+.TH GNUNET-NAMESTORE-FCFSD 1 "September 5, 2013" "GNUnet"
 .SH NAME
 gnunet\-namestore-fcfsd \- HTTP server for GNU Name System First-Come-First-Served name registration
-
 .SH SYNOPSIS
 .B gnunet\-namestore-fcfsd
 .RI [ options ]
-.br
-
 .SH DESCRIPTION
 Most users will not want to run an FCFS\-zone and thus will not need
 this program.
-
+.PP
 \fBgnunet\-gns-fcfsd\fP runs a web server where users can register
 names to be mapped to their GNS zone.  Names are made available on a
 First Come First Served basis (hence fcfs).  Registered names do not
 expire.  The HTTP server is run on the port that is specified in the
 configuration file in section "[fcfsd]" under the name "HTTPPORT".
-
+.PP
 It is possible to manage gnunet\-gns\-fcfsd using
 gnunet\-(service\-arm) by starting the daemon using "gnunet\-arm \-i
 fcfsd" or by setting "IMMEDIATE_START=YES" in the "fcfds" section of your
 configuration and the "-z ZONE" in as the "OPTION".
-
+.PP
 An FCFS\-zone is run at http://gnunet.org/fcfs/.  GNS users are
 encouraged to register their zone with the gnunet.org FCFS authority.
-
+.PP
 If you want to run your own FCFS registrar, you need to first create a
 pseudonym (using "gnunet\-identity \-C NAME"), and use it with the
 "-z" option.  After that, you can start the FCFSD service (possibly using
 gnunet\-arm).
-
 .SH OPTIONS
 .B
 .IP "\-c FILENAME,  \-\-config=FILENAME"
@@ -48,15 +43,16 @@ Print GNUnet version number.
 .B
 .IP "\-z EGO, \-\-zone=EGO"
 Specifies for which EGO should FCFSD manage the zone.
-
 .SH BUGS
 Report bugs by using Mantis <https://gnunet.org/bugs/> or by sending
 electronic mail to <bug\-gnunet@gnu.org>
 .SH SEE ALSO
 gnunet\-identity(1), gnunet\-gns(1), gnunet\-gns\-proxy(1)
+.PP
 The full documentation for
 .B gnunet
-is maintained as a Texinfo manual.  If the
+is maintained as a Texinfo manual.
+If the
 .B info
 and
 .B gnunet

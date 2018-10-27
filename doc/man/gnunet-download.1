@@ -1,21 +1,17 @@
-.TH GNUNET-DOWNLOAD "1" "31 Jan 2016" "GNUnet"
+.TH GNUNET-DOWNLOAD "1" "January 31, 2016" "GNUnet"
 .SH NAME
 gnunet\-download \- a command line interface for downloading files from GNUnet
 .SH SYNOPSIS
 .B gnunet\-download
 [\fIOPTIONS\fR] \-\- GNUNET_URI
 .SH DESCRIPTION
-.PP
 Download files from GNUnet.
-
 .TP
 \fB\-a \fILEVEL\fR, \fB\-\-anonymity=LEVEL\fR
 set desired level of receiver anonymity.  Default is 1.
-
 .TP
 \fB\-c \fIFILENAME\fR, \fB\-\-config=FILENAME\fR
 use config file (defaults: ~/.config/gnunet.conf)
-
 .TP
 \fB\-D, \fB\-\-delete\-incomplete\fR
 causes gnunet\-download to delete incomplete downloads when aborted with
@@ -24,20 +20,16 @@ download will not be deleted even with this option.  Without this option,
 terminating gnunet\-download with a signal will cause incomplete
 downloads to stay on disk.  If gnunet\-download runs to (normal) completion
 finishing the download, this option has no effect.
-
 .TP
 \fB\-h\fR, \fB\-\-help\fR
 print help page
-
 .TP
 \fB\-L \fILOGLEVEL\fR, \fB\-\-loglevel=LOGLEVEL\fR
 Change the loglevel.  Possible values for LOGLEVEL are
 ERROR, WARNING, INFO and DEBUG.
-
 .TP
 \fB\-n\fR, \fB\-\-no-network\fR
 Only search locally, do not forward requests to other peers.
-
 .TP
 \fB\-o \fIFILENAME\fR, \fB\-\-output=FILENAME\fR
 write the file to FILENAME.  Hint: when recursively downloading a directory,
@@ -45,7 +37,6 @@ append a '/' to the end of the FILENAME to create a directory of that name.
 If no FILENAME is specified, gnunet\-download constructs a temporary ID from
 the URI of the file.  The final filename is constructed based on meta\-data
 extracted using libextractor (if available).
-
 .TP
 \fB\-p \fIDOWNLOADS\fR, \fB\-\-parallelism=DOWNLOADS\fR
 set the maximum number of parallel downloads that is allowed.  More parallel
@@ -56,7 +47,6 @@ used to limit the number of files that are downloaded in parallel (\-r can
 be used to limit the number of blocks that are concurrently requested).
 As a result, the value only matters for recursive downloads.
 The default value is 32.
-
 .TP
 \fB\-r \fIREQUESTS\fR, \fB\-\-request-parallelism=REQUESTS\fR
 set the maximum number of parallel requests that is allowed.  If multiple
@@ -71,7 +61,6 @@ recursive downloads with many large files if memory and network
 bandwidth are not fully utilized and if the parallelism limit (\-p option)
 is not reached.  This option also only matters for recursive downloads.
 The default value is 4092.
-
 .TP
 \fB\-R\fR, \fB\-\-recursive\fR
 download directories recursively (and in parallel). Note that the URI
@@ -83,15 +72,12 @@ information will be stored in "DIRNAME/.gnd". However, it is also
 possible to specify "DIRNAME.gnd", in which case the files from the
 directory will end up in "DIRNAME/", while GNUnet's directory meta
 data will be in "DIRNAME.gnd".
-
 .TP
 \fB\-v\fR, \fB\-\-version\fR
 print the version number
-
 .TP
 \fB\-V\fR, \fB\-\-verbose\fR
 print progress information
-
 .SH NOTES
 The GNUNET_URI is typically obtained from
 gnunet\-search. gnunet\-fs\-gtk can also be used instead of
@@ -102,9 +88,7 @@ already present. GNUnet's file\-encoding will ensure file integrity,
 even if the existing file was not downloaded from GNUnet in the first
 place. Temporary information will be appended to the target file until
 the download is completed.
-
 .SH SETTING ANONYMITY LEVEL
-
 The \fB\-a\fR option can be used to specify additional anonymity
 constraints. If set to 0, GNUnet will try to download the file as fast
 as possible, including using non-anonymous methods.  If you set it to
@@ -121,14 +105,14 @@ anonymity level 0, the peers publishing the data might be sharing with
 a higher anonymity level, which in this case will determine
 performance.  Also, peers that cache content in the network always use
 anonymity level 1.
-
+.PP
 This option can be used to limit requests further than that. In
 particular, you can require GNUnet to receive certain amounts of
 traffic from other peers before sending your queries. This way, you
 can gain very high levels of anonymity \- at the expense of much more
 traffic and much higher latency. So set it only if you really believe
 you need it.
-
+.PP
 The definition of ANONYMITY\-RECEIVE is the following.  0 means no
 anonymity is required.  Otherwise a value of 'v' means that 1 out of v
 bytes of "anonymous" traffic can be from the local user, leaving 'v-1'
@@ -137,12 +121,11 @@ bytes of messages from foreign peers (using anonymous routing), it may
 originate n/(v-1) bytes of queries in the same time\-period. The
 time\-period is twice the average delay that GNUnet defers forwarded
 queries.
-
+.PP
 The default is 1 and this should be fine for most users.  Also notice
 that if you choose very large values, you may end up having no
 throughput at all, especially if many of your fellow GNUnet\-peers all
 do the same.
-
 .SH FILES
 .TP
 ~/.config/gnunet.conf
@@ -154,9 +137,11 @@ mail to <gnunet\-developers@gnu.org>
 \fBgnunet\-fs\-gtk\fP(1), \fBgnunet\-publish\fP(1),
 \fBgnunet\-search\fP(1), \fBgnunet.conf\fP(5),
 \fBgnunet\-service\-fs\fP(1)
+.PP
 The full documentation for
 .B gnunet
-is maintained as a Texinfo manual.  If the
+is maintained as a Texinfo manual.
+If the
 .B info
 and
 .B gnunet
