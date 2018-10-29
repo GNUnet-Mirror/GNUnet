@@ -45,7 +45,6 @@
 
 #ifdef TO_FILE
 
-#define min(x,y) ((x) > (y) ? (y) : (x))
 
 /**
  * @brief buffer for storing the unaligned bits for the next write
@@ -201,7 +200,7 @@ to_file_raw_unaligned (const char *file_name,
     LOG (GNUNET_ERROR_TYPE_DEBUG,
         "number of bits needed to align unaligned bit: %u\n",
          num_bits_to_align);
-    num_bits_to_move  = min (num_bits_to_align, num_bits_needed_iter);
+    num_bits_to_move  = GNUNET_MIN (num_bits_to_align, num_bits_needed_iter);
     LOG (GNUNET_ERROR_TYPE_DEBUG,
         "number of bits of new byte to move: %u\n",
          num_bits_to_move);
