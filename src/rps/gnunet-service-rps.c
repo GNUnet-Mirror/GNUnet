@@ -4536,17 +4536,6 @@ run (void *cls,
     return;
   }
 
-  if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_filename (cfg,
-                                               "rps",
-                                               "FILENAME_VALID_PEERS",
-                                               &fn_valid_peers))
-  {
-    GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR,
-                               "rps",
-                               "FILENAME_VALID_PEERS");
-  }
-
   cadet_handle = GNUNET_CADET_connect (cfg);
   GNUNET_assert (NULL != cadet_handle);
 
