@@ -244,7 +244,6 @@ else
 AC_MSG_WARN([warning: 'ifconfig' not found.])
 fi
 
-
 # miniupnpc / upnpc binary is a soft runtime requirement
 AC_PATH_TARGET_TOOL(VAR_UPNPC_BINARY, upnpc, false)
 
@@ -301,10 +300,32 @@ then
 fi
 AC_DEFINE_UNQUOTED([NEED_LIBGCRYPT_VERSION], "$NEED_LIBGCRYPT_VERSION", [required libgcrypt version])
 
-# TODO: add check for VERSION
+# Check for makeinfo version >= 5, required for building documentation.
+# TODO: invalid version should imply --disable-documentation (and
+# maybe --with-section7).
 # TODO: add check for alternatives
 # TODO: add switch to skip documentation building
-AM_MISSING_PROG([MAKEINFO], [makeinfo])
+have_makeinfo_5=false
+AC_PROG_SED
+AC_CHECK_PROG([MAKEINFO_FOUND], [makeinfo], [yes])
+if test x"${MAKEINFO_FOUND}" = xyes
+then
+  MAKEINFO_VERSION_REQ=5
+  AC_MSG_CHECKING([for makeinfo version >= $MAKEINFO_VERSION_REQ])
+  # XXX: is this sed invocation portable?
+  MAKEINFO_VERSION=`makeinfo --version | sed -ne 's/^\(makeinfo\|texi2any\) .* \([[0-9]][[0-9]]*\)\.[[0-9]][[0-9]]*.*$/\2/p'`
+  if test x$MAKEINFO_VERSION = x -o 0$MAKEINFO_VERSION -lt $MAKEINFO_VERSION_REQ
+  then
+    AC_MSG_RESULT([no])
+    AC_MSG_FAILURE([Program 'makeinfo' version >= $MAKEINFO_VERSION_REQ is required.])
+  else
+    AC_MSG_RESULT([yes])
+    have_makeinfo_5=true
+  fi
+else
+    AC_MSG_FAILURE([Missing program 'makeinfo', Documentation will not be built. Please install it if you want 'info' documentation or refer to online resources at 'https://docs.gnunet.org'.])
+fi
+AM_CONDITIONAL([HAVE_MAKEINFO_5], [test x$have_makeinfo_5 = xtrue])
 
 # Adam shostack suggests the following for Windows:
 # -D_FORTIFY_SOURCE=2 -fstack-protector-all
