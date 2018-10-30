@@ -25,6 +25,7 @@
 #include "gnunet_applications.h"
 #include "gnunet_util_lib.h"
 #include "gnunet_cadet_service.h"
+#include "gnunet_core_service.h"
 #include "gnunet_peerinfo_service.h"
 #include "gnunet_nse_service.h"
 #include "gnunet_statistics_service.h"
@@ -445,6 +446,14 @@ struct GNUNET_STATISTICS_Handle *stats;
  * Handler to CADET.
  */
 struct GNUNET_CADET_Handle *cadet_handle;
+
+/**
+ * Handle to CORE
+ */
+struct GNUNET_CORE_Handle *core_handle;
+
+struct GNUNET_CONTAINER_MultiPeerMap *map_single_hop;
+struct GNUNET_CONTAINER_MultiPeerMap *map_multi_hop;
 
 /**
  * Our own identity.
@@ -4566,6 +4575,13 @@ run (void *cls,
 
   cadet_handle = GNUNET_CADET_connect (cfg);
   GNUNET_assert (NULL != cadet_handle);
+  core_handle = GNUNET_CORE_connect (cfg,
+                                     NULL, /* cls */
+                                     NULL, /* init */
+                                     NULL, /* connects */
+                                     NULL, /* disconnects */
+                                     NULL); /* handlers */
+  GNUNET_assert (NULL != core_handle);
 
 
   alpha = 0.45;
