@@ -2150,7 +2150,7 @@ rem_from_list (struct GNUNET_PeerIdentity **peer_list,
  */
 static void
 insert_in_view_op (void *cls,
-		const struct GNUNET_PeerIdentity *peer);
+                   const struct GNUNET_PeerIdentity *peer);
 
 /**
  * Insert PeerID in #view
