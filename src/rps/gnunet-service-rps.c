@@ -2177,7 +2177,7 @@ insert_in_view (struct Sub *sub,
        (GNUNET_SYSERR == online) ) /* peer is not even known */
   {
     (void) issue_peer_online_check (sub, peer);
-    (void) schedule_operation (peer_ctx, insert_in_view_op, NULL);
+    (void) schedule_operation (peer_ctx, insert_in_view_op, sub);
     return GNUNET_NO;
   }
   /* Open channel towards peer to keep connection open */
