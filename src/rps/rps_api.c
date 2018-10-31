@@ -854,6 +854,7 @@ GNUNET_RPS_request_cancel (struct GNUNET_RPS_Request_Handle *rh)
   struct GNUNET_RPS_Handle *h;
 
   h = rh->rps_handle;
+  GNUNET_assert (NULL != rh);
   GNUNET_assert (NULL != rh->srh);
   remove_stream_request (rh->srh,
                          h->stream_requests_head,
