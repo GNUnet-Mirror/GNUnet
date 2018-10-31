@@ -2690,6 +2690,14 @@ clean_peer (struct Sub *sub,
     #endif /* ENABLE_MALICIOUS */
   }
 
+  if (GNUNET_NO == GNUNET_CONTAINER_multipeermap_contains (sub->peer_map, peer))
+  {
+    /* Peer was already removed by callback on destroyed channel */
+    LOG (GNUNET_ERROR_TYPE_WARNING,
+        "Peer was removed from our knowledge during cleanup\n");
+    return;
+  }
+
   if ( (GNUNET_NO == check_peer_send_intention (get_peer_ctx (sub->peer_map,
                                                               peer))) &&
        (GNUNET_NO == View_contains_peer (sub->view, peer)) &&
@@ -2729,7 +2737,8 @@ cleanup_destroyed_channel (void *cls,
   channel_ctx->channel = NULL;
   remove_channel_ctx (channel_ctx);
   if (NULL != peer_ctx &&
-      peer_ctx->send_channel_ctx == channel_ctx)
+      peer_ctx->send_channel_ctx == channel_ctx &&
+      GNUNET_YES == check_sending_channel_needed (channel_ctx->peer_ctx))
   {
     remove_peer (peer_ctx->sub, &peer_ctx->peer_id);
   }
