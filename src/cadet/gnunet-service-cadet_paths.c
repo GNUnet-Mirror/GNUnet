@@ -477,7 +477,6 @@ GCPP_try_path_from_dht (const struct GNUNET_PeerIdentity *get_path,
   struct CadetPeer *cpath[get_path_length + put_path_length];
   struct CheckMatchContext cm_ctx;
   struct CadetPeerPath *path;
-  int i;
   unsigned int skip;
   unsigned int total_len;
 
@@ -527,7 +526,7 @@ GCPP_try_path_from_dht (const struct GNUNET_PeerIdentity *get_path,
   cm_ctx.cpath_length = total_len;
   cm_ctx.cpath = cpath;
   cm_ctx.match = NULL;
-  for (i=total_len-1;i>=0;i--)
+  for (int i=total_len-1;i>=0;i--)
   {
     GCP_iterate_paths_at (cpath[i],
                           (unsigned int) i,
@@ -562,7 +561,7 @@ GCPP_try_path_from_dht (const struct GNUNET_PeerIdentity *get_path,
   path->entries_length = total_len;
   path->entries = GNUNET_new_array (path->entries_length,
                                     struct CadetPeerPathEntry *);
-  for (i=path->entries_length-1;i>=0;i--)
+  for (int i=path->entries_length-1;i>=0;i--)
   {
     struct CadetPeerPathEntry *entry = GNUNET_new (struct CadetPeerPathEntry);
 
@@ -570,7 +569,7 @@ GCPP_try_path_from_dht (const struct GNUNET_PeerIdentity *get_path,
     entry->peer = cpath[i];
     entry->path = path;
   }
-  for (i=path->entries_length-1;i>=0;i--)
+  for (int i=path->entries_length-1;i>=0;i--)
   {
     struct CadetPeerPathEntry *entry = path->entries[i];
 
