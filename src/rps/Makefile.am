@@ -72,6 +72,7 @@ gnunet_service_rps_LDADD = \
   $(top_builddir)/src/peerinfo/libgnunetpeerinfo.la \
   $(top_builddir)/src/nse/libgnunetnse.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
+  $(top_builddir)/src/core/libgnunetcore.la \
   $(LIBGCRYPT_LIBS) \
   -lm -lgcrypt \
   $(GN_LIBINTL)

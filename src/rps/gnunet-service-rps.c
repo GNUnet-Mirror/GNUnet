@@ -452,8 +452,10 @@ struct GNUNET_CADET_Handle *cadet_handle;
  */
 struct GNUNET_CORE_Handle *core_handle;
 
+/**
+ * @brief PeerMap to keep track of connected peers.
+ */
 struct GNUNET_CONTAINER_MultiPeerMap *map_single_hop;
-struct GNUNET_CONTAINER_MultiPeerMap *map_multi_hop;
 
 /**
  * Our own identity.
@@ -1375,6 +1377,13 @@ mq_notify_sent_cb (void *cls)
       GNUNET_STATISTICS_update(stats, "# pull requests sent", 1, GNUNET_NO);
     if (0 == strncmp ("PUSH", pending_msg->type, 4))
       GNUNET_STATISTICS_update(stats, "# pushes sent", 1, GNUNET_NO);
+    if (0 == strncmp ("PULL REQUEST", pending_msg->type, 12) &&
+        GNUNET_NO == GNUNET_CONTAINER_multipeermap_contains (map_single_hop,
+          &pending_msg->peer_ctx->peer_id))
+      GNUNET_STATISTICS_update(stats,
+                               "# pull requests sent (multi-hop peer)",
+                               1,
+                               GNUNET_NO);
   }
   /* Do not cancle message */
   remove_pending_message (pending_msg, GNUNET_NO);
@@ -2989,6 +2998,73 @@ destroy_sub (struct Sub *sub)
 ***********************************************************************/
 
 
+/***********************************************************************
+ * Core handlers
+***********************************************************************/
+
+/**
+ * @brief Callback on initialisation of Core.
+ *
+ * @param cls - unused
+ * @param my_identity - unused
+ */
+void
+core_init (void *cls,
+           const struct GNUNET_PeerIdentity *my_identity)
+{
+  (void) cls;
+  (void) my_identity;
+
+  map_single_hop = GNUNET_CONTAINER_multipeermap_create (4, GNUNET_NO);
+}
+
+
+/**
+ * @brief Callback for core.
+ * Method called whenever a given peer connects.
+ *
+ * @param cls closure - unused
+ * @param peer peer identity this notification is about
+ * @return closure given to #core_disconnects as peer_cls
+ */
+void *
+core_connects (void *cls,
+               const struct GNUNET_PeerIdentity *peer,
+               struct GNUNET_MQ_Handle *mq)
+{
+  (void) cls;
+  (void) mq;
+
+  GNUNET_CONTAINER_multipeermap_put (map_single_hop, peer, NULL,
+      GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
+  return NULL;
+}
+
+
+/**
+ * @brief Callback for core.
+ * Method called whenever a peer disconnects.
+ *
+ * @param cls closure - unused
+ * @param peer peer identity this notification is about
+ * @param peer_cls closure given in #core_connects - unused
+ */
+void
+core_disconnects (void *cls,
+                  const struct GNUNET_PeerIdentity *peer,
+                  void *peer_cls)
+{
+  (void) cls;
+  (void) peer_cls;
+
+  GNUNET_CONTAINER_multipeermap_remove_all (map_single_hop, peer);
+}
+
+/***********************************************************************
+ * /Core handlers
+***********************************************************************/
+
+
 /**
  * @brief Destroy the context for a (connected) client
  *
@@ -3432,6 +3508,14 @@ handle_peer_pull_request (void *cls,
                              "# pull request message received",
                              1,
                              GNUNET_NO);
+    if (GNUNET_NO == GNUNET_CONTAINER_multipeermap_contains (map_single_hop,
+                                                             &peer_ctx->peer_id))
+    {
+      GNUNET_STATISTICS_update (stats,
+                                "# pull request message received (multi-hop peer)",
+                                1,
+                                GNUNET_NO);
+    }
   }
 
   #ifdef ENABLE_MALICIOUS
@@ -3687,6 +3771,14 @@ send_pull_request (struct PeerContext *peer_ctx)
                               "# pull request send issued",
                               1,
                               GNUNET_NO);
+    if (GNUNET_NO == GNUNET_CONTAINER_multipeermap_contains (map_single_hop,
+                                                             &peer_ctx->peer_id))
+    {
+      GNUNET_STATISTICS_update (stats,
+                                "# pull request send issued (multi-hop peer)",
+                                1,
+                                GNUNET_NO);
+    }
   }
 }
 
@@ -4421,6 +4513,15 @@ shutdown_task (void *cls)
   GNUNET_PEERINFO_disconnect (peerinfo_handle);
   peerinfo_handle = NULL;
   GNUNET_NSE_disconnect (nse);
+  if (NULL != map_single_hop)
+  {
+    /* core_init was called - core was initialised */
+    /* disconnect first, so no callback tries to access missing peermap */
+    GNUNET_CORE_disconnect (core_handle);
+    core_handle = NULL;
+    GNUNET_CONTAINER_multipeermap_destroy (map_single_hop);
+    map_single_hop = NULL;
+  }
 
   if (NULL != stats)
   {
@@ -4577,9 +4678,9 @@ run (void *cls,
   GNUNET_assert (NULL != cadet_handle);
   core_handle = GNUNET_CORE_connect (cfg,
                                      NULL, /* cls */
-                                     NULL, /* init */
-                                     NULL, /* connects */
-                                     NULL, /* disconnects */
+                                     core_init, /* init */
+                                     core_connects, /* connects */
+                                     core_disconnects, /* disconnects */
                                      NULL); /* handlers */
   GNUNET_assert (NULL != core_handle);
 
