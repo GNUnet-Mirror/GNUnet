@@ -928,7 +928,7 @@ GNUNET_CONTAINER_multihashmap_size (const struct GNUNET_CONTAINER_MultiHashMap *
  *         #GNUNET_SYSERR if it aborted iteration
  */
 int
-GNUNET_CONTAINER_multihashmap_iterate (const struct GNUNET_CONTAINER_MultiHashMap *map,
+GNUNET_CONTAINER_multihashmap_iterate (struct GNUNET_CONTAINER_MultiHashMap *map,
                                        GNUNET_CONTAINER_HashMapIterator it,
                                        void *it_cls);
 
@@ -993,7 +993,7 @@ GNUNET_CONTAINER_multihashmap_iterator_destroy (struct GNUNET_CONTAINER_MultiHas
  *         #GNUNET_SYSERR if it aborted iteration
  */
 int
-GNUNET_CONTAINER_multihashmap_get_multiple (const struct GNUNET_CONTAINER_MultiHashMap *map,
+GNUNET_CONTAINER_multihashmap_get_multiple (struct GNUNET_CONTAINER_MultiHashMap *map,
                                             const struct GNUNET_HashCode *key,
                                             GNUNET_CONTAINER_HashMapIterator it,
                                             void *it_cls);
@@ -1194,7 +1194,7 @@ GNUNET_CONTAINER_multipeermap_size (const struct GNUNET_CONTAINER_MultiPeerMap *
  *         #GNUNET_SYSERR if it aborted iteration
  */
 int
-GNUNET_CONTAINER_multipeermap_iterate (const struct GNUNET_CONTAINER_MultiPeerMap *map,
+GNUNET_CONTAINER_multipeermap_iterate (struct GNUNET_CONTAINER_MultiPeerMap *map,
                                        GNUNET_CONTAINER_PeerMapIterator it,
                                        void *it_cls);
 
@@ -1260,7 +1260,7 @@ GNUNET_CONTAINER_multipeermap_iterator_destroy (struct GNUNET_CONTAINER_MultiPee
  *         #GNUNET_SYSERR if it aborted iteration
  */
 int
-GNUNET_CONTAINER_multipeermap_get_multiple (const struct GNUNET_CONTAINER_MultiPeerMap *map,
+GNUNET_CONTAINER_multipeermap_get_multiple (struct GNUNET_CONTAINER_MultiPeerMap *map,
                                             const struct GNUNET_PeerIdentity *key,
                                             GNUNET_CONTAINER_PeerMapIterator it,
                                             void *it_cls);
@@ -1461,7 +1461,7 @@ GNUNET_CONTAINER_multishortmap_size (const struct GNUNET_CONTAINER_MultiShortmap
  *         #GNUNET_SYSERR if it aborted iteration
  */
 int
-GNUNET_CONTAINER_multishortmap_iterate (const struct GNUNET_CONTAINER_MultiShortmap *map,
+GNUNET_CONTAINER_multishortmap_iterate (struct GNUNET_CONTAINER_MultiShortmap *map,
                                         GNUNET_CONTAINER_ShortmapIterator it,
                                         void *it_cls);
 
@@ -1529,7 +1529,7 @@ GNUNET_CONTAINER_multishortmap_iterator_destroy (struct GNUNET_CONTAINER_MultiSh
  *         #GNUNET_SYSERR if it aborted iteration
  */
 int
-GNUNET_CONTAINER_multishortmap_get_multiple (const struct GNUNET_CONTAINER_MultiShortmap *map,
+GNUNET_CONTAINER_multishortmap_get_multiple (struct GNUNET_CONTAINER_MultiShortmap *map,
                                              const struct GNUNET_ShortHashCode *key,
                                              GNUNET_CONTAINER_ShortmapIterator it,
                                              void *it_cls);
@@ -1648,8 +1648,7 @@ GNUNET_CONTAINER_multihashmap32_get (const struct
  *         #GNUNET_SYSERR if it aborted iteration
  */
 int
-GNUNET_CONTAINER_multihashmap32_iterate (const struct
-                                         GNUNET_CONTAINER_MultiHashMap32 *map,
+GNUNET_CONTAINER_multihashmap32_iterate (struct GNUNET_CONTAINER_MultiHashMap32 *map,
                                          GNUNET_CONTAINER_HashMapIterator32 it,
                                          void *it_cls);
 
@@ -1750,7 +1749,7 @@ GNUNET_CONTAINER_multihashmap32_put (struct GNUNET_CONTAINER_MultiHashMap32 *map
  *         #GNUNET_SYSERR if it aborted iteration
  */
 int
-GNUNET_CONTAINER_multihashmap32_get_multiple (const struct GNUNET_CONTAINER_MultiHashMap32 *map,
+GNUNET_CONTAINER_multihashmap32_get_multiple (struct GNUNET_CONTAINER_MultiHashMap32 *map,
                                               uint32_t key,
                                               GNUNET_CONTAINER_HashMapIterator32 it,
                                               void *it_cls);
