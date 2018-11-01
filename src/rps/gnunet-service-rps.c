@@ -3624,6 +3624,14 @@ handle_peer_pull_reply (void *cls,
                               "# pull reply messages received",
                               1,
                               GNUNET_NO);
+    if (GNUNET_NO == GNUNET_CONTAINER_multipeermap_contains (map_single_hop,
+          &channel_ctx->peer_ctx->peer_id))
+    {
+      GNUNET_STATISTICS_update (stats,
+                                "# pull reply messages received (multi-hop peer)",
+                                1,
+                                GNUNET_NO);
+    }
   }
 
   #ifdef ENABLE_MALICIOUS
