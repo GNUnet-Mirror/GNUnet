@@ -2432,10 +2432,10 @@ post_test_shutdown_ready_cb (void *cls,
     GNUNET_TESTBED_operation_done (rps_peer->stat_op);
   }
 
-  //write_final_stats ();
+  write_final_stats ();
   if (GNUNET_YES == check_statistics_collect_completed())
   {
-    write_final_stats ();
+    //write_final_stats ();
     GNUNET_free (stat_cls);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
         "Shutting down\n");
