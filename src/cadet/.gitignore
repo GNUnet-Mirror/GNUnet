@@ -23,3 +23,4 @@ gnunet-service-cadet-new
 test_cadet_local_mq
 test_cadet_*_newtest_cadet_2_reopen
 test_cadet_5_reopen
+test_cadet_2_reopen
