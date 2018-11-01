@@ -162,7 +162,7 @@ database_setup (struct Plugin *plugin)
                             " ORDER BY uid ASC"
                             " LIMIT ?",
                             &plugin->iterate_all_zones),
-    GNUNET_SQ_make_prepare ("SELECT uid,record_count,record_data,label,zone_private_key"
+    GNUNET_SQ_make_prepare ("SELECT uid,record_count,record_data,label"
                             " FROM ns098records"
                             " WHERE zone_private_key=? AND label=?",
                             &plugin->lookup_label),

@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gnunet-0.8.1\n"
 "Report-Msgid-Bugs-To: gnunet-developers@mail.gnu.org\n"
-"POT-Creation-Date: 2018-06-20 22:22+0200\n"
+"POT-Creation-Date: 2018-10-20 11:13+0200\n"
 "PO-Revision-Date: 2011-07-09 12:12+0800\n"
 "Last-Translator: Wylmer Wang <wantinghard@gmail.com>\n"
 "Language-Team: Chinese (simplified) <i18n-zh@googlegroups.com>\n"
@@ -220,7 +220,7 @@ msgstr ""
 msgid "Control services and the Automated Restart Manager (ARM)"
 msgstr ""
 
-#: src/arm/gnunet-service-arm.c:381 src/transport/plugin_transport_tcp.c:1118
+#: src/arm/gnunet-service-arm.c:386 src/transport/plugin_transport_tcp.c:1118
 #: src/transport/plugin_transport_xt.c:1118
 #: src/transport/tcp_service_legacy.c:555 src/util/service.c:610
 #, c-format
@@ -228,7 +228,7 @@ msgid ""
 "Disabling IPv6 support for service `%s', failed to create IPv6 socket: %s\n"
 msgstr ""
 
-#: src/arm/gnunet-service-arm.c:405 src/arm/gnunet-service-arm.c:411
+#: src/arm/gnunet-service-arm.c:410 src/arm/gnunet-service-arm.c:416
 #: src/transport/plugin_transport_tcp.c:1137
 #: src/transport/plugin_transport_tcp.c:1143
 #: src/transport/plugin_transport_tcp.c:3823
@@ -242,7 +242,7 @@ msgstr ""
 msgid "Require valid port number for service `%s' in configuration!\n"
 msgstr ""
 
-#: src/arm/gnunet-service-arm.c:450 src/transport/plugin_transport_tcp.c:1174
+#: src/arm/gnunet-service-arm.c:455 src/transport/plugin_transport_tcp.c:1174
 #: src/transport/plugin_transport_xt.c:1174
 #: src/transport/tcp_service_legacy.c:611 src/util/client.c:504
 #: src/util/service.c:680
@@ -250,7 +250,7 @@ msgstr ""
 msgid "UNIXPATH `%s' too long, maximum length is %llu\n"
 msgstr ""
 
-#: src/arm/gnunet-service-arm.c:455 src/transport/plugin_transport_tcp.c:1178
+#: src/arm/gnunet-service-arm.c:460 src/transport/plugin_transport_tcp.c:1178
 #: src/transport/plugin_transport_xt.c:1178
 #: src/transport/tcp_service_legacy.c:615 src/util/client.c:509
 #: src/util/service.c:685
@@ -258,7 +258,7 @@ msgstr ""
 msgid "Using `%s' instead\n"
 msgstr "%s：选项“%s”有歧义\n"
 
-#: src/arm/gnunet-service-arm.c:488 src/transport/plugin_transport_tcp.c:1209
+#: src/arm/gnunet-service-arm.c:493 src/transport/plugin_transport_tcp.c:1209
 #: src/transport/plugin_transport_xt.c:1209
 #: src/transport/tcp_service_legacy.c:646 src/util/service.c:721
 #, c-format
@@ -267,14 +267,14 @@ msgid ""
 "domain socket: %s\n"
 msgstr ""
 
-#: src/arm/gnunet-service-arm.c:510 src/transport/plugin_transport_tcp.c:1226
+#: src/arm/gnunet-service-arm.c:515 src/transport/plugin_transport_tcp.c:1226
 #: src/transport/plugin_transport_xt.c:1226
 #: src/transport/tcp_service_legacy.c:663 src/util/service.c:739
 #, c-format
 msgid "Have neither PORT nor UNIXPATH for service `%s', but one is required\n"
 msgstr ""
 
-#: src/arm/gnunet-service-arm.c:549
+#: src/arm/gnunet-service-arm.c:554
 #: src/transport/plugin_transport_http_server.c:2682
 #: src/transport/plugin_transport_tcp.c:1257
 #: src/transport/plugin_transport_xt.c:1257
@@ -283,7 +283,7 @@ msgstr ""
 msgid "Failed to resolve `%s': %s\n"
 msgstr "打开日志文件“%s”失败：%s\n"
 
-#: src/arm/gnunet-service-arm.c:568
+#: src/arm/gnunet-service-arm.c:573
 #: src/transport/plugin_transport_http_server.c:2700
 #: src/transport/plugin_transport_tcp.c:1276
 #: src/transport/plugin_transport_xt.c:1276
@@ -292,65 +292,65 @@ msgstr "打开日志文件“%s”失败：%s\n"
 msgid "Failed to find %saddress for `%s'.\n"
 msgstr "找不到接口“%s”的一个 IP 地址。\n"
 
-#: src/arm/gnunet-service-arm.c:979
+#: src/arm/gnunet-service-arm.c:984
 #, fuzzy, c-format
 msgid "Failed to start service `%s'\n"
 msgstr "解析配置文件“%s”失败\n"
 
-#: src/arm/gnunet-service-arm.c:990
+#: src/arm/gnunet-service-arm.c:995
 #, c-format
 msgid "Starting service `%s'\n"
 msgstr ""
 
-#: src/arm/gnunet-service-arm.c:1102
+#: src/arm/gnunet-service-arm.c:1107
 #, fuzzy, c-format
 msgid "Unable to create socket for service `%s': %s\n"
 msgstr "无法创建用户账户："
 
-#: src/arm/gnunet-service-arm.c:1137
+#: src/arm/gnunet-service-arm.c:1142
 #, c-format
 msgid "Unable to bind listening socket for service `%s' to address `%s': %s\n"
 msgstr ""
 
-#: src/arm/gnunet-service-arm.c:1180
+#: src/arm/gnunet-service-arm.c:1185
 #, c-format
 msgid "ARM now monitors connections to service `%s' at `%s'\n"
 msgstr ""
 
-#: src/arm/gnunet-service-arm.c:1359
+#: src/arm/gnunet-service-arm.c:1364
 #, c-format
 msgid "Preparing to stop `%s'\n"
 msgstr ""
 
-#: src/arm/gnunet-service-arm.c:1664
+#: src/arm/gnunet-service-arm.c:1669
 #, c-format
 msgid "Restarting service `%s'.\n"
 msgstr ""
 
-#: src/arm/gnunet-service-arm.c:1825
+#: src/arm/gnunet-service-arm.c:1830
 msgid "exit"
 msgstr ""
 
-#: src/arm/gnunet-service-arm.c:1830
+#: src/arm/gnunet-service-arm.c:1835
 msgid "signal"
 msgstr ""
 
-#: src/arm/gnunet-service-arm.c:1835
+#: src/arm/gnunet-service-arm.c:1840
 #, fuzzy
 msgid "unknown"
 msgstr "未知错误"
 
-#: src/arm/gnunet-service-arm.c:1841
+#: src/arm/gnunet-service-arm.c:1846
 #, fuzzy, c-format
 msgid "Service `%s' took %s to terminate\n"
 msgstr "服务已删除。\n"
 
-#: src/arm/gnunet-service-arm.c:1867
+#: src/arm/gnunet-service-arm.c:1872
 #, c-format
 msgid "Service `%s' terminated normally, will restart at any time\n"
 msgstr ""
 
-#: src/arm/gnunet-service-arm.c:1883
+#: src/arm/gnunet-service-arm.c:1888
 #, c-format
 msgid "Service `%s' terminated with status %s/%d, will restart in %s\n"
 msgstr ""
@@ -429,24 +429,24 @@ msgstr "无法初始化 SQLite：%s。\n"
 msgid "Problem size too large, cannot allocate memory!\n"
 msgstr ""
 
-#: src/ats/plugin_ats_mlp.c:1867
+#: src/ats/plugin_ats_mlp.c:1868
 #, c-format
 msgid "Adding address for peer `%s' multiple times\n"
 msgstr ""
 
-#: src/ats/plugin_ats_mlp.c:1911
+#: src/ats/plugin_ats_mlp.c:1912
 #, c-format
 msgid "Updating address property for peer `%s' %p not added before\n"
 msgstr ""
 
-#: src/ats/plugin_ats_mlp.c:2473
+#: src/ats/plugin_ats_mlp.c:2474
 msgid ""
 "MLP solver is not optimizing for anything, changing to feasibility check\n"
 msgstr ""
 
-#: src/ats/plugin_ats_mlp.c:2513 src/ats/plugin_ats_mlp.c:2530
-#: src/ats/plugin_ats_mlp.c:2562 src/ats/plugin_ats_mlp.c:2580
-#: src/ats/plugin_ats_mlp.c:2599 src/ats/plugin_ats_proportional.c:1139
+#: src/ats/plugin_ats_mlp.c:2514 src/ats/plugin_ats_mlp.c:2531
+#: src/ats/plugin_ats_mlp.c:2563 src/ats/plugin_ats_mlp.c:2581
+#: src/ats/plugin_ats_mlp.c:2600 src/ats/plugin_ats_proportional.c:1139
 #: src/ats/plugin_ats_ril.c:2610 src/ats/plugin_ats_ril.c:2627
 #: src/ats/plugin_ats_ril.c:2644 src/ats/plugin_ats_ril.c:2661
 #: src/ats/plugin_ats_ril.c:2678 src/ats/plugin_ats_ril.c:2695
@@ -455,27 +455,27 @@ msgstr ""
 msgid "Invalid %s configuration %f \n"
 msgstr "解析配置文件“%s”失败\n"
 
-#: src/ats/plugin_ats_mlp.c:2668
+#: src/ats/plugin_ats_mlp.c:2669
 #, c-format
 msgid ""
 "Adjusting inconsistent outbound quota configuration for network `%s', is "
 "%llu must be at least %llu\n"
 msgstr ""
 
-#: src/ats/plugin_ats_mlp.c:2677
+#: src/ats/plugin_ats_mlp.c:2678
 #, c-format
 msgid ""
 "Adjusting inconsistent inbound quota configuration for network `%s', is %llu "
 "must be at least %llu\n"
 msgstr ""
 
-#: src/ats/plugin_ats_mlp.c:2687
+#: src/ats/plugin_ats_mlp.c:2688
 #, c-format
 msgid ""
 "Adjusting outbound quota configuration for network `%s'from %llu to %.0f\n"
 msgstr ""
 
-#: src/ats/plugin_ats_mlp.c:2696
+#: src/ats/plugin_ats_mlp.c:2697
 #, c-format
 msgid ""
 "Adjusting inbound quota configuration for network `%s' from %llu to %.0f\n"
@@ -674,62 +674,62 @@ msgstr ""
 msgid "help text"
 msgstr ""
 
-#: src/cadet/gnunet-cadet.c:662
+#: src/cadet/gnunet-cadet.c:705
 #, fuzzy, c-format
 msgid "Invalid peer ID `%s'\n"
 msgstr "无效条目。\n"
 
-#: src/cadet/gnunet-cadet.c:701
+#: src/cadet/gnunet-cadet.c:744
 #, fuzzy, c-format
 msgid "Invalid tunnel owner `%s'\n"
 msgstr "IP 格式无效：“%s”\n"
 
-#: src/cadet/gnunet-cadet.c:774
+#: src/cadet/gnunet-cadet.c:817
 msgid "Extra arguments are not applicable in combination with this option.\n"
 msgstr ""
 
-#: src/cadet/gnunet-cadet.c:865
+#: src/cadet/gnunet-cadet.c:908
 #, fuzzy, c-format
 msgid "Invalid target `%s'\n"
 msgstr "“%s”的参数无效。\n"
 
-#: src/cadet/gnunet-cadet.c:902
+#: src/cadet/gnunet-cadet.c:945
 msgid "No action requested\n"
 msgstr ""
 
-#: src/cadet/gnunet-cadet.c:927
+#: src/cadet/gnunet-cadet.c:970
 #, fuzzy
 msgid "Provide information about a particular connection"
 msgstr "无法获取有关用户“%s”的信息：%s\n"
 
-#: src/cadet/gnunet-cadet.c:932
+#: src/cadet/gnunet-cadet.c:975
 msgid "Activate echo mode"
 msgstr ""
 
-#: src/cadet/gnunet-cadet.c:937
+#: src/cadet/gnunet-cadet.c:980
 msgid "Dump debug information to STDERR"
 msgstr ""
 
-#: src/cadet/gnunet-cadet.c:943
+#: src/cadet/gnunet-cadet.c:986
 msgid "Listen for connections using a shared secret among sender and recipient"
 msgstr ""
 
-#: src/cadet/gnunet-cadet.c:950
+#: src/cadet/gnunet-cadet.c:993
 #, fuzzy
 msgid "Provide information about a patricular peer"
 msgstr "无法获取有关用户“%s”的信息：%s\n"
 
-#: src/cadet/gnunet-cadet.c:956
+#: src/cadet/gnunet-cadet.c:999
 #, fuzzy
 msgid "Provide information about all peers"
 msgstr "无法获取有关用户“%s”的信息：%s\n"
 
-#: src/cadet/gnunet-cadet.c:962
+#: src/cadet/gnunet-cadet.c:1005
 #, fuzzy
 msgid "Provide information about a particular tunnel"
 msgstr "无法获取有关用户“%s”的信息：%s\n"
 
-#: src/cadet/gnunet-cadet.c:968
+#: src/cadet/gnunet-cadet.c:1011
 #, fuzzy
 msgid "Provide information about all tunnels"
 msgstr "无法获取有关用户“%s”的信息：%s\n"
@@ -778,259 +778,259 @@ msgstr ""
 msgid "Connection to conversation service lost, trying to reconnect\n"
 msgstr ""
 
-#: src/conversation/gnunet-conversation.c:268
+#: src/conversation/gnunet-conversation.c:275
 #, c-format
 msgid "Incoming call from `%s'. Please /accept %u or /cancel %u the call.\n"
 msgstr ""
 
-#: src/conversation/gnunet-conversation.c:293
+#: src/conversation/gnunet-conversation.c:300
 #, c-format
 msgid "Call from `%s' terminated\n"
 msgstr ""
 
-#: src/conversation/gnunet-conversation.c:328
+#: src/conversation/gnunet-conversation.c:335
 #, c-format
 msgid "Call from `%s' suspended by other user\n"
 msgstr ""
 
-#: src/conversation/gnunet-conversation.c:333
+#: src/conversation/gnunet-conversation.c:340
 #, c-format
 msgid "Call from `%s' resumed by other user\n"
 msgstr ""
 
-#: src/conversation/gnunet-conversation.c:351
+#: src/conversation/gnunet-conversation.c:358
 #, c-format
 msgid "Ego `%s' no longer available, phone is now down.\n"
 msgstr ""
 
-#: src/conversation/gnunet-conversation.c:366
+#: src/conversation/gnunet-conversation.c:373
 #, fuzzy
 msgid "Failed to setup phone (internal error)\n"
 msgstr "发送消息失败。\n"
 
-#: src/conversation/gnunet-conversation.c:378
+#: src/conversation/gnunet-conversation.c:385
 #, c-format
 msgid "Phone active at `%s'.  Type `/help' for a list of available commands\n"
 msgstr ""
 
-#: src/conversation/gnunet-conversation.c:402
+#: src/conversation/gnunet-conversation.c:409
 #, c-format
 msgid "Resolved address of `%s'. Now ringing other party.\n"
 msgstr ""
 
-#: src/conversation/gnunet-conversation.c:409
+#: src/conversation/gnunet-conversation.c:416
 #, fuzzy, c-format
 msgid "Connection established to `%s'\n"
 msgstr "找不到接口“%s”的一个 IP 地址。\n"
 
-#: src/conversation/gnunet-conversation.c:416
+#: src/conversation/gnunet-conversation.c:423
 #, fuzzy, c-format
 msgid "Failed to resolve `%s'\n"
 msgstr "打开日志文件“%s”失败：%s\n"
 
-#: src/conversation/gnunet-conversation.c:424
+#: src/conversation/gnunet-conversation.c:431
 #, c-format
 msgid "Call to `%s' terminated\n"
 msgstr ""
 
-#: src/conversation/gnunet-conversation.c:433
+#: src/conversation/gnunet-conversation.c:440
 #, c-format
 msgid "Connection to `%s' suspended (by other user)\n"
 msgstr ""
 
-#: src/conversation/gnunet-conversation.c:439
+#: src/conversation/gnunet-conversation.c:446
 #, c-format
 msgid "Connection to `%s' resumed (by other user)\n"
 msgstr ""
 
-#: src/conversation/gnunet-conversation.c:444
+#: src/conversation/gnunet-conversation.c:451
 msgid "Error with the call, restarting it\n"
 msgstr ""
 
-#: src/conversation/gnunet-conversation.c:515
+#: src/conversation/gnunet-conversation.c:522
 #, fuzzy, c-format
 msgid "Unknown command `%s'\n"
 msgstr "未知的命令“%s”。\n"
 
-#: src/conversation/gnunet-conversation.c:531
-#: src/conversation/gnunet-conversation.c:545
+#: src/conversation/gnunet-conversation.c:538
+#: src/conversation/gnunet-conversation.c:552
 #, c-format
 msgid "Ego `%s' not available\n"
 msgstr ""
 
-#: src/conversation/gnunet-conversation.c:538
-#: src/conversation/gnunet-conversation.c:594
+#: src/conversation/gnunet-conversation.c:545
+#: src/conversation/gnunet-conversation.c:601
 msgid "You are calling someone else already, hang up first!\n"
 msgstr ""
 
-#: src/conversation/gnunet-conversation.c:553
-#: src/conversation/gnunet-conversation.c:607
+#: src/conversation/gnunet-conversation.c:560
+#: src/conversation/gnunet-conversation.c:614
 #, c-format
 msgid "You are answering call from `%s', hang up or suspend that call first!\n"
 msgstr ""
 
-#: src/conversation/gnunet-conversation.c:563
+#: src/conversation/gnunet-conversation.c:570
 msgid "Call recipient missing.\n"
 msgstr ""
 
-#: src/conversation/gnunet-conversation.c:618
+#: src/conversation/gnunet-conversation.c:625
 msgid "There is no incoming call to accept here!\n"
 msgstr ""
 
-#: src/conversation/gnunet-conversation.c:635
+#: src/conversation/gnunet-conversation.c:642
 #, c-format
 msgid "There is no incoming call `%s' to accept right now!\n"
 msgstr ""
 
-#: src/conversation/gnunet-conversation.c:666
+#: src/conversation/gnunet-conversation.c:673
 msgid "We currently do not have an address.\n"
 msgstr ""
 
-#: src/conversation/gnunet-conversation.c:690
+#: src/conversation/gnunet-conversation.c:697
 #, c-format
 msgid "We are currently trying to locate the private key for the ego `%s'.\n"
 msgstr ""
 
-#: src/conversation/gnunet-conversation.c:695
+#: src/conversation/gnunet-conversation.c:702
 #, c-format
 msgid "We are listening for incoming calls for ego `%s' on line `%s'.\n"
 msgstr ""
 
-#: src/conversation/gnunet-conversation.c:701
-#: src/conversation/gnunet-conversation.c:725
+#: src/conversation/gnunet-conversation.c:708
+#: src/conversation/gnunet-conversation.c:732
 #, c-format
 msgid "You are having a conversation with `%s'.\n"
 msgstr ""
 
-#: src/conversation/gnunet-conversation.c:706
+#: src/conversation/gnunet-conversation.c:713
 msgid ""
 "We had an internal error setting up our phone line. You can still make "
 "calls.\n"
 msgstr ""
 
-#: src/conversation/gnunet-conversation.c:715
+#: src/conversation/gnunet-conversation.c:722
 #, fuzzy, c-format
 msgid "We are trying to find the network address to call `%s'.\n"
 msgstr "GNUnet 现在使用 IP 地址 %s。\n"
 
-#: src/conversation/gnunet-conversation.c:720
+#: src/conversation/gnunet-conversation.c:727
 #, c-format
 msgid "We are calling `%s', their phone should be ringing.\n"
 msgstr ""
 
-#: src/conversation/gnunet-conversation.c:739
+#: src/conversation/gnunet-conversation.c:746
 msgid "Calls waiting:\n"
 msgstr ""
 
-#: src/conversation/gnunet-conversation.c:745
+#: src/conversation/gnunet-conversation.c:752
 #, fuzzy, c-format
 msgid "#%u: `%s'\n"
 msgstr "运行 %s失败：%s %d\n"
 
-#: src/conversation/gnunet-conversation.c:774
-#: src/conversation/gnunet-conversation.c:789
+#: src/conversation/gnunet-conversation.c:781
+#: src/conversation/gnunet-conversation.c:796
 msgid "There is no call that could be suspended right now.\n"
 msgstr ""
 
-#: src/conversation/gnunet-conversation.c:822
-#: src/conversation/gnunet-conversation.c:838
+#: src/conversation/gnunet-conversation.c:829
+#: src/conversation/gnunet-conversation.c:845
 msgid "There is no call that could be resumed right now.\n"
 msgstr ""
 
-#: src/conversation/gnunet-conversation.c:845
+#: src/conversation/gnunet-conversation.c:852
 #, c-format
 msgid "Already talking with `%s', cannot resume a call right now.\n"
 msgstr ""
 
-#: src/conversation/gnunet-conversation.c:854
+#: src/conversation/gnunet-conversation.c:861
 msgid "There is no incoming call to resume here!\n"
 msgstr ""
 
-#: src/conversation/gnunet-conversation.c:871
+#: src/conversation/gnunet-conversation.c:878
 #, c-format
 msgid "There is no incoming call `%s' to resume right now!\n"
 msgstr ""
 
-#: src/conversation/gnunet-conversation.c:906
+#: src/conversation/gnunet-conversation.c:913
 msgid "There is no call that could be cancelled right now.\n"
 msgstr ""
 
-#: src/conversation/gnunet-conversation.c:914
+#: src/conversation/gnunet-conversation.c:921
 msgid "There is no incoming call to refuse here!\n"
 msgstr ""
 
-#: src/conversation/gnunet-conversation.c:931
+#: src/conversation/gnunet-conversation.c:938
 #, c-format
 msgid "There is no incoming call `%s' to refuse right now!\n"
 msgstr ""
 
-#: src/conversation/gnunet-conversation.c:957
+#: src/conversation/gnunet-conversation.c:964
 msgid "Use `/address' to find out which address this phone should have in GNS"
 msgstr ""
 
-#: src/conversation/gnunet-conversation.c:959
+#: src/conversation/gnunet-conversation.c:966
 msgid "Use `/call USER.gnu' to call USER"
 msgstr ""
 
-#: src/conversation/gnunet-conversation.c:961
+#: src/conversation/gnunet-conversation.c:968
 msgid "Use `/accept #NUM' to accept incoming call #NUM"
 msgstr ""
 
-#: src/conversation/gnunet-conversation.c:963
+#: src/conversation/gnunet-conversation.c:970
 msgid "Use `/suspend' to suspend the active call"
 msgstr ""
 
-#: src/conversation/gnunet-conversation.c:965
+#: src/conversation/gnunet-conversation.c:972
 msgid ""
 "Use `/resume [#NUM]' to resume a call, #NUM is needed to resume incoming "
 "calls, no argument is needed to resume the current outgoing call."
 msgstr ""
 
-#: src/conversation/gnunet-conversation.c:967
+#: src/conversation/gnunet-conversation.c:974
 msgid "Use `/cancel' to reject or terminate a call"
 msgstr ""
 
-#: src/conversation/gnunet-conversation.c:969
+#: src/conversation/gnunet-conversation.c:976
 msgid "Use `/status' to print status information"
 msgstr ""
 
-#: src/conversation/gnunet-conversation.c:971
+#: src/conversation/gnunet-conversation.c:978
 msgid "Use `/quit' to terminate gnunet-conversation"
 msgstr ""
 
-#: src/conversation/gnunet-conversation.c:973
+#: src/conversation/gnunet-conversation.c:980
 msgid "Use `/help command' to get help for a specific command"
 msgstr ""
 
-#: src/conversation/gnunet-conversation.c:1189
+#: src/conversation/gnunet-conversation.c:1196
 #, fuzzy, c-format
 msgid "Name of our ego changed to `%s'\n"
 msgstr "发送消息失败。\n"
 
-#: src/conversation/gnunet-conversation.c:1202
+#: src/conversation/gnunet-conversation.c:1209
 #, c-format
 msgid "Our ego `%s' was deleted!\n"
 msgstr ""
 
-#: src/conversation/gnunet-conversation.c:1240
+#: src/conversation/gnunet-conversation.c:1247
 #, fuzzy
 msgid "You must specify the NAME of an ego to use\n"
 msgstr "您必须指定一个昵称\n"
 
-#: src/conversation/gnunet-conversation.c:1264
+#: src/conversation/gnunet-conversation.c:1271
 #, fuzzy
 msgid "Failed to start gnunet-helper-w32-console\n"
 msgstr "初始化“%s”服务失败。\n"
 
-#: src/conversation/gnunet-conversation.c:1293
+#: src/conversation/gnunet-conversation.c:1300
 msgid "sets the NAME of the ego to use for the caller ID"
 msgstr ""
 
-#: src/conversation/gnunet-conversation.c:1298
+#: src/conversation/gnunet-conversation.c:1305
 msgid "sets the LINE to use for the phone"
 msgstr ""
 
-#: src/conversation/gnunet-conversation.c:1327
+#: src/conversation/gnunet-conversation.c:1334
 msgid "Enables having a conversation with other GNUnet users."
 msgstr ""
 
@@ -1183,7 +1183,7 @@ msgstr "“%s”说：%s\n"
 msgid "Failed to allocate %u bytes for second packet\n"
 msgstr "初始化“%s”服务失败。\n"
 
-#: src/conversation/gnunet-service-conversation.c:1285
+#: src/conversation/gnunet-service-conversation.c:1303
 #, fuzzy, c-format
 msgid "Could not open line, port %s already in use!\n"
 msgstr "无法连接到 %s:%u：%s\n"
@@ -1475,8 +1475,7 @@ msgstr ""
 msgid "Unable to parse CRED record string `%s'\n"
 msgstr "解析配置文件“%s”失败\n"
 
-#: src/credential/gnunet-credential.c:262 src/namestore/gnunet-namestore.c:886
-#: src/namestore/plugin_rest_namestore.c:1020
+#: src/credential/gnunet-credential.c:262 src/namestore/gnunet-namestore.c:887
 #, c-format
 msgid "Ego `%s' not known to identity service\n"
 msgstr ""
@@ -1576,16 +1575,15 @@ msgstr ""
 msgid "GNUnet credential resolver tool"
 msgstr "GNUnet 错误日志"
 
-#: src/credential/gnunet-service-credential.c:1136 src/gns/gnunet-gns.c:182
+#: src/credential/gnunet-service-credential.c:1136 src/gns/gnunet-gns.c:183
 #: src/gns/gnunet-gns-helper-service-w32.c:725
 #, fuzzy, c-format
 msgid "Failed to connect to GNS\n"
 msgstr "初始化“%s”服务失败。\n"
 
 #: src/credential/gnunet-service-credential.c:1142
-#: src/namestore/gnunet-namestore.c:912
-#: src/namestore/gnunet-namestore-fcfsd.c:1112
-#: src/namestore/plugin_rest_namestore.c:1033
+#: src/namestore/gnunet-namestore.c:913
+#: src/namestore/gnunet-namestore-fcfsd.c:1136
 #, fuzzy, c-format
 msgid "Failed to connect to namestore\n"
 msgstr "初始化“%s”服务失败。\n"
@@ -1594,10 +1592,6 @@ msgstr "初始化“%s”服务失败。\n"
 #, fuzzy, c-format
 msgid "Unable to parse ATTR record string `%s'\n"
 msgstr "解析配置文件“%s”失败\n"
-
-#: src/credential/plugin_rest_credential.c:1126 src/gns/plugin_rest_gns.c:667
-msgid "GNS REST API initialized\n"
-msgstr ""
 
 #: src/datacache/datacache.c:117 src/datacache/datacache.c:309
 #: src/datastore/gnunet-service-datastore.c:755
@@ -1643,29 +1637,29 @@ msgstr "sqlite 数据仓库"
 #: src/datacache/plugin_datacache_sqlite.c:125
 #: src/datastore/plugin_datastore_mysql.c:890
 #: src/datastore/plugin_datastore_sqlite.c:56
-#: src/datastore/plugin_datastore_sqlite.c:64
-#: src/identity-provider/plugin_identity_provider_sqlite.c:50 src/my/my.c:79
-#: src/my/my.c:91 src/mysql/mysql.c:40 src/mysql/mysql.c:47
+#: src/datastore/plugin_datastore_sqlite.c:64 src/my/my.c:79 src/my/my.c:91
+#: src/mysql/mysql.c:40 src/mysql/mysql.c:47
 #: src/namecache/plugin_namecache_sqlite.c:50
 #: src/namestore/plugin_namestore_sqlite.c:51
 #: src/peerstore/plugin_peerstore_sqlite.c:50
 #: src/psycstore/plugin_psycstore_mysql.c:60
+#: src/reclaim/plugin_reclaim_sqlite.c:50
 #: src/testbed/generate-underlay-topology.c:45
 #: src/testbed/gnunet-daemon-latency-logger.c:50
 #: src/testbed/gnunet-daemon-testbed-underlay.c:54
-#: src/testbed/testbed_api_hosts.c:67 src/util/crypto_ecc.c:50
+#: src/testbed/testbed_api_hosts.c:67 src/util/crypto_ecc.c:51
 #: src/util/crypto_ecc_setup.c:39 src/util/crypto_mpi.c:37
-#: src/include/gnunet_common.h:810 src/include/gnunet_common.h:819
+#: src/include/gnunet_common.h:816 src/include/gnunet_common.h:825
 #: src/scalarproduct/scalarproduct.h:33
 #, fuzzy, c-format
 msgid "`%s' failed at %s:%d with error: %s\n"
 msgstr "“%s”于 %s:%d 处失败，错误为：%s\n"
 
-#: src/datacache/plugin_datacache_sqlite.c:860
+#: src/datacache/plugin_datacache_sqlite.c:861
 #: src/datastore/plugin_datastore_sqlite.c:506
-#: src/identity-provider/plugin_identity_provider_sqlite.c:334
 #: src/namecache/plugin_namecache_sqlite.c:327
 #: src/namestore/plugin_namestore_sqlite.c:262
+#: src/reclaim/plugin_reclaim_sqlite.c:334
 msgid "Tried to close sqlite without finalizing all prepared statements.\n"
 msgstr ""
 
@@ -1997,11 +1991,11 @@ msgid "`%s' failed at %s:%u with error: %s"
 msgstr "“%s”于 %s:%d 处失败，错误为：%s\n"
 
 #: src/datastore/plugin_datastore_sqlite.c:269
-#: src/identity-provider/plugin_identity_provider_sqlite.c:210
 #: src/namecache/plugin_namecache_sqlite.c:207
 #: src/namestore/plugin_namestore_sqlite.c:203
 #: src/peerstore/plugin_peerstore_sqlite.c:533
 #: src/psycstore/plugin_psycstore_sqlite.c:323
+#: src/reclaim/plugin_reclaim_sqlite.c:210
 #, c-format
 msgid "Unable to initialize SQLite: %s.\n"
 msgstr "无法初始化 SQLite：%s。\n"
@@ -2010,21 +2004,21 @@ msgstr "无法初始化 SQLite：%s。\n"
 msgid "sqlite bind failure"
 msgstr ""
 
-#: src/datastore/plugin_datastore_sqlite.c:1324
+#: src/datastore/plugin_datastore_sqlite.c:1325
 msgid "sqlite version to old to determine size, assuming zero\n"
 msgstr ""
 
-#: src/datastore/plugin_datastore_sqlite.c:1358
+#: src/datastore/plugin_datastore_sqlite.c:1359
 #, c-format
 msgid ""
 "Using sqlite page utilization to estimate payload (%llu pages of size %llu "
 "bytes)\n"
 msgstr ""
 
-#: src/datastore/plugin_datastore_sqlite.c:1402
-#: src/identity-provider/plugin_identity_provider_sqlite.c:709
+#: src/datastore/plugin_datastore_sqlite.c:1403
 #: src/namecache/plugin_namecache_sqlite.c:638
-#: src/namestore/plugin_namestore_sqlite.c:752
+#: src/namestore/plugin_namestore_sqlite.c:753
+#: src/reclaim/plugin_reclaim_sqlite.c:709
 #, fuzzy
 msgid "Sqlite database running\n"
 msgstr "sqlite 数据仓库"
@@ -2101,7 +2095,7 @@ msgstr ""
 msgid "Exiting as the number of peers is %u\n"
 msgstr "增加 TCP/IP 的最大连接数"
 
-#: src/dht/gnunet_dht_profiler.c:947 src/rps/gnunet-rps-profiler.c:2691
+#: src/dht/gnunet_dht_profiler.c:947 src/rps/gnunet-rps-profiler.c:2764
 #, fuzzy
 msgid "number of peers to start"
 msgstr "迭代次数"
@@ -2402,36 +2396,6 @@ msgstr ""
 #, c-format
 msgid "Block of type %u is malformed\n"
 msgstr ""
-
-#: src/dns/dnsparser.c:252
-#, fuzzy, c-format
-msgid "Failed to convert DNS IDNA name `%s' to UTF-8: %s\n"
-msgstr "打开日志文件“%s”失败：%s\n"
-
-#: src/dns/dnsparser.c:821
-#, fuzzy, c-format
-msgid "Failed to convert UTF-8 name `%s' to DNS IDNA format: %s\n"
-msgstr "打开日志文件“%s”失败：%s\n"
-
-#: src/dns/dnsstub.c:231
-#, fuzzy, c-format
-msgid "Could not bind to any port: %s\n"
-msgstr "找不到主机“%s”的 IP：%s\n"
-
-#: src/dns/dnsstub.c:362
-#, c-format
-msgid "Received DNS response that is too small (%u bytes)"
-msgstr ""
-
-#: src/dns/dnsstub.c:509
-#, fuzzy, c-format
-msgid "Failed to send DNS request to %s: %s\n"
-msgstr "打开日志文件“%s”失败：%s\n"
-
-#: src/dns/dnsstub.c:515
-#, fuzzy, c-format
-msgid "Sent DNS request to %s\n"
-msgstr "打开日志文件“%s”失败：%s\n"
 
 #: src/dns/gnunet-dns-monitor.c:351 src/dns/gnunet-dns-monitor.c:356
 msgid "only monitor DNS queries"
@@ -3956,11 +3920,11 @@ msgstr "初始化“%s”服务失败。\n"
 msgid "Could not start businesscard HTTP server on port %u\n"
 msgstr "初始化“%s”服务失败。\n"
 
-#: src/gns/gnunet-bcd.c:520
+#: src/gns/gnunet-bcd.c:521
 msgid "Run HTTP serve on port PORT (default is 8888)"
 msgstr ""
 
-#: src/gns/gnunet-bcd.c:533
+#: src/gns/gnunet-bcd.c:534
 msgid "GNUnet HTTP server to create business cards"
 msgstr ""
 
@@ -3969,34 +3933,34 @@ msgstr ""
 msgid "Failed to pack DNS response into UDP packet!\n"
 msgstr "打开日志文件“%s”失败：%s\n"
 
-#: src/gns/gnunet-dns2gns.c:402
+#: src/gns/gnunet-dns2gns.c:403
 #, c-format
 msgid "Cannot parse DNS request from %s\n"
 msgstr ""
 
-#: src/gns/gnunet-dns2gns.c:418
+#: src/gns/gnunet-dns2gns.c:419
 #, c-format
 msgid "Received malformed DNS request from %s\n"
 msgstr ""
 
-#: src/gns/gnunet-dns2gns.c:426
+#: src/gns/gnunet-dns2gns.c:427
 #, c-format
 msgid "Received unsupported DNS request from %s\n"
 msgstr ""
 
-#: src/gns/gnunet-dns2gns.c:585
+#: src/gns/gnunet-dns2gns.c:586
 msgid "No DNS server specified!\n"
 msgstr ""
 
-#: src/gns/gnunet-dns2gns.c:685
+#: src/gns/gnunet-dns2gns.c:686
 msgid "IP of recursive DNS resolver to use (required)"
 msgstr ""
 
-#: src/gns/gnunet-dns2gns.c:690
+#: src/gns/gnunet-dns2gns.c:691
 msgid "UDP port to listen on for inbound DNS requests; default: 2853"
 msgstr ""
 
-#: src/gns/gnunet-dns2gns.c:707
+#: src/gns/gnunet-dns2gns.c:708
 msgid "GNUnet DNS-to-GNS proxy (a DNS server)"
 msgstr ""
 
@@ -4012,7 +3976,7 @@ msgstr ""
 msgid "look for GNS2DNS records instead of ANY"
 msgstr ""
 
-#: src/gns/gnunet-gns.c:197 src/gns/plugin_rest_gns.c:344
+#: src/gns/gnunet-gns.c:197
 #, c-format
 msgid "Invalid typename specified, assuming `ANY'\n"
 msgstr ""
@@ -4038,7 +4002,7 @@ msgstr "GNUnet 错误日志"
 msgid "Not ready to process requests, lacking ego data\n"
 msgstr ""
 
-#: src/gns/gnunet-gns-helper-service-w32.c:699 src/gns/plugin_rest_gns.c:420
+#: src/gns/gnunet-gns-helper-service-w32.c:699
 msgid ""
 "Ego for `gns-master' not found, cannot perform lookup.  Did you run gnunet-"
 "gns-import.sh?\n"
@@ -4108,64 +4072,64 @@ msgstr ""
 msgid "Cookie domain `%s' supplied by server is invalid\n"
 msgstr ""
 
-#: src/gns/gnunet-gns-proxy.c:2061
+#: src/gns/gnunet-gns-proxy.c:2062
 #, fuzzy, c-format
 msgid "Unsupported HTTP method `%s'\n"
 msgstr "未知的命令“%s”。\n"
 
-#: src/gns/gnunet-gns-proxy.c:2582
+#: src/gns/gnunet-gns-proxy.c:2583
 #, fuzzy, c-format
 msgid "Unable to import private key from file `%s'\n"
 msgstr "无法创建用户账户："
 
-#: src/gns/gnunet-gns-proxy.c:2614
+#: src/gns/gnunet-gns-proxy.c:2615
 #, fuzzy, c-format
 msgid "Unable to import certificate from `%s'\n"
 msgstr "无法保存配置文件“%s”："
 
-#: src/gns/gnunet-gns-proxy.c:2813
+#: src/gns/gnunet-gns-proxy.c:2814
 #, fuzzy, c-format
 msgid "Failed to start HTTPS server for `%s'\n"
 msgstr "初始化“%s”服务失败。\n"
 
-#: src/gns/gnunet-gns-proxy.c:2838 src/rest/gnunet-rest-server.c:656
+#: src/gns/gnunet-gns-proxy.c:2839 src/rest/gnunet-rest-server.c:656
 #, fuzzy
 msgid "Failed to pass client to MHD\n"
 msgstr "初始化“%s”服务失败。\n"
 
-#: src/gns/gnunet-gns-proxy.c:3168
+#: src/gns/gnunet-gns-proxy.c:3169
 #, fuzzy, c-format
 msgid "Unsupported socks version %d\n"
 msgstr "未知的命令“%s”。\n"
 
-#: src/gns/gnunet-gns-proxy.c:3197
+#: src/gns/gnunet-gns-proxy.c:3198
 #, fuzzy, c-format
 msgid "Unsupported socks command %d\n"
 msgstr "未知的命令“%s”。\n"
 
-#: src/gns/gnunet-gns-proxy.c:3279
+#: src/gns/gnunet-gns-proxy.c:3280
 #, fuzzy, c-format
 msgid "Unsupported socks address type %d\n"
 msgstr "未知的命令“%s”。\n"
 
-#: src/gns/gnunet-gns-proxy.c:3569
+#: src/gns/gnunet-gns-proxy.c:3570
 #, fuzzy, c-format
 msgid "Failed to load X.509 key and certificate from `%s'\n"
 msgstr "解析配置文件“%s”失败\n"
 
-#: src/gns/gnunet-gns-proxy.c:3697
+#: src/gns/gnunet-gns-proxy.c:3698
 msgid "listen on specified port (default: 7777)"
 msgstr ""
 
-#: src/gns/gnunet-gns-proxy.c:3702
+#: src/gns/gnunet-gns-proxy.c:3703
 msgid "pem file to use as CA"
 msgstr ""
 
-#: src/gns/gnunet-gns-proxy.c:3706
+#: src/gns/gnunet-gns-proxy.c:3707
 msgid "disable use of IPv6"
 msgstr ""
 
-#: src/gns/gnunet-gns-proxy.c:3732
+#: src/gns/gnunet-gns-proxy.c:3733
 msgid "GNUnet GNS proxy"
 msgstr ""
 
@@ -4273,10 +4237,6 @@ msgstr "解析配置文件“%s”失败\n"
 #, fuzzy, c-format
 msgid "Unable to parse BOX record string `%s'\n"
 msgstr "解析配置文件“%s”失败\n"
-
-#: src/gns/plugin_rest_gns.c:382
-msgid "Ego for not found, cannot perform lookup.\n"
-msgstr ""
 
 #: src/gnsrecord/plugin_gnsrecord_dns.c:357
 #, fuzzy, c-format
@@ -4742,120 +4702,52 @@ msgstr ""
 msgid "Maintain egos"
 msgstr ""
 
-#: src/identity/gnunet-service-identity.c:388
+#: src/identity/gnunet-service-identity.c:389
 msgid "no default known"
 msgstr ""
 
-#: src/identity/gnunet-service-identity.c:410
+#: src/identity/gnunet-service-identity.c:414
 msgid "default configured, but ego unknown (internal error)"
 msgstr ""
 
-#: src/identity/gnunet-service-identity.c:499
-#: src/identity/gnunet-service-identity.c:771
-#: src/identity/gnunet-service-identity.c:893
+#: src/identity/gnunet-service-identity.c:505
+#: src/identity/gnunet-service-identity.c:788
+#: src/identity/gnunet-service-identity.c:916
 #, fuzzy, c-format
 msgid "Failed to write subsystem default identifier map to `%s'.\n"
 msgstr "解析配置文件“%s”失败\n"
 
-#: src/identity/gnunet-service-identity.c:506
+#: src/identity/gnunet-service-identity.c:513
 msgid "Unknown ego specified for service (internal error)"
 msgstr ""
 
-#: src/identity/gnunet-service-identity.c:599
+#: src/identity/gnunet-service-identity.c:608
 msgid "identifier already in use for another ego"
 msgstr ""
 
-#: src/identity/gnunet-service-identity.c:748
+#: src/identity/gnunet-service-identity.c:763
 msgid "target name already exists"
 msgstr ""
 
-#: src/identity/gnunet-service-identity.c:787
-#: src/identity/gnunet-service-identity.c:910
+#: src/identity/gnunet-service-identity.c:806
+#: src/identity/gnunet-service-identity.c:934
 msgid "no matching ego found"
 msgstr ""
 
-#: src/identity/gnunet-service-identity.c:944
+#: src/identity/gnunet-service-identity.c:969
 #, fuzzy, c-format
 msgid "Failed to parse ego information in `%s'\n"
 msgstr "解析配置文件“%s”失败\n"
 
-#: src/identity/gnunet-service-identity.c:1002
+#: src/identity/gnunet-service-identity.c:1027
 #, fuzzy, c-format
 msgid "Failed to parse subsystem identity configuration file `%s'\n"
 msgstr "解析配置文件“%s”失败\n"
 
-#: src/identity/gnunet-service-identity.c:1012
+#: src/identity/gnunet-service-identity.c:1037
 #, fuzzy, c-format
 msgid "Failed to create directory `%s' for storing egos\n"
 msgstr "解析配置文件“%s”失败\n"
-
-#: src/identity/plugin_rest_identity.c:966
-msgid "Identity REST API initialized\n"
-msgstr ""
-
-#: src/identity-provider/gnunet-idp.c:422
-#, fuzzy
-msgid "Ego is required\n"
-msgstr "%s：选项“%s”有歧义\n"
-
-#: src/identity-provider/gnunet-idp.c:430
-msgid "Attribute value missing!\n"
-msgstr ""
-
-#: src/identity-provider/gnunet-idp.c:438
-#, fuzzy
-msgid "Requesting party key is required!\n"
-msgstr "设置要使用的昵称(必须)"
-
-#: src/identity-provider/gnunet-idp.c:461
-msgid "Add attribute"
-msgstr ""
-
-#: src/identity-provider/gnunet-idp.c:467
-msgid "Attribute value"
-msgstr ""
-
-#: src/identity-provider/gnunet-idp.c:472
-msgid "Ego"
-msgstr ""
-
-#: src/identity-provider/gnunet-idp.c:477
-msgid "Audience (relying party)"
-msgstr ""
-
-#: src/identity-provider/gnunet-idp.c:481
-msgid "List attributes for Ego"
-msgstr ""
-
-#: src/identity-provider/gnunet-idp.c:486
-msgid "Issue a ticket"
-msgstr ""
-
-#: src/identity-provider/gnunet-idp.c:491
-msgid "Consume a ticket"
-msgstr ""
-
-#: src/identity-provider/gnunet-idp.c:496
-msgid "Revoke a ticket"
-msgstr ""
-
-#: src/identity-provider/gnunet-idp.c:501
-msgid "Type of attribute"
-msgstr ""
-
-#: src/identity-provider/gnunet-idp.c:506
-msgid "Expiration interval of the attribute"
-msgstr ""
-
-#: src/identity-provider/identity_provider_api.c:434
-#, fuzzy
-msgid "failed to store record\n"
-msgstr "运行 %s失败：%s %d\n"
-
-#: src/identity-provider/plugin_rest_identity_provider.c:1228
-#: src/identity-provider/plugin_rest_openid_connect.c:2145
-msgid "Identity Provider REST API initialized\n"
-msgstr ""
 
 #: src/json/json.c:121
 #, fuzzy, c-format
@@ -4906,7 +4798,7 @@ msgstr "“%s”的参数无效。\n"
 msgid "You must specify a name\n"
 msgstr "您必须指定一个接收方！\n"
 
-#: src/namecache/gnunet-namecache.c:230 src/namestore/gnunet-namestore.c:1289
+#: src/namecache/gnunet-namecache.c:230 src/namestore/gnunet-namestore.c:1290
 msgid "name of the record to add/delete/display"
 msgstr ""
 
@@ -4914,7 +4806,7 @@ msgstr ""
 msgid "spezifies the public key of the zone to look in"
 msgstr ""
 
-#: src/namecache/gnunet-namecache.c:248 src/namestore/gnunet-namestore.c:1341
+#: src/namecache/gnunet-namecache.c:248 src/namestore/gnunet-namestore.c:1342
 #, fuzzy
 msgid "GNUnet zone manipulation tool"
 msgstr "GNUnet 配置"
@@ -4930,8 +4822,8 @@ msgstr "连接 %s:%u 出错。守护程序在运行吗？\n"
 
 #: src/namecache/plugin_namecache_flat.c:119
 #: src/namecache/plugin_namecache_flat.c:253
-#: src/namestore/plugin_namestore_flat.c:148
-#: src/namestore/plugin_namestore_flat.c:383
+#: src/namestore/plugin_namestore_heap.c:146
+#: src/namestore/plugin_namestore_heap.c:393
 #: src/peerstore/plugin_peerstore_flat.c:377
 #: src/peerstore/plugin_peerstore_flat.c:536
 #, fuzzy, c-format
@@ -4939,14 +4831,14 @@ msgid "Unable to initialize file: %s.\n"
 msgstr "无法初始化 SQLite：%s。\n"
 
 #: src/namecache/plugin_namecache_flat.c:130
-#: src/namestore/plugin_namestore_flat.c:159
+#: src/namestore/plugin_namestore_heap.c:157
 #: src/peerstore/plugin_peerstore_flat.c:392
 #, fuzzy, c-format
 msgid "Unable to get filesize: %s.\n"
 msgstr "发送消息失败。\n"
 
 #: src/namecache/plugin_namecache_flat.c:149
-#: src/namestore/plugin_namestore_flat.c:172
+#: src/namestore/plugin_namestore_heap.c:170
 #: src/peerstore/plugin_peerstore_flat.c:404
 #, fuzzy, c-format
 msgid "Unable to read file: %s.\n"
@@ -4963,13 +4855,11 @@ msgid "Adding record failed: %s\n"
 msgstr ""
 
 #: src/namestore/gnunet-namestore.c:341
-#: src/namestore/plugin_rest_namestore.c:570
 #, c-format
 msgid "Deleting record failed, record does not exist%s%s\n"
 msgstr ""
 
 #: src/namestore/gnunet-namestore.c:348
-#: src/namestore/plugin_rest_namestore.c:579
 #, c-format
 msgid "Deleting record failed%s%s\n"
 msgstr ""
@@ -4990,217 +4880,211 @@ msgid ""
 "Non-GNS2DNS records already exist under `%s', cannot add GNS2DNS record.\n"
 msgstr ""
 
-#: src/namestore/gnunet-namestore.c:808
-#: src/namestore/plugin_rest_namestore.c:605
+#: src/namestore/gnunet-namestore.c:809
 #, c-format
 msgid "There are no records under label `%s' that could be deleted.\n"
 msgstr ""
 
-#: src/namestore/gnunet-namestore.c:849
+#: src/namestore/gnunet-namestore.c:850
 #, c-format
 msgid ""
 "There are no records under label `%s' that match the request for deletion.\n"
 msgstr ""
 
-#: src/namestore/gnunet-namestore.c:901
+#: src/namestore/gnunet-namestore.c:902
 #, c-format
 msgid "No options given\n"
 msgstr ""
 
-#: src/namestore/gnunet-namestore.c:920 src/namestore/gnunet-namestore.c:929
-#: src/namestore/gnunet-namestore.c:948 src/namestore/gnunet-namestore.c:971
-#: src/namestore/gnunet-namestore.c:1025
+#: src/namestore/gnunet-namestore.c:921 src/namestore/gnunet-namestore.c:930
+#: src/namestore/gnunet-namestore.c:949 src/namestore/gnunet-namestore.c:972
+#: src/namestore/gnunet-namestore.c:1026
 #, fuzzy, c-format
 msgid "Missing option `%s' for operation `%s'\n"
 msgstr "配置文件“%s”已写入。\n"
 
-#: src/namestore/gnunet-namestore.c:921 src/namestore/gnunet-namestore.c:930
-#: src/namestore/gnunet-namestore.c:949 src/namestore/gnunet-namestore.c:973
+#: src/namestore/gnunet-namestore.c:922 src/namestore/gnunet-namestore.c:931
+#: src/namestore/gnunet-namestore.c:950 src/namestore/gnunet-namestore.c:974
 msgid "add"
 msgstr ""
 
-#: src/namestore/gnunet-namestore.c:939
-#: src/namestore/plugin_rest_namestore.c:682
+#: src/namestore/gnunet-namestore.c:940
 #, fuzzy, c-format
 msgid "Unsupported type `%s'\n"
 msgstr "未知的命令“%s”。\n"
 
-#: src/namestore/gnunet-namestore.c:961
-#: src/namestore/plugin_rest_namestore.c:702
-#: src/namestore/plugin_rest_namestore.c:744
+#: src/namestore/gnunet-namestore.c:962
 #, c-format
 msgid "Value `%s' invalid for record type `%s'\n"
 msgstr ""
 
-#: src/namestore/gnunet-namestore.c:1006
+#: src/namestore/gnunet-namestore.c:1007
 #, fuzzy, c-format
 msgid "Invalid time format `%s'\n"
 msgstr "IP 格式无效：“%s”\n"
 
-#: src/namestore/gnunet-namestore.c:1026
+#: src/namestore/gnunet-namestore.c:1027
 msgid "del"
 msgstr ""
 
-#: src/namestore/gnunet-namestore.c:1069
+#: src/namestore/gnunet-namestore.c:1070
 #, fuzzy, c-format
 msgid "Invalid public key for reverse lookup `%s'\n"
 msgstr "“%s”的参数无效。\n"
 
-#: src/namestore/gnunet-namestore.c:1098
+#: src/namestore/gnunet-namestore.c:1099
 #: src/peerinfo-tool/gnunet-peerinfo.c:773
 #, fuzzy, c-format
 msgid "Invalid URI `%s'\n"
 msgstr "无效条目。\n"
 
-#: src/namestore/gnunet-namestore.c:1133
+#: src/namestore/gnunet-namestore.c:1134
 #, fuzzy, c-format
 msgid "Invalid nick `%s'\n"
 msgstr "无效条目。\n"
 
-#: src/namestore/gnunet-namestore.c:1173
-#: src/namestore/plugin_rest_namestore.c:1063
+#: src/namestore/gnunet-namestore.c:1174
 #, c-format
 msgid "No default ego configured in identity service\n"
 msgstr ""
 
-#: src/namestore/gnunet-namestore.c:1237
-#: src/namestore/plugin_rest_namestore.c:1159
+#: src/namestore/gnunet-namestore.c:1238
 #, fuzzy, c-format
 msgid "Cannot connect to identity service\n"
 msgstr "无法连接到 %s:%u：%s\n"
 
-#: src/namestore/gnunet-namestore.c:1262
+#: src/namestore/gnunet-namestore.c:1263
 msgid "add record"
 msgstr ""
 
-#: src/namestore/gnunet-namestore.c:1266
+#: src/namestore/gnunet-namestore.c:1267
 msgid "delete record"
 msgstr ""
 
-#: src/namestore/gnunet-namestore.c:1270
+#: src/namestore/gnunet-namestore.c:1271
 msgid "display records"
 msgstr ""
 
-#: src/namestore/gnunet-namestore.c:1275
+#: src/namestore/gnunet-namestore.c:1276
 msgid ""
 "expiration time for record to use (for adding only), \"never\" is possible"
 msgstr ""
 
-#: src/namestore/gnunet-namestore.c:1280
+#: src/namestore/gnunet-namestore.c:1281
 #, fuzzy
 msgid "set the desired nick name for the zone"
 msgstr "无法获取有关用户“%s”的信息：%s\n"
 
-#: src/namestore/gnunet-namestore.c:1284
+#: src/namestore/gnunet-namestore.c:1285
 #, fuzzy
 msgid "monitor changes in the namestore"
 msgstr "初始化“%s”服务失败。\n"
 
-#: src/namestore/gnunet-namestore.c:1294
+#: src/namestore/gnunet-namestore.c:1295
 #, fuzzy
 msgid "determine our name for the given PKEY"
 msgstr "无法获取有关用户“%s”的信息：%s\n"
 
-#: src/namestore/gnunet-namestore.c:1299
+#: src/namestore/gnunet-namestore.c:1300
 msgid "type of the record to add/delete/display"
 msgstr ""
 
-#: src/namestore/gnunet-namestore.c:1304
+#: src/namestore/gnunet-namestore.c:1305
 msgid "URI to import into our zone"
 msgstr ""
 
-#: src/namestore/gnunet-namestore.c:1309
+#: src/namestore/gnunet-namestore.c:1310
 msgid "value of the record to add/delete"
 msgstr ""
 
-#: src/namestore/gnunet-namestore.c:1313
+#: src/namestore/gnunet-namestore.c:1314
 msgid "create or list public record"
 msgstr ""
 
-#: src/namestore/gnunet-namestore.c:1317
+#: src/namestore/gnunet-namestore.c:1318
 msgid ""
 "create shadow record (only valid if all other records of the same type have "
 "expired"
 msgstr ""
 
-#: src/namestore/gnunet-namestore.c:1322
+#: src/namestore/gnunet-namestore.c:1323
 msgid "name of the ego controlling the zone"
 msgstr ""
 
-#: src/namestore/gnunet-namestore-fcfsd.c:538
+#: src/namestore/gnunet-namestore-fcfsd.c:547
 #, fuzzy, c-format
 msgid "Unsupported form value `%s'\n"
 msgstr "未知的命令“%s”。\n"
 
-#: src/namestore/gnunet-namestore-fcfsd.c:565
+#: src/namestore/gnunet-namestore-fcfsd.c:574
 #, fuzzy, c-format
 msgid "Failed to create record for domain `%s': %s\n"
 msgstr "解析配置文件“%s”失败\n"
 
-#: src/namestore/gnunet-namestore-fcfsd.c:585
+#: src/namestore/gnunet-namestore-fcfsd.c:595
 msgid "Error when mapping zone to name\n"
 msgstr ""
 
-#: src/namestore/gnunet-namestore-fcfsd.c:616
+#: src/namestore/gnunet-namestore-fcfsd.c:627
 #, c-format
 msgid "Found existing name `%s' for the given key\n"
 msgstr ""
 
-#: src/namestore/gnunet-namestore-fcfsd.c:696
+#: src/namestore/gnunet-namestore-fcfsd.c:687
 #, c-format
 msgid "Found %u existing records for domain `%s'\n"
 msgstr ""
 
-#: src/namestore/gnunet-namestore-fcfsd.c:754
+#: src/namestore/gnunet-namestore-fcfsd.c:775
 #, fuzzy, c-format
 msgid "Failed to create page for `%s'\n"
 msgstr "发送消息失败。\n"
 
-#: src/namestore/gnunet-namestore-fcfsd.c:772
+#: src/namestore/gnunet-namestore-fcfsd.c:794
 #, fuzzy, c-format
 msgid "Failed to setup post processor for `%s'\n"
 msgstr "解析配置文件“%s”失败\n"
 
-#: src/namestore/gnunet-namestore-fcfsd.c:808
+#: src/namestore/gnunet-namestore-fcfsd.c:830
 msgid "Domain name must not contain `.'\n"
 msgstr ""
 
-#: src/namestore/gnunet-namestore-fcfsd.c:817
+#: src/namestore/gnunet-namestore-fcfsd.c:839
 msgid "Domain name must not contain `+'\n"
 msgstr ""
 
-#: src/namestore/gnunet-namestore-fcfsd.c:1045
+#: src/namestore/gnunet-namestore-fcfsd.c:1069
 msgid "No ego configured for `fcfsd` subsystem\n"
 msgstr ""
 
-#: src/namestore/gnunet-namestore-fcfsd.c:1073
+#: src/namestore/gnunet-namestore-fcfsd.c:1097
 #, fuzzy
 msgid "Failed to start HTTP server\n"
 msgstr "初始化“%s”服务失败。\n"
 
-#: src/namestore/gnunet-namestore-fcfsd.c:1121
+#: src/namestore/gnunet-namestore-fcfsd.c:1145
 #, fuzzy
 msgid "Failed to connect to identity\n"
 msgstr "初始化“%s”服务失败。\n"
 
-#: src/namestore/gnunet-namestore-fcfsd.c:1147
+#: src/namestore/gnunet-namestore-fcfsd.c:1171
 msgid "name of the zone that is to be managed by FCFSD"
 msgstr ""
 
-#: src/namestore/gnunet-namestore-fcfsd.c:1166
+#: src/namestore/gnunet-namestore-fcfsd.c:1190
 msgid "GNU Name System First Come First Serve name registration service"
 msgstr ""
 
-#: src/namestore/gnunet-service-namestore.c:748
+#: src/namestore/gnunet-service-namestore.c:749
 #, fuzzy, c-format
 msgid "Failed to replicate block in namecache: %s\n"
 msgstr "发送消息失败。\n"
 
-#: src/namestore/gnunet-zoneimport.c:2033
+#: src/namestore/gnunet-zoneimport.c:2036
 msgid "size to use for the main hash map"
 msgstr ""
 
-#: src/namestore/gnunet-zoneimport.c:2038
+#: src/namestore/gnunet-zoneimport.c:2041
 msgid "minimum expiration time we assume for imported records"
 msgstr ""
 
@@ -5208,9 +5092,9 @@ msgstr ""
 msgid "Namestore failed to store record\n"
 msgstr ""
 
-#: src/namestore/plugin_namestore_flat.c:765
+#: src/namestore/plugin_namestore_heap.c:776
 #, fuzzy
-msgid "flat file database running\n"
+msgid "heap file database running\n"
 msgstr "sqlite 数据仓库"
 
 #: src/namestore/plugin_namestore_sqlite.c:216
@@ -5218,10 +5102,6 @@ msgstr "sqlite 数据仓库"
 #, fuzzy, c-format
 msgid "Failed to setup database at `%s'\n"
 msgstr "运行 %s失败：%s %d\n"
-
-#: src/namestore/plugin_rest_namestore.c:1204
-msgid "Namestore REST API initialized\n"
-msgstr ""
 
 #: src/nat-auto/gnunet-nat-auto.c:191
 #, fuzzy
@@ -5602,6 +5482,7 @@ msgid "\tExpires: %s \t %s\n"
 msgstr ""
 
 #: src/peerinfo-tool/gnunet-peerinfo.c:297
+#: src/rest-plugins/plugin_rest_peerinfo.c:499
 #, fuzzy, c-format
 msgid "Failure: Cannot convert address to string for peer `%s'\n"
 msgstr "找不到接口“%s”的一个 IP 地址。\n"
@@ -5897,6 +5778,66 @@ msgstr "初始化“%s”服务失败。\n"
 msgid "Daemon to run to perform IP protocol translation to GNUnet"
 msgstr ""
 
+#: src/reclaim/gnunet-reclaim.c:465
+#, fuzzy, c-format
+msgid "Ego is required\n"
+msgstr "%s：选项“%s”有歧义\n"
+
+#: src/reclaim/gnunet-reclaim.c:473
+#, c-format
+msgid "Attribute value missing!\n"
+msgstr ""
+
+#: src/reclaim/gnunet-reclaim.c:481
+#, fuzzy, c-format
+msgid "Requesting party key is required!\n"
+msgstr "设置要使用的昵称(必须)"
+
+#: src/reclaim/gnunet-reclaim.c:504
+msgid "Add attribute"
+msgstr ""
+
+#: src/reclaim/gnunet-reclaim.c:510
+msgid "Attribute value"
+msgstr ""
+
+#: src/reclaim/gnunet-reclaim.c:515
+msgid "Ego"
+msgstr ""
+
+#: src/reclaim/gnunet-reclaim.c:520
+msgid "Audience (relying party)"
+msgstr ""
+
+#: src/reclaim/gnunet-reclaim.c:524
+msgid "List attributes for Ego"
+msgstr ""
+
+#: src/reclaim/gnunet-reclaim.c:529
+msgid "Issue a ticket"
+msgstr ""
+
+#: src/reclaim/gnunet-reclaim.c:534
+msgid "Consume a ticket"
+msgstr ""
+
+#: src/reclaim/gnunet-reclaim.c:539
+msgid "Revoke a ticket"
+msgstr ""
+
+#: src/reclaim/gnunet-reclaim.c:544
+msgid "Type of attribute"
+msgstr ""
+
+#: src/reclaim/gnunet-reclaim.c:549
+msgid "Expiration interval of the attribute"
+msgstr ""
+
+#: src/reclaim/reclaim_api.c:434
+#, fuzzy
+msgid "failed to store record\n"
+msgstr "运行 %s失败：%s %d\n"
+
 #: src/regex/gnunet-daemon-regexprofiler.c:265
 #, fuzzy, c-format
 msgid "%s service is lacking key configuration settings (%s).  Exiting.\n"
@@ -5993,6 +5934,35 @@ msgstr ""
 #, fuzzy
 msgid "GNUnet REST server"
 msgstr "GNUnet 错误日志"
+
+#: src/rest-plugins/plugin_rest_copying.c:207
+msgid "COPYING REST API initialized\n"
+msgstr ""
+
+#: src/rest-plugins/plugin_rest_credential.c:1126
+msgid "GNS REST API initialized\n"
+msgstr ""
+
+#: src/rest-plugins/plugin_rest_gns.c:450
+msgid "Gns REST API initialized\n"
+msgstr ""
+
+#: src/rest-plugins/plugin_rest_identity.c:1295
+msgid "Identity REST API initialized\n"
+msgstr ""
+
+#: src/rest-plugins/plugin_rest_namestore.c:1077
+msgid "Namestore REST API initialized\n"
+msgstr ""
+
+#: src/rest-plugins/plugin_rest_openid_connect.c:2135
+#: src/rest-plugins/plugin_rest_reclaim.c:1079
+msgid "Identity Provider REST API initialized\n"
+msgstr ""
+
+#: src/rest-plugins/plugin_rest_peerinfo.c:794
+msgid "Peerinfo REST API initialized\n"
+msgstr ""
 
 #: src/revocation/gnunet-revocation.c:127
 #, c-format
@@ -6130,15 +6100,32 @@ msgstr ""
 msgid "Could not open revocation database file!"
 msgstr "无法连接到 %s:%u：%s\n"
 
-#: src/rps/gnunet-rps.c:201
+#: src/rps/gnunet-rps.c:258
 msgid "Seed a PeerID"
 msgstr ""
 
-#: src/rps/gnunet-rps.c:205
+#: src/rps/gnunet-rps.c:262
 msgid "Get updates of view (0 for infinite updates)"
 msgstr ""
 
-#: src/rps/gnunet-rps-profiler.c:2705
+#: src/rps/gnunet-rps.c:266
+msgid "Get peers from biased stream"
+msgstr ""
+
+#: src/rps/gnunet-rps-profiler.c:2770
+msgid "duration of the profiling"
+msgstr ""
+
+#: src/rps/gnunet-rps-profiler.c:2776
+msgid "timeout for the profiling"
+msgstr ""
+
+#: src/rps/gnunet-rps-profiler.c:2782
+#, fuzzy
+msgid "number of PeerIDs to request"
+msgstr "迭代次数"
+
+#: src/rps/gnunet-rps-profiler.c:2797
 #, fuzzy
 msgid "Measure quality and performance of the RPS service."
 msgstr "无法访问该服务"
@@ -6226,7 +6213,7 @@ msgstr ""
 msgid "also profile decryption"
 msgstr ""
 
-#: src/set/gnunet-service-set.c:1987
+#: src/set/gnunet-service-set.c:2004
 #, fuzzy
 msgid "Could not connect to CADET service\n"
 msgstr "无法连接到 %s:%u：%s\n"
@@ -6423,93 +6410,93 @@ msgstr ""
 msgid "Loading %llu bytes of statistics from `%s'\n"
 msgstr ""
 
-#: src/statistics/gnunet-statistics.c:271
-#: src/statistics/gnunet-statistics.c:365
+#: src/statistics/gnunet-statistics.c:407
+#: src/statistics/gnunet-statistics.c:448
 #, fuzzy
 msgid "Failed to obtain statistics.\n"
 msgstr "初始化“%s”服务失败。\n"
 
-#: src/statistics/gnunet-statistics.c:274
-#: src/statistics/gnunet-statistics.c:368
+#: src/statistics/gnunet-statistics.c:410
+#: src/statistics/gnunet-statistics.c:451
 #, fuzzy, c-format
 msgid "Failed to obtain statistics from host `%s:%llu'\n"
 msgstr "初始化“%s”服务失败。\n"
 
-#: src/statistics/gnunet-statistics.c:502
+#: src/statistics/gnunet-statistics.c:526
 msgid "Missing argument: subsystem \n"
 msgstr ""
 
-#: src/statistics/gnunet-statistics.c:510
+#: src/statistics/gnunet-statistics.c:534
 msgid "Missing argument: name\n"
 msgstr ""
 
-#: src/statistics/gnunet-statistics.c:553
+#: src/statistics/gnunet-statistics.c:577
 #, c-format
 msgid "No subsystem or name given\n"
 msgstr ""
 
-#: src/statistics/gnunet-statistics.c:568
+#: src/statistics/gnunet-statistics.c:592
 #, fuzzy, c-format
 msgid "Failed to initialize watch routine\n"
 msgstr "初始化“%s”服务失败。\n"
 
-#: src/statistics/gnunet-statistics.c:703
+#: src/statistics/gnunet-statistics.c:727
 #, fuzzy, c-format
 msgid "Invalid argument `%s'\n"
 msgstr "“%s”的参数无效。\n"
 
-#: src/statistics/gnunet-statistics.c:721
+#: src/statistics/gnunet-statistics.c:745
 #, fuzzy, c-format
 msgid "A port is required to connect to host `%s'\n"
 msgstr "无法连接到 %s:%u：%s\n"
 
-#: src/statistics/gnunet-statistics.c:729
+#: src/statistics/gnunet-statistics.c:753
 #, c-format
 msgid "A port has to be between 1 and 65535 to connect to host `%s'\n"
 msgstr ""
 
-#: src/statistics/gnunet-statistics.c:760
+#: src/statistics/gnunet-statistics.c:784
 #, c-format
 msgid "Not able to watch testbed nodes (yet - feel free to implement)\n"
 msgstr ""
 
-#: src/statistics/gnunet-statistics.c:793
+#: src/statistics/gnunet-statistics.c:817
 msgid "limit output to statistics for the given NAME"
 msgstr ""
 
-#: src/statistics/gnunet-statistics.c:798
+#: src/statistics/gnunet-statistics.c:822
 msgid "make the value being set persistent"
 msgstr ""
 
-#: src/statistics/gnunet-statistics.c:804
+#: src/statistics/gnunet-statistics.c:828
 msgid "limit output to the given SUBSYSTEM"
 msgstr ""
 
-#: src/statistics/gnunet-statistics.c:810
+#: src/statistics/gnunet-statistics.c:834
 msgid "use as csv separator"
 msgstr ""
 
-#: src/statistics/gnunet-statistics.c:816
+#: src/statistics/gnunet-statistics.c:840
 msgid "path to the folder containing the testbed data"
 msgstr ""
 
-#: src/statistics/gnunet-statistics.c:821
+#: src/statistics/gnunet-statistics.c:845
 msgid "just print the statistics value"
 msgstr ""
 
-#: src/statistics/gnunet-statistics.c:826
+#: src/statistics/gnunet-statistics.c:850
 msgid "watch value continuously"
 msgstr ""
 
-#: src/statistics/gnunet-statistics.c:832
+#: src/statistics/gnunet-statistics.c:856
 msgid "connect to remote host"
 msgstr ""
 
-#: src/statistics/gnunet-statistics.c:838
+#: src/statistics/gnunet-statistics.c:862
 msgid "port for remote host"
 msgstr ""
 
-#: src/statistics/gnunet-statistics.c:855
+#: src/statistics/gnunet-statistics.c:879
 msgid "Print statistics about GNUnet operations."
 msgstr ""
 
@@ -8109,7 +8096,7 @@ msgstr ""
 msgid "Service process failed to report status\n"
 msgstr ""
 
-#: src/transport/tcp_service_legacy.c:1311 src/util/disk.c:1515
+#: src/transport/tcp_service_legacy.c:1311 src/util/disk.c:1521
 #: src/util/service.c:1376
 #, c-format
 msgid "Cannot obtain information about user `%s': %s\n"
@@ -8146,11 +8133,6 @@ msgstr "解析配置文件“%s”失败\n"
 msgid "Could not access configuration file `%s'\n"
 msgstr "找不到接口“%s”的一个 IP 地址。\n"
 
-#: src/tun/regex.c:132
-#, c-format
-msgid "Bad mask: %d\n"
-msgstr ""
-
 #: src/util/bio.c:179 src/util/bio.c:187
 #, fuzzy, c-format
 msgid "Error reading `%s': %s"
@@ -8180,58 +8162,67 @@ msgstr ""
 msgid "Metadata `%s' failed to deserialize"
 msgstr ""
 
-#: src/util/client.c:912
+#: src/util/client.c:732
+msgid "not a valid filename"
+msgstr ""
+
+#: src/util/client.c:923
 #, c-format
 msgid "Need a non-empty hostname for service `%s'.\n"
 msgstr ""
 
-#: src/util/common_logging.c:257 src/util/common_logging.c:1144
+#: src/util/common_logging.c:257 src/util/common_logging.c:1159
 msgid "DEBUG"
 msgstr "调试"
 
-#: src/util/common_logging.c:259 src/util/common_logging.c:1142
+#: src/util/common_logging.c:259 src/util/common_logging.c:1157
 msgid "INFO"
 msgstr "信息"
 
-#: src/util/common_logging.c:261 src/util/common_logging.c:1140
+#: src/util/common_logging.c:261 src/util/common_logging.c:1155
 msgid "MESSAGE"
 msgstr ""
 
-#: src/util/common_logging.c:263 src/util/common_logging.c:1138
+#: src/util/common_logging.c:263 src/util/common_logging.c:1153
 msgid "WARNING"
 msgstr "警告"
 
-#: src/util/common_logging.c:265 src/util/common_logging.c:1136
+#: src/util/common_logging.c:265 src/util/common_logging.c:1151
 msgid "ERROR"
 msgstr "错误"
 
-#: src/util/common_logging.c:267 src/util/common_logging.c:1146
+#: src/util/common_logging.c:267 src/util/common_logging.c:1161
 msgid "NONE"
 msgstr ""
 
-#: src/util/common_logging.c:880
+#: src/util/common_logging.c:631 src/util/common_logging.c:661
+#, c-format
+msgid "ERROR: Unable to parse log definition: Syntax error at `%s'.\n"
+msgstr ""
+
+#: src/util/common_logging.c:895
 #, fuzzy, c-format
 msgid "Message `%.*s' repeated %u times in the last %s\n"
 msgstr "消息“%.*s”重复了 %u 次，在最近 %llu 秒内\n"
 
-#: src/util/common_logging.c:1147
+#: src/util/common_logging.c:1162
 msgid "INVALID"
 msgstr ""
 
-#: src/util/common_logging.c:1440
+#: src/util/common_logging.c:1455
 msgid "unknown address"
 msgstr ""
 
-#: src/util/common_logging.c:1482
+#: src/util/common_logging.c:1497
 msgid "invalid address"
 msgstr ""
 
-#: src/util/common_logging.c:1500
+#: src/util/common_logging.c:1515
 #, fuzzy, c-format
 msgid "Configuration fails to specify option `%s' in section `%s'!\n"
 msgstr "配置不满足配置规范文件“%s”的约束！\n"
 
-#: src/util/common_logging.c:1521
+#: src/util/common_logging.c:1536
 #, fuzzy, c-format
 msgid ""
 "Configuration specifies invalid value for option `%s' in section `%s': %s\n"
@@ -8247,24 +8238,29 @@ msgstr "配置文件“%s”第 %d 行有语法错误。\n"
 msgid "Error while reading file `%s'\n"
 msgstr "解析 dscl 输出时出错。\n"
 
-#: src/util/configuration.c:1049
+#: src/util/configuration.c:970
+#, fuzzy
+msgid "Not a valid relative time specification"
+msgstr "配置文件“%s”已写入。\n"
+
+#: src/util/configuration.c:1059
 #, c-format
 msgid ""
 "Configuration value '%s' for '%s' in section '%s' is not in set of legal "
 "choices\n"
 msgstr ""
 
-#: src/util/configuration.c:1168
+#: src/util/configuration.c:1178
 #, c-format
 msgid "Recursive expansion suspected, aborting $-expansion for term `%s'\n"
 msgstr ""
 
-#: src/util/configuration.c:1201
+#: src/util/configuration.c:1211
 #, fuzzy, c-format
 msgid "Missing closing `%s' in option `%s'\n"
 msgstr "配置文件“%s”已写入。\n"
 
-#: src/util/configuration.c:1269
+#: src/util/configuration.c:1279
 #, c-format
 msgid ""
 "Failed to expand `%s' in `%s' as it is neither found in [PATHS] nor defined "
@@ -8278,22 +8274,22 @@ msgid ""
 "%llu)\n"
 msgstr ""
 
-#: src/util/crypto_ecc.c:831
+#: src/util/crypto_ecc.c:860
 #, fuzzy, c-format
 msgid "ECC signing failed at %s:%d: %s\n"
 msgstr "对驱动器“%2$s”的“%1$s”操作失败：%3$u\n"
 
-#: src/util/crypto_ecc.c:881
+#: src/util/crypto_ecc.c:915
 #, fuzzy, c-format
 msgid "EdDSA signing failed at %s:%d: %s\n"
 msgstr "对驱动器“%2$s”的“%1$s”操作失败：%3$u\n"
 
-#: src/util/crypto_ecc.c:955
+#: src/util/crypto_ecc.c:994
 #, fuzzy, c-format
 msgid "ECDSA signature verification failed at %s:%d: %s\n"
 msgstr "对驱动器“%2$s”的“%1$s”操作失败：%3$u\n"
 
-#: src/util/crypto_ecc.c:1012
+#: src/util/crypto_ecc.c:1055
 #, fuzzy, c-format
 msgid "EdDSA signature verification failed at %s:%d: %s\n"
 msgstr "对驱动器“%2$s”的“%1$s”操作失败：%3$u\n"
@@ -8328,25 +8324,55 @@ msgstr ""
 msgid "Could not load peer's private key\n"
 msgstr "找不到接口“%s”的一个 IP 地址。\n"
 
-#: src/util/crypto_random.c:282
+#: src/util/crypto_random.c:304
 #, c-format
 msgid "libgcrypt has not the expected version (version %s is required).\n"
 msgstr "libgcrypt 的版本不符合预期(要求版本 %s)。\n"
 
-#: src/util/crypto_rsa.c:836
+#: src/util/crypto_rsa.c:848
 #, fuzzy, c-format
 msgid "RSA signing failed at %s:%d: %s\n"
 msgstr "对驱动器“%2$s”的“%1$s”操作失败：%3$u\n"
 
-#: src/util/crypto_rsa.c:1167
+#: src/util/crypto_rsa.c:1187
 #, fuzzy, c-format
 msgid "RSA signature verification failed at %s:%d: %s\n"
 msgstr "对驱动器“%2$s”的“%1$s”操作失败：%3$u\n"
 
-#: src/util/disk.c:1245
+#: src/util/disk.c:1251
 #, c-format
 msgid "Expected `%s' to be a directory!\n"
 msgstr "“%s”应为目录！\n"
+
+#: src/util/dnsparser.c:250
+#, fuzzy, c-format
+msgid "Failed to convert DNS IDNA name `%s' to UTF-8: %s\n"
+msgstr "打开日志文件“%s”失败：%s\n"
+
+#: src/util/dnsparser.c:940
+#, fuzzy, c-format
+msgid "Failed to convert UTF-8 name `%s' to DNS IDNA format: %s\n"
+msgstr "打开日志文件“%s”失败：%s\n"
+
+#: src/util/dnsstub.c:229
+#, fuzzy, c-format
+msgid "Could not bind to any port: %s\n"
+msgstr "找不到主机“%s”的 IP：%s\n"
+
+#: src/util/dnsstub.c:360
+#, c-format
+msgid "Received DNS response that is too small (%u bytes)"
+msgstr ""
+
+#: src/util/dnsstub.c:507
+#, fuzzy, c-format
+msgid "Failed to send DNS request to %s: %s\n"
+msgstr "打开日志文件“%s”失败：%s\n"
+
+#: src/util/dnsstub.c:513
+#, fuzzy, c-format
+msgid "Sent DNS request to %s\n"
+msgstr "打开日志文件“%s”失败：%s\n"
 
 #: src/util/getopt.c:568
 #, c-format
@@ -8444,8 +8470,8 @@ msgstr ""
 msgid "use configuration file FILENAME"
 msgstr "更改配置文件中的一个值"
 
-#: src/util/getopt_helpers.c:559 src/util/getopt_helpers.c:756
-#: src/util/getopt_helpers.c:823
+#: src/util/getopt_helpers.c:559 src/util/getopt_helpers.c:763
+#: src/util/getopt_helpers.c:830
 #, c-format
 msgid "You must pass a number to the `%s' option.\n"
 msgstr "您必须向“%s”选项传递一个数字。\n"
@@ -8460,62 +8486,67 @@ msgstr "您必须向“%s”选项传递一个数字。\n"
 msgid "You must pass absolute time to the `%s' option.\n"
 msgstr "您必须向“%s”选项传递一个数字。\n"
 
-#: src/util/getopt_helpers.c:830
+#: src/util/getopt_helpers.c:754
+#, c-format
+msgid "Your input for the '%s' option has to be a non negative number \n"
+msgstr ""
+
+#: src/util/getopt_helpers.c:837
 #, fuzzy, c-format
 msgid "You must pass a number below %u to the `%s' option.\n"
 msgstr "您必须向“%s”选项传递一个数字。\n"
 
-#: src/util/getopt_helpers.c:916
+#: src/util/getopt_helpers.c:923
 #, c-format
 msgid "Argument `%s' malformed. Expected base32 (Crockford) encoded value.\n"
 msgstr ""
 
-#: src/util/gnunet-config.c:148
+#: src/util/gnunet-config.c:157
 #, fuzzy, c-format
 msgid "failed to load configuration defaults"
 msgstr "解析配置文件“%s”失败\n"
 
-#: src/util/gnunet-config.c:161
+#: src/util/gnunet-config.c:170
 #, fuzzy, c-format
 msgid "--section argument is required\n"
 msgstr "设置要使用的昵称(必须)"
 
-#: src/util/gnunet-config.c:164
+#: src/util/gnunet-config.c:173
 #, c-format
 msgid "The following sections are available:\n"
 msgstr ""
 
-#: src/util/gnunet-config.c:215
+#: src/util/gnunet-config.c:224
 #, c-format
 msgid "--option argument required to set value\n"
 msgstr ""
 
-#: src/util/gnunet-config.c:254
+#: src/util/gnunet-config.c:263
 msgid "obtain option of value as a filename (with $-expansion)"
 msgstr ""
 
-#: src/util/gnunet-config.c:259
+#: src/util/gnunet-config.c:268
 msgid "name of the section to access"
 msgstr ""
 
-#: src/util/gnunet-config.c:264
+#: src/util/gnunet-config.c:273
 msgid "name of the option to access"
 msgstr ""
 
-#: src/util/gnunet-config.c:269
+#: src/util/gnunet-config.c:278
 msgid "value to set"
 msgstr ""
 
-#: src/util/gnunet-config.c:273
+#: src/util/gnunet-config.c:282
 #, fuzzy
 msgid "print available configuration sections"
 msgstr "立即保存配置？"
 
-#: src/util/gnunet-config.c:277
+#: src/util/gnunet-config.c:286
 msgid "write configuration file that only contains delta to defaults"
 msgstr ""
 
-#: src/util/gnunet-config.c:290
+#: src/util/gnunet-config.c:299
 #, fuzzy
 msgid "Manipulate GNUnet configuration files"
 msgstr "更改配置文件中的一个值"
@@ -8642,16 +8673,9 @@ msgstr ""
 msgid "Manipulate GNUnet proof of work files"
 msgstr "更改配置文件中的一个值"
 
-#: src/util/gnunet-service-resolver.c:369
-#, c-format
-msgid "Could not resolve `%s' (%s): %s\n"
-msgstr "无法解析“%s”(%s)：%s\n"
-
-#: src/util/gnunet-service-resolver.c:458
-#: src/util/gnunet-service-resolver.c:510
-#, c-format
-msgid "Could not find IP of host `%s': %s\n"
-msgstr "找不到主机“%s”的 IP：%s\n"
+#: src/util/gnunet-service-resolver.c:1443
+msgid "No DNS server available. DNS resolution will not be possible.\n"
+msgstr ""
 
 #: src/util/gnunet-uri.c:83
 #, c-format
@@ -8750,35 +8774,40 @@ msgstr ""
 msgid "Could not determine plugin installation path.\n"
 msgstr "无法确定用户界面定义文件。"
 
-#: src/util/resolver_api.c:201
+#: src/util/regex.c:132
+#, c-format
+msgid "Bad mask: %d\n"
+msgstr ""
+
+#: src/util/resolver_api.c:216
 #, c-format
 msgid ""
 "Missing `%s' for `%s' in configuration, DNS resolution will be unavailable.\n"
 msgstr ""
 
-#: src/util/resolver_api.c:222
+#: src/util/resolver_api.c:237
 #, c-format
 msgid ""
 "Missing `%s' or numeric IP address for `%s' of `%s' in configuration, DNS "
 "resolution will be unavailable.\n"
 msgstr ""
 
-#: src/util/resolver_api.c:849
+#: src/util/resolver_api.c:873
 #, c-format
 msgid "Timeout trying to resolve hostname `%s'.\n"
 msgstr ""
 
-#: src/util/resolver_api.c:862
+#: src/util/resolver_api.c:886
 #, fuzzy, c-format
 msgid "Timeout trying to resolve IP address `%s'.\n"
 msgstr "GNUnet 现在使用 IP 地址 %s。\n"
 
-#: src/util/resolver_api.c:1046
+#: src/util/resolver_api.c:1071
 msgid "Resolver not configured correctly.\n"
 msgstr ""
 
-#: src/util/resolver_api.c:1132 src/util/resolver_api.c:1155
-#: src/util/resolver_api.c:1169
+#: src/util/resolver_api.c:1158 src/util/resolver_api.c:1181
+#: src/util/resolver_api.c:1195
 #, fuzzy, c-format
 msgid "Could not resolve our FQDN: %s\n"
 msgstr "无法解析“%s”(%s)：%s\n"
@@ -8814,114 +8843,114 @@ msgstr ""
 msgid "b"
 msgstr "b"
 
-#: src/util/strings.c:469
+#: src/util/strings.c:471
 #, c-format
 msgid "Character sets requested were `%s'->`%s'\n"
 msgstr ""
 
-#: src/util/strings.c:596
+#: src/util/strings.c:598
 msgid "Failed to expand `$HOME': environment variable `HOME' not set"
 msgstr "扩展“$HOME”失败：没有设置环境变量“HOME”"
 
-#: src/util/strings.c:700
+#: src/util/strings.c:702
 msgid "µs"
 msgstr ""
 
-#: src/util/strings.c:704
+#: src/util/strings.c:706
 msgid "forever"
 msgstr ""
 
-#: src/util/strings.c:706
+#: src/util/strings.c:708
 msgid "0 ms"
 msgstr ""
 
-#: src/util/strings.c:712
+#: src/util/strings.c:714
 msgid "ms"
 msgstr "毫秒"
 
-#: src/util/strings.c:718
+#: src/util/strings.c:720
 msgid "s"
 msgstr "秒"
 
-#: src/util/strings.c:724
+#: src/util/strings.c:726
 msgid "m"
 msgstr "分"
 
-#: src/util/strings.c:730
+#: src/util/strings.c:732
 msgid "h"
 msgstr "时"
 
-#: src/util/strings.c:737
+#: src/util/strings.c:739
 #, fuzzy
 msgid "day"
 msgstr " 天"
 
-#: src/util/strings.c:739
+#: src/util/strings.c:741
 #, fuzzy
 msgid "days"
 msgstr " 天"
 
-#: src/util/strings.c:768
+#: src/util/strings.c:770
 msgid "end of time"
 msgstr ""
 
-#: src/util/strings.c:1270
+#: src/util/strings.c:1272
 msgid "IPv6 address did not start with `['\n"
 msgstr ""
 
-#: src/util/strings.c:1278
+#: src/util/strings.c:1280
 msgid "IPv6 address did contain ':' to separate port number\n"
 msgstr ""
 
-#: src/util/strings.c:1284
+#: src/util/strings.c:1286
 msgid "IPv6 address did contain ']' before ':' to separate port number\n"
 msgstr ""
 
-#: src/util/strings.c:1291
+#: src/util/strings.c:1293
 msgid "IPv6 address did contain a valid port number after the last ':'\n"
 msgstr ""
 
-#: src/util/strings.c:1300
+#: src/util/strings.c:1302
 #, fuzzy, c-format
 msgid "Invalid IPv6 address `%s': %s\n"
 msgstr "无效的进程优先级“%s”\n"
 
-#: src/util/strings.c:1572 src/util/strings.c:1588
+#: src/util/strings.c:1574 src/util/strings.c:1590
 msgid "Port not in range\n"
 msgstr ""
 
-#: src/util/strings.c:1597
+#: src/util/strings.c:1599
 #, fuzzy, c-format
 msgid "Malformed port policy `%s'\n"
 msgstr "解析配置文件“%s”失败\n"
 
-#: src/util/strings.c:1680 src/util/strings.c:1711 src/util/strings.c:1759
-#: src/util/strings.c:1780
+#: src/util/strings.c:1682 src/util/strings.c:1713 src/util/strings.c:1761
+#: src/util/strings.c:1782
 #, c-format
 msgid "Invalid format for IP: `%s'\n"
 msgstr "IP 格式无效：“%s”\n"
 
-#: src/util/strings.c:1737
+#: src/util/strings.c:1739
 #, c-format
 msgid "Invalid network notation ('/%d' is not legal in IPv4 CIDR)."
 msgstr "网络表示法无效(“/%d” 在 IPv4 CIDR 中是非法的)。"
 
-#: src/util/strings.c:1789
+#: src/util/strings.c:1791
 #, fuzzy, c-format
 msgid "Invalid format: `%s'\n"
 msgstr "IP 格式无效：“%s”\n"
 
-#: src/util/strings.c:1841
+#: src/util/strings.c:1843
 #, c-format
 msgid "Invalid network notation (does not end with ';': `%s')\n"
 msgstr "无效的网络表示法(没有以“;”结尾：“%s”)\n"
 
-#: src/util/strings.c:1891
+#: src/util/strings.c:1893
 #, c-format
 msgid "Wrong format `%s' for netmask\n"
 msgstr "网络掩码的格式“%s”错误\n"
 
-#: src/util/strings.c:1922
+#: src/util/strings.c:1924
 #, c-format
 msgid "Wrong format `%s' for network\n"
 msgstr "网络的格式“%s”错误\n"
@@ -9102,21 +9131,32 @@ msgstr ""
 msgid "Failed to connect to the namestore!\n"
 msgstr "初始化“%s”服务失败。\n"
 
-#: src/include/gnunet_common.h:764 src/include/gnunet_common.h:771
-#: src/include/gnunet_common.h:781 src/include/gnunet_common.h:789
+#: src/include/gnunet_common.h:770 src/include/gnunet_common.h:777
+#: src/include/gnunet_common.h:787
+#, fuzzy, c-format
+msgid "Assertion failed at %s:%d. Aborting.\n"
+msgstr "对驱动器“%2$s”的“%1$s”操作失败：%3$u\n"
+
+#: src/include/gnunet_common.h:795
 #, c-format
 msgid "Assertion failed at %s:%d.\n"
 msgstr ""
 
-#: src/include/gnunet_common.h:801
+#: src/include/gnunet_common.h:807
 #, c-format
 msgid "External protocol violation detected at %s:%d.\n"
 msgstr ""
 
-#: src/include/gnunet_common.h:828 src/include/gnunet_common.h:837
+#: src/include/gnunet_common.h:834 src/include/gnunet_common.h:843
 #, c-format
 msgid "`%s' failed on file `%s' at %s:%d with error: %s\n"
 msgstr ""
+
+#~ msgid "Could not resolve `%s' (%s): %s\n"
+#~ msgstr "无法解析“%s”(%s)：%s\n"
+
+#~ msgid "Could not find IP of host `%s': %s\n"
+#~ msgstr "找不到主机“%s”的 IP：%s\n"
 
 #, fuzzy
 #~ msgid "Could not connect to %s service!\n"
@@ -9739,10 +9779,6 @@ msgstr ""
 #, fuzzy
 #~ msgid "Mesh service could not access hostkey: %s. Exiting.\n"
 #~ msgstr "找不到接口“%s”的一个 IP 地址。\n"
-
-#, fuzzy
-#~ msgid "No valid expiration time for operation `%s'\n"
-#~ msgstr "配置文件“%s”已写入。\n"
 
 #, fuzzy
 #~ msgid "Failed to find record to remove\n"
