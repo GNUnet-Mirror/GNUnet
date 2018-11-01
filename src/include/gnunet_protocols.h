@@ -3005,9 +3005,58 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_RPS_CS_DEBUG_STREAM_CANCEL  1135
 
 
+/*******************************************************
+  NEW (TNG) Transport service
+  ******************************************************* */
 
 /**
- * Next available: 1200
+ * @brief inform transport to add an address of this peer
+ */
+#define GNUNET_MESSAGE_TYPE_TRANSPORT_ADD_ADDRESS 1200
+
+/**
+ * @brief inform transport to delete an address of this peer
+ */
+#define GNUNET_MESSAGE_TYPE_TRANSPORT_DEL_ADDRESS 1201
+
+/**
+ * @brief inform transport about an incoming message
+ */
+#define GNUNET_MESSAGE_TYPE_TRANSPORT_INCOMING_MSG 1202
+
+/**
+ * @brief transport acknowledges processing an incoming message
+ */
+#define GNUNET_MESSAGE_TYPE_TRANSPORT_INCOMING_MSG_ACK 1203
+
+/**
+ * @brief inform transport that a queue was setup to talk to some peer
+ */
+#define GNUNET_MESSAGE_TYPE_TRANSPORT_QUEUE_SETUP 1204
+
+/**
+ * @brief inform transport that a queue was torn down 
+ */
+#define GNUNET_MESSAGE_TYPE_TRANSPORT_QUEUE_TEARDOWN 1205
+
+/**
+ * @brief transport tells communicator it wants a queue
+ */
+#define GNUNET_MESSAGE_TYPE_TRANSPORT_QUEUE_CREATE 1206
+
+/**
+ * @brief transport tells communicator it wants to transmit
+ */
+#define GNUNET_MESSAGE_TYPE_TRANSPORT_SEND_MSG 1207
+
+/**
+ * @brief communicator tells transports that message was sent
+ */
+#define GNUNET_MESSAGE_TYPE_TRANSPORT_SEND_MSG_ACK 1208
+
+
+/**
+ * Next available: 1300
  */
 
 

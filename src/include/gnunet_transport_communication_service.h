@@ -137,8 +137,8 @@ typedef void
  * @return #GNUNET_OK if all is well, #GNUNET_NO if the message was
  *         immediately dropped due to memory limitations (communicator
  *         should try to apply back pressure),
- *         #GNUNET_SYSERR if the message is ill formed and communicator
- *         should try to reset stream
+ *         #GNUNET_SYSERR if the message could not be delivered because
+ *         the tranport service is not yet up
  */
 int
 GNUNET_TRANSPORT_communicator_receive (struct GNUNET_TRANSPORT_CommunicatorHandle *handle,
@@ -162,7 +162,7 @@ struct GNUNET_TRANSPORT_QueueHandle;
  * "inbound" connection or because the communicator discovered the
  * presence of another peer.
  *
- * @param handle connection to transport service
+ * @param ch connection to transport service
  * @param peer peer with which we can now communicate
  * @param address address in human-readable format, 0-terminated, UTF-8
  * @param nt which network type does the @a address belong to?
@@ -170,7 +170,7 @@ struct GNUNET_TRANSPORT_QueueHandle;
  * @return API handle identifying the new MQ
  */
 struct GNUNET_TRANSPORT_QueueHandle *
-GNUNET_TRANSPORT_communicator_mq_add (struct GNUNET_TRANSPORT_CommunicatorHandle *handle,
+GNUNET_TRANSPORT_communicator_mq_add (struct GNUNET_TRANSPORT_CommunicatorHandle *ch,
                                       const struct GNUNET_PeerIdentity *peer,
                                       const char *address,
                                       enum GNUNET_ATS_Network_Type nt,
@@ -198,16 +198,16 @@ struct GNUNET_TRANSPORT_AddressIdentifier;
  * Notify transport service about an address that this communicator
  * provides for this peer.
  *
- * @param handle connection to transport service
+ * @param ch connection to transport service
  * @param address our address in human-readable format, 0-terminated, UTF-8
  * @param nt which network type does the address belong to?
  * @param expiration when does the communicator forsee this address expiring?
  */
 struct GNUNET_TRANSPORT_AddressIdentifier *
-GNUNET_TRANSPORT_communicator_address_add (struct GNUNET_TRANSPORT_CommunicatorHandle *handle,
+GNUNET_TRANSPORT_communicator_address_add (struct GNUNET_TRANSPORT_CommunicatorHandle *ch,
                                            const char *address,
                                            enum GNUNET_ATS_Network_Type nt,
-                                           struct GNUNET_TIME_Absolute expiration);
+                                           struct GNUNET_TIME_Relative expiration);
 
 
 /**
