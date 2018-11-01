@@ -726,7 +726,7 @@ struct GNUNET_TRANSPORT_IncomingMessage
   /**
    * Sender identifier.
    */
-  struct GNUNET_PeerIdentity sender GNUNET_PACKED;
+  struct GNUNET_PeerIdentity sender;
 
   /* followed by the message */
 };
@@ -757,7 +757,7 @@ struct GNUNET_TRANSPORT_IncomingMessageAck
   /**
    * Sender identifier of the original message.
    */
-  struct GNUNET_PeerIdentity sender GNUNET_PACKED;
+  struct GNUNET_PeerIdentity sender;
 
 };
 
@@ -781,7 +781,7 @@ struct GNUNET_TRANSPORT_AddQueueMessage
   /**
    * Receiver that can be addressed via the queue.
    */
-  struct GNUNET_PeerIdentity receiver GNUNET_PACKED;
+  struct GNUNET_PeerIdentity receiver;
 
   /**
    * An `enum GNUNET_ATS_Network_Type` in NBO.
@@ -811,7 +811,7 @@ struct GNUNET_TRANSPORT_DelQueueMessage
   /**
    * Receiver that can be addressed via the queue.
    */
-  struct GNUNET_PeerIdentity receiver GNUNET_PACKED;
+  struct GNUNET_PeerIdentity receiver;
 
 };
 
@@ -835,7 +835,7 @@ struct GNUNET_TRANSPORT_CreateQueue
   /**
    * Receiver that can be addressed via the queue.
    */
-  struct GNUNET_PeerIdentity receiver GNUNET_PACKED;
+  struct GNUNET_PeerIdentity receiver;
 
   /* followed by UTF-8 encoded, 0-terminated human-readable address */
 };
@@ -865,7 +865,7 @@ struct GNUNET_TRANSPORT_SendMessageTo
   /**
    * Receiver identifier.
    */
-  struct GNUNET_PeerIdentity receiver GNUNET_PACKED;
+  struct GNUNET_PeerIdentity receiver;
 
   /* followed by the message */
 };
@@ -895,7 +895,7 @@ struct GNUNET_TRANSPORT_SendMessageToAck
   /**
    * Receiver identifier.
    */
-  struct GNUNET_PeerIdentity receiver GNUNET_PACKED;
+  struct GNUNET_PeerIdentity receiver;
 
 };
 
