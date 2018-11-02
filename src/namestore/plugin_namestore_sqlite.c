@@ -501,16 +501,10 @@ get_records_and_call_iterator (struct Plugin *plugin,
         GNUNET_SQ_result_spec_end
       };
 
-      if (NULL == zone_key)
-      {
-        ret = GNUNET_SQ_extract_result (stmt,
-                                        rsx);
-      }
-      else
-      {
-        ret = GNUNET_SQ_extract_result (stmt,
-                                        rs);
-      }
+      ret = GNUNET_SQ_extract_result (stmt,
+                                      (NULL == zone_key)
+                                      ? rsx
+                                      : rs);
       if ( (GNUNET_OK != ret) ||
            (record_count > 64 * 1024) )
       {
