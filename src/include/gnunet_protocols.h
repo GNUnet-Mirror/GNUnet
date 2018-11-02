@@ -1352,6 +1352,12 @@ extern "C"
  */
 #define GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_ITERATION_STOP 448
 
+/**
+ * Service to client: end of list of results
+ */
+#define GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_RESULT_END 449
+
+
 /*******************************************************************************
  * LOCKMANAGER message types
  ******************************************************************************/

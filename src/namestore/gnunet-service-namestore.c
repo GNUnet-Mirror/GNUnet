@@ -11,7 +11,7 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
@@ -1733,7 +1733,7 @@ run_zone_iteration_round (struct ZoneIteration *zi,
 {
   struct ZoneIterationProcResult proc;
   struct GNUNET_MQ_Envelope *env;
-  struct RecordResultMessage *rrm;
+  struct GNUNET_NAMESTORE_Header *em;
   struct GNUNET_TIME_Absolute start;
   struct GNUNET_TIME_Relative duration;
 
@@ -1778,9 +1778,9 @@ run_zone_iteration_round (struct ZoneIteration *zi,
               (unsigned long long) (limit - proc.limit),
               (unsigned long long) limit);
   /* send empty response to indicate end of list */
-  env = GNUNET_MQ_msg (rrm,
-                       GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_RESULT);
-  rrm->gns_header.r_id = htonl (zi->request_id);
+  env = GNUNET_MQ_msg (em,
+                       GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_RESULT_END);
+  em->r_id = htonl (zi->request_id);
   GNUNET_MQ_send (zi->nc->mq,
                   env);
   GNUNET_CONTAINER_DLL_remove (zi->nc->op_head,

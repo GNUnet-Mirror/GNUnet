@@ -11,7 +11,7 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
@@ -523,6 +523,7 @@ static int
 check_record_result (void *cls,
                      const struct RecordResultMessage *msg)
 {
+  static struct GNUNET_CRYPTO_EcdsaPrivateKey priv_dummy;
   const char *name;
   size_t msg_len;
   size_t name_len;
@@ -543,8 +544,15 @@ check_record_result (void *cls,
     return GNUNET_SYSERR;
   }
   name = (const char *) &msg[1];
-  if ( (name_len > 0) &&
+  if ( (0 == name_len) ||
        ('\0' != name[name_len -1]) )
+  {
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
+  if (0 == memcmp (&msg->private_key,
+                   &priv_dummy,
+                   sizeof (priv_dummy)) )
   {
     GNUNET_break (0);
     return GNUNET_SYSERR;
@@ -566,7 +574,6 @@ static void
 handle_record_result (void *cls,
 		      const struct RecordResultMessage *msg)
 {
-  static struct GNUNET_CRYPTO_EcdsaPrivateKey priv_dummy;
   struct GNUNET_NAMESTORE_Handle *h = cls;
   struct GNUNET_NAMESTORE_QueueEntry *qe;
   struct GNUNET_NAMESTORE_ZoneIterator *ze;
@@ -595,25 +602,6 @@ handle_record_result (void *cls,
     force_reconnect (h);
     return;
   }
-  if ( (0 == name_len) &&
-       (0 == (memcmp (&msg->private_key,
-		      &priv_dummy,
-		      sizeof (priv_dummy)))) )
-  {
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-	 "Zone iteration completed!\n");
-    if (NULL == ze)
-    {
-      GNUNET_break (0);
-      force_reconnect (h);
-      return;
-    }
-    if (NULL != ze->finish_cb)
-      ze->finish_cb (ze->finish_cb_cls);
-    free_ze (ze);
-    return;
-  }
-
   name = (const char *) &msg[1];
   rd_tmp = &name[name_len];
   {
@@ -649,6 +637,51 @@ handle_record_result (void *cls,
     }
   }
   GNUNET_assert (0);
+}
+
+
+/**
+ * Handle an incoming message of type
+ * #GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_RESULT_END
+ *
+ * @param cls
+ * @param msg the message we received
+ */
+static void
+handle_record_result_end (void *cls,
+                          const struct GNUNET_NAMESTORE_Header *msg)
+{
+  struct GNUNET_NAMESTORE_Handle *h = cls;
+  struct GNUNET_NAMESTORE_QueueEntry *qe;
+  struct GNUNET_NAMESTORE_ZoneIterator *ze;
+
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Received RECORD_RESULT_END\n");
+  ze = find_zi (h,
+                ntohl (msg->r_id));
+  qe = find_qe (h,
+                ntohl (msg->r_id));
+  if ( (NULL == ze) &&
+       (NULL == qe) )
+    return; /* rid not found */
+  if ( (NULL != ze) &&
+       (NULL != qe) )
+  {
+    GNUNET_break (0);   /* rid ambigous */
+    force_reconnect (h);
+    return;
+  }
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Zone iteration completed!\n");
+  if (NULL == ze)
+  {
+    GNUNET_break (0);
+    force_reconnect (h);
+    return;
+  }
+  if (NULL != ze->finish_cb)
+    ze->finish_cb (ze->finish_cb_cls);
+  free_ze (ze);
 }
 
 
@@ -810,6 +843,10 @@ reconnect (struct GNUNET_NAMESTORE_Handle *h)
                            GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_RESULT,
                            struct RecordResultMessage,
                            h),
+    GNUNET_MQ_hd_fixed_size (record_result_end,
+                             GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_RESULT_END,
+                             struct GNUNET_NAMESTORE_Header,
+                             h),
     GNUNET_MQ_hd_var_size (lookup_result,
                            GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_LOOKUP_RESPONSE,
                            struct LabelLookupResponseMessage,
