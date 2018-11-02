@@ -83,14 +83,28 @@ enum STAT_TYPE
   STAT_TYPE_BLOCKS_NO_PUSH_NO_PULL,   /*   6 */
   STAT_TYPE_ISSUED_PUSH_SEND,         /*   7 */
   STAT_TYPE_ISSUED_PULL_REQ,          /*   8 */
-  STAT_TYPE_ISSUED_PULL_REP,          /*  9 */
-  STAT_TYPE_SENT_PUSH_SEND,           /*  10 */
-  STAT_TYPE_SENT_PULL_REQ,            /*  11 */
-  STAT_TYPE_SENT_PULL_REP,            /*  12 */
-  STAT_TYPE_RECV_PUSH_SEND,           /*  13 */
-  STAT_TYPE_RECV_PULL_REQ,            /*  14 */
-  STAT_TYPE_RECV_PULL_REP,            /*  15 */
-  STAT_TYPE_MAX,                      /*  16 */
+  STAT_TYPE_ISSUED_PULL_REQ_MH,       /*   9 */
+  STAT_TYPE_ISSUED_PULL_REP,          /*  10 */
+  STAT_TYPE_SENT_PUSH_SEND,           /*  11 */
+  STAT_TYPE_SENT_PULL_REQ,            /*  12 */
+  STAT_TYPE_SENT_PULL_REQ_MH,         /*  13 */
+  STAT_TYPE_SENT_PULL_REP,            /*  14 */
+  STAT_TYPE_RECV_PUSH_SEND,           /*  15 */
+  STAT_TYPE_RECV_PULL_REQ,            /*  16 */
+  STAT_TYPE_RECV_PULL_REQ_MH,         /*  17 */
+  STAT_TYPE_RECV_PULL_REP,            /*  18 */
+  STAT_TYPE_RECV_PULL_REP_MH,         /*  19 */
+  STAT_TYPE_VIEW_SIZE,                /*  20 */
+  STAT_TYPE_KNOWN_PEERS,              /*  21 */
+  STAT_TYPE_VALID_PEERS,              /*  22 */
+  STAT_TYPE_LEARND_PEERS,             /*  23 */
+  STAT_TYPE_PENDING_ONLINE_CHECKS,    /*  24 */
+  STAT_TYPE_UNREQUESTED_PULL_REPLIES, /*  25 */
+  STAT_TYPE_PEERS_IN_PUSH_MAP,        /*  26 */
+  STAT_TYPE_PEERS_IN_PULL_MAP,        /*  27 */
+  STAT_TYPE_PEERS_IN_VIEW,            /*  28 */
+  STAT_TYPE_VIEW_SIZE_AIM,            /*  29 */
+  STAT_TYPE_MAX,                      /*  30 */
 };
 
 static char* stat_type_strings[] = {
@@ -103,13 +117,27 @@ static char* stat_type_strings[] = {
   "# rounds blocked - no pushes, no pull replies",
   "# push send issued",
   "# pull request send issued",
+  "# pull request send issued (multi-hop peer)",
   "# pull reply send issued",
   "# pushes sent",
   "# pull requests sent",
+  "# pull requests sent (multi-hop peer)",
   "# pull replys sent",
   "# push message received",
   "# pull request message received",
+  "# pull request message received (multi-hop peer)",
   "# pull reply messages received",
+  "# pull reply messages received (multi-hop peer)",
+  "view size",
+  "# known peers",
+  "# valid peers",
+  "# learnd peers",
+  "# pending online checks",
+  "# unrequested pull replies",
+  "# peers in push map at end of round",
+  "# peers in pull map at end of round",
+  "# peers in view at end of round",
+  "view size aim",
 };
 
 struct STATcls
@@ -182,6 +210,12 @@ enum STAT_TYPE stat_str_2_type (const char *stat_str)
   {
     return STAT_TYPE_ISSUED_PULL_REQ;
   }
+  else if (0 == strncmp (stat_type_strings[STAT_TYPE_ISSUED_PULL_REQ_MH],
+                         stat_str,
+                         strlen (stat_type_strings[STAT_TYPE_ISSUED_PULL_REQ_MH])))
+  {
+    return STAT_TYPE_ISSUED_PULL_REQ_MH;
+  }
   else if (0 == strncmp (stat_type_strings[STAT_TYPE_ISSUED_PULL_REP],
                          stat_str,
                          strlen (stat_type_strings[STAT_TYPE_ISSUED_PULL_REP])))
@@ -199,6 +233,12 @@ enum STAT_TYPE stat_str_2_type (const char *stat_str)
                          strlen (stat_type_strings[STAT_TYPE_SENT_PULL_REQ])))
   {
     return STAT_TYPE_SENT_PULL_REQ;
+  }
+  else if (0 == strncmp (stat_type_strings[STAT_TYPE_SENT_PULL_REQ_MH],
+                         stat_str,
+                         strlen (stat_type_strings[STAT_TYPE_SENT_PULL_REQ_MH])))
+  {
+    return STAT_TYPE_SENT_PULL_REQ_MH;
   }
   else if (0 == strncmp (stat_type_strings[STAT_TYPE_SENT_PULL_REP],
                          stat_str,
@@ -218,11 +258,83 @@ enum STAT_TYPE stat_str_2_type (const char *stat_str)
   {
     return STAT_TYPE_RECV_PULL_REQ;
   }
+  else if (0 == strncmp (stat_type_strings[STAT_TYPE_RECV_PULL_REQ_MH],
+                         stat_str,
+                         strlen (stat_type_strings[STAT_TYPE_RECV_PULL_REQ_MH])))
+  {
+    return STAT_TYPE_RECV_PULL_REQ_MH;
+  }
   else if (0 == strncmp (stat_type_strings[STAT_TYPE_RECV_PULL_REP],
                          stat_str,
                          strlen (stat_type_strings[STAT_TYPE_RECV_PULL_REP])))
   {
     return STAT_TYPE_RECV_PULL_REP;
+  }
+  else if (0 == strncmp (stat_type_strings[STAT_TYPE_RECV_PULL_REP_MH],
+                         stat_str,
+                         strlen (stat_type_strings[STAT_TYPE_RECV_PULL_REP_MH])))
+  {
+    return STAT_TYPE_RECV_PULL_REP_MH;
+  }
+  else if (0 == strncmp (stat_type_strings[STAT_TYPE_VIEW_SIZE],
+                         stat_str,
+                         strlen (stat_type_strings[STAT_TYPE_VIEW_SIZE])))
+  {
+    return STAT_TYPE_VIEW_SIZE;
+  }
+  else if (0 == strncmp (stat_type_strings[STAT_TYPE_KNOWN_PEERS],
+                         stat_str,
+                         strlen (stat_type_strings[STAT_TYPE_KNOWN_PEERS])))
+  {
+    return STAT_TYPE_KNOWN_PEERS;
+  }
+  else if (0 == strncmp (stat_type_strings[STAT_TYPE_VALID_PEERS],
+                         stat_str,
+                         strlen (stat_type_strings[STAT_TYPE_VALID_PEERS])))
+  {
+    return STAT_TYPE_VALID_PEERS;
+  }
+  else if (0 == strncmp (stat_type_strings[STAT_TYPE_LEARND_PEERS],
+                         stat_str,
+                         strlen (stat_type_strings[STAT_TYPE_LEARND_PEERS])))
+  {
+    return STAT_TYPE_LEARND_PEERS;
+  }
+  else if (0 == strncmp (stat_type_strings[STAT_TYPE_PENDING_ONLINE_CHECKS],
+                         stat_str,
+                         strlen (stat_type_strings[STAT_TYPE_PENDING_ONLINE_CHECKS])))
+  {
+    return STAT_TYPE_PENDING_ONLINE_CHECKS;
+  }
+  else if (0 == strncmp (stat_type_strings[STAT_TYPE_UNREQUESTED_PULL_REPLIES],
+                         stat_str,
+                         strlen (stat_type_strings[STAT_TYPE_UNREQUESTED_PULL_REPLIES])))
+  {
+    return STAT_TYPE_UNREQUESTED_PULL_REPLIES;
+  }
+  else if (0 == strncmp (stat_type_strings[STAT_TYPE_PEERS_IN_PUSH_MAP],
+                         stat_str,
+                         strlen (stat_type_strings[STAT_TYPE_PEERS_IN_PUSH_MAP])))
+  {
+    return STAT_TYPE_PEERS_IN_PUSH_MAP;
+  }
+  else if (0 == strncmp (stat_type_strings[STAT_TYPE_PEERS_IN_PULL_MAP],
+                         stat_str,
+                         strlen (stat_type_strings[STAT_TYPE_PEERS_IN_PULL_MAP])))
+  {
+    return STAT_TYPE_PEERS_IN_PULL_MAP;
+  }
+  else if (0 == strncmp (stat_type_strings[STAT_TYPE_PEERS_IN_VIEW],
+                         stat_str,
+                         strlen (stat_type_strings[STAT_TYPE_PEERS_IN_VIEW])))
+  {
+    return STAT_TYPE_PEERS_IN_VIEW;
+  }
+  else if (0 == strncmp (stat_type_strings[STAT_TYPE_VIEW_SIZE_AIM],
+                         stat_str,
+                         strlen (stat_type_strings[STAT_TYPE_VIEW_SIZE_AIM])))
+  {
+    return STAT_TYPE_VIEW_SIZE_AIM;
   }
   return STAT_TYPE_MAX;
 }
@@ -2681,13 +2793,27 @@ run (void *cls,
                                     BIT(STAT_TYPE_BLOCKS_NO_PUSH_NO_PULL) |
                                     BIT(STAT_TYPE_ISSUED_PUSH_SEND) |
                                     BIT(STAT_TYPE_ISSUED_PULL_REQ) |
+                                    BIT(STAT_TYPE_ISSUED_PULL_REQ_MH) |
                                     BIT(STAT_TYPE_ISSUED_PULL_REP) |
                                     BIT(STAT_TYPE_SENT_PUSH_SEND) |
                                     BIT(STAT_TYPE_SENT_PULL_REQ) |
+                                    BIT(STAT_TYPE_SENT_PULL_REQ_MH) |
                                     BIT(STAT_TYPE_SENT_PULL_REP) |
                                     BIT(STAT_TYPE_RECV_PUSH_SEND) |
                                     BIT(STAT_TYPE_RECV_PULL_REQ) |
-                                    BIT(STAT_TYPE_RECV_PULL_REP);
+                                    BIT(STAT_TYPE_RECV_PULL_REQ_MH) |
+                                    BIT(STAT_TYPE_RECV_PULL_REP) |
+                                    BIT(STAT_TYPE_RECV_PULL_REP_MH) |
+                                    BIT(STAT_TYPE_VIEW_SIZE) |
+                                    BIT(STAT_TYPE_KNOWN_PEERS) |
+                                    BIT(STAT_TYPE_VALID_PEERS) |
+                                    BIT(STAT_TYPE_LEARND_PEERS) |
+                                    BIT(STAT_TYPE_PENDING_ONLINE_CHECKS) |
+                                    BIT(STAT_TYPE_UNREQUESTED_PULL_REPLIES) |
+                                    BIT(STAT_TYPE_PEERS_IN_PUSH_MAP) |
+                                    BIT(STAT_TYPE_PEERS_IN_PULL_MAP) |
+                                    BIT(STAT_TYPE_PEERS_IN_VIEW) |
+                                    BIT(STAT_TYPE_VIEW_SIZE_AIM);
   cur_test_run.have_collect_view = COLLECT_VIEW;
 
   /* 'Clean' directory */
