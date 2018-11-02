@@ -265,11 +265,15 @@ GNUNET_CONTAINER_multihashmap32_iterate (struct GNUNET_CONTAINER_MultiHashMap32 
         if (GNUNET_OK != it (it_cls,
 			     e->key,
 			     e->value))
+	{
+	  GNUNET_assert (--map->next_cache_off < NEXT_CACHE_SIZE);	
           return GNUNET_SYSERR;
+	}
       }
       count++;
     }
   }
+  GNUNET_assert (--map->next_cache_off < NEXT_CACHE_SIZE);
   return count;
 }
 
@@ -567,9 +571,13 @@ GNUNET_CONTAINER_multihashmap32_get_multiple (struct GNUNET_CONTAINER_MultiHashM
 	 (GNUNET_OK != it (it_cls,
 			   key,
 			   e->value)) )
-      return GNUNET_SYSERR;
+      {
+	GNUNET_assert (--map->next_cache_off < NEXT_CACHE_SIZE);
+	return GNUNET_SYSERR;
+      }
     count++;
   }
+  GNUNET_assert (--map->next_cache_off < NEXT_CACHE_SIZE);
   return count;
 }
 
