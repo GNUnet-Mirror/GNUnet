@@ -779,8 +779,7 @@ get_rand_peer_iterator (void *cls,
  * @return a random peer
  */
 static const struct GNUNET_PeerIdentity *
-get_random_peer_from_peermap (const struct
-                              GNUNET_CONTAINER_MultiPeerMap *valid_peers)
+get_random_peer_from_peermap (struct GNUNET_CONTAINER_MultiPeerMap *valid_peers)
 {
   struct GetRandPeerIteratorCls *iterator_cls;
   const struct GNUNET_PeerIdentity *ret;
@@ -1660,7 +1659,7 @@ valid_peer_iterator (void *cls,
  *         #GNUNET_SYSERR if it aborted iteration
  */
 static int
-get_valid_peers (const struct GNUNET_CONTAINER_MultiPeerMap *valid_peers,
+get_valid_peers (struct GNUNET_CONTAINER_MultiPeerMap *valid_peers,
                  PeersIterator iterator,
                  void *it_cls)
 {
