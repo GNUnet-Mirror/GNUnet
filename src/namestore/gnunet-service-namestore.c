@@ -624,7 +624,6 @@ send_lookup_response (struct NamestoreClient *nc,
   char *rd_ser;
 
   nick = get_nick_record (zone_key);
-
   GNUNET_assert (-1 !=
                  GNUNET_GNSRECORD_records_get_size (rd_count,
                                                     rd));
@@ -925,7 +924,7 @@ continue_store_activity (struct StoreActivity *sa)
                          sizeof (struct GNUNET_CRYPTO_EcdsaPrivateKey))) )
 	{
 	  sa->zm_pos = zm->next; /* not interesting to this monitor */
-	  continue; // -- fails tests, but why not here?
+	  continue;
 	}
       if (zm->limit == zm->iteration_cnt)
       {
@@ -1771,7 +1770,7 @@ run_zone_iteration_round (struct ZoneIteration *zi,
                 "Returned %llu results, more results available\n",
                 (unsigned long long) limit);
     return; /* more results later after we get the
-#GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_ITERATION_NEXT message */
+               #GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_ITERATION_NEXT message */
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Completed iteration after %llu/%llu results\n",
