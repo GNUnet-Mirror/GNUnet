@@ -68,10 +68,10 @@ static struct GNUNET_RESOLVER_RequestHandle *req_head;
  */
 static struct GNUNET_RESOLVER_RequestHandle *req_tail;
 
-///**
-// * ID of the last request we sent to the service
-// */
-//static uint16_t last_request_id;
+/**
+ * ID of the last request we sent to the service
+ */
+static uint32_t last_request_id;
 
 /**
  * How long should we wait to reconnect?
@@ -445,7 +445,7 @@ process_requests ()
                              GNUNET_MESSAGE_TYPE_RESOLVER_REQUEST);
   msg->direction = htonl (rh->direction);
   msg->af = htonl (rh->af);
-  msg->id = htons (rh->id);
+  msg->client_id = rh->id;
   GNUNET_memcpy (&msg[1],
 		 &rh[1],
 		 rh->data_len);
@@ -491,11 +491,11 @@ handle_response (void *cls,
   struct GNUNET_RESOLVER_RequestHandle *rh = req_head;
   uint16_t size;
   char *nret;
-  uint16_t request_id = msg->id;
+  uint32_t client_request_id = msg->client_id;
 
   for (; rh != NULL; rh = rh->next)
   {
-    if (rh->id == request_id)
+    if (rh->id == client_request_id)
       break;
   }
 
@@ -911,14 +911,6 @@ handle_lookup_timeout (void *cls)
 }
 
 
-static uint16_t
-get_request_id ()
-{
-  return (uint16_t) GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_NONCE,
-                                              UINT16_MAX);
-}
-
-
 /**
  * Convert a string to one or more IP addresses.
  *
@@ -953,8 +945,7 @@ GNUNET_RESOLVER_ip_get (const char *hostname,
        hostname);
   rh = GNUNET_malloc (sizeof (struct GNUNET_RESOLVER_RequestHandle) + slen);
   rh->af = af;
-  //rh->id = ++last_request_id;
-  rh->id = get_request_id ();
+  rh->id = ++last_request_id;
   rh->addr_callback = callback;
   rh->cls = callback_cls;
   GNUNET_memcpy (&rh[1],
@@ -1101,8 +1092,7 @@ GNUNET_RESOLVER_hostname_get (const struct sockaddr *sa,
   rh->name_callback = callback;
   rh->cls = cls;
   rh->af = sa->sa_family;
-  //rh->id = ++last_request_id;
-  rh->id = get_request_id ();
+  rh->id = ++last_request_id;
   rh->timeout = GNUNET_TIME_relative_to_absolute (timeout);
   GNUNET_memcpy (&rh[1],
 		 ip,

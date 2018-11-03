@@ -909,6 +909,7 @@ cancel_request (struct PendingReply *pending_rep)
   rps_peer->num_pending_reps--;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Cancelling rps get reply\n");
+  GNUNET_assert (NULL != pending_rep->req_handle);
   GNUNET_RPS_request_cancel (pending_rep->req_handle);
   GNUNET_free (pending_rep);
 }
@@ -1288,7 +1289,11 @@ rps_disconnect_adapter (void *cls,
       cancel_request (pending_rep);
     }
     GNUNET_assert (h == peer->rps_handle);
-    GNUNET_RPS_disconnect (h);
+    if (NULL != h)
+    {
+      GNUNET_RPS_disconnect (h);
+      h = NULL;
+    }
     peer->rps_handle = NULL;
   }
 }
@@ -1788,6 +1793,7 @@ profiler_reply_handle (void *cls,
   unsigned int i;
   struct PendingReply *pending_rep = (struct PendingReply *) cls;
 
+  pending_rep->req_handle = NULL;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "profiler_reply_handle()\n");
   rps_peer = pending_rep->rps_peer;
   (void) GNUNET_asprintf (&file_name,
@@ -2426,10 +2432,10 @@ post_test_shutdown_ready_cb (void *cls,
     GNUNET_TESTBED_operation_done (rps_peer->stat_op);
   }
 
-  //write_final_stats ();
+  write_final_stats ();
   if (GNUNET_YES == check_statistics_collect_completed())
   {
-    write_final_stats ();
+    //write_final_stats ();
     GNUNET_free (stat_cls);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
         "Shutting down\n");

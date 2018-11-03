@@ -1,7 +1,6 @@
-.TH gnunet-directory "1" "25 Feb 2012" "GNUnet"
+.TH GNUNET-DIRECTORY "1" "February 25, 2012" "GNUnet"
 .SH NAME
 gnunet\-directory \- display directories
-
 .SH SYNOPSIS
 .B gnunet\-directory
 [\fIOPTIONS\fR] (FILENAME)*
@@ -37,7 +36,7 @@ availability but does not produce useless duplicates (for example, it is a
 better idea to publish a collection of pictures or compressed sound files
 using a GNUnet directory instead of processing them with archivers such as
 tar or zip first).  Directories can contain arbitrary meta data for each file.
-
+.PP
 If a directory has missing blocks (for example, some blocks failed to download),
 GNUnet is typically able to retrieve information about other files in the
 directory.  Files in a GNUnet directory have no particular order; the GNUnet
@@ -45,18 +44,40 @@ code that generates a directory can reorder the entries in order to better
 fit the information about files into blocks of 32k.  Respecting 32k boundaries
 where possible makes it easier for gnunet\-directory (and other tools) to
 recover information from partially downloaded directory files.
-
+.PP
 At the moment, directories can be created by \fBgnunet\-fs\-gtk\fP
 and \fBgnunet\-publish\fP.  Just like ordinary files, a directory can be
 published in a namespace.
-
+.PP
 GNUnet directories use the (unregistered)
 mimetype \fBapplication/gnunet\-directory\fP.  They can show up among normal
 search results.  The directory file can be downloaded to disk
 by \fBgnunet\-download\fP(1) for later processing or be handled more directly
 by \fBgnunet\-fs\-gtk\fP(1).
 
-.SH "REPORTING BUGS"
-Report bugs by using mantis <https://gnunet.org/bugs/> or by sending electronic mail to <gnunet\-developers@gnu.org>
-.SH "SEE ALSO"
-\fBgnunet\-fs\-gtk\fP(1), \fBgnunet\-publish\fP(1), \fBgnunet\-search\fP(1), \fBgnunet\-download\fP(1)
+.SH BUGS
+Report bugs by using mantis <https://gnunet.org/bugs/> or by sending
+electronic mail to <gnunet\-developers@gnu.org>
+.SH SEE ALSO
+\fBgnunet\-fs\-gtk\fP(1), \fBgnunet\-publish\fP(1),
+\fBgnunet\-search\fP(1), \fBgnunet\-download\fP(1)
+The full documentation for
+.B gnunet
+is maintained as a Texinfo manual.
+If the
+.B info
+and
+.B gnunet
+programs are properly installed at your site, the command
+.IP
+.B info gnunet
+.PP
+should give you access to the complete handbook,
+.IP
+.B info gnunet-c-tutorial
+.PP
+will give you access to a tutorial for developers.
+.PP
+Depending on your installation, this information is also
+available in
+\fBgnunet\fP(7) and \fBgnunet-c-tutorial\fP(7).

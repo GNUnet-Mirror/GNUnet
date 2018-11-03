@@ -644,6 +644,263 @@ struct TransportPluginMonitorMessage
 };
 
 
+
+
+
+
+
+
+
+/* *********************** TNG messages ***************** */
+
+/**
+ * Add address to the list.
+ */
+struct GNUNET_TRANSPORT_AddAddressMessage
+{
+
+  /**
+   * Type will be #GNUNET_MESSAGE_TYPE_TRANSPORT_ADD_ADDRESS.
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Address identifier (used during deletion).
+   */
+  uint32_t aid GNUNET_PACKED;
+
+  /**
+   * When does the address expire?
+   */
+  struct GNUNET_TIME_RelativeNBO expiration;
+
+  /**
+   * An `enum GNUNET_ATS_Network_Type` in NBO.
+   */
+  uint32_t nt;
+  
+  /* followed by UTF-8 encoded, 0-terminated human-readable address */
+};
+
+
+/**
+ * Remove address from the list.
+ */
+struct GNUNET_TRANSPORT_DelAddressMessage
+{
+
+  /**
+   * Type will be #GNUNET_MESSAGE_TYPE_TRANSPORT_DEL_ADDRESS.
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Address identifier.
+   */
+  uint32_t aid GNUNET_PACKED;
+
+};
+
+
+/**
+ * Inform transport about an incoming message.
+ */
+struct GNUNET_TRANSPORT_IncomingMessage
+{
+
+  /**
+   * Type will be #GNUNET_MESSAGE_TYPE_TRANSPORT_INCOMING_MSG.
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Do we use flow control or not?
+   */
+  uint32_t fc_on GNUNET_PACKED;
+  
+  /**
+   * 64-bit number to identify the matching ACK.
+   */
+  uint64_t fc_id GNUNET_PACKED;
+  
+  /**
+   * Sender identifier.
+   */
+  struct GNUNET_PeerIdentity sender;
+
+  /* followed by the message */
+};
+
+
+/**
+ * Transport informs us about being done with an incoming message.
+ * (only sent if fc_on was set).
+ */
+struct GNUNET_TRANSPORT_IncomingMessageAck
+{
+
+  /**
+   * Type will be #GNUNET_MESSAGE_TYPE_TRANSPORT_INCOMING_MSG_ACK.
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Reserved (0)
+   */
+  uint32_t reserved GNUNET_PACKED;
+  
+  /**
+   * Which message is being ACKed?
+   */
+  uint64_t fc_id GNUNET_PACKED;
+  
+  /**
+   * Sender identifier of the original message.
+   */
+  struct GNUNET_PeerIdentity sender;
+
+};
+
+
+/**
+ * Add queue to the transport
+ */
+struct GNUNET_TRANSPORT_AddQueueMessage
+{
+
+  /**
+   * Type will be #GNUNET_MESSAGE_TYPE_TRANSPORT_ADD_QUEUE.
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Queue identifier (used to identify the queue).
+   */
+  uint32_t qid GNUNET_PACKED;
+
+  /**
+   * Receiver that can be addressed via the queue.
+   */
+  struct GNUNET_PeerIdentity receiver;
+
+  /**
+   * An `enum GNUNET_ATS_Network_Type` in NBO.
+   */
+  uint32_t nt;
+  
+  /* followed by UTF-8 encoded, 0-terminated human-readable address */
+};
+
+
+/**
+ * Remove queue, it is no longer available.
+ */
+struct GNUNET_TRANSPORT_DelQueueMessage
+{
+
+  /**
+   * Type will be #GNUNET_MESSAGE_TYPE_TRANSPORT_DEL_QUEUE.
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Address identifier.
+   */
+  uint32_t qid GNUNET_PACKED;
+
+  /**
+   * Receiver that can be addressed via the queue.
+   */
+  struct GNUNET_PeerIdentity receiver;
+
+};
+
+
+/**
+ * Transport tells communicator that it wants a new queue.
+ */
+struct GNUNET_TRANSPORT_CreateQueue
+{
+
+  /**
+   * Type will be #GNUNET_MESSAGE_TYPE_TRANSPORT_QUEUE_CREATE.
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Always zero.
+   */
+  uint32_t reserved GNUNET_PACKED;
+
+  /**
+   * Receiver that can be addressed via the queue.
+   */
+  struct GNUNET_PeerIdentity receiver;
+
+  /* followed by UTF-8 encoded, 0-terminated human-readable address */
+};
+
+
+/**
+ * Inform communicator about transport's desire to send a message.
+ */
+struct GNUNET_TRANSPORT_SendMessageTo
+{
+
+  /**
+   * Type will be #GNUNET_MESSAGE_TYPE_TRANSPORT_SEND_MSG.
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Which queue should we use?
+   */
+  uint32_t qid GNUNET_PACKED;
+
+  /**
+   * Message ID, used for flow control.
+   */
+  uint64_t mid GNUNET_PACKED;
+  
+  /**
+   * Receiver identifier.
+   */
+  struct GNUNET_PeerIdentity receiver;
+
+  /* followed by the message */
+};
+
+
+/**
+ * Inform transport that message was sent.
+ */
+struct GNUNET_TRANSPORT_SendMessageToAck
+{
+
+  /**
+   * Type will be #GNUNET_MESSAGE_TYPE_TRANSPORT_SEND_MSG_ACK.
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Success (#GNUNET_OK), failure (#GNUNET_SYSERR).
+   */
+  uint32_t status GNUNET_PACKED;
+
+  /**
+   * Message ID of the original message.
+   */
+  uint64_t mid GNUNET_PACKED;
+  
+  /**
+   * Receiver identifier.
+   */
+  struct GNUNET_PeerIdentity receiver;
+
+};
+
+
+
 GNUNET_NETWORK_STRUCT_END
 
 /* end of transport.h */

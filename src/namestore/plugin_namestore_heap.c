@@ -17,7 +17,7 @@
   */
 
 /**
- * @file namestore/plugin_namestore_flat.c
+ * @file namestore/plugin_namestore_heap.c
  * @brief file-based namestore backend
  * @author Martin Schanzenbach
  * @author Christian Grothoff
@@ -109,12 +109,12 @@ database_setup (struct Plugin *plugin)
 
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_filename (plugin->cfg,
-                                               "namestore-flat",
+                                               "namestore-heap",
                                                "FILENAME",
 					       &afsdir))
   {
     GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR,
-                               "namestore-flat",
+                               "namestore-heap",
 			       "FILENAME");
     return GNUNET_SYSERR;
   }
@@ -415,7 +415,7 @@ database_shutdown (struct Plugin *plugin)
  * @return #GNUNET_OK on success, else #GNUNET_SYSERR
  */
 static int
-namestore_flat_store_records (void *cls,
+namestore_heap_store_records (void *cls,
                               const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone_key,
                               const char *label,
                               unsigned int rd_count,
@@ -490,7 +490,7 @@ namestore_flat_store_records (void *cls,
  * @return #GNUNET_OK on success, #GNUNET_NO for no results, else #GNUNET_SYSERR
  */
 static int
-namestore_flat_lookup_records (void *cls,
+namestore_heap_lookup_records (void *cls,
                                const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone,
                                const char *label,
                                GNUNET_NAMESTORE_RecordIterator iter,
@@ -576,7 +576,7 @@ struct IterateContext
 
 
 /**
- * Helper function for #namestore_flat_iterate_records().
+ * Helper function for #namestore_heap_iterate_records().
  *
  * @param cls a `struct IterateContext`
  * @param key unused
@@ -607,7 +607,9 @@ iterate_zones (void *cls,
   }
   ic->iter (ic->iter_cls,
 	    ic->pos,
-            &entry->private_key,
+            (NULL == ic->zone) 
+	    ? &entry->private_key
+	    : ic->zone,
             entry->label,
             entry->record_count,
             entry->record_data);
@@ -631,7 +633,7 @@ iterate_zones (void *cls,
  * @return #GNUNET_OK on success, #GNUNET_NO if there were no more results, #GNUNET_SYSERR on error
  */
 static int
-namestore_flat_iterate_records (void *cls,
+namestore_heap_iterate_records (void *cls,
                                 const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone,
                                 uint64_t serial,
                                 uint64_t limit,
@@ -715,7 +717,7 @@ zone_to_name (void *cls,
  * @return #GNUNET_OK on success, #GNUNET_NO if there were no results, #GNUNET_SYSERR on error
  */
 static int
-namestore_flat_zone_to_name (void *cls,
+namestore_heap_zone_to_name (void *cls,
                              const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone,
                              const struct GNUNET_CRYPTO_EcdsaPublicKey *value_zone,
                              GNUNET_NAMESTORE_RecordIterator iter,
@@ -747,7 +749,7 @@ namestore_flat_zone_to_name (void *cls,
  * @return NULL on error, otherwise the plugin context
  */
 void *
-libgnunet_plugin_namestore_flat_init (void *cls)
+libgnunet_plugin_namestore_heap_init (void *cls)
 {
   static struct Plugin plugin;
   const struct GNUNET_CONFIGURATION_Handle *cfg = cls;
@@ -766,12 +768,12 @@ libgnunet_plugin_namestore_flat_init (void *cls)
   }
   api = GNUNET_new (struct GNUNET_NAMESTORE_PluginFunctions);
   api->cls = &plugin;
-  api->store_records = &namestore_flat_store_records;
-  api->iterate_records = &namestore_flat_iterate_records;
-  api->zone_to_name = &namestore_flat_zone_to_name;
-  api->lookup_records = &namestore_flat_lookup_records;
+  api->store_records = &namestore_heap_store_records;
+  api->iterate_records = &namestore_heap_iterate_records;
+  api->zone_to_name = &namestore_heap_zone_to_name;
+  api->lookup_records = &namestore_heap_lookup_records;
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              _("flat file database running\n"));
+              _("heap file database running\n"));
   return api;
 }
 
@@ -783,7 +785,7 @@ libgnunet_plugin_namestore_flat_init (void *cls)
  * @return always NULL
  */
 void *
-libgnunet_plugin_namestore_flat_done (void *cls)
+libgnunet_plugin_namestore_heap_done (void *cls)
 {
   struct GNUNET_NAMESTORE_PluginFunctions *api = cls;
   struct Plugin *plugin = api->cls;
@@ -792,8 +794,8 @@ libgnunet_plugin_namestore_flat_done (void *cls)
   plugin->cfg = NULL;
   GNUNET_free (api);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "flat file plugin is finished\n");
+              "heap file plugin is finished\n");
   return NULL;
 }
 
-/* end of plugin_namestore_flat.c */
+/* end of plugin_namestore_heap.c */

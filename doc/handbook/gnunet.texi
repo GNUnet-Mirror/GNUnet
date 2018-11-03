@@ -3,15 +3,14 @@
 @setfilename gnunet.info
 @documentencoding UTF-8
 @settitle GNUnet Reference Manual
-@exampleindent 2
-
-@include version.texi
+@c @exampleindent 2
 
 @c Set Versions which might be used in more than one place:
 @set GNUFTP-URL https://ftp.gnu.org/gnu/gnunet
 @set PYPI-URL https://pypi.python.org/packages/source
 @set GNURL-VERSION-CURRENT 7.55.1
 @set GNUNET-DIST-URL https://gnunet.org/sites/default/files/
+@include version.texi
 @c @set OPENPGP-SIGNING-KEY-ID
 
 @copying
@@ -59,7 +58,6 @@ Foundation Web site at @url{http://www.gnu.org/licenses/gpl.html}.
 @page
 @vskip 0pt plus 1filll
 Edition @value{EDITION} @*
-@value{UPDATED} @*
 
 @insertcopying
 @end titlepage

@@ -21,11 +21,11 @@
 AC_PREREQ(2.61)
 # Checks for programs.
 AC_INIT([gnunet], [0.11.0pre66], [bug-gnunet@gnu.org])
+AC_CONFIG_AUX_DIR([build-aux])
 
 AC_CANONICAL_TARGET
 AC_CANONICAL_HOST
 AC_CANONICAL_SYSTEM
-
 AM_INIT_AUTOMAKE
 m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
 AC_CONFIG_HEADERS([gnunet_config.h])
@@ -244,7 +244,6 @@ else
 AC_MSG_WARN([warning: 'ifconfig' not found.])
 fi
 
-
 # miniupnpc / upnpc binary is a soft runtime requirement
 AC_PATH_TARGET_TOOL(VAR_UPNPC_BINARY, upnpc, false)
 
@@ -301,10 +300,32 @@ then
 fi
 AC_DEFINE_UNQUOTED([NEED_LIBGCRYPT_VERSION], "$NEED_LIBGCRYPT_VERSION", [required libgcrypt version])
 
-# TODO: add check for VERSION
+# Check for makeinfo version >= 5, required for building documentation.
+# TODO: invalid version should imply --disable-documentation (and
+# maybe --with-section7).
 # TODO: add check for alternatives
 # TODO: add switch to skip documentation building
-AM_MISSING_PROG([MAKEINFO], [makeinfo])
+have_makeinfo_5=false
+AC_PROG_SED
+AC_CHECK_PROG([MAKEINFO_FOUND], [makeinfo], [yes])
+if test x"${MAKEINFO_FOUND}" = xyes
+then
+  MAKEINFO_VERSION_REQ=5
+  AC_MSG_CHECKING([for makeinfo version >= $MAKEINFO_VERSION_REQ])
+  # XXX: is this sed invocation portable?
+  MAKEINFO_VERSION=`makeinfo --version | sed -ne 's/^\(makeinfo\|texi2any\) .* \([[0-9]][[0-9]]*\)\.[[0-9]][[0-9]]*.*$/\2/p'`
+  if test x$MAKEINFO_VERSION = x -o 0$MAKEINFO_VERSION -lt $MAKEINFO_VERSION_REQ
+  then
+    AC_MSG_RESULT([no])
+    AC_MSG_FAILURE([Program 'makeinfo' version >= $MAKEINFO_VERSION_REQ is required.])
+  else
+    AC_MSG_RESULT([yes])
+    have_makeinfo_5=true
+  fi
+else
+    AC_MSG_FAILURE([Missing program 'makeinfo', Documentation will not be built. Please install it if you want 'info' documentation or refer to online resources at 'https://docs.gnunet.org'.])
+fi
+AM_CONDITIONAL([HAVE_MAKEINFO_5], [test x$have_makeinfo_5 = xtrue])
 
 # Adam shostack suggests the following for Windows:
 # -D_FORTIFY_SOURCE=2 -fstack-protector-all
@@ -699,8 +720,15 @@ AC_ARG_ENABLE([section7],
 AC_MSG_RESULT($section7)
 if test "x$section7" = "xyes"
 then
+  if test "$texi2mdoc" = 0
+  then
+  AC_MSG_WARN([ERROR: mdoc output currently requires texi2mdoc.])
+  AC_MSG_WARN([ERROR: texi2mdoc can be obtained via your Operating System])
+  AC_MSG_WARN([ERROR: package manager or from https://mandoc.bsd.lv/texi2mdoc/])
+  else
   AM_CONDITIONAL([SECTION7],true)
   AC_DEFINE([SECTION7],[1],[Building section 7 mdoc output])
+  fi
 else
   AM_CONDITIONAL([SECTION7],false)
   AC_DEFINE([SECTION7],[0],[Not building section 7 mdoc output])
@@ -820,28 +848,93 @@ fi
 # restore LIBS
 LIBS=$SAVE_LIBS
 
+# libidn and libidn2. The ideal goal is this:
+# check for libidn2, if it doesn't exist check for libidn
+# if both exist, prefer libidn2
+# if none exist, fail and message that libidn or libidn2
+# is required with a preference for libidn2.
+# TODO: What we have right here can probably be improved.
+my_with_libidn=1
+AC_ARG_WITH(libidn,
+            AS_HELP_STRING([--with-libidn=pathname],
+                           [Support IDN (needs libidn)]),
+            [],
+            [withval="yes"])
+AS_IF([test x_$withval = x_yes],
+      [AC_CHECK_HEADERS([idna.h],
+          AC_MSG_NOTICE([Found idna.h]),
+          AC_CHECK_HEADERS([idn/idna.h],
+               AC_MSG_NOTICE([Found idn/idna.h]),
+               my_with_libidn=0))],
+      [AS_IF([test x_$withval != x_no],
+             [CFLAGS="$CFLAGS -I$withval/include"
+              LDFLAGS="$LDFLAGS -L$withval/lib"
+              AC_CHECK_HEADERS([idna.h],
+                AC_MSG_NOTICE([Found idna.h]),
+	        [AC_MSG_NOTICE([Failed to find idna.h])
+                 my_with_libidn=0])],
+             [my_with_libidn=0])])
 
-# libidn
-AC_MSG_CHECKING([if Libidn can be used])
-AC_ARG_WITH(libidn, AC_HELP_STRING([--with-libidn=[DIR]],
-                                    [Support IDN (needs GNU Libidn)]),
-libidn=$withval, libidn=yes)
-if test "$libidn" != "no"; then
-  if test "$libidn" != "yes"; then
-     LDFLAGS="${LDFLAGS} -L$libidn/lib"
-     CPPFLAGS="${CPPFLAGS} -I$libidn/include"
-  fi
-fi
-libidn=no
-AC_CHECK_HEADER(idna.h,
-  AC_CHECK_LIB(idn, stringprep_check_version,
-    [libidn=yes LIBS="${LIBS} -lidn"], []), [])
-if test "$libidn" != "yes"; then
-  AC_MSG_FAILURE([GNUnet requires libidn.
-libidn-1.13 should be sufficient, newer versions work too.])
-fi
-AC_MSG_RESULT($libidn)
+my_with_libidn2=1
+AC_ARG_WITH(libidn2,
+            AS_HELP_STRING([--with-libidn2=pathname],
+                           [Support IDN (needs libidn2)]),
+            [],
+            [withval="yes"])
+AS_IF([test x_$withval = x_yes],
+      [AC_CHECK_HEADERS([idn2.h],
+       AC_MSG_NOTICE([Found idn2.h]),
+       AC_CHECK_HEADERS([idn2/idn2.h],
+          AC_MSG_NOTICE([Found idn2/idn2.h]),
+          [AC_MSG_NOTICE([Failed to find idn2.h])
+           my_with_libidn2=0]))],
+      [AS_IF([test x_$withval != x_no],
+             [CFLAGS="$CFLAGS -I$withval/include"
+              LDFLAGS="$LDFLAGS -L$withval/lib"],
+	     [my_with_libidn2=0])])
 
+AC_MSG_CHECKING([if libidn can be used])
+# Check for LIBIDNs
+there_can_only_be_one=1
+
+working_libidn1=0
+working_libidn2=0
+AS_IF([test x$my_with_libidn2 = x1],
+      [AC_MSG_NOTICE([Checking for libidn2])
+       AC_CHECK_LIB([idn2],
+                    [idn2_to_unicode_8z8z],
+                    [working_libidn2=1
+                    LIBS="-lidn2 $LIBS"
+ 	            AC_DEFINE_UNQUOTED([HAVE_LIBIDN2],
+                                       [1],
+                                        [Define to 1 if you have 'libidn2' (-lidn).])],
+                     [MISSING_DEPS="${MISSING_DEPS}${MISSING_SEP}libidn2"
+                     MISSING_SEP=", "])])
+AM_CONDITIONAL(HAVE_LIBIDN2, test x$working_libidn2 = x1)
+AS_IF([test x$working_libidn2 = x0],
+      [AS_IF([test x$my_with_libidn = x1],
+             [AC_MSG_NOTICE([Checking for libidn])
+              AC_CHECK_LIB([idn],
+                           [idna_to_ascii_8z],
+                           [working_libidn1=1
+	                   LIBS="-lidn $LIBS"			     
+                             AC_DEFINE_UNQUOTED([HAVE_LIBIDN],
+                                                [1],
+                                                [Define to 1 if you have 'libidn' (-lidn).])],
+                             [there_can_only_be_one=0])],
+             [AS_IF([test x$my_with_libidn2 = x1],
+                    [there_can_only_be_one=0
+                     AC_MSG_FAILURE([* There can only be one libidn.
+                                     * Provide either libidn >= 1.13
+                                     * or
+                                     * libidn2 to the configure
+                                     * script via
+                                     * --with-libidn2
+                                     * --with-libidn])])])])
+AM_CONDITIONAL(HAVE_LIBIDN, test x$working_libidn1 = x1)
+
+AS_IF([test x$there_can_only_be_one = x0],
+      [AC_MSG_FAILURE([Missing dependencies: $MISSING_DEPS])])
 
 # test for zlib
 SAVE_LDFLAGS=$LDFLAGS
@@ -1680,7 +1773,8 @@ contrib/Makefile
 doc/Makefile
 doc/man/Makefile
 doc/doxygen/Makefile
-doc/documentation/Makefile
+doc/handbook/Makefile
+doc/tutorial/Makefile
 m4/Makefile
 po/Makefile.in
 src/Makefile
@@ -1836,115 +1930,80 @@ AC_OUTPUT
 # Finally: summary!
 
 # warn user if mysql found but not used due to version
-if test "$mysqlfail" = "true"
-then
-  AC_MSG_NOTICE([WARNING: MySQL found, but too old. MySQL support will not be compiled.])
-fi
+AS_IF([test "$mysqlfail" = "true"]
+      [AC_MSG_NOTICE([WARNING: optional MySQL not found (or too old)])])
 
 # sqlite
-if test "x$sqlite" = "x0"
-then
-  AC_MSG_ERROR([ERROR: sqlite3 not found, but sqlite3 is required.])
-fi
+AS_IF([test "x$sqlite" = "x0"],
+      [AC_MSG_ERROR([ERROR: sqlite3 not found, but sqlite3 is required.])])
 
 # libgnurl
-if test "$gnurl" = "0"
-then
-  if test "x$curl" = "xfalse"
-  then
-    AC_MSG_NOTICE([WARNING: libgnurl not found.  http client support will not be compiled.])
-    AC_MSG_WARN([ERROR: libgnurl not found.  hostlist daemon will not be compiled, and you probably WANT the hostlist daemon])
-  else
-    AC_MSG_NOTICE([WARNING: libgnurl not found, trying to use libcurl-gnutls instead.])
-  fi
-fi
-
+AS_IF([test "$gnurl" = "0"],
+  [AS_IF([test "x$curl" = "xfalse"],
+    [AC_MSG_NOTICE([WARNING: libgnurl not found.  http client support will not be compiled.])
+     AC_MSG_WARN([ERROR: libgnurl not found.  hostlist daemon will not be compiled, and you probably WANT the hostlist daemon])],
+    [AC_MSG_NOTICE([WARNING: libgnurl not found, trying to use libcurl-gnutls instead.])])])
 
 # bluetooth
-if test "x$bluetooth" = "x0"
-then
-  AC_MSG_NOTICE([WARNING: bluetooth library not found.  bluetooth support will not be compiled.])
-fi
+AS_IF([test "x$bluetooth" = "x0"],
+      [AC_MSG_NOTICE([WARNING: optional bluetooth library not found.])])
+
 
 # jansson
-if test "x$jansson" = "x0"
-then
-  AC_MSG_NOTICE([WARNING: jansson library not found.  json support will not be compiled.])
-fi
+AS_IF([test "x$jansson" = "x0"],
+      [AC_MSG_NOTICE([WARNING: optional jansson library not found.])])
 
 #
 # FIXME: `some modules' -> be more specific which exact modules.
 #
 
 # warn user if iptables is not found
-if test "$VAR_IPTABLES_BINARY" = "false"
-then
-AC_MSG_NOTICE([WARNING: iptables not found. some modules may not have full functionality.])
-fi
+AS_IF([test "$VAR_IPTABLES_BINARY" = "false"],
+ [AC_MSG_NOTICE([WARNING: optional iptables not found])])
 
 # warn user if ifconfig is not found
-if test "$VAR_IFCONFIG_BINARY" = "false"
-then
-AC_MSG_NOTICE([WARNING: ifconfig not found. some modules may not have full functionality.])
-fi
+AS_IF([test "$VAR_IFCONFIG_BINARY" = "false"],
+ [AC_MSG_NOTICE([WARNING: optional ifconfig not found])])
 
 # warn user if upnpc binary is not found
-if test "$VAR_UPNPC_BINARY" = "false"
-then
-AC_MSG_NOTICE([WARNING: upnpc binary not found. some modules may not have full functionality.])
-fi
+AS_IF([test "$VAR_UPNPC_BINARY" = "false"],
+  [AC_MSG_NOTICE([WARNING: optional upnpc binary not found])])
 
 #gnutls
-if test x$gnutls != xtrue
-then
-  AC_MSG_NOTICE([WARNING: GnuTLS not found, gnunet-gns-proxy will not be built])
-else
-if test "x$gnutls_dane" != "x1"
-then
-  AC_MSG_NOTICE([WARNING: GnuTLS has no DANE support, DANE validation will not be possible])
-fi
-fi
+AS_IF([test x$gnutls != xtrue],
+ [AC_MSG_NOTICE([WARNING: GnuTLS not found, gnunet-gns-proxy will not be built])],
+ [AS_IF([test "x$gnutls_dane" != "x1"],
+  [AC_MSG_NOTICE([WARNING: GnuTLS has no DANE support, DANE validation will not be possible])])])
 
 # java ports
-if test "x$enable_java_ports" = "xyes"
-then
-  AC_MSG_NOTICE([NOTICE: Opening ports for gnunet-java bindings by default.])
-fi
+AS_IF([test "x$enable_java_ports" = "xyes"],
+      [AC_MSG_NOTICE([NOTICE: Opening ports for gnunet-java bindings by default.])])
 
 # MHD
-if test "x$lmhd" != "x1"
-then
- AC_MSG_NOTICE([WARNING: libmicrohttpd not found, http transport will not be installed.])
-fi
+AS_IF([test "x$lmhd" != "x1"],
+      [AC_MSG_NOTICE([WARNING: optional libmicrohttpd not found])])
 
 # conversation
-if test "x$conversation_backend" = "xnone"
-then
-  if test "x$pulse" != "x1"
-  then
-    AC_MSG_NOTICE([WARNING: libpulse(audio) not found, conversation will not be built.])
-  fi
-  if test "x$opus" != "x1"
-  then
-   AC_MSG_NOTICE([WARNING: libopus not found, conversation will not be built.])
-  fi
-  if test "x$gst" != "x1"
-  then
-   AC_MSG_NOTICE([WARNING: GStreamer not found, conversation will not be built.])
-  fi
-fi
+AS_IF([test "x$conversation_backend" = "xnone"],
+ [AS_IF([test "x$pulse" != "x1"],
+   [AC_MSG_NOTICE([WARNING: libpulse(audio) not found, conversation will not be built.])])
+  AS_IF([test "x$opus" != "x1"],
+   [AC_MSG_NOTICE([WARNING: libopus not found, conversation will not be built.])])
+  AS_IF([test "x$gst" != "x1"],
+   [AC_MSG_NOTICE([WARNING: GStreamer not found, conversation will not be built.])])])
 
-if test "$extractor" != 1
-then
- AC_MSG_WARN([ERROR: libextractor not found, but various file-sharing functions require it])
-fi
+AS_IF([test "$extractor" != 1],
+      [AC_MSG_WARN([ERROR: libextractor not found, but various file-sharing functions require it])])
+
+AS_IF([test "x$working_libidn2" = x1],
+      [AC_MSG_NOTICE([INFO: Using libidn2])])
+AS_IF([test "x$working_libidn1" = x1],
+      [AC_MSG_NOTICE([INFO: Using libidn1])])
 
 AC_MSG_NOTICE([NOTICE: Database support is set to MySQL: $mysql, SQLite: $sqlite, Postgres: $postgres])
 
-if test "$enable_framework_build" = "yes"
-then
-  AC_MSG_NOTICE([Mac OS X framework build enabled.])
-fi
+AS_IF([test "$enable_framework_build" = "yes"],
+      [AC_MSG_NOTICE([Mac OS X framework build enabled.])])
 
 AC_MSG_NOTICE([********************************************
 Please make sure NOW that you have created a user and group 'gnunet'

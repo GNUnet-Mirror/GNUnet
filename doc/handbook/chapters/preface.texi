@@ -1,7 +1,6 @@
 @node Preface
 @chapter Preface
 
-@c introductionary words here
 This collection of manuals describes how to use GNUnet, a framework
 for secure peer-to-peer networking with the high-level goal to provide
 a strong foundation Free Software for a global, distributed network
@@ -98,8 +97,9 @@ simple P2P chat.  In 2007, we created
 @uref{https://gnu.org/s/libmicrohttpd, GNU libmicrohttpd}
 to support a pluggable transport based on HTTP.  In 2009, the
 architecture was radically modularized into the multi-process system
-that exists today.  Coincidentally, the first version of the ARM@footnote{ARM: Automatic Restart Manager}
-service was implemented a day before systemd was announced.  From 2009
+that exists today.  Coincidentally, the first version of the ARM
+service (ARM: Automatic Restart Manager)
+was implemented a day before systemd was announced.  From 2009
 to 2014 work progressed rapidly thanks to a significant research grant
 from the Deutsche Forschungsgesellschaft.  This resulted in particular
 in the creation of the R5N DHT, CADET, ATS and the GNU Name System.
@@ -110,7 +110,7 @@ In 2013, we launched @uref{https://taler.net, GNU Taler} to address
 the challenge of convenient
 and privacy-preserving online payments.  In 2015, the
 @c TODO: Maybe even markup for the E if it renders in most outputs.
-@uref{https://pep.foundation/, pEp}@footnote{pretty easy privacy} project
+@uref{https://pep.foundation/, pEp} (pretty Easy privacy) project
 announced that they will use GNUnet as the technology for their
 meta-data protection layer, ultimately resulting in GNUnet e.V.
 entering into a formal long-term collaboration with the pEp
@@ -156,7 +156,9 @@ where any developer can become a member.  GNUnet e.V. serves as a
 legal entity to hold the copyrights to GNUnet.  GNUnet e.V. may also
 choose to pay for project resources, and can collect donations.
 GNUnet e.V. may also choose to adjust the license of the
-software (with the constraint that it has to remain free software)@footnote{For example in 2018 we switched from GPL3 to AGPL3. In practice these changes do not happen very often.}
+software (with the constraint that it has to remain free software).
+In 2018 we switched from GPL3 to AGPL3, in practice these changes do
+not happen very often.
 
 
 @node Typography

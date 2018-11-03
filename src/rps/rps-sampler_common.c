@@ -387,6 +387,10 @@ check_n_peers_ready (void *cls,
 {
   struct RPS_SamplerRequestHandle *req_handle = cls;
   (void) id;
+  RPS_sampler_n_rand_peers_ready_cb tmp_cb;
+  struct GNUNET_PeerIdentity *peers;
+  uint32_t num_peers;
+  void *cb_cls;
 
   req_handle->cur_num_peers++;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -400,9 +404,20 @@ check_n_peers_ready (void *cls,
     LOG (GNUNET_ERROR_TYPE_DEBUG,
         "returning %" PRIX32 " peers to the client\n",
         req_handle->num_peers);
-    req_handle->callback (req_handle->ids, req_handle->num_peers, req_handle->cls);
 
+    /* Copy pointers and peers temporarily as they
+     * might be deleted from within the callback */
+    tmp_cb = req_handle->callback;
+    num_peers = req_handle->num_peers;
+    peers = GNUNET_new_array (num_peers, struct GNUNET_PeerIdentity);
+    GNUNET_memcpy (peers,
+                   req_handle->ids,
+                   num_peers * sizeof (struct GNUNET_PeerIdentity));
+    cb_cls = req_handle->cls;
     RPS_sampler_request_cancel (req_handle);
+    req_handle = NULL;
+    tmp_cb (peers, num_peers, cb_cls);
+    GNUNET_free (peers);
   }
 }
 
@@ -493,10 +508,12 @@ RPS_sampler_request_cancel (struct RPS_SamplerRequestHandle *req_handle)
                                    req_handle->sampler->notify_ctx_tail,
                                    i->notify_ctx);
       GNUNET_free (i->notify_ctx);
+      i->notify_ctx = NULL;
     }
     GNUNET_free (i);
   }
   GNUNET_free (req_handle->ids);
+  req_handle->ids = NULL;
   GNUNET_CONTAINER_DLL_remove (req_handle->sampler->req_handle_head,
                                req_handle->sampler->req_handle_tail,
                                req_handle);

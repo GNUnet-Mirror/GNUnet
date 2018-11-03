@@ -24,6 +24,10 @@
 #include "gnunet_curl_lib.h"
 #include "gnunet_util_lib.h"
 
+extern void *
+download_get_result (struct GNUNET_CURL_DownloadBuffer *db,
+                     CURL *eh,
+                     long *response_code);
 
 /**
  * Closure for #GNUNET_CURL_gnunet_scheduler_reschedule().
@@ -39,8 +43,51 @@ struct GNUNET_CURL_RescheduleContext
    * Context we manage.
    */
   struct GNUNET_CURL_Context *ctx;
+
+  /**
+   * Parser of the raw response.
+   */
+  GNUNET_CURL_RawParser parser;
+
+  /**
+   * Deallocate the response object.
+   */
+  GNUNET_CURL_ResponseCleaner cleaner;
 };
 
+
+/**
+ * Initialize reschedule context; with custom response parser
+ *
+ * @param ctx context to manage
+ * @return closure for #GNUNET_CURL_gnunet_scheduler_reschedule().
+ */
+struct GNUNET_CURL_RescheduleContext *
+GNUNET_CURL_gnunet_rc_create_with_parser (struct GNUNET_CURL_Context *ctx,
+                                          GNUNET_CURL_RawParser rp,
+                                          GNUNET_CURL_ResponseCleaner rc)
+{
+  struct GNUNET_CURL_RescheduleContext *rctx;
+
+  rctx = GNUNET_new (struct GNUNET_CURL_RescheduleContext);
+  rctx->ctx = ctx;
+  rctx->parser = rp;
+  rctx->cleaner = rc;
+
+  return rctx;
+}
+
+
+/**
+ * Just a wrapper to avoid casting of function pointers.
+ *
+ * @param response the (JSON) response to clean.
+ */
+static void
+clean_result (void *response)
+{
+  json_decref (response);
+}
 
 /**
  * Initialize reschedule context.
@@ -55,6 +102,8 @@ GNUNET_CURL_gnunet_rc_create (struct GNUNET_CURL_Context *ctx)
 
   rc = GNUNET_new (struct GNUNET_CURL_RescheduleContext);
   rc->ctx = ctx;
+  rc->parser = &download_get_result;
+  rc->cleaner = &clean_result;
   return rc;
 }
 
@@ -92,7 +141,10 @@ context_task (void *cls)
   struct GNUNET_TIME_Relative delay;
 
   rc->task = NULL;
-  GNUNET_CURL_perform (rc->ctx);
+
+  GNUNET_CURL_perform2 (rc->ctx,
+                        rc->parser,
+                        rc->cleaner);
   max_fd = -1;
   timeout = -1;
   FD_ZERO (&read_fd_set);

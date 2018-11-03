@@ -44,16 +44,16 @@ libgnunet_plugin_rest_reclaim_la_LDFLAGS = \
  i$(GN_PLUGIN_LDFLAGS)
 
 
-libgnunet_plugin_rest_credential_la_SOURCES = \
-  plugin_rest_credential.c
-libgnunet_plugin_rest_credential_la_LIBADD = \
-  $(top_builddir)/src/credential/libgnunetcredential.la \
-	$(top_builddir)/src/rest/libgnunetrest.la \
-	$(top_builddir)/src/identity/libgnunetidentity.la \
-  $(top_builddir)/src/util/libgnunetutil.la $(XLIBS) \
-  $(LTLIBINTL) -ljansson -lmicrohttpd
-libgnunet_plugin_rest_credential_la_LDFLAGS = \
- $(GN_PLUGIN_LDFLAGS)
+#libgnunet_plugin_rest_credential_la_SOURCES = \
+#  plugin_rest_credential.c
+#libgnunet_plugin_rest_credential_la_LIBADD = \
+#  $(top_builddir)/src/credential/libgnunetcredential.la \
+#	$(top_builddir)/src/rest/libgnunetrest.la \
+#	$(top_builddir)/src/identity/libgnunetidentity.la \
+#  $(top_builddir)/src/util/libgnunetutil.la $(XLIBS) \
+#  $(LTLIBINTL) -ljansson -lmicrohttpd
+#libgnunet_plugin_rest_credential_la_LDFLAGS = \
+# $(GN_PLUGIN_LDFLAGS)
 
 libgnunet_plugin_rest_copying_la_SOURCES = \
   plugin_rest_copying.c

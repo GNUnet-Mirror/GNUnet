@@ -1,6 +1,6 @@
 /*
       This file is part of GNUnet
-      Copyright (C) 2010-2014 GNUnet e.V.
+      Copyright (C) 2010-2014, 2018 GNUnet e.V.
 
       GNUnet is free software: you can redistribute it and/or modify it
       under the terms of the GNU Affero General Public License as published
@@ -17,13 +17,21 @@
  */
 
 /**
- * @file dns/dnsparser.c
+ * @file util/dnsparser.c
  * @brief helper library to parse DNS packets.
  * @author Philipp Toelke
  * @author Christian Grothoff
  */
 #include "platform.h"
+#if HAVE_IDN2_H
+#include <idn2.h>
+#elif HAVE_IDN2_IDN2_H
+#include <idn2/idn2.h>
+#elif HAVE_IDNA_H
 #include <idna.h>
+#elif HAVE_IDN_IDNA_H
+#include <idn/idna.h>
+#endif
 #if WINDOWS
 #include <idn-free.h>
 #endif

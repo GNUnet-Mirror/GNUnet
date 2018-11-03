@@ -114,6 +114,50 @@ struct GNUNET_RPS_CS_ActMaliciousMessage
 #endif /* ENABLE_MALICIOUS */
 
 
+/**
+ * Message from client to service telling it to start a new sub
+ */
+struct GNUNET_RPS_CS_SubStartMessage
+{
+  /**
+   * Header including size and type in NBO
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * For alignment.
+   */
+  uint32_t reserved GNUNET_PACKED;
+
+  /**
+   * Mean interval between two rounds
+   */
+  struct GNUNET_TIME_RelativeNBO round_interval;
+
+  /**
+   * Length of the shared value represented as string.
+   */
+  struct GNUNET_HashCode hash GNUNET_PACKED;
+};
+
+
+/**
+ * Message from client to service telling it to stop a new sub
+ */
+struct GNUNET_RPS_CS_SubStopMessage
+{
+  /**
+   * Header including size and type in NBO
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Length of the shared value represented as string.
+   */
+  struct GNUNET_HashCode hash GNUNET_PACKED;
+};
+
+
 /* Debug messages */
 
 /**

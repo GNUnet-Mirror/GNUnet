@@ -54,3 +54,4 @@ flake8.log
 # for pytest created data:
 .cache/
 __pycache__/
+build-aux/

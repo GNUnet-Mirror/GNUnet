@@ -190,6 +190,11 @@ struct RPSPeer
   struct GNUNET_RPS_Handle *rps_handle;
 
   /**
+   * Handle to stream requests
+   */
+  struct GNUNET_RPS_StreamRequestHandle *rps_srh;
+
+  /**
    * ID of the peer.
    */
   struct GNUNET_PeerIdentity *peer_id;
@@ -673,6 +678,13 @@ ids_to_file (char *file_name,
 } */
 
 /**
+ * Task run on timeout to collect statistics and potentially shut down.
+ */
+static void
+post_test_op (void *cls);
+
+
+/**
  * Test the success of a single test
  */
 static int
@@ -732,6 +744,8 @@ static int check_statistics_collect_completed_single_peer (
   }
   return GNUNET_YES;
 }
+
+
 /**
  * @brief Checks if all peers already received their statistics value from the
  * statistics service.
@@ -758,6 +772,7 @@ static int check_statistics_collect_completed ()
   return GNUNET_YES;
 }
 
+
 /**
  * Task run on timeout to shut everything down.
  */
@@ -765,6 +780,7 @@ static void
 shutdown_op (void *cls)
 {
   unsigned int i;
+  (void) cls;
 
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
               "Shutdown task scheduled, going down.\n");
@@ -772,6 +788,7 @@ shutdown_op (void *cls)
   if (NULL != post_test_task)
   {
     GNUNET_SCHEDULER_cancel (post_test_task);
+    post_test_op (NULL);
   }
   if (NULL != churn_task)
   {
@@ -799,6 +816,7 @@ static void
 post_test_op (void *cls)
 {
   unsigned int i;
+  (void) cls;
 
   post_test_task = NULL;
   post_test = GNUNET_YES;
@@ -811,15 +829,15 @@ post_test_op (void *cls)
   }
   for (i = 0; i < num_peers; i++)
   {
-    if (NULL != rps_peers[i].op)
-    {
-      GNUNET_TESTBED_operation_done (rps_peers[i].op);
-      rps_peers[i].op = NULL;
-    }
     if (NULL != cur_test_run.post_test)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Executing post_test for peer %u\n", i);
       cur_test_run.post_test (&rps_peers[i]);
+    }
+    if (NULL != rps_peers[i].op)
+    {
+      GNUNET_TESTBED_operation_done (rps_peers[i].op);
+      rps_peers[i].op = NULL;
     }
   }
   /* If we do not collect statistics, shut down directly */
@@ -905,6 +923,7 @@ info_cb (void *cb_cls,
          const char *emsg)
 {
   struct OpListEntry *entry = (struct OpListEntry *) cb_cls;
+  (void) op;
 
   if (GNUNET_YES == in_shutdown || GNUNET_YES == post_test)
   {
@@ -1070,6 +1089,9 @@ stat_complete_cb (void *cls, struct GNUNET_TESTBED_Operation *op,
 {
   //struct GNUNET_STATISTICS_Handle *sh = ca_result;
   //struct RPSPeer *peer = (struct RPSPeer *) cls;
+  (void) cls;
+  (void) op;
+  (void) ca_result;
 
   if (NULL != emsg)
   {
@@ -1098,6 +1120,12 @@ rps_disconnect_adapter (void *cls,
 {
   struct RPSPeer *peer = cls;
   struct GNUNET_RPS_Handle *h = op_result;
+
+  if (NULL != peer->rps_srh)
+  {
+    GNUNET_RPS_stream_cancel (peer->rps_srh);
+    peer->rps_srh = NULL;
+  }
   GNUNET_assert (NULL != peer);
   GNUNET_RPS_disconnect (h);
   peer->rps_handle = NULL;
@@ -1441,6 +1469,7 @@ seed_big_cb (struct RPSPeer *rps_peer)
 static void
 single_peer_seed_cb (struct RPSPeer *rps_peer)
 {
+  (void) rps_peer;
   // TODO
 }
 
@@ -1525,6 +1554,63 @@ churn_test_cb (struct RPSPeer *rps_peer)
 }
 
 /***********************************
+ * SUB
+***********************************/
+
+static void
+got_stream_peer_cb (void *cls,
+                    uint64_t num_peers,
+                    const struct GNUNET_PeerIdentity *peers)
+{
+  const struct RPSPeer *rps_peer = cls;
+
+  for (uint64_t i = 0; i < num_peers; i++)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Peer %" PRIu32 " received [%s] from stream.\n",
+                rps_peer->index,
+                GNUNET_i2s (&peers[i]));
+    if (0 != rps_peer->index &&
+        0 == memcmp (&peers[i],
+                     &rps_peers[0].peer_id,
+                     sizeof (struct GNUNET_PeerIdentity)))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Received a peer id outside sub\n");
+      ok = 1;
+    }
+    else if (0 == rps_peer->index &&
+             0 != memcmp (&peers[i],
+                          &rps_peers[0].peer_id,
+                          sizeof (struct GNUNET_PeerIdentity)))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Received a peer id outside sub (lonely)\n");
+      ok = 1;
+    }
+  }
+}
+
+
+static void
+sub_post (struct RPSPeer *rps_peer)
+{
+  if (0 != rps_peer->index) GNUNET_RPS_sub_stop (rps_peer->rps_handle, "test");
+  else GNUNET_RPS_sub_stop (rps_peer->rps_handle, "lonely");
+}
+
+
+static void
+sub_pre (struct RPSPeer *rps_peer, struct GNUNET_RPS_Handle *h)
+{
+  (void) rps_peer;
+
+  if (0 != rps_peer->index) GNUNET_RPS_sub_start (h, "test");
+  else GNUNET_RPS_sub_start (h, "lonely"); /* have a group of one */
+  rps_peer->rps_srh = GNUNET_RPS_stream_request (h,
+                                                 &got_stream_peer_cb,
+                                                 rps_peer);
+}
+
+/***********************************
  * PROFILER
 ***********************************/
 
@@ -1540,6 +1626,7 @@ churn_cb (void *cls,
           struct GNUNET_TESTBED_Operation *op,
           const char *emsg)
 {
+  (void) op;
   // FIXME
   struct OpListEntry *entry = cls;
 
@@ -1670,6 +1757,7 @@ manage_service_wrapper (unsigned int i, unsigned int j,
 static void
 churn (void *cls)
 {
+  (void) cls;
   unsigned int i;
   unsigned int j;
   double portion_online;
@@ -1832,6 +1920,8 @@ profiler_cb (struct RPSPeer *rps_peer)
 int
 file_name_cb (void *cls, const char *filename)
 {
+  (void) cls;
+
   if (NULL != strstr (filename, "sampler_el"))
   {
     struct RPS_SamplerElement *s_elem;
@@ -2501,6 +2591,8 @@ stat_iterator (void *cls,
                uint64_t value,
                int is_persistent)
 {
+  (void) subsystem;
+  (void) is_persistent;
   const struct STATcls *stat_cls = (const struct STATcls *) cls;
   struct RPSPeer *rps_peer = (struct RPSPeer *) stat_cls->rps_peer;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Got stat value: %s - %" PRIu64 "\n",
@@ -2635,6 +2727,9 @@ run (void *cls,
      unsigned int links_succeeded,
      unsigned int links_failed)
 {
+  (void) cls;
+  (void) h;
+  (void) links_failed;
   unsigned int i;
   struct OpListEntry *entry;
 
@@ -2711,8 +2806,6 @@ run (void *cls,
   timeout = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS,
       (timeout_s * 1.2) + 0.1 * num_peers);
   shutdown_task = GNUNET_SCHEDULER_add_delayed (timeout, &shutdown_op, NULL);
-  shutdown_task = GNUNET_SCHEDULER_add_shutdown (shutdown_op, NULL);
-
 }
 
 
@@ -2727,6 +2820,7 @@ int
 main (int argc, char *argv[])
 {
   int ret_value;
+  (void) argc;
 
   /* Defaults for tests */
   num_peers = 5;
@@ -2748,6 +2842,7 @@ main (int argc, char *argv[])
     cur_test_run.pre_test = mal_pre;
     cur_test_run.main_test = mal_cb;
     cur_test_run.init_peer = mal_init_peer;
+    timeout_s = 40;
 
     if (strstr (argv[0], "_1") != NULL)
     {
@@ -2843,7 +2938,22 @@ main (int argc, char *argv[])
     cur_test_run.eval_cb = default_eval_cb;
     cur_test_run.have_churn = HAVE_NO_CHURN;
     cur_test_run.have_quick_quit = HAVE_NO_QUICK_QUIT;
-    timeout_s = 10;
+    timeout_s = 40;
+  }
+
+  else if (strstr (argv[0], "_sub") != NULL)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Test subs\n");
+    cur_test_run.name = "test-rps-sub";
+    num_peers = 5;
+    //cur_test_run.init_peer = &default_init_peer;
+    cur_test_run.pre_test = &sub_pre;
+    cur_test_run.main_test = &single_req_cb;
+    //cur_test_run.reply_handle = default_reply_handle;
+    cur_test_run.post_test = &sub_post;
+    //cur_test_run.eval_cb = default_eval_cb;
+    cur_test_run.have_churn = HAVE_NO_CHURN;
+    cur_test_run.have_quick_quit = HAVE_QUICK_QUIT;
   }
 
   else if (strstr (argv[0], "profiler") != NULL)
@@ -2916,7 +3026,7 @@ main (int argc, char *argv[])
   }
 
   ret_value = cur_test_run.eval_cb();
-  
+
   if (NO_COLLECT_VIEW == cur_test_run.have_collect_view)
   {
     GNUNET_array_grow (rps_peers->cur_view,
@@ -2928,5 +3038,6 @@ main (int argc, char *argv[])
   GNUNET_CONTAINER_multipeermap_destroy (peer_map);
   return ret_value;
 }
+
 
 /* end of test_rps.c */

@@ -62,33 +62,6 @@
  */
 static int curl_fail;
 
-
-/**
- * @brief Buffer data structure we use to buffer the HTTP download
- * before giving it to the JSON parser.
- */
-struct DownloadBuffer
-{
-
-  /**
-   * Download buffer
-   */
-  void *buf;
-
-  /**
-   * The size of the download buffer
-   */
-  size_t buf_size;
-
-  /**
-   * Error code (based on libc errno) if we failed to download
-   * (i.e. response too large).
-   */
-  int eno;
-
-};
-
-
 /**
  * Jobs are CURL requests running within a `struct GNUNET_CURL_Context`.
  */
@@ -128,7 +101,7 @@ struct GNUNET_CURL_Job
   /**
    * Buffer for response received from CURL.
    */
-  struct DownloadBuffer db;
+  struct GNUNET_CURL_DownloadBuffer db;
 
 };
 
@@ -242,7 +215,7 @@ download_cb (char *bufptr,
              size_t nitems,
              void *cls)
 {
-  struct DownloadBuffer *db = cls;
+  struct GNUNET_CURL_DownloadBuffer *db = cls;
   size_t msize;
   void *buf;
 
@@ -380,10 +353,10 @@ GNUNET_CURL_job_cancel (struct GNUNET_CURL_Job *job)
  *             (or zero if we aborted the download, i.e.
  *              because the response was too big, or if
  *              the JSON we received was malformed).
- * @return NULL if downloading a JSON reply failed
+ * @return NULL if downloading a JSON reply failed.
  */
-static json_t *
-download_get_result (struct DownloadBuffer *db,
+void *
+download_get_result (struct GNUNET_CURL_DownloadBuffer *db,
                      CURL *eh,
                      long *response_code)
 {
@@ -451,7 +424,6 @@ download_get_result (struct DownloadBuffer *db,
   return json;
 }
 
-
 /**
  * Add custom request header.
  *
@@ -475,16 +447,21 @@ GNUNET_CURL_append_header (struct GNUNET_CURL_Context *ctx,
  * Run the main event loop for the Taler interaction.
  *
  * @param ctx the library context
+ * @param rp parses the raw response returned from
+ *        the Web server.
+ * @param rc cleans/frees the response
  */
 void
-GNUNET_CURL_perform (struct GNUNET_CURL_Context *ctx)
+GNUNET_CURL_perform2 (struct GNUNET_CURL_Context *ctx,
+                      GNUNET_CURL_RawParser rp,
+                      GNUNET_CURL_ResponseCleaner rc)
 {
   CURLMsg *cmsg;
   struct GNUNET_CURL_Job *job;
   int n_running;
   int n_completed;
   long response_code;
-  json_t *j;
+  void *response;
 
   (void) curl_multi_perform (ctx->multi,
                              &n_running);
@@ -498,10 +475,10 @@ GNUNET_CURL_perform (struct GNUNET_CURL_Context *ctx)
                                       CURLINFO_PRIVATE,
                                       (char **) &job));
     GNUNET_assert (job->ctx == ctx);
-    response_code = 0;
-    j = download_get_result (&job->db,
-                             job->easy_handle,
-                             &response_code);
+    response_code = 0 ;
+    response = rp (&job->db,
+                   job->easy_handle,
+                   &response_code);
 #if ENABLE_BENCHMARK
   {
     char *url = NULL;
@@ -521,10 +498,26 @@ GNUNET_CURL_perform (struct GNUNET_CURL_Context *ctx)
 #endif
     job->jcc (job->jcc_cls,
               response_code,
-              j);
-    json_decref (j);
+              /* NOTE: jcc is now in charge of decref-ing */
+              response);
+    rc (response);
     GNUNET_CURL_job_cancel (job);
   }
+}
+
+
+/**
+ * Run the main event loop for the Taler interaction.
+ *
+ * @param ctx the library context
+ */
+void
+GNUNET_CURL_perform (struct GNUNET_CURL_Context *ctx)
+{
+  
+  GNUNET_CURL_perform2 (ctx,
+                        download_get_result,
+                        (GNUNET_CURL_ResponseCleaner) &json_decref);
 }
 
 

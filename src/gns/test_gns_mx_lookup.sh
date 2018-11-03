@@ -1,4 +1,5 @@
 #!/bin/bash
+# This file is in the public domain.
 trap "gnunet-arm -e -c test_gns_lookup.conf" SIGINT
 
 LOCATION=$(which gnunet-config)

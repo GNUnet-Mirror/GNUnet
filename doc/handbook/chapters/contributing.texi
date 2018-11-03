@@ -85,11 +85,6 @@ URLs break in the PDF output when they contain linebreaks.
 @c We do this and the other thing.  This is done by foo.
 @c @end example
 
-@item Use @@footnote@{@} instead of putting an @@*ref@{@} to the
-footnote on a collected footnote-page.
-In a 200+ pages handbook it's better to have footnotes accessible
-without having to skip over to the end.
-
 @end itemize
 
 @node Contributing testcases
@@ -99,13 +94,24 @@ In the core of gnunet, we restrict new testcases to a small subset
 of languages, in order of preference:
 @enumerate
 @item C
-@item Bash (preferable portable without too much specifics to Bash)
+@item Portable Shell Scripts
 @item Python (@geq{}3.6)
 @end enumerate
 
 We welcome efforts to remove our existing python-2.7 scripts to
-replace them either with Bash or, at your choice, python-3.6+.
+replace them either with portable shell scripts or,
+at your choice, python-3.6+.
 
 If you contribute new python based testcases, we advise you to
 not repeat our past misfortunes and write the tests in a standard
 test framework like for example pytest.
+
+For writing portable shell scripts, these tools are useful:
+@uref{https://github.com/koalaman/shellcheck, Shellcheck},
+@uref{https://salsa.debian.org/debian/devscripts/blob/master/scripts/checkbashisms.pl, checkbashisms},
+@uref{http://www.etalabs.net/sh_tricks.html},
+@uref{https://wiki.ubuntu.com/DashAsBinSh},
+and @uref{https://mywiki.wooledge.org/Bashism}
+
+@c You could also run "bin/check_shell_script" (which we still have
+@c to write).

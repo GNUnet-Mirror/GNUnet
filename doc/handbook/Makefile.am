@@ -77,38 +77,8 @@ dist_infoimage_DATA =                           		\
 # dvi-local: ps-local
 
 
-gnunet_tutorial_examples =					\
-	tutorial-examples/001.c							\
-	tutorial-examples/002.c							\
-	tutorial-examples/003.c							\
-	tutorial-examples/004.c							\
-	tutorial-examples/005.c							\
-	tutorial-examples/006.c							\
-	tutorial-examples/007.c							\
-	tutorial-examples/008.c							\
-	tutorial-examples/009.c							\
-	tutorial-examples/010.c							\
-	tutorial-examples/011.c							\
-	tutorial-examples/012.c							\
-	tutorial-examples/013.c							\
-	tutorial-examples/013.1.c							\
-	tutorial-examples/014.c							\
-	tutorial-examples/015.c							\
-	tutorial-examples/016.c							\
-	tutorial-examples/017.c							\
-	tutorial-examples/018.c							\
-	tutorial-examples/019.c							\
-	tutorial-examples/020.c							\
-	tutorial-examples/021.c							\
-	tutorial-examples/022.c							\
-	tutorial-examples/023.c							\
-	tutorial-examples/024.c							\
-	tutorial-examples/025.c							\
-	tutorial-examples/026.c
-
 info_TEXINFOS = 						\
-	gnunet.texi						\
-	gnunet-c-tutorial.texi
+	gnunet.texi	
 
 gnunet_TEXINFOS = 						\
 	chapters/developer.texi 				\
@@ -120,12 +90,13 @@ gnunet_TEXINFOS = 						\
 	chapters/configuration.texi				\
 	chapters/contributing.texi				\
 	fdl-1.3.texi 						\
-	gpl-3.0.texi
+	gpl-3.0.texi						\
+	version.texi
 
 EXTRA_DIST =							\
 	$(gnunet_TEXINFOS)					\
-	$(gnunet_tutorial_examples)				\
 	htmlxref.cnf						\
+	gversion.texi
 	run-gendocs.sh						\
 	docstyle.css
 
@@ -135,7 +106,6 @@ EXTRA_DIST =							\
 
 DISTCLEANFILES = 						\
 	gnunet.cps						\
-	gnunet-c-tutorial.cps					\
 	chapters/developer.cps					\
 	chapters/installation.cps				\
 	chapter/philosophy.cps					\
@@ -160,27 +130,16 @@ lego_stack.png: images/lego_stack.svg
 	convert images/lego_stack.svg images/lego_stack.png &&
 	pngcrush images/lego_stack.png images/lego_stack.png
 
-# FIXME: The usage of 'date' strings causes a warning.
-# version.texi:
-# 	echo "@set UPDATED $(date +'%d %B %Y')" > $@
-# 	echo "@set UPDATED-MONTH $(date +'%B %Y')" >> $@
-# 	echo "@set EDITION $(PACKAGE_VERSION)" >> $@
-# 	echo "@set VERSION $(PACKAGE_VERSION)" >> $@
+# XXX: is this sed invocation portable enough? otherwise try tr(1).
+version.texi/replacement: version.texi/replacement/revert
+	@sed -i "s/GPACKAGE_VERSION/$(PACKAGE_VERSION)/g" gversion.texi
 
-# Workaround for makeinfo error. Which in turn introduces more
-# date-related 'warnings' for GNUism. Well.
-version2.texi:
-	echo "@set UPDATED $(date +'%d %B %Y')" > $@
-	echo "@set UPDATED-MONTH $(date +'%B %Y')" >> $@
-	echo "@set EDITION $(PACKAGE_VERSION)" >> $@
-	echo "@set VERSION $(PACKAGE_VERSION)" >> $@
+version.texi/replacement/revert:
+	@echo "@set VERSION GPACKAGE_VERSION" > gversion.texi
+	@echo "@set EDITION GPACKAGE_VERSION" >> gversion.texi
 
 if SECTION7
-gnunet-c-tutorial.7: version2.texi
-	@echo Attempting to output an mdoc formatted section 7 document
-	@texi2mdoc -I$(pwd):$(pwd)/chapters gnunet-c-tutorial.texi > ../man/gnunet-c-tutorial.7
-
-gnunet-documentation.7: version2.texi
+gnunet-documentation.7: version.texi/replacement
 	@echo Attempting to output an mdoc formatted section 7 document
 	@texi2mdoc -I$(pwd):$(pwd)/chapters gnunet.texi > ../man/gnunet-documentation.7
 
@@ -191,16 +150,15 @@ endif
 #doc-clean:
 #	@rm *.aux *.log *.toc *.cp *.cps
 
+all: version.texi/replacement
+
 doc-all-install:
 	@mkdir -p $(DESTDIR)/$(docdir)
 	@mkdir -p $(DESTDIR)/$(infoimagedir)
 	@mkdir -p $(DESTDIR)/$(infodir)
 	@install -m 0755 gnunet.pdf $(DESTDIR)/$(docdir)
-	@install -m 0755 gnunet-c-tutorial.pdf $(DESTDIR)/$(docdir)
-	@install -m 0755 gnunet-c-tutorial.info $(DESTDIR)/$(infodir)
 	@install -m 0755 gnunet.info $(DESTDIR)/$(infodir)
 	@install gnunet.html $(DESTDIR)/$(docdir)
-	@install gnunet-c-tutorial.html $(DESTDIR)/$(docdir)
 
 doc-gendoc-install:
 	@mkdir -p $(DESTDIR)/$(docdir)
@@ -208,25 +166,19 @@ doc-gendoc-install:
 
 #	@cp -r images $(DESTDIR)/$(infoimagedir)
 
-dev-build: version.texi version2.texi
+dev-build: version.texi/replacement
 	@makeinfo --pdf gnunet.texi
-	@makeinfo --pdf gnunet-c-tutorial.texi
 	@makeinfo --html gnunet.texi
-	@makeinfo --html gnunet-c-tutorial.texi
 	@makeinfo --no-split gnunet.texi
-	@makeinfo --no-split gnunet-c-tutorial.texi
 
 # TODO: Add more to clean.
-clean:
+clean: version.texi/replacement/revert
 	@rm -f gnunet.pdf
 	@rm -f gnunet.html
 	@rm -f gnunet.info
 	@rm -f gnunet.info-1
 	@rm -f gnunet.info-2
 	@rm -f gnunet.info-3
-	@rm -f gnunet-c-tutorial.pdf
-	@rm -f gnunet-c-tutorial.info
-	@rm -f gnunet-c-tutorial.html
 	@rm -fr gnunet.t2p
 	@rm -fr gnunet-c-tutorial.t2p
 	@rm -fr manual

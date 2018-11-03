@@ -1,5 +1,5 @@
 #!/bin/bash
-
+# This file is in the public domain.
 LOCATION=$(which gnunet-config)
 if [ -z $LOCATION ]
 then

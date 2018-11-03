@@ -1,11 +1,11 @@
-.TH GNUNET\-AUTO\-SHARE "1" "18 Jun 2012" "GNUnet"
+.TH GNUNET\-AUTO\-SHARE "1" "June 18, 2012" "GNUnet"
 .SH NAME
-gnunet\-auto\-share \- a command line tool to automatically share an entire directory with other users
+gnunet\-auto\-share \- a command line tool to automatically share an
+entire directory with other users
 .SH SYNOPSIS
 .B gnunet\-auto\-share
 [\fIOPTIONS\fR] DIRNAME
 .SH DESCRIPTION
-.PP
 In order to share files with other GNUnet users, the files must first be made
 available to GNUnet.  This tool can be used to automatically share all files
 from a certain directory.  The program will periodically scan the directory
@@ -17,35 +17,28 @@ has many options in common with gnunet\-publish, but can only be used to
 index files.
 .PP
 You can use automatic meta\-data extraction (based on libextractor).
-.PP
-
+.TP
 \fB\-c \fIFILENAME\fR, \fB\-\-config=FILENAME\fR
 Use alternate config file (if this option is not specified, the
 default is ~/.config/gnunet.conf).
-
 .TP
 \fB\-D\fR, \fB\-\-disable\-extractor\fR
 Disable use of GNU libextractor for finding additional keywords and metadata.
-
 .TP
 \fB\-h\fR, \fB\-\-help\fR
 Print a brief help page with all the options.
-
 .TP
 \fB\-L \fILOGLEVEL\fR, \fB\-\-loglevel=\fILOGLEVEL\fR
 Change the loglevel.  Possible values for LOGLEVEL are
 ERROR, WARNING, INFO and DEBUG.
-
 .TP
 \fB\-p \fIPRIORITY\fR, \fB\-\-prio=\fIPRIORITY\fR
 Executive summary: You probably don't need it.
-
 Set the priority of the published content (default: 365).  If the local
 database is full, GNUnet will discard the content with the lowest ranking.
 Note that ranks change over time depending on popularity.  The default
 should be high enough to preserve the locally published content in favor
 of content that migrates from other peers.
-
 .TP
 \fB\-r \fILEVEL\fR, \fB\-\-replication=\fILEVEL\fR
 Set the desired replication level.  If CONTENT_PUSHING is set to YES, GNUnet
@@ -54,20 +47,15 @@ normal "random" replication of all content.  This option can be used to push
 some content out into the network harder. Note that pushing content LEVEL
 times into the network does not guarantee that there will actually be LEVEL
 replicas.
-
 .TP
 \fB\-v\fR, \fB\-\-version\fR
 Print the version number.
-
 .TP
 \fB\-V\fR, \fB\-\-verbose\fR
 Be verbose.  Using this option causes gnunet\-publish to print progress
 information and at the end the file identification that can be used to download
 the file from GNUnet.
-
-
 .SH SETTING ANONYMITY LEVEL
-
 The \fB\-a\fR option can be used to specify additional anonymity constraints.
 If set to 0, GNUnet will publish the file non-anonymously and in fact sign
 the advertisement for the file using your peer's private key.  This will
@@ -81,7 +69,7 @@ anonymity, which increases the amount of cover traffic your own traffic will
 get, at the expense of performance.  Note that regardless of the anonymity
 level you choose, peers that cache content in the network always use anonymity
 level 1.
-
+.PP
 The definition of the ANONYMITY LEVEL is the following.  0 means no anonymity
 is required.  Otherwise a value of 'v' means that 1 out of v bytes of "anonymous"
 traffic can be from the local user, leaving 'v-1' bytes of cover traffic per
@@ -89,35 +77,50 @@ byte on the wire.  Thus, if GNUnet routes n bytes of messages from foreign
 peers (using anonymous routing), it may originate n/(v-1) bytes of data in
 the same time\-period. The time\-period is twice the average delay that
 GNUnet defers forwarded queries.
-
+.PP
 The default is 1 and this should be fine for most users.  Also notice that if
 you choose very large values, you may end up having no throughput at all,
 especially if many of your fellow GNUnet\-peers all do the same.
-
-
 .SH EXAMPLES
-.PP
-
 \fBBasic example\fR
-
-Share a directory "$HOME/gnunet\-share/":
-
- # gnunet\-auto\-share $HOME/gnunet\-share/ &
-
-
+.TP
+# gnunet\-auto\-share $HOME/gnunet\-share/ &
+Share a directory "$HOME/gnunet\-share/"
+.PP
 \fBBasic configuration\fR
-
+.PP
 Share a directory "$HOME/gnunet\-share/":
 
  [gnunet-auto-share]
  OPTIONS = $HOME/gnunet\-share
  IMMEDIATE_START = YES # start this service when the peer starts
-
 .SH FILES
 .TP
 ~/.config/gnunet.conf
 GNUnet configuration file
-.SH "REPORTING BUGS"
-Report bugs to <https://gnunet.org/bugs/> or by sending electronic mail to <gnunet\-developers@gnu.org>
-.SH "SEE ALSO"
-\fBgnunet\-fs\-gtk\fP(1), \fBgnunet\-publish\fP(1), \fBgnunet\-search\fP(1), \fBgnunet\-download\fP(1), \fBgnunet.conf\fP(5), \fBextract\fP(1)
+.SH BUGS
+Report bugs to <https://gnunet.org/bugs/> or by sending electronic
+mail to <gnunet\-developers@gnu.org>
+.SH SEE ALSO
+\fBgnunet\-fs\-gtk\fP(1), \fBgnunet\-publish\fP(1),
+\fBgnunet\-search\fP(1), \fBgnunet\-download\fP(1),
+\fBgnunet.conf\fP(5), \fBextract\fP(1)
+The full documentation for
+.B gnunet
+is maintained as a Texinfo manual.  If the
+.B info
+and
+.B gnunet
+programs are properly installed at your site, the command
+.IP
+.B info gnunet
+.PP
+should give you access to the complete handbook,
+.IP
+.B info gnunet-c-tutorial
+.PP
+will give you access to a tutorial for developers.
+.PP
+Depending on your installation, this information is also
+available in
+\fBgnunet\fP(7) and \fBgnunet-c-tutorial\fP(7).

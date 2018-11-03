@@ -1,118 +1,109 @@
-.TH GNUNET\-NAT 1 "27 Nov 2016" "GNUnet"
-
+.TH GNUNET\-NAT 1 "October 26, 2018" "GNUnet"
 .SH NAME
 gnunet\-nat \- interact with the NAT service
-
 .SH SYNOPSIS
 .B gnunet\-nat
 .RI [ options ]
-.br
-
 .SH DESCRIPTION
-
-This tool allows testing various NAT traversal functions, as well
-as attempting auto\-configuration.
-
+This tool allows testing various NAT traversal functions, as well as
+attempting auto\-configuration.
 .SH OPTIONS
-
 .B
 .IP "\-b ADDRESS,  \-\-bind=ADDRESS"
 Assume that the service is (locally) bound to ADDRESS.
-
 .B
 .IP "\-c FILENAME,  \-\-config=FILENAME"
 Use the configuration file FILENAME.
-
 .B
 .IP "\-e ADDRESS,  \-\-external=ADDRESS"
 Assume that ADDRESS is the globally visible address of the peer.
-
 .B
 .IP "\-i ADDRESS,  \-\-in=ADDRESS"
 Assuming we are listening at ADDRESS for connection reversal requests.
-
 .B
 .IP "\-r ADDRESS,  \-\-remote=ADDRESS"
 Ask the peer at ADDRESS for connection reversal, using the local
 address for the target address of the reversal.
-
 .B
 .IP "\-S NAME,  \-\-section=NAME"
 Name of section in configuration file to use for additional options.
-
 .B
 .IP "\-s,  \-\-stun"
-Enable processing of STUN requests.  Will try to read UDP packets from
-the bind address and handle the packets if they are STUN packets. Will
-only work with UDP.
-
+Enable processing of STUN requests.
+Will try to read UDP packets from the bind address and handle the
+packets if they are STUN packets.
+Will only work with UDP.
 .B
 .IP "\-t,  \-\-tcp"
 Use TCP.
-
 .B
 .IP "\-u,  \-\-udp"
 Use UDP.
-
 .B
 .IP "\-W,  \-\-watch"
 Watch for connection reversal requests.
-
 .SH EXAMPLES
 .PP
-
 \fBBasic examples\fR
-
+.TP
+# gnunet-nat -i 0.0.0.0:8080 -u
 We are bound to "0.0.0.0:8080" on UDP and want to obtain all
-applicable IP addresses:
-
-  # gnunet-nat -i 0.0.0.0:8080 -u
-
+applicable IP addresses.
+.TP
+# gnunet-nat -i '[::0]':8080 -t
 We are bound to "::0" on port 8080 on TCP and want to obtain all
-applicable IP addresses:
-
-  # gnunet-nat -i '[::0]':8080 -t
-
+applicable IP addresses.
+.TP
+# gnunet-nat -i 127.0.0.1:8080 -u
 We are bound to "127.0.0.1:8080" on UDP and want to obtain all
 applicable IP addresses:
-
-  # gnunet-nat -i 127.0.0.1:8080 -u
-
+.PP
 \fBICMP-based NAT traversal:\fR
-
+.TP
+# gnunet-nat -Wt -i 192.168.178.12:8080
 Watch for connection reversal request (you must be bound to NAT range
 or to wildcard, 0.0.0.0), only works for IPv4:
-
-  # gnunet-nat -Wt -i 192.168.178.12:8080
-
+.TP
+# gnunet-nat -t -r 1.2.3.4:8080 -i 2.3.4.5:8080
 Initiate connection reversal request from peer at external IPv4
 address 1.2.3.4, while we are running ourselves at 2.3.4.5:8080 (must
 use IPv4 addresses):
-
-  # gnunet-nat -t -r 1.2.3.4:8080 -i 2.3.4.5:8080
-
+.TP
+# gnunet-nat -t -r 1.2.3.4:8080 -i 0.0.0.0:8080
 Initiate connection reversal request from peer at external IPv4
 address 1.2.3.4, and let the kernel fill in whatever IPv4 address we
 happen to have:
-
-  # gnunet-nat -t -r 1.2.3.4:8080 -i 0.0.0.0:8080
-
+.PP
 \fBManual hole punching:\fR
-
+.TP
+# gnunet-nat -t -p AUTO:8080
 Assume manually punched NAT, but determine external IP automatically:
-
-  # gnunet-nat -t -p AUTO:8080
-
+.PP
 \fBSTUN-based XXX:\fR
-
-XXX:
-
-  # gnunet-nat FIXME -s
-
-
+.TP
+# gnunet-nat FIXME -s
+XXX
 .SH BUGS
-Report bugs by using Mantis <https://gnunet.org/bugs/> or by sending electronic mail to <gnunet\-developers@gnu.org>
-
+Report bugs by using Mantis <https://gnunet.org/bugs/> or by sending
+electronic mail to <gnunet\-developers@gnu.org>
 .SH SEE ALSO
 gnunet\-transport(1)
-
+The full documentation for
+.B gnunet
+is maintained as a Texinfo manual.  If the
+.B info
+and
+.B gnunet
+programs are properly installed at your site, the command
+.IP
+.B info gnunet
+.PP
+should give you access to the complete handbook,
+.IP
+.B info gnunet-c-tutorial
+.PP
+will give you access to a tutorial for developers.
+.PP
+Depending on your installation, this information is also
+available in
+\fBgnunet\fP(7) and \fBgnunet-c-tutorial\fP(7).

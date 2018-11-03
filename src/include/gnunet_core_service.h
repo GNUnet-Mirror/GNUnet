@@ -88,6 +88,8 @@ struct GNUNET_CORE_Handle;
  *
  * @param cls closure
  * @param peer peer identity this notification is about
+ * @return closure associated with @a peer. given to mq callbacks and
+ *         #GNUNET_CORE_DisconnectEventHandler
  */
 typedef void *
 (*GNUNET_CORE_ConnectEventHandler) (void *cls,
@@ -100,6 +102,8 @@ typedef void *
  *
  * @param cls closure
  * @param peer peer identity this notification is about
+ * @param peer_cls closure associated with peer. given in
+ *        #GNUNET_CORE_ConnectEventHandler
  */
 typedef void
 (*GNUNET_CORE_DisconnectEventHandler) (void *cls,

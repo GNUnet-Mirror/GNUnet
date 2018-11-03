@@ -1,20 +1,19 @@
-.TH GNUNET\-CONVERSATION 1 "Oct 5, 2013" "GNUnet"
-
+.TH GNUNET\-CONVERSATION 1 "October 5, 2013" "GNUnet"
 .SH NAME
 gnunet\-conversation \- have a conversation with your peers
-
 .SH SYNOPSIS
 .B gnunet\-conversation \-e NAME [OPTIONS]
 .RI URI
 .br
-
 .SH DESCRIPTION
-\fBgnunet\-conversation\fP can be used to have a conversation with other GNUnet
-users.  You can make calls and receive incoming calls.  You need to setup an
-ego using gnunet\-identity first.  For others to be able to call you, you must
-add a PHONE record to your zone in the GNU Name System (using gnunet\-namestore).
-gnunet\-conversation has an interactive help system via the /help command.
-
+\fBgnunet\-conversation\fP can be used to have a conversation with
+other GNUnet users.
+You can make calls and receive incoming calls.
+You need to setup an ego using gnunet\-identity first.
+For others to be able to call you, you must add a PHONE record to
+your zone in the GNU Name System (using gnunet\-namestore).
+gnunet\-conversation has an interactive help system via the /help
+command.
 .SH OPTIONS
 .B
 .IP "\-c FILENAME,  \-\-config=FILENAME"
@@ -27,18 +26,37 @@ Specifies the NAME of the ego to use (for caller ID).
 Print short help on options.
 .B
 .IP "\-L LOGLEVEL, \-\-loglevel=LOGLEVEL"
-Use LOGLEVEL for logging.  Valid values are DEBUG, INFO, WARNING and ERROR.
+Use LOGLEVEL for logging.
+Valid values are DEBUG, INFO, WARNING and ERROR.
 .B
 .IP "\-p LINE,  \-\-phone=LINE"
 Optional argument that can be used to specify the phone LINE to be used with
-the conversation service.  The default LINE is zero, which should be fine
-for most users.
+the conversation service.
+The default LINE is zero, which should be fine for most users.
 .B
 .IP "\-v, \-\-version"
 Print GNUnet version number.
-
-
 .SH BUGS
-Report bugs by using Mantis <https://gnunet.org/bugs/> or by sending electronic mail to <gnunet\-developers@gnu.org>
-.SH "SEE ALSO"
+Report bugs by using Mantis <https://gnunet.org/bugs/> or by sending
+electronic mail to <gnunet\-developers@gnu.org>
+.SH SEE ALSO
 \fBgnunet\-identity\fP(1), \fBgnunet\-namestore\fP(1), \fBgnunet\-gns\fP(1)
+The full documentation for
+.B gnunet
+is maintained as a Texinfo manual.  If the
+.B info
+and
+.B gnunet
+programs are properly installed at your site, the command
+.IP
+.B info gnunet
+.PP
+should give you access to the complete handbook,
+.IP
+.B info gnunet-c-tutorial
+.PP
+will give you access to a tutorial for developers.
+.PP
+Depending on your installation, this information is also
+available in
+\fBgnunet\fP(7) and \fBgnunet-c-tutorial\fP(7).

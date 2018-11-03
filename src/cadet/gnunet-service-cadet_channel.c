@@ -500,6 +500,11 @@ channel_destroy (struct CadetChannel *ch)
     GNUNET_free (crm->data_message);
     GNUNET_free (crm);
   }
+  if (CADET_CHANNEL_LOOSE == ch->state)
+  {
+    GSC_drop_loose_channel (&ch->h_port,
+			    ch);
+  }
   if (NULL != ch->owner)
   {
     free_channel_client (ch->owner);
@@ -1136,8 +1141,6 @@ GCCH_channel_local_destroy (struct CadetChannel *ch,
          target, but that never went anywhere. Nothing to do here. */
       break;
     case CADET_CHANNEL_LOOSE:
-      GSC_drop_loose_channel (&ch->h_port,
-                              ch);
       break;
     default:
       GCT_send_channel_destroy (ch->t,

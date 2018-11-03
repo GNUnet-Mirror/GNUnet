@@ -235,6 +235,7 @@ libgnunet_plugin_block_gns_la_LDFLAGS = \
 
 check_SCRIPTS = \
   test_gns_lookup.sh \
+  test_gns_config_lookup.sh \
   test_gns_ipv6_lookup.sh\
   test_gns_txt_lookup.sh\
   test_gns_mx_lookup.sh \

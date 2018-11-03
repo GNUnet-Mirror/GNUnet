@@ -26,9 +26,8 @@
 #ifndef RPS_TEST_UTIL_H
 #define RPS_TEST_UTIL_H
 
+#define TO_FILE 1
 
-void
-to_file_ (const char *file_name, char *line);
 
 char *
 auth_key_to_string (struct GNUNET_CRYPTO_AuthKey auth_key);
@@ -43,32 +42,42 @@ create_file (const char *name);
  * This function is used to facilitate writing important information to disk
  */
 #ifdef TO_FILE
-#  define to_file(file_name, ...) do {char tmp_buf[512];\
+#  define to_file(file_name, ...) do {char tmp_buf[512] = "";\
     int size;\
     size = GNUNET_snprintf(tmp_buf,sizeof(tmp_buf),__VA_ARGS__);\
     if (0 > size)\
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,\
            "Failed to create tmp_buf\n");\
     else\
-      to_file_(file_name,tmp_buf);\
+      GNUNET_DISK_fn_write(file_name, tmp_buf, strnlen(tmp_buf, 512),\
+                            GNUNET_DISK_PERM_USER_READ |\
+                            GNUNET_DISK_PERM_USER_WRITE |\
+                            GNUNET_DISK_PERM_GROUP_READ |\
+                            GNUNET_DISK_PERM_OTHER_READ);\
   } while (0);
-#  define to_file_w_len(file_name, len, ...) do {char tmp_buf[len];\
+
+#define to_file_w_len(file_name, len, ...) do {char tmp_buf[len];\
     int size;\
+    memset (tmp_buf, 0, len);\
     size = GNUNET_snprintf(tmp_buf,sizeof(tmp_buf),__VA_ARGS__);\
     if (0 > size)\
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,\
            "Failed to create tmp_buf\n");\
     else\
-      to_file_(file_name,tmp_buf);\
+      GNUNET_DISK_fn_write(file_name, tmp_buf, strnlen(tmp_buf, len), \
+                            GNUNET_DISK_PERM_USER_READ |\
+                            GNUNET_DISK_PERM_USER_WRITE |\
+                            GNUNET_DISK_PERM_GROUP_READ |\
+                            GNUNET_DISK_PERM_OTHER_READ);\
   } while (0);
 #else /* TO_FILE */
 #  define to_file(file_name, ...)
 #  define to_file_w_len(file_name, len, ...)
 #endif /* TO_FILE */
 
-const char *
+char *
 store_prefix_file_name (const struct GNUNET_PeerIdentity *peer,
-    const char *prefix);
+                        const char *prefix);
 
 void
 to_file_raw (const char *file_name, const char *buf, size_t size_buf);

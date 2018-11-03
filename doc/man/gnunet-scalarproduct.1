@@ -1,17 +1,13 @@
-.TH GNUNET\-VECTORPRODUCT 1 "8 Aug 2013" "GNUnet"
-
+.TH GNUNET-VECTORPRODUCT 1 "August 8, 2013" "GNUnet"
 .SH NAME
 gnunet\-vectorproduct \- compute a vectorproduct
-
 .SH SYNOPSIS
 .B gnunet\-vectorproduct
 .RI [ options ]
-.br
-
 .SH DESCRIPTION
 \fBgnunet-vectorproduct\fP enables you to compute a vectorproduct
 across two peers \fBAlice\fP and \fBBob\fP.
-
+.PP
 A client can issue one of two messages to its service:
 .TS
 tab (@);
@@ -23,17 +19,16 @@ T}
 Elements to support a peer in computing a vectorproduct (\fBBob\fP)
 T}
 .TE
-
 Both requests must share the same SID, which can be an arbitrary
 string identifying the session. SIDs should be unique, however it is
 sufficient to guarantee the uniqueness of the tupel element count and
 session ID.
-
+.PP
 \fBAlice\fP\'s client must supply the ASCII encoded peer ID of bob\'s
 service, it will internally be checked by the client for
 validity. Invalid values here result in the client or the service
 failing the session.
-
+.PP
 Elements are handed over as signed decimal integers, the element count
 supplied by \fBAlice\fP and \fBBob\fP must match. \fBAlice\fP can also
 supply a mask for these values to her service, which allows partial
@@ -42,11 +37,10 @@ masked by setting their the corresponding mask element to zero, any
 other value means the element will not be masked. \fBAlice\fP\'s
 client will also mask all 0-values to avoid information leakage to
 \fBBob\fP.
-
+.PP
 The protocol by definition relies on \fBAlice\fP and \fBBob\fP being
 benign, thus \fBBob\fP can arbitrarily falsify his information. Both
 peers collaborate to achieve a correct result.
-
 .SH OPTIONS
 .B
 .IP "\-e ELEMENTS, \-\-elements=ELEMENTS"
@@ -78,10 +72,29 @@ Use LOGLEVEL for logging.  Valid values are DEBUG, INFO, WARNING and ERROR.
 .B
 .IP "\-v, \-\-version"
 Print GNUnet version number.
-
-
 .SH BUGS
-Report bugs by using Mantis <https://gnunet.org/bugs/> or by sending electronic mail to <gnunet\-developers@gnu.org>
-
+Report bugs by using Mantis <https://gnunet.org/bugs/> or by sending
+electronic mail to <gnunet\-developers@gnu.org>
 .SH SEE ALSO
 gnunet\-peerinfo(1)
+.PP
+The full documentation for
+.B gnunet
+is maintained as a Texinfo manual.
+If the
+.B info
+and
+.B gnunet
+programs are properly installed at your site, the command
+.IP
+.B info gnunet
+.PP
+should give you access to the complete handbook,
+.IP
+.B info gnunet-c-tutorial
+.PP
+will give you access to a tutorial for developers.
+.PP
+Depending on your installation, this information is also
+available in
+\fBgnunet\fP(7) and \fBgnunet-c-tutorial\fP(7).

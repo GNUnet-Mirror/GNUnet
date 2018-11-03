@@ -49,6 +49,52 @@
 typedef void
 (*GNUNET_CURL_RescheduleCallback)(void *cls);
 
+/**
+ * @brief Buffer data structure we use to buffer the HTTP download
+ * before giving it to the JSON parser.
+ */
+struct GNUNET_CURL_DownloadBuffer
+{
+
+  /**
+   * Download buffer
+   */
+  void *buf;
+
+  /**
+   * The size of the download buffer
+   */
+  size_t buf_size;
+
+  /**
+   * Error code (based on libc errno) if we failed to download
+   * (i.e. response too large).
+   */
+  int eno;
+
+};
+
+
+/**
+ * Parses the raw response we got from the Web server.
+ *
+ * @param db the raw data
+ * @param eh handle
+ * @param response_code HTTP response code
+ * @return the parsed object
+ */
+typedef void *
+(*GNUNET_CURL_RawParser) (struct GNUNET_CURL_DownloadBuffer *db,
+                          CURL *eh,
+                          long *response_code);
+
+/**
+ * Deallocate the response.
+ * 
+ * @param response object to clean
+ */
+typedef void
+(*GNUNET_CURL_ResponseCleaner) (void *response);
 
 /**
  * Initialise this library.  This function should be called before using any of
@@ -119,6 +165,19 @@ GNUNET_CURL_perform (struct GNUNET_CURL_Context *ctx);
 
 
 /**
+ * Run the main event loop for the Taler interaction.
+ *
+ * @param ctx the library context
+ * @param rp parses the raw response returned from
+ *        the Web server.
+ * @param rc cleans/frees the response
+ */
+void
+GNUNET_CURL_perform2 (struct GNUNET_CURL_Context *ctx,
+                      GNUNET_CURL_RawParser rp,
+                      GNUNET_CURL_ResponseCleaner rc);
+
+/**
  * Cleanup library initialisation resources.  This function should be called
  * after using this library to cleanup the resources occupied during library's
  * initialisation.
@@ -144,7 +203,7 @@ struct GNUNET_CURL_Job;
 typedef void
 (*GNUNET_CURL_JobCompletionCallback)(void *cls,
                                      long response_code,
-                                     const json_t *json);
+                                     const void *response);
 
 
 /**
@@ -198,6 +257,18 @@ struct GNUNET_CURL_RescheduleContext;
  */
 struct GNUNET_CURL_RescheduleContext *
 GNUNET_CURL_gnunet_rc_create (struct GNUNET_CURL_Context *ctx);
+
+/**
+ * Initialize reschedule context; with custom response parser
+ *
+ * @param ctx context to manage
+ * @return closure for #GNUNET_CURL_gnunet_scheduler_reschedule().
+ */
+struct GNUNET_CURL_RescheduleContext *
+GNUNET_CURL_gnunet_rc_create_with_parser (struct GNUNET_CURL_Context *ctx,
+                                          GNUNET_CURL_RawParser rp,
+                                          GNUNET_CURL_ResponseCleaner rc);
+
 
 /**
  * Destroy reschedule context.
