@@ -31,6 +31,10 @@ gnunet-identity -D $MY_EGO -c test_gns_lookup.conf
 gnunet-arm -e -c test_gns_lookup.conf
 rm -rf `gnunet-config -c test_gns_lookup.conf -f -s paths -o GNUNET_TEST_HOME`
 
+# make cmp case-insensitive by converting to lower case first
+RES_MX=`echo $RES_MX | tr [A-Z] [a-z]`
+WANT_MX=`echo $WANT_MX | tr [A-Z] [a-z]`
+
 if [ "$RES_MX" == "$WANT_MX" ]
 then
   exit 0
