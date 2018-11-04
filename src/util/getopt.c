@@ -866,7 +866,7 @@ GNgetopt_long (int argc,
  * @param argc number of arguments
  * @param argv actual arguments
  * @return index into argv with first non-option
- *   argument, or -1 on error
+ *   argument, or #GNUNET_SYSERR on error
  */
 int
 GNUNET_GETOPT_run (const char *binaryOptions,
@@ -967,9 +967,9 @@ GNUNET_GETOPT_run (const char *binaryOptions,
   GNUNET_free (seen);
 
   /* call cleaners, if available */
-  for (count = 0; NULL != allOptions[count].name; count++)
-    if (NULL != allOptions[count].cleaner)
-      allOptions[count].cleaner (allOptions[count].scls);
+  for (unsigned int i = 0; NULL != allOptions[i].name; i++)
+    if (NULL != allOptions[i].cleaner)
+      allOptions[i].cleaner (allOptions[i].scls);
 
   if (GNUNET_OK != cont)
     return cont;
