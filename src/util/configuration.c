@@ -893,21 +893,26 @@ GNUNET_CONFIGURATION_set_value_number (struct GNUNET_CONFIGURATION_Handle *cfg,
  * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
  */
 int
-GNUNET_CONFIGURATION_get_value_number (const struct GNUNET_CONFIGURATION_Handle
-                                       *cfg, const char *section,
+GNUNET_CONFIGURATION_get_value_number (const struct GNUNET_CONFIGURATION_Handle *cfg,
+				       const char *section,
                                        const char *option,
                                        unsigned long long *number)
 {
   struct ConfigEntry *e;
+  char dummy[2];
 
   if (NULL == (e = find_entry (cfg, section, option)))
     return GNUNET_SYSERR;
   if (NULL == e->val)
     return GNUNET_SYSERR;
-  if (1 != SSCANF (e->val, "%llu", number))
+  if (1 != SSCANF (e->val,
+		   "%llu%1s",
+		   number,
+		   dummy))
     return GNUNET_SYSERR;
-  return GNUNET_OK;
+  return GNUNET_OK;  
 }
+
 
 /**
  * Get a configuration value that should be a floating point number.
@@ -919,18 +924,22 @@ GNUNET_CONFIGURATION_get_value_number (const struct GNUNET_CONFIGURATION_Handle
  * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
  */
 int
-GNUNET_CONFIGURATION_get_value_float  (const struct GNUNET_CONFIGURATION_Handle
-                                       *cfg, const char *section,
+GNUNET_CONFIGURATION_get_value_float  (const struct GNUNET_CONFIGURATION_Handle *cfg,
+				       const char *section,
                                        const char *option,
                                        float *number)
 {
   struct ConfigEntry *e;
-
+  char dummy[2];
+  
   if (NULL == (e = find_entry (cfg, section, option)))
     return GNUNET_SYSERR;
   if (NULL == e->val)
     return GNUNET_SYSERR;
-  if (1 != SSCANF (e->val, "%f", number))
+  if (1 != SSCANF (e->val,
+		   "%f%1s",
+		   number,
+		   dummy))
     return GNUNET_SYSERR;
   return GNUNET_OK;
 }

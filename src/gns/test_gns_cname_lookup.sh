@@ -54,6 +54,9 @@ gnunet-identity -D $MY_EGO -c test_gns_lookup.conf
 gnunet-arm -e -c test_gns_lookup.conf
 rm -rf `gnunet-config -c test_gns_lookup.conf -f -s paths -o GNUNET_TEST_HOME`
 
+# make cmp case-insensitive by converting to lower case first
+RES_CNAME_RAW=`echo $RES_CNAME_RAW | tr [A-Z] [a-z]`
+TESTEGOZONE=`echo $TESTEGOZONE | tr [A-Z] [a-z]`
 if [ "$RES_CNAME_RAW" == "server.$TESTEGOZONE" ]
 then
   echo "PASS: CNAME resolution from GNS"

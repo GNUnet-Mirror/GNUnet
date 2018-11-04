@@ -25,6 +25,7 @@
 #include "gnunet_applications.h"
 #include "gnunet_util_lib.h"
 #include "gnunet_cadet_service.h"
+#include "gnunet_core_service.h"
 #include "gnunet_peerinfo_service.h"
 #include "gnunet_nse_service.h"
 #include "gnunet_statistics_service.h"
@@ -447,6 +448,16 @@ struct GNUNET_STATISTICS_Handle *stats;
 struct GNUNET_CADET_Handle *cadet_handle;
 
 /**
+ * Handle to CORE
+ */
+struct GNUNET_CORE_Handle *core_handle;
+
+/**
+ * @brief PeerMap to keep track of connected peers.
+ */
+struct GNUNET_CONTAINER_MultiPeerMap *map_single_hop;
+
+/**
  * Our own identity.
  */
 static struct GNUNET_PeerIdentity own_identity;
@@ -768,8 +779,7 @@ get_rand_peer_iterator (void *cls,
  * @return a random peer
  */
 static const struct GNUNET_PeerIdentity *
-get_random_peer_from_peermap (const struct
-                              GNUNET_CONTAINER_MultiPeerMap *valid_peers)
+get_random_peer_from_peermap (struct GNUNET_CONTAINER_MultiPeerMap *valid_peers)
 {
   struct GetRandPeerIteratorCls *iterator_cls;
   const struct GNUNET_PeerIdentity *ret;
@@ -1366,6 +1376,13 @@ mq_notify_sent_cb (void *cls)
       GNUNET_STATISTICS_update(stats, "# pull requests sent", 1, GNUNET_NO);
     if (0 == strncmp ("PUSH", pending_msg->type, 4))
       GNUNET_STATISTICS_update(stats, "# pushes sent", 1, GNUNET_NO);
+    if (0 == strncmp ("PULL REQUEST", pending_msg->type, 12) &&
+        GNUNET_NO == GNUNET_CONTAINER_multipeermap_contains (map_single_hop,
+          &pending_msg->peer_ctx->peer_id))
+      GNUNET_STATISTICS_update(stats,
+                               "# pull requests sent (multi-hop peer)",
+                               1,
+                               GNUNET_NO);
   }
   /* Do not cancle message */
   remove_pending_message (pending_msg, GNUNET_NO);
@@ -1642,7 +1659,7 @@ valid_peer_iterator (void *cls,
  *         #GNUNET_SYSERR if it aborted iteration
  */
 static int
-get_valid_peers (const struct GNUNET_CONTAINER_MultiPeerMap *valid_peers,
+get_valid_peers (struct GNUNET_CONTAINER_MultiPeerMap *valid_peers,
                  PeersIterator iterator,
                  void *it_cls)
 {
@@ -2150,7 +2167,7 @@ rem_from_list (struct GNUNET_PeerIdentity **peer_list,
  */
 static void
 insert_in_view_op (void *cls,
-		const struct GNUNET_PeerIdentity *peer);
+                   const struct GNUNET_PeerIdentity *peer);
 
 /**
  * Insert PeerID in #view
@@ -2177,7 +2194,7 @@ insert_in_view (struct Sub *sub,
        (GNUNET_SYSERR == online) ) /* peer is not even known */
   {
     (void) issue_peer_online_check (sub, peer);
-    (void) schedule_operation (peer_ctx, insert_in_view_op, NULL);
+    (void) schedule_operation (peer_ctx, insert_in_view_op, sub);
     return GNUNET_NO;
   }
   /* Open channel towards peer to keep connection open */
@@ -2690,6 +2707,14 @@ clean_peer (struct Sub *sub,
     #endif /* ENABLE_MALICIOUS */
   }
 
+  if (GNUNET_NO == GNUNET_CONTAINER_multipeermap_contains (sub->peer_map, peer))
+  {
+    /* Peer was already removed by callback on destroyed channel */
+    LOG (GNUNET_ERROR_TYPE_WARNING,
+        "Peer was removed from our knowledge during cleanup\n");
+    return;
+  }
+
   if ( (GNUNET_NO == check_peer_send_intention (get_peer_ctx (sub->peer_map,
                                                               peer))) &&
        (GNUNET_NO == View_contains_peer (sub->view, peer)) &&
@@ -2729,7 +2754,8 @@ cleanup_destroyed_channel (void *cls,
   channel_ctx->channel = NULL;
   remove_channel_ctx (channel_ctx);
   if (NULL != peer_ctx &&
-      peer_ctx->send_channel_ctx == channel_ctx)
+      peer_ctx->send_channel_ctx == channel_ctx &&
+      GNUNET_YES == check_sending_channel_needed (channel_ctx->peer_ctx))
   {
     remove_peer (peer_ctx->sub, &peer_ctx->peer_id);
   }
@@ -2813,6 +2839,25 @@ new_sub (const struct GNUNET_HashCode *hash,
     GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR,
                                "rps",
                                "FILENAME_VALID_PEERS");
+  }
+  if (0 != strncmp ("DISABLE", sub->filename_valid_peers, 7))
+  {
+    char *tmp_filename_valid_peers;
+    char str_hash[105];
+    uint32_t len_filename_valid_peers;
+
+    (void) GNUNET_snprintf (str_hash, 105, GNUNET_h2s_full (hash));
+    tmp_filename_valid_peers = GNUNET_strdup (sub->filename_valid_peers);
+    GNUNET_free (sub->filename_valid_peers);
+    len_filename_valid_peers = strlen (tmp_filename_valid_peers) + 105; /* Len of full hash + 1 */
+    sub->filename_valid_peers = GNUNET_malloc (len_filename_valid_peers);
+    strncat (sub->filename_valid_peers,
+             tmp_filename_valid_peers,
+             len_filename_valid_peers);
+    strncat (sub->filename_valid_peers,
+             str_hash,
+             len_filename_valid_peers);
+    GNUNET_free (tmp_filename_valid_peers);
   }
   sub->peer_map = GNUNET_CONTAINER_multipeermap_create (4, GNUNET_NO);
 
@@ -2949,6 +2994,73 @@ destroy_sub (struct Sub *sub)
 
 /***********************************************************************
  * /Sub
+***********************************************************************/
+
+
+/***********************************************************************
+ * Core handlers
+***********************************************************************/
+
+/**
+ * @brief Callback on initialisation of Core.
+ *
+ * @param cls - unused
+ * @param my_identity - unused
+ */
+void
+core_init (void *cls,
+           const struct GNUNET_PeerIdentity *my_identity)
+{
+  (void) cls;
+  (void) my_identity;
+
+  map_single_hop = GNUNET_CONTAINER_multipeermap_create (4, GNUNET_NO);
+}
+
+
+/**
+ * @brief Callback for core.
+ * Method called whenever a given peer connects.
+ *
+ * @param cls closure - unused
+ * @param peer peer identity this notification is about
+ * @return closure given to #core_disconnects as peer_cls
+ */
+void *
+core_connects (void *cls,
+               const struct GNUNET_PeerIdentity *peer,
+               struct GNUNET_MQ_Handle *mq)
+{
+  (void) cls;
+  (void) mq;
+
+  GNUNET_CONTAINER_multipeermap_put (map_single_hop, peer, NULL,
+      GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
+  return NULL;
+}
+
+
+/**
+ * @brief Callback for core.
+ * Method called whenever a peer disconnects.
+ *
+ * @param cls closure - unused
+ * @param peer peer identity this notification is about
+ * @param peer_cls closure given in #core_connects - unused
+ */
+void
+core_disconnects (void *cls,
+                  const struct GNUNET_PeerIdentity *peer,
+                  void *peer_cls)
+{
+  (void) cls;
+  (void) peer_cls;
+
+  GNUNET_CONTAINER_multipeermap_remove_all (map_single_hop, peer);
+}
+
+/***********************************************************************
+ * /Core handlers
 ***********************************************************************/
 
 
@@ -3395,6 +3507,14 @@ handle_peer_pull_request (void *cls,
                              "# pull request message received",
                              1,
                              GNUNET_NO);
+    if (GNUNET_NO == GNUNET_CONTAINER_multipeermap_contains (map_single_hop,
+                                                             &peer_ctx->peer_id))
+    {
+      GNUNET_STATISTICS_update (stats,
+                                "# pull request message received (multi-hop peer)",
+                                1,
+                                GNUNET_NO);
+    }
   }
 
   #ifdef ENABLE_MALICIOUS
@@ -3503,6 +3623,14 @@ handle_peer_pull_reply (void *cls,
                               "# pull reply messages received",
                               1,
                               GNUNET_NO);
+    if (GNUNET_NO == GNUNET_CONTAINER_multipeermap_contains (map_single_hop,
+          &channel_ctx->peer_ctx->peer_id))
+    {
+      GNUNET_STATISTICS_update (stats,
+                                "# pull reply messages received (multi-hop peer)",
+                                1,
+                                GNUNET_NO);
+    }
   }
 
   #ifdef ENABLE_MALICIOUS
@@ -3650,6 +3778,14 @@ send_pull_request (struct PeerContext *peer_ctx)
                               "# pull request send issued",
                               1,
                               GNUNET_NO);
+    if (GNUNET_NO == GNUNET_CONTAINER_multipeermap_contains (map_single_hop,
+                                                             &peer_ctx->peer_id))
+    {
+      GNUNET_STATISTICS_update (stats,
+                                "# pull request send issued (multi-hop peer)",
+                                1,
+                                GNUNET_NO);
+    }
   }
 }
 
@@ -4384,6 +4520,15 @@ shutdown_task (void *cls)
   GNUNET_PEERINFO_disconnect (peerinfo_handle);
   peerinfo_handle = NULL;
   GNUNET_NSE_disconnect (nse);
+  if (NULL != map_single_hop)
+  {
+    /* core_init was called - core was initialised */
+    /* disconnect first, so no callback tries to access missing peermap */
+    GNUNET_CORE_disconnect (core_handle);
+    core_handle = NULL;
+    GNUNET_CONTAINER_multipeermap_destroy (map_single_hop);
+    map_single_hop = NULL;
+  }
 
   if (NULL != stats)
   {
@@ -4538,6 +4683,13 @@ run (void *cls,
 
   cadet_handle = GNUNET_CADET_connect (cfg);
   GNUNET_assert (NULL != cadet_handle);
+  core_handle = GNUNET_CORE_connect (cfg,
+                                     NULL, /* cls */
+                                     core_init, /* init */
+                                     core_connects, /* connects */
+                                     core_disconnects, /* disconnects */
+                                     NULL); /* handlers */
+  GNUNET_assert (NULL != core_handle);
 
 
   alpha = 0.45;

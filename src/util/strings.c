@@ -1262,6 +1262,7 @@ GNUNET_STRINGS_to_address_ipv6 (const char *zt_addr,
   int ret;
   char *port_colon;
   unsigned int port;
+  char dummy[2];
 
   if (addrlen < 6)
     return GNUNET_SYSERR;
@@ -1286,7 +1287,10 @@ GNUNET_STRINGS_to_address_ipv6 (const char *zt_addr,
 		_("IPv6 address did contain ']' before ':' to separate port number\n"));
     return GNUNET_SYSERR;
   }
-  ret = SSCANF (port_colon, ":%u", &port);
+  ret = SSCANF (port_colon,
+		":%u%1s",
+		&port,
+		dummy);
   if ( (1 != ret) || (port > 65535) )
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
@@ -1332,16 +1336,18 @@ GNUNET_STRINGS_to_address_ipv4 (const char *zt_addr,
   unsigned int temps[4];
   unsigned int port;
   unsigned int cnt;
+  char dummy[2];
 
   if (addrlen < 9)
     return GNUNET_SYSERR;
   cnt = SSCANF (zt_addr,
-		"%u.%u.%u.%u:%u",
+		"%u.%u.%u.%u:%u%1s",
 		&temps[0],
 		&temps[1],
 		&temps[2],
 		&temps[3],
-		&port);
+		&port,
+		dummy);
   if (5 != cnt)
     return GNUNET_SYSERR;
   for (cnt = 0; cnt < 4; cnt++)
@@ -1563,7 +1569,9 @@ parse_port_policy (const char *port_policy,
   }
   if (2 == sscanf (pos,
                    "%u-%u%1s",
-                   &s, &e, eol))
+                   &s,
+		   &e,
+		   eol))
   {
     if ( (0 == s) ||
          (s > 0xFFFF) ||
@@ -1629,7 +1637,8 @@ GNUNET_STRINGS_parse_ipv4_policy (const char *routeListX)
   int colon;
   int end;
   char *routeList;
-
+  char dummy[2];
+  
   if (NULL == routeListX)
     return NULL;
   len = strlen (routeListX);
@@ -1664,7 +1673,7 @@ GNUNET_STRINGS_parse_ipv4_policy (const char *routeListX)
     }
     cnt =
         SSCANF (&routeList[pos],
-                "%u.%u.%u.%u/%u.%u.%u.%u",
+                "%u.%u.%u.%u/%u.%u.%u.%u%1s",
                 &temps[0],
                 &temps[1],
                 &temps[2],
@@ -1672,7 +1681,8 @@ GNUNET_STRINGS_parse_ipv4_policy (const char *routeListX)
                 &temps[4],
                 &temps[5],
                 &temps[6],
-                &temps[7]);
+                &temps[7],
+		dummy);
     if (8 == cnt)
     {
       for (j = 0; j < 8; j++)
@@ -1698,12 +1708,13 @@ GNUNET_STRINGS_parse_ipv4_policy (const char *routeListX)
     /* try second notation */
     cnt =
         SSCANF (&routeList[pos],
-                "%u.%u.%u.%u/%u",
+                "%u.%u.%u.%u/%u%1s",
                 &temps[0],
                 &temps[1],
                 &temps[2],
                 &temps[3],
-                &slash);
+                &slash,
+		dummy);
     if (5 == cnt)
     {
       for (j = 0; j < 4; j++)
@@ -1747,11 +1758,12 @@ GNUNET_STRINGS_parse_ipv4_policy (const char *routeListX)
     slash = 32;
     cnt =
         SSCANF (&routeList[pos],
-                "%u.%u.%u.%u",
+                "%u.%u.%u.%u%1s",
                 &temps[0],
                 &temps[1],
                 &temps[2],
-                &temps[3]);
+                &temps[3],
+		dummy);
     if (4 == cnt)
     {
       for (j = 0; j < 4; j++)
@@ -1826,7 +1838,8 @@ GNUNET_STRINGS_parse_ipv6_policy (const char *routeListX)
   unsigned int off;
   int save;
   int colon;
-
+  char dummy[2];
+  
   if (NULL == routeListX)
     return NULL;
   len = strlen (routeListX);
@@ -1886,7 +1899,11 @@ GNUNET_STRINGS_parse_ipv6_policy (const char *routeListX)
       if (ret <= 0)
       {
         save = errno;
-        if ((1 != SSCANF (&routeList[slash + 1], "%u", &bits)) || (bits > 128))
+        if ( (1 != SSCANF (&routeList[slash + 1],
+			   "%u%1s",
+			   &bits,
+			   dummy)) ||
+	     (bits > 128) )
         {
           if (0 == ret)
             LOG (GNUNET_ERROR_TYPE_WARNING,
