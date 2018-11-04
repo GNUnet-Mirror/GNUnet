@@ -1175,8 +1175,9 @@ setup_service (struct GNUNET_SERVICE_Handle *sh)
   const char *nfds;
   unsigned int cnt;
   int flags;
+  char dummy[2];
 #endif
-
+  
   if (GNUNET_CONFIGURATION_have_value
       (sh->cfg,
        sh->service_name,
@@ -1203,8 +1204,9 @@ setup_service (struct GNUNET_SERVICE_Handle *sh)
   errno = 0;
   if ( (NULL != (nfds = getenv ("LISTEN_FDS"))) &&
        (1 == SSCANF (nfds,
-		     "%u",
-		     &cnt)) &&
+		     "%u%1s",
+		     &cnt,
+		     dummy)) &&
        (cnt > 0) &&
        (cnt < FD_SETSIZE) &&
        (cnt + 4 < FD_SETSIZE) )

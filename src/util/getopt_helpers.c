@@ -108,9 +108,10 @@ format_help (struct GNUNET_GETOPT_CommandLineProcessorContext *ctx,
   (void) value;
   if (NULL != about)
   {
-    printf ("%s\n%s\n", ctx->binaryOptions, gettext (about));
-    printf (_
-	    ("Arguments mandatory for long options are also mandatory for short options.\n"));
+    printf ("%s\n%s\n",
+	    ctx->binaryOptions,
+	    gettext (about));
+    printf (_("Arguments mandatory for long options are also mandatory for short options.\n"));
   }
   i = 0;
   opt = ctx->allOptions;
@@ -549,11 +550,13 @@ set_ulong (struct GNUNET_GETOPT_CommandLineProcessorContext *ctx,
            const char *value)
 {
   unsigned long long *val = scls;
+  char dummy[2];
 
   (void) ctx;
   if (1 != SSCANF (value,
-                   "%llu",
-                   val))
+                   "%llu%1s",
+                   val,
+		   dummy))
   {
     FPRINTF (stderr,
              _("You must pass a number to the `%s' option.\n"),
@@ -746,6 +749,7 @@ set_uint (struct GNUNET_GETOPT_CommandLineProcessorContext *ctx,
           const char *value)
 {
   unsigned int *val = scls;
+  char dummy[2];
 
   (void) ctx;
   if('-' == *value)
@@ -756,8 +760,9 @@ set_uint (struct GNUNET_GETOPT_CommandLineProcessorContext *ctx,
     	return GNUNET_SYSERR;
   }
   if (1 != SSCANF (value,
-                   "%u",
-                   val))
+                   "%u%1s",
+                   val,
+		   dummy))
   {
     FPRINTF (stderr,
              _("You must pass a number to the `%s' option.\n"),
@@ -820,11 +825,13 @@ set_uint16 (struct GNUNET_GETOPT_CommandLineProcessorContext *ctx,
 {
   uint16_t *val = scls;
   unsigned int v;
+  char dummy[2];
   
   (void) ctx;
   if (1 != SSCANF (value,
-                   "%u",
-                   &v))
+                   "%u%1s",
+                   &v,
+		   dummy))
   {
     FPRINTF (stderr,
              _("You must pass a number to the `%s' option.\n"),
