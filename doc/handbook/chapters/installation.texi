@@ -1464,29 +1464,31 @@ configuring the use of GNS with your operating system.
 
 At this point in time you have different options depending on your OS:
 
-@table @asis
-
-@item Use the gnunet-gns-proxy This approach works for all operating
-systems and is likely the easiest. However, it enables GNS only for
-browsers, not for other applications that might be using DNS, such as SSH.
-Still, using the proxy is required for using HTTP with GNS and is thus
-recommended for all users. To do this, you simply have to run the
+@itemize @bullet
+@item Use the gnunet-gns-proxy@*
+This approach works for all operating systems and is likely the
+easiest. However, it enables GNS only for browsers, not for other
+applications that might be using DNS, such as SSH.  Still, using the
+proxy is required for using HTTP with GNS and is thus recommended for
+all users. To do this, you simply have to run the
 @code{gnunet-gns-proxy-setup-ca} script as the user who will run the
-browser (this will create a GNS certificate authority (CA) on your system
-and import its key into your browser), then start @code{gnunet-gns-proxy}
-and inform your browser to use the Socks5 proxy which
-@code{gnunet-gns-proxy} makes available by default on port 7777.
-@item Use a nsswitch plugin (recommended on GNU systems)
-This approach has the advantage of offering fully personalized resolution
-even on multi-user systems. A potential disadvantage is that some
-applications might be able to bypass GNS.
-@item Use a W32 resolver plugin (recommended on W32)
+browser (this will create a GNS certificate authority (CA) on your
+system and import its key into your browser), then start
+@code{gnunet-gns-proxy} and inform your browser to use the Socks5
+proxy which @code{gnunet-gns-proxy} makes available by default on port
+7777.
+@item Use a nsswitch plugin (recommended on GNU systems)@*
+This approach has the advantage of offering fully personalized
+resolution even on multi-user systems. A potential disadvantage is
+that some applications might be able to bypass GNS.
+@item Use a W32 resolver plugin (recommended on W32)@*
 This is currently the only option on W32 systems.
-@item Use system-wide DNS packet interception
-This approach is recommended for the GNUnet VPN. It can be used to handle
-GNS at the same time; however, if you only use this method, you will only
-get one root zone per machine (not so great for multi-user systems).
-@end table
+@item Use system-wide DNS packet interception@*
+This approach is recommended for the GNUnet VPN. It can be used to
+handle GNS at the same time; however, if you only use this method, you
+will only get one root zone per machine (not so great for multi-user
+systems).
+@end itemize
 
 You can combine system-wide DNS packet interception with the nsswitch
 plugin.
