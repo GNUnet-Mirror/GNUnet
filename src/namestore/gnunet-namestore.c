@@ -936,6 +936,44 @@ parse_expiration (const char *expirationstring,
 }
 
 
+#if 0
+/* globals? */
+unsigned int rd_count;
+struct GNUNET_GNSRECORD_Data *rd;
+
+
+rd_count = 0;
+for (struct RecordSetEntry *e = recordset; NULL != e; e = e->next)
+  rd_count++;
+rd = GNUNET_new_array (rd_count,
+		       struct GNUNET_GNSRECORD_Data);
+rd_count = 0;
+for (struct RecordSetEntry *e = recordset; NULL != e; e = e->next)
+{
+  rd[rd_count] = e->record;
+  rd_count++;
+}
+
+/* if add: */
+qe = GNUNET_NAMESTORE_records_store (...,
+				rd_count,
+				rd,
+				&my_cont
+				..);
+
+in 'my_cont' and/or shutdown:
+
+qe = NULL;
+GNUNET_free (rd);
+
+in shutdown:
+
+if NULL != qe  NAMESTORE_cancel (qe);
+GNUNET_free (rd);
+
+#endif
+
+
 /**
  * Callback invoked from identity service with ego information.
  * An @a ego of NULL means the ego was not found.
