@@ -496,21 +496,22 @@ uri_ksk_continuation (void *cls,
              emsg);
     ret = 1;
   }
-  if (NULL != namespace)
+  if (NULL == namespace)
   {
-    priv = GNUNET_IDENTITY_ego_get_private_key (namespace);
-    GNUNET_FS_publish_sks (ctx,
-                           priv,
-                           this_id,
-                           next_id,
-                           meta,
-                           uri,
-                           &bo,
-			   GNUNET_FS_PUBLISH_OPTION_NONE,
-			   &uri_sks_continuation, NULL);
+    GNUNET_SCHEDULER_shutdown ();
     return;
   }
-  GNUNET_SCHEDULER_shutdown ();
+  priv = GNUNET_IDENTITY_ego_get_private_key (namespace);
+  GNUNET_FS_publish_sks (ctx,
+			 priv,
+			 this_id,
+			 next_id,
+			 meta,
+			 uri,
+			 &bo,
+			 GNUNET_FS_PUBLISH_OPTION_NONE,
+			 &uri_sks_continuation,
+			 NULL);
 }
 
 
