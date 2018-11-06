@@ -38,19 +38,20 @@
  * @param scls must be of type "struct GNUNET_FS_Uri **"
  * @param option name of the option (typically 'k')
  * @param value command line argument given
- * @return GNUNET_OK on success
+ * @return #GNUNET_OK on success
  */
 static int
-getopt_set_keywords (struct GNUNET_GETOPT_CommandLineProcessorContext
-                     *ctx, void *scls, const char *option,
-                      const char *value)
+getopt_set_keywords (struct GNUNET_GETOPT_CommandLineProcessorContext *ctx,
+		     void *scls,
+		     const char *option,
+		     const char *value)
 {
   struct GNUNET_FS_Uri **uri = scls;
   struct GNUNET_FS_Uri *u = *uri;
   char *val;
   size_t slen;
 
-  if (u == NULL)
+  if (NULL == u)
   {
     u = GNUNET_new (struct GNUNET_FS_Uri);
     *uri = u;
@@ -60,10 +61,10 @@ getopt_set_keywords (struct GNUNET_GETOPT_CommandLineProcessorContext
   }
   else
   {
-    GNUNET_assert (u->type == GNUNET_FS_URI_KSK);
+    GNUNET_assert (GNUNET_FS_URI_KSK == u->type);
   }
   slen = strlen (value);
-  if (slen == 0)
+  if (0 == slen)
     return GNUNET_SYSERR;       /* cannot be empty */
   if (value[0] == '+')
   {
@@ -75,7 +76,9 @@ getopt_set_keywords (struct GNUNET_GETOPT_CommandLineProcessorContext
       /* remove the quotes, keep the '+' */
       val = GNUNET_malloc (slen - 1);
       val[0] = '+';
-      GNUNET_memcpy (&val[1], &value[2], slen - 3);
+      GNUNET_memcpy (&val[1],
+		     &value[2],
+		     slen - 3);
       val[slen - 2] = '\0';
     }
     else
@@ -91,7 +94,9 @@ getopt_set_keywords (struct GNUNET_GETOPT_CommandLineProcessorContext
       /* remove the quotes, add a space */
       val = GNUNET_malloc (slen);
       val[0] = ' ';
-      GNUNET_memcpy (&val[1], &value[1], slen - 2);
+      GNUNET_memcpy (&val[1],
+		     &value[1],
+		     slen - 2);
       val[slen - 1] = '\0';
     }
     else
@@ -102,9 +107,12 @@ getopt_set_keywords (struct GNUNET_GETOPT_CommandLineProcessorContext
       strcat (val, value);
     }
   }
-  GNUNET_array_append (u->data.ksk.keywords, u->data.ksk.keywordCount, val);
+  GNUNET_array_append (u->data.ksk.keywords,
+		       u->data.ksk.keywordCount,
+		       val);
   return GNUNET_OK;
 }
+
 
 /**
  * Allow user to specify keywords.
@@ -134,6 +142,7 @@ GNUNET_FS_GETOPT_KEYWORDS (char shortName,
 
   return clo;
 }
+
 
 /**
  * Command-line option parser function that allows the user to specify
