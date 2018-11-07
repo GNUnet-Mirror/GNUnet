@@ -769,7 +769,7 @@ struct GNUNET_TRANSPORT_AddQueueMessage
 {
 
   /**
-   * Type will be #GNUNET_MESSAGE_TYPE_TRANSPORT_ADD_QUEUE.
+   * Type will be #GNUNET_MESSAGE_TYPE_TRANSPORT_QUEUE_SETUP.
    */
   struct GNUNET_MessageHeader header;
 
@@ -799,7 +799,7 @@ struct GNUNET_TRANSPORT_DelQueueMessage
 {
 
   /**
-   * Type will be #GNUNET_MESSAGE_TYPE_TRANSPORT_DEL_QUEUE.
+   * Type will be #GNUNET_MESSAGE_TYPE_TRANSPORT_QUEUE_TEARDOWN.
    */
   struct GNUNET_MessageHeader header;
 
@@ -828,9 +828,9 @@ struct GNUNET_TRANSPORT_CreateQueue
   struct GNUNET_MessageHeader header;
 
   /**
-   * Always zero.
+   * Unique ID for the request.
    */
-  uint32_t reserved GNUNET_PACKED;
+  uint32_t request_id GNUNET_PACKED;
 
   /**
    * Receiver that can be addressed via the queue.
@@ -838,6 +838,24 @@ struct GNUNET_TRANSPORT_CreateQueue
   struct GNUNET_PeerIdentity receiver;
 
   /* followed by UTF-8 encoded, 0-terminated human-readable address */
+};
+
+
+/**
+ * Transport tells communicator that it wants a new queue.
+ */
+struct GNUNET_TRANSPORT_CreateQueueResponse
+{
+
+  /**
+   * Type will be #GNUNET_MESSAGE_TYPE_TRANSPORT_QUEUE_CREATE_OK or #GNUNET_MESSAGE_TYPE_TRANSPORT_QUEUE_CREATE_FAIL.
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Unique ID for the request.
+   */
+  uint32_t request_id GNUNET_PACKED;
 };
 
 
