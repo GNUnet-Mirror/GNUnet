@@ -654,6 +654,22 @@ struct TransportPluginMonitorMessage
 /* *********************** TNG messages ***************** */
 
 /**
+ * Communicator goes online.  Note which addresses it can
+ * work with.
+ */
+struct GNUNET_TRANSPORT_CommunicatorAvailableMessage
+{
+
+  /**
+   * Type will be #GNUNET_MESSAGE_TYPE_TRANSPORT_NEW_COMMUNICATOR.
+   */
+  struct GNUNET_MessageHeader header;
+
+  /* Followed by the address prefix of the communicator */
+};
+  
+
+/**
  * Add address to the list.
  */
 struct GNUNET_TRANSPORT_AddAddressMessage

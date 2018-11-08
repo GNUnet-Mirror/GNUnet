@@ -3070,6 +3070,11 @@ extern "C"
  */
 #define GNUNET_MESSAGE_TYPE_TRANSPORT_SEND_MSG_ACK 1210
 
+/**
+ * Message sent to indicate to the transport which address
+ * prefix is supported by a communicator.  
+ */
+#define GNUNET_MESSAGE_TYPE_TRANSPORT_NEW_COMMUNICATOR 1211
 
 /**
  * Next available: 1300
