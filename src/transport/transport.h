@@ -11,7 +11,7 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
@@ -94,7 +94,7 @@ struct StartMessage
 
   /**
    * 0: no options
-   * 1: The 'self' field should be checked
+   * 1: The @e self field should be checked
    * 2: this client is interested in payload traffic
    */
   uint32_t options;
@@ -404,6 +404,7 @@ struct ValidationIterateResponseMessage
   struct GNUNET_TIME_AbsoluteNBO next_validation;
 };
 
+
 /**
  * Message from the library to the transport service
  * asking for binary addresses known for a peer.
@@ -667,7 +668,7 @@ struct GNUNET_TRANSPORT_CommunicatorAvailableMessage
 
   /* Followed by the address prefix of the communicator */
 };
-  
+
 
 /**
  * Add address to the list.
@@ -694,7 +695,7 @@ struct GNUNET_TRANSPORT_AddAddressMessage
    * An `enum GNUNET_ATS_Network_Type` in NBO.
    */
   uint32_t nt;
-  
+
   /* followed by UTF-8 encoded, 0-terminated human-readable address */
 };
 
@@ -733,12 +734,12 @@ struct GNUNET_TRANSPORT_IncomingMessage
    * Do we use flow control or not?
    */
   uint32_t fc_on GNUNET_PACKED;
-  
+
   /**
    * 64-bit number to identify the matching ACK.
    */
   uint64_t fc_id GNUNET_PACKED;
-  
+
   /**
    * Sender identifier.
    */
@@ -764,12 +765,12 @@ struct GNUNET_TRANSPORT_IncomingMessageAck
    * Reserved (0)
    */
   uint32_t reserved GNUNET_PACKED;
-  
+
   /**
    * Which message is being ACKed?
    */
   uint64_t fc_id GNUNET_PACKED;
-  
+
   /**
    * Sender identifier of the original message.
    */
@@ -803,7 +804,7 @@ struct GNUNET_TRANSPORT_AddQueueMessage
    * An `enum GNUNET_ATS_Network_Type` in NBO.
    */
   uint32_t nt;
-  
+
   /* followed by UTF-8 encoded, 0-terminated human-readable address */
 };
 
@@ -895,7 +896,7 @@ struct GNUNET_TRANSPORT_SendMessageTo
    * Message ID, used for flow control.
    */
   uint64_t mid GNUNET_PACKED;
-  
+
   /**
    * Receiver identifier.
    */
@@ -925,7 +926,7 @@ struct GNUNET_TRANSPORT_SendMessageToAck
    * Message ID of the original message.
    */
   uint64_t mid GNUNET_PACKED;
-  
+
   /**
    * Receiver identifier.
    */
