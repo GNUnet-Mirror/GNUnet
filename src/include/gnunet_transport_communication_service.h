@@ -70,7 +70,7 @@ extern "C"
 typedef int
 (*GNUNET_TRANSPORT_CommunicatorMqInit) (void *cls,
                                         const struct GNUNET_PeerIdentity *peer,
-                                        const void *address);
+                                        const char *address);
 
 
 /**
