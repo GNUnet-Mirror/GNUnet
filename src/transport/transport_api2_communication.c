@@ -729,6 +729,7 @@ reconnect (struct GNUNET_TRANSPORT_CommunicatorHandle *ch)
 				  handlers,
 				  &error_handler,
 				  ch);
+  // FIXME: must notify transport that we are responsible for 'ch->name' addresses!!!
   for (struct GNUNET_TRANSPORT_AddressIdentifier *ai = ch->ai_head;
        NULL != ai;
        ai = ai->next)
