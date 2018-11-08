@@ -157,9 +157,14 @@ struct GNUNET_TRANSPORT_CommunicatorHandle
   const struct GNUNET_CONFIGURATION_Handle *cfg;
 
   /**
-   * Name of the communicator.
+   * Config section to use.
    */
-  const char *name;
+  const char *config_section;
+
+  /**
+   * Address prefix to use.
+   */
+  const char *addr_prefix;
 
   /**
    * Function to call when the transport service wants us to initiate
@@ -723,13 +728,24 @@ reconnect (struct GNUNET_TRANSPORT_CommunicatorHandle *ch)
 			   ch),
     GNUNET_MQ_handler_end()
   };
+  struct GNUNET_TRANSPORT_CommunicatorAvailableMessage *cam;
+  struct GNUNET_MQ_Envelope *env;
   
   ch->mq = GNUNET_CLIENT_connect (ch->cfg,
 				  "transport",
 				  handlers,
 				  &error_handler,
 				  ch);
-  // FIXME: must notify transport that we are responsible for 'ch->name' addresses!!!
+  if (NULL == ch->mq)
+    return;
+  env = GNUNET_MQ_msg_extra (cam,			     
+			     strlen (ch->addr_prefix) + 1,
+			     GNUNET_MESSAGE_TYPE_TRANSPORT_NEW_COMMUNICATOR);
+  memcpy (&cam[1],
+	  ch->addr_prefix,
+	  strlen (ch->addr_prefix) + 1);
+  GNUNET_MQ_send (ch->mq,
+		  env);
   for (struct GNUNET_TRANSPORT_AddressIdentifier *ai = ch->ai_head;
        NULL != ai;
        ai = ai->next)
@@ -745,7 +761,9 @@ reconnect (struct GNUNET_TRANSPORT_CommunicatorHandle *ch)
  * Connect to the transport service.
  *
  * @param cfg configuration to use
- * @param name name of the communicator that is connecting
+ * @param config_section section of the configuration to use for options
+ * @param addr_prefix address prefix for addresses supported by this
+ *        communicator, could be NULL for incoming-only communicators
  * @param mtu maximum message size supported by communicator, 0 if
  *            sending is not supported, SIZE_MAX for no MTU
  * @param mq_init function to call to initialize a message queue given
@@ -756,7 +774,8 @@ reconnect (struct GNUNET_TRANSPORT_CommunicatorHandle *ch)
  */
 struct GNUNET_TRANSPORT_CommunicatorHandle *
 GNUNET_TRANSPORT_communicator_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                                       const char *name,
+                                       const char *config_section,
+				       const char *addr_prefix,
                                        size_t mtu,
                                        GNUNET_TRANSPORT_CommunicatorMqInit mq_init,
                                        void *mq_init_cls)
@@ -765,14 +784,15 @@ GNUNET_TRANSPORT_communicator_connect (const struct GNUNET_CONFIGURATION_Handle 
   
   ch = GNUNET_new (struct GNUNET_TRANSPORT_CommunicatorHandle);
   ch->cfg = cfg;
-  ch->name = name;
+  ch->config_section = config_section;
+  ch->addr_prefix = addr_prefix;
   ch->mtu = mtu;
   ch->mq_init = mq_init;
   ch->mq_init_cls = mq_init_cls;
   reconnect (ch);
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_number (cfg,
-					     name,
+					     config_section,
 					     "MAX_QUEUE_LENGTH",
 					     &ch->max_queue_length))
     ch->max_queue_length = DEFAULT_MAX_QUEUE_LENGTH;

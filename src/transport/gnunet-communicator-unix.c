@@ -41,9 +41,14 @@
 #define DEFAULT_MAX_QUEUE_LENGTH 8
 
 /**
- * Name of the communicator.
+ * Address prefix used by the communicator.
  */
-#define COMMUNICATOR_NAME "unix"
+#define COMMUNICATOR_ADDRESS_PREFIX "unix"
+
+/**
+ * Configuration section used by the communicator.
+ */
+#define COMMUNICATOR_CONFIG_SECTION "communicator-unix"
 
 
 GNUNET_NETWORK_STRUCT_BEGIN
@@ -656,12 +661,12 @@ setup_queue (const struct GNUNET_PeerIdentity *target,
     if ('\0' == un->sun_path[0])
       GNUNET_asprintf (&foreign_addr,
 		       "%s-@%s",
-		       COMMUNICATOR_NAME,
+		       COMMUNICATOR_ADDRESS_PREFIX,
 		       &un->sun_path[1]);
     else
       GNUNET_asprintf (&foreign_addr,
 		       "%s-%s",
-		       COMMUNICATOR_NAME,
+		       COMMUNICATOR_ADDRESS_PREFIX,
 		       un->sun_path);
     queue->qh
       = GNUNET_TRANSPORT_communicator_mq_add (ch,
@@ -855,13 +860,13 @@ mq_init (void *cls,
   socklen_t un_len;
   
   if (0 != strncmp (address,
-		    COMMUNICATOR_NAME "-",
-		    strlen (COMMUNICATOR_NAME "-")))
+		    COMMUNICATOR_ADDRESS_PREFIX "-",
+		    strlen (COMMUNICATOR_ADDRESS_PREFIX "-")))
   {
     GNUNET_break_op (0);
     return GNUNET_SYSERR;
   }
-  path = &address[strlen (COMMUNICATOR_NAME "-")];
+  path = &address[strlen (COMMUNICATOR_ADDRESS_PREFIX "-")];
   un = unix_address_to_sockaddr (path,
 				 &un_len);
   queue = lookup_queue (peer,
@@ -983,18 +988,18 @@ run (void *cls,
   
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_filename (cfg,
-					       "communicator-unix",
+					       COMMUNICATOR_CONFIG_SECTION,
 					       "UNIXPATH",
 					       &unix_socket_path))
   {
     GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR,
-                               "communicator-unix",
+                               COMMUNICATOR_CONFIG_SECTION,
                                "UNIXPATH");
     return;
   }
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_number (cfg,
-					     "communicator-unix",
+					     COMMUNICATOR_CONFIG_SECTION,
 					     "MAX_QUEUE_LENGTH",
 					     &max_queue_length))
     max_queue_length = DEFAULT_MAX_QUEUE_LENGTH;
@@ -1062,7 +1067,8 @@ run (void *cls,
   queue_map = GNUNET_CONTAINER_multipeermap_create (10,
 						      GNUNET_NO);
   ch = GNUNET_TRANSPORT_communicator_connect (cfg,
-					      COMMUNICATOR_NAME,
+					      COMMUNICATOR_CONFIG_SECTION,
+					      COMMUNICATOR_ADDRESS_PREFIX,
 					      65535,
 					      &mq_init,
 					      NULL);
@@ -1075,7 +1081,7 @@ run (void *cls,
   }
   GNUNET_asprintf (&my_addr,
 		   "%s-%s",
-		   COMMUNICATOR_NAME,
+		   COMMUNICATOR_ADDRESS_PREFIX,
 		   unix_socket_path);
   ai = GNUNET_TRANSPORT_communicator_address_add (ch,
 						  my_addr,
