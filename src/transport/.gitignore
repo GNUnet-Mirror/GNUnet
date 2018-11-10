@@ -83,3 +83,4 @@ test_transport_blacklisting_outbound_bl_full
 test_transport_blacklisting_outbound_bl_plugin
 test_transport_testing_restart
 test_transport_testing_startstop
+gnunet-communicator-unix
