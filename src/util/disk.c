@@ -2668,6 +2668,45 @@ GNUNET_DISK_internal_file_handle_ (const struct GNUNET_DISK_FileHandle *fh,
 
 
 /**
+ * Helper function for #GNUNET_DISK_purge_cfg_dir.
+ *
+ * @param cls a `const char *` with the option to purge
+ * @param cfg our configuration
+ * @return #GNUNET_OK on success
+ */
+static int
+purge_cfg_dir (void *cls,
+	       const struct GNUNET_CONFIGURATION_Handle *cfg)
+{
+  const char *option = cls;
+  char *tmpname;
+  
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_filename (cfg,
+                                               "PATHS",
+                                               option,
+                                               &tmpname))
+  {
+    GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR,
+                               "PATHS",
+                               option);
+    return GNUNET_NO;
+  }
+  if (GNUNET_SYSERR ==
+      GNUNET_DISK_directory_remove (tmpname))
+  {
+    GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR,
+                              "remove",
+                              tmpname);
+    GNUNET_free (tmpname);
+    return GNUNET_OK;
+  }
+  GNUNET_free (tmpname);
+  return GNUNET_OK;
+}
+
+
+/**
  * Remove the directory given under @a option in
  * section [PATHS] in configuration under @a cfg_filename
  *
@@ -2678,43 +2717,11 @@ void
 GNUNET_DISK_purge_cfg_dir (const char *cfg_filename,
                            const char *option)
 {
-  struct GNUNET_CONFIGURATION_Handle *cfg;
-  char *tmpname;
-
-  cfg = GNUNET_CONFIGURATION_create ();
-  if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_load (cfg,
-                                 cfg_filename))
-  {
-    GNUNET_break (0);
-    GNUNET_CONFIGURATION_destroy (cfg);
-    return;
-  }
-  if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_filename (cfg,
-                                               "PATHS",
-                                               option,
-                                               &tmpname))
-  {
-    GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR,
-                               "PATHS",
-                               option);
-    GNUNET_CONFIGURATION_destroy (cfg);
-    return;
-  }
-  GNUNET_CONFIGURATION_destroy (cfg);
-  if (GNUNET_SYSERR ==
-      GNUNET_DISK_directory_remove (tmpname))
-  {
-    GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR,
-                              "remove",
-                              tmpname);
-    GNUNET_free (tmpname);
-    return;
-  }
-  GNUNET_free (tmpname);
+  GNUNET_break (GNUNET_OK ==
+		GNUNET_CONFIGURATION_parse_and_run (cfg_filename,
+						    &purge_cfg_dir,
+						    (void *) option));
 }
-
 
 
 /* end of disk.c */
