@@ -28,10 +28,7 @@
 #include "gnunet_constants.h"
 #include "gnunet_gnsrecord_lib.h"
 #include "gnunet_gnsrecord_plugin.h"
-#include "gnunet_json_lib.h"
 #include "gnunet_tun_lib.h"
-#include <jansson.h>
-
 
 #define LOG(kind,...) GNUNET_log_from (kind, "gnsrecord",__VA_ARGS__)
 
