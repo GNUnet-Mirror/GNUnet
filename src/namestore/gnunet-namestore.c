@@ -191,14 +191,10 @@ static void *data;
 static size_t data_size;
 
 /**
- * Expirationstring converted to relative time.
+ * Expiration string converted to numeric value.
  */
-static struct GNUNET_TIME_Relative etime_rel;
+static uint64_t etime;
 
-/**
- * Expirationstring converted to absolute time.
- */
-static struct GNUNET_TIME_Absolute etime_abs;
 
 /**
  * Is expiration time relative or absolute time?
@@ -539,6 +535,8 @@ display_record_lookup (void *cls,
                        unsigned int rd_len,
                        const struct GNUNET_GNSRECORD_Data *rd)
 {
+  (void) cls;
+  (void) zone_key;
   get_qe = NULL;
   display_record (rname,
                   rd_len,
@@ -717,14 +715,10 @@ get_existing_record (void *cls,
     rde->flags |= GNUNET_GNSRECORD_RF_SHADOW_RECORD;
   if (1 != is_public)
     rde->flags |= GNUNET_GNSRECORD_RF_PRIVATE;
+  rde->expiration_time = etime;
   if (GNUNET_YES == etime_is_rel)
-  {
-    rde->expiration_time = etime_rel.rel_value_us;
     rde->flags |= GNUNET_GNSRECORD_RF_RELATIVE_EXPIRATION;
-  }
-  else if (GNUNET_NO == etime_is_rel)
-    rde->expiration_time = etime_abs.abs_value_us;
-  else
+  else if (GNUNET_NO != etime_is_rel)
     rde->expiration_time = GNUNET_TIME_UNIT_FOREVER_ABS.abs_value_us;
   GNUNET_assert (NULL != name);
   add_qe = GNUNET_NAMESTORE_records_store (ns,
@@ -988,7 +982,6 @@ identity_cb (void *cls,
   const struct GNUNET_CONFIGURATION_Handle *cfg = cls;
   struct GNUNET_CRYPTO_EcdsaPublicKey pub;
   struct GNUNET_GNSRECORD_Data rd;
-  uint64_t etime;
 
   el = NULL;
   if (NULL == ego)
@@ -1359,6 +1352,8 @@ multirecord_process (struct GNUNET_GETOPT_CommandLineProcessorContext *ctx,
   int etime_is_rel;
   void *raw_data;
 
+  (void) ctx;
+  (void) option;
   cp = GNUNET_strdup (value);
   tok = strtok (cp, " ");
   if (NULL == tok)
