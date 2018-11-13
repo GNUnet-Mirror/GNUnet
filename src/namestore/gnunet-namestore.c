@@ -136,6 +136,11 @@ static int is_shadow;
 static struct GNUNET_NAMESTORE_QueueEntry *del_qe;
 
 /**
+ * Queue entry for the 'set/replace' operation.
+ */
+static struct GNUNET_NAMESTORE_QueueEntry *set_qe;
+
+/**
  * Name of the records to add/list/remove.
  */
 static char *name;
@@ -195,7 +200,6 @@ static size_t data_size;
  */
 static uint64_t etime;
 
-
 /**
  * Is expiration time relative or absolute time?
  */
@@ -250,6 +254,11 @@ do_shutdown (void *cls)
   {
     GNUNET_NAMESTORE_cancel (add_qe);
     add_qe = NULL;
+  }
+  if (NULL != set_qe)
+  {
+    GNUNET_NAMESTORE_cancel (set_qe);
+    set_qe = NULL;
   }
   if (NULL != add_qe_uri)
   {
@@ -930,42 +939,33 @@ parse_expiration (const char *expirationstring,
 }
 
 
-#if 0
-/* globals? */
-unsigned int rd_count;
-struct GNUNET_GNSRECORD_Data *rd;
-
-
-rd_count = 0;
-for (struct RecordSetEntry *e = recordset; NULL != e; e = e->next)
-  rd_count++;
-rd = GNUNET_new_array (rd_count,
-		       struct GNUNET_GNSRECORD_Data);
-rd_count = 0;
-for (struct RecordSetEntry *e = recordset; NULL != e; e = e->next)
+/**
+ * Function called when namestore is done with the replace
+ * operation.
+ *
+ * @param cls NULL
+ * @param success #GNUNET_SYSERR on failure (including timeout/queue drop/failure to validate)
+ *                #GNUNET_NO if content was already there or not found
+ *                #GNUNET_YES (or other positive value) on success
+ * @param emsg NULL on success, otherwise an error message
+ */
+static void
+replace_cont (void *cls,
+	      int success,
+	      const char *emsg)
 {
-  rd[rd_count] = e->record;
-  rd_count++;
+  (void) cls;
+  
+  set_qe = NULL;
+  if (GNUNET_OK != success)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
+		_("Failed to replace records: %s\n"),
+		emsg);
+    ret = 1; /* fail from 'main' */
+  }
+  GNUNET_SCHEDULER_shutdown ();
 }
-
-/* if add: */
-qe = GNUNET_NAMESTORE_records_store (...,
-				rd_count,
-				rd,
-				&my_cont
-				..);
-
-in 'my_cont' and/or shutdown:
-
-qe = NULL;
-GNUNET_free (rd);
-
-in shutdown:
-
-if NULL != qe  NAMESTORE_cancel (qe);
-GNUNET_free (rd);
-
-#endif
 
 
 /**
@@ -1000,7 +1000,7 @@ identity_cb (void *cls,
   GNUNET_free_non_null (ego_name);
   ego_name = NULL;
 
-  if (! (add|del|list|(NULL != nickstring)|(NULL != uri)|(NULL != reverse_pkey)) )
+  if (! (add|del|list|(NULL != nickstring)|(NULL != uri)|(NULL != reverse_pkey))|(NULL != recordset) )
   {
     /* nothing more to be done */
     fprintf (stderr,
@@ -1009,8 +1009,7 @@ identity_cb (void *cls,
     return;
   }
   GNUNET_CRYPTO_ecdsa_key_get_public (&zone_pkey,
-                                    &pub);
-
+				      &pub);
   ns = GNUNET_NAMESTORE_connect (cfg);
   if (NULL == ns)
   {
@@ -1018,6 +1017,44 @@ identity_cb (void *cls,
                 _("Failed to connect to namestore\n"));
     return;
   }
+
+  if (NULL != recordset)
+  {
+    /* replace entire record set */
+    unsigned int rd_count;
+    struct GNUNET_GNSRECORD_Data *rd;
+
+    if (NULL == name)
+    {
+      fprintf (stderr,
+               _("Missing option `%s' for operation `%s'\n"),
+               "-n", _("replace"));
+      GNUNET_SCHEDULER_shutdown ();
+      ret = 1;
+      return;
+    }
+    rd_count = 0;
+    for (struct RecordSetEntry *e = recordset; NULL != e; e = e->next)
+      rd_count++;
+    rd = GNUNET_new_array (rd_count,
+			   struct GNUNET_GNSRECORD_Data);
+    rd_count = 0;
+    for (struct RecordSetEntry *e = recordset; NULL != e; e = e->next)
+    {
+      rd[rd_count] = e->record;
+      rd_count++;
+    }
+    set_qe = GNUNET_NAMESTORE_records_store (ns,
+					     &zone_pkey,
+					     name,
+					     rd_count,
+					     rd,
+					     &replace_cont,
+					     NULL);
+    GNUNET_free (rd);
+    return;
+  }
+  
   if (add)
   {
     if (NULL == name)
@@ -1526,9 +1563,9 @@ main (int argc,
                                  gettext_noop ("determine our name for the given PKEY"),
                                  &reverse_pkey),
     multirecord_option ('R',
-			"record",
+			"replace",
 			"RECORDLINE",
-			gettext_noop ("complete record on one line to add/delete/display; can be specified multiple times"),
+			gettext_noop ("set record set to values given by (possibly multiple) RECORDLINES; can be specified multiple times"),
 			&recordset),
     GNUNET_GETOPT_option_string ('t',
                                  "type",

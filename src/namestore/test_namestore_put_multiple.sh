@@ -75,7 +75,6 @@ function testing {
 # TEST CASES
 # 1
 echo "Testing adding of single A record with -R"
-declare -a arr=('1200 A n 127.0.0.1')
 testing test1 "${arr[@]}"
 # 2
 echo "Testing adding of multiple A records with -R"
