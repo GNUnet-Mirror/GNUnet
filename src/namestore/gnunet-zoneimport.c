@@ -1159,7 +1159,7 @@ process_result (void *cls,
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "DNS ID did not match request, ignoring reply\n");
     GNUNET_STATISTICS_update (stats,
-			      "# DNS ID missmatches",
+			      "# DNS ID mismatches",
 			      1,
 			      GNUNET_NO);
     return;

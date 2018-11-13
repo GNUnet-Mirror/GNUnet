@@ -754,7 +754,7 @@ handle_zone_to_name_response (void *cls,
   {
   case GNUNET_SYSERR:
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-	 "An error occured during zone to name operation\n");
+	 "An error occurred during zone to name operation\n");
     break;
   case GNUNET_NO:
     LOG (GNUNET_ERROR_TYPE_DEBUG,

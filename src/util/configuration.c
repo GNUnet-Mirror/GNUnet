@@ -557,7 +557,7 @@ GNUNET_CONFIGURATION_write (struct GNUNET_CONFIGURATION_Handle *cfg,
     GNUNET_free (fn);
     GNUNET_free (cfg_buf);
     LOG (GNUNET_ERROR_TYPE_WARNING,
-	 "Writing configration to file `%s' failed\n",
+	 "Writing configuration to file `%s' failed\n",
          filename);
     cfg->dirty = GNUNET_SYSERR; /* last write failed */
     return GNUNET_SYSERR;

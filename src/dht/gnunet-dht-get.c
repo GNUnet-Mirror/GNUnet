@@ -214,7 +214,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   GNUNET_CRYPTO_hash (query_key, strlen (query_key), &key);
   if (verbose)
     FPRINTF (stderr, "%s `%s' \n",
-             _("Issueing DHT GET with key"),
+             _("Issuing DHT GET with key"),
              GNUNET_h2s_full (&key));
   GNUNET_SCHEDULER_add_shutdown (&cleanup_task, NULL);
   tt = GNUNET_SCHEDULER_add_delayed (timeout_request,

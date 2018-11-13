@@ -1041,7 +1041,7 @@ helper_exp_cb (void *cls)
 
 
 /**
- * Starts a controller process at the given host.  The given host's configration
+ * Starts a controller process at the given host.  The given host's configuration
  * is used as a Template configuration to use for the remote controller; the
  * remote controller will be started with a slightly modified configuration
  * (port numbers, unix domain sockets and service home values are changed as per
