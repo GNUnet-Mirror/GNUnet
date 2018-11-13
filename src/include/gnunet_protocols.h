@@ -3051,15 +3051,30 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_TRANSPORT_QUEUE_CREATE 1206
 
 /**
+ * Response from communicator: will try to create queue.
+ */
+#define GNUNET_MESSAGE_TYPE_TRANSPORT_QUEUE_CREATE_OK 1207
+
+/**
+ * Response from communicator: address bogus, will not try to create queue.
+ */
+#define GNUNET_MESSAGE_TYPE_TRANSPORT_QUEUE_CREATE_FAIL 1208
+
+/**
  * @brief transport tells communicator it wants to transmit
  */
-#define GNUNET_MESSAGE_TYPE_TRANSPORT_SEND_MSG 1207
+#define GNUNET_MESSAGE_TYPE_TRANSPORT_SEND_MSG 1209
 
 /**
  * @brief communicator tells transports that message was sent
  */
-#define GNUNET_MESSAGE_TYPE_TRANSPORT_SEND_MSG_ACK 1208
+#define GNUNET_MESSAGE_TYPE_TRANSPORT_SEND_MSG_ACK 1210
 
+/**
+ * Message sent to indicate to the transport which address
+ * prefix is supported by a communicator.  
+ */
+#define GNUNET_MESSAGE_TYPE_TRANSPORT_NEW_COMMUNICATOR 1211
 
 /**
  * Next available: 1300

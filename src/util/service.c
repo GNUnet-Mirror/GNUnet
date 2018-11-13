@@ -1815,8 +1815,9 @@ GNUNET_SERVICE_run_ (int argc,
     opt_cfg_filename = GNUNET_strdup (cfg_filename);
   if (GNUNET_YES == GNUNET_DISK_file_test (opt_cfg_filename))
   {
-    if (GNUNET_SYSERR == GNUNET_CONFIGURATION_load (cfg,
-						    opt_cfg_filename))
+    if (GNUNET_SYSERR ==
+	GNUNET_CONFIGURATION_load (cfg,
+				   opt_cfg_filename))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                   _("Malformed configuration file `%s', exit ...\n"),
@@ -1826,8 +1827,9 @@ GNUNET_SERVICE_run_ (int argc,
   }
   else
   {
-    if (GNUNET_SYSERR == GNUNET_CONFIGURATION_load (cfg,
-						    NULL))
+    if (GNUNET_SYSERR ==
+	GNUNET_CONFIGURATION_load (cfg,
+				   NULL))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                   _("Malformed configuration, exit ...\n"));

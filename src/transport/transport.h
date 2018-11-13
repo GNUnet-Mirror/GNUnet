@@ -11,7 +11,7 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
@@ -94,7 +94,7 @@ struct StartMessage
 
   /**
    * 0: no options
-   * 1: The 'self' field should be checked
+   * 1: The @e self field should be checked
    * 2: this client is interested in payload traffic
    */
   uint32_t options;
@@ -404,6 +404,7 @@ struct ValidationIterateResponseMessage
   struct GNUNET_TIME_AbsoluteNBO next_validation;
 };
 
+
 /**
  * Message from the library to the transport service
  * asking for binary addresses known for a peer.
@@ -654,6 +655,22 @@ struct TransportPluginMonitorMessage
 /* *********************** TNG messages ***************** */
 
 /**
+ * Communicator goes online.  Note which addresses it can
+ * work with.
+ */
+struct GNUNET_TRANSPORT_CommunicatorAvailableMessage
+{
+
+  /**
+   * Type will be #GNUNET_MESSAGE_TYPE_TRANSPORT_NEW_COMMUNICATOR.
+   */
+  struct GNUNET_MessageHeader header;
+
+  /* Followed by the address prefix of the communicator */
+};
+
+
+/**
  * Add address to the list.
  */
 struct GNUNET_TRANSPORT_AddAddressMessage
@@ -678,7 +695,7 @@ struct GNUNET_TRANSPORT_AddAddressMessage
    * An `enum GNUNET_ATS_Network_Type` in NBO.
    */
   uint32_t nt;
-  
+
   /* followed by UTF-8 encoded, 0-terminated human-readable address */
 };
 
@@ -717,12 +734,12 @@ struct GNUNET_TRANSPORT_IncomingMessage
    * Do we use flow control or not?
    */
   uint32_t fc_on GNUNET_PACKED;
-  
+
   /**
    * 64-bit number to identify the matching ACK.
    */
   uint64_t fc_id GNUNET_PACKED;
-  
+
   /**
    * Sender identifier.
    */
@@ -748,12 +765,12 @@ struct GNUNET_TRANSPORT_IncomingMessageAck
    * Reserved (0)
    */
   uint32_t reserved GNUNET_PACKED;
-  
+
   /**
    * Which message is being ACKed?
    */
   uint64_t fc_id GNUNET_PACKED;
-  
+
   /**
    * Sender identifier of the original message.
    */
@@ -769,7 +786,7 @@ struct GNUNET_TRANSPORT_AddQueueMessage
 {
 
   /**
-   * Type will be #GNUNET_MESSAGE_TYPE_TRANSPORT_ADD_QUEUE.
+   * Type will be #GNUNET_MESSAGE_TYPE_TRANSPORT_QUEUE_SETUP.
    */
   struct GNUNET_MessageHeader header;
 
@@ -787,7 +804,7 @@ struct GNUNET_TRANSPORT_AddQueueMessage
    * An `enum GNUNET_ATS_Network_Type` in NBO.
    */
   uint32_t nt;
-  
+
   /* followed by UTF-8 encoded, 0-terminated human-readable address */
 };
 
@@ -799,7 +816,7 @@ struct GNUNET_TRANSPORT_DelQueueMessage
 {
 
   /**
-   * Type will be #GNUNET_MESSAGE_TYPE_TRANSPORT_DEL_QUEUE.
+   * Type will be #GNUNET_MESSAGE_TYPE_TRANSPORT_QUEUE_TEARDOWN.
    */
   struct GNUNET_MessageHeader header;
 
@@ -828,9 +845,9 @@ struct GNUNET_TRANSPORT_CreateQueue
   struct GNUNET_MessageHeader header;
 
   /**
-   * Always zero.
+   * Unique ID for the request.
    */
-  uint32_t reserved GNUNET_PACKED;
+  uint32_t request_id GNUNET_PACKED;
 
   /**
    * Receiver that can be addressed via the queue.
@@ -838,6 +855,24 @@ struct GNUNET_TRANSPORT_CreateQueue
   struct GNUNET_PeerIdentity receiver;
 
   /* followed by UTF-8 encoded, 0-terminated human-readable address */
+};
+
+
+/**
+ * Transport tells communicator that it wants a new queue.
+ */
+struct GNUNET_TRANSPORT_CreateQueueResponse
+{
+
+  /**
+   * Type will be #GNUNET_MESSAGE_TYPE_TRANSPORT_QUEUE_CREATE_OK or #GNUNET_MESSAGE_TYPE_TRANSPORT_QUEUE_CREATE_FAIL.
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Unique ID for the request.
+   */
+  uint32_t request_id GNUNET_PACKED;
 };
 
 
@@ -861,7 +896,7 @@ struct GNUNET_TRANSPORT_SendMessageTo
    * Message ID, used for flow control.
    */
   uint64_t mid GNUNET_PACKED;
-  
+
   /**
    * Receiver identifier.
    */
@@ -891,7 +926,7 @@ struct GNUNET_TRANSPORT_SendMessageToAck
    * Message ID of the original message.
    */
   uint64_t mid GNUNET_PACKED;
-  
+
   /**
    * Receiver identifier.
    */

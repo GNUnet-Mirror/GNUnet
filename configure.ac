@@ -681,7 +681,7 @@ AC_CHECK_HEADERS([nss.h],[nss=true],[nss=false])
 if test x$nss = xfalse
 then
 	AM_CONDITIONAL(HAVE_GLIBCNSS, false)
-	AC_MSG_WARN([ERROR: No GNU libc nss header, will not build NSS plugin])
+	AC_MSG_WARN([No GNU libc nss header, will not build NSS plugin])
 else
 	AM_CONDITIONAL(HAVE_GLIBCNSS, true)
 fi

@@ -44,8 +44,17 @@ TEST_DOMAIN="www.${TEST_RECORD_NAME}.$MY_EGO"
 TEST_DOMAIN_ALT="${TEST_RECORD_NAME}.$MY_EGO"
 TEST_DOMAIN_ALT2="docs.${TEST_RECORD_NAME}.$MY_EGO"
 
+which timeout &> /dev/null && DO_TIMEOUT="timeout 15"
+
 
 gnunet-arm -s -c test_gns_lookup.conf
+
+OUT=`$DO_TIMEOUT gnunet-resolver -c test_gns_lookup.conf gnunet.org`
+echo $OUT | grep $TEST_IP - > /dev/null || { gnunet-arm -e -c test_gns_lookup.conf ; echo "IPv4 for gnunet.org not found, skipping test"; exit 77; }
+echo $OUT | grep $TEST6_IP - > /dev/null || { gnunet-arm -e -c test_gns_lookup.conf ; echo "IPv6 for gnunet.org not found, skipping test"; exit 77; }
+
+
+
 gnunet-identity -C $MY_EGO -c test_gns_lookup.conf
 
 # set IP address for DNS resolver for resolving in gnunet.org domain
@@ -53,7 +62,6 @@ gnunet-namestore -p -z $MY_EGO -a -n $TEST_RESOLVER_LABEL -t A -V $TEST_IP_GNS2D
 # map '$TEST_RECORD_NAME.$MY_EGO' to 'gnunet.org' in DNS
 gnunet-namestore -p -z $MY_EGO -a -n $TEST_RECORD_NAME -t GNS2DNS -V $TEST_RECORD_GNS2DNS -e never -c test_gns_lookup.conf
 
-which timeout &> /dev/null && DO_TIMEOUT="timeout 15"
 
 echo "EGOs:"
 gnunet-identity -d

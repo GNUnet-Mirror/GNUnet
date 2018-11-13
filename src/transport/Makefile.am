@@ -140,6 +140,7 @@ endif
 
 noinst_PROGRAMS = \
  gnunet-transport-profiler \
+ gnunet-communicator-unix \
  $(WLAN_BIN_SENDER) \
  $(WLAN_BIN_RECEIVER)
 
@@ -149,6 +150,7 @@ endif
 
 lib_LTLIBRARIES = \
   libgnunettransport.la \
+  libgnunettransportcommunicator.la \
   $(TESTING_LIBS)
 
 libgnunettransporttesting_la_SOURCES = \
@@ -187,6 +189,17 @@ libgnunettransport_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS) $(WINFLAGS) \
   -version-info 4:0:2
 
+
+
+libgnunettransportcommunicator_la_SOURCES = \
+  transport_api2_communication.c
+libgnunettransportcommunicator_la_LIBADD = \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(GN_LIBINTL)
+libgnunettransportcommunicator_la_LDFLAGS = \
+  $(GN_LIB_LDFLAGS) $(WINFLAGS) \
+  -version-info 0:0:0
+
 libexec_PROGRAMS = \
  $(WLAN_BIN) \
  $(WLAN_BIN_DUMMY) \
@@ -206,6 +219,14 @@ gnunet_transport_certificate_creation_SOURCES = \
  gnunet-transport-certificate-creation.c
 gnunet_transport_certificate_creation_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la
+
+gnunet_communicator_unix_SOURCES = \
+ gnunet-communicator-unix.c
+gnunet_communicator_unix_LDADD = \
+  libgnunettransportcommunicator.la \
+  $(top_builddir)/src/statistics/libgnunetstatistics.la \
+  $(top_builddir)/src/util/libgnunetutil.la
+
 
 gnunet_helper_transport_wlan_SOURCES = \
  gnunet-helper-transport-wlan.c

@@ -496,21 +496,22 @@ uri_ksk_continuation (void *cls,
              emsg);
     ret = 1;
   }
-  if (NULL != namespace)
+  if (NULL == namespace)
   {
-    priv = GNUNET_IDENTITY_ego_get_private_key (namespace);
-    GNUNET_FS_publish_sks (ctx,
-                           priv,
-                           this_id,
-                           next_id,
-                           meta,
-                           uri,
-                           &bo,
-			   GNUNET_FS_PUBLISH_OPTION_NONE,
-			   &uri_sks_continuation, NULL);
+    GNUNET_SCHEDULER_shutdown ();
     return;
   }
-  GNUNET_SCHEDULER_shutdown ();
+  priv = GNUNET_IDENTITY_ego_get_private_key (namespace);
+  GNUNET_FS_publish_sks (ctx,
+			 priv,
+			 this_id,
+			 next_id,
+			 meta,
+			 uri,
+			 &bo,
+			 GNUNET_FS_PUBLISH_OPTION_NONE,
+			 &uri_sks_continuation,
+			 NULL);
 }
 
 
@@ -728,7 +729,8 @@ identity_continuation (const char *args0)
       GNUNET_SCHEDULER_shutdown ();
       return;
     }
-    GNUNET_FS_publish_ksk (ctx, topKeywords,
+    GNUNET_FS_publish_ksk (ctx,
+			   topKeywords,
                            meta, uri,
                            &bo,
                            GNUNET_FS_PUBLISH_OPTION_NONE,
@@ -889,7 +891,8 @@ run (void *cls,
  * @return 0 ok, 1 on error
  */
 int
-main (int argc, char *const *argv)
+main (int argc,
+      char *const *argv)
 {
   struct GNUNET_GETOPT_CommandLineOption options[] = {
     GNUNET_GETOPT_option_uint ('a',
@@ -922,26 +925,22 @@ main (int argc, char *const *argv)
                                "TYPE:VALUE",
                                gettext_noop ("set the meta-data for the given TYPE to the given VALUE"),
                                &meta),
-
     GNUNET_GETOPT_option_flag ('n',
-                                  "noindex",
-                                  gettext_noop ("do not index, perform full insertion (stores "
-                                                "entire file in encrypted form in GNUnet database)"),
-                                  &do_insert),
-
+			       "noindex",
+			       gettext_noop ("do not index, perform full insertion (stores "
+					     "entire file in encrypted form in GNUnet database)"),
+			       &do_insert),
     GNUNET_GETOPT_option_string ('N',
                                  "next",
                                  "ID",
                                  gettext_noop ("specify ID of an updated version to be "
                                                "published in the future (for namespace insertions only)"),
                                  &next_id),
-
     GNUNET_GETOPT_option_uint ('p',
-                                   "priority",
-                                   "PRIORITY",
-                                   gettext_noop ("specify the priority of the content"),
-                                   &bo.content_priority),
-
+			       "priority",
+			       "PRIORITY",
+			       gettext_noop ("specify the priority of the content"),
+			       &bo.content_priority),
     GNUNET_GETOPT_option_string ('P',
                                  "pseudonym",
                                  "NAME",
@@ -964,7 +963,6 @@ main (int argc, char *const *argv)
                                  gettext_noop ("set the ID of this version of the publication "
                                                "(for namespace insertions only)"),
                                  &this_id),
-
     GNUNET_GETOPT_option_string ('u',
                                  "uri",
                                  "URI",
@@ -982,10 +980,14 @@ main (int argc, char *const *argv)
   if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args (argc, argv, &argc, &argv))
     return 2;
   ret = (GNUNET_OK ==
-	 GNUNET_PROGRAM_run (argc, argv, "gnunet-publish [OPTIONS] FILENAME",
+	 GNUNET_PROGRAM_run (argc,
+			     argv,
+			     "gnunet-publish [OPTIONS] FILENAME",
 			     gettext_noop
 			     ("Publish a file or directory on GNUnet"),
-			     options, &run, NULL)) ? ret : 1;
+			     options,
+			     &run,
+			     NULL)) ? ret : 1;
   GNUNET_free ((void*) argv);
   return ret;
 }

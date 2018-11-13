@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     Copyright (C) 2006, 2008, 2009 GNUnet e.V.
+     Copyright (C) 2006, 2008, 2009, 2018 GNUnet e.V.
 
      GNUnet is free software: you can redistribute it and/or modify it
      under the terms of the GNU Affero General Public License as published
@@ -188,6 +188,35 @@ GNUNET_CONFIGURATION_get_diff (const struct GNUNET_CONFIGURATION_Handle *cfg_def
  */
 int
 GNUNET_CONFIGURATION_is_dirty (const struct GNUNET_CONFIGURATION_Handle *cfg);
+
+
+/**
+ * Signature of a function to be run with a configuration.
+ *
+ * @param cls closure
+ * @param cfg the configuration
+ * @return status code
+ */
+typedef int
+(*GNUNET_CONFIGURATION_Callback)(void *cls,
+				 const struct GNUNET_CONFIGURATION_Handle *cfg);
+
+
+/**
+ * Parse a configuration file @a filename and run the function
+ * @a cb with the resulting configuration object. Then free the
+ * configuration object and return the status value from @a cb.
+ *
+ * @param filename configuration to parse, NULL for "default"
+ * @param cb function to run
+ * @param cb_cls closure for @a cb
+ * @return #GNUNET_SYSERR if parsing the configuration failed,
+ *   otherwise return value from @a cb.
+ */
+int
+GNUNET_CONFIGURATION_parse_and_run (const char *filename,
+				    GNUNET_CONFIGURATION_Callback cb,
+				    void *cb_cls);
 
 
 /**
