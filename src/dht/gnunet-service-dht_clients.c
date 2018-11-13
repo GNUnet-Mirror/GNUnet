@@ -1018,7 +1018,7 @@ forward_reply (void *cls,
        (record->type != frc->type))
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Record type missmatch, not passing request for key %s to local client\n",
+         "Record type mismatch, not passing request for key %s to local client\n",
          GNUNET_h2s (key));
     GNUNET_STATISTICS_update (GDS_stats,
                               gettext_noop

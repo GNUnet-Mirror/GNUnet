@@ -7575,7 +7575,7 @@ msgstr "Misslyckades att binda till UDP-port %d.\n"
 
 #: src/transport/gnunet-transport.c:492
 #, fuzzy
-msgid "Failed to list connections, timeout occured\n"
+msgid "Failed to list connections, timeout occurred\n"
 msgstr "Misslyckades att ansluta till gnunetd.\n"
 
 #: src/transport/gnunet-transport.c:525

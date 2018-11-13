@@ -101,7 +101,7 @@ struct GNUNET_TESTBED_AddHostMessage
   /* followed by non 0-terminated host name */
 
   /* followed by gzip compressed configuration to start or connect to a
-     controller on this host.  While starting the controller this configration
+     controller on this host.  While starting the controller this configuration
      is used as a template */
 
 };

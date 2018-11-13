@@ -1232,7 +1232,7 @@ peer_init_handler (void *cls,
                                             my_identity))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Peer identity missmatch, refusing to start!\n");
+                "Peer identity mismatch, refusing to start!\n");
     GNUNET_SCHEDULER_shutdown ();
   }
 }

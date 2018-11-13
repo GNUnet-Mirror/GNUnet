@@ -7501,7 +7501,7 @@ msgstr "Adresse des Knotens `%s' konnte nicht ermittelt werden.\n"
 
 #: src/transport/gnunet-transport.c:492
 #, fuzzy
-msgid "Failed to list connections, timeout occured\n"
+msgid "Failed to list connections, timeout occurred\n"
 msgstr "Es konnte keine Verbindung mit gnunetd hergestellt werden.\n"
 
 #: src/transport/gnunet-transport.c:525
