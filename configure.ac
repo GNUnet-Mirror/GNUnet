@@ -300,30 +300,88 @@ then
 fi
 AC_DEFINE_UNQUOTED([NEED_LIBGCRYPT_VERSION], "$NEED_LIBGCRYPT_VERSION", [required libgcrypt version])
 
-# Check for makeinfo version >= 5, required for building documentation.
-# TODO: invalid version should imply --disable-documentation (and
-# maybe --with-section7).
-# TODO: add check for alternatives
-# TODO: add switch to skip documentation building
-have_makeinfo_5=false
-AC_PROG_SED
-AC_CHECK_PROG([MAKEINFO_FOUND], [makeinfo], [yes])
-if test x"${MAKEINFO_FOUND}" = xyes
+# should the build process be building the documentation?
+AC_MSG_CHECKING(whether to build documentation)
+AC_ARG_ENABLE([documentation],
+   [AS_HELP_STRING([--disable-documentation], [do not build the documentation])],
+   [documentation=${enableval}],
+   [documentation=yes])
+AC_MSG_RESULT($documentation)
+if test "x$documentation" = "xyes"
 then
-  MAKEINFO_VERSION_REQ=5
-  AC_MSG_CHECKING([for makeinfo version >= $MAKEINFO_VERSION_REQ])
-  # XXX: is this sed invocation portable?
-  MAKEINFO_VERSION=`makeinfo --version | sed -ne 's/^\(makeinfo\|texi2any\) .* \([[0-9]][[0-9]]*\)\.[[0-9]][[0-9]]*.*$/\2/p'`
-  if test x$MAKEINFO_VERSION = x -o 0$MAKEINFO_VERSION -lt $MAKEINFO_VERSION_REQ
+  AM_CONDITIONAL([DOCUMENTATION],true)
+  AC_DEFINE([DOCUMENTATION],[1],[Building the documentation])
+else
+  AM_CONDITIONAL([DOCUMENTATION],false)
+  AC_DEFINE([DOCUMENTATION],[0],[Not building the documentation])
+fi
+
+# TODO: Include check for mandoc + texi2mdoc.
+# TODO: Rename the switch? Just 'section7' is too vague.
+# mdoc section 7 output.
+AC_MSG_CHECKING(wether to build section 7 mdoc output)
+AC_ARG_ENABLE([section7],
+[AS_HELP_STRING([--disable-section7], [do not build section 7 mdoc output])],
+[section7=${enableval}],
+[section7=yes])
+AC_MSG_RESULT($section7)
+if test "x$section7" = "xyes"
+then
+  if test "$texi2mdoc" = 0
   then
-    AC_MSG_RESULT([no])
-    AC_MSG_FAILURE([Program 'makeinfo' version >= $MAKEINFO_VERSION_REQ is required.])
+  AC_MSG_WARN([ERROR: mdoc output currently requires texi2mdoc.])
+  AC_MSG_WARN([ERROR: texi2mdoc can be obtained via your Operating System])
+  AC_MSG_WARN([ERROR: package manager or from https://mandoc.bsd.lv/texi2mdoc/])
   else
-    AC_MSG_RESULT([yes])
-    have_makeinfo_5=true
+  AM_CONDITIONAL([SECTION7],true)
+  AC_DEFINE([SECTION7],[1],[Building section 7 mdoc output])
   fi
 else
-    AC_MSG_FAILURE([Missing program 'makeinfo', Documentation will not be built. Please install it if you want 'info' documentation or refer to online resources at 'https://docs.gnunet.org'.])
+  AM_CONDITIONAL([SECTION7],false)
+  AC_DEFINE([SECTION7],[0],[Not building section 7 mdoc output])
+fi
+
+# should the build process be building only the documentation?
+AC_MSG_CHECKING(whether to build only documentation)
+AC_ARG_ENABLE([documentation-only],
+   [AS_HELP_STRING([--enable-documentation-only], [build only the documentation])],
+   [documentation_only=${enableval}],
+   [documentation_only=no])
+AC_MSG_RESULT($documentation_only)
+if test "x$documentation_only" = "xyes"
+then
+  AM_CONDITIONAL([DOCUMENTATION_ONLY],true)
+  AC_DEFINE([DOCUMENTATION_ONLY],[1],[Building only the documentation])
+else
+  AM_CONDITIONAL([DOCUMENTATION_ONLY],false)
+  AC_DEFINE([DOCUMENTATION_ONLY],[0],[Not building only the documentation])
+fi
+
+
+# Check for makeinfo version >= 5, required for building documentation.
+# TODO: add check for alternatives
+have_makeinfo_5=false
+if test x"$documentation" = xyes || test x"$documentation_only" = xyes
+then
+  AC_PROG_SED
+  AC_CHECK_PROG([MAKEINFO_FOUND], [makeinfo], [yes])
+  if test x"${MAKEINFO_FOUND}" = xyes
+  then
+    MAKEINFO_VERSION_REQ=5
+    AC_MSG_CHECKING([for makeinfo version >= $MAKEINFO_VERSION_REQ])
+    # XXX: is this sed invocation portable?
+    MAKEINFO_VERSION=`makeinfo --version | sed -ne 's/^\(makeinfo\|texi2any\) .* \([[0-9]][[0-9]]*\)\.[[0-9]][[0-9]]*.*$/\2/p'`
+    if test x$MAKEINFO_VERSION = x -o 0$MAKEINFO_VERSION -lt $MAKEINFO_VERSION_REQ
+    then
+      AC_MSG_RESULT([no])
+      AC_MSG_FAILURE([Program 'makeinfo' version >= $MAKEINFO_VERSION_REQ is required.])
+    else
+      AC_MSG_RESULT([yes])
+      have_makeinfo_5=true
+    fi
+  else
+      AC_MSG_FAILURE([Missing program 'makeinfo', Documentation will not be built. Please install it if you want 'info' documentation or refer to online resources at 'https://docs.gnunet.org'.])
+  fi
 fi
 AM_CONDITIONAL([HAVE_MAKEINFO_5], [test x$have_makeinfo_5 = xtrue])
 
@@ -692,63 +750,6 @@ fi
 AC_CHECK_LIB([kvm],[kvm_open])
 AC_CHECK_LIB([kstat],[kstat_open])
 
-
-# should the build process be building the documentation?
-AC_MSG_CHECKING(whether to build documentation)
-AC_ARG_ENABLE([documentation],
-   [AS_HELP_STRING([--disable-documentation], [do not build the documentation])],
-   [documentation=${enableval}],
-   [documentation=yes])
-AC_MSG_RESULT($documentation)
-if test "x$documentation" = "xyes"
-then
-  AM_CONDITIONAL([DOCUMENTATION],true)
-  AC_DEFINE([DOCUMENTATION],[1],[Building the documentation])
-else
-  AM_CONDITIONAL([DOCUMENTATION],false)
-  AC_DEFINE([DOCUMENTATION],[0],[Not building the documentation])
-fi
-
-# TODO: Include check for mandoc + texi2mdoc.
-# TODO: Rename the switch? Just 'section7' is too vague.
-# mdoc section 7 output.
-AC_MSG_CHECKING(wether to build section 7 mdoc output)
-AC_ARG_ENABLE([section7],
-[AS_HELP_STRING([--disable-section7], [do not build section 7 mdoc output])],
-[section7=${enableval}],
-[section7=yes])
-AC_MSG_RESULT($section7)
-if test "x$section7" = "xyes"
-then
-  if test "$texi2mdoc" = 0
-  then
-  AC_MSG_WARN([ERROR: mdoc output currently requires texi2mdoc.])
-  AC_MSG_WARN([ERROR: texi2mdoc can be obtained via your Operating System])
-  AC_MSG_WARN([ERROR: package manager or from https://mandoc.bsd.lv/texi2mdoc/])
-  else
-  AM_CONDITIONAL([SECTION7],true)
-  AC_DEFINE([SECTION7],[1],[Building section 7 mdoc output])
-  fi
-else
-  AM_CONDITIONAL([SECTION7],false)
-  AC_DEFINE([SECTION7],[0],[Not building section 7 mdoc output])
-fi
-
-# should the build process be building only the documentation?
-AC_MSG_CHECKING(whether to build only documentation)
-AC_ARG_ENABLE([documentation-only],
-   [AS_HELP_STRING([--enable-documentation-only], [build only the documentation])],
-   [documentation_only=${enableval}],
-   [documentation_only=no])
-AC_MSG_RESULT($documentation_only)
-if test "x$documentation_only" = "xyes"
-then
-  AM_CONDITIONAL([DOCUMENTATION_ONLY],true)
-  AC_DEFINE([DOCUMENTATION_ONLY],[1],[Building only the documentation])
-else
-  AM_CONDITIONAL([DOCUMENTATION_ONLY],false)
-  AC_DEFINE([DOCUMENTATION_ONLY],[0],[Not building only the documentation])
-fi
 
 # should the build process be restricted to the code required
 # for GNU Taler wallets?
