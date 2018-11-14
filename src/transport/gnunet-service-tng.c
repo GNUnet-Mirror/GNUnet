@@ -145,7 +145,7 @@ struct GNUNET_STATISTICS_Handle *GST_stats;
 const struct GNUNET_CONFIGURATION_Handle *GST_cfg;
 
 /**
- * Configuration handle.
+ * Our public key.
  */
 struct GNUNET_PeerIdentity GST_my_identity;
 
@@ -588,6 +588,31 @@ handle_send_message_ack (void *cls,
 
 
 /**
+ * Initialize a monitor client.
+ *
+ * @param cls the client
+ * @param start the start message that was sent
+ */
+static void
+handle_monitor_start (void *cls,
+		     const struct GNUNET_TRANSPORT_MonitorStart *start)
+{
+  struct TransportClient *tc = cls;
+
+  if (CT_NONE != tc->type)
+  {
+    GNUNET_break (0);
+    GNUNET_SERVICE_client_drop (tc->client);
+    return;
+  }
+  tc->type = CT_MONITOR;
+  tc->details.monitor_peer = start->peer;
+  // FIXME: remember also the one_shot flag!
+  GNUNET_SERVICE_client_continue (tc->client);
+}
+
+
+/**
  * Function called when the service shuts down.  Unloads our plugins
  * and cancels pending validations.
  *
@@ -707,6 +732,11 @@ GNUNET_SERVICE_MAIN
  GNUNET_MQ_hd_fixed_size (send_message_ack,
                           GNUNET_MESSAGE_TYPE_TRANSPORT_SEND_MSG_ACK,
                           struct GNUNET_TRANSPORT_SendMessageToAck,
+                          NULL),
+ /* communication with monitors */
+ GNUNET_MQ_hd_fixed_size (monitor_start,
+                          GNUNET_MESSAGE_TYPE_TRANSPORT_MONITOR_START,
+                          struct GNUNET_TRANSPORT_MonitorStart,
                           NULL),
  GNUNET_MQ_handler_end ());
 
