@@ -1914,22 +1914,22 @@ Like other IdPs, re:claim features an (optional) OpenID-Connect 1.0-compliant pr
 Before adding attributes to an identity, you must first create an ego:
 
 @example
-$ gnunet-identity -C "username"
+$ gnunet-identity -C "user"
 @end example
 
-Henceforth, you can manage a new user profile of the user ``username''.
+Henceforth, you can manage a new user profile of the user ``user''.
 
 To add an email address to your user profile, simply use the @command{gnunet-reclaim} command line tool::
 
 @example
-$ gnunet-reclaim -e "username" -a "email" -V "username@@example.gnunet"
+$ gnunet-reclaim -e "user" -a "email" -V "username@@example.gnunet"
 @end example
 
 All of your attributes can be listed using the @command{gnunet-reclaim}
 command line tool as well:
 
 @example
-$ gnunet-reclaim -e "username" -D
+$ gnunet-reclaim -e "user" -D
 @end example
 
 Currently, and by default, attribute values are interpreted as plain text.
@@ -1941,10 +1941,10 @@ In the future there might be more value types such as X.509 certificate credenti
 If you want to allow a third party such as a website or friend to access to your attributes (or a subset thereof) execute:
 
 @example
-$ gnunet-reclaim -e "username" -r "PKEY" -i "attribute1,attribute2,..."
+$ gnunet-reclaim -e "user" -r "PKEY" -i "attribute1,attribute2,..."
 @end example
 
-Where "PKEY" is the public key of the third party and "attribute1,attribute2,..." is a comma-separated list of attribute names, such as "email", that you want to share.
+Where "PKEY" is the public key of the third party and "attribute1,attribute2,..." is a comma-separated list of attribute names, such as "email,name,...", that you want to share.
 
 The command will return a "ticket" string.
 You must give this "ticket" to the requesting third party.
@@ -1955,13 +1955,14 @@ The third party can then retrieve your shared identity attributes using:
 $ gnunet-reclaim -e "friend" -C "ticket"
 @end example
 
+Where "friend" is the name for "user" that the requesting party is using.
 This will retrieve and list the shared identity attributes.
-The above command will also work if the user "username" is currently offline since the attributes are retrieved from GNS.
-Further, the "ticket" can be re-used later to retrieve up-to-date attributes in case "username" has changed the value(s). For instance, becasue his email address changed.
+The above command will also work if the user is currently offline since the attributes are retrieved from GNS.
+Further, the "ticket" can be re-used later to retrieve up-to-date attributes in case "friend" has changed the value(s). For instance, because his email address changed.
 
 To list all given authorizations (tickets) you can execute:
 @example
-$ gnunet-reclaim -e "friend" -T (TODO there is only a REST API for this ATM) 
+$ gnunet-reclaim -e "friend" -T (TODO there is only a C and REST API for this at this time) 
 @end example
 
 
@@ -1971,7 +1972,7 @@ $ gnunet-reclaim -e "friend" -T (TODO there is only a REST API for this ATM)
 If you want to revoke the access of a third party to your attributes you can execute:
 
 @example
-$ gnunet-reclaim -e "username" -R "ticket"
+$ gnunet-reclaim -e "user" -R "ticket"
 @end example
 
 This will prevent the third party from accessing the attribute in the future.
@@ -1983,14 +1984,14 @@ This behaviour is _exactly the same_ as with other IdPs.
 @subsection Using the OpenID-Connect IdP
 
 @menu
-* Setting up reclaim.io::
+* Setting up reclaim.id::
 * For Users::
 * For Service Providers::
 @end menu
 
 
-@node Setting up reclaim.io
-@subsubsection Setting up reclaim.io
+@node Setting up reclaim.id
+@subsubsection Setting up reclaim.id
 
 @example
 $ gnunet-identity -C id
