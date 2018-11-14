@@ -936,6 +936,89 @@ struct GNUNET_TRANSPORT_SendMessageToAck
 
 
 
+
+/**
+ * Request to start monitoring.
+ */
+struct GNUNET_TRANSPORT_MonitorStart
+{
+
+  /**
+   * Type will be #GNUNET_MESSAGE_TYPE_TRANSPORT_MONITOR_START.
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * #GNUNET_YES for one-shot montoring, #GNUNET_NO for continuous monitoring.
+   */
+  uint32_t one_shot;
+
+  /**
+   * Target identifier to monitor, all zeros for "all peers".
+   */
+  struct GNUNET_PeerIdentity peer;
+
+};
+
+
+/**
+ * Monitoring data.
+ */
+struct GNUNET_TRANSPORT_MonitorData
+{
+
+  /**
+   * Type will be #GNUNET_MESSAGE_TYPE_TRANSPORT_MONITOR_DATA.
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Network type (an `enum GNUNET_ATS_Network_Type` in NBO).
+   */
+  uint32_t nt GNUNET_PACKED;
+
+  /**
+   * Target identifier.
+   */
+  struct GNUNET_PeerIdentity peer;
+
+  /**
+   * @deprecated To be discussed if we keep these...
+   */
+  struct GNUNET_TIME_AbsoluteNBO last_validation;
+  struct GNUNET_TIME_AbsoluteNBO valid_until;
+  struct GNUNET_TIME_AbsoluteNBO next_validation;
+
+  /**
+   * Current round-trip time estimate.
+   */
+  struct GNUNET_TIME_RelativeNBO rtt;
+
+  /**
+   * Is inbound (in NBO).
+   */
+  uint32_t is_inbound GNUNET_PACKED;
+
+  /**
+   * Messages pending (in NBO).
+   */
+  uint32_t num_msg_pending GNUNET_PACKED;
+
+  /**
+   * Bytes pending (in NBO).
+   */
+  uint32_t num_bytes_pending GNUNET_PACKED;
+
+  /* Followed by 0-terminated address of the peer
+     (TODO: do we allow no address? If so,
+     adjust transport_api2_monitor!) */
+
+};
+
+
+
+
+
 GNUNET_NETWORK_STRUCT_END
 
 /* end of transport.h */
