@@ -151,6 +151,7 @@ endif
 lib_LTLIBRARIES = \
   libgnunettransport.la \
   libgnunettransportcommunicator.la \
+  libgnunettransportmonitor.la \
   $(TESTING_LIBS)
 
 libgnunettransporttesting_la_SOURCES = \
@@ -199,6 +200,17 @@ libgnunettransportcommunicator_la_LIBADD = \
 libgnunettransportcommunicator_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS) $(WINFLAGS) \
   -version-info 0:0:0
+
+
+libgnunettransportmonitor_la_SOURCES = \
+  transport_api2_monitor.c
+libgnunettransportmonitor_la_LIBADD = \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(GN_LIBINTL)
+libgnunettransportmonitor_la_LDFLAGS = \
+  $(GN_LIB_LDFLAGS) $(WINFLAGS) \
+  -version-info 0:0:0
+
 
 libexec_PROGRAMS = \
  $(WLAN_BIN) \

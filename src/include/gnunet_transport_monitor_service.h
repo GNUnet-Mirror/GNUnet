@@ -11,7 +11,7 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
@@ -29,7 +29,6 @@
  *
  * @{
  */
-
 #ifndef GNUNET_TRANSPORT_MONITOR_SERVICE_H
 #define GNUNET_TRANSPORT_MONITOR_SERVICE_H
 
@@ -42,6 +41,7 @@ extern "C"
 #endif
 
 #include "gnunet_util_lib.h"
+#include "gnunet_ats_service.h"
 
 /**
  * Version number of the transport API.
@@ -121,7 +121,7 @@ struct GNUNET_TRANSPORT_MonitorInformation
  * @param mi monitoring data on the peer
  */
 typedef void
-(*GNUNET_TRANSPORT_MontiorCallback) (void *cls,
+(*GNUNET_TRANSPORT_MonitorCallback) (void *cls,
                                      const struct GNUNET_PeerIdentity *peer,
                                      const struct GNUNET_TRANSPORT_MonitorInformation *mi);
 
@@ -155,24 +155,24 @@ struct GNUNET_TRANSPORT_MonitorContext;
  *      NULL for all peers
  * @param one_shot #GNUNET_YES to return the current state and then end (with NULL+NULL),
  *                 #GNUNET_NO to monitor peers continuously
- * @param mc function to call with the results
- * @param mc_cls closure for @a mc
+ * @param cb function to call with the results
+ * @param cb_cls closure for @a mc
  */
 struct GNUNET_TRANSPORT_MonitorContext *
 GNUNET_TRANSPORT_monitor (const struct GNUNET_CONFIGURATION_Handle *cfg,
                           const struct GNUNET_PeerIdentity *peer,
                           int one_shot,
-                          GNUNET_TRANSPORT_MonitorCallback mc,
-                          void *mc_cls);
+                          GNUNET_TRANSPORT_MonitorCallback cb,
+                          void *cb_cls);
 
 
 /**
  * Cancel request to monitor peers
  *
- * @param pmc handle for the request to cancel
+ * @param mc handle for the request to cancel
  */
 void
-GNUNET_TRANSPORT_monitor_cancel (struct GNUNET_TRANSPORT_MonitorContext *pmc);
+GNUNET_TRANSPORT_monitor_cancel (struct GNUNET_TRANSPORT_MonitorContext *mc);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */

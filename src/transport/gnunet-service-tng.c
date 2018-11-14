@@ -150,11 +150,6 @@ const struct GNUNET_CONFIGURATION_Handle *GST_cfg;
 struct GNUNET_PeerIdentity GST_my_identity;
 
 /**
- * Handle to peerinfo service.
- */
-struct GNUNET_PEERINFO_Handle *GST_peerinfo;
-
-/**
  * Our private key.
  */
 struct GNUNET_CRYPTO_EddsaPrivateKey *GST_my_private_key;
