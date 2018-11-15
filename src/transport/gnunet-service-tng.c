@@ -19,6 +19,15 @@
  * @file transport/gnunet-service-transport.c
  * @brief main for gnunet-service-transport
  * @author Christian Grothoff
+ *
+ * TODO:
+ * - make *our* collected addresses available somehow somewhere
+ *   => Choices: in peerstore or revive/keep peerinfo?
+ * - MTU information is missing for queues!
+ * - start supporting monitor logic (add functions to signal monitors!)
+ * - manage fragmentation/defragmentation, retransmission, track RTT, loss, etc.
+ * - ask ATS about bandwidth allocation
+ * -
  */
 #include "platform.h"
 #include "gnunet_util_lib.h"
@@ -133,6 +142,8 @@ struct Queue
    * Network type offered by this queue.
    */
   enum GNUNET_ATS_Network_Type nt;
+
+  // FIXME: add ATS-specific fields here!
 };
 
 
@@ -166,6 +177,18 @@ struct Neighbour
    * Tail of DLL of queues to this peer.
    */
   struct Queue *queue_tail;
+
+  /**
+   * Quota at which CORE is allowed to transmit to this peer
+   * according to ATS.
+   *
+   * FIXME: not yet used, tricky to get right given multiple queues!
+   *        (=> Idea: let ATS set a quota per queue and we add them up here?)
+   * FIXME: how do we set this value initially when we tell CORE?
+   *    Options: start at a minimum value or at literally zero (before ATS?)
+   *         (=> Current thought: clean would be zero!)
+   */
+  struct GNUNET_BANDWIDTH_Value32NBO quota_out;
 
 };
 
