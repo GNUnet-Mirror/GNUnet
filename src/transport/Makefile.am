@@ -141,6 +141,7 @@ endif
 noinst_PROGRAMS = \
  gnunet-transport-profiler \
  gnunet-communicator-unix \
+ gnunet-service-tng \
  $(WLAN_BIN_SENDER) \
  $(WLAN_BIN_RECEIVER)
 
@@ -150,6 +151,7 @@ endif
 
 lib_LTLIBRARIES = \
   libgnunettransport.la \
+  libgnunettransportcore.la \
   libgnunettransportcommunicator.la \
   libgnunettransportmonitor.la \
   $(TESTING_LIBS)
@@ -191,6 +193,15 @@ libgnunettransport_la_LDFLAGS = \
   -version-info 4:0:2
 
 
+
+libgnunettransportcore_la_SOURCES = \
+  transport_api2_core.c
+libgnunettransportcore_la_LIBADD = \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(GN_LIBINTL)
+libgnunettransportcore_la_LDFLAGS = \
+  $(GN_LIB_LDFLAGS) $(WINFLAGS) \
+  -version-info 0:0:0
 
 libgnunettransportcommunicator_la_SOURCES = \
   transport_api2_communication.c
@@ -310,6 +321,15 @@ gnunet_service_transport_LDADD = \
 gnunet_service_transport_CFLAGS = \
   $(CFLAGS)
 # -DANALYZE
+
+
+gnunet_service_tng_SOURCES = \
+ gnunet-service-tng.c
+gnunet_service_tng_LDADD = \
+  $(top_builddir)/src/ats/libgnunetats.la \
+  $(top_builddir)/src/statistics/libgnunetstatistics.la \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(GN_LIBINTL)
 
 plugin_LTLIBRARIES = \
   libgnunet_plugin_transport_tcp.la \

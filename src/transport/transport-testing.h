@@ -115,12 +115,12 @@ struct GNUNET_TRANSPORT_TESTING_PeerContext
   /**
    * Notify connect callback
    */
-  GNUNET_TRANSPORT_NotifyConnecT nc;
+  GNUNET_TRANSPORT_NotifyConnect nc;
 
   /**
    * Notify disconnect callback
    */
-  GNUNET_TRANSPORT_NotifyDisconnecT nd;
+  GNUNET_TRANSPORT_NotifyDisconnect nd;
 
   /**
    * Startup completed callback
@@ -291,8 +291,8 @@ GNUNET_TRANSPORT_TESTING_start_peer (struct GNUNET_TRANSPORT_TESTING_Handle *tth
                                      const char *cfgname,
                                      int peer_id,
                                      const struct GNUNET_MQ_MessageHandler *handlers,
-                                     GNUNET_TRANSPORT_NotifyConnecT nc,
-                                     GNUNET_TRANSPORT_NotifyDisconnecT nd,
+                                     GNUNET_TRANSPORT_NotifyConnect nc,
+                                     GNUNET_TRANSPORT_NotifyDisconnect nd,
 				     void *cb_cls,
                                      GNUNET_SCHEDULER_TaskCallback start_cb,
                                      void *start_cb_cls);
