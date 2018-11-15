@@ -120,6 +120,11 @@ struct Queue
   struct TransportClient *tc;
 
   /**
+   * Address served by the queue.
+   */
+  const char *address;
+
+  /**
    * Unique identifier of this queue with the communicator.
    */
   uint32_t qid;
@@ -128,11 +133,6 @@ struct Queue
    * Network type offered by this queue.
    */
   enum GNUNET_ATS_Network_Type nt;
-
-  /**
-   * Address served by the queue.
-   */
-  const char *address;
 };
 
 
@@ -166,7 +166,7 @@ struct Neighbour
    * Tail of DLL of queues to this peer.
    */
   struct Queue *queue_tail;
-  
+
 };
 
 
@@ -209,7 +209,52 @@ struct PendingMessage
    * Size of the original message.
    */
   uint32_t bytes_msg;
-  
+
+};
+
+
+/**
+ * One of the addresses of this peer.
+ */
+struct AddressListEntry
+{
+
+  /**
+   * Kept in a DLL.
+   */
+  struct AddressListEntry *next;
+
+  /**
+   * Kept in a DLL.
+   */
+  struct AddressListEntry *prev;
+
+  /**
+   * Which communicator provides this address?
+   */
+  struct TransportClient *tc;
+
+  /**
+   * The actual address.
+   */
+  const char *address;
+
+  /**
+   * What is a typical lifetime the communicator expects this
+   * address to have? (Always from now.)
+   */
+  struct GNUNET_TIME_Relative expiration;
+
+  /**
+   * Address identifier used by the communicator.
+   */
+  uint32_t aid;
+
+  /**
+   * Network type offered by this address.
+   */
+  enum GNUNET_ATS_Network_Type nt;
+
 };
 
 
@@ -261,14 +306,14 @@ struct TransportClient
        * Tail of list of messages pending for this client.
        */
       struct PendingMessage *pending_msg_tail;
-      
+
     } core;
 
     /**
      * Information for @e type #CT_MONITOR.
      */
     struct {
-    
+
       /**
        * Peer identity to monitor the addresses of.
        * Zero to monitor all neighbours.  Valid if
@@ -280,30 +325,40 @@ struct TransportClient
        * Is this a one-shot monitor?
        */
       int one_shot;
-      
+
     } monitor;
-    
+
 
     /**
      * Information for @e type #CT_COMMUNICATOR.
      */
-    struct {    
+    struct {
       /**
        * If @e type is #CT_COMMUNICATOR, this communicator
        * supports communicating using these addresses.
        */
       char *address_prefix;
-      
+
       /**
        * Head of DLL of queues offered by this communicator.
        */
       struct Queue *queue_head;
-      
+
       /**
        * Tail of DLL of queues offered by this communicator.
        */
       struct Queue *queue_tail;
-      
+
+      /**
+       * Head of list of the addresses of this peer offered by this communicator.
+       */
+      struct AddressListEntry *addr_head;
+
+      /**
+       * Tail of list of the addresses of this peer offered by this communicator.
+       */
+      struct AddressListEntry *addr_tail;
+
     } communicator;
 
   } details;
@@ -491,7 +546,7 @@ check_client_send (void *cls,
   struct TransportClient *tc = cls;
   uint16_t size;
   const struct GNUNET_MessageHeader *obmm;
-  
+
   if (CT_CORE != tc->type)
   {
     GNUNET_break (0);
@@ -514,7 +569,7 @@ check_client_send (void *cls,
 
 
 /**
- * Send a response to the @a pm that we have processed a 
+ * Send a response to the @a pm that we have processed a
  * "send" request with status @a success. We
  * transmitted @a bytes_physical on the actual wire.
  * Sends a confirmation to the "core" client responsible
@@ -586,7 +641,7 @@ handle_client_send (void *cls,
        as this should be rare. */
     struct GNUNET_MQ_Envelope *env;
     struct SendOkMessage *som;
-    
+
     env = GNUNET_MQ_msg (som,
 			 GNUNET_MESSAGE_TYPE_TRANSPORT_SEND_OK);
     som->success = htonl (GNUNET_SYSERR);
@@ -601,7 +656,7 @@ handle_client_send (void *cls,
 			      1,
 			      GNUNET_NO);
     return;
-  }  
+  }
   pm = GNUNET_new (struct PendingMessage);
   pm->client = tc;
   pm->target = target;
@@ -721,7 +776,23 @@ handle_add_address (void *cls,
                     const struct GNUNET_TRANSPORT_AddAddressMessage *aam)
 {
   struct TransportClient *tc = cls;
+  struct AddressListEntry *ale;
+  size_t slen;
 
+  slen = ntohs (aam->header.size) - sizeof (*aam);
+  ale = GNUNET_malloc (sizeof (struct AddressListEntry) + slen);
+  ale->tc = tc;
+  ale->address = (const char *) &ale[1];
+  ale->expiration = GNUNET_TIME_relative_ntoh (aam->expiration);
+  ale->aid = aam->aid;
+  ale->nt = (enum GNUNET_ATS_Network_Type) ntohl (aam->nt);
+  memcpy (&ale[1],
+          &aam[1],
+          slen);
+  GNUNET_CONTAINER_DLL_insert (tc->details.communicator.addr_head,
+                               tc->details.communicator.addr_tail,
+                               ale);
+  // FIXME: notify somebody?!
   GNUNET_SERVICE_client_continue (tc->client);
 }
 
@@ -744,8 +815,22 @@ handle_del_address (void *cls,
     GNUNET_SERVICE_client_drop (tc->client);
     return;
   }
-
-  GNUNET_SERVICE_client_continue (tc->client);
+  for (struct AddressListEntry *ale = tc->details.communicator.addr_head;
+       NULL != ale;
+       ale = ale->next)
+  {
+    if (dam->aid != ale->aid)
+      continue;
+    GNUNET_assert (ale->tc == tc);
+    GNUNET_CONTAINER_DLL_remove (tc->details.communicator.addr_head,
+                                 tc->details.communicator.addr_tail,
+                                 ale);
+    // FIXME: notify somebody?
+    GNUNET_free (ale);
+    GNUNET_SERVICE_client_continue (tc->client);
+  }
+  GNUNET_break (0);
+  GNUNET_SERVICE_client_drop (tc->client);
 }
 
 
@@ -861,11 +946,11 @@ handle_add_queue_message (void *cls,
 						      &neighbour->pid,
  						      neighbour,
 						      GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
-    // FIXME: notify cores/monitors!
+    // FIXME: notify ATS/COREs/monitors!
   }
   addr_len = ntohs (aqm->header.size) - sizeof (*aqm);
   addr = (const char *) &aqm[1];
-  
+
   queue = GNUNET_malloc (sizeof (struct Queue) + addr_len);
   queue->qid = aqm->qid;
   queue->nt = (enum GNUNET_ATS_Network_Type) ntohl (aqm->nt);
@@ -948,7 +1033,7 @@ handle_del_queue_message (void *cls,
       // FIXME: notify cores/monitors!
       free_neighbour (neighbour);
     }
-    GNUNET_SERVICE_client_continue (tc->client);    
+    GNUNET_SERVICE_client_continue (tc->client);
     return;
   }
   GNUNET_break (0);
@@ -1020,10 +1105,10 @@ free_neighbour_cb (void *cls,
   struct Neighbour *neighbour = value;
 
   (void) cls;
-  (void) pid;  
+  (void) pid;
   GNUNET_break (0); // should this ever happen?
   free_neighbour (neighbour);
-  
+
   return GNUNET_OK;
 }
 
@@ -1077,8 +1162,8 @@ run (void *cls,
   GST_my_private_key = GNUNET_CRYPTO_eddsa_key_create_from_configuration (GST_cfg);
   if (NULL == GST_my_private_key)
   {
-    GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
-        _("Transport service is lacking key configuration settings. Exiting.\n"));
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                _("Transport service is lacking key configuration settings. Exiting.\n"));
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
