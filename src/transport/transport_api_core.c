@@ -11,7 +11,7 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
@@ -551,7 +551,8 @@ handle_connect (void *cls,
        "Receiving CONNECT message for `%s' with quota %u\n",
        GNUNET_i2s (&cim->id),
        ntohl (cim->quota_out.value__));
-  n = neighbour_find (h, &cim->id);
+  n = neighbour_find (h,
+                      &cim->id);
   if (NULL != n)
   {
     GNUNET_break (0);

@@ -121,19 +121,14 @@ struct ConnectInfoMessage
   struct GNUNET_MessageHeader header;
 
   /**
-   * Identity of the new neighbour.
-   */
-  struct GNUNET_PeerIdentity id;
-
-  /**
-   * Current inbound quota for this peer
-   */
-  struct GNUNET_BANDWIDTH_Value32NBO quota_in;
-
-  /**
    * Current outbound quota for this peer
    */
   struct GNUNET_BANDWIDTH_Value32NBO quota_out;
+
+  /**
+   * Identity of the new neighbour.
+   */
+  struct GNUNET_PeerIdentity id;
 };
 
 
