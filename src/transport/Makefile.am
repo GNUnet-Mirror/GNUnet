@@ -8,7 +8,8 @@ pkgcfgdir= $(pkgdatadir)/config.d/
 libexecdir= $(pkglibdir)/libexec/
 
 pkgcfg_DATA = \
-  transport.conf
+  transport.conf \
+  communicator-unix.conf 
 
 if HAVE_MHD
  GN_LIBMHD = -lmicrohttpd
