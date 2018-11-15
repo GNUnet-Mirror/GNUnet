@@ -602,7 +602,6 @@ notify_client_about_neighbour (void *cls,
   cim.header.size = htons (sizeof (struct ConnectInfoMessage));
   cim.header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_CONNECT);
   cim.id = *peer;
-  cim.quota_in = bandwidth_in;
   cim.quota_out = bandwidth_out;
   unicast (tc,
 	   &cim.header,
