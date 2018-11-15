@@ -533,6 +533,7 @@ mq_send (struct GNUNET_MQ_Handle *mq,
   GNUNET_CONTAINER_DLL_insert (queue_head,
 			       queue_tail,
 			       queue);
+  GNUNET_assert (NULL != unix_sock);
   if (NULL == write_task)
     write_task =
       GNUNET_SCHEDULER_add_write_net (GNUNET_TIME_UNIT_FOREVER_REL,
@@ -708,6 +709,7 @@ receive_complete_cb (void *cls,
 			      "# transport transmission failures",
 			      1,
 			      GNUNET_NO);
+  GNUNET_assert (NULL != unix_sock);
   if ( (NULL == read_task) &&
        (delivering_messages < max_queue_length) )
     read_task = GNUNET_SCHEDULER_add_read_net (GNUNET_TIME_UNIT_FOREVER_REL,
@@ -735,6 +737,7 @@ select_read_cb (void *cls)
   ssize_t ret;
   uint16_t msize;
 
+  GNUNET_assert (NULL != unix_sock);
   read_task = GNUNET_SCHEDULER_add_read_net (GNUNET_TIME_UNIT_FOREVER_REL,
 					     unix_sock,
 					     &select_read_cb,
@@ -1083,16 +1086,12 @@ run (void *cls,
 		   "%s-%s",
 		   COMMUNICATOR_ADDRESS_PREFIX,
 		   unix_socket_path);
+  GNUNET_free (unix_socket_path);
   ai = GNUNET_TRANSPORT_communicator_address_add (ch,
 						  my_addr,
 						  GNUNET_ATS_NET_LOOPBACK,
 						  GNUNET_TIME_UNIT_FOREVER_REL);
   GNUNET_free (my_addr);
-  GNUNET_free (unix_socket_path);
-  read_task = GNUNET_SCHEDULER_add_read_net (GNUNET_TIME_UNIT_FOREVER_REL,
-					     unix_sock,
-					     &select_read_cb,
-					     NULL);
 }
 
 
