@@ -800,6 +800,8 @@ struct GNUNET_TRANSPORT_AddQueueMessage
    */
   uint32_t nt;
 
+  // FIXME: add MTU?
+
   /* followed by UTF-8 encoded, 0-terminated human-readable address */
 };
 
