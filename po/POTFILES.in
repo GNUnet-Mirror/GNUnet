@@ -432,6 +432,8 @@ src/transport/tcp_server_legacy.c
 src/transport/tcp_server_mst_legacy.c
 src/transport/tcp_service_legacy.c
 src/transport/transport_api2_communication.c
+src/transport/transport_api2_core.c
+src/transport/transport_api2_monitor.c
 src/transport/transport_api_address_to_string.c
 src/transport/transport_api_blacklist.c
 src/transport/transport_api_core.c
