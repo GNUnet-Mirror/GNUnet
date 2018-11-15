@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     Copyright (C) 2009-2013, 2016 GNUnet e.V.
+     Copyright (C) 2009-2013, 2016, 2018 GNUnet e.V.
 
      GNUnet is free software: you can redistribute it and/or modify it
      under the terms of the GNU Affero General Public License as published
@@ -33,12 +33,6 @@
 #define LOG(kind,...) GNUNET_log_from (kind, "transport-api-core",__VA_ARGS__)
 
 /**
- * If we could not send any payload to a peer for this amount of
- * time, we print a warning.
- */
-#define UNREADY_WARN_TIME GNUNET_TIME_UNIT_MINUTES
-
-/**
  * How large to start with for the hashmap of neighbours.
  */
 #define STARTING_NEIGHBOURS_SIZE 16
@@ -49,6 +43,12 @@
  */
 struct Neighbour
 {
+
+  /**
+   * Identity of this neighbour.
+   */
+  struct GNUNET_PeerIdentity id;
+
   /**
    * Overall transport handle.
    */
@@ -70,16 +70,6 @@ struct Neighbour
   void *handlers_cls;
 
   /**
-   * Identity of this neighbour.
-   */
-  struct GNUNET_PeerIdentity id;
-
-  /**
-   * Outbound bandwidh tracker.
-   */
-  struct GNUNET_BANDWIDTH_Tracker out_tracker;
-
-  /**
    * Entry in our readyness heap (which is sorted by @e next_ready
    * value).  NULL if there is no pending transmission request for
    * this neighbour or if we're waiting for @e is_ready to become
@@ -94,6 +84,11 @@ struct Neighbour
    * next transmission.
    */
   struct GNUNET_SCHEDULER_Task *timeout_task;
+
+  /**
+   * Outbound bandwidh tracker.
+   */
+  struct GNUNET_BANDWIDTH_Tracker out_tracker;
 
   /**
    * Sending consumed more bytes on wire than payload was announced
@@ -136,17 +131,17 @@ struct GNUNET_TRANSPORT_CoreHandle
   /**
    * function to call on connect events
    */
-  GNUNET_TRANSPORT_NotifyConnecT nc_cb;
+  GNUNET_TRANSPORT_NotifyConnect nc_cb;
 
   /**
    * function to call on disconnect events
    */
-  GNUNET_TRANSPORT_NotifyDisconnecT nd_cb;
+  GNUNET_TRANSPORT_NotifyDisconnect nd_cb;
 
   /**
    * function to call on excess bandwidth events
    */
-  GNUNET_TRANSPORT_NotifyExcessBandwidtH neb_cb;
+  GNUNET_TRANSPORT_NotifyExcessBandwidth neb_cb;
 
   /**
    * My client connection to the transport service.
@@ -302,44 +297,6 @@ mq_error_handler (void *cls,
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Error receiving from transport service, disconnecting temporarily.\n");
   disconnect_and_schedule_reconnect (h);
-}
-
-
-/**
- * Function we use for checking incoming HELLO messages.
- *
- * @param cls closure, a `struct GNUNET_TRANSPORT_CoreHandle *`
- * @param msg message received
- * @return #GNUNET_OK if message is well-formed
- */
-static int
-check_hello (void *cls,
-             const struct GNUNET_MessageHeader *msg)
-{
-  struct GNUNET_PeerIdentity me;
-
-  if (GNUNET_OK !=
-      GNUNET_HELLO_get_id ((const struct GNUNET_HELLO_Message *) msg,
-                           &me))
-  {
-    GNUNET_break (0);
-    return GNUNET_SYSERR;
-  }
-  return GNUNET_OK;
-}
-
-
-/**
- * Function we use for handling incoming HELLO messages.
- *
- * @param cls closure, a `struct GNUNET_TRANSPORT_CoreHandle *`
- * @param msg message received
- */
-static void
-handle_hello (void *cls,
-              const struct GNUNET_MessageHeader *msg)
-{
-  /* we do not care => FIXME: signal in options to NEVER send HELLOs! */
 }
 
 
@@ -551,7 +508,8 @@ handle_connect (void *cls,
        "Receiving CONNECT message for `%s' with quota %u\n",
        GNUNET_i2s (&cim->id),
        ntohl (cim->quota_out.value__));
-  n = neighbour_find (h, &cim->id);
+  n = neighbour_find (h,
+		      &cim->id);
   if (NULL != n)
   {
     GNUNET_break (0);
@@ -613,7 +571,8 @@ handle_disconnect (void *cls,
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Receiving DISCONNECT message for `%s'.\n",
        GNUNET_i2s (&dim->peer));
-  n = neighbour_find (h, &dim->peer);
+  n = neighbour_find (h,
+		      &dim->peer);
   if (NULL == n)
   {
     GNUNET_break (0);
@@ -647,7 +606,9 @@ handle_send_ok (void *cls,
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Receiving SEND_OK message, transmission to %s %s.\n",
        GNUNET_i2s (&okm->peer),
-       ntohl (okm->success) == GNUNET_OK ? "succeeded" : "failed");
+       (GNUNET_OK == ntohl (okm->success))
+       ? "succeeded"
+       : "failed");
   n = neighbour_find (h,
                       &okm->peer);
   if (NULL == n)
@@ -662,8 +623,8 @@ handle_send_ok (void *cls,
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Overhead for %u byte message was %u\n",
-         bytes_msg,
-         bytes_physical - bytes_msg);
+         (unsigned int) bytes_msg,
+         (unsigned int) (bytes_physical - bytes_msg));
     n->traffic_overhead += bytes_physical - bytes_msg;
   }
 }
@@ -677,7 +638,7 @@ handle_send_ok (void *cls,
  */
 static int
 check_recv (void *cls,
-             const struct InboundMessage *im)
+	    const struct InboundMessage *im)
 {
   const struct GNUNET_MessageHeader *imm;
   uint16_t size;
@@ -718,7 +679,8 @@ handle_recv (void *cls,
        (unsigned int) ntohs (imm->type),
        (unsigned int) ntohs (imm->size),
        GNUNET_i2s (&im->peer));
-  n = neighbour_find (h, &im->peer);
+  n = neighbour_find (h,
+		      &im->peer);
   if (NULL == n)
   {
     GNUNET_break (0);
@@ -754,7 +716,7 @@ handle_set_quota (void *cls,
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Receiving SET_QUOTA message for `%s' with quota %u\n",
        GNUNET_i2s (&qm->peer),
-       ntohl (qm->quota.value__));
+       (unsigned int) ntohl (qm->quota.value__));
   GNUNET_BANDWIDTH_tracker_update_quota (&n->out_tracker,
                                          qm->quota);
 }
@@ -770,10 +732,6 @@ reconnect (void *cls)
 {
   struct GNUNET_TRANSPORT_CoreHandle *h = cls;
   struct GNUNET_MQ_MessageHandler handlers[] = {
-    GNUNET_MQ_hd_var_size (hello,
-                           GNUNET_MESSAGE_TYPE_HELLO,
-                           struct GNUNET_MessageHeader,
-                           h),
     GNUNET_MQ_hd_fixed_size (connect,
                              GNUNET_MESSAGE_TYPE_TRANSPORT_CONNECT,
                              struct ConnectInfoMessage,
@@ -826,6 +784,25 @@ reconnect (void *cls)
 
 
 /**
+ * Disconnect from the transport service.
+ *
+ * @param h transport service to reconnect
+ */
+static void
+disconnect (struct GNUNET_TRANSPORT_CoreHandle *h)
+{
+  GNUNET_CONTAINER_multipeermap_iterate (h->neighbours,
+                                         &neighbour_delete,
+                                         h);
+  if (NULL != h->mq)
+  {
+    GNUNET_MQ_destroy (h->mq);
+    h->mq = NULL;
+  }
+}
+
+
+/**
  * Function that will schedule the job that will try
  * to connect us again to the client.
  *
@@ -835,15 +812,7 @@ static void
 disconnect_and_schedule_reconnect (struct GNUNET_TRANSPORT_CoreHandle *h)
 {
   GNUNET_assert (NULL == h->reconnect_task);
-  /* Forget about all neighbours that we used to be connected to */
-  GNUNET_CONTAINER_multipeermap_iterate (h->neighbours,
-                                         &neighbour_delete,
-                                         h);
-  if (NULL != h->mq)
-  {
-    GNUNET_MQ_destroy (h->mq);
-    h->mq = NULL;
-  }
+  disconnect (h);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Scheduling task to reconnect to transport service in %s.\n",
        GNUNET_STRINGS_relative_time_to_string (h->reconnect_delay,
@@ -896,9 +865,9 @@ GNUNET_TRANSPORT_core_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
 			       const struct GNUNET_PeerIdentity *self,
 			       const struct GNUNET_MQ_MessageHandler *handlers,
 			       void *cls,
-			       GNUNET_TRANSPORT_NotifyConnecT nc,
-			       GNUNET_TRANSPORT_NotifyDisconnecT nd,
-			       GNUNET_TRANSPORT_NotifyExcessBandwidtH neb)
+			       GNUNET_TRANSPORT_NotifyConnect nc,
+			       GNUNET_TRANSPORT_NotifyDisconnect nd,
+			       GNUNET_TRANSPORT_NotifyExcessBandwidth neb)
 {
   struct GNUNET_TRANSPORT_CoreHandle *h;
   unsigned int i;
@@ -951,8 +920,7 @@ GNUNET_TRANSPORT_core_disconnect (struct GNUNET_TRANSPORT_CoreHandle *handle)
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Transport disconnect called!\n");
   /* this disconnects all neighbours... */
-  if (NULL == handle->reconnect_task)
-    disconnect_and_schedule_reconnect (handle);
+  disconnect (handle);
   /* and now we stop trying to connect again... */
   if (NULL != handle->reconnect_task)
   {

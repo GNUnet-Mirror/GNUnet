@@ -136,17 +136,17 @@ struct GNUNET_TRANSPORT_CoreHandle
   /**
    * function to call on connect events
    */
-  GNUNET_TRANSPORT_NotifyConnecT nc_cb;
+  GNUNET_TRANSPORT_NotifyConnect nc_cb;
 
   /**
    * function to call on disconnect events
    */
-  GNUNET_TRANSPORT_NotifyDisconnecT nd_cb;
+  GNUNET_TRANSPORT_NotifyDisconnect nd_cb;
 
   /**
    * function to call on excess bandwidth events
    */
-  GNUNET_TRANSPORT_NotifyExcessBandwidtH neb_cb;
+  GNUNET_TRANSPORT_NotifyExcessBandwidth neb_cb;
 
   /**
    * My client connection to the transport service.
@@ -896,9 +896,9 @@ GNUNET_TRANSPORT_core_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
 			       const struct GNUNET_PeerIdentity *self,
 			       const struct GNUNET_MQ_MessageHandler *handlers,
 			       void *cls,
-			       GNUNET_TRANSPORT_NotifyConnecT nc,
-			       GNUNET_TRANSPORT_NotifyDisconnecT nd,
-			       GNUNET_TRANSPORT_NotifyExcessBandwidtH neb)
+			       GNUNET_TRANSPORT_NotifyConnect nc,
+			       GNUNET_TRANSPORT_NotifyDisconnect nd,
+			       GNUNET_TRANSPORT_NotifyExcessBandwidth neb)
 {
   struct GNUNET_TRANSPORT_CoreHandle *h;
   unsigned int i;

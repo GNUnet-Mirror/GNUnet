@@ -233,7 +233,6 @@ handle_client_start (void *cls,
 		     const struct StartMessage *start)
 {
   struct TransportClient *tc = cls;
-  const struct GNUNET_MessageHeader *hello;
   uint32_t options;
 
   options = ntohl (start->options);
@@ -255,46 +254,6 @@ handle_client_start (void *cls,
     return;
   }
   tc->type = CT_CORE;
-#if 0
-  hello = GST_hello_get ();
-  if (NULL != hello)
-    unicast (tc,
-             hello,
-             GNUNET_NO);
-#endif
-  GNUNET_SERVICE_client_continue (tc->client);
-}
-
-
-/**
- * Client sent us a HELLO.  Check the request.
- *
- * @param cls the client
- * @param message the HELLO message
- */
-static int
-check_client_hello (void *cls,
-		    const struct GNUNET_MessageHeader *message)
-{
-  (void) cls;
-  return GNUNET_OK; /* FIXME: check here? */
-}
-
-
-/**
- * Client sent us a HELLO.  Process the request.
- *
- * @param cls the client
- * @param message the HELLO message
- */
-static void
-handle_client_hello (void *cls,
-		     const struct GNUNET_MessageHeader *message)
-{
-  struct TransportClient *tc = cls;
-
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-	      "Received HELLO message\n");
   GNUNET_SERVICE_client_continue (tc->client);
 }
 
@@ -395,7 +354,7 @@ handle_communicator_available (void *cls,
   tc->type = CT_COMMUNICATOR;
   size = ntohs (cam->header.size) - sizeof (*cam);
   if (0 == size)
-    return GNUNET_OK; /* receive-only communicator */
+    return; /* receive-only communicator */
   tc->details.address_prefix = GNUNET_strdup ((const char *) &cam[1]);
   GNUNET_SERVICE_client_continue (tc->client);
 }
@@ -421,7 +380,7 @@ check_add_address (void *cls,
     GNUNET_break (0);
     return GNUNET_SYSERR;
   }
-  addr = (const char *) &cam[1];
+  addr = (const char *) &aam[1];
   if ('\0' != addr[size-1])
   {
     GNUNET_break (0);
@@ -651,15 +610,7 @@ run (void *cls,
 {
   /* setup globals */
   GST_cfg = c;
-  if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_time (c,
-                                           "transport",
-                                           "HELLO_EXPIRATION",
-                                           &hello_expiration))
-  {
-    hello_expiration = GNUNET_CONSTANTS_HELLO_ADDRESS_EXPIRATION;
-  }
-  GST_my_private_key = GNUNET_CRYPTO_eddsa_key_create_from_configuration (cfg);
+  GST_my_private_key = GNUNET_CRYPTO_eddsa_key_create_from_configuration (GST_cfg);
   if (NULL == GST_my_private_key)
   {
     GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
@@ -696,10 +647,6 @@ GNUNET_SERVICE_MAIN
 			  GNUNET_MESSAGE_TYPE_TRANSPORT_START,
 			  struct StartMessage,
 			  NULL),
- GNUNET_MQ_hd_var_size (client_hello,
-			GNUNET_MESSAGE_TYPE_HELLO,
-			struct GNUNET_MessageHeader,
-			NULL),
  GNUNET_MQ_hd_var_size (client_send,
 			GNUNET_MESSAGE_TYPE_TRANSPORT_SEND,
 			struct OutboundMessage,
