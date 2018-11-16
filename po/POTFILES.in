@@ -398,9 +398,11 @@ src/testing/list-keys.c
 src/testing/testing.c
 src/topology/friends.c
 src/topology/gnunet-daemon-topology.c
+src/transport/gnunet-communicator-unix.c
 src/transport/gnunet-helper-transport-bluetooth.c
 src/transport/gnunet-helper-transport-wlan.c
 src/transport/gnunet-helper-transport-wlan-dummy.c
+src/transport/gnunet-service-tng.c
 src/transport/gnunet-service-transport_ats.c
 src/transport/gnunet-service-transport.c
 src/transport/gnunet-service-transport_hello.c
@@ -430,6 +432,8 @@ src/transport/tcp_server_legacy.c
 src/transport/tcp_server_mst_legacy.c
 src/transport/tcp_service_legacy.c
 src/transport/transport_api2_communication.c
+src/transport/transport_api2_core.c
+src/transport/transport_api2_monitor.c
 src/transport/transport_api_address_to_string.c
 src/transport/transport_api_blacklist.c
 src/transport/transport_api_core.c

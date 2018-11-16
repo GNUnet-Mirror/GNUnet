@@ -157,7 +157,7 @@ GNUNET_MY_extract_result (struct GNUNET_MYSQL_StatementHandle *sh,
   if (mysql_stmt_field_count (stmt) != num_fields)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Number of fields missmatch between SQL result and result specification\n");
+                "Number of fields mismatch between SQL result and result specification\n");
     return GNUNET_SYSERR;
   }
 

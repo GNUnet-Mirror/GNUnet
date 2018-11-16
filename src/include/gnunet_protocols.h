@@ -11,7 +11,7 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
@@ -3041,7 +3041,7 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_TRANSPORT_QUEUE_SETUP 1204
 
 /**
- * @brief inform transport that a queue was torn down 
+ * @brief inform transport that a queue was torn down
  */
 #define GNUNET_MESSAGE_TYPE_TRANSPORT_QUEUE_TEARDOWN 1205
 
@@ -3051,18 +3051,52 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_TRANSPORT_QUEUE_CREATE 1206
 
 /**
+ * Response from communicator: will try to create queue.
+ */
+#define GNUNET_MESSAGE_TYPE_TRANSPORT_QUEUE_CREATE_OK 1207
+
+/**
+ * Response from communicator: address bogus, will not try to create queue.
+ */
+#define GNUNET_MESSAGE_TYPE_TRANSPORT_QUEUE_CREATE_FAIL 1208
+
+/**
  * @brief transport tells communicator it wants to transmit
  */
-#define GNUNET_MESSAGE_TYPE_TRANSPORT_SEND_MSG 1207
+#define GNUNET_MESSAGE_TYPE_TRANSPORT_SEND_MSG 1209
 
 /**
  * @brief communicator tells transports that message was sent
  */
-#define GNUNET_MESSAGE_TYPE_TRANSPORT_SEND_MSG_ACK 1208
+#define GNUNET_MESSAGE_TYPE_TRANSPORT_SEND_MSG_ACK 1210
+
+/**
+ * Message sent to indicate to the transport which address
+ * prefix is supported by a communicator.
+ */
+#define GNUNET_MESSAGE_TYPE_TRANSPORT_NEW_COMMUNICATOR 1211
 
 
 /**
- * Next available: 1300
+ * Message sent to indicate to the transport that a monitor
+ * wants to observe certain events.
+ */
+#define GNUNET_MESSAGE_TYPE_TRANSPORT_MONITOR_START 1250
+
+/**
+ * Message sent to indicate to a monitor about events.
+ */
+#define GNUNET_MESSAGE_TYPE_TRANSPORT_MONITOR_DATA 1251
+
+/**
+ * Message sent to indicate to a monitor that a one-shot
+ * iteration over events is done.
+ */
+#define GNUNET_MESSAGE_TYPE_TRANSPORT_MONITOR_END 1252
+
+
+/**
+ * Next available: 1400
  */
 
 

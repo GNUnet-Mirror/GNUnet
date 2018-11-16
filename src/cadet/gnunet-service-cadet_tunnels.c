@@ -1983,7 +1983,7 @@ GCT_handle_kx_auth (struct CadetTConnection *ct,
                               1,
                               GNUNET_NO);
     LOG (GNUNET_ERROR_TYPE_WARNING,
-         "KX AUTH missmatch!\n");
+         "KX AUTH mismatch!\n");
 #if DEBUG_KX
     {
       struct GNUNET_CRYPTO_EcdhePublicKey ephemeral_key;

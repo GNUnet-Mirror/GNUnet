@@ -66,7 +66,7 @@ struct GNUNET_TRANSPORT_CoreHandle;
  * @return closure to use in MQ handlers
  */
 typedef void *
-(*GNUNET_TRANSPORT_NotifyConnecT) (void *cls,
+(*GNUNET_TRANSPORT_NotifyConnect) (void *cls,
                                    const struct GNUNET_PeerIdentity *peer,
                                    struct GNUNET_MQ_Handle *mq);
 
@@ -83,7 +83,7 @@ typedef void *
  *                    connect notification callback
  */
 typedef void
-(*GNUNET_TRANSPORT_NotifyDisconnecT) (void *cls,
+(*GNUNET_TRANSPORT_NotifyDisconnect) (void *cls,
                                       const struct GNUNET_PeerIdentity *peer,
                                       void *handler_cls);
 
@@ -105,7 +105,7 @@ typedef void
  *                    connect notification callback
  */
 typedef void
-(*GNUNET_TRANSPORT_NotifyExcessBandwidtH)(void *cls,
+(*GNUNET_TRANSPORT_NotifyExcessBandwidth)(void *cls,
                                           const struct GNUNET_PeerIdentity *neighbour,
                                           void *handlers_cls);
 
@@ -133,9 +133,9 @@ GNUNET_TRANSPORT_core_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
                                const struct GNUNET_PeerIdentity *self,
                                const struct GNUNET_MQ_MessageHandler *handlers,
                                void *cls,
-                               GNUNET_TRANSPORT_NotifyConnecT nc,
-                               GNUNET_TRANSPORT_NotifyDisconnecT nd,
-                               GNUNET_TRANSPORT_NotifyExcessBandwidtH neb);
+                               GNUNET_TRANSPORT_NotifyConnect nc,
+                               GNUNET_TRANSPORT_NotifyDisconnect nd,
+                               GNUNET_TRANSPORT_NotifyExcessBandwidth neb);
 
 
 /**

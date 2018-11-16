@@ -61,6 +61,14 @@ label)
 Determine our GNS name for the given public key (reverse lookup of the
 PKEY) in the given zone.
 .B
+.IP "\-R RECORDLINE, \-\-replace=RECORDLINE"
+Sets record set to values given in RECORDLINE.  This option can be specified multiple
+times to provide multiple records for the record set.  Existing records under the
+same label will be deleted. The format for the RECORDLINE is
+"TTL TYPE FLAGS VALUE" where TTL is the time to live in seconds, TYPE is the
+DNS/GNS record type, FLAGS is "(N)ORMAL", "(S)HADOW" or "(P)UBLIC".  The VALUE
+follows the usual human-readable value format(s) of DNS/GNS.
+.B
 .IP "\-s, \-\-shadow"
 Create a record that is a shadow record.  Shadow records are only used
 once all other records of the same type under the same label have

@@ -7353,7 +7353,7 @@ msgstr "找不到接口“%s”的一个 IP 地址。\n"
 
 #: src/transport/gnunet-transport.c:492
 #, fuzzy
-msgid "Failed to list connections, timeout occured\n"
+msgid "Failed to list connections, timeout occurred\n"
 msgstr "初始化“%s”服务失败。\n"
 
 #: src/transport/gnunet-transport.c:525

@@ -42,6 +42,7 @@ extern "C"
 #endif
 
 #include "gnunet_util_lib.h"
+#include "gnunet_ats_service.h"
 
 /**
  * Version number of the transport communication API.
@@ -69,7 +70,7 @@ extern "C"
 typedef int
 (*GNUNET_TRANSPORT_CommunicatorMqInit) (void *cls,
                                         const struct GNUNET_PeerIdentity *peer,
-                                        const void *address);
+                                        const char *address);
 
 
 /**
@@ -82,7 +83,9 @@ struct GNUNET_TRANSPORT_CommunicatorHandle;
  * Connect to the transport service.
  *
  * @param cfg configuration to use
- * @param name name of the communicator that is connecting
+ * @param config_section section of the configuration to use for options
+ * @param addr_prefix address prefix for addresses supported by this
+ *        communicator, could be NULL for incoming-only communicators
  * @param mtu maximum message size supported by communicator, 0 if
  *            sending is not supported, SIZE_MAX for no MTU
  * @param mq_init function to call to initialize a message queue given
@@ -93,7 +96,8 @@ struct GNUNET_TRANSPORT_CommunicatorHandle;
  */
 struct GNUNET_TRANSPORT_CommunicatorHandle *
 GNUNET_TRANSPORT_communicator_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                                       const char *name,
+                                       const char *config_section_name,
+				       const char *addr_prefix,
                                        size_t mtu,
                                        GNUNET_TRANSPORT_CommunicatorMqInit mq_init,
                                        void *mq_init_cls);

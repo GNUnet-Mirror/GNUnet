@@ -7638,7 +7638,7 @@ msgstr "Lỗi đóng kết đến cổng %s %d.\n"
 
 #: src/transport/gnunet-transport.c:492
 #, fuzzy
-msgid "Failed to list connections, timeout occured\n"
+msgid "Failed to list connections, timeout occurred\n"
 msgstr "Không kết nối được đến trình nền gnunetd."
 
 #: src/transport/gnunet-transport.c:525

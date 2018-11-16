@@ -138,6 +138,41 @@ GNUNET_CONFIGURATION_destroy (struct GNUNET_CONFIGURATION_Handle *cfg)
 
 
 /**
+ * Parse a configuration file @a filename and run the function
+ * @a cb with the resulting configuration object. Then free the
+ * configuration object and return the status value from @a cb.
+ *
+ * @param filename configuration to parse, NULL for "default"
+ * @param cb function to run
+ * @param cb_cls closure for @a cb
+ * @return #GNUNET_SYSERR if parsing the configuration failed,
+ *   otherwise return value from @a cb.
+ */
+int
+GNUNET_CONFIGURATION_parse_and_run (const char *filename,
+				    GNUNET_CONFIGURATION_Callback cb,
+				    void *cb_cls)
+{
+  struct GNUNET_CONFIGURATION_Handle *cfg;
+  int ret;
+
+  cfg = GNUNET_CONFIGURATION_create ();
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_load (cfg,
+                                 filename))
+  {
+    GNUNET_break (0);
+    GNUNET_CONFIGURATION_destroy (cfg);
+    return GNUNET_SYSERR;
+  }
+  ret = cb (cb_cls,
+	    cfg);
+  GNUNET_CONFIGURATION_destroy (cfg);
+  return ret;
+}
+
+
+/**
  * De-serializes configuration
  *
  * @param cfg configuration to update
@@ -522,7 +557,7 @@ GNUNET_CONFIGURATION_write (struct GNUNET_CONFIGURATION_Handle *cfg,
     GNUNET_free (fn);
     GNUNET_free (cfg_buf);
     LOG (GNUNET_ERROR_TYPE_WARNING,
-	 "Writing configration to file `%s' failed\n",
+	 "Writing configuration to file `%s' failed\n",
          filename);
     cfg->dirty = GNUNET_SYSERR; /* last write failed */
     return GNUNET_SYSERR;
@@ -893,21 +928,26 @@ GNUNET_CONFIGURATION_set_value_number (struct GNUNET_CONFIGURATION_Handle *cfg,
  * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
  */
 int
-GNUNET_CONFIGURATION_get_value_number (const struct GNUNET_CONFIGURATION_Handle
-                                       *cfg, const char *section,
+GNUNET_CONFIGURATION_get_value_number (const struct GNUNET_CONFIGURATION_Handle *cfg,
+				       const char *section,
                                        const char *option,
                                        unsigned long long *number)
 {
   struct ConfigEntry *e;
+  char dummy[2];
 
   if (NULL == (e = find_entry (cfg, section, option)))
     return GNUNET_SYSERR;
   if (NULL == e->val)
     return GNUNET_SYSERR;
-  if (1 != SSCANF (e->val, "%llu", number))
+  if (1 != SSCANF (e->val,
+		   "%llu%1s",
+		   number,
+		   dummy))
     return GNUNET_SYSERR;
-  return GNUNET_OK;
+  return GNUNET_OK;  
 }
+
 
 /**
  * Get a configuration value that should be a floating point number.
@@ -919,18 +959,22 @@ GNUNET_CONFIGURATION_get_value_number (const struct GNUNET_CONFIGURATION_Handle
  * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
  */
 int
-GNUNET_CONFIGURATION_get_value_float  (const struct GNUNET_CONFIGURATION_Handle
-                                       *cfg, const char *section,
+GNUNET_CONFIGURATION_get_value_float  (const struct GNUNET_CONFIGURATION_Handle *cfg,
+				       const char *section,
                                        const char *option,
                                        float *number)
 {
   struct ConfigEntry *e;
-
+  char dummy[2];
+  
   if (NULL == (e = find_entry (cfg, section, option)))
     return GNUNET_SYSERR;
   if (NULL == e->val)
     return GNUNET_SYSERR;
-  if (1 != SSCANF (e->val, "%f", number))
+  if (1 != SSCANF (e->val,
+		   "%f%1s",
+		   number,
+		   dummy))
     return GNUNET_SYSERR;
   return GNUNET_OK;
 }

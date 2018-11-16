@@ -8,7 +8,8 @@ pkgcfgdir= $(pkgdatadir)/config.d/
 libexecdir= $(pkglibdir)/libexec/
 
 pkgcfg_DATA = \
-  transport.conf
+  transport.conf \
+  communicator-unix.conf 
 
 if HAVE_MHD
  GN_LIBMHD = -lmicrohttpd
@@ -140,6 +141,8 @@ endif
 
 noinst_PROGRAMS = \
  gnunet-transport-profiler \
+ gnunet-communicator-unix \
+ gnunet-service-tng \
  $(WLAN_BIN_SENDER) \
  $(WLAN_BIN_RECEIVER)
 
@@ -149,6 +152,9 @@ endif
 
 lib_LTLIBRARIES = \
   libgnunettransport.la \
+  libgnunettransportcore.la \
+  libgnunettransportcommunicator.la \
+  libgnunettransportmonitor.la \
   $(TESTING_LIBS)
 
 libgnunettransporttesting_la_SOURCES = \
@@ -187,6 +193,37 @@ libgnunettransport_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS) $(WINFLAGS) \
   -version-info 4:0:2
 
+
+
+libgnunettransportcore_la_SOURCES = \
+  transport_api2_core.c
+libgnunettransportcore_la_LIBADD = \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(GN_LIBINTL)
+libgnunettransportcore_la_LDFLAGS = \
+  $(GN_LIB_LDFLAGS) $(WINFLAGS) \
+  -version-info 0:0:0
+
+libgnunettransportcommunicator_la_SOURCES = \
+  transport_api2_communication.c
+libgnunettransportcommunicator_la_LIBADD = \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(GN_LIBINTL)
+libgnunettransportcommunicator_la_LDFLAGS = \
+  $(GN_LIB_LDFLAGS) $(WINFLAGS) \
+  -version-info 0:0:0
+
+
+libgnunettransportmonitor_la_SOURCES = \
+  transport_api2_monitor.c
+libgnunettransportmonitor_la_LIBADD = \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(GN_LIBINTL)
+libgnunettransportmonitor_la_LDFLAGS = \
+  $(GN_LIB_LDFLAGS) $(WINFLAGS) \
+  -version-info 0:0:0
+
+
 libexec_PROGRAMS = \
  $(WLAN_BIN) \
  $(WLAN_BIN_DUMMY) \
@@ -206,6 +243,14 @@ gnunet_transport_certificate_creation_SOURCES = \
  gnunet-transport-certificate-creation.c
 gnunet_transport_certificate_creation_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la
+
+gnunet_communicator_unix_SOURCES = \
+ gnunet-communicator-unix.c
+gnunet_communicator_unix_LDADD = \
+  libgnunettransportcommunicator.la \
+  $(top_builddir)/src/statistics/libgnunetstatistics.la \
+  $(top_builddir)/src/util/libgnunetutil.la
+
 
 gnunet_helper_transport_wlan_SOURCES = \
  gnunet-helper-transport-wlan.c
@@ -277,6 +322,15 @@ gnunet_service_transport_LDADD = \
 gnunet_service_transport_CFLAGS = \
   $(CFLAGS)
 # -DANALYZE
+
+
+gnunet_service_tng_SOURCES = \
+ gnunet-service-tng.c
+gnunet_service_tng_LDADD = \
+  $(top_builddir)/src/ats/libgnunetats.la \
+  $(top_builddir)/src/statistics/libgnunetstatistics.la \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(GN_LIBINTL)
 
 plugin_LTLIBRARIES = \
   libgnunet_plugin_transport_tcp.la \

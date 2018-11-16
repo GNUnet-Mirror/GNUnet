@@ -489,7 +489,7 @@ operation_timeout (void *cls)
     }
     FPRINTF (stdout,
              "%s",
-             _("Failed to list connections, timeout occured\n"));
+             _("Failed to list connections, timeout occurred\n"));
     GNUNET_SCHEDULER_shutdown ();
     ret = 1;
     return;

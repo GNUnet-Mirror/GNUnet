@@ -354,7 +354,7 @@ check_match (void *cls,
        (off + 1 != cm_ctx->cpath_length) )
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "check_match missmatch because path %s is too long (%u vs. %u vs. %u)\n",
+         "check_match mismatch because path %s is too long (%u vs. %u vs. %u)\n",
          GCPP_2s (path),
          path->entries_length,
          off + 1,
@@ -367,10 +367,10 @@ check_match (void *cls,
                                  i))
     {
       LOG (GNUNET_ERROR_TYPE_DEBUG,
-           "check_match path %s missmatches at offset %u\n",
+           "check_match path %s mismatches at offset %u\n",
            GCPP_2s (path),
            i);
-      return GNUNET_YES; /* missmatch, ignore */
+      return GNUNET_YES; /* mismatch, ignore */
     }
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "check_match found match with path %s\n",

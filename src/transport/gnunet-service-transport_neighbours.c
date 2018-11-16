@@ -11,7 +11,7 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
@@ -571,7 +571,6 @@ neighbours_connect_notification (struct NeighbourMapEntry *n)
   connect_msg->header.size = htons (sizeof(buf));
   connect_msg->header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_CONNECT);
   connect_msg->id = n->id;
-  connect_msg->quota_in = n->primary_address.bandwidth_in;
   connect_msg->quota_out = bandwidth_min;
   GST_clients_broadcast (&connect_msg->header,
                          GNUNET_NO);

@@ -443,7 +443,7 @@ typedef void
 
 
 /**
- * Starts a controller process at the given host.  The given host's configration
+ * Starts a controller process at the given host.  The given host's configuration
  * is used as a Template configuration to use for the remote controller; the
  * remote controller will be started with a slightly modified configuration
  * (port numbers, unix domain sockets and service home values are changed as per
@@ -486,7 +486,7 @@ GNUNET_TESTBED_controller_stop (struct GNUNET_TESTBED_ControllerProc *cproc);
 
 /**
  * Connect to a controller process.  The configuration to use for the connection
- * is retreived from the given host where a controller is started using
+ * is retrieved from the given host where a controller is started using
  * GNUNET_TESTBED_controller_start().
  *
  * @param host host to run the controller on; This should be the same host if

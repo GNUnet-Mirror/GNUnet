@@ -364,7 +364,7 @@ lookup_dns_servers (char ***server_addrs)
     GNUNET_DISK_file_close (fh);
     return -1;
   }
-  if (bytes_read > SIZE_MAX)
+  if ((size_t) bytes_read > SIZE_MAX)
   { 
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 		"/etc/resolv.conf file too large to mmap. "
@@ -379,7 +379,7 @@ lookup_dns_servers (char ***server_addrs)
   *server_addrs = NULL;
   read_offset = 0;
   num_dns_servers = 0;
-  while (read_offset < bytes_read)
+  while (read_offset < (size_t) bytes_read)
   {
     const char *newline;
     size_t line_len;
@@ -648,11 +648,16 @@ try_cache (const char *hostname,
   struct ResolveCache *pos;
   struct ResolveCache *next;
   int found;
+  int in_hosts;
 
+  in_hosts = GNUNET_NO;
   for (pos = hosts_head; NULL != pos; pos = pos->next)
     if (0 == strcmp (pos->hostname,
                      hostname))
+    {
+      in_hosts = GNUNET_YES;
       break;
+    }
   if (NULL == pos)
   {
     next = cache_head;
@@ -673,7 +678,8 @@ try_cache (const char *hostname,
                 hostname);
     return GNUNET_NO;
   }
-  if (cache_head != pos)
+  if ( (GNUNET_NO == in_hosts) &&
+       (cache_head != pos) )
   {
     /* move result to head to achieve LRU for cache eviction */
     GNUNET_CONTAINER_DLL_remove (cache_head,
@@ -1313,7 +1319,7 @@ extract_hosts (const char *line,
   if (NULL != c)
     line_len = c - line;
   /* ignore leading whitespace */
-  while ( (0 > line_len) &&
+  while ( (0 < line_len) &&
 	  isspace ((unsigned char) *line) )
   {
     line++;
@@ -1382,7 +1388,7 @@ load_etc_hosts (void)
     GNUNET_DISK_file_close (fh);
     return;
   }
-  if (bytes_read > SIZE_MAX)
+  if ((size_t) bytes_read > SIZE_MAX)
   { 
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 		"/etc/hosts file too large to mmap. "
@@ -1395,7 +1401,7 @@ load_etc_hosts (void)
 			      GNUNET_DISK_MAP_TYPE_READ,
 			      (size_t) bytes_read);
   read_offset = 0;
-  while (read_offset < bytes_read)
+  while (read_offset < (size_t) bytes_read)
   {
     const char *newline;
     size_t line_len;

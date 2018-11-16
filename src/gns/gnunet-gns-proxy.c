@@ -59,6 +59,12 @@
 #define MAX_HTTP_URI_LENGTH 2048
 
 /**
+ * Maximum number of DANE records we support
+ * per domain name (and port and protocol).
+ */
+#define MAX_DANES 32
+
+/**
  * Size of the buffer for the data upload / download.  Must be
  * enough for curl, thus CURL_MAX_WRITE_SIZE is needed here (16k).
  */
@@ -543,9 +549,9 @@ struct Socks5Request
   char *leho;
 
   /**
-   * Payload of the (last) DANE record encountered.
+   * Payload of the DANE records encountered.
    */
-  char *dane_data;
+  char *dane_data[MAX_DANES + 1];
 
   /**
    * The URL to fetch
@@ -575,7 +581,13 @@ struct Socks5Request
   /**
    * Number of bytes in @e dane_data.
    */
-  size_t dane_data_len;
+  int dane_data_len[MAX_DANES + 1];
+
+  /**
+   * Number of entries used in @e dane_data_len
+   * and @e dane_data.
+   */
+  unsigned int num_danes;
 
   /**
    * Number of bytes already in read buffer
@@ -816,7 +828,8 @@ cleanup_s5r (struct Socks5Request *s5r)
   GNUNET_free_non_null (s5r->domain);
   GNUNET_free_non_null (s5r->leho);
   GNUNET_free_non_null (s5r->url);
-  GNUNET_free_non_null (s5r->dane_data);
+  for (unsigned int i=0;i<s5r->num_danes;i++)
+    GNUNET_free (s5r->dane_data[i]);
   GNUNET_free (s5r);
 }
 
@@ -989,10 +1002,8 @@ check_ssl_certificate (struct Socks5Request *s5r)
   }
   /* check for TLSA/DANE records */
 #if HAVE_GNUTLS_DANE
-  if (NULL != s5r->dane_data)
+  if (0 != s5r->num_danes)
   {
-    char *dd[] = { s5r->dane_data, NULL };
-    int dlen[] = { s5r->dane_data_len, 0};
     dane_state_t dane_state;
     dane_query_t dane_query;
     unsigned int verify;
@@ -1010,10 +1021,12 @@ check_ssl_certificate (struct Socks5Request *s5r)
       gnutls_x509_crt_deinit (x509_cert);
       return GNUNET_SYSERR;
     }
+    s5r->dane_data[s5r->num_danes] = NULL;
+    s5r->dane_data_len[s5r->num_danes] = 0;
     if (0 != (rc = dane_raw_tlsa (dane_state,
                                   &dane_query,
-                                  dd,
-                                  dlen,
+                                  s5r->dane_data,
+                                  s5r->dane_data_len,
                                   GNUNET_YES,
                                   GNUNET_NO)))
     {
@@ -3070,12 +3083,17 @@ handle_gns_result (void *cls,
                (ntohs (box->protocol) != IPPROTO_TCP) ||
                (ntohs (box->service) != s5r->port) )
             break; /* BOX record does not apply */
-          GNUNET_free_non_null (s5r->dane_data);
-          s5r->dane_data_len = r->data_size - sizeof (struct GNUNET_GNSRECORD_BoxRecord);
-          s5r->dane_data = GNUNET_malloc (s5r->dane_data_len);
-          GNUNET_memcpy (s5r->dane_data,
-                         &box[1],
-                         s5r->dane_data_len);
+	  if (s5r->num_danes >= MAX_DANES)
+	    {
+	      GNUNET_break (0); /* MAX_DANES too small */
+	      break;
+	    }
+          s5r->dane_data_len[s5r->num_danes]
+	    = r->data_size - sizeof (struct GNUNET_GNSRECORD_BoxRecord);
+          s5r->dane_data[s5r->num_danes]
+	    = GNUNET_memdup (&box[1],
+			     s5r->dane_data_len);
+	  s5r->num_danes++;
           break;
         }
       default:

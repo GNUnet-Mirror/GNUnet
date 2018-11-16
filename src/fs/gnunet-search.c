@@ -304,49 +304,44 @@ int
 main (int argc, char *const *argv)
 {
   struct GNUNET_GETOPT_CommandLineOption options[] = {
-
     GNUNET_GETOPT_option_uint ('a',
-                                   "anonymity",
-                                   "LEVEL",
-                                   gettext_noop ("set the desired LEVEL of receiver-anonymity"),
-                                   &anonymity),
-
-
+			       "anonymity",
+			       "LEVEL",
+			       gettext_noop ("set the desired LEVEL of receiver-anonymity"),
+			       &anonymity),
     GNUNET_GETOPT_option_flag ('n',
-                                  "no-network",
-                                  gettext_noop ("only search the local peer (no P2P network search)"),
-                                  &local_only),
-                                  
+			       "no-network",
+			       gettext_noop ("only search the local peer (no P2P network search)"),
+			       &local_only),                                 
     GNUNET_GETOPT_option_string ('o',
                                  "output",
                                  "PREFIX",
                                  gettext_noop ("write search results to file starting with PREFIX"),
                                  &output_filename),                              
-
     GNUNET_GETOPT_option_relative_time ('t', 
-                                            "timeout",
-                                            "DELAY",
-                                            gettext_noop ("automatically terminate search after DELAY"),
-                                            &timeout),
-
-
+					"timeout",
+					"DELAY",
+					gettext_noop ("automatically terminate search after DELAY"),
+					&timeout),
     GNUNET_GETOPT_option_verbose (&verbose),
-
     GNUNET_GETOPT_option_uint ('N',
-                                   "results",
-                                   "VALUE",
-                                   gettext_noop ("automatically terminate search "
-                                                 "after VALUE results are found"),
-                                   &results_limit),
-
+			       "results",
+			       "VALUE",
+			       gettext_noop ("automatically terminate search "
+					     "after VALUE results are found"),
+			       &results_limit),
     GNUNET_GETOPT_OPTION_END
   };
 
-  if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args (argc, argv, &argc, &argv))
+  if (GNUNET_OK !=
+      GNUNET_STRINGS_get_utf8_args (argc, argv,
+				    &argc, &argv))
     return 2;
 
   ret = (GNUNET_OK ==
-	 GNUNET_PROGRAM_run (argc, argv, "gnunet-search [OPTIONS] KEYWORD",
+	 GNUNET_PROGRAM_run (argc,
+			     argv,
+			     "gnunet-search [OPTIONS] KEYWORD",
 			     gettext_noop
 			     ("Search GNUnet for files that were published on GNUnet"),
 			     options, &run, NULL)) ? ret : 1;
