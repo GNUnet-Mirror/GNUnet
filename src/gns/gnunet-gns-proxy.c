@@ -2671,6 +2671,9 @@ generate_gns_certificate (const char *name)
                                  0,
                                  name,
                                  strlen (name));
+  gnutls_x509_crt_set_subject_alternative_name (request,
+                                        GNUTLS_SAN_DNSNAME,
+                                        name);
   GNUNET_break (GNUTLS_E_SUCCESS ==
                 gnutls_x509_crt_set_version (request,
                                              3));
@@ -3092,7 +3095,7 @@ handle_gns_result (void *cls,
 	    = r->data_size - sizeof (struct GNUNET_GNSRECORD_BoxRecord);
           s5r->dane_data[s5r->num_danes]
 	    = GNUNET_memdup (&box[1],
-			     s5r->dane_data_len);
+			     s5r->dane_data_len[s5r->num_danes]);
 	  s5r->num_danes++;
           break;
         }
