@@ -498,7 +498,6 @@ GNUNET_CURL_perform2 (struct GNUNET_CURL_Context *ctx,
 #endif
     job->jcc (job->jcc_cls,
               response_code,
-              /* NOTE: jcc is now in charge of decref-ing */
               response);
     rc (response);
     GNUNET_CURL_job_cancel (job);
