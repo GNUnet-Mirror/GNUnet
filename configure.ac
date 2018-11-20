@@ -918,7 +918,7 @@ AS_IF([test x$working_libidn2 = x0],
               AC_CHECK_LIB([idn],
                            [idna_to_ascii_8z],
                            [working_libidn1=1
-	                   LIBS="-lidn $LIBS"			     
+	                   LIBS="-lidn $LIBS"
                              AC_DEFINE_UNQUOTED([HAVE_LIBIDN],
                                                 [1],
                                                 [Define to 1 if you have 'libidn' (-lidn).])],
@@ -1736,32 +1736,25 @@ AM_CONDITIONAL([USE_COVERAGE], [test "x$use_gcov" = "xyes"])
 AC_PATH_PROG(svnversioncommand, svnversion)
 AC_PATH_PROG(gitcommand, git)
 AC_MSG_CHECKING(for source being under a VCS)
-svn_version=
-gitsvn_version=
-AS_IF([test ! "X$svnversioncommand" = "X"],
-[
-  svn_version=$(cd $srcdir ; $svnversioncommand -n 2>/dev/null)
-])
+
+
+# version info
+AC_PATH_PROG(gitcommand, git)
+AC_MSG_CHECKING(for source being under a VCS)
+git_version=
 AS_IF([test ! "X$gitcommand" = "X"],
 [
-  gitsvn_version=$(cd $srcdir ; git log -1 2>/dev/null | grep "git-svn-id" | sed -e 's/.*@\([[0-9]]\+\) .*/\1/')
+  git_version=$(cd $srcdir ; git rev-list --full-history --all --abbrev-commit | head -n 1 2>/dev/null)
 ])
-AS_IF([test "X$svn_version" = "X" -o "X$svn_version" = "Xexported" -o "X$svn_version" = "XUnversioned directory"],
-[
-  AS_IF([test "X$gitsvn_version" = "X"],
+AS_IF([test "X$git_version" = "X"],
   [
     vcs_name="no"
     vcs_version="\"release\""
   ],
   [
     vcs_name="yes, git-svn"
-    vcs_version="\"svn-r$gitsvn_version\""
+    vcs_version="\"git-$git_version\""
   ])
-],
-[
-  vcs_name="yes, svn"
-  vcs_version="\"svn-r$svn_version\""
-])
 AC_MSG_RESULT($vcs_name)
 
 AC_MSG_CHECKING(VCS version)
