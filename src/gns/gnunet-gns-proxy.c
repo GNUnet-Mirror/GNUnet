@@ -1276,6 +1276,8 @@ curl_check_hdr (void *buffer,
                        s5r->domain);
       hdr_val = new_location;
     }
+    GNUNET_free (leho_host);
+  }
 
   /* MHD does not allow certain characters in values, remove those */
   if (NULL != (tok = strchr (hdr_val, '\n')))
