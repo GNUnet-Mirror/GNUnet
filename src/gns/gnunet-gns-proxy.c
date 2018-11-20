@@ -1230,9 +1230,7 @@ curl_check_hdr (void *buffer,
     goto cleanup;
   }
   if ((0 == strcasecmp (MHD_HTTP_HEADER_LOCATION,
-		       hdr_type)) ||
-      (0 == strcasecmp (MHD_HTTP_HEADER_ACCESS_CONTROL_ALLOW_ORIGIN,
-       hdr_type)))
+		       hdr_type)))
   {
     char *leho_host;
 
@@ -1256,6 +1254,29 @@ curl_check_hdr (void *buffer,
     }
     GNUNET_free (leho_host);
   }
+  if (0 == strcasecmp (MHD_HTTP_HEADER_ACCESS_CONTROL_ALLOW_ORIGIN,
+       hdr_type))
+  {
+    char *leho_host;
+
+    GNUNET_asprintf (&leho_host,
+                     (HTTPS_PORT != s5r->port)
+                     ? "http://%s"
+                     : "https://%s",
+                     s5r->leho);
+    if (0 == strncmp (leho_host,
+                      hdr_val,
+                      strlen (leho_host)))
+    {
+      GNUNET_asprintf (&new_location,
+                       "%s%s",
+                       (HTTPS_PORT != s5r->port)
+                       ? "http://"
+                       : "https://",
+                       s5r->domain);
+      hdr_val = new_location;
+    }
+
   /* MHD does not allow certain characters in values, remove those */
   if (NULL != (tok = strchr (hdr_val, '\n')))
     *tok = '\0';
@@ -1336,22 +1357,6 @@ create_mhd_response_from_s5r (struct Socks5Request *s5r)
                                            header->type,
                                            header->value));
 
-  }
-  if (NULL != s5r->leho)
-  {
-    char *cors_hdr;
-
-    GNUNET_asprintf (&cors_hdr,
-                     (HTTPS_PORT == s5r->port)
-                     ? "https://%s"
-                     : "http://%s",
-                     s5r->leho);
-
-    GNUNET_break (MHD_YES ==
-                  MHD_add_response_header (s5r->response,
-                                           MHD_HTTP_HEADER_ACCESS_CONTROL_ALLOW_ORIGIN,
-                                           cors_hdr));
-    GNUNET_free (cors_hdr);
   }
   /* force connection to be closed after each request, as we
      do not support HTTP pipelining (yet, FIXME!) */
