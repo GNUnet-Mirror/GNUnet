@@ -1067,14 +1067,12 @@ CPPFLAGS=$SAVE_CPPFLAGS
 # test for postgres
 postgres=false
 # even running the check for postgres breaks emscripten ...
-if test "$taler_only" != yes; then
-  AX_LIB_POSTGRESQL([9.5])
-  if test "x$found_postgresql" = "xyes"; then
-    CPPFLAGS="$CPPFLAGS $POSTGRESQL_CPPFLAGS"
-    AC_CHECK_HEADERS([libpq-fe.h],
-      postgres=true)
-  fi
-fi
+AS_IF([test "$taler_only" != yes],
+      [AX_LIB_POSTGRESQL([9.5],
+        [CPPFLAGS="$CPPFLAGS $POSTGRESQL_CPPFLAGS"
+         AC_CHECK_HEADERS([libpq-fe.h],
+         postgres=true)
+        ])])
 AM_CONDITIONAL(HAVE_POSTGRESQL, test x$postgres = xtrue)
 
 

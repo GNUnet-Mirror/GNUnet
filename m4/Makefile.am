@@ -1,5 +1,7 @@
 # This Makefile.am is in the public domain
 EXTRA_DIST = glibc2.m4 intl.m4 intldir.m4 lock.m4 visibility.m4 \
+ax_compare_version.m4 \
+ax_lib_postgresql.m4 \
 absolute-header.m4 \
 libunistring.m4 \
 codeset.m4 \
