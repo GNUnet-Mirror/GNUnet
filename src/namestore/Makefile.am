@@ -164,7 +164,6 @@ gnunet_namestore_fcfsd_LDADD = -lmicrohttpd \
   $(GN_LIBINTL)
 
 
-
 gnunet_service_namestore_SOURCES = \
  gnunet-service-namestore.c
 
@@ -180,7 +179,7 @@ gnunet_service_namestore_LDADD = \
 plugin_LTLIBRARIES = \
   $(SQLITE_PLUGIN) \
   $(POSTGRES_PLUGIN) \
-	$(HEAP_PLUGIN)
+  $(HEAP_PLUGIN)
 
 
 

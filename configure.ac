@@ -607,8 +607,8 @@ PKG_CHECK_MODULES([GLIB], [glib-2.0],
 pbc=0
 AC_CHECK_HEADER([pbc/pbc.h],pbc=1)
 AC_CHECK_HEADER([gabe.h],abe=1)
-AM_CONDITIONAL(HAVE_PBC, [test "$pbc" = 1])
-AM_CONDITIONAL(HAVE_ABE, [test "$abe" = 1])
+AM_CONDITIONAL(HAVE_PBC, [test "x$pbc" = x1])
+AM_CONDITIONAL(HAVE_ABE, [test "x$abe" = x1])
 if test "x$pbc" = x1
 then
   AC_DEFINE([HAVE_PBC],[1],[Have pbc library])
@@ -623,8 +623,8 @@ else
 fi
 ,
 # glib-2 not found
-  AM_CONDITIONAL(HAVE_PBC, [0])
-  AM_CONDITIONAL(HAVE_ABE, [0])
+  AM_CONDITIONAL(HAVE_PBC, [false])
+  AM_CONDITIONAL(HAVE_ABE, [false])
   AC_DEFINE([HAVE_PBC],[0],[Lacking glib library])
 )
 
@@ -778,14 +778,14 @@ AC_ARG_WITH(extractor,
       no)
         ;;
       yes)
-        AC_CHECK_HEADERS(extractor.h,
+        AC_CHECK_HEADERS([extractor.h],
           AC_CHECK_LIB([extractor], [EXTRACTOR_plugin_add_defaults],
             extractor=1))
         ;;
       *)
         LDFLAGS="-L$with_extractor/lib $LDFLAGS"
         CPPFLAGS="-I$with_extractor/include $CPPFLAGS"
-        AC_CHECK_HEADERS(extractor.h,
+        AC_CHECK_HEADERS([extractor.h],
           AC_CHECK_LIB([extractor], [EXTRACTOR_plugin_add_defaults],
             EXT_LIB_PATH="-L$with_extractor/lib $EXT_LIB_PATH"
             extractor=1))
@@ -793,7 +793,7 @@ AC_ARG_WITH(extractor,
     esac
    ],
    [AC_MSG_RESULT([--with-extractor not specified])
-    AC_CHECK_HEADERS(extractor.h,
+    AC_CHECK_HEADERS([extractor.h],
      AC_CHECK_LIB([extractor], [EXTRACTOR_plugin_add_defaults],
       extractor=1))])
 # restore LIBS
@@ -1164,7 +1164,7 @@ then
   fi
 fi
 AM_CONDITIONAL(HAVE_MYSQL, test x$mysql = xtrue)
-AM_CONDITIONAL(HAVE_MYSQLE, test "0" = "1")
+AM_CONDITIONAL(HAVE_MYSQLE, false)
 # restore LIBS
 LIBS=$SAVE_LIBS
 LDFLAGS=$SAVE_LDFLAGS
