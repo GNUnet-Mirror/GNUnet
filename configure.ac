@@ -206,7 +206,7 @@ rm -f /tmp/gnunet_test_cosks_ssh_garbage
 # iptables is a soft requirement to run tests
 AC_PATH_TARGET_TOOL(VAR_IPTABLES_BINARY, iptables, false)
 
-if test x"$VAR_IPTABLES_BINARY" != x"false"
+if test x"$VAR_IPTABLES_BINARY" = x"false"
 then
   if test -x "/sbin/iptables"
   then
@@ -227,7 +227,7 @@ fi
 AC_PATH_TARGET_TOOL(VAR_IFCONFIG_BINARY, ifconfig, false)
 
 AC_CHECK_PROG(VAR_IFCONFIG_BINARY, ifconfig, true, false)
-if test x"$VAR_IFCONFIG_BINARY" != x"false"
+if test x"$VAR_IFCONFIG_BINARY" = x"false"
 then
   if test -x "/sbin/ifconfig"
   then
