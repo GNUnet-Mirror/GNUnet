@@ -557,26 +557,19 @@ AC_ARG_WITH(jansson,
      AC_CHECK_LIB([jansson], [json_loads],
       jansson=1))])
 AM_CONDITIONAL(HAVE_JANSSON, [test "$jansson" = 1])
-if test "x$jansson" = x1
-then
-  AC_DEFINE([HAVE_JANSSON],[1],[Have jansson library])
-else
-  AC_DEFINE([HAVE_JANSSON],[0],[Lacking jansson library])
-fi
+AS_IF([test "x$jansson" = x1],
+      [AC_DEFINE([HAVE_JANSSON],[1],[Have jansson library])],
+      [AC_DEFINE([HAVE_JANSSON],[0],[Lacking jansson library])])
 
 
 # check for libpulse(audio) library
 pulse=0
 AC_CHECK_LIB(pulse,pa_stream_peek,
   [AC_CHECK_HEADER([pulse/simple.h],pulse=1)])
-if test "$build_target" = "mingw"
-then
-  pulse=0
-fi
-if test "$pulse" = 1
-then
-  AC_DEFINE([HAVE_PULSE],[1],[Have libpulse(audio) library])
-fi
+AS_IF([test "$build_target" = "mingw"],
+      [pulse=0])
+AS_IF([test "$pulse" = 1],
+      [AC_DEFINE([HAVE_PULSE],[1],[Have libpulse(audio) library])])
 
 # check for libopus(audio) library
 opus=0
@@ -602,43 +595,31 @@ AC_CHECK_LIB(ogg, ogg_stream_flush_fill,
         ogg=0)
 
 
-PKG_CHECK_MODULES([GLIB], [glib-2.0],
-# check for pbc library
-pbc=0
-AC_CHECK_HEADER([pbc/pbc.h],pbc=1)
-AC_CHECK_HEADER([gabe.h],abe=1)
-AM_CONDITIONAL(HAVE_PBC, [test "x$pbc" = x1])
-AM_CONDITIONAL(HAVE_ABE, [test "x$abe" = x1])
-if test "x$pbc" = x1
-then
-  AC_DEFINE([HAVE_PBC],[1],[Have pbc library])
-else
-  AC_DEFINE([HAVE_PBC],[0],[Lacking pbc library])
-fi
-if test "x$abe" = x1
-then
-  AC_DEFINE([HAVE_ABE],[1],[Have ABE library])
-else
-  AC_DEFINE([HAVE_ABE],[0],[Lacking ABE library])
-fi
-,
-# glib-2 not found
-  AM_CONDITIONAL(HAVE_PBC, [false])
-  AM_CONDITIONAL(HAVE_ABE, [false])
-  AC_DEFINE([HAVE_PBC],[0],[Lacking glib library])
-)
+PKG_CHECK_MODULES([GLIB],
+                  [glib-2.0],
+  [# check for pbc library
+  pbc=0 
+   AC_CHECK_HEADER([pbc/pbc.h],pbc=1)
+   AC_CHECK_HEADER([gabe.h],abe=1)
+   AM_CONDITIONAL(HAVE_PBC, [test "x$pbc" = x1])
+   AM_CONDITIONAL(HAVE_ABE, [test "x$abe" = x1])
+   AS_IF([test "x$pbc" = x1],
+     [AC_DEFINE([HAVE_PBC],[1],[Have pbc library])],
+     [AC_DEFINE([HAVE_PBC],[0],[Lacking pbc library])])
+   AS_IF([test "x$abe" = x1],
+    [AC_DEFINE([HAVE_ABE],[1],[Have ABE library])],
+    [AC_DEFINE([HAVE_ABE],[0],[Lacking ABE library])])],
+  [# glib-2 not found
+   AM_CONDITIONAL(HAVE_PBC, [false])
+   AM_CONDITIONAL(HAVE_ABE, [false])
+   AC_DEFINE([HAVE_PBC],[0],[Lacking glib library])])
 
 gst=0
 PKG_CHECK_MODULES(
   [GST],
   [glib-2.0 gobject-2.0 gstreamer-1.0 gstreamer-app-1.0 gstreamer-audio-1.0],
-  [
-    gst=1
-    AC_MSG_RESULT(ok)
-  ], [
-    gst=0
-    AC_MSG_RESULT(not found)
-  ])
+  [gst=1],
+  [gst=0])
 
 # Pulse Audio
 if test "x$pulse" != "x1" -o "x$opus" != "x1" -o "x$ogg" != "x1"
@@ -1072,8 +1053,8 @@ AS_IF([test "$taler_only" != yes],
         [CPPFLAGS="$CPPFLAGS $POSTGRESQL_CPPFLAGS"
          AC_CHECK_HEADERS([libpq-fe.h],
          postgres=true)
-        ])],
-      [AC_MSG_RESULT([no postgres])])
+        ],
+        [AC_MSG_RESULT([no postgres])])])
 AM_CONDITIONAL(HAVE_POSTGRESQL, test x$postgres = xtrue)
 
 
