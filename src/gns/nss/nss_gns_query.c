@@ -22,8 +22,23 @@
 #include <arpa/inet.h>
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <sys/wait.h>
 #include <netinet/in.h>
 #include <errno.h>
+#include <unistd.h>
+#include <signal.h>
+
+
+static void
+kwait (pid_t chld)
+{
+  int ret;
+
+  kill (chld, SIGKILL);
+  waitpid (chld,
+           &ret,
+           0);
+}
 
 
 /**
@@ -44,36 +59,45 @@ gns_resolve_name (int af,
 		  struct userdata *u)
 {
   FILE *p;
-  char *cmd;
   char line[128];
   int ret;
-  int es;
+  int out[2];
+  pid_t pid;
 
-  if (AF_INET6 == af)
-  {
-    if (-1 == asprintf (&cmd,
-			"%s -t AAAA -u %s\n",
-			"gnunet-gns -r",
-                        name))
-      return -1;
-  }
-  else
-  {
-    if (-1 == asprintf (&cmd,
-			"%s %s\n",
-			"gnunet-gns -r -u",
-                        name))
-      return -1;
-  }
-  if (NULL == (p = popen (cmd, "r")))
-  {
-    es = errno;
-    free (cmd);
-    errno = es;
+  if (0 != pipe (out))
     return -1;
+  pid = fork ();
+  if (-1 == pid)
+    return -1;
+  if (0 == pid)
+  {
+    char *argv[] = {
+      "gnunet-gns",
+      "-r",
+      "-t",
+      (AF_INET6 == af) ? "AAAA" : "A",
+      "-u",
+      (char *) name,
+      NULL
+    };
+
+    (void) close (STDOUT_FILENO);
+    if ( (0 != close (out[0])) ||
+         (STDOUT_FILENO != dup2 (out[1], STDOUT_FILENO)) )
+      _exit (1);
+    (void) execvp ("gnunet-gns",
+                   argv);
+    _exit (1);
   }
+  (void) close (out[1]);
+  p = fdopen (out[0], "r");
+  if (NULL == p)
+    {
+      kwait (pid);
+      return -1;
+    }
   while (NULL != fgets (line,
-                        sizeof(line),
+                        sizeof (line),
                         p))
   {
     if (u->count >= MAX_ENTRIES)
@@ -92,8 +116,8 @@ gns_resolve_name (int af,
 	}
 	else
 	{
-	  (void) pclose (p);
-	  free (cmd);
+	  (void) fclose (p);
+          kwait (pid);
 	  errno = EINVAL;
 	  return -1;
 	}
@@ -109,19 +133,21 @@ gns_resolve_name (int af,
 	}
 	else
         {
-	  (void) pclose (p);
-	  free (cmd);
+	  (void) fclose (p);
+          kwait (pid);
 	  errno = EINVAL;
 	  return -1;
 	}
       }
     }
   }
-  ret = pclose (p);
-  free (cmd);
-  if (! WIFEXITED (ret)) 
+  (void) fclose (p);
+  waitpid (pid,
+           &ret,
+           0);
+  if (! WIFEXITED (ret))
     return -1;
-  if (4 == WEXITSTATUS (ret)) 
+  if (4 == WEXITSTATUS (ret))
     return -2; /* not for GNS */
   if (3 == ret)
     return -3; /* timeout -> not found */
