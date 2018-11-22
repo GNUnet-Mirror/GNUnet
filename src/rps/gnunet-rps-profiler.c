@@ -2449,13 +2449,23 @@ void write_final_stats (void){
   for (uint32_t i = 0; i < num_peers; i++)
   {
     to_file ("/tmp/rps/final_stats.csv",
-             ", %" PRIu32 ", " /* index */
+             "%" PRIu32 ", " /* index */
              "%s, %" /* id */
              PRIu64 ", %" /* rounds */
              PRIu64 ", %" PRIu64 ", %" PRIu64 ", %" PRIu64 ", %" PRIu64 ", %" PRIu64 ", %" /* blocking */
-             PRIu64 ", %" PRIu64 ", %" PRIu64 ", %" /* issued */
-             PRIu64 ", %" PRIu64 ", %" PRIu64 ", %" /* sent */
-             PRIu64 ", %" PRIu64 ", %" PRIu64 /* recv */,
+             PRIu64 ", %" PRIu64 ", %" PRIu64 ", %" PRIu64 ", %" /* issued */
+             PRIu64 ", %" PRIu64 ", %" PRIu64 ", %" PRIu64 ", %" /* sent */
+             PRIu64 ", %" PRIu64 ", %" PRIu64 ", %" PRIu64 ", %" PRIu64 ", %" /* recv */
+             PRIu64 ", %" /* view size */
+             PRIu64 ", %" /* known peers */
+             PRIu64 ", %" /* valid peers */
+             PRIu64 ", %" /* learned peers */
+             PRIu64 ", %" /* pending online checks */
+             PRIu64 ", %" /* unrequested pull replies */
+             PRIu64 ", %" /* peers in push map */
+             PRIu64 ", %" /* peers in pull map */
+             PRIu64 ", %" /* peers in view */
+             PRIu64 "\n"/* view size aim */,
              i,
              GNUNET_i2s (rps_peers[i].peer_id),
              rps_peers[i].stats[STAT_TYPE_ROUNDS],
@@ -2467,13 +2477,27 @@ void write_final_stats (void){
              rps_peers[i].stats[STAT_TYPE_BLOCKS_NO_PUSH_NO_PULL],
              rps_peers[i].stats[STAT_TYPE_ISSUED_PUSH_SEND],
              rps_peers[i].stats[STAT_TYPE_ISSUED_PULL_REQ],
+             rps_peers[i].stats[STAT_TYPE_ISSUED_PULL_REQ_MH],
              rps_peers[i].stats[STAT_TYPE_ISSUED_PULL_REP],
              rps_peers[i].stats[STAT_TYPE_SENT_PUSH_SEND],
              rps_peers[i].stats[STAT_TYPE_SENT_PULL_REQ],
+             rps_peers[i].stats[STAT_TYPE_SENT_PULL_REQ_MH],
              rps_peers[i].stats[STAT_TYPE_SENT_PULL_REP],
              rps_peers[i].stats[STAT_TYPE_RECV_PUSH_SEND],
              rps_peers[i].stats[STAT_TYPE_RECV_PULL_REQ],
-             rps_peers[i].stats[STAT_TYPE_RECV_PULL_REP]);
+             rps_peers[i].stats[STAT_TYPE_RECV_PULL_REQ_MH],
+             rps_peers[i].stats[STAT_TYPE_RECV_PULL_REP_MH],
+             rps_peers[i].stats[STAT_TYPE_RECV_PULL_REP],
+             rps_peers[i].stats[STAT_TYPE_VIEW_SIZE],
+             rps_peers[i].stats[STAT_TYPE_KNOWN_PEERS],
+             rps_peers[i].stats[STAT_TYPE_VALID_PEERS],
+             rps_peers[i].stats[STAT_TYPE_LEARND_PEERS],
+             rps_peers[i].stats[STAT_TYPE_PENDING_ONLINE_CHECKS],
+             rps_peers[i].stats[STAT_TYPE_UNREQUESTED_PULL_REPLIES],
+             rps_peers[i].stats[STAT_TYPE_PEERS_IN_PUSH_MAP],
+             rps_peers[i].stats[STAT_TYPE_PEERS_IN_PULL_MAP],
+             rps_peers[i].stats[STAT_TYPE_PEERS_IN_VIEW],
+             rps_peers[i].stats[STAT_TYPE_VIEW_SIZE_AIM]);
     for (enum STAT_TYPE stat_type = STAT_TYPE_ROUNDS;
          stat_type < STAT_TYPE_MAX;
          stat_type++)
@@ -2485,9 +2509,19 @@ void write_final_stats (void){
            "SUM %"
            PRIu64 " %" /* rounds */
            PRIu64 " %" PRIu64 " %" PRIu64 " %" PRIu64 " %" PRIu64 " %" PRIu64 " %" /* blocking */
-           PRIu64 " %" PRIu64 " %" PRIu64 " %" /* issued */
-           PRIu64 " %" PRIu64 " %" PRIu64 " %" /* sent */
-           PRIu64 " %" PRIu64 " %" PRIu64 /* recv */,
+           PRIu64 ", %" PRIu64 ", %" PRIu64 ", %" PRIu64 ", %" /* issued */
+           PRIu64 ", %" PRIu64 ", %" PRIu64 ", %" PRIu64 ", %" /* sent */
+           PRIu64 ", %" PRIu64 ", %" PRIu64 ", %" PRIu64 ", %" PRIu64 ", %" /* recv */
+           PRIu64 ", %" /* view size */
+           PRIu64 ", %" /* known peers */
+           PRIu64 ", %" /* valid peers */
+           PRIu64 ", %" /* learned peers */
+           PRIu64 ", %" /* pending online checks */
+           PRIu64 ", %" /* unrequested pull replies */
+           PRIu64 ", %" /* peers in push map */
+           PRIu64 ", %" /* peers in pull map */
+           PRIu64 ", %" /* peers in view */
+           PRIu64 "\n"/* view size aim */,
            sums[STAT_TYPE_ROUNDS],
            sums[STAT_TYPE_BLOCKS],
            sums[STAT_TYPE_BLOCKS_MANY_PUSH],
@@ -2497,13 +2531,27 @@ void write_final_stats (void){
            sums[STAT_TYPE_BLOCKS_NO_PUSH_NO_PULL],
            sums[STAT_TYPE_ISSUED_PUSH_SEND],
            sums[STAT_TYPE_ISSUED_PULL_REQ],
+           sums[STAT_TYPE_ISSUED_PULL_REQ_MH],
            sums[STAT_TYPE_ISSUED_PULL_REP],
            sums[STAT_TYPE_SENT_PUSH_SEND],
            sums[STAT_TYPE_SENT_PULL_REQ],
+           sums[STAT_TYPE_SENT_PULL_REQ_MH],
            sums[STAT_TYPE_SENT_PULL_REP],
            sums[STAT_TYPE_RECV_PUSH_SEND],
            sums[STAT_TYPE_RECV_PULL_REQ],
-           sums[STAT_TYPE_RECV_PULL_REP]);
+           sums[STAT_TYPE_RECV_PULL_REQ_MH],
+           sums[STAT_TYPE_RECV_PULL_REP],
+           sums[STAT_TYPE_RECV_PULL_REP_MH],
+           sums[STAT_TYPE_VIEW_SIZE],
+           sums[STAT_TYPE_KNOWN_PEERS],
+           sums[STAT_TYPE_VALID_PEERS],
+           sums[STAT_TYPE_LEARND_PEERS],
+           sums[STAT_TYPE_PENDING_ONLINE_CHECKS],
+           sums[STAT_TYPE_UNREQUESTED_PULL_REPLIES],
+           sums[STAT_TYPE_PEERS_IN_PUSH_MAP],
+           sums[STAT_TYPE_PEERS_IN_PULL_MAP],
+           sums[STAT_TYPE_PEERS_IN_VIEW],
+           sums[STAT_TYPE_VIEW_SIZE_AIM]);
 }
 
 /**
