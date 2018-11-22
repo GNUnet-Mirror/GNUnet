@@ -213,7 +213,7 @@ new_stream_request (struct GNUNET_RPS_Handle *rps_handle,
   GNUNET_CONTAINER_DLL_insert (rps_handle->stream_requests_head,
                                rps_handle->stream_requests_tail,
                                srh);
-  
+
   return srh;
 }
 
@@ -227,7 +227,7 @@ static void
 remove_stream_request (struct GNUNET_RPS_StreamRequestHandle *srh)
 {
   struct GNUNET_RPS_Handle *rps_handle = srh->rps_handle;
-  
+
   GNUNET_assert (NULL != srh);
   if (NULL != srh->callback_task)
   {
@@ -235,7 +235,7 @@ remove_stream_request (struct GNUNET_RPS_StreamRequestHandle *srh)
     srh->callback_task = NULL;
   }
   GNUNET_CONTAINER_DLL_remove (rps_handle->stream_requests_head,
-			       rps_handle->stream_requests_tail,
+                               rps_handle->stream_requests_tail,
                                srh);
   GNUNET_free (srh);
 }
