@@ -618,7 +618,6 @@ GSF_peer_connect_handler (void *cls,
 				"fs",
                                 peer,
 				"respect",
-                                GNUNET_TIME_UNIT_FOREVER_REL,
                                 &peer_respect_cb,
                                 cp);
   GSF_iterate_pending_requests_ (&consider_peer_for_forwarding,

@@ -111,8 +111,8 @@ test_cont (void *cls)
   GNUNET_PEERSTORE_iterate (h,
 			    subsystem,
 			    &pid, key,
-                            GNUNET_TIME_UNIT_FOREVER_REL,
-			    &iterate_cb, NULL);
+			    &iterate_cb,
+			    NULL);
 }
 
 

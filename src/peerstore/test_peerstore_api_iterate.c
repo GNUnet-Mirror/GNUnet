@@ -82,7 +82,6 @@ iter2_cb (void *cls,
                                  ss,
                                  NULL,
                                  NULL,
-                                 GNUNET_TIME_UNIT_FOREVER_REL,
                                  &iter3_cb,
                                  NULL);
 }
@@ -109,8 +108,7 @@ iter1_cb (void *cls,
                                  ss,
                                  &p1,
                                  NULL,
-                                 GNUNET_TIME_UNIT_FOREVER_REL,
-                                 iter2_cb,
+                                 &iter2_cb,
                                  NULL);
 }
 
@@ -158,7 +156,6 @@ run (void *cls,
                                  ss,
                                  &p1,
                                  k1,
-                                 GNUNET_TIME_UNIT_FOREVER_REL,
                                  &iter1_cb, NULL);
 }
 

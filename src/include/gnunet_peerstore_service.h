@@ -205,7 +205,6 @@ GNUNET_PEERSTORE_store_cancel (struct GNUNET_PEERSTORE_StoreContext *sc);
  * @param sub_system name of sub system
  * @param peer Peer identity (can be NULL)
  * @param key entry key string (can be NULL)
- * @param timeout time after which the iterate request is canceled
  * @param callback function called with each matching record, all NULL's on end
  * @param callback_cls closure for @a callback
  */
@@ -214,7 +213,6 @@ GNUNET_PEERSTORE_iterate (struct GNUNET_PEERSTORE_Handle *h,
                           const char *sub_system,
                           const struct GNUNET_PeerIdentity *peer,
                           const char *key,
-                          struct GNUNET_TIME_Relative timeout,
                           GNUNET_PEERSTORE_Processor callback,
                           void *callback_cls);
 

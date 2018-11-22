@@ -71,7 +71,6 @@ test3_cont (void *cls,
                             subsystem,
                             &pid,
                             key,
-                            GNUNET_TIME_UNIT_SECONDS,
                             &test3_cont2,
                             NULL);
 }
@@ -127,8 +126,8 @@ test2_cont (void *cls, int success)
   GNUNET_PEERSTORE_iterate (h,
                             subsystem,
                             &pid, key,
-                            GNUNET_TIME_UNIT_SECONDS,
-                            &test2_cont2, NULL);
+                            &test2_cont2,
+			    NULL);
 }
 
 
@@ -181,7 +180,6 @@ test1_cont (void *cls, int success)
                             subsystem,
                             &pid,
                             key,
-                            GNUNET_TIME_UNIT_SECONDS,
                             &test1_cont2,
                             NULL);
 }
