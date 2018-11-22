@@ -598,7 +598,7 @@ AC_CHECK_LIB(ogg, ogg_stream_flush_fill,
 PKG_CHECK_MODULES([GLIB],
                   [glib-2.0],
   [# check for pbc library
-  pbc=0 
+  pbc=0
    AC_CHECK_HEADER([pbc/pbc.h],pbc=1)
    AC_CHECK_HEADER([gabe.h],abe=1)
    AM_CONDITIONAL(HAVE_PBC, [test "x$pbc" = x1])
@@ -1807,6 +1807,7 @@ src/nat-auto/Makefile
 src/nat-auto/nat-auto.conf
 src/nse/Makefile
 src/nse/nse.conf
+src/nt/Makefile
 src/peerinfo/Makefile
 src/peerinfo/peerinfo.conf
 src/peerinfo-tool/Makefile

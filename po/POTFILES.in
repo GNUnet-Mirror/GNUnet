@@ -193,6 +193,7 @@ src/gns/w32nsp-uninstall.c
 src/hello/address.c
 src/hello/gnunet-hello.c
 src/hello/hello.c
+src/hello/hello-ng.c
 src/hostlist/gnunet-daemon-hostlist.c
 src/hostlist/gnunet-daemon-hostlist_client.c
 src/hostlist/gnunet-daemon-hostlist_server.c
@@ -250,6 +251,7 @@ src/nse/gnunet-nse.c
 src/nse/gnunet-nse-profiler.c
 src/nse/gnunet-service-nse.c
 src/nse/nse_api.c
+src/nt/nt.c
 src/peerinfo/gnunet-service-peerinfo.c
 src/peerinfo/peerinfo_api.c
 src/peerinfo/peerinfo_api_notify.c

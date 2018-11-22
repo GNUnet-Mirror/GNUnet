@@ -11,7 +11,7 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
@@ -873,6 +873,51 @@ GNUNET_MQ_impl_state (struct GNUNET_MQ_Handle *mq);
  */
 const struct GNUNET_MessageHeader *
 GNUNET_MQ_impl_current (struct GNUNET_MQ_Handle *mq);
+
+
+
+/**
+ * Enum defining all known preference categories.
+ */
+enum GNUNET_MQ_PreferenceKind
+{
+
+  /**
+   * No preference was expressed.
+   */
+  GNUNET_MQ_PREFERENCE_NONE = 0,
+
+  /**
+   * The preferred transmission for this envelope focuses on
+   * maximizing bandwidth.
+   */
+  GNUNET_MQ_PREFERENCE_BANDWIDTH = 1,
+
+  /**
+   * The preferred transmission for this envelope foces on
+   * minimizing latency.
+   */
+  GNUNET_MQ_PREFERENCE_LATENCY = 2,
+
+  /**
+   * The preferred transmission for this envelope foces on
+   * reliability.
+   */
+  GNUNET_MQ_PREFERENCE_RELIABILITY = 3
+
+};
+
+
+/**
+ * Convert an `enum GNUNET_MQ_PreferenceType` to a string
+ *
+ * @param type the preference type
+ * @return a string or NULL if invalid
+ */
+const char *
+GNUNET_MQ_preference_to_string (enum GNUNET_MQ_PreferenceKind type);
+
+
 
 
 #endif

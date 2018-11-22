@@ -16,7 +16,7 @@ if HAVE_EXPERIMENTAL
   psycutil \
   psycstore \
   psyc \
-  social 
+  social
 #  dv (FTBFS)
 if HAVE_ABE
 if HAVE_JSON
@@ -24,7 +24,7 @@ if HAVE_JSON
     abe \
     credential \
     reclaim-attribute \
-    reclaim 
+    reclaim
 endif
 endif
 if HAVE_JSON
@@ -80,6 +80,7 @@ else
 SUBDIRS = \
   include $(INTLEMU_SUBDIRS) \
   util \
+  nt \
   gnsrecord \
   hello \
   block \
@@ -129,6 +130,6 @@ SUBDIRS = \
 	$(EXP_DIR) \
   $(JSON_DIR) \
   $(REST_DIR) \
-  integration-tests 
+  integration-tests
 
 endif

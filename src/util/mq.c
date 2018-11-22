@@ -11,7 +11,7 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
@@ -1269,6 +1269,28 @@ GNUNET_MQ_count_handlers (const struct GNUNET_MQ_MessageHandler *handlers)
   return i;
 }
 
+
+/**
+ * Convert an `enum GNUNET_MQ_PreferenceType` to a string
+ *
+ * @param type the preference type
+ * @return a string or NULL if invalid
+ */
+const char *
+GNUNET_MQ_preference_to_string (enum GNUNET_MQ_PreferenceKind type)
+{
+  switch (type) {
+  case GNUNET_MQ_PREFERENCE_NONE:
+    return "NONE";
+  case GNUNET_MQ_PREFERENCE_BANDWIDTH:
+    return "BANDWIDTH";
+  case GNUNET_MQ_PREFERENCE_LATENCY:
+    return "LATENCY";
+  case GNUNET_MQ_PREFERENCE_RELIABILITY:
+    return "RELIABILITY";
+  };
+  return NULL;
+}
 
 
 /* end of mq.c */
