@@ -11,7 +11,7 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
@@ -26,6 +26,7 @@
 #include "gnunet_hello_lib.h"
 #include "gnunet_protocols.h"
 #include "gnunet_util_lib.h"
+#include "gnunet_ats_service.h"
 
 /**
  * Binary block we sign when we sign an address.
@@ -70,7 +71,7 @@ GNUNET_HELLO_sign_address (const char *address,
   struct SignedAddress sa;
   struct GNUNET_CRYPTO_EddsaSignature sig;
   char *sig_str;
-  
+
   sa.purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_TRANSPORT_ADDRESS);
   sa.purpose.size = htonl (sizeof (sa));
   sa.expiration = GNUNET_TIME_absolute_hton (expiration);
@@ -91,10 +92,10 @@ GNUNET_HELLO_sign_address (const char *address,
 				      (unsigned long long) expiration.abs_value_us,
 				      (unsigned int) nt,
 				      address);
-  GNUNET_free (sig_str);  
+  GNUNET_free (sig_str);
 }
 
-			   
+
 /**
  * Check signature and extract address record.
  *
@@ -168,7 +169,7 @@ GNUNET_HELLO_extract_address (const void *raw,
     return NULL;
   }
   raw_addr = sc3 + 1;
-  
+
   sa.purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_TRANSPORT_ADDRESS);
   sa.purpose.size = htonl (sizeof (sa));
   sa.expiration = GNUNET_TIME_absolute_hton (raw_expiration);
@@ -190,5 +191,3 @@ GNUNET_HELLO_extract_address (const void *raw,
   *nt = (enum GNUNET_ATS_Network_Type) raw_nt;
   return GNUNET_strdup (raw_addr);
 }
-
-			   
