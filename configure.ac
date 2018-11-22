@@ -1072,7 +1072,8 @@ AS_IF([test "$taler_only" != yes],
         [CPPFLAGS="$CPPFLAGS $POSTGRESQL_CPPFLAGS"
          AC_CHECK_HEADERS([libpq-fe.h],
          postgres=true)
-        ])])
+        ])],
+      [AC_MSG_RESULT([no postgres])])
 AM_CONDITIONAL(HAVE_POSTGRESQL, test x$postgres = xtrue)
 
 
