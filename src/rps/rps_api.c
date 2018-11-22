@@ -207,14 +207,13 @@ new_stream_request (struct GNUNET_RPS_Handle *rps_handle,
   struct GNUNET_RPS_StreamRequestHandle *srh;
 
   srh = GNUNET_new (struct GNUNET_RPS_StreamRequestHandle);
-
   srh->rps_handle = rps_handle;
   srh->ready_cb = ready_cb;
   srh->ready_cb_cls = cls;
   GNUNET_CONTAINER_DLL_insert (rps_handle->stream_requests_head,
                                rps_handle->stream_requests_tail,
                                srh);
-
+  
   return srh;
 }
 
@@ -223,24 +222,21 @@ new_stream_request (struct GNUNET_RPS_Handle *rps_handle,
  * @brief Remove the given stream request from the list of requests and memory
  *
  * @param srh The request to be removed
- * @param srh_head Head of the DLL to remove request from
- * @param srh_tail Tail of the DLL to remove request from
  */
 static void
-remove_stream_request (struct GNUNET_RPS_StreamRequestHandle *srh,
-                       struct GNUNET_RPS_StreamRequestHandle *srh_head,
-                       struct GNUNET_RPS_StreamRequestHandle *srh_tail)
+remove_stream_request (struct GNUNET_RPS_StreamRequestHandle *srh)
 {
+  struct GNUNET_RPS_Handle *rps_handle = srh->rps_handle;
+  
   GNUNET_assert (NULL != srh);
   if (NULL != srh->callback_task)
   {
     GNUNET_SCHEDULER_cancel (srh->callback_task);
     srh->callback_task = NULL;
   }
-  GNUNET_CONTAINER_DLL_remove (srh_head,
-                               srh_tail,
+  GNUNET_CONTAINER_DLL_remove (rps_handle->stream_requests_head,
+			       rps_handle->stream_requests_tail,
                                srh);
-
   GNUNET_free (srh);
 }
 
@@ -254,7 +250,7 @@ remove_stream_request (struct GNUNET_RPS_StreamRequestHandle *srh,
  * @param num_peers The number of peers that have been returned
  * @param cls The #GNUNET_RPS_Request_Handle
  */
-void
+static void
 peers_ready_cb (const struct GNUNET_PeerIdentity *peers,
                 uint32_t num_peers,
                 void *cls)
@@ -280,7 +276,7 @@ peers_ready_cb (const struct GNUNET_PeerIdentity *peers,
  * @param num_peers The number of peer that have been returned
  * @param peers The array of @a num_peers that have been returned
  */
-void
+static void
 collect_peers_cb (void *cls,
                   uint64_t num_peers,
                   const struct GNUNET_PeerIdentity *peers)
@@ -450,10 +446,9 @@ GNUNET_RPS_stream_cancel (struct GNUNET_RPS_StreamRequestHandle *srh)
   struct GNUNET_RPS_Handle *rps_handle;
 
   rps_handle = srh->rps_handle;
-  remove_stream_request (srh,
-                         rps_handle->stream_requests_head,
-                         rps_handle->stream_requests_tail);
-  if (NULL == rps_handle->stream_requests_head) cancel_stream (rps_handle);
+  remove_stream_request (srh);
+  if (NULL == rps_handle->stream_requests_head)
+    cancel_stream (rps_handle);
 }
 
 
@@ -524,28 +519,27 @@ handle_stream_input (void *cls,
   //peers = (struct GNUNET_PeerIdentity *) &msg[1];
   num_peers = ntohl (msg->num_peers);
   srh_callback_num_peers = num_peers;
-  if (NULL != srh_callback_peers) GNUNET_free (srh_callback_peers);
-  srh_callback_peers =
-    GNUNET_malloc (num_peers * sizeof (struct GNUNET_PeerIdentity));
+  GNUNET_free_non_null (srh_callback_peers);
+  srh_callback_peers = GNUNET_new_array (num_peers,
+					 struct GNUNET_PeerIdentity);
   GNUNET_memcpy (srh_callback_peers,
                  &msg[1],
                  num_peers * sizeof (struct GNUNET_PeerIdentity));
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Received %" PRIu64 " peer(s) from stream input.\n",
        num_peers);
-  srh_iter = h->stream_requests_head;
-  while (NULL != srh_iter)
+  for (srh_iter = h->stream_requests_head;
+       NULL != srh_iter;
+       srh_iter = srh_next)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "Calling srh \n");
     /* Store next pointer - srh might be removed/freed in callback */
     srh_next = srh_iter->next;
     if (NULL != srh_iter->callback_task)
-    {
       GNUNET_SCHEDULER_cancel (srh_iter->callback_task);
-    }
     srh_iter->callback_task =
-      GNUNET_SCHEDULER_add_now (srh_callback_scheduled, srh_iter);
-    srh_iter = srh_next;
+      GNUNET_SCHEDULER_add_now (&srh_callback_scheduled,
+				srh_iter);
   }
 
   if (NULL == h->stream_requests_head)
@@ -581,6 +575,7 @@ mq_error_handler (void *cls,
        1: READ,\n\
        2: WRITE,\n\
        4: TIMEOUT\n",
+       // TODO: write GNUNET_MQ_strerror (error)
        error);
   reconnect (h);
   /* Resend all pending request as the service destroyed its knowledge
@@ -592,17 +587,20 @@ mq_error_handler (void *cls,
  * @brief Create the hash value from the share value that defines the sub
  * (-group)
  *
- * @param share_val Share value - strings longer than 508 (512 - 4) will be
- *        truncated.
- * @param hash Pointer to the location in which the hash will be stored.
+ * @param share_val Share value
+ * @param hash[out] Pointer to the location in which the hash will be stored.
  */
 static void
-hash_from_share_val (const char *share_val, struct GNUNET_HashCode *hash)
+hash_from_share_val (const char *share_val,
+		     struct GNUNET_HashCode *hash)
 {
-  char hash_port_string[512] = "rps";
-
-  (void) strncat (hash_port_string, share_val, 508);
-  GNUNET_CRYPTO_hash (hash_port_string, strlen (hash_port_string), hash);
+  GNUNET_CRYPTO_kdf (hash,
+		     sizeof (struct GNUNET_HashCode),
+		     "rps",
+		     strlen ("rps"),
+		     share_val,
+		     strlen (share_val),
+		     NULL, 0);
 }
 
 
@@ -757,12 +755,10 @@ GNUNET_RPS_seed_ids (struct GNUNET_RPS_Handle *h,
   struct GNUNET_MQ_Envelope *ev;
   struct GNUNET_RPS_CS_SeedMessage *msg;
 
-  unsigned int i;
-
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Client wants to seed %" PRIu32 " peers:\n",
        n);
-  for (i = 0 ; i < n ; i++)
+  for (unsigned int i = 0 ; i < n ; i++)
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "%u. peer: %s\n",
          i,
@@ -780,12 +776,15 @@ GNUNET_RPS_seed_ids (struct GNUNET_RPS_Handle *h,
 
   while (GNUNET_MAX_MESSAGE_SIZE < size_needed)
   {
-    ev = GNUNET_MQ_msg_extra (msg, num_peers_max * sizeof (struct GNUNET_PeerIdentity),
-        GNUNET_MESSAGE_TYPE_RPS_CS_SEED);
+    ev = GNUNET_MQ_msg_extra (msg,
+			      num_peers_max * sizeof (struct GNUNET_PeerIdentity),
+			      GNUNET_MESSAGE_TYPE_RPS_CS_SEED);
     msg->num_peers = htonl (num_peers_max);
-    GNUNET_memcpy (&msg[1], tmp_peer_pointer, num_peers_max * sizeof (struct GNUNET_PeerIdentity));
-    GNUNET_MQ_send (h->mq, ev);
-
+    GNUNET_memcpy (&msg[1],
+		   tmp_peer_pointer,
+		   num_peers_max * sizeof (struct GNUNET_PeerIdentity));
+    GNUNET_MQ_send (h->mq,
+		    ev);
     n -= num_peers_max;
     size_needed = sizeof (struct GNUNET_RPS_CS_SeedMessage) +
                   n * sizeof (struct GNUNET_PeerIdentity);
@@ -793,12 +792,15 @@ GNUNET_RPS_seed_ids (struct GNUNET_RPS_Handle *h,
     tmp_peer_pointer = &ids[num_peers_max];
   }
 
-  ev = GNUNET_MQ_msg_extra (msg, n * sizeof (struct GNUNET_PeerIdentity),
+  ev = GNUNET_MQ_msg_extra (msg,
+			    n * sizeof (struct GNUNET_PeerIdentity),
                             GNUNET_MESSAGE_TYPE_RPS_CS_SEED);
   msg->num_peers = htonl (n);
-  GNUNET_memcpy (&msg[1], tmp_peer_pointer, n * sizeof (struct GNUNET_PeerIdentity));
-
-  GNUNET_MQ_send (h->mq, ev);
+  GNUNET_memcpy (&msg[1],
+		 tmp_peer_pointer,
+		 n * sizeof (struct GNUNET_PeerIdentity));
+  GNUNET_MQ_send (h->mq,
+		  ev);
 }
 
 
@@ -886,7 +888,9 @@ GNUNET_RPS_act_malicious (struct GNUNET_RPS_Handle *h,
   if ( (2 == type) ||
        (3 == type) )
     msg->attacked_peer = *target_peer;
-  GNUNET_memcpy (&msg[1], tmp_peer_pointer, num_peers * sizeof (struct GNUNET_PeerIdentity));
+  GNUNET_memcpy (&msg[1],
+		 tmp_peer_pointer,
+		 num_peers * sizeof (struct GNUNET_PeerIdentity));
 
   GNUNET_MQ_send (h->mq, ev);
 }
@@ -928,16 +932,16 @@ GNUNET_RPS_disconnect (struct GNUNET_RPS_Handle *h)
 {
   if (NULL != h->stream_requests_head)
   {
-    struct GNUNET_RPS_StreamRequestHandle *srh_iter;
+    struct GNUNET_RPS_StreamRequestHandle *srh_next;
 
     LOG (GNUNET_ERROR_TYPE_WARNING,
         "Still waiting for replies\n");
-    srh_iter = h->stream_requests_head;
-    while (NULL != srh_iter)
+    for (struct GNUNET_RPS_StreamRequestHandle *srh_iter = h->stream_requests_head;
+	 NULL != srh_iter;
+	 srh_iter = srh_next)
     {
-      struct GNUNET_RPS_StreamRequestHandle *srh_tmp = srh_iter;
-      srh_iter = srh_iter->next;
-      GNUNET_RPS_stream_cancel (srh_tmp);
+      srh_next = srh_iter->next;
+      GNUNET_RPS_stream_cancel (srh_iter);
     }
   }
   if (NULL != srh_callback_peers)
