@@ -175,7 +175,7 @@ handle_monitor_data (void *cls,
 
   mi.address = (const char *) &md[1];
   mi.nt = (enum GNUNET_ATS_Network_Type) ntohl (md->nt);
-  mi.is_inbound = (int) ntohl (md->is_inbound);
+  mi.cs = (enum GNUNET_TRANSPORT_ConnectionStatus) ntohl (md->cs);
   mi.num_msg_pending = ntohl (md->num_msg_pending);
   mi.num_bytes_pending = ntohl (md->num_bytes_pending);
   mi.last_validation = GNUNET_TIME_absolute_ntoh (md->last_validation);

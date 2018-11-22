@@ -800,7 +800,15 @@ struct GNUNET_TRANSPORT_AddQueueMessage
    */
   uint32_t nt;
 
-  // FIXME: add MTU?
+  /**
+   * Maximum transmission unit, in NBO.  UINT32_MAX for unlimited.
+   */
+  uint32_t mtu;
+
+  /**
+   * An `enum GNUNET_TRANSPORT_ConnectionStatus` in NBO.
+   */
+  uint32_t cs;
 
   /* followed by UTF-8 encoded, 0-terminated human-readable address */
 };
@@ -992,9 +1000,9 @@ struct GNUNET_TRANSPORT_MonitorData
   struct GNUNET_TIME_RelativeNBO rtt;
 
   /**
-   * Is inbound (in NBO).
+   * Connection status (in NBO).
    */
-  uint32_t is_inbound GNUNET_PACKED;
+  uint32_t cs GNUNET_PACKED;
 
   /**
    * Messages pending (in NBO).
@@ -1006,9 +1014,7 @@ struct GNUNET_TRANSPORT_MonitorData
    */
   uint32_t num_bytes_pending GNUNET_PACKED;
 
-  /* Followed by 0-terminated address of the peer
-     (TODO: do we allow no address? If so,
-     adjust transport_api2_monitor!) */
+  /* Followed by 0-terminated address of the peer */
 
 };
 

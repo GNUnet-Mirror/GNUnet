@@ -193,11 +193,6 @@ struct GNUNET_TRANSPORT_CommunicatorHandle
   uint64_t fc_gen;
 
   /**
-   * MTU of the communicator
-   */
-  size_t mtu;
-  
-  /**
    * Internal UUID for the address used in communication with the
    * transport service.
    */
@@ -249,6 +244,11 @@ struct GNUNET_TRANSPORT_QueueHandle
   enum GNUNET_ATS_Network_Type nt;
 
   /**
+   * Communication status of the queue.
+   */
+  enum GNUNET_TRANSPORT_ConnectionStatus cs;
+  
+  /**
    * The queue itself.
    */ 
   struct GNUNET_MQ_Handle *mq;
@@ -257,6 +257,11 @@ struct GNUNET_TRANSPORT_QueueHandle
    * ID for this queue when talking to the transport service.
    */
   uint32_t queue_id;
+
+  /**
+   * Maximum transmission unit for the queue.
+   */
+  uint32_t mtu;
   
 };
 
@@ -383,9 +388,11 @@ send_add_queue (struct GNUNET_TRANSPORT_QueueHandle *qh)
   env = GNUNET_MQ_msg_extra (aqm,
 			     strlen (qh->address) + 1,
 			     GNUNET_MESSAGE_TYPE_TRANSPORT_QUEUE_SETUP);
+  aqm->qid = htonl (qh->queue_id);
   aqm->receiver = qh->peer;
   aqm->nt = htonl ((uint32_t) qh->nt);
-  aqm->qid = htonl (qh->queue_id);
+  aqm->mtu = htonl (qh->mtu);
+  aqm->cs = htonl ((uint32_t) qh->cs);
   memcpy (&aqm[1],
 	  qh->address,
 	  strlen (qh->address) + 1);
@@ -776,7 +783,6 @@ struct GNUNET_TRANSPORT_CommunicatorHandle *
 GNUNET_TRANSPORT_communicator_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
                                        const char *config_section,
 				       const char *addr_prefix,
-                                       size_t mtu,
                                        GNUNET_TRANSPORT_CommunicatorMqInit mq_init,
                                        void *mq_init_cls)
 {
@@ -786,7 +792,6 @@ GNUNET_TRANSPORT_communicator_connect (const struct GNUNET_CONFIGURATION_Handle 
   ch->cfg = cfg;
   ch->config_section = config_section;
   ch->addr_prefix = addr_prefix;
-  ch->mtu = mtu;
   ch->mq_init = mq_init;
   ch->mq_init_cls = mq_init_cls;
   reconnect (ch);
@@ -910,7 +915,10 @@ GNUNET_TRANSPORT_communicator_receive (struct GNUNET_TRANSPORT_CommunicatorHandl
  * @param ch connection to transport service
  * @param peer peer with which we can now communicate
  * @param address address in human-readable format, 0-terminated, UTF-8
+ * @param mtu maximum message size supported by queue, 0 if
+ *            sending is not supported, SIZE_MAX for no MTU
  * @param nt which network type does the @a address belong to?
+ * @param cs what is the connection status of the queue?
  * @param mq message queue of the @a peer
  * @return API handle identifying the new MQ
  */
@@ -918,7 +926,9 @@ struct GNUNET_TRANSPORT_QueueHandle *
 GNUNET_TRANSPORT_communicator_mq_add (struct GNUNET_TRANSPORT_CommunicatorHandle *ch,
                                       const struct GNUNET_PeerIdentity *peer,
                                       const char *address,
+				      uint32_t mtu,
                                       enum GNUNET_ATS_Network_Type nt,
+				      enum GNUNET_TRANSPORT_ConnectionStatus cs,
                                       struct GNUNET_MQ_Handle *mq)
 {
   struct GNUNET_TRANSPORT_QueueHandle *qh;
@@ -928,6 +938,8 @@ GNUNET_TRANSPORT_communicator_mq_add (struct GNUNET_TRANSPORT_CommunicatorHandle
   qh->peer = *peer;
   qh->address = GNUNET_strdup (address);
   qh->nt = nt;
+  qh->mtu = mtu;
+  qh->cs = cs;
   qh->mq = mq;
   qh->queue_id = ch->queue_gen++;
   GNUNET_CONTAINER_DLL_insert (ch->queue_head,

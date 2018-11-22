@@ -42,6 +42,8 @@ extern "C"
 
 #include "gnunet_util_lib.h"
 #include "gnunet_ats_service.h"
+#include "gnunet_transport_communication_service.h"
+
 
 /**
  * Version number of the transport API.
@@ -66,10 +68,9 @@ struct GNUNET_TRANSPORT_MonitorInformation
   enum GNUNET_ATS_Network_Type nt;
 
   /**
-   * #GNUNET_YES if this is an inbound connection (communicator initiated)
-   * #GNUNET_NO if this is an outbound connection (transport initiated)
+   * Connection status.
    */
-  int is_inbound;
+  enum GNUNET_TRANSPORT_ConnectionStatus cs;
 
   /**
    * Number of messages pending transmission for this @e address.

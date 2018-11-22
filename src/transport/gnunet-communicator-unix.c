@@ -50,6 +50,10 @@
  */
 #define COMMUNICATOR_CONFIG_SECTION "communicator-unix"
 
+/**
+ * Our MTU.
+ */
+#define UNIX_MTU UINT16_MAX
 
 GNUNET_NETWORK_STRUCT_BEGIN
 
@@ -619,12 +623,14 @@ mq_error (void *cls,
  * data to another peer.
  *
  * @param peer the target peer
+ * @param cs inbound or outbound queue
  * @param un the address
  * @param un_len number of bytes in @a un
  * @return the queue or NULL of max connections exceeded
  */
 static struct Queue *
 setup_queue (const struct GNUNET_PeerIdentity *target,
+	     enum GNUNET_TRANSPORT_ConnectionStatus cs,
 	     const struct sockaddr_un *un,
 	     socklen_t un_len)
 {
@@ -673,7 +679,9 @@ setup_queue (const struct GNUNET_PeerIdentity *target,
       = GNUNET_TRANSPORT_communicator_mq_add (ch,
 					      &queue->target,
 					      foreign_addr,
+					      UNIX_MTU, 
 					      GNUNET_ATS_NET_LOOPBACK,
+					      cs,
 					      queue->mq);
     GNUNET_free (foreign_addr);
   }
@@ -779,6 +787,7 @@ select_read_cb (void *cls)
 			addrlen);
   if (NULL == queue)
     queue = setup_queue (&msg->sender,
+			 GNUNET_TRANSPORT_CS_INBOUND,
 			 &un,
 			 addrlen);
   else
@@ -885,6 +894,7 @@ mq_init (void *cls,
     return GNUNET_OK;
   }
   queue = setup_queue (peer,
+		       GNUNET_TRANSPORT_CS_OUTBOUND,
 		       un,
 		       un_len);
   GNUNET_free (un);
@@ -1072,7 +1082,6 @@ run (void *cls,
   ch = GNUNET_TRANSPORT_communicator_connect (cfg,
 					      COMMUNICATOR_CONFIG_SECTION,
 					      COMMUNICATOR_ADDRESS_PREFIX,
-					      65535,
 					      &mq_init,
 					      NULL);
   if (NULL == ch)

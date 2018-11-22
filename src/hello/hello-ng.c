@@ -53,6 +53,7 @@ struct SignedAddress
  * Build address record by signing raw information with private key.
  *
  * @param address text address at @a communicator to sign
+ * @param nt network type of @a address
  * @param expiration how long is @a address valid
  * @param private_key signing key to use
  * @param result[out] where to write address record (allocated)
@@ -60,6 +61,7 @@ struct SignedAddress
  */
 void
 GNUNET_HELLO_sign_address (const char *address,
+			   enum GNUNET_ATS_Network_Type nt,
 			   struct GNUNET_TIME_Absolute expiration,
 			   const struct GNUNET_CRYPTO_EddsaPrivateKey *private_key,
 			   void **result,
@@ -84,9 +86,10 @@ GNUNET_HELLO_sign_address (const char *address,
 				       sizeof (sig),
 				       &sig_str);
   *result_size = 1 + GNUNET_asprintf ((char **) result,
-				      "%s;%llu;%s",
+				      "%s;%llu;%u;%s",
 				      sig_str,
 				      (unsigned long long) expiration.abs_value_us,
+				      (unsigned int) nt,
 				      address);
   GNUNET_free (sig_str);  
 }
@@ -98,6 +101,7 @@ GNUNET_HELLO_sign_address (const char *address,
  * @param raw raw signed address
  * @param raw_size size of @a raw
  * @param public_key public key to use for signature verification
+ * @param nt[out] set to network type
  * @param expiration[out] how long is the address valid
  * @return NULL on error, otherwise the address
  */
@@ -105,12 +109,15 @@ char *
 GNUNET_HELLO_extract_address (const void *raw,
 			      size_t raw_size,
 			      const struct GNUNET_CRYPTO_EddsaPublicKey *public_key,
+			      enum GNUNET_ATS_Network_Type *nt,
 			      struct GNUNET_TIME_Absolute *expiration)
 {
   const char *raws = raw;
   unsigned long long raw_us;
+  unsigned int raw_nt;
   const char *sc;
   const char *sc2;
+  const char *sc3;
   const char *raw_addr;
   struct GNUNET_TIME_Absolute raw_expiration;
   struct SignedAddress sa;
@@ -133,9 +140,16 @@ GNUNET_HELLO_extract_address (const void *raw,
     GNUNET_break_op (0);
     return NULL;
   }
+  if (NULL == (sc3 = strchr (sc2 + 1,
+			     ';')))
+  {
+    GNUNET_break_op (0);
+    return NULL;
+  }
   if (1 != sscanf (sc + 1,
-		   "%llu;",
-		   &raw_us))
+		   "%llu;%u;",
+		   &raw_us,
+		   &raw_nt))
   {
     GNUNET_break_op (0);
     return NULL;
@@ -153,7 +167,7 @@ GNUNET_HELLO_extract_address (const void *raw,
     GNUNET_free_non_null (sig);
     return NULL;
   }
-  raw_addr = sc2 + 1;
+  raw_addr = sc3 + 1;
   
   sa.purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_TRANSPORT_ADDRESS);
   sa.purpose.size = htonl (sizeof (sa));
@@ -172,6 +186,8 @@ GNUNET_HELLO_extract_address (const void *raw,
     return NULL;
   }
   GNUNET_free (sig);
+  *expiration = raw_expiration;
+  *nt = (enum GNUNET_ATS_Network_Type) raw_nt;
   return GNUNET_strdup (raw_addr);
 }
 

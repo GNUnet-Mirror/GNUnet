@@ -86,8 +86,6 @@ struct GNUNET_TRANSPORT_CommunicatorHandle;
  * @param config_section section of the configuration to use for options
  * @param addr_prefix address prefix for addresses supported by this
  *        communicator, could be NULL for incoming-only communicators
- * @param mtu maximum message size supported by communicator, 0 if
- *            sending is not supported, SIZE_MAX for no MTU
  * @param mq_init function to call to initialize a message queue given
  *                the address of another peer, can be NULL if the
  *                communicator only supports receiving messages
@@ -98,7 +96,6 @@ struct GNUNET_TRANSPORT_CommunicatorHandle *
 GNUNET_TRANSPORT_communicator_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
                                        const char *config_section_name,
 				       const char *addr_prefix,
-                                       size_t mtu,
                                        GNUNET_TRANSPORT_CommunicatorMqInit mq_init,
                                        void *mq_init_cls);
 
@@ -162,6 +159,25 @@ struct GNUNET_TRANSPORT_QueueHandle;
 
 
 /**
+ * Possible states of a connection.
+ */
+enum GNUNET_TRANSPORT_ConnectionStatus {
+  /**
+   * Connection is down.
+   */
+  GNUNET_TRANSPORT_CS_DOWN = -1,
+  /**
+   * this is an outbound connection (transport initiated)
+   */
+  GNUNET_TRANSPORT_CS_OUTBOUND = 0,
+  /**
+   * this is an inbound connection (communicator initiated)
+   */
+  GNUNET_TRANSPORT_CS_INBOUND = 1
+};
+
+
+/**
  * Notify transport service that an MQ became available due to an
  * "inbound" connection or because the communicator discovered the
  * presence of another peer.
@@ -169,7 +185,10 @@ struct GNUNET_TRANSPORT_QueueHandle;
  * @param ch connection to transport service
  * @param peer peer with which we can now communicate
  * @param address address in human-readable format, 0-terminated, UTF-8
+ * @param mtu maximum message size supported by queue, 0 if
+ *            sending is not supported, SIZE_MAX for no MTU
  * @param nt which network type does the @a address belong to?
+ * @param cs what is the connection status of the queue?
  * @param mq message queue of the @a peer
  * @return API handle identifying the new MQ
  */
@@ -177,7 +196,9 @@ struct GNUNET_TRANSPORT_QueueHandle *
 GNUNET_TRANSPORT_communicator_mq_add (struct GNUNET_TRANSPORT_CommunicatorHandle *ch,
                                       const struct GNUNET_PeerIdentity *peer,
                                       const char *address,
+				      uint32_t mtu,
                                       enum GNUNET_ATS_Network_Type nt,
+				      enum GNUNET_TRANSPORT_ConnectionStatus cs,
                                       struct GNUNET_MQ_Handle *mq);
 
 
