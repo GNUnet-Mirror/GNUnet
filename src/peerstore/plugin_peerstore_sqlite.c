@@ -496,7 +496,7 @@ sql_prepare (sqlite3 *dbh,
  * as needed as well).
  *
  * @param plugin the plugin context (state for this module)
- * @return GNUNET_OK on success
+ * @return #GNUNET_OK on success
  */
 static int
 database_setup (struct Plugin *plugin)

@@ -21,8 +21,6 @@
  * @author Christian Grothoff
  *
  * TODO:
- * - make *our* collected addresses available somehow somewhere
- *   => Choices: in peerstore or revive/keep peerinfo?
  * - MTU information is missing for queues!
  * - start supporting monitor logic (add functions to signal monitors!)
  * - manage fragmentation/defragmentation, retransmission, track RTT, loss, etc.
@@ -33,7 +31,7 @@
 #include "gnunet_util_lib.h"
 #include "gnunet_statistics_service.h"
 #include "gnunet_transport_service.h"
-#include "gnunet_peerinfo_service.h"
+#include "gnunet_peerstore_service.h"
 #include "gnunet_ats_service.h"
 #include "gnunet-service-transport.h"
 #include "transport.h"
@@ -263,6 +261,16 @@ struct AddressListEntry
   const char *address;
 
   /**
+   * Current context for storing this address in the peerstore.
+   */
+  struct GNUNET_PEERSTORE_StoreContext *sc;
+
+  /**
+   * Task to periodically do @e st operation.
+   */
+  struct GNUNET_SCHEDULER_Task *st;
+
+  /**
    * What is a typical lifetime the communicator expects this
    * address to have? (Always from now.)
    */
@@ -425,6 +433,11 @@ struct GNUNET_CRYPTO_EddsaPrivateKey *GST_my_private_key;
  */
 static struct GNUNET_CONTAINER_MultiPeerMap *neighbours;
 
+/**
+ * Database for peer's HELLOs.
+ */
+static struct GNUNET_PEERSTORE_Handle *peerstore;
+
 
 /**
  * Lookup neighbour record for peer @a pid.
@@ -470,6 +483,78 @@ client_connect_cb (void *cls,
 
 
 /**
+ * Release memory used by @a neighbour.
+ *
+ * @param neighbour neighbour entry to free
+ */
+static void
+free_neighbour (struct Neighbour *neighbour)
+{
+  GNUNET_assert (NULL == neighbour->queue_head);
+  GNUNET_assert (GNUNET_YES ==
+		 GNUNET_CONTAINER_multipeermap_remove (neighbours,
+						       &neighbour->pid,
+						       neighbour));
+  GNUNET_free (neighbour);
+}
+
+
+/**
+ * Free @a queue.
+ *
+ * @param queue the queue to free
+ */
+static void
+free_queue (struct Queue *queue)
+{
+  struct Neighbour *neighbour = queue->neighbour;
+  struct TransportClient *tc = queue->tc;
+
+  GNUNET_CONTAINER_MDLL_remove (neighbour,
+				neighbour->queue_head,
+				neighbour->queue_tail,
+				queue);
+  GNUNET_CONTAINER_MDLL_remove (client,
+				tc->details.communicator.queue_head,
+				tc->details.communicator.queue_tail,
+				queue);
+  GNUNET_free (queue);
+  if (NULL == neighbour->queue_head)
+    {
+      // FIXME: notify cores/monitors!
+      free_neighbour (neighbour);
+    }
+}
+
+
+/**
+ * Free @a ale
+ * 
+ * @param ale address list entry to free
+ */
+static void
+free_address_list_entry (struct AddressListEntry *ale)
+{
+  struct TransportClient *tc = ale->tc;
+  
+  GNUNET_CONTAINER_DLL_remove (tc->details.communicator.addr_head,
+			       tc->details.communicator.addr_tail,
+			       ale);
+  if (NULL != ale->sc)
+  {
+    GNUNET_PEERSTORE_store_cancel (ale->sc);
+    ale->sc = NULL;
+  }
+  if (NULL != ale->st)
+  {
+    GNUNET_SCHEDULER_cancel (ale->st);
+    ale->st = NULL;
+  }
+  GNUNET_free (ale);
+}
+
+
+/**
  * Called whenever a client is disconnected.  Frees our
  * resources associated with that client.
  *
@@ -511,7 +596,16 @@ client_disconnect_cb (void *cls,
   case CT_MONITOR:
     break;
   case CT_COMMUNICATOR:
-    GNUNET_free (tc->details.communicator.address_prefix);
+    {
+      struct Queue *q;
+      struct AddressListEntry *ale;
+
+      while (NULL != (q = tc->details.communicator.queue_head))
+	free_queue (q);
+      while (NULL != (ale = tc->details.communicator.addr_head))
+	free_address_list_entry (ale);
+      GNUNET_free (tc->details.communicator.address_prefix);
+    }
     break;
   }
   GNUNET_free (tc);
@@ -789,6 +883,81 @@ check_add_address (void *cls,
 
 
 /**
+ * Ask peerstore to store our address.
+ *
+ * @param cls an `struct AddressListEntry *`
+ */
+static void
+store_pi (void *cls);
+
+
+/**
+ * Function called when peerstore is done storing our address.
+ */
+static void
+peerstore_store_cb (void *cls,
+		    int success)
+{
+  struct AddressListEntry *ale = cls;
+
+  ale->sc = NULL;
+  if (GNUNET_YES != success)
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		"Failed to store our own address `%s' in peerstore!\n",
+		ale->address);
+  /* refresh period is 1/4 of expiration time, that should be plenty 
+     without being excessive. */
+  ale->st = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_divide (ale->expiration,
+								       4ULL),
+					  &store_pi,
+					  ale);
+}
+
+
+/**
+ * Ask peerstore to store our address.
+ *
+ * @param cls an `struct AddressListEntry *`
+ */
+static void
+store_pi (void *cls)
+{
+  struct AddressListEntry *ale = cls;
+  void *addr;
+  size_t addr_len;
+  struct GNUNET_TIME_Absolute expiration;
+  
+  ale->st = NULL;
+  expiration = GNUNET_TIME_relative_to_absolute (ale->expiration);
+  GNUNET_HELLO_sign_address (ale->address,
+			     expiration,
+			     GST_my_private_key,
+			     &addr,
+			     &addr_len);  
+  ale->sc = GNUNET_PEERSTORE_store (peerstore,
+				    "transport",
+				    &GST_my_identity,
+				    "hello",
+				    addr,
+				    addr_len,
+				    expiration,
+				    GNUNET_PEERSTORE_STOREOPTION_MULTIPLE,
+				    &peerstore_store_cb,
+				    ale);
+  GNUNET_free (addr);
+  if (NULL == ale->sc)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		"Failed to store our address `%s' with peerstore\n",
+		ale->address);
+    ale->st = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
+					    &store_pi,
+					    ale);
+  }
+}
+
+
+/**
  * Address of our peer added.  Process the request.
  *
  * @param cls the client
@@ -815,7 +984,8 @@ handle_add_address (void *cls,
   GNUNET_CONTAINER_DLL_insert (tc->details.communicator.addr_head,
                                tc->details.communicator.addr_tail,
                                ale);
-  // FIXME: notify somebody?!
+  ale->st = GNUNET_SCHEDULER_add_now (&store_pi,
+				      ale);
   GNUNET_SERVICE_client_continue (tc->client);
 }
 
@@ -845,11 +1015,7 @@ handle_del_address (void *cls,
     if (dam->aid != ale->aid)
       continue;
     GNUNET_assert (ale->tc == tc);
-    GNUNET_CONTAINER_DLL_remove (tc->details.communicator.addr_head,
-                                 tc->details.communicator.addr_tail,
-                                 ale);
-    // FIXME: notify somebody?
-    GNUNET_free (ale);
+    free_address_list_entry (ale);
     GNUNET_SERVICE_client_continue (tc->client);
   }
   GNUNET_break (0);
@@ -997,23 +1163,6 @@ handle_add_queue_message (void *cls,
 
 
 /**
- * Release memory used by @a neighbour.
- *
- * @param neighbour neighbour entry to free
- */
-static void
-free_neighbour (struct Neighbour *neighbour)
-{
-  GNUNET_assert (NULL == neighbour->queue_head);
-  GNUNET_assert (GNUNET_YES ==
-		 GNUNET_CONTAINER_multipeermap_remove (neighbours,
-						       &neighbour->pid,
-						       neighbour));
-  GNUNET_free (neighbour);
-}
-
-
-/**
  * Queue to a peer went down.  Process the request.
  *
  * @param cls the client
@@ -1042,20 +1191,7 @@ handle_del_queue_message (void *cls,
 		       &neighbour->pid,
 		       sizeof (struct GNUNET_PeerIdentity))) )
       continue;
-    GNUNET_CONTAINER_MDLL_remove (neighbour,
-				  neighbour->queue_head,
-				  neighbour->queue_tail,
-				  queue);
-    GNUNET_CONTAINER_MDLL_remove (client,
-				  tc->details.communicator.queue_head,
-				  tc->details.communicator.queue_tail,
-				  queue);
-    GNUNET_free (queue);
-    if (NULL == neighbour->queue_head)
-    {
-      // FIXME: notify cores/monitors!
-      free_neighbour (neighbour);
-    }
+    free_queue (queue);
     GNUNET_SERVICE_client_continue (tc->client);
     return;
   }
@@ -1094,7 +1230,7 @@ handle_send_message_ack (void *cls,
  */
 static void
 handle_monitor_start (void *cls,
-		     const struct GNUNET_TRANSPORT_MonitorStart *start)
+		      const struct GNUNET_TRANSPORT_MonitorStart *start)
 {
   struct TransportClient *tc = cls;
 
@@ -1147,20 +1283,30 @@ do_shutdown (void *cls)
 {
   (void) cls;
 
+  GNUNET_CONTAINER_multipeermap_iterate (neighbours,
+					 &free_neighbour_cb,
+					 NULL);
+  /* FIXME: if this assertion fails (likely!), make sure we
+     clean up clients *before* doing the rest of the
+     shutdown! (i.e. by scheduling rest asynchronously!) */
+  GNUNET_assert (NULL == clients_head);
+  if (NULL != peerstore)
+  {
+    GNUNET_PEERSTORE_disconnect (peerstore,
+				 GNUNET_NO);
+    peerstore = NULL;
+  }
   if (NULL != GST_stats)
   {
     GNUNET_STATISTICS_destroy (GST_stats,
                                GNUNET_NO);
     GST_stats = NULL;
-  }
+  }  
   if (NULL != GST_my_private_key)
   {
     GNUNET_free (GST_my_private_key);
     GST_my_private_key = NULL;
   }
-  GNUNET_CONTAINER_multipeermap_iterate (neighbours,
-					 &free_neighbour_cb,
-					 NULL);
   GNUNET_CONTAINER_multipeermap_destroy (neighbours);
 }
 
@@ -1200,6 +1346,13 @@ run (void *cls,
                                         GST_cfg);
   GNUNET_SCHEDULER_add_shutdown (&do_shutdown,
 				 NULL);
+  peerstore = GNUNET_PEERSTORE_connect (GST_cfg);
+  if (NULL == peerstore)
+    {
+      GNUNET_break (0);
+      GNUNET_SCHEDULER_shutdown ();
+      return;
+    }
   /* start subsystems */
 }
 

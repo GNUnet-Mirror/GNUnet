@@ -188,6 +188,12 @@ extern "C"
  */
 #define GNUNET_SIGNATURE_PURPOSE_CREDENTIAL 28
 
+/**
+ * Signature by a peer affirming that this is one of its
+ * addresses (for the given time period).
+ */
+#define GNUNET_SIGNATURE_PURPOSE_TRANSPORT_ADDRESS 29
+
 #if 0                           /* keep Emacsens' auto-indent happy */
 {
 #endif

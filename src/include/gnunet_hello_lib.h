@@ -473,6 +473,43 @@ GNUNET_HELLO_parse_uri (const char *uri,
                         GNUNET_HELLO_TransportPluginsFind plugins_find);
 
 
+
+/* NG API */
+
+/**
+ * Build address record by signing raw information with private key.
+ *
+ * @param address text address to sign
+ * @param expiration how long is @a address valid
+ * @param private_key signing key to use
+ * @param result[out] where to write address record (allocated)
+ * @param result_size[out] set to size of @a result
+ */
+void
+GNUNET_HELLO_sign_address (const char *address,
+			   struct GNUNET_TIME_Absolute expiration,
+			   const struct GNUNET_CRYPTO_EddsaPrivateKey *private_key,
+			   void **result,
+			   size_t *result_size);
+
+
+/**
+ * Check signature and extract address record.
+ *
+ * @param raw raw signed address
+ * @param raw_size size of @a raw
+ * @param public_key public key to use for signature verification
+ * @param expiration[out] how long is the address valid
+ * @return NULL on error, otherwise the address
+ */
+char *
+GNUNET_HELLO_extract_address (const void *raw,
+			      size_t raw_size,
+			      const struct GNUNET_CRYPTO_EddsaPublicKey *public_key,
+			      struct GNUNET_TIME_Absolute *expiration);
+
+
+
 #if 0                           /* keep Emacsens' auto-indent happy */
 {
 #endif
