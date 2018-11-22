@@ -155,6 +155,11 @@ struct Queue
   uint32_t mtu;
 
   /**
+   * Distance to the target of this queue.
+   */
+  uint32_t distance;
+
+  /**
    * Network type offered by this queue.
    */
   enum GNUNET_ATS_Network_Type nt;
@@ -422,6 +427,11 @@ struct TransportClient
        * Tail of list of the addresses of this peer offered by this communicator.
        */
       struct AddressListEntry *addr_tail;
+
+      /**
+       * Characteristics of this communicator.
+       */
+      enum GNUNET_TRANSPORT_CommunicatorCharacteristics cc;
 
     } communicator;
 
@@ -1106,7 +1116,10 @@ handle_communicator_available (void *cls,
   size = ntohs (cam->header.size) - sizeof (*cam);
   if (0 == size)
     return; /* receive-only communicator */
-  tc->details.communicator.address_prefix = GNUNET_strdup ((const char *) &cam[1]);
+  tc->details.communicator.address_prefix
+    = GNUNET_strdup ((const char *) &cam[1]);
+  tc->details.communicator.cc
+    = (enum GNUNET_TRANSPORT_CommunicatorCharacteristics) ntohl (cam->cc);
   GNUNET_SERVICE_client_continue (tc->client);
 }
 
@@ -1413,6 +1426,7 @@ handle_add_queue_message (void *cls,
   queue->rtt = GNUNET_TIME_UNIT_FOREVER_REL;
   queue->qid = aqm->qid;
   queue->mtu = ntohl (aqm->mtu);
+  queue->distance = ntohl (aqm->distance);
   queue->nt = (enum GNUNET_ATS_Network_Type) ntohl (aqm->nt);
   queue->cs = (enum GNUNET_TRANSPORT_ConnectionStatus) ntohl (aqm->cs);
   queue->neighbour = neighbour;

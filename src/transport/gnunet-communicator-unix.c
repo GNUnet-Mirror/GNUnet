@@ -11,7 +11,7 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
@@ -31,8 +31,8 @@
 #include "gnunet_transport_communication_service.h"
 
 /**
- * How many messages do we keep at most in the queue to the 
- * transport service before we start to drop (default, 
+ * How many messages do we keep at most in the queue to the
+ * transport service before we start to drop (default,
  * can be changed via the configuration file).
  * Should be _below_ the level of the communicator API, as
  * otherwise we may read messages just to have them dropped
@@ -113,17 +113,17 @@ struct Queue
    * if this queue is in the #queue_head DLL.
    */
   const struct GNUNET_MessageHeader *msg;
-  
+
   /**
    * Message queue we are providing for the #ch.
    */
   struct GNUNET_MQ_Handle *mq;
-  
+
   /**
    * handle for this queue with the #ch.
-   */ 
+   */
   struct GNUNET_TRANSPORT_QueueHandle *qh;
-  
+
   /**
    * Number of bytes we currently have in our write queue.
    */
@@ -211,14 +211,14 @@ queue_destroy (struct Queue *queue)
   struct GNUNET_MQ_Handle *mq;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Disconnecting queue for peer `%s'\n",       
+	      "Disconnecting queue for peer `%s'\n",
 	      GNUNET_i2s (&queue->target));
   if (0 != queue->bytes_in_queue)
   {
     GNUNET_CONTAINER_DLL_remove (queue_head,
 				 queue_tail,
 				 queue);
-    queue->bytes_in_queue = 0; 
+    queue->bytes_in_queue = 0;
   }
   if (NULL != (mq = queue->mq))
   {
@@ -439,7 +439,7 @@ select_write_cb (void *cls)
                                        queue->address_len);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "UNIX transmitted message to %s (%d/%u: %s)\n",
-	      GNUNET_i2s (&queue->target),      
+	      GNUNET_i2s (&queue->target),
 	      (int) sent,
 	      (unsigned int) msg_size,
 	      (sent < 0) ? STRERROR (errno) : "ok");
@@ -463,7 +463,7 @@ select_write_cb (void *cls)
     /* We should retry later... */
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_DEBUG,
 			 "send");
-    return; 
+    return;
   case EMSGSIZE:
     {
       socklen_t size = 0;
@@ -533,7 +533,7 @@ mq_send (struct GNUNET_MQ_Handle *mq,
 
   GNUNET_assert (mq == queue->mq);
   GNUNET_assert (NULL == queue->msg);
-  queue->msg = msg; 
+  queue->msg = msg;
   GNUNET_CONTAINER_DLL_insert (queue_head,
 			       queue_tail,
 			       queue);
@@ -664,7 +664,7 @@ setup_queue (const struct GNUNET_PeerIdentity *target,
 				     queue);
   {
     char *foreign_addr;
-    
+
     if ('\0' == un->sun_path[0])
       GNUNET_asprintf (&foreign_addr,
 		       "%s-@%s",
@@ -679,8 +679,9 @@ setup_queue (const struct GNUNET_PeerIdentity *target,
       = GNUNET_TRANSPORT_communicator_mq_add (ch,
 					      &queue->target,
 					      foreign_addr,
-					      UNIX_MTU, 
+					      UNIX_MTU,
 					      GNUNET_ATS_NET_LOOPBACK,
+                                              0 /* distance */,
 					      cs,
 					      queue->mq);
     GNUNET_free (foreign_addr);
@@ -798,12 +799,12 @@ select_read_cb (void *cls)
 		_("Maximum number of UNIX connections exceeded, dropping incoming message\n"));
     return;
   }
- 
+
   {
     uint16_t offset = 0;
     uint16_t tsize = msize - sizeof (struct UNIXMessage);
     const char *msgbuf = (const char *) &msg[1];
-    
+
     while (offset + sizeof (struct GNUNET_MessageHeader) <= tsize)
     {
       const struct GNUNET_MessageHeader *currhdr;
@@ -870,7 +871,7 @@ mq_init (void *cls,
   const char *path;
   struct sockaddr_un *un;
   socklen_t un_len;
-  
+
   if (0 != strncmp (address,
 		    COMMUNICATOR_ADDRESS_PREFIX "-",
 		    strlen (COMMUNICATOR_ADDRESS_PREFIX "-")))
@@ -902,7 +903,7 @@ mq_init (void *cls,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 		"Failed to setup queue to %s at `%s'\n",
-		GNUNET_i2s (peer),		
+		GNUNET_i2s (peer),
 		path);
     return GNUNET_NO;
   }
@@ -981,7 +982,7 @@ do_shutdown (void *cls)
 
 /**
  * Setup communicator and launch network interactions.
- * 
+ *
  * @param cls NULL (always)
  * @param args remaining command-line arguments
  * @param cfgfile name of the configuration file used (for saving, can be NULL!)
@@ -998,7 +999,7 @@ run (void *cls,
   socklen_t un_len;
   char *my_addr;
   (void) cls;
-  
+
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_filename (cfg,
 					       COMMUNICATOR_CONFIG_SECTION,
@@ -1016,7 +1017,7 @@ run (void *cls,
 					     "MAX_QUEUE_LENGTH",
 					     &max_queue_length))
     max_queue_length = DEFAULT_MAX_QUEUE_LENGTH;
-    
+
   un = unix_address_to_sockaddr (unix_socket_path,
                                  &un_len);
   if (NULL == un)
@@ -1082,6 +1083,7 @@ run (void *cls,
   ch = GNUNET_TRANSPORT_communicator_connect (cfg,
 					      COMMUNICATOR_CONFIG_SECTION,
 					      COMMUNICATOR_ADDRESS_PREFIX,
+                                              GNUNET_TRANSPORT_CC_RELIABLE,
 					      &mq_init,
 					      NULL);
   if (NULL == ch)

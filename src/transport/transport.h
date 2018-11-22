@@ -661,6 +661,11 @@ struct GNUNET_TRANSPORT_CommunicatorAvailableMessage
    */
   struct GNUNET_MessageHeader header;
 
+  /**
+   * NBO encoding of `enum GNUNET_TRANSPORT_CommunicatorCharacteristics`
+   */
+  uint32_t cc;
+
   /* Followed by the address prefix of the communicator */
 };
 
@@ -809,6 +814,11 @@ struct GNUNET_TRANSPORT_AddQueueMessage
    * An `enum GNUNET_TRANSPORT_ConnectionStatus` in NBO.
    */
   uint32_t cs;
+
+  /**
+   * Hops to the target (DV-only), in NBO.
+   */
+  uint32_t distance;
 
   /* followed by UTF-8 encoded, 0-terminated human-readable address */
 };

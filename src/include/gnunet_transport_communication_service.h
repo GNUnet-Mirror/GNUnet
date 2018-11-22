@@ -11,7 +11,7 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
@@ -80,12 +80,36 @@ struct GNUNET_TRANSPORT_CommunicatorHandle;
 
 
 /**
+ * What characteristics does this communicator have?
+ */
+enum GNUNET_TRANSPORT_CommunicatorCharacteristics {
+
+  /**
+   * Characteristics are unknown (i.e. DV).
+   */
+  GNUNET_TRANSPORT_CC_UNKNOWN = 0,
+
+  /**
+   * Transmission is reliabile (with ACKs), i.e. TCP/HTTP/HTTPS.
+   */
+  GNUNET_TRANSPORT_CC_RELIABLE = 1,
+
+  /**
+   * Transmission is unreliable (i.e. UDP)
+   */
+  GNUNET_TRANSPORT_CC_UNRELIABILE = 2
+
+};
+
+
+/**
  * Connect to the transport service.
  *
  * @param cfg configuration to use
  * @param config_section section of the configuration to use for options
  * @param addr_prefix address prefix for addresses supported by this
  *        communicator, could be NULL for incoming-only communicators
+ * @param cc what characteristics does the communicator have?
  * @param mq_init function to call to initialize a message queue given
  *                the address of another peer, can be NULL if the
  *                communicator only supports receiving messages
@@ -96,6 +120,7 @@ struct GNUNET_TRANSPORT_CommunicatorHandle *
 GNUNET_TRANSPORT_communicator_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
                                        const char *config_section_name,
 				       const char *addr_prefix,
+                                       enum GNUNET_TRANSPORT_CommunicatorCharacteristics cc,
                                        GNUNET_TRANSPORT_CommunicatorMqInit mq_init,
                                        void *mq_init_cls);
 
@@ -162,14 +187,17 @@ struct GNUNET_TRANSPORT_QueueHandle;
  * Possible states of a connection.
  */
 enum GNUNET_TRANSPORT_ConnectionStatus {
+
   /**
    * Connection is down.
    */
   GNUNET_TRANSPORT_CS_DOWN = -1,
+
   /**
    * this is an outbound connection (transport initiated)
    */
   GNUNET_TRANSPORT_CS_OUTBOUND = 0,
+
   /**
    * this is an inbound connection (communicator initiated)
    */
@@ -188,6 +216,7 @@ enum GNUNET_TRANSPORT_ConnectionStatus {
  * @param mtu maximum message size supported by queue, 0 if
  *            sending is not supported, SIZE_MAX for no MTU
  * @param nt which network type does the @a address belong to?
+ * @param distance how many hops does this queue use (DV-only)?
  * @param cs what is the connection status of the queue?
  * @param mq message queue of the @a peer
  * @return API handle identifying the new MQ
@@ -198,6 +227,7 @@ GNUNET_TRANSPORT_communicator_mq_add (struct GNUNET_TRANSPORT_CommunicatorHandle
                                       const char *address,
 				      uint32_t mtu,
                                       enum GNUNET_ATS_Network_Type nt,
+                                      uint32_t distance,
 				      enum GNUNET_TRANSPORT_ConnectionStatus cs,
                                       struct GNUNET_MQ_Handle *mq);
 

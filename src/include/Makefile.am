@@ -29,6 +29,8 @@ gnunetinclude_HEADERS = \
   gnunet_applications.h \
   gnunet_arm_service.h \
   gnunet_ats_service.h \
+  gnunet_ats_application_service.h \
+  gnunet_ats_transport_service.h \
   gnunet_ats_plugin.h \
   gnunet_bandwidth_lib.h \
   gnunet_bio_lib.h \

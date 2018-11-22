@@ -11,7 +11,7 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
@@ -29,8 +29,8 @@
 
 
 /**
- * How many messages do we keep at most in the queue to the 
- * transport service before we start to drop (default, 
+ * How many messages do we keep at most in the queue to the
+ * transport service before we start to drop (default,
  * can be changed via the configuration file).
  */
 #define DEFAULT_MAX_QUEUE_LENGTH 16
@@ -60,7 +60,7 @@ struct FlowControl
    * Closure for @e cb
    */
   void *cb_cls;
-  
+
   /**
    * Which peer is this about?
    */
@@ -93,7 +93,7 @@ struct AckPending
    * Communicator this entry belongs to.
    */
   struct GNUNET_TRANSPORT_CommunicatorHandle *ch;
-  
+
   /**
    * Which peer is this about?
    */
@@ -145,12 +145,12 @@ struct GNUNET_TRANSPORT_CommunicatorHandle
    * DLL of queues we offer.
    */
   struct GNUNET_TRANSPORT_QueueHandle *queue_head;
-  
+
   /**
    * DLL of queues we offer.
    */
   struct GNUNET_TRANSPORT_QueueHandle *queue_tail;
-    
+
   /**
    * Our configuration.
    */
@@ -181,12 +181,12 @@ struct GNUNET_TRANSPORT_CommunicatorHandle
    * Queue to talk to the transport service.
    */
   struct GNUNET_MQ_Handle *mq;
-  
+
   /**
    * Maximum permissable queue length.
    */
   unsigned long long max_queue_length;
-  
+
   /**
    * Flow-control identifier generator.
    */
@@ -202,7 +202,12 @@ struct GNUNET_TRANSPORT_CommunicatorHandle
    * Queue identifier generator.
    */
   uint32_t queue_gen;
-  
+
+  /**
+   * Characteristics of the communicator.
+   */
+  enum GNUNET_TRANSPORT_CommunicatorCharacteristics cc;
+
 };
 
 
@@ -222,21 +227,26 @@ struct GNUNET_TRANSPORT_QueueHandle
    * Kept in a DLL.
    */
   struct GNUNET_TRANSPORT_QueueHandle *prev;
-  
+
   /**
    * Handle this queue belongs to.
    */
   struct GNUNET_TRANSPORT_CommunicatorHandle *ch;
 
   /**
+   * Address used by the communication queue.
+   */
+  char *address;
+
+  /**
+   * The queue itself.
+   */
+  struct GNUNET_MQ_Handle *mq;
+
+  /**
    * Which peer we can communciate with.
    */
   struct GNUNET_PeerIdentity peer;
-
-  /**
-   * Address used by the communication queue.
-   */ 
-  char *address;
 
   /**
    * Network type of the communciation queue.
@@ -247,11 +257,11 @@ struct GNUNET_TRANSPORT_QueueHandle
    * Communication status of the queue.
    */
   enum GNUNET_TRANSPORT_ConnectionStatus cs;
-  
+
   /**
-   * The queue itself.
-   */ 
-  struct GNUNET_MQ_Handle *mq;
+   * How many hops is the target away (DV-only)
+   */
+  uint32_t distance;
 
   /**
    * ID for this queue when talking to the transport service.
@@ -262,7 +272,7 @@ struct GNUNET_TRANSPORT_QueueHandle
    * Maximum transmission unit for the queue.
    */
   uint32_t mtu;
-  
+
 };
 
 
@@ -282,7 +292,7 @@ struct GNUNET_TRANSPORT_AddressIdentifier
    * Kept in a DLL.
    */
   struct GNUNET_TRANSPORT_AddressIdentifier *prev;
-  
+
   /**
    * Transport handle where the address was added.
    */
@@ -298,7 +308,7 @@ struct GNUNET_TRANSPORT_AddressIdentifier
    * address.)
    */
   struct GNUNET_TIME_Relative expiration;
-  
+
   /**
    * Internal UUID for the address used in communication with the
    * transport service.
@@ -309,7 +319,7 @@ struct GNUNET_TRANSPORT_AddressIdentifier
    * Network type for the address.
    */
   enum GNUNET_ATS_Network_Type nt;
-  
+
 };
 
 
@@ -333,7 +343,7 @@ send_add_address (struct GNUNET_TRANSPORT_AddressIdentifier *ai)
 {
   struct GNUNET_MQ_Envelope *env;
   struct GNUNET_TRANSPORT_AddAddressMessage *aam;
-  
+
   if (NULL == ai->ch->mq)
     return;
   env = GNUNET_MQ_msg_extra (aam,
@@ -360,10 +370,10 @@ send_del_address (struct GNUNET_TRANSPORT_AddressIdentifier *ai)
 {
   struct GNUNET_MQ_Envelope *env;
   struct GNUNET_TRANSPORT_DelAddressMessage *dam;
-  
+
   if (NULL == ai->ch->mq)
     return;
-  env = GNUNET_MQ_msg (dam,			     
+  env = GNUNET_MQ_msg (dam,
 		       GNUNET_MESSAGE_TYPE_TRANSPORT_DEL_ADDRESS);
   dam->aid = htonl (ai->aid);
   GNUNET_MQ_send (ai->ch->mq,
@@ -382,7 +392,7 @@ send_add_queue (struct GNUNET_TRANSPORT_QueueHandle *qh)
 {
   struct GNUNET_MQ_Envelope *env;
   struct GNUNET_TRANSPORT_AddQueueMessage *aqm;
-  
+
   if (NULL == qh->ch->mq)
     return;
   env = GNUNET_MQ_msg_extra (aqm,
@@ -393,6 +403,7 @@ send_add_queue (struct GNUNET_TRANSPORT_QueueHandle *qh)
   aqm->nt = htonl ((uint32_t) qh->nt);
   aqm->mtu = htonl (qh->mtu);
   aqm->cs = htonl ((uint32_t) qh->cs);
+  aqm->distance = htonl (qh->distance);
   memcpy (&aqm[1],
 	  qh->address,
 	  strlen (qh->address) + 1);
@@ -412,10 +423,10 @@ send_del_queue (struct GNUNET_TRANSPORT_QueueHandle *qh)
 {
   struct GNUNET_MQ_Envelope *env;
   struct GNUNET_TRANSPORT_DelQueueMessage *dqm;
-  
+
   if (NULL == qh->ch->mq)
     return;
-  env = GNUNET_MQ_msg (dqm,			     
+  env = GNUNET_MQ_msg (dqm,
 		       GNUNET_MESSAGE_TYPE_TRANSPORT_QUEUE_TEARDOWN);
   dqm->qid = htonl (qh->queue_id);
   dqm->receiver = qh->peer;
@@ -437,7 +448,7 @@ disconnect (struct GNUNET_TRANSPORT_CommunicatorHandle *ch)
 {
   struct FlowControl *fcn;
   struct AckPending *apn;
-  
+
   for (struct FlowControl *fc = ch->fc_head;
        NULL != fc;
        fc = fcn)
@@ -497,7 +508,7 @@ handle_incoming_ack (void *cls,
 		     const struct GNUNET_TRANSPORT_IncomingMessageAck *incoming_ack)
 {
   struct GNUNET_TRANSPORT_CommunicatorHandle *ch = cls;
-  
+
   for (struct FlowControl *fc = ch->fc_head;
        NULL != fc;
        fc = fc->next)
@@ -563,7 +574,7 @@ handle_create_queue (void *cls,
   const char *addr = (const char *) &cq[1];
   struct GNUNET_TRANSPORT_CreateQueueResponse *cqr;
   struct GNUNET_MQ_Envelope *env;
-  
+
   if (GNUNET_OK !=
       ch->mq_init (ch->mq_init_cls,
 		   &cq->receiver,
@@ -573,12 +584,12 @@ handle_create_queue (void *cls,
 		"Address `%s' invalid for this communicator\n",
 		addr);
     env = GNUNET_MQ_msg (cqr,
-			 GNUNET_MESSAGE_TYPE_TRANSPORT_QUEUE_CREATE_FAIL);      
+			 GNUNET_MESSAGE_TYPE_TRANSPORT_QUEUE_CREATE_FAIL);
   }
   else
   {
     env = GNUNET_MQ_msg (cqr,
-			 GNUNET_MESSAGE_TYPE_TRANSPORT_QUEUE_CREATE_OK);      
+			 GNUNET_MESSAGE_TYPE_TRANSPORT_QUEUE_CREATE_OK);
   }
   cqr->request_id = cq->request_id;
   GNUNET_MQ_send (ch->mq,
@@ -678,12 +689,12 @@ handle_send_msg (void *cls,
   struct AckPending *ap;
   struct GNUNET_TRANSPORT_QueueHandle *qh;
 
-  for (qh = ch->queue_head;NULL != qh; qh = qh->next)  
+  for (qh = ch->queue_head;NULL != qh; qh = qh->next)
     if ( (qh->queue_id == smt->qid) &&
 	 (0 == memcmp (&qh->peer,
 		       &smt->receiver,
 		       sizeof (struct GNUNET_PeerIdentity))) )
-      break;  
+      break;
   if (NULL == qh)
   {
     /* queue is already gone, tell transport this one failed */
@@ -737,7 +748,7 @@ reconnect (struct GNUNET_TRANSPORT_CommunicatorHandle *ch)
   };
   struct GNUNET_TRANSPORT_CommunicatorAvailableMessage *cam;
   struct GNUNET_MQ_Envelope *env;
-  
+
   ch->mq = GNUNET_CLIENT_connect (ch->cfg,
 				  "transport",
 				  handlers,
@@ -745,9 +756,10 @@ reconnect (struct GNUNET_TRANSPORT_CommunicatorHandle *ch)
 				  ch);
   if (NULL == ch->mq)
     return;
-  env = GNUNET_MQ_msg_extra (cam,			     
+  env = GNUNET_MQ_msg_extra (cam,
 			     strlen (ch->addr_prefix) + 1,
 			     GNUNET_MESSAGE_TYPE_TRANSPORT_NEW_COMMUNICATOR);
+  cam->cc = htonl ((uint32_t) ch->cc);
   memcpy (&cam[1],
 	  ch->addr_prefix,
 	  strlen (ch->addr_prefix) + 1);
@@ -771,6 +783,7 @@ reconnect (struct GNUNET_TRANSPORT_CommunicatorHandle *ch)
  * @param config_section section of the configuration to use for options
  * @param addr_prefix address prefix for addresses supported by this
  *        communicator, could be NULL for incoming-only communicators
+ * @param cc what characteristics does the communicator have?
  * @param mtu maximum message size supported by communicator, 0 if
  *            sending is not supported, SIZE_MAX for no MTU
  * @param mq_init function to call to initialize a message queue given
@@ -783,17 +796,19 @@ struct GNUNET_TRANSPORT_CommunicatorHandle *
 GNUNET_TRANSPORT_communicator_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
                                        const char *config_section,
 				       const char *addr_prefix,
+                                       enum GNUNET_TRANSPORT_CommunicatorCharacteristics cc,
                                        GNUNET_TRANSPORT_CommunicatorMqInit mq_init,
                                        void *mq_init_cls)
 {
   struct GNUNET_TRANSPORT_CommunicatorHandle *ch;
-  
+
   ch = GNUNET_new (struct GNUNET_TRANSPORT_CommunicatorHandle);
   ch->cfg = cfg;
   ch->config_section = config_section;
   ch->addr_prefix = addr_prefix;
   ch->mq_init = mq_init;
   ch->mq_init_cls = mq_init_cls;
+  ch->cc = cc;
   reconnect (ch);
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_number (cfg,
@@ -858,7 +873,7 @@ GNUNET_TRANSPORT_communicator_receive (struct GNUNET_TRANSPORT_CommunicatorHandl
   struct GNUNET_MQ_Envelope *env;
   struct GNUNET_TRANSPORT_IncomingMessage *im;
   uint16_t msize;
-  
+
   if (NULL == ch->mq)
     return GNUNET_SYSERR;
   if ( (NULL == cb) &&
@@ -869,7 +884,7 @@ GNUNET_TRANSPORT_communicator_receive (struct GNUNET_TRANSPORT_CommunicatorHandl
 		ch->max_queue_length);
     return GNUNET_NO;
   }
-  
+
   msize = ntohs (msg->size);
   env = GNUNET_MQ_msg_extra (im,
 			     msize,
@@ -918,6 +933,8 @@ GNUNET_TRANSPORT_communicator_receive (struct GNUNET_TRANSPORT_CommunicatorHandl
  * @param mtu maximum message size supported by queue, 0 if
  *            sending is not supported, SIZE_MAX for no MTU
  * @param nt which network type does the @a address belong to?
+ * @param cc what characteristics does the communicator have?
+ * @param distance how many hops does this queue use (DV-only)?
  * @param cs what is the connection status of the queue?
  * @param mq message queue of the @a peer
  * @return API handle identifying the new MQ
@@ -928,6 +945,7 @@ GNUNET_TRANSPORT_communicator_mq_add (struct GNUNET_TRANSPORT_CommunicatorHandle
                                       const char *address,
 				      uint32_t mtu,
                                       enum GNUNET_ATS_Network_Type nt,
+                                      uint32_t distance,
 				      enum GNUNET_TRANSPORT_ConnectionStatus cs,
                                       struct GNUNET_MQ_Handle *mq)
 {
@@ -939,6 +957,7 @@ GNUNET_TRANSPORT_communicator_mq_add (struct GNUNET_TRANSPORT_CommunicatorHandle
   qh->address = GNUNET_strdup (address);
   qh->nt = nt;
   qh->mtu = mtu;
+  qh->distance = distance;
   qh->cs = cs;
   qh->mq = mq;
   qh->queue_id = ch->queue_gen++;
@@ -960,7 +979,7 @@ void
 GNUNET_TRANSPORT_communicator_mq_del (struct GNUNET_TRANSPORT_QueueHandle *qh)
 {
   struct GNUNET_TRANSPORT_CommunicatorHandle *ch = qh->ch;
-  
+
   send_del_queue (qh);
   GNUNET_CONTAINER_DLL_remove (ch->queue_head,
 			       ch->queue_tail,
