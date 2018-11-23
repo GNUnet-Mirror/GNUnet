@@ -98,6 +98,8 @@ SUBDIRS = \
   nat \
   nat-auto \
   fragmentation \
+  peerstore \
+  transport \
   ats-tool \
   peerinfo-tool \
   core \
@@ -112,8 +114,6 @@ SUBDIRS = \
   identity \
   namecache \
   namestore \
-  peerstore \
-  transport \
   cadet \
   set \
   consensus \
