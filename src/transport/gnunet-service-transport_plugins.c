@@ -104,7 +104,7 @@ plugin_env_update_distance (void *cls,
  * @param addrlen length of the @a addr
  * @return type of the network @a addr belongs to
  */
-static enum GNUNET_ATS_Network_Type
+static enum GNUNET_NetworkType
 plugin_env_address_to_type (void *cls,
                             const struct sockaddr *addr,
                             size_t addrlen)
@@ -112,9 +112,9 @@ plugin_env_address_to_type (void *cls,
   if (NULL == GST_is)
   {
     GNUNET_break(0);
-    return GNUNET_ATS_NET_UNSPECIFIED;
+    return GNUNET_NT_UNSPECIFIED;
   }
-  return GNUNET_ATS_scanner_address_get_type (GST_is,
+  return GNUNET_NT_scanner_get_type (GST_is,
                                               addr,
                                               addrlen);
 }

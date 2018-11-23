@@ -442,7 +442,7 @@ GST_ats_add_inbound_address (const struct GNUNET_HELLO_Address *address,
     GNUNET_break(0);
     return;
   }
-  GNUNET_break (GNUNET_ATS_NET_UNSPECIFIED != prop->scope);
+  GNUNET_break (GNUNET_NT_UNSPECIFIED != prop->scope);
   GNUNET_assert (GNUNET_YES ==
                  GNUNET_HELLO_address_check_option (address,
                                                     GNUNET_HELLO_ADDRESS_INFO_INBOUND));
@@ -461,7 +461,7 @@ GST_ats_add_inbound_address (const struct GNUNET_HELLO_Address *address,
        GNUNET_i2s (&address->peer),
        GST_plugins_a2s (address),
        session,
-       GNUNET_ATS_print_network_type (prop->scope));
+       GNUNET_NT_to_string (prop->scope));
   ar = GNUNET_ATS_address_add (GST_ats,
                                address,
                                session,
@@ -510,7 +510,7 @@ GST_ats_add_address (const struct GNUNET_HELLO_Address *address,
                                                     GNUNET_HELLO_ADDRESS_INFO_INBOUND));
   ai = find_ai_no_session (address);
   GNUNET_assert (NULL == ai);
-  GNUNET_break (GNUNET_ATS_NET_UNSPECIFIED != prop->scope);
+  GNUNET_break (GNUNET_NT_UNSPECIFIED != prop->scope);
 
   /* address seems sane, let's tell ATS */
   LOG (GNUNET_ERROR_TYPE_INFO,

@@ -474,11 +474,7 @@ GNUNET_HELLO_parse_uri (const char *uri,
 
 
 /* NG API */
-/**
- * Defined in gnunet_ats_service.h, but here we do not care about
- * the details so are just giving the declaration.
- */
-enum GNUNET_ATS_Network_Type;
+#include "gnunet_nt_lib.h"
 
 
 /**
@@ -493,7 +489,7 @@ enum GNUNET_ATS_Network_Type;
  */
 void
 GNUNET_HELLO_sign_address (const char *address,
-			   enum GNUNET_ATS_Network_Type nt,
+			   enum GNUNET_NetworkType nt,
 			   struct GNUNET_TIME_Absolute expiration,
 			   const struct GNUNET_CRYPTO_EddsaPrivateKey *private_key,
 			   void **result,
@@ -514,7 +510,7 @@ char *
 GNUNET_HELLO_extract_address (const void *raw,
 			      size_t raw_size,
 			      const struct GNUNET_CRYPTO_EddsaPublicKey *public_key,
-			      enum GNUNET_ATS_Network_Type *nt,
+			      enum GNUNET_NetworkType *nt,
 			      struct GNUNET_TIME_Absolute *expiration);
 
 

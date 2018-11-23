@@ -1111,11 +1111,11 @@ perf_run_iteration (void)
       /* Add address */
 
       /* Random network selection */
-      //net = 1 + GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_WEAK, GNUNET_ATS_NetworkTypeCount - 1);
+      //net = 1 + GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_WEAK, GNUNET_NT_COUNT - 1);
       /* Random equally distributed network selection */
-      net = 1 + (ca %  (GNUNET_ATS_NetworkTypeCount - 1));
+      net = 1 + (ca %  (GNUNET_NT_COUNT - 1));
       /* fprintf (stderr, "Network: %u `%s'\n",
-       * mod_net , GNUNET_ATS_print_network_type(mod_net)); */
+       * mod_net , GNUNET_NT_to_string(mod_net)); */
 
       cur_addr->atsi = GNUNET_new (struct GNUNET_ATS_Information);
       cur_addr->atsi_count = 1;
@@ -1127,7 +1127,7 @@ perf_run_iteration (void)
       perf_address_initial_update (NULL, ph.addresses, cur_addr);
       GNUNET_log(GNUNET_ERROR_TYPE_INFO,
           "Adding address for peer %u address %u in network %s\n", cp, ca,
-          GNUNET_ATS_print_network_type(net));
+          GNUNET_NT_to_string(net));
     }
     /* Notify solver about request */
     ph.sf->s_get (ph.sf->cls, &ph.peers[cp].id);
@@ -1210,8 +1210,8 @@ run (void *cls, char * const *args, const char *cfgfile,
   char *solver;
   char *plugin;
   struct GNUNET_CONFIGURATION_Handle *solver_cfg;
-  unsigned long long quotas_in[GNUNET_ATS_NetworkTypeCount];
-  unsigned long long quotas_out[GNUNET_ATS_NetworkTypeCount];
+  unsigned long long quotas_in[GNUNET_NT_COUNT];
+  unsigned long long quotas_out[GNUNET_NT_COUNT];
   int c;
   int c2;
 
@@ -1286,8 +1286,8 @@ run (void *cls, char * const *args, const char *cfgfile,
     end_now (1);
     return;
   }
-  if (GNUNET_ATS_NetworkTypeCount != load_quotas (solver_cfg,
-      quotas_out, quotas_in, GNUNET_ATS_NetworkTypeCount))
+  if (GNUNET_NT_COUNT != load_quotas (solver_cfg,
+      quotas_out, quotas_in, GNUNET_NT_COUNT))
   {
     GNUNET_break(0);
     end_now (1);
@@ -1306,16 +1306,16 @@ run (void *cls, char * const *args, const char *cfgfile,
   ph.env.bandwidth_changed_cb = bandwidth_changed_cb;
   ph.env.get_connectivity = &get_connectivity_cb;
   ph.env.get_preferences = &get_preferences_cb;
-  ph.env.network_count = GNUNET_ATS_NetworkTypeCount;
+  ph.env.network_count = GNUNET_NT_COUNT;
   ph.env.info_cb = &solver_info_cb;
 
-  for (c = 0; c < GNUNET_ATS_NetworkTypeCount; c++)
+  for (c = 0; c < GNUNET_NT_COUNT; c++)
   {
     ph.env.out_quota[c] = quotas_out[c];
     ph.env.in_quota[c] = quotas_in[c];
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                 "Loading network quotas: `%s' %llu %llu \n",
-                GNUNET_ATS_print_network_type (c),
+                GNUNET_NT_to_string (c),
                 ph.env.out_quota[c],
                 ph.env.in_quota[c]);
   }

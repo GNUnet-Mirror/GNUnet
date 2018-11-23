@@ -317,7 +317,7 @@ struct ValidationEntry
   /**
    * Which network type does our address belong to?
    */
-  enum GNUNET_ATS_Network_Type network;
+  enum GNUNET_NetworkType network;
 };
 
 
@@ -654,7 +654,7 @@ transmit_ping_if_allowed (void *cls,
                 ve->address->transport_name);
     ve->network = papi->get_network (papi->cls,
                                      session);
-    GNUNET_break (GNUNET_ATS_NET_UNSPECIFIED != ve->network);
+    GNUNET_break (GNUNET_NT_UNSPECIFIED != ve->network);
     GST_neighbours_notify_data_sent (ve->address,
                                      session,
                                      tsize);
@@ -905,7 +905,7 @@ add_valid_address (void *cls,
   ve = find_validation_entry (address);
   ve->network = papi->get_network_for_address (papi->cls,
                                                address);
-  GNUNET_break (GNUNET_ATS_NET_UNSPECIFIED != ve->network);
+  GNUNET_break (GNUNET_NT_UNSPECIFIED != ve->network);
   ve->valid_until = GNUNET_TIME_absolute_max (ve->valid_until,
                                               expiration);
   if (NULL == ve->revalidation_task)
@@ -1589,7 +1589,7 @@ GST_validation_handle_pong (const struct GNUNET_PeerIdentity *sender,
       struct GNUNET_ATS_Properties prop;
 
       memset (&prop, 0, sizeof (prop));
-      GNUNET_break (GNUNET_ATS_NET_UNSPECIFIED != ve->network);
+      GNUNET_break (GNUNET_NT_UNSPECIFIED != ve->network);
       prop.scope = ve->network;
       prop.delay = GNUNET_TIME_relative_divide (ve->latency, 2);
       GNUNET_assert (GNUNET_NO ==

@@ -89,7 +89,7 @@ typedef void
 (*GNUNET_TRANSPORT_SessionStart) (void *cls,
                                   const struct GNUNET_HELLO_Address *address,
                                   struct GNUNET_ATS_Session *session,
-                                  enum GNUNET_ATS_Network_Type net);
+                                  enum GNUNET_NetworkType net);
 
 
 /**
@@ -131,7 +131,7 @@ typedef struct GNUNET_TIME_Relative
  * @param addrlen length of the @a addr
  * @return type of the network the address belongs to
  */
-typedef enum GNUNET_ATS_Network_Type
+typedef enum GNUNET_NetworkType
 (*GNUNET_TRANSPORT_AddressToType) (void *cls,
                                    const struct sockaddr *addr,
                                    size_t addrlen);
@@ -547,7 +547,7 @@ typedef int
  * @param session the session
  * @return the network type
  */
-typedef enum GNUNET_ATS_Network_Type
+typedef enum GNUNET_NetworkType
 (*GNUNET_TRANSPORT_GetNetworkType) (void *cls,
                                     struct GNUNET_ATS_Session *session);
 
@@ -559,7 +559,7 @@ typedef enum GNUNET_ATS_Network_Type
  * @param address the address
  * @return the network type
  */
-typedef enum GNUNET_ATS_Network_Type
+typedef enum GNUNET_NetworkType
 (*GNUNET_TRANSPORT_GetNetworkTypeForAddress) (void *cls,
                                               const struct GNUNET_HELLO_Address *address);
 

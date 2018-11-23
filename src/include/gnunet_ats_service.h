@@ -36,48 +36,6 @@
 #include "gnunet_util_lib.h"
 #include "gnunet_hello_lib.h"
 
-/**
- * Types of networks (with separate quotas) we support.
- */
-enum GNUNET_ATS_Network_Type
-{
-  /**
-   * Category of last resort.
-   */
-  GNUNET_ATS_NET_UNSPECIFIED = 0,
-
-  /**
-   * Loopback (same host).
-   */
-  GNUNET_ATS_NET_LOOPBACK = 1,
-
-  /**
-   * Local area network.
-   */
-  GNUNET_ATS_NET_LAN = 2,
-
-  /**
-   * Wide area network (i.e. Internet)
-   */
-  GNUNET_ATS_NET_WAN = 3,
-
-  /**
-   * Wireless LAN (i.e. 802.11abgn)
-   */
-  GNUNET_ATS_NET_WLAN = 4,
-
-  /**
-   * Bluetooth LAN
-   */
-  GNUNET_ATS_NET_BT = 5,
-
-/**
- * Number of network types supported by ATS
- */
-#define GNUNET_ATS_NetworkTypeCount 6
-
-};
-
 
 /**
  * Default bandwidth assigned to a network : 64 KB/s
@@ -143,7 +101,7 @@ struct GNUNET_ATS_Properties
    * Which network scope does the respective address belong to?
    * This property does not change.
    */
-  enum GNUNET_ATS_Network_Type scope;
+  enum GNUNET_NetworkType scope;
 
 };
 
@@ -217,55 +175,6 @@ GNUNET_ATS_properties_hton (struct GNUNET_ATS_PropertiesNBO *nbo,
 void
 GNUNET_ATS_properties_ntoh (struct GNUNET_ATS_Properties *hbo,
                             const struct GNUNET_ATS_PropertiesNBO *nbo);
-
-
-
-/**
- * Convert a `enum GNUNET_ATS_Network_Type` to a string
- *
- * @param net the network type
- * @return a string or NULL if invalid
- */
-const char *
-GNUNET_ATS_print_network_type (enum GNUNET_ATS_Network_Type net);
-
-
-/**
- * Handle for the LAN Characterization library.
- */
-struct GNUNET_ATS_InterfaceScanner;
-
-
-/**
- * Returns where the address is located: loopback, LAN or WAN.
- *
- * @param is handle from #GNUNET_ATS_interface_scanner_init()
- * @param addr address
- * @param addrlen address length
- * @return type of the network the address belongs to
- */
-enum GNUNET_ATS_Network_Type
-GNUNET_ATS_scanner_address_get_type (struct GNUNET_ATS_InterfaceScanner *is,
-                                     const struct sockaddr *addr,
-                                     socklen_t addrlen);
-
-
-/**
- * Initialize the ATS address characterization client handle.
- *
- * @return scanner handle, NULL on error
- */
-struct GNUNET_ATS_InterfaceScanner *
-GNUNET_ATS_scanner_init (void);
-
-
-/**
- * Terminate interface scanner.
- *
- * @param is scanner we are done with
- */
-void
-GNUNET_ATS_scanner_done (struct GNUNET_ATS_InterfaceScanner *is);
 
 
 

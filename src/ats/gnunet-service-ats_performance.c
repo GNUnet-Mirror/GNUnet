@@ -82,7 +82,7 @@ notify_client (struct GNUNET_SERVICE_Client *client,
   char *addrp;
 
   if (NULL != prop)
-    GNUNET_break (GNUNET_ATS_NET_UNSPECIFIED != prop->scope);
+    GNUNET_break (GNUNET_NT_UNSPECIFIED != prop->scope);
   GNUNET_assert (msize < GNUNET_MAX_MESSAGE_SIZE);
   msg = (struct PeerInformationMessage *) buf;
   msg->header.size = htons (msize);
@@ -151,7 +151,7 @@ GAS_performance_notify_all_clients (const struct GNUNET_PeerIdentity *peer,
                                     struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in)
 {
   GNUNET_break ( (NULL == prop) ||
-                 (GNUNET_ATS_NET_UNSPECIFIED != prop->scope) );
+                 (GNUNET_NT_UNSPECIFIED != prop->scope) );
   notify_client (NULL,
                  peer,
                  plugin_name,
@@ -205,7 +205,7 @@ peerinfo_it (void *cls,
               plugin_name,
               (unsigned int) ntohl (bandwidth_out.value__),
               (unsigned int) ntohl (bandwidth_in.value__));
-  GNUNET_break (GNUNET_ATS_NET_UNSPECIFIED != prop->scope);
+  GNUNET_break (GNUNET_NT_UNSPECIFIED != prop->scope);
   notify_client (client,
                  id,
                  plugin_name,

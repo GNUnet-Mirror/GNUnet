@@ -499,12 +499,12 @@ env_notify_address (void *cls,
 }
 
 
-static enum GNUNET_ATS_Network_Type
+static enum GNUNET_NetworkType
 env_get_address_type (void *cls,
                       const struct sockaddr *addr,
                       size_t addrlen)
 {
-  return GNUNET_ATS_NET_LOOPBACK;
+  return GNUNET_NT_LOOPBACK;
 }
 
 

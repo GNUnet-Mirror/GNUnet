@@ -165,7 +165,7 @@ handle_connect (void *cls,
   sh->connect_cb (sh->cls,
                   &cm->peer,
                   ntohl (cm->distance),
-                  (enum GNUNET_ATS_Network_Type) ntohl (cm->network));
+                  (enum GNUNET_NetworkType) ntohl (cm->network));
 }
 
 
@@ -222,7 +222,7 @@ handle_distance_update (void *cls,
   sh->distance_cb (sh->cls,
                    &dum->peer,
                    ntohl (dum->distance),
-                   (enum GNUNET_ATS_Network_Type) ntohl (dum->network));
+                   (enum GNUNET_NetworkType) ntohl (dum->network));
 }
 
 

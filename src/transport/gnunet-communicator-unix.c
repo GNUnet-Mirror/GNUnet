@@ -680,7 +680,7 @@ setup_queue (const struct GNUNET_PeerIdentity *target,
 					      &queue->target,
 					      foreign_addr,
 					      UNIX_MTU,
-					      GNUNET_ATS_NET_LOOPBACK,
+					      GNUNET_NT_LOOPBACK,
                                               0 /* distance */,
 					      cs,
 					      queue->mq);
@@ -1100,7 +1100,7 @@ run (void *cls,
   GNUNET_free (unix_socket_path);
   ai = GNUNET_TRANSPORT_communicator_address_add (ch,
 						  my_addr,
-						  GNUNET_ATS_NET_LOOPBACK,
+						  GNUNET_NT_LOOPBACK,
 						  GNUNET_TIME_UNIT_FOREVER_REL);
   GNUNET_free (my_addr);
 }

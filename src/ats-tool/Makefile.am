@@ -17,6 +17,7 @@ gnunet_ats_SOURCES = \
 gnunet_ats_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/ats/libgnunetats.la \
+  $(top_builddir)/src/nt/libgnunetnt.la \
   $(top_builddir)/src/transport/libgnunettransport.la \
   $(top_builddir)/src/hello/libgnunethello.la \
   $(GN_LIBINTL)  

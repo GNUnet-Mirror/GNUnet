@@ -415,7 +415,7 @@ static struct GNUNET_ATS_SessionKiller *sk_tail;
 /**
  * Interface scanner determines our LAN address range(s).
  */
-struct GNUNET_ATS_InterfaceScanner *GST_is;
+struct GNUNET_NT_InterfaceScanner *GST_is;
 
 
 /**
@@ -1975,7 +1975,7 @@ static void
 plugin_env_session_start (void *cls,
                           const struct GNUNET_HELLO_Address *address,
                           struct GNUNET_ATS_Session *session,
-                          enum GNUNET_ATS_Network_Type scope)
+                          enum GNUNET_NetworkType scope)
 {
   struct GNUNET_ATS_Properties prop;
 
@@ -2005,7 +2005,7 @@ plugin_env_session_start (void *cls,
     memset (&prop,
 	    0,
 	    sizeof (prop));
-    GNUNET_break (GNUNET_ATS_NET_UNSPECIFIED != scope);
+    GNUNET_break (GNUNET_NT_UNSPECIFIED != scope);
     prop.scope = scope;
     GST_ats_add_inbound_address (address,
                                  session,
@@ -2261,7 +2261,7 @@ shutdown_task (void *cls)
   GST_ats = NULL;
   GNUNET_ATS_connectivity_done (GST_ats_connect);
   GST_ats_connect = NULL;
-  GNUNET_ATS_scanner_done (GST_is);
+  GNUNET_NT_scanner_done (GST_is);
   GST_is = NULL;
   while (NULL != (cur = a2s_head))
   {
@@ -2859,7 +2859,7 @@ run (void *cls,
   /* start subsystems */
   read_blacklist_configuration (GST_cfg,
 				&GST_my_identity);
-  GST_is = GNUNET_ATS_scanner_init ();
+  GST_is = GNUNET_NT_scanner_init ();
   GST_ats_connect = GNUNET_ATS_connectivity_init (GST_cfg);
   GST_ats = GNUNET_ATS_scheduling_init (GST_cfg,
                                         &ats_request_address_change,

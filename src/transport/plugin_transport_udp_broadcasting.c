@@ -117,7 +117,7 @@ struct MstContext
   /**
    * ATS network type.
    */
-  enum GNUNET_ATS_Network_Type ats_address_network_type;
+  enum GNUNET_NetworkType ats_address_network_type;
 };
 
 
@@ -186,7 +186,7 @@ udp_broadcast_receive (struct Plugin *plugin,
                        ssize_t size,
                        const union UdpAddress *udp_addr,
                        size_t udp_addr_len,
-                       enum GNUNET_ATS_Network_Type network_type)
+                       enum GNUNET_NetworkType network_type)
 {
   struct GNUNET_MessageStreamTokenizer *broadcast_mst;
   struct MstContext mc;
@@ -410,7 +410,7 @@ iface_proc (void *cls,
 {
   struct Plugin *plugin = cls;
   struct BroadcastAddress *ba;
-  enum GNUNET_ATS_Network_Type network;
+  enum GNUNET_NetworkType network;
 
   if (NULL == addr)
     return GNUNET_OK;
@@ -426,7 +426,7 @@ iface_proc (void *cls,
               GNUNET_a2s (netmask, addrlen), name, netmask);
 
   network = plugin->env->get_address_type (plugin->env->cls, broadcast_addr, addrlen);
-  if (GNUNET_ATS_NET_LOOPBACK == network)
+  if (GNUNET_NT_LOOPBACK == network)
   {
     /* Broadcasting on loopback does not make sense */
     return GNUNET_YES;

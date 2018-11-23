@@ -131,7 +131,7 @@ struct PartnerLoggingTimestep
 
   uint32_t ats_utilization_in;
 
-  enum GNUNET_ATS_Network_Type ats_network_type;
+  enum GNUNET_NetworkType ats_network_type;
 
   double pref_bandwidth;
   double pref_delay;

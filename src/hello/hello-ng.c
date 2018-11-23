@@ -62,7 +62,7 @@ struct SignedAddress
  */
 void
 GNUNET_HELLO_sign_address (const char *address,
-			   enum GNUNET_ATS_Network_Type nt,
+			   enum GNUNET_NetworkType nt,
 			   struct GNUNET_TIME_Absolute expiration,
 			   const struct GNUNET_CRYPTO_EddsaPrivateKey *private_key,
 			   void **result,
@@ -110,7 +110,7 @@ char *
 GNUNET_HELLO_extract_address (const void *raw,
 			      size_t raw_size,
 			      const struct GNUNET_CRYPTO_EddsaPublicKey *public_key,
-			      enum GNUNET_ATS_Network_Type *nt,
+			      enum GNUNET_NetworkType *nt,
 			      struct GNUNET_TIME_Absolute *expiration)
 {
   const char *raws = raw;
@@ -188,6 +188,6 @@ GNUNET_HELLO_extract_address (const void *raw,
   }
   GNUNET_free (sig);
   *expiration = raw_expiration;
-  *nt = (enum GNUNET_ATS_Network_Type) raw_nt;
+  *nt = (enum GNUNET_NetworkType) raw_nt;
   return GNUNET_strdup (raw_addr);
 }

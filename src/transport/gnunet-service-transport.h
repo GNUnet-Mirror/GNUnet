@@ -69,7 +69,7 @@ extern struct GNUNET_ATS_ConnectivityHandle *GST_ats_connect;
 /**
  * Interface scanner determines our LAN address range(s).
  */
-extern struct GNUNET_ATS_InterfaceScanner *GST_is;
+extern struct GNUNET_NT_InterfaceScanner *GST_is;
 
 
 /**

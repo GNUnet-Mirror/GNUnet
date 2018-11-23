@@ -222,7 +222,7 @@ struct DirectNeighbor
   /**
    * The network this peer is in
    */
-  enum GNUNET_ATS_Network_Type network;
+  enum GNUNET_NetworkType network;
 
   /**
    * Is this neighbor connected at the core level?
@@ -439,11 +439,11 @@ send_control_to_plugin (const struct GNUNET_MessageHeader *message)
 static void
 send_distance_change_to_plugin (const struct GNUNET_PeerIdentity *peer,
 				uint32_t distance,
-                                enum GNUNET_ATS_Network_Type network)
+                                enum GNUNET_NetworkType network)
 {
   struct GNUNET_DV_DistanceUpdateMessage du_msg;
 
-  GNUNET_break (GNUNET_ATS_NET_UNSPECIFIED != network);
+  GNUNET_break (GNUNET_NT_UNSPECIFIED != network);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Delivering DISTANCE_CHANGED for message about peer `%s'\n",
               GNUNET_i2s (peer));
@@ -466,7 +466,7 @@ send_distance_change_to_plugin (const struct GNUNET_PeerIdentity *peer,
 static void
 send_connect_to_plugin (const struct GNUNET_PeerIdentity *target,
 			uint32_t distance,
-                        enum GNUNET_ATS_Network_Type network)
+                        enum GNUNET_NetworkType network)
 {
   struct GNUNET_DV_ConnectMessage cm;
 
@@ -833,7 +833,7 @@ handle_core_connect (void *cls,
 						peer);
   if (NULL != neighbor)
   {
-    GNUNET_break (GNUNET_ATS_NET_UNSPECIFIED != neighbor->network);
+    GNUNET_break (GNUNET_NT_UNSPECIFIED != neighbor->network);
     GNUNET_break (GNUNET_YES != neighbor->connected);
     neighbor->connected = GNUNET_YES;
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -857,7 +857,7 @@ handle_core_connect (void *cls,
 						    GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
   neighbor->connected = GNUNET_YES;
   neighbor->distance = 0; /* unknown */
-  neighbor->network = GNUNET_ATS_NET_UNSPECIFIED;
+  neighbor->network = GNUNET_NT_UNSPECIFIED;
   return neighbor;
 }
 
@@ -1123,7 +1123,7 @@ handle_ats_update (void *cls,
 {
   struct DirectNeighbor *neighbor;
   uint32_t distance;
-  enum GNUNET_ATS_Network_Type network;
+  enum GNUNET_NetworkType network;
 
   if (NULL == address)
   {
@@ -1138,7 +1138,7 @@ handle_ats_update (void *cls,
   }
   distance = prop->distance;
   network = prop->scope;
-  GNUNET_break (GNUNET_ATS_NET_UNSPECIFIED != network);
+  GNUNET_break (GNUNET_NT_UNSPECIFIED != network);
   /* check if entry exists */
   neighbor = GNUNET_CONTAINER_multipeermap_get (direct_neighbors,
 						&address->peer);

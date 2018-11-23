@@ -165,6 +165,9 @@ interface_proc (void *cls,
   struct GNUNET_NT_InterfaceScanner *is = cls;
   /* Calculate network */
   struct NT_Network *net = NULL;
+  (void) name;
+  (void) isDefault;
+  (void) broadcast_addr;
 
   /* Skipping IPv4 loopback addresses since we have special check  */
   if  (addr->sa_family == AF_INET)
@@ -285,9 +288,9 @@ get_addresses (void *cls)
  * @return type of the network the address belongs to
  */
 enum GNUNET_NetworkType
-GNUNET_NT_scanner_address_get_type (struct GNUNET_NT_InterfaceScanner *is,
-                                    const struct sockaddr *addr,
-                                    socklen_t addrlen)
+GNUNET_NT_scanner_get_type (struct GNUNET_NT_InterfaceScanner *is,
+			    const struct sockaddr *addr,
+			    socklen_t addrlen)
 {
   struct NT_Network *cur = is->net_head;
   enum GNUNET_NetworkType type = GNUNET_NT_UNSPECIFIED;

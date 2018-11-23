@@ -791,12 +791,12 @@ resend:
  * @param session the session
  * @return the network type in HBO or #GNUNET_SYSERR
  */
-static enum GNUNET_ATS_Network_Type
+static enum GNUNET_NetworkType
 unix_plugin_get_network (void *cls,
                          struct GNUNET_ATS_Session *session)
 {
   GNUNET_assert (NULL != session);
-  return GNUNET_ATS_NET_LOOPBACK;
+  return GNUNET_NT_LOOPBACK;
 }
 
 
@@ -807,12 +807,12 @@ unix_plugin_get_network (void *cls,
  * @param address the address
  * @return the network type
  */
-static enum GNUNET_ATS_Network_Type
+static enum GNUNET_NetworkType
 unix_plugin_get_network_for_address (void *cls,
                                      const struct GNUNET_HELLO_Address *address)
 
 {
-  return GNUNET_ATS_NET_LOOPBACK;
+  return GNUNET_NT_LOOPBACK;
 }
 
 
@@ -982,7 +982,7 @@ unix_demultiplexer (struct Plugin *plugin,
     plugin->env->session_start (NULL,
                                 session->address,
                                 session,
-                                GNUNET_ATS_NET_LOOPBACK);
+                                GNUNET_NT_LOOPBACK);
   }
   else
   {

@@ -1315,27 +1315,27 @@ load_op_add_address (struct GNUNET_ATS_TEST_Operation *o,
     GNUNET_STRINGS_utf8_toupper (op_network,op_network);
     if (0 == strcmp(op_network, "UNSPECIFIED"))
     {
-      o->address_network = GNUNET_ATS_NET_UNSPECIFIED;
+      o->address_network = GNUNET_NT_UNSPECIFIED;
     }
     else if (0 == strcmp(op_network, "LOOPBACK"))
     {
-      o->address_network = GNUNET_ATS_NET_LOOPBACK;
+      o->address_network = GNUNET_NT_LOOPBACK;
     }
     else if (0 == strcmp(op_network, "LAN"))
     {
-      o->address_network = GNUNET_ATS_NET_LAN;
+      o->address_network = GNUNET_NT_LAN;
     }
     else if (0 == strcmp(op_network, "WAN"))
     {
-      o->address_network = GNUNET_ATS_NET_WAN;
+      o->address_network = GNUNET_NT_WAN;
     }
     else if (0 == strcmp(op_network, "WLAN"))
     {
-      o->address_network = GNUNET_ATS_NET_WLAN;
+      o->address_network = GNUNET_NT_WLAN;
     }
     else if (0 == strcmp(op_network, "BT"))
     {
-      o->address_network = GNUNET_ATS_NET_BT;
+      o->address_network = GNUNET_NT_BT;
     }
     else
     {
@@ -2214,7 +2214,7 @@ enforce_add_address (struct GNUNET_ATS_TEST_Operation *op)
     GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Adding address %u for peer %u in network `%s'\n",
-    op->address_id, op->peer_id, GNUNET_ATS_print_network_type(a->network));
+    op->address_id, op->peer_id, GNUNET_NT_to_string(a->network));
 
   sh->sf->s_add (sh->sf->cls, a->ats_addr, op->address_network);
 
@@ -2748,16 +2748,16 @@ GNUNET_ATS_solvers_load_quotas (const struct GNUNET_CONFIGURATION_Handle *cfg,
   int c;
   int res;
 
-  for (c = 0; (c < GNUNET_ATS_NetworkTypeCount) && (c < dest_length); c++)
+  for (c = 0; (c < GNUNET_NT_COUNT) && (c < dest_length); c++)
   {
     in_dest[c] = 0;
     out_dest[c] = 0;
     GNUNET_asprintf (&entry_out,
                      "%s_QUOTA_OUT",
-                     GNUNET_ATS_print_network_type (c));
+                     GNUNET_NT_to_string (c));
     GNUNET_asprintf (&entry_in,
                      "%s_QUOTA_IN",
-                     GNUNET_ATS_print_network_type (c));
+                     GNUNET_NT_to_string (c));
 
     /* quota out */
     if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_string(cfg, "ats", entry_out, &quota_out_str))
@@ -2777,7 +2777,7 @@ GNUNET_ATS_solvers_load_quotas (const struct GNUNET_CONFIGURATION_Handle *cfg,
       {
           GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                       _("Could not load quota for network `%s':  `%s', assigning default bandwidth %llu\n"),
-                      GNUNET_ATS_print_network_type (c),
+                      GNUNET_NT_to_string (c),
                       quota_out_str,
                       GNUNET_ATS_DefaultBandwidth);
           out_dest[c] = GNUNET_ATS_DefaultBandwidth;
@@ -2786,7 +2786,7 @@ GNUNET_ATS_solvers_load_quotas (const struct GNUNET_CONFIGURATION_Handle *cfg,
       {
           GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                       "Outbound quota configure for network `%s' is %llu\n",
-                      GNUNET_ATS_print_network_type (c),
+                      GNUNET_NT_to_string (c),
                       out_dest[c]);
       }
       GNUNET_free (quota_out_str);
@@ -2795,7 +2795,7 @@ GNUNET_ATS_solvers_load_quotas (const struct GNUNET_CONFIGURATION_Handle *cfg,
     {
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                   _("No outbound quota configured for network `%s', assigning default bandwidth %llu\n"),
-                  GNUNET_ATS_print_network_type (c),
+                  GNUNET_NT_to_string (c),
                   GNUNET_ATS_DefaultBandwidth);
       out_dest[c] = GNUNET_ATS_DefaultBandwidth;
     }
@@ -2818,7 +2818,7 @@ GNUNET_ATS_solvers_load_quotas (const struct GNUNET_CONFIGURATION_Handle *cfg,
       {
           GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                       _("Could not load quota for network `%s':  `%s', assigning default bandwidth %llu\n"),
-                      GNUNET_ATS_print_network_type (c),
+                      GNUNET_NT_to_string (c),
                       quota_in_str,
                       GNUNET_ATS_DefaultBandwidth);
           in_dest[c] = GNUNET_ATS_DefaultBandwidth;
@@ -2827,7 +2827,7 @@ GNUNET_ATS_solvers_load_quotas (const struct GNUNET_CONFIGURATION_Handle *cfg,
       {
           GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                       "Inbound quota configured for network `%s' is %llu\n",
-                      GNUNET_ATS_print_network_type (c),
+                      GNUNET_NT_to_string (c),
                       in_dest[c]);
       }
       GNUNET_free (quota_in_str);
@@ -2836,19 +2836,19 @@ GNUNET_ATS_solvers_load_quotas (const struct GNUNET_CONFIGURATION_Handle *cfg,
     {
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                   _("No outbound quota configure for network `%s', assigning default bandwidth %llu\n"),
-                  GNUNET_ATS_print_network_type (c),
+                  GNUNET_NT_to_string (c),
                   GNUNET_ATS_DefaultBandwidth);
       out_dest[c] = GNUNET_ATS_DefaultBandwidth;
     }
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                 "Loaded quota for network `%s' (in/out): %llu %llu\n",
-                GNUNET_ATS_print_network_type (c),
+                GNUNET_NT_to_string (c),
                 in_dest[c],
                 out_dest[c]);
     GNUNET_free (entry_out);
     GNUNET_free (entry_in);
   }
-  return GNUNET_ATS_NetworkTypeCount;
+  return GNUNET_NT_COUNT;
 }
 
 
@@ -3048,16 +3048,16 @@ GNUNET_ATS_solvers_solver_start (enum GNUNET_ATS_Solvers type)
   sh->env.addresses = sh->addresses;
   sh->env.bandwidth_changed_cb = &solver_bandwidth_changed_cb;
   sh->env.get_preferences = &get_preferences_cb;
-  sh->env.network_count = GNUNET_ATS_NetworkTypeCount;
+  sh->env.network_count = GNUNET_NT_COUNT;
   sh->env.info_cb = &solver_info_cb;
-  sh->env.network_count = GNUNET_ATS_NetworkTypeCount;
+  sh->env.network_count = GNUNET_NT_COUNT;
 
   /* start normalization */
   GAS_normalization_start ();
 
   /* load quotas */
-  if (GNUNET_ATS_NetworkTypeCount != GNUNET_ATS_solvers_load_quotas (e->cfg,
-      sh->env.out_quota, sh->env.in_quota, GNUNET_ATS_NetworkTypeCount))
+  if (GNUNET_NT_COUNT != GNUNET_ATS_solvers_load_quotas (e->cfg,
+      sh->env.out_quota, sh->env.in_quota, GNUNET_NT_COUNT))
   {
     GNUNET_break(0);
     GNUNET_free (sh->plugin);

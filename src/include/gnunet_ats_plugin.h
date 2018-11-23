@@ -467,13 +467,13 @@ struct GNUNET_ATS_PluginEnvironment
    * Array of configured outbound quotas
    * Order according to networks in network array
    */
-  unsigned long long out_quota[GNUNET_ATS_NetworkTypeCount];
+  unsigned long long out_quota[GNUNET_NT_COUNT];
 
   /**
    * Array of configured inbound quotas
    * Order according to networks in network array
    */
-  unsigned long long in_quota[GNUNET_ATS_NetworkTypeCount];
+  unsigned long long in_quota[GNUNET_NT_COUNT];
 };
 
 #endif

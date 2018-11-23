@@ -174,7 +174,7 @@ handle_monitor_data (void *cls,
   struct GNUNET_TRANSPORT_MonitorInformation mi;
 
   mi.address = (const char *) &md[1];
-  mi.nt = (enum GNUNET_ATS_Network_Type) ntohl (md->nt);
+  mi.nt = (enum GNUNET_NetworkType) ntohl (md->nt);
   mi.cs = (enum GNUNET_TRANSPORT_ConnectionStatus) ntohl (md->cs);
   mi.num_msg_pending = ntohl (md->num_msg_pending);
   mi.num_bytes_pending = ntohl (md->num_bytes_pending);

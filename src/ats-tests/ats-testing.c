@@ -850,7 +850,7 @@ main_run (void *cls,
       /* Initialize properties */
       top->sps[c_s].partners[c_m].props.delay = GNUNET_TIME_UNIT_ZERO;
       top->sps[c_s].partners[c_m].props.distance = 0;
-      top->sps[c_s].partners[c_m].props.scope = GNUNET_ATS_NET_UNSPECIFIED;
+      top->sps[c_s].partners[c_m].props.scope = GNUNET_NT_UNSPECIFIED;
       top->sps[c_s].partners[c_m].props.utilization_in = 0;
       top->sps[c_s].partners[c_m].props.utilization_out = 0;
     }

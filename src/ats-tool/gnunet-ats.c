@@ -394,7 +394,7 @@ transport_addr_to_str_cb (void *cls,
            GNUNET_i2s (&pr->address->peer),
            pr->address->transport_name,
            address,
-           GNUNET_ATS_print_network_type (pr->properties.scope),
+           GNUNET_NT_to_string (pr->properties.scope),
            ntohl (pr->bandwidth_out.value__),
            ntohl (pr->bandwidth_in.value__),
            pr->active ? _("active ") : _("inactive "));
@@ -641,15 +641,15 @@ print_quotas (const struct GNUNET_CONFIGURATION_Handle *cfg)
   unsigned long long int quota_in;
   int c;
 
-  for (c = 0; (c < GNUNET_ATS_NetworkTypeCount); c++)
+  for (c = 0; (c < GNUNET_NT_COUNT); c++)
   {
 
     GNUNET_asprintf (&entry_out,
                      "%s_QUOTA_OUT",
-                     GNUNET_ATS_print_network_type (c));
+                     GNUNET_NT_to_string (c));
     GNUNET_asprintf (&entry_in,
                      "%s_QUOTA_IN",
-                     GNUNET_ATS_print_network_type (c));
+                     GNUNET_NT_to_string (c));
 
     /* quota out */
     if (GNUNET_OK ==
@@ -671,7 +671,7 @@ print_quotas (const struct GNUNET_CONFIGURATION_Handle *cfg)
     {
       FPRINTF (stderr,
                "Outbound quota for network `%11s' not configured!\n",
-               GNUNET_ATS_print_network_type (c));
+               GNUNET_NT_to_string (c));
       GNUNET_asprintf (&quota_out_str, "-");
     }
     GNUNET_free (entry_out);
@@ -694,20 +694,20 @@ print_quotas (const struct GNUNET_CONFIGURATION_Handle *cfg)
     {
       FPRINTF (stderr,
                "Inbound quota for network `%11s' not configured!\n",
-               GNUNET_ATS_print_network_type (c));
+               GNUNET_NT_to_string (c));
       GNUNET_asprintf (&quota_in_str, "-");
     }
     GNUNET_free(entry_in);
 
     FPRINTF (stdout,
              _("Quota for network `%11s' (in/out): %10s / %10s\n"),
-             GNUNET_ATS_print_network_type (c),
+             GNUNET_NT_to_string (c),
              quota_in_str,
              quota_out_str);
     GNUNET_free(quota_out_str);
     GNUNET_free(quota_in_str);
   }
-  return GNUNET_ATS_NetworkTypeCount;
+  return GNUNET_NT_COUNT;
 }
 
 

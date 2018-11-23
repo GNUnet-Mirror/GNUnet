@@ -34,8 +34,8 @@ endif
 
 libgnunetats_la_SOURCES = \
   ats_api_connectivity.c \
-  ats_api_scanner.c \
   ats_api_scheduling.c \
+  ats_api_scanner.c \
   ats_api_performance.c
 libgnunetats_la_LIBADD = \
  $(top_builddir)/src/hello/libgnunethello.la \
@@ -90,6 +90,7 @@ gnunet_service_ats_SOURCES = \
  gnunet-service-ats_scheduling.c gnunet-service-ats_scheduling.h \
  gnunet-service-ats_reservations.c gnunet-service-ats_reservations.h
 gnunet_service_ats_LDADD = \
+  $(top_builddir)/src/nt/libgnunetnt.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   libgnunetats.la \

@@ -226,7 +226,7 @@ GNUNET_TRANSPORT_communicator_mq_add (struct GNUNET_TRANSPORT_CommunicatorHandle
                                       const struct GNUNET_PeerIdentity *peer,
                                       const char *address,
 				      uint32_t mtu,
-                                      enum GNUNET_ATS_Network_Type nt,
+                                      enum GNUNET_NetworkType nt,
                                       uint32_t distance,
 				      enum GNUNET_TRANSPORT_ConnectionStatus cs,
                                       struct GNUNET_MQ_Handle *mq);
@@ -261,7 +261,7 @@ struct GNUNET_TRANSPORT_AddressIdentifier;
 struct GNUNET_TRANSPORT_AddressIdentifier *
 GNUNET_TRANSPORT_communicator_address_add (struct GNUNET_TRANSPORT_CommunicatorHandle *ch,
                                            const char *address,
-                                           enum GNUNET_ATS_Network_Type nt,
+                                           enum GNUNET_NetworkType nt,
                                            struct GNUNET_TIME_Relative expiration);
 
 

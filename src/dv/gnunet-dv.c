@@ -47,7 +47,7 @@ static void
 connect_cb (void *cls,
 	    const struct GNUNET_PeerIdentity *peer,
 	    uint32_t distance,
-            enum GNUNET_ATS_Network_Type network)
+            enum GNUNET_NetworkType network)
 {
   fprintf (stderr, "Connect: %s at %u\n",
 	   GNUNET_i2s (peer),
@@ -67,7 +67,7 @@ static void
 change_cb (void *cls,
 	   const struct GNUNET_PeerIdentity *peer,
 	   uint32_t distance,
-           enum GNUNET_ATS_Network_Type network)
+           enum GNUNET_NetworkType network)
 {
   fprintf (stderr, "Change: %s at %u\n",
 	   GNUNET_i2s (peer),

@@ -162,7 +162,7 @@ struct Queue
   /**
    * Network type offered by this queue.
    */
-  enum GNUNET_ATS_Network_Type nt;
+  enum GNUNET_NetworkType nt;
 
   /**
    * Connection status for this queue.
@@ -322,7 +322,7 @@ struct AddressListEntry
   /**
    * Network type offered by this address.
    */
-  enum GNUNET_ATS_Network_Type nt;
+  enum GNUNET_NetworkType nt;
 
 };
 
@@ -549,7 +549,7 @@ static void
 notify_monitor (struct TransportClient *tc,
 		const struct GNUNET_PeerIdentity *peer,
 		const char *address,
-		enum GNUNET_ATS_Network_Type nt,
+		enum GNUNET_NetworkType nt,
 		const struct MonitorEvent *me)
 {
   struct GNUNET_MQ_Envelope *env;
@@ -588,7 +588,7 @@ notify_monitor (struct TransportClient *tc,
 static void
 notify_monitors (const struct GNUNET_PeerIdentity *peer,
 		 const char *address,
-		 enum GNUNET_ATS_Network_Type nt,
+		 enum GNUNET_NetworkType nt,
 		 const struct MonitorEvent *me)
 {
   static struct GNUNET_PeerIdentity zero;
@@ -1255,7 +1255,7 @@ handle_add_address (void *cls,
   ale->address = (const char *) &ale[1];
   ale->expiration = GNUNET_TIME_relative_ntoh (aam->expiration);
   ale->aid = aam->aid;
-  ale->nt = (enum GNUNET_ATS_Network_Type) ntohl (aam->nt);
+  ale->nt = (enum GNUNET_NetworkType) ntohl (aam->nt);
   memcpy (&ale[1],
           &aam[1],
           slen);
@@ -1427,7 +1427,7 @@ handle_add_queue_message (void *cls,
   queue->qid = aqm->qid;
   queue->mtu = ntohl (aqm->mtu);
   queue->distance = ntohl (aqm->distance);
-  queue->nt = (enum GNUNET_ATS_Network_Type) ntohl (aqm->nt);
+  queue->nt = (enum GNUNET_NetworkType) ntohl (aqm->nt);
   queue->cs = (enum GNUNET_TRANSPORT_ConnectionStatus) ntohl (aqm->cs);
   queue->neighbour = neighbour;
   memcpy (&queue[1],

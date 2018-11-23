@@ -42,7 +42,7 @@ static struct Command test_commands[] = {
       .session = 0,
       .properties = {
         /* use network with 65k quota! */
-        .scope = GNUNET_ATS_NET_WAN
+        .scope = GNUNET_NT_WAN
       }
     }
   },

@@ -57,14 +57,14 @@
  *    network an inbound and outbound quota will be specified. The available
  *    networks and addtional helper varaibles are defined in
  *    gnunet_ats_service.h. At the moment 5 networks are defined:
- *      * GNUNET_ATS_NET_UNSPECIFIED
- *      * GNUNET_ATS_NET_LOOPBACK
- *      * GNUNET_ATS_NET_LAN
- *      * GNUNET_ATS_NET_WAN
- *      * GNUNET_ATS_NET_WLAN
+ *      * GNUNET_NT_UNSPECIFIED
+ *      * GNUNET_NT_LOOPBACK
+ *      * GNUNET_NT_LAN
+ *      * GNUNET_NT_WAN
+ *      * GNUNET_NT_WLAN
  *
  *    The total number of networks defined is stored in
- *    GNUNET_ATS_NetworkTypeCount GNUNET_ATS_NetworkType can be used array
+ *    GNUNET_NT_COUNT GNUNET_ATS_NetworkType can be used array
  *    initializer for an int array, while GNUNET_ATS_NetworkType is an
  *    initializer for a char array containing a string description of all
  *    networks

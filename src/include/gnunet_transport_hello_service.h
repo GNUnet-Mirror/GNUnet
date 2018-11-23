@@ -166,7 +166,7 @@ typedef void
 (*GNUNET_TRANSPORT_AddressCallback) (void *cls,
                                      const struct GNUNET_PeerIdentity *peer,
                                      const char *address,
-                                     enum GNUNET_ATS_Network_Type nt,
+                                     enum GNUNET_NetworkType nt,
                                      struct GNUNET_TIME_Absolute expiration);
 
 

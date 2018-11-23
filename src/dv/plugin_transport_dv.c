@@ -82,7 +82,7 @@ struct GNUNET_ATS_Session
   /**
    * Current network the next hop peer is located in
    */
-  enum GNUNET_ATS_Network_Type network;
+  enum GNUNET_NetworkType network;
 
   /**
    * Does the transport service know about this session (and we thus
@@ -288,12 +288,12 @@ static void
 handle_dv_connect (void *cls,
 		   const struct GNUNET_PeerIdentity *peer,
 		   uint32_t distance,
-                   enum GNUNET_ATS_Network_Type network)
+                   enum GNUNET_NetworkType network)
 {
   struct Plugin *plugin = cls;
   struct GNUNET_ATS_Session *session;
 
-  GNUNET_break (GNUNET_ATS_NET_UNSPECIFIED != network);
+  GNUNET_break (GNUNET_NT_UNSPECIFIED != network);
   /**
    * This requires transport plugin to be linked to libgnunetats.
    * If you remove it, also remove libgnunetats linkage from Makefile.am
@@ -301,7 +301,7 @@ handle_dv_connect (void *cls,
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Received DV_CONNECT message for peer `%s' with next hop in network %s\n",
        GNUNET_i2s (peer),
-       GNUNET_ATS_print_network_type (network));
+       GNUNET_NT_to_string (network));
 
   session = GNUNET_CONTAINER_multipeermap_get (plugin->sessions,
 					       peer);
@@ -359,12 +359,12 @@ static void
 handle_dv_distance_changed (void *cls,
 			    const struct GNUNET_PeerIdentity *peer,
 			    uint32_t distance,
-                            enum GNUNET_ATS_Network_Type network)
+                            enum GNUNET_NetworkType network)
 {
   struct Plugin *plugin = cls;
   struct GNUNET_ATS_Session *session;
 
-  GNUNET_break (GNUNET_ATS_NET_UNSPECIFIED != network);
+  GNUNET_break (GNUNET_NT_UNSPECIFIED != network);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Received `%s' message for peer `%s': new distance %u\n",
        "DV_DISTANCE_CHANGED",
@@ -715,7 +715,7 @@ dv_plugin_update_session_timeout (void *cls,
  * @param session the session
  * @return the network type
  */
-static enum GNUNET_ATS_Network_Type
+static enum GNUNET_NetworkType
 dv_get_network (void *cls,
 		struct GNUNET_ATS_Session *session)
 {
@@ -731,11 +731,11 @@ dv_get_network (void *cls,
  * @param address the address
  * @return the network type
  */
-static enum GNUNET_ATS_Network_Type
+static enum GNUNET_NetworkType
 dv_plugin_get_network_for_address (void *cls,
                                    const struct GNUNET_HELLO_Address *address)
 {
-  return GNUNET_ATS_NET_WAN; /* FOR NOW */
+  return GNUNET_NT_WAN; /* FOR NOW */
 }
 
 

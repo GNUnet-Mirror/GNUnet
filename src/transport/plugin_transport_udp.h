@@ -338,7 +338,7 @@ udp_broadcast_receive (struct Plugin *plugin,
                        ssize_t size,
                        const union UdpAddress *udp_addr,
                        size_t udp_addr_len,
-                       enum GNUNET_ATS_Network_Type network_type);
+                       enum GNUNET_NetworkType network_type);
 
 
 void

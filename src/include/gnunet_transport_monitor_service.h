@@ -65,7 +65,7 @@ struct GNUNET_TRANSPORT_MonitorInformation
   /**
    * Network type of the address.
    */
-  enum GNUNET_ATS_Network_Type nt;
+  enum GNUNET_NetworkType nt;
 
   /**
    * Connection status.

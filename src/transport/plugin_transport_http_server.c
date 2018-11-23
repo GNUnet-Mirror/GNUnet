@@ -260,7 +260,7 @@ struct GNUNET_ATS_Session
   /**
    * ATS network type.
    */
-  enum GNUNET_ATS_Network_Type scope;
+  enum GNUNET_NetworkType scope;
 
   /**
    * #GNUNET_YES if this session is known to the service.
@@ -1382,7 +1382,7 @@ server_lookup_connection (struct HTTP_Server_Plugin *plugin,
   uint32_t options;
   int direction = GNUNET_SYSERR;
   unsigned int to;
-  enum GNUNET_ATS_Network_Type scope;
+  enum GNUNET_NetworkType scope;
 
   conn_info = MHD_get_connection_info (mhd_connection,
                                        MHD_CONNECTION_INFO_CLIENT_ADDRESS);
@@ -3344,7 +3344,7 @@ http_server_plugin_address_to_string (void *cls,
  * @param session the session
  * @return the network type in HBO or #GNUNET_SYSERR
  */
-static enum GNUNET_ATS_Network_Type
+static enum GNUNET_NetworkType
 http_server_plugin_get_network (void *cls,
                                 struct GNUNET_ATS_Session *session)
 {
@@ -3359,7 +3359,7 @@ http_server_plugin_get_network (void *cls,
  * @param address the address
  * @return the network type
  */
-static enum GNUNET_ATS_Network_Type
+static enum GNUNET_NetworkType
 http_server_plugin_get_network_for_address (void *cls,
                                             const struct GNUNET_HELLO_Address *address)
 {

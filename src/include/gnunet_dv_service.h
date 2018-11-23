@@ -47,7 +47,7 @@ typedef void
 (*GNUNET_DV_ConnectCallback)(void *cls,
                              const struct GNUNET_PeerIdentity *peer,
                              uint32_t distance,
-                             enum GNUNET_ATS_Network_Type network);
+                             enum GNUNET_NetworkType network);
 
 
 /**
@@ -63,7 +63,7 @@ typedef void
 (*GNUNET_DV_DistanceChangedCallback)(void *cls,
                                      const struct GNUNET_PeerIdentity *peer,
                                      uint32_t distance,
-                                     enum GNUNET_ATS_Network_Type network);
+                                     enum GNUNET_NetworkType network);
 
 
 /**

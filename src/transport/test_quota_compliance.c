@@ -209,14 +209,14 @@ generate_config (const char *cfg_file,
                                          "PATHS",
                                          "DEFAULTCONFIG",
                                          fname);
-  for (int c = 0; c < GNUNET_ATS_NetworkTypeCount; c++)
+  for (int c = 0; c < GNUNET_NT_COUNT; c++)
   {
     GNUNET_asprintf (&in_name,
                      "%s_QUOTA_IN",
-                     GNUNET_ATS_print_network_type (c));
+                     GNUNET_NT_to_string (c));
     GNUNET_asprintf (&out_name,
                      "%s_QUOTA_OUT",
-                     GNUNET_ATS_print_network_type (c));
+                     GNUNET_NT_to_string (c));
     GNUNET_CONFIGURATION_set_value_number (cfg,
                                            "ats",
                                            in_name,

@@ -41,7 +41,7 @@ static struct Command test_commands[] = {
       .addr_flags = GNUNET_HELLO_ADDRESS_INFO_NONE,
       .session = 0,
       .properties = {
-        .scope = GNUNET_ATS_NET_LAN
+        .scope = GNUNET_NT_LAN
       }
     }
   },
@@ -55,7 +55,7 @@ static struct Command test_commands[] = {
       .addr_flags = GNUNET_HELLO_ADDRESS_INFO_NONE,
       .session = 0,
       .properties = {
-        .scope = GNUNET_ATS_NET_LAN
+        .scope = GNUNET_NT_LAN
       },
       .expect_fail = 1
     }
@@ -155,7 +155,7 @@ static struct Command test_commands[] = {
       .addr_num = 0,
       .session = 0,
       .properties = {
-        .scope = GNUNET_ATS_NET_LAN
+        .scope = GNUNET_NT_LAN
       }
     }
   },
@@ -184,7 +184,7 @@ static struct Command test_commands[] = {
       .addr_flags = GNUNET_HELLO_ADDRESS_INFO_NONE,
       .session = 0,
       .properties = {
-        .scope = GNUNET_ATS_NET_LAN
+        .scope = GNUNET_NT_LAN
       }
     }
   },

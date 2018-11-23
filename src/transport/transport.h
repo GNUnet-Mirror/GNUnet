@@ -692,7 +692,7 @@ struct GNUNET_TRANSPORT_AddAddressMessage
   struct GNUNET_TIME_RelativeNBO expiration;
 
   /**
-   * An `enum GNUNET_ATS_Network_Type` in NBO.
+   * An `enum GNUNET_NetworkType` in NBO.
    */
   uint32_t nt;
 
@@ -801,7 +801,7 @@ struct GNUNET_TRANSPORT_AddQueueMessage
   struct GNUNET_PeerIdentity receiver;
 
   /**
-   * An `enum GNUNET_ATS_Network_Type` in NBO.
+   * An `enum GNUNET_NetworkType` in NBO.
    */
   uint32_t nt;
 
@@ -988,7 +988,7 @@ struct GNUNET_TRANSPORT_MonitorData
   struct GNUNET_MessageHeader header;
 
   /**
-   * Network type (an `enum GNUNET_ATS_Network_Type` in NBO).
+   * Network type (an `enum GNUNET_NetworkType` in NBO).
    */
   uint32_t nt GNUNET_PACKED;
 

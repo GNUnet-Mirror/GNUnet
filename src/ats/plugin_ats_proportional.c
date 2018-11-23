@@ -139,7 +139,7 @@ struct Network
   /**
    * ATS network type
    */
-  enum GNUNET_ATS_Network_Type type;
+  enum GNUNET_NetworkType type;
 
   /**
    * Number of active addresses for this network
@@ -429,7 +429,7 @@ distribute_bandwidth_in_network (struct GAS_PROPORTIONAL_Handle *s,
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
         "Redistributing bandwidth in network %s with %u active and %u total addresses\n",
-         GNUNET_ATS_print_network_type(n->type),
+         GNUNET_NT_to_string(n->type),
          n->active_addresses,
          n->total_addresses);
     s->env->info_cb (s->env->cls,
@@ -1181,7 +1181,7 @@ libgnunet_plugin_ats_proportional_init (void *cls)
     cur->type = c;
     cur->total_quota_in = env->in_quota[c];
     cur->total_quota_out = env->out_quota[c];
-    cur->desc = GNUNET_ATS_print_network_type (c);
+    cur->desc = GNUNET_NT_to_string (c);
     GNUNET_asprintf (&cur->stat_total,
                      "# ATS addresses %s total",
                      cur->desc);

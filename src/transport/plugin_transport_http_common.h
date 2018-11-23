@@ -253,7 +253,7 @@ http_common_cmp_addresses (const void *addr1,
  * @param address the address
  * @return the network type
  */
-enum GNUNET_ATS_Network_Type
+enum GNUNET_NetworkType
 http_common_get_network_for_address (struct GNUNET_TRANSPORT_PluginEnvironment *env,
                                      const struct GNUNET_HELLO_Address *address);
 

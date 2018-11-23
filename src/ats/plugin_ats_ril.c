@@ -340,7 +340,7 @@ struct RIL_Scope
   /**
    * ATS network type
    */
-  enum GNUNET_ATS_Network_Type type;
+  enum GNUNET_NetworkType type;
 
   /**
    * Total available inbound bandwidth
@@ -1593,7 +1593,7 @@ ril_get_network (struct GAS_RIL_Handle *s, uint32_t type)
  * @return GNUNET_YES if there are theoretically enough resources left
  */
 static int
-ril_network_is_not_full (struct GAS_RIL_Handle *solver, enum GNUNET_ATS_Network_Type network)
+ril_network_is_not_full (struct GAS_RIL_Handle *solver, enum GNUNET_NetworkType network)
 {
   struct RIL_Scope *net;
   struct RIL_Peer_Agent *agent;
@@ -1720,7 +1720,7 @@ ril_network_count_active_agents (struct GAS_RIL_Handle *solver, struct RIL_Scope
  * @return the sum of the assigned bandwidths
  */
 static unsigned long long
-ril_network_get_assigned (struct GAS_RIL_Handle *solver, enum GNUNET_ATS_Network_Type type, int direction_in)
+ril_network_get_assigned (struct GAS_RIL_Handle *solver, enum GNUNET_NetworkType type, int direction_in)
 {
   struct RIL_Peer_Agent *cur;
   struct RIL_Scope *net;
@@ -1755,7 +1755,7 @@ ril_network_get_assigned (struct GAS_RIL_Handle *solver, enum GNUNET_ATS_Network
  * @return the sum of the utilized bandwidths (in bytes/second)
  */
 static unsigned long long
-ril_network_get_utilized (struct GAS_RIL_Handle *solver, enum GNUNET_ATS_Network_Type type, int direction_in)
+ril_network_get_utilized (struct GAS_RIL_Handle *solver, enum GNUNET_NetworkType type, int direction_in)
 {
   struct RIL_Peer_Agent *cur;
   struct RIL_Scope *net;
@@ -2038,7 +2038,7 @@ ril_get_agent (struct GAS_RIL_Handle *solver, const struct GNUNET_PeerIdentity *
  * @return whether or not the network is considered active
  */
 static int
-ril_network_is_active (struct GAS_RIL_Handle *solver, enum GNUNET_ATS_Network_Type network)
+ril_network_is_active (struct GAS_RIL_Handle *solver, enum GNUNET_NetworkType network)
 {
   struct RIL_Scope *net;
 
@@ -2786,7 +2786,7 @@ libgnunet_plugin_ats_ril_init (void *cls)
     cur->bw_out_available = env->out_quota[c];
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "init()  Quotas for %s network:  IN %llu - OUT %llu\n",
-         GNUNET_ATS_print_network_type(cur->type),
+         GNUNET_NT_to_string(cur->type),
          cur->bw_in_available/1024,
          cur->bw_out_available/1024);
   }

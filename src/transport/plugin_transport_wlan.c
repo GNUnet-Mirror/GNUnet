@@ -126,9 +126,9 @@ typedef int
  * Which network scope do we belong to?
  */
 #if BUILD_WLAN
-static const enum GNUNET_ATS_Network_Type scope = GNUNET_ATS_NET_WLAN;
+static const enum GNUNET_NetworkType scope = GNUNET_NT_WLAN;
 #else
-static const enum GNUNET_ATS_Network_Type scope = GNUNET_ATS_NET_BT;
+static const enum GNUNET_NetworkType scope = GNUNET_NT_BT;
 #endif
 
 
@@ -1297,14 +1297,14 @@ create_macendpoint (struct Plugin *plugin,
  * @param session the session
  * @return the network type in HBO or #GNUNET_SYSERR
  */
-static enum GNUNET_ATS_Network_Type
+static enum GNUNET_NetworkType
 wlan_plugin_get_network (void *cls,
                          struct GNUNET_ATS_Session *session)
 {
 #if BUILD_WLAN
-  return GNUNET_ATS_NET_WLAN;
+  return GNUNET_NT_WLAN;
 #else
-  return GNUNET_ATS_NET_BT;
+  return GNUNET_NT_BT;
 #endif
 }
 
@@ -1316,14 +1316,14 @@ wlan_plugin_get_network (void *cls,
  * @param address the address
  * @return the network type
  */
-static enum GNUNET_ATS_Network_Type
+static enum GNUNET_NetworkType
 wlan_plugin_get_network_for_address (void *cls,
                                     const struct GNUNET_HELLO_Address *address)
 {
 #if BUILD_WLAN
-  return GNUNET_ATS_NET_WLAN;
+  return GNUNET_NT_WLAN;
 #else
-  return GNUNET_ATS_NET_BT;
+  return GNUNET_NT_BT;
 #endif
 }
 

@@ -859,7 +859,7 @@ struct GNUNET_ATS_Session
   /**
    * Network type of the address.
    */
-  enum GNUNET_ATS_Network_Type scope;
+  enum GNUNET_NetworkType scope;
 
   /**
    * Are we still expecting the welcome message? (#GNUNET_YES/#GNUNET_NO)
@@ -1890,7 +1890,7 @@ reschedule_session_timeout (struct GNUNET_ATS_Session *s)
 static struct GNUNET_ATS_Session *
 create_session (struct Plugin *plugin,
                 const struct GNUNET_HELLO_Address *address,
-                enum GNUNET_ATS_Network_Type scope,
+                enum GNUNET_NetworkType scope,
                 struct GNUNET_SERVER_Client *client,
                 int is_nat)
 {
@@ -2436,7 +2436,7 @@ tcp_plugin_get_session (void *cls,
   const struct IPv4TcpAddress *t4;
   const struct IPv6TcpAddress *t6;
   unsigned int options;
-  enum GNUNET_ATS_Network_Type net_type;
+  enum GNUNET_NetworkType net_type;
   unsigned int is_natd = GNUNET_NO;
   size_t addrlen;
 #ifdef TCP_STEALTH
@@ -2539,7 +2539,7 @@ tcp_plugin_get_session (void *cls,
   net_type = plugin->env->get_address_type (plugin->env->cls,
                                             sb,
                                             sbs);
-  GNUNET_break (net_type != GNUNET_ATS_NET_UNSPECIFIED);
+  GNUNET_break (net_type != GNUNET_NT_UNSPECIFIED);
 
   if ( (is_natd == GNUNET_YES) &&
        (addrlen == sizeof(struct IPv6TcpAddress)) )
@@ -3263,7 +3263,7 @@ handle_tcp_welcome (void *cls,
                                                                alen),
                                 client,
                                 GNUNET_NO);
-      GNUNET_break (GNUNET_ATS_NET_UNSPECIFIED != session->scope);
+      GNUNET_break (GNUNET_NT_UNSPECIFIED != session->scope);
       GNUNET_HELLO_address_free (address);
       LOG (GNUNET_ERROR_TYPE_DEBUG,
            "Creating new%s session %p for peer `%s' client %p\n",
@@ -3623,7 +3623,7 @@ try_connection_reversal (void *cls,
  * @param session the session
  * @return the network type in HBO or #GNUNET_SYSERR
  */
-static enum GNUNET_ATS_Network_Type
+static enum GNUNET_NetworkType
 tcp_plugin_get_network (void *cls,
                         struct GNUNET_ATS_Session *session)
 {
@@ -3638,7 +3638,7 @@ tcp_plugin_get_network (void *cls,
  * @param address the address
  * @return the network type
  */
-static enum GNUNET_ATS_Network_Type
+static enum GNUNET_NetworkType
 tcp_plugin_get_network_for_address (void *cls,
                                     const struct GNUNET_HELLO_Address *address)
 {
@@ -3683,7 +3683,7 @@ tcp_plugin_get_network_for_address (void *cls,
   else
   {
     GNUNET_break (0);
-    return GNUNET_ATS_NET_UNSPECIFIED;
+    return GNUNET_NT_UNSPECIFIED;
   }
   return plugin->env->get_address_type (plugin->env->cls,
                                         sb,

@@ -139,7 +139,7 @@ GAS_handle_address_add (const struct AddressAddMessage *m)
                             GNUNET_NO);
   GNUNET_ATS_properties_ntoh (&prop,
                               &m->properties);
-  GNUNET_break (GNUNET_ATS_NET_UNSPECIFIED != prop.scope);
+  GNUNET_break (GNUNET_NT_UNSPECIFIED != prop.scope);
   GAS_addresses_add (&m->peer,
                      plugin_name,
                      address,
