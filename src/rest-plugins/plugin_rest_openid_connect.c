@@ -1492,7 +1492,7 @@ check_authorization (struct RequestHandle *handle,
   }
 
   //check client_id
-  for (handle->ego_entry = handle->ego_head; NULL != handle->ego_entry->next; )
+  for (handle->ego_entry = handle->ego_head; NULL != handle->ego_entry; )
   {
     if ( 0 == strcmp(handle->ego_entry->keystring, client_id))
     {
