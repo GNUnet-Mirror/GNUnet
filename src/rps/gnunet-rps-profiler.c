@@ -1128,8 +1128,8 @@ post_test_op (void *cls)
 
   post_test_task = NULL;
   post_test = GNUNET_YES;
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-              "Post test task scheduled.\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Executing post test op.\n");
   if (NULL != churn_task)
   {
     GNUNET_SCHEDULER_cancel (churn_task);
@@ -1137,10 +1137,15 @@ post_test_op (void *cls)
   }
   for (i = 0; i < num_peers; i++)
   {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Executing post test op. (peer %" PRIu32 ")\n",
+                rps_peers[i].index);
     if (NULL != rps_peers[i].op)
     {
       GNUNET_TESTBED_operation_done (rps_peers[i].op);
       rps_peers[i].op = NULL;
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Cancelled testbed operation\n");
     }
     if (NULL != cur_test_run.post_test)
     {
@@ -2726,6 +2731,7 @@ test_run (void *cls,
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "\tnum_peers: %" PRIu32 "\n", num_peers);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "\tpeers: %p\n", peers);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "\tlinks_succeeded: %u\n", links_succeeded);
+    ok = 1;
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
