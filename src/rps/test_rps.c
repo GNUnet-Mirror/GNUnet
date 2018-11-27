@@ -806,6 +806,7 @@ shutdown_op (void *cls)
       GNUNET_TESTBED_operation_done (rps_peers[i].op);
     }
   }
+  close_all_files();
 }
 
 

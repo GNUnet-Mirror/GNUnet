@@ -4556,6 +4556,7 @@ shutdown_task (void *cls)
     GNUNET_free (tmp_att_peer);
   }
 #endif /* ENABLE_MALICIOUS */
+  close_all_files();
 }
 
 

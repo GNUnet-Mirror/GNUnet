@@ -39,22 +39,42 @@ char *
 create_file (const char *name);
 
 /**
+ * @brief Get file handle
+ *
+ * If necessary, create file handle and store it with the other file handles.
+ *
+ * @param name Name of the file
+ *
+ * @return File handle
+ */
+struct GNUNET_DISK_FileHandle *
+get_file_handle (const char *name);
+
+/**
+ * @brief Close all files that were opened with #get_file_handle
+ *
+ * @return Success of iterating over files
+ */
+int
+close_all_files ();
+
+/**
  * This function is used to facilitate writing important information to disk
  */
 #ifdef TO_FILE
-#  define to_file(file_name, ...) do {char tmp_buf[512] = "";\
+#define to_file(file_name, ...) do {GNUNET_assert (NULL != file_name);\
+    char tmp_buf[512] = "";\
     int size;\
     size = GNUNET_snprintf(tmp_buf,sizeof(tmp_buf),__VA_ARGS__);\
     if (0 > size)\
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,\
            "Failed to create tmp_buf\n");\
     else\
-      GNUNET_DISK_fn_write(file_name, tmp_buf, strnlen(tmp_buf, 512),\
-                            GNUNET_DISK_PERM_USER_READ |\
-                            GNUNET_DISK_PERM_USER_WRITE |\
-                            GNUNET_DISK_PERM_GROUP_READ |\
-                            GNUNET_DISK_PERM_OTHER_READ);\
+      GNUNET_DISK_file_write (get_file_handle (file_name),\
+                              tmp_buf,\
+                              strnlen (tmp_buf, 512));\
   } while (0);
+
 
 #define to_file_w_len(file_name, len, ...) do {char tmp_buf[len];\
     int size;\
@@ -64,11 +84,9 @@ create_file (const char *name);
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,\
            "Failed to create tmp_buf\n");\
     else\
-      GNUNET_DISK_fn_write(file_name, tmp_buf, strnlen(tmp_buf, len), \
-                            GNUNET_DISK_PERM_USER_READ |\
-                            GNUNET_DISK_PERM_USER_WRITE |\
-                            GNUNET_DISK_PERM_GROUP_READ |\
-                            GNUNET_DISK_PERM_OTHER_READ);\
+      GNUNET_DISK_file_write (get_file_handle (file_name),\
+                              tmp_buf,\
+                              strnlen (tmp_buf, 512));\
   } while (0);
 #else /* TO_FILE */
 #  define to_file(file_name, ...)

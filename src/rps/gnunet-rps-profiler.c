@@ -1102,6 +1102,7 @@ shutdown_op (void *cls)
   {
     clean_peer (i);
   }
+  close_all_files();
 }
 
 static void

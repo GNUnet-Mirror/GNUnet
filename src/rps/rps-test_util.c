@@ -56,6 +56,105 @@ static char buf_unaligned;
  */
 static unsigned num_bits_buf_unaligned;
 
+static struct GNUNET_CONTAINER_MultiHashMap *open_files;
+
+
+
+/**
+ * @brief Get file handle
+ *
+ * If necessary, create file handle and store it with the other file handles.
+ *
+ * @param name Name of the file
+ *
+ * @return File handle
+ */
+struct GNUNET_DISK_FileHandle *
+get_file_handle (const char *name)
+{
+  struct GNUNET_HashCode hash;
+  struct GNUNET_DISK_FileHandle *fh;
+
+  if (NULL == open_files)
+  {
+    open_files = GNUNET_CONTAINER_multihashmap_create (16,
+        GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
+  }
+  GNUNET_CRYPTO_hash (name,
+                      strnlen (name,
+                               512),
+                      &hash);
+  if (GNUNET_NO == GNUNET_CONTAINER_multihashmap_contains (open_files,
+                                                           &hash))
+  {
+    fh = GNUNET_DISK_file_open (name,
+                                GNUNET_DISK_OPEN_APPEND,
+                                GNUNET_DISK_PERM_USER_READ |
+                                GNUNET_DISK_PERM_USER_WRITE |
+                                GNUNET_DISK_PERM_GROUP_READ);
+    GNUNET_CONTAINER_multihashmap_put (open_files,
+                                       &hash,
+                                       fh,
+                                       GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
+    return fh;
+  }
+  else
+  {
+    fh = GNUNET_CONTAINER_multihashmap_get (open_files,
+                                            &hash);
+    return fh;
+  }
+}
+
+
+/**
+ * @brief Closes the file of the current entry
+ *
+ * Implements #GNUNET_CONTAINER_HashMapIterator
+ *
+ * @param cls unused
+ * @param key unused
+ * @param value the file handle
+ *
+ * @return #GNUNET_YES if we should continue to
+ *         iterate,
+ *         #GNUNET_NO if not.
+ */
+int
+close_files_iter (void *cls,
+                  const struct GNUNET_HashCode *key,
+                  void *value)
+{
+  (void) cls;
+  (void) key;
+  struct GNUNET_DISK_FileHandle *fh = value;
+
+  if (NULL != fh)
+  {
+    GNUNET_DISK_file_close (fh);
+  }
+  return GNUNET_YES;
+}
+
+
+/**
+ * @brief Close all files that were opened with #get_file_handle
+ *
+ * @return Success of iterating over files
+ */
+int
+close_all_files ()
+{
+  int ret;
+
+  ret = GNUNET_CONTAINER_multihashmap_iterate (open_files,
+                                               close_files_iter,
+                                               NULL);
+  GNUNET_CONTAINER_multihashmap_destroy (open_files);
+  return ret;
+}
+
+
 
 void
 to_file_raw (const char *file_name, const char *buf, size_t size_buf)
