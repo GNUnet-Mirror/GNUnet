@@ -205,7 +205,6 @@ RPS_sampler_mod_init (size_t init_size,
   sampler->get_peers = sampler_mod_get_rand_peer;
   //sampler->sampler_elements = GNUNET_new_array(init_size, struct GNUNET_PeerIdentity);
   //GNUNET_array_grow (sampler->sampler_elements, sampler->sampler_size, min_size);
-  RPS_sampler_resize (sampler, init_size);
 
   client_get_index = 0;
 
@@ -220,6 +219,7 @@ RPS_sampler_mod_init (size_t init_size,
   to_file (sampler->file_name,
            "This is a modified sampler");
 #endif /* TO_FILE */
+  RPS_sampler_resize (sampler, init_size);
 
   return sampler;
 }

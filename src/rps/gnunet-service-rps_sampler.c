@@ -204,6 +204,7 @@ RPS_sampler_init (size_t init_size,
 
   #ifdef TO_FILE
   sampler->file_name = create_file ("sampler-");
+  GNUNET_assert (NULL != sampler->file_name);
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Initialised sampler %s\n",
