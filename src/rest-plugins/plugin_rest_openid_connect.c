@@ -156,18 +156,57 @@
 #define OIDC_EXPECTED_AUTHORIZATION_SCOPE "openid"
 
 /**
- * OIDC error keys
+ * OIDC error key for invalid client
  */
 #define OIDC_ERROR_KEY_INVALID_CLIENT "invalid_client"
+
+/**
+ * OIDC error key for invalid scopes
+ */
 #define OIDC_ERROR_KEY_INVALID_SCOPE "invalid_scope"
+
+/**
+ * OIDC error key for invalid requests
+ */
 #define OIDC_ERROR_KEY_INVALID_REQUEST "invalid_request"
+
+/**
+ * OIDC error key for invalid tokens
+ */
 #define OIDC_ERROR_KEY_INVALID_TOKEN "invalid_token"
+
+/**
+ * OIDC error key for invalid cookies
+ */
 #define OIDC_ERROR_KEY_INVALID_COOKIE "invalid_cookie"
+
+/**
+ * OIDC error key for generic server errors
+ */
 #define OIDC_ERROR_KEY_SERVER_ERROR "server_error"
+
+/**
+ * OIDC error key for unsupported grants
+ */
 #define OIDC_ERROR_KEY_UNSUPPORTED_GRANT_TYPE "unsupported_grant_type"
+
+/**
+ * OIDC error key for unsupported response types
+ */
 #define OIDC_ERROR_KEY_UNSUPPORTED_RESPONSE_TYPE "unsupported_response_type"
+
+/**
+ * OIDC error key for unauthorized clients
+ */
 #define OIDC_ERROR_KEY_UNAUTHORIZED_CLIENT "unauthorized_client"
+
+/**
+ * OIDC error key for denied access
+ */
 #define OIDC_ERROR_KEY_ACCESS_DENIED "access_denied"
+
+
+
 /**
  * OIDC ignored parameter array
  */
