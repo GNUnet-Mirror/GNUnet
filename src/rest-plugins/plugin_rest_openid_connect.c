@@ -121,6 +121,11 @@
 #define OIDC_NONCE_KEY "nonce"
 
 /**
+ * OIDC cookie expiration (in seconds)
+ */
+#define OIDC_COOKIE_EXPIRATION 3
+
+/**
  * OIDC cookie header key
  */
 #define OIDC_COOKIE_HEADER_KEY "cookie"
@@ -1398,6 +1403,7 @@ login_cont (struct GNUNET_REST_RequestHandle *con_handle,
   struct GNUNET_TIME_Absolute *current_time;
   struct GNUNET_TIME_Absolute *last_time;
   char* cookie;
+  char* header_val;
   json_t *root;
   json_error_t error;
   json_t *identity;
@@ -1416,7 +1422,13 @@ login_cont (struct GNUNET_REST_RequestHandle *con_handle,
     GNUNET_SCHEDULER_add_now (&cleanup_handle_delayed, handle);
     return;
   }
-  GNUNET_asprintf (&cookie, "Identity=%s", json_string_value (identity));
+  GNUNET_asprintf (&cookie,
+                   "Identity=%s",
+                   json_string_value (identity));
+  GNUNET_asprintf (&header_val,
+                   "%s;Max-Age=%d",
+                   cookie,
+                   OIDC_COOKIE_EXPIRATION);
   MHD_add_response_header (resp, "Set-Cookie", cookie);
   MHD_add_response_header (resp, "Access-Control-Allow-Methods", "POST");
   GNUNET_CRYPTO_hash (cookie, strlen (cookie), &cache_key);
@@ -1427,7 +1439,7 @@ login_cont (struct GNUNET_REST_RequestHandle *con_handle,
     current_time = GNUNET_new(struct GNUNET_TIME_Absolute);
     *current_time = GNUNET_TIME_relative_to_absolute (
                                                       GNUNET_TIME_relative_multiply (GNUNET_TIME_relative_get_second_ (),
-                                                                                     5));
+                                                                                     OIDC_COOKIE_EXPIRATION));
     last_time = GNUNET_CONTAINER_multihashmap_get(OIDC_identity_login_time, &cache_key);
     if (NULL != last_time)
     {
