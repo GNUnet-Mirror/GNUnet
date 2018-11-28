@@ -34,7 +34,7 @@
 
 #define JWT_TYP_VALUE "jwt"
 
-#define SERVER_ADDRESS "https://reclaim.id"
+#define SERVER_ADDRESS "https://api.reclaim"
 
 /**
  * Create a JWT from attributes
