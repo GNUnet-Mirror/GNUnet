@@ -92,6 +92,13 @@ get_file_handle (const char *name)
                                 GNUNET_DISK_PERM_USER_READ |
                                 GNUNET_DISK_PERM_USER_WRITE |
                                 GNUNET_DISK_PERM_GROUP_READ);
+    if (NULL == fh)
+    {
+      LOG (GNUNET_ERROR_TYPE_ERROR,
+           "Openning file `%s' failed.\n",
+           name);
+      GNUNET_assert (0);
+    }
     GNUNET_CONTAINER_multihashmap_put (open_files,
                                        &hash,
                                        fh,
