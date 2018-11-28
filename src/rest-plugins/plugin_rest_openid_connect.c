@@ -1429,7 +1429,7 @@ login_cont (struct GNUNET_REST_RequestHandle *con_handle,
                    "%s;Max-Age=%d",
                    cookie,
                    OIDC_COOKIE_EXPIRATION);
-  MHD_add_response_header (resp, "Set-Cookie", cookie);
+  MHD_add_response_header (resp, "Set-Cookie", header_val);
   MHD_add_response_header (resp, "Access-Control-Allow-Methods", "POST");
   GNUNET_CRYPTO_hash (cookie, strlen (cookie), &cache_key);
 
