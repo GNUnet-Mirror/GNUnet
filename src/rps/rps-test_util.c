@@ -88,6 +88,8 @@ get_file_handle (const char *name)
                                                            &hash))
   {
     fh = GNUNET_DISK_file_open (name,
+                                GNUNET_DISK_OPEN_WRITE |
+                                GNUNET_DISK_OPEN_CREATE |
                                 GNUNET_DISK_OPEN_APPEND,
                                 GNUNET_DISK_PERM_USER_READ |
                                 GNUNET_DISK_PERM_USER_WRITE |
@@ -95,7 +97,7 @@ get_file_handle (const char *name)
     if (NULL == fh)
     {
       LOG (GNUNET_ERROR_TYPE_ERROR,
-           "Openning file `%s' failed.\n",
+           "Opening file `%s' failed.\n",
            name);
       GNUNET_assert (0);
     }
