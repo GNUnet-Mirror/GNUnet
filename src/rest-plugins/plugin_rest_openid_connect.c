@@ -1450,7 +1450,8 @@ login_cont (struct GNUNET_REST_RequestHandle *con_handle,
                                        GNUNET_CONTAINER_MULTIHASHMAPOPTION_REPLACE);
   }
   handle->proc (handle->proc_cls, resp, MHD_HTTP_OK);
-  GNUNET_free(cookie);
+  GNUNET_free (cookie);
+  GNUNET_free (header_val);
   json_decref (root);
   GNUNET_SCHEDULER_add_now (&cleanup_handle_delayed, handle);
 }
