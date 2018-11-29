@@ -27,6 +27,7 @@
 #include "platform.h"
 #include "gnunet_util_lib.h"
 #include "gnunet_protocols.h"
+#include "gnunet_constants.h"
 #include "gnunet_nt_lib.h"
 #include "gnunet_statistics_service.h"
 #include "gnunet_transport_communication_service.h"

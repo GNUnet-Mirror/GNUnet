@@ -42,6 +42,7 @@ extern "C"
 #endif
 
 #include "gnunet_util_lib.h"
+#include "gnunet_nt_lib.h"
 
 /**
  * Version number of the transport communication API.
