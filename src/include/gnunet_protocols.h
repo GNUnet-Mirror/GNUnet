@@ -3095,9 +3095,57 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_TRANSPORT_MONITOR_END 1252
 
 
+/* ************** NEW (NG) ATS Messages ************* */
+
 /**
- * Next available: 1400
+ * Type of the 'struct ExpressPreferenceMessage' send by clients to ATS
+ * to establish bandwidth preference.
  */
+#define GNUNET_MESSAGE_TYPE_ATS_SUGGEST 1400
+
+/**
+ * Type of the 'struct ExpressPreferenceMessage' send by clients to ATS
+ * to abandon bandwidth preference.
+ */
+#define GNUNET_MESSAGE_TYPE_ATS_SUGGEST_CANCEL 1401
+
+
+/**
+ * Type of the 'struct SessionAddMessage' send by transport clients to ATS
+ * to ask ATS to allocate resources to a session.
+ */
+#define GNUNET_MESSAGE_TYPE_ATS_SESSION_ADD 1402
+
+/**
+ * Type of the 'struct SessionAddMessage' send by transport clients to ATS
+ * to inform ATS about a session where resources are consumed but allocation
+ * is impossible (unidirectional).
+ */
+#define GNUNET_MESSAGE_TYPE_ATS_SESSION_ADD_INBOUND_ONLY 1403
+
+/**
+ * Type of the 'struct SessionUpdateMessage' send by transport clients to ATS
+ * to inform ATS about property changes of a session.
+ */
+#define GNUNET_MESSAGE_TYPE_ATS_SESSION_UPDATE 1404
+
+/**
+ * Type of the 'struct SessionDelMessage' send by transport clients to ATS
+ * to tell ATS that a session is no longer available.
+ */
+#define GNUNET_MESSAGE_TYPE_ATS_SESSION_DEL 1405
+
+/**
+ * Type of the 'struct SessionAllocationMessage' send by ATS to the
+ * transport to tell it about resources to allocate to the session.
+ */
+#define GNUNET_MESSAGE_TYPE_ATS_SESSION_ALLOCATION 1406
+
+
+/**
+ * Next available: 1450
+ */
+
 
 
 /**

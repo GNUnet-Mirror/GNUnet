@@ -39,32 +39,32 @@
  * Handle to the ATS subsystem for making suggestions about
  * connections the peer would like to have.
  */
-struct GNUNET_ATS_ConnectivityHandle;
+struct GNUNET_ATS_ApplicationHandle;
 
 
 /**
- * Initialize the ATS connectivity suggestion client handle.
+ * Initialize the ATS application client handle.
  *
  * @param cfg configuration to use
- * @return ats connectivity handle, NULL on error
+ * @return ats application handle, NULL on error
  */
-struct GNUNET_ATS_ConnectivityHandle *
-GNUNET_ATS_connectivity_init (const struct GNUNET_CONFIGURATION_Handle *cfg);
+struct GNUNET_ATS_ApplicationHandle *
+GNUNET_ATS_application_init (const struct GNUNET_CONFIGURATION_Handle *cfg);
 
 
 /**
- * Shutdown ATS connectivity suggestion client.
+ * Shutdown ATS application client.
  *
  * @param ch handle to destroy
  */
 void
-GNUNET_ATS_connectivity_done (struct GNUNET_ATS_ConnectivityHandle *ch);
+GNUNET_ATS_application_done (struct GNUNET_ATS_ApplicationHandle *ch);
 
 
 /**
- * Handle for address suggestion requests.
+ * Handle for suggestion requests.
  */
-struct GNUNET_ATS_ConnectivitySuggestHandle;
+struct GNUNET_ATS_ApplicationSuggestHandle;
 
 
 /**
@@ -74,13 +74,13 @@ struct GNUNET_ATS_ConnectivitySuggestHandle;
  *
  * @param ch handle
  * @param peer identity of the peer we need an address for
- * @param pk what kind of connectivity will the application require (can be
+ * @param pk what kind of application will the application require (can be
  *         #GNUNET_MQ_PREFERENCE_NONE, we will still try to connect)
  * @param bw desired bandwith, can be zero (we will still try to connect)
  * @return suggestion handle, NULL if request is already pending
  */
-struct GNUNET_ATS_ConnectivitySuggestHandle *
-GNUNET_ATS_connectivity_suggest (struct GNUNET_ATS_ConnectivityHandle *ch,
+struct GNUNET_ATS_ApplicationSuggestHandle *
+GNUNET_ATS_application_suggest (struct GNUNET_ATS_ApplicationHandle *ch,
                                  const struct GNUNET_PeerIdentity *peer,
                                  enum GNUNET_MQ_PreferenceKind pk,
                                  struct GNUNET_BANDWIDTH_Value32NBO bw);
@@ -92,8 +92,9 @@ GNUNET_ATS_connectivity_suggest (struct GNUNET_ATS_ConnectivityHandle *ch,
  * @param sh handle
  */
 void
-GNUNET_ATS_connectivity_suggest_cancel (struct GNUNET_ATS_ConnectivitySuggestHandle *sh);
+GNUNET_ATS_application_suggest_cancel (struct GNUNET_ATS_ApplicationSuggestHandle *sh);
 
 /** @} */  /* end of group */
 
+#endif
 /* end of file gnunet_ats_application_service.h */

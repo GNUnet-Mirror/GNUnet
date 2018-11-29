@@ -108,12 +108,12 @@ struct GNUNET_ATS_Properties
 };
 
 
-/* ******************************** Scheduling API ***************************** */
+/* ******************************** Transport API ***************************** */
 
 /**
- * Handle to the ATS subsystem for bandwidth/transport scheduling information.
+ * Handle to the ATS subsystem for bandwidth/transport transport information.
  */
-struct GNUNET_ATS_SchedulingHandle;
+struct GNUNET_ATS_TransportHandle;
 
 /**
  * Opaque session handle, to be defined by transport.  Contents not known to ATS.
@@ -154,7 +154,7 @@ typedef void
 
 
 /**
- * Initialize the ATS scheduling subsystem.
+ * Initialize the ATS transport subsystem.
  *
  * @param cfg configuration to use
  * @param alloc_cb notification to call whenever the allocation changed
@@ -163,45 +163,45 @@ typedef void
  * @param suggest_cb_cls closure for @a suggest_cb
  * @return ats context
  */
-struct GNUNET_ATS_SchedulingHandle *
-GNUNET_ATS_scheduling_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                            GNUNET_ATS_AllocationCallback alloc_cb,
-                            void *alloc_cb_cls);
-                            GNUNET_ATS_SuggestionCallback suggest_cb,
-                            void *suggest_cb_cls);
+struct GNUNET_ATS_TransportHandle *
+GNUNET_ATS_transport_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
+                           GNUNET_ATS_AllocationCallback alloc_cb,
+                           void *alloc_cb_cls,
+                           GNUNET_ATS_SuggestionCallback suggest_cb,
+                           void *suggest_cb_cls);
 
 
 /**
- * Client is done with ATS scheduling, release resources.
+ * Client is done with ATS transport, release resources.
  *
- * @param sh handle to release
+ * @param ath handle to release
  */
 void
-GNUNET_ATS_scheduling_done (struct GNUNET_ATS_SchedulingHandle *sh);
+GNUNET_ATS_transport_done (struct GNUNET_ATS_TransportHandle *ath);
 
 
 /**
- * Handle used within ATS to track an address.
+ * Handle used within ATS to track an session.
  */
-struct GNUNET_ATS_AddressRecord;
+struct GNUNET_ATS_SessionRecord;
 
 
 /**
- * We have a new address ATS should know. Addresses have to be added with this
+ * We have a new session ATS should know. Sessiones have to be added with this
  * function before they can be: updated, set in use and destroyed
  *
- * @param sh handle
+ * @param ath handle
  * @param pid peer we connected to
- * @param address the address (human readable version), NULL if
+ * @param address the address (human readable version),
+ * @param session transport-internal handle for the session/queue, NULL if
  *        the session is inbound-only
- * @param session transport-internal handle for the address/queue
- * @param prop performance data for the address
- * @return handle to the address representation inside ATS, NULL
- *         on error (i.e. ATS knows this exact address already, or
- *         address is invalid)
+ * @param prop performance data for the session
+ * @return handle to the session representation inside ATS, NULL
+ *         on error (i.e. ATS knows this exact session already, or
+ *         session is invalid)
  */
-struct GNUNET_ATS_AddressRecord *
-GNUNET_ATS_address_add (struct GNUNET_ATS_SchedulingHandle *sh,
+struct GNUNET_ATS_SessionRecord *
+GNUNET_ATS_session_add (struct GNUNET_ATS_TransportHandle *ath,
                         const struct GNUNET_PeerIdentity *pid,
                         const char *address,
                         struct GNUNET_ATS_Session *session,
@@ -209,14 +209,14 @@ GNUNET_ATS_address_add (struct GNUNET_ATS_SchedulingHandle *sh,
 
 
 /**
- * We have updated performance statistics for a given address.  Based
+ * We have updated performance statistics for a given session.  Based
  * on the information provided, ATS may update bandwidth assignments.
  *
- * @param ar address record to update information for
- * @param prop performance data for the address
+ * @param ar session record to update information for
+ * @param prop performance data for the session
  */
 void
-GNUNET_ATS_address_update (struct GNUNET_ATS_AddressRecord *ar,
+GNUNET_ATS_session_update (struct GNUNET_ATS_SessionRecord *ar,
                            const struct GNUNET_ATS_Properties *prop);
 
 
@@ -225,10 +225,10 @@ GNUNET_ATS_address_update (struct GNUNET_ATS_AddressRecord *ar,
  * allocate under the assumption that this @a ar is no
  * longer in use.
  *
- * @param ar address record to drop
+ * @param ar session record to drop
  */
 void
-GNUNET_ATS_address_del (struct GNUNET_ATS_AddressRecord *ar);
+GNUNET_ATS_session_del (struct GNUNET_ATS_SessionRecord *ar);
 
 
 #endif

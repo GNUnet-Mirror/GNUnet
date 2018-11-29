@@ -18,7 +18,10 @@ if USE_COVERAGE
   AM_CFLAGS = -fprofile-arcs -ftest-coverage
 endif
 
-lib_LTLIBRARIES = libgnunetats.la
+lib_LTLIBRARIES = \
+  libgnunetats.la \
+  libgnunetatsapplication.la \
+  libgnunetatstransport.la
 
 plugin_LTLIBRARIES = \
   libgnunet_plugin_ats_proportional.la
@@ -44,6 +47,25 @@ libgnunetats_la_LIBADD = \
 libgnunetats_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS)  $(WINFLAGS) \
   -version-info 4:0:0
+
+
+libgnunetatsapplication_la_SOURCES = \
+  ats_api2_application.c
+libgnunetatsapplication_la_LIBADD = \
+ $(top_builddir)/src/util/libgnunetutil.la \
+ $(LTLIBINTL)
+libgnunetatsapplication_la_LDFLAGS = \
+  $(GN_LIB_LDFLAGS)  $(WINFLAGS) \
+  -version-info 0:0:0
+
+libgnunetatstransport_la_SOURCES = \
+  ats_api2_transport.c
+libgnunetatstransport_la_LIBADD = \
+ $(top_builddir)/src/util/libgnunetutil.la \
+ $(LTLIBINTL)
+libgnunetatstransport_la_LDFLAGS = \
+  $(GN_LIB_LDFLAGS)  $(WINFLAGS) \
+  -version-info 0:0:0
 
 libgnunet_plugin_ats_proportional_la_SOURCES = \
   plugin_ats_proportional.c
