@@ -70,8 +70,6 @@ gnunetinclude_HEADERS = \
   gnunet_identity_service.h \
   gnunet_reclaim_service.h \
   gnunet_json_lib.h \
-  gnunet_jsonapi_lib.h \
-  gnunet_jsonapi_util.h \
   gnunet_load_lib.h \
   gnunet_cadet_service.h \
   gnunet_microphone_lib.h \

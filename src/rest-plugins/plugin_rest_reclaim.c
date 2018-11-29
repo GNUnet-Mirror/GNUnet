@@ -30,8 +30,6 @@
 #include "gnunet_gnsrecord_lib.h"
 #include "gnunet_namestore_service.h"
 #include "gnunet_rest_lib.h"
-#include "gnunet_jsonapi_lib.h"
-#include "gnunet_jsonapi_util.h"
 #include "microhttpd.h"
 #include <jansson.h>
 #include <inttypes.h>
