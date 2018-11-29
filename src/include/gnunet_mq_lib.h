@@ -517,7 +517,7 @@ struct GNUNET_MQ_MessageHandler
       (const struct GNUNET_MessageHeader *) m;        \
     uint16_t slen = ntohs (hdr->size) - sizeof (*m);  \
     if ( (0 == slen) ||                               \
-         (memchr (str, 0, slen) == &str[slen - 1]) )  \
+         (memchr (str, 0, slen) != &str[slen - 1]) )  \
     {                                                 \
       GNUNET_break (0);                               \
       return GNUNET_NO;                               \
