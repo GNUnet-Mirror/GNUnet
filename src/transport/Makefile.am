@@ -9,7 +9,7 @@ libexecdir= $(pkglibdir)/libexec/
 
 pkgcfg_DATA = \
   transport.conf \
-  communicator-unix.conf 
+  communicator-unix.conf
 
 if HAVE_MHD
  GN_LIBMHD = -lmicrohttpd
@@ -1058,6 +1058,7 @@ test_quota_compliance_http_LDADD = \
  libgnunettransport.la \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/ats/libgnunetats.la \
+ $(top_builddir)/src/nt/libgnunetnt.la \
  $(top_builddir)/src/util/libgnunetutil.la \
  libgnunettransporttesting.la
 
@@ -1067,6 +1068,7 @@ test_quota_compliance_http_asymmetric_LDADD = \
  libgnunettransport.la \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/ats/libgnunetats.la \
+ $(top_builddir)/src/nt/libgnunetnt.la \
  $(top_builddir)/src/util/libgnunetutil.la \
  libgnunettransporttesting.la
 
@@ -1076,6 +1078,7 @@ test_quota_compliance_https_LDADD = \
  libgnunettransport.la \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/ats/libgnunetats.la \
+ $(top_builddir)/src/nt/libgnunetnt.la \
  $(top_builddir)/src/util/libgnunetutil.la \
  libgnunettransporttesting.la
 
@@ -1085,6 +1088,7 @@ test_quota_compliance_https_asymmetric_LDADD = \
  libgnunettransport.la \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/ats/libgnunetats.la \
+ $(top_builddir)/src/nt/libgnunetnt.la \
  $(top_builddir)/src/util/libgnunetutil.la \
  libgnunettransporttesting.la
 
@@ -1203,6 +1207,7 @@ test_quota_compliance_tcp_LDADD = \
  libgnunettransport.la \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/ats/libgnunetats.la \
+ $(top_builddir)/src/nt/libgnunetnt.la \
  $(top_builddir)/src/util/libgnunetutil.la \
  libgnunettransporttesting.la
 
@@ -1211,6 +1216,7 @@ test_quota_compliance_tcp_asymmetric_SOURCES = \
 test_quota_compliance_tcp_asymmetric_LDADD = \
  libgnunettransport.la \
  $(top_builddir)/src/hello/libgnunethello.la \
+ $(top_builddir)/src/nt/libgnunetnt.la \
  $(top_builddir)/src/ats/libgnunetats.la \
  $(top_builddir)/src/util/libgnunetutil.la \
  libgnunettransporttesting.la
@@ -1221,6 +1227,7 @@ test_quota_compliance_udp_LDADD = \
  libgnunettransport.la \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/ats/libgnunetats.la \
+ $(top_builddir)/src/nt/libgnunetnt.la \
  $(top_builddir)/src/util/libgnunetutil.la \
  libgnunettransporttesting.la
 
@@ -1230,6 +1237,7 @@ test_quota_compliance_unix_LDADD = \
  libgnunettransport.la \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/ats/libgnunetats.la \
+ $(top_builddir)/src/nt/libgnunetnt.la \
  $(top_builddir)/src/util/libgnunetutil.la \
  libgnunettransporttesting.la
 
@@ -1239,6 +1247,7 @@ test_quota_compliance_unix_asymmetric_LDADD = \
  libgnunettransport.la \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/ats/libgnunetats.la \
+ $(top_builddir)/src/nt/libgnunetnt.la \
  $(top_builddir)/src/util/libgnunetutil.la \
  libgnunettransporttesting.la
 
@@ -1248,6 +1257,7 @@ test_quota_compliance_wlan_LDADD = \
  libgnunettransport.la \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/ats/libgnunetats.la \
+ $(top_builddir)/src/nt/libgnunetnt.la \
  $(top_builddir)/src/util/libgnunetutil.la \
  libgnunettransporttesting.la
 
@@ -1257,6 +1267,7 @@ test_quota_compliance_wlan_asymmetric_LDADD = \
  libgnunettransport.la \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/ats/libgnunetats.la \
+ $(top_builddir)/src/nt/libgnunetnt.la \
  $(top_builddir)/src/util/libgnunetutil.la \
  libgnunettransporttesting.la
 
@@ -1266,6 +1277,7 @@ test_quota_compliance_bluetooth_LDADD = \
  libgnunettransport.la \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/ats/libgnunetats.la \
+ $(top_builddir)/src/nt/libgnunetnt.la \
  $(top_builddir)/src/util/libgnunetutil.la \
  libgnunettransporttesting.la
 
@@ -1275,6 +1287,7 @@ test_quota_compliance_bluetooth_asymmetric_LDADD = \
  libgnunettransport.la \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/ats/libgnunetats.la \
+ $(top_builddir)/src/nt/libgnunetnt.la \
  $(top_builddir)/src/util/libgnunetutil.la \
  libgnunettransporttesting.la
 
