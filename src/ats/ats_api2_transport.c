@@ -190,8 +190,8 @@ static int
 check_ats_address_suggestion (void *cls,
                               const struct AddressSuggestionMessage *m)
 {
-  // FIXME: check 0-termination!
-  // FIXME: MQ API should really have a macro for this!
+  (void) cls;
+  GNUNET_MQ_check_zero_termination (m);
   return GNUNET_SYSERR;
 }
 

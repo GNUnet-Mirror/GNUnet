@@ -501,6 +501,31 @@ struct GNUNET_MQ_MessageHandler
 
 
 /**
+ * Insert code for a "check_" function that verifies that
+ * a given variable-length message received over the network
+ * is followed by a 0-terminated string.  If the message @a m
+ * is not followed by a 0-terminated string, an error is logged
+ * and the function is returned with #GNUNET_NO.
+ *
+ * @param an IPC message with proper type to determine
+ *  the size, starting with a `struct GNUNET_MessageHeader`
+ */
+#define GNUNET_MQ_check_zero_termination(m)           \
+  {                                                   \
+    const char *str = (const char *) &m[1];           \
+    const struct GNUNET_MessageHeader *hdr =          \
+      (const struct GNUNET_MessageHeader *) m;        \
+    uint16_t slen = ntohs (hdr->size) - sizeof (*m);  \
+    if ( (0 == slen) ||                               \
+         (memchr (str, 0, slen) == &str[slen - 1]) )  \
+    {                                                 \
+      GNUNET_break (0);                               \
+      return GNUNET_NO;                               \
+    }                                                 \
+  }
+
+
+/**
  * Create a new envelope.
  *
  * @param mhp message header to store the allocated message header in, can be NULL
