@@ -1078,7 +1078,6 @@ check_communicator_available (void *cls,
                               const struct GNUNET_TRANSPORT_CommunicatorAvailableMessage *cam)
 {
   struct TransportClient *tc = cls;
-  const char *addr;
   uint16_t size;
 
   if (CT_NONE != tc->type)
@@ -1090,12 +1089,7 @@ check_communicator_available (void *cls,
   size = ntohs (cam->header.size) - sizeof (*cam);
   if (0 == size)
     return GNUNET_OK; /* receive-only communicator */
-  addr = (const char *) &cam[1];
-  if ('\0' != addr[size-1])
-  {
-    GNUNET_break (0);
-    return GNUNET_SYSERR;
-  }
+  GNUNET_MQ_check_zero_termination (cam);
   return GNUNET_OK;
 }
 
@@ -1135,26 +1129,13 @@ check_add_address (void *cls,
                    const struct GNUNET_TRANSPORT_AddAddressMessage *aam)
 {
   struct TransportClient *tc = cls;
-  const char *addr;
-  uint16_t size;
 
   if (CT_COMMUNICATOR != tc->type)
   {
     GNUNET_break (0);
     return GNUNET_SYSERR;
   }
-  size = ntohs (aam->header.size) - sizeof (*aam);
-  if (0 == size)
-  {
-    GNUNET_break (0);
-    return GNUNET_SYSERR;
-  }
-  addr = (const char *) &aam[1];
-  if ('\0' != addr[size-1])
-  {
-    GNUNET_break (0);
-    return GNUNET_SYSERR;
-  }
+  GNUNET_MQ_check_zero_termination (aam);
   return GNUNET_OK;
 }
 
@@ -1363,26 +1344,13 @@ check_add_queue_message (void *cls,
                          const struct GNUNET_TRANSPORT_AddQueueMessage *aqm)
 {
   struct TransportClient *tc = cls;
-  const char *addr;
-  uint16_t size;
 
   if (CT_COMMUNICATOR != tc->type)
   {
     GNUNET_break (0);
     return GNUNET_SYSERR;
   }
-  size = ntohs (aqm->header.size) - sizeof (*aqm);
-  if (0 == size)
-  {
-    GNUNET_break (0);
-    return GNUNET_SYSERR;
-  }
-  addr = (const char *) &aqm[1];
-  if ('\0' != addr[size-1])
-  {
-    GNUNET_break (0);
-    return GNUNET_SYSERR;
-  }
+  GNUNET_MQ_check_zero_termination (aqm);
   return GNUNET_OK;
 }
 

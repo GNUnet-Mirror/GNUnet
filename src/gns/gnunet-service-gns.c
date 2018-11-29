@@ -11,7 +11,7 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
@@ -396,19 +396,12 @@ static int
 check_lookup (void *cls,
               const struct LookupMessage *l_msg)
 {
-  size_t msg_size;
-  const char* name;
+  size_t nlen;
 
   (void) cls;
-  msg_size = ntohs (l_msg->header.size);
-  if (msg_size < sizeof (struct LookupMessage))
-  {
-    GNUNET_break (0);
-    return GNUNET_SYSERR;
-  }
-  name = (const char *) &l_msg[1];
-  if ( ('\0' != name[msg_size - sizeof (struct LookupMessage) - 1]) ||
-       (strlen (name) > GNUNET_DNSPARSER_MAX_NAME_LENGTH) )
+  GNUNET_MQ_check_zero_termination (l_msg);
+  nlen = ntohs (l_msg->header.size) - sizeof (struct LookupMessage);
+  if (nlen > GNUNET_DNSPARSER_MAX_NAME_LENGTH)
   {
     GNUNET_break (0);
     return GNUNET_SYSERR;

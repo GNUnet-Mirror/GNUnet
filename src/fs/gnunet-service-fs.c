@@ -11,7 +11,7 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
@@ -965,15 +965,9 @@ static int
 check_client_index_start (void *cls,
                           const struct IndexStartMessage *ism)
 {
-  uint16_t msize;
   char *fn;
 
-  msize = ntohs (ism->header.size);
-  if (((const char *) ism)[msize - 1] != '\0')
-  {
-    GNUNET_break (0);
-    return GNUNET_SYSERR;
-  }
+  GNUNET_MQ_check_zero_termination (ism);
   if (0 != ism->reserved)
   {
     GNUNET_break (0);

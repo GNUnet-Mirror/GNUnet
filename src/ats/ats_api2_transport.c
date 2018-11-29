@@ -131,6 +131,29 @@ struct GNUNET_ATS_TransportHandle
 };
 
 
+
+/**
+ * Convert ATS properties from host to network byte order.
+ *
+ * @param nbo[OUT] value written
+ * @param hbo value read
+ */
+static void
+properties_hton (struct PropertiesNBO *nbo,
+                 const struct GNUNET_ATS_Properties *hbo)
+{
+  nbo->delay = GNUNET_TIME_relative_hton (hbo->delay);
+  nbo->goodput_out = htonl (hbo->goodput_out);
+  nbo->goodput_in = htonl (hbo->goodput_in);
+  nbo->utilization_out = htonl (hbo->utilization_out);
+  nbo->utilization_in = htonl (hbo->utilization_in);
+  nbo->distance = htonl (hbo->distance);
+  nbo->mtu = htonl (hbo->mtu);
+  nbo->nt = htonl ((uint32_t) hbo->nt);
+  nbo->cc = htonl ((uint32_t) hbo->cc);
+}
+
+
 /**
  * Re-establish the connection to the ATS service.
  *
@@ -250,10 +273,10 @@ match_session_cb (void *cls,
 
   (void) pid;
   if (fc->session_id == sr->slot)
-    {
-      fc->sr = sr;
-      return GNUNET_NO;
-    }
+  {
+    fc->sr = sr;
+    return GNUNET_NO;
+  }
   return GNUNET_YES;
 }
 
@@ -366,8 +389,8 @@ send_add_session_message (const struct GNUNET_ATS_SessionRecord *ar)
                             : GNUNET_MESSAGE_TYPE_ATS_SESSION_ADD);
   m->peer = ar->pid;
   m->session_id = htonl (ar->slot);
-  // FIXME: convert endianess here!
-  // m->properties = ar->properties;
+  properties_hton (&m->properties,
+                   &ar->properties);
   GNUNET_memcpy (&m[1],
                  ar->address,
                  alen);
@@ -580,7 +603,7 @@ GNUNET_ATS_session_add (struct GNUNET_ATS_TransportHandle *ath,
   alen = strlen (address) + 1;
   ar = GNUNET_malloc (sizeof (struct GNUNET_ATS_SessionRecord) + alen);
   ar->ath = ath;
-  ar->slot = 42; // FIXME: make up unique number!
+  ar->slot = s;
   ar->session = session;
   ar->address = (const char *) &ar[1];
   ar->pid = *pid;
@@ -627,8 +650,8 @@ GNUNET_ATS_session_update (struct GNUNET_ATS_SessionRecord *ar,
                       GNUNET_MESSAGE_TYPE_ATS_SESSION_UPDATE);
   m->session_id = htonl (ar->slot);
   m->peer = ar->pid;
-  // FIXME: convert endianess here!
-  // m->properties = ar->properties;
+  properties_hton (&m->properties,
+                   &ar->properties);
   GNUNET_MQ_send (ath->mq,
                   ev);
 }

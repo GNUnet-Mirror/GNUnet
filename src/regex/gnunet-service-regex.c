@@ -11,7 +11,7 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
@@ -131,16 +131,8 @@ check_announce (void *cls,
                 const struct AnnounceMessage *am)
 {
   struct ClientEntry *ce = cls;
-  const char *regex;
-  uint16_t size;
 
-  size = ntohs (am->header.size) - sizeof (*am);
-  regex = (const char *) &am[1];
-  if ('\0' != regex[size - 1])
-  {
-    GNUNET_break (0);
-    return GNUNET_SYSERR;
-  }
+  GNUNET_MQ_check_zero_termination (am);
   if (NULL != ce->ah)
   {
     /* only one announcement per client allowed */

@@ -1221,7 +1221,6 @@ check_record_lookup (void *cls,
 {
   uint32_t name_len;
   size_t src_size;
-  const char *name_tmp;
 
   (void) cls;
   name_len = ntohl (ll_msg->label_len);
@@ -1231,13 +1230,7 @@ check_record_lookup (void *cls,
     GNUNET_break (0);
     return GNUNET_SYSERR;
   }
-
-  name_tmp = (const char *) &ll_msg[1];
-  if ('\0' != name_tmp[name_len -1])
-  {
-    GNUNET_break (0);
-    return GNUNET_SYSERR;
-  }
+  GNUNET_MQ_check_zero_termination (ll_msg);
   return GNUNET_OK;
 }
 

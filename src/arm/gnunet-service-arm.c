@@ -11,7 +11,7 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
@@ -469,7 +469,7 @@ get_server_addresses (const char *service_name,
 #endif
     if ( (GNUNET_YES != abstract) &&
 	 (GNUNET_OK !=
-	  GNUNET_DISK_directory_create_for_file (unixpath)) ) 
+	  GNUNET_DISK_directory_create_for_file (unixpath)) )
       GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR,
 				"mkdir",
 				unixpath);
@@ -1234,18 +1234,8 @@ static int
 check_start (void *cls,
              const struct GNUNET_ARM_Message *amsg)
 {
-  uint16_t size;
-  const char *servicename;
-
   (void) cls;
-  size = ntohs (amsg->header.size) - sizeof (struct GNUNET_ARM_Message);
-  servicename = (const char *) &amsg[1];
-  if ( (0 == size) ||
-       (servicename[size - 1] != '\0') )
-  {
-    GNUNET_break (0);
-    return GNUNET_SYSERR;
-  }
+  GNUNET_MQ_check_zero_termination (amsg);
   return GNUNET_OK;
 }
 
@@ -1327,18 +1317,8 @@ static int
 check_stop (void *cls,
             const struct GNUNET_ARM_Message *amsg)
 {
-  uint16_t size;
-  const char *servicename;
-
   (void) cls;
-  size = ntohs (amsg->header.size) - sizeof (struct GNUNET_ARM_Message);
-  servicename = (const char *) &amsg[1];
-  if ( (0 == size) ||
-       (servicename[size - 1] != '\0') )
-  {
-    GNUNET_break (0);
-    return GNUNET_SYSERR;
-  }
+  GNUNET_MQ_check_zero_termination (amsg);
   return GNUNET_OK;
 }
 
@@ -1715,7 +1695,7 @@ delayed_restart_task (void *cls)
  * Task triggered whenever we receive a SIGCHLD (child
  * process died).
  *
- * @param cls closure, NULL 
+ * @param cls closure, NULL
  */
 static void
 maint_child_death (void *cls)
@@ -2230,7 +2210,7 @@ run (void *cls,
   start_system = GNUNET_CONFIGURATION_get_value_yesno (cfg,
                                             "ARM",
                                             "START_SYSTEM_SERVICES");
-  if ( (GNUNET_NO == start_user) && 
+  if ( (GNUNET_NO == start_user) &&
        (GNUNET_NO == start_system) )
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,

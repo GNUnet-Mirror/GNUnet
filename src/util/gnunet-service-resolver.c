@@ -365,12 +365,12 @@ lookup_dns_servers (char ***server_addrs)
     return -1;
   }
   if ((size_t) bytes_read > SIZE_MAX)
-  { 
+  {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 		"/etc/resolv.conf file too large to mmap. "
 		"DNS resolution will not be possible.\n");
     GNUNET_DISK_file_close (fh);
-    return -1;   
+    return -1;
   }
   buf = GNUNET_DISK_file_map (fh,
 			      &mh,
@@ -600,7 +600,7 @@ remove_expired (struct ResolveCache *rc)
                                    pos);
       GNUNET_DNSPARSER_free_record (pos->record);
       GNUNET_free (pos->record);
-      GNUNET_free (pos);      
+      GNUNET_free (pos);
     }
   }
   if (NULL == rc->records_head)
@@ -1062,7 +1062,7 @@ process_get (const char *hostname,
 	     struct GNUNET_SERVICE_Client *client)
 {
   char fqdn[255];
-  
+
   if (  (NULL != my_domain) &&
 	(NULL == strchr (hostname,
 			 (unsigned char) '.')) &&
@@ -1072,7 +1072,7 @@ process_get (const char *hostname,
 		     sizeof (fqdn),
 		     "%s.%s",
 		     hostname,
-		     my_domain);		     
+		     my_domain);
   }
   else if (strlen (hostname) < 255)
   {
@@ -1126,15 +1126,7 @@ check_get (void *cls,
   direction = ntohl (get->direction);
   if (GNUNET_NO == direction)
   {
-    /* IP from hostname */
-    const char *hostname;
-
-    hostname = (const char *) &get[1];
-    if (hostname[size - 1] != '\0')
-    {
-      GNUNET_break (0);
-      return GNUNET_SYSERR;
-    }
+    GNUNET_MQ_check_zero_termination (get);
     return GNUNET_OK;
   }
   af = ntohl (get->af);
@@ -1257,7 +1249,7 @@ shutdown_task (void *cls)
 
 
 /**
- * Add information about a host from /etc/hosts 
+ * Add information about a host from /etc/hosts
  * to our cache.
  *
  * @param hostname the name of the host
@@ -1278,7 +1270,7 @@ add_host (const char *hostname,
   rec = GNUNET_malloc (sizeof (struct GNUNET_DNSPARSER_Record));
   rec->expiration_time = GNUNET_TIME_UNIT_FOREVER_ABS;
   rec->type = rec_type;
-  rec->dns_traffic_class = GNUNET_TUN_DNS_CLASS_INTERNET;  
+  rec->dns_traffic_class = GNUNET_TUN_DNS_CLASS_INTERNET;
   rec->name = GNUNET_strdup (hostname);
   rec->data.raw.data = GNUNET_memdup (data,
 				      data_size);
@@ -1298,7 +1290,7 @@ add_host (const char *hostname,
 
 /**
  * Extract host information from a line in /etc/hosts
- * 
+ *
  * @param line the line to parse
  * @param line_len number of bytes in @a line
  */
@@ -1389,12 +1381,12 @@ load_etc_hosts (void)
     return;
   }
   if ((size_t) bytes_read > SIZE_MAX)
-  { 
+  {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 		"/etc/hosts file too large to mmap. "
 		"DNS resolution will not be possible.\n");
     GNUNET_DISK_file_close (fh);
-    return;   
+    return;
   }
   buf = GNUNET_DISK_file_map (fh,
 			      &mh,
