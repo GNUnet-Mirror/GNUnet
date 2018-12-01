@@ -243,6 +243,11 @@ database_setup (struct Plugin *plugin)
                        "PRAGMA page_size=4092",
                        NULL, NULL,
                        ENULL));
+  CHECK (SQLITE_OK ==
+         sqlite3_exec (plugin->dbh,
+                       "PRAGMA journal_mode=WAL",
+                       NULL, NULL,
+                       ENULL));
 
   CHECK (SQLITE_OK ==
          sqlite3_busy_timeout (plugin->dbh,
@@ -325,21 +330,30 @@ database_shutdown (struct Plugin *plugin)
   {
     LOG (GNUNET_ERROR_TYPE_WARNING,
 	 _("Tried to close sqlite without finalizing all prepared statements.\n"));
-    stmt = sqlite3_next_stmt (plugin->dbh, NULL);
+    stmt = sqlite3_next_stmt (plugin->dbh,
+                              NULL);
     while (stmt != NULL)
     {
-      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "sqlite",
-                       "Closing statement %p\n", stmt);
+      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
+                       "sqlite",
+                       "Closing statement %p\n",
+                       stmt);
       result = sqlite3_finalize (stmt);
       if (result != SQLITE_OK)
-        GNUNET_log_from (GNUNET_ERROR_TYPE_WARNING, "sqlite",
-                         "Failed to close statement %p: %d\n", stmt, result);
-      stmt = sqlite3_next_stmt (plugin->dbh, NULL);
+        GNUNET_log_from (GNUNET_ERROR_TYPE_WARNING,
+                         "sqlite",
+                         "Failed to close statement %p: %d\n",
+                         stmt,
+                         result);
+      stmt = sqlite3_next_stmt (plugin->dbh,
+                                NULL);
     }
     result = sqlite3_close (plugin->dbh);
   }
   if (SQLITE_OK != result)
-    LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR, "sqlite3_close");
+    LOG_SQLITE (plugin,
+                GNUNET_ERROR_TYPE_ERROR,
+                "sqlite3_close");
 
   GNUNET_free_non_null (plugin->fn);
 }
@@ -365,7 +379,8 @@ namecache_sqlite_expire_blocks (struct Plugin *plugin)
       GNUNET_SQ_bind (plugin->expire_blocks,
                       params))
   {
-    LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+    LOG_SQLITE (plugin,
+                GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
                 "sqlite3_bind_XXXX");
     GNUNET_SQ_reset (plugin->dbh,
                      plugin->expire_blocks);
@@ -406,6 +421,7 @@ static int
 namecache_sqlite_cache_block (void *cls,
 			      const struct GNUNET_GNSRECORD_Block *block)
 {
+  static struct GNUNET_TIME_Absolute last_expire;
   struct Plugin *plugin = cls;
   struct GNUNET_HashCode query;
   struct GNUNET_TIME_Absolute expiration;
@@ -426,7 +442,13 @@ namecache_sqlite_cache_block (void *cls,
   };
   int n;
 
-  namecache_sqlite_expire_blocks (plugin);
+  /* run expiration of old cache entries once per hour */
+  if (GNUNET_TIME_absolute_get_duration (last_expire).rel_value_us >
+      GNUNET_TIME_UNIT_HOURS.rel_value_us)
+  {
+    last_expire = GNUNET_TIME_absolute_get ();
+    namecache_sqlite_expire_blocks (plugin);
+  }
   GNUNET_CRYPTO_hash (&block->derived_key,
 		      sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey),
 		      &query);
