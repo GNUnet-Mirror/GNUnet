@@ -1000,7 +1000,7 @@ identity_cb (void *cls,
   GNUNET_free_non_null (ego_name);
   ego_name = NULL;
 
-  if (! (add|del|list|(NULL != nickstring)|(NULL != uri)|(NULL != reverse_pkey))|(NULL != recordset) )
+  if (! (add|del|list|(NULL != nickstring)|(NULL != uri)|(NULL != reverse_pkey)|(NULL != recordset)) )
   {
     /* nothing more to be done */
     fprintf (stderr,
