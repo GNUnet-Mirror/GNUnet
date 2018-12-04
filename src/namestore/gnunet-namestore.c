@@ -1334,6 +1334,10 @@ run (void *cls,
   (void) cls;
   (void) args;
   (void) cfgfile;
+  if (NULL != args[0])
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		_("Superfluous command line arguments (starting with `%s') ignored\n"),
+		args[0]);
   if ( (NULL != args[0]) &&
        (NULL == uri) )
     uri = GNUNET_strdup (args[0]);
@@ -1395,7 +1399,7 @@ multirecord_process (struct GNUNET_GETOPT_CommandLineProcessorContext *ctx,
   tok = strtok (cp, " ");
   if (NULL == tok)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 		_("Empty record line argument is not allowed.\n"));
     GNUNET_free (cp);
     return GNUNET_SYSERR;
@@ -1405,7 +1409,7 @@ multirecord_process (struct GNUNET_GETOPT_CommandLineProcessorContext *ctx,
 			&etime_is_rel,
 			&record.expiration_time))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 		_("Invalid expiration time `%s'\n"),
 		tok);
     GNUNET_free (cp);
@@ -1423,7 +1427,7 @@ multirecord_process (struct GNUNET_GETOPT_CommandLineProcessorContext *ctx,
   record.record_type = GNUNET_GNSRECORD_typename_to_number (tok);
   if (UINT32_MAX == record.record_type)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 		_("Unknown record type `%s'\n"),
 		tok);
     GNUNET_free (cp);
@@ -1432,7 +1436,7 @@ multirecord_process (struct GNUNET_GETOPT_CommandLineProcessorContext *ctx,
   tok = strtok (NULL, " ");
   if (NULL == tok)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 		_("Missing entries in record line `%s'.\n"),
 		value);
     GNUNET_free (cp);
@@ -1449,7 +1453,7 @@ multirecord_process (struct GNUNET_GETOPT_CommandLineProcessorContext *ctx,
   tok = strchr (&value[tok - cp], (unsigned char) ' ');
   if (NULL == tok)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 		_("Missing entries in record line `%s'.\n"),
 		value);
     GNUNET_free (cp);
@@ -1463,7 +1467,7 @@ multirecord_process (struct GNUNET_GETOPT_CommandLineProcessorContext *ctx,
 					&raw_data,
 					&record.data_size))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 		_("Invalid record data for type %s: `%s'.\n"),
 		GNUNET_GNSRECORD_number_to_typename (record.record_type),		
 		tok);
