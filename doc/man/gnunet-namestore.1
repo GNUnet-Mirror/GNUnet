@@ -65,7 +65,8 @@ PKEY) in the given zone.
 Sets record set to values given in RECORDLINE.  This option can be specified multiple
 times to provide multiple records for the record set.  Existing records under the
 same label will be deleted. The format for the RECORDLINE is
-"TTL TYPE FLAGS VALUE" where TTL is the time to live in seconds, TYPE is the
+"TTL TYPE FLAGS VALUE" where TTL is the time to live in seconds (unit must not
+be given explicitly, seconds is always implied), TYPE is the
 DNS/GNS record type, FLAGS is "(N)ORMAL", "(S)HADOW" or "(P)UBLIC".  The VALUE
 follows the usual human-readable value format(s) of DNS/GNS.
 .B

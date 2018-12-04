@@ -1374,6 +1374,7 @@ run (void *cls,
  * @param option name of the option (typically 'R')
  * @param value command line argument given; format is
  *        "TTL TYPE FLAGS VALUE" where TTL is an expiration time (rel or abs),
+ *        always given in seconds (without the unit),
  *         TYPE is a DNS/GNS record type, FLAGS is either "n" for no flags or
  *         a combination of 's' (shadow) and 'p' (public) and VALUE is the 
  *         value (in human-readable format)
@@ -1390,13 +1391,14 @@ multirecord_process (struct GNUNET_GETOPT_CommandLineProcessorContext *ctx,
   struct GNUNET_GNSRECORD_Data record;
   char *cp;
   char *tok;
+  char *saveptr;
   int etime_is_rel;
   void *raw_data;
 
   (void) ctx;
   (void) option;
   cp = GNUNET_strdup (value);
-  tok = strtok (cp, " ");
+  tok = strtok_r (cp, " ", &saveptr);
   if (NULL == tok)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -1404,21 +1406,30 @@ multirecord_process (struct GNUNET_GETOPT_CommandLineProcessorContext *ctx,
     GNUNET_free (cp);
     return GNUNET_SYSERR;
   }
-  if (GNUNET_OK !=
-      parse_expiration (tok,
-			&etime_is_rel,
-			&record.expiration_time))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		_("Invalid expiration time `%s'\n"),
-		tok);
-    GNUNET_free (cp);
-    return GNUNET_SYSERR;
+    char *etime_in_s;
+
+    GNUNET_asprintf (&etime_in_s,
+		     "%s s",
+		     tok);
+    if (GNUNET_OK !=
+	parse_expiration (etime_in_s,
+			  &etime_is_rel,
+			  &record.expiration_time))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		  _("Invalid expiration time `%s' (must be without unit)\n"),
+		  tok);
+      GNUNET_free (cp);
+      GNUNET_free (etime_in_s);
+      return GNUNET_SYSERR;
+    }
+    GNUNET_free (etime_in_s);
   }
-  tok = strtok (NULL, " ");
+  tok = strtok_r (NULL, " ", &saveptr);
   if (NULL == tok)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 		_("Missing entries in record line `%s'.\n"),
 		value);
     GNUNET_free (cp);
@@ -1433,7 +1444,7 @@ multirecord_process (struct GNUNET_GETOPT_CommandLineProcessorContext *ctx,
     GNUNET_free (cp);
     return GNUNET_SYSERR;
   }
-  tok = strtok (NULL, " ");
+  tok = strtok_r (NULL, " ", &saveptr);
   if (NULL == tok)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
