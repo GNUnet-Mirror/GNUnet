@@ -930,6 +930,11 @@ enum GNUNET_MQ_PreferenceKind
    */
   GNUNET_MQ_PREFERENCE_RELIABILITY = 3
 
+  /**
+   * Number of preference values allowed.
+   */
+#define GNUNET_MQ_PREFERENCE_COUNT 4
+
 };
 
 

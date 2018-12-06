@@ -35,8 +35,7 @@
 #ifndef PLUGIN_ATS_H
 #define PLUGIN_ATS_H
 
-#include "gnunet_mq_lib.h"
-#include "gnunet_bandwidth_lib.h"
+#include "gnunet_util_lib.h"
 #include "gnunet_ats_application_service.h"
 #include "gnunet_ats_transport_service.h"
 #include "gnunet_statistics_service.h"
