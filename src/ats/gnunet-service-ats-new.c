@@ -20,9 +20,6 @@
  * @brief ats service
  * @author Matthias Wachs
  * @author Christian Grothoff
- *
- * TODO:
- * - implement unloading of ATS plugins
  */
 #include "platform.h"
 #include "gnunet_util_lib.h"
@@ -654,6 +651,12 @@ cleanup_task (void *cls)
     GNUNET_STATISTICS_destroy (stats,
 			       GNUNET_NO);
     stats = NULL;
+  }
+  if (NULL != plugin)
+  {
+    GNUNET_PLUGIN_unload (plugin_name,
+			  plugin);
+    plugin = NULL;
   }
   if (NULL != plugin_name)
   {
