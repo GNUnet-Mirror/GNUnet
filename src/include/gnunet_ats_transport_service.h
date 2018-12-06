@@ -39,7 +39,7 @@
 
 
 /**
- * ATS performance characteristics for an address.
+ * ATS performance characteristics for a session.
  */
 struct GNUNET_ATS_Properties
 {

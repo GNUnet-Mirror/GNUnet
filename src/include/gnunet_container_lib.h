@@ -1580,9 +1580,10 @@ struct GNUNET_CONTAINER_MultiHashMap32Iterator;
  *         iterate,
  *         #GNUNET_NO if not.
  */
-typedef int (*GNUNET_CONTAINER_HashMapIterator32) (void *cls,
-                                                   uint32_t key,
-                                                   void *value);
+typedef int
+(*GNUNET_CONTAINER_HashMapIterator32) (void *cls,
+				       uint32_t key,
+				       void *value);
 
 
 /**
@@ -1604,8 +1605,7 @@ GNUNET_CONTAINER_multihashmap32_create (unsigned int len);
  * @param map the map
  */
 void
-GNUNET_CONTAINER_multihashmap32_destroy (struct GNUNET_CONTAINER_MultiHashMap32
-                                         *map);
+GNUNET_CONTAINER_multihashmap32_destroy (struct GNUNET_CONTAINER_MultiHashMap32 *map);
 
 
 /**

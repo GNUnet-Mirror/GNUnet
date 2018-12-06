@@ -99,7 +99,8 @@ libgnunet_plugin_ats_ril_la_LDFLAGS = \
   $(GN_PLUGIN_LDFLAGS)
 
 libexec_PROGRAMS = \
- gnunet-service-ats
+ gnunet-service-ats \
+ gnunet-service-ats-new
 
 gnunet_service_ats_SOURCES = \
  gnunet-service-ats.c gnunet-service-ats.h \
@@ -117,6 +118,14 @@ gnunet_service_ats_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   libgnunetats.la \
   $(GN_LIBINTL)
+
+gnunet_service_ats_new_SOURCES = \
+ gnunet-service-ats-new.c 
+gnunet_service_ats_new_LDADD = \
+  $(top_builddir)/src/statistics/libgnunetstatistics.la \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(GN_LIBINTL)
+
 
 if HAVE_TESTING
 TESTING_TESTS = \

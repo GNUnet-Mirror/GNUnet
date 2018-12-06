@@ -1,0 +1,653 @@
+/*
+     This file is part of GNUnet.
+     Copyright (C) 2011, 2018 GNUnet e.V.
+
+     GNUnet is free software: you can redistribute it and/or modify it
+     under the terms of the GNU Affero General Public License as published
+     by the Free Software Foundation, either version 3 of the License,
+     or (at your option) any later version.
+
+     GNUnet is distributed in the hope that it will be useful, but
+     WITHOUT ANY WARRANTY; without even the implied warranty of
+     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+     Affero General Public License for more details.
+    
+     You should have received a copy of the GNU Affero General Public License
+     along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+/**
+ * @file ats/gnunet-service-ats-new.c
+ * @brief ats service
+ * @author Matthias Wachs
+ * @author Christian Grothoff
+ *
+ * TODO:
+ * - implement messages ATS -> transport
+ * - implement loading / unloading of ATS plugins
+ * - expose plugin the API to send messages ATS -> transport
+ */
+#include "platform.h"
+#include "gnunet_util_lib.h"
+#include "gnunet_statistics_service.h"
+#include "gnunet_ats_plugin_new.h"
+#include "ats2.h"
+
+
+/**
+ * What type of client is this client?
+ */
+enum ClientType {
+  /**
+   * We don't know yet.
+   */
+  CT_NONE = 0,
+
+  /**
+   * Transport service.
+   */
+  CT_TRANSPORT,
+
+  /**
+   * Application.
+   */
+  CT_APPLICATION
+};
+
+
+/**
+ * Information we track per client.
+ */
+struct Client;
+
+/**
+ * Preferences expressed by a client are kept in a DLL per client.
+ */
+struct ClientPreference
+{
+  /**
+   * DLL pointer.
+   */
+  struct ClientPreference *next;
+
+  /**
+   * DLL pointer.
+   */
+  struct ClientPreference *prev;
+
+  /**
+   * Which client expressed the preference?
+   */
+  struct Client *client;
+
+  /**
+   * Plugin's representation of the preference.
+   */
+  struct GNUNET_ATS_PreferenceHandle *ph;
+  
+  /**
+   * Details about the preference.
+   */
+  struct GNUNET_ATS_Preference pref;
+};
+
+
+/**
+ * Information about ongoing sessions of the transport client.
+ */
+struct GNUNET_ATS_Session
+{
+
+  /**
+   * Session data exposed to the plugin. 
+   */
+  struct GNUNET_ATS_SessionData data;
+
+  /**
+   * The transport client that provided the session.
+   */
+  struct Client *client;
+
+  /**
+   * Session state in the plugin.
+   */
+  struct GNUNET_ATS_SessionHandle *sh;
+  
+  /**
+   * Unique ID for the session when talking with the client.
+   */ 
+  uint32_t session_id;
+  
+};
+
+
+/**
+ * Information we track per client.
+ */
+struct Client
+{
+  /**
+   * Type of the client, initially #CT_NONE.
+   */
+  enum ClientType type;
+
+  /**
+   * Service handle of the client.
+   */
+  struct GNUNET_SERVICE_Client *client;
+
+  /**
+   * Message queue to talk to the client.
+   */
+  struct GNUNET_MQ_Handle *mq;
+
+  /**
+   * Details depending on @e type.
+   */
+  union {
+
+    struct {
+
+      /**
+       * Head of DLL of preferences expressed by this client.
+       */
+      struct ClientPreference *cp_head;
+      
+      /**
+       * Tail of DLL of preferences expressed by this client.
+       */
+      struct ClientPreference *cp_tail;
+      
+    } application;
+
+    struct {
+
+      /**
+       * Map from session IDs to `struct GNUNET_ATS_Session` objects.
+       */
+      struct GNUNET_CONTAINER_MultiHashMap32 *sessions;
+      
+    } transport;
+    
+  } details;
+
+};
+
+
+/**
+ * Handle for statistics.
+ */
+static struct GNUNET_STATISTICS_Handle *GSA_stats;
+
+/**
+ * Our solver.
+ */
+static struct GNUNET_ATS_SolverFunctions *plugin;
+
+/**
+ * The transport client (there can only be one at a time).
+ */
+static struct Client *transport_client;
+
+
+/**
+ * Convert @a properties to @a prop
+ *
+ * @param properties in NBO
+ * @param prop[out] in HBO
+ */
+static void
+prop_ntoh (const struct PropertiesNBO *properties,
+	   struct GNUNET_ATS_Properties *prop)
+{
+  prop->delay = GNUNET_TIME_relative_ntoh (properties->delay);
+  prop->goodput_out = ntohl (properties->goodput_out);
+  prop->goodput_in = ntohl (properties->goodput_in);
+  prop->utilization_out = ntohl (properties->utilization_out);
+  prop->utilization_in = ntohl (properties->utilization_in);
+  prop->distance = ntohl (properties->distance);
+  prop->mtu = ntohl (properties->mtu);
+  prop->nt = (enum GNUNET_NetworkType) ntohl (properties->nt);
+  prop->cc = (enum GNUNET_TRANSPORT_CommunicatorCharacteristics) ntohl (properties->cc);
+}
+
+
+/**
+ * We have received a `struct ExpressPreferenceMessage` from an application client.  
+ *
+ * @param cls handle to the client
+ * @param msg the start message
+ */
+static void
+handle_suggest (void *cls,
+		const struct ExpressPreferenceMessage *msg)
+{
+  struct Client *c = cls;
+  struct ClientPreference *cp;
+
+  if (CT_NONE == c->type)
+    c->type = CT_APPLICATION;
+  if (CT_APPLICATION != c->type)
+  {
+    GNUNET_break (0);
+    GNUNET_SERVICE_client_drop (c->client);
+    return;
+  }
+  cp = GNUNET_new (struct ClientPreference);
+  cp->client = c;
+  cp->pref.peer = msg->peer;
+  cp->pref.bw = msg->bw;
+  cp->pref.pk = (enum GNUNET_MQ_PreferenceKind) ntohl (msg->pk);
+  cp->ph = plugin->preference_add (plugin->cls,
+				   &cp->pref);
+  GNUNET_CONTAINER_DLL_insert (c->details.application.cp_head,
+			       c->details.application.cp_tail,
+			       cp);
+  GNUNET_SERVICE_client_continue (c->client);
+}
+
+
+/**
+ * We have received a `struct ExpressPreferenceMessage` from an application client.  
+ *
+ * @param cls handle to the client
+ * @param msg the start message
+ */
+static void
+handle_suggest_cancel (void *cls,
+		       const struct ExpressPreferenceMessage *msg)
+{
+  struct Client *c = cls;
+  struct ClientPreference *cp;
+  
+  if (CT_NONE == c->type)
+    c->type = CT_APPLICATION;
+  if (CT_APPLICATION != c->type)
+  {
+    GNUNET_break (0);
+    GNUNET_SERVICE_client_drop (c->client);
+    return;
+  }
+  for (cp = c->details.application.cp_head;
+       NULL != cp;
+       cp = cp->next)
+    if ( (cp->pref.pk == (enum GNUNET_MQ_PreferenceKind) ntohl (msg->pk)) &&
+	 (cp->pref.bw.value__ == msg->bw.value__) &&
+	 (0 == memcmp (&cp->pref.peer,
+		       &msg->peer,
+		       sizeof (struct GNUNET_PeerIdentity))) )
+      break;
+  if (NULL == cp)
+  {
+    GNUNET_break (0);
+    GNUNET_SERVICE_client_drop (c->client);
+    return;
+  }
+  plugin->preference_del (plugin->cls,
+			  cp->ph,
+			  &cp->pref);
+  GNUNET_CONTAINER_DLL_remove (c->details.application.cp_head,
+			       c->details.application.cp_tail,
+			       cp);
+  GNUNET_free (cp);
+  GNUNET_SERVICE_client_continue (c->client);
+}
+
+
+/**
+ * Handle 'start' messages from transport clients.
+ *
+ * @param cls client that sent the request
+ * @param message the request message
+ */
+static void
+handle_start (void *cls,
+	      const struct GNUNET_MessageHeader *hdr)
+{
+  struct Client *c = cls;
+
+  if (CT_NONE != c->type)
+  {
+    GNUNET_break (0);
+    GNUNET_SERVICE_client_drop (c->client);
+    return;
+  }
+  c->type = CT_TRANSPORT;
+  c->details.transport.sessions
+    = GNUNET_CONTAINER_multihashmap32_create (128);
+  if (NULL != transport_client)
+  {
+    GNUNET_SERVICE_client_drop (transport_client->client);
+    transport_client = NULL;
+  }
+  transport_client = c;
+  GNUNET_SERVICE_client_continue (c->client);
+}
+
+
+/**
+ * Check 'session_add' message is well-formed and comes from a 
+ * transport client.
+ *
+ * @param cls client that sent the request
+ * @param message the request message
+ * @return #GNUNET_OK if @a message is well-formed
+ */
+static int
+check_session_add (void *cls,
+		   const struct SessionAddMessage *message)
+{
+  struct Client *c = cls;
+
+  GNUNET_MQ_check_zero_termination (message);
+  if (CT_TRANSPORT != c->type)
+  {
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
+  return GNUNET_OK;
+}
+
+
+/**
+ * Handle 'session add' messages from transport clients.
+ *
+ * @param cls client that sent the request
+ * @param message the request message
+ */
+static void
+handle_session_add (void *cls,
+		    const struct SessionAddMessage *message)
+{
+  struct Client *c = cls;
+  struct GNUNET_ATS_Session *session;
+  int inbound_only = (GNUNET_MESSAGE_TYPE_ATS_SESSION_ADD_INBOUND_ONLY ==
+		      ntohs (message->header.type));
+
+  session = GNUNET_CONTAINER_multihashmap32_get (c->details.transport.sessions,
+						 message->session_id);
+  if (NULL != session)
+  {
+    GNUNET_break (0);
+    GNUNET_SERVICE_client_drop (c->client);
+    return;
+  }
+  session = GNUNET_new (struct GNUNET_ATS_Session);
+  session->data.session = session;
+  session->client = c;
+  session->session_id = message->session_id;
+  session->data.peer = message->peer;
+  prop_ntoh (&message->properties,
+	     &session->data.prop);
+  session->data.inbound_only = inbound_only;
+  GNUNET_assert (GNUNET_YES ==
+		 GNUNET_CONTAINER_multihashmap32_put (c->details.transport.sessions,
+						      message->session_id,
+						      session,
+						      GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
+  session->sh = plugin->session_add (plugin->cls,
+				     &session->data);
+  GNUNET_SERVICE_client_continue (c->client);
+}
+
+
+
+/**
+ * Handle 'session update' messages from transport clients.
+ *
+ * @param cls client that sent the request
+ * @param msg the request message
+ */
+static void
+handle_session_update (void *cls,
+		       const struct SessionUpdateMessage *msg)
+{
+  struct Client *c = cls;
+  struct GNUNET_ATS_Session *session;
+  
+  if (CT_TRANSPORT != c->type)
+  {
+    GNUNET_break (0);
+    GNUNET_SERVICE_client_drop (c->client);
+    return;
+  }
+  session = GNUNET_CONTAINER_multihashmap32_get (c->details.transport.sessions,
+						 msg->session_id);
+  if (NULL == session)
+  {
+    GNUNET_break (0);
+    GNUNET_SERVICE_client_drop (c->client);
+    return;
+  }
+  prop_ntoh (&msg->properties,
+	     &session->data.prop);
+  plugin->session_update (plugin->cls,
+			  session->sh,
+			  &session->data);
+  GNUNET_SERVICE_client_continue (c->client);
+}
+
+
+/**
+ * Handle 'session delete' messages from transport clients.
+ *
+ * @param cls client that sent the request
+ * @param message the request message
+ */
+static void
+handle_session_del (void *cls,
+		    const struct SessionDelMessage *message)
+{
+  struct Client *c = cls;
+  struct GNUNET_ATS_Session *session;
+
+  if (CT_TRANSPORT != c->type)
+  {
+    GNUNET_break (0);
+    GNUNET_SERVICE_client_drop (c->client);
+    return;
+  }
+  session = GNUNET_CONTAINER_multihashmap32_get (c->details.transport.sessions,
+						 message->session_id);
+  if (NULL == session)
+  {
+    GNUNET_break (0);
+    GNUNET_SERVICE_client_drop (c->client);
+    return;
+  } 
+  plugin->session_del (plugin->cls,
+		       session->sh,
+		       &session->data);
+  GNUNET_assert (GNUNET_YES ==
+		 GNUNET_CONTAINER_multihashmap32_remove (c->details.transport.sessions,
+							 session->session_id,
+							 session));
+  GNUNET_free (session);
+  GNUNET_SERVICE_client_continue (c->client);
+}
+
+
+/**
+ * A client connected to us. Setup the local client
+ * record.
+ *
+ * @param cls unused
+ * @param client handle of the client
+ * @param mq message queue to talk to @a client
+ * @return @a client
+ */
+static void *
+client_connect_cb (void *cls,
+		   struct GNUNET_SERVICE_Client *client,
+		   struct GNUNET_MQ_Handle *mq)
+{
+  struct Client *c = GNUNET_new (struct Client);
+
+  c->client = client;
+  c->mq = mq;
+  return c;
+}
+
+
+/**
+ * Function called on each session to release associated state
+ * on transport disconnect.
+ *
+ * @param cls the `struct Client`
+ * @param key unused (session_id)
+ * @param value a `struct GNUNET_ATS_Session`
+ */
+static int
+free_session (void *cls,
+	      uint32_t key,
+	      void *value)
+{
+  struct Client *c = cls;
+  struct GNUNET_ATS_Session *session = value;
+
+  (void) key;
+  GNUNET_assert (c == session->client);
+  plugin->session_del (plugin->cls,
+		       session->sh,
+		       &session->data);
+  GNUNET_free (session);
+  return GNUNET_OK;
+}
+
+
+/**
+ * A client disconnected from us.  Tear down the local client
+ * record.
+ *
+ * @param cls unused
+ * @param client handle of the client
+ * @param app_ctx our `struct Client`
+ */
+static void
+client_disconnect_cb (void *cls,
+		      struct GNUNET_SERVICE_Client *client,
+		      void *app_ctx)
+{
+  struct Client *c = app_ctx;
+
+  (void) cls;
+  GNUNET_assert (c->client == client);
+  switch (c->type)
+  {
+  case CT_NONE:
+    break;
+  case CT_APPLICATION:
+    for (struct ClientPreference *cp = c->details.application.cp_head;
+	 NULL != cp;
+	 cp = c->details.application.cp_head)
+    {
+      plugin->preference_del (plugin->cls,
+			      cp->ph,
+			      &cp->pref);
+      GNUNET_CONTAINER_DLL_remove (c->details.application.cp_head,
+				   c->details.application.cp_tail,
+				   cp);
+      GNUNET_free (cp);
+    }
+    break;
+  case CT_TRANSPORT:
+    if (transport_client == c)
+      transport_client = NULL;
+    GNUNET_CONTAINER_multihashmap32_iterate (c->details.transport.sessions,
+					     &free_session,
+					     c);
+    GNUNET_CONTAINER_multihashmap32_destroy (c->details.transport.sessions);
+    break;
+  }
+  GNUNET_free (c);
+}
+
+
+/**
+ * Task run during shutdown.
+ *
+ * @param cls unused
+ */
+static void
+cleanup_task (void *cls)
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "ATS shutdown initiated\n");
+  if (NULL != GSA_stats)
+  {
+    GNUNET_STATISTICS_destroy (GSA_stats,
+			       GNUNET_NO);
+    GSA_stats = NULL;
+  }
+}
+
+
+/**
+ * Process template requests.
+ *
+ * @param cls closure
+ * @param cfg configuration to use
+ * @param service the initialized service
+ */
+static void
+run (void *cls,
+     const struct GNUNET_CONFIGURATION_Handle *cfg,
+     struct GNUNET_SERVICE_Handle *service)
+{
+  GSA_stats = GNUNET_STATISTICS_create ("ats",
+					cfg);
+  GNUNET_SCHEDULER_add_shutdown (&cleanup_task,
+				 NULL);
+#if 0
+  if (GNUNET_OK !=
+      GAS_plugin_init (cfg))
+  {
+    GNUNET_break (0);
+    GNUNET_SCHEDULER_shutdown ();
+    return;
+  }
+#endif
+}
+
+
+/**
+ * Define "main" method using service macro.
+ */
+GNUNET_SERVICE_MAIN
+("ats",
+ GNUNET_SERVICE_OPTION_NONE,
+ &run,
+ &client_connect_cb,
+ &client_disconnect_cb,
+ NULL,
+ GNUNET_MQ_hd_fixed_size (suggest,
+			  GNUNET_MESSAGE_TYPE_ATS_SUGGEST,
+			  struct ExpressPreferenceMessage,
+			  NULL),
+ GNUNET_MQ_hd_fixed_size (suggest_cancel,
+			  GNUNET_MESSAGE_TYPE_ATS_SUGGEST_CANCEL,
+			  struct ExpressPreferenceMessage,
+			  NULL),
+ GNUNET_MQ_hd_fixed_size (start,
+			  GNUNET_MESSAGE_TYPE_ATS_START,
+			  struct GNUNET_MessageHeader,
+			  NULL),
+ GNUNET_MQ_hd_var_size (session_add,
+			GNUNET_MESSAGE_TYPE_ATS_SESSION_ADD,
+			struct SessionAddMessage,
+			NULL),
+ GNUNET_MQ_hd_var_size (session_add,
+			GNUNET_MESSAGE_TYPE_ATS_SESSION_ADD_INBOUND_ONLY,
+			struct SessionAddMessage,
+			NULL),
+ GNUNET_MQ_hd_fixed_size (session_update, 
+			  GNUNET_MESSAGE_TYPE_ATS_SESSION_UPDATE,
+			  struct SessionUpdateMessage,
+			  NULL),
+ GNUNET_MQ_hd_fixed_size (session_del, 
+			  GNUNET_MESSAGE_TYPE_ATS_SESSION_DEL,
+			  struct SessionDelMessage,
+			  NULL),
+ GNUNET_MQ_handler_end ());
+
+
+/* end of gnunet-service-ats.c */

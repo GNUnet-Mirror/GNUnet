@@ -16,13 +16,13 @@
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 /**
- * @file ats/ats.h
+ * @file ats/ats2.h
  * @brief automatic transport selection messages
  * @author Christian Grothoff
  * @author Matthias Wachs
  */
-#ifndef ATS_H
-#define ATS_H
+#ifndef ATS2_H
+#define ATS2_H
 
 #include "gnunet_util_lib.h"
 #include "gnunet_ats_transport_service.h"
@@ -118,6 +118,7 @@ struct ExpressPreferenceMessage
 
   /**
    * What type of performance preference does the client have?
+   * A `enum GNUNET_MQ_PreferenceKind` in NBO.
    */
   uint32_t pk GNUNET_PACKED;
 
