@@ -147,16 +147,40 @@ struct GNUNET_ATS_SolverFunctions
 		    struct GNUNET_ATS_PreferenceHandle *ph,
 		    const struct GNUNET_ATS_Preference *pref);
 
-
+  /**
+   * Transport established a new session with performance
+   * characteristics given in @a data.
+   *
+   * @param cls closure
+   * @param data performance characteristics of @a sh
+   * @param address address information (for debugging)
+   * @return handle by which the plugin will identify this session
+   */
   struct GNUNET_ATS_SessionHandle *
   (*session_add)(void *cls,
-		 const struct GNUNET_ATS_SessionData *data);
+		 const struct GNUNET_ATS_SessionData *data,
+		 const char *address);
 
+  /**
+   * @a data changed for a given @a sh, solver should consider
+   * the updated performance characteristics.
+   *
+   * @param cls closure
+   * @param sh session this is about
+   * @param data performance characteristics of @a sh
+   */
   void
   (*session_update)(void *cls,
 		    struct GNUNET_ATS_SessionHandle *sh,
 		    const struct GNUNET_ATS_SessionData *data);
 
+  /**
+   * A session went away. Solver should update accordingly.
+   *
+   * @param cls closure
+   * @param sh session this is about
+   * @param data (last) performance characteristics of @a sh
+   */
   void
   (*session_del)(void *cls,
 		 struct GNUNET_ATS_SessionHandle *sh,
@@ -164,6 +188,63 @@ struct GNUNET_ATS_SolverFunctions
   
 };
 
+
+/**
+ * The ATS plugin will pass a pointer to a struct
+ * of this type as to the initialization function
+ * of the ATS plugins.
+ */
+struct GNUNET_ATS_PluginEnvironment
+{
+  /**
+   * Configuration handle to be used by the solver
+   */
+  const struct GNUNET_CONFIGURATION_Handle *cfg;
+
+  /**
+   * Statistics handle to be used by the solver
+   */
+  struct GNUNET_STATISTICS_Handle *stats;
+
+  /**
+   * Closure to pass to all callbacks in this struct.
+   */
+  void *cls;
+
+  /**
+   * Suggest to the transport that it should try establishing
+   * a connection using the given address.
+   *
+   * @param cls closure, NULL
+   * @param pid peer this is about
+   * @param address address the transport should try
+   */
+  void
+  (*suggest_cb) (void *cls,
+		 const struct GNUNET_PeerIdentity *pid,
+		 const char *address);
+
+  /**
+   * Tell the transport that it should allocate the given 
+   * bandwidth to the specified session.
+   *
+   * @param cls closure, NULL
+   * @param session session this is about
+   * @param peer peer this is about
+   * @param bw_in suggested bandwidth for receiving
+   * @param bw_out suggested bandwidth for transmission
+   */
+  void
+  (*allocate_cb) (void *cls,
+		  struct GNUNET_ATS_Session *session,
+		  const struct GNUNET_PeerIdentity *peer,
+		  struct GNUNET_BANDWIDTH_Value32NBO bw_in,
+		  struct GNUNET_BANDWIDTH_Value32NBO bw_out);
+  
+};
+
+
+  
 #endif
 
 /** @} */  /* end of group */

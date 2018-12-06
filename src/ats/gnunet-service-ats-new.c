@@ -22,9 +22,7 @@
  * @author Christian Grothoff
  *
  * TODO:
- * - implement messages ATS -> transport
- * - implement loading / unloading of ATS plugins
- * - expose plugin the API to send messages ATS -> transport
+ * - implement unloading of ATS plugins
  */
 #include "platform.h"
 #include "gnunet_util_lib.h"
@@ -176,7 +174,7 @@ struct Client
 /**
  * Handle for statistics.
  */
-static struct GNUNET_STATISTICS_Handle *GSA_stats;
+static struct GNUNET_STATISTICS_Handle *stats;
 
 /**
  * Our solver.
@@ -184,9 +182,87 @@ static struct GNUNET_STATISTICS_Handle *GSA_stats;
 static struct GNUNET_ATS_SolverFunctions *plugin;
 
 /**
+ * Solver plugin name as string
+ */
+static char *plugin_name;
+
+/**
  * The transport client (there can only be one at a time).
  */
 static struct Client *transport_client;
+
+
+/**
+ * Function called by the solver to prompt the transport to
+ * try out a new address.
+ *
+ * @param cls closure, NULL
+ * @param pid peer this is about
+ * @param address address the transport should try
+ */ 
+static void
+suggest_cb (void *cls,
+	    const struct GNUNET_PeerIdentity *pid,
+	    const char *address)
+{
+  struct GNUNET_MQ_Envelope *env;
+  size_t slen = strlen (address) + 1;
+  struct AddressSuggestionMessage *as;
+  
+  if (NULL == transport_client)
+  {
+    // FIXME: stats!
+    return;
+  }
+  env = GNUNET_MQ_msg_extra (as,
+			     slen,
+			     GNUNET_MESSAGE_TYPE_ATS_ADDRESS_SUGGESTION);
+  as->peer = *pid;
+  memcpy (&as[1],
+	  address,
+	  slen);
+  GNUNET_MQ_send (transport_client->mq,
+		  env);
+}
+
+
+/**
+ * Function called by the solver to tell the transpor to
+ * allocate bandwidth for the specified session.
+ *
+ * @param cls closure, NULL
+ * @param session session this is about
+ * @param peer peer this is about
+ * @param bw_in suggested bandwidth for receiving
+ * @param bw_out suggested bandwidth for transmission
+ */
+static void
+allocate_cb (void *cls,
+	     struct GNUNET_ATS_Session *session,
+	     const struct GNUNET_PeerIdentity *peer,
+	     struct GNUNET_BANDWIDTH_Value32NBO bw_in,
+	     struct GNUNET_BANDWIDTH_Value32NBO bw_out)
+{
+  struct GNUNET_MQ_Envelope *env;
+  struct SessionAllocationMessage *sam;
+
+  (void) cls;
+  if ( (NULL == transport_client) ||
+       (session->client != transport_client) )
+  {
+    /* transport must have just died and solver is addressing the
+       losses of sessions (possibly of previous transport), ignore! */
+    return;
+  }
+  env = GNUNET_MQ_msg (sam,
+		       GNUNET_MESSAGE_TYPE_ATS_SESSION_ALLOCATION);
+  sam->session_id = session->session_id;
+  sam->peer = *peer;
+  sam->bandwidth_in = bw_in;
+  sam->bandwidth_out = bw_out;
+  GNUNET_MQ_send (transport_client->mq,
+		  env);
+}
 
 
 /**
@@ -359,7 +435,8 @@ handle_session_add (void *cls,
 		    const struct SessionAddMessage *message)
 {
   struct Client *c = cls;
-  struct GNUNET_ATS_Session *session;
+  const char *address = (const char *) &message[1];
+  struct GNUNET_ATS_Session *session;  
   int inbound_only = (GNUNET_MESSAGE_TYPE_ATS_SESSION_ADD_INBOUND_ONLY ==
 		      ntohs (message->header.type));
 
@@ -385,10 +462,10 @@ handle_session_add (void *cls,
 						      session,
 						      GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
   session->sh = plugin->session_add (plugin->cls,
-				     &session->data);
+				     &session->data,
+				     address);
   GNUNET_SERVICE_client_continue (c->client);
 }
-
 
 
 /**
@@ -572,11 +649,16 @@ cleanup_task (void *cls)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "ATS shutdown initiated\n");
-  if (NULL != GSA_stats)
+  if (NULL != stats)
   {
-    GNUNET_STATISTICS_destroy (GSA_stats,
+    GNUNET_STATISTICS_destroy (stats,
 			       GNUNET_NO);
-    GSA_stats = NULL;
+    stats = NULL;
+  }
+  if (NULL != plugin_name)
+  {
+    GNUNET_free (plugin_name);
+    plugin_name = NULL;
   }
 }
 
@@ -593,19 +675,41 @@ run (void *cls,
      const struct GNUNET_CONFIGURATION_Handle *cfg,
      struct GNUNET_SERVICE_Handle *service)
 {
-  GSA_stats = GNUNET_STATISTICS_create ("ats",
-					cfg);
+  static struct GNUNET_ATS_PluginEnvironment env;
+  char *solver;
+  
+  stats = GNUNET_STATISTICS_create ("ats",
+				    cfg);
+  if (GNUNET_SYSERR ==
+      GNUNET_CONFIGURATION_get_value_string (cfg,
+                                             "ats",
+                                             "SOLVER",
+                                             &solver))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                "No ATS solver configured, using 'simple' approach\n");
+    solver = GNUNET_strdup ("simple");
+  }
   GNUNET_SCHEDULER_add_shutdown (&cleanup_task,
 				 NULL);
-#if 0
-  if (GNUNET_OK !=
-      GAS_plugin_init (cfg))
+  env.cls = NULL;
+  env.cfg = cfg;
+  env.stats = stats;
+  env.suggest_cb = &suggest_cb;
+  env.allocate_cb = &allocate_cb;
+  GNUNET_asprintf (&plugin_name,
+                   "libgnunet_plugin_ats2_%s",
+                   solver);
+  GNUNET_free (solver);
+  if (NULL == (plugin = GNUNET_PLUGIN_load (plugin_name,
+					    &env)))
   {
-    GNUNET_break (0);
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                _("Failed to initialize solver `%s'!\n"),
+                plugin_name);
     GNUNET_SCHEDULER_shutdown ();
-    return;
+    return;   
   }
-#endif
 }
 
 
