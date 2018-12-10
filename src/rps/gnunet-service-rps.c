@@ -3499,7 +3499,8 @@ handle_peer_pull_request (void *cls,
                              "# pull request message received",
                              1,
                              GNUNET_NO);
-    if (GNUNET_NO == GNUNET_CONTAINER_multipeermap_contains (map_single_hop,
+    if (NULL != map_single_hop &&
+        GNUNET_NO == GNUNET_CONTAINER_multipeermap_contains (map_single_hop,
                                                              &peer_ctx->peer_id))
     {
       GNUNET_STATISTICS_update (stats,
@@ -3770,7 +3771,8 @@ send_pull_request (struct PeerContext *peer_ctx)
                               "# pull request send issued",
                               1,
                               GNUNET_NO);
-    if (GNUNET_NO == GNUNET_CONTAINER_multipeermap_contains (map_single_hop,
+    if (NULL != map_single_hop &&
+        GNUNET_NO == GNUNET_CONTAINER_multipeermap_contains (map_single_hop,
                                                              &peer_ctx->peer_id))
     {
       GNUNET_STATISTICS_update (stats,
