@@ -101,7 +101,7 @@ GNUNET_HELLO_sign_address (const char *address,
  *
  * @param raw raw signed address
  * @param raw_size size of @a raw
- * @param public_key public key to use for signature verification
+ * @param pid public key to use for signature verification
  * @param nt[out] set to network type
  * @param expiration[out] how long is the address valid
  * @return NULL on error, otherwise the address
@@ -109,10 +109,11 @@ GNUNET_HELLO_sign_address (const char *address,
 char *
 GNUNET_HELLO_extract_address (const void *raw,
 			      size_t raw_size,
-			      const struct GNUNET_CRYPTO_EddsaPublicKey *public_key,
+			      const struct GNUNET_PeerIdentity *pid,
 			      enum GNUNET_NetworkType *nt,
 			      struct GNUNET_TIME_Absolute *expiration)
 {
+  const struct GNUNET_CRYPTO_EddsaPublicKey *public_key = &pid->public_key;
   const char *raws = raw;
   unsigned long long raw_us;
   unsigned int raw_nt;

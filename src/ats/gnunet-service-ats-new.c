@@ -11,7 +11,7 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
@@ -78,7 +78,7 @@ struct ClientPreference
    * Plugin's representation of the preference.
    */
   struct GNUNET_ATS_PreferenceHandle *ph;
-  
+
   /**
    * Details about the preference.
    */
@@ -93,7 +93,7 @@ struct GNUNET_ATS_Session
 {
 
   /**
-   * Session data exposed to the plugin. 
+   * Session data exposed to the plugin.
    */
   struct GNUNET_ATS_SessionData data;
 
@@ -106,12 +106,12 @@ struct GNUNET_ATS_Session
    * Session state in the plugin.
    */
   struct GNUNET_ATS_SessionHandle *sh;
-  
+
   /**
    * Unique ID for the session when talking with the client.
-   */ 
+   */
   uint32_t session_id;
-  
+
 };
 
 
@@ -146,12 +146,12 @@ struct Client
        * Head of DLL of preferences expressed by this client.
        */
       struct ClientPreference *cp_head;
-      
+
       /**
        * Tail of DLL of preferences expressed by this client.
        */
       struct ClientPreference *cp_tail;
-      
+
     } application;
 
     struct {
@@ -160,9 +160,9 @@ struct Client
        * Map from session IDs to `struct GNUNET_ATS_Session` objects.
        */
       struct GNUNET_CONTAINER_MultiHashMap32 *sessions;
-      
+
     } transport;
-    
+
   } details;
 
 };
@@ -196,7 +196,7 @@ static struct Client *transport_client;
  * @param cls closure, NULL
  * @param pid peer this is about
  * @param address address the transport should try
- */ 
+ */
 static void
 suggest_cb (void *cls,
 	    const struct GNUNET_PeerIdentity *pid,
@@ -205,7 +205,7 @@ suggest_cb (void *cls,
   struct GNUNET_MQ_Envelope *env;
   size_t slen = strlen (address) + 1;
   struct AddressSuggestionMessage *as;
-  
+
   if (NULL == transport_client)
   {
     // FIXME: stats!
@@ -285,7 +285,7 @@ prop_ntoh (const struct PropertiesNBO *properties,
 
 
 /**
- * We have received a `struct ExpressPreferenceMessage` from an application client.  
+ * We have received a `struct ExpressPreferenceMessage` from an application client.
  *
  * @param cls handle to the client
  * @param msg the start message
@@ -320,7 +320,7 @@ handle_suggest (void *cls,
 
 
 /**
- * We have received a `struct ExpressPreferenceMessage` from an application client.  
+ * We have received a `struct ExpressPreferenceMessage` from an application client.
  *
  * @param cls handle to the client
  * @param msg the start message
@@ -331,7 +331,7 @@ handle_suggest_cancel (void *cls,
 {
   struct Client *c = cls;
   struct ClientPreference *cp;
-  
+
   if (CT_NONE == c->type)
     c->type = CT_APPLICATION;
   if (CT_APPLICATION != c->type)
@@ -398,7 +398,7 @@ handle_start (void *cls,
 
 
 /**
- * Check 'session_add' message is well-formed and comes from a 
+ * Check 'session_add' message is well-formed and comes from a
  * transport client.
  *
  * @param cls client that sent the request
@@ -433,7 +433,7 @@ handle_session_add (void *cls,
 {
   struct Client *c = cls;
   const char *address = (const char *) &message[1];
-  struct GNUNET_ATS_Session *session;  
+  struct GNUNET_ATS_Session *session;
   int inbound_only = (GNUNET_MESSAGE_TYPE_ATS_SESSION_ADD_INBOUND_ONLY ==
 		      ntohs (message->header.type));
 
@@ -477,7 +477,7 @@ handle_session_update (void *cls,
 {
   struct Client *c = cls;
   struct GNUNET_ATS_Session *session;
-  
+
   if (CT_TRANSPORT != c->type)
   {
     GNUNET_break (0);
@@ -527,7 +527,7 @@ handle_session_del (void *cls,
     GNUNET_break (0);
     GNUNET_SERVICE_client_drop (c->client);
     return;
-  } 
+  }
   plugin->session_del (plugin->cls,
 		       session->sh,
 		       &session->data);
@@ -637,15 +637,14 @@ client_disconnect_cb (void *cls,
 
 
 /**
- * Task run during shutdown.
+ * Task run at the end during shutdown.
  *
  * @param cls unused
  */
 static void
-cleanup_task (void *cls)
+final_cleanup (void *cls)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "ATS shutdown initiated\n");
+  (void) cls;
   if (NULL != stats)
   {
     GNUNET_STATISTICS_destroy (stats,
@@ -667,6 +666,22 @@ cleanup_task (void *cls)
 
 
 /**
+ * Task run during shutdown.
+ *
+ * @param cls unused
+ */
+static void
+cleanup_task (void *cls)
+{
+  (void) cls;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "ATS shutdown initiated\n");
+  GNUNET_SCHEDULER_add_now (&final_cleanup,
+                            NULL);
+}
+
+
+/**
  * Process template requests.
  *
  * @param cls closure
@@ -680,7 +695,7 @@ run (void *cls,
 {
   static struct GNUNET_ATS_PluginEnvironment env;
   char *solver;
-  
+
   stats = GNUNET_STATISTICS_create ("ats",
 				    cfg);
   if (GNUNET_SYSERR ==
@@ -711,7 +726,7 @@ run (void *cls,
                 _("Failed to initialize solver `%s'!\n"),
                 plugin_name);
     GNUNET_SCHEDULER_shutdown ();
-    return;   
+    return;
   }
 }
 
@@ -746,11 +761,11 @@ GNUNET_SERVICE_MAIN
 			GNUNET_MESSAGE_TYPE_ATS_SESSION_ADD_INBOUND_ONLY,
 			struct SessionAddMessage,
 			NULL),
- GNUNET_MQ_hd_fixed_size (session_update, 
+ GNUNET_MQ_hd_fixed_size (session_update,
 			  GNUNET_MESSAGE_TYPE_ATS_SESSION_UPDATE,
 			  struct SessionUpdateMessage,
 			  NULL),
- GNUNET_MQ_hd_fixed_size (session_del, 
+ GNUNET_MQ_hd_fixed_size (session_del,
 			  GNUNET_MESSAGE_TYPE_ATS_SESSION_DEL,
 			  struct SessionDelMessage,
 			  NULL),

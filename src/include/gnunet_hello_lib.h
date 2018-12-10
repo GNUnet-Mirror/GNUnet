@@ -11,7 +11,7 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
@@ -476,6 +476,10 @@ GNUNET_HELLO_parse_uri (const char *uri,
 /* NG API */
 #include "gnunet_nt_lib.h"
 
+/**
+ * Key used for storing HELLOs in the peerstore
+ */
+#define GNUNET_HELLO_PEERSTORE_KEY "hello"
 
 /**
  * Build address record by signing raw information with private key.
@@ -501,7 +505,7 @@ GNUNET_HELLO_sign_address (const char *address,
  *
  * @param raw raw signed address
  * @param raw_size size of @a raw
- * @param public_key public key to use for signature verification
+ * @param pid public key to use for signature verification
  * @param nt[out] set to network type
  * @param expiration[out] how long is the address valid
  * @return NULL on error, otherwise the address
@@ -509,7 +513,7 @@ GNUNET_HELLO_sign_address (const char *address,
 char *
 GNUNET_HELLO_extract_address (const void *raw,
 			      size_t raw_size,
-			      const struct GNUNET_CRYPTO_EddsaPublicKey *public_key,
+			      const struct GNUNET_PeerIdentity *pid,
 			      enum GNUNET_NetworkType *nt,
 			      struct GNUNET_TIME_Absolute *expiration);
 

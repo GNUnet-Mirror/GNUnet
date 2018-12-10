@@ -81,6 +81,7 @@ libgnunet_plugin_ats_proportional_la_LDFLAGS = \
 libgnunet_plugin_ats2_simple_la_SOURCES = \
   plugin_ats2_simple.c
 libgnunet_plugin_ats2_simple_la_LIBADD = \
+  $(top_builddir)/src/hello/libgnunethello.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(LTLIBINTL)
@@ -130,7 +131,7 @@ gnunet_service_ats_LDADD = \
   $(GN_LIBINTL)
 
 gnunet_service_ats_new_SOURCES = \
- gnunet-service-ats-new.c 
+ gnunet-service-ats-new.c
 gnunet_service_ats_new_LDADD = \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/util/libgnunetutil.la \

@@ -1196,7 +1196,7 @@ store_pi (void *cls)
   ale->sc = GNUNET_PEERSTORE_store (peerstore,
 				    "transport",
 				    &GST_my_identity,
-				    "hello",
+				    GNUNET_HELLO_PEERSTORE_KEY,
 				    addr,
 				    addr_len,
 				    expiration,
