@@ -4,6 +4,8 @@ src/arm/arm_monitor_api.c
 src/arm/gnunet-arm.c
 src/arm/gnunet-service-arm.c
 src/arm/mockup-service.c
+src/ats/ats_api2_application.c
+src/ats/ats_api2_transport.c
 src/ats/ats_api_connectivity.c
 src/ats/ats_api_performance.c
 src/ats/ats_api_scanner.c
@@ -285,7 +287,6 @@ src/reclaim-attribute/plugin_reclaim_attribute_gnuid.c
 src/reclaim-attribute/reclaim_attribute.c
 src/reclaim/gnunet-reclaim.c
 src/reclaim/gnunet-service-reclaim.c
-src/reclaim/jwt.c
 src/reclaim/plugin_gnsrecord_reclaim.c
 src/reclaim/plugin_reclaim_sqlite.c
 src/reclaim/reclaim_api.c
