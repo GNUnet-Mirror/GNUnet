@@ -2947,10 +2947,6 @@ destroy_sub (struct Sub *sub)
   {
     char push_recv_str_tmp[8];
     (void) snprintf (push_recv_str_tmp, 8, "%" PRIu32 "\n", sub->push_recv[i]);
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Adding str `%s' to `%s'\n",
-         push_recv_str_tmp,
-         push_recv_str);
     (void) strncat (push_recv_str,
                     push_recv_str_tmp,
                     1535 - strnlen (push_recv_str, 1536));
@@ -2968,10 +2964,6 @@ destroy_sub (struct Sub *sub)
   {
     char pull_delays_str_tmp[8];
     (void) snprintf (pull_delays_str_tmp, 8, "%" PRIu32 "\n", sub->pull_delays[i]);
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Adding str `%s' to `%s'\n",
-         pull_delays_str_tmp,
-         pull_delays_str);
     (void) strncat (pull_delays_str,
                     pull_delays_str_tmp,
                     1535 - strnlen (pull_delays_str, 1536));
