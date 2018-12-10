@@ -23,7 +23,7 @@
  *
  * TODO:
  * - subscribe to PEERSTORE when short on HELLOs (given application preferences!)
- * - keep track of HELLOs and when we tried them last => re-suggest 
+ * - keep track of HELLOs and when we tried them last => re-suggest
  * - sum up preferences per peer, keep totals! => PeerMap pid -> [preferences + sessions + addrs!]
  * - sum up preferences overall, keep global sum => starting point for "proportional"
  * - store DLL of available sessions per peer
@@ -33,6 +33,12 @@
 #include "gnunet_peerstore_service.h"
 
 #define LOG(kind,...) GNUNET_log_from (kind, "ats-simple",__VA_ARGS__)
+
+
+/**
+ * A handle for the proportional solver
+ */
+struct SimpleHandle;
 
 
 /**
@@ -50,7 +56,7 @@ struct Hello
    * Kept in a DLL.
    */
   struct Hello *prev;
-  
+
   /**
    * The address we could try.
    */
@@ -76,6 +82,13 @@ struct Hello
 
 
 /**
+ * Information about preferences and sessions we track
+ * per peer.
+ */
+struct Peer;
+
+
+/**
  * Internal representation of a session by the plugin.
  * (If desired, plugin may just use NULL.)
  */
@@ -91,7 +104,7 @@ struct GNUNET_ATS_SessionHandle
    * Kept in DLL per peer.
    */
   struct GNUNET_ATS_SessionHandle *prev;
-  
+
   /**
    * The session in the main ATS service.
    */
@@ -106,7 +119,12 @@ struct GNUNET_ATS_SessionHandle
    * Hello matching this session, or NULL for none.
    */
   struct Hello *hello;
-  
+
+  /**
+   * Peer this session is for.
+   */
+  struct Peer *peer;
+
   /**
    * Address used by this session (largely for debugging).
    */
@@ -143,13 +161,28 @@ struct Peer
   struct GNUNET_ATS_SessionHandle *sh_tail;
 
   /**
+   * Kept in a DLL.
+   */
+  struct Hello *h_head;
+
+  /**
+   * Kept in a DLL.
+   */
+  struct Hello *h_tail;
+
+  /**
+   * The handle for the proportional solver
+   */
+  struct SimpleHandle *h;
+
+  /**
    * Which peer is this for?
    */
   struct GNUNET_PeerIdentity pid;
 
   /**
    * Array where we sum up the bandwidth requests received indexed
-   * by preference kind (see `struct GNUNET_MQ_PreferenceKind`)
+   * by preference kind (see `enum GNUNET_MQ_PreferenceKind`)
    */
   uint64_t bw_by_pk[GNUNET_MQ_PREFERENCE_COUNT];
 
@@ -162,8 +195,8 @@ struct Peer
   /**
    * Task used to try again to suggest an address for this peer.
    */
-  struct GNUNET_SCHEDULER_TaskHandle *task;  
- 
+  struct GNUNET_SCHEDULER_Task *task;
+
 };
 
 
@@ -216,8 +249,144 @@ struct SimpleHandle
    * Handle to the peerstore service.
    */
   struct GNUNET_PEERSTORE_Handle *ps;
-  
+
 };
+
+
+/**
+ * Lookup peer in the peers map.
+ *
+ * @param h handle to look up in
+ * @param pid peer identity to look up by
+ * @return NULL for not found
+ */
+struct Peer *
+lookup_peer (struct SimpleHandle *h,
+             const struct GNUNET_PeerIdentity *pid)
+{
+  return GNUNET_CONTAINER_multipeermap_get (h->peers,
+                                            pid);
+}
+
+
+/**
+ * Check if there is _any_ interesting information left we
+ * store about the peer in @a p.
+ *
+ * @param p peer to test if we can drop the data structure
+ * @return #GNUNET_YES if no information is left in @a p
+ */
+static int
+peer_test_dead (struct Peer *p)
+{
+  for (enum GNUNET_MQ_PreferenceKind pk = 0;
+       pk < GNUNET_MQ_PREFERENCE_COUNT;
+       pk++)
+    if (0 != p->bw_by_pk[pk])
+      return GNUNET_NO;
+  if (NULL != p->sh_head)
+    return GNUNET_NO;
+  return GNUNET_YES;
+}
+
+
+/**
+ * Function called by PEERSTORE for each matching record.
+ *
+ * @param cls closure with a `struct Peer`
+ * @param record peerstore record information
+ * @param emsg error message, or NULL if no errors
+ */
+static void
+watch_cb (void *cls,
+          const struct GNUNET_PEERSTORE_Record *record,
+          const char *emsg)
+{
+  struct Peer *p = cls;
+
+  // FIXME: process hello!
+  // check for expiration
+  // (add to p's doubly-linked list)
+
+  if (NULL == p->task)
+  {
+    // start suggestion task!
+  }
+}
+
+
+/**
+ * Find or add peer if necessary.
+ *
+ * @param h our plugin handle
+ * @param pid the peer identity to add/look for
+ * @return a peer handle
+ */
+static struct Peer *
+peer_add (struct SimpleHandle *h,
+          const struct GNUNET_PeerIdentity *pid)
+{
+  struct Peer *p = lookup_peer (h,
+                                pid);
+
+  if (NULL != p)
+    return p;
+  p = GNUNET_new (struct Peer);
+  p->h = h;
+  p->pid = *pid;
+  p->wc = GNUNET_PEERSTORE_watch (h->ps,
+                                  "transport",
+                                  &p->pid,
+                                  "HELLO" /* key */,
+                                  &watch_cb,
+                                  p);
+  GNUNET_assert (GNUNET_YES ==
+                 GNUNET_CONTAINER_multipeermap_put (h->peers,
+                                                    &p->pid,
+                                                    p,
+                                                    GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
+
+  return p;
+}
+
+
+/**
+ * Free the entry (and associated tasks) of peer @a p.
+ * Note that @a p must be dead already (see #peer_test_dead()).
+ *
+ * @param p the peer to free
+ */
+static void
+peer_free (struct Peer *p)
+{
+  struct SimpleHandle *h = p->h;
+  struct Hello *hello;
+
+  GNUNET_assert (NULL == p->sh_head);
+  while (NULL != (hello = p->h_head))
+  {
+    GNUNET_CONTAINER_DLL_remove (p->h_head,
+                                 p->h_tail,
+                                 hello);
+    GNUNET_assert (NULL == hello->sh);
+    GNUNET_free (hello);
+  }
+  if (NULL != p->task)
+  {
+    GNUNET_SCHEDULER_cancel (p->task);
+    p->task = NULL;
+  }
+  if (NULL != p->wc)
+  {
+    GNUNET_PEERSTORE_watch_cancel (p->wc);
+    p->wc = NULL;
+  }
+  GNUNET_assert (GNUNET_YES ==
+                 GNUNET_CONTAINER_multipeermap_remove (h->peers,
+                                                       &p->pid,
+                                                       p));
+  GNUNET_free (p);
+}
 
 
 /**
@@ -243,9 +412,12 @@ simple_preference_add (void *cls,
 		       const struct GNUNET_ATS_Preference *pref)
 {
   struct SimpleHandle *h = cls;
-  // Setup peer if necessary (-> including HELLO triggers!)
-  // add pref to bw_by_pk
-  // trigger update
+  struct Peer *p = peer_add (h,
+                             &pref->peer);
+
+  GNUNET_assert (pref->pk < GNUNET_MQ_PREFERENCE_COUNT);
+  p->bw_by_pk[pref->pk] += ntohl (pref->bw.value__);
+  update (h);
   return NULL;
 }
 
@@ -254,20 +426,26 @@ simple_preference_add (void *cls,
  * The plugin should end respecting a preference.
  *
  * @param cls the closure
- * @param ph whatever @e preference_add returned 
+ * @param ph whatever @e preference_add returned
  * @param pref the preference to delete
  * @return plugin's internal representation, or NULL
  */
 static void
-simple_preference_del (void *cls,		    
+simple_preference_del (void *cls,
 		       struct GNUNET_ATS_PreferenceHandle *ph,
 		       const struct GNUNET_ATS_Preference *pref)
 {
   struct SimpleHandle *h = cls;
-  // find peer
-  // subtract pref from bw_by_pk
-  // remove peer if otherwise dead
-  // trigger update
+  struct Peer *p = lookup_peer (h,
+                                &pref->peer);
+
+  GNUNET_assert (NULL != p);
+  GNUNET_assert (pref->pk < GNUNET_MQ_PREFERENCE_COUNT);
+  p->bw_by_pk[pref->pk] -= ntohl (pref->bw.value__);
+  if ( (0 == p->bw_by_pk[pref->pk]) &&
+       (GNUNET_YES == peer_test_dead (p)) )
+    peer_free (p);
+  update (h);
 }
 
 
@@ -286,11 +464,47 @@ simple_session_add (void *cls,
 		    const char *address)
 {
   struct SimpleHandle *h = cls;
+  struct Peer *p = peer_add (h,
+                             &data->peer);
+  struct Hello *hello;
+  size_t alen;
+  struct GNUNET_ATS_SessionHandle *sh;
 
-  // find or add peer if necessary
-  // setup session
-  // match HELLO
-  // trigger update
+  /* setup session handle */
+  if (NULL == address)
+    alen = 0;
+  else
+    alen = strlen (address) + 1;
+  sh = GNUNET_malloc (sizeof (struct GNUNET_ATS_SessionHandle) + alen);
+  sh->peer = p;
+  sh->session = data->session;
+  sh->data = data;
+  if (NULL == address)
+  {
+    sh->address = NULL;
+  }
+  else
+  {
+    memcpy (&sh[1],
+            address,
+            alen);
+    sh->address = (const char *) &sh[1];
+  }
+  GNUNET_CONTAINER_DLL_insert (p->sh_head,
+                               p->sh_tail,
+                               sh);
+  /* match HELLO */
+  hello = p->h_head;
+  while ( (NULL != hello) &&
+          (0 != strcmp (address,
+                        hello->address)) )
+    hello = hello->next;
+  if (NULL != hello)
+  {
+    hello->sh = sh;
+    sh->hello = hello;
+  }
+  update (h);
   return NULL;
 }
 
@@ -309,7 +523,9 @@ simple_session_update (void *cls,
 		       const struct GNUNET_ATS_SessionData *data)
 {
   struct SimpleHandle *h = cls;
-  // trigger update
+
+  sh->data = data; /* this statement should not really do anything... */
+  update (h);
 }
 
 
@@ -326,9 +542,16 @@ simple_session_del (void *cls,
 		    const struct GNUNET_ATS_SessionData *data)
 {
   struct SimpleHandle *h = cls;
-  // tear down session
+  struct Peer *p = sh->peer;
+
+  // FIXME: tear down session
   // del peer if otherwise dead
-  // trigger update
+
+
+  if ( (NULL == p->sh_head) &&
+       (GNUNET_YES == peer_test_dead (p)) )
+    peer_free (p);
+  update (h);
 }
 
 
