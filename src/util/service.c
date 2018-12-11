@@ -1587,6 +1587,7 @@ return_agpl (void *cls,
   struct GNUNET_MessageHeader *res;
   size_t slen;
 
+  (void) msg;
   slen = strlen (GNUNET_AGPL_URL) + 1;
   env = GNUNET_MQ_msg_extra (res,
                              GNUNET_MESSAGE_TYPE_RESPONSE_AGPL,
@@ -1811,37 +1812,45 @@ GNUNET_SERVICE_run_ (int argc,
     GNUNET_break (0);
     goto shutdown;
   }
-  if (NULL == opt_cfg_filename)
-    opt_cfg_filename = GNUNET_strdup (cfg_filename);
-  if (GNUNET_YES == GNUNET_DISK_file_test (opt_cfg_filename))
+  if (NULL != opt_cfg_filename)
   {
-    if (GNUNET_SYSERR ==
-	GNUNET_CONFIGURATION_load (cfg,
-				   opt_cfg_filename))
+    if ( (GNUNET_YES !=
+	  GNUNET_DISK_file_test (opt_cfg_filename)) ||
+	 (GNUNET_SYSERR ==
+	  GNUNET_CONFIGURATION_load (cfg,
+				     opt_cfg_filename)) ) 
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  _("Malformed configuration file `%s', exit ...\n"),
-                  opt_cfg_filename);
+		  _("Malformed configuration file `%s', exit ...\n"),
+		  opt_cfg_filename);
       goto shutdown;
     }
   }
   else
   {
-    if (GNUNET_SYSERR ==
-	GNUNET_CONFIGURATION_load (cfg,
-				   NULL))
+    if (GNUNET_YES ==
+	GNUNET_DISK_file_test (cfg_filename))
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  _("Malformed configuration, exit ...\n"));
-      goto shutdown;
+      if (GNUNET_SYSERR ==
+	  GNUNET_CONFIGURATION_load (cfg,
+				     cfg_filename))
+      {      
+	GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		    _("Malformed configuration file `%s', exit ...\n"),
+		    cfg_filename);
+	goto shutdown;
+      }
     }
-    if (0 != strcmp (opt_cfg_filename,
-		     cfg_filename))
+    else
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		  _("Could not access configuration file `%s'\n"),
-		  opt_cfg_filename);
-      goto shutdown;
+      if (GNUNET_SYSERR ==
+	  GNUNET_CONFIGURATION_load (cfg,
+				     NULL))
+      {
+	GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		    _("Malformed configuration, exit ...\n"));
+	goto shutdown;
+      }
     }
   }
   if (GNUNET_OK != setup_service (&sh))
@@ -1857,7 +1866,7 @@ GNUNET_SERVICE_run_ (int argc,
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Service `%s' runs with configuration from `%s'\n",
        service_name,
-       opt_cfg_filename);
+       (NULL != opt_cfg_filename) ? opt_cfg_filename : cfg_filename);
   if ((GNUNET_OK ==
        GNUNET_CONFIGURATION_get_value_number (sh.cfg,
 					      "TESTING",

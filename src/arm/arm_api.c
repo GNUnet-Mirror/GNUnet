@@ -680,7 +680,8 @@ start_arm_service (struct GNUNET_ARM_Handle *h,
                                         loprefix,
                                         quotedbinary,
                                         "-d", /* do daemonize */
-                                        lopostfix, NULL);
+                                        lopostfix,
+					NULL);
     else
       proc = GNUNET_OS_start_process_s (GNUNET_NO,
                                         std_inheritance,

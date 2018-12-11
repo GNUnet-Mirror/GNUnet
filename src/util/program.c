@@ -87,9 +87,13 @@ program_main (void *cls)
   struct CommandContext *cc = cls;
 
   GNUNET_SPEEDUP_start_(cc->cfg);
-  GNUNET_SCHEDULER_add_shutdown (&shutdown_task, NULL);
+  GNUNET_SCHEDULER_add_shutdown (&shutdown_task,
+				 NULL);
   GNUNET_RESOLVER_connect (cc->cfg);
-  cc->task (cc->task_cls, cc->args, cc->cfgfile, cc->cfg);
+  cc->task (cc->task_cls,
+	    cc->args,
+	    cc->cfgfile,
+	    cc->cfg);
 }
 
 
@@ -101,7 +105,8 @@ program_main (void *cls)
  * @param a2 second command line option
  */
 static int
-cmd_sorter (const void *a1, const void *a2)
+cmd_sorter (const void *a1,
+	    const void *a2)
 {
   const struct GNUNET_GETOPT_CommandLineOption *c1 = a1;
   const struct GNUNET_GETOPT_CommandLineOption *c2 = a2;
@@ -264,18 +269,17 @@ GNUNET_PROGRAM_run2 (int argc,
     GNUNET_free (lpfx);
     goto cleanup;
   }
-  if (NULL == cc.cfgfile)
-    cc.cfgfile = GNUNET_strdup (cfg_fn);
-  if (GNUNET_YES ==
-      GNUNET_DISK_file_test (cc.cfgfile))
+  if (NULL != cc.cfgfile)
   {
-    if (GNUNET_SYSERR ==
-	GNUNET_CONFIGURATION_load (cfg,
-				   cc.cfgfile))
+    if ( (GNUNET_YES !=
+	  GNUNET_DISK_file_test (cc.cfgfile)) ||
+	 (GNUNET_SYSERR ==
+	  GNUNET_CONFIGURATION_load (cfg,
+				     cc.cfgfile)) ) 
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  _("Malformed configuration file `%s', exit ...\n"),
-                  cc.cfgfile);
+		  _("Unreadable or malformed configuration file `%s', exit ...\n"),
+		  cc.cfgfile);
       ret = GNUNET_SYSERR;
       GNUNET_free (allopts);
       GNUNET_free (lpfx);
@@ -284,16 +288,37 @@ GNUNET_PROGRAM_run2 (int argc,
   }
   else
   {
-    if (0 != strcmp (cc.cfgfile,
-		     cfg_fn))
+    if (GNUNET_YES ==
+	GNUNET_DISK_file_test (cfg_fn))
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		  _("Could not access configuration file `%s'\n"),
-		  cc.cfgfile);
-      ret = GNUNET_SYSERR;
-      GNUNET_free (allopts);
-      GNUNET_free (lpfx);
-      goto cleanup;
+      if (GNUNET_SYSERR ==
+	  GNUNET_CONFIGURATION_load (cfg,
+				     cfg_fn))
+      {
+	GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		    _("Unreadable or malformed default configuration file `%s', exit ...\n"),
+		    cfg_fn);
+	ret = GNUNET_SYSERR;
+	GNUNET_free (allopts);
+	GNUNET_free (lpfx);
+	goto cleanup;
+      }
+    }
+    else
+    {
+      GNUNET_free (cfg_fn);
+      cfg_fn = NULL;
+      if (GNUNET_OK !=
+	  GNUNET_CONFIGURATION_load (cfg,
+				     NULL))
+      {
+	GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		    _("Unreadable or malformed configuration, exit ...\n"));
+	ret = GNUNET_SYSERR;
+	GNUNET_free (allopts);
+	GNUNET_free (lpfx);
+	goto cleanup;
+      }
     }
   }
   GNUNET_free (allopts);
@@ -320,20 +345,30 @@ GNUNET_PROGRAM_run2 (int argc,
      has little business with ARM-specific options. */
   if (GNUNET_YES !=
       GNUNET_CONFIGURATION_have_value (cfg,
-                                       "arm",
-                                       "CONFIG"))
+				       "arm",
+				       "CONFIG"))
   {
-    GNUNET_CONFIGURATION_set_value_string (cfg,
-                                           "arm",
-					   "CONFIG",
-                                           cc.cfgfile);
+    if (NULL != cc.cfgfile)
+      GNUNET_CONFIGURATION_set_value_string (cfg,
+					     "arm",
+					     "CONFIG",
+					     cc.cfgfile);
+    else if (NULL != cfg_fn)
+      GNUNET_CONFIGURATION_set_value_string (cfg,
+					     "arm",
+					     "CONFIG",
+					     cfg_fn);
   }
 
   /* run */
   cc.args = &argv[ret];
+  if ( (NULL == cc.cfgfile) &&
+       (NULL != cfg_fn) )
+    cc.cfgfile = GNUNET_strdup (cfg_fn);
   if (GNUNET_NO == run_without_scheduler)
   {
-    GNUNET_SCHEDULER_run (&program_main, &cc);
+    GNUNET_SCHEDULER_run (&program_main,
+			  &cc);
   }
   else
   {
@@ -347,7 +382,7 @@ GNUNET_PROGRAM_run2 (int argc,
  cleanup:
   GNUNET_CONFIGURATION_destroy (cfg);
   GNUNET_free_non_null (cc.cfgfile);
-  GNUNET_free (cfg_fn);
+  GNUNET_free_non_null (cfg_fn);
   GNUNET_free_non_null (loglev);
   GNUNET_free_non_null (logfile);
   return ret;

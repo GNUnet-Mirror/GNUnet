@@ -142,6 +142,7 @@ run (void *cls,
 {
   struct GNUNET_CONFIGURATION_Handle *out = NULL;
   struct GNUNET_CONFIGURATION_Handle *diff = NULL;
+  char *cfg_fn;
 
   (void) cls;
   (void) args;
@@ -236,6 +237,20 @@ run (void *cls,
                                            option,
                                            value);
   }
+  cfg_fn = NULL;
+  if (NULL == cfgfile)
+  {
+    const char *xdg = getenv ("XDG_CONFIG_HOME");
+    if (NULL != xdg)
+      GNUNET_asprintf (&cfg_fn,
+		       "%s%s%s",
+		       xdg,
+		       DIR_SEPARATOR_STR,
+		       GNUNET_OS_project_data_get ()->config_file);
+    else
+      cfg_fn = GNUNET_strdup (GNUNET_OS_project_data_get ()->user_config_file);
+    cfgfile = cfg_fn;
+  }
   if ( (NULL != diff) || (NULL != out) )
   {
     if (GNUNET_OK !=
@@ -243,6 +258,7 @@ run (void *cls,
                                     cfgfile))
       ret = 2;
   }
+  GNUNET_free_non_null (cfg_fn);
   if (NULL != out)
     GNUNET_CONFIGURATION_destroy (out);
  cleanup:
