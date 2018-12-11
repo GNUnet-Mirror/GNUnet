@@ -90,71 +90,7 @@ struct Plugin
    */
   sqlite3_stmt *expire_blocks;
 
-
 };
-
-
-/**
- * @brief Prepare a SQL statement
- *
- * @param dbh handle to the database
- * @param zSql SQL statement, UTF-8 encoded
- * @param ppStmt set to the prepared statement
- * @return 0 on success
- */
-static int
-sq_prepare (sqlite3 *dbh,
-            const char *zSql,
-            sqlite3_stmt **ppStmt)
-{
-  char *dummy;
-  int result;
-
-  result = sqlite3_prepare_v2 (dbh,
-                               zSql,
-                               strlen (zSql),
-                               ppStmt,
-                               (const char **) &dummy);
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Prepared `%s' / %p: %d\n",
-       zSql,
-       *ppStmt,
-       result);
-  return result;
-}
-
-
-/**
- * Create our database indices.
- *
- * @param dbh handle to the database
- */
-static void
-create_indices (sqlite3 * dbh)
-{
-  /* create indices */
-  if ( (SQLITE_OK !=
-	sqlite3_exec (dbh,
-                      "CREATE INDEX IF NOT EXISTS ir_query_hash ON ns096blocks (query,expiration_time)",
-		      NULL, NULL, NULL)) ||
-       (SQLITE_OK !=
-	sqlite3_exec (dbh,
-                      "CREATE INDEX IF NOT EXISTS ir_block_expiration ON ns096blocks (expiration_time)",
-		      NULL, NULL, NULL)) )
-    LOG (GNUNET_ERROR_TYPE_ERROR,
-	 "Failed to create indices: %s\n",
-         sqlite3_errmsg (dbh));
-}
-
-
-#if 0
-#define CHECK(a) GNUNET_break(a)
-#define ENULL NULL
-#else
-#define ENULL &e
-#define ENULL_DEFINED 1
-#define CHECK(a) if (! (a)) { GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "%s\n", e); sqlite3_free(e); }
-#endif
 
 
 /**
@@ -177,14 +113,30 @@ database_setup (struct Plugin *plugin)
     GNUNET_SQ_make_try_execute ("PRAGMA locking_mode=EXCLUSIVE"),
     GNUNET_SQ_make_try_execute ("PRAGMA page_size=4092"),
     GNUNET_SQ_make_try_execute ("PRAGMA journal_mode=WAL"),
+    GNUNET_SQ_make_execute ("CREATE TABLE IF NOT EXISTS ns096blocks ("
+			    " query BLOB NOT NULL,"
+			    " block BLOB NOT NULL,"
+			    " expiration_time INT8 NOT NULL"
+			    ")"),
+    GNUNET_SQ_make_execute ("CREATE INDEX IF NOT EXISTS ir_query_hash "
+			    "ON ns096blocks (query,expiration_time)"),
+    GNUNET_SQ_make_execute ("CREATE INDEX IF NOT EXISTS ir_block_expiration "
+			    "ON ns096blocks (expiration_time)"),
     GNUNET_SQ_EXECUTE_STATEMENT_END
   };
-  
-  sqlite3_stmt *stmt;
+  struct GNUNET_SQ_PrepareStatement ps[] = {
+    GNUNET_SQ_make_prepare ("INSERT INTO ns096blocks (query,block,expiration_time) VALUES (?, ?, ?)",
+			    &plugin->cache_block),
+    GNUNET_SQ_make_prepare ("DELETE FROM ns096blocks WHERE expiration_time<?",
+			    &plugin->expire_blocks),
+    GNUNET_SQ_make_prepare ("DELETE FROM ns096blocks WHERE query=? AND expiration_time<=?",
+			    &plugin->delete_block),
+    GNUNET_SQ_make_prepare ("SELECT block FROM ns096blocks WHERE query=? "
+			    "ORDER BY expiration_time DESC LIMIT 1",
+			    &plugin->lookup_block),
+    GNUNET_SQ_PREPARE_END
+  };
   char *afsdir;
-#if ENULL_DEFINED
-  char *e;
-#endif
 
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_filename (plugin->cfg,
@@ -230,59 +182,21 @@ database_setup (struct Plugin *plugin)
          plugin->fn);
     return GNUNET_SYSERR;
   }
-  CHECK (SQLITE_OK ==
-         sqlite3_busy_timeout (plugin->dbh,
-                               BUSY_TIMEOUT_MS));
-
-
-  /* Create tables */
-  CHECK (SQLITE_OK ==
-         sq_prepare (plugin->dbh,
-                     "SELECT 1 FROM sqlite_master WHERE tbl_name = 'ns096blocks'",
-                     &stmt));
-  if ( (sqlite3_step (stmt) == SQLITE_DONE) &&
-       (SQLITE_OK !=
-        sqlite3_exec (plugin->dbh,
-                      "CREATE TABLE ns096blocks ("
-                      " query BLOB NOT NULL,"
-                      " block BLOB NOT NULL,"
-                      " expiration_time INT8 NOT NULL"
-                      ")",
-                      NULL, NULL, NULL)) )
+  GNUNET_break (SQLITE_OK ==
+		sqlite3_busy_timeout (plugin->dbh,
+				      BUSY_TIMEOUT_MS));
+  
+  if (GNUNET_OK !=
+      GNUNET_SQ_prepare (plugin->dbh,
+                         ps))
   {
-    LOG_SQLITE (plugin,
-                GNUNET_ERROR_TYPE_ERROR,
-                "sqlite3_exec");
-    sqlite3_finalize (stmt);
+    GNUNET_break (0);
+    LOG (GNUNET_ERROR_TYPE_ERROR,
+         _("Failed to setup database at `%s'\n"),
+         plugin->fn);
     return GNUNET_SYSERR;
   }
-  sqlite3_finalize (stmt);
-  create_indices (plugin->dbh);
 
-  if ( (SQLITE_OK !=
-        sq_prepare (plugin->dbh,
-                    "INSERT INTO ns096blocks (query,block,expiration_time) VALUES (?, ?, ?)",
-                    &plugin->cache_block)) ||
-       (SQLITE_OK !=
-        sq_prepare (plugin->dbh,
-                    "DELETE FROM ns096blocks WHERE expiration_time<?",
-                    &plugin->expire_blocks)) ||
-       (SQLITE_OK !=
-        sq_prepare (plugin->dbh,
-                    "DELETE FROM ns096blocks WHERE query=? AND expiration_time<=?",
-                    &plugin->delete_block)) ||
-       (SQLITE_OK !=
-        sq_prepare (plugin->dbh,
-                    "SELECT block FROM ns096blocks WHERE query=? "
-                    "ORDER BY expiration_time DESC LIMIT 1",
-                    &plugin->lookup_block) )
-      )
-  {
-    LOG_SQLITE (plugin,
-                GNUNET_ERROR_TYPE_ERROR,
-                "precompiling");
-    return GNUNET_SYSERR;
-  }
   return GNUNET_OK;
 }
 
