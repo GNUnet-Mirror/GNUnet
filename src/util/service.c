@@ -11,7 +11,7 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
@@ -1177,7 +1177,7 @@ setup_service (struct GNUNET_SERVICE_Handle *sh)
   int flags;
   char dummy[2];
 #endif
-  
+
   if (GNUNET_CONFIGURATION_have_value
       (sh->cfg,
        sh->service_name,
@@ -1837,9 +1837,12 @@ GNUNET_SERVICE_run_ (int argc,
     }
     if (0 != strcmp (opt_cfg_filename,
 		     cfg_filename))
+    {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 		  _("Could not access configuration file `%s'\n"),
 		  opt_cfg_filename);
+      goto shutdown;
+    }
   }
   if (GNUNET_OK != setup_service (&sh))
     goto shutdown;

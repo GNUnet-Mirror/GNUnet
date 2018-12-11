@@ -945,7 +945,7 @@ GNUNET_CONFIGURATION_get_value_number (const struct GNUNET_CONFIGURATION_Handle 
 		   number,
 		   dummy))
     return GNUNET_SYSERR;
-  return GNUNET_OK;  
+  return GNUNET_OK;
 }
 
 
@@ -966,7 +966,7 @@ GNUNET_CONFIGURATION_get_value_float  (const struct GNUNET_CONFIGURATION_Handle 
 {
   struct ConfigEntry *e;
   char dummy[2];
-  
+
   if (NULL == (e = find_entry (cfg, section, option)))
     return GNUNET_SYSERR;
   if (NULL == e->val)
@@ -1748,7 +1748,9 @@ GNUNET_CONFIGURATION_load_from (struct GNUNET_CONFIGURATION_Handle *cfg,
 				const char *defaults_d)
 {
   if (GNUNET_SYSERR ==
-      GNUNET_DISK_directory_scan (defaults_d, &parse_configuration_file, cfg))
+      GNUNET_DISK_directory_scan (defaults_d,
+                                  &parse_configuration_file,
+                                  cfg))
     return GNUNET_SYSERR;       /* no configuration at all found */
   return GNUNET_OK;
 }

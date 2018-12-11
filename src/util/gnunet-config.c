@@ -11,7 +11,7 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
@@ -82,7 +82,7 @@ print_option (void *cls,
   {
     char *value_fn;
     char *fn;
-    
+
     GNUNET_assert (GNUNET_OK ==
 		   GNUNET_CONFIGURATION_get_value_filename (cfg,
 							    section,
@@ -167,14 +167,19 @@ run (void *cls,
     if (! list_sections)
     {
       fprintf (stderr,
-               _("--section argument is required\n"));
+               _("%s or %s argument is required\n"),
+               "--section",
+               "--list-sections");
+      ret = 1;
     }
-    fprintf (stderr,
-             _("The following sections are available:\n"));
-    GNUNET_CONFIGURATION_iterate_sections (cfg,
-                                           &print_section_name,
-                                           NULL);
-    ret = 1;
+    else
+    {
+      fprintf (stderr,
+               _("The following sections are available:\n"));
+      GNUNET_CONFIGURATION_iterate_sections (cfg,
+                                             &print_section_name,
+                                             NULL);
+    }
     goto cleanup;
   }
 

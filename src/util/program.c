@@ -11,7 +11,7 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPROSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
@@ -286,15 +286,10 @@ GNUNET_PROGRAM_run2 (int argc,
   {
     if (0 != strcmp (cc.cfgfile,
 		     cfg_fn))
+    {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 		  _("Could not access configuration file `%s'\n"),
 		  cc.cfgfile);
-    if (GNUNET_SYSERR ==
-	GNUNET_CONFIGURATION_load (cfg,
-				   NULL))
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  _("Malformed configuration, exit ...\n"));
       ret = GNUNET_SYSERR;
       GNUNET_free (allopts);
       GNUNET_free (lpfx);
