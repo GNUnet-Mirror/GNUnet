@@ -74,7 +74,7 @@ static char *term;
 /**
  * Set to the name of the config file used.
  */
-static const char *config_file;
+static char *config_file;
 
 /**
  * Set to the directory where runtime files are stored.
@@ -172,6 +172,7 @@ delete_files ()
 static void
 shutdown_task (void *cls)
 {
+  (void) cls;
   if (NULL != al_task)
   {
     GNUNET_SCHEDULER_cancel (al_task);
@@ -284,6 +285,7 @@ conn_status (void *cls,
 {
   static int once;
 
+  (void) cls;
   if ( (GNUNET_SYSERR == connected) &&
        (0 == once) )
   {
@@ -312,6 +314,7 @@ start_callback (void *cls,
 		enum GNUNET_ARM_RequestStatus rs,
 		enum GNUNET_ARM_Result result)
 {
+  (void) cls;
   op = NULL;
   if (GNUNET_ARM_REQUEST_SENT_OK != rs)
   {
@@ -355,6 +358,7 @@ stop_callback (void *cls,
 {
   char *msg;
 
+  (void) cls;
   op = NULL;
   if (GNUNET_ARM_REQUEST_SENT_OK != rs)
   {
@@ -405,6 +409,7 @@ init_callback (void *cls,
 	       enum GNUNET_ARM_RequestStatus rs,
 	       enum GNUNET_ARM_Result result)
 {
+  (void) cls;
   op = NULL;
   if (GNUNET_ARM_REQUEST_SENT_OK != rs)
   {
@@ -452,6 +457,7 @@ term_callback (void *cls,
 {
   char *msg;
 
+  (void) cls;
   op = NULL;
   if (GNUNET_ARM_REQUEST_SENT_OK != rs)
   {
@@ -501,6 +507,7 @@ list_callback (void *cls,
 {
   unsigned int i;
 
+  (void) cls;
   op = NULL;
   if (GNUNET_ARM_REQUEST_SENT_OK != rs)
   {
@@ -538,6 +545,7 @@ list_callback (void *cls,
 static void
 action_loop (void *cls)
 {
+  (void) cls;
   al_task = NULL;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Running requested actions\n");
@@ -637,6 +645,7 @@ srv_status (void *cls,
 {
   const char *msg;
 
+  (void) cls;
   switch (status)
   {
   case GNUNET_ARM_SERVICE_MONITORING_STARTED:
@@ -679,6 +688,7 @@ srv_status (void *cls,
 static void
 timeout_task_cb (void *cls)
 {
+  (void) cls;
   timeout_task = NULL;
   ret = 2;
   GNUNET_SCHEDULER_shutdown ();
@@ -699,8 +709,9 @@ run (void *cls,
      const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
-  char *armconfig;
-
+  (void) cls;
+  (void) args;
+  (void) cfgfile;
   cfg = GNUNET_CONFIGURATION_dup (c);
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_string (cfg,

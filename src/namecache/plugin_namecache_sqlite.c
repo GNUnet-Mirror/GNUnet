@@ -168,6 +168,18 @@ create_indices (sqlite3 * dbh)
 static int
 database_setup (struct Plugin *plugin)
 {
+  struct GNUNET_SQ_ExecuteStatement es[] = {
+    GNUNET_SQ_make_try_execute ("PRAGMA temp_store=MEMORY"),
+    GNUNET_SQ_make_try_execute ("PRAGMA synchronous=NORMAL"),
+    GNUNET_SQ_make_try_execute ("PRAGMA legacy_file_format=OFF"),
+    GNUNET_SQ_make_try_execute ("PRAGMA auto_vacuum=INCREMENTAL"),
+    GNUNET_SQ_make_try_execute ("PRAGMA encoding=\"UTF-8\""),
+    GNUNET_SQ_make_try_execute ("PRAGMA locking_mode=EXCLUSIVE"),
+    GNUNET_SQ_make_try_execute ("PRAGMA page_size=4092"),
+    GNUNET_SQ_make_try_execute ("PRAGMA journal_mode=WAL"),
+    GNUNET_SQ_EXECUTE_STATEMENT_END
+  };
+  
   sqlite3_stmt *stmt;
   char *afsdir;
 #if ENULL_DEFINED
@@ -208,47 +220,16 @@ database_setup (struct Plugin *plugin)
 	 sqlite3_errmsg (plugin->dbh));
     return GNUNET_SYSERR;
   }
-  CHECK (SQLITE_OK ==
-         sqlite3_exec (plugin->dbh,
-                       "PRAGMA temp_store=MEMORY",
-                       NULL, NULL,
-                       ENULL));
-  CHECK (SQLITE_OK ==
-         sqlite3_exec (plugin->dbh,
-                       "PRAGMA synchronous=NORMAL",
-                       NULL, NULL,
-                       ENULL));
-  CHECK (SQLITE_OK ==
-         sqlite3_exec (plugin->dbh,
-                       "PRAGMA legacy_file_format=OFF",
-                       NULL, NULL,
-                       ENULL));
-  CHECK (SQLITE_OK ==
-         sqlite3_exec (plugin->dbh,
-                       "PRAGMA auto_vacuum=INCREMENTAL",
-                       NULL, NULL,
-                       ENULL));
-  CHECK (SQLITE_OK ==
-         sqlite3_exec (plugin->dbh,
-                       "PRAGMA encoding=\"UTF-8\"",
-                       NULL, NULL,
-                       ENULL));
-  CHECK (SQLITE_OK ==
-         sqlite3_exec (plugin->dbh,
-                       "PRAGMA locking_mode=EXCLUSIVE",
-                       NULL, NULL,
-                       ENULL));
-  CHECK (SQLITE_OK ==
-         sqlite3_exec (plugin->dbh,
-                       "PRAGMA page_size=4092",
-                       NULL, NULL,
-                       ENULL));
-  CHECK (SQLITE_OK ==
-         sqlite3_exec (plugin->dbh,
-                       "PRAGMA journal_mode=WAL",
-                       NULL, NULL,
-                       ENULL));
-
+  if (GNUNET_OK !=
+      GNUNET_SQ_exec_statements (plugin->dbh,
+                                 es))
+  {
+    GNUNET_break (0);
+    LOG (GNUNET_ERROR_TYPE_ERROR,
+         _("Failed to setup database at `%s'\n"),
+         plugin->fn);
+    return GNUNET_SYSERR;
+  }
   CHECK (SQLITE_OK ==
          sqlite3_busy_timeout (plugin->dbh,
                                BUSY_TIMEOUT_MS));

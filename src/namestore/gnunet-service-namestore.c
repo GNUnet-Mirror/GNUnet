@@ -46,6 +46,10 @@
  */
 #define MONITOR_STALL_WARN_DELAY GNUNET_TIME_UNIT_MINUTES
 
+/**
+ * Size of the cache used by #get_nick_record()
+ */
+#define NC_SIZE 16
 
 /**
  * A namestore client
@@ -292,6 +296,33 @@ struct StoreActivity
 
 
 /**
+ * Entry in list of cached nick resolutions.
+ */ 
+struct NickCache
+{
+  /**
+   * Zone the cache entry is for.
+   */ 
+  struct GNUNET_CRYPTO_EcdsaPrivateKey zone;
+
+  /**
+   * Cached record data.
+   */
+  struct GNUNET_GNSRECORD_Data *rd;
+
+  /**
+   * Timestamp when this cache entry was used last.
+   */
+  struct GNUNET_TIME_Absolute last_used;
+};
+
+
+/**
+ * We cache nick records to reduce DB load. 
+ */
+static struct NickCache nick_cache[NC_SIZE];
+
+/**
  * Public key of all zeros.
  */
 static const struct GNUNET_CRYPTO_EcdsaPrivateKey zero;
@@ -481,6 +512,48 @@ lookup_nick_it (void *cls,
 
 
 /**
+ * Add entry to the cache for @a zone and @a nick
+ *
+ * @param zone zone key to cache under
+ * @param nick nick entry to cache
+ */
+static void
+cache_nick (const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone,
+	    const struct GNUNET_GNSRECORD_Data *nick)
+{
+  struct NickCache *oldest;
+
+  oldest = NULL;
+  for (unsigned int i=0;i<NC_SIZE;i++)
+  {
+    struct NickCache *pos = &nick_cache[i];
+
+    if ( (NULL == oldest) ||
+	 (oldest->last_used.abs_value_us >
+	  pos->last_used.abs_value_us) )
+      oldest = pos;
+    if (0 == memcmp (zone,
+		     &pos->zone,
+		     sizeof (*zone)))
+    {
+      oldest = pos;
+      break;
+    }
+  }
+  GNUNET_free_non_null (oldest->rd);
+  oldest->zone = *zone;
+  oldest->rd = GNUNET_malloc (sizeof (*nick) +
+			      nick->data_size);
+  *oldest->rd = *nick;
+  oldest->rd->data = &oldest->rd[1];
+  memcpy (&oldest->rd[1],
+	  nick->data,
+	  nick->data_size);
+  oldest->last_used = GNUNET_TIME_absolute_get ();
+}
+
+
+/**
  * Return the NICK record for the zone (if it exists).
  *
  * @param zone private key for the zone to look for nick
@@ -493,6 +566,27 @@ get_nick_record (const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone)
   struct GNUNET_GNSRECORD_Data *nick;
   int res;
 
+  /* check cache first */
+  for (unsigned int i=0;i<NC_SIZE;i++)
+  {
+    struct NickCache *pos = &nick_cache[i];
+    if ( (NULL != pos->rd) &&
+	 (0 == memcmp (zone,
+		       &pos->zone,
+		       sizeof (*zone))) )
+    {
+      nick = GNUNET_malloc (sizeof (*nick) +
+			    pos->rd->data_size);
+      *nick = *pos->rd;
+      nick->data = &nick[1];
+      memcpy (&nick[1],
+	      pos->rd->data,
+	      pos->rd->data_size);
+      pos->last_used = GNUNET_TIME_absolute_get ();
+      return nick;
+    }
+  }
+  
   nick = NULL;
   res = GSN_database->lookup_records (GSN_database->cls,
 				      zone,
@@ -508,6 +602,10 @@ get_nick_record (const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone)
                 GNUNET_GNSRECORD_z2s (&pub));
     return NULL;
   }
+
+  /* update cache */
+  cache_nick (zone,
+	      nick);
   return nick;
 }
 
@@ -663,7 +761,7 @@ send_lookup_response (struct NamestoreClient *nc,
     GNUNET_SERVICE_client_drop (nc->client);
     return;
   }
-  if (rd_ser_len >= UINT16_MAX - name_len - sizeof (*zir_msg))
+  if (((size_t) rd_ser_len) >= UINT16_MAX - name_len - sizeof (*zir_msg))
   {
     GNUNET_break (0);
     GNUNET_SERVICE_client_drop (nc->client);
@@ -1445,6 +1543,12 @@ handle_record_store (void *cls,
                            conv_name)) ||
              (GNUNET_GNSRECORD_TYPE_NICK != rd[i].record_type) )
           rd_clean_off++;
+	
+	if ( (0 == strcmp (GNUNET_GNS_EMPTY_LABEL_AT,
+                           conv_name)) &&
+	     (GNUNET_GNSRECORD_TYPE_NICK == rd[i].record_type) )
+	  cache_nick (&rp_msg->private_key,
+		      &rd[i]);
       }
       res = GSN_database->store_records (GSN_database->cls,
 					 &rp_msg->private_key,

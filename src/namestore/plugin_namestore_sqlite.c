@@ -122,6 +122,7 @@ database_setup (struct Plugin *plugin)
     GNUNET_SQ_make_try_execute ("PRAGMA auto_vacuum=INCREMENTAL"),
     GNUNET_SQ_make_try_execute ("PRAGMA encoding=\"UTF-8\""),
     GNUNET_SQ_make_try_execute ("PRAGMA locking_mode=EXCLUSIVE"),
+    GNUNET_SQ_make_try_execute ("PRAGMA journal_mode=WAL"),
     GNUNET_SQ_make_try_execute ("PRAGMA page_size=4092"),
     GNUNET_SQ_make_execute ("CREATE TABLE IF NOT EXISTS ns098records ("
                             " uid INTEGER PRIMARY KEY,"
