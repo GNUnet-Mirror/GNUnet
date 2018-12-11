@@ -696,6 +696,7 @@ timeout_task_cb (void *cls)
 static void
 run (void *cls,
      char *const *args,
+     const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
   char *armconfig;
