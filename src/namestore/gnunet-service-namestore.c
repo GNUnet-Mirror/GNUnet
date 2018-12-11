@@ -23,6 +23,9 @@
  * @author Christian Grothoff
  *
  * TODO:
+ * - "get_nick_record" is a bottleneck, introduce a cache to
+ *   avoid looking it up again and again (for the same few
+ *   zones that the user will typically manage!)
  * - run testcases, make sure everything works!
  */
 #include "platform.h"
