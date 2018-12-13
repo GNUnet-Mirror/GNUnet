@@ -23,6 +23,14 @@
  */
 #include "platform.h"
 #include "gnunet_util_lib.h"
+#if __STDC_NO_ATOMICS__
+#else
+#ifdef HAVE_STDATOMIC_H
+#include <stdatomic.h>
+#else
+#define __STDC_NO_ATOMICS__ 1
+#endif
+#endif
 
 #define LOG(kind,...) GNUNET_log_from (kind, "util-time", __VA_ARGS__)
 
@@ -780,7 +788,7 @@ GNUNET_TIME_absolute_get_monotonic (const struct GNUNET_CONFIGURATION_Handle *cf
   static const struct GNUNET_CONFIGURATION_Handle *last_cfg;
   static struct GNUNET_TIME_Absolute last_time;
   static struct GNUNET_DISK_MapHandle *map_handle;
-  static struct GNUNET_TIME_AbsoluteNBO *map;
+  static uint64_t *map;
   struct GNUNET_TIME_Absolute now;
 
   now = GNUNET_TIME_absolute_get ();
@@ -859,13 +867,38 @@ GNUNET_TIME_absolute_get_monotonic (const struct GNUNET_CONFIGURATION_Handle *cf
     }
   }
   if (NULL != map)
-    last_time = GNUNET_TIME_absolute_max (GNUNET_TIME_absolute_ntoh (*map),
+  {
+    struct GNUNET_TIME_AbsoluteNBO mt;
+
+#if __STDC_NO_ATOMICS__
+#if __GNUC__
+    mt.abs_value_us__ = __sync_fetch_and_or (map, 0);
+#else
+    mt.abs_value_us__ = *map; /* godspeed, pray this is atomic */
+#endif
+#else
+    mt.abs_value_us__ = atomic_load (map);
+#endif
+    last_time = GNUNET_TIME_absolute_max (GNUNET_TIME_absolute_ntoh (mt),
 					  last_time);
+  }
   if (now.abs_value_us <= last_time.abs_value_us)
     now.abs_value_us = last_time.abs_value_us+1;
   last_time = now;
   if (NULL != map)
-    *map = GNUNET_TIME_absolute_hton (now);
+  {
+    uint64_t val = GNUNET_TIME_absolute_hton (now).abs_value_us__;
+#if __STDC_NO_ATOMICS__
+#if __GNUC__
+    (void) __sync_lock_test_and_set (map, val);
+#else
+    *map = val;  /* godspeed, pray this is atomic */
+#endif
+#else
+    atomic_store (map,
+		  val);
+#endif				     
+  }
   return now;
 }
 

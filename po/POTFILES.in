@@ -14,12 +14,15 @@ src/ats/gnunet-ats-solver-eval.c
 src/ats/gnunet-service-ats_addresses.c
 src/ats/gnunet-service-ats.c
 src/ats/gnunet-service-ats_connectivity.c
+src/ats/gnunet-service-ats-new.c
 src/ats/gnunet-service-ats_normalization.c
 src/ats/gnunet-service-ats_performance.c
 src/ats/gnunet-service-ats_plugins.c
 src/ats/gnunet-service-ats_preferences.c
 src/ats/gnunet-service-ats_reservations.c
 src/ats/gnunet-service-ats_scheduling.c
+src/ats/plugin_ats2_common.c
+src/ats/plugin_ats2_simple.c
 src/ats/plugin_ats_mlp.c
 src/ats/plugin_ats_proportional.c
 src/ats/plugin_ats_ril.c
