@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     Copyright (C) 2001-2013 GNUnet e.V.
+     Copyright (C) 2001-2013, 2018 GNUnet e.V.
 
      GNUnet is free software: you can redistribute it and/or modify it
      under the terms of the GNU Affero General Public License as published
@@ -22,8 +22,7 @@
  * @brief functions for handling time and time arithmetic
  */
 #include "platform.h"
-#include "gnunet_crypto_lib.h"
-#include "gnunet_time_lib.h"
+#include "gnunet_util_lib.h"
 
 #define LOG(kind,...) GNUNET_log_from (kind, "util-time", __VA_ARGS__)
 
@@ -757,6 +756,127 @@ GNUNET_TIME_randomized_backoff(struct GNUNET_TIME_Relative rt, struct GNUNET_TIM
 }
 
 
+/**
+ * Obtain the current time and make sure it is monotonically
+ * increasing.  Guards against systems without an RTC or
+ * clocks running backwards and other nasty surprises. Does
+ * not guarantee that the returned time is near the current
+ * time returned by #GNUNET_TIME_absolute_get().  Two 
+ * subsequent calls (within a short time period) may return the
+ * same value. Persists the last returned time on disk to
+ * ensure that time never goes backwards. As a result, the
+ * resulting value can be used to check if a message is the 
+ * "most recent" value and replays of older messages (from
+ * the same origin) would be discarded.
+ * 
+ * @param cfg configuration, used to determine where to 
+ *   store the time; user can also insist RTC is working
+ *   nicely and disable the feature
+ * @return monotonically increasing time
+ */
+struct GNUNET_TIME_Absolute
+GNUNET_TIME_absolute_get_monotonic (const struct GNUNET_CONFIGURATION_Handle *cfg)
+{
+  static const struct GNUNET_CONFIGURATION_Handle *last_cfg;
+  static struct GNUNET_TIME_Absolute last_time;
+  static struct GNUNET_DISK_MapHandle *map_handle;
+  static struct GNUNET_TIME_AbsoluteNBO *map;
+  struct GNUNET_TIME_Absolute now;
 
+  now = GNUNET_TIME_absolute_get ();
+  if (last_cfg != cfg)
+  {
+    char *filename;
+
+    if (NULL != map_handle)
+    {
+      GNUNET_DISK_file_unmap (map_handle);
+      map_handle = NULL;
+    }
+    map = NULL;
+    
+    last_cfg = cfg;
+    if ( (NULL != cfg) &&
+	 (GNUNET_OK ==
+	  GNUNET_CONFIGURATION_get_value_filename (cfg,
+						   "util",
+						   "MONOTONIC_TIME_FILENAME",
+						   &filename)) )
+    {
+      struct GNUNET_DISK_FileHandle *fh;
+
+      fh = GNUNET_DISK_file_open (filename,
+				  GNUNET_DISK_OPEN_READWRITE | GNUNET_DISK_OPEN_CREATE,
+				  GNUNET_DISK_PERM_USER_WRITE | GNUNET_DISK_PERM_GROUP_WRITE |
+				  GNUNET_DISK_PERM_USER_READ  | GNUNET_DISK_PERM_GROUP_READ);
+      if (NULL == fh)
+      {
+	GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		    _("Failed to map `%s', cannot assure monotonic time!\n"),
+		    filename);
+      }
+      else
+      {	
+	off_t size;
+
+	size = 0;
+	GNUNET_break (GNUNET_OK ==
+		      GNUNET_DISK_file_handle_size (fh,
+						    &size));
+	if (size < sizeof (*map))
+	{
+	  struct GNUNET_TIME_AbsoluteNBO o;
+
+	  o = GNUNET_TIME_absolute_hton (now);
+	  if (sizeof (o) !=
+	      GNUNET_DISK_file_write (fh,
+				      &o,
+				      sizeof (o)))
+	    size = 0;
+	  else
+	    size = sizeof (o);
+	}
+	if (size == sizeof (*map))
+	{
+	  map = GNUNET_DISK_file_map (fh,
+				      &map_handle,
+				      GNUNET_DISK_MAP_TYPE_READWRITE,
+				      sizeof (*map));
+	  if (NULL == map)
+	    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+			_("Failed to map `%s', cannot assure monotonic time!\n"),
+			filename);
+	}
+	else
+	{
+	  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		      _("Failed to setup monotonic time file `%s', cannot assure monotonic time!\n"),
+		      filename);
+	}
+      }
+      GNUNET_DISK_file_close (fh);
+      GNUNET_free (filename);
+    }
+  }
+  if (NULL != map)
+    last_time = GNUNET_TIME_absolute_max (GNUNET_TIME_absolute_ntoh (*map),
+					  last_time);
+  if (now.abs_value_us <= last_time.abs_value_us)
+    now.abs_value_us = last_time.abs_value_us+1;
+  last_time = now;
+  if (NULL != map)
+    *map = GNUNET_TIME_absolute_hton (now);
+  return now;
+}
+
+
+/**
+ * Destructor
+ */
+void __attribute__ ((destructor))
+GNUNET_util_time_fini ()
+{
+  (void) GNUNET_TIME_absolute_get_monotonic (NULL);
+}
 
 /* end of time.c */

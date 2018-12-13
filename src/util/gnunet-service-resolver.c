@@ -1123,7 +1123,6 @@ check_get (void *cls,
 
   (void) cls;
   size = ntohs (get->header.size) - sizeof (*get);
-  const char *str = &get[1];
   direction = ntohl (get->direction);
   if (GNUNET_NO == direction)
   {

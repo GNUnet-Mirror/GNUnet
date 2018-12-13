@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     Copyright (C) 2001-2013 GNUnet e.V.
+     Copyright (C) 2001-2013, 2018 GNUnet e.V.
 
      GNUnet is free software: you can redistribute it and/or modify it
      under the terms of the GNU Affero General Public License as published
@@ -223,7 +223,28 @@ main (int argc, char *argv[])
   /*check  GNUNET_TIME_absolute_max */
   GNUNET_assert (now.abs_value_us ==
                  GNUNET_TIME_absolute_max (now, last).abs_value_us);
+  for (unsigned int i=0;i<30;i++)
+  {
+    struct GNUNET_CONFIGURATION_Handle *cfg;
 
+    cfg = GNUNET_CONFIGURATION_create ();
+    last = GNUNET_TIME_absolute_get_monotonic (cfg);
+    now = GNUNET_TIME_absolute_get_monotonic (cfg);
+    GNUNET_assert (now.abs_value_us > last.abs_value_us);
+    (void) GNUNET_TIME_absolute_get_monotonic (NULL);
+    GNUNET_CONFIGURATION_set_value_string (cfg,
+					   "util",
+					   "MONOTONIC_TIME_FILENAME",
+					   "monotonic-time.dat");
+    last = GNUNET_TIME_absolute_get_monotonic (cfg);
+    now = GNUNET_TIME_absolute_get_monotonic (cfg);
+    (void) GNUNET_TIME_absolute_get_monotonic (NULL);
+    GNUNET_assert (now.abs_value_us > last.abs_value_us);
+    GNUNET_CONFIGURATION_destroy (cfg);
+  }
+  GNUNET_break (GNUNET_OK ==
+		GNUNET_DISK_directory_remove ("monotonic-time.dat"));
+  
   return 0;
 }
 

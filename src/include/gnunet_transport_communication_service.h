@@ -103,6 +103,19 @@ enum GNUNET_TRANSPORT_CommunicatorCharacteristics {
 
 
 /**
+ * Function called when the transport service has received an
+ * acknowledgement for this communicator (!) via a different return
+ * path. 
+ */
+typedef void
+(*GNUNET_TRANSPORT_CommunicatorNotify) (void *cls,
+					const struct GNUNET_PeerIdentity *sender,
+					struct GNUNET_TIME_Absolute monotonic_time,
+					struct GNUNET_TIME_Relative validity,
+					const struct GNUNET_HashCode *token			
+					);
+
+/**
  * Connect to the transport service.
  *
  * @param cfg configuration to use
@@ -122,7 +135,9 @@ GNUNET_TRANSPORT_communicator_connect (const struct GNUNET_CONFIGURATION_Handle 
 				       const char *addr_prefix,
                                        enum GNUNET_TRANSPORT_CommunicatorCharacteristics cc,
                                        GNUNET_TRANSPORT_CommunicatorMqInit mq_init,
-                                       void *mq_init_cls);
+                                       void *mq_init_cls,
+				       GNUNET_TRANSPORT_CommunicatorNotify notify_cb,
+				       void *notify_cb_cls);
 
 
 /**
@@ -273,6 +288,28 @@ GNUNET_TRANSPORT_communicator_address_add (struct GNUNET_TRANSPORT_CommunicatorH
  */
 void
 GNUNET_TRANSPORT_communicator_address_remove (struct GNUNET_TRANSPORT_AddressIdentifier *ai);
+
+
+/**
+ * The communicator asks the transport service to route a message via
+ * a different path to another communicator service at another peer.
+ * This must only be done for special control traffic (as there is no
+ * flow control for this API), such as acknowledgements, and generally
+ * only be done if the communicator is uni-directional (i.e. cannot
+ * send the message back itself).
+ *
+ * @param ch handle of this communicator
+ * @param target_pid peer to send the message to
+ * @param target_comm name of the communicator to send the message to
+ */
+void
+GNUNET_TRANSPORT_communicator_notify (struct GNUNET_TRANSPORT_CommunicatorHandle *ch,
+				      const struct GNUNET_PeerIdentity *pid,
+				      const char *comm,
+				      struct GNUNET_TIME_Absolute monotonic_time,
+				      struct GNUNET_TIME_Relative validity,
+				      const struct GNUNET_HashCode *token
+				      );
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */

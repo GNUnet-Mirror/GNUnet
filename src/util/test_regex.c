@@ -21,7 +21,7 @@
  * @author Maximilian Szengel
  */
 #include "platform.h"
-#include "gnunet_tun_lib.h"
+#include "gnunet_util_lib.h"
 
 /**
  * 'wildcard', matches all possible values (for HEX encoding).

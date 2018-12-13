@@ -236,7 +236,8 @@ GNUNET_DISK_file_handle_size (struct GNUNET_DISK_FileHandle *fh,
  * @return the new position on success, #GNUNET_SYSERR otherwise
  */
 off_t
-GNUNET_DISK_file_seek (const struct GNUNET_DISK_FileHandle * h, off_t offset,
+GNUNET_DISK_file_seek (const struct GNUNET_DISK_FileHandle *h,
+		       off_t offset,
                        enum GNUNET_DISK_Seek whence)
 {
   if (h == NULL)
@@ -1034,7 +1035,8 @@ GNUNET_DISK_fn_read (const char *fn,
  */
 ssize_t
 GNUNET_DISK_file_write (const struct GNUNET_DISK_FileHandle * h,
-                        const void *buffer, size_t n)
+                        const void *buffer,
+			size_t n)
 {
   if (NULL == h)
   {

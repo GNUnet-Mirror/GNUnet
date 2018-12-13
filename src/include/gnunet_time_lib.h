@@ -365,7 +365,8 @@ GNUNET_TIME_absolute_get_remaining (struct GNUNET_TIME_Absolute future);
  *        assuming it continues at the same speed
  */
 struct GNUNET_TIME_Relative
-GNUNET_TIME_calculate_eta (struct GNUNET_TIME_Absolute start, uint64_t finished,
+GNUNET_TIME_calculate_eta (struct GNUNET_TIME_Absolute start,
+			   uint64_t finished,
                            uint64_t total);
 
 
@@ -563,6 +564,34 @@ GNUNET_TIME_year_to_time (unsigned int year);
  */
 unsigned int
 GNUNET_TIME_time_to_year (struct GNUNET_TIME_Absolute at);
+
+
+/**
+ * A configuration object.
+ */
+struct GNUNET_CONFIGURATION_Handle;
+
+
+/**
+ * Obtain the current time and make sure it is monotonically
+ * increasing.  Guards against systems without an RTC or
+ * clocks running backwards and other nasty surprises. Does
+ * not guarantee that the returned time is near the current
+ * time returned by #GNUNET_TIME_absolute_get().  Two 
+ * subsequent calls (within a short time period) may return the
+ * same value. Persists the last returned time on disk to
+ * ensure that time never goes backwards. As a result, the
+ * resulting value can be used to check if a message is the 
+ * "most recent" value and replays of older messages (from
+ * the same origin) would be discarded.
+ * 
+ * @param cfg configuration, used to determine where to 
+ *   store the time; user can also insist RTC is working
+ *   nicely and disable the feature
+ * @return monotonically increasing time
+ */
+struct GNUNET_TIME_Absolute
+GNUNET_TIME_absolute_get_monotonic (const struct GNUNET_CONFIGURATION_Handle *cfg);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */
