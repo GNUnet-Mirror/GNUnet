@@ -210,15 +210,6 @@ RPS_sampler_mod_init (size_t init_size,
 
   //GNUNET_assert (init_size == sampler->sampler_size);
 
-#ifdef TO_FILE
-  sampler->file_name = create_file ("sampler-");
-
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Initialised modified sampler %s\n",
-       sampler->file_name);
-  to_file (sampler->file_name,
-           "This is a modified sampler");
-#endif /* TO_FILE */
   RPS_sampler_resize (sampler, init_size);
 
   return sampler;

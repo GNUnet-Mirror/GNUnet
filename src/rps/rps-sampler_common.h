@@ -158,12 +158,6 @@ struct RPS_Sampler
 
   struct SamplerNotifyUpdateCTX *notify_ctx_head;
   struct SamplerNotifyUpdateCTX *notify_ctx_tail;
-  #ifdef TO_FILE
-  /**
-   * File name to log to
-   */
-  char *file_name;
-  #endif /* TO_FILE */
 };
 
 

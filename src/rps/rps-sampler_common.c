@@ -199,10 +199,6 @@ notify_update (struct RPS_Sampler *sampler)
 RPS_sampler_update (struct RPS_Sampler *sampler,
                     const struct GNUNET_PeerIdentity *id)
 {
-  to_file (sampler->file_name,
-           "Got %s",
-           GNUNET_i2s_full (id));
-
   for (uint32_t i = 0; i < sampler->sampler_size; i++)
   {
     RPS_sampler_elem_next (sampler->sampler_elements[i],
@@ -232,8 +228,6 @@ RPS_sampler_reinitialise_by_value (struct RPS_Sampler *sampler,
           &(sampler->sampler_elements[i]->peer_id)) )
     {
       LOG (GNUNET_ERROR_TYPE_DEBUG, "Reinitialising sampler\n");
-      to_file (sampler->sampler_elements[i]->file_name,
-               "--- non-active");
       RPS_sampler_elem_reinit (sampler->sampler_elements[i]);
     }
   }
@@ -290,17 +284,8 @@ sampler_resize (struct RPS_Sampler *sampler, unsigned int new_size)
          old_size,
          new_size);
 
-    to_file (sampler->file_name,
-         "Shrinking sampler %d -> %d",
-         old_size,
-         new_size);
-
     for (i = new_size ; i < old_size ; i++)
     {
-      to_file (sampler->file_name,
-               "-%" PRIu32 ": %s",
-               i,
-               sampler->sampler_elements[i]->file_name);
       RPS_sampler_elem_destroy (sampler->sampler_elements[i]);
     }
 
@@ -319,11 +304,6 @@ sampler_resize (struct RPS_Sampler *sampler, unsigned int new_size)
          old_size,
          new_size);
 
-    to_file (sampler->file_name,
-         "Growing sampler %d -> %d",
-         old_size,
-         new_size);
-
     GNUNET_array_grow (sampler->sampler_elements,
         sampler->sampler_size,
         new_size);
@@ -331,11 +311,6 @@ sampler_resize (struct RPS_Sampler *sampler, unsigned int new_size)
     for (i = old_size ; i < new_size ; i++)
     { /* Add new sampler elements */
       sampler->sampler_elements[i] = RPS_sampler_elem_create ();
-
-      to_file (sampler->file_name,
-               "+%" PRIu32 ": %s",
-               i,
-               sampler->sampler_elements[i]->file_name);
     }
   }
   else

@@ -202,15 +202,6 @@ RPS_sampler_init (size_t init_size,
 
   sampler = GNUNET_new (struct RPS_Sampler);
 
-  #ifdef TO_FILE
-  sampler->file_name = create_file ("sampler-");
-  GNUNET_assert (NULL != sampler->file_name);
-
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Initialised sampler %s\n",
-       sampler->file_name);
-  #endif /* TO_FILE */
-
   sampler->max_round_interval = max_round_interval;
   sampler->get_peers = sampler_get_rand_peer;
   //sampler->sampler_elements = GNUNET_new_array(init_size, struct GNUNET_PeerIdentity);

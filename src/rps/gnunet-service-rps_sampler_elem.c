@@ -54,15 +54,6 @@ RPS_sampler_elem_reinit (struct RPS_SamplerElement *sampler_elem)
                              &(sampler_elem->auth_key.key),
                              GNUNET_CRYPTO_HASH_LENGTH);
 
-  #ifdef TO_FILE
-  /* Create a file(-name) to store internals to */
-  char *name_buf;
-  name_buf = auth_key_to_string (sampler_elem->auth_key);
-
-  sampler_elem->file_name = create_file (name_buf);
-  GNUNET_free (name_buf);
-  #endif /* TO_FILE */
-
   sampler_elem->last_client_request = GNUNET_TIME_UNIT_FOREVER_ABS;
 
   sampler_elem->birth = GNUNET_TIME_absolute_get ();
@@ -100,12 +91,6 @@ RPS_sampler_elem_create (void)
 void
 RPS_sampler_elem_destroy (struct RPS_SamplerElement *sampler_elem)
 {
-  #ifdef TO_FILE
-  if (NULL != sampler_elem->file_name)
-  {
-    GNUNET_free (sampler_elem->file_name);
-  }
-  #endif /* TO_FILE */
   GNUNET_free (sampler_elem);
 }
 
@@ -123,12 +108,6 @@ RPS_sampler_elem_next (struct RPS_SamplerElement *sampler_elem,
   struct GNUNET_HashCode other_hash;
 
   sampler_elem->num_peers++;
-
-  #ifdef TO_FILE
-  to_file (sampler_elem->file_name,
-           "Got id %s",
-           GNUNET_i2s_full (new_ID));
-  #endif /* TO_FILE */
 
   if (0 == GNUNET_CRYPTO_cmp_peer_identity (new_ID, &(sampler_elem->peer_id)))
   {
@@ -168,12 +147,6 @@ RPS_sampler_elem_next (struct RPS_SamplerElement *sampler_elem,
     }
   }
   sampler_elem->is_empty = NOT_EMPTY;
-
-  #ifdef TO_FILE
-  to_file (sampler_elem->file_name,
-           "Now holding %s",
-           GNUNET_i2s_full (&sampler_elem->peer_id));
-  #endif /* TO_FILE */
 }
 
 /**
@@ -187,15 +160,6 @@ RPS_sampler_elem_set (struct RPS_SamplerElement *sampler_elem,
                       struct GNUNET_CRYPTO_AuthKey auth_key)
 {
   sampler_elem->auth_key = auth_key;
-
-  #ifdef TO_FILE
-  /* Create a file(-name) to store internals to */
-  char *name_buf;
-  name_buf = auth_key_to_string (sampler_elem->auth_key);
-
-  sampler_elem->file_name = create_file (name_buf);
-  GNUNET_free (name_buf);
-  #endif /* TO_FILE */
 }
 
 /* end of gnunet-service-rps.c */
