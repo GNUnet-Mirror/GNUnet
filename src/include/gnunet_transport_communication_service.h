@@ -135,9 +135,9 @@ GNUNET_TRANSPORT_communicator_connect (const struct GNUNET_CONFIGURATION_Handle 
 				       const char *addr_prefix,
                                        enum GNUNET_TRANSPORT_CommunicatorCharacteristics cc,
                                        GNUNET_TRANSPORT_CommunicatorMqInit mq_init,
-                                       void *mq_init_cls,
-				       GNUNET_TRANSPORT_CommunicatorNotify notify_cb,
-				       void *notify_cb_cls);
+                                       void *mq_init_cls);
+//				       GNUNET_TRANSPORT_CommunicatorNotify notify_cb,
+//				       void *notify_cb_cls);
 
 
 /**
