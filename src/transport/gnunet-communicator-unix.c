@@ -983,6 +983,29 @@ do_shutdown (void *cls)
 
 
 /**
+ * Function called when the transport service has received an
+ * acknowledgement for this communicator (!) via a different return
+ * path.
+ *
+ * Not applicable for UNIX.
+ *
+ * @param cls closure
+ * @param sender which peer sent the notification
+ * @param msg payload
+ */
+static void
+enc_notify_cb (void *cls,
+               const struct GNUNET_PeerIdentity *sender,
+               const struct GNUNET_MessageHeader *msg)
+{
+  (void) cls;
+  (void) sender;
+  (void) msg;
+  GNUNET_break_op (0);
+}
+
+
+/**
  * Setup communicator and launch network interactions.
  *
  * @param cls NULL (always)
@@ -1087,7 +1110,9 @@ run (void *cls,
 					      COMMUNICATOR_ADDRESS_PREFIX,
                                               GNUNET_TRANSPORT_CC_RELIABLE,
 					      &mq_init,
-					      NULL);
+					      NULL,
+                                              &enc_notify_cb,
+                                              NULL);
   if (NULL == ch)
   {
     GNUNET_break (0);

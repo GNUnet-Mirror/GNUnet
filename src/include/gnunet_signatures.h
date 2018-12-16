@@ -11,7 +11,7 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
@@ -193,6 +193,12 @@ extern "C"
  * addresses (for the given time period).
  */
 #define GNUNET_SIGNATURE_PURPOSE_TRANSPORT_ADDRESS 29
+
+/**
+ * Signature by a peer affirming that the given ephemeral
+ * key is currently in use by that peer's transport service.
+ */
+#define GNUNET_SIGNATURE_PURPOSE_TRANSPORT_EPHEMERAL 30
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {

@@ -25,6 +25,7 @@
 #include "gnunet_util_lib.h"
 #include "gnunet_protocols.h"
 #include "gnunet_transport_communication_service.h"
+#include "gnunet_ats_transport_service.h"
 #include "transport.h"
 
 
@@ -176,6 +177,18 @@ struct GNUNET_TRANSPORT_CommunicatorHandle
    * Closure for @e mq_init.
    */
   void *mq_init_cls;
+
+  /**
+   * Function to call when the transport service receives messages
+   * for a communicator (i.e. for NAT traversal or for non-bidirectional
+   * communicators).
+   */
+  GNUNET_TRANSPORT_CommunicatorNotify notify_cb;
+
+  /**
+   * Closure for @e notify_Cb.
+   */
+  void *notify_cb_cls;
 
   /**
    * Queue to talk to the transport service.
@@ -744,6 +757,7 @@ reconnect (struct GNUNET_TRANSPORT_CommunicatorHandle *ch)
 			   GNUNET_MESSAGE_TYPE_TRANSPORT_SEND_MSG,
 			   struct GNUNET_TRANSPORT_SendMessageTo,
 			   ch),
+    // FIXME: handle backchannel notifications!
     GNUNET_MQ_handler_end()
   };
   struct GNUNET_TRANSPORT_CommunicatorAvailableMessage *cam;
@@ -790,6 +804,8 @@ reconnect (struct GNUNET_TRANSPORT_CommunicatorHandle *ch)
  *                the address of another peer, can be NULL if the
  *                communicator only supports receiving messages
  * @param mq_init_cls closure for @a mq_init
+ * @param notify_cb function to pass backchannel messages to communicator
+ * @param notify_cb_cls closure for @a notify_cb
  * @return NULL on error
  */
 struct GNUNET_TRANSPORT_CommunicatorHandle *
@@ -798,7 +814,9 @@ GNUNET_TRANSPORT_communicator_connect (const struct GNUNET_CONFIGURATION_Handle 
 				       const char *addr_prefix,
                                        enum GNUNET_TRANSPORT_CommunicatorCharacteristics cc,
                                        GNUNET_TRANSPORT_CommunicatorMqInit mq_init,
-                                       void *mq_init_cls)
+                                       void *mq_init_cls,
+                                       GNUNET_TRANSPORT_CommunicatorNotify notify_cb,
+				       void *notify_cb_cls)
 {
   struct GNUNET_TRANSPORT_CommunicatorHandle *ch;
 
@@ -808,6 +826,8 @@ GNUNET_TRANSPORT_communicator_connect (const struct GNUNET_CONFIGURATION_Handle 
   ch->addr_prefix = addr_prefix;
   ch->mq_init = mq_init;
   ch->mq_init_cls = mq_init_cls;
+  ch->notify_cb = notify_cb;
+  ch->notify_cb_cls = notify_cb_cls;
   ch->cc = cc;
   reconnect (ch);
   if (GNUNET_OK !=
@@ -1038,6 +1058,50 @@ GNUNET_TRANSPORT_communicator_address_remove (struct GNUNET_TRANSPORT_AddressIde
 			       ai);
   GNUNET_free (ai->address);
   GNUNET_free (ai);
+}
+
+
+/* ************************* Backchannel *************************** */
+
+
+/**
+ * The communicator asks the transport service to route a message via
+ * a different path to another communicator service at another peer.
+ * This must only be done for special control traffic (as there is no
+ * flow control for this API), such as acknowledgements, and generally
+ * only be done if the communicator is uni-directional (i.e. cannot
+ * send the message back itself).
+ *
+ * @param ch handle of this communicator
+ * @param pid peer to send the message to
+ * @param comm name of the communicator to send the message to
+ * @param header header of the message to transmit and pass via the
+ *        notify-API to @a pid's communicator @a comm
+ */
+void
+GNUNET_TRANSPORT_communicator_notify (struct GNUNET_TRANSPORT_CommunicatorHandle *ch,
+				      const struct GNUNET_PeerIdentity *pid,
+				      const char *comm,
+				      const struct GNUNET_MessageHeader *header)
+{
+  struct GNUNET_MQ_Envelope *env;
+  struct GNUNET_TRANSPORT_CommunicatorBackchannel *cb;
+  size_t slen = strlen (comm) + 1;
+  uint16_t mlen = ntohs (header->size);
+
+  GNUNET_assert (mlen + slen + sizeof (*cb) < UINT16_MAX);
+  env = GNUNET_MQ_msg_extra (cb,
+                             slen + mlen,
+                             GNUNET_MESSAGE_TYPE_TRANSPORT_COMMUNICATOR_BACKCHANNEL);
+  cb->pid = *pid;
+  memcpy (&cb[1],
+          header,
+          mlen);
+  memcpy (((char *)&cb[1]) + mlen,
+          comm,
+          slen);
+  GNUNET_MQ_send (ch->mq,
+                  env);
 }
 
 

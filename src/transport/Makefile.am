@@ -328,7 +328,7 @@ gnunet_service_transport_CFLAGS = \
 gnunet_service_tng_SOURCES = \
  gnunet-service-tng.c
 gnunet_service_tng_LDADD = \
-  $(top_builddir)/src/ats/libgnunetats.la \
+  $(top_builddir)/src/ats/libgnunetatstransport.la \
   $(top_builddir)/src/peerstore/libgnunetpeerstore.la \
   $(top_builddir)/src/hello/libgnunethello.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \

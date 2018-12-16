@@ -26,7 +26,6 @@
 
 #include "gnunet_crypto_lib.h"
 #include "gnunet_time_lib.h"
-#include "gnunet_transport_service.h"
 #include "gnunet_constants.h"
 
 #define DEBUG_TRANSPORT GNUNET_EXTRA_LOGGING
@@ -78,6 +77,7 @@ typedef void
 
 
 GNUNET_NETWORK_STRUCT_BEGIN
+
 
 /**
  * Message from the transport service to the library
@@ -241,33 +241,6 @@ struct SendOkMessage
 
 };
 
-/**
- * Message used to notify the transport API about an address to string
- * conversion. Message is followed by the string with the humand-readable
- * address.  For each lookup, multiple results may be returned.  The
- * last message must have a @e res of #GNUNET_OK and an @e addr_len
- * of zero.
- */
-struct AddressToStringResultMessage
-{
-
-  /**
-   * Type will be #GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_TO_STRING_REPLY
-   */
-  struct GNUNET_MessageHeader header;
-
-  /**
-   * #GNUNET_OK if the conversion succeeded,
-   * #GNUNET_SYSERR if it failed
-   */
-  uint32_t res GNUNET_PACKED;
-
-  /**
-   * Length of the following string, zero if @e is #GNUNET_SYSERR
-   */
-  uint32_t addr_len GNUNET_PACKED;
-};
-
 
 /**
  * Message used to notify the transport service about a message
@@ -296,6 +269,39 @@ struct OutboundMessage
    */
   struct GNUNET_PeerIdentity peer;
 
+};
+
+
+
+
+#if !(defined(GNUNET_TRANSPORT_COMMUNICATION_VERSION)||defined(GNUNET_TRANSPORT_CORE_VERSION))
+
+
+/**
+ * Message used to notify the transport API about an address to string
+ * conversion. Message is followed by the string with the humand-readable
+ * address.  For each lookup, multiple results may be returned.  The
+ * last message must have a @e res of #GNUNET_OK and an @e addr_len
+ * of zero.
+ */
+struct AddressToStringResultMessage
+{
+
+  /**
+   * Type will be #GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_TO_STRING_REPLY
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * #GNUNET_OK if the conversion succeeded,
+   * #GNUNET_SYSERR if it failed
+   */
+  uint32_t res GNUNET_PACKED;
+
+  /**
+   * Length of the following string, zero if @e is #GNUNET_SYSERR
+   */
+  uint32_t addr_len GNUNET_PACKED;
 };
 
 
@@ -639,13 +645,7 @@ struct TransportPluginMonitorMessage
 
 };
 
-
-
-
-
-
-
-
+#else
 
 /* *********************** TNG messages ***************** */
 
@@ -950,6 +950,35 @@ struct GNUNET_TRANSPORT_SendMessageToAck
 };
 
 
+/**
+ * Message from communicator to transport service asking for
+ * transmission of a backchannel message with the given peer @e pid
+ * and communicator.
+ */
+struct GNUNET_TRANSPORT_CommunicatorBackchannel
+{
+  /**
+   * Type will be #GNUNET_MESSAGE_TYPE_TRANSPORT_COMMUNICATOR_BACKCHANNEL
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Always zero, for alignment.
+   */
+  uint32_t reserved;
+
+  /**
+   * Target peer.
+   */
+  struct GNUNET_PeerIdentity pid;
+
+  /* Followed by a `struct GNUNET_MessageHeader` with the encapsulated
+     message to the communicator */
+
+  /* Followed by the 0-terminated string specifying the desired
+     communicator */
+};
+
 
 
 /**
@@ -1028,9 +1057,7 @@ struct GNUNET_TRANSPORT_MonitorData
 
 };
 
-
-
-
+#endif
 
 GNUNET_NETWORK_STRUCT_END
 

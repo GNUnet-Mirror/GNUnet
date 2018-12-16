@@ -105,15 +105,23 @@ enum GNUNET_TRANSPORT_CommunicatorCharacteristics {
 /**
  * Function called when the transport service has received an
  * acknowledgement for this communicator (!) via a different return
- * path. 
+ * path.
+ *
+ * Typically used to receive messages of type
+ * #GNUNET_MESSAGE_TYPE_TRANSPORT_COMMUNICATOR_FC_LIMITS or
+ * #GNUNET_MESSAGE_TYPE_TRANSPORT_COMMUNICATOR_KX_CONFIRMATION
+ * as well as communicator-specific messages to assist with
+ * NAT traversal.
+ *
+ * @param cls closure
+ * @param sender which peer sent the notification
+ * @param msg payload
  */
 typedef void
 (*GNUNET_TRANSPORT_CommunicatorNotify) (void *cls,
 					const struct GNUNET_PeerIdentity *sender,
-					struct GNUNET_TIME_Absolute monotonic_time,
-					struct GNUNET_TIME_Relative validity,
-					const struct GNUNET_HashCode *token			
-					);
+                                        const struct GNUNET_MessageHeader *msg);
+
 
 /**
  * Connect to the transport service.
@@ -127,6 +135,8 @@ typedef void
  *                the address of another peer, can be NULL if the
  *                communicator only supports receiving messages
  * @param mq_init_cls closure for @a mq_init
+ * @param notify_cb function to pass backchannel messages to communicator
+ * @param notify_cb_cls closure for @a notify_cb
  * @return NULL on error
  */
 struct GNUNET_TRANSPORT_CommunicatorHandle *
@@ -135,9 +145,9 @@ GNUNET_TRANSPORT_communicator_connect (const struct GNUNET_CONFIGURATION_Handle 
 				       const char *addr_prefix,
                                        enum GNUNET_TRANSPORT_CommunicatorCharacteristics cc,
                                        GNUNET_TRANSPORT_CommunicatorMqInit mq_init,
-                                       void *mq_init_cls);
-//				       GNUNET_TRANSPORT_CommunicatorNotify notify_cb,
-//				       void *notify_cb_cls);
+                                       void *mq_init_cls,
+				       GNUNET_TRANSPORT_CommunicatorNotify notify_cb,
+				       void *notify_cb_cls);
 
 
 /**
@@ -221,7 +231,7 @@ enum GNUNET_TRANSPORT_ConnectionStatus {
 
 
 /**
- * Notify transport service that an MQ became available due to an
+ * Notify transport service that a MQ became available due to an
  * "inbound" connection or because the communicator discovered the
  * presence of another peer.
  *
@@ -299,17 +309,16 @@ GNUNET_TRANSPORT_communicator_address_remove (struct GNUNET_TRANSPORT_AddressIde
  * send the message back itself).
  *
  * @param ch handle of this communicator
- * @param target_pid peer to send the message to
- * @param target_comm name of the communicator to send the message to
+ * @param pid peer to send the message to
+ * @param comm name of the communicator to send the message to
+ * @param header header of the message to transmit and pass via the
+ *        notify-API to @a pid's communicator @a comm
  */
 void
 GNUNET_TRANSPORT_communicator_notify (struct GNUNET_TRANSPORT_CommunicatorHandle *ch,
 				      const struct GNUNET_PeerIdentity *pid,
 				      const char *comm,
-				      struct GNUNET_TIME_Absolute monotonic_time,
-				      struct GNUNET_TIME_Relative validity,
-				      const struct GNUNET_HashCode *token
-				      );
+				      const struct GNUNET_MessageHeader *header);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */

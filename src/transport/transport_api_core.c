@@ -28,6 +28,7 @@
 #include "gnunet_hello_lib.h"
 #include "gnunet_protocols.h"
 #include "gnunet_transport_core_service.h"
+#include "gnunet_transport_service.h"
 #include "transport.h"
 
 #define LOG(kind,...) GNUNET_log_from (kind, "transport-api-core",__VA_ARGS__)

@@ -3076,6 +3076,20 @@ extern "C"
  */
 #define GNUNET_MESSAGE_TYPE_TRANSPORT_NEW_COMMUNICATOR 1211
 
+/**
+ * Tell transport that it should assist with exchanging a
+ * message between communicators.  Usually used when
+ * communciators are uni-directional and need an alternative
+ * back-channel.
+ */
+#define GNUNET_MESSAGE_TYPE_TRANSPORT_COMMUNICATOR_BACKCHANNEL 1212
+
+/**
+ * Message type used between transport services when they
+ * internally forward communicator backchannel messages.
+ */
+#define GNUNET_MESSAGE_TYPE_TRANSPORT_BACKCHANNEL_ENCAPSULATION 1213
+
 
 /**
  * Message sent to indicate to the transport that a monitor
@@ -3093,6 +3107,18 @@ extern "C"
  * iteration over events is done.
  */
 #define GNUNET_MESSAGE_TYPE_TRANSPORT_MONITOR_END 1252
+
+/**
+ * Message exchanged between communicators to confirm
+ * successful KX (and address validation).
+ */
+#define GNUNET_MESSAGE_TYPE_TRANSPORT_COMMUNICATOR_KX_CONFIRMATION 1275
+
+/**
+ * Message exchanged between communicators to exchange
+ * flow control (FC) limits and acknowledgemets.
+ */
+#define GNUNET_MESSAGE_TYPE_TRANSPORT_COMMUNICATOR_FC_LIMITS 1276
 
 
 /* ************** NEW (NG) ATS Messages ************* */
