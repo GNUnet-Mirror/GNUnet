@@ -71,8 +71,11 @@ guix package -f guix-env.scm:notest
 ### 2. Docker
 
 ```
-docker build -t gnunet .
+# From within the top-level of this repository run:
+docker build -t gnunet -f ./contrib/docker/Dockerfile .
 ```
+
+For more info on using the docker container see [here](contrib/docker/README.md).
 
 
 
