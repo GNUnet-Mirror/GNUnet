@@ -11,7 +11,7 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
@@ -24,11 +24,14 @@
 #include "platform.h"
 #include "gnunet_util_lib.h"
 #if __STDC_NO_ATOMICS__
+#define ATOMIC
 #else
 #ifdef HAVE_STDATOMIC_H
 #include <stdatomic.h>
+#define ATOMIC _Atomic
 #else
 #define __STDC_NO_ATOMICS__ 1
+#define ATOMIC
 #endif
 #endif
 
@@ -769,15 +772,15 @@ GNUNET_TIME_randomized_backoff(struct GNUNET_TIME_Relative rt, struct GNUNET_TIM
  * increasing.  Guards against systems without an RTC or
  * clocks running backwards and other nasty surprises. Does
  * not guarantee that the returned time is near the current
- * time returned by #GNUNET_TIME_absolute_get().  Two 
+ * time returned by #GNUNET_TIME_absolute_get().  Two
  * subsequent calls (within a short time period) may return the
  * same value. Persists the last returned time on disk to
  * ensure that time never goes backwards. As a result, the
- * resulting value can be used to check if a message is the 
+ * resulting value can be used to check if a message is the
  * "most recent" value and replays of older messages (from
  * the same origin) would be discarded.
- * 
- * @param cfg configuration, used to determine where to 
+ *
+ * @param cfg configuration, used to determine where to
  *   store the time; user can also insist RTC is working
  *   nicely and disable the feature
  * @return monotonically increasing time
@@ -788,7 +791,7 @@ GNUNET_TIME_absolute_get_monotonic (const struct GNUNET_CONFIGURATION_Handle *cf
   static const struct GNUNET_CONFIGURATION_Handle *last_cfg;
   static struct GNUNET_TIME_Absolute last_time;
   static struct GNUNET_DISK_MapHandle *map_handle;
-  static uint64_t *map;
+  static ATOMIC volatile uint64_t *map;
   struct GNUNET_TIME_Absolute now;
 
   now = GNUNET_TIME_absolute_get ();
@@ -802,7 +805,7 @@ GNUNET_TIME_absolute_get_monotonic (const struct GNUNET_CONFIGURATION_Handle *cf
       map_handle = NULL;
     }
     map = NULL;
-    
+
     last_cfg = cfg;
     if ( (NULL != cfg) &&
 	 (GNUNET_OK ==
@@ -824,7 +827,7 @@ GNUNET_TIME_absolute_get_monotonic (const struct GNUNET_CONFIGURATION_Handle *cf
 		    filename);
       }
       else
-      {	
+      {
 	off_t size;
 
 	size = 0;
@@ -897,7 +900,7 @@ GNUNET_TIME_absolute_get_monotonic (const struct GNUNET_CONFIGURATION_Handle *cf
 #else
     atomic_store (map,
 		  val);
-#endif				     
+#endif
   }
   return now;
 }
