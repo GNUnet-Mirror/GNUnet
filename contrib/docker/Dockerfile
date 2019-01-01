@@ -24,7 +24,8 @@ RUN apt-get update && \
       libgnutls28-dev \
       libgcrypt20-dev \
       libpq-dev \
-      libsqlite3-dev && \
+      libsqlite3-dev \
+      wget && \
     apt-get clean all && \
     apt-get -y autoremove && \
     rm -rf \
@@ -32,14 +33,12 @@ RUN apt-get update && \
       /tmp/*
 
 # Install GNUrl
-ENV GNURL_GIT_URL https://git.taler.net/gnurl.git
-ENV GNURL_GIT_BRANCH gnurl-7.57.0
+ENV GNURL_VERSION=7.57.0
 
-RUN git clone $GNURL_GIT_URL \
-      --branch $GNURL_GIT_BRANCH \
-      --depth=1 \
-      --quiet && \
-    cd /gnurl && \
+RUN wget -O /tmp/gnurl.tar.bz2 https://gnunet.org/sites/default/files/gnurl-${GNURL_VERSION}.tar.bz2  
+RUN cd /tmp && \
+      tar xvf gnurl.tar.bz2 && \
+      cd gnurl-${GNURL_VERSION} && \
       autoreconf -i && \
       ./configure \
         --enable-ipv6 \
@@ -71,7 +70,7 @@ RUN git clone $GNURL_GIT_URL \
         --disable-smb && \
       make install && \
     cd - && \
-    rm -fr /gnurl
+    rm -rf /tmp/gnurl*
 
 # Install GNUnet
 ENV GNUNET_PREFIX /usr/local/gnunet
@@ -92,8 +91,8 @@ RUN cd /gnunet && \
     rm -fr /gnunet
 
 # Configure GNUnet
-COPY docker/gnunet.conf /etc/gnunet.conf
-COPY docker/docker-entrypoint.sh /usr/local/bin/docker-entrypoint
+COPY ./contrib/docker/gnunet.conf /etc/gnunet.conf
+COPY ./contrib/docker/docker-entrypoint.sh /usr/local/bin/docker-entrypoint
 RUN chmod 755 /usr/local/bin/docker-entrypoint
 
 ENV LOCAL_PORT_RANGE='40001 40200'
