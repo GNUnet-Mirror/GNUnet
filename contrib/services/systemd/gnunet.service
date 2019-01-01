@@ -1,3 +1,5 @@
+# This was copied from the AUR gnunet-git (https://aur.archlinux.org/gnunet-git.git/) at commit: 6c946b34
+
 [Unit]
 Description=A framework for secure peer-to-peer networking
 
