@@ -25,6 +25,7 @@
 #include "platform.h"
 #include "gnunet_util_lib.h"
 #include "gnunet_dnsparser_lib.h"
+#include "gnunet_statistics_service.h"
 #include "gnunet_namecache_service.h"
 #include "gnunet_namecache_plugin.h"
 #include "gnunet_signatures.h"
@@ -58,6 +59,11 @@ struct NamecacheClient
 static const struct GNUNET_CONFIGURATION_Handle *GSN_cfg;
 
 /**
+ * Handle to the statistics service
+ */
+static struct GNUNET_STATISTICS_Handle *statistics;
+
+/**
  * Database handle
  */
 static struct GNUNET_NAMECACHE_PluginFunctions *GSN_database;
@@ -83,6 +89,12 @@ cleanup_task (void *cls)
 				      GSN_database));
   GNUNET_free (db_lib_name);
   db_lib_name = NULL;
+  if (NULL != statistics)
+  {
+    GNUNET_STATISTICS_destroy (statistics,
+                               GNUNET_NO);
+    statistics = NULL;
+  }
 }
 
 
@@ -194,6 +206,10 @@ handle_lookup_block_it (void *cls,
   GNUNET_memcpy (&r[1],
 		 &block[1],
 		 esize);
+  GNUNET_STATISTICS_update (statistics,
+                            "blocks found in cache",
+                            1,
+                            GNUNET_NO);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Sending NAMECACHE_LOOKUP_BLOCK_RESPONSE message with expiration time %s\n",
               GNUNET_STRINGS_absolute_time_to_string (GNUNET_TIME_absolute_ntoh (r->expire)));
@@ -220,7 +236,10 @@ handle_lookup_block (void *cls,
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Received NAMECACHE_LOOKUP_BLOCK message\n");
-
+  GNUNET_STATISTICS_update (statistics,
+                            "blocks looked up",
+                            1,
+                            GNUNET_NO);
   lnc.request_id = ntohl (ln_msg->gns_header.r_id);
   lnc.nc = nc;
   lnc.status = GNUNET_OK;
@@ -284,6 +303,10 @@ handle_block_cache (void *cls,
   size_t esize;
   int res;
 
+  GNUNET_STATISTICS_update (statistics,
+                            "blocks cached",
+                            1,
+                            GNUNET_NO);
   esize = ntohs (rp_msg->gns_header.header.size) - sizeof (struct BlockCacheMessage);
   block = GNUNET_malloc (sizeof (struct GNUNET_GNSRECORD_Block) + esize);
   block->signature = rp_msg->signature;
@@ -353,6 +376,8 @@ run (void *cls,
 			      NULL);
     return;
   }
+  statistics = GNUNET_STATISTICS_create ("namecache",
+                                         cfg);
 
   /* Configuring server handles */
   GNUNET_SCHEDULER_add_shutdown (&cleanup_task,
