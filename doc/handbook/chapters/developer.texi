@@ -8768,14 +8768,14 @@ regular expressions.
 
 Using the REST subsystem, you can expose REST-based APIs or services.
 The REST service is designed as a pluggable architecture.
-To create a new REST endpoint, simply add a library in the form 
+To create a new REST endpoint, simply add a library in the form
 ``plugin_rest_*''.
 The REST service will automatically load all REST plugins on startup.
 
 @strong{Configuration}
 
 The REST service can be configured in various ways.
-The reference config file can be found in 
+The reference config file can be found in
 @file{src/rest/rest.conf}:
 @example
 [rest]

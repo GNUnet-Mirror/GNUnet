@@ -1453,6 +1453,7 @@ the user. This results in non-unique name-value mappings as
 * Using Public Keys as Top Level Domains::
 * Resource Records in GNS::
 * Synchronizing with legacy DNS::
+* Migrating an existing DNS zone into GNS::
 @end menu
 
 
@@ -1631,6 +1632,8 @@ GNS currently supports the following record types:
 * ABE MASTER::
 * RECLAIM OIDC CLIENT::
 * RECLAIM OIDC REDIRECT::
+* Synchronizing with legacy DNS::
+* Migrating an existing DNS zone into GNS::
 @end menu
 
 @node NICK
@@ -1891,6 +1894,40 @@ DNS zone and that do not have a local gns service in use, it
 is thus advisable to disable the namecache by setting the
 option ``DISABLE'' to ``YES'' in section ``[namecache]''.
 
+@node Migrating an existing DNS zone into GNS
+@subsection Migrating an existing DNS zone into GNS
+
+After installing the tool according to the README file you have these options:
+@example
+Ascension
+
+Usage:
+    ascension.py <domain> [-d]
+    ascension.py <domain> -p <port> [-d]
+    ascension.py <domain> -ns <transferns> [-d]
+    ascension.py <domain> -ns <transferns> -p <port> [-d]
+    ascension.py -h | --help
+    ascension.py -v | --version
+
+Options:
+    <port>          Port for zone transfer
+    <domain>        Domain to migrate
+    <transferns>    DNS Server that does the zone transfer
+    -d --debug      Enable debugging
+    -h --help       Show this screen.
+    -v --version    Show version.
+@end example
+
+To migrate the Syrian top level domain - one of the few top level domains that still support zone transfers - use the following command:
+
+@example
+$ ascension sy. -ns ns1.tld.sy.
+@end example
+
+This will take a while but after it has finished executing the zone will have been migrated into GNS.
+
+@c remove this once daemonized
+Currently this will only snapshot the zone at it's current state and not update it. There is a plan to daemonize the migration process so you don't have to worry that a zone will stay up to date.
 
 @node re@:claim Identity Provider
 @section re@:claim Identity Provider
@@ -1962,7 +1999,7 @@ Further, the "ticket" can be re-used later to retrieve up-to-date attributes in 
 
 To list all given authorizations (tickets) you can execute:
 @example
-$ gnunet-reclaim -e "friend" -T (TODO there is only a C and REST API for this at this time) 
+$ gnunet-reclaim -e "friend" -T (TODO there is only a C and REST API for this at this time)
 @end example
 
 
@@ -2290,5 +2327,6 @@ service offered by that peer, you can create an IP tunnel to
 that peer by specifying the peer's identity, service name and
 protocol (--tcp or --udp) and you will again receive an IP address
 that will terminate at the respective peer's service.
+
 
 
