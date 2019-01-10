@@ -1028,7 +1028,7 @@ identity_cb (void *cls,
     {
       fprintf (stderr,
                _("Missing option `%s' for operation `%s'\n"),
-               "-n", _("replace"));
+               "-R", _("replace"));
       GNUNET_SCHEDULER_shutdown ();
       ret = 1;
       return;
