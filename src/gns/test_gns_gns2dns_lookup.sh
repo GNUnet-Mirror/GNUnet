@@ -50,8 +50,8 @@ which timeout &> /dev/null && DO_TIMEOUT="timeout 15"
 gnunet-arm -s -c test_gns_lookup.conf
 
 OUT=`$DO_TIMEOUT gnunet-resolver -c test_gns_lookup.conf gnunet.org`
-echo $OUT | grep $TEST_IP - > /dev/null || { gnunet-arm -e -c test_gns_lookup.conf ; echo "IPv4 for gnunet.org not found, skipping test"; exit 77; }
-echo $OUT | grep $TEST6_IP - > /dev/null || { gnunet-arm -e -c test_gns_lookup.conf ; echo "IPv6 for gnunet.org not found, skipping test"; exit 77; }
+echo $OUT | grep $TEST_IP - > /dev/null || { gnunet-arm -e -c test_gns_lookup.conf ; echo "IPv4 for gnunet.org not found ($OUT), skipping test"; exit 77; }
+echo $OUT | grep $TEST_IP6 - > /dev/null || { gnunet-arm -e -c test_gns_lookup.conf ; echo "IPv6 for gnunet.org not found ($OUT), skipping test"; exit 77; }
 
 
 
