@@ -6,6 +6,8 @@
 #  modify it under the terms of version 2 of the GNU General Public
 #  License published by the Free Software Foundation.
 #
+#  SPDX-License-Identifier: GPL2.0
+#
 #  This should be placed in /etc/apparmor.d/usr.sbin.gnunet-helper-nat-server
 #  This profile may be a reasonable starting point for other NAT helpers.
 #

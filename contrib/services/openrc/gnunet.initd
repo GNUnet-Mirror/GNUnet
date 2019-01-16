@@ -1,6 +1,8 @@
 #!/sbin/openrc-run
-# Copyright 1999-2016 Gentoo Foundation
+# Copyright 1999-2016 Gentoo Authors
+# Copyright 2016 - 2019 ng0, lynX 
 # Distributed under the terms of the GNU General Public License v2
+# SPDX-License-Identifier: GPL2.0
 
 if [ -d /run ] ; then
 	PIDFILE=${PIDFILE:-/run/gnunet/arm-service.pid}
