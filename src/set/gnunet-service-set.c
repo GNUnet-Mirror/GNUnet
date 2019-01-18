@@ -206,7 +206,6 @@ static void
 incoming_destroy (struct Operation *op)
 {
   struct Listener *listener;
-  struct GNUNET_CADET_Channel *channel;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Destroying incoming operation %p\n",

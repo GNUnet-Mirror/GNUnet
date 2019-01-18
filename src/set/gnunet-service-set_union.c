@@ -1369,26 +1369,6 @@ send_client_element (struct Operation *op,
 
 
 /**
- * Destroy remote channel.
- *
- * @param op operation
- */
-static void
-destroy_channel (struct Operation *op)
-{
-  struct GNUNET_CADET_Channel *channel;
-
-  if (NULL != (channel = op->channel))
-  {
-    /* This will free op; called conditionally as this helper function
-       is also called from within the channel disconnect handler. */
-    op->channel = NULL;
-    GNUNET_CADET_channel_destroy (channel);
-  }
-}
-
-
-/**
  * Signal to the client that the operation has finished and
  * destroy the operation.
  *
