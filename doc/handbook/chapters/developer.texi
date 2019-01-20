@@ -8079,11 +8079,8 @@ This includes some of well known utilities, like "ping" and "nslookup".
 
 @c %**end of header
 
-This section will mainly comprise of the challenges and problems faced when
-writing the ascension tool.
-
-When considering to migrate existing into GNS there are a few things to
-consider.
+This section discusses the challenges and problems faced when writing the
+ascension tool. It also takes a look at possible improvements in the future.
 
 @menu
 * Conversions between DNS and GNS::
@@ -8095,19 +8092,16 @@ consider.
 @subsubsection Conversions between DNS and GNS
 
 The differences between the two name systems lies in the details
-and is not visible from the start. For instance an SRV record is converted to a
+and is not always transparent. For instance an SRV record is converted to a
 gnunet only BOX record.
 
-This is done by building a BOX record from an existing SRV record:
+This is done by converting to a BOX record from an existing SRV record:
 
 @example
+# SRV
 # _service._proto.name. TTL class SRV priority weight port target
 _sip._tcp.example.com. 14000 IN	SRV	0 0 5060 www.example.com.
-@end example
-
-Which can be transformed to a GNS BOX record by converting it like this:
-
-@example
+# BOX
 # TTL BOX flags port protocol recordtype priority weight port target
 14000 BOX n 5060 6 33 0 0 5060 www.example.com
 @end example
@@ -8137,7 +8131,7 @@ gnunet-namestore -z example.com -n mail -R 3600 MX n 10,mail
 @end example
 
 Finally, one of the biggest struggling points was the NS records that are found
-in top level domain zones. The inteded behaviour for those is to add GNS2DNS
+in top level domain zones. The intended behaviour for those is to add GNS2DNS
 records for the zone so that gnunet-gns can resolve the for those domain on it's
 own. Also a very important aspect of this is, that gnunet needs to be able to
 resolve the nameservers from it's own database. This requires migration of the
@@ -8167,6 +8161,11 @@ resolvable even if they expired. However this would introduce the problem of how
 to detect if a record has been removed from the zone and would require deletion
 of said record(s).
 
+Another problem that still persists is how to refresh records. Expired records
+are still displayed when calling gnunet-namestore but do not resolve with
+gnunet-gns. When doing incremental zone transfers this becomes especially
+apparent.
+
 @node Performance
 @subsubsection Performance
 The performance when migrating a zone using the ascension tool is limited by a
@@ -8178,7 +8177,7 @@ resource heavy and was optimized during development by adding the '-R'
 at once using the CLI.
 
 The result of this was a much faster migration of TLD zones, as most records
-with the same label have two nameservers.
+with the same label have two name servers.
 
 Another improvement that could be made is with the addition of multiple threads
 when opening the gnunet CLI tools. This could be implemented by simply creating

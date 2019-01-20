@@ -1698,7 +1698,11 @@ configured proxy) should give you a valid SSL certificate for
 @subsubsection Migrating existing DNS zones into GNS
 
 To migrate an existing zone into GNS use the ascension tool.
-You can find the source code here: @code{}
+
+Ascension transfers entire zones into GNS by doing incremental zone transfers
+and then adding the records to GNS.
+
+You can find the source code here: @code{https://gnunet.org/git/ascension.git/}
 
 The software can be installed into a python virtual environment like this:
 @example
@@ -1712,7 +1716,9 @@ Or installed globally like this (not recommended):
 $ sudo python3 setup.py install
 @end example
 
-The advantage of using a virtual environment is, that all the dependencies can be installed separately in different versions without touching your existing python installation and their dependencies.
+The advantage of using a virtual environment is, that all the dependencies can
+be installed separately in different versions without touching your existing
+python installation and its dependencies.
 
 Using the tool is discussed in the user section of the documentation.
 
