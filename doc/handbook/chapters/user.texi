@@ -1632,8 +1632,6 @@ GNS currently supports the following record types:
 * ABE MASTER::
 * RECLAIM OIDC CLIENT::
 * RECLAIM OIDC REDIRECT::
-* Synchronizing with legacy DNS::
-* Migrating an existing DNS zone into GNS::
 @end menu
 
 @node NICK
@@ -1897,7 +1895,7 @@ option ``DISABLE'' to ``YES'' in section ``[namecache]''.
 @node Migrating an existing DNS zone into GNS
 @subsection Migrating an existing DNS zone into GNS
 
-After installing the tool according to the README file you have these options:
+After installing the tool according to the README file you have the following options:
 @example
 Ascension
 
@@ -1926,8 +1924,9 @@ $ ascension sy. -ns ns1.tld.sy.
 
 This will take a while but after it has finished executing the zone will have been migrated into GNS.
 
-@c remove this once daemonized
-Currently this will only snapshot the zone at it's current state and not update it. There is a plan to daemonize the migration process so you don't have to worry that a zone will stay up to date.
+The program will continue to run daemon and update once the refresh time specified in the zones SOA record has elapsed.
+
+At this point it is trivial to write for example a systemd unit file and to enable the service, so that your zone is migrated periodically.
 
 @node re@:claim Identity Provider
 @section re@:claim Identity Provider

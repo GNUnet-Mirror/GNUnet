@@ -1712,10 +1712,9 @@ Or installed globally like this (not recommended):
 $ sudo python3 setup.py install
 @end example
 
-The advantage of using a virtual environment is, that all the dependencies can be installed separately in different versions without touching your existing python installation.
+The advantage of using a virtual environment is, that all the dependencies can be installed separately in different versions without touching your existing python installation and their dependencies.
 
-@c How to reference another section here?
-Using the tool is discussed in another section.
+Using the tool is discussed in the user section of the documentation.
 
 
 @node Configuring the GNUnet VPN

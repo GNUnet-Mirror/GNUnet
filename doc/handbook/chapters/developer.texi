@@ -7743,6 +7743,7 @@ record types.
 * The GNS Client-Service Protocol::
 * Hijacking the DNS-Traffic using gnunet-service-dns::
 * Serving DNS lookups via GNS on W32::
+* Importing DNS Zones into GNS::
 @end menu
 
 @node libgnunetgns
@@ -8072,6 +8073,124 @@ getaddrinfo() to resolve names, but fails to do anything with
 applications that use alternative means of resolving names (such as
 sending queries to a DNS server directly by themselves).
 This includes some of well known utilities, like "ping" and "nslookup".
+
+@node Importing DNS Zones into GNS
+@subsection Importing DNS Zones into GNS
+
+@c %**end of header
+
+This section will mainly comprise of the challenges and problems faced when
+writing the ascension tool.
+
+When considering to migrate existing into GNS there are a few things to
+consider.
+
+@menu
+* Conversions between DNS and GNS::
+* DNS Zone Size::
+* Performance::
+@end menu
+
+@node Conversions between DNS and GNS
+@subsubsection Conversions between DNS and GNS
+
+The differences between the two name systems lies in the details
+and is not visible from the start. For instance an SRV record is converted to a
+gnunet only BOX record.
+
+This is done by building a BOX record from an existing SRV record:
+
+@example
+# _service._proto.name. TTL class SRV priority weight port target
+_sip._tcp.example.com. 14000 IN	SRV	0 0 5060 www.example.com.
+@end example
+
+Which can be transformed to a GNS BOX record by converting it like this:
+
+@example
+# TTL BOX flags port protocol recordtype priority weight port target
+14000 BOX n 5060 6 33 0 0 5060 www.example.com
+@end example
+
+Other records that have such a transformation is the MX record type, as well as
+the SOA record type.
+
+Transformation of a SOA record into GNS works as described in the following
+example. Very important to note are the rname and mname keys.
+@example
+# BIND syntax for a clean SOA record
+@   IN SOA master.example.com. hostmaster.example.com. (
+    2017030300 ; serial
+    3600       ; refresh
+    1800       ; retry
+    604800     ; expire
+    600 )      ; ttl
+# Recordline for adding the record
+gnunet-namestore -z example.com -a -n @ -t SOA -V rname=master.example.com \
+    mname=hostmaster.example.com 2017030300,3600,1800,604800,600 -e 7200s
+@end example
+
+The transformation of MX records is done in a simple way.
+@example
+# mail.example.com. 3600 IN MX 10 mail.example.com.
+gnunet-namestore -z example.com -n mail -R 3600 MX n 10,mail
+@end example
+
+Finally, one of the biggest struggling points was the NS records that are found
+in top level domain zones. The inteded behaviour for those is to add GNS2DNS
+records for the zone so that gnunet-gns can resolve the for those domain on it's
+own. Also a very important aspect of this is, that gnunet needs to be able to
+resolve the nameservers from it's own database. This requires migration of the
+DNS GLUE records as well.
+
+This proved to be quite a challenge to implement, as in GNS every dot is a
+strict zone cut.
+
+The issue was fixed by creating a hierarchical zone structure in GNS and linking
+the zones using PKEY records to one another. This allows the resolution of the
+nameservers to work within GNS.
+
+@node DNS Zone Size
+@subsubsection DNS Zone Size
+
+Another very big problem exists with very large zones. When migrating a small
+zone the delay between adding of records and their expiry is negligible. However
+when working with a TLD zone that has more that 1 million records this delay
+becomes a problem.
+
+Records will start to expire well before the zone has finished migrating. This
+causes unwanted anomalies when trying to resolve records.
+
+A good solution has not been found yet. One of the idea that floated around was
+that the records should be added with the s (shadow) flag to keep the records
+resolvable even if they expired. However this would introduce the problem of how
+to detect if a record has been removed from the zone and would require deletion
+of said record(s).
+
+@node Performance
+@subsubsection Performance
+The performance when migrating a zone using the ascension tool is limited by a
+handful of factors. First of all ascension is written in python3 and calls the
+CLI tools of gnunet. Furthermore all the records that are added to the same
+label are signed using the zones private key. This signing operation is very
+resource heavy and was optimized during development by adding the '-R'
+(Recordline) option to gnunet-namestore. This allows to add multiple records
+at once using the CLI.
+
+The result of this was a much faster migration of TLD zones, as most records
+with the same label have two nameservers.
+
+Another improvement that could be made is with the addition of multiple threads
+when opening the gnunet CLI tools. This could be implemented by simply creating
+more workers in the program but performance improvements were not tested.
+
+During the entire development of the ascension tool sqlite was used as a
+database backend. Other backends need to be tested in the future.
+
+In conclusion there are many bottlenecks still around in the program, namely the
+signing process and the single threaded implementation. In the future a solution
+that uses the c api would be cleaner and better.
+
 
 @cindex GNS Namecache
 @node GNS Namecache
