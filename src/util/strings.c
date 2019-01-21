@@ -385,6 +385,7 @@ GNUNET_STRINGS_fancy_time_to_absolute (const char *fancy_time,
 {
   struct tm tv;
   time_t t;
+  const char *eos;
 
   if (0 == strcasecmp ("end of time",
                        fancy_time))
@@ -392,17 +393,18 @@ GNUNET_STRINGS_fancy_time_to_absolute (const char *fancy_time,
     *atime = GNUNET_TIME_UNIT_FOREVER_ABS;
     return GNUNET_OK;
   }
+  eos = &fancy_time[strlen (fancy_time)];
   memset (&tv, 0, sizeof (tv));
-  if ( (NULL == strptime (fancy_time, "%a %b %d %H:%M:%S %Y", &tv)) &&
-       (NULL == strptime (fancy_time, "%c", &tv)) &&
-       (NULL == strptime (fancy_time, "%Ec", &tv)) &&
-       (NULL == strptime (fancy_time, "%Y-%m-%d %H:%M:%S", &tv)) &&
-       (NULL == strptime (fancy_time, "%Y-%m-%d %H:%M", &tv)) &&
-       (NULL == strptime (fancy_time, "%x", &tv)) &&
-       (NULL == strptime (fancy_time, "%Ex", &tv)) &&
-       (NULL == strptime (fancy_time, "%Y-%m-%d", &tv)) &&
-       (NULL == strptime (fancy_time, "%Y-%m", &tv)) &&
-       (NULL == strptime (fancy_time, "%Y", &tv)) )
+  if ( (eos != strptime (fancy_time, "%a %b %d %H:%M:%S %Y", &tv)) &&
+       (eos != strptime (fancy_time, "%c", &tv)) &&
+       (eos != strptime (fancy_time, "%Ec", &tv)) &&
+       (eos != strptime (fancy_time, "%Y-%m-%d %H:%M:%S", &tv)) &&
+       (eos != strptime (fancy_time, "%Y-%m-%d %H:%M", &tv)) &&
+       (eos != strptime (fancy_time, "%x", &tv)) &&
+       (eos != strptime (fancy_time, "%Ex", &tv)) &&
+       (eos != strptime (fancy_time, "%Y-%m-%d", &tv)) &&
+       (eos != strptime (fancy_time, "%Y-%m", &tv)) &&
+       (eos != strptime (fancy_time, "%Y", &tv)) )
     return GNUNET_SYSERR;
   t = mktime (&tv);
   atime->abs_value_us = (uint64_t) ((uint64_t) t * 1000LL * 1000LL);
