@@ -1,6 +1,6 @@
 /*
  This file is part of GNUnet.
- Copyright (C) 2010-2016, 2018 GNUnet e.V.
+ Copyright (C) 2010-2016, 2018, 2019 GNUnet e.V.
 
  GNUnet is free software: you can redistribute it and/or modify it
  under the terms of the GNU Affero General Public License as published
@@ -182,6 +182,7 @@ struct EphemeralConfirmation
 
 };
 
+
 /**
  * Plaintext of the variable-size payload that is encrypted
  * within a `struct TransportBackchannelEncapsulationMessage`
@@ -224,6 +225,236 @@ struct TransportBackchannelRequestPayload
      the communicator which is to receive the message */
 
 };
+
+
+/**
+ * Outer layer of an encapsulated unfragmented application message sent
+ * over an unreliable channel.
+ */
+struct TransportReliabilityBox
+{
+  /**
+   * Type is #GNUNET_MESSAGE_TYPE_TRANSPORT_RELIABILITY_BOX
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Number of messages still to be sent before a commulative
+   * ACK is requested.  Zero if an ACK is requested immediately.
+   * In NBO.  Note that the receiver may send the ACK faster
+   * if it believes that is reasonable.
+   */
+  uint32_t ack_countdown GNUNET_PACKED;
+
+  /**
+   * Unique ID of the message used for signalling receipt of
+   * messages sent over possibly unreliable channels.  Should
+   * be a random.
+   */
+  struct GNUNET_ShortHashCode msg_uuid;
+};
+
+
+/**
+ * Confirmation that the receiver got a
+ * #GNUNET_MESSAGE_TYPE_TRANSPORT_RELIABILITY_BOX. Note that the
+ * confirmation may be transmitted over a completely different queue,
+ * so ACKs are identified by a combination of PID of sender and
+ * message UUID, without the queue playing any role!
+ */
+struct TransportReliabilityAckMessage
+{
+  /**
+   * Type is #GNUNET_MESSAGE_TYPE_TRANSPORT_RELIABILITY_ACK
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Reserved. Zero.
+   */
+  uint32_t reserved GNUNET_PACKED;
+
+  /**
+   * How long was the ACK delayed relative to the average time of
+   * receipt of the messages being acknowledged?  Used to calculate
+   * the average RTT by taking the receipt time of the ack minus the
+   * average transmission time of the sender minus this value.
+   */
+  struct GNUNET_TIME_RelativeNBO avg_ack_delay;
+
+  /* followed by any number of `struct GNUNET_ShortHashCode`
+     messages providing ACKs */
+};
+
+
+/**
+ * Outer layer of an encapsulated fragmented application message.
+ */
+struct TransportFragmentBox
+{
+  /**
+   * Type is #GNUNET_MESSAGE_TYPE_TRANSPORT_FRAGMENT
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Unique ID of this fragment (and fragment transmission!). Will
+   * change even if a fragement is retransmitted to make each
+   * transmission attempt unique! Should be incremented by one for
+   * each fragment transmission. If a client receives a duplicate
+   * fragment (same @e frag_off), it must send
+   * #GNUNET_MESSAGE_TYPE_TRANSPORT_FRAGMENT_ACK immediately.
+   */
+  uint32_t frag_uuid GNUNET_PACKED;
+
+  /**
+   * Original message ID for of the message that all the1
+   * fragments belong to.  Must be the same for all fragments.
+   */ 
+  struct GNUNET_ShortHashCode msg_uuid;
+
+  /**
+   * Offset of this fragment in the overall message.
+   */ 
+  uint16_t frag_off GNUNET_PACKED;
+
+  /**
+   * Total size of the message that is being fragmented.
+   */ 
+  uint16_t msg_size GNUNET_PACKED;
+
+};
+
+
+/**
+ * Outer layer of an fragmented application message sent over a queue
+ * with finite MTU.  When a #GNUNET_MESSAGE_TYPE_TRANSPORT_FRAGMENT is
+ * received, the receiver has two RTTs or 64 further fragments with
+ * the same basic message time to send an acknowledgement, possibly
+ * acknowledging up to 65 fragments in one ACK.  ACKs must also be
+ * sent immediately once all fragments were sent.
+ */
+struct TransportFragmentAckMessage
+{
+  /**
+   * Type is #GNUNET_MESSAGE_TYPE_TRANSPORT_FRAGMENT_ACK
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Unique ID of the lowest fragment UUID being acknowledged.
+   */
+  uint32_t frag_uuid GNUNET_PACKED;
+
+  /**
+   * Bitfield of up to 64 additional fragments following the
+   * @e msg_uuid being acknowledged by this message.
+   */ 
+  uint64_t extra_acks GNUNET_PACKED;
+
+  /**
+   * Original message ID for of the message that all the
+   * fragments belong to.
+   */ 
+  struct GNUNET_ShortHashCode msg_uuid;
+
+  /**
+   * How long was the ACK delayed relative to the average time of
+   * receipt of the fragments being acknowledged?  Used to calculate
+   * the average RTT by taking the receipt time of the ack minus the
+   * average transmission time of the sender minus this value.
+   */
+  struct GNUNET_TIME_RelativeNBO avg_ack_delay;
+};
+
+
+/**
+ * Internal message used by transport for distance vector learning.
+ * If @e num_hops does not exceed the threshold, peers should append
+ * themselves to the peer list and flood the message (possibly only
+ * to a subset of their neighbours to limit discoverability of the
+ * network topology).  To the extend that the @e bidirectional bits
+ * are set, peers may learn the inverse paths even if they did not
+ * initiate. 
+ *
+ * Unless received on a bidirectional queue and @e num_hops just
+ * zero, peers that can forward to the initator should always try to
+ * forward to the initiator.
+ */
+struct TransportDVLearn
+{
+  /**
+   * Type is #GNUNET_MESSAGE_TYPE_TRANSPORT_DV_LEARN
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Number of hops this messages has travelled, in NBO. Zero if
+   * sent by initiator.
+   */
+  uint16_t num_hops GNUNET_PACKED;
+
+  /**
+   * Bitmask of the last 16 hops indicating whether they are confirmed
+   * available (without DV) in both directions or not, in NBO.  Used
+   * to possibly instantly learn a path in both directions.  Each peer
+   * should shift this value by one to the left, and then set the
+   * lowest bit IF the current sender can be reached from it (without
+   * DV routing).  
+   */ 
+  uint16_t bidirectional GNUNET_PACKED;
+
+  /**
+   * Peers receiving this message and delaying forwarding to other
+   * peers for any reason should increment this value such as to 
+   * enable the origin to determine the actual network-only delay
+   * in addition to the real-time delay (assuming the message loops
+   * back to the origin).
+   */
+  struct GNUNET_TIME_Relative cummulative_non_network_delay;
+
+  /**
+   * Identity of the peer that started this learning activity.
+   */
+  struct GNUNET_PeerIdentity initiator;
+  
+  /* Followed by @e num_hops `struct GNUNET_PeerIdentity` values,
+     excluding the initiator of the DV trace; the last entry is the
+     current sender; the current peer must not be included except if
+     it is the sender. */
+  
+};
+
+
+/**
+ * Outer layer of an encapsulated message send over multiple hops.
+ */
+struct TransportDVBox
+{
+  /**
+   * Type is #GNUNET_MESSAGE_TYPE_TRANSPORT_DV
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Number of hops this messages includes. In NBO.
+   */
+  uint16_t num_hops GNUNET_PACKED;
+  
+  /**
+   * Position of our peer in the sequence.
+   * To be incremented at each hop. In NBO.
+   */
+  uint16_t current_hop GNUNET_PACKED;
+
+  /* Followed by @e num_hops `struct GNUNET_PeerIdentity` values;
+     the first is the sender, the last the receiver; the current
+     peer may be one in the middle. */
+
+  /* Followed by the actual message, which itself may be
+     another box, but not a DV_LEARN message! */
+};
+
 
 GNUNET_NETWORK_STRUCT_END
 
@@ -1780,6 +2011,68 @@ schedule_transmit_on_queue (struct GNUNET_ATS_Session *queue)
 
 
 /**
+ * Fragment the given @a pm to the given @a mtu.  Adds 
+ * additional fragments to the neighbour as well. If the
+ * @a mtu is too small, generates and error for the @a pm
+ * and returns NULL.
+ *
+ * @param pm pending message to fragment for transmission
+ * @param mtu MTU to apply
+ * @return new message to transmit
+ */
+static struct PendingMessage *
+fragment_message (struct PendingMessage *pm,
+		  uint16_t mtu)
+{
+  if (0)
+  {
+    /* mtu too small */
+    // FIMXE: bitch
+    client_send_response (pm,
+			  GNUNET_NO,
+			  0);
+    return NULL;
+  }
+
+  /* FIXME: return first fragment here! */
+  return NULL;
+}
+
+
+/**
+ * Reliability-box the given @a pm. On error (can there be any), NULL
+ * may be returned, otherwise the "replacement" for @a pm (which
+ * should then be added to the respective neighbour's queue instead of
+ * @a pm).  If the @a pm is already fragmented or reliability boxed,
+ * or itself an ACK, this function simply returns @a pm.
+ *
+ * @param pm pending message to box for transmission over unreliabile queue
+ * @return new message to transmit
+ */
+static struct PendingMessage *
+reliability_box_message (struct PendingMessage *pm)
+{
+  if (0) // FIXME
+  {
+    /* already fragmented or reliability boxed, do nothing */
+    return pm;
+  }
+  if (0) // FIXME
+  {
+    /* failed hard */
+    // FIMXE: bitch
+    client_send_response (pm,
+			  GNUNET_NO,
+			  0);
+    return NULL;
+  }
+
+  /* FIXME: return boxed PM here! */
+  return NULL;
+}
+
+
+/**
  * We believe we are ready to transmit a message on a queue. Double-checks
  * with the queue's "tracker_out" and then gives the message to the 
  * communicator for transmission (updating the tracker, and re-scheduling
@@ -1793,6 +2086,7 @@ transmit_on_queue (void *cls)
   struct GNUNET_ATS_Session *queue = cls;
   struct Neighbour *n = queue->neighbour;
   struct PendingMessage *pm;
+  uint32_t overhead;
 
   queue->transmit_task = NULL;
   if (NULL == (pm = n->pending_msg_head))
@@ -1803,15 +2097,41 @@ transmit_on_queue (void *cls)
   schedule_transmit_on_queue (queue);
   if (NULL != queue->transmit_task)
     return; /* do it later */
+  overhead = 0;
+  if (GNUNET_TRANSPORT_CC_RELIABLE != queue->tc->details.communicator.cc)
+    overhead += sizeof (struct TransportReliabilityBox);
+  if ( (0 != queue->mtu) &&
+       (pm->bytes_msg + overhead > queue->mtu) )
+    pm = fragment_message (pm,
+			   queue->mtu);
+  if (NULL == pm)
+  {
+    /* Fragmentation failed, try next message... */
+    schedule_transmit_on_queue (queue);
+    return;
+  }
+  if (GNUNET_TRANSPORT_CC_RELIABLE != queue->tc->details.communicator.cc)
+    pm = reliability_box_message (pm);
+  if (NULL == pm)
+  {
+    /* Reliability boxing failed, try next message... */
+    schedule_transmit_on_queue (queue);
+    return;
+  }
+  
+  // FIXME: actually do transmission
 
-  // FIXME: do transmission (fragmentation, adding signalling / RTT tracking logic, etc.)
-  // FIXME: upon success, do (not here in continuation!)
-  if (0)
-    {
-      client_send_response (pm,
-			    GNUNET_YES,
-			    0);
-    }
+  // FIXME: unless 'pm' is an ACK or control, move 'pm' back in the
+  // transmission queue (simplistic: to the end, better: with position
+  // depending on type, timeout, etc.)
+  
+  // FIXME: do something similar in defragmentation / reliability ACK handling!
+  if (GNUNET_TRANSPORT_CC_RELIABLE == queue->tc->details.communicator.cc)
+  {
+    client_send_response (pm,
+			  GNUNET_YES,
+			  pm->bytes_msg);
+  }
   /* finally, re-schedule self */
   schedule_transmit_on_queue (queue);
 }
