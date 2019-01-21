@@ -871,7 +871,7 @@ struct GNUNET_TRANSPORT_CreateQueue
 
 
 /**
- * Transport tells communicator that it wants a new queue.
+ * Communicator tells transport how queue creation went down.
  */
 struct GNUNET_TRANSPORT_CreateQueueResponse
 {
