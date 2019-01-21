@@ -39,7 +39,7 @@
  * - use ATS bandwidth allocation callback and schedule transmissions!
  *
  * Plan:
- * - inform ATS about RTT, goodput/loss, overheads, etc.
+ * - inform ATS about RTT, goodput/loss, overheads, etc. (GNUNET_ATS_session_update())
  *
  * Later:
  * - change transport-core API to provide proper flow control in both
@@ -332,6 +332,11 @@ struct GNUNET_ATS_Session
    */
   const char *address;
 
+  /**
+   * Handle by which we inform ATS about this queue.
+   */
+  struct GNUNET_ATS_SessionRecord *sr;
+  
   /**
    * Our current RTT estimate for this ATS session.
    */
@@ -996,20 +1001,20 @@ free_queue (struct GNUNET_ATS_Session *queue)
   GNUNET_CONTAINER_MDLL_remove (client,
 				tc->details.communicator.session_head,
 				tc->details.communicator.session_tail,
-				queue);
-
+				queue);  
   notify_monitors (&neighbour->pid,
 		   queue->address,
 		   queue->nt,
 		   &me);
+  GNUNET_ATS_session_del (queue->sr);
   GNUNET_BANDWIDTH_tracker_notification_stop (&queue->tracker_in);
   GNUNET_BANDWIDTH_tracker_notification_stop (&queue->tracker_out);
   GNUNET_free (queue);
   if (NULL == neighbour->session_head)
-    {
-      cores_send_disconnect_info (&neighbour->pid);
-      free_neighbour (neighbour);
-    }
+  {
+    cores_send_disconnect_info (&neighbour->pid);
+    free_neighbour (neighbour);
+  }
 }
 
 
@@ -1650,7 +1655,6 @@ handle_add_queue_message (void *cls,
 						      GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
     cores_send_connect_info (&neighbour->pid,
 			     GNUNET_BANDWIDTH_ZERO);
-    // FIXME: notify ATS!
   }
   addr_len = ntohs (aqm->header.size) - sizeof (*aqm);
   addr = (const char *) &aqm[1];
@@ -1661,7 +1665,6 @@ handle_add_queue_message (void *cls,
   queue->rtt = GNUNET_TIME_UNIT_FOREVER_REL;
   queue->qid = aqm->qid;
   queue->mtu = ntohl (aqm->mtu);
-  queue->distance = ntohl (aqm->distance);
   queue->nt = (enum GNUNET_NetworkType) ntohl (aqm->nt);
   queue->cs = (enum GNUNET_TRANSPORT_ConnectionStatus) ntohl (aqm->cs);
   queue->neighbour = neighbour;
@@ -1682,6 +1685,38 @@ handle_add_queue_message (void *cls,
   memcpy (&queue[1],
 	  addr,
 	  addr_len);
+  /* notify ATS about new queue */
+  {
+    struct GNUNET_ATS_Properties prop = {
+      .delay = GNUNET_TIME_UNIT_FOREVER_REL,
+      .mtu = queue->mtu,
+      .nt = queue->nt,
+      .cc = tc->details.communicator.cc
+    };
+    
+    queue->sr = GNUNET_ATS_session_add (ats,
+					&neighbour->pid,
+					queue->address,
+					queue,
+					&prop);
+    if  (NULL == queue->sr)
+    {
+      /* This can only happen if the 'address' was way too long for ATS
+	 (approaching 64k in strlen()!). In this case, the communicator
+	 must be buggy and we drop it. */
+      GNUNET_break (0);
+      GNUNET_BANDWIDTH_tracker_notification_stop (&queue->tracker_in);
+      GNUNET_BANDWIDTH_tracker_notification_stop (&queue->tracker_out);
+      GNUNET_free (queue);
+      if (NULL == neighbour->session_head)
+      {
+	cores_send_disconnect_info (&neighbour->pid);
+	free_neighbour (neighbour);
+      }
+      GNUNET_SERVICE_client_drop (tc->client);
+      return;
+    }
+  }
   /* notify monitors about new queue */
   {
     struct MonitorEvent me = {
@@ -1702,7 +1737,6 @@ handle_add_queue_message (void *cls,
 				tc->details.communicator.session_head,
 				tc->details.communicator.session_tail,
 				queue);
-  // FIXME: possibly transmit queued messages?
   GNUNET_SERVICE_client_continue (tc->client);
 }
 
@@ -1763,6 +1797,12 @@ handle_send_message_ack (void *cls,
     GNUNET_SERVICE_client_drop (tc->client);
     return;
   }
+  // FIXME: react to communicator status about transmission request. We got:
+  sma->status; // OK success, SYSERR failure
+  sma->mid; // message ID of original message
+  sma->receiver; // receiver of original message
+
+  
   GNUNET_SERVICE_client_continue (tc->client);
 }
 
@@ -1870,7 +1910,19 @@ ats_allocation_cb (void *cls,
 static struct TransportClient *
 lookup_communicator (const char *prefix)
 {
-  GNUNET_break (0); // FIXME: implement
+  for (struct TransportClient *tc = clients_head;
+       NULL != tc;
+       tc = tc->next)
+  {
+    if (CT_COMMUNICATOR != tc->type)
+      continue;
+    if (0 == strcmp (prefix,
+		     tc->details.communicator.address_prefix))
+      return tc;
+  }
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+	      "ATS suggested use of communicator for `%s', but we do not have such a communicator!\n",
+	      prefix);
   return NULL;
 }
 
@@ -1892,11 +1944,20 @@ ats_suggestion_cb (void *cls,
   char *prefix;
 
   (void) cls;
-  prefix = NULL; // FIXME
+  prefix = GNUNET_HELLO_address_to_prefix (address);
+  if (NULL == prefix)
+  {
+    GNUNET_break (0); /* ATS gave invalid address!? */
+    return;
+  }
   tc = lookup_communicator (prefix);
   if (NULL == tc)
   {
-    // STATS...
+    GNUNET_STATISTICS_update (GST_stats,
+			      "# ATS suggestions ignored due to missing communicator",
+			      1,
+			      GNUNET_NO);
+    
     return;
   }
   // FIXME: forward suggestion to tc

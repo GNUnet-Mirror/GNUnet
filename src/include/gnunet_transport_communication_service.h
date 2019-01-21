@@ -243,7 +243,6 @@ enum GNUNET_TRANSPORT_ConnectionStatus {
  * @param mtu maximum message size supported by queue, 0 if
  *            sending is not supported, SIZE_MAX for no MTU
  * @param nt which network type does the @a address belong to?
- * @param distance how many hops does this queue use (DV-only)?
  * @param cs what is the connection status of the queue?
  * @param mq message queue of the @a peer
  * @return API handle identifying the new MQ
@@ -254,7 +253,6 @@ GNUNET_TRANSPORT_communicator_mq_add (struct GNUNET_TRANSPORT_CommunicatorHandle
                                       const char *address,
 				      uint32_t mtu,
                                       enum GNUNET_NetworkType nt,
-                                      uint32_t distance,
 				      enum GNUNET_TRANSPORT_ConnectionStatus cs,
                                       struct GNUNET_MQ_Handle *mq);
 

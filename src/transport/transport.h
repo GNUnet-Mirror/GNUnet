@@ -817,11 +817,6 @@ struct GNUNET_TRANSPORT_AddQueueMessage
    */
   uint32_t cs;
 
-  /**
-   * Hops to the target (DV-only), in NBO.
-   */
-  uint32_t distance;
-
   /* followed by UTF-8 encoded, 0-terminated human-readable address */
 };
 

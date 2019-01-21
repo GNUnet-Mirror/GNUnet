@@ -685,7 +685,6 @@ setup_queue (const struct GNUNET_PeerIdentity *target,
 					      foreign_addr,
 					      UNIX_MTU,
 					      GNUNET_NT_LOOPBACK,
-                                              0 /* distance */,
 					      cs,
 					      queue->mq);
     GNUNET_free (foreign_addr);

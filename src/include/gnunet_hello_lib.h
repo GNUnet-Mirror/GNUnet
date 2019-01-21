@@ -520,6 +520,16 @@ GNUNET_HELLO_extract_address (const void *raw,
 			      struct GNUNET_TIME_Absolute *expiration);
 
 
+/**
+ * Given an address as a string, extract the prefix that identifies
+ * the communicator offering transmissions to that address.
+ *
+ * @param address a peer's address
+ * @return NULL if the address is mal-formed, otherwise the prefix
+ */ 
+char *
+GNUNET_HELLO_address_to_prefix (const char *address);
+
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {

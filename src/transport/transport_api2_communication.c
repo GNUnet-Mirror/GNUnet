@@ -274,11 +274,6 @@ struct GNUNET_TRANSPORT_QueueHandle
   enum GNUNET_TRANSPORT_ConnectionStatus cs;
 
   /**
-   * How many hops is the target away (DV-only)
-   */
-  uint32_t distance;
-
-  /**
    * ID for this queue when talking to the transport service.
    */
   uint32_t queue_id;
@@ -418,7 +413,6 @@ send_add_queue (struct GNUNET_TRANSPORT_QueueHandle *qh)
   aqm->nt = htonl ((uint32_t) qh->nt);
   aqm->mtu = htonl (qh->mtu);
   aqm->cs = htonl ((uint32_t) qh->cs);
-  aqm->distance = htonl (qh->distance);
   memcpy (&aqm[1],
 	  qh->address,
 	  strlen (qh->address) + 1);
@@ -956,7 +950,6 @@ GNUNET_TRANSPORT_communicator_receive (struct GNUNET_TRANSPORT_CommunicatorHandl
  *            sending is not supported, SIZE_MAX for no MTU
  * @param nt which network type does the @a address belong to?
  * @param cc what characteristics does the communicator have?
- * @param distance how many hops does this queue use (DV-only)?
  * @param cs what is the connection status of the queue?
  * @param mq message queue of the @a peer
  * @return API handle identifying the new MQ
@@ -967,7 +960,6 @@ GNUNET_TRANSPORT_communicator_mq_add (struct GNUNET_TRANSPORT_CommunicatorHandle
                                       const char *address,
 				      uint32_t mtu,
                                       enum GNUNET_NetworkType nt,
-                                      uint32_t distance,
 				      enum GNUNET_TRANSPORT_ConnectionStatus cs,
                                       struct GNUNET_MQ_Handle *mq)
 {
@@ -979,7 +971,6 @@ GNUNET_TRANSPORT_communicator_mq_add (struct GNUNET_TRANSPORT_CommunicatorHandle
   qh->address = GNUNET_strdup (address);
   qh->nt = nt;
   qh->mtu = mtu;
-  qh->distance = distance;
   qh->cs = cs;
   qh->mq = mq;
   qh->queue_id = ch->queue_gen++;
