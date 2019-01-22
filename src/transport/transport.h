@@ -223,12 +223,12 @@ struct SendOkMessage
    * in either case, it is now OK for this client to
    * send us another message for the given peer.
    */
-  uint32_t success GNUNET_PACKED;
+  uint16_t success GNUNET_PACKED;
 
   /**
    * Size of message sent
    */
-  uint32_t bytes_msg GNUNET_PACKED;
+  uint16_t bytes_msg GNUNET_PACKED;
 
   /**
    * Size of message sent over wire

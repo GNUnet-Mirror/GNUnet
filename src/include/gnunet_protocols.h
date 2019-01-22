@@ -3092,6 +3092,37 @@ extern "C"
  */
 #define GNUNET_MESSAGE_TYPE_TRANSPORT_BACKCHANNEL_ENCAPSULATION 1213
 
+/**
+ * Type of a fragment of a CORE message created by transport to adjust
+ * message length to a queue's MTU.
+ */ 
+#define GNUNET_MESSAGE_TYPE_TRANSPORT_FRAGMENT 1214
+
+/** 
+ * Acknowledgement generated for a fragment.
+ */ 
+#define GNUNET_MESSAGE_TYPE_TRANSPORT_FRAGMENT_ACK 1215
+
+/** 
+ * Wrapper around non-fragmented CORE message used to measure RTT
+ * and ensure reliability.
+ */ 
+#define GNUNET_MESSAGE_TYPE_TRANSPORT_RELIABILITY_BOX 1216
+
+/** 
+ * Confirmation for a #GNUNET_MESSAGE_TYPE_TRANSPORT_RELIABILITY_BOX.
+ */ 
+#define GNUNET_MESSAGE_TYPE_TRANSPORT_RELIABILITY_ACK 1217
+
+/** 
+ * Message sent for topology discovery at transport level.
+ */ 
+#define GNUNET_MESSAGE_TYPE_TRANSPORT_DV_LEARN 1218
+
+/** 
+ * Source-routed transport message based DV information gathered.
+ */ 
+#define GNUNET_MESSAGE_TYPE_TRANSPORT_DV_BOX 1219
 
 /**
  * Message sent to indicate to the transport that a monitor

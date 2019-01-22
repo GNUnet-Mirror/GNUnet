@@ -600,15 +600,15 @@ handle_send_ok (void *cls,
 {
   struct GNUNET_TRANSPORT_CoreHandle *h = cls;
   struct Neighbour *n;
-  uint32_t bytes_msg;
+  uint16_t bytes_msg;
   uint32_t bytes_physical;
 
-  bytes_msg = ntohl (okm->bytes_msg);
+  bytes_msg = ntohs (okm->bytes_msg);
   bytes_physical = ntohl (okm->bytes_physical);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Receiving SEND_OK message, transmission to %s %s.\n",
        GNUNET_i2s (&okm->peer),
-       (GNUNET_OK == ntohl (okm->success))
+       (GNUNET_OK == ntohs (okm->success))
        ? "succeeded"
        : "failed");
   n = neighbour_find (h,
