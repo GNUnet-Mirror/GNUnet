@@ -141,7 +141,8 @@ gnunet_service_ats_new_LDADD = \
 if HAVE_TESTING
 TESTING_TESTS = \
  test_ats_api_proportional \
- test_ats_reservation_api_proportional
+ test_ats_reservation_api_proportional \
+ test_ats2_lib
 if HAVE_EXPERIMENTAL
 TESTING_TESTS += \
  test_ats_api_ril
@@ -195,6 +196,16 @@ test_ats_api_mlp_LDADD = \
   $(top_builddir)/src/hello/libgnunethello.la \
   $(top_builddir)/src/testing/libgnunettesting.la \
   libgnunetats.la
+
+test_ats2_lib_SOURCES = \
+ test_ats2_lib.c test_ats2_lib.h
+test_ats2_lib_LDADD = \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/hello/libgnunethello.la \
+  $(top_builddir)/src/testing/libgnunettesting.la \
+  libgnunetatsapplication.la \
+  libgnunetatstransport.la
+
 
 EXTRA_DIST = \
   ats.h ats2.h \
