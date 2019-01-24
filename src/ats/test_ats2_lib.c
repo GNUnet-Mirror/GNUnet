@@ -33,6 +33,12 @@ static int ret;
 
 
 /**
+ * @brief The time available until the test shuts down
+ */
+static struct GNUNET_TIME_Relative timeout;
+
+
+/**
  * @brief ATS Application Handle
  *
  * Handle to the application-side of ATS.
@@ -181,7 +187,16 @@ get_suggestion (void)
                                         &other_peer,
                                         GNUNET_MQ_PREFERENCE_NONE,
                                         GNUNET_BANDWIDTH_VALUE_MAX);
-  GNUNET_ATS_application_suggest_cancel (ash);
+  GNUNET_assert (NULL != ash);
+}
+
+
+static void
+on_shutdown (void *cls)
+{
+  provide_info_end ();
+  finish_both ();
+  GNUNET_SCHEDULER_shutdown ();
 }
 
 
@@ -200,8 +215,7 @@ run (void *cls,
   init_both (cfg);
   provide_info_start ();
   get_suggestion ();
-  provide_info_end ();
-  finish_both ();
+  (void) GNUNET_SCHEDULER_add_delayed (timeout, &on_shutdown, NULL);
 }
 
 
@@ -219,6 +233,7 @@ main (int argc,
 {
   ret = 1;
   memset (&other_peer, 0, sizeof (struct GNUNET_PeerIdentity));
+  timeout = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 500);
   if (0 != GNUNET_TESTING_peer_run ("test-ats2-lib",
                                     "test_ats2_lib.conf",
                                     &run, NULL))
