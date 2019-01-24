@@ -844,6 +844,11 @@ struct PendingMessage
   struct GNUNET_ShortHashCode msg_uuid;
 
   /**
+   * Message ID used for this message with the queue used for transmission.
+   */
+  uint64_t mid;
+  
+  /**
    * Counter incremented per generated fragment.
    */ 
   uint32_t frag_uuidgen;
@@ -2315,6 +2320,8 @@ transmit_on_queue (void *cls)
   struct PendingMessage *pm;
   struct PendingMessage *s;
   uint32_t overhead;
+  struct GNUNET_TRANSPORT_SendMessageTo *smt;
+  struct GNUNET_MQ_Envelope *env;
 
   queue->transmit_task = NULL;
   if (NULL == (pm = n->pending_msg_head))
@@ -2331,12 +2338,13 @@ transmit_on_queue (void *cls)
   s = pm;
   if ( ( (0 != queue->mtu) &&
 	 (pm->bytes_msg + overhead > queue->mtu) ) ||
+       (pm->bytes_msg > UINT16_MAX - sizeof (struct GNUNET_TRANSPORT_SendMessageTo)) ||
        (NULL != pm->head_frag /* fragments already exist, should
 				 respect that even if MTU is 0 for
 				 this queue */) )
     s = fragment_message (s,
 			  (0 == queue->mtu)
-			  ? UINT16_MAX /* no real maximum */
+			  ? UINT16_MAX - sizeof (struct GNUNET_TRANSPORT_SendMessageTo)
 			  : queue->mtu);
   if (NULL == s)
   {
@@ -2352,6 +2360,17 @@ transmit_on_queue (void *cls)
     schedule_transmit_on_queue (queue);
     return;
   }
+
+  // pm->mid = queue->mid_gen++;
+  env = GNUNET_MQ_msg_extra (smt,
+			     s->bytes_msg,
+			     GNUNET_MESSAGE_TYPE_TRANSPORT_SEND_MSG);
+  smt->qid = queue->qid;
+  // smt->mid = pm->mid;
+  // smt->receiver = pid;
+  memcpy (&smt[1],
+	  &s[1],
+	  s->bytes_msg);
   
   // FIXME: actually give 's' to communicator for transmission here!
 
