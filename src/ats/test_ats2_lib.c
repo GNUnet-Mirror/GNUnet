@@ -27,6 +27,12 @@
 #include "gnunet_testing_lib.h"
 
 /**
+ * @brief Indicates the success of the whole test
+ */
+static int ret;
+
+
+/**
  * @brief ATS Application Handle
  *
  * Handle to the application-side of ATS.
@@ -89,6 +95,7 @@ suggestion_cb (void *cls,
                const char *address)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "suggestion_cb() called\n");
+  ret = 0;
 }
 
 
@@ -210,10 +217,16 @@ int
 main (int argc,
       char *argv[])
 {
+  ret = 1;
   memset (&other_peer, 0, sizeof (struct GNUNET_PeerIdentity));
-  return GNUNET_TESTING_peer_run ("test-ats2-lib",
-                                  "test_ats2_lib.conf",
-                                  &run, NULL);
+  if (0 != GNUNET_TESTING_peer_run ("test-ats2-lib",
+                                    "test_ats2_lib.conf",
+                                    &run, NULL))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Running the testing peer failed.\n");
+    return 1;
+  }
+  return ret;
 }
 
 
