@@ -380,6 +380,14 @@ shutdown_rest ()
                                GNUNET_NO);
     stats = NULL;
   }
+  /* Destroy tunnels.  Note that all channels must be destroyed first! */
+  GCP_iterate_all (&destroy_tunnels_now,
+                   NULL);
+  /* All tunnels, channels, connections and CORE must be down before this point. */
+  GCP_iterate_all (&destroy_paths_now,
+                   NULL);
+  /* All paths, tunnels, channels, connections and CORE must be down before this point. */
+  GCP_destroy_all_peers ();
   if (NULL != open_ports)
   {
     GNUNET_CONTAINER_multihashmap_destroy (open_ports);
@@ -390,14 +398,6 @@ shutdown_rest ()
     GNUNET_CONTAINER_multihashmap_destroy (loose_channels);
     loose_channels = NULL;
   }
-  /* Destroy tunnels.  Note that all channels must be destroyed first! */
-  GCP_iterate_all (&destroy_tunnels_now,
-                   NULL);
-  /* All tunnels, channels, connections and CORE must be down before this point. */
-  GCP_iterate_all (&destroy_paths_now,
-                   NULL);
-  /* All paths, tunnels, channels, connections and CORE must be down before this point. */
-  GCP_destroy_all_peers ();
   if (NULL != peers)
   {
     GNUNET_CONTAINER_multipeermap_destroy (peers);
