@@ -1140,7 +1140,8 @@ lookup_redirect_uri_result (void *cls,
                      handle->oidc->redirect_uri,
                      rd[i].data_size))
       continue;
-    tmp = GNUNET_strdup (rd[i].data);
+    tmp = GNUNET_strndup (rd[i].data,
+                          rd[i].data_size);
     pos = strrchr (tmp,
                    (unsigned char) '.');
     *pos = '\0';
