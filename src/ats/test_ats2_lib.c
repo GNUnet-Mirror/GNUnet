@@ -148,6 +148,7 @@ provide_info_start (void)
                                "test-address",
                                NULL,
                                &prop);
+  GNUNET_assert (NULL != sr);
 }
 
 
