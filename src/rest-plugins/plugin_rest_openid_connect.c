@@ -1136,8 +1136,9 @@ lookup_redirect_uri_result (void *cls,
   {
     if (GNUNET_GNSRECORD_TYPE_RECLAIM_OIDC_REDIRECT != rd[i].record_type)
       continue;
-    if (0 != strcmp (rd[i].data,
-                     handle->oidc->redirect_uri))
+    if (0 != strncmp (rd[i].data,
+                     handle->oidc->redirect_uri,
+                     rd[i].data_size))
       continue;
     tmp = GNUNET_strdup (rd[i].data);
     pos = strrchr (tmp,
