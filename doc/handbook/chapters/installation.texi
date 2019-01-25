@@ -35,7 +35,7 @@ The mandatory libraries and applications are
 @item libextractor
 @item libidn
 @item libmicrohttpd @geq{}0.9.52
-@item libnss 
+@item libnss
 @item libunistring
 @item gettext
 @item glibc
@@ -1427,6 +1427,7 @@ and @code{[transport-https_client]} section of the configuration:
 * GNS Proxy Setup::
 * Setup of the GNS CA::
 * Testing the GNS setup::
+* Migrating existing DNS zones into GNS::
 @end menu
 
 
@@ -1692,6 +1693,34 @@ configured proxy) should give you a valid SSL certificate for
 
 @c FIXME: Image does not exist, create it or save it from Drupal?
 @c @image{images/gnunethpgns.png,5in,, picture of homepage.gnu in Webbrowser}
+
+@node Migrating existing DNS zones into GNS
+@subsubsection Migrating existing DNS zones into GNS
+
+To migrate an existing zone into GNS use the ascension tool.
+
+Ascension transfers entire zones into GNS by doing incremental zone transfers
+and then adding the records to GNS.
+
+You can find the source code here: @code{https://gnunet.org/git/ascension.git/}
+
+The software can be installed into a python virtual environment like this:
+@example
+$ python3 -m venv .venv
+$ source .venv/bin/activate
+$ python3 setup.py install
+@end example
+
+Or installed globally like this (not recommended):
+@example
+$ sudo python3 setup.py install
+@end example
+
+The advantage of using a virtual environment is, that all the dependencies can
+be installed separately in different versions without touching your existing
+python installation and its dependencies.
+
+Using the tool is discussed in the user section of the documentation.
 
 
 @node Configuring the GNUnet VPN

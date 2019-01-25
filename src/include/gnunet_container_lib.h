@@ -2011,7 +2011,7 @@ GNUNET_CONTAINER_multihashmap32_iterator_destroy (struct GNUNET_CONTAINER_MultiH
   if (NULL == (element)->next_##mdll) \
     (tail) = (element); \
   else \
-    (element)->next->prev_##mdll = (element); } while (0)
+    (element)->next_##mdll->prev_##mdll = (element); } while (0)
 
 
 /**

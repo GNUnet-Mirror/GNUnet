@@ -1453,6 +1453,7 @@ the user. This results in non-unique name-value mappings as
 * Using Public Keys as Top Level Domains::
 * Resource Records in GNS::
 * Synchronizing with legacy DNS::
+* Migrating an existing DNS zone into GNS::
 @end menu
 
 
@@ -1891,6 +1892,43 @@ DNS zone and that do not have a local gns service in use, it
 is thus advisable to disable the namecache by setting the
 option ``DISABLE'' to ``YES'' in section ``[namecache]''.
 
+@node Migrating an existing DNS zone into GNS
+@subsection Migrating an existing DNS zone into GNS
+
+After installing the tool according to the README file you have the following
+options:
+@example
+Ascension
+
+Usage:
+    ascension.py <domain> [-d]
+    ascension.py <domain> -p <port> [-d]
+    ascension.py <domain> -ns <transferns> [-d]
+    ascension.py <domain> -ns <transferns> -p <port> [-d]
+    ascension.py -h | --help
+    ascension.py -v | --version
+
+Options:
+    <port>          Port for zone transfer
+    <domain>        Domain to migrate
+    <transferns>    DNS Server that does the zone transfer
+    -d --debug      Enable debugging
+    -h --help       Show this screen.
+    -v --version    Show version.
+@end example
+
+To migrate the Syrian top level domain - one of the few top level domains that
+still supports zone transfers - use the following command:
+
+@example
+$ ascension sy. -ns ns1.tld.sy.
+@end example
+
+The program will continue to run as a daemon and update once the refresh time
+specified in the zones SOA record has elapsed.
+
+At this point you might want to write for example a systemd unit file to start
+and enable the service, so that your zone is migrated automatically.
 
 @node re@:claim Identity Provider
 @section re@:claim Identity Provider
@@ -1962,7 +2000,7 @@ Further, the "ticket" can be re-used later to retrieve up-to-date attributes in 
 
 To list all given authorizations (tickets) you can execute:
 @example
-$ gnunet-reclaim -e "friend" -T (TODO there is only a C and REST API for this at this time) 
+$ gnunet-reclaim -e "friend" -T (TODO there is only a C and REST API for this at this time)
 @end example
 
 
@@ -2290,5 +2328,6 @@ service offered by that peer, you can create an IP tunnel to
 that peer by specifying the peer's identity, service name and
 protocol (--tcp or --udp) and you will again receive an IP address
 that will terminate at the respective peer's service.
+
 
 
