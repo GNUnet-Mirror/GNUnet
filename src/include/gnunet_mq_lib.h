@@ -528,6 +528,51 @@ struct GNUNET_MQ_MessageHandler
 
 
 /**
+ * Insert code for a "check_" function that verifies that
+ * a given variable-length message received over the network
+ * is followed by another variable-length message that fits
+ * exactly with the given size.  If the message @a m
+ * is not followed by another `struct GNUNET_MessageHeader`
+ * with a size that adds up to the total size, an error is logged
+ * and the function is returned with #GNUNET_NO.
+ *
+ * @param an IPC message with proper type to determine
+ *  the size, starting with a `struct GNUNET_MessageHeader`
+ */
+#define GNUNET_MQ_check_boxed_message(m)                \
+  {                                                     \
+    const struct GNUNET_MessageHeader *inbox =          \
+      (const struct GNUNET_MessageHeader *) &m[1];      \
+    const struct GNUNET_MessageHeader *hdr =            \
+      (const struct GNUNET_MessageHeader *) m;          \
+    uint16_t slen = ntohs (hdr->size) - sizeof (*m);    \
+    if ( (slen < sizeof (struct GNUNET_MessageHeader))||\
+         (slen != ntohs (inbox->size)) )                \
+    {                                                   \
+      GNUNET_break (0);                                 \
+      return GNUNET_NO;                                 \
+    }                                                   \
+  }
+
+
+/**
+ * Call the message message handler that was registered
+ * for the type of the given message in the given @a handlers list.
+ *
+ * This function is indended to be used for the implementation
+ * of message queues.
+ *
+ * @param handlers a set of handlers
+ * @param mh message to dispatch
+ * @return #GNUNET_OK on success, #GNUNET_NO if no handler matched,
+ *         #GNUNET_SYSERR if message was rejected by check function
+ */
+int
+GNUNET_MQ_handle_message (const struct GNUNET_MQ_MessageHandler *handlers,
+                          const struct GNUNET_MessageHeader *mh);
+
+
+/**
  * Create a new envelope.
  *
  * @param mhp message header to store the allocated message header in, can be NULL

@@ -215,6 +215,35 @@ void
 GNUNET_MQ_inject_message (struct GNUNET_MQ_Handle *mq,
                           const struct GNUNET_MessageHeader *mh)
 {
+  int ret;
+
+  ret = GNUNET_MQ_handle_message (mq->handlers,
+				  mh);
+  if (GNUNET_SYSERR == ret)
+  {
+    GNUNET_MQ_inject_error (mq,
+			    GNUNET_MQ_ERROR_MALFORMED);
+    return;
+  }
+}
+
+
+/**
+ * Call the message message handler that was registered
+ * for the type of the given message in the given @a handlers list.
+ *
+ * This function is indended to be used for the implementation
+ * of message queues.
+ *
+ * @param handlers a set of handlers
+ * @param mh message to dispatch
+ * @return #GNUNET_OK on success, #GNUNET_NO if no handler matched,
+ *         #GNUNET_SYSERR if message was rejected by check function
+ */
+int
+GNUNET_MQ_handle_message (const struct GNUNET_MQ_MessageHandler *handlers,
+                          const struct GNUNET_MessageHeader *mh)
+{
   const struct GNUNET_MQ_MessageHandler *handler;
   int handled = GNUNET_NO;
   uint16_t msize = ntohs (mh->size);
@@ -224,9 +253,9 @@ GNUNET_MQ_inject_message (struct GNUNET_MQ_Handle *mq,
        "Received message of type %u and size %u\n",
        mtype, msize);
 
-  if (NULL == mq->handlers)
+  if (NULL == handlers)
     goto done;
-  for (handler = mq->handlers; NULL != handler->cb; handler++)
+  for (handler = handlers; NULL != handler->cb; handler++)
   {
     if (handler->type == mtype)
     {
@@ -240,9 +269,7 @@ GNUNET_MQ_inject_message (struct GNUNET_MQ_Handle *mq,
         LOG (GNUNET_ERROR_TYPE_ERROR,
              "Received malformed message of type %u\n",
              (unsigned int) handler->type);
-	GNUNET_MQ_inject_error (mq,
-				GNUNET_MQ_ERROR_MALFORMED);
-	break;
+	return GNUNET_SYSERR;
       }
       if ( (NULL == handler->mv) ||
 	   (GNUNET_OK ==
@@ -257,17 +284,20 @@ GNUNET_MQ_inject_message (struct GNUNET_MQ_Handle *mq,
         LOG (GNUNET_ERROR_TYPE_ERROR,
              "Received malformed message of type %u\n",
              (unsigned int) handler->type);
-	GNUNET_MQ_inject_error (mq,
-				GNUNET_MQ_ERROR_MALFORMED);
+	return GNUNET_SYSERR;
       }
       break;
     }
   }
  done:
   if (GNUNET_NO == handled)
+  {
     LOG (GNUNET_ERROR_TYPE_INFO,
          "No handler for message of type %u and size %u\n",
          mtype, msize);
+    return GNUNET_NO;
+  }
+  return GNUNET_OK;
 }
 
 
