@@ -8130,19 +8130,15 @@ The transformation of MX records is done in a simple way.
 gnunet-namestore -z example.com -n mail -R 3600 MX n 10,mail
 @end example
 
-Finally, one of the biggest struggling points was the NS records that are found
+Finally, one of the biggest struggling points were the NS records that are found
 in top level domain zones. The intended behaviour for those is to add GNS2DNS
-records for the zone so that gnunet-gns can resolve the for those domain on it's
-own. Also a very important aspect of this is, that gnunet needs to be able to
-resolve the nameservers from it's own database. This requires migration of the
-DNS GLUE records as well.
+records for those so that gnunet-gns can resolve records for those domains on
+its own. This requires migration of the DNS GLUE records as well, provided that
+they are within the same zone.
 
-This proved to be quite a challenge to implement, as in GNS every dot is a
-strict zone cut.
-
-The issue was fixed by creating a hierarchical zone structure in GNS and linking
+A solution was found by creating a hierarchical zone structure in GNS and linking
 the zones using PKEY records to one another. This allows the resolution of the
-nameservers to work within GNS.
+nameservers to work within GNS while not taking control over unwanted zones.
 
 @node DNS Zone Size
 @subsubsection DNS Zone Size

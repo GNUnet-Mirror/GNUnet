@@ -1895,7 +1895,8 @@ option ``DISABLE'' to ``YES'' in section ``[namecache]''.
 @node Migrating an existing DNS zone into GNS
 @subsection Migrating an existing DNS zone into GNS
 
-After installing the tool according to the README file you have the following options:
+After installing the tool according to the README file you have the following
+options:
 @example
 Ascension
 
@@ -1916,15 +1917,18 @@ Options:
     -v --version    Show version.
 @end example
 
-To migrate the Syrian top level domain - one of the few top level domains that still supports zone transfers - use the following command:
+To migrate the Syrian top level domain - one of the few top level domains that
+still supports zone transfers - use the following command:
 
 @example
 $ ascension sy. -ns ns1.tld.sy.
 @end example
 
-The program will continue to run as a daemon and update once the refresh time specified in the zones SOA record has elapsed.
+The program will continue to run as a daemon and update once the refresh time
+specified in the zones SOA record has elapsed.
 
-At this point you might want to write for example a systemd unit file to start and enable the service, so that your zone is migrated automatically.
+At this point you might want to write for example a systemd unit file to start
+and enable the service, so that your zone is migrated automatically.
 
 @node re@:claim Identity Provider
 @section re@:claim Identity Provider
