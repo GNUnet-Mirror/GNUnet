@@ -973,7 +973,7 @@ struct GNUNET_TRANSPORT_CommunicatorBackchannel
      message to the communicator */
 
   /* Followed by the 0-terminated string specifying the desired
-     communicator */
+     communicator at the target (@e pid) peer */
 };
 
 

@@ -2068,10 +2068,48 @@ handle_communicator_available (void *cls,
 
 
 /**
+ * Communicator requests backchannel transmission.  Check the request.
+ *
+ * @param cls the client
+ * @param cb the send message that was sent
+ * @return #GNUNET_OK if message is well-formed
+ */
+static int
+check_communicator_backchannel (void *cls,
+				const struct GNUNET_TRANSPORT_CommunicatorBackchannel *cb)
+{
+  // FIXME: check encapsulated message
+  // FIXME: check 0-termination of communcator at target
+  return GNUNET_OK;
+}
+
+  
+/**
+ * Communicator requests backchannel transmission.  Process the request.
+ *
+ * @param cls the client
+ * @param cb the send message that was sent
+ */
+static void
+handle_communicator_backchannel (void *cls,
+				 const struct GNUNET_TRANSPORT_CommunicatorBackchannel *cb)
+{
+  struct TransportClient *tc = cls;
+
+  // FIXME: determine path (possibly DV)! to target peer
+  // FIXME: encapsulate message, encrypt message!
+  // FIXME: possibly fragment message
+  // FIXME: possibly DV-route message!
+  GNUNET_SERVICE_client_continue (tc->client);
+}
+
+
+/**
  * Address of our peer added.  Test message is well-formed.
  *
  * @param cls the client
  * @param aam the send message that was sent
+ * @return #GNUNET_OK if message is well-formed
  */
 static int
 check_add_address (void *cls,
@@ -2272,14 +2310,13 @@ finish_cmc_handling (struct CommunicatorMessageContext *cmc)
 		    env);
   }
   GNUNET_SERVICE_client_continue (cmc->tc->client);
-
   GNUNET_free (cmc);
 }
 
 
 /**
- * Communicator gave us an unencapsulated message to pass
- * as-is to CORE.  Process the request.
+ * Communicator gave us an unencapsulated message to pass as-is to
+ * CORE.  Process the request.
  *
  * @param cls a `struct CommunicatorMessageContext` (must call #finish_cmc_handling() when done)
  * @param mh the message that was received
@@ -2289,8 +2326,41 @@ handle_raw_message (void *cls,
 		    const struct GNUNET_MessageHeader *mh)
 {
   struct CommunicatorMessageContext *cmc = cls;
-  
-  // FIXME: do work!
+  uint16_t size = ntohs (mh->size);
+
+  if ( (size > UINT16_MAX - sizeof (struct InboundMessage)) ||
+       (size < sizeof (struct GNUNET_MessageHeader)) )
+  {
+    struct GNUNET_SERVICE_Client *client = cmc->tc->client;
+
+    GNUNET_break (0);
+    finish_cmc_handling (cmc);
+    GNUNET_SERVICE_client_drop (client);
+    return;
+  }
+  /* Forward to all CORE clients */
+  for (struct TransportClient *tc = clients_head;
+       NULL != tc;
+       tc = tc->next)
+  {
+    struct GNUNET_MQ_Envelope *env;
+    struct InboundMessage *im;
+
+    if (CT_CORE != tc->type)
+      continue;
+    env = GNUNET_MQ_msg_extra (im,
+			       size,
+			       GNUNET_MESSAGE_TYPE_TRANSPORT_RECV);
+    im->peer = cmc->im.sender;
+    memcpy (&im[1],
+	    mh,
+	    size);
+    GNUNET_MQ_send (tc->mq,
+		    env);
+  }
+  /* FIXME: consider doing this _only_ once the message
+     was drained from the CORE MQs to extend flow control to CORE! 
+     (basically, increment counter in cmc, decrement on MQ send continuation! */
   finish_cmc_handling (cmc);
 }
 
@@ -2389,9 +2459,12 @@ handle_reliability_box (void *cls,
 			const struct TransportReliabilityBox *rb)
 {
   struct CommunicatorMessageContext *cmc = cls;
+  const struct GNUNET_MessageHeader *inbox = (const struct GNUNET_MessageHeader *) &rb[1];
   
-  // FIXME: do work!
-  finish_cmc_handling (cmc);
+  // FIXME: send back reliability ACK (possibly conditional)
+  /* forward encapsulated message to CORE */
+  handle_raw_message (cmc,
+		      inbox);
 }
 
 
@@ -2407,7 +2480,8 @@ handle_reliability_ack (void *cls,
 {
   struct CommunicatorMessageContext *cmc = cls;
   
-  // FIXME: do work!
+  // FIXME: do work: find message that was acknowledged, and
+  // remove from transmission queue; update RTT.
   finish_cmc_handling (cmc);
 }
 
@@ -2445,8 +2519,13 @@ handle_backchannel_encapsulation (void *cls,
 				  const struct TransportBackchannelEncapsulationMessage *be)
 {
   struct CommunicatorMessageContext *cmc = cls;
+
+  // FIMXE: test if it is for me, if not, try to forward to target (DV routes!)
+  // FIXME: compute shared secret
+  // FIXME: check HMAC
+  // FIXME: decrypt payload
+  // FIXME: forward to specified communicator!
   
-  // FIXME: do work!
   finish_cmc_handling (cmc);
 }
 
@@ -2462,8 +2541,15 @@ handle_ephemeral_confirmation (void *cls,
 			       const struct EphemeralConfirmationMessage *ec)
 {
   struct CommunicatorMessageContext *cmc = cls;
-  
-  // FIXME: do work!
+
+  // FIXME: notify communicator (?) about ephemeral confirmation!?
+  // FIXME: or does this have something to do with the ephemeral_map?
+  //        where did I plan to use this message again!?
+  // FIXME: communicator API has a very general notification API,
+  //        nothing specific for ephemeral keys;
+  //        why do we have a ephemeral key-specific message here?
+  // => first revise where we get such messages from communicator
+  //    before processing further here!
   finish_cmc_handling (cmc);
 }
 
@@ -2521,7 +2607,8 @@ handle_dv_learn (void *cls,
 {
   struct CommunicatorMessageContext *cmc = cls;
   
-  // FIXME: do work!
+  // FIXME: learn path from DV message (if bi-directional flags are set)
+  // FIXME: expand DV message, forward on (unless path is getting too long)
   finish_cmc_handling (cmc);
 }
 
@@ -2578,7 +2665,8 @@ handle_dv_box (void *cls,
 {
   struct CommunicatorMessageContext *cmc = cls;
   
-  // FIXME: do work!
+  // FIXME: are we the target? Then unbox and handle message.
+  // FIXME: if we are not the target, shorten path and forward along.
   finish_cmc_handling (cmc);
 }
 
@@ -3813,6 +3901,10 @@ GNUNET_SERVICE_MAIN
  GNUNET_MQ_hd_var_size (communicator_available,
 			GNUNET_MESSAGE_TYPE_TRANSPORT_NEW_COMMUNICATOR,
 			struct GNUNET_TRANSPORT_CommunicatorAvailableMessage,
+			NULL),
+ GNUNET_MQ_hd_var_size (communicator_backchannel,
+			GNUNET_MESSAGE_TYPE_TRANSPORT_COMMUNICATOR_BACKCHANNEL,
+			struct GNUNET_TRANSPORT_CommunicatorBackchannel,
 			NULL),
  GNUNET_MQ_hd_var_size (add_address,
 			GNUNET_MESSAGE_TYPE_TRANSPORT_ADD_ADDRESS,
