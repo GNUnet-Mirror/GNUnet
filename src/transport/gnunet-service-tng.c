@@ -459,8 +459,7 @@ struct TransportDVLearn
   
   /* Followed by @e num_hops `struct GNUNET_PeerIdentity` values,
      excluding the initiator of the DV trace; the last entry is the
-     current sender; the current peer must not be included except if
-     it is the sender. */
+     current sender; the current peer must not be included. */
   
 };
 
@@ -2258,7 +2257,20 @@ struct CommunicatorMessageContext
 static void
 finish_cmc_handling (struct CommunicatorMessageContext *cmc)
 {
-  // FIXME: if (0 != ntohl (im->fc_on)) => send ACK when done to communicator for flow control!
+  if (0 != ntohl (cmc->im.fc_on))
+  {
+    /* send ACK when done to communicator for flow control! */
+    struct GNUNET_MQ_Envelope *env;
+    struct GNUNET_TRANSPORT_IncomingMessageAck *ack;
+
+    env = GNUNET_MQ_msg (ack,
+			 GNUNET_MESSAGE_TYPE_TRANSPORT_INCOMING_MSG_ACK);
+    ack->reserved = htonl (0);
+    ack->fc_id = cmc->im.fc_id;
+    ack->sender = cmc->im.sender;
+    GNUNET_MQ_send (cmc->tc->mq,
+		    env);
+  }
   GNUNET_SERVICE_client_continue (cmc->tc->client);
 
   GNUNET_free (cmc);
@@ -2294,7 +2306,24 @@ static int
 check_fragment_box (void *cls,
 		    const struct TransportFragmentBox *fb)
 {
-  // FIXME! check that off + size-of-payload <= total-length!
+  uint16_t size = ntohs (fb->header.size);
+  uint16_t bsize = size - sizeof (*fb);
+
+  if (0 == bsize)
+  {
+    GNUNET_break_op (0);
+    return GNUNET_SYSERR;
+  }
+  if (bsize + ntohs (fb->frag_off) > ntohs (fb->msg_size)) 
+  {
+    GNUNET_break_op (0);
+    return GNUNET_SYSERR;
+  }
+  if (ntohs (fb->frag_off) >= ntohs (fb->msg_size)) 
+  {
+    GNUNET_break_op (0);
+    return GNUNET_SYSERR;
+  }
   return GNUNET_YES;
 }
 
@@ -2394,7 +2423,13 @@ static int
 check_backchannel_encapsulation (void *cls,
 				 const struct TransportBackchannelEncapsulationMessage *be)
 {
-  // FIXME: do work!
+  uint16_t size = ntohs (be->header.size);
+
+  if (size - sizeof (*be) < sizeof (struct GNUNET_MessageHeader))
+  {
+    GNUNET_break_op (0);
+    return GNUNET_SYSERR;
+  }
   return GNUNET_YES;
 }
 
@@ -2444,7 +2479,32 @@ static int
 check_dv_learn (void *cls,
 		const struct TransportDVLearn *dvl)
 {
-  // FIXME: do work!
+  uint16_t size = ntohs (dvl->header.size);
+  uint16_t num_hops = ntohs (dvl->num_hops);
+  const struct GNUNET_PeerIdentity *hops = (const struct GNUNET_PeerIdentity *) &dvl[1];
+
+  if (size != sizeof (*dvl) + num_hops * sizeof (struct GNUNET_PeerIdentity))
+  {
+    GNUNET_break_op (0);
+    return GNUNET_SYSERR;
+  }
+  for (unsigned int i=0;i<num_hops;i++)
+  {
+    if (0 == memcmp (&dvl->initiator,
+		     &hops[i],
+		     sizeof (struct GNUNET_PeerIdentity)))
+    {
+      GNUNET_break_op (0);
+      return GNUNET_SYSERR;
+    }
+    if (0 == memcmp (&GST_my_identity,
+		     &hops[i],
+		     sizeof (struct GNUNET_PeerIdentity)))
+    {
+      GNUNET_break_op (0);
+      return GNUNET_SYSERR;
+    }
+  }
   return GNUNET_YES;
 }
 
@@ -2477,7 +2537,31 @@ static int
 check_dv_box (void *cls,
 	      const struct TransportDVBox *dvb)
 {
-  // FIXME: do work!
+  uint16_t size = ntohs (dvb->header.size);
+  uint16_t num_hops = ntohs (dvb->num_hops);
+  const struct GNUNET_PeerIdentity *hops = (const struct GNUNET_PeerIdentity *) &dvb[1];
+  const struct GNUNET_MessageHeader *inbox = (const struct GNUNET_MessageHeader *) &hops[num_hops];
+  uint16_t isize;
+  uint16_t itype;
+
+  if (size < sizeof (*dvb) + num_hops * sizeof (struct GNUNET_PeerIdentity) + sizeof (struct GNUNET_MessageHeader))
+  {
+    GNUNET_break_op (0);
+    return GNUNET_SYSERR;
+  }
+  isize = ntohs (inbox->size);
+  if (size != sizeof (*dvb) + num_hops * sizeof (struct GNUNET_PeerIdentity) + isize) 
+  {
+    GNUNET_break_op (0);
+    return GNUNET_SYSERR;
+  }
+  itype = ntohs (inbox->type);
+  if ( (GNUNET_MESSAGE_TYPE_TRANSPORT_DV_BOX == itype) ||
+       (GNUNET_MESSAGE_TYPE_TRANSPORT_DV_LEARN == itype) )
+  {
+    GNUNET_break_op (0);
+    return GNUNET_SYSERR;
+  }
   return GNUNET_YES;
 }
 
