@@ -642,6 +642,11 @@ struct Socks5Request
   int is_gns;
 
   /**
+   * This is (probably) a TLS connection
+   */
+  int is_tls;
+
+  /**
    * Did we suspend MHD processing?
    */
   int suspended;
@@ -1138,7 +1143,8 @@ curl_check_hdr (void *buffer,
               "Receiving HTTP response header from CURL\n");
   /* first, check TLS certificate */
   if ( (GNUNET_YES != s5r->ssl_checked) &&
-       (HTTPS_PORT == s5r->port))
+       (GNUNET_YES == s5r->is_tls))
+       //(HTTPS_PORT == s5r->port))
   {
     if (GNUNET_OK != check_ssl_certificate (s5r))
       return 0;
@@ -1237,7 +1243,7 @@ curl_check_hdr (void *buffer,
     char *leho_host;
 
     GNUNET_asprintf (&leho_host,
-                     (HTTPS_PORT != s5r->port)
+                     (GNUNET_YES != s5r->is_tls) //(HTTPS_PORT != s5r->port)
                      ? "http://%s"
                      : "https://%s",
                      s5r->leho);
@@ -1247,7 +1253,7 @@ curl_check_hdr (void *buffer,
     {
       GNUNET_asprintf (&new_location,
                        "%s%s%s",
-                       (HTTPS_PORT != s5r->port)
+                       (GNUNET_YES != s5r->is_tls) //(HTTPS_PORT != s5r->port)
                        ? "http://"
                        : "https://",
                        s5r->domain,
@@ -1262,7 +1268,7 @@ curl_check_hdr (void *buffer,
     char *leho_host;
 
     GNUNET_asprintf (&leho_host,
-                     (HTTPS_PORT != s5r->port)
+                     (GNUNET_YES != s5r->is_tls) //(HTTPS_PORT != s5r->port)
                      ? "http://%s"
                      : "https://%s",
                      s5r->leho);
@@ -1272,7 +1278,7 @@ curl_check_hdr (void *buffer,
     {
       GNUNET_asprintf (&new_location,
                        "%s%s",
-                       (HTTPS_PORT != s5r->port)
+                       (GNUNET_YES != s5r->is_tls) //(HTTPS_PORT != s5r->port)
                        ? "http://"
                        : "https://",
                        s5r->domain);
@@ -1923,7 +1929,7 @@ create_response (void *cls,
     if (s5r->is_gns)
     {
       GNUNET_asprintf (&curlurl,
-                       (HTTPS_PORT != s5r->port)
+                       (GNUNET_YES != s5r->is_tls) //(HTTPS_PORT != s5r->port)
                        ? "http://%s:%d%s"
                        : "https://%s:%d%s",
                        (NULL != s5r->leho)
@@ -1935,7 +1941,7 @@ create_response (void *cls,
     else
     {
       GNUNET_asprintf (&curlurl,
-                       (HTTPS_PORT != s5r->port)
+                       (GNUNET_YES != s5r->is_tls) //(HTTPS_PORT != s5r->port)
                        ? "http://%s:%d%s"
                        : "https://%s:%d%s",
                        s5r->domain,
@@ -2109,7 +2115,7 @@ create_response (void *cls,
                         CURL_HTTP_VERSION_NONE);
     }
 
-    if (HTTPS_PORT == s5r->port)
+    if (GNUNET_YES == s5r->is_tls) //(HTTPS_PORT == s5r->port)
     {
       curl_easy_setopt (s5r->curl,
                         CURLOPT_USE_SSL,
@@ -2828,29 +2834,25 @@ setup_data_transfer (struct Socks5Request *s5r)
   socklen_t len;
   char *domain;
 
-  switch (s5r->port)
+  if (GNUNET_YES == s5r->is_tls)
   {
-    case HTTPS_PORT:
-      GNUNET_asprintf (&domain,
-                       "%s",
-                       s5r->domain);
-      hd = lookup_ssl_httpd (domain);
-      if (NULL == hd)
-      {
-        GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                    _("Failed to start HTTPS server for `%s'\n"),
-                    s5r->domain);
-        cleanup_s5r (s5r);
-        GNUNET_free (domain);
-        return;
-      }
-      break;
-    case HTTP_PORT:
-    default:
+    GNUNET_asprintf (&domain,
+                     "%s",
+                     s5r->domain);
+    hd = lookup_ssl_httpd (domain);
+    if (NULL == hd)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  _("Failed to start HTTPS server for `%s'\n"),
+                  s5r->domain);
+      cleanup_s5r (s5r);
+      GNUNET_free (domain);
+      return;
+    }
+  } else {
       domain = NULL;
       GNUNET_assert (NULL != httpd);
       hd = httpd;
-      break;
   }
   fd = GNUNET_NETWORK_get_fd (s5r->sock);
   addr = GNUNET_NETWORK_get_addr (s5r->sock);
@@ -3102,6 +3104,7 @@ handle_gns_result (void *cls,
 	      GNUNET_break (0); /* MAX_DANES too small */
 	      break;
 	    }
+          s5r->is_tls = GNUNET_YES; /* This should be TLS */
           s5r->dane_data_len[s5r->num_danes]
 	    = r->data_size - sizeof (struct GNUNET_GNSRECORD_BoxRecord);
           s5r->dane_data[s5r->num_danes]
@@ -3293,12 +3296,13 @@ do_s5r_read (void *cls)
             s5r->domain = GNUNET_strndup (dom_name,
                                           *dom_len);
             GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                        "Requested connection is to http%s://%s:%d\n",
-                        (HTTPS_PORT == s5r->port) ? "s" : "",
+                        "Requested connection is to %s:%d\n",
+                        //(HTTPS_PORT == s5r->port) ? "s" : "",
                         s5r->domain,
                         ntohs (*port));
             s5r->state = SOCKS5_RESOLVING;
             s5r->port = ntohs (*port);
+            s5r->is_tls = (HTTPS_PORT == s5r->port) ? GNUNET_YES : GNUNET_NO;
             s5r->gns_lookup = GNUNET_GNS_lookup_with_tld (gns_handle,
                                                           s5r->domain,
                                                           GNUNET_DNSPARSER_TYPE_A,

@@ -5,12 +5,6 @@
 
 # TODO: We should sed the real paths to the binaries involved here.
 
-if ! which certutil > /dev/null
-then
-  echo "'certutil' command not found. Please install it."
-  exit 1
-fi
-
 if ! which openssl > /dev/null
 then
     echo "'openssl' command not found. Please install it."
@@ -50,24 +44,29 @@ openssl rsa -passin pass:"GNU Name System" -in $GNSCAKY -out $GNSCANO
 echo "Making private key available to gnunet-gns-proxy"
 cat $GNSCERT $GNSCANO > $GNS_CA_CERT_PEM
 
-echo "Importing CA into browsers"
-for f in ~/.mozilla/firefox/*.*/
-do
-  if [ -d $f ]; then
-    echo "Importing CA info Firefox at $f"
-# delete old certificate (if any)
-    certutil -D -n "GNS Proxy CA" -d "$f" >/dev/null 2>/dev/null
-# add new certificate
-    certutil -A -n "GNS Proxy CA" -t CT,, -d "$f" < $GNSCERT
-  fi
-done
+if ! which certutil > /dev/null
+then
+  echo "'certutil' command not found. Not importing into browsers."
+else
+  echo "Importing CA into browsers"
+  for f in ~/.mozilla/firefox/*.*/
+  do
+    if [ -d $f ]; then
+      echo "Importing CA info Firefox at $f"
+      # delete old certificate (if any)
+      certutil -D -n "GNS Proxy CA" -d "$f" >/dev/null 2>/dev/null
+      # add new certificate
+      certutil -A -n "GNS Proxy CA" -t CT,, -d "$f" < $GNSCERT
+    fi
+  done
 
-if [ -d ~/.pki/nssdb/ ]; then
-  echo "Importing CA into Chrome at ~/.pki/nssdb/"
-# delete old certificate (if any)
-  certutil -D -n "GNS Proxy CA" -d ~/.pki/nssdb/ >/dev/null 2>/dev/null
-# add new certificate
-  certutil -A -n "GNS Proxy CA" -t CT,, -d ~/.pki/nssdb/ < $GNSCERT
+  if [ -d ~/.pki/nssdb/ ]; then
+    echo "Importing CA into Chrome at ~/.pki/nssdb/"
+    # delete old certificate (if any)
+    certutil -D -n "GNS Proxy CA" -d ~/.pki/nssdb/ >/dev/null 2>/dev/null
+    # add new certificate
+    certutil -A -n "GNS Proxy CA" -t CT,, -d ~/.pki/nssdb/ < $GNSCERT
+  fi
 fi
 
 echo "Cleaning up."

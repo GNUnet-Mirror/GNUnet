@@ -155,6 +155,12 @@ if HAVE_GNUTLS_DANE
 gnunet_gns_proxy_LDADD += -lgnutls-dane
 endif
 
+test_gns_proxy_SOURCES = \
+  test_gns_proxy.c
+test_gns_proxy_LDADD = -lmicrohttpd $(LIB_GNURL) -lgnutls \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(GN_LIBINTL)
+
 gnunet_gns_helper_service_w32_SOURCES = \
   gnunet-gns-helper-service-w32.c
 gnunet_gns_helper_service_w32_LDADD = \
@@ -232,6 +238,8 @@ libgnunet_plugin_block_gns_la_LIBADD = \
 libgnunet_plugin_block_gns_la_LDFLAGS = \
   $(GN_PLUGIN_LDFLAGS)
 
+check_PROGRAMS = \
+  test_gns_proxy
 
 check_SCRIPTS = \
   test_gns_lookup.sh \
@@ -248,7 +256,8 @@ check_SCRIPTS = \
   test_gns_rel_expiration.sh\
   test_gns_soa_lookup.sh\
   test_gns_revocation.sh\
-  test_gns_cname_lookup.sh
+  test_gns_cname_lookup.sh \
+	test_proxy.sh
 
 if ENABLE_TEST_RUN
 if HAVE_SQLITE
