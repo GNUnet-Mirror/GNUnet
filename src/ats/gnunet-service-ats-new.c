@@ -463,6 +463,7 @@ handle_session_add (void *cls,
   session->sh = plugin->session_add (plugin->cls,
 				     &session->data,
 				     address);
+  GNUNET_assert (NULL != session->sh);
   GNUNET_SERVICE_client_continue (c->client);
 }
 
@@ -530,9 +531,11 @@ handle_session_del (void *cls,
     GNUNET_SERVICE_client_drop (c->client);
     return;
   }
+  GNUNET_assert (NULL != session->sh);
   plugin->session_del (plugin->cls,
 		       session->sh,
 		       &session->data);
+  session->sh = NULL;
   GNUNET_assert (GNUNET_YES ==
 		 GNUNET_CONTAINER_multihashmap32_remove (c->details.transport.sessions,
 							 session->session_id,
@@ -582,9 +585,11 @@ free_session (void *cls,
 
   (void) key;
   GNUNET_assert (c == session->client);
+  GNUNET_assert (NULL != session->sh);
   plugin->session_del (plugin->cls,
 		       session->sh,
 		       &session->data);
+  session->sh = NULL;
   GNUNET_free (session);
   return GNUNET_OK;
 }

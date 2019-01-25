@@ -825,12 +825,15 @@ update_counters (void *cls,
   }
   /* for first round, assign target bandwidth simply to sum of
      requested bandwidth */
-  for (enum GNUNET_MQ_PreferenceKind pk = 0;
+  for (enum GNUNET_MQ_PreferenceKind pk = 1 /* skip GNUNET_MQ_PREFERENCE_NONE */;
        pk < GNUNET_MQ_PREFERENCE_COUNT;
        pk++)
   {
-    enum GNUNET_NetworkType nt = best[pk]->data->prop.nt;
+    const struct GNUNET_ATS_SessionData *data = best[pk]->data;
+    enum GNUNET_NetworkType nt;
 
+    GNUNET_assert (NULL != data);
+    nt = data->prop.nt;
     best[pk]->target_out = GNUNET_MIN (peer->bw_by_pk[pk],
                                        MIN_BANDWIDTH_PER_SESSION);
     c->bw_out_by_nt[nt] += (uint64_t) (best[pk]->target_out - MIN_BANDWIDTH_PER_SESSION);
@@ -974,6 +977,7 @@ simple_session_add (void *cls,
   struct GNUNET_ATS_SessionHandle *sh;
 
   /* setup session handle */
+  GNUNET_assert (NULL != data);
   if (NULL == address)
     alen = 0;
   else
@@ -1009,7 +1013,7 @@ simple_session_add (void *cls,
     sh->hello = hello;
   }
   update (h);
-  return NULL;
+  return sh;
 }
 
 
@@ -1028,6 +1032,7 @@ simple_session_update (void *cls,
 {
   struct SimpleHandle *h = cls;
 
+  GNUNET_assert (NULL != data);
   sh->data = data; /* this statement should not really do anything... */
   update (h);
 }

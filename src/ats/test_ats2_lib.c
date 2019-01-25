@@ -215,7 +215,9 @@ run (void *cls,
   init_both (cfg);
   provide_info_start ();
   get_suggestion ();
-  (void) GNUNET_SCHEDULER_add_delayed (timeout, &on_shutdown, NULL);
+  (void) GNUNET_SCHEDULER_add_delayed (timeout,
+				       &on_shutdown,
+				       NULL);
 }
 
 
@@ -233,7 +235,8 @@ main (int argc,
 {
   ret = 1;
   memset (&other_peer, 0, sizeof (struct GNUNET_PeerIdentity));
-  timeout = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 500);
+  timeout = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS,
+					   2);
   if (0 != GNUNET_TESTING_peer_run ("test-ats2-lib",
                                     "test_ats2_lib.conf",
                                     &run, NULL))
