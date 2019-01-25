@@ -3125,9 +3125,10 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_TRANSPORT_DV_BOX 1219
 
 /**
- * Transport affirming receipt of an ephemeral key.
+ * Transport signalling incoming backchannel message to a communicator.
  */ 
-#define GNUNET_MESSAGE_TYPE_TRANSPORT_EPHEMERAL_CONFIRMATION 1220
+#define GNUNET_MESSAGE_TYPE_TRANSPORT_COMMUNICATOR_BACKCHANNEL_INCOMING 1220
+
 
 /**
  * Message sent to indicate to the transport that a monitor

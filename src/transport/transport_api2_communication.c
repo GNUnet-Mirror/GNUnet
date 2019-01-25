@@ -22,6 +22,8 @@
  * @file transport/transport_api2_communication.c
  * @brief implementation of the gnunet_transport_communication_service.h API
  * @author Christian Grothoff
+ *
+ * FIXME: handling of messages for "notify_cb" not implemented!
  */
 #include "platform.h"
 #include "gnunet_util_lib.h"
@@ -618,15 +620,8 @@ static int
 check_send_msg (void *cls,
 		const struct GNUNET_TRANSPORT_SendMessageTo *smt)
 {
-  uint16_t len = ntohs (smt->header.size) - sizeof (*smt);
-  const struct GNUNET_MessageHeader *mh = (const struct GNUNET_MessageHeader *) &smt[1];
-
   (void) cls;
-  if (ntohs (mh->size) != len)
-  {
-    GNUNET_break (0);
-    return GNUNET_SYSERR;
-  }
+  GNUNET_MQ_check_boxed_message (smt);
   return GNUNET_OK;
 }
 
@@ -733,6 +728,40 @@ handle_send_msg (void *cls,
 
 
 /**
+ * Transport service gives us backchannel message. Check if @a bi
+ * is well-formed.
+ *
+ * @param cls our `struct GNUNET_TRANSPORT_CommunicatorHandle *`
+ * @param bi the backchannel message
+ * @return #GNUNET_OK if @a smt is well-formed
+ */
+static int
+check_backchannel_incoming (void *cls,
+			    const struct GNUNET_TRANSPORT_CommunicatorBackchannelIncoming *bi)
+{
+  (void) cls;
+  GNUNET_MQ_check_boxed_message (bi);
+  return GNUNET_OK;
+}
+
+
+/**
+ * Transport service gives us backchannel message. Handle it.
+ *
+ * @param cls our `struct GNUNET_TRANSPORT_CommunicatorHandle *`
+ * @param bi the backchannel message
+ */
+static void
+handle_backchannel_incoming (void *cls,
+			     const struct GNUNET_TRANSPORT_CommunicatorBackchannelIncoming *bi)
+{
+  struct GNUNET_TRANSPORT_CommunicatorHandle *ch = cls;
+
+  // FIXME: handle bi!
+}
+
+
+/**
  * (re)connect our communicator to the transport service
  *
  * @param ch handle to reconnect
@@ -753,7 +782,10 @@ reconnect (struct GNUNET_TRANSPORT_CommunicatorHandle *ch)
 			   GNUNET_MESSAGE_TYPE_TRANSPORT_SEND_MSG,
 			   struct GNUNET_TRANSPORT_SendMessageTo,
 			   ch),
-    // FIXME: handle backchannel notifications!
+    GNUNET_MQ_hd_var_size (backchannel_incoming,
+			   GNUNET_MESSAGE_TYPE_TRANSPORT_COMMUNICATOR_BACKCHANNEL_INCOMING,
+			   struct GNUNET_TRANSPORT_CommunicatorBackchannelIncoming,
+			   ch),
     GNUNET_MQ_handler_end()
   };
   struct GNUNET_TRANSPORT_CommunicatorAvailableMessage *cam;

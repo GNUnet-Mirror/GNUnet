@@ -977,6 +977,33 @@ struct GNUNET_TRANSPORT_CommunicatorBackchannel
 };
 
 
+/**
+ * Message from transport to communicator passing along a backchannel
+ * message from the given peer @e pid.
+ */
+struct GNUNET_TRANSPORT_CommunicatorBackchannelIncoming
+{
+  /**
+   * Type will be #GNUNET_MESSAGE_TYPE_TRANSPORT_COMMUNICATOR_BACKCHANNEL_INCOMING
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Always zero, for alignment.
+   */
+  uint32_t reserved;
+
+  /**
+   * Origin peer.
+   */
+  struct GNUNET_PeerIdentity pid;
+
+  /* Followed by a `struct GNUNET_MessageHeader` with the encapsulated
+     message to the communicator */
+
+};
+
+
 
 /**
  * Request to start monitoring.

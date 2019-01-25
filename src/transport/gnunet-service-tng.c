@@ -34,6 +34,7 @@
  *
  * Implement:
  * - manage defragmentation, retransmission, track RTT, loss, etc.
+ * - DV data structures, learning, forgetting, using them!
  *
  * Easy:
  * - use ATS bandwidth allocation callback and schedule transmissions!
@@ -153,6 +154,9 @@ struct TransportBackchannelEncapsulationMessage
    */
   struct GNUNET_CRYPTO_EcdhePublicKey ephemeral_key;
 
+  // FIXME: probably should add random IV here as well,
+  // especially if we re-use ephemeral keys!
+  
   /**
    * HMAC over the ciphertext of the encrypted, variable-size
    * body that follows.  Verified via DH of @e target and
@@ -177,8 +181,7 @@ struct EphemeralConfirmation
   struct GNUNET_CRYPTO_EccSignaturePurpose purpose;
 
   /**
-   * How long is this signature over the ephemeral key
-   * valid?
+   * How long is this signature over the ephemeral key valid?
    */
   struct GNUNET_TIME_AbsoluteNBO ephemeral_validity;
 
@@ -188,37 +191,6 @@ struct EphemeralConfirmation
    */
   struct GNUNET_CRYPTO_EcdhePublicKey ephemeral_key;
 
-};
-
-
-/**
- * Message by which a peqer confirms that it is using an ephemeral
- * key.
- */
-struct EphemeralConfirmationMessage
-{
-
-  /**
-   * Message header, type is #GNUNET_MESSAGE_TYPE_TRANSPORT_EPHEMERAL_CONFIRMATION
-   */
-  struct GNUNET_MessageHeader header;
-
-  /**
-   * Must be zero.
-   */  
-  uint32_t reserved;
-  
-  /**
-   * How long is this signature over the ephemeral key
-   * valid?
-   */
-  struct GNUNET_TIME_AbsoluteNBO ephemeral_validity;
-
-  /**
-   * Ephemeral key setup by the sender for @e target, used
-   * to encrypt the payload.
-   */
-  struct GNUNET_CRYPTO_EcdhePublicKey ephemeral_key;
 };
 
 
@@ -546,6 +518,10 @@ enum ClientType
 
 /**
  * Entry in our cache of ephemeral keys we currently use.
+ * This way, we only sign an ephemeral once per @e target,
+ * and then can re-use it over multiple 
+ * #GNUNET_MESSAGE_TYPE_TRANSPORT_BACKCHANNEL_ENCAPSULATION
+ * messages (as signing is expensive).
  */
 struct EphemeralCacheEntry
 {
@@ -2525,31 +2501,7 @@ handle_backchannel_encapsulation (void *cls,
   // FIXME: check HMAC
   // FIXME: decrypt payload
   // FIXME: forward to specified communicator!
-  
-  finish_cmc_handling (cmc);
-}
-
-
-/**
- * Communicator gave us an ephemeral confirmation.  Process the request.
- *
- * @param cls a `struct CommunicatorMessageContext` (must call #finish_cmc_handling() when done)
- * @param ec the message that was received
- */
-static void
-handle_ephemeral_confirmation (void *cls,
-			       const struct EphemeralConfirmationMessage *ec)
-{
-  struct CommunicatorMessageContext *cmc = cls;
-
-  // FIXME: notify communicator (?) about ephemeral confirmation!?
-  // FIXME: or does this have something to do with the ephemeral_map?
-  //        where did I plan to use this message again!?
-  // FIXME: communicator API has a very general notification API,
-  //        nothing specific for ephemeral keys;
-  //        why do we have a ephemeral key-specific message here?
-  // => first revise where we get such messages from communicator
-  //    before processing further here!
+  // (using GNUNET_MESSAGE_TYPE_TRANSPORT_COMMUNICATOR_BACKCHANNEL_INCOMING)  
   finish_cmc_handling (cmc);
 }
 
@@ -2726,10 +2678,6 @@ handle_incoming_msg (void *cls,
 			   GNUNET_MESSAGE_TYPE_TRANSPORT_BACKCHANNEL_ENCAPSULATION,
 			   struct TransportBackchannelEncapsulationMessage,
 			   &cmc),
-    GNUNET_MQ_hd_fixed_size (ephemeral_confirmation,
-			     GNUNET_MESSAGE_TYPE_TRANSPORT_EPHEMERAL_CONFIRMATION,
-			     struct EphemeralConfirmationMessage,
-			     &cmc),
     GNUNET_MQ_hd_var_size (dv_learn,
 			   GNUNET_MESSAGE_TYPE_TRANSPORT_DV_LEARN,
 			   struct TransportDVLearn,
