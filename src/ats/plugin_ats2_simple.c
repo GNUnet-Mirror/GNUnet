@@ -755,6 +755,8 @@ update_counters (void *cls,
   struct GNUNET_ATS_SessionHandle *best[GNUNET_MQ_PREFERENCE_COUNT];
 
   (void) pid;
+  if (NULL == peer->sh_head)
+    return GNUNET_YES; /* no available session, cannot allocate bandwidth */
   memset (best,
           0,
           sizeof (best));
