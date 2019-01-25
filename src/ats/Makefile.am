@@ -82,6 +82,8 @@ libgnunet_plugin_ats2_simple_la_SOURCES = \
   plugin_ats2_simple.c
 libgnunet_plugin_ats2_simple_la_LIBADD = \
   $(top_builddir)/src/hello/libgnunethello.la \
+  $(top_builddir)/src/peerstore/libgnunetpeerstore.la \
+  $(top_builddir)/src/nt/libgnunetnt.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(LTLIBINTL)
