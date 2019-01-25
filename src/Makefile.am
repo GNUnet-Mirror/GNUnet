@@ -94,11 +94,11 @@ SUBDIRS = \
   datacache \
   datastore \
   template \
+  peerstore \
   ats \
   nat \
   nat-auto \
   fragmentation \
-  peerstore \
   transport \
   ats-tool \
   peerinfo-tool \
