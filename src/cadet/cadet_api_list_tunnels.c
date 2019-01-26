@@ -18,7 +18,7 @@
      SPDX-License-Identifier: AGPL3.0-or-later
 */
 /**
- * @file cadet/cadet_api.c
+ * @file cadet/cadet_api_list_tunnels.c
  * @brief cadet api: client implementation of cadet service
  * @author Bartlomiej Polot
  * @author Christian Grothoff
@@ -31,9 +31,8 @@
 #include "cadet_protocol.h"
 
 
-
 /**
- * Ugly legacy hack.
+ * Operation handle.
  */
 struct GNUNET_CADET_ListTunnels
 {
@@ -47,6 +46,27 @@ struct GNUNET_CADET_ListTunnels
    * Info callback closure for @c tunnels_cb.
    */
   void *tunnels_cb_cls;
+  
+  /**
+   * Message queue to talk to CADET service.
+   */
+  struct GNUNET_MQ_Handle *mq;
+
+  /**
+   * Configuration we use.
+   */
+  const struct GNUNET_CONFIGURATION_Handle *cfg;
+
+  /**
+   * Task to reconnect.
+   */
+  struct GNUNET_SCHEDULER_Task *reconnect_task;
+
+  /**
+   * Backoff for reconnect attempts.
+   */
+  struct GNUNET_TIME_Relative backoff;
+
 };
 
 

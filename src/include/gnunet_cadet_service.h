@@ -411,6 +411,12 @@ GNUNET_CADET_get_channel (const struct GNUNET_CONFIGURATION_Handle *cfg,
                           void *callback_cls);
 
 
+/**
+ * Cancel a channel monitor request. The callback will not be called (anymore).
+ *
+ * @param h Cadet handle.
+ * @return Closure that was given to #GNUNET_CADET_get_channel().
+ */
 void *
 GNUNET_CADET_get_channel_cancel (struct GNUNET_CADET_ChannelMonitor *cm);
 
@@ -444,13 +450,10 @@ struct GNUNET_CADET_PeersLister;
  * The callback will be called for every peer known to the service.
  * Only one info request (of any kind) can be active at once.
  *
- * WARNING: unstable API, likely to change in the future!
- *
  * @param h Handle to the cadet peer.
  * @param callback Function to call with the requested data.
  * @param callback_cls Closure for @c callback.
- *
- * @return #GNUNET_OK / #GNUNET_SYSERR
+ * @return NULL on error
  */
 struct GNUNET_CADET_PeersLister *
 GNUNET_CADET_list_peers (const struct GNUNET_CONFIGURATION_Handle *cfg,
@@ -461,12 +464,11 @@ GNUNET_CADET_list_peers (const struct GNUNET_CONFIGURATION_Handle *cfg,
 /**
  * Cancel a peer info request. The callback will not be called (anymore).
  *
- * @param h Cadet handle.
+ * @param pl operation handle
  * @return Closure that was given to #GNUNET_CADET_list_peers().
  */
 void *
 GNUNET_CADET_list_peers_cancel (struct GNUNET_CADET_PeersLister *pl);
-
 
 
 /**
@@ -493,6 +495,9 @@ typedef void
                         int finished_with_paths);
 
 
+/**
+ * Handle to cancel #GNUNET_CADET_get_peer() operation.
+ */
 struct GNUNET_CADET_GetPeer;
 
 /**
@@ -500,14 +505,11 @@ struct GNUNET_CADET_GetPeer;
  * The callback will be called for the tunnel once.
  * Only one info request (of any kind) can be active at once.
  *
- * WARNING: unstable API, likely to change in the future!
- *
  * @param h Handle to the cadet peer.
  * @param id Peer whose tunnel to examine.
  * @param callback Function to call with the requested data.
  * @param callback_cls Closure for @c callback.
- *
- * @return #GNUNET_OK / #GNUNET_SYSERR
+ * @return NULL on error
  */
 struct GNUNET_CADET_GetPeer *
 GNUNET_CADET_get_peer (const struct GNUNET_CONFIGURATION_Handle *cfg,
@@ -516,6 +518,12 @@ GNUNET_CADET_get_peer (const struct GNUNET_CONFIGURATION_Handle *cfg,
 		       void *callback_cls);
 
 
+/**
+ * Cancel @a gp operation.
+ *
+ * @param gp operation to cancel
+ * @return closure from #GNUNET_CADET_get_peer().
+ */
 void *
 GNUNET_CADET_get_peer_cancel (struct GNUNET_CADET_GetPeer *gp);
 

@@ -32,7 +32,7 @@
 
 
 /**
- * 
+ * Operation handle.
  */
 struct GNUNET_CADET_GetPeer
 {
@@ -43,15 +43,35 @@ struct GNUNET_CADET_GetPeer
   GNUNET_CADET_PeerCB peer_cb;
 
   /**
-   * Info callback closure for @c info_cb.
+   * Closure for @c peer_cb.
    */
   void *peer_cb_cls;
 
-  struct GNUNET_PeerIdentity id;
-
+  /**
+   * Message queue to talk to CADET service.
+   */
   struct GNUNET_MQ_Handle *mq;
 
+  /**
+   * Configuration we use.
+   */
   const struct GNUNET_CONFIGURATION_Handle *cfg;
+
+  /**
+   * Task to reconnect.
+   */
+  struct GNUNET_SCHEDULER_Task *reconnect_task;
+
+  /**
+   * Backoff for reconnect attempts.
+   */
+  struct GNUNET_TIME_Relative backoff;
+  
+  /**
+   * Peer we want information about.
+   */
+  struct GNUNET_PeerIdentity id;
+
 };
 
 
@@ -103,11 +123,6 @@ handle_get_peer (void *cls,
   int neighbor;
   unsigned int peers;
 
-  
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-	 "number of paths %u\n",
-	 ntohs (message->paths));
-
   paths = ntohs (message->paths);
   paths_array = (const struct GNUNET_PeerIdentity *) &message[1];
   peers = (ntohs (message->header.size) - sizeof (*message))
@@ -117,11 +132,9 @@ handle_get_peer (void *cls,
 
   for (unsigned int i = 0; i < peers; i++)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                " %s\n",
-                GNUNET_i2s (&paths_array[i]));
     path_length++;
-    if (0 == memcmp (&paths_array[i], &message->destination,
+    if (0 == memcmp (&paths_array[i],
+		     &message->destination,
                      sizeof (struct GNUNET_PeerIdentity)))
     {
       if (1 == path_length)
@@ -130,7 +143,7 @@ handle_get_peer (void *cls,
     }
   }
 
-  /* Call Callback with tunnel info. */
+  /* Call Callback with tunnel info */
   paths_array = (const struct GNUNET_PeerIdentity *) &message[1];
   gp->peer_cb (gp->peer_cb_cls,
 		 &message->destination,
@@ -144,20 +157,57 @@ handle_get_peer (void *cls,
 }
 
 
+/**
+ * Reconnect to the service and try again.
+ *
+ * @param cls a `struct GNUNET_CADET_GetPeer` operation
+ */
+static void
+reconnect (void *cls);
+
+
+/**
+ * Function called on connection trouble.  Reconnects.
+ *
+ * @param cls a `struct GNUNET_CADET_GetPeer`
+ * @param error error code from MQ
+ */
+static void
+error_handler (void *cls,
+	       enum GNUNET_MQ_Error error)
+{
+  struct GNUNET_CADET_GetPeer *gp = cls;
+
+  GNUNET_MQ_destroy (gp->mq);
+  gp->mq = NULL;
+  gp->backoff = GNUNET_TIME_randomized_backoff (gp->backoff,
+						GNUNET_TIME_UNIT_MINUTES);
+  gp->reconnect_task = GNUNET_SCHEDULER_add_delayed (gp->backoff,
+						     &reconnect,
+						     gp);
+}
+
+  
+/**
+ * Reconnect to the service and try again.
+ *
+ * @param cls a `struct GNUNET_CADET_GetPeer` operation
+ */
 static void
 reconnect (void *cls)
 {
   struct GNUNET_CADET_GetPeer *gp = cls;
-  struct GNUNET_MQ_MessageHandler *handlers[] = {
+  struct GNUNET_MQ_MessageHandler handlers[] = {
     GNUNET_MQ_hd_var_size (get_peer,
                            GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_PEER,
                            struct GNUNET_CADET_LocalInfoPeer,
-                           h),
+                           gp),
     GNUNET_MQ_handler_end ()
-  }
+  };
   struct GNUNET_CADET_LocalInfo *msg;
   struct GNUNET_MQ_Envelope *env;
 
+  gp->reconnect_task = NULL;
   gp->mq = GNUNET_CLIENT_connect (gp->cfg,
 				  "cadet",
 				  handlers,
@@ -168,7 +218,7 @@ reconnect (void *cls)
   env = GNUNET_MQ_msg (msg,
                        GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_PEER);
   msg->peer = gp->id;
-  GNUNET_MQ_send (lt->mq,
+  GNUNET_MQ_send (gp->mq,
                   env);
 }
 
@@ -211,15 +261,24 @@ GNUNET_CADET_get_peer (const struct GNUNET_CONFIGURATION_Handle *cfg,
 }
 
 
-
+/**
+ * Cancel @a gp operation.
+ *
+ * @param gp operation to cancel
+ * @return closure from #GNUNET_CADET_get_peer().
+ */
 void *
 GNUNET_CADET_get_peer_cancel (struct GNUNET_CADET_GetPeer *gp)
 {
   void *ret = gp->peer_cb_cls;
-  
-  GNUNET_MQ_disconnect (gp->mq);
+
+  if (NULL != gp->mq)
+    GNUNET_MQ_destroy (gp->mq);
+  if (NULL != gp->reconnect_task)
+    GNUNET_SCHEDULER_cancel (gp->reconnect_task);
   GNUNET_free (gp);
   return ret;
 }
 
 
+/* end of cadet_api_get_peer.c */

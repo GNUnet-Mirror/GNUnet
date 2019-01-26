@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     Copyright (C) 2011, 2017 GNUnet e.V.
+     Copyright (C) 2011, 2017, 2019 GNUnet e.V.
 
      GNUnet is free software: you can redistribute it and/or modify it
      under the terms of the GNU Affero General Public License as published
@@ -18,7 +18,7 @@
      SPDX-License-Identifier: AGPL3.0-or-later
 */
 /**
- * @file cadet/cadet_api.c
+ * @file cadet/cadet_api_list_peers.c
  * @brief cadet api: client implementation of cadet service
  * @author Bartlomiej Polot
  * @author Christian Grothoff
@@ -31,9 +31,8 @@
 #include "cadet_protocol.h"
 
 
-
 /**
- * Ugly legacy hack.
+ * Operation handle.
  */
 struct GNUNET_CADET_PeersLister
 {
@@ -47,33 +46,34 @@ struct GNUNET_CADET_PeersLister
    * Info callback closure for @c info_cb.
    */
   void *peers_cb_cls;
+
+  /**
+   * Message queue to talk to CADET service.
+   */
+  struct GNUNET_MQ_Handle *mq;
+
+  /**
+   * Configuration we use.
+   */
+  const struct GNUNET_CONFIGURATION_Handle *cfg;
+
+  /**
+   * Task to reconnect.
+   */
+  struct GNUNET_SCHEDULER_Task *reconnect_task;
+
+  /**
+   * Backoff for reconnect attempts.
+   */
+  struct GNUNET_TIME_Relative backoff;
+  
 };
-
-
-/**
- * Send message of @a type to CADET service of @a h
- *
- * @param h handle to CADET service
- * @param type message type of trivial information request to send
- */
-static void
-send_info_request (struct GNUNET_CADET_Handle *h,
-                   uint16_t type)
-{
-  struct GNUNET_MessageHeader *msg;
-  struct GNUNET_MQ_Envelope *env;
-
-  env = GNUNET_MQ_msg (msg,
-                       type);
-  GNUNET_MQ_send (h->mq,
-                  env);
-}
 
 
 /**
  * Check that message received from CADET service is well-formed.
  *
- * @param cls the `struct GNUNET_CADET_Handle`
+ * @param cls the `struct GNUNET_CADET_PeersLister`
  * @param message the message we got
  * @return #GNUNET_OK if the message is well-formed,
  *         #GNUNET_SYSERR otherwise
@@ -94,60 +94,97 @@ check_get_peers (void *cls,
 }
 
 
+// FIXME: use two different message types instead of this mess!
 /**
  * Process a local reply about info on all tunnels, pass info to the user.
  *
- * @param cls Closure (Cadet handle).
+ * @param cls a `struct GNUNET_CADET_PeersLister`
  * @param msg Message itself.
  */
 static void
 handle_get_peers (void *cls,
                   const struct GNUNET_MessageHeader *msg)
 {
-  struct GNUNET_CADET_Handle *h = cls;
+  struct GNUNET_CADET_PeersLister *pl = cls;
   const struct GNUNET_CADET_LocalInfoPeer *info =
     (const struct GNUNET_CADET_LocalInfoPeer *) msg;
 
-  if (NULL == h->info_cb.peers_cb)
-    return;
   if (sizeof (struct GNUNET_CADET_LocalInfoPeer) == ntohs (msg->size))
-    h->info_cb.peers_cb (h->info_cls,
-                         &info->destination,
-                         (int) ntohs (info->tunnel),
-                         (unsigned int) ntohs (info->paths),
-                         0);
+    pl->peers_cb (pl->peers_cb_cls,
+		  &info->destination,
+		  (int) ntohs (info->tunnel),
+		  (unsigned int) ntohs (info->paths),
+		  0);
   else
-    h->info_cb.peers_cb (h->info_cls,
-                         NULL,
-                         0,
-                         0,
-                         0);
+  {
+    pl->peers_cb (pl->peers_cb_cls,
+		  NULL,
+		  0,
+		  0,
+		  0);
+    GNUNET_CADET_list_peers_cancel (pl);
+  }
 }
 
 
+/**
+ * Reconnect to the service and try again.
+ *
+ * @param cls a `struct GNUNET_CADET_PeersLister` operation
+ */
+static void
+reconnect (void *cls);
+
+
+/**
+ * Function called on connection trouble.  Reconnects.
+ *
+ * @param cls a `struct GNUNET_CADET_PeersLister`
+ * @param error error code from MQ
+ */
+static void
+error_handler (void *cls,
+	       enum GNUNET_MQ_Error error)
+{
+  struct GNUNET_CADET_PeersLister *pl = cls;
+
+  GNUNET_MQ_destroy (pl->mq);
+  pl->mq = NULL;
+  pl->backoff = GNUNET_TIME_randomized_backoff (pl->backoff,
+						GNUNET_TIME_UNIT_MINUTES);
+  pl->reconnect_task = GNUNET_SCHEDULER_add_delayed (pl->backoff,
+						     &reconnect,
+						     pl);
+}
+
+
+/**
+ * Reconnect to the service and try again.
+ *
+ * @param cls a `struct GNUNET_CADET_PeersLister` operation
+ */
 static void
 reconnect (void *cls)
 {
-  struct GNUNET_CADET_ListTunnels *lt = cls;
-  struct GNUNET_MQ_MessageHandler *handlers[] = {
-     GNUNET_MQ_hd_var_size (get_peers,
+  struct GNUNET_CADET_PeersLister *pl = cls;
+  struct GNUNET_MQ_MessageHandler handlers[] = {
+    GNUNET_MQ_hd_var_size (get_peers,
                            GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_PEERS,
                            struct GNUNET_MessageHeader,
-                           h),
+                           pl),
     GNUNET_MQ_handler_end ()
-  }
+  };
   struct GNUNET_MessageHeader *msg;
   struct GNUNET_MQ_Envelope *env;
 
-  cm->mq = GNUNET_CLIENT_connect (cm->cfg,
+  pl->mq = GNUNET_CLIENT_connect (pl->cfg,
 				  "cadet",
 				  handlers,
 				  &error_handler,
-				  cm);
-				 
+				  pl);	
   env = GNUNET_MQ_msg (msg,
-                       type);
-  GNUNET_MQ_send (cm->mq,
+		       GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_PEERS);
+  GNUNET_MQ_send (pl->mq,
                   env);
 }
 
@@ -157,50 +194,54 @@ reconnect (void *cls)
  * The callback will be called for every peer known to the service.
  * Only one info request (of any kind) can be active at once.
  *
- * WARNING: unstable API, likely to change in the future!
- *
  * @param h Handle to the cadet peer.
  * @param callback Function to call with the requested data.
  * @param callback_cls Closure for @c callback.
- * @return #GNUNET_OK / #GNUNET_SYSERR
+ * @return NULL on error
  */
 struct GNUNET_CADET_PeersLister *
 GNUNET_CADET_list_peers (const struct GNUNET_CONFIGURATION_Handle *cfg,
 			 GNUNET_CADET_PeersCB callback,
 			 void *callback_cls)
 {
-  if (NULL != h->info_cb.peers_cb)
+  struct GNUNET_CADET_PeersLister *pl;
+
+  if (NULL == callback)
   {
     GNUNET_break (0);
-    return GNUNET_SYSERR;
+    return NULL;
   }
-  send_info_request (h,
-                     GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_PEERS);
-  h->info_cb.peers_cb = callback;
-  h->info_cls = callback_cls;
-  return GNUNET_OK;
+  pl = GNUNET_new (struct GNUNET_CADET_PeersLister);
+  pl->peers_cb = callback;
+  pl->peers_cb_cls = callback_cls;
+  pl->cfg = cfg;
+  reconnect (pl);
+  if (NULL == pl->mq)
+  {
+    GNUNET_free (pl);
+    return NULL;
+  }
+  return pl;
 }
 
 
 /**
  * Cancel a peer info request. The callback will not be called (anymore).
  *
- * WARNING: unstable API, likely to change in the future!
- *
- * @param h Cadet handle.
+ * @param pl operation handle
  * @return Closure given to GNUNET_CADET_get_peers().
  */
 void *
 GNUNET_CADET_list_peers_cancel (struct GNUNET_CADET_PeersLister *pl)
 {
-  void *cls = h->info_cls;
+  void *ret = pl->peers_cb_cls;
 
-  h->info_cb.peers_cb = NULL;
-  h->info_cls = NULL;
-  return cls;
+  if (NULL != pl->mq)
+    GNUNET_MQ_destroy (pl->mq);
+  if (NULL != pl->reconnect_task)
+    GNUNET_SCHEDULER_cancel (pl->reconnect_task);
+  GNUNET_free (pl);
+  return ret;
 }
 
-
-
-
-
+/* end of cadet_api_list_peers.c */

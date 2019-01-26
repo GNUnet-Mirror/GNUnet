@@ -31,9 +31,8 @@
 #include "cadet_protocol.h"
 
 
-
 /**
- * Ugly legacy hack.
+ * Operation handle.
  */
 struct GNUNET_CADET_ChannelMonitor
 {
@@ -48,23 +47,81 @@ struct GNUNET_CADET_ChannelMonitor
    */
   void *channel_cb_cls;
 
+  /**
+   * Configuration we use.
+   */
   const struct GNUNET_CONFIGURATION_Handle *cfg;
 
+  /**
+   * Message queue to talk to CADET service.
+   */
   struct GNUNET_MQ_Handle *mq;
   
+  /**
+   * Task to reconnect.
+   */
+  struct GNUNET_SCHEDULER_Task *reconnect_task;
+
+  /**
+   * Backoff for reconnect attempts.
+   */
+  struct GNUNET_TIME_Relative backoff;
+
+  /**
+   * Peer we want information about.
+   */
   struct GNUNET_PeerIdentity peer;
-  
+
+  /**
+   * Channel we want information about.
+   */
   uint32_t /* UGH */ channel_number;
 
 };
 
 
+/**
+ * Reconnect to the service and try again.
+ *
+ * @param cls a `struct GNUNET_CADET_ChannelMonitor` operation
+ */
+static void
+reconnect (void *cls);
 
+
+/**
+ * Function called on connection trouble.  Reconnects.
+ *
+ * @param cls a `struct GNUNET_CADET_ChannelMonitor``
+ * @param error error code from MQ
+ */
+static void
+error_handler (void *cls,
+	       enum GNUNET_MQ_Error error)
+{
+  struct GNUNET_CADET_ChannelMonitor *cm = cls;
+
+  GNUNET_MQ_destroy (cm->mq);
+  cm->mq = NULL;
+  cm->backoff = GNUNET_TIME_randomized_backoff (cm->backoff,
+						GNUNET_TIME_UNIT_MINUTES);
+  cm->reconnect_task = GNUNET_SCHEDULER_add_delayed (cm->backoff,
+						     &reconnect,
+						     cm);
+}
+
+
+/**
+ * Reconnect to the service and try again.
+ *
+ * @param cls a `struct GNUNET_CADET_ChannelMonitor` operation
+ */
 static void
 reconnect (void *cls)
 {
   struct GNUNET_CADET_ChannelMonitor *cm = cls;
   struct GNUNET_MQ_MessageHandler *handlers[] = {
+    FIXME
   }
   struct GNUNET_MessageHeader *msg;
   struct GNUNET_MQ_Envelope *env;
@@ -100,10 +157,45 @@ GNUNET_CADET_get_channel (const struct GNUNET_CONFIGURATION_Handle *cfg,
                           GNUNET_CADET_ChannelCB callback,
                           void *callback_cls)
 {
+  struct GNUNET_CADET_ChannelMonitor *cm;
+
+  if (NULL == callback)
+  {
+    GNUNET_break (0);
+    return NULL;
+  }
+  cm = GNUNET_new (struct GNUNET_CADET_ChannelMonitor);
+  cm->peer_cb = callback;
+  cm->peer_cb_cls = callback_cls;
+  cm->cfg = cfg;
+  cm->id = *id;
+  reconnect (cm);
+  if (NULL == cm->mq)
+  {
+    GNUNET_free (cm);
+    return NULL;
+  }
+  return cm;
 }
 
 
+/**
+ * Cancel a channel monitor request. The callback will not be called (anymore).
+ *
+ * @param h Cadet handle.
+ * @return Closure that was given to #GNUNET_CADET_get_channel().
+ */
 void *
 GNUNET_CADET_get_channel_cancel (struct GNUNET_CADET_ChannelMonitor *cm)
 {
+  void *ret = cm->peer_cb_cls;
+
+  if (NULL != cm->mq)
+    GNUNET_MQ_destroy (cm->mq);
+  if (NULL != cm->reconnect_task)
+    GNUNET_SCHEDULER_cancel (cm->reconnect_task);
+  GNUNET_free (cm);
+  return ret;
 }
+
+/* end of cadet_api_get_channel.c */
