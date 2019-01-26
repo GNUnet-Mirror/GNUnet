@@ -202,6 +202,11 @@ extern "C"
  */
 #define GNUNET_SIGNATURE_PURPOSE_TRANSPORT_EPHEMERAL 30
 
+/**
+ * Signature used by TCP communicator handshake,
+ */ 
+#define GNUNET_SIGNATURE_COMMUNICATOR_TCP_HANDSHAKE 31
+
 #if 0                           /* keep Emacsens' auto-indent happy */
 {
 #endif

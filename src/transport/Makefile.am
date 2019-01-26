@@ -142,6 +142,7 @@ endif
 noinst_PROGRAMS = \
  gnunet-transport-profiler \
  gnunet-communicator-unix \
+ gnunet-communicator-tcp \
  gnunet-service-tng \
  $(WLAN_BIN_SENDER) \
  $(WLAN_BIN_RECEIVER)
@@ -250,6 +251,14 @@ gnunet_communicator_unix_LDADD = \
   libgnunettransportcommunicator.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/util/libgnunetutil.la
+
+gnunet_communicator_tcp_SOURCES = \
+ gnunet-communicator-tcp.c
+gnunet_communicator_tcp_LDADD = \
+  libgnunettransportcommunicator.la \
+  $(top_builddir)/src/statistics/libgnunetstatistics.la \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(LIBGCRYPT_LIBS) 
 
 
 gnunet_helper_transport_wlan_SOURCES = \
