@@ -32,10 +32,17 @@
  *      (which could be core-data, background-channel traffic, or
  *       transport-to-transport traffic)
  *
- * Implement:
+ * Implement next:
  * - ACK handling / retransmission 
  * - track RTT, distance, loss, etc.
- * - DV data structures, learning, forgetting & using them!
+ * - DV data structures:
+ *   + learning
+ *   + forgetting 
+ *   + using them!
+ * - routing of messages (using DV data structures!)
+ * - handling of DV-boxed messages that need to be forwarded
+ * - backchannel message encryption & decryption
+ * - 
  *
  * Easy:
  * - use ATS bandwidth allocation callback and schedule transmissions!
@@ -51,6 +58,10 @@
  * - if messages are below MTU, consider adding ACKs and other stuff
  *   (requires planning at receiver, and additional MST-style demultiplex
  *    at receiver!)
+ * - could avoid copying body of message into each fragment and keep
+ *   fragments as just pointers into the original message and only 
+ *   fully build fragments just before transmission (optimization, should
+ *   reduce CPU and memory use)
  *
  * Design realizations / discussion:
  * - communicators do flow control by calling MQ "notify sent"
