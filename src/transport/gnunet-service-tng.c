@@ -33,9 +33,7 @@
  *       transport-to-transport traffic)
  *
  * Implement:
- * - data structures for defragmentation
- * - manage defragmentation
- * - ACK handling / retransmission
+ * - ACK handling / retransmission 
  * - track RTT, distance, loss, etc.
  * - DV data structures, learning, forgetting & using them!
  *
@@ -610,6 +608,98 @@ struct Neighbour;
 
 
 /**
+ * Entry in our #dv_routes table, representing a (set of) distance
+ * vector routes to a particular peer.
+ */
+struct DistanceVector;
+
+/**
+ * One possible hop towards a DV target.
+ */
+struct DistanceVectorHop
+{
+
+  /**
+   * Kept in a MDLL, sorted by @e timeout.
+   */ 
+  struct DistanceVectorHop *next_dv;
+
+  /**
+   * Kept in a MDLL, sorted by @e timeout.
+   */ 
+  struct DistanceVectorHop *prev_dv;
+
+  /**
+   * Kept in a MDLL.
+   */ 
+  struct DistanceVectorHop *next_neighbour;
+
+  /**
+   * Kept in a MDLL.
+   */ 
+  struct DistanceVectorHop *prev_neighbour;
+
+  /**
+   * What would be the next hop to @e target?
+   */ 
+  struct Neighbour *next_hop;
+
+  /**
+   * Distance vector entry this hop belongs with.
+   */ 
+  struct DistanceVector *dv;
+  
+  /**
+   * Array of @e distance hops to the target, excluding @e next_hop.
+   * NULL if the entire path is us to @e next_hop to `target`. Allocated
+   * at the end of this struct.
+   */ 
+  const struct GNUNET_PeerIdentity *path;
+
+  /**
+   * At what time do we forget about this path unless we see it again
+   * while learning?
+   */
+  struct GNUNET_TIME_Absolute timeout;
+  
+  /**
+   * How many hops in total to the `target` (excluding @e next_hop and `target` itself),
+   * thus 0 still means a distance of 2 hops (to @e next_hop and then to `target`)?
+   */ 
+  unsigned int distance;
+};
+
+
+/**
+ * Entry in our #dv_routes table, representing a (set of) distance
+ * vector routes to a particular peer.
+ */
+struct DistanceVector
+{
+
+  /**
+   * To which peer is this a route?
+   */
+  struct GNUNET_PeerIdentity target;
+
+  /**
+   * Known paths to @e target.
+   */ 
+  struct DistanceVectorHop *dv_head;
+
+  /**
+   * Known paths to @e target.
+   */ 
+  struct DistanceVectorHop *dv_tail;
+
+  /**
+   * Task scheduled to purge expired paths from @e dv_head MDLL.
+   */
+  struct GNUNET_SCHEDULER_Task *timeout_task;
+};
+
+
+/**
  * Entry identifying transmission in one of our `struct
  * GNUNET_ATS_Sessions` which still awaits an ACK.  This is used to
  * ensure we do not overwhelm a communicator and limit the number of
@@ -896,6 +986,18 @@ struct Neighbour
    * Tail of list of messages pending for this neighbour.
    */
   struct PendingMessage *pending_msg_tail;
+
+  /**
+   * Head of MDLL of DV hops that have this neighbour as next hop. Must be
+   * purged if this neighbour goes down.
+   */ 
+  struct DistanceVectorHop *dv_head;
+
+  /**
+   * Tail of MDLL of DV hops that have this neighbour as next hop. Must be
+   * purged if this neighbour goes down.
+   */ 
+  struct DistanceVectorHop *dv_tail;
 
   /**
    * Head of DLL of ATS sessions to this peer.
@@ -1308,6 +1410,12 @@ static struct GNUNET_CRYPTO_EddsaPrivateKey *GST_my_private_key;
 static struct GNUNET_CONTAINER_MultiPeerMap *neighbours;
 
 /**
+ * Map from PIDs to `struct DistanceVector` entries describing
+ * known paths to the peer.
+ */
+static struct GNUNET_CONTAINER_MultiPeerMap *dv_routes;
+
+/**
  * Database for peer's HELLOs.
  */
 static struct GNUNET_PEERSTORE_Handle *peerstore;
@@ -1402,6 +1510,56 @@ struct MonitorEvent
 
 
 };
+
+
+/**
+ * Free a @dvh, and if it is the last path to the `target`,also
+ * free the associated DV entry in #dv_routes.
+ *
+ * @param dvh hop to free
+ */
+static void
+free_distance_vector_hop (struct DistanceVectorHop *dvh)
+{
+  struct Neighbour *n = dvh->next_hop;
+  struct DistanceVector *dv = dvh->dv;
+
+  GNUNET_CONTAINER_MDLL_remove (neighbour,
+				n->dv_head,
+				n->dv_tail,
+				dvh);
+  GNUNET_CONTAINER_MDLL_remove (dv,
+				dv->dv_head,
+				dv->dv_tail,
+				dvh);
+  GNUNET_free (dvh);
+  if (NULL == dv->dv_head)
+  {
+    GNUNET_assert (GNUNET_YES == 
+		   GNUNET_CONTAINER_multipeermap_remove (dv_routes,
+							 &dv->target,
+							 dv));
+    if (NULL != dv->timeout_task)
+      GNUNET_SCHEDULER_cancel (dv->timeout_task);
+    GNUNET_free (dv);
+  }
+}
+
+
+/**
+ * Free entry in #dv_routes.  First frees all hops to the target, and
+ * the last target will implicitly free @a dv as well.
+ *
+ * @param dv route to free
+ */
+static void
+free_dv_route (struct DistanceVector *dv)
+{
+  struct DistanceVectorHop *dvh;
+
+  while (NULL != (dvh = dv->dv_head))
+    free_distance_vector_hop (dvh);
+}
 
 
 /**
@@ -1596,6 +1754,8 @@ free_reassembly_cb (void *cls,
 static void
 free_neighbour (struct Neighbour *neighbour)
 {
+  struct DistanceVectorHop *dvh;
+  
   GNUNET_assert (NULL == neighbour->session_head);
   GNUNET_assert (GNUNET_YES ==
 		 GNUNET_CONTAINER_multipeermap_remove (neighbours,
@@ -1613,6 +1773,8 @@ free_neighbour (struct Neighbour *neighbour)
     GNUNET_CONTAINER_heap_destroy (neighbour->reassembly_heap);
     neighbour->reassembly_heap = NULL;
   }
+  while (NULL != (dvh = neighbour->dv_head))
+    free_distance_vector_hop (dvh);
   if (NULL != neighbour->reassembly_timeout_task)
     GNUNET_SCHEDULER_cancel (neighbour->reassembly_timeout_task);
   GNUNET_free (neighbour);
@@ -3019,7 +3181,10 @@ handle_fragment_ack (void *cls,
 {
   struct CommunicatorMessageContext *cmc = cls;
   
-  // FIXME: do work!
+  // FIXME: do work: identify original message; then identify fragments being acked;
+  // remove those from the tree to prevent retransmission;
+  // compute RTT
+  // if entire message is ACKed, handle that as well.
   finish_cmc_handling (cmc);
 }
 
@@ -4372,6 +4537,29 @@ free_neighbour_cb (void *cls,
 
 
 /**
+ * Free DV route entry.
+ *
+ * @param cls NULL
+ * @param pid unused
+ * @param value a `struct DistanceVector`
+ * @return #GNUNET_OK (always)
+ */
+static int
+free_dv_routes_cb (void *cls,
+		   const struct GNUNET_PeerIdentity *pid,
+		   void *value)
+{
+  struct DistanceVector *dv = value;
+
+  (void) cls;
+  (void) pid;
+  free_dv_route (dv);
+
+  return GNUNET_OK;
+}
+
+
+/**
  * Free ephemeral entry.
  *
  * @param cls NULL
@@ -4436,6 +4624,11 @@ do_shutdown (void *cls)
   }
   GNUNET_CONTAINER_multipeermap_destroy (neighbours);
   neighbours = NULL;
+  GNUNET_CONTAINER_multipeermap_iterate (dv_routes,
+					 &free_dv_routes_cb,
+					 NULL);
+  GNUNET_CONTAINER_multipeermap_destroy (dv_routes);
+  dv_routes = NULL;
   GNUNET_CONTAINER_multipeermap_iterate (ephemeral_map,
 					 &free_ephemeral_cb,
 					 NULL);
@@ -4463,6 +4656,8 @@ run (void *cls,
   GST_cfg = c;
   neighbours = GNUNET_CONTAINER_multipeermap_create (1024,
 						     GNUNET_YES);
+  dv_routes = GNUNET_CONTAINER_multipeermap_create (1024,
+						    GNUNET_YES);
   ephemeral_map = GNUNET_CONTAINER_multipeermap_create (32,
                                                         GNUNET_YES);
   ephemeral_heap = GNUNET_CONTAINER_heap_create (GNUNET_CONTAINER_HEAP_ORDER_MIN);
