@@ -22,8 +22,6 @@
  * @file transport/transport_api2_communication.c
  * @brief implementation of the gnunet_transport_communication_service.h API
  * @author Christian Grothoff
- *
- * FIXME: handling of messages for "notify_cb" not implemented!
  */
 #include "platform.h"
 #include "gnunet_util_lib.h"
@@ -757,7 +755,13 @@ handle_backchannel_incoming (void *cls,
 {
   struct GNUNET_TRANSPORT_CommunicatorHandle *ch = cls;
 
-  // FIXME: handle bi!
+  if (NULL != ch->notify_cb)
+    ch->notify_cb (ch->notify_cb_cls,
+		   &bi->pid,
+		   (const struct GNUNET_MessageHeader *) &bi[1]);
+  else
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+		_("Dropped backchanel message: handler not provided by communicator\n"));
 }
 
 
