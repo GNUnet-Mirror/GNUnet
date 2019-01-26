@@ -33,7 +33,8 @@ lib_LTLIBRARIES = \
   $(EXP_LIB)
 
 libgnunetcadet_la_SOURCES = \
-  cadet_api.c
+  cadet_api.c \
+  cadet_api_helper.c 
 libgnunetcadet_la_LIBADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(XLIB) \

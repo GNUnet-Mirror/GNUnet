@@ -310,17 +310,6 @@ void
 GNUNET_CADET_receive_done (struct GNUNET_CADET_Channel *channel);
 
 
-/******************************************************************************/
-/********************       MONITORING /DEBUG API     *************************/
-/******************************************************************************/
-/* The following calls are not useful for normal CADET operation, but for      */
-/* debug and monitoring of the cadet state. They can be safely ignored.        */
-/* The API can change at any point without notice.                            */
-/* Please contact the developer if you consider any of this calls useful for  */
-/* normal cadet applications.                                                  */
-/******************************************************************************/
-
-
 /**
  * Transitional function to convert an unsigned int port to a hash value.
  * WARNING: local static value returned, NOT reentrant!
@@ -367,6 +356,17 @@ GNUNET_CADET_channel_get_info (struct GNUNET_CADET_Channel *channel,
                                ...);
 
 
+/******************************************************************************/
+/********************       MONITORING /DEBUG API     *************************/
+/******************************************************************************/
+/* The following calls are not useful for normal CADET operation, but for      */
+/* debug and monitoring of the cadet state. They can be safely ignored.        */
+/* The API can change at any point without notice.                            */
+/* Please contact the developer if you consider any of this calls useful for  */
+/* normal cadet applications.                                                  */
+/******************************************************************************/
+
+
 /**
  * Method called to retrieve information about a specific channel the cadet peer
  * is aware of, including all transit nodes.
@@ -388,6 +388,33 @@ typedef void
                            uint32_t /* ugh */ dest_channel_number,
                            uint32_t /* ugh */ public_channel_number);
 
+
+struct GNUNET_CADET_ChannelMonitor;
+
+
+/**
+ * Request information about a specific channel of the running cadet peer.
+ *
+ * WARNING: unstable API, likely to change in the future!
+ *
+ * @param h Handle to the cadet peer.
+ * @param peer ID of the other end of the channel.
+ * @param channel_number Channel number.
+ * @param callback Function to call with the requested data.
+ * @param callback_cls Closure for @c callback.
+ */
+struct GNUNET_CADET_ChannelMonitor *
+GNUNET_CADET_get_channel (const struct GNUNET_CONFIGURATION_Handle *cfg,
+                          struct GNUNET_PeerIdentity *peer,
+                          uint32_t /* UGH */ channel_number,
+                          GNUNET_CADET_ChannelCB callback,
+                          void *callback_cls);
+
+
+void *
+GNUNET_CADET_get_channel_cancel (struct GNUNET_CADET_ChannelMonitor *cm);
+
+
 /**
  * Method called to retrieve information about all peers in CADET, called
  * once per peer.
@@ -407,6 +434,40 @@ typedef void
                          int tunnel,
                          unsigned int n_paths,
                          unsigned int best_path);
+
+
+struct GNUNET_CADET_PeersLister;
+
+
+/**
+ * Request information about peers known to the running cadet service.
+ * The callback will be called for every peer known to the service.
+ * Only one info request (of any kind) can be active at once.
+ *
+ * WARNING: unstable API, likely to change in the future!
+ *
+ * @param h Handle to the cadet peer.
+ * @param callback Function to call with the requested data.
+ * @param callback_cls Closure for @c callback.
+ *
+ * @return #GNUNET_OK / #GNUNET_SYSERR
+ */
+struct GNUNET_CADET_PeersLister *
+GNUNET_CADET_list_peers (const struct GNUNET_CONFIGURATION_Handle *cfg,
+			 GNUNET_CADET_PeersCB callback,
+			 void *callback_cls);
+
+
+/**
+ * Cancel a peer info request. The callback will not be called (anymore).
+ *
+ * @param h Cadet handle.
+ * @return Closure that was given to #GNUNET_CADET_list_peers().
+ */
+void *
+GNUNET_CADET_list_peers_cancel (struct GNUNET_CADET_PeersLister *pl);
+
+
 
 /**
  * Method called to retrieve information about a specific peer
@@ -432,6 +493,33 @@ typedef void
                         int finished_with_paths);
 
 
+struct GNUNET_CADET_GetPeer;
+
+/**
+ * Request information about a peer known to the running cadet peer.
+ * The callback will be called for the tunnel once.
+ * Only one info request (of any kind) can be active at once.
+ *
+ * WARNING: unstable API, likely to change in the future!
+ *
+ * @param h Handle to the cadet peer.
+ * @param id Peer whose tunnel to examine.
+ * @param callback Function to call with the requested data.
+ * @param callback_cls Closure for @c callback.
+ *
+ * @return #GNUNET_OK / #GNUNET_SYSERR
+ */
+struct GNUNET_CADET_GetPeer *
+GNUNET_CADET_get_peer (const struct GNUNET_CONFIGURATION_Handle *cfg,
+		       const struct GNUNET_PeerIdentity *id,
+		       GNUNET_CADET_PeerCB callback,
+		       void *callback_cls);
+
+
+void *
+GNUNET_CADET_get_peer_cancel (struct GNUNET_CADET_GetPeer *gp);
+
+
 /**
  * Method called to retrieve information about all tunnels in CADET, called
  * once per tunnel.
@@ -452,6 +540,40 @@ typedef void
                            unsigned int connections,
                            uint16_t estate,
                            uint16_t cstate);
+
+
+struct GNUNET_CADET_ListTunnels;
+
+
+/**
+ * Request information about tunnels of the running cadet peer.
+ * The callback will be called for every tunnel of the service.
+ * Only one info request (of any kind) can be active at once.
+ *
+ * WARNING: unstable API, likely to change in the future!
+ *
+ * @param h Handle to the cadet peer.
+ * @param callback Function to call with the requested data.
+ * @param callback_cls Closure for @c callback.
+ *
+ * @return #GNUNET_OK / #GNUNET_SYSERR
+ */
+struct GNUNET_CADET_ListTunnels *
+GNUNET_CADET_list_tunnels (const struct GNUNET_CONFIGURATION_Handle *cfg,
+			   GNUNET_CADET_TunnelsCB callback,
+			   void *callback_cls);
+
+
+/**
+ * Cancel a monitor request. The monitor callback will not be called.
+ *
+ * @param h Cadet handle.
+ *
+ * @return Closure given to #GNUNET_CADET_list_tunnels(), if any.
+ */
+void *
+GNUNET_CADET_list_tunnels_cancel (struct GNUNET_CADET_ListTunnels *lt);
+
 
 
 /**
@@ -478,118 +600,7 @@ typedef void
                           unsigned int cstate);
 
 
-/**
- * Request information about a specific channel of the running cadet peer.
- *
- * WARNING: unstable API, likely to change in the future!
- *
- * @param h Handle to the cadet peer.
- * @param peer ID of the other end of the channel.
- * @param channel_number Channel number.
- * @param callback Function to call with the requested data.
- * @param callback_cls Closure for @c callback.
- */
-void
-GNUNET_CADET_get_channel (struct GNUNET_CADET_Handle *h,
-                          struct GNUNET_PeerIdentity *peer,
-                          uint32_t /* UGH */ channel_number,
-                          GNUNET_CADET_ChannelCB callback,
-                          void *callback_cls);
-
-
-/**
- * Request a debug dump on the service's STDERR.
- *
- * WARNING: unstable API, likely to change in the future!
- *
- * @param h cadet handle
- */
-void
-GNUNET_CADET_request_dump (struct GNUNET_CADET_Handle *h);
-
-
-/**
- * Request information about peers known to the running cadet service.
- * The callback will be called for every peer known to the service.
- * Only one info request (of any kind) can be active at once.
- *
- *
- * WARNING: unstable API, likely to change in the future!
- *
- * @param h Handle to the cadet peer.
- * @param callback Function to call with the requested data.
- * @param callback_cls Closure for @c callback.
- *
- * @return #GNUNET_OK / #GNUNET_SYSERR
- */
-int
-GNUNET_CADET_get_peers (struct GNUNET_CADET_Handle *h,
-                        GNUNET_CADET_PeersCB callback,
-                        void *callback_cls);
-
-
-/**
- * Cancel a peer info request. The callback will not be called (anymore).
- *
- * WARNING: unstable API, likely to change in the future!
- *
- * @param h Cadet handle.
- *
- * @return Closure that was given to #GNUNET_CADET_get_peers().
- */
-void *
-GNUNET_CADET_get_peers_cancel (struct GNUNET_CADET_Handle *h);
-
-
-/**
- * Request information about a peer known to the running cadet peer.
- * The callback will be called for the tunnel once.
- * Only one info request (of any kind) can be active at once.
- *
- * WARNING: unstable API, likely to change in the future!
- *
- * @param h Handle to the cadet peer.
- * @param id Peer whose tunnel to examine.
- * @param callback Function to call with the requested data.
- * @param callback_cls Closure for @c callback.
- *
- * @return #GNUNET_OK / #GNUNET_SYSERR
- */
-int
-GNUNET_CADET_get_peer (struct GNUNET_CADET_Handle *h,
-                      const struct GNUNET_PeerIdentity *id,
-                      GNUNET_CADET_PeerCB callback,
-                      void *callback_cls);
-
-
-/**
- * Request information about tunnels of the running cadet peer.
- * The callback will be called for every tunnel of the service.
- * Only one info request (of any kind) can be active at once.
- *
- * WARNING: unstable API, likely to change in the future!
- *
- * @param h Handle to the cadet peer.
- * @param callback Function to call with the requested data.
- * @param callback_cls Closure for @c callback.
- *
- * @return #GNUNET_OK / #GNUNET_SYSERR
- */
-int
-GNUNET_CADET_get_tunnels (struct GNUNET_CADET_Handle *h,
-                          GNUNET_CADET_TunnelsCB callback,
-                          void *callback_cls);
-
-
-/**
- * Cancel a monitor request. The monitor callback will not be called.
- *
- * @param h Cadet handle.
- *
- * @return Closure given to #GNUNET_CADET_get_tunnels(), if any.
- */
-void *
-GNUNET_CADET_get_tunnels_cancel (struct GNUNET_CADET_Handle *h);
+struct GNUNET_CADET_GetTunnel;
 
 
 /**
@@ -606,12 +617,15 @@ GNUNET_CADET_get_tunnels_cancel (struct GNUNET_CADET_Handle *h);
  *
  * @return #GNUNET_OK / #GNUNET_SYSERR
  */
-int
-GNUNET_CADET_get_tunnel (struct GNUNET_CADET_Handle *h,
+struct GNUNET_CADET_GetTunnel *
+GNUNET_CADET_get_tunnel (const struct GNUNET_CONFIGURATION_Handle *cfg,
                          const struct GNUNET_PeerIdentity *id,
                          GNUNET_CADET_TunnelCB callback,
                          void *callback_cls);
 
+
+void *
+GNUNET_CADET_get_tunnel_cancel (struct GNUNET_CADET_GetTunnel *gt);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */

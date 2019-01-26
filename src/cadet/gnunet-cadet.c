@@ -72,11 +72,6 @@ static char *listen_port;
 static int echo;
 
 /**
- * Request a debug dump
- */
-static int dump;
-
-/**
  * Time of last echo request.
  */
 static struct GNUNET_TIME_Absolute echo_time;
@@ -100,6 +95,11 @@ static char *target_port = "default";
  * Cadet handle.
  */
 static struct GNUNET_CADET_Handle *mh;
+
+/**
+ * Our configuration.
+ */
+static const struct GNUNET_CONFIGURATION_Handle *my_cfg;
 
 /**
  * Channel handle.
@@ -396,20 +396,6 @@ send_echo (void *cls)
 
 
 /**
- * Call CADET's monitor API, request debug dump on the service.
- *
- * @param cls Closure (unused).
- */
-static void
-request_dump (void *cls)
-{
-  job = NULL;
-  GNUNET_CADET_request_dump (mh);
-  GNUNET_SCHEDULER_shutdown ();
-}
-
-
-/**
  * Check data message sanity. Does nothing so far (all messages are OK).
  *
  * @param cls Closure (unused).
@@ -683,7 +669,11 @@ static void
 get_peers (void *cls)
 {
   job = NULL;
-  GNUNET_CADET_get_peers (mh, &peers_callback, NULL);
+#if FIXME5385
+  GNUNET_CADET_list_peers (my_cfg,
+			   &peers_callback,
+			   NULL);
+#endif
 }
 
 
@@ -709,7 +699,12 @@ show_peer (void *cls)
     GNUNET_SCHEDULER_shutdown();
     return;
   }
-  GNUNET_CADET_get_peer (mh, &pid, peer_callback, NULL);
+#if FIXME5385
+  GNUNET_CADET_get_peer (my_cfg,
+			 &pid,
+			 &peer_callback,
+			 NULL);
+#endif
 }
 
 
@@ -722,7 +717,11 @@ static void
 get_tunnels (void *cls)
 {
   job = NULL;
-  GNUNET_CADET_get_tunnels (mh, &tunnels_callback, NULL);
+#if FIXME5385
+  GNUNET_CADET_list_tunnels (my_cfg,
+			     &tunnels_callback,
+			     NULL);
+#endif
 }
 
 
@@ -748,10 +747,12 @@ show_tunnel (void *cls)
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
-  GNUNET_CADET_get_tunnel (mh,
+#if FIXME5385
+  GNUNET_CADET_get_tunnel (my_cfg,
                            &pid,
                            &tunnel_callback,
                            NULL);
+#endif
 }
 
 
@@ -804,7 +805,7 @@ run (void *cls,
   };
 
   /* FIXME add option to monitor apps */
-
+  my_cfg = cfg;
   target_id = args[0];
   if (target_id && args[1])
     target_port = args[1];
@@ -821,14 +822,7 @@ run (void *cls,
     return;
   }
 
-  if (GNUNET_YES == dump)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Requesting debug dump\n");
-    job = GNUNET_SCHEDULER_add_now (&request_dump,
-                                    NULL);
-  }
-  else if (NULL != peer_id)
+  if (NULL != peer_id)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Show peer\n");
@@ -971,48 +965,33 @@ main (int argc,
                                  "CONNECTION_ID",
                                  gettext_noop ("Provide information about a particular connection"),
                                  &conn_id),
-
     GNUNET_GETOPT_option_flag ('e',
-                                  "echo",
-                                  gettext_noop ("Activate echo mode"),
-                                  &echo), 
-
-    GNUNET_GETOPT_option_flag ('d',
-                                  "dump",
-                                  gettext_noop ("Dump debug information to STDERR"),
-                                  &dump),
-
+			       "echo",
+			       gettext_noop ("Activate echo mode"),
+			       &echo), 
     GNUNET_GETOPT_option_string ('o',
                                  "open-port",
                                  "SHARED_SECRET",
                                  gettext_noop ("Listen for connections using a shared secret among sender and recipient"),
                                  &listen_port),
-
-
     GNUNET_GETOPT_option_string ('p',
                                  "peer",
                                  "PEER_ID",
                                  gettext_noop ("Provide information about a patricular peer"),
                                  &peer_id),
-
-
     GNUNET_GETOPT_option_flag ('P',
-                                  "peers",
-                                  gettext_noop ("Provide information about all peers"),
-                                  &request_peers),
-
+			       "peers",
+			       gettext_noop ("Provide information about all peers"),
+			       &request_peers),
     GNUNET_GETOPT_option_string ('t',
                                  "tunnel",
                                  "TUNNEL_ID",
                                  gettext_noop ("Provide information about a particular tunnel"),
                                  &tunnel_id),
-
-
     GNUNET_GETOPT_option_flag ('T',
-                                  "tunnels",
-                                  gettext_noop ("Provide information about all tunnels"),
-                                  &request_tunnels),
-
+			       "tunnels",
+			       gettext_noop ("Provide information about all tunnels"),
+			       &request_tunnels),
     GNUNET_GETOPT_OPTION_END
   };
 
