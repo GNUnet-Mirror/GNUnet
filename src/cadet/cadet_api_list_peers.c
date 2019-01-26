@@ -71,55 +71,6 @@ send_info_request (struct GNUNET_CADET_Handle *h,
 
 
 /**
- * Request information about peers known to the running cadet service.
- * The callback will be called for every peer known to the service.
- * Only one info request (of any kind) can be active at once.
- *
- * WARNING: unstable API, likely to change in the future!
- *
- * @param h Handle to the cadet peer.
- * @param callback Function to call with the requested data.
- * @param callback_cls Closure for @c callback.
- * @return #GNUNET_OK / #GNUNET_SYSERR
- */
-int
-GNUNET_CADET_list_peers (struct GNUNET_CADET_Handle *h,
-			 GNUNET_CADET_PeersCB callback,
-			 void *callback_cls)
-{
-  if (NULL != h->info_cb.peers_cb)
-  {
-    GNUNET_break (0);
-    return GNUNET_SYSERR;
-  }
-  send_info_request (h,
-                     GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_PEERS);
-  h->info_cb.peers_cb = callback;
-  h->info_cls = callback_cls;
-  return GNUNET_OK;
-}
-
-
-/**
- * Cancel a peer info request. The callback will not be called (anymore).
- *
- * WARNING: unstable API, likely to change in the future!
- *
- * @param h Cadet handle.
- * @return Closure given to GNUNET_CADET_get_peers().
- */
-void *
-GNUNET_CADET_list_peers_cancel (struct GNUNET_CADET_Handle *h)
-{
-  void *cls = h->info_cls;
-
-  h->info_cb.peers_cb = NULL;
-  h->info_cls = NULL;
-  return cls;
-}
-
-
-/**
  * Check that message received from CADET service is well-formed.
  *
  * @param cls the `struct GNUNET_CADET_Handle`
@@ -171,6 +122,82 @@ handle_get_peers (void *cls,
                          0,
                          0,
                          0);
+}
+
+
+static void
+reconnect (void *cls)
+{
+  struct GNUNET_CADET_ListTunnels *lt = cls;
+  struct GNUNET_MQ_MessageHandler *handlers[] = {
+     GNUNET_MQ_hd_var_size (get_peers,
+                           GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_PEERS,
+                           struct GNUNET_MessageHeader,
+                           h),
+    GNUNET_MQ_handler_end ()
+  }
+  struct GNUNET_MessageHeader *msg;
+  struct GNUNET_MQ_Envelope *env;
+
+  cm->mq = GNUNET_CLIENT_connect (cm->cfg,
+				  "cadet",
+				  handlers,
+				  &error_handler,
+				  cm);
+				 
+  env = GNUNET_MQ_msg (msg,
+                       type);
+  GNUNET_MQ_send (cm->mq,
+                  env);
+}
+
+
+/**
+ * Request information about peers known to the running cadet service.
+ * The callback will be called for every peer known to the service.
+ * Only one info request (of any kind) can be active at once.
+ *
+ * WARNING: unstable API, likely to change in the future!
+ *
+ * @param h Handle to the cadet peer.
+ * @param callback Function to call with the requested data.
+ * @param callback_cls Closure for @c callback.
+ * @return #GNUNET_OK / #GNUNET_SYSERR
+ */
+struct GNUNET_CADET_PeersLister *
+GNUNET_CADET_list_peers (const struct GNUNET_CONFIGURATION_Handle *cfg,
+			 GNUNET_CADET_PeersCB callback,
+			 void *callback_cls)
+{
+  if (NULL != h->info_cb.peers_cb)
+  {
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
+  send_info_request (h,
+                     GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_PEERS);
+  h->info_cb.peers_cb = callback;
+  h->info_cls = callback_cls;
+  return GNUNET_OK;
+}
+
+
+/**
+ * Cancel a peer info request. The callback will not be called (anymore).
+ *
+ * WARNING: unstable API, likely to change in the future!
+ *
+ * @param h Cadet handle.
+ * @return Closure given to GNUNET_CADET_get_peers().
+ */
+void *
+GNUNET_CADET_list_peers_cancel (struct GNUNET_CADET_PeersLister *pl)
+{
+  void *cls = h->info_cls;
+
+  h->info_cb.peers_cb = NULL;
+  h->info_cls = NULL;
+  return cls;
 }
 
 

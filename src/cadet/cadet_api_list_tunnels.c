@@ -127,6 +127,33 @@ handle_get_tunnels (void *cls,
 }
 
 
+static void
+reconnect (void *cls)
+{
+  struct GNUNET_CADET_ListTunnels *lt = cls;
+  struct GNUNET_MQ_MessageHandler *handlers[] = {
+    GNUNET_MQ_hd_var_size (get_tunnels,
+                           GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_TUNNELS,
+                           struct GNUNET_MessageHeader,
+                           h),
+    GNUNET_MQ_handler_end ()
+  }
+  struct GNUNET_MessageHeader *msg;
+  struct GNUNET_MQ_Envelope *env;
+
+  cm->mq = GNUNET_CLIENT_connect (cm->cfg,
+				  "cadet",
+				  handlers,
+				  &error_handler,
+				  cm);
+				 
+  env = GNUNET_MQ_msg (msg,
+                       type);
+  GNUNET_MQ_send (cm->mq,
+                  env);
+}
+
+
 /**
  * Request information about tunnels of the running cadet peer.
  * The callback will be called for every tunnel of the service.
@@ -139,21 +166,11 @@ handle_get_tunnels (void *cls,
  * @param callback_cls Closure for @c callback.
  * @return #GNUNET_OK / #GNUNET_SYSERR
  */
-int
+struct GNUNET_CADET_ListTunnels *
 GNUNET_CADET_list_tunnels (const struct GNUNET_CONFIGURATION_Handle *cfg,
 			   GNUNET_CADET_TunnelsCB callback,
 			   void *callback_cls)
 {
-
-      GNUNET_MQ_hd_var_size (get_tunnels,
-                           GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_TUNNELS,
-                           struct GNUNET_MessageHeader,
-                           h),
-    GNUNET_MQ_hd_var_size (get_tunnel,
-                           GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_TUNNEL,
-                           struct GNUNET_CADET_LocalInfoTunnel,
-                           h),
-    GNUNET_MQ_handler_end ()
 
   if (NULL != h->info_cb.tunnels_cb)
   {

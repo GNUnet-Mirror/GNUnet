@@ -48,27 +48,39 @@ struct GNUNET_CADET_ChannelMonitor
    */
   void *channel_cb_cls;
 
+  const struct GNUNET_CONFIGURATION_Handle *cfg;
+
+  struct GNUNET_MQ_Handle *mq;
+  
+  struct GNUNET_PeerIdentity peer;
+  
+  uint32_t /* UGH */ channel_number;
+
 };
 
 
-/**
- * Send message of @a type to CADET service of @a h
- *
- * @param h handle to CADET service
- * @param type message type of trivial information request to send
- */
+
 static void
-send_info_request (struct GNUNET_CADET_Handle *h,
-                   uint16_t type)
+reconnect (void *cls)
 {
+  struct GNUNET_CADET_ChannelMonitor *cm = cls;
+  struct GNUNET_MQ_MessageHandler *handlers[] = {
+  }
   struct GNUNET_MessageHeader *msg;
   struct GNUNET_MQ_Envelope *env;
 
+  cm->mq = GNUNET_CLIENT_connect (cm->cfg,
+				  "cadet",
+				  handlers,
+				  &error_handler,
+				  cm);
+				 
   env = GNUNET_MQ_msg (msg,
                        type);
-  GNUNET_MQ_send (h->mq,
+  GNUNET_MQ_send (cm->mq,
                   env);
 }
+
 
 /**
  * Request information about a specific channel of the running cadet peer.
@@ -82,7 +94,7 @@ send_info_request (struct GNUNET_CADET_Handle *h,
  * @param callback_cls Closure for @c callback.
  */
 struct GNUNET_CADET_ChannelMonitor *
-GNUNET_CADET_get_channel (struct GNUNET_CADET_Handle *h,
+GNUNET_CADET_get_channel (const struct GNUNET_CONFIGURATION_Handle *cfg,
                           struct GNUNET_PeerIdentity *peer,
                           uint32_t /* UGH */ channel_number,
                           GNUNET_CADET_ChannelCB callback,
@@ -92,5 +104,6 @@ GNUNET_CADET_get_channel (struct GNUNET_CADET_Handle *h,
 
 
 void *
-GNUNET_CADET_get_channel_cancel (struct GNUNET_CADET_ChannelMonitor *cm);
-
+GNUNET_CADET_get_channel_cancel (struct GNUNET_CADET_ChannelMonitor *cm)
+{
+}
