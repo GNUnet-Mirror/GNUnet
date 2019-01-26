@@ -308,6 +308,10 @@ GNUNET_TRANSPORT_communicator_address_remove (struct GNUNET_TRANSPORT_AddressIde
  * only be done if the communicator is uni-directional (i.e. cannot
  * send the message back itself).
  *
+ * While backchannel messages are signed and encrypted, communicators
+ * must protect against replay attacks when using this backchannel
+ * communication!
+ *
  * @param ch handle of this communicator
  * @param pid peer to send the message to
  * @param comm name of the communicator to send the message to
