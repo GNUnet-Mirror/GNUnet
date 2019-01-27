@@ -177,11 +177,14 @@ reconnect (void *cls)
   struct GNUNET_MessageHeader *msg;
   struct GNUNET_MQ_Envelope *env;
 
+  pl->reconnect_task = NULL;
   pl->mq = GNUNET_CLIENT_connect (pl->cfg,
 				  "cadet",
 				  handlers,
 				  &error_handler,
 				  pl);	
+  if (NULL == pl->mq)
+    return;
   env = GNUNET_MQ_msg (msg,
 		       GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_PEERS);
   GNUNET_MQ_send (pl->mq,
@@ -194,7 +197,7 @@ reconnect (void *cls)
  * The callback will be called for every peer known to the service.
  * Only one info request (of any kind) can be active at once.
  *
- * @param h Handle to the cadet peer.
+ * @param cfg configuration to use
  * @param callback Function to call with the requested data.
  * @param callback_cls Closure for @c callback.
  * @return NULL on error

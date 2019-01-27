@@ -227,7 +227,7 @@ reconnect (void *cls)
  * Request information about a peer known to the running cadet peer.
  * The callback will be called for the tunnel once.
  *
- * @param h Handle to the cadet peer.
+ * @param cfg configuration to use
  * @param id Peer whose tunnel to examine.
  * @param callback Function to call with the requested data.
  * @param callback_cls Closure for @c callback.

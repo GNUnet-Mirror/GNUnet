@@ -121,17 +121,20 @@ reconnect (void *cls)
 {
   struct GNUNET_CADET_ChannelMonitor *cm = cls;
   struct GNUNET_MQ_MessageHandler *handlers[] = {
-    FIXME
-  }
+    FIXME,
+    GNUNET_MQ_handler_end ()
+  };
   struct GNUNET_MessageHeader *msg;
   struct GNUNET_MQ_Envelope *env;
-
+ 
+  cm->reconnect_task = NULL;
   cm->mq = GNUNET_CLIENT_connect (cm->cfg,
 				  "cadet",
 				  handlers,
 				  &error_handler,
 				  cm);
-				 
+  if (NULL == cm->mq)
+    return;	       		 
   env = GNUNET_MQ_msg (msg,
                        type);
   GNUNET_MQ_send (cm->mq,
@@ -142,13 +145,12 @@ reconnect (void *cls)
 /**
  * Request information about a specific channel of the running cadet peer.
  *
- * WARNING: unstable API, likely to change in the future!
- *
- * @param h Handle to the cadet peer.
+ * @param cfg configuration to use
  * @param peer ID of the other end of the channel.
  * @param channel_number Channel number.
  * @param callback Function to call with the requested data.
  * @param callback_cls Closure for @c callback.
+ * @return NULL on error
  */
 struct GNUNET_CADET_ChannelMonitor *
 GNUNET_CADET_get_channel (const struct GNUNET_CONFIGURATION_Handle *cfg,
