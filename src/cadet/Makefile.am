@@ -36,7 +36,6 @@ libgnunetcadet_la_SOURCES = \
   cadet_api.c \
   cadet_api_get_channel.c \
   cadet_api_get_path.c \
-  cadet_api_get_tunnel.c \
   cadet_api_list_peers.c \
   cadet_api_list_tunnels.c \
   cadet_api_helper.c 

@@ -2862,29 +2862,29 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_CHANNEL 1031
 
 /**
- * Local information about all tunnels of service.
+ * End of local information of service about channels.
  */
-#define GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_TUNNELS 1032
+#define GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_CHANNEL_END 1032
 
 /**
- * Local information of service about a specific tunnel.
+ * Request local information about all peers known to the service.
  */
-#define GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_TUNNEL 1033
-
-/**
- * Local information about all connections of service.
- */
-#define GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_CONNECTIONS 1034
-
-/**
- * Local information of service about a specific connection.
- */
-#define GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_CONNECTION 1035
+#define GNUNET_MESSAGE_TYPE_CADET_LOCAL_REQUEST_INFO_PEERS 1033
 
 /**
  * Local information about all peers known to the service.
  */
-#define GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_PEERS 1036
+#define GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_PEERS 1034
+
+/**
+ * End of local information about all peers known to the service.
+ */
+#define GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_PEERS_END 1035
+
+/**
+ * Request local information of service about paths to specific peer.
+ */
+#define GNUNET_MESSAGE_TYPE_CADET_LOCAL_REQUEST_INFO_PATH 1036
 
 /**
  * Local information of service about a specific path.
@@ -2892,39 +2892,25 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_PATH 1037
 
 /**
- * End of local information of service about channels.
- */
-#define GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_CHANNEL_END 1038
-
-/**
- * End of local information about all peers known to the service.
- */
-#define GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_PEERS_END 1039
-
-/**
- * Request local information about all peers known to the service.
- */
-#define GNUNET_MESSAGE_TYPE_CADET_LOCAL_REQUEST_INFO_PEERS 1040
-
-/**
  * End of local information of service about a specific path.
  */
-#define GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_PATH_END 1041
-
-/**
- * Request local information of service about paths to specific peer.
- */
-#define GNUNET_MESSAGE_TYPE_CADET_LOCAL_REQUEST_INFO_PATH 1042
-
-/**
- * End of local information about all tunnels of service.
- */
-#define GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_TUNNELS_END 1043
+#define GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_PATH_END 1038
 
 /**
  * Request local information about all tunnels of service.
  */
-#define GNUNET_MESSAGE_TYPE_CADET_LOCAL_REQUEST_INFO_TUNNELS 1044
+#define GNUNET_MESSAGE_TYPE_CADET_LOCAL_REQUEST_INFO_TUNNELS 1039
+
+/**
+ * Local information about all tunnels of service.
+ */
+#define GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_TUNNELS 1040
+
+/**
+ * End of local information about all tunnels of service.
+ */
+#define GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_TUNNELS_END 1041
+
 
 /********************************  Application  *******************************/
 

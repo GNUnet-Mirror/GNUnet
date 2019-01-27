@@ -998,109 +998,6 @@ handle_info_tunnels (void *cls,
 
 
 /**
- * Update the message with information about the connection.
- *
- * @param cls a `struct GNUNET_CADET_LocalInfoTunnel` message to update
- * @param ct a connection about which we should store information in @a cls
- */
-static void
-iter_connection (void *cls,
-                 struct CadetTConnection *ct)
-{
-  struct GNUNET_CADET_LocalInfoTunnel *msg = cls;
-  struct CadetConnection *cc = ct->cc;
-  struct GNUNET_CADET_ConnectionTunnelIdentifier *h;
-
-  h = (struct GNUNET_CADET_ConnectionTunnelIdentifier *) &msg[1];
-  h[msg->connections++] = *(GCC_get_id (cc));
-}
-
-
-/**
- * Update the message with information about the channel.
- *
- * @param cls a `struct GNUNET_CADET_LocalInfoTunnel` message to update
- * @param ch a channel about which we should store information in @a cls
- */
-static void
-iter_channel (void *cls,
-              struct CadetChannel *ch)
-{
-  struct GNUNET_CADET_LocalInfoTunnel *msg = cls;
-  struct GNUNET_CADET_ConnectionTunnelIdentifier *h = (struct GNUNET_CADET_ConnectionTunnelIdentifier *) &msg[1];
-  struct GNUNET_CADET_ChannelTunnelNumber *chn
-    = (struct GNUNET_CADET_ChannelTunnelNumber *) &h[msg->connections];
-
-  chn[msg->channels++] = GCCH_get_id (ch);
-}
-
-
-/**
- * Handler for client's #GNUNET_MESSAGE_TYPE_CADET_LOCAL_REQUEST_INFO_TUNNEL request.
- *
- * @param cls Identification of the client.
- * @param msg The actual message.
- */
-static void
-handle_info_tunnel (void *cls,
-                    const struct GNUNET_CADET_LocalInfo *msg)
-{
-  struct CadetClient *c = cls;
-  struct GNUNET_MQ_Envelope *env;
-  struct GNUNET_CADET_LocalInfoTunnel *resp;
-  struct CadetTunnel *t;
-  struct CadetPeer *p;
-  unsigned int ch_n;
-  unsigned int c_n;
-
-  p = GCP_get (&msg->peer,
-               GNUNET_NO);
-  t = GCP_get_tunnel (p,
-                      GNUNET_NO);
-  if (NULL == t)
-  {
-    /* We don't know the tunnel */
-    struct GNUNET_MQ_Envelope *env;
-    struct GNUNET_CADET_LocalInfoTunnel *warn;
-
-    LOG (GNUNET_ERROR_TYPE_INFO,
-         "Tunnel to %s unknown\n",
-         GNUNET_i2s_full (&msg->peer));
-    env = GNUNET_MQ_msg (warn,
-                         GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_TUNNEL);
-    warn->destination = msg->peer;
-    GNUNET_MQ_send (c->mq,
-                    env);
-    GNUNET_SERVICE_client_continue (c->client);
-    return;
-  }
-
-  /* Initialize context */
-  ch_n = GCT_count_channels (t);
-  c_n = GCT_count_any_connections (t);
-  env = GNUNET_MQ_msg_extra (resp,
-                             c_n * sizeof (struct GNUNET_CADET_ConnectionTunnelIdentifier) +
-                             ch_n * sizeof (struct GNUNET_CADET_ChannelTunnelNumber),
-                             GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_TUNNEL);
-  resp->destination = msg->peer;
-  /* Do not reorder! #iter_channel needs counters in HBO! */
-  GCT_iterate_connections (t,
-                           &iter_connection,
-                           resp);
-  GCT_iterate_channels (t,
-                        &iter_channel,
-                        resp);
-  resp->connections = htonl (resp->connections);
-  resp->channels = htonl (resp->channels);
-  resp->cstate = htons (0);
-  resp->estate = htons (GCT_get_estate (t));
-  GNUNET_MQ_send (c->mq,
-                  env);
-  GNUNET_SERVICE_client_continue (c->client);
-}
-
-
-/**
  * Callback called when a client connects to the service.
  *
  * @param cls closure for the service
@@ -1437,10 +1334,6 @@ GNUNET_SERVICE_MAIN
  GNUNET_MQ_hd_fixed_size (info_tunnels,
                           GNUNET_MESSAGE_TYPE_CADET_LOCAL_REQUEST_INFO_TUNNELS,
                           struct GNUNET_MessageHeader,
-                          NULL),
- GNUNET_MQ_hd_fixed_size (info_tunnel,
-                          GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_TUNNEL,
-                          struct GNUNET_CADET_LocalInfo,
                           NULL),
  GNUNET_MQ_handler_end ());
 

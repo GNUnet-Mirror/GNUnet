@@ -47,11 +47,6 @@ static char *peer_id;
 static int request_tunnels;
 
 /**
- * Option --tunnel
- */
-static char *tunnel_id;
-
-/**
  * Option --connection
  */
 static char *conn_id;
@@ -602,47 +597,6 @@ tunnels_callback (void *cls,
 
 
 /**
- * Method called to retrieve information about a specific tunnel the cadet peer
- * has established, o`r is trying to establish.
- *
- * @param cls Closure.
- * @param peer Peer towards whom the tunnel is directed.
- * @param n_channels Number of channels.
- * @param n_connections Number of connections.
- * @param channels Channels.
- * @param connections Connections.
- * @param estate Encryption status.
- * @param cstate Connectivity status.
- */
-static void
-tunnel_callback (void *cls,
-                 const struct GNUNET_PeerIdentity *peer,
-                 unsigned int n_channels,
-                 unsigned int n_connections,
-                 const struct GNUNET_CADET_ChannelTunnelNumber *channels,
-                 const struct GNUNET_CADET_ConnectionTunnelIdentifier *connections,
-                 unsigned int estate,
-                 unsigned int cstate)
-{
-  unsigned int i;
-
-  if (NULL != peer)
-  {
-    FPRINTF (stdout, "Tunnel %s\n", GNUNET_i2s_full (peer));
-    FPRINTF (stdout, "\t%u channels\n", n_channels);
-    for (i = 0; i < n_channels; i++)
-      FPRINTF (stdout, "\t\t%X\n", ntohl (channels[i].cn));
-    FPRINTF (stdout, "\t%u connections\n", n_connections);
-    for (i = 0; i < n_connections; i++)
-      FPRINTF (stdout, "\t\t%s\n", GNUNET_sh2s (&connections[i].connection_of_tunnel));
-    FPRINTF (stdout, "\tencryption state: %s\n", enc_2s (estate));
-    FPRINTF (stdout, "\tconnection state: %s\n", conn_2s (cstate));
-  }
-  GNUNET_SCHEDULER_shutdown ();
-}
-
-
-/**
  * Call CADET's meta API, get all peers known to a peer.
  *
  * @param cls Closure (unused).
@@ -702,37 +656,6 @@ get_tunnels (void *cls)
 
 
 /**
- * Call CADET's monitor API, get info of one tunnel.
- *
- * @param cls Closure (unused).
- */
-static void
-show_tunnel (void *cls)
-{
-  struct GNUNET_PeerIdentity pid;
-
-  job = NULL;
-  if (GNUNET_OK !=
-      GNUNET_CRYPTO_eddsa_public_key_from_string (tunnel_id,
-                                                  strlen (tunnel_id),
-                                                  &pid.public_key))
-  {
-    fprintf (stderr,
-             _("Invalid tunnel owner `%s'\n"),
-             tunnel_id);
-    GNUNET_SCHEDULER_shutdown ();
-    return;
-  }
-#if FIXME5385
-  GNUNET_CADET_get_tunnel (my_cfg,
-                           &pid,
-                           &tunnel_callback,
-                           NULL);
-#endif
-}
-
-
-/**
  * Call CADET's monitor API, get info of one channel.
  *
  * @param cls Closure (unused).
@@ -787,7 +710,6 @@ run (void *cls,
     target_port = args[1];
 
   if ( (0 != (request_peers | request_tunnels)
-        || NULL != tunnel_id
         || NULL != conn_id
         || NULL != channel_id)
        && target_id != NULL)
@@ -803,13 +725,6 @@ run (void *cls,
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Show peer\n");
     job = GNUNET_SCHEDULER_add_now (&show_peer,
-                                    NULL);
-  }
-  else if (NULL != tunnel_id)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Show tunnel\n");
-    job = GNUNET_SCHEDULER_add_now (&show_tunnel,
                                     NULL);
   }
   else if (NULL != channel_id)
@@ -959,11 +874,6 @@ main (int argc,
 			       "peers",
 			       gettext_noop ("Provide information about all peers"),
 			       &request_peers),
-    GNUNET_GETOPT_option_string ('t',
-                                 "tunnel",
-                                 "TUNNEL_ID",
-                                 gettext_noop ("Provide information about a particular tunnel"),
-                                 &tunnel_id),
     GNUNET_GETOPT_option_flag ('T',
 			       "tunnels",
 			       gettext_noop ("Provide information about all tunnels"),

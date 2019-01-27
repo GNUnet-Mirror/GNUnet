@@ -649,65 +649,6 @@ void *
 GNUNET_CADET_list_tunnels_cancel (struct GNUNET_CADET_ListTunnels *lt);
 
 
-
-/**
- * Method called to retrieve information about a specific tunnel the cadet peer
- * has established, o`r is trying to establish.
- *
- * @param cls Closure.
- * @param peer Peer towards whom the tunnel is directed.
- * @param n_channels Number of channels.
- * @param n_connections Number of connections.
- * @param channels Channels.
- * @param connections Connections.
- * @param estate Encryption state.
- * @param cstate Connectivity state.
- */
-typedef void
-(*GNUNET_CADET_TunnelCB) (void *cls,
-                          const struct GNUNET_PeerIdentity *peer,
-                          unsigned int n_channels,
-                          unsigned int n_connections,
-                          const struct GNUNET_CADET_ChannelTunnelNumber *channels,
-                          const struct GNUNET_CADET_ConnectionTunnelIdentifier *connections,
-                          unsigned int estate,
-                          unsigned int cstate);
-
-
-/**
- * Operation handle.
- */
-struct GNUNET_CADET_GetTunnel;
-
-
-/**
- * Request information about a tunnel of the running cadet peer.
- * The callback will be called for the tunnel once.
- * Only one info request (of any kind) can be active at once.
- *
- * @param cfg configuration to use
- * @param id Peer whose tunnel to examine.
- * @param callback Function to call with the requested data.
- * @param callback_cls Closure for @c callback.
- * @return NULL on error
- */
-struct GNUNET_CADET_GetTunnel *
-GNUNET_CADET_get_tunnel (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                         const struct GNUNET_PeerIdentity *id,
-                         GNUNET_CADET_TunnelCB callback,
-                         void *callback_cls);
-
-
-/**
- * Cancel a monitor request. The monitor callback will not be called.
- *
- * @param lt operation handle
- * @return Closure given to #GNUNET_CADET_get_tunnel(), if any.
- */
-void *
-GNUNET_CADET_get_tunnel_cancel (struct GNUNET_CADET_GetTunnel *gt);
-
-
 #if 0                           /* keep Emacsens' auto-indent happy */
 {
 #endif
