@@ -2916,6 +2916,15 @@ extern "C"
  */
 #define GNUNET_MESSAGE_TYPE_CADET_LOCAL_REQUEST_INFO_PATH 1042
 
+/**
+ * End of local information about all tunnels of service.
+ */
+#define GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_TUNNELS_END 1043
+
+/**
+ * Request local information about all tunnels of service.
+ */
+#define GNUNET_MESSAGE_TYPE_CADET_LOCAL_REQUEST_INFO_TUNNELS 1044
 
 /********************************  Application  *******************************/
 

@@ -974,7 +974,7 @@ get_all_tunnels_iterator (void *cls,
 
 
 /**
- * Handler for client's #GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_TUNNELS request.
+ * Handler for client's #GNUNET_MESSAGE_TYPE_CADET_LOCAL_REQUEST_INFO_TUNNELS request.
  *
  * @param cls client Identification of the client.
  * @param message The actual message.
@@ -990,7 +990,7 @@ handle_info_tunnels (void *cls,
   GCP_iterate_all (&get_all_tunnels_iterator,
                    c);
   env = GNUNET_MQ_msg (reply,
-                       GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_TUNNELS);
+                       GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_TUNNELS_END);
   GNUNET_MQ_send (c->mq,
                   env);
   GNUNET_SERVICE_client_continue (c->client);
@@ -1036,7 +1036,7 @@ iter_channel (void *cls,
 
 
 /**
- * Handler for client's #GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_TUNNEL request.
+ * Handler for client's #GNUNET_MESSAGE_TYPE_CADET_LOCAL_REQUEST_INFO_TUNNEL request.
  *
  * @param cls Identification of the client.
  * @param msg The actual message.
@@ -1435,7 +1435,7 @@ GNUNET_SERVICE_MAIN
                           struct GNUNET_CADET_RequestPathInfoMessage,
                           NULL),
  GNUNET_MQ_hd_fixed_size (info_tunnels,
-                          GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_TUNNELS,
+                          GNUNET_MESSAGE_TYPE_CADET_LOCAL_REQUEST_INFO_TUNNELS,
                           struct GNUNET_MessageHeader,
                           NULL),
  GNUNET_MQ_hd_fixed_size (info_tunnel,

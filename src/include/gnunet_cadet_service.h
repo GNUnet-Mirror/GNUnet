@@ -572,25 +572,49 @@ GNUNET_CADET_get_path_cancel (struct GNUNET_CADET_GetPath *gp);
 
 
 /**
+ * Details about a tunnel managed by CADET.
+ */
+struct GNUNET_CADET_TunnelDetails
+{
+  /**
+   * Target of the tunnel.
+   */
+  struct GNUNET_PeerIdentity peer;
+
+  /**
+   * How many channels use the tunnel.
+   */ 
+  uint32_t channels;
+
+  /**
+   * How many connections support the tunnel.
+   */
+  uint32_t connections;
+
+  /**
+   * What is our encryption state?
+   */
+  uint16_t estate;
+
+  /**
+   * What is our connectivity state? 
+   */ 
+  uint16_t cstate;
+};
+
+
+/**
  * Method called to retrieve information about all tunnels in CADET, called
  * once per tunnel.
  *
  * After last tunnel has been reported, an additional call with NULL is done.
  *
  * @param cls Closure.
- * @param peer Destination peer, or NULL on "EOF".
- * @param channels Number of channels.
- * @param connections Number of connections.
- * @param estate Encryption state.
- * @param cstate Connectivity state.
+ * @param td tunnel details, NULL for end of list
  */
 typedef void
 (*GNUNET_CADET_TunnelsCB) (void *cls,
-                           const struct GNUNET_PeerIdentity *peer,
-                           unsigned int channels,
-                           unsigned int connections,
-                           uint16_t estate,
-                           uint16_t cstate);
+			   const struct GNUNET_CADET_TunnelDetails *td);
 
 
 /**

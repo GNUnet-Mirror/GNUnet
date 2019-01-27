@@ -71,26 +71,25 @@ struct GNUNET_CADET_ListTunnels
 
 
 /**
- * Check that message received from CADET service is well-formed.
+ * Process a local reply about info on all tunnels, pass info to the user.
  *
- * @param cls the `struct GNUNET_CADET_Handle`
- * @param message the message we got
- * @return #GNUNET_OK if the message is well-formed,
- *         #GNUNET_SYSERR otherwise
+ * @param cls a `struct GNUNET_CADET_ListTunnels *`
+ * @param info Message itself.
  */
-static int
-check_get_tunnels (void *cls,
-                   const struct GNUNET_MessageHeader *message)
+static void
+handle_get_tunnels (void *cls,
+		    const struct GNUNET_CADET_LocalInfoTunnel *info)
 {
-  size_t esize;
-
-  (void) cls;
-  esize = ntohs (message->size);
-  if (sizeof (struct GNUNET_CADET_LocalInfoTunnel) == esize)
-    return GNUNET_OK;
-  if (sizeof (struct GNUNET_MessageHeader) == esize)
-    return GNUNET_OK;
-  return GNUNET_SYSERR;
+  struct GNUNET_CADET_ListTunnels *lt = cls;
+  struct GNUNET_CADET_TunnelDetails td;
+  
+  td.peer = info->destination;
+  td.channels = ntohl (info->channels);
+  td.connections = ntohl (info->connections);
+  td.estate = ntohs (info->estate);
+  td.cstate = ntohs (info->cstate);
+  lt->tunnels_cb (lt->tunnels_cb_cls,
+		  &td);
 }
 
 
@@ -101,31 +100,15 @@ check_get_tunnels (void *cls,
  * @param message Message itself.
  */
 static void
-handle_get_tunnels (void *cls,
-                    const struct GNUNET_MessageHeader *msg)
+handle_get_tunnels_end (void *cls,
+			const struct GNUNET_MessageHeader *msg)
 {
   struct GNUNET_CADET_ListTunnels *lt = cls;
-  const struct GNUNET_CADET_LocalInfoTunnel *info =
-    (const struct GNUNET_CADET_LocalInfoTunnel *) msg;
-
-  // FIXME: use two message types!
-  if (sizeof (struct GNUNET_CADET_LocalInfoTunnel) == ntohs (msg->size))
-    lt->tunnels_cb (lt->tunnels_cb_cls,
-		    &info->destination,
-		    ntohl (info->channels),
-		    ntohl (info->connections),
-		    ntohs (info->estate),
-		    ntohs (info->cstate));
-  else
-  {
-    lt->tunnels_cb (lt->tunnels_cb_cls,
-		    NULL,
-		    0,
-		    0,
-		    0,
-		    0);
-    GNUNET_CADET_list_tunnels_cancel (lt);
-  }
+  (void) msg;
+  
+  lt->tunnels_cb (lt->tunnels_cb_cls,
+		  NULL);
+  GNUNET_CADET_list_tunnels_cancel (lt);
 }
 
 
@@ -170,10 +153,14 @@ reconnect (void *cls)
 {
   struct GNUNET_CADET_ListTunnels *lt = cls;
   struct GNUNET_MQ_MessageHandler handlers[] = {
-    GNUNET_MQ_hd_var_size (get_tunnels,
-                           GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_TUNNELS,
-                           struct GNUNET_MessageHeader,
-                           lt),
+    GNUNET_MQ_hd_fixed_size (get_tunnels,
+			     GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_TUNNELS,
+			     struct GNUNET_CADET_LocalInfoTunnel,
+			     lt),
+    GNUNET_MQ_hd_fixed_size (get_tunnels_end,
+			     GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_TUNNELS_END,
+			     struct GNUNET_MessageHeader,
+			     lt),
     GNUNET_MQ_handler_end ()
   };
   struct GNUNET_MessageHeader *msg;
@@ -188,7 +175,7 @@ reconnect (void *cls)
   if (NULL == lt->mq)
     return;
   env = GNUNET_MQ_msg (msg,
-		       GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_TUNNELS);
+		       GNUNET_MESSAGE_TYPE_CADET_LOCAL_REQUEST_INFO_TUNNELS);
   GNUNET_MQ_send (lt->mq,
                   env);
 }
@@ -199,9 +186,7 @@ reconnect (void *cls)
  * The callback will be called for every tunnel of the service.
  * Only one info request (of any kind) can be active at once.
  *
- * WARNING: unstable API, likely to change in the future!
- *
- * @param h Handle to the cadet peer.
+ * @param cfg configuration to use
  * @param callback Function to call with the requested data.
  * @param callback_cls Closure for @c callback.
  * @return NULL on error

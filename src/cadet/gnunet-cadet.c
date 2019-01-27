@@ -109,7 +109,12 @@ static struct GNUNET_CADET_GetPath *gpo;
 /**
  * Active peer listing operation.
  */ 
-struct GNUNET_CADET_PeersLister *plo;
+static struct GNUNET_CADET_PeersLister *plo;
+
+/**
+ * Active tunnel listing operation.
+ */
+static struct GNUNET_CADET_ListTunnels *tio;
 
 /**
  * Channel handle.
@@ -230,6 +235,11 @@ shutdown_task (void *cls)
   {
     GNUNET_CADET_list_peers_cancel (plo);
     plo = NULL;
+  }
+  if (NULL != tio)
+  {
+    GNUNET_CADET_list_tunnels_cancel (tio);
+    tio = NULL;
   }
   if (NULL != mh)
   {
@@ -569,32 +579,25 @@ path_callback (void *cls,
  * Method called to retrieve information about all tunnels in CADET.
  *
  * @param cls Closure.
- * @param peer Destination peer.
- * @param channels Number of channels.
- * @param connections Number of connections.
- * @param estate Encryption state.
- * @param cstate Connectivity state.
+ * @param td tunnel details
  */
 static void
 tunnels_callback (void *cls,
-                  const struct GNUNET_PeerIdentity *peer,
-                  unsigned int channels,
-                  unsigned int connections,
-                  uint16_t estate,
-                  uint16_t cstate)
+		  const struct GNUNET_CADET_TunnelDetails *td)
 {
-  if (NULL == peer)
+  if (NULL == td)
   {
+    tio = NULL;
     GNUNET_SCHEDULER_shutdown();
     return;
   }
   FPRINTF (stdout,
            "%s [ENC: %s, CON: %s] CHs: %u, CONNs: %u\n",
-           GNUNET_i2s_full (peer),
-           enc_2s (estate),
-           conn_2s (cstate),
-           channels,
-           connections);
+           GNUNET_i2s_full (&td->peer),
+           enc_2s (td->estate),
+           conn_2s (td->cstate),
+           td->channels,
+           td->connections);
 }
 
 
@@ -692,11 +695,9 @@ static void
 get_tunnels (void *cls)
 {
   job = NULL;
-#if FIXME5385
-  GNUNET_CADET_list_tunnels (my_cfg,
-			     &tunnels_callback,
-			     NULL);
-#endif
+  tio = GNUNET_CADET_list_tunnels (my_cfg,
+				   &tunnels_callback,
+				   NULL);
 }
 
 
