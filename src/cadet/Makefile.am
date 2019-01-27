@@ -37,6 +37,7 @@ libgnunetcadet_la_SOURCES = \
   cadet_api_get_peer.c \
   cadet_api_get_tunnel.c \
   cadet_api_list_peers.c \
+  cadet_api_list_tunnels.c \
   cadet_api_helper.c 
 libgnunetcadet_la_LIBADD = \
   $(top_builddir)/src/util/libgnunetutil.la \

@@ -231,7 +231,7 @@ reconnect (void *cls)
  * @param id Peer whose tunnel to examine.
  * @param callback Function to call with the requested data.
  * @param callback_cls Closure for @c callback.
- * @return #GNUNET_OK / #GNUNET_SYSERR
+ * @return NULL on error
  */
 struct GNUNET_CADET_GetPeer *
 GNUNET_CADET_get_peer (const struct GNUNET_CONFIGURATION_Handle *cfg,

@@ -569,7 +569,7 @@ struct GNUNET_CADET_ListTunnels;
  * @param cfg configuration to use
  * @param callback Function to call with the requested data.
  * @param callback_cls Closure for @c callback.
- * @return #GNUNET_OK / #GNUNET_SYSERR
+ * @return NULL on error
  */
 struct GNUNET_CADET_ListTunnels *
 GNUNET_CADET_list_tunnels (const struct GNUNET_CONFIGURATION_Handle *cfg,
@@ -627,7 +627,7 @@ struct GNUNET_CADET_GetTunnel;
  * @param id Peer whose tunnel to examine.
  * @param callback Function to call with the requested data.
  * @param callback_cls Closure for @c callback.
- * @return #GNUNET_OK / #GNUNET_SYSERR
+ * @return NULL on error
  */
 struct GNUNET_CADET_GetTunnel *
 GNUNET_CADET_get_tunnel (const struct GNUNET_CONFIGURATION_Handle *cfg,

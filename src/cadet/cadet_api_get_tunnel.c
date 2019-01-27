@@ -150,6 +150,7 @@ handle_get_tunnel (void *cls,
 		conns,
 		ntohs (msg->estate),
 		ntohs (msg->cstate));
+  GNUNET_CADET_get_tunnel_cancel (gt);
 }
 
 
