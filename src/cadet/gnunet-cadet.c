@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     Copyright (C) 2012, 2017 GNUnet e.V.
+     Copyright (C) 2012, 2017, 2019 GNUnet e.V.
 
      GNUnet is free software: you can redistribute it and/or modify it
      under the terms of the GNU Affero General Public License as published
@@ -100,6 +100,16 @@ static struct GNUNET_CADET_Handle *mh;
  * Our configuration.
  */
 static const struct GNUNET_CONFIGURATION_Handle *my_cfg;
+
+/**
+ * Active get path operation.
+ */
+static struct GNUNET_CADET_GetPath *gpo;
+
+/**
+ * Active peer listing operation.
+ */ 
+struct GNUNET_CADET_PeersLister *plo;
 
 /**
  * Channel handle.
@@ -210,6 +220,16 @@ shutdown_task (void *cls)
   {
     GNUNET_CADET_channel_destroy (ch);
     ch = NULL;
+  } 
+  if (NULL != gpo)
+  {
+    GNUNET_CADET_get_path_cancel (gpo);
+    gpo = NULL;
+  }
+  if (NULL != plo)
+  {
+    GNUNET_CADET_list_peers_cancel (plo);
+    plo = NULL;
   }
   if (NULL != mh)
   {
@@ -496,93 +516,52 @@ handle_data (void *cls,
  * After last peer has been reported, an additional call with NULL is done.
  *
  * @param cls Closure.
- * @param peer Peer, or NULL on "EOF".
- * @param tunnel Do we have a tunnel towards this peer?
- * @param n_paths Number of known paths towards this peer.
- * @param best_path How long is the best path?
- *                  (0 = unknown, 1 = ourselves, 2 = neighbor)
+ * @param ple information about peer, or NULL on "EOF".
  */
 static void
 peers_callback (void *cls,
-		const struct GNUNET_PeerIdentity *peer,
-                int tunnel,
-		unsigned int n_paths,
-		unsigned int best_path)
+		const struct GNUNET_CADET_PeerListEntry *ple)
 {
-  if (NULL == peer)
+  if (NULL == ple)
   {
+    plo = NULL;
     GNUNET_SCHEDULER_shutdown();
     return;
   }
   FPRINTF (stdout,
            "%s tunnel: %c, paths: %u\n",
-           GNUNET_i2s_full (peer),
-           tunnel ? 'Y' : 'N',
-           n_paths);
+           GNUNET_i2s_full (&ple->peer),
+           ple->have_tunnel ? 'Y' : 'N',
+           ple->n_paths);
 }
 
 
 /**
- * Method called to retrieve information about a specific peer
+ * Method called to retrieve information about paths to a specific peer
  * known to the service.
  *
  * @param cls Closure.
- * @param peer Peer ID.
- * @param tunnel Do we have a tunnel towards this peer? #GNUNET_YES/#GNUNET_NO
- * @param neighbor Is this a direct neighbor? #GNUNET_YES/#GNUNET_NO
- * @param n_paths Number of paths known towards peer.
- * @param paths Array of PEER_IDs representing all paths to reach the peer.
- *              Each path starts with the local peer.
- *              Each path ends with the destination peer (given in @c peer).
+ * @param ppd path detail
  */
 static void
-peer_callback (void *cls,
-               const struct GNUNET_PeerIdentity *peer,
-               int tunnel,
-               int neighbor,
-               unsigned int n_paths,
-               const struct GNUNET_PeerIdentity *paths,
-               int offset,
-               int finished_with_paths)
+path_callback (void *cls,
+               const struct GNUNET_CADET_PeerPathDetail *ppd)
 {
-  unsigned int i;
-  const struct GNUNET_PeerIdentity *p;
-  
-  
-  if (GNUNET_YES == finished_with_paths)
+  if (NULL == ppd)
   {
+    gpo = NULL;
     GNUNET_SCHEDULER_shutdown();
     return;
   }
-  
-  if (offset == 0){
+  FPRINTF (stdout,
+	   "Path of length %u: ",
+	   ppd->path_length);
+  for (unsigned int i = 0; i < ppd->path_length; i++)
     FPRINTF (stdout,
-             "%s [TUNNEL: %s, NEIGHBOR: %s, PATHS: %u]\n",
-             GNUNET_i2s_full (peer),
-             tunnel ? "Y" : "N",
-             neighbor ? "Y" : "N",
-             n_paths);
-  }else{
-    p = paths;
-    FPRINTF (stdout,
-                "Indirekt path with offset %u: ",
-                offset);
-    for (i = 0; i <= offset && NULL != p;)
-    {
-        FPRINTF (stdout,
-                "%s ",
-                GNUNET_i2s (p));
-        i++;
-        p++;
-    }
-    
-    FPRINTF (stdout,
-                "\n");
-    
-  }
-  
-
-  
+	     "%s ",
+	     GNUNET_i2s (&ppd->path[i]));
+  FPRINTF (stdout,
+	   "\n");
 }
 
 
@@ -669,11 +648,9 @@ static void
 get_peers (void *cls)
 {
   job = NULL;
-#if FIXME5385
-  GNUNET_CADET_list_peers (my_cfg,
-			   &peers_callback,
-			   NULL);
-#endif
+  plo = GNUNET_CADET_list_peers (my_cfg,
+				 &peers_callback,
+				 NULL);
 }
 
 
@@ -699,12 +676,10 @@ show_peer (void *cls)
     GNUNET_SCHEDULER_shutdown();
     return;
   }
-#if FIXME5385
-  GNUNET_CADET_get_peer (my_cfg,
-			 &pid,
-			 &peer_callback,
-			 NULL);
-#endif
+  gpo = GNUNET_CADET_get_path (my_cfg,
+			       &pid,
+			       &path_callback,
+			       NULL);
 }
 
 

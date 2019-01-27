@@ -821,7 +821,7 @@ get_all_peers_iterator (void *cls,
   struct CadetClient *c = cls;
   struct CadetPeer *p = value;
   struct GNUNET_MQ_Envelope *env;
-  struct GNUNET_CADET_LocalInfoPeer *msg;
+  struct GNUNET_CADET_LocalInfoPeers *msg;
 
   env = GNUNET_MQ_msg (msg,
                        GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_PEERS);  
@@ -829,6 +829,7 @@ get_all_peers_iterator (void *cls,
   msg->paths = htons (GCP_count_paths (p));
   msg->tunnel = htons (NULL != GCP_get_tunnel (p,
                                                GNUNET_NO));
+  msg->best_path_length = htonl (0); // FIXME: get length of shortest known path!
   GNUNET_MQ_send (c->mq,
                   env);
   return GNUNET_YES;
@@ -852,7 +853,7 @@ handle_get_peers (void *cls,
   GCP_iterate_all (&get_all_peers_iterator,
                    c);
   env = GNUNET_MQ_msg (reply,
-                       GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_PEERS);
+                       GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_PEERS_END);
   GNUNET_MQ_send (c->mq,
                   env);
   GNUNET_SERVICE_client_continue (c->client);
@@ -876,10 +877,9 @@ path_info_iterator (void *cls,
 {
   struct GNUNET_MQ_Handle *mq = cls;
   struct GNUNET_MQ_Envelope *env;
-  struct GNUNET_CADET_LocalInfoPeer *resp;
+  struct GNUNET_CADET_LocalInfoPath *resp;
   struct GNUNET_PeerIdentity *id;
-  uint16_t path_size;
-  unsigned int i;
+  size_t path_size;
   unsigned int path_length;
 
   path_length = GCPP_get_length (path);
@@ -893,18 +893,13 @@ path_info_iterator (void *cls,
   }
   env = GNUNET_MQ_msg_extra (resp,
                              path_size,
-                             GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_PEER);
-  
-  
-  resp->offset = htons(off);
-  resp->finished_with_paths = htons(0);
-  
+                             GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_PATH);  
   id = (struct GNUNET_PeerIdentity *) &resp[1];
 
   /* Don't copy first peer.  First peer is always the local one.  Last
    * peer is always the destination (leave as 0, EOL).
    */
-  for (i = 0; i <= off; i++)
+  for (unsigned int i = 0; i <= off; i++)
     id[i] = *GCP_get_id (GCPP_get_peer_at_offset (path,
                                                   i));
   GNUNET_MQ_send (mq,
@@ -912,70 +907,32 @@ path_info_iterator (void *cls,
   return GNUNET_YES;
 }
 
-/**
- * Getting summary information about the number of paths and if a tunnel exists, 
- * and the indirect paths to a peer, if there are ones.
- *
- * @param cls Closure ().
- * @param peer Peer ID (tunnel remote peer).
- * @param value Peer info.
- * @return #GNUNET_YES, to keep iterating.
- */
-static void
-get_peer_info (void *cls,
-                const struct GNUNET_PeerIdentity *peer,
-                struct CadetPeer *p)
-{
-  struct CadetClient *c = cls;
-  struct GNUNET_MQ_Envelope *env;
-  struct GNUNET_CADET_LocalInfoPeer *msg;
-  
-  env = GNUNET_MQ_msg (msg,
-                       GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_PEER);
-  msg->offset = htons(0);
-  msg->destination = *peer;
-  msg->paths = htons (GCP_count_paths (p));
-  msg->tunnel = htons (NULL != GCP_get_tunnel (p,
-                                               GNUNET_NO));
-  msg->finished_with_paths = htons(0);
-  GNUNET_MQ_send (c->mq,
-                  env);
-  GCP_iterate_indirect_paths (p,
-			      &path_info_iterator,
-			      c->mq);  
-}
-
 
 /**
- * Handler for client's SHOW_PEER request.
+ * Handler for client's #GNUNET_MESSAGE_TYPE_CADET_LOCAL_REQUEST_INFO_PATH request.
  *
  * @param cls Identification of the client.
  * @param msg The actual message.
  */
 static void
-handle_show_peer (void *cls,
-                  const struct GNUNET_CADET_LocalInfo *msg)
+handle_show_path (void *cls,
+                  const struct GNUNET_CADET_RequestPathInfoMessage *msg)
 {
   struct CadetClient *c = cls;
   struct CadetPeer *p;
   struct GNUNET_MQ_Envelope *env;
-  struct GNUNET_CADET_LocalInfoPeer *resp;
+  struct GNUNET_MessageHeader *resp;
 
   p = GCP_get (&msg->peer,
                GNUNET_NO);
-  if (NULL != p){
-    get_peer_info(c, &(msg->peer), p);  
-  }
-  
-  
+  if (NULL != p)
+    GCP_iterate_indirect_paths (p,
+				&path_info_iterator,
+				c->mq);  
   env = GNUNET_MQ_msg (resp,
-                       GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_PEER);
-  resp->finished_with_paths = htons(1);
-  resp->destination = msg->peer;
-  
+                       GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_PATH_END);
   GNUNET_MQ_send (c->mq,
                   env);
-  
   GNUNET_SERVICE_client_continue (c->client);
 }
 
@@ -1141,77 +1098,6 @@ handle_info_tunnel (void *cls,
                   env);
   GNUNET_SERVICE_client_continue (c->client);
 }
-
-
-/**
- * Iterator over all peers to dump info for each peer.
- *
- * @param cls Closure (unused).
- * @param peer Peer ID (tunnel remote peer).
- * @param value Peer info.
- *
- * @return #GNUNET_YES, to keep iterating.
- */
-static int
-show_peer_iterator (void *cls,
-                    const struct GNUNET_PeerIdentity *peer,
-                    void *value)
-{
-  struct CadetPeer *p = value;
-  struct CadetTunnel *t;
-
-  t = GCP_get_tunnel (p,
-                      GNUNET_NO);
-  if (NULL != t)
-    GCT_debug (t,
-               GNUNET_ERROR_TYPE_ERROR);
-  LOG (GNUNET_ERROR_TYPE_ERROR, "\n");
-  return GNUNET_YES;
-}
-
-
-/**
- * Handler for client's INFO_DUMP request.
- *
- * @param cls Identification of the client.
- * @param message The actual message.
- */
-static void
-handle_info_dump (void *cls,
-                  const struct GNUNET_MessageHeader *message)
-{
-  struct CadetClient *c = cls;
-
-  LOG (GNUNET_ERROR_TYPE_INFO,
-       "Received dump info request from client %u\n",
-       c->id);
-
-  LOG (GNUNET_ERROR_TYPE_ERROR,
-       "*************************** DUMP START ***************************\n");
-  for (struct CadetClient *ci = clients_head;
-       NULL != ci;
-       ci = ci->next)
-  {
-    LOG (GNUNET_ERROR_TYPE_ERROR,
-         "Client %u (%p), handle: %p, ports: %u, channels: %u\n",
-         ci->id,
-         ci,
-         ci->client,
-         (NULL != c->ports)
-         ? GNUNET_CONTAINER_multihashmap_size (ci->ports)
-         : 0,
-         GNUNET_CONTAINER_multihashmap32_size (ci->channels));
-  }
-  LOG (GNUNET_ERROR_TYPE_ERROR, "***************************\n");
-  GCP_iterate_all (&show_peer_iterator,
-                   NULL);
-
-  LOG (GNUNET_ERROR_TYPE_ERROR,
-       "**************************** DUMP END ****************************\n");
-
-  GNUNET_SERVICE_client_continue (c->client);
-}
-
 
 
 /**
@@ -1541,12 +1427,12 @@ GNUNET_SERVICE_MAIN
                           struct GNUNET_CADET_LocalAck,
                           NULL),
  GNUNET_MQ_hd_fixed_size (get_peers,
-                          GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_PEERS,
+                          GNUNET_MESSAGE_TYPE_CADET_LOCAL_REQUEST_INFO_PEERS,
                           struct GNUNET_MessageHeader,
                           NULL),
- GNUNET_MQ_hd_fixed_size (show_peer,
-                          GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_PEER,
-                          struct GNUNET_CADET_LocalInfo,
+ GNUNET_MQ_hd_fixed_size (show_path,
+                          GNUNET_MESSAGE_TYPE_CADET_LOCAL_REQUEST_INFO_PATH,
+                          struct GNUNET_CADET_RequestPathInfoMessage,
                           NULL),
  GNUNET_MQ_hd_fixed_size (info_tunnels,
                           GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_TUNNELS,
@@ -1555,10 +1441,6 @@ GNUNET_SERVICE_MAIN
  GNUNET_MQ_hd_fixed_size (info_tunnel,
                           GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_TUNNEL,
                           struct GNUNET_CADET_LocalInfo,
-                          NULL),
- GNUNET_MQ_hd_fixed_size (info_dump,
-                          GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_DUMP,
-                          struct GNUNET_MessageHeader,
                           NULL),
  GNUNET_MQ_handler_end ());
 

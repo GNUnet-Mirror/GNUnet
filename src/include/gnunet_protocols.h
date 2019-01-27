@@ -2854,7 +2854,7 @@ extern "C"
 /**
  * Local information about all channels of service.
  */
-#define GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_CHANNELS 1030
+#define GNUNET_MESSAGE_TYPE_CADET_LOCAL_REQUEST_INFO_CHANNEL 1030
 
 /**
  * Local information of service about a specific channel.
@@ -2887,26 +2887,42 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_PEERS 1036
 
 /**
- * Local information of service about a specific peer.
+ * Local information of service about a specific path.
  */
-#define GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_PEER 1037
+#define GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_PATH 1037
 
 /**
- * Debug request.
+ * End of local information of service about channels.
  */
-#define GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_DUMP 1038
+#define GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_CHANNEL_END 1038
 
 /**
  * End of local information about all peers known to the service.
  */
-#define GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_PEER_END 1039
+#define GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_PEERS_END 1039
+
+/**
+ * Request local information about all peers known to the service.
+ */
+#define GNUNET_MESSAGE_TYPE_CADET_LOCAL_REQUEST_INFO_PEERS 1040
+
+/**
+ * End of local information of service about a specific path.
+ */
+#define GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_PATH_END 1041
+
+/**
+ * Request local information of service about paths to specific peer.
+ */
+#define GNUNET_MESSAGE_TYPE_CADET_LOCAL_REQUEST_INFO_PATH 1042
+
 
 /********************************  Application  *******************************/
 
 /**
  * Traffic (net-cat style) used by the Command Line Interface.
  */
-#define GNUNET_MESSAGE_TYPE_CADET_CLI 1040
+#define GNUNET_MESSAGE_TYPE_CADET_CLI 1059
 
 /******************************************************************************/
 

@@ -71,59 +71,43 @@ struct GNUNET_CADET_PeersLister
 
 
 /**
- * Check that message received from CADET service is well-formed.
+ * Process a local reply about info on all tunnels, pass info to the user.
  *
- * @param cls the `struct GNUNET_CADET_PeersLister`
- * @param message the message we got
- * @return #GNUNET_OK if the message is well-formed,
- *         #GNUNET_SYSERR otherwise
+ * @param cls a `struct GNUNET_CADET_PeersLister`
+ * @param info Message itself.
  */
-static int
-check_get_peers (void *cls,
-                 const struct GNUNET_MessageHeader *message)
+static void
+handle_get_peers (void *cls,
+                  const struct GNUNET_CADET_LocalInfoPeers *info)
 {
-  size_t esize;
+  struct GNUNET_CADET_PeersLister *pl = cls;
+  struct GNUNET_CADET_PeerListEntry ple;
 
-  (void) cls;
-  esize = ntohs (message->size);
-  if (sizeof (struct GNUNET_CADET_LocalInfoPeer) == esize)
-    return GNUNET_OK;
-  if (sizeof (struct GNUNET_MessageHeader) == esize)
-    return GNUNET_OK;
-  return GNUNET_SYSERR;
+  ple.peer = info->destination;
+  ple.have_tunnel = (int) ntohs (info->tunnel);
+  ple.n_paths = (unsigned int) ntohs (info->paths);
+  ple.best_path_length = (unsigned int) ntohl (info->best_path_length);
+  pl->peers_cb (pl->peers_cb_cls,
+		&ple);
 }
 
 
-// FIXME: use two different message types instead of this mess!
 /**
- * Process a local reply about info on all tunnels, pass info to the user.
+ * Process a end of list reply about info on all peers.
  *
  * @param cls a `struct GNUNET_CADET_PeersLister`
  * @param msg Message itself.
  */
 static void
-handle_get_peers (void *cls,
-                  const struct GNUNET_MessageHeader *msg)
+handle_get_peers_end (void *cls,
+		      const struct GNUNET_MessageHeader *msg)
 {
   struct GNUNET_CADET_PeersLister *pl = cls;
-  const struct GNUNET_CADET_LocalInfoPeer *info =
-    (const struct GNUNET_CADET_LocalInfoPeer *) msg;
+  (void) msg;
 
-  if (sizeof (struct GNUNET_CADET_LocalInfoPeer) == ntohs (msg->size))
-    pl->peers_cb (pl->peers_cb_cls,
-		  &info->destination,
-		  (int) ntohs (info->tunnel),
-		  (unsigned int) ntohs (info->paths),
-		  0);
-  else
-  {
-    pl->peers_cb (pl->peers_cb_cls,
-		  NULL,
-		  0,
-		  0,
-		  0);
-    GNUNET_CADET_list_peers_cancel (pl);
-  }
+  pl->peers_cb (pl->peers_cb_cls,
+		NULL);
+  GNUNET_CADET_list_peers_cancel (pl);
 }
 
 
@@ -168,10 +152,14 @@ reconnect (void *cls)
 {
   struct GNUNET_CADET_PeersLister *pl = cls;
   struct GNUNET_MQ_MessageHandler handlers[] = {
-    GNUNET_MQ_hd_var_size (get_peers,
-                           GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_PEERS,
-                           struct GNUNET_MessageHeader,
-                           pl),
+    GNUNET_MQ_hd_fixed_size (get_peers,
+			     GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_PEERS,
+			     struct GNUNET_CADET_LocalInfoPeers,
+			     pl),
+    GNUNET_MQ_hd_fixed_size (get_peers_end,
+			     GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_PEERS_END,
+			     struct GNUNET_MessageHeader,
+			     pl),
     GNUNET_MQ_handler_end ()
   };
   struct GNUNET_MessageHeader *msg;
@@ -186,7 +174,7 @@ reconnect (void *cls)
   if (NULL == pl->mq)
     return;
   env = GNUNET_MQ_msg (msg,
-		       GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_PEERS);
+		       GNUNET_MESSAGE_TYPE_CADET_LOCAL_REQUEST_INFO_PEERS);
   GNUNET_MQ_send (pl->mq,
                   env);
 }

@@ -249,23 +249,96 @@ struct GNUNET_CADET_LocalInfo
 
 
 /**
- * Message to inform the client about one of the peers in the service.
- *
- * TODO: split into two messages!
+ * Message to inform the client about channels in the service.
  */
-struct GNUNET_CADET_LocalInfoPeer
+struct GNUNET_CADET_RequestPathInfoMessage
 {
   /**
-   * Type: #GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_PEER or
-   * #GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_PEERS
+   * Type: #GNUNET_MESSAGE_TYPE_CADET_LOCAL_REQUEST_INFO_PATH
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Always zero.
+   */
+  uint32_t resered GNUNET_PACKED;
+
+  /**
+   * ID of the destination of the channel (can be local peer).
+   */
+  struct GNUNET_PeerIdentity peer;
+};
+
+
+/**
+ * Message to inform the client about channels in the service.
+ */
+struct GNUNET_CADET_ChannelInfoMessage
+{
+  /**
+   * Type: #GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_CHANNEL.
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Root of the channel
+   */
+  struct GNUNET_PeerIdentity root;
+
+  /**
+   * Destination of the channel
+   */
+  struct GNUNET_PeerIdentity dest;
+
+  /* FIXME: expand! */
+};
+
+
+/**
+ * Message to as the service about information on a channel.
+ */
+struct GNUNET_CADET_RequestChannelInfoMessage
+{
+  /**
+   * Type: #GNUNET_MESSAGE_TYPE_CADET_LOCAL_REQUEST_INFO_CHANNEL.
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Target of the channel.
+   */
+  struct GNUNET_PeerIdentity target;
+
+};
+
+
+/**
+ * Message to inform the client about one of the paths known to the service.
+ */
+struct GNUNET_CADET_LocalInfoPath
+{
+  /**
+   * Type: #GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_PATH.
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Zero.
+   */
+  uint32_t reserved GNUNET_PACKED;
+};
+
+
+/**
+ * Message to inform the client about one of the peers in the service.
+ */
+struct GNUNET_CADET_LocalInfoPeers
+{
+  /**
+   * Type: #GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_PEERS
    */
   struct GNUNET_MessageHeader header;
   
-  /**
-   * Offset the peer has in the path this message is about.
-   */
-  uint16_t offset GNUNET_PACKED;
-
   /**
    * Number of paths.
    */
@@ -277,17 +350,15 @@ struct GNUNET_CADET_LocalInfoPeer
   int16_t tunnel GNUNET_PACKED;
   
   /**
-   * We are finished with the paths.
+   * Shortest known path.
    */
-  uint16_t finished_with_paths;
+  uint32_t best_path_length GNUNET_PACKED;
 
   /**
    * ID of the peer (can be local peer).
    */
   struct GNUNET_PeerIdentity destination;
 
-  /* If type == PEER (no 'S'): GNUNET_PeerIdentity paths[]
-   * (each path ends in destination) */
 };
 
 

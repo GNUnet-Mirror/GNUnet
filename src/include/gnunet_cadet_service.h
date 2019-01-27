@@ -325,7 +325,7 @@ GC_u2h (uint32_t port);
 
 
 /**
- * Struct to retrieve info about a channel.
+ * Union to retrieve info about a channel.
  */
 union GNUNET_CADET_ChannelInfo
 {
@@ -352,7 +352,7 @@ union GNUNET_CADET_ChannelInfo
  */
 const union GNUNET_CADET_ChannelInfo *
 GNUNET_CADET_channel_get_info (struct GNUNET_CADET_Channel *channel,
-                              enum GNUNET_CADET_ChannelOption option,
+			       enum GNUNET_CADET_ChannelOption option,
                                ...);
 
 
@@ -368,25 +368,34 @@ GNUNET_CADET_channel_get_info (struct GNUNET_CADET_Channel *channel,
 
 
 /**
+ * Internal details about a channel.
+ */ 
+struct GNUNET_CADET_ChannelInternals
+{
+  /**
+   * Root of the channel
+   */
+  struct GNUNET_PeerIdentity root;
+
+  /**
+   * Destination of the channel
+   */
+  struct GNUNET_PeerIdentity dest;
+
+  // to be expanded!
+};
+
+
+/**
  * Method called to retrieve information about a specific channel the cadet peer
  * is aware of, including all transit nodes.
  *
  * @param cls Closure.
- * @param root Root of the channel.
- * @param dest Destination of the channel.
- * @param port Destination port of the channel.
- * @param root_channel_number Local number for root, if known.
- * @param dest_channel_number Local number for dest, if known.
- * @param public_channel_numbe Number for P2P, always known.
+ * @param info internal details, NULL for end of list
  */
 typedef void
 (*GNUNET_CADET_ChannelCB) (void *cls,
-                           const struct GNUNET_PeerIdentity *root,
-                           const struct GNUNET_PeerIdentity *dest,
-                           uint32_t /* UGH */ port,
-                           uint32_t /* ugh */ root_channel_number,
-                           uint32_t /* ugh */ dest_channel_number,
-                           uint32_t /* ugh */ public_channel_number);
+                           const struct GNUNET_CADET_ChannelInternals *info);
 
 
 /**
@@ -396,18 +405,16 @@ struct GNUNET_CADET_ChannelMonitor;
 
 
 /**
- * Request information about a specific channel of the running cadet peer.
+ * Request information about channels to @a peer from the local peer.
  *
  * @param cfg configuration to use
  * @param peer ID of the other end of the channel.
- * @param channel_number Channel number.
  * @param callback Function to call with the requested data.
  * @param callback_cls Closure for @c callback.
  */
 struct GNUNET_CADET_ChannelMonitor *
 GNUNET_CADET_get_channel (const struct GNUNET_CONFIGURATION_Handle *cfg,
                           struct GNUNET_PeerIdentity *peer,
-                          uint32_t /* UGH */ channel_number,
                           GNUNET_CADET_ChannelCB callback,
                           void *callback_cls);
 
@@ -423,24 +430,44 @@ GNUNET_CADET_get_channel_cancel (struct GNUNET_CADET_ChannelMonitor *cm);
 
 
 /**
+ * Information we return per peer.
+ */ 
+struct GNUNET_CADET_PeerListEntry
+{
+  /**
+   * Which peer is the information about?
+   */
+  struct GNUNET_PeerIdentity peer;
+
+  /**
+   * Do we have a tunnel to this peer?
+   */
+  int have_tunnel;
+
+  /**
+   * Number of disjoint known paths to @e peer.
+   */ 
+  unsigned int n_paths;
+
+  /**
+   * Length of the shortest path (0 = unknown, 1 = ourselves, 2 = direct neighbour).
+   */
+  unsigned int best_path_length;
+};
+
+
+/**
  * Method called to retrieve information about all peers in CADET, called
  * once per peer.
  *
  * After last peer has been reported, an additional call with NULL is done.
  *
  * @param cls Closure.
- * @param peer Peer, or NULL on "EOF".
- * @param tunnel Do we have a tunnel towards this peer?
- * @param n_paths Number of known paths towards this peer.
- * @param best_path How long is the best path?
- *                  (0 = unknown, 1 = ourselves, 2 = neighbor)
+ * @param ple information about a peer, or NULL on "EOF".
  */
 typedef void
 (*GNUNET_CADET_PeersCB) (void *cls,
-                         const struct GNUNET_PeerIdentity *peer,
-                         int tunnel,
-                         unsigned int n_paths,
-                         unsigned int best_path);
+			 const struct GNUNET_CADET_PeerListEntry *ple);
 
 
 /**
@@ -476,50 +503,61 @@ GNUNET_CADET_list_peers_cancel (struct GNUNET_CADET_PeersLister *pl);
 
 
 /**
- * Method called to retrieve information about a specific peer
- * known to the service.
- *
- * @param cls Closure.
- * @param peer Peer ID.
- * @param tunnel Do we have a tunnel towards this peer? #GNUNET_YES/#GNUNET_NO
- * @param neighbor Is this a direct neighbor? #GNUNET_YES/#GNUNET_NO
- * @param n_paths Number of paths known towards peer.
- * @param paths Array of PEER_IDs representing all paths to reach the peer.
- *              Each path starts with the first hop (local peer not included).
- *              Each path ends with the destination peer (given in @c peer).
- */
-typedef void
-(*GNUNET_CADET_PeerCB) (void *cls,
-                        const struct GNUNET_PeerIdentity *peer,
-                        int tunnel,
-                        int neighbor,
-                        unsigned int n_paths,
-                        const struct GNUNET_PeerIdentity *paths,
-                        int offset,
-                        int finished_with_paths);
+ * Detailed information we return per peer.
+ */ 
+struct GNUNET_CADET_PeerPathDetail
+{
+  /**
+   * Peer this is about.
+   */
+  struct GNUNET_PeerIdentity peer;
+
+  /**
+   * Number of entries on the @e path.
+   */
+  unsigned int path_length;
+
+  /**
+   * Array of PEER_IDs representing all paths to reach the peer.  Each
+   * path starts with the first hop (local peer not included).  Each
+   * path ends with the destination peer (given in @e peer).
+   */
+  const struct GNUNET_PeerIdentity *path;
+
+};
 
 
 /**
- * Handle to cancel #GNUNET_CADET_get_peer() operation.
+ * Method called to retrieve information about a specific path
+ * known to the service.
+ *
+ * @param cls Closure.
+ * @param ppd details about a path to the peer, NULL for end of information
  */
-struct GNUNET_CADET_GetPeer;
+typedef void
+(*GNUNET_CADET_PathCB) (void *cls,
+			const struct GNUNET_CADET_PeerPathDetail *ppd);
+
+
+/**
+ * Handle to cancel #GNUNET_CADET_get_path() operation.
+ */
+struct GNUNET_CADET_GetPath;
 
 
 /**
  * Request information about a peer known to the running cadet peer.
- * The callback will be called for the tunnel once.
- * Only one info request (of any kind) can be active at once.
  *
  * @param cfg configuration to use
- * @param id Peer whose tunnel to examine.
+ * @param id Peer whose paths we want to examine.
  * @param callback Function to call with the requested data.
  * @param callback_cls Closure for @c callback.
  * @return NULL on error
  */
-struct GNUNET_CADET_GetPeer *
-GNUNET_CADET_get_peer (const struct GNUNET_CONFIGURATION_Handle *cfg,
+struct GNUNET_CADET_GetPath *
+GNUNET_CADET_get_path (const struct GNUNET_CONFIGURATION_Handle *cfg,
 		       const struct GNUNET_PeerIdentity *id,
-		       GNUNET_CADET_PeerCB callback,
+		       GNUNET_CADET_PathCB callback,
 		       void *callback_cls);
 
 
@@ -527,10 +565,10 @@ GNUNET_CADET_get_peer (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * Cancel @a gp operation.
  *
  * @param gp operation to cancel
- * @return closure from #GNUNET_CADET_get_peer().
+ * @return closure from #GNUNET_CADET_get_path().
  */
 void *
-GNUNET_CADET_get_peer_cancel (struct GNUNET_CADET_GetPeer *gp);
+GNUNET_CADET_get_path_cancel (struct GNUNET_CADET_GetPath *gp);
 
 
 /**
