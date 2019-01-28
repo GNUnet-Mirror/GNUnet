@@ -25,7 +25,7 @@
  *
  * TODO:
  * - NAT service API change to handle address stops!
- * - handling of rekeys!
+ * - address construction for HELLOs (FIXMEs, easy)
  */
 #include "platform.h"
 #include "gnunet_util_lib.h"
@@ -423,6 +423,12 @@ struct Queue
    * means we must switch to the new key material.
    */
   int rekey_state;
+
+  /**
+   * #GNUNET_YES if we just rekeyed and must thus possibly
+   * re-decrypt ciphertext.
+   */
+  int rekeyed;
 };
 
 
@@ -525,6 +531,11 @@ static struct GNUNET_CRYPTO_EddsaPrivateKey *my_private_key;
  * Our configuration.
  */
 static const struct GNUNET_CONFIGURATION_Handle *cfg;
+
+/**
+ * Network scanner to determine network types.
+ */
+static struct GNUNET_NT_InterfaceScanner *is;
 
 /**
  * Connection to NAT service.
@@ -776,12 +787,133 @@ pass_plaintext_to_core (struct Queue *queue,
 
 
 /**
+ * Setup @a cipher based on shared secret @a dh and decrypting
+ * peer @a pid.
+ *
+ * @param dh shared secret
+ * @param pid decrypting peer's identity
+ * @param cipher[out] cipher to initialize
+ * @param hmac_key[out] HMAC key to initialize
+ */
+static void
+setup_cipher (const struct GNUNET_HashCode *dh,
+	      const struct GNUNET_PeerIdentity *pid,
+	      gcry_cipher_hd_t *cipher,
+	      struct GNUNET_HashCode *hmac_key)
+{
+  char key[256/8];
+  char ctr[128/8];
+
+  gcry_cipher_open (cipher,
+		    GCRY_CIPHER_AES256 /* low level: go for speed */,
+		    GCRY_CIPHER_MODE_CTR,
+		    0 /* flags */);
+  GNUNET_assert (GNUNET_YES ==
+		 GNUNET_CRYPTO_kdf (key,
+				    sizeof (key),
+				    "TCP-key",
+				    strlen ("TCP-key"),
+				    dh,
+				    sizeof (*dh),
+				    pid,
+				    sizeof (*pid),
+				    NULL, 0));
+  gcry_cipher_setkey (*cipher,
+		      key,
+		      sizeof (key));
+  GNUNET_assert (GNUNET_YES ==
+		 GNUNET_CRYPTO_kdf (ctr,
+				    sizeof (ctr),
+				    "TCP-ctr",
+				    strlen ("TCP-ctr"),
+				    dh,
+				    sizeof (*dh),
+				    pid,
+				    sizeof (*pid),
+				    NULL, 0));
+  gcry_cipher_setctr (*cipher,
+		      ctr,
+		      sizeof (ctr));
+  GNUNET_assert (GNUNET_YES ==
+		 GNUNET_CRYPTO_kdf (hmac_key,
+				    sizeof (struct GNUNET_HashCode),
+				    "TCP-hmac",
+				    strlen ("TCP-hmac"),
+				    dh,
+				    sizeof (*dh),
+				    pid,
+				    sizeof (*pid),
+				    NULL, 0));
+}
+
+
+/**
+ * Setup cipher of @a queue for decryption.
+ *
+ * @param ephemeral ephemeral key we received from the other peer
+ * @param queue[in,out] queue to initialize decryption cipher for
+ */
+static void
+setup_in_cipher (const struct GNUNET_CRYPTO_EcdhePublicKey *ephemeral,
+		 struct Queue *queue)
+{
+  struct GNUNET_HashCode dh;
+  
+  GNUNET_CRYPTO_eddsa_ecdh (my_private_key,
+			    ephemeral,
+			    &dh);
+  setup_cipher (&dh,
+		&my_identity,
+		&queue->in_cipher,
+		&queue->in_hmac);
+}
+		
+
+/**
+ * Handle @a rekey message on @a queue. The message was already
+ * HMAC'ed, but we should additionally still check the signature.
+ * Then we need to stop the old cipher and start afresh.
+ *
+ * @param queue the queue @a rekey was received on
+ * @param rekey the rekey message
+ */ 
+static void
+do_rekey (struct Queue *queue,
+	  const struct TCPRekey *rekey)
+{
+  struct TcpHandshakeSignature thp;
+
+  thp.purpose.purpose = htonl (GNUNET_SIGNATURE_COMMUNICATOR_TCP_REKEY);
+  thp.purpose.size = htonl (sizeof (thp));
+  thp.sender = queue->target;
+  thp.receiver = my_identity;
+  thp.ephemeral = rekey->ephemeral;
+  thp.monotonic_time = rekey->monotonic_time;
+  if (GNUNET_OK !=
+      GNUNET_CRYPTO_eddsa_verify (GNUNET_SIGNATURE_COMMUNICATOR_TCP_REKEY,
+				  &thp.purpose,
+				  &rekey->sender_sig,
+				  &queue->target.public_key))
+  {
+    GNUNET_break (0);
+    queue_finish (queue);
+    return;
+  }
+  gcry_cipher_close (queue->in_cipher);
+  queue->rekeyed = GNUNET_YES;
+  setup_in_cipher (&rekey->ephemeral,
+		   queue);
+}
+
+
+/**
  * Test if we have received a full message in plaintext.
  * If so, handle it.
  *
  * @param queue queue to process inbound plaintext for
+ * @return number of bytes of plaintext handled, 0 for none
  */ 
-static void
+static size_t
 try_handle_plaintext (struct Queue *queue)
 {
   const struct GNUNET_MessageHeader *hdr
@@ -799,14 +931,14 @@ try_handle_plaintext (struct Queue *queue)
   size_t size = 0; /* make compiler happy */
 
   if (sizeof (*hdr) > queue->pread_off)
-    return; /* not even a header */
+    return 0; /* not even a header */
   type = ntohs (hdr->type);
   switch (type)
   {
   case GNUNET_MESSAGE_TYPE_COMMUNICATOR_TCP_BOX:
     /* Special case: header size excludes box itself! */
     if (ntohs (hdr->size) + sizeof (struct TCPBox) > queue->pread_off)
-      return;
+      return 0;
     hmac (&queue->in_hmac,
 	  &box[1],
 	  ntohs (hdr->size),
@@ -817,7 +949,7 @@ try_handle_plaintext (struct Queue *queue)
     {
       GNUNET_break_op (0);
       queue_finish (queue);
-      return;
+      return 0;
     }
     pass_plaintext_to_core (queue,
 			    (const void *) &box[1],
@@ -826,12 +958,12 @@ try_handle_plaintext (struct Queue *queue)
     break;
   case GNUNET_MESSAGE_TYPE_COMMUNICATOR_TCP_REKEY:
     if (sizeof (*rekey) > queue->pread_off)
-      return;
+      return 0;
     if (ntohs (hdr->size) != sizeof (*rekey))
     {
       GNUNET_break_op (0);
       queue_finish (queue);
-      return;
+      return 0;
     }
     rekeyz = *rekey;
     memset (&rekeyz.hmac,
@@ -847,20 +979,20 @@ try_handle_plaintext (struct Queue *queue)
     {
       GNUNET_break_op (0);
       queue_finish (queue);
-      return;
+      return 0;
     }
-    // FIXME: handle rekey!
-
+    do_rekey (queue,
+	      rekey);
     size = ntohs (hdr->size);
     break;
   case GNUNET_MESSAGE_TYPE_COMMUNICATOR_TCP_FINISH:
     if (sizeof (*fin) > queue->pread_off)
-      return;
+      return 0;
     if (ntohs (hdr->size) != sizeof (*fin))
     {
       GNUNET_break_op (0);
       queue_finish (queue);
-      return;
+      return 0;
     }
     finz = *fin;
     memset (&finz.hmac,
@@ -876,7 +1008,7 @@ try_handle_plaintext (struct Queue *queue)
     {
       GNUNET_break_op (0);
       queue_finish (queue);
-      return;
+      return 0;
     }
     /* handle FINISH by destroying queue */
     queue_destroy (queue);
@@ -884,15 +1016,10 @@ try_handle_plaintext (struct Queue *queue)
   default:
     GNUNET_break_op (0);
     queue_finish (queue);
-    return;
+    return 0;
   }
   GNUNET_assert (0 != size);
-  /* 'size' bytes of plaintext were used, shift buffer */
-  GNUNET_assert (size <= queue->pread_off);
-  memmove (queue->pread_buf,
-	   &queue->pread_buf[size],
-	   queue->pread_off - size);
-  queue->pread_off -= size;
+  return size;
 }
 
 
@@ -933,10 +1060,14 @@ queue_read (void *cls)
   if (0 != rcvd)
     reschedule_queue_timeout (queue);
   queue->cread_off += rcvd;
-  if (queue->pread_off < sizeof (queue->pread_buf))
+  while ( (queue->pread_off < sizeof (queue->pread_buf)) &&
+	  (queue->cread_off > 0) )
   {
     size_t max = GNUNET_MIN (sizeof (queue->pread_buf) - queue->pread_off,
 			     queue->cread_off);
+    size_t done;
+    size_t total;
+    
     GNUNET_assert (0 ==
 		   gcry_cipher_decrypt (queue->in_cipher,
 					&queue->pread_buf[queue->pread_off],
@@ -944,11 +1075,35 @@ queue_read (void *cls)
 					queue->cread_buf,
 					max));
     queue->pread_off += max;
+    total = 0;
+    while ( (GNUNET_NO == queue->rekeyed) &&
+	    (0 != (done = try_handle_plaintext (queue))) )	    
+    {
+      /* 'done' bytes of plaintext were used, shift buffer */
+      GNUNET_assert (done <= queue->pread_off);
+      /* NOTE: this memmove() could possibly sometimes be
+	 avoided if we pass 'total' into try_handle_plaintext()
+	 and use it at an offset into the buffer there! */
+      memmove (queue->pread_buf,
+	       &queue->pread_buf[done],
+	       queue->pread_off - done);
+      queue->pread_off -= done;
+      total += done;
+    }
+    /* when we encounter a rekey message, the decryption above uses the
+       wrong key for everything after the rekey; in that case, we have
+       to re-do the decryption at 'total' instead of at 'max'. If there
+       is no rekey and the last message is incomplete (max > total),
+       it is safe to keep the decryption so we shift by 'max' */
+    if (GNUNET_YES == queue->rekeyed)
+    {
+      max = total;
+      queue->rekeyed = GNUNET_NO;
+    }
     memmove (queue->cread_buf,
 	     &queue->cread_buf[max],
 	     queue->cread_off - max);
-    queue->cread_off -= max;
-    try_handle_plaintext (queue);
+    queue->cread_off -= max; 
   }
   
   if (BUF_SIZE == queue->cread_off)
@@ -1104,89 +1259,6 @@ tcp_address_to_sockaddr (const char *bindto,
   return NULL;
 }
 
-
-/**
- * Setup @a cipher based on shared secret @a dh and decrypting
- * peer @a pid.
- *
- * @param dh shared secret
- * @param pid decrypting peer's identity
- * @param cipher[out] cipher to initialize
- * @param hmac_key[out] HMAC key to initialize
- */
-static void
-setup_cipher (const struct GNUNET_HashCode *dh,
-	      const struct GNUNET_PeerIdentity *pid,
-	      gcry_cipher_hd_t *cipher,
-	      struct GNUNET_HashCode *hmac_key)
-{
-  char key[256/8];
-  char ctr[128/8];
-
-  gcry_cipher_open (cipher,
-		    GCRY_CIPHER_AES256 /* low level: go for speed */,
-		    GCRY_CIPHER_MODE_CTR,
-		    0 /* flags */);
-  GNUNET_assert (GNUNET_YES ==
-		 GNUNET_CRYPTO_kdf (key,
-				    sizeof (key),
-				    "TCP-key",
-				    strlen ("TCP-key"),
-				    dh,
-				    sizeof (*dh),
-				    pid,
-				    sizeof (*pid),
-				    NULL, 0));
-  gcry_cipher_setkey (*cipher,
-		      key,
-		      sizeof (key));
-  GNUNET_assert (GNUNET_YES ==
-		 GNUNET_CRYPTO_kdf (ctr,
-				    sizeof (ctr),
-				    "TCP-ctr",
-				    strlen ("TCP-ctr"),
-				    dh,
-				    sizeof (*dh),
-				    pid,
-				    sizeof (*pid),
-				    NULL, 0));
-  gcry_cipher_setctr (*cipher,
-		      ctr,
-		      sizeof (ctr));
-  GNUNET_assert (GNUNET_YES ==
-		 GNUNET_CRYPTO_kdf (hmac_key,
-				    sizeof (struct GNUNET_HashCode),
-				    "TCP-hmac",
-				    strlen ("TCP-hmac"),
-				    dh,
-				    sizeof (*dh),
-				    pid,
-				    sizeof (*pid),
-				    NULL, 0));
-}
-
-
-/**
- * Setup cipher of @a queue for decryption.
- *
- * @param ephemeral ephemeral key we received from the other peer
- * @param queue[in,out] queue to initialize decryption cipher for
- */
-static void
-setup_in_cipher (const struct GNUNET_CRYPTO_EcdhePublicKey *ephemeral,
-		 struct Queue *queue)
-{
-  struct GNUNET_HashCode dh;
-  
-  GNUNET_CRYPTO_eddsa_ecdh (my_private_key,
-			    ephemeral,
-			    &dh);
-  setup_cipher (&dh,
-		&my_identity,
-		&queue->in_cipher,
-		&queue->in_hmac);
-}
-		
 
 /**
  * Setup cipher for outgoing data stream based on target and
@@ -1474,7 +1546,9 @@ static void
 boot_queue (struct Queue *queue,
 	    enum GNUNET_TRANSPORT_ConnectionStatus cs)
 {
-  queue->nt = 0; // FIXME: determine NT!
+  queue->nt = GNUNET_NT_scanner_get_type (is,
+					  queue->address,
+					  queue->address_len);
   (void) GNUNET_CONTAINER_multipeermap_put (queue_map,
 					    &queue->target,
 					    queue,
@@ -1502,14 +1576,14 @@ boot_queue (struct Queue *queue,
       GNUNET_asprintf (&foreign_addr,
 		       "%s-%s:%d",
 		       COMMUNICATOR_ADDRESS_PREFIX,
-		       "inet-ntop-fixme",
+		       "inet-ntop-FIXME",
 		       4242);
       break;
     case AF_INET6:
       GNUNET_asprintf (&foreign_addr,
 		       "%s-%s:%d",
 		       COMMUNICATOR_ADDRESS_PREFIX,
-		       "inet-ntop-fixme",
+		       "inet-ntop-FIXME",
 		       4242);
       break;
     default:
@@ -2044,6 +2118,11 @@ do_shutdown (void *cls)
     GNUNET_free (my_private_key);
     my_private_key = NULL;
   }
+  if (NULL != is)
+  {
+     GNUNET_NT_scanner_done (is);
+     is = NULL;
+  }
 }
 
 
@@ -2197,6 +2276,7 @@ run (void *cls,
 				    cfg);
   GNUNET_SCHEDULER_add_shutdown (&do_shutdown,
 				 NULL);
+  is = GNUNET_NT_scanner_init ();
   my_private_key = GNUNET_CRYPTO_eddsa_key_create_from_configuration (cfg);
   if (NULL == my_private_key)
   {

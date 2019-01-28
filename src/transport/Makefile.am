@@ -257,6 +257,7 @@ gnunet_communicator_tcp_SOURCES = \
 gnunet_communicator_tcp_LDADD = \
   libgnunettransportcommunicator.la \
   $(top_builddir)/src/nat/libgnunetnatnew.la \
+  $(top_builddir)/src/nt/libgnunetnt.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(LIBGCRYPT_LIBS) 
