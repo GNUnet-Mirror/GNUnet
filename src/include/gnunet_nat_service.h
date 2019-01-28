@@ -279,6 +279,8 @@ enum GNUNET_NAT_Type
  * a function to call whenever our set of 'valid' addresses changes.
  *
  * @param cls closure
+ * @param app_ctx[in,out] location where the app can store stuff
+ *                  on add and retrieve it on remove
  * @param add_remove #GNUNET_YES to add a new public IP address, 
  *                   #GNUNET_NO to remove a previous (now invalid) one
  * @param ac address class the address belongs to
@@ -287,6 +289,7 @@ enum GNUNET_NAT_Type
  */
 typedef void
 (*GNUNET_NAT_AddressCallback) (void *cls,
+			       void **app_ctx,
                                int add_remove,
 			       enum GNUNET_NAT_AddressClass ac,
                                const struct sockaddr *addr,

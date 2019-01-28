@@ -1430,6 +1430,8 @@ notify_session_monitor (struct Plugin *plugin,
  * Our external IP address/port mapping has changed.
  *
  * @param cls closure, the `struct Plugin`
+ * @param app_ctx[in,out] location where the app can store stuff
+ *                  on add and retrieve it on remove
  * @param add_remove #GNUNET_YES to mean the new public IP address, #GNUNET_NO to mean
  *     the previous (now invalid) one
  * @param ac address class the address belongs to
@@ -1438,6 +1440,7 @@ notify_session_monitor (struct Plugin *plugin,
  */
 static void
 tcp_nat_port_map_callback (void *cls,
+			   void **app_ctx,
                            int add_remove,
 			   enum GNUNET_NAT_AddressClass ac,
 			   const struct sockaddr *addr,
@@ -1450,6 +1453,7 @@ tcp_nat_port_map_callback (void *cls,
   void *arg;
   size_t args;
 
+  (void) app_ctx;
   LOG (GNUNET_ERROR_TYPE_INFO,
        "NAT notification to %s address `%s'\n",
        (GNUNET_YES == add_remove) ? "add" : "remove",

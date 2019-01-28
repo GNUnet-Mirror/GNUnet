@@ -49,6 +49,12 @@ struct AddrEntry
   struct AddrEntry *prev;
 
   /**
+   * Place where the application can store data (on add,
+   * and retrieve on remove).
+   */
+  void *app_ctx;
+  
+  /**
    * Address class of the address.
    */
   enum GNUNET_NAT_AddressClass ac;
@@ -148,6 +154,7 @@ reconnect (struct GNUNET_NAT_Handle *nh)
 				 nh->ae_tail,
 				 ae);
     nh->address_callback (nh->callback_cls,
+			  &ae->app_ctx,
 			  GNUNET_NO,
 			  ae->ac,
 			  (const struct sockaddr *) &ae[1],
@@ -299,6 +306,7 @@ handle_address_change_notification (void *cls,
     GNUNET_free (ae);
   }
   nh->address_callback (nh->callback_cls,
+			&ae->app_ctx,
 			ntohl (acn->add_remove),
 			ac,
 			sa,

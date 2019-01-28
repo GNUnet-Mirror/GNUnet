@@ -1309,6 +1309,8 @@ udp_plugin_check_address (void *cls,
  * Our external IP address/port mapping has changed.
  *
  * @param cls closure, the `struct Plugin`
+ * @param app_ctx[in,out] location where the app can store stuff
+ *                  on add and retrieve it on remove
  * @param add_remove #GNUNET_YES to mean the new public IP address,
  *                   #GNUNET_NO to mean the previous (now invalid) one
  * @param ac address class the address belongs to
@@ -1317,6 +1319,7 @@ udp_plugin_check_address (void *cls,
  */
 static void
 udp_nat_port_map_callback (void *cls,
+			   void **app_ctx,
                            int add_remove,
 			   enum GNUNET_NAT_AddressClass ac,
                            const struct sockaddr *addr,
@@ -1329,6 +1332,7 @@ udp_nat_port_map_callback (void *cls,
   void *arg;
   size_t args;
 
+  (void) app_ctx;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        (GNUNET_YES == add_remove)
        ? "NAT notification to add address `%s'\n"

@@ -357,6 +357,8 @@ mq_error_handler (void *cls,
  * Address-callback, used to send message to gnunet-nat-server.
  *
  * @param cls closure
+ * @param app_ctx[in,out] location where the app can store stuff
+ *                  on add and retrieve it on remove
  * @param add_remove #GNUNET_YES to mean the new public IP address, #GNUNET_NO to mean
  *     the previous (now invalid) one
  * @param ac address class the address belongs to
@@ -365,6 +367,7 @@ mq_error_handler (void *cls,
  */
 static void
 addr_cb (void *cls,
+	 void **app_ctx,
          int add_remove,
          enum GNUNET_NAT_AddressClass ac,
          const struct sockaddr *addr,
@@ -376,6 +379,7 @@ addr_cb (void *cls,
   struct GNUNET_NAT_AUTO_TestMessage *msg;
   const struct sockaddr_in *sa;
 
+  (void) app_ctx;
   if (GNUNET_YES != add_remove)
     return;
   if (addrlen != sizeof (struct sockaddr_in))

@@ -25,7 +25,8 @@
  *
  * TODO:
  * - NAT service API change to handle address stops!
- * - address construction for HELLOs (FIXMEs, easy)
+ * - support NAT connection reversal method
+ * - support other TCP-specific NAT traversal methods
  */
 #include "platform.h"
 #include "gnunet_util_lib.h"
@@ -1241,9 +1242,17 @@ tcp_address_to_sockaddr (const char *bindto,
   {
     /* try IPv6 */
     struct sockaddr_in6 v6;
+    const char *start;
 
+    start = cp;
+    if ( ('[' == *cp) &&
+	 (']' == cp[strlen (cp)-1]) )
+    {
+      start++; /* skip over '[' */
+      cp[strlen (cp) -1] = '\0'; /* eat ']' */
+    }
     if (1 == inet_pton (AF_INET6,
-			cp,
+			start,
 			&v6))
     {
       v6.sin6_port = htons ((uint16_t) port);
@@ -1574,17 +1583,17 @@ boot_queue (struct Queue *queue,
     {
     case AF_INET:
       GNUNET_asprintf (&foreign_addr,
-		       "%s-%s:%d",
+		       "%s-%s",
 		       COMMUNICATOR_ADDRESS_PREFIX,
-		       "inet-ntop-FIXME",
-		       4242);
+		       GNUNET_a2s(queue->address,
+				  queue->address_len));
       break;
     case AF_INET6:
       GNUNET_asprintf (&foreign_addr,
-		       "%s-%s:%d",
+		       "%s-%s",
 		       COMMUNICATOR_ADDRESS_PREFIX,
-		       "inet-ntop-FIXME",
-		       4242);
+		       GNUNET_a2s(queue->address,
+				  queue->address_len));
       break;
     default:
       GNUNET_assert (0);
@@ -2154,6 +2163,8 @@ enc_notify_cb (void *cls,
  * a function to call whenever our set of 'valid' addresses changes.
  *
  * @param cls closure
+ * @param app_ctx[in,out] location where the app can store stuff
+ *                  on add and retrieve it on remove
  * @param add_remove #GNUNET_YES to add a new public IP address, 
  *                   #GNUNET_NO to remove a previous (now invalid) one
  * @param ac address class the address belongs to
@@ -2162,6 +2173,7 @@ enc_notify_cb (void *cls,
  */
 static void
 nat_address_cb (void *cls,
+		void **app_ctx,
 		int add_remove,
 		enum GNUNET_NAT_AddressClass ac,
 		const struct sockaddr *addr,
@@ -2211,7 +2223,9 @@ run (void *cls,
   char *bindto;
   struct sockaddr *in;
   socklen_t in_len;
-
+  struct sockaddr_storage in_sto;
+  socklen_t sto_len;
+  
   (void) cls;
   cfg = c;
   if (GNUNET_OK !=
@@ -2267,11 +2281,26 @@ run (void *cls,
     GNUNET_free (bindto);
     return;
   }
+  /* We might have bound to port 0, allowing the OS to figure it out;
+     thus, get the real IN-address from the socket */
+  sto_len = sizeof (in_sto);
+  if (0 != getsockname (GNUNET_NETWORK_get_fd (listen_sock),
+			(struct sockaddr *) &in_sto,
+			&sto_len))
+  {
+    memcpy (&in_sto,
+	    in,
+	    in_len);
+    sto_len = in_len;
+  }
   GNUNET_free (in);
+  GNUNET_free (bindto);
+  in = (struct sockaddr *) &in_sto;
+  in_len = sto_len;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Bound to `%s'\n",
-	      bindto);
-  GNUNET_free (bindto);
+	      GNUNET_a2s ((const struct sockaddr *) &in_sto,
+			  sto_len));
   stats = GNUNET_STATISTICS_create ("C-TCP",
 				    cfg);
   GNUNET_SCHEDULER_add_shutdown (&do_shutdown,
