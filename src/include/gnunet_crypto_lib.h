@@ -740,8 +740,8 @@ GNUNET_CRYPTO_hash_context_abort (struct GNUNET_HashContext *hc);
  */
 void
 GNUNET_CRYPTO_hmac_raw (const void *key, size_t key_len,
-                    const void *plaintext, size_t plaintext_len,
-                    struct GNUNET_HashCode *hmac);
+			const void *plaintext, size_t plaintext_len,
+			struct GNUNET_HashCode *hmac);
 
 
 /**

@@ -234,7 +234,7 @@ queue_destroy (struct Queue *queue)
 						       &queue->target,
 						       queue));
   GNUNET_STATISTICS_set (stats,
-			 "# UNIX queues active",
+			 "# queues active",
 			 GNUNET_CONTAINER_multipeermap_size (queue_map),
 			 GNUNET_NO);
   if (NULL != queue->timeout_task)

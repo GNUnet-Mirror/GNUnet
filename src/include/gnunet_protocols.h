@@ -3219,7 +3219,22 @@ extern "C"
 
 
 /**
- * Next available: 1450
+ * TCP communicator rekey message.
+ */
+#define GNUNET_MESSAGE_TYPE_COMMUNICATOR_TCP_REKEY 1450
+
+/**
+ * TCP communicator payload box
+ */
+#define GNUNET_MESSAGE_TYPE_COMMUNICATOR_TCP_BOX 1451
+
+/**
+ * TCP communicator end of stream.
+ */ 
+#define GNUNET_MESSAGE_TYPE_COMMUNICATOR_TCP_FINISH 1452
+
+/**
+ * Next available: 1500
  */
 
 

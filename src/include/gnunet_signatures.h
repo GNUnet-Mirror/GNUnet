@@ -207,6 +207,11 @@ extern "C"
  */ 
 #define GNUNET_SIGNATURE_COMMUNICATOR_TCP_HANDSHAKE 31
 
+/**
+ * Signature used by TCP communicator rekey.
+ */ 
+#define GNUNET_SIGNATURE_COMMUNICATOR_TCP_REKEY 32
+
 #if 0                           /* keep Emacsens' auto-indent happy */
 {
 #endif
