@@ -24,7 +24,7 @@
  * @author Christian Grothoff
  *
  * TODO:
- * - NAT service API change to handle address stops!
+ * - support DNS names in BINDTO option
  * - support NAT connection reversal method
  * - support other TCP-specific NAT traversal methods
  */
@@ -2180,28 +2180,32 @@ nat_address_cb (void *cls,
 		socklen_t addrlen)
 {
   char *my_addr;
-  static struct GNUNET_TRANSPORT_AddressIdentifier *ai; // FIXME: store in *ctx of NAT!
+  struct GNUNET_TRANSPORT_AddressIdentifier *ai;
 
   if (GNUNET_YES == add_remove)
   {
-    // FIXME: do better job at stringification of @a addr?
+    enum GNUNET_NetworkType nt;
+
     GNUNET_asprintf (&my_addr,
 		     "%s-%s",
 		     COMMUNICATOR_ADDRESS_PREFIX,
 		     GNUNET_a2s (addr,
 				 addrlen));
-    // FIXME: translate 'ac' to 'nt'?
+    nt = GNUNET_NT_scanner_get_type (is,
+				     addr,
+				     addrlen); 
     ai = GNUNET_TRANSPORT_communicator_address_add (ch,
 						    my_addr,
-						    GNUNET_NT_LOOPBACK, // FIXME: wrong NT!
+						    nt,
 						    GNUNET_TIME_UNIT_FOREVER_REL);
     GNUNET_free (my_addr);
+    *app_ctx = ai;
   }
   else
   {
-    // FIXME: support removal! => improve NAT API!
+    ai = *app_ctx;
     GNUNET_TRANSPORT_communicator_address_remove (ai);
-    ai = NULL;
+    *app_ctx = NULL;
   }
 }
 
