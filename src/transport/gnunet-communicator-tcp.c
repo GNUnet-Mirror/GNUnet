@@ -24,9 +24,13 @@
  * @author Christian Grothoff
  *
  * TODO:
- * - support DNS names in BINDTO option
- * - support NAT connection reversal method
- * - support other TCP-specific NAT traversal methods
+ * - support DNS names in BINDTO option (#5528)
+ * - support NAT connection reversal method (#5529)
+ * - support other TCP-specific NAT traversal methods (#5531)
+ * - add replay protection support to the protocol by
+ *   adding a nonce in the KX and requiring (!) a
+ *   nounce ACK to be send within the first X bytes of
+ *   data (#5530)
  */
 #include "platform.h"
 #include "gnunet_util_lib.h"
@@ -1263,7 +1267,7 @@ tcp_address_to_sockaddr (const char *bindto,
       return in;
     }
   }
-  /* FIXME (feature!): maybe also try getnameinfo()? */
+  /* #5528 FIXME (feature!): maybe also try getnameinfo()? */
   GNUNET_free (cp);
   return NULL;
 }
@@ -2348,7 +2352,7 @@ run (void *cls,
 			     (const struct sockaddr **) &in,
 			     &in_len,
 			     &nat_address_cb,
-			     NULL /* FIXME: support reversal! */,
+			     NULL /* FIXME: support reversal: #5529 */,
 			     NULL /* closure */);
 }
 
@@ -2386,20 +2390,5 @@ main (int argc,
   return ret;
 }
 
-
-#if defined(LINUX) && defined(__GLIBC__)
-#include <malloc.h>
-
-/**
- * MINIMIZE heap size (way below 128k) since this process doesn't need much.
- */
-void __attribute__ ((constructor))
-GNUNET_ARM_memory_init ()
-{
-  mallopt (M_TRIM_THRESHOLD, 4 * 1024);
-  mallopt (M_TOP_PAD, 1 * 1024);
-  malloc_trim (0);
-}
-#endif
 
 /* end of gnunet-communicator-tcp.c */
