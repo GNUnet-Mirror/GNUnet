@@ -34,7 +34,7 @@
  * - add and use util/ check for IPv6 availability (#V6)
  * - consider imposing transmission limits in the absence
  *   of ACKs; or: maybe this should be done at TNG service level?
- * - support broadcasting for neighbour discovery (#)
+ * - handle addresses discovered fro broadcasts (#)
  *   (think: what was the story again on address validation?
  *    where is the API for that!?!)
  * - support DNS names in BINDTO option (#5528)
@@ -60,6 +60,16 @@
  * How long do we wait until we must have received the initial KX?
  */ 
 #define PROTO_QUEUE_TIMEOUT GNUNET_TIME_UNIT_MINUTES
+
+/**
+ * How often do we broadcast our presence on the LAN?
+ */ 
+#define BROADCAST_FREQUENCY GNUNET_TIME_UNIT_MINUTES
+
+/**
+ * How often do we scan for changes to our network interfaces?
+ */ 
+#define INTERFACE_SCAN_FREQUENCY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 5)
 
 /**
  * AES key size.
@@ -574,6 +584,60 @@ struct ReceiverAddress
 
 
 /**
+ * Interface we broadcast our presence on.
+ */
+struct BroadcastInterface
+{
+
+  /**
+   * Kept in a DLL.
+   */
+  struct BroadcastInterface *next;
+
+  /**
+   * Kept in a DLL.
+   */
+  struct BroadcastInterface *prev;
+
+  /**
+   * Task for this broadcast interface.
+   */
+  struct GNUNET_SCHEDULER_Task *broadcast_task;
+  
+  /**
+   * Sender's address of the interface.
+   */
+  struct sockaddr *sa;
+  
+  /**
+   * Broadcast address to use on the interface.
+   */
+  struct sockaddr *ba;
+
+  /**
+   * Message we broadcast on this interface.
+   */ 
+  struct UDPBroadcast bcm;
+  
+  /**
+   * If this is an IPv6 interface, this is the request
+   * we use to join/leave the group.
+   */
+  struct ipv6_mreq mcreq;
+  
+  /**
+   * Number of bytes in @e sa.
+   */ 
+  socklen_t salen;
+
+  /**
+   * Was this interface found in the last #iface_proc() scan?
+   */
+  int found;
+};
+
+
+/**
  * Cache of pre-generated key IDs.
  */
 static struct GNUNET_CONTAINER_MultiShortmap *key_cache;
@@ -587,6 +651,11 @@ static struct GNUNET_SCHEDULER_Task *read_task;
  * ID of timeout task
  */
 static struct GNUNET_SCHEDULER_Task *timeout_task;
+
+/**
+ * ID of master broadcast task
+ */
+static struct GNUNET_SCHEDULER_Task *broadcast_task;
 
 /**
  * For logging statistics.
@@ -619,9 +688,24 @@ static struct GNUNET_CONTAINER_Heap *senders_heap;
 static struct GNUNET_CONTAINER_Heap *receivers_heap;
 
 /**
+ * Broadcast interface tasks. Kept in a DLL.
+ */
+static struct BroadcastInterface *bi_head;
+
+/**
+ * Broadcast interface tasks. Kept in a DLL.
+ */
+static struct BroadcastInterface *bi_tail;
+
+/**
  * Our socket.
  */
 static struct GNUNET_NETWORK_Handle *udp_sock;
+
+/** 
+ * #GNUNET_YES if #udp_sock supports IPv6.
+ */ 
+static int have_v6_socket;
 
 /**
  * Our public key.
@@ -648,10 +732,47 @@ static struct GNUNET_NT_InterfaceScanner *is;
  */
 static struct GNUNET_NAT_Handle *nat;
 
+/**
+ * Port number to which we are actually bound.
+ */ 
+static uint16_t my_port;
+
 
 /**
- * Functions with this signature are called whenever we need
- * to close a receiving state due to timeout.
+ * An interface went away, stop broadcasting on it.
+ *
+ * @param bi entity to close down
+ */
+static void
+bi_destroy (struct BroadcastInterface *bi)
+{
+  if (AF_INET6 == bi->sa->sa_family)
+  {
+    /* Leave the multicast group */
+    if (GNUNET_OK !=
+        GNUNET_NETWORK_socket_setsockopt
+        (udp_sock,
+	 IPPROTO_IPV6,
+	 IPV6_LEAVE_GROUP,
+         &bi->mcreq,
+	 sizeof (bi->mcreq)))
+    {
+      GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING,
+			   "setsockopt");
+    }
+  }
+  GNUNET_CONTAINER_DLL_remove (bi_head,
+			       bi_tail,
+			       bi);
+  GNUNET_SCHEDULER_cancel (bi->broadcast_task);
+  GNUNET_free (bi->sa);
+  GNUNET_free_non_null (bi->ba);
+  GNUNET_free (bi);
+}
+
+
+/**
+ * Destroys a receiving state due to timeout or shutdown.
  *
  * @param receiver entity to close down
  */
@@ -2106,6 +2227,13 @@ do_shutdown (void *cls)
      GNUNET_NAT_unregister (nat);
      nat = NULL;
   }
+  while (NULL != bi_head)
+    bi_destroy (bi_head);
+  if (NULL != broadcast_task)
+  {
+    GNUNET_SCHEDULER_cancel (broadcast_task);
+    broadcast_task = NULL;
+  }
   if (NULL != read_task)
   {
     GNUNET_SCHEDULER_cancel (read_task);
@@ -2236,6 +2364,240 @@ nat_address_cb (void *cls,
 
 
 /**
+ * Broadcast our presence on one of our interfaces.
+ *
+ * @param cls a `struct BroadcastInterface`
+ */
+static void
+ifc_broadcast (void *cls)
+{
+  struct BroadcastInterface *bi = cls;
+  struct GNUNET_TIME_Relative delay;
+
+  delay = BROADCAST_FREQUENCY;
+  delay.rel_value_us = GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_WEAK,
+						 delay.rel_value_us);
+  bi->broadcast_task
+    = GNUNET_SCHEDULER_add_delayed (INTERFACE_SCAN_FREQUENCY,
+				    &ifc_broadcast,
+				    bi);
+  
+  switch (bi->sa->sa_family) {
+  case AF_INET:
+    {
+      static int yes = 1;
+      static int no = 0;
+      ssize_t sent;
+    
+      if (GNUNET_OK !=
+	  GNUNET_NETWORK_socket_setsockopt (udp_sock,
+					    SOL_SOCKET,
+					    SO_BROADCAST,
+					    &yes,
+					    sizeof (int)))
+	GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING,
+			     "setsockopt");
+      sent = GNUNET_NETWORK_socket_sendto (udp_sock,
+					   &bi->bcm,
+					   sizeof (bi->bcm),
+					   bi->ba,
+					   bi->salen);
+      if (-1 == sent)
+	GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING,
+			     "sendto");
+      if (GNUNET_OK !=
+	  GNUNET_NETWORK_socket_setsockopt (udp_sock,
+					    SOL_SOCKET,
+					    SO_BROADCAST,
+					    &no,
+					    sizeof (int)))
+	GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING,
+			     "setsockopt");
+      break;
+    }
+  case AF_INET6:
+    {
+      ssize_t sent;
+      struct sockaddr_in6 dst;
+
+      dst.sin6_family = AF_INET6;
+      dst.sin6_port = htons (my_port);
+      dst.sin6_addr = bi->mcreq.ipv6mr_multiaddr;
+      dst.sin6_scope_id = ((struct sockaddr_in6*) bi->ba)->sin6_scope_id;
+
+      sent = GNUNET_NETWORK_socket_sendto (udp_sock,
+					   &bi->bcm,
+					   sizeof (bi->bcm),
+					   (const struct sockaddr *)
+					   &dst,
+					   sizeof (dst));
+      if (-1 == sent)
+	GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING,
+			     "sendto");
+      break;
+    }
+  default:
+    GNUNET_break (0);
+    break;
+  }
+}
+
+
+/**
+ * Callback function invoked for each interface found.
+ * Activates/deactivates broadcast interfaces.
+ *
+ * @param cls NULL
+ * @param name name of the interface (can be NULL for unknown)
+ * @param isDefault is this presumably the default interface
+ * @param addr address of this interface (can be NULL for unknown or unassigned)
+ * @param broadcast_addr the broadcast address (can be NULL for unknown or unassigned)
+ * @param netmask the network mask (can be NULL for unknown or unassigned)
+ * @param addrlen length of the address
+ * @return #GNUNET_OK to continue iteration, #GNUNET_SYSERR to abort
+ */
+static int
+iface_proc (void *cls,
+            const char *name,
+            int isDefault,
+            const struct sockaddr *addr,
+            const struct sockaddr *broadcast_addr,
+            const struct sockaddr *netmask, socklen_t addrlen)
+{
+  struct BroadcastInterface *bi;
+  enum GNUNET_NetworkType network;
+  struct UdpBroadcastSignature ubs;
+
+  (void) cls;
+  (void) netmask;
+  network = GNUNET_NT_scanner_get_type (is,
+					addr,
+					addrlen);
+  if (GNUNET_NT_LOOPBACK == network)
+  {
+    /* Broadcasting on loopback does not make sense */
+    return GNUNET_YES;
+  }
+  if (NULL == addr)
+    return GNUNET_YES; /* need to know our address! */
+  for (bi = bi_head; NULL != bi; bi = bi->next)
+  {
+    if ( (bi->salen == addrlen) &&
+	 (0 == memcmp (addr,
+		       bi->sa,
+		       addrlen)) )
+    {
+      bi->found = GNUNET_YES;
+      return GNUNET_OK;
+    }
+  }
+
+  if ( (AF_INET6 == addr->sa_family) &&
+       (NULL == broadcast_addr) )
+    return GNUNET_OK; /* broadcast_addr is required for IPv6! */
+  if ( (AF_INET6 == addr->sa_family) &&
+       (GNUNET_YES != have_v6_socket) )
+    return GNUNET_OK; /* not using IPv6 */
+  
+  bi = GNUNET_new (struct BroadcastInterface);
+  bi->sa = GNUNET_memdup (addr,
+			  addrlen);
+  if (NULL != broadcast_addr)
+    bi->ba = GNUNET_memdup (broadcast_addr,
+			    addrlen);
+  bi->salen = addrlen;
+  bi->found = GNUNET_YES;
+  bi->bcm.sender = my_identity;
+  ubs.purpose.purpose = htonl (GNUNET_SIGNATURE_COMMUNICATOR_UDP_BROADCAST);
+  ubs.purpose.size = htonl (sizeof (ubs));
+  ubs.sender = my_identity;
+  GNUNET_CRYPTO_hash (addr,
+		      addrlen,
+		      &ubs.h_address);
+  GNUNET_assert (GNUNET_OK ==
+		 GNUNET_CRYPTO_eddsa_sign (my_private_key,
+					   &ubs.purpose,
+					   &bi->bcm.sender_sig));
+  bi->broadcast_task = GNUNET_SCHEDULER_add_now (&ifc_broadcast,
+						 bi);
+  GNUNET_CONTAINER_DLL_insert (bi_head,
+			       bi_tail,
+			       bi);
+  if ( (AF_INET6 == addr->sa_family) &&
+       (NULL != broadcast_addr) )
+  {
+    /* Create IPv6 multicast request */
+    const struct sockaddr_in6 *s6
+      = (const struct sockaddr_in6 *) broadcast_addr;
+
+    GNUNET_assert (1 ==
+                   inet_pton (AF_INET6,
+			      "FF05::13B",
+                              &bi->mcreq.ipv6mr_multiaddr));
+    
+    /* http://tools.ietf.org/html/rfc2553#section-5.2:
+     *
+     * IPV6_JOIN_GROUP
+     *
+     * Join a multicast group on a specified local interface.  If the
+     * interface index is specified as 0, the kernel chooses the local
+     * interface.  For example, some kernels look up the multicast
+     * group in the normal IPv6 routing table and using the resulting
+     * interface; we do this for each interface, so no need to use
+     * zero (anymore...).
+     */
+    bi->mcreq.ipv6mr_interface = s6->sin6_scope_id;
+
+    /* Join the multicast group */
+    if (GNUNET_OK !=
+        GNUNET_NETWORK_socket_setsockopt
+        (udp_sock,
+	 IPPROTO_IPV6,
+	 IPV6_JOIN_GROUP,
+         &bi->mcreq,
+	 sizeof (bi->mcreq)))
+    {
+      GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING,
+			   "setsockopt");
+    }
+  }
+  return GNUNET_OK;
+}
+
+
+/**
+ * Scan interfaces to broadcast our presence on the LAN.
+ *
+ * @param cls NULL, unused
+ */
+static void
+do_broadcast (void *cls)
+{
+  struct BroadcastInterface *bin;
+  
+  (void) cls;
+  for (struct BroadcastInterface *bi = bi_head;
+       NULL != bi;
+       bi = bi->next)
+    bi->found = GNUNET_NO;
+  GNUNET_OS_network_interfaces_list (&iface_proc,
+				     NULL);
+  for (struct BroadcastInterface *bi = bi_head;
+       NULL != bi;
+       bi = bin)
+  {
+    bin = bi->next;
+    if (GNUNET_NO == bi->found)
+      bi_destroy (bi);
+  }
+  broadcast_task
+    = GNUNET_SCHEDULER_add_delayed (INTERFACE_SCAN_FREQUENCY,
+				    &do_broadcast,
+				    NULL);
+}
+
+
+/**
  * Setup communicator and launch network interactions.
  *
  * @param cls NULL (always)
@@ -2290,6 +2652,8 @@ run (void *cls,
     GNUNET_free (bindto);
     return;
   }
+  if (AF_INET6 == in->sa_family)
+    have_v6_socket = GNUNET_YES;
   if (GNUNET_OK !=
       GNUNET_NETWORK_socket_bind (udp_sock,
                                   in,
@@ -2324,6 +2688,18 @@ run (void *cls,
 	      "Bound to `%s'\n",
 	      GNUNET_a2s ((const struct sockaddr *) &in_sto,
 			  sto_len));
+  switch (in->sa_family)
+  {
+  case AF_INET:
+    my_port = ntohs (((struct sockaddr_in *) in)->sin_port);
+    break;
+  case AF_INET6:
+    my_port = ntohs (((struct sockaddr_in6 *) in)->sin6_port);
+    break;
+  default:
+    GNUNET_break (0);
+    my_port = 0;
+  }
   stats = GNUNET_STATISTICS_create ("C-UDP",
 				    cfg);
   senders = GNUNET_CONTAINER_multipeermap_create (32,
@@ -2366,6 +2742,15 @@ run (void *cls,
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
+  /* start broadcasting */
+  if (GNUNET_YES !=
+      GNUNET_CONFIGURATION_get_value_yesno (cfg,
+					    COMMUNICATOR_CONFIG_SECTION,
+					    "DISABLE_BROADCAST"))
+  {
+    broadcast_task = GNUNET_SCHEDULER_add_now (&do_broadcast,
+					       NULL);
+  }  
   nat = GNUNET_NAT_register (cfg,
 			     COMMUNICATOR_CONFIG_SECTION,
 			     IPPROTO_UDP,
