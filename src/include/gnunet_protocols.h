@@ -3234,6 +3234,16 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_COMMUNICATOR_TCP_FINISH 1452
 
 /**
+ * UDP KX acknowledgement.
+ */
+#define GNUNET_MESSAGE_TYPE_COMMUNICATOR_UDP_ACK 1460
+
+/**
+ * UDP communicator padding.
+ */
+#define GNUNET_MESSAGE_TYPE_COMMUNICATOR_UDP_PAD 1461
+
+/**
  * Next available: 1500
  */
 

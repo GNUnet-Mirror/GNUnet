@@ -212,6 +212,11 @@ extern "C"
  */ 
 #define GNUNET_SIGNATURE_COMMUNICATOR_TCP_REKEY 32
 
+/**
+ * Signature used by UDP communicator handshake,
+ */ 
+#define GNUNET_SIGNATURE_COMMUNICATOR_UDP_HANDSHAKE 33
+
 #if 0                           /* keep Emacsens' auto-indent happy */
 {
 #endif

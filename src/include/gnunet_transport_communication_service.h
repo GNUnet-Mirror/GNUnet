@@ -105,9 +105,9 @@ enum GNUNET_TRANSPORT_CommunicatorCharacteristics {
 
 
 /**
- * Function called when the transport service has received an
- * acknowledgement for this communicator (!) via a different return
- * path.
+ * Function called when the transport service has received a
+ * backchannel message for this communicator (!) via a different
+ * return path.
  *
  * Typically used to receive messages of type
  * #GNUNET_MESSAGE_TYPE_TRANSPORT_COMMUNICATOR_FC_LIMITS or

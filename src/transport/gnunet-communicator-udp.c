@@ -24,11 +24,7 @@
  * @author Christian Grothoff
  *
  * TODO:
- * - main sending logic
- * - actual generation of ACKs (-> integrate with sending logic!)
- *   (specifically, ACKs should go as backchannel, let TNG
- *   decide how to send!)
- * - handle ACKs from backchannel!
+ * - main BOXed sending logic
  * - figure out what to do with MTU: 1280 for IPv6 is obvious;
  *   what for IPv4? 1500? Also, consider differences in 
  *   headers for with/without box: need to give MIN of both
@@ -68,6 +64,36 @@
  * How long do we wait until we must have received the initial KX?
  */ 
 #define PROTO_QUEUE_TIMEOUT GNUNET_TIME_UNIT_MINUTES
+
+/**
+ * If we fall below this number of available KCNs,
+ * we generate additional ACKs until we reach
+ * #KCN_TARGET.
+ * Should be large enough that we don't generate ACKs all
+ * the time and still have enough time for the ACK to
+ * arrive before the sender runs out. So really this 
+ * should ideally be based on the RTT.
+ */
+#define KCN_THRESHOLD 92
+
+/**
+ * How many KCNs do we keep around *after* we hit
+ * the #KCN_THRESHOLD? Should be larger than
+ * #KCN_THRESHOLD so we do not generate just one
+ * ACK at the time.
+ */
+#define KCN_TARGET 128
+
+/**
+ * What is the maximum delta between KCN sequence numbers
+ * that we allow. Used to expire 'ancient' KCNs that likely
+ * were dropped by the network.  Must be larger than
+ * KCN_TARGET (otherwise we generate new KCNs all the time),
+ * but not too large (otherwise packet loss may cause
+ * sender to fall back to KX needlessly when sender runs
+ * out of ACK'ed KCNs due to losses).
+ */
+#define MAX_SQN_DELTA 160
 
 /**
  * How often do we rekey based on number of bytes transmitted?
@@ -342,6 +368,11 @@ struct SharedSecret
    * use this key?
    */
   uint32_t sequence_allowed;
+
+  /**
+   * Number of active KCN entries.
+   */ 
+  unsigned int active_kce_count;
 };
 
 
@@ -581,6 +612,7 @@ kce_destroy (struct KeyCacheEntry *kce)
 {
   struct SharedSecret *ss = kce->ss;
 
+  ss->active_kce_count--;
   GNUNET_CONTAINER_DLL_remove (ss->kce_head,
 			       ss->kce_tail,
 			       kce);
@@ -642,6 +674,7 @@ kce_generate (struct SharedSecret *ss,
   GNUNET_CONTAINER_DLL_insert (ss->kce_head,
 			       ss->kce_tail,
 			       kce);
+  ss->active_kce_count++;
   (void) GNUNET_CONTAINER_multishortmap_put (key_cache,
 					     &kce->kid,
 					     kce,
@@ -1048,7 +1081,52 @@ setup_shared_secret_enc (const struct GNUNET_CRYPTO_EcdhePrivateKey *ephemeral,
 			    GNUNET_NO);
   return ss;
 }
-		
+
+
+/**
+ * We received an ACK for @a pid. Check if it is for
+ * the receiver in @a value and if so, handle it and
+ * return #GNUNET_NO. Otherwise, return #GNUNET_YES.
+ *
+ * @param cls a `const struct UDPAck`
+ * @param pid peer the ACK is from
+ * @param value a `struct ReceiverAddress`
+ * @return #GNUNET_YES to continue to iterate
+ */
+static int
+handle_ack (void *cls,
+	    const struct GNUNET_PeerIdentity *pid,
+	    void *value)
+{
+  const struct UDPAck *ack = cls;
+  struct ReceiverAddress *receiver = value;
+
+  (void) pid;
+  for (struct SharedSecret *ss = receiver->ss_head;
+       NULL != ss;
+       ss = ss->next)
+  {
+    if (0 == memcmp (&ack->cmac,
+		     &ss->cmac,
+		     sizeof (struct GNUNET_HashCode)))
+    {
+      ss->sequence_allowed = GNUNET_MAX (ss->sequence_allowed,
+					 ntohl (ack->sequence_max));
+      /* move ss to head to avoid discarding it anytime soon! */
+      GNUNET_CONTAINER_DLL_remove (sender->ss_head,
+				   sender->ss_tail,
+				   ss);
+      GNUNET_CONTAINER_DLL_insert (sender->ss_head,
+				   sender->ss_tail,
+				   ss);
+      /* FIXME: if this changed sequence_allowed,
+	 update MTU / MQ of 'receiver'! */
+      return GNUNET_NO;
+    }
+  }
+  return GNUNET_YES;
+}
+
 
 /**
  * Test if we have received a valid message in plaintext.
@@ -1078,32 +1156,19 @@ try_handle_plaintext (struct SenderAddress *sender,
   {
   case GNUNET_MESSAGE_TYPE_COMMUNICATOR_UDP_ACK:
     /* lookup master secret by 'cmac', then update sequence_max */
-    for (struct SharedSecret *ss = sender->ss_head;
-	 NULL != ss;
-	 ss = ss->next)
-    {
-      if (0 == memcmp (&ack->cmac,
-		       &ss->cmac,
-		       sizeof (ss->cmac)))
-      {
-	ss->sequence_allowed = GNUNET_MAX (ss->sequence_allowed,
-					   ntohl (ack->sequence_max));
-	/* move ss to head to avoid discarding it anytime soon! */
-	GNUNET_CONTAINER_DLL_remove (sender->ss_head,
-				     sender->ss_tail,
-				     ss);
-	GNUNET_CONTAINER_DLL_insert (sender->ss_head,
-				     sender->ss_tail,
-				     ss);
-	break;
-      }
-    }
+    GNUNET_CONTAINER_multihashmap_get_multiple (receivers,
+						&sender->target,
+						&handle_ack,
+						(void *) ack);
     /* There could be more messages after the ACK, handle those as well */
     buf += ntohs (hdr->size);
     buf_size -= ntohs (hdr->size);
     pass_plaintext_to_core (sender,
 			    buf,
 			    buf_size);
+    break;
+  case GNUNET_MESSAGE_TYPE_COMMUNICATOR_UDP_PAD:
+    /* skip padding */
     break;
   default:
     pass_plaintext_to_core (sender,
@@ -1118,15 +1183,33 @@ try_handle_plaintext (struct SenderAddress *sender,
  * the sender an `struct UDPAck` at the next opportunity to allow the
  * sender to use @a ss longer (assuming we did not yet already
  * recently).
+ *
+ * @param ss shared secret to generate ACKs for
  */
 static void
 consider_ss_ack (struct SharedSecret *ss)
 {
   GNUNET_assert (NULL != ss->sender);
-  for (uint32_t i=1;i<0 /* FIXME: ack-based! */;i++)
-    kce_generate (ss,
-		  i);
-  // FIXME: consider generating ACK and more KCEs for ss!
+  /* drop ancient KeyCacheEntries */
+  while ( (NULL != ss->kce_head) &&
+	  (MAX_SQN_DELTA < ss->kce_head->sequence_number - ss->kce_tail->sequence_number) )
+    kce_destroy (ss->kce_tail);
+  if (ss->active_kce_count < KCN_THRESHOLD)
+  {
+    struct UDPAck ack;
+
+    while (ss->active_kce_count < KCN_TARGET)
+      kce_generate (ss,
+		    ++ss->sequence_used);
+    ack.header.type = htons (GNUNET_MESSAGE_TYPE_COMMUNICATOR_UDP_ACK);
+    ack.header.size = htons (sizeof (ack));
+    ack.sequence_max = htonl (ss->sequence_max);
+    ack.cmac = ss->cmac;
+    GNUNET_TRANSPORT_communicator_notify (ch,
+					  &ss->sender->target,
+					  COMMUNICATOR_ADDRESS_PREFIX,
+					  &ack.header);
+  }
 }
 
 
@@ -1392,8 +1475,8 @@ sock_read (void *cls)
 			      1,
 			      GNUNET_NO);
     GNUNET_STATISTICS_update (stats,
-			      "# bytes decrypted without BOX",
-			      sizeof (pbuf) - sizeof (*uc),
+			      "# messages decrypted without BOX",
+			      1,
 			      GNUNET_NO);
     try_handle_plaintext (sender,
 			  &uc[1],
@@ -1557,45 +1640,106 @@ mq_send (struct GNUNET_MQ_Handle *mq,
 {
   struct ReceiverAddress *receiver = impl_state;
   uint16_t msize = ntohs (msg->size);
-  ssize_t sent;
 
   GNUNET_assert (mq == receiver->mq);
-  // FIXME: pick encryption method, encrypt and transmit!!
-
-#if 0
-  /* compute 'tc' and append in encrypted format to cwrite_buf */
-  tc.sender = my_identity;
-  tc.monotonic_time = GNUNET_TIME_absolute_hton (GNUNET_TIME_absolute_get_monotonic (cfg));
-  ths.purpose.purpose = htonl (GNUNET_SIGNATURE_COMMUNICATOR_UDP_HANDSHAKE);
-  ths.purpose.size = htonl (sizeof (ths));
-  ths.sender = my_identity;
-  ths.receiver = queue->target;
-  ths.ephemeral = *epub;
-  ths.monotonic_time = tc.monotonic_time;
-  GNUNET_assert (GNUNET_OK ==
-		 GNUNET_CRYPTO_eddsa_sign (my_private_key,
-					   &ths.purpose,
-					   &tc.sender_sig));
-  GNUNET_assert (0 ==
-		 gcry_cipher_encrypt (queue->out_cipher,
-				      &queue->cwrite_buf[queue->cwrite_off],
-				      sizeof (tc),
-				      &tc,
-				      sizeof (tc)));
-
-  sent = GNUNET_NETWORK_socket_sendto (udp_sock,
-				       ...);
-  GNUNET_MQ_impl_send_continue (mq);
-  if (-1 == sent)
+  if (msize > receiver->mtu)
   {
-    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING,
-			 "send");
-    return;			 
+    GNUNET_break (0);
+    receiver_destroy (receiver);
+    return;
   }
+  
+  // FIXME: add support for BOX encryption method!
 
-#endif
+  /* KX encryption method */
+  {
+    struct UdpHandshakeSignature uhs;
+    struct UdpConfirmation uc;
+    struct InitialKX kx;
+    struct GNUNET_CRYPTO_EcdhePrivateKey epriv;
+    char dgram[receiver->mtu +
+	       sizeof (uc) +
+	       sizeof (kx)];
+    size_t dpos;
 
+    GNUNET_assert (GNUNET_OK ==
+		   GNUNET_CRYPTO_ecdhe_key_create2 (&epriv)); 
+    /* compute 'uc' */
+    uc.sender = my_identity;
+    uc.monotonic_time = GNUNET_TIME_absolute_hton (GNUNET_TIME_absolute_get_monotonic (cfg));
+    uhs.purpose.purpose = htonl (GNUNET_SIGNATURE_COMMUNICATOR_UDP_HANDSHAKE);
+    uhs.purpose.size = htonl (sizeof (uhs));
+    uhs.sender = my_identity;
+    uhs.receiver = receiver->target;
+    GNUNET_CRYPTO_ecdhe_key_get_public (&epriv,
+					&uhs.ephemeral);
+    uhs.monotonic_time = uc.monotonic_time;
+    GNUNET_assert (GNUNET_OK ==
+		   GNUNET_CRYPTO_eddsa_sign (my_private_key,
+					     &uhs.purpose,
+					     &uc.sender_sig));
+    /* Leave space for kx */
+    dpos = sizeof (struct GNUNET_CRYPTO_EcdhePublicKey);
+    /* Append encrypted uc to dgram */
+    GNUNET_assert (0 ==
+		   gcry_cipher_encrypt (out_cipher,
+					&dgram[dpos],
+					sizeof (uc),
+					&uc,
+					sizeof (uc)));
+    dpos += sizeof (uc);
+    /* Append encrypted payload to dgram */
+    GNUNET_assert (0 ==
+		   gcry_cipher_encrypt (out_cipher,
+					&dgram[dpos],
+					msize,
+					msg,
+					msize));
+    dpos += msize;
+    /* Pad to MTU */
+    {
+      char pad[sizeof (dgram) - pos];
 
+      GNUNET_CRYPTO_random_block (GNUNET_CRYPTO_QUALITY_WEAK,
+				  pad,
+				  sizeof (pad));
+      if (sizeof (pad) > sizeof (struct GNUNET_MessageHeader))
+      {
+	struct GNUNET_MessageHeader hdr = {
+	  .size = htons (sizeof (pad)),
+	  .type = htons (GNUNET_MESSAGE_TYPE_COMMUNICATOR_UDP_PAD)
+	};
+	
+	memcpy (pad,
+		&hdr,
+		sizeof (hdr));
+	GNUNET_assert (0 ==
+		       gcry_cipher_encrypt (out_cipher,
+					    &dgram[dpos],
+					    sizeof (pad),
+					    pad,
+					    sizeof (pad)));
+      }
+    }
+    /* Datagram starts with kx */
+    kx.ephemeral = uhs.ephemeral;
+    GNUNET_assert (0 ==
+		   gcry_cipher_gettag (out_cipher,
+				       kx.gcm_tag,
+				       sizeof (kx.gcm_tag)));
+    memcpy (dgram,
+	    &kx,
+	    sizeof (kx));
+    if (-1 ==
+	GNUNET_NETWORK_socket_sendto (udp_sock,
+				      dgram,
+				      sizeof (dgram),
+				      receiver->address,
+				      receiver->address_len))
+      GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING,
+			   "send");
+    GNUNET_MQ_impl_send_continue (mq);
+  } /* End of KX encryption method */
 }
 
 
@@ -1697,6 +1841,7 @@ receiver_setup (const struct GNUNET_PeerIdentity *target,
 				     NULL,
 				     &mq_error,
 				     receiver);
+  receiver->mtu = 1200 /* FIXME: MTU OK? */;
   if (NULL == timeout_task)
     timeout_task = GNUNET_SCHEDULER_add_now (&check_timeouts,
 					     NULL);
@@ -1726,14 +1871,14 @@ receiver_setup (const struct GNUNET_PeerIdentity *target,
     default:
       GNUNET_assert (0);
     }
-    queue->qh
+    receiver->qh
       = GNUNET_TRANSPORT_communicator_mq_add (ch,
 					      &receiver->target,
 					      foreign_addr,
-					      1200 /* FIXME: MTU OK? */,
-					      queue->nt,
+					      receiver->mtu,
+					      receiver->nt,
 					      GNUNET_TRANSPORT_CS_OUTBOUND,
-					      queue->mq);
+					      receiver->mq);
     GNUNET_free (foreign_addr);
   }
 }
@@ -1887,13 +2032,11 @@ do_shutdown (void *cls)
 
 
 /**
- * Function called when the transport service has received an
- * acknowledgement for this communicator (!) via a different return
- * path.
+ * Function called when the transport service has received a
+ * backchannel message for this communicator (!) via a different return
+ * path. Should be an acknowledgement.
  *
- * Not applicable for UDP.
- *
- * @param cls closure
+ * @param cls closure, NULL
  * @param sender which peer sent the notification
  * @param msg payload
  */
@@ -1902,10 +2045,20 @@ enc_notify_cb (void *cls,
                const struct GNUNET_PeerIdentity *sender,
                const struct GNUNET_MessageHeader *msg)
 {
+  const struct UDPAck *ack;
+  
   (void) cls;
-  (void) sender;
-  (void) msg;
-  GNUNET_break_op (0);
+  if ( (ntohs (msg->type) != GNUNET_MESSAGE_TYPE_COMMUNICATOR_UDP_ACK) ||
+       (ntohs (msg->size) != sizeof (struct UDPAck)) )
+  {
+    GNUNET_break_op (0);
+    return;
+  }
+  ack = (const struct UDPAck *) msg;
+  GNUNET_CONTAINER_multihashmap_get_multiple (receivers,
+					      sender,
+					      &handle_ack,
+					      (void *) ack);
 }
 
 
