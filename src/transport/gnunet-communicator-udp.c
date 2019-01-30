@@ -24,6 +24,17 @@
  * @author Christian Grothoff
  *
  * TODO:
+ * - main sending logic
+ * - actual generation of ACKs (-> integrate with sending logic!)
+ *   (specifically, ACKs should go as backchannel, let TNG
+ *   decide how to send!)
+ * - handle ACKs from backchannel!
+ * - figure out what to do with MTU: 1280 for IPv6 is obvious;
+ *   what for IPv4? 1500? Also, consider differences in 
+ *   headers for with/without box: need to give MIN of both
+ *   to TNG (as TNG expects a fixed MTU!), or maybe
+ *   we create a FRESH MQ while we have available BOXes SQNs?
+ *   (otherwise padding will REALLY hurt)
  * - support DNS names in BINDTO option (#5528)
  * - support NAT connection reversal method (#5529)
  * - support other UDP-specific NAT traversal methods 
@@ -807,6 +818,47 @@ reschedule_receiver_timeout (struct ReceiverAddress *receiver)
 
 
 /**
+ * Task run to check #receiver_heap and #sender_heap for timeouts.
+ *
+ * @param cls unused, NULL
+ */
+static void
+check_timeouts (void *cls)
+{
+  struct GNUNET_TIME_Relative st;
+  struct GNUNET_TIME_Relative rt;
+  struct GNUNET_TIME_Relative delay;
+  struct ReceiverAddress *receiver;
+  struct SenderAddress *sender;
+  
+  (void) cls;
+  timeout_task = NULL;
+  rt = GNUNET_TIME_UNIT_FOREVER_REL;
+  while (NULL != (receiver = GNUNET_CONTAINER_heap_peek (receivers_heap)))
+  {
+    rt = GNUNET_TIME_absolute_get_remaining (receiver->timeout);
+    if (0 != rt.rel_value_us)
+      break;
+    receiver_destroy (receiver);
+  }
+  st = GNUNET_TIME_UNIT_FOREVER_REL;
+  while (NULL != (sender = GNUNET_CONTAINER_heap_peek (senders_heap)))
+  {
+    st = GNUNET_TIME_absolute_get_remaining (receiver->timeout);
+    if (0 != st.rel_value_us)
+      break;
+    sender_destroy (sender);
+  }
+  delay = GNUNET_TIME_relative_min (rt,
+				    st);
+  if (delay.rel_value_us < GNUNET_TIME_UNIT_FOREVER_REL.rel_value_us)
+    timeout_task = GNUNET_SCHEDULER_add_delayed (delay,
+						 &check_timeouts,
+						 NULL);  
+}
+			  
+
+/**
  * Calcualte cmac from master in @a ss.
  *
  * @param ss[in,out] data structure to complete
@@ -1200,7 +1252,10 @@ setup_sender (const struct GNUNET_PeerIdentity *target,
 					      &find_sender_by_address,
 					      &sc);
   if (NULL != sc.sender)
+  {
+    reschedule_sender_timeout (sc.sender);
     return sc.sender;
+  }
   sender = GNUNET_new (struct SenderAddress);
   sender->target = *target;
   sender->address = GNUNET_memdup (address,
@@ -1222,6 +1277,9 @@ setup_sender (const struct GNUNET_PeerIdentity *target,
   sender->nt = GNUNET_NT_scanner_get_type (is,
 					   address,
 					   address_len);
+  if (NULL == timeout_task)
+    timeout_task = GNUNET_SCHEDULER_add_now (&check_timeouts,
+					     NULL);
   return sender;
 }
 
@@ -1484,28 +1542,6 @@ udp_address_to_sockaddr (const char *bindto,
 }
 
 
-#if 0
-/**
- *
- * 
- */
-static void
-XXX_write (void *cls)
-{
-  ssize_t sent;
-
-  sent = GNUNET_NETWORK_socket_sendto (udp_sock,
-				       );
-  if (-1 == sent)
-  {
-    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING,
-			 "send");
-    return;			 
-  }
-}
-#endif
-
-
 /**
  * Signature of functions implementing the sending functionality of a
  * message queue.
@@ -1521,9 +1557,10 @@ mq_send (struct GNUNET_MQ_Handle *mq,
 {
   struct ReceiverAddress *receiver = impl_state;
   uint16_t msize = ntohs (msg->size);
+  ssize_t sent;
 
   GNUNET_assert (mq == receiver->mq);
-  // FIXME: pick encryption method, encrypt and transmit and call MQ-send-contiue!!
+  // FIXME: pick encryption method, encrypt and transmit!!
 
 #if 0
   /* compute 'tc' and append in encrypted format to cwrite_buf */
@@ -1545,6 +1582,17 @@ mq_send (struct GNUNET_MQ_Handle *mq,
 				      sizeof (tc),
 				      &tc,
 				      sizeof (tc)));
+
+  sent = GNUNET_NETWORK_socket_sendto (udp_sock,
+				       ...);
+  GNUNET_MQ_impl_send_continue (mq);
+  if (-1 == sent)
+  {
+    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING,
+			 "send");
+    return;			 
+  }
+
 #endif
 
 
@@ -1649,6 +1697,9 @@ receiver_setup (const struct GNUNET_PeerIdentity *target,
 				     NULL,
 				     &mq_error,
 				     receiver);
+  if (NULL == timeout_task)
+    timeout_task = GNUNET_SCHEDULER_add_now (&check_timeouts,
+					     NULL);
   GNUNET_STATISTICS_set (stats,
 			 "# receivers active",
 			 GNUNET_CONTAINER_multipeermap_size (receivers),
