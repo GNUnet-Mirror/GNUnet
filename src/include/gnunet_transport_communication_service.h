@@ -99,7 +99,7 @@ enum GNUNET_TRANSPORT_CommunicatorCharacteristics {
   /**
    * Transmission is unreliable (i.e. UDP)
    */
-  GNUNET_TRANSPORT_CC_UNRELIABILE = 2
+  GNUNET_TRANSPORT_CC_UNRELIABLE = 2
 
 };
 

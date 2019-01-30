@@ -143,6 +143,7 @@ noinst_PROGRAMS = \
  gnunet-transport-profiler \
  gnunet-communicator-unix \
  gnunet-communicator-tcp \
+ gnunet-communicator-udp \
  gnunet-service-tng \
  $(WLAN_BIN_SENDER) \
  $(WLAN_BIN_RECEIVER)
@@ -255,6 +256,16 @@ gnunet_communicator_unix_LDADD = \
 gnunet_communicator_tcp_SOURCES = \
  gnunet-communicator-tcp.c
 gnunet_communicator_tcp_LDADD = \
+  libgnunettransportcommunicator.la \
+  $(top_builddir)/src/nat/libgnunetnatnew.la \
+  $(top_builddir)/src/nt/libgnunetnt.la \
+  $(top_builddir)/src/statistics/libgnunetstatistics.la \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(LIBGCRYPT_LIBS)
+
+gnunet_communicator_udp_SOURCES = \
+ gnunet-communicator-udp.c
+gnunet_communicator_udp_LDADD = \
   libgnunettransportcommunicator.la \
   $(top_builddir)/src/nat/libgnunetnatnew.la \
   $(top_builddir)/src/nt/libgnunetnt.la \
