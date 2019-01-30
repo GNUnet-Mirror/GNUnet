@@ -548,7 +548,9 @@ receiver_destroy (struct ReceiverAddress *receiver)
                  GNUNET_CONTAINER_multipeermap_remove (receivers,
 						       &receiver->target,
 						       receiver));
-  // FIXME: remove from receiver_heap
+  GNUNET_assert (sender ==
+		 GNUNET_CONTAINER_heap_remove_node (receivers_heap,
+						    receiver->hn));
   GNUNET_STATISTICS_set (stats,
 			 "# receivers active",
 			 GNUNET_CONTAINER_multipeermap_size (receivers),
@@ -693,7 +695,9 @@ sender_destroy (struct SenderAddress *sender)
                  GNUNET_CONTAINER_multipeermap_remove (senders,
 						       &sender->target,
 						       sender));
-  // FIXME: remove from sender_heap
+  GNUNET_assert (sender ==
+		 GNUNET_CONTAINER_heap_remove_node (senders_heap,
+						    sender->hn));
   GNUNET_STATISTICS_set (stats,
 			 "# senders active",
 			 GNUNET_CONTAINER_multipeermap_size (senders),
@@ -782,7 +786,8 @@ reschedule_sender_timeout (struct SenderAddress *sender)
 {
   sender->timeout
     = GNUNET_TIME_relative_to_absolute (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT);
-  // FIXME: update heap!
+  GNUNET_CONTAINER_heap_update_cost (sender->hn,
+				     sender.timeout.abs_value_us);
 }
 
 
@@ -796,7 +801,8 @@ reschedule_receiver_timeout (struct ReceiverAddress *receiver)
 {
   receiver->timeout
     = GNUNET_TIME_relative_to_absolute (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT);
-  // FIXME: update heap!
+  GNUNET_CONTAINER_heap_update_cost (receiver->hn,
+				     receiver.timeout.abs_value_us);
 }
 
 
@@ -1113,6 +1119,110 @@ decrypt_box (const struct UDPBox *box,
 			out_buf,
 			sizeof (out_buf));
   consider_ss_ack (ss);
+}
+
+
+/**
+ * Closure for #find_sender_by_address()
+ */
+struct SearchContext
+{
+  /**
+   * Address we are looking for.
+   */
+  const struct sockaddr *address;
+
+  /**
+   * Number of bytes in @e address.
+   */
+  socklen_t address_len;
+
+  /**
+   * Return value to set if we found a match.
+   */
+  struct SenderAddress *sender;
+};
+
+
+/**
+ * Find existing `struct SenderAddress` by matching addresses.
+ *
+ * @param cls a `struct SearchContext`
+ * @param key ignored, must match already
+ * @param value a `struct SenderAddress`
+ * @return #GNUNET_YES if not found (continue to search), #GNUNET_NO if found
+ */
+static int
+find_sender_by_address (void *cls,
+			const struct GNUNET_PeerIdentity *key,
+			void *value)
+{
+  struct SearchContext *sc = cls;
+  struct SenderAddress *sender = value;
+
+  if ( (sender->address_len == sc->address_len) &&
+       (0 == memcmp (sender->address,
+		     sc->address,
+		     sender->address_len)) )
+  {
+    sc->sender = sender;
+    return GNUNET_NO; /* stop iterating! */
+  }
+  return GNUNET_YES;
+}
+
+
+/**
+ * Create sender address for @a target.  Note that we
+ * might already have one, so a fresh one is only allocated
+ * if one does not yet exist for @a address.
+ *
+ * @param target peer to generate address for
+ * @param address target address 
+ * @param address_len number of bytes in @a address
+ * @return data structure to keep track of key material for
+ *         decrypting data from @a target
+ */
+static struct SenderAddress *
+setup_sender (const struct GNUNET_PeerIdentity *target,
+	      const struct sockaddr *address,
+	      socklen_t address_len)
+{
+  struct SenderAddress *sender;
+  struct SearchContext sc = {
+    .address = address,
+    .address_len = address_len,
+    .sender = NULL
+  };
+
+  GNUNET_CONTAINER_multihashmap_get_multiple (senders,
+					      target,
+					      &find_sender_by_address,
+					      &sc);
+  if (NULL != sc.sender)
+    return sc.sender;
+  sender = GNUNET_new (struct SenderAddress);
+  sender->target = *target;
+  sender->address = GNUNET_memdup (address,
+				   address_len);
+  sender->address_len = address_len;
+  (void) GNUNET_CONTAINER_multihashmap_put (senders,
+					    &sender->target,
+					    sender,
+					    GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
+  GNUNET_STATISTICS_set (stats,
+			 "# senders active",
+			 GNUNET_CONTAINER_multipeermap_size (receivers),
+			 GNUNET_NO);
+  sender->timeout
+    = GNUNET_TIME_relative_to_absolute (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT);
+  sender->hn = GNUNET_CONTAINER_heap_insert (senders_heap,
+					     sender,
+					     sender.timeout.abs_value_us);
+  sender->nt = GNUNET_NT_scanner_get_type (is,
+					   address,
+					   address_len);
+  return sender;
 }
 
 
@@ -1526,13 +1636,11 @@ receiver_setup (const struct GNUNET_PeerIdentity *target,
 					    &receiver->target,
 					    receiver,
 					    GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
-  // FIXME: add to receiver heap!
-  GNUNET_STATISTICS_set (stats,
-			 "# receivers active",
-			 GNUNET_CONTAINER_multipeermap_size (receivers),
-			 GNUNET_NO);
   receiver->timeout
     = GNUNET_TIME_relative_to_absolute (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT);
+  receiver->hn = GNUNET_CONTAINER_heap_insert (receivers_heap,
+					       receiver,
+					       receiver.timeout.abs_value_us);
   receiver->mq
     = GNUNET_MQ_queue_for_callbacks (&mq_send,
 				     &mq_destroy,
@@ -1541,6 +1649,10 @@ receiver_setup (const struct GNUNET_PeerIdentity *target,
 				     NULL,
 				     &mq_error,
 				     receiver);
+  GNUNET_STATISTICS_set (stats,
+			 "# receivers active",
+			 GNUNET_CONTAINER_multipeermap_size (receivers),
+			 GNUNET_NO);
   {
     char *foreign_addr;
 
@@ -1895,6 +2007,14 @@ run (void *cls,
 			  sto_len));
   stats = GNUNET_STATISTICS_create ("C-UDP",
 				    cfg);
+  senders = GNUNET_CONTAINER_multipeermap_create (32,
+						  GNUNET_YES);
+  receivers = GNUNET_CONTAINER_multipeermap_create (32,
+						    GNUNET_YES);
+  senders_heap = GNUNET_CONTAINER_heap_create (GNUNET_CONTAINER_HEAP_ORDER_MIN);
+  receivers_heap = GNUNET_CONTAINER_heap_create (GNUNET_CONTAINER_HEAP_ORDER_MIN);
+  key_cache = GNUNET_CONTAINER_multishortmap_create (1024,
+						     GNUNET_YES);
   GNUNET_SCHEDULER_add_shutdown (&do_shutdown,
 				 NULL);
   is = GNUNET_NT_scanner_init ();
@@ -1913,12 +2033,6 @@ run (void *cls,
 					     udp_sock,
 					     &sock_read,
 					     NULL);
-  senders = GNUNET_CONTAINER_multipeermap_create (32,
-						  GNUNET_YES);
-  receivers = GNUNET_CONTAINER_multipeermap_create (32,
-						    GNUNET_YES);
-  key_cache = GNUNET_CONTAINER_multishortmap_create (1024,
-						     GNUNET_YES);
   ch = GNUNET_TRANSPORT_communicator_connect (cfg,
 					      COMMUNICATOR_CONFIG_SECTION,
 					      COMMUNICATOR_ADDRESS_PREFIX,
