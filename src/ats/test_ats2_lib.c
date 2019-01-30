@@ -244,6 +244,11 @@ main (int argc,
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Running the testing peer failed.\n");
     return 1;
   }
+  if (0 != ret)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+        "Global status indicates unsuccessful testrun - probably allocation_cb was not called.\n");
+  }
   return ret;
 }
 
