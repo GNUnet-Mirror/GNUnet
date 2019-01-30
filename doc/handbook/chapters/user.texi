@@ -1895,37 +1895,85 @@ option ``DISABLE'' to ``YES'' in section ``[namecache]''.
 @node Migrating an existing DNS zone into GNS
 @subsection Migrating an existing DNS zone into GNS
 
+Ascension is a tool to migrate existing DNS zones into GNS.
+
+@xref{Migrating existing DNS zones into GNS} for installation instructions and
+further information about Ascension.
+
+Compared to the gnunet-zoneimport tool it strictly uses AXFR or IXFR depending
+on whether or not there exists a SOA record for the zone. If that is the case it
+will take the serial as a reference point and request the zone. The server will
+either answer the IXFR request with a correct incremental zone or with the
+entire zone, which depends on the server configuration.
+
 After installing the tool according to the README file you have the following
 options:
+
 @example
 Ascension
 
 Usage:
-    ascension.py <domain> [-d]
-    ascension.py <domain> -p <port> [-d]
-    ascension.py <domain> -ns <transferns> [-d]
-    ascension.py <domain> -ns <transferns> -p <port> [-d]
-    ascension.py -h | --help
-    ascension.py -v | --version
+    ascension <domain> [-d] [-p]
+    ascension <domain> <port> [-d] [-p]
+    ascension <domain> -ns <transferns> [-d] [-p]
+    ascension <domain> -ns <transferns> <port> [-d] [-p]
+    ascension -p | --public
+    ascension -h | --help
+    ascension -v | --version
 
 Options:
-    <port>          Port for zone transfer
     <domain>        Domain to migrate
+    <port>          Port for zone transfer
     <transferns>    DNS Server that does the zone transfer
+    -p --public     Make records public on the DHT
     -d --debug      Enable debugging
     -h --help       Show this screen.
     -v --version    Show version.
 @end example
 
+Before you can migrate any zone though, you need to start the GNUnet peer:
+@example
+$ gnunet-arm -s
+@end example
+
 To migrate the Syrian top level domain - one of the few top level domains that
-still supports zone transfers - use the following command:
+still supports zone transfers - into GNS use the following command:
 
 @example
-$ ascension sy. -ns ns1.tld.sy.
+$ ascension sy. -ns ns1.tld.sy. -p
+@end example
+
+The -p flag will tell GNS to put these records on the DHT so that other users
+may resolve these records by using the public key of the zone.
+
+Once the zone is migrated, Ascension will output a message telling you, that it
+will refresh the zone after the time has elapsed.  You can resolve the names in
+the zone directly using GNS or if you want to use it with your browser, check
+out the GNS manual section. @ref{Configuring the GNU Name System}. To resolve
+the records from another system you need the zone PKEY.  To get the zone key,
+you can run the following command:
+
+@example
+$ gnunet-identity -d | grep ^sy | cut -d " " -f3
+@end example
+
+Where "sy" is the name of the zone you want to migrate.
+
+As soon as the public flag is implemented, you can share the PKEY of the zone
+with your friends. They can then resolve records in the zone by doing a lookup
+replacing the zone label with your PKEY:
+
+@example
+$ gnunet-gns -t SOA -u "@.$PKEY"
 @end example
 
 The program will continue to run as a daemon and update once the refresh time
 specified in the zones SOA record has elapsed.
+
+The next step would be to add the PKEY record as a DNScurve style NS record
+into the existing DNS zone to enable clients to detect that this zone has
+already been migrated to GNS and to also have a means of distributing the PKEY
+seamlessly.
 
 At this point you might want to write for example a systemd unit file to start
 and enable the service, so that your zone is migrated automatically.

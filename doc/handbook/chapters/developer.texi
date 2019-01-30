@@ -8080,7 +8080,7 @@ This includes some of well known utilities, like "ping" and "nslookup".
 @c %**end of header
 
 This section discusses the challenges and problems faced when writing the
-ascension tool. It also takes a look at possible improvements in the future.
+Ascension tool. It also takes a look at possible improvements in the future.
 
 @menu
 * Conversions between DNS and GNS::
@@ -8093,7 +8093,7 @@ ascension tool. It also takes a look at possible improvements in the future.
 
 The differences between the two name systems lies in the details
 and is not always transparent. For instance an SRV record is converted to a
-gnunet only BOX record.
+GNS only BOX record.
 
 This is done by converting to a BOX record from an existing SRV record:
 
@@ -8120,14 +8120,14 @@ example. Very important to note are the rname and mname keys.
     604800     ; expire
     600 )      ; ttl
 # Recordline for adding the record
-gnunet-namestore -z example.com -a -n @ -t SOA -V rname=master.example.com \
-    mname=hostmaster.example.com 2017030300,3600,1800,604800,600 -e 7200s
+$ gnunet-namestore -z example.com -a -n @ -t SOA -V rname=master.example.com \
+  mname=hostmaster.example.com 2017030300,3600,1800,604800,600 -e 7200s
 @end example
 
 The transformation of MX records is done in a simple way.
 @example
 # mail.example.com. 3600 IN MX 10 mail.example.com.
-gnunet-namestore -z example.com -n mail -R 3600 MX n 10,mail
+$ gnunet-namestore -z example.com -n mail -R 3600 MX n 10,mail
 @end example
 
 Finally, one of the biggest struggling points were the NS records that are found
@@ -8136,9 +8136,47 @@ records for those so that gnunet-gns can resolve records for those domains on
 its own. This requires migration of the DNS GLUE records as well, provided that
 they are within the same zone.
 
+The following two examples show one record with a GLUE record and the other one
+does not have a GLUE record. This takes place in the 'com' TLD.
+
+@example
+# ns1.example.com 86400 IN A 127.0.0.1
+# example.com 86400 IN NS ns1.example.com.
+$ gnunet-namestore -z com -n example -R 86400 GNS2DNS n example.com@@127.0.0.1
+
+# example.com 86400 IN NS ns1.example.org.
+$ gnunet-namestore -z com -n example -R 86400 GNS2DNS n example.com@@ns1.example.org
+@end example
+
+As you can see, one of the GNS2DNS records has an IP address listed and the
+other one a DNS name. For the first one there is a GLUE record to do the
+translation directly and the second one will issue another DNS query to figure
+out the IP of ns1.example.org.
+
 A solution was found by creating a hierarchical zone structure in GNS and linking
 the zones using PKEY records to one another. This allows the resolution of the
-nameservers to work within GNS while not taking control over unwanted zones.
+name servers to work within GNS while not taking control over unwanted zones.
+
+Currently the following record types are supported:
+@itemize @bullet
+@item A
+@item AAAA
+@item CNAME
+@item MX
+@item NS
+@item SRV
+@item TXT
+@end itemize
+
+This is not due to a technical limitation but rather a practical one. The
+problem occurs with DNSSEC enabled DNS zones. As records within those zones are
+signed periodically, and every new signature is an update to the zone, there are
+many revisions of zones. This results in a problem with bigger zones as there
+are lots of records that have been signed again but no major changes.  Also
+trying to add records that are unknown that require a different format take time
+as they cause a CLI call of the namestore.  Furthermore certain record types
+need transformation into a GNS compatible format which, depending on the record
+type, takes more time.
 
 @node DNS Zone Size
 @subsubsection DNS Zone Size
@@ -8162,11 +8200,17 @@ are still displayed when calling gnunet-namestore but do not resolve with
 gnunet-gns. When doing incremental zone transfers this becomes especially
 apparent.
 
+I estimate that the limit lies at about 200'000 records in a zone as this is
+the limit that my machine is capable of adding within one hour.  This was
+calculated by running cProfile on the application with a zone of 5000 records
+and calculating what abouts a much bigger zones with 8 million records would
+take. This results in a nice metric of records migrated per hour.
+
 @node Performance
 @subsubsection Performance
-The performance when migrating a zone using the ascension tool is limited by a
-handful of factors. First of all ascension is written in python3 and calls the
-CLI tools of gnunet. Furthermore all the records that are added to the same
+The performance when migrating a zone using the Ascension tool is limited by a
+handful of factors. First of all ascension is written in Python3 and calls the
+CLI tools of GNUnet. Furthermore all the records that are added to the same
 label are signed using the zones private key. This signing operation is very
 resource heavy and was optimized during development by adding the '-R'
 (Recordline) option to gnunet-namestore. This allows to add multiple records
@@ -8176,16 +8220,15 @@ The result of this was a much faster migration of TLD zones, as most records
 with the same label have two name servers.
 
 Another improvement that could be made is with the addition of multiple threads
-when opening the gnunet CLI tools. This could be implemented by simply creating
+when opening the GNUnet CLI tools. This could be implemented by simply creating
 more workers in the program but performance improvements were not tested.
 
-During the entire development of the ascension tool sqlite was used as a
-database backend. Other backends need to be tested in the future.
+During the entire development of Ascension sqlite was used as a database
+backend for GNUnet. Other backends have not been tested yet.
 
 In conclusion there are many bottlenecks still around in the program, namely the
 signing process and the single threaded implementation. In the future a solution
-that uses the c api would be cleaner and better.
-
+that uses the C API would be cleaner and better.
 
 @cindex GNS Namecache
 @node GNS Namecache

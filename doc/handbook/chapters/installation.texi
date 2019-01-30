@@ -1697,31 +1697,41 @@ configured proxy) should give you a valid SSL certificate for
 @node Migrating existing DNS zones into GNS
 @subsubsection Migrating existing DNS zones into GNS
 
-To migrate an existing zone into GNS use the ascension tool.
+To migrate an existing zone into GNS use the Ascension tool.
 
 Ascension transfers entire zones into GNS by doing incremental zone transfers
 and then adding the records to GNS.
 
+Compared to the gnunet-zoneimport tool it strictly uses AXFR or IXFR depending
+on whether or not there exists a SOA record for the zone. If that is the case it
+will take the serial as a reference point and request the zone. The server will
+either answer the IXFR request with a correct incremental zone or with the
+entire zone, which depends on the server configuration.
+
 You can find the source code here: @code{https://gnunet.org/git/ascension.git/}
 
-The software can be installed into a python virtual environment like this:
+The software can be installed into a Python virtual environment like this:
 @example
 $ python3 -m venv .venv
 $ source .venv/bin/activate
 $ python3 setup.py install
 @end example
 
-Or installed globally like this (not recommended):
+Or installed globally like this:
 @example
 $ sudo python3 setup.py install
 @end example
 
+Pip will then install all the necessary requirements that are needed to run
+Ascension. For development purposes a virtual environment should suffice.
+Keeping a virtual environment helps with keeping things tidy and prevents
+breaking of Ascension through a future Python update.
+
 The advantage of using a virtual environment is, that all the dependencies can
-be installed separately in different versions without touching your existing
-python installation and its dependencies.
+be installed separately in different versions without touching your system
+Python installation and its dependencies.
 
-Using the tool is discussed in the user section of the documentation.
-
+@xref{Migrating an existing DNS zone into GNS} for usage manual of the tool.
 
 @node Configuring the GNUnet VPN
 @subsection Configuring the GNUnet VPN
