@@ -24,16 +24,14 @@
  * @author Christian Grothoff
  *
  * TODO:
- * - figure out what to do with MTU: 1280 for IPv6 is obvious;
- *   what for IPv4? 1500? Also, consider differences in 
- *   headers for with/without box: need to give MIN of both
- *   to TNG (as TNG expects a fixed MTU!), or maybe
- *   we create a FRESH MQ while we have available BOXes SQNs?
- *   (otherwise padding will REALLY hurt)
  * - add and use util/ check for IPv6 availability (#V6)
  * - consider imposing transmission limits in the absence
  *   of ACKs; or: maybe this should be done at TNG service level?
- * - handle addresses discovered from broadcasts (#)
+ *   (at least the receiver might want to enforce limits on
+ *    KX/DH operations per sender in here)
+ * - overall, we should look more into flow control support
+ *   (either in backchannel, or general solution in TNG service)
+ * - handle addresses discovered from broadcasts (#BC)
  *   (think: what was the story again on address validation?
  *    where is the API for that!?!)
  * - support DNS names in BINDTO option (#5528)
@@ -535,6 +533,12 @@ struct ReceiverAddress
   struct SharedSecret *ss_tail;
 
   /**
+   * Address of the receiver in the human-readable format
+   * with the #COMMUNICATOR_ADDRESS_PREFIX.
+   */ 
+  char *foreign_addr;
+
+  /**
    * Address of the other peer.
    */
   struct sockaddr *address;
@@ -794,6 +798,11 @@ receiver_destroy (struct ReceiverAddress *receiver)
     receiver->mq = NULL;
     GNUNET_MQ_destroy (mq);
   }
+  if (NULL != receiver->qh)
+  {
+    GNUNET_TRANSPORT_communicator_mq_del (receiver->qh);
+    receiver->qh = NULL;
+  }
   GNUNET_assert (GNUNET_YES ==
                  GNUNET_CONTAINER_multipeermap_remove (receivers,
 						       &receiver->target,
@@ -805,6 +814,7 @@ receiver_destroy (struct ReceiverAddress *receiver)
 			 GNUNET_CONTAINER_multipeermap_size (receivers),
 			 GNUNET_NO);
   GNUNET_free (receiver->address);
+  GNUNET_free (receiver->foreign_addr);
   GNUNET_free (receiver);
 }
 
@@ -1260,6 +1270,17 @@ setup_shared_secret_enc (const struct GNUNET_CRYPTO_EcdhePrivateKey *ephemeral,
 
 
 /**
+ * Setup the MQ for the @a receiver.  If a queue exists,
+ * the existing one is destroyed.  Then the MTU is
+ * recalculated and a fresh queue is initialized.
+ *
+ * @param receiver receiver to setup MQ for
+ */ 
+static void
+setup_receiver_mq (struct ReceiverAddress *receiver);
+
+
+/**
  * We received an ACK for @a pid. Check if it is for
  * the receiver in @a value and if so, handle it and
  * return #GNUNET_NO. Otherwise, return #GNUNET_YES.
@@ -1292,11 +1313,13 @@ handle_ack (void *cls,
 			    
       if (allowed > ss->sequence_allowed)
       {
-	if (0 == receiver->acks_available)
-	{
-	  /* FIXME: update MTU / MQ of 'receiver'! */
-	}
 	receiver->acks_available += (allowed - ss->sequence_allowed);
+	if ((allowed - ss->sequence_allowed)
+	    == receiver->acks_available)
+	{
+	  /* we just incremented from zero => MTU change! */
+	  setup_receiver_mq (receiver);
+	}
 	ss->sequence_allowed = allowed;
 	/* move ss to head to avoid discarding it anytime soon! */
 	GNUNET_CONTAINER_DLL_remove (receiver->ss_head,
@@ -1649,7 +1672,7 @@ sock_read (void *cls)
 				"# broadcasts received",
 				1,
 				GNUNET_NO);
-      // FIXME: we effectively just got a HELLO!
+      // FIXME #BC: we effectively just got a HELLO!
       // trigger verification NOW!
       return;
     }
@@ -2012,7 +2035,6 @@ mq_send (struct GNUNET_MQ_Handle *mq,
     return;
   } /* End of KX encryption method */
 
-  // FIXME: add support for BOX encryption method!
   /* begin "BOX" encryption method, scan for ACKs from tail! */
   for (struct SharedSecret *ss = receiver->ss_tail;
        NULL != ss;
@@ -2062,7 +2084,8 @@ mq_send (struct GNUNET_MQ_Handle *mq,
       receiver->acks_available--;
       if (0 == receiver->acks_available)
       {
-	/* FIXME: update MTU / MQ of 'receiver'! */
+	/* We have no more ACKs => MTU change! */
+	setup_receiver_mq (receiver);
       }
       return;
     }
@@ -2132,6 +2155,77 @@ mq_error (void *cls,
 
 
 /**
+ * Setup the MQ for the @a receiver.  If a queue exists,
+ * the existing one is destroyed.  Then the MTU is
+ * recalculated and a fresh queue is initialized.
+ *
+ * @param receiver receiver to setup MQ for
+ */ 
+static void
+setup_receiver_mq (struct ReceiverAddress *receiver)
+{
+  size_t base_mtu;
+  
+  if (NULL != receiver->qh)
+  {
+    GNUNET_TRANSPORT_communicator_mq_del (receiver->qh);
+    receiver->qh = NULL;
+  }
+  GNUNET_assert (NULL == receiver->mq);
+  switch (receiver->address->sa_family)
+  {
+  case AF_INET:
+    base_mtu
+      = 1480 /* Ethernet MTU, 1500 - Ethernet header - VLAN tag */
+      - sizeof (struct GNUNET_TUN_IPv4Header) /* 20 */
+      - sizeof (struct GNUNET_TUN_UdpHeader) /* 8 */;
+    break;
+  case AF_INET6:
+    base_mtu
+      = 1280 /* Minimum MTU required by IPv6 */
+      - sizeof (struct GNUNET_TUN_IPv6Header) /* 40 */
+      - sizeof (struct GNUNET_TUN_UdpHeader) /* 8 */;
+    break;
+  default:
+    GNUNET_assert (0);
+    break;
+  }
+  if (0 == receiver->acks_available)
+  {
+    /* MTU based on full KX messages */
+    receiver->mtu
+      = base_mtu
+      - sizeof (struct InitialKX) /* 48 */
+      - sizeof (struct UDPConfirmation); /* 104 */
+  }
+  else
+  {
+    /* MTU based on BOXed messages */
+    receiver->mtu
+      = base_mtu - sizeof (struct UDPBox);
+  }
+  /* => Effective MTU for CORE will range from 1080 (IPv6 + KX) to
+     1404 (IPv4 + Box) bytes, depending on circumstances... */
+  receiver->mq
+    = GNUNET_MQ_queue_for_callbacks (&mq_send,
+				     &mq_destroy,
+				     &mq_cancel,
+				     receiver,
+				     NULL,
+				     &mq_error,
+				     receiver);
+  receiver->qh
+    = GNUNET_TRANSPORT_communicator_mq_add (ch,
+					    &receiver->target,
+					    receiver->foreign_addr,
+					    receiver->mtu,
+					    receiver->nt,
+					    GNUNET_TRANSPORT_CS_OUTBOUND,
+					    receiver->mq);
+}
+
+
+/**
  * Setup a receiver for transmission.  Setup the MQ processing and
  * inform transport that the queue is ready. 
  *
@@ -2161,54 +2255,35 @@ receiver_setup (const struct GNUNET_PeerIdentity *target,
   receiver->hn = GNUNET_CONTAINER_heap_insert (receivers_heap,
 					       receiver,
 					       receiver->timeout.abs_value_us);
-  receiver->mq
-    = GNUNET_MQ_queue_for_callbacks (&mq_send,
-				     &mq_destroy,
-				     &mq_cancel,
-				     receiver,
-				     NULL,
-				     &mq_error,
-				     receiver);
-  receiver->mtu = 1200 /* FIXME: MTU OK? */;
-  if (NULL == timeout_task)
-    timeout_task = GNUNET_SCHEDULER_add_now (&check_timeouts,
-					     NULL);
   GNUNET_STATISTICS_set (stats,
 			 "# receivers active",
 			 GNUNET_CONTAINER_multipeermap_size (receivers),
 			 GNUNET_NO);
+  switch (address->sa_family)
   {
-    char *foreign_addr;
-
-    switch (address->sa_family)
-    {
-    case AF_INET:
-      GNUNET_asprintf (&foreign_addr,
-		       "%s-%s",
-		       COMMUNICATOR_ADDRESS_PREFIX,
-		       GNUNET_a2s (receiver->address,
-				   receiver->address_len));
-      break;
-    case AF_INET6:
-      GNUNET_asprintf (&foreign_addr,
-		       "%s-%s",
-		       COMMUNICATOR_ADDRESS_PREFIX,
-		       GNUNET_a2s (receiver->address,
-				   receiver->address_len));
-      break;
-    default:
-      GNUNET_assert (0);
-    }
-    receiver->qh
-      = GNUNET_TRANSPORT_communicator_mq_add (ch,
-					      &receiver->target,
-					      foreign_addr,
-					      receiver->mtu,
-					      receiver->nt,
-					      GNUNET_TRANSPORT_CS_OUTBOUND,
-					      receiver->mq);
-    GNUNET_free (foreign_addr);
+  case AF_INET:
+    GNUNET_asprintf (&receiver->foreign_addr,
+		     "%s-%s",
+		     COMMUNICATOR_ADDRESS_PREFIX,
+		     GNUNET_a2s (receiver->address,
+				 receiver->address_len));
+    break;
+  case AF_INET6:
+    GNUNET_asprintf (&receiver->foreign_addr,
+		     "%s-%s",
+		     COMMUNICATOR_ADDRESS_PREFIX,
+		     GNUNET_a2s (receiver->address,
+				 receiver->address_len));
+    break;
+  default:
+    GNUNET_assert (0);
   }
+
+  setup_receiver_mq (receiver);
+
+  if (NULL == timeout_task)
+    timeout_task = GNUNET_SCHEDULER_add_now (&check_timeouts,
+					     NULL);
   return receiver;
 }
 

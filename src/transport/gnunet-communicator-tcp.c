@@ -590,6 +590,11 @@ queue_destroy (struct Queue *queue)
     queue->mq = NULL;
     GNUNET_MQ_destroy (mq);
   }
+  if (NULL != queue->qh)
+  {
+    GNUNET_TRANSPORT_communicator_mq_del (queue->qh);
+    queue->qh = NULL;
+  }
   GNUNET_assert (GNUNET_YES ==
                  GNUNET_CONTAINER_multipeermap_remove (queue_map,
 						       &queue->target,
