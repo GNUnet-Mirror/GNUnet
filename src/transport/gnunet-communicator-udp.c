@@ -24,7 +24,6 @@
  * @author Christian Grothoff
  *
  * TODO:
- * - implement main BOXed sending logic
  * - figure out what to do with MTU: 1280 for IPv6 is obvious;
  *   what for IPv4? 1500? Also, consider differences in 
  *   headers for with/without box: need to give MIN of both
@@ -34,7 +33,7 @@
  * - add and use util/ check for IPv6 availability (#V6)
  * - consider imposing transmission limits in the absence
  *   of ACKs; or: maybe this should be done at TNG service level?
- * - handle addresses discovered fro broadcasts (#)
+ * - handle addresses discovered from broadcasts (#)
  *   (think: what was the story again on address validation?
  *    where is the API for that!?!)
  * - support DNS names in BINDTO option (#5528)
@@ -574,6 +573,12 @@ struct ReceiverAddress
    * Length of the DLL at @a ss_head.
    */ 
   unsigned int num_secrets;
+
+  /**
+   * Number of BOX keys from ACKs we have currently 
+   * available for this receiver.
+   */ 
+  unsigned int acks_available;
   
   /**
    * Which network type does this queue use?
@@ -913,6 +918,8 @@ secret_destroy (struct SharedSecret *ss)
 				 receiver->ss_tail,
 				 ss);
     receiver->num_secrets--;
+    receiver->acks_available
+      -= (ss->sequence_allowed - ss->sequence_used);
   }
   while (NULL != (kce = ss->kce_head))
     kce_destroy (kce);
@@ -1279,17 +1286,26 @@ handle_ack (void *cls,
 		     &ss->cmac,
 		     sizeof (struct GNUNET_HashCode)))
     {
-      ss->sequence_allowed = GNUNET_MAX (ss->sequence_allowed,
-					 ntohl (ack->sequence_max));
-      /* move ss to head to avoid discarding it anytime soon! */
-      GNUNET_CONTAINER_DLL_remove (receiver->ss_head,
-				   receiver->ss_tail,
-				   ss);
-      GNUNET_CONTAINER_DLL_insert (receiver->ss_head,
-				   receiver->ss_tail,
-				   ss);
-      /* FIXME: if this changed sequence_allowed,
-	 update MTU / MQ of 'receiver'! */
+      uint32_t allowed;
+      
+      allowed = ntohl (ack->sequence_max);
+			    
+      if (allowed > ss->sequence_allowed)
+      {
+	if (0 == receiver->acks_available)
+	{
+	  /* FIXME: update MTU / MQ of 'receiver'! */
+	}
+	receiver->acks_available += (allowed - ss->sequence_allowed);
+	ss->sequence_allowed = allowed;
+	/* move ss to head to avoid discarding it anytime soon! */
+	GNUNET_CONTAINER_DLL_remove (receiver->ss_head,
+				     receiver->ss_tail,
+				     ss);
+	GNUNET_CONTAINER_DLL_insert (receiver->ss_head,
+				     receiver->ss_tail,
+				     ss);
+      }
       return GNUNET_NO;
     }
   }
@@ -1855,6 +1871,43 @@ udp_address_to_sockaddr (const char *bindto,
 
 
 /**
+ * Pad @a dgram by @a pad_size using @a out_cipher.
+ *
+ * @param out_cipher cipher to use
+ * @param dgram datagram to pad
+ * @param pad_size number of bytes of padding to append
+ */
+static void
+do_pad (gcry_cipher_hd_t out_cipher,
+	char *dgram,
+	size_t pad_size)
+{
+  char pad[pad_size];
+
+  GNUNET_CRYPTO_random_block (GNUNET_CRYPTO_QUALITY_WEAK,
+			      pad,
+			      sizeof (pad));
+  if (sizeof (pad) > sizeof (struct GNUNET_MessageHeader))
+  {
+    struct GNUNET_MessageHeader hdr = {
+      .size = htons (sizeof (pad)),
+      .type = htons (GNUNET_MESSAGE_TYPE_COMMUNICATOR_UDP_PAD)
+    };
+    
+    memcpy (pad,
+	    &hdr,
+	    sizeof (hdr));
+  }
+  GNUNET_assert (0 ==
+		 gcry_cipher_encrypt (out_cipher,
+				      dgram,
+				      sizeof (pad),
+				      pad,
+				      sizeof (pad)));
+}
+
+
+/**
  * Signature of functions implementing the sending functionality of a
  * message queue.
  *
@@ -1879,10 +1932,9 @@ mq_send (struct GNUNET_MQ_Handle *mq,
   }
   reschedule_receiver_timeout (receiver);
   
-  // FIXME: add support for BOX encryption method!
-
-  /* KX encryption method */
+  if (0 == receiver->acks_available)
   {
+    /* use KX encryption method */
     struct UdpHandshakeSignature uhs;
     struct UDPConfirmation uc;
     struct InitialKX kx;
@@ -1935,31 +1987,9 @@ mq_send (struct GNUNET_MQ_Handle *mq,
 					msg,
 					msize));
     dpos += msize;
-    /* Pad to MTU */
-    {
-      char pad[sizeof (dgram) - dpos];
-
-      GNUNET_CRYPTO_random_block (GNUNET_CRYPTO_QUALITY_WEAK,
-				  pad,
-				  sizeof (pad));
-      if (sizeof (pad) > sizeof (struct GNUNET_MessageHeader))
-      {
-	struct GNUNET_MessageHeader hdr = {
-	  .size = htons (sizeof (pad)),
-	  .type = htons (GNUNET_MESSAGE_TYPE_COMMUNICATOR_UDP_PAD)
-	};
-	
-	memcpy (pad,
-		&hdr,
-		sizeof (hdr));
-	GNUNET_assert (0 ==
-		       gcry_cipher_encrypt (out_cipher,
-					    &dgram[dpos],
-					    sizeof (pad),
-					    pad,
-					    sizeof (pad)));
-      }
-    }
+    do_pad (out_cipher,
+	    &dgram[dpos],
+	    sizeof (dgram) - dpos);
     /* Datagram starts with kx */
     kx.ephemeral = uhs.ephemeral;
     GNUNET_assert (0 ==
@@ -1979,7 +2009,65 @@ mq_send (struct GNUNET_MQ_Handle *mq,
       GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING,
 			   "send");
     GNUNET_MQ_impl_send_continue (mq);
+    return;
   } /* End of KX encryption method */
+
+  // FIXME: add support for BOX encryption method!
+  /* begin "BOX" encryption method, scan for ACKs from tail! */
+  for (struct SharedSecret *ss = receiver->ss_tail;
+       NULL != ss;
+       ss = ss->prev)
+  {
+    if (ss->sequence_used < ss->sequence_allowed)
+    {
+      char dgram[sizeof (struct UDPBox) + receiver->mtu];
+      struct UDPBox *box;
+      gcry_cipher_hd_t out_cipher;
+      size_t dpos;
+
+      box = (struct UDPBox *) dgram;
+      ss->sequence_used++;
+      get_kid (&ss->master,
+	       ss->sequence_used,
+	       &box->kid);
+      setup_cipher (&ss->master,
+		    ss->sequence_used,
+		    &out_cipher);
+      /* Append encrypted payload to dgram */
+      dpos = sizeof (struct UDPBox);
+      GNUNET_assert (0 ==
+		     gcry_cipher_encrypt (out_cipher,
+					  &dgram[dpos],
+					  msize,
+					  msg,
+					  msize));
+      dpos += msize;
+      do_pad (out_cipher,
+	      &dgram[dpos],
+	      sizeof (dgram) - dpos);
+      GNUNET_assert (0 ==
+		     gcry_cipher_gettag (out_cipher,
+					 box->gcm_tag,
+					 sizeof (box->gcm_tag)));
+      gcry_cipher_close (out_cipher);
+      if (-1 ==
+	  GNUNET_NETWORK_socket_sendto (udp_sock,
+					dgram,
+					sizeof (dgram),
+					receiver->address,
+					receiver->address_len))
+	GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING,
+			     "send");
+      GNUNET_MQ_impl_send_continue (mq);
+      receiver->acks_available--;
+      if (0 == receiver->acks_available)
+      {
+	/* FIXME: update MTU / MQ of 'receiver'! */
+      }
+      return;
+    }
+  }
+  GNUNET_assert (0);
 }
 
 
