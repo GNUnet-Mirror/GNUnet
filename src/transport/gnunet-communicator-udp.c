@@ -24,16 +24,22 @@
  * @author Christian Grothoff
  *
  * TODO:
- * - main BOXed sending logic
+ * - implement main BOXed sending logic
  * - figure out what to do with MTU: 1280 for IPv6 is obvious;
  *   what for IPv4? 1500? Also, consider differences in 
  *   headers for with/without box: need to give MIN of both
  *   to TNG (as TNG expects a fixed MTU!), or maybe
  *   we create a FRESH MQ while we have available BOXes SQNs?
  *   (otherwise padding will REALLY hurt)
+ * - add and use util/ check for IPv6 availability (#V6)
+ * - consider imposing transmission limits in the absence
+ *   of ACKs; or: maybe this should be done at TNG service level?
+ * - support broadcasting for neighbour discovery (#)
+ *   (think: what was the story again on address validation?
+ *    where is the API for that!?!)
  * - support DNS names in BINDTO option (#5528)
  * - support NAT connection reversal method (#5529)
- * - support other UDP-specific NAT traversal methods 
+ * - support other UDP-specific NAT traversal methods (#) 
  */
 #include "platform.h"
 #include "gnunet_util_lib.h"
@@ -238,6 +244,56 @@ struct UDPAck
    */ 
   struct GNUNET_HashCode cmac;
 
+};
+
+
+/**
+ * Signature we use to verify that the broadcast was really made by
+ * the peer that claims to have made it.  Basically, affirms that the
+ * peer is really using this IP address (albeit possibly not in _our_
+ * LAN).  Makes it difficult for peers in the LAN to claim to 
+ * be just any global peer -- an attacker must have at least
+ * shared a LAN with the peer they're pretending to be here.
+ */
+struct UdpBroadcastSignature
+{
+  /**
+   * Purpose must be #GNUNET_SIGNATURE_COMMUNICATOR_UDP_BROADCAST
+   */
+  struct GNUNET_CRYPTO_EccSignaturePurpose purpose;
+
+  /**
+   * Identity of the inititor of the UDP broadcast.
+   */ 
+  struct GNUNET_PeerIdentity sender;
+
+  /**
+   * Hash of the sender's UDP address.
+   */ 
+  struct GNUNET_HashCode h_address;
+};
+
+
+/**
+ * Broadcast by peer in LAN announcing its presence.  Unusual in that
+ * we don't pad these to full MTU, as we cannot prevent being
+ * recognized in LAN as GNUnet peers if this feature is enabled
+ * anyway.  Also, the entire message is in cleartext.
+ */
+struct UDPBroadcast
+{
+
+  /**
+   * Sender's peer identity.
+   */
+  struct GNUNET_PeerIdentity sender;
+
+  /**
+   * Sender's signature of type
+   * #GNUNET_SIGNATURE_COMMUNICATOR_UDP_BROADCAST
+   */
+  struct GNUNET_CRYPTO_EddsaSignature sender_sig;  
+  
 };
 
 
@@ -1414,6 +1470,7 @@ sock_read (void *cls)
 			 "recv");
     return;
   }
+
   /* first, see if it is a UDPBox */
   if (rcvd > sizeof (struct UDPBox))
   {
@@ -1431,7 +1488,39 @@ sock_read (void *cls)
       return;
     }
   }
-  /* next, test if it is a KX */
+
+  /* next, check if it is a broadcast */
+  if (sizeof (struct UDPBroadcast) == rcvd)
+  {
+    const struct UDPBroadcast *ub;
+    struct UdpBroadcastSignature uhs;
+
+    ub = (const struct UDPBroadcast *) buf;
+    uhs.purpose.purpose = htonl (GNUNET_SIGNATURE_COMMUNICATOR_UDP_BROADCAST);
+    uhs.purpose.size = htonl (sizeof (uhs));
+    uhs.sender = ub->sender;
+    GNUNET_CRYPTO_hash (&sa,
+			salen,
+			&uhs.h_address);
+    if (GNUNET_OK ==
+	GNUNET_CRYPTO_eddsa_verify (GNUNET_SIGNATURE_COMMUNICATOR_UDP_BROADCAST,
+				    &uhs.purpose,
+				    &ub->sender_sig,
+				    &ub->sender.public_key))
+    {
+      GNUNET_STATISTICS_update (stats,
+				"# broadcasts received",
+				1,
+				GNUNET_NO);
+      // FIXME: we effectively just got a HELLO!
+      // trigger verification NOW!
+      return;
+    }
+    /* continue with KX, mostly for statistics... */
+  }
+  
+
+  /* finally, test if it is a KX */
   if (rcvd < sizeof (struct UDPConfirmation) + sizeof (struct InitialKX))
   {
     GNUNET_STATISTICS_update (stats,
@@ -1535,6 +1624,8 @@ udp_address_to_sockaddr (const char *bindto,
 		  bindto);
       return NULL;
     }
+    /* FIXME #V6: add test to util/ for IPv6 availability,
+       and depending on the result, go directly for v4-only */
     if (GNUNET_YES ==
 	GNUNET_CONFIGURATION_get_value_yesno (cfg,
 					      COMMUNICATOR_CONFIG_SECTION,
