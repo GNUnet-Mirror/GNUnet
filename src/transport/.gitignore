@@ -86,3 +86,4 @@ test_transport_testing_startstop
 gnunet-communicator-unix
 gnunet-service-tng
 gnunet-communicator-tcp
+gnunet-communicator-udp
