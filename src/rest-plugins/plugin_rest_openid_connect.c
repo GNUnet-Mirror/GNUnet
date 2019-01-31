@@ -1177,7 +1177,7 @@ client_redirect (void *cls)
 
   /* Lookup client redirect uri to verify request */
   handle->gns_op = GNUNET_GNS_lookup (handle->gns_handle,
-                                      "+",
+                                      GNUNET_GNS_EMPTY_LABEL_AT,
                                       &handle->oidc->client_pkey,
                                       GNUNET_GNSRECORD_TYPE_RECLAIM_OIDC_REDIRECT,
                                       GNUNET_GNS_LO_DEFAULT,
