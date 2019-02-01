@@ -1400,7 +1400,7 @@ curl_download_cb (void *ptr,
   size_t total = size * nmemb;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Receiving %ux%u bytes for `%s%s' from cURL\n",
+	      "Receiving %ux%u bytes for `%s%s' from cURL to download\n",
 	      (unsigned int) size,
 	      (unsigned int) nmemb,
 	      s5r->domain,
@@ -1408,7 +1408,13 @@ curl_download_cb (void *ptr,
   if (NULL == s5r->response)
     GNUNET_assert (GNUNET_OK ==
                    create_mhd_response_from_s5r (s5r));
-
+  if ( (SOCKS5_SOCKET_UPLOAD_DONE == s5r->state) &&
+       (0 == s5r->io_len))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Previous upload finished... starting DOWNLOAD.\n");
+    s5r->state = SOCKS5_SOCKET_DOWNLOAD_STARTED;
+  }
   if ( (SOCKS5_SOCKET_UPLOAD_STARTED == s5r->state) ||
        (SOCKS5_SOCKET_UPLOAD_DONE == s5r->state) )
   {
@@ -1472,6 +1478,13 @@ curl_upload_cb (void *buf,
   struct Socks5Request *s5r = cls;
   size_t len = size * nmemb;
   size_t to_copy;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Receiving %ux%u bytes for `%s%s' from cURL to upload\n",
+	      (unsigned int) size,
+	      (unsigned int) nmemb,
+	      s5r->domain,
+	      s5r->url);
 
   if ( (0 == s5r->io_len) &&
        (SOCKS5_SOCKET_UPLOAD_DONE != s5r->state) )
