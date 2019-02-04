@@ -866,13 +866,13 @@ This means that you have to make sure the proper tools are used in the build pro
 For example, after installing texinfo you need to make sure the new texinfo is actually used:
 
 @example
-# echo 'export PATH="/usr/local/opt/texinfo/bin:$PATH"' >> ~/.bash_profile 
+$ echo 'export PATH="/usr/local/opt/texinfo/bin:$PATH"' >> ~/.bash_profile 
 @end example
 
 Note: brew tells you the appropriate command when executing
 
 @example
-# brew info texinfo
+$ brew info texinfo
 @end example
 
 This may also be necessary for the gettext package.
@@ -881,8 +881,20 @@ Before you start compiling, you need to make sure gcc is used and not the clang 
 On my system, gcc was actually ``gcc-7'' and gcc pointed to the clang compiler.
 
 @example
-# export CC=gcc-7
+$ export CC=gcc-7
 @end example
+
+You might see configure failing telling you that it ``cannot run C compiled programs.''.
+In this case, you might need to open/run Xcode once and you will be prompted to
+install additonal packages.
+Then, you might have to manually install the command line tools from here https://developer.apple.com/download/more/ (you need an Apple ID for this).
+Install those and execute
+
+@example
+$open /Library/Developer/CommandLineTools/Packages/macOS_SDK_headers_for_macOS_10.14.pkg
+@end example
+
+Then, configure will pass again.
 
 After this the standard compile instructions apply.
 
