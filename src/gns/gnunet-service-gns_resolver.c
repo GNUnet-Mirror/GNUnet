@@ -624,25 +624,6 @@ timeout_resolution (void *cls)
 }
 
 
-#if (defined WINDOWS) || (defined DARWIN)
-/* Don't have this on W32, here's a naive implementation
- * Was somehow removed on OS X ...  */
-static void *
-memrchr (const void *s,
-	 int c,
-	 size_t n)
-{
-  const unsigned char *ucs = s;
-  ssize_t i;
-
-  for (i = n - 1; i >= 0; i--)
-    if (c == (int) ucs[i])
-      return (void *) &ucs[i];
-  return NULL;
-}
-#endif
-
-
 /**
  * Get the next, rightmost label from the name that we are trying to resolve,
  * and update the resolution position accordingly.  Labels usually consist

@@ -120,7 +120,8 @@ libgnunetutil_la_SOURCES = \
   strings.c \
   time.c \
   tun.c \
-  speedup.c speedup.h
+  speedup.c speedup.h \
+	proc_compat.c
 
 if HAVE_LIBIDN
   LIBIDN= -lidn

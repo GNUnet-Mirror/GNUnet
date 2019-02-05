@@ -70,6 +70,10 @@
 
 #define VERBOSE_STATS 0
 
+#if (defined WINDOWS) || (defined DARWIN)
+#include "compat.h"
+#endif
+
 #ifdef CYGWIN
 #include <sys/reent.h>
 #endif

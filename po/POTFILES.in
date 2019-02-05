@@ -517,6 +517,7 @@ src/util/os_network.c
 src/util/os_priority.c
 src/util/peer.c
 src/util/plugin.c
+src/util/proc_compat.c
 src/util/program.c
 src/util/regex.c
 src/util/resolver_api.c
@@ -539,6 +540,7 @@ src/vpn/vpn_api.c
 src/zonemaster/gnunet-service-zonemaster-monitor.c
 src/zonemaster/gnunet-service-zonemaster.c
 src/fs/fs_api.h
+src/include/compat.h
 src/include/gnunet_common.h
 src/include/gnunet_mq_lib.h
 src/include/gnunet_time_lib.h
