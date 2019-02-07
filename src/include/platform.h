@@ -70,8 +70,6 @@
 
 #define VERBOSE_STATS 0
 
-#include "compat.h"
-
 #ifdef CYGWIN
 #include <sys/reent.h>
 #endif
@@ -199,6 +197,7 @@
 #endif
 
 #include "plibc.h"
+#include "compat.h"
 
 #include <locale.h>
 #ifndef FRAMEWORK_BUILD
