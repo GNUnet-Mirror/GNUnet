@@ -679,13 +679,14 @@ parse_definitions (const char *constname, int force)
 static void
 parse_all_definitions ()
 {
-  if (GNUNET_NO == gnunet_log_parsed)
-    parse_definitions ("GNUNET_LOG", 0);
-  gnunet_log_parsed = GNUNET_YES;
   if (GNUNET_NO == gnunet_force_log_parsed)
     gnunet_force_log_present =
         parse_definitions ("GNUNET_FORCE_LOG", 1) > 0 ? GNUNET_YES : GNUNET_NO;
   gnunet_force_log_parsed = GNUNET_YES;
+
+  if (GNUNET_NO == gnunet_log_parsed)
+    parse_definitions ("GNUNET_LOG", 0);
+  gnunet_log_parsed = GNUNET_YES;
 }
 #endif
 
