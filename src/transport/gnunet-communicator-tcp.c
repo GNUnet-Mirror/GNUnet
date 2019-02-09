@@ -61,18 +61,18 @@
 
 /**
  * How often do we rekey based on time (at least)
- */ 
+ */
 #define REKEY_TIME_INTERVAL GNUNET_TIME_UNIT_DAYS
 
 /**
  * How long do we wait until we must have received the initial KX?
- */ 
+ */
 #define PROTO_QUEUE_TIMEOUT GNUNET_TIME_UNIT_MINUTES
 
 /**
  * How often do we rekey based on number of bytes transmitted?
  * (additionally randomized).
- */ 
+ */
 #define REKEY_MAX_BYTES (1024LLU * 1024 * 1024 * 4LLU)
 
 /**
@@ -108,23 +108,23 @@ struct TcpHandshakeSignature
 
   /**
    * Identity of the inititor of the TCP connection (TCP client).
-   */ 
+   */
   struct GNUNET_PeerIdentity sender;
 
   /**
    * Presumed identity of the target of the TCP connection (TCP server)
-   */ 
+   */
   struct GNUNET_PeerIdentity receiver;
 
   /**
    * Ephemeral key used by the @e sender.
-   */ 
+   */
   struct GNUNET_CRYPTO_EcdhePublicKey ephemeral;
 
   /**
    * Monotonic time of @e sender, to possibly help detect replay attacks
    * (if receiver persists times by sender).
-   */ 
+   */
   struct GNUNET_TIME_AbsoluteNBO monotonic_time;
 };
 
@@ -147,7 +147,7 @@ struct TCPConfirmation
   /**
    * Monotonic time of @e sender, to possibly help detect replay attacks
    * (if receiver persists times by sender).
-   */ 
+   */
   struct GNUNET_TIME_AbsoluteNBO monotonic_time;
 
 };
@@ -155,16 +155,16 @@ struct TCPConfirmation
 
 /**
  * TCP message box.  Always sent encrypted!
- */ 
+ */
 struct TCPBox
 {
-  
+
   /**
    * Type is #GNUNET_MESSAGE_TYPE_COMMUNICATOR_TCP_BOX.  Warning: the
    * header size EXCLUDES the size of the `struct TCPBox`. We usually
    * never do this, but here the payload may truly be 64k *after* the
    * TCPBox (as we have no MTU)!!
-   */ 
+   */
   struct GNUNET_MessageHeader header;
 
   /**
@@ -174,25 +174,25 @@ struct TCPBox
    * attacks do not apply.  Besides, due to the use of ephemeral keys
    * (hopefully with effective replay protection from monotonic time!)
    * the attacker is limited in using the oracle.
-   */ 
+   */
   struct GNUNET_ShortHashCode hmac;
 
   /* followed by as may bytes of payload as indicated in @e header,
      excluding the TCPBox itself! */
-  
+
 };
 
 
 /**
  * TCP rekey message box.  Always sent encrypted!  Data after
  * this message will use the new key.
- */ 
+ */
 struct TCPRekey
 {
 
   /**
    * Type is #GNUNET_MESSAGE_TYPE_COMMUNICATOR_TCP_REKEY.
-   */ 
+   */
   struct GNUNET_MessageHeader header;
 
   /**
@@ -202,14 +202,14 @@ struct TCPRekey
    * attacks do not apply.  Besides, due to the use of ephemeral keys
    * (hopefully with effective replay protection from monotonic time!)
    * the attacker is limited in using the oracle.
-   */ 
+   */
   struct GNUNET_ShortHashCode hmac;
 
   /**
    * New ephemeral key.
-   */ 
+   */
   struct GNUNET_CRYPTO_EcdhePublicKey ephemeral;
-  
+
   /**
    * Sender's signature of type #GNUNET_SIGNATURE_COMMUNICATOR_TCP_REKEY
    */
@@ -218,7 +218,7 @@ struct TCPRekey
   /**
    * Monotonic time of @e sender, to possibly help detect replay attacks
    * (if receiver persists times by sender).
-   */ 
+   */
   struct GNUNET_TIME_AbsoluteNBO monotonic_time;
 
 };
@@ -228,13 +228,13 @@ struct TCPRekey
  * TCP finish. Sender asks for the connection to be closed.
  * Needed/useful in case we drop RST/FIN packets on the GNUnet
  * port due to the possibility of malicious RST/FIN injection.
- */ 
+ */
 struct TCPFinish
 {
 
   /**
    * Type is #GNUNET_MESSAGE_TYPE_COMMUNICATOR_TCP_FINISH.
-   */ 
+   */
   struct GNUNET_MessageHeader header;
 
   /**
@@ -244,7 +244,7 @@ struct TCPFinish
    * attacks do not apply.  Besides, due to the use of ephemeral keys
    * (hopefully with effective replay protection from monotonic time!)
    * the attacker is limited in using the oracle.
-   */ 
+   */
   struct GNUNET_ShortHashCode hmac;
 
 };
@@ -271,7 +271,7 @@ struct Queue
 
   /**
    * cipher for decryption of incoming data.
-   */ 
+   */
   gcry_cipher_hd_t in_cipher;
 
   /**
@@ -281,20 +281,20 @@ struct Queue
 
   /**
    * Shared secret for HMAC verification on incoming data.
-   */ 
+   */
   struct GNUNET_HashCode in_hmac;
 
   /**
    * Shared secret for HMAC generation on outgoing data, ratcheted after
    * each operation.
-   */ 
+   */
   struct GNUNET_HashCode out_hmac;
 
   /**
    * Our ephemeral key. Stored here temporarily during rekeying / key generation.
    */
   struct GNUNET_CRYPTO_EcdhePrivateKey ephemeral;
-  
+
   /**
    * ID of read task for this connection.
    */
@@ -309,7 +309,7 @@ struct Queue
    * Address of the other peer.
    */
   struct sockaddr *address;
-  
+
   /**
    * How many more bytes may we sent with the current @e out_cipher
    * before we should rekey?
@@ -321,7 +321,7 @@ struct Queue
    * before we should rekey?
    */
   struct GNUNET_TIME_Absolute rekey_time;
-  
+
   /**
    * Length of the address.
    */
@@ -361,7 +361,7 @@ struct Queue
    * Plaintext buffer for messages to be encrypted.
    */
   char pwrite_buf[UINT16_MAX + 1 + sizeof (struct TCPBox)];
-  
+
   /**
    * At which offset in the ciphertext read buffer should we
    * append more ciphertext for transmission next?
@@ -373,13 +373,13 @@ struct Queue
    * append more ciphertext from reading next?
    */
   size_t cwrite_off;
-  
+
   /**
    * At which offset in the plaintext input buffer should we
    * append more plaintext from decryption next?
    */
   size_t pread_off;
-  
+
   /**
    * At which offset in the plaintext output buffer should we
    * append more plaintext for encryption next?
@@ -397,19 +397,19 @@ struct Queue
    * them? If "large" (or even just non-zero), we should throttle
    * reading to provide flow control.  See also #DEFAULT_MAX_QUEUE_LENGTH
    * and #max_queue_length.
-   */ 
+   */
   unsigned int backpressure;
-  
+
   /**
    * Which network type does this queue use?
    */
   enum GNUNET_NetworkType nt;
-  
+
   /**
    * Is MQ awaiting a #GNUNET_MQ_impl_send_continue() call?
    */
   int mq_awaits_continue;
-  
+
   /**
    * Did we enqueue a finish message and are closing down the queue?
    */
@@ -447,14 +447,14 @@ struct ProtoQueue
 
   /**
    * Kept in a DLL.
-   */ 
+   */
   struct ProtoQueue *next;
 
   /**
    * Kept in a DLL.
-   */ 
+   */
   struct ProtoQueue *prev;
-  
+
   /**
    * socket that we transmit all data with on this queue
    */
@@ -480,15 +480,15 @@ struct ProtoQueue
    */
   struct GNUNET_TIME_Absolute timeout;
 
-  /** 
-   * Buffer for reading all the information we need to upgrade from 
+  /**
+   * Buffer for reading all the information we need to upgrade from
    * protoqueue to queue.
    */
   char ibuf[INITIAL_KX_SIZE];
 
   /**
    * Current offset for reading into @e ibuf.
-   */ 
+   */
   size_t ibuf_off;
 };
 
@@ -550,12 +550,12 @@ static struct GNUNET_NAT_Handle *nat;
 
 /**
  * Protoqueues DLL head.
- */ 
+ */
 static struct ProtoQueue *proto_head;
 
 /**
  * Protoqueues DLL tail.
- */ 
+ */
 static struct ProtoQueue *proto_tail;
 
 
@@ -638,10 +638,10 @@ queue_destroy (struct Queue *queue)
  * @param smac[out] where to write the HMAC
  */
 static void
-hmac (struct GNUNET_HashCode *hmac_secret,
-      const void *buf,
-      size_t buf_size,
-      struct GNUNET_ShortHashCode *smac)
+calculate_hmac (struct GNUNET_HashCode *hmac_secret,
+                const void *buf,
+                size_t buf_size,
+                struct GNUNET_ShortHashCode *smac)
 {
   struct GNUNET_HashCode mac;
 
@@ -677,11 +677,11 @@ queue_finish (struct Queue *queue)
 	  sizeof (fin));
   fin.header.size = htons (sizeof (fin));
   fin.header.type = htons (GNUNET_MESSAGE_TYPE_COMMUNICATOR_TCP_FINISH);
-  hmac (&queue->out_hmac,
-	&fin,
-	sizeof (fin),
-	&fin.hmac);
-  /* if there is any message left in pwrite_buf, we 
+  calculate_hmac (&queue->out_hmac,
+                  &fin,
+                  sizeof (fin),
+                  &fin.hmac);
+  /* if there is any message left in pwrite_buf, we
      overwrite it (possibly dropping the last message
      from CORE hard here) */
   memcpy (queue->pwrite_buf,
@@ -765,7 +765,7 @@ core_read_finished_cb (void *cls,
  * @param queue the queue that received the plaintext
  * @param plaintext the plaintext that was received
  * @param plaintext_len number of bytes of plaintext received
- */ 
+ */
 static void
 pass_plaintext_to_core (struct Queue *queue,
 			const void *plaintext,
@@ -869,7 +869,7 @@ setup_in_cipher (const struct GNUNET_CRYPTO_EcdhePublicKey *ephemeral,
 		 struct Queue *queue)
 {
   struct GNUNET_HashCode dh;
-  
+
   GNUNET_CRYPTO_eddsa_ecdh (my_private_key,
 			    ephemeral,
 			    &dh);
@@ -878,7 +878,7 @@ setup_in_cipher (const struct GNUNET_CRYPTO_EcdhePublicKey *ephemeral,
 		&queue->in_cipher,
 		&queue->in_hmac);
 }
-		
+
 
 /**
  * Handle @a rekey message on @a queue. The message was already
@@ -887,7 +887,7 @@ setup_in_cipher (const struct GNUNET_CRYPTO_EcdhePublicKey *ephemeral,
  *
  * @param queue the queue @a rekey was received on
  * @param rekey the rekey message
- */ 
+ */
 static void
 do_rekey (struct Queue *queue,
 	  const struct TCPRekey *rekey)
@@ -923,7 +923,7 @@ do_rekey (struct Queue *queue,
  *
  * @param queue queue to process inbound plaintext for
  * @return number of bytes of plaintext handled, 0 for none
- */ 
+ */
 static size_t
 try_handle_plaintext (struct Queue *queue)
 {
@@ -950,10 +950,10 @@ try_handle_plaintext (struct Queue *queue)
     /* Special case: header size excludes box itself! */
     if (ntohs (hdr->size) + sizeof (struct TCPBox) > queue->pread_off)
       return 0;
-    hmac (&queue->in_hmac,
-	  &box[1],
-	  ntohs (hdr->size),
-	  &tmac);
+    calculate_hmac (&queue->in_hmac,
+                    &box[1],
+                    ntohs (hdr->size),
+                    &tmac);
     if (0 != memcmp (&tmac,
 		     &box->hmac,
 		     sizeof (tmac)))
@@ -980,10 +980,10 @@ try_handle_plaintext (struct Queue *queue)
     memset (&rekeyz.hmac,
 	    0,
 	    sizeof (rekeyz.hmac));
-    hmac (&queue->in_hmac,
-	  &rekeyz,
-	  sizeof (rekeyz),
-	  &tmac);
+    calculate_hmac (&queue->in_hmac,
+                    &rekeyz,
+                    sizeof (rekeyz),
+                    &tmac);
     if (0 != memcmp (&tmac,
 		     &box->hmac,
 		     sizeof (tmac)))
@@ -1009,10 +1009,10 @@ try_handle_plaintext (struct Queue *queue)
     memset (&finz.hmac,
 	    0,
 	    sizeof (finz.hmac));
-    hmac (&queue->in_hmac,
-	  &rekeyz,
-	  sizeof (rekeyz),
-	  &tmac);
+    calculate_hmac (&queue->in_hmac,
+                    &rekeyz,
+                    sizeof (rekeyz),
+                    &tmac);
     if (0 != memcmp (&tmac,
 		     &fin->hmac,
 		     sizeof (tmac)))
@@ -1078,7 +1078,7 @@ queue_read (void *cls)
 			     queue->cread_off);
     size_t done;
     size_t total;
-    
+
     GNUNET_assert (0 ==
 		   gcry_cipher_decrypt (queue->in_cipher,
 					&queue->pread_buf[queue->pread_off],
@@ -1088,7 +1088,7 @@ queue_read (void *cls)
     queue->pread_off += max;
     total = 0;
     while ( (GNUNET_NO == queue->rekeyed) &&
-	    (0 != (done = try_handle_plaintext (queue))) )	    
+	    (0 != (done = try_handle_plaintext (queue))) )
     {
       /* 'done' bytes of plaintext were used, shift buffer */
       GNUNET_assert (done <= queue->pread_off);
@@ -1114,13 +1114,13 @@ queue_read (void *cls)
     memmove (queue->cread_buf,
 	     &queue->cread_buf[max],
 	     queue->cread_off - max);
-    queue->cread_off -= max; 
+    queue->cread_off -= max;
   }
-  
+
   if (BUF_SIZE == queue->cread_off)
     return; /* buffer full, suspend reading */
   left = GNUNET_TIME_absolute_get_remaining (queue->timeout);
-  if (0 != left.rel_value_us) 
+  if (0 != left.rel_value_us)
   {
     if (max_queue_length < queue->backpressure)
     {
@@ -1158,7 +1158,7 @@ tcp_address_to_sockaddr (const char *bindto,
   char dummy[2];
   char *colon;
   char *cp;
-  
+
   if (1 == SSCANF (bindto,
 		   "%u%1s",
 		   &port,
@@ -1180,7 +1180,7 @@ tcp_address_to_sockaddr (const char *bindto,
 					      "DISABLE_V6"))
     {
       struct sockaddr_in *i4;
-      
+
       i4 = GNUNET_malloc (sizeof (struct sockaddr_in));
       i4->sin_family = AF_INET;
       i4->sin_port = htons ((uint16_t) port);
@@ -1190,7 +1190,7 @@ tcp_address_to_sockaddr (const char *bindto,
     else
     {
       struct sockaddr_in6 *i6;
-      
+
       i6 = GNUNET_malloc (sizeof (struct sockaddr_in6));
       i6->sin6_family = AF_INET6;
       i6->sin6_port = htons ((uint16_t) port);
@@ -1291,7 +1291,7 @@ static void
 setup_out_cipher (struct Queue *queue)
 {
   struct GNUNET_HashCode dh;
-  
+
   GNUNET_CRYPTO_ecdh_eddsa (&queue->ephemeral,
 			    &queue->target.public_key,
 			    &dh);
@@ -1303,7 +1303,7 @@ setup_out_cipher (struct Queue *queue)
 		&queue->target,
 		&queue->out_cipher,
 		&queue->out_hmac);
-  
+
   queue->rekey_time = GNUNET_TIME_relative_to_absolute (REKEY_TIME_INTERVAL);
   queue->rekey_left_bytes = GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_WEAK,
 						      REKEY_MAX_BYTES);
@@ -1315,13 +1315,13 @@ setup_out_cipher (struct Queue *queue)
  * buffer.
  *
  * @param queue queue to perform rekeying on
- */ 
+ */
 static void
 inject_rekey (struct Queue *queue)
 {
   struct TCPRekey rekey;
   struct TcpHandshakeSignature thp;
-  
+
   GNUNET_assert (0 == queue->pwrite_off);
   memset (&rekey,
 	  0,
@@ -1343,10 +1343,10 @@ inject_rekey (struct Queue *queue)
 		 GNUNET_CRYPTO_eddsa_sign (my_private_key,
 					   &thp.purpose,
 					   &rekey.sender_sig));
-  hmac (&queue->out_hmac,
-	&rekey,
-	sizeof (rekey),
-	&rekey.hmac);
+  calculate_hmac (&queue->out_hmac,
+                  &rekey,
+                  sizeof (rekey),
+                  &rekey.hmac);
   memcpy (queue->pwrite_buf,
 	  &rekey,
 	  sizeof (rekey));
@@ -1357,11 +1357,11 @@ inject_rekey (struct Queue *queue)
 /**
  * We encrypted the rekey message, now update actually swap the key
  * material and update the key freshness parameters of @a queue.
- */ 
+ */
 static void
 switch_key (struct Queue *queue)
 {
-  queue->rekey_state = GNUNET_NO; 
+  queue->rekey_state = GNUNET_NO;
   gcry_cipher_close (queue->out_cipher);
   setup_out_cipher (queue);
 }
@@ -1390,7 +1390,7 @@ queue_write (void *cls)
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING,
 			 "send");
     queue_destroy (queue);
-    return;			 
+    return;
   }
   if (sent > 0)
   {
@@ -1441,7 +1441,7 @@ queue_write (void *cls)
   }
   /* do we care to write more? */
   if (0 < queue->cwrite_off)
-    queue->write_task 
+    queue->write_task
       = GNUNET_SCHEDULER_add_write_net (GNUNET_TIME_UNIT_FOREVER_REL,
 					queue->sock,
 					&queue_write,
@@ -1472,10 +1472,10 @@ mq_send (struct GNUNET_MQ_Handle *mq,
   GNUNET_assert (0 == queue->pread_off);
   box.header.type = htons (GNUNET_MESSAGE_TYPE_COMMUNICATOR_TCP_BOX);
   box.header.size = htons (msize);
-  hmac (&queue->out_hmac,
-	msg,
-	msize,
-	&box.hmac);
+  calculate_hmac (&queue->out_hmac,
+                  msg,
+                  msize,
+                  &box.hmac);
   memcpy (&queue->pread_buf[queue->pread_off],
 	  &box,
 	  sizeof (box));
@@ -1562,7 +1562,7 @@ mq_error (void *cls,
  * be called after the KX for outgoing messages has been bootstrapped.
  *
  * @param queue queue to boot
- */ 
+ */
 static void
 boot_queue (struct Queue *queue,
 	    enum GNUNET_TRANSPORT_ConnectionStatus cs)
@@ -1668,7 +1668,7 @@ transmit_kx (struct Queue *queue,
 
 
 /**
- * Initialize our key material for outgoing transmissions and 
+ * Initialize our key material for outgoing transmissions and
  * inform the other peer about it. Must be called first before
  * any data is sent.
  *
@@ -1680,7 +1680,7 @@ start_initial_kx_out (struct Queue *queue)
   struct GNUNET_CRYPTO_EcdhePublicKey epub;
 
   GNUNET_assert (GNUNET_OK ==
-		 GNUNET_CRYPTO_ecdhe_key_create2 (&queue->ephemeral)); 
+		 GNUNET_CRYPTO_ecdhe_key_create2 (&queue->ephemeral));
   GNUNET_CRYPTO_ecdhe_key_get_public (&queue->ephemeral,
 				      &epub);
   setup_out_cipher (queue);
@@ -1696,7 +1696,7 @@ start_initial_kx_out (struct Queue *queue)
  *
  * @param queue queue to decrypt initial bytes from other peer for
  * @param tc[out] where to store the result
- * @param ibuf incoming data, of size 
+ * @param ibuf incoming data, of size
  *        `INITIAL_KX_SIZE`
  * @return #GNUNET_OK if the signature was OK, #GNUNET_SYSERR if not
  */
@@ -1706,7 +1706,7 @@ decrypt_and_check_tc (struct Queue *queue,
 		      char *ibuf)
 {
   struct TcpHandshakeSignature ths;
-			
+
   GNUNET_assert (0 ==
 		 gcry_cipher_decrypt (queue->in_cipher,
 				      tc,
@@ -1732,7 +1732,7 @@ decrypt_and_check_tc (struct Queue *queue,
  * Closes socket and frees memory associated with @a pq.
  *
  * @param pq proto queue to free
- */ 
+ */
 static void
 free_proto_queue (struct ProtoQueue *pq)
 {
@@ -1743,7 +1743,7 @@ free_proto_queue (struct ProtoQueue *pq)
 			       pq);
   GNUNET_free (pq);
 }
- 
+
 
 /**
  * Read from the socket of the proto queue until we have enough data
@@ -1759,7 +1759,7 @@ proto_read_kx (void *cls)
   struct GNUNET_TIME_Relative left;
   struct Queue *queue;
   struct TCPConfirmation tc;
-  
+
   pq->read_task = NULL;
   left = GNUNET_TIME_absolute_get_remaining (pq->timeout);
   if (0 == left.rel_value_us)
@@ -1785,7 +1785,7 @@ proto_read_kx (void *cls)
 						   pq->sock,
 						   &proto_read_kx,
 						   pq);
-    return;    
+    return;
   }
   pq->ibuf_off += rcvd;
   if (pq->ibuf_off > sizeof (pq->ibuf))
@@ -1813,7 +1813,7 @@ proto_read_kx (void *cls)
     gcry_cipher_close (queue->in_cipher);
     GNUNET_free (queue);
     free_proto_queue (pq);
-    return;    
+    return;
   }
   queue->address = pq->address; /* steals reference */
   queue->address_len = pq->address_len;
@@ -1905,7 +1905,7 @@ queue_read_kx (void *cls)
   ssize_t rcvd;
   struct GNUNET_TIME_Relative left;
   struct TCPConfirmation tc;
-  
+
   queue->read_task = NULL;
   left = GNUNET_TIME_absolute_get_remaining (queue->timeout);
   if (0 == left.rel_value_us)
@@ -1980,7 +1980,7 @@ queue_read_kx (void *cls)
   queue->read_task = GNUNET_SCHEDULER_add_now (&queue_read,
 					       queue);
 }
-				      
+
 
 /**
  * Function called by the transport service to initialize a
@@ -2009,7 +2009,7 @@ mq_init (void *cls,
   struct sockaddr *in;
   socklen_t in_len;
   struct GNUNET_NETWORK_Handle *sock;
-  
+
   if (0 != strncmp (address,
 		    COMMUNICATOR_ADDRESS_PREFIX "-",
 		    strlen (COMMUNICATOR_ADDRESS_PREFIX "-")))
@@ -2020,7 +2020,7 @@ mq_init (void *cls,
   path = &address[strlen (COMMUNICATOR_ADDRESS_PREFIX "-")];
   in = tcp_address_to_sockaddr (path,
 				&in_len);
-  
+
   sock = GNUNET_NETWORK_socket_create (in->sa_family,
 				       SOCK_STREAM,
 				       IPPROTO_TCP);
@@ -2048,7 +2048,7 @@ mq_init (void *cls,
   }
 
   queue = GNUNET_new (struct Queue);
-  queue->target = *peer; 
+  queue->target = *peer;
   queue->address = in;
   queue->address_len = in_len;
   queue->sock = sock;
@@ -2069,7 +2069,7 @@ mq_init (void *cls,
     return GNUNET_NO;
   }
   start_initial_kx_out (queue);
-  return GNUNET_OK;  
+  return GNUNET_OK;
 }
 
 
@@ -2177,7 +2177,7 @@ enc_notify_cb (void *cls,
  * @param cls closure
  * @param app_ctx[in,out] location where the app can store stuff
  *                  on add and retrieve it on remove
- * @param add_remove #GNUNET_YES to add a new public IP address, 
+ * @param add_remove #GNUNET_YES to add a new public IP address,
  *                   #GNUNET_NO to remove a previous (now invalid) one
  * @param ac address class the address belongs to
  * @param addr either the previous or the new public IP address
@@ -2205,7 +2205,7 @@ nat_address_cb (void *cls,
 				 addrlen));
     nt = GNUNET_NT_scanner_get_type (is,
 				     addr,
-				     addrlen); 
+				     addrlen);
     ai = GNUNET_TRANSPORT_communicator_address_add (ch,
 						    my_addr,
 						    nt,
@@ -2241,7 +2241,7 @@ run (void *cls,
   socklen_t in_len;
   struct sockaddr_storage in_sto;
   socklen_t sto_len;
-  
+
   (void) cls;
   cfg = c;
   if (GNUNET_OK !=
