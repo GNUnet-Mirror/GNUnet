@@ -6,6 +6,11 @@
 @c @exampleindent 2
 @c %**end of header
 
+@c macros for backwards compatibility
+@macro geq{}
+>=
+@end macro
+
 @include version.texi
 
 @copying
