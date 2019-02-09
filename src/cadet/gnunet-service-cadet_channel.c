@@ -11,7 +11,7 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -1827,7 +1827,7 @@ GCCH_handle_local_data (struct CadetChannel *ch,
 
   if (ch->pending_messages >= ch->max_pending_messages)
   {
-    GNUNET_break (0);
+    GNUNET_break (0); /* Fails: #5370 */
     return GNUNET_SYSERR;
   }
   if (GNUNET_YES == ch->destroy)

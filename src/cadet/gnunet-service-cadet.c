@@ -11,7 +11,7 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -824,7 +824,7 @@ get_all_peers_iterator (void *cls,
   struct GNUNET_CADET_LocalInfoPeers *msg;
 
   env = GNUNET_MQ_msg (msg,
-                       GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_PEERS);  
+                       GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_PEERS);
   msg->destination = *peer;
   msg->paths = htons (GCP_count_paths (p));
   msg->tunnel = htons (NULL != GCP_get_tunnel (p,
@@ -893,7 +893,7 @@ path_info_iterator (void *cls,
   }
   env = GNUNET_MQ_msg_extra (resp,
                              path_size,
-                             GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_PATH);  
+                             GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_PATH);
   id = (struct GNUNET_PeerIdentity *) &resp[1];
 
   /* Don't copy first peer.  First peer is always the local one.  Last
@@ -928,7 +928,7 @@ handle_show_path (void *cls,
   if (NULL != p)
     GCP_iterate_indirect_paths (p,
 				&path_info_iterator,
-				c->mq);  
+				c->mq);
   env = GNUNET_MQ_msg (resp,
                        GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_PATH_END);
   GNUNET_MQ_send (c->mq,
