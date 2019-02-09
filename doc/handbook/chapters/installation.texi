@@ -1731,7 +1731,7 @@ The advantage of using a virtual environment is, that all the dependencies can
 be installed separately in different versions without touching your system
 Python installation and its dependencies.
 
-@xref{Migrating an existing DNS zone into GNS} for usage manual of the tool.
+@xref{Migrating an existing DNS zone into GNS}, for usage manual of the tool.
 
 @node Configuring the GNUnet VPN
 @subsection Configuring the GNUnet VPN
