@@ -26,7 +26,7 @@ always welcome.
 * First steps - Using the GNUnet VPN::
 * File-sharing::
 * The GNU Name System::
-* re@:claim Identity Provider::
+* re@@claim Identity Provider::
 * Using the Virtual Public Network::
 @end menu
 
@@ -1978,8 +1978,8 @@ seamlessly.
 At this point you might want to write for example a systemd unit file to start
 and enable the service, so that your zone is migrated automatically.
 
-@node re@:claim Identity Provider
-@section re@:claim Identity Provider
+@node re@@claim Identity Provider
+@section re@@claim Identity Provider
 
 The re:claim Identity Provider (IdP) is a decentralized IdP service.
 It allows its users to manage and authorize third parties to access their identity attributes such as email or shipping addresses.

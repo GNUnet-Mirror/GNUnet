@@ -139,6 +139,7 @@ Using GNUnet
 * First steps - Using the GNUnet VPN::
 * File-sharing::
 * The GNU Name System::
+* re@@claim Identity Provider::
 * Using the Virtual Public Network::
 
 GNUnet Contributors Handbook
