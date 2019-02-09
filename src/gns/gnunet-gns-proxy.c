@@ -1362,11 +1362,27 @@ create_mhd_response_from_s5r (struct Socks5Request *s5r)
        NULL != header;
        header = header->next)
   {
-    GNUNET_break (MHD_YES ==
-                  MHD_add_response_header (s5r->response,
-                                           header->type,
-                                           header->value));
-
+    if (0 == strcasecmp (header->type,
+                         MHD_HTTP_HEADER_CONTENT_LENGTH))
+      continue; /* MHD won't let us mess with those, for good reason */
+    if ( (0 == strcasecmp (header->type,
+                           MHD_HTTP_HEADER_TRANSFER_ENCODING)) &&
+         ( (0 == strcasecmp (header->value,
+                             "identity")) ||
+           (0 == strcasecmp (header->value,
+                             "chunked")) ) )
+      continue; /* MHD won't let us mess with those, for good reason */
+    if (MHD_YES !=
+        MHD_add_response_header (s5r->response,
+                                 header->type,
+                                 header->value))
+    {
+      GNUNET_break (0);
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                  "Failed to add header `%s:%s'\n",
+                  header->type,
+                  header->value);
+    }
   }
   /* force connection to be closed after each request, as we
      do not support HTTP pipelining (yet, FIXME!) */
