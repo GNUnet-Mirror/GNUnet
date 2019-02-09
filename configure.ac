@@ -244,7 +244,7 @@ if test x"$VAR_IFCONFIG_BINARY" != x"false"
 then
 AC_DEFINE_UNQUOTED([IFCONFIG], "$VAR_IFCONFIG_BINARY", [Path to ifconfig])
 else
-AC_MSG_WARN([warning: 'ifconfig' not found.])
+AC_MSG_WARN(['ifconfig' not found.])
 fi
 
 # miniupnpc / upnpc binary is a soft runtime requirement
