@@ -327,7 +327,7 @@ AC_ARG_ENABLE([texi2mdoc-generation],
 AC_MSG_RESULT($texi2mdoc-generation)
 if test "x$texi2mdoc-generation" = "xyes"
 then
-  if test "$texi2mdoc-generation" = 0
+  if test "$texi2mdoc" = 0
   then
   AC_MSG_WARN([ERROR: mdoc output currently requires texi2mdoc.])
   AC_MSG_WARN([ERROR: texi2mdoc can be obtained via your Operating System])
