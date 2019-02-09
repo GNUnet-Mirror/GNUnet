@@ -1897,7 +1897,7 @@ option ``DISABLE'' to ``YES'' in section ``[namecache]''.
 
 Ascension is a tool to migrate existing DNS zones into GNS.
 
-@xref{Migrating existing DNS zones into GNS} for installation instructions and
+@xref{Migrating existing DNS zones into GNS}, for installation instructions and
 further information about Ascension.
 
 Compared to the gnunet-zoneimport tool it strictly uses AXFR or IXFR depending
