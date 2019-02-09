@@ -47,7 +47,7 @@ man_MANS = \
 
 EXTRA_DIST = ${man_MANS}
 
-if SECTION7
+if TEXI2MDOC_GENERATION
 EXTRA_DIST += gnunet-documentation.7 \
 	      gnunet-c-tutorial.7
 endif
