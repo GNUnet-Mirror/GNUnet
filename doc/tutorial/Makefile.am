@@ -88,7 +88,7 @@ version.texi/replacement/revert:
 	@echo "@set VERSION GPACKAGE_VERSION" > gversion.texi
 	@echo "@set EDITION GPACKAGE_VERSION" >> gversion.texi
 
-if SECTION7
+if TEXI2MDOC_GENERATION
 gnunet-tutorial.7: version.texi/replacement
 	@echo Attempting to output an mdoc formatted section 7 document
 	@texi2mdoc -I$(pwd):$(pwd)/chapters gnunet-c-tutorial.texi > ../man/gnunet-c-tutorial.7

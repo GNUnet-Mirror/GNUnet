@@ -47,6 +47,7 @@ These are the direct dependencies for running GNUnet:
 - mysql              >= 5.1         (alternative to sqlite)
 - postgres           >= 9.5         (alternative to sqlite)
 - Texinfo            >= 5.2         [*1]
+- makeinfo           >= 4.8         (at least 4.8 at the time of writing is tested) 
 - which                             (for the bootstrap script)
 - gettext
 - zlib

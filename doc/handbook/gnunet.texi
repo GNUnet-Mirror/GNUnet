@@ -5,6 +5,11 @@
 @settitle GNUnet Reference Manual
 @c @exampleindent 2
 
+@c macros for backwards compatibility
+@macro geq{}
+>=
+@end macro
+
 @c Set Versions which might be used in more than one place:
 @set GNUFTP-URL https://ftp.gnu.org/gnu/gnunet
 @set PYPI-URL https://pypi.python.org/packages/source

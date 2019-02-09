@@ -244,7 +244,7 @@ if test x"$VAR_IFCONFIG_BINARY" != x"false"
 then
 AC_DEFINE_UNQUOTED([IFCONFIG], "$VAR_IFCONFIG_BINARY", [Path to ifconfig])
 else
-AC_MSG_WARN([warning: 'ifconfig' not found.])
+AC_MSG_WARN(['ifconfig' not found.])
 fi
 
 # miniupnpc / upnpc binary is a soft runtime requirement
@@ -319,16 +319,13 @@ else
   AC_DEFINE([DOCUMENTATION],[0],[Not building the documentation])
 fi
 
-# TODO: Include check for mandoc + texi2mdoc.
-# TODO: Rename the switch? Just 'section7' is too vague.
-# mdoc section 7 output.
-AC_MSG_CHECKING(wether to build section 7 mdoc output)
-AC_ARG_ENABLE([section7],
-[AS_HELP_STRING([--disable-section7], [do not build section 7 mdoc output])],
-[section7=${enableval}],
-[section7=yes])
-AC_MSG_RESULT($section7)
-if test "x$section7" = "xyes"
+AC_MSG_CHECKING(wether to include generated texi2mdoc output in installation)
+AC_ARG_ENABLE([texi2mdoc-generation],
+[AS_HELP_STRING([--disable-texi2mdoc-generation], [do not include generated texi2mdoc output in installation])],
+[texi2mdoc-generation=${enableval}],
+[texi2mdoc-generation=yes])
+AC_MSG_RESULT($texi2mdoc-generation)
+if test "x$texi2mdoc-generation" = "xyes"
 then
   if test "$texi2mdoc" = 0
   then
@@ -336,12 +333,12 @@ then
   AC_MSG_WARN([ERROR: texi2mdoc can be obtained via your Operating System])
   AC_MSG_WARN([ERROR: package manager or from https://mandoc.bsd.lv/texi2mdoc/])
   else
-  AM_CONDITIONAL([SECTION7],true)
-  AC_DEFINE([SECTION7],[1],[Building section 7 mdoc output])
+  AM_CONDITIONAL([TEXI2MDOC_GENERATION],true)
+  AC_DEFINE([TEXI2MDOC_GENERATION],[1],[Building section 7 mdoc output])
   fi
 else
-  AM_CONDITIONAL([SECTION7],false)
-  AC_DEFINE([SECTION7],[0],[Not building section 7 mdoc output])
+  AM_CONDITIONAL([TEXI2MDOC_GENERATION],false)
+  AC_DEFINE([TEXI2MDOC_GENERATION],[0],[Not building section 7 mdoc output])
 fi
 
 # should the build process be building only the documentation?
@@ -360,33 +357,6 @@ else
   AC_DEFINE([DOCUMENTATION_ONLY],[0],[Not building only the documentation])
 fi
 
-
-# Check for makeinfo version >= 5, required for building documentation.
-# TODO: add check for alternatives
-have_makeinfo_5=false
-if test x"$documentation" = xyes || test x"$documentation_only" = xyes
-then
-  AC_PROG_SED
-  AC_CHECK_PROG([MAKEINFO_FOUND], [makeinfo], [yes])
-  if test x"${MAKEINFO_FOUND}" = xyes
-  then
-    MAKEINFO_VERSION_REQ=5
-    AC_MSG_CHECKING([for makeinfo version >= $MAKEINFO_VERSION_REQ])
-    # XXX: is this sed invocation portable?
-    MAKEINFO_VERSION=`makeinfo --version | sed -ne 's/^\(makeinfo\|texi2any\) .* \([[0-9]][[0-9]]*\)\.[[0-9]][[0-9]]*.*$/\2/p'`
-    if test x$MAKEINFO_VERSION = x -o 0$MAKEINFO_VERSION -lt $MAKEINFO_VERSION_REQ
-    then
-      AC_MSG_RESULT([no])
-      AC_MSG_FAILURE([Program 'makeinfo' version >= $MAKEINFO_VERSION_REQ is required.])
-    else
-      AC_MSG_RESULT([yes])
-      have_makeinfo_5=true
-    fi
-  else
-      AC_MSG_FAILURE([Missing program 'makeinfo', Documentation will not be built. Please install it if you want 'info' documentation or refer to online resources at 'https://docs.gnunet.org'.])
-  fi
-fi
-AM_CONDITIONAL([HAVE_MAKEINFO_5], [test x$have_makeinfo_5 = xtrue])
 
 # Adam shostack suggests the following for Windows:
 # -D_FORTIFY_SOURCE=2 -fstack-protector-all
