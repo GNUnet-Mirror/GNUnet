@@ -11,7 +11,7 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
@@ -31,12 +31,10 @@
  */
 static int ret;
 
-
 /**
  * @brief The time available until the test shuts down
  */
 static struct GNUNET_TIME_Relative timeout;
-
 
 /**
  * @brief ATS Application Handle
@@ -64,6 +62,7 @@ static struct GNUNET_PeerIdentity other_peer;
  */
 static struct GNUNET_ATS_SessionRecord *sr;
 
+
 /**
  * @brief Called whenever allocation changed
  *
@@ -74,7 +73,7 @@ static struct GNUNET_ATS_SessionRecord *sr;
  * @param bandwidth_out
  * @param bandwidth_in
  *
- * @return 
+ * @return
  */
 static void
 allocation_cb (void *cls,
@@ -116,9 +115,9 @@ init_both (const struct GNUNET_CONFIGURATION_Handle *cfg)
   ah = GNUNET_ATS_application_init (cfg);
   GNUNET_assert (NULL != ah);
   th = GNUNET_ATS_transport_init (cfg,
-                                  allocation_cb,
+                                  &allocation_cb,
                                   NULL,
-                                  suggestion_cb,
+                                  &suggestion_cb,
                                   NULL);
   GNUNET_assert (NULL != ah);
 }
@@ -227,7 +226,7 @@ run (void *cls,
  * @param argc
  * @param argv[]
  *
- * @return 
+ * @return
  */
 int
 main (int argc,

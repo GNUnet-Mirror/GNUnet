@@ -213,6 +213,10 @@ suggest_cb (void *cls,
     // FIXME: stats!
     return;
   }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Suggesting address `%s' of peer `%s'\n",
+              address,
+              GNUNET_i2s (pid));
   env = GNUNET_MQ_msg_extra (as,
 			     slen,
 			     GNUNET_MESSAGE_TYPE_ATS_ADDRESS_SUGGESTION);
@@ -253,6 +257,12 @@ allocate_cb (void *cls,
        losses of sessions (possibly of previous transport), ignore! */
     return;
   }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Allocating %u/%u bytes for %p of peer `%s'\n",
+              ntohl (bw_in.value__),
+              ntohl (bw_out.value__),
+              session,
+              GNUNET_i2s (peer));
   env = GNUNET_MQ_msg (sam,
 		       GNUNET_MESSAGE_TYPE_ATS_SESSION_ALLOCATION);
   sam->session_id = session->session_id;
@@ -307,6 +317,11 @@ handle_suggest (void *cls,
     GNUNET_SERVICE_client_drop (c->client);
     return;
   }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Client suggested we talk to %s with preference %d at rate %u\n",
+              GNUNET_i2s (&msg->peer),
+              (int) ntohl (msg->pk),
+              (int) ntohl (msg->bw.value__));
   cp = GNUNET_new (struct ClientPreference);
   cp->client = c;
   cp->pref.peer = msg->peer;
@@ -464,6 +479,10 @@ handle_session_add (void *cls,
 				     &session->data,
 				     address);
   GNUNET_assert (NULL != session->sh);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Transport has new session %p to %s\n",
+              session,
+              GNUNET_i2s (&message->peer));
   GNUNET_SERVICE_client_continue (c->client);
 }
 
@@ -540,6 +559,10 @@ handle_session_del (void *cls,
 		 GNUNET_CONTAINER_multihashmap32_remove (c->details.transport.sessions,
 							 session->session_id,
 							 session));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Transport lost session %p to %s\n",
+              session,
+              GNUNET_i2s (&session->data.peer));
   GNUNET_free (session);
   GNUNET_SERVICE_client_continue (c->client);
 }
