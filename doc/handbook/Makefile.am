@@ -9,7 +9,7 @@ infoimagedir = $(infodir)/images
 #	$(DOT_FILES:%.dot=%.eps)						\
 #	$(DOT_FILES:%.dot=%.pdf)
 
-AM_MAKEINFOHTMLFLAGS = --no-split --css-ref=docstyle.css
+AM_MAKEINFOHTMLFLAGS = --no-split --css-ref=manual.css
 
 dist_infoimage_DATA =                           		\
 	images/gnunet-gtk-0-10-gns-a-done.png 			\
@@ -78,7 +78,7 @@ dist_infoimage_DATA =                           		\
 
 
 info_TEXINFOS = 						\
-	gnunet.texi	
+	gnunet.texi
 
 gnunet_TEXINFOS = 						\
 	chapters/developer.texi 				\
