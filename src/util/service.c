@@ -214,12 +214,6 @@ struct GNUNET_SERVICE_Handle
   int match_gid;
 
   /**
-   * Set to #GNUNET_YES if we got a shutdown signal and terminate
-   * the service if #have_non_monitor_clients() returns #GNUNET_YES.
-   */
-  int got_shutdown;
-
-  /**
    * Are we suspended, and if so, why?
    */
   enum SuspendReason suspend_state;
@@ -379,6 +373,32 @@ have_non_monitor_clients (struct GNUNET_SERVICE_Handle *sh)
 
 
 /**
+ * Suspend accepting connections from the listen socket temporarily.
+ * Resume activity using #do_resume.
+ *
+ * @param sh service to stop accepting connections.
+ * @param sr reason for suspending accepting connections
+ */
+static void
+do_suspend (struct GNUNET_SERVICE_Handle *sh,
+            enum SuspendReason sr)
+{
+  struct ServiceListenContext *slc;
+
+  GNUNET_assert (0 == (sh->suspend_state & sr));
+  sh->suspend_state |= sr;
+  for (slc = sh->slc_head; NULL != slc; slc = slc->next)
+  {
+    if (NULL != slc->listen_task)
+    {
+      GNUNET_SCHEDULER_cancel (slc->listen_task);
+      slc->listen_task = NULL;
+    }
+  }
+}
+
+
+/**
  * Shutdown task triggered when a service should be terminated.
  * This considers active clients and the service options to see
  * how this specific service is to be terminated, and depending
@@ -402,8 +422,9 @@ service_shutdown (void *cls)
     GNUNET_assert (0);
     break;
   case GNUNET_SERVICE_OPTION_SOFT_SHUTDOWN:
-    sh->got_shutdown = GNUNET_YES;
-    GNUNET_SERVICE_suspend (sh);
+    if (0 == (sh->suspend_state & SUSPEND_STATE_SHUTDOWN))
+      do_suspend (sh,
+                  SUSPEND_STATE_SHUTDOWN);
     if (GNUNET_NO == have_non_monitor_clients (sh))
       GNUNET_SERVICE_shutdown (sh);
     break;
@@ -475,32 +496,6 @@ NEXT:
     return GNUNET_YES;
   }
   return GNUNET_NO;
-}
-
-
-/**
- * Suspend accepting connections from the listen socket temporarily.
- * Resume activity using #do_resume.
- *
- * @param sh service to stop accepting connections.
- * @param sr reason for suspending accepting connections
- */
-static void
-do_suspend (struct GNUNET_SERVICE_Handle *sh,
-            enum SuspendReason sr)
-{
-  struct ServiceListenContext *slc;
-
-  GNUNET_assert (0 == (sh->suspend_state & sr));
-  sh->suspend_state |= sr;
-  for (slc = sh->slc_head; NULL != slc; slc = slc->next)
-  {
-    if (NULL != slc->listen_task)
-    {
-      GNUNET_SCHEDULER_cancel (slc->listen_task);
-      slc->listen_task = NULL;
-    }
-  }
 }
 
 
@@ -838,7 +833,7 @@ accept_client (void *cls)
       if (EMFILE == errno)
         do_suspend (sh,
                     SUSPEND_STATE_EMFILE);
-      else
+      else if (EAGAIN != errno)
         GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING,
                              "accept");
       break;
@@ -2633,7 +2628,8 @@ finish_client_drop (void *cls)
   {
     GNUNET_break (GNUNET_OK ==
 		  GNUNET_NETWORK_socket_close (c->sock));
-    if (0 != (SUSPEND_STATE_EMFILE & sh->suspend_state))
+    if ( (0 != (SUSPEND_STATE_EMFILE & sh->suspend_state)) &&
+         (0 == (SUSPEND_STATE_SHUTDOWN & sh->suspend_state)) )
       do_resume (sh,
                  SUSPEND_STATE_EMFILE);
   }
@@ -2642,7 +2638,7 @@ finish_client_drop (void *cls)
     GNUNET_NETWORK_socket_free_memory_only_ (c->sock);
   }
   GNUNET_free (c);
-  if ( (GNUNET_YES == sh->got_shutdown) &&
+  if ( (0 != (SUSPEND_STATE_SHUTDOWN & sh->suspend_state)) &&
        (GNUNET_NO == have_non_monitor_clients (sh)) )
     GNUNET_SERVICE_shutdown (sh);
 }
@@ -2724,9 +2720,9 @@ GNUNET_SERVICE_shutdown (struct GNUNET_SERVICE_Handle *sh)
 {
   struct GNUNET_SERVICE_Client *client;
 
-  do_suspend (sh,
-              SUSPEND_STATE_SHUTDOWN);
-  sh->got_shutdown = GNUNET_NO;
+  if (0 == (sh->suspend_state & SUSPEND_STATE_SHUTDOWN))
+    do_suspend (sh,
+                SUSPEND_STATE_SHUTDOWN);
   while (NULL != (client = sh->clients_head))
     GNUNET_SERVICE_client_drop (client);
 }
@@ -2748,8 +2744,8 @@ void
 GNUNET_SERVICE_client_mark_monitor (struct GNUNET_SERVICE_Client *c)
 {
   c->is_monitor = GNUNET_YES;
-  if ( (GNUNET_YES == c->sh->got_shutdown) &&
-       (GNUNET_NO == have_non_monitor_clients (c->sh)) )
+  if ( (0 != (SUSPEND_STATE_SHUTDOWN & c->sh->suspend_state) &&
+        (GNUNET_NO == have_non_monitor_clients (c->sh)) ) )
     GNUNET_SERVICE_shutdown (c->sh);
 }
 
