@@ -69,8 +69,8 @@ gnunetinclude_HEADERS = \
   gnunet_hello_lib.h \
   gnunet_helper_lib.h \
   gnunet_identity_service.h \
-	gnunet_abe_lib.h \
-	gnunet_reclaim_attribute_lib.h \
+  gnunet_abe_lib.h \
+  gnunet_reclaim_attribute_lib.h \
   gnunet_reclaim_attribute_plugin.h \
   gnunet_reclaim_plugin.h \
   gnunet_reclaim_service.h \
@@ -78,7 +78,6 @@ gnunetinclude_HEADERS = \
   gnunet_load_lib.h \
   gnunet_cadet_service.h \
   gnunet_microphone_lib.h \
-  gnunet_multicast_service.h \
   gnunet_mst_lib.h \
   gnunet_mq_lib.h \
   gnunet_my_lib.h \
@@ -101,13 +100,6 @@ gnunetinclude_HEADERS = \
   gnunet_peerstore_service.h \
   gnunet_plugin_lib.h \
   gnunet_pq_lib.h \
-  gnunet_psycstore_plugin.h \
-  gnunet_psycstore_service.h \
-  gnunet_psyc_service.h \
-  gnunet_psyc_util_lib.h \
-  gnunet_psyc_env.h \
-  gnunet_psyc_message.h \
-  gnunet_psyc_slicer.h \
   gnunet_program_lib.h \
   gnunet_protocols.h \
   gnunet_resolver_service.h \
@@ -122,7 +114,6 @@ gnunetinclude_HEADERS = \
   gnunet_set_service.h \
   gnunet_signal_lib.h \
   gnunet_signatures.h \
-  gnunet_social_service.h \
   gnunet_socks.h \
   gnunet_speaker_lib.h \
   gnunet_sq_lib.h \

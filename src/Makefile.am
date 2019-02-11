@@ -11,13 +11,7 @@ endif
 
 if HAVE_EXPERIMENTAL
  EXP_DIR = \
-  rps \
-  multicast \
-  psycutil \
-  psycstore \
-  psyc \
-  social
-#  dv (FTBFS)
+  rps
 if HAVE_ABE
 if HAVE_JSON
  EXP_DIR += \

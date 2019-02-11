@@ -19,14 +19,11 @@ pcfiles = \
        gnunetidentity.pc \
        gnunetcadet.pc \
        gnunetmicrophone.pc \
-       gnunetmulticast.pc \
        gnunetmysql.pc \
        gnunetnamestore.pc \
        gnunetnat.pc \
        gnunetnse.pc \
        gnunetpeerinfo.pc \
-       gnunetpsyc.pc \
-       gnunetpsycstore.pc \
        gnunetregex.pc \
        gnunetrevocation.pc \
        gnunetrps.pc \
@@ -38,7 +35,7 @@ pcfiles = \
        gnunettesting.pc \
        gnunettransport.pc \
        gnunetutil.pc \
-       gnunetvpn.pc 
+       gnunetvpn.pc
 
 all-local: $(pcfiles)
 
@@ -95,9 +92,7 @@ EXTRA_DIST = \
        gnunettransport.pc.in \
        gnunettun.pc.in \
        gnunetutil.pc.in \
-       gnunetvpn.pc.in 
+       gnunetvpn.pc.in
 
 CLEANFILES = $(pcfiles)
 AM_CPPFLAGS = -I$(top_srcdir)/src/include
-
-
