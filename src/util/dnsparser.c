@@ -25,14 +25,18 @@
  * @author Christian Grothoff
  */
 #include "platform.h"
+#if HAVE_LIBIDN2
 #if HAVE_IDN2_H
 #include <idn2.h>
 #elif HAVE_IDN2_IDN2_H
 #include <idn2/idn2.h>
-#elif HAVE_IDNA_H
+#endif
+#elif HAVE_LIBIDN
+#if HAVE_IDNA_H
 #include <idna.h>
 #elif HAVE_IDN_IDNA_H
 #include <idn/idna.h>
+#endif
 #endif
 #if WINDOWS
 #include <idn-free.h>
