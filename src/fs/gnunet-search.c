@@ -172,8 +172,11 @@ progress_cb (void *cls, const struct GNUNET_FS_ProgressInfo *info)
     is_directory =
         GNUNET_FS_meta_data_test_for_directory (info->value.search.
                                                 specifics.result.meta);
-    if (filename != NULL)
+    if (NULL != filename)
     {
+      while ( (filename[0] != '\0') &&
+	      ('/' == filename[strlen(filename)-1]) )
+	filename[strlen(filename)-1] = '\0';
       GNUNET_DISK_filename_canonicalize (filename);
       if (GNUNET_YES == is_directory)
         printf ("gnunet-download -o \"%s%s\" -R %s\n", filename, GNUNET_FS_DIRECTORY_EXT, uri);
