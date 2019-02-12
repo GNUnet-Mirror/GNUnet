@@ -24,7 +24,7 @@
  * @author Christian Grothoff
  *
  * TODO:
- * - add and use util/ check for IPv6 availability (#V6)
+ * - add and use util/ check for IPv6 availability (#5553)
  * - support DNS names in BINDTO option (#5528)
  * - support NAT connection reversal method (#5529)
  * - support other TCP-specific NAT traversal methods (#5531)
