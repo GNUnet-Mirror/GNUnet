@@ -862,7 +862,7 @@ AS_IF([test x$my_with_libidn2 = x1],
                     LIBS="-lidn2 $LIBS"
  	            AC_DEFINE_UNQUOTED([HAVE_LIBIDN2],
                                        [1],
-                                        [Define to 1 if you have 'libidn2' (-lidn).])],
+                                        [Define to 1 if you have 'libidn2' (-lidn2).])],
                      [MISSING_DEPS="${MISSING_DEPS}${MISSING_SEP}libidn2"
                      MISSING_SEP=", "])])
 AM_CONDITIONAL(HAVE_LIBIDN2, test x$working_libidn2 = x1)
