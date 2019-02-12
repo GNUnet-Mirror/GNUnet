@@ -60,8 +60,6 @@ EXTRA_DIST = \
        gnunetdatastore.pc.in \
        gnunetdht.pc.in \
        gnunetdns.pc.in \
-       gnunetdnsparser.pc.in \
-       gnunetdnsstub.pc.in \
        gnunetdv.pc.in \
        gnunetenv.pc.in \
        gnunetfragmentation.pc.in \
@@ -71,15 +69,12 @@ EXTRA_DIST = \
        gnunetidentity.pc.in \
        gnunetcadet.pc.in \
        gnunetmicrophone.pc.in \
-       gnunetmulticast.pc.in \
        gnunetmysql.pc.in \
        gnunetnamestore.pc.in \
        gnunetnat.pc.in \
        gnunetnse.pc.in \
        gnunetpeerinfo.pc.in \
        gnunetpostgres.pc.in \
-       gnunetpsyc.pc.in \
-       gnunetpsycstore.pc.in \
        gnunetregex.pc.in \
        gnunetrevocation.pc.in \
        gnunetrps.pc.in \
@@ -90,7 +85,6 @@ EXTRA_DIST = \
        gnunettestbed.pc.in \
        gnunettesting.pc.in \
        gnunettransport.pc.in \
-       gnunettun.pc.in \
        gnunetutil.pc.in \
        gnunetvpn.pc.in
 
