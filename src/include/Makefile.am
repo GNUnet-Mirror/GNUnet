@@ -33,6 +33,7 @@ gnunetinclude_HEADERS = \
   gnunet_ats_application_service.h \
   gnunet_ats_transport_service.h \
   gnunet_ats_plugin.h \
+  gnunet_ats_plugin_new.h \
   gnunet_bandwidth_lib.h \
   gnunet_bio_lib.h \
   gnunet_block_lib.h \
