@@ -18,6 +18,7 @@
 #    SPDX-License-Identifier: AGPL3.0-or-later
 #
 # 
+from __future__ import print_function
 import sys
 import os
 import subprocess
@@ -89,7 +90,7 @@ def cleanup ():
 
 def success_restart_cont (check):
 	global success 
- 	print('Peers connected successfully after restart')
+	print('Peers connected successfully after restart')
 	server.stop ()
 	client.stop ()
 	success = True;	
