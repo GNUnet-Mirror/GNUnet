@@ -1,4 +1,5 @@
 #!@PYTHON@
+from __future__ import print_function
 import os
 import sys
 import difflib
@@ -23,7 +24,7 @@ def dc_getdiff(dc, old, new):
     for f in dc.diff_files:
         r = getdiff(os.path.join(old, f), os.path.join(new, f))
         diff.extend(r)
-    for dn, dc in dc.subdirs.items():
+    for dn, dc in list(dc.subdirs.items()):
         r = dc_getdiff(dc, os.path.join(old, dn), os.path.join(new, dn))
         diff.extend(r)
     return diff
