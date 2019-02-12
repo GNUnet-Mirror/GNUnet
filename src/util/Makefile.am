@@ -41,7 +41,7 @@ if USE_COVERAGE
 endif
 
 if ENABLE_BENCHMARK
-  BENCHMARK = benchmark.c
+  BENCHMARK = benchmark.c benchmark.h
   PTHREAD = -lpthread
 endif
 
