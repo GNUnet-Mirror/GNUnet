@@ -10,7 +10,6 @@ pcfiles = \
        gnunetdatastore.pc \
        gnunetdht.pc \
        gnunetdns.pc \
-       gnunetdv.pc \
        gnunetenv.pc \
        gnunetfragmentation.pc \
        gnunetfs.pc \

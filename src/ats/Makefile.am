@@ -214,6 +214,8 @@ EXTRA_DIST = \
   ats.h ats2.h \
   plugin_ats2_common.c \
   test_delay \
+  test_ats2_lib.conf \
+  test_ats_api.conf \
   test_ats_api_mlp.conf \
   test_ats_api_ril.conf \
   test_ats_api_proportional.conf

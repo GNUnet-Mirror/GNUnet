@@ -95,4 +95,5 @@ test_testing_sharedservices_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la
 
 EXTRA_DIST = \
-  test_testing_defaults.conf
+  test_testing_defaults.conf \
+  test_testing_sharedservices.conf
