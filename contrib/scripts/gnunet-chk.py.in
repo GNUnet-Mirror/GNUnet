@@ -21,6 +21,12 @@
 # Brief:   Computes GNUNET style Content Hash Key for a given file
 # Author:  Sree Harsha Totakura
 
+from __future__ import print_function
+from __future__ import division
+from builtins import str
+from builtins import range
+from past.utils import old_div
+from builtins import object
 from hashlib import sha512
 import logging
 import os
@@ -90,7 +96,7 @@ def sha512_hash(data):
     return hash_obj.digest()
 
 
-class AESKey:
+class AESKey(object):
     """Class for AES Keys. Contains the main key and the initialization
     vector. """
 
@@ -177,7 +183,7 @@ def aes_decrypt(aes_key, data):
     return ptext
 
 
-class Chk:
+class Chk(object):
     """Class for the content hash key."""
     key = None
     query = None
@@ -248,7 +254,7 @@ def compute_chk_offset_(depth, end_offset):
     bds = compute_tree_size_(depth)
     if (depth > 0):
         end_offset -= 1
-    ret = end_offset / bds
+    ret = old_div(end_offset, bds)
     return ret % CHK_PER_INODE
 
 
@@ -272,7 +278,7 @@ def compute_iblock_size_(depth, offset):
         ret = CHK_PER_INODE
     else:
         bds /= CHK_PER_INODE
-        ret = mod / bds
+        ret = old_div(mod, bds)
         if (mod % bds) is not 0:
             ret += 1
     return ret
