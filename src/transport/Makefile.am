@@ -271,7 +271,7 @@ gnunet_communicator_udp_LDADD = \
   $(top_builddir)/src/nt/libgnunetnt.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/util/libgnunetutil.la \
-  $(LIBGCRYPT_LIBS) 
+  $(LIBGCRYPT_LIBS)
 
 
 gnunet_helper_transport_wlan_SOURCES = \
@@ -1339,6 +1339,7 @@ test_transport_api_slow_ats_LDADD = \
 
 
 EXTRA_DIST = \
+communicator-unix.conf \
 test_plugin_hostkey \
 test_plugin_hostkey.ecc \
 test_delay \
