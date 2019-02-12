@@ -888,6 +888,8 @@ accept_client (void *cls)
     start_client (slc->sh,
 		  sock);
   }
+  if (0 != sh->suspend_state)
+    return;
   slc->listen_task
     = GNUNET_SCHEDULER_add_read_net (GNUNET_TIME_UNIT_FOREVER_REL,
 				     slc->listen_socket,
