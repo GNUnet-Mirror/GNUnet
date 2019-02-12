@@ -1,4 +1,6 @@
 #!@PYTHON@
+from __future__ import print_function
+from builtins import str
 import sys
 import getopt
 import subprocess
@@ -100,7 +102,7 @@ if __name__ == '__main__':
                         cmd += " " + str(a)
                 if (verbose):
                         print('Running `' + cmd +'`')
-                res=subprocess.call(args)
+                res = subprocess.call(args)
                 if (0 != res):
                         print('Failed to add URI ' + str(symbol.data))
                 else:
