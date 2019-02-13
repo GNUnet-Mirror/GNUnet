@@ -90,11 +90,13 @@ GNUNET_TRANSPORT_address_disconnect (struct GNUNET_TRANSPORT_AddressHandle *ch);
  * lost.
  *
  * @param ch communicator handle
+ * @param pid peer the address is for
  * @param raw raw address data
  * @param raw_size number of bytes in @a raw
  */
 void
-GNUNET_TRANSPORT_address_try (struct GNUNET_TRANSPORT_CommunicatorHandle *ch,
+GNUNET_TRANSPORT_address_try (struct GNUNET_TRANSPORT_AddressHandle *ch,
+                              const struct GNUNET_PeerIdentity *pid,
                               const void *raw,
                               const size_t raw_size);
 

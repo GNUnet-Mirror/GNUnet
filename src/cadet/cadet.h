@@ -11,7 +11,7 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -323,9 +323,9 @@ struct GNUNET_CADET_LocalInfoPath
   struct GNUNET_MessageHeader header;
 
   /**
-   * Zero.
+   * Offset of the peer that was requested.
    */
-  uint32_t reserved GNUNET_PACKED;
+  uint32_t off GNUNET_PACKED;
 };
 
 
@@ -338,7 +338,7 @@ struct GNUNET_CADET_LocalInfoPeers
    * Type: #GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_PEERS
    */
   struct GNUNET_MessageHeader header;
-  
+
   /**
    * Number of paths.
    */
@@ -348,7 +348,7 @@ struct GNUNET_CADET_LocalInfoPeers
    * Do we have a tunnel toward this peer?
    */
   int16_t tunnel GNUNET_PACKED;
-  
+
   /**
    * Shortest known path.
    */
