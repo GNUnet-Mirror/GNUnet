@@ -886,6 +886,13 @@ path_info_iterator (void *cls,
   path_size = sizeof (struct GNUNET_PeerIdentity) * path_length;
   if (sizeof (*resp) + path_size > UINT16_MAX)
   {
+    /* try just giving the relevant path */
+    path_length = GNUNET_MIN ((UINT16_MAX - sizeof (*resp)) / sizeof (struct GNUNET_PeerIdentity),
+                              off);
+    path_size = sizeof (struct GNUNET_PeerIdentity) * path_length;
+  }
+  if (sizeof (*resp) + path_size > UINT16_MAX)
+  {
     LOG (GNUNET_ERROR_TYPE_WARNING,
          "Path of %u entries is too long for info message\n",
          path_length);
@@ -899,9 +906,10 @@ path_info_iterator (void *cls,
   /* Don't copy first peer.  First peer is always the local one.  Last
    * peer is always the destination (leave as 0, EOL).
    */
-  for (unsigned int i = 0; i <= off; i++)
+  for (unsigned int i = 0; i < path_length; i++)
     id[i] = *GCP_get_id (GCPP_get_peer_at_offset (path,
                                                   i));
+  resp->off = htonl (off);
   GNUNET_MQ_send (mq,
                   env);
   return GNUNET_YES;
