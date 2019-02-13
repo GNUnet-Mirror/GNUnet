@@ -11,7 +11,7 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -1115,7 +1115,8 @@ GST_validation_handle_ping (const struct GNUNET_PeerIdentity *sender,
   }
   ping = (const struct TransportPingMessage *) hdr;
   if (0 !=
-      memcmp (&ping->target, &GST_my_identity,
+      memcmp (&ping->target,
+              &GST_my_identity,
               sizeof (struct GNUNET_PeerIdentity)))
   {
     GNUNET_STATISTICS_update (GST_stats,
