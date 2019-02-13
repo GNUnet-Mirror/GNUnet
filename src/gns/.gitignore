@@ -4,3 +4,4 @@ gnunet-dns2gns
 gnunet-gns
 gnunet-gns-proxy
 gnunet-gns-benchmark
+test_gns_proxy
