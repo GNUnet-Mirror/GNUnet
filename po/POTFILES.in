@@ -128,10 +128,6 @@ src/dns/gnunet-helper-dns.c
 src/dns/gnunet-service-dns.c
 src/dns/gnunet-zonewalk.c
 src/dns/plugin_block_dns.c
-src/dv/dv_api.c
-src/dv/gnunet-dv.c
-src/dv/gnunet-service-dv.c
-src/dv/plugin_transport_dv.c
 src/exit/gnunet-daemon-exit.c
 src/exit/gnunet-helper-exit.c
 src/exit/gnunet-helper-exit-windows.c
