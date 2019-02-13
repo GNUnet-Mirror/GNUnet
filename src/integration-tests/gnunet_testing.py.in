@@ -11,13 +11,17 @@
 #    WITHOUT ANY WARRANTY; without even the implied warranty of
 #    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
 #    Affero General Public License for more details.
-#   
+#
 #    You should have received a copy of the GNU Affero General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 #    SPDX-License-Identifier: AGPL3.0-or-later
 #
 # Functions for integration testing
+from __future__ import unicode_literals
+from __future__ import print_function
+from builtins import object
+from builtins import str
 import os
 import subprocess
 import sys
@@ -26,7 +30,7 @@ import time
 from gnunet_pyexpect import pexpect
 
 
-class Check:
+class Check(object):
     def __init__(self, test):
         self.fulfilled = False
         self.conditions = list()
@@ -92,7 +96,7 @@ class Check:
             c.fulfilled = False
 
 
-class Condition:
+class Condition(object):
     def __init__(self):
         self.fulfilled = False
         self.type = 'generic'
@@ -131,13 +135,21 @@ class FileExistCondition(Condition):
 
     def evaluate(self, failed_only):
         if ((self.fulfilled == False) and (failed_only == True)):
-            print(str(self.type) + 'condition for file '+self.file+' was ' + str(self.fulfilled))
+            print(str(self.type) +
+                  'condition for file ' +
+                  self.file +
+                  ' was ' +
+                  str(self.fulfilled))
         elif (failed_only == False):
-            print(str(self.type) + 'condition for file '+self.file+' was ' + str(self.fulfilled))
+            print(str(self.type) +
+                  'condition for file ' +
+                  self.file +
+                  ' was ' +
+                  str(self.fulfilled))
         return self.fulfilled
 
 
-class StatisticsCondition (Condition):
+class StatisticsCondition(Condition):
     def __init__(self, peer, subsystem, name, value):
         self.fulfilled = False
         self.type = 'statistics'
@@ -160,22 +172,35 @@ class StatisticsCondition (Condition):
 
     def evaluate(self, failed_only):
         if (self.result == -1):
-            res = 'NaN'
+            res = b'NaN'
         else:
-            res = str(self.result)
+            res = str(self.result).encode('utf-8')
         if (self.fulfilled == False):
-            fail = " FAIL!"
-            op = " != "
+            fail = b" FAIL!"
+            op = b" != "
         else:
-            fail = ""
-            op = " == "
+            fail = b""
+            op = b" == "
         if (((self.fulfilled == False) and (failed_only == True)) or (failed_only == False)):
-            print(self.peer.id[:4] + " " + self.peer.cfg + " " + str(self.type) + ' condition in subsystem "' + self.subsystem.ljust(12) + '" : "' + self.name.ljust(30) + '" : (expected/real value) ' + str(self.value) + op + res + fail)
+            print(self.peer.id[:4] +
+                  b" " +
+                  self.peer.cfg.encode('utf-8') +
+                  b" " +
+                  str(self.type).encode('utf-8') +
+                  b' condition in subsystem "' +
+                  self.subsystem.encode('utf-8').ljust(12) +
+                  b'" : "' +
+                  self.name.encode('utf-8').ljust(30) +
+                  b'" : (expected/real value) ' +
+                  str(self.value).encode('utf-8') +
+                  op +
+                  res +
+                  fail)
         return self.fulfilled
 
 
 # Specify two statistic values and check if they are equal
-class EqualStatisticsCondition (Condition):
+class EqualStatisticsCondition(Condition):
     def __init__(self, peer, subsystem, name, peer2, subsystem2, name2):
         self.fulfilled = False
         self.type = 'equalstatistics'
@@ -202,25 +227,39 @@ class EqualStatisticsCondition (Condition):
 
     def evaluate(self, failed_only):
         if (self.result == -1):
-            res = 'NaN'
+            res = b'NaN'
         else:
-            res = str(self.result)
+            res = str(self.result).encode('utf-8')
         if (self.result2 == -1):
-            res2 = 'NaN'
+            res2 = b'NaN'
         else:
-            res2 = str(self.result2)
+            res2 = str(self.result2).encode('utf-8')
         if (self.fulfilled == False):
-            fail = " FAIL!"
-            op = " != "
+            fail = b" FAIL!"
+            op = b" != "
         else:
-            fail = ""
-            op = " == "
+            fail = b""
+            op = b" == "
         if (((self.fulfilled == False) and (failed_only == True)) or (failed_only == False)):
-            print(self.peer.id[:4] + ' "' + self.subsystem.ljust(12) + '" "' + self.name.ljust(30) + '" == ' + str(self.result) + " " + self.peer2.id[:4] + ' "' + self.subsystem2.ljust(12) + '" ' + self.name2.ljust(30) + '" ' + str(self.result2))
+            print(self.peer.id[:4] +
+                  b' "' +
+                  self.subsystem.encode('utf-8').ljust(12) +
+                  b'" "' +
+                  self.name.encode('utf-8').ljust(30) +
+                  b'" == ' +
+                  str(self.result).encode('utf-8') +
+                  b" " +
+                  self.peer2.id[:4] +
+                  b' "' +
+                  self.subsystem2.encode('utf-8').ljust(12) +
+                  b'" ' +
+                  self.name2.encode('utf-8').ljust(30) +
+                  b'" ' +
+                  str(self.result2).encode('utf-8'))
         return self.fulfilled
 
 
-class Test:
+class Test(object):
     def __init__(self, testname, verbose):
         self.peers = list()
         self.verbose = verbose
@@ -252,7 +291,7 @@ class Test:
             print(msg)
 
 
-class Peer:
+class Peer(object):
     def __init__(self, test, cfg_file):
         if (False == os.path.isfile(cfg_file)):
             print(("Peer cfg " + cfg_file + ": FILE NOT FOUND"))
@@ -266,7 +305,9 @@ class Peer:
             print('ERROR! Peer using cfg ' + self.cfg + ' was not stopped')
             ret = self.stop()
             if (False == ret):
-                print('ERROR! Peer using cfg ' + self.cfg + ' could not be stopped')
+                print('ERROR! Peer using cfg ' +
+                      self.cfg +
+                      ' could not be stopped')
                 self.started = False
             return ret
         else:
@@ -289,8 +330,8 @@ class Peer:
             test = server.read("stdout", 1024)
         except OSError:
             print("Can not get peer identity")
-        test = (test.split('`')[1])
-        self.id = test.split('\'')[0]
+        test = (test.split(b'`')[1])
+        self.id = test.split(b'\'')[0]
         return True
 
     def stop(self):
@@ -311,9 +352,9 @@ class Peer:
         server.spawn(None, [self.test.gnunetstatistics, '-c', self.cfg, '-q', '-n', name, '-s', subsystem], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         # server.expect ("stdout", re.compile (r""))
         test = server.read("stdout", 10240)
-        tests = test.partition('\n')
+        tests = test.partition(b'\n')
         # On W32 GNUnet outputs with \r\n, rather than \n
-        if os.name == 'nt' and tests[1] == '\n' and tests[0][-1] == '\r':
+        if os.name == 'nt' and tests[1] == b'\n' and tests[0][-1] == b'\r':
             tests = (tests[0][:-1], tests[1], tests[2])
         tests = tests[0]
         if (tests.isdigit() == True):
