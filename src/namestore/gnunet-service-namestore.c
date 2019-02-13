@@ -124,7 +124,7 @@ struct ZoneIteration
    * message and free the data structure once @e cache_ops is zero.
    */
   int send_end;
-  
+
 };
 
 
@@ -268,7 +268,7 @@ struct CacheOperation
    * for if applicable, can be NULL.
    */
   struct ZoneIteration *zi;
-  
+
   /**
    * Client's request ID.
    */
@@ -318,12 +318,12 @@ struct StoreActivity
 
 /**
  * Entry in list of cached nick resolutions.
- */ 
+ */
 struct NickCache
 {
   /**
    * Zone the cache entry is for.
-   */ 
+   */
   struct GNUNET_CRYPTO_EcdsaPrivateKey zone;
 
   /**
@@ -339,7 +339,7 @@ struct NickCache
 
 
 /**
- * We cache nick records to reduce DB load. 
+ * We cache nick records to reduce DB load.
  */
 static struct NickCache nick_cache[NC_SIZE];
 
@@ -489,7 +489,7 @@ free_store_activity (struct StoreActivity *sa)
  * record, which (if found) is then copied to @a cls for future use.
  *
  * @param cls a `struct GNUNET_GNSRECORD_Data **` for storing the nick (if found)
- * @param seq sequence number of the record
+ * @param seq sequence number of the record, MUST NOT BE ZERO
  * @param private_key the private key of the zone (unused)
  * @param label should be #GNUNET_GNS_EMPTY_LABEL_AT
  * @param rd_count number of records in @a rd
@@ -506,7 +506,7 @@ lookup_nick_it (void *cls,
   struct GNUNET_GNSRECORD_Data **res = cls;
 
   (void) private_key;
-  (void) seq;
+  GNUNET_assert (0 != seq);
   if (0 != strcmp (label, GNUNET_GNS_EMPTY_LABEL_AT))
   {
     GNUNET_break (0);
@@ -607,7 +607,7 @@ get_nick_record (const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone)
       return nick;
     }
   }
-  
+
   nick = NULL;
   res = GSN_database->lookup_records (GSN_database->cls,
 				      zone,
@@ -872,7 +872,7 @@ zone_iteration_done_client_continue (struct ZoneIteration *zi)
   em->r_id = htonl (zi->request_id);
   GNUNET_MQ_send (zi->nc->mq,
                   env);
-      
+
   GNUNET_CONTAINER_DLL_remove (zi->nc->op_head,
 			       zi->nc->op_tail,
 			       zi);
@@ -1270,9 +1270,16 @@ struct RecordLookupContext
 
 
 /**
- * FIXME.
+ * Function called by the namestore plugin when we are trying to lookup
+ * a record as part of #handle_record_lookup().  Merges all results into
+ * the context.
  *
- * @param seq sequence number of the record
+ * @param cls closure with a `struct RecordLookupContext`
+ * @param seq unique serial number of the record, MUST NOT BE ZERO
+ * @param zone_key private key of the zone
+ * @param label name that is being mapped (at most 255 characters long)
+ * @param rd_count number of entries in @a rd array
+ * @param rd array of records with data to store
  */
 static void
 lookup_it (void *cls,
@@ -1285,7 +1292,7 @@ lookup_it (void *cls,
   struct RecordLookupContext *rlc = cls;
 
   (void) private_key;
-  (void) seq;
+  GNUNET_assert (0 != seq);
   if (0 != strcmp (label,
                    rlc->label))
     return;
@@ -1609,7 +1616,7 @@ handle_record_store (void *cls,
                            conv_name)) ||
              (GNUNET_GNSRECORD_TYPE_NICK != rd[i].record_type) )
           rd_clean_off++;
-	
+
 	if ( (0 == strcmp (GNUNET_GNS_EMPTY_LABEL_AT,
                            conv_name)) &&
 	     (GNUNET_GNSRECORD_TYPE_NICK == rd[i].record_type) )
@@ -1680,7 +1687,7 @@ struct ZoneToNameCtx
  * Zone to name iterator
  *
  * @param cls struct ZoneToNameCtx *
- * @param seq sequence number of the record
+ * @param seq sequence number of the record, MUST NOT BE ZERO
  * @param zone_key the zone key
  * @param name name
  * @param rd_count number of records in @a rd
@@ -1704,7 +1711,7 @@ handle_zone_to_name_it (void *cls,
   char *name_tmp;
   char *rd_tmp;
 
-  (void) seq;
+  GNUNET_assert (0 != seq);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Found result for zone-to-name lookup: `%s'\n",
 	      name);
@@ -1822,7 +1829,7 @@ struct ZoneIterationProcResult
  * Process results for zone iteration from database
  *
  * @param cls struct ZoneIterationProcResult
- * @param seq sequence number of the record
+ * @param seq sequence number of the record, MUST NOT BE ZERO
  * @param zone_key the zone key
  * @param name name
  * @param rd_count number of records for this name
@@ -1839,6 +1846,7 @@ zone_iterate_proc (void *cls,
   struct ZoneIterationProcResult *proc = cls;
   int do_refresh_block;
 
+  GNUNET_assert (0 != seq);
   if ( (NULL == zone_key) &&
        (NULL == name) )
   {
@@ -1876,7 +1884,7 @@ zone_iterate_proc (void *cls,
       do_refresh_block = GNUNET_YES;
       break;
     }
-  if (GNUNET_YES == do_refresh_block)    
+  if (GNUNET_YES == do_refresh_block)
     refresh_block (NULL,
 		   proc->zi,
                    0,
@@ -2116,7 +2124,7 @@ monitor_iteration_next (void *cls);
  * A #GNUNET_NAMESTORE_RecordIterator for monitors.
  *
  * @param cls a 'struct ZoneMonitor *' with information about the monitor
- * @param seq sequence number of the record
+ * @param seq sequence number of the record, MUST NOT BE ZERO
  * @param zone_key zone key of the zone
  * @param name name
  * @param rd_count number of records in @a rd
@@ -2132,6 +2140,7 @@ monitor_iterate_cb (void *cls,
 {
   struct ZoneMonitor *zm = cls;
 
+  GNUNET_assert (0 != seq);
   zm->seq = seq;
   GNUNET_assert (NULL != name);
   GNUNET_STATISTICS_update (statistics,

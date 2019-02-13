@@ -400,6 +400,7 @@ parse_result_call_iterator (void *cls,
     {
       struct GNUNET_GNSRECORD_Data rd[GNUNET_NZL(record_count)];
 
+      GNUNET_assert (0 != serial);
       if (GNUNET_OK !=
           GNUNET_GNSRECORD_records_deserialize (data_size,
                                                 data,
