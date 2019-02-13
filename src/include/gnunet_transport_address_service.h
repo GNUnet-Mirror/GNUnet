@@ -94,7 +94,7 @@ GNUNET_TRANSPORT_address_disconnect (struct GNUNET_TRANSPORT_AddressHandle *ch);
  * @param raw_size number of bytes in @a raw
  */
 void
-GNUNET_TRANSPORT_address_try (struct GNUNET_TRANSPORT_CommunicatorHandle *ch,
+GNUNET_TRANSPORT_address_try (struct GNUNET_TRANSPORT_AddressHandle *ch,
                               const void *raw,
                               const size_t raw_size);
 

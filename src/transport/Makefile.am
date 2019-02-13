@@ -154,6 +154,7 @@ endif
 
 lib_LTLIBRARIES = \
   libgnunettransport.la \
+  libgnunettransportaddress.la \
   libgnunettransportcore.la \
   libgnunettransportcommunicator.la \
   libgnunettransportmonitor.la \
@@ -196,6 +197,15 @@ libgnunettransport_la_LDFLAGS = \
   -version-info 4:0:2
 
 
+
+libgnunettransportaddress_la_SOURCES = \
+  transport_api2_address.c
+libgnunettransportaddress_la_LIBADD = \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(GN_LIBINTL)
+libgnunettransportaddress_la_LDFLAGS = \
+  $(GN_LIB_LDFLAGS) $(WINFLAGS) \
+  -version-info 0:0:0
 
 libgnunettransportcore_la_SOURCES = \
   transport_api2_core.c
