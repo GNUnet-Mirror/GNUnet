@@ -220,20 +220,23 @@ GNUNET_TRANSPORT_address_disconnect (struct GNUNET_TRANSPORT_AddressHandle *hand
  * lost.
  *
  * @param ch communicator handle
+ * @param pid peer the address is for
  * @param raw raw address data
  * @param raw_size number of bytes in @a raw
  */
 void
 GNUNET_TRANSPORT_address_try (struct GNUNET_TRANSPORT_AddressHandle *ch,
+                              const struct GNUNET_PeerIdentity *pid,
                               const void *raw,
                               const size_t raw_size)
 {
   struct GNUNET_MQ_Envelope *env;
-  struct GNUNET_MessageHeader *hdr;
+  struct GNUNET_TRANSPORT_AddressToVerify *hdr;
 
   env = GNUNET_MQ_msg_extra (hdr,
                              raw_size,
                              GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_CONSIDER_VERIFY);
+  hdr->peer = *pid;
   memcpy (&hdr[1],
           raw,
           raw_size);
