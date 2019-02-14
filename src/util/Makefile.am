@@ -226,7 +226,9 @@ gnunet_timeout_SOURCES = \
 endif
 
 
-do_subst = $(SED) -e 's,[@]PYTHON[@],$(PYTHON),g'
+mypython27=$(shell cat $(top_srcdir)/src/util/python27_location)
+
+do_subst = $(SED) -e 's,[@]PYTHON2[@],${mypython27},g'
 
 gnunet-qr: gnunet-qr.py.in Makefile
 	$(do_subst) < $(top_srcdir)/src/util/gnunet-qr.py.in > gnunet-qr

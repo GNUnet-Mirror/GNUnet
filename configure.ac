@@ -1,5 +1,5 @@
 # This file is part of GNUnet.
-# (C) 2001--2018 GNUnet e.V.
+# (C) 2001--2019 GNUnet e.V.
 #
 # GNUnet is free software: you can redistribute it and/or modify it
 # under the terms of the GNU Affero General Public License as published
@@ -205,6 +205,13 @@ AC_CHECK_PROG(VAR_SSH_BINARY, ssh, true, false)
 AM_CONDITIONAL(HAVE_SSH_BINARY, $VAR_SSH_BINARY)
 AM_CONDITIONAL(HAVE_SSH_KEY,  ssh -D 12345 -o "BatchMode yes" -o "UserKnownHostsFile /tmp/gnunet_test_cosks_ssh_garbage" -o "StrictHostKeyChecking no" 127.0.0.1 echo -n)
 rm -f /tmp/gnunet_test_cosks_ssh_garbage
+
+# autotools' m4 for python has no maximum version!
+# python3.7 for tests
+m4_define_default([_AM_PYTHON_INTERPRETER_LIST],[python3 python3.7 python])
+AM_PATH_PYTHON([3.7],, [:])
+AC_SUBST([PYTHON])
+AM_CONDITIONAL([HAVE_PYTHON], [test "$PYTHON" != :])
 
 # iptables is a soft requirement to run tests
 AC_PATH_TARGET_TOOL(VAR_IPTABLES_BINARY, iptables, false)
@@ -1207,10 +1214,6 @@ AM_CONDITIONAL(HAVE_JSON, [test x$jansson = x1])
 
 # restore LIBS
 LIBS=$SAVE_LIBS
-
-# check for python & pexpect (used for some testcases only)
-AM_PATH_PYTHON([2.6],, [:])
-AM_CONDITIONAL([HAVE_PYTHON], [test "$PYTHON" != :])
 
 # check for gettext
 AM_GNU_GETTEXT([external])
