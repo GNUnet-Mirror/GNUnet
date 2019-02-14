@@ -11,7 +11,7 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -994,11 +994,16 @@ get_fair_encryption_challenge (const struct GNUNET_SECRETSHARING_FairEncryption 
   } hash_data;
   struct GNUNET_HashCode e_hash;
 
+  memset (&hash_data,
+          0,
+          sizeof (hash_data));
   GNUNET_memcpy (&hash_data.c, &fe->c, sizeof (struct GNUNET_CRYPTO_PaillierCiphertext));
   GNUNET_memcpy (&hash_data.h, &fe->h, GNUNET_SECRETSHARING_ELGAMAL_BITS / 8);
   GNUNET_memcpy (&hash_data.t1, &fe->t1, GNUNET_SECRETSHARING_ELGAMAL_BITS / 8);
   GNUNET_memcpy (&hash_data.t2, &fe->t2, GNUNET_CRYPTO_PAILLIER_BITS * 2 / 8);
-
+  GNUNET_CRYPTO_hash (&hash_data,
+                      sizeof (hash_data),
+                      &e_hash);
   GNUNET_CRYPTO_mpi_scan_unsigned (&e, &e_hash, sizeof (struct GNUNET_HashCode));
   gcry_mpi_mod (e, e, elgamal_q);
 }
