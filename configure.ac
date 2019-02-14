@@ -192,8 +192,8 @@ AC_UNALIGNED_64_ACCESS
 
 # some other checks for standard libs
 AC_SEARCH_LIBS([gethostbyname], [nsl ws2_32])
-AC_SEARCH_LIBS([memrchr], [], [],
-               AC_DEFINE(HAVE_MEMRCHR,1,[memrchr supported]))
+AC_SEARCH_LIBS([memrchr], [],
+               AC_DEFINE(HAVE_MEMRCHR,1,[memrchr supported]), [])
 AC_CHECK_LIB(socket, socket)
 AC_CHECK_LIB(m, log)
 AC_CHECK_LIB(c, getloadavg, AC_DEFINE(HAVE_GETLOADAVG,1,[getloadavg supported]))
