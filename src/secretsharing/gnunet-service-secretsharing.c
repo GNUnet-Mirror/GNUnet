@@ -959,18 +959,9 @@ restore_fair (const struct GNUNET_CRYPTO_PaillierPublicKey *ppub,
     gcry_mpi_set (big_b, big_t);
   }
 
-  {
-    gcry_mpi_t paillier_n;
-
-    GNUNET_CRYPTO_mpi_scan_unsigned (&paillier_n,
-                                     ppub,
-                                     sizeof (struct GNUNET_CRYPTO_PaillierPublicKey));
-    /* FIXME: why get pallier_n here if we never use it? */
-    gcry_mpi_set (xres, b_2);
-    gcry_mpi_invm (xres, xres, elgamal_q);
-    gcry_mpi_mulm (xres, xres, b_1, elgamal_q);
-    gcry_mpi_release (paillier_n);
-  }
+  gcry_mpi_set (xres, b_2);
+  gcry_mpi_invm (xres, xres, elgamal_q);
+  gcry_mpi_mulm (xres, xres, b_1, elgamal_q);
 
   gcry_mpi_release (a_1);
   gcry_mpi_release (a_2);
