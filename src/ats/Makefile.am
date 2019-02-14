@@ -97,6 +97,7 @@ libgnunet_plugin_ats_mlp_la_SOURCES = \
 libgnunet_plugin_ats_mlp_la_LIBADD = \
   libgnunetats.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
+	$(top_builddir)/src/nt/libgnunetnt.la \
   $(top_builddir)/src/util/libgnunetutil.la
 libgnunet_plugin_ats_mlp_la_LDFLAGS = \
   $(GN_PLUGIN_LDFLAGS) \
