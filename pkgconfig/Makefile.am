@@ -59,7 +59,6 @@ EXTRA_DIST = \
        gnunetdatastore.pc.in \
        gnunetdht.pc.in \
        gnunetdns.pc.in \
-       gnunetdv.pc.in \
        gnunetenv.pc.in \
        gnunetfragmentation.pc.in \
        gnunetfs.pc.in \
