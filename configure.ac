@@ -71,6 +71,7 @@ case "$host_os" in
      CPPFLAGS="-D_APPLE_C_SOURCE $CPPFLAGS"
      CFLAGS="-fno-common $CFLAGS"
      AC_MSG_WARN([WARNING: The VPN application cannot be compiled on your OS])
+     AC_CHECK_LIB(intl, gettext)
      build_target="darwin"
      DEFAULT_INTERFACE="\"en0\""
      LIBPREFIX=
