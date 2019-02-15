@@ -106,6 +106,7 @@ gnunetinclude_HEADERS = \
   gnunet_regex_service.h \
   gnunet_rest_lib.h \
   gnunet_rest_plugin.h \
+	gnunet_rps_service.h \
   gnunet_revocation_service.h \
   gnunet_scalarproduct_service.h \
   gnunet_scheduler_lib.h \

@@ -67,6 +67,7 @@ libgnunet_plugin_rest_copying_la_LDFLAGS = \
 libgnunet_plugin_rest_peerinfo_la_SOURCES = \
   plugin_rest_peerinfo.c
 libgnunet_plugin_rest_peerinfo_la_LIBADD = \
+  $(top_builddir)/src/hello/libgnunethello.la \
 	$(top_builddir)/src/peerinfo/libgnunetpeerinfo.la \
   $(top_builddir)/src/rest/libgnunetrest.la \
   $(top_builddir)/src/json/libgnunetjson.la \
@@ -104,6 +105,7 @@ libgnunet_plugin_rest_namestore_la_LDFLAGS = \
 libgnunet_plugin_rest_gns_la_SOURCES = \
   plugin_rest_gns.c
 libgnunet_plugin_rest_gns_la_LIBADD = \
+  $(top_builddir)/src/gnsrecord/libgnunetgnsrecord.la \
   $(top_builddir)/src/gns/libgnunetgns.la \
 	$(top_builddir)/src/rest/libgnunetrest.la \
   $(top_builddir)/src/identity/libgnunetidentity.la \
