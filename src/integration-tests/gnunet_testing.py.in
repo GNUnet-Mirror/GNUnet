@@ -28,7 +28,15 @@ import sys
 import shutil
 import time
 from gnunet_pyexpect import pexpect
+import logging
 
+logger = logging.getLogger()
+handler = logging.StreamHandler()
+formatter = logging.Formatter(
+        '%(asctime)s %(name)-12s %(levelname)-8s %(message)s')
+handler.setFormatter(formatter)
+logger.addHandler(handler)
+logger.setLevel(logging.DEBUG)
 
 class Check(object):
     def __init__(self, test):
@@ -59,7 +67,8 @@ class Check(object):
             time.sleep(1)
             execs += 1
         if ((False == res) and (execs >= timeout)):
-            print(('Check had timeout after ' + str(timeout) + ' seconds'))
+            logger.debug('Check had timeout after %s seconds', str(timeout))
+            # print(('Check had timeout after ' + str(timeout) + ' seconds'))
             neg_cont(self)
         elif ((False == res) and (execs < timeout)):
             if (None != neg_cont):
@@ -87,7 +96,8 @@ class Check(object):
                 neg += 1
             else:
                 pos += 1
-        print((str(pos) + ' out of ' + str(pos+neg) + ' conditions fulfilled'))
+        # print((str(pos) + ' out of ' + str(pos+neg) + ' conditions fulfilled'))
+        logger.debug('%s out of %s conditions fulfilled', str(pos), str(pos+neg))
         return self.fulfilled
 
     def reset(self):
@@ -110,9 +120,11 @@ class Condition(object):
 
     def evaluate(self, failed_only):
         if ((self.fulfilled == False) and (failed_only == True)):
-            print(str(self.type) + 'condition for was ' + str(self.fulfilled))
+            # print(str(self.type) + 'condition for was ' + str(self.fulfilled))
+            logger.debug('%s condition for was %s', str(self.type), str(self.fulfilled))
         elif (failed_only == False):
-            print(str(self.type) + 'condition for was ' + str(self.fulfilled))
+            # print(str(self.type) + 'condition for was ' + str(self.fulfilled))
+            logger.debug('%s condition for was %s', str(self.type), str(self.fulfilled))
         return self.fulfilled
 
 
@@ -135,17 +147,19 @@ class FileExistCondition(Condition):
 
     def evaluate(self, failed_only):
         if ((self.fulfilled == False) and (failed_only == True)):
-            print(str(self.type) +
-                  'condition for file ' +
-                  self.file +
-                  ' was ' +
-                  str(self.fulfilled))
+            # print(str(self.type) +
+            #      'condition for file ' +
+            #      self.file +
+            #      ' was ' +
+            #      str(self.fulfilled))
+            logger.debug('%s confition for file %s was %s', str(self.type), self.file, str(self.fulfilled))
         elif (failed_only == False):
-            print(str(self.type) +
-                  'condition for file ' +
-                  self.file +
-                  ' was ' +
-                  str(self.fulfilled))
+            # print(str(self.type) +
+            #      'condition for file ' +
+            #      self.file +
+            #      ' was ' +
+            #      str(self.fulfilled))
+            logger.debug('%s confition for file %s was %s', str(self.type), self.file, str(self.fulfilled))
         return self.fulfilled
 
 
