@@ -119,6 +119,7 @@ extern "C"
  */
 #define GNUNET_VA_ARG_ENUM(va,X) ((enum X) va_arg (va, int))
 
+
 /**
  * @ingroup logging
  * define #GNUNET_EXTRA_LOGGING if using this header outside the GNUnet source
