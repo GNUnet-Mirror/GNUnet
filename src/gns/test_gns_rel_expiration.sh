@@ -7,6 +7,13 @@ if [ -z $LOCATION ]
 then
   LOCATION="gnunet-config"
 fi
+
+if [ -z $(which timeout) ]
+then
+  echo "timeout utility not found which is required for test."
+  exit 77
+fi
+
 $LOCATION --version 1> /dev/null
 if test $? != 0
 then
