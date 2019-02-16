@@ -11,13 +11,13 @@
 #    WITHOUT ANY WARRANTY; without even the implied warranty of
 #    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
 #    Affero General Public License for more details.
-#   
+#
 #    You should have received a copy of the GNU Affero General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 #    SPDX-License-Identifier: AGPL3.0-or-later
 #
-# 
+#
 from __future__ import print_function
 import sys
 import signal
@@ -30,8 +30,8 @@ from gnunet_testing import Peer
 from gnunet_testing import Test
 from gnunet_testing import Check
 from gnunet_testing import Condition
-from gnunet_testing import * 
- 
+from gnunet_testing import *
+
 
 #
 # This test tests if a fresh peer bootstraps from a hostlist server and then
@@ -72,16 +72,16 @@ def cleanup ():
 
 def success_disconnect_cont (check):
 	print('Peers disconnected successfully')
-	global success 
+	global success
 	success = True;
 
 
-def fail_disconnect_cont (check):    
-	global success 
+def fail_disconnect_cont (check):
+	global success
 	success = False;
 	print('Peers failed to disconnect')
-	check.evaluate(True)   
-  
+	check.evaluate(True)
+
 def check_disconnect ():
   test.p ('Shutting down bootstrap server')
   server.stop ()
@@ -99,8 +99,8 @@ def success_connect_cont (check):
 	check_disconnect ()
 
 
-def fail_connect_cont (check):    
-  global success 
+def fail_connect_cont (check):
+  global success
   success= False
   print('Peers failed to connected!')
   check.evaluate(True)
@@ -108,33 +108,33 @@ def fail_connect_cont (check):
 
 def check_connect ():
   check = Check (test)
-  check.add (StatisticsCondition (client, 'transport', '# peers connected',1))
-  check.add (StatisticsCondition (client, 'core', '# peers connected',1))
-  check.add (StatisticsCondition (client, 'topology', '# peers connected',1))
-  check.add (StatisticsCondition (client, 'dht', '# peers connected',1))
-  check.add (StatisticsCondition (client, 'fs', '# peers connected',1))
-  
-  check.add (StatisticsCondition (server, 'transport', '# peers connected',1))
-  check.add (StatisticsCondition (server, 'core', '# peers connected',1))
-  check.add (StatisticsCondition (server, 'topology', '# peers connected',1))
-  check.add (StatisticsCondition (server, 'dht', '# peers connected',1))
-  check.add (StatisticsCondition (server, 'fs', '# peers connected',1))  
-  
+  check.add (StatisticsCondition (client, 'transport', '# peers connected',2))
+  check.add (StatisticsCondition (client, 'core', '# peers connected',2))
+  check.add (StatisticsCondition (client, 'topology', '# peers connected',2))
+  check.add (StatisticsCondition (client, 'dht', '# peers connected',2))
+  check.add (StatisticsCondition (client, 'fs', '# peers connected',2))
+
+  check.add (StatisticsCondition (server, 'transport', '# peers connected',2))
+  check.add (StatisticsCondition (server, 'core', '# peers connected',2))
+  check.add (StatisticsCondition (server, 'topology', '# peers connected',2))
+  check.add (StatisticsCondition (server, 'dht', '# peers connected',2))
+  check.add (StatisticsCondition (server, 'fs', '# peers connected',2))
+
   check.run_blocking (check_timeout, success_connect_cont, fail_connect_cont)
 
-# 
+#
 # Test execution
-# 
+#
 
 def SigHandler(signum = None, frame = None):
-	global success	
+	global success
 	global server
-	global client  
-	
+	global client
+
 	print('Test was aborted!')
 	if (None != server):
 		server.stop ()
-	if (None != client):		
+	if (None != client):
 		client.stop ()
 	cleanup ()
 	sys.exit(success)
@@ -143,67 +143,63 @@ def run ():
 	global success
 	global test
 	global server
-	global client    
-	
+	global client
+
 	server = None
 	client = None
-	success = False  
-	
+	success = False
+
 	for sig in signals:
 		signal.signal(sig, SigHandler)
 
 	test = Test ('test_integration_bootstrap_and_connect.py', verbose)
 	cleanup ()
-	
+
 	server = Peer(test, './confs/c_bootstrap_server.conf');
 	client = Peer(test, './confs/c_no_nat_client.conf');
-	
+
 	if (True != server.start()):
 		print('Failed to start server')
 		if (None != server):
 			server.stop ()
 		cleanup ()
 		sys.exit(success)
-		
+
 	# Give the server time to start
-	time.sleep(5)		
-		
+	time.sleep(5)
+
 	if (True != client.start()):
 		print('Failed to start client')
 		if (None != server):
 			server.stop ()
-		if (None != client):		
+		if (None != client):
 			client.stop ()
 		cleanup ()
 		sys.exit(success)
-	
+
 	if ((client.started == True) and (server.started == True)):
 		test.p ('Peers started, running check')
 		time.sleep(5)
 		check_connect ()
 	server.stop ()
 	client.stop ()
-	
+
 	cleanup ()
-	
+
 	if (success == False):
 		print ('Test failed')
-		return False 
+		return False
 	else:
 		return True
 
 try:
 	run ()
-except (KeyboardInterrupt, SystemExit):    
+except (KeyboardInterrupt, SystemExit):
 	print('Test interrupted')
 	server.stop ()
 	client.stop ()
 	cleanup ()
 if (success == False):
-	sys.exit(1)   
+	sys.exit(1)
 else:
-	sys.exit(0)    
-     
-	
-     
-	
+	sys.exit(0)
