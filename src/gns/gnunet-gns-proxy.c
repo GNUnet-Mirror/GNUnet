@@ -972,7 +972,7 @@ check_ssl_certificate (struct Socks5Request *s5r)
   if (CURLE_OK !=
       curl_easy_getinfo (s5r->curl,
 			 CURLINFO_TLS_SESSION,
-			 (struct curl_slist **) &tlsinfo))
+			 &tlsinfo))
     return GNUNET_SYSERR;
   if (CURLSSLBACKEND_GNUTLS != tlsinfo->backend)
   {
