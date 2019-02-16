@@ -256,21 +256,22 @@ class EqualStatisticsCondition(Condition):
             fail = b""
             op = b" == "
         if (((self.fulfilled == False) and (failed_only == True)) or (failed_only == False)):
-            print(self.peer.id[:4] +
-                  b' "' +
-                  self.subsystem.encode('utf-8').ljust(12) +
-                  b'" "' +
-                  self.name.encode('utf-8').ljust(30) +
-                  b'" == ' +
-                  str(self.result).encode('utf-8') +
-                  b" " +
-                  self.peer2.id[:4] +
-                  b' "' +
-                  self.subsystem2.encode('utf-8').ljust(12) +
-                  b'" ' +
-                  self.name2.encode('utf-8').ljust(30) +
-                  b'" ' +
-                  str(self.result2).encode('utf-8'))
+            # print(self.peer.id[:4] +
+            #       b' "' +
+            #       self.subsystem.encode('utf-8').ljust(12) +
+            #       b'" "' +
+            #       self.name.encode('utf-8').ljust(30) +
+            #       b'" == ' +
+            #       str(self.result).encode('utf-8') +
+            #       b" " +
+            #       self.peer2.id[:4] +
+            #       b' "' +
+            #       self.subsystem2.encode('utf-8').ljust(12) +
+            #       b'" ' +
+            #       self.name2.encode('utf-8').ljust(30) +
+            #       b'" ' +
+            #       str(self.result2).encode('utf-8'))
+            logger.debug('%s %s %s == %s %s %s %s %s', self.peer.id[:4], self.subsystem.encode('utf-8').ljust(12), self.name.encode('utf-8').ljust(30), str(self.result).encode('utf-8'), self.peer2.id[:4], self.subsystem2.encode('uft-8').ljust(12), self.name2.encode('utf-8').ljust(30), str(self.result2).encode('utf-8'))
         return self.fulfilled
 
 
@@ -309,7 +310,8 @@ class Test(object):
 class Peer(object):
     def __init__(self, test, cfg_file):
         if (False == os.path.isfile(cfg_file)):
-            print(("Peer cfg " + cfg_file + ": FILE NOT FOUND"))
+            # print(("Peer cfg " + cfg_file + ": FILE NOT FOUND"))
+            logger.debug('Peer cfg %s : FILE NOT FOUND', cfg_file)
         self.id = "<NaN>"
         self.test = test
         self.started = False
@@ -317,12 +319,14 @@ class Peer(object):
 
     def __del__(self):
         if (self.started == True):
-            print('ERROR! Peer using cfg ' + self.cfg + ' was not stopped')
+            # print('ERROR! Peer using cfg ' + self.cfg + ' was not stopped')
+            logger.debug('ERROR! Peer using cfg %s was not stopped', self.cfg)
             ret = self.stop()
             if (False == ret):
-                print('ERROR! Peer using cfg ' +
-                      self.cfg +
-                      ' could not be stopped')
+                # print('ERROR! Peer using cfg ' +
+                #       self.cfg +
+                #       ' could not be stopped')
+                logger.debug('ERROR! Peer using cfg %s could not be stopped', self.cfg)
                 self.started = False
             return ret
         else:
@@ -334,7 +338,8 @@ class Peer(object):
             server = subprocess.Popen([self.test.gnunetarm, '-sq', '-c', self.cfg])
             server.communicate()
         except OSError:
-            print("Can not start peer")
+            # print("Can not start peer")
+            logger.debug('Can not start peer')
             self.started = False
             return False
         self.started = True
@@ -344,7 +349,8 @@ class Peer(object):
             server.spawn(None, [self.test.gnunetpeerinfo, '-c', self.cfg, '-s'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
             test = server.read("stdout", 1024)
         except OSError:
-            print("Can not get peer identity")
+            # print("Can not get peer identity")
+            logger.debug('Can not get peer identity')
         test = (test.split(b'`')[1])
         self.id = test.split(b'\'')[0]
         return True
@@ -357,7 +363,8 @@ class Peer(object):
             server = subprocess.Popen([self.test.gnunetarm, '-eq', '-c', self.cfg])
             server.communicate()
         except OSError:
-            print("Can not stop peer")
+            # print("Can not stop peer")
+            logger.debug('Can not stop peer')
             return False
         self.started = False
         return True
@@ -372,9 +379,11 @@ class Peer(object):
         if os.name == 'nt' and tests[1] == b'\n' and tests[0][-1] == b'\r':
             tests = (tests[0][:-1], tests[1], tests[2])
         tests = tests[0]
-        print("running gnunet-statistics " + self.cfg + " for " + name + "/" + subsystem + " yields " + tests.decode("utf-8"))
+        # print("running gnunet-statistics " + self.cfg + " for " + name + "/" + subsystem + " yields " + tests.decode("utf-8"))
+        logger.debug('running gnunet-statistics %s for %s "/" %s yields %s', self.cfg, name, subsystem, test.decode("utf-8"))
         if (tests.isdigit() == True):
             return tests
         else:
-            print("Invalid statistics value: " + str(tests) + " is not a number!")
+            # print("Invalid statistics value: " + str(tests) + " is not a number!")
+            logger.debug('Invalid statistics value: %s is not a number!', str(tests))
             return -1
