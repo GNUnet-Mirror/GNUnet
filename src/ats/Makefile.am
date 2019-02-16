@@ -108,6 +108,7 @@ libgnunet_plugin_ats_ril_la_SOURCES = \
 libgnunet_plugin_ats_ril_la_LIBADD = \
   libgnunetats.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
+	$(top_builddir)/src/nt/libgnunetnt.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(LTLIBINTL)
 libgnunet_plugin_ats_ril_la_LDFLAGS = \
