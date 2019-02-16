@@ -196,20 +196,21 @@ class StatisticsCondition(Condition):
             fail = b""
             op = b" == "
         if (((self.fulfilled == False) and (failed_only == True)) or (failed_only == False)):
-            print(self.peer.id[:4] +
-                  b" " +
-                  self.peer.cfg.encode('utf-8') +
-                  b" " +
-                  str(self.type).encode('utf-8') +
-                  b' condition in subsystem "' +
-                  self.subsystem.encode('utf-8').ljust(12) +
-                  b'" : "' +
-                  self.name.encode('utf-8').ljust(30) +
-                  b'" : (expected/real value) ' +
-                  str(self.value).encode('utf-8') +
-                  op +
-                  res +
-                  fail)
+            # print(self.peer.id[:4] +
+            #       b" " +
+            #       self.peer.cfg.encode('utf-8') +
+            #       b" " +
+            #       str(self.type).encode('utf-8') +
+            #       b' condition in subsystem "' +
+            #       self.subsystem.encode('utf-8').ljust(12) +
+            #       b'" : "' +
+            #       self.name.encode('utf-8').ljust(30) +
+            #       b'" : (expected/real value) ' +
+            #       str(self.value).encode('utf-8') +
+            #       op +
+            #       res +
+            #       fail)
+            logger.debug('%s %s %s condition in subsystem %s : %s : (expected/real value) %s %s %s %s', self.peer.id[:4], self.peer.cfg.encode('utf-8'), str(self.type).encode('utf-8'), self.subsystem.encode('utf-8').ljust(12), self.name.encode('utf-8').ljust(30), str(self.value).encode('utf-8'), op, res, fail)
         return self.fulfilled
 
 
