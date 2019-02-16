@@ -357,7 +357,9 @@ class Peer(object):
         if os.name == 'nt' and tests[1] == b'\n' and tests[0][-1] == b'\r':
             tests = (tests[0][:-1], tests[1], tests[2])
         tests = tests[0]
+        print("running gnunet-statistics " + self.cfg + " for " + name + "/" + subsystem + " yields " + tests.decode("utf-8"))
         if (tests.isdigit() == True):
             return tests
         else:
+            print("Invalid statistics value: " + str(tests) + " is not a number!")
             return -1
