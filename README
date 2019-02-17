@@ -73,6 +73,7 @@ These are the optional dependencies:
 - texi2mdoc                         (optional, for automatic mdoc generation [*2])
 - libglpk            >= 4.45        (optional, for experimental code)
 - perl5                             (optional, for some utilities)
+- guile              1.6.4          (or later up to 1.8?, optional for gnunet-download-manager)
 - python2.7          >= 2.7         (optional, for gnunet-qr, only python 2.7 is supported)
 - bluez                             (optional, for bluetooth support)
 - miniupnpc
