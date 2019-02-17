@@ -123,7 +123,8 @@ Nix:            : viric, rahul
 OpenWrt/LEDE    : Daniel Golle <daniel@makrotopia.org>
 OS X            : Jussi Eloranta <eloranta@cc.jyu.fi>
 Gentoo		: Carlo von lynX <psyc://loupsycedyglgamf.onion/~lynX>
-                  Nils Gillmann <ng0@n0.is>
+                  N. Gillmann <ng0@n0.is>
+NetBSD pkgsrc   : N. Gillmann <ng0@n0.is>
 
 If you have contributed and are not listed here, please
 notify one of the maintainers in order to be added.
