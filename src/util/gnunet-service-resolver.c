@@ -814,9 +814,18 @@ handle_resolve_result (void *cls,
 		"DNS reply (hostname %s, request ID %u) contains no answers\n",
                 al->hostname,
 		(unsigned int) al->client_request_id);
+    /* resume by trying again from cache */
+    if (GNUNET_NO ==
+      try_cache (al->hostname,
+                 al->record_type,
+                 al->client_request_id,
+                 al->client))
+    /* cache failed, tell client we could not get an answer */
+    {
+      send_end_msg (al->client_request_id,
+                    al->client);
+    }
     GNUNET_DNSPARSER_free_packet (parsed);
-    send_end_msg (al->client_request_id,
-                  al->client);
     free_active_lookup (al);
     return;
   }
