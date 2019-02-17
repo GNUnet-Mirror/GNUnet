@@ -1246,7 +1246,7 @@ shutdown_task (void *cls)
   while (NULL != hosts_head)
     free_hosts_entry (hosts_head);
   GNUNET_DNSSTUB_stop (dnsstub_ctx);
-  GNUNET_free (my_domain);
+  GNUNET_free_non_null (my_domain);
 }
 
 

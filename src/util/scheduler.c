@@ -658,8 +658,8 @@ sighandler_shutdown ()
   int old_errno = errno;        /* backup errno */
 
   if (getpid () != my_pid)
-    exit (1);                   /* we have fork'ed since the signal handler was created,
-                                 * ignore the signal, see https://gnunet.org/vfork discussion */
+    _exit (1);                   /* we have fork'ed since the signal handler was created,
+                                  * ignore the signal, see https://gnunet.org/vfork discussion */
   GNUNET_DISK_file_write (GNUNET_DISK_pipe_handle
                           (shutdown_pipe_handle, GNUNET_DISK_PIPE_END_WRITE),
                           &c, sizeof (c));
