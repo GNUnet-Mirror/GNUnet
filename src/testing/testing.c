@@ -786,7 +786,7 @@ update_config (void *cls,
   struct UpdateContext *uc = cls;
   unsigned int ival;
   char cval[12];
-  char uval[128];
+  char uval[PATH_MAX];
   char *single_variable;
   char *per_host_variable;
   unsigned long long num_per_host;
