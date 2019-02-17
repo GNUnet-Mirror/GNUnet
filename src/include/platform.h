@@ -11,7 +11,7 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -280,5 +280,15 @@ atoll (const char *nptr);
  * The termination signal
  */
 #define GNUNET_TERM_SIG SIGTERM
+
+
+#ifndef PATH_MAX
+/**
+ * Assumed maximum path length.
+ */
+#define PATH_MAX 4096
+#endif
+
+
 
 #endif
