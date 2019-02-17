@@ -11,7 +11,7 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -595,7 +595,7 @@ int
 main (int argc,
       char *argv[])
 {
-  char cfg_name[128];
+  char cfg_name[PATH_MAX];
 
   plugin_name = GNUNET_TESTING_get_testname_from_underscore (argv[0]);
   GNUNET_snprintf (cfg_name,

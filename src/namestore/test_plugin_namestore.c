@@ -194,14 +194,6 @@ run (void *cls,
 }
 
 
-#ifndef PATH_MAX
-/**
- * Assumed maximum path length (for the configuration file name).
- */
-#define PATH_MAX 4096
-#endif
-
-
 int
 main (int argc,
       char *argv[])
