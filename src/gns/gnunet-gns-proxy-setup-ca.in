@@ -4,7 +4,7 @@
 #
 
 # TODO: We should sed the real paths to the binaries involved here.
-
+OPENSSLCFG=@PREFIX@
 if ! which openssl > /dev/null
 then
     echo "'openssl' command not found. Please install it."
@@ -36,7 +36,7 @@ GNSCANO=`mktemp /tmp/gnscakeynoencXXXXXX.pem`
 GNS_CA_CERT_PEM=`gnunet-config -s gns-proxy -o PROXY_CACERT -f $options`
 mkdir -p `dirname $GNS_CA_CERT_PEM`
 
-openssl req -new -x509 -days 3650 -extensions v3_ca -keyout $GNSCAKY -out $GNSCERT -subj "/C=ZZ/L=World/O=GNU/OU=GNUnet/CN=GNS Proxy CA/emailAddress=bounce@gnunet.org" -passout pass:"GNU Name System"
+openssl req -config $OPENSSLCFG -new -x509 -days 3650 -extensions v3_ca -keyout $GNSCAKY -out $GNSCERT -subj "/C=ZZ/L=World/O=GNU/OU=GNUnet/CN=GNS Proxy CA/emailAddress=bounce@gnunet.org" -passout pass:"GNU Name System"
 
 echo "Removing passphrase from key"
 openssl rsa -passin pass:"GNU Name System" -in $GNSCAKY -out $GNSCANO

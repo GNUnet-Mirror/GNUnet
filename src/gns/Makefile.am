@@ -79,6 +79,9 @@ bin_PROGRAMS = \
 noinst_PROGRAMS = \
   gnunet-gns-benchmark
 
+pkgdata_DATA = \
+	openssl.cnf
+
 if HAVE_MHD
 if LINUX
 bin_PROGRAMS += gnunet-bcd
@@ -90,6 +93,15 @@ bin_SCRIPTS = gnunet-gns-proxy-setup-ca
 plugin_LTLIBRARIES = \
   libgnunet_plugin_block_gns.la \
   libgnunet_plugin_gnsrecord_gns.la
+
+xPFX=$(pkgdatadir)/openssl.cnf
+
+do_subst = $(SED) -e 's,[@]PREFIX[@],${xPFX},g'
+
+gnunet-gns-proxy-setup-ca: gnunet-gns-proxy-setup-ca.in
+	$(do_subst) < $(top_srcdir)/src/gns/gnunet-gns-proxy-setup-ca.in > gnunet-gns-proxy-setup-ca
+	chmod +x gnunet-gns-proxy-setup-ca
+
 
 
 libgnunet_plugin_gnsrecord_gns_la_SOURCES = \
