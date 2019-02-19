@@ -60,7 +60,6 @@ DISABLE_ANON_TRANSFER = NO
 # well anyway, so better have a moderate cap.
 MAX_CADET_CLIENTS = 128
 
-PREFIX = valgrind
 
 [gnunet-auto-share]
 BINARY = gnunet-auto-share
