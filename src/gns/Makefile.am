@@ -98,7 +98,7 @@ xOPENSSL=$(shell which openssl)
 do_subst_openssl = $(SED) -e 's,[@]OPENSSLBIN[@],${xOPENSSL},g'
 endif
 
-if HAVE_NSS
+if HAVE_CERTUTIL
 xCERTUTIL=$(shell which certutil)
 do_subst_certutil = $(SED) -e 's,[@]CERTUTILBIN[@],${xCERTUTIL},g'
 endif
@@ -111,7 +111,7 @@ gnunet-gns-proxy-setup-ca: gnunet-gns-proxy-setup-ca.in
 	ifeq ($(HAVE_OPENSSL), 1)
 		$(do_subst_openssl) < $(top_srcdir)/src/gns/gnunet-gns-proxy-setup-ca
 	endif
-	ifeq ($(HAVE_OPENSSL), 1) 
+	ifeq ($(HAVE_CERTUTIL), 1) 
 		$(do_subst_certutil) < $(top_srcdir)/src/gns/gnunet-gns-proxy-setup-ca
 	endif 
 	chmod +x gnunet-gns-proxy-setup-ca
