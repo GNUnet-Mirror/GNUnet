@@ -166,21 +166,11 @@ Building GNUnet from source
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 IMPORTANT: You can read further notes about compilation from source in
-the 'doc/FILENAME' document, which includes notes about specific
+the handbook under doc/handbook/, which includes notes about specific
 requirements for operating systems aswell. If you are a package
 mantainer for an Operating System we invite you to add your notes if
 you feel it is necessary and can not be covered in your Operating
 System's documentation.
-
-If you are building GNUnet from source you are either interested
-in furthering its development (we have further notes for developer
-builds in our 'GNUnet Developer Handbook') or you don't trust other
-people's binaries or your Operating System doesn't provide any
-binary package (at the moment).
-
-If you're on Gentoo you can build GNUnet using the recipes provided
-in the 'youbroketheinternet' overlay. Other Operating Systems may
-unintentionally require you to build GNUnet from source.
 
 Two prominent examples which currently lack cross-compilation
 support in GNUnet (and native binaries) are MS Windows and Apple macOS.
@@ -317,7 +307,7 @@ Usage
 =====
 
 For detailed usage notes, instructions and examples, refer to the
-included 'GNUnet User Handbook'.
+included 'GNUnet Handbook'.
 
 First, you must obtain an initial list of GNUnet hosts.  Knowing a
 single peer is sufficient since after that GNUnet propagates
