@@ -558,7 +558,7 @@ handle_connect (void *cls,
                       &cim->id);
   if (NULL != n)
   {
-    GNUNET_break (0);
+    GNUNET_break (0); /* FIXME: this assertion seems to fail sometimes!? */
     disconnect_and_schedule_reconnect (h);
     return;
   }
