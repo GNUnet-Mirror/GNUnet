@@ -88,21 +88,36 @@ bin_PROGRAMS += gnunet-bcd
 endif
 endif
 
-bin_SCRIPTS = gnunet-gns-proxy-setup-ca
-
 plugin_LTLIBRARIES = \
   libgnunet_plugin_block_gns.la \
   libgnunet_plugin_gnsrecord_gns.la
 
-xPFX=$(pkgdatadir)/openssl.cnf
 
+if HAVE_OPENSSL
+xOPENSSL=$(shell which openssl)
+do_subst_openssl = $(SED) -e 's,[@]OPENSSLBIN[@],${xOPENSSL},g'
+endif
+
+if HAVE_NSS
+xCERTUTIL=$(shell which certutil)
+do_subst_certutil = $(SED) -e 's,[@]CERTUTILBIN[@],${xCERTUTIL},g'
+endif
+
+xPFX=$(pkgdatadir)/openssl.cnf
 do_subst = $(SED) -e 's,[@]PREFIX[@],${xPFX},g'
 
 gnunet-gns-proxy-setup-ca: gnunet-gns-proxy-setup-ca.in
 	$(do_subst) < $(top_srcdir)/src/gns/gnunet-gns-proxy-setup-ca.in > gnunet-gns-proxy-setup-ca
+	ifeq ($(HAVE_OPENSSL), 1)
+		$(do_subst_openssl) < $(top_srcdir)/src/gns/gnunet-gns-proxy-setup-ca
+	endif
+	ifeq ($(HAVE_OPENSSL), 1) 
+		$(do_subst_certutil) < $(top_srcdir)/src/gns/gnunet-gns-proxy-setup-ca
+	endif 
 	chmod +x gnunet-gns-proxy-setup-ca
+else:
 
-
+bin_SCRIPTS = gnunet-gns-proxy-setup-ca
 
 libgnunet_plugin_gnsrecord_gns_la_SOURCES = \
   plugin_gnsrecord_gns.c

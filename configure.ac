@@ -377,6 +377,9 @@ AC_ARG_ENABLE(gcc-hardening,
     LDFLAGS="$LDFLAGS -pie"
 fi])
 
+# gnunet-gns-proxy-setup-ca requires openssl and certutil (nss)
+AC_CHECK_PROG(have_openssl, [openssl], [yes], [no])
+AC_CHECK_PROG(have_certutil, [certutil], [yes], [no])
 
 # Linker hardening options
 # Currently these options are ELF specific - you can't use this with MacOSX
