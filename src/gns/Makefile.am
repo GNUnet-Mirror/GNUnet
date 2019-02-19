@@ -108,14 +108,7 @@ do_subst = $(SED) -e 's,[@]PREFIX[@],${xPFX},g'
 
 gnunet-gns-proxy-setup-ca: gnunet-gns-proxy-setup-ca.in
 	$(do_subst) < $(top_srcdir)/src/gns/gnunet-gns-proxy-setup-ca.in > gnunet-gns-proxy-setup-ca
-	ifeq ($(HAVE_OPENSSL), 1)
-		$(do_subst_openssl) < $(top_srcdir)/src/gns/gnunet-gns-proxy-setup-ca
-	endif
-	ifeq ($(HAVE_CERTUTIL), 1) 
-		$(do_subst_certutil) < $(top_srcdir)/src/gns/gnunet-gns-proxy-setup-ca
-	endif 
 	chmod +x gnunet-gns-proxy-setup-ca
-else:
 
 bin_SCRIPTS = gnunet-gns-proxy-setup-ca
 

@@ -11,8 +11,9 @@ then
     exit 1
 fi
 
-OPENSSLBIN=@OPENSSL@
-CERTUTILBIN=@CERTUTIL@
+# Keep it simple so that people can install the tools later on.
+OPENSSLBIN=openssl
+CERTUTILBIN=certutil
 
 echo "Generating CA"
 options=''
