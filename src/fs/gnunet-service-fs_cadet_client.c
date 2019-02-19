@@ -750,6 +750,11 @@ GSF_cadet_release_clients (void *cls,
     mh->channel = NULL;
     GNUNET_CADET_channel_destroy (channel);
   }
+  if (NULL != mh->reset_task)
+  {
+    GNUNET_SCHEDULER_cancel (mh->reset_task);
+    mh->reset_task = NULL;
+  }
   return GNUNET_YES;
 }
 
