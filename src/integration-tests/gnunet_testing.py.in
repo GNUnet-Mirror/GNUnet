@@ -178,7 +178,7 @@ class StatisticsCondition(Condition):
             fail = ""
             op = " == "
         if (((self.fulfilled == False) and (failed_only == True)) or (failed_only == False)):
-            logger.debug('%s %s condition in subsystem %s: %s: (expected/real value) %s %s %s %s', self.peer.id[:4].decode("utf-8"), peer.cfg, self.subsystem.ljust(12), self.name.ljust(30), self.value, op, self.result, fail)
+            logger.debug('%s %s condition in subsystem %s: %s: (expected/real value) %s %s %s %s', self.peer.id[:4].decode("utf-8"), self.peer.cfg, self.subsystem.ljust(12), self.name.ljust(30), self.value, op, self.result, fail)
         return self.fulfilled
 
 
@@ -272,6 +272,9 @@ class Peer(object):
             return False
 
     def start(self):
+        os.unsetenv ("XDG_CONFIG_HOME")
+        os.unsetenv ("XDG_DATA_HOME")
+        os.unsetenv ("XDG_CACHE_HOME")
         self.test.p("Starting peer using cfg " + self.cfg)
         try:
             server = subprocess.Popen([self.test.gnunetarm, '-sq', '-c', self.cfg])
