@@ -41,14 +41,17 @@ These are the direct dependencies for running GNUnet:
   or
   - libidn             >= 1.0
 - libextractor       >= 0.6.1       (highly recommended)
-- openssl            >= 1.0         (binary, used to generate X.509 certificate)
+- openssl            >= 1.0         (binary, used to generate X.509 certificate
+                                     for gnunet-gns-proxy-setup-ca)
+- nss                               (certutil binary, for
+                                     gnunet-gns-proxy-setup-ca)
 - libltdl            >= 2.2         (part of GNU libtool)
 - sqlite             >= 3.8         (default database, required)
 - mysql              >= 5.1         (alternative to sqlite)
 - postgres           >= 9.5         (alternative to sqlite)
 - Texinfo            >= 5.2         [*1]
-- makeinfo           >= 4.8         (at least 4.8 at the time of writing is tested) 
-- which                             (for the bootstrap script)
+- makeinfo           >= 4.8
+- which                             (bootstrap script and some Makefiles)
 - gettext
 - zlib
 - pkg-config
