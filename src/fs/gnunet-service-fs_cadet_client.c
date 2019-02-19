@@ -11,7 +11,7 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -741,7 +741,12 @@ GSF_cadet_release_clients (void *cls,
 	      "Timeout on cadet channel to %s\n",
 	      GNUNET_i2s (&mh->target));
   if (NULL != mh->channel)
-    GNUNET_CADET_channel_destroy (mh->channel);
+  {
+    struct GNUNET_CADET_Channel *channel = mh->channel;
+
+    mh->channel = NULL;
+    GNUNET_CADET_channel_destroy (channel);
+  }
   return GNUNET_YES;
 }
 

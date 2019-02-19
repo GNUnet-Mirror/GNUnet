@@ -11,6 +11,8 @@ BINARY = gnunet-service-fs
 ACCEPT_FROM = 127.0.0.1;
 ACCEPT_FROM6 = ::1;
 
+# PREFIX = valgrind
+
 # Do we introduce artificial delays? (may improve anonymity)
 DELAY = YES
 
@@ -58,6 +60,7 @@ DISABLE_ANON_TRANSFER = NO
 # well anyway, so better have a moderate cap.
 MAX_CADET_CLIENTS = 128
 
+PREFIX = valgrind
 
 [gnunet-auto-share]
 BINARY = gnunet-auto-share
