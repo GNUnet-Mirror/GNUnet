@@ -469,8 +469,11 @@ reset_cadet (struct CadetHandle *mh)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Resetting cadet channel to %s\n",
 	      GNUNET_i2s (&mh->target));
-  GNUNET_CADET_channel_destroy (mh->channel);
-  mh->channel = NULL;
+  if (NULL != mh->channel)
+  {
+    GNUNET_CADET_channel_destroy (mh->channel);
+    mh->channel = NULL;
+  }
   GNUNET_CONTAINER_multihashmap_iterate (mh->waiting_map,
 					 &move_to_pending,
 					 mh);
