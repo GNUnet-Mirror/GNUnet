@@ -11,7 +11,7 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -417,7 +417,7 @@ GNUNET_CONTAINER_multihashmap_iterate (struct GNUNET_CONTAINER_MultiHashMap *map
       }
     }
   }
-  GNUNET_assert (--map->next_cache_off < NEXT_CACHE_SIZE);    
+  GNUNET_assert (--map->next_cache_off < NEXT_CACHE_SIZE);
   return count;
 }
 
@@ -764,18 +764,19 @@ grow (struct GNUNET_CONTAINER_MultiHashMap *map)
   unsigned int new_len;
   unsigned int idx;
 
-  map->modification_counter++;
-
   old_map = map->map;
   old_len = map->map_length;
+  GNUNET_assert (0 != old_len);
   new_len = old_len * 2;
-  /* if we would exceed heap size limit for the _first_ time,
-     try staying just below the limit */
-  if ( (new_len * sizeof (union MapEntry) > GNUNET_MAX_MALLOC_CHECKED) &&
-       ((old_len+1) * sizeof (union MapEntry) < GNUNET_MAX_MALLOC_CHECKED) )
-    new_len = GNUNET_MAX_MALLOC_CHECKED / sizeof (union MapEntry);
-  new_map = GNUNET_new_array (new_len,
-                              union MapEntry);
+  if (0 == new_len) /* 2^31 * 2 == 0 */
+    new_len = old_len; /* never use 0 */
+  if (new_len == old_len)
+    return; /* nothing changed */
+  new_map = GNUNET_malloc_large (new_len *
+                                 sizeof (union MapEntry));
+  if (NULL == new_map)
+    return; /* grow not possible */
+  map->modification_counter++;
   map->map_length = new_len;
   map->map = new_map;
   for (unsigned int i = 0; i < old_len; i++)
