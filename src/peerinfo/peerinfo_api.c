@@ -11,7 +11,7 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -565,10 +565,7 @@ GNUNET_PEERINFO_add_peer (struct GNUNET_PEERINFO_Handle *h,
   struct GNUNET_PeerIdentity peer;
 
   if (NULL == h->mq)
-  {
-    GNUNET_break (0);
     return NULL;
-  }
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_HELLO_get_id (hello,
                                       &peer));
