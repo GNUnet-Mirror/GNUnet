@@ -123,7 +123,7 @@ reconnect (void *cls)
 /**
  * Disconnect from the transport service.
  *
- * @param h transport service to reconnect
+ * @param h transport service to disconnect
  */
 static void
 disconnect (struct GNUNET_TRANSPORT_AddressHandle *h)
