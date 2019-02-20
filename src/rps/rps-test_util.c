@@ -164,6 +164,7 @@ close_all_files ()
                                                close_files_iter,
                                                NULL);
   GNUNET_CONTAINER_multihashmap_destroy (open_files);
+  open_files = NULL;
   return ret;
 }
 
