@@ -937,7 +937,7 @@ oidc_ticket_issue_cb (void* cls,
   code_base64_final_string = base64_encode (code_json_string);
   if ( (NULL != handle->redirect_prefix) &&
        (NULL != handle->redirect_suffix) &&
-       (NULL != handle->tls) )
+       (NULL != handle->tld) )
   {
 
     GNUNET_asprintf (&redirect_uri, "%s.%s/%s?%s=%s&state=%s",
@@ -1109,7 +1109,7 @@ build_redirect (void *cls)
   {
     if ( (NULL != handle->redirect_prefix) &&
          (NULL != handle->redirect_suffix) &&
-         (NULL != handle->tls) )
+         (NULL != handle->tld) )
     {
       GNUNET_asprintf (&redirect_uri, "%s.%s/%s?error=%s&error_description=%s&state=%s",
                        handle->redirect_prefix,
