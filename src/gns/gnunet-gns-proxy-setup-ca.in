@@ -3,14 +3,12 @@
 # and install it (for both GNUnet and your browser).
 #
 
-# TODO: We should sed the real paths to the binaries involved here.
-OPENSSLCFG=@PREFIX@
+OPENSSLCFG=@pkgdatadir@/openssl.cnf
 if ! which openssl > /dev/null
 then
     echo "'openssl' command not found. Please install it."
     exit 1
 fi
-
 
 echo "Generating CA"
 options=''
@@ -46,7 +44,8 @@ cat $GNSCERT $GNSCANO > $GNS_CA_CERT_PEM
 
 if ! which certutil > /dev/null
 then
-  echo "'certutil' command not found. Not importing into browsers."
+  echo "The 'certutil' command was not found. Not importing into browsers."
+  echo "For 'certutil' install nss."
 else
   echo "Importing CA into browsers"
   for f in ~/.mozilla/firefox/*.*/

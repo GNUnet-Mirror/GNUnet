@@ -107,7 +107,8 @@ test_record (void *cls,
   GNUNET_snprintf (tname,
                    sizeof (tname),
 		   "a%u",
-                   (unsigned int ) id);
+                   (unsigned int) id);
+  GNUNET_assert (trd_count == rd_count);
   for (unsigned int i=0;i<trd_count;i++)
   {
     GNUNET_assert (rd[i].data_size == id % 10);

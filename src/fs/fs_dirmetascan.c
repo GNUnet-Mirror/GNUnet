@@ -11,7 +11,7 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -332,10 +332,7 @@ process_helper_msgs (void *cls,
       break;
     }
     if (NULL == ds->toplevel)
-    {
-      GNUNET_break (0);
       break;
-    }
     ds->progress_callback (ds->progress_callback_cls,
 			   NULL, GNUNET_SYSERR,
 			   GNUNET_FS_DIRSCANNER_ALL_COUNTED);
@@ -408,10 +405,7 @@ process_helper_msgs (void *cls,
       break;
     }
     if (NULL == ds->toplevel)
-    {
-      GNUNET_break (0);
       break;
-    }
     ds->stop_task = GNUNET_SCHEDULER_add_now (&finish_scan,
 					      ds);
     return GNUNET_OK;

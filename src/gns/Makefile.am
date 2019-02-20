@@ -14,7 +14,8 @@ EXTRA_DIST = \
   test_gns_simple_lookup.conf \
   gns-helper-service-w32.conf \
   w32nsp.def \
-  gnunet-gns-proxy-setup-ca \
+  openssl.cnf \
+  gnunet-gns-proxy-setup-ca.in \
   zonefiles/J7POEUT41A8PBFS7KVVDRF88GBOU4HK8PSU5QKVLVE3R9T91E99G.zkey \
   zonefiles/OEFL7A4VEF1B40QLEMTG5D8G1CN6EN16QUSG5R2DT71GRJN34LSG.zkey \
   zonefiles/test_zonekey \
@@ -80,7 +81,7 @@ noinst_PROGRAMS = \
   gnunet-gns-benchmark
 
 pkgdata_DATA = \
-	openssl.cnf
+  openssl.cnf
 
 if HAVE_MHD
 if LINUX
@@ -88,21 +89,20 @@ bin_PROGRAMS += gnunet-bcd
 endif
 endif
 
-bin_SCRIPTS = gnunet-gns-proxy-setup-ca
-
 plugin_LTLIBRARIES = \
   libgnunet_plugin_block_gns.la \
   libgnunet_plugin_gnsrecord_gns.la
 
-xPFX=$(pkgdatadir)/openssl.cnf
 
-do_subst = $(SED) -e 's,[@]PREFIX[@],${xPFX},g'
+bin_SCRIPTS = \
+  gnunet-gns-proxy-setup-ca
 
-gnunet-gns-proxy-setup-ca: gnunet-gns-proxy-setup-ca.in
-	$(do_subst) < $(top_srcdir)/src/gns/gnunet-gns-proxy-setup-ca.in > gnunet-gns-proxy-setup-ca
+# See: https://www.gnu.org/software/automake/manual/html_node/Scripts.html#Scripts
+do_subst = sed -e 's,[@]pkgdatadir[@],$(pkgdatadir),g'
+
+gnunet-gns-proxy-setup-ca: gnunet-gns-proxy-setup-ca.in Makefile
+	$(do_subst) < $(srcdir)/gnunet-gns-proxy-setup-ca.in > gnunet-gns-proxy-setup-ca
 	chmod +x gnunet-gns-proxy-setup-ca
-
-
 
 libgnunet_plugin_gnsrecord_gns_la_SOURCES = \
   plugin_gnsrecord_gns.c

@@ -11,7 +11,7 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -469,8 +469,11 @@ reset_cadet (struct CadetHandle *mh)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Resetting cadet channel to %s\n",
 	      GNUNET_i2s (&mh->target));
-  GNUNET_CADET_channel_destroy (mh->channel);
-  mh->channel = NULL;
+  if (NULL != mh->channel)
+  {
+    GNUNET_CADET_channel_destroy (mh->channel);
+    mh->channel = NULL;
+  }
   GNUNET_CONTAINER_multihashmap_iterate (mh->waiting_map,
 					 &move_to_pending,
 					 mh);
@@ -741,7 +744,17 @@ GSF_cadet_release_clients (void *cls,
 	      "Timeout on cadet channel to %s\n",
 	      GNUNET_i2s (&mh->target));
   if (NULL != mh->channel)
-    GNUNET_CADET_channel_destroy (mh->channel);
+  {
+    struct GNUNET_CADET_Channel *channel = mh->channel;
+
+    mh->channel = NULL;
+    GNUNET_CADET_channel_destroy (channel);
+  }
+  if (NULL != mh->reset_task)
+  {
+    GNUNET_SCHEDULER_cancel (mh->reset_task);
+    mh->reset_task = NULL;
+  }
   return GNUNET_YES;
 }
 

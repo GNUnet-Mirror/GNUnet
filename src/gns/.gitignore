@@ -9,3 +9,4 @@ local.crt
 local.der
 local.key
 server.csr
+gnunet-gns-proxy-setup-ca

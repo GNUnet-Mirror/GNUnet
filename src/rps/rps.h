@@ -79,7 +79,7 @@ struct GNUNET_RPS_CS_SeedMessage
   /* Followed by num_peers * GNUNET_PeerIdentity */
 };
 
-#ifdef ENABLE_MALICIOUS
+#if ENABLE_MALICIOUS
 /**
  * Message from client to service to turn service malicious.
  */

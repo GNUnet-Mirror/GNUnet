@@ -68,7 +68,6 @@ class Check(object):
             execs += 1
         if ((False == res) and (execs >= timeout)):
             logger.debug('Check had timeout after %s seconds', str(timeout))
-            # print(('Check had timeout after ' + str(timeout) + ' seconds'))
             neg_cont(self)
         elif ((False == res) and (execs < timeout)):
             if (None != neg_cont):
@@ -96,7 +95,6 @@ class Check(object):
                 neg += 1
             else:
                 pos += 1
-        # print((str(pos) + ' out of ' + str(pos+neg) + ' conditions fulfilled'))
         logger.debug('%s out of %s conditions fulfilled', str(pos), str(pos+neg))
         return self.fulfilled
 
@@ -120,10 +118,8 @@ class Condition(object):
 
     def evaluate(self, failed_only):
         if ((self.fulfilled == False) and (failed_only == True)):
-            # print(str(self.type) + 'condition for was ' + str(self.fulfilled))
             logger.debug('%s condition for was %s', str(self.type), str(self.fulfilled))
         elif (failed_only == False):
-            # print(str(self.type) + 'condition for was ' + str(self.fulfilled))
             logger.debug('%s condition for was %s', str(self.type), str(self.fulfilled))
         return self.fulfilled
 
@@ -147,18 +143,8 @@ class FileExistCondition(Condition):
 
     def evaluate(self, failed_only):
         if ((self.fulfilled == False) and (failed_only == True)):
-            # print(str(self.type) +
-            #      'condition for file ' +
-            #      self.file +
-            #      ' was ' +
-            #      str(self.fulfilled))
             logger.debug('%s confition for file %s was %s', str(self.type), self.file, str(self.fulfilled))
         elif (failed_only == False):
-            # print(str(self.type) +
-            #      'condition for file ' +
-            #      self.file +
-            #      ' was ' +
-            #      str(self.fulfilled))
             logger.debug('%s confition for file %s was %s', str(self.type), self.file, str(self.fulfilled))
         return self.fulfilled
 
@@ -170,13 +156,13 @@ class StatisticsCondition(Condition):
         self.peer = peer
         self.subsystem = subsystem
         self.name = name
-        self.value = value
+        self.value = str(value)
         self.result = -1
 
     def check(self):
         if (self.fulfilled == False):
             self.result = self.peer.get_statistics_value(self.subsystem, self.name)
-            if (str(self.result) == str(self.value)):
+            if (self.result == self.value):
                 self.fulfilled = True
                 return True
             else:
@@ -185,32 +171,14 @@ class StatisticsCondition(Condition):
             return True
 
     def evaluate(self, failed_only):
-        if (self.result == -1):
-            res = b'NaN'
-        else:
-            res = str(self.result).encode('utf-8')
         if (self.fulfilled == False):
-            fail = b" FAIL!"
-            op = b" != "
+            fail = " FAIL!"
+            op = " != "
         else:
-            fail = b""
-            op = b" == "
+            fail = ""
+            op = " == "
         if (((self.fulfilled == False) and (failed_only == True)) or (failed_only == False)):
-            # print(self.peer.id[:4] +
-            #       b" " +
-            #       self.peer.cfg.encode('utf-8') +
-            #       b" " +
-            #       str(self.type).encode('utf-8') +
-            #       b' condition in subsystem "' +
-            #       self.subsystem.encode('utf-8').ljust(12) +
-            #       b'" : "' +
-            #       self.name.encode('utf-8').ljust(30) +
-            #       b'" : (expected/real value) ' +
-            #       str(self.value).encode('utf-8') +
-            #       op +
-            #       res +
-            #       fail)
-            logger.debug('%s %s %s condition in subsystem %s : %s : (expected/real value) %s %s %s %s', self.peer.id[:4], self.peer.cfg.encode('utf-8'), str(self.type).encode('utf-8'), self.subsystem.encode('utf-8').ljust(12), self.name.encode('utf-8').ljust(30), str(self.value).encode('utf-8'), op, res, fail)
+            logger.debug('%s %s condition in subsystem %s: %s: (expected/real value) %s %s %s %s', self.peer.id[:4].decode("utf-8"), self.peer.cfg, self.subsystem.ljust(12), self.name.ljust(30), self.value, op, self.result, fail)
         return self.fulfilled
 
 
@@ -232,7 +200,7 @@ class EqualStatisticsCondition(Condition):
         if (self.fulfilled == False):
             self.result = self.peer.get_statistics_value(self.subsystem, self.name)
             self.result2 = self.peer2.get_statistics_value(self.subsystem2, self.name2)
-            if (str(self.result) == str(self.result2)):
+            if (self.result == self.result2):
                 self.fulfilled = True
                 return True
             else:
@@ -241,37 +209,8 @@ class EqualStatisticsCondition(Condition):
             return True
 
     def evaluate(self, failed_only):
-        if (self.result == -1):
-            res = b'NaN'
-        else:
-            res = str(self.result).encode('utf-8')
-        if (self.result2 == -1):
-            res2 = b'NaN'
-        else:
-            res2 = str(self.result2).encode('utf-8')
-        if (self.fulfilled == False):
-            fail = b" FAIL!"
-            op = b" != "
-        else:
-            fail = b""
-            op = b" == "
         if (((self.fulfilled == False) and (failed_only == True)) or (failed_only == False)):
-            # print(self.peer.id[:4] +
-            #       b' "' +
-            #       self.subsystem.encode('utf-8').ljust(12) +
-            #       b'" "' +
-            #       self.name.encode('utf-8').ljust(30) +
-            #       b'" == ' +
-            #       str(self.result).encode('utf-8') +
-            #       b" " +
-            #       self.peer2.id[:4] +
-            #       b' "' +
-            #       self.subsystem2.encode('utf-8').ljust(12) +
-            #       b'" ' +
-            #       self.name2.encode('utf-8').ljust(30) +
-            #       b'" ' +
-            #       str(self.result2).encode('utf-8'))
-            logger.debug('%s %s %s == %s %s %s %s %s', self.peer.id[:4], self.subsystem.encode('utf-8').ljust(12), self.name.encode('utf-8').ljust(30), str(self.result).encode('utf-8'), self.peer2.id[:4], self.subsystem2.encode('uft-8').ljust(12), self.name2.encode('utf-8').ljust(30), str(self.result2).encode('utf-8'))
+            logger.debug('%s %s %s == %s %s %s %s %s', self.peer.id[:4], self.subsystem.ljust(12), self.name.ljust(30), self.result, self.peer2.id[:4], self.subsystem2.ljust(12), self.name2.ljust(30), self.result2)
         return self.fulfilled
 
 
@@ -333,6 +272,9 @@ class Peer(object):
             return False
 
     def start(self):
+        os.unsetenv ("XDG_CONFIG_HOME")
+        os.unsetenv ("XDG_DATA_HOME")
+        os.unsetenv ("XDG_CACHE_HOME")
         self.test.p("Starting peer using cfg " + self.cfg)
         try:
             server = subprocess.Popen([self.test.gnunetarm, '-sq', '-c', self.cfg])
@@ -379,11 +321,10 @@ class Peer(object):
         if os.name == 'nt' and tests[1] == b'\n' and tests[0][-1] == b'\r':
             tests = (tests[0][:-1], tests[1], tests[2])
         tests = tests[0]
-        # print("running gnunet-statistics " + self.cfg + " for " + name + "/" + subsystem + " yields " + tests.decode("utf-8"))
-        logger.debug('running gnunet-statistics %s for %s "/" %s yields %s', self.cfg, name, subsystem, test.decode("utf-8"))
-        if (tests.isdigit() == True):
-            return tests
+        result = tests.decode("utf-8").strip()
+        logger.debug('running gnunet-statistics %s for %s "/" %s yields %s', self.cfg, name, subsystem, result)
+        if (result.isdigit() == True):
+            return result
         else:
-            # print("Invalid statistics value: " + str(tests) + " is not a number!")
-            logger.debug('Invalid statistics value: %s is not a number!', str(tests))
+            logger.debug('Invalid statistics value: %s is not a number!', result)
             return -1

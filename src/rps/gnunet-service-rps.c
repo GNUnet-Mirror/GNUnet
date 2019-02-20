@@ -11,7 +11,7 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -261,7 +261,7 @@ struct ChannelCtx
 };
 
 
-#ifdef ENABLE_MALICIOUS
+#if ENABLE_MALICIOUS
 
 /**
  * If type is 2 This struct is used to store the attacked peers in a DLL
@@ -492,7 +492,7 @@ static struct GNUNET_PEERINFO_Handle *peerinfo_handle;
 static struct GNUNET_PEERINFO_NotifyContext *peerinfo_notify_handle;
 
 
-#ifdef ENABLE_MALICIOUS
+#if ENABLE_MALICIOUS
 /**
  * Type of malicious peer
  *
@@ -2576,7 +2576,7 @@ insert_in_sampler (void *cls,
      * messages to it */
     //indicate_sending_intention (peer);
   }
-  #ifdef TO_FILE
+#ifdef TO_FILE
   sub->num_observed_peers++;
   GNUNET_CONTAINER_multipeermap_put
     (sub->observed_unique_peers,
@@ -2590,7 +2590,7 @@ insert_in_sampler (void *cls,
           sub->num_observed_peers,
           num_observed_unique_peers,
           1.0*num_observed_unique_peers/sub->num_observed_peers)
-  #endif /* TO_FILE */
+#endif /* TO_FILE */
 }
 
 
@@ -2701,7 +2701,7 @@ clean_peer (struct Sub *sub,
     LOG (GNUNET_ERROR_TYPE_DEBUG,
         "Going to remove send channel to peer %s\n",
         GNUNET_i2s (peer));
-    #ifdef ENABLE_MALICIOUS
+    #if ENABLE_MALICIOUS
     if (0 != GNUNET_CRYPTO_cmp_peer_identity (&attacked_peer, peer))
       (void) destroy_sending_channel (get_peer_ctx (sub->peer_map, peer));
     #else /* ENABLE_MALICIOUS */
@@ -2874,7 +2874,7 @@ new_sub (const struct GNUNET_HashCode *hash,
 
   /* Logging of internals */
   sub->file_name_view_log = store_prefix_file_name (&own_identity, "view");
-  #ifdef TO_FILE
+#ifdef TO_FILE
   sub->file_name_observed_log = store_prefix_file_name (&own_identity,
                                                        "observed");
   sub->file_name_push_recv = store_prefix_file_name (&own_identity,
@@ -2884,7 +2884,7 @@ new_sub (const struct GNUNET_HashCode *hash,
   sub->num_observed_peers = 0;
   sub->observed_unique_peers = GNUNET_CONTAINER_multipeermap_create (1,
                                                                     GNUNET_NO);
-  #endif /* TO_FILE */
+#endif /* TO_FILE */
 
   /* Set up data structures for gossip */
   sub->push_map = CustomPeerMap_create (4);
@@ -3436,7 +3436,7 @@ handle_peer_push (void *cls,
     GNUNET_STATISTICS_update(stats, "# push message received", 1, GNUNET_NO);
   }
 
-  #ifdef ENABLE_MALICIOUS
+  #if ENABLE_MALICIOUS
   struct AttackedPeer *tmp_att_peer;
 
   if ( (1 == mal_type) ||
@@ -3512,7 +3512,7 @@ handle_peer_pull_request (void *cls,
     }
   }
 
-  #ifdef ENABLE_MALICIOUS
+  #if ENABLE_MALICIOUS
   if (1 == mal_type
       || 3 == mal_type)
   { /* Try to maximise representation */
@@ -3606,7 +3606,7 @@ handle_peer_pull_reply (void *cls,
   const struct GNUNET_PeerIdentity *peers;
   struct Sub *sub = channel_ctx->peer_ctx->sub;
   uint32_t i;
-#ifdef ENABLE_MALICIOUS
+#if ENABLE_MALICIOUS
   struct AttackedPeer *tmp_att_peer;
 #endif /* ENABLE_MALICIOUS */
 
@@ -3628,7 +3628,7 @@ handle_peer_pull_reply (void *cls,
     }
   }
 
-  #ifdef ENABLE_MALICIOUS
+  #if ENABLE_MALICIOUS
   // We shouldn't even receive pull replies as we're not sending
   if (2 == mal_type)
   {
@@ -3649,7 +3649,7 @@ handle_peer_pull_reply (void *cls,
          i,
          GNUNET_i2s (&peers[i]));
 
-    #ifdef ENABLE_MALICIOUS
+    #if ENABLE_MALICIOUS
     if ((NULL != att_peer_set) &&
         (1 == mal_type || 3 == mal_type))
     { /* Add attacked peer to local list */
@@ -3812,7 +3812,7 @@ send_push (struct PeerContext *peer_ctx)
 }
 
 
-#ifdef ENABLE_MALICIOUS
+#if ENABLE_MALICIOUS
 
 
 /**
@@ -4534,7 +4534,7 @@ shutdown_task (void *cls)
   }
   GNUNET_CADET_disconnect (cadet_handle);
   cadet_handle = NULL;
-#ifdef ENABLE_MALICIOUS
+#if ENABLE_MALICIOUS
   struct AttackedPeer *tmp_att_peer;
   GNUNET_array_grow (mal_peers,
                      num_mal_peers,
@@ -4647,7 +4647,7 @@ run (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "STARTING SERVICE (rps) for peer [%s]\n",
               GNUNET_i2s (&own_identity));
-#ifdef ENABLE_MALICIOUS
+#if ENABLE_MALICIOUS
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
               "Malicious execution compiled in.\n");
 #endif /* ENABLE_MALICIOUS */
@@ -4740,7 +4740,7 @@ GNUNET_SERVICE_MAIN
    GNUNET_MESSAGE_TYPE_RPS_CS_SEED,
    struct GNUNET_RPS_CS_SeedMessage,
    NULL),
-#ifdef ENABLE_MALICIOUS
+#if ENABLE_MALICIOUS
  GNUNET_MQ_hd_var_size (client_act_malicious,
    GNUNET_MESSAGE_TYPE_RPS_ACT_MALICIOUS,
    struct GNUNET_RPS_CS_ActMaliciousMessage,

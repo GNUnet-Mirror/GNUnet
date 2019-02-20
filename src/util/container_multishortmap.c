@@ -11,7 +11,7 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -183,8 +183,8 @@ struct GNUNET_CONTAINER_MultiShortmapIterator
  * Create a multi hash map.
  *
  * @param len initial size (map will grow as needed)
- * @param do_not_copy_keys GNUNET_NO is always safe and should be used by default;
- *                         GNUNET_YES means that on 'put', the 'key' does not have
+ * @param do_not_copy_keys #GNUNET_NO is always safe and should be used by default;
+ *                         #GNUNET_YES means that on 'put', the 'key' does not have
  *                         to be copied as the destination of the pointer is
  *                         guaranteed to be life as long as the value is stored in
  *                         the hashmap.  This can significantly reduce memory
@@ -202,8 +202,13 @@ GNUNET_CONTAINER_multishortmap_create (unsigned int len,
 
   GNUNET_assert (len > 0);
   map = GNUNET_new (struct GNUNET_CONTAINER_MultiShortmap);
-  map->map = GNUNET_new_array (len,
-			       union MapEntry);
+  map->map = GNUNET_malloc_large (len *
+                                  sizeof (union MapEntry));
+  if (NULL == map->map)
+  {
+    GNUNET_free (map);
+    return NULL;
+  }
   map->map_length = len;
   map->use_small_entries = do_not_copy_keys;
   return map;
@@ -355,7 +360,7 @@ GNUNET_CONTAINER_multishortmap_iterate (struct GNUNET_CONTAINER_MultiShortmap *m
     if (map->use_small_entries)
     {
       struct SmallMapEntry *sme;
-    
+
       ce->sme = me.sme;
       while (NULL != (sme = ce->sme))
       {
@@ -366,7 +371,7 @@ GNUNET_CONTAINER_multishortmap_iterate (struct GNUNET_CONTAINER_MultiShortmap *m
 			       sme->value)) )
 	{
 	  GNUNET_assert (--map->next_cache_off < NEXT_CACHE_SIZE);
-	  return GNUNET_SYSERR;	
+	  return GNUNET_SYSERR;
 	}
 	count++;
       }
@@ -458,7 +463,7 @@ GNUNET_CONTAINER_multishortmap_remove (struct GNUNET_CONTAINER_MultiShortmap *ma
   if (map->use_small_entries)
   {
     struct SmallMapEntry *p = NULL;
-    
+
     for (struct SmallMapEntry *sme = me.sme; NULL != sme; sme = sme->next)
     {
       if ((0 == memcmp (key,
@@ -482,7 +487,7 @@ GNUNET_CONTAINER_multishortmap_remove (struct GNUNET_CONTAINER_MultiShortmap *ma
   else
   {
     struct BigMapEntry *p = NULL;
-    
+
     for (struct BigMapEntry *bme = me.bme; NULL != bme; bme = bme->next)
     {
       if ((0 == memcmp (key,
@@ -686,13 +691,18 @@ grow (struct GNUNET_CONTAINER_MultiShortmap *map)
   unsigned int new_len;
   unsigned int idx;
 
-  map->modification_counter++;
-
   old_map = map->map;
   old_len = map->map_length;
   new_len = old_len * 2;
-  new_map = GNUNET_new_array (new_len,
-			      union MapEntry);
+  if (0 == new_len) /* 2^31 * 2 == 0 */
+    new_len = old_len; /* never use 0 */
+  if (new_len == old_len)
+    return; /* nothing changed */
+  new_map = GNUNET_malloc_large (new_len *
+                                 sizeof (union MapEntry));
+  if (NULL == new_map)
+    return; /* grow not possible */
+  map->modification_counter++;
   map->map_length = new_len;
   map->map = new_map;
   for (unsigned int i = 0; i < old_len; i++)

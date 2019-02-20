@@ -23,6 +23,8 @@ fork!
 
 Additional documentation about GNUnet can be found at
 https://gnunet.org/ and in the 'doc/' folder.
+Online documentation is provided at
+'https://docs.gnunet.org' and 'https://tutorial.gnunet.org'.
 
 
 Dependencies:
@@ -41,14 +43,17 @@ These are the direct dependencies for running GNUnet:
   or
   - libidn             >= 1.0
 - libextractor       >= 0.6.1       (highly recommended)
-- openssl            >= 1.0         (binary, used to generate X.509 certificate)
+- openssl            >= 1.0         (binary, used to generate X.509 certificate
+                                     for gnunet-gns-proxy-setup-ca)
+- nss                               (certutil binary, for
+                                     gnunet-gns-proxy-setup-ca)
 - libltdl            >= 2.2         (part of GNU libtool)
 - sqlite             >= 3.8         (default database, required)
 - mysql              >= 5.1         (alternative to sqlite)
 - postgres           >= 9.5         (alternative to sqlite)
 - Texinfo            >= 5.2         [*1]
-- makeinfo           >= 4.8         (at least 4.8 at the time of writing is tested) 
-- which                             (for the bootstrap script)
+- makeinfo           >= 4.8
+- which                             (bootstrap script and some Makefiles)
 - gettext
 - zlib
 - pkg-config
@@ -161,21 +166,11 @@ Building GNUnet from source
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 IMPORTANT: You can read further notes about compilation from source in
-the 'doc/FILENAME' document, which includes notes about specific
+the handbook under doc/handbook/, which includes notes about specific
 requirements for operating systems aswell. If you are a package
 mantainer for an Operating System we invite you to add your notes if
 you feel it is necessary and can not be covered in your Operating
 System's documentation.
-
-If you are building GNUnet from source you are either interested
-in furthering its development (we have further notes for developer
-builds in our 'GNUnet Developer Handbook') or you don't trust other
-people's binaries or your Operating System doesn't provide any
-binary package (at the moment).
-
-If you're on Gentoo you can build GNUnet using the recipes provided
-in the 'youbroketheinternet' overlay. Other Operating Systems may
-unintentionally require you to build GNUnet from source.
 
 Two prominent examples which currently lack cross-compilation
 support in GNUnet (and native binaries) are MS Windows and Apple macOS.
@@ -312,7 +307,7 @@ Usage
 =====
 
 For detailed usage notes, instructions and examples, refer to the
-included 'GNUnet User Handbook'.
+included 'GNUnet Handbook'.
 
 First, you must obtain an initial list of GNUnet hosts.  Knowing a
 single peer is sufficient since after that GNUnet propagates
@@ -373,7 +368,7 @@ Hacking GNUnet
 ==============
 
 Contributions are welcome. Please submit bugs you find to
-https://gnunet.org/bugs/.
+https://bugs.gnunet.org/ or our bugs mailinglist.
 Please make sure to run the script "contrib/scripts/gnunet-bugreport"
 and include the output with your bug reports.  More about how to
 report bugs can be found in the GNUnet FAQ on the webpage.  Submit
@@ -393,7 +388,7 @@ $ make install
 $ export $GNUNET_PREFIX=$SOMEWHERE
 $ make check
 
-Some of the testcases require python >= 2.7, and the python modules
+Some of the testcases require python >= 3.7, and the python modules
 "python-future" (http://python-future.org/) and "pexpect" to be installed.
 If any testcases fail to pass on your system, run
 "contrib/scripts/gnunet-bugreport" (in the repository) or "gnunet-bugreport"
@@ -460,7 +455,7 @@ Further Reading
   * Using git:
     git clone https://gnunet.org/git/bibliography.git
   * Using Drupal:
-    https://gnunet.org/bibliography
+    https://old.gnunet.org/bibliography
 
   The Drupal access will be replaced by a new interface to our
   bibliography in 2019.
@@ -470,8 +465,8 @@ Stay tuned
 ==========
 
 * https://gnunet.org/
-* https://gnunet.org/bugs/
-* https://gnunet.org/git/
+* https://bugs.gnunet.org
+* https://git.gnunet.org
 * http://www.gnu.org/software/gnunet/
 * http://mail.gnu.org/mailman/listinfo/gnunet-developers
 * http://mail.gnu.org/mailman/listinfo/help-gnunet

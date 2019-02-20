@@ -11,7 +11,7 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -716,17 +716,21 @@ handle_index_start_failed (void *cls,
   struct GNUNET_FS_PublishContext *pc = cls;
   struct GNUNET_FS_FileInformation *p;
   const char *emsg = (const char *) &msg[1];
+  char *msgtxt;
 
   GNUNET_MQ_destroy (pc->mq);
   pc->mq = NULL;
   p = pc->fi_pos;
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-              _("Can not index file `%s': %s.  Will try to insert instead.\n"),
-              p->filename,
-              gettext (emsg));
-  p->data.file.do_index = GNUNET_NO;
+  GNUNET_asprintf (&msgtxt,
+                   _("Can not index file `%s': %s.\n"),
+                   p->filename,
+                   gettext (emsg));
+  signal_publish_error (p,
+                        pc,
+                        msgtxt);
+  GNUNET_free (msgtxt);
   GNUNET_FS_file_information_sync_ (p);
-  publish_content (pc);
+  GNUNET_FS_publish_sync_ (pc);
 }
 
 

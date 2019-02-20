@@ -137,7 +137,7 @@ GNUNET_RPS_seed_ids (struct GNUNET_RPS_Handle *h, uint32_t n,
 GNUNET_RPS_request_cancel (struct GNUNET_RPS_Request_Handle *rh);
 
 
-#ifdef ENABLE_MALICIOUS
+#if ENABLE_MALICIOUS
 /**
  * Turn RPS service to act malicious.
  *

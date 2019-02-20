@@ -1574,7 +1574,7 @@ static void mal_init_peer (struct RPSPeer *rps_peer)
 static void
 mal_pre (struct RPSPeer *rps_peer, struct GNUNET_RPS_Handle *h)
 {
-  #ifdef ENABLE_MALICIOUS
+  #if ENABLE_MALICIOUS
   uint32_t num_mal_peers;
 
   GNUNET_assert ( (1 >= portion) &&
@@ -1605,7 +1605,7 @@ mal_cb (struct RPSPeer *rps_peer)
     return;
   }
 
-  #ifdef ENABLE_MALICIOUS
+  #if ENABLE_MALICIOUS
   GNUNET_assert ( (1 >= portion) &&
                   (0 <  portion) );
   num_mal_peers = round (portion * num_peers);
