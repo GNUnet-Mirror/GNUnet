@@ -74,7 +74,7 @@ static struct GNUNET_CONTAINER_MultiHashMap *open_files;
 struct GNUNET_DISK_FileHandle *
 get_file_handle (const char *name)
 {
-  struct GNUNET_HashCode hash;
+  struct GNUNET_HashCode hash = {0};
   struct GNUNET_DISK_FileHandle *fh;
 
   if (NULL == open_files)
