@@ -81,6 +81,8 @@ get_file_handle (const char *name)
   {
     open_files = GNUNET_CONTAINER_multihashmap_create (16,
         GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Created map of open files.\n");
   }
   GNUNET_CRYPTO_hash (name,
                       strnlen (name,
@@ -491,6 +493,7 @@ static int ensure_folder_exist (void)
   }
   if (GNUNET_YES != GNUNET_DISK_directory_test ("/tmp/rps/", GNUNET_NO))
   {
+    LOG (GNUNET_ERROR_TYPE_ERROR, "Could not create directory `/tmp/rps'\n");
     return GNUNET_SYSERR;
   }
   return GNUNET_YES;
