@@ -1431,7 +1431,7 @@ authorize_endpoint (struct GNUNET_REST_RequestHandle *con_handle,
                                                  tld_iter,
                                                  handle);
   if (NULL == handle->tld)
-    handle->tld = GNUNET_strdup (tmp_ego->keystring);
+    handle->tld = GNUNET_strdup (handle->oidc->client_id);
   GNUNET_SCHEDULER_add_now (&build_authz_response, handle);
 }
 
