@@ -2633,7 +2633,7 @@ extern "C"
  */
 #define GNUNET_MESSAGE_TYPE_RPS_CS_SEED           954
 
-#ifdef ENABLE_MALICIOUS
+#if ENABLE_MALICIOUS
 /**
  * Turn RPS service malicious
  */
