@@ -3,7 +3,7 @@
 # and install it (for both GNUnet and your browser).
 #
 
-OPENSSLCFG=@PREFIX@
+OPENSSLCFG=@pkgdatadir@/openssl.cnf
 if ! which openssl > /dev/null
 then
     echo "'openssl' command not found. Please install it."
