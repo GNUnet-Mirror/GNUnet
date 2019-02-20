@@ -1915,8 +1915,8 @@ Ascension
 Usage:
     ascension <domain> [-d] [-p]
     ascension <domain> <port> [-d] [-p]
-    ascension <domain> -ns <transferns> [-d] [-p]
-    ascension <domain> -ns <transferns> <port> [-d] [-p]
+    ascension <domain> -n <transferns> [-d] [-p]
+    ascension <domain> -n <transferns> <port> [-d] [-p]
     ascension -p | --public
     ascension -h | --help
     ascension -v | --version
@@ -1940,7 +1940,7 @@ To migrate the Syrian top level domain - one of the few top level domains that
 still supports zone transfers - into GNS use the following command:
 
 @example
-$ ascension sy. -ns ns1.tld.sy. -p
+$ ascension sy. -n ns1.tld.sy. -p
 @end example
 
 The -p flag will tell GNS to put these records on the DHT so that other users
