@@ -11,7 +11,7 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -2576,7 +2576,7 @@ insert_in_sampler (void *cls,
      * messages to it */
     //indicate_sending_intention (peer);
   }
-  #ifdef TO_FILE
+#ifdef TO_FILE
   sub->num_observed_peers++;
   GNUNET_CONTAINER_multipeermap_put
     (sub->observed_unique_peers,
@@ -2590,7 +2590,7 @@ insert_in_sampler (void *cls,
           sub->num_observed_peers,
           num_observed_unique_peers,
           1.0*num_observed_unique_peers/sub->num_observed_peers)
-  #endif /* TO_FILE */
+#endif /* TO_FILE */
 }
 
 
@@ -2874,7 +2874,7 @@ new_sub (const struct GNUNET_HashCode *hash,
 
   /* Logging of internals */
   sub->file_name_view_log = store_prefix_file_name (&own_identity, "view");
-  #ifdef TO_FILE
+#ifdef TO_FILE
   sub->file_name_observed_log = store_prefix_file_name (&own_identity,
                                                        "observed");
   sub->file_name_push_recv = store_prefix_file_name (&own_identity,
@@ -2884,7 +2884,7 @@ new_sub (const struct GNUNET_HashCode *hash,
   sub->num_observed_peers = 0;
   sub->observed_unique_peers = GNUNET_CONTAINER_multipeermap_create (1,
                                                                     GNUNET_NO);
-  #endif /* TO_FILE */
+#endif /* TO_FILE */
 
   /* Set up data structures for gossip */
   sub->push_map = CustomPeerMap_create (4);
