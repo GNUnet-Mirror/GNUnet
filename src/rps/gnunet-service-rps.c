@@ -2928,8 +2928,9 @@ static void
 destroy_sub (struct Sub *sub)
 {
 #ifdef TO_FILE
-  char push_recv_str[1536] = ""; /* 256 * 6 (1 whitespace, 1 comma, up to 4 chars) */
-  char pull_delays_str[1536] = ""; /* 256 * 6 (1 whitespace, 1 comma, up to 4 chars) */
+#define SIZE_DUMP_FILE 1536 /* 256 * 6 (1 whitespace, 1 comma, up to 4 chars) */
+  char push_recv_str[SIZE_DUMP_FILE + 1] = "";
+  char pull_delays_str[SIZE_DUMP_FILE + 1] = "";
   char *recv_str_iter;
 #endif /* TO_FILE */
   GNUNET_assert (NULL != sub);
@@ -2976,7 +2977,9 @@ destroy_sub (struct Sub *sub)
                  "\n");
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Writing push stats to disk\n");
-  to_file_w_len (sub->file_name_push_recv, 1535, push_recv_str);
+  to_file_w_len (sub->file_name_push_recv,
+                 SIZE_DUMP_FILE,
+                 push_recv_str);
   GNUNET_free (sub->file_name_push_recv);
   sub->file_name_push_recv = NULL;
 
@@ -2997,7 +3000,9 @@ destroy_sub (struct Sub *sub)
   (void) stpcpy (recv_str_iter,
                  "\n");
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Writing pull delays to disk\n");
-  to_file_w_len (sub->file_name_pull_delays, 1535, pull_delays_str);
+  to_file_w_len (sub->file_name_pull_delays,
+                 SIZE_DUMP_FILE,
+                 pull_delays_str);
   GNUNET_free (sub->file_name_pull_delays);
   sub->file_name_pull_delays = NULL;
 
