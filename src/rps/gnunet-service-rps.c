@@ -2715,14 +2715,18 @@ clean_peer (struct Sub *sub,
         "Going to remove send channel to peer %s\n",
         GNUNET_i2s (peer));
     #if ENABLE_MALICIOUS
-    if (0 != GNUNET_CRYPTO_cmp_peer_identity (&attacked_peer, peer))
-      (void) destroy_sending_channel (get_peer_ctx (sub->peer_map, peer));
+    if (0 != GNUNET_CRYPTO_cmp_peer_identity (&attacked_peer,
+                                              peer))
+      (void) destroy_sending_channel (get_peer_ctx (sub->peer_map,
+                                                    peer));
     #else /* ENABLE_MALICIOUS */
-    (void) destroy_sending_channel (get_peer_ctx (sub->peer_map, peer));
+    (void) destroy_sending_channel (get_peer_ctx (sub->peer_map,
+                                                  peer));
     #endif /* ENABLE_MALICIOUS */
   }
 
-  if (GNUNET_NO == GNUNET_CONTAINER_multipeermap_contains (sub->peer_map, peer))
+  if (GNUNET_NO == GNUNET_CONTAINER_multipeermap_contains (sub->peer_map,
+                                                           peer))
   {
     /* Peer was already removed by callback on destroyed channel */
     LOG (GNUNET_ERROR_TYPE_WARNING,
@@ -3693,25 +3697,30 @@ handle_peer_pull_reply (void *cls,
     }
     #endif /* ENABLE_MALICIOUS */
     /* Make sure we 'know' about this peer */
-    (void) insert_peer (channel_ctx->peer_ctx->sub, &peers[i]);
+    (void) insert_peer (channel_ctx->peer_ctx->sub,
+                        &peers[i]);
 
     if (GNUNET_YES == check_peer_valid (channel_ctx->peer_ctx->sub->valid_peers,
                                         &peers[i]))
     {
-      CustomPeerMap_put (channel_ctx->peer_ctx->sub->pull_map, &peers[i]);
+      CustomPeerMap_put (channel_ctx->peer_ctx->sub->pull_map,
+                         &peers[i]);
     }
     else
     {
       schedule_operation (channel_ctx->peer_ctx,
                           insert_in_pull_map,
                           channel_ctx->peer_ctx->sub); /* cls */
-      (void) issue_peer_online_check (channel_ctx->peer_ctx->sub, &peers[i]);
+      (void) issue_peer_online_check (channel_ctx->peer_ctx->sub,
+                                      &peers[i]);
     }
   }
 
-  UNSET_PEER_FLAG (get_peer_ctx (channel_ctx->peer_ctx->sub->peer_map, sender),
+  UNSET_PEER_FLAG (get_peer_ctx (channel_ctx->peer_ctx->sub->peer_map,
+                                 sender),
                    Peers_PULL_REPLY_PENDING);
-  clean_peer (channel_ctx->peer_ctx->sub, sender);
+  clean_peer (channel_ctx->peer_ctx->sub,
+              sender);
 
   GNUNET_break_op (check_peer_known (channel_ctx->peer_ctx->sub->peer_map,
                                      sender));
