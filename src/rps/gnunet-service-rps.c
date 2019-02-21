@@ -2848,7 +2848,7 @@ new_sub (const struct GNUNET_HashCode *hash,
     char str_hash[105];
 
     GNUNET_snprintf (str_hash,
-		     strlen (str_hash),
+		     sizeof (str_hash),
 		     GNUNET_h2s_full (hash));
     tmp_filename_valid_peers = sub->filename_valid_peers;
     GNUNET_asprintf (&sub->filename_valid_peers,
