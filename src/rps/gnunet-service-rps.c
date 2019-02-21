@@ -2930,6 +2930,7 @@ destroy_sub (struct Sub *sub)
 #ifdef TO_FILE
   char push_recv_str[1536] = ""; /* 256 * 6 (1 whitespace, 1 comma, up to 4 chars) */
   char pull_delays_str[1536] = ""; /* 256 * 6 (1 whitespace, 1 comma, up to 4 chars) */
+  char *recv_str_iter;
 #endif /* TO_FILE */
   GNUNET_assert (NULL != sub);
   GNUNET_assert (NULL != sub->do_round_task);
@@ -2958,22 +2959,21 @@ destroy_sub (struct Sub *sub)
   sub->file_name_observed_log = NULL;
 
   /* Write push frequencies to disk */
+  recv_str_iter = push_recv_str;
   for (uint32_t i = 0; i < 256; i++)
   {
     char push_recv_str_tmp[8];
-    
+
     GNUNET_snprintf (push_recv_str_tmp,
 		     sizeof (push_recv_str_tmp),
 		     "%" PRIu32 "\n",
 		     sub->push_recv[i]);
-    // FIXME: better use stpcpy!
-    (void) strncat (push_recv_str,
-                    push_recv_str_tmp,
-                    1535 - strnlen (push_recv_str, 1536));
+    recv_str_iter = stpncpy (recv_str_iter,
+                             push_recv_str_tmp,
+                             6);
   }
-  (void) strncat (push_recv_str,
-                  "\n",
-                  1535 - strnlen (push_recv_str, 1536));
+  (void) stpcpy (recv_str_iter,
+                 "\n");
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Writing push stats to disk\n");
   to_file_w_len (sub->file_name_push_recv, 1535, push_recv_str);
@@ -2981,6 +2981,7 @@ destroy_sub (struct Sub *sub)
   sub->file_name_push_recv = NULL;
 
   /* Write pull delays to disk */
+  recv_str_iter = pull_delays_str;
   for (uint32_t i = 0; i < 256; i++)
   {
     char pull_delays_str_tmp[8];
@@ -2989,14 +2990,12 @@ destroy_sub (struct Sub *sub)
 		     sizeof (pull_delays_str_tmp),
 		     "%" PRIu32 "\n",
 		     sub->pull_delays[i]);
-    // FIXME: better use stpcpy!
-    (void) strncat (pull_delays_str,
-                    pull_delays_str_tmp,
-                    1535 - strnlen (pull_delays_str, 1536));
+    recv_str_iter = stpncpy (recv_str_iter,
+                             pull_delays_str_tmp,
+                             6);
   }
-  (void) strncat (pull_delays_str,
-                  "\n",
-                  1535 - strnlen (pull_delays_str, 1536));
+  (void) stpcpy (recv_str_iter,
+                 "\n");
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Writing pull delays to disk\n");
   to_file_w_len (sub->file_name_pull_delays, 1535, pull_delays_str);
   GNUNET_free (sub->file_name_pull_delays);
