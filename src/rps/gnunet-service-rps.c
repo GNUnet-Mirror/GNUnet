@@ -2948,7 +2948,11 @@ destroy_sub (struct Sub *sub)
   for (uint32_t i = 0; i < 256; i++)
   {
     char push_recv_str_tmp[8];
-    (void) snprintf (push_recv_str_tmp, 8, "%" PRIu32 "\n", sub->push_recv[i]);
+    
+    GNUNET_snprintf (push_recv_str_tmp,
+		     sizeof (push_recv_str_tmp),
+		     "%" PRIu32 "\n",
+		     sub->push_recv[i]);
     (void) strncat (push_recv_str,
                     push_recv_str_tmp,
                     1535 - strnlen (push_recv_str, 1536));
@@ -2956,7 +2960,8 @@ destroy_sub (struct Sub *sub)
   (void) strncat (push_recv_str,
                   "\n",
                   1535 - strnlen (push_recv_str, 1536));
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Writing push stats to disk\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Writing push stats to disk\n");
   to_file_w_len (sub->file_name_push_recv, 1535, push_recv_str);
   GNUNET_free (sub->file_name_push_recv);
   sub->file_name_push_recv = NULL;
@@ -2965,7 +2970,11 @@ destroy_sub (struct Sub *sub)
   for (uint32_t i = 0; i < 256; i++)
   {
     char pull_delays_str_tmp[8];
-    (void) snprintf (pull_delays_str_tmp, 8, "%" PRIu32 "\n", sub->pull_delays[i]);
+
+    GNUNET_snprintf (pull_delays_str_tmp,
+		     sizeof (pull_delays_str_tmp),
+		     "%" PRIu32 "\n",
+		     sub->pull_delays[i]);
     (void) strncat (pull_delays_str,
                     pull_delays_str_tmp,
                     1535 - strnlen (pull_delays_str, 1536));
@@ -3028,8 +3037,11 @@ core_connects (void *cls,
   (void) cls;
   (void) mq;
 
-  GNUNET_CONTAINER_multipeermap_put (map_single_hop, peer, NULL,
-      GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
+  GNUNET_assert (GNUNET_YES ==
+		 GNUNET_CONTAINER_multipeermap_put (map_single_hop,
+						    peer,
+						    NULL,
+						    GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
   return NULL;
 }
 

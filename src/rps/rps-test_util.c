@@ -74,49 +74,42 @@ static struct GNUNET_CONTAINER_MultiHashMap *open_files;
 struct GNUNET_DISK_FileHandle *
 get_file_handle (const char *name)
 {
-  struct GNUNET_HashCode hash = {0};
+  struct GNUNET_HashCode hash;
   struct GNUNET_DISK_FileHandle *fh;
 
   if (NULL == open_files)
   {
     open_files = GNUNET_CONTAINER_multihashmap_create (16,
-        GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
+						       GNUNET_NO);
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Created map of open files.\n");
   }
   GNUNET_CRYPTO_hash (name,
-                      strnlen (name,
-                               512),
+                      strlen (name),
                       &hash);
-  if (GNUNET_NO == GNUNET_CONTAINER_multihashmap_contains (open_files,
-                                                           &hash))
-  {
-    fh = GNUNET_DISK_file_open (name,
-                                GNUNET_DISK_OPEN_WRITE |
-                                GNUNET_DISK_OPEN_CREATE |
-                                GNUNET_DISK_OPEN_APPEND,
-                                GNUNET_DISK_PERM_USER_READ |
-                                GNUNET_DISK_PERM_USER_WRITE |
-                                GNUNET_DISK_PERM_GROUP_READ);
-    if (NULL == fh)
-    {
-      LOG (GNUNET_ERROR_TYPE_ERROR,
-           "Opening file `%s' failed.\n",
-           name);
-      GNUNET_assert (0);
-    }
-    GNUNET_CONTAINER_multihashmap_put (open_files,
-                                       &hash,
-                                       fh,
-                                       GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
+  if (NULL != (fh = GNUNET_CONTAINER_multihashmap_get (open_files,
+						       &hash)))
     return fh;
-  }
-  else
+  fh = GNUNET_DISK_file_open (name,
+			      GNUNET_DISK_OPEN_WRITE |
+			      GNUNET_DISK_OPEN_CREATE |
+			      GNUNET_DISK_OPEN_APPEND,
+			      GNUNET_DISK_PERM_USER_READ |
+			      GNUNET_DISK_PERM_USER_WRITE |
+			      GNUNET_DISK_PERM_GROUP_READ);
+  if (NULL == fh)
   {
-    fh = GNUNET_CONTAINER_multihashmap_get (open_files,
-                                            &hash);
-    return fh;
+    LOG (GNUNET_ERROR_TYPE_ERROR,
+	 "Opening file `%s' failed.\n",
+	 name);
+    GNUNET_assert (0);
   }
+  GNUNET_assert (GNUNET_YES ==
+		 GNUNET_CONTAINER_multihashmap_put (open_files,
+						    &hash,
+						    fh,
+						    GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
+  return fh;
 }
 
 
