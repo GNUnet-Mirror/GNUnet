@@ -1379,6 +1379,7 @@ mq_notify_sent_cb (void *cls)
     if (0 == strncmp ("PUSH", pending_msg->type, 4))
       GNUNET_STATISTICS_update(stats, "# pushes sent", 1, GNUNET_NO);
     if (0 == strncmp ("PULL REQUEST", pending_msg->type, 12) &&
+                      NULL != map_single_hop &&
         GNUNET_NO == GNUNET_CONTAINER_multipeermap_contains (map_single_hop,
           &pending_msg->peer_ctx->peer_id))
       GNUNET_STATISTICS_update(stats,
