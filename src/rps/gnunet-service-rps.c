@@ -2846,19 +2846,15 @@ new_sub (const struct GNUNET_HashCode *hash,
   {
     char *tmp_filename_valid_peers;
     char str_hash[105];
-    uint32_t len_filename_valid_peers;
 
-    (void) GNUNET_snprintf (str_hash, 105, GNUNET_h2s_full (hash));
-    tmp_filename_valid_peers = GNUNET_strdup (sub->filename_valid_peers);
-    GNUNET_free (sub->filename_valid_peers);
-    len_filename_valid_peers = strlen (tmp_filename_valid_peers) + 105; /* Len of full hash + 1 */
-    sub->filename_valid_peers = GNUNET_malloc (len_filename_valid_peers);
-    strncat (sub->filename_valid_peers,
-             tmp_filename_valid_peers,
-             len_filename_valid_peers);
-    strncat (sub->filename_valid_peers,
-             str_hash,
-             len_filename_valid_peers);
+    GNUNET_snprintf (str_hash,
+		     strlen (str_hash),
+		     GNUNET_h2s_full (hash));
+    tmp_filename_valid_peers = sub->filename_valid_peers;
+    GNUNET_asprintf (&sub->filename_valid_peers,
+		     "%s%s",
+		     tmp_filename_valid_peers,
+		     str_hash);
     GNUNET_free (tmp_filename_valid_peers);
   }
   sub->peer_map = GNUNET_CONTAINER_multipeermap_create (4, GNUNET_NO);
