@@ -2949,6 +2949,7 @@ destroy_sub (struct Sub *sub)
 		     sizeof (push_recv_str_tmp),
 		     "%" PRIu32 "\n",
 		     sub->push_recv[i]);
+    // FIXME: better use stpcpy!
     (void) strncat (push_recv_str,
                     push_recv_str_tmp,
                     1535 - strnlen (push_recv_str, 1536));
@@ -2971,6 +2972,7 @@ destroy_sub (struct Sub *sub)
 		     sizeof (pull_delays_str_tmp),
 		     "%" PRIu32 "\n",
 		     sub->pull_delays[i]);
+    // FIXME: better use stpcpy!
     (void) strncat (pull_delays_str,
                     pull_delays_str_tmp,
                     1535 - strnlen (pull_delays_str, 1536));
