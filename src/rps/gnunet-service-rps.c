@@ -2676,11 +2676,23 @@ static void
 remove_peer (struct Sub *sub,
              const struct GNUNET_PeerIdentity *peer)
 {
-  (void) View_remove_peer (sub->view, peer);
-  CustomPeerMap_remove_peer (sub->pull_map, peer);
-  CustomPeerMap_remove_peer (sub->push_map, peer);
-  RPS_sampler_reinitialise_by_value (sub->sampler, peer);
-  destroy_peer (get_peer_ctx (sub->peer_map, peer));
+  (void) View_remove_peer (sub->view,
+                           peer);
+  CustomPeerMap_remove_peer (sub->pull_map,
+                             peer);
+  CustomPeerMap_remove_peer (sub->push_map,
+                             peer);
+  RPS_sampler_reinitialise_by_value (sub->sampler,
+                                     peer);
+  /* We want to destroy the peer now.
+   * Sometimes, it just seems that it's already been removed from the peer_map,
+   * so check the peer_map first. */
+  if (GNUNET_YES == check_peer_known (sub->peer_map,
+                                      peer))
+  {
+          destroy_peer (get_peer_ctx (sub->peer_map,
+                                      peer));
+  }
 }
 
 
