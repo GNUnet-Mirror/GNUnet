@@ -123,6 +123,12 @@ libgnunetutil_la_SOURCES = \
   speedup.c speedup.h \
 	proc_compat.c
 
+if HAVE_LIBATOMIC
+  LIBATOMIC= -latomic
+else
+  LIBATOMIC=
+endif
+
 if HAVE_LIBIDN
   LIBIDN= -lidn
 else
@@ -137,6 +143,7 @@ endif
 
 libgnunetutil_la_LIBADD = \
   $(GCLIBADD) $(WINLIB) \
+  $(LIBATOMIC) \
   $(LIBGCRYPT_LIBS) \
   $(LTLIBICONV) \
   $(LTLIBINTL) \

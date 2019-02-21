@@ -282,6 +282,7 @@ have_addrinfo_a=0
 AC_CHECK_LIB(anl, getaddrinfo_a, [have_addrinfo_a=1 AC_DEFINE(HAVE_GETADDRINFO_A,1,[getaddrinfo_a supported])])
 AM_CONDITIONAL(HAVE_GETADDRINFO_A, [test "$have_addrinfo_a" = 1])
 
+
 # tests only run on Windows
 if test "x$build_target" = "xmingw"
 then
@@ -676,6 +677,8 @@ else
 	AC_DEFINE([HAVE_LIBCURL],[1],[Have CURL])
 fi
 
+AC_SEARCH_LIBS(__atomic_load_8, atomic, [have_libatomic=1 AC_DEFINE(HAVE_LIBATOMIC,1,[external libatomic])])
+AM_CONDITIONAL(HAVE_LIBATOMIC, [test "$have_libatomic" = 1])
 
 # restore LIBS & CPPFLAGS
 LIBS=$SAVE_LIBS
