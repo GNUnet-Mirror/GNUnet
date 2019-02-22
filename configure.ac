@@ -1948,7 +1948,7 @@ require fresh login to come into effect):
 "USERNAME" with the respective login names).  If you have a global IP
 address, no further configuration is required.
 
-For more detailed setup instructions, see https://gnunet.org/installation
+For more detailed setup instructions, see https://docs.gnunet.org/
 
 Optionally, download and compile gnunet-gtk to get a GUI for
 file-sharing and configuration.  This is particularly recommended
