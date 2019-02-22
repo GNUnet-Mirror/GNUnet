@@ -75,11 +75,11 @@ git installed) or as an archive.
 
 Using git type
 @example
-git clone https://gnunet.org/git/gnunet.git
+git clone https://git.gnunet.org/gnunet.git
 @end example
 
 The archive can be found at
-@uref{https://gnunet.org/downloads}. Extract it using a graphical
+@uref{https://ftpmirror.gnu.org/gnu/gnunet/}. Extract it using a graphical
 archive tool or @code{tar}:
 @example
 tar xzvf gnunet-0.11.0pre66.tar.gz
@@ -1708,7 +1708,7 @@ will take the serial as a reference point and request the zone. The server will
 either answer the IXFR request with a correct incremental zone or with the
 entire zone, which depends on the server configuration.
 
-You can find the source code here: @code{https://gnunet.org/git/ascension.git/}
+You can find the source code here: @code{https://git.gnunet.org/ascension.git/}
 
 The software can be installed into a Python virtual environment like this:
 @example
