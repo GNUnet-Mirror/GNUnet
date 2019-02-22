@@ -2636,9 +2636,11 @@ stat_iterator (void *cls,
   (void) subsystem;
   (void) is_persistent;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Got stat value: %s - %" PRIu64 "\n",
-      name,
-      value);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Got stat value: %s - %" PRIu64 " (%u)\n",
+              name,
+              value,
+              rps_peer->index);
   to_file (rps_peer->file_name_stats,
           "%s: %" PRIu64 "\n",
           name,
@@ -2650,7 +2652,9 @@ stat_iterator (void *cls,
   return GNUNET_OK;
 }
 
-void post_profiler (struct RPSPeer *rps_peer)
+
+void
+post_profiler (struct RPSPeer *rps_peer)
 {
   if (COLLECT_STATISTICS != cur_test_run.have_collect_statistics)
   {
