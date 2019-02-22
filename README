@@ -453,7 +453,7 @@ Further Reading
   There are currently 2 ways to get them:
 
   * Using git:
-    git clone https://gnunet.org/git/bibliography.git
+    git clone https://git.gnunet.org/bibliography.git
   * Using Drupal:
     https://old.gnunet.org/bibliography
 
