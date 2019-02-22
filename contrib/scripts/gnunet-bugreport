@@ -24,6 +24,22 @@ else
   echo "gcc            : Not Found";
 fi
 
+TEST=`$WHICH cc 2>/dev/null`
+if test -n "$TEST"; then
+  VERS=`cc --version 2>/dev/null | head -n 1`
+  echo "cc             : $VERS"
+else
+  echo "cc             : Not Found";
+fi
+
+TEST=`$WHICH c++ 2>/dev/null`
+if test -n "$TEST"; then
+  VERS=`c++ --version 2>/dev/null | head -n 1`
+  echo "c++            : $VERS"
+else
+  echo "c++            : Not Found";
+fi
+
 TEST=`$WHICH gmake 2>/dev/null`
 if test -n "$TEST" ; then
 	gmake --version 2>/dev/null |\
@@ -174,6 +190,16 @@ else
   else
     echo "libunistring   : Test not available"
   fi
+fi
+
+TEST=`$WHICH pkg_add 2> /dev/null`
+if test -n "$TEST"; then
+  VERSION_UNISTRING=`pkg_info -Nb libunistring`
+  VERSION_GMP=`pkg_info -Nb gmp`
+  echo "libunistring     :"
+  echo "$VERSION_UNISTRING"
+  echo "GMP              :"
+  echo "$VERSION_GMP"
 fi
 
 TEST=`$WHICH gettext 2> /dev/null`
