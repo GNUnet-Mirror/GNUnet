@@ -1530,7 +1530,7 @@ AC_MSG_CHECKING(whether to start peer's services on demand by default)
 AC_ARG_ENABLE([autostart],
    [AS_HELP_STRING([--disable-autostart], [do not start peer's services by default])],
    [enable_autostart=${enableval}
-    if test "x$enable_autostart" == "xno"
+    if test "x$enable_autostart" = "xno"
     then
         START_ON_DEMAND="NO"
     fi
