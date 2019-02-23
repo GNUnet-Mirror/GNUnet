@@ -2122,6 +2122,19 @@ The client_id will be the public key of the client.
 As a redirect URI, you may use any globally unique DNS or GNS URI.
 The client description will be displayed to the user on authorization.
 
+Any website or relying party must use the endpoint
+https://api.reclaim/openid/authorize in its authorization redirects, e.g.
+
+@example
+<a href="https://api.reclaim/openid/authorize?client_id=<PKEY>\
+                                             &scope=email\
+                                             &redirect_uri=<redirect_uri>\
+                                             &nonce=<random>">Login</a>
+@end example
+
+This will direct the user's browser onto his local reclaimID instance.
+After giving consent, you will be provided with the OpenID Connect authorization
+code according to the specifications at your provided redirect URI.
 
 @node Using the Virtual Public Network
 @section Using the Virtual Public Network
