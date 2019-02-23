@@ -2135,6 +2135,7 @@ https://api.reclaim/openid/authorize in its authorization redirects, e.g.
 This will direct the user's browser onto his local reclaimID instance.
 After giving consent, you will be provided with the OpenID Connect authorization
 code according to the specifications at your provided redirect URI.
+The example code for the PoC website can be found at https://gitlab.com/reclaimid/demo.
 
 @node Using the Virtual Public Network
 @section Using the Virtual Public Network
