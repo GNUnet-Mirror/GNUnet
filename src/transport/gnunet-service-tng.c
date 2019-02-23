@@ -33,6 +33,19 @@
  *       transport-to-transport traffic)
  *
  * Implement next:
+ * - address validation: what is our plan here?
+ *   #1 Peerstore only gets 'validated' addresses
+ *   #2 transport needs another API to "trigger" validation!
+ *      API may be used by core/application or communicators;
+ *      => use yet another lib/MQ/connection?
+ *   #3 transport should use validation to also establish
+ *      effective flow control (for uni-directional transports!)
+ *   #4 UDP broadcasting logic must be extended to use the new API
+ *   #5 only validated addresses go to ATS for scheduling; that
+ *      also ensures we know the RTT 
+ *   #6 to ensure flow control and RTT are OK, we always do the
+ *      'validation', even if address comes from PEERSTORE
+ *   #7 
  * - ACK handling / retransmission 
  * - track RTT, distance, loss, etc.
  * - DV data structures:
