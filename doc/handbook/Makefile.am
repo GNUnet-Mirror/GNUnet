@@ -9,7 +9,16 @@ infoimagedir = $(infodir)/images
 #	$(DOT_FILES:%.dot=%.eps)						\
 #	$(DOT_FILES:%.dot=%.pdf)
 
-AM_MAKEINFOHTMLFLAGS = --no-split --css-ref=manual.css
+# NOTE: While GNU makeinfo 6.5 supports --css-ref=URL,
+# makeinfo 4.8 (in NetBSD 8.0, macOS, and maybe other
+# base) does only support --css-include=FILE.
+# The only difference is a shorter html output and
+# in 6.5 the ability to use refs instead of include.
+# We prefer not to break builds in this case, so
+# we use the include version which is backwards compatible
+# and upwards compatible, while the ref variant is neither.
+
+AM_MAKEINFOHTMLFLAGS = --no-split --css-include=manual.css
 
 dist_infoimage_DATA =                           		\
 	images/gnunet-gtk-0-10-gns-a-done.png 			\
