@@ -73,12 +73,15 @@ EXTRA_DIST =							\
 	$(gnunet_tutorial_examples)				\
 	htmlxref.cnf						\
 	run-gendocs.sh						\
-	docstyle.css
+	docstyle.css                                            \
+        manual.css                                              \
+        reset.css                                               \
+        style.css
 
 
 DISTCLEANFILES = 						\
 	gnunet-tutorial.cps					\
-	fdl-1.3.cps						
+	fdl-1.3.cps
 
 # XXX: is this sed invocation portable enough? otherwise try tr(1).
 version.texi/replacement: version.texi/replacement/revert

@@ -521,6 +521,7 @@ get_records_and_call_iterator (struct Plugin *plugin,
       {
         struct GNUNET_GNSRECORD_Data rd[record_count];
 
+        GNUNET_assert (0 != seq);
         if (GNUNET_OK !=
             GNUNET_GNSRECORD_records_deserialize (data_size,
                                                   data,

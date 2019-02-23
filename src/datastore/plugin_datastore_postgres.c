@@ -11,7 +11,7 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -153,7 +153,11 @@ init_connection (struct Plugin *plugin)
                             "SELECT hash FROM gn090",
                             0),
     GNUNET_PQ_make_prepare ("estimate_size",
-                            "SELECT SUM(LENGTH(value))+256*COUNT(*) AS total FROM gn090",
+                            "SELECT CASE WHEN NOT EXISTS"
+                            "  (SELECT 1 FROM gn090)"
+                            "  THEN 0"
+                            "  ELSE (SELECT SUM(LENGTH(value))+256*COUNT(*) FROM gn090)"
+                            "END AS total",
                             0),
     GNUNET_PQ_PREPARED_STATEMENT_END
   };

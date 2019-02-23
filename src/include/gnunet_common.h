@@ -119,6 +119,7 @@ extern "C"
  */
 #define GNUNET_VA_ARG_ENUM(va,X) ((enum X) va_arg (va, int))
 
+
 /**
  * @ingroup logging
  * define #GNUNET_EXTRA_LOGGING if using this header outside the GNUnet source
@@ -410,7 +411,7 @@ GNUNET_get_log_call_status (int caller_level,
  */
 void
 GNUNET_log_nocheck (enum GNUNET_ErrorType kind, const char *message, ...)
-  __attribute__ ((format (gnu_printf, 2, 3)));
+  __attribute__ ((format (printf, 2, 3)));
 
 /* from glib */
 #if defined(__GNUC__) && (__GNUC__ > 2) && defined(__OPTIMIZE__)

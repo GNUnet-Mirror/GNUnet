@@ -11,22 +11,34 @@
 #    WITHOUT ANY WARRANTY; without even the implied warranty of
 #    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
 #    Affero General Public License for more details.
-#   
+#
 #    You should have received a copy of the GNU Affero General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 #    SPDX-License-Identifier: AGPL3.0-or-later
 #
 # Functions for integration testing
+from __future__ import unicode_literals
+from __future__ import print_function
+from builtins import object
+from builtins import str
 import os
 import subprocess
 import sys
 import shutil
 import time
 from gnunet_pyexpect import pexpect
+import logging
 
+logger = logging.getLogger()
+handler = logging.StreamHandler()
+formatter = logging.Formatter(
+        '%(asctime)s %(name)-12s %(levelname)-8s %(message)s')
+handler.setFormatter(formatter)
+logger.addHandler(handler)
+logger.setLevel(logging.DEBUG)
 
-class Check:
+class Check(object):
     def __init__(self, test):
         self.fulfilled = False
         self.conditions = list()
@@ -55,7 +67,7 @@ class Check:
             time.sleep(1)
             execs += 1
         if ((False == res) and (execs >= timeout)):
-            print(('Check had timeout after ' + str(timeout) + ' seconds'))
+            logger.debug('Check had timeout after %s seconds', str(timeout))
             neg_cont(self)
         elif ((False == res) and (execs < timeout)):
             if (None != neg_cont):
@@ -83,7 +95,7 @@ class Check:
                 neg += 1
             else:
                 pos += 1
-        print((str(pos) + ' out of ' + str(pos+neg) + ' conditions fulfilled'))
+        logger.debug('%s out of %s conditions fulfilled', str(pos), str(pos+neg))
         return self.fulfilled
 
     def reset(self):
@@ -92,7 +104,7 @@ class Check:
             c.fulfilled = False
 
 
-class Condition:
+class Condition(object):
     def __init__(self):
         self.fulfilled = False
         self.type = 'generic'
@@ -106,9 +118,9 @@ class Condition:
 
     def evaluate(self, failed_only):
         if ((self.fulfilled == False) and (failed_only == True)):
-            print(str(self.type) + 'condition for was ' + str(self.fulfilled))
+            logger.debug('%s condition for was %s', str(self.type), str(self.fulfilled))
         elif (failed_only == False):
-            print(str(self.type) + 'condition for was ' + str(self.fulfilled))
+            logger.debug('%s condition for was %s', str(self.type), str(self.fulfilled))
         return self.fulfilled
 
 
@@ -131,26 +143,26 @@ class FileExistCondition(Condition):
 
     def evaluate(self, failed_only):
         if ((self.fulfilled == False) and (failed_only == True)):
-            print(str(self.type) + 'condition for file '+self.file+' was ' + str(self.fulfilled))
+            logger.debug('%s confition for file %s was %s', str(self.type), self.file, str(self.fulfilled))
         elif (failed_only == False):
-            print(str(self.type) + 'condition for file '+self.file+' was ' + str(self.fulfilled))
+            logger.debug('%s confition for file %s was %s', str(self.type), self.file, str(self.fulfilled))
         return self.fulfilled
 
 
-class StatisticsCondition (Condition):
+class StatisticsCondition(Condition):
     def __init__(self, peer, subsystem, name, value):
         self.fulfilled = False
         self.type = 'statistics'
         self.peer = peer
         self.subsystem = subsystem
         self.name = name
-        self.value = value
+        self.value = str(value)
         self.result = -1
 
     def check(self):
         if (self.fulfilled == False):
             self.result = self.peer.get_statistics_value(self.subsystem, self.name)
-            if (str(self.result) == str(self.value)):
+            if (self.result == self.value):
                 self.fulfilled = True
                 return True
             else:
@@ -159,10 +171,6 @@ class StatisticsCondition (Condition):
             return True
 
     def evaluate(self, failed_only):
-        if (self.result == -1):
-            res = 'NaN'
-        else:
-            res = str(self.result)
         if (self.fulfilled == False):
             fail = " FAIL!"
             op = " != "
@@ -170,12 +178,12 @@ class StatisticsCondition (Condition):
             fail = ""
             op = " == "
         if (((self.fulfilled == False) and (failed_only == True)) or (failed_only == False)):
-            print(self.peer.id[:4] + " " + self.peer.cfg + " " + str(self.type) + ' condition in subsystem "' + self.subsystem.ljust(12) + '" : "' + self.name.ljust(30) + '" : (expected/real value) ' + str(self.value) + op + res + fail)
+            logger.debug('%s %s condition in subsystem %s: %s: (expected/real value) %s %s %s %s', self.peer.id[:4].decode("utf-8"), self.peer.cfg, self.subsystem.ljust(12), self.name.ljust(30), self.value, op, self.result, fail)
         return self.fulfilled
 
 
 # Specify two statistic values and check if they are equal
-class EqualStatisticsCondition (Condition):
+class EqualStatisticsCondition(Condition):
     def __init__(self, peer, subsystem, name, peer2, subsystem2, name2):
         self.fulfilled = False
         self.type = 'equalstatistics'
@@ -192,7 +200,7 @@ class EqualStatisticsCondition (Condition):
         if (self.fulfilled == False):
             self.result = self.peer.get_statistics_value(self.subsystem, self.name)
             self.result2 = self.peer2.get_statistics_value(self.subsystem2, self.name2)
-            if (str(self.result) == str(self.result2)):
+            if (self.result == self.result2):
                 self.fulfilled = True
                 return True
             else:
@@ -201,26 +209,12 @@ class EqualStatisticsCondition (Condition):
             return True
 
     def evaluate(self, failed_only):
-        if (self.result == -1):
-            res = 'NaN'
-        else:
-            res = str(self.result)
-        if (self.result2 == -1):
-            res2 = 'NaN'
-        else:
-            res2 = str(self.result2)
-        if (self.fulfilled == False):
-            fail = " FAIL!"
-            op = " != "
-        else:
-            fail = ""
-            op = " == "
         if (((self.fulfilled == False) and (failed_only == True)) or (failed_only == False)):
-            print(self.peer.id[:4] + ' "' + self.subsystem.ljust(12) + '" "' + self.name.ljust(30) + '" == ' + str(self.result) + " " + self.peer2.id[:4] + ' "' + self.subsystem2.ljust(12) + '" ' + self.name2.ljust(30) + '" ' + str(self.result2))
+            logger.debug('%s %s %s == %s %s %s %s %s', self.peer.id[:4], self.subsystem.ljust(12), self.name.ljust(30), self.result, self.peer2.id[:4], self.subsystem2.ljust(12), self.name2.ljust(30), self.result2)
         return self.fulfilled
 
 
-class Test:
+class Test(object):
     def __init__(self, testname, verbose):
         self.peers = list()
         self.verbose = verbose
@@ -252,10 +246,11 @@ class Test:
             print(msg)
 
 
-class Peer:
+class Peer(object):
     def __init__(self, test, cfg_file):
         if (False == os.path.isfile(cfg_file)):
-            print(("Peer cfg " + cfg_file + ": FILE NOT FOUND"))
+            # print(("Peer cfg " + cfg_file + ": FILE NOT FOUND"))
+            logger.debug('Peer cfg %s : FILE NOT FOUND', cfg_file)
         self.id = "<NaN>"
         self.test = test
         self.started = False
@@ -263,22 +258,30 @@ class Peer:
 
     def __del__(self):
         if (self.started == True):
-            print('ERROR! Peer using cfg ' + self.cfg + ' was not stopped')
+            # print('ERROR! Peer using cfg ' + self.cfg + ' was not stopped')
+            logger.debug('ERROR! Peer using cfg %s was not stopped', self.cfg)
             ret = self.stop()
             if (False == ret):
-                print('ERROR! Peer using cfg ' + self.cfg + ' could not be stopped')
+                # print('ERROR! Peer using cfg ' +
+                #       self.cfg +
+                #       ' could not be stopped')
+                logger.debug('ERROR! Peer using cfg %s could not be stopped', self.cfg)
                 self.started = False
             return ret
         else:
             return False
 
     def start(self):
+        os.unsetenv ("XDG_CONFIG_HOME")
+        os.unsetenv ("XDG_DATA_HOME")
+        os.unsetenv ("XDG_CACHE_HOME")
         self.test.p("Starting peer using cfg " + self.cfg)
         try:
             server = subprocess.Popen([self.test.gnunetarm, '-sq', '-c', self.cfg])
             server.communicate()
         except OSError:
-            print("Can not start peer")
+            # print("Can not start peer")
+            logger.debug('Can not start peer')
             self.started = False
             return False
         self.started = True
@@ -288,9 +291,10 @@ class Peer:
             server.spawn(None, [self.test.gnunetpeerinfo, '-c', self.cfg, '-s'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
             test = server.read("stdout", 1024)
         except OSError:
-            print("Can not get peer identity")
-        test = (test.split('`')[1])
-        self.id = test.split('\'')[0]
+            # print("Can not get peer identity")
+            logger.debug('Can not get peer identity')
+        test = (test.split(b'`')[1])
+        self.id = test.split(b'\'')[0]
         return True
 
     def stop(self):
@@ -301,7 +305,8 @@ class Peer:
             server = subprocess.Popen([self.test.gnunetarm, '-eq', '-c', self.cfg])
             server.communicate()
         except OSError:
-            print("Can not stop peer")
+            # print("Can not stop peer")
+            logger.debug('Can not stop peer')
             return False
         self.started = False
         return True
@@ -311,12 +316,15 @@ class Peer:
         server.spawn(None, [self.test.gnunetstatistics, '-c', self.cfg, '-q', '-n', name, '-s', subsystem], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         # server.expect ("stdout", re.compile (r""))
         test = server.read("stdout", 10240)
-        tests = test.partition('\n')
+        tests = test.partition(b'\n')
         # On W32 GNUnet outputs with \r\n, rather than \n
-        if os.name == 'nt' and tests[1] == '\n' and tests[0][-1] == '\r':
+        if os.name == 'nt' and tests[1] == b'\n' and tests[0][-1] == b'\r':
             tests = (tests[0][:-1], tests[1], tests[2])
         tests = tests[0]
-        if (tests.isdigit() == True):
-            return tests
+        result = tests.decode("utf-8").strip()
+        logger.debug('running gnunet-statistics %s for %s "/" %s yields %s', self.cfg, name, subsystem, result)
+        if (result.isdigit() == True):
+            return result
         else:
+            logger.debug('Invalid statistics value: %s is not a number!', result)
             return -1

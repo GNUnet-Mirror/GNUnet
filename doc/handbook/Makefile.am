@@ -96,9 +96,12 @@ gnunet_TEXINFOS = 						\
 EXTRA_DIST =							\
 	$(gnunet_TEXINFOS)					\
 	htmlxref.cnf						\
-	gversion.texi
+	gversion.texi                                           \
 	run-gendocs.sh						\
-	docstyle.css
+	docstyle.css                                            \
+        manual.css                                              \
+        reset.css                                               \
+        style.css
 
 
 #	$(DOT_FILES)								\

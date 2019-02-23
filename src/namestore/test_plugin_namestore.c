@@ -11,7 +11,7 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -107,7 +107,8 @@ test_record (void *cls,
   GNUNET_snprintf (tname,
                    sizeof (tname),
 		   "a%u",
-                   (unsigned int ) id);
+                   (unsigned int) id);
+  GNUNET_assert (trd_count == rd_count);
   for (unsigned int i=0;i<trd_count;i++)
   {
     GNUNET_assert (rd[i].data_size == id % 10);
@@ -198,7 +199,7 @@ int
 main (int argc,
       char *argv[])
 {
-  char cfg_name[128];
+  char cfg_name[PATH_MAX];
   char *const xargv[] = {
     "test-plugin-namestore",
     "-c",

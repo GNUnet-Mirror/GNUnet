@@ -972,7 +972,7 @@ check_ssl_certificate (struct Socks5Request *s5r)
   if (CURLE_OK !=
       curl_easy_getinfo (s5r->curl,
 			 CURLINFO_TLS_SESSION,
-			 (struct curl_slist **) &tlsinfo))
+			 &tlsinfo))
     return GNUNET_SYSERR;
   if (CURLSSLBACKEND_GNUTLS != tlsinfo->backend)
   {
@@ -2045,11 +2045,12 @@ create_response (void *cls,
         const char *us;
         long upload_size;
 
+        upload_size = 0;
         us = MHD_lookup_connection_value (con,
                                           MHD_HEADER_KIND,
                                           MHD_HTTP_HEADER_CONTENT_LENGTH);
         if ( (NULL != us) &&
-	     (1 == sscanf (us,
+       	     (1 == sscanf (us,
                            "%ld",
                            &upload_size)) &&
              (upload_size >= 0) )
@@ -2149,7 +2150,7 @@ create_response (void *cls,
       curl_easy_setopt (s5r->curl,
                         CURLOPT_USE_SSL,
                         CURLUSESSL_ALL);
-      if (NULL != s5r->dane_data)
+      if (0 < s5r->num_danes)
         curl_easy_setopt (s5r->curl,
                           CURLOPT_SSL_VERIFYPEER,
                           0L);

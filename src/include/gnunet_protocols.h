@@ -2633,7 +2633,7 @@ extern "C"
  */
 #define GNUNET_MESSAGE_TYPE_RPS_CS_SEED           954
 
-#ifdef ENABLE_MALICIOUS
+#if ENABLE_MALICIOUS
 /**
  * Turn RPS service malicious
  */
@@ -3106,39 +3106,46 @@ extern "C"
 /**
  * Type of a fragment of a CORE message created by transport to adjust
  * message length to a queue's MTU.
- */ 
+ */
 #define GNUNET_MESSAGE_TYPE_TRANSPORT_FRAGMENT 1214
 
-/** 
+/**
  * Acknowledgement generated for a fragment.
- */ 
+ */
 #define GNUNET_MESSAGE_TYPE_TRANSPORT_FRAGMENT_ACK 1215
 
-/** 
+/**
  * Wrapper around non-fragmented CORE message used to measure RTT
  * and ensure reliability.
- */ 
+ */
 #define GNUNET_MESSAGE_TYPE_TRANSPORT_RELIABILITY_BOX 1216
 
-/** 
+/**
  * Confirmation for a #GNUNET_MESSAGE_TYPE_TRANSPORT_RELIABILITY_BOX.
- */ 
+ */
 #define GNUNET_MESSAGE_TYPE_TRANSPORT_RELIABILITY_ACK 1217
 
-/** 
+/**
  * Message sent for topology discovery at transport level.
- */ 
+ */
 #define GNUNET_MESSAGE_TYPE_TRANSPORT_DV_LEARN 1218
 
-/** 
+/**
  * Source-routed transport message based DV information gathered.
- */ 
+ */
 #define GNUNET_MESSAGE_TYPE_TRANSPORT_DV_BOX 1219
 
 /**
  * Transport signalling incoming backchannel message to a communicator.
- */ 
+ */
 #define GNUNET_MESSAGE_TYPE_TRANSPORT_COMMUNICATOR_BACKCHANNEL_INCOMING 1220
+
+/**
+ * We learned a possible network address of another peer. Transport
+ * should consider verifying it, and if successful, remembering it
+ * in the Peerstore.
+ */
+#define GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_CONSIDER_VERIFY 1221
 
 
 /**
@@ -3230,7 +3237,7 @@ extern "C"
 
 /**
  * TCP communicator end of stream.
- */ 
+ */
 #define GNUNET_MESSAGE_TYPE_COMMUNICATOR_TCP_FINISH 1452
 
 /**

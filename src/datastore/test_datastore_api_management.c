@@ -11,7 +11,7 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -337,7 +337,7 @@ ignore_payload_cb (void *cls,
 static int
 test_plugin (const char *cfg_name)
 {
-  char libname[128];
+  char libname[PATH_MAX];
   struct GNUNET_CONFIGURATION_Handle *cfg;
   struct GNUNET_DATASTORE_PluginFunctions *api;
   struct GNUNET_DATASTORE_PluginEnvironment env;
@@ -378,7 +378,7 @@ test_plugin (const char *cfg_name)
 int
 main (int argc, char *argv[])
 {
-  char cfg_name[128];
+  char cfg_name[PATH_MAX];
   int ret;
 
   plugin_name = GNUNET_TESTING_get_testname_from_underscore (argv[0]);

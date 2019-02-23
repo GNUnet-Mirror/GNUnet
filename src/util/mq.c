@@ -964,6 +964,7 @@ GNUNET_MQ_send_cancel (struct GNUNET_MQ_Envelope *ev)
   {
     /* complex case, we already started with transmitting
        the message using the callbacks. */
+    GNUNET_assert (GNUNET_NO == mq->in_flight);
     GNUNET_assert (0 < mq->queue_length);
     mq->queue_length--;
     mq->cancel_impl (mq,

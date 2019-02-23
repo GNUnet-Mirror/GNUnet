@@ -11,7 +11,7 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -369,7 +369,7 @@ GNUNET_CADET_channel_get_info (struct GNUNET_CADET_Channel *channel,
 
 /**
  * Internal details about a channel.
- */ 
+ */
 struct GNUNET_CADET_ChannelInternals
 {
   /**
@@ -431,7 +431,7 @@ GNUNET_CADET_get_channel_cancel (struct GNUNET_CADET_ChannelMonitor *cm);
 
 /**
  * Information we return per peer.
- */ 
+ */
 struct GNUNET_CADET_PeerListEntry
 {
   /**
@@ -446,7 +446,7 @@ struct GNUNET_CADET_PeerListEntry
 
   /**
    * Number of disjoint known paths to @e peer.
-   */ 
+   */
   unsigned int n_paths;
 
   /**
@@ -504,13 +504,18 @@ GNUNET_CADET_list_peers_cancel (struct GNUNET_CADET_PeersLister *pl);
 
 /**
  * Detailed information we return per peer.
- */ 
+ */
 struct GNUNET_CADET_PeerPathDetail
 {
   /**
    * Peer this is about.
    */
   struct GNUNET_PeerIdentity peer;
+
+  /**
+   * Offset of the target peer on the @e path.
+   */
+  unsigned int target_offset;
 
   /**
    * Number of entries on the @e path.
@@ -583,7 +588,7 @@ struct GNUNET_CADET_TunnelDetails
 
   /**
    * How many channels use the tunnel.
-   */ 
+   */
   uint32_t channels;
 
   /**
@@ -597,8 +602,8 @@ struct GNUNET_CADET_TunnelDetails
   uint16_t estate;
 
   /**
-   * What is our connectivity state? 
-   */ 
+   * What is our connectivity state?
+   */
   uint16_t cstate;
 };
 

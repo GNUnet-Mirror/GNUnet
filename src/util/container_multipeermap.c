@@ -11,7 +11,7 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -200,8 +200,13 @@ GNUNET_CONTAINER_multipeermap_create (unsigned int len,
 
   GNUNET_assert (len > 0);
   map = GNUNET_new (struct GNUNET_CONTAINER_MultiPeerMap);
-  map->map = GNUNET_new_array (len,
-			       union MapEntry);
+  map->map = GNUNET_malloc_large (len *
+                                  sizeof (union MapEntry));
+  if (NULL == map->map)
+  {
+    GNUNET_free (map);
+    return NULL;
+  }
   map->map_length = len;
   map->use_small_entries = do_not_copy_keys;
   return map;
@@ -493,7 +498,7 @@ GNUNET_CONTAINER_multipeermap_remove (struct GNUNET_CONTAINER_MultiPeerMap *map,
 	if (NULL == p)
 	  map->map[i].bme = bme->next;
 	else
-	  p->next = bme->next;	
+	  p->next = bme->next;
 	update_next_cache_bme (map,
 			       bme);
 	GNUNET_free (bme);
@@ -685,18 +690,23 @@ grow (struct GNUNET_CONTAINER_MultiPeerMap *map)
   unsigned int old_len;
   unsigned int new_len;
   unsigned int idx;
-  unsigned int i;
-
-  map->modification_counter++;
 
   old_map = map->map;
   old_len = map->map_length;
+  GNUNET_assert (0 != old_len);
   new_len = old_len * 2;
-  new_map = GNUNET_new_array (new_len,
-			      union MapEntry);
+  if (0 == new_len) /* 2^31 * 2 == 0 */
+    new_len = old_len; /* never use 0 */
+  if (new_len == old_len)
+    return; /* nothing changed */
+  new_map = GNUNET_malloc_large (new_len *
+                                 sizeof (union MapEntry));
+  if (NULL == new_map)
+    return; /* grow not possible */
+  map->modification_counter++;
   map->map_length = new_len;
   map->map = new_map;
-  for (i = 0; i < old_len; i++)
+  for (unsigned int i = 0; i < old_len; i++)
   {
     if (map->use_small_entries)
     {
@@ -829,7 +839,7 @@ GNUNET_CONTAINER_multipeermap_get_multiple (struct GNUNET_CONTAINER_MultiPeerMap
   int count;
   union MapEntry me;
   union MapEntry *ce;
-  
+
   ce = &map->next_cache[map->next_cache_off];
   GNUNET_assert (++map->next_cache_off < NEXT_CACHE_SIZE);
   count = 0;
@@ -903,7 +913,7 @@ GNUNET_CONTAINER_multipeermap_get_random (const struct GNUNET_CONTAINER_MultiPee
 {
   unsigned int off;
   union MapEntry me;
-  
+
   if (0 == map->size)
     return 0;
   if (NULL == it)

@@ -73,3 +73,4 @@ test_hexcoder
 test_regex
 test_tun
 gnunet-timeout
+python27_location

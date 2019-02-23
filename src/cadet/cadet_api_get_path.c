@@ -11,7 +11,7 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -66,7 +66,7 @@ struct GNUNET_CADET_GetPath
    * Backoff for reconnect attempts.
    */
   struct GNUNET_TIME_Relative backoff;
-  
+
   /**
    * Peer we want information about.
    */
@@ -109,7 +109,7 @@ check_get_path (void *cls,
 /**
  * Process a local peer info reply, pass info to the user.
  *
- * @param cls Closure 
+ * @param cls Closure
  * @param message Message itself.
  */
 static void
@@ -118,9 +118,10 @@ handle_get_path (void *cls,
 {
   struct GNUNET_CADET_GetPath *gp = cls;
   struct GNUNET_CADET_PeerPathDetail ppd;
-  
+
   ppd.peer = gp->id;
   ppd.path = (const struct GNUNET_PeerIdentity *) &message[1];
+  ppd.target_offset = ntohl (message->off);
   ppd.path_length = (ntohs (message->header.size) - sizeof (*message))
     / sizeof (struct GNUNET_PeerIdentity);
   gp->path_cb (gp->path_cb_cls,
@@ -131,7 +132,7 @@ handle_get_path (void *cls,
 /**
  * Process a local peer info reply, pass info to the user.
  *
- * @param cls Closure 
+ * @param cls Closure
  * @param message Message itself.
  */
 static void
@@ -177,7 +178,7 @@ error_handler (void *cls,
 						     gp);
 }
 
-  
+
 /**
  * Reconnect to the service and try again.
  *

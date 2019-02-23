@@ -97,6 +97,7 @@ libgnunet_plugin_ats_mlp_la_SOURCES = \
 libgnunet_plugin_ats_mlp_la_LIBADD = \
   libgnunetats.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
+	$(top_builddir)/src/nt/libgnunetnt.la \
   $(top_builddir)/src/util/libgnunetutil.la
 libgnunet_plugin_ats_mlp_la_LDFLAGS = \
   $(GN_PLUGIN_LDFLAGS) \
@@ -107,6 +108,7 @@ libgnunet_plugin_ats_ril_la_SOURCES = \
 libgnunet_plugin_ats_ril_la_LIBADD = \
   libgnunetats.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
+	$(top_builddir)/src/nt/libgnunetnt.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(LTLIBINTL)
 libgnunet_plugin_ats_ril_la_LDFLAGS = \
@@ -214,6 +216,8 @@ EXTRA_DIST = \
   ats.h ats2.h \
   plugin_ats2_common.c \
   test_delay \
+  test_ats2_lib.conf \
+  test_ats_api.conf \
   test_ats_api_mlp.conf \
   test_ats_api_ril.conf \
   test_ats_api_proportional.conf

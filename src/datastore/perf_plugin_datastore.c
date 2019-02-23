@@ -11,7 +11,7 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -519,8 +519,8 @@ run (void *cls, char *const *args, const char *cfgfile,
 int
 main (int argc, char *argv[])
 {
-  char dir_name[128];
-  char cfg_name[128];
+  char dir_name[PATH_MAX];
+  char cfg_name[PATH_MAX];
   char *const xargv[] = {
     "perf-plugin-datastore",
     "-c",

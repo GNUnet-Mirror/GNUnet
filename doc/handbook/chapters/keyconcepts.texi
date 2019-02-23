@@ -88,7 +88,7 @@ Ronaldo A. Ferreira, Christian Grothoff, and Paul Ruth.
 A Transport Layer Abstraction for Peer-to-Peer Networks
 Proceedings of the 3rd International Symposium on Cluster Computing
 and the Grid (GRID 2003), 2003.
-(@uref{https://gnunet.org/git/bibliography.git/plain/docs/transport.pdf, https://gnunet.org/git/bibliography.git/plain/docs/transport.pdf})
+(@uref{https://git.gnunet.org/bibliography.git/plain/docs/transport.pdf, https://git.gnunet.org/bibliography.git/plain/docs/transport.pdf})
 
 @cindex Accounting to Encourage Resource Sharing
 @node Accounting to Encourage Resource Sharing
@@ -125,7 +125,7 @@ the network load is high.
 For more information, refer to the following paper:
 Christian Grothoff. An Excess-Based Economic Model for Resource
 Allocation in Peer-to-Peer Networks. Wirtschaftsinformatik, June 2003.
-(@uref{https://gnunet.org/git/bibliography.git/plain/docs/ebe.pdf, https://gnunet.org/git/bibliography.git/plain/docs/ebe.pdf})
+(@uref{https://git.gnunet.org/bibliography.git/plain/docs/ebe.pdf, https://git.gnunet.org/bibliography.git/plain/docs/ebe.pdf})
 
 @cindex Confidentiality
 @node Confidentiality
@@ -162,7 +162,7 @@ scientific metrics
 (Claudia Díaz, Stefaan Seys, Joris Claessens,
 and Bart Preneel. Towards measuring anonymity.
 2002.
-(@uref{https://gnunet.org/git/bibliography.git/plain/docs/article-89.pdf, https://gnunet.org/git/bibliography.git/plain/docs/article-89.pdf}))
+(@uref{https://git.gnunet.org/bibliography.git/plain/docs/article-89.pdf, https://git.gnunet.org/bibliography.git/plain/docs/article-89.pdf}))
 that can help quantify the level of anonymity that a given mechanism
 provides, there is no such thing as "complete anonymity".
 GNUnet's file-sharing implementation allows users to select for each
@@ -225,7 +225,7 @@ Refer to the following paper for more:
 Krista Bennett and Christian Grothoff.
 GAP --- practical anonymous networking. In Proceedings of
 Designing Privacy Enhancing Technologies, 2003.
-(@uref{https://gnunet.org/git/bibliography.git/plain/docs/aff.pdf, https://gnunet.org/git/bibliography.git/plain/docs/aff.pdf})
+(@uref{https://git.gnunet.org/bibliography.git/plain/docs/aff.pdf, https://git.gnunet.org/bibliography.git/plain/docs/aff.pdf})
 
 @cindex Deniability
 @node Deniability
@@ -253,7 +253,7 @@ Christian Grothoff, Krista Grothoff, Tzvetan Horozov,
 and Jussi T. Lindgren.
 An Encoding for Censorship-Resistant Sharing.
 2009.
-(@uref{https://gnunet.org/git/bibliography.git/plain/docs/ecrs.pdf, https://gnunet.org/git/bibliography.git/plain/docs/ecrs.pdf})
+(@uref{https://git.gnunet.org/bibliography.git/plain/docs/ecrs.pdf, https://git.gnunet.org/bibliography.git/plain/docs/ecrs.pdf})
 
 @cindex Peer Identities
 @node Peer Identities
@@ -284,7 +284,7 @@ GNS (Matthias Wachs, Martin Schanzenbach, and Christian Grothoff.
 A Censorship-Resistant, Privacy-Enhancing and Fully Decentralized Name
 System. In proceedings of 13th International Conference on Cryptology and
 Network Security (CANS 2014). 2014.
-@uref{https://gnunet.org/git/bibliography.git/plain/docs/gns2014wachs.pdf, https://gnunet.org/git/bibliography.git/plain/docs/gns2014wachs.pdf})
+@uref{https://git.gnunet.org/bibliography.git/plain/docs/gns2014wachs.pdf, https://git.gnunet.org/bibliography.git/plain/docs/gns2014wachs.pdf})
 zones are similar to those of DNS zones, but instead of a hierarchy of
 authorities to governing their use, GNS zones are controlled by a private
 key.

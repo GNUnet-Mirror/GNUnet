@@ -100,7 +100,7 @@ following links:
 @itemize @bullet
 @item @xref{Top, Introduction,, gnunet-c-tutorial, The GNUnet C Tutorial}.
 @c broken link
-@c @item @uref{https://gnunet.org/git/gnunet.git/plain/doc/gnunet-c-tutorial.pdf, GNUnet C tutorial}
+@c @item @uref{https://git.gnunet.org/gnunet.git/plain/doc/gnunet-c-tutorial.pdf, GNUnet C tutorial}
 @item GNUnet Java tutorial
 @end itemize
 
@@ -124,7 +124,7 @@ The public subsystems on the GNUnet server that help developers are:
 
 @item The version control system (git) keeps our code and enables
 distributed development.
-It is publicly accessible at @uref{https://gnunet.org/git/}.
+It is publicly accessible at @uref{https://git.gnunet.org/}.
 Only developers with write access can commit code, everyone else is
 encouraged to submit patches to the GNUnet-developers mailinglist:
 @uref{https://lists.gnu.org/mailman/listinfo/gnunet-developers, https://lists.gnu.org/mailman/listinfo/gnunet-developers}
@@ -133,14 +133,14 @@ encouraged to submit patches to the GNUnet-developers mailinglist:
 We use it to track feature requests, open bug reports and their
 resolutions.
 It can be accessed at
-@uref{https://gnunet.org/bugs/, https://gnunet.org/bugs/}.
+@uref{https://bugs.gnunet.org/, https://bugs.gnunet.org/}.
 Anyone can report bugs.
 
 @item Our site installation of the
 Continuous Integration (CI) system @code{Buildbot} is used
 to check GNUnet builds automatically on a range of platforms.
 The web interface of this CI is exposed at
-@uref{https://gnunet.org/buildbot/, https://gnunet.org/buildbot/}.
+@uref{https://old.gnunet.org/buildbot/, https://old.gnunet.org/buildbot/}.
 Builds are triggered automatically 30 minutes after the last commit to
 our repository was made.
 
@@ -1098,7 +1098,7 @@ development of GNUnet services, command line tools, APIs and tests.
 First of all you have to obtain gnunet-ext from git:
 
 @example
-git clone https://gnunet.org/git/gnunet-ext.git
+git clone https://git.gnunet.org/gnunet-ext.git
 @end example
 
 The next step is to bootstrap and configure it. For configure you have to
@@ -1905,7 +1905,7 @@ topology where peer connectivity follows power law - new peers are
 connected with high probability to well connected peers.
 (See Emergence of Scaling in Random Networks. Science 286,
 509-512, 1999
-(@uref{https://gnunet.org/git/bibliography.git/plain/docs/emergence_of_scaling_in_random_networks__barabasi_albert_science_286__1999.pdf, pdf}))
+(@uref{https://git.gnunet.org/bibliography.git/plain/docs/emergence_of_scaling_in_random_networks__barabasi_albert_science_286__1999.pdf, pdf}))
 
 @item @code{GNUNET_TESTBED_TOPOLOGY_FROM_FILE}: The topology information
 is loaded from a file. The path to the file has to be given.
@@ -2133,8 +2133,8 @@ To automate the GNUnet we created a set of automation tools to simplify
 the large-scale deployment. We provide you a set of scripts you can use
 to deploy GNUnet on a set of nodes and manage your installation.
 
-Please also check @uref{https://gnunet.org/installation-fedora8-svn} and
-@uref{https://gnunet.org/installation-fedora12-svn} to find detailed
+Please also check @uref{https://old.gnunet.org/installation-fedora8-svn} and
+@uref{https://old.gnunet.org/installation-fedora12-svn} to find detailed
 instructions how to install GNUnet on a PlanetLab node.
 
 
@@ -2300,7 +2300,7 @@ subsystem.
 @subsubsection CORE must be started
 
 A uncomplicated issue is bug #3993
-(@uref{https://gnunet.org/bugs/view.php?id=3993, https://gnunet.org/bugs/view.php?id=3993}):
+(@uref{https://bugs.gnunet.org/view.php?id=3993, https://bugs.gnunet.org/view.php?id=3993}):
 Your configuration MUST somehow ensure that for each peer the
 @code{CORE} service is started when the peer is setup, otherwise
 @code{TESTBED} may fail to connect peers when the topology is initialized,
@@ -2747,7 +2747,8 @@ code.
 
 Since now activating DEBUG automatically makes it VERBOSE and activates
 @strong{all} debug messages by default, you probably want to use the
-https://gnunet.org/logging functionality to filter only relevant messages.
+@uref{https://old.gnunet.org/logging, https://old.gnunet.org/logging}
+functionality to filter only relevant messages.
 A suitable configuration could be:
 
 @example
@@ -8674,7 +8675,7 @@ eliminate the need to first create a directory.
 
 Collections are also advertised using @code{KSBlock}s.
 
-@c https://gnunet.org/sites/default/files/ecrs.pdf
+@c https://old.gnunet.org/sites/default/files/ecrs.pdf
 
 @node File-sharing persistence directory structure
 @subsection File-sharing persistence directory structure
@@ -8794,7 +8795,7 @@ The gnunet-regex-profiler can be used to profile the usage of mesh/regex
 for a given set of regular expressions and strings.
 Mesh/regex allows you to announce your peer ID under a certain regex and
 search for peers matching a particular regex using a string.
-See @uref{https://gnunet.org/szengel2012ms, szengel2012ms} for a full
+See @uref{https://old.gnunet.org/szengel2012ms, szengel2012ms} for a full
 introduction.
 
 First of all, the regex profiler uses GNUnet testbed, thus all the

@@ -24,14 +24,14 @@
  * @author Christian Grothoff
  *
  * TODO:
- * - add and use util/ check for IPv6 availability (#V6)
+ * - add and use util/ check for IPv6 availability (#5553)
  * - consider imposing transmission limits in the absence
  *   of ACKs; or: maybe this should be done at TNG service level?
  *   (at least the receiver might want to enforce limits on
- *    KX/DH operations per sender in here)
+ *    KX/DH operations per sender in here) (#5552)
  * - overall, we should look more into flow control support
  *   (either in backchannel, or general solution in TNG service)
- * - handle addresses discovered from broadcasts (#BC)
+ * - handle addresses discovered from broadcasts (#5551)
  *   (think: what was the story again on address validation?
  *    where is the API for that!?!)
  * - support DNS names in BINDTO option (#5528)
@@ -1672,7 +1672,7 @@ sock_read (void *cls)
 				"# broadcasts received",
 				1,
 				GNUNET_NO);
-      // FIXME #BC: we effectively just got a HELLO!
+      // FIXME #5551: we effectively just got a HELLO!
       // trigger verification NOW!
       return;
     }

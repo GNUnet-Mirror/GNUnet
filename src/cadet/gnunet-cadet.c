@@ -11,7 +11,7 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -103,7 +103,7 @@ static struct GNUNET_CADET_GetPath *gpo;
 
 /**
  * Active peer listing operation.
- */ 
+ */
 static struct GNUNET_CADET_PeersLister *plo;
 
 /**
@@ -220,7 +220,7 @@ shutdown_task (void *cls)
   {
     GNUNET_CADET_channel_destroy (ch);
     ch = NULL;
-  } 
+  }
   if (NULL != gpo)
   {
     GNUNET_CADET_get_path_cancel (gpo);
@@ -306,12 +306,12 @@ read_stdio (void *cls)
   if (GNUNET_NO == echo)
   {
     // Use MQ's notification if too much data of stdin is pooring in too fast.
-    if (STREAM_BUFFER_SIZE < sent_pkt) 
+    if (STREAM_BUFFER_SIZE < sent_pkt)
     {
       GNUNET_MQ_notify_sent (env, mq_cb, cls);
       sent_pkt = 0;
     }
-    else 
+    else
     {
       listen_stdio ();
     }
@@ -563,7 +563,7 @@ path_callback (void *cls,
 	   ppd->path_length);
   for (unsigned int i = 0; i < ppd->path_length; i++)
     FPRINTF (stdout,
-	     "%s ",
+	     (i == ppd->target_offset) ? "*%s* " : "%s ",
 	     GNUNET_i2s (&ppd->path[i]));
   FPRINTF (stdout,
 	   "\n");
@@ -626,7 +626,7 @@ show_peer (void *cls)
       GNUNET_CRYPTO_eddsa_public_key_from_string (peer_id,
                                                   strlen (peer_id),
                                                   &pid.public_key))
-    {
+  {
     fprintf (stderr,
              _("Invalid peer ID `%s'\n"),
              peer_id);
@@ -859,7 +859,7 @@ main (int argc,
     GNUNET_GETOPT_option_flag ('e',
 			       "echo",
 			       gettext_noop ("Activate echo mode"),
-			       &echo), 
+			       &echo),
     GNUNET_GETOPT_option_string ('o',
                                  "open-port",
                                  "SHARED_SECRET",

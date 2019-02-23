@@ -1081,6 +1081,32 @@ struct GNUNET_TRANSPORT_MonitorData
 
 };
 
+
+/**
+ * Request to verify address.
+ */
+struct GNUNET_TRANSPORT_AddressToVerify
+{
+
+  /**
+   * Type will be #GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_CONSIDER_VERIFY.
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Reserved. 0.
+   */
+  uint32_t reserved;
+
+  /**
+   * Peer the address is from.
+   */
+  struct GNUNET_PeerIdentity peer;
+
+  /* followed by variable-size raw address */
+};
+
+
 #endif
 
 GNUNET_NETWORK_STRUCT_END

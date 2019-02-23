@@ -41,7 +41,7 @@ if USE_COVERAGE
 endif
 
 if ENABLE_BENCHMARK
-  BENCHMARK = benchmark.c
+  BENCHMARK = benchmark.c benchmark.h
   PTHREAD = -lpthread
 endif
 
@@ -225,8 +225,13 @@ gnunet_timeout_SOURCES = \
  gnunet-timeout-w32.c
 endif
 
+# This is horrible, but compared to the alternatives and the solution
+# which preceded this it is a good compromise and good enough for one
+# file. Everyone else is invited to patch it locally.
 
-do_subst = $(SED) -e 's,[@]PYTHON[@],$(PYTHON),g'
+xENV=$(shell which env)
+
+do_subst = $(SED) -e 's,[@]ENV[@],${xENV},g'
 
 gnunet-qr: gnunet-qr.py.in Makefile
 	$(do_subst) < $(top_srcdir)/src/util/gnunet-qr.py.in > gnunet-qr

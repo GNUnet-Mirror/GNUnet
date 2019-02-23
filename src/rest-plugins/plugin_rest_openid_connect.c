@@ -935,12 +935,24 @@ oidc_ticket_issue_cb (void* cls,
                                             &handle->ticket,
                                             handle->oidc->nonce);
   code_base64_final_string = base64_encode (code_json_string);
-  GNUNET_asprintf (&redirect_uri, "%s.%s/%s?%s=%s&state=%s",
-                   handle->redirect_prefix,
-                   handle->tld,
-                   handle->redirect_suffix,
-                   handle->oidc->response_type,
-                   code_base64_final_string, handle->oidc->state);
+  if ( (NULL != handle->redirect_prefix) &&
+       (NULL != handle->redirect_suffix) &&
+       (NULL != handle->tld) )
+  {
+
+    GNUNET_asprintf (&redirect_uri, "%s.%s/%s?%s=%s&state=%s",
+                     handle->redirect_prefix,
+                     handle->tld,
+                     handle->redirect_suffix,
+                     handle->oidc->response_type,
+                     code_base64_final_string, handle->oidc->state);
+  } else {
+    GNUNET_asprintf (&redirect_uri, "%s?%s=%s&state=%s",
+                     handle->oidc->redirect_uri,
+                     handle->oidc->response_type,
+                     code_base64_final_string, handle->oidc->state);
+
+  }
   resp = GNUNET_REST_create_response ("");
   MHD_add_response_header (resp, "Location", redirect_uri);
   handle->proc (handle->proc_cls, resp, MHD_HTTP_FOUND);
@@ -1095,13 +1107,25 @@ build_redirect (void *cls)
 
   if (GNUNET_YES == handle->oidc->user_cancelled)
   {
-    GNUNET_asprintf (&redirect_uri, "%s.%s/%s?error=%s&error_description=%s&state=%s",
-                     handle->redirect_prefix,
-                     handle->tld,
-                     handle->redirect_suffix,
-                     "access_denied",
-                     "User denied access",
-                     handle->oidc->state);
+    if ( (NULL != handle->redirect_prefix) &&
+         (NULL != handle->redirect_suffix) &&
+         (NULL != handle->tld) )
+    {
+      GNUNET_asprintf (&redirect_uri, "%s.%s/%s?error=%s&error_description=%s&state=%s",
+                       handle->redirect_prefix,
+                       handle->tld,
+                       handle->redirect_suffix,
+                       "access_denied",
+                       "User denied access",
+                       handle->oidc->state);
+    } else {
+      GNUNET_asprintf (&redirect_uri, "%s?error=%s&error_description=%s&state=%s",
+                       handle->oidc->redirect_uri,
+                       "access_denied",
+                       "User denied access",
+                       handle->oidc->state);
+
+    }
     resp = GNUNET_REST_create_response ("");
     MHD_add_response_header (resp, "Location", redirect_uri);
     handle->proc (handle->proc_cls, resp, MHD_HTTP_FOUND);
@@ -1137,25 +1161,35 @@ lookup_redirect_uri_result (void *cls,
     if (GNUNET_GNSRECORD_TYPE_RECLAIM_OIDC_REDIRECT != rd[i].record_type)
       continue;
     if (0 != strncmp (rd[i].data,
-                     handle->oidc->redirect_uri,
-                     rd[i].data_size))
+                      handle->oidc->redirect_uri,
+                      rd[i].data_size))
       continue;
     tmp = GNUNET_strndup (rd[i].data,
                           rd[i].data_size);
-    pos = strrchr (tmp,
-                   (unsigned char) '.');
-    *pos = '\0';
-    handle->redirect_prefix = GNUNET_strdup (tmp);
-    tmp_key_str = pos + 1;
-    pos = strchr (tmp_key_str,
-                  (unsigned char) '/');
-    *pos = '\0';
-    handle->redirect_suffix = GNUNET_strdup (pos + 1);
+    if (NULL == strstr (tmp,
+                        handle->oidc->client_id))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Redirect uri %s does not contain client_id %s",
+                  tmp,
+                  handle->oidc->client_id);
+    } else {
 
-    GNUNET_STRINGS_string_to_data (tmp_key_str,
-                                   strlen (tmp_key_str),
-                                   &redirect_zone,
-                                   sizeof (redirect_zone));
+      pos = strrchr (tmp,
+                     (unsigned char) '.');
+      *pos = '\0';
+      handle->redirect_prefix = GNUNET_strdup (tmp);
+      tmp_key_str = pos + 1;
+      pos = strchr (tmp_key_str,
+                    (unsigned char) '/');
+      *pos = '\0';
+      handle->redirect_suffix = GNUNET_strdup (pos + 1);
+
+      GNUNET_STRINGS_string_to_data (tmp_key_str,
+                                     strlen (tmp_key_str),
+                                     &redirect_zone,
+                                     sizeof (redirect_zone));
+    }
     GNUNET_SCHEDULER_add_now (&build_redirect, handle);
     GNUNET_free (tmp);
     return;
@@ -1300,7 +1334,7 @@ build_authz_response (void *cls)
   {
     handle->emsg = GNUNET_strdup (OIDC_ERROR_KEY_INVALID_SCOPE);
     handle->edesc=GNUNET_strdup ("The requested scope is invalid, unknown, or "
-                                "malformed.");
+                                 "malformed.");
     GNUNET_SCHEDULER_add_now (&do_redirect_error, handle);
     GNUNET_free (expected_scope);
     return;
@@ -1337,7 +1371,7 @@ tld_iter (void *cls,
     return;
   }
   if (0 == memcmp (&pkey, &handle->oidc->client_pkey,
-                    sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey)))
+                   sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey)))
     handle->tld = GNUNET_strdup (option+1);
 }
 
@@ -1431,7 +1465,7 @@ authorize_endpoint (struct GNUNET_REST_RequestHandle *con_handle,
                                                  tld_iter,
                                                  handle);
   if (NULL == handle->tld)
-    handle->tld = GNUNET_strdup (tmp_ego->keystring);
+    handle->tld = GNUNET_strdup (handle->oidc->client_id);
   GNUNET_SCHEDULER_add_now (&build_authz_response, handle);
 }
 

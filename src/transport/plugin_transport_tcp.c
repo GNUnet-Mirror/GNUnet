@@ -11,7 +11,7 @@
   WITHOUT ANY WARRANTY; without even the implied warranty of
   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
   Affero General Public License for more details.
- 
+
   You should have received a copy of the GNU Affero General Public License
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -1471,6 +1471,12 @@ tcp_nat_port_map_callback (void *cls,
     args = sizeof (t4);
     break;
   case AF_INET6:
+    if (IN6_IS_ADDR_LINKLOCAL (&((struct sockaddr_in6 *) addr)->sin6_addr))
+    {
+      /* skip link local, we don't allow them in
+         #tcp_plugin_check_address() */
+      return;
+    }
     GNUNET_assert(addrlen == sizeof(struct sockaddr_in6));
     memset (&t6, 0, sizeof(t6));
     GNUNET_memcpy (&t6.ipv6_addr,

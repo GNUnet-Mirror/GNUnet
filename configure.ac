@@ -1,5 +1,5 @@
 # This file is part of GNUnet.
-# (C) 2001--2018 GNUnet e.V.
+# (C) 2001--2019 GNUnet e.V.
 #
 # GNUnet is free software: you can redistribute it and/or modify it
 # under the terms of the GNU Affero General Public License as published
@@ -71,6 +71,7 @@ case "$host_os" in
      CPPFLAGS="-D_APPLE_C_SOURCE $CPPFLAGS"
      CFLAGS="-fno-common $CFLAGS"
      AC_MSG_WARN([WARNING: The VPN application cannot be compiled on your OS])
+     AC_CHECK_LIB(intl, gettext)
      build_target="darwin"
      DEFAULT_INTERFACE="\"en0\""
      LIBPREFIX=
@@ -192,8 +193,8 @@ AC_UNALIGNED_64_ACCESS
 
 # some other checks for standard libs
 AC_SEARCH_LIBS([gethostbyname], [nsl ws2_32])
-AC_SEARCH_LIBS([memrchr], [], [],
-               AC_DEFINE(HAVE_MEMRCHR,1,[memrchr supported]))
+AC_SEARCH_LIBS([memrchr], [],
+               AC_DEFINE(HAVE_MEMRCHR,1,[memrchr supported]), [])
 AC_CHECK_LIB(socket, socket)
 AC_CHECK_LIB(m, log)
 AC_CHECK_LIB(c, getloadavg, AC_DEFINE(HAVE_GETLOADAVG,1,[getloadavg supported]))
@@ -205,6 +206,13 @@ AC_CHECK_PROG(VAR_SSH_BINARY, ssh, true, false)
 AM_CONDITIONAL(HAVE_SSH_BINARY, $VAR_SSH_BINARY)
 AM_CONDITIONAL(HAVE_SSH_KEY,  ssh -D 12345 -o "BatchMode yes" -o "UserKnownHostsFile /tmp/gnunet_test_cosks_ssh_garbage" -o "StrictHostKeyChecking no" 127.0.0.1 echo -n)
 rm -f /tmp/gnunet_test_cosks_ssh_garbage
+
+# autotools' m4 for python has no maximum version!
+# python3.7 for tests
+m4_define_default([_AM_PYTHON_INTERPRETER_LIST],[python3 python3.7 python])
+AM_PATH_PYTHON([3.7],, [:])
+AC_SUBST([PYTHON])
+AM_CONDITIONAL([HAVE_PYTHON], [test "$PYTHON" != :])
 
 # iptables is a soft requirement to run tests
 AC_PATH_TARGET_TOOL(VAR_IPTABLES_BINARY, iptables, false)
@@ -368,7 +376,6 @@ AC_ARG_ENABLE(gcc-hardening,
     CFLAGS="$CFLAGS --param ssp-buffer-size=1"
     LDFLAGS="$LDFLAGS -pie"
 fi])
-
 
 # Linker hardening options
 # Currently these options are ELF specific - you can't use this with MacOSX
@@ -862,7 +869,7 @@ AS_IF([test x$my_with_libidn2 = x1],
                     LIBS="-lidn2 $LIBS"
  	            AC_DEFINE_UNQUOTED([HAVE_LIBIDN2],
                                        [1],
-                                        [Define to 1 if you have 'libidn2' (-lidn).])],
+                                        [Define to 1 if you have 'libidn2' (-lidn2).])],
                      [MISSING_DEPS="${MISSING_DEPS}${MISSING_SEP}libidn2"
                      MISSING_SEP=", "])])
 AM_CONDITIONAL(HAVE_LIBIDN2, test x$working_libidn2 = x1)
@@ -1208,10 +1215,6 @@ AM_CONDITIONAL(HAVE_JSON, [test x$jansson = x1])
 # restore LIBS
 LIBS=$SAVE_LIBS
 
-# check for python & pexpect (used for some testcases only)
-AM_PATH_PYTHON([2.6],, [:])
-AM_CONDITIONAL([HAVE_PYTHON], [test "$PYTHON" != :])
-
 # check for gettext
 AM_GNU_GETTEXT([external])
 AM_GNU_GETTEXT_VERSION([0.18.1])
@@ -1297,6 +1300,8 @@ AC_SUBST(LIBPREFIX)
 AC_SUBST(DLLDIR)
 AC_SUBST(EXT_LIB_PATH)
 
+DATAROOTDIR=$datarootdir
+AC_SUBST(DATAROOTDIR)
 
 # test for sudo
 AC_MSG_CHECKING(for sudo)
@@ -1436,23 +1441,6 @@ AC_MSG_RESULT($enable_test_run)
 AM_CONDITIONAL([ENABLE_TEST_RUN], [test "x$enable_tests_run" = "xyes"])
 
 
-# should monkey be used when running (certain) services?
-AC_MSG_CHECKING(whether to run with monkey)
-AC_ARG_ENABLE([monkey],
-   [AS_HELP_STRING([--enable-monkey], [enable running with monkey])],
-   [enable_monkey=${enableval}],
-   [enable_monkey=no])
-AC_MSG_RESULT($enable_monkey)
-AM_CONDITIONAL([ENABLE_MONKEY], [test "x$enable_monkey" = "xyes"])
-if test "x$enable_monkey" = "xyes"
-then
-  MONKEYPREFIX="pathologist -d $(eval echo ${datarootdir}/gnunet/gnunet.sqlite) -p 30 --"
-else
-  MONKEYPREFIX=""
-fi
-AC_SUBST(MONKEYPREFIX)
-
-
 AC_MSG_CHECKING([whether to compile in benchmarks (currently for http and crypto)])
 AC_ARG_ENABLE([benchmark],
    [AS_HELP_STRING([--enable-benchmark], [enable benchmarking])],
@@ -1542,7 +1530,7 @@ AC_MSG_CHECKING(whether to start peer's services on demand by default)
 AC_ARG_ENABLE([autostart],
    [AS_HELP_STRING([--disable-autostart], [do not start peer's services by default])],
    [enable_autostart=${enableval}
-    if test "x$enable_autostart" == "xno"
+    if test "x$enable_autostart" = "xno"
     then
         START_ON_DEMAND="NO"
     fi
@@ -1766,8 +1754,6 @@ src/include/Makefile
 src/integration-tests/Makefile
 src/json/Makefile
 src/hostlist/Makefile
-src/multicast/Makefile
-src/multicast/multicast.conf
 src/my/Makefile
 src/mysql/Makefile
 src/namecache/Makefile
@@ -1787,11 +1773,6 @@ src/peerinfo-tool/Makefile
 src/peerstore/Makefile
 src/peerstore/peerstore.conf
 src/pq/Makefile
-src/psycutil/Makefile
-src/psyc/Makefile
-src/psyc/psyc.conf
-src/psycstore/Makefile
-src/psycstore/psycstore.conf
 src/pt/Makefile
 src/regex/Makefile
 src/regex/regex.conf
@@ -1805,8 +1786,6 @@ src/scalarproduct/Makefile
 src/scalarproduct/scalarproduct.conf
 src/set/Makefile
 src/set/set.conf
-src/social/Makefile
-src/social/social.conf
 src/sq/Makefile
 src/statistics/Makefile
 src/statistics/statistics.conf
@@ -1842,7 +1821,6 @@ pkgconfig/gnunetdatacache.pc
 pkgconfig/gnunetdatastore.pc
 pkgconfig/gnunetdht.pc
 pkgconfig/gnunetdns.pc
-pkgconfig/gnunetdv.pc
 pkgconfig/gnunetenv.pc
 pkgconfig/gnunetfragmentation.pc
 pkgconfig/gnunetfs.pc
@@ -1850,21 +1828,17 @@ pkgconfig/gnunetgns.pc
 pkgconfig/gnunethello.pc
 pkgconfig/gnunetidentity.pc
 pkgconfig/gnunetmicrophone.pc
-pkgconfig/gnunetmulticast.pc
 pkgconfig/gnunetmysql.pc
 pkgconfig/gnunetnamestore.pc
 pkgconfig/gnunetnat.pc
 pkgconfig/gnunetnse.pc
 pkgconfig/gnunetpeerinfo.pc
 pkgconfig/gnunetpq.pc
-pkgconfig/gnunetpsyc.pc
-pkgconfig/gnunetpsycstore.pc
 pkgconfig/gnunetregex.pc
 pkgconfig/gnunetrevocation.pc
 pkgconfig/gnunetrps.pc
 pkgconfig/gnunetscalarproduct.pc
 pkgconfig/gnunetset.pc
-pkgconfig/gnunetsocial.pc
 pkgconfig/gnunetspeaker.pc
 pkgconfig/gnunetstatistics.pc
 pkgconfig/gnunettestbed.pc
@@ -1974,7 +1948,7 @@ require fresh login to come into effect):
 "USERNAME" with the respective login names).  If you have a global IP
 address, no further configuration is required.
 
-For more detailed setup instructions, see https://gnunet.org/installation
+For more detailed setup instructions, see https://docs.gnunet.org/
 
 Optionally, download and compile gnunet-gtk to get a GUI for
 file-sharing and configuration.  This is particularly recommended

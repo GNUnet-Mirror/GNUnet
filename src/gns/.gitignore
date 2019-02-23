@@ -4,3 +4,9 @@ gnunet-dns2gns
 gnunet-gns
 gnunet-gns-proxy
 gnunet-gns-benchmark
+test_gns_proxy
+local.crt
+local.der
+local.key
+server.csr
+gnunet-gns-proxy-setup-ca

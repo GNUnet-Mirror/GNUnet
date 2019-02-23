@@ -19,6 +19,10 @@
 
 from __future__ import absolute_import
 from __future__ import print_function
+from __future__ import division
+from builtins import str
+from builtins import range
+from past.utils import old_div
 import argparse
 import random
 from math import ceil, log, floor
@@ -39,18 +43,18 @@ def bsc(n):
 
 def simulate(k, n, verbose):
     assert k < n
-    largest_arc = int(2**ceil(log(n, 2))) / 2
+    largest_arc = old_div(int(2**ceil(log(n, 2))), 2)
     num_ghosts = (2 * largest_arc) - n
     if verbose:
         print("we have", num_ghosts, "ghost peers")
         # n.b. all peers with idx<k are evil
-    peers = range(n)
+    peers = list(range(n))
     # py2-3 compatible, backwards.
     # refer to http://python-future.org/compatible_idioms.html#xrange
-    info = [1 << x for x in xrange(n)]
+    info = [1 << x for x in range(n)]
 
     def done_p():
-        for x in xrange(k, n):
+        for x in range(k, n):
             if bsc(info[x]) < n-k:
                 return False
         return True
@@ -63,7 +67,7 @@ def simulate(k, n, verbose):
             if verbose:
                 print("-- subround --")
             new_info = [x for x in info]
-            for peer_physical in xrange(n):
+            for peer_physical in range(n):
                 peer_logical = peers[peer_physical]
                 peer_type = None
                 partner_logical = (peer_logical + arc) % n
@@ -105,6 +109,6 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
     sum = 0.0
-    for n in xrange(0, args.r):
+    for n in range(0, args.r):
         sum += simulate(args.k, args.n, args.verbose)
-    print(sum / args.r)
+    print(old_div(sum, args.r))

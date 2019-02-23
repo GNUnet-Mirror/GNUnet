@@ -10,7 +10,6 @@ pcfiles = \
        gnunetdatastore.pc \
        gnunetdht.pc \
        gnunetdns.pc \
-       gnunetdv.pc \
        gnunetenv.pc \
        gnunetfragmentation.pc \
        gnunetfs.pc \
@@ -19,14 +18,11 @@ pcfiles = \
        gnunetidentity.pc \
        gnunetcadet.pc \
        gnunetmicrophone.pc \
-       gnunetmulticast.pc \
        gnunetmysql.pc \
        gnunetnamestore.pc \
        gnunetnat.pc \
        gnunetnse.pc \
        gnunetpeerinfo.pc \
-       gnunetpsyc.pc \
-       gnunetpsycstore.pc \
        gnunetregex.pc \
        gnunetrevocation.pc \
        gnunetrps.pc \
@@ -38,7 +34,7 @@ pcfiles = \
        gnunettesting.pc \
        gnunettransport.pc \
        gnunetutil.pc \
-       gnunetvpn.pc 
+       gnunetvpn.pc
 
 all-local: $(pcfiles)
 
@@ -63,9 +59,6 @@ EXTRA_DIST = \
        gnunetdatastore.pc.in \
        gnunetdht.pc.in \
        gnunetdns.pc.in \
-       gnunetdnsparser.pc.in \
-       gnunetdnsstub.pc.in \
-       gnunetdv.pc.in \
        gnunetenv.pc.in \
        gnunetfragmentation.pc.in \
        gnunetfs.pc.in \
@@ -74,15 +67,12 @@ EXTRA_DIST = \
        gnunetidentity.pc.in \
        gnunetcadet.pc.in \
        gnunetmicrophone.pc.in \
-       gnunetmulticast.pc.in \
        gnunetmysql.pc.in \
        gnunetnamestore.pc.in \
        gnunetnat.pc.in \
        gnunetnse.pc.in \
        gnunetpeerinfo.pc.in \
        gnunetpostgres.pc.in \
-       gnunetpsyc.pc.in \
-       gnunetpsycstore.pc.in \
        gnunetregex.pc.in \
        gnunetrevocation.pc.in \
        gnunetrps.pc.in \
@@ -93,11 +83,8 @@ EXTRA_DIST = \
        gnunettestbed.pc.in \
        gnunettesting.pc.in \
        gnunettransport.pc.in \
-       gnunettun.pc.in \
        gnunetutil.pc.in \
-       gnunetvpn.pc.in 
+       gnunetvpn.pc.in
 
 CLEANFILES = $(pcfiles)
 AM_CPPFLAGS = -I$(top_srcdir)/src/include
-
-

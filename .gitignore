@@ -55,3 +55,6 @@ flake8.log
 .cache/
 __pycache__/
 build-aux/
+src/ats/test_ats2_lib
+doc/handbook/gversion.texi
+doc/tutorial/gversion.texi

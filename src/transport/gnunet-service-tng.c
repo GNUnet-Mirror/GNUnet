@@ -46,16 +46,17 @@
  *   #6 to ensure flow control and RTT are OK, we always do the
  *      'validation', even if address comes from PEERSTORE
  *   #7 
- * - ACK handling / retransmission 
+ * - ACK handling / retransmission
+ * - address verification
  * - track RTT, distance, loss, etc.
  * - DV data structures:
  *   + learning
- *   + forgetting 
+ *   + forgetting
  *   + using them!
  * - routing of messages (using DV data structures!)
  * - handling of DV-boxed messages that need to be forwarded
  * - backchannel message encryption & decryption
- * - 
+ * -
  *
  * Easy:
  * - use ATS bandwidth allocation callback and schedule transmissions!
@@ -72,7 +73,7 @@
  *   (requires planning at receiver, and additional MST-style demultiplex
  *    at receiver!)
  * - could avoid copying body of message into each fragment and keep
- *   fragments as just pointers into the original message and only 
+ *   fragments as just pointers into the original message and only
  *   fully build fragments just before transmission (optimization, should
  *   reduce CPU and memory use)
  *
@@ -141,7 +142,7 @@
 /**
  * How many messages can we have pending for a given communicator
  * process before we start to throttle that communicator?
- * 
+ *
  * Used if a communicator might be CPU-bound and cannot handle the traffic.
  */
 #define COMMUNICATOR_TOTAL_QUEUE_LIMIT 512
@@ -150,7 +151,7 @@
  * How many messages can we have pending for a given session (queue to
  * a particular peer via a communicator) process before we start to
  * throttle that queue?
- * 
+ *
  * Used if ATS assigns more bandwidth to a particular transmission
  * method than that transmission method can right now handle. (Yes,
  * ATS should eventually notice utilization below allocation and
@@ -195,7 +196,7 @@ struct TransportBackchannelEncapsulationMessage
 
   // FIXME: probably should add random IV here as well,
   // especially if we re-use ephemeral keys!
-  
+
   /**
    * HMAC over the ciphertext of the encrypted, variable-size
    * body that follows.  Verified via DH of @e target and
@@ -224,8 +225,8 @@ struct EphemeralConfirmation
    * only interpret the value as a mononic time and reject
    * "older" values than the last one observed.  Even with this,
    * there is no real guarantee against replay achieved here,
-   * as the latest timestamp is not persisted.  This is 
-   * necessary as we do not want to require synchronized 
+   * as the latest timestamp is not persisted.  This is
+   * necessary as we do not want to require synchronized
    * clocks and may not have a bidirectional communication
    * channel.  Communicators must protect against replay
    * attacks when using backchannel communication!
@@ -373,17 +374,17 @@ struct TransportFragmentBox
   /**
    * Original message ID for of the message that all the1
    * fragments belong to.  Must be the same for all fragments.
-   */ 
+   */
   struct GNUNET_ShortHashCode msg_uuid;
 
   /**
    * Offset of this fragment in the overall message.
-   */ 
+   */
   uint16_t frag_off GNUNET_PACKED;
 
   /**
    * Total size of the message that is being fragmented.
-   */ 
+   */
   uint16_t msg_size GNUNET_PACKED;
 
 };
@@ -412,13 +413,13 @@ struct TransportFragmentAckMessage
   /**
    * Bitfield of up to 64 additional fragments following the
    * @e msg_uuid being acknowledged by this message.
-   */ 
+   */
   uint64_t extra_acks GNUNET_PACKED;
 
   /**
    * Original message ID for of the message that all the
    * fragments belong to.
-   */ 
+   */
   struct GNUNET_ShortHashCode msg_uuid;
 
   /**
@@ -444,7 +445,7 @@ struct TransportFragmentAckMessage
  * to a subset of their neighbours to limit discoverability of the
  * network topology).  To the extend that the @e bidirectional bits
  * are set, peers may learn the inverse paths even if they did not
- * initiate. 
+ * initiate.
  *
  * Unless received on a bidirectional queue and @e num_hops just
  * zero, peers that can forward to the initator should always try to
@@ -469,13 +470,13 @@ struct TransportDVLearn
    * to possibly instantly learn a path in both directions.  Each peer
    * should shift this value by one to the left, and then set the
    * lowest bit IF the current sender can be reached from it (without
-   * DV routing).  
-   */ 
+   * DV routing).
+   */
   uint16_t bidirectional GNUNET_PACKED;
 
   /**
    * Peers receiving this message and delaying forwarding to other
-   * peers for any reason should increment this value such as to 
+   * peers for any reason should increment this value such as to
    * enable the origin to determine the actual network-only delay
    * in addition to the real-time delay (assuming the message loops
    * back to the origin).
@@ -486,11 +487,11 @@ struct TransportDVLearn
    * Identity of the peer that started this learning activity.
    */
   struct GNUNET_PeerIdentity initiator;
-  
+
   /* Followed by @e num_hops `struct GNUNET_PeerIdentity` values,
      excluding the initiator of the DV trace; the last entry is the
      current sender; the current peer must not be included. */
-  
+
 };
 
 
@@ -527,7 +528,7 @@ struct TransportDVBox
    * Number of hops this messages includes. In NBO.
    */
   uint16_t num_hops GNUNET_PACKED;
-  
+
   /**
    * Identity of the peer that originated the message.
    */
@@ -577,7 +578,7 @@ enum ClientType
 /**
  * Entry in our cache of ephemeral keys we currently use.
  * This way, we only sign an ephemeral once per @e target,
- * and then can re-use it over multiple 
+ * and then can re-use it over multiple
  * #GNUNET_MESSAGE_TYPE_TRANSPORT_BACKCHANNEL_ENCAPSULATION
  * messages (as signing is expensive).
  */
@@ -645,39 +646,39 @@ struct DistanceVectorHop
 
   /**
    * Kept in a MDLL, sorted by @e timeout.
-   */ 
+   */
   struct DistanceVectorHop *next_dv;
 
   /**
    * Kept in a MDLL, sorted by @e timeout.
-   */ 
+   */
   struct DistanceVectorHop *prev_dv;
 
   /**
    * Kept in a MDLL.
-   */ 
+   */
   struct DistanceVectorHop *next_neighbour;
 
   /**
    * Kept in a MDLL.
-   */ 
+   */
   struct DistanceVectorHop *prev_neighbour;
 
   /**
    * What would be the next hop to @e target?
-   */ 
+   */
   struct Neighbour *next_hop;
 
   /**
    * Distance vector entry this hop belongs with.
-   */ 
+   */
   struct DistanceVector *dv;
-  
+
   /**
    * Array of @e distance hops to the target, excluding @e next_hop.
    * NULL if the entire path is us to @e next_hop to `target`. Allocated
    * at the end of this struct.
-   */ 
+   */
   const struct GNUNET_PeerIdentity *path;
 
   /**
@@ -685,11 +686,11 @@ struct DistanceVectorHop
    * while learning?
    */
   struct GNUNET_TIME_Absolute timeout;
-  
+
   /**
    * How many hops in total to the `target` (excluding @e next_hop and `target` itself),
    * thus 0 still means a distance of 2 hops (to @e next_hop and then to `target`)?
-   */ 
+   */
   unsigned int distance;
 };
 
@@ -708,12 +709,12 @@ struct DistanceVector
 
   /**
    * Known paths to @e target.
-   */ 
+   */
   struct DistanceVectorHop *dv_head;
 
   /**
    * Known paths to @e target.
-   */ 
+   */
   struct DistanceVectorHop *dv_tail;
 
   /**
@@ -737,19 +738,19 @@ struct QueueEntry
 
   /**
    * Kept as a DLL.
-   */ 
+   */
   struct QueueEntry *next;
 
   /**
    * Kept as a DLL.
-   */ 
+   */
   struct QueueEntry *prev;
 
   /**
    * ATS session this entry is queued with.
    */
   struct GNUNET_ATS_Session *session;
-  
+
   /**
    * Message ID used for this message with the queue used for transmission.
    */
@@ -785,12 +786,12 @@ struct GNUNET_ATS_Session
 
   /**
    * Head of DLL of unacked transmission requests.
-   */ 
+   */
   struct QueueEntry *queue_head;
 
   /**
    * End of DLL of unacked transmission requests.
-   */ 
+   */
   struct QueueEntry *queue_tail;
 
   /**
@@ -816,9 +817,9 @@ struct GNUNET_ATS_Session
   /**
    * Task scheduled for the time when this queue can (likely) transmit the
    * next message. Still needs to check with the @e tracker_out to be sure.
-   */ 
+   */
   struct GNUNET_SCHEDULER_Task *transmit_task;
-  
+
   /**
    * Our current RTT estimate for this ATS session.
    */
@@ -826,9 +827,9 @@ struct GNUNET_ATS_Session
 
   /**
    * Message ID generator for transmissions on this queue.
-   */ 
+   */
   uint64_t mid_gen;
-  
+
   /**
    * Unique identifier of this ATS session with the communicator.
    */
@@ -858,7 +859,7 @@ struct GNUNET_ATS_Session
    * Length of the DLL starting at @e queue_head.
    */
   unsigned int queue_length;
-  
+
   /**
    * Network type offered by this ATS session.
    */
@@ -883,14 +884,14 @@ struct GNUNET_ATS_Session
 
 /**
  * Information we keep for a message that we are reassembling.
- */ 
+ */
 struct ReassemblyContext
 {
 
   /**
    * Original message ID for of the message that all the
    * fragments belong to.
-   */ 
+   */
   struct GNUNET_ShortHashCode msg_uuid;
 
   /**
@@ -900,7 +901,7 @@ struct ReassemblyContext
 
   /**
    * Entry in the reassembly heap (sorted by expiration).
-   */ 
+   */
   struct GNUNET_CONTAINER_HeapNode *hn;
 
   /**
@@ -918,7 +919,7 @@ struct ReassemblyContext
    * task is for the latter case.
    */
   struct GNUNET_SCHEDULER_Task *ack_task;
-  
+
   /**
    * At what time will we give up reassembly of this message?
    */
@@ -941,7 +942,7 @@ struct ReassemblyContext
    * to be acknowledged in the next cummulative ACK.
    */
   uint64_t extra_acks;
-  
+
   /**
    * Unique ID of the lowest fragment UUID to be acknowledged in the
    * next cummulative ACK.  Only valid if @e num_acks > 0.
@@ -953,7 +954,7 @@ struct ReassemblyContext
    * whenever we send a #GNUNET_MESSAGE_TYPE_TRANSPORT_FRAGMENT_ACK.
    */
   unsigned int num_acks;
-  
+
   /**
    * How big is the message we are reassembling in total?
    */
@@ -986,21 +987,21 @@ struct Neighbour
    * Map with `struct ReassemblyContext` structs for fragments under
    * reassembly. May be NULL if we currently have no fragments from
    * this @e pid (lazy initialization).
-   */ 
+   */
   struct GNUNET_CONTAINER_MultiShortmap *reassembly_map;
 
   /**
    * Heap with `struct ReassemblyContext` structs for fragments under
    * reassembly. May be NULL if we currently have no fragments from
    * this @e pid (lazy initialization).
-   */ 
+   */
   struct GNUNET_CONTAINER_Heap *reassembly_heap;
 
   /**
    * Task to free old entries from the @e reassembly_heap and @e reassembly_map.
    */
   struct GNUNET_SCHEDULER_Task *reassembly_timeout_task;
-  
+
   /**
    * Head of list of messages pending for this neighbour.
    */
@@ -1014,13 +1015,13 @@ struct Neighbour
   /**
    * Head of MDLL of DV hops that have this neighbour as next hop. Must be
    * purged if this neighbour goes down.
-   */ 
+   */
   struct DistanceVectorHop *dv_head;
 
   /**
    * Tail of MDLL of DV hops that have this neighbour as next hop. Must be
    * purged if this neighbour goes down.
-   */ 
+   */
   struct DistanceVectorHop *dv_tail;
 
   /**
@@ -1035,7 +1036,7 @@ struct Neighbour
 
   /**
    * Task run to cleanup pending messages that have exceeded their timeout.
-   */  
+   */
   struct GNUNET_SCHEDULER_Task *timeout_task;
 
   /**
@@ -1052,15 +1053,15 @@ struct Neighbour
 
   /**
    * What is the earliest timeout of any message in @e pending_msg_tail?
-   */ 
+   */
   struct GNUNET_TIME_Absolute earliest_timeout;
-  
+
 };
 
 
 /**
  * Types of different pending messages.
- */ 
+ */
 enum PendingMessageType
 {
 
@@ -1084,7 +1085,7 @@ enum PendingMessageType
    */
   PMT_ACKNOWLEDGEMENT = 3
 
-  
+
 };
 
 
@@ -1101,13 +1102,13 @@ enum PendingMessageType
  * either calculate the next fragment (based on @e frag_off) from the
  * current node, or, if all fragments have already been created,
  * descend to the @e head_frag.  Even though the node was already
- * fragmented, the fragment may be too big if the fragment was 
+ * fragmented, the fragment may be too big if the fragment was
  * generated for a queue with a larger MTU. In this case, the node
  * may be fragmented again, thus creating a tree.
  *
  * When acknowledgements for fragments are received, the tree
- * must be pruned, removing those parts that were already 
- * acknowledged.  When fragments are sent over a reliable 
+ * must be pruned, removing those parts that were already
+ * acknowledged.  When fragments are sent over a reliable
  * channel, they can be immediately removed.
  *
  * If a message is ever fragmented, then the original "full" message
@@ -1130,7 +1131,7 @@ struct PendingMessage
    * Kept in a MDLL of messages from this @a client (if @e pmt is #PMT_CORE)
    */
   struct PendingMessage *next_client;
-  
+
   /**
    * Kept in a MDLL of messages from this @a client  (if @e pmt is #PMT_CORE)
    */
@@ -1140,7 +1141,7 @@ struct PendingMessage
    * Kept in a MDLL of messages from this @a cpm (if @e pmt is #PMT_FRAGMENT_BOx)
    */
   struct PendingMessage *next_frag;
-  
+
   /**
    * Kept in a MDLL of messages from this @a cpm  (if @e pmt is #PMT_FRAGMENT_BOX)
    */
@@ -1148,24 +1149,24 @@ struct PendingMessage
 
   /**
    * This message, reliability boxed. Only possibly available if @e pmt is #PMT_CORE.
-   */ 
+   */
   struct PendingMessage *bpm;
-  
+
   /**
    * Target of the request.
    */
   struct Neighbour *target;
-      
+
   /**
    * Client that issued the transmission request, if @e pmt is #PMT_CORE.
    */
   struct TransportClient *client;
-  
+
   /**
    * Head of a MDLL of fragments created for this core message.
    */
   struct PendingMessage *head_frag;
-  
+
   /**
    * Tail of a MDLL of fragments created for this core message.
    */
@@ -1175,7 +1176,7 @@ struct PendingMessage
    * Our parent in the fragmentation tree.
    */
   struct PendingMessage *frag_parent;
-    
+
   /**
    * At what time should we give up on the transmission (and no longer retry)?
    */
@@ -1191,12 +1192,12 @@ struct PendingMessage
    * initialized if @e msg_uuid_set is #GNUNET_YES).
    */
   struct GNUNET_ShortHashCode msg_uuid;
-  
+
   /**
    * Counter incremented per generated fragment.
-   */ 
+   */
   uint32_t frag_uuidgen;
-  
+
   /**
    * Type of the pending message.
    */
@@ -1209,14 +1210,14 @@ struct PendingMessage
 
   /**
    * Offset at which we should generate the next fragment.
-   */ 
+   */
   uint16_t frag_off;
 
   /**
    * #GNUNET_YES once @e msg_uuid was initialized
    */
   int16_t msg_uuid_set;
-  
+
   /* Followed by @e bytes_msg to transmit */
 };
 
@@ -1316,7 +1317,7 @@ struct TransportClient
     struct {
 
       /**
-       * Head of list of messages pending for this client, sorted by 
+       * Head of list of messages pending for this client, sorted by
        * transmission time ("next_attempt" + possibly internal prioritization).
        */
       struct PendingMessage *pending_msg_head;
@@ -1384,7 +1385,7 @@ struct TransportClient
        * is globally unable to keep up.
        */
       unsigned int total_queue_length;
-      
+
       /**
        * Characteristics of this communicator.
        */
@@ -1559,7 +1560,7 @@ free_distance_vector_hop (struct DistanceVectorHop *dvh)
   GNUNET_free (dvh);
   if (NULL == dv->dv_head)
   {
-    GNUNET_assert (GNUNET_YES == 
+    GNUNET_assert (GNUNET_YES ==
 		   GNUNET_CONTAINER_multipeermap_remove (dv_routes,
 							 &dv->target,
 							 dv));
@@ -1764,7 +1765,7 @@ free_reassembly_cb (void *cls,
   struct ReassemblyContext *rc = value;
   (void) cls;
   (void) key;
-  
+
   free_reassembly_context (rc);
   return GNUNET_OK;
 }
@@ -1779,7 +1780,7 @@ static void
 free_neighbour (struct Neighbour *neighbour)
 {
   struct DistanceVectorHop *dvh;
-  
+
   GNUNET_assert (NULL == neighbour->session_head);
   GNUNET_assert (GNUNET_YES ==
 		 GNUNET_CONTAINER_multipeermap_remove (neighbours,
@@ -1881,25 +1882,25 @@ cores_send_disconnect_info (const struct GNUNET_PeerIdentity *pid)
 
 /**
  * We believe we are ready to transmit a message on a queue. Double-checks
- * with the queue's "tracker_out" and then gives the message to the 
+ * with the queue's "tracker_out" and then gives the message to the
  * communicator for transmission (updating the tracker, and re-scheduling
- * itself if applicable).  
+ * itself if applicable).
  *
  * @param cls the `struct GNUNET_ATS_Session` to process transmissions for
- */ 
+ */
 static void
 transmit_on_queue (void *cls);
 
 
 /**
- * Schedule next run of #transmit_on_queue().  Does NOTHING if 
+ * Schedule next run of #transmit_on_queue().  Does NOTHING if
  * we should run immediately or if the message queue is empty.
  * Test for no task being added AND queue not being empty to
  * transmit immediately afterwards!  This function must only
  * be called if the message queue is non-empty!
  *
  * @param queue the queue to do scheduling for
- */ 
+ */
 static void
 schedule_transmit_on_queue (struct GNUNET_ATS_Session *queue)
 {
@@ -1914,7 +1915,7 @@ schedule_transmit_on_queue (struct GNUNET_ATS_Session *queue)
     GNUNET_STATISTICS_update (GST_stats,
 			      "# Transmission throttled due to communicator queue limit",
 			      1,
-			      GNUNET_NO);    
+			      GNUNET_NO);
     return;
   }
   if (queue->queue_length >= SESSION_QUEUE_LIMIT)
@@ -1922,10 +1923,10 @@ schedule_transmit_on_queue (struct GNUNET_ATS_Session *queue)
     GNUNET_STATISTICS_update (GST_stats,
 			      "# Transmission throttled due to session queue limit",
 			      1,
-			      GNUNET_NO);    
+			      GNUNET_NO);
     return;
   }
-      
+
   wsize = (0 == queue->mtu)
     ? pm->bytes_msg /* FIXME: add overheads? */
     : queue->mtu;
@@ -2213,7 +2214,7 @@ check_client_send (void *cls,
  * Free fragment tree below @e root, excluding @e root itself.
  *
  * @param root root of the tree to free
- */  
+ */
 static void
 free_fragment_tree (struct PendingMessage *root)
 {
@@ -2328,7 +2329,7 @@ check_queue_timeouts (void *cls)
 				GNUNET_NO);
       client_send_response (pm,
 			    GNUNET_NO,
-			    0);      
+			    0);
       continue;
     }
     earliest_timeout = GNUNET_TIME_absolute_min (earliest_timeout,
@@ -2407,7 +2408,7 @@ handle_client_send (void *cls,
     target->earliest_timeout.abs_value_us = pm->timeout.abs_value_us;
     if (NULL != target->timeout_task)
       GNUNET_SCHEDULER_cancel (target->timeout_task);
-    target->timeout_task 
+    target->timeout_task
       = GNUNET_SCHEDULER_add_at (target->earliest_timeout,
 				 &check_queue_timeouts,
 				 target);
@@ -2542,7 +2543,7 @@ expire_ephemerals (void *cls)
  * one, cache it and return it.
  *
  * @param pid peer to look up ephemeral for
- * @param private_key[out] set to the private key 
+ * @param private_key[out] set to the private key
  * @param ephemeral_key[out] set to the key
  * @param ephemeral_sender_sig[out] set to the signature
  * @param ephemeral_validity[out] set to the validity expiration time
@@ -2556,7 +2557,7 @@ lookup_ephemeral (const struct GNUNET_PeerIdentity *pid,
 {
   struct EphemeralCacheEntry *ece;
   struct EphemeralConfirmation ec;
-  
+
   ece = GNUNET_CONTAINER_multipeermap_get (ephemeral_map,
 					   pid);
   if ( (NULL != ece) &&
@@ -2618,7 +2619,7 @@ route_message (const struct GNUNET_PeerIdentity *target,
   GNUNET_free (hdr);
 }
 
-  
+
 /**
  * Communicator requests backchannel transmission.  Process the request.
  *
@@ -2636,7 +2637,7 @@ handle_communicator_backchannel (void *cls,
   struct TransportBackchannelRequestPayload ppay;
   char *mpos;
   uint16_t msize;
-  
+
   /* encapsulate and encrypt message */
   msize = ntohs (cb->header.size) - sizeof (*cb) + sizeof (struct TransportBackchannelRequestPayload);
   enc = GNUNET_malloc (sizeof (*enc) + msize);
@@ -2871,7 +2872,7 @@ struct CommunicatorMessageContext
  *
  * @param cmc context for demultiplexing
  * @param msg message to demultiplex
- */ 
+ */
 static void
 demultiplex_with_cmc (struct CommunicatorMessageContext *cmc,
 		      const struct GNUNET_MessageHeader *msg);
@@ -2949,7 +2950,7 @@ handle_raw_message (void *cls,
 		    env);
   }
   /* FIXME: consider doing this _only_ once the message
-     was drained from the CORE MQs to extend flow control to CORE! 
+     was drained from the CORE MQs to extend flow control to CORE!
      (basically, increment counter in cmc, decrement on MQ send continuation! */
   finish_cmc_handling (cmc);
 }
@@ -2974,12 +2975,12 @@ check_fragment_box (void *cls,
     GNUNET_break_op (0);
     return GNUNET_SYSERR;
   }
-  if (bsize + ntohs (fb->frag_off) > ntohs (fb->msg_size)) 
+  if (bsize + ntohs (fb->frag_off) > ntohs (fb->msg_size))
   {
     GNUNET_break_op (0);
     return GNUNET_SYSERR;
   }
-  if (ntohs (fb->frag_off) >= ntohs (fb->msg_size)) 
+  if (ntohs (fb->frag_off) >= ntohs (fb->msg_size))
   {
     GNUNET_break_op (0);
     return GNUNET_SYSERR;
@@ -3046,7 +3047,7 @@ handle_fragment_box (void *cls,
   if (NULL == n)
   {
     struct GNUNET_SERVICE_Client *client = cmc->tc->client;
-	
+
     GNUNET_break (0);
     finish_cmc_handling (cmc);
     GNUNET_SERVICE_client_drop (client);
@@ -3096,7 +3097,7 @@ handle_fragment_box (void *cls,
     finish_cmc_handling (cmc);
     return;
   }
-  
+
   /* reassemble */
   fsize = ntohs (fb->header.size) - sizeof (*fb);
   frag_off = ntohs (fb->frag_off);
@@ -3112,7 +3113,7 @@ handle_fragment_box (void *cls,
       rc->msg_missing--;
     }
   }
-				    
+
   /* Compute cummulative ACK */
   frag_uuid = ntohl (fb->frag_uuid);
   cdelay = GNUNET_TIME_absolute_get_duration (rc->last_frag);
@@ -3151,7 +3152,7 @@ handle_fragment_box (void *cls,
 	      ( (rc->frag_uuid < frag_uuid + 64) &&
 		(rc->extra_acks == (rc->extra_acks & ~ ((1LLU << (64 - (rc->frag_uuid - frag_uuid))) - 1LLU))) ) ) )
   {
-    /* can fit ack by shifting extra acks and starting at 
+    /* can fit ack by shifting extra acks and starting at
        frag_uid, test above esured that the bits we will
        shift 'extra_acks' by are all zero. */
     rc->extra_acks <<= (rc->frag_uuid - frag_uuid);
@@ -3162,8 +3163,8 @@ handle_fragment_box (void *cls,
   if (65 == rc->num_acks) /* FIXME: maybe use smaller threshold? This is very aggressive. */
     ack_now = GNUNET_YES; /* maximum acks received */
   // FIXME: possibly also ACK based on RTT (but for that we'd need to
-  // determine the session used for the ACK first!)  
-  
+  // determine the session used for the ACK first!)
+
   /* is reassembly complete? */
   if (0 != rc->msg_missing)
   {
@@ -3187,7 +3188,7 @@ handle_fragment_box (void *cls,
 			msg);
   /* FIXME: really free here? Might be bad if fragments are still
      en-route and we forget that we finished this reassembly immediately!
-     -> keep around until timeout? 
+     -> keep around until timeout?
      -> shorten timeout based on ACK? */
   free_reassembly_context (rc);
 }
@@ -3204,7 +3205,7 @@ handle_fragment_ack (void *cls,
 		     const struct TransportFragmentAckMessage *fa)
 {
   struct CommunicatorMessageContext *cmc = cls;
-  
+
   // FIXME: do work: identify original message; then identify fragments being acked;
   // remove those from the tree to prevent retransmission;
   // compute RTT
@@ -3248,10 +3249,10 @@ handle_reliability_box (void *cls,
 
     /* FIXME: implement cummulative ACKs and ack_countdown,
        then setting the avg_ack_delay field below: */
-    ack = GNUNET_malloc (sizeof (*ack) + 
+    ack = GNUNET_malloc (sizeof (*ack) +
 			 sizeof (struct GNUNET_ShortHashCode));
     ack->header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_RELIABILITY_ACK);
-    ack->header.size = htons (sizeof (*ack) + 
+    ack->header.size = htons (sizeof (*ack) +
 			      sizeof (struct GNUNET_ShortHashCode));
     memcpy (&ack[1],
 	    &rb->msg_uuid,
@@ -3276,7 +3277,7 @@ handle_reliability_ack (void *cls,
 			const struct TransportReliabilityAckMessage *ra)
 {
   struct CommunicatorMessageContext *cmc = cls;
-  
+
   // FIXME: do work: find message that was acknowledged, and
   // remove from transmission queue; update RTT.
   finish_cmc_handling (cmc);
@@ -3331,7 +3332,7 @@ handle_backchannel_encapsulation (void *cls,
   // FIXME: check HMAC
   // FIXME: decrypt payload
   // FIXME: forward to specified communicator!
-  // (using GNUNET_MESSAGE_TYPE_TRANSPORT_COMMUNICATOR_BACKCHANNEL_INCOMING)  
+  // (using GNUNET_MESSAGE_TYPE_TRANSPORT_COMMUNICATOR_BACKCHANNEL_INCOMING)
   finish_cmc_handling (cmc);
 }
 
@@ -3388,7 +3389,7 @@ handle_dv_learn (void *cls,
 		 const struct TransportDVLearn *dvl)
 {
   struct CommunicatorMessageContext *cmc = cls;
-  
+
   // FIXME: learn path from DV message (if bi-directional flags are set)
   // FIXME: expand DV message, forward on (unless path is getting too long)
   finish_cmc_handling (cmc);
@@ -3419,7 +3420,7 @@ check_dv_box (void *cls,
     return GNUNET_SYSERR;
   }
   isize = ntohs (inbox->size);
-  if (size != sizeof (*dvb) + num_hops * sizeof (struct GNUNET_PeerIdentity) + isize) 
+  if (size != sizeof (*dvb) + num_hops * sizeof (struct GNUNET_PeerIdentity) + isize)
   {
     GNUNET_break_op (0);
     return GNUNET_SYSERR;
@@ -3455,14 +3456,14 @@ handle_dv_box (void *cls,
   {
     // FIXME: if we are not the target, shorten path and forward along.
     // Try from the _end_ of hops array if we know the given
-    // neighbour (shortening the path!). 
+    // neighbour (shortening the path!).
     // NOTE: increment total_hops!
     finish_cmc_handling (cmc);
     return;
   }
   /* We are the target. Unbox and handle message. */
   cmc->im.sender = dvb->origin;
-  cmc->total_hops = ntohs (dvb->total_hops); 
+  cmc->total_hops = ntohs (dvb->total_hops);
   demultiplex_with_cmc (cmc,
 			inbox);
 }
@@ -3516,7 +3517,7 @@ handle_incoming_msg (void *cls,
  *
  * @param cmc context for demultiplexing
  * @param msg message to demultiplex
- */ 
+ */
 static void
 demultiplex_with_cmc (struct CommunicatorMessageContext *cmc,
 		      const struct GNUNET_MessageHeader *msg)
@@ -3606,7 +3607,7 @@ tracker_update_in_cb (void *cls)
   struct GNUNET_ATS_Session *queue = cls;
   struct GNUNET_TIME_Relative in_delay;
   unsigned int rsize;
-  
+
   rsize = (0 == queue->mtu) ? IN_PACKET_SIZE_WITHOUT_MTU : queue->mtu;
   in_delay = GNUNET_BANDWIDTH_tracker_get_delay (&queue->tracker_in,
 						 rsize);
@@ -3632,7 +3633,7 @@ set_pending_message_uuid (struct PendingMessage *pm)
 
 
 /**
- * Fragment the given @a pm to the given @a mtu.  Adds 
+ * Fragment the given @a pm to the given @a mtu.  Adds
  * additional fragments to the neighbour as well. If the
  * @a mtu is too small, generates and error for the @a pm
  * and returns NULL.
@@ -3648,7 +3649,7 @@ fragment_message (struct PendingMessage *pm,
   struct PendingMessage *ff;
 
   set_pending_message_uuid (pm);
-  
+
   /* This invariant is established in #handle_add_queue_message() */
   GNUNET_assert (mtu > sizeof (struct TransportFragmentBox));
 
@@ -3756,7 +3757,7 @@ reliability_box_message (struct PendingMessage *pm)
   if (NULL != pm->bpm)
     return pm->bpm; /* already computed earlier: do nothing */
   GNUNET_assert (NULL == pm->head_frag);
-  if (pm->bytes_msg + sizeof (rbox) > UINT16_MAX) 
+  if (pm->bytes_msg + sizeof (rbox) > UINT16_MAX)
   {
     /* failed hard */
     GNUNET_break (0);
@@ -3766,7 +3767,7 @@ reliability_box_message (struct PendingMessage *pm)
     return NULL;
   }
   bpm = GNUNET_malloc (sizeof (struct PendingMessage) +
-		       sizeof (rbox) + 
+		       sizeof (rbox) +
 		       pm->bytes_msg);
   bpm->target = pm->target;
   bpm->frag_parent = pm;
@@ -3796,12 +3797,12 @@ reliability_box_message (struct PendingMessage *pm)
 
 /**
  * We believe we are ready to transmit a message on a queue. Double-checks
- * with the queue's "tracker_out" and then gives the message to the 
+ * with the queue's "tracker_out" and then gives the message to the
  * communicator for transmission (updating the tracker, and re-scheduling
- * itself if applicable).  
+ * itself if applicable).
  *
  * @param cls the `struct GNUNET_ATS_Session` to process transmissions for
- */ 
+ */
 static void
 transmit_on_queue (void *cls)
 {
@@ -3818,7 +3819,7 @@ transmit_on_queue (void *cls)
   if (NULL == (pm = n->pending_msg_head))
   {
     /* no message pending, nothing to do here! */
-    return; 
+    return;
   }
   schedule_transmit_on_queue (queue);
   if (NULL != queue->transmit_task)
@@ -3874,7 +3875,7 @@ transmit_on_queue (void *cls)
   queue->tc->details.communicator.total_queue_length++;
   GNUNET_MQ_send (queue->tc->mq,
 		  env);
-  
+
   // FIXME: do something similar to the logic below
   // in defragmentation / reliability ACK handling!
 
@@ -3892,7 +3893,7 @@ transmit_on_queue (void *cls)
 	    (PMT_FRAGMENT_BOX == s->pmt) )
   {
     struct PendingMessage *pos;
-    
+
     /* Fragment sent over reliabile channel */
     free_fragment_tree (s);
     pos = s->frag_parent;
@@ -3912,9 +3913,9 @@ transmit_on_queue (void *cls)
 				    pos->head_frag,
 				    pos->tail_frag,
 				    s);
-      GNUNET_free (s);      
+      GNUNET_free (s);
     }
-    
+
     /* Was this the last applicable fragmment? */
     if ( (NULL == pm->head_frag) &&
 	 (pm->frag_off == pm->bytes_msg) )
@@ -3981,7 +3982,7 @@ transmit_on_queue (void *cls)
 					  s);
     }
   }
-  
+
   /* finally, re-schedule queue transmission task itself */
   schedule_transmit_on_queue (queue);
 }
@@ -4023,13 +4024,13 @@ tracker_excess_out_cb (void *cls)
 {
   /* FIXME: trigger excess bandwidth report to core? Right now,
      this is done internally within transport_api2_core already,
-     but we probably want to change the logic and trigger it 
+     but we probably want to change the logic and trigger it
      from here via a message instead! */
   /* TODO: maybe inform ATS at this point? */
   GNUNET_STATISTICS_update (GST_stats,
 			    "# Excess outbound bandwidth reported",
 			    1,
-			    GNUNET_NO);    
+			    GNUNET_NO);
 }
 
 
@@ -4047,7 +4048,7 @@ tracker_excess_in_cb (void *cls)
   GNUNET_STATISTICS_update (GST_stats,
 			    "# Excess inbound bandwidth reported",
 			    1,
-			    GNUNET_NO);    
+			    GNUNET_NO);
 }
 
 
@@ -4126,7 +4127,7 @@ handle_add_queue_message (void *cls,
       .nt = queue->nt,
       .cc = tc->details.communicator.cc
     };
-    
+
     queue->sr = GNUNET_ATS_session_add (ats,
 					&neighbour->pid,
 					queue->address,
@@ -4224,7 +4225,7 @@ handle_send_message_ack (void *cls,
 {
   struct TransportClient *tc = cls;
   struct QueueEntry *queue;
-  
+
   if (CT_COMMUNICATOR != tc->type)
   {
     GNUNET_break (0);
@@ -4251,12 +4252,12 @@ handle_send_message_ack (void *cls,
       queue = qe;
       break;
     }
-    break;	
+    break;
   }
   if (NULL == queue)
   {
     /* this should never happen */
-    GNUNET_break (0); 
+    GNUNET_break (0);
     GNUNET_SERVICE_client_drop (tc->client);
     return;
   }
@@ -4286,10 +4287,10 @@ handle_send_message_ack (void *cls,
     GNUNET_STATISTICS_update (GST_stats,
 			      "# Transmission throttled due to session queue limit",
 			      -1,
-			      GNUNET_NO);    
+			      GNUNET_NO);
     schedule_transmit_on_queue (queue->session);
   }
- 
+
   /* TODO: we also should react on the status! */
   // FIXME: this probably requires queue->pm = s assignment!
   // FIXME: react to communicator status about transmission request. We got:
@@ -4452,7 +4453,7 @@ ats_suggestion_cb (void *cls,
     GNUNET_STATISTICS_update (GST_stats,
 			      "# ATS suggestions ignored due to missing communicator",
 			      1,
-			      GNUNET_NO);    
+			      GNUNET_NO);
     return;
   }
   /* forward suggestion for queue creation to communicator */
@@ -4481,7 +4482,7 @@ ats_suggestion_cb (void *cls,
  *
  * @param cls the `struct TransportClient`
  * @param cqr confirmation message
- */ 
+ */
 static void
 handle_queue_create_ok (void *cls,
 			const struct GNUNET_TRANSPORT_CreateQueueResponse *cqr)
@@ -4501,7 +4502,7 @@ handle_queue_create_ok (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Request #%u for communicator to create queue succeeded\n",
 	      (unsigned int) ntohs (cqr->request_id));
-  GNUNET_SERVICE_client_continue (tc->client);    
+  GNUNET_SERVICE_client_continue (tc->client);
 }
 
 
@@ -4512,7 +4513,7 @@ handle_queue_create_ok (void *cls,
  *
  * @param cls the `struct TransportClient`
  * @param cqr failure message
- */ 
+ */
 static void
 handle_queue_create_fail (void *cls,
 			  const struct GNUNET_TRANSPORT_CreateQueueResponse *cqr)
@@ -4532,7 +4533,61 @@ handle_queue_create_fail (void *cls,
 			    "# ATS suggestions failed in queue creation at communicator",
 			    1,
 			    GNUNET_NO);
-  GNUNET_SERVICE_client_continue (tc->client);    
+  GNUNET_SERVICE_client_continue (tc->client);
+}
+
+
+/**
+ * Check #GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_CONSIDER_VERIFY
+ * messages. We do nothing here, real verification is done later.
+ *
+ * @param cls a `struct TransportClient *`
+ * @param msg message to verify
+ * @return #GNUNET_OK
+ */
+static int
+check_address_consider_verify (void *cls,
+                               const struct GNUNET_TRANSPORT_AddressToVerify *hdr)
+{
+  (void) cls;
+  (void) hdr;
+  return GNUNET_OK;
+}
+
+
+/**
+ * Given another peers address, consider checking it for validity
+ * and then adding it to the Peerstore.
+ *
+ * @param cls a `struct TransportClient`
+ * @param hdr message containing the raw address data and
+ *        signature in the body, see #GNUNET_HELLO_extract_address()
+ */
+static void
+handle_address_consider_verify (void *cls,
+                                const struct GNUNET_TRANSPORT_AddressToVerify *hdr)
+{
+  char *address;
+  enum GNUNET_NetworkType nt;
+  struct GNUNET_TIME_Absolute expiration;
+
+  (void) cls;
+  // FIXME: pre-check: do we know this address already?
+  // FIXME: pre-check: rate-limit signature verification / validation!
+  address = GNUNET_HELLO_extract_address (&hdr[1],
+                                          ntohs (hdr->header.size) - sizeof (*hdr),
+                                          &hdr->peer,
+                                          &nt,
+                                          &expiration);
+  if (NULL == address)
+  {
+    GNUNET_break_op (0);
+    return;
+  }
+  if (0 == GNUNET_TIME_absolute_get_remaining (expiration).rel_value_us)
+    return; /* expired */
+  // FIXME: do begin actual verification here!
+  GNUNET_free (address);
 }
 
 
@@ -4774,6 +4829,10 @@ GNUNET_SERVICE_MAIN
  GNUNET_MQ_hd_var_size (add_queue_message,
 			GNUNET_MESSAGE_TYPE_TRANSPORT_QUEUE_SETUP,
 			struct GNUNET_TRANSPORT_AddQueueMessage,
+			NULL),
+ GNUNET_MQ_hd_var_size (address_consider_verify,
+			GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_CONSIDER_VERIFY,
+			struct GNUNET_TRANSPORT_AddressToVerify,
 			NULL),
  GNUNET_MQ_hd_fixed_size (del_queue_message,
                           GNUNET_MESSAGE_TYPE_TRANSPORT_QUEUE_TEARDOWN,

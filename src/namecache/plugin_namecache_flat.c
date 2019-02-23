@@ -173,7 +173,7 @@ database_setup (struct Plugin *plugin)
                                         &entry->query));
       GNUNET_STRINGS_base64_decode (block,
                                     strlen (block),
-                                    &block_buffer);
+                                    (void**)&block_buffer);
       entry->block = (struct GNUNET_GNSRECORD_Block *) block_buffer;
       if (GNUNET_OK !=
           GNUNET_CONTAINER_multihashmap_put (plugin->hm,

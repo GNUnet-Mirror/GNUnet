@@ -25,14 +25,18 @@
  * @author Christian Grothoff
  */
 #include "platform.h"
+#if HAVE_LIBIDN2
 #if HAVE_IDN2_H
 #include <idn2.h>
 #elif HAVE_IDN2_IDN2_H
 #include <idn2/idn2.h>
-#elif HAVE_IDNA_H
+#endif
+#elif HAVE_LIBIDN
+#if HAVE_IDNA_H
 #include <idna.h>
 #elif HAVE_IDN_IDNA_H
 #include <idn/idna.h>
+#endif
 #endif
 #if WINDOWS
 #include <idn-free.h>
@@ -1084,12 +1088,19 @@ GNUNET_DNSPARSER_builder_add_cert (char *dst,
 {
   struct GNUNET_TUN_DnsCertRecord dcert;
 
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wtautological-constant-out-of-range-compare"
+#endif
   if ( (cert->cert_type > UINT16_MAX) ||
        (cert->algorithm > UINT8_MAX) )
   {
     GNUNET_break (0);
     return GNUNET_SYSERR;
   }
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
   if (*off + sizeof (struct GNUNET_TUN_DnsCertRecord) + cert->certificate_size > dst_len)
     return GNUNET_NO;
   dcert.cert_type = htons ((uint16_t) cert->cert_type);

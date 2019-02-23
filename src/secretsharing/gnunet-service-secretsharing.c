@@ -11,7 +11,7 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -898,7 +898,9 @@ restore_fair (const struct GNUNET_CRYPTO_PaillierPublicKey *ppub,
   GNUNET_assert (NULL != (big_b = gcry_mpi_new (0)));
 
   // a = (N,0)^T
-  GNUNET_CRYPTO_mpi_scan_unsigned (&a_1, ppub, sizeof (struct GNUNET_CRYPTO_PaillierPublicKey));
+  GNUNET_CRYPTO_mpi_scan_unsigned (&a_1,
+                                   ppub,
+                                   sizeof (struct GNUNET_CRYPTO_PaillierPublicKey));
   GNUNET_assert (NULL != (a_2 = gcry_mpi_new (0)));
   gcry_mpi_set_ui (a_2, 0);
   // b = (x,1)^T
@@ -957,15 +959,9 @@ restore_fair (const struct GNUNET_CRYPTO_PaillierPublicKey *ppub,
     gcry_mpi_set (big_b, big_t);
   }
 
-  {
-    gcry_mpi_t paillier_n;
-
-    GNUNET_CRYPTO_mpi_scan_unsigned (&paillier_n, ppub, sizeof (struct GNUNET_CRYPTO_PaillierPublicKey));
-
-    gcry_mpi_set (xres, b_2);
-    gcry_mpi_invm (xres, xres, elgamal_q);
-    gcry_mpi_mulm (xres, xres, b_1, elgamal_q);
-  }
+  gcry_mpi_set (xres, b_2);
+  gcry_mpi_invm (xres, xres, elgamal_q);
+  gcry_mpi_mulm (xres, xres, b_1, elgamal_q);
 
   gcry_mpi_release (a_1);
   gcry_mpi_release (a_2);
@@ -984,7 +980,8 @@ restore_fair (const struct GNUNET_CRYPTO_PaillierPublicKey *ppub,
 
 
 static void
-get_fair_encryption_challenge (const struct GNUNET_SECRETSHARING_FairEncryption *fe, gcry_mpi_t e)
+get_fair_encryption_challenge (const struct GNUNET_SECRETSHARING_FairEncryption *fe,
+                               gcry_mpi_t *e)
 {
   struct {
     struct GNUNET_CRYPTO_PaillierCiphertext c;
@@ -994,18 +991,27 @@ get_fair_encryption_challenge (const struct GNUNET_SECRETSHARING_FairEncryption 
   } hash_data;
   struct GNUNET_HashCode e_hash;
 
+  memset (&hash_data,
+          0,
+          sizeof (hash_data));
   GNUNET_memcpy (&hash_data.c, &fe->c, sizeof (struct GNUNET_CRYPTO_PaillierCiphertext));
   GNUNET_memcpy (&hash_data.h, &fe->h, GNUNET_SECRETSHARING_ELGAMAL_BITS / 8);
   GNUNET_memcpy (&hash_data.t1, &fe->t1, GNUNET_SECRETSHARING_ELGAMAL_BITS / 8);
   GNUNET_memcpy (&hash_data.t2, &fe->t2, GNUNET_CRYPTO_PAILLIER_BITS * 2 / 8);
-
-  GNUNET_CRYPTO_mpi_scan_unsigned (&e, &e_hash, sizeof (struct GNUNET_HashCode));
-  gcry_mpi_mod (e, e, elgamal_q);
+  GNUNET_CRYPTO_hash (&hash_data,
+                      sizeof (hash_data),
+                      &e_hash);
+  /* This allocates "e" */
+  GNUNET_CRYPTO_mpi_scan_unsigned (e,
+                                   &e_hash,
+                                   sizeof (struct GNUNET_HashCode));
+  gcry_mpi_mod (*e, *e, elgamal_q);
 }
 
 
 static int
-verify_fair (const struct GNUNET_CRYPTO_PaillierPublicKey *ppub, const struct GNUNET_SECRETSHARING_FairEncryption *fe)
+verify_fair (const struct GNUNET_CRYPTO_PaillierPublicKey *ppub,
+             const struct GNUNET_SECRETSHARING_FairEncryption *fe)
 {
   gcry_mpi_t n;
   gcry_mpi_t n_sq;
@@ -1023,11 +1029,13 @@ verify_fair (const struct GNUNET_CRYPTO_PaillierPublicKey *ppub, const struct GN
   GNUNET_assert (NULL != (n_sq = gcry_mpi_new (0)));
   GNUNET_assert (NULL != (tmp1 = gcry_mpi_new (0)));
   GNUNET_assert (NULL != (tmp2 = gcry_mpi_new (0)));
-  GNUNET_assert (NULL != (e = gcry_mpi_new (0)));
 
-  get_fair_encryption_challenge (fe, e);
+  get_fair_encryption_challenge (fe,
+                                 &e /* this allocates e */);
 
-  GNUNET_CRYPTO_mpi_scan_unsigned (&n, ppub, sizeof (struct GNUNET_CRYPTO_PaillierPublicKey));
+  GNUNET_CRYPTO_mpi_scan_unsigned (&n,
+                                   ppub,
+                                   sizeof (struct GNUNET_CRYPTO_PaillierPublicKey));
   GNUNET_CRYPTO_mpi_scan_unsigned (&t1, fe->t1, GNUNET_CRYPTO_PAILLIER_BITS / 8);
   GNUNET_CRYPTO_mpi_scan_unsigned (&z, fe->z, GNUNET_SECRETSHARING_ELGAMAL_BITS / 8);
   GNUNET_CRYPTO_mpi_scan_unsigned (&y, fe->h, GNUNET_SECRETSHARING_ELGAMAL_BITS / 8);
@@ -1096,7 +1104,9 @@ cleanup:
  * @param[out] fe the fair encryption
  */
 static void
-encrypt_fair (gcry_mpi_t v, const struct GNUNET_CRYPTO_PaillierPublicKey *ppub, struct GNUNET_SECRETSHARING_FairEncryption *fe)
+encrypt_fair (gcry_mpi_t v,
+              const struct GNUNET_CRYPTO_PaillierPublicKey *ppub,
+              struct GNUNET_SECRETSHARING_FairEncryption *fe)
 {
   gcry_mpi_t r;
   gcry_mpi_t s;
@@ -1111,6 +1121,7 @@ encrypt_fair (gcry_mpi_t v, const struct GNUNET_CRYPTO_PaillierPublicKey *ppub, 
   gcry_mpi_t Y;
   gcry_mpi_t G;
   gcry_mpi_t h;
+
   GNUNET_assert (NULL != (r = gcry_mpi_new (0)));
   GNUNET_assert (NULL != (s = gcry_mpi_new (0)));
   GNUNET_assert (NULL != (t1 = gcry_mpi_new (0)));
@@ -1118,13 +1129,14 @@ encrypt_fair (gcry_mpi_t v, const struct GNUNET_CRYPTO_PaillierPublicKey *ppub, 
   GNUNET_assert (NULL != (z = gcry_mpi_new (0)));
   GNUNET_assert (NULL != (w = gcry_mpi_new (0)));
   GNUNET_assert (NULL != (n_sq = gcry_mpi_new (0)));
-  GNUNET_assert (NULL != (e = gcry_mpi_new (0)));
   GNUNET_assert (NULL != (u = gcry_mpi_new (0)));
   GNUNET_assert (NULL != (Y = gcry_mpi_new (0)));
   GNUNET_assert (NULL != (G = gcry_mpi_new (0)));
   GNUNET_assert (NULL != (h = gcry_mpi_new (0)));
 
-  GNUNET_CRYPTO_mpi_scan_unsigned (&n, ppub, sizeof (struct GNUNET_CRYPTO_PaillierPublicKey));
+  GNUNET_CRYPTO_mpi_scan_unsigned (&n,
+                                   ppub,
+                                   sizeof (struct GNUNET_CRYPTO_PaillierPublicKey));
   gcry_mpi_mul (n_sq, n, n);
   gcry_mpi_add_ui (G, n, 1);
 
@@ -1170,8 +1182,8 @@ encrypt_fair (gcry_mpi_t v, const struct GNUNET_CRYPTO_PaillierPublicKey *ppub, 
                                     GNUNET_CRYPTO_PAILLIER_BITS * 2 / 8,
                                     t2);
 
-
-  get_fair_encryption_challenge (fe, e);
+  get_fair_encryption_challenge (fe,
+                                 &e /* This allocates "e" */);
 
   // compute z
   gcry_mpi_mul (z, e, v);

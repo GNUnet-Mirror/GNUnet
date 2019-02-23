@@ -11,7 +11,7 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -261,7 +261,7 @@ struct ChannelCtx
 };
 
 
-#ifdef ENABLE_MALICIOUS
+#if ENABLE_MALICIOUS
 
 /**
  * If type is 2 This struct is used to store the attacked peers in a DLL
@@ -492,7 +492,7 @@ static struct GNUNET_PEERINFO_Handle *peerinfo_handle;
 static struct GNUNET_PEERINFO_NotifyContext *peerinfo_notify_handle;
 
 
-#ifdef ENABLE_MALICIOUS
+#if ENABLE_MALICIOUS
 /**
  * Type of malicious peer
  *
@@ -1379,6 +1379,7 @@ mq_notify_sent_cb (void *cls)
     if (0 == strncmp ("PUSH", pending_msg->type, 4))
       GNUNET_STATISTICS_update(stats, "# pushes sent", 1, GNUNET_NO);
     if (0 == strncmp ("PULL REQUEST", pending_msg->type, 12) &&
+                      NULL != map_single_hop &&
         GNUNET_NO == GNUNET_CONTAINER_multipeermap_contains (map_single_hop,
           &pending_msg->peer_ctx->peer_id))
       GNUNET_STATISTICS_update(stats,
@@ -2576,7 +2577,7 @@ insert_in_sampler (void *cls,
      * messages to it */
     //indicate_sending_intention (peer);
   }
-  #ifdef TO_FILE
+#ifdef TO_FILE
   sub->num_observed_peers++;
   GNUNET_CONTAINER_multipeermap_put
     (sub->observed_unique_peers,
@@ -2590,7 +2591,7 @@ insert_in_sampler (void *cls,
           sub->num_observed_peers,
           num_observed_unique_peers,
           1.0*num_observed_unique_peers/sub->num_observed_peers)
-  #endif /* TO_FILE */
+#endif /* TO_FILE */
 }
 
 
@@ -2675,11 +2676,23 @@ static void
 remove_peer (struct Sub *sub,
              const struct GNUNET_PeerIdentity *peer)
 {
-  (void) View_remove_peer (sub->view, peer);
-  CustomPeerMap_remove_peer (sub->pull_map, peer);
-  CustomPeerMap_remove_peer (sub->push_map, peer);
-  RPS_sampler_reinitialise_by_value (sub->sampler, peer);
-  destroy_peer (get_peer_ctx (sub->peer_map, peer));
+  (void) View_remove_peer (sub->view,
+                           peer);
+  CustomPeerMap_remove_peer (sub->pull_map,
+                             peer);
+  CustomPeerMap_remove_peer (sub->push_map,
+                             peer);
+  RPS_sampler_reinitialise_by_value (sub->sampler,
+                                     peer);
+  /* We want to destroy the peer now.
+   * Sometimes, it just seems that it's already been removed from the peer_map,
+   * so check the peer_map first. */
+  if (GNUNET_YES == check_peer_known (sub->peer_map,
+                                      peer))
+  {
+          destroy_peer (get_peer_ctx (sub->peer_map,
+                                      peer));
+  }
 }
 
 
@@ -2701,15 +2714,19 @@ clean_peer (struct Sub *sub,
     LOG (GNUNET_ERROR_TYPE_DEBUG,
         "Going to remove send channel to peer %s\n",
         GNUNET_i2s (peer));
-    #ifdef ENABLE_MALICIOUS
-    if (0 != GNUNET_CRYPTO_cmp_peer_identity (&attacked_peer, peer))
-      (void) destroy_sending_channel (get_peer_ctx (sub->peer_map, peer));
+    #if ENABLE_MALICIOUS
+    if (0 != GNUNET_CRYPTO_cmp_peer_identity (&attacked_peer,
+                                              peer))
+      (void) destroy_sending_channel (get_peer_ctx (sub->peer_map,
+                                                    peer));
     #else /* ENABLE_MALICIOUS */
-    (void) destroy_sending_channel (get_peer_ctx (sub->peer_map, peer));
+    (void) destroy_sending_channel (get_peer_ctx (sub->peer_map,
+                                                  peer));
     #endif /* ENABLE_MALICIOUS */
   }
 
-  if (GNUNET_NO == GNUNET_CONTAINER_multipeermap_contains (sub->peer_map, peer))
+  if (GNUNET_NO == GNUNET_CONTAINER_multipeermap_contains (sub->peer_map,
+                                                           peer))
   {
     /* Peer was already removed by callback on destroyed channel */
     LOG (GNUNET_ERROR_TYPE_WARNING,
@@ -2846,19 +2863,15 @@ new_sub (const struct GNUNET_HashCode *hash,
   {
     char *tmp_filename_valid_peers;
     char str_hash[105];
-    uint32_t len_filename_valid_peers;
 
-    (void) GNUNET_snprintf (str_hash, 105, GNUNET_h2s_full (hash));
-    tmp_filename_valid_peers = GNUNET_strdup (sub->filename_valid_peers);
-    GNUNET_free (sub->filename_valid_peers);
-    len_filename_valid_peers = strlen (tmp_filename_valid_peers) + 105; /* Len of full hash + 1 */
-    sub->filename_valid_peers = GNUNET_malloc (len_filename_valid_peers);
-    strncat (sub->filename_valid_peers,
-             tmp_filename_valid_peers,
-             len_filename_valid_peers);
-    strncat (sub->filename_valid_peers,
-             str_hash,
-             len_filename_valid_peers);
+    GNUNET_snprintf (str_hash,
+		     sizeof (str_hash),
+		     GNUNET_h2s_full (hash));
+    tmp_filename_valid_peers = sub->filename_valid_peers;
+    GNUNET_asprintf (&sub->filename_valid_peers,
+		     "%s%s",
+		     tmp_filename_valid_peers,
+		     str_hash);
     GNUNET_free (tmp_filename_valid_peers);
   }
   sub->peer_map = GNUNET_CONTAINER_multipeermap_create (4, GNUNET_NO);
@@ -2874,7 +2887,7 @@ new_sub (const struct GNUNET_HashCode *hash,
 
   /* Logging of internals */
   sub->file_name_view_log = store_prefix_file_name (&own_identity, "view");
-  #ifdef TO_FILE
+#ifdef TO_FILE
   sub->file_name_observed_log = store_prefix_file_name (&own_identity,
                                                        "observed");
   sub->file_name_push_recv = store_prefix_file_name (&own_identity,
@@ -2884,7 +2897,7 @@ new_sub (const struct GNUNET_HashCode *hash,
   sub->num_observed_peers = 0;
   sub->observed_unique_peers = GNUNET_CONTAINER_multipeermap_create (1,
                                                                     GNUNET_NO);
-  #endif /* TO_FILE */
+#endif /* TO_FILE */
 
   /* Set up data structures for gossip */
   sub->push_map = CustomPeerMap_create (4);
@@ -2915,8 +2928,10 @@ static void
 destroy_sub (struct Sub *sub)
 {
 #ifdef TO_FILE
-  char push_recv_str[1536] = ""; /* 256 * 6 (1 whitespace, 1 comma, up to 4 chars) */
-  char pull_delays_str[1536] = ""; /* 256 * 6 (1 whitespace, 1 comma, up to 4 chars) */
+#define SIZE_DUMP_FILE 1536 /* 256 * 6 (1 whitespace, 1 comma, up to 4 chars) */
+  char push_recv_str[SIZE_DUMP_FILE + 1] = "";
+  char pull_delays_str[SIZE_DUMP_FILE + 1] = "";
+  char *recv_str_iter;
 #endif /* TO_FILE */
   GNUNET_assert (NULL != sub);
   GNUNET_assert (NULL != sub->do_round_task);
@@ -2945,36 +2960,49 @@ destroy_sub (struct Sub *sub)
   sub->file_name_observed_log = NULL;
 
   /* Write push frequencies to disk */
+  recv_str_iter = push_recv_str;
   for (uint32_t i = 0; i < 256; i++)
   {
     char push_recv_str_tmp[8];
-    (void) snprintf (push_recv_str_tmp, 8, "%" PRIu32 "\n", sub->push_recv[i]);
-    (void) strncat (push_recv_str,
-                    push_recv_str_tmp,
-                    1535 - strnlen (push_recv_str, 1536));
+
+    GNUNET_snprintf (push_recv_str_tmp,
+		     sizeof (push_recv_str_tmp),
+		     "%" PRIu32 "\n",
+		     sub->push_recv[i]);
+    recv_str_iter = stpncpy (recv_str_iter,
+                             push_recv_str_tmp,
+                             6);
   }
-  (void) strncat (push_recv_str,
-                  "\n",
-                  1535 - strnlen (push_recv_str, 1536));
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Writing push stats to disk\n");
-  to_file_w_len (sub->file_name_push_recv, 1535, push_recv_str);
+  (void) stpcpy (recv_str_iter,
+                 "\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Writing push stats to disk\n");
+  to_file_w_len (sub->file_name_push_recv,
+                 SIZE_DUMP_FILE,
+                 push_recv_str);
   GNUNET_free (sub->file_name_push_recv);
   sub->file_name_push_recv = NULL;
 
   /* Write pull delays to disk */
+  recv_str_iter = pull_delays_str;
   for (uint32_t i = 0; i < 256; i++)
   {
     char pull_delays_str_tmp[8];
-    (void) snprintf (pull_delays_str_tmp, 8, "%" PRIu32 "\n", sub->pull_delays[i]);
-    (void) strncat (pull_delays_str,
-                    pull_delays_str_tmp,
-                    1535 - strnlen (pull_delays_str, 1536));
+
+    GNUNET_snprintf (pull_delays_str_tmp,
+		     sizeof (pull_delays_str_tmp),
+		     "%" PRIu32 "\n",
+		     sub->pull_delays[i]);
+    recv_str_iter = stpncpy (recv_str_iter,
+                             pull_delays_str_tmp,
+                             6);
   }
-  (void) strncat (pull_delays_str,
-                  "\n",
-                  1535 - strnlen (pull_delays_str, 1536));
+  (void) stpcpy (recv_str_iter,
+                 "\n");
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Writing pull delays to disk\n");
-  to_file_w_len (sub->file_name_pull_delays, 1535, pull_delays_str);
+  to_file_w_len (sub->file_name_pull_delays,
+                 SIZE_DUMP_FILE,
+                 pull_delays_str);
   GNUNET_free (sub->file_name_pull_delays);
   sub->file_name_pull_delays = NULL;
 
@@ -3028,8 +3056,11 @@ core_connects (void *cls,
   (void) cls;
   (void) mq;
 
-  GNUNET_CONTAINER_multipeermap_put (map_single_hop, peer, NULL,
-      GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
+  GNUNET_assert (GNUNET_YES ==
+		 GNUNET_CONTAINER_multipeermap_put (map_single_hop,
+						    peer,
+						    NULL,
+						    GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
   return NULL;
 }
 
@@ -3436,7 +3467,7 @@ handle_peer_push (void *cls,
     GNUNET_STATISTICS_update(stats, "# push message received", 1, GNUNET_NO);
   }
 
-  #ifdef ENABLE_MALICIOUS
+  #if ENABLE_MALICIOUS
   struct AttackedPeer *tmp_att_peer;
 
   if ( (1 == mal_type) ||
@@ -3512,7 +3543,7 @@ handle_peer_pull_request (void *cls,
     }
   }
 
-  #ifdef ENABLE_MALICIOUS
+  #if ENABLE_MALICIOUS
   if (1 == mal_type
       || 3 == mal_type)
   { /* Try to maximise representation */
@@ -3606,7 +3637,7 @@ handle_peer_pull_reply (void *cls,
   const struct GNUNET_PeerIdentity *peers;
   struct Sub *sub = channel_ctx->peer_ctx->sub;
   uint32_t i;
-#ifdef ENABLE_MALICIOUS
+#if ENABLE_MALICIOUS
   struct AttackedPeer *tmp_att_peer;
 #endif /* ENABLE_MALICIOUS */
 
@@ -3618,7 +3649,8 @@ handle_peer_pull_reply (void *cls,
                               "# pull reply messages received",
                               1,
                               GNUNET_NO);
-    if (GNUNET_NO == GNUNET_CONTAINER_multipeermap_contains (map_single_hop,
+    if (NULL != map_single_hop &&
+        GNUNET_NO == GNUNET_CONTAINER_multipeermap_contains (map_single_hop,
           &channel_ctx->peer_ctx->peer_id))
     {
       GNUNET_STATISTICS_update (stats,
@@ -3628,7 +3660,7 @@ handle_peer_pull_reply (void *cls,
     }
   }
 
-  #ifdef ENABLE_MALICIOUS
+  #if ENABLE_MALICIOUS
   // We shouldn't even receive pull replies as we're not sending
   if (2 == mal_type)
   {
@@ -3649,7 +3681,7 @@ handle_peer_pull_reply (void *cls,
          i,
          GNUNET_i2s (&peers[i]));
 
-    #ifdef ENABLE_MALICIOUS
+    #if ENABLE_MALICIOUS
     if ((NULL != att_peer_set) &&
         (1 == mal_type || 3 == mal_type))
     { /* Add attacked peer to local list */
@@ -3670,25 +3702,30 @@ handle_peer_pull_reply (void *cls,
     }
     #endif /* ENABLE_MALICIOUS */
     /* Make sure we 'know' about this peer */
-    (void) insert_peer (channel_ctx->peer_ctx->sub, &peers[i]);
+    (void) insert_peer (channel_ctx->peer_ctx->sub,
+                        &peers[i]);
 
     if (GNUNET_YES == check_peer_valid (channel_ctx->peer_ctx->sub->valid_peers,
                                         &peers[i]))
     {
-      CustomPeerMap_put (channel_ctx->peer_ctx->sub->pull_map, &peers[i]);
+      CustomPeerMap_put (channel_ctx->peer_ctx->sub->pull_map,
+                         &peers[i]);
     }
     else
     {
       schedule_operation (channel_ctx->peer_ctx,
                           insert_in_pull_map,
                           channel_ctx->peer_ctx->sub); /* cls */
-      (void) issue_peer_online_check (channel_ctx->peer_ctx->sub, &peers[i]);
+      (void) issue_peer_online_check (channel_ctx->peer_ctx->sub,
+                                      &peers[i]);
     }
   }
 
-  UNSET_PEER_FLAG (get_peer_ctx (channel_ctx->peer_ctx->sub->peer_map, sender),
+  UNSET_PEER_FLAG (get_peer_ctx (channel_ctx->peer_ctx->sub->peer_map,
+                                 sender),
                    Peers_PULL_REPLY_PENDING);
-  clean_peer (channel_ctx->peer_ctx->sub, sender);
+  clean_peer (channel_ctx->peer_ctx->sub,
+              sender);
 
   GNUNET_break_op (check_peer_known (channel_ctx->peer_ctx->sub->peer_map,
                                      sender));
@@ -3812,7 +3849,7 @@ send_push (struct PeerContext *peer_ctx)
 }
 
 
-#ifdef ENABLE_MALICIOUS
+#if ENABLE_MALICIOUS
 
 
 /**
@@ -4534,7 +4571,7 @@ shutdown_task (void *cls)
   }
   GNUNET_CADET_disconnect (cadet_handle);
   cadet_handle = NULL;
-#ifdef ENABLE_MALICIOUS
+#if ENABLE_MALICIOUS
   struct AttackedPeer *tmp_att_peer;
   GNUNET_array_grow (mal_peers,
                      num_mal_peers,
@@ -4647,7 +4684,7 @@ run (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "STARTING SERVICE (rps) for peer [%s]\n",
               GNUNET_i2s (&own_identity));
-#ifdef ENABLE_MALICIOUS
+#if ENABLE_MALICIOUS
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
               "Malicious execution compiled in.\n");
 #endif /* ENABLE_MALICIOUS */
@@ -4740,7 +4777,7 @@ GNUNET_SERVICE_MAIN
    GNUNET_MESSAGE_TYPE_RPS_CS_SEED,
    struct GNUNET_RPS_CS_SeedMessage,
    NULL),
-#ifdef ENABLE_MALICIOUS
+#if ENABLE_MALICIOUS
  GNUNET_MQ_hd_var_size (client_act_malicious,
    GNUNET_MESSAGE_TYPE_RPS_ACT_MALICIOUS,
    struct GNUNET_RPS_CS_ActMaliciousMessage,

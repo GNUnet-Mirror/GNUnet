@@ -526,7 +526,7 @@ GNUNET_HELLO_extract_address (const void *raw,
  *
  * @param address a peer's address
  * @return NULL if the address is mal-formed, otherwise the prefix
- */ 
+ */
 char *
 GNUNET_HELLO_address_to_prefix (const char *address);
 

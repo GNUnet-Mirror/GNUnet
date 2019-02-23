@@ -80,41 +80,36 @@ get_file_handle (const char *name)
   if (NULL == open_files)
   {
     open_files = GNUNET_CONTAINER_multihashmap_create (16,
-        GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
+						       GNUNET_NO);
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Created map of open files.\n");
   }
   GNUNET_CRYPTO_hash (name,
-                      strnlen (name,
-                               512),
+                      strlen (name),
                       &hash);
-  if (GNUNET_NO == GNUNET_CONTAINER_multihashmap_contains (open_files,
-                                                           &hash))
-  {
-    fh = GNUNET_DISK_file_open (name,
-                                GNUNET_DISK_OPEN_WRITE |
-                                GNUNET_DISK_OPEN_CREATE |
-                                GNUNET_DISK_OPEN_APPEND,
-                                GNUNET_DISK_PERM_USER_READ |
-                                GNUNET_DISK_PERM_USER_WRITE |
-                                GNUNET_DISK_PERM_GROUP_READ);
-    if (NULL == fh)
-    {
-      LOG (GNUNET_ERROR_TYPE_ERROR,
-           "Opening file `%s' failed.\n",
-           name);
-      GNUNET_assert (0);
-    }
-    GNUNET_CONTAINER_multihashmap_put (open_files,
-                                       &hash,
-                                       fh,
-                                       GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
+  if (NULL != (fh = GNUNET_CONTAINER_multihashmap_get (open_files,
+						       &hash)))
     return fh;
-  }
-  else
+  fh = GNUNET_DISK_file_open (name,
+			      GNUNET_DISK_OPEN_WRITE |
+			      GNUNET_DISK_OPEN_CREATE |
+			      GNUNET_DISK_OPEN_APPEND,
+			      GNUNET_DISK_PERM_USER_READ |
+			      GNUNET_DISK_PERM_USER_WRITE |
+			      GNUNET_DISK_PERM_GROUP_READ);
+  if (NULL == fh)
   {
-    fh = GNUNET_CONTAINER_multihashmap_get (open_files,
-                                            &hash);
-    return fh;
+    LOG (GNUNET_ERROR_TYPE_ERROR,
+	 "Opening file `%s' failed.\n",
+	 name);
+    GNUNET_assert (0);
   }
+  GNUNET_assert (GNUNET_YES ==
+		 GNUNET_CONTAINER_multihashmap_put (open_files,
+						    &hash,
+						    fh,
+						    GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
+  return fh;
 }
 
 
@@ -162,6 +157,7 @@ close_all_files ()
                                                close_files_iter,
                                                NULL);
   GNUNET_CONTAINER_multihashmap_destroy (open_files);
+  open_files = NULL;
   return ret;
 }
 
@@ -491,6 +487,7 @@ static int ensure_folder_exist (void)
   }
   if (GNUNET_YES != GNUNET_DISK_directory_test ("/tmp/rps/", GNUNET_NO))
   {
+    LOG (GNUNET_ERROR_TYPE_ERROR, "Could not create directory `/tmp/rps'\n");
     return GNUNET_SYSERR;
   }
   return GNUNET_YES;

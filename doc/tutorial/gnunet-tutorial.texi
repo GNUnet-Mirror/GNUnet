@@ -68,14 +68,14 @@ GNUnet can be used to develop a Peer-to-Peer application.
 Detailed installation instructions for
 various operating systems and a detailed list of all
 dependencies can be found on our website at
-@uref{https://gnunet.org/installation} and in our
+@uref{https://old.gnunet.org/installation} and in our
 Reference Documentation (GNUnet Handbook).
 
 Please read this tutorial carefully since every single step is
 important, and do not hesitate to contact the GNUnet team if you have
 any questions or problems! Visit this link in your webbrowser to learn
 how to contact the GNUnet team:
-@uref{https://gnunet.org/contact_information}
+@uref{https://gnunet.org/en/contact.html}
 
 @menu
 
@@ -192,7 +192,7 @@ $ mv gnunet-@value{VERSION} gnunet
 @noindent
 However, please note that stable versions can be very outdated.
 As a developer you are @b{strongly} encouraged to use the version
-from @uref{https://gnunet.org/git/, git}.
+from @uref{https://git.gnunet.org/, the git server}.
 
 @node  Installing Build Tool Chain and Dependencies
 @section Installing Build Tool Chain and Dependencies
@@ -209,7 +209,7 @@ Please check the notes at the end of the configure process about
 required dependencies.
 
 For GNUnet bootstrapping support and the HTTP(S) plugin you should
-install @uref{https://gnunet.org/gnurl, libgnurl}.
+install @uref{https://gnunet.org/en/gnurl.html, libgnurl}.
 For the filesharing service you should install at least one of the
 datastore backends (MySQL, SQlite and PostgreSQL are supported).
 
@@ -230,7 +230,7 @@ This is required for obtaining the repository, which is achieved with
 the following command:
 
 @example
-$ git clone https://gnunet.org/git/gnunet
+$ git clone https://git.gnunet.org/gnunet
 @end example
 
 @noindent
@@ -707,9 +707,9 @@ With the testbed API, a sample test case can be structured as follows:
 
 @noindent
 The source code for the above listing can be found at
-@uref{https://gnunet.org/git/gnunet.git/tree/doc/
-documentation/testbed_test.c}
-or in the @file{doc/documentation/} folder of your repository check-out.
+@c FIXME: This is not the correct URL. Where is the file?
+@uref{https://git.gnunet.org/gnunet.git/tree/doc/documentation/testbed_test.c}
+or in the @file{doc/} folder of your repository check-out.
 After installing GNUnet, the above source code can be compiled as:
 
 @example
@@ -800,7 +800,7 @@ a template build system for writing GNUnet extensions in C. It can be
 obtained as follows:
 
 @example
-$ git clone https://gnunet.org/git/gnunet-ext
+$ git clone https://git.gnunet.org/gnunet-ext
 $ cd gnunet-ext/
 $ ./bootstrap
 $ ./configure --prefix=$PREFIX --with-gnunet=$PREFIX
@@ -1550,7 +1550,7 @@ The current log level is configured using the @code{$GNUNET_FORCE_LOG}
 environmental variable. The @code{DEBUG} level is only available if
 @command{--enable-logging=verbose} was used when running
 @command{configure}. More details about logging can be found under
-@uref{https://gnunet.org/logging}.
+@uref{https://old.gnunet.org/logging}.
 
 You should also probably enable the creation of core files, by setting
 @code{ulimit}, and echo'ing @code{1} into
