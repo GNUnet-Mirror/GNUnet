@@ -43,7 +43,7 @@ do
 done
 echo "================END====================" >> regression.$H
 
-if [ $KEEP == 0]
+if [ $KEEP = 0]
 then
   rm regression.$H.$RUN*
   rm regression.$H
