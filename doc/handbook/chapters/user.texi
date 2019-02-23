@@ -1991,7 +1991,7 @@ Like other IdPs, reclaimID features an (optional) OpenID-Connect 1.0-compliant p
 * Managing Attributes::
 * Sharing Attributes with Third Parties::
 * Revoking Authorizations of Third Parties::
-* Using the OpenID-Connect IdP::
+* OpenID Connect::
 @end menu
 
 @node Managing Attributes
@@ -2066,131 +2066,61 @@ Please note that if the third party has previously accessed the attribute, there
 As such, only access to updated data in the future can be revoked.
 This behaviour is _exactly the same_ as with other IdPs.
 
-@node Using the OpenID-Connect IdP
-@subsection Using the OpenID-Connect IdP
+@node OpenID Connect
+@subsection OpenID Connect
 
-@menu
-* Setting up reclaim.id::
-* For Users::
-* For Service Providers::
-@end menu
+There is an OpenID Connect API for use with reclaimID.
+However, its use is quite complicated to setup.
+As a proof-of-concept, you can look at https://gitlab.com/reclaimid.
 
-
-@node Setting up reclaim.id
-@subsubsection Setting up reclaim.id
+In the PoC and by convention for reclaimID, the OpenID Connect Endpoints are
+found at:
 
 @example
-$ gnunet-identity -C id
-$ openssl genrsa -des3 -passout pass:xxxx -out server.pass.key 2048
-$ openssl rsa -passin pass:xxxx -in server.pass.key -out /etc/reclaim/reclaim.id.key
-$ rm server.pass.key
-$ openssl req -new -key /etc/reclaim/reclaim.id.key -out server.csr \
-  -subj "/CN=reclaim.id.local"
-$ openssl x509 -req -days 365 -in server.csr -signkey /etc/reclaim/reclaim.id.key -out /etc/reclaim/reclaim.id.crt
-$ openssl x509 -in /etc/reclaim/reclaim.id.crt -out /etc/reclaim/reclaim.id.der -outform DER
-$ HEXCERT=`xxd -p /etc/reclaim/reclaim.id.der | tr -d '\n'`
-$ BOXVALUE="6 443 52 3 0 0 $HEXCERT"
-$ gnunet-namestore -z id -a -n reclaim -t A -V "127.0.0.1" -e 1d -p
-$ gnunet-namestore -z id -a -n reclaim -t LEHO -V "reclaim.id.local" -e 1d -p
-$ gnunet-namestore -z id -a -n reclaim -t BOX -V "$BOXVALUE" -e 1d -p
+http://api.reclaim/openid/authorize
+http://api.reclaim/openid/token
+http://api.reclaim/openid/userinfo
+http://api.reclaim/openid/login
 @end example
 
-NGINX setup:
-@example
-server @{
-    listen 443;
-    server_name reclaim.id.local;
-    ssl on;
-    ssl_certificate /etc/reclaim/reclaim.id.crt;
-    ssl_certificate_key /etc/reclaim/reclaim.id.key;
-    ssl_session_timeout 30m;
-    ssl_protocols TLSv1 TLSv1.1 TLSv1.2;
-    ssl_session_cache shared:SSL:10m;
-
-    location /api @{
-      rewrite    /api/(.*) /$1 break;
-      proxy_pass http://127.0.0.1:7776;
-    @}
-@}
-@end example
-
-This will expose the REST API of GNUnet at https://reclaim.id/api.
-
-@node For Users
-@subsubsection For Users
-
-To use the OpenID Connect Identity Provider as an end user, you must first intall the User Interface from TODOINSERTURLHERE.
-
-Start the user interface using:
+The token endpoint is protected using HTTP basic authentication.
+You can authenticate using any username and the password configured under:
 
 @example
-$ yarn run build --prod
+$ gnunet-config -s reclaim-rest-plugin -o PSW
 @end example
 
-Now setup a webserver to serve the compiled website under "dist/".
-
-Now we can add the user interfce to our NGINX configuraiton:
+The authorize endpoint is protected using a Cookie which can be obtained through
+a request against the login endpoint.
+This flow is meant to be used in the context of the OpenID Connect authorization
+flow to collect user consent interactively.
+Without a Cookie, the authorize endpoint redirects to a URI configured under:
 
 @example
-server @{
-...
-    location / @{
-      proxy_pass http://<whereever you serve the UI>;
-    @}
-@}
+$ gnunet-config -s reclaim-rest-plugin -o ADDRESS
 @end example
 
-You can thest your setup by accessing https://reclaim.id in your browser through the GNS proxy.
+Our PoC includes a user interface (https://gitlab.com/reclaimid) which
+integrates this process is an OpenID Connect compatible fashion.
 
-@node For Service Providers
-@subsubsection For Service Providers
+The token endpoint is protected using OAuth2 and expects the grant
+which is retrieved from the authorization endpoint according to the standard.
 
-To setup an OpenID Connect client, it must first be registered.
-In reclaim, client registration is done by creating a client identity and adding the redirect URI and client description into its namespace:
+The userinfo endpoint is protected using OAuth2 and expects a bearer access
+token which is retrieved from a token request.
+
+In order to create and register a client you need to execute the following
+steps:
 
 @example
-$ gnunet-identity -C <rp_name>
-$ gnunet-namestore -z <rp_name> -a -n "+" -t RECLAIM_OIDC_REDIRECT -V <redirect_uri> -e 1d -p
-$ gnunet-namestore -z <rp_name> -a -n "+" -t RECLAIM_OIDC_CLIENT -V "My OIDC Client" -e 1d -p
+$ gnunet-identity -C <client_name>
+$ gnunet-namestore -z <client_name> -a -n "@@" -t RECLAIM_OIDC_REDIRECT -V <redirect_uri> -e 1d -p
+$ gnunet-namestore -z <client_name> -a -n "@@" -t RECLAIM_OIDC_CLIENT -V "My OIDC Client" -e 1d -p
 @end example
 
-You can now use the OpenID Connect REST endpoints exposed by reclaim.
-
-To request authorization from a user, your webapplication should initiate the OpenID Connect Authorization Flow like this:
-@example
-$ https://reclaim.id/openid/authorize?redirect_uri=<redirect_uri>&client_id=<RP_PKEY>&response_type=code&nonce=1234&scope=attribute1 attribute2 ...
-@end example
-
-You should choose a random number for the nonce parameter. The RP_KEY is the public key corresponding to the <rp_name> identity.
-
-The redirect URI is the URI that you expect the user to return to within the OpenID Connect authorization code flow.
-
-When the user returns to your redirect URI, you can exchange it for an access token at the OpenID Token endpoint.
-The authentication at the token endpoint is performed using the configured password (PSW) in the reclaim configuration (reclaim.conf). To set it execute:
-
-@example
-$ gnunet-config -s reclaim-rest-plugin -o PSW -V <secret>
-@end example
-
-To retrieve the access token, you can access the token endpoint through the proxy like this:
-
-@example
-$ curl --socks5-hostname 127.0.0.1:7777 \
-       -X POST \
-       https://reclaim.id/openid/token?grant_type=authorization_code&redirect_uri=<redirect_uri>&code=<code> \
-       -u <RP_KEY>:<secret>
-@end example
-
-If successful, this will return a JSON object containing an ID Token and Access Token.
-The Access Token can be used to access the OpenID Connect userinfo endpoint:
-
-@example
-$ curl --socks5-hostname 127.0.0.1:7777 \
-       -X POST \
-       https://reclaim.id/openid/userinfo\
-       -H 'Authorization: Bearer <access_token>'
-@end example
-
+The client_id will be the public key of the client.
+As a redirect URI, you may use any globally unique DNS or GNS URI.
+The client description will be displayed to the user on authorization.
 
 
 @node Using the Virtual Public Network
