@@ -86,7 +86,8 @@ DISTCLEANFILES = 						\
 
 # XXX: is this sed invocation portable enough? otherwise try tr(1).
 version.texi/replacement: version.texi/replacement/revert
-	@sed -i "s/GPACKAGE_VERSION/$(PACKAGE_VERSION)/g" gversion.texi
+	@sed "s/GPACKAGE_VERSION/$(PACKAGE_VERSION)/g" gversion.texi > gversion.texi.tmp
+	@mv gversion.texi.tmp gversion.texi
 
 version.texi/replacement/revert:
 	@echo "@set VERSION GPACKAGE_VERSION" > gversion.texi
