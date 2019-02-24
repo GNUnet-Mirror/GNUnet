@@ -6,11 +6,6 @@
 @c @exampleindent 2
 @c %**end of header
 
-@c macros for backwards compatibility
-@macro geq{}
->=
-@end macro
-
 @include version.texi
 
 @copying
@@ -252,8 +247,8 @@ Git branch ``master'' checked out.
 Note: This section is a duplication of the more in depth
 @pxref{GNUnet Installation Handbook, The GNUnet Reference Documentation,, gnunet, The GNUnet Reference Documentation}.
 
-First, you need to install libgnupgerror @geq{} 1.27 and
-libgcrypt @geq{} 1.7.6:
+First, you need to install libgnupgerror 1.27 (or later) and
+libgcrypt 1.7.6 (or later):
 
 @example
 $ export GNUPGFTP="https://www.gnupg.org/ftp/gcrypt"
