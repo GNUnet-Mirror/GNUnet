@@ -98,9 +98,9 @@ end (void *cls)
     GNUNET_free (privkey2);
     privkey2 = NULL;
   }
-  GNUNET_free (s_name_1);
-  GNUNET_free (s_name_2);
-  GNUNET_free (s_name_3);
+  GNUNET_free_non_null (s_name_1);
+  GNUNET_free_non_null (s_name_2);
+  GNUNET_free_non_null (s_name_3);
   if (NULL != s_rd_1)
   {
     GNUNET_free ((void *)s_rd_1->data);
@@ -466,18 +466,16 @@ run (void *cls,
 }
 
 
+#include "test_common.c"
+
+
 int
 main (int argc, char *argv[])
 {
   const char *plugin_name;
   char *cfg_name;
 
-  plugin_name = GNUNET_TESTING_get_testname_from_underscore (argv[0]);
-  GNUNET_asprintf (&cfg_name,
-                   "test_namestore_api_%s.conf",
-                   plugin_name);
-  GNUNET_DISK_purge_cfg_dir (cfg_name,
-                             "GNUNET_TEST_HOME");
+  SETUP_CFG (plugin_name, cfg_name);
   res = 1;
   if (0 !=
       GNUNET_TESTING_peer_run ("test-namestore-api-zone-iteration",

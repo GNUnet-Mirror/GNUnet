@@ -283,6 +283,9 @@ run (void *cls,
 }
 
 
+#include "test_common.c"
+
+
 int
 main (int argc,
       char *argv[])
@@ -290,13 +293,8 @@ main (int argc,
   const char *plugin_name;
   char *cfg_name;
 
-  plugin_name = GNUNET_TESTING_get_testname_from_underscore (argv[0]);
-  GNUNET_asprintf (&cfg_name,
-                   "test_namestore_api_%s.conf",
-                   plugin_name);
+  SETUP_CFG (plugin_name, cfg_name);
   res = 1;
-  GNUNET_DISK_purge_cfg_dir (cfg_name,
-                             "GNUNET_TEST_HOME");
   if (0 !=
       GNUNET_TESTING_peer_run ("test-namestore-api-store-update",
                                cfg_name,

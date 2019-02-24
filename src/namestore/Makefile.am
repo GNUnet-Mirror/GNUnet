@@ -662,6 +662,7 @@ check_SCRIPTS = \
   test_namestore_delete.sh
 
 EXTRA_DIST = \
+  test_common.c \
   test_namestore_api.conf \
   test_namestore_api_postgres.conf \
   test_namestore_api_sqlite.conf \
