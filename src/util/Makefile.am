@@ -124,7 +124,11 @@ libgnunetutil_la_SOURCES = \
 	proc_compat.c
 
 if HAVE_LIBATOMIC
+if DARWIN
+	LIBATOMIC=
+else
   LIBATOMIC= -latomic
+endif
 else
   LIBATOMIC=
 endif
