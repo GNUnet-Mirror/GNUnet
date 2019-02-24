@@ -705,7 +705,14 @@ then
 	AM_CONDITIONAL(HAVE_GLIBCNSS, false)
 	AC_MSG_WARN([No GNU libc nss header, will not build NSS plugin])
 else
-	AM_CONDITIONAL(HAVE_GLIBCNSS, true)
+	NSS_INCLUDES="
+	#include <nss.h>
+	"
+	AC_CHECK_DECL([NSS_STATUS_UNAVAIL],
+		[AM_CONDITIONAL(HAVE_GLIBCNSS, true)],
+		[AM_CONDITIONAL(HAVE_GLIBCNSS, false)	
+		 AC_MSG_WARN([No nss header fails to define NSS_STATUS_UNAVAIl, will not build NSS plugin])],
+		[$NSS_INCLUDES])
 fi
 
 
