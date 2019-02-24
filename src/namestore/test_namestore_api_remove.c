@@ -127,6 +127,7 @@ put_cont (void *cls,
   const char *name = cls;
 
   GNUNET_assert (NULL != cls);
+  nsqe = NULL;
   if (GNUNET_SYSERR == success)
   {
     GNUNET_break (0);
