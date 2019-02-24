@@ -29,7 +29,7 @@
 
 static struct GNUNET_TIME_Absolute start;
 
-#define l 50
+#define l 500
 
 struct TestSig
 {

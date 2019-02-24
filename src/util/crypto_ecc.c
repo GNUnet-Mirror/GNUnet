@@ -789,19 +789,40 @@ GNUNET_CRYPTO_cmp_peer_identity (const struct GNUNET_PeerIdentity *first,
 static gcry_sexp_t
 data_to_eddsa_value (const struct GNUNET_CRYPTO_EccSignaturePurpose *purpose)
 {
-  struct GNUNET_HashCode hc;
   gcry_sexp_t data;
   int rc;
 
+#if 1
+  struct GNUNET_HashCode hc;
+  
+  GNUNET_CRYPTO_hash (purpose,
+		      ntohl (purpose->size),
+		      &hc);
+  if (0 != (rc = gcry_sexp_build (&data, NULL,
+				  "(data(flags eddsa)(hash-algo %s)(value %b))",
+				  "sha512",
+				  (int)sizeof (hc),
+				  &hc)))
+  {
+    LOG_GCRY (GNUNET_ERROR_TYPE_ERROR,
+	      "gcry_sexp_build",
+	      rc);
+    return NULL;
+  }
+#else
   GNUNET_CRYPTO_hash (purpose, ntohl (purpose->size), &hc);
   if (0 != (rc = gcry_sexp_build (&data, NULL,
 				  "(data(flags eddsa)(hash-algo %s)(value %b))",
 				  "sha512",
-				  (int)sizeof (hc), &hc)))
+				  ntohl (purpose->size),
+				  purpose)))
   {
-    LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_sexp_build", rc);
+    LOG_GCRY (GNUNET_ERROR_TYPE_ERROR,
+	      "gcry_sexp_build",
+	      rc);
     return NULL;
   }
+#endif    
   return data;
 }
 
@@ -816,19 +837,38 @@ data_to_eddsa_value (const struct GNUNET_CRYPTO_EccSignaturePurpose *purpose)
 static gcry_sexp_t
 data_to_ecdsa_value (const struct GNUNET_CRYPTO_EccSignaturePurpose *purpose)
 {
-  struct GNUNET_HashCode hc;
   gcry_sexp_t data;
   int rc;
 
-  GNUNET_CRYPTO_hash (purpose, ntohl (purpose->size), &hc);
+#if 1
+  struct GNUNET_HashCode hc;
+
+  GNUNET_CRYPTO_hash (purpose,
+		      ntohl (purpose->size),
+		      &hc);
   if (0 != (rc = gcry_sexp_build (&data, NULL,
 				  "(data(flags rfc6979)(hash %s %b))",
 				  "sha512",
 				  (int)sizeof (hc), &hc)))
   {
-    LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_sexp_build", rc);
+    LOG_GCRY (GNUNET_ERROR_TYPE_ERROR,
+	      "gcry_sexp_build",
+	      rc);
     return NULL;
   }
+#else
+  if (0 != (rc = gcry_sexp_build (&data, NULL,
+				  "(data(flags rfc6979)(hash %s %b))",
+				  "sha512",
+				  ntohl (purpose->size),
+				  purpose)))
+  {
+    LOG_GCRY (GNUNET_ERROR_TYPE_ERROR,
+	      "gcry_sexp_build",
+	      rc);
+    return NULL;
+  }
+#endif
   return data;
 }
 
@@ -877,8 +917,12 @@ GNUNET_CRYPTO_ecdsa_sign (const struct GNUNET_CRYPTO_EcdsaPrivateKey *priv,
     return GNUNET_SYSERR;
   }
   gcry_sexp_release (sig_sexp);
-  GNUNET_CRYPTO_mpi_print_unsigned (sig->r, sizeof (sig->r), rs[0]);
-  GNUNET_CRYPTO_mpi_print_unsigned (sig->s, sizeof (sig->s), rs[1]);
+  GNUNET_CRYPTO_mpi_print_unsigned (sig->r,
+				    sizeof (sig->r),
+				    rs[0]);
+  GNUNET_CRYPTO_mpi_print_unsigned (sig->s,
+				    sizeof (sig->s),
+				    rs[1]);
   gcry_mpi_release (rs[0]);
   gcry_mpi_release (rs[1]);
 

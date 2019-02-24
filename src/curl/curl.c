@@ -426,6 +426,7 @@ download_get_result (struct GNUNET_CURL_DownloadBuffer *db,
   return json;
 }
 
+
 /**
  * Add custom request header.
  *
@@ -444,6 +445,7 @@ GNUNET_CURL_append_header (struct GNUNET_CURL_Context *ctx,
 
   return GNUNET_OK;
 }
+
 
 /**
  * Run the main event loop for the Taler interaction.
