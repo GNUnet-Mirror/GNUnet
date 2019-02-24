@@ -1037,6 +1037,12 @@ process_get (const char *hostname,
 {
   char fqdn[255];
 
+  if (GNUNET_NO !=
+      try_cache (hostname,
+                 record_type,
+                 client_request_id,
+                 client))
+    return;
   if (  (NULL != my_domain) &&
         (NULL == strchr (hostname,
                          (unsigned char) '.')) &&
@@ -1152,6 +1158,9 @@ handle_get (void *cls,
   {
     /* IP from hostname */
     hostname = GNUNET_strdup ((const char *) &msg[1]);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		"Client asks to resolve `%s'\n",
+		hostname);
     switch (af)
     {
       case AF_UNSPEC:
