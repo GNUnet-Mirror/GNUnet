@@ -3,14 +3,15 @@ docdir = $(datadir)/doc/gnunet/
 
 #DOT_FILES = images/$(wildcard *.dot)
 
-#DOT_VECTOR_GRAPHICS =								\
-#	$(DOT_FILES:%.dot=%.eps)						\
+#DOT_VECTOR_GRAPHICS =						\
+#	$(DOT_FILES:%.dot=%.eps)				\
 #	$(DOT_FILES:%.dot=%.pdf)
 
-AM_MAKEINFOHTMLFLAGS = --no-split --css-ref=docstyle.css
+# See ../handbook/Makefile.am comment!
+AM_MAKEINFOHTMLFLAGS = --no-split --css-include=docstyle.css
 
-#DOT_OPTIONS =									\
-#	-Gratio=.9 -Gnodesep=.005 -Granksep=.00005				\
+#DOT_OPTIONS =							\
+#	-Gratio=.9 -Gnodesep=.005 -Granksep=.00005		\
 #	-Nfontsite=9 -Nheight=.1 -Nwidth=.1
 
 # .dot.png:
@@ -36,7 +37,7 @@ AM_MAKEINFOHTMLFLAGS = --no-split --css-ref=docstyle.css
 # dvi-local: ps-local
 
 
-gnunet_tutorial_examples =					\
+gnunet_tutorial_examples =						\
 	examples/001.c							\
 	examples/002.c							\
 	examples/003.c							\
@@ -50,7 +51,7 @@ gnunet_tutorial_examples =					\
 	examples/011.c							\
 	examples/012.c							\
 	examples/013.c							\
-	examples/013.1.c							\
+	examples/013.1.c						\
 	examples/014.c							\
 	examples/015.c							\
 	examples/016.c							\
