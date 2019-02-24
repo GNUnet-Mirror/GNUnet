@@ -792,6 +792,7 @@ data_to_eddsa_value (const struct GNUNET_CRYPTO_EccSignaturePurpose *purpose)
   gcry_sexp_t data;
   int rc;
 
+/* SEE #5398 */
 #if 1
   struct GNUNET_HashCode hc;
   
@@ -840,6 +841,7 @@ data_to_ecdsa_value (const struct GNUNET_CRYPTO_EccSignaturePurpose *purpose)
   gcry_sexp_t data;
   int rc;
 
+/* See #5398 */
 #if 1
   struct GNUNET_HashCode hc;
 
