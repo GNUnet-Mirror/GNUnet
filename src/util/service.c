@@ -514,7 +514,7 @@ do_send (void *cls)
   const char *buf;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "service: sending message with type %u",
+       "service: sending message with type %u\n",
        ntohs(client->msg->type));
 
 
