@@ -64,7 +64,7 @@ close_all_files ();
  * This function is used to facilitate writing important information to disk
  */
 #ifdef TO_FILE
-#define to_file(file_name, ...) do {GNUNET_assert (NULL != file_name);\
+#define to_file(file_name, ...) do { if (NULL == file_name) { GNUNET_break(0); return;} \
     char tmp_buf[512] = "";\
     int size;\
     size = GNUNET_snprintf(tmp_buf,sizeof(tmp_buf),__VA_ARGS__);\
