@@ -283,6 +283,20 @@ struct AttackedPeer
 #endif /* ENABLE_MALICIOUS */
 
 /**
+ * @brief This number determines the number of slots for files that represent
+ * histograms
+ */
+#define HISTOGRAM_FILE_SLOTS 32
+
+/**
+ * @brief The size (in bytes) a file needs to store the histogram
+ *
+ * Per slot: 1 newline, up to 4 chars,
+ * Additionally: 1 null termination
+ */
+#define SIZE_DUMP_FILE (HISTOGRAM_FILE_SLOTS * 5) + 1
+
+/**
  * @brief One Sub.
  *
  * Essentially one instance of brahms that only connects to other instances
@@ -357,16 +371,6 @@ struct Sub
   uint32_t num_observed_peers;
 
   /**
-   * @brief File name to log number of pushes per round to
-   */
-  char *file_name_push_recv;
-
-  /**
-   * @brief File name to log number of pushes per round to
-   */
-  char *file_name_pull_delays;
-
-  /**
    * @brief Multipeermap (ab-) used to count unique peer_ids
    */
   struct GNUNET_CONTAINER_MultiPeerMap *observed_unique_peers;
@@ -418,7 +422,16 @@ struct Sub
    *
    * Number at index i represents the number of rounds with i observed pushes.
    */
-  uint32_t push_recv[256];
+  uint32_t push_recv[HISTOGRAM_FILE_SLOTS];
+
+  /**
+   * @brief Histogram of deltas between the expected and actual number of
+   * received pushes.
+   *
+   * As half of the entries are expected to be negative, this is shifted by
+   * #HISTOGRAM_FILE_SLOTS/2.
+   */
+  uint32_t push_delta[HISTOGRAM_FILE_SLOTS];
 
   /**
    * @brief Number of pull replies with this delay measured in rounds.
@@ -426,7 +439,7 @@ struct Sub
    * Number at index i represents the number of pull replies with a delay of i
    * rounds.
    */
-  uint32_t pull_delays[256];
+  uint32_t pull_delays[HISTOGRAM_FILE_SLOTS];
 };
 
 
@@ -2890,10 +2903,6 @@ new_sub (const struct GNUNET_HashCode *hash,
 #ifdef TO_FILE
   sub->file_name_observed_log = store_prefix_file_name (&own_identity,
                                                        "observed");
-  sub->file_name_push_recv = store_prefix_file_name (&own_identity,
-                                                     "push_recv");
-  sub->file_name_pull_delays = store_prefix_file_name (&own_identity,
-                                                       "pull_delays");
   sub->num_observed_peers = 0;
   sub->observed_unique_peers = GNUNET_CONTAINER_multipeermap_create (1,
                                                                     GNUNET_NO);
@@ -2919,6 +2928,50 @@ new_sub (const struct GNUNET_HashCode *hash,
 }
 
 
+#ifdef TO_FILE
+/**
+ * @brief Write all numbers in the given array into the given file
+ *
+ * Single numbers devided by a newline
+ *
+ * @param hist_array[] the array to dump
+ * @param file_name file to dump into
+ */
+static void
+write_histogram_to_file (const uint32_t hist_array[],
+                         const char *file_name)
+{
+  char collect_str[SIZE_DUMP_FILE + 1] = "";
+  char *recv_str_iter;
+  char *file_name_full;
+
+  recv_str_iter = collect_str;
+  file_name_full = store_prefix_file_name (&own_identity,
+                                           file_name);
+  for (uint32_t i = 0; i < HISTOGRAM_FILE_SLOTS; i++)
+  {
+    char collect_str_tmp[8];
+
+    GNUNET_snprintf (collect_str_tmp,
+		     sizeof (collect_str_tmp),
+		     "%" PRIu32 "\n",
+		     hist_array[i]);
+    recv_str_iter = stpncpy (recv_str_iter,
+                             collect_str_tmp,
+                             6);
+  }
+  (void) stpcpy (recv_str_iter,
+                 "\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Writing push stats to disk\n");
+  to_file_w_len (file_name_full,
+                 SIZE_DUMP_FILE,
+                 collect_str);
+  GNUNET_free (file_name_full);
+}
+#endif /* TO_FILE */
+
+
 /**
  * @brief Destroy Sub.
  *
@@ -2927,12 +2980,6 @@ new_sub (const struct GNUNET_HashCode *hash,
 static void
 destroy_sub (struct Sub *sub)
 {
-#ifdef TO_FILE
-#define SIZE_DUMP_FILE 1536 /* 256 * 6 (1 whitespace, 1 comma, up to 4 chars) */
-  char push_recv_str[SIZE_DUMP_FILE + 1] = "";
-  char pull_delays_str[SIZE_DUMP_FILE + 1] = "";
-  char *recv_str_iter;
-#endif /* TO_FILE */
   GNUNET_assert (NULL != sub);
   GNUNET_assert (NULL != sub->do_round_task);
   GNUNET_SCHEDULER_cancel (sub->do_round_task);
@@ -2960,51 +3007,16 @@ destroy_sub (struct Sub *sub)
   sub->file_name_observed_log = NULL;
 
   /* Write push frequencies to disk */
-  recv_str_iter = push_recv_str;
-  for (uint32_t i = 0; i < 256; i++)
-  {
-    char push_recv_str_tmp[8];
+  write_histogram_to_file (sub->push_recv,
+                           "push_recv");
 
-    GNUNET_snprintf (push_recv_str_tmp,
-		     sizeof (push_recv_str_tmp),
-		     "%" PRIu32 "\n",
-		     sub->push_recv[i]);
-    recv_str_iter = stpncpy (recv_str_iter,
-                             push_recv_str_tmp,
-                             6);
-  }
-  (void) stpcpy (recv_str_iter,
-                 "\n");
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Writing push stats to disk\n");
-  to_file_w_len (sub->file_name_push_recv,
-                 SIZE_DUMP_FILE,
-                 push_recv_str);
-  GNUNET_free (sub->file_name_push_recv);
-  sub->file_name_push_recv = NULL;
+  /* Write push deltas to disk */
+  write_histogram_to_file (sub->push_delta,
+                           "push_delta");
 
   /* Write pull delays to disk */
-  recv_str_iter = pull_delays_str;
-  for (uint32_t i = 0; i < 256; i++)
-  {
-    char pull_delays_str_tmp[8];
-
-    GNUNET_snprintf (pull_delays_str_tmp,
-		     sizeof (pull_delays_str_tmp),
-		     "%" PRIu32 "\n",
-		     sub->pull_delays[i]);
-    recv_str_iter = stpncpy (recv_str_iter,
-                             pull_delays_str_tmp,
-                             6);
-  }
-  (void) stpcpy (recv_str_iter,
-                 "\n");
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Writing pull delays to disk\n");
-  to_file_w_len (sub->file_name_pull_delays,
-                 SIZE_DUMP_FILE,
-                 pull_delays_str);
-  GNUNET_free (sub->file_name_pull_delays);
-  sub->file_name_pull_delays = NULL;
+  write_histogram_to_file (sub->pull_delays,
+                           "pull_delays");
 
   GNUNET_CONTAINER_multipeermap_destroy (sub->observed_unique_peers);
   sub->observed_unique_peers = NULL;
@@ -4357,7 +4369,22 @@ do_round (void *cls)
     }
   }
   // TODO independent of that also get some peers from CADET_get_peers()?
-  sub->push_recv[CustomPeerMap_size (sub->push_map)]++;
+  // TODO log/stat expected pushes/difference to received pushes
+  if (CustomPeerMap_size (sub->push_map) < HISTOGRAM_FILE_SLOTS)
+  {
+    sub->push_recv[CustomPeerMap_size (sub->push_map)]++;
+  }
+  else
+  {
+    LOG (GNUNET_ERROR_TYPE_WARNING,
+         "Push map size too big for histogram (%u, %u)\n",
+         CustomPeerMap_size (sub->push_map),
+         HISTOGRAM_FILE_SLOTS);
+  }
+  // FIXME check bounds of histogram
+  sub->push_delta[(CustomPeerMap_size (sub->push_map) -
+                   sub->view_size_est_need) +
+                          (HISTOGRAM_FILE_SLOTS/2)]++;
   if (sub == msub)
   {
     GNUNET_STATISTICS_set (stats,
