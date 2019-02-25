@@ -2389,6 +2389,12 @@ hist_update (const struct GNUNET_PeerIdentity *ids,
   for (i = 0; i < num_peers; i++)
   {
     int inserted;
+    if (GNUNET_YES != check_peer_known (sub->peer_map, &ids[i]))
+    {
+      LOG (GNUNET_ERROR_TYPE_WARNING,
+           "Peer in history update not known!\n");
+      continue;
+    }
     inserted = insert_in_view (sub, &ids[i]);
     if (GNUNET_OK == inserted)
     {
@@ -4369,7 +4375,6 @@ do_round (void *cls)
     }
   }
   // TODO independent of that also get some peers from CADET_get_peers()?
-  // TODO log/stat expected pushes/difference to received pushes
   if (CustomPeerMap_size (sub->push_map) < HISTOGRAM_FILE_SLOTS)
   {
     sub->push_recv[CustomPeerMap_size (sub->push_map)]++;
