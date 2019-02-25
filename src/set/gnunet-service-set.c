@@ -1221,8 +1221,11 @@ _GSS_operation_destroy2 (struct Operation *op)
     GNUNET_CADET_channel_destroy (channel);
   }
   if (NULL != op->listener)
+  {
     incoming_destroy (op);
-  else if (NULL != op->set)
+    return;
+  }
+  if (NULL != op->set)
     op->set->vt->channel_death (op);
   else
     _GSS_operation_destroy (op,
