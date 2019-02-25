@@ -239,8 +239,11 @@ endif
 # This is horrible, but compared to the alternatives and the solution
 # which preceded this it is a good compromise and good enough for one
 # file. Everyone else is invited to patch it locally.
+# In case someone reads this file and is wondering about the
+# assignment operator below, it's explained here:
+# https://lists.gnu.org/archive/html/make-w32/2013-10/msg00021.html
 
-xENV=$(shell which env)
+xENV != which env
 
 do_subst = $(SED) -e 's,[@]ENV[@],${xENV},g'
 

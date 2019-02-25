@@ -53,10 +53,10 @@ These are the direct dependencies for running GNUnet:
 - postgres           >= 9.5         (alternative to sqlite)
 - Texinfo            >= 5.2         [*1]
 - makeinfo           >= 4.8
+- make[*3]
 - which                             (bootstrap script and some Makefiles)
 - gettext
 - zlib
-- pkg-config
 
 
 These are the dependencies for GNUnet's testsuite:
@@ -106,6 +106,12 @@ Recommended autotools for compiling the Git version are:
      include the mdoc output in the release tarballs.
      Contrary to the name, texi2mdoc does not require texinfo,
      It is a standalone ISO C utility.
+
+[*3] GNU make introduced the != operator in version 4.0.
+     GNU make was released in october 2013, reasonable to
+     be widespread by now. If this is not working out for
+     you, open a bug so that we can get a more portable
+     fix in.
 
 Requirements
 ============
