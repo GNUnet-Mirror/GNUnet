@@ -747,18 +747,18 @@ handle_set_quota (void *cls,
   struct GNUNET_TRANSPORT_CoreHandle *h = cls;
   struct Neighbour *n;
 
-  n = neighbour_find (h,
-		      &qm->peer);
-  if (NULL == n)
-  {
-    GNUNET_break (0);
-    disconnect_and_schedule_reconnect (h);
-    return;
-  }
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Receiving SET_QUOTA message for `%s' with quota %u\n",
        GNUNET_i2s (&qm->peer),
        ntohl (qm->quota.value__));
+  n = neighbour_find (h,
+		      &qm->peer);
+  if (NULL == n)
+  {
+    GNUNET_break (0); /* FIXME: julius reports this assertion fails sometimes? */
+    disconnect_and_schedule_reconnect (h);
+    return;
+  }
   GNUNET_BANDWIDTH_tracker_update_quota (&n->out_tracker,
                                          qm->quota);
 }

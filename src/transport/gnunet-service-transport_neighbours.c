@@ -713,7 +713,7 @@ set_state_and_timeout (struct NeighbourMapEntry *n,
 		       struct GNUNET_TIME_Absolute timeout)
 {
   if (GNUNET_TRANSPORT_is_connected (s) &&
-      ! GNUNET_TRANSPORT_is_connected (n->state) )
+      (! GNUNET_TRANSPORT_is_connected (n->state)) )
   {
     neighbours_connect_notification (n);
     GNUNET_STATISTICS_set (GST_stats,
@@ -721,8 +721,8 @@ set_state_and_timeout (struct NeighbourMapEntry *n,
 			   ++neighbours_connected,
 			   GNUNET_NO);
   }
-  if (! GNUNET_TRANSPORT_is_connected (s) &&
-        GNUNET_TRANSPORT_is_connected (n->state) )
+  if ((! GNUNET_TRANSPORT_is_connected (s)) &&
+      GNUNET_TRANSPORT_is_connected (n->state) )
   {
     GNUNET_STATISTICS_set (GST_stats,
 			   gettext_noop ("# peers connected"),
@@ -948,7 +948,8 @@ free_neighbour (struct NeighbourMapEntry *n)
   }
   GNUNET_assert (GNUNET_YES ==
                  GNUNET_CONTAINER_multipeermap_remove (neighbours,
-                                                       &n->id, n));
+                                                       &n->id,
+						       n));
 
   /* Cancel address requests for this peer */
   if (NULL != n->suggest_handle)
