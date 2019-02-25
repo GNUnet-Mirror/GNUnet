@@ -2685,6 +2685,7 @@ post_profiler (struct RPSPeer *rps_peer)
                                post_test_shutdown_ready_cb,
                                stat_iterator,
                                (struct STATcls *) stat_cls);
+      GNUNET_assert (NULL != rps_peer->h_stat_get);
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Requested statistics for %s (peer %" PRIu32 ")\n",
                   stat_type_strings [stat_type],
