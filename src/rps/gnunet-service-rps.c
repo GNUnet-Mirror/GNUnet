@@ -4338,10 +4338,10 @@ do_round (void *cls)
     if (sub == msub)
     {
       GNUNET_STATISTICS_update(stats, "# rounds blocked", 1, GNUNET_NO);
-      if (CustomPeerMap_size (sub->push_map) > alpha * View_size (sub->view) &&
+      if (CustomPeerMap_size (sub->push_map) > alpha * sub->view_size_est_need &&
           !(0 >= CustomPeerMap_size (sub->pull_map)))
         GNUNET_STATISTICS_update(stats, "# rounds blocked - too many pushes", 1, GNUNET_NO);
-      if (CustomPeerMap_size (sub->push_map) > alpha * View_size (sub->view) &&
+      if (CustomPeerMap_size (sub->push_map) > alpha * sub->view_size_est_need &&
           (0 >= CustomPeerMap_size (sub->pull_map)))
         GNUNET_STATISTICS_update(stats, "# rounds blocked - too many pushes, no pull replies", 1, GNUNET_NO);
       if (0 >= CustomPeerMap_size (sub->push_map) &&
@@ -4351,7 +4351,7 @@ do_round (void *cls)
           (0 >= CustomPeerMap_size (sub->pull_map)))
         GNUNET_STATISTICS_update(stats, "# rounds blocked - no pushes, no pull replies", 1, GNUNET_NO);
       if (0 >= CustomPeerMap_size (sub->pull_map) &&
-          CustomPeerMap_size (sub->push_map) > alpha * View_size (sub->view) &&
+          CustomPeerMap_size (sub->push_map) > alpha * sub->view_size_est_need &&
           0 >= CustomPeerMap_size (sub->push_map))
         GNUNET_STATISTICS_update(stats, "# rounds blocked - no pull replies", 1, GNUNET_NO);
     }
