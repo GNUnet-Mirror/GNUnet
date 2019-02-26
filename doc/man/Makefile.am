@@ -1,4 +1,12 @@
 # This Makefile.am is in the public domain
+
+do_subst = $(SED) -e 's,[@]SYSCONFDIR[@],$(sysconfdir),g'
+
+gnunet.conf.5: gnunet.conf.5.in Makefile
+	$(do_subst) < $(srcdir)/gnunet.conf.5.in > gnunet.conf.5
+
+CLEANFILES = gnunet.conf.5
+
 man_MANS = \
   gnunet.conf.5 \
   gnunet-arm.1 \
@@ -45,7 +53,8 @@ man_MANS = \
   gnunet-vpn.1 \
   gnunet-zoneimport.1
 
-EXTRA_DIST = ${man_MANS}
+EXTRA_DIST = ${man_MANS} \
+ gnunet.conf.5.in
 
 if TEXI2MDOC_GENERATION
 EXTRA_DIST += gnunet-documentation.7 \

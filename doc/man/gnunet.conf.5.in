@@ -10,7 +10,7 @@ A GNUnet setup typically consists of a set of service processes run by a user
 The default location for the configuration file for the services is
 "~gnunet/.config/gnunet.conf"; however, as normal users also may need
 read-access to this configuration, you might want to instead put the service
-process configuration in "/etc/gnunet.conf".
+process configuration in "@SYSCONFDIR@/gnunet.conf".
 gnunet\-setup (part of the GNUnet GTK package) can be used to edit this
 configuration.  The parts of GNUnet that are run as a normal user may have
 config options too and they read from "$HOME/.config/gnunet.conf".
