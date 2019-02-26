@@ -1318,6 +1318,7 @@ GCCH_handle_channel_plaintext_data (struct CadetChannel *ch,
          ((msg->mid.mid == ch->mid_recv.mid) &&
           (GNUNET_YES == ch->reliable)) ||
          ((GNUNET_NO == ch->reliable) &&
+          (msg->mid.mid >= ch->mid_recv.mid) &&
           ((NULL == ccc->head_recv) ||
            (msg->mid.mid < ccc->head_recv->mid.mid))) )
     {
@@ -1416,11 +1417,12 @@ GCCH_handle_channel_plaintext_data (struct CadetChannel *ch,
                                    next_msg);
       ccc->num_recv--;
       /* Do not process duplicate MID */
-      if (msg->mid.mid == next_msg->mid.mid)
+      if ((msg->mid.mid == next_msg->mid.mid) || /* Duplicate */
+          (msg->mid.mid < ch->mid_recv.mid)) /* Old */
       {
         /* Duplicate within the queue, drop */
         LOG (GNUNET_ERROR_TYPE_DEBUG,
-             "Duplicate message on %s (mid %u) dropped\n",
+             "Message on %s (mid %u) dropped\n",
              GCCH_2s (ch),
              ntohl (msg->mid.mid));
         GNUNET_free (next_msg);
