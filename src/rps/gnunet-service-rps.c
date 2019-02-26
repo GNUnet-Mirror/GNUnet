@@ -1796,7 +1796,7 @@ check_removable (const struct PeerContext *peer_ctx)
 
   if ( (NULL != peer_ctx->recv_channel_ctx) ||
        (NULL != peer_ctx->pending_messages_head) ||
-       (GNUNET_NO == check_peer_flag_set (peer_ctx, Peers_PULL_REPLY_PENDING)) )
+       (GNUNET_YES == check_peer_flag_set (peer_ctx, Peers_PULL_REPLY_PENDING)) )
   {
     return GNUNET_NO;
   }
@@ -2758,8 +2758,8 @@ clean_peer (struct Sub *sub,
        (GNUNET_NO == View_contains_peer (sub->view, peer)) &&
        (GNUNET_NO == CustomPeerMap_contains_peer (sub->push_map, peer)) &&
        (GNUNET_NO == CustomPeerMap_contains_peer (sub->push_map, peer)) &&
-       (0 == RPS_sampler_count_id (sub->sampler,   peer)) &&
-       (GNUNET_NO != check_removable (get_peer_ctx (sub->peer_map, peer))) )
+       (0 == RPS_sampler_count_id (sub->sampler, peer)) &&
+       (GNUNET_YES == check_removable (get_peer_ctx (sub->peer_map, peer))) )
   { /* We can safely remove this peer */
     LOG (GNUNET_ERROR_TYPE_DEBUG,
         "Going to remove peer %s\n",
