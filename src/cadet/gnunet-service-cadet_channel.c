@@ -1306,23 +1306,35 @@ GCCH_handle_channel_plaintext_data (struct CadetChannel *ch,
                  &msg[1],
                  payload_size);
   ccc = (NULL != ch->owner) ? ch->owner : ch->dest;
-  if ( (GNUNET_YES == ccc->client_ready) &&
-       ( (GNUNET_YES == ch->out_of_order) ||
-         (msg->mid.mid == ch->mid_recv.mid) ) )
+  if (GNUNET_YES == ccc->client_ready)
   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Giving %u bytes of payload with MID %u from %s to client %s\n",
-         (unsigned int) payload_size,
-         ntohl (msg->mid.mid),
-         GCCH_2s (ch),
-         GSC_2s (ccc->c));
-    ccc->client_ready = GNUNET_NO;
-    GSC_send_to_client (ccc->c,
-                        env);
-    ch->mid_recv.mid = htonl (1 + ntohl (ch->mid_recv.mid));
-    ch->mid_futures >>= 1;
-    send_channel_data_ack (ch);
-    return;
+    /*
+     * We ad-hoc send the message if
+     * - The channel is out-of-order
+     * - The channel is reliable and MID matches next expected MID
+     * - The channel is unreliable and MID is before lowest seen MID
+     */
+    if ( (GNUNET_YES == ch->out_of_order) ||
+         ((msg->mid.mid == ch->mid_recv.mid) &&
+          (GNUNET_YES == ch->reliable)) ||
+         ((GNUNET_NO == ch->reliable) &&
+          ((NULL == ccc->head_recv) ||
+           (msg->mid.mid < ccc->head_recv->mid.mid))) )
+    {
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
+           "Giving %u bytes of payload with MID %u from %s to client %s\n",
+           (unsigned int) payload_size,
+           ntohl (msg->mid.mid),
+           GCCH_2s (ch),
+           GSC_2s (ccc->c));
+      ccc->client_ready = GNUNET_NO;
+      GSC_send_to_client (ccc->c,
+                          env);
+      ch->mid_recv.mid = htonl (1 + ntohl (ch->mid_recv.mid));
+      ch->mid_futures >>= 1;
+      send_channel_data_ack (ch);
+      return;
+    }
   }
 
   if (GNUNET_YES == ch->reliable)
@@ -1379,6 +1391,45 @@ GCCH_handle_channel_plaintext_data (struct CadetChannel *ch,
   }
   else /* ! ch->reliable */
   {
+    struct CadetOutOfOrderMessage *next_msg;
+
+    /**
+     * We always send if possible in this case.
+     * It is guaranteed that the queued MID < received MID
+     **/
+    if (GNUNET_YES == ccc->client_ready)
+    {
+      next_msg = ccc->head_recv;
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
+           "Giving queued MID %u from %s to client %s\n",
+           ntohl (next_msg->mid.mid),
+           GCCH_2s (ch),
+           GSC_2s (ccc->c));
+      ccc->client_ready = GNUNET_NO;
+      GSC_send_to_client (ccc->c,
+                          next_msg->env);
+      ch->mid_recv.mid = htonl (1 + ntohl (ch->mid_recv.mid));
+      ch->mid_futures >>= 1;
+      send_channel_data_ack (ch);
+      GNUNET_CONTAINER_DLL_remove (ccc->head_recv,
+                                   ccc->tail_recv,
+                                   next_msg);
+      ccc->num_recv--;
+      /* Do not process duplicate MID */
+      if (msg->mid.mid == next_msg->mid.mid)
+      {
+        /* Duplicate within the queue, drop */
+        LOG (GNUNET_ERROR_TYPE_DEBUG,
+             "Duplicate message on %s (mid %u) dropped\n",
+             GCCH_2s (ch),
+             ntohl (msg->mid.mid));
+        GNUNET_free (next_msg);
+        GNUNET_MQ_discard (env);
+        return;
+      }
+      GNUNET_free (next_msg);
+    }
+
     /* Channel is unreliable, so we do not ACK. But we also cannot
        allow buffering everything, so check if we have space... */
     if (ccc->num_recv >= ch->max_pending_messages)
@@ -1584,7 +1635,7 @@ GCCH_handle_channel_plaintext_data_ack (struct CadetChannel *ch,
   mid_mask = GNUNET_htonll (ack->futures);
   found = GNUNET_NO;
   for (crm = ch->head_sent;
-        NULL != crm;
+       NULL != crm;
        crm = crmn)
   {
     crmn = crm->next;
