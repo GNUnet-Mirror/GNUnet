@@ -113,7 +113,12 @@ enum ClientType
   /**
    * It is a blacklist, query about allowed connections.
    */
-  CT_BLACKLIST = 3
+  CT_BLACKLIST = 3,
+
+  /**
+   * CORE client without any handlers.
+   */
+  CT_CORE_NO_HANDLERS = 4
 };
 
 
@@ -570,6 +575,8 @@ client_disconnect_cb (void *cls,
 					     bc);
     }
     break;
+  case CT_CORE_NO_HANDLERS:
+    break;
   }
   GNUNET_free (tc);
 }
@@ -650,6 +657,8 @@ handle_client_start (void *cls,
   }
   if (0 != (2 & options))
     tc->type = CT_CORE;
+  else
+    tc->type = CT_CORE_NO_HANDLERS;
   hello = GST_hello_get ();
   if (NULL != hello)
     unicast (tc,
