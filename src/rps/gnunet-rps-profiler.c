@@ -2976,6 +2976,8 @@ main (int argc, char *argv[])
     GNUNET_GETOPT_OPTION_END
   };
 
+  unsetenv ("XDG_DATA_HOME");
+  unsetenv ("XDG_CONFIG_HOME");
   //if (GNUNET_OK !=
   //    GNUNET_STRINGS_get_utf8_args (argc, argv,
   //                                  &argc, &argv))
