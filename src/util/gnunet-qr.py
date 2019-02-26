@@ -1,5 +1,3 @@
-from __future__ import print_function
-from builtins import str
 import sys
 import getopt
 import subprocess
