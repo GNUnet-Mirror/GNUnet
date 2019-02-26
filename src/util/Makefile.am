@@ -204,7 +204,7 @@ libexec_PROGRAMS = \
  gnunet-timeout \
  $(W32CONSOLEHELPER)
 
-do_subst = $(SED) -e 's,[@]PREFIX[@],$(PREFIX),g'
+do_subst = $(SED) -e 's,[@]PREFIX[@],$(prefix),g'
 
 gnunet-qr: gnunet-qr.in Makefile
 	$(do_subst) < $(srcdir)/gnunet-qr.in > gnunet-qr
