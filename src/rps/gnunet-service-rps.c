@@ -4404,6 +4404,10 @@ do_round (void *cls)
         "# peers in view at end of round",
         View_size (sub->view),
         GNUNET_NO);
+    GNUNET_STATISTICS_set (stats,
+        "# expected pushes",
+        alpha * sub->view_size_est_need,
+        GNUNET_NO);
   }
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
