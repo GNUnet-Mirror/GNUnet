@@ -4388,7 +4388,7 @@ do_round (void *cls)
          HISTOGRAM_FILE_SLOTS);
   }
   // FIXME check bounds of histogram
-  sub->push_delta[(uint32_t) (CustomPeerMap_size (sub->push_map) -
+  sub->push_delta[(int32_t) (CustomPeerMap_size (sub->push_map) -
                    (alpha * sub->view_size_est_need)) +
                           (HISTOGRAM_FILE_SLOTS/2)]++;
   if (sub == msub)
