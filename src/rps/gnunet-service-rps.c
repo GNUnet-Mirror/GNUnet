@@ -3633,8 +3633,6 @@ check_peer_pull_reply (void *cls,
                                 1,
                                 GNUNET_NO);
     }
-    GNUNET_break_op (0);
-    return GNUNET_SYSERR;
   }
   return GNUNET_OK;
 }
@@ -4403,6 +4401,10 @@ do_round (void *cls)
     GNUNET_STATISTICS_set (stats,
         "# peers in view at end of round",
         View_size (sub->view),
+        GNUNET_NO);
+    GNUNET_STATISTICS_set (stats,
+        "# expected pushes",
+        alpha * sub->view_size_est_need,
         GNUNET_NO);
   }
 
