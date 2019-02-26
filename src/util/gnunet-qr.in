@@ -1,0 +1,46 @@
+#!/bin/sh
+#
+# From curl's buildconf, making this script subject to the
+# curl license: https://curl.haxx.se/docs/copyright.html
+# Copyright (C) 1998 - 2017, Daniel Stenberg, <daniel@haxx.se>, et al.
+# Copyright (C) 2019 GNUnet e.V.
+
+# findtool works like which without relying on which (which is a problem
+# for some limited shells.
+findtool(){
+  file="$1"
+
+  if { echo "$file" | grep "/" >/dev/null 2>&1; } then
+    # when file is given with a path check it first
+    if test -f "$file"; then
+      echo "$file"
+      return
+    fi
+  fi
+
+  old_IFS=$IFS; IFS=':'
+  for path in $PATH
+  do
+    IFS=$old_IFS
+    # echo "checks for $file in $path" >&2
+    if test "$path" -a "$path" != '.' -a -f "$path/$file"; then
+      echo "$path/$file"
+      return
+    fi
+  done
+  IFS=$old_IFS
+}
+
+# end curl licensed code
+pythonize=`findtool python2.7 2>/dev/null`
+if test ! -x "$pythonize"; then
+	pythonize=`findtool ${PYTHON2:-python2.7}`
+fi
+
+if test -z "$pythonize"; then
+  echo "ERROR: python2.7 not found."
+  echo "  You need python2.7 installed."
+  exit 1
+fi
+
+${pythonize} @PREFIX@/bin/gnunet-qr.py || echo "ERROR: python2.7 or future not found" && exit 1

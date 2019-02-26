@@ -204,8 +204,15 @@ libexec_PROGRAMS = \
  gnunet-timeout \
  $(W32CONSOLEHELPER)
 
+do_subst = $(SED) -e 's,[@]PREFIX[@],$(PREFIX),g'
+
+gnunet-qr: gnunet-qr.in Makefile
+	$(do_subst) < $(srcdir)/gnunet-qr.in > gnunet-qr
+	chmod +x gnunet-qr
+
 bin_SCRIPTS =\
- gnunet-qr
+ gnunet-qr \
+ gnunet-qr.py
 
 bin_PROGRAMS = \
  gnunet-resolver \
@@ -235,21 +242,6 @@ else
 gnunet_timeout_SOURCES = \
  gnunet-timeout-w32.c
 endif
-
-# This is horrible, but compared to the alternatives and the solution
-# which preceded this it is a good compromise and good enough for one
-# file. Everyone else is invited to patch it locally.
-# In case someone reads this file and is wondering about the
-# assignment operator below, it's explained here:
-# https://lists.gnu.org/archive/html/make-w32/2013-10/msg00021.html
-
-xENV != which env
-
-do_subst = $(SED) -e 's,[@]ENV[@],${xENV},g'
-
-gnunet-qr: gnunet-qr.py.in Makefile
-	$(do_subst) < $(top_srcdir)/src/util/gnunet-qr.py.in > gnunet-qr
-	chmod +x gnunet-qr
 
 gnunet_service_resolver_SOURCES = \
  gnunet-service-resolver.c
@@ -675,4 +667,5 @@ EXTRA_DIST = \
   test_resolver_api_data.conf \
   test_service_data.conf \
   test_speedup_data.conf \
-  gnunet-qr.py.in
+  gnunet-qr.py \
+  gnunet-qr.in
