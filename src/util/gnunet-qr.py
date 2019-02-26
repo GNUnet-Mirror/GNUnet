@@ -15,8 +15,8 @@ def help():
     print('gnunet-qr\n\
 Scan a QR code using a video device and import\n\
 Arguments mandatory for long options are also mandatory for short options.\n\
-  -c, --config=FILENAME      use configuration file FILENAME\n\
-  -d, --device=DEVICE        use device DEVICE\n\
+  -c, --config FILENAME      use configuration file FILENAME\n\
+  -d, --device DEVICE        use device DEVICE\n\
   -s, --silent               do not show preview windows\n\
   -h, --help                 print this help\n\
   -v, --verbose              be verbose\n\
