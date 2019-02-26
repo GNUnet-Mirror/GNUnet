@@ -3633,8 +3633,6 @@ check_peer_pull_reply (void *cls,
                                 1,
                                 GNUNET_NO);
     }
-    GNUNET_break_op (0);
-    return GNUNET_SYSERR;
   }
   return GNUNET_OK;
 }
