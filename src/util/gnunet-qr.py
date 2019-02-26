@@ -23,90 +23,90 @@ Arguments mandatory for long options are also mandatory for short options.\n\
   -h, --help                 print this help\n\
   -v, --verbose              be verbose\n\
 Report bugs to gnunet-developers@gnu.org.\n\
-GNUnet home page: http://www.gnu.org/software/gnunet/\n\
-General help using GNU software: http://www.gnu.org/gethelp/')
+GNUnet home page: https://gnunet.org/\n\
+General help using GNU software: https://www.gnu.org/gethelp/')
 
 
 if __name__ == '__main__':
-        configuration = ''
-        device = '/dev/video0'
-        url = ''
-        verbose = False
-        silent = False
-        # Parse arguments
-        try:
-                opts, args = getopt.gnu_getopt(sys.argv[1:], "c:hd:sv", ["config", "help", "device", "silent", "verbose"])
-        except getopt.GetoptError as e:
-                help()
-                print(str(e))
-                exit(1)
-        for o, a in opts:
-                if o in ("-h", "--help"):
-                        help()
-                        sys.exit(0)
-                elif o in ("-c", "--config"):
-                        configuration = a
-                elif o in ("-d", "--device"):
-                        device = a
-                elif o in ("-s", "--silent"):
-                        silent = True
-                elif o in ("-v", "--verbose"):
-                        verbose = True
-        if (True == verbose):
-                print('Initializing')
-        # create a Processor
-        proc = zbar.Processor()
-
-        # configure the Processor
-        proc.parse_config('enable')
-
-        # initialize the Processor
-        try:
-                if (True == verbose):
-                        print('Opening video device ' + device)
-                proc.init(device)
-        except Exception as e:
-                print('Failed to open device ' + device)
-                exit(1)
-
-        # enable the preview window
-        # if (True == silent):
-        #       proc.visible = True
-        # else:
-        #               proc.visible = False
-
-        proc.visible = True
-        # read at least one barcode (or until window closed)
-        try:
-                if (True == verbose):
-                        print('Capturing')
-                proc.process_one()
-        except Exception as e:
-                # Window was closed without finding code
-                exit(1)
-
-        # hide the preview window
-        proc.visible = False
-
-        # extract results
-        for symbol in proc.results:
-                # do something useful with results
-                if (True == verbose):
-                        print('Found ', symbol.type, ' symbol ', '"%s"' % symbol.data)
-                args = list()
-                args.append("gnunet-uri")
-                if (configuration != ''):
-                        args.append(str("-c " + str(configuration)))
-                args.append(str(symbol.data))
-                cmd = ''
-                for a in args:
-                        cmd += " " + str(a)
-                if (verbose):
-                        print('Running `' + cmd +'`')
-                res = subprocess.call(args)
-                if (0 != res):
-                        print('Failed to add URI ' + str(symbol.data))
-                else:
-                        print('Added URI ' + str(symbol.data))
-                exit(res)
+    configuration = ''
+    device = '/dev/video0'
+    url = ''
+    verbose = False
+    silent = False
+    # Parse arguments
+    try:
+        opts, args = getopt.gnu_getopt(sys.argv[1:], "c:hd:sv", ["config", "help", "device", "silent", "verbose"])
+    except getopt.GetoptError as e:
+        help()
+        print(str(e))
         exit(1)
+    for o, a in opts:
+        if o in ("-h", "--help"):
+            help()
+            sys.exit(0)
+        elif o in ("-c", "--config"):
+            configuration = a
+        elif o in ("-d", "--device"):
+            device = a
+        elif o in ("-s", "--silent"):
+            silent = True
+        elif o in ("-v", "--verbose"):
+            verbose = True
+    if (True == verbose):
+        print('Initializing')
+    # create a Processor
+    proc = zbar.Processor()
+
+    # configure the Processor
+    proc.parse_config('enable')
+
+    # initialize the Processor
+    try:
+        if (True == verbose):
+            print('Opening video device ' + device)
+        proc.init(device)
+    except Exception as e:
+        print('Failed to open device ' + device)
+        exit(1)
+
+    # enable the preview window
+    # if (True == silent):
+    #       proc.visible = True
+    # else:
+    #               proc.visible = False
+
+    proc.visible = True
+    # read at least one barcode (or until window closed)
+    try:
+        if (True == verbose):
+            print('Capturing')
+        proc.process_one()
+    except Exception as e:
+        # Window was closed without finding code
+        exit(1)
+
+    # hide the preview window
+    proc.visible = False
+
+    # extract results
+    for symbol in proc.results:
+        # do something useful with results
+        if (True == verbose):
+            print('Found ', symbol.type, ' symbol ', '"%s"' % symbol.data)
+        args = list()
+        args.append("gnunet-uri")
+        if (configuration != ''):
+            args.append(str("-c " + str(configuration)))
+        args.append(str(symbol.data))
+        cmd = ''
+        for a in args:
+            cmd += " " + str(a)
+        if (verbose):
+            print('Running `' + cmd +'`')
+        res = subprocess.call(args)
+        if (0 != res):
+            print('Failed to add URI ' + str(symbol.data))
+        else:
+            print('Added URI ' + str(symbol.data))
+        exit(res)
+    exit(1)
