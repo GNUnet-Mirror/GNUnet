@@ -11,7 +11,7 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -414,44 +414,6 @@ auth_key_to_string (struct GNUNET_CRYPTO_AuthKey auth_key)
   return name_buf;
 }
 
-
-
-char *
-create_file (const char *name)
-{
-  int size;
-  size_t name_buf_size;
-  char *name_buf;
-  char *prefix;
-  char *file_name;
-
-  prefix = "/tmp/rps/";
-  name_buf_size = (strlen (prefix) + strlen (name) + 2) * sizeof (char);
-  name_buf = GNUNET_malloc (name_buf_size);
-
-  size = GNUNET_snprintf (name_buf, name_buf_size, "%s%s", prefix, name);
-  if (0 > size)
-    LOG (GNUNET_ERROR_TYPE_WARNING, "Failed to create name_buf\n");
-
-  if (GNUNET_YES != GNUNET_DISK_directory_create (prefix))
-  {
-    LOG (GNUNET_ERROR_TYPE_WARNING,
-         "Could not create directory %s.\n",
-         prefix);
-  }
-
-  if (NULL == strstr (name, "sampler_el"))
-  {/* only append random string to sampler */
-    if (NULL == (file_name = GNUNET_DISK_mktemp (name_buf)))
-      LOG (GNUNET_ERROR_TYPE_WARNING, "Could not create file\n");
-
-    GNUNET_free (name_buf);
-    return file_name;
-  }
-
-  return name_buf;
-}
-
 #endif /* TO_FILE */
 
 
@@ -479,23 +441,23 @@ string_to_auth_key (const char *str)
  * @return #GNUNET_YES on success
  *         #GNUNET_SYSERR on failure
  */
-static int ensure_folder_exist (void)
+static int
+ensure_folder_exist (void)
 {
-  if (GNUNET_NO == GNUNET_DISK_directory_test ("/tmp/rps/", GNUNET_NO))
+  if (GNUNET_OK !=
+      GNUNET_DISK_directory_create ("/tmp/rps"))
   {
-    GNUNET_DISK_directory_create ("/tmp/rps");
-  }
-  if (GNUNET_YES != GNUNET_DISK_directory_test ("/tmp/rps/", GNUNET_NO))
-  {
-    LOG (GNUNET_ERROR_TYPE_ERROR, "Could not create directory `/tmp/rps'\n");
+    LOG (GNUNET_ERROR_TYPE_ERROR,
+         "Could not create directory `/tmp/rps'\n");
     return GNUNET_SYSERR;
   }
   return GNUNET_YES;
 }
 
+
 char *
 store_prefix_file_name (const struct GNUNET_PeerIdentity *peer,
-    const char *prefix)
+                        const char *prefix)
 {
   int len_file_name;
   int out_size;
