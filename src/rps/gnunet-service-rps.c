@@ -2993,6 +2993,7 @@ destroy_sub (struct Sub *sub)
 
   /* Disconnect from cadet */
   GNUNET_CADET_close_port (sub->cadet_port);
+  sub->cadet_port= NULL;
 
   /* Clean up data structures for peers */
   RPS_sampler_destroy (sub->sampler);
