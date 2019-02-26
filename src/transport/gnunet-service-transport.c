@@ -444,8 +444,8 @@ unicast (struct TransportClient *tc,
                 GNUNET_MQ_get_length (tc->mq),
                 MAX_PENDING);
     GNUNET_STATISTICS_update (GST_stats,
-                              gettext_noop
-                              ("# messages dropped due to slow client"), 1,
+                              gettext_noop ("# messages dropped due to slow client"),
+                              1,
                               GNUNET_NO);
     return;
   }
@@ -1352,6 +1352,8 @@ GST_clients_broadcast (const struct GNUNET_MessageHeader *msg,
        NULL != tc;
        tc = tc->next)
   {
+    if (CT_NONE == tc->type)
+      continue; /* client not yet ready */
     if ( (GNUNET_YES == may_drop) &&
          (CT_CORE != tc->type) )
       continue; /* skip, this client does not care about payload */
@@ -1383,7 +1385,7 @@ GST_clients_broadcast_peer_notification (const struct GNUNET_PeerIdentity *peer,
 {
   struct GNUNET_MQ_Envelope *env;
   struct PeerIterateResponseMessage *msg;
-  
+
   msg = compose_address_iterate_response_message (peer,
 						  address);
   msg->state = htonl (state);
