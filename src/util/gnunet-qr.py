@@ -4,6 +4,8 @@ try:
     from builtins import str
 except ImportError as e:
     print('Cannot import future modules, python2.7 future module required!')
+    print('For Debian, you can obtain is as "python-future".')
+    print('Upstream: https://python-future.org/')
     sys.exit(1) 
 import getopt
 import subprocess
@@ -11,7 +13,9 @@ from sys import argv
 try:
     import zbar
 except ImportError as e:
-    print('Cannot run gnunet-qr, please install zbar-python')
+    print('Cannot run gnunet-qr, please install the zbar module.')
+    print('For Debian, you can obtain it as "python-zbar".')
+    print('Upstream: http://zbar.sourceforge.net/')
     sys.exit(1)
 
 
