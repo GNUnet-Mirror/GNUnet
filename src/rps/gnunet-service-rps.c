@@ -2709,8 +2709,8 @@ remove_peer (struct Sub *sub,
   if (GNUNET_YES == check_peer_known (sub->peer_map,
                                       peer))
   {
-          destroy_peer (get_peer_ctx (sub->peer_map,
-                                      peer));
+    destroy_peer (get_peer_ctx (sub->peer_map,
+                                peer));
   }
 }
 
@@ -3811,7 +3811,8 @@ send_pull_request (struct PeerContext *peer_ctx)
   GNUNET_assert (GNUNET_NO == check_peer_flag (peer_ctx->sub->peer_map,
                                                &peer_ctx->peer_id,
                                                Peers_PULL_REPLY_PENDING));
-  SET_PEER_FLAG (peer_ctx, Peers_PULL_REPLY_PENDING);
+  SET_PEER_FLAG (peer_ctx,
+                 Peers_PULL_REPLY_PENDING);
   peer_ctx->round_pull_req = peer_ctx->sub->num_rounds;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -3819,7 +3820,9 @@ send_pull_request (struct PeerContext *peer_ctx)
        GNUNET_i2s (&peer_ctx->peer_id));
 
   ev = GNUNET_MQ_msg_header (GNUNET_MESSAGE_TYPE_RPS_PP_PULL_REQUEST);
-  send_message (peer_ctx, ev, "PULL REQUEST");
+  send_message (peer_ctx,
+                ev,
+                "PULL REQUEST");
   if (peer_ctx->sub)
   {
     GNUNET_STATISTICS_update (stats,
@@ -4386,7 +4389,7 @@ do_round (void *cls)
   }
   // FIXME check bounds of histogram
   sub->push_delta[(CustomPeerMap_size (sub->push_map) -
-                   sub->view_size_est_need) +
+                   (alpha * sub->view_size_est_need)) +
                           (HISTOGRAM_FILE_SLOTS/2)]++;
   if (sub == msub)
   {
@@ -4405,6 +4408,10 @@ do_round (void *cls)
     GNUNET_STATISTICS_set (stats,
         "# expected pushes",
         alpha * sub->view_size_est_need,
+        GNUNET_NO);
+    GNUNET_STATISTICS_set (stats,
+        "delta expected - received pushes",
+        CustomPeerMap_size (sub->push_map) - (alpha * sub->view_size_est_need),
         GNUNET_NO);
   }
 
