@@ -43,4 +43,4 @@ if test -z "$pythonize"; then
   exit 1
 fi
 
-${pythonize} @PREFIX@/bin/gnunet-qr.py $@ || echo "ERROR: python2.7 or future not found" && exit 1
+${pythonize} @PREFIX@/bin/gnunet-qr.py $@
