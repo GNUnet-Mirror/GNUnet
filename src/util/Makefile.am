@@ -121,7 +121,7 @@ libgnunetutil_la_SOURCES = \
   time.c \
   tun.c \
   speedup.c speedup.h \
-	proc_compat.c
+  proc_compat.c
 
 if HAVE_LIBATOMIC
 if DARWIN
@@ -209,6 +209,8 @@ do_subst = $(SED) -e 's,[@]PREFIX[@],$(PREFIX),g'
 gnunet-qr: gnunet-qr.in Makefile
 	$(do_subst) < $(srcdir)/gnunet-qr.in > gnunet-qr
 	chmod +x gnunet-qr
+
+CLEANFILES = gnunet-qr
 
 bin_SCRIPTS =\
  gnunet-qr \
