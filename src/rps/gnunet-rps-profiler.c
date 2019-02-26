@@ -11,7 +11,7 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -2831,7 +2831,8 @@ run (void *cls,
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "This is the profiler\n");
   cur_test_run.name = "test-rps-profiler";
-  if (0 == num_peers) num_peers = 10;
+  if (0 == num_peers)
+    num_peers = 10;
   mal_type = 3;
   cur_test_run.init_peer = profiler_init_peer;
   //cur_test_run.pre_test = mal_pre;
@@ -2957,25 +2958,21 @@ main (int argc, char *argv[])
                                "COUNT",
                                gettext_noop ("number of peers to start"),
                                &num_peers),
-
     GNUNET_GETOPT_option_relative_time ('d',
                                         "duration",
                                         "DURATION",
                                         gettext_noop ("duration of the profiling"),
                                         &duration),
-
     GNUNET_GETOPT_option_relative_time ('t',
                                         "timeout",
                                         "TIMEOUT",
                                         gettext_noop ("timeout for the profiling"),
                                         &timeout),
-
     GNUNET_GETOPT_option_uint ('r',
                                "num-requests",
                                "COUNT",
                                gettext_noop ("number of PeerIDs to request"),
                                &cur_test_run.num_requests),
-
     GNUNET_GETOPT_OPTION_END
   };
 
@@ -2995,22 +2992,24 @@ main (int argc, char *argv[])
   {
     ret_value = 1;
   }
-  if (GNUNET_OK != ret_value)
+  if (0 != ret_value)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                 "Test did not run successfully!\n");
   }
-
-  ret_value = cur_test_run.eval_cb();
-  if (NO_COLLECT_VIEW == cur_test_run.have_collect_view)
+  else
   {
-    GNUNET_array_grow (rps_peers->cur_view,
-                       rps_peers->cur_view_count,
-                       0);
+    ret_value = cur_test_run.eval_cb();
+    if (NO_COLLECT_VIEW == cur_test_run.have_collect_view)
+    {
+      GNUNET_array_grow (rps_peers->cur_view,
+                         rps_peers->cur_view_count,
+                         0);
+    }
+    GNUNET_free (rps_peers);
+    GNUNET_free (rps_peer_ids);
+    GNUNET_CONTAINER_multipeermap_destroy (peer_map);
   }
-  GNUNET_free (rps_peers);
-  GNUNET_free (rps_peer_ids);
-  GNUNET_CONTAINER_multipeermap_destroy (peer_map);
   return ret_value;
 }
 
