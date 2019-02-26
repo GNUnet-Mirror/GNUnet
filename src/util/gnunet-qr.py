@@ -1,12 +1,6 @@
+from __future__ import print_function
+from builtins import str
 import sys
-try:
-    from __future__ import print_function
-    from builtins import str
-except ImportError as e:
-    print('Cannot import future modules, python2.7 future module required!')
-    print('For Debian, you can obtain is as "python-future".')
-    print('Upstream: https://python-future.org/')
-    sys.exit(1) 
 import getopt
 import subprocess
 from sys import argv
