@@ -11,7 +11,7 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -625,7 +625,8 @@ GNUNET_DISK_mktemp (const char *t)
  *           does not exist or stat'ed
  */
 int
-GNUNET_DISK_directory_test (const char *fil, int is_readable)
+GNUNET_DISK_directory_test (const char *fil,
+                            int is_readable)
 {
   struct stat filestat;
   int ret;
@@ -639,7 +640,7 @@ GNUNET_DISK_directory_test (const char *fil, int is_readable)
   }
   if (!S_ISDIR (filestat.st_mode))
   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
+    LOG (GNUNET_ERROR_TYPE_INFO,
          "A file already exits with the same name %s\n", fil);
     return GNUNET_NO;
   }
@@ -720,7 +721,10 @@ GNUNET_DISK_directory_create (const char *dir)
 
   rdir = GNUNET_STRINGS_filename_expand (dir);
   if (rdir == NULL)
+  {
+    GNUNET_break (0);
     return GNUNET_SYSERR;
+  }
 
   len = strlen (rdir);
 #ifndef MINGW
@@ -756,6 +760,9 @@ GNUNET_DISK_directory_create (const char *dir)
       ret = GNUNET_DISK_directory_test (rdir, GNUNET_NO);
       if (GNUNET_NO == ret)
       {
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                    "Creating directory `%s' failed",
+                    rdir);
         GNUNET_free (rdir);
         return GNUNET_SYSERR;
       }
@@ -780,6 +787,9 @@ GNUNET_DISK_directory_create (const char *dir)
       ret = GNUNET_DISK_directory_test (rdir, GNUNET_NO);
       if (GNUNET_NO == ret)
       {
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                    "Creating directory `%s' failed",
+                    rdir);
         GNUNET_free (rdir);
         return GNUNET_SYSERR;
       }
@@ -2684,7 +2694,7 @@ purge_cfg_dir (void *cls,
 {
   const char *option = cls;
   char *tmpname;
-  
+
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_filename (cfg,
                                                "PATHS",

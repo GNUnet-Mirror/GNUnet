@@ -37,8 +37,6 @@ auth_key_to_string (struct GNUNET_CRYPTO_AuthKey auth_key);
 struct GNUNET_CRYPTO_AuthKey
 string_to_auth_key (const char *str);
 
-char *
-create_file (const char *name);
 
 /**
  * @brief Get file handle
@@ -64,9 +62,10 @@ close_all_files ();
  * This function is used to facilitate writing important information to disk
  */
 #ifdef TO_FILE
-#define to_file(file_name, ...) do {GNUNET_assert (NULL != file_name);\
+#define to_file(file_name, ...) do { \
     char tmp_buf[512] = "";\
     int size;\
+    if (NULL == file_name) return; \
     size = GNUNET_snprintf(tmp_buf,sizeof(tmp_buf),__VA_ARGS__);\
     if (0 > size)\
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,\

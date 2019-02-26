@@ -60,7 +60,6 @@ gnunet_service_rps_SOURCES = \
  gnunet-service-rps_sampler.h gnunet-service-rps_sampler.c \
  gnunet-service-rps_custommap.h gnunet-service-rps_custommap.c \
  gnunet-service-rps_view.h gnunet-service-rps_view.c \
- rps-test_util.h rps-test_util.c \
  gnunet-service-rps.c
 
 

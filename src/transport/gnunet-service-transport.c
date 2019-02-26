@@ -1341,7 +1341,6 @@ void
 GST_clients_broadcast (const struct GNUNET_MessageHeader *msg,
                        int may_drop)
 {
-  struct TransportClient *tc;
   int done;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -1349,7 +1348,9 @@ GST_clients_broadcast (const struct GNUNET_MessageHeader *msg,
               (unsigned int) ntohs (msg->type),
               (unsigned int) ntohs (msg->size));
   done = GNUNET_NO;
-  for (tc = clients_head; NULL != tc; tc = tc->next)
+  for (struct TransportClient *tc = clients_head;
+       NULL != tc;
+       tc = tc->next)
   {
     if ( (GNUNET_YES == may_drop) &&
          (CT_CORE != tc->type) )
@@ -1382,13 +1383,14 @@ GST_clients_broadcast_peer_notification (const struct GNUNET_PeerIdentity *peer,
 {
   struct GNUNET_MQ_Envelope *env;
   struct PeerIterateResponseMessage *msg;
-  struct TransportClient *tc;
-
+  
   msg = compose_address_iterate_response_message (peer,
 						  address);
   msg->state = htonl (state);
   msg->state_timeout = GNUNET_TIME_absolute_hton (state_timeout);
-  for (tc = clients_head; NULL != tc; tc = tc->next)
+  for (struct TransportClient *tc = clients_head;
+       NULL != tc;
+       tc = tc->next)
   {
     if (CT_MONITOR != tc->type)
       continue;

@@ -507,7 +507,9 @@ cadet_mq_error_handler (void *cls,
   }
   else
   {
-    GNUNET_break (0);
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		"MQ error in communication with CADET: %d\n",
+		error);
     if (NULL != ch->disconnects)
       ch->disconnects (ch->ctx,
 		       ch);

@@ -90,6 +90,12 @@ RPS_sampler_update (struct RPS_Sampler *sampler,
  *
  * Used to get rid of a PeerID.
  *
+ * FIXME: This should also consider currently pending requests
+ *        (Pending requests already collect peerids. As long as not all
+ *        requested IDs have been collected, they are kept.
+ *        Ideally, the @p id should be removed from all pending requests. This
+ *        seems quite complicated.)
+ *
  * @param sampler the sampler to reinitialise a sampler in.
  * @param id the id of the samplers to update.
  */
