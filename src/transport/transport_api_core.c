@@ -302,8 +302,9 @@ mq_error_handler (void *cls,
 {
   struct GNUNET_TRANSPORT_CoreHandle *h = cls;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Error receiving from transport service, disconnecting temporarily.\n");
+  LOG (GNUNET_ERROR_TYPE_ERROR,
+       "Error receiving from transport service (%d), disconnecting temporarily.\n",
+       error);
   disconnect_and_schedule_reconnect (h);
 }
 
