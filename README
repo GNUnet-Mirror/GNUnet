@@ -54,7 +54,9 @@ These are the direct dependencies for running GNUnet:
 - Texinfo            >= 5.2         [*1]
 - makeinfo           >= 4.8
 - make[*3]
-- which                             (some Makefiles)
+- which                             (contrib/apparmor(?), gnunet-bugreport,
+                                     tests (dns, gns, namestore,
+                                            scalarproduct) and possibly more)
 - gettext
 - zlib
 
