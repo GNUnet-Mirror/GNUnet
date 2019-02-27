@@ -1410,7 +1410,8 @@ GCCH_handle_channel_plaintext_data (struct CadetChannel *ch,
      * We always send if possible in this case.
      * It is guaranteed that the queued MID < received MID
      **/
-    if (GNUNET_YES == ccc->client_ready)
+    if ((NULL != ccc->head_recv) &&
+        (GNUNET_YES == ccc->client_ready))
     {
       next_msg = ccc->head_recv;
       LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -1429,12 +1430,11 @@ GCCH_handle_channel_plaintext_data (struct CadetChannel *ch,
                                    next_msg);
       ccc->num_recv--;
       /* Do not process duplicate MID */
-      if ((msg->mid.mid == next_msg->mid.mid) || /* Duplicate */
-          (ntohl (msg->mid.mid) < ntohl (ch->mid_recv.mid))) /* Old */
+      if (msg->mid.mid == next_msg->mid.mid) /* Duplicate */
       {
         /* Duplicate within the queue, drop */
         LOG (GNUNET_ERROR_TYPE_DEBUG,
-             "Message on %s (mid %u) dropped\n",
+             "Message on %s (mid %u) dropped, duplicate\n",
              GCCH_2s (ch),
              ntohl (msg->mid.mid));
         GNUNET_free (next_msg);
@@ -1442,6 +1442,17 @@ GCCH_handle_channel_plaintext_data (struct CadetChannel *ch,
         return;
       }
       GNUNET_free (next_msg);
+    }
+
+    if (ntohl (msg->mid.mid) < ntohl (ch->mid_recv.mid)) /* Old */
+    {
+      /* Duplicate within the queue, drop */
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
+           "Message on %s (mid %u) dropped, old.\n",
+           GCCH_2s (ch),
+           ntohl (msg->mid.mid));
+      GNUNET_MQ_discard (env);
+      return;
     }
 
     /* Channel is unreliable, so we do not ACK. But we also cannot
