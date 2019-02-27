@@ -1318,9 +1318,9 @@ GCCH_handle_channel_plaintext_data (struct CadetChannel *ch,
          ((msg->mid.mid == ch->mid_recv.mid) &&
           (GNUNET_YES == ch->reliable)) ||
          ((GNUNET_NO == ch->reliable) &&
-          (msg->mid.mid >= ch->mid_recv.mid) &&
+          (ntohl (msg->mid.mid) >= ntohl (ch->mid_recv.mid)) &&
           ((NULL == ccc->head_recv) ||
-           (msg->mid.mid < ccc->head_recv->mid.mid))) )
+           (ntohl (msg->mid.mid) < ntohl (ccc->head_recv->mid.mid)))) )
     {
       LOG (GNUNET_ERROR_TYPE_DEBUG,
            "Giving %u bytes of payload with MID %u from %s to client %s\n",
@@ -1430,7 +1430,7 @@ GCCH_handle_channel_plaintext_data (struct CadetChannel *ch,
       ccc->num_recv--;
       /* Do not process duplicate MID */
       if ((msg->mid.mid == next_msg->mid.mid) || /* Duplicate */
-          (msg->mid.mid < ch->mid_recv.mid)) /* Old */
+          (ntohl (msg->mid.mid) < ntohl (ch->mid_recv.mid))) /* Old */
       {
         /* Duplicate within the queue, drop */
         LOG (GNUNET_ERROR_TYPE_DEBUG,
