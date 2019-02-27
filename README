@@ -66,6 +66,7 @@ These are the dependencies for GNUnet's testsuite:
 - Bash                              (optional (?[*4]), for some tests)
 - python             >= 3.7         (only python 3.7 is supported)
 - python-future      >= 3.7         (only python 3.7 is supported)
+- which
 
 
 These are the optional dependencies:
