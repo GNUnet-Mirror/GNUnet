@@ -18,6 +18,11 @@ variable:
   guix ... --load-path=<gnunet.git>/contrib/guix ...
   export GUIX_PACKAGE_PATH=<gnunet.git>/contrib/guix
 
+NOTE: Due to a bug in guix 0.16, using --load-path currently does not
+      work as expected. Please set the environment variable. See
+      <https://debbugs.gnu.org/cgi/bugreport.cgi?bug=34679> for
+      details.
+
 To spawn a (development) environment with GNUnet's dependencies
 installed, run:
 
