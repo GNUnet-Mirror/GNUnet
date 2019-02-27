@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     Copyright (C) 2013-2016 GNUnet e.V.
+     Copyright (C) 2013-2016, 2019 GNUnet e.V.
 
      GNUnet is free software: you can redistribute it and/or modify it
      under the terms of the GNU Affero General Public License as published
@@ -844,6 +844,7 @@ reconnect (void *cls)
   };
   struct GNUNET_MQ_Envelope *ev;
 
+  h->reconnect_task = NULL;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Reconnecting...\n");
   h->mq = GNUNET_CLIENT_connect (h->cfg,
