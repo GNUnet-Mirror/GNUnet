@@ -1,4 +1,33 @@
-This directory contains Guix package definitions that can be used to override
-the ones found in Guix's GNU distribution.
+This directory contains Guix package definitions that can be used to
+override the ones found in Guix's GNU distribution.
 
 Guix packagers are encouraged to adopt and adjust these definitions.
+
+GNUnet developers can use this for easily setting up a development or
+test environment using Guix.
+
+When using the package definition for building a package this will
+pick up the current development code. The version of the resulting
+package is the output of 'git describe --tags'.
+
+
+To make guix pick up the package definition contained here you need to
+either pass an extra parameter to guix or or set an environment
+variable:
+
+  guix ... --load-path=<gnunet.git>/contrib/guix ...
+  export GUIX_PACKAGE_PATH=<gnunet.git>/contrib/guix
+
+To spawn a (development) environment with GNUnet's dependencies
+installed, run:
+
+  guix environment --load-path=<gnunet.git>/contrib/guix guix
+
+To spawn a (test) environment with GNUnet available in this
+environment, run:
+
+  guix environment --load-path=<gnunet.git>/contrib/guix --ad-hoc guix
+
+
+It is recommented to also pass the '--pure' option to guix, to make
+sure the environment is not polluted with existing packages.
