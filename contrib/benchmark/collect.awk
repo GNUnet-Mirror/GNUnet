@@ -94,8 +94,8 @@ END {
             "time_avg_us", avg(url[x][y]["time_us"], url[x][y]["count"]), \
             "stdev", stdev(url[x][y]["time_us"], url[x][y]["time_us_sq"], url[x][y]["count"]), \
             "time_us_max", url[x][y]["time_us_max"], \
-            "bytes_sent_avg", avg(url[x][y]["bytes_sent"], url[x][y]["count]), \
-            "bytes_received_avg", avg(url[x][y]["bytes_received"], url[x][y]["count]);
+            "bytes_sent_avg", avg(url[x][y]["bytes_sent"], url[x][y]["count"]), \
+            "bytes_received_avg", avg(url[x][y]["bytes_received"], url[x][y]["count"]);
     }
   }
   if (total_ops) {
