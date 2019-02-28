@@ -354,16 +354,20 @@ struct Sub
    */
   struct RPS_Sampler *sampler;
 
+#ifdef TO_FILE_FULL
   /**
    * Name to log view to
    */
   char *file_name_view_log;
+#endif /* TO_FILE_FULL */
 
 #ifdef TO_FILE
+#ifdef TO_FILE_FULL
   /**
    * Name to log number of observed peers to
    */
   char *file_name_observed_log;
+#endif /* TO_FILE_FULL */
 
   /**
    * @brief Count the observed peers
@@ -2400,9 +2404,11 @@ hist_update (const struct GNUNET_PeerIdentity *ids,
     {
       clients_notify_stream_peer (sub, 1, &ids[i]);
     }
+#ifdef TO_FILE_FULL
     to_file (sub->file_name_view_log,
              "+%s\t(hist)",
              GNUNET_i2s_full (ids));
+#endif /* TO_FILE_FULL */
   }
   clients_notify_view_update (sub);
 }
@@ -2605,11 +2611,13 @@ insert_in_sampler (void *cls,
      GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
   uint32_t num_observed_unique_peers =
     GNUNET_CONTAINER_multipeermap_size (sub->observed_unique_peers);
+#ifdef TO_FILE_FULL
   to_file (sub->file_name_observed_log,
           "%" PRIu32 " %" PRIu32 " %f\n",
           sub->num_observed_peers,
           num_observed_unique_peers,
           1.0*num_observed_unique_peers/sub->num_observed_peers)
+#endif /* TO_FILE_FULL */
 #endif /* TO_FILE */
 }
 
@@ -2905,10 +2913,14 @@ new_sub (const struct GNUNET_HashCode *hash,
                                   round_interval);
 
   /* Logging of internals */
+#ifdef TO_FILE_FULL
   sub->file_name_view_log = store_prefix_file_name (&own_identity, "view");
+#endif /* TO_FILE_FULL */
 #ifdef TO_FILE
+#ifdef TO_FILE_FULL
   sub->file_name_observed_log = store_prefix_file_name (&own_identity,
                                                        "observed");
+#endif /* TO_FILE_FULL */
   sub->num_observed_peers = 0;
   sub->observed_unique_peers = GNUNET_CONTAINER_multipeermap_create (1,
                                                                     GNUNET_NO);
@@ -3007,11 +3019,15 @@ destroy_sub (struct Sub *sub)
   peers_terminate (sub);
 
   /* Free leftover data structures */
+#ifdef TO_FILE_FULL
   GNUNET_free (sub->file_name_view_log);
   sub->file_name_view_log = NULL;
+#endif /* TO_FILE_FULL */
 #ifdef TO_FILE
+#ifdef TO_FILE_FULL
   GNUNET_free (sub->file_name_observed_log);
   sub->file_name_observed_log = NULL;
+#endif /* TO_FILE_FULL */
 
   /* Write push frequencies to disk */
   write_histogram_to_file (sub->push_recv,
@@ -4183,18 +4199,20 @@ do_round (void *cls)
     GNUNET_STATISTICS_update (stats, "# rounds", 1, GNUNET_NO);
   }
   sub->do_round_task = NULL;
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Printing view:\n");
+#ifdef TO_FILE_FULL
   to_file (sub->file_name_view_log,
            "___ new round ___");
+#endif /* TO_FILE_FULL */
   view_array = View_get_as_array (sub->view);
   for (i = 0; i < View_size (sub->view); i++)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "\t%s\n", GNUNET_i2s (&view_array[i]));
+#ifdef TO_FILE_FULL
     to_file (sub->file_name_view_log,
              "=%s\t(do round)",
              GNUNET_i2s_full (&view_array[i]));
+#endif /* TO_FILE_FULL */
   }
 
 
@@ -4269,8 +4287,10 @@ do_round (void *cls)
 
     /* Seems like recreating is the easiest way of emptying the peermap */
     View_clear (sub->view);
+#ifdef TO_FILE_FULL
     to_file (sub->file_name_view_log,
              "--- emptied ---");
+#endif /* TO_FILE_FULL */
 
     first_border  = GNUNET_MIN (ceil (alpha * sub->view_size_est_need),
                                 CustomPeerMap_size (sub->push_map));
@@ -4300,9 +4320,11 @@ do_round (void *cls)
             1,
             CustomPeerMap_get_peer_by_index (sub->push_map, permut[i]));
       }
+#ifdef TO_FILE_FULL
       to_file (sub->file_name_view_log,
                "+%s\t(push list)",
                GNUNET_i2s_full (&view_array[i]));
+#endif /* TO_FILE_FULL */
       // TODO change the peer_flags accordingly
     }
     GNUNET_free (permut);
@@ -4324,9 +4346,11 @@ do_round (void *cls)
             CustomPeerMap_get_peer_by_index (sub->pull_map,
                                              permut[i - first_border]));
       }
+#ifdef TO_FILE_FULL
       to_file (sub->file_name_view_log,
                "+%s\t(pull list)",
                GNUNET_i2s_full (&view_array[i]));
+#endif /* TO_FILE_FULL */
       // TODO change the peer_flags accordingly
     }
     GNUNET_free (permut);
@@ -4345,9 +4369,11 @@ do_round (void *cls)
     /* Clean peers that were removed from the view */
     for (i = 0; i < peers_to_clean_size; i++)
     {
+#ifdef TO_FILE_FULL
       to_file (sub->file_name_view_log,
                "-%s",
                GNUNET_i2s_full (&peers_to_clean[i]));
+#endif /* TO_FILE_FULL */
       clean_peer (sub, &peers_to_clean[i]);
     }
 
