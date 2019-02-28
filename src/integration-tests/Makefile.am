@@ -20,8 +20,8 @@ check_SCRIPTS = \
   test_integration_disconnect.py \
   test_integration_disconnect_nat.py \
   test_integration_reconnect.py \
-  test_integration_reconnect_nat.py \
-  test_integration_clique.py
+  test_integration_reconnect_nat.py 
+#  test_integration_clique.py
 endif
 
 
