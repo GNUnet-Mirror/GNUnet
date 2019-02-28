@@ -20,6 +20,7 @@ lib_LTLIBRARIES = \
   libgnunetreclaimattribute.la
 
 libgnunetreclaimattribute_la_SOURCES = \
+  reclaim_attribute.h \
   reclaim_attribute.c
 libgnunetreclaimattribute_la_LIBADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
