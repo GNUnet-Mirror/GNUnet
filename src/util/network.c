@@ -141,7 +141,8 @@ GNUNET_NETWORK_shorten_unixpath (char *unixpath)
     *end = '\0';
   }
   GNUNET_CRYPTO_hash_to_enc (&sh, &ae);
-  strncat (unixpath, (char *) ae.encoding, 16);
+  ae.encoding[16] = '\0';
+  strcat (unixpath, (char *) ae.encoding);
   return unixpath;
 }
 
