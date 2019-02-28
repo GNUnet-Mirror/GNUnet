@@ -17,9 +17,10 @@ SQLITE_PLUGIN = libgnunet_plugin_reclaim_sqlite.la
 endif
 
 EXTRA_DIST = \
+  reclaim.conf \
   test_reclaim_defaults.conf \
-	test_reclaim.conf \
-	$(check_SCRIPTS)
+  test_reclaim.conf \
+  $(check_SCRIPTS)
 
 pkgcfgdir= $(pkgdatadir)/config.d/
 
