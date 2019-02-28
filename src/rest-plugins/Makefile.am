@@ -30,6 +30,7 @@ endif
 
 libgnunet_plugin_rest_reclaim_la_SOURCES = \
   plugin_rest_reclaim.c \
+	json_reclaim.h \
 	json_reclaim.c
 libgnunet_plugin_rest_reclaim_la_LIBADD = \
   $(top_builddir)/src/identity/libgnunetidentity.la \
@@ -117,6 +118,7 @@ libgnunet_plugin_rest_gns_la_LDFLAGS = \
 
 libgnunet_plugin_rest_openid_connect_la_SOURCES = \
   plugin_rest_openid_connect.c \
+	oidc_helper.h \
 	oidc_helper.c
 libgnunet_plugin_rest_openid_connect_la_LIBADD = \
 	$(top_builddir)/src/identity/libgnunetidentity.la \
