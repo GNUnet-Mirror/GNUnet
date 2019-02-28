@@ -100,7 +100,7 @@ struct CustomLogger
  * Note that this message maybe truncated to the first BULK_TRACK_SIZE
  * characters, in which case it is NOT 0-terminated!
  */
-static char last_bulk[BULK_TRACK_SIZE];
+static char last_bulk[BULK_TRACK_SIZE] __attribute__ ((nonstring));
 
 /**
  * Type of the last bulk message.
