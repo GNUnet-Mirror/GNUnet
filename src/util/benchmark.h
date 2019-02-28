@@ -76,6 +76,16 @@ struct UrlRequestData
   uint64_t count;
 
   /**
+   * How many bytes were sent in total to request the URL.
+   */
+  uint64_t bytes_sent;
+
+  /**
+   * How many bytes were received in total as response to requesting this URL.
+   */
+  uint64_t bytes_received;
+
+  /**
    * Total time spent requesting this URL.
    */
   struct GNUNET_TIME_Relative time;

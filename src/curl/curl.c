@@ -489,15 +489,60 @@ GNUNET_CURL_perform2 (struct GNUNET_CURL_Context *ctx,
     double total_as_double = 0;
     struct GNUNET_TIME_Relative total;
     struct UrlRequestData *urd;
-    CURLcode res;
-    res = curl_easy_getinfo (cmsg->easy_handle, CURLINFO_TOTAL_TIME, &total_as_double);
-    GNUNET_break (CURLE_OK == res);
-    curl_easy_getinfo (cmsg->easy_handle, CURLINFO_EFFECTIVE_URL, &url);
+    /* Some care required, as curl is using data types (long vs curl_off_t vs
+     * double) inconsistently to store byte count. */
+    curl_off_t size_curl = 0;
+    long size_long = 0;
+    uint64_t bytes_sent = 0;
+    uint64_t bytes_received = 0;
+
+    GNUNET_break (CURLE_OK ==
+                  curl_easy_getinfo (cmsg->easy_handle,
+                                     CURLINFO_TOTAL_TIME,
+                                     &total_as_double));
     total.rel_value_us = total_as_double * 1000 * 1000;
+
+    GNUNET_break (CURLE_OK ==
+                  curl_easy_getinfo (cmsg->easy_handle,
+                                     CURLINFO_EFFECTIVE_URL,
+                                     &url));
+
+    /* HEADER_SIZE + SIZE_DOWNLOAD_T is hopefully the total
+       number of bytes received, not clear from curl docs. */
+
+    GNUNET_break (CURLE_OK ==
+                  curl_easy_getinfo (cmsg->easy_handle,
+                                     CURLINFO_HEADER_SIZE,
+                                     &size_long));
+    bytes_received += size_long;
+
+    GNUNET_break (CURLE_OK ==
+                  curl_easy_getinfo (cmsg->easy_handle,
+                                     CURLINFO_SIZE_DOWNLOAD_T,
+                                     &size_curl));
+    bytes_received += size_curl;
+
+    /* REQUEST_SIZE + SIZE_UPLOAD_T is hopefully the total number of bytes
+       sent, again docs are not completely clear. */
+
+    GNUNET_break (CURLE_OK ==
+                  curl_easy_getinfo (cmsg->easy_handle,
+                                     CURLINFO_REQUEST_SIZE,
+                                     &size_long));
+    bytes_sent += size_long;
+
+    GNUNET_break (CURLE_OK ==
+                  curl_easy_getinfo (cmsg->easy_handle,
+                                     CURLINFO_SIZE_UPLOAD_T,
+                                     &size_curl));
+    bytes_sent += size_curl;
+
     urd = get_url_benchmark_data (url, (unsigned int) response_code);
     urd->count++;
     urd->time = GNUNET_TIME_relative_add (urd->time, total);
     urd->time_max = GNUNET_TIME_relative_max (total, urd->time_max);
+    urd->bytes_sent = bytes_sent;
+    urd->bytes_received = bytes_received;
   }
 #endif
     job->jcc (job->jcc_cls,

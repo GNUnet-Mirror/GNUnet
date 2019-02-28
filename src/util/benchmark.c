@@ -137,12 +137,14 @@ write_benchmark_data (struct BenchmarkData *bd)
   for (unsigned int i = 0; i < bd->urd_len; i++)
   {
     struct UrlRequestData *urd = &bd->urd[i];
-    GNUNET_asprintf (&s, "url %s status %u count %llu time_us %llu time_us_max %llu\n",
+    GNUNET_asprintf (&s, "url %s status %u count %llu time_us %llu time_us_max %llu bytes_sent %llu bytes_received %llu\n",
                      urd->request_url,
                      urd->status,
                      (unsigned long long) urd->count,
                      (unsigned long long) urd->time.rel_value_us,
-                     (unsigned long long) urd->time_max.rel_value_us);
+                     (unsigned long long) urd->time_max.rel_value_us,
+                     (unsigned long long) urd->bytes_sent,
+                     (unsigned long long) urd->bytes_received);
     GNUNET_assert (GNUNET_SYSERR != GNUNET_DISK_file_write_blocking (fh, s, strlen (s)));
     GNUNET_free (s);
   }
