@@ -47,6 +47,7 @@ gnunetinclude_HEADERS = \
   gnunet_container_lib.h \
   gnunet_conversation_service.h \
   gnunet_core_service.h \
+	gnunet_credential_service.h \
   gnunet_crypto_lib.h \
   gnunet_curl_lib.h \
   gnunet_datacache_lib.h \
