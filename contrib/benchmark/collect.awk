@@ -24,8 +24,9 @@
 
 
 # records are of the following forms:
-# op <op> count <count> time_us <time_us>
-# url <url> status <status> count <count> time_us <time_us> time_us_max <time_us_max>
+# 1:op 2:<op> 3:count 4:<count> 6:time_us 7:<time_us>
+# 1:url 2:<url> 3:status 4:<status> 5:count 6:<count> 7:time_us 8:<time_us> 9:time_us_max 10:<time_us_max>
+#   11:bytes_sent 12:<bytes_sent> 13:bytes_received 14:<bytes_received>
 
 
 function abs(v) {
@@ -45,11 +46,15 @@ function abs(v) {
   } else if ($1 == "url") {
     n = $6;
     t = $8;
+    sent = $12
+    recv = $14
     url[$2][$4]["count"] += n;
     url[$2][$4]["time_us"] += t;
     if (n > 0) {
       url[$2][$4]["time_us_sq"] += n * (t/n) * (t/n);
     }
+    url[$2][$4]["bytes_sent"] += sent;
+    url[$2][$4]["bytes_received"] += recv;
     max = url[$2][$4]["time_us_max"];
     url[$2][$4]["time_us_max"] = (t/n > max ? t/n : max)
   } else if ($1 == "op_baseline") {
@@ -88,7 +93,9 @@ END {
             "count", url[x][y]["count"], "time_us", url[x][y]["time_us"], \
             "time_avg_us", avg(url[x][y]["time_us"], url[x][y]["count"]), \
             "stdev", stdev(url[x][y]["time_us"], url[x][y]["time_us_sq"], url[x][y]["count"]), \
-            "time_us_max", url[x][y]["time_us_max"];
+            "time_us_max", url[x][y]["time_us_max"], \
+            "bytes_sent_avg", avg(url[x][y]["bytes_sent"], url[x][y]["count]), \
+            "bytes_received_avg", avg(url[x][y]["bytes_received"], url[x][y]["count]);
     }
   }
   if (total_ops) {
