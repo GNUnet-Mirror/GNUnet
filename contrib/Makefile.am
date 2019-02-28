@@ -47,6 +47,7 @@ EXTRA_DIST = \
  scripts/gnunet_pyexpect.py.in \
  scripts/gnunet_janitor.py.in \
  scripts/gnunet-chk.py.in \
+ scripts/gnunet-bugreport \
  scripts/removetrailingwhitespace.py.in \
  scripts/pydiffer.py.in \
  packages/nix/default.nix \

@@ -21,7 +21,7 @@
 #
 AC_PREREQ(2.61)
 # Checks for programs.
-AC_INIT([gnunet], [0.11.0pre66], [bug-gnunet@gnu.org])
+AC_INIT([gnunet], [0.11.0], [bug-gnunet@gnu.org])
 AC_CONFIG_AUX_DIR([build-aux])
 
 AC_CANONICAL_TARGET
@@ -710,7 +710,7 @@ else
 	"
 	AC_CHECK_DECL([NSS_STATUS_UNAVAIL],
 		[AM_CONDITIONAL(HAVE_GLIBCNSS, true)],
-		[AM_CONDITIONAL(HAVE_GLIBCNSS, false)	
+		[AM_CONDITIONAL(HAVE_GLIBCNSS, false)
 		 AC_MSG_WARN([No nss header fails to define NSS_STATUS_UNAVAIl, will not build NSS plugin])],
 		[$NSS_INCLUDES])
 fi
