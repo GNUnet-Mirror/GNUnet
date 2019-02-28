@@ -53,7 +53,8 @@ dist_infoimage_DATA =                           		\
 	images/lego_stack.svg					\
 	images/service_lego_block.svg				\
 	images/structure.dot                                    \
-	images/gns.dot
+	images/gns.dot	\
+	images/gns.jpg
 
 #	images/$(wildcard *.png)						\
 #	images/$(wildcard *.svg)
@@ -91,6 +92,7 @@ info_TEXINFOS = 						\
 
 gnunet_TEXINFOS = 						\
 	chapters/developer.texi 				\
+	chapters/keyconcepts.texi 				\
 	chapters/preface.texi 				\
 	chapters/philosophy.texi 				\
 	chapters/installation.texi				\
@@ -100,6 +102,7 @@ gnunet_TEXINFOS = 						\
 	chapters/contributing.texi				\
 	fdl-1.3.texi 						\
 	gpl-3.0.texi						\
+	agpl-3.0.texi						\
 	version.texi
 
 EXTRA_DIST =							\
