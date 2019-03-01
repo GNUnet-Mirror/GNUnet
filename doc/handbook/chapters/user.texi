@@ -33,7 +33,7 @@ always welcome.
 @node Start and stop GNUnet
 @section Start and stop GNUnet
 
-Previous to use any GNUnet-based application, one has to start a node:
+Prior to using any GNUnet-based application, one has to start a node:
 
 @example
 $ gnunet-arm -s -l gnunet.log
