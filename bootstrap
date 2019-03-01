@@ -12,7 +12,7 @@ existence()
     command -v "$1" >/dev/null 2>&1
 }
 
-if existence libtool || existence libtoolize || existence glibtoolize; then
+if existence libtool || existence libtoolize || existence glibtoolize || existence slibtool; then
     autoreconf -if
     . "bin/pogen.sh"
 else
