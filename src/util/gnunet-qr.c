@@ -22,6 +22,7 @@
 #include <zbar.h>
 #include <stdbool.h>
 #include <getopt.h>
+#include "gnunet-qr-utils.h"
 
 static const char *usage_note =
   "gnunet-qr\n"
@@ -128,16 +129,16 @@ int main (int argc, char **argv)
     LOG("Found %s \"%s\"\n",
 	zbar_get_symbol_name(zbar_symbol_get_type(symbol)), data);
 
-    /* TODO
-    args = ["gnunet-uri",
-	    // FIXME: "-c", configuration,
-	    data];
-    if (verbose = true) {
-      // TODO: print arguments:
-      printf("Running `%s %s %s %s`", *args, "", ""); // FIXME variable num args
+    if (configuration == NULL) {
+      char* command_args[] = {"gnunet-uri", data, NULL };
+      LOG("Running `gnunet-uri %s`\n", data);
+      rc = fork_and_exec("gnunet-uri", command_args);
+    } else {
+      char* command_args[] = {"gnunet-uri", "-c", configuration, data, NULL };
+      LOG("Running `gnunet-uri -c '%s' %s`\n", configuration, data);
+      rc = fork_and_exec("gnunet-uri", command_args);
     };
-    rc = popen("gnunet-uri", *args);
-    */
+
     if (rc != 0) {
       printf("Failed to add URI %s\n", data);
     } else {
