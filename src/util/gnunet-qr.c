@@ -38,6 +38,8 @@ static const char *usage_note =
   "GNUnet home page: https://gnunet.org/\n"
   "General help using GNU software: https://www.gnu.org/gethelp/\n";
 
+#define LOG(fmt, ...) if (verbose == true) printf(fmt, ## __VA_ARGS__)
+
 int main (int argc, char **argv)
 {
   const char* configuration = NULL;
@@ -83,9 +85,7 @@ int main (int argc, char **argv)
   }
 
   /* create a Processor */
-  if (verbose == true) {
-    printf("Initializing\n");
-  };
+  LOG("Initializing\n");
   zbar_processor_t *proc = zbar_processor_create(1);
 
   // FIXME: Wrap all this into a function which returns an error on
@@ -95,9 +95,7 @@ int main (int argc, char **argv)
   zbar_processor_parse_config(proc, "enable");
 
   /* initialize the Processor */
-  if (verbose == true) {
-    printf("Opening video device %s\n", device);
-  };
+  LOG("Opening video device %s\n", device);
   // FIXME: error handling
   zbar_processor_init(proc, device, 1);
 
@@ -109,14 +107,10 @@ int main (int argc, char **argv)
   //zbar_processor_user_wait(proc, -1);
 
   // read at least one barcode (or until window closed)
-  if (verbose == true) {
-    printf("Capturing\n");
-  }
+  LOG("Capturing\n");
   int n;
   n = zbar_process_one(proc, -1);
-  if (verbose == true) {
-    printf("Got %i images\n", n);
-  };
+  LOG("Got %i images\n", n);
   // FIXME: Error handling (n = -1)
 
   // hide the preview window
@@ -131,11 +125,9 @@ int main (int argc, char **argv)
 
   if (symbol != NULL) {
     const char* data = zbar_symbol_get_data(symbol);
-    if (verbose = true) {
-      zbar_symbol_type_t type =
-      printf("Found %s \"%s\"\n",
-	     zbar_get_symbol_name(zbar_symbol_get_type(symbol)), data);
-    }
+    LOG("Found %s \"%s\"\n",
+	zbar_get_symbol_name(zbar_symbol_get_type(symbol)), data);
+
     /* TODO
     args = ["gnunet-uri",
 	    // FIXME: "-c", configuration,
