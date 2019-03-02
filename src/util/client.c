@@ -258,6 +258,8 @@ transmit_ready (void *cls)
   int notify_in_flight;
 
   cstate->send_task = NULL;
+  if (GNUNET_YES == cstate->in_destroy)
+    return;
   pos = (const char *) cstate->msg;
   len = ntohs (cstate->msg->size);
   GNUNET_assert (cstate->msg_off < len);
@@ -378,6 +380,21 @@ connection_client_destroy_impl (struct GNUNET_MQ_Handle *mq,
   struct ClientState *cstate = impl_state;
 
   (void) mq;
+  if (NULL != cstate->dns_active)
+  {
+    GNUNET_RESOLVER_request_cancel (cstate->dns_active);
+    cstate->dns_active = NULL;
+  }
+  if (NULL != cstate->send_task)
+  {
+    GNUNET_SCHEDULER_cancel (cstate->send_task);
+    cstate->send_task = NULL;
+  }
+  if (NULL != cstate->retry_task)
+  {
+    GNUNET_SCHEDULER_cancel (cstate->retry_task);
+    cstate->retry_task = NULL;
+  }
   if (GNUNET_SYSERR == cstate->in_destroy)
   {
     /* defer destruction */
@@ -385,15 +402,13 @@ connection_client_destroy_impl (struct GNUNET_MQ_Handle *mq,
     cstate->mq = NULL;
     return;
   }
-  if (NULL != cstate->dns_active)
-    GNUNET_RESOLVER_request_cancel (cstate->dns_active);
-  if (NULL != cstate->send_task)
-    GNUNET_SCHEDULER_cancel (cstate->send_task);
   if (NULL != cstate->recv_task)
+  {
     GNUNET_SCHEDULER_cancel (cstate->recv_task);
-  if (NULL != cstate->retry_task)
-    GNUNET_SCHEDULER_cancel (cstate->retry_task);
-  if (NULL != cstate->sock){
+    cstate->recv_task = NULL;
+  }
+  if (NULL != cstate->sock)
+  {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "destroying socket: %p\n",
          cstate->sock);
