@@ -847,12 +847,13 @@ connection_client_send_impl (struct GNUNET_MQ_Handle *mq,
   GNUNET_assert (NULL == cstate->send_task);
   cstate->msg = msg;
   cstate->msg_off = 0;
-  if (NULL == cstate->sock){
+  if (NULL == cstate->sock)
+  {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "message of type %u waiting for socket\n",
          ntohs(msg->type));
     return; /* still waiting for connection */
-   }
+  }
   cstate->send_task
     = GNUNET_SCHEDULER_add_write_net (GNUNET_TIME_UNIT_FOREVER_REL,
                                       cstate->sock,
