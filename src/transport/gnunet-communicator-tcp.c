@@ -24,7 +24,6 @@
  * @author Christian Grothoff
  *
  * TODO:
- * - add and use util/ check for IPv6 availability (#5553)
  * - support DNS names in BINDTO option (#5528)
  * - support NAT connection reversal method (#5529)
  * - support other TCP-specific NAT traversal methods (#5531)
@@ -1172,12 +1171,12 @@ tcp_address_to_sockaddr (const char *bindto,
 		  bindto);
       return NULL;
     }
-    /* FIXME: add test to util/ for IPv6 availability,
-       and depending on the result, go directly for v4-only */
-    if (GNUNET_YES ==
-	GNUNET_CONFIGURATION_get_value_yesno (cfg,
-					      COMMUNICATOR_CONFIG_SECTION,
-					      "DISABLE_V6"))
+    if ( (GNUNET_NO ==
+	  GNUNET_NETWORK_test_pf (PF_INET6)) ||
+	 (GNUNET_YES ==
+	  GNUNET_CONFIGURATION_get_value_yesno (cfg,
+						COMMUNICATOR_CONFIG_SECTION,
+						"DISABLE_V6")) )
     {
       struct sockaddr_in *i4;
 
