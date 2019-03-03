@@ -37,12 +37,26 @@ The mandatory libraries and applications are
 @item libnss
 @item libunistring
 @item gettext
-@item glibc
+@item glibc (read below, other libcs should work)
 @item libgmp
 @item gnutls
 @item libcurl (has to be linked to GnuTLS) or libgnurl
 @item zlib
 @end itemize
+
+Glibc is required for certain NSS features:
+
+@example
+One mechanism of integrating GNS with legacy applications via NSS is
+not available if this is disabled. But applications that don't use the
+glibc for NS resolution won't work anyway with this, so little is lost
+on BSD systems.
+GNS via direct use or via the HTTP or DNS proxies is unaffected.
+@end example
+
+Other libcs should work, the resulting builds just don't include the
+glibc NSS specific code. One example is the build against NetBSD's libc
+as detailed in @uref{https://bugs.gnunet.org/view.php?id=5605}.
 
 In addition GNUnet needs one of of these three databases
 @itemize @bullet
