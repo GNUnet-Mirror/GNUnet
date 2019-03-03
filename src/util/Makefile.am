@@ -282,6 +282,9 @@ gnunet_uri_LDADD = \
 gnunet_qr_SOURCES = \
   gnunet-qr.c \
   gnunet-qr-utils.h
+gnunet_qr_LDADD = \
+  libgnunetutil.la \
+  $(GN_LIBINTL)
 gnunet_qr_LDFLAGS= $(libzbar_LIBS)
 gnunet_qr_CFLAGS = $(libzbar_CFLAGS) -DBINDIR=\"@bindir@/\"
 
