@@ -21,70 +21,34 @@
 #include <stdio.h>
 #include <zbar.h>
 #include <stdbool.h>
-#include <getopt.h>
+#include "platform.h"
+#include "gnunet_util_lib.h"
 #include "gnunet-qr-utils.h"
-
-static const char *usage_note =
-  "gnunet-qr\n"
-  "Scan a QR code using a video device and import\n"
-  "\n"
-  "Arguments mandatory for long options are also mandatory for short options.\n"
-  "  -c, --config FILENAME      use configuration file FILENAME\n"
-  "  -d, --device DEVICE        use device DEVICE\n"
-  "  -s, --silent               do not show preview windows\n"
-  "  -h, --help                 print this help\n"
-  "  -v, --verbose              be verbose\n"
-  "Report bugs to gnunet-developers@gnu.org.\n"
-  "\n"
-  "GNUnet home page: https://gnunet.org/\n"
-  "General help using GNU software: https://www.gnu.org/gethelp/\n";
 
 #define LOG(fmt, ...) if (verbose == true) printf(fmt, ## __VA_ARGS__)
 
-int main (int argc, char **argv)
+// Command line options
+// program exit code
+static long unsigned int exit_code = 1;
+
+static char* device = "/dev/video0";
+static int verbose = false;
+static int silent = false;
+
+/**
+ * Main function that will be run by the scheduler.
+ *
+ * @param cls closure
+ * @param args remaining command-line arguments
+ * @param cfgfile name of the configuration file used (for saving, can be NULL!)
+ * @param cfg configuration
+ */
+static void
+run (void *cls,
+     char *const *args,
+     const char *cfgfile,
+     const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
-  const char* configuration = NULL;
-  const char* device = "/dev/video0";
-  static bool verbose = false;
-  static bool silent = false;
-
-  static struct option long_options[] = {
-      {"verbose", no_argument,       0, 'v'},
-      {"silent",  no_argument,       0, 's'},
-      {"help",    no_argument,       0, 'h'},
-      {"config",  required_argument, 0, 'c'},
-      {"device",  required_argument, 0, 'd'},
-      {0, 0, 0, 0}
-    };
-  while (1) {
-    int opt;
-    opt = getopt_long (argc, argv, "c:hd:sv",
-		     long_options, NULL);
-    if (opt == -1)
-      break;
-
-    switch (opt) {
-    case 'h':
-      printf(usage_note);
-      return 0;
-    case 'c':
-      configuration = optarg;
-      break;
-    case 'd':
-      device = optarg;
-      break;
-    case 's':
-      silent = true;
-      break;
-    case 'v':
-      verbose = true;
-      break;
-    default:
-      printf(usage_note);
-      return 1;
-    }
-  }
-
   /* create a Processor */
   LOG("Initializing\n");
   zbar_processor_t *proc = zbar_processor_create(1);
@@ -119,8 +83,6 @@ int main (int argc, char **argv)
   zbar_processor_set_visible(proc, 0);
 
   // extract results
-  int rc = 1;
-
   const zbar_symbol_set_t* symbols = zbar_processor_get_results(proc);
   const zbar_symbol_t* symbol = zbar_symbol_set_first_symbol(symbols);
 
@@ -132,14 +94,14 @@ int main (int argc, char **argv)
     if (configuration == NULL) {
       char* command_args[] = {"gnunet-uri", data, NULL };
       LOG("Running `gnunet-uri %s`\n", data);
-      rc = fork_and_exec(BINDIR "gnunet-uri", command_args);
+      exit_code = fork_and_exec(BINDIR "gnunet-uri", command_args);
     } else {
       char* command_args[] = {"gnunet-uri", "-c", configuration, data, NULL };
       LOG("Running `gnunet-uri -c '%s' %s`\n", configuration, data);
-      rc = fork_and_exec(BINDIR "gnunet-uri", command_args);
+      exit_code = fork_and_exec(BINDIR "gnunet-uri", command_args);
     };
 
-    if (rc != 0) {
+    if (exit_code != 0) {
       printf("Failed to add URI %s\n", data);
     } else {
       printf("Added URI %s\n", data);
@@ -148,6 +110,29 @@ int main (int argc, char **argv)
 
   /* clean up */
   zbar_processor_destroy(proc);
+};
 
-  return(rc);
+
+int
+main (int argc, char *const *argv)
+{
+  static int ret;
+  struct GNUNET_GETOPT_CommandLineOption options[] = {
+    GNUNET_GETOPT_option_string ('d', "device", "DEVICE",
+     gettext_noop ("use video-device DEVICE (default: /dev/video0"),
+     &device),
+    GNUNET_GETOPT_option_flag ('\0', "verbose",
+     gettext_noop ("be verbose"),
+     &verbose),
+    GNUNET_GETOPT_option_flag ('s', "silent",
+     gettext_noop ("do not show preview windows"),
+			       &silent),
+    GNUNET_GETOPT_OPTION_END
+  };
+  ret = GNUNET_PROGRAM_run (argc,
+			    argv,
+			    "gnunet-qr",
+			    gettext_noop ("Scan a QR code using a video device and import the uri read"),
+			    options, &run, NULL);
+  return ((GNUNET_OK == ret) && (0 == exit_code)) ? 0 : 1;
 }
