@@ -116,16 +116,23 @@ running @code{configure} the following options can be specified to
 customize the compilation and installation process:
 
 @itemize @bullet
-@item @code{--disable-documentation} - don't build the configuration documents
+@item @code{--disable-documentation} - don't build the documentation
 @item @code{--enable-looging=[LOGLEVEL]} - choose a loglevel (@code{debug}, @code{info}, @code{warning} or @code{error})
 @item @code{--prefix=[PATH]} - the directory where the GNUnet libraries and binaries will be installed
 @item @code{--with-extractor=[PATH]} - the path to libextractor
 @item @code{--with-libidn=[PATH]} - the path to libidn
+@item @code{--with-libidn2=[PATH]} - the path to libidn2 (takes priority over libidn if both are found)
 @item @code{--with-microhttpd=[PATH]} - the path to libmicrohttpd
 @item @code{--with-sqlite=[PATH]} - the path to libsqlite
 @item @code{--with-zlib=[PATH]} - the path to zlib
 @item @code{--with-sudo=[PATH]} - path to the sudo binary (no need to run @code{make install} as root if specified)
 @end itemize
+
+Note that the list above is not always up to date and you
+should check the output of @code{./configure --help}, read
+the @file{configure.ac} or send an email asking for assistance
+if you are in doubt of any configure options or require fixes
+for your operating system.
 
 The following example configures the installation prefix
 @code{/usr/lib} and disables building the documentation
