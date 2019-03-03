@@ -204,24 +204,15 @@ libexec_PROGRAMS = \
  gnunet-timeout \
  $(W32CONSOLEHELPER)
 
-do_subst = $(SED) -e 's,[@]PREFIX[@],$(prefix),g'
-
-gnunet-qr: gnunet-qr.in Makefile
-	$(do_subst) < $(srcdir)/gnunet-qr.in > gnunet-qr
-	chmod +x gnunet-qr
-
-CLEANFILES = gnunet-qr
-
-bin_SCRIPTS =\
- gnunet-qr \
- gnunet-qr.py
-
 bin_PROGRAMS = \
  gnunet-resolver \
  gnunet-config \
  $(GNUNET_ECC) \
  $(GNUNET_SCRYPT) \
  gnunet-uri
+if HAVE_ZBAR
+bin_PROGRAMS += gnunet-qr
+endif
 
 noinst_PROGRAMS = \
  gnunet-config-diff \
@@ -281,12 +272,18 @@ gnunet_config_LDADD = \
   libgnunetutil.la \
   $(GN_LIBINTL)
 
-
 gnunet_uri_SOURCES = \
  gnunet-uri.c
 gnunet_uri_LDADD = \
   libgnunetutil.la \
   $(GN_LIBINTL)
+
+
+gnunet_qr_SOURCES = \
+  gnunet-qr.c \
+  gnunet-qr-utils.h
+gnunet_qr_LDFLAGS= $(libzbar_LIBS)
+gnunet_qr_CFLAGS = $(libzbar_CFLAGS)
 
 plugin_LTLIBRARIES = \
   libgnunet_plugin_test.la
@@ -668,5 +665,4 @@ EXTRA_DIST = \
   test_program_data.conf \
   test_resolver_api_data.conf \
   test_service_data.conf \
-  test_speedup_data.conf \
-  gnunet-qr.in
+  test_speedup_data.conf

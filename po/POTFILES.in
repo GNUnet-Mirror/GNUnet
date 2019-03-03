@@ -480,6 +480,7 @@ src/util/gnunet-config-diff.c
 src/util/gnunet-config.c
 src/util/gnunet-ecc.c
 src/util/gnunet-helper-w32-console.c
+src/util/gnunet-qr.c
 src/util/gnunet-resolver.c
 src/util/gnunet-scrypt.c
 src/util/gnunet-service-resolver.c
