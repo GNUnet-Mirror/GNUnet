@@ -2401,10 +2401,11 @@ the program at various levels.
 @file{gnunet_common.h} defines several @strong{log levels}:
 @table @asis
 
-@item ERROR for errors (really problematic situations, often leading to
-crashes)
-@item WARNING for warnings (troubling situations that might have
-negative consequences, although not fatal)
+@item ERROR for errors
+(really problematic situations, often leading to crashes)
+@item WARNING for warnings
+(troubling situations that might have negative consequences, although
+not fatal)
 @item INFO for various information.
 Used somewhat rarely, as GNUnet statistics is used to hold and display
 most of the information that users might find interesting.
