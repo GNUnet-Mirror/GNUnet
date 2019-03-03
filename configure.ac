@@ -1431,6 +1431,10 @@ AC_DEFINE_UNQUOTED([HAVE_GNUTLS], $gnutls, [We have GnuTLS])
 AM_CONDITIONAL(HAVE_GNUTLS_DANE, test x$gnutls_dane = x1)
 AC_DEFINE_UNQUOTED([HAVE_GNUTLS_DANE], $gnutls_dane, [We have GnuTLS with DANE support])
 
+# check for libzbar library, required for optional gnunet-qr
+PKG_CHECK_MODULES([libzbar], [zbar >= 0.10], [have_zbar=1 ], [have_zbar=0 ])
+AM_CONDITIONAL([HAVE_ZBAR], [test "$have_zbar" = 1])
+
 
 # Test if we are building for superMUC
 AC_MSG_CHECKING(if GNUnet is being configured to run on the SuperMUC)
@@ -1937,6 +1941,10 @@ AS_IF([test x$gnutls != xtrue],
  [AC_MSG_NOTICE([WARNING: GnuTLS not found, gnunet-gns-proxy will not be built])],
  [AS_IF([test "x$gnutls_dane" != "x1"],
   [AC_MSG_NOTICE([WARNING: GnuTLS has no DANE support, DANE validation will not be possible])])])
+
+# warn user if libzbar is not found
+AS_IF([test "$have_zbar" = 0],
+      [AC_MSG_NOTICE([WARNING: zbar not found, gnunet-qr will not be built.])])
 
 # java ports
 AS_IF([test "x$enable_java_ports" = "xyes"],
