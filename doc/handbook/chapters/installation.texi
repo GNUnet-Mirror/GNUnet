@@ -82,7 +82,7 @@ The archive can be found at
 @uref{https://ftpmirror.gnu.org/gnu/gnunet/}. Extract it using a graphical
 archive tool or @code{tar}:
 @example
-tar xzvf gnunet-0.11.0pre66.tar.gz
+tar xzvf gnunet-@value{VERSION}.tar.gz
 @end example
 
 In the next chapter we will assume that the source code is available

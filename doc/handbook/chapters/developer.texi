@@ -2176,7 +2176,7 @@ work):
 @example
 export PYPI=@value{PYPI-URL}
 wget $PYPI/z/zope.interface/zope.interface-3.8.0.tar.gz
-tar zvfz zope.interface-3.8.0.tar.gz
+tar xzvf zope.interface-3.8.0.tar.gz
 cd zope.interface-3.8.0
 sudo python setup.py install
 @end example
