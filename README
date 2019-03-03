@@ -407,7 +407,7 @@ If any testcases fail to pass on your system, run
 "contrib/scripts/gnunet-bugreport" (in the repository) or "gnunet-bugreport"
 when you already have GNUnet installed and report its output together with
 information about the failing testcase(s) to the Mantis bugtracking
-system at https://gnunet.org/bugs/.
+system at https://bugs.gnunet.org/.
 
 
 Running HTTP on port 80 and HTTPS on port 443
