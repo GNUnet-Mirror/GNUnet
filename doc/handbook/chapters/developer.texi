@@ -3557,8 +3557,9 @@ at least until benchmarks exist).
 @subsubsection Availability
 @c %**end of header
 
-The new multi hash map code was committed in SVN 24319 (will be in GNUnet
-0.9.4). Various subsystems (transport, core, dht, file-sharing) were
+The new multi hash map code was committed in SVN 24319 (which made its
+way into GNUnet version 0.9.4).
+Various subsystems (transport, core, dht, file-sharing) were
 previously audited and modified to take advantage of the new capability.
 In particular, memory consumption of the file-sharing service is expected
 to drop by 20-30% due to this change.
@@ -4073,6 +4074,7 @@ message, and delivers it to Carol as though it came directly from Alice.
 @node SMTP plugin
 @section SMTP plugin
 @c %**end of header
+@c TODO: Update!
 
 This section describes the new SMTP transport plugin for GNUnet as it
 exists in the 0.7.x and 0.8.x branch. SMTP support is currently not
@@ -4080,6 +4082,9 @@ available in GNUnet 0.9.x. This page also describes the transport layer
 abstraction (as it existed in 0.7.x and 0.8.x) in more detail and gives
 some benchmarking results. The performance results presented are quite
 old and maybe outdated at this point.
+For the readers in the year 2019, you will notice by the mention of
+version 0.7, 0.8, and 0.9 that this section has to be taken with your
+usual grain of salt and be updated eventually.
 
 @itemize @bullet
 @item Why use SMTP for a peer-to-peer transport?
