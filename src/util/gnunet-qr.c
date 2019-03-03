@@ -132,11 +132,11 @@ int main (int argc, char **argv)
     if (configuration == NULL) {
       char* command_args[] = {"gnunet-uri", data, NULL };
       LOG("Running `gnunet-uri %s`\n", data);
-      rc = fork_and_exec("gnunet-uri", command_args);
+      rc = fork_and_exec(BINDIR "gnunet-uri", command_args);
     } else {
       char* command_args[] = {"gnunet-uri", "-c", configuration, data, NULL };
       LOG("Running `gnunet-uri -c '%s' %s`\n", configuration, data);
-      rc = fork_and_exec("gnunet-uri", command_args);
+      rc = fork_and_exec(BINDIR "gnunet-uri", command_args);
     };
 
     if (rc != 0) {
