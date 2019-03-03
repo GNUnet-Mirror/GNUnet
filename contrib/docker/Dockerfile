@@ -35,7 +35,7 @@ RUN apt-get update && \
 # Install GNUrl
 ENV GNURL_VERSION=7.57.0
 
-RUN wget -O /tmp/gnurl.tar.bz2 https://gnunet.org/sites/default/files/gnurl-${GNURL_VERSION}.tar.bz2  
+RUN wget -O /tmp/gnurl.tar.Z https://ftpmirror.gnu.org/gnu/gnunet/gnurl-${GNURL_VERSION}.tar.Z  
 RUN cd /tmp && \
       tar xvf gnurl.tar.bz2 && \
       cd gnurl-${GNURL_VERSION} && \
