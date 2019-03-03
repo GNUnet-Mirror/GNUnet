@@ -12,9 +12,9 @@ package manager.
 * Create @code{gnunet} user and group::
 * Preparing and Compiling the Source Code::
 * Installation::
-* MOVED FROM USER Checking the Installation::
+* Checking the Installation::
 * The graphical configuration interface::
-* MOVED FROM USER Config Leftovers::
+* Config Leftovers::
 @end menu
 
 @c -----------------------------------------------------------------------
@@ -223,8 +223,8 @@ PLUGINS = tcp
 
 
 
-@node MOVED FROM USER Checking the Installation
-@section MOVED FROM USER Checking the Installation
+@node Checking the Installation
+@section Checking the Installation
 @c %**end of header
 
 This section describes a quick, casual way to check if your GNUnet
@@ -1949,8 +1949,8 @@ desktop-user to "sudo" (i.e. using gtksudo) to the "gnunet" user account
 and then runs "gnunet-arm -e", "gnunet-setup" and "gnunet-arm -s" in
 sequence.
 
-@node MOVED FROM USER Config Leftovers
-@section MOVED FROM USER Config Leftovers
+@node Config Leftovers
+@section Config Leftovers
 
 This section describes how to start a GNUnet peer. It assumes that you
 have already compiled and installed GNUnet and its' dependencies.

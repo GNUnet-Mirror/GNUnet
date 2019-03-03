@@ -122,9 +122,9 @@ Installing GNUnet
 * Create @code{gnunet} user and group::
 * Preparing and Compiling the Source Code::
 * Installation::
-* MOVED FROM USER Checking the Installation::
+* Checking the Installation::
 * The graphical configuration interface::
-* MOVED FROM USER Config Leftovers::
+* Config Leftovers::
 
 Using GNUnet
 
