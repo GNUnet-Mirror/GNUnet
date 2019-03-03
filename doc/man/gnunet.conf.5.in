@@ -109,12 +109,11 @@ The following options are generic and shared by all services:
 .SH EXAMPLES
 This example is a simple way to get started, using a server that has a known
 list of peers to get you started. Most users will be behind a firewall on
-IPv4, as such NAT is enabled.  Please rememeber to change your IP address
+IPv4, as such NAT is enabled.  Please remember to change your IP address
 to the actual external address for your usage.
 .PP
     [hostlist]
-    OPTIONS = \-b
-    SERVERS = http://v9.gnunet.org:58080/
+    OPTIONS = \-b \-e
 
     [nat]
     BEHIND_NAT = YES
