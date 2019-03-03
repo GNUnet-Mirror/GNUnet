@@ -30,7 +30,6 @@ The mandatory libraries and applications are
 @item libtool
 @item autoconf 2.59 or above
 @item automake 1.11.1 or above
-@item pkg-config
 @item libgcrypt 1.6 or above
 @item libextractor
 @item libidn
