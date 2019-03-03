@@ -35,9 +35,9 @@ RUN apt-get update && \
 # Install GNUrl
 ENV GNURL_VERSION=7.57.0
 
-RUN wget -O /tmp/gnurl.tar.Z https://ftpmirror.gnu.org/gnu/gnunet/gnurl-${GNURL_VERSION}.tar.Z  
+RUN wget -O /tmp/gnurl.tar.xz https://ftpmirror.gnu.org/gnu/gnunet/gnurl-${GNURL_VERSION}.tar.xz
 RUN cd /tmp && \
-      tar xvf gnurl.tar.bz2 && \
+      tar xvf gnurl.tar.xz && \
       cd gnurl-${GNURL_VERSION} && \
       autoreconf -i && \
       ./configure \
