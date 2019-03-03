@@ -28,11 +28,12 @@ link to the project websites.
 The mandatory libraries and applications are
 @itemize @bullet
 @item libtool
-@item autoconf 2.59 or above
-@item automake 1.11.1 or above
+@item autoconf 2.59 or above (if building from git)
+@item automake 1.11.1 or above (if building from git)
 @item libgcrypt 1.6 or above
 @item libextractor
 @item libidn
+@item libidn2
 @item libmicrohttpd 0.9.52 or above
 @item libnss
 @item libunistring
