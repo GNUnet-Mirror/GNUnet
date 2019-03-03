@@ -123,7 +123,7 @@ Installing GNUnet
 * Preparing and Compiling the Source Code::
 * Installation::
 * MOVED FROM USER Checking the Installation::
-* MOVED FROM USER The graphical configuration interface::
+* The graphical configuration interface::
 * MOVED FROM USER Config Leftovers::
 
 Using GNUnet

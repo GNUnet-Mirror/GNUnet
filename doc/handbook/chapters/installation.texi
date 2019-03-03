@@ -13,7 +13,7 @@ package manager.
 * Preparing and Compiling the Source Code::
 * Installation::
 * MOVED FROM USER Checking the Installation::
-* MOVED FROM USER The graphical configuration interface::
+* The graphical configuration interface::
 * MOVED FROM USER Config Leftovers::
 @end menu
 
@@ -317,8 +317,8 @@ configuration.
 
 @c NOTE: Inserted from Installation Handbook in original ``order'':
 @c FIXME: Move this to User Handbook.
-@node MOVED FROM USER The graphical configuration interface
-@section MOVED FROM USER The graphical configuration interface
+@node The graphical configuration interface
+@section The graphical configuration interface
 
 If you also would like to use @command{gnunet-gtk} and
 @command{gnunet-setup} (highly recommended for beginners), do:
