@@ -34,3 +34,7 @@ check-bashism:
 	printf "Run checkbashism on all .sh files.\n"
 	printf "Currently this expects checkbashism.pl at a fixed location."
 	find . -type f ! -path '*/.*' ! -path '*/_*' -name '*.sh' -print0 | xargs -0 ~/src/scripts/src/checkbashisms.pl -f
+
+check-python:
+	printf "Running flake8 and 2to3 if detected.\n"
+	$(top_srcdir)/contrib/scripts/lint-python.sh
