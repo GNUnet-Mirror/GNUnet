@@ -27,21 +27,24 @@ link to the project websites.
 
 The mandatory libraries and applications are
 @itemize @bullet
-@item libtool
-@item autoconf 2.59 or above (if building from git)
-@item automake 1.11.1 or above (if building from git)
-@item libgcrypt 1.6 or above
-@item libextractor
-@item libidn
-@item libidn2
-@item libmicrohttpd 0.9.52 or above
-@item libnss
-@item libunistring
+@item autoconf 2.59 or above
+@item automake 1.11.1 or above
 @item gettext
 @item glibc (read below, other libcs should work)
+@item gnutls 3.2.12 or above, recommended to be linked against libunbound
+@item iptables (on Linux systems)
+@item libtool 2.2 or above
+@item libltdl (part of libtool)
+@item libgcrypt 1.6 or above
+@item libextractor
+@item libidn2 or libidn
+@item libmicrohttpd 0.9.52 or above
+@item libunistring
 @item libgmp
-@item gnutls
-@item libcurl (has to be linked to GnuTLS) or libgnurl
+@item libgnurl or libcurl (libcurl has to be linked to GnuTLS) 7.35.0 or above
+@item Texinfo 5.2 or above (for building the documentation)
+@item Texlive 2012 or above (for building the documentation, and for gnunet-bcd)
+@item makeinfo 4.8 or above
 @item zlib
 @end itemize
 
@@ -61,16 +64,17 @@ as detailed in @uref{https://bugs.gnunet.org/view.php?id=5605}.
 
 In addition GNUnet needs one of of these three databases
 @itemize @bullet
-@item sqlite + libsqlite (the default, requires no further configuration)
+@item sqlite + libsqlite 3.8 or above (the default, requires no further configuration)
 @item postgres + libpq
 @item mysql + libmysqlclient
 @end itemize
 
 These are the dependencies only required for certain features
 @itemize @bullet
-@item Texinfo (for building the documentation)
-@item Texlive (for building the documentation)
+@item guile 1.6.4 for gnunet-download-manager
 @item miniupnpc (for traversing NAT boxes more reliably)
+@item libnss
+@item libglpk 4.45 or above for experimental code
 @item libopus (for running the GNUnet conversation telephony application)
 @item libpulse (for running the GNUnet conversation telephony application)
 @item libogg (for running the GNUnet conversation telephony application)
@@ -79,6 +83,25 @@ These are the dependencies only required for certain features
 (for attribute-based encryption and the identity provider subsystem)
 @item libgabe
 (for attribute-based encryption and the identity provider subsystem)
+@item texi2mdoc (for automatic mdoc generation)
+@item perl5 for some utilities
+@end itemize
+
+These are the test suite requirements:
+@itemize @bullet
+@item python3.7
+@item python3-7 future module
+@item gnunet (installation first)
+@item which(1)
+@item a shell (possibly Bash, maybe just POSIX sh)
+@end itemize
+
+These are runtime requirements:
+@itemize @bullet
+@item nss (the certutil binary, for gnunet-gns-proxy-setup-ca)
+@item openssl (openssl binary, for gnunet-gns-proxy-setup-ca)
+@item python2.7 for gnunet-qr (at the moment only python2.7 supported)
+@item python-zbar 0.10 or above for gnunet-qr
 @end itemize
 
 @c -----------------------------------------------------------------------
