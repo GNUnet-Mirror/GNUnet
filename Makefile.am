@@ -42,3 +42,5 @@ check-python:
 check-man:
 	printf "Running lint-man.sh in doc/man.\n"
 	@cd $(top_srcdir)/doc/man ; $(top_srcdir)/../../contrib/scripts/lint-man.sh || true
+
+check-linters: check-bashism check-python check-man
