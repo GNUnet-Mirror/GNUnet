@@ -27,3 +27,10 @@ docdir = $(datadir)/doc/gnunet/
 doc_DATA = COPYING README
 
 ACLOCAL_AMFLAGS = -I m4
+
+# Check for bashisms in shell scripts
+# Very verbose, need to exclude more files.
+check-bashism:
+	printf "Run checkbashism on all .sh files.\n"
+	printf "Currently this expects checkbashism.pl at a fixed location."
+	find . -type f ! -path '*/.*' ! -path '*/_*' -name '*.sh' -print0 | xargs -0 ~/src/scripts/src/checkbashisms.pl -f
