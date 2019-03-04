@@ -38,3 +38,7 @@ check-bashism:
 check-python:
 	printf "Running flake8 and 2to3 if detected.\n"
 	$(top_srcdir)/contrib/scripts/lint-python.sh
+
+check-man:
+	printf "Running lint-man.sh in doc/man.\n"
+	@cd $(top_srcdir)/doc/man ; $(top_srcdir)/../../contrib/scripts/lint-man.sh || true
