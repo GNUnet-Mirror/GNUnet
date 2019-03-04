@@ -7,7 +7,7 @@ make version.texi/replacement
 #mkdir gnunet-c-tutorial
 #mv * gnunet-c-tutorial/
 #cd ..
-./gendocs.sh --email gnunet-developers@gnu.org gnunet "GNUnet Reference Manual" -o "manual/gnunet"
+#./gendocs.sh --email gnunet-developers@gnu.org gnunet "GNUnet Reference Manual" -o "manual/gnunet"
 #cd manual
 #mkdir handbook
 #mkdir ../tmp-gnunet

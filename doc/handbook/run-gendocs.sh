@@ -2,7 +2,7 @@
 
 make version.texi/replacement
 
-./gendocs.sh --email gnunet-developers@gnu.org gnunet-c-tutorial "GNUnet C Tutorial" -o "manual/gnunet-c-tutorial"
+#./gendocs.sh --email gnunet-developers@gnu.org gnunet-c-tutorial "GNUnet C Tutorial" -o "manual/gnunet-c-tutorial"
 #cd manual
 #mkdir gnunet-c-tutorial
 #mv * gnunet-c-tutorial/
