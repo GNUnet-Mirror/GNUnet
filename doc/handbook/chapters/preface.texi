@@ -27,14 +27,31 @@ that the content is described in a way that does not require any
 academic background, although some concepts will require further
 reading.
 
-Our (long-term) goal with these books is to keep them self-contained. If
-you see references to Wikipedia and other external sources (except for
-our academic papers) it means that we are working on a solution to
-describe the explanations found there which fits our use-case and licensing.
+Our (long-term) goal with these books is to keep them
+self-contained. If you see references to Wikipedia and other external
+sources (except for our academic papers) it means that we are working
+on a solution to describe the explanations found there which fits our
+use-case and licensing.
 
-The first chapter (``Preface'') as well as the the second
-chapter (``Philosophy'') give an introduction to GNUnet as a project,
-what GNUnet tries to achieve.
+Previously the documentation was contained in Drupal books, on the
+old website. It was considered unmaintainable for the future, so
+Texinfo was chosen. You might find old and very old sections in
+here in addition to more recent content. It took a long time to
+finish the move to Texinfo (from Drupal to LaTeX to wrong Texinfo
+output dump to good Texinfo) and only recently (late 2018, early
+2019 content checking started. We apologize to the reader for
+any inconvenience and hope you apply logic where bad advice from
+10 years ago can be found (pipe to sudo to install software is
+one example).
+
+The first chapter (``Preface'') as well as the the second chapter
+(``Philosophy'') give an introduction to GNUnet as a project, what
+GNUnet tries to achieve. ``Key Concepts'' explains the key concepts
+in GNUnet.
+These three chapters are the most complete in the documentation.
+They are followed by chapters which need more work:
+``Installing GNUnet'', ``GNUnet Contributors Handbook'' and
+``GNUnet Developer Handbook''.
 
 @node Contributing to this book
 @section Contributing to this book
