@@ -1982,10 +1982,14 @@ and enable the service, so that your zone is migrated automatically.
 @section reclaimID Identity Provider
 
 The reclaimID Identity Provider (IdP) is a decentralized IdP service.
-It allows its users to manage and authorize third parties to access their identity attributes such as email or shipping addresses.
+It allows its users to manage and authorize third parties to access
+their identity attributes such as email or shipping addresses.
 
-It basically mimics the concepts of centralized IdPs, such as those offered by Google or Facebook.
-Like other IdPs, reclaimID features an (optional) OpenID-Connect 1.0-compliant protocol layer that can be used for websites to integrate reclaimID as an Identity Provider with little effort.
+It basically mimics the concepts of centralized IdPs, such as those
+offered by Google or Facebook.
+Like other IdPs, reclaimID features an (optional) OpenID-Connect
+1.0-compliant protocol layer that can be used for websites to
+integrate reclaimID as an Identity Provider with little effort.
 
 @menu
 * Managing Attributes::
