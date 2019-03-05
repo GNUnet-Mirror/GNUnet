@@ -23,17 +23,101 @@
 #include <stdbool.h>
 #include "platform.h"
 #include "gnunet_util_lib.h"
-#include "gnunet-qr-utils.h"
 
 #define LOG(fmt, ...) if (verbose == true) printf(fmt, ## __VA_ARGS__)
 
 // Command line options
-// program exit code
-static long unsigned int exit_code = 1;
-
 static char* device = "/dev/video0";
 static int verbose = false;
 static int silent = false;
+
+// Handler exit code
+static long unsigned int exit_code = 1;
+
+// Helper process we started.
+static struct GNUNET_OS_Process *p;
+
+// Pipe used to communicate shutdown via signal.
+static struct GNUNET_DISK_PipeHandle *sigpipe;
+
+
+/**
+ * Task triggered whenever we receive a SIGCHLD (child
+ * process died) or when user presses CTRL-C.
+ *
+ * @param cls closure, NULL
+ */
+static void
+maint_child_death (void *cls)
+{
+  enum GNUNET_OS_ProcessStatusType type;
+
+  if ( (GNUNET_OK !=
+	GNUNET_OS_process_status (p, &type, &exit_code)) ||
+       (type != GNUNET_OS_PROCESS_EXITED) )
+    GNUNET_break (0 == GNUNET_OS_process_kill (p, GNUNET_TERM_SIG));
+  GNUNET_OS_process_destroy (p);
+}
+
+
+/**
+ * Dispatch URIs to the appropriate GNUnet helper process
+ *
+ * @param cls closure
+ * @param uri uri to dispatch
+ * @param cfgfile name of the configuration file used (for saving, can be NULL!)
+ * @param cfg configuration
+ */
+static void
+gnunet_uri (void *cls, const char *uri, const char *cfgfile,
+     const struct GNUNET_CONFIGURATION_Handle *cfg)
+{
+  const char *orig_uri;
+  const char *slash;
+  char *subsystem;
+  char *program;
+  struct GNUNET_SCHEDULER_Task * rt;
+
+  orig_uri = uri;
+  if (0 != strncasecmp ("gnunet://", uri, strlen ("gnunet://"))) {
+    fprintf (stderr,
+	     _("Invalid URI: does not start with `%s'\n"),
+	     "gnunet://");
+    return;
+  }
+  uri += strlen ("gnunet://");
+  if (NULL == (slash = strchr (uri, '/')))
+  {
+    fprintf (stderr, _("Invalid URI: fails to specify subsystem\n"));
+    return;
+  }
+  subsystem = GNUNET_strndup (uri, slash - uri);
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_string (cfg,
+					     "uri",
+					     subsystem,
+					     &program))
+  {
+    fprintf (stderr, _("No handler known for subsystem `%s'\n"), subsystem);
+    GNUNET_free (subsystem);
+    return;
+  }
+  GNUNET_free (subsystem);
+  rt = GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL,
+				       GNUNET_DISK_pipe_handle (sigpipe,
+								GNUNET_DISK_PIPE_END_READ),
+				       &maint_child_death, NULL);
+  p = GNUNET_OS_start_process (GNUNET_NO, 0,
+			       NULL, NULL, NULL,
+			       program,
+			       program,
+			       orig_uri,
+			       NULL);
+  GNUNET_free (program);
+  if (NULL == p)
+    GNUNET_SCHEDULER_cancel (rt);
+}
+
 
 /**
  * Main function that will be run by the scheduler.
@@ -91,16 +175,7 @@ run (void *cls,
     LOG("Found %s \"%s\"\n",
 	zbar_get_symbol_name(zbar_symbol_get_type(symbol)), data);
 
-    if (configuration == NULL) {
-      char* command_args[] = {"gnunet-uri", data, NULL };
-      LOG("Running `gnunet-uri %s`\n", data);
-      exit_code = fork_and_exec(BINDIR "gnunet-uri", command_args);
-    } else {
-      char* command_args[] = {"gnunet-uri", "-c", configuration, data, NULL };
-      LOG("Running `gnunet-uri -c '%s' %s`\n", configuration, data);
-      exit_code = fork_and_exec(BINDIR "gnunet-uri", command_args);
-    };
-
+    gnunet_uri(cls, data, cfgfile, cfg);
     if (exit_code != 0) {
       printf("Failed to add URI %s\n", data);
     } else {
