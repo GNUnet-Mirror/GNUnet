@@ -18,7 +18,7 @@ infoimagedir = $(infodir)/images
 # we use the include version which is backwards compatible
 # and upwards compatible, while the ref variant is neither.
 
-AM_MAKEINFOHTMLFLAGS = --no-split --css-include=manual.css
+AM_MAKEINFOHTMLFLAGS = --no-split --css-include=style.css --css-include=manual.css
 
 dist_infoimage_DATA =                           		\
 	images/gnunet-gtk-0-10-gns-a-done.png 			\

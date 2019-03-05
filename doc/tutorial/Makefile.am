@@ -8,7 +8,7 @@ docdir = $(datadir)/doc/gnunet/
 #	$(DOT_FILES:%.dot=%.pdf)
 
 # See ../handbook/Makefile.am comment!
-AM_MAKEINFOHTMLFLAGS = --no-split --css-include=docstyle.css
+AM_MAKEINFOHTMLFLAGS = --no-split --css-include=style.css --css-include=manual.css
 
 #DOT_OPTIONS =							\
 #	-Gratio=.9 -Gnodesep=.005 -Granksep=.00005		\
