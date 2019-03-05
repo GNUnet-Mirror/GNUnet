@@ -43,6 +43,7 @@
   #:use-module (gnu packages gtk)
   #:use-module (gnu packages guile)
   #:use-module (gnu packages gstreamer)
+  #:use-module (gnu packages imagemagick)
   #:use-module (gnu packages libidn)
   #:use-module (gnu packages linux)
   #:use-module (gnu packages image)
@@ -56,11 +57,14 @@
   #:use-module (gnu packages perl)
   #:use-module (gnu packages pulseaudio)
   #:use-module (gnu packages python)
+  #:use-module (gnu packages qt)
   #:use-module (gnu packages databases)
   #:use-module (gnu packages tls)
   #:use-module (gnu packages video)
   #:use-module (gnu packages web)
   #:use-module (gnu packages xiph)
+  #:use-module (gnu packages xml)
+  #:use-module (gnu packages xorg)
   #:use-module (gnu packages backup)
   #:use-module ((guix licenses) #:prefix license:)
   #:use-module ((guix build utils) #:prefix build-utils:)
@@ -190,6 +194,122 @@ IPv6.  It also features security features such as basic and digest
 authentication and support for SSL3 and TLS.")
    (license license:lgpl2.1+)
    (home-page "https://www.gnu.org/software/libmicrohttpd/")))
+
+(define-public zbar
+  (package
+   (name "zbar")
+   (version "0.22")
+   (source (origin
+            (method url-fetch)
+            (uri (string-append "https://www.linuxtv.org/downloads/zbar/zbar-"
+                                version ".tar.bz2"))
+            (sha256
+             (base32
+              "1dsffj42gbasfq4sfhgirmi3lfgdygfspwzr00wbva0pf96fka8v"))))
+   (build-system gnu-build-system)
+   (outputs '("out" "gtk" "qt"))
+   (native-inputs
+    `(;;("coreutils" ,coreutils)
+      ("dbus" ,dbus)
+      ("glib:bin", glib "bin")
+      ("pkg-config" ,pkg-config)
+      ;; for testing
+      ("perl" ,perl)
+      ("python2" ,python-2.7)
+      ))
+   (inputs
+    `(("gtk+-2" ,gtk+-2)
+      ("imagemagick" ,imagemagick)
+      ("libjpeg" ,libjpeg)
+      ("libxv" ,libxv)
+      ;;("python2-pygtk" ,python2-pygtk)
+      ("qtbase" ,qtbase)
+      ("qt11extras" ,qtx11extras)
+      ("v4l-utils" ,v4l-utils)
+      ("xmlto" ,xmlto)))
+   (arguments
+    `(#:configure-flags
+      (list "--without-python2"
+	    "--without-java"
+	    (string-append
+	     "--with-dbusconfdir=" (assoc-ref %outputs "out") "/etc")
+	    "CXXFLAGS=-std=gnu++11" ;; for qt related
+	    ;; Add the other outputs lib directories to the RUNPATH.
+	    ;; (string-append "LDFLAGS="
+	    ;; 		   "-Wl,-rpath=" (assoc-ref %outputs "gtk") "/lib"
+	    ;; 		   " "
+	    ;; 		   "-Wl,-rpath=" (assoc-ref %outputs "qt") "/lib"
+	    ;; 		   )
+	    )
+      #:tests? #f
+      #:validate-runpath? #f
+      #:phases
+      (modify-phases %standard-phases
+        (add-before 'configure 'create-missing-file
+	  ;; Create a file missing in the distribution archive,
+	  ;; see https://github.com/mchehab/zbar/issues/35
+	  (lambda _
+	    (with-output-to-file "examples/sha1sum"
+	      (lambda _
+		(display "
+a56811d078ea5cfac9be5deb4b6796177763e152  zbarimg codabar.png
+cc53bf34878f769fc3611020c11e572f2853bd2a  zbarimg code-128.png
+7537d593ea42393a43bc0eda0a896c0e31017dd8  zbarimg code-39.png
+f8f55b828eb7d0400f300be021d29293bd4a3191  zbarimg code-93.png
+aebbdbed0b32d7fd72f1245e3fb384822d492062  zbarimg databar.png
+9e245874d3229a575eabfdba1c668369c55960e3  zbarimg databar-exp.png
+53429fc04dfcf674349e2db6cfbaf73e301fc3dc  zbarimg ean-13.png
+4095418b74efbb026dd730543558fefdda46f5b9  zbarimg ean-8.png
+5501245dbba21c153f690787fc97ab50c973b846  zbarimg i2-5.png
+b350ca7efad7a50c5ac082d5c683a8e8d8d380a7  zbarimg qr-code.png
+84c0ce7072e2227073dc8bd1e5f4518d8f42ae3d  zbarimg sqcode1-generated.png
+84c0ce7072e2227073dc8bd1e5f4518d8f42ae3d  zbarimg sqcode1-scanned.png
+5ab2b518e2c9d827cedc5825d2e3c9646d43713a  zbarimg -Sean2.enable ean-2.png
+668fef8cb9caac34df8cb8564c2cde62e4af5e65  zbarimg -Sean5.enable ean-5.png
+b567e550216fe24f7652f683146365a9fe7ee867  zbarimg -Sisbn10.enable ean-13.png
+d0f37aa076d42c270f7231c5490beea5605e2ba0  zbarimg -Sisbn13.enable ean-13.png
+3f041225df3b8364b5fd0daf9cf402e8a4731f9b  zbarimg -Supca.enable code-upc-a.png
+b350ca7efad7a50c5ac082d5c683a8e8d8d380a7  zbarimg -Stest-inverted qr-code-inverted.png\n")))))
+        (replace 'check
+	  ;; Run test-suite under a dbus session.
+	  (lambda _
+	    ;; Don't fail on missing  '/etc/machine-id'.
+	    (setenv "DBUS_FATAL_WARNINGS" "0")
+	    (invoke "dbus-launch" "make" "check")))
+        (add-after 'install 'split
+          (lambda* (#:key inputs outputs #:allow-other-keys)
+            ;; Split the binaries to the various outputs.
+            (let* ((out (assoc-ref outputs "out"))
+                   (gtk (assoc-ref outputs "gtk"))
+                   (qt  (assoc-ref outputs "qt"))
+		   (mv (lambda (dest-out dir pattern)
+			 (mkdir-p (string-append dest-out dir))
+			 (for-each
+			  (lambda (file)
+			    (rename-file
+			     file
+			     (string-append dest-out dir "/" (basename file))))
+			  (find-files (string-append out dir) pattern)))))
+	      (mv qt  "/bin" "zbarcam-qt")
+	      (mv gtk "/bin" "zbarcam-gtk")
+	      (mv qt  "/lib" "libzbarqt\\..*")
+	      (mv gtk "/lib" "libzbargtk\\..*")
+	      (mv qt  "/lib/pkgconfig" "zbar-qt\\.pc" )
+	      (mv gtk "/lib/pkgconfig" "zbar-gtk\\.pc" )
+	      (mv qt  "/include/zbar" "QZBar.*\\.h")
+	      (mv gtk "/include/zbar" "zbargtk\\.h"))
+	    #t)))))
+   (synopsis "Read bar-codes from various sources")
+   (description "ZBar is a software suite for reading bar codes from
+various sources, such as video streams, image files and raw intensity
+sensors. It supports EAN-13/UPC-A, UPC-E, EAN-8, Code 128, Code 39,
+Interleaved 2 of 5 and QR Code. Included with the library are basic
+applications for decoding captured bar code images and using a video
+device (eg, webcam) as a bar code scanner. For application developers,
+language bindings are included for C, C++ and Perl as well as
+GUI widgets for Qt and GTK")
+   (license license:lgpl2.1+)
+   (home-page "http://zbar.sourceforge.net/")))
 
 (define-public gnurl
   (package
