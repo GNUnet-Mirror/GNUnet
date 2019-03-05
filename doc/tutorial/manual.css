@@ -1,6 +1,6 @@
 /* Style-sheet to use for manuals (copied from Emacs) */
 
-@import url('/style.css');
+@import url('style.css');
 
 /* makeinfo 6.5 converts @quotation to <blockquote>.  Highlight them.  */
 blockquote {
