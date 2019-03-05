@@ -45,6 +45,8 @@ check-man:
 
 check-texinfo:
 	printf "Running basic texinfo linters\n"
+	# exception to add: ignore license files.
+	# exception to add: uref's can go above 79 chars.
 	printf "...line length over 79 chars?\n" 2>&1 | tee $(top_srcdir)/doc/handbook/texinfo_handbook.log || true
 	@cd $(top_srcdir)/doc/handbook ; find . -type f ! -path '*/.*' -name '*.texi' -print0 | xargs -0 awk 'length>79 {print FILENAME":"NR":"$$0}' > $(top_srcdir)/texinfo_handbook.log || true
 	printf "...line length over 79 chars?\n" 2>&1 | tee $(top_srcdir)/doc/tutorial/texinfo_tutorial.log || true
