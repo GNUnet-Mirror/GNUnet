@@ -421,7 +421,8 @@ newspace."
       ("bluez" ,bluez) ; gnunet-transport
       ("glib" ,glib)
       ("libogg" ,libogg) ; gnunet-conversation
-      ("python-2" ,python-2))) ; tests, gnunet-qr
+      ("zbar" ,zbar) ; gnunet-qr
+      ("python-2" ,python-2))) ; tests
    (native-inputs
     `(("pkg-config" ,pkg-config)
       ("autoconf" ,autoconf)
