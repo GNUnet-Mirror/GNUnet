@@ -1720,6 +1720,7 @@ doc/man/Makefile
 doc/doxygen/Makefile
 doc/handbook/Makefile
 doc/tutorial/Makefile
+lint/Makefile
 m4/Makefile
 po/Makefile.in
 src/Makefile
