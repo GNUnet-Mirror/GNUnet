@@ -4,7 +4,7 @@ AM_CPPFLAGS = -I$(top_srcdir)/src/include
 if DOCUMENTATION_ONLY
   SUBDIRS = doc
 else
-  SUBDIRS = m4 src po pkgconfig lint
+  SUBDIRS = m4 src po pkgconfig
 if DOCUMENTATION
   SUBDIRS += doc
 endif
