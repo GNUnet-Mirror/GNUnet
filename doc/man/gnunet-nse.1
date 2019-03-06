@@ -1,0 +1,66 @@
+.Dd March 6, 2019
+.Dt GNUNET-NSE 1
+.Os
+.Sh NAME
+.Nm gnunet-nse
+.Nd show network size estimates from NSE service
+.Sh SYNOPSIS
+.Nm
+.Op Fl c Ar file | Fl -config Ns = Ns file
+.Op Fl h | \-help
+.Op Fl l file | Fl -logfile Ns = Ns file
+.Op Fl L Ar loglevel | Fl -loglevel Ns = Ns loglevel
+.Op Fl v | \-version
+.Sh DESCRIPTION
+.Nm
+is a command line tool to show network size estimates from the NSE service of GNUnet.
+.Bl -tag -width Ds
+.It Fl c Ar file | Fl -config Ns = Ns file
+Use the configuration file FILENAME.
+.It Fl h | \-help
+Print short help on options.
+.It Fl l file | Fl -logfile Ns = Ns file
+Configure logging to write logs to LOGFILE.
+.It Fl L Ar loglevel | Fl -loglevel Ns = Ns loglevel
+Use LOGLEVEL for logging.
+Valid values are DEBUG, INFO, WARNING and ERROR.
+.It Fl v | \-version
+Print GNUnet version number.
+.El
+.Sh FILES
+.Pa gnunet.conf
+Configuration file for gnunet.
+.Sh SEE ALSO
+.Xr gnunet.conf 5
+.sp
+The full documentation for gnunet is maintained as a Texinfo manual.
+If the
+.Xr info 1
+gnunet programs are properly installed at your site, the command
+.Bd -literal -offset indent -compact
+        info gnunet
+.Ed
+should give you access to the complete handbook,
+.Bd -literal -offset indent -compact
+        info gnunet-c-tutorial
+.Ed
+will give you access to a tutorial for developers.
+.sp
+Depending on your installation, this information is also
+available in
+.Xr gnunet 7 and
+.Xr gnunet-c-tutorial 7 .
+.Sh HISTORY
+This man page first appeared in Debian's gnunet package around 2014.
+The man page you are reading is a full conversion to mdoc with many
+improvements.
+.Sh AUTHORS
+This page was originally written by
+.An Bertrand Marc Aq Mt bmarc@debian.org ,
+further edits were done by
+.An ng0 Aq Mt ng0@gnunet.org .
+.Sh BUGS
+Report bugs by using
+.Lk https://bugs.gnunet.org
+or by sending electronic mail to
+.Aq Mt bug-gnunet@gnu.org .
