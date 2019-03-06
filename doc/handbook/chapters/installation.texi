@@ -391,7 +391,7 @@ If you also would like to use @command{gnunet-gtk} and
 * Configuring the GNUnet VPN::
 * Bandwidth Configuration::
 * Configuring NAT::
-* Peer configuration for distributions::
+* Peer configuration for distributors (e.g. Operating Systems)::
 @end menu
 
 @node Configuring your peer
@@ -1965,22 +1965,22 @@ connect to NATed peers using autonomous NAT traversal, you need to check
 the "Enable connecting to NATed peers using ICMP method" box.
 
 
-@node Peer configuration for distributions
-@subsection Peer configuration for distributions
+@node Peer configuration for distributors (e.g. Operating Systems)
+@subsection Peer configuration for distributors (e.g. Operating Systems)
 
 The "GNUNET_DATA_HOME" in "[path]" in @file{/etc/gnunet.conf} should be
 manually set to "/var/lib/gnunet/data/" as the default
 "~/.local/share/gnunet/" is probably not that appropriate in this case.
-Similarly, distributions may consider pointing "GNUNET_RUNTIME_DIR" to
+Similarly, distributors may consider pointing "GNUNET_RUNTIME_DIR" to
 "/var/run/gnunet/" and "GNUNET_HOME" to "/var/lib/gnunet/". Also, should a
-distribution decide to override system defaults, all of these changes
+distributor decide to override system defaults, all of these changes
 should be done in a custom @file{/etc/gnunet.conf} and not in the files
 in the @file{config.d/} directory.
 
 Given the proposed access permissions, the "gnunet-setup" tool must be
 run as use "gnunet" (and with option "-c /etc/gnunet.conf" so that it
 modifies the system configuration). As always, gnunet-setup should be run
-after the GNUnet peer was stopped using "gnunet-arm -e". Distributions
+after the GNUnet peer was stopped using "gnunet-arm -e". Distributors
 might want to include a wrapper for gnunet-setup that allows the
 desktop-user to "sudo" (i.e. using gtksudo) to the "gnunet" user account
 and then runs "gnunet-arm -e", "gnunet-setup" and "gnunet-arm -s" in
