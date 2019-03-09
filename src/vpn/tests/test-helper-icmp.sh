@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 /opt/gnunet/bin/gnunet-helper-vpn < ping > result 2>/dev/null &
 
