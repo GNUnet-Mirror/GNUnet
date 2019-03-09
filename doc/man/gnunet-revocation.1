@@ -28,19 +28,15 @@ expensive.  Depending on your CPU, the calculation can take days or
 weeks.
 
 .SH OPTIONS
-.B
 .IP "\-t KEY, \-\-test=KEY"
 Check if the given KEY (ASCII\-encoded public key required) has been
 revoked.
-.B
 .IP "\-R NAME, \-\-revoke=NAME"
 Calculate or perform revocation for the ego with the given NAME.
-.B
 .IP "\-p, \-\-perform"
 Actually perform the revocation as soon as possible (do not just
 generate a revocation certificate, use it).  Must be supplied to
 actually perform the revocation.
-.B
 .IP "\-f NAME, \-\-filename=NAME"
 Use NAME as the name of the file that is to contain the revocation
 certificate.  Intermediate computation results will be stored here, as
@@ -51,17 +47,13 @@ be performed instantly.  If the given file contains anything (a valid
 certificate, with or without the completed proof-of-work) there is no
 need to supply the "\-R" option or to still have the private key of
 the ego to perform the revocation.
-.B
 .IP "\-c FILENAME,  \-\-config=FILENAME"
 Use the configuration file FILENAME.
-.B
 .IP "\-h, \-\-help"
 Print short help on options.
-.B
 .IP "\-L LOGLEVEL, \-\-loglevel=LOGLEVEL"
 Use LOGLEVEL for logging.  Valid values are DEBUG, INFO, WARNING and
 ERROR.
-.B
 .IP "\-v, \-\-version"
 Print GNUnet version number.
 

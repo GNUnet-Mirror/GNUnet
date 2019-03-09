@@ -12,13 +12,10 @@ gnunet\-namestore \- manipulate GNU Name System (GNS) zone data
 \fBgnunet\-namestore\fP can be used to manipulate records in a GNS zone.
 
 .SH OPTIONS
-.B
 .IP "\-a, \-\-add"
 Desired operation is adding a record
-.B
 .IP "\-c FILENAME,  \-\-config=FILENAME"
 Use the configuration file FILENAME.
-.B
 .IP "\-d, \-\-delete"
 Desired operation is deleting records under the given name that match
 the specified type (\-t) and value (\-V).  If type or value are not
@@ -26,41 +23,31 @@ specified, it means that all types (or values) should be assumed to
 match (and possibly multiple or all values under the given label will
 be deleted).  Specifying a label (\-n) is mandatory.  Note that
 matching by expiration time or flags is (currently) not supported.
-.B
 .IP "\-D, \-\-display"
 Desired operation is listing of matching records
-.B
 .IP "\-e TIME, \-\-expiration=TIME"
 Specifies expiration time of record to add; format is relative time,
 i.e "1 h" or "7 d 30 m".  Supported units are "ms", "s", "min" or
 "minutes", "h" (hours), "d" (days) and "a" (years).
-.B
 .IP "\-h, \-\-help"
 Print short help on options.
-.B
 .IP "\-i NICKNAME, \-\-nick=NICKNAME"
 Set the desired NICKNAME for the zone. The nickname will be included
 in all (public) records and used as the suggested name for this zone.
-.B
 .IP "\-L LOGLEVEL, \-\-loglevel=LOGLEVEL"
 Use LOGLEVEL for logging.  Valid values are DEBUG, INFO, WARNING and
 ERROR.
-.B
 .IP "\-m, \-\-monitor"
 Monitor changes to the zone on an ongoing basis (in contrast to \-D,
 which merely displays the current records)
-.B
 .IP "\-n NAME, \-\-name=NAME"
 Label or name of the record to add/delete/display
-.B
 .IP "\-p, \-\-public"
 Create a record that is public (shared with other users that know the
 label)
-.B
 .IP "\-r PKEY, \-\-reverse=PKEY"
 Determine our GNS name for the given public key (reverse lookup of the
 PKEY) in the given zone.
-.B
 .IP "\-R RECORDLINE, \-\-replace=RECORDLINE"
 Sets record set to values given in RECORDLINE.  This option can be specified multiple
 times to provide multiple records for the record set.  Existing records under the
@@ -69,29 +56,23 @@ same label will be deleted. The format for the RECORDLINE is
 be given explicitly, seconds is always implied), TYPE is the
 DNS/GNS record type, FLAGS is "(N)ORMAL", "(S)HADOW" or "(P)UBLIC".  The VALUE
 follows the usual human-readable value format(s) of DNS/GNS.
-.B
 .IP "\-s, \-\-shadow"
 Create a record that is a shadow record.  Shadow records are only used
 once all other records of the same type under the same label have
 expired.
-.B
 .IP "\-t TYPE, \-\-type=TYPE"
 Type of the record to add/delete/display (i.e. "A", "AAAA", "NS",
 "PKEY", "MX" etc.)
-.B
 .IP "\-u URI, \-\-uri=URI"
 Add PKEY record from gnunet://gns/-URI to our zone; the record type is
 always PKEY, if no expiration is given FOREVER is used
-.B
 .IP "\-v, \-\-version"
 Print GNUnet version number.
-.B
 .IP "\-V VALUE, \-\-value=VALUE"
 Value to store or remove from the GNS zone.  Specific format depends
 on the record type.  A records expect a dotted decimal IPv4 address,
 AAAA records an IPv6 address, PKEY a public key in GNUnet's printable
 format, and CNAME and NS records should be a domain name.
-.B
 .IP "\-z EGO, \-\-zone=EGO"
 Specifies the name of the ego controlling the private key for the zone
 (mandatory option)

@@ -42,34 +42,26 @@ The protocol by definition relies on \fBAlice\fP and \fBBob\fP being
 benign, thus \fBBob\fP can arbitrarily falsify his information. Both
 peers collaborate to achieve a correct result.
 .SH OPTIONS
-.B
 .IP "\-e ELEMENTS, \-\-elements=ELEMENTS"
 The element-vector the vectorproduct should be computed over in signed
 decimal form, eg: \"42,1,-3,3,7\". Zero value elements will be automatically masked.
-.B
 .IP "\-m MASK, \-\-mask=MASK"
 Elements in the vector can be masked. There must be at least two
 elements left in the vector to compute a vectorproduct. Non-Zero
 values indicate an element is not maskes.
-.B
 .IP "\-k KEY, \-\-key=KEY"
 The session key, a shared string of arbitrary length from which the
 SID will be generated
-.B
 .IP "\-c FILENAME,  \-\-config=FILENAME"
 Use the configuration file FILENAME.
-.B
 .IP "\-p PEERID, \-\-peer=PEERID"
 The remote peer\'s ASCII-armored gnunet-peer ID as output by
 gnunet-peerinfo. If this option is not given, the peer will take the
 \fBBob\fP\'s role.
-.B
 .IP "\-h, \-\-help"
 Print short help on options.
-.B
 .IP "\-L LOGLEVEL, \-\-loglevel=LOGLEVEL"
 Use LOGLEVEL for logging.  Valid values are DEBUG, INFO, WARNING and ERROR.
-.B
 .IP "\-v, \-\-version"
 Print GNUnet version number.
 .SH BUGS

@@ -8,38 +8,28 @@ gnunet\-nat \- interact with the NAT service
 This tool allows testing various NAT traversal functions, as well as
 attempting auto\-configuration.
 .SH OPTIONS
-.B
 .IP "\-b ADDRESS,  \-\-bind=ADDRESS"
 Assume that the service is (locally) bound to ADDRESS.
-.B
 .IP "\-c FILENAME,  \-\-config=FILENAME"
 Use the configuration file FILENAME.
-.B
 .IP "\-e ADDRESS,  \-\-external=ADDRESS"
 Assume that ADDRESS is the globally visible address of the peer.
-.B
 .IP "\-i ADDRESS,  \-\-in=ADDRESS"
 Assuming we are listening at ADDRESS for connection reversal requests.
-.B
 .IP "\-r ADDRESS,  \-\-remote=ADDRESS"
 Ask the peer at ADDRESS for connection reversal, using the local
 address for the target address of the reversal.
-.B
 .IP "\-S NAME,  \-\-section=NAME"
 Name of section in configuration file to use for additional options.
-.B
 .IP "\-s,  \-\-stun"
 Enable processing of STUN requests.
 Will try to read UDP packets from the bind address and handle the
 packets if they are STUN packets.
 Will only work with UDP.
-.B
 .IP "\-t,  \-\-tcp"
 Use TCP.
-.B
 .IP "\-u,  \-\-udp"
 Use UDP.
-.B
 .IP "\-W,  \-\-watch"
 Watch for connection reversal requests.
 .SH EXAMPLES

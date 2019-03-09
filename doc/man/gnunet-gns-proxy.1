@@ -15,26 +15,20 @@ CA certificate has to be generated that is used by the proxy. Thus
 of this proxy or the \-\-authority switch is used to specify an
 appropriate CA certificate that is already trusted by the browser.
 .SH OPTIONS
-.B
 .IP "\-c FILENAME,  \-\-config=FILENAME"
 Use the configuration file FILENAME.
-.B
 .IP "\-a AUTHORITY,  \-\-authority=AUTHORITY"
 Path to a PEM CA file that contains the certificate and private key of
 the CA to use to assert the validity of GNS names. The default port is
 specified in the configuration file for the gns service under
 "[gns-proxy]" PROXY_CACERT.
-.B
 .IP "\-p PORT,  \-\-port=PORT"
 The port this proxy should listen on. Default is 7777.
-.B
 .IP "\-h, \-\-help"
 Print short help on options.
-.B
 .IP "\-L LOGLEVEL, \-\-loglevel=LOGLEVEL"
 Use LOGLEVEL for logging.  Valid values are DEBUG, INFO, WARNING and
 ERROR.
-.B
 .IP "\-v, \-\-version"
 Print GNUnet version number.
 .SH BUGS
