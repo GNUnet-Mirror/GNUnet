@@ -5,7 +5,7 @@ all: check-linters
 check-bashism:
 	printf "Run checkbashism on all .sh files.\n"
 	printf "Currently this expects checkbashism.pl at a fixed location."
-	find . -type f ! -path '*/.*' ! -path '*/_*' -name '*.sh' -print0 | xargs -0 ~/src/scripts/src/checkbashisms.pl -f 2>&1 | tee $(top_srcdir)/bashism.log || true
+	find '..' -type f ! -path '*/.*' ! -path '*/_*' -name '*.sh' -print0 | xargs -0 $(srcdir)/checkbashisms.pl -f 2>&1 | tee $(srcdir)/bashism.log || true
 
 check-python:
 	printf "Running flake8 and 2to3 if detected.\n"
