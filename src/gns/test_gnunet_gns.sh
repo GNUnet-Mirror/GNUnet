@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 # This file is in the public domain.
 LOCATION=$(which gnunet-config)
 if [ -z $LOCATION ]
@@ -32,4 +32,5 @@ if [ "$LO" != "Address: 4.5.6.7" ]
 then
   echo "Fail: $LO"
 fi
+# XXX: jobs. a builtin by bash, netbsd sh, maybe leave it be for now.
 kill `jobs -p`
