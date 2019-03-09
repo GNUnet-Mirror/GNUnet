@@ -52,6 +52,8 @@ EXTRA_DIST = \
  scripts/pydiffer.py.in \
  packages/nix/default.nix \
  packages/nix/gnunet-dev.nix \
+ services/openrc/gnunet.initd \
+ services/systemd/gnunet.service \
  3rdparty/Windows/openvpn-tap32/tapw32/tap0901.sys \
  3rdparty/Windows/openvpn-tap32/tapw32/tap0901.cat \
  3rdparty/Windows/openvpn-tap32/tapw32/OemWin2k.inf \
