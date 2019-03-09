@@ -122,7 +122,7 @@ static int extract_only;
 /**
  * Command-line option to disable adding creation time.
  */
-static int do_disable_creation_time;
+static int enable_creation_time;
 
 /**
  * Handle to the directory scanner (for recursive insertions).
@@ -419,7 +419,7 @@ publish_inspector (void *cls,
     GNUNET_CONTAINER_meta_data_destroy (meta);
     meta = NULL;
   }
-  if (!do_disable_creation_time)
+  if (enable_creation_time)
     GNUNET_CONTAINER_meta_data_add_publication_date (m);
   if (extract_only)
   {
@@ -902,15 +902,15 @@ main (int argc,
                                "LEVEL",
                                gettext_noop ("set the desired LEVEL of sender-anonymity"),
                                &bo.anonymity_level),
-    GNUNET_GETOPT_option_flag ('d',
-                               "disable-creation-time",
-                               gettext_noop ("disable adding the creation time to the "
-                                             "metadata of the uploaded file"),
-                               &do_disable_creation_time),
     GNUNET_GETOPT_option_flag ('D',
                                "disable-extractor",
                                gettext_noop ("do not use libextractor to add keywords or metadata"),
                                &disable_extractor),
+    GNUNET_GETOPT_option_flag ('E',
+                               "enable-creation-time",
+                               gettext_noop ("enable adding the creation time to the "
+                                             "metadata of the uploaded file"),
+                               &enable_creation_time),
     GNUNET_GETOPT_option_flag ('e',
                                "extract",
                                gettext_noop ("print list of extracted keywords that would "
