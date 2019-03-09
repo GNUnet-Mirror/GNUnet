@@ -5,7 +5,7 @@ do_subst = $(SED) -e 's,[@]SYSCONFDIR[@],$(sysconfdir),g'
 gnunet.conf.5: gnunet.conf.5.in Makefile
 	$(do_subst) < $(srcdir)/gnunet.conf.5.in > gnunet.conf.5
 
-CLEANFILES = gnunet.conf.5 gnunet-gns-proxy-setup-ca.1
+CLEANFILES = gnunet.conf.5
 
 man_MANS = \
   gnunet.conf.5 \
