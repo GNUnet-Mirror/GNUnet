@@ -661,6 +661,15 @@ struct Socks5Request
 
 /* *********************** Globals **************************** */
 
+/**
+ * The address to bind to
+ */
+static in_addr_t address;
+
+/**
+ * The IPv6 address to bind to
+ */
+static struct in6_addr address6;
 
 /**
  * The port the proxy is running on (default 7777)
@@ -3516,6 +3525,7 @@ bind_v4 ()
   memset (&sa4, 0, sizeof (sa4));
   sa4.sin_family = AF_INET;
   sa4.sin_port = htons (port);
+  sa4.sin_addr.s_addr = address;
 #if HAVE_SOCKADDR_IN_SIN_LEN
   sa4.sin_len = sizeof (sa4);
 #endif
@@ -3553,6 +3563,7 @@ bind_v6 ()
   memset (&sa6, 0, sizeof (sa6));
   sa6.sin6_family = AF_INET6;
   sa6.sin6_port = htons (port);
+  sa6.sin6_addr = address6;
 #if HAVE_SOCKADDR_IN_SIN_LEN
   sa6.sin6_len = sizeof (sa6);
 #endif
@@ -3591,9 +3602,55 @@ run (void *cls,
 {
   char* cafile_cfg = NULL;
   char* cafile;
+  char* addr_str;
   struct MhdHttpList *hd;
 
   cfg = c;
+
+  /* Get address to bind to */
+  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_string (cfg, "gns-proxy",
+                                                          "BIND_TO",
+                                                          &addr_str))
+  {
+    //No address specified
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Don't know what to bind to...\n");
+    GNUNET_free (addr_str);
+    GNUNET_SCHEDULER_shutdown ();
+    return;
+  }
+  if (1 != inet_pton (AF_INET, addr_str, &address))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Unable to parse address %s\n",
+                addr_str);
+    GNUNET_free (addr_str);
+    GNUNET_SCHEDULER_shutdown ();
+    return;
+  }
+  GNUNET_free (addr_str);
+  /* Get address to bind to */
+  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_string (cfg, "gns-proxy",
+                                                          "BIND_TO6",
+                                                          &addr_str))
+  {
+    //No address specified
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Don't know what to bind6 to...\n");
+    GNUNET_free (addr_str);
+    GNUNET_SCHEDULER_shutdown ();
+    return;
+  }
+  if (1 != inet_pton (AF_INET6, addr_str, &address6))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Unable to parse IPv6 address %s\n",
+                addr_str);
+    GNUNET_free (addr_str);
+    GNUNET_SCHEDULER_shutdown ();
+    return;
+  }
+  GNUNET_free (addr_str);
 
   if (NULL == (curl_multi = curl_multi_init ()))
   {

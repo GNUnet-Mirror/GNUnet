@@ -1,5 +1,6 @@
 Sat Mar 9 15:58:45 2019 +0100
   REST: Config option for address bind. Defaults to localhost.
+  GNS: dns2gns/gns-proxy config option for address bind. Defaults to localhost.
 
 Sat Mar 9 01:58:22 CET 2019
   gnunet-publish now by default does not expose the creation time,
