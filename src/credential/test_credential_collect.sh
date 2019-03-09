@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 trap "gnunet-arm -e -c test_credential_lookup.conf" SIGINT
 
 LOCATION=$(which gnunet-config)
@@ -20,7 +20,7 @@ rm -rf `gnunet-config -c test_credential_lookup.conf -s PATHS -o GNUNET_HOME -f`
 #  (3) PKEY3.user -> PKEY4
 
 
-which timeout &> /dev/null && DO_TIMEOUT="timeout 30"
+which timeout > /dev/null 2>&1 && DO_TIMEOUT="timeout 30"
 
 TEST_ATTR="test"
 TEST_ATTR2="test2"

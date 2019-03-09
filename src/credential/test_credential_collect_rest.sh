@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 trap "gnunet-arm -e -c test_credential_lookup.conf" SIGINT
 
 LOCATION=$(which gnunet-config)
@@ -22,7 +22,7 @@ rm -rf `gnunet-config -c test_credential_lookup.conf -s PATHS -o GNUNET_HOME -f`
 #  (5) GNUnet.developer -> Alice
 
 
-which timeout &> /dev/null && DO_TIMEOUT="timeout 30"
+which timeout > /dev/null 2>&1 && DO_TIMEOUT="timeout 30"
 gnunet-arm -s -c test_credential_lookup.conf
 gnunet-identity -C service -c test_credential_lookup.conf
 gnunet-identity -C alice -c test_credential_lookup.conf
@@ -82,9 +82,10 @@ gnunet-arm -e -c test_credential_lookup.conf
 echo "Done"
 if [ "$RES_CRED" != "Failed." ]
 then
-  echo -e "${RES_CRED}"
-  exit 0
+    # TODO: replace echo -e bashism.
+    echo -e "${RES_CRED}"
+    exit 0
 else
-  echo "FAIL: Failed to verify credential $RES_CRED."
-  exit 1
+    echo "FAIL: Failed to verify credential $RES_CRED."
+    exit 1
 fi
