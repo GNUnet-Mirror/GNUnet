@@ -1,7 +1,7 @@
-#!/bin/bash
+#!/bin/sh
 # This file is in the public domain.
 trap "gnunet-arm -e -c test_gns_lookup.conf" SIGINT
-which timeout &> /dev/null && DO_TIMEOUT="timeout 5"
+which timeout > /dev/null 2>&1 && DO_TIMEOUT="timeout 5"
 
 LOCATION=$(which gnunet-config)
 if [ -z $LOCATION ]
@@ -40,7 +40,7 @@ then
   exit 1
 fi
 
-if [ "x$RES_IP_REV" == "x" ]
+if [ "x$RES_IP_REV" = "x" ]
 then
   exit 0
 else

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 # This file is in the public domain.
 trap "gnunet-arm -e -c test_gns_lookup.conf" SIGINT
 
@@ -15,7 +15,7 @@ then
 fi
 
 rm -rf `gnunet-config -c test_gns_lookup.conf -f -s paths -o GNUNET_TEST_HOME`
-which timeout &> /dev/null && DO_TIMEOUT="timeout 5"
+which timeout > /dev/null 2>&1 && DO_TIMEOUT="timeout 5"
 
 MY_EGO="myego"
 TEST_MX="5,mail.+"
@@ -35,7 +35,7 @@ rm -rf `gnunet-config -c test_gns_lookup.conf -f -s paths -o GNUNET_TEST_HOME`
 RES_MX=`echo $RES_MX | tr [A-Z] [a-z]`
 WANT_MX=`echo $WANT_MX | tr [A-Z] [a-z]`
 
-if [ "$RES_MX" == "$WANT_MX" ]
+if [ "$RES_MX" = "$WANT_MX" ]
 then
   exit 0
 else
