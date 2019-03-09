@@ -616,7 +616,7 @@ run (void *cls,
   }
 
   /* Get address to bind to */
-  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_string (c, "dnns2gns",
+  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_string (c, "dns2gns",
                                                           "BIND_TO",
                                                           &addr_str))
   {
