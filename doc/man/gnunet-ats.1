@@ -1,67 +1,82 @@
+.\" This file is part of GNUnet.
+.\" Copyright (C) 2001-2019 GNUnet e.V.
+.\"
+.\" Permission is granted to copy, distribute and/or modify this document
+.\" under the terms of the GNU Free Documentation License, Version 1.3 or
+.\" any later version published by the Free Software Foundation; with no
+.\" Invariant Sections, no Front-Cover Texts, and no Back-Cover Texts.  A
+.\" copy of the license is included in the file
+.\" ``FDL-1.3''.
+.\"
+.\" A copy of the license is also available from the Free Software
+.\" Foundation Web site at @url{http://www.gnu.org/licenses/fdl.html}.
+.\"
+.\" Alternately, this document is also available under the General
+.\" Public License, version 3 or later, as published by the Free Software
+.\" Foundation.  A copy of the license is included in the file
+.\" ``GPL3''.
+.\"
+.\" A copy of the license is also available from the Free Software
+.\" Foundation Web site at @url{http://www.gnu.org/licenses/gpl.html}.
+.\"
+.\" SPDX-License-Identifier: GPL3.0-or-later OR FDL1.3-or-later
+.\"
 .TH GNUNET\-ATS 1 "October 16, 2015" "GNUnet"
 .SH NAME
 gnunet\-ats \- display information about transport resource allocation
 .SH SYNOPSIS
 .B gnunet\-ats
-.RI [ options ]
-.br
+.RI [-a\ |\ --aa]
+.RI [-c\ FILENAME\ |\ --config=FILENAME]
+.RI [-C\ |\ --connect=PEERID]
+.RI [-h\ |\ --help]
+.RI [-i\ |\ --id=PEERID]
+.RI [-k\ |\ --value=VALUE]
+.RI [-L\ LOGLEVEL\ |\ --loglevel=LOGLEVEL]
+.RI [-m\ |\ --monitor]
+.RI [-n\ |\ --numeric]
+.RI [-k\ |\ --preference=E]
+.RI [-q\ |\ --quotas]
+.RI [-t\ |\ --type=VALUE]
+.RI [-u\ |\ --used]
+.RI [-V\ |\ --verbose]
+.RI [-v\ |\ --version]
 .SH DESCRIPTION
-\fBgnunet\-ats\fP can be used to display information about the GNUnet's
-transport selection mechanism. It shows information about the
-addresses and the assigned input and output bandwidth.
+\fBgnunet\-ats\fP can be used to display information about the GNUnet's transport selection mechanism.
+It shows information about the addresses and the assigned input and output bandwidth.
 .SH OPTIONS
-.B
-.IP "\-a,  \-\-aa"
+.IP "\-a\ |\ \-\-aa"
 List all addresses currently known to ats.
-.B
-.IP "\-c FILENAME,  \-\-config=FILENAME"
+.IP "\-c FILENAME\ |\ \-\-config=FILENAME"
 Use the configuration file FILENAME.
-.B
-.IP "\-C, \-\-connect=PEERID"
-Ask ATS to suggest an address for PEERID to transport to establish a
-connection.
-Note that you can use the gnunet\-transport command\-line tool to
-force disconnects.
-.B
-.IP "\-h, \-\-help"
+.IP "\-C\ |\ -\-connect=PEERID"
+Ask ATS to suggest an address for PEERID to transport to establish a connection.
+Note that you can use the gnunet\-transport command\-line tool to force disconnects.
+.IP "\-h\ |\ -\-help"
 Print short help on options.
-.B
-.IP "\-i, \-\-id=PEERID"
+.IP "\-i\ |\ -\-id=PEERID"
 Print information for a specific peer identity only
-.B
-.IP "\-k, \-\-value=VALUE"
+.IP "\-k\ |\ -\-value=VALUE"
 Value to set for when changing preference values
-.B
-.IP "\-L LOGLEVEL, \-\-loglevel=LOGLEVEL"
+.IP "\-L LOGLEVEL\ |\ -\-loglevel=LOGLEVEL"
 Use LOGLEVEL for logging.
 Valid values are DEBUG, INFO, WARNING and ERROR.
-.B
-.IP "\-m, \-\-monitor"
+.IP "\-m\ |\ -\-monitor"
 Monitor changes to the bandwidth assignments continuously
-.B
-.IP "\-n, \-\-numeric"
+.IP "\-n\ |\ -\-numeric"
 Do not resolve IP addresses to hostnames
-.B
-.IP "\-k, \-\-preference=E"
-Set preference values, \-i, \-k and \-t required
-.B
-.IP "\-q, \-\-quotas"
+.IP "\-k\ |\ -\-preference=E"
+Set preference values, -i, -k and -t required.
+.IP "\-q\ |\ -\-quotas"
 Print quotas for all network types
-.B
-.IP "\-t, \-\-type=VALUE"
+.IP "\-t\ |\ -\-type=VALUE"
 Preference type to change: latency | bandwidth
-.B
-.IP "\-u, \-\-used"
+.IP "\-u\ |\ -\-used"
 Print addresses actively used only
-.B
-.IP "\-V, \-\-verbose"
+.IP "\-V\ |\ -\-verbose"
 Print verbose output (include ATS address properties)
-.B
-.IP "\-v, \-\-version"
+.IP "\-v\ |\ -\-version"
 Print GNUnet version number.
-.SH BUGS
-Report bugs by using Mantis <https://bugs.gnunet.org/> or by sending
-electronic mail to <bug\-gnunet@gnu.org>
 .SH SEE ALSO
 gnunet\-transport(1)
 The full documentation for
@@ -83,3 +98,5 @@ will give you access to a tutorial for developers.
 Depending on your installation, this information is also
 available in
 \fBgnunet\fP(7) and \fBgnunet-c-tutorial\fP(7).
+.SH BUGS
+Report bugs by using Mantis <https://bugs.gnunet.org/> or by sending electronic mail to <bug\-gnunet@gnu.org>.
