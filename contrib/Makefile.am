@@ -35,6 +35,10 @@ tap64_DATA = \
  3rdparty/Windows/openvpn-tap32/tapw64/OemWin2k.inf
 endif
 
+INITD_FILES = \
+ services/openrc/gnunet.initd \
+ services/systemd/gnunet.service
+
 EXTRA_DIST = \
  conf/colorit/colorit.conf \
  conf/editors/eclipse/gnunet_codingstyle.xml \
@@ -52,8 +56,6 @@ EXTRA_DIST = \
  scripts/pydiffer.py.in \
  packages/nix/default.nix \
  packages/nix/gnunet-dev.nix \
- services/openrc/gnunet.initd \
- services/systemd/gnunet.service \
  3rdparty/Windows/openvpn-tap32/tapw32/tap0901.sys \
  3rdparty/Windows/openvpn-tap32/tapw32/tap0901.cat \
  3rdparty/Windows/openvpn-tap32/tapw32/OemWin2k.inf \
@@ -62,7 +64,8 @@ EXTRA_DIST = \
  3rdparty/Windows/openvpn-tap32/tapw64/OemWin2k.inf \
  3rdparty/Windows/openvpn-tap32/INSTALL \
  3rdparty/Windows/openvpn-tap32/tap32-signed-i386-2.1.zip \
- 3rdparty/Windows/openvpn-tap32/tap32-source-2.1.zip
+ 3rdparty/Windows/openvpn-tap32/tap32-source-2.1.zip \
+ $(INITD_FILES)
 
 CLEANFILES = \
   $(noinst_SCRIPTS)
@@ -106,6 +109,7 @@ test_gnunet_prefix_LDADD = \
   $(LIBLTDL) -lunistring $(XLIB)
 
 pkghellodir= $(pkgdatadir)/hellos
+pkginitddir= $(pkgdatadir)/services
 
 install-data-local:
 	$(mkinstalldirs) $(DESTDIR)$(pkghellodir)
@@ -116,6 +120,10 @@ install-data-local:
 	  fi \
 	done
 	install scripts/gnunet-bugreport $(DESTDIR)$(bindir)/gnunet-bugreport
+	mkdir -p $(DESTDIR)$(pkgdatadir)/services/openrc
+	mkdir -p $(DESTDIR)$(pkgdatadir)/services/systemd
+	install services/openrc/gnunet.initd $(DESTDIR)$(pkginitddir)/openrc/
+	install services/systemd/gnunet.service $(DESTDIR)$(pkginitddir)/systemd/
 
 dist-hook:
 	if test -d $(srcdir)/hellos; then \
