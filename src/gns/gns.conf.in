@@ -32,6 +32,8 @@ INTERCEPT_DNS = NO
 BINARY = gnunet-gns-proxy
 START_ON_DEMAND = NO
 RUN_PER_USER = YES
+BIND_TO=127.0.0.1
+BIND_TO6=::1
 
 # Where is the certificate for the GNS proxy stored?
 PROXY_CACERT = $GNUNET_DATA_HOME/gns/gns_ca_cert.pem
@@ -42,6 +44,8 @@ PROXY_UNIXPATH = $GNUNET_RUNTIME_DIR/gnunet-gns-proxy.sock
 BINARY = gnunet-dns2gns
 START_ON_DEMAND = NO
 RUN_PER_USER = YES
+BIND_TO=127.0.0.1
+BIND_TO6=::1
 
 # -d: DNS resolver to use, -s: suffix to use, -f: fcfs suffix to use
 OPTIONS = -d 8.8.8.8

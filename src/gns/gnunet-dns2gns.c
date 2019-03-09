@@ -92,6 +92,17 @@ struct Request
   uint16_t original_request_id;
 };
 
+/**
+ * The address to bind to
+ */
+static in_addr_t address;
+
+/**
+ * The IPv6 address to bind to
+ */
+static struct in6_addr address6;
+
+
 
 /**
  * Handle to GNS resolver.
@@ -578,6 +589,7 @@ run (void *cls,
      const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
+  char *addr_str;
   (void) cls;
   (void) args;
   (void) cfgfile;
@@ -602,6 +614,52 @@ run (void *cls,
     gns = NULL;
     return;
   }
+
+  /* Get address to bind to */
+  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_string (c, "dns2gns",
+                                                          "BIND_TO",
+                                                          &addr_str))
+  {
+    //No address specified
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Don't know what to bind to...\n");
+    GNUNET_free (addr_str);
+    GNUNET_SCHEDULER_shutdown ();
+    return;
+  }
+  if (1 != inet_pton (AF_INET, addr_str, &address))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Unable to parse address %s\n",
+                addr_str);
+    GNUNET_free (addr_str);
+    GNUNET_SCHEDULER_shutdown ();
+    return;
+  }
+  GNUNET_free (addr_str);
+  /* Get address to bind to */
+  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_string (c, "dns2gns",
+                                                          "BIND_TO6",
+                                                          &addr_str))
+  {
+    //No address specified
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Don't know what to bind6 to...\n");
+    GNUNET_free (addr_str);
+    GNUNET_SCHEDULER_shutdown ();
+    return;
+  }
+  if (1 != inet_pton (AF_INET6, addr_str, &address6))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Unable to parse IPv6 address %s\n",
+                addr_str);
+    GNUNET_free (addr_str);
+    GNUNET_SCHEDULER_shutdown ();
+    return;
+  }
+  GNUNET_free (addr_str);
+
   listen_socket4 = GNUNET_NETWORK_socket_create (PF_INET,
 						 SOCK_DGRAM,
 						 IPPROTO_UDP);
@@ -611,6 +669,7 @@ run (void *cls,
 
     memset (&v4, 0, sizeof (v4));
     v4.sin_family = AF_INET;
+    v4.sin_addr.s_addr = address;
 #if HAVE_SOCKADDR_IN_SIN_LEN
     v4.sin_len = sizeof (v4);
 #endif
@@ -634,6 +693,7 @@ run (void *cls,
 
     memset (&v6, 0, sizeof (v6));
     v6.sin6_family = AF_INET6;
+    v6.sin6_addr = address6;
 #if HAVE_SOCKADDR_IN_SIN_LEN
     v6.sin6_len = sizeof (v6);
 #endif
