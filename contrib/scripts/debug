@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 # /proc/sys/kernel/core_pattern should be core.%p.%E
 
 COREPID=$1
