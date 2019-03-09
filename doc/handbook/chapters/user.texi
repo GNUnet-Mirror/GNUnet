@@ -271,7 +271,7 @@ apt-get install texlive-full
 
 @noindent
 Start creating a business card by clicking the "Copy" button
-in @command{gnunet-gtk}'s GNS tab. Next, you should start
+in @command{gnunet-namestore-gtk}. Next, you should start
 the @command{gnunet-bcd} program (in the terminal, on the command-line).
 You do not need to pass any options, and please be not surprised if
 there is no output:
@@ -286,7 +286,7 @@ where @code{gnunet-bcd} is running a Web server!
 
 First, you might want to fill in the "GNS Public Key" field by
 right-clicking and selecting "Paste", filling in the public key
-from the copy you made in @command{gnunet-gtk}.
+from the copy you made in @command{gnunet-namestore-gtk}.
 Then, fill in all of the other fields, including your @b{GNS NICKname}.
 Adding a GPG fingerprint is optional.
 Once finished, click "Submit Query".
@@ -641,7 +641,7 @@ Now exit @command{gnunet-setup} and restart your peer
 @c %**end of header
 
 Now, using your normal user (not the @code{gnunet} system user), run
-@command{gnunet-gtk}. Select the GNS icon and add a new label www in your
+@command{gnunet-namestore-gtk}. Add a new label www in your
 master zone. For the record type, select @code{VPN}. You should then
 see the VPN dialog:
 
@@ -654,7 +654,7 @@ identifier that we used in the Exit setup earlier, so here supply "bcd".
 If you want others to be able to use the service, you should probably make
 the record public. For non-public services, you should use a passphrase
 instead of the string "bcd". Save the record and
-exit @command{gnunet-gtk}.
+exit @command{gnunet-namestore-gtk}.
 
 @node Accessing the service
 @subsection Accessing the service
