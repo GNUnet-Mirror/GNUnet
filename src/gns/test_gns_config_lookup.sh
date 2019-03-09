@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 # This file is in the public domain.
 trap "gnunet-arm -e -c test_gns_lookup.conf" SIGINT
 
@@ -18,7 +18,7 @@ MY_EGO="myego"
 rm -rf `gnunet-config -c test_gns_lookup.conf -s PATHS -o GNUNET_HOME -f`
 CFG=`mktemp  --tmpdir=$PWD`
 cp test_gns_lookup.conf $CFG || exit 77
-which timeout &> /dev/null && DO_TIMEOUT="timeout 5"
+which timeout > /dev/null 2>&1 && DO_TIMEOUT="timeout 5"
 TEST_IP="dead::beef"
 gnunet-arm -s -c $CFG || exit 77
 gnunet-identity -C $MY_EGO -c $CFG 
@@ -35,7 +35,7 @@ gnunet-arm -e -c $CFG
 rm -rf `gnunet-config -c $CFG -f -s paths -o GNUNET_TEST_HOME`
 rm $CFG
 
-if [ "$RES_IP" == "$TEST_IP" ]
+if [ "$RES_IP" = "$TEST_IP" ]
 then
   exit 0
 else
