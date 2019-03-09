@@ -20,22 +20,22 @@ check-man:
 check-texinfo:
 	printf "Running basic texinfo linters\n"
 	printf "...line length over 79 chars?\n" 2>&1 | tee $(top_srcdir)/doc/handbook/texinfo_handbook.log || true
-	@cd $(top_srcdir)/doc/handbook ; find . -type f ! -path '*/.*' -name '*.texi' -print0 | xargs -0 awk 'length>79 {print FILENAME":"NR":"$$0}' > $(top_srcdir)/texinfo_handbook.log || true
+	@cd $(top_srcdir)/doc/handbook ; find . -type f ! -path '*/.*' -name '*.texi' -print0 | xargs -0 awk 'length>79 {print FILENAME":"NR":"$$0}' > $(srcdir)/texinfo_handbook.log || true
 	printf "...line length over 79 chars?\n" 2>&1 | tee $(top_srcdir)/doc/tutorial/texinfo_tutorial.log || true
-	@cd $(top_srcdir)/doc/tutorial ; find . -type f ! -path '*/.*' -name '*.texi' -print0 | xargs -0 awk 'length>79 {print FILENAME":"NR":"$$0}' > $(top_srcdir)/texinfo_tutorial.log || true
+	@cd $(top_srcdir)/doc/tutorial ; find . -type f ! -path '*/.*' -name '*.texi' -print0 | xargs -0 awk 'length>79 {print FILENAME":"NR":"$$0}' > $(srcdir)/texinfo_tutorial.log || true
 	printf "...lines containing macros incompatible with old makeinfo?\n" 2>&1 | tee -a $(top_srcdir)/doc/handbook/texinfo_handbook.log || true
-	@cd $(top_srcdir)/doc/handbook ; find . -type f ! -path '*/.*' -name '*.texi' -print0 | xargs -0 awk '/@geq\{\}/ {print FILENAME":"NR":"$$0}' >> $(top_srcdir)/texinfo_handbook.log || true
+	@cd $(top_srcdir)/doc/handbook ; find . -type f ! -path '*/.*' -name '*.texi' -print0 | xargs -0 awk '/@geq\{\}/ {print FILENAME":"NR":"$$0}' >> $(srcdir)/texinfo_handbook.log || true
 	printf "...lines containing macros incompatible with old makeinfo?\n" 2>&1 | tee -a $(top_srcdir)/doc/tutorial/texinfo_tutorial.log || true
-	@cd $(top_srcdir)/doc/tutorial ; find . -type f ! -path '*/.*' -name '*.texi' -print0 | xargs -0 awk '/@geq\{\}/ {print FILENAME":"NR":"$$0}' >> $(top_srcdir)/texinfo_tutorial.log || true
+	@cd $(top_srcdir)/doc/tutorial ; find . -type f ! -path '*/.*' -name '*.texi' -print0 | xargs -0 awk '/@geq\{\}/ {print FILENAME":"NR":"$$0}' >> $(srcdir)/texinfo_tutorial.log || true
 	printf "...lines containing macros incompatible with texi2mdoc?\n" 2>&1 | tee -a $(top_srcdir)/doc/handbook/texinfo_handbook.log || true
-	@cd $(top_srcdir)/doc/handbook ; find . -type f ! -path '*/.*' -name '*.texi' -print0 | xargs -0 awk '/@footnote\{/ {print FILENAME":"NR":"$$0}' >> $(top_srcdir)/texinfo_handbook.log || true
+	@cd $(top_srcdir)/doc/handbook ; find . -type f ! -path '*/.*' -name '*.texi' -print0 | xargs -0 awk '/@footnote\{/ {print FILENAME":"NR":"$$0}' >> $(srcdir)/texinfo_handbook.log || true
 	printf "...lines containing macros incompatible with texi2mdoc?\n" 2>&1 | tee -a $(top_srcdir)/doc/tutorial/texinfo_tutorial.log || true
-	@cd $(top_srcdir)/doc/tutorial ; find . -type f ! -path '*/.*' -name '*.texi' -print0 | xargs -0 awk '/@footnote\{/ {print FILENAME":"NR":"$$0}' >> $(top_srcdir)/texinfo_tutorial.log || true
+	@cd $(top_srcdir)/doc/tutorial ; find . -type f ! -path '*/.*' -name '*.texi' -print0 | xargs -0 awk '/@footnote\{/ {print FILENAME":"NR":"$$0}' >> $(srcdir)/texinfo_tutorial.log || true
 	printf "...lines telling us what is left TODO or to fix?\n" 2>&1 | tee -a $(top_srcdir)/doc/handbook/texinfo_handbook.log || true
-	@cd $(top_srcdir)/doc/handbook ; find . -type f ! -path '*/.*' -name '*.texi' -print0 | xargs -0 awk '/TODO/ {print FILENAME":"NR":"$$0}' >> $(top_srcdir)/texinfo_handbook.log || true
-	@cd $(top_srcdir)/doc/handbook ; find . -type f ! -path '*/.*' -name '*.texi' -print0 | xargs -0 awk '/XXX/ {print FILENAME":"NR":"$$0}' >> $(top_srcdir)/texinfo_handbook.log || true
+	@cd $(top_srcdir)/doc/handbook ; find . -type f ! -path '*/.*' -name '*.texi' -print0 | xargs -0 awk '/TODO/ {print FILENAME":"NR":"$$0}' >> $(srcdir)/texinfo_handbook.log || true
+	@cd $(top_srcdir)/doc/handbook ; find . -type f ! -path '*/.*' -name '*.texi' -print0 | xargs -0 awk '/XXX/ {print FILENAME":"NR":"$$0}' >> $(srcdir)/texinfo_handbook.log || true
 	printf "...lines telling us what is left TODO or to fix?\n" 2>&1 | tee -a $(top_srcdir)/doc/tutorial/texinfo_tutorial.log || true
-	@cd $(top_srcdir)/doc/tutorial ; find . -type f ! -path '*/.*' -name '*.texi' -print0 | xargs -0 awk '/TODO/ {print FILENAME":"NR":"$$0}' >> $(top_srcdir)/texinfo_tutorial.log || true
-	@cd $(top_srcdir)/doc/tutorial ; find . -type f ! -path '*/.*' -name '*.texi' -print0 | xargs -0 awk '/XXX/ {print FILENAME":"NR":"$$0}' >> $(top_srcdir)/texinfo_tutorial.log || true
+	@cd $(top_srcdir)/doc/tutorial ; find . -type f ! -path '*/.*' -name '*.texi' -print0 | xargs -0 awk '/TODO/ {print FILENAME":"NR":"$$0}' >> $(srcdir)/texinfo_tutorial.log || true
+	@cd $(top_srcdir)/doc/tutorial ; find . -type f ! -path '*/.*' -name '*.texi' -print0 | xargs -0 awk '/XXX/ {print FILENAME":"NR":"$$0}' >> $(srcdir)/texinfo_tutorial.log || true
 
 check-linters: check-bashism check-python check-man check-texinfo
