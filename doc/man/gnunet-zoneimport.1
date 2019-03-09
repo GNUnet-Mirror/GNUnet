@@ -26,66 +26,45 @@
 gnunet\-zoneimport \- import DNS zone into GNS zone
 .SH SYNOPSIS
 .B gnunet\-zoneimport
-.RI [-h]
 .RI [-c\ FILENAME\ |\ --config=FILENAME]
+.RI [-h\ |\ --help]
 .RI [-m\ RELATIVETIME\ |\ --minimum-expiration=RELATIVETIME]
 .RI [-s\ MAPSIZE\ |\ --size=MAPSIZE]
 [IP]+
 .SH DESCRIPTION
-\fBgnunet\-zoneimport\fP reads a list of domain names (FQDN) from
-stdin and issues DNS queries for each of the domain names given.  It
-then checks if a local ego with a name matching the domain
-exists. Specifically, if the domain name is "example.fr", it will
-check if an ego "fr" exists, while for a domain "example.com.fr" it
-will look for an ego called "com.fr"). If so, it will convert the DNS
-records into GNS records (in particular converting NS records and glue
-records to GNS2DNS records) and add them to the namestore under the
-label ("example" in the examples above).
+\fBgnunet\-zoneimport\fP reads a list of domain names (FQDN) from stdin and issues DNS queries for each of the domain names given.
+It then checks if a local ego with a name matching the domain exists.
+Specifically, if the domain name is "example.fr", it will check if an ego "fr" exists, while for a domain "example.com.fr" it will look for an ego called "com.fr").
+If so, it will convert the DNS records into GNS records (in particular converting NS records and glue records to GNS2DNS records) and add them to the namestore under the label ("example" in the examples above).
 .PP
-The arguments given to gnunet\-zoneimport is a list of IP addresses of
-DNS servers to query.
+The arguments given to gnunet\-zoneimport is a list of IP addresses of DNS servers to query.
 .PP
-gnunet\-zoneimport will usually never terminate: it will check when
-DNS records expire, and re-issue requests when the old DNS records
-have expired so that GNS always has the latest data.
+gnunet\-zoneimport will usually never terminate: it will check when DNS records expire, and re-issue requests when the old DNS records have expired so that GNS always has the latest data.
 .PP
-gnunet\-zoneimport will issue many DNS queries in parallel, but is
-rate-limited in various ways, so most DNS servers should easily handle
-the load.  gnunet\-zoneimport will perform a limited number of retries
-if queries fail.
+gnunet\-zoneimport will issue many DNS queries in parallel, but is rate-limited in various ways, so most DNS servers should easily handle the load.
+gnunet\-zoneimport will perform a limited number of retries if queries fail.
 .PP
-gnunet\-zoneimport operates incrementally. It will check if the
-namestore already has (non-expired) records stored for a given name in
-the respective zone and not issue those requests again.  Thus, it is
-fine to restart gnunet\-zoneimport whenever the list of domain names
-changes.
+gnunet\-zoneimport operates incrementally.
+It will check if the namestore already has (non-expired) records stored for a given name in the respective zone and not issue those requests again.
+Thus, it is fine to restart gnunet\-zoneimport whenever the list of domain names changes.
 .PP
-Finally, gnunet\-zoneimport keeps information for each domain name in
-memory.  This consumes about 200 bytes per domain name, or 1 GB for 5
-million labels.
+Finally, gnunet\-zoneimport keeps information for each domain name in memory.
+This consumes about 200 bytes per domain name, or 1 GB for 5 million labels.
 .SH OPTIONS
-.B
-.IP "\-c FILENAME,  \-\-config=FILENAME"
+.IP "\-c FILENAME\ | \-\-config=FILENAME"
 Use the configuration file FILENAME.
-.B
-.IP "\-h, \-\-help"
+.IP "\-h\ | \-\-help"
 Print short help on options.
-.B
-.IP "\-m RELATIVETIME, \-\-minimum-expiration=RELATIVETIME"
-.B
-Ensure that imported DNS records never have an expiration time that
-is less than RELATIVETIME into the future.  RELATIVETIME is a time
-given like "1 week" or "1 h".   If DNS returns records with a shorter
-lifetime, gnunet\-zoneimport will simply bump the lifetime to the
-specified value (relative to the time of the import). Default is zero.
-.IP "\-s MAPSIZE, \-\-size=MAPSIZE"
-Specifies the size (in number of entries) to use for the main hash
-map.  The value provided should be at least twice the number of domain
-names that will be given to the tool. This option is required for very
-large zones where the number of records encountered is too large for
-the automatic growth mechanism to work (that one is limited to at most
-16 MB allocations for security reasons).  Do not worry about this
-unless you are importing millions of domain names from a zone.
+.IP "\-m RELATIVETIME\ | \-\-minimum-expiration=RELATIVETIME"
+Ensure that imported DNS records never have an expiration time that is less than RELATIVETIME into the future.
+RELATIVETIME is a time given like "1 week" or "1 h".
+If DNS returns records with a shorter lifetime, gnunet\-zoneimport will simply bump the lifetime to the specified value (relative to the time of the import).
+Default is zero.
+.IP "\-s MAPSIZE\ | \-\-size=MAPSIZE"
+Specifies the size (in number of entries) to use for the main hash map.
+The value provided should be at least twice the number of domain names that will be given to the tool.
+This option is required for very large zones where the number of records encountered is too large for the automatic growth mechanism to work (that one is limited to at most 16 MB allocations for security reasons).
+Do not worry about this unless you are importing millions of domain names from a zone.
 .SH EXAMPLES
 .TP
 Typical invocaton would be:
@@ -110,9 +89,7 @@ should give you access to the complete handbook,
 .PP
 will give you access to a tutorial for developers.
 .PP
-Depending on your installation, this information is also
-available in
+Depending on your installation, this information is also available in
 \fBgnunet\fP(7) and \fBgnunet-c-tutorial\fP(7).
 .SH BUGS
-Report bugs by using Mantis <https://bugs.gnunet.org/> or by sending
-electronic mail to <gnunet\-developers@gnu.org>
+Report bugs by using Mantis <https://bugs.gnunet.org/> or by sending electronic mail to <gnunet\-developers@gnu.org>.
