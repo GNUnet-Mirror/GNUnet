@@ -18,6 +18,13 @@ then
               MANWIDTH=80 \
               groff -m mandoc -b -z -w w $f;
     done
+    # FIXME below, grande stupidity.
+    rm groff_lint.log
+    echo "Wrong use of B"
+    for f in `find . -name \*\.[1-9]`;
+    do
+        awk '/^\.B$/ {print FILENAME":"NR":"$0}' $f >> groff_lint.log || true
+    done
 fi
 
 echo "mandoc check"
