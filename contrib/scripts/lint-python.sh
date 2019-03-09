@@ -10,7 +10,8 @@ existence()
     command -v "$1" >/dev/null 2>&1
 }
 
-LOGFILE="lint/python-lint.log"
+# It is assumed that you are in 'lint'.
+LOGFILE="python-lint.log"
 
 # invoke from root of source!
 if [ $(basename $(pwd)) = "scripts" ]
