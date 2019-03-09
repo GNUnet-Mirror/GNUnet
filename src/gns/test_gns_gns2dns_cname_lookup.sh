@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 # This file is in the public domain.
 trap "gnunet-arm -e -c test_gns_lookup.conf" SIGINT
 
@@ -25,7 +25,7 @@ TEST_RECORD_NAME="homepage"
 
 XNS=ns.joker.com
 
-if ! nslookup gnunet.org a.$XNS &> /dev/null
+if ! nslookup gnunet.org a.$XNS > /dev/null 2>&1
 then
   echo "Cannot reach DNS, skipping test"
   exit 77
@@ -43,7 +43,7 @@ MY_EGO="myego"
 # various names we will use for resolution
 TEST_DOMAIN="www.${TEST_RECORD_NAME}.$MY_EGO"
 
-which timeout &> /dev/null && DO_TIMEOUT="timeout 15"
+which timeout > /dev/null 2>&1 && DO_TIMEOUT="timeout 15"
 
 gnunet-arm -s -c test_gns_lookup.conf
 OUT=`$DO_TIMEOUT gnunet-resolver -c test_gns_lookup.conf gnunet.org`
@@ -77,7 +77,7 @@ gnunet-arm -e -c test_gns_lookup.conf
 rm -rf `gnunet-config -c test_gns_lookup.conf -f -s paths -o GNUNET_TEST_HOME`
 
 ret=0
-if [ "$RES_IP" == "$TEST_IP" ]
+if [ "$RES_IP" = "$TEST_IP" ]
 then
   echo "PASS: Resolved $TEST_DOMAIN to $RES_IP."
 else
@@ -85,7 +85,7 @@ else
   ret=1
 fi
 
-if [ "$RES_IP6" == "$TEST_IP6" ]
+if [ "$RES_IP6" = "$TEST_IP6" ]
 then
   echo "PASS: Resolved $TEST_DOMAIN to $RES_IP6."
 else
