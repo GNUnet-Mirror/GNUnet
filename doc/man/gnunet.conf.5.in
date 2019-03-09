@@ -1,4 +1,27 @@
 .\" -*- mode: nroff -*-
+.\" This file is part of Ascension.
+.\" Copyright (C) 2012-2015,2018,2019 GNUnet e.V.
+.\"
+.\" Permission is granted to copy, distribute and/or modify this document
+.\" under the terms of the GNU Free Documentation License, Version 1.3 or
+.\" any later version published by the Free Software Foundation; with no
+.\" Invariant Sections, no Front-Cover Texts, and no Back-Cover Texts.  A
+.\" copy of the license is included in the file
+.\" ``FDL-1.3''.
+.\"
+.\" A copy of the license is also available from the Free Software
+.\" Foundation Web site at @url{http://www.gnu.org/licenses/fdl.html}.
+.\"
+.\" Alternately, this document is also available under the General
+.\" Public License, version 3 or later, as published by the Free Software
+.\" Foundation.  A copy of the license is included in the file
+.\" ``GPL3''.
+.\"
+.\" A copy of the license is also available from the Free Software
+.\" Foundation Web site at @url{http://www.gnu.org/licenses/gpl.html}.
+.\"
+.\" SPDX-License-Identifier: GPL3.0-or-later OR FDL1.3-or-later
+.\"
 .TH GNUNET.CONF "5" "October 26, 2018" "GNUnet"
 .SH NAME
 gnunet.conf \- GNUnet configuration file
@@ -27,7 +50,7 @@ Default values for all of the options can be found in the files in the
 "$GNUNET_PREFIX/share/gnunet/config.d/" directory. A typical setup will
 work out of the box with those. See the examples section below for
 some common setups on top of that.
-.SH General OPTIONS
+.SS GENERAL OPTIONS
 Many options will be common between sections. They can be repeated under
 each section with different values.  The "[PATHS]" section is special.
 Here, it is possible to specify values for variables like "GNUNET_HOME".
@@ -85,7 +108,7 @@ The following options are generic and shared by all services:
     Set to YES if this service should be run per-user, NO if this is a system
     service.  End-users should never have to change the defaults GNUnet provides
     for this option.
-.SH ATS Options
+.SS ATS OPTIONS
 .IP UNSPECIFIED_QUOTA_IN
     quotes in KiB or MiB per seconds.  Or use the word "unlimited"
 .IP UNSPECIFIED_QUOTA_OUT
@@ -128,9 +151,6 @@ to the actual external address for your usage.
 .TP
 ~/.config/gnunet.conf
 GNUnet configuration file
-.SH BUGS
-Report bugs by using Mantis <https://bugs.gnunet.org/> or by sending
-electronic mail to <bug-gnunet@gnu.org>
 .SH SEE ALSO
 \fBgnunet\-setup\fP(1), \fBgnunet\-arm\fP(1)
 .PP
@@ -154,3 +174,9 @@ will give you access to a tutorial for developers.
 Depending on your installation, this information is also
 available in
 \fBgnunet\fP(7) and \fBgnunet-c-tutorial\fP(7).
+.SH HISTORY
+.PP
+This man page first appeared in October 2012 in GNUnet.
+.SH BUGS
+Report bugs by using Mantis <https://bugs.gnunet.org/> or by sending
+electronic mail to <bug-gnunet@gnu.org>
