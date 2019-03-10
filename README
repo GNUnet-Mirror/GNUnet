@@ -75,7 +75,6 @@ These are the dependencies for GNUnet's testsuite:
 - Posix Shell                       (for some tests)
 - Bash                              (for some tests[*4])
 - python             >= 3.7         (only python 3.7 is supported)
-- python-future      >= 3.7         (only python 3.7 is supported)
 - base tools
   - mostly:
     - which,
@@ -428,8 +427,8 @@ $ make install
 $ export $GNUNET_PREFIX=$SOMEWHERE
 $ make check
 
-Some of the testcases require python >= 3.7, and the python modules
-"python-future" (http://python-future.org/) and "pexpect" to be installed.
+Some of the testcases require python >= 3.7, and the python module
+"pexpect" to be installed.
 If any testcases fail to pass on your system, run
 "contrib/scripts/gnunet-bugreport" (in the repository) or "gnunet-bugreport"
 when you already have GNUnet installed and report its output together with

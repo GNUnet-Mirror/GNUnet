@@ -102,7 +102,6 @@
          ("zlib" ,zlib)
          ("perl" ,perl)
          ("python-2" ,python-2) ; tests and gnunet-qr
-         ("python2-future" ,python2-future)
          ("jansson" ,jansson)
          ("nss" ,nss)
          ("glib" ,glib "bin")

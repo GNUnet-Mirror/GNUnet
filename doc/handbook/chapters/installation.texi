@@ -90,7 +90,6 @@ These are the dependencies only required for certain features
 These are the test suite requirements:
 @itemize @bullet
 @item python3.7
-@item python3-7 future module
 @item gnunet (installation first)
 @item which(1)
 @item a shell (possibly Bash, maybe just POSIX sh)
