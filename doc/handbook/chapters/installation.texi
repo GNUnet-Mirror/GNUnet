@@ -336,7 +336,7 @@ whatever it is you are looking at the Gtk+ interface describes a
 @subsection Peer Information
 @c %**end of header
 
-First, you should launch the peer information graphical user interface. 
+First, you should launch the peer information graphical user interface.
 You can do this from the command-line by typing
 
 @example
