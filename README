@@ -92,6 +92,9 @@ These are the optional dependencies:
 - python-zbar        >= 0.10        (for gnunet-qr, not optional)
 - TeX Live           >= 2012        (for gnunet-bcd[*])
 - texi2mdoc                         (for automatic mdoc generation [*2])
+- mandoc                            (for linting of man pages, generation of
+                                     html output of man pages)
+- grof                              (for linting of man pages)
 - libglpk            >= 4.45        (for experimental code)
 - perl5                             (for some utilities)
 - guile              1.6.4          (or later up to 1.8?, for
