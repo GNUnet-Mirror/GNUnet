@@ -5,7 +5,10 @@ do_subst = $(SED) -e 's,[@]SYSCONFDIR[@],$(sysconfdir),g'
 gnunet.conf.5: gnunet.conf.5.in Makefile
 	$(do_subst) < $(srcdir)/gnunet.conf.5.in > gnunet.conf.5
 
-CLEANFILES = gnunet.conf.5
+CLEANFILES = gnunet.conf.5 *.html
+
+html:
+	$(SH) $(srcdir)/produce_html.sh
 
 man_MANS = \
   gnunet.conf.5 \
