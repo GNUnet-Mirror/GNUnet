@@ -19,7 +19,6 @@
 #
 # Testcase for gnunet-peerinfo
 
-from builtins import object
 import os
 import re
 import subprocess

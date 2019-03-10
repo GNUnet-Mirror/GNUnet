@@ -21,7 +21,6 @@
 # For other platforms it's equivalent to Popen.kill ()
 # Requires pywin32 on W32.
 
-from builtins import object
 import sys
 import subprocess
 import os

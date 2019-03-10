@@ -21,10 +21,6 @@
 # Brief:   Computes GNUNET style Content Hash Key for a given file
 # Author:  Sree Harsha Totakura
 
-from builtins import str
-from builtins import range
-from past.utils import old_div
-from builtins import object
 from hashlib import sha512
 import logging
 import os
@@ -252,7 +248,7 @@ def compute_chk_offset_(depth, end_offset):
     bds = compute_tree_size_(depth)
     if (depth > 0):
         end_offset -= 1
-    ret = old_div(end_offset, bds)
+    ret = end_offset // bds
     return ret % CHK_PER_INODE
 
 
@@ -276,7 +272,7 @@ def compute_iblock_size_(depth, offset):
         ret = CHK_PER_INODE
     else:
         bds /= CHK_PER_INODE
-        ret = old_div(mod, bds)
+        ret = mod // bds
         if (mod % bds) is not 0:
             ret += 1
     return ret

@@ -19,7 +19,6 @@
 #
 # Testcase for ego revocation
 
-from builtins import str
 import sys
 import os
 import subprocess

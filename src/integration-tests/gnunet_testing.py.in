@@ -19,8 +19,6 @@
 #
 # Functions for integration testing
 
-from builtins import object
-from builtins import str
 import os
 import subprocess
 import sys
