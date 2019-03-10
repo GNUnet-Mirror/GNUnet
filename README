@@ -94,6 +94,7 @@ These are the optional dependencies:
 - texi2mdoc                         (for automatic mdoc generation [*2])
 - mandoc                            (for linting of man pages, generation of
                                      html output of man pages)
+- awk                               (for linting tests)
 - grof                              (for linting of man pages)
 - libglpk            >= 4.45        (for experimental code)
 - perl5                             (for some utilities)
