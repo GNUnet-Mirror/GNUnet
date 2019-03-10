@@ -53,9 +53,12 @@ These are the direct dependencies for running GNUnet:
 - nss                               (certutil binary, for
                                      gnunet-gns-proxy-setup-ca)
 - libltdl            >= 2.2         (part of GNU libtool)
-- sqlite             >= 3.8         (default database, required)
-- mysql              >= 5.1         (alternative to sqlite)
-- postgres           >= 9.5         (alternative to sqlite)
+- 1 or more databases:
+  - sqlite           >= 3.8         (default database, required)
+  and/or
+  - mysql            >= 5.1         (alternative to sqlite)
+  and/or
+  - postgres         >= 9.5         (alternative to sqlite)
 - Texinfo            >= 5.2         [*1]
 - makeinfo           >= 4.8
 - make[*3]
