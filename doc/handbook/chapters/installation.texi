@@ -295,8 +295,8 @@ Currently these interfaces cover:
 @item Peer Information
 @item GNU Name System
 @item File Sharing
-@item Identity Management
 @item Conversation
+@item Setup
 @end itemize
 
 @node Statistics
@@ -305,7 +305,7 @@ Currently these interfaces cover:
 
 We assume that you have started gnunet via @code{gnunet-arm} or via your
 system-provided method for starting services.
-First, you should launch GNUnet gtk.
+First, you should launch GNUnet's graphical statistics interface.
 You can do this from the command-line by typing
 
 @example
@@ -318,7 +318,7 @@ least if your peer has been running for more than a few seconds). The
 lines indicate how many other peers your peer is connected to (via
 different mechanisms) and how large the entire overlay network is
 currently estimated to be. The X-axis represents time (in seconds
-since the start of @command{gnunet-gtk}).
+since the start of @command{gnunet-statistics-gtk}).
 
 You can click on "Traffic" to see information about the amount of
 bandwidth your peer has consumed, and on "Storage" to check the amount
@@ -336,8 +336,8 @@ whatever it is you are looking at the Gtk+ interface describes a
 @subsection Peer Information
 @c %**end of header
 
-First, you should launch the graphical user interface.  You can do
-this from the command-line by typing
+First, you should launch the peer information graphical user interface. 
+You can do this from the command-line by typing
 
 @example
 $ gnunet-peerinfo-gtk
@@ -402,7 +402,7 @@ This chapter will describe the various configuration options in GNUnet.
 The easiest way to configure your peer is to use the
 @command{gnunet-setup} tool.
 @command{gnunet-setup} is part of the @command{gnunet-gtk}
-application. You might have to install it separately.
+package. You might have to install it separately.
 
 Many of the specific sections from this chapter actually are linked from
 within @command{gnunet-setup} to help you while using the setup tool.

@@ -202,7 +202,8 @@ Gtk+-based user interfaces, including:
 @item @command{gnunet-statistics-gtk} (statistics over time),
 @item @command{gnunet-peerinfo-gtk}
 (information about current connections and known peers),
-@item @command{gnunet-chat-gtk} (chat GUI) and
+@item @command{gnunet-namestore-gtk} (GNS record editor),
+@item @command{gnunet-conversation-gtk} (voice chat GUI) and
 @item @command{gnunet-setup} (setup tool for "everything")
 @end itemize
 
