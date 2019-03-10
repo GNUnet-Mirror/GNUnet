@@ -25,7 +25,6 @@
 # Conditions for successful exit:
 # Both peers have 2 connected peers in transport, core, topology, fs and dht
 
-from __future__ import print_function
 import sys
 import signal
 import os

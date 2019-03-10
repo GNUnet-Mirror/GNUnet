@@ -17,9 +17,6 @@
 #
 # SPDX-License-Identifier: AGPL3.0-or-later
 
-from __future__ import absolute_import
-from __future__ import print_function
-from __future__ import division
 from builtins import str
 from builtins import range
 from past.utils import old_div
@@ -49,8 +46,6 @@ def simulate(k, n, verbose):
         print("we have", num_ghosts, "ghost peers")
         # n.b. all peers with idx<k are evil
     peers = list(range(n))
-    # py2-3 compatible, backwards.
-    # refer to http://python-future.org/compatible_idioms.html#xrange
     info = [1 << x for x in range(n)]
 
     def done_p():

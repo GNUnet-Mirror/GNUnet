@@ -18,7 +18,7 @@
 #    SPDX-License-Identifier: AGPL3.0-or-later
 #
 #
-from __future__ import print_function
+
 import sys
 import os
 import subprocess

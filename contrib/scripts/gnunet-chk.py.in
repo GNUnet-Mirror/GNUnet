@@ -21,8 +21,6 @@
 # Brief:   Computes GNUNET style Content Hash Key for a given file
 # Author:  Sree Harsha Totakura
 
-from __future__ import print_function
-from __future__ import division
 from builtins import str
 from builtins import range
 from past.utils import old_div

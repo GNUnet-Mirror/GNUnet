@@ -8,8 +8,6 @@
 pydmesg: dmesg with human-readable timestamps
 """
 
-from __future__ import with_statement
-
 import re
 import subprocess
 import sys
