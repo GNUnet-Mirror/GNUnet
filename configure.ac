@@ -905,6 +905,9 @@ AS_IF([test x$working_libidn2 = x0],
                                      * --with-libidn])])])])
 AM_CONDITIONAL(HAVE_LIBIDN, test x$working_libidn1 = x1)
 
+AS_IF([test "$working_libidn1" = 0 -a "$working_libidn2" = 0],
+      [AC_MSG_ERROR([GNUnet requires libidn (or libidn2)])])
+
 AS_IF([test x$there_can_only_be_one = x0],
       [AC_MSG_FAILURE([Missing dependencies: $MISSING_DEPS])])
 
