@@ -32,7 +32,7 @@ Dependencies:
 
 These are the direct dependencies for running GNUnet:
 
-- libmicrohttpd      >= 0.9.42
+- libmicrohttpd      >= 0.9.52
 - libgcrypt          >= 1.6
 - A curl build against gnutls, or gnurl:
   - libgnurl         >= 7.35.0      (recommended, available from
