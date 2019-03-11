@@ -212,9 +212,11 @@ gnunet-qr: gnunet-qr.in Makefile
 
 CLEANFILES = gnunet-qr
 
+pkgdata_DATA = \
+  gnunet-qr.py
+
 bin_SCRIPTS =\
- gnunet-qr \
- gnunet-qr.py
+ gnunet-qr
 
 bin_PROGRAMS = \
  gnunet-resolver \
