@@ -81,6 +81,8 @@ SUBDIRS = \
   statistics \
   arm \
   $(TESTING) \
+  $(JSON_DIR) \
+  $(REST_DIR) \
   peerinfo \
   $(SQLITE_DIR) \
   $(MYSQL_DIR) \
@@ -122,8 +124,6 @@ SUBDIRS = \
   pt \
   secretsharing \
 	$(EXP_DIR) \
-  $(JSON_DIR) \
-  $(REST_DIR) \
   integration-tests
 
 endif

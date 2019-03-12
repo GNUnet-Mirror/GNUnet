@@ -45,23 +45,6 @@ if ENABLE_BENCHMARK
   PTHREAD = -lpthread
 endif
 
-if HAVE_MHD
-if HAVE_JSON
-REST_PLUGIN = libgnunet_plugin_rest_copying.la
-endif
-endif
-
-
-libgnunet_plugin_rest_copying_la_SOURCES = \
-  plugin_rest_copying.c
-libgnunet_plugin_rest_copying_la_LIBADD = \
-  $(top_builddir)/src/rest/libgnunetrest.la \
-  libgnunetutil.la $(XLIBS) \
-  $(LTLIBINTL) -lmicrohttpd
-libgnunet_plugin_rest_copying_la_LDFLAGS = \
- $(GN_PLUGIN_LDFLAGS)
-
-
 w32cat_SOURCES = w32cat.c
 
 gnunet_helper_w32_console_SOURCES = \
@@ -308,8 +291,7 @@ gnunet_uri_LDADD = \
   $(GN_LIBINTL)
 
 plugin_LTLIBRARIES = \
-  libgnunet_plugin_test.la \
-  $(REST_PLUGIN)
+  libgnunet_plugin_test.la
 
 libgnunet_plugin_test_la_SOURCES = \
   test_plugin_plug.c
