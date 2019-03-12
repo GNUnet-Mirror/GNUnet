@@ -52,6 +52,7 @@ Dependencies:
 =============
 
 These are the direct dependencies for running GNUnet:
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 - libmicrohttpd      >= 0.9.52
 - libgcrypt          >= 1.6
@@ -92,6 +93,7 @@ These are the direct dependencies for running GNUnet:
 - Bash                              (for some scripts)
 
 These are the dependencies for GNUnet's testsuite:
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 - Posix Shell                       (for some tests)
 - Bash                              (for some tests[*4])
@@ -105,6 +107,7 @@ These are the dependencies for GNUnet's testsuite:
 
 
 These are the optional dependencies:
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 - Bash                              (for Docker and Vagrant)
 - libjansson
@@ -135,6 +138,7 @@ These are the optional dependencies:
                                      https://github.com/schanzen/libgabe)
 
 Recommended autotools for compiling the Git version are:
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 - autoconf           >= 2.59
 - automake           >= 1.11.1
@@ -518,7 +522,7 @@ Further Reading
     https://old.gnunet.org/bibliography
 
   The Drupal access will be replaced by a new interface to our
-  bibliography in 2019.
+  bibliography in the foreseeable future.
 
 
 Stay tuned
