@@ -20,7 +20,6 @@ endif
 plugin_LTLIBRARIES = \
   libgnunet_plugin_rest_copying.la \
 	libgnunet_plugin_rest_peerinfo.la \
-	libgnunet_plugin_rest_identity.la \
 	libgnunet_plugin_rest_namestore.la 
 
 
@@ -55,16 +54,6 @@ libgnunet_plugin_rest_peerinfo_la_LIBADD = \
   $(top_builddir)/src/util/libgnunetutil.la $(XLIBS) \
   $(LTLIBINTL) -ljansson -lmicrohttpd
 libgnunet_plugin_rest_peerinfo_la_LDFLAGS = \
- $(GN_PLUGIN_LDFLAGS)
-
-libgnunet_plugin_rest_identity_la_SOURCES = \
-  plugin_rest_identity.c
-libgnunet_plugin_rest_identity_la_LIBADD = \
-	$(top_builddir)/src/identity/libgnunetidentity.la \
-  $(top_builddir)/src/rest/libgnunetrest.la \
-  $(top_builddir)/src/util/libgnunetutil.la $(XLIBS) \
-  $(LTLIBINTL) -ljansson -lmicrohttpd
-libgnunet_plugin_rest_identity_la_LDFLAGS = \
  $(GN_PLUGIN_LDFLAGS)
 
 

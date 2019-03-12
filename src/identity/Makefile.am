@@ -12,6 +12,12 @@ if USE_COVERAGE
   XLIB = -lgcov
 endif
 
+if HAVE_MHD
+if HAVE_JSON
+REST_PLUGIN = libgnunet_plugin_rest_identity.la
+endif
+endif
+
 pkgcfgdir= $(pkgdatadir)/config.d/
 
 libexecdir= $(pkglibdir)/libexec/
@@ -20,7 +26,20 @@ pkgcfg_DATA = \
   identity.conf
 
 lib_LTLIBRARIES = \
-	libgnunetidentity.la
+  libgnunetidentity.la \
+  $(REST_PLUGIN)
+
+
+libgnunet_plugin_rest_identity_la_SOURCES = \
+  plugin_rest_identity.c
+libgnunet_plugin_rest_identity_la_LIBADD = \
+  libgnunetidentity.la \
+  $(top_builddir)/src/rest/libgnunetrest.la \
+  $(top_builddir)/src/util/libgnunetutil.la $(XLIBS) \
+  $(LTLIBINTL) -ljansson -lmicrohttpd
+libgnunet_plugin_rest_identity_la_LDFLAGS = \
+ $(GN_PLUGIN_LDFLAGS)
+
 
 libgnunetidentity_la_SOURCES = \
   identity_api.c \
