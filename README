@@ -1,5 +1,26 @@
                        Welcome to GNUnet
 
+ToC
+===
+
+* ToC
+* What is GNUnet?
+* Dependencies
+  o direct dependencies
+  o test suite dependencies
+  o optional dependencies
+  o autotools
+* Requirements
+* How to install
+  o binary packages
+  o Scope of Operating System support
+  o Building GNUnet from source
+* Configuration
+* Usage
+* Hacking GNUnet
+* Running HTTP on port 80 and HTTPS on port 443
+* Further Reading
+* Stay tuned
 
 What is GNUnet?
 ===============
