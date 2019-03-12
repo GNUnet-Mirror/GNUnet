@@ -60,7 +60,7 @@ endif
 
 if HAVE_MHD
 if HAVE_JSON
- REST_DIR = rest rest-plugins
+ REST_DIR = rest
 endif
 endif
 
