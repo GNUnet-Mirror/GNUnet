@@ -73,9 +73,9 @@ static int rewrite;
  */
 static void
 print_option (void *cls,
-	      const char *section,
-	      const char *option,
-	      const char *value)
+              const char *section,
+              const char *option,
+              const char *value)
 {
   const struct GNUNET_CONFIGURATION_Handle *cfg = cls;
 
@@ -86,27 +86,27 @@ print_option (void *cls,
     char *fn;
 
     GNUNET_assert (GNUNET_OK ==
-		   GNUNET_CONFIGURATION_get_value_filename (cfg,
-							    section,
-							    option,
-							    &value_fn));
+                   GNUNET_CONFIGURATION_get_value_filename (cfg,
+                                                            section,
+                                                            option,
+                                                            &value_fn));
     fn = GNUNET_STRINGS_filename_expand (value_fn);
     if (NULL == fn)
       fn = value_fn;
     else
       GNUNET_free (value_fn);
     fprintf (stdout,
-	     "%s = %s\n",
-	     option,
-	     fn);
+             "%s = %s\n",
+             option,
+             fn);
     GNUNET_free (fn);
   }
   else
   {
     fprintf (stdout,
-	     "%s = %s\n",
-	     option,
-	     value);
+             "%s = %s\n",
+             option,
+             value);
   }
 }
 
@@ -123,8 +123,8 @@ print_section_name (void *cls,
 {
   (void) cls;
   fprintf (stdout,
-	   "%s\n",
-	   section);
+           "%s\n",
+           section);
 }
 
 
@@ -133,7 +133,8 @@ print_section_name (void *cls,
  *
  * @param cls closure
  * @param args remaining command-line arguments
- * @param cfgfile name of the configuration file used (for saving, can be NULL!)
+ * @param cfgfile name of the configuration file used (for saving,
+ *                                                     can be NULL!)
  * @param cfg configuration
  */
 static void
@@ -192,35 +193,36 @@ run (void *cls,
     {
       GNUNET_CONFIGURATION_iterate_section_values (cfg,
                                                    section,
-                                                  &print_option,
+                                                   &print_option,
                                                    (void *) cfg);
     }
     else
     {
       if (is_filename)
       {
-	if (GNUNET_OK !=
-	    GNUNET_CONFIGURATION_get_value_filename (cfg,
+        if (GNUNET_OK !=
+            GNUNET_CONFIGURATION_get_value_filename (cfg,
                                                      section,
                                                      option,
                                                      &value))
-	{
-	  GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR,
-				     section, option);
-	  ret = 3;
+        {
+          GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR,
+                                     section, option);
+          ret = 3;
           goto cleanup;
-	}
+        }
       }
       else
       {
-	if (GNUNET_OK !=
-	    GNUNET_CONFIGURATION_get_value_string (cfg, section, option, &value))
-	{
-	  GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR,
-				     section, option);
-	  ret = 3;
+        if (GNUNET_OK !=
+            GNUNET_CONFIGURATION_get_value_string (cfg, section,
+                                                   option, &value))
+        {
+          GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR,
+                                     section, option);
+          ret = 3;
           goto cleanup;
-	}
+        }
       }
       fprintf (stdout, "%s\n", value);
     }
@@ -245,10 +247,10 @@ run (void *cls,
     const char *xdg = getenv ("XDG_CONFIG_HOME");
     if (NULL != xdg)
       GNUNET_asprintf (&cfg_fn,
-		       "%s%s%s",
-		       xdg,
-		       DIR_SEPARATOR_STR,
-		       GNUNET_OS_project_data_get ()->config_file);
+                       "%s%s%s",
+                       xdg,
+                       DIR_SEPARATOR_STR,
+                       GNUNET_OS_project_data_get ()->config_file);
     else
       cfg_fn = GNUNET_strdup (GNUNET_OS_project_data_get ()->user_config_file);
     cfgfile = cfg_fn;
@@ -256,14 +258,14 @@ run (void *cls,
   if ( (NULL != diff) || (NULL != out) )
   {
     if (GNUNET_OK !=
-	GNUNET_CONFIGURATION_write ((NULL == out) ? diff : out,
+        GNUNET_CONFIGURATION_write ((NULL == out) ? diff : out,
                                     cfgfile))
       ret = 2;
   }
   GNUNET_free_non_null (cfg_fn);
   if (NULL != out)
     GNUNET_CONFIGURATION_destroy (out);
- cleanup:
+cleanup:
   if (NULL != diff)
     GNUNET_CONFIGURATION_destroy (diff);
 }
@@ -282,32 +284,36 @@ main (int argc,
 {
   struct GNUNET_GETOPT_CommandLineOption options[] = {
     GNUNET_GETOPT_option_flag ('f',
-			       "filename",
-			       gettext_noop ("obtain option of value as a filename (with $-expansion)"),
-			       &is_filename),
+                               "filename",
+                               gettext_noop ("interpret option value as
+                                             a filename (with $-expansion)"),
+                               &is_filename),
     GNUNET_GETOPT_option_string ('s',
-				 "section",
-				 "SECTION",
-				 gettext_noop ("name of the section to access"),
-				 &section),
+                                 "section",
+                                 "SECTION",
+                                 gettext_noop ("name of the section to
+                                               access"),
+                                 &section),
     GNUNET_GETOPT_option_string ('o',
-				 "option",
-				 "OPTION",
-				 gettext_noop ("name of the option to access"),
-				 &option),
+                                 "option",
+                                 "OPTION",
+                                 gettext_noop ("name of the option to access"),
+                                 &option),
     GNUNET_GETOPT_option_string ('V',
-				 "value",
-				 "VALUE",
-				 gettext_noop ("value to set"),
-				 &value),
+                                 "value",
+                                 "VALUE",
+                                 gettext_noop ("value to set"),
+                                 &value),
     GNUNET_GETOPT_option_flag ('S',
-			       "list-sections",
-			       gettext_noop ("print available configuration sections"),
-			       &list_sections),
+                               "list-sections",
+                               gettext_noop ("print available configuration
+                                             sections"),
+                               &list_sections),
     GNUNET_GETOPT_option_flag ('w',
-			       "rewrite",
-			       gettext_noop ("write configuration file that only contains delta to defaults"),
-			       &rewrite),
+                               "rewrite",
+                               gettext_noop ("write configuration file that
+                                             only contains delta to defaults"),
+                               &rewrite),
     GNUNET_GETOPT_OPTION_END
   };
   if (GNUNET_OK !=
@@ -316,11 +322,12 @@ main (int argc,
     return 2;
 
   ret = (GNUNET_OK ==
-	 GNUNET_PROGRAM_run (argc,
+         GNUNET_PROGRAM_run (argc,
                              argv,
                              "gnunet-config [OPTIONS]",
-			     gettext_noop ("Manipulate GNUnet configuration files"),
-			     options,
+                             gettext_noop ("Manipulate GNUnet configuration
+                                           files"),
+                             options,
                              &run, NULL)) ? 0 : ret;
   GNUNET_free ((void*) argv);
   return ret;
