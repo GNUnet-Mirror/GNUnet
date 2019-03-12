@@ -58,17 +58,4 @@ libgnunet_plugin_rest_peerinfo_la_LDFLAGS = \
 
 
 
-libgnunet_plugin_rest_namestore_la_SOURCES = \
-  plugin_rest_namestore.c
-libgnunet_plugin_rest_namestore_la_LIBADD = \
-  $(top_builddir)/src/namestore/libgnunetnamestore.la \
-  $(top_builddir)/src/rest/libgnunetrest.la \
-  $(top_builddir)/src/identity/libgnunetidentity.la \
-  $(top_builddir)/src/json/libgnunetjson.la \
-  $(top_builddir)/src/gnsrecord/libgnunetgnsrecord.la \
-  $(top_builddir)/src/util/libgnunetutil.la $(XLIBS) \
-  $(LTLIBINTL) -ljansson -lmicrohttpd
-libgnunet_plugin_rest_namestore_la_LDFLAGS = \
- $(GN_PLUGIN_LDFLAGS)
-
 

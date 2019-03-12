@@ -104,8 +104,48 @@ TESTS = \
   $(check_SCRIPTS)
 endif
 
+if HAVE_MHD
+if HAVE_JSON
+REST_PLUGIN = libgnunet_plugin_rest_namestore.la
+endif
+endif
+
 lib_LTLIBRARIES = \
   libgnunetnamestore.la
+
+
+libexec_PROGRAMS = \
+ gnunet-service-namestore
+
+bin_PROGRAMS = \
+ gnunet-namestore \
+ gnunet-zoneimport
+
+if HAVE_MHD
+libexec_PROGRAMS += \
+ gnunet-namestore-fcfsd
+endif
+
+
+plugin_LTLIBRARIES = \
+  $(SQLITE_PLUGIN) \
+  $(POSTGRES_PLUGIN) \
+  $(HEAP_PLUGIN) \
+  $(REST_PLUGIN)
+
+
+libgnunet_plugin_rest_namestore_la_SOURCES = \
+  plugin_rest_namestore.c
+libgnunet_plugin_rest_namestore_la_LIBADD = \
+  libgnunetnamestore.la \
+  $(top_builddir)/src/rest/libgnunetrest.la \
+  $(top_builddir)/src/identity/libgnunetidentity.la \
+  $(top_builddir)/src/json/libgnunetjson.la \
+  $(top_builddir)/src/gnsrecord/libgnunetgnsrecord.la \
+  $(top_builddir)/src/util/libgnunetutil.la $(XLIBS) \
+  $(LTLIBINTL) -ljansson -lmicrohttpd
+libgnunet_plugin_rest_namestore_la_LDFLAGS = \
+ $(GN_PLUGIN_LDFLAGS)
 
 
 libgnunetnamestore_la_SOURCES = \
@@ -121,17 +161,6 @@ libgnunetnamestore_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS) $(WINFLAGS) \
   -version-info 0:1:0
 
-libexec_PROGRAMS = \
- gnunet-service-namestore
-
-bin_PROGRAMS = \
- gnunet-namestore \
- gnunet-zoneimport
-
-if HAVE_MHD
-libexec_PROGRAMS += \
- gnunet-namestore-fcfsd
-endif
 
 
 gnunet_zoneimport_SOURCES = \
@@ -174,12 +203,6 @@ gnunet_service_namestore_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   libgnunetnamestore.la \
   $(GN_LIBINTL)
-
-
-plugin_LTLIBRARIES = \
-  $(SQLITE_PLUGIN) \
-  $(POSTGRES_PLUGIN) \
-  $(HEAP_PLUGIN)
 
 
 
