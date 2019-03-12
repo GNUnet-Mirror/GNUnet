@@ -308,7 +308,8 @@ gnunet_uri_LDADD = \
   $(GN_LIBINTL)
 
 plugin_LTLIBRARIES = \
-  libgnunet_plugin_test.la
+  libgnunet_plugin_test.la \
+  $(REST_PLUGIN)
 
 libgnunet_plugin_test_la_SOURCES = \
   test_plugin_plug.c

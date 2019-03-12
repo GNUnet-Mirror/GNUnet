@@ -1819,7 +1819,6 @@ src/vpn/vpn.conf
 src/zonemaster/Makefile
 src/zonemaster/zonemaster.conf
 src/rest/Makefile
-src/rest-plugins/Makefile
 src/abe/Makefile
 src/reclaim-attribute/Makefile
 src/reclaim/Makefile

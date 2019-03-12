@@ -92,6 +92,7 @@ src/credential/credential_serialization.c
 src/credential/gnunet-credential.c
 src/credential/gnunet-service-credential.c
 src/credential/plugin_gnsrecord_credential.c
+src/credential/plugin_rest_credential.c
 src/curl/curl.c
 src/curl/curl_reschedule.c
 src/datacache/datacache.c
@@ -187,6 +188,7 @@ src/gns/nss/nss_gns.c
 src/gns/nss/nss_gns_query.c
 src/gns/plugin_block_gns.c
 src/gns/plugin_gnsrecord_gns.c
+src/gns/plugin_rest_gns.c
 src/gns/w32nsp-install.c
 src/gns/w32nsp-resolve.c
 src/gns/w32nsp-uninstall.c
@@ -207,6 +209,7 @@ src/identity/gnunet-identity.c
 src/identity/gnunet-service-identity.c
 src/identity/identity_api.c
 src/identity/identity_api_lookup.c
+src/identity/plugin_rest_identity.c
 src/json/json.c
 src/json/json_generator.c
 src/json/json_gnsrecord.c
@@ -231,6 +234,7 @@ src/namestore/namestore_api_monitor.c
 src/namestore/plugin_namestore_heap.c
 src/namestore/plugin_namestore_postgres.c
 src/namestore/plugin_namestore_sqlite.c
+src/namestore/plugin_rest_namestore.c
 src/nat-auto/gnunet-nat-auto.c
 src/nat-auto/gnunet-nat-auto_legacy.c
 src/nat-auto/gnunet-nat-server.c
@@ -260,6 +264,7 @@ src/peerinfo-tool/gnunet-peerinfo_plugins.c
 src/peerinfo/gnunet-service-peerinfo.c
 src/peerinfo/peerinfo_api.c
 src/peerinfo/peerinfo_api_notify.c
+src/peerinfo/plugin_rest_peerinfo.c
 src/peerstore/gnunet-peerstore.c
 src/peerstore/gnunet-service-peerstore.c
 src/peerstore/peerstore_api.c
@@ -299,12 +304,6 @@ src/regex/regex_internal_dht.c
 src/regex/regex_test_graph.c
 src/regex/regex_test_lib.c
 src/regex/regex_test_random.c
-src/rest-plugins/plugin_rest_copying.c
-src/rest-plugins/plugin_rest_credential.c
-src/rest-plugins/plugin_rest_gns.c
-src/rest-plugins/plugin_rest_identity.c
-src/rest-plugins/plugin_rest_namestore.c
-src/rest-plugins/plugin_rest_peerinfo.c
 src/rest/gnunet-rest-server.c
 src/rest/rest.c
 src/revocation/gnunet-revocation.c
@@ -498,6 +497,7 @@ src/util/os_network.c
 src/util/os_priority.c
 src/util/peer.c
 src/util/plugin.c
+src/util/plugin_rest_copying.c
 src/util/proc_compat.c
 src/util/program.c
 src/util/regex.c
