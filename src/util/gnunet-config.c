@@ -284,16 +284,14 @@ main (int argc,
 {
   struct GNUNET_GETOPT_CommandLineOption options[] = {
     GNUNET_GETOPT_option_flag ('f',
-                               "filename",
-                               gettext_noop ("interpret option value as
-                                             a filename (with $-expansion)"),
-                               &is_filename),
+      "filename",
+      gettext_noop ("interpret option value as a filename (with $-expansion)"),
+      &is_filename),
     GNUNET_GETOPT_option_string ('s',
-                                 "section",
-                                 "SECTION",
-                                 gettext_noop ("name of the section to
-                                               access"),
-                                 &section),
+                                "section",
+                                "SECTION",
+                                gettext_noop ("name of the section to access"),
+                                &section),
     GNUNET_GETOPT_option_string ('o',
                                  "option",
                                  "OPTION",
@@ -305,14 +303,12 @@ main (int argc,
                                  gettext_noop ("value to set"),
                                  &value),
     GNUNET_GETOPT_option_flag ('S',
-                               "list-sections",
-                               gettext_noop ("print available configuration
-                                             sections"),
-                               &list_sections),
+                       "list-sections",
+                       gettext_noop ("print available configuration sections"),
+                       &list_sections),
     GNUNET_GETOPT_option_flag ('w',
                                "rewrite",
-                               gettext_noop ("write configuration file that
-                                             only contains delta to defaults"),
+                               gettext_noop ("write configuration file that only contains delta to defaults"),
                                &rewrite),
     GNUNET_GETOPT_OPTION_END
   };
@@ -323,12 +319,11 @@ main (int argc,
 
   ret = (GNUNET_OK ==
          GNUNET_PROGRAM_run (argc,
-                             argv,
-                             "gnunet-config [OPTIONS]",
-                             gettext_noop ("Manipulate GNUnet configuration
-                                           files"),
-                             options,
-                             &run, NULL)) ? 0 : ret;
+                        argv,
+                        "gnunet-config [OPTIONS]",
+                        gettext_noop ("Manipulate GNUnet configuration files"),
+                        options,
+                        &run, NULL)) ? 0 : ret;
   GNUNET_free ((void*) argv);
   return ret;
 }
