@@ -123,7 +123,7 @@ SUBDIRS = \
   exit \
   pt \
   secretsharing \
-	$(EXP_DIR) \
+  $(EXP_DIR) \
   integration-tests
 
 endif

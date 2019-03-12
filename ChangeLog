@@ -1,3 +1,6 @@
+Tue Mar 12 10:06:17 CET 2019
+  REST: Move back from rest-plugin into respective subsystem directories.
+
 Mon Mar 11 02:47:55 CET 2019
   Make configure complain if no working libidn is detected. -CG
 
