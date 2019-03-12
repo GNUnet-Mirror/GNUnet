@@ -16,10 +16,12 @@ if HAVE_SQLITE
 SQLITE_PLUGIN = libgnunet_plugin_reclaim_sqlite.la
 endif
 
+if HAVE_MHD
 if HAVE_JSON
 REST_PLUGIN = \
   libgnunet_plugin_rest_openid_connect.la \
   libgnunet_plugin_rest_reclaim.la
+endif
 endif
 
 EXTRA_DIST = \
