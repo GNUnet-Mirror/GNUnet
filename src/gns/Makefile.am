@@ -89,9 +89,16 @@ bin_PROGRAMS += gnunet-bcd
 endif
 endif
 
+if HAVE_MHD
+if HAVE_JSON
+REST_PLUGIN = libgnunet_plugin_rest_gns.la
+endif
+endif
+
 plugin_LTLIBRARIES = \
   libgnunet_plugin_block_gns.la \
-  libgnunet_plugin_gnsrecord_gns.la
+  libgnunet_plugin_gnsrecord_gns.la \
+  $(REST_PLUGIN)
 
 
 bin_SCRIPTS = \
@@ -103,6 +110,21 @@ do_subst = sed -e 's,[@]pkgdatadir[@],$(pkgdatadir),g'
 gnunet-gns-proxy-setup-ca: gnunet-gns-proxy-setup-ca.in Makefile
 	$(do_subst) < $(srcdir)/gnunet-gns-proxy-setup-ca.in > gnunet-gns-proxy-setup-ca
 	chmod +x gnunet-gns-proxy-setup-ca
+
+
+libgnunet_plugin_rest_gns_la_SOURCES = \
+  plugin_rest_gns.c
+libgnunet_plugin_rest_gns_la_LIBADD = \
+  $(top_builddir)/src/gnsrecord/libgnunetgnsrecord.la \
+  libgnunetgns.la \
+  $(top_builddir)/src/rest/libgnunetrest.la \
+  $(top_builddir)/src/identity/libgnunetidentity.la \
+  $(top_builddir)/src/json/libgnunetjson.la \
+  $(top_builddir)/src/util/libgnunetutil.la $(XLIBS) \
+  $(LTLIBINTL) -ljansson -lmicrohttpd
+libgnunet_plugin_rest_gns_la_LDFLAGS = \
+ $(GN_PLUGIN_LDFLAGS)
+
 
 libgnunet_plugin_gnsrecord_gns_la_SOURCES = \
   plugin_gnsrecord_gns.c

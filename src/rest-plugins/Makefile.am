@@ -21,28 +21,7 @@ plugin_LTLIBRARIES = \
   libgnunet_plugin_rest_copying.la \
 	libgnunet_plugin_rest_peerinfo.la \
 	libgnunet_plugin_rest_identity.la \
-	libgnunet_plugin_rest_namestore.la \
-  libgnunet_plugin_rest_gns.la 
-if HAVE_ABE
-plugin_LTLIBRARIES += libgnunet_plugin_rest_openid_connect.la \
-											libgnunet_plugin_rest_reclaim.la
-endif
-
-libgnunet_plugin_rest_reclaim_la_SOURCES = \
-  plugin_rest_reclaim.c \
-	json_reclaim.h \
-	json_reclaim.c
-libgnunet_plugin_rest_reclaim_la_LIBADD = \
-  $(top_builddir)/src/identity/libgnunetidentity.la \
-  $(top_builddir)/src/reclaim/libgnunetreclaim.la \
-	$(top_builddir)/src/json/libgnunetjson.la \
-  $(top_builddir)/src/rest/libgnunetrest.la \
-  $(top_builddir)/src/reclaim-attribute/libgnunetreclaimattribute.la \
-  $(top_builddir)/src/namestore/libgnunetnamestore.la \
-  $(top_builddir)/src/util/libgnunetutil.la $(XLIBS) \
-  $(LTLIBINTL) -ljansson -lmicrohttpd
-libgnunet_plugin_rest_reclaim_la_LDFLAGS = \
- i$(GN_PLUGIN_LDFLAGS)
+	libgnunet_plugin_rest_namestore.la 
 
 
 #libgnunet_plugin_rest_credential_la_SOURCES = \
@@ -103,33 +82,4 @@ libgnunet_plugin_rest_namestore_la_LIBADD = \
 libgnunet_plugin_rest_namestore_la_LDFLAGS = \
  $(GN_PLUGIN_LDFLAGS)
 
-libgnunet_plugin_rest_gns_la_SOURCES = \
-  plugin_rest_gns.c
-libgnunet_plugin_rest_gns_la_LIBADD = \
-  $(top_builddir)/src/gnsrecord/libgnunetgnsrecord.la \
-  $(top_builddir)/src/gns/libgnunetgns.la \
-	$(top_builddir)/src/rest/libgnunetrest.la \
-  $(top_builddir)/src/identity/libgnunetidentity.la \
-  $(top_builddir)/src/json/libgnunetjson.la \
-  $(top_builddir)/src/util/libgnunetutil.la $(XLIBS) \
-  $(LTLIBINTL) -ljansson -lmicrohttpd
-libgnunet_plugin_rest_gns_la_LDFLAGS = \
- $(GN_PLUGIN_LDFLAGS)
-
-libgnunet_plugin_rest_openid_connect_la_SOURCES = \
-  plugin_rest_openid_connect.c \
-	oidc_helper.h \
-	oidc_helper.c
-libgnunet_plugin_rest_openid_connect_la_LIBADD = \
-	$(top_builddir)/src/identity/libgnunetidentity.la \
-	$(top_builddir)/src/reclaim/libgnunetreclaim.la \
-	$(top_builddir)/src/rest/libgnunetrest.la \
-	$(top_builddir)/src/reclaim-attribute/libgnunetreclaimattribute.la \
-	$(top_builddir)/src/namestore/libgnunetnamestore.la \
-$(top_builddir)/src/gns/libgnunetgns.la \
-	$(top_builddir)/src/gnsrecord/libgnunetgnsrecord.la \
-  $(top_builddir)/src/util/libgnunetutil.la $(XLIBS) \
-  $(LTLIBINTL) -ljansson -lmicrohttpd
-libgnunet_plugin_rest_openid_connect_la_LDFLAGS = \
- $(GN_PLUGIN_LDFLAGS)
 
