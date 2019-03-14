@@ -19,6 +19,10 @@ check-man:
 # exception to add: uref's can go above 79 chars.
 check-texinfo:
 	printf "Running basic texinfo linters\n"
+	printf "...lines containing tabstops?\n" 2>&1 | tee $(top_srcdir)/doc/handbook/texinfo_handbook.log || true
+	printf "...lines containing tabstops?\n" 2>&1 | tee $(top_srcdir)/doc/tutorial/texinfo_tutorial.log || true
+	@cd $(top_srcdir)/doc/handbook ; find . -type f ! -path '*/.*' -name '*.texi' -print0 | xargs -0 awk '/\t/ {print FILENAME":"NR":"$$0}' > $(srcdir)/texinfo_handbook.log || true
+	@cd $(top_srcdir)/doc/tutorial ; find . -type f ! -path '*/.*' -name '*.texi' -print0 | xargs -0 awk '/\t/ {print FILENAME":"NR":"$$0}' > $(srcdir)/texinfo_tutorial.log || true
 	printf "...line length over 79 chars?\n" 2>&1 | tee $(top_srcdir)/doc/handbook/texinfo_handbook.log || true
 	@cd $(top_srcdir)/doc/handbook ; find . -type f ! -path '*/.*' -name '*.texi' -print0 | xargs -0 awk 'length>79 {print FILENAME":"NR":"$$0}' > $(srcdir)/texinfo_handbook.log || true
 	printf "...line length over 79 chars?\n" 2>&1 | tee $(top_srcdir)/doc/tutorial/texinfo_tutorial.log || true

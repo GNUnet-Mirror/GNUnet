@@ -8108,7 +8108,7 @@ This is done by converting to a BOX record from an existing SRV record:
 @example
 # SRV
 # _service._proto.name. TTL class SRV priority weight port target
-_sip._tcp.example.com. 14000 IN	SRV	0 0 5060 www.example.com.
+_sip._tcp.example.com. 14000 IN	SRV     0 0 5060 www.example.com.
 # BOX
 # TTL BOX flags port protocol recordtype priority weight port target
 14000 BOX n 5060 6 33 0 0 5060 www.example.com
