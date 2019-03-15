@@ -72,11 +72,11 @@ This document is the Reference Manual for GNUnet version @value{VERSION}.
 
 @menu
 
-* Preface::                         Chapter 0
+* Preface::                         Preface
 * Philosophy::                      About GNUnet
 * Key Concepts::                    Key concepts of GNUnet
 @c * Vocabulary::                      Vocabulary
-* Installing GNUnet::		    Installing GNUnet
+* Installing GNUnet::               Installing GNUnet
 * Using GNUnet::                    Using GNUnet
 @c * Configuration Handbook::          Configuring GNUnet
 * GNUnet Contributors Handbook::    Contributing to GNUnet
