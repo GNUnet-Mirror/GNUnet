@@ -252,8 +252,24 @@ generate_ca()
     #     GNSCANO=`mktemp ${00##*/}.pem` || exit 1
     # fi
 
+    # # ------------- gnutls
+    #
+    # if ! which certutil > /dev/null
+    # then
+    #     warningmsg "The 'certutil' command was not found."
+    #     warningmsg "Not importing into browsers."
+    #     warningmsg "For 'certutil' install nss."
+    # else
+    #     # Generate CA key
+    #     # pkcs#8 password-protects key
+    #     certtool --pkcs8 --generate-privkey --sec-param high --outfile ca-key.pem
+    #     # self-sign the CA to create public certificate
+    #     certtool --generate-self-signed --load-privkey ca-key.pem --template ca.cfg --outfile ca.pem
+
+    # ------------- openssl
+
     OPENSSLCFG=@pkgdatadir@/openssl.cnf
-    if ! which openssl > /dev/null
+    if test -z "`openssl version`" > /dev/null
     then
         warningmsg "'openssl' command not found. Please install it."
         infomsg    "Cleaning up."
@@ -290,7 +306,11 @@ generate_ca()
 
 importbrowsers()
 {
-    if ! which certutil > /dev/null
+    # Don't check with -H, -H defies any method to not
+    # print the output on screen! Let's hope that every
+    # certutil gets build with some kind of build flags
+    # which end up being printed here:
+    if test -z "`certutil --build-flags`" > /dev/null 2>&1
     then
         warningmsg "The 'certutil' command was not found."
         warningmsg "Not importing into browsers."
