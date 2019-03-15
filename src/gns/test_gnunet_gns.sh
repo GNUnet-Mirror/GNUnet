@@ -1,15 +1,25 @@
 #!/bin/sh
 # This file is in the public domain.
-LOCATION=$(which gnunet-config)
-if [ -z $LOCATION ]
-then
-  LOCATION="gnunet-config"
+# test -z being correct was a false assumption here.
+# I have no executable 'fooble', but this will
+# return 1:
+# if test -z "`which fooble`"; then echo 1; fi
+# The command builtin might not work with busybox's ash
+# but this works for now.
+existence()
+{
+    command -v "$1" >/dev/null 2>&1
+}
+
+LOCATION=`existence gnunet-config`
+if test -z $LOCATION; then
+    LOCATION="gnunet-config"
 fi
 $LOCATION --version
 if test $? != 0
 then
-	echo "GNUnet command line tools cannot be found, check environmental variables PATH and GNUNET_PREFIX" 
-	exit 77
+    echo "GNUnet command line tools cannot be found, check environmental variables PATH and GNUNET_PREFIX" 
+    exit 77
 fi
 
 trap "gnunet-arm -e -c test_gns_lookup.conf" SIGINT
