@@ -85,8 +85,7 @@ These are the direct dependencies for running GNUnet:
 - makeinfo           >= 4.8
 - make[*3]
 - which                             (contrib/apparmor(?), gnunet-bugreport,
-                                     tests (dns, gns, namestore,
-                                     scalarproduct) and possibly more)
+                                     and possibly more)
 - gettext
 - zlib
 - Posix shell                       (for some scripts)
