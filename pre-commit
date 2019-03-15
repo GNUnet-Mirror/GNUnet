@@ -12,10 +12,9 @@ find $PATHS -name "*.c" -exec indent {} \;
 find $PATHS -name "*.h" -exec indent {} \;
 find $PATHS -name "*.c" -exec indent {} \;
 find $PATHS -name "*.h" -exec indent {} \;
-find $PATHS -name "*.c" -exec contrib/removetrailingwhitespace.py {} \;
-find $PATHS -name "*.h" -exec contrib/removetrailingwhitespace.py {} \;
-if test -x "`which 'dos2unix'`"
-then
+find $PATHS -name "*.c" -exec contrib/scripts/removetrailingwhitespace.py {} \;
+find $PATHS -name "*.h" -exec contrib/scripts/removetrailingwhitespace.py {} \;
+if test -n "`dos2unix -V | head -n1 | awk '{print $1 $2}'`"; then
   find $PATHS -name "*.c" -exec dos2unix {} \;
   find $PATHS -name "*.h" -exec dos2unix {} \;
 fi
