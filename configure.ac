@@ -312,6 +312,10 @@ then
 fi
 AC_DEFINE_UNQUOTED([NEED_LIBGCRYPT_VERSION], "$NEED_LIBGCRYPT_VERSION", [required libgcrypt version])
 
+AC_CHECK_DECLS([struct in6_ifreq], [], [], [[#include <linux/if_tun.h>]])
+
+
+
 # should the build process be building the documentation?
 AC_MSG_CHECKING(whether to build documentation)
 AC_ARG_ENABLE([documentation],
