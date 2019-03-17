@@ -65,7 +65,7 @@ close_all_files ();
 #define to_file(file_name, ...) do { \
     char tmp_buf[512] = "";\
     int size;\
-    if (NULL == file_name) return; \
+    if (NULL == file_name) break; \
     size = GNUNET_snprintf(tmp_buf,sizeof(tmp_buf),__VA_ARGS__);\
     if (0 > size)\
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,\
