@@ -1,6 +1,6 @@
 @node Using GNUnet
 @chapter Using GNUnet
-@c %**end of header
+
 
 This tutorial is supposed to give a first introduction for users
 trying to do something real with GNUnet. Installation and
@@ -47,7 +47,7 @@ $ gnunet-arm -e
 
 @node First steps - Using the GNU Name System
 @section First steps - Using the GNU Name System
-@c %**end of header
+
 
 @menu
 * Preliminaries::
@@ -65,7 +65,7 @@ $ gnunet-arm -e
 
 @node Preliminaries
 @subsection Preliminaries
-@c %**end of header
+
 
 ``.pin'' is a default zone which points to a zone managed by gnunet.org.
 Use @code{gnunet-config -s gns} to view the GNS configuration, including
@@ -106,7 +106,7 @@ rules - GO0T87F9BPMF8NKD5A54L2AH1T0GRML539TPFSRMCEA98182QD30
 
 @node The GNS Tab
 @subsection The GNS Tab
-@c %**end of header
+
 
 Maintaing your zones is through the NAMESTORE service and is discussed
 here.  You can manage your zone using @command{gnunet-identity} and
@@ -138,7 +138,7 @@ bottom of the window contains the existing entries in the selected zone.
 
 @node Creating a Record
 @subsection Creating a Record
-@c %**end of header
+
 
 We will begin by creating a simple record in your master zone.
 To do this, click on the text "<new name>" in the table. The field is
@@ -168,7 +168,7 @@ to edit it later.
 
 @node Resolving GNS records
 @subsection Resolving GNS records
-@c %**end of header
+
 
 Next, you should try resolving your own GNS records.  The method we
 found to be the most uncomplicated is to do this by explicitly
@@ -191,7 +191,7 @@ the application.
 
 @node Integration with Browsers
 @subsection Integration with Browsers
-@c %**end of header
+
 
 While we recommend integrating GNS using the NSS module in the
 GNU libc Name Service Switch, you can also integrate GNS
@@ -302,7 +302,7 @@ You can now go back to the shell running @code{gnunet-bcd} and press
 
 @node Be Social
 @subsection Be Social
-@c %**end of header
+
 
 Next, you should print out your business card and be social.
 Find a friend, help them install GNUnet and exchange business cards with
@@ -424,7 +424,7 @@ performed by using the @command{-p} option of @command{gnunet-revocation}.
 
 @node What's Next?
 @subsection What's Next?
-@c %**end of header
+
 
 This may seem not like much of an application yet, but you have
 just been one of the first to perform a decentralized secure name
@@ -443,7 +443,7 @@ using this new public key infrastructure.
 @pindex gnunet-conservation-gtk
 @node First steps - Using GNUnet Conversation
 @section First steps - Using GNUnet Conversation
-@c %**end of header
+
 
 First, you should launch the graphical user interface.  You can do
 this from the command-line by typing
@@ -459,7 +459,7 @@ $ gnunet-conversation-gtk
 
 @node Testing your Audio Equipment
 @subsection Testing your Audio Equipment
-@c %**end of header
+
 
 First, you should use @code{gnunet-conversation-test} to check that your
 microphone and speaker are working correctly. You will be prompted to
@@ -471,7 +471,7 @@ that the correct device is being associated with GNUnet's audio tools.
 
 @node GNS Zones
 @subsection GNS Zones
-@c %**end of header
+
 
 @code{gnunet-conversation} uses GNS for addressing. This means that
 you need to have a GNS zone created before using it. Information
@@ -485,7 +485,7 @@ about how to create GNS zones can be found here.
 
 @node Picking an Identity
 @subsubsection Picking an Identity
-@c %**end of header
+
 
 To make a call with @code{gnunet-conversation}, you first
 need to choose an identity. This identity is both the caller ID
@@ -542,7 +542,7 @@ manually. Save the record.
 
 @node Calling somebody
 @subsubsection Calling somebody
-@c %**end of header
+
 
 Now you can call a buddy. Obviously, your buddy will have to have GNUnet
 installed and must have performed the same steps. Also, you must have
@@ -568,7 +568,7 @@ Either of you can end the call using @command{/cancel}. You can exit
 
 @node First steps - Using the GNUnet VPN
 @section First steps - Using the GNUnet VPN
-@c %**end of header
+
 
 
 @menu
@@ -581,7 +581,7 @@ Either of you can end the call using @command{/cancel}. You can exit
 
 @node VPN Preliminaries
 @subsection VPN Preliminaries
-@c %**end of header
+
 
 To test the GNUnet VPN, we should first run a web server.
 The easiest way to do this is to just start @code{gnunet-bcd},
@@ -622,7 +622,7 @@ to install the NSS plugins in the proper location.
 
 @node GNUnet-Exit configuration
 @subsection GNUnet-Exit configuration
-@c %**end of header
+
 
 Stop your peer (as user @code{gnunet}, run @command{gnunet-arm -e}) and
 run @command{gnunet-setup}. In @command{gnunet-setup}, make sure to
@@ -638,7 +638,7 @@ Now exit @command{gnunet-setup} and restart your peer
 
 @node GNS configuration
 @subsection GNS configuration
-@c %**end of header
+
 
 Now, using your normal user (not the @code{gnunet} system user), run
 @command{gnunet-namestore-gtk}. Add a new label www in your
@@ -658,7 +658,7 @@ exit @command{gnunet-namestore-gtk}.
 
 @node Accessing the service
 @subsection Accessing the service
-@c %**end of header
+
 
 You should now be able to access your webserver. Type in:
 
@@ -681,7 +681,7 @@ your business card.
 
 @node Using a Browser
 @subsection Using a Browser
-@c %**end of header
+
 
 Sadly, modern browsers tend to bypass the Name Services Switch and
 attempt DNS resolution directly. You can either run
@@ -693,7 +693,7 @@ using the HTTP proxy with Chrome does work.
 
 @node File-sharing
 @section File-sharing
-@c %**end of header
+
 
 This chapter documents the GNUnet file-sharing application. The original
 file-sharing implementation for GNUnet was designed to provide
@@ -726,7 +726,7 @@ files.
 
 @node fs-Searching
 @subsection Searching
-@c %**end of header
+
 
 The command @command{gnunet-search} can be used to search
 for content on GNUnet. The format is:
@@ -784,7 +784,7 @@ the file in bytes.
 
 @node fs-Downloading
 @subsection Downloading
-@c %**end of header
+
 
 In order to download a file, you need the whole line returned by
 @command{gnunet-search}.
@@ -823,7 +823,7 @@ current number of bytes downloaded whenever new data was received.
 
 @node fs-Publishing
 @subsection Publishing
-@c %**end of header
+
 
 The command @command{gnunet-publish} can be used to add content
 to the network. The basic format of the command is
@@ -844,7 +844,7 @@ $ gnunet-publish -m "description:GNU License" -k gpl -k test -m "mimetype:text/p
 
 @node Important command-line options
 @subsubsection Important command-line options
-@c %**end of header
+
 
 The option @code{-k} is used to specify keywords for the file that
 should be inserted. You can supply any number of keywords,
@@ -871,7 +871,7 @@ man gnunet-publish
 
 @node Indexing vs. Inserting
 @subsubsection Indexing vs Inserting
-@c %**end of header
+
 
 By default, GNUnet indexes a file instead of making a full copy.
 This is much more efficient, but requires the file to stay unaltered
@@ -907,7 +907,7 @@ able to crack the encryption (e.g. by guessing the keyword.
 
 @node fs-Concepts
 @subsection Concepts
-@c %**end of header
+
 
 For better results with filesharing it is useful to understand the
 following concepts.
@@ -936,7 +936,7 @@ concepts that are used to achieve these goals.
 
 @node Files
 @subsubsection Files
-@c %**end of header
+
 
 A file in GNUnet is just a sequence of bytes. Any file-format is allowed
 and the maximum file size is theoretically @math{2^64 - 1} bytes, except
@@ -946,7 +946,7 @@ using GNU libextractor to obtain keywords.
 
 @node Keywords
 @subsubsection Keywords
-@c %**end of header
+
 
 Keywords are the most simple mechanism to find files on GNUnet.
 Keywords are @strong{case-sensitive} and the search string
@@ -963,7 +963,7 @@ request.
 
 @node Directories
 @subsubsection Directories
-@c %**end of header
+
 
 A directory in GNUnet is a list of file identifiers with meta data.
 The file identifiers provide sufficient information about the files
@@ -986,7 +986,7 @@ other meta information, and possibly even the full original file
 
 @node Pseudonyms
 @subsubsection Pseudonyms
-@c %**end of header
+
 
 @b{Please note that the text in this subsection is outdated and needs}
 @b{to be rewritten for version 0.10!}
@@ -1005,7 +1005,7 @@ to copy around).
 
 @node Namespaces
 @subsubsection Namespaces
-@c %**end of header
+
 
 @b{Please note that the text in this subsection is outdated and needs}
 @b{to be rewritten for version 0.10!}
@@ -1020,7 +1020,7 @@ same entity (which does not have to be the same person).
 
 @node Advertisements
 @subsubsection Advertisements
-@c %**end of header
+
 
 @b{Please note that the text in this subsection is outdated and needs}
 @b{to be rewritten for version 0.10!}
@@ -1045,7 +1045,7 @@ confusion.
 
 @node Anonymity level
 @subsubsection Anonymity level
-@c %**end of header
+
 
 The anonymity level determines how hard it should be for an adversary to
 determine the identity of the publisher or the searcher/downloader. An
@@ -1059,7 +1059,7 @@ it can also significantly hurt performance.
 
 @node Content Priority
 @subsubsection Content Priority
-@c %**end of header
+
 
 Depending on the peer's configuration, GNUnet peers migrate content
 between peers. Content in this sense are individual blocks of a file,
@@ -1076,7 +1076,7 @@ when the block was published initially.
 
 @node Replication
 @subsubsection Replication
-@c %**end of header
+
 
 When peers migrate content to other systems, the replication level
 of a block is used to decide which blocks need to be migrated most
@@ -1088,7 +1088,7 @@ selection is simply random.
 
 @node Namespace Management
 @subsection Namespace Management
-@c %**end of header
+
 
 @b{Please note that the text in this subsection is outdated and needs}
 @b{to be rewritten for version 0.10!}
@@ -1108,7 +1108,7 @@ lists all locally available pseudonyms.
 
 @node Creating Pseudonyms
 @subsubsection Creating Pseudonyms
-@c %**end of header
+
 
 @b{Please note that the text in this subsection is outdated and needs}
 @b{to be rewritten for version 0.10!}
@@ -1123,7 +1123,7 @@ used.
 
 @node Deleting Pseudonyms
 @subsubsection Deleting Pseudonyms
-@c %**end of header
+
 
 @b{Please note that the text in this subsection is outdated and needs}
 @b{to be rewritten for version 0.10!}
@@ -1137,7 +1137,7 @@ unavailable.
 
 @node Advertising namespaces
 @subsubsection Advertising namespaces
-@c %**end of header
+
 
 @b{Please note that the text in this subsection is outdated and needs}
 @b{to be rewritten for version 0.10!}
@@ -1157,7 +1157,7 @@ the quality of the content found in it.
 
 @node Namespace names
 @subsubsection Namespace names
-@c %**end of header
+
 
 @b{Please note that the text in this subsection is outdated and needs}
 @b{to be rewritten for version 0.10!}
@@ -1172,7 +1172,7 @@ to the NICKNAME to get a unique identifier.
 
 @node Namespace root
 @subsubsection Namespace root
-@c %**end of header
+
 
 @b{Please note that the text in this subsection is outdated and needs}
 @b{to be rewritten for version 0.10!}
@@ -1185,7 +1185,7 @@ entry point to the content of the namespace.
 
 @node File-Sharing URIs
 @subsection File-Sharing URIs
-@c %**end of header
+
 
 GNUnet (currently) uses four different types of URIs for
 file-sharing. They all begin with "gnunet://fs/".
@@ -1207,7 +1207,7 @@ into two OR-ed keywords 'foo' and 'bar', not into '"foo bar"'.
 
 @node Encoding of hash values in URIs
 @subsubsection Encoding of hash values in URIs
-@c %**end of header
+
 
 Most URIs include some hash values. Hashes are encoded using
 base32hex (RFC 2938).
@@ -1215,7 +1215,7 @@ base32hex (RFC 2938).
 @cindex chk-uri
 @node Content Hash Key (chk)
 @subsubsection Content Hash Key (chk)
-@c %**end of header
+
 
 A chk-URI is used to (uniquely) identify a file or directory
 and to allow peers to download the file. Files are stored in
@@ -1232,7 +1232,7 @@ of the encrypted block).
 @cindex loc-uri
 @node Location identifiers (loc)
 @subsubsection Location identifiers (loc)
-@c %**end of header
+
 
 For non-anonymous file-sharing, loc-URIs are used to specify which
 peer is offering the data (in addition to specifying all of the
@@ -1248,7 +1248,7 @@ base32hex) and EXPTIME specifies when the signature expires
 @cindex ksk-uri
 @node Keyword queries (ksk)
 @subsubsection Keyword queries (ksk)
-@c %**end of header
+
 
 A keyword-URI is used to specify that the desired operation
 is the search using a particular keyword. The format is simply
@@ -1263,7 +1263,7 @@ Furthermore they must not contain '++'.
 @cindex sks-uri
 @node Namespace content (sks)
 @subsubsection Namespace content (sks)
-@c %**end of header
+
 
 @b{Please note that the text in this subsection is outdated and needs}
 @b{to be rewritten for version 0.10!}
@@ -1298,7 +1298,7 @@ looking for for testing, we need to begin by publishing a file.
 
 @node gtk-Publishing
 @subsubsection Publishing
-@c %**end of header
+
 
 To publish a file, select "File Sharing" in the menu bar just below the
 "Statistics" icon, and then select "Publish" from the menu.
@@ -1361,7 +1361,7 @@ with progress indicators):
 
 @node gtk-Searching
 @subsubsection Searching
-@c %**end of header
+
 
 Below the menu bar, there are four entry widges labeled "Namespace",
 "Keywords", "Anonymity" and "Mime-type" (from left to right). These
@@ -1386,7 +1386,7 @@ a little area for downloading appears.
 
 @node gtk-Downloading
 @subsubsection Downloading
-@c %**end of header
+
 
 In the downloading area, you can select the target directory (default is
 "Downloads") and specify the desired filename (by default the filename it
@@ -1413,7 +1413,7 @@ That's it, you now know the basics for file-sharing with GNUnet!
 
 @node The GNU Name System
 @section The GNU Name System
-@c %**end of header
+
 
 
 The GNU Name System (GNS) is secure and decentralized naming system.

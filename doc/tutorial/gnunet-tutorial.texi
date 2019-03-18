@@ -4,7 +4,7 @@
 @documentencoding UTF-8
 @settitle GNUnet Tutorial
 @c @exampleindent 2
-@c %**end of header
+
 
 @include version.texi
 

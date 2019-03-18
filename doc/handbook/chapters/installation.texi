@@ -261,7 +261,7 @@ PLUGINS = tcp
 
 @node Checking the Installation
 @section Checking the Installation
-@c %**end of header
+
 
 This section describes a quick, casual way to check if your GNUnet
 installation works. However, if it does not, we do not cover
@@ -283,7 +283,7 @@ as part of this handbook!.
 @cindex GTK user interface
 @node gnunet-gtk
 @subsection gnunet-gtk
-@c %**end of header
+
 
 The @command{gnunet-gtk} package contains several graphical
 user interfaces for the respective GNUnet applications.
@@ -307,7 +307,7 @@ for filesharing, etc).
 
 @node Statistics
 @subsection Statistics
-@c %**end of header
+
 
 We assume that you have started gnunet via @code{gnunet-arm} or via your
 system-provided method for starting services.
@@ -340,7 +340,7 @@ whatever it is you are looking at the Gtk+ interface describes a
 
 @node Peer Information
 @subsection Peer Information
-@c %**end of header
+
 
 First, you should launch the peer information graphical user interface.
 You can do this from the command-line by typing
@@ -887,7 +887,7 @@ a @code{gn090} table here, it probably works.
 
 @node Configuring the datacache
 @subsection Configuring the datacache
-@c %**end of header
+
 
 The datacache is what GNUnet uses for storing temporary data. This data is
 expected to be wiped completely each time GNUnet is restarted (or the

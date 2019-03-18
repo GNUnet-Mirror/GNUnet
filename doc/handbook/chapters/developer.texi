@@ -2832,7 +2832,7 @@ which both ensure correct alignment when sending structs over the network.
 @c ***********************************************************************
 @node Client - Establish connection
 @subsubsection Client - Establish connection
-@c %**end of header
+
 
 
 At first, on the client side, the underlying API is employed to create a
@@ -2847,7 +2847,7 @@ client = GNUNET_CLIENT_connect ("transport", cfg);
 @c ***********************************************************************
 @node Client - Initialize request message
 @subsubsection Client - Initialize request message
-@c %**end of header
+
 
 When the connection is ready, we initialize the message. In this step,
 all the fields of the message should be properly initialized, namely the
@@ -2880,7 +2880,7 @@ Big Endian and Little Endian.
 @c ***********************************************************************
 @node Client - Send request and receive response
 @subsubsection Client - Send request and receive response
-@c %**end of header
+
 
 @b{FIXME: This is very outdated, see the tutorial for the current API!}
 
@@ -2915,7 +2915,7 @@ int main(int argc, char**argv) @{
 @c ***********************************************************************
 @node Server - Add new handles for specified messages
 @subsubsection Server - Add new handles for specified messages
-@c %**end of header
+
 
 in the function above the argument @code{run} is used to initiate
 transport service,and defined like this:
@@ -2973,7 +2973,7 @@ depicted as @code{@{NULL, NULL, 0, 0@}} is set in the last area.
 @c ***********************************************************************
 @node Server - Process request message
 @subsubsection Server - Process request message
-@c %**end of header
+
 
 After the initialization of transport service, the request message would
 be processed. Before handling the main message data, the validity of this
@@ -3024,7 +3024,7 @@ message.
 @c ***********************************************************************
 @node Server - Response to client
 @subsubsection Server - Response to client
-@c %**end of header
+
 
 Once the processing of current request is done, the server should give the
 response to the client. A new @code{struct AddressLookupMessage} would be
@@ -3060,7 +3060,7 @@ to send the message.
 @c ***********************************************************************
 @node Server - Notification of clients
 @subsubsection Server - Notification of clients
-@c %**end of header
+
 
 Often a service needs to (repeatedly) transmit notifications to a client
 or a group of clients. In these cases, the client typically has once
@@ -3089,7 +3089,7 @@ messages to the server.
 @node Conversion between Network Byte Order (Big Endian) and Host Byte Order
 @subsubsection Conversion between Network Byte Order (Big Endian) and Host Byte Order
 @c %** subsub? it's a referenced page on the ipc document.
-@c %**end of header
+
 
 Here we can simply comprehend big endian and little endian as Network Byte
 Order and Host Byte Order respectively. What is the difference between
@@ -3145,7 +3145,7 @@ byte order.
 @cindex Cryptography API
 @node Cryptography API
 @subsection Cryptography API
-@c %**end of header
+
 
 The gnunetutil APIs provides the cryptographic primitives used in GNUnet.
 GNUnet uses 2048 bit RSA keys for the session key exchange and for signing
@@ -3182,7 +3182,7 @@ should be considered secure for traditional applications of RSA.
 @cindex Message Queue API
 @node Message Queue API
 @subsection Message Queue API
-@c %**end of header
+
 
 @strong{ Introduction }@
 Often, applications need to queue messages that
@@ -3326,7 +3326,7 @@ callback. When canceling an envelope, it is not necessary@ to call
 @cindex Service API
 @node Service API
 @subsection Service API
-@c %**end of header
+
 
 Most GNUnet code lives in the form of services. Services are processes
 that offer an API for other components of the system to build on. Those
@@ -3402,7 +3402,7 @@ clients to set (possibly persistent) statistic values before terminating.
 @c ***********************************************************************
 @node Optimizing Memory Consumption of GNUnet's (Multi-) Hash Maps
 @subsection Optimizing Memory Consumption of GNUnet's (Multi-) Hash Maps
-@c %**end of header
+
 
 A commonly used data structure in GNUnet is a (multi-)hash map. It is most
 often used to map a peer identity to some data structure, but also to map
@@ -3426,7 +3426,7 @@ the hash map.
 
 @node Analysis
 @subsubsection Analysis
-@c %**end of header
+
 
 The main reason for the "excessive" memory consumption by the hash map is
 that GNUnet uses 512-bit cryptographic hash codes --- and the
@@ -3477,7 +3477,7 @@ we tend to really try to keep the entries small.
 @c ***********************************************************************
 @node Solution
 @subsubsection Solution
-@c %**end of header
+
 
 The solution that has now been implemented is to @strong{optionally}
 allow the hash map to not make a (deep) copy of the hash but instead have
@@ -3495,7 +3495,7 @@ pointer and undefined behavior of the (multi-)hash map API.
 @c ***********************************************************************
 @node Migration
 @subsubsection Migration
-@c %**end of header
+
 
 To use the new feature, first check that the values contain the respective
 key (and never modify it). Then, all calls to
@@ -3544,7 +3544,7 @@ removed from the map, undefined behavior is likely to be observed.
 @c ***********************************************************************
 @node Conclusion
 @subsubsection Conclusion
-@c %**end of header
+
 
 The new optimization can is often applicable and can result in a
 reduction in memory consumption of up to 30% in practice. However, it
@@ -3557,7 +3557,7 @@ at least until benchmarks exist).
 @c ***********************************************************************
 @node Availability
 @subsubsection Availability
-@c %**end of header
+
 
 The new multi hash map code was committed in SVN 24319 (which made its
 way into GNUnet version 0.9.4).
@@ -3570,7 +3570,7 @@ to drop by 20-30% due to this change.
 @cindex CONTAINER_MDLL API
 @node CONTAINER_MDLL API
 @subsection CONTAINER_MDLL API
-@c %**end of header
+
 
 This text documents the GNUNET_CONTAINER_MDLL API. The
 GNUNET_CONTAINER_MDLL API is similar to the GNUNET_CONTAINER_DLL API in
@@ -3636,7 +3636,7 @@ Iterating over the list should be done by directly accessing the
 @cindex ARM
 @node Automatic Restart Manager (ARM)
 @section Automatic Restart Manager (ARM)
-@c %**end of header
+
 
 GNUnet's Automated Restart Manager (ARM) is the GNUnet service responsible
 for system initialization and service babysitting. ARM starts and halts
@@ -3657,7 +3657,7 @@ about how ARM works and how to interact with it.
 @c ***********************************************************************
 @node Basic functionality
 @subsection Basic functionality
-@c %**end of header
+
 
 @itemize @bullet
 @item ARM source code can be found under "src/arm".@ Service processes are
@@ -3681,7 +3681,7 @@ it to start a service "resolver", stops the "resolver" then stops "ARM".
 @c ***********************************************************************
 @node Key configuration options
 @subsection Key configuration options
-@c %**end of header
+
 
 Configurations for ARM and services should be available in a .conf file
 (As an example, see test_arm_api_data.conf). When running ARM, the
@@ -3750,7 +3750,7 @@ services that are going to run.
 @c ***********************************************************************
 @node ARM - Availability
 @subsection ARM - Availability
-@c %**end of header
+
 
 As mentioned before, one of the features provided by ARM is starting
 services on demand. Consider the example of one service "client" that
@@ -3838,7 +3838,7 @@ problematic service.
 @cindex TRANSPORT Subsystem
 @node TRANSPORT Subsystem
 @section TRANSPORT Subsystem
-@c %**end of header
+
 
 This chapter documents how the GNUnet transport subsystem works. The
 GNUnet transport subsystem consists of three main components: the
@@ -3896,7 +3896,7 @@ transport service.
 
 @node Address validation protocol
 @subsection Address validation protocol
-@c %**end of header
+
 
 This section documents how the GNUnet transport service validates
 connections with other peers. It is a high-level description of the
@@ -3959,7 +3959,7 @@ implementation details).
 @cindex NAT library
 @node NAT library
 @section NAT library
-@c %**end of header
+
 
 The goal of the GNUnet NAT library is to provide a general-purpose API for
 NAT traversal @strong{without} third-party support. So protocols that
@@ -4006,7 +4006,7 @@ This way, it is easy to test if the current NAT configuration is valid.
 
 @node Distance-Vector plugin
 @section Distance-Vector plugin
-@c %**end of header
+
 
 The Distance Vector (DV) transport is a transport mechanism that allows
 peers to act as relays for each other, thereby connecting peers that would
@@ -4075,7 +4075,7 @@ message, and delivers it to Carol as though it came directly from Alice.
 @cindex SMTP plugin
 @node SMTP plugin
 @section SMTP plugin
-@c %**end of header
+
 @c TODO: Update!
 
 This section describes the new SMTP transport plugin for GNUnet as it
@@ -4108,7 +4108,7 @@ usual grain of salt and be updated eventually.
 
 @node Why use SMTP for a peer-to-peer transport?
 @subsection Why use SMTP for a peer-to-peer transport?
-@c %**end of header
+
 
 There are many reasons why one would not want to use SMTP:
 
@@ -4143,7 +4143,7 @@ type of situation.
 
 @node How does it work?
 @subsection How does it work?
-@c %**end of header
+
 
 When a GNUnet peer needs to send a message to another GNUnet peer that has
 advertised (only) an SMTP transport address, GNUnet base64-encodes the
@@ -4156,7 +4156,7 @@ GNUnet E-mail messages by searching for a generic filter.
 
 @node How do I configure my peer?
 @subsection How do I configure my peer?
-@c %**end of header
+
 
 First, you need to configure @code{procmail} to filter your inbound E-mail
 for GNUnet traffic. The GNUnet messages must be delivered into a pipe, for
@@ -4201,7 +4201,7 @@ This should be it, but you may probably want to test it first.
 
 @node How do I test if it works?
 @subsection How do I test if it works?
-@c %**end of header
+
 
 Any transport can be subjected to some rudimentary tests using the
 @code{gnunet-transport-check} tool. The tool sends a message to the local
@@ -4224,7 +4224,7 @@ to send and receive messages.
 
 @node How fast is it?
 @subsection How fast is it?
-@c %**end of header
+
 
 We have measured the performance of the UDP, TCP and SMTP transport layer
 directly and when used from an application using the GNUnet core.
@@ -4291,7 +4291,7 @@ benchmarking results.
 @cindex Bluetooth plugin
 @node Bluetooth plugin
 @section Bluetooth plugin
-@c %**end of header
+
 
 This page describes the new Bluetooth transport plugin for GNUnet. The
 plugin is still in the testing stage so don't expect it to work
@@ -4317,7 +4317,7 @@ ask on the IRC channel.
 
 @node What do I need to use the Bluetooth plugin transport?
 @subsection What do I need to use the Bluetooth plugin transport?
-@c %**end of header
+
 
 If you are a GNU/Linux user and you want to use the Bluetooth
 transport plugin you should install the
@@ -4344,7 +4344,7 @@ protocol so we cannot turn on your device programatically!
 @c FIXME: Change to unique title
 @node How does it work2?
 @subsection How does it work2?
-@c %**end of header
+
 
 The Bluetooth transport plugin uses virtually the same code as the WLAN
 plugin and only the helper binary is different. The helper takes a single
@@ -4374,7 +4374,7 @@ discovery.
 
 @node What possible errors should I be aware of?
 @subsection What possible errors should I be aware of?
-@c %**end of header
+
 
 @emph{This section is dedicated for GNU/Linux users}
 
@@ -4413,7 +4413,7 @@ the device and to send some particular commands to it.
 @c FIXME: A more unique name
 @node How do I configure my peer2?
 @subsection How do I configure my peer2?
-@c %**end of header
+
 
 On GNU/Linux, you just have to be sure that the interface name
 corresponds to the one that you want to use.
@@ -4447,7 +4447,7 @@ transport service.
 
 @node How can I test it?
 @subsection How can I test it?
-@c %**end of header
+
 
 If you have two Bluetooth devices on the same machine and you are using
 GNU/Linux you must:
@@ -4494,7 +4494,7 @@ transport service.
 
 @node The implementation of the Bluetooth transport plugin
 @subsection The implementation of the Bluetooth transport plugin
-@c %**end of header
+
 
 This page describes the implementation of the Bluetooth transport plugin.
 
@@ -4528,7 +4528,7 @@ platforms.
 
 @node Linux functionality
 @subsubsection Linux functionality
-@c %**end of header
+
 
 In order to implement the plugin functionality on GNU/Linux I
 used the BlueZ stack.
@@ -4624,7 +4624,7 @@ support for @strong{broadcast messages}.}
 
 @node Details about the broadcast implementation
 @subsubsection Details about the broadcast implementation
-@c %**end of header
+
 
 First I want to point out that the broadcast functionality for the CONTROL
 messages is not implemented in a conventional way. Since the inquiry scan
@@ -4671,7 +4671,7 @@ simply use the socket.
 
 @node Windows functionality
 @subsubsection Windows functionality
-@c %**end of header
+
 
 For Windows I decided to use the Microsoft Bluetooth stack which has the
 advantage of coming standard from Windows XP SP2. The main disadvantage is
@@ -4726,7 +4726,7 @@ broadcast messages. When it receives a broadcast message it will skip it.
 
 @node Pending features
 @subsubsection Pending features
-@c %**end of header
+
 
 @itemize @bullet
 @item Implement the broadcast functionality on Windows @emph{(currently
@@ -4742,7 +4742,7 @@ contact me.
 
 @node WLAN plugin
 @section WLAN plugin
-@c %**end of header
+
 
 This section documents how the wlan transport plugin works. Parts which
 are not implemented yet or could be better implemented are described at
@@ -4751,7 +4751,7 @@ the end.
 @cindex ATS Subsystem
 @node ATS Subsystem
 @section ATS Subsystem
-@c %**end of header
+
 
 ATS stands for "automatic transport selection", and the function of ATS in
 GNUnet is to decide on which address (and thus transport plugin) should
@@ -4774,7 +4774,7 @@ superior.
 @cindex CORE Subsystem
 @node CORE Subsystem
 @section CORE Subsystem
-@c %**end of header
+
 
 The CORE subsystem in GNUnet is responsible for securing link-layer
 communications between nodes in the GNUnet overlay network. CORE builds
@@ -4818,7 +4818,7 @@ message counters and ephemeral keys)
 @cindex core subsystem limitations
 @node Limitations
 @subsection Limitations
-@c %**end of header
+
 
 CORE does not perform
 @uref{http://en.wikipedia.org/wiki/Routing, routing}; using CORE it is
@@ -4852,7 +4852,7 @@ control is needed, applications should use the CADET service.
 @cindex when is a peer connected
 @node When is a peer "connected"?
 @subsection When is a peer "connected"?
-@c %**end of header
+
 
 In addition to the security features mentioned above, CORE also provides
 one additional key feature to applications using it, and that is a
@@ -4885,7 +4885,7 @@ connection.
 @cindex libgnunetcore
 @node libgnunetcore
 @subsection libgnunetcore
-@c %**end of header
+
 
 The CORE API (defined in @file{gnunet_core_service.h}) is the basic
 messaging API used by P2P applications built using GNUnet. It provides
@@ -4950,7 +4950,7 @@ re-established, the applications will be receive matching connect events.
 @cindex core clinet-service protocol
 @node The CORE Client-Service Protocol
 @subsection The CORE Client-Service Protocol
-@c %**end of header
+
 
 This section describes the protocol between an application using the CORE
 service (the client) and the CORE service process itself.
@@ -4964,7 +4964,7 @@ service (the client) and the CORE service process itself.
 
 @node Setup2
 @subsubsection Setup2
-@c %**end of header
+
 
 When a client connects to the CORE service, it first sends a
 @code{InitMessage} which specifies options for the connection and a set of
@@ -4993,7 +4993,7 @@ both CORE and the client can send messages.
 
 @node Notifications
 @subsubsection Notifications
-@c %**end of header
+
 
 The CORE will send @code{ConnectNotifyMessage}s and
 @code{DisconnectNotifyMessage}s whenever peers connect or disconnect from
@@ -5009,7 +5009,7 @@ identity given is that of the receiver.
 
 @node Sending
 @subsubsection Sending
-@c %**end of header
+
 
 When a client wants to transmit a message, it first requests a
 transmission slot by sending a @code{SendMessageRequest} which specifies
@@ -5029,7 +5029,7 @@ for each request).
 @cindex CORE Peer-to-Peer Protocol
 @node The CORE Peer-to-Peer Protocol
 @subsection The CORE Peer-to-Peer Protocol
-@c %**end of header
+
 
 
 @menu
@@ -5042,7 +5042,7 @@ for each request).
 @cindex EphemeralKeyMessage creation
 @node Creating the EphemeralKeyMessage
 @subsubsection Creating the EphemeralKeyMessage
-@c %**end of header
+
 
 When the CORE service starts, each peer creates a fresh ephemeral (ECC)
 public-private key pair and signs the corresponding
@@ -5083,7 +5083,7 @@ connection using the new ephemeral key
 
 @node Establishing a connection
 @subsubsection Establishing a connection
-@c %**end of header
+
 
 Peers begin their interaction by sending a @code{EphemeralKeyMessage} to
 the other peer once the TRANSPORT service notifies the CORE service about
@@ -5101,7 +5101,7 @@ connection to @code{KX_STATE_UP}.
 
 @node Encryption and Decryption
 @subsubsection Encryption and Decryption
-@c %**end of header
+
 
 All functions related to the key exchange and encryption/decryption of
 messages can be found in @file{gnunet-service-core_kx.c} (except for the
@@ -5129,7 +5129,7 @@ older than 12 hours.
 
 @node Type maps
 @subsubsection Type maps
-@c %**end of header
+
 
 Once an encrypted connection has been established, peers begin to exchange
 type maps. Type maps are used to allow the CORE service to determine which
@@ -5401,7 +5401,7 @@ to all the other peers, who will calculate the estimate from it.
 @node Target value
 @subsubsection Target value
 
-@c %**end of header
+
 
 The target value itself is generated by hashing the current time, rounded
 down to an agreed value. If the rounding amount is 1h (default) and the
@@ -5411,7 +5411,7 @@ Every repetition is called a round.
 
 @node Timing
 @subsubsection Timing
-@c %**end of header
+
 
 The NSE subsystem has some timing control to avoid everybody broadcasting
 its ID all at one. Once each peer has the target random value, it
@@ -5428,7 +5428,7 @@ peers closest to the target value start broadcasting their ID the first.
 @node Controlled Flooding
 @subsubsection Controlled Flooding
 
-@c %**end of header
+
 
 When a peer receives a value, first it verifies that it is closer than the
 closest value it had so far, otherwise it answers the incoming message
@@ -5447,7 +5447,7 @@ to the neighbors.
 @node Calculating the estimate
 @subsubsection Calculating the estimate
 
-@c %**end of header
+
 
 Once the closest ID has been spread across the network each peer gets the
 exact distance between this ID and the target value of the round and
@@ -5466,7 +5466,7 @@ means a factor of two in the size estimate.
 @node libgnunetnse
 @subsection libgnunetnse
 
-@c %**end of header
+
 
 The NSE subsystem has the simplest API of all services, with only two
 calls: @code{GNUNET_NSE_connect} and @code{GNUNET_NSE_disconnect}.
@@ -5492,7 +5492,7 @@ is no longer called with new estimates.
 @node Results
 @subsubsection Results
 
-@c %**end of header
+
 
 The callback provides two values: the average and the
 @uref{http://en.wikipedia.org/wiki/Standard_deviation, standard deviation}
@@ -5530,7 +5530,7 @@ changing rapidly).
 @node libgnunetnse - Examples
 @subsubsection libgnunetnse -Examples
 
-@c %**end of header
+
 
 Let's close with a couple examples.
 
@@ -5557,7 +5557,7 @@ case a 5 sigma minimum would be 2 million and a 6 sigma minimum,
 @node The NSE Client-Service Protocol
 @subsection The NSE Client-Service Protocol
 
-@c %**end of header
+
 
 As with the API, the client-service protocol is very simple, only has 2
 different messages, defined in @code{src/nse/nse.h}:
@@ -5578,7 +5578,7 @@ simply disconnects from the service, with no message involved.
 @node The NSE Peer-to-Peer Protocol
 @subsection The NSE Peer-to-Peer Protocol
 
-@c %**end of header
+
 
 The NSE subsystem only has one message in the P2P protocol, the
 @code{GNUNET_MESSAGE_TYPE_NSE_P2P_FLOOD} message.
@@ -5633,7 +5633,7 @@ traffic spikes and minimize cross-messages.
 @node HOSTLIST Subsystem
 @section HOSTLIST Subsystem
 
-@c %**end of header
+
 
 Peers in the GNUnet overlay network need address information so that they
 can connect with other peers. GNUnet uses so called HELLO messages to
@@ -5671,7 +5671,7 @@ manual effort or the use of a HOSTLIST to obtain HELLOs.
 @node HELLOs
 @subsection HELLOs
 
-@c %**end of header
+
 
 The basic information peers require to connect to other peers are
 contained in so called HELLO messages you can think of as a business card.
@@ -5683,7 +5683,7 @@ contact other peers.
 @node Overview for the HOSTLIST subsystem
 @subsection Overview for the HOSTLIST subsystem
 
-@c %**end of header
+
 
 The HOSTLIST subsystem provides a way to distribute and obtain contact
 information to connect to other peers using a simple HTTP GET request.
@@ -5709,7 +5709,7 @@ service.
 @node Features
 @subsubsection Features
 
-@c %**end of header
+
 
 The HOSTLIST daemon can:
 
@@ -5727,7 +5727,7 @@ peers
 @node HOSTLIST - Limitations
 @subsubsection HOSTLIST - Limitations
 
-@c %**end of header
+
 
 The HOSTLIST daemon does not:
 
@@ -5739,7 +5739,7 @@ The HOSTLIST daemon does not:
 @node Interacting with the HOSTLIST daemon
 @subsection Interacting with the HOSTLIST daemon
 
-@c %**end of header
+
 
 The HOSTLIST subsystem is currently implemented as a daemon, so there is
 no need for the user to interact with it and therefore there is no
@@ -5767,7 +5767,7 @@ download frequency).
 @node Hostlist security address validation
 @subsection Hostlist security address validation
 
-@c %**end of header
+
 
 Since information obtained from other parties cannot be trusted without
 validation, we have to distinguish between @emph{validated} and
@@ -5788,7 +5788,7 @@ to the TRANSPORT server to validate the addresses.
 @node The HOSTLIST daemon
 @subsection The HOSTLIST daemon
 
-@c %**end of header
+
 
 The hostlist daemon is the main component of the HOSTLIST subsystem. It is
 started by the ARM service and (if configured) starts the HOSTLIST client
@@ -5818,7 +5818,7 @@ subsystems and disconnecting from CORE.
 @node The HOSTLIST server
 @subsection The HOSTLIST server
 
-@c %**end of header
+
 
 The server provides a way for other peers to obtain HELLOs. Basically it
 is a small web server other peers can connect to and download a list of
@@ -5834,7 +5834,7 @@ to other peers connecting on CORE level.
 @node The HTTP Server
 @subsubsection The HTTP Server
 
-@c %**end of header
+
 
 During startup, the server starts a web server listening on the port
 specified with the HTTPPORT value (default 8080). In addition it connects
@@ -5860,7 +5860,7 @@ The connection will be closed immediately if no hostlist is available.
 @node Advertising the URL
 @subsubsection Advertising the URL
 
-@c %**end of header
+
 
 The server also advertises the URL to download the hostlist to other peers
 if hostlist advertisement is enabled.
@@ -5872,7 +5872,7 @@ peer using the CORE service.
 @node The HOSTLIST client
 @subsection The HOSTLIST client
 
-@c %**end of header
+
 
 The client provides the functionality to download the list of HELLOs from
 a set of URLs.
@@ -5896,7 +5896,7 @@ The client supports two modes of operation:
 @node Bootstrapping
 @subsubsection Bootstrapping
 
-@c %**end of header
+
 
 For bootstrapping, it schedules a task to download the hostlist from the
 set of known URLs.
@@ -5925,7 +5925,7 @@ quality of this URL is updated.
 @node Learning
 @subsubsection Learning
 
-@c %**end of header
+
 
 The client also manages hostlist advertisements from other peers. The
 HOSTLIST daemon forwards @code{GNUNET_MESSAGE_TYPE_HOSTLIST_ADVERTISEMENT}
@@ -5944,7 +5944,7 @@ never discarded.
 @node Usage
 @subsection Usage
 
-@c %**end of header
+
 
 To start HOSTLIST by default, it has to be added to the DEFAULTSERVICES
 section for the ARM services. This is done in the default configuration.
@@ -5958,7 +5958,7 @@ Configuring your peer to provide a hostlist
 @node IDENTITY Subsystem
 @section IDENTITY Subsystem
 
-@c %**end of header
+
 
 Identities of "users" in GNUnet are called egos.
 Egos can be used as pseudonyms ("fake names") or be tied to an
@@ -6014,7 +6014,7 @@ between anonymous and pseudonymous egos.
 @cindex libgnunetidentity
 @node libgnunetidentity
 @subsection libgnunetidentity
-@c %**end of header
+
 
 
 @menu
@@ -6028,7 +6028,7 @@ between anonymous and pseudonymous egos.
 @node Connecting to the service
 @subsubsection Connecting to the service
 
-@c %**end of header
+
 
 First, typical clients connect to the identity service using
 @code{GNUNET_IDENTITY_connect}. This function takes a callback as a
@@ -6064,7 +6064,7 @@ ego's handle.
 @node Operations on Egos
 @subsubsection Operations on Egos
 
-@c %**end of header
+
 
 Given an ego handle, the main operations are to get its associated private
 key using @code{GNUNET_IDENTITY_ego_get_private_key} or its associated
@@ -6087,7 +6087,7 @@ only the continuation will no longer be called.
 @node The anonymous Ego
 @subsubsection The anonymous Ego
 
-@c %**end of header
+
 
 A special way to obtain an ego handle is to call
 @code{GNUNET_IDENTITY_ego_get_anonymous}, which returns an ego for the
@@ -6122,7 +6122,7 @@ using @code{GNUNET_IDENTITY_get}.
 @node The IDENTITY Client-Service Protocol
 @subsection The IDENTITY Client-Service Protocol
 
-@c %**end of header
+
 
 A client connecting to the identity service first sends a message with
 type
@@ -6213,7 +6213,7 @@ private key.}
 @node Editing Zone Information
 @subsubsection Editing Zone Information
 
-@c %**end of header
+
 
 NAMESTORE provides functions to lookup records stored under a label in a
 zone and to store records under a label in a zone.
@@ -6253,7 +6253,7 @@ the operation.
 @node Iterating Zone Information
 @subsubsection Iterating Zone Information
 
-@c %**end of header
+
 
 A client can iterate over all information in a zone or all zones managed
 by NAMESTORE.
@@ -6273,7 +6273,7 @@ NULL value to indicate.
 @node Monitoring Zone Information
 @subsubsection Monitoring Zone Information
 
-@c %**end of header
+
 
 Clients can also monitor zones to be notified about changes. Here the
 clients uses the @code{GNUNET_NAMESTORE_zone_monitor_start} function and
@@ -6294,7 +6294,7 @@ from the function to start the monitoring.
 @node PEERINFO Subsystem
 @section PEERINFO Subsystem
 
-@c %**end of header
+
 
 The PEERINFO subsystem is used to store verified (validated) information
 about known peers in a persistent way. It obtains these addresses for
@@ -6327,7 +6327,7 @@ service providing this functionality.
 @node PEERINFO - Features
 @subsection PEERINFO - Features
 
-@c %**end of header
+
 
 @itemize @bullet
 @item Persistent storage
@@ -6347,7 +6347,7 @@ service providing this functionality.
 @node DeveloperPeer Information
 @subsection DeveloperPeer Information
 
-@c %**end of header
+
 
 The PEERINFO subsystem stores these information in the form of HELLO
 messages you can think of as business cards.
@@ -6381,7 +6381,7 @@ subsystem using these information to maintain connections to other peers.
 @node Startup
 @subsection Startup
 
-@c %**end of header
+
 
 During startup the PEERINFO services loads persistent HELLOs from disk.
 First PEERINFO parses the directory configured in the HOSTS value of the
@@ -6397,7 +6397,7 @@ The use of these HELLOs can be prevented by setting the
 @node Managing Information
 @subsection Managing Information
 
-@c %**end of header
+
 
 The PEERINFO services stores information about known PEERS and a single
 HELLO message for every peer.
@@ -6419,7 +6419,7 @@ from the disk.
 @node Obtaining Information
 @subsection Obtaining Information
 
-@c %**end of header
+
 
 When a client requests information from PEERINFO, PEERINFO performs a
 lookup for the respective peer or all peers if desired and transmits this
@@ -6436,7 +6436,7 @@ merge for example) or a new peer was added.
 @node The PEERINFO Client-Service Protocol
 @subsection The PEERINFO Client-Service Protocol
 
-@c %**end of header
+
 
 To connect and disconnect to and from the PEERINFO Service PEERINFO
 utilizes the util client/server infrastructure, so no special messages
@@ -6468,7 +6468,7 @@ message, it can proceed with the next request if any is pending.
 @node libgnunetpeerinfo
 @subsection libgnunetpeerinfo
 
-@c %**end of header
+
 
 The PEERINFO API consists mainly of three different functionalities:
 
@@ -6487,7 +6487,7 @@ The PEERINFO API consists mainly of three different functionalities:
 @node Connecting to the PEERINFO Service
 @subsubsection Connecting to the PEERINFO Service
 
-@c %**end of header
+
 
 To connect to the PEERINFO service the function
 @code{GNUNET_PEERINFO_connect} is used, taking a configuration handle as
@@ -6498,7 +6498,7 @@ handle returned from the connect function has to be called.
 @node Adding Information to the PEERINFO Service
 @subsubsection Adding Information to the PEERINFO Service
 
-@c %**end of header
+
 
 @code{GNUNET_PEERINFO_add_peer} adds a new peer to the PEERINFO subsystem
 storage. This function takes the PEERINFO handle as an argument, the HELLO
@@ -6513,7 +6513,7 @@ can tell PEERINFO to notify if new peer information are available.
 @node Obtaining Information from the PEERINFO Service
 @subsubsection Obtaining Information from the PEERINFO Service
 
-@c %**end of header
+
 
 To iterate over information in PEERINFO you use
 @code{GNUNET_PEERINFO_iterate}.
@@ -6538,7 +6538,7 @@ with @code{GNUNET_PEERINFO_notify_cancel}.
 @node PEERSTORE Subsystem
 @section PEERSTORE Subsystem
 
-@c %**end of header
+
 
 GNUnet's PEERSTORE subsystem offers persistent per-peer storage for other
 GNUnet subsystems. GNUnet subsystems can use PEERSTORE to persistently
@@ -6562,7 +6562,7 @@ Each data record stored with PEERSTORE contains the following fields:
 @node Functionality
 @subsection Functionality
 
-@c %**end of header
+
 
 Subsystems can store any type of value under a (subsystem, peerid, key)
 combination. A "replace" flag set during store operations forces the
@@ -6588,7 +6588,7 @@ request to PEERSTORE.
 @node Architecture
 @subsection Architecture
 
-@c %**end of header
+
 
 PEERSTORE implements the following components:
 
@@ -6604,7 +6604,7 @@ only an "sqlite" plugin is implemented.
 @node libgnunetpeerstore
 @subsection libgnunetpeerstore
 
-@c %**end of header
+
 
 libgnunetpeerstore is the library containing the PEERSTORE API. Subsystems
 wishing to communicate with the PEERSTORE service use this API to open a
@@ -6652,7 +6652,7 @@ destroyed as well.
 @node SET Subsystem
 @section SET Subsystem
 
-@c %**end of header
+
 
 The SET service implements efficient set operations between two peers
 over a mesh tunnel.
@@ -6675,7 +6675,7 @@ The size of an element's data is limited to around 62 KB.
 @node Local Sets
 @subsection Local Sets
 
-@c %**end of header
+
 
 Sets created by a local client can be modified and reused for multiple
 operations. As each set operation requires potentially expensive special
@@ -6689,7 +6689,7 @@ type.
 @node Set Modifications
 @subsection Set Modifications
 
-@c %**end of header
+
 
 Even when set operations are active, one can add to and remove elements
 from a set.
@@ -6702,7 +6702,7 @@ attaching @emph{generation information} to each element and operation.
 @node Set Operations
 @subsection Set Operations
 
-@c %**end of header
+
 
 Set operations can be started in two ways: Either by accepting an
 operation request from a remote peer, or by requesting a set operation
@@ -6719,7 +6719,7 @@ request (providing a local set for the operation) or reject it.
 @node Result Elements
 @subsection Result Elements
 
-@c %**end of header
+
 
 The SET service has three @emph{result modes} that determine how an
 operation's result set is delivered to the client:
@@ -6744,7 +6744,7 @@ actually interested in the result of the set operation.
 @node libgnunetset
 @subsection libgnunetset
 
-@c %**end of header
+
 
 @menu
 * Sets::
@@ -6757,7 +6757,7 @@ actually interested in the result of the set operation.
 @node Sets
 @subsubsection Sets
 
-@c %**end of header
+
 
 New sets are created with @code{GNUNET_SET_create}. Both the local peer's
 configuration (as each set has its own client connection) and the
@@ -6773,7 +6773,7 @@ Elements are added and removed with @code{GNUNET_SET_add_element} and
 @node Listeners
 @subsubsection Listeners
 
-@c %**end of header
+
 
 Listeners are created with @code{GNUNET_SET_listen}. Each time time a
 remote peer suggests a set operation with an application id and operation
@@ -6786,7 +6786,7 @@ until the client calls @code{GNUNET_SET_commit}
 @node Operations
 @subsubsection Operations
 
-@c %**end of header
+
 
 Operations to be initiated by the local peer are created with
 @code{GNUNET_SET_prepare}. Note that the operation will not be started
@@ -6796,7 +6796,7 @@ until the client calls @code{GNUNET_SET_commit}
 @node Supplying a Set
 @subsubsection Supplying a Set
 
-@c %**end of header
+
 
 To create symmetry between the two ways of starting a set operation
 (accepting and initiating it), the operation handles returned by
@@ -6810,7 +6810,7 @@ operation.
 @node The Result Callback
 @subsubsection The Result Callback
 
-@c %**end of header
+
 
 Clients must specify both a result mode and a result callback with
 @code{GNUNET_SET_accept} and @code{GNUNET_SET_prepare}. The result
@@ -6824,7 +6824,7 @@ or if it is in the difference between the original set and the final set.
 @node The SET Client-Service Protocol
 @subsection The SET Client-Service Protocol
 
-@c %**end of header
+
 
 @menu
 * Creating Sets::
@@ -6838,7 +6838,7 @@ or if it is in the difference between the original set and the final set.
 @node Creating Sets
 @subsubsection Creating Sets
 
-@c %**end of header
+
 
 For each set of a client, there exists a client connection to the service.
 Sets are created by sending the @code{GNUNET_SERVICE_SET_CREATE} message
@@ -6849,7 +6849,7 @@ the client.
 @node Listeners2
 @subsubsection Listeners2
 
-@c %**end of header
+
 
 Each listener also requires a seperate client connection. By sending the
 @code{GNUNET_SERVICE_SET_LISTEN} message, the client notifies the service
@@ -6863,7 +6863,7 @@ is supplied for the set operation.
 @node Initiating Operations
 @subsubsection Initiating Operations
 
-@c %**end of header
+
 
 Operations with remote peers are initiated by sending a
 @code{GNUNET_SERVICE_SET_EVALUATE} message to the service. The@ client
@@ -6872,7 +6872,7 @@ connection that this message is sent by determines the set to use.
 @node Modifying Sets
 @subsubsection Modifying Sets
 
-@c %**end of header
+
 
 Sets are modified with the @code{GNUNET_SERVICE_SET_ADD} and
 @code{GNUNET_SERVICE_SET_REMOVE} messages.
@@ -6885,7 +6885,7 @@ Sets are modified with the @code{GNUNET_SERVICE_SET_ADD} and
 
 @node Results and Operation Status
 @subsubsection Results and Operation Status
-@c %**end of header
+
 
 The service notifies the client of result elements and success/failure of
 a set operation with the @code{GNUNET_SERVICE_SET_RESULT} message.
@@ -6893,7 +6893,7 @@ a set operation with the @code{GNUNET_SERVICE_SET_RESULT} message.
 @node Iterating Sets
 @subsubsection Iterating Sets
 
-@c %**end of header
+
 
 All elements of a set can be requested by sending
 @code{GNUNET_SERVICE_SET_ITER_REQUEST}. The server responds with
@@ -6906,7 +6906,7 @@ iteration may be active for a set at any given time.
 @node The SET Intersection Peer-to-Peer Protocol
 @subsection The SET Intersection Peer-to-Peer Protocol
 
-@c %**end of header
+
 
 The intersection protocol operates over CADET and starts with a
 GNUNET_MESSAGE_TYPE_SET_P2P_OPERATION_REQUEST being sent by the peer
@@ -6938,7 +6938,7 @@ just the initial handshake.
 @node The Bloom filter exchange
 @subsubsection The Bloom filter exchange
 
-@c %**end of header
+
 
 In this phase, each peer transmits a Bloom filter over the remaining
 keys of the local set to the other peer using a
@@ -6965,7 +6965,7 @@ this time as the sender.
 @node Salt
 @subsubsection Salt
 
-@c %**end of header
+
 
 Bloomfilter operations are probabilistic: With some non-zero probability
 the test may incorrectly say an element is in the set, even though it is
@@ -6985,7 +6985,7 @@ sets of the same size, and where the XOR over all keys computes the same
 @node The SET Union Peer-to-Peer Protocol
 @subsection The SET Union Peer-to-Peer Protocol
 
-@c %**end of header
+
 
 The SET union protocol is based on Eppstein's efficient set reconciliation
 without prior context. You should read this paper first if you want to
@@ -7028,7 +7028,7 @@ succeeding if they failed due to collisions before.
 @node STATISTICS Subsystem
 @section STATISTICS Subsystem
 
-@c %**end of header
+
 
 In GNUnet, the STATISTICS subsystem offers a central place for all
 subsystems to publish unsigned 64-bit integer run-time statistics.
@@ -7080,7 +7080,7 @@ to STATISTICS during shutdown.
 @node libgnunetstatistics
 @subsection libgnunetstatistics
 
-@c %**end of header
+
 
 @strong{libgnunetstatistics} is the library containing the API for the
 STATISTICS subsystem. Any process requiring to use STATISTICS should use
@@ -7111,7 +7111,7 @@ functions from the API can be used.
 @node Statistics retrieval
 @subsubsection Statistics retrieval
 
-@c %**end of header
+
 
 Once a connection to the statistics service is obtained, information
 about any other system which uses statistics can be retrieved with the
@@ -7134,7 +7134,7 @@ when we want to shutdown and cleanup everything.
 @node Setting statistics and updating them
 @subsubsection Setting statistics and updating them
 
-@c %**end of header
+
 
 So far we have seen how to retrieve statistics, here we will learn how we
 can set statistics and update them so that other subsystems can retrieve
@@ -7164,7 +7164,7 @@ to worry about sending requests too quickly.
 @node Watches
 @subsubsection Watches
 
-@c %**end of header
+
 
 As interesting feature of STATISTICS lies in serving notifications
 whenever a statistic of our interest is modified.
@@ -7184,7 +7184,7 @@ parameters that are used for registering the watch.
 
 @node The STATISTICS Client-Service Protocol
 @subsection The STATISTICS Client-Service Protocol
-@c %**end of header
+
 
 
 @menu
@@ -7196,7 +7196,7 @@ parameters that are used for registering the watch.
 @node Statistics retrieval2
 @subsubsection Statistics retrieval2
 
-@c %**end of header
+
 
 To retrieve statistics, the client transmits a message of type
 @code{GNUNET_MESSAGE_TYPE_STATISTICS_GET} containing the given subsystem
@@ -7210,7 +7210,7 @@ type @code{GNUNET_MESSAGE_TYPE_STATISTICS_END}.
 @node Setting and updating statistics
 @subsubsection Setting and updating statistics
 
-@c %**end of header
+
 
 The subsystem name, parameter name, its value and the persistence flag are
 communicated to the service through the message
@@ -7233,7 +7233,7 @@ the message should be treated as an update value.
 @node Watching for updates
 @subsubsection Watching for updates
 
-@c %**end of header
+
 
 The function registers the watch at the service by sending a message of
 type @code{GNUNET_MESSAGE_TYPE_STATISTICS_WATCH}. The service then sends
@@ -7246,7 +7246,7 @@ parameter's value is changed.
 @node Distributed Hash Table (DHT)
 @section Distributed Hash Table (DHT)
 
-@c %**end of header
+
 
 GNUnet includes a generic distributed hash table that can be used by
 developers building P2P applications in the framework.
@@ -7292,7 +7292,7 @@ loss of performance or quality of service is expected in this case).
 @node Block library and plugins
 @subsection Block library and plugins
 
-@c %**end of header
+
 
 @menu
 * What is a Block?::
@@ -7305,7 +7305,7 @@ loss of performance or quality of service is expected in this case).
 @node What is a Block?
 @subsubsection What is a Block?
 
-@c %**end of header
+
 
 Blocks are small (< 63k) pieces of data stored under a key (struct
 GNUNET_HashCode). Blocks have a type (enum GNUNET_BlockType) which defines
@@ -7322,7 +7322,7 @@ available for any type of block.
 @node The API of libgnunetblock
 @subsubsection The API of libgnunetblock
 
-@c %**end of header
+
 
 The block library requires for each (family of) block type(s) a block
 plugin (implementing @file{gnunet_block_plugin.h}) that provides basic
@@ -7354,7 +7354,7 @@ If a plugin fails to do this, responses may loop in the network.
 
 @node Queries
 @subsubsection Queries
-@c %**end of header
+
 
 The query format for any block in GNUnet consists of four main components.
 First, the type of the desired block must be specified. Second, the query
@@ -7382,7 +7382,7 @@ Depending on the results from the plugin, the DHT will then discard the
 @node Sample Code
 @subsubsection Sample Code
 
-@c %**end of header
+
 
 The source code in @strong{plugin_block_test.c} is a good starting point
 for new block plugins --- it does the minimal work by implementing a
@@ -7393,7 +7393,7 @@ block plugin.
 @node Conclusion2
 @subsubsection Conclusion2
 
-@c %**end of header
+
 
 In conclusion, GNUnet subsystems that want to use the DHT need to define a
 block format and write a plugin to match queries and replies. For testing,
@@ -7407,7 +7407,7 @@ of error checking that results from this primitive implementation.
 @node libgnunetdht
 @subsection libgnunetdht
 
-@c %**end of header
+
 
 The DHT API itself is pretty simple and offers the usual GET and PUT
 functions that work as expected. The specified block type refers to the
@@ -7425,7 +7425,7 @@ data stored in the network.
 @node GET
 @subsubsection GET
 
-@c %**end of header
+
 
 When using GET, the main consideration for developers (other than the
 block library) should be that after issuing a GET, the DHT will
@@ -7453,7 +7453,7 @@ bandwidth consumption.
 @node PUT
 @subsubsection PUT
 
-@c %**end of header
+
 
 @c inconsistent use of ``must'' above it's written ``MUST''
 In contrast to GET operations, developers @strong{must} manually re-run
@@ -7475,7 +7475,7 @@ DHT PUT operations should be repeated at least every 1-2 hours.
 @node MONITOR
 @subsubsection MONITOR
 
-@c %**end of header
+
 
 The DHT API also allows applications to monitor messages crossing the
 local DHT service.
@@ -7498,7 +7498,7 @@ number of workers will process the distributed workload.
 @node DHT Routing Options
 @subsubsection DHT Routing Options
 
-@c %**end of header
+
 
 There are two important options for GET and PUT requests:
 
@@ -7528,7 +7528,7 @@ in the future offer performance improvements for clique topologies.
 @node The DHT Client-Service Protocol
 @subsection The DHT Client-Service Protocol
 
-@c %**end of header
+
 
 @menu
 * PUTting data into the DHT::
@@ -7539,7 +7539,7 @@ in the future offer performance improvements for clique topologies.
 @node PUTting data into the DHT
 @subsubsection PUTting data into the DHT
 
-@c %**end of header
+
 
 To store (PUT) data into the DHT, the client sends a
 @code{struct GNUNET_DHT_ClientPutMessage} to the service.
@@ -7560,7 +7560,7 @@ in the P2P interaction.
 @node GETting data from the DHT
 @subsubsection GETting data from the DHT
 
-@c %**end of header
+
 
 To retrieve (GET) data from the DHT, the client sends a
 @code{struct GNUNET_DHT_ClientGetMessage} to the service. The message
@@ -7599,7 +7599,7 @@ service --- and to stop them individually.
 @node Monitoring the DHT
 @subsubsection Monitoring the DHT
 
-@c %**end of header
+
 
 To begin monitoring, the client sends a
 @code{struct GNUNET_DHT_MonitorStartStop} message to the DHT service.
@@ -7614,7 +7614,7 @@ these messages contains all of the information about the event.
 
 @node The DHT Peer-to-Peer Protocol
 @subsection The DHT Peer-to-Peer Protocol
-@c %**end of header
+
 
 
 @menu
@@ -7626,7 +7626,7 @@ these messages contains all of the information about the event.
 @node Routing GETs or PUTs
 @subsubsection Routing GETs or PUTs
 
-@c %**end of header
+
 
 When routing GETs or PUTs, the DHT service selects a suitable subset of
 neighbours for forwarding. The exact number of neighbours can be zero or
@@ -7641,7 +7641,7 @@ traversed; those peers are also excluded from the selection.
 @node PUTting data into the DHT2
 @subsubsection PUTting data into the DHT2
 
-@c %**end of header
+
 
 To PUT data into the DHT, the service sends a @code{struct PeerPutMessage}
 of type @code{GNUNET_MESSAGE_TYPE_DHT_P2P_PUT} to the respective
@@ -7663,7 +7663,7 @@ its own identity (this is done to reduce bandwidth).
 @node GETting data from the DHT2
 @subsubsection GETting data from the DHT2
 
-@c %**end of header
+
 
 A peer can search the DHT by sending @code{struct PeerGetMessage}s of type
 @code{GNUNET_MESSAGE_TYPE_DHT_P2P_GET} to other peers. In addition to the
@@ -7702,7 +7702,7 @@ The DHT service may also cache forwarded results locally if the
 @node GNU Name System (GNS)
 @section GNU Name System (GNS)
 
-@c %**end of header
+
 
 The GNU Name System (GNS) is a decentralized database that enables users
 to securely resolve names to values.
@@ -7757,7 +7757,7 @@ record types.
 @node libgnunetgns
 @subsection libgnunetgns
 
-@c %**end of header
+
 
 The GNS API itself is extremely simple. Clients first connect to the
 GNS service using @code{GNUNET_GNS_connect}.
@@ -7775,7 +7775,7 @@ Once finished, clients disconnect using @code{GNUNET_GNS_disconnect}.
 @node Looking up records
 @subsubsection Looking up records
 
-@c %**end of header
+
 
 @code{GNUNET_GNS_lookup} takes a number of arguments:
 
@@ -7817,7 +7817,7 @@ must no longer be canceled.
 @node Accessing the records
 @subsubsection Accessing the records
 
-@c %**end of header
+
 
 The @code{libgnunetgnsrecord} library provides an API to manipulate the
 GNS record array that is given to proc. In particular, it offers
@@ -7831,7 +7831,7 @@ functions for parsing (and serializing) common types of DNS records.
 @node Creating records
 @subsubsection Creating records
 
-@c %**end of header
+
 
 Creating GNS records is typically done by building the respective record
 information (possibly with the help of @code{libgnunetgnsrecord} and
@@ -7842,7 +7842,7 @@ operation.
 @node Future work
 @subsubsection Future work
 
-@c %**end of header
+
 
 In the future, we want to expand @code{libgnunetgns} to allow
 applications to observe shortening operations performed during GNS
@@ -7852,7 +7852,7 @@ this happens.
 @node libgnunetgnsrecord
 @subsection libgnunetgnsrecord
 
-@c %**end of header
+
 
 The @code{libgnunetgnsrecord} library is used to manipulate GNS
 records (in plaintext or in their encrypted format).
@@ -7878,7 +7878,7 @@ standard GNS record types.
 @node Value handling
 @subsubsection Value handling
 
-@c %**end of header
+
 
 @code{GNUNET_GNSRECORD_value_to_string} can be used to convert
 the (binary) representation of a GNS record value to a human readable,
@@ -7893,7 +7893,7 @@ a GNS record value.
 @node Type handling
 @subsubsection Type handling
 
-@c %**end of header
+
 
 @code{GNUNET_GNSRECORD_typename_to_number} can be used to obtain the
 numeric value associated with a given typename. For example, given the
@@ -7911,7 +7911,7 @@ typename "A".
 @node GNS plugins
 @subsection GNS plugins
 
-@c %**end of header
+
 
 Adding a new GNS record type typically involves writing (or extending) a
 GNSRECORD plugin. The plugin needs to implement the
@@ -7937,7 +7937,7 @@ typenames and numbers documented in the previous subsection.
 
 @node The GNS Client-Service Protocol
 @subsection The GNS Client-Service Protocol
-@c %**end of header
+
 
 The GNS client-service protocol consists of two simple messages, the
 @code{LOOKUP} message and the @code{LOOKUP_RESULT}. Each @code{LOOKUP}
@@ -7957,7 +7957,7 @@ They can thus be deserialized using
 @node Hijacking the DNS-Traffic using gnunet-service-dns
 @subsection Hijacking the DNS-Traffic using gnunet-service-dns
 
-@c %**end of header
+
 
 This section documents how the gnunet-service-dns (and the
 gnunet-helper-dns) intercepts DNS queries from the local system.
@@ -7994,7 +7994,7 @@ interface with the original nameserver as source address.
 @node Network Setup Details
 @subsubsection Network Setup Details
 
-@c %**end of header
+
 
 The DNS interceptor adds the following rules to the Linux kernel:
 @example
@@ -8015,7 +8015,7 @@ arbitrarily). The third line adds a routing policy based on this mark
 @node Serving DNS lookups via GNS on W32
 @subsection Serving DNS lookups via GNS on W32
 
-@c %**end of header
+
 
 This section documents how the libw32nsp (and
 gnunet-gns-helper-service-w32) do DNS resolutions of DNS queries on the
@@ -8085,7 +8085,7 @@ This includes some of well known utilities, like "ping" and "nslookup".
 @node Importing DNS Zones into GNS
 @subsection Importing DNS Zones into GNS
 
-@c %**end of header
+
 
 This section discusses the challenges and problems faced when writing the
 Ascension tool. It also takes a look at possible improvements in the future.
@@ -8242,7 +8242,7 @@ that uses the C API would be cleaner and better.
 @node GNS Namecache
 @section GNS Namecache
 
-@c %**end of header
+
 
 The NAMECACHE subsystem is responsible for caching (encrypted) resolution
 results of the GNU Name System (GNS). GNS makes zone information available
@@ -8281,7 +8281,7 @@ plugin API.
 @node libgnunetnamecache
 @subsection libgnunetnamecache
 
-@c %**end of header
+
 
 The NAMECACHE API consists of five simple functions. First, there is
 @code{GNUNET_NAMECACHE_connect} to connect to the NAMECACHE service.
@@ -8304,7 +8304,7 @@ The maximum size of a block that can be stored in the NAMECACHE is
 @node The NAMECACHE Client-Service Protocol
 @subsection The NAMECACHE Client-Service Protocol
 
-@c %**end of header
+
 
 All messages in the NAMECACHE IPC protocol start with the
 @code{struct GNUNET_NAMECACHE_Header} which adds a request
@@ -8322,7 +8322,7 @@ out-of-order.
 @node Lookup
 @subsubsection Lookup
 
-@c %**end of header
+
 
 The @code{struct LookupBlockMessage} is used to lookup a block stored in
 the cache.
@@ -8336,7 +8336,7 @@ of the block.
 @node Store
 @subsubsection Store
 
-@c %**end of header
+
 
 The @code{struct BlockCacheMessage} is used to cache a block in the
 NAMECACHE.
@@ -8348,7 +8348,7 @@ message as well.
 
 @node The NAMECACHE Plugin API
 @subsection The NAMECACHE Plugin API
-@c %**end of header
+
 
 The NAMECACHE plugin API consists of two functions, @code{cache_block} to
 store a block in the database, and @code{lookup_block} to lookup a block
@@ -8363,7 +8363,7 @@ in the database.
 @node Lookup2
 @subsubsection Lookup2
 
-@c %**end of header
+
 
 The @code{lookup_block} function is expected to return at most one block
 to the iterator, and return @code{GNUNET_NO} if there were no non-expired
@@ -8374,7 +8374,7 @@ supposed to return the result with the largest expiration time.
 @node Store2
 @subsubsection Store2
 
-@c %**end of header
+
 
 The @code{cache_block} function is expected to try to store the block in
 the database, and return @code{GNUNET_SYSERR} if this was not possible
@@ -8391,7 +8391,7 @@ block is more recent during the store operation.
 @cindex REVOCATION Subsystem
 @node REVOCATION Subsystem
 @section REVOCATION Subsystem
-@c %**end of header
+
 
 The REVOCATION subsystem is responsible for key revocation of Egos.
 If a user learns that theis private key has been compromised or has lost
@@ -8411,7 +8411,7 @@ propagate revocation messages.
 @node Dissemination
 @subsection Dissemination
 
-@c %**end of header
+
 
 When a revocation is performed, the revocation is first of all
 disseminated by flooding the overlay network.
@@ -8435,7 +8435,7 @@ The SET service is used to perform this operation efficiently.
 @node Revocation Message Design Requirements
 @subsection Revocation Message Design Requirements
 
-@c %**end of header
+
 
 However, flooding is also quite costly, creating O(|E|) messages on a
 network with |E| edges.
@@ -8457,7 +8457,7 @@ revocation message ahead of time and store it in a secure location.
 @node libgnunetrevocation
 @subsection libgnunetrevocation
 
-@c %**end of header
+
 
 The REVOCATION API consists of two parts, to query and to issue
 revocations.
@@ -8472,7 +8472,7 @@ revocations.
 @node Querying for revoked keys
 @subsubsection Querying for revoked keys
 
-@c %**end of header
+
 
 @code{GNUNET_REVOCATION_query} is used to check if a given ECDSA public
 key has been revoked.
@@ -8483,7 +8483,7 @@ the return value.
 @node Preparing revocations
 @subsubsection Preparing revocations
 
-@c %**end of header
+
 
 It is often desirable to create a revocation record ahead-of-time and
 store it in an off-line location to be used later in an emergency.
@@ -8551,7 +8551,7 @@ successfully.
 @node The REVOCATION Peer-to-Peer Protocol
 @subsection The REVOCATION Peer-to-Peer Protocol
 
-@c %**end of header
+
 
 Revocation uses two disjoint ways to spread revocation information among
 peers.
@@ -8586,7 +8586,7 @@ larger hashed peer identity.
 @node File-sharing (FS) Subsystem
 @section File-sharing (FS) Subsystem
 
-@c %**end of header
+
 
 This chapter describes the details of how the file-sharing service works.
 As with all services, it is split into an API (libgnunetfs), the service
@@ -8624,7 +8624,7 @@ NOTE: The documentation in this chapter is quite incomplete.
 @node Encoding for Censorship-Resistant Sharing (ECRS)
 @subsection Encoding for Censorship-Resistant Sharing (ECRS)
 
-@c %**end of header
+
 
 When GNUnet shares files, it uses a content encoding that is called ECRS,
 the Encoding for Censorship-Resistant Sharing.
@@ -8646,7 +8646,7 @@ thus did not warrant space in the research report.
 @node Namespace Advertisements
 @subsubsection Namespace Advertisements
 
-@c %**end of header
+
 @c %**FIXME: all zeroses -> ?
 
 An @code{SBlock} with identifier all zeros is a signed
@@ -8661,7 +8661,7 @@ can search for @code{SBlock}s in order to find out more about a namespace.
 @node KSBlocks
 @subsubsection KSBlocks
 
-@c %**end of header
+
 
 GNUnet implements @code{KSBlocks} which are @code{KBlocks} that, instead
 of encrypting a CHK and metadata, encrypt an @code{SBlock} instead.
@@ -8687,7 +8687,7 @@ Collections are also advertised using @code{KSBlock}s.
 @node File-sharing persistence directory structure
 @subsection File-sharing persistence directory structure
 
-@c %**end of header
+
 
 This section documents how the file-sharing library implements
 persistence of file-sharing operations and specifically the resulting
@@ -8773,7 +8773,7 @@ Note that unindex operations cannot have associated child operations.
 @node REGEX Subsystem
 @section REGEX Subsystem
 
-@c %**end of header
+
 
 Using the REGEX subsystem, you can discover peers that offer a particular
 service using regular expressions.
@@ -8796,7 +8796,7 @@ thesis.
 @node How to run the regex profiler
 @subsection How to run the regex profiler
 
-@c %**end of header
+
 
 The gnunet-regex-profiler can be used to profile the usage of mesh/regex
 for a given set of regular expressions and strings.
@@ -8929,7 +8929,7 @@ regular expressions.
 @node REST Subsystem
 @section REST Subsystem
 
-@c %**end of header
+
 
 Using the REST subsystem, you can expose REST-based APIs or services.
 The REST service is designed as a pluggable architecture.
