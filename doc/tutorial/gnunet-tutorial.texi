@@ -1,5 +1,5 @@
 \input texinfo
-@c %**start of header
+
 @setfilename gnunet-tutorial.info
 @documentencoding UTF-8
 @settitle GNUnet Tutorial
