@@ -298,6 +298,13 @@ Currently these interfaces cover:
 @item Setup
 @end itemize
 
+Previously, many of these interfaces were combined into one application
+called @command{gnunet-gtk}, with different tabs for each interface. This
+combined application has been removed in version 0.11.0, but each of the
+interfaces is still available as a standalone application
+(@command{gnunet-statistics-gtk} for statistics, @command{gnunet-fs-gtk}
+for filesharing, etc).
+
 @node Statistics
 @subsection Statistics
 @c %**end of header
