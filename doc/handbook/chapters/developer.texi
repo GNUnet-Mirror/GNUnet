@@ -5162,6 +5162,8 @@ receiving a type map by sending back a
 retransmit the type map (with exponential back-off).
 
 @cindex CADET Subsystem
+@cindex CADET
+@cindex cadet
 @node CADET Subsystem
 @section CADET Subsystem
 
@@ -5228,6 +5230,7 @@ Should a message get lost on TRANSPORT/CORE level, if a channel is
 created with as reliable, CADET will retransmit the lost message and
 deliver it in order to the destination application.
 
+@pindex GNUNET_CADET_connect
 To communicate with other peers using CADET, it is necessary to first
 connect to the service using @code{GNUNET_CADET_connect}.
 This function takes several parameters in form of callbacks, to allow the
@@ -5239,7 +5242,8 @@ CADET, even do one connection per listening port).
 The function returns a handle which has to be used for any further
 interaction with the service.
 
-To connect to a remote peer a client has to call the
+@pindex GNUNET_CADET_channel_create
+To connect to a remote peer, a client has to call the
 @code{GNUNET_CADET_channel_create} function. The most important parameters
 given are the remote peer's identity (it public key) and a port, which
 specifies which application on the remote peer to connect to, similar to
@@ -5249,6 +5253,7 @@ exchanges to assure and authenticated, secure and verified communication.
 Similar to @code{GNUNET_CADET_connect},@code{GNUNET_CADET_create_channel}
 returns a handle to interact with the created channel.
 
+@pindex GNUNET_CADET_notify_transmit_ready
 For every message the client wants to send to the remote application,
 @code{GNUNET_CADET_notify_transmit_ready} must be called, indicating the
 channel on which the message should be sent and the size of the message
@@ -5265,6 +5270,7 @@ case. To be alerted when a channel is online, a client can call
 means that the channel is online. The callback can give 0 bytes to CADET
 if no message is to be sent, this is OK.
 
+@pindex GNUNET_CADET_notify_transmit_cancel
 If a transmission was requested but before the callback fires it is no
 longer needed, it can be canceled with
 @code{GNUNET_CADET_notify_transmit_ready_cancel}, which uses the handle
@@ -5273,6 +5279,7 @@ As in the case of CORE, only one message can be requested at a time: a
 client must not call @code{GNUNET_CADET_notify_transmit_ready} again until
 the callback is called or the request is canceled.
 
+@pindex GNUNET_CADET_channel_destroy
 When a channel is no longer needed, a client can call
 @code{GNUNET_CADET_channel_destroy} to get rid of it.
 Note that CADET will try to transmit all pending traffic before notifying
@@ -5284,6 +5291,7 @@ on any incoming or outgoing channels are given to the client when CADET
 executes the callbacks given to it at the time of
 @code{GNUNET_CADET_connect}.
 
+@pindex GNUNET_CADET_disconnect
 Finally, when an application no longer wants to use CADET, it should call
 @code{GNUNET_CADET_disconnect}, but first all channels and pending
 transmissions must be closed (otherwise CADET will complain).
@@ -5579,7 +5587,7 @@ simply disconnects from the service, with no message involved.
 @subsection The NSE Peer-to-Peer Protocol
 
 
-
+@pindex GNUNET_MESSAGE_TYPE_NSE_P2P_FLOOD
 The NSE subsystem only has one message in the P2P protocol, the
 @code{GNUNET_MESSAGE_TYPE_NSE_P2P_FLOOD} message.
 
@@ -5794,6 +5802,7 @@ The hostlist daemon is the main component of the HOSTLIST subsystem. It is
 started by the ARM service and (if configured) starts the HOSTLIST client
 and server components.
 
+@pindex GNUNET_MESSAGE_TYPE_HOSTLIST_ADVERTISEMENT
 If the daemon provides a hostlist itself it can advertise it's own
 hostlist to other peers. To do so it sends a
 @code{GNUNET_MESSAGE_TYPE_HOSTLIST_ADVERTISEMENT} message to other peers
@@ -8085,10 +8094,9 @@ This includes some of well known utilities, like "ping" and "nslookup".
 @node Importing DNS Zones into GNS
 @subsection Importing DNS Zones into GNS
 
-
-
 This section discusses the challenges and problems faced when writing the
-Ascension tool. It also takes a look at possible improvements in the future.
+Ascension tool. It also takes a look at possible improvements in the
+future.
 
 @menu
 * Conversions between DNS and GNS::
@@ -8096,12 +8104,13 @@ Ascension tool. It also takes a look at possible improvements in the future.
 * Performance::
 @end menu
 
+@cindex DNS Conversion
 @node Conversions between DNS and GNS
 @subsubsection Conversions between DNS and GNS
 
 The differences between the two name systems lies in the details
-and is not always transparent. For instance an SRV record is converted to a
-GNS only BOX record.
+and is not always transparent.
+For instance an SRV record is converted to a GNS only BOX record.
 
 This is done by converting to a BOX record from an existing SRV record:
 
@@ -8114,11 +8123,12 @@ _sip._tcp.example.com. 14000 IN SRV     0 0 5060 www.example.com.
 14000 BOX n 5060 6 33 0 0 5060 www.example.com
 @end example
 
-Other records that have such a transformation is the MX record type, as well as
-the SOA record type.
+Other records that have such a transformation is the MX record type,
+as well as the SOA record type.
 
-Transformation of a SOA record into GNS works as described in the following
-example. Very important to note are the rname and mname keys.
+Transformation of a SOA record into GNS works as described in the
+following example. Very important to note are the rname and mname keys.
+
 @example
 # BIND syntax for a clean SOA record
 @   IN SOA master.example.com. hostmaster.example.com. (
