@@ -5,13 +5,7 @@ tap32dir = $(pkgdatadir)/openvpn-tap32/tapw32/
 
 tap64dir = $(pkgdatadir)/openvpn-tap32/tapw64/
 
-noinst_SCRIPTS = \
- scripts/terminate.py \
- scripts/pydiffer.py \
- scripts/removetrailingwhitespace.py \
- scripts/gnunet_pyexpect.py \
- scripts/gnunet_janitor.py \
- scripts/gnunet-chk.py
+SUBDIRS = scripts
 
 dist_pkgdata_DATA = \
  gns/gns-bcd.html \
@@ -46,14 +40,6 @@ EXTRA_DIST = \
  conf/gnunet/no_autostart_above_core.conf \
  conf/nss/nssswitch.conf \
  conf/wireshark/wireshark.lua \
- scripts/coverage.sh \
- scripts/terminate.py.in \
- scripts/gnunet_pyexpect.py.in \
- scripts/gnunet_janitor.py.in \
- scripts/gnunet-chk.py.in \
- scripts/gnunet-bugreport \
- scripts/removetrailingwhitespace.py.in \
- scripts/pydiffer.py.in \
  packages/nix/default.nix \
  packages/nix/gnunet-dev.nix \
  3rdparty/Windows/openvpn-tap32/tapw32/tap0901.sys \
@@ -66,27 +52,6 @@ EXTRA_DIST = \
  3rdparty/Windows/openvpn-tap32/tap32-signed-i386-2.1.zip \
  3rdparty/Windows/openvpn-tap32/tap32-source-2.1.zip \
  $(INITD_FILES)
-
-CLEANFILES = \
-  $(noinst_SCRIPTS)
-
-do_subst = $(SED) -e 's,[@]PYTHON[@],$(PYTHON),g'
-
-# Use SUFFIX Extension rules, they are more portable for every
-# implementation of 'make'.
-# You'll also run into the "'%' is a GNU make extension warning"
-# if you use this:
-#
-#%.py: %.py.in Makefile
-#	$(do_subst) < $< > $@
-#	chmod +x $@
-#
-# instead of this:
-SUFFIXES = .py.in .py
-
-.py.in.py:
-	$(do_subst) < $< > $@
-	chmod +x $@
 
 check_PROGRAMS = \
  test_gnunet_prefix

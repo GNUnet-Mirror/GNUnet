@@ -214,6 +214,11 @@ AM_PATH_PYTHON([3.7],, [:])
 AC_SUBST([PYTHON])
 AM_CONDITIONAL([HAVE_PYTHON], [test "$PYTHON" != :])
 
+# perl
+AC_PATH_PROG( PERL, perl, ,
+              $PATH:/usr/local/bin/perl:/usr/bin/:/usr/local/bin )
+AC_SUBST([PERL])
+
 # iptables is a soft requirement to run tests
 AC_PATH_TARGET_TOOL(VAR_IPTABLES_BINARY, iptables, false)
 
@@ -1722,6 +1727,8 @@ AC_DEFINE_UNQUOTED(VCS_VERSION, [$vcs_version], [VCS revision/hash or tarball ve
 AC_CONFIG_FILES([
 Makefile
 contrib/Makefile
+contrib/scripts/Makefile
+contrib/scripts/gnunet-logread/Makefile
 doc/Makefile
 doc/man/Makefile
 doc/doxygen/Makefile
