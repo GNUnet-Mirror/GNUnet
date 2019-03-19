@@ -84,29 +84,31 @@ enum STAT_TYPE
   STAT_TYPE_BLOCKS_MANY_PUSH_NO_PULL, /*   5 */
   STAT_TYPE_BLOCKS_NO_PUSH_NO_PULL,   /*   6 */
   STAT_TYPE_ISSUED_PUSH_SEND,         /*   7 */
-  STAT_TYPE_ISSUED_PULL_REQ,          /*   8 */
-  STAT_TYPE_ISSUED_PULL_REQ_MH,       /*   9 */
-  STAT_TYPE_ISSUED_PULL_REP,          /*  10 */
-  STAT_TYPE_SENT_PUSH_SEND,           /*  11 */
-  STAT_TYPE_SENT_PULL_REQ,            /*  12 */
-  STAT_TYPE_SENT_PULL_REQ_MH,         /*  13 */
-  STAT_TYPE_SENT_PULL_REP,            /*  14 */
-  STAT_TYPE_RECV_PUSH_SEND,           /*  15 */
-  STAT_TYPE_RECV_PULL_REQ,            /*  16 */
-  STAT_TYPE_RECV_PULL_REQ_MH,         /*  17 */
-  STAT_TYPE_RECV_PULL_REP,            /*  18 */
-  STAT_TYPE_RECV_PULL_REP_MH,         /*  19 */
-  STAT_TYPE_VIEW_SIZE,                /*  20 */
-  STAT_TYPE_KNOWN_PEERS,              /*  21 */
-  STAT_TYPE_VALID_PEERS,              /*  22 */
-  STAT_TYPE_LEARND_PEERS,             /*  23 */
-  STAT_TYPE_PENDING_ONLINE_CHECKS,    /*  24 */
-  STAT_TYPE_UNREQUESTED_PULL_REPLIES, /*  25 */
-  STAT_TYPE_PEERS_IN_PUSH_MAP,        /*  26 */
-  STAT_TYPE_PEERS_IN_PULL_MAP,        /*  27 */
-  STAT_TYPE_PEERS_IN_VIEW,            /*  28 */
-  STAT_TYPE_VIEW_SIZE_AIM,            /*  29 */
-  STAT_TYPE_MAX,                      /*  30 */
+  STAT_TYPE_ISSUED_PUSH_SEND_MH,      /*   8 */
+  STAT_TYPE_ISSUED_PULL_REQ,          /*   9 */
+  STAT_TYPE_ISSUED_PULL_REQ_MH,       /*  10 */
+  STAT_TYPE_ISSUED_PULL_REP,          /*  11 */
+  STAT_TYPE_SENT_PUSH_SEND,           /*  12 */
+  STAT_TYPE_SENT_PULL_REQ,            /*  13 */
+  STAT_TYPE_SENT_PULL_REQ_MH,         /*  14 */
+  STAT_TYPE_SENT_PULL_REP,            /*  15 */
+  STAT_TYPE_RECV_PUSH_SEND,           /*  16 */
+  STAT_TYPE_RECV_PUSH_SEND_MH,        /*  17 */
+  STAT_TYPE_RECV_PULL_REQ,            /*  18 */
+  STAT_TYPE_RECV_PULL_REQ_MH,         /*  19 */
+  STAT_TYPE_RECV_PULL_REP,            /*  20 */
+  STAT_TYPE_RECV_PULL_REP_MH,         /*  21 */
+  STAT_TYPE_VIEW_SIZE,                /*  22 */
+  STAT_TYPE_KNOWN_PEERS,              /*  23 */
+  STAT_TYPE_VALID_PEERS,              /*  24 */
+  STAT_TYPE_LEARND_PEERS,             /*  25 */
+  STAT_TYPE_PENDING_ONLINE_CHECKS,    /*  26 */
+  STAT_TYPE_UNREQUESTED_PULL_REPLIES, /*  27 */
+  STAT_TYPE_PEERS_IN_PUSH_MAP,        /*  28 */
+  STAT_TYPE_PEERS_IN_PULL_MAP,        /*  29 */
+  STAT_TYPE_PEERS_IN_VIEW,            /*  30 */
+  STAT_TYPE_VIEW_SIZE_AIM,            /*  31 */
+  STAT_TYPE_MAX,                      /*  32 */
 };
 
 static char* stat_type_strings[] = {
@@ -118,6 +120,7 @@ static char* stat_type_strings[] = {
   "# rounds blocked - too many pushes, no pull replies",
   "# rounds blocked - no pushes, no pull replies",
   "# push send issued",
+  "# push send issued (multi-hop peer)",
   "# pull request send issued",
   "# pull request send issued (multi-hop peer)",
   "# pull reply send issued",
@@ -126,6 +129,7 @@ static char* stat_type_strings[] = {
   "# pull requests sent (multi-hop peer)",
   "# pull replys sent",
   "# push message received",
+  "# push message received (multi-hop peer)",
   "# pull request message received",
   "# pull request message received (multi-hop peer)",
   "# pull reply messages received",
@@ -206,6 +210,12 @@ enum STAT_TYPE stat_str_2_type (const char *stat_str)
   {
     return STAT_TYPE_ISSUED_PUSH_SEND;
   }
+  else if (0 == strncmp (stat_type_strings[STAT_TYPE_ISSUED_PUSH_SEND_MH],
+                         stat_str,
+                         strlen (stat_type_strings[STAT_TYPE_ISSUED_PUSH_SEND_MH])))
+  {
+    return STAT_TYPE_ISSUED_PUSH_SEND_MH;
+  }
   else if (0 == strncmp (stat_type_strings[STAT_TYPE_ISSUED_PULL_REQ],
                          stat_str,
                          strlen (stat_type_strings[STAT_TYPE_ISSUED_PULL_REQ])))
@@ -253,6 +263,12 @@ enum STAT_TYPE stat_str_2_type (const char *stat_str)
                          strlen (stat_type_strings[STAT_TYPE_RECV_PUSH_SEND])))
   {
     return STAT_TYPE_RECV_PUSH_SEND;
+  }
+  else if (0 == strncmp (stat_type_strings[STAT_TYPE_RECV_PUSH_SEND_MH],
+                         stat_str,
+                         strlen (stat_type_strings[STAT_TYPE_RECV_PUSH_SEND_MH])))
+  {
+    return STAT_TYPE_RECV_PUSH_SEND_MH;
   }
   else if (0 == strncmp (stat_type_strings[STAT_TYPE_RECV_PULL_REQ],
                          stat_str,
@@ -2461,9 +2477,9 @@ void write_final_stats (void){
              "%s, %" /* id */
              PRIu64 ", %" /* rounds */
              PRIu64 ", %" PRIu64 ", %" PRIu64 ", %" PRIu64 ", %" PRIu64 ", %" PRIu64 ", %" /* blocking */
-             PRIu64 ", %" PRIu64 ", %" PRIu64 ", %" PRIu64 ", %" /* issued */
+             PRIu64 ", %" PRIu64 ", %" PRIu64 ", %" PRIu64 ", %" PRIu64 ", %" /* issued */
              PRIu64 ", %" PRIu64 ", %" PRIu64 ", %" PRIu64 ", %" /* sent */
-             PRIu64 ", %" PRIu64 ", %" PRIu64 ", %" PRIu64 ", %" PRIu64 ", %" /* recv */
+             PRIu64 ", %" PRIu64 ", %" PRIu64 ", %" PRIu64 ", %" PRIu64 ", %" PRIu64 ", %" /* recv */
              PRIu64 ", %" /* view size */
              PRIu64 ", %" /* known peers */
              PRIu64 ", %" /* valid peers */
@@ -2484,6 +2500,7 @@ void write_final_stats (void){
              rps_peers[i].stats[STAT_TYPE_BLOCKS_MANY_PUSH_NO_PULL],
              rps_peers[i].stats[STAT_TYPE_BLOCKS_NO_PUSH_NO_PULL],
              rps_peers[i].stats[STAT_TYPE_ISSUED_PUSH_SEND],
+             rps_peers[i].stats[STAT_TYPE_ISSUED_PUSH_SEND_MH],
              rps_peers[i].stats[STAT_TYPE_ISSUED_PULL_REQ],
              rps_peers[i].stats[STAT_TYPE_ISSUED_PULL_REQ_MH],
              rps_peers[i].stats[STAT_TYPE_ISSUED_PULL_REP],
@@ -2492,6 +2509,7 @@ void write_final_stats (void){
              rps_peers[i].stats[STAT_TYPE_SENT_PULL_REQ_MH],
              rps_peers[i].stats[STAT_TYPE_SENT_PULL_REP],
              rps_peers[i].stats[STAT_TYPE_RECV_PUSH_SEND],
+             rps_peers[i].stats[STAT_TYPE_RECV_PUSH_SEND_MH],
              rps_peers[i].stats[STAT_TYPE_RECV_PULL_REQ],
              rps_peers[i].stats[STAT_TYPE_RECV_PULL_REQ_MH],
              rps_peers[i].stats[STAT_TYPE_RECV_PULL_REP_MH],
@@ -2517,9 +2535,9 @@ void write_final_stats (void){
            "SUM %"
            PRIu64 " %" /* rounds */
            PRIu64 " %" PRIu64 " %" PRIu64 " %" PRIu64 " %" PRIu64 " %" PRIu64 " %" /* blocking */
-           PRIu64 ", %" PRIu64 ", %" PRIu64 ", %" PRIu64 ", %" /* issued */
+           PRIu64 ", %" PRIu64 ", %" PRIu64 ", %" PRIu64 ", %" PRIu64 ", %" /* issued */
            PRIu64 ", %" PRIu64 ", %" PRIu64 ", %" PRIu64 ", %" /* sent */
-           PRIu64 ", %" PRIu64 ", %" PRIu64 ", %" PRIu64 ", %" PRIu64 ", %" /* recv */
+           PRIu64 ", %" PRIu64 ", %" PRIu64 ", %" PRIu64 ", %" PRIu64 ", %" PRIu64 ", %" /* recv */
            PRIu64 ", %" /* view size */
            PRIu64 ", %" /* known peers */
            PRIu64 ", %" /* valid peers */
@@ -2538,6 +2556,7 @@ void write_final_stats (void){
            sums[STAT_TYPE_BLOCKS_MANY_PUSH_NO_PULL],
            sums[STAT_TYPE_BLOCKS_NO_PUSH_NO_PULL],
            sums[STAT_TYPE_ISSUED_PUSH_SEND],
+           sums[STAT_TYPE_ISSUED_PUSH_SEND_MH],
            sums[STAT_TYPE_ISSUED_PULL_REQ],
            sums[STAT_TYPE_ISSUED_PULL_REQ_MH],
            sums[STAT_TYPE_ISSUED_PULL_REP],
@@ -2546,6 +2565,7 @@ void write_final_stats (void){
            sums[STAT_TYPE_SENT_PULL_REQ_MH],
            sums[STAT_TYPE_SENT_PULL_REP],
            sums[STAT_TYPE_RECV_PUSH_SEND],
+           sums[STAT_TYPE_RECV_PUSH_SEND_MH],
            sums[STAT_TYPE_RECV_PULL_REQ],
            sums[STAT_TYPE_RECV_PULL_REQ_MH],
            sums[STAT_TYPE_RECV_PULL_REP],
@@ -2855,6 +2875,7 @@ run (void *cls,
                                     BIT(STAT_TYPE_BLOCKS_MANY_PUSH_NO_PULL) |
                                     BIT(STAT_TYPE_BLOCKS_NO_PUSH_NO_PULL) |
                                     BIT(STAT_TYPE_ISSUED_PUSH_SEND) |
+                                    BIT(STAT_TYPE_ISSUED_PUSH_SEND_MH) |
                                     BIT(STAT_TYPE_ISSUED_PULL_REQ) |
                                     BIT(STAT_TYPE_ISSUED_PULL_REQ_MH) |
                                     BIT(STAT_TYPE_ISSUED_PULL_REP) |
@@ -2863,6 +2884,7 @@ run (void *cls,
                                     BIT(STAT_TYPE_SENT_PULL_REQ_MH) |
                                     BIT(STAT_TYPE_SENT_PULL_REP) |
                                     BIT(STAT_TYPE_RECV_PUSH_SEND) |
+                                    BIT(STAT_TYPE_RECV_PUSH_SEND_MH) |
                                     BIT(STAT_TYPE_RECV_PULL_REQ) |
                                     BIT(STAT_TYPE_RECV_PULL_REQ_MH) |
                                     BIT(STAT_TYPE_RECV_PULL_REP) |

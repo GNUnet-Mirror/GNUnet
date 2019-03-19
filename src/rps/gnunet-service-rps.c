@@ -3500,6 +3500,15 @@ handle_peer_push (void *cls,
   if (channel_ctx->peer_ctx->sub == msub)
   {
     GNUNET_STATISTICS_update(stats, "# push message received", 1, GNUNET_NO);
+    if (NULL != map_single_hop &&
+        GNUNET_NO == GNUNET_CONTAINER_multipeermap_contains (map_single_hop,
+                                                             peer))
+    {
+      GNUNET_STATISTICS_update (stats,
+                                "# push message received (multi-hop peer)",
+                                1,
+                                GNUNET_NO);
+    }
   }
 
   #if ENABLE_MALICIOUS
@@ -3881,6 +3890,15 @@ send_push (struct PeerContext *peer_ctx)
                               "# push send issued",
                               1,
                               GNUNET_NO);
+    if (NULL != map_single_hop &&
+        GNUNET_NO == GNUNET_CONTAINER_multipeermap_contains (map_single_hop,
+                                                             &peer_ctx->peer_id))
+    {
+      GNUNET_STATISTICS_update (stats,
+                                "# push send issued (multi-hop peer)",
+                                1,
+                                GNUNET_NO);
+    }
   }
 }
 
