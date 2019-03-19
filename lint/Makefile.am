@@ -1,5 +1,19 @@
 all: check-linters
 
+do_subst = $(SED) -e 's,[@]PERL[@],$(PERL),g'
+
+SUFFIXES = pl.in .pl
+
+checkbashisms.pl: checkbashisms.pl.in Makefile
+	$(do_subst) < $(srcdir)/checkbashisms.pl.in > checkbashisms.pl
+	chmod +x checkbashisms.pl
+
+CLEANFILES=	\
+		checkbashisms.pl
+
+noinst_SCRIPTS =		\
+		$(CLEANFILES)
+
 # Check for bashisms in shell scripts
 # Very verbose, need to exclude more files.
 check-bashism:

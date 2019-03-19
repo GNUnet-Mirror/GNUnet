@@ -1,4 +1,4 @@
-#!/usr/bin/env perl
+#!@PERL@
 
 # This script is essentially copied from /usr/share/lintian/checks/scripts,
 # which is:
