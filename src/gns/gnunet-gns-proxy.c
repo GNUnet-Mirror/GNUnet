@@ -2191,7 +2191,7 @@ create_response (void *cls,
     }
     MHD_get_connection_values (con,
                                MHD_HEADER_KIND,
-                               &con_val_iter,
+                               (MHD_KeyValueIterator) &con_val_iter,
                                s5r);
     curl_easy_setopt (s5r->curl,
                       CURLOPT_HTTPHEADER,

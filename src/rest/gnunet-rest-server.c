@@ -416,11 +416,11 @@ create_response (void *cls,
     con_handle->data_handle = rest_conndata_handle;
     MHD_get_connection_values (con,
                                MHD_GET_ARGUMENT_KIND,
-                               &url_iterator,
+                               (MHD_KeyValueIterator) &url_iterator,
                                rest_conndata_handle);
     MHD_get_connection_values (con,
                                MHD_HEADER_KIND,
-                               &header_iterator,
+                               (MHD_KeyValueIterator) &header_iterator,
                                rest_conndata_handle);
     con_handle->pp = MHD_create_post_processor(con,
 					       65536,
