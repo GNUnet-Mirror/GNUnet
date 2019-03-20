@@ -68,7 +68,6 @@ These are the direct dependencies for running GNUnet:
   - libidn2 (prefered)
   or
   - libidn           >= 1.0
-- libextractor       >= 0.6.1       (highly recommended)
 - openssl            >= 1.0         (binary, used to generate
                                      X.509 certificate
                                      for gnunet-gns-proxy-setup-ca)
@@ -109,6 +108,7 @@ These are the optional dependencies:
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 - Bash                              (for Docker and Vagrant)
+- libextractor       >= 0.6.1       (highly recommended[*5])
 - libjansson
 - libopus            >= 1.0.1       (for experimental conversation tool)
 - libpulse           >= 2.0         (for experimental conversation tool)
@@ -169,6 +169,24 @@ Recommended autotools for compiling the Git version are:
      compatible, current and older scripts are
      in the process of being rewritten to comply
      with this requirement.
+
+[*5] While libextractor is optional, it is recommended to
+     build gnunet against it. If you install it later,
+     you won't benefit from libextractor.
+     If you are a distributor, we recommend to split
+     LE into basis + plugins rather than making LE
+     an option as an afterthought by the user.
+     LE itself is very small, but its dependency chain
+     on first, second, third etc level can be big.
+     There is a small effect on privacy if your LE build
+     differs from one which includes all
+     plugins (plugins are build as shared objects):
+     if users publish a directory with a mixture of file
+     types (for example mpeg, jpeg, png, gif) the
+     configuration of LE could leak which plugins are
+     installed for which filetypes are not providing
+     more details.
+     However, this leak is just a minor concern.
 
 Requirements
 ============
