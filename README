@@ -54,87 +54,89 @@ Dependencies:
 These are the direct dependencies for running GNUnet:
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-- libmicrohttpd      >= 0.9.52
-- libgcrypt          >= 1.6
-- A curl build against gnutls, or gnurl:
-  - libgnurl         >= 7.35.0      (recommended, available from
-                                     https://gnunet.org/en/gnurl.html)
-  or
-  - libcurl          >= 7.35.0      (alternative to libgnurl)
-- libunistring       >= 0.9.2
+- Bash                              (for some scripts)
+- gettext
 - gnutls             >= 3.2.12      (highly recommended a gnutls
                                      linked against libunbound)
-- libidn:
-  - libidn2 (prefered)
+- A curl build against gnutls, or gnurl:
+  * libgnurl         >= 7.35.0      (recommended, available from
+                                     https://gnunet.org/en/gnurl.html)
   or
-  - libidn           >= 1.0
+  * libcurl          >= 7.35.0      (alternative to libgnurl)
+- libgcrypt          >= 1.6
+- libunistring       >= 0.9.2
+- libidn:
+  * libidn2 (prefered)
+  or
+  * libidn           >= 1.0
+- libmicrohttpd      >= 0.9.52
+- makeinfo           >= 4.8
+- make[*3]
+- nss                               (certutil binary, for
+                                     gnunet-gns-proxy-setup-ca)
 - openssl            >= 1.0         (binary, used to generate
                                      X.509 certificate
                                      for gnunet-gns-proxy-setup-ca)
-- nss                               (certutil binary, for
-                                     gnunet-gns-proxy-setup-ca)
+- A Posix shell                       (for some scripts)
+- Texinfo            >= 5.2         [*1]
 - libltdl            >= 2.2         (part of GNU libtool)
 - 1 or more databases:
-  - sqlite           >= 3.8         (default database, required)
+  * sqlite           >= 3.8         (default database, required)
   and/or
-  - mysql            >= 5.1         (alternative to sqlite)
+  * mysql            >= 5.1         (alternative to sqlite)
   and/or
-  - postgres         >= 9.5         (alternative to sqlite)
-- Texinfo            >= 5.2         [*1]
-- makeinfo           >= 4.8
-- make[*3]
+  * postgres         >= 9.5         (alternative to sqlite)
 - which                             (contrib/apparmor(?), gnunet-bugreport,
                                      and possibly more)
-- gettext
 - zlib
-- Posix shell                       (for some scripts)
-- Bash                              (for some scripts)
 
 These are the dependencies for GNUnet's testsuite:
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-- Posix Shell                       (for some tests)
 - Bash                              (for some tests[*4])
+- A Posix Shell                     (for some tests)
 - python             >= 3.7         (only python 3.7 is supported)
 - base tools
   - mostly:
-    - which,
     - bc,
-    - curl
-    - sed
+    - curl,
+    - sed,
+    - awk,
+    - which
 
 
 These are the optional dependencies:
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+- awk                               (for linting tests)
 - Bash                              (for Docker and Vagrant)
+- bluez                             (for bluetooth support)
+- grof                              (for linting of man pages)
+- guile              1.6.4          (or later up to 1.8?, for
+                                     gnunet-download-manager)
+
 - libextractor       >= 0.6.1       (highly recommended[*5])
 - libjansson
+- libglpk            >= 4.45        (for experimental code)
 - libopus            >= 1.0.1       (for experimental conversation tool)
 - libpulse           >= 2.0         (for experimental conversation tool)
 - libogg             >= 1.3.0       (for experimental conversation tool)
 - libnss                            (certtool binary (for convenient
                                      installation of GNS proxy))
-- python2.7          = 2.7          (for gnunet-qr, only python 2.7
-                                     supported)
-- python-zbar        >= 0.10        (for gnunet-qr, not optional)
-- TeX Live           >= 2012        (for gnunet-bcd[*])
-- texi2mdoc                         (for automatic mdoc generation [*2])
-- mandoc                            (for linting of man pages, generation of
-                                     html output of man pages)
-- awk                               (for linting tests)
-- grof                              (for linting of man pages)
-- libglpk            >= 4.45        (for experimental code)
-- perl5                             (for some utilities)
-- guile              1.6.4          (or later up to 1.8?, for
-                                     gnunet-download-manager)
-- bluez                             (for bluetooth support)
-- miniupnpc
 - libpbc             >= 0.5.14      (for Attribute-Based Encryption and
                                      Identity Provider functionality)
 - libgabe                           (for Attribute-Based Encryption and
                                      Identity Provider functionality, from
                                      https://github.com/schanzen/libgabe)
+- mandoc                            (for linting of man pages, generation of
+                                     html output of man pages)
+- miniupnpc
+- perl5                             (for some utilities)
+- python2.7          = 2.7          (for gnunet-qr, only python 2.7
+                                     supported)
+- python-zbar        >= 0.10        (for gnunet-qr, not optional)
+- TeX Live           >= 2012        (for gnunet-bcd[*])
+- texi2mdoc                         (for automatic mdoc generation [*2])
 
 Recommended autotools for compiling the Git version are:
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
