@@ -436,7 +436,7 @@ together with a description.  To publish files on GNUnet, use the
 "gnunet-publish" command.
 
 
-The GTK+ (or: Gimp Toolkit) user interface is shipped separately.
+The GTK user interface is shipped separately.
 After installing gnunet-gtk, you can invoke the setup tool and
 the file-sharing GUI with:
 
