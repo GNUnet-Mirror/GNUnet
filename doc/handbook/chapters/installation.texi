@@ -1816,7 +1816,7 @@ The other options as shown on the gnunet-setup tool are:
 @node IPv4 address for interface
 @subsubsection IPv4 address for interface
 
-This is the IPv4 address the VPN interface will get. You should pick an
+This is the IPv4 address the VPN interface will get. You should pick a
 'private' IPv4 network that is not yet in use for you system. For example,
 if you use @code{10.0.0.1/255.255.0.0} already, you might use
 @code{10.1.0.1/255.255.0.0}.
