@@ -337,6 +337,7 @@ else
   AC_DEFINE([DOCUMENTATION],[0],[Not building the documentation])
 fi
 
+# FIXME: Something is wrong about this in the output of ./configure runs
 AC_MSG_CHECKING(wether to include generated texi2mdoc output in installation)
 AC_ARG_ENABLE([texi2mdoc-generation],
 [AS_HELP_STRING([--disable-texi2mdoc-generation], [do not include generated texi2mdoc output in installation])],
@@ -693,12 +694,12 @@ AM_CONDITIONAL(HAVE_LIBATOMIC, [test "$have_libatomic" = 1])
 LIBS=$SAVE_LIBS
 CPPFLAGS=$SAVE_CPPFLAGS
 
-AC_CHECK_HEADERS([glpk.h],[glpk=true],[gplk=false])
+AC_CHECK_HEADERS([glpk.h],[glpk=true],[glpk=false])
 # GLPK must support glpk_init_env, version >= 4.43
-AC_CHECK_LIB([glpk],[glp_init_env],,[gplk=false])
+AC_CHECK_LIB([glpk],[glp_init_env],,[glpk=false])
 # GLPK must support atm MLP presolving, version >= 4.32
-AC_CHECK_MEMBERS(glp_iocp.presolve,,[gplk=false],[[#include <glpk.h>]])
-if test x$gplk = xfalse
+AC_CHECK_MEMBERS(glp_iocp.presolve,,[glpk=false],[[#include <glpk.h>]])
+if test "x$glpk" = xfalse
 then
 	AM_CONDITIONAL(HAVE_LIBGLPK, false)
 	AC_MSG_WARN([ERROR: GNUnet requires GLPK  >= 4.32])
