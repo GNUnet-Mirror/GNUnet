@@ -7,10 +7,10 @@ gnunet.conf.5: gnunet.conf.5.in Makefile
 
 if TEXI2MDOC_GENERATION
 gnunet-c-tutorial.7: Makefile gnunet-tutorial.7
-	@echo generated texi2mdoc output
+	@echo generated texi2mdoc output || true
 
 gnunet-tutorial.7: Makefile
-	$(SH) $(srcdir)/texi2mdoc-generation.sh
+	$(SH) $(srcdir)/texi2mdoc-generation.sh || true
 
 endif
 
