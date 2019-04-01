@@ -1,10 +1,12 @@
 @node Preface
 @chapter Preface
 
-@c FIXME: Long sentence is long.
-This collection of manuals describes how to use GNUnet, a framework
+@c FIXME: Do we have to mention that this is Free Software?
+@c FIXME: where did 'Free Software' in this sentence fit before
+@c FIXME: we changed it?
+This collection of manuals describes GNUnet, a framework
 for secure peer-to-peer networking with the high-level goal to provide
-a strong foundation Free Software for a global, distributed network
+a strong foundation for a global, distributed network
 that provides security and privacy.
 GNUnet in that sense aims to replace the current Internet protocol stack.
 Along with an application for secure publication of files, it has grown to
@@ -24,7 +26,8 @@ Internet.
 
 The books (described as ``book'' or ``books'' in the following)
 bundled as the ``GNUnet Reference Manual'' are based on the historic
-work of all contributors to GNUnet's documentation.  It is our hope
+work of all contributors to previous documentation of GNUnet.
+It is our hope
 that the content is described in a way that does not require any
 academic background, although some concepts will require further
 reading.
@@ -36,28 +39,32 @@ on a solution to describe the explanations found there which fits our
 use-case and licensing.
 
 Previously the documentation was contained in Drupal books, on the
-old website. It was considered unmaintainable for the future, so
+old website. This format was considered unmaintainable for the future, so
 Texinfo was chosen. You might find old and very old sections in
 here in addition to more recent content. It took a long time to
 finish the move to Texinfo (from Drupal to LaTeX to wrong Texinfo
 output dump to good Texinfo) and only recently (late 2018, early
-2019 content checking started. We apologize to the reader for
+2019) content checking started. We apologize to the reader for
 any inconvenience and hope you apply logic where bad advice from
 10 years ago can be found (pipe to sudo to install software is
-one example).
+one example). Patches (contributions) to this documentation are more
+than welcome!
 
 The first chapter (``Preface'') as well as the the second chapter
 (``Philosophy'') give an introduction to GNUnet as a project, what
 GNUnet tries to achieve. ``Key Concepts'' explains the key concepts
 in GNUnet.
 These three chapters are the most complete in the documentation.
-They are followed by chapters which need more work:
+They are followed by chapters which explain specific parts of
+GNUnet (and need more work):
 ``Installing GNUnet'', ``GNUnet Contributors Handbook'' and
 ``GNUnet Developer Handbook''.
 
 @node Contributing to this book
 @section Contributing to this book
 
+@c FIXME: There's a good amount of repetition here, we should
+@c FIXME: fix this.
 The GNUnet Reference Manual is a collective work produced by various
 people throughout the years.
 
