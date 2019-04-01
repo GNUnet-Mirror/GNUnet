@@ -1,3 +1,11 @@
+Mon Apr 1 22:00:00 UTC 2019
+  documentation/buildsystem: manpages and other documentation parts
+  can now be build more controlled again, this fixes the regression
+  in 0.11.0 where documentation was an on/off switch.
+  New introduced: --enable-include-manpages.
+  Fixed: texi2mdoc integration (--enable-texi2mdoc-generation).
+  -ng0
+
 Tue Mar 12 10:06:17 CET 2019
   REST: Move back from rest-plugin into respective subsystem directories.
 
