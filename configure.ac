@@ -340,11 +340,11 @@ fi
 # FIXME: Something is wrong about this in the output of ./configure runs
 AC_MSG_CHECKING(wether to include generated texi2mdoc output in installation)
 AC_ARG_ENABLE([texi2mdoc-generation],
-[AS_HELP_STRING([--disable-texi2mdoc-generation], [do not include generated texi2mdoc output in installation])],
-[texi2mdoc-generation=${enableval}],
-[texi2mdoc-generation=yes])
-AC_MSG_RESULT($texi2mdoc-generation)
-if test "x$texi2mdoc-generation" = "xyes"
+    [AS_HELP_STRING([--disable-texi2mdoc-generation], [do not include generated texi2mdoc output in installation])],
+    [texi2mdoc_generation=${enableval}],
+    [texi2mdoc_generation=yes])
+AC_MSG_RESULT($texi2mdoc_generation)
+if test "x$texi2mdoc_generation" = "xyes"
 then
   if test "$texi2mdoc" = 0
   then
