@@ -990,7 +990,7 @@ AC_HEADER_DIRENT
 AC_HEADER_STDC
 
 # Check for headers that are ALWAYS required
-AC_CHECK_HEADERS([fcntl.h math.h errno.h ctype.h limits.h stdio.h stdlib.h string.h unistd.h stdarg.h signal.h locale.h sys/stat.h sys/types.h],,AC_MSG_ERROR([Compiling GNUnet requires standard UNIX headers files: fcntl.h, math.h, errno.h, ctype.h, limits.h, stdio.h, stdlib.h, string.h, unistd.h, stdarg.h, signal.h, locale.h, sys/stat.h, and sys/types.h]))
+AC_CHECK_HEADERS([fcntl.h math.h errno.h ctype.h limits.h stdio.h stdlib.h string.h unistd.h stdarg.h signal.h locale.h sys/stat.h sys/types.h],,AC_MSG_ERROR([Compiling GNUnet requires standard UNIX headers files: fcntl.h math.h errno.h ctype.h limits.h stdio.h stdlib.h string.h unistd.h stdarg.h signal.h locale.h sys/stat.h sys/types.h]))
 
 
 
