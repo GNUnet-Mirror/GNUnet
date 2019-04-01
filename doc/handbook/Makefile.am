@@ -154,13 +154,6 @@ version.texi/replacement/revert:
 	@echo "@set VERSION GPACKAGE_VERSION" > gversion.texi
 	@echo "@set EDITION GPACKAGE_VERSION" >> gversion.texi
 
-if TEXI2MDOC_GENERATION
-gnunet-documentation.7: version.texi/replacement
-	@echo Attempting to output an mdoc formatted section 7 document
-	@texi2mdoc -I$(pwd):$(pwd)/chapters gnunet.texi > ../man/gnunet-documentation.7
-
-# TODO: (Maybe) other outputs resulting from this.
-endif
 
 # FIXME: rm *.html and *.pdf
 #doc-clean:
