@@ -208,9 +208,9 @@ AM_CONDITIONAL(HAVE_SSH_KEY,  ssh -D 12345 -o "BatchMode yes" -o "UserKnownHosts
 rm -f /tmp/gnunet_test_cosks_ssh_garbage
 
 # autotools' m4 for python has no maximum version!
-# python3.7 for tests
-m4_define_default([_AM_PYTHON_INTERPRETER_LIST],[python3 python3.7 python])
-AM_PATH_PYTHON([3.7],, [:])
+# python3.4 - python3.7 for tests
+m4_define_default([_AM_PYTHON_INTERPRETER_LIST],[python3 python3.4 python3.5 python3.6 python3.7 python])
+AM_PATH_PYTHON([3.4],, [:])
 AC_SUBST([PYTHON])
 AM_CONDITIONAL([HAVE_PYTHON], [test "$PYTHON" != :])
 

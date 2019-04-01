@@ -95,7 +95,8 @@ These are the dependencies for GNUnet's testsuite:
 
 - Bash                              (for some tests[*4])
 - A Posix Shell                     (for some tests)
-- python             >= 3.7         (only python 3.7 is supported)
+- python             >= 3.4         (3.4 and higher technically supported,
+                                     at least python 3.7 tested to work)
 - base tools
   - mostly:
     - bc,
