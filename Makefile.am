@@ -1,13 +1,21 @@
 # This Makefile.am is in the public domain
 AM_CPPFLAGS = -I$(top_srcdir)/src/include
 
+# only documentation (ALL of the documentation)
 if DOCUMENTATION_ONLY
   SUBDIRS = doc
 else
   SUBDIRS = m4 src po pkgconfig
+endif
+
+# documentation on / off switch (affects all of the documentation)
 if DOCUMENTATION
   SUBDIRS += doc
 endif
+
+# only manpages, needs "doc" subdir
+if INCLUDE_MANPAGES
+  SUBDIRS += doc
 endif
 
 if !TALER_ONLY
