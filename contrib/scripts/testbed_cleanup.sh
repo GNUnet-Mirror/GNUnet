@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 ###################################################################################
 # Script to clean a previous run of testbed which has crashed. This scripts kills #
