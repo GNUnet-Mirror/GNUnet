@@ -16,7 +16,7 @@ CMD_TEST="cd src/transport ; make test_transport_api_tcp; ./test_transport_api_t
 LOGGING=" 1> /dev/null 2> errors.txt"
 LOGFILE="log.txt"
 
-function output ()
+output ()
 {
   eval echo $1
   eval echo $1 >> $LOGFILE
