@@ -376,6 +376,21 @@ else
   AC_DEFINE([DOCUMENTATION_ONLY],[0],[Not building only the documentation])
 fi
 
+# should the build process be including the manpages? (default: yes)
+AC_MSG_CHECKING(whether to include man pages)
+AC_ARG_ENABLE([include-manpages],
+   [AS_HELP_STRING([--disable-include-manpages], [Do not include the man pages in build and installation])],
+   [include_manpages=${enableval}],
+   [include_manpages=yes])
+AC_MSG_RESULT($include_manpages)
+if test "x$include_manpages" = "xyes"
+then
+  AM_CONDITIONAL([INCLUDE_MANPAGES],true)
+  AC_DEFINE([INCLUDE_MANPAGES],[1],[Including the man pages in the build and installation])
+else
+  AM_CONDITIONAL([INCLUDE_MANPAGES],false)
+  AC_DEFINE([INCLUDE_MANPAGES],[0],[Not including the man pages in the build and installation])
+fi
 
 # Adam shostack suggests the following for Windows:
 # -D_FORTIFY_SOURCE=2 -fstack-protector-all
@@ -1327,6 +1342,7 @@ DATAROOTDIR=$datarootdir
 AC_SUBST(DATAROOTDIR)
 
 # test for sudo
+# TODO: do we need to change anything for "doas" on openbsd?
 AC_MSG_CHECKING(for sudo)
 AC_ARG_WITH(sudo,
   [  --with-sudo=PATH       path to sudo binary (or just yes)],
