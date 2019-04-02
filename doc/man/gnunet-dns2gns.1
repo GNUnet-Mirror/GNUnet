@@ -1,55 +1,60 @@
-.TH GNUNET\-DNS2GNS 1 "March 5, 2018" "GNUnet"
-
-.SH NAME
-gnunet\-dns2gns \- run a DNS-to-GNS proxy
-
-.SH SYNOPSIS
-.B gnunet\-dns2gns
-.RI [ options ]
-.br
-
-.SH DESCRIPTION
-Most users will not want to run an DNS to GNS proxy/gateway and thus will not
-need this program.
-
-\fBgnunet\-dns2gns\fP runs a DNS resolver which delegates requests GNS if
-the TLD matches one configured for GNS.  All other requests are forwarded
-to DNS.  This DNS proxy is useful for enabling non-personalized
-GNS\-resolution to an entire network or to offer GNS\-resolution to DNS users.
-
-.SH OPTIONS
-.IP "\-c FILENAME,  \-\-config=FILENAME"
+.Dd March 5, 2018
+.Dt GNUNET-DNS2GNS 1
+.Os
+.Sh NAME
+.Nm gnunet-dns2gns
+.Nd
+run a DNS-to-GNS proxy
+.Sh SYNOPSIS
+.Nm
+.Op Fl c Ar FILENAME | Fl \-config= Ns Ar FILENAME
+.Op Fl d Ar IP | Fl \-dns= Ns Ar IP
+.Op Fl h | \-help
+.Op Fl L Ar LOGLEVEL | Fl \-loglevel= Ns Ar LOGLEVEL
+.Op Fl v | \-version
+.Sh DESCRIPTION
+.Nm
+runs a DNS resolver which delegates requests GNS if the TLD matches one configured for GNS.
+All other requests are forwarded to DNS.
+This DNS proxy is useful for enabling non-personalized GNS\-resolution to an entire network or to offer GNS\-resolution to DNS users.
+.Bl -tag -width Ds
+.It Fl c Ar FILENAME | Fl \-config= Ns Ar FILENAME
 Use the configuration file FILENAME.
-.IP "\-d IP,  \-\-dns=IP"
+.It Fl d Ar IP | Fl \-dns= Ns Ar IP
 IP address of a recursive DNS resolver that should be used for non-GADS hostnames.
-.IP "\-h, \-\-help"
+.It Fl h | \-help
 Print short help on options.
-.IP "\-L LOGLEVEL, \-\-loglevel=LOGLEVEL"
-Use LOGLEVEL for logging.  Valid values are DEBUG, INFO, WARNING and ERROR.
-.IP "\-v, \-\-version"
+.It Fl L Ar LOGLEVEL | Fl \-loglevel= Ns Ar LOGLEVEL
+Use LOGLEVEL for logging.
+Valid values are DEBUG, INFO, WARNING and ERROR.
+.It Fl v | \-version
 Print GNUnet version number.
-
-.SH BUGS
-Report bugs by using Mantis <https://bugs.gnunet.org/> or by sending
-electronic mail to <bug\-gnunet@gnu.org>
-.SH SEE ALSO
-gnunet\-gns\-fcfs(1), gnunet\-gns(1), gnunet\-identity(1)
-The full documentation for
-.B gnunet
-is maintained as a Texinfo manual.  If the
-.B info
-and
-.B gnunet
-programs are properly installed at your site, the command
-.IP
-.B info gnunet
-.PP
+.El
+.Sh SEE ALSO
+.Xr gnunet-gns-fcfs 1 ,
+.Xr gnunet-gns 1 ,
+.Xr gnunet-identity 1
+.sp
+The full documentation for gnunet is maintained as a Texinfo manual.
+If the
+.Xr info 1
+and gnunet programs are properly installed at your site, the command
+.Pp
+.Dl info gnunet
+.Pp
 should give you access to the complete handbook,
-.IP
-.B info gnunet-c-tutorial
-.PP
+.Pp
+.Dl info gnunet-c-tutorial
+.Pp
 will give you access to a tutorial for developers.
-.PP
-Depending on your installation, this information is also
-available in
-\fBgnunet\fP(7) and \fBgnunet-c-tutorial\fP(7).
+.sp
+Depending on your installation, this information is also available in
+.Xr gnunet 7 and
+.Xr gnunet-c-tutorial 7 .
+.\".Sh HISTORY
+.\".Sh AUTHORS
+.Sh BUGS
+Report bugs by using
+.Lk https://bugs.gnunet.org
+or by sending electronic mail to
+.Aq Mt gnunet-developers@gnu.org .
