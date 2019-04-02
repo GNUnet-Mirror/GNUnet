@@ -2,6 +2,8 @@
 # Run this script to indent the GNUnet code.  When run without arguments,
 # it indents the ENTIRE src/ tree.  Run with 'src/XXX' to indent the
 # src/XXX directory.
+#
+# This script is in the public domain.
 if test $# = 0
 then
  PATHS=src/
