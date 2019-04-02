@@ -4,6 +4,8 @@ Mon Apr 1 22:00:00 UTC 2019
   in 0.11.0 where documentation was an on/off switch.
   New introduced: --enable-include-manpages.
   Fixed: texi2mdoc integration (--enable-texi2mdoc-generation).
+  buildsystem: decrease python dependency to 3.4 from
+  previously 3.7.
   -ng0
 
 Tue Mar 12 10:06:17 CET 2019
