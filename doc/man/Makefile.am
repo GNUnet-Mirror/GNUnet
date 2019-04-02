@@ -77,7 +77,8 @@ endif
 
 EXTRA_DIST = ${man_MANS} \
  gnunet.conf.5.in \
- texi2mdoc-generation.sh
+ texi2mdoc-generation.sh \
+ README
 
 if TEXI2MDOC_GENERATION
 EXTRA_DIST += gnunet-documentation.7 gnunet-c-tutorial.7
