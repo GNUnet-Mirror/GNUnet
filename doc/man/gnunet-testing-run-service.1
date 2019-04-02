@@ -1,49 +1,53 @@
-.TH GNUNET-TESTING-RUN-SERVICE 1 "August 25, 2013" "GNUnet"
-.SH NAME
-gnunet\-testing\-run\-service \- Command line tool to start a service for testing.
-.SH SYNOPSIS
-.B gnunet\-testing\-run\-service
-.RI [ options ]
-.SH DESCRIPTION
-\fBgnunet\-testing\-run\-service\fP is a command line tool to start a
-service for testing. It starts a peer, running only the service
-specified on the command line, outputs the path to the temporary
-configuration file to stdout.
-.PP
-The peer will run until this program is killed, or stdin is
-closed. When reading the character 'r' from stdin, the running service
-is restarted with the same configuration.
-.PP
-This executable is intended to be used by gnunet-java, in order to
-reliably start and stop services for test cases.
-.SH OPTIONS
-.IP "\-c FILENAME,  \-\-config=FILENAME"
+.Dd August 25, 2013
+.Dt GNUNET-TESTING-RUN-SERVICE 1
+.Os
+.Sh NAME
+.Nm gnunet-testing-run-service
+.Nd
+command line tool to start a service for testing
+.Sh SYNOPSIS
+.Nm
+.Op Fl c Ar FILENAME | Fl \-config= Ns Ar FILENAME
+.Op Fl h | \-help
+.Op Fl s Ar SERVICE | Fl \-service= Ns Ar SERVICE
+.Sh DESCRIPTION
+.Nm
+is a command line tool to start a service for testing.
+It starts a peer, running only the service specified on the command line, outputs the path to the temporary configuration file to stdout.
+.Pp
+The peer will run until this program is killed, or stdin is closed.
+When reading the character 'r' from stdin, the running service is restarted with the same configuration.
+.Pp
+This executable is intended to be used by gnunet-java, in order to reliably start and stop services for test cases.
+.Bl -tag -width Ds
+.It Fl c Ar FILENAME | Fl \-config= Ns Ar FILENAME
 Name of the template configuration file to use (optional).
-.IP "\-h, \-\-help"
+.It Fl h | \-help
 Print short help on options.
-.IP "\-s SERVICE, \-\-service=SERVICE"
+.It Fl s Ar SERVICE | Fl \-service= Ns Ar SERVICE
 Name of the service to run.
-.SH BUGS
-Report bugs by using Mantis <https://bugs.gnunet.org/> or by sending
-electronic mail to <gnunet\-developers@gnu.org>
-.SH SEE ALSO
-The full documentation for
-.B gnunet
-is maintained as a Texinfo manual.
+.El
+.Sh SEE ALSO
+The full documentation for gnunet is maintained as a Texinfo manual.
 If the
-.B info
-and
-.B gnunet
-programs are properly installed at your site, the command
-.IP
-.B info gnunet
-.PP
+.Xr info 1
+and gnunet programs are properly installed at your site, the command
+.Pp
+.Dl info gnunet
+.Pp
 should give you access to the complete handbook,
-.IP
-.B info gnunet-c-tutorial
-.PP
+.Pp
+.Dl info gnunet-c-tutorial
+.Pp
 will give you access to a tutorial for developers.
-.PP
-Depending on your installation, this information is also
-available in
-\fBgnunet\fP(7) and \fBgnunet-c-tutorial\fP(7).
+.sp
+Depending on your installation, this information is also available in
+.Xr gnunet 7 and
+.Xr gnunet-c-tutorial 7 .
+.\".Sh HISTORY
+.\".Sh AUTHORS
+.Sh BUGS
+Report bugs by using
+.Lk https://bugs.gnunet.org
+or by sending electronic mail to
+.Aq Mt gnunet-developers@gnu.org .
