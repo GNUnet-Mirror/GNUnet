@@ -21,82 +21,90 @@
 .\"
 .\" SPDX-License-Identifier: GPL3.0-or-later OR FDL1.3-or-later
 .\"
-.TH GNUNET\-ATS 1 "October 16, 2015" "GNUnet"
-.SH NAME
-gnunet\-ats \- display information about transport resource allocation
-.SH SYNOPSIS
-.B gnunet\-ats
-.RI [-a\ |\ --aa]
-.RI [-c\ FILENAME\ |\ --config=FILENAME]
-.RI [-C\ |\ --connect=PEERID]
-.RI [-h\ |\ --help]
-.RI [-i\ |\ --id=PEERID]
-.RI [-k\ |\ --value=VALUE]
-.RI [-L\ LOGLEVEL\ |\ --loglevel=LOGLEVEL]
-.RI [-m\ |\ --monitor]
-.RI [-n\ |\ --numeric]
-.RI [-k\ |\ --preference=E]
-.RI [-q\ |\ --quotas]
-.RI [-t\ |\ --type=VALUE]
-.RI [-u\ |\ --used]
-.RI [-V\ |\ --verbose]
-.RI [-v\ |\ --version]
-.SH DESCRIPTION
-\fBgnunet\-ats\fP can be used to display information about the GNUnet's transport selection mechanism.
+.Dd October 16, 2015
+.Dt GNUNET-ATS 1
+.Os
+.Sh NAME
+.Nm gnunet-ats
+.Nd
+display information about transport resource allocation
+.Sh SYNOPSIS
+.Nm
+.Op Fl a | \-all
+.Op Fl C Ar PEERID | Fl \-connect= Ns Ar PEERID
+.Op Fl c Ar FILENAME | Fl \-config= Ns Ar FILENAME
+.Op Fl h | \-help
+.Op Fl i Ar PEERID | Fl \-id= Ns Ar PEERID
+.Op Fl k Ar VALUE | Fl \-value= Ns Ar VALUE
+.Op Fl L Ar LOGLEVEL | Fl \-loglevel= Ns Ar LOGLEVEL
+.Op Fl m | \-monitor
+.Op Fl n | \-numeric
+.Op Fl p Ar PREFERENCE | Fl \-preference= Ns Ar PREFERENCE
+.Op Fl q | \-quotas
+.Op Fl t Ar TYPE | Fl \-type= Ns Ar TYPE
+.Op Fl u | \-used
+.Op Fl V | \-verbose
+.Op Fl v | \-version
+.Sh DESCRIPTION
+.Nm
+can be used to display information about the GNUnet's transport selection mechanism.
 It shows information about the addresses and the assigned input and output bandwidth.
-.SH OPTIONS
-.IP "\-a\ |\ \-\-aa"
+.Sh OPTIONS
+.Bl -tag -width Ds
+.It Fl a | \-all
 List all addresses currently known to ats.
-.IP "\-c FILENAME\ |\ \-\-config=FILENAME"
-Use the configuration file FILENAME.
-.IP "\-C\ |\ -\-connect=PEERID"
+.It Fl C Ar PEERID | Fl \-connect= Ns Ar PEERID
 Ask ATS to suggest an address for PEERID to transport to establish a connection.
-Note that you can use the gnunet\-transport command\-line tool to force disconnects.
-.IP "\-h\ |\ -\-help"
+Note that you can use the gnunet-transport commandline tool to force disconnects.
+.It Fl c Ar FILENAME | Fl \-config= Ns Ar FILENAME
+Use the configuration file FILENAME.
+.It Fl h | \-help
 Print short help on options.
-.IP "\-i\ |\ -\-id=PEERID"
-Print information for a specific peer identity only
-.IP "\-k\ |\ -\-value=VALUE"
-Value to set for when changing preference values
-.IP "\-L LOGLEVEL\ |\ -\-loglevel=LOGLEVEL"
+.It Fl i Ar PEERID | Fl \-id= Ns Ar PEERID
+Print information for a specific peer identity only.
+.It Fl k Ar VALUE | Fl \-value= Ns Ar VALUE
+Value to set for when changing preference values.
+.It Fl L Ar LOGLEVEL | Fl \-loglevel= Ns Ar LOGLEVEL
 Use LOGLEVEL for logging.
 Valid values are DEBUG, INFO, WARNING and ERROR.
-.IP "\-m\ |\ -\-monitor"
-Monitor changes to the bandwidth assignments continuously
-.IP "\-n\ |\ -\-numeric"
-Do not resolve IP addresses to hostnames
-.IP "\-k\ |\ -\-preference=E"
+.It Fl m | \-monitor
+Monitor changes to the bandwidth assignments continuously.
+.It Fl n | \-numeric
+Do not resolve IP addresses to hostnames.
+.It Fl p Ar PREFERENCE | Fl \-preference= Ns Ar PREFERENCE
 Set preference values, -i, -k and -t required.
-.IP "\-q\ |\ -\-quotas"
+.It Fl q | \-quotas
 Print quotas for all network types
-.IP "\-t\ |\ -\-type=VALUE"
+.It Fl t Ar TYPE | Fl \-type= Ns Ar TYPE
 Preference type to change: latency | bandwidth
-.IP "\-u\ |\ -\-used"
+.It Fl u | \-used
 Print addresses actively used only
-.IP "\-V\ |\ -\-verbose"
+.It Fl V | \-verbose
 Print verbose output (include ATS address properties)
-.IP "\-v\ |\ -\-version"
+.It v | \-version
 Print GNUnet version number.
-.SH SEE ALSO
-gnunet\-transport(1)
-The full documentation for
-.B gnunet
-is maintained as a Texinfo manual.  If the
-.B info
-and
-.B gnunet
-programs are properly installed at your site, the command
-.IP
-.B info gnunet
-.PP
+.El
+.Sh SEE ALSO
+.Xr gnunet-transport 1
+.sp
+The full documentation for gnunet is maintained as a Texinfo manual.
+If the
+.Xr info 1
+and gnunet programs are properly installed at your site, the command
+.Pp
+.Dl info gnunet
+.Pp
 should give you access to the complete handbook,
-.IP
-.B info gnunet-c-tutorial
-.PP
+.Pp
+.Dl info gnunet-c-tutorial
+.Pp
 will give you access to a tutorial for developers.
-.PP
-Depending on your installation, this information is also
-available in
-\fBgnunet\fP(7) and \fBgnunet-c-tutorial\fP(7).
-.SH BUGS
-Report bugs by using Mantis <https://bugs.gnunet.org/> or by sending electronic mail to <bug\-gnunet@gnu.org>.
+.Pp
+Depending on your installation, this information is also available in
+.Xr gnunet 7 and
+.Xr gnunet-c-tutorial 7 .
+.Sh BUGS
+Report bugs by using
+.Lk https://bugs.gnunet.org
+or by sending electronic mail to
+.Aq Mt bug-gnunet@gnu.org .
