@@ -1,44 +1,53 @@
-.TH GNUNET\-QR 1 "September 13, 2014" "GNUnet"
-.SH NAME
-gnunet\-qr \- Scan a QR code using a video device and import.
-.SH SYNOPSIS
-.B gnunet\-qr
-.RI [ options ]
-.br
-.SH DESCRIPTION
-\fBgnunet\-qr\fP is a command line tool to scan a QR code using a
-video device and import.
-.SH OPTIONS
-.IP "\-c FILENAME,  \-\-config=FILENAME"
+.Dd September 13, 2014
+.Dt GNUNET-QR 1
+.Os
+.Sh NAME
+.Nm gnunet-qr
+.Nd
+scan a QR code using a video device and import
+.Sh SYNOPSIS
+.Nm
+.Op Fl c Ar FILENAME | Fl \-config= Ns Ar FILENAME
+.Op Fl d Ar DEVICE | Fl \-device= Ns Ar DEVICE
+.Op Fl h | \-help
+.Op Fl s | \-silent
+.Op Fl v | \-verbose
+.Sh DESCRIPTION
+.Nm
+is a command line tool to scan a QR code using a video device and import.
+.Bl -tag -width Ds
+.It Fl c Ar FILENAME | Fl \-config= Ns Ar FILENAME
 Use the configuration file FILENAME.
-.IP "\-d DEVICE,  \-\-device=DEVICE"
+.It Fl d Ar DEVICE | Fl \-device= Ns Ar DEVICE
 Use device DEVICE.
-.IP "\-h, \-\-help"
+.It Fl h | \-help
 Print short help on options.
-.IP "\-s,  \-\-silent"
+.It Fl s | \-silent
 Do not show preview windows.
-.IP "\-v, \-\-verbose"
+.It Fl v | \-verbose
 Be verbose.
-.SH BUGS
-Report bugs by using Mantis <https://bugs.gnunet.org/> or by sending
-electronic mail to <gnunet\-developers@gnu.org>
-.SH SEE ALSO
-The full documentation for
-.B gnunet
-is maintained as a Texinfo manual.  If the
-.B info
-and
-.B gnunet
-programs are properly installed at your site, the command
-.IP
-.B info gnunet
-.PP
+.El
+.Sh SEE ALSO
+The full documentation for gnunet is maintained as a Texinfo manual.
+If the
+.Xr info 1
+and gnunet programs are properly installed at your site, the command
+.Pp
+.Dl info gnunet
+.Pp
 should give you access to the complete handbook,
-.IP
-.B info gnunet-c-tutorial
-.PP
+.Pp
+.Dl info gnunet-c-tutorial
+.Pp
 will give you access to a tutorial for developers.
-.PP
-Depending on your installation, this information is also
-available in
-\fBgnunet\fP(7) and \fBgnunet-c-tutorial\fP(7).
+.sp
+Depending on your installation, this information is also available in
+.Xr gnunet 7 and
+.Xr gnunet-c-tutorial 7 .
+.\".Sh HISTORY
+.\".Sh AUTHORS
+.Sh BUGS
+Report bugs by using
+.Lk https://bugs.gnunet.org
+or by sending electronic mail to
+.Aq Mt gnunet-developers@gnu.org .
