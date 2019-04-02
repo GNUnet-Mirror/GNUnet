@@ -1,36 +1,42 @@
-.TH GNUNET-TIMOUET 1 "June 5, 2018" "GNUnet"
-.SH NAME
-gnunet\-timeout \- run process with timeout
-.SH SYNOPSIS
-.B gnunet\-timeout
-.RI TIMEOUT PROGRAM ARGS
-.SH DESCRIPTION
-\fBgnunet\-timeout\fP can be used to run another process with a
-timeout.  Provided as the standard "timout" utility may not be
-available on all platforms.
-.SH BUGS
-Report bugs by using Mantis <https://bugs.gnunet.org/> or by sending
-electronic mail to <gnunet\-developers@gnu.org>
-.SH SEE ALSO
-timeout(1)
-.PP
-The full documentation for
-.B gnunet
-is maintained as a Texinfo manual.
+.Dd June 5, 2018
+.Dt GNUNET-TIMEOUT 1
+.Os
+.Sh NAME
+.Nm gnunet-timeout
+.Nd
+run process with timeout
+.Sh SYNOPSIS
+.Nm
+.Ao Ar duration Ac
+.Ao Ar command Ac
+.Ao args ... Ac
+.Sh DESCRIPTION
+.Nm
+can be used to run another process with a timeout.
+It is provided because the standard "timout" utility may not be available on all platforms.
+.Sh SEE ALSO
+.Xr timeout 1
+.sp
+The full documentation for gnunet is maintained as a Texinfo manual.
 If the
-.B info
-and
-.B gnunet
-programs are properly installed at your site, the command
-.IP
-.B info gnunet
-.PP
+.Xr info 1
+and gnunet programs are properly installed at your site, the command
+.Pp
+.Dl info gnunet
+.Pp
 should give you access to the complete handbook,
-.IP
-.B info gnunet-c-tutorial
-.PP
+.Pp
+.Dl info gnunet-c-tutorial
+.Pp
 will give you access to a tutorial for developers.
-.PP
-Depending on your installation, this information is also
-available in
-\fBgnunet\fP(7) and \fBgnunet-c-tutorial\fP(7).
+.sp
+Depending on your installation, this information is also available in
+.Xr gnunet 7 and
+.Xr gnunet-c-tutorial 7 .
+.\".Sh HISTORY
+.\".Sh AUTHORS
+.Sh BUGS
+Report bugs by using
+.Lk https://bugs.gnunet.org
+or by sending electronic mail to
+.Aq Mt gnunet-developers@gnu.org .
