@@ -1,57 +1,67 @@
-.TH GNUNET-UNINDEX "1" "September 6, 2009" "GNUnet"
-.SH NAME
-gnunet\-unindex \- a command line interface for deleting indexed files from GNUnet
-.SH SYNOPSIS
-.B gnunet\-unindex
-[\fIOPTIONS\fR] FILENAME
-.SH DESCRIPTION
-.PP
-gnunet\-unindex is used for deleting indexed files from GNUnet.
-.TP
-\fB\-c \fIFILENAME\fR, \fB\-\-config=FILENAME\fR
-use config file (defaults: ~/.config/gnunet.conf)
-.TP
-\fB\-h\fR, \fB\-\-help\fR
+.Dd September 6, 2009
+.Dt GNUNET-UNINDEX 1
+.Sh NAME
+.Nm gnunet-unindex
+.Nd
+a command line interface for deleting indexed files from GNUnet
+.Sh SYNOPSIS
+.Nm
+.Op Fl c Ar FILENAME | Fl \-config= Ns Ar FILENAME
+.Op Fl h | \-help
+.Op Fl L Ar LOGLEVEL | Fl \-loglevel= Ns Ar LOGLEVEL
+.Op Fl v | \-version
+.Op Fl V | \-verbose
+FILENAME
+.Sh DESCRIPTION
+.Nm
+is used for deleting indexed files from GNUnet.
+.Bl -tag -width Ds
+.It Fl c Ar FILENAME | Fl \-config= Ns Ar FILENAME
+Use config file FILENAME as config (default: ~/.config/gnunet.conf).
+.It Fl h | \-help
 print help page
-.TP
-\fB\-L \fILOGLEVEL\fR, \fB\-\-loglevel=LOGLEVEL\fR
-Change the loglevel.  Possible values for LOGLEVEL are NOTHING,
-ERROR, WARNING, INFO and DEBUG.
-.TP
-\fB\-v\fR, \fB\-\-version\fR
+.It Fl L Ar LOGLEVEL | Fl \-loglevel= Ns Ar LOGLEVEL
+Change the loglevel.
+Possible values for LOGLEVEL are NOTHING, ERROR, WARNING, INFO and DEBUG.
+.It Fl v | \-version
 print the version number
-.TP
-\fB\-V\fR, \fB\-\-verbose\fR
+.It Fl V | \-verbose
 be verbose
-.SH NOTES
-You can only unindex files that you indexed and that you still have
-available locally in full.  You should use gnunet\-unindex on files
-that you indexed (not inserted) and that you are going to delete or
-move locally.
-.SH FILES
+.El
+.Sh NOTES
+You can only unindex files that you indexed and that you still have available locally in full.
+You should use gnunet-unindex on files that you indexed (not inserted) and that you are going to delete or move locally.
+.Sh FILES
 .TP
 ~/.config/gnunet.conf
 GNUnet configuration file
-.SH "REPORTING BUGS"
-Report bugs to <https://bugs.gnunet.org/> or by sending electronic mail to <gnunet\-developers@gnu.org>
-.SH "SEE ALSO"
-\fBgnunet\-fs\-gtk\fP(1), \fBgnunet\-publish\fP(1), \fBgnunet\-search\fP(1), \fBgnunet\-download\fP(1), \fBgnunet.conf\fP(5)
-The full documentation for
-.B gnunet
-is maintained as a Texinfo manual.  If the
-.B info
-and
-.B gnunet
-programs are properly installed at your site, the command
-.IP
-.B info gnunet
-.PP
+.Sh SEE ALSO
+.Xr gnunet-fs-gtk 1 ,
+.Xr gnunet-publish 1 ,
+.Xr gnunet-search 1 ,
+.Xr gnunet-download 1 ,
+.Xr gnunet.conf 5
+.sp
+The full documentation for gnunet is maintained as a Texinfo manual.
+If the
+.Xr info 1
+and gnunet programs are properly installed at your site, the command
+.Pp
+.Dl info gnunet
+.Pp
 should give you access to the complete handbook,
-.IP
-.B info gnunet-c-tutorial
-.PP
+.Pp
+.Dl info gnunet-c-tutorial
+.Pp
 will give you access to a tutorial for developers.
-.PP
-Depending on your installation, this information is also
-available in
-\fBgnunet\fP(7) and \fBgnunet-c-tutorial\fP(7).
+.sp
+Depending on your installation, this information is also available in
+.Xr gnunet 7 and
+.Xr gnunet-c-tutorial 7 .
+.\".Sh HISTORY
+.\".Sh AUTHORS
+.Sh BUGS
+Report bugs by using
+.Lk https://bugs.gnunet.org
+or by sending electronic mail to
+.Aq Mt gnunet-developers@gnu.org .
