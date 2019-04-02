@@ -1,35 +1,40 @@
-.TH GNUNET\-TRANSPORT-CERTIFICATE-CREATION 1 "January 31, 2014" "GNUnet"
-.SH NAME
-gnunet\-transport\-certificate\-creation \- create certificate for HTTPS transport
-.SH SYNOPSIS
-.B gnunet\-transport\-certificate\-creation
-.I privatekey certificate
-.SH DESCRIPTION
-\fBgnunet\-transport\-certificate\-creation\fP uses openssl to generate a RSA
-private key and then a self-signed certificate for HTTPS transport.
-.SH BUGS
-Report bugs by using Mantis <https://bugs.gnunet.org/> or by sending
-electronic mail to <gnunet\-developers@gnu.org>
-.SH SEE ALSO
-gnunet\-transport(1)
-.PP
-The full documentation for
-.B gnunet
-is maintained as a Texinfo manual.
+.Dd January 31, 2014
+.Dt GNUNET-TRANSPORT-CERTIFICATE-CREATION 1
+.Os
+.Sh NAME
+.Nm gnunet-transport-certificate-creation
+.Nd
+create certificate for HTTPS transport
+.Sh SYNOPSIS
+.Nm
+.Op privatekey
+.Op certificate
+.Sh DESCRIPTION
+.Nm
+uses openssl to generate a RSA private key and then a self-signed certificate for HTTPS transport.
+.Sh SEE ALSO
+.Xr gnunet-transport 1
+.sp
+The full documentation for gnunet is maintained as a Texinfo manual.
 If the
-.B info
-and
-.B gnunet
-programs are properly installed at your site, the command
-.IP
-.B info gnunet
-.PP
+.Xr info 1
+and gnunet programs are properly installed at your site, the command
+.Pp
+.Dl info gnunet
+.Pp
 should give you access to the complete handbook,
-.IP
-.B info gnunet-c-tutorial
-.PP
+.Pp
+.Dl info gnunet-c-tutorial
+.Pp
 will give you access to a tutorial for developers.
-.PP
-Depending on your installation, this information is also
-available in
-\fBgnunet\fP(7) and \fBgnunet-c-tutorial\fP(7).
+.sp
+Depending on your installation, this information is also available in
+.Xr gnunet 7 and
+.Xr gnunet-c-tutorial 7 .
+.\".Sh HISTORY
+.\".Sh AUTHORS
+.Sh BUGS
+Report bugs by using
+.Lk https://bugs.gnunet.org
+or by sending electronic mail to
+.Aq Mt gnunet-developers@gnu.org .
