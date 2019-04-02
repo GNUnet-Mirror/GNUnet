@@ -1,45 +1,54 @@
-.TH GNUNET-URI 1 "June 26, 2012" "GNUnet"
-.SH NAME
-gnunet\-uri \- invoke default handler for GNUnet URIs
-.SH SYNOPSIS
-.B gnunet\-uri
-.RI URI
-.SH DESCRIPTION
-\fBgnunet\-uri\fP can be used to invoke the correct tool to handle a
-GNUnet URI.  GNUnet URIs have the format "gnunet://SUBSYSTEM/DETAILS"
-and thus the specific tool to handle the URI depends on the subsystem.
-gnunet\-uri will determine the correct tool (by looking for SUBSYSTEM
-in the configuration section "uri") and invoke it.
-.SH OPTIONS
-.IP "\-c FILENAME,  \-\-config=FILENAME"
+.Dd June 26, 2012
+.Dt GNUNET-URI 1
+.Os
+.Sh NAME
+.Nm gnunet-uri
+.Nd
+invoke default handler for GNUnet URIs
+.Sh SYNOPSIS
+.Nm
+.Op Fl c Ar FILENAME | Fl \-config= Ns Ar FILENAME
+.Op Fl h | \-help
+.Op Fl L Ar LOGLEVEL | Fl \-loglevel= Ns Ar LOGLEVEL
+.Op Fl v | \-version
+.Op URI
+.Sh DESCRIPTION
+.Nm
+can be used to invoke the correct tool to handle a GNUnet URI.
+GNUnet URIs have the format "gnunet://SUBSYSTEM/DETAILS" and thus the specific tool to handle the URI depends on the subsystem.
+gnunet-uri will determine the correct tool (by looking for SUBSYSTEM in the configuration section "uri") and invoke it.
+.Bl -tag -width Ds
+.It Fl c Ar FILENAME | Fl \-config= Ns Ar FILENAME
 Use the configuration file FILENAME.
-.IP "\-h, \-\-help"
+.It Fl h | \-help
 Print short help on options.
-.IP "\-L LOGLEVEL, \-\-loglevel=LOGLEVEL"
-Use LOGLEVEL for logging.  Valid values are DEBUG, INFO, WARNING and ERROR.
-.IP "\-v, \-\-version"
+.It Fl L Ar LOGLEVEL | Fl \-loglevel= Ns Ar LOGLEVEL
+Use LOGLEVEL for logging.
+Valid values are DEBUG, INFO, WARNING and ERROR.
+.It Fl v | \-version
 Print GNUnet version number.
-.SH BUGS
-Report bugs by using Mantis <https://bugs.gnunet.org/> or by sending
-electronic mail to <gnunet\-developers@gnu.org>
-.SH SEE ALSO
-The full documentation for
-.B gnunet
-is maintained as a Texinfo manual.
+.El
+.Sh SEE ALSO
+The full documentation for gnunet is maintained as a Texinfo manual.
 If the
-.B info
-and
-.B gnunet
-programs are properly installed at your site, the command
-.IP
-.B info gnunet
-.PP
+.Xr info 1
+and gnunet programs are properly installed at your site, the command
+.Pp
+.Dl info gnunet
+.Pp
 should give you access to the complete handbook,
-.IP
-.B info gnunet-c-tutorial
-.PP
+.Pp
+.Dl info gnunet-c-tutorial
+.Pp
 will give you access to a tutorial for developers.
-.PP
-Depending on your installation, this information is also
-available in
-\fBgnunet\fP(7) and \fBgnunet-c-tutorial\fP(7).
+.sp
+Depending on your installation, this information is also available in
+.Xr gnunet 7 and
+.Xr gnunet-c-tutorial 7 .
+.\".Sh HISTORY
+.\".Sh AUTHORS
+.Sh BUGS
+Report bugs by using
+.Lk https://bugs.gnunet.org
+or by sending electronic mail to
+.Aq Mt gnunet-developers@gnu.org .
