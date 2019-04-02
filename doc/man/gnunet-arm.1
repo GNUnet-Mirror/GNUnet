@@ -21,75 +21,114 @@
 .\"
 .\" SPDX-License-Identifier: GPL3.0-or-later OR FDL1.3-or-later
 .\"
-.TH GNUNET\-ARM 1 "January 4, 2012" "GNUnet"
-.SH NAME
-gnunet\-arm \- control GNUnet services
-.SH SYNOPSIS
-.B gnunet\-arm
-.RI [-c\ FILENAME\ |\ --config=FILENAME]
-.RI [-e\ |\ --end]
-.RI [-h\ |\ --help]
-.RI [-L\ LOGLEVEL\ |\ --loglevel=LOGLEVEL]
-.RI [-i\ SERVICE\ |\ --init=SERVICE]
-.RI [-k\ SERVICE\ |\ --kill=SERVICE]
-.RI [-m\ |\ --monitor]
-.RI [-s\ |\ --start]
-.RI [-v\ |\ --version]
-.SH DESCRIPTION
-\fBgnunet\-arm\fP can be used to start or stop GNUnet services, including the ARM service itself.
+.Dd January 4, 2012
+.Dt GNUNET-ARM 1
+.Os
+.Sh NAME
+.Nm gnunet-arm
+.Nd
+control GNUnet services
+.Sh SYNOPSIS
+.Nm
+.Op Fl c Ar FILENAME | Fl \-config= Ns Ar FILENAME
+.Op Fl d | \-delete
+.Op Fl e | \-end
+.Op Fl E | \-no-stderr
+.Op Fl h | \-help
+.Op Fl i Ar SERVICE | Fl \-init= Ns Ar SERVICE
+.Op Fl I | \-info
+.Op Fl k Ar SERVICE | Fl \-kill= Ns Ar SERVICE
+.Op Fl l Ar FILENAME | Fl \-logfile= Ns Ar FILENAME
+.Op Fl L Ar LOGLEVEL |  Fl \-loglevel= Ns Ar LOGLEVEL
+.Op Fl m | \-monitor
+.Op Fl O | \-no-stdout
+.Op Fl q | \-quiet
+.Op Fl r | \-restart
+.Op Fl s | \-start
+.Op Fl T DELAY | \-timeout= Ns Ar TIMEOUT
+.Op Fl v | \-version
+.Sh DESCRIPTION
+.Nm
+can be used to start or stop GNUnet services, including the ARM service itself.
 The ARM service is a supervisor for GNUnet's service processes.
-ARM starts services on-demand or as configured and re-starts them if they crash.
-.SH OPTIONS
-.IP "\-c FILENAME\ | \-\-config=FILENAME"
+ARM starts services on-demand or as configured and restarts them if they crash.
+.Bl -tag -width Ds
+.It Fl c Ar FILENAME | Fl \-config= Ns Ar FILENAME
 Use the configuration file FILENAME.
-.IP "\-e\ | \-\-end"
+.It Fl d | \-delete
+Delete config file and directory on exit.
+.It Fl e | \-end
 Shutdown all GNUnet services (including ARM itself).
 Running "gnunet-arm \-e" is the usual way to shutdown a GNUnet peer.
-.IP "\-h\ | \-\-help"
+.It Fl E | \-no-stderr
+Don't let gnunet-arm inherit standard error.
+.It Fl h | \-help
 Print short help on options.
-.IP "\-L LOGLEVEL\ | \-\-loglevel=LOGLEVEL"
-Use LOGLEVEL for logging.
-Valid values are DEBUG, INFO, WARNING and ERROR.
-.IP "\-i SERVICE\ | \-\-init=SERVICE"
+.It Fl i Ar SERVICE | Fl \-init= Ns Ar SERVICE
 Starts the specified SERVICE if it is not already running.
 More specifically, this makes the service behave as if it were in the default services list.
-.IP "\-k SERVICE\ | \-\-kill=SERVICE"
+.It Fl I | \-info
+List all running services.
+.It Fl k Ar SERVICE | Fl \-kill= Ns Ar SERVICE
 Stop the specified SERVICE if it is running.
 While this will kill the service right now, the service may be restarted immediately if other services depend on it (service is then started 'on-demand').
 If the service used to be a 'default' service, its default-service status will be revoked.
 If the service was not a default service, it will just be (temporarily) stopped, but could be re-started on-demand at any time.
-.IP "\-m\ | \-\-monitor"
+.It Fl l Ar FILENAME | Fl \-logfile= Ns Ar FILENAME
+Write logs to FILENAME.
+.It Fl L Ar LOGLEVEL |  Fl \-loglevel= Ns Ar LOGLEVEL
+Use LOGLEVEL for logging.
+Valid values are DEBUG, INFO, WARNING and ERROR.
+.It Fl m | \-monitor
 Monitor service activity of ARM.
 In this mode, the command will not terminate until the user presses CTRL-C.
-.IP "\-s\ | \-\-start"
+.It Fl O | \-no-stdout
+Don't let gnunet-arm inherit standard output
+.It Fl q | \-quiet
+Don't print status messages.
+.It Fl r | \-restart
+Stop and start all GNUnet default services.
+.It Fl s | \-start
 Start all GNUnet default services on this system (and also ARM).
 Naturally, if a service is demanded by a default service, it will then also be started.
 Running "gnunet-arm \-s" is the usual way to start a GNUnet peer.
-.IP "\-I\ | \-\-info"
-List all running services.
-.IP "\-v\ | \-\-version"
+.It Fl T DELAY | \-timeout= Ns Ar DELAY
+Exit with error status if operation does not finish after DELAY
+.It Fl v | \-version
 Print GNUnet version number.
-.SH SEE ALSO
-gnunet\-config(1), gnunet\-setup(1)
-.PP
-The full documentation for
-.B gnunet
-is maintained as a Texinfo manual.
+.El
+.Sh EXAMPLES
+Start the gnunet-arm for the user:
+.Pp
+.Dl gnunet-arm -s
+.Pp
+Stop the gnunet-arm for the user:
+.Pp
+.Dl $ gnunet-arm -e
+.Sh SEE ALSO
+.Xr gnunet-config 1 ,
+.Xr gnunet-setup 1
+.sp
+The full documentation for gnunet is maintained as a Texinfo manual.
 If the
-.B info
-and
-.B gnunet
-programs are properly installed at your site, the command
-.IP
-.B info gnunet
-.PP
+.Xr info 1
+and gnunet programs are properly installed at your site, the command
+.Pp
+.Dl info gnunet
+.Pp
 should give you access to the complete handbook,
-.IP
-.B info gnunet-c-tutorial
-.PP
+.Pp
+.Dl info gnunet-c-tutorial
+.Pp
 will give you access to a tutorial for developers.
-.PP
+.sp
 Depending on your installation, this information is also available in
-\fBgnunet\fP(7) and \fBgnunet-c-tutorial\fP(7).
-.SH BUGS
-Report bugs by using Mantis <https://bugs.gnunet.org/> or by sending electronic mail to <gnunet\-developers@gnu.org>.
+.Xr gnunet 7 and
+.Xr gnunet-c-tutorial 7 .
+.\".Sh HISTORY
+.\".Sh AUTHORS
+.Sh BUGS
+Report bugs by using
+.Lk https://bugs.gnunet.org
+or by sending electronic mail to
+.Aq Mt gnunet-developers@gnu.org .
