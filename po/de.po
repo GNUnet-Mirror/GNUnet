@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gnunet 0.10.1\n"
 "Report-Msgid-Bugs-To: gnunet-developers@mail.gnu.org\n"
-"POT-Creation-Date: 2019-04-03 14:36+0200\n"
+"POT-Creation-Date: 2019-04-03 16:13+0200\n"
 "PO-Revision-Date: 2015-03-08 16:16+0100\n"
 "Last-Translator: Mario Blättermann <mario.blaettermann@gmail.com>\n"
 "Language-Team: German <translation-team-de@lists.sourceforge.net>\n"
@@ -226,7 +226,6 @@ msgid "Control services and the Automated Restart Manager (ARM)"
 msgstr ""
 
 #: src/arm/gnunet-service-arm.c:388 src/transport/plugin_transport_tcp.c:1120
-#: src/transport/plugin_transport_xt.c:1120
 #: src/transport/tcp_service_legacy.c:557
 #, c-format
 msgid ""
@@ -237,9 +236,6 @@ msgstr ""
 #: src/transport/plugin_transport_tcp.c:1139
 #: src/transport/plugin_transport_tcp.c:1145
 #: src/transport/plugin_transport_tcp.c:3835
-#: src/transport/plugin_transport_xt.c:1139
-#: src/transport/plugin_transport_xt.c:1145
-#: src/transport/plugin_transport_xt.c:3833
 #: src/transport/tcp_service_legacy.c:576
 #: src/transport/tcp_service_legacy.c:582 src/util/service.c:1156
 #: src/util/service.c:1162
@@ -248,7 +244,6 @@ msgid "Require valid port number for service `%s' in configuration!\n"
 msgstr ""
 
 #: src/arm/gnunet-service-arm.c:457 src/transport/plugin_transport_tcp.c:1176
-#: src/transport/plugin_transport_xt.c:1176
 #: src/transport/tcp_service_legacy.c:613 src/util/client.c:521
 #: src/util/service.c:1201
 #, c-format
@@ -256,7 +251,6 @@ msgid "UNIXPATH `%s' too long, maximum length is %llu\n"
 msgstr ""
 
 #: src/arm/gnunet-service-arm.c:462 src/transport/plugin_transport_tcp.c:1180
-#: src/transport/plugin_transport_xt.c:1180
 #: src/transport/tcp_service_legacy.c:617 src/util/client.c:526
 #: src/util/service.c:1206
 #, c-format
@@ -264,7 +258,6 @@ msgid "Using `%s' instead\n"
 msgstr ""
 
 #: src/arm/gnunet-service-arm.c:495 src/transport/plugin_transport_tcp.c:1211
-#: src/transport/plugin_transport_xt.c:1211
 #: src/transport/tcp_service_legacy.c:648 src/util/service.c:1242
 #, c-format
 msgid ""
@@ -273,7 +266,6 @@ msgid ""
 msgstr ""
 
 #: src/arm/gnunet-service-arm.c:517 src/transport/plugin_transport_tcp.c:1228
-#: src/transport/plugin_transport_xt.c:1228
 #: src/transport/tcp_service_legacy.c:665 src/util/service.c:1260
 #, c-format
 msgid "Have neither PORT nor UNIXPATH for service `%s', but one is required\n"
@@ -282,7 +274,6 @@ msgstr ""
 #: src/arm/gnunet-service-arm.c:556
 #: src/transport/plugin_transport_http_server.c:2688
 #: src/transport/plugin_transport_tcp.c:1259
-#: src/transport/plugin_transport_xt.c:1259
 #: src/transport/tcp_service_legacy.c:696 src/util/service.c:1301
 #, c-format
 msgid "Failed to resolve `%s': %s\n"
@@ -291,7 +282,6 @@ msgstr "»%s« konnte nicht aufgelöst werden: %s\n"
 #: src/arm/gnunet-service-arm.c:575
 #: src/transport/plugin_transport_http_server.c:2706
 #: src/transport/plugin_transport_tcp.c:1278
-#: src/transport/plugin_transport_xt.c:1278
 #: src/transport/tcp_service_legacy.c:715 src/util/service.c:1321
 #, fuzzy, c-format
 msgid "Failed to find %saddress for `%s'.\n"
@@ -7487,8 +7477,6 @@ msgstr ""
 #: src/transport/plugin_transport_http_server.c:3530
 #: src/transport/plugin_transport_tcp.c:3901
 #: src/transport/plugin_transport_tcp.c:3908
-#: src/transport/plugin_transport_xt.c:3899
-#: src/transport/plugin_transport_xt.c:3906
 msgid "TCP_STEALTH not supported on this platform.\n"
 msgstr ""
 
@@ -7558,7 +7546,6 @@ msgstr ""
 
 #: src/transport/plugin_transport_http_server.c:2905
 #: src/transport/plugin_transport_udp.c:3627
-#: src/transport/plugin_transport_xu.c:2049
 msgid "Disabling IPv6 since it is not supported on this system!\n"
 msgstr ""
 
@@ -7663,8 +7650,6 @@ msgstr "# Bytes verworfen von SMTP (ausgehend)"
 
 #: src/transport/plugin_transport_tcp.c:1557
 #: src/transport/plugin_transport_tcp.c:2883
-#: src/transport/plugin_transport_xt.c:1553
-#: src/transport/plugin_transport_xt.c:2879
 #, c-format
 msgid "Unexpected address length: %u bytes\n"
 msgstr ""
@@ -7673,9 +7658,6 @@ msgstr ""
 #: src/transport/plugin_transport_tcp.c:1964
 #: src/transport/plugin_transport_tcp.c:3147
 #: src/transport/plugin_transport_tcp.c:4024
-#: src/transport/plugin_transport_xt.c:1736
-#: src/transport/plugin_transport_xt.c:1960
-#: src/transport/plugin_transport_xt.c:3143
 msgid "# TCP sessions active"
 msgstr "# aktive TCP-Sitzungen"
 
@@ -7685,87 +7667,66 @@ msgstr "# aktive TCP-Sitzungen"
 #: src/transport/plugin_transport_tcp.c:2143
 #: src/transport/plugin_transport_tcp.c:2243
 #: src/transport/plugin_transport_tcp.c:2268
-#: src/transport/plugin_transport_xt.c:1778
-#: src/transport/plugin_transport_xt.c:1942
-#: src/transport/plugin_transport_xt.c:2066
-#: src/transport/plugin_transport_xt.c:2139
-#: src/transport/plugin_transport_xt.c:2239
-#: src/transport/plugin_transport_xt.c:2264
 msgid "# bytes currently in TCP buffers"
 msgstr "# Bytes derzeit in TCP-Puffern"
 
 #: src/transport/plugin_transport_tcp.c:1785
-#: src/transport/plugin_transport_xt.c:1781
 msgid "# bytes discarded by TCP (disconnect)"
 msgstr "# Bytes verworfen von TCP (unterbrochen)"
 
 #: src/transport/plugin_transport_tcp.c:2073
-#: src/transport/plugin_transport_xt.c:2069
 msgid "# bytes discarded by TCP (timeout)"
 msgstr "# Bytes verworfen von TCP (Zeitüberschreitung)"
 
 #: src/transport/plugin_transport_tcp.c:2147
-#: src/transport/plugin_transport_xt.c:2143
 msgid "# bytes transmitted via TCP"
 msgstr "# Bytes über TCP übertragen"
 
 #: src/transport/plugin_transport_tcp.c:2545
-#: src/transport/plugin_transport_xt.c:2541
 msgid "# requests to create session with invalid address"
 msgstr ""
 
 #: src/transport/plugin_transport_tcp.c:2721
-#: src/transport/plugin_transport_xt.c:2717
 msgid "# transport-service disconnect requests for TCP"
 msgstr ""
 
 #: src/transport/plugin_transport_tcp.c:3213
-#: src/transport/plugin_transport_xt.c:3209
 #, fuzzy
 msgid "# TCP WELCOME messages received"
 msgstr "# verschlüsselter PONG Nachrichten empfangen"
 
 #: src/transport/plugin_transport_tcp.c:3419
-#: src/transport/plugin_transport_xt.c:3415
 msgid "# bytes received via TCP"
 msgstr "# Bytes empfangen über TCP"
 
 #: src/transport/plugin_transport_tcp.c:3470
 #: src/transport/plugin_transport_tcp.c:3528
-#: src/transport/plugin_transport_xt.c:3466
-#: src/transport/plugin_transport_xt.c:3524
 #, fuzzy
 msgid "# TCP server connections active"
 msgstr " Verbindung fehlgeschlagen\n"
 
 #: src/transport/plugin_transport_tcp.c:3474
-#: src/transport/plugin_transport_xt.c:3470
 #, fuzzy
 msgid "# TCP server connect events"
 msgstr "# verbundener Knoten"
 
 #: src/transport/plugin_transport_tcp.c:3480
-#: src/transport/plugin_transport_xt.c:3476
 msgid "TCP connection limit reached, suspending server\n"
 msgstr ""
 
 #: src/transport/plugin_transport_tcp.c:3482
-#: src/transport/plugin_transport_xt.c:3478
 msgid "# TCP service suspended"
 msgstr ""
 
 #: src/transport/plugin_transport_tcp.c:3522
-#: src/transport/plugin_transport_xt.c:3518
 msgid "# TCP service resumed"
 msgstr ""
 
 #: src/transport/plugin_transport_tcp.c:3532
-#: src/transport/plugin_transport_xt.c:3528
 msgid "# network-level TCP disconnect events"
 msgstr ""
 
 #: src/transport/plugin_transport_tcp.c:3851
-#: src/transport/plugin_transport_xt.c:3849
 msgid "Failed to start service.\n"
 msgstr "Fehler beim Starten des Dienstes.\n"
 
@@ -7818,7 +7779,6 @@ msgid "Failed to bind UDP socket to %s: %s\n"
 msgstr "UDP-Sockets können nicht geöffnet werden\n"
 
 #: src/transport/plugin_transport_udp.c:3721
-#: src/transport/plugin_transport_xu.c:2143
 msgid "Disabling IPv4 since it is not supported on this system!\n"
 msgstr ""
 
@@ -7828,19 +7788,15 @@ msgstr "UDP-Sockets können nicht geöffnet werden\n"
 
 #: src/transport/plugin_transport_udp.c:3883
 #: src/transport/plugin_transport_udp.c:3897
-#: src/transport/plugin_transport_xu.c:2301
-#: src/transport/plugin_transport_xu.c:2315
 msgid "must be in [0,65535]"
 msgstr ""
 
 #: src/transport/plugin_transport_udp.c:3929
-#: src/transport/plugin_transport_xu.c:2347
 #, fuzzy
 msgid "must be valid IPv4 address"
 msgstr "»%s« ist keine gültige IP-Adresse.\n"
 
 #: src/transport/plugin_transport_udp.c:3956
-#: src/transport/plugin_transport_xu.c:2374
 #, fuzzy
 msgid "must be valid IPv6 address"
 msgstr "»%s« ist keine gültige IP-Adresse.\n"
@@ -7925,55 +7881,6 @@ msgstr ""
 #, fuzzy
 msgid "# sessions allocated"
 msgstr "# Sitzungsschlüssel akzeptiert"
-
-#: src/transport/plugin_transport_xt.c:4010
-#, fuzzy, c-format
-msgid "XT transport listening on port %llu\n"
-msgstr "TCP-Transportdienst wartet auf Port %llu\n"
-
-#: src/transport/plugin_transport_xt.c:4014
-#, fuzzy
-msgid "XT transport not listening on any port (client only)\n"
-msgstr "TCP-Transportdienst wartet auf Port %llu\n"
-
-#: src/transport/plugin_transport_xt.c:4018
-#, fuzzy, c-format
-msgid "XT transport advertises itself as being on port %llu\n"
-msgstr "TCP-Transportdienst wartet auf Port %llu\n"
-
-#: src/transport/plugin_transport_xt.c:4022
-#, fuzzy
-msgid "# XT sessions active"
-msgstr "# aktive TCP-Sitzungen"
-
-#: src/transport/plugin_transport_xu.c:1237
-#, c-format
-msgid ""
-"XU could not transmit message to `%s': Network seems down, please check your "
-"network configuration\n"
-msgstr ""
-
-#: src/transport/plugin_transport_xu.c:1251
-msgid ""
-"XU could not transmit IPv6 message! Please check your network configuration "
-"and disable IPv6 if your connection does not have a global IPv6 address\n"
-msgstr ""
-
-#: src/transport/plugin_transport_xu.c:2125
-#: src/transport/plugin_transport_xu.c:2224
-#, fuzzy, c-format
-msgid "Failed to bind XU socket to %s: %s\n"
-msgstr "UDP-Sockets können nicht geöffnet werden\n"
-
-#: src/transport/plugin_transport_xu.c:2234
-#, fuzzy
-msgid "Failed to open XU sockets\n"
-msgstr "UDP-Sockets können nicht geöffnet werden\n"
-
-#: src/transport/plugin_transport_xu.c:2398
-#, fuzzy
-msgid "Failed to create XU network sockets\n"
-msgstr "UDP-Sockets können nicht geöffnet werden\n"
 
 #: src/transport/tcp_connection_legacy.c:452
 #, c-format
@@ -9173,6 +9080,34 @@ msgstr "Protokollverletzung auf Socket. Kommando erwartet.\n"
 #, fuzzy, c-format
 msgid "`%s' failed on file `%s' at %s:%d with error: %s\n"
 msgstr "`%s' schlug bei Datei `%s' fehl. Ort: %s:%d. Fehler: %s\n"
+
+#, fuzzy
+#~ msgid "XT transport listening on port %llu\n"
+#~ msgstr "TCP-Transportdienst wartet auf Port %llu\n"
+
+#, fuzzy
+#~ msgid "XT transport not listening on any port (client only)\n"
+#~ msgstr "TCP-Transportdienst wartet auf Port %llu\n"
+
+#, fuzzy
+#~ msgid "XT transport advertises itself as being on port %llu\n"
+#~ msgstr "TCP-Transportdienst wartet auf Port %llu\n"
+
+#, fuzzy
+#~ msgid "# XT sessions active"
+#~ msgstr "# aktive TCP-Sitzungen"
+
+#, fuzzy
+#~ msgid "Failed to bind XU socket to %s: %s\n"
+#~ msgstr "UDP-Sockets können nicht geöffnet werden\n"
+
+#, fuzzy
+#~ msgid "Failed to open XU sockets\n"
+#~ msgstr "UDP-Sockets können nicht geöffnet werden\n"
+
+#, fuzzy
+#~ msgid "Failed to create XU network sockets\n"
+#~ msgstr "UDP-Sockets können nicht geöffnet werden\n"
 
 #, fuzzy
 #~ msgid "Print information about DV state"
