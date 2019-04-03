@@ -534,6 +534,39 @@ else
   AC_DEFINE([HAVE_LIBBLUETOOTH],[0],[Lacking bluetooth library])
 fi
 
+# check for zbar library
+zbar=0
+AC_MSG_CHECKING(for libzbar)
+AC_ARG_WITH(zbar,
+   [  --with-zbar=PFX    base of libzbar installation],
+   [AC_MSG_RESULT([$with_zbar])
+    case $with_zbar in
+      no)
+        ;;
+      yes)
+        AC_CHECK_HEADERS(zbar.h,
+          AC_CHECK_LIB([zbar], [zbar_processor_create],
+            zbar=1))
+        ;;
+      *)
+        LDFLAGS="-L$with_zbar/lib $LDFLAGS"
+        CPPFLAGS="-I$with_zbar/include $CPPFLAGS"
+        AC_CHECK_HEADERS(zbar.h,
+          AC_CHECK_LIB([zbar], [zbar_processor_create],
+            EXT_LIB_PATH="-L$with_zbar/lib $EXT_LIB_PATH"
+            zbar=1))
+        ;;
+    esac
+   ],
+   [AC_MSG_RESULT([--with-zbar not specified])
+    AC_CHECK_HEADERS(zbar.h,
+     AC_CHECK_LIB([zbar], [zbar_processor_create],
+      zbar=1))])
+AM_CONDITIONAL(HAVE_ZBAR, [test "$zbar" = 1])
+AS_IF([test "x$zbar" = x1],
+      [AC_DEFINE([HAVE_ZBAR],[1],[Have zbar library])],
+      [AC_DEFINE([HAVE_ZBAR],[0],[Lacking zbar library])])
+
 # check for jansson library
 jansson=0
 AC_MSG_CHECKING(for libjansson)
@@ -563,6 +596,7 @@ AC_ARG_WITH(jansson,
      AC_CHECK_LIB([jansson], [json_loads],
       jansson=1))])
 AM_CONDITIONAL(HAVE_JANSSON, [test "$jansson" = 1])
+AM_CONDITIONAL(HAVE_JSON, [test x$jansson = x1])
 AS_IF([test "x$jansson" = x1],
       [AC_DEFINE([HAVE_JANSSON],[1],[Have jansson library])],
       [AC_DEFINE([HAVE_JANSSON],[0],[Lacking jansson library])])
@@ -1432,6 +1466,7 @@ AM_CONDITIONAL(HAVE_GNUTLS_DANE, test x$gnutls_dane = x1)
 AC_DEFINE_UNQUOTED([HAVE_GNUTLS_DANE], $gnutls_dane, [We have GnuTLS with DANE support])
 
 
+
 # Test if we are building for superMUC
 AC_MSG_CHECKING(if GNUnet is being configured to run on the SuperMUC)
 AC_ARG_ENABLE([supermuc],
@@ -1937,6 +1972,10 @@ AS_IF([test x$gnutls != xtrue],
  [AC_MSG_NOTICE([WARNING: GnuTLS not found, gnunet-gns-proxy will not be built])],
  [AS_IF([test "x$gnutls_dane" != "x1"],
   [AC_MSG_NOTICE([WARNING: GnuTLS has no DANE support, DANE validation will not be possible])])])
+
+# warn user if libzbar is not found
+AS_IF([test "$have_zbar" = 0],
+      [AC_MSG_NOTICE([WARNING: zbar not found, gnunet-qr will not be built.])])
 
 # java ports
 AS_IF([test "x$enable_java_ports" = "xyes"],

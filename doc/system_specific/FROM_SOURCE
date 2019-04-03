@@ -534,7 +534,7 @@ at all.
 We begin by installing a few Debian packages from stable:@
 
 @example
-# apt-get install gcc make python-zbar libltdl-dev libsqlite3-dev \
+# apt-get install gcc make libzbar-dev libltdl-dev libsqlite3-dev \
   libunistring-dev libopus-dev libpulse-dev openssl libglpk-dev \
   texlive libidn11-dev libmysqlclient-dev libpq-dev libarchive-dev \
   libbz2-dev libexiv2-dev libflac-dev libgif-dev libglib2.0-dev \
@@ -778,7 +778,7 @@ as a normal user.
 We begin by installing a few Debian packages from stable:
 
 @example
-# apt-get install gcc make python-zbar libltdl-dev libsqlite3-dev \
+# apt-get install gcc make libzbar-dev libltdl-dev libsqlite3-dev \
 libunistring-dev libopus-dev libpulse-dev openssl libglpk-dev texlive \
 libidn11-dev libmysqlclient-dev libpq-dev libarchive-dev libbz2-dev \
 libflac-dev libgif-dev libglib2.0-dev libgtk-3-dev libmpeg2-4-dev \
