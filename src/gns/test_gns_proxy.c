@@ -11,7 +11,7 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -50,9 +50,9 @@ static int global_ret;
 
 static struct MHD_Daemon *mhd;
 
-static struct GNUNET_SCHEDULER_Task * mhd_task_id;
+static struct GNUNET_SCHEDULER_Task *mhd_task_id;
 
-static struct GNUNET_SCHEDULER_Task * curl_task_id;
+static struct GNUNET_SCHEDULER_Task *curl_task_id;
 
 static CURL *curl;
 
@@ -349,6 +349,7 @@ curl_main ()
 static void
 start_curl (void *cls)
 {
+  curl_task_id = NULL;
   GNUNET_asprintf (&url,
                    "https://%s:%d/hello_world",
                    TEST_DOMAIN, port);
@@ -391,7 +392,8 @@ commence_testing (void *cls)
 {
   curl_task_id =
     GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
-                                  &start_curl, NULL);
+                                  &start_curl,
+                                  NULL);
 }
 
 
@@ -561,4 +563,4 @@ main (int argc, char *const *argv)
   return global_ret;
 }
 
-/* end of test_gns_vpn.c */
+/* end of test_gns_proxy.c */
