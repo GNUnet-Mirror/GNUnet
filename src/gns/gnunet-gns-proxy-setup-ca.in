@@ -50,8 +50,8 @@ progname=${0##*/}
 
 setdefaults()
 {
+    verbosity=0
     runcmd=
-    #TOP=$( (exec pwd -P 2>/dev/null) || (exec pwd 2>/dev/null) )
 }
 
 statusmsg()
@@ -61,7 +61,9 @@ statusmsg()
 
 infomsg()
 {
-    statusmsg "INFO: $@"
+    if [ $verbosity = 1 ]; then
+        statusmsg "INFO: $@"
+    fi
 }
 
 warningmsg()
@@ -79,58 +81,6 @@ linemsg()
     statusmsg "========================================="
 }
 
-# Given a variable name in $1, modify the variable in place
-# as follows:
-# Convert possibly-relative path to absolute path by prepending
-# ${TOP} if necessary.  Also delete trailing "/", if any.
-resolvepath()
-{
-    local var="$1"
-    local val
-    eval val=\"\${${var}}\"
-    case "${val}" in
-        /)
-        ;;
-        /*)
-            val="${val%/}"
-            ;;
-        *)
-            val="${TOP}/${val%/}"
-            ;;
-    esac
-    eval ${var}=\"\${val}\"
-}
-
-# usage()
-# {
-#     if [ -n "$*" ]; then
-#         echo ""
-#         echo "${progname}: $*"
-#     fi
-#     cat <<_usage_
-
-# Usage: ${progname} [-fhv] [-c FILE] operation [...]
-
-# Operations:
-#    cert		Create the GNS certificate and only insert
-# 		it in GNS.
-#    browser	Create the GNS certificate, insert it in
-# 		GNS and install it in webbrowsers found.
-#    all		Create the GNS certificate, insert it in
-# 		GNS and install it in webbrowsers found.
-#    help		Print this help message.
-
-# Options:
-#    -c FILE	Use the configuration file FILE.
-#    -f		Perform expansions of the variables used in the config
-# 		value of gns-proxy. This will usually expand
-# 		$GNUNET_DATA_HOME to represent its path.
-#    -h		Print this help message.
-#    -v		Print the version.
-
-# _usage_
-# 	exit 1
-# }
 
 usage()
 {
@@ -153,78 +103,6 @@ _usage_
 }
 
 
-# parseoptions()
-# {
-#     opts=':cfhv'
-#     # For now use POSIX getopts. For the future, refer to
-#     # the shell capabilities check build.sh has?
-#     if type getopts >/dev/null 2>&1; then
-#         # we are a posix shell, we can use the builtin getopts
-#         getoptcmd='getopts ${opts} opt && opt=-${opt}'
-#         optargcmd=':'
-#         optremcmd='shift $((${OPTIND} -1))'
-#     fi
-
-#     # parse command line options.
-#     while eval ${getoptcmd}; do
-#         case ${opt} in
-
-#             -c)
-#                 eval ${optargcmd}; resolvepath OPTARG
-#                 GNUNET_CONFIG_FILE="${OPTARG}"
-#                 export GNUNET_CONFIG_FILE
-#                 ;;
-#             -v)
-#                 print_version
-#                 ;;
-#             --)
-#                 break
-#                 ;;
-#             -'?'|-h)
-#                 usage
-#                 ;;
-#         esac
-#     done
-
-#     # operations
-#     eval ${optremcmd}
-#     while [ $# -gt 0 ]; do
-#         op=$1; shift
-#         operations="${operations} ${op}"
-#         case "${op}" in
-#             help)
-#                 usage
-#                 ;;
-#             all|\
-#             browser|\
-#             cert)
-#                 ;;
-#             *)
-#                 usage "Unknown operation \`${op}'"
-#                 ;;
-#         esac
-#         op="$( echo "$op" | tr -s '.-' '__')"
-#         eval do_${op}=true
-#     done
-# }
-    #[ -n "${operations}" ] || usage "Missing operation to perform."
-    # old code:
-    # while getopts "c:" opt; do
-    #     case $opt in
-    #         c)
-    #             options="$options -c $OPTARG"
-    #             ;;
-    #         \?)
-    #             echo "Invalid option: -$OPTARG" >&2
-    #             exit 1
-    #             ;;
-    #         :)
-    #             echo "Option -$OPTARG requires an argument." >&2
-    #             exit 1
-    #             ;;
-    #     esac
-    # done
-
 generate_ca()
 {
     echo ""
@@ -238,15 +116,6 @@ generate_ca()
         # This warning is mostly pointless.
         warning "You need to export the TMPDIR variable"
     fi
-    # else
-    #     # SETUP_TMPDIR="$HOME/gns_setup"
-    #     # if [ ! -e "$SETUP_TMPDIR" ]; then
-    #     #     mkdir -p $SETUP_TMPDIR
-    #     # fi
-    #     GNSCERT=`mktemp ${00##*/}.pem` || exit 1
-    #     GNSCAKY=`mktemp ${00##*/}.pem` || exit 1
-    #     GNSCANO=`mktemp ${00##*/}.pem` || exit 1
-    # fi
 
     # # ------------- gnutls
     #
@@ -280,18 +149,12 @@ generate_ca()
     GNS_CA_CERT_PEM=`gnunet-config ${GNUNET_CONFIG} -s gns-proxy -o PROXY_CACERT -f ${options}`
     mkdir -p `dirname $GNS_CA_CERT_PEM`
 
-    # Bad names etc.
-    if [ verbosity ]; then
-        VERBOSE_OUTPUT=""
-    else
-        VERBOSE_OUTPUT="2>/dev/null"
-    fi
-    openssl req -config $OPENSSLCFG -new -x509 -days 3650 -extensions v3_ca -keyout $GNSCAKY -out $GNSCERT -subj "/C=ZZ/L=World/O=GNU/OU=GNUnet/CN=GNS Proxy CA/emailAddress=bounce@gnunet.org" -passout pass:"GNU Name System" ${VERBOSE_OUTPUT}
+    openssl req -config $OPENSSLCFG -new -x509 -days 3650 -extensions v3_ca -keyout $GNSCAKY -out $GNSCERT -subj "/C=ZZ/L=World/O=GNU/OU=GNUnet/CN=GNS Proxy CA/emailAddress=bounce@gnunet.org" -passout pass:"GNU Name System"
 
-    statusmsg "Removing passphrase from key"
-    openssl rsa -passin pass:"GNU Name System" -in $GNSCAKY -out $GNSCANO ${VERBOSE_OUTPUT}
+    infomsg "Removing passphrase from key"
+    openssl rsa -passin pass:"GNU Name System" -in $GNSCAKY -out $GNSCANO
 
-    statusmsg "Making private key available to gnunet-gns-proxy"
+    infomsg "Making private key available to gnunet-gns-proxy"
     cat $GNSCERT $GNSCANO > $GNS_CA_CERT_PEM
 }
 
@@ -307,12 +170,12 @@ importbrowsers()
         warningmsg "Not importing into browsers."
         warningmsg "For 'certutil' install nss."
     else
-        statusmsg "Importing CA into browsers"
+        infomsg "Importing CA into browsers"
         # TODO: Error handling?
         for f in ~/.mozilla/firefox/*.*/
         do
             if [ -d $f ]; then
-                statusmsg "Importing CA into Firefox at $f"
+                infomsg "Importing CA into Firefox at $f"
                 # delete old certificate (if any)
                 certutil -D -n "GNS Proxy CA" -d "$f" >/dev/null 2>/dev/null
                 # add new certificate
@@ -321,7 +184,7 @@ importbrowsers()
         done
         # TODO: Error handling?
         if [ -d ~/.pki/nssdb/ ]; then
-            statusmsg "Importing CA into Chrome at ~/.pki/nssdb/"
+            infomsg "Importing CA into Chrome at ~/.pki/nssdb/"
             # delete old certificate (if any)
             certutil -D -n "GNS Proxy CA" -d ~/.pki/nssdb/ >/dev/null 2>/dev/null
             # add new certificate
@@ -345,9 +208,9 @@ clean_up()
     fi
 
     linemsg
-    infomsg "You can now start gnunet-gns-proxy."
-    infomsg "Afterwards, configure your browser "
-    infomsg "to use a SOCKS proxy on port 7777. "
+    statusmsg "You can now start gnunet-gns-proxy."
+    statusmsg "Afterwards, configure your browser "
+    statusmsg "to use a SOCKS proxy on port 7777. "
     linemsg
 }
 
@@ -383,32 +246,6 @@ main()
     generate_ca
     importbrowsers
     clean_up
-
-# Needs debugging...
-#    setdefaults
-#    _args=$@
-#    parseoptions "$@"
-#    for op in ${operations}; do
-#        case "${op}" in
-#            cert)
-#                ${runcmd} "${generate_ca}"
-#                ${runcmd} "${clean_up}"
-#                ;;
-#            browser)
-#                ${runcmd} "${generate_ca}"
-#                ${runcmd} "${importbrowsers}"
-#                ${runcmd} "${clean_up}"
-#                ;;
-#            all)
-#                ${runcmd} "${generate_ca}"
-#                ${runcmd} "${importbrowsers}"
-#                ${runcmd} "${clean_up}"
-#                ;;
-#            *)
-#                infomsg "Unknown operation \`${op}'"
-#                ;;
-#        esac
-#    done
 }
 
 main "$@"
