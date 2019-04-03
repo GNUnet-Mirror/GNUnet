@@ -1,3 +1,6 @@
+Wed 03 Apr 2019 01:15:57 PM CEST
+  Fixed a few test case regressions (GNS, FS). -CG
+
 Mon Apr 1 22:00:00 UTC 2019
   documentation/buildsystem: manpages and other documentation parts
   can now be build more controlled again, this fixes the regression
