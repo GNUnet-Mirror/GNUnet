@@ -6,3 +6,10 @@ TODO:
 * incomplete pages:
   - gnunet-timeout
   - gnunet-gns: Make use of .Ex macro for DIAGNOSTICS section
+
+* (maybe) add subsections in DESCRIPTION for
+  standard options and tool-specific options?
+
+* missing pages:
+  - gnunet-social
+
