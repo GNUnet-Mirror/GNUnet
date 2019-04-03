@@ -1,64 +1,91 @@
-.TH GNUNET-STATISTICS 1 "January 4, 2012" "GNUnet"
-.SH NAME
-gnunet\-statistics \- Display statistics about your GNUnet system
-.SH SYNOPSIS
-.B gnunet\-statistics
-.RI [ options ]
-.RI [ VALUE ]
-.SH DESCRIPTION
-\fBgnunet\-statistics\fP is used to display detailed information about
-various aspect of GNUnet's operation.  This tool only works if the
-"statistics" service is available.
-gnunet\-statistics can be used to set a value by giving the options
-\-n, \-s and also a VALUE.
-.SH OPTIONS
-.IP "\-c FILENAME,  \-\-config=FILENAME"
+.Dd January 4, 2012
+.Dt GNUNET-STATISTICS 1
+.Os
+.Sh NAME
+.Nm gnunet-statistics
+.Nd display statistics about your GNUnet system
+.Sh SYNOPSIS
+.Nm
+.Op Fl c Ar FILENAME | Fl \-config= Ns Ar FILENAME
+.Op Fl h | \-help
+.Op Fl L Ar LOGLEVEL | Fl \-loglevel= Ns Ar LOGLEVEL
+.Op Fl l Ar FILENAME | Fl \-logfile= Ns Ar FILENAME
+.Op Fl n Ar NAME | Fl \-name= Ns Ar NAME
+.Op Fl o Ar PORT | Fl \-port= Ns Ar PORT
+.Op Fl p | \-persistent
+.Op Fl q | \-quiet
+.Op Fl r Ar REMOTE | Fl \-remote= Ns Ar REMOTE
+.Op Fl S Ar SEPARATOR | Fl \-csv-separator= Ns Ar SEPARATOR
+.Op Fl s Ar SUBSYSTEM | Fl \-subsystem= Ns Ar SUBSYSTEM
+.Op Fl t Ar PATH | Fl \-testbed= Ns Ar PATH
+.Op Fl v | \-version
+.Op Fl w | \-watch
+.Ao Ar VALUE Ac
+.Sh DESCRIPTION
+.Nm
+is used to display detailed information about various aspect of GNUnet's operation.
+This tool only works if the "statistics" service is available.
+gnunet-statistics can be used to set a value by giving the options \-n, \-s and also a VALUE.
+.Bl -tag -width Ds
+.It Fl c Ar FILENAME | Fl \-config= Ns Ar FILENAME
 Use the configuration file FILENAME.
-.IP "\-h, \-\-help"
+.It Fl h | \-help
 Print short help on options.
-.IP "\-L LOGLEVEL, \-\-loglevel=LOGLEVEL"
+.It Fl L Ar LOGLEVEL | Fl \-loglevel= Ns Ar LOGLEVEL
 Use LOGLEVEL for logging.  Valid values are DEBUG, INFO, WARNING and ERROR.
-.IP "\-n NAME,  \-\-name=NAME"
-Each statistic has a name that is unique with in its subsystem.  With
-this option, the output can be restricted to statistics that have a
-particular name.
-.IP "\-p,  \-\-persistent"
-When setting a value, make the value persistent.  If the value used to
-be persistent and this flag is not given, it will be marked as
-non\-persistent.
-.IP "\-s SUBSYSTEM,  \-\-subsystem=SUBSYSTEM"
-Statistics are kept for various subsystems.  With this option, the
-output can be restricted to a particular subsystem only.
-.IP "\-S SEPARATOR,  \-\-csv-separator=SEPARATOR"
+.It Fl l Ar FILENAME | Fl \-logfile= Ns Ar FILENAME
+Configure logging to write logs to FILENAME
+.It Fl n Ar NAME | Fl \-name= Ns Ar NAME
+Each statistic has a NAME that is unique with in its subsystem.
+With this option, the output can be restricted to statistics that have a particular NAME.
+.It Fl o Ar PORT | Fl \-port= Ns Ar PORT
+PORT for remote host
+.It Fl p | \-persistent
+When setting a value, make the value persistent.
+If the value used to be persistent and this flag is not given, it will be marked as non-persistent.
+.It Fl q | \-quiet
+Just print the statistics value
+.It Fl r Ar REMOTE | Fl \-remote= Ns Ar REMOTE
+Connect to a remote host given as REMOTE.
+.It Fl S Ar SEPARATOR | Fl \-csv-separator= Ns Ar SEPARATOR
 Specify a separator for generating csv-output.
-.IP "\-t TESTBED_PATH,  \-\-subsystem=TESTBED_PATH"
+.It Fl s Ar SUBSYSTEM | Fl \-subsystem= Ns Ar SUBSYSTEM
+Statistics are kept for various subsystems.
+With this option, the output can be restricted to a particular subsystem only.
+.It Fl t Ar PATH | Fl \-testbed= Ns Ar PATH
 When running testbed, you can get statistics of all peers with specefying the
-folder containing the data of all testbed nodes like \fBgnunet\-statistics -t /tmp/testbedARtmQv\fP.
-.IP "\-v, \-\-version"
+folder containing the data of all testbed nodes like
+.Pp
+.Dl $ gnunet-statistics -t /tmp/testbedARtmQv
+.Pp
+.It Fl v | \-version
 Print GNUnet version number.
-.SH BUGS
-Report bugs by using Mantis <https://gnunet.org/mantis/> or by sending
-electronic mail to <gnunet\-developers@gnu.org>
-.SH SEE ALSO
-gnunet\-service\-statistics(1)
-.PP
-The full documentation for
-.B gnunet
-is maintained as a Texinfo manual.
+.It Fl w | \-watch
+Watch value continuously.
+.El
+.Sh SEE ALSO
+.Xr gnunet-service-statistics 1
+.sp
+The full documentation for gnunet is maintained as a Texinfo manual.
 If the
-.B info
-and
-.B gnunet
-programs are properly installed at your site, the command
-.IP
-.B info gnunet
-.PP
+.Xr info 1
+and gnunet programs are properly installed at your site, the command
+.Pp
+.Dl info gnunet
+.Pp
 should give you access to the complete handbook,
-.IP
-.B info gnunet-c-tutorial
-.PP
+.Pp
+.Dl info gnunet-c-tutorial
+.Pp
 will give you access to a tutorial for developers.
-.PP
-Depending on your installation, this information is also
-available in
-\fBgnunet\fP(7) and \fBgnunet-c-tutorial\fP(7).
+.sp
+Depending on your installation, this information is also available in
+.Xr gnunet 7 and
+.Xr gnunet-c-tutorial 7 .
+.\".Sh HISTORY
+.\".Sh AUTHORS
+.Sh BUGS
+Report bugs by using
+.Lk https://bugs.gnunet.org
+or by sending electronic mail to
+.Aq Mt gnunet-developers@gnu.org .
