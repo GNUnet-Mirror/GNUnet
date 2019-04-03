@@ -87,10 +87,13 @@ check_PROGRAMS = \
  test_rps_sub \
  test_rps_seed_request \
  test_rps_seed_big \
- test_rps_churn \
+ test_rps_churn
+if ENABLE_MALICIOUS
+check_PROGRAMS += \
  test_rps_malicious_1 \
  test_rps_malicious_2 \
  test_rps_malicious_3
+endif
 endif
 
 rps_test_src = \
