@@ -17,7 +17,12 @@
 
      SPDX-License-Identifier: AGPL3.0-or-later
 */
-
+/**
+ * @file util/gnunet-qr.c
+ * @author Hartmut Goebel (original implementation)
+ * @author Martin Schanzenbach (integrate gnunet-uri)
+ * @author Christian Grothoff (error handling)
+ */
 #include <stdio.h>
 #include <zbar.h>
 #include <stdbool.h>
@@ -26,18 +31,35 @@
 
 #define LOG(fmt, ...) if (verbose == true) printf(fmt, ## __VA_ARGS__)
 
-// Command line options
+/**
+ * Video device to capture from. Sane default for GNU/Linux systems.
+ */
 static char* device = "/dev/video0";
+
+/**
+ * --verbose option
+ */
 static int verbose = false;
+
+/**
+ * --silent option
+ */
 static int silent = false;
 
-// Handler exit code
+/**
+ * Handler exit code
+ */
 static long unsigned int exit_code = 1;
 
-// Helper process we started.
+/**
+ * Helper process we started.
+ */
 static struct GNUNET_OS_Process *p;
 
-// Pipe used to communicate shutdown via signal.
+
+/**
+ * Pipe used to communicate child death via signal.
+ */
 static struct GNUNET_DISK_PipeHandle *sigpipe;
 
 
@@ -69,8 +91,10 @@ maint_child_death (void *cls)
  * @param cfg configuration
  */
 static void
-gnunet_uri (void *cls, const char *uri, const char *cfgfile,
-     const struct GNUNET_CONFIGURATION_Handle *cfg)
+gnunet_uri (void *cls,
+            const char *uri,
+            const char *cfgfile,
+            const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   const char *orig_uri;
   const char *slash;
@@ -88,7 +112,8 @@ gnunet_uri (void *cls, const char *uri, const char *cfgfile,
   uri += strlen ("gnunet://");
   if (NULL == (slash = strchr (uri, '/')))
   {
-    fprintf (stderr, _("Invalid URI: fails to specify subsystem\n"));
+    fprintf (stderr,
+             _("Invalid URI: fails to specify subsystem\n"));
     return;
   }
   subsystem = GNUNET_strndup (uri, slash - uri);
@@ -98,7 +123,9 @@ gnunet_uri (void *cls, const char *uri, const char *cfgfile,
 					     subsystem,
 					     &program))
   {
-    fprintf (stderr, _("No handler known for subsystem `%s'\n"), subsystem);
+    fprintf (stderr,
+             _("No handler known for subsystem `%s'\n"),
+             subsystem);
     GNUNET_free (subsystem);
     return;
   }
@@ -120,6 +147,111 @@ gnunet_uri (void *cls, const char *uri, const char *cfgfile,
 
 
 /**
+ * Obtain QR code 'symbol' from @a proc.
+ *
+ * @param proc zbar processor to use
+ * @return NULL on error
+ */
+static const zbar_symbol_t *
+get_symbol (zbar_processor_t *proc)
+{
+  const zbar_symbol_set_t* symbols;
+  int rc;
+  int n;
+
+  if (0 !=
+      zbar_processor_parse_config (proc, "enable"))
+  {
+    GNUNET_break (0);
+    return NULL;
+  }
+
+  /* initialize the Processor */
+  if (0 !=
+      (rc = zbar_processor_init(proc, device, 1)))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Failed to open device `%s': %d\n",
+                device,
+                rc);
+    return NULL;
+  }
+
+  /* enable the preview window */
+  if ( (0 != (rc = zbar_processor_set_visible (proc, 1))) ||
+       (0 != (rc = zbar_processor_set_active(proc, 1))) )
+  {
+    GNUNET_break (0);
+    return NULL;
+  }
+
+  /* read at least one barcode (or until window closed) */
+  LOG ("Capturing\n");
+  n = zbar_process_one (proc, -1);
+
+  /* hide the preview window */
+  (void) zbar_processor_set_active (proc, 0);
+  (void) zbar_processor_set_visible (proc, 0);
+  if (-1 == n)
+    return NULL; /* likely user closed the window */
+  LOG ("Got %i images\n",
+       n);
+  /* extract results */
+  symbols = zbar_processor_get_results (proc);
+  if (NULL == symbols)
+  {
+    GNUNET_break (0);
+    return NULL;
+  }
+  return zbar_symbol_set_first_symbol (symbols);
+}
+
+
+/**
+ * Run zbar QR code parser.
+ *
+ * @return NULL on error, otherwise the URI that we found
+ */
+static char *
+run_zbar ()
+{
+  zbar_processor_t *proc;
+  const char *data;
+  char *ret;
+  const zbar_symbol_t* symbol;
+
+  /* configure the Processor */
+  proc = zbar_processor_create (1);
+  if (NULL == proc)
+  {
+    GNUNET_break (0);
+    return NULL;
+  }
+
+  symbol = get_symbol (proc);
+  if (NULL == symbol)
+  {
+    zbar_processor_destroy (proc);
+    return NULL;
+  }
+  data = zbar_symbol_get_data (symbol);
+  if (NULL == data)
+  {
+    GNUNET_break (0);
+    zbar_processor_destroy (proc);
+    return NULL;
+  }
+  LOG ("Found %s \"%s\"\n",
+       zbar_get_symbol_name (zbar_symbol_get_type(symbol)),
+       data);
+  ret = GNUNET_strdup (data);
+  /* clean up */
+  zbar_processor_destroy(proc);
+  return ret;
+}
+
+
+/**
  * Main function that will be run by the scheduler.
  *
  * @param cls closure
@@ -133,65 +265,33 @@ run (void *cls,
      const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
-  /* create a Processor */
-  LOG("Initializing\n");
-  zbar_processor_t *proc = zbar_processor_create(1);
+  char *data;
 
-  // FIXME: Wrap all this into a function which returns an error on
-  // failure. And here ensure the processor is destroyed at the end.
-
-  /* configure the Processor */
-  zbar_processor_parse_config(proc, "enable");
-
-  /* initialize the Processor */
-  LOG("Opening video device %s\n", device);
-  // FIXME: error handling
-  zbar_processor_init(proc, device, 1);
-
-  /* enable the preview window */
-  zbar_processor_set_visible(proc, 1);
-  zbar_processor_set_active(proc, 1);
-
-  /* keep scanning until user provides key/mouse input */
-  //zbar_processor_user_wait(proc, -1);
-
-  // read at least one barcode (or until window closed)
-  LOG("Capturing\n");
-  int n;
-  n = zbar_process_one(proc, -1);
-  LOG("Got %i images\n", n);
-  // FIXME: Error handling (n = -1)
-
-  // hide the preview window
-  zbar_processor_set_active(proc, 0);
-  zbar_processor_set_visible(proc, 0);
-
-  // extract results
-  const zbar_symbol_set_t* symbols = zbar_processor_get_results(proc);
-  const zbar_symbol_t* symbol = zbar_symbol_set_first_symbol(symbols);
-
-  if (symbol != NULL) {
-    const char* data = zbar_symbol_get_data(symbol);
-    LOG("Found %s \"%s\"\n",
-	zbar_get_symbol_name(zbar_symbol_get_type(symbol)), data);
-
-    gnunet_uri(cls, data, cfgfile, cfg);
-    if (exit_code != 0) {
-      printf("Failed to add URI %s\n", data);
-    } else {
-      printf("Added URI %s\n", data);
-    }
+  data = run_zbar ();
+  if (NULL == data)
+    return;
+  gnunet_uri (cls,
+              data,
+              cfgfile,
+              cfg);
+  if (exit_code != 0)
+  {
+    printf ("Failed to add URI %s\n",
+            data);
   }
-
-  /* clean up */
-  zbar_processor_destroy(proc);
+  else
+  {
+    printf ("Added URI %s\n",
+            data);
+  }
+  GNUNET_free (data);
 };
 
 
 int
 main (int argc, char *const *argv)
 {
-  static int ret;
+  int ret;
   struct GNUNET_GETOPT_CommandLineOption options[] = {
     GNUNET_GETOPT_option_string ('d', "device", "DEVICE",
      gettext_noop ("use video-device DEVICE (default: /dev/video0"),
@@ -204,6 +304,7 @@ main (int argc, char *const *argv)
 			       &silent),
     GNUNET_GETOPT_OPTION_END
   };
+
   ret = GNUNET_PROGRAM_run (argc,
 			    argv,
 			    "gnunet-qr",
