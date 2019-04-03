@@ -1,5 +1,5 @@
 #!/bin/bash
-
+# This file is in the public domain.
 TEST_DOMAIN="www.test"
 
 gnunet-arm -s -c test_gns_proxy.conf
