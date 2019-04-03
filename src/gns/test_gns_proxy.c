@@ -370,7 +370,9 @@ start_curl (void *cls)
   multi = curl_multi_init ();
   GNUNET_assert (multi != NULL);
   GNUNET_assert (CURLM_OK == curl_multi_add_handle (multi, curl));
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Beginning HTTP download from `%s'\n", url);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Beginning HTTP download from `%s'\n",
+              url);
   curl_main ();
 }
 

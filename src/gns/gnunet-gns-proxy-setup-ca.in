@@ -141,7 +141,7 @@ generate_ca()
         rm -f $GNSCAKY $GNSCANO $GNSCERT
         exit 1
     fi
-    if [ -n "${GNUNET_CONFIG}" ]; then
+    if [ -n "${GNUNET_CONFIG_FILE}" ]; then
         GNUNET_CONFIG="-c ${GNUNET_CONFIG_FILE}"
     else
         GNUNET_CONFIG=""
@@ -231,6 +231,7 @@ main()
             c)
                 options="$options -c $OPTARG"
                 infomsg "Using configuration file $OPTARG"
+                GNUNET_CONFIG_FILE=${OPTARG}
                 ;;
             \?)
                 echo "Invalid option: -$OPTARG" >&2
