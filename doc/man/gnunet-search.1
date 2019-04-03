@@ -1,121 +1,108 @@
-.TH GNUNET-SEARCH "1" "February 25, 2012" "0.9.6" "GNUnet"
-.SH NAME
-gnunet\-search \- a command line interface to search for content on GNUnet
-.SH SYNOPSIS
-.B gnunet\-search
-[\fIOPTIONS\fR] [+]\fIKEYWORD\fR [[+]\fIKEYWORD\fR]*
-
-.B gnunet\-search
-[\fIOPTIONS\fR] [+]\fIURI\fR
-.SH DESCRIPTION
-.PP
-Search for content on GNUnet. The keywords are case\-sensitive.
-gnunet\-search can be used both for a search in the global namespace
-as well as for searching a private subspace.
-.TP
-\fB\-a \fILEVEL\fR, \fB\-\-anonymity=\fILEVEL\fR
-
-The \fB\-a\fR option can be used to specify additional anonymity
-constraints. If set to 0, GNUnet will try to download the file as fast
-as possible, including using non-anonymous methods.  If you set it to
-1 (default), you use the standard anonymous routing algorithm (which
-does not explicitly leak your identity).  However, a powerful
-adversary may still be able to perform traffic analysis (statistics)
-to over time infer data about your identity.  You can gain better
-privacy by specifying a higher level of anonymity, which increases the
-amount of cover traffic your own traffic will get, at the expense of
-performance.  Note that your download performance is not only
-determined by your own anonymity level, but also by the anonymity
-level of the peers publishing the file.  So even if you download with
-anonymity level 0, the peers publishing the data might be sharing with
-a higher anonymity level, which in this case will determine
-performance.  Also, peers that cache content in the network always use
-anonymity level 1.
-
-This option can be used to limit requests further than that. In
-particular, you can require GNUnet to receive certain amounts of
-traffic from other peers before sending your queries. This way, you
-can gain very high levels of anonymity \- at the expense of much more
-traffic and much higher latency. So set it only if you really believe
-you need it.
-
-The definition of ANONYMITY\-RECEIVE is the following.  0 means no
-anonymity is required.  Otherwise a value of 'v' means that 1 out of v
-bytes of "anonymous" traffic can be from the local user, leaving 'v-1'
-bytes of cover traffic per byte on the wire.  Thus, if GNUnet routes n
-bytes of messages from foreign peers (using anonymous routing), it may
-originate n/(v-1) bytes of queries in the same time\-period. The
-time\-period is twice the average delay that GNUnet defers forwarded
-queries.
-
-The default is 1 and this should be fine for most users.  Also notice
-that if you choose very large values, you may end up having no
-throughput at all, especially if many of your fellow GNUnet\-peers all
-do the same.
-
-.TP
-\fB\-c \fIFILENAME\fR, \fB\-\-config=\fIFILENAME\fR
+.Dd February 25, 2012
+.Dt GNUNET-SEARCH 1
+.Os
+.Sh NAME
+.Nm gnunet-search
+.Nd
+a command line interface to search for content on GNUnet
+.Sh SYNOPSIS
+.Nm
+.Op Fl a Ar LEVEL | Fl \-anonymity= Ns Ar LEVEL
+.Op Fl c Ar FILENAME | Fl \-config= Ns Ar FILENAME
+.Op Fl h | \-help
+.Op Fl L Ar LOGLEVEL | Fl \-loglevel= Ns Ar LOGLEVEL
+.Op Fl l Ar FILENAME | Fl \-logfile= Ns Ar FILENAME
+.Op Fl o Ar FILENAME | Fl \-output= Ns Ar FILENAME
+.Op Fl n | \-no-network
+.Op Fl N Ar VALUE | Fl \-results= Ns Ar VALUE
+.Op Fl t Ar DELAY | Fl \-timeout= Ns Ar DELAY
+.Op Fl v | \-version
+.Op Fl V | \-verbose
+.Ao KEYWORD Ac Ao +KEYWORD Ac | Ao Ar URI Ac Ao Ar +URI Ac
+.Sh DESCRIPTION
+Search for content on GNUnet.
+The keywords are case-sensitive.
+.Nm
+can be used both for a search in the global namespace as well as for searching a private subspace.
+.Bl -tag -width Ds
+.It Fl a Ar LEVEL | Fl \-anonymity= Ns Ar LEVEL
+The \fB\-a\fR option can be used to specify additional anonymity constraints.
+If set to 0, GNUnet will try to download the file as fast as possible, including using non-anonymous methods.
+If you set it to 1 (default), you use the standard anonymous routing algorithm (which does not explicitly leak your identity).
+However, a powerful adversary may still be able to perform traffic analysis (statistics) to over time infer data about your identity.
+You can gain better privacy by specifying a higher level of anonymity, which increases the amount of cover traffic your own traffic will get, at the expense of performance.
+Note that your download performance is not only determined by your own anonymity level, but also by the anonymity level of the peers publishing the file.
+So even if you download with anonymity level 0, the peers publishing the data might be sharing with a higher anonymity level, which in this case will determine performance.
+Also, peers that cache content in the network always use anonymity level 1.
+.sp
+This option can be used to limit requests further than that.
+In particular, you can require GNUnet to receive certain amounts of traffic from other peers before sending your queries.
+This way, you can gain very high levels of anonymity \- at the expense of much more traffic and much higher latency.
+So set it only if you really believe you need it.
+.sp
+The definition of ANONYMITY\-RECEIVE is the following.
+0 means no anonymity is required.
+Otherwise a value of 'v' means that 1 out of v bytes of "anonymous" traffic can be from the local user, leaving 'v-1' bytes of cover traffic per byte on the wire.
+Thus, if GNUnet routes n bytes of messages from foreign peers (using anonymous routing), it may originate n/(v-1) bytes of queries in the same time\-period.
+The time\-period is twice the average delay that GNUnet defers forwarded queries.
+.sp
+The default is 1 and this should be fine for most users.
+Also notice that if you choose very large values, you may end up having no throughput at all, especially if many of your fellow GNUnet\-peers all do the same.
+.It Fl c Ar FILENAME | Fl \-config= Ns Ar FILENAME
 use config file (defaults: ~/.config/gnunet.conf)
-
-.TP
-\fB\-h\fR, \fB\-\-help\fR
+.It Fl h | \-help
 print help page
-
-.TP
-\fB\-L \fILOGLEVEL\fR, \fB\-\-loglevel=\fILOGLEVEL\fR
-Change the loglevel.  Possible values for LOGLEVEL are
-ERROR, WARNING, INFO and DEBUG.
-
-.TP
-\fB\-o \fIFILENAME\fR, \fB\-\-output=\fIFILENAME\fR
+.It Fl L Ar LOGLEVEL | Fl \-loglevel= Ns Ar LOGLEVEL
+Change the loglevel.
+Possible values for LOGLEVEL are ERROR, WARNING, INFO and DEBUG.
+.It Fl l Ar FILENAME | Fl \-logfile= Ns Ar FILENAME
+Write logs to FILENAME.
+.It Fl o Ar FILENAME | Fl \-output= Ns Ar FILENAME
 Writes a GNUnet directory containing all of the search results to FILENAME.
-
-.TP
-\fB\-n\fR, \fB\-\-no-network\fR
+.It Fl n | \-no-network
 Only search locally, do not forward requests to other peers.
-
-.TP
-\fB\-N \fIVALUE\fR, \fB\-\-results=\fIVALUE\fR
-automatically terminate the search after receiving VALUE results.
-
-.TP
-\fB\-t \fIDELAY\fR, \fB\-\-timeout=\fIDELAY\fR
-Automatically timeout search after DELAY.  The value given must be a
-number followed by a space and a time unit, for example "500 ms".
-Note that the quotes are required on the shell.  Otherwise the search
-runs until gnunet\-search is aborted with CTRL\-C.
-
-.TP
-\fB\-v\fR, \fB\-\-version\fR
+.It Fl N Ar VALUE | Fl \-results= Ns Ar VALUE
+Automatically terminate the search after receiving VALUE results.
+.It Fl t Ar DELAY | Fl \-timeout= Ns Ar DELAY
+Automatically timeout search after DELAY.
+The value given must be a number followed by a space and a time unit, for example "500 ms".
+Note that the quotes are required on the shell.
+Otherwise the search runs until gnunet\-search is aborted with CTRL\-C.
+.It Fl v | \-version
 print the version number
-
-.TP
-\fB\-V\fR, \fB\-\-verbose\fR
+.It Fl V | \-verbose
 print meta data from search results as well
-.SH NOTES
-
-You can run gnunet\-search with an URI instead of a keyword.  The URI
-can have the format for a namespace search or for a keyword search.
+.El
+You can run gnunet\-search with an URI instead of a keyword.
+The URI can have the format for a namespace search or for a keyword search.
 For a namespace search, the format is
-gnunet://fs/sks/NAMESPACE/IDENTIFIER.  For a keyword search, use
-gnunet://fs/ksk/KEYWORD[+KEYWORD]*.  If the format does not correspond
-to a GNUnet URI, GNUnet will automatically assume that keywords are
-supplied directly.
-
+.Pp
+.Dl gnunet://fs/sks/NAMESPACE/IDENTIFIER
+.Pp
+For a keyword search, use
+.Pp
+.Dl gnunet://fs/ksk/KEYWORD[+KEYWORD]*
+.Pp
+If the format does not correspond to a GNUnet URI, GNUnet will automatically assume that keywords are supplied directly.
+.sp
 If multiple keywords are passed, gnunet-search will look for content
-matching any of the keywords.  The prefix "+" makes a keyword
-mandatory.
-
-# gnunet\-search "Das Kapital"
-
-searches for content matching the keyword "Das Kapital".  Whereas
-
-# gnunet\-search +Das +Kapital
-
+matching any of the keywords.
+The prefix "+" makes a keyword mandatory.
+.Sh FILES
+.Pa ~/.config/gnunet.conf
+GNUnet configuration file; specifies the default value for the timeout
+.Sh EXAMPLES
+.Pp
+.Dl $ gnunet\-search "Das Kapital"
+.Pp
+Searches for content matching the keyword "Das Kapital".
+.Pp
+.Dl $ gnunet\-search +Das +Kapital
+.Pp
 Searches for content matching both mandatory keywords "Das" and "Kapital".
-
+.sp
 Search results are printed by gnunet\-search like this:
-.P
+.Pp
 .ad l
         gnunet\-download \-o "COPYING" gnunet://fs/chk/HASH1.HASH2.SIZE
 
@@ -124,38 +111,37 @@ Search results are printed by gnunet\-search like this:
                 Mime-type: text/plain
 .ad b
 
-The first line contains the command to run to download the file.  The
-suggested filename in the example is COPYING.  The GNUnet URI consists
-of the key and query hash of the file and finally the size of the
-file.  After the command to download the file GNUnet will print
-meta\-data about the file as advertised in the search result, here
-"The GNU General Public License" and the mime\-type (see the options
-for gnunet\-publish on how to supply meta-data by hand).
-
-.SH FILES
-.TP
-~/.config/gnunet.conf
-GNUnet configuration file; specifies the default value for the timeout
-.SH "REPORTING BUGS"
-Report bugs to <https://bugs.gnunet.org/> or by sending electronic mail to <gnunet\-developers@gnu.org>
-.SH "SEE ALSO"
-\fBgnunet\-fs\-gtk\fP(1), \fBgnunet\-publish\fP(1), \fBgnunet\-download\fP(1), \fBgnunet.conf\fP(5),
-The full documentation for
-.B gnunet
-is maintained as a Texinfo manual.  If the
-.B info
-and
-.B gnunet
-programs are properly installed at your site, the command
-.IP
-.B info gnunet
-.PP
+The first line contains the command to run to download the file.
+The suggested filename in the example is COPYING.
+The GNUnet URI consists of the key and query hash of the file and finally the size of the file.
+After the command to download the file GNUnet will print meta\-data about the file as advertised in the search result, here "The GNU General Public License" and the mime\-type (see the options for gnunet\-publish on how to supply meta-data by hand).
+.Sh SEE ALSO
+.Xr gnunet-fs-gtk 1 ,
+.Xr gnunet\-publish 1 ,
+.Xr gnunet\-download 1 ,
+.Xr gnunet.conf 5
+.sp
+The full documentation for gnunet is maintained as a Texinfo manual.
+If the
+.Xr info 1
+and gnunet programs are properly installed at your site, the command
+.Pp
+.Dl info gnunet
+.Pp
 should give you access to the complete handbook,
-.IP
-.B info gnunet-c-tutorial
-.PP
+.Pp
+.Dl info gnunet-c-tutorial
+.Pp
 will give you access to a tutorial for developers.
-.PP
-Depending on your installation, this information is also
-available in
-\fBgnunet\fP(7) and \fBgnunet-c-tutorial\fP(7).
+.sp
+Depending on your installation, this information is also available in
+.Xr gnunet 7 and
+.Xr gnunet-c-tutorial 7 .
+.\".Sh HISTORY
+.\"gnunet-search first appeared in GNUnet 0.9.6.
+.\".Sh AUTHORS
+.Sh BUGS
+Report bugs by using
+.Lk https://bugs.gnunet.org
+or by sending electronic mail to
+.Aq Mt gnunet-developers@gnu.org .
