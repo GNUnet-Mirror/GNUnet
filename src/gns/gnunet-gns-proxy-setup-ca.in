@@ -174,10 +174,6 @@ _usage_
 #                 GNUNET_CONFIG_FILE="${OPTARG}"
 #                 export GNUNET_CONFIG_FILE
 #                 ;;
-#             -f)
-#                 GNUNET_PASS_FILENAME=1
-#                 export GNUNET_PASS_FILENAME
-#                 ;;
 #             -v)
 #                 print_version
 #                 ;;
@@ -281,12 +277,7 @@ generate_ca()
     else
         GNUNET_CONFIG=""
     fi
-    if [ GNUNET_PASS_FILENAME ]; then
-        GNUNET_OPT_F=""
-    else
-        GNUNET_OPT_F=" -f "
-    fi
-    GNS_CA_CERT_PEM=`gnunet-config ${GNUNET_CONFIG} -s gns-proxy -o PROXY_CACERT ${GNUNET_OPT_F} -f ${options}`
+    GNS_CA_CERT_PEM=`gnunet-config ${GNUNET_CONFIG} -s gns-proxy -o PROXY_CACERT -f ${options}`
     mkdir -p `dirname $GNS_CA_CERT_PEM`
 
     # Bad names etc.
