@@ -134,8 +134,6 @@ These are the optional dependencies:
                                      html output of man pages)
 - miniupnpc
 - perl5                             (for some utilities)
-- python2.7          = 2.7          (for gnunet-qr, only python 2.7
-                                     supported)
 - TeX Live           >= 2012        (for gnunet-bcd[*])
 - texi2mdoc                         (for automatic mdoc generation [*2])
 
