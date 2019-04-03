@@ -11,7 +11,7 @@
 #    WITHOUT ANY WARRANTY; without even the implied warranty of
 #    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
 #    Affero General Public License for more details.
-#   
+#
 #    You should have received a copy of the GNU Affero General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
@@ -65,7 +65,7 @@ tar.extractall()
 # first, basic publish-search-download run
 try:
     pub = pexpect()
-    pub.spawn(None, [publish, '-c', 'test_gnunet_fs_rec_data.conf', '-d', '-k', 'testdir', 'dir/'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    pub.spawn(None, [publish, '-c', 'test_gnunet_fs_rec_data.conf', '-k', 'testdir', 'dir/'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     # Can't say much for publishing, except that the last one is the toplevel directory
     pub.expect("stdout", re.compile(r"Publishing `.+' done\.\r?\n"))
     pub.expect("stdout", re.compile(r"URI is `gnunet://fs/chk/[A-Z0-9]{103}\.[A-Z0-9]{103}\.\d+'\.\r?\n"))
