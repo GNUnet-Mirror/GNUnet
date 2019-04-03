@@ -10,10 +10,32 @@ if USE_COVERAGE
   XLIB = -lgcov
 endif
 
+if HAVE_MHD
+if HAVE_JSON
+REST_PLUGIN = libgnunet_plugin_rest_peerinfo.la
+endif
+endif
+
 plugindir = $(libdir)/gnunet
+
+plugin_LTLIBRARIES = $(REST_PLUGIN)
 
 bin_PROGRAMS = \
  gnunet-peerinfo
+
+libgnunet_plugin_rest_peerinfo_la_SOURCES = \
+  plugin_rest_peerinfo.c
+libgnunet_plugin_rest_peerinfo_la_LIBADD = \
+  $(top_builddir)/src/hello/libgnunethello.la \
+  $(top_builddir)/src/peerinfo/libgnunetpeerinfo.la \
+  $(top_builddir)/src/transport/libgnunettransport.la \
+  $(top_builddir)/src/rest/libgnunetrest.la \
+  $(top_builddir)/src/json/libgnunetjson.la \
+  $(top_builddir)/src/util/libgnunetutil.la $(XLIBS) \
+  $(LTLIBINTL) -ljansson -lmicrohttpd
+libgnunet_plugin_rest_peerinfo_la_LDFLAGS = \
+ $(GN_PLUGIN_LDFLAGS)
+
 
 gnunet_peerinfo_SOURCES = \
  gnunet-peerinfo.c \
