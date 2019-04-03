@@ -280,8 +280,7 @@ gnunet_uri_LDADD = \
 
 
 gnunet_qr_SOURCES = \
-  gnunet-qr.c \
-  gnunet-qr-utils.h
+  gnunet-qr.c
 gnunet_qr_LDADD = \
   libgnunetutil.la \
   $(GN_LIBINTL)

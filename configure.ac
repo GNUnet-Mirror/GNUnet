@@ -21,7 +21,7 @@
 #
 AC_PREREQ(2.61)
 # Checks for programs.
-AC_INIT([gnunet], [0.11.0], [bug-gnunet@gnu.org])
+AC_INIT([gnunet], [0.11.1], [bug-gnunet@gnu.org])
 AC_CONFIG_AUX_DIR([build-aux])
 
 AC_CANONICAL_TARGET
