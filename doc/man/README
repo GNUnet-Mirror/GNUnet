@@ -5,4 +5,4 @@ TODO:
 
 * incomplete pages:
   - gnunet-timeout
-  
+  - gnunet-gns: Make use of .Ex macro for DIAGNOSTICS section
