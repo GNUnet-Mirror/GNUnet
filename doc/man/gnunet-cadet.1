@@ -1,73 +1,81 @@
-.TH GNUNET\-CADET 1 "May 3, 2016" "GNUnet"
-
-.SH NAME
-gnunet\-cadet \- Create or obtain information about CADET tunnels and peers
-
-.SH SYNOPSIS
-.B gnunet\-cadet
-.RI [ options ]
-.I [ \fIPEER_ID SHARED_SECRET\fR ]
-.br
-
-.SH DESCRIPTION
-\fBgnunet\-cadet\fP prints information about CADET tunnels and peers.
-It can also be used for command-line based CADET tunnels using the
-\fI-o SHARED_SECRET\fR option to open a port on a receiving PEER_ID
-and using "\fBgnunet\-cadet\fP \fIPEER_ID SHARED_SECRET\fR" to
-establish one circuit to that peer from any other peer. The receiving
-process will only accept one incoming circuit, but several commands
-using the same \fI-o\fR can be issued to satisfy multiple requests.
-For one\-to\-many communication \fBgnunet\-social\fP may be better
-suited, however.
-
-.SH SPECIFIC OPTIONS
-.IP "\-C CONNECTION_ID,  \-\-connection=CONNECTION_ID"
+.Dd May 3, 2016
+.Dt GNUNET-CADET 1
+.Os
+.Sh NAME
+.Nm gnunet-cadet
+.Nd
+create or obtain information about CADET tunnels and peers
+.Sh SYNOPSIS
+.Nm
+.Op Fl C Ar CONNECTION_ID | Fl \-connection= Ns Ar CONNECTION_ID
+.Op Fl d | \-dump
+.Op Fl e | \-echo
+.Op Fl o Ar SHARED_SECRET | Fl \-open-port= Ns Ar SHARED_SECRET
+.Op Fl p Ar PEER_ID | Fl \-peer= Ns Ar PEER_ID
+.Op Fl P | \-peers
+.Op Fl T | \-tunnels
+.Op Fl c Ar FILENAME | Fl \-config= Ns Ar FILENAME
+.Op Fl h | \-help
+.Op Fl l Ar FILENAME | Fl \-logfile= Ns Ar FILENAME
+.Op Fl L Ar LOGLEVEL | Fl \-loglevel= Ns Ar LOGLEVEL
+.Op Fl v | \-version
+.Ao Ar PEER_ID SHARED_SECRET Ac
+.Sh DESCRIPTION
+.Nm
+prints information about CADET tunnels and peers.
+It can also be used for command-line based CADET tunnels using the \fI-o SHARED_SECRET\fR option to open a port on a receiving PEER_ID and using "\fBgnunet\-cadet\fP \fIPEER_ID SHARED_SECRET\fR" to establish one circuit to that peer from any other peer.
+The receiving process will only accept one incoming circuit, but several commands using the same \fI-o\fR can be issued to satisfy multiple requests.
+For one\-to\-many communication
+.Xr gnunet-social 1
+may be better suited, however.
+.Bl -tag -width Ds
+.It Fl C Ar CONNECTION_ID | Fl \-connection= Ns Ar CONNECTION_ID
 Provide information about a particular connection.
-.IP "\-d,  \-\-dump"
+.It Fl d | \-dump
 Dump debug information to STDERR.
-.IP "\-e,  \-\-echo"
+.It Fl e | \-echo
 Activate echo mode.
-.IP "\-o SHARED_SECRET,  \-\-open-port=SHARED_SECRET"
+.It Fl o Ar SHARED_SECRET | Fl \-open-port= Ns Ar SHARED_SECRET
 Listen for connections using a shared secret among sender and recipient.
-.IP "\-p PEER_ID,  \-\-peer=PEER_ID"
+.It Fl p Ar PEER_ID | Fl \-peer= Ns Ar PEER_ID
 Provide information about a patricular peer.
-.IP "\-P,  \-\-peers"
+.It Fl P | \-peers
 Provide information about all peers.
-.IP "\-T,  \-\-tunnels"
+.It Fl T | \-tunnels
 Provide information about all tunnels.
-
-.SH STANDARD OPTIONS
-.IP "\-c FILENAME,  \-\-config=FILENAME"
+.It Fl c Ar FILENAME | Fl \-config= Ns Ar FILENAME
 Use the configuration file FILENAME.
-.IP "\-h, \-\-help"
+.It Fl h | \-help
 Print short help on options.
-.IP "\-l LOGFILE, \-\-logfile=LOGFILE"
-Configure logging to write logs to LOGFILE.
-.IP "\-L LOGLEVEL, \-\-loglevel=LOGLEVEL"
-Use LOGLEVEL for logging.  Valid values are DEBUG, INFO, WARNING and ERROR.
-.IP "\-v, \-\-version"
+.It Fl l Ar FILENAME | Fl \-logfile= Ns Ar FILENAME
+Configure logging to write logs to FILENAME.
+.It Fl L Ar LOGLEVEL | Fl \-loglevel= Ns Ar LOGLEVEL
+Use LOGLEVEL for logging.
+Valid values are DEBUG, INFO, WARNING and ERROR.
+.It Fl v | \-version
 Print GNUnet version number.
-
-.SH BUGS
-Report bugs by using Mantis <https://bugs.gnunet.org/> or by sending
-electronic mail to <gnunet\-developers@gnu.org>
-.SH SEE ALSO
-The full documentation for
-.B gnunet
-is maintained as a Texinfo manual.  If the
-.B info
-and
-.B gnunet
-programs are properly installed at your site, the command
-.IP
-.B info gnunet
-.PP
+.El
+.Sh SEE ALSO
+The full documentation for gnunet is maintained as a Texinfo manual.
+If the
+.Xr info 1
+and gnunet programs are properly installed at your site, the command
+.Pp
+.Dl info gnunet
+.Pp
 should give you access to the complete handbook,
-.IP
-.B info gnunet-c-tutorial
-.PP
+.Pp
+.Dl info gnunet-c-tutorial
+.Pp
 will give you access to a tutorial for developers.
-.PP
-Depending on your installation, this information is also
-available in
-\fBgnunet\fP(7) and \fBgnunet-c-tutorial\fP(7).
+.sp
+Depending on your installation, this information is also available in
+.Xr gnunet 7 and
+.Xr gnunet-c-tutorial 7 .
+.\".Sh HISTORY
+.\".Sh AUTHORS
+.Sh BUGS
+Report bugs by using
+.Lk https://bugs.gnunet.org
+or by sending electronic mail to
+.Aq Mt gnunet-developers@gnu.org .
