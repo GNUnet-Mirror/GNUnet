@@ -1,3 +1,8 @@
+Wed 03 Apr 2019 01:54:44 PM CEST
+  Merged gnunet-qr-c-2 branch, replacing Python-based implementation
+  of gnunet-qr with C-based implementation that also integrates
+  gnunet-uri. -HG/MS/CG
+
 Wed 03 Apr 2019 01:15:57 PM CEST
   Fixed a few test case regressions (GNS, FS). -CG
 

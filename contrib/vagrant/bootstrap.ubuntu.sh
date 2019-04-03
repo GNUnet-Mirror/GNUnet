@@ -27,7 +27,7 @@ apt-get -y install zlib1g-dev
 # optional for gnunet-conversation
 # apt-get -y install libpulse-dev libopus-dev libogg-dev gstreamer1.0
 # optional for gnunet-qr
-apt-get -y install python-zbar
+apt-get -y install libzbar-dev
 # optional for experimental code
 apt-get -y install libglpk-dev
 #
