@@ -1,6 +1,6 @@
 /*
  This file is part of GNUnet.
- Copyright (C) 2010-2015, 2018 GNUnet e.V.
+ Copyright (C) 2010-2015, 2018, 2019 GNUnet e.V.
 
  GNUnet is free software: you can redistribute it and/or modify it
  under the terms of the GNU Affero General Public License as published
@@ -24,53 +24,51 @@
  * @author Christian Grothoff
  * @author Matthias Wachs
  *
- * @defgroup ats  ATS service
+ * @defgroup TRANSPORT service
  * Bandwidth allocation
- *
- * @see [Documentation](https://gnunet.org/ats-subsystem)
  *
  * @{
  */
-#ifndef GNUNET_ATS_APPLICATION_SERVICE_H
-#define GNUNET_ATS_APPLICATION_SERVICE_H
+#ifndef GNUNET_TRANSPORT_APPLICATION_SERVICE_H
+#define GNUNET_TRANSPORT_APPLICATION_SERVICE_H
 
 #include "gnunet_constants.h"
 #include "gnunet_util_lib.h"
 
 /**
- * Handle to the ATS subsystem for making suggestions about
+ * Handle to the TRANSPORT subsystem for making suggestions about
  * connections the peer would like to have.
  */
-struct GNUNET_ATS_ApplicationHandle;
+struct GNUNET_TRANSPORT_ApplicationHandle;
 
 
 /**
- * Initialize the ATS application client handle.
+ * Initialize the TRANSPORT application client handle.
  *
  * @param cfg configuration to use
  * @return ats application handle, NULL on error
  */
-struct GNUNET_ATS_ApplicationHandle *
-GNUNET_ATS_application_init (const struct GNUNET_CONFIGURATION_Handle *cfg);
+struct GNUNET_TRANSPORT_ApplicationHandle *
+GNUNET_TRANSPORT_application_init (const struct GNUNET_CONFIGURATION_Handle *cfg);
 
 
 /**
- * Shutdown ATS application client.
+ * Shutdown TRANSPORT application client.
  *
  * @param ch handle to destroy
  */
 void
-GNUNET_ATS_application_done (struct GNUNET_ATS_ApplicationHandle *ch);
+GNUNET_TRANSPORT_application_done (struct GNUNET_TRANSPORT_ApplicationHandle *ch);
 
 
 /**
  * Handle for suggestion requests.
  */
-struct GNUNET_ATS_ApplicationSuggestHandle;
+struct GNUNET_TRANSPORT_ApplicationSuggestHandle;
 
 
 /**
- * An application would like to communicate with a peer.  ATS should
+ * An application would like to communicate with a peer.  TRANSPORT should
  * allocate bandwith using a suitable address for requiremetns @a pk
  * to transport.
  *
@@ -81,11 +79,11 @@ struct GNUNET_ATS_ApplicationSuggestHandle;
  * @param bw desired bandwith, can be zero (we will still try to connect)
  * @return suggestion handle, NULL if request is already pending
  */
-struct GNUNET_ATS_ApplicationSuggestHandle *
-GNUNET_ATS_application_suggest (struct GNUNET_ATS_ApplicationHandle *ch,
-                                const struct GNUNET_PeerIdentity *peer,
-                                enum GNUNET_MQ_PreferenceKind pk,
-                                struct GNUNET_BANDWIDTH_Value32NBO bw);
+struct GNUNET_TRANSPORT_ApplicationSuggestHandle *
+GNUNET_TRANSPORT_application_suggest (struct GNUNET_TRANSPORT_ApplicationHandle *ch,
+                                      const struct GNUNET_PeerIdentity *peer,
+                                      enum GNUNET_MQ_PreferenceKind pk,
+                                      struct GNUNET_BANDWIDTH_Value32NBO bw);
 
 
 /**
@@ -94,7 +92,7 @@ GNUNET_ATS_application_suggest (struct GNUNET_ATS_ApplicationHandle *ch,
  * @param sh handle
  */
 void
-GNUNET_ATS_application_suggest_cancel (struct GNUNET_ATS_ApplicationSuggestHandle *sh);
+GNUNET_TRANSPORT_application_suggest_cancel (struct GNUNET_TRANSPORT_ApplicationSuggestHandle *sh);
 
 /** @} */  /* end of group */
 

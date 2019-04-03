@@ -304,7 +304,7 @@ prop_ntoh (const struct PropertiesNBO *properties,
  */
 static void
 handle_suggest (void *cls,
-		const struct ExpressPreferenceMessage *msg)
+                const struct ExpressPreferenceMessage *msg)
 {
   struct Client *c = cls;
   struct ClientPreference *cp;
@@ -344,7 +344,7 @@ handle_suggest (void *cls,
  */
 static void
 handle_suggest_cancel (void *cls,
-		       const struct ExpressPreferenceMessage *msg)
+                       const struct ExpressPreferenceMessage *msg)
 {
   struct Client *c = cls;
   struct ClientPreference *cp;
@@ -772,13 +772,13 @@ GNUNET_SERVICE_MAIN
  &client_disconnect_cb,
  NULL,
  GNUNET_MQ_hd_fixed_size (suggest,
-			  GNUNET_MESSAGE_TYPE_ATS_SUGGEST,
-			  struct ExpressPreferenceMessage,
-			  NULL),
+                          GNUNET_MESSAGE_TYPE_ATS_SUGGEST,
+                          struct ExpressPreferenceMessage,
+                          NULL),
  GNUNET_MQ_hd_fixed_size (suggest_cancel,
-			  GNUNET_MESSAGE_TYPE_ATS_SUGGEST_CANCEL,
-			  struct ExpressPreferenceMessage,
-			  NULL),
+                          GNUNET_MESSAGE_TYPE_ATS_SUGGEST_CANCEL,
+                          struct ExpressPreferenceMessage,
+                          NULL),
  GNUNET_MQ_hd_fixed_size (start,
 			  GNUNET_MESSAGE_TYPE_ATS_START,
 			  struct GNUNET_MessageHeader,

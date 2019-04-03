@@ -155,6 +155,7 @@ endif
 lib_LTLIBRARIES = \
   libgnunettransport.la \
   libgnunettransportaddress.la \
+  libgnunettransportapplication.la \
   libgnunettransportcore.la \
   libgnunettransportcommunicator.la \
   libgnunettransportmonitor.la \
@@ -196,6 +197,14 @@ libgnunettransport_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS) $(WINFLAGS) \
   -version-info 4:0:2
 
+libgnunettransportapplication_la_SOURCES = \
+  transport_api2_application.c
+libgnunettransportapplication_la_LIBADD = \
+ $(top_builddir)/src/util/libgnunetutil.la \
+ $(LTLIBINTL)
+libgnunettransportapplication_la_LDFLAGS = \
+  $(GN_LIB_LDFLAGS) $(WINFLAGS) \
+  -version-info 0:0:0
 
 
 libgnunettransportaddress_la_SOURCES = \
@@ -360,7 +369,6 @@ gnunet_service_transport_CFLAGS = \
 gnunet_service_tng_SOURCES = \
  gnunet-service-tng.c
 gnunet_service_tng_LDADD = \
-  $(top_builddir)/src/ats/libgnunetatstransport.la \
   $(top_builddir)/src/peerstore/libgnunetpeerstore.la \
   $(top_builddir)/src/hello/libgnunethello.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
