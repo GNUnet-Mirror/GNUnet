@@ -1,60 +1,75 @@
-.TH GNUNET\-GNS 1 "March 23, 2018" "GNUnet"
-.SH NAME
-gnunet\-gns \- Access to GNU Name System
-.SH SYNOPSIS
-.B gnunet\-gns
-.RI [ options ]
-.SH DESCRIPTION
-\fBgnunet\-gns\fP can be used to lookup and process GNU Name Service
-names.
-.SH OPTIONS
-.IP "\-c FILENAME,  \-\-config=FILENAME"
+.Dd March 23, 2018
+.Dt GNUNET-GNS 1
+.Os
+.Sh NAME
+.Nm gnunet-gns
+.Nd
+access to GNU Name System
+.Sh SYNOPSIS
+.Nm
+.Op Fl c Ar FILENAME | Fl \-config= Ns Ar FILENAME
+.Op Fl h | \-help
+.Op Fl L Ar LOGLEVEL | Fl \-loglevel= Ns Ar LOGLEVEL
+.Op Fl l Ar FILENAME | Fl \-logfile= Ns Ar FILENAME
+.Op Fl r | \-raw
+.Op Fl t Ar TYPE | Fl \-type= Ns Ar TYPE
+.Op Fl u Ar NAME | Fl \-lookup= Ns Ar NAME
+.Op Fl v | \-version
+.Sh DESCRIPTION
+.Nm
+can be used to lookup and process GNU Name Service names.
+.Bl -tag -width Ds
+.It Fl c Ar FILENAME | Fl \-config= Ns Ar FILENAME
 Use the configuration file FILENAME.
-.IP "\-r, \-\-raw"
-No unneeded output.
-This is a quiet mode where only important information is displayed.
-For example a lookup for an IP address will only yield the IP address,
-no descriptive text.
-.IP "\-h, \-\-help"
+.It Fl h | \-help
 Print short help on options.
-.IP "\-L LOGLEVEL, \-\-loglevel=LOGLEVEL"
+.It Fl L Ar LOGLEVEL | Fl \-loglevel= Ns Ar LOGLEVEL
 Use LOGLEVEL for logging.
 Valid values are DEBUG, INFO, WARNING and ERROR.
-.IP "\-u NAME, \-\-lookup=NAME"
+.It Fl l Ar FILENAME | Fl \-logfile= Ns Ar FILENAME
+Write logs to FILENAME.
+.It Fl r | \-raw
+No unneeded output.
+This is a quiet mode where only important information is displayed.
+For example a lookup for an IP address will only yield the IP address, no descriptive text.
+.It Fl t Ar TYPE | Fl \-type= Ns Ar TYPE
+Resource Record Type (TYPE) to look for.
+Supported TYPE's are: A, AAAA, CNAME, NS, PKEY, PSEU, TLSA, SRV, SOA, MX, LEHO, VPN, REV, PTR, TXT.
+Defaults to "A".
+.It Fl u Ar NAME | Fl \-lookup= Ns Ar NAME
 Name to lookup.
 Resolve the specified name using the GNU Name System.
-.IP "\-t TYPE, \-\-type=TYPE"
-Resource Record Type (TYPE) to look for.
-Supported TYPE's are: A, AAAA, CNAME, NS, PKEY, PSEU, TLSA, SRV, SOA,
-MX, LEHO, VPN, REV, PTR, TXT.
-Defaults to "A".
-.IP "\-v, \-\-version"
+.It Fl v | \-version
 Print GNUnet version number.
-.SH RETURN VALUE
-gnunet\-gns will return 0 on success, 1 on internal failures, 2 on
+.El
+.Sh DIAGNOSTICS
+.Nm
+will return 0 on success, 1 on internal failures, 2 on
 launch failures, 4 if the given name is not configured to use GNS.
-.SH BUGS
-Report bugs by using Mantis <https://bugs.gnunet.org/> or by sending
-electronic mail to <gnunet\-developers@gnu.org>
-.SH SEE ALSO
-\fBgnunet\-namestore\fP(1), \fBgnunet\-identity\fP(1)
-.PP
-The full documentation for
-.B gnunet
-is maintained as a Texinfo manual.  If the
-.B info
-and
-.B gnunet
-programs are properly installed at your site, the command
-.IP
-.B info gnunet
-.PP
+.Sh SEE ALSO
+.Xr gnunet-namestore 1 ,
+.Xr gnunet-identity 1
+.sp
+The full documentation for gnunet is maintained as a Texinfo manual.
+If the
+.Xr info 1
+and gnunet programs are properly installed at your site, the command
+.Pp
+.Dl info gnunet
+.Pp
 should give you access to the complete handbook,
-.IP
-.B info gnunet-c-tutorial
-.PP
+.Pp
+.Dl info gnunet-c-tutorial
+.Pp
 will give you access to a tutorial for developers.
-.PP
-Depending on your installation, this information is also
-available in
-\fBgnunet\fP(7) and \fBgnunet-c-tutorial\fP(7).
+.sp
+Depending on your installation, this information is also available in
+.Xr gnunet 7 and
+.Xr gnunet-c-tutorial 7 .
+.\".Sh HISTORY
+.\".Sh AUTHORS
+.Sh BUGS
+Report bugs by using
+.Lk https://bugs.gnunet.org
+or by sending electronic mail to
+.Aq Mt gnunet-developers@gnu.org .
