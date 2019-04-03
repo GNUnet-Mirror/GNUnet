@@ -418,8 +418,6 @@ src/transport/plugin_transport_udp_broadcasting.c
 src/transport/plugin_transport_udp.c
 src/transport/plugin_transport_unix.c
 src/transport/plugin_transport_wlan.c
-src/transport/plugin_transport_xt.c
-src/transport/plugin_transport_xu.c
 src/transport/tcp_connection_legacy.c
 src/transport/tcp_server_legacy.c
 src/transport/tcp_server_mst_legacy.c

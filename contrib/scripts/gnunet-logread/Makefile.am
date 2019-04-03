@@ -20,3 +20,8 @@ CLEANFILES=	\
 noinst_SCRIPTS =		\
 		$(CLEANFILES) \
 		gnunet-logread-ipc
+
+EXTRA_DIST = \
+  gnunet-logread.in \
+  gnunet-logread-ipc-sdedit.in \
+  gnunet-logread-ipc
