@@ -12,6 +12,9 @@ endif
 if DOCUMENTATION
   SUBDIRS += doc
 endif
+if HAVE_EXPERIMENTAL
+  SUBDIRS += lint
+endif
 
 # only manpages, needs "doc" subdir
 if INCLUDE_MANPAGES

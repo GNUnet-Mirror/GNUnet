@@ -41,11 +41,11 @@
  *   #3 transport should use validation to also establish
  *      effective flow control (for uni-directional transports!)
  *   #4 UDP broadcasting logic must be extended to use the new API
- *   #5 only validated addresses go to ATS for scheduling; that
- *      also ensures we know the RTT 
+ *   #5 only validated addresses are selected for scheduling; that
+ *      also ensures we know the RTT
  *   #6 to ensure flow control and RTT are OK, we always do the
  *      'validation', even if address comes from PEERSTORE
- *   #7 
+ *   #7
  * - ACK handling / retransmission
  * - address verification
  * - track RTT, distance, loss, etc.
@@ -59,10 +59,7 @@
  * -
  *
  * Easy:
- * - use ATS bandwidth allocation callback and schedule transmissions!
- *
- * Plan:
- * - inform ATS about RTT, goodput/loss, overheads, etc. (GNUNET_ATS_session_update())
+ * - figure out how to call XXX_suggestion_cb!
  *
  * Later:
  * - change transport-core API to provide proper flow control in both
@@ -98,8 +95,6 @@
  *   "latest timestamps seen" data
  * - if transport implements DV, we likely need a 3rd peermap
  *   in addition to ephemerals and (direct) neighbours
- *   => in this data structure, we should track ATS metrics (distance, RTT, etc.)
- *   as well as latest timestamps seen, goodput, fragments for transmission, etc.
  *   ==> check if stuff needs to be moved out of "Neighbour"
  * - transport should encapsualte core-level messages and do its
  *   own ACKing for RTT/goodput/loss measurements _and_ fragment
@@ -111,7 +106,6 @@
 #include "gnunet_transport_monitor_service.h"
 #include "gnunet_peerstore_service.h"
 #include "gnunet_hello_lib.h"
-#include "gnunet_ats_transport_service.h"
 #include "gnunet_signatures.h"
 #include "transport.h"
 
@@ -148,18 +142,11 @@
 #define COMMUNICATOR_TOTAL_QUEUE_LIMIT 512
 
 /**
- * How many messages can we have pending for a given session (queue to
+ * How many messages can we have pending for a given queue (queue to
  * a particular peer via a communicator) process before we start to
  * throttle that queue?
- *
- * Used if ATS assigns more bandwidth to a particular transmission
- * method than that transmission method can right now handle. (Yes,
- * ATS should eventually notice utilization below allocation and
- * adjust, but we don't want to queue up tons of messages in the
- * meantime). Must be significantly below
- * #COMMUNICATOR_TOTAL_QUEUE_LIMIT.
  */
-#define SESSION_QUEUE_LIMIT 32
+#define QUEUE_LENGTH_LIMIT 32
 
 
 GNUNET_NETWORK_STRUCT_BEGIN
@@ -547,7 +534,6 @@ struct TransportDVBox
 GNUNET_NETWORK_STRUCT_END
 
 
-
 /**
  * What type of client is the `struct TransportClient` about?
  */
@@ -571,7 +557,12 @@ enum ClientType
   /**
    * It is a communicator, use for communication.
    */
-  CT_COMMUNICATOR = 3
+  CT_COMMUNICATOR = 3,
+
+  /**
+   * "Application" telling us where to connect (i.e. TOPOLOGY, DHT or CADET).
+   */
+  CT_APPLICATION = 4
 };
 
 
@@ -725,11 +716,18 @@ struct DistanceVector
 
 
 /**
+ * A queue is a message queue provided by a communicator
+ * via which we can reach a particular neighbour.
+ */
+struct Queue;
+
+
+/**
  * Entry identifying transmission in one of our `struct
- * GNUNET_ATS_Sessions` which still awaits an ACK.  This is used to
+ * Queue` which still awaits an ACK.  This is used to
  * ensure we do not overwhelm a communicator and limit the number of
  * messages outstanding per communicator (say in case communicator is
- * CPU bound) and per queue (in case ATS bandwidth allocation exceeds
+ * CPU bound) and per queue (in case bandwidth allocation exceeds
  * what the communicator can actually provide towards a particular
  * peer/target).
  */
@@ -747,9 +745,9 @@ struct QueueEntry
   struct QueueEntry *prev;
 
   /**
-   * ATS session this entry is queued with.
+   * Queue this entry is queued with.
    */
-  struct GNUNET_ATS_Session *session;
+  struct Queue *queue;
 
   /**
    * Message ID used for this message with the queue used for transmission.
@@ -759,30 +757,30 @@ struct QueueEntry
 
 
 /**
- * An ATS session is a message queue provided by a communicator
+ * A queue is a message queue provided by a communicator
  * via which we can reach a particular neighbour.
  */
-struct GNUNET_ATS_Session
+struct Queue
 {
   /**
    * Kept in a MDLL.
    */
-  struct GNUNET_ATS_Session *next_neighbour;
+  struct Queue *next_neighbour;
 
   /**
    * Kept in a MDLL.
    */
-  struct GNUNET_ATS_Session *prev_neighbour;
+  struct Queue *prev_neighbour;
 
   /**
    * Kept in a MDLL.
    */
-  struct GNUNET_ATS_Session *prev_client;
+  struct Queue *prev_client;
 
   /**
    * Kept in a MDLL.
    */
-  struct GNUNET_ATS_Session *next_client;
+  struct Queue *next_client;
 
   /**
    * Head of DLL of unacked transmission requests.
@@ -795,24 +793,19 @@ struct GNUNET_ATS_Session
   struct QueueEntry *queue_tail;
 
   /**
-   * Which neighbour is this ATS session for?
+   * Which neighbour is this queue for?
    */
   struct Neighbour *neighbour;
 
   /**
-   * Which communicator offers this ATS session?
+   * Which communicator offers this queue?
    */
   struct TransportClient *tc;
 
   /**
-   * Address served by the ATS session.
+   * Address served by the queue.
    */
   const char *address;
-
-  /**
-   * Handle by which we inform ATS about this queue.
-   */
-  struct GNUNET_ATS_SessionRecord *sr;
 
   /**
    * Task scheduled for the time when this queue can (likely) transmit the
@@ -821,7 +814,7 @@ struct GNUNET_ATS_Session
   struct GNUNET_SCHEDULER_Task *transmit_task;
 
   /**
-   * Our current RTT estimate for this ATS session.
+   * Our current RTT estimate for this queue.
    */
   struct GNUNET_TIME_Relative rtt;
 
@@ -831,17 +824,17 @@ struct GNUNET_ATS_Session
   uint64_t mid_gen;
 
   /**
-   * Unique identifier of this ATS session with the communicator.
+   * Unique identifier of this queue with the communicator.
    */
   uint32_t qid;
 
   /**
-   * Maximum transmission unit supported by this ATS session.
+   * Maximum transmission unit supported by this queue.
    */
   uint32_t mtu;
 
   /**
-   * Distance to the target of this ATS session.
+   * Distance to the target of this queue.
    */
   uint32_t distance;
 
@@ -861,22 +854,22 @@ struct GNUNET_ATS_Session
   unsigned int queue_length;
 
   /**
-   * Network type offered by this ATS session.
+   * Network type offered by this queue.
    */
   enum GNUNET_NetworkType nt;
 
   /**
-   * Connection status for this ATS session.
+   * Connection status for this queue.
    */
   enum GNUNET_TRANSPORT_ConnectionStatus cs;
 
   /**
-   * How much outbound bandwidth do we have available for this session?
+   * How much outbound bandwidth do we have available for this queue?
    */
   struct GNUNET_BANDWIDTH_Tracker tracker_out;
 
   /**
-   * How much inbound bandwidth do we have available for this session?
+   * How much inbound bandwidth do we have available for this queue?
    */
   struct GNUNET_BANDWIDTH_Tracker tracker_in;
 };
@@ -1025,14 +1018,14 @@ struct Neighbour
   struct DistanceVectorHop *dv_tail;
 
   /**
-   * Head of DLL of ATS sessions to this peer.
+   * Head of DLL of queues to this peer.
    */
-  struct GNUNET_ATS_Session *session_head;
+  struct Queue *queue_head;
 
   /**
-   * Tail of DLL of ATS sessions to this peer.
+   * Tail of DLL of queues to this peer.
    */
-  struct GNUNET_ATS_Session *session_tail;
+  struct Queue *queue_tail;
 
   /**
    * Task run to cleanup pending messages that have exceeded their timeout.
@@ -1040,13 +1033,12 @@ struct Neighbour
   struct GNUNET_SCHEDULER_Task *timeout_task;
 
   /**
-   * Quota at which CORE is allowed to transmit to this peer
-   * according to ATS.
+   * Quota at which CORE is allowed to transmit to this peer.
    *
    * FIXME: not yet used, tricky to get right given multiple queues!
-   *        (=> Idea: let ATS set a quota per queue and we add them up here?)
+   *        (=> Idea: measure???)
    * FIXME: how do we set this value initially when we tell CORE?
-   *    Options: start at a minimum value or at literally zero (before ATS?)
+   *    Options: start at a minimum value or at literally zero?
    *         (=> Current thought: clean would be zero!)
    */
   struct GNUNET_BANDWIDTH_Value32NBO quota_out;
@@ -1055,6 +1047,40 @@ struct Neighbour
    * What is the earliest timeout of any message in @e pending_msg_tail?
    */
   struct GNUNET_TIME_Absolute earliest_timeout;
+
+};
+
+
+/**
+ * A peer that an application (client) would like us to talk to directly.
+ */
+struct PeerRequest
+{
+
+  /**
+   * Which peer is this about?
+   */
+  struct GNUNET_PeerIdentity pid;
+
+  /**
+   * Client responsible for the request.
+   */
+  struct TransportClient *tc;
+
+  /**
+   * Handle for watching the peerstore for HELLOs for this peer.
+   */
+  struct GNUNET_PEERSTORE_WatchContext *wc;
+
+  /**
+   * What kind of performance preference does this @e tc have?
+   */
+  enum GNUNET_MQ_PreferenceKind pk;
+
+  /**
+   * How much bandwidth would this @e tc like to see?
+   */
+  struct GNUNET_BANDWIDTH_Value32NBO bw;
 
 };
 
@@ -1362,12 +1388,12 @@ struct TransportClient
       /**
        * Head of DLL of queues offered by this communicator.
        */
-      struct GNUNET_ATS_Session *session_head;
+      struct Queue *queue_head;
 
       /**
        * Tail of DLL of queues offered by this communicator.
        */
-      struct GNUNET_ATS_Session *session_tail;
+      struct Queue *queue_tail;
 
       /**
        * Head of list of the addresses of this peer offered by this communicator.
@@ -1392,6 +1418,19 @@ struct TransportClient
       enum GNUNET_TRANSPORT_CommunicatorCharacteristics cc;
 
     } communicator;
+
+    /**
+     * Information for @e type #CT_APPLICATION
+     */
+    struct {
+
+      /**
+       * Map of requests for peers the given client application would like to
+       * see connections for.  Maps from PIDs to `struct PeerRequest`.
+       */
+      struct GNUNET_CONTAINER_MultiPeerMap *requests;
+
+    } application;
 
   } details;
 
@@ -1465,11 +1504,6 @@ static struct GNUNET_CONTAINER_MultiPeerMap *ephemeral_map;
  */
 static struct GNUNET_SCHEDULER_Task *ephemeral_task;
 
-/**
- * Our connection to ATS for allocation and bootstrapping.
- */
-static struct GNUNET_ATS_TransportHandle *ats;
-
 
 /**
  * Free cached ephemeral key.
@@ -1497,7 +1531,7 @@ static struct Neighbour *
 lookup_neighbour (const struct GNUNET_PeerIdentity *pid)
 {
   return GNUNET_CONTAINER_multipeermap_get (neighbours,
-					    pid);
+                                            pid);
 }
 
 
@@ -1561,9 +1595,9 @@ free_distance_vector_hop (struct DistanceVectorHop *dvh)
   if (NULL == dv->dv_head)
   {
     GNUNET_assert (GNUNET_YES ==
-		   GNUNET_CONTAINER_multipeermap_remove (dv_routes,
-							 &dv->target,
-							 dv));
+                   GNUNET_CONTAINER_multipeermap_remove (dv_routes,
+                                                         &dv->target,
+                                                         dv));
     if (NULL != dv->timeout_task)
       GNUNET_SCHEDULER_cancel (dv->timeout_task);
     GNUNET_free (dv);
@@ -1602,18 +1636,18 @@ free_dv_route (struct DistanceVector *dv)
  */
 static void
 notify_monitor (struct TransportClient *tc,
-		const struct GNUNET_PeerIdentity *peer,
-		const char *address,
-		enum GNUNET_NetworkType nt,
-		const struct MonitorEvent *me)
+                const struct GNUNET_PeerIdentity *peer,
+                const char *address,
+                enum GNUNET_NetworkType nt,
+                const struct MonitorEvent *me)
 {
   struct GNUNET_MQ_Envelope *env;
   struct GNUNET_TRANSPORT_MonitorData *md;
   size_t addr_len = strlen (address) + 1;
 
   env = GNUNET_MQ_msg_extra (md,
-			     addr_len,
-			     GNUNET_MESSAGE_TYPE_TRANSPORT_MONITOR_DATA);
+                             addr_len,
+                             GNUNET_MESSAGE_TYPE_TRANSPORT_MONITOR_DATA);
   md->nt = htonl ((uint32_t) nt);
   md->peer = *peer;
   md->last_validation = GNUNET_TIME_absolute_hton (me->last_validation);
@@ -1624,10 +1658,10 @@ notify_monitor (struct TransportClient *tc,
   md->num_msg_pending = htonl (me->num_msg_pending);
   md->num_bytes_pending = htonl (me->num_bytes_pending);
   memcpy (&md[1],
-	  address,
-	  addr_len);
+          address,
+          addr_len);
   GNUNET_MQ_send (tc->mq,
-		  env);
+                  env);
 }
 
 
@@ -1642,9 +1676,9 @@ notify_monitor (struct TransportClient *tc,
  */
 static void
 notify_monitors (const struct GNUNET_PeerIdentity *peer,
-		 const char *address,
-		 enum GNUNET_NetworkType nt,
-		 const struct MonitorEvent *me)
+                 const char *address,
+                 enum GNUNET_NetworkType nt,
+                 const struct MonitorEvent *me)
 {
   static struct GNUNET_PeerIdentity zero;
 
@@ -1657,17 +1691,17 @@ notify_monitors (const struct GNUNET_PeerIdentity *peer,
     if (tc->details.monitor.one_shot)
       continue;
     if ( (0 != memcmp (&tc->details.monitor.peer,
-		       &zero,
-		       sizeof (zero))) &&
-	 (0 != memcmp (&tc->details.monitor.peer,
-		       peer,
-		       sizeof (*peer))) )
+                       &zero,
+                       sizeof (zero))) &&
+         (0 != memcmp (&tc->details.monitor.peer,
+                       peer,
+                       sizeof (*peer))) )
       continue;
     notify_monitor (tc,
-		    peer,
-		    address,
-		    nt,
-		    me);
+                    peer,
+                    address,
+                    nt,
+                    me);
   }
 }
 
@@ -1683,8 +1717,8 @@ notify_monitors (const struct GNUNET_PeerIdentity *peer,
  */
 static void *
 client_connect_cb (void *cls,
-		   struct GNUNET_SERVICE_Client *client,
-		   struct GNUNET_MQ_Handle *mq)
+                   struct GNUNET_SERVICE_Client *client,
+                   struct GNUNET_MQ_Handle *mq)
 {
   struct TransportClient *tc;
 
@@ -1712,11 +1746,11 @@ free_reassembly_context (struct ReassemblyContext *rc)
   struct Neighbour *n = rc->neighbour;
 
   GNUNET_assert (rc ==
-		 GNUNET_CONTAINER_heap_remove_node (rc->hn));
+                 GNUNET_CONTAINER_heap_remove_node (rc->hn));
   GNUNET_assert (GNUNET_OK ==
-		 GNUNET_CONTAINER_multishortmap_remove (n->reassembly_map,
-							&rc->msg_uuid,
-							rc));
+                 GNUNET_CONTAINER_multishortmap_remove (n->reassembly_map,
+                                                        &rc->msg_uuid,
+                                                        rc));
   GNUNET_free (rc);
 }
 
@@ -1742,8 +1776,8 @@ reassembly_cleanup_task (void *cls)
     }
     GNUNET_assert (NULL == n->reassembly_timeout_task);
     n->reassembly_timeout_task = GNUNET_SCHEDULER_add_at (rc->reassembly_timeout,
-							  &reassembly_cleanup_task,
-							  n);
+                                                          &reassembly_cleanup_task,
+                                                          n);
     return;
   }
 }
@@ -1781,18 +1815,18 @@ free_neighbour (struct Neighbour *neighbour)
 {
   struct DistanceVectorHop *dvh;
 
-  GNUNET_assert (NULL == neighbour->session_head);
+  GNUNET_assert (NULL == neighbour->queue_head);
   GNUNET_assert (GNUNET_YES ==
-		 GNUNET_CONTAINER_multipeermap_remove (neighbours,
-						       &neighbour->pid,
-						       neighbour));
+                 GNUNET_CONTAINER_multipeermap_remove (neighbours,
+                                                       &neighbour->pid,
+                                                       neighbour));
   if (NULL != neighbour->timeout_task)
     GNUNET_SCHEDULER_cancel (neighbour->timeout_task);
   if (NULL != neighbour->reassembly_map)
   {
     GNUNET_CONTAINER_multishortmap_iterate (neighbour->reassembly_map,
-					    &free_reassembly_cb,
-					    NULL);
+                                            &free_reassembly_cb,
+                                            NULL);
     GNUNET_CONTAINER_multishortmap_destroy (neighbour->reassembly_map);
     neighbour->reassembly_map = NULL;
     GNUNET_CONTAINER_heap_destroy (neighbour->reassembly_heap);
@@ -1815,15 +1849,15 @@ free_neighbour (struct Neighbour *neighbour)
  */
 static void
 core_send_connect_info (struct TransportClient *tc,
-			const struct GNUNET_PeerIdentity *pid,
-			struct GNUNET_BANDWIDTH_Value32NBO quota_out)
+                        const struct GNUNET_PeerIdentity *pid,
+                        struct GNUNET_BANDWIDTH_Value32NBO quota_out)
 {
   struct GNUNET_MQ_Envelope *env;
   struct ConnectInfoMessage *cim;
 
   GNUNET_assert (CT_CORE == tc->type);
   env = GNUNET_MQ_msg (cim,
-		       GNUNET_MESSAGE_TYPE_TRANSPORT_CONNECT);
+                       GNUNET_MESSAGE_TYPE_TRANSPORT_CONNECT);
   cim->quota_out = quota_out;
   cim->id = *pid;
   GNUNET_MQ_send (tc->mq,
@@ -1839,7 +1873,7 @@ core_send_connect_info (struct TransportClient *tc,
  */
 static void
 cores_send_connect_info (const struct GNUNET_PeerIdentity *pid,
-			 struct GNUNET_BANDWIDTH_Value32NBO quota_out)
+                         struct GNUNET_BANDWIDTH_Value32NBO quota_out)
 {
   for (struct TransportClient *tc = clients_head;
        NULL != tc;
@@ -1848,8 +1882,8 @@ cores_send_connect_info (const struct GNUNET_PeerIdentity *pid,
     if (CT_CORE != tc->type)
       continue;
     core_send_connect_info (tc,
-			    pid,
-			    quota_out);
+                            pid,
+                            quota_out);
   }
 }
 
@@ -1872,10 +1906,10 @@ cores_send_disconnect_info (const struct GNUNET_PeerIdentity *pid)
     if (CT_CORE != tc->type)
       continue;
     env = GNUNET_MQ_msg (dim,
-			 GNUNET_MESSAGE_TYPE_TRANSPORT_DISCONNECT);
+                         GNUNET_MESSAGE_TYPE_TRANSPORT_DISCONNECT);
     dim->peer = *pid;
     GNUNET_MQ_send (tc->mq,
-		    env);
+                    env);
   }
 }
 
@@ -1886,7 +1920,7 @@ cores_send_disconnect_info (const struct GNUNET_PeerIdentity *pid)
  * communicator for transmission (updating the tracker, and re-scheduling
  * itself if applicable).
  *
- * @param cls the `struct GNUNET_ATS_Session` to process transmissions for
+ * @param cls the `struct Queue` to process transmissions for
  */
 static void
 transmit_on_queue (void *cls);
@@ -1902,7 +1936,7 @@ transmit_on_queue (void *cls);
  * @param queue the queue to do scheduling for
  */
 static void
-schedule_transmit_on_queue (struct GNUNET_ATS_Session *queue)
+schedule_transmit_on_queue (struct Queue *queue)
 {
   struct Neighbour *n = queue->neighbour;
   struct PendingMessage *pm = n->pending_msg_head;
@@ -1910,20 +1944,21 @@ schedule_transmit_on_queue (struct GNUNET_ATS_Session *queue)
   unsigned int wsize;
 
   GNUNET_assert (NULL != pm);
-  if (queue->tc->details.communicator.total_queue_length >= COMMUNICATOR_TOTAL_QUEUE_LIMIT)
+  if (queue->tc->details.communicator.total_queue_length >=
+      COMMUNICATOR_TOTAL_QUEUE_LIMIT)
   {
     GNUNET_STATISTICS_update (GST_stats,
-			      "# Transmission throttled due to communicator queue limit",
-			      1,
-			      GNUNET_NO);
+                              "# Transmission throttled due to communicator queue limit",
+                              1,
+                              GNUNET_NO);
     return;
   }
-  if (queue->queue_length >= SESSION_QUEUE_LIMIT)
+  if (queue->queue_length >= QUEUE_LENGTH_LIMIT)
   {
     GNUNET_STATISTICS_update (GST_stats,
-			      "# Transmission throttled due to session queue limit",
-			      1,
-			      GNUNET_NO);
+                              "# Transmission throttled due to queue queue limit",
+                              1,
+                              GNUNET_NO);
     return;
   }
 
@@ -1931,40 +1966,41 @@ schedule_transmit_on_queue (struct GNUNET_ATS_Session *queue)
     ? pm->bytes_msg /* FIXME: add overheads? */
     : queue->mtu;
   out_delay = GNUNET_BANDWIDTH_tracker_get_delay (&queue->tracker_out,
-						  wsize);
+                                                  wsize);
   out_delay = GNUNET_TIME_relative_max (GNUNET_TIME_absolute_get_remaining (pm->next_attempt),
-					out_delay);
+                                        out_delay);
   if (0 == out_delay.rel_value_us)
     return; /* we should run immediately! */
   /* queue has changed since we were scheduled, reschedule again */
-  queue->transmit_task = GNUNET_SCHEDULER_add_delayed (out_delay,
-						       &transmit_on_queue,
-						       queue);
+  queue->transmit_task
+    = GNUNET_SCHEDULER_add_delayed (out_delay,
+                                    &transmit_on_queue,
+                                    queue);
   if (out_delay.rel_value_us > DELAY_WARN_THRESHOLD.rel_value_us)
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-		"Next transmission on queue `%s' in %s (high delay)\n",
-		queue->address,
-		GNUNET_STRINGS_relative_time_to_string (out_delay,
-							GNUNET_YES));
+                "Next transmission on queue `%s' in %s (high delay)\n",
+                queue->address,
+                GNUNET_STRINGS_relative_time_to_string (out_delay,
+                                                        GNUNET_YES));
   else
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		"Next transmission on queue `%s' in %s\n",
-		queue->address,
-		GNUNET_STRINGS_relative_time_to_string (out_delay,
-							GNUNET_YES));
+                "Next transmission on queue `%s' in %s\n",
+                queue->address,
+                GNUNET_STRINGS_relative_time_to_string (out_delay,
+                                                        GNUNET_YES));
 }
 
 
 /**
- * Free @a session.
+ * Free @a queue.
  *
- * @param session the session to free
+ * @param queue the queue to free
  */
 static void
-free_session (struct GNUNET_ATS_Session *session)
+free_queue (struct Queue *queue)
 {
-  struct Neighbour *neighbour = session->neighbour;
-  struct TransportClient *tc = session->tc;
+  struct Neighbour *neighbour = queue->neighbour;
+  struct TransportClient *tc = queue->tc;
   struct MonitorEvent me = {
     .cs = GNUNET_TRANSPORT_CS_DOWN,
     .rtt = GNUNET_TIME_UNIT_FOREVER_REL
@@ -1972,52 +2008,51 @@ free_session (struct GNUNET_ATS_Session *session)
   struct QueueEntry *qe;
   int maxxed;
 
-  if (NULL != session->transmit_task)
+  if (NULL != queue->transmit_task)
   {
-    GNUNET_SCHEDULER_cancel (session->transmit_task);
-    session->transmit_task = NULL;
+    GNUNET_SCHEDULER_cancel (queue->transmit_task);
+    queue->transmit_task = NULL;
   }
   GNUNET_CONTAINER_MDLL_remove (neighbour,
-				neighbour->session_head,
-				neighbour->session_tail,
-				session);
+                                neighbour->queue_head,
+                                neighbour->queue_tail,
+                                queue);
   GNUNET_CONTAINER_MDLL_remove (client,
-				tc->details.communicator.session_head,
-				tc->details.communicator.session_tail,
-				session);
+                                tc->details.communicator.queue_head,
+                                tc->details.communicator.queue_tail,
+                                queue);
   maxxed = (COMMUNICATOR_TOTAL_QUEUE_LIMIT >= tc->details.communicator.total_queue_length);
-  while (NULL != (qe = session->queue_head))
+  while (NULL != (qe = queue->queue_head))
   {
-    GNUNET_CONTAINER_DLL_remove (session->queue_head,
-				 session->queue_tail,
-				 qe);
-    session->queue_length--;
+    GNUNET_CONTAINER_DLL_remove (queue->queue_head,
+                                 queue->queue_tail,
+                                 qe);
+    queue->queue_length--;
     tc->details.communicator.total_queue_length--;
     GNUNET_free (qe);
   }
-  GNUNET_assert (0 == session->queue_length);
+  GNUNET_assert (0 == queue->queue_length);
   if ( (maxxed) &&
        (COMMUNICATOR_TOTAL_QUEUE_LIMIT < tc->details.communicator.total_queue_length) )
   {
     /* Communicator dropped below threshold, resume all queues */
     GNUNET_STATISTICS_update (GST_stats,
-			      "# Transmission throttled due to communicator queue limit",
-			      -1,
-			      GNUNET_NO);
-    for (struct GNUNET_ATS_Session *s = tc->details.communicator.session_head;
-	 NULL != s;
-	 s = s->next_client)
+                              "# Transmission throttled due to communicator queue limit",
+                              -1,
+                              GNUNET_NO);
+    for (struct Queue *s = tc->details.communicator.queue_head;
+         NULL != s;
+         s = s->next_client)
       schedule_transmit_on_queue (s);
   }
   notify_monitors (&neighbour->pid,
-		   session->address,
-		   session->nt,
-		   &me);
-  GNUNET_ATS_session_del (session->sr);
-  GNUNET_BANDWIDTH_tracker_notification_stop (&session->tracker_in);
-  GNUNET_BANDWIDTH_tracker_notification_stop (&session->tracker_out);
-  GNUNET_free (session);
-  if (NULL == neighbour->session_head)
+                   queue->address,
+                   queue->nt,
+                   &me);
+  GNUNET_BANDWIDTH_tracker_notification_stop (&queue->tracker_in);
+  GNUNET_BANDWIDTH_tracker_notification_stop (&queue->tracker_out);
+  GNUNET_free (queue);
+  if (NULL == neighbour->queue_head)
   {
     cores_send_disconnect_info (&neighbour->pid);
     free_neighbour (neighbour);
@@ -2036,8 +2071,8 @@ free_address_list_entry (struct AddressListEntry *ale)
   struct TransportClient *tc = ale->tc;
 
   GNUNET_CONTAINER_DLL_remove (tc->details.communicator.addr_head,
-			       tc->details.communicator.addr_tail,
-			       ale);
+                               tc->details.communicator.addr_tail,
+                               ale);
   if (NULL != ale->sc)
   {
     GNUNET_PEERSTORE_store_cancel (ale->sc);
@@ -2053,6 +2088,33 @@ free_address_list_entry (struct AddressListEntry *ale)
 
 
 /**
+ * Stop the peer request in @a value.
+ *
+ * @param cls a `struct TransportClient` that no longer makes the request
+ * @param pid the peer's identity
+ * @param value a `struct PeerRequest`
+ * @return #GNUNET_YES (always)
+ */
+static int
+stop_peer_request (void *cls,
+                   const struct GNUNET_PeerIdentity *pid,
+                   void *value)
+{
+  struct TransportClient *tc = cls;
+  struct PeerRequest *pr = value;
+
+  GNUNET_PEERSTORE_watch_cancel (pr->wc);
+  GNUNET_assert (GNUNET_YES ==
+                 GNUNET_CONTAINER_multipeermap_remove (tc->details.application.requests,
+                                                       pid,
+                                                       pr));
+  GNUNET_free (pr);
+
+  return GNUNET_OK;
+}
+
+
+/**
  * Called whenever a client is disconnected.  Frees our
  * resources associated with that client.
  *
@@ -2062,8 +2124,8 @@ free_address_list_entry (struct AddressListEntry *ale)
  */
 static void
 client_disconnect_cb (void *cls,
-		      struct GNUNET_SERVICE_Client *client,
-		      void *app_ctx)
+                      struct GNUNET_SERVICE_Client *client,
+                      void *app_ctx)
 {
   struct TransportClient *tc = app_ctx;
 
@@ -2083,11 +2145,11 @@ client_disconnect_cb (void *cls,
 
       while (NULL != (pm = tc->details.core.pending_msg_head))
       {
-	GNUNET_CONTAINER_MDLL_remove (client,
-				      tc->details.core.pending_msg_head,
-				      tc->details.core.pending_msg_tail,
-				      pm);
-	pm->client = NULL;
+        GNUNET_CONTAINER_MDLL_remove (client,
+                                      tc->details.core.pending_msg_head,
+                                      tc->details.core.pending_msg_tail,
+                                      pm);
+        pm->client = NULL;
       }
     }
     break;
@@ -2095,15 +2157,21 @@ client_disconnect_cb (void *cls,
     break;
   case CT_COMMUNICATOR:
     {
-      struct GNUNET_ATS_Session *q;
+      struct Queue *q;
       struct AddressListEntry *ale;
 
-      while (NULL != (q = tc->details.communicator.session_head))
-	free_session (q);
+      while (NULL != (q = tc->details.communicator.queue_head))
+        free_queue (q);
       while (NULL != (ale = tc->details.communicator.addr_head))
-	free_address_list_entry (ale);
+        free_address_list_entry (ale);
       GNUNET_free (tc->details.communicator.address_prefix);
     }
+    break;
+  case CT_APPLICATION:
+    GNUNET_CONTAINER_multipeermap_iterate (tc->details.application.requests,
+                                           &stop_peer_request,
+                                           tc);
+    GNUNET_CONTAINER_multipeermap_destroy (tc->details.application.requests);
     break;
   }
   GNUNET_free (tc);
@@ -2121,15 +2189,15 @@ client_disconnect_cb (void *cls,
  */
 static int
 notify_client_connect_info (void *cls,
-			    const struct GNUNET_PeerIdentity *pid,
-			    void *value)
+                            const struct GNUNET_PeerIdentity *pid,
+                            void *value)
 {
   struct TransportClient *tc = cls;
   struct Neighbour *neighbour = value;
 
   core_send_connect_info (tc,
-			  pid,
-			  neighbour->quota_out);
+                          pid,
+                          neighbour->quota_out);
   return GNUNET_OK;
 }
 
@@ -2144,7 +2212,7 @@ notify_client_connect_info (void *cls,
  */
 static void
 handle_client_start (void *cls,
-		     const struct StartMessage *start)
+                     const struct StartMessage *start)
 {
   struct TransportClient *tc = cls;
   uint32_t options;
@@ -2169,8 +2237,8 @@ handle_client_start (void *cls,
   }
   tc->type = CT_CORE;
   GNUNET_CONTAINER_multipeermap_iterate (neighbours,
-					 &notify_client_connect_info,
-					 tc);
+                                         &notify_client_connect_info,
+                                         tc);
   GNUNET_SERVICE_client_continue (tc->client);
 }
 
@@ -2183,7 +2251,7 @@ handle_client_start (void *cls,
  */
 static int
 check_client_send (void *cls,
-		   const struct OutboundMessage *obm)
+                   const struct OutboundMessage *obm)
 {
   struct TransportClient *tc = cls;
   uint16_t size;
@@ -2248,14 +2316,14 @@ free_pending_message (struct PendingMessage *pm)
   if (NULL != tc)
   {
     GNUNET_CONTAINER_MDLL_remove (client,
-				  tc->details.core.pending_msg_head,
-				  tc->details.core.pending_msg_tail,
-				  pm);
+                                  tc->details.core.pending_msg_head,
+                                  tc->details.core.pending_msg_tail,
+                                  pm);
   }
   GNUNET_CONTAINER_MDLL_remove (neighbour,
-				target->pending_msg_head,
-				target->pending_msg_tail,
-				pm);
+                                target->pending_msg_head,
+                                target->pending_msg_tail,
+                                pm);
   free_fragment_tree (pm);
   GNUNET_free_non_null (pm->bpm);
   GNUNET_free (pm);
@@ -2276,8 +2344,8 @@ free_pending_message (struct PendingMessage *pm)
  */
 static void
 client_send_response (struct PendingMessage *pm,
-		      int success,
-		      uint32_t bytes_physical)
+                      int success,
+                      uint32_t bytes_physical)
 {
   struct TransportClient *tc = pm->client;
   struct Neighbour *target = pm->target;
@@ -2287,7 +2355,7 @@ client_send_response (struct PendingMessage *pm,
   if (NULL != tc)
   {
     env = GNUNET_MQ_msg (som,
-			 GNUNET_MESSAGE_TYPE_TRANSPORT_SEND_OK);
+                         GNUNET_MESSAGE_TYPE_TRANSPORT_SEND_OK);
     som->success = htonl ((uint32_t) success);
     som->bytes_msg = htons (pm->bytes_msg);
     som->bytes_physical = htonl (bytes_physical);
@@ -2324,22 +2392,22 @@ check_queue_timeouts (void *cls)
     if (pos->timeout.abs_value_us <= now.abs_value_us)
     {
       GNUNET_STATISTICS_update (GST_stats,
-				"# messages dropped (timeout before confirmation)",
-				1,
-				GNUNET_NO);
+                                "# messages dropped (timeout before confirmation)",
+                                1,
+                                GNUNET_NO);
       client_send_response (pm,
 			    GNUNET_NO,
 			    0);
       continue;
     }
     earliest_timeout = GNUNET_TIME_absolute_min (earliest_timeout,
-						 pos->timeout);
+                                                 pos->timeout);
   }
   n->earliest_timeout = earliest_timeout;
   if (NULL != n->pending_msg_head)
     n->timeout_task = GNUNET_SCHEDULER_add_at (earliest_timeout,
-					       &check_queue_timeouts,
-					       n);
+                                               &check_queue_timeouts,
+                                               n);
 }
 
 
@@ -2351,13 +2419,14 @@ check_queue_timeouts (void *cls)
  */
 static void
 handle_client_send (void *cls,
-		    const struct OutboundMessage *obm)
+                    const struct OutboundMessage *obm)
 {
   struct TransportClient *tc = cls;
   struct PendingMessage *pm;
   const struct GNUNET_MessageHeader *obmm;
   struct Neighbour *target;
   uint32_t bytes_msg;
+  int was_empty;
 
   GNUNET_assert (CT_CORE == tc->type);
   obmm = (const struct GNUNET_MessageHeader *) &obm[1];
@@ -2373,36 +2442,37 @@ handle_client_send (void *cls,
     struct SendOkMessage *som;
 
     env = GNUNET_MQ_msg (som,
-			 GNUNET_MESSAGE_TYPE_TRANSPORT_SEND_OK);
+                         GNUNET_MESSAGE_TYPE_TRANSPORT_SEND_OK);
     som->success = htonl (GNUNET_SYSERR);
     som->bytes_msg = htonl (bytes_msg);
     som->bytes_physical = htonl (0);
     som->peer = obm->peer;
     GNUNET_MQ_send (tc->mq,
-		    env);
+                    env);
     GNUNET_SERVICE_client_continue (tc->client);
     GNUNET_STATISTICS_update (GST_stats,
-			      "# messages dropped (neighbour unknown)",
-			      1,
-			      GNUNET_NO);
+                              "# messages dropped (neighbour unknown)",
+                              1,
+                              GNUNET_NO);
     return;
   }
+  was_empty = (NULL == target->pending_msg_head);
   pm = GNUNET_malloc (sizeof (struct PendingMessage) + bytes_msg);
   pm->client = tc;
   pm->target = target;
   pm->bytes_msg = bytes_msg;
   pm->timeout = GNUNET_TIME_relative_to_absolute (GNUNET_TIME_relative_ntoh (obm->timeout));
   memcpy (&pm[1],
-	  &obm[1],
-	  bytes_msg);
+          &obm[1],
+          bytes_msg);
   GNUNET_CONTAINER_MDLL_insert (neighbour,
-				target->pending_msg_head,
-				target->pending_msg_tail,
-				pm);
+                                target->pending_msg_head,
+                                target->pending_msg_tail,
+                                pm);
   GNUNET_CONTAINER_MDLL_insert (client,
-				tc->details.core.pending_msg_head,
-				tc->details.core.pending_msg_tail,
-				pm);
+                                tc->details.core.pending_msg_head,
+                                tc->details.core.pending_msg_tail,
+                                pm);
   if (target->earliest_timeout.abs_value_us > pm->timeout.abs_value_us)
   {
     target->earliest_timeout.abs_value_us = pm->timeout.abs_value_us;
@@ -2410,8 +2480,19 @@ handle_client_send (void *cls,
       GNUNET_SCHEDULER_cancel (target->timeout_task);
     target->timeout_task
       = GNUNET_SCHEDULER_add_at (target->earliest_timeout,
-				 &check_queue_timeouts,
-				 target);
+                                 &check_queue_timeouts,
+                                 target);
+  }
+  if (! was_empty)
+    return; /* all queues must already be busy */
+  for (struct Queue *queue = target->queue_head;
+       NULL != queue;
+       queue = queue->next_neighbour)
+  {
+    /* try transmission on any queue that is idle */
+    if (NULL == queue->transmit_task)
+      queue->transmit_task = GNUNET_SCHEDULER_add_now (&transmit_on_queue,
+                                                       queue);
   }
 }
 
@@ -2476,7 +2557,7 @@ handle_communicator_available (void *cls,
  */
 static int
 check_communicator_backchannel (void *cls,
-				const struct GNUNET_TRANSPORT_CommunicatorBackchannel *cb)
+                                const struct GNUNET_TRANSPORT_CommunicatorBackchannel *cb)
 {
   const struct GNUNET_MessageHeader *inbox;
   const char *is;
@@ -2550,10 +2631,10 @@ expire_ephemerals (void *cls)
  */
 static void
 lookup_ephemeral (const struct GNUNET_PeerIdentity *pid,
-		  struct GNUNET_CRYPTO_EcdhePrivateKey *private_key,
-		  struct GNUNET_CRYPTO_EcdhePublicKey *ephemeral_key,
-		  struct GNUNET_CRYPTO_EddsaSignature *ephemeral_sender_sig,
-		  struct GNUNET_TIME_Absolute *ephemeral_validity)
+                  struct GNUNET_CRYPTO_EcdhePrivateKey *private_key,
+                  struct GNUNET_CRYPTO_EcdhePublicKey *ephemeral_key,
+                  struct GNUNET_CRYPTO_EddsaSignature *ephemeral_sender_sig,
+                  struct GNUNET_TIME_Absolute *ephemeral_validity)
 {
   struct EphemeralCacheEntry *ece;
   struct EphemeralConfirmation ec;
@@ -2628,7 +2709,7 @@ route_message (const struct GNUNET_PeerIdentity *target,
  */
 static void
 handle_communicator_backchannel (void *cls,
-				 const struct GNUNET_TRANSPORT_CommunicatorBackchannel *cb)
+                                 const struct GNUNET_TRANSPORT_CommunicatorBackchannel *cb)
 {
   struct TransportClient *tc = cls;
   struct GNUNET_CRYPTO_EcdhePrivateKey private_key;
@@ -2714,7 +2795,7 @@ store_pi (void *cls);
  */
 static void
 peerstore_store_cb (void *cls,
-		    int success)
+                    int success)
 {
   struct AddressListEntry *ale = cls;
 
@@ -3163,7 +3244,7 @@ handle_fragment_box (void *cls,
   if (65 == rc->num_acks) /* FIXME: maybe use smaller threshold? This is very aggressive. */
     ack_now = GNUNET_YES; /* maximum acks received */
   // FIXME: possibly also ACK based on RTT (but for that we'd need to
-  // determine the session used for the ACK first!)
+  // determine the queue used for the ACK first!)
 
   /* is reassembly complete? */
   if (0 != rc->msg_missing)
@@ -3274,7 +3355,7 @@ handle_reliability_box (void *cls,
  */
 static void
 handle_reliability_ack (void *cls,
-			const struct TransportReliabilityAckMessage *ra)
+                        const struct TransportReliabilityAckMessage *ra)
 {
   struct CommunicatorMessageContext *cmc = cls;
 
@@ -3293,7 +3374,7 @@ handle_reliability_ack (void *cls,
  */
 static int
 check_backchannel_encapsulation (void *cls,
-				 const struct TransportBackchannelEncapsulationMessage *be)
+                                 const struct TransportBackchannelEncapsulationMessage *be)
 {
   uint16_t size = ntohs (be->header.size);
 
@@ -3314,7 +3395,7 @@ check_backchannel_encapsulation (void *cls,
  */
 static void
 handle_backchannel_encapsulation (void *cls,
-				  const struct TransportBackchannelEncapsulationMessage *be)
+                                  const struct TransportBackchannelEncapsulationMessage *be)
 {
   struct CommunicatorMessageContext *cmc = cls;
 
@@ -3346,7 +3427,7 @@ handle_backchannel_encapsulation (void *cls,
  */
 static int
 check_dv_learn (void *cls,
-		const struct TransportDVLearn *dvl)
+                const struct TransportDVLearn *dvl)
 {
   uint16_t size = ntohs (dvl->header.size);
   uint16_t num_hops = ntohs (dvl->num_hops);
@@ -3360,15 +3441,15 @@ check_dv_learn (void *cls,
   for (unsigned int i=0;i<num_hops;i++)
   {
     if (0 == memcmp (&dvl->initiator,
-		     &hops[i],
-		     sizeof (struct GNUNET_PeerIdentity)))
+                     &hops[i],
+                     sizeof (struct GNUNET_PeerIdentity)))
     {
       GNUNET_break_op (0);
       return GNUNET_SYSERR;
     }
     if (0 == memcmp (&GST_my_identity,
-		     &hops[i],
-		     sizeof (struct GNUNET_PeerIdentity)))
+                     &hops[i],
+                     sizeof (struct GNUNET_PeerIdentity)))
     {
       GNUNET_break_op (0);
       return GNUNET_SYSERR;
@@ -3386,7 +3467,7 @@ check_dv_learn (void *cls,
  */
 static void
 handle_dv_learn (void *cls,
-		 const struct TransportDVLearn *dvl)
+                 const struct TransportDVLearn *dvl)
 {
   struct CommunicatorMessageContext *cmc = cls;
 
@@ -3405,7 +3486,7 @@ handle_dv_learn (void *cls,
  */
 static int
 check_dv_box (void *cls,
-	      const struct TransportDVBox *dvb)
+              const struct TransportDVBox *dvb)
 {
   uint16_t size = ntohs (dvb->header.size);
   uint16_t num_hops = ntohs (dvb->num_hops);
@@ -3599,12 +3680,12 @@ check_add_queue_message (void *cls,
  * Bandwidth tracker informs us that the delay until we should receive
  * more has changed.
  *
- * @param cls a `struct GNUNET_ATS_Session` for which the delay changed
+ * @param cls a `struct Queue` for which the delay changed
  */
 static void
 tracker_update_in_cb (void *cls)
 {
-  struct GNUNET_ATS_Session *queue = cls;
+  struct Queue *queue = cls;
   struct GNUNET_TIME_Relative in_delay;
   unsigned int rsize;
 
@@ -3801,12 +3882,12 @@ reliability_box_message (struct PendingMessage *pm)
  * communicator for transmission (updating the tracker, and re-scheduling
  * itself if applicable).
  *
- * @param cls the `struct GNUNET_ATS_Session` to process transmissions for
+ * @param cls the `struct Queue` to process transmissions for
  */
 static void
 transmit_on_queue (void *cls)
 {
-  struct GNUNET_ATS_Session *queue = cls;
+  struct Queue *queue = cls;
   struct Neighbour *n = queue->neighbour;
   struct QueueEntry *qe;
   struct PendingMessage *pm;
@@ -3835,9 +3916,9 @@ transmit_on_queue (void *cls)
 				 respect that even if MTU is 0 for
 				 this queue */) )
     s = fragment_message (s,
-			  (0 == queue->mtu)
-			  ? UINT16_MAX - sizeof (struct GNUNET_TRANSPORT_SendMessageTo)
-			  : queue->mtu);
+                          (0 == queue->mtu)
+                          ? UINT16_MAX - sizeof (struct GNUNET_TRANSPORT_SendMessageTo)
+                          : queue->mtu);
   if (NULL == s)
   {
     /* Fragmentation failed, try next message... */
@@ -3856,7 +3937,7 @@ transmit_on_queue (void *cls)
   /* Pass 's' for transission to the communicator */
   qe = GNUNET_new (struct QueueEntry);
   qe->mid = queue->mid_gen++;
-  qe->session = queue;
+  qe->queue = queue;
   // qe->pm = s; // FIXME: not so easy, reference management on 'free(s)'!
   GNUNET_CONTAINER_DLL_insert (queue->queue_head,
 			       queue->queue_tail,
@@ -3868,13 +3949,13 @@ transmit_on_queue (void *cls)
   smt->mid = qe->mid;
   smt->receiver = n->pid;
   memcpy (&smt[1],
-	  &s[1],
-	  s->bytes_msg);
+          &s[1],
+          s->bytes_msg);
   GNUNET_assert (CT_COMMUNICATOR == queue->tc->type);
   queue->queue_length++;
   queue->tc->details.communicator.total_queue_length++;
   GNUNET_MQ_send (queue->tc->mq,
-		  env);
+                  env);
 
   // FIXME: do something similar to the logic below
   // in defragmentation / reliability ACK handling!
@@ -3886,8 +3967,8 @@ transmit_on_queue (void *cls)
   {
     /* Full message sent, and over reliabile channel */
     client_send_response (pm,
-			  GNUNET_YES,
-			  pm->bytes_msg);
+                          GNUNET_YES,
+                          pm->bytes_msg);
   }
   else if ( (GNUNET_TRANSPORT_CC_RELIABLE == queue->tc->details.communicator.cc) &&
 	    (PMT_FRAGMENT_BOX == s->pmt) )
@@ -3898,9 +3979,9 @@ transmit_on_queue (void *cls)
     free_fragment_tree (s);
     pos = s->frag_parent;
     GNUNET_CONTAINER_MDLL_remove (frag,
-				  pos->head_frag,
-				  pos->tail_frag,
-				  s);
+                                  pos->head_frag,
+                                  pos->tail_frag,
+                                  s);
     GNUNET_free (s);
     /* check if subtree is done */
     while ( (NULL == pos->head_frag) &&
@@ -3910,9 +3991,9 @@ transmit_on_queue (void *cls)
       s = pos;
       pos = s->frag_parent;
       GNUNET_CONTAINER_MDLL_remove (frag,
-				    pos->head_frag,
-				    pos->tail_frag,
-				    s);
+                                    pos->head_frag,
+                                    pos->tail_frag,
+                                    s);
       GNUNET_free (s);
     }
 
@@ -3920,8 +4001,8 @@ transmit_on_queue (void *cls)
     if ( (NULL == pm->head_frag) &&
 	 (pm->frag_off == pm->bytes_msg) )
       client_send_response (pm,
-			    GNUNET_YES,
-			    pm->bytes_msg /* FIXME: calculate and add overheads! */);
+                            GNUNET_YES,
+                            pm->bytes_msg /* FIXME: calculate and add overheads! */);
   }
   else if (PMT_CORE != pm->pmt)
   {
@@ -3941,25 +4022,25 @@ transmit_on_queue (void *cls)
        message urgency and size when delaying ACKs, etc.) */
     s->next_attempt = GNUNET_TIME_relative_to_absolute
       (GNUNET_TIME_relative_multiply (queue->rtt,
-				      4));
+                                      4));
     if (s == pm)
     {
       struct PendingMessage *pos;
 
       /* re-insert sort in neighbour list */
       GNUNET_CONTAINER_MDLL_remove (neighbour,
-				    neighbour->pending_msg_head,
-				    neighbour->pending_msg_tail,
-				    pm);
+                                    neighbour->pending_msg_head,
+                                    neighbour->pending_msg_tail,
+                                    pm);
       pos = neighbour->pending_msg_tail;
       while ( (NULL != pos) &&
 	      (pm->next_attempt.abs_value_us > pos->next_attempt.abs_value_us) )
-	pos = pos->prev_neighbour;
+        pos = pos->prev_neighbour;
       GNUNET_CONTAINER_MDLL_insert_after (neighbour,
-					  neighbour->pending_msg_head,
-					  neighbour->pending_msg_tail,
-					  pos,
-					  pm);
+                                          neighbour->pending_msg_head,
+                                          neighbour->pending_msg_tail,
+                                          pos,
+                                          pm);
     }
     else
     {
@@ -3968,18 +4049,18 @@ transmit_on_queue (void *cls)
       struct PendingMessage *pos;
 
       GNUNET_CONTAINER_MDLL_remove (frag,
-				    fp->head_frag,
-				    fp->tail_frag,
-				    s);
+                                    fp->head_frag,
+                                    fp->tail_frag,
+                                    s);
       pos = fp->tail_frag;
       while ( (NULL != pos) &&
 	      (s->next_attempt.abs_value_us > pos->next_attempt.abs_value_us) )
-	pos = pos->prev_frag;
+        pos = pos->prev_frag;
       GNUNET_CONTAINER_MDLL_insert_after (frag,
-					  fp->head_frag,
-					  fp->tail_frag,
-					  pos,
-					  s);
+                                          fp->head_frag,
+                                          fp->tail_frag,
+                                          pos,
+                                          s);
     }
   }
 
@@ -3992,12 +4073,12 @@ transmit_on_queue (void *cls)
  * Bandwidth tracker informs us that the delay until we
  * can transmit again changed.
  *
- * @param cls a `struct GNUNET_ATS_Session` for which the delay changed
+ * @param cls a `struct Queue` for which the delay changed
  */
 static void
 tracker_update_out_cb (void *cls)
 {
-  struct GNUNET_ATS_Session *queue = cls;
+  struct Queue *queue = cls;
   struct Neighbour *n = queue->neighbour;
 
   if (NULL == n->pending_msg_head)
@@ -4017,7 +4098,7 @@ tracker_update_out_cb (void *cls)
  * Bandwidth tracker informs us that excessive outbound bandwidth was
  * allocated which is not being used.
  *
- * @param cls a `struct GNUNET_ATS_Session` for which the excess was noted
+ * @param cls a `struct Queue` for which the excess was noted
  */
 static void
 tracker_excess_out_cb (void *cls)
@@ -4026,11 +4107,11 @@ tracker_excess_out_cb (void *cls)
      this is done internally within transport_api2_core already,
      but we probably want to change the logic and trigger it
      from here via a message instead! */
-  /* TODO: maybe inform ATS at this point? */
+  /* TODO: maybe inform someone at this point? */
   GNUNET_STATISTICS_update (GST_stats,
-			    "# Excess outbound bandwidth reported",
-			    1,
-			    GNUNET_NO);
+                            "# Excess outbound bandwidth reported",
+                            1,
+                            GNUNET_NO);
 }
 
 
@@ -4039,16 +4120,16 @@ tracker_excess_out_cb (void *cls)
  * Bandwidth tracker informs us that excessive inbound bandwidth was allocated
  * which is not being used.
  *
- * @param cls a `struct GNUNET_ATS_Session` for which the excess was noted
+ * @param cls a `struct Queue` for which the excess was noted
  */
 static void
 tracker_excess_in_cb (void *cls)
 {
-  /* TODO: maybe inform ATS at this point? */
+  /* TODO: maybe inform somone at this point? */
   GNUNET_STATISTICS_update (GST_stats,
-			    "# Excess inbound bandwidth reported",
-			    1,
-			    GNUNET_NO);
+                            "# Excess inbound bandwidth reported",
+                            1,
+                            GNUNET_NO);
 }
 
 
@@ -4063,7 +4144,7 @@ handle_add_queue_message (void *cls,
                           const struct GNUNET_TRANSPORT_AddQueueMessage *aqm)
 {
   struct TransportClient *tc = cls;
-  struct GNUNET_ATS_Session *queue;
+  struct Queue *queue;
   struct Neighbour *neighbour;
   const char *addr;
   uint16_t addr_len;
@@ -4083,17 +4164,17 @@ handle_add_queue_message (void *cls,
     neighbour->earliest_timeout = GNUNET_TIME_UNIT_FOREVER_ABS;
     neighbour->pid = aqm->receiver;
     GNUNET_assert (GNUNET_OK ==
-		   GNUNET_CONTAINER_multipeermap_put (neighbours,
-						      &neighbour->pid,
- 						      neighbour,
-						      GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
+                   GNUNET_CONTAINER_multipeermap_put (neighbours,
+                                                      &neighbour->pid,
+                                                      neighbour,
+                                                      GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
     cores_send_connect_info (&neighbour->pid,
-			     GNUNET_BANDWIDTH_ZERO);
+                             GNUNET_BANDWIDTH_ZERO);
   }
   addr_len = ntohs (aqm->header.size) - sizeof (*aqm);
   addr = (const char *) &aqm[1];
 
-  queue = GNUNET_malloc (sizeof (struct GNUNET_ATS_Session) + addr_len);
+  queue = GNUNET_malloc (sizeof (struct Queue) + addr_len);
   queue->tc = tc;
   queue->address = (const char *) &queue[1];
   queue->rtt = GNUNET_TIME_UNIT_FOREVER_REL;
@@ -4117,40 +4198,8 @@ handle_add_queue_message (void *cls,
                                   &tracker_excess_out_cb,
                                   queue);
   memcpy (&queue[1],
-	  addr,
-	  addr_len);
-  /* notify ATS about new queue */
-  {
-    struct GNUNET_ATS_Properties prop = {
-      .delay = GNUNET_TIME_UNIT_FOREVER_REL,
-      .mtu = queue->mtu,
-      .nt = queue->nt,
-      .cc = tc->details.communicator.cc
-    };
-
-    queue->sr = GNUNET_ATS_session_add (ats,
-					&neighbour->pid,
-					queue->address,
-					queue,
-					&prop);
-    if  (NULL == queue->sr)
-    {
-      /* This can only happen if the 'address' was way too long for ATS
-	 (approaching 64k in strlen()!). In this case, the communicator
-	 must be buggy and we drop it. */
-      GNUNET_break (0);
-      GNUNET_BANDWIDTH_tracker_notification_stop (&queue->tracker_in);
-      GNUNET_BANDWIDTH_tracker_notification_stop (&queue->tracker_out);
-      GNUNET_free (queue);
-      if (NULL == neighbour->session_head)
-      {
-	cores_send_disconnect_info (&neighbour->pid);
-	free_neighbour (neighbour);
-      }
-      GNUNET_SERVICE_client_drop (tc->client);
-      return;
-    }
-  }
+          addr,
+          addr_len);
   /* notify monitors about new queue */
   {
     struct MonitorEvent me = {
@@ -4159,18 +4208,18 @@ handle_add_queue_message (void *cls,
     };
 
     notify_monitors (&neighbour->pid,
-		     queue->address,
-		     queue->nt,
-		     &me);
+                     queue->address,
+                     queue->nt,
+                     &me);
   }
   GNUNET_CONTAINER_MDLL_insert (neighbour,
-				neighbour->session_head,
-				neighbour->session_tail,
-				queue);
+                                neighbour->queue_head,
+                                neighbour->queue_tail,
+                                queue);
   GNUNET_CONTAINER_MDLL_insert (client,
-				tc->details.communicator.session_head,
-				tc->details.communicator.session_tail,
-				queue);
+                                tc->details.communicator.queue_head,
+                                tc->details.communicator.queue_tail,
+                                queue);
   GNUNET_SERVICE_client_continue (tc->client);
 }
 
@@ -4193,18 +4242,18 @@ handle_del_queue_message (void *cls,
     GNUNET_SERVICE_client_drop (tc->client);
     return;
   }
-  for (struct GNUNET_ATS_Session *session = tc->details.communicator.session_head;
-       NULL != session;
-       session = session->next_client)
+  for (struct Queue *queue = tc->details.communicator.queue_head;
+       NULL != queue;
+       queue = queue->next_client)
   {
-    struct Neighbour *neighbour = session->neighbour;
+    struct Neighbour *neighbour = queue->neighbour;
 
-    if ( (dqm->qid != session->qid) ||
+    if ( (dqm->qid != queue->qid) ||
 	 (0 != memcmp (&dqm->receiver,
 		       &neighbour->pid,
 		       sizeof (struct GNUNET_PeerIdentity))) )
       continue;
-    free_session (session);
+    free_queue (queue);
     GNUNET_SERVICE_client_continue (tc->client);
     return;
   }
@@ -4224,7 +4273,7 @@ handle_send_message_ack (void *cls,
                          const struct GNUNET_TRANSPORT_SendMessageToAck *sma)
 {
   struct TransportClient *tc = cls;
-  struct QueueEntry *queue;
+  struct QueueEntry *qe;
 
   if (CT_COMMUNICATOR != tc->type)
   {
@@ -4234,37 +4283,37 @@ handle_send_message_ack (void *cls,
   }
 
   /* find our queue entry matching the ACK */
-  queue = NULL;
-  for (struct GNUNET_ATS_Session *session = tc->details.communicator.session_head;
-       NULL != session;
-       session = session->next_client)
+  qe = NULL;
+  for (struct Queue *queue = tc->details.communicator.queue_head;
+       NULL != queue;
+       queue = queue->next_client)
   {
-    if (0 != memcmp (&session->neighbour->pid,
+    if (0 != memcmp (&queue->neighbour->pid,
 		     &sma->receiver,
 		     sizeof (struct GNUNET_PeerIdentity)))
       continue;
-    for (struct QueueEntry *qe = session->queue_head;
-	 NULL != qe;
-	 qe = qe->next)
+    for (struct QueueEntry *qep = queue->queue_head;
+         NULL != qep;
+         qep = qep->next)
     {
-      if (qe->mid != sma->mid)
-	continue;
-      queue = qe;
+      if (qep->mid != sma->mid)
+        continue;
+      qe = qep;
       break;
     }
     break;
   }
-  if (NULL == queue)
+  if (NULL == qe)
   {
     /* this should never happen */
     GNUNET_break (0);
     GNUNET_SERVICE_client_drop (tc->client);
     return;
   }
-  GNUNET_CONTAINER_DLL_remove (queue->session->queue_head,
-			       queue->session->queue_tail,
-			       queue);
-  queue->session->queue_length--;
+  GNUNET_CONTAINER_DLL_remove (qe->queue->queue_head,
+                               qe->queue->queue_tail,
+                               qe);
+  qe->queue->queue_length--;
   tc->details.communicator.total_queue_length--;
   GNUNET_SERVICE_client_continue (tc->client);
 
@@ -4273,22 +4322,22 @@ handle_send_message_ack (void *cls,
   {
     /* Communicator dropped below threshold, resume all queues */
     GNUNET_STATISTICS_update (GST_stats,
-			      "# Transmission throttled due to communicator queue limit",
-			      -1,
-			      GNUNET_NO);
-    for (struct GNUNET_ATS_Session *session = tc->details.communicator.session_head;
-	 NULL != session;
-	 session = session->next_client)
-      schedule_transmit_on_queue (session);
+                              "# Transmission throttled due to communicator queue limit",
+                              -1,
+                              GNUNET_NO);
+    for (struct Queue *queue = tc->details.communicator.queue_head;
+         NULL != queue;
+         queue = queue->next_client)
+      schedule_transmit_on_queue (queue);
   }
-  else if (SESSION_QUEUE_LIMIT - 1 == queue->session->queue_length)
+  else if (QUEUE_LENGTH_LIMIT - 1 == qe->queue->queue_length)
   {
     /* queue dropped below threshold; only resume this one queue */
     GNUNET_STATISTICS_update (GST_stats,
-			      "# Transmission throttled due to session queue limit",
-			      -1,
-			      GNUNET_NO);
-    schedule_transmit_on_queue (queue->session);
+                              "# Transmission throttled due to queue queue limit",
+                              -1,
+                              GNUNET_NO);
+    schedule_transmit_on_queue (qe->queue);
   }
 
   /* TODO: we also should react on the status! */
@@ -4296,7 +4345,7 @@ handle_send_message_ack (void *cls,
   // FIXME: react to communicator status about transmission request. We got:
   sma->status; // OK success, SYSERR failure
 
-  GNUNET_free (queue);
+  GNUNET_free (qe);
 }
 
 
@@ -4318,7 +4367,7 @@ notify_client_queues (void *cls,
   struct Neighbour *neighbour = value;
 
   GNUNET_assert (CT_MONITOR == tc->type);
-  for (struct GNUNET_ATS_Session *q = neighbour->session_head;
+  for (struct Queue *q = neighbour->queue_head;
        NULL != q;
        q = q->next_neighbour)
   {
@@ -4361,35 +4410,10 @@ handle_monitor_start (void *cls,
   tc->details.monitor.peer = start->peer;
   tc->details.monitor.one_shot = ntohl (start->one_shot);
   GNUNET_CONTAINER_multipeermap_iterate (neighbours,
-					 &notify_client_queues,
-					 tc);
+                                         &notify_client_queues,
+                                         tc);
   GNUNET_SERVICE_client_mark_monitor (tc->client);
   GNUNET_SERVICE_client_continue (tc->client);
-}
-
-
-/**
- * Signature of a function called by ATS with the current bandwidth
- * allocation to be used as determined by ATS.
- *
- * @param cls closure, NULL
- * @param session session this is about
- * @param bandwidth_out assigned outbound bandwidth for the connection,
- *        0 to signal disconnect
- * @param bandwidth_in assigned inbound bandwidth for the connection,
- *        0 to signal disconnect
- */
-static void
-ats_allocation_cb (void *cls,
-                   struct GNUNET_ATS_Session *session,
-                   struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
-                   struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in)
-{
-  (void) cls;
-  GNUNET_BANDWIDTH_tracker_update_quota (&session->tracker_out,
-                                         bandwidth_out);
-  GNUNET_BANDWIDTH_tracker_update_quota (&session->tracker_in,
-                                         bandwidth_in);
 }
 
 
@@ -4414,24 +4438,22 @@ lookup_communicator (const char *prefix)
       return tc;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-	      "ATS suggested use of communicator for `%s', but we do not have such a communicator!\n",
-	      prefix);
+              "Somone suggested use of communicator for `%s', but we do not have such a communicator!\n",
+              prefix);
   return NULL;
 }
 
 
 /**
- * Signature of a function called by ATS suggesting transport to
- * try connecting with a particular address.
+ * Signature of a function called with a communicator @a address of a peer
+ * @a pid that an application wants us to connect to.
  *
- * @param cls closure, NULL
  * @param pid target peer
  * @param address the address to try
  */
 static void
-ats_suggestion_cb (void *cls,
-                   const struct GNUNET_PeerIdentity *pid,
-                   const char *address)
+suggest_to_connect (const struct GNUNET_PeerIdentity *pid,
+                    const char *address)
 {
   static uint32_t idgen;
   struct TransportClient *tc;
@@ -4440,32 +4462,31 @@ ats_suggestion_cb (void *cls,
   struct GNUNET_MQ_Envelope *env;
   size_t alen;
 
-  (void) cls;
   prefix = GNUNET_HELLO_address_to_prefix (address);
   if (NULL == prefix)
   {
-    GNUNET_break (0); /* ATS gave invalid address!? */
+    GNUNET_break (0); /* We got an invalid address!? */
     return;
   }
   tc = lookup_communicator (prefix);
   if (NULL == tc)
   {
     GNUNET_STATISTICS_update (GST_stats,
-			      "# ATS suggestions ignored due to missing communicator",
-			      1,
-			      GNUNET_NO);
+                              "# Suggestions ignored due to missing communicator",
+                              1,
+                              GNUNET_NO);
     return;
   }
   /* forward suggestion for queue creation to communicator */
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Request #%u for `%s' communicator to create queue to `%s'\n",
-	      (unsigned int) idgen,
-	      prefix,
-	      address);
+              "Request #%u for `%s' communicator to create queue to `%s'\n",
+              (unsigned int) idgen,
+              prefix,
+              address);
   alen = strlen (address) + 1;
   env = GNUNET_MQ_msg_extra (cqm,
-			     alen,
-			     GNUNET_MESSAGE_TYPE_TRANSPORT_QUEUE_CREATE);
+                             alen,
+                             GNUNET_MESSAGE_TYPE_TRANSPORT_QUEUE_CREATE);
   cqm->request_id = htonl (idgen++);
   cqm->receiver = *pid;
   memcpy (&cqm[1],
@@ -4485,7 +4506,7 @@ ats_suggestion_cb (void *cls,
  */
 static void
 handle_queue_create_ok (void *cls,
-			const struct GNUNET_TRANSPORT_CreateQueueResponse *cqr)
+                        const struct GNUNET_TRANSPORT_CreateQueueResponse *cqr)
 {
   struct TransportClient *tc = cls;
 
@@ -4496,12 +4517,12 @@ handle_queue_create_ok (void *cls,
     return;
   }
   GNUNET_STATISTICS_update (GST_stats,
-			    "# ATS suggestions succeeded at communicator",
-			    1,
-			    GNUNET_NO);
+                            "# Suggestions succeeded at communicator",
+                            1,
+                            GNUNET_NO);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Request #%u for communicator to create queue succeeded\n",
-	      (unsigned int) ntohs (cqr->request_id));
+              "Request #%u for communicator to create queue succeeded\n",
+              (unsigned int) ntohs (cqr->request_id));
   GNUNET_SERVICE_client_continue (tc->client);
 }
 
@@ -4516,7 +4537,7 @@ handle_queue_create_ok (void *cls,
  */
 static void
 handle_queue_create_fail (void *cls,
-			  const struct GNUNET_TRANSPORT_CreateQueueResponse *cqr)
+                          const struct GNUNET_TRANSPORT_CreateQueueResponse *cqr)
 {
   struct TransportClient *tc = cls;
 
@@ -4527,12 +4548,137 @@ handle_queue_create_fail (void *cls,
     return;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Request #%u for communicator to create queue failed\n",
-	      (unsigned int) ntohs (cqr->request_id));
+              "Request #%u for communicator to create queue failed\n",
+              (unsigned int) ntohs (cqr->request_id));
   GNUNET_STATISTICS_update (GST_stats,
-			    "# ATS suggestions failed in queue creation at communicator",
-			    1,
-			    GNUNET_NO);
+                            "# Suggestions failed in queue creation at communicator",
+                            1,
+                            GNUNET_NO);
+  GNUNET_SERVICE_client_continue (tc->client);
+}
+
+
+/**
+ * Function called by PEERSTORE for each matching record.
+ *
+ * @param cls closure
+ * @param record peerstore record information
+ * @param emsg error message, or NULL if no errors
+ */
+static void
+handle_hello (void *cls,
+              const struct GNUNET_PEERSTORE_Record *record,
+              const char *emsg)
+{
+  struct PeerRequest *pr = cls;
+  const char *val;
+
+  if (NULL != emsg)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                "Got failure from PEERSTORE: %s\n",
+                emsg);
+    return;
+  }
+  val = record->value;
+  if ( (0 == record->value_size) ||
+       ('\0' != val[record->value_size - 1]) )
+  {
+    GNUNET_break (0);
+    return;
+  }
+  suggest_to_connect (&pr->pid,
+                      (const char *) record->value);
+}
+
+
+/**
+ * We have received a `struct ExpressPreferenceMessage` from an application client.
+ *
+ * @param cls handle to the client
+ * @param msg the start message
+ */
+static void
+handle_suggest (void *cls,
+                const struct ExpressPreferenceMessage *msg)
+{
+  struct TransportClient *tc = cls;
+  struct PeerRequest *pr;
+
+  if (CT_NONE == tc->type)
+  {
+    tc->type = CT_APPLICATION;
+    tc->details.application.requests
+      = GNUNET_CONTAINER_multipeermap_create (16,
+                                              GNUNET_YES);
+  }
+  if (CT_APPLICATION != tc->type)
+  {
+    GNUNET_break (0);
+    GNUNET_SERVICE_client_drop (tc->client);
+    return;
+  }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Client suggested we talk to %s with preference %d at rate %u\n",
+              GNUNET_i2s (&msg->peer),
+              (int) ntohl (msg->pk),
+              (int) ntohl (msg->bw.value__));
+  pr = GNUNET_new (struct PeerRequest);
+  pr->tc = tc;
+  pr->pid = msg->peer;
+  pr->bw = msg->bw;
+  pr->pk = (enum GNUNET_MQ_PreferenceKind) ntohl (msg->pk);
+  if (GNUNET_YES !=
+      GNUNET_CONTAINER_multipeermap_put (tc->details.application.requests,
+                                         &pr->pid,
+                                         pr,
+                                         GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY))
+  {
+    GNUNET_break (0);
+    GNUNET_free (pr);
+    GNUNET_SERVICE_client_drop (tc->client);
+    return;
+  }
+  pr->wc = GNUNET_PEERSTORE_watch (peerstore,
+                                   "transport",
+                                   &pr->pid,
+                                   "hello",
+                                   &handle_hello,
+                                   pr);
+  GNUNET_SERVICE_client_continue (tc->client);
+}
+
+
+/**
+ * We have received a `struct ExpressPreferenceMessage` from an application client.
+ *
+ * @param cls handle to the client
+ * @param msg the start message
+ */
+static void
+handle_suggest_cancel (void *cls,
+                       const struct ExpressPreferenceMessage *msg)
+{
+  struct TransportClient *tc = cls;
+  struct PeerRequest *pr;
+
+  if (CT_APPLICATION != tc->type)
+  {
+    GNUNET_break (0);
+    GNUNET_SERVICE_client_drop (tc->client);
+    return;
+  }
+  pr = GNUNET_CONTAINER_multipeermap_get (tc->details.application.requests,
+                                          &msg->peer);
+  if (NULL == pr)
+  {
+    GNUNET_break (0);
+    GNUNET_SERVICE_client_drop (tc->client);
+    return;
+  }
+  (void) stop_peer_request (tc,
+                            &pr->pid,
+                            pr);
   GNUNET_SERVICE_client_continue (tc->client);
 }
 
@@ -4601,8 +4747,8 @@ handle_address_consider_verify (void *cls,
  */
 static int
 free_neighbour_cb (void *cls,
-		   const struct GNUNET_PeerIdentity *pid,
-		   void *value)
+                   const struct GNUNET_PeerIdentity *pid,
+                   void *value)
 {
   struct Neighbour *neighbour = value;
 
@@ -4625,8 +4771,8 @@ free_neighbour_cb (void *cls,
  */
 static int
 free_dv_routes_cb (void *cls,
-		   const struct GNUNET_PeerIdentity *pid,
-		   void *value)
+                   const struct GNUNET_PeerIdentity *pid,
+                   void *value)
 {
   struct DistanceVector *dv = value;
 
@@ -4648,8 +4794,8 @@ free_dv_routes_cb (void *cls,
  */
 static int
 free_ephemeral_cb (void *cls,
-		   const struct GNUNET_PeerIdentity *pid,
-		   void *value)
+                   const struct GNUNET_PeerIdentity *pid,
+                   void *value)
 {
   struct EphemeralCacheEntry *ece = value;
 
@@ -4677,13 +4823,8 @@ do_shutdown (void *cls)
     ephemeral_task = NULL;
   }
   GNUNET_CONTAINER_multipeermap_iterate (neighbours,
-					 &free_neighbour_cb,
-					 NULL);
-  if (NULL != ats)
-  {
-    GNUNET_ATS_transport_done (ats);
-    ats = NULL;
-  }
+                                         &free_neighbour_cb,
+                                         NULL);
   if (NULL != peerstore)
   {
     GNUNET_PEERSTORE_disconnect (peerstore,
@@ -4734,9 +4875,9 @@ run (void *cls,
   /* setup globals */
   GST_cfg = c;
   neighbours = GNUNET_CONTAINER_multipeermap_create (1024,
-						     GNUNET_YES);
+                                                     GNUNET_YES);
   dv_routes = GNUNET_CONTAINER_multipeermap_create (1024,
-						    GNUNET_YES);
+                                                    GNUNET_YES);
   ephemeral_map = GNUNET_CONTAINER_multipeermap_create (32,
                                                         GNUNET_YES);
   ephemeral_heap = GNUNET_CONTAINER_heap_create (GNUNET_CONTAINER_HEAP_ORDER_MIN);
@@ -4764,17 +4905,6 @@ run (void *cls,
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
-  ats = GNUNET_ATS_transport_init (GST_cfg,
-                                   &ats_allocation_cb,
-                                   NULL,
-                                   &ats_suggestion_cb,
-                                   NULL);
-  if (NULL == ats)
-  {
-    GNUNET_break (0);
-    GNUNET_SCHEDULER_shutdown ();
-    return;
-  }
 }
 
 
@@ -4788,52 +4918,61 @@ GNUNET_SERVICE_MAIN
  &client_connect_cb,
  &client_disconnect_cb,
  NULL,
+ /* communication with applications */
+ GNUNET_MQ_hd_fixed_size (suggest,
+                          GNUNET_MESSAGE_TYPE_TRANSPORT_SUGGEST,
+                          struct ExpressPreferenceMessage,
+                          NULL),
+ GNUNET_MQ_hd_fixed_size (suggest_cancel,
+                          GNUNET_MESSAGE_TYPE_TRANSPORT_SUGGEST_CANCEL,
+                          struct ExpressPreferenceMessage,
+                          NULL),
  /* communication with core */
  GNUNET_MQ_hd_fixed_size (client_start,
-			  GNUNET_MESSAGE_TYPE_TRANSPORT_START,
-			  struct StartMessage,
-			  NULL),
+                          GNUNET_MESSAGE_TYPE_TRANSPORT_START,
+                          struct StartMessage,
+                          NULL),
  GNUNET_MQ_hd_var_size (client_send,
-			GNUNET_MESSAGE_TYPE_TRANSPORT_SEND,
-			struct OutboundMessage,
-			NULL),
+                        GNUNET_MESSAGE_TYPE_TRANSPORT_SEND,
+                        struct OutboundMessage,
+                        NULL),
  /* communication with communicators */
  GNUNET_MQ_hd_var_size (communicator_available,
-			GNUNET_MESSAGE_TYPE_TRANSPORT_NEW_COMMUNICATOR,
-			struct GNUNET_TRANSPORT_CommunicatorAvailableMessage,
-			NULL),
+                        GNUNET_MESSAGE_TYPE_TRANSPORT_NEW_COMMUNICATOR,
+                        struct GNUNET_TRANSPORT_CommunicatorAvailableMessage,
+                        NULL),
  GNUNET_MQ_hd_var_size (communicator_backchannel,
-			GNUNET_MESSAGE_TYPE_TRANSPORT_COMMUNICATOR_BACKCHANNEL,
-			struct GNUNET_TRANSPORT_CommunicatorBackchannel,
-			NULL),
+                        GNUNET_MESSAGE_TYPE_TRANSPORT_COMMUNICATOR_BACKCHANNEL,
+                        struct GNUNET_TRANSPORT_CommunicatorBackchannel,
+                        NULL),
  GNUNET_MQ_hd_var_size (add_address,
-			GNUNET_MESSAGE_TYPE_TRANSPORT_ADD_ADDRESS,
-			struct GNUNET_TRANSPORT_AddAddressMessage,
-			NULL),
+                        GNUNET_MESSAGE_TYPE_TRANSPORT_ADD_ADDRESS,
+                        struct GNUNET_TRANSPORT_AddAddressMessage,
+                        NULL),
  GNUNET_MQ_hd_fixed_size (del_address,
                           GNUNET_MESSAGE_TYPE_TRANSPORT_DEL_ADDRESS,
                           struct GNUNET_TRANSPORT_DelAddressMessage,
                           NULL),
  GNUNET_MQ_hd_var_size (incoming_msg,
-			GNUNET_MESSAGE_TYPE_TRANSPORT_INCOMING_MSG,
-			struct GNUNET_TRANSPORT_IncomingMessage,
-			NULL),
+                        GNUNET_MESSAGE_TYPE_TRANSPORT_INCOMING_MSG,
+                        struct GNUNET_TRANSPORT_IncomingMessage,
+                        NULL),
  GNUNET_MQ_hd_fixed_size (queue_create_ok,
-			  GNUNET_MESSAGE_TYPE_TRANSPORT_QUEUE_CREATE_OK,
-			  struct GNUNET_TRANSPORT_CreateQueueResponse,
-			  NULL),
+                          GNUNET_MESSAGE_TYPE_TRANSPORT_QUEUE_CREATE_OK,
+                          struct GNUNET_TRANSPORT_CreateQueueResponse,
+                          NULL),
  GNUNET_MQ_hd_fixed_size (queue_create_fail,
-			  GNUNET_MESSAGE_TYPE_TRANSPORT_QUEUE_CREATE_FAIL,
-			  struct GNUNET_TRANSPORT_CreateQueueResponse,
-			  NULL),
+                          GNUNET_MESSAGE_TYPE_TRANSPORT_QUEUE_CREATE_FAIL,
+                          struct GNUNET_TRANSPORT_CreateQueueResponse,
+                          NULL),
  GNUNET_MQ_hd_var_size (add_queue_message,
-			GNUNET_MESSAGE_TYPE_TRANSPORT_QUEUE_SETUP,
-			struct GNUNET_TRANSPORT_AddQueueMessage,
-			NULL),
+                        GNUNET_MESSAGE_TYPE_TRANSPORT_QUEUE_SETUP,
+                        struct GNUNET_TRANSPORT_AddQueueMessage,
+                        NULL),
  GNUNET_MQ_hd_var_size (address_consider_verify,
-			GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_CONSIDER_VERIFY,
-			struct GNUNET_TRANSPORT_AddressToVerify,
-			NULL),
+                        GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_CONSIDER_VERIFY,
+                        struct GNUNET_TRANSPORT_AddressToVerify,
+                        NULL),
  GNUNET_MQ_hd_fixed_size (del_queue_message,
                           GNUNET_MESSAGE_TYPE_TRANSPORT_QUEUE_TEARDOWN,
                           struct GNUNET_TRANSPORT_DelQueueMessage,

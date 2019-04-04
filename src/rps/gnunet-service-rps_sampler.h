@@ -70,7 +70,7 @@ RPS_sampler_resize (struct RPS_Sampler *sampler, unsigned int new_size);
  */
 struct RPS_Sampler *
 RPS_sampler_init (size_t init_size,
-    struct GNUNET_TIME_Relative max_round_interval);
+                  struct GNUNET_TIME_Relative max_round_interval);
 
 
 /**

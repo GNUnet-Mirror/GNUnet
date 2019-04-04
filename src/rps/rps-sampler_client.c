@@ -219,6 +219,41 @@ RPS_sampler_mod_init (size_t init_size,
 
 
 /**
+ * @brief Compute the probability that we already observed all peers from a
+ * biased stream of peer ids.
+ *
+ * Deficiency factor:
+ * As introduced by Brahms: Factor between the number of unique ids in a
+ * truly random stream and number of unique ids in the gossip stream.
+ *
+ * @param num_peers_estim The estimated number of peers in the network
+ * @param num_peers_observed The number of peers the given element has observed
+ * @param deficiency_factor A factor that catches the 'bias' of a random stream
+ * of peer ids
+ *
+ * @return The estimated probability
+ */
+static double
+prob_observed_n_peers (uint32_t num_peers_estim,
+                       uint32_t num_peers_observed,
+                       double deficiency_factor)
+{
+  uint32_t num_peers = num_peers_estim * (1/deficiency_factor);
+  uint64_t sum = 0;
+
+  for (uint32_t i = 0; i < num_peers; i++)
+  {
+    uint64_t a = pow (-1, num_peers-i);
+    uint64_t b = binom (num_peers, i);
+    uint64_t c = pow (i, num_peers_observed);
+    sum += a * b * c;
+  }
+
+  return sum / (double) pow (num_peers, num_peers_observed);
+}
+
+
+/**
  * Get one random peer out of the sampled peers.
  *
  * This reinitialises the queried sampler element.
@@ -230,6 +265,7 @@ sampler_mod_get_rand_peer (void *cls)
   struct RPS_SamplerElement *s_elem;
   struct GNUNET_TIME_Relative last_request_diff;
   struct RPS_Sampler *sampler;
+  double prob_observed_n;
 
   gpc->get_peer_task = NULL;
   gpc->notify_ctx = NULL;
@@ -287,6 +323,24 @@ sampler_mod_get_rand_peer (void *cls)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
         "This s_elem saw less than two peers -- scheduling for later\n");
+    GNUNET_assert (NULL == gpc->notify_ctx);
+    gpc->notify_ctx =
+      sampler_notify_on_update (sampler,
+                                &sampler_mod_get_rand_peer,
+                                gpc);
+    return;
+  }
+  /* compute probability */
+  prob_observed_n = prob_observed_n_peers (sampler->num_peers_estim,
+                                           s_elem->num_peers,
+                                           sampler->deficiency_factor);
+  /* check if probability is above desired */
+  if (prob_observed_n >= sampler->desired_probability)
+  {
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+        "Probability of having observed all peers (%d) too small ( < %d).\n",
+        prob_observed_n,
+        sampler->desired_probability);
     GNUNET_assert (NULL == gpc->notify_ctx);
     gpc->notify_ctx =
       sampler_notify_on_update (sampler,

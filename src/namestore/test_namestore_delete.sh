@@ -61,15 +61,15 @@ for LINE in $OUTPUT ;
 stop_peer
 
 
-if [ $FOUND_NAME == false -a $FOUND_IP != false ]
+if [ $FOUND_NAME = false -a $FOUND_IP != false ]
 then
   echo "PASS: Delete name in namestore"
   exit 0
-elif [ $FOUND_NAME == true ]
+elif [ $FOUND_NAME = true ]
 then
   echo "FAIL: Delete name in namestore: name returned"
   exit 1
-elif [ $FOUND_IP == true ]
+elif [ $FOUND_IP = true ]
 then
   echo "FAIL: Delete name in namestore: IP returned"
   exit 1

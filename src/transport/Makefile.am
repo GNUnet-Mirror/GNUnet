@@ -155,6 +155,7 @@ endif
 lib_LTLIBRARIES = \
   libgnunettransport.la \
   libgnunettransportaddress.la \
+  libgnunettransportapplication.la \
   libgnunettransportcore.la \
   libgnunettransportcommunicator.la \
   libgnunettransportmonitor.la \
@@ -196,6 +197,14 @@ libgnunettransport_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS) $(WINFLAGS) \
   -version-info 4:0:2
 
+libgnunettransportapplication_la_SOURCES = \
+  transport_api2_application.c
+libgnunettransportapplication_la_LIBADD = \
+ $(top_builddir)/src/util/libgnunetutil.la \
+ $(LTLIBINTL)
+libgnunettransportapplication_la_LDFLAGS = \
+  $(GN_LIB_LDFLAGS) $(WINFLAGS) \
+  -version-info 0:0:0
 
 
 libgnunettransportaddress_la_SOURCES = \
@@ -360,7 +369,6 @@ gnunet_service_transport_CFLAGS = \
 gnunet_service_tng_SOURCES = \
  gnunet-service-tng.c
 gnunet_service_tng_LDADD = \
-  $(top_builddir)/src/ats/libgnunetatstransport.la \
   $(top_builddir)/src/peerstore/libgnunetpeerstore.la \
   $(top_builddir)/src/hello/libgnunethello.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
@@ -378,12 +386,6 @@ plugin_LTLIBRARIES = \
   $(WLAN_PLUGIN_LA) \
   $(BT_PLUGIN_LA)
 
-if HAVE_EXPERIMENTAL
-plugin_LTLIBRARIES += \
-  libgnunet_plugin_transport_xt.la \
-  libgnunet_plugin_transport_xu.la
-endif
-
 # Note: real plugins of course need to be added
 # to the plugin_LTLIBRARIES above
 noinst_LTLIBRARIES = \
@@ -399,18 +401,6 @@ libgnunet_plugin_transport_tcp_la_LIBADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(LTLIBINTL)
 libgnunet_plugin_transport_tcp_la_LDFLAGS = \
- $(GN_PLUGIN_LDFLAGS)
-
-libgnunet_plugin_transport_xt_la_SOURCES = \
-  plugin_transport_xt.c
-libgnunet_plugin_transport_xt_la_LIBADD = \
-  $(top_builddir)/src/hello/libgnunethello.la \
-  $(top_builddir)/src/statistics/libgnunetstatistics.la \
-  $(top_builddir)/src/peerinfo/libgnunetpeerinfo.la \
-  $(top_builddir)/src/nat/libgnunetnatnew.la \
-  $(top_builddir)/src/util/libgnunetutil.la \
-  $(LTLIBINTL)
-libgnunet_plugin_transport_xt_la_LDFLAGS = \
  $(GN_PLUGIN_LDFLAGS)
 
 libgnunet_plugin_transport_template_la_SOURCES = \
@@ -459,19 +449,6 @@ libgnunet_plugin_transport_udp_la_LIBADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(LTLIBINTL)
 libgnunet_plugin_transport_udp_la_LDFLAGS = \
- $(GN_PLUGIN_LDFLAGS)
-
-libgnunet_plugin_transport_xu_la_SOURCES = \
-  plugin_transport_xu.c plugin_transport_xu.h
-libgnunet_plugin_transport_xu_la_LIBADD = \
-  $(top_builddir)/src/hello/libgnunethello.la \
-  $(top_builddir)/src/fragmentation/libgnunetfragmentation.la \
-  $(top_builddir)/src/statistics/libgnunetstatistics.la \
-  $(top_builddir)/src/peerinfo/libgnunetpeerinfo.la \
-  $(top_builddir)/src/nat/libgnunetnatnew.la \
-  $(top_builddir)/src/util/libgnunetutil.la \
-  $(LTLIBINTL)
-libgnunet_plugin_transport_xu_la_LDFLAGS = \
  $(GN_PLUGIN_LDFLAGS)
 
 libgnunet_plugin_transport_unix_la_SOURCES = \

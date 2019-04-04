@@ -1,3 +1,9 @@
+Thu 04 Apr 2019 12:39:44 PM CEST
+  Hotfix for build issue. Releasing GNUnet 0.11.2. -CG/MS
+
+Wed 03 Apr 2019 03:18:43 PM CEST
+  Releasing GNUnet 0.11.1. -CG
+
 Wed 03 Apr 2019 01:54:44 PM CEST
   Merged gnunet-qr-c-2 branch, replacing Python-based implementation
   of gnunet-qr with C-based implementation that also integrates

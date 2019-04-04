@@ -57,3 +57,6 @@ check-texinfo:
 	@cd $(top_srcdir)/doc/tutorial ; find . -type f ! -path '*/.*' -name '*.texi' -print0 | xargs -0 awk '/XXX/ {print FILENAME":"NR":"$$0}' >> $(srcdir)/texinfo_tutorial.log || true
 
 check-linters: check-bashism check-python check-man check-texinfo
+
+EXTRA_DIST = \
+  checkbashisms.pl.in

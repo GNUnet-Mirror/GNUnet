@@ -3177,6 +3177,18 @@ extern "C"
  */
 #define GNUNET_MESSAGE_TYPE_TRANSPORT_COMMUNICATOR_FC_LIMITS 1276
 
+/**
+ * Type of the 'struct ExpressPreferenceMessage' send by clients to TRANSPORT
+ * to establish bandwidth preference.
+ */
+#define GNUNET_MESSAGE_TYPE_TRANSPORT_SUGGEST 1300
+
+/**
+ * Type of the 'struct ExpressPreferenceMessage' send by clients to TRANSPORT
+ * to abandon bandwidth preference.
+ */
+#define GNUNET_MESSAGE_TYPE_TRANSPORT_SUGGEST_CANCEL 1301
+
 
 /* ************** NEW (NG) ATS Messages ************* */
 

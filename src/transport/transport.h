@@ -1107,6 +1107,38 @@ struct GNUNET_TRANSPORT_AddressToVerify
 };
 
 
+/**
+ * Application client to TRANSPORT service: we would like to have
+ * address suggestions for this peer.
+ */
+struct ExpressPreferenceMessage
+{
+  /**
+   * Type is #GNUNET_MESSAGE_TYPE_TRANSPORT_SUGGEST or
+   * #GNUNET_MESSAGE_TYPE_TRANSPORT_SUGGEST_CANCEL to stop
+   * suggestions.
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * What type of performance preference does the client have?
+   * A `enum GNUNET_MQ_PreferenceKind` in NBO.
+   */
+  uint32_t pk GNUNET_PACKED;
+
+  /**
+   * Peer to get address suggestions for.
+   */
+  struct GNUNET_PeerIdentity peer;
+
+  /**
+   * How much bandwidth in bytes/second does the application expect?
+   */
+  struct GNUNET_BANDWIDTH_Value32NBO bw;
+
+};
+
+
 #endif
 
 GNUNET_NETWORK_STRUCT_END

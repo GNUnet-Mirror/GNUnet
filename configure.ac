@@ -21,7 +21,7 @@
 #
 AC_PREREQ(2.61)
 # Checks for programs.
-AC_INIT([gnunet], [0.11.0], [bug-gnunet@gnu.org])
+AC_INIT([gnunet], [0.11.2], [bug-gnunet@gnu.org])
 AC_CONFIG_AUX_DIR([build-aux])
 
 AC_CANONICAL_TARGET
@@ -64,12 +64,16 @@ funcstocheck="getnameinfo gethostname gethostbyname gethostbyaddr getaddrinfo ge
 # Srcdir in a form that native compiler understands (i.e. DOS path on W32)
 native_srcdir=$srcdir
 
+OLD_LDFLAGS="$LDFLAGS"
+LDFLAGS="$LDFLAGS -Wl,--unresolved-symbols=report-all"
+
 # Check system type
 case "$host_os" in
 *darwin* | *rhapsody* | *macosx*)
      AC_DEFINE_UNQUOTED(DARWIN,1,[This is an Apple Darwin system])
      CPPFLAGS="-D_APPLE_C_SOURCE $CPPFLAGS"
      CFLAGS="-fno-common $CFLAGS"
+     LDFLAGS="$OLD_LDFLAGS"
      AC_MSG_WARN([WARNING: The VPN application cannot be compiled on your OS])
      AC_CHECK_LIB(intl, gettext)
      build_target="darwin"

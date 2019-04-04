@@ -46,7 +46,7 @@ gnunet-namestore -p -z testego -a -n $TEST_RECORD_NAME_DNS -t A -V $TEST_IP_PLUS
 NAMESTORE_RES=$?
 stop_peer
 
-if [ $NAMESTORE_RES == 0 ]
+if [ $NAMESTORE_RES = 0 ]
 then
   echo "PASS: Creating name in namestore"
 else

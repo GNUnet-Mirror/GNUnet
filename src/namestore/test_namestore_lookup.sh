@@ -19,20 +19,10 @@ TEST_IP_PLUS="127.0.0.1"
 TEST_RECORD_NAME_DNS="www3"
 which timeout &> /dev/null && DO_TIMEOUT="timeout 5"
 
-function start_peer
-{
-	gnunet-arm -s -c $CONFIGURATION
-	gnunet-identity -C testego -c $CONFIGURATION
-}
+# start peer
+gnunet-arm -s -c $CONFIGURATION
+gnunet-identity -C testego -c $CONFIGURATION
 
-function stop_peer
-{
-	gnunet-identity -D testego -c $CONFIGURATION
-	gnunet-arm -e -c $CONFIGURATION
-}
-
-
-start_peer
 # Create a public record
 gnunet-namestore -p -z testego -a -n $TEST_RECORD_NAME_DNS -t A -V $TEST_IP_PLUS -e never -c $CONFIGURATION
 NAMESTORE_RES=$?
@@ -52,19 +42,21 @@ for LINE in $OUTPUT ;
 		FOUND_IP=true;
 		#echo $FOUND_IP
 	fi
- done
-stop_peer
+done
+# stop peer
+gnunet-identity -D testego -c $CONFIGURATION
+gnunet-arm -e -c $CONFIGURATION
 
 
-if [ $FOUND_NAME == true -a $FOUND_IP == true ]
+if [ $FOUND_NAME = true -a $FOUND_IP = true ]
 then
   echo "PASS: Lookup name in namestore"
   exit 0
-elif [ $FOUND_NAME == false ]
+elif [ $FOUND_NAME = false ]
 then
   echo "FAIL: Lookup name in namestore: name not returned"
   exit 1
-elif [ $FOUND_IP == false ]
+elif [ $FOUND_IP = false ]
 then
   echo "FAIL: Lookup name in namestore: IP not returned"
   exit 1
