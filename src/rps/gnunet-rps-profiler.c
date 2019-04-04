@@ -1041,7 +1041,9 @@ cancel_request (struct PendingReply *pending_rep)
               "Cancelling rps get reply\n");
   GNUNET_assert (NULL != pending_rep->req_handle);
   GNUNET_RPS_request_cancel (pending_rep->req_handle);
+  pending_rep->req_handle = NULL;
   GNUNET_free (pending_rep);
+  pending_rep = NULL;
 }
 
 void
@@ -2061,29 +2063,8 @@ profiler_eval (void)
   return evaluate ();
 }
 
-static uint32_t fac (uint32_t x)
-{
-  if (1 >= x)
-  {
-    return x;
-  }
-  return x * fac (x - 1);
-}
 
-static uint32_t binom (uint32_t n, uint32_t k)
-{
-  //GNUNET_assert (n >= k);
-  if (k > n) return 0;
-  /* if (0 > n) return 0;  - always false */
-  /* if (0 > k) return 0;  - always false */
-  if (0 == k) return 1;
-  return fac (n)
-    /
-    fac(k) * fac(n - k);
-}
-
-/**
- * @brief is b in view of a?
+/** @brief is b in view of a?
  *
  * @param a
  * @param b

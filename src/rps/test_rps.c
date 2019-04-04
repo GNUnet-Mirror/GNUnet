@@ -1964,26 +1964,6 @@ profiler_eval (void)
   return evaluate ();
 }
 
-static uint32_t fac (uint32_t x)
-{
-  if (1 >= x)
-  {
-    return x;
-  }
-  return x * fac (x - 1);
-}
-
-static uint32_t binom (uint32_t n, uint32_t k)
-{
-  //GNUNET_assert (n >= k);
-  if (k > n) return 0;
-  if (0 > n) return 0;
-  if (0 > k) return 0;
-  if (0 == k) return 1;
-  return fac (n)
-    /
-    fac(k) * fac(n - k);
-}
 
 /**
  * @brief is b in view of a?

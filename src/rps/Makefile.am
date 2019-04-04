@@ -36,6 +36,7 @@ libgnunetrps_la_SOURCES = \
   rps-sampler_client.h rps-sampler_client.c \
   rps_api.c rps.h
 libgnunetrps_la_LIBADD = \
+  $(top_builddir)/src/nse/libgnunetnse.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(GN_LIBINTL) $(XLIB)
 libgnunetrps_la_LDFLAGS = \

@@ -116,6 +116,60 @@ struct RPS_SamplerRequestHandle
 
 
 /**
+ * @brief Update the current estimate of the network size stored at the sampler
+ *
+ * Used for computing the condition when to return elements to the client
+ *
+ * Only used/useful with the client sampler
+ * (Maybe move to rps-sampler_client.{h|c} ?)
+ *
+ * @param sampler The sampler to update
+ * @param num_peers The estimated value
+ */
+void
+RPS_sampler_update_with_nw_size (struct RPS_Sampler *sampler,
+                                 uint32_t num_peers)
+{
+  sampler->num_peers_estim = num_peers;
+}
+
+
+/**
+ * @brief Set the probability that is needed at least with what a sampler
+ * element has to have observed all elements from the network.
+ *
+ * Only used/useful with the client sampler
+ * (Maybe move to rps-sampler_client.{h|c} ?)
+ *
+ * @param sampler
+ * @param desired_probability
+ */
+void
+RPS_sampler_set_desired_probability (struct RPS_Sampler *sampler,
+                                     double desired_probability)
+{
+  sampler->desired_probability = desired_probability;
+}
+
+
+/**
+ * @brief Set the deficiency factor.
+ *
+ * Only used/useful with the client sampler
+ * (Maybe move to rps-sampler_client.{h|c} ?)
+ *
+ * @param sampler
+ * @param desired_probability
+ */
+void
+RPS_sampler_set_deficiency_factor (struct RPS_Sampler *sampler,
+                                   double deficiency_factor)
+{
+  sampler->deficiency_factor = deficiency_factor;
+}
+
+
+/**
  * @brief Add a callback that will be called when the next peer is inserted
  * into the sampler
  *
