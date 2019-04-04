@@ -217,7 +217,7 @@ $ ls -l /lib/libnss_*
 Copy the GNS NSS plugin to that directory:
 
 @example
-cp ~/gnunet/src/gns/nss/libnss_gns.so.2 /lib
+cp ~/gnunet/src/gns/nss/.libs/libnss_gns.so.2 /lib
 @end example
 
 Now, to activate the plugin, you need to edit your
