@@ -487,4 +487,42 @@ store_prefix_file_name (const struct GNUNET_PeerIdentity *peer,
   return file_name;
 }
 
+
+/**
+ * @brief Factorial
+ *
+ * @param x Number of which to compute the factorial
+ *
+ * @return Factorial of @a x
+ */
+uint32_t fac (uint32_t x)
+{
+  if (1 >= x)
+  {
+    return x;
+  }
+  return x * fac (x - 1);
+}
+
+/**
+ * @brief Binomial coefficient (n choose k)
+ *
+ * @param n
+ * @param k
+ *
+ * @return Binomial coefficient of @a n and @a k
+ */
+uint32_t binom (uint32_t n, uint32_t k)
+{
+  //GNUNET_assert (n >= k);
+  if (k > n) return 0;
+  /* if (0 > n) return 0;  - always false */
+  /* if (0 > k) return 0;  - always false */
+  if (0 == k) return 1;
+  return fac (n)
+    /
+    fac(k) * fac(n - k);
+}
+
+
 /* end of gnunet-service-rps.c */

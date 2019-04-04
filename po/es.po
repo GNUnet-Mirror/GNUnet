@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gnunet 0.9.5a\n"
 "Report-Msgid-Bugs-To: gnunet-developers@mail.gnu.org\n"
-"POT-Creation-Date: 2019-04-03 16:13+0200\n"
+"POT-Creation-Date: 2019-04-04 12:39+0200\n"
 "PO-Revision-Date: 2013-02-23 17:50+0100\n"
 "Last-Translator: Miguel Ángel Arruga Vivas <rosen644835@gmail.com>\n"
 "Language-Team: Spanish <es@li.org>\n"
@@ -5842,17 +5842,6 @@ msgid "Failed to receive response from `PEERINFO' service."
 msgstr ""
 "No se obtuvo respuesta del servicio de información de pares (PEERINFO)."
 
-#: src/peerinfo/plugin_rest_peerinfo.c:501
-#: src/peerinfo-tool/gnunet-peerinfo.c:299
-#, fuzzy, c-format
-msgid "Failure: Cannot convert address to string for peer `%s'\n"
-msgstr "Se produjo un fallo al resolver la dirección para el par «%s»\n"
-
-#: src/peerinfo/plugin_rest_peerinfo.c:796
-#, fuzzy
-msgid "Peerinfo REST API initialized\n"
-msgstr "Conexión fallida\n"
-
 #: src/peerinfo-tool/gnunet-peerinfo.c:239
 #, fuzzy, c-format
 msgid "%sPeer `%s'\n"
@@ -5862,6 +5851,12 @@ msgstr "Par «%s»\n"
 #, c-format
 msgid "\tExpires: %s \t %s\n"
 msgstr ""
+
+#: src/peerinfo-tool/gnunet-peerinfo.c:299
+#: src/peerinfo-tool/plugin_rest_peerinfo.c:501
+#, fuzzy, c-format
+msgid "Failure: Cannot convert address to string for peer `%s'\n"
+msgstr "Se produjo un fallo al resolver la dirección para el par «%s»\n"
 
 #: src/peerinfo-tool/gnunet-peerinfo.c:466
 #, fuzzy, c-format
@@ -5936,6 +5931,11 @@ msgstr "Cargando el módulo de transporte «%s»\n"
 #, c-format
 msgid "Failed to load transport plugin for `%s'\n"
 msgstr "Se produjo un fallo al cargar el módulo del transporte para «%s»\n"
+
+#: src/peerinfo-tool/plugin_rest_peerinfo.c:796
+#, fuzzy
+msgid "Peerinfo REST API initialized\n"
+msgstr "Conexión fallida\n"
 
 #: src/peerstore/gnunet-peerstore.c:91
 msgid "peerstore"
@@ -7140,7 +7140,7 @@ msgstr ""
 
 #: src/transport/gnunet-communicator-tcp.c:2328
 #: src/transport/gnunet-communicator-udp.c:2882
-#: src/transport/gnunet-service-tng.c:4747
+#: src/transport/gnunet-service-tng.c:4888
 #: src/transport/gnunet-service-transport.c:2795
 #, fuzzy
 msgid "Transport service is lacking key configuration settings. Exiting.\n"

@@ -107,5 +107,26 @@ to_file_raw_unaligned (const char *file_name,
                        size_t size_buf,
                        unsigned bits_needed);
 
+
+/**
+ * @brief Factorial
+ *
+ * @param x Number of which to compute the factorial
+ *
+ * @return Factorial of @a x
+ */
+uint32_t fac (uint32_t x);
+
+
+/**
+ * @brief Binomial coefficient (n choose k)
+ *
+ * @param n
+ * @param k
+ *
+ * @return Binomial coefficient of @a n and @a k
+ */
+uint32_t binom (uint32_t n, uint32_t k);
+
 #endif /* RPS_TEST_UTIL_H */
 /* end of gnunet-service-rps.c */

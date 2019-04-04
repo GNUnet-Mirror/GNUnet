@@ -147,6 +147,25 @@ struct RPS_Sampler
   struct GNUNET_TIME_Relative max_round_interval;
 
   /**
+   * @brief The estimated total number of peers in the network
+   */
+  uint32_t num_peers_estim;
+
+  /**
+   * @brief The desired probability with which we want to have observed all
+   * peers.
+   */
+  double desired_probability;
+
+  /**
+   * @brief A factor that catches the 'bias' of a random stream of peer ids.
+   *
+   * As introduced by Brahms: Factor between the number of unique ids in a
+   * truly random stream and number of unique ids in the gossip stream.
+   */
+  double deficiency_factor;
+
+  /**
    * Stores the function to return peers. Which one it is depends on whether
    * the Sampler is the modified one or not.
    */
@@ -161,6 +180,48 @@ struct RPS_Sampler
   struct SamplerNotifyUpdateCTX *notify_ctx_head;
   struct SamplerNotifyUpdateCTX *notify_ctx_tail;
 };
+
+
+/**
+ * @brief Update the current estimate of the network size stored at the sampler
+ *
+ * Used for computing the condition when to return elements to the client
+ *
+ * @param sampler The sampler to update
+ * @param num_peers The estimated value
+ */
+void
+RPS_sampler_update_with_nw_size (struct RPS_Sampler *sampler,
+                                 uint32_t num_peers);
+
+
+/**
+ * @brief Set the probability that is needed at least with what a sampler
+ * element has to have observed all elements from the network.
+ *
+ * Only used/useful with the client sampler
+ * (Maybe move to rps-sampler_client.{h|c} ?)
+ *
+ * @param sampler
+ * @param desired_probability
+ */
+void
+RPS_sampler_set_desired_probability (struct RPS_Sampler *sampler,
+                                     double desired_probability);
+
+
+/**
+ * @brief Set the deficiency factor.
+ *
+ * Only used/useful with the client sampler
+ * (Maybe move to rps-sampler_client.{h|c} ?)
+ *
+ * @param sampler
+ * @param desired_probability
+ */
+void
+RPS_sampler_set_deficiency_factor (struct RPS_Sampler *sampler,
+                                   double deficiency_factor);
 
 
 /**
