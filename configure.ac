@@ -50,7 +50,6 @@ AC_FUNC_FSEEKO
 
 
 CFLAGS="-Wall $CFLAGS"
-LDFLAGS="$LDFLAGS -Wl,--unresolved-symbols=report-all"
 # use '-fno-strict-aliasing', but only if the compiler can take it
 if gcc -fno-strict-aliasing -S -o /dev/null -xc /dev/null >/dev/null 2>&1;
 then
@@ -65,12 +64,16 @@ funcstocheck="getnameinfo gethostname gethostbyname gethostbyaddr getaddrinfo ge
 # Srcdir in a form that native compiler understands (i.e. DOS path on W32)
 native_srcdir=$srcdir
 
+OLD_LDFLAGS="$LDFLAGS"
+LDFLAGS="$LDFLAGS -Wl,--unresolved-symbols=report-all"
+
 # Check system type
 case "$host_os" in
 *darwin* | *rhapsody* | *macosx*)
      AC_DEFINE_UNQUOTED(DARWIN,1,[This is an Apple Darwin system])
      CPPFLAGS="-D_APPLE_C_SOURCE $CPPFLAGS"
      CFLAGS="-fno-common $CFLAGS"
+     LDFLAGS="$OLD_LDFLAGS"
      AC_MSG_WARN([WARNING: The VPN application cannot be compiled on your OS])
      AC_CHECK_LIB(intl, gettext)
      build_target="darwin"
