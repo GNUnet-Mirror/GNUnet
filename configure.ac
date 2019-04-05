@@ -244,6 +244,49 @@ else
 AC_MSG_WARN([warning: 'iptables' not found.])
 fi
 
+# ip6tables is a soft requirement for some features
+AC_PATH_TARGET_TOOL(VAR_IP6TABLES_BINARY, ip6tables, false)
+
+if test x"$VAR_IP6TABLES_BINARY" = x"false"
+then
+  if test -x "/sbin/ip6tables"
+  then
+    VAR_IP6TABLES_BINARY="/sbin/ip6tables"
+  elif test -x "/usr/sbin/ip6tables"
+  then
+    VAR_IP6TABLES_BINARY="/usr/sbin/ip6tables"
+  fi
+fi
+
+if test x"$VAR_IP6TABLES_BINARY" != x"false"
+then
+AC_DEFINE_UNQUOTED([IP6TABLES], "$VAR_IP6TABLES_BINARY", [Path to ip6tables])
+else
+AC_MSG_WARN([warning: 'ip6tables' not found.])
+fi
+
+# ip is a soft requirement for some features
+AC_PATH_TARGET_TOOL(VAR_IP_BINARY, ip, false)
+
+if test x"$VAR_IP_BINARY" = x"false"
+then
+  if test -x "/sbin/ip"
+  then
+    VAR_IP_BINARY="/sbin/ip"
+  elif test -x "/usr/sbin/ip"
+  then
+    VAR_IP_BINARY="/usr/sbin/ip"
+  fi
+fi
+
+if test x"$VAR_IP_BINARY" != x"false"
+then
+AC_DEFINE_UNQUOTED([PATH_TO_IP], "$VAR_IP_BINARY", [Path to ip])
+else
+AC_MSG_WARN([warning: 'ip' not found.])
+fi
+
+# locate 'ifconfig'
 AC_PATH_TARGET_TOOL(VAR_IFCONFIG_BINARY, ifconfig, false)
 
 AC_CHECK_PROG(VAR_IFCONFIG_BINARY, ifconfig, true, false)
@@ -263,6 +306,19 @@ AC_DEFINE_UNQUOTED([IFCONFIG], "$VAR_IFCONFIG_BINARY", [Path to ifconfig])
 else
 AC_MSG_WARN(['ifconfig' not found.])
 fi
+
+
+AC_PATH_TARGET_TOOL(VAR_SYSCTL_BINARY, sysctl, false)
+
+AC_CHECK_PROG(VAR_SYSCTL_BINARY, sysctl, true, false)
+AS_IF([test x"$VAR_SYSCTL_BINARY" = x"false"],
+      [AS_IF([test -x "/sbin/sysctl"],
+             [VAR_SYSCTL_BINARY="/sbin/sysctl"],
+             [AS_IF([test -x "/usr/sbin/sysctl"],
+                    [VAR_SYSCTL_BINARY="/usr/sbin/sysctl"])])])
+AS_IF([test x"$VAR_SYSCTL_BINARY" != x"false"],
+      [AC_DEFINE_UNQUOTED([SYSCTL], "$VAR_SYSCTL_BINARY", [Path to sysctl])],
+      [AC_MSG_WARN(['sysctl' not found.])])
 
 # miniupnpc / upnpc binary is a soft runtime requirement
 AC_PATH_TARGET_TOOL(VAR_UPNPC_BINARY, upnpc, false)

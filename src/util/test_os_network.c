@@ -11,7 +11,7 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -31,8 +31,12 @@
  * (success).
  */
 static int
-proc (void *cls, const char *name, int isDefault, const struct sockaddr *addr,
-      const struct sockaddr *broadcast_addr, const struct sockaddr *netmask,
+proc (void *cls,
+      const char *name,
+      int isDefault,
+      const struct sockaddr *addr,
+      const struct sockaddr *broadcast_addr,
+      const struct sockaddr *netmask,
       socklen_t addrlen)
 {
   int *ok = cls;
@@ -46,11 +50,18 @@ proc (void *cls, const char *name, int isDefault, const struct sockaddr *addr,
   else
     protocol = "IPv6";
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "%s Address `%s'\n", protocol, GNUNET_a2s ((const struct sockaddr *) addr,addrlen) );
+              "%s Address `%s'\n",
+              protocol,
+              GNUNET_a2s ((const struct sockaddr *) addr,
+                          addrlen) );
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Netmask `%s'\n", GNUNET_a2s ((const struct sockaddr *) netmask, addrlen) );
+              "Netmask `%s'\n",
+              GNUNET_a2s ((const struct sockaddr *) netmask,
+                          addrlen) );
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "`%s'\n", GNUNET_a2s ((const struct sockaddr *) broadcast_addr,addrlen) );
+              "`%s'\n",
+              GNUNET_a2s ((const struct sockaddr *) broadcast_addr,
+                          addrlen) );
   inet_ntop (addr->sa_family,
              (addr->sa_family ==
               AF_INET) ? (void *) &((struct sockaddr_in *) addr)->sin_addr
@@ -67,9 +78,12 @@ main (int argc, char *argv[])
 {
   int ret;
 
-  GNUNET_log_setup ("test-os-network", "WARNING", NULL);
+  GNUNET_log_setup ("test-os-network",
+                    "WARNING",
+                    NULL);
   ret = 1;
-  GNUNET_OS_network_interfaces_list (&proc, &ret);
+  GNUNET_OS_network_interfaces_list (&proc,
+                                     &ret);
   return ret;
 }
 

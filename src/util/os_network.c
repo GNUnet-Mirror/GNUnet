@@ -11,7 +11,7 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -67,15 +67,29 @@ try_ifconfig (GNUNET_OS_NetworkInterfaceProcessor proc,
   struct sockaddr *pass_bcaddr;
   struct sockaddr *pass_netmask;
   int prefixlen;
+  static char *pcall;
 
-  if (system ("ifconfig -a > /dev/null 2> /dev/null"))
-    if (0 == system ("/sbin/ifconfig -a > /dev/null 2> /dev/null"))
-      f = popen ("/sbin/ifconfig -a 2> /dev/null", "r");
+  if (NULL == pcall)
+  {
+    const char *sbin_ifconfig;
+
+#ifdef IFCONFIG
+    if (0 == access (IFCONFIG, X_OK))
+      sbin_ifconfig = IFCONFIG;
     else
-      f = NULL;
-  else
-    f = popen ("ifconfig -a 2> /dev/null", "r");
-  if (! f)
+#endif
+    if (0 == access ("/sbin/ifconfig", X_OK))
+      sbin_ifconfig = "/sbin/ifconfig";
+    else if (0 == access ("/usr/sbin/ifconfig", X_OK))
+      sbin_ifconfig = "/usr/sbin/ifconfig";
+    else
+      sbin_ifconfig = "ifconfig";
+    GNUNET_asprintf (&pcall,
+                     "%s -a 2> /dev/null",
+                     sbin_ifconfig);
+  }
+  f = popen (pcall, "r");
+  if (NULL == f)
   {
     LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_WARNING | GNUNET_ERROR_TYPE_BULK,
                        "popen",
@@ -238,8 +252,28 @@ try_ip (GNUNET_OS_NetworkInterfaceProcessor proc,
   struct sockaddr_in6 netmask6;
   unsigned int i;
   unsigned int prefixlen;
+  static char *pcall;
 
-  f = popen ("ip -o add 2> /dev/null", "r");
+  if (NULL == pcall)
+  {
+    const char *sbin_ip;
+
+#ifdef IFCONFIG
+    if (0 == access (PATH_TO_IP, X_OK))
+      sbin_ip = PATH_TO_IP;
+    else
+#endif
+    if (0 == access ("/sbin/ip", X_OK))
+      sbin_ip = "/sbin/ip";
+    else if (0 == access ("/usr/sbin/ip", X_OK))
+      sbin_ip = "/usr/sbin/ip";
+    else
+      sbin_ip = "if";
+    GNUNET_asprintf (&pcall,
+                     "%s -o add 2> /dev/null",
+                     sbin_ip);
+  }
+  f = popen (pcall, "r");
   if (! f)
   {
     LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_WARNING | GNUNET_ERROR_TYPE_BULK,

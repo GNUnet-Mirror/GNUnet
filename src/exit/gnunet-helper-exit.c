@@ -11,7 +11,7 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -670,6 +670,11 @@ main (int argc, char **argv)
   }
   if (0 != strcmp (argv[2], "-"))
   {
+#ifdef IPTABLES
+    if (0 == access (IPTABLES, X_OK))
+      sbin_iptables = IPTABLES;
+    else
+#endif
     if (0 == access ("/sbin/iptables", X_OK))
       sbin_iptables = "/sbin/iptables";
     else if (0 == access ("/usr/sbin/iptables", X_OK))
@@ -681,6 +686,11 @@ main (int argc, char **argv)
 	       strerror (errno));
       return 1;
     }
+#ifdef SYSCTL
+    if (0 == access (SYSCTL, X_OK))
+      sbin_sysctl = SYSCTL;
+    else
+#endif
     if (0 == access ("/sbin/sysctl", X_OK))
       sbin_sysctl = "/sbin/sysctl";
     else if (0 == access ("/usr/sbin/sysctl", X_OK))

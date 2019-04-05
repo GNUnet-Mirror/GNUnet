@@ -1,3 +1,7 @@
+Fri 05 Apr 2019 11:38:53 PM CEST
+  Use paths of sysctl, ip, ifconfig and ip(6)tables from configure
+  if they work. (#5352). -CG
+
 Thu 04 Apr 2019 12:39:44 PM CEST
   Hotfix for build issue. Releasing GNUnet 0.11.2. -CG/MS
 

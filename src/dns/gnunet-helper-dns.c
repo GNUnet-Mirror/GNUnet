@@ -11,7 +11,7 @@
    WITHOUT ANY WARRANTY; without even the implied warranty of
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
    Affero General Public License for more details.
-  
+
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -768,6 +768,11 @@ main (int argc, char *const*argv)
   if (0 == nortsetup)
   {
     /* verify that the binaries we care about are executable */
+#ifdef IPTABLES
+    if (0 == access (IPTABLES, X_OK))
+      sbin_iptables = IPTABLES;
+    else
+#endif
     if (0 == access ("/sbin/iptables", X_OK))
       sbin_iptables = "/sbin/iptables";
     else if (0 == access ("/usr/sbin/iptables", X_OK))
@@ -779,6 +784,11 @@ main (int argc, char *const*argv)
 	       strerror (errno));
       return 3;
     }
+#ifdef IP6TABLES
+    if (0 == access (IP6TABLES, X_OK))
+      sbin_ip6tables = IP6TABLES;
+    else
+#endif
     if (0 == access ("/sbin/ip6tables", X_OK))
       sbin_ip6tables = "/sbin/ip6tables";
     else if (0 == access ("/usr/sbin/ip6tables", X_OK))
@@ -790,6 +800,11 @@ main (int argc, char *const*argv)
 	       strerror (errno));
       return 3;
     }
+#ifdef PATH_TO_IP
+    if (0 == access (PATH_TO_IP, X_OK))
+      sbin_ip = PATH_TO_IP;
+    else
+#endif
     if (0 == access ("/sbin/ip", X_OK))
       sbin_ip = "/sbin/ip";
     else if (0 == access ("/usr/sbin/ip", X_OK))
@@ -803,6 +818,11 @@ main (int argc, char *const*argv)
 	       strerror (errno));
       return 4;
     }
+#ifdef SYSCTL
+    if (0 == access (SYSCTL, X_OK))
+      sbin_sysctl = SYSCTL;
+    else
+#endif
     if (0 == access ("/sbin/sysctl", X_OK))
       sbin_sysctl = "/sbin/sysctl";
     else if (0 == access ("/usr/sbin/sysctl", X_OK))
