@@ -1,22 +1,7 @@
-# This Makefile.am is in the public domain
-
 pkghellodir= $(pkgdatadir)/hellos
 
-install-data-local:
-	$(mkinstalldirs) $(DESTDIR)$(pkghellodir)
-	@$(NORMAL_INSTALL)
-	for hello in $(srcdir)/hellos/*; do \
-	  if test -f $$hello; then \
-	    $(INSTALL_DATA) $$hello $(DESTDIR)$(pkghellodir)/ ; \
-	  fi \
-	done
+pkghello_DATA = \
+  DSTJBRRKZ8TBW3FGK6B0M5QXWT9WYNZ45H5MCV4HY7ST64Q8T9F0
 
-dist-hook:
-	if test -d $(srcdir)/hellos; then \
-	  mkdir -p $(distdir)/hellos; \
-	  for hello in $(srcdir)/hellos/*; do \
-	    if test -f $$hello; then \
-	      cp -p $$hello $(distdir)/hellos; \
-	    fi \
-	  done \
-	fi
+EXTRA_DIST =
+  $(pkghello_DATA)

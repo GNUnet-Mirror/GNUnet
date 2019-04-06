@@ -1,6 +1,7 @@
-pkginitddir= $(pkgdatadir)/services/openrc
+pkginitdir= $(pkgdatadir)/services/openrc
 
-install-data-local:
-	$(mkinstalldirs) $(DESTDIR)$(pkginitdir)
-	@$(NORMAL_INSTALL)
-    $(INSTALL_DATA) gnunet.initd $(DESTDIR)$(pkginitdir)
+pkginit_DATA = \
+  gnunet.initd
+
+EXTRA_DIST = \
+  $(pkginit_DATA)

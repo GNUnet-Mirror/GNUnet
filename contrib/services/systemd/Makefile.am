@@ -1,6 +1,7 @@
-pkginitddir= $(pkgdatadir)/services/systemd
+pkginitdir= $(pkgdatadir)/services/systemd
 
-install-data-local:
-	$(mkinstalldirs) $(DESTDIR)$(pkginitdir)
-	@$(NORMAL_INSTALL)
-    $(INSTALL_DATA) gnunet.service $(DESTDIR)$(pkginitdir)
+pkginit_DATA = \
+  gnunet.service
+
+EXTRA_DIST = \
+  $(pkginit_DATA)
