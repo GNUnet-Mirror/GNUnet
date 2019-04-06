@@ -2044,26 +2044,29 @@ main (int argc,
                                         &minimum_expiration_time),
     GNUNET_GETOPT_OPTION_END
   };
+  int ret;
 
   if (GNUNET_OK !=
       GNUNET_STRINGS_get_utf8_args (argc, argv,
-				    &argc, &argv))
+                                    &argc, &argv))
     return 2;
-  GNUNET_PROGRAM_run (argc,
-		      argv,
-		      "gnunet-zoneimport",
-		      "import DNS zone into namestore",
-		      options,
-		      &run,
-		      NULL);
+  if (GNUNET_OK !=
+      (ret = GNUNET_PROGRAM_run (argc,
+                                 argv,
+                                 "gnunet-zoneimport",
+                                 "import DNS zone into namestore",
+                                 options,
+                                 &run,
+                                 NULL)))
+    return ret;
   GNUNET_free ((void*) argv);
   fprintf (stderr,
            "Rejected %u names, had %u cached, did %u lookups, stored %u record sets\n"
-	   "Found %u records, %u lookups failed, %u/%u pending on shutdown\n",
-	   rejects,
-	   cached,
+           "Found %u records, %u lookups failed, %u/%u pending on shutdown\n",
+           rejects,
+           cached,
            lookups,
-	   record_sets,
+           record_sets,
            records,
            failures,
            pending,
