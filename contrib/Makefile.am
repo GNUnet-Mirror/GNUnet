@@ -84,7 +84,6 @@ install-data-local:
 	    $(INSTALL_DATA) $$hello $(DESTDIR)$(pkghellodir)/ ; \
 	  fi \
 	done
-	install scripts/gnunet-bugreport $(DESTDIR)$(bindir)/gnunet-bugreport
 	mkdir -p $(DESTDIR)$(pkgdatadir)/services/openrc
 	mkdir -p $(DESTDIR)$(pkgdatadir)/services/systemd
 	install services/openrc/gnunet.initd $(DESTDIR)$(pkginitddir)/openrc/

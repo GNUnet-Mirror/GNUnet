@@ -11,13 +11,16 @@ noinst_SCRIPTS = \
  gnunet_janitor.py \
  gnunet-chk.py
 
+bin_SCRIPTS = \
+ gnunet-bugreport
+
 EXTRA_DIST = \
  coverage.sh \
  terminate.py.in \
  gnunet_pyexpect.py.in \
  gnunet_janitor.py.in \
  gnunet-chk.py.in \
- gnunet-bugreport \
+ $(SCRIPTS) \
  removetrailingwhitespace.py.in \
  pydiffer.py.in
 
