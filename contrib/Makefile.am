@@ -5,7 +5,7 @@ tap32dir = $(pkgdatadir)/openvpn-tap32/tapw32/
 
 tap64dir = $(pkgdatadir)/openvpn-tap32/tapw64/
 
-SUBDIRS = scripts
+SUBDIRS = scripts hellos services
 
 dist_pkgdata_DATA = \
  gns/gns-bcd.html \
@@ -72,29 +72,3 @@ test_gnunet_prefix_LDADD = \
   $(LTLIBICONV) \
   $(GN_LIBINTL) \
   $(LIBLTDL) -lunistring $(XLIB)
-
-pkghellodir= $(pkgdatadir)/hellos
-pkginitddir= $(pkgdatadir)/services
-
-install-data-local:
-	$(mkinstalldirs) $(DESTDIR)$(pkghellodir)
-	@$(NORMAL_INSTALL)
-	for hello in $(srcdir)/hellos/*; do \
-	  if test -f $$hello; then \
-	    $(INSTALL_DATA) $$hello $(DESTDIR)$(pkghellodir)/ ; \
-	  fi \
-	done
-	mkdir -p $(DESTDIR)$(pkgdatadir)/services/openrc
-	mkdir -p $(DESTDIR)$(pkgdatadir)/services/systemd
-	install services/openrc/gnunet.initd $(DESTDIR)$(pkginitddir)/openrc/
-	install services/systemd/gnunet.service $(DESTDIR)$(pkginitddir)/systemd/
-
-dist-hook:
-	if test -d $(srcdir)/hellos; then \
-	  mkdir -p $(distdir)/hellos; \
-	  for hello in $(srcdir)/hellos/*; do \
-	    if test -f $$hello; then \
-	      cp -p $$hello $(distdir)/hellos; \
-	    fi \
-	  done \
-	fi
