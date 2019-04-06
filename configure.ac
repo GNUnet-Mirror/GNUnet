@@ -1853,6 +1853,9 @@ AC_CONFIG_FILES([
 Makefile
 contrib/Makefile
 contrib/hellos/Makefile
+contrib/services/Makefile
+contrib/services/openrc/Makefile
+contrib/services/systemd/Makefile
 contrib/scripts/Makefile
 contrib/scripts/gnunet-logread/Makefile
 doc/Makefile
