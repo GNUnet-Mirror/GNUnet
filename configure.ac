@@ -1852,6 +1852,7 @@ AC_DEFINE_UNQUOTED(VCS_VERSION, [$vcs_version], [VCS revision/hash or tarball ve
 AC_CONFIG_FILES([
 Makefile
 contrib/Makefile
+contrib/hellos
 contrib/scripts/Makefile
 contrib/scripts/gnunet-logread/Makefile
 doc/Makefile
