@@ -919,8 +919,8 @@ GNUNET_ntoh_double (double d);
  * the same pointer type.
  */
 #define GNUNET_memcmp(a,b) ({ \
-  typeof(b) _a = (a); \
-  typeof(a) _b = (b); \
+  const typeof(b) _a = (a); \
+  const typeof(a) _b = (b); \
   memcmp(_a, \
          _b, \
          sizeof (*a)); })
@@ -933,7 +933,7 @@ GNUNET_ntoh_double (double d);
  *          entire memory being zero'ed out.
  */
 #define GNUNET_is_zero(a) ({ \
-  typeof(*a) _z = { 0 };      \
+  const typeof(*a) _z = { 0 };      \
   memcmp(a, \
          &_z, \
          sizeof (_z)); })
