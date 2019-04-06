@@ -1858,6 +1858,7 @@ contrib/services/openrc/Makefile
 contrib/services/systemd/Makefile
 contrib/scripts/Makefile
 contrib/scripts/gnunet-logread/Makefile
+contrib/scripts/gnunet-download-manager/Makefile
 doc/Makefile
 doc/man/Makefile
 doc/doxygen/Makefile

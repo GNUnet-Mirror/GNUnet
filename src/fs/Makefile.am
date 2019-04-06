@@ -89,10 +89,6 @@ bin_PROGRAMS = \
   gnunet-fs \
   gnunet-unindex
 
-#bin_SCRIPTS = \
-#  gnunet-download-manager.scm
-noinst_SCRIPTS = gnunet-download-manager.scm
-
 gnunet_directory_SOURCES = \
  gnunet-directory.c
 gnunet_directory_LDADD = \
@@ -574,7 +570,6 @@ EXTRA_DIST = \
   test_gnunet_fs_idx.py.in \
   test_gnunet_service_fs_migration_data.conf \
   test_gnunet_service_fs_p2p_cadet.conf \
-  test_pseudonym_data.conf \
-  $(noinst_SCRIPTS)
+  test_pseudonym_data.conf
 
 CLEANFILES = $(check_SCRIPTS)
