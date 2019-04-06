@@ -24,6 +24,19 @@ AC_PREREQ(2.61)
 AC_INIT([gnunet], [0.11.2], [bug-gnunet@gnu.org])
 AC_CONFIG_AUX_DIR([build-aux])
 
+# check for legacy option that is no longer supported (#5627) and fail hard
+AC_ARG_WITH(nssdir,
+   [  --with-nssdir=DIR    legacy switch, no longer supported, do not use],
+   [AC_MSG_RESULT([$with_nssdir])
+    case $with_nssdir in
+      no)
+        ;;
+      *)
+        AC_MSG_ERROR([--with-nssdir is no longer supported])
+        ;;
+     esac
+   ])
+
 AC_CANONICAL_TARGET
 AC_CANONICAL_HOST
 AC_CANONICAL_SYSTEM
