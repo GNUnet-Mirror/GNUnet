@@ -919,8 +919,8 @@ GNUNET_ntoh_double (double d);
  * the same pointer type.
  */
 #define GNUNET_memcmp(a,b) ({ \
-  const typeof(b) _a = (a); \
-  const typeof(a) _b = (b); \
+  const typeof(*b) * _a = (a); \
+  const typeof(*a) * _b = (b); \
   memcmp(_a, \
          _b, \
          sizeof (*a)); })
