@@ -2161,7 +2161,7 @@ rem_from_list (struct GNUNET_PeerIdentity **peer_list,
 
   for ( i = 0 ; i < *list_size ; i++ )
   {
-    if (0 == GNUNET_CRYPTO_cmp_peer_identity (&tmp[i], peer))
+    if (0 == GNUNET_memcmp (&tmp[i], peer))
     {
       if (i < *list_size -1)
       { /* Not at the last entry -- shift peers left */
@@ -2742,7 +2742,7 @@ clean_peer (struct Sub *sub,
         "Going to remove send channel to peer %s\n",
         GNUNET_i2s (peer));
     #if ENABLE_MALICIOUS
-    if (0 != GNUNET_CRYPTO_cmp_peer_identity (&attacked_peer,
+    if (0 != GNUNET_memcmp (&attacked_peer,
                                               peer))
       (void) destroy_sending_channel (get_peer_ctx (sub->peer_map,
                                                     peer));
@@ -3596,7 +3596,7 @@ handle_peer_pull_request (void *cls,
 
   else if (2 == mal_type)
   { /* Try to partition network */
-    if (0 == GNUNET_CRYPTO_cmp_peer_identity (&attacked_peer, peer))
+    if (0 == GNUNET_memcmp (&attacked_peer, peer))
     {
       send_pull_reply (peer_ctx, mal_peers, num_mal_peers);
     }

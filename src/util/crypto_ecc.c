@@ -11,7 +11,7 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -763,23 +763,6 @@ GNUNET_CRYPTO_ecdsa_key_get_anonymous ()
 
 
 /**
- * Compare two Peer Identities.
- *
- * @param first first peer identity
- * @param second second peer identity
- * @return bigger than 0 if first > second,
- *         0 if they are the same
- *         smaller than 0 if second > first
- */
-int
-GNUNET_CRYPTO_cmp_peer_identity (const struct GNUNET_PeerIdentity *first,
-                                 const struct GNUNET_PeerIdentity *second)
-{
-  return memcmp (first, second, sizeof (struct GNUNET_PeerIdentity));
-}
-
-
-/**
  * Convert the data specified in the given purpose argument to an
  * S-expression suitable for signature operations.
  *
@@ -795,7 +778,7 @@ data_to_eddsa_value (const struct GNUNET_CRYPTO_EccSignaturePurpose *purpose)
 /* SEE #5398 */
 #if 1
   struct GNUNET_HashCode hc;
-  
+
   GNUNET_CRYPTO_hash (purpose,
 		      ntohl (purpose->size),
 		      &hc);
@@ -823,7 +806,7 @@ data_to_eddsa_value (const struct GNUNET_CRYPTO_EccSignaturePurpose *purpose)
 	      rc);
     return NULL;
   }
-#endif    
+#endif
   return data;
 }
 

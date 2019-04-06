@@ -286,7 +286,7 @@ RPS_sampler_reinitialise_by_value (struct RPS_Sampler *sampler,
 
   for (i = 0; i < sampler->sampler_size; i++)
   {
-    if (0 == GNUNET_CRYPTO_cmp_peer_identity(id,
+    if (0 == GNUNET_memcmp(id,
           &(sampler->sampler_elements[i]->peer_id)) )
     {
       LOG (GNUNET_ERROR_TYPE_DEBUG, "Reinitialising sampler\n");
@@ -314,7 +314,7 @@ RPS_sampler_count_id (struct RPS_Sampler *sampler,
   count = 0;
   for ( i = 0 ; i < sampler->sampler_size ; i++ )
   {
-    if ( 0 == GNUNET_CRYPTO_cmp_peer_identity (&sampler->sampler_elements[i]->peer_id, id)
+    if ( 0 == GNUNET_memcmp (&sampler->sampler_elements[i]->peer_id, id)
         && EMPTY != sampler->sampler_elements[i]->is_empty)
       count++;
   }

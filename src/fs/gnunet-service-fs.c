@@ -1224,7 +1224,7 @@ static void
 peer_init_handler (void *cls,
                    const struct GNUNET_PeerIdentity *my_identity)
 {
-  if (0 != GNUNET_CRYPTO_cmp_peer_identity (&GSF_my_id,
+  if (0 != GNUNET_memcmp (&GSF_my_id,
                                             my_identity))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,

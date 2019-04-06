@@ -913,6 +913,32 @@ GNUNET_ntoh_double (double d);
  */
 #define GNUNET_new(type) (type *) GNUNET_malloc (sizeof (type))
 
+
+/**
+ * Compare memory in @a a and @a b, where both must be of
+ * the same pointer type.
+ */
+#define GNUNET_memcmp(a,b) ({ \
+  typeof(b) _a = (a); \
+  typeof(a) _b = (b); \
+  memcmp(_a, \
+         _b, \
+         sizeof (*a)); })
+
+
+/**
+ * Check that memory in @a a is all zeros. @a a must be a pointer.
+ *
+ * @param a pointer to a struct which should be tested for the
+ *          entire memory being zero'ed out.
+ */
+#define GNUNET_is_zero(a) ({ \
+  typeof(*a) _z = { 0 };      \
+  memcmp(a, \
+         &_z, \
+         sizeof (_z)); })
+
+
 /**
  * Call memcpy() but check for @a n being 0 first. In the latter
  * case, it is now safe to pass NULL for @a src or @a dst.

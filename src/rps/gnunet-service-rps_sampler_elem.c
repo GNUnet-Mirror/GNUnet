@@ -111,7 +111,7 @@ RPS_sampler_elem_next (struct RPS_SamplerElement *sampler_elem,
 
   sampler_elem->num_peers++;
 
-  if (0 == GNUNET_CRYPTO_cmp_peer_identity (new_ID, &(sampler_elem->peer_id)))
+  if (0 == GNUNET_memcmp (new_ID, &(sampler_elem->peer_id)))
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "Have already PeerID %s\n",
         GNUNET_i2s (&(sampler_elem->peer_id)));

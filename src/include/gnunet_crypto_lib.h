@@ -1355,20 +1355,6 @@ GNUNET_CRYPTO_get_peer_identity (const struct GNUNET_CONFIGURATION_Handle *cfg,
 
 
 /**
- * Compare two Peer Identities.
- *
- * @param first first peer identity
- * @param second second peer identity
- * @return bigger than 0 if first > second,
- *         0 if they are the same
- *         smaller than 0 if second > first
- */
-int
-GNUNET_CRYPTO_cmp_peer_identity (const struct GNUNET_PeerIdentity *first,
-                                 const struct GNUNET_PeerIdentity *second);
-
-
-/**
  * Internal structure used to cache pre-calculated values for DLOG calculation.
  */
 struct GNUNET_CRYPTO_EccDlogContext;
@@ -1397,7 +1383,7 @@ struct GNUNET_CRYPTO_EccPoint
  */
 struct GNUNET_CRYPTO_EccDlogContext *
 GNUNET_CRYPTO_ecc_dlog_prepare (unsigned int max,
-				unsigned int mem);
+                                unsigned int mem);
 
 
 /**

@@ -588,7 +588,7 @@ GSF_peer_connect_handler (void *cls,
   struct GSF_ConnectedPeer *cp;
 
   if (0 ==
-      GNUNET_CRYPTO_cmp_peer_identity (&GSF_my_id,
+      GNUNET_memcmp (&GSF_my_id,
                                        peer))
     return NULL;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,

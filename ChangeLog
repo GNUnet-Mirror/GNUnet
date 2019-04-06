@@ -1,3 +1,7 @@
+Sat 06 Apr 2019 02:36:17 PM CEST
+  Introducing GNUNET_memcmp() and GNUNET_is_zero() for better typing
+  when comparing memory areas. -CG
+
 Fri 05 Apr 2019 11:38:53 PM CEST
   Use paths of sysctl, ip, ifconfig and ip(6)tables from configure
   if they work. (#5352). -CG

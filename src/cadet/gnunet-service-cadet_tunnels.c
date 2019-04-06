@@ -467,10 +467,10 @@ struct CadetTunnel
 static int
 alice_or_betty (const struct GNUNET_PeerIdentity *other)
 {
-  if (0 > GNUNET_CRYPTO_cmp_peer_identity (&my_full_id,
+  if (0 > GNUNET_memcmp (&my_full_id,
                                            other))
     return GNUNET_YES;
-  else if (0 < GNUNET_CRYPTO_cmp_peer_identity (&my_full_id,
+  else if (0 < GNUNET_memcmp (&my_full_id,
                                                 other))
     return GNUNET_NO;
   else
@@ -2077,7 +2077,7 @@ get_next_free_ctn (struct CadetTunnel *t)
   int cmp;
   uint32_t highbit;
 
-  cmp = GNUNET_CRYPTO_cmp_peer_identity (&my_full_id,
+  cmp = GNUNET_memcmp (&my_full_id,
                                          GCP_get_id (GCT_get_destination (t)));
   if (0 < cmp)
     highbit = HIGH_BIT;
