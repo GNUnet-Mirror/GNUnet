@@ -21,8 +21,8 @@
  * @file rps/test_rps_api.c
  * @brief testcase for rps_api.c
  */
-#include <gnunet/platform.h>
-#include <gnunet/gnunet_util_lib.h>
+#include "platform.h"
+#include "gnunet_util_lib.h"
 #include "gnunet_rps_service.h"
 
 
