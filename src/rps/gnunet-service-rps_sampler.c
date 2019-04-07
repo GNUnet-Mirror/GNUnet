@@ -257,7 +257,7 @@ sampler_get_rand_peer (void *cls)
                                gpc->req_handle->gpc_tail,
                                gpc);
   *gpc->id = sampler->sampler_elements[r_index]->peer_id;
-  gpc->cont (gpc->cont_cls, gpc->id);
+  gpc->cont (gpc->cont_cls, gpc->id, 0, sampler->sampler_elements[r_index]->num_peers);
 
   GNUNET_free (gpc);
 }

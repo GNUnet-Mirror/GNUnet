@@ -40,6 +40,11 @@ struct RPS_Sampler;
  */
 struct RPS_SamplerRequestHandle;
 
+/**
+ * Closure to _get_rand_peer_info()
+ */
+struct RPS_SamplerRequestHandleSingleInfo;
+
 
 /**
  * Get the size of the sampler.
@@ -108,8 +113,6 @@ RPS_sampler_reinitialise_by_value (struct RPS_Sampler *sampler,
  * @param sampler the sampler to get peers from.
  * @param cb callback that will be called once the ids are ready.
  * @param cls closure given to @a cb
- * @param for_client #GNUNET_YES if result is used for client,
- *                   #GNUNET_NO if used internally
  * @param num_peers the number of peers requested
  */
 struct RPS_SamplerRequestHandle *
@@ -117,6 +120,7 @@ RPS_sampler_get_n_rand_peers (struct RPS_Sampler *sampler,
                               uint32_t num_peers,
                               RPS_sampler_n_rand_peers_ready_cb cb,
                               void *cls);
+
 
 /**
  * Cancle a request issued through #RPS_sampler_n_rand_peers_ready_cb.
