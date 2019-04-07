@@ -67,6 +67,21 @@ typedef void (* GNUNET_RPS_NotifyReadyCB) (void *cls,
 
 
 /**
+ * Callback called when requested random peer with additional information is
+ * available.
+ *
+ * @param cls the closure given with the request
+ * @param peer The Peer ID
+ * @param probability The probability with which all elements have been observed
+ * @param num_observed Number of IDs this sampler has observed
+ */
+typedef void (* GNUNET_RPS_NotifyReadySingleInfoCB) (void *cls,
+    const struct GNUNET_PeerIdentity *peer,
+    double probability,
+    uint32_t num_observed);
+
+
+/**
  * Connect to the rps service
  *
  * @param cfg configuration to use
@@ -117,6 +132,21 @@ GNUNET_RPS_request_peers (struct GNUNET_RPS_Handle *h, uint32_t n,
                           GNUNET_RPS_NotifyReadyCB ready_cb,
                           void *cls);
 
+
+/**
+ * Request one random peer, getting additional information.
+ *
+ * @param rps_handle handle to the rps service
+ * @param ready_cb the callback called when the peers are available
+ * @param cls closure given to the callback
+ * @return a handle to cancel this request
+ */
+struct GNUNET_RPS_Request_Handle_Single_Info *
+GNUNET_RPS_request_peer_info (struct GNUNET_RPS_Handle *rps_handle,
+                              GNUNET_RPS_NotifyReadySingleInfoCB ready_cb,
+                              void *cls);
+
+
 /**
  * Seed rps service with peerIDs.
  *
@@ -135,6 +165,16 @@ GNUNET_RPS_seed_ids (struct GNUNET_RPS_Handle *h, uint32_t n,
  */
   void
 GNUNET_RPS_request_cancel (struct GNUNET_RPS_Request_Handle *rh);
+
+
+/**
+ * Cancle an issued single info request.
+ *
+ * @param rhs request handle of request to cancle
+ */
+void
+GNUNET_RPS_request_single_info_cancel (
+    struct GNUNET_RPS_Request_Handle_Single_Info *rhs);
 
 
 #if ENABLE_MALICIOUS
