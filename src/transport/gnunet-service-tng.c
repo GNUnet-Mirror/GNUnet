@@ -42,7 +42,6 @@
  *   #4 to ensure flow control and RTT are OK, we always do the
  *      'validation', even if address comes from PEERSTORE
  * - ACK handling / retransmission
- * - address verification
  * - track RTT, distance, loss, etc.
  * - DV data structures:
  *   + learning
@@ -51,7 +50,6 @@
  * - routing of messages (using DV data structures!)
  * - handling of DV-boxed messages that need to be forwarded
  * - backchannel message encryption & decryption
- * -
  *
  * Later:
  * - change transport-core API to provide proper flow control in both
@@ -1672,8 +1670,6 @@ notify_monitors (const struct GNUNET_PeerIdentity *peer,
                  enum GNUNET_NetworkType nt,
                  const struct MonitorEvent *me)
 {
-  static struct GNUNET_PeerIdentity zero;
-
   for (struct TransportClient *tc = clients_head;
        NULL != tc;
        tc = tc->next)
@@ -1682,12 +1678,9 @@ notify_monitors (const struct GNUNET_PeerIdentity *peer,
       continue;
     if (tc->details.monitor.one_shot)
       continue;
-    if ( (0 != memcmp (&tc->details.monitor.peer,
-                       &zero,
-                       sizeof (zero))) &&
-         (0 != memcmp (&tc->details.monitor.peer,
-                       peer,
-                       sizeof (*peer))) )
+    if ( (0 != GNUNET_is_zero (&tc->details.monitor.peer)) &&
+         (0 != GNUNET_memcmp (&tc->details.monitor.peer,
+                              peer)) )
       continue;
     notify_monitor (tc,
                     peer,
@@ -2212,9 +2205,8 @@ handle_client_start (void *cls,
   options = ntohl (start->options);
   if ( (0 != (1 & options)) &&
        (0 !=
-        memcmp (&start->self,
-                &GST_my_identity,
-                sizeof (struct GNUNET_PeerIdentity)) ) )
+        GNUNET_memcmp (&start->self,
+                       &GST_my_identity)) )
   {
     /* client thinks this is a different peer, reject */
     GNUNET_break (0);
@@ -2718,10 +2710,10 @@ handle_communicator_backchannel (void *cls,
   enc->header.size = htons (sizeof (*enc) + msize);
   enc->target = cb->pid;
   lookup_ephemeral (&cb->pid,
-		    &private_key,
-		    &enc->ephemeral_key,
-		    &ppay.sender_sig,
-		    &ephemeral_validity);
+                    &private_key,
+                    &enc->ephemeral_key,
+                    &ppay.sender_sig,
+                    &ephemeral_validity);
   // FIXME: setup 'iv'
 #if FIXME
   dh_key_derive (&private_key,
@@ -2794,14 +2786,14 @@ peerstore_store_cb (void *cls,
   ale->sc = NULL;
   if (GNUNET_YES != success)
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		"Failed to store our own address `%s' in peerstore!\n",
-		ale->address);
+                "Failed to store our own address `%s' in peerstore!\n",
+                ale->address);
   /* refresh period is 1/4 of expiration time, that should be plenty
      without being excessive. */
   ale->st = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_divide (ale->expiration,
-								       4ULL),
-					  &store_pi,
-					  ale);
+                                                                       4ULL),
+                                          &store_pi,
+                                          ale);
 }
 
 
@@ -2821,30 +2813,30 @@ store_pi (void *cls)
   ale->st = NULL;
   expiration = GNUNET_TIME_relative_to_absolute (ale->expiration);
   GNUNET_HELLO_sign_address (ale->address,
-			     ale->nt,
-			     expiration,
-			     GST_my_private_key,
-			     &addr,
-			     &addr_len);
+                             ale->nt,
+                             expiration,
+                             GST_my_private_key,
+                             &addr,
+                             &addr_len);
   ale->sc = GNUNET_PEERSTORE_store (peerstore,
-				    "transport",
-				    &GST_my_identity,
-				    GNUNET_HELLO_PEERSTORE_KEY,
-				    addr,
-				    addr_len,
-				    expiration,
-				    GNUNET_PEERSTORE_STOREOPTION_MULTIPLE,
-				    &peerstore_store_cb,
-				    ale);
+                                    "transport",
+                                    &GST_my_identity,
+                                    GNUNET_HELLO_PEERSTORE_KEY,
+                                    addr,
+                                    addr_len,
+                                    expiration,
+                                    GNUNET_PEERSTORE_STOREOPTION_MULTIPLE,
+                                    &peerstore_store_cb,
+                                    ale);
   GNUNET_free (addr);
   if (NULL == ale->sc)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-		"Failed to store our address `%s' with peerstore\n",
-		ale->address);
+                "Failed to store our address `%s' with peerstore\n",
+                ale->address);
     ale->st = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
-					    &store_pi,
-					    ale);
+                                            &store_pi,
+                                            ale);
   }
 }
 
@@ -2877,7 +2869,7 @@ handle_add_address (void *cls,
                                tc->details.communicator.addr_tail,
                                ale);
   ale->st = GNUNET_SCHEDULER_add_now (&store_pi,
-				      ale);
+                                      ale);
   GNUNET_SERVICE_client_continue (tc->client);
 }
 
@@ -2948,7 +2940,7 @@ struct CommunicatorMessageContext
  */
 static void
 demultiplex_with_cmc (struct CommunicatorMessageContext *cmc,
-		      const struct GNUNET_MessageHeader *msg);
+                      const struct GNUNET_MessageHeader *msg);
 
 
 /**
@@ -2966,12 +2958,12 @@ finish_cmc_handling (struct CommunicatorMessageContext *cmc)
     struct GNUNET_TRANSPORT_IncomingMessageAck *ack;
 
     env = GNUNET_MQ_msg (ack,
-			 GNUNET_MESSAGE_TYPE_TRANSPORT_INCOMING_MSG_ACK);
+                         GNUNET_MESSAGE_TYPE_TRANSPORT_INCOMING_MSG_ACK);
     ack->reserved = htonl (0);
     ack->fc_id = cmc->im.fc_id;
     ack->sender = cmc->im.sender;
     GNUNET_MQ_send (cmc->tc->mq,
-		    env);
+                    env);
   }
   GNUNET_SERVICE_client_continue (cmc->tc->client);
   GNUNET_free (cmc);
@@ -2987,7 +2979,7 @@ finish_cmc_handling (struct CommunicatorMessageContext *cmc)
  */
 static void
 handle_raw_message (void *cls,
-		    const struct GNUNET_MessageHeader *mh)
+                    const struct GNUNET_MessageHeader *mh)
 {
   struct CommunicatorMessageContext *cmc = cls;
   uint16_t size = ntohs (mh->size);
@@ -3013,14 +3005,14 @@ handle_raw_message (void *cls,
     if (CT_CORE != tc->type)
       continue;
     env = GNUNET_MQ_msg_extra (im,
-			       size,
-			       GNUNET_MESSAGE_TYPE_TRANSPORT_RECV);
+                               size,
+                               GNUNET_MESSAGE_TYPE_TRANSPORT_RECV);
     im->peer = cmc->im.sender;
     memcpy (&im[1],
-	    mh,
-	    size);
+            mh,
+            size);
     GNUNET_MQ_send (tc->mq,
-		    env);
+                    env);
   }
   /* FIXME: consider doing this _only_ once the message
      was drained from the CORE MQs to extend flow control to CORE!
@@ -3038,7 +3030,7 @@ handle_raw_message (void *cls,
  */
 static int
 check_fragment_box (void *cls,
-		    const struct TransportFragmentBox *fb)
+                    const struct TransportFragmentBox *fb)
 {
   uint16_t size = ntohs (fb->header.size);
   uint16_t bsize = size - sizeof (*fb);
@@ -3116,7 +3108,7 @@ handle_fragment_box (void *cls,
   int ack_now;
 
   n = GNUNET_CONTAINER_multipeermap_get (neighbours,
-					 &cmc->im.sender);
+                                         &cmc->im.sender);
   if (NULL == n)
   {
     struct GNUNET_SERVICE_Client *client = cmc->tc->client;
@@ -3129,15 +3121,15 @@ handle_fragment_box (void *cls,
   if (NULL == n->reassembly_map)
   {
     n->reassembly_map = GNUNET_CONTAINER_multishortmap_create (8,
-							       GNUNET_YES);
+                                                               GNUNET_YES);
     n->reassembly_heap = GNUNET_CONTAINER_heap_create (GNUNET_CONTAINER_HEAP_ORDER_MIN);
     n->reassembly_timeout_task = GNUNET_SCHEDULER_add_delayed (REASSEMBLY_EXPIRATION,
-							       &reassembly_cleanup_task,
-							       n);
+                                                               &reassembly_cleanup_task,
+                                                               n);
   }
   msize = ntohs (fb->msg_size);
   rc = GNUNET_CONTAINER_multishortmap_get (n->reassembly_map,
-					   &fb->msg_uuid);
+                                           &fb->msg_uuid);
   if (NULL == rc)
   {
     rc = GNUNET_malloc (sizeof (*rc) +
@@ -3149,13 +3141,13 @@ handle_fragment_box (void *cls,
     rc->reassembly_timeout = GNUNET_TIME_relative_to_absolute (REASSEMBLY_EXPIRATION);
     rc->last_frag = GNUNET_TIME_absolute_get ();
     rc->hn = GNUNET_CONTAINER_heap_insert (n->reassembly_heap,
-					   rc,
-					   rc->reassembly_timeout.abs_value_us);
+                                           rc,
+                                           rc->reassembly_timeout.abs_value_us);
     GNUNET_assert (GNUNET_OK ==
 		   GNUNET_CONTAINER_multishortmap_put (n->reassembly_map,
-						       &rc->msg_uuid,
-						       rc,
-						       GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
+                                               &rc->msg_uuid,
+                                               rc,
+                                               GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
     target = (char *) &rc[1];
     rc->bitfield = (uint8_t *) (target + rc->msg_size);
     rc->msg_missing = rc->msg_size;
@@ -3175,8 +3167,8 @@ handle_fragment_box (void *cls,
   fsize = ntohs (fb->header.size) - sizeof (*fb);
   frag_off = ntohs (fb->frag_off);
   memcpy (&target[frag_off],
-	  &fb[1],
-	  fsize);
+          &fb[1],
+          fsize);
   /* update bitfield and msg_missing */
   for (unsigned int i=frag_off;i<frag_off+fsize;i++)
   {
@@ -3191,10 +3183,10 @@ handle_fragment_box (void *cls,
   frag_uuid = ntohl (fb->frag_uuid);
   cdelay = GNUNET_TIME_absolute_get_duration (rc->last_frag);
   cdelay = GNUNET_TIME_relative_multiply (cdelay,
-					  rc->num_acks);
+                                          rc->num_acks);
   rc->last_frag = GNUNET_TIME_absolute_get ();
   rc->avg_ack_delay = GNUNET_TIME_relative_add (rc->avg_ack_delay,
-						cdelay);
+                                                cdelay);
   ack_now = GNUNET_NO;
   if (0 == rc->num_acks)
   {
@@ -3258,7 +3250,7 @@ handle_fragment_box (void *cls,
   /* successful reassembly */
   send_fragment_ack (rc);
   demultiplex_with_cmc (cmc,
-			msg);
+                        msg);
   /* FIXME: really free here? Might be bad if fragments are still
      en-route and we forget that we finished this reassembly immediately!
      -> keep around until timeout?
@@ -3296,7 +3288,7 @@ handle_fragment_ack (void *cls,
  */
 static int
 check_reliability_box (void *cls,
-		       const struct TransportReliabilityBox *rb)
+                       const struct TransportReliabilityBox *rb)
 {
   GNUNET_MQ_check_boxed_message (rb);
   return GNUNET_YES;
@@ -3311,7 +3303,7 @@ check_reliability_box (void *cls,
  */
 static void
 handle_reliability_box (void *cls,
-			const struct TransportReliabilityBox *rb)
+                        const struct TransportReliabilityBox *rb)
 {
   struct CommunicatorMessageContext *cmc = cls;
   const struct GNUNET_MessageHeader *inbox = (const struct GNUNET_MessageHeader *) &rb[1];
@@ -3323,10 +3315,10 @@ handle_reliability_box (void *cls,
     /* FIXME: implement cummulative ACKs and ack_countdown,
        then setting the avg_ack_delay field below: */
     ack = GNUNET_malloc (sizeof (*ack) +
-			 sizeof (struct GNUNET_ShortHashCode));
+                         sizeof (struct GNUNET_ShortHashCode));
     ack->header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_RELIABILITY_ACK);
     ack->header.size = htons (sizeof (*ack) +
-			      sizeof (struct GNUNET_ShortHashCode));
+                              sizeof (struct GNUNET_ShortHashCode));
     memcpy (&ack[1],
 	    &rb->msg_uuid,
 	    sizeof (struct GNUNET_ShortHashCode));
@@ -3391,13 +3383,12 @@ handle_backchannel_encapsulation (void *cls,
 {
   struct CommunicatorMessageContext *cmc = cls;
 
-  if (0 != memcmp (&be->target,
-		   &GST_my_identity,
-		   sizeof (struct GNUNET_PeerIdentity)))
+  if (0 != GNUNET_memcmp (&be->target,
+                          &GST_my_identity))
   {
     /* not for me, try to route to target */
     route_message (&be->target,
-		   GNUNET_copy_message (&be->header));
+                   GNUNET_copy_message (&be->header));
     finish_cmc_handling (cmc);
     return;
   }
@@ -3432,16 +3423,14 @@ check_dv_learn (void *cls,
   }
   for (unsigned int i=0;i<num_hops;i++)
   {
-    if (0 == memcmp (&dvl->initiator,
-                     &hops[i],
-                     sizeof (struct GNUNET_PeerIdentity)))
+    if (0 == GNUNET_memcmp (&dvl->initiator,
+                            &hops[i]))
     {
       GNUNET_break_op (0);
       return GNUNET_SYSERR;
     }
-    if (0 == memcmp (&GST_my_identity,
-                     &hops[i],
-                     sizeof (struct GNUNET_PeerIdentity)))
+    if (0 == GNUNET_memcmp (&GST_my_identity,
+                            &hops[i]))
     {
       GNUNET_break_op (0);
       return GNUNET_SYSERR;
@@ -4241,9 +4230,8 @@ handle_del_queue_message (void *cls,
     struct Neighbour *neighbour = queue->neighbour;
 
     if ( (dqm->qid != queue->qid) ||
-	 (0 != memcmp (&dqm->receiver,
-		       &neighbour->pid,
-		       sizeof (struct GNUNET_PeerIdentity))) )
+         (0 != GNUNET_memcmp (&dqm->receiver,
+                              &neighbour->pid)) )
       continue;
     free_queue (queue);
     GNUNET_SERVICE_client_continue (tc->client);
@@ -4280,9 +4268,8 @@ handle_send_message_ack (void *cls,
        NULL != queue;
        queue = queue->next_client)
   {
-    if (0 != memcmp (&queue->neighbour->pid,
-		     &sma->receiver,
-		     sizeof (struct GNUNET_PeerIdentity)))
+    if (0 != GNUNET_memcmp (&queue->neighbour->pid,
+                            &sma->receiver))
       continue;
     for (struct QueueEntry *qep = queue->queue_head;
          NULL != qep;
