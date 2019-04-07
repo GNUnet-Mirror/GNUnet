@@ -363,4 +363,56 @@ GNUNET_TRANSPORT_application_suggest_cancel (struct GNUNET_TRANSPORT_Application
 }
 
 
+
+/**
+ * An application (or a communicator) has received a HELLO (or other address
+ * data of another peer) and wants TRANSPORT to validate that the address is
+ * correct.  The result is NOT returned, in fact TRANSPORT may do nothing
+ * (i.e. if it has too many active validations or recently tried this one
+ * already).  If the @a addr validates, TRANSPORT will persist the address
+ * with PEERSTORE.
+ *
+ * @param ch handle
+ * @param peer identity of the peer we have an address for
+ * @param expiration when does @a addr expire; used by TRANSPORT to know when
+ *        to definitively give up attempting to validate
+ * @param nt network type of @a addr (as claimed by the other peer);
+ *        used by TRANSPORT to avoid trying @a addr's that really cannot work
+ *        due to network type missmatches
+ * @param addr address to validate
+ */
+void
+GNUNET_TRANSPORT_application_validate (struct GNUNET_TRANSPORT_ApplicationHandle *ch,
+                                       const struct GNUNET_PeerIdentity *peer,
+                                       struct GNUNET_TIME_Absolute expiration,
+                                       enum GNUNET_NetworkType nt,
+                                       const char *addr)
+{
+  struct GNUNET_MQ_Envelope *ev;
+  struct RequestHelloValidationMessage *m;
+  size_t alen;
+
+  if (NULL == ch->mq)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                "Address validation for %s:%s skipped as transport is not connected\n",
+                GNUNET_i2s (peer),
+                addr);
+    return;
+  }
+  alen = strlen (addr) + 1;
+  ev = GNUNET_MQ_msg_extra (m,
+                            alen,
+                            GNUNET_MESSAGE_TYPE_TRANSPORT_REQUEST_HELLO_VALIDATION);
+  m->peer = *peer;
+  m->expiration = GNUNET_TIME_absolute_hton (expiration);
+  m->nt = htonl ((uint32_t) nt);
+  memcpy (&m[1],
+          addr,
+          alen);
+  GNUNET_MQ_send (ch->mq,
+                  ev);
+}
+
+
 /* end of transport_api2_application.c */

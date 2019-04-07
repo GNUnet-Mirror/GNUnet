@@ -1462,11 +1462,17 @@ GNUNET_a2s (const struct sockaddr *addr,
     if (addrlen != sizeof (struct sockaddr_in))
       return "<invalid v4 address>";
     v4 = (const struct sockaddr_in *) addr;
-    inet_ntop (AF_INET, &v4->sin_addr, buf, INET_ADDRSTRLEN);
+    inet_ntop (AF_INET,
+               &v4->sin_addr,
+               buf,
+               INET_ADDRSTRLEN);
     if (0 == ntohs (v4->sin_port))
       return buf;
     strcat (buf, ":");
-    GNUNET_snprintf (b2, sizeof (b2), "%u", ntohs (v4->sin_port));
+    GNUNET_snprintf (b2,
+                     sizeof (b2),
+                     "%u",
+                     ntohs (v4->sin_port));
     strcat (buf, b2);
     return buf;
   case AF_INET6:
@@ -1474,12 +1480,19 @@ GNUNET_a2s (const struct sockaddr *addr,
       return "<invalid v4 address>";
     v6 = (const struct sockaddr_in6 *) addr;
     buf[0] = '[';
-    inet_ntop (AF_INET6, &v6->sin6_addr, &buf[1], INET6_ADDRSTRLEN);
+    inet_ntop (AF_INET6,
+               &v6->sin6_addr,
+               &buf[1],
+               INET6_ADDRSTRLEN);
     if (0 == ntohs (v6->sin6_port))
       return &buf[1];
     strcat (buf, "]:");
-    GNUNET_snprintf (b2, sizeof (b2), "%u", ntohs (v6->sin6_port));
-    strcat (buf, b2);
+    GNUNET_snprintf (b2,
+                     sizeof (b2),
+                     "%u",
+                     ntohs (v6->sin6_port));
+    strcat (buf,
+            b2);
     return buf;
   case AF_UNIX:
     if (addrlen <= sizeof (sa_family_t))

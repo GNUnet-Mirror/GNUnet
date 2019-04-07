@@ -495,11 +495,11 @@ GNUNET_HELLO_parse_uri (const char *uri,
  */
 void
 GNUNET_HELLO_sign_address (const char *address,
-			   enum GNUNET_NetworkType nt,
-			   struct GNUNET_TIME_Absolute expiration,
-			   const struct GNUNET_CRYPTO_EddsaPrivateKey *private_key,
-			   void **result,
-			   size_t *result_size);
+                           enum GNUNET_NetworkType nt,
+                           struct GNUNET_TIME_Absolute expiration,
+                           const struct GNUNET_CRYPTO_EddsaPrivateKey *private_key,
+                           void **result,
+                           size_t *result_size);
 
 
 /**
@@ -514,10 +514,10 @@ GNUNET_HELLO_sign_address (const char *address,
  */
 char *
 GNUNET_HELLO_extract_address (const void *raw,
-			      size_t raw_size,
-			      const struct GNUNET_PeerIdentity *pid,
-			      enum GNUNET_NetworkType *nt,
-			      struct GNUNET_TIME_Absolute *expiration);
+                              size_t raw_size,
+                              const struct GNUNET_PeerIdentity *pid,
+                              enum GNUNET_NetworkType *nt,
+                              struct GNUNET_TIME_Absolute *expiration);
 
 
 /**

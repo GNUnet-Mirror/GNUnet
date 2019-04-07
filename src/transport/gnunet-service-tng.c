@@ -35,17 +35,12 @@
  * Implement next:
  * - address validation: what is our plan here?
  *   #1 Peerstore only gets 'validated' addresses
- *   #2 transport needs another API to "trigger" validation!
- *      API may be used by core/application or communicators;
- *      => use yet another lib/MQ/connection?
- *   #3 transport should use validation to also establish
+ *   #2 transport should use validation to also establish
  *      effective flow control (for uni-directional transports!)
- *   #4 UDP broadcasting logic must be extended to use the new API
- *   #5 only validated addresses are selected for scheduling; that
+ *   #3 only validated addresses are selected for scheduling; that
  *      also ensures we know the RTT
- *   #6 to ensure flow control and RTT are OK, we always do the
+ *   #4 to ensure flow control and RTT are OK, we always do the
  *      'validation', even if address comes from PEERSTORE
- *   #7
  * - ACK handling / retransmission
  * - address verification
  * - track RTT, distance, loss, etc.
@@ -57,9 +52,6 @@
  * - handling of DV-boxed messages that need to be forwarded
  * - backchannel message encryption & decryption
  * -
- *
- * Easy:
- * - figure out how to call XXX_suggestion_cb!
  *
  * Later:
  * - change transport-core API to provide proper flow control in both
@@ -2612,8 +2604,8 @@ expire_ephemerals (void *cls)
       continue;
     }
     ephemeral_task = GNUNET_SCHEDULER_add_at (ece->ephemeral_validity,
-					      &expire_ephemerals,
-					      NULL);
+                                              &expire_ephemerals,
+                                              NULL);
     return;
   }
 }
@@ -2640,7 +2632,7 @@ lookup_ephemeral (const struct GNUNET_PeerIdentity *pid,
   struct EphemeralConfirmation ec;
 
   ece = GNUNET_CONTAINER_multipeermap_get (ephemeral_map,
-					   pid);
+                                           pid);
   if ( (NULL != ece) &&
        (0 == GNUNET_TIME_absolute_get_remaining (ece->ephemeral_validity).rel_value_us) )
   {
@@ -2652,27 +2644,27 @@ lookup_ephemeral (const struct GNUNET_PeerIdentity *pid,
     ece = GNUNET_new (struct EphemeralCacheEntry);
     ece->target = *pid;
     ece->ephemeral_validity = GNUNET_TIME_absolute_add (GNUNET_TIME_absolute_get_monotonic (GST_cfg),
-							EPHEMERAL_VALIDITY);
+                                                        EPHEMERAL_VALIDITY);
     GNUNET_assert (GNUNET_OK ==
-		   GNUNET_CRYPTO_ecdhe_key_create2 (&ece->private_key));
+                   GNUNET_CRYPTO_ecdhe_key_create2 (&ece->private_key));
     GNUNET_CRYPTO_ecdhe_key_get_public (&ece->private_key,
-					&ece->ephemeral_key);
+                                        &ece->ephemeral_key);
     ec.purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_TRANSPORT_EPHEMERAL);
     ec.purpose.size = htonl (sizeof (ec));
     ec.target = *pid;
     ec.ephemeral_key = ece->ephemeral_key;
     GNUNET_assert (GNUNET_OK ==
-		   GNUNET_CRYPTO_eddsa_sign (GST_my_private_key,
-					     &ec.purpose,
-					     &ece->sender_sig));
+                   GNUNET_CRYPTO_eddsa_sign (GST_my_private_key,
+                                             &ec.purpose,
+                                             &ece->sender_sig));
     ece->hn = GNUNET_CONTAINER_heap_insert (ephemeral_heap,
 					    ece,
 					    ece->ephemeral_validity.abs_value_us);
     GNUNET_assert (GNUNET_OK ==
-		   GNUNET_CONTAINER_multipeermap_put (ephemeral_map,
-						      &ece->target,
-						      ece,
-						      GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
+                   GNUNET_CONTAINER_multipeermap_put (ephemeral_map,
+                                                      &ece->target,
+                                                      ece,
+                                                      GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
     if (NULL == ephemeral_task)
       ephemeral_task = GNUNET_SCHEDULER_add_at (ece->ephemeral_validity,
 						&expire_ephemerals,
@@ -2733,27 +2725,27 @@ handle_communicator_backchannel (void *cls,
   // FIXME: setup 'iv'
 #if FIXME
   dh_key_derive (&private_key,
-		 &cb->pid,
-		 &enc->iv,
-		 &key);
+                 &cb->pid,
+                 &enc->iv,
+                 &key);
 #endif
   ppay.ephemeral_validity = GNUNET_TIME_absolute_hton (ephemeral_validity);
   ppay.monotonic_time = GNUNET_TIME_absolute_hton (GNUNET_TIME_absolute_get_monotonic (GST_cfg));
   mpos = (char *) &enc[1];
 #if FIXME
   encrypt (key,
-	   &ppay,
-	   &mpos,
-	   sizeof (ppay));
+           &ppay,
+           &mpos,
+           sizeof (ppay));
   encrypt (key,
-	   &cb[1],
-	   &mpos,
-	   ntohs (cb->header.size) - sizeof (*cb));
+           &cb[1],
+           &mpos,
+           ntohs (cb->header.size) - sizeof (*cb));
   hmac (key,
-	&enc->hmac);
+        &enc->hmac);
 #endif
   route_message (&cb->pid,
-		 &enc->header);
+                 &enc->header);
   GNUNET_SERVICE_client_continue (tc->client);
 }
 
@@ -4490,10 +4482,10 @@ suggest_to_connect (const struct GNUNET_PeerIdentity *pid,
   cqm->request_id = htonl (idgen++);
   cqm->receiver = *pid;
   memcpy (&cqm[1],
-	  address,
-	  alen);
+          address,
+          alen);
   GNUNET_MQ_send (tc->mq,
-		  env);
+                  env);
 }
 
 
@@ -4642,7 +4634,7 @@ handle_suggest (void *cls,
   pr->wc = GNUNET_PEERSTORE_watch (peerstore,
                                    "transport",
                                    &pr->pid,
-                                   "hello",
+                                   GNUNET_HELLO_PEERSTORE_KEY,
                                    &handle_hello,
                                    pr);
   GNUNET_SERVICE_client_continue (tc->client);
@@ -4734,6 +4726,38 @@ handle_address_consider_verify (void *cls,
     return; /* expired */
   // FIXME: do begin actual verification here!
   GNUNET_free (address);
+}
+
+
+/**
+ * Check #GNUNET_MESSAGE_TYPE_TRANSPORT_REQUEST_HELLO_VALIDATION
+ * messages.
+ *
+ * @param cls a `struct TransportClient *`
+ * @param m message to verify
+ * @return #GNUNET_OK on success
+ */
+static int
+check_request_hello_validation (void *cls,
+                                const struct RequestHelloValidationMessage *m)
+{
+  GNUNET_MQ_check_zero_termination (m);
+  return GNUNET_OK;
+}
+
+
+/**
+ * A client encountered an address of another peer. Consider validating it,
+ * and if validation succeeds, persist it to PEERSTORE.
+ *
+ * @param cls a `struct TransportClient *`
+ * @param m message to verify
+ */
+static void
+handle_request_hello_validation (void *cls,
+                                 const struct RequestHelloValidationMessage *m)
+{
+  // FIXME: implement validation!
 }
 
 
@@ -4927,6 +4951,10 @@ GNUNET_SERVICE_MAIN
                           GNUNET_MESSAGE_TYPE_TRANSPORT_SUGGEST_CANCEL,
                           struct ExpressPreferenceMessage,
                           NULL),
+ GNUNET_MQ_hd_var_size (request_hello_validation,
+                        GNUNET_MESSAGE_TYPE_TRANSPORT_REQUEST_HELLO_VALIDATION,
+                        struct RequestHelloValidationMessage,
+                        NULL),
  /* communication with core */
  GNUNET_MQ_hd_fixed_size (client_start,
                           GNUNET_MESSAGE_TYPE_TRANSPORT_START,

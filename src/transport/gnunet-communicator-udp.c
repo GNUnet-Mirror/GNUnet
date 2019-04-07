@@ -35,7 +35,7 @@
  *    where is the API for that!?!)
  * - support DNS names in BINDTO option (#5528)
  * - support NAT connection reversal method (#5529)
- * - support other UDP-specific NAT traversal methods (#) 
+ * - support other UDP-specific NAT traversal methods (#)
  */
 #include "platform.h"
 #include "gnunet_util_lib.h"
@@ -45,26 +45,27 @@
 #include "gnunet_nt_lib.h"
 #include "gnunet_nat_service.h"
 #include "gnunet_statistics_service.h"
+#include "gnunet_transport_application_service.h"
 #include "gnunet_transport_communication_service.h"
 
 /**
  * How often do we rekey based on time (at least)
- */ 
+ */
 #define REKEY_TIME_INTERVAL GNUNET_TIME_UNIT_DAYS
 
 /**
  * How long do we wait until we must have received the initial KX?
- */ 
+ */
 #define PROTO_QUEUE_TIMEOUT GNUNET_TIME_UNIT_MINUTES
 
 /**
  * How often do we broadcast our presence on the LAN?
- */ 
+ */
 #define BROADCAST_FREQUENCY GNUNET_TIME_UNIT_MINUTES
 
 /**
  * How often do we scan for changes to our network interfaces?
- */ 
+ */
 #define INTERFACE_SCAN_FREQUENCY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 5)
 
 /**
@@ -88,7 +89,7 @@
  * #KCN_TARGET.
  * Should be large enough that we don't generate ACKs all
  * the time and still have enough time for the ACK to
- * arrive before the sender runs out. So really this 
+ * arrive before the sender runs out. So really this
  * should ideally be based on the RTT.
  */
 #define KCN_THRESHOLD 92
@@ -113,8 +114,8 @@
 #define MAX_SQN_DELTA 160
 
 /**
- * How many shared master secrets do we keep around 
- * at most per sender?  Should be large enough so 
+ * How many shared master secrets do we keep around
+ * at most per sender?  Should be large enough so
  * that we generally have a chance of sending an ACK
  * before the sender already rotated out the master
  * secret.  Generally values around #KCN_TARGET make
@@ -126,7 +127,7 @@
 /**
  * How often do we rekey based on number of bytes transmitted?
  * (additionally randomized).
- */ 
+ */
 #define REKEY_MAX_BYTES (1024LLU * 1024 * 1024 * 4LLU)
 
 /**
@@ -157,23 +158,23 @@ struct UdpHandshakeSignature
 
   /**
    * Identity of the inititor of the UDP connection (UDP client).
-   */ 
+   */
   struct GNUNET_PeerIdentity sender;
 
   /**
    * Presumed identity of the target of the UDP connection (UDP server)
-   */ 
+   */
   struct GNUNET_PeerIdentity receiver;
 
   /**
    * Ephemeral key used by the @e sender.
-   */ 
+   */
   struct GNUNET_CRYPTO_EcdhePublicKey ephemeral;
 
   /**
    * Monotonic time of @e sender, to possibly help detect replay attacks
    * (if receiver persists times by sender).
-   */ 
+   */
   struct GNUNET_TIME_AbsoluteNBO monotonic_time;
 };
 
@@ -187,13 +188,13 @@ struct InitialKX
 
   /**
    * Ephemeral key for KX.
-   */ 
+   */
   struct GNUNET_CRYPTO_EcdhePublicKey ephemeral;
 
   /**
    * HMAC for the following encrypted message, using GCM.  HMAC uses
    * key derived from the handshake with sequence number zero.
-   */ 
+   */
   char gcm_tag[GCM_TAG_SIZE];
 
 };
@@ -218,7 +219,7 @@ struct UDPConfirmation
   /**
    * Monotonic time of @e sender, to possibly help detect replay attacks
    * (if receiver persists times by sender).
-   */ 
+   */
   struct GNUNET_TIME_AbsoluteNBO monotonic_time;
 
   /* followed by messages */
@@ -230,24 +231,24 @@ struct UDPConfirmation
 /**
  * UDP key acknowledgement.  May be sent via backchannel. Allows the
  * sender to use `struct UDPBox` with the acknowledge key henceforth.
- */ 
+ */
 struct UDPAck
 {
 
   /**
    * Type is #GNUNET_MESSAGE_TYPE_COMMUNICATOR_UDP_ACK.
-   */ 
+   */
   struct GNUNET_MessageHeader header;
 
   /**
    * Sequence acknowledgement limit. Specifies current maximum sequence
    * number supported by receiver.
-   */ 
+   */
   uint32_t sequence_max GNUNET_PACKED;
-  
+
   /**
    * CMAC of the base key being acknowledged.
-   */ 
+   */
   struct GNUNET_HashCode cmac;
 
 };
@@ -257,7 +258,7 @@ struct UDPAck
  * Signature we use to verify that the broadcast was really made by
  * the peer that claims to have made it.  Basically, affirms that the
  * peer is really using this IP address (albeit possibly not in _our_
- * LAN).  Makes it difficult for peers in the LAN to claim to 
+ * LAN).  Makes it difficult for peers in the LAN to claim to
  * be just any global peer -- an attacker must have at least
  * shared a LAN with the peer they're pretending to be here.
  */
@@ -270,12 +271,12 @@ struct UdpBroadcastSignature
 
   /**
    * Identity of the inititor of the UDP broadcast.
-   */ 
+   */
   struct GNUNET_PeerIdentity sender;
 
   /**
    * Hash of the sender's UDP address.
-   */ 
+   */
   struct GNUNET_HashCode h_address;
 };
 
@@ -298,22 +299,22 @@ struct UDPBroadcast
    * Sender's signature of type
    * #GNUNET_SIGNATURE_COMMUNICATOR_UDP_BROADCAST
    */
-  struct GNUNET_CRYPTO_EddsaSignature sender_sig;  
-  
+  struct GNUNET_CRYPTO_EddsaSignature sender_sig;
+
 };
 
 
 /**
  * UDP message box.  Always sent encrypted, only allowed after
  * the receiver sent a `struct UDPAck` for the base key!
- */ 
+ */
 struct UDPBox
 {
 
   /**
    * Key and IV identification code. KDF applied to an acknowledged
    * base key and a sequence number.  Sequence numbers must be used
-   * monotonically increasing up to the maximum specified in 
+   * monotonically increasing up to the maximum specified in
    * `struct UDPAck`. Without further `struct UDPAck`s, the sender
    * must fall back to sending handshakes!
    */
@@ -325,9 +326,9 @@ struct UDPBox
    * extends until the end of the UDP payload.  If the @e hmac is
    * wrong, the receiver should check if the message might be a
    * `struct UdpHandshakeSignature`.
-   */ 
+   */
   char gcm_tag[GCM_TAG_SIZE];
-  
+
 };
 
 
@@ -350,7 +351,7 @@ struct KeyCacheEntry
    * Kept in a DLL.
    */
   struct KeyCacheEntry *next;
-  
+
   /**
    * Kept in a DLL.
    */
@@ -359,7 +360,7 @@ struct KeyCacheEntry
   /**
    * Key and IV identification code. KDF applied to an acknowledged
    * base key and a sequence number.  Sequence numbers must be used
-   * monotonically increasing up to the maximum specified in 
+   * monotonically increasing up to the maximum specified in
    * `struct UDPAck`. Without further `struct UDPAck`s, the sender
    * must fall back to sending handshakes!
    */
@@ -372,7 +373,7 @@ struct KeyCacheEntry
 
   /**
    * Sequence number used to derive this entry from master key.
-   */ 
+   */
   uint32_t sequence_number;
 };
 
@@ -408,7 +409,7 @@ struct SharedSecret
    * Kept in a DLL, sorted by sequence number. Only if we are decrypting.
    */
   struct KeyCacheEntry *kce_head;
-  
+
   /**
    * Kept in a DLL, sorted by sequence number. Only if we are decrypting.
    */
@@ -423,21 +424,21 @@ struct SharedSecret
    * Receiver we use this shared secret with, or NULL.
    */
   struct ReceiverAddress *receiver;
-  
+
   /**
    * Master shared secret.
-   */ 
+   */
   struct GNUNET_HashCode master;
 
   /**
    * CMAC is used to identify @e master in ACKs.
-   */ 
+   */
   struct GNUNET_HashCode cmac;
 
   /**
    * Up to which sequence number did we use this @e master already?
    * (for encrypting only)
-   */ 
+   */
   uint32_t sequence_used;
 
   /**
@@ -449,7 +450,7 @@ struct SharedSecret
 
   /**
    * Number of active KCN entries.
-   */ 
+   */
   unsigned int active_kce_count;
 };
 
@@ -464,11 +465,11 @@ struct SenderAddress
   /**
    * To whom are we talking to.
    */
-  struct GNUNET_PeerIdentity target;  
+  struct GNUNET_PeerIdentity target;
 
   /**
    * Entry in sender expiration heap.
-   */ 
+   */
   struct GNUNET_CONTAINER_HeapNode *hn;
 
   /**
@@ -480,12 +481,12 @@ struct SenderAddress
    * Shared secrets we used with @e target, last used is tail.
    */
   struct SharedSecret *ss_tail;
-  
+
   /**
    * Address of the other peer.
    */
   struct sockaddr *address;
-  
+
   /**
    * Length of the address.
    */
@@ -498,14 +499,14 @@ struct SenderAddress
 
   /**
    * Length of the DLL at @a ss_head.
-   */ 
+   */
   unsigned int num_secrets;
-  
+
   /**
    * Which network type does this queue use?
    */
   enum GNUNET_NetworkType nt;
-  
+
 };
 
 
@@ -519,8 +520,8 @@ struct ReceiverAddress
   /**
    * To whom are we talking to.
    */
-  struct GNUNET_PeerIdentity target;  
-  
+  struct GNUNET_PeerIdentity target;
+
   /**
    * Shared secrets we received from @e target, first used is head.
    */
@@ -534,14 +535,14 @@ struct ReceiverAddress
   /**
    * Address of the receiver in the human-readable format
    * with the #COMMUNICATOR_ADDRESS_PREFIX.
-   */ 
+   */
   char *foreign_addr;
 
   /**
    * Address of the other peer.
    */
   struct sockaddr *address;
-  
+
   /**
    * Length of the address.
    */
@@ -549,7 +550,7 @@ struct ReceiverAddress
 
   /**
    * Entry in sender expiration heap.
-   */ 
+   */
   struct GNUNET_CONTAINER_HeapNode *hn;
 
   /**
@@ -571,23 +572,23 @@ struct ReceiverAddress
    * MTU we allowed transport for this receiver right now.
    */
   size_t mtu;
-  
+
   /**
    * Length of the DLL at @a ss_head.
-   */ 
+   */
   unsigned int num_secrets;
 
   /**
-   * Number of BOX keys from ACKs we have currently 
+   * Number of BOX keys from ACKs we have currently
    * available for this receiver.
-   */ 
+   */
   unsigned int acks_available;
-  
+
   /**
    * Which network type does this queue use?
    */
   enum GNUNET_NetworkType nt;
-  
+
 };
 
 
@@ -611,12 +612,12 @@ struct BroadcastInterface
    * Task for this broadcast interface.
    */
   struct GNUNET_SCHEDULER_Task *broadcast_task;
-  
+
   /**
    * Sender's address of the interface.
    */
   struct sockaddr *sa;
-  
+
   /**
    * Broadcast address to use on the interface.
    */
@@ -624,18 +625,18 @@ struct BroadcastInterface
 
   /**
    * Message we broadcast on this interface.
-   */ 
+   */
   struct UDPBroadcast bcm;
-  
+
   /**
    * If this is an IPv6 interface, this is the request
    * we use to join/leave the group.
    */
   struct ipv6_mreq mcreq;
-  
+
   /**
    * Number of bytes in @e sa.
-   */ 
+   */
   socklen_t salen;
 
   /**
@@ -710,9 +711,9 @@ static struct BroadcastInterface *bi_tail;
  */
 static struct GNUNET_NETWORK_Handle *udp_sock;
 
-/** 
+/**
  * #GNUNET_YES if #udp_sock supports IPv6.
- */ 
+ */
 static int have_v6_socket;
 
 /**
@@ -731,6 +732,11 @@ static struct GNUNET_CRYPTO_EddsaPrivateKey *my_private_key;
 static const struct GNUNET_CONFIGURATION_Handle *cfg;
 
 /**
+ * Our handle to report addresses for validation to TRANSPORT.
+ */
+static struct GNUNET_TRANSPORT_ApplicationHandle *ah;
+
+/**
  * Network scanner to determine network types.
  */
 static struct GNUNET_NT_InterfaceScanner *is;
@@ -742,7 +748,7 @@ static struct GNUNET_NAT_Handle *nat;
 
 /**
  * Port number to which we are actually bound.
- */ 
+ */
 static uint16_t my_port;
 
 
@@ -788,7 +794,7 @@ static void
 receiver_destroy (struct ReceiverAddress *receiver)
 {
   struct GNUNET_MQ_Handle *mq;
-  
+
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Disconnecting receiver for peer `%s'\n",
 	      GNUNET_i2s (&receiver->target));
@@ -822,7 +828,7 @@ receiver_destroy (struct ReceiverAddress *receiver)
  * Free memory used by key cache entry.
  *
  * @param kce the key cache entry
- */ 
+ */
 static void
 kce_destroy (struct KeyCacheEntry *kce)
 {
@@ -1048,7 +1054,7 @@ check_timeouts (void *cls)
   struct GNUNET_TIME_Relative delay;
   struct ReceiverAddress *receiver;
   struct SenderAddress *sender;
-  
+
   (void) cls;
   timeout_task = NULL;
   rt = GNUNET_TIME_UNIT_FOREVER_REL;
@@ -1072,9 +1078,9 @@ check_timeouts (void *cls)
   if (delay.rel_value_us < GNUNET_TIME_UNIT_FOREVER_REL.rel_value_us)
     timeout_task = GNUNET_SCHEDULER_add_delayed (delay,
 						 &check_timeouts,
-						 NULL);  
+						 NULL);
 }
-			  
+
 
 /**
  * Calcualte cmac from master in @a ss.
@@ -1100,12 +1106,12 @@ calculate_cmac (struct SharedSecret *ss)
 
 /**
  * We received @a plaintext_len bytes of @a plaintext from a @a sender.
- * Pass it on to CORE.  
+ * Pass it on to CORE.
  *
  * @param queue the queue that received the plaintext
  * @param plaintext the plaintext that was received
  * @param plaintext_len number of bytes of plaintext received
- */ 
+ */
 static void
 pass_plaintext_to_core (struct SenderAddress *sender,
 			const void *plaintext,
@@ -1171,7 +1177,7 @@ setup_cipher (const struct GNUNET_HashCode *msec,
 
 
 /**
- * Try to decrypt @a buf using shared secret @a ss and key/iv 
+ * Try to decrypt @a buf using shared secret @a ss and key/iv
  * derived using @a serial.
  *
  * @param ss shared secret
@@ -1274,7 +1280,7 @@ setup_shared_secret_enc (const struct GNUNET_CRYPTO_EcdhePrivateKey *ephemeral,
  * recalculated and a fresh queue is initialized.
  *
  * @param receiver receiver to setup MQ for
- */ 
+ */
 static void
 setup_receiver_mq (struct ReceiverAddress *receiver);
 
@@ -1307,9 +1313,9 @@ handle_ack (void *cls,
 		     sizeof (struct GNUNET_HashCode)))
     {
       uint32_t allowed;
-      
+
       allowed = ntohl (ack->sequence_max);
-			    
+
       if (allowed > ss->sequence_allowed)
       {
 	receiver->acks_available += (allowed - ss->sequence_allowed);
@@ -1342,7 +1348,7 @@ handle_ack (void *cls,
  * @param sender peer to process inbound plaintext for
  * @param buf buffer we received
  * @param buf_size number of bytes in @a buf
- */ 
+ */
 static void
 try_handle_plaintext (struct SenderAddress *sender,
 		      const void *buf,
@@ -1413,9 +1419,9 @@ consider_ss_ack (struct SharedSecret *ss)
     ack.sequence_max = htonl (ss->sequence_allowed);
     ack.cmac = ss->cmac;
     GNUNET_TRANSPORT_communicator_notify (ch,
-					  &ss->sender->target,
-					  COMMUNICATOR_ADDRESS_PREFIX,
-					  &ack.header);
+                                          &ss->sender->target,
+                                          COMMUNICATOR_ADDRESS_PREFIX,
+                                          &ack.header);
   }
 }
 
@@ -1426,7 +1432,7 @@ consider_ss_ack (struct SharedSecret *ss)
  * @param box the data we received
  * @param box_len number of bytes in @a box
  * @param kce key index to decrypt @a box
- */ 
+ */
 static void
 decrypt_box (const struct UDPBox *box,
 	     size_t box_len,
@@ -1519,7 +1525,7 @@ find_sender_by_address (void *cls,
  * if one does not yet exist for @a address.
  *
  * @param target peer to generate address for
- * @param address target address 
+ * @param address target address
  * @param address_len number of bytes in @a address
  * @return data structure to keep track of key material for
  *         decrypting data from @a target
@@ -1582,10 +1588,10 @@ setup_sender (const struct GNUNET_PeerIdentity *target,
  */
 static int
 verify_confirmation (const struct GNUNET_CRYPTO_EcdhePublicKey *ephemeral,
-		     const struct UDPConfirmation *uc)
+                     const struct UDPConfirmation *uc)
 {
   struct UdpHandshakeSignature uhs;
-			
+
   uhs.purpose.purpose = htonl (GNUNET_SIGNATURE_COMMUNICATOR_UDP_HANDSHAKE);
   uhs.purpose.size = htonl (sizeof (uhs));
   uhs.sender = uc->sender;
@@ -1593,14 +1599,51 @@ verify_confirmation (const struct GNUNET_CRYPTO_EcdhePublicKey *ephemeral,
   uhs.ephemeral = *ephemeral;
   uhs.monotonic_time = uc->monotonic_time;
   return GNUNET_CRYPTO_eddsa_verify (GNUNET_SIGNATURE_COMMUNICATOR_UDP_HANDSHAKE,
-				     &uhs.purpose,
-				     &uc->sender_sig,
-				     &uc->sender.public_key);
+                                     &uhs.purpose,
+                                     &uc->sender_sig,
+                                     &uc->sender.public_key);
 }
 
 
 /**
- * Socket read task. 
+ * Converts @a address to the address string format used by this
+ * communicator in HELLOs.
+ *
+ * @param address the address to convert, must be AF_INET or AF_INET6.
+ * @param address_len number of bytes in @a address
+ * @return string representation of @a address
+ */
+static char *
+sockaddr_to_udpaddr_string (const struct sockaddr *address,
+                            socklen_t address_len)
+{
+  char *ret;
+
+  switch (address->sa_family)
+  {
+  case AF_INET:
+    GNUNET_asprintf (&ret,
+                     "%s-%s",
+                     COMMUNICATOR_ADDRESS_PREFIX,
+                     GNUNET_a2s (address,
+                                 address_len));
+    break;
+  case AF_INET6:
+    GNUNET_asprintf (&ret,
+                     "%s-%s",
+                     COMMUNICATOR_ADDRESS_PREFIX,
+                     GNUNET_a2s (address,
+                                 address_len));
+    break;
+  default:
+    GNUNET_assert (0);
+  }
+  return ret;
+}
+
+
+/**
+ * Socket read task.
  *
  * @param cls NULL
  */
@@ -1615,18 +1658,18 @@ sock_read (void *cls)
   (void) cls;
   read_task
       = GNUNET_SCHEDULER_add_read_net (GNUNET_TIME_UNIT_FOREVER_REL,
-				       udp_sock,
-				       &sock_read,
-				       NULL);
+                                       udp_sock,
+                                       &sock_read,
+                                       NULL);
   rcvd = GNUNET_NETWORK_socket_recvfrom (udp_sock,
-					 buf,
-					 sizeof (buf),
-					 (struct sockaddr *) &sa,
-					 &salen);
+                                         buf,
+                                         sizeof (buf),
+                                         (struct sockaddr *) &sa,
+                                         &salen);
   if (-1 == rcvd)
   {
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_DEBUG,
-			 "recv");
+                         "recv");
     return;
   }
 
@@ -1638,12 +1681,12 @@ sock_read (void *cls)
 
     box = (const struct UDPBox *) buf;
     kce = GNUNET_CONTAINER_multishortmap_get (key_cache,
-					      &box->kid);
+                                              &box->kid);
     if (NULL != kce)
     {
       decrypt_box (box,
-		   (size_t) rcvd,
-		   kce);
+                   (size_t) rcvd,
+                   kce);
       return;
     }
   }
@@ -1659,25 +1702,41 @@ sock_read (void *cls)
     uhs.purpose.size = htonl (sizeof (uhs));
     uhs.sender = ub->sender;
     GNUNET_CRYPTO_hash (&sa,
-			salen,
-			&uhs.h_address);
+                        salen,
+                        &uhs.h_address);
     if (GNUNET_OK ==
-	GNUNET_CRYPTO_eddsa_verify (GNUNET_SIGNATURE_COMMUNICATOR_UDP_BROADCAST,
-				    &uhs.purpose,
-				    &ub->sender_sig,
-				    &ub->sender.public_key))
+        GNUNET_CRYPTO_eddsa_verify (GNUNET_SIGNATURE_COMMUNICATOR_UDP_BROADCAST,
+                                    &uhs.purpose,
+                                    &ub->sender_sig,
+                                    &ub->sender.public_key))
     {
+      char *addr_s;
+      struct GNUNET_TIME_Absolute expiration;
+      enum GNUNET_NetworkType nt;
+
+      addr_s = sockaddr_to_udpaddr_string ((const struct sockaddr *) &sa,
+                                           salen);
       GNUNET_STATISTICS_update (stats,
-				"# broadcasts received",
-				1,
-				GNUNET_NO);
-      // FIXME #5551: we effectively just got a HELLO!
-      // trigger verification NOW!
+                                "# broadcasts received",
+                                1,
+                                GNUNET_NO);
+      /* expire at the broadcast frequency, as then we'll get the next one anyway */
+      expiration = GNUNET_TIME_relative_to_absolute (BROADCAST_FREQUENCY);
+      /* use our own mechanism to determine network type */
+      nt = GNUNET_NT_scanner_get_type (is,
+                                       (const struct sockaddr *) &sa,
+                                       salen);
+      GNUNET_TRANSPORT_application_validate (ah,
+                                             &ub->sender,
+                                             expiration,
+                                             nt,
+                                             addr_s);
+      GNUNET_free (addr_s);
       return;
     }
     /* continue with KX, mostly for statistics... */
   }
-  
+
 
   /* finally, test if it is a KX */
   if (rcvd < sizeof (struct UDPConfirmation) + sizeof (struct InitialKX))
@@ -1769,7 +1828,7 @@ udp_address_to_sockaddr (const char *bindto,
   char dummy[2];
   char *colon;
   char *cp;
-  
+
   if (1 == SSCANF (bindto,
 		   "%u%1s",
 		   &port,
@@ -1791,7 +1850,7 @@ udp_address_to_sockaddr (const char *bindto,
 						"DISABLE_V6")) )
     {
       struct sockaddr_in *i4;
-      
+
       i4 = GNUNET_malloc (sizeof (struct sockaddr_in));
       i4->sin_family = AF_INET;
       i4->sin_port = htons ((uint16_t) port);
@@ -1801,7 +1860,7 @@ udp_address_to_sockaddr (const char *bindto,
     else
     {
       struct sockaddr_in6 *i6;
-      
+
       i6 = GNUNET_malloc (sizeof (struct sockaddr_in6));
       i6->sin6_family = AF_INET6;
       i6->sin6_port = htons ((uint16_t) port);
@@ -1915,7 +1974,7 @@ do_pad (gcry_cipher_hd_t out_cipher,
       .size = htons (sizeof (pad)),
       .type = htons (GNUNET_MESSAGE_TYPE_COMMUNICATOR_UDP_PAD)
     };
-    
+
     memcpy (pad,
 	    &hdr,
 	    sizeof (hdr));
@@ -1953,7 +2012,7 @@ mq_send (struct GNUNET_MQ_Handle *mq,
     return;
   }
   reschedule_receiver_timeout (receiver);
-  
+
   if (0 == receiver->acks_available)
   {
     /* use KX encryption method */
@@ -2159,12 +2218,12 @@ mq_error (void *cls,
  * recalculated and a fresh queue is initialized.
  *
  * @param receiver receiver to setup MQ for
- */ 
+ */
 static void
 setup_receiver_mq (struct ReceiverAddress *receiver)
 {
   size_t base_mtu;
-  
+
   if (NULL != receiver->qh)
   {
     GNUNET_TRANSPORT_communicator_mq_del (receiver->qh);
@@ -2226,58 +2285,40 @@ setup_receiver_mq (struct ReceiverAddress *receiver)
 
 /**
  * Setup a receiver for transmission.  Setup the MQ processing and
- * inform transport that the queue is ready. 
+ * inform transport that the queue is ready.
  *
- * @param 
- */ 
+ * @param
+ */
 static struct ReceiverAddress *
 receiver_setup (const struct GNUNET_PeerIdentity *target,
-		const struct sockaddr *address,
-		socklen_t address_len)
+                const struct sockaddr *address,
+                socklen_t address_len)
 {
   struct ReceiverAddress *receiver;
 
   receiver = GNUNET_new (struct ReceiverAddress);
   receiver->address = GNUNET_memdup (address,
-				     address_len);
+                                     address_len);
   receiver->address_len = address_len;
   receiver->target = *target;
   receiver->nt = GNUNET_NT_scanner_get_type (is,
 					     address,
 					     address_len);
   (void) GNUNET_CONTAINER_multipeermap_put (receivers,
-					    &receiver->target,
-					    receiver,
-					    GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
+                                            &receiver->target,
+                                            receiver,
+                                            GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
   receiver->timeout
     = GNUNET_TIME_relative_to_absolute (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT);
   receiver->hn = GNUNET_CONTAINER_heap_insert (receivers_heap,
-					       receiver,
-					       receiver->timeout.abs_value_us);
+                                               receiver,
+                                               receiver->timeout.abs_value_us);
   GNUNET_STATISTICS_set (stats,
-			 "# receivers active",
-			 GNUNET_CONTAINER_multipeermap_size (receivers),
-			 GNUNET_NO);
-  switch (address->sa_family)
-  {
-  case AF_INET:
-    GNUNET_asprintf (&receiver->foreign_addr,
-		     "%s-%s",
-		     COMMUNICATOR_ADDRESS_PREFIX,
-		     GNUNET_a2s (receiver->address,
-				 receiver->address_len));
-    break;
-  case AF_INET6:
-    GNUNET_asprintf (&receiver->foreign_addr,
-		     "%s-%s",
-		     COMMUNICATOR_ADDRESS_PREFIX,
-		     GNUNET_a2s (receiver->address,
-				 receiver->address_len));
-    break;
-  default:
-    GNUNET_assert (0);
-  }
-
+                         "# receivers active",
+                         GNUNET_CONTAINER_multipeermap_size (receivers),
+                         GNUNET_NO);
+  receiver->foreign_addr = sockaddr_to_udpaddr_string (receiver->address,
+                                                       receiver->address_len);
   setup_receiver_mq (receiver);
 
   if (NULL == timeout_task)
@@ -2313,7 +2354,7 @@ mq_init (void *cls,
   const char *path;
   struct sockaddr *in;
   socklen_t in_len;
-  
+
   if (0 != strncmp (address,
 		    COMMUNICATOR_ADDRESS_PREFIX "-",
 		    strlen (COMMUNICATOR_ADDRESS_PREFIX "-")))
@@ -2323,12 +2364,12 @@ mq_init (void *cls,
   }
   path = &address[strlen (COMMUNICATOR_ADDRESS_PREFIX "-")];
   in = udp_address_to_sockaddr (path,
-				&in_len);  
+				&in_len);
   receiver = receiver_setup (peer,
 			     in,
 			     in_len);
   (void) receiver;
-  return GNUNET_OK;  
+  return GNUNET_OK;
 }
 
 
@@ -2423,6 +2464,11 @@ do_shutdown (void *cls)
     GNUNET_TRANSPORT_communicator_disconnect (ch);
     ch = NULL;
   }
+  if (NULL != ah)
+  {
+    GNUNET_TRANSPORT_application_done (ah);
+    ah = NULL;
+  }
   if (NULL != stats)
   {
     GNUNET_STATISTICS_destroy (stats,
@@ -2457,7 +2503,7 @@ enc_notify_cb (void *cls,
                const struct GNUNET_MessageHeader *msg)
 {
   const struct UDPAck *ack;
-  
+
   (void) cls;
   if ( (ntohs (msg->type) != GNUNET_MESSAGE_TYPE_COMMUNICATOR_UDP_ACK) ||
        (ntohs (msg->size) != sizeof (struct UDPAck)) )
@@ -2480,7 +2526,7 @@ enc_notify_cb (void *cls,
  * @param cls closure
  * @param app_ctx[in,out] location where the app can store stuff
  *                  on add and retrieve it on remove
- * @param add_remove #GNUNET_YES to add a new public IP address, 
+ * @param add_remove #GNUNET_YES to add a new public IP address,
  *                   #GNUNET_NO to remove a previous (now invalid) one
  * @param ac address class the address belongs to
  * @param addr either the previous or the new public IP address
@@ -2502,13 +2548,13 @@ nat_address_cb (void *cls,
     enum GNUNET_NetworkType nt;
 
     GNUNET_asprintf (&my_addr,
-		     "%s-%s",
-		     COMMUNICATOR_ADDRESS_PREFIX,
-		     GNUNET_a2s (addr,
-				 addrlen));
+                     "%s-%s",
+                     COMMUNICATOR_ADDRESS_PREFIX,
+                     GNUNET_a2s (addr,
+                                 addrlen));
     nt = GNUNET_NT_scanner_get_type (is,
-				     addr,
-				     addrlen); 
+                                     addr,
+                                     addrlen);
     ai = GNUNET_TRANSPORT_communicator_address_add (ch,
 						    my_addr,
 						    nt,
@@ -2543,14 +2589,14 @@ ifc_broadcast (void *cls)
     = GNUNET_SCHEDULER_add_delayed (INTERFACE_SCAN_FREQUENCY,
 				    &ifc_broadcast,
 				    bi);
-  
+
   switch (bi->sa->sa_family) {
   case AF_INET:
     {
       static int yes = 1;
       static int no = 0;
       ssize_t sent;
-    
+
       if (GNUNET_OK !=
 	  GNUNET_NETWORK_socket_setsockopt (udp_sock,
 					    SOL_SOCKET,
@@ -2660,7 +2706,7 @@ iface_proc (void *cls,
   if ( (AF_INET6 == addr->sa_family) &&
        (GNUNET_YES != have_v6_socket) )
     return GNUNET_OK; /* not using IPv6 */
-  
+
   bi = GNUNET_new (struct BroadcastInterface);
   bi->sa = GNUNET_memdup (addr,
 			  addrlen);
@@ -2696,7 +2742,7 @@ iface_proc (void *cls,
                    inet_pton (AF_INET6,
 			      "FF05::13B",
                               &bi->mcreq.ipv6mr_multiaddr));
-    
+
     /* http://tools.ietf.org/html/rfc2553#section-5.2:
      *
      * IPV6_JOIN_GROUP
@@ -2736,7 +2782,7 @@ static void
 do_broadcast (void *cls)
 {
   struct BroadcastInterface *bin;
-  
+
   (void) cls;
   for (struct BroadcastInterface *bi = bi_head;
        NULL != bi;
@@ -2778,7 +2824,7 @@ run (void *cls,
   socklen_t in_len;
   struct sockaddr_storage in_sto;
   socklen_t sto_len;
-  
+
   (void) cls;
   cfg = c;
   if (GNUNET_OK !=
@@ -2794,7 +2840,7 @@ run (void *cls,
   }
 
   in = udp_address_to_sockaddr (bindto,
-				&in_len);
+                                &in_len);
   if (NULL == in)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -2804,8 +2850,8 @@ run (void *cls,
     return;
   }
   udp_sock = GNUNET_NETWORK_socket_create (in->sa_family,
-					   SOCK_DGRAM,
-					   IPPROTO_UDP);
+                                           SOCK_DGRAM,
+                                           IPPROTO_UDP);
   if (NULL == udp_sock)
   {
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR,
@@ -2819,7 +2865,7 @@ run (void *cls,
   if (GNUNET_OK !=
       GNUNET_NETWORK_socket_bind (udp_sock,
                                   in,
-				  in_len))
+                                  in_len))
   {
     GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR,
 			      "bind",
@@ -2834,12 +2880,12 @@ run (void *cls,
      thus, get the real IN-address from the socket */
   sto_len = sizeof (in_sto);
   if (0 != getsockname (GNUNET_NETWORK_get_fd (udp_sock),
-			(struct sockaddr *) &in_sto,
-			&sto_len))
+                        (struct sockaddr *) &in_sto,
+                        &sto_len))
   {
     memcpy (&in_sto,
-	    in,
-	    in_len);
+            in,
+            in_len);
     sto_len = in_len;
   }
   GNUNET_free (in);
@@ -2847,9 +2893,9 @@ run (void *cls,
   in = (struct sockaddr *) &in_sto;
   in_len = sto_len;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Bound to `%s'\n",
-	      GNUNET_a2s ((const struct sockaddr *) &in_sto,
-			  sto_len));
+              "Bound to `%s'\n",
+              GNUNET_a2s ((const struct sockaddr *) &in_sto,
+                          sto_len));
   switch (in->sa_family)
   {
   case AF_INET:
@@ -2863,17 +2909,17 @@ run (void *cls,
     my_port = 0;
   }
   stats = GNUNET_STATISTICS_create ("C-UDP",
-				    cfg);
+                                    cfg);
   senders = GNUNET_CONTAINER_multipeermap_create (32,
-						  GNUNET_YES);
+                                                  GNUNET_YES);
   receivers = GNUNET_CONTAINER_multipeermap_create (32,
-						    GNUNET_YES);
+                                                    GNUNET_YES);
   senders_heap = GNUNET_CONTAINER_heap_create (GNUNET_CONTAINER_HEAP_ORDER_MIN);
   receivers_heap = GNUNET_CONTAINER_heap_create (GNUNET_CONTAINER_HEAP_ORDER_MIN);
   key_cache = GNUNET_CONTAINER_multishortmap_create (1024,
-						     GNUNET_YES);
+                                                     GNUNET_YES);
   GNUNET_SCHEDULER_add_shutdown (&do_shutdown,
-				 NULL);
+                                 NULL);
   is = GNUNET_NT_scanner_init ();
   my_private_key = GNUNET_CRYPTO_eddsa_key_create_from_configuration (cfg);
   if (NULL == my_private_key)
@@ -2887,15 +2933,15 @@ run (void *cls,
                                       &my_identity.public_key);
   /* start reading */
   read_task = GNUNET_SCHEDULER_add_read_net (GNUNET_TIME_UNIT_FOREVER_REL,
-					     udp_sock,
-					     &sock_read,
-					     NULL);
+                                             udp_sock,
+                                             &sock_read,
+                                             NULL);
   ch = GNUNET_TRANSPORT_communicator_connect (cfg,
-					      COMMUNICATOR_CONFIG_SECTION,
-					      COMMUNICATOR_ADDRESS_PREFIX,
+                                              COMMUNICATOR_CONFIG_SECTION,
+                                              COMMUNICATOR_ADDRESS_PREFIX,
                                               GNUNET_TRANSPORT_CC_UNRELIABLE,
-					      &mq_init,
-					      NULL,
+                                              &mq_init,
+                                              NULL,
                                               &enc_notify_cb,
                                               NULL);
   if (NULL == ch)
@@ -2904,24 +2950,31 @@ run (void *cls,
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
+  ah = GNUNET_TRANSPORT_application_init (cfg);
+  if (NULL == ah)
+  {
+    GNUNET_break (0);
+    GNUNET_SCHEDULER_shutdown ();
+    return;
+  }
   /* start broadcasting */
   if (GNUNET_YES !=
       GNUNET_CONFIGURATION_get_value_yesno (cfg,
-					    COMMUNICATOR_CONFIG_SECTION,
-					    "DISABLE_BROADCAST"))
+                                            COMMUNICATOR_CONFIG_SECTION,
+                                            "DISABLE_BROADCAST"))
   {
     broadcast_task = GNUNET_SCHEDULER_add_now (&do_broadcast,
-					       NULL);
-  }  
+                                               NULL);
+  }
   nat = GNUNET_NAT_register (cfg,
-			     COMMUNICATOR_CONFIG_SECTION,
-			     IPPROTO_UDP,
-			     1 /* one address */,
-			     (const struct sockaddr **) &in,
-			     &in_len,
-			     &nat_address_cb,
-			     NULL /* FIXME: support reversal: #5529 */,
-			     NULL /* closure */);
+                             COMMUNICATOR_CONFIG_SECTION,
+                             IPPROTO_UDP,
+                             1 /* one address */,
+                             (const struct sockaddr **) &in,
+                             &in_len,
+                             &nat_address_cb,
+                             NULL /* FIXME: support reversal: #5529 */,
+                             NULL /* closure */);
 }
 
 
