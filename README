@@ -114,7 +114,7 @@ These are the optional dependencies:
 - bluez                             (for bluetooth support)
 - grof                              (for linting of man pages)
 - guile              1.6.4          (or later up to 1.8?, for
-                                     gnunet-download-manager)
+                                     gnunet-download-manager (see #5682))
 
 - libextractor       >= 0.6.1       (highly recommended[*5])
 - libjansson
@@ -131,7 +131,8 @@ These are the optional dependencies:
                                      Identity Provider functionality, from
                                      https://github.com/schanzen/libgabe)
 - mandoc                            (for linting of man pages, generation of
-                                     html output of man pages)
+                                     html output of man pages (not part of
+                                     the regular build))
 - miniupnpc
 - perl5                             (for some utilities)
 - TeX Live           >= 2012        (for gnunet-bcd[*])
