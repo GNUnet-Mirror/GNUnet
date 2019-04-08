@@ -383,16 +383,14 @@ peer_info_ready_cb (const struct GNUNET_PeerIdentity *peers,
                     double probability,
                     uint32_t num_observed)
 {
-  struct GNUNET_RPS_Request_Handle *rh = cls;
-  (void) probability;
-  (void) num_observed;
-  uint32_t num_peers = 1;
+  struct GNUNET_RPS_Request_Handle_Single_Info *rh = cls;
 
   rh->sampler_rh = NULL;
   rh->ready_cb (rh->ready_cb_cls,
-                num_peers,
-                peers);
-  GNUNET_RPS_request_cancel (rh);
+                peers,
+                probability,
+                num_observed);
+  GNUNET_RPS_request_single_info_cancel (rh);
 }
 
 
