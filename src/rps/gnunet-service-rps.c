@@ -2611,6 +2611,10 @@ insert_in_sampler (void *cls,
      GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
   uint32_t num_observed_unique_peers =
     GNUNET_CONTAINER_multipeermap_size (sub->observed_unique_peers);
+  GNUNET_STATISTICS_set (stats,
+                         "# unique peers in gossip",
+                         num_observed_unique_peers,
+                         GNUNET_NO);
 #ifdef TO_FILE_FULL
   to_file (sub->file_name_observed_log,
           "%" PRIu32 " %" PRIu32 " %f\n",
