@@ -2602,6 +2602,13 @@ insert_in_sampler (void *cls,
      * messages to it */
     //indicate_sending_intention (peer);
   }
+  if (sub == msub)
+  {
+    GNUNET_STATISTICS_update (stats,
+                              "# observed peers in gossip",
+                              1,
+                              GNUNET_NO);
+  }
 #ifdef TO_FILE
   sub->num_observed_peers++;
   GNUNET_CONTAINER_multipeermap_put
