@@ -73,13 +73,7 @@ close_all_files ();
            "Failed to create tmp_buf\n");\
       break;\
     }\
-    size = GNUNET_snprintf(tmp_buf,sizeof(tmp_buf),"%s \n", tmp_buf);\
-    if (0 > size)\
-    {\
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,\
-           "Failed to create tmp_buf\n");\
-      break;\
-    }\
+    (void) strncat(tmp_buf,"\n",512);\
     GNUNET_DISK_file_write (get_file_handle (file_name),\
                             tmp_buf,\
                             strnlen (tmp_buf, 512));\
@@ -96,13 +90,7 @@ close_all_files ();
            "Failed to create tmp_buf\n");\
       break;\
     }\
-    size = GNUNET_snprintf(tmp_buf,sizeof(tmp_buf),"%s\n", tmp_buf);\
-    if (0 > size)\
-    {\
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,\
-           "Failed to create tmp_buf\n");\
-      break;\
-    }\
+    (void) strncat(tmp_buf,"\n",len);\
     GNUNET_DISK_file_write (get_file_handle (file_name),\
                             tmp_buf,\
                             strnlen (tmp_buf, len));\

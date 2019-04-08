@@ -306,6 +306,7 @@ sampler_mod_get_rand_peer (void *cls)
   struct GNUNET_TIME_Relative last_request_diff;
   struct RPS_Sampler *sampler;
   double prob_observed_n;
+  uint32_t num_observed;
 
   gpc->get_peer_task = NULL;
   gpc->notify_ctx = NULL;
@@ -380,10 +381,10 @@ sampler_mod_get_rand_peer (void *cls)
                                            s_elem->num_peers,
                                            sampler->deficiency_factor);
   /* check if probability is above desired */
-  if (prob_observed_n >= sampler->desired_probability)
+  if (prob_observed_n < sampler->desired_probability)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-        "Probability of having observed all peers (%d) too small ( < %d).\n",
+        "Probability of having observed all peers (%f) too small ( < %f).\n",
         prob_observed_n,
         sampler->desired_probability);
     GNUNET_assert (NULL == gpc->notify_ctx);
@@ -404,6 +405,7 @@ sampler_mod_get_rand_peer (void *cls)
 //                         s_elem->num_change,
 //                         GNUNET_NO);
 
+  num_observed = s_elem->num_peers;
   RPS_sampler_elem_reinit (s_elem);
   s_elem->last_client_request = GNUNET_TIME_absolute_get ();
 
@@ -419,7 +421,7 @@ sampler_mod_get_rand_peer (void *cls)
                                  gpc->req_single_info_handle->gpc_tail,
                                  gpc);
   }
-  gpc->cont (gpc->cont_cls, gpc->id, prob_observed_n, s_elem->num_peers);
+  gpc->cont (gpc->cont_cls, gpc->id, prob_observed_n, num_observed);
   GNUNET_free (gpc);
 }
 
