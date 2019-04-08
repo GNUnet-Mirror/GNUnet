@@ -419,6 +419,33 @@ collect_peers_cb (void *cls,
 }
 
 
+/**
+ * @brief Callback to collect the peers from the biased stream and put those
+ * into the sampler.
+ *
+ * This version is for the modified #GNUNET_RPS_Request_Handle_Single_Info
+ *
+ * @param cls The #GNUNET_RPS_Request_Handle
+ * @param num_peers The number of peer that have been returned
+ * @param peers The array of @a num_peers that have been returned
+ */
+static void
+collect_peers_info_cb (void *cls,
+                       uint64_t num_peers,
+                       const struct GNUNET_PeerIdentity *peers)
+{
+  struct GNUNET_RPS_Request_Handle_Single_Info *rhs = cls;
+
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Service sent %" PRIu64 " peers from stream\n",
+       num_peers);
+  for (uint64_t i = 0; i < num_peers; i++)
+  {
+    RPS_sampler_update (rhs->sampler, &peers[i]);
+  }
+}
+
+
 /* Get internals for debugging/profiling purposes */
 
 /**
@@ -979,7 +1006,7 @@ GNUNET_RPS_request_peer_info (struct GNUNET_RPS_Handle *rps_handle,
                                                    peer_info_ready_cb,
                                                    rhs);
   rhs->srh = GNUNET_RPS_stream_request (rps_handle,
-                                       collect_peers_cb,
+                                       collect_peers_info_cb,
                                        rhs); /* cls */
   rhs->ready_cb = ready_cb;
   rhs->ready_cb_cls = cls;
