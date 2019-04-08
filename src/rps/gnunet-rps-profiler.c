@@ -2222,7 +2222,7 @@ static void compute_probabilities (uint32_t peer_idx)
 {
   //double probs[num_peers] = { 0 };
   double probs[num_peers];
-  size_t probs_as_str_size = (num_peers * 10 + 1) * sizeof (char);
+  size_t probs_as_str_size = (num_peers * 10 + 2) * sizeof (char);
   char *probs_as_str = GNUNET_malloc (probs_as_str_size);
   char *probs_as_str_cpy;
   uint32_t i;
