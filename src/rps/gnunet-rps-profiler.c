@@ -429,7 +429,7 @@ struct PendingReply
   /**
    * Handle to the request we are waiting for
    */
-  struct GNUNET_RPS_Request_Handle *req_handle;
+  struct GNUNET_RPS_Request_Handle_Single_Info *req_handle;
 
   /**
    * The peer that requested
@@ -1040,7 +1040,7 @@ cancel_request (struct PendingReply *pending_rep)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Cancelling rps get reply\n");
   GNUNET_assert (NULL != pending_rep->req_handle);
-  GNUNET_RPS_request_cancel (pending_rep->req_handle);
+  GNUNET_RPS_request_single_info_cancel (pending_rep->req_handle);
   pending_rep->req_handle = NULL;
   GNUNET_free (pending_rep);
   pending_rep = NULL;
@@ -1489,6 +1489,13 @@ default_reply_handle (void *cls,
   }
 }
 
+
+static void
+profiler_reply_handle_info (void *cls,
+                            const struct GNUNET_PeerIdentity *recv_peer,
+                            double probability,
+                            uint32_t num_observed);
+
 /**
  * Request random peers.
  */
@@ -1510,9 +1517,12 @@ request_peers (void *cls)
               "Requesting one peer\n");
   pending_rep = GNUNET_new (struct PendingReply);
   pending_rep->rps_peer = rps_peer;
-  pending_rep->req_handle = GNUNET_RPS_request_peers (rps_peer->rps_handle,
-      1,
-      cur_test_run.reply_handle,
+  //pending_rep->req_handle = GNUNET_RPS_request_peers (rps_peer->rps_handle,
+  //    1,
+  //    cur_test_run.reply_handle,
+  //    pending_rep);
+  pending_rep->req_handle = GNUNET_RPS_request_peer_info (rps_peer->rps_handle,
+      profiler_reply_handle_info,
       pending_rep);
   GNUNET_CONTAINER_DLL_insert_tail (rps_peer->pending_rep_head,
                                     rps_peer->pending_rep_tail,
@@ -1979,6 +1989,77 @@ profiler_reply_handle (void *cls,
 }
 
 
+/**
+ * Callback to call on receipt of a reply
+ *
+ * @param cls closure
+ * @param n number of peers
+ * @param recv_peers the received peers
+ */
+static void
+profiler_reply_handle_info (void *cls,
+                            const struct GNUNET_PeerIdentity *recv_peer,
+                            double probability,
+                            uint32_t num_observed)
+{
+  struct RPSPeer *rps_peer;
+  struct RPSPeer *rcv_rps_peer;
+  char file_name_buf[128];
+  char file_name_dh_buf[128];
+  char file_name_dhr_buf[128];
+  char file_name_dhru_buf[128];
+  char *file_name = file_name_buf;
+  char *file_name_dh = file_name_dh_buf;
+  char *file_name_dhr = file_name_dhr_buf;
+  char *file_name_dhru = file_name_dhru_buf;
+  unsigned int i;
+  struct PendingReply *pending_rep = (struct PendingReply *) cls;
+
+  pending_rep->req_handle = NULL;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "profiler_reply_handle()\n");
+  rps_peer = pending_rep->rps_peer;
+  (void) GNUNET_asprintf (&file_name,
+                                       "/tmp/rps/received_ids-%u",
+                                       rps_peer->index);
+
+  (void) GNUNET_asprintf (&file_name_dh,
+                                       "/tmp/rps/diehard_input-%u",
+                                       rps_peer->index);
+  (void) GNUNET_asprintf (&file_name_dhr,
+                                       "/tmp/rps/diehard_input_raw-%u",
+                                       rps_peer->index);
+  (void) GNUNET_asprintf (&file_name_dhru,
+                                       "/tmp/rps/diehard_input_raw_aligned-%u",
+                                       rps_peer->index);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "[%s] got peer with info:\n",
+              GNUNET_i2s (rps_peer->peer_id));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "  %s\n",
+              GNUNET_i2s (recv_peer));
+  tofile (file_name,
+           "%s %d %" PRIu32 " \n",
+           GNUNET_i2s_full (recv_peer),
+           probability,
+           num_observed);
+  rcv_rps_peer = GNUNET_CONTAINER_multipeermap_get (peer_map, recv_peer);
+  GNUNET_assert (NULL != rcv_rps_peer);
+  tofile (file_name_dh,
+           "%" PRIu32 "\n",
+           (uint32_t) rcv_rps_peer->index);
+#ifdef TO_FILE
+  to_file_raw (file_name_dhr,
+              (char *) &rcv_rps_peer->index,
+               sizeof (uint32_t));
+  to_file_raw_unaligned (file_name_dhru,
+                        (char *) &rcv_rps_peer->index,
+                         sizeof (uint32_t),
+                         bits_needed);
+#endif /* TO_FILE */
+  default_reply_handle (cls, 1, recv_peer);
+}
+
+
 static void
 profiler_cb (struct RPSPeer *rps_peer)
 {
@@ -2141,7 +2222,7 @@ static void compute_probabilities (uint32_t peer_idx)
 {
   //double probs[num_peers] = { 0 };
   double probs[num_peers];
-  size_t probs_as_str_size = (num_peers * 10 + 1) * sizeof (char);
+  size_t probs_as_str_size = (num_peers * 10 + 2) * sizeof (char);
   char *probs_as_str = GNUNET_malloc (probs_as_str_size);
   char *probs_as_str_cpy;
   uint32_t i;

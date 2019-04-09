@@ -158,6 +158,46 @@ struct RPS_SamplerRequestHandle
   void *cls;
 };
 
+
+/**
+ * Closure to _get_rand_peer_info()
+ */
+struct RPS_SamplerRequestHandleSingleInfo
+{
+  /**
+   * DLL
+   */
+  struct RPS_SamplerRequestHandleSingleInfo *next;
+  struct RPS_SamplerRequestHandleSingleInfo *prev;
+
+  /**
+   * Pointer to the id
+   */
+  struct GNUNET_PeerIdentity *id;
+
+  /**
+   * Head and tail for the DLL to store the tasks for single requests
+   */
+  struct GetPeerCls *gpc_head;
+  struct GetPeerCls *gpc_tail;
+
+  /**
+   * Sampler.
+   */
+  struct RPS_Sampler *sampler;
+
+  /**
+   * Callback to be called when all ids are available.
+   */
+  RPS_sampler_sinlge_info_ready_cb callback;
+
+  /**
+   * Closure given to the callback
+   */
+  void *cls;
+};
+
+
 ///**
 // * Global sampler variable.
 // */
@@ -266,10 +306,16 @@ sampler_mod_get_rand_peer (void *cls)
   struct GNUNET_TIME_Relative last_request_diff;
   struct RPS_Sampler *sampler;
   double prob_observed_n;
+  uint32_t num_observed;
 
   gpc->get_peer_task = NULL;
   gpc->notify_ctx = NULL;
-  sampler = gpc->req_handle->sampler;
+  GNUNET_assert ( (NULL != gpc->req_handle) ||
+                  (NULL != gpc->req_single_info_handle) );
+  if (NULL != gpc->req_handle)
+    sampler = gpc->req_handle->sampler;
+  else
+    sampler = gpc->req_single_info_handle->sampler;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Single peer was requested\n");
 
@@ -335,10 +381,10 @@ sampler_mod_get_rand_peer (void *cls)
                                            s_elem->num_peers,
                                            sampler->deficiency_factor);
   /* check if probability is above desired */
-  if (prob_observed_n >= sampler->desired_probability)
+  if (prob_observed_n < sampler->desired_probability)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-        "Probability of having observed all peers (%d) too small ( < %d).\n",
+        "Probability of having observed all peers (%f) too small ( < %f).\n",
         prob_observed_n,
         sampler->desired_probability);
     GNUNET_assert (NULL == gpc->notify_ctx);
@@ -359,13 +405,23 @@ sampler_mod_get_rand_peer (void *cls)
 //                         s_elem->num_change,
 //                         GNUNET_NO);
 
+  num_observed = s_elem->num_peers;
   RPS_sampler_elem_reinit (s_elem);
   s_elem->last_client_request = GNUNET_TIME_absolute_get ();
 
-  GNUNET_CONTAINER_DLL_remove (gpc->req_handle->gpc_head,
-                               gpc->req_handle->gpc_tail,
-                               gpc);
-  gpc->cont (gpc->cont_cls, gpc->id);
+  if (NULL != gpc->req_handle)
+  {
+    GNUNET_CONTAINER_DLL_remove (gpc->req_handle->gpc_head,
+                                 gpc->req_handle->gpc_tail,
+                                 gpc);
+  }
+  else
+  {
+    GNUNET_CONTAINER_DLL_remove (gpc->req_single_info_handle->gpc_head,
+                                 gpc->req_single_info_handle->gpc_tail,
+                                 gpc);
+  }
+  gpc->cont (gpc->cont_cls, gpc->id, prob_observed_n, num_observed);
   GNUNET_free (gpc);
 }
 

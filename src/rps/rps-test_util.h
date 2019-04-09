@@ -68,12 +68,15 @@ close_all_files ();
     if (NULL == file_name) break; \
     size = GNUNET_snprintf(tmp_buf,sizeof(tmp_buf),__VA_ARGS__);\
     if (0 > size)\
+    {\
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,\
            "Failed to create tmp_buf\n");\
-    else\
-      GNUNET_DISK_file_write (get_file_handle (file_name),\
-                              tmp_buf,\
-                              strnlen (tmp_buf, 512));\
+      break;\
+    }\
+    (void) strncat(tmp_buf,"\n",512);\
+    GNUNET_DISK_file_write (get_file_handle (file_name),\
+                            tmp_buf,\
+                            strnlen (tmp_buf, 512));\
   } while (0);
 
 
@@ -82,12 +85,15 @@ close_all_files ();
     memset (tmp_buf, 0, len);\
     size = GNUNET_snprintf(tmp_buf,sizeof(tmp_buf),__VA_ARGS__);\
     if (0 > size)\
+    {\
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,\
            "Failed to create tmp_buf\n");\
-    else\
-      GNUNET_DISK_file_write (get_file_handle (file_name),\
-                              tmp_buf,\
-                              strnlen (tmp_buf, 512));\
+      break;\
+    }\
+    (void) strncat(tmp_buf,"\n",len);\
+    GNUNET_DISK_file_write (get_file_handle (file_name),\
+                            tmp_buf,\
+                            strnlen (tmp_buf, len));\
   } while (0);
 #else /* TO_FILE */
 #  define to_file(file_name, ...)

@@ -3189,8 +3189,15 @@ extern "C"
  */
 #define GNUNET_MESSAGE_TYPE_TRANSPORT_SUGGEST_CANCEL 1301
 
+/**
+ * Type of the 'struct RequestHelloValidationMessage' send by clients to TRANSPORT
+ * to trigger validation of addresses.
+ */
+#define GNUNET_MESSAGE_TYPE_TRANSPORT_REQUEST_HELLO_VALIDATION 1302
+
 
 /* ************** NEW (NG) ATS Messages ************* */
+/* NOTE: it is not clear ATS will survive in TNG      */
 
 /**
  * Type of the 'struct ExpressPreferenceMessage' send by clients to ATS

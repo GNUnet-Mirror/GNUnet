@@ -285,6 +285,7 @@ gnunet_communicator_tcp_LDADD = \
 gnunet_communicator_udp_SOURCES = \
  gnunet-communicator-udp.c
 gnunet_communicator_udp_LDADD = \
+  libgnunettransportapplication.la \
   libgnunettransportcommunicator.la \
   $(top_builddir)/src/nat/libgnunetnatnew.la \
   $(top_builddir)/src/nt/libgnunetnt.la \

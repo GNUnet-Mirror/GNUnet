@@ -1139,6 +1139,37 @@ struct ExpressPreferenceMessage
 };
 
 
+/**
+ * We got an address of another peer, TRANSPORT service
+ * should validate it.  There is no response.
+ */
+struct RequestHelloValidationMessage
+{
+
+    /**
+   * Type is #GNUNET_MESSAGE_TYPE_TRANSPORT_REQUEST_HELLO_VALIDATION.
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * What type of network does the other peer claim this is?
+   * A `enum GNUNET_NetworkType` in NBO.
+   */
+  uint32_t nt GNUNET_PACKED;
+
+  /**
+   * Peer to the address is presumably for.
+   */
+  struct GNUNET_PeerIdentity peer;
+
+  /**
+   * When does the address expire?
+   */
+  struct GNUNET_TIME_AbsoluteNBO expiration;
+
+  /* followed by 0-terminated address to validate */
+};
+
 #endif
 
 GNUNET_NETWORK_STRUCT_END

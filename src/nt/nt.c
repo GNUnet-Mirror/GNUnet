@@ -200,15 +200,21 @@ interface_proc (void *cls,
     net->netmask = (struct sockaddr *) &tmp[1];
     net->length = addrlen;
 
-    memset (&network4, 0, sizeof (network4));
+    memset (&network4,
+            0,
+            sizeof (network4));
     network4.sin_family = AF_INET;
 #if HAVE_SOCKADDR_IN_SIN_LEN
     network4.sin_len = sizeof (network4);
 #endif
     network4.sin_addr.s_addr = (addr4->sin_addr.s_addr & netmask4->sin_addr.s_addr);
 
-    GNUNET_memcpy (net->netmask, netmask4, sizeof (struct sockaddr_in));
-    GNUNET_memcpy (net->network, &network4, sizeof (struct sockaddr_in));
+    GNUNET_memcpy (net->netmask,
+                   netmask4,
+                   sizeof (struct sockaddr_in));
+    GNUNET_memcpy (net->network,
+                   &network4,
+                   sizeof (struct sockaddr_in));
   }
 
   if (addr->sa_family == AF_INET6)
@@ -236,8 +242,12 @@ interface_proc (void *cls,
     for (c = 0; c < 4; c++)
       net_elem[c] = addr_elem[c] & mask_elem[c];
 
-    GNUNET_memcpy (net->netmask, netmask6, sizeof (struct sockaddr_in6));
-    GNUNET_memcpy (net->network, &network6, sizeof (struct sockaddr_in6));
+    GNUNET_memcpy (net->netmask,
+                   netmask6,
+                   sizeof (struct sockaddr_in6));
+    GNUNET_memcpy (net->network,
+                   &network6,
+                   sizeof (struct sockaddr_in6));
   }
   if (NULL == net)
     return GNUNET_OK; /* odd / unsupported address family */
@@ -291,8 +301,8 @@ get_addresses (void *cls)
  */
 enum GNUNET_NetworkType
 GNUNET_NT_scanner_get_type (struct GNUNET_NT_InterfaceScanner *is,
-			    const struct sockaddr *addr,
-			    socklen_t addrlen)
+                            const struct sockaddr *addr,
+                            socklen_t addrlen)
 {
   struct NT_Network *cur = is->net_head;
   enum GNUNET_NetworkType type = GNUNET_NT_UNSPECIFIED;
