@@ -20,6 +20,8 @@ libgnunetabe_la_LIBADD = \
   $(LTLIBICONV) \
   $(LTLIBINTL) \
 	$(ABE_LIBADD) \
+	$(top_builddir)/src/util/libgnunetutil.la \
+	-lgmp \
 	-lgabe \
 	-lpbc \
 	-lglib-2.0 \

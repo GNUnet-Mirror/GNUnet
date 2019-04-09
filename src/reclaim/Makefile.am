@@ -99,6 +99,7 @@ libgnunet_plugin_reclaim_sqlite_la_LIBADD = \
   libgnunetreclaim.la  \
   $(top_builddir)/src/sq/libgnunetsq.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
+	$(top_builddir)/src/reclaim-attribute/libgnunetreclaimattribute.la \
   $(top_builddir)/src/util/libgnunetutil.la $(XLIBS) -lsqlite3 \
   $(LTLIBINTL)
 libgnunet_plugin_reclaim_sqlite_la_LDFLAGS = \
@@ -126,6 +127,7 @@ libgnunetreclaim_la_SOURCES = \
  reclaim.h
 libgnunetreclaim_la_LIBADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
+	$(top_builddir)/src/reclaim-attribute/libgnunetreclaimattribute.la \
 	$(GN_LIBINTL) $(XLIB)
 libgnunetreclaim_la_LDFLAGS = \
 	$(GN_LIB_LDFLAGS)  $(WINFLAGS) \
