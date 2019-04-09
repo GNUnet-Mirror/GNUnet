@@ -1,82 +1,97 @@
-.TH GNUNET\-REVOCATION 1 "March 15, 2012" "GNUnet"
-
-.SH NAME
-gnunet\-revocation \- revoke private keys (of egos) in GNUnet
-
-.SH SYNOPSIS
-.B gnunet\-revocation
-.RI [ options ]
-.br
-
-.SH DESCRIPTION
-\fBgnunet\-revocation\fP can be used to verify if a key has been
-revoked, to create a revocation certificate for later revocation, to
-instantly revoke a key and to use a pre-generated revocation
-certificate to revoke a key.  Upon successful revocation, all peers
-will be informed about the invalidity of the key.  As this is an
-expensive operation, GNUnet requires the issuer of the revocation to
-perform an expensive proof-of-work computation before they will be
-allowed to perform the revocation.  gnunet\-revocation will perform
-this computation.  The computation can be performed ahead of time,
-with the resulting revocation certificate being stored in a file for
-later "instant" use.  gnunet\-revocation also makes is possible to
-resume the pre-calculation of a revocation --- simply abort a running
-proof-of-work calculation with CTRL-C, and the existing revocation
-certificate file will contain the status of the computation.  Note
-that performing a revocation proof-of-work is deliberately VERY
-expensive.  Depending on your CPU, the calculation can take days or
-weeks.
-
-.SH OPTIONS
-.IP "\-t KEY, \-\-test=KEY"
-Check if the given KEY (ASCII\-encoded public key required) has been
-revoked.
-.IP "\-R NAME, \-\-revoke=NAME"
+.\" This file is part of GNUnet.
+.\" Copyright (C) 2001-2019 GNUnet e.V.
+.\"
+.\" Permission is granted to copy, distribute and/or modify this document
+.\" under the terms of the GNU Free Documentation License, Version 1.3 or
+.\" any later version published by the Free Software Foundation; with no
+.\" Invariant Sections, no Front-Cover Texts, and no Back-Cover Texts.  A
+.\" copy of the license is included in the file
+.\" ``FDL-1.3''.
+.\"
+.\" A copy of the license is also available from the Free Software
+.\" Foundation Web site at @url{http://www.gnu.org/licenses/fdl.html}.
+.\"
+.\" Alternately, this document is also available under the General
+.\" Public License, version 3 or later, as published by the Free Software
+.\" Foundation.  A copy of the license is included in the file
+.\" ``GPL3''.
+.\"
+.\" A copy of the license is also available from the Free Software
+.\" Foundation Web site at @url{http://www.gnu.org/licenses/gpl.html}.
+.\"
+.\" SPDX-License-Identifier: GPL3.0-or-later OR FDL1.3-or-later
+.\"
+.Dd March 15, 2012
+.Dt GNUNET-REVOCATION 1
+.Os
+.Sh NAME
+.Nm gnunet-revocation
+.Nd
+revoke private keys (of egos) in GNUnet
+.Sh SYNOPSIS
+.Nm
+.Op Fl t Ar KEY | Fl \-test= Ns Ar KEY
+.Op Fl R Ar NAME | Fl \-revoke= Ns Ar NAME
+.Op Fl p | \-perform
+.Op Fl f Ar NAME | Fl \-filename= Ns Ar NAME
+.Op Fl c Ar FILENAME, Fl \-config= Ns Ar FILENAME
+.Op Fl h | \-help
+.Op Fl L Ar LOGLEVEL | Fl \-loglevel= Ns Ar LOGLEVEL
+.Op Fl v | \-version
+.Sh DESCRIPTION
+.Nm
+can be used to verify if a key has been revoked, to create a revocation certificate for later revocation, to instantly revoke a key and to use a pre-generated revocation certificate to revoke a key.
+Upon successful revocation, all peers will be informed about the invalidity of the key.
+As this is an expensive operation, GNUnet requires the issuer of the revocation to perform an expensive proof-of-work computation before they will be allowed to perform the revocation.
+gnunet-revocation will perform this computation.
+The computation can be performed ahead of time, with the resulting revocation certificate being stored in a file for later "instant" use.
+gnunet-revocation also makes is possible to resume the pre-calculation of a revocation --- simply abort a running proof-of-work calculation with CTRL-C, and the existing revocation certificate file will contain the status of the computation.
+Note that performing a revocation proof-of-work is deliberately VERY expensive.
+Depending on your CPU, the calculation can take days or weeks.
+.Bl -tag -width Ds
+.It Fl t Ar KEY | Fl \-test= Ns Ar KEY
+Check if the given KEY (ASCII\-encoded public key required) has been revoked.
+.It Fl R Ar NAME | Fl \-revoke= Ns Ar NAME
 Calculate or perform revocation for the ego with the given NAME.
-.IP "\-p, \-\-perform"
-Actually perform the revocation as soon as possible (do not just
-generate a revocation certificate, use it).  Must be supplied to
-actually perform the revocation.
-.IP "\-f NAME, \-\-filename=NAME"
-Use NAME as the name of the file that is to contain the revocation
-certificate.  Intermediate computation results will be stored here, as
-well as the final revocation certificate.  When used together with
-\-p, this file will be inspected to see if it contains a valid
-certificate for instant revocation, in which case the revocation can
-be performed instantly.  If the given file contains anything (a valid
-certificate, with or without the completed proof-of-work) there is no
-need to supply the "\-R" option or to still have the private key of
-the ego to perform the revocation.
-.IP "\-c FILENAME,  \-\-config=FILENAME"
+.It Fl p | \-perform
+Actually perform the revocation as soon as possible (do not just generate a revocation certificate, use it).
+Must be supplied to actually perform the revocation.
+.It Fl f Ar NAME | Fl \-filename= Ns Ar NAME
+Use NAME as the name of the file that is to contain the revocation certificate.
+Intermediate computation results will be stored here, as well as the final revocation certificate.
+When used together with \-p, this file will be inspected to see if it contains a valid certificate for instant revocation, in which case the revocation can be performed instantly.
+If the given file contains anything (a valid certificate, with or without the completed proof-of-work) there is no need to supply the "\-R" option or to still have the private key of the ego to perform the revocation.
+.It Fl c Ar FILENAME, Fl \-config= Ns Ar FILENAME
 Use the configuration file FILENAME.
-.IP "\-h, \-\-help"
+.It Fl h | \-help
 Print short help on options.
-.IP "\-L LOGLEVEL, \-\-loglevel=LOGLEVEL"
-Use LOGLEVEL for logging.  Valid values are DEBUG, INFO, WARNING and
-ERROR.
-.IP "\-v, \-\-version"
+.It Fl L Ar LOGLEVEL | Fl \-loglevel= Ns Ar LOGLEVEL
+Use LOGLEVEL for logging.
+Valid values are DEBUG, INFO, WARNING and ERROR.
+.It Fl v | \-version
 Print GNUnet version number.
-
-
-.SH BUGS
-Report bugs by using Mantis <https://bugs.gnunet.org/> or by sending electronic mail to <gnunet\-developers@gnu.org>
-.SH "SEE ALSO"
-The full documentation for
-.B gnunet
-is maintained as a Texinfo manual.  If the
-.B info
-and
-.B gnunet
-programs are properly installed at your site, the command
-.IP
-.B info gnunet
-.PP
+.El
+.Sh SEE ALSO
+The full documentation for gnunet is maintained as a Texinfo manual.
+If the
+.Xr info 1
+and gnunet programs are properly installed at your site, the command
+.Pp
+.Dl info gnunet
+.Pp
 should give you access to the complete handbook,
-.IP
-.B info gnunet-c-tutorial
-.PP
+.Pp
+.Dl info gnunet-c-tutorial
+.Pp
 will give you access to a tutorial for developers.
-.PP
-Depending on your installation, this information is also
-available in
-\fBgnunet\fP(7) and \fBgnunet-c-tutorial\fP(7).
+.sp
+Depending on your installation, this information is also available in
+.Xr gnunet 7 and
+.Xr gnunet-c-tutorial 7 .
+.\".Sh HISTORY
+.\".Sh AUTHORS
+.Sh BUGS
+Report bugs by using
+.Lk https://bugs.gnunet.org
+or by sending electronic mail to
+.Aq Mt gnunet-developers@gnu.org .

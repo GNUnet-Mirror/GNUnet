@@ -1,48 +1,83 @@
-.TH GNUNET\-BCD 1 "December 5, 2013" "GNUnet"
-.SH NAME
-gnunet\-bcd \- run HTTP server to create GNS business cards
-.SH SYNOPSIS
-.B gnunet\-bcd
-.RI [ options ]
-.br
-.SH DESCRIPTION
-\fBgnunet\-bcd\fP can be used to create an business card with a QR code
-containing the public key of a zone from the GNU Name System.
-gnunet\-bcd requires LaTeX (pdflatex) with various packages to be
-installed.  If it does not work for you, try installing the full
-TeXLive distribution first, for example using the package\-manager
-apt: "apt-get install texlive-full".
-.SH OPTIONS
-.IP "\-p PORT, \-\-port=PORT"
+.\" This file is part of GNUnet.
+.\" Copyright (C) 2001-2019 GNUnet e.V.
+.\"
+.\" Permission is granted to copy, distribute and/or modify this document
+.\" under the terms of the GNU Free Documentation License, Version 1.3 or
+.\" any later version published by the Free Software Foundation; with no
+.\" Invariant Sections, no Front-Cover Texts, and no Back-Cover Texts.  A
+.\" copy of the license is included in the file
+.\" ``FDL-1.3''.
+.\"
+.\" A copy of the license is also available from the Free Software
+.\" Foundation Web site at @url{http://www.gnu.org/licenses/fdl.html}.
+.\"
+.\" Alternately, this document is also available under the General
+.\" Public License, version 3 or later, as published by the Free Software
+.\" Foundation.  A copy of the license is included in the file
+.\" ``GPL3''.
+.\"
+.\" A copy of the license is also available from the Free Software
+.\" Foundation Web site at @url{http://www.gnu.org/licenses/gpl.html}.
+.\"
+.\" SPDX-License-Identifier: GPL3.0-or-later OR FDL1.3-or-later
+.\"
+.Dd December 5, 2013
+.Dt GNUNET-BCD 1
+.Os
+.Sh NAME
+.Nm gnunet-bcd
+.Nd
+run HTTP server to create GNS business cards
+.Sh SYNOPSIS
+.Nm
+.Op Fl p Ar PORT | Fl \-port= Ns Ar PORT
+.Op Fl c Ar FILENAME | Fl \-config= Ns Ar FILENAME
+.Op Fl h | \-help
+.Op Fl L Ar LOGLEVEL | Fl \-loglevel= Ns Ar LOGLEVEL
+.Op Fl v | \-version
+.Sh DESCRIPTION
+.Nm
+can be used to create an business card with a QR code containing the public key of a zone from the GNU Name System.
+gnunet-bcd requires LaTeX (
+.Xr pdflatex 1
+) with various packages to be installed.
+If it does not work for you, try installing the full TeXLive distribution first, for example if you are using the package-manager
+.Xr apt 1
+execute "apt-get install texlive-full".
+.Bl -tag -width Ds
+.It Fl p Ar PORT | Fl \-port= Ns Ar PORT
 Run the HTTP server on port PORT.
-.IP "\-c FILENAME,  \-\-config=FILENAME"
+.It Fl c Ar FILENAME | Fl \-config= Ns Ar FILENAME
 Use the configuration file FILENAME.
-.IP "\-h, \-\-help"
+.It Fl h | \-help
 Print short help on options.
-.IP "\-L LOGLEVEL, \-\-loglevel=LOGLEVEL"
-Use LOGLEVEL for logging.  Valid values are DEBUG, INFO, WARNING and ERROR.
-.IP "\-v, \-\-version"
+.It Fl L Ar LOGLEVEL | Fl \-loglevel= Ns Ar LOGLEVEL
+Use LOGLEVEL for logging.
+Valid values are DEBUG, INFO, WARNING and ERROR.
+.It Fl v | \-version
 Print GNUnet version number.
-.SH BUGS
-Report bugs by using Mantis <https://bugs.gnunet.org/> or by sending
-electronic mail to <gnunet\-developers@gnu.org>
-.SH SEE ALSO
-The full documentation for
-.B gnunet
-is maintained as a Texinfo manual.  If the
-.B info
-and
-.B gnunet
-programs are properly installed at your site, the command
-.IP
-.B info gnunet
-.PP
+.El
+.Sh SEE ALSO
+The full documentation for gnunet is maintained as a Texinfo manual.
+If the
+.Xr info 1
+and gnunet programs are properly installed at your site, the command
+.Pp
+.Dl info gnunet
+.Pp
 should give you access to the complete handbook,
-.IP
-.B info gnunet-c-tutorial
-.PP
+.Pp
+.Dl info gnunet-c-tutorial
+.Pp
 will give you access to a tutorial for developers.
-.PP
-Depending on your installation, this information is also
-available in
-\fBgnunet\fP(7) and \fBgnunet-c-tutorial\fP(7).
+.sp
+Depending on your installation, this information is also available in
+.Xr gnunet 7 and
+.Xr gnunet-c-tutorial 7 .
+.\".Sh HISTORY
+.\".Sh AUTHORS
+.Sh BUGS
+Report bugs by using
+.Lk https://bugs.gnunet.org
+or by sending electronic mail to
+.Aq Mt gnunet-developers@gnu.org .

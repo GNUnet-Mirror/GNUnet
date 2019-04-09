@@ -1,57 +1,73 @@
-.TH GNUNET-CONFIG 1 "July 15, 2012" "GNUnet"
-.SH NAME
-gnunet\-config \- manipulate GNUnet configuration files
-.SH SYNOPSIS
-.B gnunet\-config
-.RI [ options ]
-.SH DESCRIPTION
-\fBgnunet\-config\fP can be used to read or modify GNUnet configuration files.
-.SH OPTIONS
-.IP "\-f, \-\-filename"
-Try to perform expansions as if the option values represent filenames (will
-also be applied even if the option is not really a filename).
-.IP "\-s SECTION, \-\-section=SECTION"
-Which configuration section should be accessed or edited. Required option.
-.IP "\-S, \-\-list\-sections"
+.Dd July 15, 2012
+.Dt GNUNET-CONFIG 1
+.Os
+.Sh NAME
+.Nm gnunet-config
+.Nd
+manipulate GNUnet configuration files
+.Sh SYNOPSIS
+.Nm
+.Op Fl c Ar FILENAME | Fl \-config= Ns Ar FILENAME
+.Op Fl f | \-filename
+.Op Fl h | \-help
+.Op Fl L Ar LOGLEVEL | Fl \-loglevel= Ns Ar LOGLEVEL
+.Op Fl o Ar OPTION | Fl \-option= Ns Ar OPTION
+.Op Fl S |\-list-sections
+.Op Fl s Ar SECTION | Fl \-section= Ns Ar SECTION
+.Op Fl V Ar VALUE | Fl \-value Ar VALUE
+.Op Fl v | \-version
+.Op Fl W | \-rewrite
+.Sh DESCRIPTION
+.Nm
+can be used to read or modify GNUnet configuration files.
+.Bl -tag -width Ds
+.It Fl c Ar FILENAME | Fl \-config= Ns Ar FILENAME
+Use the configuration file FILENAME.
+.It Fl f | \-filename
+Try to perform expansions as if the option values represent filenames (will also be applied even if the option is not really a filename).
+.It Fl h | \-help
+Print short help on options.
+.It Fl L Ar LOGLEVEL | Fl \-loglevel= Ns Ar LOGLEVEL
+Use LOGLEVEL for logging.
+Valid values are DEBUG, INFO, WARNING and ERROR.
+.It Fl o Ar OPTION | Fl \-option= Ns Ar OPTION
+Which configuration option should be accessed or edited.
+Required to set a value.
+If not given, all values of a given section will be printed in the format "OPTION = VALUE".
+.It Fl S |\-list-sections
 List available configuration sections for use with \-\-section.
-.IP "\-W, \-\-rewrite"
-Consider differences to defaults only.
-.IP "\-o OPTION, \-\-option=OPTION"
-Which configuration option should be accessed or edited.  Required to set a value.
-If not given, all values of a given section will be printed in the
-format "OPTION = VALUE".
-.IP "\-V VALUE, \-\-value VALUE"
+.It Fl s Ar SECTION | Fl \-section= Ns Ar SECTION
+Which configuration section should be accessed or edited.
+Required option.
+.It Fl V Ar VALUE | Fl \-value Ar VALUE
 Configuration value to store in the given section under the given option.
 Must only be given together with \-s and \-o options.
-.IP "\-c FILENAME,  \-\-config=FILENAME"
-Use the configuration file FILENAME.
-.IP "\-h, \-\-help"
-Print short help on options.
-.IP "\-L LOGLEVEL, \-\-loglevel=LOGLEVEL"
-Use LOGLEVEL for logging.  Valid values are DEBUG, INFO, WARNING and ERROR.
-.IP "\-v, \-\-version"
+.It Fl v | \-version
 Print GNUnet version number.
-.SH BUGS
-Report bugs by using Mantis <https://bugs.gnunet.org/> or by sending
-electronic mail to <gnunet\-developers@gnu.org>
-.SH SEE ALSO
-The full documentation for
-.B gnunet
-is maintained as a Texinfo manual.
+.It Fl W | \-rewrite
+Consider differences to defaults only.
+.El
+.Sh SEE ALSO
+The full documentation for gnunet is maintained as a Texinfo manual.
 If the
-.B info
-and
-.B gnunet
-programs are properly installed at your site, the command
-.IP
-.B info gnunet
-.PP
+.Xr info 1
+and gnunet programs are properly installed at your site, the command
+.Pp
+.Dl info gnunet
+.Pp
 should give you access to the complete handbook,
-.IP
-.B info gnunet-c-tutorial
-.PP
+.Pp
+.Dl info gnunet-c-tutorial
+.Pp
 will give you access to a tutorial for developers.
-.PP
-Depending on your installation, this information is also
-available in
-\fBgnunet\fP(7) and \fBgnunet-c-tutorial\fP(7).
+.sp
+Depending on your installation, this information is also available in
+.Xr gnunet 7 and
+.Xr gnunet-c-tutorial 7 .
+.\".Sh HISTORY
+.\".Sh AUTHORS
+.Sh BUGS
+Report bugs by using
+.Lk https://bugs.gnunet.org
+or by sending electronic mail to
+.Aq Mt gnunet-developers@gnu.org .
