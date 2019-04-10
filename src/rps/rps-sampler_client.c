@@ -377,23 +377,30 @@ sampler_mod_get_rand_peer (void *cls)
     return;
   }
   /* compute probability */
-  prob_observed_n = prob_observed_n_peers (sampler->num_peers_estim,
-                                           s_elem->num_peers,
-                                           sampler->deficiency_factor);
-  /* check if probability is above desired */
-  if (prob_observed_n < sampler->desired_probability)
-  {
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-        "Probability of having observed all peers (%f) too small ( < %f).\n",
-        prob_observed_n,
-        sampler->desired_probability);
-    GNUNET_assert (NULL == gpc->notify_ctx);
-    gpc->notify_ctx =
-      sampler_notify_on_update (sampler,
-                                &sampler_mod_get_rand_peer,
-                                gpc);
-    return;
-  }
+  /* Currently disabled due to numerical limitations */
+  //prob_observed_n = prob_observed_n_peers (sampler->num_peers_estim,
+  //                                         s_elem->num_peers,
+  //                                         sampler->deficiency_factor);
+  //LOG (GNUNET_ERROR_TYPE_DEBUG,
+  //    "Computed sample - prob %f, %" PRIu32 " peers, n: %" PRIu32 ", roh: %f\n",
+  //    prob_observed_n,
+  //    s_elem->num_peers,
+  //    sampler->num_peers_estim,
+  //    sampler->deficiency_factor);
+  ///* check if probability is above desired */
+  //if (prob_observed_n < sampler->desired_probability)
+  //{
+  //  LOG (GNUNET_ERROR_TYPE_DEBUG,
+  //      "Probability of having observed all peers (%f) too small ( < %f).\n",
+  //      prob_observed_n,
+  //      sampler->desired_probability);
+  //  GNUNET_assert (NULL == gpc->notify_ctx);
+  //  gpc->notify_ctx =
+  //    sampler_notify_on_update (sampler,
+  //                              &sampler_mod_get_rand_peer,
+  //                              gpc);
+  //  return;
+  //}
   /* More reasons to wait could be added here */
 
 //  GNUNET_STATISTICS_set (stats,
