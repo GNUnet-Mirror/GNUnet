@@ -124,6 +124,22 @@
 #define REASSEMBLY_EXPIRATION GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 4)
 
 /**
+ * What is the fastest rate at which we send challenges *if* we keep learning
+ * an address (gossip, DHT, etc.)?
+ */
+#define FAST_VALIDATION_CHALLENGE_FREQ GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 1)
+
+/**
+ * What is the slowest rate at which we send challenges?
+ */
+#define MAX_VALIDATION_CHALLENGE_FREQ GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_DAYS, 1)
+
+/**
+ * When do we forget an invalid address for sure?
+ */
+#define MAX_ADDRESS_VALID_UNTIL GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MONTHS, 1)
+
+/**
  * How many messages can we have pending for a given communicator
  * process before we start to throttle that communicator?
  *
@@ -519,6 +535,105 @@ struct TransportDVBox
   /* Followed by the actual message, which itself may be
      another box, but not a DV_LEARN or DV_BOX message! */
 };
+
+
+/**
+ * Message send to another peer to validate that it can indeed
+ * receive messages at a particular address.
+ */
+struct TransportValidationChallenge
+{
+
+  /**
+   * Type is #GNUNET_MESSAGE_TYPE_ADDRESS_VALIDATION_CHALLENGE
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Zero.
+   */
+  uint32_t reserved GNUNET_PACKED;
+
+  /**
+   * Challenge to be signed by the receiving peer.
+   */
+  struct GNUNET_ShortHashCode challenge;
+
+  /**
+   * Timestamp of the sender, to be copied into the reply
+   * to allow sender to calculate RTT.
+   */
+  struct GNUNET_TIME_AbsoluteNBO sender_time;
+};
+
+
+/**
+ * Message signed by a peer to confirm that it can indeed
+ * receive messages at a particular address.
+ */
+struct TransportValidationPS
+{
+
+  /**
+   * Purpose is #GNUNET_SIGNATURE_PURPOSE_TRANSPORT_CHALLENGE
+   */
+  struct GNUNET_CRYPTO_EccSignaturePurpose purpose;
+
+  /**
+   * How long does the sender believe the address on
+   * which the challenge was received to remain valid?
+   */
+  struct GNUNET_TIME_RelativeNBO validity_duration;
+
+  /**
+   * Challenge signed by the receiving peer.
+   */
+  struct GNUNET_ShortHashCode challenge;
+
+};
+
+
+/**
+ * Message send to a peer to respond to a
+ * #GNUNET_MESSAGE_TYPE_ADDRESS_VALIDATION_CHALLENGE
+ */
+struct TransportValidationResponse
+{
+
+  /**
+   * Type is #GNUNET_MESSAGE_TYPE_ADDRESS_VALIDATION_RESPONSE
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Zero.
+   */
+  uint32_t reserved GNUNET_PACKED;
+
+  /**
+   * The peer's signature matching the
+   * #GNUNET_SIGNATURE_PURPOSE_TRANSPORT_CHALLENGE purpose.
+   */
+  struct GNUNET_CRYPTO_EddsaSignature signature;
+
+  /**
+   * The challenge that was signed by the receiving peer.
+   */
+  struct GNUNET_ShortHashCode challenge;
+
+  /**
+   * Original timestamp of the sender (was @code{sender_time}),
+   * copied into the reply to allow sender to calculate RTT.
+   */
+  struct GNUNET_TIME_AbsoluteNBO origin_time;
+
+  /**
+   * How long does the sender believe this address to remain
+   * valid?
+   */
+  struct GNUNET_TIME_RelativeNBO validity_duration;
+};
+
 
 
 GNUNET_NETWORK_STRUCT_END
@@ -1428,6 +1543,111 @@ struct TransportClient
 
 
 /**
+ * State we keep for validation activities.  Each of these
+ * is both in the #validation_heap and the #validation_map.
+ */
+struct ValidationState
+{
+
+  /**
+   * For which peer is @a address to be validated (or possibly valid)?
+   * Serves as key in the #validation_map.
+   */
+  struct GNUNET_PeerIdentity pid;
+
+  /**
+   * How long did the peer claim this @e address to be valid? Capped at
+   * minimum of #MAX_ADDRESS_VALID_UNTIL relative to the time where we last
+   * were told about the address and the value claimed by the other peer at
+   * that time.  May be updated similarly when validation succeeds.
+   */
+  struct GNUNET_TIME_Absolute valid_until;
+
+  /**
+   * How long do *we* consider this @e address to be valid?
+   * In the past or zero if we have not yet validated it.
+   */
+  struct GNUNET_TIME_Absolute validated_until;
+
+  /**
+   * When did we FIRST use the current @e challenge in a message?
+   * Used to sanity-check @code{origin_time} in the response when
+   * calculating the RTT. If the @code{origin_time} is not in
+   * the expected range, the response is discarded as malicious.
+   */
+  struct GNUNET_TIME_Absolute first_challenge_use;
+
+  /**
+   * When did we LAST use the current @e challenge in a message?
+   * Used to sanity-check @code{origin_time} in the response when
+   * calculating the RTT.  If the @code{origin_time} is not in
+   * the expected range, the response is discarded as malicious.
+   */
+  struct GNUNET_TIME_Absolute last_challenge_use;
+
+  /**
+   * Next time we will send the @e challenge to the peer, if this time is past
+   * @e valid_until, this validation state is released at this time.  If the
+   * address is valid, @e next_challenge is set to @e validated_until MINUS @e
+   * validation_delay * 3, such that we will try to re-validate before the
+   * validity actually expires.
+   */
+  struct GNUNET_TIME_Absolute next_challenge;
+
+  /**
+   * Current backoff factor we're applying for sending the @a challenge.
+   * Reset to 0 if the @a challenge is confirmed upon validation.
+   * Reduced to minimum of #FAST_VALIDATION_CHALLENGE_FREQ and half of the
+   * existing value if we receive an unvalidated address again over
+   * another channel (and thus should consider the information "fresh").
+   * Maximum is #MAX_VALIDATION_CHALLENGE_FREQ.
+   */
+  struct GNUNET_TIME_Relative challenge_backoff;
+
+  /**
+   * Initially set to "forever". Once @e validated_until is set, this value is
+   * set to the RTT that tells us how long it took to receive the validation.
+   */
+  struct GNUNET_TIME_Relative validation_rtt;
+
+  /**
+   * The challenge we sent to the peer to get it to validate the address. Note
+   * that we rotate the challenge whenever we update @e validated_until to
+   * avoid attacks where a peer simply replays an old challenge in the future.
+   * (We must not rotate more often as otherwise we may discard valid answers
+   * due to packet losses, latency and reorderings on the network).
+   */
+  struct GNUNET_ShortHashCode challenge;
+
+  /**
+   * Claimed address of the peer.
+   */
+  char *address;
+
+  /**
+   * Entry in the #validation_heap, which is sorted by @e next_challenge. The
+   * heap is used to figure out when the next validation activity should be
+   * run.
+   */
+  struct GNUNET_CONTAINER_HeapNode *hn;
+
+  /**
+   * Handle to a PEERSTORE store operation for this @e address.  NULL if
+   * no PEERSTORE operation is pending.
+   */
+  struct GNUNET_PEERSTORE_StoreContext *sc;
+
+  /**
+   * Network type (presumably) associated with @e address. NEEDED?
+   */
+  enum GNUNET_NetworkType nt;
+
+};
+
+
+
+
+/**
  * Head of linked list of all clients to this service.
  */
 static struct TransportClient *clients_head;
@@ -1468,6 +1688,19 @@ static struct GNUNET_CONTAINER_MultiPeerMap *neighbours;
  * known paths to the peer.
  */
 static struct GNUNET_CONTAINER_MultiPeerMap *dv_routes;
+
+/**
+ * Map from PIDs to `struct ValidationState` entries describing
+ * addresses we are aware of and their validity state.
+ */
+static struct GNUNET_CONTAINER_MultiPeerMap *validation_map;
+
+/**
+ * MIN Heap sorted by "next_challenge" to `struct ValidationState` entries
+ * sorting addresses we are aware of by when we should next try to (re)validate
+ * (or expire) them.
+ */
+static struct GNUNET_CONTAINER_Heap *validation_heap;
 
 /**
  * Database for peer's HELLOs.

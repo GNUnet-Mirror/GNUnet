@@ -204,23 +204,32 @@ extern "C"
 
 /**
  * Signature used by TCP communicator handshake,
- */ 
+ */
 #define GNUNET_SIGNATURE_COMMUNICATOR_TCP_HANDSHAKE 31
 
 /**
  * Signature used by TCP communicator rekey.
- */ 
+ */
 #define GNUNET_SIGNATURE_COMMUNICATOR_TCP_REKEY 32
 
 /**
  * Signature used by UDP communicator handshake
- */ 
+ */
 #define GNUNET_SIGNATURE_COMMUNICATOR_UDP_HANDSHAKE 33
 
 /**
  * Signature used by UDP broadcasts.
- */ 
+ */
 #define GNUNET_SIGNATURE_COMMUNICATOR_UDP_BROADCAST 34
+
+/**
+ * Signature by a peer affirming that it received a
+ * challenge (and stating how long it expects the
+ * address on which the challenge was received to
+ * remain valid).
+ */
+#define GNUNET_SIGNATURE_PURPOSE_TRANSPORT_CHALLENGE 35
+
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {
