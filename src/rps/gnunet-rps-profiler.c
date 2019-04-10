@@ -2232,7 +2232,7 @@ static void compute_probabilities (uint32_t peer_idx)
   uint32_t cont_views;
   uint32_t number_of_being_in_pull_events;
   int tmp;
-  uint32_t count_non_zero_prob = 0;
+  uint32_t sum_non_zero_prob = 0;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
       "Computing probabilities for peer %" PRIu32 "\n", peer_idx);
@@ -2315,21 +2315,14 @@ static void compute_probabilities (uint32_t peer_idx)
                i,
                number_of_being_in_pull_events);
 
-    if (0 != probs[i]) count_non_zero_prob++;
+    sum_non_zero_prob += probs[i];
   }
   /* normalize */
-  if (0 != count_non_zero_prob)
+  for (i = 0; i < num_peers; i++)
   {
-    for (i = 0; i < num_peers; i++)
-    {
-      probs[i] = probs[i] * (1.0 / count_non_zero_prob);
-    }
-  } else {
-    for (i = 0; i < num_peers; i++)
-    {
-      probs[i] = 0;
-    }
+    probs[i] = probs[i] * (1.0 / sum_non_zero_prob);
   }
+
   /* str repr */
   for (i = 0; i < num_peers; i++)
   {
