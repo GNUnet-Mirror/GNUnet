@@ -553,7 +553,7 @@ struct TransportValidationChallenge
 {
 
   /**
-   * Type is #GNUNET_MESSAGE_TYPE_ADDRESS_VALIDATION_CHALLENGE
+   * Type is #GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_VALIDATION_CHALLENGE
    */
   struct GNUNET_MessageHeader header;
 
@@ -609,7 +609,7 @@ struct TransportValidationResponse
 {
 
   /**
-   * Type is #GNUNET_MESSAGE_TYPE_ADDRESS_VALIDATION_RESPONSE
+   * Type is #GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_VALIDATION_RESPONSE
    */
   struct GNUNET_MessageHeader header;
 
@@ -3802,7 +3802,7 @@ handle_dv_box (void *cls,
   cmc->im.sender = dvb->origin;
   cmc->total_hops = ntohs (dvb->total_hops);
   demultiplex_with_cmc (cmc,
-			inbox);
+                        inbox);
 }
 
 
@@ -3830,6 +3830,41 @@ check_incoming_msg (void *cls,
 
 
 /**
+ * Communicator gave us a transport address validation challenge.  Process the request.
+ *
+ * @param cls a `struct CommunicatorMessageContext` (must call #finish_cmc_handling() when done)
+ * @param tvc the message that was received
+ */
+static void
+handle_validation_challenge (void *cls,
+                             const struct TransportValidationChallenge *tvc)
+{
+  struct CommunicatorMessageContext *cmc = cls;
+
+  // FIXME: sign challenge and try to get it back to the origin!
+  finish_cmc_handling (cmc);
+}
+
+
+/**
+ * Communicator gave us a transport address validation response.  Process the request.
+ *
+ * @param cls a `struct CommunicatorMessageContext` (must call #finish_cmc_handling() when done)
+ * @param tvr the message that was received
+ */
+static void
+handle_validation_response (void *cls,
+                            const struct TransportValidationResponse *tvr)
+{
+  struct CommunicatorMessageContext *cmc = cls;
+
+  // FIXME: check for matching pending challenge and mark address
+  // as valid if applicable (passing to PEERSTORE as well!)
+  finish_cmc_handling (cmc);
+}
+
+
+/**
  * Incoming meessage.  Process the request.
  *
  * @param im the send message that was received
@@ -3844,7 +3879,7 @@ handle_incoming_msg (void *cls,
   cmc->tc = tc;
   cmc->im = *im;
   demultiplex_with_cmc (cmc,
-			(const struct GNUNET_MessageHeader *) &im[1]);
+                        (const struct GNUNET_MessageHeader *) &im[1]);
 }
 
 
@@ -3857,43 +3892,51 @@ handle_incoming_msg (void *cls,
  */
 static void
 demultiplex_with_cmc (struct CommunicatorMessageContext *cmc,
-		      const struct GNUNET_MessageHeader *msg)
+                      const struct GNUNET_MessageHeader *msg)
 {
   struct GNUNET_MQ_MessageHandler handlers[] = {
     GNUNET_MQ_hd_var_size (fragment_box,
-			   GNUNET_MESSAGE_TYPE_TRANSPORT_FRAGMENT,
-			   struct TransportFragmentBox,
-			   &cmc),
+                           GNUNET_MESSAGE_TYPE_TRANSPORT_FRAGMENT,
+                           struct TransportFragmentBox,
+                           &cmc),
     GNUNET_MQ_hd_fixed_size (fragment_ack,
-			     GNUNET_MESSAGE_TYPE_TRANSPORT_FRAGMENT_ACK,
-			     struct TransportFragmentAckMessage,
-			     &cmc),
+                             GNUNET_MESSAGE_TYPE_TRANSPORT_FRAGMENT_ACK,
+                             struct TransportFragmentAckMessage,
+                             &cmc),
     GNUNET_MQ_hd_var_size (reliability_box,
-			   GNUNET_MESSAGE_TYPE_TRANSPORT_RELIABILITY_BOX,
-			   struct TransportReliabilityBox,
-			   &cmc),
+                           GNUNET_MESSAGE_TYPE_TRANSPORT_RELIABILITY_BOX,
+                           struct TransportReliabilityBox,
+                           &cmc),
     GNUNET_MQ_hd_fixed_size (reliability_ack,
-			     GNUNET_MESSAGE_TYPE_TRANSPORT_RELIABILITY_ACK,
-			     struct TransportReliabilityAckMessage,
-			     &cmc),
+                             GNUNET_MESSAGE_TYPE_TRANSPORT_RELIABILITY_ACK,
+                             struct TransportReliabilityAckMessage,
+                             &cmc),
     GNUNET_MQ_hd_var_size (backchannel_encapsulation,
-			   GNUNET_MESSAGE_TYPE_TRANSPORT_BACKCHANNEL_ENCAPSULATION,
-			   struct TransportBackchannelEncapsulationMessage,
-			   &cmc),
+                           GNUNET_MESSAGE_TYPE_TRANSPORT_BACKCHANNEL_ENCAPSULATION,
+                           struct TransportBackchannelEncapsulationMessage,
+                           &cmc),
     GNUNET_MQ_hd_var_size (dv_learn,
-			   GNUNET_MESSAGE_TYPE_TRANSPORT_DV_LEARN,
-			   struct TransportDVLearn,
-			   &cmc),
+                           GNUNET_MESSAGE_TYPE_TRANSPORT_DV_LEARN,
+                           struct TransportDVLearn,
+                           &cmc),
     GNUNET_MQ_hd_var_size (dv_box,
-			   GNUNET_MESSAGE_TYPE_TRANSPORT_DV_BOX,
-			   struct TransportDVBox,
-			   &cmc),
+                           GNUNET_MESSAGE_TYPE_TRANSPORT_DV_BOX,
+                           struct TransportDVBox,
+                           &cmc),
+    GNUNET_MQ_hd_fixed_size (validation_challenge,
+                             GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_VALIDATION_CHALLENGE,
+                             struct TransportValidationChallenge,
+                             &cmc),
+    GNUNET_MQ_hd_fixed_size (validation_response,
+                             GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_VALIDATION_RESPONSE,
+                             struct TransportValidationResponse,
+                             &cmc),
     GNUNET_MQ_handler_end()
   };
   int ret;
 
   ret = GNUNET_MQ_handle_message (handlers,
-				  msg);
+                                  msg);
   if (GNUNET_SYSERR == ret)
   {
     GNUNET_break (0);
@@ -3905,7 +3948,7 @@ demultiplex_with_cmc (struct CommunicatorMessageContext *cmc,
   {
     /* unencapsulated 'raw' message */
     handle_raw_message (&cmc,
-			msg);
+                        msg);
   }
 }
 
@@ -4145,7 +4188,6 @@ transmit_on_queue (void *cls)
 {
   struct Queue *queue = cls;
   struct Neighbour *n = queue->neighbour;
-  struct QueueEntry *qe;
   struct PendingMessage *pm;
   struct PendingMessage *s;
   uint32_t overhead;
@@ -4191,27 +4233,32 @@ transmit_on_queue (void *cls)
   }
 
   /* Pass 's' for transission to the communicator */
-  qe = GNUNET_new (struct QueueEntry);
-  qe->mid = queue->mid_gen++;
-  qe->queue = queue;
-  // qe->pm = s; // FIXME: not so easy, reference management on 'free(s)'!
-  GNUNET_CONTAINER_DLL_insert (queue->queue_head,
-			       queue->queue_tail,
-			       qe);
   env = GNUNET_MQ_msg_extra (smt,
-			     s->bytes_msg,
-			     GNUNET_MESSAGE_TYPE_TRANSPORT_SEND_MSG);
+                             s->bytes_msg,
+                             GNUNET_MESSAGE_TYPE_TRANSPORT_SEND_MSG);
   smt->qid = queue->qid;
-  smt->mid = qe->mid;
+  smt->mid = queue->mid_gen;
   smt->receiver = n->pid;
   memcpy (&smt[1],
           &s[1],
           s->bytes_msg);
-  GNUNET_assert (CT_COMMUNICATOR == queue->tc->type);
-  queue->queue_length++;
-  queue->tc->details.communicator.total_queue_length++;
-  GNUNET_MQ_send (queue->tc->mq,
-                  env);
+  {
+    /* Pass the env to the communicator of queue for transmission. */
+    struct QueueEntry *qe;
+
+    qe = GNUNET_new (struct QueueEntry);
+    qe->mid = queue->mid_gen++;
+    qe->queue = queue;
+    // qe->pm = s; // FIXME: not so easy, reference management on 'free(s)'!
+    GNUNET_CONTAINER_DLL_insert (queue->queue_head,
+                                 queue->queue_tail,
+                                 qe);
+    GNUNET_assert (CT_COMMUNICATOR == queue->tc->type);
+    queue->queue_length++;
+    queue->tc->details.communicator.total_queue_length++;
+    GNUNET_MQ_send (queue->tc->mq,
+                    env);
+  }
 
   // FIXME: do something similar to the logic below
   // in defragmentation / reliability ACK handling!
@@ -4719,13 +4766,17 @@ static void
 validation_transmit_on_queue (struct Queue *q,
                               struct ValidationState *vs)
 {
-  struct TransportValidationChallenge tvc;
+  struct GNUNET_MQ_Envelope *env;
+  struct TransportValidationChallenge *tvc;
 
   vs->last_challenge_use = GNUNET_TIME_absolute_get ();
-  tvc.reserved = htonl (0);
-  tvc.challenge = vs->challenge;
-  tvc.sender_time = GNUNET_TIME_absolute_hton (vs->last_challenge_use);
-  // FIXME: actually send on queue!
+  env = GNUNET_MQ_msg (tvc,
+                       GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_VALIDATION_CHALLENGE);
+  tvc->reserved = htonl (0);
+  tvc->challenge = vs->challenge;
+  tvc->sender_time = GNUNET_TIME_absolute_hton (vs->last_challenge_use);
+  GNUNET_MQ_send (q->tc->mq,
+                  env);
 }
 
 
@@ -5163,6 +5214,70 @@ check_known_address (void *cls,
 
 
 /**
+ * Start address validation.
+ *
+ * @param pid peer the @a address is for
+ * @param address an address to reach @a pid (presumably)
+ * @param expiration when did @a pid claim @a address will become invalid
+ * @param nt network type of @a address
+ */
+static void
+start_address_validation (const struct GNUNET_PeerIdentity *pid,
+                          const char *address,
+                          struct GNUNET_TIME_Absolute expiration,
+                          enum GNUNET_NetworkType nt)
+{
+  struct GNUNET_TIME_Absolute now;
+  struct ValidationState *vs;
+  struct CheckKnownAddressContext ckac = {
+    .address = address,
+    .vs = NULL
+  };
+
+
+  if (0 == GNUNET_TIME_absolute_get_remaining (expiration).rel_value_us)
+    return; /* expired */
+
+  (void) GNUNET_CONTAINER_multipeermap_get_multiple (validation_map,
+                                                     pid,
+                                                     &check_known_address,
+                                                     &ckac);
+  if (NULL != (vs = ckac.vs))
+  {
+    /* if 'vs' is not currently valid, we need to speed up retrying the validation */
+    if (vs->validated_until.abs_value_us < vs->next_challenge.abs_value_us)
+    {
+      /* reduce backoff as we got a fresh advertisement */
+      vs->challenge_backoff = GNUNET_TIME_relative_min (FAST_VALIDATION_CHALLENGE_FREQ,
+                                                        GNUNET_TIME_relative_divide (vs->challenge_backoff,
+                                                                                     2));
+      update_next_challenge_time (vs,
+                                  GNUNET_TIME_relative_to_absolute (vs->challenge_backoff));
+    }
+    return;
+  }
+  now = GNUNET_TIME_absolute_get();
+  vs = GNUNET_new (struct ValidationState);
+  vs->pid = *pid;
+  vs->valid_until = expiration;
+  vs->first_challenge_use = now;
+  vs->validation_rtt = GNUNET_TIME_UNIT_FOREVER_REL;
+  GNUNET_CRYPTO_random_block (GNUNET_CRYPTO_QUALITY_NONCE,
+                              &vs->challenge,
+                              sizeof (vs->challenge));
+  vs->address = GNUNET_strdup (address);
+  vs->nt = nt;
+  GNUNET_assert (GNUNET_YES ==
+                 GNUNET_CONTAINER_multipeermap_put (validation_map,
+                                                    &vs->pid,
+                                                    vs,
+                                                    GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
+  update_next_challenge_time (vs,
+                              now);
+}
+
+
+/**
  * Given another peers address, consider checking it for validity
  * and then adding it to the Peerstore.
  *
@@ -5174,11 +5289,10 @@ static void
 handle_address_consider_verify (void *cls,
                                 const struct GNUNET_TRANSPORT_AddressToVerify *hdr)
 {
+  struct TransportClient *tc = cls;
   char *address;
   enum GNUNET_NetworkType nt;
   struct GNUNET_TIME_Absolute expiration;
-  struct GNUNET_TIME_Absolute now;
-  struct ValidationState *vs;
 
   (void) cls;
   // FIXME: checking that we know this address already should
@@ -5194,52 +5308,12 @@ handle_address_consider_verify (void *cls,
     GNUNET_break_op (0);
     return;
   }
-  if (0 == GNUNET_TIME_absolute_get_remaining (expiration).rel_value_us)
-    return; /* expired */
-  {
-    struct CheckKnownAddressContext ckac = {
-      .address = address,
-      .vs = NULL
-    };
-
-    (void) GNUNET_CONTAINER_multipeermap_get_multiple (validation_map,
-                                                       &hdr->peer,
-                                                       &check_known_address,
-                                                       &ckac);
-    if (NULL != (vs = ckac.vs))
-    {
-      /* if 'vs' is not currently valid, we need to speed up retrying the validation */
-      if (vs->validated_until.abs_value_us < vs->next_challenge.abs_value_us)
-      {
-        /* reduce backoff as we got a fresh advertisement */
-        vs->challenge_backoff = GNUNET_TIME_relative_min (FAST_VALIDATION_CHALLENGE_FREQ,
-                                                          GNUNET_TIME_relative_divide (vs->challenge_backoff,
-                                                                                       2));
-        update_next_challenge_time (vs,
-                                    GNUNET_TIME_relative_to_absolute (vs->challenge_backoff));
-      }
-      GNUNET_free (address);
-      return;
-    }
-  }
-  now = GNUNET_TIME_absolute_get();
-  vs = GNUNET_new (struct ValidationState);
-  vs->pid = hdr->peer;
-  vs->valid_until = expiration;
-  vs->first_challenge_use = now;
-  vs->validation_rtt = GNUNET_TIME_UNIT_FOREVER_REL;
-  GNUNET_CRYPTO_random_block (GNUNET_CRYPTO_QUALITY_NONCE,
-                              &vs->challenge,
-                              sizeof (vs->challenge));
-  vs->address = address;
-  vs->nt = nt;
-  GNUNET_assert (GNUNET_YES ==
-                 GNUNET_CONTAINER_multipeermap_put (validation_map,
-                                                    &vs->pid,
-                                                    vs,
-                                                    GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
-  update_next_challenge_time (vs,
-                              now);
+  start_address_validation (&hdr->peer,
+                            address,
+                            expiration,
+                            nt);
+  GNUNET_free (address);
+  GNUNET_SERVICE_client_continue (tc->client);
 }
 
 
@@ -5271,7 +5345,13 @@ static void
 handle_request_hello_validation (void *cls,
                                  const struct RequestHelloValidationMessage *m)
 {
-  // FIXME: implement validation!
+  struct TransportClient *tc = cls;
+
+  start_address_validation (&m->peer,
+                            (const char *) &m[1],
+                            GNUNET_TIME_absolute_ntoh (m->expiration),
+                            (enum GNUNET_NetworkType) ntohl (m->nt));
+  GNUNET_SERVICE_client_continue (tc->client);
 }
 
 

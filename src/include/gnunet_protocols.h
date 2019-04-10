@@ -3196,6 +3196,18 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_TRANSPORT_REQUEST_HELLO_VALIDATION 1302
 
 
+/**
+ * P2P message: transport requests confirmation that an address works.
+ */
+#define GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_VALIDATION_CHALLENGE 1303
+
+/**
+ * P2P message: transport proves that an address worked.
+ */
+#define GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_VALIDATION_RESPONSE 1304
+
+
+
 /* ************** NEW (NG) ATS Messages ************* */
 /* NOTE: it is not clear ATS will survive in TNG      */
 

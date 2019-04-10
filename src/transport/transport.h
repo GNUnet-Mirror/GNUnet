@@ -1146,7 +1146,7 @@ struct ExpressPreferenceMessage
 struct RequestHelloValidationMessage
 {
 
-    /**
+  /**
    * Type is #GNUNET_MESSAGE_TYPE_TRANSPORT_REQUEST_HELLO_VALIDATION.
    */
   struct GNUNET_MessageHeader header;
