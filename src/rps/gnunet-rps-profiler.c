@@ -1192,6 +1192,7 @@ post_test_op (void *cls)
     shutdown_task = NULL;
     GNUNET_SCHEDULER_shutdown ();
   }
+  GNUNET_free (cur_test_run.eval_probs_cache);
 }
 
 
@@ -2365,6 +2366,7 @@ static void compute_probabilities (uint32_t peer_idx)
                  probs_as_str_size,
                  probs_as_str);
 
+  probs_as_str[0] = '\0';
   for (i = 0; i < num_peers; i++)
   {
     probs_as_str_cpy = GNUNET_strndup (probs_as_str, probs_as_str_size);
@@ -2810,7 +2812,6 @@ post_profiler (struct RPSPeer *rps_peer)
                   rps_peer->index);
     }
   }
-  GNUNET_free (cur_test_run.eval_probs_cache);
 }
 
 
@@ -3000,7 +3001,7 @@ run (void *cls,
                                     BIT(STAT_TYPE_VIEW_SIZE_AIM);
   cur_test_run.have_collect_view = COLLECT_VIEW;
   cur_test_run.eval_probs_cache = GNUNET_new_array (num_peers, double);
-  memset (cur_test_run.eval_probs_cache, num_peers * sizeof (double), 0);
+  memset (&cur_test_run.eval_probs_cache, num_peers * sizeof (double), 0);
 
   /* 'Clean' directory */
   (void) GNUNET_DISK_directory_remove ("/tmp/rps/");
