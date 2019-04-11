@@ -99,7 +99,7 @@ libgnunet_plugin_reclaim_sqlite_la_LIBADD = \
   libgnunetreclaim.la  \
   $(top_builddir)/src/sq/libgnunetsq.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
-	$(top_builddir)/src/reclaim-attribute/libgnunetreclaimattribute.la \
+  $(top_builddir)/src/reclaim-attribute/libgnunetreclaimattribute.la \
   $(top_builddir)/src/util/libgnunetutil.la $(XLIBS) -lsqlite3 \
   $(LTLIBINTL)
 libgnunet_plugin_reclaim_sqlite_la_LDFLAGS = \
@@ -126,26 +126,26 @@ libgnunetreclaim_la_SOURCES = \
  reclaim.h
 libgnunetreclaim_la_LIBADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
-	$(top_builddir)/src/reclaim-attribute/libgnunetreclaimattribute.la \
-	$(GN_LIBINTL) $(XLIB)
+  $(top_builddir)/src/reclaim-attribute/libgnunetreclaimattribute.la \
+  $(GN_LIBINTL) $(XLIB)
 libgnunetreclaim_la_LDFLAGS = \
-	$(GN_LIB_LDFLAGS)  $(WINFLAGS) \
-	-version-info 0:0:0
+  $(GN_LIB_LDFLAGS)  $(WINFLAGS) \
+  -version-info 0:0:0
 
 gnunet_reclaim_SOURCES = \
  gnunet-reclaim.c
 gnunet_reclaim_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
-	$(top_builddir)/src/namestore/libgnunetnamestore.la \
-	libgnunetreclaim.la \
-	$(top_builddir)/src/identity/libgnunetidentity.la \
-	$(top_builddir)/src/reclaim-attribute/libgnunetreclaimattribute.la \
+  $(top_builddir)/src/namestore/libgnunetnamestore.la \
+  libgnunetreclaim.la \
+  $(top_builddir)/src/identity/libgnunetidentity.la \
+  $(top_builddir)/src/reclaim-attribute/libgnunetreclaimattribute.la \
   $(GN_LIBINTL)
 
 check_SCRIPTS = \
-	test_reclaim_attribute.sh \
-	test_reclaim_issue.sh \
-	test_reclaim_consume.sh \
+  test_reclaim_attribute.sh \
+  test_reclaim_issue.sh \
+  test_reclaim_consume.sh \
   test_reclaim_revoke.sh
 
 if ENABLE_TEST_RUN

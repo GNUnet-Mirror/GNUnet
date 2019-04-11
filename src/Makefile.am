@@ -11,19 +11,17 @@ endif
 
 if HAVE_EXPERIMENTAL
  EXP_DIR = \
-  rps
+  rps \
+  credential \
+  reclaim-attribute \
+  reclaim
 if HAVE_ABE
-if HAVE_JSON
  EXP_DIR += \
-    abe \
-    credential \
-    reclaim-attribute \
-    reclaim
-endif
+  abe \
 endif
 if HAVE_JSON
  EXP_DIR += \
-    auction
+  auction
 endif
 endif
 
