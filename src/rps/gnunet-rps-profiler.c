@@ -561,6 +561,11 @@ struct RPSPeer
   const char *file_name_probs;
 
   /**
+   * @brief File name of the file the stats are finally written to
+   */
+  const char *file_name_probs_hist;
+
+  /**
    * @brief The current view
    */
   struct GNUNET_PeerIdentity *cur_view;
@@ -811,6 +816,12 @@ struct SingleTestRun
    * of the run
    */
   uint32_t stat_collect_flags;
+
+  /**
+   * @brief Keep the probabilities in cache for computing the probabilities
+   * with respect to history.
+   */
+  double *eval_probs_cache;
 } cur_test_run;
 
 /**
@@ -2222,6 +2233,7 @@ static void compute_probabilities (uint32_t peer_idx)
 {
   //double probs[num_peers] = { 0 };
   double probs[num_peers];
+  double probs_hist[num_peers]; /* Probability respecting the history */
   size_t probs_as_str_size = (num_peers * 10 + 2) * sizeof (char);
   char *probs_as_str = GNUNET_malloc (probs_as_str_size);
   char *probs_as_str_cpy;
@@ -2232,7 +2244,8 @@ static void compute_probabilities (uint32_t peer_idx)
   uint32_t cont_views;
   uint32_t number_of_being_in_pull_events;
   int tmp;
-  uint32_t sum_non_zero_prob = 0;
+  double sum_non_zero_prob = 0;
+  double sum_non_zero_prob_hist = 0;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
       "Computing probabilities for peer %" PRIu32 "\n", peer_idx);
@@ -2315,12 +2328,26 @@ static void compute_probabilities (uint32_t peer_idx)
                i,
                number_of_being_in_pull_events);
 
+    probs_hist[i] = 0.9 * cur_test_run.eval_probs_cache[i] + probs[i];
+    cur_test_run.eval_probs_cache[i] = probs_hist[i];
+
     sum_non_zero_prob += probs[i];
+    sum_non_zero_prob_hist += probs_hist[i];
   }
   /* normalize */
-  for (i = 0; i < num_peers; i++)
+  if (0 != sum_non_zero_prob)
   {
-    probs[i] = probs[i] * (1.0 / sum_non_zero_prob);
+    for (i = 0; i < num_peers; i++)
+    {
+      probs[i] = probs[i] * (1.0 / sum_non_zero_prob);
+    }
+  }
+  if (0 != sum_non_zero_prob_hist)
+  {
+    for (i = 0; i < num_peers; i++)
+    {
+      probs_hist[i] = probs_hist[i] * (1.0 / sum_non_zero_prob_hist);
+    }
   }
 
   /* str repr */
@@ -2335,6 +2362,20 @@ static void compute_probabilities (uint32_t peer_idx)
   }
 
   to_file_w_len (rps_peers[peer_idx].file_name_probs,
+                 probs_as_str_size,
+                 probs_as_str);
+
+  for (i = 0; i < num_peers; i++)
+  {
+    probs_as_str_cpy = GNUNET_strndup (probs_as_str, probs_as_str_size);
+    tmp = GNUNET_snprintf (probs_as_str,
+                           probs_as_str_size,
+                           "%s %7.6f", probs_as_str_cpy, probs_hist[i]);
+    GNUNET_free (probs_as_str_cpy);
+    GNUNET_assert (0 <= tmp);
+  }
+
+  to_file_w_len (rps_peers[peer_idx].file_name_probs_hist,
                  probs_as_str_size,
                  probs_as_str);
   GNUNET_free (probs_as_str);
@@ -2518,7 +2559,9 @@ static void
 pre_profiler (struct RPSPeer *rps_peer, struct GNUNET_RPS_Handle *h)
 {
   rps_peer->file_name_probs =
-    store_prefix_file_name (rps_peer->peer_id, "probs");
+    store_prefix_file_name (rps_peer->index, "probs");
+  rps_peer->file_name_probs_hist =
+    store_prefix_file_name (rps_peer->index, "probs_hist");
   GNUNET_RPS_view_request (h, 0, view_update_cb, rps_peer);
 }
 
@@ -2767,6 +2810,7 @@ post_profiler (struct RPSPeer *rps_peer)
                   rps_peer->index);
     }
   }
+  GNUNET_free (cur_test_run.eval_probs_cache);
 }
 
 
@@ -2955,6 +2999,8 @@ run (void *cls,
                                     BIT(STAT_TYPE_PEERS_IN_VIEW) |
                                     BIT(STAT_TYPE_VIEW_SIZE_AIM);
   cur_test_run.have_collect_view = COLLECT_VIEW;
+  cur_test_run.eval_probs_cache = GNUNET_new_array (num_peers, double);
+  memset (cur_test_run.eval_probs_cache, num_peers * sizeof (double), 0);
 
   /* 'Clean' directory */
   (void) GNUNET_DISK_directory_remove ("/tmp/rps/");

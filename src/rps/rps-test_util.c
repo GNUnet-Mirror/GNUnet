@@ -456,18 +456,29 @@ ensure_folder_exist (void)
 
 
 char *
-store_prefix_file_name (const struct GNUNET_PeerIdentity *peer,
+store_prefix_file_name (const unsigned int index,
                         const char *prefix)
 {
   int len_file_name;
   int out_size;
   char *file_name;
-  const char *pid_long;
+  char index_str[64];
 
   if (GNUNET_SYSERR == ensure_folder_exist()) return NULL;
-  pid_long = GNUNET_i2s_full (peer);
+  out_size = GNUNET_snprintf (index_str,
+                              64,
+                              "%u",
+                              index);
+  if (64 < out_size ||
+      0 > out_size)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+               "Failed to write string to buffer (size: %i, out_size: %i)\n",
+               64,
+               out_size);
+  }
   len_file_name = (strlen (prefix) +
-                   strlen (pid_long) +
+                   strlen (index_str) +
                    11)
                      * sizeof (char);
   file_name = GNUNET_malloc (len_file_name);
@@ -475,7 +486,7 @@ store_prefix_file_name (const struct GNUNET_PeerIdentity *peer,
                               len_file_name,
                               "/tmp/rps/%s-%s",
                               prefix,
-                              pid_long);
+                              index_str);
   if (len_file_name < out_size ||
       0 > out_size)
   {

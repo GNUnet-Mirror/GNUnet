@@ -101,7 +101,7 @@ close_all_files ();
 #endif /* TO_FILE */
 
 char *
-store_prefix_file_name (const struct GNUNET_PeerIdentity *peer,
+store_prefix_file_name (const unsigned int index,
                         const char *prefix);
 
 void
