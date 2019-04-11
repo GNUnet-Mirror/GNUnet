@@ -115,7 +115,6 @@ gnunet_service_reclaim_LDADD = \
  $(top_builddir)/src/namestore/libgnunetnamestore.la \
  $(top_builddir)/src/identity/libgnunetidentity.la \
  $(top_builddir)/src/statistics/libgnunetstatistics.la \
- $(top_builddir)/src/abe/libgnunetabe.la \
  $(top_builddir)/src/credential/libgnunetcredential.la \
  $(top_builddir)/src/reclaim-attribute/libgnunetreclaimattribute.la \
  libgnunetreclaim.la \

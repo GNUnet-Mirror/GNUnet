@@ -11,7 +11,7 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -94,19 +94,13 @@ extern "C"
 #define GNUNET_GNSRECORD_TYPE_PHONE 65543
 
 /**
- * Record type for identity attributes (of IDENTITY).
+ * Record type for identity attributes (of RECLAIM).
  */
-#define GNUNET_GNSRECORD_TYPE_ID_ATTR 65544
+#define GNUNET_GNSRECORD_TYPE_RECLAIM_ATTR 65544
 
 /**
- * Record type for an identity token (of IDENTITY-TOKEN).
+ * 65544-65547 deprecated
  */
-#define GNUNET_GNSRECORD_TYPE_ID_TOKEN 65545
-
-/**
- * Record type for the private metadata of an identity token (of IDENTITY-TOKEN).
- */
-#define GNUNET_GNSRECORD_TYPE_ID_TOKEN_METADATA 65546
 
 /**
  * Record type for credential
@@ -124,14 +118,14 @@ extern "C"
 #define GNUNET_GNSRECORD_TYPE_ATTRIBUTE 65549
 
 /**
- * Record type for ABE records
+ * Record type for reclaim records
  */
-#define GNUNET_GNSRECORD_TYPE_ABE_KEY 65550
+#define GNUNET_GNSRECORD_TYPE_RECLAIM_AUTHZ 65550
 
 /**
- * Record type for ABE master keys
+ * Record type for RECLAIM master
  */
-#define GNUNET_GNSRECORD_TYPE_ABE_MASTER 65551
+#define GNUNET_GNSRECORD_TYPE_RECLAIM_MASTER 65551
 
 /**
  * Record type for reclaim OIDC clients

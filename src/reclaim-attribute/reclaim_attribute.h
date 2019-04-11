@@ -11,7 +11,7 @@
    WITHOUT ANY WARRANTY; without even the implied warranty of
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
    Affero General Public License for more details.
-  
+
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -41,10 +41,15 @@ struct Attribute
   uint32_t attribute_version;
 
   /**
+   * Attribute ID
+   */
+  uint64_t attribute_id;
+
+  /**
    * Name length
    */
   uint32_t name_len;
-  
+
   /**
    * Data size
    */

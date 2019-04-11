@@ -11,11 +11,11 @@
    WITHOUT ANY WARRANTY; without even the implied warranty of
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
    Affero General Public License for more details.
-  
+
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-     SPDX-License-Identifier: AGPL3.0-or-later
+   SPDX-License-Identifier: AGPL3.0-or-later
    */
 /**
  * @author Martin Schanzenbach
@@ -30,7 +30,6 @@
 #include "gnunet_identity_service.h"
 #include "gnunet_gnsrecord_lib.h"
 #include "gnunet_namestore_service.h"
-#include "gnunet_abe_lib.h"
 #include "gnunet_credential_service.h"
 #include "gnunet_statistics_service.h"
 #include "gnunet_gns_service.h"
@@ -82,7 +81,7 @@ static struct GNUNET_TIME_Relative token_expiration_interval;
 /**
  * Namestore handle
  */
-static struct GNUNET_NAMESTORE_Handle *ns_handle;
+static struct GNUNET_NAMESTORE_Handle *nsh;
 
 /**
  * GNS handle
@@ -114,21 +113,6 @@ static struct GNUNET_SCHEDULER_Task *timeout_task;
  */
 static struct GNUNET_SCHEDULER_Task *update_task;
 
-
-/**
- * Currently processed token
- */
-static struct IdentityToken *token;
-
-/**
- * Label for currently processed token
- */
-static char* label;
-
-/**
- * Scopes for processed token
- */
-static char* scopes;
 
 /**
  * Handle to the statistics service.
@@ -181,7 +165,7 @@ struct TicketIteration
   uint32_t r_id;
 
   /**
-   * Offset of the iteration used to address next result of the 
+   * Offset of the iteration used to address next result of the
    * iteration in the store
    *
    * Initialy set to 0 in handle_iteration_start
@@ -191,51 +175,6 @@ struct TicketIteration
 
 };
 
-
-
-/**
- * Callback after an ABE bootstrap
- *
- * @param cls closure
- * @param abe_key the ABE key that exists or was created
- */
-typedef void
-(*AbeBootstrapResult) (void *cls,
-                       struct GNUNET_ABE_AbeMasterKey *abe_key);
-
-
-struct AbeBootstrapHandle
-{
-  /**
-   * Function to call when finished
-   */
-  AbeBootstrapResult proc;
-
-  /**
-   * Callback closure
-   */
-  char *proc_cls;
-
-  /**
-   * Key of the zone we are iterating over.
-   */
-  struct GNUNET_CRYPTO_EcdsaPrivateKey identity;
-
-  /**
-   * Namestore Queue Entry
-   */
-  struct GNUNET_NAMESTORE_QueueEntry *ns_qe;
-
-  /**
-   * The issuer egos ABE master key
-   */
-  struct GNUNET_ABE_AbeMasterKey *abe_key;
-
-  /**
-   * Recreate master keys
-   */
-  int recreate;
-};
 
 /**
  * An attribute iteration operation.
@@ -261,11 +200,6 @@ struct AttributeIterator
    * Key of the zone we are iterating over.
    */
   struct GNUNET_CRYPTO_EcdsaPrivateKey identity;
-
-  /**
-   * The issuer egos ABE master key
-   */
-  struct GNUNET_ABE_AbeMasterKey *abe_key;
 
   /**
    * Namestore iterator
@@ -296,17 +230,17 @@ struct IdpClient
    * Message queue for transmission to @e client
    */
   struct GNUNET_MQ_Handle *mq;
-  
+
   /**
    * Head of the DLL of
-   * Attribute iteration operations in 
+   * Attribute iteration operations in
    * progress initiated by this client
    */
   struct AttributeIterator *attr_iter_head;
 
   /**
    * Tail of the DLL of
-   * Attribute iteration operations 
+   * Attribute iteration operations
    * in progress initiated by this client
    */
   struct AttributeIterator *attr_iter_tail;
@@ -391,11 +325,6 @@ struct AttributeStoreHandle
   struct GNUNET_CRYPTO_EcdsaPublicKey identity_pkey;
 
   /**
-   * The issuer egos ABE master key
-   */
-  struct GNUNET_ABE_AbeMasterKey *abe_key;
-
-  /**
    * QueueEntry
    */
   struct GNUNET_NAMESTORE_QueueEntry *ns_qe;
@@ -466,27 +395,22 @@ struct ConsumeTicketHandle
    * Lookup DLL
    */
   struct ParallelLookup *parallel_lookups_tail;
-  
+
   /**
    * Kill task
    */
   struct GNUNET_SCHEDULER_Task *kill_task;
 
   /**
-   * The ABE key
-   */
-  struct GNUNET_ABE_AbeKey *key;
-
-  /**
    * Attributes
    */
   struct GNUNET_RECLAIM_ATTRIBUTE_ClaimList *attrs;
-  
+
   /**
    * Lookup time
    */
   struct GNUNET_TIME_Absolute lookup_start_time;
- 
+
   /**
    * request id
    */
@@ -520,6 +444,32 @@ struct ParallelLookup
 };
 
 /**
+ * Updated attribute IDs
+ */
+struct TicketAttributeUpdateEntry
+{
+  /**
+   * DLL
+   */
+  struct TicketAttributeUpdateEntry *next;
+
+  /**
+   * DLL
+   */
+  struct TicketAttributeUpdateEntry *prev;
+
+  /**
+   * The old ID
+   */
+  uint64_t old_id;
+
+  /**
+   * The new ID
+   */
+  uint64_t new_id;
+};
+
+/**
  * Ticket revocation request handle
  */
 struct TicketRevocationHandle
@@ -533,6 +483,16 @@ struct TicketRevocationHandle
    * DLL
    */
   struct TicketRevocationHandle *next;
+
+  /**
+   * Attribute updates
+   */
+  struct TicketAttributeUpdateEntry *attr_updates_head;
+
+  /**
+   * Attribute updates
+   */
+  struct TicketAttributeUpdateEntry *attr_updates_tail;
 
   /**
    * Client connection
@@ -568,11 +528,6 @@ struct TicketRevocationHandle
    * Namestore iterator
    */
   struct GNUNET_NAMESTORE_ZoneIterator *ns_it;
-
-  /**
-   * The ABE master key
-   */
-  struct GNUNET_ABE_AbeMasterKey *abe_key;
 
   /**
    * Offset
@@ -635,7 +590,8 @@ struct TicketIssueHandle
 
 
 /**
- * DLL for ego handles to egos containing the ID_ATTRS in a map in json_t format
+ * DLL for ego handles to egos containing the RECLAIM_ATTRS in a
+ * map in json_t format
  *
  */
 struct EgoEntry
@@ -677,7 +633,7 @@ cleanup()
     stats = NULL;
   }
   GNUNET_break (NULL == GNUNET_PLUGIN_unload (db_lib_name,
-                                              TKT_database)); 
+                                              TKT_database));
   GNUNET_free (db_lib_name);
   db_lib_name = NULL;
   if (NULL != timeout_task)
@@ -694,11 +650,8 @@ cleanup()
     GNUNET_NAMESTORE_zone_iteration_stop (ns_it);
   if (NULL != ns_qe)
     GNUNET_NAMESTORE_cancel (ns_qe);
-  if (NULL != ns_handle)
-    GNUNET_NAMESTORE_disconnect (ns_handle);
-  GNUNET_free_non_null (token);
-  GNUNET_free_non_null (label);
-
+  if (NULL != nsh)
+    GNUNET_NAMESTORE_disconnect (nsh);
 }
 
 /**
@@ -714,151 +667,11 @@ do_shutdown (void *cls)
   cleanup();
 }
 
-/**
- * Finished storing newly bootstrapped ABE key
- */
-static void
-bootstrap_store_cont (void *cls,
-                      int32_t success,
-                      const char *emsg)
-{
-  struct AbeBootstrapHandle *abh = cls;
-  if (GNUNET_SYSERR == success)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Failed to bootstrap ABE master %s\n",
-                emsg);
-    abh->proc (abh->proc_cls, NULL);
-    GNUNET_free (abh->abe_key);
-    GNUNET_free (abh);
-    return;
-  }
-  abh->proc (abh->proc_cls, abh->abe_key);
-  GNUNET_free (abh);
-}
-
-
-/**
- * Error checking for ABE master
- */
-static void
-bootstrap_abe_error (void *cls)
-{
-  struct AbeBootstrapHandle *abh = cls;
-  abh->proc (abh->proc_cls, NULL);
-  GNUNET_free (abh);
-}
-
-
-/**
- * Handle ABE lookup in namestore
- */
-static void
-bootstrap_abe_result (void *cls,
-                      const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone,
-                      const char *label,
-                      unsigned int rd_count,
-                      const struct GNUNET_GNSRECORD_Data *rd)
-{
-  struct AbeBootstrapHandle *abh = cls;
-  struct GNUNET_ABE_AbeMasterKey *abe_key;
-
-  for (uint32_t i=0;i<rd_count;i++) {
-    if (GNUNET_GNSRECORD_TYPE_ABE_MASTER != rd[i].record_type)
-      continue;
-    if (GNUNET_YES == abh->recreate)
-      continue;
-    abe_key = GNUNET_ABE_cpabe_deserialize_master_key (rd[i].data,
-                                                       rd[i].data_size);
-    abh->proc (abh->proc_cls, abe_key);
-    GNUNET_free (abh);
-    return;
-  }
-
-  //No ABE master found, bootstrapping...
-  abh->abe_key = GNUNET_ABE_cpabe_create_master_key ();
-
-  {
-    struct GNUNET_GNSRECORD_Data rdn[rd_count+1];
-    char *key;
-    unsigned int rd_count_new = rd_count + 1;
-
-    for (uint32_t i=0;i<rd_count;i++) {
-      if ((GNUNET_YES == abh->recreate) &&
-          (GNUNET_GNSRECORD_TYPE_ABE_MASTER == rd[i].record_type))
-      {
-        rdn[i].data_size = GNUNET_ABE_cpabe_serialize_master_key (abh->abe_key,
-                                                                  (void**)&key);
-        rdn[i].data = key;
-        rdn[i].record_type = GNUNET_GNSRECORD_TYPE_ABE_MASTER;
-        rdn[i].flags = GNUNET_GNSRECORD_RF_RELATIVE_EXPIRATION | GNUNET_GNSRECORD_RF_PRIVATE;
-        rdn[i].expiration_time = GNUNET_TIME_UNIT_HOURS.rel_value_us; //TODO sane?
-        rd_count_new = rd_count;
-      } else {
-        GNUNET_memcpy (&rdn[i],
-                       &rd[i],
-                       sizeof (struct GNUNET_GNSRECORD_Data));
-      }
-    }
-    if (rd_count < rd_count_new) {
-      rdn[rd_count].data_size = GNUNET_ABE_cpabe_serialize_master_key (abh->abe_key,
-                                                                       (void**)&key);
-      rdn[rd_count].data = key;
-      rdn[rd_count].record_type = GNUNET_GNSRECORD_TYPE_ABE_MASTER;
-      rdn[rd_count].flags = GNUNET_GNSRECORD_RF_RELATIVE_EXPIRATION | GNUNET_GNSRECORD_RF_PRIVATE;
-      rdn[rd_count].expiration_time = GNUNET_TIME_UNIT_HOURS.rel_value_us; //TODO sane?
-    }
-
-    abh->ns_qe = GNUNET_NAMESTORE_records_store (ns_handle,
-                                                 &abh->identity,
-                                                 GNUNET_GNS_EMPTY_LABEL_AT,
-                                                 rd_count_new,
-                                                 rdn,
-                                                 &bootstrap_store_cont,
-                                                 abh);
-    GNUNET_free (key);
-  }
-}
-
-/**
- * Bootstrap ABE master if it does not yet exists.
- * Will call the AbeBootstrapResult processor when done.
- * will always recreate the ABE key of GNUNET_YES == recreate
- */
-static void
-bootstrap_abe (const struct GNUNET_CRYPTO_EcdsaPrivateKey *identity,
-               AbeBootstrapResult proc,
-               void* cls,
-               int recreate)
-{
-  struct AbeBootstrapHandle *abh;
-
-  abh = GNUNET_new (struct AbeBootstrapHandle);
-  abh->proc = proc;
-  abh->proc_cls = cls;
-  abh->identity = *identity;
-  if (GNUNET_YES == recreate)
-  {
-    abh->abe_key = GNUNET_ABE_cpabe_create_master_key ();
-    abh->recreate = GNUNET_YES;
-  } else {
-    abh->recreate = GNUNET_NO;
-  }
-  abh->ns_qe = GNUNET_NAMESTORE_records_lookup (ns_handle,
-                                                identity,
-                                                GNUNET_GNS_EMPTY_LABEL_AT,
-                                                &bootstrap_abe_error,
-                                                abh,
-                                                &bootstrap_abe_result,
-                                                abh);
-}
-
-
 
 static int
-create_sym_key_from_ecdh(const struct GNUNET_HashCode *new_key_hash,
-                         struct GNUNET_CRYPTO_SymmetricSessionKey *skey,
-                         struct GNUNET_CRYPTO_SymmetricInitializationVector *iv)
+create_sym_key_from_ecdh (const struct GNUNET_HashCode *new_key_hash,
+                          struct GNUNET_CRYPTO_SymmetricSessionKey *skey,
+                          struct GNUNET_CRYPTO_SymmetricInitializationVector *iv)
 {
   struct GNUNET_CRYPTO_HashAsciiEncoded new_key_hash_str;
 
@@ -950,68 +763,60 @@ store_ticket_issue_cont (void *cls,
 }
 
 
-
-int
-serialize_abe_keyinfo2 (const struct GNUNET_RECLAIM_Ticket *ticket,
-                        const struct GNUNET_RECLAIM_ATTRIBUTE_ClaimList *attrs,
-                        const struct GNUNET_ABE_AbeKey *rp_key,
-                        struct GNUNET_CRYPTO_EcdhePrivateKey **ecdh_privkey,
-                        char **result)
+static int
+serialize_authz_record (const struct GNUNET_RECLAIM_Ticket *ticket,
+                         const struct GNUNET_RECLAIM_ATTRIBUTE_ClaimList *attrs,
+                         struct GNUNET_CRYPTO_EcdhePrivateKey **ecdh_privkey,
+                         char **result)
 {
   struct GNUNET_CRYPTO_EcdhePublicKey ecdh_pubkey;
   struct GNUNET_RECLAIM_ATTRIBUTE_ClaimListEntry *le;
-  char *enc_keyinfo;
-  char *serialized_key;
-  char *buf;
-  char *write_ptr;
-  char attrs_str_len;
-  ssize_t size;
-
   struct GNUNET_CRYPTO_SymmetricSessionKey skey;
   struct GNUNET_CRYPTO_SymmetricInitializationVector iv;
   struct GNUNET_HashCode new_key_hash;
   ssize_t enc_size;
+  char *enc_keyinfo;
+  char *buf;
+  char *write_ptr;
+  char attrs_str_len;
+  char* label;
 
-  size = GNUNET_ABE_cpabe_serialize_key (rp_key,
-                                         (void**)&serialized_key);
+  GNUNET_assert (NULL != attrs->list_head);
   attrs_str_len = 0;
   for (le = attrs->list_head; NULL != le; le = le->next) {
-    attrs_str_len += strlen (le->claim->name) + 1;
+    attrs_str_len += 15 + 1; //TODO propery calculate
   }
-  buf = GNUNET_malloc (attrs_str_len + size);
+  buf = GNUNET_malloc (attrs_str_len);
   write_ptr = buf;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Writing attributes\n");
   for (le = attrs->list_head; NULL != le; le = le->next) {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "%s\n", le->claim->name);
-
+    label = GNUNET_STRINGS_data_to_string_alloc (&le->claim->id,
+                                                 sizeof (uint64_t));
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Adding attribute to record: %s\n", label);
 
     GNUNET_memcpy (write_ptr,
-                   le->claim->name,
-                   strlen (le->claim->name));
-    write_ptr[strlen (le->claim->name)] = ',';
-    write_ptr += strlen (le->claim->name) + 1;
+                   label,
+                   strlen (label));
+    write_ptr[strlen (label)] = ',';
+    write_ptr += strlen (label) + 1;
+    GNUNET_free (label);
   }
   write_ptr--;
   write_ptr[0] = '\0'; //replace last , with a 0-terminator
-  write_ptr++;
-  GNUNET_memcpy (write_ptr,
-                 serialized_key,
-                 size);
-  GNUNET_free (serialized_key);
   // ECDH keypair E = eG
   *ecdh_privkey = GNUNET_CRYPTO_ecdhe_key_create();
   GNUNET_CRYPTO_ecdhe_key_get_public (*ecdh_privkey,
                                       &ecdh_pubkey);
-  enc_keyinfo = GNUNET_malloc (size + attrs_str_len);
+  enc_keyinfo = GNUNET_malloc (attrs_str_len);
   // Derived key K = H(eB)
   GNUNET_assert (GNUNET_OK == GNUNET_CRYPTO_ecdh_ecdsa (*ecdh_privkey,
                                                         &ticket->audience,
                                                         &new_key_hash));
-  create_sym_key_from_ecdh(&new_key_hash, &skey, &iv);
+  create_sym_key_from_ecdh (&new_key_hash, &skey, &iv);
   enc_size = GNUNET_CRYPTO_symmetric_encrypt (buf,
-                                              size + attrs_str_len,
+                                              attrs_str_len,
                                               &skey, &iv,
                                               enc_keyinfo);
   *result = GNUNET_malloc (sizeof (struct GNUNET_CRYPTO_EcdhePublicKey)+
@@ -1030,73 +835,38 @@ serialize_abe_keyinfo2 (const struct GNUNET_RECLAIM_Ticket *ticket,
 
 
 static void
-issue_ticket_after_abe_bootstrap (void *cls,
-                                  struct GNUNET_ABE_AbeMasterKey *abe_key)
+issue_ticket (struct TicketIssueHandle *ih)
 {
-  struct TicketIssueHandle *ih = cls;
-  struct GNUNET_RECLAIM_ATTRIBUTE_ClaimListEntry *le;
   struct GNUNET_CRYPTO_EcdhePrivateKey *ecdhe_privkey;
   struct GNUNET_GNSRECORD_Data code_record[1];
-  struct GNUNET_ABE_AbeKey *rp_key;
-  char *code_record_data;
-  char **attrs;
+  char *authz_record_data;
+  size_t authz_record_len;
   char *label;
-  char *policy;
-  int attrs_len;
-  uint32_t i;
-  size_t code_record_len;
 
-  //Create new ABE key for RP
-  attrs_len = 0;
-  for (le = ih->attrs->list_head; NULL != le; le = le->next)
-    attrs_len++;
-  attrs = GNUNET_malloc ((attrs_len + 1)*sizeof (char*));
-  i = 0;
-  for (le = ih->attrs->list_head; NULL != le; le = le->next) {
-    GNUNET_asprintf (&policy, "%s_%lu",
-                     le->claim->name,
-                     le->claim->version);
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Adding attribute to key: %s\n",
-                policy);
-    attrs[i] = policy;
-    i++;
-  }
-  attrs[i] = NULL;
-  rp_key = GNUNET_ABE_cpabe_create_key (abe_key,
-                                        attrs);
-
-  //TODO review this wireformat
-  code_record_len = serialize_abe_keyinfo2 (&ih->ticket,
-                                            ih->attrs,
-                                            rp_key,
-                                            &ecdhe_privkey,
-                                            &code_record_data);
-  code_record[0].data = code_record_data;
-  code_record[0].data_size = code_record_len;
+  //TODO rename function
+  authz_record_len = serialize_authz_record (&ih->ticket,
+                                             ih->attrs,
+                                             &ecdhe_privkey,
+                                             &authz_record_data);
+  code_record[0].data = authz_record_data;
+  code_record[0].data_size = authz_record_len;
   code_record[0].expiration_time = GNUNET_TIME_UNIT_DAYS.rel_value_us;
-  code_record[0].record_type = GNUNET_GNSRECORD_TYPE_ABE_KEY;
+  code_record[0].record_type = GNUNET_GNSRECORD_TYPE_RECLAIM_AUTHZ;
   code_record[0].flags = GNUNET_GNSRECORD_RF_RELATIVE_EXPIRATION;
 
   label = GNUNET_STRINGS_data_to_string_alloc (&ih->ticket.rnd,
                                                sizeof (uint64_t));
   //Publish record
-  ih->ns_qe = GNUNET_NAMESTORE_records_store (ns_handle,
+  ih->ns_qe = GNUNET_NAMESTORE_records_store (nsh,
                                               &ih->identity,
                                               label,
                                               1,
                                               code_record,
                                               &store_ticket_issue_cont,
                                               ih);
-  //for (; i > 0; i--)
-  //  GNUNET_free (attrs[i-1]);
   GNUNET_free (ecdhe_privkey);
   GNUNET_free (label);
-  GNUNET_free (attrs);
-  GNUNET_free (code_record_data);
-  GNUNET_ABE_cpabe_delete_key (rp_key,
-                               GNUNET_YES);
-  GNUNET_ABE_cpabe_delete_master_key (abe_key);
+  GNUNET_free (authz_record_data);
 }
 
 
@@ -1139,7 +909,7 @@ handle_issue_ticket_message (void *cls,
   GNUNET_CONTAINER_DLL_insert (idp->issue_op_head,
                                idp->issue_op_tail,
                                ih);
-  bootstrap_abe (&ih->identity, &issue_ticket_after_abe_bootstrap, ih, GNUNET_NO);
+  issue_ticket (ih);
   GNUNET_SERVICE_client_continue (idp->client);
 
 }
@@ -1160,8 +930,6 @@ cleanup_revoke_ticket_handle (struct TicketRevocationHandle *rh)
     GNUNET_RECLAIM_ATTRIBUTE_list_destroy (rh->attrs);
   if (NULL != rh->rvk_attrs)
     GNUNET_RECLAIM_ATTRIBUTE_list_destroy (rh->rvk_attrs);
-  if (NULL != rh->abe_key)
-    GNUNET_ABE_cpabe_delete_master_key (rh->abe_key);
   if (NULL != rh->ns_qe)
     GNUNET_NAMESTORE_cancel (rh->ns_qe);
   if (NULL != rh->ns_it)
@@ -1255,19 +1023,14 @@ ticket_reissue_proc (void *cls,
                      const struct GNUNET_RECLAIM_ATTRIBUTE_ClaimList *attrs)
 {
   struct TicketRevocationHandle *rh = cls;
+  struct TicketAttributeUpdateEntry *tue;
   struct GNUNET_RECLAIM_ATTRIBUTE_ClaimListEntry *le;
-  struct GNUNET_RECLAIM_ATTRIBUTE_ClaimListEntry *le_rollover;
   struct GNUNET_CRYPTO_EcdhePrivateKey *ecdhe_privkey;
   struct GNUNET_GNSRECORD_Data code_record[1];
-  struct GNUNET_ABE_AbeKey *rp_key;
-  char *code_record_data;
-  char **attr_arr;
-  char *label;
-  char *policy;
-  int attrs_len;
-  uint32_t i;
   int reissue_ticket;
-  size_t code_record_len;
+  size_t authz_record_len;
+  char *authz_record_data;
+  char *label;
 
 
   if (NULL == ticket)
@@ -1286,7 +1049,7 @@ ticket_reissue_proc (void *cls,
     label = GNUNET_STRINGS_data_to_string_alloc (&rh->ticket.rnd,
                                                  sizeof (uint64_t));
     //Delete record
-    rh->ns_qe = GNUNET_NAMESTORE_records_store (ns_handle,
+    rh->ns_qe = GNUNET_NAMESTORE_records_store (nsh,
                                                 &rh->identity,
                                                 label,
                                                 0,
@@ -1298,21 +1061,20 @@ ticket_reissue_proc (void *cls,
     return;
   }
 
-  /* 
+  /*
    * Check if any attribute of this ticket intersects with a rollover attribute
    */
   reissue_ticket = GNUNET_NO;
   for (le = attrs->list_head; NULL != le; le = le->next)
   {
-    for (le_rollover = rh->rvk_attrs->list_head;
-         NULL != le_rollover;
-         le_rollover = le_rollover->next)
+    for (tue = rh->attr_updates_head;
+         NULL != tue;
+         tue = tue->next)
     {
-      if (0 == strcmp (le_rollover->claim->name,
-                       le->claim->name))
+      if (tue->old_id == le->claim->id)
       {
         reissue_ticket = GNUNET_YES;
-        le->claim->version = le_rollover->claim->version;
+        le->claim->id = tue->new_id;
       }
     }
   }
@@ -1330,56 +1092,33 @@ ticket_reissue_proc (void *cls,
   }
 
   //Create new ABE key for RP
-  attrs_len = 0;
 
   /* If this is the RP we want to revoke attributes of, the do so */
 
-  for (le = attrs->list_head; NULL != le; le = le->next)
-    attrs_len++;
-  attr_arr = GNUNET_malloc ((attrs_len + 1)*sizeof (char*));
-  i = 0;
-  for (le = attrs->list_head; NULL != le; le = le->next) {
-    GNUNET_asprintf (&policy, "%s_%lu",
-                     le->claim->name,
-                     le->claim->version);
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Recreating key with %s\n", policy);
-    attr_arr[i] = policy;
-    i++;
-  }
-  attr_arr[i] = NULL;
-  rp_key = GNUNET_ABE_cpabe_create_key (rh->abe_key,
-                                        attr_arr);
-
-  //TODO review this wireformat
-  code_record_len = serialize_abe_keyinfo2 (ticket,
-                                            attrs,
-                                            rp_key,
-                                            &ecdhe_privkey,
-                                            &code_record_data);
-  code_record[0].data = code_record_data;
-  code_record[0].data_size = code_record_len;
+  //TODO rename function
+  authz_record_len = serialize_authz_record (ticket,
+                                             attrs,
+                                             &ecdhe_privkey,
+                                             &authz_record_data);
+  code_record[0].data = authz_record_data;
+  code_record[0].data_size = authz_record_len;
   code_record[0].expiration_time = GNUNET_TIME_UNIT_DAYS.rel_value_us;
-  code_record[0].record_type = GNUNET_GNSRECORD_TYPE_ABE_KEY;
+  code_record[0].record_type = GNUNET_GNSRECORD_TYPE_RECLAIM_AUTHZ;
   code_record[0].flags = GNUNET_GNSRECORD_RF_RELATIVE_EXPIRATION;
 
   label = GNUNET_STRINGS_data_to_string_alloc (&ticket->rnd,
                                                sizeof (uint64_t));
   //Publish record
-  rh->ns_qe = GNUNET_NAMESTORE_records_store (ns_handle,
+  rh->ns_qe = GNUNET_NAMESTORE_records_store (nsh,
                                               &rh->identity,
                                               label,
                                               1,
                                               code_record,
                                               &reissue_ticket_cont,
                                               rh);
-  //for (; i > 0; i--)
-  //  GNUNET_free (attr_arr[i-1]);
   GNUNET_free (ecdhe_privkey);
   GNUNET_free (label);
-  GNUNET_free (attr_arr);
-  GNUNET_free (code_record_data);
-  GNUNET_ABE_cpabe_delete_key (rp_key, GNUNET_YES);
+  GNUNET_free (authz_record_data);
 }
 
 
@@ -1446,14 +1185,11 @@ check_attr_cb (void *cls,
                const struct GNUNET_GNSRECORD_Data *rd_old)
 {
   struct TicketRevocationHandle *rh = cls;
+  struct TicketAttributeUpdateEntry *tue;
   struct GNUNET_GNSRECORD_Data rd[1];
   char* buf;
-  char* enc_buf;
-  size_t enc_size;
-  char* rd_buf;
   size_t buf_size;
-  char* policy;
-  uint32_t attr_ver;
+  char* new_label;
 
   rh->ns_qe = NULL;
   if (1 != rd_count) {
@@ -1467,54 +1203,30 @@ check_attr_cb (void *cls,
   rh->attrs->list_head->claim->version++;
   GNUNET_RECLAIM_ATTRIBUTE_serialize (rh->attrs->list_head->claim,
                                       buf);
-  GNUNET_asprintf (&policy, "%s_%lu",
-                   rh->attrs->list_head->claim->name,
-                   rh->attrs->list_head->claim->version);
+  tue = GNUNET_new (struct TicketAttributeUpdateEntry);
+  tue->old_id = rh->attrs->list_head->claim->id;
+  tue->new_id = GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_STRONG,
+                                          UINT64_MAX);
+  GNUNET_CONTAINER_DLL_insert (rh->attr_updates_head,
+                               rh->attr_updates_tail,
+                               tue);
+  rh->attrs->list_head->claim->id = tue->new_id;
+  new_label = GNUNET_STRINGS_data_to_string_alloc (&tue->new_id,
+                                                   sizeof (uint64_t));
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Encrypting with policy %s\n", policy);
-  /**
-   * Encrypt the attribute value and store in namestore
-   */
-  enc_size = GNUNET_ABE_cpabe_encrypt (buf,
-                                       buf_size,
-                                       policy, //Policy
-                                       rh->abe_key,
-                                       (void**)&enc_buf);
-  GNUNET_free (buf);
-  if (GNUNET_SYSERR == enc_size)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Unable to re-encrypt with policy %s\n",
-                policy);
-    GNUNET_free (policy);
-    send_revocation_finished (rh, GNUNET_SYSERR);
-    cleanup_revoke_ticket_handle (rh);
-    return;
-  }
-  GNUNET_free (policy);
-
-  rd[0].data_size = enc_size + sizeof (uint32_t);
-  rd_buf = GNUNET_malloc (rd[0].data_size);
-  attr_ver = htonl (rh->attrs->list_head->claim->version);
-  GNUNET_memcpy (rd_buf,
-                 &attr_ver,
-                 sizeof (uint32_t));
-  GNUNET_memcpy (rd_buf+sizeof (uint32_t),
-                 enc_buf,
-                 enc_size);
-  rd[0].data = rd_buf;
-  rd[0].record_type = GNUNET_GNSRECORD_TYPE_ID_ATTR;
+              "New attr id %s\n", new_label);
+  rd[0].data_size = buf_size;
+  rd[0].data = buf;
+  rd[0].record_type = GNUNET_GNSRECORD_TYPE_RECLAIM_ATTR;
   rd[0].flags = GNUNET_GNSRECORD_RF_RELATIVE_EXPIRATION;
   rd[0].expiration_time = rd_old[0].expiration_time;
-  rh->ns_qe = GNUNET_NAMESTORE_records_store (ns_handle,
+  rh->ns_qe = GNUNET_NAMESTORE_records_store (nsh,
                                               &rh->identity,
-                                              rh->attrs->list_head->claim->name,
+                                              new_label,
                                               1,
                                               rd,
                                               &attr_reenc_cont,
                                               rh);
-  GNUNET_free (enc_buf);
-  GNUNET_free (rd_buf);
 }
 
 
@@ -1526,19 +1238,23 @@ static void
 reenc_next_attribute (void *cls)
 {
   struct TicketRevocationHandle *rh = cls;
+  char *label;
   if (NULL == rh->attrs->list_head)
   {
     revocation_reissue_tickets (rh);
     return;
   }
   /* First check if attribute still exists */
-  rh->ns_qe = GNUNET_NAMESTORE_records_lookup (ns_handle,
+  label = GNUNET_STRINGS_data_to_string_alloc (&rh->attrs->list_head->claim->id,
+                                               sizeof (uint64_t));
+  rh->ns_qe = GNUNET_NAMESTORE_records_lookup (nsh,
                                                &rh->identity,
-                                               rh->attrs->list_head->claim->name,
+                                               label,
                                                &check_attr_error,
                                                rh,
                                                &check_attr_cb,
                                                rh);
+  GNUNET_free (label);
 }
 
 
@@ -1610,21 +1326,6 @@ process_attributes_to_update (void *cls,
 }
 
 
-
-static void
-get_ticket_after_abe_bootstrap (void *cls,
-                                struct GNUNET_ABE_AbeMasterKey *abe_key)
-{
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Finished ABE bootstrap\n");
-  struct TicketRevocationHandle *rh = cls;
-  rh->abe_key = abe_key;
-  TKT_database->get_ticket_attributes (TKT_database->cls,
-                                       &rh->ticket,
-                                       &process_attributes_to_update,
-                                       rh);
-}
-
 static int
 check_revoke_ticket_message(void *cls,
                             const struct RevokeTicketMessage *im)
@@ -1660,7 +1361,13 @@ handle_revoke_ticket_message (void *cls,
   GNUNET_CONTAINER_DLL_insert (idp->revoke_op_head,
                                idp->revoke_op_tail,
                                rh);
-  bootstrap_abe (&rh->identity, &get_ticket_after_abe_bootstrap, rh, GNUNET_NO);
+  /**
+   * TODO replace with GNS storage
+   */
+  TKT_database->get_ticket_attributes (TKT_database->cls,
+                                       &rh->ticket,
+                                       &process_attributes_to_update,
+                                       rh);
   GNUNET_SERVICE_client_continue (idp->client);
 
 }
@@ -1672,7 +1379,7 @@ handle_revoke_ticket_message (void *cls,
 static void
 cleanup_consume_ticket_handle (struct ConsumeTicketHandle *handle)
 {
-  struct ParallelLookup *lu;  
+  struct ParallelLookup *lu;
   struct ParallelLookup *tmp;
   if (NULL != handle->lookup_request)
     GNUNET_GNS_lookup_cancel (handle->lookup_request);
@@ -1688,9 +1395,6 @@ cleanup_consume_ticket_handle (struct ConsumeTicketHandle *handle)
     lu = tmp;
   }
 
-  if (NULL != handle->key)
-    GNUNET_ABE_cpabe_delete_key (handle->key,
-                                 GNUNET_YES);
   if (NULL != handle->attrs)
     GNUNET_RECLAIM_ATTRIBUTE_list_destroy (handle->attrs);
   GNUNET_free (handle);
@@ -1724,10 +1428,7 @@ process_parallel_lookup2 (void *cls, uint32_t rd_count,
   struct ConsumeTicketResultMessage *crm;
   struct GNUNET_MQ_Envelope *env;
   struct GNUNET_RECLAIM_ATTRIBUTE_ClaimListEntry *attr_le;
-  struct GNUNET_TIME_Absolute decrypt_duration;
-  char *data;
   char *data_tmp;
-  ssize_t attr_len;
   size_t attrs_len;
 
   GNUNET_CONTAINER_DLL_remove (handle->parallel_lookups_head,
@@ -1748,39 +1449,22 @@ process_parallel_lookup2 (void *cls, uint32_t rd_count,
   GNUNET_free (parallel_lookup);
   if (1 != rd_count)
     GNUNET_break(0);//TODO
-  if (rd->record_type == GNUNET_GNSRECORD_TYPE_ID_ATTR)
+  if (rd->record_type == GNUNET_GNSRECORD_TYPE_RECLAIM_ATTR)
   {
-    decrypt_duration = GNUNET_TIME_absolute_get ();
-    attr_len = GNUNET_ABE_cpabe_decrypt (rd->data + sizeof (uint32_t),
-                                         rd->data_size - sizeof (uint32_t),
-                                         handle->key,
-                                         (void**)&data);
-    if (GNUNET_SYSERR != attr_len) 
-    {
-      GNUNET_STATISTICS_update (stats,
-                                "abe_decrypt_time_total",
-                                GNUNET_TIME_absolute_get_duration (decrypt_duration).rel_value_us,
-                                GNUNET_YES);
-      GNUNET_STATISTICS_update (stats,
-                                "abe_decrypt_count",
-                                1,
-                                GNUNET_YES);
-
-      attr_le = GNUNET_new (struct GNUNET_RECLAIM_ATTRIBUTE_ClaimListEntry);
-      attr_le->claim = GNUNET_RECLAIM_ATTRIBUTE_deserialize (data,
-                                                             attr_len);
-      attr_le->claim->version = ntohl(*(uint32_t*)rd->data);
-      GNUNET_CONTAINER_DLL_insert (handle->attrs->list_head,
-                                   handle->attrs->list_tail,
-                                   attr_le);
-      GNUNET_free (data);
-    }
+    attr_le = GNUNET_new (struct GNUNET_RECLAIM_ATTRIBUTE_ClaimListEntry);
+    attr_le->claim = GNUNET_RECLAIM_ATTRIBUTE_deserialize (rd->data,
+                                                           rd->data_size);
+    GNUNET_CONTAINER_DLL_insert (handle->attrs->list_head,
+                                 handle->attrs->list_tail,
+                                 attr_le);
   }
   if (NULL != handle->parallel_lookups_head)
     return; //Wait for more
   /* Else we are done */
 
-  /* Store ticket in DB */
+  /** Store ticket in DB
+   * TODO: Store in GNS
+   */
   if (GNUNET_OK != TKT_database->store_ticket (TKT_database->cls,
                                                &handle->ticket,
                                                handle->attrs))
@@ -1839,8 +1523,8 @@ abort_parallel_lookups2 (void *cls)
 
 
 static void
-process_consume_abe_key (void *cls, uint32_t rd_count,
-                         const struct GNUNET_GNSRECORD_Data *rd)
+process_attr_labels (void *cls, uint32_t rd_count,
+                     const struct GNUNET_GNSRECORD_Data *rd)
 {
   struct ConsumeTicketHandle *handle = cls;
   struct GNUNET_HashCode new_key_hash;
@@ -1850,7 +1534,8 @@ process_consume_abe_key (void *cls, uint32_t rd_count,
   struct ParallelLookup *parallel_lookup;
   size_t size;
   char *buf;
-  char *scope;
+  char *attr_lbl;
+  char *lbls;
 
   handle->lookup_request = NULL;
   if (1 != rd_count)
@@ -1872,7 +1557,7 @@ process_consume_abe_key (void *cls, uint32_t rd_count,
   buf = GNUNET_malloc (rd->data_size - sizeof (struct GNUNET_CRYPTO_EcdhePublicKey));
 
   //Calculate symmetric key from ecdh parameters
-  GNUNET_assert (GNUNET_OK == 
+  GNUNET_assert (GNUNET_OK ==
                  GNUNET_CRYPTO_ecdsa_ecdh (&handle->identity,
                                            ecdh_key,
                                            &new_key_hash));
@@ -1889,33 +1574,32 @@ process_consume_abe_key (void *cls, uint32_t rd_count,
               "Decrypted bytes: %zd Expected bytes: %zd\n",
               size, rd->data_size - sizeof (struct GNUNET_CRYPTO_EcdhePublicKey));
   GNUNET_STATISTICS_update (stats,
-                            "abe_key_lookup_time_total",
+                            "reclaim_authz_lookup_time_total",
                             GNUNET_TIME_absolute_get_duration (handle->lookup_start_time).rel_value_us,
                             GNUNET_YES);
   GNUNET_STATISTICS_update (stats,
-                            "abe_key_lookups_count",
+                            "reclaim_authz_lookups_count",
                             1,
                             GNUNET_YES);
-  scopes = GNUNET_strdup (buf);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Scopes %s\n", scopes);
-  handle->key = GNUNET_ABE_cpabe_deserialize_key ((void*)(buf + strlen (scopes) + 1),
-                                                  rd->data_size - sizeof (struct GNUNET_CRYPTO_EcdhePublicKey)
-                                                  - strlen (scopes) - 1);
+  lbls = GNUNET_strdup (buf);
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+              "Attributes found %s\n", lbls);
 
-  for (scope = strtok (scopes, ","); NULL != scope; scope = strtok (NULL, ","))
+  for (attr_lbl = strtok (lbls, ",");
+       NULL != attr_lbl;
+       attr_lbl = strtok (NULL, ","))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Looking up %s\n", scope);
+                "Looking up %s\n", attr_lbl);
     parallel_lookup = GNUNET_new (struct ParallelLookup);
     parallel_lookup->handle = handle;
-    parallel_lookup->label = GNUNET_strdup (scope);
+    parallel_lookup->label = GNUNET_strdup (attr_lbl);
     parallel_lookup->lookup_start_time = GNUNET_TIME_absolute_get();
     parallel_lookup->lookup_request
       = GNUNET_GNS_lookup (gns_handle,
-                           scope,
+                           attr_lbl,
                            &handle->ticket.identity,
-                           GNUNET_GNSRECORD_TYPE_ID_ATTR,
+                           GNUNET_GNSRECORD_TYPE_RECLAIM_ATTR,
                            GNUNET_GNS_LO_DEFAULT,
                            &process_parallel_lookup2,
                            parallel_lookup);
@@ -1923,7 +1607,7 @@ process_consume_abe_key (void *cls, uint32_t rd_count,
                                  handle->parallel_lookups_tail,
                                  parallel_lookup);
   }
-  GNUNET_free (scopes);
+  GNUNET_free (lbls);
   GNUNET_free (buf);
   handle->kill_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MINUTES,3),
                                                     &abort_parallel_lookups2,
@@ -1956,9 +1640,9 @@ handle_consume_ticket_message (void *cls,
     = GNUNET_GNS_lookup (gns_handle,
                          rnd_label,
                          &ch->ticket.identity,
-                         GNUNET_GNSRECORD_TYPE_ABE_KEY,
+                         GNUNET_GNSRECORD_TYPE_RECLAIM_AUTHZ,
                          GNUNET_GNS_LO_DEFAULT,
-                         &process_consume_abe_key,
+                         &process_attr_labels,
                          ch);
   GNUNET_CONTAINER_DLL_insert (idp->consume_op_head,
                                idp->consume_op_tail,
@@ -1973,15 +1657,13 @@ handle_consume_ticket_message (void *cls,
  * @param handle handle to clean up
  */
 static void
-cleanup_as_handle (struct AttributeStoreHandle *handle)
+cleanup_as_handle (struct AttributeStoreHandle *ash)
 {
-  if (NULL != handle->ns_qe)
-    GNUNET_NAMESTORE_cancel (handle->ns_qe);
-  if (NULL != handle->claim)
-    GNUNET_free (handle->claim);
-  if (NULL != handle->abe_key)
-    GNUNET_ABE_cpabe_delete_master_key (handle->abe_key);
-  GNUNET_free (handle);
+  if (NULL != ash->ns_qe)
+    GNUNET_NAMESTORE_cancel (ash->ns_qe);
+  if (NULL != ash->claim)
+    GNUNET_free (ash->claim);
+  GNUNET_free (ash);
 }
 
 static void
@@ -1989,21 +1671,21 @@ attr_store_cont (void *cls,
                  int32_t success,
                  const char *emsg)
 {
-  struct AttributeStoreHandle *as_handle = cls;
+  struct AttributeStoreHandle *ash = cls;
   struct GNUNET_MQ_Envelope *env;
   struct AttributeStoreResultMessage *acr_msg;
 
-  as_handle->ns_qe = NULL;
-  GNUNET_CONTAINER_DLL_remove (as_handle->client->store_op_head,
-                               as_handle->client->store_op_tail,
-                               as_handle);
+  ash->ns_qe = NULL;
+  GNUNET_CONTAINER_DLL_remove (ash->client->store_op_head,
+                               ash->client->store_op_tail,
+                               ash);
 
   if (GNUNET_SYSERR == success)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Failed to store attribute %s\n",
                 emsg);
-    cleanup_as_handle (as_handle);
+    cleanup_as_handle (ash);
     GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
     return;
   }
@@ -2012,100 +1694,56 @@ attr_store_cont (void *cls,
               "Sending ATTRIBUTE_STORE_RESPONSE message\n");
   env = GNUNET_MQ_msg (acr_msg,
                        GNUNET_MESSAGE_TYPE_RECLAIM_ATTRIBUTE_STORE_RESPONSE);
-  acr_msg->id = htonl (as_handle->r_id);
+  acr_msg->id = htonl (ash->r_id);
   acr_msg->op_result = htonl (GNUNET_OK);
-  GNUNET_MQ_send (as_handle->client->mq,
+  GNUNET_MQ_send (ash->client->mq,
                   env);
-  cleanup_as_handle (as_handle);
+  cleanup_as_handle (ash);
 }
 
+/**
+ * Adds a new attribute
+ *
+ * @param cls the AttributeStoreHandle
+ */
 static void
 attr_store_task (void *cls)
 {
-  struct AttributeStoreHandle *as_handle = cls;
+  struct AttributeStoreHandle *ash = cls;
   struct GNUNET_GNSRECORD_Data rd[1];
   char* buf;
-  char* policy;
-  char* enc_buf;
-  char* rd_buf;
-  size_t enc_size;
+  char* label;
   size_t buf_size;
-  uint32_t attr_ver;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Storing attribute\n");
-  buf_size = GNUNET_RECLAIM_ATTRIBUTE_serialize_get_size (as_handle->claim);
+  buf_size = GNUNET_RECLAIM_ATTRIBUTE_serialize_get_size (ash->claim);
   buf = GNUNET_malloc (buf_size);
-
-  GNUNET_RECLAIM_ATTRIBUTE_serialize (as_handle->claim,
+  //Give the ash a new id
+  ash->claim->id = GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_STRONG,
+                                             UINT64_MAX);
+  GNUNET_RECLAIM_ATTRIBUTE_serialize (ash->claim,
                                       buf);
-
-  GNUNET_asprintf (&policy,
-                   "%s_%lu",
-                   as_handle->claim->name,
-                   as_handle->claim->version);
+  label = GNUNET_STRINGS_data_to_string_alloc (&ash->claim->id,
+                                               sizeof (uint64_t));
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Encrypting with policy %s\n", policy);
-  /**
-   * Encrypt the attribute value and store in namestore
-   */
-  enc_size = GNUNET_ABE_cpabe_encrypt (buf,
-                                       buf_size,
-                                       policy, //Policy
-                                       as_handle->abe_key,
-                                       (void**)&enc_buf);
-  if (GNUNET_SYSERR == enc_size)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Failed to encrypt with policy %s\n",
-                policy);
-    GNUNET_CONTAINER_DLL_remove (as_handle->client->store_op_head,
-                                 as_handle->client->store_op_tail,
-                                 as_handle);
+              "Encrypting with label %s\n", label);
 
-    cleanup_as_handle (as_handle);
-    GNUNET_free (buf);
-    GNUNET_free (policy);
-    GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
-    return;
-  }
-  GNUNET_free (buf);
-  GNUNET_free (policy);
-  rd[0].data_size = enc_size + sizeof (uint32_t);
-  rd_buf = GNUNET_malloc (rd[0].data_size);
-  attr_ver = htonl (as_handle->claim->version);
-  GNUNET_memcpy (rd_buf,
-                 &attr_ver,
-                 sizeof (uint32_t));
-  GNUNET_memcpy (rd_buf+sizeof (uint32_t),
-                 enc_buf,
-                 enc_size);
-  rd[0].data = rd_buf;
-  rd[0].record_type = GNUNET_GNSRECORD_TYPE_ID_ATTR;
+  rd[0].data_size = buf_size;
+  rd[0].data = buf;
+  rd[0].record_type = GNUNET_GNSRECORD_TYPE_RECLAIM_ATTR;
   rd[0].flags = GNUNET_GNSRECORD_RF_RELATIVE_EXPIRATION;
-  rd[0].expiration_time = as_handle->exp.rel_value_us;
-  as_handle->ns_qe = GNUNET_NAMESTORE_records_store (ns_handle,
-                                                     &as_handle->identity,
-                                                     as_handle->claim->name,
-                                                     1,
-                                                     rd,
-                                                     &attr_store_cont,
-                                                     as_handle);
-  GNUNET_free (enc_buf);
-  GNUNET_free (rd_buf);
+  rd[0].expiration_time = ash->exp.rel_value_us;
+  ash->ns_qe = GNUNET_NAMESTORE_records_store (nsh,
+                                               &ash->identity,
+                                               label,
+                                               1,
+                                               rd,
+                                               &attr_store_cont,
+                                               ash);
+  GNUNET_free (buf);
 }
 
-
-static void
-store_after_abe_bootstrap (void *cls,
-                           struct GNUNET_ABE_AbeMasterKey *abe_key)
-{
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Finished ABE bootstrap\n");
-  struct AttributeStoreHandle *ash = cls;
-  ash->abe_key = abe_key;
-  GNUNET_SCHEDULER_add_now (&attr_store_task, ash);
-}
 
 static int
 check_attribute_store_message(void *cls,
@@ -2127,7 +1765,7 @@ static void
 handle_attribute_store_message (void *cls,
                                 const struct AttributeStoreMessage *sam)
 {
-  struct AttributeStoreHandle *as_handle;
+  struct AttributeStoreHandle *ash;
   struct IdpClient *idp = cls;
   size_t data_len;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -2135,29 +1773,27 @@ handle_attribute_store_message (void *cls,
 
   data_len = ntohs (sam->attr_len);
 
-  as_handle = GNUNET_new (struct AttributeStoreHandle);
-  as_handle->claim = GNUNET_RECLAIM_ATTRIBUTE_deserialize ((char*)&sam[1],
+  ash = GNUNET_new (struct AttributeStoreHandle);
+  ash->claim = GNUNET_RECLAIM_ATTRIBUTE_deserialize ((char*)&sam[1],
                                                            data_len);
 
-  as_handle->r_id = ntohl (sam->id);
-  as_handle->identity = sam->identity;
-  as_handle->exp.rel_value_us = GNUNET_ntohll (sam->exp);
+  ash->r_id = ntohl (sam->id);
+  ash->identity = sam->identity;
+  ash->exp.rel_value_us = GNUNET_ntohll (sam->exp);
   GNUNET_CRYPTO_ecdsa_key_get_public (&sam->identity,
-                                      &as_handle->identity_pkey);
+                                      &ash->identity_pkey);
 
   GNUNET_SERVICE_client_continue (idp->client);
-  as_handle->client = idp;
+  ash->client = idp;
   GNUNET_CONTAINER_DLL_insert (idp->store_op_head,
                                idp->store_op_tail,
-                               as_handle);
-  bootstrap_abe (&as_handle->identity, &store_after_abe_bootstrap, as_handle, GNUNET_NO);
+                               ash);
+  GNUNET_SCHEDULER_add_now (&attr_store_task, ash);
 }
 
 static void
 cleanup_attribute_iter_handle (struct AttributeIterator *ai)
 {
-  if (NULL != ai->abe_key)
-    GNUNET_ABE_cpabe_delete_master_key (ai->abe_key);
   GNUNET_free (ai);
 }
 
@@ -2165,7 +1801,6 @@ static void
 attr_iter_error (void *cls)
 {
   struct AttributeIterator *ai = cls;
-  //TODO
   GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
               "Failed to iterate over attributes\n");
   GNUNET_CONTAINER_DLL_remove (ai->client->attr_iter_head,
@@ -2202,14 +1837,8 @@ attr_iter_cb (void *cls,
 {
   struct AttributeIterator *ai = cls;
   struct AttributeResultMessage *arm;
-  struct GNUNET_ABE_AbeKey *key;
   struct GNUNET_MQ_Envelope *env;
-  ssize_t msg_extra_len;
-  char* attr_ser;
-  char* attrs[2];
   char* data_tmp;
-  char* policy;
-  uint32_t attr_ver;
 
   if (rd_count != 1)
   {
@@ -2218,80 +1847,27 @@ attr_iter_cb (void *cls,
     return;
   }
 
-  if (GNUNET_GNSRECORD_TYPE_ID_ATTR != rd->record_type)
+  if (GNUNET_GNSRECORD_TYPE_RECLAIM_ATTR != rd->record_type)
   {
     GNUNET_NAMESTORE_zone_iterator_next (ai->ns_it,
                                          1);
     return;
   }
-  attr_ver = ntohl(*((uint32_t*)rd->data));
-  GNUNET_asprintf (&policy, "%s_%lu",
-                   label, attr_ver);
-  attrs[0] = policy;
-  attrs[1] = 0;
-  key = GNUNET_ABE_cpabe_create_key (ai->abe_key,
-                                     attrs);
-  msg_extra_len = GNUNET_ABE_cpabe_decrypt (rd->data+sizeof (uint32_t),
-                                            rd->data_size-sizeof (uint32_t),
-                                            key,
-                                            (void**)&attr_ser);
-  if (GNUNET_SYSERR == msg_extra_len)
-  {
-    GNUNET_NAMESTORE_zone_iterator_next (ai->ns_it,
-                                         1);
-    return;
-  }
-
-  GNUNET_ABE_cpabe_delete_key (key,
-                               GNUNET_YES);
-  //GNUNET_free (policy);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Found attribute: %s\n", label);
+              "Found attribute under: %s\n", label);
   env = GNUNET_MQ_msg_extra (arm,
-                             msg_extra_len,
+                             rd->data_size,
                              GNUNET_MESSAGE_TYPE_RECLAIM_ATTRIBUTE_RESULT);
   arm->id = htonl (ai->request_id);
-  arm->attr_len = htons (msg_extra_len);
+  arm->attr_len = htons (rd->data_size);
   GNUNET_CRYPTO_ecdsa_key_get_public (zone,
                                       &arm->identity);
   data_tmp = (char *) &arm[1];
   GNUNET_memcpy (data_tmp,
-                 attr_ser,
-                 msg_extra_len);
+                 rd->data,
+                 rd->data_size);
   GNUNET_MQ_send (ai->client->mq, env);
-  GNUNET_free (attr_ser);
-  GNUNET_ABE_cpabe_delete_master_key (ai->abe_key);
-  ai->abe_key = NULL;
 }
-
-
-void
-iterate_after_abe_bootstrap (void *cls,
-                             struct GNUNET_ABE_AbeMasterKey *abe_key)
-{
-  struct AttributeIterator *ai = cls;
-  ai->abe_key = abe_key;
-  ai->ns_it = GNUNET_NAMESTORE_zone_iteration_start (ns_handle,
-                                                     &ai->identity,
-                                                     &attr_iter_error,
-                                                     ai,
-                                                     &attr_iter_cb,
-                                                     ai,
-                                                     &attr_iter_finished,
-                                                     ai);
-}
-
-
-static void
-iterate_next_after_abe_bootstrap (void *cls,
-                                  struct GNUNET_ABE_AbeMasterKey *abe_key)
-{
-  struct AttributeIterator *ai = cls;
-  ai->abe_key = abe_key;
-  GNUNET_NAMESTORE_zone_iterator_next (ai->ns_it,
-                                       1);
-}
-
 
 
 static void
@@ -2311,7 +1887,14 @@ handle_iteration_start (void *cls,
   GNUNET_CONTAINER_DLL_insert (idp->attr_iter_head,
                                idp->attr_iter_tail,
                                ai);
-  bootstrap_abe (&ai->identity, &iterate_after_abe_bootstrap, ai, GNUNET_NO);
+  ai->ns_it = GNUNET_NAMESTORE_zone_iteration_start (nsh,
+                                                     &ai->identity,
+                                                     &attr_iter_error,
+                                                     ai,
+                                                     &attr_iter_cb,
+                                                     ai,
+                                                     &attr_iter_finished,
+                                                     ai);
   GNUNET_SERVICE_client_continue (idp->client);
 }
 
@@ -2365,10 +1948,8 @@ handle_iteration_next (void *cls,
     GNUNET_SERVICE_client_drop (idp->client);
     return;
   }
-  bootstrap_abe (&ai->identity,
-                 &iterate_next_after_abe_bootstrap,
-                 ai,
-                 GNUNET_NO);
+  GNUNET_NAMESTORE_zone_iterator_next (ai->ns_it,
+                                       1);
   GNUNET_SERVICE_client_continue (idp->client);
 }
 
@@ -2586,7 +2167,7 @@ handle_ticket_iteration_next (void *cls,
  * Main function that will be run
  *
  * @param cls closure
- * @param c the configuration used 
+ * @param c the configuration used
  * @param server the service handle
  */
 static void
@@ -2600,8 +2181,8 @@ run (void *cls,
   stats = GNUNET_STATISTICS_create ("reclaim", cfg);
 
   //Connect to identity and namestore services
-  ns_handle = GNUNET_NAMESTORE_connect (cfg);
-  if (NULL == ns_handle)
+  nsh = GNUNET_NAMESTORE_connect (cfg);
+  if (NULL == nsh)
   {
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "error connecting to namestore");
   }
@@ -2771,15 +2352,15 @@ GNUNET_SERVICE_MAIN
                         GNUNET_MESSAGE_TYPE_RECLAIM_ATTRIBUTE_STORE,
                         struct AttributeStoreMessage,
                         NULL),
- GNUNET_MQ_hd_fixed_size (iteration_start, 
+ GNUNET_MQ_hd_fixed_size (iteration_start,
                           GNUNET_MESSAGE_TYPE_RECLAIM_ATTRIBUTE_ITERATION_START,
                           struct AttributeIterationStartMessage,
                           NULL),
- GNUNET_MQ_hd_fixed_size (iteration_next, 
+ GNUNET_MQ_hd_fixed_size (iteration_next,
                           GNUNET_MESSAGE_TYPE_RECLAIM_ATTRIBUTE_ITERATION_NEXT,
                           struct AttributeIterationNextMessage,
                           NULL),
- GNUNET_MQ_hd_fixed_size (iteration_stop, 
+ GNUNET_MQ_hd_fixed_size (iteration_stop,
                           GNUNET_MESSAGE_TYPE_RECLAIM_ATTRIBUTE_ITERATION_STOP,
                           struct AttributeIterationStopMessage,
                           NULL),
@@ -2791,15 +2372,15 @@ GNUNET_SERVICE_MAIN
                         GNUNET_MESSAGE_TYPE_RECLAIM_CONSUME_TICKET,
                         struct ConsumeTicketMessage,
                         NULL),
- GNUNET_MQ_hd_fixed_size (ticket_iteration_start, 
+ GNUNET_MQ_hd_fixed_size (ticket_iteration_start,
                           GNUNET_MESSAGE_TYPE_RECLAIM_TICKET_ITERATION_START,
                           struct TicketIterationStartMessage,
                           NULL),
- GNUNET_MQ_hd_fixed_size (ticket_iteration_next, 
+ GNUNET_MQ_hd_fixed_size (ticket_iteration_next,
                           GNUNET_MESSAGE_TYPE_RECLAIM_TICKET_ITERATION_NEXT,
                           struct TicketIterationNextMessage,
                           NULL),
- GNUNET_MQ_hd_fixed_size (ticket_iteration_stop, 
+ GNUNET_MQ_hd_fixed_size (ticket_iteration_stop,
                           GNUNET_MESSAGE_TYPE_RECLAIM_TICKET_ITERATION_STOP,
                           struct TicketIterationStopMessage,
                           NULL),

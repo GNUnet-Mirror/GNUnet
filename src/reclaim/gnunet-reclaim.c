@@ -11,7 +11,7 @@
    WITHOUT ANY WARRANTY; without even the implied warranty of
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
    Affero General Public License for more details.
-  
+
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -219,7 +219,8 @@ process_attrs (void *cls,
                                                         attr->data_size);
   attr_type = GNUNET_RECLAIM_ATTRIBUTE_number_to_typename (attr->type);
   fprintf (stdout,
-           "%s: %s [%s,v%u]\n", attr->name, value_str, attr_type, attr->version);
+           "%s: %s [%s,v%u,id=%lu]\n",
+           attr->name, value_str, attr_type, attr->version, attr->id);
 }
 
 
@@ -373,13 +374,14 @@ iter_cb (void *cls,
                                                       attr->data,
                                                       attr->data_size);
       le->claim->version = attr->version;
+      le->claim->id = attr->id;
       GNUNET_CONTAINER_DLL_insert (attr_list->list_head,
                                    attr_list->list_tail,
                                    le);
       break;
     }
     GNUNET_free (attrs_tmp);
-  } 
+  }
   else if (list)
   {
     attr_str = GNUNET_RECLAIM_ATTRIBUTE_value_to_string (attr->type,
@@ -387,7 +389,8 @@ iter_cb (void *cls,
                                                          attr->data_size);
     attr_type = GNUNET_RECLAIM_ATTRIBUTE_number_to_typename (attr->type);
     fprintf (stdout,
-             "%s: %s [%s,v%u]\n", attr->name, attr_str, attr_type, attr->version);
+             "%s: %s [%s,v%u,id=%lu]\n",
+             attr->name, attr_str, attr_type, attr->version, attr->id);
   }
   GNUNET_RECLAIM_get_attributes_next (attr_iterator);
 }

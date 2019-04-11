@@ -11,7 +11,7 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -59,10 +59,9 @@ extern "C"
 struct GNUNET_RECLAIM_ATTRIBUTE_Claim
 {
   /**
-   * The name of the attribute. Note "name" must never be individually
-   * free'd
+   * ID
    */
-  const char* name;
+  uint64_t id;
 
   /**
    * Type of Claim
@@ -73,6 +72,11 @@ struct GNUNET_RECLAIM_ATTRIBUTE_Claim
    * Version
    */
   uint32_t version;
+  /**
+   * The name of the attribute. Note "name" must never be individually
+   * free'd
+   */
+  const char* name;
 
   /**
    * Number of bytes in @e data.
@@ -130,9 +134,9 @@ struct GNUNET_RECLAIM_ATTRIBUTE_ClaimListEntry
  */
 struct GNUNET_RECLAIM_ATTRIBUTE_Claim *
 GNUNET_RECLAIM_ATTRIBUTE_claim_new (const char* attr_name,
-                                     uint32_t type,
-                                     const void* data,
-                                     size_t data_size);
+                                    uint32_t type,
+                                    const void* data,
+                                    size_t data_size);
 
 
 /**
@@ -150,10 +154,10 @@ GNUNET_RECLAIM_ATTRIBUTE_list_destroy (struct GNUNET_RECLAIM_ATTRIBUTE_ClaimList
 
 void
 GNUNET_RECLAIM_ATTRIBUTE_list_add (struct GNUNET_RECLAIM_ATTRIBUTE_ClaimList *attrs,
-				    const char* attr_name,
-				    uint32_t type,
-				    const void* data,
-				    size_t data_size);
+                                   const char* attr_name,
+                                   uint32_t type,
+                                   const void* data,
+                                   size_t data_size);
 
 /**
  * Serialize an attribute list
@@ -165,7 +169,7 @@ GNUNET_RECLAIM_ATTRIBUTE_list_add (struct GNUNET_RECLAIM_ATTRIBUTE_ClaimList *at
  */
 size_t
 GNUNET_RECLAIM_ATTRIBUTE_list_serialize (const struct GNUNET_RECLAIM_ATTRIBUTE_ClaimList *attrs,
-                     char *result);
+                                         char *result);
 
 /**
  * Deserialize an attribute list
@@ -177,7 +181,7 @@ GNUNET_RECLAIM_ATTRIBUTE_list_serialize (const struct GNUNET_RECLAIM_ATTRIBUTE_C
  */
 struct GNUNET_RECLAIM_ATTRIBUTE_ClaimList *
 GNUNET_RECLAIM_ATTRIBUTE_list_deserialize (const char* data,
-                            size_t data_size);
+                                           size_t data_size);
 
 
 /**
@@ -202,7 +206,7 @@ GNUNET_RECLAIM_ATTRIBUTE_serialize_get_size (const struct GNUNET_RECLAIM_ATTRIBU
  */
 size_t
 GNUNET_RECLAIM_ATTRIBUTE_serialize (const struct GNUNET_RECLAIM_ATTRIBUTE_Claim *attr,
-                     char *result);
+                                    char *result);
 
 /**
  * Deserialize an attribute
@@ -214,7 +218,7 @@ GNUNET_RECLAIM_ATTRIBUTE_serialize (const struct GNUNET_RECLAIM_ATTRIBUTE_Claim 
  */
 struct GNUNET_RECLAIM_ATTRIBUTE_Claim *
 GNUNET_RECLAIM_ATTRIBUTE_deserialize (const char* data,
-                       size_t data_size);
+                                      size_t data_size);
 
 struct GNUNET_RECLAIM_ATTRIBUTE_ClaimList*
 GNUNET_RECLAIM_ATTRIBUTE_list_dup (const struct GNUNET_RECLAIM_ATTRIBUTE_ClaimList *attrs);
@@ -240,9 +244,9 @@ GNUNET_RECLAIM_ATTRIBUTE_typename_to_number (const char *typename);
  */
 int
 GNUNET_RECLAIM_ATTRIBUTE_string_to_value (uint32_t type,
-                                           const char *s,
-                                           void **data,
-                                           size_t *data_size);
+                                          const char *s,
+                                          void **data,
+                                          size_t *data_size);
 
 /**
  * Convert the 'claim' of an attribute to a string
@@ -254,8 +258,8 @@ GNUNET_RECLAIM_ATTRIBUTE_string_to_value (uint32_t type,
  */
 char *
 GNUNET_RECLAIM_ATTRIBUTE_value_to_string (uint32_t type,
-                                           const void* data,
-                                           size_t data_size);
+                                          const void* data,
+                                          size_t data_size);
 
 /**
  * Convert a type number to the corresponding type string
