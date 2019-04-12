@@ -30,6 +30,19 @@
 #include "gnunet_signatures.h"
 #include "reclaim.h"
 
+struct RECLAIM_TICKETS_Iterator;
+
+/**
+ * Continuation called with ticket.
+ *
+ * @param cls closure
+ * @param ticket the ticket
+ */
+typedef void
+(*RECLAIM_TICKETS_TicketIter) (void *cls,
+                                 struct GNUNET_RECLAIM_Ticket *ticket);
+
+
 /**
  * Continuation called with ticket.
  *
@@ -59,5 +72,23 @@ RECLAIM_TICKETS_issue_ticket (const struct GNUNET_CRYPTO_EcdsaPrivateKey *identi
                               RECLAIM_TICKETS_TicketResult cb,
                               void* cb_cls);
 
+void
+RECLAIM_TICKETS_iteration_next (struct RECLAIM_TICKETS_Iterator *iter);
+
+
+void
+RECLAIM_TICKETS_iteration_stop (struct RECLAIM_TICKETS_Iterator *iter);
+
+
+struct RECLAIM_TICKETS_Iterator*
+RECLAIM_TICKETS_iteration_start (const struct GNUNET_CRYPTO_EcdsaPrivateKey *identity,
+                                 RECLAIM_TICKETS_TicketIter cb,
+                                 void* cb_cls);
+
+
 int
 RECLAIM_TICKETS_init (const struct GNUNET_CONFIGURATION_Handle *c);
+
+void
+RECLAIM_TICKETS_deinit (void);
+

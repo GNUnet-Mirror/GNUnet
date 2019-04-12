@@ -135,29 +135,14 @@ struct TicketIteration
   struct IdpClient *client;
 
   /**
-   * Key of the identity we are iterating over.
-   */
-  struct GNUNET_CRYPTO_EcdsaPublicKey identity;
-
-  /**
-   * Identity is audience
-   */
-  uint32_t is_audience;
-
-  /**
    * The operation id fot the iteration in the response for the client
    */
   uint32_t r_id;
 
   /**
-   * Offset of the iteration used to address next result of the
-   * iteration in the store
-   *
-   * Initialy set to 0 in handle_iteration_start
-   * Incremented with by every call to handle_iteration_next
+   * The ticket iterator
    */
-  uint32_t offset;
-
+  struct RECLAIM_TICKETS_Iterator *iter;
 };
 
 
@@ -592,6 +577,7 @@ cleanup()
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Cleaning up\n");
 
+  RECLAIM_TICKETS_deinit ();
   if (NULL != stats)
   {
     GNUNET_STATISTICS_destroy (stats, GNUNET_NO);
@@ -1870,134 +1856,32 @@ handle_iteration_next (void *cls,
   GNUNET_SERVICE_client_continue (idp->client);
 }
 
-/**
- * Ticket iteration processor result
- */
-enum ZoneIterationResult
-{
-  /**
-   * Iteration start.
-   */
-  IT_START = 0,
-
-  /**
-   * Found tickets,
-   * Continue to iterate with next iteration_next call
-   */
-  IT_SUCCESS_MORE_AVAILABLE = 1,
-
-  /**
-   * Iteration complete
-   */
-  IT_SUCCESS_NOT_MORE_RESULTS_AVAILABLE = 2
-};
-
-
-/**
- * Context for ticket iteration
- */
-struct TicketIterationProcResult
-{
-  /**
-   * The ticket iteration handle
-   */
-  struct TicketIteration *ti;
-
-  /**
-   * Iteration result: iteration done?
-   * #IT_SUCCESS_MORE_AVAILABLE:  if there may be more results overall but
-   * we got one for now and have sent it to the client
-   * #IT_SUCCESS_NOT_MORE_RESULTS_AVAILABLE: if there are no further results,
-   * #IT_START: if we are still trying to find a result.
-   */
-  int res_iteration_finished;
-
-};
-
 static void
-cleanup_ticket_iter_handle (struct TicketIteration *ti)
+ticket_iter_cb (void *cls,
+                struct GNUNET_RECLAIM_Ticket *ticket)
 {
-  GNUNET_free (ti);
-}
-
-/**
- * Process ticket from database
- *
- * @param cls struct TicketIterationProcResult
- * @param ticket the ticket
- * @param attrs the attributes
- */
-static void
-ticket_iterate_proc (void *cls,
-                     const struct GNUNET_RECLAIM_Ticket *ticket,
-                     const struct GNUNET_RECLAIM_ATTRIBUTE_ClaimList *attrs)
-{
-  struct TicketIterationProcResult *proc = cls;
+  struct TicketIteration *ti = cls;
+  struct GNUNET_MQ_Envelope *env;
+  struct TicketResultMessage *trm;
 
   if (NULL == ticket)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Iteration done\n");
-    proc->res_iteration_finished = IT_SUCCESS_NOT_MORE_RESULTS_AVAILABLE;
-    return;
+    /* send empty response to indicate end of list */
+    env = GNUNET_MQ_msg (trm,
+                         GNUNET_MESSAGE_TYPE_RECLAIM_TICKET_RESULT);
+    GNUNET_CONTAINER_DLL_remove (ti->client->ticket_iter_head,
+                                 ti->client->ticket_iter_tail,
+                                 ti);
+  } else {
+    env = GNUNET_MQ_msg_extra (trm,
+                               sizeof (struct GNUNET_RECLAIM_Ticket),
+                               GNUNET_MESSAGE_TYPE_RECLAIM_TICKET_RESULT);
   }
-  proc->res_iteration_finished = IT_SUCCESS_MORE_AVAILABLE;
-  send_ticket_result (proc->ti->client,
-                      proc->ti->r_id,
-                      ticket,
-                      GNUNET_OK);
-
-}
-
-/**
- * Perform ticket iteration step
- *
- * @param ti ticket iterator to process
- */
-static void
-run_ticket_iteration_round (struct TicketIteration *ti)
-{
-  struct TicketIterationProcResult proc;
-  struct GNUNET_MQ_Envelope *env;
-  struct TicketResultMessage *trm;
-  int ret;
-
-  memset (&proc, 0, sizeof (proc));
-  proc.ti = ti;
-  proc.res_iteration_finished = IT_START;
-  while (IT_START == proc.res_iteration_finished)
-  {
-    if (GNUNET_SYSERR ==
-        (ret = TKT_database->iterate_tickets (TKT_database->cls,
-                                              &ti->identity,
-                                              ti->is_audience,
-                                              ti->offset,
-                                              &ticket_iterate_proc,
-                                              &proc)))
-    {
-      GNUNET_break (0);
-      break;
-    }
-    if (GNUNET_NO == ret)
-      proc.res_iteration_finished = IT_SUCCESS_NOT_MORE_RESULTS_AVAILABLE;
-    ti->offset++;
-  }
-  if (IT_SUCCESS_MORE_AVAILABLE == proc.res_iteration_finished)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "More results available\n");
-    return; /* more later */
-  }
-  /* send empty response to indicate end of list */
-  env = GNUNET_MQ_msg (trm,
-                       GNUNET_MESSAGE_TYPE_RECLAIM_TICKET_RESULT);
   trm->id = htonl (ti->r_id);
   GNUNET_MQ_send (ti->client->mq,
                   env);
-  GNUNET_CONTAINER_DLL_remove (ti->client->ticket_iter_head,
-                               ti->client->ticket_iter_tail,
-                               ti);
-  cleanup_ticket_iter_handle (ti);
+  if (NULL == ticket)
+    GNUNET_free (ti);
 }
 
 static void
@@ -2011,15 +1895,14 @@ handle_ticket_iteration_start (void *cls,
               "Received TICKET_ITERATION_START message\n");
   ti = GNUNET_new (struct TicketIteration);
   ti->r_id = ntohl (tis_msg->id);
-  ti->offset = 0;
   ti->client = client;
-  ti->identity = tis_msg->identity;
-  ti->is_audience = ntohl (tis_msg->is_audience);
 
   GNUNET_CONTAINER_DLL_insert (client->ticket_iter_head,
                                client->ticket_iter_tail,
                                ti);
-  run_ticket_iteration_round (ti);
+  ti->iter = RECLAIM_TICKETS_iteration_start (&tis_msg->identity,
+                                              &ticket_iter_cb,
+                                              ti);
   GNUNET_SERVICE_client_continue (client->client);
 }
 
@@ -2045,10 +1928,11 @@ handle_ticket_iteration_stop (void *cls,
     GNUNET_SERVICE_client_drop (client->client);
     return;
   }
+  RECLAIM_TICKETS_iteration_stop (ti->iter);
   GNUNET_CONTAINER_DLL_remove (client->ticket_iter_head,
                                client->ticket_iter_tail,
                                ti);
-  cleanup_ticket_iter_handle (ti);
+  GNUNET_free (ti);
   GNUNET_SERVICE_client_continue (client->client);
 }
 
@@ -2073,7 +1957,7 @@ handle_ticket_iteration_next (void *cls,
     GNUNET_SERVICE_client_drop (client->client);
     return;
   }
-  run_ticket_iteration_round (ti);
+  RECLAIM_TICKETS_iteration_next (ti->iter);
   GNUNET_SERVICE_client_continue (client->client);
 }
 
@@ -2226,7 +2110,7 @@ client_disconnect_cb (void *cls,
     GNUNET_CONTAINER_DLL_remove (idp->ticket_iter_head,
                                  idp->ticket_iter_tail,
                                  ti);
-    cleanup_ticket_iter_handle (ti);
+    GNUNET_free (ti);
   }
   GNUNET_free (idp);
 }

@@ -11,7 +11,7 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -76,7 +76,7 @@ struct AttributeStoreResultMessage
    * Message header
    */
   struct GNUNET_MessageHeader header;
-  
+
   /**
    * Unique identifier for this request (for key collisions).
    */
@@ -201,12 +201,8 @@ struct TicketIterationStartMessage
   /**
    * Identity.
    */
-  struct GNUNET_CRYPTO_EcdsaPublicKey identity;
+  struct GNUNET_CRYPTO_EcdsaPrivateKey identity;
 
-  /**
-   * Identity is audience or issuer
-   */
-  uint32_t is_audience GNUNET_PACKED;
 };
 
 

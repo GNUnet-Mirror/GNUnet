@@ -1192,69 +1192,6 @@ GNUNET_RECLAIM_ticket_iteration_start (struct GNUNET_RECLAIM_Handle *h,
                                                  void *finish_cb_cls)
 {
   struct GNUNET_RECLAIM_TicketIterator *it;
-  struct GNUNET_CRYPTO_EcdsaPublicKey identity_pub;
-  struct GNUNET_MQ_Envelope *env;
-  struct TicketIterationStartMessage *msg;
-  uint32_t rid;
-
-  GNUNET_CRYPTO_ecdsa_key_get_public (identity,
-                                      &identity_pub);
-  rid = h->r_id_gen++;
-  it = GNUNET_new (struct GNUNET_RECLAIM_TicketIterator);
-  it->h = h;
-  it->error_cb = error_cb;
-  it->error_cb_cls = error_cb_cls;
-  it->finish_cb = finish_cb;
-  it->finish_cb_cls = finish_cb_cls;
-  it->tr_cb = proc;
-  it->cls = proc_cls;
-  it->r_id = rid;
-  GNUNET_CONTAINER_DLL_insert_tail (h->ticket_it_head,
-                                    h->ticket_it_tail,
-                                    it);
-  env = GNUNET_MQ_msg (msg,
-                       GNUNET_MESSAGE_TYPE_RECLAIM_TICKET_ITERATION_START);
-  msg->id = htonl (rid);
-  msg->identity = identity_pub;
-  msg->is_audience = htonl (GNUNET_NO);
-  if (NULL == h->mq)
-    it->env = env;
-  else
-    GNUNET_MQ_send (h->mq,
-                    env);
-  return it;
-
-}
-
-
-/**
- * Lists all tickets that have been issued to remote
- * identites (relying parties)
- *
- * @param h the reclaim to use
- * @param identity the issuing identity
- * @param error_cb function to call on error (i.e. disconnect),
- *        the handle is afterwards invalid
- * @param error_cb_cls closure for @a error_cb
- * @param proc function to call on each ticket; it
- *        will be called repeatedly with a value (if available)
- * @param proc_cls closure for @a proc
- * @param finish_cb function to call on completion
- *        the handle is afterwards invalid
- * @param finish_cb_cls closure for @a finish_cb
- * @return an iterator handle to use for iteration
- */
-struct GNUNET_RECLAIM_TicketIterator *
-GNUNET_RECLAIM_ticket_iteration_start_rp (struct GNUNET_RECLAIM_Handle *h,
-                                                    const struct GNUNET_CRYPTO_EcdsaPublicKey *identity,
-                                                    GNUNET_SCHEDULER_TaskCallback error_cb,
-                                                    void *error_cb_cls,
-                                                    GNUNET_RECLAIM_TicketCallback proc,
-                                                    void *proc_cls,
-                                                    GNUNET_SCHEDULER_TaskCallback finish_cb,
-                                                    void *finish_cb_cls)
-{
-  struct GNUNET_RECLAIM_TicketIterator *it;
   struct GNUNET_MQ_Envelope *env;
   struct TicketIterationStartMessage *msg;
   uint32_t rid;
@@ -1276,7 +1213,6 @@ GNUNET_RECLAIM_ticket_iteration_start_rp (struct GNUNET_RECLAIM_Handle *h,
                        GNUNET_MESSAGE_TYPE_RECLAIM_TICKET_ITERATION_START);
   msg->id = htonl (rid);
   msg->identity = *identity;
-  msg->is_audience = htonl (GNUNET_YES);
   if (NULL == h->mq)
     it->env = env;
   else
@@ -1284,8 +1220,8 @@ GNUNET_RECLAIM_ticket_iteration_start_rp (struct GNUNET_RECLAIM_Handle *h,
                     env);
   return it;
 
-
 }
+
 
 /**
  * Calls the record processor specified in #GNUNET_RECLAIM_ticket_iteration_start

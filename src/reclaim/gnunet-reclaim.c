@@ -77,6 +77,11 @@ static char* type_str;
 static char* revoke_ticket;
 
 /**
+ * Ticket listing
+ */
+static int list_tickets;
+
+/**
  * Ego name
  */
 static char* ego_name;
@@ -100,6 +105,11 @@ static struct GNUNET_RECLAIM_Operation *reclaim_op;
  * Attribute iterator
  */
 static struct GNUNET_RECLAIM_AttributeIterator *attr_iterator;
+
+/**
+ * Ticket iterator
+ */
+static struct GNUNET_RECLAIM_TicketIterator *ticket_iterator;
 
 /**
  * Master ABE key
@@ -156,6 +166,8 @@ do_cleanup(void *cls)
     GNUNET_RECLAIM_cancel (reclaim_op);
   if (NULL != attr_iterator)
     GNUNET_RECLAIM_get_attributes_stop (attr_iterator);
+  if (NULL != ticket_iterator)
+    GNUNET_RECLAIM_ticket_iteration_stop (ticket_iterator);
   if (NULL != reclaim_handle)
     GNUNET_RECLAIM_disconnect (reclaim_handle);
   if (NULL != identity_handle)
@@ -223,6 +235,30 @@ process_attrs (void *cls,
            attr->name, value_str, attr_type, attr->version, attr->id);
 }
 
+static void
+ticket_iter_err (void *cls)
+{
+  ticket_iterator = NULL;
+  fprintf (stderr,
+           "Failed to iterate over tickets\n");
+  cleanup_task = GNUNET_SCHEDULER_add_now (&do_cleanup, NULL);
+}
+
+static void
+ticket_iter_fin (void *cls)
+{
+  ticket_iterator = NULL;
+  cleanup_task = GNUNET_SCHEDULER_add_now (&do_cleanup, NULL);
+}
+
+static void
+ticket_iter (void *cls,
+             const struct GNUNET_RECLAIM_Ticket *ticket)
+{
+  fprintf (stdout,
+           "Found ticket\n");
+  GNUNET_RECLAIM_ticket_iteration_next (ticket_iterator);
+}
 
 static void
 iter_error (void *cls)
@@ -396,13 +432,26 @@ iter_cb (void *cls,
 }
 
 static void
-start_get_attributes ()
+start_process ()
 {
   if (NULL == pkey)
   {
     fprintf (stderr,
              "Ego %s not found\n", ego_name);
     cleanup_task = GNUNET_SCHEDULER_add_now (&do_cleanup, NULL);
+    return;
+  }
+
+  if (list_tickets)
+  {
+    ticket_iterator = GNUNET_RECLAIM_ticket_iteration_start (reclaim_handle,
+                                                             pkey,
+                                                             &ticket_iter_err,
+                                                             NULL,
+                                                             &ticket_iter,
+                                                             NULL,
+                                                             &ticket_iter_fin,
+                                                             NULL);
     return;
   }
 
@@ -446,7 +495,7 @@ ego_cb (void *cls,
   if (NULL == name) {
     if (GNUNET_YES == init) {
       init = GNUNET_NO;
-      start_get_attributes();
+      start_process ();
     }
     return;
   }
@@ -548,6 +597,10 @@ main(int argc, char *const argv[])
                                  "TYPE",
                                  gettext_noop ("Type of attribute"),
                                  &type_str),
+    GNUNET_GETOPT_option_flag ('T',
+                               "tickets",
+                               gettext_noop ("List tickets of ego"),
+                               &list_tickets),
     GNUNET_GETOPT_option_relative_time ('E',
                                         "expiration",
                                         "INTERVAL",
