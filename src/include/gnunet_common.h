@@ -933,8 +933,8 @@ GNUNET_ntoh_double (double d);
  *          entire memory being zero'ed out.
  */
 #define GNUNET_is_zero(a) ({ \
-  const typeof(*a) _z = { 0 };      \
-  memcmp(a, \
+  static const typeof(*a) _z;      \
+  memcmp((a), \
          &_z, \
          sizeof (_z)); })
 
