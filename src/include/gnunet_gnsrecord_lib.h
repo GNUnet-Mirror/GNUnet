@@ -99,7 +99,12 @@ extern "C"
 #define GNUNET_GNSRECORD_TYPE_RECLAIM_ATTR 65544
 
 /**
- * 65544-65547 deprecated
+ * Record type for local ticket references
+ */
+#define GNUNET_GNSRECORD_TYPE_RECLAIM_TICKETREF 65545
+
+/**
+ * 65546 reserved
  */
 
 /**

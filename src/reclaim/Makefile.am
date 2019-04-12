@@ -108,14 +108,14 @@ libgnunet_plugin_reclaim_sqlite_la_LDFLAGS = \
 
 
 gnunet_service_reclaim_SOURCES = \
- gnunet-service-reclaim.c
+ gnunet-service-reclaim.c \
+ gnunet-service-reclaim_tickets.c
 gnunet_service_reclaim_LDADD = \
  $(top_builddir)/src/gnsrecord/libgnunetgnsrecord.la \
  $(top_builddir)/src/util/libgnunetutil.la \
  $(top_builddir)/src/namestore/libgnunetnamestore.la \
  $(top_builddir)/src/identity/libgnunetidentity.la \
  $(top_builddir)/src/statistics/libgnunetstatistics.la \
- $(top_builddir)/src/credential/libgnunetcredential.la \
  $(top_builddir)/src/reclaim-attribute/libgnunetreclaimattribute.la \
  libgnunetreclaim.la \
  $(top_builddir)/src/gns/libgnunetgns.la \

@@ -349,6 +349,8 @@ GNUNET_RECLAIM_ATTRIBUTE_list_dup (const struct GNUNET_RECLAIM_ATTRIBUTE_ClaimLi
                                                            le->claim->type,
                                                            le->claim->data,
                                                            le->claim->data_size);
+    result_le->claim->version = le->claim->version;
+    result_le->claim->id = le->claim->id;
     GNUNET_CONTAINER_DLL_insert (result->list_head,
                                  result->list_tail,
                                  result_le);
