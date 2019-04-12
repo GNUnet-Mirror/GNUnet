@@ -588,6 +588,12 @@ struct RPSPeer
    * @brief Handle for the statistics get request
    */
   struct GNUNET_STATISTICS_GetHandle *h_stat_get[STAT_TYPE_MAX];
+
+  /**
+   * @brief Keep the probabilities in cache for computing the probabilities
+   * with respect to history.
+   */
+  double *eval_probs_cache;
 };
 
 /**
@@ -816,12 +822,6 @@ struct SingleTestRun
    * of the run
    */
   uint32_t stat_collect_flags;
-
-  /**
-   * @brief Keep the probabilities in cache for computing the probabilities
-   * with respect to history.
-   */
-  double *eval_probs_cache;
 } cur_test_run;
 
 /**
@@ -1192,7 +1192,6 @@ post_test_op (void *cls)
     shutdown_task = NULL;
     GNUNET_SCHEDULER_shutdown ();
   }
-  GNUNET_free (cur_test_run.eval_probs_cache);
 }
 
 
@@ -2329,8 +2328,8 @@ static void compute_probabilities (uint32_t peer_idx)
                i,
                number_of_being_in_pull_events);
 
-    probs_hist[i] = 0.9 * cur_test_run.eval_probs_cache[i] + probs[i];
-    cur_test_run.eval_probs_cache[i] = probs_hist[i];
+    probs_hist[i] = 0.9 * rps_peers[peer_idx].eval_probs_cache[i] + probs[i];
+    rps_peers[peer_idx].eval_probs_cache[i] = probs_hist[i];
 
     sum_non_zero_prob += probs[i];
     sum_non_zero_prob_hist += probs_hist[i];
@@ -2812,6 +2811,7 @@ post_profiler (struct RPSPeer *rps_peer)
                   rps_peer->index);
     }
   }
+  GNUNET_free (rps_peer->eval_probs_cache);
 }
 
 
@@ -3000,8 +3000,6 @@ run (void *cls,
                                     BIT(STAT_TYPE_PEERS_IN_VIEW) |
                                     BIT(STAT_TYPE_VIEW_SIZE_AIM);
   cur_test_run.have_collect_view = COLLECT_VIEW;
-  cur_test_run.eval_probs_cache = GNUNET_new_array (num_peers, double);
-  memset (&cur_test_run.eval_probs_cache, num_peers * sizeof (double), 0);
 
   /* 'Clean' directory */
   (void) GNUNET_DISK_directory_remove ("/tmp/rps/");
