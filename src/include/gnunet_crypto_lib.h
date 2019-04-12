@@ -51,25 +51,6 @@ extern "C"
 #endif
 #endif
 
-/**
- * @brief A 512-bit hashcode.  These are the default length for GNUnet, using SHA-512.
- */
-struct GNUNET_HashCode
-{
-  uint32_t bits[512 / 8 / sizeof (uint32_t)];   /* = 16 */
-};
-
-
-
-/**
- * @brief A 256-bit hashcode.  Used under special conditions, like when space
- * is critical and security is not impacted by it.
- */
-struct GNUNET_ShortHashCode
-{
-  uint32_t bits[256 / 8 / sizeof (uint32_t)];   /* = 8 */
-};
-
 
 /**
  * The identity of the host (wraps the signing key of the peer).
