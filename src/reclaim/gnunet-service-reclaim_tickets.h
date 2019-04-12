@@ -17,6 +17,17 @@
 
    SPDX-License-Identifier: AGPL3.0-or-later
    */
+
+/**
+ * @author Martin Schanzenbach
+ * @file src/reclaim/gnunet-service-reclaim_tickets.h
+ * @brief reclaim tickets
+ *
+ */
+
+#ifndef GNUNET_SERVICE_RECLAIM_TICKETS_H
+#define GNUNET_SERVICE_RECLAIM_TICKETS_H
+
 #include "platform.h"
 #include "gnunet_util_lib.h"
 #include "gnunet_constants.h"
@@ -31,6 +42,7 @@
 #include "reclaim.h"
 
 struct RECLAIM_TICKETS_Iterator;
+struct RECLAIM_TICKETS_ConsumeHandle;
 
 /**
  * Continuation called with ticket.
@@ -59,14 +71,24 @@ typedef void
                                  const char *emsg);
 
 
-/**
- * @author Martin Schanzenbach
- * @file src/reclaim/gnunet-service-reclaim_tickets.h
- * @brief reclaim tickets
- *
- */
+typedef void
+(*RECLAIM_TICKETS_ConsumeCallback) (void *cls,
+                            const struct GNUNET_CRYPTO_EcdsaPublicKey *identity,
+                            const struct GNUNET_RECLAIM_ATTRIBUTE_ClaimList *l,
+                            uint32_t success,
+                            const char *emsg);
+
+struct RECLAIM_TICKETS_ConsumeHandle*
+RECLAIM_TICKETS_consume (const struct GNUNET_CRYPTO_EcdsaPrivateKey *id,
+                                const struct GNUNET_RECLAIM_Ticket *ticket,
+                                RECLAIM_TICKETS_ConsumeCallback cb,
+                                void* cb_cls);
+
 void
-RECLAIM_TICKETS_issue_ticket (const struct GNUNET_CRYPTO_EcdsaPrivateKey *identity,
+RECLAIM_TICKETS_consume_cancel (struct RECLAIM_TICKETS_ConsumeHandle *cth);
+
+void
+RECLAIM_TICKETS_issue (const struct GNUNET_CRYPTO_EcdsaPrivateKey *identity,
                               const struct GNUNET_RECLAIM_ATTRIBUTE_ClaimList *attrs,
                               const struct GNUNET_CRYPTO_EcdsaPublicKey *audience,
                               RECLAIM_TICKETS_TicketResult cb,
@@ -91,4 +113,4 @@ RECLAIM_TICKETS_init (const struct GNUNET_CONFIGURATION_Handle *c);
 
 void
 RECLAIM_TICKETS_deinit (void);
-
+#endif

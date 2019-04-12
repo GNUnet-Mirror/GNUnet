@@ -26,6 +26,94 @@
  */
 #include "gnunet-service-reclaim_tickets.h"
 
+struct ParallelLookup;
+
+struct RECLAIM_TICKETS_ConsumeHandle
+{
+  /**
+   * Ticket
+   */
+  struct GNUNET_RECLAIM_Ticket ticket;
+
+  /**
+   * LookupRequest
+   */
+  struct GNUNET_GNS_LookupRequest *lookup_request;
+
+  /**
+   * Audience Key
+   */
+  struct GNUNET_CRYPTO_EcdsaPrivateKey identity;
+
+  /**
+   * Audience Key
+   */
+  struct GNUNET_CRYPTO_EcdsaPublicKey identity_pub;
+
+  /**
+   * Lookup DLL
+   */
+  struct ParallelLookup *parallel_lookups_head;
+
+  /**
+   * Lookup DLL
+   */
+  struct ParallelLookup *parallel_lookups_tail;
+
+  /**
+   * Kill task
+   */
+  struct GNUNET_SCHEDULER_Task *kill_task;
+
+  /**
+   * Attributes
+   */
+  struct GNUNET_RECLAIM_ATTRIBUTE_ClaimList *attrs;
+
+  /**
+   * Lookup time
+   */
+  struct GNUNET_TIME_Absolute lookup_start_time;
+
+  /**
+   * Callback
+   */
+  RECLAIM_TICKETS_ConsumeCallback cb;
+
+  /**
+   * Callbacl closure
+   */
+  void *cb_cls;
+
+};
+
+/**
+ * Handle for a parallel GNS lookup job
+ */
+struct ParallelLookup
+{
+  /* DLL */
+  struct ParallelLookup *next;
+
+  /* DLL */
+  struct ParallelLookup *prev;
+
+  /* The GNS request */
+  struct GNUNET_GNS_LookupRequest *lookup_request;
+
+  /* The handle the return to */
+  struct RECLAIM_TICKETS_ConsumeHandle *handle;
+
+  /**
+   * Lookup time
+   */
+  struct GNUNET_TIME_Absolute lookup_start_time;
+
+  /* The label to look up */
+  char *label;
+};
+
+
 /**
  * A reference to a ticket stored in GNS
  */
@@ -146,7 +234,294 @@ struct RECLAIM_TICKETS_Iterator
   struct TicketReference *tickets_tail;
 };
 
+/* Namestore handle */
 static struct GNUNET_NAMESTORE_Handle *nsh;
+
+/* GNS handle */
+static struct GNUNET_GNS_Handle *gns;
+
+/* Handle to the statistics service */
+static struct GNUNET_STATISTICS_Handle *stats;
+
+static int
+create_sym_key_from_ecdh (const struct GNUNET_HashCode *new_key_hash,
+                          struct GNUNET_CRYPTO_SymmetricSessionKey *skey,
+                          struct GNUNET_CRYPTO_SymmetricInitializationVector *iv)
+{
+  struct GNUNET_CRYPTO_HashAsciiEncoded new_key_hash_str;
+
+  GNUNET_CRYPTO_hash_to_enc (new_key_hash,
+                             &new_key_hash_str);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Creating symmetric rsa key from %s\n", (char*)&new_key_hash_str);
+  static const char ctx_key[] = "gnuid-aes-ctx-key";
+  GNUNET_CRYPTO_kdf (skey, sizeof (struct GNUNET_CRYPTO_SymmetricSessionKey),
+                     new_key_hash, sizeof (struct GNUNET_HashCode),
+                     ctx_key, strlen (ctx_key),
+                     NULL, 0);
+  static const char ctx_iv[] = "gnuid-aes-ctx-iv";
+  GNUNET_CRYPTO_kdf (iv, sizeof (struct GNUNET_CRYPTO_SymmetricInitializationVector),
+                     new_key_hash, sizeof (struct GNUNET_HashCode),
+                     ctx_iv, strlen (ctx_iv),
+                     NULL, 0);
+  return GNUNET_OK;
+}
+
+
+/**
+ * Cleanup ticket consume handle
+ * @param cth the handle to clean up
+ */
+static void
+cleanup_cth (struct RECLAIM_TICKETS_ConsumeHandle *cth)
+{
+  struct ParallelLookup *lu;
+  struct ParallelLookup *tmp;
+  if (NULL != cth->lookup_request)
+    GNUNET_GNS_lookup_cancel (cth->lookup_request);
+  for (lu = cth->parallel_lookups_head;
+       NULL != lu;) {
+    GNUNET_GNS_lookup_cancel (lu->lookup_request);
+    GNUNET_free (lu->label);
+    tmp = lu->next;
+    GNUNET_CONTAINER_DLL_remove (cth->parallel_lookups_head,
+                                 cth->parallel_lookups_tail,
+                                 lu);
+    GNUNET_free (lu);
+    lu = tmp;
+  }
+
+  if (NULL != cth->attrs)
+    GNUNET_RECLAIM_ATTRIBUTE_list_destroy (cth->attrs);
+  GNUNET_free (cth);
+}
+
+
+static void
+process_parallel_lookup_result (void *cls,
+                          uint32_t rd_count,
+                          const struct GNUNET_GNSRECORD_Data *rd)
+{
+  struct ParallelLookup *parallel_lookup = cls;
+  struct RECLAIM_TICKETS_ConsumeHandle *cth = parallel_lookup->handle;
+  struct GNUNET_RECLAIM_ATTRIBUTE_ClaimListEntry *attr_le;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Parallel lookup finished (count=%u)\n", rd_count);
+
+  GNUNET_CONTAINER_DLL_remove (cth->parallel_lookups_head,
+                               cth->parallel_lookups_tail,
+                               parallel_lookup);
+  GNUNET_free (parallel_lookup->label);
+
+  GNUNET_STATISTICS_update (stats,
+                            "attribute_lookup_time_total",
+                            GNUNET_TIME_absolute_get_duration (parallel_lookup->lookup_start_time).rel_value_us,
+                            GNUNET_YES);
+  GNUNET_STATISTICS_update (stats,
+                            "attribute_lookups_count",
+                            1,
+                            GNUNET_YES);
+
+
+  GNUNET_free (parallel_lookup);
+  if (1 != rd_count)
+    GNUNET_break(0);//TODO
+  if (rd->record_type == GNUNET_GNSRECORD_TYPE_RECLAIM_ATTR)
+  {
+    attr_le = GNUNET_new (struct GNUNET_RECLAIM_ATTRIBUTE_ClaimListEntry);
+    attr_le->claim = GNUNET_RECLAIM_ATTRIBUTE_deserialize (rd->data,
+                                                           rd->data_size);
+    GNUNET_CONTAINER_DLL_insert (cth->attrs->list_head,
+                                 cth->attrs->list_tail,
+                                 attr_le);
+  }
+  if (NULL != cth->parallel_lookups_head)
+    return; //Wait for more
+  /* Else we are done */
+
+  GNUNET_SCHEDULER_cancel (cth->kill_task);
+  cth->cb (cth->cb_cls,
+           &cth->ticket.identity,
+           cth->attrs,
+           GNUNET_OK,
+           NULL);
+  cleanup_cth (cth);
+}
+
+
+static void
+abort_parallel_lookups (void *cls)
+{
+  struct RECLAIM_TICKETS_ConsumeHandle *cth = cls;
+  struct ParallelLookup *lu;
+  struct ParallelLookup *tmp;
+
+  cth->kill_task = NULL;
+  for (lu = cth->parallel_lookups_head;
+       NULL != lu;) {
+    GNUNET_GNS_lookup_cancel (lu->lookup_request);
+    GNUNET_free (lu->label);
+    tmp = lu->next;
+    GNUNET_CONTAINER_DLL_remove (cth->parallel_lookups_head,
+                                 cth->parallel_lookups_tail,
+                                 lu);
+    GNUNET_free (lu);
+    lu = tmp;
+  }
+  cth->cb (cth->cb_cls,
+           NULL,
+           NULL,
+           GNUNET_SYSERR,
+           "Aborted");
+
+}
+
+
+
+static void
+lookup_authz_cb (void *cls,
+                 uint32_t rd_count,
+                 const struct GNUNET_GNSRECORD_Data *rd)
+{
+  struct RECLAIM_TICKETS_ConsumeHandle *cth = cls;
+  struct GNUNET_HashCode new_key_hash;
+  struct GNUNET_CRYPTO_SymmetricSessionKey enc_key;
+  struct GNUNET_CRYPTO_SymmetricInitializationVector enc_iv;
+  struct GNUNET_CRYPTO_EcdhePublicKey *ecdh_key;
+  struct ParallelLookup *parallel_lookup;
+  size_t size;
+  char *buf;
+  char *attr_lbl;
+  char *lbls;
+
+  cth->lookup_request = NULL;
+  if (1 != rd_count)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Number of keys %d != 1.",
+                rd_count);
+    cth->cb (cth->cb_cls,
+             NULL,
+             NULL,
+             GNUNET_SYSERR,
+             "Number of keys %d != 1.");
+    cleanup_cth (cth);
+    return;
+  }
+
+  //Decrypt
+  ecdh_key = (struct GNUNET_CRYPTO_EcdhePublicKey *)rd->data;
+
+  buf = GNUNET_malloc (rd->data_size
+                       - sizeof (struct GNUNET_CRYPTO_EcdhePublicKey));
+
+  //Calculate symmetric key from ecdh parameters
+  GNUNET_assert (GNUNET_OK ==
+                 GNUNET_CRYPTO_ecdsa_ecdh (&cth->identity,
+                                           ecdh_key,
+                                           &new_key_hash));
+  create_sym_key_from_ecdh (&new_key_hash,
+                            &enc_key,
+                            &enc_iv);
+  size = GNUNET_CRYPTO_symmetric_decrypt (rd->data
+                               + sizeof (struct GNUNET_CRYPTO_EcdhePublicKey),
+                                          rd->data_size
+                               - sizeof (struct GNUNET_CRYPTO_EcdhePublicKey),
+                                          &enc_key,
+                                          &enc_iv,
+                                          buf);
+
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+              "Decrypted bytes: %zd Expected bytes: %zd\n",
+              size,
+              rd->data_size - sizeof (struct GNUNET_CRYPTO_EcdhePublicKey));
+  GNUNET_STATISTICS_update (stats,
+    "reclaim_authz_lookup_time_total",
+    GNUNET_TIME_absolute_get_duration (cth->lookup_start_time).rel_value_us,
+    GNUNET_YES);
+  GNUNET_STATISTICS_update (stats,
+                            "reclaim_authz_lookups_count",
+                            1,
+                            GNUNET_YES);
+  lbls = GNUNET_strdup (buf);
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+              "Attributes found %s\n", lbls);
+
+  for (attr_lbl = strtok (lbls, ",");
+       NULL != attr_lbl;
+       attr_lbl = strtok (NULL, ","))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Looking up %s\n", attr_lbl);
+    parallel_lookup = GNUNET_new (struct ParallelLookup);
+    parallel_lookup->handle = cth;
+    parallel_lookup->label = GNUNET_strdup (attr_lbl);
+    parallel_lookup->lookup_start_time = GNUNET_TIME_absolute_get();
+    parallel_lookup->lookup_request
+      = GNUNET_GNS_lookup (gns,
+                           attr_lbl,
+                           &cth->ticket.identity,
+                           GNUNET_GNSRECORD_TYPE_RECLAIM_ATTR,
+                           GNUNET_GNS_LO_DEFAULT,
+                           &process_parallel_lookup_result,
+                           parallel_lookup);
+    GNUNET_CONTAINER_DLL_insert (cth->parallel_lookups_head,
+                                 cth->parallel_lookups_tail,
+                                 parallel_lookup);
+  }
+  GNUNET_free (lbls);
+  GNUNET_free (buf);
+  cth->kill_task = GNUNET_SCHEDULER_add_delayed (
+                    GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MINUTES,3),
+                    &abort_parallel_lookups,
+                    cth);
+}
+
+
+
+struct RECLAIM_TICKETS_ConsumeHandle*
+RECLAIM_TICKETS_consume (const struct GNUNET_CRYPTO_EcdsaPrivateKey *id,
+                               const struct GNUNET_RECLAIM_Ticket *ticket,
+                               RECLAIM_TICKETS_ConsumeCallback cb,
+                               void* cb_cls)
+{
+  struct RECLAIM_TICKETS_ConsumeHandle *cth;
+  char *label;
+  cth = GNUNET_new (struct RECLAIM_TICKETS_ConsumeHandle);
+
+  cth->identity = *id;
+  GNUNET_CRYPTO_ecdsa_key_get_public (&cth->identity,
+                                      &cth->identity_pub);
+  cth->attrs = GNUNET_new (struct GNUNET_RECLAIM_ATTRIBUTE_ClaimList);
+  cth->ticket = *ticket;
+  cth->cb = cb;
+  cth->cb_cls = cb_cls;
+  label = GNUNET_STRINGS_data_to_string_alloc (&cth->ticket.rnd,
+                                               sizeof (uint64_t));
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+              "Looking for AuthZ info under %s\n", label);
+  cth->lookup_start_time = GNUNET_TIME_absolute_get ();
+  cth->lookup_request = GNUNET_GNS_lookup (gns,
+                                           label,
+                                           &cth->ticket.identity,
+                                           GNUNET_GNSRECORD_TYPE_RECLAIM_AUTHZ,
+                                           GNUNET_GNS_LO_DEFAULT,
+                                           &lookup_authz_cb,
+                                           cth);
+  GNUNET_free (label);
+  return cth;
+}
+
+void
+RECLAIM_TICKETS_consume_cancel (struct RECLAIM_TICKETS_ConsumeHandle *cth)
+{
+  cleanup_cth (cth);
+  return;
+}
+
+
+/*******************************
+ * Ticket issue
+ *******************************/
 
 /**
  * Cleanup ticket consume handle
@@ -325,29 +700,6 @@ store_ticket_issue_cont (void *cls,
                                                    handle);
 }
 
-static int
-create_sym_key_from_ecdh (const struct GNUNET_HashCode *new_key_hash,
-                          struct GNUNET_CRYPTO_SymmetricSessionKey *skey,
-                          struct GNUNET_CRYPTO_SymmetricInitializationVector *iv)
-{
-  struct GNUNET_CRYPTO_HashAsciiEncoded new_key_hash_str;
-
-  GNUNET_CRYPTO_hash_to_enc (new_key_hash,
-                             &new_key_hash_str);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Creating symmetric rsa key from %s\n", (char*)&new_key_hash_str);
-  static const char ctx_key[] = "gnuid-aes-ctx-key";
-  GNUNET_CRYPTO_kdf (skey, sizeof (struct GNUNET_CRYPTO_SymmetricSessionKey),
-                     new_key_hash, sizeof (struct GNUNET_HashCode),
-                     ctx_key, strlen (ctx_key),
-                     NULL, 0);
-  static const char ctx_iv[] = "gnuid-aes-ctx-iv";
-  GNUNET_CRYPTO_kdf (iv, sizeof (struct GNUNET_CRYPTO_SymmetricInitializationVector),
-                     new_key_hash, sizeof (struct GNUNET_HashCode),
-                     ctx_iv, strlen (ctx_iv),
-                     NULL, 0);
-  return GNUNET_OK;
-}
-
 
 static int
 serialize_authz_record (const struct GNUNET_RECLAIM_Ticket *ticket,
@@ -459,11 +811,11 @@ issue_ticket (struct TicketIssueHandle *ih)
 
 
 void
-RECLAIM_TICKETS_issue_ticket (const struct GNUNET_CRYPTO_EcdsaPrivateKey *identity,
-                              const struct GNUNET_RECLAIM_ATTRIBUTE_ClaimList *attrs,
-                              const struct GNUNET_CRYPTO_EcdsaPublicKey *audience,
-                              RECLAIM_TICKETS_TicketResult cb,
-                              void* cb_cls)
+RECLAIM_TICKETS_issue (const struct GNUNET_CRYPTO_EcdsaPrivateKey *identity,
+                       const struct GNUNET_RECLAIM_ATTRIBUTE_ClaimList *attrs,
+                       const struct GNUNET_CRYPTO_EcdsaPublicKey *audience,
+                       RECLAIM_TICKETS_TicketResult cb,
+                       void* cb_cls)
 {
   struct TicketIssueHandle *tih;
   tih = GNUNET_new (struct TicketIssueHandle);
@@ -480,6 +832,9 @@ RECLAIM_TICKETS_issue_ticket (const struct GNUNET_CRYPTO_EcdsaPrivateKey *identi
   issue_ticket (tih);
 }
 
+/************************************
+ * Ticket iteration
+ ************************************/
 
 static void
 cleanup_iter (struct RECLAIM_TICKETS_Iterator *iter)
@@ -536,10 +891,10 @@ run_ticket_iteration_round (struct RECLAIM_TICKETS_Iterator *iter)
 
 static void
 collect_tickets_cb (void *cls,
-                  const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone,
-                  const char *label,
-                  unsigned int rd_count,
-                  const struct GNUNET_GNSRECORD_Data *rd)
+                    const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone,
+                    const char *label,
+                    unsigned int rd_count,
+                    const struct GNUNET_GNSRECORD_Data *rd)
 {
   struct RECLAIM_TICKETS_Iterator *iter = cls;
   struct TicketReference *tr;
@@ -628,10 +983,18 @@ RECLAIM_TICKETS_init (const struct GNUNET_CONFIGURATION_Handle *c)
   nsh = GNUNET_NAMESTORE_connect (c);
   if (NULL == nsh)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Error connecting to namestore\n");
+    GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR,
+                         "error connecting to namestore");
     return GNUNET_SYSERR;
   }
+  gns = GNUNET_GNS_connect (c);
+  if (NULL == gns)
+  {
+    GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR,
+                         "error connecting to gns");
+    return GNUNET_SYSERR;
+  }
+  stats = GNUNET_STATISTICS_create ("reclaim", c);
   return GNUNET_OK;
 }
 
@@ -641,4 +1004,12 @@ RECLAIM_TICKETS_deinit (void)
   if (NULL != nsh)
     GNUNET_NAMESTORE_disconnect (nsh);
   nsh = NULL;
+  if (NULL != gns)
+    GNUNET_GNS_disconnect (gns);
+  gns = NULL;
+  if (NULL != stats)
+  {
+    GNUNET_STATISTICS_destroy (stats, GNUNET_NO);
+    stats = NULL;
+  }
 }

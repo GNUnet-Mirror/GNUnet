@@ -382,6 +382,11 @@ struct ConsumeTicketResultMessage
   uint32_t id GNUNET_PACKED;
 
   /**
+   * Result
+   */
+  uint32_t result GNUNET_PACKED;
+
+  /**
    * Length of serialized attribute data
    */
   uint16_t attrs_len GNUNET_PACKED;
