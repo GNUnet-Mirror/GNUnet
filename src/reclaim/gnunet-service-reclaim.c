@@ -23,6 +23,10 @@
  * @brief reclaim Service
  *
  */
+#include "platform.h"
+
+#include "gnunet_util_lib.h"
+
 #include "gnunet-service-reclaim_tickets.h"
 #include "gnunet_constants.h"
 #include "gnunet_gnsrecord_lib.h"
@@ -32,8 +36,6 @@
 #include "gnunet_reclaim_attribute_lib.h"
 #include "gnunet_reclaim_plugin.h"
 #include "gnunet_signatures.h"
-#include "gnunet_util_lib.h"
-#include "platform.h"
 #include "reclaim.h"
 
 /**
@@ -804,7 +806,7 @@ ticket_reissue_proc (void *cls, const struct GNUNET_RECLAIM_Ticket *ticket,
   code_record[0].data = authz_record_data;
   code_record[0].data_size = authz_record_len;
   code_record[0].expiration_time = GNUNET_TIME_UNIT_DAYS.rel_value_us;
-  code_record[0].record_type = GNUNET_GNSRECORD_TYPE_RECLAIM_AUTHZ;
+  code_record[0].record_type = GNUNET_GNSRECORD_TYPE_RECLAIM_ATTR_REF;
   code_record[0].flags = GNUNET_GNSRECORD_RF_RELATIVE_EXPIRATION;
 
   label = GNUNET_STRINGS_data_to_string_alloc (&ticket->rnd, sizeof (uint64_t));
@@ -924,8 +926,8 @@ static void reenc_next_attribute (void *cls)
   /* First check if attribute still exists */
   label = GNUNET_STRINGS_data_to_string_alloc (&rh->attrs->list_head->claim->id,
                                                sizeof (uint64_t));
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "ID: %lu\n",
-              rh->attrs->list_head->claim->id);
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Name: %s\n",
+              rh->attrs->list_head->claim->name);
   rh->ns_qe = GNUNET_NAMESTORE_records_lookup (
       nsh, &rh->identity, label, &check_attr_error, rh, &check_attr_cb, rh);
   GNUNET_free (label);

@@ -17,7 +17,7 @@ if HAVE_EXPERIMENTAL
   reclaim
 if HAVE_ABE
  EXP_DIR += \
-  abe \
+  abe
 endif
 if HAVE_JSON
  EXP_DIR += \

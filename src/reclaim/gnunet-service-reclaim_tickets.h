@@ -29,16 +29,18 @@
 #define GNUNET_SERVICE_RECLAIM_TICKETS_H
 
 #include "platform.h"
+
 #include "gnunet_util_lib.h"
+
 #include "gnunet_constants.h"
-#include "gnunet_protocols.h"
-#include "gnunet_gnsrecord_lib.h"
 #include "gnunet_gns_service.h"
+#include "gnunet_gnsrecord_lib.h"
 #include "gnunet_namestore_service.h"
-#include "gnunet_statistics_service.h"
-#include "gnunet_reclaim_plugin.h"
+#include "gnunet_protocols.h"
 #include "gnunet_reclaim_attribute_lib.h"
+#include "gnunet_reclaim_plugin.h"
 #include "gnunet_signatures.h"
+#include "gnunet_statistics_service.h"
 #include "reclaim.h"
 
 struct RECLAIM_TICKETS_Iterator;
@@ -50,9 +52,8 @@ struct RECLAIM_TICKETS_ConsumeHandle;
  * @param cls closure
  * @param ticket the ticket
  */
-typedef void
-(*RECLAIM_TICKETS_TicketIter) (void *cls,
-                                 struct GNUNET_RECLAIM_Ticket *ticket);
+typedef void (*RECLAIM_TICKETS_TicketIter) (
+    void *cls, struct GNUNET_RECLAIM_Ticket *ticket);
 
 
 /**
@@ -60,57 +61,45 @@ typedef void
  *
  * @param cls closure
  * @param ticket the ticket
- * @param success #GNUNET_SYSERR on failure (including timeout/queue drop/failure to validate)
- *                #GNUNET_OK on success
+ * @param success #GNUNET_SYSERR on failure (including timeout/queue
+ * drop/failure to validate) #GNUNET_OK on success
  * @param emsg NULL on success, otherwise an error message
  */
-typedef void
-(*RECLAIM_TICKETS_TicketResult) (void *cls,
-                                 struct GNUNET_RECLAIM_Ticket *ticket,
-                                 uint32_t success,
-                                 const char *emsg);
+typedef void (*RECLAIM_TICKETS_TicketResult) (
+    void *cls, struct GNUNET_RECLAIM_Ticket *ticket, uint32_t success,
+    const char *emsg);
 
 
-typedef void
-(*RECLAIM_TICKETS_ConsumeCallback) (void *cls,
-                            const struct GNUNET_CRYPTO_EcdsaPublicKey *identity,
-                            const struct GNUNET_RECLAIM_ATTRIBUTE_ClaimList *l,
-                            uint32_t success,
-                            const char *emsg);
+typedef void (*RECLAIM_TICKETS_ConsumeCallback) (
+    void *cls, const struct GNUNET_CRYPTO_EcdsaPublicKey *identity,
+    const struct GNUNET_RECLAIM_ATTRIBUTE_ClaimList *l, uint32_t success,
+    const char *emsg);
 
-struct RECLAIM_TICKETS_ConsumeHandle*
+struct RECLAIM_TICKETS_ConsumeHandle *
 RECLAIM_TICKETS_consume (const struct GNUNET_CRYPTO_EcdsaPrivateKey *id,
-                                const struct GNUNET_RECLAIM_Ticket *ticket,
-                                RECLAIM_TICKETS_ConsumeCallback cb,
-                                void* cb_cls);
+                         const struct GNUNET_RECLAIM_Ticket *ticket,
+                         RECLAIM_TICKETS_ConsumeCallback cb, void *cb_cls);
 
-void
-RECLAIM_TICKETS_consume_cancel (struct RECLAIM_TICKETS_ConsumeHandle *cth);
+void RECLAIM_TICKETS_consume_cancel (struct RECLAIM_TICKETS_ConsumeHandle *cth);
 
-void
-RECLAIM_TICKETS_issue (const struct GNUNET_CRYPTO_EcdsaPrivateKey *identity,
-                              const struct GNUNET_RECLAIM_ATTRIBUTE_ClaimList *attrs,
-                              const struct GNUNET_CRYPTO_EcdsaPublicKey *audience,
-                              RECLAIM_TICKETS_TicketResult cb,
-                              void* cb_cls);
+void RECLAIM_TICKETS_issue (
+    const struct GNUNET_CRYPTO_EcdsaPrivateKey *identity,
+    const struct GNUNET_RECLAIM_ATTRIBUTE_ClaimList *attrs,
+    const struct GNUNET_CRYPTO_EcdsaPublicKey *audience,
+    RECLAIM_TICKETS_TicketResult cb, void *cb_cls);
 
-void
-RECLAIM_TICKETS_iteration_next (struct RECLAIM_TICKETS_Iterator *iter);
+void RECLAIM_TICKETS_iteration_next (struct RECLAIM_TICKETS_Iterator *iter);
 
 
-void
-RECLAIM_TICKETS_iteration_stop (struct RECLAIM_TICKETS_Iterator *iter);
+void RECLAIM_TICKETS_iteration_stop (struct RECLAIM_TICKETS_Iterator *iter);
 
 
-struct RECLAIM_TICKETS_Iterator*
-RECLAIM_TICKETS_iteration_start (const struct GNUNET_CRYPTO_EcdsaPrivateKey *identity,
-                                 RECLAIM_TICKETS_TicketIter cb,
-                                 void* cb_cls);
+struct RECLAIM_TICKETS_Iterator *RECLAIM_TICKETS_iteration_start (
+    const struct GNUNET_CRYPTO_EcdsaPrivateKey *identity,
+    RECLAIM_TICKETS_TicketIter cb, void *cb_cls);
 
 
-int
-RECLAIM_TICKETS_init (const struct GNUNET_CONFIGURATION_Handle *c);
+int RECLAIM_TICKETS_init (const struct GNUNET_CONFIGURATION_Handle *c);
 
-void
-RECLAIM_TICKETS_deinit (void);
+void RECLAIM_TICKETS_deinit (void);
 #endif

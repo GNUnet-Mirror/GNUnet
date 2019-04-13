@@ -283,6 +283,7 @@ src/reclaim-attribute/plugin_reclaim_attribute_gnuid.c
 src/reclaim-attribute/reclaim_attribute.c
 src/reclaim/gnunet-reclaim.c
 src/reclaim/gnunet-service-reclaim.c
+src/reclaim/gnunet-service-reclaim_tickets.c
 src/reclaim/json_reclaim.c
 src/reclaim/oidc_helper.c
 src/reclaim/plugin_gnsrecord_reclaim.c
