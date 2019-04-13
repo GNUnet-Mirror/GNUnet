@@ -157,7 +157,8 @@ static struct GNUNET_SCHEDULER_Task *cleanup_task;
  */
 struct GNUNET_RECLAIM_ATTRIBUTE_Claim *claim;
 
-static void do_cleanup (void *cls)
+static void
+do_cleanup (void *cls)
 {
   cleanup_task = NULL;
   if (NULL != timeout)
@@ -178,8 +179,8 @@ static void do_cleanup (void *cls)
     GNUNET_free (attr_list);
 }
 
-static void ticket_issue_cb (void *cls,
-                             const struct GNUNET_RECLAIM_Ticket *ticket)
+static void
+ticket_issue_cb (void *cls, const struct GNUNET_RECLAIM_Ticket *ticket)
 {
   char *ticket_str;
   reclaim_op = NULL;
@@ -192,7 +193,8 @@ static void ticket_issue_cb (void *cls,
   cleanup_task = GNUNET_SCHEDULER_add_now (&do_cleanup, NULL);
 }
 
-static void store_attr_cont (void *cls, int32_t success, const char *emsg)
+static void
+store_attr_cont (void *cls, int32_t success, const char *emsg)
 {
   reclaim_op = NULL;
   if (GNUNET_SYSERR == success) {
@@ -201,9 +203,9 @@ static void store_attr_cont (void *cls, int32_t success, const char *emsg)
   cleanup_task = GNUNET_SCHEDULER_add_now (&do_cleanup, NULL);
 }
 
-static void process_attrs (void *cls,
-                           const struct GNUNET_CRYPTO_EcdsaPublicKey *identity,
-                           const struct GNUNET_RECLAIM_ATTRIBUTE_Claim *attr)
+static void
+process_attrs (void *cls, const struct GNUNET_CRYPTO_EcdsaPublicKey *identity,
+               const struct GNUNET_RECLAIM_ATTRIBUTE_Claim *attr)
 {
   char *value_str;
   const char *attr_type;
@@ -224,33 +226,45 @@ static void process_attrs (void *cls,
            attr_type, attr->version, attr->id);
 }
 
-static void ticket_iter_err (void *cls)
+static void
+ticket_iter_err (void *cls)
 {
   ticket_iterator = NULL;
   fprintf (stderr, "Failed to iterate over tickets\n");
   cleanup_task = GNUNET_SCHEDULER_add_now (&do_cleanup, NULL);
 }
 
-static void ticket_iter_fin (void *cls)
+static void
+ticket_iter_fin (void *cls)
 {
   ticket_iterator = NULL;
   cleanup_task = GNUNET_SCHEDULER_add_now (&do_cleanup, NULL);
 }
 
-static void ticket_iter (void *cls, const struct GNUNET_RECLAIM_Ticket *ticket)
+static void
+ticket_iter (void *cls, const struct GNUNET_RECLAIM_Ticket *ticket)
 {
-  fprintf (stdout, "Found ticket\n");
+  char *aud;
+  char *ref;
+
+  aud = GNUNET_STRINGS_data_to_string_alloc (
+      &ticket->audience, sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey));
+  ref = GNUNET_STRINGS_data_to_string_alloc (&ticket->rnd, sizeof (uint64_t));
+
+  fprintf (stdout, "Ticket ID: %s | Audience: %s\n", ref, aud);
   GNUNET_RECLAIM_ticket_iteration_next (ticket_iterator);
 }
 
-static void iter_error (void *cls)
+static void
+iter_error (void *cls)
 {
   attr_iterator = NULL;
   fprintf (stderr, "Failed to iterate over attributes\n");
   cleanup_task = GNUNET_SCHEDULER_add_now (&do_cleanup, NULL);
 }
 
-static void timeout_task (void *cls)
+static void
+timeout_task (void *cls)
 {
   timeout = NULL;
   ret = 1;
@@ -259,7 +273,8 @@ static void timeout_task (void *cls)
     cleanup_task = GNUNET_SCHEDULER_add_now (&do_cleanup, NULL);
 }
 
-static void process_rvk (void *cls, int success, const char *msg)
+static void
+process_rvk (void *cls, int success, const char *msg)
 {
   reclaim_op = NULL;
   if (GNUNET_OK != success) {
@@ -269,7 +284,8 @@ static void process_rvk (void *cls, int success, const char *msg)
   cleanup_task = GNUNET_SCHEDULER_add_now (&do_cleanup, NULL);
 }
 
-static void iter_finished (void *cls)
+static void
+iter_finished (void *cls)
 {
   char *data;
   size_t data_size;
@@ -325,9 +341,9 @@ static void iter_finished (void *cls)
   cleanup_task = GNUNET_SCHEDULER_add_now (&do_cleanup, NULL);
 }
 
-static void iter_cb (void *cls,
-                     const struct GNUNET_CRYPTO_EcdsaPublicKey *identity,
-                     const struct GNUNET_RECLAIM_ATTRIBUTE_Claim *attr)
+static void
+iter_cb (void *cls, const struct GNUNET_CRYPTO_EcdsaPublicKey *identity,
+         const struct GNUNET_RECLAIM_ATTRIBUTE_Claim *attr)
 {
   struct GNUNET_RECLAIM_ATTRIBUTE_ClaimListEntry *le;
   char *attrs_tmp;
@@ -367,7 +383,8 @@ static void iter_cb (void *cls,
   GNUNET_RECLAIM_get_attributes_next (attr_iterator);
 }
 
-static void start_process ()
+static void
+start_process ()
 {
   if (NULL == pkey) {
     fprintf (stderr, "Ego %s not found\n", ego_name);
@@ -402,8 +419,9 @@ static void start_process ()
 
 static int init = GNUNET_YES;
 
-static void ego_cb (void *cls, struct GNUNET_IDENTITY_Ego *ego, void **ctx,
-                    const char *name)
+static void
+ego_cb (void *cls, struct GNUNET_IDENTITY_Ego *ego, void **ctx,
+        const char *name)
 {
   if (NULL == name) {
     if (GNUNET_YES == init) {
@@ -418,8 +436,9 @@ static void ego_cb (void *cls, struct GNUNET_IDENTITY_Ego *ego, void **ctx,
 }
 
 
-static void run (void *cls, char *const *args, const char *cfgfile,
-                 const struct GNUNET_CONFIGURATION_Handle *c)
+static void
+run (void *cls, char *const *args, const char *cfgfile,
+     const struct GNUNET_CONFIGURATION_Handle *c)
 {
   ret = 0;
   if (NULL == ego_name) {
@@ -446,7 +465,8 @@ static void run (void *cls, char *const *args, const char *cfgfile,
 }
 
 
-int main (int argc, char *const argv[])
+int
+main (int argc, char *const argv[])
 {
   exp_interval = GNUNET_TIME_UNIT_HOURS;
   struct GNUNET_GETOPT_CommandLineOption options[] = {

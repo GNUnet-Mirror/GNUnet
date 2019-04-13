@@ -164,21 +164,6 @@ struct TicketIssueHandle {
   struct GNUNET_NAMESTORE_QueueEntry *ns_qe;
 
   /**
-   * Ticket reference list
-   */
-  struct TicketReference *ticket_refs_head;
-
-  /**
-   * Ticket reference list
-   */
-  struct TicketReference *ticket_refs_tail;
-
-  /**
-   * Number of references
-   */
-  uint32_t ticket_ref_num;
-
-  /**
    * Callback
    */
   RECLAIM_TICKETS_TicketResult cb;
@@ -194,19 +179,9 @@ struct TicketIssueHandle {
  */
 struct RECLAIM_TICKETS_Iterator {
   /**
-   * Issuer Key
-   */
-  struct GNUNET_CRYPTO_EcdsaPrivateKey identity;
-
-  /**
-   * Issuer pubkey
-   */
-  struct GNUNET_CRYPTO_EcdsaPublicKey identity_pub;
-
-  /**
    * Namestore queue entry
    */
-  struct GNUNET_NAMESTORE_QueueEntry *ns_qe;
+  struct GNUNET_NAMESTORE_ZoneIterator *ns_it;
 
   /**
    * Iter callback
@@ -217,16 +192,6 @@ struct RECLAIM_TICKETS_Iterator {
    * Iter cls
    */
   void *cb_cls;
-
-  /**
-   * Ticket reference list
-   */
-  struct TicketReference *tickets_head;
-
-  /**
-   * Ticket reference list
-   */
-  struct TicketReference *tickets_tail;
 };
 
 
@@ -870,111 +835,11 @@ RECLAIM_TICKETS_consume_cancel (struct RECLAIM_TICKETS_ConsumeHandle *cth)
 static void
 cleanup_issue_handle (struct TicketIssueHandle *handle)
 {
-  struct TicketReference *tr;
-  struct TicketReference *tr_tmp;
-  if (NULL != handle->attrs)
-    GNUNET_RECLAIM_ATTRIBUTE_list_destroy (handle->attrs);
   if (NULL != handle->ns_qe)
     GNUNET_NAMESTORE_cancel (handle->ns_qe);
-  for (tr = handle->ticket_refs_head; NULL != tr;) {
-    if (NULL != tr->attrs)
-      GNUNET_RECLAIM_ATTRIBUTE_list_destroy (tr->attrs);
-    tr_tmp = tr;
-    tr = tr->next;
-    GNUNET_free (tr_tmp);
-  }
   GNUNET_free (handle);
 }
 
-
-static void
-store_ticket_refs_cont (void *cls, int32_t success, const char *emsg)
-{
-  struct TicketIssueHandle *handle = cls;
-  handle->ns_qe = NULL;
-  if (GNUNET_OK != success) {
-    handle->cb (handle->cb_cls, NULL, GNUNET_SYSERR,
-                "Error storing updated ticket refs in GNS");
-    cleanup_issue_handle (handle);
-    return;
-  }
-  handle->cb (handle->cb_cls, &handle->ticket, GNUNET_OK, NULL);
-  cleanup_issue_handle (handle);
-}
-
-
-static void
-update_ticket_refs (void *cls)
-{
-  struct TicketIssueHandle *handle = cls;
-  struct GNUNET_GNSRECORD_Data refs_rd[handle->ticket_ref_num];
-  struct TicketReference *tr;
-
-  tr = handle->ticket_refs_head;
-  for (int i = 0; i < handle->ticket_ref_num; i++) {
-    refs_rd[i].data = &tr->ticket;
-    refs_rd[i].data_size = sizeof (struct GNUNET_RECLAIM_Ticket);
-    refs_rd[i].expiration_time = GNUNET_TIME_UNIT_DAYS.rel_value_us;
-    refs_rd[i].record_type = GNUNET_GNSRECORD_TYPE_RECLAIM_TICKETREF;
-    refs_rd[i].flags =
-        GNUNET_GNSRECORD_RF_RELATIVE_EXPIRATION | GNUNET_GNSRECORD_RF_PRIVATE;
-    tr = tr->next;
-  }
-
-  handle->ns_qe = GNUNET_NAMESTORE_records_store (
-      nsh, &handle->identity, GNUNET_GNS_EMPTY_LABEL_AT, handle->ticket_ref_num,
-      refs_rd, &store_ticket_refs_cont, handle);
-}
-
-
-static void
-ticket_lookup_cb (void *cls, const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone,
-                  const char *label, unsigned int rd_count,
-                  const struct GNUNET_GNSRECORD_Data *rd)
-{
-  struct TicketIssueHandle *handle = cls;
-  struct TicketReference *tr;
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Received tickets from local namestore.\n");
-  handle->ns_qe = NULL;
-  for (int i = 0; i < rd_count; i++) {
-    if (GNUNET_GNSRECORD_TYPE_RECLAIM_TICKETREF != rd[i].record_type)
-      continue;
-    tr = GNUNET_new (struct TicketReference);
-    memcpy (&tr->ticket, rd[i].data, sizeof (struct GNUNET_RECLAIM_Ticket));
-    if (0 != memcmp (&tr->ticket.identity, &handle->ticket.identity,
-                     sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey))) {
-      // Not our ticket
-      GNUNET_free (tr);
-      continue;
-    }
-    GNUNET_CONTAINER_DLL_insert (handle->ticket_refs_head,
-                                 handle->ticket_refs_tail, tr);
-    handle->ticket_ref_num++;
-  }
-  tr = GNUNET_new (struct TicketReference);
-  tr->ticket = handle->ticket;
-  tr->attrs = GNUNET_RECLAIM_ATTRIBUTE_list_dup (handle->attrs);
-  GNUNET_CONTAINER_DLL_insert (handle->ticket_refs_head,
-                               handle->ticket_refs_tail, tr);
-  handle->ticket_ref_num++;
-  GNUNET_SCHEDULER_add_now (&update_ticket_refs, handle);
-}
-
-
-/**
- * TODO maybe we should cleanup the ATTRREFS here?
- */
-static void
-ticket_lookup_error_cb (void *cls)
-{
-  struct TicketIssueHandle *handle = cls;
-  handle->ns_qe = NULL;
-  handle->cb (handle->cb_cls, &handle->ticket, GNUNET_SYSERR,
-              "Error checking for ticketsin GNS\n");
-  cleanup_issue_handle (handle);
-}
 
 static void
 store_ticket_issue_cont (void *cls, int32_t success, const char *emsg)
@@ -987,10 +852,8 @@ store_ticket_issue_cont (void *cls, int32_t success, const char *emsg)
                 "Error storing AuthZ ticket in GNS");
     return;
   }
-  /* First, local references to tickets */
-  handle->ns_qe = GNUNET_NAMESTORE_records_lookup (
-      nsh, &handle->identity, GNUNET_GNS_EMPTY_LABEL_AT,
-      &ticket_lookup_error_cb, handle, &ticket_lookup_cb, handle);
+  handle->cb (handle->cb_cls, &handle->ticket, GNUNET_OK, NULL);
+  cleanup_issue_handle (handle);
 }
 
 
@@ -1000,7 +863,7 @@ issue_ticket (struct TicketIssueHandle *ih)
   struct GNUNET_RECLAIM_ATTRIBUTE_ClaimListEntry *le;
   struct GNUNET_GNSRECORD_Data *attrs_record;
   char *label;
-  size_t list_len = 0;
+  size_t list_len = 1;
   int i;
 
   for (le = ih->attrs->list_head; NULL != le; le = le->next)
@@ -1017,6 +880,12 @@ issue_ticket (struct TicketIssueHandle *ih)
     attrs_record[i].flags = GNUNET_GNSRECORD_RF_RELATIVE_EXPIRATION;
     i++;
   }
+  attrs_record[i].data = &ih->ticket;
+  attrs_record[i].data_size = sizeof (struct GNUNET_RECLAIM_Ticket);
+  attrs_record[i].expiration_time = GNUNET_TIME_UNIT_DAYS.rel_value_us;
+  attrs_record[i].record_type = GNUNET_GNSRECORD_TYPE_RECLAIM_TICKET;
+  attrs_record[i].flags =
+      GNUNET_GNSRECORD_RF_RELATIVE_EXPIRATION | GNUNET_GNSRECORD_RF_PRIVATE;
 
   label =
       GNUNET_STRINGS_data_to_string_alloc (&ih->ticket.rnd, sizeof (uint64_t));
@@ -1055,49 +924,11 @@ RECLAIM_TICKETS_issue (const struct GNUNET_CRYPTO_EcdsaPrivateKey *identity,
 static void
 cleanup_iter (struct RECLAIM_TICKETS_Iterator *iter)
 {
-  struct TicketReference *tr;
-  struct TicketReference *tr_tmp;
-  if (NULL != iter->ns_qe)
-    GNUNET_NAMESTORE_cancel (iter->ns_qe);
-  for (tr = iter->tickets_head; NULL != tr;) {
-    if (NULL != tr->attrs)
-      GNUNET_RECLAIM_ATTRIBUTE_list_destroy (tr->attrs);
-    tr_tmp = tr;
-    tr = tr->next;
-    GNUNET_free (tr_tmp);
-  }
+  if (NULL != iter->ns_it)
+    GNUNET_NAMESTORE_zone_iteration_stop (iter->ns_it);
   GNUNET_free (iter);
 }
 
-static void
-do_cleanup_iter (void *cls)
-{
-  struct RECLAIM_TICKETS_Iterator *iter = cls;
-  cleanup_iter (iter);
-}
-
-/**
- * Perform ticket iteration step
- *
- * @param ti ticket iterator to process
- */
-static void
-run_ticket_iteration_round (struct RECLAIM_TICKETS_Iterator *iter)
-{
-  struct TicketReference *tr;
-  if (NULL == iter->tickets_head) {
-    // No more tickets
-    iter->cb (iter->cb_cls, NULL);
-    GNUNET_SCHEDULER_add_now (&do_cleanup_iter, iter);
-    return;
-  }
-  tr = iter->tickets_head;
-  GNUNET_CONTAINER_DLL_remove (iter->tickets_head, iter->tickets_tail, tr);
-  iter->cb (iter->cb_cls, &tr->ticket);
-  if (NULL != tr->attrs)
-    GNUNET_RECLAIM_ATTRIBUTE_list_destroy (tr->attrs);
-  GNUNET_free (tr);
-}
 
 static void
 collect_tickets_cb (void *cls, const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone,
@@ -1105,45 +936,51 @@ collect_tickets_cb (void *cls, const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone,
                     const struct GNUNET_GNSRECORD_Data *rd)
 {
   struct RECLAIM_TICKETS_Iterator *iter = cls;
-  struct TicketReference *tr;
-  iter->ns_qe = NULL;
 
   for (int i = 0; i < rd_count; i++) {
-    if (GNUNET_GNSRECORD_TYPE_RECLAIM_TICKETREF != rd[i].record_type)
+    if (GNUNET_GNSRECORD_TYPE_RECLAIM_TICKET != rd[i].record_type)
       continue;
-    tr = GNUNET_new (struct TicketReference);
-    memcpy (&tr->ticket, rd[i].data, sizeof (struct GNUNET_RECLAIM_Ticket));
-    if (0 != memcmp (&tr->ticket.identity, &iter->identity_pub,
-                     sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey))) {
-      // Not our ticket
-      GNUNET_free (tr);
-      continue;
-    }
-    GNUNET_CONTAINER_DLL_insert (iter->tickets_head, iter->tickets_tail, tr);
+    iter->cb (iter->cb_cls, (struct GNUNET_RECLAIM_Ticket *)rd[i].data);
+    return;
   }
-  run_ticket_iteration_round (iter);
+  GNUNET_NAMESTORE_zone_iterator_next (iter->ns_it, 1);
 }
+
+
+static void
+collect_tickets_finished_cb (void *cls)
+{
+  struct RECLAIM_TICKETS_Iterator *iter = cls;
+  iter->ns_it = NULL;
+  iter->cb (iter->cb_cls, NULL);
+  cleanup_iter (iter);
+}
+
 
 static void
 collect_tickets_error_cb (void *cls)
 {
   struct RECLAIM_TICKETS_Iterator *iter = cls;
-  iter->ns_qe = NULL;
+  iter->ns_it = NULL;
   iter->cb (iter->cb_cls, NULL);
   cleanup_iter (iter);
 }
 
+
 void
 RECLAIM_TICKETS_iteration_next (struct RECLAIM_TICKETS_Iterator *iter)
 {
-  run_ticket_iteration_round (iter);
+  GNUNET_NAMESTORE_zone_iterator_next (iter->ns_it, 1);
 }
+
 
 void
 RECLAIM_TICKETS_iteration_stop (struct RECLAIM_TICKETS_Iterator *iter)
 {
+  GNUNET_NAMESTORE_zone_iteration_stop (iter->ns_it);
   cleanup_iter (iter);
 }
+
 
 struct RECLAIM_TICKETS_Iterator *
 RECLAIM_TICKETS_iteration_start (
@@ -1153,13 +990,11 @@ RECLAIM_TICKETS_iteration_start (
   struct RECLAIM_TICKETS_Iterator *iter;
 
   iter = GNUNET_new (struct RECLAIM_TICKETS_Iterator);
-  iter->identity = *identity;
-  GNUNET_CRYPTO_ecdsa_key_get_public (identity, &iter->identity_pub);
   iter->cb = cb;
   iter->cb_cls = cb_cls;
-  iter->ns_qe = GNUNET_NAMESTORE_records_lookup (
-      nsh, identity, GNUNET_GNS_EMPTY_LABEL_AT, &collect_tickets_error_cb, iter,
-      &collect_tickets_cb, iter);
+  iter->ns_it = GNUNET_NAMESTORE_zone_iteration_start (
+      nsh, identity, &collect_tickets_error_cb, iter, &collect_tickets_cb, iter,
+      &collect_tickets_finished_cb, iter);
   return iter;
 }
 

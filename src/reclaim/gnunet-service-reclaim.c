@@ -925,6 +925,7 @@ ticket_iter_cb (void *cls, struct GNUNET_RECLAIM_Ticket *ticket)
   } else {
     env = GNUNET_MQ_msg_extra (trm, sizeof (struct GNUNET_RECLAIM_Ticket),
                                GNUNET_MESSAGE_TYPE_RECLAIM_TICKET_RESULT);
+    memcpy (&trm[1], ticket, sizeof (struct GNUNET_RECLAIM_Ticket));
   }
   trm->id = htonl (ti->r_id);
   GNUNET_MQ_send (ti->client->mq, env);
