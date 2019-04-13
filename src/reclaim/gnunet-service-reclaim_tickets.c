@@ -24,6 +24,8 @@
  * @brief reclaim tickets
  *
  */
+#include <inttypes.h>
+
 #include "gnunet-service-reclaim_tickets.h"
 
 struct ParallelLookup;
@@ -227,6 +229,128 @@ struct RECLAIM_TICKETS_Iterator {
   struct TicketReference *tickets_tail;
 };
 
+
+struct RevokedAttributeEntry {
+  /**
+   * DLL
+   */
+  struct RevokedAttributeEntry *next;
+
+  /**
+   * DLL
+   */
+  struct RevokedAttributeEntry *prev;
+
+  /**
+   * Old ID of the attribute
+   */
+  uint64_t old_id;
+
+  /**
+   * New ID of the attribute
+   */
+  uint64_t new_id;
+};
+
+
+struct TicketRecordsEntry {
+  /**
+   * DLL
+   */
+  struct TicketRecordsEntry *next;
+
+  /**
+   * DLL
+   */
+  struct TicketRecordsEntry *prev;
+
+  /**
+   * Record count
+   */
+  unsigned int rd_count;
+
+  /**
+   * Data
+   */
+  char *data;
+
+  /**
+   * Data size
+   */
+  size_t data_size;
+
+  /**
+   * Label
+   */
+  char *label;
+};
+
+/**
+ * Ticket revocation request handle
+ */
+struct RECLAIM_TICKETS_RevokeHandle {
+  /**
+   * Issuer Key
+   */
+  struct GNUNET_CRYPTO_EcdsaPrivateKey identity;
+
+  /**
+   * Callback
+   */
+  RECLAIM_TICKETS_RevokeCallback cb;
+
+  /**
+   * Callback cls
+   */
+  void *cb_cls;
+
+  /**
+   * Ticket to issue
+   */
+  struct GNUNET_RECLAIM_Ticket ticket;
+
+  /**
+   * QueueEntry
+   */
+  struct GNUNET_NAMESTORE_QueueEntry *ns_qe;
+
+  /**
+   * Namestore iterator
+   */
+  struct GNUNET_NAMESTORE_ZoneIterator *ns_it;
+
+  /**
+   * Revoked attributes
+   */
+  struct RevokedAttributeEntry *attrs_head;
+
+  /**
+   * Revoked attributes
+   */
+  struct RevokedAttributeEntry *attrs_tail;
+
+  /**
+   * Current attribute to move
+   */
+  struct RevokedAttributeEntry *move_attr;
+
+  /**
+   * Number of attributes in ticket
+   */
+  unsigned int ticket_attrs;
+
+  /**
+   * Tickets to update
+   */
+  struct TicketRecordsEntry *tickets_to_update_head;
+
+  /**
+   * Tickets to update
+   */
+  struct TicketRecordsEntry *tickets_to_update_tail;
+};
+
+
 /* Namestore handle */
 static struct GNUNET_NAMESTORE_Handle *nsh;
 
@@ -236,12 +360,349 @@ static struct GNUNET_GNS_Handle *gns;
 /* Handle to the statistics service */
 static struct GNUNET_STATISTICS_Handle *stats;
 
+static void
+move_attrs (struct RECLAIM_TICKETS_RevokeHandle *rh);
+
+static void
+move_attrs_cont (void *cls)
+{
+  move_attrs ((struct RECLAIM_TICKETS_RevokeHandle *)cls);
+}
+
+/**
+ * Cleanup revoke handle
+ *
+ * @param rh the ticket revocation handle
+ */
+static void
+cleanup_rvk (struct RECLAIM_TICKETS_RevokeHandle *rh)
+{
+  struct RevokedAttributeEntry *ae;
+  struct TicketRecordsEntry *le;
+  if (NULL != rh->ns_qe)
+    GNUNET_NAMESTORE_cancel (rh->ns_qe);
+  if (NULL != rh->ns_it)
+    GNUNET_NAMESTORE_zone_iteration_stop (rh->ns_it);
+  while (NULL != (ae = rh->attrs_head)) {
+    GNUNET_CONTAINER_DLL_remove (rh->attrs_head, rh->attrs_tail, ae);
+    GNUNET_free (ae);
+  }
+  while (NULL != (le = rh->tickets_to_update_head)) {
+    GNUNET_CONTAINER_DLL_remove (rh->tickets_to_update_head,
+                                 rh->tickets_to_update_head, le);
+    if (NULL != le->data)
+      GNUNET_free (le->data);
+    if (NULL != le->label)
+      GNUNET_free (le->label);
+    GNUNET_free (le);
+  }
+  GNUNET_free (rh);
+}
+
+static void
+del_attr_finished (void *cls, int32_t success, const char *emsg)
+{
+  struct RECLAIM_TICKETS_RevokeHandle *rvk = cls;
+  rvk->ns_qe = NULL;
+  if (GNUNET_SYSERR == success) {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Error removing attribute: %s\n",
+                emsg);
+    rvk->cb (rvk->cb_cls, GNUNET_SYSERR);
+    cleanup_rvk (rvk);
+    return;
+  }
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Continuing\n");
+  rvk->move_attr = rvk->move_attr->next;
+  GNUNET_SCHEDULER_add_now (&move_attrs_cont, rvk);
+}
+
+static void
+move_attr_finished (void *cls, int32_t success, const char *emsg)
+{
+  struct RECLAIM_TICKETS_RevokeHandle *rvk = cls;
+  char *label;
+  rvk->ns_qe = NULL;
+  if (GNUNET_SYSERR == success) {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Error moving attribute: %s\n", emsg);
+    rvk->cb (rvk->cb_cls, GNUNET_SYSERR);
+    cleanup_rvk (rvk);
+    return;
+  }
+  label = GNUNET_STRINGS_data_to_string_alloc (&rvk->move_attr->old_id,
+                                               sizeof (uint64_t));
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Removing attribute %s\n", label);
+  rvk->ns_qe = GNUNET_NAMESTORE_records_store (nsh, &rvk->identity, label, 0,
+                                               NULL, &del_attr_finished, rvk);
+}
+
+
+static void
+rvk_move_attr_cb (void *cls, const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone,
+                  const char *label, unsigned int rd_count,
+                  const struct GNUNET_GNSRECORD_Data *rd)
+{
+  struct RECLAIM_TICKETS_RevokeHandle *rvk = cls;
+  struct RevokedAttributeEntry *le;
+  char *new_label;
+  rvk->ns_qe = NULL;
+  if (0 == rd_count) {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                "The attribute %s no longer exists!\n", label);
+    le = rvk->move_attr;
+    rvk->move_attr = le->next;
+    GNUNET_CONTAINER_DLL_remove (rvk->attrs_head, rvk->attrs_tail, le);
+    GNUNET_free (le);
+    GNUNET_SCHEDULER_add_now (&move_attrs_cont, rvk);
+    return;
+  }
+  /** find a new place for this attribute **/
+  rvk->move_attr->new_id =
+      GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_STRONG, UINT64_MAX);
+  new_label = GNUNET_STRINGS_data_to_string_alloc (&rvk->move_attr->new_id,
+                                                   sizeof (uint64_t));
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Adding attribute %s\n", new_label);
+  rvk->ns_qe = GNUNET_NAMESTORE_records_store (nsh, &rvk->identity, new_label,
+                                               1, rd, &move_attr_finished, rvk);
+  GNUNET_free (new_label);
+}
+
+
+static void
+rvk_ticket_update (void *cls, const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone,
+                   const char *label, unsigned int rd_count,
+                   const struct GNUNET_GNSRECORD_Data *rd)
+{
+  struct RECLAIM_TICKETS_RevokeHandle *rvk = cls;
+  struct TicketRecordsEntry *le;
+  struct RevokedAttributeEntry *ae;
+  int has_changed = GNUNET_NO;
+
+  /** Let everything point to the old record **/
+  for (int i = 0; i < rd_count; i++) {
+    if (GNUNET_GNSRECORD_TYPE_RECLAIM_ATTR_REF != rd[i].record_type)
+      continue;
+    for (ae = rvk->attrs_head; NULL != ae; ae = ae->next) {
+      if (0 != memcmp (rd[i].data, &ae->old_id, sizeof (uint64_t)))
+        continue;
+      has_changed = GNUNET_YES;
+      break;
+    }
+    if (GNUNET_YES == has_changed)
+      break;
+  }
+  if (GNUNET_YES == has_changed) {
+    le = GNUNET_new (struct TicketRecordsEntry);
+    le->data_size = GNUNET_GNSRECORD_records_get_size (rd_count, rd);
+    le->data = GNUNET_malloc (le->data_size);
+    le->rd_count = rd_count;
+    le->label = GNUNET_strdup (label);
+    GNUNET_GNSRECORD_records_serialize (rd_count, rd, le->data_size, le->data);
+    GNUNET_CONTAINER_DLL_insert (rvk->tickets_to_update_head,
+                                 rvk->tickets_to_update_tail, le);
+  }
+  GNUNET_NAMESTORE_zone_iterator_next (rvk->ns_it, 1);
+}
+
+
+static void
+process_tickets (void *cls);
+
+
+static void
+ticket_processed (void *cls, int32_t success, const char *emsg)
+{
+  struct RECLAIM_TICKETS_RevokeHandle *rvk = cls;
+  rvk->ns_qe = NULL;
+  GNUNET_SCHEDULER_add_now (&process_tickets, rvk);
+}
+
+static void
+process_tickets (void *cls)
+{
+  struct RECLAIM_TICKETS_RevokeHandle *rvk = cls;
+  struct TicketRecordsEntry *le;
+  struct RevokedAttributeEntry *ae;
+  if (NULL == rvk->tickets_to_update_head) {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Finished updatding tickets, success\n");
+    rvk->cb (rvk->cb_cls, GNUNET_OK);
+    cleanup_rvk (rvk);
+    return;
+  }
+  le = rvk->tickets_to_update_head;
+  GNUNET_CONTAINER_DLL_remove (rvk->tickets_to_update_head,
+                               rvk->tickets_to_update_tail, le);
+  struct GNUNET_GNSRECORD_Data rd[le->rd_count];
+  GNUNET_GNSRECORD_records_deserialize (le->data_size, le->data, le->rd_count,
+                                        rd);
+  for (int i = 0; i < le->rd_count; i++) {
+    if (GNUNET_GNSRECORD_TYPE_RECLAIM_ATTR_REF != rd[i].record_type)
+      continue;
+    for (ae = rvk->attrs_head; NULL != ae; ae = ae->next) {
+      if (0 != memcmp (rd[i].data, &ae->old_id, sizeof (uint64_t)))
+        continue;
+      rd[i].data = &ae->new_id;
+    }
+  }
+  rvk->ns_qe = GNUNET_NAMESTORE_records_store (
+      nsh, &rvk->identity, le->label, le->rd_count, rd, &ticket_processed, rvk);
+  GNUNET_free (le->label);
+  GNUNET_free (le->data);
+  GNUNET_free (le);
+}
+
+static void
+rvk_ticket_update_finished (void *cls)
+{
+  struct RECLAIM_TICKETS_RevokeHandle *rvk = cls;
+  rvk->ns_it = NULL;
+  GNUNET_SCHEDULER_add_now (&process_tickets, rvk);
+}
+
+
+static void
+rvk_ns_iter_err (void *cls)
+{
+  struct RECLAIM_TICKETS_RevokeHandle *rvk = cls;
+  rvk->ns_it = NULL;
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+              "Namestore error on revocation (id=%" PRIu64 "\n",
+              rvk->move_attr->old_id);
+  rvk->cb (rvk->cb_cls, GNUNET_SYSERR);
+  cleanup_rvk (rvk);
+}
+
+
+static void
+rvk_ns_err (void *cls)
+{
+  struct RECLAIM_TICKETS_RevokeHandle *rvk = cls;
+  rvk->ns_qe = NULL;
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+              "Namestore error on revocation (id=%" PRIu64 "\n",
+              rvk->move_attr->old_id);
+  rvk->cb (rvk->cb_cls, GNUNET_SYSERR);
+  cleanup_rvk (rvk);
+}
+
+
+static void
+move_attrs (struct RECLAIM_TICKETS_RevokeHandle *rvk)
+{
+  char *label;
+
+  if (NULL == rvk->move_attr) {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Finished moving attributes\n");
+    rvk->ns_it = GNUNET_NAMESTORE_zone_iteration_start (
+        nsh, &rvk->identity, &rvk_ns_iter_err, rvk, &rvk_ticket_update, rvk,
+        &rvk_ticket_update_finished, rvk);
+    return;
+  }
+  label = GNUNET_STRINGS_data_to_string_alloc (&rvk->move_attr->old_id,
+                                               sizeof (uint64_t));
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Moving attribute %s\n", label);
+
+  rvk->ns_qe = GNUNET_NAMESTORE_records_lookup (
+      nsh, &rvk->identity, label, &rvk_ns_err, rvk, &rvk_move_attr_cb, rvk);
+  GNUNET_free (label);
+}
+
+
+static void
+remove_ticket_cont (void *cls, int32_t success, const char *emsg)
+{
+  struct RECLAIM_TICKETS_RevokeHandle *rvk = cls;
+  rvk->ns_qe = NULL;
+  if (GNUNET_SYSERR == success) {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "%s\n", emsg);
+    rvk->cb (rvk->cb_cls, GNUNET_SYSERR);
+    cleanup_rvk (rvk);
+    return;
+  }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Deleted ticket\n");
+  if (0 == rvk->ticket_attrs) {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                "No attributes to move... strange\n");
+    rvk->cb (rvk->cb_cls, GNUNET_OK);
+    cleanup_rvk (rvk);
+    return;
+  }
+  rvk->move_attr = rvk->attrs_head;
+  move_attrs (rvk);
+}
+
+
+static void
+revoke_attrs_cb (void *cls, const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone,
+                 const char *label, unsigned int rd_count,
+                 const struct GNUNET_GNSRECORD_Data *rd)
+
+{
+  struct RECLAIM_TICKETS_RevokeHandle *rvk = cls;
+  struct RevokedAttributeEntry *le;
+  rvk->ns_qe = NULL;
+  for (int i = 0; i < rd_count; i++) {
+    if (GNUNET_GNSRECORD_TYPE_RECLAIM_ATTR_REF != rd[i].record_type)
+      continue;
+    le = GNUNET_new (struct RevokedAttributeEntry);
+    le->old_id = *((uint64_t *)rd[i].data);
+    GNUNET_CONTAINER_DLL_insert (rvk->attrs_head, rvk->attrs_tail, le);
+    rvk->ticket_attrs++;
+  }
+
+  /** Now, remove ticket **/
+  rvk->ns_qe = GNUNET_NAMESTORE_records_store (nsh, &rvk->identity, label, 0,
+                                               NULL, &remove_ticket_cont, rvk);
+}
+
+
+static void
+rvk_attrs_err_cb (void *cls)
+{
+  struct RECLAIM_TICKETS_RevokeHandle *rvk = cls;
+  rvk->cb (rvk->cb_cls, GNUNET_SYSERR);
+  cleanup_rvk (rvk);
+}
+
+
+struct RECLAIM_TICKETS_RevokeHandle *
+RECLAIM_TICKETS_revoke (const struct GNUNET_RECLAIM_Ticket *ticket,
+                        const struct GNUNET_CRYPTO_EcdsaPrivateKey *identity,
+                        RECLAIM_TICKETS_RevokeCallback cb, void *cb_cls)
+{
+  struct RECLAIM_TICKETS_RevokeHandle *rvk;
+  char *label;
+
+  rvk = GNUNET_new (struct RECLAIM_TICKETS_RevokeHandle);
+  rvk->cb = cb;
+  rvk->cb_cls = cb_cls;
+  rvk->identity = *identity;
+  rvk->ticket = *ticket;
+  GNUNET_CRYPTO_ecdsa_key_get_public (&rvk->identity, &rvk->ticket.identity);
+  /** Get shared attributes **/
+  label = GNUNET_STRINGS_data_to_string_alloc (&ticket->rnd, sizeof (uint64_t));
+
+  rvk->ns_qe = GNUNET_NAMESTORE_records_lookup (
+      nsh, identity, label, &rvk_attrs_err_cb, rvk, &revoke_attrs_cb, rvk);
+  return rvk;
+}
+
+
+void
+RECLAIM_TICKETS_revoke_cancel (struct RECLAIM_TICKETS_RevokeHandle *rh)
+{
+  cleanup_rvk (rh);
+}
+/*******************************
+ * Ticket consume
+ *******************************/
 
 /**
  * Cleanup ticket consume handle
  * @param cth the handle to clean up
  */
-static void cleanup_cth (struct RECLAIM_TICKETS_ConsumeHandle *cth)
+static void
+cleanup_cth (struct RECLAIM_TICKETS_ConsumeHandle *cth)
 {
   struct ParallelLookup *lu;
   struct ParallelLookup *tmp;
@@ -305,7 +766,8 @@ process_parallel_lookup_result (void *cls, uint32_t rd_count,
 }
 
 
-static void abort_parallel_lookups (void *cls)
+static void
+abort_parallel_lookups (void *cls)
 {
   struct RECLAIM_TICKETS_ConsumeHandle *cth = cls;
   struct ParallelLookup *lu;
@@ -325,8 +787,9 @@ static void abort_parallel_lookups (void *cls)
 }
 
 
-static void lookup_authz_cb (void *cls, uint32_t rd_count,
-                             const struct GNUNET_GNSRECORD_Data *rd)
+static void
+lookup_authz_cb (void *cls, uint32_t rd_count,
+                 const struct GNUNET_GNSRECORD_Data *rd)
 {
   struct RECLAIM_TICKETS_ConsumeHandle *cth = cls;
   struct ParallelLookup *parallel_lookup;
@@ -388,7 +851,8 @@ RECLAIM_TICKETS_consume (const struct GNUNET_CRYPTO_EcdsaPrivateKey *id,
   return cth;
 }
 
-void RECLAIM_TICKETS_consume_cancel (struct RECLAIM_TICKETS_ConsumeHandle *cth)
+void
+RECLAIM_TICKETS_consume_cancel (struct RECLAIM_TICKETS_ConsumeHandle *cth)
 {
   cleanup_cth (cth);
   return;
@@ -403,7 +867,8 @@ void RECLAIM_TICKETS_consume_cancel (struct RECLAIM_TICKETS_ConsumeHandle *cth)
  * Cleanup ticket consume handle
  * @param handle the handle to clean up
  */
-static void cleanup_issue_handle (struct TicketIssueHandle *handle)
+static void
+cleanup_issue_handle (struct TicketIssueHandle *handle)
 {
   struct TicketReference *tr;
   struct TicketReference *tr_tmp;
@@ -422,8 +887,8 @@ static void cleanup_issue_handle (struct TicketIssueHandle *handle)
 }
 
 
-static void store_ticket_refs_cont (void *cls, int32_t success,
-                                    const char *emsg)
+static void
+store_ticket_refs_cont (void *cls, int32_t success, const char *emsg)
 {
   struct TicketIssueHandle *handle = cls;
   handle->ns_qe = NULL;
@@ -438,7 +903,8 @@ static void store_ticket_refs_cont (void *cls, int32_t success,
 }
 
 
-static void update_ticket_refs (void *cls)
+static void
+update_ticket_refs (void *cls)
 {
   struct TicketIssueHandle *handle = cls;
   struct GNUNET_GNSRECORD_Data refs_rd[handle->ticket_ref_num];
@@ -461,10 +927,10 @@ static void update_ticket_refs (void *cls)
 }
 
 
-static void ticket_lookup_cb (void *cls,
-                              const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone,
-                              const char *label, unsigned int rd_count,
-                              const struct GNUNET_GNSRECORD_Data *rd)
+static void
+ticket_lookup_cb (void *cls, const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone,
+                  const char *label, unsigned int rd_count,
+                  const struct GNUNET_GNSRECORD_Data *rd)
 {
   struct TicketIssueHandle *handle = cls;
   struct TicketReference *tr;
@@ -500,7 +966,8 @@ static void ticket_lookup_cb (void *cls,
 /**
  * TODO maybe we should cleanup the ATTRREFS here?
  */
-static void ticket_lookup_error_cb (void *cls)
+static void
+ticket_lookup_error_cb (void *cls)
 {
   struct TicketIssueHandle *handle = cls;
   handle->ns_qe = NULL;
@@ -509,8 +976,8 @@ static void ticket_lookup_error_cb (void *cls)
   cleanup_issue_handle (handle);
 }
 
-static void store_ticket_issue_cont (void *cls, int32_t success,
-                                     const char *emsg)
+static void
+store_ticket_issue_cont (void *cls, int32_t success, const char *emsg)
 {
   struct TicketIssueHandle *handle = cls;
 
@@ -527,7 +994,8 @@ static void store_ticket_issue_cont (void *cls, int32_t success,
 }
 
 
-static void issue_ticket (struct TicketIssueHandle *ih)
+static void
+issue_ticket (struct TicketIssueHandle *ih)
 {
   struct GNUNET_RECLAIM_ATTRIBUTE_ClaimListEntry *le;
   struct GNUNET_GNSRECORD_Data *attrs_record;
@@ -561,11 +1029,11 @@ static void issue_ticket (struct TicketIssueHandle *ih)
 }
 
 
-void RECLAIM_TICKETS_issue (
-    const struct GNUNET_CRYPTO_EcdsaPrivateKey *identity,
-    const struct GNUNET_RECLAIM_ATTRIBUTE_ClaimList *attrs,
-    const struct GNUNET_CRYPTO_EcdsaPublicKey *audience,
-    RECLAIM_TICKETS_TicketResult cb, void *cb_cls)
+void
+RECLAIM_TICKETS_issue (const struct GNUNET_CRYPTO_EcdsaPrivateKey *identity,
+                       const struct GNUNET_RECLAIM_ATTRIBUTE_ClaimList *attrs,
+                       const struct GNUNET_CRYPTO_EcdsaPublicKey *audience,
+                       RECLAIM_TICKETS_TicketResult cb, void *cb_cls)
 {
   struct TicketIssueHandle *tih;
   tih = GNUNET_new (struct TicketIssueHandle);
@@ -584,7 +1052,8 @@ void RECLAIM_TICKETS_issue (
  * Ticket iteration
  ************************************/
 
-static void cleanup_iter (struct RECLAIM_TICKETS_Iterator *iter)
+static void
+cleanup_iter (struct RECLAIM_TICKETS_Iterator *iter)
 {
   struct TicketReference *tr;
   struct TicketReference *tr_tmp;
@@ -600,7 +1069,8 @@ static void cleanup_iter (struct RECLAIM_TICKETS_Iterator *iter)
   GNUNET_free (iter);
 }
 
-static void do_cleanup_iter (void *cls)
+static void
+do_cleanup_iter (void *cls)
 {
   struct RECLAIM_TICKETS_Iterator *iter = cls;
   cleanup_iter (iter);
@@ -611,7 +1081,8 @@ static void do_cleanup_iter (void *cls)
  *
  * @param ti ticket iterator to process
  */
-static void run_ticket_iteration_round (struct RECLAIM_TICKETS_Iterator *iter)
+static void
+run_ticket_iteration_round (struct RECLAIM_TICKETS_Iterator *iter)
 {
   struct TicketReference *tr;
   if (NULL == iter->tickets_head) {
@@ -653,7 +1124,8 @@ collect_tickets_cb (void *cls, const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone,
   run_ticket_iteration_round (iter);
 }
 
-static void collect_tickets_error_cb (void *cls)
+static void
+collect_tickets_error_cb (void *cls)
 {
   struct RECLAIM_TICKETS_Iterator *iter = cls;
   iter->ns_qe = NULL;
@@ -661,17 +1133,20 @@ static void collect_tickets_error_cb (void *cls)
   cleanup_iter (iter);
 }
 
-void RECLAIM_TICKETS_iteration_next (struct RECLAIM_TICKETS_Iterator *iter)
+void
+RECLAIM_TICKETS_iteration_next (struct RECLAIM_TICKETS_Iterator *iter)
 {
   run_ticket_iteration_round (iter);
 }
 
-void RECLAIM_TICKETS_iteration_stop (struct RECLAIM_TICKETS_Iterator *iter)
+void
+RECLAIM_TICKETS_iteration_stop (struct RECLAIM_TICKETS_Iterator *iter)
 {
   cleanup_iter (iter);
 }
 
-struct RECLAIM_TICKETS_Iterator *RECLAIM_TICKETS_iteration_start (
+struct RECLAIM_TICKETS_Iterator *
+RECLAIM_TICKETS_iteration_start (
     const struct GNUNET_CRYPTO_EcdsaPrivateKey *identity,
     RECLAIM_TICKETS_TicketIter cb, void *cb_cls)
 {
@@ -689,7 +1164,8 @@ struct RECLAIM_TICKETS_Iterator *RECLAIM_TICKETS_iteration_start (
 }
 
 
-int RECLAIM_TICKETS_init (const struct GNUNET_CONFIGURATION_Handle *c)
+int
+RECLAIM_TICKETS_init (const struct GNUNET_CONFIGURATION_Handle *c)
 {
   // Connect to identity and namestore services
   nsh = GNUNET_NAMESTORE_connect (c);
@@ -707,7 +1183,8 @@ int RECLAIM_TICKETS_init (const struct GNUNET_CONFIGURATION_Handle *c)
   return GNUNET_OK;
 }
 
-void RECLAIM_TICKETS_deinit (void)
+void
+RECLAIM_TICKETS_deinit (void)
 {
   if (NULL != nsh)
     GNUNET_NAMESTORE_disconnect (nsh);
