@@ -485,8 +485,9 @@ int main (int argc, char *const argv[])
           gettext_noop ("Expiration interval of the attribute"), &exp_interval),
 
       GNUNET_GETOPT_OPTION_END};
-  if (GNUNET_OK !=
-      GNUNET_PROGRAM_run (argc, argv, "ct", "ct", options, &run, NULL))
+  if (GNUNET_OK != GNUNET_PROGRAM_run (argc, argv, "gnunet-reclaim",
+                                       _ ("re:claimID command line tool"),
+                                       options, &run, NULL))
     return 1;
   else
     return ret;

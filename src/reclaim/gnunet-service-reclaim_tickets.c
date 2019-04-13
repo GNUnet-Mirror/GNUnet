@@ -547,6 +547,7 @@ static void issue_ticket (struct TicketIssueHandle *ih)
     attrs_record[i].expiration_time = GNUNET_TIME_UNIT_DAYS.rel_value_us;
     attrs_record[i].record_type = GNUNET_GNSRECORD_TYPE_RECLAIM_ATTR_REF;
     attrs_record[i].flags = GNUNET_GNSRECORD_RF_RELATIVE_EXPIRATION;
+    i++;
   }
 
   label =
