@@ -906,6 +906,9 @@ GNUNET_TRANSPORT_communicator_disconnect (struct GNUNET_TRANSPORT_CommunicatorHa
  * @param sender presumed sender of the message (details to be checked
  *        by higher layers)
  * @param msg the message
+ * @param expected_addr_validity how long does the communicator believe it
+ *        will continue to be able to receive messages from the same address
+ *        on which it received this message?
  * @param cb function to call once handling the message is done, NULL if
  *         flow control is not supported by this communicator
  * @param cb_cls closure for @a cb
@@ -919,6 +922,7 @@ int
 GNUNET_TRANSPORT_communicator_receive (struct GNUNET_TRANSPORT_CommunicatorHandle *ch,
                                        const struct GNUNET_PeerIdentity *sender,
                                        const struct GNUNET_MessageHeader *msg,
+                                       struct GNUNET_TIME_Relative expected_addr_validity,
                                        GNUNET_TRANSPORT_MessageCompletedCallback cb,
                                        void *cb_cls)
 {
@@ -932,24 +936,25 @@ GNUNET_TRANSPORT_communicator_receive (struct GNUNET_TRANSPORT_CommunicatorHandl
        (GNUNET_MQ_get_length (ch->mq) >= ch->max_queue_length) )
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-		"Dropping message: transprot is too slow, queue length %llu exceeded\n",
-		ch->max_queue_length);
+                "Dropping message: transprot is too slow, queue length %llu exceeded\n",
+                ch->max_queue_length);
     return GNUNET_NO;
   }
 
   msize = ntohs (msg->size);
   env = GNUNET_MQ_msg_extra (im,
-			     msize,
-			     GNUNET_MESSAGE_TYPE_TRANSPORT_INCOMING_MSG);
+                             msize,
+                             GNUNET_MESSAGE_TYPE_TRANSPORT_INCOMING_MSG);
   if (NULL == env)
   {
     GNUNET_break (0);
     return GNUNET_SYSERR;
   }
+  im->expected_address_validity = GNUNET_TIME_relative_hton (expected_addr_validity);
   im->sender = *sender;
   memcpy (&im[1],
-	  msg,
-	  msize);
+          msg,
+          msize);
   if (NULL != cb)
   {
     struct FlowControl *fc;
@@ -962,11 +967,11 @@ GNUNET_TRANSPORT_communicator_receive (struct GNUNET_TRANSPORT_CommunicatorHandl
     fc->cb = cb;
     fc->cb_cls = cb_cls;
     GNUNET_CONTAINER_DLL_insert (ch->fc_head,
-				 ch->fc_tail,
-				 fc);
+                                 ch->fc_tail,
+                                 fc);
   }
   GNUNET_MQ_send (ch->mq,
-		  env);
+                  env);
   return GNUNET_OK;
 }
 

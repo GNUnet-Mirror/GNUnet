@@ -43,6 +43,18 @@ extern "C"
 #endif
 #endif
 
+
+/**
+ * Key used for storing addresses in URL format in the peerstore
+ */
+#define GNUNET_PEERSTORE_TRANSPORT_URLADDRESS_KEY "transport-address"
+
+/**
+ * Key used for storing HELLOs in the peerstore
+ */
+#define GNUNET_PEERSTORE_TRANSPORT_HELLO_KEY "transport-address"
+
+
 /**
  * Options for storing values in PEERSTORE
  */

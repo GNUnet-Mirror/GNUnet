@@ -634,21 +634,21 @@ mq_error (void *cls,
  */
 static struct Queue *
 setup_queue (const struct GNUNET_PeerIdentity *target,
-	     enum GNUNET_TRANSPORT_ConnectionStatus cs,
-	     const struct sockaddr_un *un,
-	     socklen_t un_len)
+             enum GNUNET_TRANSPORT_ConnectionStatus cs,
+             const struct sockaddr_un *un,
+             socklen_t un_len)
 {
   struct Queue *queue;
 
   queue = GNUNET_new (struct Queue);
   queue->target = *target;
   queue->address = GNUNET_memdup (un,
-				  un_len);
+                                  un_len);
   queue->address_len = un_len;
   (void) GNUNET_CONTAINER_multipeermap_put (queue_map,
-					    &queue->target,
-					    queue,
-					    GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
+                                            &queue->target,
+                                            queue,
+                                            GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
   GNUNET_STATISTICS_set (stats,
 			 "# queues active",
 			 GNUNET_CONTAINER_multipeermap_size (queue_map),
@@ -656,37 +656,37 @@ setup_queue (const struct GNUNET_PeerIdentity *target,
   queue->timeout = GNUNET_TIME_relative_to_absolute (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT);
   queue->timeout_task
     = GNUNET_SCHEDULER_add_delayed (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT,
-				    &queue_timeout,
-				    queue);
+                                    &queue_timeout,
+                                    queue);
   queue->mq
     = GNUNET_MQ_queue_for_callbacks (&mq_send,
-				     &mq_destroy,
-				     &mq_cancel,
-				     queue,
-				     NULL,
-				     &mq_error,
-				     queue);
+                                     &mq_destroy,
+                                     &mq_cancel,
+                                     queue,
+                                     NULL,
+                                     &mq_error,
+                                     queue);
   {
     char *foreign_addr;
 
     if ('\0' == un->sun_path[0])
       GNUNET_asprintf (&foreign_addr,
-		       "%s-@%s",
-		       COMMUNICATOR_ADDRESS_PREFIX,
-		       &un->sun_path[1]);
+                       "%s-@%s",
+                       COMMUNICATOR_ADDRESS_PREFIX,
+                       &un->sun_path[1]);
     else
       GNUNET_asprintf (&foreign_addr,
-		       "%s-%s",
-		       COMMUNICATOR_ADDRESS_PREFIX,
-		       un->sun_path);
+                       "%s-%s",
+                       COMMUNICATOR_ADDRESS_PREFIX,
+                       un->sun_path);
     queue->qh
       = GNUNET_TRANSPORT_communicator_mq_add (ch,
-					      &queue->target,
-					      foreign_addr,
-					      UNIX_MTU,
-					      GNUNET_NT_LOOPBACK,
-					      cs,
-					      queue->mq);
+                                              &queue->target,
+                                              foreign_addr,
+                                              UNIX_MTU,
+                                              GNUNET_NT_LOOPBACK,
+                                              cs,
+                                              queue->mq);
     GNUNET_free (foreign_addr);
   }
   return queue;
@@ -718,16 +718,16 @@ receive_complete_cb (void *cls,
   delivering_messages--;
   if (GNUNET_OK != success)
     GNUNET_STATISTICS_update (stats,
-			      "# transport transmission failures",
-			      1,
-			      GNUNET_NO);
+                              "# transport transmission failures",
+                              1,
+                              GNUNET_NO);
   GNUNET_assert (NULL != unix_sock);
   if ( (NULL == read_task) &&
        (delivering_messages < max_queue_length) )
     read_task = GNUNET_SCHEDULER_add_read_net (GNUNET_TIME_UNIT_FOREVER_REL,
-					       unix_sock,
-					       &select_read_cb,
-					       NULL);
+                                               unix_sock,
+                                               &select_read_cb,
+                                               NULL);
 }
 
 
@@ -751,16 +751,16 @@ select_read_cb (void *cls)
 
   GNUNET_assert (NULL != unix_sock);
   read_task = GNUNET_SCHEDULER_add_read_net (GNUNET_TIME_UNIT_FOREVER_REL,
-					     unix_sock,
-					     &select_read_cb,
-					     NULL);
+                                             unix_sock,
+                                             &select_read_cb,
+                                             NULL);
   addrlen = sizeof (un);
   memset (&un,
 	  0,
 	  sizeof (un));
   ret = GNUNET_NETWORK_socket_recvfrom (unix_sock,
                                         buf,
-					sizeof (buf),
+                                        sizeof (buf),
                                         (struct sockaddr *) &un,
                                         &addrlen);
   if ( (-1 == ret) &&
@@ -774,9 +774,9 @@ select_read_cb (void *cls)
     return;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Read %d bytes from socket %s\n",
-	      (int) ret,
-	      un.sun_path);
+              "Read %d bytes from socket %s\n",
+              (int) ret,
+              un.sun_path);
   GNUNET_assert (AF_UNIX == (un.sun_family));
   msg = (struct UNIXMessage *) buf;
   msize = ntohs (msg->header.size);
@@ -787,13 +787,13 @@ select_read_cb (void *cls)
     return;
   }
   queue = lookup_queue (&msg->sender,
-			&un,
-			addrlen);
+                        &un,
+                        addrlen);
   if (NULL == queue)
     queue = setup_queue (&msg->sender,
-			 GNUNET_TRANSPORT_CS_INBOUND,
-			 &un,
-			 addrlen);
+                         GNUNET_TRANSPORT_CS_INBOUND,
+                         &un,
+                         addrlen);
   else
     reschedule_queue_timeout (queue);
   if (NULL == queue)
@@ -821,16 +821,17 @@ select_read_cb (void *cls)
 	      sizeof (al_hdr));
       csize = ntohs (al_hdr.size);
       if ( (csize < sizeof (struct GNUNET_MessageHeader)) ||
-	   (csize > tsize - offset))
+           (csize > tsize - offset))
       {
-	GNUNET_break_op (0);
-	break;
+        GNUNET_break_op (0);
+        break;
       }
       ret = GNUNET_TRANSPORT_communicator_receive (ch,
-						   &msg->sender,
-						   currhdr,
-						   &receive_complete_cb,
-						   NULL);
+                                                   &msg->sender,
+                                                   currhdr,
+                                                   GNUNET_TIME_UNIT_FOREVER_REL,
+                                                   &receive_complete_cb,
+                                                   NULL);
       if (GNUNET_SYSERR == ret)
 	return; /* transport not up */
       if (GNUNET_NO == ret)
@@ -898,16 +899,16 @@ mq_init (void *cls,
     return GNUNET_OK;
   }
   queue = setup_queue (peer,
-		       GNUNET_TRANSPORT_CS_OUTBOUND,
-		       un,
-		       un_len);
+                       GNUNET_TRANSPORT_CS_OUTBOUND,
+                       un,
+                       un_len);
   GNUNET_free (un);
   if (NULL == queue)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-		"Failed to setup queue to %s at `%s'\n",
-		GNUNET_i2s (peer),
-		path);
+                "Failed to setup queue to %s at `%s'\n",
+                GNUNET_i2s (peer),
+                path);
     return GNUNET_NO;
   }
   return GNUNET_OK;

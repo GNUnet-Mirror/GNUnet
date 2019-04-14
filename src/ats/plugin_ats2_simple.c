@@ -500,7 +500,7 @@ watch_cb (void *cls,
     return;
   }
   if (0 != strcmp (record->key,
-                   GNUNET_HELLO_PEERSTORE_KEY))
+                   GNUNET_PEERSTORE_TRANSPORT_URLADDRESS_KEY))
   {
     GNUNET_break (0);
     return;
@@ -590,7 +590,7 @@ peer_add (struct SimpleHandle *h,
   p->wc = GNUNET_PEERSTORE_watch (h->ps,
                                   "transport",
                                   &p->pid,
-                                  GNUNET_HELLO_PEERSTORE_KEY,
+                                  GNUNET_PEERSTORE_TRANSPORT_URLADDRESS_KEY,
                                   &watch_cb,
                                   p);
   GNUNET_assert (GNUNET_YES ==

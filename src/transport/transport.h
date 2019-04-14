@@ -743,6 +743,12 @@ struct GNUNET_TRANSPORT_IncomingMessage
   uint64_t fc_id GNUNET_PACKED;
 
   /**
+   * How long does the communicator believe the address on which
+   * the message was received to remain valid?
+   */
+  struct GNUNET_TIME_RelativeNBO expected_address_validity;
+
+  /**
    * Sender identifier.
    */
   struct GNUNET_PeerIdentity sender;

@@ -478,10 +478,6 @@ GNUNET_HELLO_parse_uri (const char *uri,
 /* NG API */
 #include "gnunet_nt_lib.h"
 
-/**
- * Key used for storing HELLOs in the peerstore
- */
-#define GNUNET_HELLO_PEERSTORE_KEY "hello"
 
 /**
  * Build address record by signing raw information with private key.

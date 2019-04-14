@@ -33,14 +33,6 @@
  *       transport-to-transport traffic)
  *
  * Implement next:
- * - address validation: what is our plan here?
- *   #1 Peerstore only gets 'validated' addresses
- *   #2 transport should use validation to also establish
- *      effective flow control (for uni-directional transports!)
- *   #3 only validated addresses are selected for scheduling; that
- *      also ensures we know the RTT
- *   #4 to ensure flow control and RTT are OK, we always do the
- *      'validation', even if address comes from PEERSTORE???
  * - ACK handling / retransmission
  * - track RTT, distance, loss, etc.
  * - DV data structures:
@@ -67,7 +59,7 @@
  * Design realizations / discussion:
  * - communicators do flow control by calling MQ "notify sent"
  *   when 'ready'. They determine flow implicitly (i.e. TCP blocking)
- *   or explicitly via background channel FC ACKs.  As long as the
+ *   or explicitly via backchannel FC ACKs.  As long as the
  *   channel is not full, they may 'notify sent' even if the other
  *   peer has not yet confirmed receipt. The other peer confirming
  *   is _only_ for FC, not for more reliable transmission; reliable
@@ -1236,7 +1228,6 @@ enum PendingMessageType
    */
   PMT_ACKNOWLEDGEMENT = 3
 
-
 };
 
 
@@ -1658,19 +1649,12 @@ struct ValidationState
   struct GNUNET_PEERSTORE_StoreContext *sc;
 
   /**
-   * Network type (presumably) associated with @e address. NEEDED?
-   */
-  enum GNUNET_NetworkType nt;
-
-  /**
    * We are technically ready to send the challenge, but we are waiting for
    * the respective queue to become available for transmission.
    */
   int awaiting_queue;
 
 };
-
-
 
 
 /**
@@ -2133,7 +2117,7 @@ core_send_connect_info (struct TransportClient *tc,
   cim->quota_out = quota_out;
   cim->id = *pid;
   GNUNET_MQ_send (tc->mq,
-		  env);
+                  env);
 }
 
 
@@ -2967,6 +2951,15 @@ static void
 route_message (const struct GNUNET_PeerIdentity *target,
                struct GNUNET_MessageHeader *hdr)
 {
+  // FIXME: this one is tricky:
+  // - we could try a direct, reliable channel
+  // - if that is unavailable / for load balancing, we may try:
+  //   * multiple (?) direct unreliable channels - depending on loss rate?
+  //   * some (?) DV channels - if above unavailable / too lossy?
+  //   * _random_ other peers ("broadcasting") in hope of *discovering*
+  //      a path back! - if all else fails
+  // => need more on DV first!
+
   // FIXME: send hdr to target, free hdr (possibly using DV, possibly broadcasting)
   GNUNET_free (hdr);
 }
@@ -3096,20 +3089,29 @@ static void
 store_pi (void *cls)
 {
   struct AddressListEntry *ale = cls;
+  void *addr;
+  size_t addr_len;
   struct GNUNET_TIME_Absolute expiration;
 
   ale->st = NULL;
   expiration = GNUNET_TIME_relative_to_absolute (ale->expiration);
+  GNUNET_HELLO_sign_address (ale->address,
+                             ale->nt,
+                             expiration,
+                             GST_my_private_key,
+                             &addr,
+                             &addr_len);
   ale->sc = GNUNET_PEERSTORE_store (peerstore,
                                     "transport",
                                     &GST_my_identity,
-                                    GNUNET_HELLO_PEERSTORE_KEY,
-                                    ale->address,
-                                    strlen (ale->address) + 1,
+                                    GNUNET_PEERSTORE_TRANSPORT_HELLO_KEY,
+                                    addr,
+                                    addr_len,
                                     expiration,
                                     GNUNET_PEERSTORE_STOREOPTION_MULTIPLE,
                                     &peerstore_store_own_cb,
                                     ale);
+  GNUNET_free (addr);
   if (NULL == ale->sc)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
@@ -3359,7 +3361,7 @@ send_fragment_ack (struct ReassemblyContext *rc)
     ack->reassembly_timeout
       = GNUNET_TIME_relative_hton (GNUNET_TIME_absolute_get_remaining (rc->reassembly_timeout));
   route_message (&rc->neighbour->pid,
-		 &ack->header);
+                 &ack->header);
   rc->avg_ack_delay = GNUNET_TIME_UNIT_ZERO;
   rc->num_acks = 0;
   rc->extra_acks = 0LLU;
@@ -3425,10 +3427,10 @@ handle_fragment_box (void *cls,
                                            rc,
                                            rc->reassembly_timeout.abs_value_us);
     GNUNET_assert (GNUNET_OK ==
-		   GNUNET_CONTAINER_multishortmap_put (n->reassembly_map,
-                                               &rc->msg_uuid,
-                                               rc,
-                                               GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
+                   GNUNET_CONTAINER_multishortmap_put (n->reassembly_map,
+                                                       &rc->msg_uuid,
+                                                       rc,
+                                                       GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
     target = (char *) &rc[1];
     rc->bitfield = (uint8_t *) (target + rc->msg_size);
     rc->msg_missing = rc->msg_size;
@@ -3601,14 +3603,14 @@ handle_reliability_box (void *cls,
     ack->header.size = htons (sizeof (*ack) +
                               sizeof (struct GNUNET_ShortHashCode));
     memcpy (&ack[1],
-	    &rb->msg_uuid,
-	    sizeof (struct GNUNET_ShortHashCode));
+            &rb->msg_uuid,
+            sizeof (struct GNUNET_ShortHashCode));
     route_message (&cmc->im.sender,
-		   &ack->header);
+                   &ack->header);
   }
   /* continue with inner message */
   demultiplex_with_cmc (cmc,
-			inbox);
+                        inbox);
 }
 
 
@@ -3846,8 +3848,37 @@ handle_validation_challenge (void *cls,
                              const struct TransportValidationChallenge *tvc)
 {
   struct CommunicatorMessageContext *cmc = cls;
+  struct TransportValidationResponse *tvr;
 
-  // FIXME: sign challenge and try to get it back to the origin!
+  if (cmc->total_hops > 0)
+  {
+    /* DV routing is not allowed for validation challenges! */
+    GNUNET_break_op (0);
+    finish_cmc_handling (cmc);
+    return;
+  }
+  tvr = GNUNET_new (struct TransportValidationResponse);
+  tvr->header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_VALIDATION_RESPONSE);
+  tvr->header.size = htons (sizeof (*tvr));
+  tvr->challenge = tvc->challenge;
+  tvr->origin_time = tvc->sender_time;
+  tvr->validity_duration = cmc->im.expected_address_validity;
+  {
+    /* create signature */
+    struct TransportValidationPS tvp = {
+      .purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_TRANSPORT_CHALLENGE),
+      .purpose.size = htonl (sizeof (tvp)),
+      .validity_duration = tvr->validity_duration,
+      .challenge = tvc->challenge
+    };
+
+    GNUNET_assert (GNUNET_OK ==
+                   GNUNET_CRYPTO_eddsa_sign (GST_my_private_key,
+                                             &tvp.purpose,
+                                             &tvr->signature));
+  }
+  route_message (&cmc->im.sender,
+                 &tvr->header);
   finish_cmc_handling (cmc);
 }
 
@@ -4054,15 +4085,14 @@ handle_validation_response (void *cls,
   vs->sc = GNUNET_PEERSTORE_store (peerstore,
                                    "transport",
                                    &cmc->im.sender,
-                                   GNUNET_HELLO_PEERSTORE_KEY,
+                                   GNUNET_PEERSTORE_TRANSPORT_URLADDRESS_KEY,
                                    vs->address,
                                    strlen (vs->address) + 1,
                                    vs->valid_until,
                                    GNUNET_PEERSTORE_STOREOPTION_MULTIPLE,
                                    &peerstore_store_validation_cb,
                                    vs);
-  // FIXME: now that we know that the address is *valid*,
-  // do we need to trigger _using_ it for something?
+  // FIXME: should we find the matching queue and update the RTT?
   finish_cmc_handling (cmc);
 }
 
@@ -5183,97 +5213,6 @@ handle_queue_create_fail (void *cls,
 
 
 /**
- * Function called by PEERSTORE for each matching record.
- *
- * @param cls closure
- * @param record peerstore record information
- * @param emsg error message, or NULL if no errors
- */
-static void
-handle_hello (void *cls,
-              const struct GNUNET_PEERSTORE_Record *record,
-              const char *emsg)
-{
-  struct PeerRequest *pr = cls;
-  const char *val;
-
-  if (NULL != emsg)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                "Got failure from PEERSTORE: %s\n",
-                emsg);
-    return;
-  }
-  val = record->value;
-  if ( (0 == record->value_size) ||
-       ('\0' != val[record->value_size - 1]) )
-  {
-    GNUNET_break (0);
-    return;
-  }
-  suggest_to_connect (&pr->pid,
-                      (const char *) record->value);
-}
-
-
-/**
- * We have received a `struct ExpressPreferenceMessage` from an application client.
- *
- * @param cls handle to the client
- * @param msg the start message
- */
-static void
-handle_suggest (void *cls,
-                const struct ExpressPreferenceMessage *msg)
-{
-  struct TransportClient *tc = cls;
-  struct PeerRequest *pr;
-
-  if (CT_NONE == tc->type)
-  {
-    tc->type = CT_APPLICATION;
-    tc->details.application.requests
-      = GNUNET_CONTAINER_multipeermap_create (16,
-                                              GNUNET_YES);
-  }
-  if (CT_APPLICATION != tc->type)
-  {
-    GNUNET_break (0);
-    GNUNET_SERVICE_client_drop (tc->client);
-    return;
-  }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Client suggested we talk to %s with preference %d at rate %u\n",
-              GNUNET_i2s (&msg->peer),
-              (int) ntohl (msg->pk),
-              (int) ntohl (msg->bw.value__));
-  pr = GNUNET_new (struct PeerRequest);
-  pr->tc = tc;
-  pr->pid = msg->peer;
-  pr->bw = msg->bw;
-  pr->pk = (enum GNUNET_MQ_PreferenceKind) ntohl (msg->pk);
-  if (GNUNET_YES !=
-      GNUNET_CONTAINER_multipeermap_put (tc->details.application.requests,
-                                         &pr->pid,
-                                         pr,
-                                         GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY))
-  {
-    GNUNET_break (0);
-    GNUNET_free (pr);
-    GNUNET_SERVICE_client_drop (tc->client);
-    return;
-  }
-  pr->wc = GNUNET_PEERSTORE_watch (peerstore,
-                                   "transport",
-                                   &pr->pid,
-                                   GNUNET_HELLO_PEERSTORE_KEY,
-                                   &handle_hello,
-                                   pr);
-  GNUNET_SERVICE_client_continue (tc->client);
-}
-
-
-/**
  * We have received a `struct ExpressPreferenceMessage` from an application client.
  *
  * @param cls handle to the client
@@ -5374,13 +5313,11 @@ check_known_address (void *cls,
  * @param pid peer the @a address is for
  * @param address an address to reach @a pid (presumably)
  * @param expiration when did @a pid claim @a address will become invalid
- * @param nt network type of @a address
  */
 static void
 start_address_validation (const struct GNUNET_PeerIdentity *pid,
                           const char *address,
-                          struct GNUNET_TIME_Absolute expiration,
-                          enum GNUNET_NetworkType nt)
+                          struct GNUNET_TIME_Absolute expiration)
 {
   struct GNUNET_TIME_Absolute now;
   struct ValidationState *vs;
@@ -5389,10 +5326,8 @@ start_address_validation (const struct GNUNET_PeerIdentity *pid,
     .vs = NULL
   };
 
-
   if (0 == GNUNET_TIME_absolute_get_remaining (expiration).rel_value_us)
     return; /* expired */
-
   (void) GNUNET_CONTAINER_multipeermap_get_multiple (validation_map,
                                                      pid,
                                                      &check_known_address,
@@ -5421,7 +5356,6 @@ start_address_validation (const struct GNUNET_PeerIdentity *pid,
                               &vs->challenge,
                               sizeof (vs->challenge));
   vs->address = GNUNET_strdup (address);
-  vs->nt = nt;
   GNUNET_assert (GNUNET_YES ==
                  GNUNET_CONTAINER_multipeermap_put (validation_map,
                                                     &vs->pid,
@@ -5429,6 +5363,98 @@ start_address_validation (const struct GNUNET_PeerIdentity *pid,
                                                     GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
   update_next_challenge_time (vs,
                               now);
+}
+
+
+/**
+ * Function called by PEERSTORE for each matching record.
+ *
+ * @param cls closure
+ * @param record peerstore record information
+ * @param emsg error message, or NULL if no errors
+ */
+static void
+handle_hello (void *cls,
+              const struct GNUNET_PEERSTORE_Record *record,
+              const char *emsg)
+{
+  struct PeerRequest *pr = cls;
+  const char *val;
+
+  if (NULL != emsg)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                "Got failure from PEERSTORE: %s\n",
+                emsg);
+    return;
+  }
+  val = record->value;
+  if ( (0 == record->value_size) ||
+       ('\0' != val[record->value_size - 1]) )
+  {
+    GNUNET_break (0);
+    return;
+  }
+  start_address_validation (&pr->pid,
+                            (const char *) record->value,
+                            record->expiry);
+}
+
+
+/**
+ * We have received a `struct ExpressPreferenceMessage` from an application client.
+ *
+ * @param cls handle to the client
+ * @param msg the start message
+ */
+static void
+handle_suggest (void *cls,
+                const struct ExpressPreferenceMessage *msg)
+{
+  struct TransportClient *tc = cls;
+  struct PeerRequest *pr;
+
+  if (CT_NONE == tc->type)
+  {
+    tc->type = CT_APPLICATION;
+    tc->details.application.requests
+      = GNUNET_CONTAINER_multipeermap_create (16,
+                                              GNUNET_YES);
+  }
+  if (CT_APPLICATION != tc->type)
+  {
+    GNUNET_break (0);
+    GNUNET_SERVICE_client_drop (tc->client);
+    return;
+  }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Client suggested we talk to %s with preference %d at rate %u\n",
+              GNUNET_i2s (&msg->peer),
+              (int) ntohl (msg->pk),
+              (int) ntohl (msg->bw.value__));
+  pr = GNUNET_new (struct PeerRequest);
+  pr->tc = tc;
+  pr->pid = msg->peer;
+  pr->bw = msg->bw;
+  pr->pk = (enum GNUNET_MQ_PreferenceKind) ntohl (msg->pk);
+  if (GNUNET_YES !=
+      GNUNET_CONTAINER_multipeermap_put (tc->details.application.requests,
+                                         &pr->pid,
+                                         pr,
+                                         GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY))
+  {
+    GNUNET_break (0);
+    GNUNET_free (pr);
+    GNUNET_SERVICE_client_drop (tc->client);
+    return;
+  }
+  pr->wc = GNUNET_PEERSTORE_watch (peerstore,
+                                   "transport",
+                                   &pr->pid,
+                                   GNUNET_PEERSTORE_TRANSPORT_URLADDRESS_KEY,
+                                   &handle_hello,
+                                   pr);
+  GNUNET_SERVICE_client_continue (tc->client);
 }
 
 
@@ -5465,8 +5491,7 @@ handle_address_consider_verify (void *cls,
   }
   start_address_validation (&hdr->peer,
                             address,
-                            expiration,
-                            nt);
+                            expiration);
   GNUNET_free (address);
   GNUNET_SERVICE_client_continue (tc->client);
 }
@@ -5504,8 +5529,7 @@ handle_request_hello_validation (void *cls,
 
   start_address_validation (&m->peer,
                             (const char *) &m[1],
-                            GNUNET_TIME_absolute_ntoh (m->expiration),
-                            (enum GNUNET_NetworkType) ntohl (m->nt));
+                            GNUNET_TIME_absolute_ntoh (m->expiration));
   GNUNET_SERVICE_client_continue (tc->client);
 }
 

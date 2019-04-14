@@ -121,7 +121,7 @@ enum GNUNET_TRANSPORT_CommunicatorCharacteristics {
  */
 typedef void
 (*GNUNET_TRANSPORT_CommunicatorNotify) (void *cls,
-					const struct GNUNET_PeerIdentity *sender,
+                                        const struct GNUNET_PeerIdentity *sender,
                                         const struct GNUNET_MessageHeader *msg);
 
 
@@ -144,12 +144,12 @@ typedef void
 struct GNUNET_TRANSPORT_CommunicatorHandle *
 GNUNET_TRANSPORT_communicator_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
                                        const char *config_section_name,
-				       const char *addr_prefix,
+                                       const char *addr_prefix,
                                        enum GNUNET_TRANSPORT_CommunicatorCharacteristics cc,
                                        GNUNET_TRANSPORT_CommunicatorMqInit mq_init,
                                        void *mq_init_cls,
-				       GNUNET_TRANSPORT_CommunicatorNotify notify_cb,
-				       void *notify_cb_cls);
+                                       GNUNET_TRANSPORT_CommunicatorNotify notify_cb,
+                                       void *notify_cb_cls);
 
 
 /**
@@ -184,6 +184,9 @@ typedef void
  * @param sender presumed sender of the message (details to be checked
  *        by higher layers)
  * @param msg the message
+ * @param expected_addr_validity how long does the communicator believe it
+ *        will continue to be able to receive messages from the same address
+ *        on which it received this message?
  * @param cb function to call once handling the message is done, NULL if
  *         flow control is not supported by this communicator
  * @param cb_cls closure for @a cb
@@ -197,6 +200,7 @@ int
 GNUNET_TRANSPORT_communicator_receive (struct GNUNET_TRANSPORT_CommunicatorHandle *handle,
                                        const struct GNUNET_PeerIdentity *sender,
                                        const struct GNUNET_MessageHeader *msg,
+                                       struct GNUNET_TIME_Relative expected_addr_validity,
                                        GNUNET_TRANSPORT_MessageCompletedCallback cb,
                                        void *cb_cls);
 
@@ -251,9 +255,9 @@ struct GNUNET_TRANSPORT_QueueHandle *
 GNUNET_TRANSPORT_communicator_mq_add (struct GNUNET_TRANSPORT_CommunicatorHandle *ch,
                                       const struct GNUNET_PeerIdentity *peer,
                                       const char *address,
-				      uint32_t mtu,
+                                      uint32_t mtu,
                                       enum GNUNET_NetworkType nt,
-				      enum GNUNET_TRANSPORT_ConnectionStatus cs,
+                                      enum GNUNET_TRANSPORT_ConnectionStatus cs,
                                       struct GNUNET_MQ_Handle *mq);
 
 
@@ -320,9 +324,9 @@ GNUNET_TRANSPORT_communicator_address_remove (struct GNUNET_TRANSPORT_AddressIde
  */
 void
 GNUNET_TRANSPORT_communicator_notify (struct GNUNET_TRANSPORT_CommunicatorHandle *ch,
-				      const struct GNUNET_PeerIdentity *pid,
-				      const char *comm,
-				      const struct GNUNET_MessageHeader *header);
+                                      const struct GNUNET_PeerIdentity *pid,
+                                      const char *comm,
+                                      const struct GNUNET_MessageHeader *header);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */
