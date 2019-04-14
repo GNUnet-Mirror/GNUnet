@@ -138,6 +138,10 @@
  * When do we forget an invalid address for sure?
  */
 #define MAX_ADDRESS_VALID_UNTIL GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MONTHS, 1)
+/**
+ * How long do we consider an address valid if we just checked?
+ */
+#define ADDRESS_VALIDATION_LIFETIME GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_HOURS, 4)
 
 /**
  * What is the maximum frequency at which we do address validation?
@@ -146,6 +150,14 @@
  * and to randomize a bit).
  */
 #define MIN_DELAY_ADDRESS_VALIDATION GNUNET_TIME_UNIT_MILLISECONDS
+
+/**
+ * How many network RTTs before an address validation expires should we begin
+ * trying to revalidate? (Note that the RTT used here is the one that we
+ * experienced during the last validation, not necessarily the latest RTT
+ * observed).
+ */
+#define VALIDATION_RTT_BUFFER_FACTOR 3
 
 /**
  * How many messages can we have pending for a given communicator
@@ -1597,8 +1609,8 @@ struct ValidationState
    * Next time we will send the @e challenge to the peer, if this time is past
    * @e valid_until, this validation state is released at this time.  If the
    * address is valid, @e next_challenge is set to @e validated_until MINUS @e
-   * validation_delay * 3, such that we will try to re-validate before the
-   * validity actually expires.
+   * validation_delay * #VALIDATION_RTT_BUFFER_FACTOR, such that we will try
+   * to re-validate before the validity actually expires.
    */
   struct GNUNET_TIME_Absolute next_challenge;
 
@@ -3051,10 +3063,13 @@ store_pi (void *cls);
 
 /**
  * Function called when peerstore is done storing our address.
+ *
+ * @param cls a `struct AddressListEntry`
+ * @param success #GNUNET_YES if peerstore was successful
  */
 static void
-peerstore_store_cb (void *cls,
-                    int success)
+peerstore_store_own_cb (void *cls,
+                        int success)
 {
   struct AddressListEntry *ale = cls;
 
@@ -3081,29 +3096,20 @@ static void
 store_pi (void *cls)
 {
   struct AddressListEntry *ale = cls;
-  void *addr;
-  size_t addr_len;
   struct GNUNET_TIME_Absolute expiration;
 
   ale->st = NULL;
   expiration = GNUNET_TIME_relative_to_absolute (ale->expiration);
-  GNUNET_HELLO_sign_address (ale->address,
-                             ale->nt,
-                             expiration,
-                             GST_my_private_key,
-                             &addr,
-                             &addr_len);
   ale->sc = GNUNET_PEERSTORE_store (peerstore,
                                     "transport",
                                     &GST_my_identity,
                                     GNUNET_HELLO_PEERSTORE_KEY,
-                                    addr,
-                                    addr_len,
+                                    ale->address,
+                                    strlen (ale->address) + 1,
                                     expiration,
                                     GNUNET_PEERSTORE_STOREOPTION_MULTIPLE,
-                                    &peerstore_store_cb,
+                                    &peerstore_store_own_cb,
                                     ale);
-  GNUNET_free (addr);
   if (NULL == ale->sc)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
@@ -3847,6 +3853,120 @@ handle_validation_challenge (void *cls,
 
 
 /**
+ * Closure for #check_known_challenge.
+ */
+struct CheckKnownChallengeContext
+{
+  /**
+   * Set to the challenge we are looking for.
+   */
+  const struct GNUNET_ShortHashCode *challenge;
+
+  /**
+   * Set to a matching validation state, if one was found.
+   */
+  struct ValidationState *vs;
+};
+
+
+/**
+ * Test if the validation state in @a value matches the
+ * challenge from @a cls.
+ *
+ * @param cls a `struct CheckKnownChallengeContext`
+ * @param pid unused (must match though)
+ * @param value a `struct ValidationState`
+ * @return #GNUNET_OK if not matching, #GNUNET_NO if match found
+ */
+static int
+check_known_challenge (void *cls,
+                       const struct GNUNET_PeerIdentity *pid,
+                       void *value)
+{
+  struct CheckKnownChallengeContext *ckac = cls;
+  struct ValidationState *vs = value;
+
+  (void) pid;
+  if (0 != GNUNET_memcmp (&vs->challenge,
+                          ckac->challenge))
+    return GNUNET_OK;
+  ckac->vs = vs;
+  return GNUNET_NO;
+}
+
+
+/**
+ * Function called when peerstore is done storing a
+ * validated address.
+ *
+ * @param cls a `struct ValidationState`
+ * @param success #GNUNET_YES on success
+ */
+static void
+peerstore_store_validation_cb (void *cls,
+                               int success)
+{
+  struct ValidationState *vs = cls;
+
+  vs->sc = NULL;
+  if (GNUNET_YES == success)
+    return;
+  GNUNET_STATISTICS_update (GST_stats,
+                            "# Peerstore failed to store foreign address",
+                            1,
+                            GNUNET_NO);
+}
+
+
+/**
+ * Task run periodically to validate some address based on #validation_heap.
+ *
+ * @param cls NULL
+ */
+static void
+validation_start_cb (void *cls);
+
+
+/**
+ * Set the time for next_challenge of @a vs to @a new_time.
+ * Updates the heap and if necessary reschedules the job.
+ *
+ * @param vs validation state to update
+ * @param new_time new time for revalidation
+ */
+static void
+update_next_challenge_time (struct ValidationState *vs,
+                            struct GNUNET_TIME_Absolute new_time)
+{
+  struct GNUNET_TIME_Relative delta;
+
+  if (new_time.abs_value_us == vs->next_challenge.abs_value_us)
+    return; /* be lazy */
+  vs->next_challenge = new_time;
+  if (NULL == vs->hn)
+    vs->hn = GNUNET_CONTAINER_heap_insert (validation_heap,
+                                           vs,
+                                           new_time.abs_value_us);
+  else
+    GNUNET_CONTAINER_heap_update_cost (vs->hn,
+                                       new_time.abs_value_us);
+  if ( (vs != GNUNET_CONTAINER_heap_peek (validation_heap)) &&
+       (NULL != validation_task) )
+    return;
+  if (NULL != validation_task)
+    GNUNET_SCHEDULER_cancel (validation_task);
+  /* randomize a bit */
+  delta.rel_value_us = GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_WEAK,
+                                                 MIN_DELAY_ADDRESS_VALIDATION.rel_value_us);
+  new_time = GNUNET_TIME_absolute_add (new_time,
+                                       delta);
+  validation_task = GNUNET_SCHEDULER_add_at (new_time,
+                                             &validation_start_cb,
+                                             NULL);
+}
+
+
+/**
  * Communicator gave us a transport address validation response.  Process the request.
  *
  * @param cls a `struct CommunicatorMessageContext` (must call #finish_cmc_handling() when done)
@@ -3857,9 +3977,92 @@ handle_validation_response (void *cls,
                             const struct TransportValidationResponse *tvr)
 {
   struct CommunicatorMessageContext *cmc = cls;
+  struct ValidationState *vs;
+  struct CheckKnownChallengeContext ckac = {
+    .challenge = &tvr->challenge,
+    .vs = NULL
+  };
+  struct GNUNET_TIME_Absolute origin_time;
 
-  // FIXME: check for matching pending challenge and mark address
-  // as valid if applicable (passing to PEERSTORE as well!)
+  /* check this is one of our challenges */
+  (void) GNUNET_CONTAINER_multipeermap_get_multiple (validation_map,
+                                                     &cmc->im.sender,
+                                                     &check_known_challenge,
+                                                     &ckac);
+  if (NULL == (vs = ckac.vs))
+  {
+    /* This can happen simply if we 'forgot' the challenge by now,
+       i.e. because we received the validation response twice */
+    GNUNET_STATISTICS_update (GST_stats,
+                              "# Validations dropped, challenge unknown",
+                              1,
+                              GNUNET_NO);
+    finish_cmc_handling (cmc);
+    return;
+  }
+
+  /* sanity check on origin time */
+  origin_time = GNUNET_TIME_absolute_ntoh (tvr->origin_time);
+  if ( (origin_time.abs_value_us < vs->first_challenge_use.abs_value_us) ||
+       (origin_time.abs_value_us > vs->last_challenge_use.abs_value_us) )
+  {
+    GNUNET_break_op (0);
+    finish_cmc_handling (cmc);
+    return;
+  }
+
+  {
+    /* check signature */
+    struct TransportValidationPS tvp = {
+      .purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_TRANSPORT_CHALLENGE),
+      .purpose.size = htonl (sizeof (tvp)),
+      .validity_duration = tvr->validity_duration,
+      .challenge = tvr->challenge
+    };
+
+    if (GNUNET_OK !=
+        GNUNET_CRYPTO_eddsa_verify (GNUNET_SIGNATURE_PURPOSE_TRANSPORT_CHALLENGE,
+                                    &tvp.purpose,
+                                    &tvr->signature,
+                                    &cmc->im.sender.public_key))
+    {
+      GNUNET_break_op (0);
+      finish_cmc_handling (cmc);
+      return;
+    }
+  }
+
+  /* validity is capped by our willingness to keep track of the
+     validation entry and the maximum the other peer allows */
+  vs->valid_until
+    = GNUNET_TIME_relative_to_absolute (GNUNET_TIME_relative_min (GNUNET_TIME_relative_ntoh (tvr->validity_duration),
+                                                                  MAX_ADDRESS_VALID_UNTIL));
+  vs->validated_until
+    = GNUNET_TIME_absolute_min (vs->valid_until,
+                                GNUNET_TIME_relative_to_absolute (ADDRESS_VALIDATION_LIFETIME));
+  vs->validation_rtt = GNUNET_TIME_absolute_get_duration (origin_time);
+  vs->challenge_backoff = GNUNET_TIME_UNIT_ZERO;
+  GNUNET_CRYPTO_random_block (GNUNET_CRYPTO_QUALITY_NONCE,
+                              &vs->challenge,
+                              sizeof (vs->challenge));
+  vs->first_challenge_use = GNUNET_TIME_absolute_subtract (vs->validated_until,
+                                                           GNUNET_TIME_relative_multiply (vs->validation_rtt,
+                                                                                          VALIDATION_RTT_BUFFER_FACTOR));
+  vs->last_challenge_use = GNUNET_TIME_UNIT_ZERO_ABS; /* challenge was not yet used */
+  update_next_challenge_time (vs,
+                              vs->first_challenge_use);
+  vs->sc = GNUNET_PEERSTORE_store (peerstore,
+                                   "transport",
+                                   &cmc->im.sender,
+                                   GNUNET_HELLO_PEERSTORE_KEY,
+                                   vs->address,
+                                   strlen (vs->address) + 1,
+                                   vs->valid_until,
+                                   GNUNET_PEERSTORE_STOREOPTION_MULTIPLE,
+                                   &peerstore_store_validation_cb,
+                                   vs);
+  // FIXME: now that we know that the address is *valid*,
+  // do we need to trigger _using_ it for something?
   finish_cmc_handling (cmc);
 }
 
@@ -4708,54 +4911,6 @@ suggest_to_connect (const struct GNUNET_PeerIdentity *pid,
 
 
 /**
- * Task run periodically to validate some address based on #validation_heap.
- *
- * @param cls NULL
- */
-static void
-validation_start_cb (void *cls);
-
-
-/**
- * Set the time for next_challenge of @a vs to @a new_time.
- * Updates the heap and if necessary reschedules the job.
- *
- * @param vs validation state to update
- * @param new_time new time for revalidation
- */
-static void
-update_next_challenge_time (struct ValidationState *vs,
-                            struct GNUNET_TIME_Absolute new_time)
-{
-  struct GNUNET_TIME_Relative delta;
-
-  if (new_time.abs_value_us == vs->next_challenge.abs_value_us)
-    return; /* be lazy */
-  vs->next_challenge = new_time;
-  if (NULL == vs->hn)
-    vs->hn = GNUNET_CONTAINER_heap_insert (validation_heap,
-                                           vs,
-                                           new_time.abs_value_us);
-  else
-    GNUNET_CONTAINER_heap_update_cost (vs->hn,
-                                       new_time.abs_value_us);
-  if ( (vs != GNUNET_CONTAINER_heap_peek (validation_heap)) &&
-       (NULL != validation_task) )
-    return;
-  if (NULL != validation_task)
-    GNUNET_SCHEDULER_cancel (validation_task);
-  /* randomize a bit */
-  delta.rel_value_us = GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_WEAK,
-                                                 MIN_DELAY_ADDRESS_VALIDATION.rel_value_us);
-  new_time = GNUNET_TIME_absolute_add (new_time,
-                                       delta);
-  validation_task = GNUNET_SCHEDULER_add_at (new_time,
-                                             &validation_start_cb,
-                                             NULL);
-}
-
-
-/**
  * The queue @a q (which matches the peer and address in @a vs) is
  * ready for queueing. We should now queue the validation request.
  *
@@ -5468,7 +5623,7 @@ do_shutdown (void *cls)
   if (NULL != peerstore)
   {
     GNUNET_PEERSTORE_disconnect (peerstore,
-				 GNUNET_NO);
+                                 GNUNET_NO);
     peerstore = NULL;
   }
   if (NULL != GST_stats)
