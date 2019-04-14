@@ -157,6 +157,16 @@ static struct GNUNET_SCHEDULER_Task *cleanup_task;
  */
 struct GNUNET_RECLAIM_ATTRIBUTE_Claim *claim;
 
+/**
+ * Claim to delete
+ */
+static char *attr_delete;
+
+/**
+ * Claim object to delete
+ */
+static struct GNUNET_RECLAIM_ATTRIBUTE_Claim *attr_to_delete;
+
 static void
 do_cleanup (void *cls)
 {
@@ -177,6 +187,8 @@ do_cleanup (void *cls)
     GNUNET_free (abe_key);
   if (NULL != attr_list)
     GNUNET_free (attr_list);
+  if (NULL != attr_to_delete)
+    GNUNET_free (attr_to_delete);
 }
 
 static void
@@ -208,6 +220,7 @@ process_attrs (void *cls, const struct GNUNET_CRYPTO_EcdsaPublicKey *identity,
                const struct GNUNET_RECLAIM_ATTRIBUTE_Claim *attr)
 {
   char *value_str;
+  char *id;
   const char *attr_type;
 
   if (NULL == identity) {
@@ -222,8 +235,10 @@ process_attrs (void *cls, const struct GNUNET_CRYPTO_EcdsaPublicKey *identity,
   value_str = GNUNET_RECLAIM_ATTRIBUTE_value_to_string (attr->type, attr->data,
                                                         attr->data_size);
   attr_type = GNUNET_RECLAIM_ATTRIBUTE_number_to_typename (attr->type);
-  fprintf (stdout, "%s: %s [%s,v%u,id=%" PRIu64 "]\n", attr->name, value_str,
-           attr_type, attr->version, attr->id);
+  id = GNUNET_STRINGS_data_to_string_alloc (&attr->id, sizeof (uint64_t));
+  fprintf (stdout, "Name: %s; Value: %s (%s); Version %u; ID: %s\n", attr->name,
+           value_str, attr_type, attr->version, id);
+  GNUNET_free (id);
 }
 
 static void
@@ -284,6 +299,19 @@ process_rvk (void *cls, int success, const char *msg)
   cleanup_task = GNUNET_SCHEDULER_add_now (&do_cleanup, NULL);
 }
 
+
+static void
+process_delete (void *cls, int success, const char *msg)
+{
+  reclaim_op = NULL;
+  if (GNUNET_OK != success) {
+    fprintf (stderr, "Deletion failed.\n");
+    ret = 1;
+  }
+  cleanup_task = GNUNET_SCHEDULER_add_now (&do_cleanup, NULL);
+}
+
+
 static void
 iter_finished (void *cls)
 {
@@ -313,6 +341,15 @@ iter_finished (void *cls)
   if (revoke_ticket) {
     reclaim_op = GNUNET_RECLAIM_ticket_revoke (reclaim_handle, pkey, &ticket,
                                                &process_rvk, NULL);
+    return;
+  }
+  if (attr_delete) {
+    if (NULL == attr_to_delete) {
+      fprintf (stdout, "No such attribute ``%s''\n", attr_delete);
+      return;
+    }
+    reclaim_op = GNUNET_RECLAIM_attribute_delete (
+        reclaim_handle, pkey, attr_to_delete, &process_delete, NULL);
     return;
   }
   if (attr_name) {
@@ -348,6 +385,8 @@ iter_cb (void *cls, const struct GNUNET_CRYPTO_EcdsaPublicKey *identity,
   struct GNUNET_RECLAIM_ATTRIBUTE_ClaimListEntry *le;
   char *attrs_tmp;
   char *attr_str;
+  char *label;
+  char *id;
   const char *attr_type;
 
   if ((NULL != attr_name) && (NULL != claim)) {
@@ -373,12 +412,22 @@ iter_cb (void *cls, const struct GNUNET_CRYPTO_EcdsaPublicKey *identity,
       break;
     }
     GNUNET_free (attrs_tmp);
+  } else if (attr_delete && (NULL == attr_to_delete)) {
+    label = GNUNET_STRINGS_data_to_string_alloc (&attr->id, sizeof (uint64_t));
+    if (0 == strcasecmp (attr_delete, label)) {
+      attr_to_delete = GNUNET_RECLAIM_ATTRIBUTE_claim_new (
+          attr->name, attr->type, attr->data, attr->data_size);
+      attr_to_delete->id = attr->id;
+    }
+    GNUNET_free (label);
   } else if (list) {
     attr_str = GNUNET_RECLAIM_ATTRIBUTE_value_to_string (attr->type, attr->data,
                                                          attr->data_size);
     attr_type = GNUNET_RECLAIM_ATTRIBUTE_number_to_typename (attr->type);
-    fprintf (stdout, "%s: %s [%s,v%u,id=%" PRIu64 "]\n", attr->name, attr_str,
-             attr_type, attr->version, attr->id);
+    id = GNUNET_STRINGS_data_to_string_alloc (&attr->id, sizeof (uint64_t));
+    fprintf (stdout, "Name: %s; Value: %s (%s); Version %u; ID: %s\n",
+             attr->name, attr_str, attr_type, attr->version, id);
+    GNUNET_free (id);
   }
   GNUNET_RECLAIM_get_attributes_next (attr_iterator);
 }
@@ -474,7 +523,9 @@ main (int argc, char *const argv[])
       GNUNET_GETOPT_option_string ('a', "add", "NAME",
                                    gettext_noop ("Add an attribute NAME"),
                                    &attr_name),
-
+      GNUNET_GETOPT_option_string ('d', "delete", "ID",
+                                   gettext_noop ("Add an attribute with ID"),
+                                   &attr_delete),
       GNUNET_GETOPT_option_string ('V', "value", "VALUE",
                                    gettext_noop ("The attribute VALUE"),
                                    &attr_value),

@@ -287,7 +287,6 @@ src/reclaim/gnunet-service-reclaim_tickets.c
 src/reclaim/json_reclaim.c
 src/reclaim/oidc_helper.c
 src/reclaim/plugin_gnsrecord_reclaim.c
-src/reclaim/plugin_reclaim_sqlite.c
 src/reclaim/plugin_rest_openid_connect.c
 src/reclaim/plugin_rest_reclaim.c
 src/reclaim/reclaim_api.c

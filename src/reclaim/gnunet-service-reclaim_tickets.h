@@ -38,7 +38,7 @@
 #include "gnunet_namestore_service.h"
 #include "gnunet_protocols.h"
 #include "gnunet_reclaim_attribute_lib.h"
-#include "gnunet_reclaim_plugin.h"
+#include "gnunet_reclaim_service.h"
 #include "gnunet_signatures.h"
 #include "gnunet_statistics_service.h"
 #include "reclaim.h"
@@ -46,6 +46,41 @@
 struct RECLAIM_TICKETS_Iterator;
 struct RECLAIM_TICKETS_ConsumeHandle;
 struct RECLAIM_TICKETS_RevokeHandle;
+
+
+struct TicketRecordsEntry
+{
+  /**
+   * DLL
+   */
+  struct TicketRecordsEntry *next;
+
+  /**
+   * DLL
+   */
+  struct TicketRecordsEntry *prev;
+
+  /**
+   * Record count
+   */
+  unsigned int rd_count;
+
+  /**
+   * Data
+   */
+  char *data;
+
+  /**
+   * Data size
+   */
+  size_t data_size;
+
+  /**
+   * Label
+   */
+  char *label;
+};
+
 
 /**
  * Continuation called with ticket.

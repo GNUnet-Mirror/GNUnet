@@ -151,6 +151,25 @@ GNUNET_RECLAIM_attribute_store (
 
 
 /**
+ * Delete an attribute. Tickets used to share this attribute are updated
+ * accordingly.
+ *
+ * @param h handle to the re:claimID service
+ * @param pkey Private key of the identity to add an attribute to
+ * @param attr The attribute
+ * @param cont Continuation to call when done
+ * @param cont_cls Closure for @a cont
+ * @return handle Used to to abort the request
+ */
+struct GNUNET_RECLAIM_Operation *
+GNUNET_RECLAIM_attribute_delete (
+    struct GNUNET_RECLAIM_Handle *h,
+    const struct GNUNET_CRYPTO_EcdsaPrivateKey *pkey,
+    const struct GNUNET_RECLAIM_ATTRIBUTE_Claim *attr,
+    GNUNET_RECLAIM_ContinuationWithStatus cont, void *cont_cls);
+
+
+/**
  * List all attributes for a local identity.
  * This MUST lock the `struct GNUNET_RECLAIM_Handle`
  * for any other calls than #GNUNET_RECLAIM_get_attributes_next() and

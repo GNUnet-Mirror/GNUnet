@@ -407,14 +407,13 @@ mq_error_handler (void *cls, enum GNUNET_MQ_Error error)
 
 /**
  * Handle an incoming message of type
- * #GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_STORE_RESPONSE
+ * #GNUNET_MESSAGE_TYPE_RECLAIM_SUCCESS_RESPONSE
  *
  * @param cls
  * @param msg the message we received
  */
 static void
-handle_attribute_store_response (void *cls,
-                                 const struct AttributeStoreResultMessage *msg)
+handle_success_response (void *cls, const struct SuccessResultMessage *msg)
 {
   struct GNUNET_RECLAIM_Handle *h = cls;
   struct GNUNET_RECLAIM_Operation *op;
@@ -429,8 +428,8 @@ handle_attribute_store_response (void *cls,
     return;
 
   res = ntohl (msg->op_result);
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Received ATTRIBUTE_STORE_RESPONSE with result %d\n", res);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Received SUCCESS_RESPONSE with result %d\n",
+       res);
 
   /* TODO: add actual error message to response... */
   if (GNUNET_SYSERR == res)
@@ -735,10 +734,9 @@ static void
 reconnect (struct GNUNET_RECLAIM_Handle *h)
 {
   struct GNUNET_MQ_MessageHandler handlers[] = {
-      GNUNET_MQ_hd_fixed_size (
-          attribute_store_response,
-          GNUNET_MESSAGE_TYPE_RECLAIM_ATTRIBUTE_STORE_RESPONSE,
-          struct AttributeStoreResultMessage, h),
+      GNUNET_MQ_hd_fixed_size (success_response,
+                               GNUNET_MESSAGE_TYPE_RECLAIM_SUCCESS_RESPONSE,
+                               struct SuccessResultMessage, h),
       GNUNET_MQ_hd_var_size (attribute_result,
                              GNUNET_MESSAGE_TYPE_RECLAIM_ATTRIBUTE_RESULT,
                              struct AttributeResultMessage, h),
@@ -867,6 +865,48 @@ GNUNET_RECLAIM_attribute_store (
   GNUNET_RECLAIM_ATTRIBUTE_serialize (attr, (char *)&sam[1]);
 
   sam->attr_len = htons (attr_len);
+  if (NULL != h->mq)
+    GNUNET_MQ_send_copy (h->mq, op->env);
+  return op;
+}
+
+
+/**
+ * Delete an attribute. Tickets used to share this attribute are updated
+ * accordingly.
+ *
+ * @param h handle to the re:claimID service
+ * @param pkey Private key of the identity to add an attribute to
+ * @param attr The attribute
+ * @param cont Continuation to call when done
+ * @param cont_cls Closure for @a cont
+ * @return handle Used to to abort the request
+ */
+struct GNUNET_RECLAIM_Operation *
+GNUNET_RECLAIM_attribute_delete (
+    struct GNUNET_RECLAIM_Handle *h,
+    const struct GNUNET_CRYPTO_EcdsaPrivateKey *pkey,
+    const struct GNUNET_RECLAIM_ATTRIBUTE_Claim *attr,
+    GNUNET_RECLAIM_ContinuationWithStatus cont, void *cont_cls)
+{
+  struct GNUNET_RECLAIM_Operation *op;
+  struct AttributeDeleteMessage *dam;
+  size_t attr_len;
+
+  op = GNUNET_new (struct GNUNET_RECLAIM_Operation);
+  op->h = h;
+  op->as_cb = cont;
+  op->cls = cont_cls;
+  op->r_id = h->r_id_gen++;
+  GNUNET_CONTAINER_DLL_insert_tail (h->op_head, h->op_tail, op);
+  attr_len = GNUNET_RECLAIM_ATTRIBUTE_serialize_get_size (attr);
+  op->env = GNUNET_MQ_msg_extra (dam, attr_len,
+                                 GNUNET_MESSAGE_TYPE_RECLAIM_ATTRIBUTE_DELETE);
+  dam->identity = *pkey;
+  dam->id = htonl (op->r_id);
+  GNUNET_RECLAIM_ATTRIBUTE_serialize (attr, (char *)&dam[1]);
+
+  dam->attr_len = htons (attr_len);
   if (NULL != h->mq)
     GNUNET_MQ_send_copy (h->mq, op->env);
   return op;

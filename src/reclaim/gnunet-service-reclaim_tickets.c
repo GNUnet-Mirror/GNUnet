@@ -30,6 +30,34 @@
 
 struct ParallelLookup;
 
+
+/**
+ * A reference to a ticket stored in GNS
+ */
+struct TicketReference
+{
+  /**
+   * DLL
+   */
+  struct TicketReference *next;
+
+  /**
+   * DLL
+   */
+  struct TicketReference *prev;
+
+  /**
+   * Attributes
+   */
+  struct GNUNET_RECLAIM_ATTRIBUTE_ClaimList *attrs;
+
+  /**
+   * Tickets
+   */
+  struct GNUNET_RECLAIM_Ticket ticket;
+};
+
+
 struct RECLAIM_TICKETS_ConsumeHandle
 {
   /**
@@ -116,33 +144,6 @@ struct ParallelLookup
 
 
 /**
- * A reference to a ticket stored in GNS
- */
-struct TicketReference
-{
-  /**
-   * DLL
-   */
-  struct TicketReference *next;
-
-  /**
-   * DLL
-   */
-  struct TicketReference *prev;
-
-  /**
-   * Attributes
-   */
-  struct GNUNET_RECLAIM_ATTRIBUTE_ClaimList *attrs;
-
-  /**
-   * Tickets
-   */
-  struct GNUNET_RECLAIM_Ticket ticket;
-};
-
-
-/**
  * Ticket issue request handle
  */
 struct TicketIssueHandle
@@ -223,39 +224,6 @@ struct RevokedAttributeEntry
   uint64_t new_id;
 };
 
-
-struct TicketRecordsEntry
-{
-  /**
-   * DLL
-   */
-  struct TicketRecordsEntry *next;
-
-  /**
-   * DLL
-   */
-  struct TicketRecordsEntry *prev;
-
-  /**
-   * Record count
-   */
-  unsigned int rd_count;
-
-  /**
-   * Data
-   */
-  char *data;
-
-  /**
-   * Data size
-   */
-  size_t data_size;
-
-  /**
-   * Label
-   */
-  char *label;
-};
 
 /**
  * Ticket revocation request handle
@@ -414,8 +382,11 @@ rvk_move_attr_cb (void *cls, const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone,
                   const struct GNUNET_GNSRECORD_Data *rd)
 {
   struct RECLAIM_TICKETS_RevokeHandle *rvk = cls;
+  struct GNUNET_RECLAIM_ATTRIBUTE_Claim *claim;
+  struct GNUNET_GNSRECORD_Data new_rd;
   struct RevokedAttributeEntry *le;
   char *new_label;
+  char *attr_data;
   rvk->ns_qe = NULL;
   if (0 == rd_count) {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
@@ -430,12 +401,24 @@ rvk_move_attr_cb (void *cls, const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone,
   /** find a new place for this attribute **/
   rvk->move_attr->new_id =
       GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_STRONG, UINT64_MAX);
+  new_rd = *rd;
+  claim = GNUNET_RECLAIM_ATTRIBUTE_deserialize (rd->data, rd->data_size);
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+              "Attribute to update: Name=%s, ID=%" PRIu64 "\n", claim->name,
+              claim->id);
+  claim->id = rvk->move_attr->new_id;
+  new_rd.data_size = GNUNET_RECLAIM_ATTRIBUTE_serialize_get_size (claim);
+  attr_data = GNUNET_malloc (rd->data_size);
+  new_rd.data_size = GNUNET_RECLAIM_ATTRIBUTE_serialize (claim, attr_data);
+  new_rd.data = attr_data;
   new_label = GNUNET_STRINGS_data_to_string_alloc (&rvk->move_attr->new_id,
                                                    sizeof (uint64_t));
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Adding attribute %s\n", new_label);
-  rvk->ns_qe = GNUNET_NAMESTORE_records_store (nsh, &rvk->identity, new_label,
-                                               1, rd, &move_attr_finished, rvk);
+  rvk->ns_qe = GNUNET_NAMESTORE_records_store (
+      nsh, &rvk->identity, new_label, 1, &new_rd, &move_attr_finished, rvk);
   GNUNET_free (new_label);
+  GNUNET_free (claim);
+  GNUNET_free (attr_data);
 }
 
 
@@ -703,7 +686,7 @@ process_parallel_lookup_result (void *cls, uint32_t rd_count,
   struct ParallelLookup *parallel_lookup = cls;
   struct RECLAIM_TICKETS_ConsumeHandle *cth = parallel_lookup->handle;
   struct GNUNET_RECLAIM_ATTRIBUTE_ClaimListEntry *attr_le;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Parallel lookup finished (count=%u)\n",
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Parallel lookup finished (count=%u)\n",
               rd_count);
 
   GNUNET_CONTAINER_DLL_remove (cth->parallel_lookups_head,
@@ -777,8 +760,10 @@ lookup_authz_cb (void *cls, uint32_t rd_count,
                             GNUNET_YES);
 
   for (int i = 0; i < rd_count; i++) {
+    if (GNUNET_GNSRECORD_TYPE_RECLAIM_ATTR_REF != rd[i].record_type)
+      continue;
     lbl = GNUNET_STRINGS_data_to_string_alloc (rd[i].data, rd[i].data_size);
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Attribute ref found %s\n", lbl);
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Attribute ref found %s\n", lbl);
     parallel_lookup = GNUNET_new (struct ParallelLookup);
     parallel_lookup->handle = cth;
     parallel_lookup->label = lbl;
@@ -790,9 +775,14 @@ lookup_authz_cb (void *cls, uint32_t rd_count,
     GNUNET_CONTAINER_DLL_insert (cth->parallel_lookups_head,
                                  cth->parallel_lookups_tail, parallel_lookup);
   }
-  cth->kill_task = GNUNET_SCHEDULER_add_delayed (
-      GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 3),
-      &abort_parallel_lookups, cth);
+  if (NULL != cth->parallel_lookups_head) {
+    cth->kill_task = GNUNET_SCHEDULER_add_delayed (
+        GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 3),
+        &abort_parallel_lookups, cth);
+    return;
+  }
+  cth->cb (cth->cb_cls, &cth->ticket.identity, cth->attrs, GNUNET_OK, NULL);
+  cleanup_cth (cth);
 }
 
 
@@ -813,7 +803,7 @@ RECLAIM_TICKETS_consume (const struct GNUNET_CRYPTO_EcdsaPrivateKey *id,
   cth->cb_cls = cb_cls;
   label =
       GNUNET_STRINGS_data_to_string_alloc (&cth->ticket.rnd, sizeof (uint64_t));
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Looking for AuthZ info under %s\n",
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Looking for AuthZ info under %s\n",
               label);
   cth->lookup_start_time = GNUNET_TIME_absolute_get ();
   cth->lookup_request = GNUNET_GNS_lookup (

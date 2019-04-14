@@ -33,6 +33,7 @@
 
 GNUNET_NETWORK_STRUCT_BEGIN
 
+
 /**
  * Use to store an identity attribute
  */
@@ -64,13 +65,42 @@ struct AttributeStoreMessage
   struct GNUNET_CRYPTO_EcdsaPrivateKey identity;
 
   /* followed by the serialized attribute */
-
 };
 
+
 /**
- * Attribute store response message
+ * Use to delete an identity attribute
  */
-struct AttributeStoreResultMessage
+struct AttributeDeleteMessage
+{
+  /**
+   * Type: #GNUNET_MESSAGE_TYPE_IDENTITY_SET_DEFAULT
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Unique identifier for this request (for key collisions).
+   */
+  uint32_t id GNUNET_PACKED;
+
+  /**
+   * The length of the attribute
+   */
+  uint32_t attr_len GNUNET_PACKED;
+
+  /**
+   * Identity
+   */
+  struct GNUNET_CRYPTO_EcdsaPrivateKey identity;
+
+  /* followed by the serialized attribute */
+};
+
+
+/**
+ * Attribute store/delete response message
+ */
+struct SuccessResultMessage
 {
   /**
    * Message header
@@ -86,7 +116,6 @@ struct AttributeStoreResultMessage
    * #GNUNET_SYSERR on failure, #GNUNET_OK on success
    */
   int32_t op_result GNUNET_PACKED;
-
 };
 
 /**
@@ -99,7 +128,7 @@ struct AttributeResultMessage
    */
   struct GNUNET_MessageHeader header;
 
-   /**
+  /**
    * Unique identifier for this request (for key collisions).
    */
   uint32_t id GNUNET_PACKED;
@@ -144,7 +173,6 @@ struct AttributeIterationStartMessage
    * Identity.
    */
   struct GNUNET_CRYPTO_EcdsaPrivateKey identity;
-
 };
 
 
@@ -162,7 +190,6 @@ struct AttributeIterationNextMessage
    * Unique identifier for this request (for key collisions).
    */
   uint32_t id GNUNET_PACKED;
-
 };
 
 
@@ -180,7 +207,6 @@ struct AttributeIterationStopMessage
    * Unique identifier for this request (for key collisions).
    */
   uint32_t id GNUNET_PACKED;
-
 };
 
 /**
@@ -202,7 +228,6 @@ struct TicketIterationStartMessage
    * Identity.
    */
   struct GNUNET_CRYPTO_EcdsaPrivateKey identity;
-
 };
 
 
@@ -220,7 +245,6 @@ struct TicketIterationNextMessage
    * Unique identifier for this request (for key collisions).
    */
   uint32_t id GNUNET_PACKED;
-
 };
 
 
@@ -238,9 +262,7 @@ struct TicketIterationStopMessage
    * Unique identifier for this request (for key collisions).
    */
   uint32_t id GNUNET_PACKED;
-
 };
-
 
 
 /**
@@ -273,7 +295,7 @@ struct IssueTicketMessage
    */
   uint32_t attr_len GNUNET_PACKED;
 
-  //Followed by a serialized attribute list
+  // Followed by a serialized attribute list
 };
 
 /**
@@ -301,7 +323,7 @@ struct RevokeTicketMessage
    */
   uint32_t attrs_len GNUNET_PACKED;
 
-  //Followed by a ticket and serialized attribute list
+  // Followed by a ticket and serialized attribute list
 };
 
 /**
@@ -340,7 +362,6 @@ struct TicketResultMessage
    * Unique identifier for this request (for key collisions).
    */
   uint32_t id GNUNET_PACKED;
-
 };
 
 /**
@@ -363,7 +384,7 @@ struct ConsumeTicketMessage
    */
   struct GNUNET_CRYPTO_EcdsaPrivateKey identity;
 
-  //Followed by a serialized ticket
+  // Followed by a serialized ticket
 };
 
 /**
@@ -376,7 +397,7 @@ struct ConsumeTicketResultMessage
    */
   struct GNUNET_MessageHeader header;
 
-   /**
+  /**
    * Unique identifier for this request (for key collisions).
    */
   uint32_t id GNUNET_PACKED;
@@ -405,7 +426,6 @@ struct ConsumeTicketResultMessage
    * serialized attributes data
    */
 };
-
 
 
 GNUNET_NETWORK_STRUCT_END

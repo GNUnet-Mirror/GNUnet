@@ -34,7 +34,7 @@
 #include "gnunet_namestore_service.h"
 #include "gnunet_protocols.h"
 #include "gnunet_reclaim_attribute_lib.h"
-#include "gnunet_reclaim_plugin.h"
+#include "gnunet_reclaim_service.h"
 #include "gnunet_signatures.h"
 #include "reclaim.h"
 
@@ -62,16 +62,6 @@
  * Identity handle
  */
 static struct GNUNET_IDENTITY_Handle *identity_handle;
-
-/**
- * Database handle
- */
-static struct GNUNET_RECLAIM_PluginFunctions *TKT_database;
-
-/**
- * Name of DB plugin
- */
-static char *db_lib_name;
 
 /**
  * Token expiration interval
@@ -106,7 +96,8 @@ struct IdpClient;
 /**
  * A ticket iteration operation.
  */
-struct TicketIteration {
+struct TicketIteration
+{
   /**
    * DLL
    */
@@ -136,7 +127,8 @@ struct TicketIteration {
 /**
  * An attribute iteration operation.
  */
-struct AttributeIterator {
+struct AttributeIterator
+{
   /**
    * Next element in the DLL
    */
@@ -171,7 +163,8 @@ struct AttributeIterator {
 /**
  * An idp client
  */
-struct IdpClient {
+struct IdpClient
+{
 
   /**
    * The client
@@ -246,9 +239,80 @@ struct IdpClient {
    * Tail of DLL of attribute store ops
    */
   struct AttributeStoreHandle *store_op_tail;
+  /**
+   * Head of DLL of attribute delete ops
+   */
+  struct AttributeDeleteHandle *delete_op_head;
+
+  /**
+   * Tail of DLL of attribute delete ops
+   */
+  struct AttributeDeleteHandle *delete_op_tail;
 };
 
-struct AttributeStoreHandle {
+
+struct AttributeDeleteHandle
+{
+  /**
+   * DLL
+   */
+  struct AttributeDeleteHandle *next;
+
+  /**
+   * DLL
+   */
+  struct AttributeDeleteHandle *prev;
+
+  /**
+   * Client connection
+   */
+  struct IdpClient *client;
+
+  /**
+   * Identity
+   */
+  struct GNUNET_CRYPTO_EcdsaPrivateKey identity;
+
+
+  /**
+   * QueueEntry
+   */
+  struct GNUNET_NAMESTORE_QueueEntry *ns_qe;
+
+  /**
+   * Iterator
+   */
+  struct GNUNET_NAMESTORE_ZoneIterator *ns_it;
+
+  /**
+   * The attribute to delete
+   */
+  struct GNUNET_RECLAIM_ATTRIBUTE_Claim *claim;
+
+  /**
+   * Tickets to update
+   */
+  struct TicketRecordsEntry *tickets_to_update_head;
+
+  /**
+   * Tickets to update
+   */
+  struct TicketRecordsEntry *tickets_to_update_tail;
+
+  /**
+   * Attribute label
+   */
+  char *label;
+
+  /**
+   * request id
+   */
+  uint32_t r_id;
+};
+
+
+struct AttributeStoreHandle
+{
   /**
    * DLL
    */
@@ -295,7 +359,8 @@ struct AttributeStoreHandle {
   uint32_t r_id;
 };
 
-struct ConsumeTicketOperation {
+struct ConsumeTicketOperation
+{
   /**
    * DLL
    */
@@ -325,7 +390,8 @@ struct ConsumeTicketOperation {
 /**
  * Updated attribute IDs
  */
-struct TicketAttributeUpdateEntry {
+struct TicketAttributeUpdateEntry
+{
   /**
    * DLL
    */
@@ -350,7 +416,8 @@ struct TicketAttributeUpdateEntry {
 /**
  * Ticket revocation request handle
  */
-struct TicketRevocationOperation {
+struct TicketRevocationOperation
+{
   /**
    * DLL
    */
@@ -380,7 +447,8 @@ struct TicketRevocationOperation {
 /**
  * Ticket issue operation handle
  */
-struct TicketIssueOperation {
+struct TicketIssueOperation
+{
   /**
    * DLL
    */
@@ -407,7 +475,8 @@ struct TicketIssueOperation {
  * map in json_t format
  *
  */
-struct EgoEntry {
+struct EgoEntry
+{
   /**
    * DLL
    */
@@ -438,9 +507,6 @@ cleanup ()
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Cleaning up\n");
 
   RECLAIM_TICKETS_deinit ();
-  GNUNET_break (NULL == GNUNET_PLUGIN_unload (db_lib_name, TKT_database));
-  GNUNET_free (db_lib_name);
-  db_lib_name = NULL;
   if (NULL != timeout_task)
     GNUNET_SCHEDULER_cancel (timeout_task);
   if (NULL != update_task)
@@ -673,7 +739,7 @@ attr_store_cont (void *cls, int32_t success, const char *emsg)
 {
   struct AttributeStoreHandle *ash = cls;
   struct GNUNET_MQ_Envelope *env;
-  struct AttributeStoreResultMessage *acr_msg;
+  struct SuccessResultMessage *acr_msg;
 
   ash->ns_qe = NULL;
   GNUNET_CONTAINER_DLL_remove (ash->client->store_op_head,
@@ -687,10 +753,8 @@ attr_store_cont (void *cls, int32_t success, const char *emsg)
     return;
   }
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Sending ATTRIBUTE_STORE_RESPONSE message\n");
-  env = GNUNET_MQ_msg (acr_msg,
-                       GNUNET_MESSAGE_TYPE_RECLAIM_ATTRIBUTE_STORE_RESPONSE);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending SUCCESS_RESPONSE message\n");
+  env = GNUNET_MQ_msg (acr_msg, GNUNET_MESSAGE_TYPE_RECLAIM_SUCCESS_RESPONSE);
   acr_msg->id = htonl (ash->r_id);
   acr_msg->op_result = htonl (GNUNET_OK);
   GNUNET_MQ_send (ash->client->mq, env);
@@ -770,6 +834,220 @@ handle_attribute_store_message (void *cls,
   GNUNET_CONTAINER_DLL_insert (idp->store_op_head, idp->store_op_tail, ash);
   GNUNET_SCHEDULER_add_now (&attr_store_task, ash);
 }
+
+
+static void
+cleanup_adh (struct AttributeDeleteHandle *adh)
+{
+  struct TicketRecordsEntry *le;
+  if (NULL != adh->ns_it)
+    GNUNET_NAMESTORE_zone_iteration_stop (adh->ns_it);
+  if (NULL != adh->ns_qe)
+    GNUNET_NAMESTORE_cancel (adh->ns_qe);
+  if (NULL != adh->label)
+    GNUNET_free (adh->label);
+  if (NULL != adh->claim)
+    GNUNET_free (adh->claim);
+  while (NULL != (le = adh->tickets_to_update_head)) {
+    GNUNET_CONTAINER_DLL_remove (adh->tickets_to_update_head,
+                                 adh->tickets_to_update_tail, le);
+    if (NULL != le->label)
+      GNUNET_free (le->label);
+    if (NULL != le->data)
+      GNUNET_free (le->data);
+    GNUNET_free (le);
+  }
+  GNUNET_free (adh);
+}
+
+
+static void
+send_delete_response (struct AttributeDeleteHandle *adh, int32_t success)
+{
+  struct GNUNET_MQ_Envelope *env;
+  struct SuccessResultMessage *acr_msg;
+
+  GNUNET_CONTAINER_DLL_remove (adh->client->delete_op_head,
+                               adh->client->delete_op_tail, adh);
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending SUCCESS_RESPONSE message\n");
+  env = GNUNET_MQ_msg (acr_msg, GNUNET_MESSAGE_TYPE_RECLAIM_SUCCESS_RESPONSE);
+  acr_msg->id = htonl (adh->r_id);
+  acr_msg->op_result = htonl (success);
+  GNUNET_MQ_send (adh->client->mq, env);
+}
+
+
+static void
+ticket_iter (void *cls, const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone,
+             const char *label, unsigned int rd_count,
+             const struct GNUNET_GNSRECORD_Data *rd)
+{
+  struct AttributeDeleteHandle *adh = cls;
+  struct TicketRecordsEntry *le;
+  int has_changed = GNUNET_NO;
+
+  for (int i = 0; i < rd_count; i++) {
+    if (GNUNET_GNSRECORD_TYPE_RECLAIM_ATTR_REF != rd[i].record_type)
+      continue;
+    if (0 != memcmp (rd[i].data, &adh->claim->id, sizeof (uint64_t)))
+      continue;
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Attribute to delete found (%s)\n",
+                adh->label);
+    has_changed = GNUNET_YES;
+    break;
+  }
+  if (GNUNET_YES == has_changed) {
+    le = GNUNET_new (struct TicketRecordsEntry);
+    le->data_size = GNUNET_GNSRECORD_records_get_size (rd_count, rd);
+    le->data = GNUNET_malloc (le->data_size);
+    le->rd_count = rd_count;
+    le->label = GNUNET_strdup (label);
+    GNUNET_GNSRECORD_records_serialize (rd_count, rd, le->data_size, le->data);
+    GNUNET_CONTAINER_DLL_insert (adh->tickets_to_update_head,
+                                 adh->tickets_to_update_tail, le);
+  }
+  GNUNET_NAMESTORE_zone_iterator_next (adh->ns_it, 1);
+}
+
+
+static void
+update_tickets (void *cls);
+
+
+static void
+ticket_updated (void *cls, int32_t success, const char *emsg)
+{
+  struct AttributeDeleteHandle *adh = cls;
+  adh->ns_qe = NULL;
+  GNUNET_SCHEDULER_add_now (&update_tickets, adh);
+}
+
+static void
+update_tickets (void *cls)
+{
+  struct AttributeDeleteHandle *adh = cls;
+  struct TicketRecordsEntry *le;
+  if (NULL == adh->tickets_to_update_head) {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Finished updatding tickets, success\n");
+    send_delete_response (adh, GNUNET_OK);
+    cleanup_adh (adh);
+    return;
+  }
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Updating %s\n",
+              adh->tickets_to_update_head->label);
+  le = adh->tickets_to_update_head;
+  GNUNET_CONTAINER_DLL_remove (adh->tickets_to_update_head,
+                               adh->tickets_to_update_tail, le);
+  struct GNUNET_GNSRECORD_Data rd[le->rd_count];
+  struct GNUNET_GNSRECORD_Data rd_new[le->rd_count - 1];
+  GNUNET_GNSRECORD_records_deserialize (le->data_size, le->data, le->rd_count,
+                                        rd);
+  int j = 0;
+  for (int i = 0; i < le->rd_count; i++) {
+    if ((GNUNET_GNSRECORD_TYPE_RECLAIM_ATTR_REF == rd[i].record_type) &&
+        (0 == memcmp (rd[i].data, &adh->claim->id, sizeof (uint64_t))))
+      continue;
+    rd_new[j] = rd[i];
+    j++;
+  }
+  adh->ns_qe = GNUNET_NAMESTORE_records_store (nsh, &adh->identity, le->label,
+                                               j, rd_new, &ticket_updated, adh);
+  GNUNET_free (le->label);
+  GNUNET_free (le->data);
+  GNUNET_free (le);
+}
+
+
+static void
+ticket_iter_fin (void *cls)
+{
+  struct AttributeDeleteHandle *adh = cls;
+  adh->ns_it = NULL;
+  GNUNET_SCHEDULER_add_now (&update_tickets, adh);
+}
+
+
+static void
+ticket_iter_err (void *cls)
+{
+  struct AttributeDeleteHandle *adh = cls;
+  adh->ns_it = NULL;
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Namestore error on delete %s\n",
+              adh->label);
+  send_delete_response (adh, GNUNET_SYSERR);
+  cleanup_adh (adh);
+}
+
+
+static void
+start_ticket_update (void *cls)
+{
+  struct AttributeDeleteHandle *adh = cls;
+  adh->ns_it = GNUNET_NAMESTORE_zone_iteration_start (
+      nsh, &adh->identity, &ticket_iter_err, adh, &ticket_iter, adh,
+      &ticket_iter_fin, adh);
+}
+
+
+static void
+attr_delete_cont (void *cls, int32_t success, const char *emsg)
+{
+  struct AttributeDeleteHandle *adh = cls;
+  adh->ns_qe = NULL;
+  if (GNUNET_SYSERR == success) {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Error deleting attribute %s (%s)\n",
+                adh->claim->name, adh->label);
+    send_delete_response (adh, GNUNET_SYSERR);
+    cleanup_adh (adh);
+    return;
+  }
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Updating tickets...\n");
+  GNUNET_SCHEDULER_add_now (&start_ticket_update, adh);
+}
+
+
+static int
+check_attribute_delete_message (void *cls,
+                                const struct AttributeDeleteMessage *dam)
+{
+  uint16_t size;
+
+  size = ntohs (dam->header.size);
+  if (size <= sizeof (struct AttributeDeleteMessage)) {
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
+  return GNUNET_OK;
+}
+
+
+static void
+handle_attribute_delete_message (void *cls,
+                                 const struct AttributeDeleteMessage *dam)
+{
+  struct AttributeDeleteHandle *adh;
+  struct IdpClient *idp = cls;
+  size_t data_len;
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Received ATTRIBUTE_DELETE message\n");
+
+  data_len = ntohs (dam->attr_len);
+
+  adh = GNUNET_new (struct AttributeDeleteHandle);
+  adh->claim = GNUNET_RECLAIM_ATTRIBUTE_deserialize ((char *)&dam[1], data_len);
+
+  adh->r_id = ntohl (dam->id);
+  adh->identity = dam->identity;
+  adh->label =
+      GNUNET_STRINGS_data_to_string_alloc (&adh->claim->id, sizeof (uint64_t));
+  GNUNET_SERVICE_client_continue (idp->client);
+  adh->client = idp;
+  GNUNET_CONTAINER_DLL_insert (idp->delete_op_head, idp->delete_op_tail, adh);
+  adh->ns_qe = GNUNET_NAMESTORE_records_store (nsh, &adh->identity, adh->label,
+                                               0, NULL, &attr_delete_cont, adh);
+}
+
 
 /*************************************************
  * Attrubute iteration
@@ -1013,7 +1291,6 @@ static void
 run (void *cls, const struct GNUNET_CONFIGURATION_Handle *c,
      struct GNUNET_SERVICE_Handle *server)
 {
-  char *database;
   cfg = c;
 
   if (GNUNET_OK != RECLAIM_TICKETS_init (cfg)) {
@@ -1030,19 +1307,6 @@ run (void *cls, const struct GNUNET_CONFIGURATION_Handle *c,
   }
 
   identity_handle = GNUNET_IDENTITY_connect (cfg, NULL, NULL);
-  /* Loading DB plugin */
-  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_string (
-                       cfg, "reclaim", "database", &database))
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "No database backend configured\n");
-  GNUNET_asprintf (&db_lib_name, "libgnunet_plugin_reclaim_%s", database);
-  TKT_database = GNUNET_PLUGIN_load (db_lib_name, (void *)cfg);
-  GNUNET_free (database);
-  if (NULL == TKT_database) {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Could not load database backend `%s'\n", db_lib_name);
-    GNUNET_SCHEDULER_shutdown ();
-    return;
-  }
 
   if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_time (
                        cfg, "reclaim", "TOKEN_EXPIRATION_INTERVAL",
@@ -1075,6 +1339,7 @@ client_disconnect_cb (void *cls, struct GNUNET_SERVICE_Client *client,
   struct TicketIssueOperation *iss;
   struct ConsumeTicketOperation *ct;
   struct AttributeStoreHandle *as;
+  struct AttributeDeleteHandle *adh;
 
   // TODO other operations
 
@@ -1094,6 +1359,10 @@ client_disconnect_cb (void *cls, struct GNUNET_SERVICE_Client *client,
   while (NULL != (as = idp->store_op_head)) {
     GNUNET_CONTAINER_DLL_remove (idp->store_op_head, idp->store_op_tail, as);
     cleanup_as_handle (as);
+  }
+  while (NULL != (adh = idp->delete_op_head)) {
+    GNUNET_CONTAINER_DLL_remove (idp->delete_op_head, idp->delete_op_tail, adh);
+    cleanup_adh (adh);
   }
 
   while (NULL != (ai = idp->attr_iter_head)) {
@@ -1143,6 +1412,9 @@ GNUNET_SERVICE_MAIN (
     GNUNET_MQ_hd_var_size (attribute_store_message,
                            GNUNET_MESSAGE_TYPE_RECLAIM_ATTRIBUTE_STORE,
                            struct AttributeStoreMessage, NULL),
+    GNUNET_MQ_hd_var_size (attribute_delete_message,
+                           GNUNET_MESSAGE_TYPE_RECLAIM_ATTRIBUTE_DELETE,
+                           struct AttributeDeleteMessage, NULL),
     GNUNET_MQ_hd_fixed_size (
         iteration_start, GNUNET_MESSAGE_TYPE_RECLAIM_ATTRIBUTE_ITERATION_START,
         struct AttributeIterationStartMessage, NULL),
