@@ -778,9 +778,10 @@ attr_store_task (void *cls)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Storing attribute\n");
   buf_size = GNUNET_RECLAIM_ATTRIBUTE_serialize_get_size (ash->claim);
   buf = GNUNET_malloc (buf_size);
-  // Give the ash a new id
-  ash->claim->id =
-      GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_STRONG, UINT64_MAX);
+  // Give the ash a new id if unset
+  if (0 == ash->claim->id)
+    ash->claim->id =
+        GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_STRONG, UINT64_MAX);
   GNUNET_RECLAIM_ATTRIBUTE_serialize (ash->claim, buf);
   label =
       GNUNET_STRINGS_data_to_string_alloc (&ash->claim->id, sizeof (uint64_t));

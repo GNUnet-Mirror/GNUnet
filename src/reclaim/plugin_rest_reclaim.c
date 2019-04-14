@@ -539,8 +539,9 @@ add_attribute_cont (struct GNUNET_REST_RequestHandle *con_handle,
   /**
    * New ID for attribute
    */
-  attribute->id =
-      GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_STRONG, UINT64_MAX);
+  if (0 == attribute->id)
+    attribute->id =
+        GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_STRONG, UINT64_MAX);
   handle->idp = GNUNET_RECLAIM_connect (cfg);
   exp = GNUNET_TIME_UNIT_HOURS;
   handle->idp_op = GNUNET_RECLAIM_attribute_store (

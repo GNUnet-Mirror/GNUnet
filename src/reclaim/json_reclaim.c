@@ -44,10 +44,10 @@ static int
 parse_attr (void *cls, json_t *root, struct GNUNET_JSON_Specification *spec)
 {
   struct GNUNET_RECLAIM_ATTRIBUTE_Claim *attr;
-  const char *name_str;
-  const char *val_str;
-  const char *type_str;
-  const char *id_str;
+  const char *name_str = NULL;
+  const char *val_str = NULL;
+  const char *type_str = NULL;
+  const char *id_str = NULL;
   char *data;
   int unpack_state;
   uint32_t type;
@@ -62,10 +62,11 @@ parse_attr (void *cls, json_t *root, struct GNUNET_JSON_Specification *spec)
   }
   // interpret single attribute
   unpack_state =
-      json_unpack (root, "{s:s, s:s, s:s, s:s!}", "name", &name_str, "id",
+      json_unpack (root, "{s:s, s?s, s:s, s:s!}", "name", &name_str, "id",
                    &id_str, "type", &type_str, "value", &val_str);
-  if (0 != unpack_state) {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+  if ((0 != unpack_state) || (NULL == name_str) || (NULL == val_str) ||
+      (NULL == type_str)) {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Error json object has a wrong format!\n");
     return GNUNET_SYSERR;
   }
@@ -76,7 +77,7 @@ parse_attr (void *cls, json_t *root, struct GNUNET_JSON_Specification *spec)
     return GNUNET_SYSERR;
   }
   attr = GNUNET_RECLAIM_ATTRIBUTE_claim_new (name_str, type, data, data_size);
-  if (0 == strlen (id_str))
+  if ((NULL == id_str) || (0 == strlen (id_str)))
     attr->id = 0;
   else
     GNUNET_STRINGS_string_to_data (id_str, strlen (id_str), &attr->id,
