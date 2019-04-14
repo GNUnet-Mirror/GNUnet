@@ -33,14 +33,16 @@
  *       transport-to-transport traffic)
  *
  * Implement next:
+ * - DV data structures:
+ *   + initiation of DV learn (incl. RTT measurement logic!)
+ *     - security considerations? add signatures to routes? initiator signature?
+ *   + using DV routes!
+ *     - handling of DV-boxed messages that need to be forwarded
+ *     - route_message implementation, including using DV data structures
+ *       (but not when routing certain message types, like DV learn,
+ *        MUST pay attention to content here -- or pass extra flags?)
  * - ACK handling / retransmission
  * - track RTT, distance, loss, etc.
- * - DV data structures:
- *   + learning
- *   + forgetting
- *   + using them!
- * - routing of messages (using DV data structures!)
- * - handling of DV-boxed messages that need to be forwarded
  * - backchannel message encryption & decryption
  *
  * Later:
@@ -99,11 +101,42 @@
 #define IN_PACKET_SIZE_WITHOUT_MTU 128
 
 /**
+ * Minimum number of hops we should forward DV learn messages
+ * even if they are NOT useful for us in hope of looping
+ * back to the initiator?
+ *
+ * FIXME: allow initiator some control here instead?
+ */
+#define MIN_DV_PATH_LENGTH_FOR_INITIATOR 3
+
+/**
+ * Maximum DV distance allowed ever.
+ */
+#define MAX_DV_HOPS_ALLOWED 16
+
+/**
+ * Maximum number of DV paths we keep simultaneously to the same target.
+ */
+#define MAX_DV_PATHS_TO_TARGET 3
+
+/**
  * If a queue delays the next message by more than this number
  * of seconds we log a warning. Note: this is for testing,
  * the value chosen here might be too aggressively low!
  */
 #define DELAY_WARN_THRESHOLD GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
+
+/**
+ * How long do we consider a DV path valid if we see no
+ * further updates on it? Note: the value chosen here might be too low!
+ */
+#define DV_PATH_VALIDITY_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 5)
+
+/**
+ * How long before paths expire would we like to (re)discover DV paths? Should
+ * be below #DV_PATH_VALIDITY_TIMEOUT.
+ */
+#define DV_PATH_DISCOVERY_FREQUENCY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 4)
 
 /**
  * How long are ephemeral keys valid?
@@ -444,6 +477,72 @@ struct TransportFragmentAckMessage
 
 
 /**
+ * Content signed by each peer during DV learning.
+ */
+struct DvInitPS
+{
+  /**
+   * Purpose is #GNUNET_SIGNATURE_PURPOSE_TRANSPORT_DV_INITIATOR
+   */
+  struct GNUNET_CRYPTO_EccSignaturePurpose purpose;
+
+  /**
+   * Challenge value used by the initiator to re-identify the path.
+   */
+  struct GNUNET_ShortHashCode challenge;
+
+};
+
+
+/**
+ * Content signed by each peer during DV learning.
+ */
+struct DvHopPS
+{
+  /**
+   * Purpose is #GNUNET_SIGNATURE_PURPOSE_TRANSPORT_DV_HOP
+   */
+  struct GNUNET_CRYPTO_EccSignaturePurpose purpose;
+
+  /**
+   * Identity of the previous peer on the path.
+   */
+  struct GNUNET_PeerIdentity pred;
+
+  /**
+   * Identity of the next peer on the path.
+   */
+  struct GNUNET_PeerIdentity succ;
+
+  /**
+   * Challenge value used by the initiator to re-identify the path.
+   */
+  struct GNUNET_ShortHashCode challenge;
+
+};
+
+
+/**
+ * An entry describing a peer on a path in a
+ * `struct TransportDVLearn` message.
+ */
+struct DVPathEntryP
+{
+  /**
+   * Identity of a peer on the path.
+   */
+  struct GNUNET_PeerIdentity hop;
+
+  /**
+   * Signature of this hop over the path, of purpose
+   * #GNUNET_SIGNATURE_PURPOSE_TRANSPORT_DV_HOP
+   */
+  struct GNUNET_CRYPTO_EddsaSignature hop_sig;
+
+};
+
+
+/**
  * Internal message used by transport for distance vector learning.
  * If @e num_hops does not exceed the threshold, peers should append
  * themselves to the peer list and flood the message (possibly only
@@ -481,19 +580,28 @@ struct TransportDVLearn
 
   /**
    * Peers receiving this message and delaying forwarding to other
-   * peers for any reason should increment this value such as to
-   * enable the origin to determine the actual network-only delay
-   * in addition to the real-time delay (assuming the message loops
-   * back to the origin).
+   * peers for any reason should increment this value by the non-network
+   * delay created by the peer.
    */
-  struct GNUNET_TIME_Relative cummulative_non_network_delay;
+  struct GNUNET_TIME_RelativeNBO non_network_delay;
+
+  /**
+   * Signature of this hop over the path, of purpose
+   * #GNUNET_SIGNATURE_PURPOSE_TRANSPORT_DV_INITIATOR
+   */
+  struct GNUNET_CRYPTO_EddsaSignature init_sig;
 
   /**
    * Identity of the peer that started this learning activity.
    */
   struct GNUNET_PeerIdentity initiator;
 
-  /* Followed by @e num_hops `struct GNUNET_PeerIdentity` values,
+  /**
+   * Challenge value used by the initiator to re-identify the path.
+   */
+  struct GNUNET_ShortHashCode challenge;
+
+  /* Followed by @e num_hops `struct DVPathEntryP` values,
      excluding the initiator of the DV trace; the last entry is the
      current sender; the current peer must not be included. */
 
@@ -1833,8 +1941,10 @@ struct MonitorEvent
 
 
 /**
- * Free a @dvh, and if it is the last path to the `target`,also
- * free the associated DV entry in #dv_routes.
+ * Free a @dvh. Callers MAY want to check if this was the last path to the
+ * `target`, and if so call #free_dv_route to also free the associated DV
+ * entry in #dv_routes (if not, the associated scheduler job should eventually
+ * take care of it).
  *
  * @param dvh hop to free
  */
@@ -1845,30 +1955,20 @@ free_distance_vector_hop (struct DistanceVectorHop *dvh)
   struct DistanceVector *dv = dvh->dv;
 
   GNUNET_CONTAINER_MDLL_remove (neighbour,
-				n->dv_head,
-				n->dv_tail,
-				dvh);
+                                n->dv_head,
+                                n->dv_tail,
+                                dvh);
   GNUNET_CONTAINER_MDLL_remove (dv,
-				dv->dv_head,
-				dv->dv_tail,
-				dvh);
+                                dv->dv_head,
+                                dv->dv_tail,
+                                dvh);
   GNUNET_free (dvh);
-  if (NULL == dv->dv_head)
-  {
-    GNUNET_assert (GNUNET_YES ==
-                   GNUNET_CONTAINER_multipeermap_remove (dv_routes,
-                                                         &dv->target,
-                                                         dv));
-    if (NULL != dv->timeout_task)
-      GNUNET_SCHEDULER_cancel (dv->timeout_task);
-    GNUNET_free (dv);
-  }
 }
 
 
 /**
  * Free entry in #dv_routes.  First frees all hops to the target, and
- * the last target will implicitly free @a dv as well.
+ * if there are no entries left, frees @a dv as well.
  *
  * @param dv route to free
  */
@@ -1879,6 +1979,16 @@ free_dv_route (struct DistanceVector *dv)
 
   while (NULL != (dvh = dv->dv_head))
     free_distance_vector_hop (dvh);
+  if (NULL == dv->dv_head)
+  {
+    GNUNET_assert (GNUNET_YES ==
+                   GNUNET_CONTAINER_multipeermap_remove (dv_routes,
+                                                         &dv->target,
+                                                         dv));
+    if (NULL != dv->timeout_task)
+      GNUNET_SCHEDULER_cancel (dv->timeout_task);
+    GNUNET_free (dv);
+  }
 }
 
 
@@ -2089,7 +2199,13 @@ free_neighbour (struct Neighbour *neighbour)
     neighbour->reassembly_heap = NULL;
   }
   while (NULL != (dvh = neighbour->dv_head))
+  {
+    struct DistanceVector *dv = dvh->dv;
+
     free_distance_vector_hop (dvh);
+    if (NULL == dv->dv_head)
+      free_dv_route (dv);
+  }
   if (NULL != neighbour->reassembly_timeout_task)
     GNUNET_SCHEDULER_cancel (neighbour->reassembly_timeout_task);
   GNUNET_free (neighbour);
@@ -3685,6 +3801,203 @@ handle_backchannel_encapsulation (void *cls,
 
 
 /**
+ * Task called when we should check if any of the DV paths
+ * we have learned to a target are due for garbage collection.
+ *
+ * Collects stale paths, and possibly frees the entire DV
+ * entry if no paths are left. Otherwise re-schedules itself.
+ *
+ * @param cls a `struct DistanceVector`
+ */
+static void
+path_cleanup_cb (void *cls)
+{
+  struct DistanceVector *dv = cls;
+  struct DistanceVectorHop *pos;
+
+  dv->timeout_task = NULL;
+  while (NULL != (pos = dv->dv_head))
+  {
+    GNUNET_assert (dv == pos->dv);
+    if (GNUNET_TIME_absolute_get_remaining (pos->timeout).rel_value_us > 0)
+      break;
+    free_distance_vector_hop (pos);
+  }
+  if (NULL == pos)
+  {
+    free_dv_route (dv);
+    return;
+  }
+  dv->timeout_task = GNUNET_SCHEDULER_add_at (pos->timeout,
+                                              &path_cleanup_cb,
+                                              dv);
+}
+
+
+/**
+ * We have learned a @a path through the network to some other peer, add it to
+ * our DV data structure (returning #GNUNET_YES on success).
+ *
+ * We do not add paths if we have a sufficient number of shorter
+ * paths to this target already (returning #GNUNET_NO).
+ *
+ * We also do not add problematic paths, like those where we lack the first
+ * hop in our neighbour list (i.e. due to a topology change) or where some
+ * non-first hop is in our neighbour list (returning #GNUNET_SYSERR).
+ *
+ * @param path the path we learned, path[0] should be us,
+ *             and then path contains a valid path from us to `path[path_len-1]`
+ *             path[1] should be a direct neighbour (we should check!)
+ * @param path_len number of entries on the @a path, at least three!
+ * @param network_latency how long does the message take from us to `path[path_len-1]`?
+ *          set to "forever" if unknown
+ * @return #GNUNET_YES on success,
+ *         #GNUNET_NO if we have better path(s) to the target
+ *         #GNUNET_SYSERR if the path is useless and/or invalid
+ *                         (i.e. path[1] not a direct neighbour
+ *                        or path[i+1] is a direct neighbour for i>0)
+ */
+static int
+learn_dv_path (const struct GNUNET_PeerIdentity *path,
+               unsigned int path_len,
+               struct GNUNET_TIME_Relative network_latency)
+{
+  struct DistanceVectorHop *hop;
+  struct DistanceVector *dv;
+  struct Neighbour *next_hop;
+  unsigned int shorter_distance;
+
+  if (path_len < 3)
+  {
+    /* what a boring path! not allowed! */
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
+  GNUNET_assert (0 ==
+                 GNUNET_memcmp (&GST_my_identity,
+                                &path[0]));
+  next_hop = GNUNET_CONTAINER_multipeermap_get (neighbours,
+                                                &path[1]);
+  if (NULL == next_hop)
+  {
+    /* next hop must be a neighbour, otherwise this whole thing is useless! */
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
+  for (unsigned int i=2;i<path_len;i++)
+    if (NULL !=
+        GNUNET_CONTAINER_multipeermap_get (neighbours,
+                                           &path[i]))
+    {
+      /* Useless path, we have a direct connection to some hop
+         in the middle of the path, so this one doesn't even
+         seem terribly useful for redundancy */
+      return GNUNET_SYSERR;
+    }
+  dv = GNUNET_CONTAINER_multipeermap_get (dv_routes,
+                                          &path[path_len - 1]);
+  if (NULL == dv)
+  {
+    dv = GNUNET_new (struct DistanceVector);
+    dv->target = path[path_len - 1];
+    dv->timeout_task = GNUNET_SCHEDULER_add_delayed (DV_PATH_VALIDITY_TIMEOUT,
+                                                     &path_cleanup_cb,
+                                                     dv);
+    GNUNET_assert (GNUNET_OK ==
+                   GNUNET_CONTAINER_multipeermap_put (dv_routes,
+                                                      &dv->target,
+                                                      dv,
+                                                      GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
+  }
+  /* Check if we have this path already! */
+  shorter_distance = 0;
+  for (struct DistanceVectorHop *pos = dv->dv_head;
+       NULL != pos;
+       pos = pos->next_dv)
+  {
+    if (pos->distance < path_len - 2)
+      shorter_distance++;
+    /* Note that the distances in 'pos' excludes us (path[0]) and
+       the next_hop (path[1]), so we need to subtract two
+       and check next_hop explicitly */
+    if ( (pos->distance == path_len - 2) &&
+         (pos->next_hop == next_hop) )
+    {
+      int match = GNUNET_YES;
+
+      for (unsigned int i=0;i<pos->distance;i++)
+      {
+        if (0 !=
+            GNUNET_memcmp (&pos->path[i],
+                           &path[i+2]))
+        {
+          match = GNUNET_NO;
+          break;
+        }
+      }
+      if (GNUNET_YES == match)
+      {
+        struct GNUNET_TIME_Relative last_timeout;
+
+        /* Re-discovered known path, update timeout */
+        GNUNET_STATISTICS_update (GST_stats,
+                                  "# Known DV path refreshed",
+                                  1,
+                                  GNUNET_NO);
+        last_timeout = GNUNET_TIME_absolute_get_remaining (pos->timeout);
+        pos->timeout
+          = GNUNET_TIME_relative_to_absolute (DV_PATH_VALIDITY_TIMEOUT);
+        GNUNET_CONTAINER_MDLL_remove (dv,
+                                      dv->dv_head,
+                                      dv->dv_tail,
+                                      pos);
+        GNUNET_CONTAINER_MDLL_insert (dv,
+                                      dv->dv_head,
+                                      dv->dv_tail,
+                                      pos);
+        if (last_timeout.rel_value_us <
+            GNUNET_TIME_relative_subtract (DV_PATH_VALIDITY_TIMEOUT,
+                                           DV_PATH_DISCOVERY_FREQUENCY).rel_value_us)
+        {
+          /* Some peer send DV learn messages too often, we are learning
+             the same path faster than it would be useful; do not forward! */
+          return GNUNET_NO;
+        }
+        return GNUNET_YES;
+      }
+    }
+  }
+  /* Count how many shorter paths we have (incl. direct
+     neighbours) before simply giving up on this one! */
+  if (shorter_distance >= MAX_DV_PATHS_TO_TARGET)
+  {
+    /* We have a shorter path already! */
+    return GNUNET_NO;
+  }
+  /* create new DV path entry */
+  hop = GNUNET_malloc (sizeof (struct DistanceVectorHop) +
+                       sizeof (struct GNUNET_PeerIdentity) * (path_len - 2));
+  hop->next_hop = next_hop;
+  hop->dv = dv;
+  hop->path = (const struct GNUNET_PeerIdentity *) &hop[1];
+  memcpy (&hop[1],
+          &path[2],
+          sizeof (struct GNUNET_PeerIdentity) * (path_len - 2));
+  hop->timeout = GNUNET_TIME_relative_to_absolute (DV_PATH_VALIDITY_TIMEOUT);
+  hop->distance = path_len - 2;
+  GNUNET_CONTAINER_MDLL_insert (dv,
+                                dv->dv_head,
+                                dv->dv_tail,
+                                hop);
+  GNUNET_CONTAINER_MDLL_insert (neighbour,
+                                next_hop->dv_head,
+                                next_hop->dv_tail,
+                                hop);
+  return GNUNET_YES;
+}
+
+
+/**
  * Communicator gave us a DV learn message.  Check the message.
  *
  * @param cls a `struct CommunicatorMessageContext`
@@ -3697,9 +4010,14 @@ check_dv_learn (void *cls,
 {
   uint16_t size = ntohs (dvl->header.size);
   uint16_t num_hops = ntohs (dvl->num_hops);
-  const struct GNUNET_PeerIdentity *hops = (const struct GNUNET_PeerIdentity *) &dvl[1];
+  const struct DVPathEntryP *hops = (const struct DVPathEntryP *) &dvl[1];
 
-  if (size != sizeof (*dvl) + num_hops * sizeof (struct GNUNET_PeerIdentity))
+  if (size != sizeof (*dvl) + num_hops * sizeof (struct DVPathEntryP))
+  {
+    GNUNET_break_op (0);
+    return GNUNET_SYSERR;
+  }
+  if (num_hops > MAX_DV_HOPS_ALLOWED)
   {
     GNUNET_break_op (0);
     return GNUNET_SYSERR;
@@ -3707,19 +4025,112 @@ check_dv_learn (void *cls,
   for (unsigned int i=0;i<num_hops;i++)
   {
     if (0 == GNUNET_memcmp (&dvl->initiator,
-                            &hops[i]))
+                            &hops[i].hop))
     {
       GNUNET_break_op (0);
       return GNUNET_SYSERR;
     }
     if (0 == GNUNET_memcmp (&GST_my_identity,
-                            &hops[i]))
+                            &hops[i].hop))
     {
       GNUNET_break_op (0);
       return GNUNET_SYSERR;
     }
   }
   return GNUNET_YES;
+}
+
+
+/**
+ * Build and forward a DV learn message to @a next_hop.
+ *
+ * @param next_hop peer to send the message to
+ * @param msg message received
+ * @param bi_history bitmask specifying hops on path that were bidirectional
+ * @param nhops length of the @a hops array
+ * @param hops path the message traversed so far
+ * @param in_time when did we receive the message, used to calculate network delay
+ */
+static void
+forward_dv_learn (const struct GNUNET_PeerIdentity *next_hop,
+                  const struct TransportDVLearn *msg,
+                  uint16_t bi_history,
+                  uint16_t nhops,
+                  const struct DVPathEntryP *hops,
+                  struct GNUNET_TIME_Absolute in_time)
+{
+  struct DVPathEntryP *dhops;
+  struct TransportDVLearn *fwd;
+  struct GNUNET_TIME_Relative nnd;
+
+  /* compute message for forwarding */
+  GNUNET_assert (nhops < MAX_DV_HOPS_ALLOWED);
+  fwd = GNUNET_malloc (sizeof (struct TransportDVLearn) +
+                       (nhops + 1) * sizeof (struct DVPathEntryP));
+  fwd->header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_DV_LEARN);
+  fwd->header.size = htons (sizeof (struct TransportDVLearn) +
+                            (nhops + 1) * sizeof (struct DVPathEntryP));
+  fwd->num_hops = htons (nhops + 1);
+  fwd->bidirectional = htons (bi_history);
+  nnd = GNUNET_TIME_relative_add (GNUNET_TIME_absolute_get_duration (in_time),
+                                  GNUNET_TIME_relative_ntoh (msg->non_network_delay));
+  fwd->non_network_delay = GNUNET_TIME_relative_hton (nnd);
+  fwd->init_sig = msg->init_sig;
+  fwd->initiator = msg->initiator;
+  fwd->challenge = msg->challenge;
+  dhops = (struct DVPathEntryP *) &fwd[1];
+  GNUNET_memcpy (dhops,
+                 hops,
+                 sizeof (struct DVPathEntryP) * nhops);
+  dhops[nhops].hop = GST_my_identity;
+  {
+    struct DvHopPS dhp = {
+      .purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_TRANSPORT_DV_HOP),
+      .purpose.size = htonl (sizeof (dhp)),
+      .pred = dhops[nhops-1].hop,
+      .succ = *next_hop,
+      .challenge = msg->challenge
+    };
+
+    GNUNET_assert (GNUNET_OK ==
+                   GNUNET_CRYPTO_eddsa_sign (GST_my_private_key,
+                                             &dhp.purpose,
+                                             &dhops[nhops].hop_sig));
+  }
+  route_message (next_hop,
+                 &fwd->header);
+}
+
+
+/**
+ * Check signature of type #GNUNET_SIGNATURE_PURPOSE_TRANSPORT_DV_INITIATOR
+ *
+ * @param init the signer
+ * @param challenge the challenge that was signed
+ * @param init_sig signature presumably by @a init
+ * @return #GNUNET_OK if the signature is valid
+ */
+static int
+validate_dv_initiator_signature (const struct GNUNET_PeerIdentity *init,
+                                 const struct GNUNET_ShortHashCode *challenge,
+                                 const struct GNUNET_CRYPTO_EddsaSignature *init_sig)
+{
+  struct DvInitPS ip = {
+    .purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_TRANSPORT_DV_INITIATOR),
+    .purpose.size = htonl (sizeof (ip)),
+    .challenge = *challenge
+  };
+
+  if (GNUNET_OK !=
+      GNUNET_CRYPTO_eddsa_verify (GNUNET_SIGNATURE_PURPOSE_TRANSPORT_DV_INITIATOR,
+                                  &ip.purpose,
+                                  init_sig,
+                                  &init->public_key))
+  {
+    GNUNET_break_op (0);
+    return GNUNET_SYSERR;
+  }
+  return GNUNET_OK;
 }
 
 
@@ -3734,10 +4145,199 @@ handle_dv_learn (void *cls,
                  const struct TransportDVLearn *dvl)
 {
   struct CommunicatorMessageContext *cmc = cls;
+  enum GNUNET_TRANSPORT_CommunicatorCharacteristics cc;
+  int bi_hop;
+  uint16_t nhops;
+  uint16_t bi_history;
+  const struct DVPathEntryP *hops;
+  int do_fwd;
+  int did_initiator;
+  struct GNUNET_TIME_Absolute in_time;
 
-  // FIXME: learn path from DV message (if bi-directional flags are set)
-  // FIXME: expand DV message, forward on (unless path is getting too long)
+  nhops = ntohs (dvl->bidirectional); /* 0 = sender is initiator */
+  bi_history = ntohs (dvl->bidirectional);
+  hops = (const struct DVPathEntryP *) &dvl[1];
+  if (0 == nhops)
+  {
+    /* sanity check */
+    if (0 != GNUNET_memcmp (&dvl->initiator,
+                            &cmc->im.sender))
+    {
+      GNUNET_break (0);
+      finish_cmc_handling (cmc);
+      return;
+    }
+  }
+  else
+  {
+    /* sanity check */
+    if (0 != GNUNET_memcmp (&hops[nhops - 1].hop,
+                            &cmc->im.sender))
+    {
+      GNUNET_break (0);
+      finish_cmc_handling (cmc);
+      return;
+    }
+  }
+
+  GNUNET_assert (CT_COMMUNICATOR == cmc->tc->type);
+  cc = cmc->tc->details.communicator.cc;
+  bi_hop = (GNUNET_TRANSPORT_CC_RELIABLE == cc); // FIXME: add bi-directional flag to cc?
+  in_time = GNUNET_TIME_absolute_get ();
+
+  /* continue communicator here, everything else can happen asynchronous! */
   finish_cmc_handling (cmc);
+
+  // FIXME: should we bother to verify _every_ DV initiator signature?
+  if (GNUNET_OK !=
+      validate_dv_initiator_signature (&dvl->initiator,
+                                       &dvl->challenge,
+                                       &dvl->init_sig))
+  {
+    GNUNET_break_op (0);
+    return;
+  }
+  // FIXME: asynchronously (!) verify hop-by-hop signatures!
+  // => if signature verification load too high, implement random drop strategy!
+
+  do_fwd = GNUNET_YES;
+  if (0 == GNUNET_memcmp (&GST_my_identity,
+                          &dvl->initiator))
+  {
+    struct GNUNET_PeerIdentity path[nhops + 1];
+    struct GNUNET_TIME_Relative host_latency_sum;
+    struct GNUNET_TIME_Relative latency;
+    struct GNUNET_TIME_Relative network_latency;
+
+    /* We initiated this, learn the forward path! */
+    path[0] = GST_my_identity;
+    path[1] = hops[0].hop;
+    host_latency_sum = GNUNET_TIME_relative_ntoh (dvl->non_network_delay);
+
+    // Need also something to lookup initiation time
+    // to compute RTT! -> add RTT argument here?
+    latency = GNUNET_TIME_UNIT_FOREVER_REL; // FIXME: initialize properly
+    // (based on dvl->challenge, we can identify time of origin!)
+
+    network_latency = GNUNET_TIME_relative_subtract (latency,
+                                                     host_latency_sum);
+    /* assumption: latency on all links is the same */
+    network_latency = GNUNET_TIME_relative_divide (network_latency,
+                                                   nhops);
+
+    for (unsigned int i=2;i<=nhops;i++)
+    {
+      struct GNUNET_TIME_Relative ilat;
+
+      /* assumption: linear latency increase per hop */
+      ilat = GNUNET_TIME_relative_multiply (network_latency,
+                                            i);
+      path[i] = hops[i-1].hop;
+      learn_dv_path (path,
+                     i,
+                     ilat);
+    }
+    /* as we initiated, do not forward again (would be circular!) */
+    do_fwd = GNUNET_NO;
+    return;
+  }
+  else if (bi_hop)
+  {
+    /* last hop was bi-directional, we could learn something here! */
+    struct GNUNET_PeerIdentity path[nhops + 2];
+
+    path[0] = GST_my_identity;
+    path[1] = hops[nhops - 1].hop; /* direct neighbour == predecessor! */
+    for (unsigned int i=0;i<nhops;i++)
+    {
+      int iret;
+
+      if (0 == (bi_history & (1 << i)))
+        break; /* i-th hop not bi-directional, stop learning! */
+      if (i == nhops)
+      {
+        path[i + 2] = dvl->initiator;
+      }
+      else
+      {
+        path[i + 2] = hops[nhops - i - 2].hop;
+      }
+
+      iret = learn_dv_path (path,
+                            i + 2,
+                            GNUNET_TIME_UNIT_FOREVER_REL);
+      if (GNUNET_SYSERR == iret)
+      {
+        /* path invalid or too long to be interesting for US, thus should also
+           not be interesting to our neighbours, cut path when forwarding to
+           'i' hops, except of course for the one that goes back to the
+           initiator */
+        GNUNET_STATISTICS_update (GST_stats,
+                                  "# DV learn not forwarded due invalidity of path",
+                                  1,
+                                  GNUNET_NO);
+        do_fwd = GNUNET_NO;
+        break;
+      }
+      if ( (GNUNET_NO == iret) &&
+           (nhops - 1 == i) )
+      {
+        /* we have better paths, and this is the longest target,
+           so there cannot be anything interesting later */
+        GNUNET_STATISTICS_update (GST_stats,
+                                  "# DV learn not forwarded, got better paths",
+                                  1,
+                                  GNUNET_NO);
+        do_fwd = GNUNET_NO;
+        break;
+      }
+    }
+  }
+
+  if (MAX_DV_HOPS_ALLOWED == nhops)
+  {
+    /* At limit, we're out of here! */
+    finish_cmc_handling (cmc);
+    return;
+  }
+
+  /* Forward to initiator, if path non-trivial and possible */
+  bi_history = (bi_history << 1) | (bi_hop ? 1 : 0);
+  did_initiator = GNUNET_NO;
+  if ( (1 < nhops) &&
+       (GNUNET_YES ==
+        GNUNET_CONTAINER_multipeermap_contains (neighbours,
+                                                &dvl->initiator)) )
+  {
+    /* send back to origin! */
+    forward_dv_learn (&dvl->initiator,
+                      dvl,
+                      bi_history,
+                      nhops,
+                      hops,
+                      in_time);
+    did_initiator = GNUNET_YES;
+  }
+  /* We forward under two conditions: either we still learned something
+     ourselves (do_fwd), or the path was darn short and thus the initiator is
+     likely to still be very interested in this (and we did NOT already
+     send it back to the initiator) */
+  if ( (do_fwd) ||
+       ( (nhops < MIN_DV_PATH_LENGTH_FOR_INITIATOR) &&
+         (GNUNET_NO == did_initiator) ) )
+  {
+    /* FIXME: loop over all neighbours, pick those with low
+       queues AND that are not yet on the path; possibly
+       adapt threshold to nhops! */
+#if FIXME
+    forward_dv_learn (NULL, // fill in peer from iterator here!
+                      dvl,
+                      bi_history,
+                      nhops,
+                      hops,
+                      in_time);
+#endif
+  }
 }
 
 

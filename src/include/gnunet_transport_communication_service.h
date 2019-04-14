@@ -83,6 +83,9 @@ struct GNUNET_TRANSPORT_CommunicatorHandle;
 
 /**
  * What characteristics does this communicator have?
+ *
+ * FIXME: may want to distinguish bi-directional as well,
+ * should we define a bit for that? Needed in DV logic (handle_dv_learn)!
  */
 enum GNUNET_TRANSPORT_CommunicatorCharacteristics {
 

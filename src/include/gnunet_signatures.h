@@ -230,6 +230,17 @@ extern "C"
  */
 #define GNUNET_SIGNATURE_PURPOSE_TRANSPORT_CHALLENGE 35
 
+/**
+ * Signature by a peer affirming that it is on a DV path.
+ */
+#define GNUNET_SIGNATURE_PURPOSE_TRANSPORT_DV_HOP 36
+
+/**
+ * Signature by a peer affirming that it originated the
+ * DV path.
+ */
+#define GNUNET_SIGNATURE_PURPOSE_TRANSPORT_DV_INITIATOR 37
+
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {
