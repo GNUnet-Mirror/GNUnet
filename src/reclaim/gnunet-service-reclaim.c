@@ -997,8 +997,8 @@ attr_delete_cont (void *cls, int32_t success, const char *emsg)
   struct AttributeDeleteHandle *adh = cls;
   adh->ns_qe = NULL;
   if (GNUNET_SYSERR == success) {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Error deleting attribute %s (%s)\n",
-                adh->claim->name, adh->label);
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Error deleting attribute %s\n",
+                adh->label);
     send_delete_response (adh, GNUNET_SYSERR);
     cleanup_adh (adh);
     return;
