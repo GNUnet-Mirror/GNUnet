@@ -37,6 +37,8 @@
  * implementation is rather different in pretty much every detail.
  * The concrete URI formats are:
  *
+ * </p>
+ *
  * <ul><li>
  *
  * First, there are URIs that identify a file.  They have the format
@@ -76,7 +78,7 @@
  *
  * The encoding for hexadecimal values is defined in the hashing.c
  * module in the gnunetutil library and discussed there.
- * <p>
+ *
  */
 #include "platform.h"
 #include "gnunet_fs_service.h"
