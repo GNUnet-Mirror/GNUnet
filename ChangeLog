@@ -1,3 +1,7 @@
+Sun Apr 14 09:54:20 2019 +0200
+  RECLAIM: Moved away from ABE to GNS encryption. Minor API changed and
+	renaming of records. Deprecated SQLite plugin in favor of namestore.
+
 Sat 06 Apr 2019 02:36:17 PM CEST
   Introducing GNUNET_memcmp() and GNUNET_is_zero() for better typing
   when comparing memory areas. -CG
