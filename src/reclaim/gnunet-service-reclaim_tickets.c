@@ -30,7 +30,8 @@
 
 struct ParallelLookup;
 
-struct RECLAIM_TICKETS_ConsumeHandle {
+struct RECLAIM_TICKETS_ConsumeHandle
+{
   /**
    * Ticket
    */
@@ -90,7 +91,8 @@ struct RECLAIM_TICKETS_ConsumeHandle {
 /**
  * Handle for a parallel GNS lookup job
  */
-struct ParallelLookup {
+struct ParallelLookup
+{
   /* DLL */
   struct ParallelLookup *next;
 
@@ -116,7 +118,8 @@ struct ParallelLookup {
 /**
  * A reference to a ticket stored in GNS
  */
-struct TicketReference {
+struct TicketReference
+{
   /**
    * DLL
    */
@@ -142,7 +145,8 @@ struct TicketReference {
 /**
  * Ticket issue request handle
  */
-struct TicketIssueHandle {
+struct TicketIssueHandle
+{
   /**
    * Attributes to issue
    */
@@ -177,7 +181,8 @@ struct TicketIssueHandle {
 /**
  * Ticket iterator
  */
-struct RECLAIM_TICKETS_Iterator {
+struct RECLAIM_TICKETS_Iterator
+{
   /**
    * Namestore queue entry
    */
@@ -195,7 +200,8 @@ struct RECLAIM_TICKETS_Iterator {
 };
 
 
-struct RevokedAttributeEntry {
+struct RevokedAttributeEntry
+{
   /**
    * DLL
    */
@@ -218,7 +224,8 @@ struct RevokedAttributeEntry {
 };
 
 
-struct TicketRecordsEntry {
+struct TicketRecordsEntry
+{
   /**
    * DLL
    */
@@ -253,7 +260,8 @@ struct TicketRecordsEntry {
 /**
  * Ticket revocation request handle
  */
-struct RECLAIM_TICKETS_RevokeHandle {
+struct RECLAIM_TICKETS_RevokeHandle
+{
   /**
    * Issuer Key
    */
@@ -376,7 +384,6 @@ del_attr_finished (void *cls, int32_t success, const char *emsg)
     cleanup_rvk (rvk);
     return;
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Continuing\n");
   rvk->move_attr = rvk->move_attr->next;
   GNUNET_SCHEDULER_add_now (&move_attrs_cont, rvk);
 }
@@ -395,7 +402,7 @@ move_attr_finished (void *cls, int32_t success, const char *emsg)
   }
   label = GNUNET_STRINGS_data_to_string_alloc (&rvk->move_attr->old_id,
                                                sizeof (uint64_t));
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Removing attribute %s\n", label);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Removing attribute %s\n", label);
   rvk->ns_qe = GNUNET_NAMESTORE_records_store (nsh, &rvk->identity, label, 0,
                                                NULL, &del_attr_finished, rvk);
 }
@@ -425,7 +432,7 @@ rvk_move_attr_cb (void *cls, const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone,
       GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_STRONG, UINT64_MAX);
   new_label = GNUNET_STRINGS_data_to_string_alloc (&rvk->move_attr->new_id,
                                                    sizeof (uint64_t));
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Adding attribute %s\n", new_label);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Adding attribute %s\n", new_label);
   rvk->ns_qe = GNUNET_NAMESTORE_records_store (nsh, &rvk->identity, new_label,
                                                1, rd, &move_attr_finished, rvk);
   GNUNET_free (new_label);
@@ -488,7 +495,7 @@ process_tickets (void *cls)
   struct TicketRecordsEntry *le;
   struct RevokedAttributeEntry *ae;
   if (NULL == rvk->tickets_to_update_head) {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Finished updatding tickets, success\n");
     rvk->cb (rvk->cb_cls, GNUNET_OK);
     cleanup_rvk (rvk);
@@ -557,7 +564,7 @@ move_attrs (struct RECLAIM_TICKETS_RevokeHandle *rvk)
   char *label;
 
   if (NULL == rvk->move_attr) {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Finished moving attributes\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Finished moving attributes\n");
     rvk->ns_it = GNUNET_NAMESTORE_zone_iteration_start (
         nsh, &rvk->identity, &rvk_ns_iter_err, rvk, &rvk_ticket_update, rvk,
         &rvk_ticket_update_finished, rvk);
@@ -565,7 +572,7 @@ move_attrs (struct RECLAIM_TICKETS_RevokeHandle *rvk)
   }
   label = GNUNET_STRINGS_data_to_string_alloc (&rvk->move_attr->old_id,
                                                sizeof (uint64_t));
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Moving attribute %s\n", label);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Moving attribute %s\n", label);
 
   rvk->ns_qe = GNUNET_NAMESTORE_records_lookup (
       nsh, &rvk->identity, label, &rvk_ns_err, rvk, &rvk_move_attr_cb, rvk);
@@ -771,7 +778,7 @@ lookup_authz_cb (void *cls, uint32_t rd_count,
 
   for (int i = 0; i < rd_count; i++) {
     lbl = GNUNET_STRINGS_data_to_string_alloc (rd[i].data, rd[i].data_size);
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Attribute ref found %s\n", lbl);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Attribute ref found %s\n", lbl);
     parallel_lookup = GNUNET_new (struct ParallelLookup);
     parallel_lookup->handle = cth;
     parallel_lookup->label = lbl;
@@ -806,7 +813,7 @@ RECLAIM_TICKETS_consume (const struct GNUNET_CRYPTO_EcdsaPrivateKey *id,
   cth->cb_cls = cb_cls;
   label =
       GNUNET_STRINGS_data_to_string_alloc (&cth->ticket.rnd, sizeof (uint64_t));
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Looking for AuthZ info under %s\n",
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Looking for AuthZ info under %s\n",
               label);
   cth->lookup_start_time = GNUNET_TIME_absolute_get ();
   cth->lookup_request = GNUNET_GNS_lookup (
