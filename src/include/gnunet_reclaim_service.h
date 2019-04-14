@@ -11,7 +11,7 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -31,43 +31,47 @@
 #define GNUNET_RECLAIM_SERVICE_H
 
 #ifdef __cplusplus
-extern "C"
-{
-#if 0                           /* keep Emacsens' auto-indent happy */
+extern "C" {
+#if 0 /* keep Emacsens' auto-indent happy */
 }
 #endif
 #endif
 
-#include "gnunet_util_lib.h"
 #include "gnunet_reclaim_attribute_lib.h"
+#include "gnunet_util_lib.h"
 
 /**
- * Version number of GNUnet Identity Provider API.
+ * Version number of the re:claimID API.
  */
 #define GNUNET_RECLAIM_VERSION 0x00000000
 
 /**
- * Handle to access the identity service.
+ * Opaque handle to access the service.
  */
 struct GNUNET_RECLAIM_Handle;
 
-/**
- * Handle for a token.
- */
-struct GNUNET_RECLAIM_Token;
 
 /**
- * The ticket
+ * Opaque handle for an operation at the re:claimID service.
+ */
+struct GNUNET_RECLAIM_Operation;
+
+
+/**
+ * The an authorization ticket. This ticket is meant to be transferred
+ * out of band the a relying party.
+ * The contents of a ticket must be protected and should be treated as a
+ * SHARED SECRET between user and relying party.
  */
 struct GNUNET_RECLAIM_Ticket
 {
   /**
-   * The ticket issuer
+   * The ticket issuer (= the user)
    */
   struct GNUNET_CRYPTO_EcdsaPublicKey identity;
 
   /**
-   * The ticket audience
+   * The ticket audience (= relying party)
    */
   struct GNUNET_CRYPTO_EcdsaPublicKey audience;
 
@@ -77,74 +81,77 @@ struct GNUNET_RECLAIM_Ticket
   uint64_t rnd;
 };
 
-/**
- * Handle for an operation with the identity provider service.
- */
-struct GNUNET_RECLAIM_Operation;
-
 
 /**
- * Connect to the identity provider service.
+ * Method called when a token has been issued.
+ * On success returns a ticket that can be given to the relying party to retrive
+ * the token
  *
- * @param cfg Configuration to contact the identity provider service.
- * @return handle to communicate with identity provider service
+ * @param cls closure
+ * @param ticket the ticket
  */
-struct GNUNET_RECLAIM_Handle *
-GNUNET_RECLAIM_connect (const struct GNUNET_CONFIGURATION_Handle *cfg);
+typedef void (*GNUNET_RECLAIM_TicketCallback) (
+    void *cls, const struct GNUNET_RECLAIM_Ticket *ticket);
+
 
 /**
  * Continuation called to notify client about result of the
  * operation.
  *
- * @param cls closure
- * @param success #GNUNET_SYSERR on failure (including timeout/queue drop/failure to validate)
- *                #GNUNET_NO if content was already there or not found
- *                #GNUNET_YES (or other positive value) on success
+ * @param cls The callback closure
+ * @param success #GNUNET_SYSERR on failure
  * @param emsg NULL on success, otherwise an error message
  */
-typedef void
-(*GNUNET_RECLAIM_ContinuationWithStatus) (void *cls,
-                                            int32_t success,
-                                            const char *emsg);
+typedef void (*GNUNET_RECLAIM_ContinuationWithStatus) (void *cls,
+                                                       int32_t success,
+                                                       const char *emsg);
+
+
+/**
+ * Callback used to notify the client of attribute results.
+ *
+ * @param cls The callback closure
+ * @param identity The identity authoritative over the attributes
+ * @param attr The attribute
+ */
+typedef void (*GNUNET_RECLAIM_AttributeResult) (
+    void *cls, const struct GNUNET_CRYPTO_EcdsaPublicKey *identity,
+    const struct GNUNET_RECLAIM_ATTRIBUTE_Claim *attr);
+
+
+/**
+ * Connect to the re:claimID service.
+ *
+ * @param cfg Configuration to contact the re:claimID service.
+ * @return handle to communicate with the service
+ */
+struct GNUNET_RECLAIM_Handle *
+GNUNET_RECLAIM_connect (const struct GNUNET_CONFIGURATION_Handle *cfg);
 
 
 /**
  * Store an attribute.  If the attribute is already present,
  * it is replaced with the new attribute.
  *
- * @param h handle to the identity provider
- * @param pkey private key of the identity
- * @param attr the attribute
- * @param exp_interval the relative expiration interval for the attribute
- * @param cont continuation to call when done
- * @param cont_cls closure for @a cont
- * @return handle to abort the request
+ * @param h handle to the re:claimID service
+ * @param pkey Private key of the identity to add an attribute to
+ * @param attr The attribute
+ * @param exp_interval The relative expiration interval for the attribute
+ * @param cont Continuation to call when done
+ * @param cont_cls Closure for @a cont
+ * @return handle Used to to abort the request
  */
 struct GNUNET_RECLAIM_Operation *
-GNUNET_RECLAIM_attribute_store (struct GNUNET_RECLAIM_Handle *h,
-                                          const struct GNUNET_CRYPTO_EcdsaPrivateKey *pkey,
-                                          const struct GNUNET_RECLAIM_ATTRIBUTE_Claim *attr,
-                                          const struct GNUNET_TIME_Relative *exp_interval,
-                                          GNUNET_RECLAIM_ContinuationWithStatus cont,
-                                          void *cont_cls);
+GNUNET_RECLAIM_attribute_store (
+    struct GNUNET_RECLAIM_Handle *h,
+    const struct GNUNET_CRYPTO_EcdsaPrivateKey *pkey,
+    const struct GNUNET_RECLAIM_ATTRIBUTE_Claim *attr,
+    const struct GNUNET_TIME_Relative *exp_interval,
+    GNUNET_RECLAIM_ContinuationWithStatus cont, void *cont_cls);
 
 
 /**
- * Process an attribute that was stored in the idp.
- *
- * @param cls closure
- * @param identity the identity
- * @param attr the attribute
- */
-typedef void
-(*GNUNET_RECLAIM_AttributeResult) (void *cls,
-                                   const struct GNUNET_CRYPTO_EcdsaPublicKey *identity,
-                                   const struct GNUNET_RECLAIM_ATTRIBUTE_Claim *attr);
-
-
-
-/**
- * List all attributes for a local identity. 
+ * List all attributes for a local identity.
  * This MUST lock the `struct GNUNET_RECLAIM_Handle`
  * for any other calls than #GNUNET_RECLAIM_get_attributes_next() and
  * #GNUNET_RECLAIM_get_attributes_stop. @a proc will be called once
@@ -155,87 +162,76 @@ typedef void
  * On normal completion, @a finish_cb proc will be
  * invoked.
  *
- * @param h handle to the idp
- * @param identity identity to access
- * @param error_cb function to call on error (i.e. disconnect),
+ * @param h Handle to the re:claimID service
+ * @param identity Identity to iterate over
+ * @param error_cb Function to call on error (i.e. disconnect),
  *        the handle is afterwards invalid
- * @param error_cb_cls closure for @a error_cb
- * @param proc function to call on each attribute; it
- *        will be called repeatedly with a value (if available)
- * @param proc_cls closure for @a proc
- * @param finish_cb function to call on completion
+ * @param error_cb_cls Closure for @a error_cb
+ * @param proc Function to call on each attribute
+ * @param proc_cls Closure for @a proc
+ * @param finish_cb Function to call on completion
  *        the handle is afterwards invalid
- * @param finish_cb_cls closure for @a finish_cb
- * @return an iterator handle to use for iteration
+ * @param finish_cb_cls Closure for @a finish_cb
+ * @return an iterator Handle to use for iteration
  */
 struct GNUNET_RECLAIM_AttributeIterator *
-GNUNET_RECLAIM_get_attributes_start (struct GNUNET_RECLAIM_Handle *h,
-                                               const struct GNUNET_CRYPTO_EcdsaPrivateKey *identity,
-                                               GNUNET_SCHEDULER_TaskCallback error_cb,
-                                               void *error_cb_cls,
-                                               GNUNET_RECLAIM_AttributeResult proc,
-                                               void *proc_cls,
-                                               GNUNET_SCHEDULER_TaskCallback finish_cb,
-                                               void *finish_cb_cls);
+GNUNET_RECLAIM_get_attributes_start (
+    struct GNUNET_RECLAIM_Handle *h,
+    const struct GNUNET_CRYPTO_EcdsaPrivateKey *identity,
+    GNUNET_SCHEDULER_TaskCallback error_cb, void *error_cb_cls,
+    GNUNET_RECLAIM_AttributeResult proc, void *proc_cls,
+    GNUNET_SCHEDULER_TaskCallback finish_cb, void *finish_cb_cls);
 
 
 /**
  * Calls the record processor specified in #GNUNET_RECLAIM_get_attributes_start
  * for the next record.
  *
- * @param it the iterator
+ * @param it The iterator
  */
 void
-GNUNET_RECLAIM_get_attributes_next (struct GNUNET_RECLAIM_AttributeIterator *it);
+GNUNET_RECLAIM_get_attributes_next (
+    struct GNUNET_RECLAIM_AttributeIterator *it);
 
 
 /**
- * Stops iteration and releases the idp handle for further calls.  Must
+ * Stops iteration and releases the handle for further calls. Must
  * be called on any iteration that has not yet completed prior to calling
  * #GNUNET_RECLAIM_disconnect.
  *
  * @param it the iterator
  */
 void
-GNUNET_RECLAIM_get_attributes_stop (struct GNUNET_RECLAIM_AttributeIterator *it);
+GNUNET_RECLAIM_get_attributes_stop (
+    struct GNUNET_RECLAIM_AttributeIterator *it);
 
 
 /**
- * Method called when a token has been issued.
- * On success returns a ticket that can be given to the audience to retrive the
- * token
- *
- * @param cls closure
- * @param ticket the ticket
- */
-typedef void
-(*GNUNET_RECLAIM_TicketCallback)(void *cls,
-                            const struct GNUNET_RECLAIM_Ticket *ticket);
-
-/**
- * Issues a ticket to another identity. The identity may use
+ * Issues a ticket to a relying party. The identity may use
  * GNUNET_RECLAIM_ticket_consume to consume the ticket
- * and retrieve the attributes specified in the AttributeList.
+ * and retrieve the attributes specified in the attribute list.
  *
  * @param h the identity provider to use
- * @param iss the issuing identity
- * @param rp the subject of the ticket (the relying party)
+ * @param iss the issuing identity (= the user)
+ * @param rp the subject of the ticket (= the relying party)
  * @param attrs the attributes that the relying party is given access to
  * @param cb the callback
  * @param cb_cls the callback closure
  * @return handle to abort the operation
  */
 struct GNUNET_RECLAIM_Operation *
-GNUNET_RECLAIM_ticket_issue (struct GNUNET_RECLAIM_Handle *h,
-                                       const struct GNUNET_CRYPTO_EcdsaPrivateKey *iss,
-                                       const struct GNUNET_CRYPTO_EcdsaPublicKey *rp,
-                                       const struct GNUNET_RECLAIM_ATTRIBUTE_ClaimList *attrs,
-                                       GNUNET_RECLAIM_TicketCallback cb,
-                                       void *cb_cls);
+GNUNET_RECLAIM_ticket_issue (
+    struct GNUNET_RECLAIM_Handle *h,
+    const struct GNUNET_CRYPTO_EcdsaPrivateKey *iss,
+    const struct GNUNET_CRYPTO_EcdsaPublicKey *rp,
+    const struct GNUNET_RECLAIM_ATTRIBUTE_ClaimList *attrs,
+    GNUNET_RECLAIM_TicketCallback cb, void *cb_cls);
 
 /**
  * Revoked an issued ticket. The relying party will be unable to retrieve
- * updated attributes.
+ * attributes. Other issued tickets remain unaffected.
+ * This includes tickets issued to other relying parties as well as to
+ * other tickets issued to the audience specified in this ticket.
  *
  * @param h the identity provider to use
  * @param identity the issuing identity
@@ -245,31 +241,31 @@ GNUNET_RECLAIM_ticket_issue (struct GNUNET_RECLAIM_Handle *h,
  * @return handle to abort the operation
  */
 struct GNUNET_RECLAIM_Operation *
-GNUNET_RECLAIM_ticket_revoke (struct GNUNET_RECLAIM_Handle *h,
-                                        const struct GNUNET_CRYPTO_EcdsaPrivateKey *identity,
-                                        const struct GNUNET_RECLAIM_Ticket *ticket,
-                                        GNUNET_RECLAIM_ContinuationWithStatus cb,
-                                        void *cb_cls);
-
+GNUNET_RECLAIM_ticket_revoke (
+    struct GNUNET_RECLAIM_Handle *h,
+    const struct GNUNET_CRYPTO_EcdsaPrivateKey *identity,
+    const struct GNUNET_RECLAIM_Ticket *ticket,
+    GNUNET_RECLAIM_ContinuationWithStatus cb, void *cb_cls);
 
 
 /**
- * Consumes an issued ticket. The ticket is persisted
- * and used to retrieve identity information from the issuer
+ * Consumes an issued ticket. The ticket is used to retrieve identity
+ * information from the issuer
  *
  * @param h the identity provider to use
- * @param identity the identity that is the subject of the issued ticket (the audience)
+ * @param identity the identity that is the subject of the issued ticket (the
+ * relying party)
  * @param ticket the issued ticket to consume
  * @param cb the callback to call
  * @param cb_cls the callback closure
  * @return handle to abort the operation
  */
 struct GNUNET_RECLAIM_Operation *
-GNUNET_RECLAIM_ticket_consume (struct GNUNET_RECLAIM_Handle *h,
-                                         const struct GNUNET_CRYPTO_EcdsaPrivateKey *identity,
-                                         const struct GNUNET_RECLAIM_Ticket *ticket,
-                                         GNUNET_RECLAIM_AttributeResult cb,
-                                         void *cb_cls);
+GNUNET_RECLAIM_ticket_consume (
+    struct GNUNET_RECLAIM_Handle *h,
+    const struct GNUNET_CRYPTO_EcdsaPrivateKey *identity,
+    const struct GNUNET_RECLAIM_Ticket *ticket,
+    GNUNET_RECLAIM_AttributeResult cb, void *cb_cls);
 
 /**
  * Lists all tickets that have been issued to remote
@@ -289,45 +285,17 @@ GNUNET_RECLAIM_ticket_consume (struct GNUNET_RECLAIM_Handle *h,
  * @return an iterator handle to use for iteration
  */
 struct GNUNET_RECLAIM_TicketIterator *
-GNUNET_RECLAIM_ticket_iteration_start (struct GNUNET_RECLAIM_Handle *h,
-                                                 const struct GNUNET_CRYPTO_EcdsaPrivateKey *identity,
-                                                 GNUNET_SCHEDULER_TaskCallback error_cb,
-                                                 void *error_cb_cls,
-                                                 GNUNET_RECLAIM_TicketCallback proc,
-                                                 void *proc_cls,
-                                                 GNUNET_SCHEDULER_TaskCallback finish_cb,
-                                                 void *finish_cb_cls);
+GNUNET_RECLAIM_ticket_iteration_start (
+    struct GNUNET_RECLAIM_Handle *h,
+    const struct GNUNET_CRYPTO_EcdsaPrivateKey *identity,
+    GNUNET_SCHEDULER_TaskCallback error_cb, void *error_cb_cls,
+    GNUNET_RECLAIM_TicketCallback proc, void *proc_cls,
+    GNUNET_SCHEDULER_TaskCallback finish_cb, void *finish_cb_cls);
+
 
 /**
- * Lists all tickets that have been issued to remote
- * identites (relying parties)
- *
- * @param h the identity provider to use
- * @param identity the issuing identity
- * @param error_cb function to call on error (i.e. disconnect),
- *        the handle is afterwards invalid
- * @param error_cb_cls closure for @a error_cb
- * @param proc function to call on each ticket; it
- *        will be called repeatedly with a value (if available)
- * @param proc_cls closure for @a proc
- * @param finish_cb function to call on completion
- *        the handle is afterwards invalid
- * @param finish_cb_cls closure for @a finish_cb
- * @return an iterator handle to use for iteration
- */
-struct GNUNET_RECLAIM_TicketIterator *
-GNUNET_RECLAIM_ticket_iteration_start_rp (struct GNUNET_RECLAIM_Handle *h,
-                                                    const struct GNUNET_CRYPTO_EcdsaPublicKey *identity,
-                                                    GNUNET_SCHEDULER_TaskCallback error_cb,
-                                                    void *error_cb_cls,
-                                                    GNUNET_RECLAIM_TicketCallback proc,
-                                                    void *proc_cls,
-                                                    GNUNET_SCHEDULER_TaskCallback finish_cb,
-                                                    void *finish_cb_cls);
-
-/**
- * Calls the record processor specified in #GNUNET_RECLAIM_ticket_iteration_start
- * for the next record.
+ * Calls the ticket processor specified in
+ * #GNUNET_RECLAIM_ticket_iteration_start for the next record.
  *
  * @param it the iterator
  */
@@ -335,7 +303,7 @@ void
 GNUNET_RECLAIM_ticket_iteration_next (struct GNUNET_RECLAIM_TicketIterator *it);
 
 /**
- * Stops iteration and releases the idp handle for further calls.  Must
+ * Stops iteration and releases the handle for further calls.  Must
  * be called on any iteration that has not yet completed prior to calling
  * #GNUNET_RECLAIM_disconnect.
  *
@@ -364,7 +332,7 @@ GNUNET_RECLAIM_disconnect (struct GNUNET_RECLAIM_Handle *h);
 void
 GNUNET_RECLAIM_cancel (struct GNUNET_RECLAIM_Operation *op);
 
-#if 0                           /* keep Emacsens' auto-indent happy */
+#if 0 /* keep Emacsens' auto-indent happy */
 {
 #endif
 #ifdef __cplusplus

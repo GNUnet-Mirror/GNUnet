@@ -12,9 +12,6 @@ if USE_COVERAGE
   XLIB = -lgcov
 endif
 
-if HAVE_SQLITE
-SQLITE_PLUGIN = libgnunet_plugin_reclaim_sqlite.la
-endif
 
 if HAVE_MHD
 if HAVE_JSON
@@ -41,7 +38,6 @@ lib_LTLIBRARIES = \
   libgnunetreclaim.la
 plugin_LTLIBRARIES = \
   libgnunet_plugin_gnsrecord_reclaim.la \
-  $(SQLITE_PLUGIN) \
   $(REST_PLUGIN)
 
 bin_PROGRAMS = \
@@ -92,19 +88,6 @@ libgnunet_plugin_gnsrecord_reclaim_la_LIBADD = \
   $(LTLIBINTL)
 libgnunet_plugin_gnsrecord_reclaim_la_LDFLAGS = \
  $(GN_PLUGIN_LDFLAGS)
-
-libgnunet_plugin_reclaim_sqlite_la_SOURCES = \
-  plugin_reclaim_sqlite.c
-libgnunet_plugin_reclaim_sqlite_la_LIBADD = \
-  libgnunetreclaim.la  \
-  $(top_builddir)/src/sq/libgnunetsq.la \
-  $(top_builddir)/src/statistics/libgnunetstatistics.la \
-  $(top_builddir)/src/reclaim-attribute/libgnunetreclaimattribute.la \
-  $(top_builddir)/src/util/libgnunetutil.la $(XLIBS) -lsqlite3 \
-  $(LTLIBINTL)
-libgnunet_plugin_reclaim_sqlite_la_LDFLAGS = \
- $(GN_PLUGIN_LDFLAGS)
-
 
 
 gnunet_service_reclaim_SOURCES = \
