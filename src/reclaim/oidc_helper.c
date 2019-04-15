@@ -11,7 +11,7 @@
       WITHOUT ANY WARRANTY; without even the implied warranty of
       MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
       Affero General Public License for more details.
-     
+
       You should have received a copy of the GNU Affero General Public License
       along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -24,16 +24,17 @@
  * @author Martin Schanzenbach
  */
 #include "platform.h"
-#include "gnunet_util_lib.h"
-#include "gnunet_signatures.h"
-#include "gnunet_reclaim_service.h"
-#include "gnunet_reclaim_attribute_lib.h"
-#include <jansson.h>
 #include <inttypes.h>
-#include "oidc_helper.h"
+#include <jansson.h>
 
-static char*
-create_jwt_header(void)
+#include "gnunet_util_lib.h"
+
+#include "gnunet_reclaim_attribute_lib.h"
+#include "gnunet_reclaim_service.h"
+#include "gnunet_signatures.h"
+#include "oidc_helper.h"
+static char *
+create_jwt_header (void)
 {
   json_t *root;
   char *json_str;
@@ -42,29 +43,30 @@ create_jwt_header(void)
   json_object_set_new (root, JWT_ALG, json_string (JWT_ALG_VALUE));
   json_object_set_new (root, JWT_TYP, json_string (JWT_TYP_VALUE));
 
-  json_str = json_dumps (root, JSON_INDENT(0) | JSON_COMPACT);
+  json_str = json_dumps (root, JSON_INDENT (0) | JSON_COMPACT);
   json_decref (root);
   return json_str;
 }
 
 static void
-replace_char(char* str, char find, char replace){
-  char *current_pos = strchr(str,find);
-  while (current_pos){
+replace_char (char *str, char find, char replace)
+{
+  char *current_pos = strchr (str, find);
+  while (current_pos) {
     *current_pos = replace;
-    current_pos = strchr(current_pos,find);
+    current_pos = strchr (current_pos, find);
   }
 }
 
-//RFC4648
+// RFC4648
 static void
-fix_base64(char* str) {
-  //Replace + with -
+fix_base64 (char *str)
+{
+  // Replace + with -
   replace_char (str, '+', '-');
 
-  //Replace / with _
+  // Replace / with _
   replace_char (str, '/', '_');
-
 }
 
 /**
@@ -77,90 +79,78 @@ fix_base64(char* str) {
  * @param secret_key the key used to sign the JWT
  * @return a new base64-encoded JWT string.
  */
-char*
+char *
 OIDC_id_token_new (const struct GNUNET_CRYPTO_EcdsaPublicKey *aud_key,
                    const struct GNUNET_CRYPTO_EcdsaPublicKey *sub_key,
                    const struct GNUNET_RECLAIM_ATTRIBUTE_ClaimList *attrs,
                    const struct GNUNET_TIME_Relative *expiration_time,
-                   const char *nonce,
-                   const char *secret_key)
+                   const char *nonce, const char *secret_key)
 {
   struct GNUNET_RECLAIM_ATTRIBUTE_ClaimListEntry *le;
   struct GNUNET_HashCode signature;
   struct GNUNET_TIME_Absolute exp_time;
   struct GNUNET_TIME_Absolute time_now;
-  char* audience;
-  char* subject;
-  char* header;
-  char* body_str;
-  char* result;
-  char* header_base64;
-  char* body_base64;
-  char* signature_target;
-  char* signature_base64;
-  char* attr_val_str;
-  json_t* body;
+  char *audience;
+  char *subject;
+  char *header;
+  char *body_str;
+  char *result;
+  char *header_base64;
+  char *body_base64;
+  char *signature_target;
+  char *signature_base64;
+  char *attr_val_str;
+  json_t *body;
 
-  //iat REQUIRED time now
-  time_now = GNUNET_TIME_absolute_get();
-  //exp REQUIRED time expired from config
+  // iat REQUIRED time now
+  time_now = GNUNET_TIME_absolute_get ();
+  // exp REQUIRED time expired from config
   exp_time = GNUNET_TIME_absolute_add (time_now, *expiration_time);
-  //auth_time only if max_age
-  //nonce only if nonce
+  // auth_time only if max_age
+  // nonce only if nonce
   // OPTIONAL acr,amr,azp
-  subject = GNUNET_STRINGS_data_to_string_alloc (sub_key,
-                                                 sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey));
-  audience = GNUNET_STRINGS_data_to_string_alloc (aud_key,
-                                                  sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey));
+  subject = GNUNET_STRINGS_data_to_string_alloc (
+      sub_key, sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey));
+  audience = GNUNET_STRINGS_data_to_string_alloc (
+      aud_key, sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey));
   header = create_jwt_header ();
   body = json_object ();
 
-  //iss REQUIRED case sensitive server uri with https
-  //The issuer is the local reclaim instance (e.g. https://reclaim.id/api/openid)
-  json_object_set_new (body,
-                       "iss", json_string (SERVER_ADDRESS));
-  //sub REQUIRED public key identity, not exceed 255 ASCII  length
-  json_object_set_new (body,
-                       "sub", json_string (subject));
-  //aud REQUIRED public key client_id must be there
-  json_object_set_new (body,
-                       "aud", json_string (audience));
-  //iat
-  json_object_set_new (body,
-                       "iat", json_integer (time_now.abs_value_us / (1000*1000)));
-  //exp
-  json_object_set_new (body,
-                       "exp", json_integer (exp_time.abs_value_us / (1000*1000)));
-  //nbf
-  json_object_set_new (body,
-                       "nbf", json_integer (time_now.abs_value_us / (1000*1000)));
-  //nonce
+  // iss REQUIRED case sensitive server uri with https
+  // The issuer is the local reclaim instance (e.g.
+  // https://reclaim.id/api/openid)
+  json_object_set_new (body, "iss", json_string (SERVER_ADDRESS));
+  // sub REQUIRED public key identity, not exceed 255 ASCII  length
+  json_object_set_new (body, "sub", json_string (subject));
+  // aud REQUIRED public key client_id must be there
+  json_object_set_new (body, "aud", json_string (audience));
+  // iat
+  json_object_set_new (body, "iat",
+                       json_integer (time_now.abs_value_us / (1000 * 1000)));
+  // exp
+  json_object_set_new (body, "exp",
+                       json_integer (exp_time.abs_value_us / (1000 * 1000)));
+  // nbf
+  json_object_set_new (body, "nbf",
+                       json_integer (time_now.abs_value_us / (1000 * 1000)));
+  // nonce
   if (NULL != nonce)
-    json_object_set_new (body,
-                         "nonce", json_string (nonce));
+    json_object_set_new (body, "nonce", json_string (nonce));
 
-  for (le = attrs->list_head; NULL != le; le = le->next)
-  {
-    attr_val_str = GNUNET_RECLAIM_ATTRIBUTE_value_to_string (le->claim->type,
-                                                             le->claim->data,
-                                                             le->claim->data_size);
-    json_object_set_new (body,
-                         le->claim->name,
-                         json_string (attr_val_str));
+  for (le = attrs->list_head; NULL != le; le = le->next) {
+    attr_val_str = GNUNET_RECLAIM_ATTRIBUTE_value_to_string (
+        le->claim->type, le->claim->data, le->claim->data_size);
+    json_object_set_new (body, le->claim->name, json_string (attr_val_str));
     GNUNET_free (attr_val_str);
   }
-  body_str = json_dumps (body, JSON_INDENT(0) | JSON_COMPACT);
+  body_str = json_dumps (body, JSON_INDENT (0) | JSON_COMPACT);
   json_decref (body);
 
-  GNUNET_STRINGS_base64_encode (header,
-                                strlen (header),
-                                &header_base64);
-  fix_base64(header_base64);
+  GNUNET_STRINGS_base64_encode (header, strlen (header), &header_base64);
+  fix_base64 (header_base64);
 
-  GNUNET_STRINGS_base64_encode (body_str,
-                                strlen (body_str),
-                                &body_base64);
-  fix_base64(body_base64);
+  GNUNET_STRINGS_base64_encode (body_str, strlen (body_str), &body_base64);
+  fix_base64 (body_base64);
 
   GNUNET_free (subject);
   GNUNET_free (audience);
@@ -170,14 +160,15 @@ OIDC_id_token_new (const struct GNUNET_CRYPTO_EcdsaPublicKey *aud_key,
    * standards compliant, check.
    */
   GNUNET_asprintf (&signature_target, "%s.%s", header_base64, body_base64);
-  GNUNET_CRYPTO_hmac_raw (secret_key, strlen (secret_key), signature_target, strlen (signature_target), &signature);
-  GNUNET_STRINGS_base64_encode ((const char*)&signature,
+  GNUNET_CRYPTO_hmac_raw (secret_key, strlen (secret_key), signature_target,
+                          strlen (signature_target), &signature);
+  GNUNET_STRINGS_base64_encode ((const char *)&signature,
                                 sizeof (struct GNUNET_HashCode),
                                 &signature_base64);
-  fix_base64(signature_base64);
+  fix_base64 (signature_base64);
 
-  GNUNET_asprintf (&result, "%s.%s.%s",
-                   header_base64, body_base64, signature_base64);
+  GNUNET_asprintf (&result, "%s.%s.%s", header_base64, body_base64,
+                   signature_base64);
 
   GNUNET_free (signature_target);
   GNUNET_free (header);
@@ -196,10 +187,10 @@ OIDC_id_token_new (const struct GNUNET_CRYPTO_EcdsaPublicKey *aud_key,
  * @param nonce the nonce to include in the code
  * @return a new authorization code (caller must free)
  */
-char*
+char *
 OIDC_build_authz_code (const struct GNUNET_CRYPTO_EcdsaPrivateKey *issuer,
                        const struct GNUNET_RECLAIM_Ticket *ticket,
-                       const char* nonce)
+                       const char *nonce)
 {
   char *ticket_str;
   json_t *code_json;
@@ -214,50 +205,38 @@ OIDC_build_authz_code (const struct GNUNET_CRYPTO_EcdsaPrivateKey *issuer,
   if (NULL != nonce)
     signature_payload_len += strlen (nonce);
 
-  signature_payload = GNUNET_malloc (sizeof (struct GNUNET_CRYPTO_EccSignaturePurpose) + signature_payload_len);
+  signature_payload =
+      GNUNET_malloc (sizeof (struct GNUNET_CRYPTO_EccSignaturePurpose) +
+                     signature_payload_len);
   purpose = (struct GNUNET_CRYPTO_EccSignaturePurpose *)signature_payload;
-  purpose->size = htonl (sizeof (struct GNUNET_CRYPTO_EccSignaturePurpose) + signature_payload_len);
+  purpose->size = htonl (sizeof (struct GNUNET_CRYPTO_EccSignaturePurpose) +
+                         signature_payload_len);
   purpose->purpose = htonl (GNUNET_SIGNATURE_PURPOSE_RECLAIM_CODE_SIGN);
-  memcpy (&purpose[1],
-          ticket,
-          sizeof (struct GNUNET_RECLAIM_Ticket));
+  memcpy (&purpose[1], ticket, sizeof (struct GNUNET_RECLAIM_Ticket));
   if (NULL != nonce)
-    memcpy (((char*)&purpose[1]) + sizeof (struct GNUNET_RECLAIM_Ticket),
-            nonce,
-            strlen (nonce));
-  if (GNUNET_SYSERR == GNUNET_CRYPTO_ecdsa_sign (issuer,
-                                                 purpose,
-                                                 &signature))
-  {
+    memcpy (((char *)&purpose[1]) + sizeof (struct GNUNET_RECLAIM_Ticket),
+            nonce, strlen (nonce));
+  if (GNUNET_SYSERR == GNUNET_CRYPTO_ecdsa_sign (issuer, purpose, &signature)) {
     GNUNET_free (signature_payload);
     return NULL;
   }
-  signature_str = GNUNET_STRINGS_data_to_string_alloc (&signature,
-                                                       sizeof (signature));
-  ticket_str = GNUNET_STRINGS_data_to_string_alloc (ticket,
-                                                    sizeof (struct GNUNET_RECLAIM_Ticket));
+  signature_str =
+      GNUNET_STRINGS_data_to_string_alloc (&signature, sizeof (signature));
+  ticket_str = GNUNET_STRINGS_data_to_string_alloc (
+      ticket, sizeof (struct GNUNET_RECLAIM_Ticket));
 
   code_json = json_object ();
-  json_object_set_new (code_json,
-                       "ticket",
-                       json_string (ticket_str));
+  json_object_set_new (code_json, "ticket", json_string (ticket_str));
   if (NULL != nonce)
-    json_object_set_new (code_json,
-                         "nonce",
-                         json_string (nonce));
-  json_object_set_new (code_json,
-                       "signature",
-                       json_string (signature_str));
-  authz_code = json_dumps (code_json,
-                           JSON_INDENT(0) | JSON_COMPACT);
+    json_object_set_new (code_json, "nonce", json_string (nonce));
+  json_object_set_new (code_json, "signature", json_string (signature_str));
+  authz_code = json_dumps (code_json, JSON_INDENT (0) | JSON_COMPACT);
   GNUNET_free (signature_payload);
   GNUNET_free (signature_str);
   GNUNET_free (ticket_str);
   json_decref (code_json);
   return authz_code;
 }
-
-
 
 
 /**
@@ -273,8 +252,7 @@ OIDC_build_authz_code (const struct GNUNET_CRYPTO_EcdsaPrivateKey *issuer,
  */
 int
 OIDC_parse_authz_code (const struct GNUNET_CRYPTO_EcdsaPublicKey *audience,
-                       const char* code,
-                       struct GNUNET_RECLAIM_Ticket **ticket,
+                       const char *code, struct GNUNET_RECLAIM_Ticket **ticket,
                        char **nonce)
 {
   json_error_t error;
@@ -290,11 +268,9 @@ OIDC_parse_authz_code (const struct GNUNET_CRYPTO_EcdsaPublicKey *audience,
   struct GNUNET_CRYPTO_EcdsaSignature signature;
   size_t signature_payload_len;
 
-  code_output = NULL; 
-  GNUNET_STRINGS_base64_decode (code,
-                                strlen(code),
-                                (void**)&code_output);
-  code_json = json_loads (code_output, 0 , &error);
+  code_output = NULL;
+  GNUNET_STRINGS_base64_decode (code, strlen (code), (void **)&code_output);
+  code_json = json_loads (code_output, 0, &error);
   GNUNET_free (code_output);
   ticket_json = json_object_get (code_json, "ticket");
   nonce_json = json_object_get (code_json, "nonce");
@@ -303,8 +279,7 @@ OIDC_parse_authz_code (const struct GNUNET_CRYPTO_EcdsaPublicKey *audience,
   *nonce = NULL;
 
   if ((NULL == ticket_json || !json_is_string (ticket_json)) ||
-      (NULL == signature_json || !json_is_string (signature_json)))
-  {
+      (NULL == signature_json || !json_is_string (signature_json))) {
     json_decref (code_json);
     return GNUNET_SYSERR;
   }
@@ -318,38 +293,29 @@ OIDC_parse_authz_code (const struct GNUNET_CRYPTO_EcdsaPublicKey *audience,
     signature_payload_len += strlen (nonce_str);
   purpose = GNUNET_malloc (sizeof (struct GNUNET_CRYPTO_EccSignaturePurpose) +
                            signature_payload_len);
-  purpose->size = htonl (sizeof (struct GNUNET_CRYPTO_EccSignaturePurpose) + signature_payload_len);
+  purpose->size = htonl (sizeof (struct GNUNET_CRYPTO_EccSignaturePurpose) +
+                         signature_payload_len);
   purpose->purpose = htonl (GNUNET_SIGNATURE_PURPOSE_RECLAIM_CODE_SIGN);
-  if (GNUNET_OK != GNUNET_STRINGS_string_to_data (ticket_str,
-                                                  strlen (ticket_str),
-                                                  &purpose[1],
-                                                  sizeof (struct GNUNET_RECLAIM_Ticket)))
-  {
+  if (GNUNET_OK != GNUNET_STRINGS_string_to_data (
+                       ticket_str, strlen (ticket_str), &purpose[1],
+                       sizeof (struct GNUNET_RECLAIM_Ticket))) {
     GNUNET_free (purpose);
     json_decref (code_json);
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Cannot parse ticket!\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Cannot parse ticket!\n");
     return GNUNET_SYSERR;
   }
-  if (GNUNET_OK != GNUNET_STRINGS_string_to_data (signature_str,
-                                                  strlen (signature_str),
-                                                  &signature,
-                                                  sizeof (struct GNUNET_CRYPTO_EcdsaSignature)))
-  {
+  if (GNUNET_OK != GNUNET_STRINGS_string_to_data (
+                       signature_str, strlen (signature_str), &signature,
+                       sizeof (struct GNUNET_CRYPTO_EcdsaSignature))) {
     GNUNET_free (purpose);
     json_decref (code_json);
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Cannot parse signature!\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Cannot parse signature!\n");
     return GNUNET_SYSERR;
   }
   *ticket = GNUNET_new (struct GNUNET_RECLAIM_Ticket);
-  memcpy (*ticket,
-          &purpose[1],
-          sizeof (struct GNUNET_RECLAIM_Ticket));
-  if (0 != memcmp (audience,
-                   &(*ticket)->audience,
-                   sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey)))
-  {
+  memcpy (*ticket, &purpose[1], sizeof (struct GNUNET_RECLAIM_Ticket));
+  if (0 != memcmp (audience, &(*ticket)->audience,
+                   sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey))) {
     GNUNET_free (purpose);
     GNUNET_free (*ticket);
     json_decref (code_json);
@@ -357,23 +323,18 @@ OIDC_parse_authz_code (const struct GNUNET_CRYPTO_EcdsaPublicKey *audience,
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Audience in ticket does not match client!\n");
     return GNUNET_SYSERR;
-
   }
   if (NULL != nonce_str)
-    memcpy (((char*)&purpose[1]) + sizeof (struct GNUNET_RECLAIM_Ticket),
-            nonce_str,
-            strlen (nonce_str));
-  if (GNUNET_OK != GNUNET_CRYPTO_ecdsa_verify (GNUNET_SIGNATURE_PURPOSE_RECLAIM_CODE_SIGN,
-                                               purpose,
-                                               &signature,
-                                               &(*ticket)->identity))
-  {
+    memcpy (((char *)&purpose[1]) + sizeof (struct GNUNET_RECLAIM_Ticket),
+            nonce_str, strlen (nonce_str));
+  if (GNUNET_OK !=
+      GNUNET_CRYPTO_ecdsa_verify (GNUNET_SIGNATURE_PURPOSE_RECLAIM_CODE_SIGN,
+                                  purpose, &signature, &(*ticket)->identity)) {
     GNUNET_free (purpose);
     GNUNET_free (*ticket);
     json_decref (code_json);
     *ticket = NULL;
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Signature of authZ code invalid!\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Signature of authZ code invalid!\n");
     return GNUNET_SYSERR;
   }
   *nonce = GNUNET_strdup (nonce_str);
@@ -390,8 +351,7 @@ OIDC_parse_authz_code (const struct GNUNET_CRYPTO_EcdsaPublicKey *audience,
  * @param token_response where to store the response
  */
 void
-OIDC_build_token_response (const char *access_token,
-                           const char *id_token,
+OIDC_build_token_response (const char *access_token, const char *id_token,
                            const struct GNUNET_TIME_Relative *expiration_time,
                            char **token_response)
 {
@@ -402,35 +362,30 @@ OIDC_build_token_response (const char *access_token,
   GNUNET_assert (NULL != access_token);
   GNUNET_assert (NULL != id_token);
   GNUNET_assert (NULL != expiration_time);
-  json_object_set_new (root_json,
-                       "access_token",
-                       json_string (access_token));
-  json_object_set_new (root_json,
-                       "token_type",
-                       json_string ("Bearer"));
-  json_object_set_new (root_json,
-                       "expires_in",
-                       json_integer (expiration_time->rel_value_us / (1000 * 1000)));
-  json_object_set_new (root_json,
-                       "id_token",
-                       json_string (id_token));
-  *token_response = json_dumps (root_json,
-                                JSON_INDENT(0) | JSON_COMPACT);
+  json_object_set_new (root_json, "access_token", json_string (access_token));
+  json_object_set_new (root_json, "token_type", json_string ("Bearer"));
+  json_object_set_new (
+      root_json, "expires_in",
+      json_integer (expiration_time->rel_value_us / (1000 * 1000)));
+  json_object_set_new (root_json, "id_token", json_string (id_token));
+  *token_response = json_dumps (root_json, JSON_INDENT (0) | JSON_COMPACT);
   json_decref (root_json);
 }
 
 /**
  * Generate a new access token
  */
-char*
+char *
 OIDC_access_token_new ()
 {
-  char* access_token_number;
-  char* access_token;
+  char *access_token_number;
+  char *access_token;
   uint64_t random_number;
 
-  random_number = GNUNET_CRYPTO_random_u64(GNUNET_CRYPTO_QUALITY_NONCE, UINT64_MAX);
+  random_number =
+      GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_NONCE, UINT64_MAX);
   GNUNET_asprintf (&access_token_number, "%" PRIu64, random_number);
-  GNUNET_STRINGS_base64_encode(access_token_number,strlen(access_token_number),&access_token);
+  GNUNET_STRINGS_base64_encode (access_token_number,
+                                strlen (access_token_number), &access_token);
   return access_token;
 }
