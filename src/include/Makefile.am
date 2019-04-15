@@ -73,7 +73,6 @@ gnunetinclude_HEADERS = \
   gnunet_abe_lib.h \
   gnunet_reclaim_attribute_lib.h \
   gnunet_reclaim_attribute_plugin.h \
-  gnunet_reclaim_plugin.h \
   gnunet_reclaim_service.h \
   gnunet_json_lib.h \
   gnunet_load_lib.h \
