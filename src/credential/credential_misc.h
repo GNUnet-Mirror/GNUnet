@@ -11,7 +11,7 @@
       WITHOUT ANY WARRANTY; without even the implied warranty of
       MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
       Affero General Public License for more details.
-     
+
       You should have received a copy of the GNU Affero General Public License
       along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -24,12 +24,13 @@
 #ifndef CREDENTIAL_MISC_H
 #define CREDENTIAL_MISC_H
 
+#include "gnunet_credential_service.h"
 
+char *
+GNUNET_CREDENTIAL_credential_to_string (
+    const struct GNUNET_CREDENTIAL_Credential *cred);
 
-char*
-GNUNET_CREDENTIAL_credential_to_string (const struct GNUNET_CREDENTIAL_Credential *cred);
-
-struct GNUNET_CREDENTIAL_Credential*
-GNUNET_CREDENTIAL_credential_from_string (const char* str);
+struct GNUNET_CREDENTIAL_Credential *
+GNUNET_CREDENTIAL_credential_from_string (const char *str);
 
 #endif

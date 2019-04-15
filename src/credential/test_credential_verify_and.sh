@@ -17,9 +17,8 @@ rm -rf `gnunet-config -c test_credential_lookup.conf -s PATHS -o GNUNET_HOME -f`
 
 #  (1) Service.user -> GNU.project.member
 #  (2) GNU.project -> GNUnet
-#  (3) GNUnet.member -> GNUnet.developer
-#  (4) GNUnet.member -> GNUnet.user
-#  (5) GNUnet.developer -> Alice
+#  (3) GNUnet.member -> GNUnet.developer and GNUnet.user
+#  (4) GNUnet.developer -> Alice
 
 
 which timeout > /dev/null 2>&1 && DO_TIMEOUT="timeout 30"
@@ -40,14 +39,15 @@ MEMBER_ATTR="member"
 DEVELOPER_ATTR="developer"
 DEV_ATTR="developer"
 TEST_CREDENTIAL="mygnunetcreds"
-
+set -x
 # (1) A service assigns the attribute "user" to all entities that have been assigned "member" by entities that werde assigned "project" from GNU
 gnunet-namestore -p -z service -a -n $USER_ATTR -t ATTR -V "$GNU_KEY $GNU_PROJECT_ATTR.$MEMBER_ATTR" -e 5m -c test_credential_lookup.conf
 
 # (2) GNU recognized GNUnet as a GNU project and delegates the "project" attribute
 gnunet-namestore -p -z gnu -a -n $GNU_PROJECT_ATTR -t ATTR -V "$GNUNET_KEY" -e 5m -c test_credential_lookup.conf
 
-# (3+4) GNUnet assigns the attribute "member" to all entities gnunet has also assigned "developer" or "user"
+# (3+4) GNUnet assigns the attribute "member" to all entities gnunet has also
+# assigned "developer" and "user"
 gnunet-namestore -p -z gnunet -a -n $MEMBER_ATTR -t ATTR -V "$GNUNET_KEY $DEVELOPER_ATTR,$GNUNET_KEY $USER_ATTR" -e 5m -c test_credential_lookup.conf
 
 # (5) GNUnet issues Alice the credential "developer"
