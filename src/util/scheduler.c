@@ -915,6 +915,7 @@ driver_add_multiple (struct GNUNET_SCHEDULER_Task *t)
 static void
 install_parent_control_handler (void *cls)
 {
+  (void) cls;
   install_parent_control_task = NULL;
   GNUNET_OS_install_parent_control_handler (NULL);
 }
@@ -926,6 +927,7 @@ shutdown_pipe_cb (void *cls)
   char c;
   const struct GNUNET_DISK_FileHandle *pr;
 
+  (void) cls;
   shutdown_pipe_task = NULL;
   pr = GNUNET_DISK_pipe_handle (shutdown_pipe_handle,
                                 GNUNET_DISK_PIPE_END_READ);
