@@ -770,6 +770,22 @@ GNUNET_TIME_randomized_backoff(struct GNUNET_TIME_Relative rt, struct GNUNET_TIM
 
 
 /**
+ * Return a random time value between 0.5*r and 1.5*r.
+ *
+ * @param r input time for scaling
+ * @return randomized time
+ */
+struct GNUNET_TIME_Relative
+GNUNET_TIME_randomize (struct GNUNET_TIME_Relative r)
+{
+  double d = ((rand() % 1001) - 500) / 1000.0;
+
+  return relative_multiply_double (r,
+                                   d);
+}
+
+
+/**
  * Obtain the current time and make sure it is monotonically
  * increasing.  Guards against systems without an RTC or
  * clocks running backwards and other nasty surprises. Does
@@ -819,53 +835,53 @@ GNUNET_TIME_absolute_get_monotonic (const struct GNUNET_CONFIGURATION_Handle *cf
       struct GNUNET_DISK_FileHandle *fh;
 
       fh = GNUNET_DISK_file_open (filename,
-				  GNUNET_DISK_OPEN_READWRITE | GNUNET_DISK_OPEN_CREATE,
-				  GNUNET_DISK_PERM_USER_WRITE | GNUNET_DISK_PERM_GROUP_WRITE |
-				  GNUNET_DISK_PERM_USER_READ  | GNUNET_DISK_PERM_GROUP_READ);
+                                  GNUNET_DISK_OPEN_READWRITE | GNUNET_DISK_OPEN_CREATE,
+                                  GNUNET_DISK_PERM_USER_WRITE | GNUNET_DISK_PERM_GROUP_WRITE |
+                                  GNUNET_DISK_PERM_USER_READ  | GNUNET_DISK_PERM_GROUP_READ);
       if (NULL == fh)
       {
-	GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-		    _("Failed to map `%s', cannot assure monotonic time!\n"),
-		    filename);
+        GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                    _("Failed to map `%s', cannot assure monotonic time!\n"),
+                    filename);
       }
       else
       {
-	off_t size;
+        off_t size;
 
-	size = 0;
-	GNUNET_break (GNUNET_OK ==
-		      GNUNET_DISK_file_handle_size (fh,
-						    &size));
-	if (size < sizeof (*map))
-	{
-	  struct GNUNET_TIME_AbsoluteNBO o;
-
-	  o = GNUNET_TIME_absolute_hton (now);
-	  if (sizeof (o) !=
-	      GNUNET_DISK_file_write (fh,
-				      &o,
-				      sizeof (o)))
-	    size = 0;
-	  else
-	    size = sizeof (o);
-	}
-	if (size == sizeof (*map))
-	{
-	  map = GNUNET_DISK_file_map (fh,
-				      &map_handle,
-				      GNUNET_DISK_MAP_TYPE_READWRITE,
-				      sizeof (*map));
-	  if (NULL == map)
-	    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-			_("Failed to map `%s', cannot assure monotonic time!\n"),
-			filename);
-	}
-	else
-	{
-	  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-		      _("Failed to setup monotonic time file `%s', cannot assure monotonic time!\n"),
-		      filename);
-	}
+        size = 0;
+        GNUNET_break (GNUNET_OK ==
+                      GNUNET_DISK_file_handle_size (fh,
+                                                    &size));
+        if (size < (off_t) sizeof (*map))
+        {
+          struct GNUNET_TIME_AbsoluteNBO o;
+          
+          o = GNUNET_TIME_absolute_hton (now);
+          if (sizeof (o) !=
+              GNUNET_DISK_file_write (fh,
+                                      &o,
+                                      sizeof (o)))
+            size = 0;
+          else
+            size = sizeof (o);
+        }
+        if (size == sizeof (*map))
+        {
+          map = GNUNET_DISK_file_map (fh,
+                                      &map_handle,
+                                      GNUNET_DISK_MAP_TYPE_READWRITE,
+                                      sizeof (*map));
+          if (NULL == map)
+            GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                        _("Failed to map `%s', cannot assure monotonic time!\n"),
+                        filename);
+        }
+        else
+        {
+          GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                      _("Failed to setup monotonic time file `%s', cannot assure monotonic time!\n"),
+                      filename);
+        }
       }
       GNUNET_DISK_file_close (fh);
       GNUNET_free (filename);

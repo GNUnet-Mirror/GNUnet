@@ -190,6 +190,16 @@ GNUNET_TIME_randomized_backoff(struct GNUNET_TIME_Relative rt, struct GNUNET_TIM
 
 
 /**
+ * Return a random time value between 0.5*r and 1.5*r.
+ * 
+ * @param r input time for scaling
+ * @return randomized time
+ */ 
+struct GNUNET_TIME_Relative
+GNUNET_TIME_randomize(struct GNUNET_TIME_Relative r);
+
+
+/**
  * Return relative time of 0ms.
  */
 struct GNUNET_TIME_Relative
