@@ -33,15 +33,15 @@
  *       transport-to-transport traffic)
  *
  * Implement next:
+ * - backchannel message encryption & decryption
  * - DV data structures:
  *   + using DV routes!
  *     - handling of DV-boxed messages that need to be forwarded
  *     - route_message implementation, including using DV data structures
  *       (but not when routing certain message types, like DV learn,
  *        MUST pay attention to content here -- or pass extra flags?)
- * - ACK handling / retransmission
- * - track RTT, distance, loss, etc.
- * - backchannel message encryption & decryption
+ * - retransmission
+ * - track RTT, distance, loss, etc. => requires extra data structures!
  *
  * Later:
  * - change transport-core API to provide proper flow control in both
@@ -55,6 +55,11 @@
  *   fragments as just pointers into the original message and only
  *   fully build fragments just before transmission (optimization, should
  *   reduce CPU and memory use)
+ *
+ * Optimizations:
+ * - use shorthashmap on msg_uuid's when matching reliability/fragment ACKs
+ *   against our pending message queue (requires additional per neighbour
+ *   hash map to be maintained, avoids possible linear scan on pending msgs)
  *
  * Design realizations / discussion:
  * - communicators do flow control by calling MQ "notify sent"
@@ -3828,6 +3833,9 @@ handle_fragment_ack (void *cls,
       //    the queue used is unique?
       //    -> how can we get loss rates?
       //    -> or, add extra state to Box and ACK to identify queue?
+      // IDEA: generate MULTIPLE frag-uuids per fragment and track
+      //    the queue with the fragment! (-> this logic must
+      //    be moved into check_ack_against_pm!)
       (void) avg_ack_delay;
     }
     else
@@ -3926,9 +3934,75 @@ handle_reliability_ack (void *cls,
                         const struct TransportReliabilityAckMessage *ra)
 {
   struct CommunicatorMessageContext *cmc = cls;
+  struct Neighbour *n;
+  unsigned int n_acks;
+  const struct GNUNET_ShortHashCode *msg_uuids;
+  struct PendingMessage *nxt;
+  int matched;
 
-  // FIXME: do work: find message that was acknowledged, and
-  // remove from transmission queue; update RTT.
+  n = GNUNET_CONTAINER_multipeermap_get (neighbours,
+                                         &cmc->im.sender);
+  if (NULL == n)
+  {
+    struct GNUNET_SERVICE_Client *client = cmc->tc->client;
+
+    GNUNET_break (0);
+    finish_cmc_handling (cmc);
+    GNUNET_SERVICE_client_drop (client);
+    return;
+  }
+  n_acks = (ntohs (ra->header.size) - sizeof (*ra))
+    / sizeof (struct GNUNET_ShortHashCode);
+  msg_uuids = (const struct GNUNET_ShortHashCode *) &ra[1];
+
+  /* FIXME-OPTIMIZE: maybe use another hash map here? */
+  matched = GNUNET_NO;
+  for (struct PendingMessage *pm = n->pending_msg_head;
+       NULL != pm;
+       pm = nxt)
+  {
+    int in_list;
+
+    nxt = pm->next_neighbour;
+    in_list = GNUNET_NO;
+    for (unsigned int i=0;i<n_acks;i++)
+    {
+      if (0 !=
+          GNUNET_memcmp (&msg_uuids[i],
+                         &pm->msg_uuid))
+        continue;
+      in_list = GNUNET_YES;
+      break;
+    }
+    if (GNUNET_NO == in_list)
+      continue;
+
+    /* this pm was acked! */
+    matched = GNUNET_YES;
+    free_pending_message (pm);
+
+    {
+      struct GNUNET_TIME_Relative avg_ack_delay
+        = GNUNET_TIME_relative_ntoh (ra->avg_ack_delay);
+      // FIXME: update RTT and other reliability data!
+      // ISSUE: we don't know which of n's queues the message(s)
+      // took (and in fact the different messages might have gone
+      // over different queues and possibly over multiple).
+      // => track queues with PendingMessages, and update RTT only if
+      //    the queue used is unique?
+      //    -> how can we get loss rates?
+      //    -> or, add extra state to MSG and ACKs to identify queue?
+      //    -> if we do this, might just do the same for the avg_ack_delay!
+      (void) avg_ack_delay;
+    }
+  }
+  if (GNUNET_NO == matched)
+  {
+    GNUNET_STATISTICS_update (GST_stats,
+                              "# FRAGMENT_ACKS dropped, no matching pending message",
+                              1,
+                              GNUNET_NO);
+  }
   finish_cmc_handling (cmc);
 }
 
