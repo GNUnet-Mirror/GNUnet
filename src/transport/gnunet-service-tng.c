@@ -56,6 +56,11 @@
  *   fully build fragments just before transmission (optimization, should
  *   reduce CPU and memory use)
  *
+ * FIXME (without marks in the code!):
+ * - proper use/initialization of timestamps in messages exchanged
+ *   during DV learning
+ * -
+ *
  * Optimizations:
  * - use shorthashmap on msg_uuid's when matching reliability/fragment ACKs
  *   against our pending message queue (requires additional per neighbour
@@ -260,8 +265,11 @@ struct TransportBackchannelEncapsulationMessage
    */
   struct GNUNET_CRYPTO_EcdhePublicKey ephemeral_key;
 
-  // FIXME: probably should add random IV here as well,
-  // especially if we re-use ephemeral keys!
+  /**
+   * We use an IV here as the @e ephemeral_key is re-used for
+   * #EPHEMERAL_VALIDITY time to avoid re-signing it all the time.
+   */
+  struct GNUNET_ShortHashCode iv;
 
   /**
    * HMAC over the ciphertext of the encrypted, variable-size
@@ -287,15 +295,17 @@ struct EphemeralConfirmation
 
   /**
    * How long is this signature over the ephemeral key valid?
-   * Note that the receiver MUST IGNORE the absolute time, and
-   * only interpret the value as a mononic time and reject
-   * "older" values than the last one observed.  Even with this,
-   * there is no real guarantee against replay achieved here,
-   * as the latest timestamp is not persisted.  This is
-   * necessary as we do not want to require synchronized
-   * clocks and may not have a bidirectional communication
-   * channel.  Communicators must protect against replay
-   * attacks when using backchannel communication!
+   *
+   * Note that the receiver MUST IGNORE the absolute time, and only interpret
+   * the value as a mononic time and reject "older" values than the last one
+   * observed.  This is necessary as we do not want to require synchronized
+   * clocks and may not have a bidirectional communication channel.
+   *
+   * Even with this, there is no real guarantee against replay achieved here,
+   * unless the latest timestamp is persisted.  While persistence should be
+   * provided via PEERSTORE, we do not consider the mechanism reliable!  Thus,
+   * communicators must protect against replay attacks when using backchannel
+   * communication!
    */
   struct GNUNET_TIME_AbsoluteNBO ephemeral_validity;
 
@@ -332,8 +342,18 @@ struct TransportBackchannelRequestPayload
   struct GNUNET_CRYPTO_EddsaSignature sender_sig;
 
   /**
-   * How long is this signature over the ephemeral key
-   * valid?
+   * How long is this signature over the ephemeral key valid?
+   *
+   * Note that the receiver MUST IGNORE the absolute time, and only interpret
+   * the value as a mononic time and reject "older" values than the last one
+   * observed.  This is necessary as we do not want to require synchronized
+   * clocks and may not have a bidirectional communication channel.
+   *
+   * Even with this, there is no real guarantee against replay achieved here,
+   * unless the latest timestamp is persisted.  While persistence should be
+   * provided via PEERSTORE, we do not consider the mechanism reliable!  Thus,
+   * communicators must protect against replay attacks when using backchannel
+   * communication!
    */
   struct GNUNET_TIME_AbsoluteNBO ephemeral_validity;
 
@@ -342,9 +362,10 @@ struct TransportBackchannelRequestPayload
    * detect replayed messages.  Note that the receiver should remember
    * a list of the recently seen timestamps and only reject messages
    * if the timestamp is in the list, or the list is "full" and the
-   * timestamp is smaller than the lowest in the list.  This list of
-   * timestamps per peer should be persisted to guard against replays
-   * after restarts.
+   * timestamp is smaller than the lowest in the list.
+   *
+   * Like the @e ephemeral_validity, the list of timestamps per peer should be
+   * persisted to guard against replays after restarts.
    */
   struct GNUNET_TIME_AbsoluteNBO monotonic_time;
 
@@ -505,7 +526,21 @@ struct TransportFragmentAckMessage
 
 
 /**
- * Content signed by each peer during DV learning.
+ * Content signed by the initator during DV learning.
+ *
+ * The signature is required to prevent DDoS attacks. A peer sending out this
+ * message is potentially generating a lot of traffic that will go back to the
+ * initator, as peers receiving this message will try to let the initiator
+ * know that they got the message.
+ *
+ * Without this signature, an attacker could abuse this mechanism for traffic
+ * amplification, sending a lot of traffic to a peer by putting out this type
+ * of message with the victim's peer identity.
+ *
+ * Even with just a signature, traffic amplification would be possible via
+ * replay attacks. The @e monotonic_time limits such replay attacks, as every
+ * potential amplificator will check the @e monotonic_time and only respond
+ * (at most) once per message.
  */
 struct DvInitPS
 {
@@ -513,6 +548,20 @@ struct DvInitPS
    * Purpose is #GNUNET_SIGNATURE_PURPOSE_TRANSPORT_DV_INITIATOR
    */
   struct GNUNET_CRYPTO_EccSignaturePurpose purpose;
+
+  /**
+   * Time at the initiator when generating the signature.
+   *
+   * Note that the receiver MUST IGNORE the absolute time, and only interpret
+   * the value as a mononic time and reject "older" values than the last one
+   * observed.  This is necessary as we do not want to require synchronized
+   * clocks and may not have a bidirectional communication channel.
+   *
+   * Even with this, there is no real guarantee against replay achieved here,
+   * unless the latest timestamp is persisted.  Persistence should be
+   * provided via PEERSTORE if possible.
+   */
+  struct GNUNET_TIME_AbsoluteNBO monotonic_time;
 
   /**
    * Challenge value used by the initiator to re-identify the path.
@@ -524,6 +573,19 @@ struct DvInitPS
 
 /**
  * Content signed by each peer during DV learning.
+ *
+ * This assues the initiator of the DV learning operation that the hop from @e
+ * pred via the signing peer to @e succ actually exists.  This makes it
+ * impossible for an adversary to supply the network with bogus routes.
+ *
+ * The @e challenge is included to provide replay protection for the
+ * initiator. This way, the initiator knows that the hop existed after the
+ * original @e challenge was first transmitted, providing a freshness metric.
+ *
+ * Peers other than the initiator that passively learn paths by observing
+ * these messages do NOT benefit from this. Here, an adversary may indeed
+ * replay old messages.  Thus, passively learned paths should always be
+ * immediately marked as "potentially stale".
  */
 struct DvHopPS
 {
@@ -841,8 +903,8 @@ struct LearnLaunchEntry
   struct GNUNET_ShortHashCode challenge;
 
   /**
-   * When did we transmit the DV learn message (used to
-   * calculate RTT).
+   * When did we transmit the DV learn message (used to calculate RTT) and
+   * determine freshness of paths learned via this operation.
    */
   struct GNUNET_TIME_Absolute launch_time;
 
@@ -850,11 +912,11 @@ struct LearnLaunchEntry
 
 
 /**
- * Entry in our cache of ephemeral keys we currently use.
- * This way, we only sign an ephemeral once per @e target,
- * and then can re-use it over multiple
- * #GNUNET_MESSAGE_TYPE_TRANSPORT_BACKCHANNEL_ENCAPSULATION
- * messages (as signing is expensive).
+ * Entry in our cache of ephemeral keys we currently use.  This way, we only
+ * sign an ephemeral once per @e target, and then can re-use it over multiple
+ * #GNUNET_MESSAGE_TYPE_TRANSPORT_BACKCHANNEL_ENCAPSULATION messages (as
+ * signing is expensive and in some cases we may use backchannel messages a
+ * lot).
  */
 struct EphemeralCacheEntry
 {
@@ -960,6 +1022,14 @@ struct DistanceVectorHop
    * while learning?
    */
   struct GNUNET_TIME_Absolute timeout;
+
+  /**
+   * After what time do we know for sure that the path must have existed?
+   * Set to ZERO if the path is learned by snooping on DV learn messages
+   * initiated by other peers, and to the time at which we generated the
+   * challenge for DV learn operations this peer initiated.
+   */
+  struct GNUNET_TIME_Absolute freshness;
 
   /**
    * How many hops in total to the `target` (excluding @e next_hop and `target` itself),
@@ -3119,8 +3189,8 @@ lookup_ephemeral (const struct GNUNET_PeerIdentity *pid,
                                              &ec.purpose,
                                              &ece->sender_sig));
     ece->hn = GNUNET_CONTAINER_heap_insert (ephemeral_heap,
-					    ece,
-					    ece->ephemeral_validity.abs_value_us);
+                                            ece,
+                                            ece->ephemeral_validity.abs_value_us);
     GNUNET_assert (GNUNET_OK ==
                    GNUNET_CONTAINER_multipeermap_put (ephemeral_map,
                                                       &ece->target,
@@ -3128,8 +3198,8 @@ lookup_ephemeral (const struct GNUNET_PeerIdentity *pid,
                                                       GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
     if (NULL == ephemeral_task)
       ephemeral_task = GNUNET_SCHEDULER_add_at (ece->ephemeral_validity,
-						&expire_ephemerals,
-						NULL);
+                                                &expire_ephemerals,
+                                                NULL);
   }
   *private_key = ece->private_key;
   *ephemeral_key = ece->ephemeral_key;
@@ -3164,6 +3234,169 @@ route_message (const struct GNUNET_PeerIdentity *target,
 
 
 /**
+ * Structure of the key material used to encrypt backchannel messages.
+ */
+struct BackchannelKeyState
+{
+  // FIXME: actual data types in this struct are likely still totally wrong
+  /**
+   *
+   */
+  char hdr_key[128];
+
+  /**
+   *
+   */
+  char body_key[128];
+
+  /**
+   *
+   */
+  char hmac_key[128];
+};
+
+
+static void
+setup_key_state_from_km (const struct GNUNET_HashCode *km,
+                         const struct GNUNET_HashCode *iv,
+                         struct BackchannelKeyState *key)
+{
+  /* must match #dh_key_derive_eph_pub */
+  GNUNET_assert (GNUNET_YES ==
+                 GNUNET_CRYPTO_kdf (key,
+                                    sizeof (*key),
+                                    "transport-backchannel-key",
+                                    strlen ("transport-backchannel-key"),
+                                    &km,
+                                    sizeof (km),
+                                    iv,
+                                    sizeof (*iv)));
+}
+
+
+/**
+ * Derive backchannel encryption key material from @a priv_ephemeral
+ * and @a target and @a iv.
+ *
+ * @param priv_ephemeral ephemeral private key to use
+ * @param target the target peer to encrypt to
+ * @param iv unique IV to use
+ * @param key[out] set to the key material
+ */
+static void
+dh_key_derive_eph_pid (const struct GNUNET_CRYPTO_EcdhePrivateKey *priv_ephemeral,
+                       const struct GNUNET_PeerIdentity *target,
+                       const struct GNUNET_ShortHashCode *iv,
+                       struct BackchannelKeyState *key)
+{
+  struct GNUNET_HashCode km;
+
+  GNUNET_assert (GNUNET_YES ==
+                 GNUNET_CRYPTO_ecdsa_ecdh (priv_ephemeral,
+                                           &target->public_key,
+                                           &km));
+  bc_setup_key_state_from_km (&km,
+                              iv,
+                              key);
+}
+
+
+/**
+ * Derive backchannel encryption key material from #GST_my_private_key
+ * and @a pub_ephemeral and @a iv.
+ *
+ * @param priv_ephemeral ephemeral private key to use
+ * @param target the target peer to encrypt to
+ * @param iv unique IV to use
+ * @param key[out] set to the key material
+ */
+static void
+dh_key_derive_eph_pub (const struct GNUNET_CRYPTO_EcdhePublicKey *pub_ephemeral,
+                       const struct GNUNET_ShortHashCode *iv,
+                       struct BackchannelKeyState *key)
+{
+  struct GNUNET_HashCode km;
+
+  GNUNET_assert (GNUNET_YES ==
+                 GNUNET_CRYPTO_ecdsa_ecdh (GST_my_private_key,
+                                           pub_ephemeral,
+                                           &km));
+  bc_setup_key_state_from_km (&km,
+                              iv,
+                              key);
+}
+
+
+/**
+ * Do HMAC calculation for backchannel messages over @a data using key
+ * material from @a key.
+ *
+ * @param key key material (from DH)
+ * @param hmac[out] set to the HMAC
+ * @param data data to perform HMAC calculation over
+ * @param data_size number of bytes in @a data
+ */
+static void
+bc_hmac (const struct BackchannelKeyState *key,
+         struct GNUNET_HashCode *hmac,
+         const void *data,
+         size_t data_size)
+{
+  // FIXME!
+}
+
+
+/**
+ * Perform backchannel encryption using symmetric secret in @a key
+ * to encrypt data from @a in to @a dst.
+ *
+ * @param key[in,out] key material to use
+ * @param dst where to write the result
+ * @param in input data to encrypt (plaintext)
+ * @param in_size number of bytes of input in @a in and available at @a dst
+ */
+static void
+bc_encrypt (struct BackchannelKeyState *key,
+            void *dst,
+            const void *in,
+            size_t in_size)
+{
+  // FIXME!
+}
+
+
+/**
+ * Perform backchannel encryption using symmetric secret in @a key
+ * to encrypt data from @a in to @a dst.
+ *
+ * @param key[in,out] key material to use
+ * @param ciph cipher text to decrypt
+ * @param out[out] output data to generate (plaintext)
+ * @param out_size number of bytes of input in @a ciph and available in @a out
+ */
+static void
+bc_decrypt (struct BackchannelKeyState *key,
+            const void *ciph,
+            void *out,
+            size_t out_size)
+{
+  // FIXME!
+}
+
+
+/**
+ * Clean up key material in @a key.
+ *
+ * @param key key material to clean up (memory must not be free'd!)
+ */
+static void
+bc_key_clean (struct BackchannelKeyState *key)
+{
+  // FIXME!
+}
+
+
+/**
  * Communicator requests backchannel transmission.  Process the request.
  *
  * @param cls the client
@@ -3178,6 +3411,7 @@ handle_communicator_backchannel (void *cls,
   struct GNUNET_TIME_Absolute ephemeral_validity;
   struct TransportBackchannelEncapsulationMessage *enc;
   struct TransportBackchannelRequestPayload ppay;
+  struct BackchannelKeyState key;
   char *mpos;
   uint16_t msize;
 
@@ -3192,28 +3426,29 @@ handle_communicator_backchannel (void *cls,
                     &enc->ephemeral_key,
                     &ppay.sender_sig,
                     &ephemeral_validity);
-  // FIXME: setup 'iv'
-#if FIXME
+  GNUNET_CRYPTO_random_block (GNUNET_CRYPTO_QUALITY_NONCE,
+                              &enc->iv,
+                              sizeof (enc->iv));
   dh_key_derive (&private_key,
                  &cb->pid,
                  &enc->iv,
                  &key);
-#endif
   ppay.ephemeral_validity = GNUNET_TIME_absolute_hton (ephemeral_validity);
   ppay.monotonic_time = GNUNET_TIME_absolute_hton (GNUNET_TIME_absolute_get_monotonic (GST_cfg));
   mpos = (char *) &enc[1];
-#if FIXME
-  encrypt (key,
-           &ppay,
-           &mpos,
-           sizeof (ppay));
-  encrypt (key,
-           &cb[1],
-           &mpos,
-           ntohs (cb->header.size) - sizeof (*cb));
-  hmac (key,
-        &enc->hmac);
-#endif
+  bc_encrypt (&key,
+              &ppay,
+              mpos,
+              sizeof (ppay));
+  bc_encrypt (&key,
+              &cb[1],
+              &mpos[sizeof (ppay)],
+              ntohs (cb->header.size) - sizeof (*cb));
+  bc_hmac (&key,
+           &enc->hmac,
+           mpos,
+           sizeof (ppay) + ntohs (cb->header.size) - sizeof (*cb));
+  bc_key_clean (&key);
   route_message (&cb->pid,
                  &enc->header);
   GNUNET_SERVICE_client_continue (tc->client);
@@ -4021,7 +4256,9 @@ check_backchannel_encapsulation (void *cls,
   uint16_t size = ntohs (be->header.size);
 
   (void) cls;
-  if (size - sizeof (*be) < sizeof (struct GNUNET_MessageHeader))
+  if (size - sizeof (*be) <
+      sizeof (struct TransportBackchannelRequestPayload) +
+      sizeof (struct GNUNET_MessageHeader) )
   {
     GNUNET_break_op (0);
     return GNUNET_SYSERR;
@@ -4041,21 +4278,64 @@ handle_backchannel_encapsulation (void *cls,
                                   const struct TransportBackchannelEncapsulationMessage *be)
 {
   struct CommunicatorMessageContext *cmc = cls;
+  struct BackchannelKeyState key;
+  struct GNUNET_HashCode hmac;
+  const char *hdr;
+  size_t hrd_len;
 
   if (0 != GNUNET_memcmp (&be->target,
                           &GST_my_identity))
   {
     /* not for me, try to route to target */
+    /* FIXME: someone needs to update be->distance! */
+    /* FIXME: BE routing can be special, should we put all of this
+       on 'route_message'? Maybe at least pass some more arguments? */
     route_message (&be->target,
                    GNUNET_copy_message (&be->header));
     finish_cmc_handling (cmc);
     return;
   }
-  // FIXME: compute shared secret
-  // FIXME: check HMAC
-  // FIXME: decrypt payload
-  // FIXME: forward to specified communicator!
-  // (using GNUNET_MESSAGE_TYPE_TRANSPORT_COMMUNICATOR_BACKCHANNEL_INCOMING)
+  dh_key_derive_eph_pub (&be->ephemeral_key,
+                         &be->iv,
+                         &key);
+  hdr = (const char *) &be[1];
+  hdr_len = ntohs (be->header.size) - sizeof (*be);
+  bc_hmac (&key,
+           &hmac,
+           hdr,
+           hdr_len);
+  if (0 !=
+      GNUNET_memcmp (&hmac,
+                     &be->hmac))
+  {
+    /* HMAC missmatch, disard! */
+    GNUNET_break_op (0);
+    finish_cmc_handling (cmc);
+    return;
+  }
+  /* begin actual decryption */
+  {
+    struct TransportBackchannelRequestPayload ppay;
+    char body[hdr_len - sizeof (ppay)];
+
+    GNUNET_assert (hdr_len >= sizeof (ppay) + sizeof (struct GNUNET_MessageHeader));
+    bc_decrypt (&key,
+                &ppay,
+                hdr,
+                sizeof (ppay));
+    bc_decrypt (&key,
+                &body,
+                &hdr[sizeof (ppay)],
+                hdr_len - sizeof (ppay));
+    bc_key_clean (&key);
+    // FIXME: verify signatures in ppay!
+    // => check if ephemeral key is known & valid, if not
+    // => verify sig, cache ephemeral key
+    // => update monotonic_time of sender for replay detection
+
+    // FIXME: forward to specified communicator!
+    // (using GNUNET_MESSAGE_TYPE_TRANSPORT_COMMUNICATOR_BACKCHANNEL_INCOMING)
+  }
   finish_cmc_handling (cmc);
 }
 
