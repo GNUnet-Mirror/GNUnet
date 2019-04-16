@@ -138,55 +138,47 @@
  * of seconds we log a warning. Note: this is for testing,
  * the value chosen here might be too aggressively low!
  */
-#define DELAY_WARN_THRESHOLD \
-  GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
+#define DELAY_WARN_THRESHOLD GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
 
 /**
  * We only consider queues as "quality" connections when
  * suppressing the generation of DV initiation messages if
  * the latency of the queue is below this threshold.
  */
-#define DV_QUALITY_RTT_THRESHOLD \
-  GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 1)
+#define DV_QUALITY_RTT_THRESHOLD GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 1)
 
 /**
  * How long do we consider a DV path valid if we see no
  * further updates on it? Note: the value chosen here might be too low!
  */
-#define DV_PATH_VALIDITY_TIMEOUT \
-  GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 5)
+#define DV_PATH_VALIDITY_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 5)
 
 /**
  * How long before paths expire would we like to (re)discover DV paths? Should
  * be below #DV_PATH_VALIDITY_TIMEOUT.
  */
-#define DV_PATH_DISCOVERY_FREQUENCY \
-  GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 4)
+#define DV_PATH_DISCOVERY_FREQUENCY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 4)
 
 /**
  * How long are ephemeral keys valid?
  */
-#define EPHEMERAL_VALIDITY \
-  GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_HOURS, 4)
+#define EPHEMERAL_VALIDITY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_HOURS, 4)
 
 /**
  * How long do we keep partially reassembled messages around before giving up?
  */
-#define REASSEMBLY_EXPIRATION \
-  GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 4)
+#define REASSEMBLY_EXPIRATION GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 4)
 
 /**
  * What is the fastest rate at which we send challenges *if* we keep learning
  * an address (gossip, DHT, etc.)?
  */
-#define FAST_VALIDATION_CHALLENGE_FREQ \
-  GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 1)
+#define FAST_VALIDATION_CHALLENGE_FREQ GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 1)
 
 /**
  * What is the slowest rate at which we send challenges?
  */
-#define MAX_VALIDATION_CHALLENGE_FREQ \
-  GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_DAYS, 1)
+#define MAX_VALIDATION_CHALLENGE_FREQ GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_DAYS, 1)
 
 /**
  * What is the non-randomized base frequency at which we
@@ -203,13 +195,11 @@
 /**
  * When do we forget an invalid address for sure?
  */
-#define MAX_ADDRESS_VALID_UNTIL \
-  GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MONTHS, 1)
+#define MAX_ADDRESS_VALID_UNTIL GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MONTHS, 1)
 /**
  * How long do we consider an address valid if we just checked?
  */
-#define ADDRESS_VALIDATION_LIFETIME \
-  GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_HOURS, 4)
+#define ADDRESS_VALIDATION_LIFETIME GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_HOURS, 4)
 
 /**
  * What is the maximum frequency at which we do address validation?
@@ -329,6 +319,7 @@ struct EphemeralConfirmation
    * to encrypt the payload.
    */
   struct GNUNET_CRYPTO_EcdhePublicKey ephemeral_key;
+
 };
 
 
@@ -383,6 +374,7 @@ struct TransportBackchannelRequestPayload
 
   /* Followed by a 0-termianted string specifying the name of
      the communicator which is to receive the message */
+
 };
 
 
@@ -481,6 +473,7 @@ struct TransportFragmentBox
    * Total size of the message that is being fragmented.
    */
   uint16_t msg_size GNUNET_PACKED;
+
 };
 
 
@@ -574,6 +567,7 @@ struct DvInitPS
    * Challenge value used by the initiator to re-identify the path.
    */
   struct GNUNET_ShortHashCode challenge;
+
 };
 
 
@@ -614,6 +608,7 @@ struct DvHopPS
    * Challenge value used by the initiator to re-identify the path.
    */
   struct GNUNET_ShortHashCode challenge;
+
 };
 
 
@@ -633,6 +628,7 @@ struct DVPathEntryP
    * #GNUNET_SIGNATURE_PURPOSE_TRANSPORT_DV_HOP
    */
   struct GNUNET_CRYPTO_EddsaSignature hop_sig;
+
 };
 
 
@@ -698,6 +694,7 @@ struct TransportDVLearn
   /* Followed by @e num_hops `struct DVPathEntryP` values,
      excluding the initiator of the DV trace; the last entry is the
      current sender; the current peer must not be included. */
+
 };
 
 
@@ -802,6 +799,7 @@ struct TransportValidationPS
    * Challenge signed by the receiving peer.
    */
   struct GNUNET_ShortHashCode challenge;
+
 };
 
 
@@ -847,13 +845,15 @@ struct TransportValidationResponse
 };
 
 
+
 GNUNET_NETWORK_STRUCT_END
 
 
 /**
  * What type of client is the `struct TransportClient` about?
  */
-enum ClientType {
+enum ClientType
+{
   /**
    * We do not know yet (client is fresh).
    */
@@ -907,6 +907,7 @@ struct LearnLaunchEntry
    * determine freshness of paths learned via this operation.
    */
   struct GNUNET_TIME_Absolute launch_time;
+
 };
 
 
@@ -1031,9 +1032,8 @@ struct DistanceVectorHop
   struct GNUNET_TIME_Absolute freshness;
 
   /**
-   * How many hops in total to the `target` (excluding @e next_hop and `target`
-   * itself), thus 0 still means a distance of 2 hops (to @e next_hop and then
-   * to `target`)?
+   * How many hops in total to the `target` (excluding @e next_hop and `target` itself),
+   * thus 0 still means a distance of 2 hops (to @e next_hop and then to `target`)?
    */
   unsigned int distance;
 };
@@ -1313,8 +1313,7 @@ struct ReassemblyContext
    */
   uint16_t msg_missing;
 
-  /* Followed by @e msg_size bytes of the (partially) defragmented original
-   * message */
+  /* Followed by @e msg_size bytes of the (partially) defragmented original message */
 
   /* Followed by @e bitfield data */
 };
@@ -1402,6 +1401,7 @@ struct Neighbour
    * What is the earliest timeout of any message in @e pending_msg_tail?
    */
   struct GNUNET_TIME_Absolute earliest_timeout;
+
 };
 
 
@@ -1435,13 +1435,15 @@ struct PeerRequest
    * How much bandwidth would this @e tc like to see?
    */
   struct GNUNET_BANDWIDTH_Value32NBO bw;
+
 };
 
 
 /**
  * Types of different pending messages.
  */
-enum PendingMessageType {
+enum PendingMessageType
+{
 
   /**
    * Ordinary message received from the CORE service.
@@ -1515,20 +1517,17 @@ struct PendingMessage
   struct PendingMessage *prev_client;
 
   /**
-   * Kept in a MDLL of messages from this @a cpm (if @e pmt is
-   * #PMT_FRAGMENT_BOx)
+   * Kept in a MDLL of messages from this @a cpm (if @e pmt is #PMT_FRAGMENT_BOx)
    */
   struct PendingMessage *next_frag;
 
   /**
-   * Kept in a MDLL of messages from this @a cpm  (if @e pmt is
-   * #PMT_FRAGMENT_BOX)
+   * Kept in a MDLL of messages from this @a cpm  (if @e pmt is #PMT_FRAGMENT_BOX)
    */
   struct PendingMessage *prev_frag;
 
   /**
-   * This message, reliability boxed. Only possibly available if @e pmt is
-   * #PMT_CORE.
+   * This message, reliability boxed. Only possibly available if @e pmt is #PMT_CORE.
    */
   struct PendingMessage *bpm;
 
@@ -1653,6 +1652,7 @@ struct AddressListEntry
    * Network type offered by this address.
    */
   enum GNUNET_NetworkType nt;
+
 };
 
 
@@ -1693,8 +1693,7 @@ struct TransportClient
     /**
      * Information for @e type #CT_CORE.
      */
-    struct
-    {
+    struct {
 
       /**
        * Head of list of messages pending for this client, sorted by
@@ -1712,8 +1711,7 @@ struct TransportClient
     /**
      * Information for @e type #CT_MONITOR.
      */
-    struct
-    {
+    struct {
 
       /**
        * Peer identity to monitor the addresses of.
@@ -1733,8 +1731,7 @@ struct TransportClient
     /**
      * Information for @e type #CT_COMMUNICATOR.
      */
-    struct
-    {
+    struct {
       /**
        * If @e type is #CT_COMMUNICATOR, this communicator
        * supports communicating using these addresses.
@@ -1752,14 +1749,12 @@ struct TransportClient
       struct Queue *queue_tail;
 
       /**
-       * Head of list of the addresses of this peer offered by this
-       * communicator.
+       * Head of list of the addresses of this peer offered by this communicator.
        */
       struct AddressListEntry *addr_head;
 
       /**
-       * Tail of list of the addresses of this peer offered by this
-       * communicator.
+       * Tail of list of the addresses of this peer offered by this communicator.
        */
       struct AddressListEntry *addr_tail;
 
@@ -1780,8 +1775,7 @@ struct TransportClient
     /**
      * Information for @e type #CT_APPLICATION
      */
-    struct
-    {
+    struct {
 
       /**
        * Map of requests for peers the given client application would like to
@@ -1792,6 +1786,7 @@ struct TransportClient
     } application;
 
   } details;
+
 };
 
 
@@ -1895,6 +1890,7 @@ struct ValidationState
    * the respective queue to become available for transmission.
    */
   int awaiting_queue;
+
 };
 
 
@@ -2012,7 +2008,9 @@ static struct GNUNET_SCHEDULER_Task *validation_task;
 static void
 free_ephemeral (struct EphemeralCacheEntry *ece)
 {
-  GNUNET_CONTAINER_multipeermap_remove (ephemeral_map, &ece->target, ece);
+  GNUNET_CONTAINER_multipeermap_remove (ephemeral_map,
+                                        &ece->target,
+                                        ece);
   GNUNET_CONTAINER_heap_remove_node (ece->hn);
   GNUNET_free (ece);
 }
@@ -2026,10 +2024,13 @@ free_ephemeral (struct EphemeralCacheEntry *ece)
 static void
 free_validation_state (struct ValidationState *vs)
 {
-  GNUNET_CONTAINER_multipeermap_remove (validation_map, &vs->pid, vs);
+  GNUNET_CONTAINER_multipeermap_remove (validation_map,
+                                        &vs->pid,
+                                        vs);
   GNUNET_CONTAINER_heap_remove_node (vs->hn);
   vs->hn = NULL;
-  if (NULL != vs->sc) {
+  if (NULL != vs->sc)
+  {
     GNUNET_PEERSTORE_store_cancel (vs->sc);
     vs->sc = NULL;
   }
@@ -2047,7 +2048,8 @@ free_validation_state (struct ValidationState *vs)
 static struct Neighbour *
 lookup_neighbour (const struct GNUNET_PeerIdentity *pid)
 {
-  return GNUNET_CONTAINER_multipeermap_get (neighbours, pid);
+  return GNUNET_CONTAINER_multipeermap_get (neighbours,
+                                            pid);
 }
 
 
@@ -2082,6 +2084,8 @@ struct MonitorEvent
    * Bytes pending.
    */
   uint32_t num_bytes_pending;
+
+
 };
 
 
@@ -2099,8 +2103,14 @@ free_distance_vector_hop (struct DistanceVectorHop *dvh)
   struct Neighbour *n = dvh->next_hop;
   struct DistanceVector *dv = dvh->dv;
 
-  GNUNET_CONTAINER_MDLL_remove (neighbour, n->dv_head, n->dv_tail, dvh);
-  GNUNET_CONTAINER_MDLL_remove (dv, dv->dv_head, dv->dv_tail, dvh);
+  GNUNET_CONTAINER_MDLL_remove (neighbour,
+                                n->dv_head,
+                                n->dv_tail,
+                                dvh);
+  GNUNET_CONTAINER_MDLL_remove (dv,
+                                dv->dv_head,
+                                dv->dv_tail,
+                                dvh);
   GNUNET_free (dvh);
 }
 
@@ -2118,10 +2128,12 @@ free_dv_route (struct DistanceVector *dv)
 
   while (NULL != (dvh = dv->dv_head))
     free_distance_vector_hop (dvh);
-  if (NULL == dv->dv_head) {
-    GNUNET_assert (
-      GNUNET_YES
-      == GNUNET_CONTAINER_multipeermap_remove (dv_routes, &dv->target, dv));
+  if (NULL == dv->dv_head)
+  {
+    GNUNET_assert (GNUNET_YES ==
+                   GNUNET_CONTAINER_multipeermap_remove (dv_routes,
+                                                         &dv->target,
+                                                         dv));
     if (NULL != dv->timeout_task)
       GNUNET_SCHEDULER_cancel (dv->timeout_task);
     GNUNET_free (dv);
@@ -2156,17 +2168,20 @@ notify_monitor (struct TransportClient *tc,
   env = GNUNET_MQ_msg_extra (md,
                              addr_len,
                              GNUNET_MESSAGE_TYPE_TRANSPORT_MONITOR_DATA);
-  md->nt = htonl ((uint32_t)nt);
+  md->nt = htonl ((uint32_t) nt);
   md->peer = *peer;
   md->last_validation = GNUNET_TIME_absolute_hton (me->last_validation);
   md->valid_until = GNUNET_TIME_absolute_hton (me->valid_until);
   md->next_validation = GNUNET_TIME_absolute_hton (me->next_validation);
   md->rtt = GNUNET_TIME_relative_hton (me->rtt);
-  md->cs = htonl ((uint32_t)me->cs);
+  md->cs = htonl ((uint32_t) me->cs);
   md->num_msg_pending = htonl (me->num_msg_pending);
   md->num_bytes_pending = htonl (me->num_bytes_pending);
-  memcpy (&md[1], address, addr_len);
-  GNUNET_MQ_send (tc->mq, env);
+  memcpy (&md[1],
+          address,
+          addr_len);
+  GNUNET_MQ_send (tc->mq,
+                  env);
 }
 
 
@@ -2185,15 +2200,23 @@ notify_monitors (const struct GNUNET_PeerIdentity *peer,
                  enum GNUNET_NetworkType nt,
                  const struct MonitorEvent *me)
 {
-  for (struct TransportClient *tc = clients_head; NULL != tc; tc = tc->next) {
+  for (struct TransportClient *tc = clients_head;
+       NULL != tc;
+       tc = tc->next)
+  {
     if (CT_MONITOR != tc->type)
       continue;
     if (tc->details.monitor.one_shot)
       continue;
-    if ((0 != GNUNET_is_zero (&tc->details.monitor.peer))
-        && (0 != GNUNET_memcmp (&tc->details.monitor.peer, peer)))
+    if ( (0 != GNUNET_is_zero (&tc->details.monitor.peer)) &&
+         (0 != GNUNET_memcmp (&tc->details.monitor.peer,
+                              peer)) )
       continue;
-    notify_monitor (tc, peer, address, nt, me);
+    notify_monitor (tc,
+                    peer,
+                    address,
+                    nt,
+                    me);
   }
 }
 
@@ -2214,12 +2237,16 @@ client_connect_cb (void *cls,
 {
   struct TransportClient *tc;
 
-  (void)cls;
+  (void) cls;
   tc = GNUNET_new (struct TransportClient);
   tc->client = client;
   tc->mq = mq;
-  GNUNET_CONTAINER_DLL_insert (clients_head, clients_tail, tc);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Client %p connected\n", tc);
+  GNUNET_CONTAINER_DLL_insert (clients_head,
+                               clients_tail,
+                               tc);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Client %p connected\n",
+              tc);
   return tc;
 }
 
@@ -2234,11 +2261,12 @@ free_reassembly_context (struct ReassemblyContext *rc)
 {
   struct Neighbour *n = rc->neighbour;
 
-  GNUNET_assert (rc == GNUNET_CONTAINER_heap_remove_node (rc->hn));
-  GNUNET_assert (GNUNET_OK
-                 == GNUNET_CONTAINER_multishortmap_remove (n->reassembly_map,
-                                                           &rc->msg_uuid,
-                                                           rc));
+  GNUNET_assert (rc ==
+                 GNUNET_CONTAINER_heap_remove_node (rc->hn));
+  GNUNET_assert (GNUNET_OK ==
+                 GNUNET_CONTAINER_multishortmap_remove (n->reassembly_map,
+                                                        &rc->msg_uuid,
+                                                        rc));
   GNUNET_free (rc);
 }
 
@@ -2255,18 +2283,17 @@ reassembly_cleanup_task (void *cls)
   struct ReassemblyContext *rc;
 
   n->reassembly_timeout_task = NULL;
-  while (NULL != (rc = GNUNET_CONTAINER_heap_peek (n->reassembly_heap))) {
-    if (0
-        == GNUNET_TIME_absolute_get_remaining (rc->reassembly_timeout)
-             .rel_value_us) {
+  while (NULL != (rc = GNUNET_CONTAINER_heap_peek (n->reassembly_heap)))
+  {
+    if (0 == GNUNET_TIME_absolute_get_remaining (rc->reassembly_timeout).rel_value_us)
+    {
       free_reassembly_context (rc);
       continue;
     }
     GNUNET_assert (NULL == n->reassembly_timeout_task);
-    n->reassembly_timeout_task
-      = GNUNET_SCHEDULER_add_at (rc->reassembly_timeout,
-                                 &reassembly_cleanup_task,
-                                 n);
+    n->reassembly_timeout_task = GNUNET_SCHEDULER_add_at (rc->reassembly_timeout,
+                                                          &reassembly_cleanup_task,
+                                                          n);
     return;
   }
 }
@@ -2286,8 +2313,8 @@ free_reassembly_cb (void *cls,
                     void *value)
 {
   struct ReassemblyContext *rc = value;
-  (void)cls;
-  (void)key;
+  (void) cls;
+  (void) key;
 
   free_reassembly_context (rc);
   return GNUNET_OK;
@@ -2305,13 +2332,14 @@ free_neighbour (struct Neighbour *neighbour)
   struct DistanceVectorHop *dvh;
 
   GNUNET_assert (NULL == neighbour->queue_head);
-  GNUNET_assert (GNUNET_YES
-                 == GNUNET_CONTAINER_multipeermap_remove (neighbours,
-                                                          &neighbour->pid,
-                                                          neighbour));
+  GNUNET_assert (GNUNET_YES ==
+                 GNUNET_CONTAINER_multipeermap_remove (neighbours,
+                                                       &neighbour->pid,
+                                                       neighbour));
   if (NULL != neighbour->timeout_task)
     GNUNET_SCHEDULER_cancel (neighbour->timeout_task);
-  if (NULL != neighbour->reassembly_map) {
+  if (NULL != neighbour->reassembly_map)
+  {
     GNUNET_CONTAINER_multishortmap_iterate (neighbour->reassembly_map,
                                             &free_reassembly_cb,
                                             NULL);
@@ -2320,7 +2348,8 @@ free_neighbour (struct Neighbour *neighbour)
     GNUNET_CONTAINER_heap_destroy (neighbour->reassembly_heap);
     neighbour->reassembly_heap = NULL;
   }
-  while (NULL != (dvh = neighbour->dv_head)) {
+  while (NULL != (dvh = neighbour->dv_head))
+  {
     struct DistanceVector *dv = dvh->dv;
 
     free_distance_vector_hop (dvh);
@@ -2349,10 +2378,12 @@ core_send_connect_info (struct TransportClient *tc,
   struct ConnectInfoMessage *cim;
 
   GNUNET_assert (CT_CORE == tc->type);
-  env = GNUNET_MQ_msg (cim, GNUNET_MESSAGE_TYPE_TRANSPORT_CONNECT);
+  env = GNUNET_MQ_msg (cim,
+                       GNUNET_MESSAGE_TYPE_TRANSPORT_CONNECT);
   cim->quota_out = quota_out;
   cim->id = *pid;
-  GNUNET_MQ_send (tc->mq, env);
+  GNUNET_MQ_send (tc->mq,
+                  env);
 }
 
 
@@ -2366,10 +2397,15 @@ static void
 cores_send_connect_info (const struct GNUNET_PeerIdentity *pid,
                          struct GNUNET_BANDWIDTH_Value32NBO quota_out)
 {
-  for (struct TransportClient *tc = clients_head; NULL != tc; tc = tc->next) {
+  for (struct TransportClient *tc = clients_head;
+       NULL != tc;
+       tc = tc->next)
+  {
     if (CT_CORE != tc->type)
       continue;
-    core_send_connect_info (tc, pid, quota_out);
+    core_send_connect_info (tc,
+                            pid,
+                            quota_out);
   }
 }
 
@@ -2382,15 +2418,20 @@ cores_send_connect_info (const struct GNUNET_PeerIdentity *pid,
 static void
 cores_send_disconnect_info (const struct GNUNET_PeerIdentity *pid)
 {
-  for (struct TransportClient *tc = clients_head; NULL != tc; tc = tc->next) {
+  for (struct TransportClient *tc = clients_head;
+       NULL != tc;
+       tc = tc->next)
+  {
     struct GNUNET_MQ_Envelope *env;
     struct DisconnectInfoMessage *dim;
 
     if (CT_CORE != tc->type)
       continue;
-    env = GNUNET_MQ_msg (dim, GNUNET_MESSAGE_TYPE_TRANSPORT_DISCONNECT);
+    env = GNUNET_MQ_msg (dim,
+                         GNUNET_MESSAGE_TYPE_TRANSPORT_DISCONNECT);
     dim->peer = *pid;
-    GNUNET_MQ_send (tc->mq, env);
+    GNUNET_MQ_send (tc->mq,
+                    env);
   }
 }
 
@@ -2425,45 +2466,50 @@ schedule_transmit_on_queue (struct Queue *queue)
   unsigned int wsize;
 
   GNUNET_assert (NULL != pm);
-  if (queue->tc->details.communicator.total_queue_length
-      >= COMMUNICATOR_TOTAL_QUEUE_LIMIT) {
-    GNUNET_STATISTICS_update (
-      GST_stats,
-      "# Transmission throttled due to communicator queue limit",
-      1,
-      GNUNET_NO);
+  if (queue->tc->details.communicator.total_queue_length >=
+      COMMUNICATOR_TOTAL_QUEUE_LIMIT)
+  {
+    GNUNET_STATISTICS_update (GST_stats,
+                              "# Transmission throttled due to communicator queue limit",
+                              1,
+                              GNUNET_NO);
     return;
   }
-  if (queue->queue_length >= QUEUE_LENGTH_LIMIT) {
-    GNUNET_STATISTICS_update (
-      GST_stats,
-      "# Transmission throttled due to queue queue limit",
-      1,
-      GNUNET_NO);
+  if (queue->queue_length >= QUEUE_LENGTH_LIMIT)
+  {
+    GNUNET_STATISTICS_update (GST_stats,
+                              "# Transmission throttled due to queue queue limit",
+                              1,
+                              GNUNET_NO);
     return;
   }
 
-  wsize = (0 == queue->mtu) ? pm->bytes_msg /* FIXME: add overheads? */
-                            : queue->mtu;
-  out_delay = GNUNET_BANDWIDTH_tracker_get_delay (&queue->tracker_out, wsize);
-  out_delay = GNUNET_TIME_relative_max (
-    GNUNET_TIME_absolute_get_remaining (pm->next_attempt),
-    out_delay);
+  wsize = (0 == queue->mtu)
+    ? pm->bytes_msg /* FIXME: add overheads? */
+    : queue->mtu;
+  out_delay = GNUNET_BANDWIDTH_tracker_get_delay (&queue->tracker_out,
+                                                  wsize);
+  out_delay = GNUNET_TIME_relative_max (GNUNET_TIME_absolute_get_remaining (pm->next_attempt),
+                                        out_delay);
   if (0 == out_delay.rel_value_us)
     return; /* we should run immediately! */
   /* queue has changed since we were scheduled, reschedule again */
   queue->transmit_task
-    = GNUNET_SCHEDULER_add_delayed (out_delay, &transmit_on_queue, queue);
+    = GNUNET_SCHEDULER_add_delayed (out_delay,
+                                    &transmit_on_queue,
+                                    queue);
   if (out_delay.rel_value_us > DELAY_WARN_THRESHOLD.rel_value_us)
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                 "Next transmission on queue `%s' in %s (high delay)\n",
                 queue->address,
-                GNUNET_STRINGS_relative_time_to_string (out_delay, GNUNET_YES));
+                GNUNET_STRINGS_relative_time_to_string (out_delay,
+                                                        GNUNET_YES));
   else
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Next transmission on queue `%s' in %s\n",
                 queue->address,
-                GNUNET_STRINGS_relative_time_to_string (out_delay, GNUNET_YES));
+                GNUNET_STRINGS_relative_time_to_string (out_delay,
+                                                        GNUNET_YES));
 }
 
 
@@ -2477,12 +2523,15 @@ free_queue (struct Queue *queue)
 {
   struct Neighbour *neighbour = queue->neighbour;
   struct TransportClient *tc = queue->tc;
-  struct MonitorEvent me
-    = {.cs = GNUNET_TRANSPORT_CS_DOWN, .rtt = GNUNET_TIME_UNIT_FOREVER_REL};
+  struct MonitorEvent me = {
+    .cs = GNUNET_TRANSPORT_CS_DOWN,
+    .rtt = GNUNET_TIME_UNIT_FOREVER_REL
+  };
   struct QueueEntry *qe;
   int maxxed;
 
-  if (NULL != queue->transmit_task) {
+  if (NULL != queue->transmit_task)
+  {
     GNUNET_SCHEDULER_cancel (queue->transmit_task);
     queue->transmit_task = NULL;
   }
@@ -2494,33 +2543,39 @@ free_queue (struct Queue *queue)
                                 tc->details.communicator.queue_head,
                                 tc->details.communicator.queue_tail,
                                 queue);
-  maxxed = (COMMUNICATOR_TOTAL_QUEUE_LIMIT
-            >= tc->details.communicator.total_queue_length);
-  while (NULL != (qe = queue->queue_head)) {
-    GNUNET_CONTAINER_DLL_remove (queue->queue_head, queue->queue_tail, qe);
+  maxxed = (COMMUNICATOR_TOTAL_QUEUE_LIMIT >= tc->details.communicator.total_queue_length);
+  while (NULL != (qe = queue->queue_head))
+  {
+    GNUNET_CONTAINER_DLL_remove (queue->queue_head,
+                                 queue->queue_tail,
+                                 qe);
     queue->queue_length--;
     tc->details.communicator.total_queue_length--;
     GNUNET_free (qe);
   }
   GNUNET_assert (0 == queue->queue_length);
-  if ((maxxed)
-      && (COMMUNICATOR_TOTAL_QUEUE_LIMIT
-          < tc->details.communicator.total_queue_length)) {
+  if ( (maxxed) &&
+       (COMMUNICATOR_TOTAL_QUEUE_LIMIT < tc->details.communicator.total_queue_length) )
+  {
     /* Communicator dropped below threshold, resume all queues */
-    GNUNET_STATISTICS_update (
-      GST_stats,
-      "# Transmission throttled due to communicator queue limit",
-      -1,
-      GNUNET_NO);
-    for (struct Queue *s = tc->details.communicator.queue_head; NULL != s;
+    GNUNET_STATISTICS_update (GST_stats,
+                              "# Transmission throttled due to communicator queue limit",
+                              -1,
+                              GNUNET_NO);
+    for (struct Queue *s = tc->details.communicator.queue_head;
+         NULL != s;
          s = s->next_client)
       schedule_transmit_on_queue (s);
   }
-  notify_monitors (&neighbour->pid, queue->address, queue->nt, &me);
+  notify_monitors (&neighbour->pid,
+                   queue->address,
+                   queue->nt,
+                   &me);
   GNUNET_BANDWIDTH_tracker_notification_stop (&queue->tracker_in);
   GNUNET_BANDWIDTH_tracker_notification_stop (&queue->tracker_out);
   GNUNET_free (queue);
-  if (NULL == neighbour->queue_head) {
+  if (NULL == neighbour->queue_head)
+  {
     cores_send_disconnect_info (&neighbour->pid);
     free_neighbour (neighbour);
   }
@@ -2540,11 +2595,13 @@ free_address_list_entry (struct AddressListEntry *ale)
   GNUNET_CONTAINER_DLL_remove (tc->details.communicator.addr_head,
                                tc->details.communicator.addr_tail,
                                ale);
-  if (NULL != ale->sc) {
+  if (NULL != ale->sc)
+  {
     GNUNET_PEERSTORE_store_cancel (ale->sc);
     ale->sc = NULL;
   }
-  if (NULL != ale->st) {
+  if (NULL != ale->st)
+  {
     GNUNET_SCHEDULER_cancel (ale->st);
     ale->st = NULL;
   }
@@ -2569,11 +2626,10 @@ stop_peer_request (void *cls,
   struct PeerRequest *pr = value;
 
   GNUNET_PEERSTORE_watch_cancel (pr->wc);
-  GNUNET_assert (
-    GNUNET_YES
-    == GNUNET_CONTAINER_multipeermap_remove (tc->details.application.requests,
-                                             pid,
-                                             pr));
+  GNUNET_assert (GNUNET_YES ==
+                 GNUNET_CONTAINER_multipeermap_remove (tc->details.application.requests,
+                                                       pid,
+                                                       pr));
   GNUNET_free (pr);
 
   return GNUNET_OK;
@@ -2595,37 +2651,45 @@ client_disconnect_cb (void *cls,
 {
   struct TransportClient *tc = app_ctx;
 
-  (void)cls;
+  (void) cls;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Client %p disconnected, cleaning up.\n",
               tc);
-  GNUNET_CONTAINER_DLL_remove (clients_head, clients_tail, tc);
-  switch (tc->type) {
+  GNUNET_CONTAINER_DLL_remove (clients_head,
+                               clients_tail,
+                               tc);
+  switch (tc->type)
+  {
   case CT_NONE:
     break;
-  case CT_CORE: {
-    struct PendingMessage *pm;
+  case CT_CORE:
+    {
+      struct PendingMessage *pm;
 
-    while (NULL != (pm = tc->details.core.pending_msg_head)) {
-      GNUNET_CONTAINER_MDLL_remove (client,
-                                    tc->details.core.pending_msg_head,
-                                    tc->details.core.pending_msg_tail,
-                                    pm);
-      pm->client = NULL;
+      while (NULL != (pm = tc->details.core.pending_msg_head))
+      {
+        GNUNET_CONTAINER_MDLL_remove (client,
+                                      tc->details.core.pending_msg_head,
+                                      tc->details.core.pending_msg_tail,
+                                      pm);
+        pm->client = NULL;
+      }
     }
-  } break;
+    break;
   case CT_MONITOR:
     break;
-  case CT_COMMUNICATOR: {
-    struct Queue *q;
-    struct AddressListEntry *ale;
+  case CT_COMMUNICATOR:
+    {
+      struct Queue *q;
+      struct AddressListEntry *ale;
 
-    while (NULL != (q = tc->details.communicator.queue_head))
-      free_queue (q);
-    while (NULL != (ale = tc->details.communicator.addr_head))
-      free_address_list_entry (ale);
-    GNUNET_free (tc->details.communicator.address_prefix);
-  } break;
+      while (NULL != (q = tc->details.communicator.queue_head))
+        free_queue (q);
+      while (NULL != (ale = tc->details.communicator.addr_head))
+        free_address_list_entry (ale);
+      GNUNET_free (tc->details.communicator.address_prefix);
+    }
+    break;
   case CT_APPLICATION:
     GNUNET_CONTAINER_multipeermap_iterate (tc->details.application.requests,
                                            &stop_peer_request,
@@ -2654,7 +2718,9 @@ notify_client_connect_info (void *cls,
   struct TransportClient *tc = cls;
   struct Neighbour *neighbour = value;
 
-  core_send_connect_info (tc, pid, neighbour->quota_out);
+  core_send_connect_info (tc,
+                          pid,
+                          neighbour->quota_out);
   return GNUNET_OK;
 }
 
@@ -2668,20 +2734,25 @@ notify_client_connect_info (void *cls,
  * @param start the start message that was sent
  */
 static void
-handle_client_start (void *cls, const struct StartMessage *start)
+handle_client_start (void *cls,
+                     const struct StartMessage *start)
 {
   struct TransportClient *tc = cls;
   uint32_t options;
 
   options = ntohl (start->options);
-  if ((0 != (1 & options))
-      && (0 != GNUNET_memcmp (&start->self, &GST_my_identity))) {
+  if ( (0 != (1 & options)) &&
+       (0 !=
+        GNUNET_memcmp (&start->self,
+                       &GST_my_identity)) )
+  {
     /* client thinks this is a different peer, reject */
     GNUNET_break (0);
     GNUNET_SERVICE_client_drop (tc->client);
     return;
   }
-  if (CT_NONE != tc->type) {
+  if (CT_NONE != tc->type)
+  {
     GNUNET_break (0);
     GNUNET_SERVICE_client_drop (tc->client);
     return;
@@ -2701,23 +2772,27 @@ handle_client_start (void *cls, const struct StartMessage *start)
  * @param obm the send message that was sent
  */
 static int
-check_client_send (void *cls, const struct OutboundMessage *obm)
+check_client_send (void *cls,
+                   const struct OutboundMessage *obm)
 {
   struct TransportClient *tc = cls;
   uint16_t size;
   const struct GNUNET_MessageHeader *obmm;
 
-  if (CT_CORE != tc->type) {
+  if (CT_CORE != tc->type)
+  {
     GNUNET_break (0);
     return GNUNET_SYSERR;
   }
   size = ntohs (obm->header.size) - sizeof (struct OutboundMessage);
-  if (size < sizeof (struct GNUNET_MessageHeader)) {
+  if (size < sizeof (struct GNUNET_MessageHeader))
+  {
     GNUNET_break (0);
     return GNUNET_SYSERR;
   }
-  obmm = (const struct GNUNET_MessageHeader *)&obm[1];
-  if (size != ntohs (obmm->size)) {
+  obmm = (const struct GNUNET_MessageHeader *) &obm[1];
+  if (size != ntohs (obmm->size))
+  {
     GNUNET_break (0);
     return GNUNET_SYSERR;
   }
@@ -2735,9 +2810,13 @@ free_fragment_tree (struct PendingMessage *root)
 {
   struct PendingMessage *frag;
 
-  while (NULL != (frag = root->head_frag)) {
+  while (NULL != (frag = root->head_frag))
+  {
     free_fragment_tree (frag);
-    GNUNET_CONTAINER_MDLL_remove (frag, root->head_frag, root->tail_frag, frag);
+    GNUNET_CONTAINER_MDLL_remove (frag,
+				  root->head_frag,
+				  root->tail_frag,
+				  frag);
     GNUNET_free (frag);
   }
 }
@@ -2756,7 +2835,8 @@ free_pending_message (struct PendingMessage *pm)
   struct TransportClient *tc = pm->client;
   struct Neighbour *target = pm->target;
 
-  if (NULL != tc) {
+  if (NULL != tc)
+  {
     GNUNET_CONTAINER_MDLL_remove (client,
                                   tc->details.core.pending_msg_head,
                                   tc->details.core.pending_msg_tail,
@@ -2794,13 +2874,16 @@ client_send_response (struct PendingMessage *pm,
   struct GNUNET_MQ_Envelope *env;
   struct SendOkMessage *som;
 
-  if (NULL != tc) {
-    env = GNUNET_MQ_msg (som, GNUNET_MESSAGE_TYPE_TRANSPORT_SEND_OK);
-    som->success = htonl ((uint32_t)success);
+  if (NULL != tc)
+  {
+    env = GNUNET_MQ_msg (som,
+                         GNUNET_MESSAGE_TYPE_TRANSPORT_SEND_OK);
+    som->success = htonl ((uint32_t) success);
     som->bytes_msg = htons (pm->bytes_msg);
     som->bytes_physical = htonl (bytes_physical);
     som->peer = target->pid;
-    GNUNET_MQ_send (tc->mq, env);
+    GNUNET_MQ_send (tc->mq,
+                    env);
   }
   free_pending_message (pm);
 }
@@ -2823,25 +2906,30 @@ check_queue_timeouts (void *cls)
   n->timeout_task = NULL;
   earliest_timeout = GNUNET_TIME_UNIT_FOREVER_ABS;
   now = GNUNET_TIME_absolute_get ();
-  for (struct PendingMessage *pos = n->pending_msg_head; NULL != pos;
-       pos = pm) {
+  for (struct PendingMessage *pos = n->pending_msg_head;
+       NULL != pos;
+       pos = pm)
+  {
     pm = pos->next_neighbour;
-    if (pos->timeout.abs_value_us <= now.abs_value_us) {
-      GNUNET_STATISTICS_update (
-        GST_stats,
-        "# messages dropped (timeout before confirmation)",
-        1,
-        GNUNET_NO);
-      client_send_response (pm, GNUNET_NO, 0);
+    if (pos->timeout.abs_value_us <= now.abs_value_us)
+    {
+      GNUNET_STATISTICS_update (GST_stats,
+                                "# messages dropped (timeout before confirmation)",
+                                1,
+                                GNUNET_NO);
+      client_send_response (pm,
+			    GNUNET_NO,
+			    0);
       continue;
     }
-    earliest_timeout
-      = GNUNET_TIME_absolute_min (earliest_timeout, pos->timeout);
+    earliest_timeout = GNUNET_TIME_absolute_min (earliest_timeout,
+                                                 pos->timeout);
   }
   n->earliest_timeout = earliest_timeout;
   if (NULL != n->pending_msg_head)
-    n->timeout_task
-      = GNUNET_SCHEDULER_add_at (earliest_timeout, &check_queue_timeouts, n);
+    n->timeout_task = GNUNET_SCHEDULER_add_at (earliest_timeout,
+                                               &check_queue_timeouts,
+                                               n);
 }
 
 
@@ -2852,7 +2940,8 @@ check_queue_timeouts (void *cls)
  * @param obm the send message that was sent
  */
 static void
-handle_client_send (void *cls, const struct OutboundMessage *obm)
+handle_client_send (void *cls,
+                    const struct OutboundMessage *obm)
 {
   struct TransportClient *tc = cls;
   struct PendingMessage *pm;
@@ -2862,10 +2951,11 @@ handle_client_send (void *cls, const struct OutboundMessage *obm)
   int was_empty;
 
   GNUNET_assert (CT_CORE == tc->type);
-  obmm = (const struct GNUNET_MessageHeader *)&obm[1];
+  obmm = (const struct GNUNET_MessageHeader *) &obm[1];
   bytes_msg = ntohs (obmm->size);
   target = lookup_neighbour (&obm->peer);
-  if (NULL == target) {
+  if (NULL == target)
+  {
     /* Failure: don't have this peer as a neighbour (anymore).
        Might have gone down asynchronously, so this is NOT
        a protocol violation by CORE. Still count the event,
@@ -2873,12 +2963,14 @@ handle_client_send (void *cls, const struct OutboundMessage *obm)
     struct GNUNET_MQ_Envelope *env;
     struct SendOkMessage *som;
 
-    env = GNUNET_MQ_msg (som, GNUNET_MESSAGE_TYPE_TRANSPORT_SEND_OK);
+    env = GNUNET_MQ_msg (som,
+                         GNUNET_MESSAGE_TYPE_TRANSPORT_SEND_OK);
     som->success = htonl (GNUNET_SYSERR);
     som->bytes_msg = htonl (bytes_msg);
     som->bytes_physical = htonl (0);
     som->peer = obm->peer;
-    GNUNET_MQ_send (tc->mq, env);
+    GNUNET_MQ_send (tc->mq,
+                    env);
     GNUNET_SERVICE_client_continue (tc->client);
     GNUNET_STATISTICS_update (GST_stats,
                               "# messages dropped (neighbour unknown)",
@@ -2891,9 +2983,10 @@ handle_client_send (void *cls, const struct OutboundMessage *obm)
   pm->client = tc;
   pm->target = target;
   pm->bytes_msg = bytes_msg;
-  pm->timeout = GNUNET_TIME_relative_to_absolute (
-    GNUNET_TIME_relative_ntoh (obm->timeout));
-  memcpy (&pm[1], &obm[1], bytes_msg);
+  pm->timeout = GNUNET_TIME_relative_to_absolute (GNUNET_TIME_relative_ntoh (obm->timeout));
+  memcpy (&pm[1],
+          &obm[1],
+          bytes_msg);
   GNUNET_CONTAINER_MDLL_insert (neighbour,
                                 target->pending_msg_head,
                                 target->pending_msg_tail,
@@ -2902,22 +2995,26 @@ handle_client_send (void *cls, const struct OutboundMessage *obm)
                                 tc->details.core.pending_msg_head,
                                 tc->details.core.pending_msg_tail,
                                 pm);
-  if (target->earliest_timeout.abs_value_us > pm->timeout.abs_value_us) {
+  if (target->earliest_timeout.abs_value_us > pm->timeout.abs_value_us)
+  {
     target->earliest_timeout.abs_value_us = pm->timeout.abs_value_us;
     if (NULL != target->timeout_task)
       GNUNET_SCHEDULER_cancel (target->timeout_task);
-    target->timeout_task = GNUNET_SCHEDULER_add_at (target->earliest_timeout,
-                                                    &check_queue_timeouts,
-                                                    target);
+    target->timeout_task
+      = GNUNET_SCHEDULER_add_at (target->earliest_timeout,
+                                 &check_queue_timeouts,
+                                 target);
   }
   if (! was_empty)
     return; /* all queues must already be busy */
-  for (struct Queue *queue = target->queue_head; NULL != queue;
-       queue = queue->next_neighbour) {
+  for (struct Queue *queue = target->queue_head;
+       NULL != queue;
+       queue = queue->next_neighbour)
+  {
     /* try transmission on any queue that is idle */
     if (NULL == queue->transmit_task)
-      queue->transmit_task
-        = GNUNET_SCHEDULER_add_now (&transmit_on_queue, queue);
+      queue->transmit_task = GNUNET_SCHEDULER_add_now (&transmit_on_queue,
+                                                       queue);
   }
 }
 
@@ -2929,14 +3026,14 @@ handle_client_send (void *cls, const struct OutboundMessage *obm)
  * @param cam the send message that was sent
  */
 static int
-check_communicator_available (
-  void *cls,
-  const struct GNUNET_TRANSPORT_CommunicatorAvailableMessage *cam)
+check_communicator_available (void *cls,
+                              const struct GNUNET_TRANSPORT_CommunicatorAvailableMessage *cam)
 {
   struct TransportClient *tc = cls;
   uint16_t size;
 
-  if (CT_NONE != tc->type) {
+  if (CT_NONE != tc->type)
+  {
     GNUNET_break (0);
     return GNUNET_SYSERR;
   }
@@ -2956,9 +3053,8 @@ check_communicator_available (
  * @param cam the send message that was sent
  */
 static void
-handle_communicator_available (
-  void *cls,
-  const struct GNUNET_TRANSPORT_CommunicatorAvailableMessage *cam)
+handle_communicator_available (void *cls,
+                               const struct GNUNET_TRANSPORT_CommunicatorAvailableMessage *cam)
 {
   struct TransportClient *tc = cls;
   uint16_t size;
@@ -2967,9 +3063,9 @@ handle_communicator_available (
   if (0 == size)
     return; /* receive-only communicator */
   tc->details.communicator.address_prefix
-    = GNUNET_strdup ((const char *)&cam[1]);
+    = GNUNET_strdup ((const char *) &cam[1]);
   tc->details.communicator.cc
-    = (enum GNUNET_TRANSPORT_CommunicatorCharacteristics)ntohl (cam->cc);
+    = (enum GNUNET_TRANSPORT_CommunicatorCharacteristics) ntohl (cam->cc);
   GNUNET_SERVICE_client_continue (tc->client);
 }
 
@@ -2982,34 +3078,36 @@ handle_communicator_available (
  * @return #GNUNET_OK if message is well-formed
  */
 static int
-check_communicator_backchannel (
-  void *cls,
-  const struct GNUNET_TRANSPORT_CommunicatorBackchannel *cb)
+check_communicator_backchannel (void *cls,
+                                const struct GNUNET_TRANSPORT_CommunicatorBackchannel *cb)
 {
   const struct GNUNET_MessageHeader *inbox;
   const char *is;
   uint16_t msize;
   uint16_t isize;
 
-  (void)cls;
+  (void) cls;
   msize = ntohs (cb->header.size) - sizeof (*cb);
-  if (UINT16_MAX - msize
-      > sizeof (struct TransportBackchannelEncapsulationMessage)
-          + sizeof (struct TransportBackchannelRequestPayload)) {
+  if (UINT16_MAX - msize >
+      sizeof (struct TransportBackchannelEncapsulationMessage) +
+      sizeof (struct TransportBackchannelRequestPayload) )
+  {
     GNUNET_break (0);
     return GNUNET_SYSERR;
   }
-  inbox = (const struct GNUNET_MessageHeader *)&cb[1];
+  inbox = (const struct GNUNET_MessageHeader *) &cb[1];
   isize = ntohs (inbox->size);
-  if (isize >= msize) {
+  if (isize >= msize)
+  {
     GNUNET_break (0);
     return GNUNET_SYSERR;
   }
-  is = (const char *)inbox;
+  is = (const char *) inbox;
   is += isize;
   msize -= isize;
   GNUNET_assert (msize > 0);
-  if ('\0' != is[msize - 1]) {
+  if ('\0' != is[msize-1])
+  {
     GNUNET_break (0);
     return GNUNET_SYSERR;
   }
@@ -3027,12 +3125,12 @@ expire_ephemerals (void *cls)
 {
   struct EphemeralCacheEntry *ece;
 
-  (void)cls;
+  (void) cls;
   ephemeral_task = NULL;
-  while (NULL != (ece = GNUNET_CONTAINER_heap_peek (ephemeral_heap))) {
-    if (0
-        == GNUNET_TIME_absolute_get_remaining (ece->ephemeral_validity)
-             .rel_value_us) {
+  while (NULL != (ece = GNUNET_CONTAINER_heap_peek (ephemeral_heap)))
+  {
+    if (0 == GNUNET_TIME_absolute_get_remaining (ece->ephemeral_validity).rel_value_us)
+    {
       free_ephemeral (ece);
       continue;
     }
@@ -3064,41 +3162,40 @@ lookup_ephemeral (const struct GNUNET_PeerIdentity *pid,
   struct EphemeralCacheEntry *ece;
   struct EphemeralConfirmation ec;
 
-  ece = GNUNET_CONTAINER_multipeermap_get (ephemeral_map, pid);
-  if ((NULL != ece)
-      && (0
-          == GNUNET_TIME_absolute_get_remaining (ece->ephemeral_validity)
-               .rel_value_us)) {
+  ece = GNUNET_CONTAINER_multipeermap_get (ephemeral_map,
+                                           pid);
+  if ( (NULL != ece) &&
+       (0 == GNUNET_TIME_absolute_get_remaining (ece->ephemeral_validity).rel_value_us) )
+  {
     free_ephemeral (ece);
     ece = NULL;
   }
-  if (NULL == ece) {
+  if (NULL == ece)
+  {
     ece = GNUNET_new (struct EphemeralCacheEntry);
     ece->target = *pid;
-    ece->ephemeral_validity
-      = GNUNET_TIME_absolute_add (GNUNET_TIME_absolute_get_monotonic (GST_cfg),
-                                  EPHEMERAL_VALIDITY);
-    GNUNET_assert (GNUNET_OK
-                   == GNUNET_CRYPTO_ecdhe_key_create2 (&ece->private_key));
-    GNUNET_CRYPTO_ecdhe_key_get_public (&ece->private_key, &ece->ephemeral_key);
+    ece->ephemeral_validity = GNUNET_TIME_absolute_add (GNUNET_TIME_absolute_get_monotonic (GST_cfg),
+                                                        EPHEMERAL_VALIDITY);
+    GNUNET_assert (GNUNET_OK ==
+                   GNUNET_CRYPTO_ecdhe_key_create2 (&ece->private_key));
+    GNUNET_CRYPTO_ecdhe_key_get_public (&ece->private_key,
+                                        &ece->ephemeral_key);
     ec.purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_TRANSPORT_EPHEMERAL);
     ec.purpose.size = htonl (sizeof (ec));
     ec.target = *pid;
     ec.ephemeral_key = ece->ephemeral_key;
-    GNUNET_assert (GNUNET_OK
-                   == GNUNET_CRYPTO_eddsa_sign (GST_my_private_key,
-                                                &ec.purpose,
-                                                &ece->sender_sig));
-    ece->hn
-      = GNUNET_CONTAINER_heap_insert (ephemeral_heap,
-                                      ece,
-                                      ece->ephemeral_validity.abs_value_us);
-    GNUNET_assert (GNUNET_OK
-                   == GNUNET_CONTAINER_multipeermap_put (
-                     ephemeral_map,
-                     &ece->target,
-                     ece,
-                     GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
+    GNUNET_assert (GNUNET_OK ==
+                   GNUNET_CRYPTO_eddsa_sign (GST_my_private_key,
+                                             &ec.purpose,
+                                             &ece->sender_sig));
+    ece->hn = GNUNET_CONTAINER_heap_insert (ephemeral_heap,
+                                            ece,
+                                            ece->ephemeral_validity.abs_value_us);
+    GNUNET_assert (GNUNET_OK ==
+                   GNUNET_CONTAINER_multipeermap_put (ephemeral_map,
+                                                      &ece->target,
+                                                      ece,
+                                                      GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
     if (NULL == ephemeral_task)
       ephemeral_task = GNUNET_SCHEDULER_add_at (ece->ephemeral_validity,
                                                 &expire_ephemerals,
@@ -3131,8 +3228,7 @@ route_message (const struct GNUNET_PeerIdentity *target,
   //      a path back! - if all else fails
   // => need more on DV first!
 
-  // FIXME: send hdr to target, free hdr (possibly using DV, possibly
-  // broadcasting)
+  // FIXME: send hdr to target, free hdr (possibly using DV, possibly broadcasting)
   GNUNET_free (hdr);
 }
 
@@ -3161,20 +3257,20 @@ struct BackchannelKeyState
 
 
 static void
-bc_setup_key_state_from_km (const struct GNUNET_HashCode *km,
-                            const struct GNUNET_HashCode *iv,
-                            struct BackchannelKeyState *key)
+setup_key_state_from_km (const struct GNUNET_HashCode *km,
+                         const struct GNUNET_HashCode *iv,
+                         struct BackchannelKeyState *key)
 {
   /* must match #dh_key_derive_eph_pub */
-  GNUNET_assert (GNUNET_YES
-                 == GNUNET_CRYPTO_kdf (key,
-                                       sizeof (*key),
-                                       "transport-backchannel-key",
-                                       strlen ("transport-backchannel-key"),
-                                       &km,
-                                       sizeof (km),
-                                       iv,
-                                       sizeof (*iv)));
+  GNUNET_assert (GNUNET_YES ==
+                 GNUNET_CRYPTO_kdf (key,
+                                    sizeof (*key),
+                                    "transport-backchannel-key",
+                                    strlen ("transport-backchannel-key"),
+                                    &km,
+                                    sizeof (km),
+                                    iv,
+                                    sizeof (*iv)));
 }
 
 
@@ -3188,18 +3284,20 @@ bc_setup_key_state_from_km (const struct GNUNET_HashCode *km,
  * @param key[out] set to the key material
  */
 static void
-dh_key_derive_eph_pid (
-  const struct GNUNET_CRYPTO_EcdhePrivateKey *priv_ephemeral,
-  const struct GNUNET_PeerIdentity *target,
-  const struct GNUNET_ShortHashCode *iv,
-  struct BackchannelKeyState *key)
+dh_key_derive_eph_pid (const struct GNUNET_CRYPTO_EcdhePrivateKey *priv_ephemeral,
+                       const struct GNUNET_PeerIdentity *target,
+                       const struct GNUNET_ShortHashCode *iv,
+                       struct BackchannelKeyState *key)
 {
   struct GNUNET_HashCode km;
 
-  GNUNET_assert (
-    GNUNET_YES
-    == GNUNET_CRYPTO_ecdsa_ecdh (priv_ephemeral, &target->public_key, &km));
-  bc_setup_key_state_from_km (&km, iv, key);
+  GNUNET_assert (GNUNET_YES ==
+                 GNUNET_CRYPTO_ecdsa_ecdh (priv_ephemeral,
+                                           &target->public_key,
+                                           &km));
+  bc_setup_key_state_from_km (&km,
+                              iv,
+                              key);
 }
 
 
@@ -3219,10 +3317,13 @@ dh_key_derive_eph_pub (const struct GNUNET_CRYPTO_EcdhePublicKey *pub_ephemeral,
 {
   struct GNUNET_HashCode km;
 
-  GNUNET_assert (
-    GNUNET_YES
-    == GNUNET_CRYPTO_ecdsa_ecdh (GST_my_private_key, pub_ephemeral, &km));
-  bc_setup_key_state_from_km (&km, iv, key);
+  GNUNET_assert (GNUNET_YES ==
+                 GNUNET_CRYPTO_ecdsa_ecdh (GST_my_private_key,
+                                           pub_ephemeral,
+                                           &km));
+  bc_setup_key_state_from_km (&km,
+                              iv,
+                              key);
 }
 
 
@@ -3302,9 +3403,8 @@ bc_key_clean (struct BackchannelKeyState *key)
  * @param cb the send message that was sent
  */
 static void
-handle_communicator_backchannel (
-  void *cls,
-  const struct GNUNET_TRANSPORT_CommunicatorBackchannel *cb)
+handle_communicator_backchannel (void *cls,
+                                 const struct GNUNET_TRANSPORT_CommunicatorBackchannel *cb)
 {
   struct TransportClient *tc = cls;
   struct GNUNET_CRYPTO_EcdhePrivateKey private_key;
@@ -3316,11 +3416,9 @@ handle_communicator_backchannel (
   uint16_t msize;
 
   /* encapsulate and encrypt message */
-  msize = ntohs (cb->header.size) - sizeof (*cb)
-          + sizeof (struct TransportBackchannelRequestPayload);
+  msize = ntohs (cb->header.size) - sizeof (*cb) + sizeof (struct TransportBackchannelRequestPayload);
   enc = GNUNET_malloc (sizeof (*enc) + msize);
-  enc->header.type
-    = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_BACKCHANNEL_ENCAPSULATION);
+  enc->header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_BACKCHANNEL_ENCAPSULATION);
   enc->header.size = htons (sizeof (*enc) + msize);
   enc->target = cb->pid;
   lookup_ephemeral (&cb->pid,
@@ -3331,12 +3429,17 @@ handle_communicator_backchannel (
   GNUNET_CRYPTO_random_block (GNUNET_CRYPTO_QUALITY_NONCE,
                               &enc->iv,
                               sizeof (enc->iv));
-  dh_key_derive_eph_pid (&private_key, &cb->pid, &enc->iv, &key);
+  dh_key_derive (&private_key,
+                 &cb->pid,
+                 &enc->iv,
+                 &key);
   ppay.ephemeral_validity = GNUNET_TIME_absolute_hton (ephemeral_validity);
-  ppay.monotonic_time
-    = GNUNET_TIME_absolute_hton (GNUNET_TIME_absolute_get_monotonic (GST_cfg));
-  mpos = (char *)&enc[1];
-  bc_encrypt (&key, &ppay, mpos, sizeof (ppay));
+  ppay.monotonic_time = GNUNET_TIME_absolute_hton (GNUNET_TIME_absolute_get_monotonic (GST_cfg));
+  mpos = (char *) &enc[1];
+  bc_encrypt (&key,
+              &ppay,
+              mpos,
+              sizeof (ppay));
   bc_encrypt (&key,
               &cb[1],
               &mpos[sizeof (ppay)],
@@ -3346,7 +3449,8 @@ handle_communicator_backchannel (
            mpos,
            sizeof (ppay) + ntohs (cb->header.size) - sizeof (*cb));
   bc_key_clean (&key);
-  route_message (&cb->pid, &enc->header);
+  route_message (&cb->pid,
+                 &enc->header);
   GNUNET_SERVICE_client_continue (tc->client);
 }
 
@@ -3364,7 +3468,8 @@ check_add_address (void *cls,
 {
   struct TransportClient *tc = cls;
 
-  if (CT_COMMUNICATOR != tc->type) {
+  if (CT_COMMUNICATOR != tc->type)
+  {
     GNUNET_break (0);
     return GNUNET_SYSERR;
   }
@@ -3389,7 +3494,8 @@ store_pi (void *cls);
  * @param success #GNUNET_YES if peerstore was successful
  */
 static void
-peerstore_store_own_cb (void *cls, int success)
+peerstore_store_own_cb (void *cls,
+                        int success)
 {
   struct AddressListEntry *ale = cls;
 
@@ -3400,10 +3506,10 @@ peerstore_store_own_cb (void *cls, int success)
                 ale->address);
   /* refresh period is 1/4 of expiration time, that should be plenty
      without being excessive. */
-  ale->st = GNUNET_SCHEDULER_add_delayed (
-    GNUNET_TIME_relative_divide (ale->expiration, 4ULL),
-    &store_pi,
-    ale);
+  ale->st = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_divide (ale->expiration,
+                                                                       4ULL),
+                                          &store_pi,
+                                          ale);
 }
 
 
@@ -3439,12 +3545,14 @@ store_pi (void *cls)
                                     &peerstore_store_own_cb,
                                     ale);
   GNUNET_free (addr);
-  if (NULL == ale->sc) {
+  if (NULL == ale->sc)
+  {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                 "Failed to store our address `%s' with peerstore\n",
                 ale->address);
-    ale->st
-      = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &store_pi, ale);
+    ale->st = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
+                                            &store_pi,
+                                            ale);
   }
 }
 
@@ -3466,15 +3574,18 @@ handle_add_address (void *cls,
   slen = ntohs (aam->header.size) - sizeof (*aam);
   ale = GNUNET_malloc (sizeof (struct AddressListEntry) + slen);
   ale->tc = tc;
-  ale->address = (const char *)&ale[1];
+  ale->address = (const char *) &ale[1];
   ale->expiration = GNUNET_TIME_relative_ntoh (aam->expiration);
   ale->aid = aam->aid;
-  ale->nt = (enum GNUNET_NetworkType)ntohl (aam->nt);
-  memcpy (&ale[1], &aam[1], slen);
+  ale->nt = (enum GNUNET_NetworkType) ntohl (aam->nt);
+  memcpy (&ale[1],
+          &aam[1],
+          slen);
   GNUNET_CONTAINER_DLL_insert (tc->details.communicator.addr_head,
                                tc->details.communicator.addr_tail,
                                ale);
-  ale->st = GNUNET_SCHEDULER_add_now (&store_pi, ale);
+  ale->st = GNUNET_SCHEDULER_add_now (&store_pi,
+                                      ale);
   GNUNET_SERVICE_client_continue (tc->client);
 }
 
@@ -3491,14 +3602,16 @@ handle_del_address (void *cls,
 {
   struct TransportClient *tc = cls;
 
-  if (CT_COMMUNICATOR != tc->type) {
+  if (CT_COMMUNICATOR != tc->type)
+  {
     GNUNET_break (0);
     GNUNET_SERVICE_client_drop (tc->client);
     return;
   }
   for (struct AddressListEntry *ale = tc->details.communicator.addr_head;
        NULL != ale;
-       ale = ale->next) {
+       ale = ale->next)
+  {
     if (dam->aid != ale->aid)
       continue;
     GNUNET_assert (ale->tc == tc);
@@ -3554,16 +3667,19 @@ demultiplex_with_cmc (struct CommunicatorMessageContext *cmc,
 static void
 finish_cmc_handling (struct CommunicatorMessageContext *cmc)
 {
-  if (0 != ntohl (cmc->im.fc_on)) {
+  if (0 != ntohl (cmc->im.fc_on))
+  {
     /* send ACK when done to communicator for flow control! */
     struct GNUNET_MQ_Envelope *env;
     struct GNUNET_TRANSPORT_IncomingMessageAck *ack;
 
-    env = GNUNET_MQ_msg (ack, GNUNET_MESSAGE_TYPE_TRANSPORT_INCOMING_MSG_ACK);
+    env = GNUNET_MQ_msg (ack,
+                         GNUNET_MESSAGE_TYPE_TRANSPORT_INCOMING_MSG_ACK);
     ack->reserved = htonl (0);
     ack->fc_id = cmc->im.fc_id;
     ack->sender = cmc->im.sender;
-    GNUNET_MQ_send (cmc->tc->mq, env);
+    GNUNET_MQ_send (cmc->tc->mq,
+                    env);
   }
   GNUNET_SERVICE_client_continue (cmc->tc->client);
   GNUNET_free (cmc);
@@ -3574,18 +3690,19 @@ finish_cmc_handling (struct CommunicatorMessageContext *cmc)
  * Communicator gave us an unencapsulated message to pass as-is to
  * CORE.  Process the request.
  *
- * @param cls a `struct CommunicatorMessageContext` (must call
- * #finish_cmc_handling() when done)
+ * @param cls a `struct CommunicatorMessageContext` (must call #finish_cmc_handling() when done)
  * @param mh the message that was received
  */
 static void
-handle_raw_message (void *cls, const struct GNUNET_MessageHeader *mh)
+handle_raw_message (void *cls,
+                    const struct GNUNET_MessageHeader *mh)
 {
   struct CommunicatorMessageContext *cmc = cls;
   uint16_t size = ntohs (mh->size);
 
-  if ((size > UINT16_MAX - sizeof (struct InboundMessage))
-      || (size < sizeof (struct GNUNET_MessageHeader))) {
+  if ( (size > UINT16_MAX - sizeof (struct InboundMessage)) ||
+       (size < sizeof (struct GNUNET_MessageHeader)) )
+  {
     struct GNUNET_SERVICE_Client *client = cmc->tc->client;
 
     GNUNET_break (0);
@@ -3594,16 +3711,24 @@ handle_raw_message (void *cls, const struct GNUNET_MessageHeader *mh)
     return;
   }
   /* Forward to all CORE clients */
-  for (struct TransportClient *tc = clients_head; NULL != tc; tc = tc->next) {
+  for (struct TransportClient *tc = clients_head;
+       NULL != tc;
+       tc = tc->next)
+  {
     struct GNUNET_MQ_Envelope *env;
     struct InboundMessage *im;
 
     if (CT_CORE != tc->type)
       continue;
-    env = GNUNET_MQ_msg_extra (im, size, GNUNET_MESSAGE_TYPE_TRANSPORT_RECV);
+    env = GNUNET_MQ_msg_extra (im,
+                               size,
+                               GNUNET_MESSAGE_TYPE_TRANSPORT_RECV);
     im->peer = cmc->im.sender;
-    memcpy (&im[1], mh, size);
-    GNUNET_MQ_send (tc->mq, env);
+    memcpy (&im[1],
+            mh,
+            size);
+    GNUNET_MQ_send (tc->mq,
+                    env);
   }
   /* FIXME: consider doing this _only_ once the message
      was drained from the CORE MQs to extend flow control to CORE!
@@ -3620,20 +3745,24 @@ handle_raw_message (void *cls, const struct GNUNET_MessageHeader *mh)
  * @return #GNUNET_YES if message is well-formed
  */
 static int
-check_fragment_box (void *cls, const struct TransportFragmentBox *fb)
+check_fragment_box (void *cls,
+                    const struct TransportFragmentBox *fb)
 {
   uint16_t size = ntohs (fb->header.size);
   uint16_t bsize = size - sizeof (*fb);
 
-  if (0 == bsize) {
+  if (0 == bsize)
+  {
     GNUNET_break_op (0);
     return GNUNET_SYSERR;
   }
-  if (bsize + ntohs (fb->frag_off) > ntohs (fb->msg_size)) {
+  if (bsize + ntohs (fb->frag_off) > ntohs (fb->msg_size))
+  {
     GNUNET_break_op (0);
     return GNUNET_SYSERR;
   }
-  if (ntohs (fb->frag_off) >= ntohs (fb->msg_size)) {
+  if (ntohs (fb->frag_off) >= ntohs (fb->msg_size))
+  {
     GNUNET_break_op (0);
     return GNUNET_SYSERR;
   }
@@ -3659,12 +3788,13 @@ send_fragment_ack (struct ReassemblyContext *rc)
   ack->msg_uuid = rc->msg_uuid;
   ack->avg_ack_delay = GNUNET_TIME_relative_hton (rc->avg_ack_delay);
   if (0 == rc->msg_missing)
-    ack->reassembly_timeout = GNUNET_TIME_relative_hton (
-      GNUNET_TIME_UNIT_FOREVER_REL); /* signal completion */
+    ack->reassembly_timeout
+      = GNUNET_TIME_relative_hton (GNUNET_TIME_UNIT_FOREVER_REL); /* signal completion */
   else
-    ack->reassembly_timeout = GNUNET_TIME_relative_hton (
-      GNUNET_TIME_absolute_get_remaining (rc->reassembly_timeout));
-  route_message (&rc->neighbour->pid, &ack->header);
+    ack->reassembly_timeout
+      = GNUNET_TIME_relative_hton (GNUNET_TIME_absolute_get_remaining (rc->reassembly_timeout));
+  route_message (&rc->neighbour->pid,
+                 &ack->header);
   rc->avg_ack_delay = GNUNET_TIME_UNIT_ZERO;
   rc->num_acks = 0;
   rc->extra_acks = 0LLU;
@@ -3674,12 +3804,12 @@ send_fragment_ack (struct ReassemblyContext *rc)
 /**
  * Communicator gave us a fragment.  Process the request.
  *
- * @param cls a `struct CommunicatorMessageContext` (must call
- * #finish_cmc_handling() when done)
+ * @param cls a `struct CommunicatorMessageContext` (must call #finish_cmc_handling() when done)
  * @param fb the message that was received
  */
 static void
-handle_fragment_box (void *cls, const struct TransportFragmentBox *fb)
+handle_fragment_box (void *cls,
+                     const struct TransportFragmentBox *fb)
 {
   struct CommunicatorMessageContext *cmc = cls;
   struct Neighbour *n;
@@ -3693,8 +3823,10 @@ handle_fragment_box (void *cls, const struct TransportFragmentBox *fb)
   struct GNUNET_TIME_Relative cdelay;
   int ack_now;
 
-  n = GNUNET_CONTAINER_multipeermap_get (neighbours, &cmc->im.sender);
-  if (NULL == n) {
+  n = GNUNET_CONTAINER_multipeermap_get (neighbours,
+                                         &cmc->im.sender);
+  if (NULL == n)
+  {
     struct GNUNET_SERVICE_Client *client = cmc->tc->client;
 
     GNUNET_break (0);
@@ -3702,42 +3834,46 @@ handle_fragment_box (void *cls, const struct TransportFragmentBox *fb)
     GNUNET_SERVICE_client_drop (client);
     return;
   }
-  if (NULL == n->reassembly_map) {
-    n->reassembly_map = GNUNET_CONTAINER_multishortmap_create (8, GNUNET_YES);
-    n->reassembly_heap
-      = GNUNET_CONTAINER_heap_create (GNUNET_CONTAINER_HEAP_ORDER_MIN);
-    n->reassembly_timeout_task
-      = GNUNET_SCHEDULER_add_delayed (REASSEMBLY_EXPIRATION,
-                                      &reassembly_cleanup_task,
-                                      n);
+  if (NULL == n->reassembly_map)
+  {
+    n->reassembly_map = GNUNET_CONTAINER_multishortmap_create (8,
+                                                               GNUNET_YES);
+    n->reassembly_heap = GNUNET_CONTAINER_heap_create (GNUNET_CONTAINER_HEAP_ORDER_MIN);
+    n->reassembly_timeout_task = GNUNET_SCHEDULER_add_delayed (REASSEMBLY_EXPIRATION,
+                                                               &reassembly_cleanup_task,
+                                                               n);
   }
   msize = ntohs (fb->msg_size);
-  rc = GNUNET_CONTAINER_multishortmap_get (n->reassembly_map, &fb->msg_uuid);
-  if (NULL == rc) {
-    rc = GNUNET_malloc (sizeof (*rc) + msize + /* reassembly payload buffer */
-                        (msize + 7) / 8 * sizeof (uint8_t) /* bitfield */);
+  rc = GNUNET_CONTAINER_multishortmap_get (n->reassembly_map,
+                                           &fb->msg_uuid);
+  if (NULL == rc)
+  {
+    rc = GNUNET_malloc (sizeof (*rc) +
+			msize + /* reassembly payload buffer */
+			(msize + 7) / 8 * sizeof (uint8_t) /* bitfield */);
     rc->msg_uuid = fb->msg_uuid;
     rc->neighbour = n;
     rc->msg_size = msize;
-    rc->reassembly_timeout
-      = GNUNET_TIME_relative_to_absolute (REASSEMBLY_EXPIRATION);
+    rc->reassembly_timeout = GNUNET_TIME_relative_to_absolute (REASSEMBLY_EXPIRATION);
     rc->last_frag = GNUNET_TIME_absolute_get ();
     rc->hn = GNUNET_CONTAINER_heap_insert (n->reassembly_heap,
                                            rc,
                                            rc->reassembly_timeout.abs_value_us);
-    GNUNET_assert (GNUNET_OK
-                   == GNUNET_CONTAINER_multishortmap_put (
-                     n->reassembly_map,
-                     &rc->msg_uuid,
-                     rc,
-                     GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
-    target = (char *)&rc[1];
-    rc->bitfield = (uint8_t *)(target + rc->msg_size);
+    GNUNET_assert (GNUNET_OK ==
+                   GNUNET_CONTAINER_multishortmap_put (n->reassembly_map,
+                                                       &rc->msg_uuid,
+                                                       rc,
+                                                       GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
+    target = (char *) &rc[1];
+    rc->bitfield = (uint8_t *) (target + rc->msg_size);
     rc->msg_missing = rc->msg_size;
-  } else {
-    target = (char *)&rc[1];
   }
-  if (msize != rc->msg_size) {
+  else
+  {
+    target = (char *) &rc[1];
+  }
+  if (msize != rc->msg_size)
+  {
     GNUNET_break (0);
     finish_cmc_handling (cmc);
     return;
@@ -3746,10 +3882,14 @@ handle_fragment_box (void *cls, const struct TransportFragmentBox *fb)
   /* reassemble */
   fsize = ntohs (fb->header.size) - sizeof (*fb);
   frag_off = ntohs (fb->frag_off);
-  memcpy (&target[frag_off], &fb[1], fsize);
+  memcpy (&target[frag_off],
+          &fb[1],
+          fsize);
   /* update bitfield and msg_missing */
-  for (unsigned int i = frag_off; i < frag_off + fsize; i++) {
-    if (0 == (rc->bitfield[i / 8] & (1 << (i % 8)))) {
+  for (unsigned int i=frag_off;i<frag_off+fsize;i++)
+  {
+    if (0 == (rc->bitfield[i / 8] & (1 << (i % 8))))
+    {
       rc->bitfield[i / 8] |= (1 << (i % 8));
       rc->msg_missing--;
     }
@@ -3758,34 +3898,41 @@ handle_fragment_box (void *cls, const struct TransportFragmentBox *fb)
   /* Compute cummulative ACK */
   frag_uuid = ntohl (fb->frag_uuid);
   cdelay = GNUNET_TIME_absolute_get_duration (rc->last_frag);
-  cdelay = GNUNET_TIME_relative_multiply (cdelay, rc->num_acks);
+  cdelay = GNUNET_TIME_relative_multiply (cdelay,
+                                          rc->num_acks);
   rc->last_frag = GNUNET_TIME_absolute_get ();
-  rc->avg_ack_delay = GNUNET_TIME_relative_add (rc->avg_ack_delay, cdelay);
+  rc->avg_ack_delay = GNUNET_TIME_relative_add (rc->avg_ack_delay,
+                                                cdelay);
   ack_now = GNUNET_NO;
-  if (0 == rc->num_acks) {
+  if (0 == rc->num_acks)
+  {
     /* case one: first ack */
     rc->frag_uuid = frag_uuid;
     rc->extra_acks = 0LLU;
     rc->num_acks = 1;
-  } else if ((frag_uuid >= rc->frag_uuid)
-             && (frag_uuid <= rc->frag_uuid + 64)) {
+  }
+  else if ( (frag_uuid >= rc->frag_uuid) &&
+	    (frag_uuid <= rc->frag_uuid + 64) )
+  {
     /* case two: ack fits after existing min UUID */
-    if ((frag_uuid == rc->frag_uuid)
-        || (0
-            != (rc->extra_acks & (1LLU << (frag_uuid - rc->frag_uuid - 1))))) {
+    if ( (frag_uuid == rc->frag_uuid) ||
+	 (0 != (rc->extra_acks & (1LLU << (frag_uuid - rc->frag_uuid - 1)))) )
+    {
       /* duplicate fragment, ack now! */
       ack_now = GNUNET_YES;
-    } else {
+    }
+    else
+    {
       rc->extra_acks |= (1LLU << (frag_uuid - rc->frag_uuid - 1));
       rc->num_acks++;
     }
-  } else if ((rc->frag_uuid > frag_uuid)
-             && (((rc->frag_uuid == frag_uuid + 64) && (0 == rc->extra_acks))
-                 || ((rc->frag_uuid < frag_uuid + 64)
-                     && (rc->extra_acks
-                         == (rc->extra_acks
-                             & ~((1LLU << (64 - (rc->frag_uuid - frag_uuid)))
-                                 - 1LLU)))))) {
+  }
+  else if ( (rc->frag_uuid > frag_uuid) &&
+	    ( ( (rc->frag_uuid == frag_uuid + 64) &&
+		(0 == rc->extra_acks) ) ||
+	      ( (rc->frag_uuid < frag_uuid + 64) &&
+		(rc->extra_acks == (rc->extra_acks & ~ ((1LLU << (64 - (rc->frag_uuid - frag_uuid))) - 1LLU))) ) ) )
+  {
     /* can fit ack by shifting extra acks and starting at
        frag_uid, test above esured that the bits we will
        shift 'extra_acks' by are all zero. */
@@ -3794,22 +3941,23 @@ handle_fragment_box (void *cls, const struct TransportFragmentBox *fb)
     rc->frag_uuid = frag_uuid;
     rc->num_acks++;
   }
-  if (65 == rc->num_acks) /* FIXME: maybe use smaller threshold? This is very
-                             aggressive. */
+  if (65 == rc->num_acks) /* FIXME: maybe use smaller threshold? This is very aggressive. */
     ack_now = GNUNET_YES; /* maximum acks received */
   // FIXME: possibly also ACK based on RTT (but for that we'd need to
   // determine the queue used for the ACK first!)
 
   /* is reassembly complete? */
-  if (0 != rc->msg_missing) {
+  if (0 != rc->msg_missing)
+  {
     if (ack_now)
       send_fragment_ack (rc);
     finish_cmc_handling (cmc);
     return;
   }
   /* reassembly is complete, verify result */
-  msg = (const struct GNUNET_MessageHeader *)&rc[1];
-  if (ntohs (msg->size) != rc->msg_size) {
+  msg = (const struct GNUNET_MessageHeader *) &rc[1];
+  if (ntohs (msg->size) != rc->msg_size)
+  {
     GNUNET_break (0);
     free_reassembly_context (rc);
     finish_cmc_handling (cmc);
@@ -3817,7 +3965,8 @@ handle_fragment_box (void *cls, const struct TransportFragmentBox *fb)
   }
   /* successful reassembly */
   send_fragment_ack (rc);
-  demultiplex_with_cmc (cmc, msg);
+  demultiplex_with_cmc (cmc,
+                        msg);
   /* FIXME: really free here? Might be bad if fragments are still
      en-route and we forget that we finished this reassembly immediately!
      -> keep around until timeout?
@@ -3845,17 +3994,22 @@ check_ack_against_pm (struct PendingMessage *pm,
   uint64_t xtra = GNUNET_ntohll (fa->extra_acks);
 
   match = GNUNET_NO;
-  for (struct PendingMessage *frag = pm->head_frag; NULL != frag; frag = nxt) {
+  for (struct PendingMessage *frag = pm->head_frag;
+       NULL != frag;
+       frag = nxt)
+  {
     const struct TransportFragmentBox *tfb
-      = (const struct TransportFragmentBox *)&pm[1];
+      = (const struct TransportFragmentBox *) &pm[1];
     uint32_t fu = ntohl (tfb->frag_uuid);
 
     GNUNET_assert (PMT_FRAGMENT_BOX == frag->pmt);
     nxt = frag->next_frag;
     /* Check for exact match or match in the 'xtra' bitmask */
-    if ((fu == fs)
-        || ((fu > fs) && (fu <= fs + 64)
-            && (0 != (1LLU << (fu - fs - 1) & xtra)))) {
+    if ( (fu == fs) ||
+         ( (fu > fs) &&
+           (fu <= fs + 64) &&
+           (0 != (1LLU << (fu - fs - 1) & xtra)) ) )
+    {
       match = GNUNET_YES;
       free_fragment_tree (frag);
     }
@@ -3867,19 +4021,21 @@ check_ack_against_pm (struct PendingMessage *pm,
 /**
  * Communicator gave us a fragment acknowledgement.  Process the request.
  *
- * @param cls a `struct CommunicatorMessageContext` (must call
- * #finish_cmc_handling() when done)
+ * @param cls a `struct CommunicatorMessageContext` (must call #finish_cmc_handling() when done)
  * @param fa the message that was received
  */
 static void
-handle_fragment_ack (void *cls, const struct TransportFragmentAckMessage *fa)
+handle_fragment_ack (void *cls,
+                     const struct TransportFragmentAckMessage *fa)
 {
   struct CommunicatorMessageContext *cmc = cls;
   struct Neighbour *n;
   int matched;
 
-  n = GNUNET_CONTAINER_multipeermap_get (neighbours, &cmc->im.sender);
-  if (NULL == n) {
+  n = GNUNET_CONTAINER_multipeermap_get (neighbours,
+                                         &cmc->im.sender);
+  if (NULL == n)
+  {
     struct GNUNET_SERVICE_Client *client = cmc->tc->client;
 
     GNUNET_break (0);
@@ -3889,12 +4045,19 @@ handle_fragment_ack (void *cls, const struct TransportFragmentAckMessage *fa)
   }
   /* FIXME-OPTIMIZE: maybe use another hash map here? */
   matched = GNUNET_NO;
-  for (struct PendingMessage *pm = n->pending_msg_head; NULL != pm;
-       pm = pm->prev_neighbour) {
-    if (0 != GNUNET_memcmp (&fa->msg_uuid, &pm->msg_uuid))
+  for (struct PendingMessage *pm = n->pending_msg_head;
+       NULL != pm;
+       pm = pm->prev_neighbour)
+  {
+    if (0 !=
+        GNUNET_memcmp (&fa->msg_uuid,
+                       &pm->msg_uuid))
       continue;
     matched = GNUNET_YES;
-    if (GNUNET_YES == check_ack_against_pm (pm, fa)) {
+    if (GNUNET_YES ==
+        check_ack_against_pm (pm,
+                              fa))
+    {
       struct GNUNET_TIME_Relative avg_ack_delay
         = GNUNET_TIME_relative_ntoh (fa->avg_ack_delay);
       // FIXME: update RTT and other reliability data!
@@ -3908,32 +4071,36 @@ handle_fragment_ack (void *cls, const struct TransportFragmentAckMessage *fa)
       // IDEA: generate MULTIPLE frag-uuids per fragment and track
       //    the queue with the fragment! (-> this logic must
       //    be moved into check_ack_against_pm!)
-      (void)avg_ack_delay;
-    } else {
+      (void) avg_ack_delay;
+    }
+    else
+    {
       GNUNET_STATISTICS_update (GST_stats,
                                 "# FRAGMENT_ACKS dropped, no matching fragment",
                                 1,
                                 GNUNET_NO);
     }
-    if (NULL == pm->head_frag) {
+    if (NULL == pm->head_frag)
+    {
       // if entire message is ACKed, handle that as well.
       // => clean up PM, any post actions?
       free_pending_message (pm);
-    } else {
+    }
+    else
+    {
       struct GNUNET_TIME_Relative reassembly_timeout
         = GNUNET_TIME_relative_ntoh (fa->reassembly_timeout);
-      // OPTIMIZE-FIXME: adjust retransmission strategy based on
-      // reassembly_timeout!
-      (void)reassembly_timeout;
+      // OPTIMIZE-FIXME: adjust retransmission strategy based on reassembly_timeout!
+      (void) reassembly_timeout;
     }
     break;
   }
-  if (GNUNET_NO == matched) {
-    GNUNET_STATISTICS_update (
-      GST_stats,
-      "# FRAGMENT_ACKS dropped, no matching pending message",
-      1,
-      GNUNET_NO);
+  if (GNUNET_NO == matched)
+  {
+    GNUNET_STATISTICS_update (GST_stats,
+                              "# FRAGMENT_ACKS dropped, no matching pending message",
+                              1,
+                              GNUNET_NO);
   }
   finish_cmc_handling (cmc);
 }
@@ -3947,7 +4114,8 @@ handle_fragment_ack (void *cls, const struct TransportFragmentAckMessage *fa)
  * @return #GNUNET_YES if message is well-formed
  */
 static int
-check_reliability_box (void *cls, const struct TransportReliabilityBox *rb)
+check_reliability_box (void *cls,
+                       const struct TransportReliabilityBox *rb)
 {
   GNUNET_MQ_check_boxed_message (rb);
   return GNUNET_YES;
@@ -3957,39 +4125,43 @@ check_reliability_box (void *cls, const struct TransportReliabilityBox *rb)
 /**
  * Communicator gave us a reliability box.  Process the request.
  *
- * @param cls a `struct CommunicatorMessageContext` (must call
- * #finish_cmc_handling() when done)
+ * @param cls a `struct CommunicatorMessageContext` (must call #finish_cmc_handling() when done)
  * @param rb the message that was received
  */
 static void
-handle_reliability_box (void *cls, const struct TransportReliabilityBox *rb)
+handle_reliability_box (void *cls,
+                        const struct TransportReliabilityBox *rb)
 {
   struct CommunicatorMessageContext *cmc = cls;
-  const struct GNUNET_MessageHeader *inbox
-    = (const struct GNUNET_MessageHeader *)&rb[1];
+  const struct GNUNET_MessageHeader *inbox = (const struct GNUNET_MessageHeader *) &rb[1];
 
-  if (0 == ntohl (rb->ack_countdown)) {
+  if (0 == ntohl (rb->ack_countdown))
+  {
     struct TransportReliabilityAckMessage *ack;
 
     /* FIXME: implement cummulative ACKs and ack_countdown,
        then setting the avg_ack_delay field below: */
-    ack = GNUNET_malloc (sizeof (*ack) + sizeof (struct GNUNET_ShortHashCode));
+    ack = GNUNET_malloc (sizeof (*ack) +
+                         sizeof (struct GNUNET_ShortHashCode));
     ack->header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_RELIABILITY_ACK);
-    ack->header.size
-      = htons (sizeof (*ack) + sizeof (struct GNUNET_ShortHashCode));
-    memcpy (&ack[1], &rb->msg_uuid, sizeof (struct GNUNET_ShortHashCode));
-    route_message (&cmc->im.sender, &ack->header);
+    ack->header.size = htons (sizeof (*ack) +
+                              sizeof (struct GNUNET_ShortHashCode));
+    memcpy (&ack[1],
+            &rb->msg_uuid,
+            sizeof (struct GNUNET_ShortHashCode));
+    route_message (&cmc->im.sender,
+                   &ack->header);
   }
   /* continue with inner message */
-  demultiplex_with_cmc (cmc, inbox);
+  demultiplex_with_cmc (cmc,
+                        inbox);
 }
 
 
 /**
  * Communicator gave us a reliability ack.  Process the request.
  *
- * @param cls a `struct CommunicatorMessageContext` (must call
- * #finish_cmc_handling() when done)
+ * @param cls a `struct CommunicatorMessageContext` (must call #finish_cmc_handling() when done)
  * @param ra the message that was received
  */
 static void
@@ -4003,8 +4175,10 @@ handle_reliability_ack (void *cls,
   struct PendingMessage *nxt;
   int matched;
 
-  n = GNUNET_CONTAINER_multipeermap_get (neighbours, &cmc->im.sender);
-  if (NULL == n) {
+  n = GNUNET_CONTAINER_multipeermap_get (neighbours,
+                                         &cmc->im.sender);
+  if (NULL == n)
+  {
     struct GNUNET_SERVICE_Client *client = cmc->tc->client;
 
     GNUNET_break (0);
@@ -4013,18 +4187,24 @@ handle_reliability_ack (void *cls,
     return;
   }
   n_acks = (ntohs (ra->header.size) - sizeof (*ra))
-           / sizeof (struct GNUNET_ShortHashCode);
-  msg_uuids = (const struct GNUNET_ShortHashCode *)&ra[1];
+    / sizeof (struct GNUNET_ShortHashCode);
+  msg_uuids = (const struct GNUNET_ShortHashCode *) &ra[1];
 
   /* FIXME-OPTIMIZE: maybe use another hash map here? */
   matched = GNUNET_NO;
-  for (struct PendingMessage *pm = n->pending_msg_head; NULL != pm; pm = nxt) {
+  for (struct PendingMessage *pm = n->pending_msg_head;
+       NULL != pm;
+       pm = nxt)
+  {
     int in_list;
 
     nxt = pm->next_neighbour;
     in_list = GNUNET_NO;
-    for (unsigned int i = 0; i < n_acks; i++) {
-      if (0 != GNUNET_memcmp (&msg_uuids[i], &pm->msg_uuid))
+    for (unsigned int i=0;i<n_acks;i++)
+    {
+      if (0 !=
+          GNUNET_memcmp (&msg_uuids[i],
+                         &pm->msg_uuid))
         continue;
       in_list = GNUNET_YES;
       break;
@@ -4048,15 +4228,15 @@ handle_reliability_ack (void *cls,
       //    -> how can we get loss rates?
       //    -> or, add extra state to MSG and ACKs to identify queue?
       //    -> if we do this, might just do the same for the avg_ack_delay!
-      (void)avg_ack_delay;
+      (void) avg_ack_delay;
     }
   }
-  if (GNUNET_NO == matched) {
-    GNUNET_STATISTICS_update (
-      GST_stats,
-      "# FRAGMENT_ACKS dropped, no matching pending message",
-      1,
-      GNUNET_NO);
+  if (GNUNET_NO == matched)
+  {
+    GNUNET_STATISTICS_update (GST_stats,
+                              "# FRAGMENT_ACKS dropped, no matching pending message",
+                              1,
+                              GNUNET_NO);
   }
   finish_cmc_handling (cmc);
 }
@@ -4070,15 +4250,16 @@ handle_reliability_ack (void *cls,
  * @return #GNUNET_YES if message is well-formed
  */
 static int
-check_backchannel_encapsulation (
-  void *cls,
-  const struct TransportBackchannelEncapsulationMessage *be)
+check_backchannel_encapsulation (void *cls,
+                                 const struct TransportBackchannelEncapsulationMessage *be)
 {
   uint16_t size = ntohs (be->header.size);
 
-  (void)cls;
-  if (size - sizeof (*be) < sizeof (struct TransportBackchannelRequestPayload)
-                              + sizeof (struct GNUNET_MessageHeader)) {
+  (void) cls;
+  if (size - sizeof (*be) <
+      sizeof (struct TransportBackchannelRequestPayload) +
+      sizeof (struct GNUNET_MessageHeader) )
+  {
     GNUNET_break_op (0);
     return GNUNET_SYSERR;
   }
@@ -4089,35 +4270,44 @@ check_backchannel_encapsulation (
 /**
  * Communicator gave us a backchannel encapsulation.  Process the request.
  *
- * @param cls a `struct CommunicatorMessageContext` (must call
- * #finish_cmc_handling() when done)
+ * @param cls a `struct CommunicatorMessageContext` (must call #finish_cmc_handling() when done)
  * @param be the message that was received
  */
 static void
-handle_backchannel_encapsulation (
-  void *cls,
-  const struct TransportBackchannelEncapsulationMessage *be)
+handle_backchannel_encapsulation (void *cls,
+                                  const struct TransportBackchannelEncapsulationMessage *be)
 {
   struct CommunicatorMessageContext *cmc = cls;
   struct BackchannelKeyState key;
   struct GNUNET_HashCode hmac;
   const char *hdr;
-  size_t hdr_len;
+  size_t hrd_len;
 
-  if (0 != GNUNET_memcmp (&be->target, &GST_my_identity)) {
+  if (0 != GNUNET_memcmp (&be->target,
+                          &GST_my_identity))
+  {
     /* not for me, try to route to target */
     /* FIXME: someone needs to update be->distance! */
     /* FIXME: BE routing can be special, should we put all of this
        on 'route_message'? Maybe at least pass some more arguments? */
-    route_message (&be->target, GNUNET_copy_message (&be->header));
+    route_message (&be->target,
+                   GNUNET_copy_message (&be->header));
     finish_cmc_handling (cmc);
     return;
   }
-  dh_key_derive_eph_pub (&be->ephemeral_key, &be->iv, &key);
-  hdr = (const char *)&be[1];
+  dh_key_derive_eph_pub (&be->ephemeral_key,
+                         &be->iv,
+                         &key);
+  hdr = (const char *) &be[1];
   hdr_len = ntohs (be->header.size) - sizeof (*be);
-  bc_hmac (&key, &hmac, hdr, hdr_len);
-  if (0 != GNUNET_memcmp (&hmac, &be->hmac)) {
+  bc_hmac (&key,
+           &hmac,
+           hdr,
+           hdr_len);
+  if (0 !=
+      GNUNET_memcmp (&hmac,
+                     &be->hmac))
+  {
     /* HMAC missmatch, disard! */
     GNUNET_break_op (0);
     finish_cmc_handling (cmc);
@@ -4128,10 +4318,15 @@ handle_backchannel_encapsulation (
     struct TransportBackchannelRequestPayload ppay;
     char body[hdr_len - sizeof (ppay)];
 
-    GNUNET_assert (hdr_len
-                   >= sizeof (ppay) + sizeof (struct GNUNET_MessageHeader));
-    bc_decrypt (&key, &ppay, hdr, sizeof (ppay));
-    bc_decrypt (&key, &body, &hdr[sizeof (ppay)], hdr_len - sizeof (ppay));
+    GNUNET_assert (hdr_len >= sizeof (ppay) + sizeof (struct GNUNET_MessageHeader));
+    bc_decrypt (&key,
+                &ppay,
+                hdr,
+                sizeof (ppay));
+    bc_decrypt (&key,
+                &body,
+                &hdr[sizeof (ppay)],
+                hdr_len - sizeof (ppay));
     bc_key_clean (&key);
     // FIXME: verify signatures in ppay!
     // => check if ephemeral key is known & valid, if not
@@ -4161,18 +4356,21 @@ path_cleanup_cb (void *cls)
   struct DistanceVectorHop *pos;
 
   dv->timeout_task = NULL;
-  while (NULL != (pos = dv->dv_head)) {
+  while (NULL != (pos = dv->dv_head))
+  {
     GNUNET_assert (dv == pos->dv);
     if (GNUNET_TIME_absolute_get_remaining (pos->timeout).rel_value_us > 0)
       break;
     free_distance_vector_hop (pos);
   }
-  if (NULL == pos) {
+  if (NULL == pos)
+  {
     free_dv_route (dv);
     return;
   }
-  dv->timeout_task
-    = GNUNET_SCHEDULER_add_at (pos->timeout, &path_cleanup_cb, dv);
+  dv->timeout_task = GNUNET_SCHEDULER_add_at (pos->timeout,
+                                              &path_cleanup_cb,
+                                              dv);
 }
 
 
@@ -4191,8 +4389,8 @@ path_cleanup_cb (void *cls)
  *             and then path contains a valid path from us to `path[path_len-1]`
  *             path[1] should be a direct neighbour (we should check!)
  * @param path_len number of entries on the @a path, at least three!
- * @param network_latency how long does the message take from us to
- * `path[path_len-1]`? set to "forever" if unknown
+ * @param network_latency how long does the message take from us to `path[path_len-1]`?
+ *          set to "forever" if unknown
  * @return #GNUNET_YES on success,
  *         #GNUNET_NO if we have better path(s) to the target
  *         #GNUNET_SYSERR if the path is useless and/or invalid
@@ -4209,58 +4407,76 @@ learn_dv_path (const struct GNUNET_PeerIdentity *path,
   struct Neighbour *next_hop;
   unsigned int shorter_distance;
 
-  if (path_len < 3) {
+  if (path_len < 3)
+  {
     /* what a boring path! not allowed! */
     GNUNET_break (0);
     return GNUNET_SYSERR;
   }
-  GNUNET_assert (0 == GNUNET_memcmp (&GST_my_identity, &path[0]));
-  next_hop = GNUNET_CONTAINER_multipeermap_get (neighbours, &path[1]);
-  if (NULL == next_hop) {
+  GNUNET_assert (0 ==
+                 GNUNET_memcmp (&GST_my_identity,
+                                &path[0]));
+  next_hop = GNUNET_CONTAINER_multipeermap_get (neighbours,
+                                                &path[1]);
+  if (NULL == next_hop)
+  {
     /* next hop must be a neighbour, otherwise this whole thing is useless! */
     GNUNET_break (0);
     return GNUNET_SYSERR;
   }
-  for (unsigned int i = 2; i < path_len; i++)
-    if (NULL != GNUNET_CONTAINER_multipeermap_get (neighbours, &path[i])) {
+  for (unsigned int i=2;i<path_len;i++)
+    if (NULL !=
+        GNUNET_CONTAINER_multipeermap_get (neighbours,
+                                           &path[i]))
+    {
       /* Useless path, we have a direct connection to some hop
          in the middle of the path, so this one doesn't even
          seem terribly useful for redundancy */
       return GNUNET_SYSERR;
     }
-  dv = GNUNET_CONTAINER_multipeermap_get (dv_routes, &path[path_len - 1]);
-  if (NULL == dv) {
+  dv = GNUNET_CONTAINER_multipeermap_get (dv_routes,
+                                          &path[path_len - 1]);
+  if (NULL == dv)
+  {
     dv = GNUNET_new (struct DistanceVector);
     dv->target = path[path_len - 1];
     dv->timeout_task = GNUNET_SCHEDULER_add_delayed (DV_PATH_VALIDITY_TIMEOUT,
                                                      &path_cleanup_cb,
                                                      dv);
-    GNUNET_assert (GNUNET_OK
-                   == GNUNET_CONTAINER_multipeermap_put (
-                     dv_routes,
-                     &dv->target,
-                     dv,
-                     GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
+    GNUNET_assert (GNUNET_OK ==
+                   GNUNET_CONTAINER_multipeermap_put (dv_routes,
+                                                      &dv->target,
+                                                      dv,
+                                                      GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
   }
   /* Check if we have this path already! */
   shorter_distance = 0;
-  for (struct DistanceVectorHop *pos = dv->dv_head; NULL != pos;
-       pos = pos->next_dv) {
+  for (struct DistanceVectorHop *pos = dv->dv_head;
+       NULL != pos;
+       pos = pos->next_dv)
+  {
     if (pos->distance < path_len - 2)
       shorter_distance++;
     /* Note that the distances in 'pos' excludes us (path[0]) and
        the next_hop (path[1]), so we need to subtract two
        and check next_hop explicitly */
-    if ((pos->distance == path_len - 2) && (pos->next_hop == next_hop)) {
+    if ( (pos->distance == path_len - 2) &&
+         (pos->next_hop == next_hop) )
+    {
       int match = GNUNET_YES;
 
-      for (unsigned int i = 0; i < pos->distance; i++) {
-        if (0 != GNUNET_memcmp (&pos->path[i], &path[i + 2])) {
+      for (unsigned int i=0;i<pos->distance;i++)
+      {
+        if (0 !=
+            GNUNET_memcmp (&pos->path[i],
+                           &path[i+2]))
+        {
           match = GNUNET_NO;
           break;
         }
       }
-      if (GNUNET_YES == match) {
+      if (GNUNET_YES == match)
+      {
         struct GNUNET_TIME_Relative last_timeout;
 
         /* Re-discovered known path, update timeout */
@@ -4271,12 +4487,18 @@ learn_dv_path (const struct GNUNET_PeerIdentity *path,
         last_timeout = GNUNET_TIME_absolute_get_remaining (pos->timeout);
         pos->timeout
           = GNUNET_TIME_relative_to_absolute (DV_PATH_VALIDITY_TIMEOUT);
-        GNUNET_CONTAINER_MDLL_remove (dv, dv->dv_head, dv->dv_tail, pos);
-        GNUNET_CONTAINER_MDLL_insert (dv, dv->dv_head, dv->dv_tail, pos);
-        if (last_timeout.rel_value_us
-            < GNUNET_TIME_relative_subtract (DV_PATH_VALIDITY_TIMEOUT,
-                                             DV_PATH_DISCOVERY_FREQUENCY)
-                .rel_value_us) {
+        GNUNET_CONTAINER_MDLL_remove (dv,
+                                      dv->dv_head,
+                                      dv->dv_tail,
+                                      pos);
+        GNUNET_CONTAINER_MDLL_insert (dv,
+                                      dv->dv_head,
+                                      dv->dv_tail,
+                                      pos);
+        if (last_timeout.rel_value_us <
+            GNUNET_TIME_relative_subtract (DV_PATH_VALIDITY_TIMEOUT,
+                                           DV_PATH_DISCOVERY_FREQUENCY).rel_value_us)
+        {
           /* Some peer send DV learn messages too often, we are learning
              the same path faster than it would be useful; do not forward! */
           return GNUNET_NO;
@@ -4287,22 +4509,26 @@ learn_dv_path (const struct GNUNET_PeerIdentity *path,
   }
   /* Count how many shorter paths we have (incl. direct
      neighbours) before simply giving up on this one! */
-  if (shorter_distance >= MAX_DV_PATHS_TO_TARGET) {
+  if (shorter_distance >= MAX_DV_PATHS_TO_TARGET)
+  {
     /* We have a shorter path already! */
     return GNUNET_NO;
   }
   /* create new DV path entry */
-  hop = GNUNET_malloc (sizeof (struct DistanceVectorHop)
-                       + sizeof (struct GNUNET_PeerIdentity) * (path_len - 2));
+  hop = GNUNET_malloc (sizeof (struct DistanceVectorHop) +
+                       sizeof (struct GNUNET_PeerIdentity) * (path_len - 2));
   hop->next_hop = next_hop;
   hop->dv = dv;
-  hop->path = (const struct GNUNET_PeerIdentity *)&hop[1];
+  hop->path = (const struct GNUNET_PeerIdentity *) &hop[1];
   memcpy (&hop[1],
           &path[2],
           sizeof (struct GNUNET_PeerIdentity) * (path_len - 2));
   hop->timeout = GNUNET_TIME_relative_to_absolute (DV_PATH_VALIDITY_TIMEOUT);
   hop->distance = path_len - 2;
-  GNUNET_CONTAINER_MDLL_insert (dv, dv->dv_head, dv->dv_tail, hop);
+  GNUNET_CONTAINER_MDLL_insert (dv,
+                                dv->dv_head,
+                                dv->dv_tail,
+                                hop);
   GNUNET_CONTAINER_MDLL_insert (neighbour,
                                 next_hop->dv_head,
                                 next_hop->dv_tail,
@@ -4319,27 +4545,35 @@ learn_dv_path (const struct GNUNET_PeerIdentity *path,
  * @return #GNUNET_YES if message is well-formed
  */
 static int
-check_dv_learn (void *cls, const struct TransportDVLearn *dvl)
+check_dv_learn (void *cls,
+                const struct TransportDVLearn *dvl)
 {
   uint16_t size = ntohs (dvl->header.size);
   uint16_t num_hops = ntohs (dvl->num_hops);
-  const struct DVPathEntryP *hops = (const struct DVPathEntryP *)&dvl[1];
+  const struct DVPathEntryP *hops = (const struct DVPathEntryP *) &dvl[1];
 
-  (void)cls;
-  if (size != sizeof (*dvl) + num_hops * sizeof (struct DVPathEntryP)) {
+  (void) cls;
+  if (size != sizeof (*dvl) + num_hops * sizeof (struct DVPathEntryP))
+  {
     GNUNET_break_op (0);
     return GNUNET_SYSERR;
   }
-  if (num_hops > MAX_DV_HOPS_ALLOWED) {
+  if (num_hops > MAX_DV_HOPS_ALLOWED)
+  {
     GNUNET_break_op (0);
     return GNUNET_SYSERR;
   }
-  for (unsigned int i = 0; i < num_hops; i++) {
-    if (0 == GNUNET_memcmp (&dvl->initiator, &hops[i].hop)) {
+  for (unsigned int i=0;i<num_hops;i++)
+  {
+    if (0 == GNUNET_memcmp (&dvl->initiator,
+                            &hops[i].hop))
+    {
       GNUNET_break_op (0);
       return GNUNET_SYSERR;
     }
-    if (0 == GNUNET_memcmp (&GST_my_identity, &hops[i].hop)) {
+    if (0 == GNUNET_memcmp (&GST_my_identity,
+                            &hops[i].hop))
+    {
       GNUNET_break_op (0);
       return GNUNET_SYSERR;
     }
@@ -4356,8 +4590,7 @@ check_dv_learn (void *cls, const struct TransportDVLearn *dvl)
  * @param bi_history bitmask specifying hops on path that were bidirectional
  * @param nhops length of the @a hops array
  * @param hops path the message traversed so far
- * @param in_time when did we receive the message, used to calculate network
- * delay
+ * @param in_time when did we receive the message, used to calculate network delay
  */
 static void
 forward_dv_learn (const struct GNUNET_PeerIdentity *next_hop,
@@ -4373,37 +4606,40 @@ forward_dv_learn (const struct GNUNET_PeerIdentity *next_hop,
 
   /* compute message for forwarding */
   GNUNET_assert (nhops < MAX_DV_HOPS_ALLOWED);
-  fwd = GNUNET_malloc (sizeof (struct TransportDVLearn)
-                       + (nhops + 1) * sizeof (struct DVPathEntryP));
+  fwd = GNUNET_malloc (sizeof (struct TransportDVLearn) +
+                       (nhops + 1) * sizeof (struct DVPathEntryP));
   fwd->header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_DV_LEARN);
-  fwd->header.size = htons (sizeof (struct TransportDVLearn)
-                            + (nhops + 1) * sizeof (struct DVPathEntryP));
+  fwd->header.size = htons (sizeof (struct TransportDVLearn) +
+                            (nhops + 1) * sizeof (struct DVPathEntryP));
   fwd->num_hops = htons (nhops + 1);
   fwd->bidirectional = htons (bi_history);
-  nnd = GNUNET_TIME_relative_add (
-    GNUNET_TIME_absolute_get_duration (in_time),
-    GNUNET_TIME_relative_ntoh (msg->non_network_delay));
+  nnd = GNUNET_TIME_relative_add (GNUNET_TIME_absolute_get_duration (in_time),
+                                  GNUNET_TIME_relative_ntoh (msg->non_network_delay));
   fwd->non_network_delay = GNUNET_TIME_relative_hton (nnd);
   fwd->init_sig = msg->init_sig;
   fwd->initiator = msg->initiator;
   fwd->challenge = msg->challenge;
-  dhops = (struct DVPathEntryP *)&fwd[1];
-  GNUNET_memcpy (dhops, hops, sizeof (struct DVPathEntryP) * nhops);
+  dhops = (struct DVPathEntryP *) &fwd[1];
+  GNUNET_memcpy (dhops,
+                 hops,
+                 sizeof (struct DVPathEntryP) * nhops);
   dhops[nhops].hop = GST_my_identity;
   {
-    struct DvHopPS dhp
-      = {.purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_TRANSPORT_DV_HOP),
-         .purpose.size = htonl (sizeof (dhp)),
-         .pred = dhops[nhops - 1].hop,
-         .succ = *next_hop,
-         .challenge = msg->challenge};
+    struct DvHopPS dhp = {
+      .purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_TRANSPORT_DV_HOP),
+      .purpose.size = htonl (sizeof (dhp)),
+      .pred = dhops[nhops-1].hop,
+      .succ = *next_hop,
+      .challenge = msg->challenge
+    };
 
-    GNUNET_assert (GNUNET_OK
-                   == GNUNET_CRYPTO_eddsa_sign (GST_my_private_key,
-                                                &dhp.purpose,
-                                                &dhops[nhops].hop_sig));
+    GNUNET_assert (GNUNET_OK ==
+                   GNUNET_CRYPTO_eddsa_sign (GST_my_private_key,
+                                             &dhp.purpose,
+                                             &dhops[nhops].hop_sig));
   }
-  route_message (next_hop, &fwd->header);
+  route_message (next_hop,
+                 &fwd->header);
 }
 
 
@@ -4416,22 +4652,22 @@ forward_dv_learn (const struct GNUNET_PeerIdentity *next_hop,
  * @return #GNUNET_OK if the signature is valid
  */
 static int
-validate_dv_initiator_signature (
-  const struct GNUNET_PeerIdentity *init,
-  const struct GNUNET_ShortHashCode *challenge,
-  const struct GNUNET_CRYPTO_EddsaSignature *init_sig)
+validate_dv_initiator_signature (const struct GNUNET_PeerIdentity *init,
+                                 const struct GNUNET_ShortHashCode *challenge,
+                                 const struct GNUNET_CRYPTO_EddsaSignature *init_sig)
 {
   struct DvInitPS ip = {
     .purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_TRANSPORT_DV_INITIATOR),
     .purpose.size = htonl (sizeof (ip)),
-    .challenge = *challenge};
+    .challenge = *challenge
+  };
 
-  if (GNUNET_OK
-      != GNUNET_CRYPTO_eddsa_verify (
-        GNUNET_SIGNATURE_PURPOSE_TRANSPORT_DV_INITIATOR,
-        &ip.purpose,
-        init_sig,
-        &init->public_key)) {
+  if (GNUNET_OK !=
+      GNUNET_CRYPTO_eddsa_verify (GNUNET_SIGNATURE_PURPOSE_TRANSPORT_DV_INITIATOR,
+                                  &ip.purpose,
+                                  init_sig,
+                                  &init->public_key))
+  {
     GNUNET_break_op (0);
     return GNUNET_SYSERR;
   }
@@ -4442,12 +4678,12 @@ validate_dv_initiator_signature (
 /**
  * Communicator gave us a DV learn message.  Process the request.
  *
- * @param cls a `struct CommunicatorMessageContext` (must call
- * #finish_cmc_handling() when done)
+ * @param cls a `struct CommunicatorMessageContext` (must call #finish_cmc_handling() when done)
  * @param dvl the message that was received
  */
 static void
-handle_dv_learn (void *cls, const struct TransportDVLearn *dvl)
+handle_dv_learn (void *cls,
+                 const struct TransportDVLearn *dvl)
 {
   struct CommunicatorMessageContext *cmc = cls;
   enum GNUNET_TRANSPORT_CommunicatorCharacteristics cc;
@@ -4461,17 +4697,24 @@ handle_dv_learn (void *cls, const struct TransportDVLearn *dvl)
 
   nhops = ntohs (dvl->bidirectional); /* 0 = sender is initiator */
   bi_history = ntohs (dvl->bidirectional);
-  hops = (const struct DVPathEntryP *)&dvl[1];
-  if (0 == nhops) {
+  hops = (const struct DVPathEntryP *) &dvl[1];
+  if (0 == nhops)
+  {
     /* sanity check */
-    if (0 != GNUNET_memcmp (&dvl->initiator, &cmc->im.sender)) {
+    if (0 != GNUNET_memcmp (&dvl->initiator,
+                            &cmc->im.sender))
+    {
       GNUNET_break (0);
       finish_cmc_handling (cmc);
       return;
     }
-  } else {
+  }
+  else
+  {
     /* sanity check */
-    if (0 != GNUNET_memcmp (&hops[nhops - 1].hop, &cmc->im.sender)) {
+    if (0 != GNUNET_memcmp (&hops[nhops - 1].hop,
+                            &cmc->im.sender))
+    {
       GNUNET_break (0);
       finish_cmc_handling (cmc);
       return;
@@ -4480,18 +4723,18 @@ handle_dv_learn (void *cls, const struct TransportDVLearn *dvl)
 
   GNUNET_assert (CT_COMMUNICATOR == cmc->tc->type);
   cc = cmc->tc->details.communicator.cc;
-  bi_hop = (GNUNET_TRANSPORT_CC_RELIABLE
-            == cc); // FIXME: add bi-directional flag to cc?
+  bi_hop = (GNUNET_TRANSPORT_CC_RELIABLE == cc); // FIXME: add bi-directional flag to cc?
   in_time = GNUNET_TIME_absolute_get ();
 
   /* continue communicator here, everything else can happen asynchronous! */
   finish_cmc_handling (cmc);
 
   // FIXME: should we bother to verify _every_ DV initiator signature?
-  if (GNUNET_OK
-      != validate_dv_initiator_signature (&dvl->initiator,
-                                          &dvl->challenge,
-                                          &dvl->init_sig)) {
+  if (GNUNET_OK !=
+      validate_dv_initiator_signature (&dvl->initiator,
+                                       &dvl->challenge,
+                                       &dvl->init_sig))
+  {
     GNUNET_break_op (0);
     return;
   }
@@ -4499,7 +4742,9 @@ handle_dv_learn (void *cls, const struct TransportDVLearn *dvl)
   // => if signature verification load too high, implement random drop strategy!
 
   do_fwd = GNUNET_YES;
-  if (0 == GNUNET_memcmp (&GST_my_identity, &dvl->initiator)) {
+  if (0 == GNUNET_memcmp (&GST_my_identity,
+                          &dvl->initiator))
+  {
     struct GNUNET_PeerIdentity path[nhops + 1];
     struct GNUNET_TIME_Relative host_latency_sum;
     struct GNUNET_TIME_Relative latency;
@@ -4515,53 +4760,69 @@ handle_dv_learn (void *cls, const struct TransportDVLearn *dvl)
     latency = GNUNET_TIME_UNIT_FOREVER_REL; // FIXME: initialize properly
     // (based on dvl->challenge, we can identify time of origin!)
 
-    network_latency = GNUNET_TIME_relative_subtract (latency, host_latency_sum);
+    network_latency = GNUNET_TIME_relative_subtract (latency,
+                                                     host_latency_sum);
     /* assumption: latency on all links is the same */
-    network_latency = GNUNET_TIME_relative_divide (network_latency, nhops);
+    network_latency = GNUNET_TIME_relative_divide (network_latency,
+                                                   nhops);
 
-    for (unsigned int i = 2; i <= nhops; i++) {
+    for (unsigned int i=2;i<=nhops;i++)
+    {
       struct GNUNET_TIME_Relative ilat;
 
       /* assumption: linear latency increase per hop */
-      ilat = GNUNET_TIME_relative_multiply (network_latency, i);
-      path[i] = hops[i - 1].hop;
-      learn_dv_path (path, i, ilat);
+      ilat = GNUNET_TIME_relative_multiply (network_latency,
+                                            i);
+      path[i] = hops[i-1].hop;
+      learn_dv_path (path,
+                     i,
+                     ilat);
     }
     /* as we initiated, do not forward again (would be circular!) */
     do_fwd = GNUNET_NO;
     return;
-  } else if (bi_hop) {
+  }
+  else if (bi_hop)
+  {
     /* last hop was bi-directional, we could learn something here! */
     struct GNUNET_PeerIdentity path[nhops + 2];
 
     path[0] = GST_my_identity;
     path[1] = hops[nhops - 1].hop; /* direct neighbour == predecessor! */
-    for (unsigned int i = 0; i < nhops; i++) {
+    for (unsigned int i=0;i<nhops;i++)
+    {
       int iret;
 
       if (0 == (bi_history & (1 << i)))
         break; /* i-th hop not bi-directional, stop learning! */
-      if (i == nhops) {
+      if (i == nhops)
+      {
         path[i + 2] = dvl->initiator;
-      } else {
+      }
+      else
+      {
         path[i + 2] = hops[nhops - i - 2].hop;
       }
 
-      iret = learn_dv_path (path, i + 2, GNUNET_TIME_UNIT_FOREVER_REL);
-      if (GNUNET_SYSERR == iret) {
+      iret = learn_dv_path (path,
+                            i + 2,
+                            GNUNET_TIME_UNIT_FOREVER_REL);
+      if (GNUNET_SYSERR == iret)
+      {
         /* path invalid or too long to be interesting for US, thus should also
            not be interesting to our neighbours, cut path when forwarding to
            'i' hops, except of course for the one that goes back to the
            initiator */
-        GNUNET_STATISTICS_update (
-          GST_stats,
-          "# DV learn not forwarded due invalidity of path",
-          1,
-          GNUNET_NO);
+        GNUNET_STATISTICS_update (GST_stats,
+                                  "# DV learn not forwarded due invalidity of path",
+                                  1,
+                                  GNUNET_NO);
         do_fwd = GNUNET_NO;
         break;
       }
-      if ((GNUNET_NO == iret) && (nhops == i + 1)) {
+      if ( (GNUNET_NO == iret) &&
+           (nhops == i + 1) )
+      {
         /* we have better paths, and this is the longest target,
            so there cannot be anything interesting later */
         GNUNET_STATISTICS_update (GST_stats,
@@ -4574,7 +4835,8 @@ handle_dv_learn (void *cls, const struct TransportDVLearn *dvl)
     }
   }
 
-  if (MAX_DV_HOPS_ALLOWED == nhops) {
+  if (MAX_DV_HOPS_ALLOWED == nhops)
+  {
     /* At limit, we're out of here! */
     finish_cmc_handling (cmc);
     return;
@@ -4583,21 +4845,28 @@ handle_dv_learn (void *cls, const struct TransportDVLearn *dvl)
   /* Forward to initiator, if path non-trivial and possible */
   bi_history = (bi_history << 1) | (bi_hop ? 1 : 0);
   did_initiator = GNUNET_NO;
-  if ((1 < nhops)
-      && (GNUNET_YES
-          == GNUNET_CONTAINER_multipeermap_contains (neighbours,
-                                                     &dvl->initiator))) {
+  if ( (1 < nhops) &&
+       (GNUNET_YES ==
+        GNUNET_CONTAINER_multipeermap_contains (neighbours,
+                                                &dvl->initiator)) )
+  {
     /* send back to origin! */
-    forward_dv_learn (&dvl->initiator, dvl, bi_history, nhops, hops, in_time);
+    forward_dv_learn (&dvl->initiator,
+                      dvl,
+                      bi_history,
+                      nhops,
+                      hops,
+                      in_time);
     did_initiator = GNUNET_YES;
   }
   /* We forward under two conditions: either we still learned something
      ourselves (do_fwd), or the path was darn short and thus the initiator is
      likely to still be very interested in this (and we did NOT already
      send it back to the initiator) */
-  if ((do_fwd)
-      || ((nhops < MIN_DV_PATH_LENGTH_FOR_INITIATOR)
-          && (GNUNET_NO == did_initiator))) {
+  if ( (do_fwd) ||
+       ( (nhops < MIN_DV_PATH_LENGTH_FOR_INITIATOR) &&
+         (GNUNET_NO == did_initiator) ) )
+  {
     /* FIXME: loop over all neighbours, pick those with low
        queues AND that are not yet on the path; possibly
        adapt threshold to nhops! */
@@ -4621,33 +4890,32 @@ handle_dv_learn (void *cls, const struct TransportDVLearn *dvl)
  * @return #GNUNET_YES if message is well-formed
  */
 static int
-check_dv_box (void *cls, const struct TransportDVBox *dvb)
+check_dv_box (void *cls,
+              const struct TransportDVBox *dvb)
 {
   uint16_t size = ntohs (dvb->header.size);
   uint16_t num_hops = ntohs (dvb->num_hops);
-  const struct GNUNET_PeerIdentity *hops
-    = (const struct GNUNET_PeerIdentity *)&dvb[1];
-  const struct GNUNET_MessageHeader *inbox
-    = (const struct GNUNET_MessageHeader *)&hops[num_hops];
+  const struct GNUNET_PeerIdentity *hops = (const struct GNUNET_PeerIdentity *) &dvb[1];
+  const struct GNUNET_MessageHeader *inbox = (const struct GNUNET_MessageHeader *) &hops[num_hops];
   uint16_t isize;
   uint16_t itype;
 
-  (void)cls;
-  if (size < sizeof (*dvb) + num_hops * sizeof (struct GNUNET_PeerIdentity)
-               + sizeof (struct GNUNET_MessageHeader)) {
+  (void) cls;
+  if (size < sizeof (*dvb) + num_hops * sizeof (struct GNUNET_PeerIdentity) + sizeof (struct GNUNET_MessageHeader))
+  {
     GNUNET_break_op (0);
     return GNUNET_SYSERR;
   }
   isize = ntohs (inbox->size);
-  if (size
-      != sizeof (*dvb) + num_hops * sizeof (struct GNUNET_PeerIdentity)
-           + isize) {
+  if (size != sizeof (*dvb) + num_hops * sizeof (struct GNUNET_PeerIdentity) + isize)
+  {
     GNUNET_break_op (0);
     return GNUNET_SYSERR;
   }
   itype = ntohs (inbox->type);
-  if ((GNUNET_MESSAGE_TYPE_TRANSPORT_DV_BOX == itype)
-      || (GNUNET_MESSAGE_TYPE_TRANSPORT_DV_LEARN == itype)) {
+  if ( (GNUNET_MESSAGE_TYPE_TRANSPORT_DV_BOX == itype) ||
+       (GNUNET_MESSAGE_TYPE_TRANSPORT_DV_LEARN == itype) )
+  {
     GNUNET_break_op (0);
     return GNUNET_SYSERR;
   }
@@ -4658,22 +4926,21 @@ check_dv_box (void *cls, const struct TransportDVBox *dvb)
 /**
  * Communicator gave us a DV box.  Process the request.
  *
- * @param cls a `struct CommunicatorMessageContext` (must call
- * #finish_cmc_handling() when done)
+ * @param cls a `struct CommunicatorMessageContext` (must call #finish_cmc_handling() when done)
  * @param dvb the message that was received
  */
 static void
-handle_dv_box (void *cls, const struct TransportDVBox *dvb)
+handle_dv_box (void *cls,
+               const struct TransportDVBox *dvb)
 {
   struct CommunicatorMessageContext *cmc = cls;
   uint16_t size = ntohs (dvb->header.size) - sizeof (*dvb);
   uint16_t num_hops = ntohs (dvb->num_hops);
-  const struct GNUNET_PeerIdentity *hops
-    = (const struct GNUNET_PeerIdentity *)&dvb[1];
-  const struct GNUNET_MessageHeader *inbox
-    = (const struct GNUNET_MessageHeader *)&hops[num_hops];
+  const struct GNUNET_PeerIdentity *hops = (const struct GNUNET_PeerIdentity *) &dvb[1];
+  const struct GNUNET_MessageHeader *inbox = (const struct GNUNET_MessageHeader *) &hops[num_hops];
 
-  if (num_hops > 0) {
+  if (num_hops > 0)
+  {
     // FIXME: if we are not the target, shorten path and forward along.
     // Try from the _end_ of hops array if we know the given
     // neighbour (shortening the path!).
@@ -4684,7 +4951,8 @@ handle_dv_box (void *cls, const struct TransportDVBox *dvb)
   /* We are the target. Unbox and handle message. */
   cmc->im.sender = dvb->origin;
   cmc->total_hops = ntohs (dvb->total_hops);
-  demultiplex_with_cmc (cmc, inbox);
+  demultiplex_with_cmc (cmc,
+                        inbox);
 }
 
 
@@ -4701,7 +4969,8 @@ check_incoming_msg (void *cls,
 {
   struct TransportClient *tc = cls;
 
-  if (CT_COMMUNICATOR != tc->type) {
+  if (CT_COMMUNICATOR != tc->type)
+  {
     GNUNET_break (0);
     return GNUNET_SYSERR;
   }
@@ -4711,11 +4980,9 @@ check_incoming_msg (void *cls,
 
 
 /**
- * Communicator gave us a transport address validation challenge.  Process the
- * request.
+ * Communicator gave us a transport address validation challenge.  Process the request.
  *
- * @param cls a `struct CommunicatorMessageContext` (must call
- * #finish_cmc_handling() when done)
+ * @param cls a `struct CommunicatorMessageContext` (must call #finish_cmc_handling() when done)
  * @param tvc the message that was received
  */
 static void
@@ -4725,15 +4992,15 @@ handle_validation_challenge (void *cls,
   struct CommunicatorMessageContext *cmc = cls;
   struct TransportValidationResponse *tvr;
 
-  if (cmc->total_hops > 0) {
+  if (cmc->total_hops > 0)
+  {
     /* DV routing is not allowed for validation challenges! */
     GNUNET_break_op (0);
     finish_cmc_handling (cmc);
     return;
   }
   tvr = GNUNET_new (struct TransportValidationResponse);
-  tvr->header.type
-    = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_VALIDATION_RESPONSE);
+  tvr->header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_VALIDATION_RESPONSE);
   tvr->header.size = htons (sizeof (*tvr));
   tvr->challenge = tvc->challenge;
   tvr->origin_time = tvc->sender_time;
@@ -4744,14 +5011,16 @@ handle_validation_challenge (void *cls,
       .purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_TRANSPORT_CHALLENGE),
       .purpose.size = htonl (sizeof (tvp)),
       .validity_duration = tvr->validity_duration,
-      .challenge = tvc->challenge};
+      .challenge = tvc->challenge
+    };
 
-    GNUNET_assert (GNUNET_OK
-                   == GNUNET_CRYPTO_eddsa_sign (GST_my_private_key,
-                                                &tvp.purpose,
-                                                &tvr->signature));
+    GNUNET_assert (GNUNET_OK ==
+                   GNUNET_CRYPTO_eddsa_sign (GST_my_private_key,
+                                             &tvp.purpose,
+                                             &tvr->signature));
   }
-  route_message (&cmc->im.sender, &tvr->header);
+  route_message (&cmc->im.sender,
+                 &tvr->header);
   finish_cmc_handling (cmc);
 }
 
@@ -4790,8 +5059,9 @@ check_known_challenge (void *cls,
   struct CheckKnownChallengeContext *ckac = cls;
   struct ValidationState *vs = value;
 
-  (void)pid;
-  if (0 != GNUNET_memcmp (&vs->challenge, ckac->challenge))
+  (void) pid;
+  if (0 != GNUNET_memcmp (&vs->challenge,
+                          ckac->challenge))
     return GNUNET_OK;
   ckac->vs = vs;
   return GNUNET_NO;
@@ -4806,7 +5076,8 @@ check_known_challenge (void *cls,
  * @param success #GNUNET_YES on success
  */
 static void
-peerstore_store_validation_cb (void *cls, int success)
+peerstore_store_validation_cb (void *cls,
+                               int success)
 {
   struct ValidationState *vs = cls;
 
@@ -4850,28 +5121,28 @@ update_next_challenge_time (struct ValidationState *vs,
                                            vs,
                                            new_time.abs_value_us);
   else
-    GNUNET_CONTAINER_heap_update_cost (vs->hn, new_time.abs_value_us);
-  if ((vs != GNUNET_CONTAINER_heap_peek (validation_heap))
-      && (NULL != validation_task))
+    GNUNET_CONTAINER_heap_update_cost (vs->hn,
+                                       new_time.abs_value_us);
+  if ( (vs != GNUNET_CONTAINER_heap_peek (validation_heap)) &&
+       (NULL != validation_task) )
     return;
   if (NULL != validation_task)
     GNUNET_SCHEDULER_cancel (validation_task);
   /* randomize a bit */
-  delta.rel_value_us
-    = GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_WEAK,
-                                MIN_DELAY_ADDRESS_VALIDATION.rel_value_us);
-  new_time = GNUNET_TIME_absolute_add (new_time, delta);
-  validation_task
-    = GNUNET_SCHEDULER_add_at (new_time, &validation_start_cb, NULL);
+  delta.rel_value_us = GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_WEAK,
+                                                 MIN_DELAY_ADDRESS_VALIDATION.rel_value_us);
+  new_time = GNUNET_TIME_absolute_add (new_time,
+                                       delta);
+  validation_task = GNUNET_SCHEDULER_add_at (new_time,
+                                             &validation_start_cb,
+                                             NULL);
 }
 
 
 /**
- * Communicator gave us a transport address validation response.  Process the
- * request.
+ * Communicator gave us a transport address validation response.  Process the request.
  *
- * @param cls a `struct CommunicatorMessageContext` (must call
- * #finish_cmc_handling() when done)
+ * @param cls a `struct CommunicatorMessageContext` (must call #finish_cmc_handling() when done)
  * @param tvr the message that was received
  */
 static void
@@ -4880,16 +5151,19 @@ handle_validation_response (void *cls,
 {
   struct CommunicatorMessageContext *cmc = cls;
   struct ValidationState *vs;
-  struct CheckKnownChallengeContext ckac
-    = {.challenge = &tvr->challenge, .vs = NULL};
+  struct CheckKnownChallengeContext ckac = {
+    .challenge = &tvr->challenge,
+    .vs = NULL
+  };
   struct GNUNET_TIME_Absolute origin_time;
 
   /* check this is one of our challenges */
-  (void)GNUNET_CONTAINER_multipeermap_get_multiple (validation_map,
-                                                    &cmc->im.sender,
-                                                    &check_known_challenge,
-                                                    &ckac);
-  if (NULL == (vs = ckac.vs)) {
+  (void) GNUNET_CONTAINER_multipeermap_get_multiple (validation_map,
+                                                     &cmc->im.sender,
+                                                     &check_known_challenge,
+                                                     &ckac);
+  if (NULL == (vs = ckac.vs))
+  {
     /* This can happen simply if we 'forgot' the challenge by now,
        i.e. because we received the validation response twice */
     GNUNET_STATISTICS_update (GST_stats,
@@ -4902,8 +5176,9 @@ handle_validation_response (void *cls,
 
   /* sanity check on origin time */
   origin_time = GNUNET_TIME_absolute_ntoh (tvr->origin_time);
-  if ((origin_time.abs_value_us < vs->first_challenge_use.abs_value_us)
-      || (origin_time.abs_value_us > vs->last_challenge_use.abs_value_us)) {
+  if ( (origin_time.abs_value_us < vs->first_challenge_use.abs_value_us) ||
+       (origin_time.abs_value_us > vs->last_challenge_use.abs_value_us) )
+  {
     GNUNET_break_op (0);
     finish_cmc_handling (cmc);
     return;
@@ -4915,14 +5190,15 @@ handle_validation_response (void *cls,
       .purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_TRANSPORT_CHALLENGE),
       .purpose.size = htonl (sizeof (tvp)),
       .validity_duration = tvr->validity_duration,
-      .challenge = tvr->challenge};
+      .challenge = tvr->challenge
+    };
 
-    if (GNUNET_OK
-        != GNUNET_CRYPTO_eddsa_verify (
-          GNUNET_SIGNATURE_PURPOSE_TRANSPORT_CHALLENGE,
-          &tvp.purpose,
-          &tvr->signature,
-          &cmc->im.sender.public_key)) {
+    if (GNUNET_OK !=
+        GNUNET_CRYPTO_eddsa_verify (GNUNET_SIGNATURE_PURPOSE_TRANSPORT_CHALLENGE,
+                                    &tvp.purpose,
+                                    &tvr->signature,
+                                    &cmc->im.sender.public_key))
+    {
       GNUNET_break_op (0);
       finish_cmc_handling (cmc);
       return;
@@ -4931,24 +5207,23 @@ handle_validation_response (void *cls,
 
   /* validity is capped by our willingness to keep track of the
      validation entry and the maximum the other peer allows */
-  vs->valid_until = GNUNET_TIME_relative_to_absolute (GNUNET_TIME_relative_min (
-    GNUNET_TIME_relative_ntoh (tvr->validity_duration),
-    MAX_ADDRESS_VALID_UNTIL));
-  vs->validated_until = GNUNET_TIME_absolute_min (
-    vs->valid_until,
-    GNUNET_TIME_relative_to_absolute (ADDRESS_VALIDATION_LIFETIME));
+  vs->valid_until
+    = GNUNET_TIME_relative_to_absolute (GNUNET_TIME_relative_min (GNUNET_TIME_relative_ntoh (tvr->validity_duration),
+                                                                  MAX_ADDRESS_VALID_UNTIL));
+  vs->validated_until
+    = GNUNET_TIME_absolute_min (vs->valid_until,
+                                GNUNET_TIME_relative_to_absolute (ADDRESS_VALIDATION_LIFETIME));
   vs->validation_rtt = GNUNET_TIME_absolute_get_duration (origin_time);
   vs->challenge_backoff = GNUNET_TIME_UNIT_ZERO;
   GNUNET_CRYPTO_random_block (GNUNET_CRYPTO_QUALITY_NONCE,
                               &vs->challenge,
                               sizeof (vs->challenge));
-  vs->first_challenge_use = GNUNET_TIME_absolute_subtract (
-    vs->validated_until,
-    GNUNET_TIME_relative_multiply (vs->validation_rtt,
-                                   VALIDATION_RTT_BUFFER_FACTOR));
-  vs->last_challenge_use
-    = GNUNET_TIME_UNIT_ZERO_ABS; /* challenge was not yet used */
-  update_next_challenge_time (vs, vs->first_challenge_use);
+  vs->first_challenge_use = GNUNET_TIME_absolute_subtract (vs->validated_until,
+                                                           GNUNET_TIME_relative_multiply (vs->validation_rtt,
+                                                                                          VALIDATION_RTT_BUFFER_FACTOR));
+  vs->last_challenge_use = GNUNET_TIME_UNIT_ZERO_ABS; /* challenge was not yet used */
+  update_next_challenge_time (vs,
+                              vs->first_challenge_use);
   vs->sc = GNUNET_PEERSTORE_store (peerstore,
                                    "transport",
                                    &cmc->im.sender,
@@ -4974,12 +5249,12 @@ handle_incoming_msg (void *cls,
                      const struct GNUNET_TRANSPORT_IncomingMessage *im)
 {
   struct TransportClient *tc = cls;
-  struct CommunicatorMessageContext *cmc
-    = GNUNET_new (struct CommunicatorMessageContext);
+  struct CommunicatorMessageContext *cmc = GNUNET_new (struct CommunicatorMessageContext);
 
   cmc->tc = tc;
   cmc->im = *im;
-  demultiplex_with_cmc (cmc, (const struct GNUNET_MessageHeader *)&im[1]);
+  demultiplex_with_cmc (cmc,
+                        (const struct GNUNET_MessageHeader *) &im[1]);
 }
 
 
@@ -4994,59 +5269,61 @@ static void
 demultiplex_with_cmc (struct CommunicatorMessageContext *cmc,
                       const struct GNUNET_MessageHeader *msg)
 {
-  struct GNUNET_MQ_MessageHandler handlers[]
-    = {GNUNET_MQ_hd_var_size (fragment_box,
-                              GNUNET_MESSAGE_TYPE_TRANSPORT_FRAGMENT,
-                              struct TransportFragmentBox,
-                              &cmc),
-       GNUNET_MQ_hd_fixed_size (fragment_ack,
-                                GNUNET_MESSAGE_TYPE_TRANSPORT_FRAGMENT_ACK,
-                                struct TransportFragmentAckMessage,
-                                &cmc),
-       GNUNET_MQ_hd_var_size (reliability_box,
-                              GNUNET_MESSAGE_TYPE_TRANSPORT_RELIABILITY_BOX,
-                              struct TransportReliabilityBox,
-                              &cmc),
-       GNUNET_MQ_hd_fixed_size (reliability_ack,
-                                GNUNET_MESSAGE_TYPE_TRANSPORT_RELIABILITY_ACK,
-                                struct TransportReliabilityAckMessage,
-                                &cmc),
-       GNUNET_MQ_hd_var_size (
-         backchannel_encapsulation,
-         GNUNET_MESSAGE_TYPE_TRANSPORT_BACKCHANNEL_ENCAPSULATION,
-         struct TransportBackchannelEncapsulationMessage,
-         &cmc),
-       GNUNET_MQ_hd_var_size (dv_learn,
-                              GNUNET_MESSAGE_TYPE_TRANSPORT_DV_LEARN,
-                              struct TransportDVLearn,
-                              &cmc),
-       GNUNET_MQ_hd_var_size (dv_box,
-                              GNUNET_MESSAGE_TYPE_TRANSPORT_DV_BOX,
-                              struct TransportDVBox,
-                              &cmc),
-       GNUNET_MQ_hd_fixed_size (
-         validation_challenge,
-         GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_VALIDATION_CHALLENGE,
-         struct TransportValidationChallenge,
-         &cmc),
-       GNUNET_MQ_hd_fixed_size (
-         validation_response,
-         GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_VALIDATION_RESPONSE,
-         struct TransportValidationResponse,
-         &cmc),
-       GNUNET_MQ_handler_end ()};
+  struct GNUNET_MQ_MessageHandler handlers[] = {
+    GNUNET_MQ_hd_var_size (fragment_box,
+                           GNUNET_MESSAGE_TYPE_TRANSPORT_FRAGMENT,
+                           struct TransportFragmentBox,
+                           &cmc),
+    GNUNET_MQ_hd_fixed_size (fragment_ack,
+                             GNUNET_MESSAGE_TYPE_TRANSPORT_FRAGMENT_ACK,
+                             struct TransportFragmentAckMessage,
+                             &cmc),
+    GNUNET_MQ_hd_var_size (reliability_box,
+                           GNUNET_MESSAGE_TYPE_TRANSPORT_RELIABILITY_BOX,
+                           struct TransportReliabilityBox,
+                           &cmc),
+    GNUNET_MQ_hd_fixed_size (reliability_ack,
+                             GNUNET_MESSAGE_TYPE_TRANSPORT_RELIABILITY_ACK,
+                             struct TransportReliabilityAckMessage,
+                             &cmc),
+    GNUNET_MQ_hd_var_size (backchannel_encapsulation,
+                           GNUNET_MESSAGE_TYPE_TRANSPORT_BACKCHANNEL_ENCAPSULATION,
+                           struct TransportBackchannelEncapsulationMessage,
+                           &cmc),
+    GNUNET_MQ_hd_var_size (dv_learn,
+                           GNUNET_MESSAGE_TYPE_TRANSPORT_DV_LEARN,
+                           struct TransportDVLearn,
+                           &cmc),
+    GNUNET_MQ_hd_var_size (dv_box,
+                           GNUNET_MESSAGE_TYPE_TRANSPORT_DV_BOX,
+                           struct TransportDVBox,
+                           &cmc),
+    GNUNET_MQ_hd_fixed_size (validation_challenge,
+                             GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_VALIDATION_CHALLENGE,
+                             struct TransportValidationChallenge,
+                             &cmc),
+    GNUNET_MQ_hd_fixed_size (validation_response,
+                             GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_VALIDATION_RESPONSE,
+                             struct TransportValidationResponse,
+                             &cmc),
+    GNUNET_MQ_handler_end()
+  };
   int ret;
 
-  ret = GNUNET_MQ_handle_message (handlers, msg);
-  if (GNUNET_SYSERR == ret) {
+  ret = GNUNET_MQ_handle_message (handlers,
+                                  msg);
+  if (GNUNET_SYSERR == ret)
+  {
     GNUNET_break (0);
     GNUNET_SERVICE_client_drop (cmc->tc->client);
     GNUNET_free (cmc);
     return;
   }
-  if (GNUNET_NO == ret) {
+  if (GNUNET_NO == ret)
+  {
     /* unencapsulated 'raw' message */
-    handle_raw_message (&cmc, msg);
+    handle_raw_message (&cmc,
+                        msg);
   }
 }
 
@@ -5063,7 +5340,8 @@ check_add_queue_message (void *cls,
 {
   struct TransportClient *tc = cls;
 
-  if (CT_COMMUNICATOR != tc->type) {
+  if (CT_COMMUNICATOR != tc->type)
+  {
     GNUNET_break (0);
     return GNUNET_SYSERR;
   }
@@ -5086,7 +5364,8 @@ tracker_update_in_cb (void *cls)
   unsigned int rsize;
 
   rsize = (0 == queue->mtu) ? IN_PACKET_SIZE_WITHOUT_MTU : queue->mtu;
-  in_delay = GNUNET_BANDWIDTH_tracker_get_delay (&queue->tracker_in, rsize);
+  in_delay = GNUNET_BANDWIDTH_tracker_get_delay (&queue->tracker_in,
+						 rsize);
   // FIXME: how exactly do we do inbound flow control?
 }
 
@@ -5119,7 +5398,8 @@ set_pending_message_uuid (struct PendingMessage *pm)
  * @return new message to transmit
  */
 static struct PendingMessage *
-fragment_message (struct PendingMessage *pm, uint16_t mtu)
+fragment_message (struct PendingMessage *pm,
+                  uint16_t mtu)
 {
   struct PendingMessage *ff;
 
@@ -5129,15 +5409,20 @@ fragment_message (struct PendingMessage *pm, uint16_t mtu)
   GNUNET_assert (mtu > sizeof (struct TransportFragmentBox));
 
   /* select fragment for transmission, descending the tree if it has
-     been expanded until we are at a leaf or at a fragment that is small enough
-   */
+     been expanded until we are at a leaf or at a fragment that is small enough */
   ff = pm;
-  while (((ff->bytes_msg > mtu) || (pm == ff))
-         && (ff->frag_off == ff->bytes_msg) && (NULL != ff->head_frag)) {
+  while ( ( (ff->bytes_msg > mtu) ||
+            (pm == ff) ) &&
+          (ff->frag_off == ff->bytes_msg) &&
+          (NULL != ff->head_frag) )
+  {
     ff = ff->head_frag; /* descent into fragmented fragments */
   }
 
-  if (((ff->bytes_msg > mtu) || (pm == ff)) && (pm->frag_off < pm->bytes_msg)) {
+  if ( ( (ff->bytes_msg > mtu) ||
+         (pm == ff) ) &&
+       (pm->frag_off < pm->bytes_msg) )
+  {
     /* Did not yet calculate all fragments, calculate next fragment */
     struct PendingMessage *frag;
     struct TransportFragmentBox tfb;
@@ -5148,48 +5433,59 @@ fragment_message (struct PendingMessage *pm, uint16_t mtu)
     uint16_t msize;
     uint16_t xoff = 0;
 
-    orig = (const char *)&ff[1];
+    orig = (const char *) &ff[1];
     msize = ff->bytes_msg;
-    if (pm != ff) {
+    if (pm != ff)
+    {
       const struct TransportFragmentBox *tfbo;
 
-      tfbo = (const struct TransportFragmentBox *)orig;
+      tfbo = (const struct TransportFragmentBox *) orig;
       orig += sizeof (struct TransportFragmentBox);
       msize -= sizeof (struct TransportFragmentBox);
       xoff = ntohs (tfbo->frag_off);
     }
     fragmax = mtu - sizeof (struct TransportFragmentBox);
-    fragsize = GNUNET_MIN (msize - ff->frag_off, fragmax);
-    frag = GNUNET_malloc (sizeof (struct PendingMessage)
-                          + sizeof (struct TransportFragmentBox) + fragsize);
+    fragsize = GNUNET_MIN (msize - ff->frag_off,
+                           fragmax);
+    frag = GNUNET_malloc (sizeof (struct PendingMessage) +
+                          sizeof (struct TransportFragmentBox) +
+                          fragsize);
     frag->target = pm->target;
     frag->frag_parent = ff;
     frag->timeout = pm->timeout;
     frag->bytes_msg = sizeof (struct TransportFragmentBox) + fragsize;
     frag->pmt = PMT_FRAGMENT_BOX;
-    msg = (char *)&frag[1];
+    msg = (char *) &frag[1];
     tfb.header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_FRAGMENT);
-    tfb.header.size = htons (sizeof (struct TransportFragmentBox) + fragsize);
+    tfb.header.size = htons (sizeof (struct TransportFragmentBox) +
+                             fragsize);
     tfb.frag_uuid = htonl (pm->frag_uuidgen++);
     tfb.msg_uuid = pm->msg_uuid;
     tfb.frag_off = htons (ff->frag_off + xoff);
     tfb.msg_size = htons (pm->bytes_msg);
-    memcpy (msg, &tfb, sizeof (tfb));
-    memcpy (&msg[sizeof (tfb)], &orig[ff->frag_off], fragsize);
-    GNUNET_CONTAINER_MDLL_insert (frag, ff->head_frag, ff->tail_frag, frag);
+    memcpy (msg,
+            &tfb,
+            sizeof (tfb));
+    memcpy (&msg[sizeof (tfb)],
+            &orig[ff->frag_off],
+            fragsize);
+    GNUNET_CONTAINER_MDLL_insert (frag,
+                                  ff->head_frag,
+                                  ff->tail_frag,
+                                  frag);
     ff->frag_off += fragsize;
     ff = frag;
   }
 
   /* Move head to the tail and return it */
   GNUNET_CONTAINER_MDLL_remove (frag,
-                                ff->frag_parent->head_frag,
-                                ff->frag_parent->tail_frag,
-                                ff);
+				ff->frag_parent->head_frag,
+				ff->frag_parent->tail_frag,
+				ff);
   GNUNET_CONTAINER_MDLL_insert_tail (frag,
-                                     ff->frag_parent->head_frag,
-                                     ff->frag_parent->tail_frag,
-                                     ff);
+				     ff->frag_parent->head_frag,
+				     ff->frag_parent->tail_frag,
+				     ff);
   return ff;
 }
 
@@ -5212,22 +5508,28 @@ reliability_box_message (struct PendingMessage *pm)
   char *msg;
 
   if (PMT_CORE != pm->pmt)
-    return pm; /* already fragmented or reliability boxed, or control message:
-                  do nothing */
+    return pm;  /* already fragmented or reliability boxed, or control message: do nothing */
   if (NULL != pm->bpm)
     return pm->bpm; /* already computed earlier: do nothing */
   GNUNET_assert (NULL == pm->head_frag);
-  if (pm->bytes_msg + sizeof (rbox) > UINT16_MAX) {
+  if (pm->bytes_msg + sizeof (rbox) > UINT16_MAX)
+  {
     /* failed hard */
     GNUNET_break (0);
-    client_send_response (pm, GNUNET_NO, 0);
+    client_send_response (pm,
+			  GNUNET_NO,
+			  0);
     return NULL;
   }
-  bpm = GNUNET_malloc (sizeof (struct PendingMessage) + sizeof (rbox)
-                       + pm->bytes_msg);
+  bpm = GNUNET_malloc (sizeof (struct PendingMessage) +
+		       sizeof (rbox) +
+		       pm->bytes_msg);
   bpm->target = pm->target;
   bpm->frag_parent = pm;
-  GNUNET_CONTAINER_MDLL_insert (frag, pm->head_frag, pm->tail_frag, bpm);
+  GNUNET_CONTAINER_MDLL_insert (frag,
+				pm->head_frag,
+				pm->tail_frag,
+				bpm);
   bpm->timeout = pm->timeout;
   bpm->pmt = PMT_RELIABILITY_BOX;
   bpm->bytes_msg = pm->bytes_msg + sizeof (rbox);
@@ -5236,9 +5538,13 @@ reliability_box_message (struct PendingMessage *pm)
   rbox.header.size = htons (sizeof (rbox) + pm->bytes_msg);
   rbox.ack_countdown = htonl (0); // FIXME: implement ACK countdown support
   rbox.msg_uuid = pm->msg_uuid;
-  msg = (char *)&bpm[1];
-  memcpy (msg, &rbox, sizeof (rbox));
-  memcpy (&msg[sizeof (rbox)], &pm[1], pm->bytes_msg);
+  msg = (char *) &bpm[1];
+  memcpy (msg,
+	  &rbox,
+	  sizeof (rbox));
+  memcpy (&msg[sizeof (rbox)],
+	  &pm[1],
+	  pm->bytes_msg);
   pm->bpm = bpm;
   return bpm;
 }
@@ -5264,7 +5570,8 @@ transmit_on_queue (void *cls)
   struct GNUNET_MQ_Envelope *env;
 
   queue->transmit_task = NULL;
-  if (NULL == (pm = n->pending_msg_head)) {
+  if (NULL == (pm = n->pending_msg_head))
+  {
     /* no message pending, nothing to do here! */
     return;
   }
@@ -5283,17 +5590,18 @@ transmit_on_queue (void *cls)
 				 this queue */) )
     s = fragment_message (s,
                           (0 == queue->mtu)
-                            ? UINT16_MAX
-                                - sizeof (struct GNUNET_TRANSPORT_SendMessageTo)
-                            : queue->mtu);
-  if (NULL == s) {
+                          ? UINT16_MAX - sizeof (struct GNUNET_TRANSPORT_SendMessageTo)
+                          : queue->mtu);
+  if (NULL == s)
+  {
     /* Fragmentation failed, try next message... */
     schedule_transmit_on_queue (queue);
     return;
   }
   if (GNUNET_TRANSPORT_CC_RELIABLE != queue->tc->details.communicator.cc)
     s = reliability_box_message (s);
-  if (NULL == s) {
+  if (NULL == s)
+  {
     /* Reliability boxing failed, try next message... */
     schedule_transmit_on_queue (queue);
     return;
@@ -5306,7 +5614,9 @@ transmit_on_queue (void *cls)
   smt->qid = queue->qid;
   smt->mid = queue->mid_gen;
   smt->receiver = n->pid;
-  memcpy (&smt[1], &s[1], s->bytes_msg);
+  memcpy (&smt[1],
+          &s[1],
+          s->bytes_msg);
   {
     /* Pass the env to the communicator of queue for transmission. */
     struct QueueEntry *qe;
@@ -5315,11 +5625,14 @@ transmit_on_queue (void *cls)
     qe->mid = queue->mid_gen++;
     qe->queue = queue;
     // qe->pm = s; // FIXME: not so easy, reference management on 'free(s)'!
-    GNUNET_CONTAINER_DLL_insert (queue->queue_head, queue->queue_tail, qe);
+    GNUNET_CONTAINER_DLL_insert (queue->queue_head,
+                                 queue->queue_tail,
+                                 qe);
     GNUNET_assert (CT_COMMUNICATOR == queue->tc->type);
     queue->queue_length++;
     queue->tc->details.communicator.total_queue_length++;
-    GNUNET_MQ_send (queue->tc->mq, env);
+    GNUNET_MQ_send (queue->tc->mq,
+                    env);
   }
 
   // FIXME: do something similar to the logic below
@@ -5327,39 +5640,55 @@ transmit_on_queue (void *cls)
 
   /* Check if this transmission somehow conclusively finished handing 'pm'
      even without any explicit ACKs */
-  if ((PMT_CORE == s->pmt)
-      && (GNUNET_TRANSPORT_CC_RELIABLE == queue->tc->details.communicator.cc)) {
+  if ( (PMT_CORE == s->pmt) &&
+       (GNUNET_TRANSPORT_CC_RELIABLE == queue->tc->details.communicator.cc) )
+  {
     /* Full message sent, and over reliabile channel */
-    client_send_response (pm, GNUNET_YES, pm->bytes_msg);
-  } else if ((GNUNET_TRANSPORT_CC_RELIABLE
-              == queue->tc->details.communicator.cc)
-             && (PMT_FRAGMENT_BOX == s->pmt)) {
+    client_send_response (pm,
+                          GNUNET_YES,
+                          pm->bytes_msg);
+  }
+  else if ( (GNUNET_TRANSPORT_CC_RELIABLE == queue->tc->details.communicator.cc) &&
+	    (PMT_FRAGMENT_BOX == s->pmt) )
+  {
     struct PendingMessage *pos;
 
     /* Fragment sent over reliabile channel */
     free_fragment_tree (s);
     pos = s->frag_parent;
-    GNUNET_CONTAINER_MDLL_remove (frag, pos->head_frag, pos->tail_frag, s);
+    GNUNET_CONTAINER_MDLL_remove (frag,
+                                  pos->head_frag,
+                                  pos->tail_frag,
+                                  s);
     GNUNET_free (s);
     /* check if subtree is done */
-    while ((NULL == pos->head_frag) && (pos->frag_off == pos->bytes_msg)
-           && (pos != pm)) {
+    while ( (NULL == pos->head_frag) &&
+	    (pos->frag_off == pos->bytes_msg) &&
+	    (pos != pm) )
+    {
       s = pos;
       pos = s->frag_parent;
-      GNUNET_CONTAINER_MDLL_remove (frag, pos->head_frag, pos->tail_frag, s);
+      GNUNET_CONTAINER_MDLL_remove (frag,
+                                    pos->head_frag,
+                                    pos->tail_frag,
+                                    s);
       GNUNET_free (s);
     }
 
     /* Was this the last applicable fragmment? */
-    if ((NULL == pm->head_frag) && (pm->frag_off == pm->bytes_msg))
-      client_send_response (
-        pm,
-        GNUNET_YES,
-        pm->bytes_msg /* FIXME: calculate and add overheads! */);
-  } else if (PMT_CORE != pm->pmt) {
+    if ( (NULL == pm->head_frag) &&
+	 (pm->frag_off == pm->bytes_msg) )
+      client_send_response (pm,
+                            GNUNET_YES,
+                            pm->bytes_msg /* FIXME: calculate and add overheads! */);
+  }
+  else if (PMT_CORE != pm->pmt)
+  {
     /* This was an acknowledgement of some type, always free */
     free_pending_message (pm);
-  } else {
+  }
+  else
+  {
     /* message not finished, waiting for acknowledgement */
     struct Neighbour *neighbour = pm->target;
     /* Update time by which we might retransmit 's' based on queue
@@ -5369,9 +5698,11 @@ transmit_on_queue (void *cls)
        retransmitting.  Note that in the future this heuristic should
        likely be improved further (measure RTT stability, consider
        message urgency and size when delaying ACKs, etc.) */
-    s->next_attempt = GNUNET_TIME_relative_to_absolute (
-      GNUNET_TIME_relative_multiply (queue->rtt, 4));
-    if (s == pm) {
+    s->next_attempt = GNUNET_TIME_relative_to_absolute
+      (GNUNET_TIME_relative_multiply (queue->rtt,
+                                      4));
+    if (s == pm)
+    {
       struct PendingMessage *pos;
 
       /* re-insert sort in neighbour list */
@@ -5380,24 +5711,28 @@ transmit_on_queue (void *cls)
                                     neighbour->pending_msg_tail,
                                     pm);
       pos = neighbour->pending_msg_tail;
-      while (
-        (NULL != pos)
-        && (pm->next_attempt.abs_value_us > pos->next_attempt.abs_value_us))
+      while ( (NULL != pos) &&
+	      (pm->next_attempt.abs_value_us > pos->next_attempt.abs_value_us) )
         pos = pos->prev_neighbour;
       GNUNET_CONTAINER_MDLL_insert_after (neighbour,
                                           neighbour->pending_msg_head,
                                           neighbour->pending_msg_tail,
                                           pos,
                                           pm);
-    } else {
+    }
+    else
+    {
       /* re-insert sort in fragment list */
       struct PendingMessage *fp = s->frag_parent;
       struct PendingMessage *pos;
 
-      GNUNET_CONTAINER_MDLL_remove (frag, fp->head_frag, fp->tail_frag, s);
+      GNUNET_CONTAINER_MDLL_remove (frag,
+                                    fp->head_frag,
+                                    fp->tail_frag,
+                                    s);
       pos = fp->tail_frag;
-      while ((NULL != pos)
-             && (s->next_attempt.abs_value_us > pos->next_attempt.abs_value_us))
+      while ( (NULL != pos) &&
+	      (s->next_attempt.abs_value_us > pos->next_attempt.abs_value_us) )
         pos = pos->prev_frag;
       GNUNET_CONTAINER_MDLL_insert_after (frag,
                                           fp->head_frag,
@@ -5424,11 +5759,11 @@ tracker_update_out_cb (void *cls)
   struct Queue *queue = cls;
   struct Neighbour *n = queue->neighbour;
 
-  if (NULL == n->pending_msg_head) {
-    GNUNET_log (
-      GNUNET_ERROR_TYPE_DEBUG,
-      "Bandwidth allocation updated for empty transmission queue `%s'\n",
-      queue->address);
+  if (NULL == n->pending_msg_head)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		"Bandwidth allocation updated for empty transmission queue `%s'\n",
+		queue->address);
     return; /* no message pending, nothing to do here! */
   }
   GNUNET_SCHEDULER_cancel (queue->transmit_task);
@@ -5446,7 +5781,7 @@ tracker_update_out_cb (void *cls)
 static void
 tracker_excess_out_cb (void *cls)
 {
-  (void)cls;
+  (void) cls;
 
   /* FIXME: trigger excess bandwidth report to core? Right now,
      this is done internally within transport_api2_core already,
@@ -5460,6 +5795,7 @@ tracker_excess_out_cb (void *cls)
 }
 
 
+
 /**
  * Bandwidth tracker informs us that excessive inbound bandwidth was allocated
  * which is not being used.
@@ -5469,7 +5805,7 @@ tracker_excess_out_cb (void *cls)
 static void
 tracker_excess_in_cb (void *cls)
 {
-  (void)cls;
+  (void) cls;
 
   /* TODO: maybe inform somone at this point? */
   GNUNET_STATISTICS_update (GST_stats,
@@ -5491,17 +5827,21 @@ handle_del_queue_message (void *cls,
 {
   struct TransportClient *tc = cls;
 
-  if (CT_COMMUNICATOR != tc->type) {
+  if (CT_COMMUNICATOR != tc->type)
+  {
     GNUNET_break (0);
     GNUNET_SERVICE_client_drop (tc->client);
     return;
   }
-  for (struct Queue *queue = tc->details.communicator.queue_head; NULL != queue;
-       queue = queue->next_client) {
+  for (struct Queue *queue = tc->details.communicator.queue_head;
+       NULL != queue;
+       queue = queue->next_client)
+  {
     struct Neighbour *neighbour = queue->neighbour;
 
-    if ((dqm->qid != queue->qid)
-        || (0 != GNUNET_memcmp (&dqm->receiver, &neighbour->pid)))
+    if ( (dqm->qid != queue->qid) ||
+         (0 != GNUNET_memcmp (&dqm->receiver,
+                              &neighbour->pid)) )
       continue;
     free_queue (queue);
     GNUNET_SERVICE_client_continue (tc->client);
@@ -5525,7 +5865,8 @@ handle_send_message_ack (void *cls,
   struct TransportClient *tc = cls;
   struct QueueEntry *qe;
 
-  if (CT_COMMUNICATOR != tc->type) {
+  if (CT_COMMUNICATOR != tc->type)
+  {
     GNUNET_break (0);
     GNUNET_SERVICE_client_drop (tc->client);
     return;
@@ -5533,12 +5874,17 @@ handle_send_message_ack (void *cls,
 
   /* find our queue entry matching the ACK */
   qe = NULL;
-  for (struct Queue *queue = tc->details.communicator.queue_head; NULL != queue;
-       queue = queue->next_client) {
-    if (0 != GNUNET_memcmp (&queue->neighbour->pid, &sma->receiver))
+  for (struct Queue *queue = tc->details.communicator.queue_head;
+       NULL != queue;
+       queue = queue->next_client)
+  {
+    if (0 != GNUNET_memcmp (&queue->neighbour->pid,
+                            &sma->receiver))
       continue;
-    for (struct QueueEntry *qep = queue->queue_head; NULL != qep;
-         qep = qep->next) {
+    for (struct QueueEntry *qep = queue->queue_head;
+         NULL != qep;
+         qep = qep->next)
+    {
       if (qep->mid != sma->mid)
         continue;
       qe = qep;
@@ -5546,7 +5892,8 @@ handle_send_message_ack (void *cls,
     }
     break;
   }
-  if (NULL == qe) {
+  if (NULL == qe)
+  {
     /* this should never happen */
     GNUNET_break (0);
     GNUNET_SERVICE_client_drop (tc->client);
@@ -5560,25 +5907,25 @@ handle_send_message_ack (void *cls,
   GNUNET_SERVICE_client_continue (tc->client);
 
   /* if applicable, resume transmissions that waited on ACK */
-  if (COMMUNICATOR_TOTAL_QUEUE_LIMIT - 1
-      == tc->details.communicator.total_queue_length) {
+  if (COMMUNICATOR_TOTAL_QUEUE_LIMIT - 1 == tc->details.communicator.total_queue_length)
+  {
     /* Communicator dropped below threshold, resume all queues */
-    GNUNET_STATISTICS_update (
-      GST_stats,
-      "# Transmission throttled due to communicator queue limit",
-      -1,
-      GNUNET_NO);
+    GNUNET_STATISTICS_update (GST_stats,
+                              "# Transmission throttled due to communicator queue limit",
+                              -1,
+                              GNUNET_NO);
     for (struct Queue *queue = tc->details.communicator.queue_head;
          NULL != queue;
          queue = queue->next_client)
       schedule_transmit_on_queue (queue);
-  } else if (QUEUE_LENGTH_LIMIT - 1 == qe->queue->queue_length) {
+  }
+  else if (QUEUE_LENGTH_LIMIT - 1 == qe->queue->queue_length)
+  {
     /* queue dropped below threshold; only resume this one queue */
-    GNUNET_STATISTICS_update (
-      GST_stats,
-      "# Transmission throttled due to queue queue limit",
-      -1,
-      GNUNET_NO);
+    GNUNET_STATISTICS_update (GST_stats,
+                              "# Transmission throttled due to queue queue limit",
+                              -1,
+                              GNUNET_NO);
     schedule_transmit_on_queue (qe->queue);
   }
 
@@ -5609,14 +5956,22 @@ notify_client_queues (void *cls,
   struct Neighbour *neighbour = value;
 
   GNUNET_assert (CT_MONITOR == tc->type);
-  for (struct Queue *q = neighbour->queue_head; NULL != q;
-       q = q->next_neighbour) {
-    struct MonitorEvent me = {.rtt = q->rtt,
-                              .cs = q->cs,
-                              .num_msg_pending = q->num_msg_pending,
-                              .num_bytes_pending = q->num_bytes_pending};
+  for (struct Queue *q = neighbour->queue_head;
+       NULL != q;
+       q = q->next_neighbour)
+  {
+    struct MonitorEvent me = {
+      .rtt = q->rtt,
+      .cs = q->cs,
+      .num_msg_pending = q->num_msg_pending,
+      .num_bytes_pending = q->num_bytes_pending
+    };
 
-    notify_monitor (tc, pid, q->address, q->nt, &me);
+    notify_monitor (tc,
+                    pid,
+                    q->address,
+                    q->nt,
+                    &me);
   }
   return GNUNET_OK;
 }
@@ -5634,7 +5989,8 @@ handle_monitor_start (void *cls,
 {
   struct TransportClient *tc = cls;
 
-  if (CT_NONE != tc->type) {
+  if (CT_NONE != tc->type)
+  {
     GNUNET_break (0);
     GNUNET_SERVICE_client_drop (tc->client);
     return;
@@ -5642,7 +5998,9 @@ handle_monitor_start (void *cls,
   tc->type = CT_MONITOR;
   tc->details.monitor.peer = start->peer;
   tc->details.monitor.one_shot = ntohl (start->one_shot);
-  GNUNET_CONTAINER_multipeermap_iterate (neighbours, &notify_client_queues, tc);
+  GNUNET_CONTAINER_multipeermap_iterate (neighbours,
+                                         &notify_client_queues,
+                                         tc);
   GNUNET_SERVICE_client_mark_monitor (tc->client);
   GNUNET_SERVICE_client_continue (tc->client);
 }
@@ -5658,16 +6016,19 @@ handle_monitor_start (void *cls,
 static struct TransportClient *
 lookup_communicator (const char *prefix)
 {
-  for (struct TransportClient *tc = clients_head; NULL != tc; tc = tc->next) {
+  for (struct TransportClient *tc = clients_head;
+       NULL != tc;
+       tc = tc->next)
+  {
     if (CT_COMMUNICATOR != tc->type)
       continue;
-    if (0 == strcmp (prefix, tc->details.communicator.address_prefix))
+    if (0 == strcmp (prefix,
+		     tc->details.communicator.address_prefix))
       return tc;
   }
-  GNUNET_log (
-    GNUNET_ERROR_TYPE_WARNING,
-    "Somone suggested use of communicator for `%s', but we do not have such a communicator!\n",
-    prefix);
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+              "Somone suggested use of communicator for `%s', but we do not have such a communicator!\n",
+              prefix);
   return NULL;
 }
 
@@ -5680,7 +6041,8 @@ lookup_communicator (const char *prefix)
  * @param address the address to try
  */
 static void
-suggest_to_connect (const struct GNUNET_PeerIdentity *pid, const char *address)
+suggest_to_connect (const struct GNUNET_PeerIdentity *pid,
+                    const char *address)
 {
   static uint32_t idgen;
   struct TransportClient *tc;
@@ -5690,23 +6052,24 @@ suggest_to_connect (const struct GNUNET_PeerIdentity *pid, const char *address)
   size_t alen;
 
   prefix = GNUNET_HELLO_address_to_prefix (address);
-  if (NULL == prefix) {
+  if (NULL == prefix)
+  {
     GNUNET_break (0); /* We got an invalid address!? */
     return;
   }
   tc = lookup_communicator (prefix);
-  if (NULL == tc) {
-    GNUNET_STATISTICS_update (
-      GST_stats,
-      "# Suggestions ignored due to missing communicator",
-      1,
-      GNUNET_NO);
+  if (NULL == tc)
+  {
+    GNUNET_STATISTICS_update (GST_stats,
+                              "# Suggestions ignored due to missing communicator",
+                              1,
+                              GNUNET_NO);
     return;
   }
   /* forward suggestion for queue creation to communicator */
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Request #%u for `%s' communicator to create queue to `%s'\n",
-              (unsigned int)idgen,
+              (unsigned int) idgen,
               prefix,
               address);
   alen = strlen (address) + 1;
@@ -5715,8 +6078,11 @@ suggest_to_connect (const struct GNUNET_PeerIdentity *pid, const char *address)
                              GNUNET_MESSAGE_TYPE_TRANSPORT_QUEUE_CREATE);
   cqm->request_id = htonl (idgen++);
   cqm->receiver = *pid;
-  memcpy (&cqm[1], address, alen);
-  GNUNET_MQ_send (tc->mq, env);
+  memcpy (&cqm[1],
+          address,
+          alen);
+  GNUNET_MQ_send (tc->mq,
+                  env);
 }
 
 
@@ -5728,21 +6094,22 @@ suggest_to_connect (const struct GNUNET_PeerIdentity *pid, const char *address)
  * @param vs state to derive validation challenge from
  */
 static void
-validation_transmit_on_queue (struct Queue *q, struct ValidationState *vs)
+validation_transmit_on_queue (struct Queue *q,
+                              struct ValidationState *vs)
 {
   struct GNUNET_MQ_Envelope *env;
   struct TransportValidationChallenge *tvc;
 
   vs->last_challenge_use = GNUNET_TIME_absolute_get ();
-  env = GNUNET_MQ_msg (
-    tvc,
-    GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_VALIDATION_CHALLENGE);
+  env = GNUNET_MQ_msg (tvc,
+                       GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_VALIDATION_CHALLENGE);
   tvc->reserved = htonl (0);
   tvc->challenge = vs->challenge;
   tvc->sender_time = GNUNET_TIME_absolute_hton (vs->last_challenge_use);
   // FIXME: not so easy, need to BOX this message
   // in a transmission request! (mistake also done elsewhere!)
-  GNUNET_MQ_send (q->tc->mq, env);
+  GNUNET_MQ_send (q->tc->mq,
+                  env);
 }
 
 
@@ -5758,43 +6125,50 @@ validation_start_cb (void *cls)
   struct Neighbour *n;
   struct Queue *q;
 
-  (void)cls;
+  (void) cls;
   validation_task = NULL;
   vs = GNUNET_CONTAINER_heap_peek (validation_heap);
   /* drop validations past their expiration */
-  while (
-    (NULL != vs)
-    && (0
-        == GNUNET_TIME_absolute_get_remaining (vs->valid_until).rel_value_us)) {
+  while ( (NULL != vs) &&
+          (0 == GNUNET_TIME_absolute_get_remaining (vs->valid_until).rel_value_us) )
+  {
     free_validation_state (vs);
     vs = GNUNET_CONTAINER_heap_peek (validation_heap);
   }
   if (NULL == vs)
     return; /* woopsie, no more addresses known, should only
                happen if we're really a lonely peer */
-  n = GNUNET_CONTAINER_multipeermap_get (neighbours, &vs->pid);
+  n = GNUNET_CONTAINER_multipeermap_get (neighbours,
+                                         &vs->pid);
   q = NULL;
-  if (NULL != n) {
-    for (struct Queue *pos = n->queue_head; NULL != pos;
-         pos = pos->next_neighbour) {
-      if (0 == strcmp (pos->address, vs->address)) {
+  if (NULL != n)
+  {
+    for (struct Queue *pos = n->queue_head;
+         NULL != pos;
+         pos = pos->next_neighbour)
+    {
+      if (0 == strcmp (pos->address,
+                       vs->address))
+      {
         q = pos;
         break;
       }
     }
   }
-  if (NULL == q) {
+  if (NULL == q)
+  {
     vs->awaiting_queue = GNUNET_YES;
-    suggest_to_connect (&vs->pid, vs->address);
-  } else
-    validation_transmit_on_queue (q, vs);
+    suggest_to_connect (&vs->pid,
+                        vs->address);
+  }
+  else
+    validation_transmit_on_queue (q,
+                                  vs);
   /* Finally, reschedule next attempt */
-  vs->challenge_backoff
-    = GNUNET_TIME_randomized_backoff (vs->challenge_backoff,
-                                      MAX_VALIDATION_CHALLENGE_FREQ);
-  update_next_challenge_time (
-    vs,
-    GNUNET_TIME_relative_to_absolute (vs->challenge_backoff));
+  vs->challenge_backoff = GNUNET_TIME_randomized_backoff (vs->challenge_backoff,
+                                                          MAX_VALIDATION_CHALLENGE_FREQ);
+  update_next_challenge_time (vs,
+                              GNUNET_TIME_relative_to_absolute (vs->challenge_backoff));
 }
 
 
@@ -5823,6 +6197,7 @@ struct QueueQualityContext
    * k-th queue in @e q.
    */
   unsigned int k;
+
 };
 
 
@@ -5846,9 +6221,12 @@ check_connection_quality (void *cls,
   struct Neighbour *n = value;
   int do_inc;
 
-  (void)pid;
+  (void) pid;
   do_inc = GNUNET_NO;
-  for (struct Queue *q = n->queue_head; NULL != q; q = q->next_neighbour) {
+  for (struct Queue *q = n->queue_head;
+       NULL != q;
+       q = q->next_neighbour)
+  {
     if (0 != q->distance)
       continue; /* DV does not count */
     ctx->num_queues++;
@@ -5884,34 +6262,42 @@ start_dv_learn (void *cls)
   struct GNUNET_MQ_Envelope *env;
   struct TransportDVLearn *dvl;
 
-  (void)cls;
+  (void) cls;
   dvlearn_task = NULL;
-  if (0 == GNUNET_CONTAINER_multipeermap_size (neighbours))
+  if (0 ==
+      GNUNET_CONTAINER_multipeermap_size (neighbours))
     return; /* lost all connectivity, cannot do learning */
   qqc.quality_count = 0;
   qqc.num_queues = 0;
   GNUNET_CONTAINER_multipeermap_iterate (neighbours,
                                          &check_connection_quality,
                                          &qqc);
-  if (qqc.quality_count > DV_LEARN_QUALITY_THRESHOLD) {
+  if (qqc.quality_count > DV_LEARN_QUALITY_THRESHOLD)
+  {
     struct GNUNET_TIME_Relative delay;
     unsigned int factor;
 
     /* scale our retries by how far we are above the threshold */
     factor = qqc.quality_count / DV_LEARN_QUALITY_THRESHOLD;
-    delay = GNUNET_TIME_relative_multiply (DV_LEARN_BASE_FREQUENCY, factor);
-    dvlearn_task = GNUNET_SCHEDULER_add_delayed (delay, &start_dv_learn, NULL);
+    delay = GNUNET_TIME_relative_multiply (DV_LEARN_BASE_FREQUENCY,
+                                           factor);
+    dvlearn_task = GNUNET_SCHEDULER_add_delayed (delay,
+                                                 &start_dv_learn,
+                                                 NULL);
     return;
   }
   /* remove old entries in #dvlearn_map if it has grown too big */
-  while (MAX_DV_LEARN_PENDING
-         >= GNUNET_CONTAINER_multishortmap_size (dvlearn_map)) {
+  while (MAX_DV_LEARN_PENDING >=
+         GNUNET_CONTAINER_multishortmap_size (dvlearn_map))
+  {
     lle = lle_tail;
-    GNUNET_assert (GNUNET_YES
-                   == GNUNET_CONTAINER_multishortmap_remove (dvlearn_map,
-                                                             &lle->challenge,
-                                                             lle));
-    GNUNET_CONTAINER_DLL_remove (lle_head, lle_tail, lle);
+    GNUNET_assert (GNUNET_YES ==
+                   GNUNET_CONTAINER_multishortmap_remove (dvlearn_map,
+                                                          &lle->challenge,
+                                                          lle));
+    GNUNET_CONTAINER_DLL_remove (lle_head,
+                                 lle_tail,
+                                 lle);
     GNUNET_free (lle);
   }
   /* setup data structure for learning */
@@ -5919,33 +6305,37 @@ start_dv_learn (void *cls)
   GNUNET_CRYPTO_random_block (GNUNET_CRYPTO_QUALITY_NONCE,
                               &lle->challenge,
                               sizeof (lle->challenge));
-  GNUNET_CONTAINER_DLL_insert (lle_head, lle_tail, lle);
-  GNUNET_break (GNUNET_YES
-                == GNUNET_CONTAINER_multishortmap_put (
-                  dvlearn_map,
-                  &lle->challenge,
-                  lle,
-                  GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
-  env = GNUNET_MQ_msg (dvl, GNUNET_MESSAGE_TYPE_TRANSPORT_DV_LEARN);
+  GNUNET_CONTAINER_DLL_insert (lle_head,
+                               lle_tail,
+                               lle);
+  GNUNET_break (GNUNET_YES ==
+                GNUNET_CONTAINER_multishortmap_put (dvlearn_map,
+                                                    &lle->challenge,
+                                                    lle,
+                                                    GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
+  env = GNUNET_MQ_msg (dvl,
+                       GNUNET_MESSAGE_TYPE_TRANSPORT_DV_LEARN);
   dvl->num_hops = htons (0);
   dvl->bidirectional = htons (0);
   dvl->non_network_delay = GNUNET_TIME_relative_hton (GNUNET_TIME_UNIT_ZERO);
   {
-    struct DvInitPS dvip = {.purpose.purpose = htonl (
-                              GNUNET_SIGNATURE_PURPOSE_TRANSPORT_DV_INITIATOR),
-                            .purpose.size = htonl (sizeof (dvip)),
-                            .challenge = lle->challenge};
+    struct DvInitPS dvip = {
+      .purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_TRANSPORT_DV_INITIATOR),
+      .purpose.size = htonl (sizeof (dvip)),
+      .challenge = lle->challenge
+    };
 
-    GNUNET_assert (GNUNET_OK
-                   == GNUNET_CRYPTO_eddsa_sign (GST_my_private_key,
-                                                &dvip.purpose,
-                                                &dvl->init_sig));
+    GNUNET_assert (GNUNET_OK ==
+                   GNUNET_CRYPTO_eddsa_sign (GST_my_private_key,
+                                             &dvip.purpose,
+                                             &dvl->init_sig));
   }
   dvl->initiator = GST_my_identity;
   dvl->challenge = lle->challenge;
 
   qqc.quality_count = 0;
-  qqc.k = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, qqc.num_queues);
+  qqc.k = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
+                                    qqc.num_queues);
   qqc.num_queues = 0;
   qqc.q = NULL;
   GNUNET_CONTAINER_multipeermap_iterate (neighbours,
@@ -5957,14 +6347,15 @@ start_dv_learn (void *cls)
   lle->launch_time = GNUNET_TIME_absolute_get ();
   // FIXME: not so easy, need to BOX this message
   // in a transmission request! (mistake also done elsewhere!)
-  GNUNET_MQ_send (qqc.q->tc->mq, env);
+  GNUNET_MQ_send (qqc.q->tc->mq,
+                  env);
 
   /* reschedule this job, randomizing the time it runs (but no
      actual backoff!) */
-  dvlearn_task = GNUNET_SCHEDULER_add_delayed (
-    GNUNET_TIME_randomize (DV_LEARN_BASE_FREQUENCY),
-    &start_dv_learn,
-    NULL);
+  dvlearn_task
+    = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_randomize (DV_LEARN_BASE_FREQUENCY),
+                                    &start_dv_learn,
+                                    NULL);
 }
 
 
@@ -5985,11 +6376,14 @@ check_validation_request_pending (void *cls,
   struct Queue *q = cls;
   struct ValidationState *vs = value;
 
-  (void)pid;
-  if ((GNUNET_YES == vs->awaiting_queue)
-      && (0 == strcmp (vs->address, q->address))) {
+  (void) pid;
+  if ( (GNUNET_YES == vs->awaiting_queue) &&
+       (0 == strcmp (vs->address,
+                     q->address)) )
+  {
     vs->awaiting_queue = GNUNET_NO;
-    validation_transmit_on_queue (q, vs);
+    validation_transmit_on_queue (q,
+                                  vs);
     return GNUNET_NO;
   }
   return GNUNET_OK;
@@ -6012,7 +6406,8 @@ handle_add_queue_message (void *cls,
   const char *addr;
   uint16_t addr_len;
 
-  if (ntohl (aqm->mtu) <= sizeof (struct TransportFragmentBox)) {
+  if (ntohl (aqm->mtu) <= sizeof (struct TransportFragmentBox))
+  {
     /* MTU so small as to be useless for transmissions,
        required for #fragment_message()! */
     GNUNET_break_op (0);
@@ -6020,29 +6415,30 @@ handle_add_queue_message (void *cls,
     return;
   }
   neighbour = lookup_neighbour (&aqm->receiver);
-  if (NULL == neighbour) {
+  if (NULL == neighbour)
+  {
     neighbour = GNUNET_new (struct Neighbour);
     neighbour->earliest_timeout = GNUNET_TIME_UNIT_FOREVER_ABS;
     neighbour->pid = aqm->receiver;
-    GNUNET_assert (GNUNET_OK
-                   == GNUNET_CONTAINER_multipeermap_put (
-                     neighbours,
-                     &neighbour->pid,
-                     neighbour,
-                     GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
-    cores_send_connect_info (&neighbour->pid, GNUNET_BANDWIDTH_ZERO);
+    GNUNET_assert (GNUNET_OK ==
+                   GNUNET_CONTAINER_multipeermap_put (neighbours,
+                                                      &neighbour->pid,
+                                                      neighbour,
+                                                      GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
+    cores_send_connect_info (&neighbour->pid,
+                             GNUNET_BANDWIDTH_ZERO);
   }
   addr_len = ntohs (aqm->header.size) - sizeof (*aqm);
-  addr = (const char *)&aqm[1];
+  addr = (const char *) &aqm[1];
 
   queue = GNUNET_malloc (sizeof (struct Queue) + addr_len);
   queue->tc = tc;
-  queue->address = (const char *)&queue[1];
+  queue->address = (const char *) &queue[1];
   queue->rtt = GNUNET_TIME_UNIT_FOREVER_REL;
   queue->qid = aqm->qid;
   queue->mtu = ntohl (aqm->mtu);
-  queue->nt = (enum GNUNET_NetworkType)ntohl (aqm->nt);
-  queue->cs = (enum GNUNET_TRANSPORT_ConnectionStatus)ntohl (aqm->cs);
+  queue->nt = (enum GNUNET_NetworkType) ntohl (aqm->nt);
+  queue->cs = (enum GNUNET_TRANSPORT_ConnectionStatus) ntohl (aqm->cs);
   queue->neighbour = neighbour;
   GNUNET_BANDWIDTH_tracker_init2 (&queue->tracker_in,
                                   &tracker_update_in_cb,
@@ -6058,12 +6454,20 @@ handle_add_queue_message (void *cls,
                                   GNUNET_CONSTANTS_MAX_BANDWIDTH_CARRY_S,
                                   &tracker_excess_out_cb,
                                   queue);
-  memcpy (&queue[1], addr, addr_len);
+  memcpy (&queue[1],
+          addr,
+          addr_len);
   /* notify monitors about new queue */
   {
-    struct MonitorEvent me = {.rtt = queue->rtt, .cs = queue->cs};
+    struct MonitorEvent me = {
+      .rtt = queue->rtt,
+      .cs = queue->cs
+    };
 
-    notify_monitors (&neighbour->pid, queue->address, queue->nt, &me);
+    notify_monitors (&neighbour->pid,
+                     queue->address,
+                     queue->nt,
+                     &me);
   }
   GNUNET_CONTAINER_MDLL_insert (neighbour,
                                 neighbour->queue_head,
@@ -6074,14 +6478,14 @@ handle_add_queue_message (void *cls,
                                 tc->details.communicator.queue_tail,
                                 queue);
   /* check if valdiations are waiting for the queue */
-  (void)GNUNET_CONTAINER_multipeermap_get_multiple (
-    validation_map,
-    &aqm->receiver,
-    &check_validation_request_pending,
-    queue);
+  (void) GNUNET_CONTAINER_multipeermap_get_multiple (validation_map,
+                                                     &aqm->receiver,
+                                                     &check_validation_request_pending,
+                                                     queue);
   /* might be our first queue, try launching DV learning */
   if (NULL == dvlearn_task)
-    dvlearn_task = GNUNET_SCHEDULER_add_now (&start_dv_learn, NULL);
+    dvlearn_task = GNUNET_SCHEDULER_add_now (&start_dv_learn,
+                                             NULL);
   GNUNET_SERVICE_client_continue (tc->client);
 }
 
@@ -6099,7 +6503,8 @@ handle_queue_create_ok (void *cls,
 {
   struct TransportClient *tc = cls;
 
-  if (CT_COMMUNICATOR != tc->type) {
+  if (CT_COMMUNICATOR != tc->type)
+  {
     GNUNET_break (0);
     GNUNET_SERVICE_client_drop (tc->client);
     return;
@@ -6110,69 +6515,72 @@ handle_queue_create_ok (void *cls,
                             GNUNET_NO);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Request #%u for communicator to create queue succeeded\n",
-              (unsigned int)ntohs (cqr->request_id));
+              (unsigned int) ntohs (cqr->request_id));
   GNUNET_SERVICE_client_continue (tc->client);
 }
 
 
 /**
  * Communicator tells us that our request to create a queue failed. This usually
- * indicates that the provided address is simply invalid or that the
- * communicator's resources are exhausted.
+ * indicates that the provided address is simply invalid or that the communicator's
+ * resources are exhausted.
  *
  * @param cls the `struct TransportClient`
  * @param cqr failure message
  */
 static void
-handle_queue_create_fail (
-  void *cls,
-  const struct GNUNET_TRANSPORT_CreateQueueResponse *cqr)
+handle_queue_create_fail (void *cls,
+                          const struct GNUNET_TRANSPORT_CreateQueueResponse *cqr)
 {
   struct TransportClient *tc = cls;
 
-  if (CT_COMMUNICATOR != tc->type) {
+  if (CT_COMMUNICATOR != tc->type)
+  {
     GNUNET_break (0);
     GNUNET_SERVICE_client_drop (tc->client);
     return;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Request #%u for communicator to create queue failed\n",
-              (unsigned int)ntohs (cqr->request_id));
-  GNUNET_STATISTICS_update (
-    GST_stats,
-    "# Suggestions failed in queue creation at communicator",
-    1,
-    GNUNET_NO);
+              (unsigned int) ntohs (cqr->request_id));
+  GNUNET_STATISTICS_update (GST_stats,
+                            "# Suggestions failed in queue creation at communicator",
+                            1,
+                            GNUNET_NO);
   GNUNET_SERVICE_client_continue (tc->client);
 }
 
 
 /**
- * We have received a `struct ExpressPreferenceMessage` from an application
- * client.
+ * We have received a `struct ExpressPreferenceMessage` from an application client.
  *
  * @param cls handle to the client
  * @param msg the start message
  */
 static void
-handle_suggest_cancel (void *cls, const struct ExpressPreferenceMessage *msg)
+handle_suggest_cancel (void *cls,
+                       const struct ExpressPreferenceMessage *msg)
 {
   struct TransportClient *tc = cls;
   struct PeerRequest *pr;
 
-  if (CT_APPLICATION != tc->type) {
+  if (CT_APPLICATION != tc->type)
+  {
     GNUNET_break (0);
     GNUNET_SERVICE_client_drop (tc->client);
     return;
   }
   pr = GNUNET_CONTAINER_multipeermap_get (tc->details.application.requests,
                                           &msg->peer);
-  if (NULL == pr) {
+  if (NULL == pr)
+  {
     GNUNET_break (0);
     GNUNET_SERVICE_client_drop (tc->client);
     return;
   }
-  (void)stop_peer_request (tc, &pr->pid, pr);
+  (void) stop_peer_request (tc,
+                            &pr->pid,
+                            pr);
   GNUNET_SERVICE_client_continue (tc->client);
 }
 
@@ -6186,12 +6594,11 @@ handle_suggest_cancel (void *cls, const struct ExpressPreferenceMessage *msg)
  * @return #GNUNET_OK
  */
 static int
-check_address_consider_verify (
-  void *cls,
-  const struct GNUNET_TRANSPORT_AddressToVerify *hdr)
+check_address_consider_verify (void *cls,
+                               const struct GNUNET_TRANSPORT_AddressToVerify *hdr)
 {
-  (void)cls;
-  (void)hdr;
+  (void) cls;
+  (void) hdr;
   return GNUNET_OK;
 }
 
@@ -6230,8 +6637,9 @@ check_known_address (void *cls,
   struct CheckKnownAddressContext *ckac = cls;
   struct ValidationState *vs = value;
 
-  (void)pid;
-  if (0 != strcmp (vs->address, ckac->address))
+  (void) pid;
+  if (0 != strcmp (vs->address,
+                   ckac->address))
     return GNUNET_OK;
   ckac->vs = vs;
   return GNUNET_NO;
@@ -6252,29 +6660,32 @@ start_address_validation (const struct GNUNET_PeerIdentity *pid,
 {
   struct GNUNET_TIME_Absolute now;
   struct ValidationState *vs;
-  struct CheckKnownAddressContext ckac = {.address = address, .vs = NULL};
+  struct CheckKnownAddressContext ckac = {
+    .address = address,
+    .vs = NULL
+  };
 
   if (0 == GNUNET_TIME_absolute_get_remaining (expiration).rel_value_us)
     return; /* expired */
-  (void)GNUNET_CONTAINER_multipeermap_get_multiple (validation_map,
-                                                    pid,
-                                                    &check_known_address,
-                                                    &ckac);
-  if (NULL != (vs = ckac.vs)) {
-    /* if 'vs' is not currently valid, we need to speed up retrying the
-     * validation */
-    if (vs->validated_until.abs_value_us < vs->next_challenge.abs_value_us) {
+  (void) GNUNET_CONTAINER_multipeermap_get_multiple (validation_map,
+                                                     pid,
+                                                     &check_known_address,
+                                                     &ckac);
+  if (NULL != (vs = ckac.vs))
+  {
+    /* if 'vs' is not currently valid, we need to speed up retrying the validation */
+    if (vs->validated_until.abs_value_us < vs->next_challenge.abs_value_us)
+    {
       /* reduce backoff as we got a fresh advertisement */
-      vs->challenge_backoff = GNUNET_TIME_relative_min (
-        FAST_VALIDATION_CHALLENGE_FREQ,
-        GNUNET_TIME_relative_divide (vs->challenge_backoff, 2));
-      update_next_challenge_time (
-        vs,
-        GNUNET_TIME_relative_to_absolute (vs->challenge_backoff));
+      vs->challenge_backoff = GNUNET_TIME_relative_min (FAST_VALIDATION_CHALLENGE_FREQ,
+                                                        GNUNET_TIME_relative_divide (vs->challenge_backoff,
+                                                                                     2));
+      update_next_challenge_time (vs,
+                                  GNUNET_TIME_relative_to_absolute (vs->challenge_backoff));
     }
     return;
   }
-  now = GNUNET_TIME_absolute_get ();
+  now = GNUNET_TIME_absolute_get();
   vs = GNUNET_new (struct ValidationState);
   vs->pid = *pid;
   vs->valid_until = expiration;
@@ -6284,13 +6695,13 @@ start_address_validation (const struct GNUNET_PeerIdentity *pid,
                               &vs->challenge,
                               sizeof (vs->challenge));
   vs->address = GNUNET_strdup (address);
-  GNUNET_assert (GNUNET_YES
-                 == GNUNET_CONTAINER_multipeermap_put (
-                   validation_map,
-                   &vs->pid,
-                   vs,
-                   GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
-  update_next_challenge_time (vs, now);
+  GNUNET_assert (GNUNET_YES ==
+                 GNUNET_CONTAINER_multipeermap_put (validation_map,
+                                                    &vs->pid,
+                                                    vs,
+                                                    GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
+  update_next_challenge_time (vs,
+                              now);
 }
 
 
@@ -6309,42 +6720,48 @@ handle_hello (void *cls,
   struct PeerRequest *pr = cls;
   const char *val;
 
-  if (NULL != emsg) {
+  if (NULL != emsg)
+  {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                 "Got failure from PEERSTORE: %s\n",
                 emsg);
     return;
   }
   val = record->value;
-  if ((0 == record->value_size) || ('\0' != val[record->value_size - 1])) {
+  if ( (0 == record->value_size) ||
+       ('\0' != val[record->value_size - 1]) )
+  {
     GNUNET_break (0);
     return;
   }
   start_address_validation (&pr->pid,
-                            (const char *)record->value,
+                            (const char *) record->value,
                             record->expiry);
 }
 
 
 /**
- * We have received a `struct ExpressPreferenceMessage` from an application
- * client.
+ * We have received a `struct ExpressPreferenceMessage` from an application client.
  *
  * @param cls handle to the client
  * @param msg the start message
  */
 static void
-handle_suggest (void *cls, const struct ExpressPreferenceMessage *msg)
+handle_suggest (void *cls,
+                const struct ExpressPreferenceMessage *msg)
 {
   struct TransportClient *tc = cls;
   struct PeerRequest *pr;
 
-  if (CT_NONE == tc->type) {
+  if (CT_NONE == tc->type)
+  {
     tc->type = CT_APPLICATION;
     tc->details.application.requests
-      = GNUNET_CONTAINER_multipeermap_create (16, GNUNET_YES);
+      = GNUNET_CONTAINER_multipeermap_create (16,
+                                              GNUNET_YES);
   }
-  if (CT_APPLICATION != tc->type) {
+  if (CT_APPLICATION != tc->type)
+  {
     GNUNET_break (0);
     GNUNET_SERVICE_client_drop (tc->client);
     return;
@@ -6352,19 +6769,19 @@ handle_suggest (void *cls, const struct ExpressPreferenceMessage *msg)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Client suggested we talk to %s with preference %d at rate %u\n",
               GNUNET_i2s (&msg->peer),
-              (int)ntohl (msg->pk),
-              (int)ntohl (msg->bw.value__));
+              (int) ntohl (msg->pk),
+              (int) ntohl (msg->bw.value__));
   pr = GNUNET_new (struct PeerRequest);
   pr->tc = tc;
   pr->pid = msg->peer;
   pr->bw = msg->bw;
-  pr->pk = (enum GNUNET_MQ_PreferenceKind)ntohl (msg->pk);
-  if (GNUNET_YES
-      != GNUNET_CONTAINER_multipeermap_put (
-        tc->details.application.requests,
-        &pr->pid,
-        pr,
-        GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY)) {
+  pr->pk = (enum GNUNET_MQ_PreferenceKind) ntohl (msg->pk);
+  if (GNUNET_YES !=
+      GNUNET_CONTAINER_multipeermap_put (tc->details.application.requests,
+                                         &pr->pid,
+                                         pr,
+                                         GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY))
+  {
     GNUNET_break (0);
     GNUNET_free (pr);
     GNUNET_SERVICE_client_drop (tc->client);
@@ -6389,30 +6806,31 @@ handle_suggest (void *cls, const struct ExpressPreferenceMessage *msg)
  *        signature in the body, see #GNUNET_HELLO_extract_address()
  */
 static void
-handle_address_consider_verify (
-  void *cls,
-  const struct GNUNET_TRANSPORT_AddressToVerify *hdr)
+handle_address_consider_verify (void *cls,
+                                const struct GNUNET_TRANSPORT_AddressToVerify *hdr)
 {
   struct TransportClient *tc = cls;
   char *address;
   enum GNUNET_NetworkType nt;
   struct GNUNET_TIME_Absolute expiration;
 
-  (void)cls;
+  (void) cls;
   // FIXME: checking that we know this address already should
   //        be done BEFORE checking the signature => HELLO API change!
   // FIXME: pre-check: rate-limit signature verification / validation?!
-  address
-    = GNUNET_HELLO_extract_address (&hdr[1],
-                                    ntohs (hdr->header.size) - sizeof (*hdr),
-                                    &hdr->peer,
-                                    &nt,
-                                    &expiration);
-  if (NULL == address) {
+  address = GNUNET_HELLO_extract_address (&hdr[1],
+                                          ntohs (hdr->header.size) - sizeof (*hdr),
+                                          &hdr->peer,
+                                          &nt,
+                                          &expiration);
+  if (NULL == address)
+  {
     GNUNET_break_op (0);
     return;
   }
-  start_address_validation (&hdr->peer, address, expiration);
+  start_address_validation (&hdr->peer,
+                            address,
+                            expiration);
   GNUNET_free (address);
   GNUNET_SERVICE_client_continue (tc->client);
 }
@@ -6430,7 +6848,7 @@ static int
 check_request_hello_validation (void *cls,
                                 const struct RequestHelloValidationMessage *m)
 {
-  (void)cls;
+  (void) cls;
   GNUNET_MQ_check_zero_termination (m);
   return GNUNET_OK;
 }
@@ -6450,7 +6868,7 @@ handle_request_hello_validation (void *cls,
   struct TransportClient *tc = cls;
 
   start_address_validation (&m->peer,
-                            (const char *)&m[1],
+                            (const char *) &m[1],
                             GNUNET_TIME_absolute_ntoh (m->expiration));
   GNUNET_SERVICE_client_continue (tc->client);
 }
@@ -6471,8 +6889,8 @@ free_neighbour_cb (void *cls,
 {
   struct Neighbour *neighbour = value;
 
-  (void)cls;
-  (void)pid;
+  (void) cls;
+  (void) pid;
   GNUNET_break (0); // should this ever happen?
   free_neighbour (neighbour);
 
@@ -6495,8 +6913,8 @@ free_dv_routes_cb (void *cls,
 {
   struct DistanceVector *dv = value;
 
-  (void)cls;
-  (void)pid;
+  (void) cls;
+  (void) pid;
   free_dv_route (dv);
 
   return GNUNET_OK;
@@ -6518,8 +6936,8 @@ free_ephemeral_cb (void *cls,
 {
   struct EphemeralCacheEntry *ece = value;
 
-  (void)cls;
-  (void)pid;
+  (void) cls;
+  (void) pid;
   free_ephemeral (ece);
   return GNUNET_OK;
 }
@@ -6540,8 +6958,8 @@ free_validation_state_cb (void *cls,
 {
   struct ValidationState *vs = value;
 
-  (void)cls;
-  (void)pid;
+  (void) cls;
+  (void) pid;
   free_validation_state (vs);
   return GNUNET_OK;
 }
@@ -6557,22 +6975,30 @@ static void
 do_shutdown (void *cls)
 {
   struct LearnLaunchEntry *lle;
-  (void)cls;
+  (void) cls;
 
-  if (NULL != ephemeral_task) {
+  if (NULL != ephemeral_task)
+  {
     GNUNET_SCHEDULER_cancel (ephemeral_task);
     ephemeral_task = NULL;
   }
-  GNUNET_CONTAINER_multipeermap_iterate (neighbours, &free_neighbour_cb, NULL);
-  if (NULL != peerstore) {
-    GNUNET_PEERSTORE_disconnect (peerstore, GNUNET_NO);
+  GNUNET_CONTAINER_multipeermap_iterate (neighbours,
+                                         &free_neighbour_cb,
+                                         NULL);
+  if (NULL != peerstore)
+  {
+    GNUNET_PEERSTORE_disconnect (peerstore,
+                                 GNUNET_NO);
     peerstore = NULL;
   }
-  if (NULL != GST_stats) {
-    GNUNET_STATISTICS_destroy (GST_stats, GNUNET_NO);
+  if (NULL != GST_stats)
+  {
+    GNUNET_STATISTICS_destroy (GST_stats,
+                               GNUNET_NO);
     GST_stats = NULL;
   }
-  if (NULL != GST_my_private_key) {
+  if (NULL != GST_my_private_key)
+  {
     GNUNET_free (GST_my_private_key);
     GST_my_private_key = NULL;
   }
@@ -6583,15 +7009,20 @@ do_shutdown (void *cls)
                                          NULL);
   GNUNET_CONTAINER_multipeermap_destroy (validation_map);
   validation_map = NULL;
-  while (NULL != (lle = lle_head)) {
-    GNUNET_CONTAINER_DLL_remove (lle_head, lle_tail, lle);
+  while (NULL != (lle = lle_head))
+  {
+    GNUNET_CONTAINER_DLL_remove (lle_head,
+                                 lle_tail,
+                                 lle);
     GNUNET_free (lle);
   }
   GNUNET_CONTAINER_multishortmap_destroy (dvlearn_map);
   dvlearn_map = NULL;
   GNUNET_CONTAINER_heap_destroy (validation_heap);
   validation_heap = NULL;
-  GNUNET_CONTAINER_multipeermap_iterate (dv_routes, &free_dv_routes_cb, NULL);
+  GNUNET_CONTAINER_multipeermap_iterate (dv_routes,
+                                         &free_dv_routes_cb,
+                                         NULL);
   GNUNET_CONTAINER_multipeermap_destroy (dv_routes);
   dv_routes = NULL;
   GNUNET_CONTAINER_multipeermap_iterate (ephemeral_map,
@@ -6616,39 +7047,42 @@ run (void *cls,
      const struct GNUNET_CONFIGURATION_Handle *c,
      struct GNUNET_SERVICE_Handle *service)
 {
-  (void)cls;
-  (void)service;
+  (void) cls;
+  (void) service;
   /* setup globals */
   GST_cfg = c;
-  neighbours = GNUNET_CONTAINER_multipeermap_create (1024, GNUNET_YES);
-  dv_routes = GNUNET_CONTAINER_multipeermap_create (1024, GNUNET_YES);
-  ephemeral_map = GNUNET_CONTAINER_multipeermap_create (32, GNUNET_YES);
-  ephemeral_heap
-    = GNUNET_CONTAINER_heap_create (GNUNET_CONTAINER_HEAP_ORDER_MIN);
+  neighbours = GNUNET_CONTAINER_multipeermap_create (1024,
+                                                     GNUNET_YES);
+  dv_routes = GNUNET_CONTAINER_multipeermap_create (1024,
+                                                    GNUNET_YES);
+  ephemeral_map = GNUNET_CONTAINER_multipeermap_create (32,
+                                                        GNUNET_YES);
+  ephemeral_heap = GNUNET_CONTAINER_heap_create (GNUNET_CONTAINER_HEAP_ORDER_MIN);
   dvlearn_map = GNUNET_CONTAINER_multishortmap_create (2 * MAX_DV_LEARN_PENDING,
                                                        GNUNET_YES);
-  validation_map = GNUNET_CONTAINER_multipeermap_create (1024, GNUNET_YES);
-  validation_heap
-    = GNUNET_CONTAINER_heap_create (GNUNET_CONTAINER_HEAP_ORDER_MIN);
-  GST_my_private_key
-    = GNUNET_CRYPTO_eddsa_key_create_from_configuration (GST_cfg);
-  if (NULL == GST_my_private_key) {
-    GNUNET_log (
-      GNUNET_ERROR_TYPE_ERROR,
-      _ (
-        "Transport service is lacking key configuration settings. Exiting.\n"));
+  validation_map = GNUNET_CONTAINER_multipeermap_create (1024,
+                                                         GNUNET_YES);
+  validation_heap = GNUNET_CONTAINER_heap_create (GNUNET_CONTAINER_HEAP_ORDER_MIN);
+  GST_my_private_key = GNUNET_CRYPTO_eddsa_key_create_from_configuration (GST_cfg);
+  if (NULL == GST_my_private_key)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                _("Transport service is lacking key configuration settings. Exiting.\n"));
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
   GNUNET_CRYPTO_eddsa_key_get_public (GST_my_private_key,
                                       &GST_my_identity.public_key);
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              "My identity is `%s'\n",
-              GNUNET_i2s_full (&GST_my_identity));
-  GST_stats = GNUNET_STATISTICS_create ("transport", GST_cfg);
-  GNUNET_SCHEDULER_add_shutdown (&do_shutdown, NULL);
+  GNUNET_log(GNUNET_ERROR_TYPE_INFO,
+             "My identity is `%s'\n",
+             GNUNET_i2s_full (&GST_my_identity));
+  GST_stats = GNUNET_STATISTICS_create ("transport",
+                                        GST_cfg);
+  GNUNET_SCHEDULER_add_shutdown (&do_shutdown,
+                                 NULL);
   peerstore = GNUNET_PEERSTORE_connect (GST_cfg);
-  if (NULL == peerstore) {
+  if (NULL == peerstore)
+  {
     GNUNET_break (0);
     GNUNET_SCHEDULER_shutdown ();
     return;
@@ -6659,86 +7093,86 @@ run (void *cls,
 /**
  * Define "main" method using service macro.
  */
-GNUNET_SERVICE_MAIN (
-  "transport",
-  GNUNET_SERVICE_OPTION_SOFT_SHUTDOWN,
-  &run,
-  &client_connect_cb,
-  &client_disconnect_cb,
-  NULL,
-  /* communication with applications */
-  GNUNET_MQ_hd_fixed_size (suggest,
-                           GNUNET_MESSAGE_TYPE_TRANSPORT_SUGGEST,
-                           struct ExpressPreferenceMessage,
-                           NULL),
-  GNUNET_MQ_hd_fixed_size (suggest_cancel,
-                           GNUNET_MESSAGE_TYPE_TRANSPORT_SUGGEST_CANCEL,
-                           struct ExpressPreferenceMessage,
-                           NULL),
-  GNUNET_MQ_hd_var_size (request_hello_validation,
-                         GNUNET_MESSAGE_TYPE_TRANSPORT_REQUEST_HELLO_VALIDATION,
-                         struct RequestHelloValidationMessage,
-                         NULL),
-  /* communication with core */
-  GNUNET_MQ_hd_fixed_size (client_start,
-                           GNUNET_MESSAGE_TYPE_TRANSPORT_START,
-                           struct StartMessage,
-                           NULL),
-  GNUNET_MQ_hd_var_size (client_send,
-                         GNUNET_MESSAGE_TYPE_TRANSPORT_SEND,
-                         struct OutboundMessage,
-                         NULL),
-  /* communication with communicators */
-  GNUNET_MQ_hd_var_size (communicator_available,
-                         GNUNET_MESSAGE_TYPE_TRANSPORT_NEW_COMMUNICATOR,
-                         struct GNUNET_TRANSPORT_CommunicatorAvailableMessage,
-                         NULL),
-  GNUNET_MQ_hd_var_size (communicator_backchannel,
-                         GNUNET_MESSAGE_TYPE_TRANSPORT_COMMUNICATOR_BACKCHANNEL,
-                         struct GNUNET_TRANSPORT_CommunicatorBackchannel,
-                         NULL),
-  GNUNET_MQ_hd_var_size (add_address,
-                         GNUNET_MESSAGE_TYPE_TRANSPORT_ADD_ADDRESS,
-                         struct GNUNET_TRANSPORT_AddAddressMessage,
-                         NULL),
-  GNUNET_MQ_hd_fixed_size (del_address,
-                           GNUNET_MESSAGE_TYPE_TRANSPORT_DEL_ADDRESS,
-                           struct GNUNET_TRANSPORT_DelAddressMessage,
-                           NULL),
-  GNUNET_MQ_hd_var_size (incoming_msg,
-                         GNUNET_MESSAGE_TYPE_TRANSPORT_INCOMING_MSG,
-                         struct GNUNET_TRANSPORT_IncomingMessage,
-                         NULL),
-  GNUNET_MQ_hd_fixed_size (queue_create_ok,
-                           GNUNET_MESSAGE_TYPE_TRANSPORT_QUEUE_CREATE_OK,
-                           struct GNUNET_TRANSPORT_CreateQueueResponse,
-                           NULL),
-  GNUNET_MQ_hd_fixed_size (queue_create_fail,
-                           GNUNET_MESSAGE_TYPE_TRANSPORT_QUEUE_CREATE_FAIL,
-                           struct GNUNET_TRANSPORT_CreateQueueResponse,
-                           NULL),
-  GNUNET_MQ_hd_var_size (add_queue_message,
-                         GNUNET_MESSAGE_TYPE_TRANSPORT_QUEUE_SETUP,
-                         struct GNUNET_TRANSPORT_AddQueueMessage,
-                         NULL),
-  GNUNET_MQ_hd_var_size (address_consider_verify,
-                         GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_CONSIDER_VERIFY,
-                         struct GNUNET_TRANSPORT_AddressToVerify,
-                         NULL),
-  GNUNET_MQ_hd_fixed_size (del_queue_message,
-                           GNUNET_MESSAGE_TYPE_TRANSPORT_QUEUE_TEARDOWN,
-                           struct GNUNET_TRANSPORT_DelQueueMessage,
-                           NULL),
-  GNUNET_MQ_hd_fixed_size (send_message_ack,
-                           GNUNET_MESSAGE_TYPE_TRANSPORT_SEND_MSG_ACK,
-                           struct GNUNET_TRANSPORT_SendMessageToAck,
-                           NULL),
-  /* communication with monitors */
-  GNUNET_MQ_hd_fixed_size (monitor_start,
-                           GNUNET_MESSAGE_TYPE_TRANSPORT_MONITOR_START,
-                           struct GNUNET_TRANSPORT_MonitorStart,
-                           NULL),
-  GNUNET_MQ_handler_end ());
+GNUNET_SERVICE_MAIN
+("transport",
+ GNUNET_SERVICE_OPTION_SOFT_SHUTDOWN,
+ &run,
+ &client_connect_cb,
+ &client_disconnect_cb,
+ NULL,
+ /* communication with applications */
+ GNUNET_MQ_hd_fixed_size (suggest,
+                          GNUNET_MESSAGE_TYPE_TRANSPORT_SUGGEST,
+                          struct ExpressPreferenceMessage,
+                          NULL),
+ GNUNET_MQ_hd_fixed_size (suggest_cancel,
+                          GNUNET_MESSAGE_TYPE_TRANSPORT_SUGGEST_CANCEL,
+                          struct ExpressPreferenceMessage,
+                          NULL),
+ GNUNET_MQ_hd_var_size (request_hello_validation,
+                        GNUNET_MESSAGE_TYPE_TRANSPORT_REQUEST_HELLO_VALIDATION,
+                        struct RequestHelloValidationMessage,
+                        NULL),
+ /* communication with core */
+ GNUNET_MQ_hd_fixed_size (client_start,
+                          GNUNET_MESSAGE_TYPE_TRANSPORT_START,
+                          struct StartMessage,
+                          NULL),
+ GNUNET_MQ_hd_var_size (client_send,
+                        GNUNET_MESSAGE_TYPE_TRANSPORT_SEND,
+                        struct OutboundMessage,
+                        NULL),
+ /* communication with communicators */
+ GNUNET_MQ_hd_var_size (communicator_available,
+                        GNUNET_MESSAGE_TYPE_TRANSPORT_NEW_COMMUNICATOR,
+                        struct GNUNET_TRANSPORT_CommunicatorAvailableMessage,
+                        NULL),
+ GNUNET_MQ_hd_var_size (communicator_backchannel,
+                        GNUNET_MESSAGE_TYPE_TRANSPORT_COMMUNICATOR_BACKCHANNEL,
+                        struct GNUNET_TRANSPORT_CommunicatorBackchannel,
+                        NULL),
+ GNUNET_MQ_hd_var_size (add_address,
+                        GNUNET_MESSAGE_TYPE_TRANSPORT_ADD_ADDRESS,
+                        struct GNUNET_TRANSPORT_AddAddressMessage,
+                        NULL),
+ GNUNET_MQ_hd_fixed_size (del_address,
+                          GNUNET_MESSAGE_TYPE_TRANSPORT_DEL_ADDRESS,
+                          struct GNUNET_TRANSPORT_DelAddressMessage,
+                          NULL),
+ GNUNET_MQ_hd_var_size (incoming_msg,
+                        GNUNET_MESSAGE_TYPE_TRANSPORT_INCOMING_MSG,
+                        struct GNUNET_TRANSPORT_IncomingMessage,
+                        NULL),
+ GNUNET_MQ_hd_fixed_size (queue_create_ok,
+                          GNUNET_MESSAGE_TYPE_TRANSPORT_QUEUE_CREATE_OK,
+                          struct GNUNET_TRANSPORT_CreateQueueResponse,
+                          NULL),
+ GNUNET_MQ_hd_fixed_size (queue_create_fail,
+                          GNUNET_MESSAGE_TYPE_TRANSPORT_QUEUE_CREATE_FAIL,
+                          struct GNUNET_TRANSPORT_CreateQueueResponse,
+                          NULL),
+ GNUNET_MQ_hd_var_size (add_queue_message,
+                        GNUNET_MESSAGE_TYPE_TRANSPORT_QUEUE_SETUP,
+                        struct GNUNET_TRANSPORT_AddQueueMessage,
+                        NULL),
+ GNUNET_MQ_hd_var_size (address_consider_verify,
+                        GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_CONSIDER_VERIFY,
+                        struct GNUNET_TRANSPORT_AddressToVerify,
+                        NULL),
+ GNUNET_MQ_hd_fixed_size (del_queue_message,
+                          GNUNET_MESSAGE_TYPE_TRANSPORT_QUEUE_TEARDOWN,
+                          struct GNUNET_TRANSPORT_DelQueueMessage,
+                          NULL),
+ GNUNET_MQ_hd_fixed_size (send_message_ack,
+                          GNUNET_MESSAGE_TYPE_TRANSPORT_SEND_MSG_ACK,
+                          struct GNUNET_TRANSPORT_SendMessageToAck,
+                          NULL),
+ /* communication with monitors */
+ GNUNET_MQ_hd_fixed_size (monitor_start,
+                          GNUNET_MESSAGE_TYPE_TRANSPORT_MONITOR_START,
+                          struct GNUNET_TRANSPORT_MonitorStart,
+                          NULL),
+ GNUNET_MQ_handler_end ());
 
 
 /* end of file gnunet-service-transport.c */
