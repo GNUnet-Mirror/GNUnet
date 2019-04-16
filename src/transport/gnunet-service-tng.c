@@ -3257,9 +3257,9 @@ struct BackchannelKeyState
 
 
 static void
-setup_key_state_from_km (const struct GNUNET_HashCode *km,
-                         const struct GNUNET_HashCode *iv,
-                         struct BackchannelKeyState *key)
+bc_setup_key_state_from_km (const struct GNUNET_HashCode *km,
+                            const struct GNUNET_ShortHashCode *iv,
+                            struct BackchannelKeyState *key)
 {
   /* must match #dh_key_derive_eph_pub */
   GNUNET_assert (GNUNET_YES ==
@@ -3292,7 +3292,7 @@ dh_key_derive_eph_pid (const struct GNUNET_CRYPTO_EcdhePrivateKey *priv_ephemera
   struct GNUNET_HashCode km;
 
   GNUNET_assert (GNUNET_YES ==
-                 GNUNET_CRYPTO_ecdsa_ecdh (priv_ephemeral,
+                 GNUNET_CRYPTO_ecdh_eddsa (priv_ephemeral,
                                            &target->public_key,
                                            &km));
   bc_setup_key_state_from_km (&km,
@@ -3318,7 +3318,7 @@ dh_key_derive_eph_pub (const struct GNUNET_CRYPTO_EcdhePublicKey *pub_ephemeral,
   struct GNUNET_HashCode km;
 
   GNUNET_assert (GNUNET_YES ==
-                 GNUNET_CRYPTO_ecdsa_ecdh (GST_my_private_key,
+                 GNUNET_CRYPTO_eddsa_ecdh (GST_my_private_key,
                                            pub_ephemeral,
                                            &km));
   bc_setup_key_state_from_km (&km,
@@ -3357,8 +3357,8 @@ bc_hmac (const struct BackchannelKeyState *key,
  */
 static void
 bc_encrypt (struct BackchannelKeyState *key,
-            void *dst,
             const void *in,
+            void *dst,
             size_t in_size)
 {
   // FIXME!
@@ -3376,8 +3376,8 @@ bc_encrypt (struct BackchannelKeyState *key,
  */
 static void
 bc_decrypt (struct BackchannelKeyState *key,
-            const void *ciph,
             void *out,
+            const void *ciph,
             size_t out_size)
 {
   // FIXME!
@@ -3429,10 +3429,10 @@ handle_communicator_backchannel (void *cls,
   GNUNET_CRYPTO_random_block (GNUNET_CRYPTO_QUALITY_NONCE,
                               &enc->iv,
                               sizeof (enc->iv));
-  dh_key_derive (&private_key,
-                 &cb->pid,
-                 &enc->iv,
-                 &key);
+  dh_key_derive_eph_pid (&private_key,
+                         &cb->pid,
+                         &enc->iv,
+                         &key);
   ppay.ephemeral_validity = GNUNET_TIME_absolute_hton (ephemeral_validity);
   ppay.monotonic_time = GNUNET_TIME_absolute_hton (GNUNET_TIME_absolute_get_monotonic (GST_cfg));
   mpos = (char *) &enc[1];
@@ -4281,7 +4281,7 @@ handle_backchannel_encapsulation (void *cls,
   struct BackchannelKeyState key;
   struct GNUNET_HashCode hmac;
   const char *hdr;
-  size_t hrd_len;
+  size_t hdr_len;
 
   if (0 != GNUNET_memcmp (&be->target,
                           &GST_my_identity))
