@@ -33,12 +33,12 @@
  *       transport-to-transport traffic)
  *
  * Implement next:
- * - DV data structures:
- *   + using DV routes!
- *     - route_message implementation, including using DV data structures
- *       (but not when routing certain message types, like DV learn,
- *        MUST pay attention to content here -- or pass extra flags?)
- * - retransmission
+ * - FIXMEs: missing communicator-protocol wrappers around messages
+ *           passed in MQ transmission requests on queues (see FIXME in code)
+ * - route_message() implementation, including using DV data structures
+ *   (but not when routing certain message types, like DV learn,
+ *    MUST pay attention to content here -- or pass extra flags?)
+ * - retransmission logic
  * - track RTT, distance, loss, etc. => requires extra data structures!
  *
  * Later:
@@ -6935,9 +6935,9 @@ handle_address_consider_verify (void *cls,
   struct GNUNET_TIME_Absolute expiration;
 
   (void) cls;
-  // FIXME: checking that we know this address already should
+  // OPTIMIZE-FIXME: checking that we know this address already should
   //        be done BEFORE checking the signature => HELLO API change!
-  // FIXME: pre-check: rate-limit signature verification / validation?!
+  // OPTIMIZE-FIXME: pre-check: rate-limit signature verification / validation?!
   address = GNUNET_HELLO_extract_address (&hdr[1],
                                           ntohs (hdr->header.size) - sizeof (*hdr),
                                           &hdr->peer,
