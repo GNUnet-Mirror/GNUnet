@@ -35,7 +35,6 @@
  * Implement next:
  * - DV data structures:
  *   + using DV routes!
- *     - handling of DV-boxed messages that need to be forwarded
  *     - route_message implementation, including using DV data structures
  *       (but not when routing certain message types, like DV learn,
  *        MUST pay attention to content here -- or pass extra flags?)
@@ -4763,7 +4762,8 @@ handle_dv_learn (void *cls,
   /* continue communicator here, everything else can happen asynchronous! */
   finish_cmc_handling (cmc);
 
-  // FIXME: should we bother to verify _every_ DV initiator signature?
+  /* OPTIMIZE-FIXME: Technically, we only need to bother checking
+     the initiator signature if we send the message back to the initiator... */
   if (GNUNET_OK !=
       validate_dv_initiator_signature (&dvl->initiator,
                                        &dvl->challenge,
@@ -4773,7 +4773,7 @@ handle_dv_learn (void *cls,
     return;
   }
   // FIXME: asynchronously (!) verify hop-by-hop signatures!
-  // => if signature verification load too high, implement random drop strategy!
+  // => if signature verification load too high, implement random drop strategy!?
 
   do_fwd = GNUNET_YES;
   if (0 == GNUNET_memcmp (&GST_my_identity,
@@ -4953,7 +4953,64 @@ check_dv_box (void *cls,
     GNUNET_break_op (0);
     return GNUNET_SYSERR;
   }
+  if (0 ==
+      GNUNET_memcmp (&dvb->origin,
+                     &GST_my_identity))
+  {
+    GNUNET_break_op (0);
+    return GNUNET_SYSERR;
+  }
   return GNUNET_YES;
+}
+
+
+/**
+ * Create a DV Box message and queue it for transmission to
+ * @ea next_hop.
+ *
+ * @param next_hop peer to receive the message next
+ * @param total_hops how many hops did the message take so far
+ * @param num_hops length of the @a hops array
+ * @param origin origin of the message
+ * @param hops next peer(s) to the destination, including destination
+ * @param payload payload of the box
+ * @param payload_size number of bytes in @a payload
+ */
+static void
+forward_dv_box (struct Neighbour *next_hop,
+                uint16_t total_hops,
+                uint16_t num_hops,
+                const struct GNUNET_PeerIdentity *origin,
+                const struct GNUNET_PeerIdentity *hops,
+                const void *payload,
+                uint16_t payload_size)
+{
+  struct TransportDVBox *dvb;
+  struct GNUNET_PeerIdentity *dhops;
+
+  GNUNET_assert (UINT16_MAX <
+                 sizeof (struct TransportDVBox) +
+                 sizeof (struct GNUNET_PeerIdentity) * num_hops +
+                 payload_size);
+  dvb = GNUNET_malloc (sizeof (struct TransportDVBox) +
+                       sizeof (struct GNUNET_PeerIdentity) * num_hops +
+                       payload_size);
+  dvb->header.size = htons (sizeof (struct TransportDVBox) +
+                            sizeof (struct GNUNET_PeerIdentity) * num_hops +
+                            payload_size);
+  dvb->header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_DV_BOX);
+  dvb->total_hops = htons (total_hops);
+  dvb->num_hops = htons (num_hops);
+  dvb->origin = *origin;
+  dhops = (struct GNUNET_PeerIdentity *) &dvb[1];
+  memcpy (dhops,
+          hops,
+          num_hops * sizeof (struct GNUNET_PeerIdentity));
+  memcpy (&dhops[num_hops],
+          payload,
+          payload_size);
+  route_message (&next_hop->pid,
+                 &dvb->header);
 }
 
 
@@ -4975,10 +5032,39 @@ handle_dv_box (void *cls,
 
   if (num_hops > 0)
   {
-    // FIXME: if we are not the target, shorten path and forward along.
-    // Try from the _end_ of hops array if we know the given
-    // neighbour (shortening the path!).
-    // NOTE: increment total_hops!
+    /* We're trying from the end of the hops array, as we may be
+       able to find a shortcut unknown to the origin that way */
+    for (int i=num_hops-1;i>=0;i--)
+    {
+      struct Neighbour *n;
+
+      if (0 ==
+          GNUNET_memcmp (&hops[i],
+                         &GST_my_identity))
+      {
+        GNUNET_break_op (0);
+        finish_cmc_handling (cmc);
+        return;
+      }
+      n = GNUNET_CONTAINER_multipeermap_get (neighbours,
+                                             &hops[i]);
+      if (NULL == n)
+        continue;
+      forward_dv_box (n,
+                      ntohs (dvb->total_hops) + 1,
+                      num_hops - i - 1, /* number of hops left */
+                      &dvb->origin,
+                      &hops[i+1], /* remaining hops */
+                      (const void *) &dvb[1],
+                      size);
+      finish_cmc_handling (cmc);
+      return;
+    }
+    /* Woopsie, next hop not in neighbours, drop! */
+    GNUNET_STATISTICS_update (GST_stats,
+                              "# DV Boxes dropped: next hop unknown",
+                              1,
+                              GNUNET_NO);
     finish_cmc_handling (cmc);
     return;
   }
@@ -5399,7 +5485,7 @@ tracker_update_in_cb (void *cls)
 
   rsize = (0 == queue->mtu) ? IN_PACKET_SIZE_WITHOUT_MTU : queue->mtu;
   in_delay = GNUNET_BANDWIDTH_tracker_get_delay (&queue->tracker_in,
-						 rsize);
+                                                 rsize);
   // FIXME: how exactly do we do inbound flow control?
 }
 
