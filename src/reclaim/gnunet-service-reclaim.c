@@ -1274,7 +1274,8 @@ ticket_iter_cb (void *cls, struct GNUNET_RECLAIM_Ticket *ticket)
 
 static void
 handle_ticket_iteration_start (
-  void *cls, const struct TicketIterationStartMessage *tis_msg)
+  void *cls,
+  const struct TicketIterationStartMessage *tis_msg)
 {
   struct IdpClient *client = cls;
   struct TicketIteration *ti;
