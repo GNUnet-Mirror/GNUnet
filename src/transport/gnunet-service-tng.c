@@ -33,7 +33,6 @@
  *       transport-to-transport traffic)
  *
  * Implement next:
- * - backchannel message encryption & decryption
  * - DV data structures:
  *   + using DV routes!
  *     - handling of DV-boxed messages that need to be forwarded
@@ -59,7 +58,6 @@
  * FIXME (without marks in the code!):
  * - proper use/initialization of timestamps in messages exchanged
  *   during DV learning
- * -
  *
  * Optimizations:
  * - use shorthashmap on msg_uuid's when matching reliability/fragment ACKs
@@ -3238,21 +3236,32 @@ route_message (const struct GNUNET_PeerIdentity *target,
  */
 struct BackchannelKeyState
 {
-  // FIXME: actual data types in this struct are likely still totally wrong
   /**
-   *
+   * State of our block cipher.
    */
-  char hdr_key[128];
+  gcry_cipher_hd_t cipher;
 
   /**
-   *
+   * Actual key material.
    */
-  char body_key[128];
+  struct {
 
-  /**
-   *
-   */
-  char hmac_key[128];
+    /**
+     * Key used for HMAC calculations (via #GNUNET_CRYPTO_hmac()).
+     */
+    struct GNUNET_CRYPTO_AuthKey hmac_key;
+
+    /**
+     * Symmetric key to use for encryption.
+     */
+    char aes_key[256/8];
+
+    /**
+     * Counter value to use during setup.
+     */
+    char aes_ctr[128/8];
+
+  } material;
 };
 
 
@@ -3263,14 +3272,24 @@ bc_setup_key_state_from_km (const struct GNUNET_HashCode *km,
 {
   /* must match #dh_key_derive_eph_pub */
   GNUNET_assert (GNUNET_YES ==
-                 GNUNET_CRYPTO_kdf (key,
-                                    sizeof (*key),
+                 GNUNET_CRYPTO_kdf (&key->material,
+                                    sizeof (key->material),
                                     "transport-backchannel-key",
                                     strlen ("transport-backchannel-key"),
                                     &km,
                                     sizeof (km),
                                     iv,
                                     sizeof (*iv)));
+  gcry_cipher_open (&key->cipher,
+                    GCRY_CIPHER_AES256 /* low level: go for speed */,
+                    GCRY_CIPHER_MODE_CTR,
+                    0 /* flags */);
+  gcry_cipher_setkey (key->cipher,
+                      &key->material.aes_key,
+                      sizeof (key->material.aes_key));
+  gcry_cipher_setctr (key->cipher,
+                      &key->material.aes_ctr,
+                      sizeof (key->material.aes_ctr));
 }
 
 
@@ -3342,7 +3361,10 @@ bc_hmac (const struct BackchannelKeyState *key,
          const void *data,
          size_t data_size)
 {
-  // FIXME!
+  GNUNET_CRYPTO_hmac (&key->material.hmac_key,
+                      data,
+                      data_size,
+                      hmac);
 }
 
 
@@ -3361,7 +3383,12 @@ bc_encrypt (struct BackchannelKeyState *key,
             void *dst,
             size_t in_size)
 {
-  // FIXME!
+  GNUNET_assert (0 ==
+                 gcry_cipher_encrypt (key->cipher,
+                                      dst,
+                                      in_size,
+                                      in,
+                                      in_size));
 }
 
 
@@ -3380,7 +3407,12 @@ bc_decrypt (struct BackchannelKeyState *key,
             const void *ciph,
             size_t out_size)
 {
-  // FIXME!
+  GNUNET_assert (0 ==
+                 gcry_cipher_decrypt (key->cipher,
+                                      out,
+                                      out_size,
+                                      ciph,
+                                      out_size));
 }
 
 
@@ -3392,7 +3424,9 @@ bc_decrypt (struct BackchannelKeyState *key,
 static void
 bc_key_clean (struct BackchannelKeyState *key)
 {
-  // FIXME!
+  gcry_cipher_close (key->cipher);
+  GNUNET_CRYPTO_zero_keys (&key->material,
+                           sizeof (key->material));
 }
 
 

@@ -456,6 +456,18 @@ int32_t
 GNUNET_CRYPTO_crc32_n (const void *buf,
                        size_t len);
 
+/**
+ * @ingroup crypto
+ * Zero out @a buffer, securely against compiler optimizations.
+ * Used to delete key material.
+ *
+ * @param buffer the buffer to zap
+ * @param length buffer length
+ */
+void
+GNUNET_CRYPTO_zero_keys (void *buffer,
+                         size_t length);
+
 
 /**
  * @ingroup crypto
@@ -721,8 +733,8 @@ GNUNET_CRYPTO_hash_context_abort (struct GNUNET_HashContext *hc);
  */
 void
 GNUNET_CRYPTO_hmac_raw (const void *key, size_t key_len,
-			const void *plaintext, size_t plaintext_len,
-			struct GNUNET_HashCode *hmac);
+                        const void *plaintext, size_t plaintext_len,
+                        struct GNUNET_HashCode *hmac);
 
 
 /**
@@ -1866,7 +1878,7 @@ GNUNET_CRYPTO_rsa_private_key_free (struct GNUNET_CRYPTO_RsaPrivateKey *key);
  */
 size_t
 GNUNET_CRYPTO_rsa_private_key_encode (const struct GNUNET_CRYPTO_RsaPrivateKey *key,
-				      char **buffer);
+                                      char **buffer);
 
 
 /**
@@ -1879,7 +1891,7 @@ GNUNET_CRYPTO_rsa_private_key_encode (const struct GNUNET_CRYPTO_RsaPrivateKey *
  */
 struct GNUNET_CRYPTO_RsaPrivateKey *
 GNUNET_CRYPTO_rsa_private_key_decode (const char *buf,
-				      size_t len);
+                                      size_t len);
 
 
 /**

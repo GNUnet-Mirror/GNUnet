@@ -814,9 +814,9 @@ pass_plaintext_to_core (struct Queue *queue,
  */
 static void
 setup_cipher (const struct GNUNET_HashCode *dh,
-	      const struct GNUNET_PeerIdentity *pid,
-	      gcry_cipher_hd_t *cipher,
-	      struct GNUNET_HashCode *hmac_key)
+              const struct GNUNET_PeerIdentity *pid,
+              gcry_cipher_hd_t *cipher,
+              struct GNUNET_HashCode *hmac_key)
 {
   char key[256/8];
   char ctr[128/8];
@@ -872,7 +872,7 @@ setup_cipher (const struct GNUNET_HashCode *dh,
  */
 static void
 setup_in_cipher (const struct GNUNET_CRYPTO_EcdhePublicKey *ephemeral,
-		 struct Queue *queue)
+                 struct Queue *queue)
 {
   struct GNUNET_HashCode dh;
 
@@ -896,7 +896,7 @@ setup_in_cipher (const struct GNUNET_CRYPTO_EcdhePublicKey *ephemeral,
  */
 static void
 do_rekey (struct Queue *queue,
-	  const struct TCPRekey *rekey)
+          const struct TCPRekey *rekey)
 {
   struct TcpHandshakeSignature thp;
 

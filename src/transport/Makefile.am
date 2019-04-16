@@ -374,6 +374,7 @@ gnunet_service_tng_LDADD = \
   $(top_builddir)/src/hello/libgnunethello.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/util/libgnunetutil.la \
+  $(LIBGCRYPT_LIBS) \
   $(GN_LIBINTL)
 
 plugin_LTLIBRARIES = \

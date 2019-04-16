@@ -212,6 +212,10 @@ AC_UNALIGNED_64_ACCESS
 AC_SEARCH_LIBS([gethostbyname], [nsl ws2_32])
 AC_SEARCH_LIBS([memrchr], [],
                AC_DEFINE(HAVE_MEMRCHR,1,[memrchr supported]), [])
+AC_SEARCH_LIBS([memset_s], [],
+               AC_DEFINE(HAVE_MEMSET_S,1,[memset_s supported]), [])
+AC_SEARCH_LIBS([memset_s], [],
+               AC_DEFINE(HAVE_EXPLICIT_BZERO,1,[explicit_bzero supported]), [])
 AC_CHECK_LIB(socket, socket)
 AC_CHECK_LIB(m, log)
 AC_CHECK_LIB(c, getloadavg, AC_DEFINE(HAVE_GETLOADAVG,1,[getloadavg supported]))

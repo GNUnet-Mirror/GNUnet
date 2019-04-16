@@ -98,6 +98,34 @@ GNUNET_CRYPTO_seed_weak_random (int32_t seed)
 
 /**
  * @ingroup crypto
+ * Zero out @a buffer, securely against compiler optimizations.
+ * Used to delete key material.
+ *
+ * @param buffer the buffer to zap
+ * @param length buffer length
+ */
+void
+GNUNET_CRYPTO_zero_keys (void *buffer,
+                         size_t length)
+{
+#if HAVE_MEMSET_S
+  memset_s (buffer,
+            length,
+            0,
+            length);
+#elif HAVE_EXPLICIT_BZERO
+  explicit_bzero (buffer,
+                  length);
+#else
+  volatile unsigned char *p = buffer;
+  while (length--)
+    *p++ = 0;
+#endif
+}
+
+
+/**
+ * @ingroup crypto
  * Fill block with a random values.
  *
  * @param mode desired quality of the random number
@@ -105,7 +133,9 @@ GNUNET_CRYPTO_seed_weak_random (int32_t seed)
  * @param length buffer length
  */
 void
-GNUNET_CRYPTO_random_block (enum GNUNET_CRYPTO_Quality mode, void *buffer, size_t length)
+GNUNET_CRYPTO_random_block (enum GNUNET_CRYPTO_Quality mode,
+                            void *buffer,
+                            size_t length)
 {
 #ifdef gcry_fast_random_poll
   static unsigned int invokeCount;
@@ -146,7 +176,7 @@ GNUNET_CRYPTO_random_block (enum GNUNET_CRYPTO_Quality mode, void *buffer, size_
  */
 uint32_t
 GNUNET_CRYPTO_random_u32 (enum GNUNET_CRYPTO_Quality mode,
-			  uint32_t i)
+                          uint32_t i)
 {
 #ifdef gcry_fast_random_poll
   static unsigned int invokeCount;
@@ -202,7 +232,7 @@ GNUNET_CRYPTO_random_u32 (enum GNUNET_CRYPTO_Quality mode,
  */
 unsigned int *
 GNUNET_CRYPTO_random_permute (enum GNUNET_CRYPTO_Quality mode,
-			      unsigned int n)
+                              unsigned int n)
 {
   unsigned int *ret;
   unsigned int i;
@@ -232,7 +262,8 @@ GNUNET_CRYPTO_random_permute (enum GNUNET_CRYPTO_Quality mode,
  * @return random 64-bit number
  */
 uint64_t
-GNUNET_CRYPTO_random_u64 (enum GNUNET_CRYPTO_Quality mode, uint64_t max)
+GNUNET_CRYPTO_random_u64 (enum GNUNET_CRYPTO_Quality mode,
+                          uint64_t max)
 {
   uint64_t ret;
   uint64_t ul;
