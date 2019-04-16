@@ -902,12 +902,15 @@ accidental assignment) and with the @code{true} target being either the
 @code{error} case or the significantly simpler continuation. For example:
 
 @example
-if (0 != stat ("filename," &sbuf)) @{
+if (0 != stat ("filename,"
+               &sbuf))
+@{
   error();
- @}
- else @{
-   /* handle normal case here */
- @}
+@}
+else
+@{
+  /* handle normal case here */
+@}
 @end example
 
 @noindent
@@ -927,10 +930,12 @@ If possible, the error clause should be terminated with a @code{return} (or
 should be omitted:
 
 @example
-if (0 != stat ("filename," &sbuf)) @{
+if (0 != stat ("filename",
+               &sbuf))
+@{
   error();
   return;
- @}
+@}
 /* handle normal case here */
 @end example
 
@@ -943,10 +948,11 @@ NULL, and enums). With the two above rules (constants on left, errors in
 code clarity. For example, one can write:
 
 @example
-if (NULL == (value = lookup_function())) @{
+if (NULL == (value = lookup_function()))
+@{
   error();
   return;
- @}
+@}
 @end example
 
 @item Use @code{break} and @code{continue} wherever possible to avoid
@@ -954,13 +960,16 @@ deep(er) nesting. Thus, we would write:
 
 @example
 next = head;
-while (NULL != (pos = next)) @{
+while (NULL != (pos = next))
+@{
   next = pos->next;
   if (! should_free (pos))
     continue;
-  GNUNET_CONTAINER_DLL_remove (head, tail, pos);
+  GNUNET_CONTAINER_DLL_remove (head,
+                               tail,
+                               pos);
   GNUNET_free (pos);
- @}
+@}
 @end example
 
 instead of
@@ -987,7 +996,9 @@ while (NULL != (pos = next))
   next = pos->next;
   if (! should_free (pos))
     continue;
-  GNUNET_CONTAINER_DLL_remove (head, tail, pos);
+  GNUNET_CONTAINER_DLL_remove (head,
+                               tail,
+                               pos);
   GNUNET_free (pos);
 @}
 @end example
@@ -1018,7 +1029,10 @@ be part of the variable declarations, should assign the
 @code{cls} argument to the precise expected type. For example:
 
 @example
-int callback (void *cls, char *args) @{
+int
+callback (void *cls,
+          char *args)
+@{
   struct Foo *foo = cls;
   int other_variables;
 
@@ -1026,13 +1040,18 @@ int callback (void *cls, char *args) @{
 @}
 @end example
 
+@item As shown in the example above, after the return type of a
+function there should be a break.  Each parameter should
+be on a new line.
 
 @item It is good practice to write complex @code{if} expressions instead
 of using deeply nested @code{if} statements. However, except for addition
 and multiplication, all operators should use parens. This is fine:
 
 @example
-if ( (1 == foo) || ((0 == bar) && (x != y)) )
+if ( (1 == foo) ||
+     ( (0 == bar) &&
+       (x != y) ) )
   return x;
 @end example
 
@@ -8989,4 +9008,3 @@ so please make sure that endpoints are unambiguous.
 
 This is WIP. Endpoints should be documented appropriately.
 Preferably using annotations.
-
