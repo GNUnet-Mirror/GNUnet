@@ -141,7 +141,6 @@ endif
 
 noinst_PROGRAMS = \
  gnunet-transport-profiler \
- gnunet-communicator-unix \
  gnunet-communicator-tcp \
  gnunet-communicator-udp \
  gnunet-service-tng \
@@ -149,7 +148,8 @@ noinst_PROGRAMS = \
  $(WLAN_BIN_RECEIVER)
 
 if HAVE_TESTING
-TESTING_LIBS = libgnunettransporttesting.la
+TESTING_LIBS = libgnunettransporttesting.la \
+							 libgnunettransporttesting2.la
 endif
 
 lib_LTLIBRARIES = \
@@ -175,6 +175,14 @@ libgnunettransporttesting_la_LIBADD = \
   $(top_builddir)/src/testing/libgnunettesting.la \
   $(GN_LIBINTL)
 libgnunettransporttesting_la_LDFLAGS = \
+ $(GN_LIB_LDFLAGS)
+
+libgnunettransporttesting2_la_SOURCES = \
+  transport-testing2.c transport-testing2.h
+libgnunettransporttesting2_la_LIBADD = \
+  libgnunettransport.la \
+  $(top_builddir)/src/util/libgnunetutil.la
+libgnunettransporttesting2_la_LDFLAGS = \
  $(GN_LIB_LDFLAGS)
 
 libgnunettransport_la_SOURCES = \
@@ -249,7 +257,8 @@ libexec_PROGRAMS = \
  $(WLAN_BIN) \
  $(WLAN_BIN_DUMMY) \
  $(BT_BIN) \
- gnunet-service-transport
+ gnunet-service-transport \
+ gnunet-communicator-unix
 
 
 
@@ -595,7 +604,8 @@ check_PROGRAMS = \
  $(HTTP_QUOTA_TEST) \
  $(HTTPS_QUOTA_TEST) \
  $(WLAN_QUOTA_TEST) \
- $(BT_QUOTA_TEST)
+ $(BT_QUOTA_TEST) \
+ test_communicator_unix
 if HAVE_GETOPT_BINARY
 check_PROGRAMS += \
 test_transport_api_slow_ats
@@ -664,7 +674,8 @@ TESTS = \
  $(HTTP_API_TIMEOUT_TEST) \
  $(HTTPS_API_TIMEOUT_TEST) \
  $(WLAN_TIMEOUT_TEST) \
- $(BT_TIMEOUT_TEST)
+ $(BT_TIMEOUT_TEST) \
+ test_communicator_udp
 if HAVE_GETOPT_BINARY
 TESTS += \
 test_transport_api_slow_ats
@@ -777,6 +788,12 @@ test_plugin_udp_LDADD = \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/util/libgnunetutil.la  \
  libgnunettransporttesting.la
+
+test_communicator_udp_SOURCES = \
+ test_communicator_udp.c
+test_communicator_udp_LDADD = \
+ libgnunettransporttesting2.la \
+ $(top_builddir)/src/util/libgnunetutil.la
 
 test_plugin_unix_SOURCES = \
  test_plugin_transport.c
