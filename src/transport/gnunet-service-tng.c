@@ -3326,50 +3326,148 @@ queue_send_msg (struct Queue *queue,
 
 
 /**
+ * Which transmission options are allowable for transmission?
+ * Interpreted bit-wise!
+ */
+enum RouteMessageOptions {
+  /**
+   * Only confirmed, non-DV direct neighbours.
+   */
+  RMO_NONE = 0,
+
+  /**
+   * We are allowed to use DV routing for this @a hdr
+   */
+  RMO_DV_ALLOWED = 1,
+
+  /**
+   * We are allowed to use unconfirmed queues or DV routes for this message
+   */
+  RMO_UNCONFIRMED_ALLOWED = 2,
+
+  /**
+   * Reliable and unreliable, DV and non-DV are all acceptable.
+   */
+  RMO_ANYTHING_GOES = (RMO_DV_ALLOWED | RMO_UNCONFIRMED_ALLOWED),
+
+  /**
+   * If we have multiple choices, it is OK to send this message
+   * over multiple channels at the same time to improve loss tolerance.
+   * (We do at most 2 transmissions.)
+   */
+  RMO_REDUNDANT = 4
+};
+
+
+/**
+ * Pick a queue of @a n under constraints @a options and schedule
+ * transmission of @a hdr.
+ *
+ * @param n neighbour to send to
+ * @param hdr message to send as payload
+ * @param options whether queues must be confirmed or not,
+ *        and whether we may pick multiple (2) queues
+ */
+static void
+route_via_neighbour (const struct Neighbour *n,
+                     const struct GNUNET_MessageHeader *hdr,
+                     enum RouteMessageOptions options)
+{
+  // FIXME: pick on or two 'random' queue (under constraints of options)
+  // Then add wrapper and enqueue message!
+}
+
+
+/**
+ * Pick a path of @a dv under constraints @a options and schedule
+ * transmission of @a hdr.
+ *
+ * @param n neighbour to send to
+ * @param hdr message to send as payload
+ * @param options whether path must be confirmed or not
+ *        and whether we may pick multiple (2) paths
+ */
+static void
+route_via_dv (const struct DistanceVector *dv,
+              const struct GNUNET_MessageHeader *hdr,
+              enum RouteMessageOptions options)
+{
+  // FIXME: pick on or two 'random' paths (under constraints of options)
+  // Then add DVBox and enqueue message (possibly using
+  // route_via_neighbour for 1st hop?)
+}
+
+
+/**
  * We need to transmit @a hdr to @a target.  If necessary, this may
- * involve DV routing or even broadcasting and fragmentation.
+ * involve DV routing.
  *
  * @param target peer to receive @a hdr
  * @param hdr header of the message to route and #GNUNET_free()
+ * @param options which transmission channels are allowed
  */
 static void
 route_message (const struct GNUNET_PeerIdentity *target,
-               struct GNUNET_MessageHeader *hdr)
+               struct GNUNET_MessageHeader *hdr,
+               enum RouteMessageOptions options)
 {
-  // Cases:
-  // 1: called to transmit backchannel message we initiated
-  // 2: called to transmit fragment ack
-  // 3: called to transmit reliability box
-  // 4: called to forward backchannel message
-  // 5: called to forward DV learn message (caller already picked random neighbour(s))!
-  // 6: called to forward DV Box message
-  // 7: called to forward valdiation response
+  struct Neighbour *n;
+  struct DistanceVector *dv;
 
-  // Choices:
-  // a) Send ONLY to a *confirmed* direct neighbour
-  // b) Send allowed to *unconfirmed* direct neighbour
-  // c) Route also via *confirmed* DV to target
-  // c) Route allowed via *unconfirmed  DV to target
-  // => One BIT "dv allowed or not", plus one BIT "confirmed/unconfirmed" might do!
-
-  // Case analysis:
-  //         1       2        3        4       5       6      7
-  // a       X       X        X        X       X       X      X
-  // b                                         X              X
-  // c       X       X        X        X                      X
-  // d                                                        X
-  //
-
-  // FIXME: this one is tricky:
-  // - we could try a direct, reliable channel
-  // - if that is unavailable / for load balancing, we may try:
-  //   * multiple (?) direct unreliable channels - depending on loss rate?
-  //   * some (?) DV channels - if above unavailable / too lossy?
-  //   * _random_ other peers ("broadcasting") in hope of *discovering*
-  //      a path back! - if all else fails
-  // => need more on DV first!
-
-  // FIXME: send hdr to target, free hdr (possibly using DV, possibly broadcasting)
+  n = GNUNET_CONTAINER_multipeermap_get (neighbours,
+                                         target);
+  dv = (0 != (options & RMO_DV_ALLOWED))
+    ? GNUNET_CONTAINER_multipeermap_get (dv_routes,
+                                         target)
+    : NULL;
+  if (0 == (options & RMO_UNCONFIRMED_ALLOWED))
+  {
+    /* if confirmed is required, and we do not have anything
+       confirmed, drop respective options */
+    if ( (NULL != n) &&
+         (GNUNET_NO == n->core_visible) )
+      n = NULL;
+    if ( (NULL != dv) &&
+         (GNUNET_NO == dv->core_visible) )
+      dv = NULL;
+  }
+  if ( (NULL == n) &&
+       (NULL == dv) )
+  {
+    GNUNET_STATISTICS_update (GST_stats,
+                              "# Messages dropped in routing: no acceptable method",
+                              1,
+                              GNUNET_NO);
+    GNUNET_free (hdr);
+    return;
+  }
+  /* If both dv and n are possible and we must choose:
+     flip a coin for the choice between the two; for now 50/50 */
+  if ( (NULL != n) &&
+       (NULL != dv) &&
+       (0 == (options & RMO_REDUNDANT)) )
+  {
+    if (0 == GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 2))
+      n = NULL;
+    else
+      dv = NULL;
+  }
+  if ( (NULL != n) &&
+       (NULL != dv) )
+    options &= ~RMO_REDUNDANT; /* We will do one DV and one direct, that's
+                                  enough for redunancy, so clear the flag. */
+  if (NULL != n)
+  {
+    route_via_neighbour (n,
+                         hdr,
+                         options);
+  }
+  if (NULL != dv)
+  {
+    route_via_dv (dv,
+                  hdr,
+                  options);
+  }
   GNUNET_free (hdr);
 }
 
@@ -3627,7 +3725,8 @@ handle_communicator_backchannel (void *cls,
            sizeof (ppay) + ntohs (cb->header.size) - sizeof (*cb));
   bc_key_clean (&key);
   route_message (&cb->pid,
-                 &enc->header);
+                 &enc->header,
+                 RMO_DV_ALLOWED);
   GNUNET_SERVICE_client_continue (tc->client);
 }
 
@@ -3971,7 +4070,8 @@ send_fragment_ack (struct ReassemblyContext *rc)
     ack->reassembly_timeout
       = GNUNET_TIME_relative_hton (GNUNET_TIME_absolute_get_remaining (rc->reassembly_timeout));
   route_message (&rc->neighbour->pid,
-                 &ack->header);
+                 &ack->header,
+                 RMO_DV_ALLOWED);
   rc->avg_ack_delay = GNUNET_TIME_UNIT_ZERO;
   rc->num_acks = 0;
   rc->extra_acks = 0LLU;
@@ -4327,7 +4427,8 @@ handle_reliability_box (void *cls,
             &rb->msg_uuid,
             sizeof (struct GNUNET_ShortHashCode));
     route_message (&cmc->im.sender,
-                   &ack->header);
+                   &ack->header,
+                   RMO_DV_ALLOWED);
   }
   /* continue with inner message */
   demultiplex_with_cmc (cmc,
@@ -4470,7 +4571,8 @@ handle_backchannel_encapsulation (void *cls,
     /* FIXME: BE routing can be special, should we put all of this
        on 'route_message'? Maybe at least pass some more arguments? */
     route_message (&be->target,
-                   GNUNET_copy_message (&be->header));
+                   GNUNET_copy_message (&be->header),
+                   RMO_DV_ALLOWED);
     finish_cmc_handling (cmc);
     return;
   }
@@ -4818,7 +4920,8 @@ forward_dv_learn (const struct GNUNET_PeerIdentity *next_hop,
                                              &dhops[nhops].hop_sig));
   }
   route_message (next_hop,
-                 &fwd->header);
+                 &fwd->header,
+                 RMO_UNCONFIRMED_ALLOWED);
 }
 
 
@@ -5160,7 +5263,8 @@ forward_dv_box (struct Neighbour *next_hop,
           payload,
           payload_size);
   route_message (&next_hop->pid,
-                 &dvb->header);
+                 &dvb->header,
+                 RMO_NONE);
 }
 
 
@@ -5290,7 +5394,8 @@ handle_validation_challenge (void *cls,
                                              &tvr->signature));
   }
   route_message (&cmc->im.sender,
-                 &tvr->header);
+                 &tvr->header,
+                 RMO_ANYTHING_GOES | RMO_REDUNDANT);
   finish_cmc_handling (cmc);
 }
 
