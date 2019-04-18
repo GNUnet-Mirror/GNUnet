@@ -11,7 +11,7 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -23,10 +23,12 @@
  * @author Christian Grothoff
  *
  * @file
- * Standard TCP/IP network structs and IP checksum calculations for TUN interaction
+ * Standard TCP/IP network structs and IP checksum calculations for TUN
+ * interaction
  *
  * @defgroup tun  TUN library
- * Standard TCP/IP network structs and IP checksum calculations for TUN interaction
+ * Standard TCP/IP network structs and IP checksum calculations for TUN
+ * interaction
  * @{
  */
 #ifndef GNUNET_TUN_LIB_H
@@ -96,13 +98,13 @@ struct GNUNET_TUN_Layer2PacketHeader
 struct GNUNET_TUN_IPv4Header
 {
 #if __BYTE_ORDER == __LITTLE_ENDIAN
-  unsigned int header_length:4 GNUNET_PACKED;
-  unsigned int version:4 GNUNET_PACKED;
+  unsigned int header_length : 4 GNUNET_PACKED;
+  unsigned int version : 4 GNUNET_PACKED;
 #elif __BYTE_ORDER == __BIG_ENDIAN
-  unsigned int version:4 GNUNET_PACKED;
-  unsigned int header_length:4 GNUNET_PACKED;
+  unsigned int version : 4 GNUNET_PACKED;
+  unsigned int header_length : 4 GNUNET_PACKED;
 #else
-  #error byteorder undefined
+#error byteorder undefined
 #endif
   uint8_t diff_serv;
 
@@ -116,9 +118,9 @@ struct GNUNET_TUN_IPv4Header
    */
   uint16_t identification GNUNET_PACKED;
 
-  unsigned int flags:3 GNUNET_PACKED;
+  unsigned int flags : 3 GNUNET_PACKED;
 
-  unsigned int fragmentation_offset:13 GNUNET_PACKED;
+  unsigned int fragmentation_offset : 13 GNUNET_PACKED;
 
   /**
    * How many more hops can this packet be forwarded?
@@ -138,12 +140,12 @@ struct GNUNET_TUN_IPv4Header
   /**
    * Origin of the packet.
    */
-  struct in_addr source_address GNUNET_PACKED;
+  struct in_addr source_address;
 
   /**
    * Destination of the packet.
    */
-  struct in_addr destination_address GNUNET_PACKED;
+  struct in_addr destination_address;
 } GNUNET_GCC_STRUCT_LAYOUT;
 
 
@@ -153,16 +155,16 @@ struct GNUNET_TUN_IPv4Header
 struct GNUNET_TUN_IPv6Header
 {
 #if __BYTE_ORDER == __LITTLE_ENDIAN
-  unsigned int traffic_class_h:4 GNUNET_PACKED;
-  unsigned int version:4 GNUNET_PACKED;
-  unsigned int traffic_class_l:4 GNUNET_PACKED;
-  unsigned int flow_label:20 GNUNET_PACKED;
+  unsigned int traffic_class_h : 4 GNUNET_PACKED;
+  unsigned int version : 4 GNUNET_PACKED;
+  unsigned int traffic_class_l : 4 GNUNET_PACKED;
+  unsigned int flow_label : 20 GNUNET_PACKED;
 #elif __BYTE_ORDER == __BIG_ENDIAN
-  unsigned int version:4 GNUNET_PACKED;
-  unsigned int traffic_class:8 GNUNET_PACKED;
-  unsigned int flow_label:20 GNUNET_PACKED;
+  unsigned int version : 4 GNUNET_PACKED;
+  unsigned int traffic_class : 8 GNUNET_PACKED;
+  unsigned int flow_label : 20 GNUNET_PACKED;
 #else
-  #error byteorder undefined
+#error byteorder undefined
 #endif
   /**
    * Length of the payload, excluding this header.
@@ -246,7 +248,7 @@ struct GNUNET_TUN_TcpHeader
    */
   unsigned int reserved : 4 GNUNET_PACKED;
 #else
-  #error byteorder undefined
+#error byteorder undefined
 #endif
 
   /**
@@ -298,7 +300,6 @@ struct GNUNET_TUN_UdpHeader
 };
 
 
-
 /**
  * A few common DNS classes (ok, only one is common, but I list a
  * couple more to make it clear what we're talking about here).
@@ -341,12 +342,12 @@ struct GNUNET_TUN_DnsFlags
   /**
    * Set to 1 if recursion is desired (client -> server)
    */
-  unsigned int recursion_desired    : 1 GNUNET_PACKED;
+  unsigned int recursion_desired : 1 GNUNET_PACKED;
 
   /**
    * Set to 1 if message is truncated
    */
-  unsigned int message_truncated    : 1 GNUNET_PACKED;
+  unsigned int message_truncated : 1 GNUNET_PACKED;
 
   /**
    * Set to 1 if this is an authoritative answer
@@ -356,48 +357,48 @@ struct GNUNET_TUN_DnsFlags
   /**
    * See GNUNET_TUN_DNS_OPCODE_ defines.
    */
-  unsigned int opcode               : 4 GNUNET_PACKED;
+  unsigned int opcode : 4 GNUNET_PACKED;
 
   /**
    * query:0, response:1
    */
-  unsigned int query_or_response    : 1 GNUNET_PACKED;
+  unsigned int query_or_response : 1 GNUNET_PACKED;
 
   /**
    * See GNUNET_TUN_DNS_RETURN_CODE_ defines.
    */
-  unsigned int return_code          : 4 GNUNET_PACKED;
+  unsigned int return_code : 4 GNUNET_PACKED;
 
   /**
    * See RFC 4035.
    */
-  unsigned int checking_disabled    : 1 GNUNET_PACKED;
+  unsigned int checking_disabled : 1 GNUNET_PACKED;
 
   /**
    * Response has been cryptographically verified, RFC 4035.
    */
-  unsigned int authenticated_data   : 1 GNUNET_PACKED;
+  unsigned int authenticated_data : 1 GNUNET_PACKED;
 
   /**
    * Always zero.
    */
-  unsigned int zero                 : 1 GNUNET_PACKED;
+  unsigned int zero : 1 GNUNET_PACKED;
 
   /**
    * Set to 1 if recursion is available (server -> client)
    */
-  unsigned int recursion_available  : 1 GNUNET_PACKED;
+  unsigned int recursion_available : 1 GNUNET_PACKED;
 #elif __BYTE_ORDER == __BIG_ENDIAN
 
   /**
    * query:0, response:1
    */
-  unsigned int query_or_response    : 1 GNUNET_PACKED;
+  unsigned int query_or_response : 1 GNUNET_PACKED;
 
   /**
    * See GNUNET_TUN_DNS_OPCODE_ defines.
    */
-  unsigned int opcode               : 4 GNUNET_PACKED;
+  unsigned int opcode : 4 GNUNET_PACKED;
 
   /**
    * Set to 1 if this is an authoritative answer
@@ -407,44 +408,43 @@ struct GNUNET_TUN_DnsFlags
   /**
    * Set to 1 if message is truncated
    */
-  unsigned int message_truncated    : 1 GNUNET_PACKED;
+  unsigned int message_truncated : 1 GNUNET_PACKED;
 
   /**
    * Set to 1 if recursion is desired (client -> server)
    */
-  unsigned int recursion_desired    : 1 GNUNET_PACKED;
+  unsigned int recursion_desired : 1 GNUNET_PACKED;
 
 
   /**
    * Set to 1 if recursion is available (server -> client)
    */
-  unsigned int recursion_available  : 1 GNUNET_PACKED;
+  unsigned int recursion_available : 1 GNUNET_PACKED;
 
   /**
    * Always zero.
    */
-  unsigned int zero                 : 1 GNUNET_PACKED;
+  unsigned int zero : 1 GNUNET_PACKED;
 
   /**
    * Response has been cryptographically verified, RFC 4035.
    */
-  unsigned int authenticated_data   : 1 GNUNET_PACKED;
+  unsigned int authenticated_data : 1 GNUNET_PACKED;
 
   /**
    * See RFC 4035.
    */
-  unsigned int checking_disabled    : 1 GNUNET_PACKED;
+  unsigned int checking_disabled : 1 GNUNET_PACKED;
 
   /**
    * See GNUNET_TUN_DNS_RETURN_CODE_ defines.
    */
-  unsigned int return_code          : 4 GNUNET_PACKED;
+  unsigned int return_code : 4 GNUNET_PACKED;
 #else
-  #error byteorder undefined
+#error byteorder undefined
 #endif
 
 } GNUNET_GCC_STRUCT_LAYOUT;
-
 
 
 /**
@@ -683,21 +683,21 @@ struct GNUNET_TUN_DnsRecordLine
 };
 
 
-#define	GNUNET_TUN_ICMPTYPE_ECHO_REPLY 0
-#define	GNUNET_TUN_ICMPTYPE_DESTINATION_UNREACHABLE 3
-#define	GNUNET_TUN_ICMPTYPE_SOURCE_QUENCH 4
-#define	GNUNET_TUN_ICMPTYPE_REDIRECT_MESSAGE 5
-#define	GNUNET_TUN_ICMPTYPE_ECHO_REQUEST 8
-#define	GNUNET_TUN_ICMPTYPE_ROUTER_ADVERTISEMENT 9
-#define	GNUNET_TUN_ICMPTYPE_ROUTER_SOLICITATION 10
-#define	GNUNET_TUN_ICMPTYPE_TIME_EXCEEDED 11
+#define GNUNET_TUN_ICMPTYPE_ECHO_REPLY 0
+#define GNUNET_TUN_ICMPTYPE_DESTINATION_UNREACHABLE 3
+#define GNUNET_TUN_ICMPTYPE_SOURCE_QUENCH 4
+#define GNUNET_TUN_ICMPTYPE_REDIRECT_MESSAGE 5
+#define GNUNET_TUN_ICMPTYPE_ECHO_REQUEST 8
+#define GNUNET_TUN_ICMPTYPE_ROUTER_ADVERTISEMENT 9
+#define GNUNET_TUN_ICMPTYPE_ROUTER_SOLICITATION 10
+#define GNUNET_TUN_ICMPTYPE_TIME_EXCEEDED 11
 
-#define	GNUNET_TUN_ICMPTYPE6_DESTINATION_UNREACHABLE 1
-#define	GNUNET_TUN_ICMPTYPE6_PACKET_TOO_BIG 2
-#define	GNUNET_TUN_ICMPTYPE6_TIME_EXCEEDED 3
-#define	GNUNET_TUN_ICMPTYPE6_PARAMETER_PROBLEM 4
-#define	GNUNET_TUN_ICMPTYPE6_ECHO_REQUEST 128
-#define	GNUNET_TUN_ICMPTYPE6_ECHO_REPLY 129
+#define GNUNET_TUN_ICMPTYPE6_DESTINATION_UNREACHABLE 1
+#define GNUNET_TUN_ICMPTYPE6_PACKET_TOO_BIG 2
+#define GNUNET_TUN_ICMPTYPE6_TIME_EXCEEDED 3
+#define GNUNET_TUN_ICMPTYPE6_PARAMETER_PROBLEM 4
+#define GNUNET_TUN_ICMPTYPE6_ECHO_REQUEST 128
+#define GNUNET_TUN_ICMPTYPE6_ECHO_REPLY 129
 
 
 /**
@@ -716,8 +716,8 @@ struct GNUNET_TUN_IcmpHeader
      */
     struct
     {
-      uint16_t	identifier GNUNET_PACKED;
-      uint16_t	sequence_number GNUNET_PACKED;
+      uint16_t identifier GNUNET_PACKED;
+      uint16_t sequence_number GNUNET_PACKED;
     } echo;
 
     /**
@@ -727,13 +727,14 @@ struct GNUNET_TUN_IcmpHeader
     {
       uint16_t empty GNUNET_PACKED;
       uint16_t next_hop_mtu GNUNET_PACKED;
-      /* followed by original IP header + first 8 bytes of original IP datagram */
+      /* followed by original IP header + first 8 bytes of original IP datagram
+       */
     } destination_unreachable;
 
     /**
      * ICMP Redirect
      */
-    struct in_addr redirect_gateway_address GNUNET_PACKED;
+    struct in_addr redirect_gateway_address;
 
     /**
      * MTU for packets that are too big (IPv6).
@@ -741,7 +742,6 @@ struct GNUNET_TUN_IcmpHeader
     uint32_t packet_too_big_mtu GNUNET_PACKED;
 
   } quench;
-
 };
 
 
@@ -753,16 +753,17 @@ GNUNET_NETWORK_STRUCT_END
  *
  * @param ip header to initialize
  * @param protocol protocol to use (i.e. IPPROTO_UDP)
- * @param payload_length number of bytes of payload that follow (excluding IPv4 header)
+ * @param payload_length number of bytes of payload that follow (excluding IPv4
+ * header)
  * @param src source IP address to use
  * @param dst destination IP address to use
  */
 void
 GNUNET_TUN_initialize_ipv4_header (struct GNUNET_TUN_IPv4Header *ip,
-				   uint8_t protocol,
-				   uint16_t payload_length,
-				   const struct in_addr *src,
-				   const struct in_addr *dst);
+                                   uint8_t protocol,
+                                   uint16_t payload_length,
+                                   const struct in_addr *src,
+                                   const struct in_addr *dst);
 
 
 /**
@@ -770,16 +771,17 @@ GNUNET_TUN_initialize_ipv4_header (struct GNUNET_TUN_IPv4Header *ip,
  *
  * @param ip header to initialize
  * @param protocol protocol to use (i.e. IPPROTO_UDP)
- * @param payload_length number of bytes of payload that follow (excluding IPv4 header)
+ * @param payload_length number of bytes of payload that follow (excluding IPv4
+ * header)
  * @param src source IP address to use
  * @param dst destination IP address to use
  */
 void
 GNUNET_TUN_initialize_ipv6_header (struct GNUNET_TUN_IPv6Header *ip,
-				   uint8_t protocol,
-				   uint16_t payload_length,
-				   const struct in6_addr *src,
-				   const struct in6_addr *dst);
+                                   uint8_t protocol,
+                                   uint16_t payload_length,
+                                   const struct in6_addr *src,
+                                   const struct in6_addr *dst);
 
 /**
  * Calculate IPv4 TCP checksum.
@@ -791,9 +793,9 @@ GNUNET_TUN_initialize_ipv6_header (struct GNUNET_TUN_IPv6Header *ip,
  */
 void
 GNUNET_TUN_calculate_tcp4_checksum (const struct GNUNET_TUN_IPv4Header *ip,
-				    struct GNUNET_TUN_TcpHeader *tcp,
-				    const void *payload,
-				    uint16_t payload_length);
+                                    struct GNUNET_TUN_TcpHeader *tcp,
+                                    const void *payload,
+                                    uint16_t payload_length);
 
 /**
  * Calculate IPv6 TCP checksum.
@@ -805,9 +807,9 @@ GNUNET_TUN_calculate_tcp4_checksum (const struct GNUNET_TUN_IPv4Header *ip,
  */
 void
 GNUNET_TUN_calculate_tcp6_checksum (const struct GNUNET_TUN_IPv6Header *ip,
-				    struct GNUNET_TUN_TcpHeader *tcp,
-				    const void *payload,
-				    uint16_t payload_length);
+                                    struct GNUNET_TUN_TcpHeader *tcp,
+                                    const void *payload,
+                                    uint16_t payload_length);
 
 /**
  * Calculate IPv4 UDP checksum.
@@ -819,9 +821,9 @@ GNUNET_TUN_calculate_tcp6_checksum (const struct GNUNET_TUN_IPv6Header *ip,
  */
 void
 GNUNET_TUN_calculate_udp4_checksum (const struct GNUNET_TUN_IPv4Header *ip,
-				    struct GNUNET_TUN_UdpHeader *udp,
-				    const void *payload,
-				    uint16_t payload_length);
+                                    struct GNUNET_TUN_UdpHeader *udp,
+                                    const void *payload,
+                                    uint16_t payload_length);
 
 
 /**
@@ -834,9 +836,9 @@ GNUNET_TUN_calculate_udp4_checksum (const struct GNUNET_TUN_IPv4Header *ip,
  */
 void
 GNUNET_TUN_calculate_udp6_checksum (const struct GNUNET_TUN_IPv6Header *ip,
-				    struct GNUNET_TUN_UdpHeader *udp,
-				    const void *payload,
-				    uint16_t payload_length);
+                                    struct GNUNET_TUN_UdpHeader *udp,
+                                    const void *payload,
+                                    uint16_t payload_length);
 
 
 /**
@@ -848,8 +850,8 @@ GNUNET_TUN_calculate_udp6_checksum (const struct GNUNET_TUN_IPv6Header *ip,
  */
 void
 GNUNET_TUN_calculate_icmp_checksum (struct GNUNET_TUN_IcmpHeader *icmp,
-				    const void *payload,
-				    uint16_t payload_length);
+                                    const void *payload,
+                                    uint16_t payload_length);
 
 
 /**
@@ -949,4 +951,4 @@ GNUNET_TUN_compute_service_cadet_port (const struct GNUNET_HashCode *desc,
 
 #endif
 
-/** @} */  /* end of group */
+/** @} */ /* end of group */
