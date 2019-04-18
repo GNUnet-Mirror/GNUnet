@@ -277,7 +277,7 @@ gnunet_transport_certificate_creation_LDADD = \
 gnunet_communicator_unix_SOURCES = \
  gnunet-communicator-unix.c
 gnunet_communicator_unix_LDADD = \
-  libgnunettransportcommunicator.la \
+  libgnunettransportcommunicator2.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/util/libgnunetutil.la
 
@@ -675,7 +675,7 @@ TESTS = \
  $(HTTPS_API_TIMEOUT_TEST) \
  $(WLAN_TIMEOUT_TEST) \
  $(BT_TIMEOUT_TEST) \
- test_communicator_udp
+ test_communicator_unix
 if HAVE_GETOPT_BINARY
 TESTS += \
 test_transport_api_slow_ats
@@ -789,9 +789,9 @@ test_plugin_udp_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la  \
  libgnunettransporttesting.la
 
-test_communicator_udp_SOURCES = \
- test_communicator_udp.c
-test_communicator_udp_LDADD = \
+test_communicator_unix_SOURCES = \
+ test_communicator_unix.c
+test_communicator_unix_LDADD = \
  libgnunettransporttesting2.la \
  $(top_builddir)/src/util/libgnunetutil.la
 

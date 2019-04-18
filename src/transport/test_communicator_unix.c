@@ -63,6 +63,11 @@ run (void *cls)
       "test_communicator_1.conf",
       &communicator_available,
       NULL); /* cls */
+  GNUNET_TRANSPORT_TESTING_transport_communicator_service_start (
+      "transport",
+      "test_communicator_2.conf",
+      &communicator_available,
+      NULL); /* cls */
 }
 
 int
