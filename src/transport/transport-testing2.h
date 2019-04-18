@@ -29,6 +29,9 @@
 #include "gnunet_ats_transport_service.h"
 #include "transport.h"
 
+
+struct GNUNET_TRANSPORT_TESTING_TransportCommunicatorHandle;
+
 /**
  * @brief Function signature for callbacks that are called when new communicators become available
  *
