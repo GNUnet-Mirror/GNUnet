@@ -60,7 +60,7 @@ run (void *cls)
 
   GNUNET_TRANSPORT_TESTING_transport_communicator_service_start (
       "transport",
-      cfg,
+      "test_communicator_1.conf",
       &communicator_available,
       NULL); /* cls */
 }

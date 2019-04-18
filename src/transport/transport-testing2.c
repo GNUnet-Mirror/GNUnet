@@ -220,14 +220,25 @@ communicator_start (const char *cfgname)
 struct GNUNET_TRANSPORT_TESTING_TransportCommunicatorHandle *
 GNUNET_TRANSPORT_TESTING_transport_communicator_service_start
   (const char *service_name,
-   struct GNUNET_CONFIGURATION_Handle *cfg,
+   struct GNUNET_CONFIGURATION_Handle *cfg_filename,
    GNUNET_TRANSPORT_TESTING_CommunicatorAvailableCallback communicator_available,
    //GNUNET_TRANSPORT_TESTING_Callback2 cb2,
    //GNUNET_TRANSPORT_TESTING_Callback3 cb3,
    //GNUNET_TRANSPORT_TESTING_Callback4 cb4,
    void *cb_cls)
 {
+  struct GNUNET_CONFIGURATION_Handle *cfg;
 
+  cfg = GNUNET_CONFIGURATION_create ();
+  if ( (GNUNET_SYSERR ==
+        GNUNET_CONFIGURATION_load (cfg,
+                                   cfg_filename)) )
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                _("Malformed configuration file `%s', exit ...\n"),
+                  cfg_filename);
+    return NULL;
+  }
   /* Start communicator part of service */
   transport_communicator_start (communicator_available, cfg);
 
