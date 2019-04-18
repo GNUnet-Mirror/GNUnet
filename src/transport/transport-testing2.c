@@ -220,7 +220,7 @@ communicator_start (const char *cfgname)
 struct GNUNET_TRANSPORT_TESTING_TransportCommunicatorHandle *
 GNUNET_TRANSPORT_TESTING_transport_communicator_service_start
   (const char *service_name,
-   struct GNUNET_CONFIGURATION_Handle *cfg_filename,
+   const char *cfg_filename,
    GNUNET_TRANSPORT_TESTING_CommunicatorAvailableCallback communicator_available,
    //GNUNET_TRANSPORT_TESTING_Callback2 cb2,
    //GNUNET_TRANSPORT_TESTING_Callback3 cb3,
