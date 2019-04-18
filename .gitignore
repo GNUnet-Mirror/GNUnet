@@ -58,3 +58,6 @@ build-aux/
 src/ats/test_ats2_lib
 doc/handbook/gversion.texi
 doc/tutorial/gversion.texi
+
+# top-level symlink can exist
+.clang-format
