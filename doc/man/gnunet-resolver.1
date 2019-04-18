@@ -1,46 +1,59 @@
-.TH GNUNET-RESOLVER 1 "January 4, 2012" "GNUnet"
-.SH NAME
-gnunet\-resolver \- build-in GNUnet stub resolver
-.SH SYNOPSIS
-.B gnunet\-resolver
-.RI [ options ] [ hostname ]
-.SH DESCRIPTION
-\fBgnunet\-resolver\fP uses build-in GNUnet stub resolver.
-.SH OPTIONS
-.IP "\-c FILENAME,  \-\-config=FILENAME"
+.Dd January 4, 2012
+.Dt GNUNET-RESOLVER 1
+.Os
+.Sh NAME
+.Nm gnunet-resolver
+.Nd
+build-in GNUnet stub resolver
+.Sh SYNOPSIS
+.Nm
+.Op Fl c Ar FILENAME | Fl \-config= Ns Ar FILENAME
+.Op Fl h | \-help
+.Op Fl L Ar LOGLEVEL | Fl \-loglevel= Ns Ar LOGLEVEL
+.Op Fl l Ar LOGFILE | Fl \-logfile= Ns Ar LOGFILE
+.Op Fl r | \-reverse
+.Op Fl v | \-version
+.Ao Ar hostname Ac
+.Sh DESCRIPTION
+.Nm
+allows you to use the build-in GNUnet stub resolver.
+.Bl -tag -width Ds
+.It Fl c Ar FILENAME | Fl \-config= Ns Ar FILENAME
 Use the configuration file FILENAME.
-.IP "\-h, \-\-help"
+.It Fl h | \-help
 Print short help on options.
-.IP "\-L LOGLEVEL, \-\-loglevel=LOGLEVEL"
-Use LOGLEVEL for logging.  Valid values are DEBUG, INFO, WARNING and
-ERROR.
-.IP "\-l LOGFILE, \-\-logfile=LOGFILE"
+.It Fl L Ar LOGLEVEL | Fl \-loglevel= Ns Ar LOGLEVEL
+Use LOGLEVEL for logging.
+Valid values are DEBUG, INFO, WARNING and ERROR.
+.It Fl l Ar LOGFILE | Fl \-logfile= Ns Ar LOGFILE
 Configure logging to write logs to LOGFILE.
-.IP "\-r, \-\-reverse"
+.It Fl r | \-reverse
 Perform a reverse lookup.
-.IP "\-v, \-\-version"
+.It Fl v | \-version
 Print GNUnet version number.
-.SH BUGS
-Report bugs by using Mantis <https://bugs.gnunet.org/> or by sending
-electronic mail to <gnunet\-developers@gnu.org>
-.SH SEE ALSO
-The full documentation for
-.B gnunet
-is maintained as a Texinfo manual.
+.El
+.\".Sh EXAMPLES
+.Sh SEE ALSO
+The full documentation for gnunet is maintained as a Texinfo manual.
 If the
-.B info
-and
-.B gnunet
-programs are properly installed at your site, the command
-.IP
-.B info gnunet
-.PP
+.Xr info 1
+and gnunet programs are properly installed at your site, the command
+.Pp
+.Dl info gnunet
+.Pp
 should give you access to the complete handbook,
-.IP
-.B info gnunet-c-tutorial
-.PP
+.Pp
+.Dl info gnunet-c-tutorial
+.Pp
 will give you access to a tutorial for developers.
-.PP
-Depending on your installation, this information is also
-available in
-\fBgnunet\fP(7) and \fBgnunet-c-tutorial\fP(7).
+.sp
+Depending on your installation, this information is also available in
+.Xr gnunet 7 and
+.Xr gnunet-c-tutorial 7 .
+.\".Sh HISTORY
+.\".Sh AUTHORS
+.Sh BUGS
+Report bugs by using
+.Lk https://bugs.gnunet.org
+or by sending electronic mail to
+.Aq Mt gnunet-developers@gnu.org .
