@@ -3309,8 +3309,58 @@ route_via_neighbour (const struct Neighbour *n,
                      const struct GNUNET_MessageHeader *hdr,
                      enum RouteMessageOptions options)
 {
-  // FIXME: pick on or two 'random' queue (under constraints of options)
-  // Then add wrapper and enqueue message!
+  struct GNUNET_TIME_Absolute now;
+  unsigned int candidates;
+  unsigned int sel1;
+  unsigned int sel2;
+
+  /* Pick one or two 'random' queues from n (under constraints of options) */
+  now = GNUNET_TIME_absolute_get ();
+  /* FIXME-OPTIMIZE: give queues 'weights' and pick proportional to
+     weight in the future; weight could be assigned by observed
+     bandwidth (note: not sure if we should do this for this type
+     of control traffic though). */
+  candidates = 0;
+  for (struct Queue *pos = n->queue_head; NULL != pos;
+       pos = pos->next_neighbour)
+  {
+    /* Count the queue with the visibility task in all cases, as
+       otherwise we may end up with no queues just because the
+       time for the visibility task just expired but the scheduler
+       just ran this task first */
+    if ((0 == (options & RMO_UNCONFIRMED_ALLOWED)) ||
+        (pos->validated_until.abs_value_us > now.abs_value_us) ||
+        (NULL != pos->visibility_task))
+      candidates++;
+  }
+  if (0 == candidates)
+  {
+    /* Given that we above check for pos->visibility task,
+       this should be strictly impossible. */
+    GNUNET_break (0);
+    return;
+  }
+  sel1 = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, candidates);
+  if (0 == (options & RMO_REDUNDANT))
+    sel2 = candidates; /* picks none! */
+  else
+    sel2 = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, candidates);
+  candidates = 0;
+  for (struct Queue *pos = n->queue_head; NULL != pos;
+       pos = pos->next_neighbour)
+  {
+    /* Count the queue with the visibility task in all cases, as
+       otherwise we may end up with no queues just because the
+       time for the visibility task just expired but the scheduler
+       just ran this task first */
+    if ((pos->validated_until.abs_value_us > now.abs_value_us) ||
+        (NULL != pos->visibility_task))
+    {
+      if ((sel1 == candidates) || (sel2 == candidates))
+        queue_send_msg (pos, NULL, hdr, ntohs (hdr->size));
+      candidates++;
+    }
+  }
 }
 
 
