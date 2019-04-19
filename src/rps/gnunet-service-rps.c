@@ -345,7 +345,7 @@ struct Sub
   unsigned int sampler_size_est_need;
 
   /**
-   * Time inverval the do_round task runs in.
+   * Time interval the do_round task runs in.
    */
   struct GNUNET_TIME_Relative round_interval;
 

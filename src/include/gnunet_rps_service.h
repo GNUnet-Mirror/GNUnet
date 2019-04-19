@@ -87,7 +87,7 @@ typedef void (* GNUNET_RPS_NotifyReadySingleInfoCB) (void *cls,
  * @param cfg configuration to use
  * @return handle to the rps service
  */
-  struct GNUNET_RPS_Handle *
+struct GNUNET_RPS_Handle *
 GNUNET_RPS_connect (const struct GNUNET_CONFIGURATION_Handle *cfg);
 
 
@@ -95,7 +95,7 @@ GNUNET_RPS_connect (const struct GNUNET_CONFIGURATION_Handle *cfg);
  * @brief Start a sub with the given shared value
  *
  * @param h Handle to rps
- * @param shared_value The shared value that defines the members of the sub (-gorup)
+ * @param shared_value The shared value that defines the members of the sub (-group)
  */
 void
 GNUNET_RPS_sub_start (struct GNUNET_RPS_Handle *h,
@@ -106,7 +106,7 @@ GNUNET_RPS_sub_start (struct GNUNET_RPS_Handle *h,
  * @brief Stop a sub with the given shared value
  *
  * @param h Handle to rps
- * @param shared_value The shared value that defines the members of the sub (-gorup)
+ * @param shared_value The shared value that defines the members of the sub (-group)
  */
 void
 GNUNET_RPS_sub_stop (struct GNUNET_RPS_Handle *h,
@@ -127,7 +127,7 @@ GNUNET_RPS_sub_stop (struct GNUNET_RPS_Handle *h,
  * @param cls a closure that will be given to the callback
  * @return handle to this request
  */
-  struct GNUNET_RPS_Request_Handle *
+struct GNUNET_RPS_Request_Handle *
 GNUNET_RPS_request_peers (struct GNUNET_RPS_Handle *h, uint32_t n,
                           GNUNET_RPS_NotifyReadyCB ready_cb,
                           void *cls);
@@ -154,7 +154,7 @@ GNUNET_RPS_request_peer_info (struct GNUNET_RPS_Handle *rps_handle,
  * @param n number of peers to seed
  * @param ids the ids of the peers seeded
  */
-  void
+void
 GNUNET_RPS_seed_ids (struct GNUNET_RPS_Handle *h, uint32_t n,
                      const struct GNUNET_PeerIdentity * ids);
 
@@ -163,7 +163,7 @@ GNUNET_RPS_seed_ids (struct GNUNET_RPS_Handle *h, uint32_t n,
  *
  * @param rh handle of the pending request to be canceled
  */
-  void
+void
 GNUNET_RPS_request_cancel (struct GNUNET_RPS_Request_Handle *rh);
 
 
