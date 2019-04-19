@@ -277,7 +277,7 @@ gnunet_transport_certificate_creation_LDADD = \
 gnunet_communicator_unix_SOURCES = \
  gnunet-communicator-unix.c
 gnunet_communicator_unix_LDADD = \
-  libgnunettransportcommunicator2.la \
+  libgnunettransportcommunicator.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/util/libgnunetutil.la
 
