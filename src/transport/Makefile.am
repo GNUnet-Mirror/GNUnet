@@ -181,6 +181,7 @@ libgnunettransporttesting2_la_SOURCES = \
   transport-testing2.c transport-testing2.h
 libgnunettransporttesting2_la_LIBADD = \
   libgnunettransport.la \
+  $(top_builddir)/src/hello/libgnunethello.la \
   $(top_builddir)/src/util/libgnunetutil.la
 libgnunettransporttesting2_la_LDFLAGS = \
  $(GN_LIB_LDFLAGS)
