@@ -25,12 +25,28 @@ manually setup a GNUnet VPN tunnel
 can be used to manually setup a VPN tunnel via the GNUnet network.
 There are two main types of tunnels.
 Tunnels to an exit node which routes the traffic to the global Internet, and tunnels to a node that runs a service only within GNUnet.
-Depending on the type of tunnel, gnunet\-vpn takes different options.
-The "\-i" option is required for tunnels to an exit node, whereas the "\-p" and "\-s" options in conjunction with either "\-u" or "\-t" are required for tunnels to services.
+Depending on the type of tunnel, gnunet-vpn takes different options.
+The
+.Fl i
+option is required for tunnels to an exit node, whereas the
+.Fl p
+and
+.Fl s
+options in conjunction with either
+.Fl u
+or
+.Fl t
+are required for tunnels to services.
 For exit tunnels, both UDP and TCP traffic will be redirected.
-For service tunnels, either UDP ("\-u") or TCP ("\-t") traffic will be redirected.
+For service tunnels, either UDP
+.Pq Fl u
+or TCP
+.Pq Fl t
+traffic will be redirected.
 The tool will display the IP address for this end of the tunnel.
-The address can be displayed as soon as it has been allocated, or only after ("\-a") the tunnel has been created.
+The address can be displayed as soon as it has been allocated, or only after
+.Pq Fl a
+the tunnel has been created.
 .Bl -tag -width Ds
 .It Fl 4 | \-ipv4
 Desired IP address on this end of the tunnel should be an IPv4 address.
@@ -42,7 +58,7 @@ Use the configuration file FILENAME.
 The mapping should be established for TIME.
 The value given must be a number followed by a space and a time unit, for example "500 ms".
 Note that the quotes are required on the shell.
-Default is 5 minutes.
+The default vaue is 5 minutes.
 .It Fl h | \-help
 Print short help on options.
 .It Fl i Ar IP | Fl \-ip Ar IP
@@ -56,16 +72,32 @@ Use LOGLEVEL for logging.
 Valid values are DEBUG, INFO, WARNING and ERROR.
 .It Fl p Ar PEERID | Fl \-peer= Ns Ar PEERID
 Name of the peer offering the service to connect to.
-Cannot be used in conjunction with "\-i", requires "\-s".
+Cannot be used in conjunction with
+.Fl i ,
+requires
+.Fl s .
 .It Fl s Ar NAME | Fl \-service= Ns Ar NAME
 Name of the service running on the target peer.
-Cannot be used in conjunction with "\-i", requires "\-p".
+Cannot be used in conjunction with
+.Fl i ,
+requires
+.Fl p .
 .It Fl t | \-tcp
 Service runs TCP.
-Either "\-t" or "\-u" must be specified when using "\-s".
+Either
+.Fl t
+or
+.Fl u
+must be specified when using
+.Fl s .
 .It Fl u | \-udp
 Service runs UDP.
-Either "\-t" or "\-u" must be specified when using "\-s".
+Either
+.Fl t
+or
+.Fl u
+must be specified when using
+.Fl s .
 .It Fl V | \-verbose
 Be verbose.
 .It Fl v | \-version
