@@ -97,9 +97,14 @@ struct GNUNET_TRANSPORT_TESTING_TransportCommunicatorHandle
   char *c_address;
 
   /**
-   * @brief Task to request the opening of a view
+   * @brief Head of the queues
    */
-  struct GNUNET_MQ_Envelope *open_queue_env;
+  struct GNUNET_TRANSPORT_TESTING_TransportCommunicatorQueue *queue_head;
+
+  /**
+   * @brief Tail of the queues
+   */
+  struct GNUNET_TRANSPORT_TESTING_TransportCommunicatorQueue *queue_tail;
 
   /* Callbacks + Closures */
   /**
@@ -126,6 +131,65 @@ struct GNUNET_TRANSPORT_TESTING_TransportCommunicatorHandle
    * @brief Closure to the callback
    */
   void *cb_cls;
+};
+
+
+struct GNUNET_TRANSPORT_TESTING_TransportCommunicatorQueue
+{
+  /**
+   * @brief Handle to the TransportCommunicator
+   */
+  struct GNUNET_TRANSPORT_TESTING_TransportCommunicatorHandle *tc_h;
+
+  /**
+   * @brief Task to request the opening of a view
+   */
+  struct GNUNET_MQ_Envelope *open_queue_env;
+
+  /**
+   * @brief Peer ID of the peer on the other side of the queue
+   */
+  struct GNUNET_PeerIdentity peer_id;
+
+  /**
+   * @brief Queue ID
+   */
+  uint32_t qid;
+
+  /**
+   * @brief Current message id
+   */
+  uint64_t mid;
+
+  /**
+   * An `enum GNUNET_NetworkType` in NBO.
+   */
+  uint32_t nt;
+
+  /**
+   * Maximum transmission unit, in NBO.  UINT32_MAX for unlimited.
+   */
+  uint32_t mtu;
+
+  /**
+   * An `enum GNUNET_TRANSPORT_ConnectionStatus` in NBO.
+   */
+  uint32_t cs;
+
+  /**
+   * @brief Next element inside a DLL
+   */
+  struct GNUNET_TRANSPORT_TESTING_TransportCommunicatorQueue *next;
+
+  /**
+   * @brief Previous element inside a DLL
+   */
+  struct GNUNET_TRANSPORT_TESTING_TransportCommunicatorQueue *prev;
+};
+
+
+struct GNUNET_TRANSPORT_TESTING_TransportCommunicatorTransmission
+{
 };
 
 
@@ -290,11 +354,24 @@ handle_add_queue_message (void *cls,
                           const struct GNUNET_TRANSPORT_AddQueueMessage *msg)
 {
   struct GNUNET_TRANSPORT_TESTING_TransportCommunicatorHandle *tc_h = cls;
+  struct GNUNET_TRANSPORT_TESTING_TransportCommunicatorQueue *tc_queue;
 
+  tc_queue = tc_h->queue_head;
+  while (tc_queue->qid != msg->qid)
+  {
+    tc_queue = tc_queue->next;
+  }
+  GNUNET_assert (tc_queue->qid == msg->qid);
+  GNUNET_assert (0 == GNUNET_memcmp (&tc_queue->peer_id,
+                                     &msg->receiver));
+  tc_queue->nt = msg->nt;
+  tc_queue->mtu = msg->mtu;
+  tc_queue->cs = msg->cs;
   if (NULL != tc_h->add_queue_cb)
   {
     tc_h->add_queue_cb (tc_h->cb_cls,
-                        tc_h);
+                        tc_h,
+                        tc_queue);
   }
   GNUNET_SERVICE_client_continue (tc_h->client);
 }
@@ -329,17 +406,20 @@ connect_cb (void *cls,
             struct GNUNET_MQ_Handle *mq)
 {
   struct GNUNET_TRANSPORT_TESTING_TransportCommunicatorHandle *tc_h = cls;
+  struct GNUNET_TRANSPORT_TESTING_TransportCommunicatorQueue *tc_queue_iter;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
       "Client connected.\n");
   tc_h->client = client;
   tc_h->c_mq = mq;
 
-  if (NULL != tc_h->open_queue_env)
+  if (NULL == tc_h->queue_head) return tc_h;
+  while (NULL != (tc_queue_iter = tc_h->queue_head))
   {
+    if (NULL == tc_queue_iter->open_queue_env) continue;
     GNUNET_MQ_send (tc_h->c_mq,
-                    tc_h->open_queue_env);
-    tc_h->open_queue_env = NULL;
+                    tc_queue_iter->open_queue_env);
+    tc_queue_iter->open_queue_env = NULL;
   }
   return tc_h;
 }
@@ -556,17 +636,14 @@ GNUNET_TRANSPORT_TESTING_transport_communicator_open_queue
    const struct GNUNET_PeerIdentity *peer_id,
    const char *address)
 {
+  struct GNUNET_TRANSPORT_TESTING_TransportCommunicatorQueue *tc_queue;
   static uint32_t idgen;
   char *prefix;
   struct GNUNET_TRANSPORT_CreateQueue *msg;
   struct GNUNET_MQ_Envelope *env;
   size_t alen;
 
-  if (NULL != tc_h->open_queue_env)
-  {
-    // FIXME: handle multiple queue requests
-    return; /* Already waiting for opening of queue */
-  }
+  tc_queue = GNUNET_new (struct GNUNET_TRANSPORT_TESTING_TransportCommunicatorQueue);
   prefix = GNUNET_HELLO_address_to_prefix (address);
   if (NULL == prefix)
   {
@@ -578,7 +655,9 @@ GNUNET_TRANSPORT_TESTING_transport_communicator_open_queue
                              alen,
                              GNUNET_MESSAGE_TYPE_TRANSPORT_QUEUE_CREATE);
   msg->request_id = htonl (idgen++);
+  tc_queue->qid = msg->request_id;
   msg->receiver = *peer_id;
+  tc_queue->peer_id = *peer_id;
   memcpy (&msg[1],
           address,
           alen);
@@ -589,13 +668,37 @@ GNUNET_TRANSPORT_TESTING_transport_communicator_open_queue
   }
   else
   {
-    tc_h->open_queue_env = env;
+    tc_queue->open_queue_env = env;
   }
+  GNUNET_CONTAINER_DLL_insert (tc_h->queue_head,
+                               tc_h->queue_tail,
+                               tc_queue);
 }
 
-//struct GNUNET_TRANSPORT_TESTING_TransportCommunicatorTransmission *
-//GNUNET_TRANSPORT_TESTING_transport_communicator_send
-//  (struct GNUNET_TRANSPORT_TESTING_TransportCommunicatorQueue *tcq,
-//   const struct GNUNET_MessageHeader *hdr,
-//   GNUNET_TRANSPORT_TESTING_SuccessStatus cb, void *cb_cls);
+
+struct GNUNET_TRANSPORT_TESTING_TransportCommunicatorTransmission *
+GNUNET_TRANSPORT_TESTING_transport_communicator_send
+  (struct GNUNET_TRANSPORT_TESTING_TransportCommunicatorQueue *tc_queue,
+   const void *payload,
+   size_t payload_size/*,
+   GNUNET_TRANSPORT_TESTING_SuccessStatus cb,
+   void *cb_cls*/)
+{
+  struct GNUNET_TRANSPORT_TESTING_TransportCommunicatorTransmission *tc_t;
+  struct GNUNET_TRANSPORT_SendMessageTo *msg;
+  struct GNUNET_MQ_Envelope *env;
+
+  env = GNUNET_MQ_msg_extra (msg,
+                             payload_size,
+                             GNUNET_MESSAGE_TYPE_TRANSPORT_SEND_MSG);
+  msg->qid = htonl (tc_queue->qid);
+  msg->mid = tc_queue->mid++;
+  msg->receiver = tc_queue->peer_id;
+  memcpy (&msg[1],
+          payload,
+          payload_size);
+  GNUNET_MQ_send (tc_queue->tc_h->c_mq,
+                  env);
+  return tc_t;
+}
 

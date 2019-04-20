@@ -32,6 +32,10 @@
 
 struct GNUNET_TRANSPORT_TESTING_TransportCommunicatorHandle;
 
+struct GNUNET_TRANSPORT_TESTING_TransportCommunicatorQueue;
+
+struct GNUNET_TRANSPORT_TESTING_TransportCommunicatorTransmission;
+
 /**
  * @brief Function signature for callbacks that are called when new communicators become available
  *
@@ -62,7 +66,8 @@ typedef void
 
 typedef void
 (*GNUNET_TRANSPORT_TESTING_AddQueueCallback)(void *cls,
-    struct GNUNET_TRANSPORT_TESTING_TransportCommunicatorHandle *tc_h);
+    struct GNUNET_TRANSPORT_TESTING_TransportCommunicatorHandle *tc_h,
+    struct GNUNET_TRANSPORT_TESTING_TransportCommunicatorQueue *tc_queue);
 
 
 /**
@@ -92,9 +97,11 @@ GNUNET_TRANSPORT_TESTING_transport_communicator_open_queue
    const struct GNUNET_PeerIdentity *peer_id,
    const char *address);
 
-//struct GNUNET_TRANSPORT_TESTING_TransportCommunicatorTransmission *
-//GNUNET_TRANSPORT_TESTING_transport_communicator_send
-//  (struct GNUNET_TRANSPORT_TESTING_TransportCommunicatorQueue *tcq,
-//   const struct GNUNET_MessageHeader *hdr,
-//   GNUNET_TRANSPORT_TESTING_SuccessStatus cb, void *cb_cls);
+struct GNUNET_TRANSPORT_TESTING_TransportCommunicatorTransmission *
+GNUNET_TRANSPORT_TESTING_transport_communicator_send
+  (struct GNUNET_TRANSPORT_TESTING_TransportCommunicatorQueue *tc_queue,
+   const void *payload,
+   size_t payload_size/*,
+   GNUNET_TRANSPORT_TESTING_SuccessStatus cb,
+   void *cb_cls*/);
 
