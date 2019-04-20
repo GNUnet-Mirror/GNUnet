@@ -30,6 +30,8 @@
 #include "gnunet_signatures.h"
 #include "transport.h"
 
+#include <inttypes.h>
+
 /**
  * TODO
  * - start two communicators
@@ -45,28 +47,91 @@
 
 #define LOG(kind,...) GNUNET_log_from (kind, "test_transport_communicator_unix", __VA_ARGS__)
 
+#define NUM_PEERS 2
+
+static struct GNUNET_PeerIdentity peer_id[NUM_PEERS];
+
+static struct GNUNET_TRANSPORT_TESTING_TransportCommunicatorHandle *tc_hs[NUM_PEERS];
+
+//static char *addresses[NUM_PEERS];
+
 static void
-communicator_available (void *cls,
-    const struct GNUNET_TRANSPORT_CommunicatorAvailableMessage *msg)
+communicator_available_cb (void *cls,
+                           struct GNUNET_TRANSPORT_TESTING_TransportCommunicatorHandle *tc_h,
+                           enum GNUNET_TRANSPORT_CommunicatorCharacteristics cc,
+                           char *address_prefix)
 {
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-      "communicator_available()\n");
+      "Communicator available. (cc: %u, prefix: %s)\n",
+      cc,
+      address_prefix);
 }
+
+
+static void
+add_address_cb (void *cls,
+                struct GNUNET_TRANSPORT_TESTING_TransportCommunicatorHandle *tc_h,
+                const char *address,
+                struct GNUNET_TIME_Relative expiration,
+                uint32_t aid,
+                enum GNUNET_NetworkType nt)
+{
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+      "New address. (addr: %s, expir: %" PRIu32 ", ID: %" PRIu32 ", nt: %u\n",
+      address,
+      expiration.rel_value_us,
+      aid,
+      nt);
+  //addresses[1] = GNUNET_strdup (address);
+  GNUNET_TRANSPORT_TESTING_transport_communicator_open_queue (tc_hs[0],
+                                                              &peer_id[1],
+                                                              address);
+}
+
+
+static void
+queue_create_reply_cb (void *cls,
+                       struct GNUNET_TRANSPORT_TESTING_TransportCommunicatorHandle *tc_h,
+                       int success)
+{
+  if (GNUNET_YES == success)
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+        "Got Queue!\n");
+  else
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+        "Failed getting queue!\n");
+}
+
+
+static void
+add_queue_cb (void *cls,
+              struct GNUNET_TRANSPORT_TESTING_TransportCommunicatorHandle *tc_h)
+{
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+      "Got Queue!\n");
+}
+
 
 static void
 run (void *cls)
 {
   struct GNUNET_CONFIGURATION_Handle *cfg = cls;
 
-  GNUNET_TRANSPORT_TESTING_transport_communicator_service_start (
+  tc_hs[0] = GNUNET_TRANSPORT_TESTING_transport_communicator_service_start (
       "transport",
       "test_communicator_1.conf",
-      &communicator_available,
+      &communicator_available_cb,
+      NULL,
+      &queue_create_reply_cb,
+      &add_queue_cb,
       NULL); /* cls */
-  GNUNET_TRANSPORT_TESTING_transport_communicator_service_start (
+  tc_hs[1] = GNUNET_TRANSPORT_TESTING_transport_communicator_service_start (
       "transport",
       "test_communicator_2.conf",
-      &communicator_available,
+      &communicator_available_cb,
+      &add_address_cb,
+      NULL,
+      &add_queue_cb,
       NULL); /* cls */
 }
 

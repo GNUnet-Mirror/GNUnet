@@ -40,7 +40,29 @@ struct GNUNET_TRANSPORT_TESTING_TransportCommunicatorHandle;
  */
 typedef void
 (*GNUNET_TRANSPORT_TESTING_CommunicatorAvailableCallback)(void *cls,
-						   const struct GNUNET_TRANSPORT_CommunicatorAvailableMessage *msg);
+      struct GNUNET_TRANSPORT_TESTING_TransportCommunicatorHandle *tc_h,
+      enum GNUNET_TRANSPORT_CommunicatorCharacteristics cc,
+      char *address_prefix);
+
+
+typedef void
+(*GNUNET_TRANSPORT_TESTING_AddAddressCallback)(void *cls,
+      struct GNUNET_TRANSPORT_TESTING_TransportCommunicatorHandle *tc_h,
+      const char *address,
+      struct GNUNET_TIME_Relative expiration,
+      uint32_t aid,
+      enum GNUNET_NetworkType nt);
+
+
+typedef void
+(*GNUNET_TRANSPORT_TESTING_QueueCreateReplyCallback)(void *cls,
+    struct GNUNET_TRANSPORT_TESTING_TransportCommunicatorHandle *tc_h,
+    int will_try);
+
+
+typedef void
+(*GNUNET_TRANSPORT_TESTING_AddQueueCallback)(void *cls,
+    struct GNUNET_TRANSPORT_TESTING_TransportCommunicatorHandle *tc_h);
 
 
 /**
@@ -58,17 +80,18 @@ struct GNUNET_TRANSPORT_TESTING_TransportCommunicatorHandle *
 GNUNET_TRANSPORT_TESTING_transport_communicator_service_start
   (const char *service_name,
    const char *cfg_filename,
-   GNUNET_TRANSPORT_TESTING_CommunicatorAvailableCallback communicator_available,
-   //GNUNET_TRANSPORT_TESTING_Callback2 cb2,
-   //GNUNET_TRANSPORT_TESTING_Callback3 cb3,
-   //GNUNET_TRANSPORT_TESTING_Callback4 cb4,
+   GNUNET_TRANSPORT_TESTING_CommunicatorAvailableCallback communicator_available_cb,
+   GNUNET_TRANSPORT_TESTING_AddAddressCallback add_address_cb,
+   GNUNET_TRANSPORT_TESTING_QueueCreateReplyCallback queue_create_reply_cb,
+   GNUNET_TRANSPORT_TESTING_AddQueueCallback add_queue_cb,
    void *cb_cls);
 
-//void
-//GNUNET_TRANSPORT_TESTING_transport_communicator_open_queue
-//  (struct GNUNET_TRANSPORT_TESTING_TransportCommunicatorHandle *tch,
-//   const char *address);
-//
+void
+GNUNET_TRANSPORT_TESTING_transport_communicator_open_queue
+  (struct GNUNET_TRANSPORT_TESTING_TransportCommunicatorHandle *tc_h,
+   const struct GNUNET_PeerIdentity *peer_id,
+   const char *address);
+
 //struct GNUNET_TRANSPORT_TESTING_TransportCommunicatorTransmission *
 //GNUNET_TRANSPORT_TESTING_transport_communicator_send
 //  (struct GNUNET_TRANSPORT_TESTING_TransportCommunicatorQueue *tcq,
