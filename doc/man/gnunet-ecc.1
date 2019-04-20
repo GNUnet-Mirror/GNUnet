@@ -1,65 +1,75 @@
-.TH GNUNET\-ECC 1 "June 5, 2017" "GNUnet"
-
-.SH NAME
-gnunet\-ecc \- manipulate GNUnet ECC key files
-
-.SH SYNOPSIS
-.B gnunet\-ecc
-.RI [ options ] FILENAME
-.br
-
-.SH DESCRIPTION
-\fBgnunet\-ecc\fP can be used to create an ECC private key and to
-print the corresponding public key.  You must specify a filename
-containing an ECC private key in GNUnet format as an argument.  If the
-file does not exist, gnunet\-ecc will create a key.  This may then
-take a while.  If the option \-p is given, the corresponding public
-key will be printed to the console.
-
-.SH OPTIONS
-.IP "\-g COUNT, \-\-generate-keys=COUNT"
+.Dd June 5, 2017
+.Dt GNUNET-ECC 1
+.Os
+.Sh NAME
+.Nm gnunet-ecc
+.Nd
+manipulate GNUnet ECC key files
+.Sh SYNOPSIS
+.Nm
+.Op Fl g Ar COUNT | Fl \-generate-keys= Ns Ar COUNT
+.Op Fl p | \-print-public-key
+.Op Fl P | \-print-private-key
+.Op Fl x | \-print-hex
+.Op Fl c Ar FILENAME | Fl \-config= Ns Ar FILENAME
+.Op Fl h | \-help
+.Op Fl L Ar LOGLEVEL | Fl \-loglevel= Ns Ar LOGLEVEL
+.Op Fl v | \-version
+.Ao Ar FILENAME Ac
+.sp
+.Sh DESCRIPTION
+.Nm
+can be used to create an ECC private key and to print the corresponding public key.
+You must specify a filename containing an ECC private key in GNUnet format as an argument.
+If the file does not exist, gnunet-ecc will create a key.
+This may then take a while.
+If the option
+.Fl p
+is given, the corresponding public key will be printed to the console.
+.Bl -tag -width Ds
+.It Fl g Ar COUNT | Fl \-generate-keys= Ns Ar COUNT
 Create COUNT public-private key pairs and write them to FILENAME.
 Used for creating a file for testing.
-.IP "\-p, \-\-print-public-key"
-Print the corresponding public key to stdout.  This is the value used
-for PKEY records in GNS.
-.IP "\-P, \-\-print-private-key"
-Print the corresponding private key to stdout.  This is the value used
-for PKEY records in GNS.
-.IP "\-x, \-\-print-hex"
-Print the corresponding public key to stdout in HEX format.  Useful
-for comparing to Ed25519 keys in X.509 tools.
-.IP "\-c FILENAME,  \-\-config=FILENAME"
+.It Fl p | \-print-public-key
+Print the corresponding public key to stdout.
+This is the value used for PKEY records in GNS.
+.It Fl P | \-print-private-key
+Print the corresponding private key to stdout.
+This is the value used for PKEY records in GNS.
+.It Fl x | \-print-hex
+Print the corresponding public key to stdout in HEX format.
+Useful for comparing to Ed25519 keys in X.509 tools.
+.It Fl c Ar FILENAME | Fl \-config= Ns Ar FILENAME
 Use the configuration file FILENAME.
-.IP "\-h, \-\-help"
+.It Fl h | \-help
 Print short help on options.
-.IP "\-L LOGLEVEL, \-\-loglevel=LOGLEVEL"
-Use LOGLEVEL for logging.  Valid values are DEBUG, INFO, WARNING and
-ERROR.
-.IP "\-v, \-\-version"
+.It Fl L Ar LOGLEVEL | Fl \-loglevel= Ns Ar LOGLEVEL
+Use LOGLEVEL for logging.
+Valid values are DEBUG, INFO, WARNING and ERROR.
+.It Fl v | \-version
 Print GNUnet version number.
-
-
-.SH BUGS
-Report bugs by using Mantis <https://bugs.gnunet.org/> or by sending
-electronic mail to <gnunet\-developers@gnu.org>
-.SH SEE ALSO
-The full documentation for
-.B gnunet
-is maintained as a Texinfo manual.  If the
-.B info
-and
-.B gnunet
-programs are properly installed at your site, the command
-.IP
-.B info gnunet
-.PP
+.El
+.Sh SEE ALSO
+The full documentation for gnunet is maintained as a Texinfo manual.
+If the
+.Xr info 1
+and gnunet programs are properly installed at your site, the command
+.Pp
+.Dl info gnunet
+.Pp
 should give you access to the complete handbook,
-.IP
-.B info gnunet-c-tutorial
-.PP
+.Pp
+.Dl info gnunet-c-tutorial
+.Pp
 will give you access to a tutorial for developers.
-.PP
-Depending on your installation, this information is also
-available in
-\fBgnunet\fP(7) and \fBgnunet-c-tutorial\fP(7).
+.sp
+Depending on your installation, this information is also available in
+.Xr gnunet 7 and
+.Xr gnunet-c-tutorial 7 .
+.\".Sh HISTORY
+.\".Sh AUTHORS
+.Sh BUGS
+Report bugs by using
+.Lk https://bugs.gnunet.org
+or by sending electronic mail to
+.Aq Mt gnunet-developers@gnu.org .
