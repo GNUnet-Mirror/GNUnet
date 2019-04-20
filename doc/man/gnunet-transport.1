@@ -44,9 +44,10 @@ print help page
 .It Fl i | \-information
 print information about our current connections (once)
 .It Fl L Ar LOGLEVEL | Fl \-loglevel= Ns Ar LOGLEVEL
-Change the loglevel.  Possible values for LOGLEVEL are ERROR, WARNING, INFO and DEBUG.
+Change the loglevel.
+Possible values for LOGLEVEL are ERROR, WARNING, INFO and DEBUG.
 .It Fl l Ar LOGFILE | Fl \-logfile= Ns Ar LOGFILE
-configure logging to write logs to LOGFILE
+Configure logging to write logs to LOGFILE.
 .It Fl m | \-monitor
 print information about our current connections (continuously)
 .It Fl p Ar PEER | Fl \-peer= Ns Ar PEER
@@ -54,10 +55,11 @@ the peer identity to connect to or monitor
 .It Fl P | \-plugins
 monitor session state of transport plugins
 .It Fl s | \-send
-transmit (dummy) traffic as quickly as possible to the peer specified
-with the \-p option.  The rate will still be limited by the quota(s)
-determined by the peers (ATS subsystem).  Will run until CTRL\-C is
-pressed or until the connection to the other peer is disrupted.
+Transmit (dummy) traffic as quickly as possible to the peer specified with the
+.Fl p
+option.
+The rate will still be limited by the quota(s) determined by the peers (ATS subsystem).
+Will run until CTRL-C is pressed or until the connection to the other peer is disrupted.
 .It Fl v | \-version
 print the version number
 .It Fl V | \-verbose
