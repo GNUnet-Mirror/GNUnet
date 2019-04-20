@@ -47,7 +47,8 @@ The time-period is twice the average delay that GNUnet defers forwarded queries.
 The default is 1 and this should be fine for most users.
 Also notice that if you choose very large values, you may end up having no throughput at all, especially if many of your fellow GNUnet-peers all do the same.
 .It Fl c Ar FILENAME | Fl \-config= Ns Ar FILENAME
-Use alternate config file (if this option is not specified, the default is ~/.config/gnunet.conf).
+Use alternate config file (if this option is not specified, the default is
+.Pa ~/.config/gnunet.conf Ns ).
 .It Fl D | \-disable-extractor
 Disable use of GNU libextractor for finding additional keywords and metadata.
 .It Fl d | \-disable-creation-time
@@ -90,8 +91,7 @@ OPTIONS = $HOME/gnunet-share
 IMMEDIATE_START = YES # start this service when the peer starts
 .Ed
 .Sh FILES
-.TP
-~/.config/gnunet.conf
+.Pa ~/.config/gnunet.conf
 GNUnet configuration file
 .Sh SEE ALSO
 .Xr gnunet-fs-gtk 1 ,
