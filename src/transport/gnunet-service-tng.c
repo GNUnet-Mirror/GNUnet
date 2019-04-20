@@ -33,27 +33,6 @@
  *       transport-to-transport traffic)
  *
  * Implement next:
- * - route_message() implementation, including using DV data structures
- *   (but not when routing certain message types, like DV learn,
- *    looks like now like we need two flags (DV/no-DV, confirmed-only,
- *    unconfirmed OK)
- *   + NOTE: do NOT use PendingMessage for route_message(), as that is
- *     for fragmentation/reliability and ultimately core flow control!
- *     => route_message() should pick the queue
- *     => in case of DV routing, route_message should BOX the message, too.
- * - We currently do NEVER tell CORE also about DV-connections (core_visible
- *    of `struct DistanceVector` is simply never set!)
- *     + When? Easy if we initiated the DV and got the challenge; do that NOW
- *        BUT what we passively learned DV (unconfirmed freshness)
- *        => Do we trigger Challenge->Response there as well, or 'wait' for
- *           our own DV initiations to discover?
- *        => What about DV routes that expire? Do we also only count on
- *           our own DV initiations for maintenance here, or do we
- *           try to specifically re-confirm the existence of a particular path?
- *        => OPITMIZATION-FIXME!
- *   + Where do we track what we told core? Careful: need to check
- *     the "core_visible' flag in both neighbours and DV before
- *     sending out notifications to CORE!
  * - retransmission logic
  * - track RTT, distance, loss, etc. => requires extra data structures!
  *
@@ -69,6 +48,11 @@
  *   fragments as just pointers into the original message and only
  *   fully build fragments just before transmission (optimization, should
  *   reduce CPU and memory use)
+ * - When we passively learned DV (with unconfirmed freshness), we
+ *   right now add the path to our list but with a zero path_valid_until
+ *   time and only use it for unconfirmed routes.  However, we could consider
+ *   triggering an explicit validation mechansim ourselves, specifically routing
+ *   a challenge-response message over the path (OPTIMIZATION-FIXME).
  *
  * FIXME (without marks in the code!):
  * - proper use/initialization of timestamps in messages exchanged
@@ -1043,14 +1027,13 @@ struct DistanceVectorHop
   struct GNUNET_TIME_Absolute timeout;
 
   /**
-   * After what time do we know for sure that the path must have existed?
+   * For how long is the validation of this path considered
+   * valid?
    * Set to ZERO if the path is learned by snooping on DV learn messages
    * initiated by other peers, and to the time at which we generated the
    * challenge for DV learn operations this peer initiated.
-   *
-   * FIXME: freshness is currently never set!
    */
-  struct GNUNET_TIME_Absolute freshness;
+  struct GNUNET_TIME_Absolute path_valid_until;
 
   /**
    * Number of hops in total to the `target` (excluding @e next_hop and `target`
@@ -1087,6 +1070,12 @@ struct DistanceVector
    * Task scheduled to purge expired paths from @e dv_head MDLL.
    */
   struct GNUNET_SCHEDULER_Task *timeout_task;
+
+  /**
+   * Task scheduled to possibly notfiy core that this queue is no longer
+   * counting as confirmed.  Runs the #core_queue_visibility_check().
+   */
+  struct GNUNET_SCHEDULER_Task *visibility_task;
 
   /**
    * Is one of the DV paths in this struct 'confirmed' and thus
@@ -2180,6 +2169,8 @@ free_dv_route (struct DistanceVector *dv)
     GNUNET_assert (
       GNUNET_YES ==
       GNUNET_CONTAINER_multipeermap_remove (dv_routes, &dv->target, dv));
+    if (NULL != dv->visibility_task)
+      GNUNET_SCHEDULER_cancel (dv->visibility_task);
     if (NULL != dv->timeout_task)
       GNUNET_SCHEDULER_cancel (dv->timeout_task);
     GNUNET_free (dv);
@@ -3427,8 +3418,8 @@ route_via_dv (const struct DistanceVector *dv,
        pos = pos->next_dv)
   {
     if ((0 == (options & RMO_UNCONFIRMED_ALLOWED)) &&
-        (GNUNET_TIME_absolute_get_duration (pos->freshness).rel_value_us >
-         ADDRESS_VALIDATION_LIFETIME.rel_value_us))
+        (GNUNET_TIME_absolute_get_remaining (pos->path_valid_until)
+           .rel_value_us == 0))
       continue; /* pos unconfirmed and confirmed required */
     num_dv += MAX_DV_HOPS_ALLOWED - pos->distance;
   }
@@ -3448,8 +3439,8 @@ route_via_dv (const struct DistanceVector *dv,
     uint32_t delta = MAX_DV_HOPS_ALLOWED - pos->distance;
 
     if ((0 == (options & RMO_UNCONFIRMED_ALLOWED)) &&
-        (GNUNET_TIME_absolute_get_duration (pos->freshness).rel_value_us >
-         ADDRESS_VALIDATION_LIFETIME.rel_value_us))
+        (GNUNET_TIME_absolute_get_remaining (pos->path_valid_until)
+           .rel_value_us == 0))
       continue; /* pos unconfirmed and confirmed required */
     if ((num_dv <= choice1) && (num_dv + delta > choice1))
       h1 = pos;
@@ -4637,6 +4628,66 @@ path_cleanup_cb (void *cls)
     GNUNET_SCHEDULER_add_at (pos->timeout, &path_cleanup_cb, dv);
 }
 
+/**
+ * Task run to check whether the hops of the @a cls still
+ * are validated, or if we need to core about disconnection.
+ *
+ * @param cls a `struct DistanceVector` (with core_visible set!)
+ */
+static void
+check_dv_path_down (void *cls)
+{
+  struct DistanceVector *dv = cls;
+  struct Neighbour *n;
+
+  dv->visibility_task = NULL;
+  GNUNET_assert (GNUNET_YES == dv->core_visible);
+  for (struct DistanceVectorHop *pos = dv->dv_head; NULL != pos;
+       pos = pos->next_dv)
+  {
+    if (0 <
+        GNUNET_TIME_absolute_get_remaining (pos->path_valid_until).rel_value_us)
+    {
+      dv->visibility_task = GNUNET_SCHEDULER_add_at (pos->path_valid_until,
+                                                     &check_dv_path_down,
+                                                     dv);
+      return;
+    }
+  }
+  /* all paths invalid, make dv core-invisible */
+  dv->core_visible = GNUNET_NO;
+  n = GNUNET_CONTAINER_multipeermap_get (neighbours, &dv->target);
+  if ((NULL != n) && (GNUNET_YES == n->core_visible))
+    return; /* no need to tell core, connection still up! */
+  cores_send_disconnect_info (&dv->target);
+}
+
+
+/**
+ * The @a hop is a validated path to the respective target
+ * peer and we should tell core about it -- and schedule
+ * a job to revoke the state.
+ *
+ * @param hop a path to some peer that is the reason for activation
+ */
+static void
+activate_core_visible_dv_path (struct DistanceVectorHop *hop)
+{
+  struct DistanceVector *dv = hop->dv;
+  struct Neighbour *n;
+
+  GNUNET_assert (GNUNET_NO == dv->core_visible);
+  GNUNET_assert (NULL == dv->visibility_task);
+
+  dv->core_visible = GNUNET_YES;
+  dv->visibility_task =
+    GNUNET_SCHEDULER_add_at (hop->path_valid_until, &check_dv_path_down, dv);
+  n = GNUNET_CONTAINER_multipeermap_get (neighbours, &dv->target);
+  if ((NULL != n) && (GNUNET_YES == n->core_visible))
+    return; /* no need to tell core, connection already up! */
+  cores_send_connect_info (&dv->target, GNUNET_BANDWIDTH_ZERO);
+}
+
 
 /**
  * We have learned a @a path through the network to some other peer, add it to
@@ -4655,6 +4706,8 @@ path_cleanup_cb (void *cls)
  * @param path_len number of entries on the @a path, at least three!
  * @param network_latency how long does the message take from us to
  * `path[path_len-1]`? set to "forever" if unknown
+ * @param path_valid_until how long is this path considered validated? Maybe be
+ * zero.
  * @return #GNUNET_YES on success,
  *         #GNUNET_NO if we have better path(s) to the target
  *         #GNUNET_SYSERR if the path is useless and/or invalid
@@ -4664,7 +4717,8 @@ path_cleanup_cb (void *cls)
 static int
 learn_dv_path (const struct GNUNET_PeerIdentity *path,
                unsigned int path_len,
-               struct GNUNET_TIME_Relative network_latency)
+               struct GNUNET_TIME_Relative network_latency,
+               struct GNUNET_TIME_Absolute path_valid_until)
 {
   struct DistanceVectorHop *hop;
   struct DistanceVector *dv;
@@ -4742,8 +4796,14 @@ learn_dv_path (const struct GNUNET_PeerIdentity *path,
         last_timeout = GNUNET_TIME_absolute_get_remaining (pos->timeout);
         pos->timeout =
           GNUNET_TIME_relative_to_absolute (DV_PATH_VALIDITY_TIMEOUT);
+        pos->path_valid_until =
+          GNUNET_TIME_absolute_max (pos->path_valid_until, path_valid_until);
         GNUNET_CONTAINER_MDLL_remove (dv, dv->dv_head, dv->dv_tail, pos);
         GNUNET_CONTAINER_MDLL_insert (dv, dv->dv_head, dv->dv_tail, pos);
+        if ((GNUNET_NO == dv->core_visible) &&
+            (0 < GNUNET_TIME_absolute_get_remaining (path_valid_until)
+                   .rel_value_us))
+          activate_core_visible_dv_path (pos);
         if (last_timeout.rel_value_us <
             GNUNET_TIME_relative_subtract (DV_PATH_VALIDITY_TIMEOUT,
                                            DV_PATH_DISCOVERY_FREQUENCY)
@@ -4774,12 +4834,16 @@ learn_dv_path (const struct GNUNET_PeerIdentity *path,
           &path[2],
           sizeof (struct GNUNET_PeerIdentity) * (path_len - 2));
   hop->timeout = GNUNET_TIME_relative_to_absolute (DV_PATH_VALIDITY_TIMEOUT);
+  hop->path_valid_until = path_valid_until;
   hop->distance = path_len - 2;
   GNUNET_CONTAINER_MDLL_insert (dv, dv->dv_head, dv->dv_tail, hop);
   GNUNET_CONTAINER_MDLL_insert (neighbour,
                                 next_hop->dv_head,
                                 next_hop->dv_tail,
                                 hop);
+  if ((GNUNET_NO == dv->core_visible) &&
+      (0 < GNUNET_TIME_absolute_get_remaining (path_valid_until).rel_value_us))
+    activate_core_visible_dv_path (hop);
   return GNUNET_YES;
 }
 
@@ -5013,11 +5077,11 @@ handle_dv_learn (void *cls, const struct TransportDVLearn *dvl)
       /* assumption: linear latency increase per hop */
       ilat = GNUNET_TIME_relative_multiply (network_latency, i);
       path[i] = hops[i - 1].hop;
-      // FIXME: mark ALL of these as *confirmed* (with what timeout?)
-      // -- and schedule a job for the confirmation to time out! --
-      // and possibly do #cores_send_connect_info() if
-      // the respective neighbour is NOT confirmed yet!
-      learn_dv_path (path, i, ilat);
+      learn_dv_path (path,
+                     i,
+                     ilat,
+                     GNUNET_TIME_relative_to_absolute (
+                       ADDRESS_VALIDATION_LIFETIME));
     }
     /* as we initiated, do not forward again (would be circular!) */
     do_fwd = GNUNET_NO;
@@ -5045,7 +5109,10 @@ handle_dv_learn (void *cls, const struct TransportDVLearn *dvl)
         path[i + 2] = hops[nhops - i - 2].hop;
       }
 
-      iret = learn_dv_path (path, i + 2, GNUNET_TIME_UNIT_FOREVER_REL);
+      iret = learn_dv_path (path,
+                            i + 2,
+                            GNUNET_TIME_UNIT_FOREVER_REL,
+                            GNUNET_TIME_UNIT_ZERO_ABS);
       if (GNUNET_SYSERR == iret)
       {
         /* path invalid or too long to be interesting for US, thus should also
