@@ -114,9 +114,6 @@ These are the optional dependencies:
 - Bash                              (for Docker and Vagrant)
 - bluez                             (for bluetooth support)
 - grof                              (for linting of man pages)
-- guile              1.6.4          (or later up to 1.8?, for
-                                     gnunet-download-manager (see #5682))
-
 - libextractor       >= 0.6.1       (highly recommended[*5])
 - libjansson
 - libglpk            >= 4.45        (for experimental code)

@@ -1,7 +1,7 @@
 # This Makefile.am is in the public domain
 AM_CPPFLAGS = -I$(top_srcdir)/src/include -I$(top_builddir)/src/include
 
-SUBDIRS = gnunet-logread gnunet-download-manager
+SUBDIRS = gnunet-logread
 
 noinst_SCRIPTS = \
  terminate.py \
