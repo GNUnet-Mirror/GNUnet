@@ -15,7 +15,7 @@ The second part describes concepts specific to anonymous file-sharing.
 * Accounting to Encourage Resource Sharing::
 * Confidentiality::
 * Anonymity::
-* Deniability::                       
+* Deniability::
 * Peer Identities::
 * Zones in the GNU Name System (GNS Zones)::
 * Egos::
@@ -165,16 +165,20 @@ and Bart Preneel. Towards measuring anonymity.
 (@uref{https://git.gnunet.org/bibliography.git/plain/docs/article-89.pdf, https://git.gnunet.org/bibliography.git/plain/docs/article-89.pdf}))
 that can help quantify the level of anonymity that a given mechanism
 provides, there is no such thing as "complete anonymity".
+
 GNUnet's file-sharing implementation allows users to select for each
 operation (publish, search, download) the desired level of anonymity.
-The metric used is the amount of cover traffic available to hide the
-request.
-While this metric is not as good as, for example, the theoretical metric
-given in scientific metrics,
-it is probably the best metric available to a peer with a purely local
-view of the world that does not rely on unreliable external information.
-The default anonymity level is @code{1}, which uses anonymous routing but
-imposes no minimal requirements on cover traffic. It is possible
+The metric used is based on the amount of cover traffic needed to hide
+the request.
+
+While there is no clear way to relate the amount of available cover
+traffic to traditional scientific metrics such as the anonymity set or
+information leakage, it is probably the best metric available to a
+peer with a purely local view of the world, in that it does not rely
+on unreliable external information or a particular adversary model.
+
+The default anonymity level is @code{1}, which uses anonymous routing
+but imposes no minimal requirements on cover traffic. It is possible
 to forego anonymity when this is not required. The anonymity level of
 @code{0} allows GNUnet to use more efficient, non-anonymous routing.
 
@@ -192,7 +196,7 @@ In particular, we assume that the adversary can see all the traffic on
 the Internet. And while we assume that the adversary
 can not break our encryption, we assume that the adversary has many
 participating nodes in the network and that it can thus see many of the
-node-to-node interactions since it controls some of the nodes. 
+node-to-node interactions since it controls some of the nodes.
 
 The system tries to achieve anonymity based on the idea that users can be
 anonymous if they can hide their actions in the traffic created by other
@@ -235,7 +239,7 @@ Even if the user that downloads data and the server that provides data are
 anonymous, the intermediaries may still be targets. In particular, if the
 intermediaries can find out which queries or which content they are
 processing, a strong adversary could try to force them to censor
-certain materials. 
+certain materials.
 
 With the file-encoding used by GNUnet's anonymous file-sharing, this
 problem does not arise.

@@ -1054,8 +1054,17 @@ anonymity level of "1" means that anonymous routing is desired, but no
 particular amount of cover traffic is necessary. A powerful adversary
 might thus still be able to deduce the origin of the traffic using
 traffic analysis. Specifying higher anonymity levels increases the
-amount of cover traffic required. While this offers better privacy,
-it can also significantly hurt performance.
+amount of cover traffic required.
+
+The specific numeric value (for anonymity levels above 1) is simple:
+Given an anonymity level L (above 1), each request FS makes on your
+behalf must be hidden in L-1 equivalent requests of cover traffic
+(traffic your peer routes for others) in the same time-period.  The
+time-period is twice the average delay by which GNUnet artificially
+delays traffic.
+
+While higher anonymity levels may offer better privacy, they can also
+significantly hurt performance.
 
 @node Content Priority
 @subsubsection Content Priority
@@ -2324,6 +2333,3 @@ service offered by that peer, you can create an IP tunnel to
 that peer by specifying the peer's identity, service name and
 protocol (--tcp or --udp) and you will again receive an IP address
 that will terminate at the respective peer's service.
-
-
-

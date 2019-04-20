@@ -24,30 +24,25 @@ Search for content on GNUnet.
 The keywords are case-sensitive.
 .Nm
 can be used both for a search in the global namespace as well as for searching a private subspace.
+.Sh OPTIONS
 .Bl -tag -width Ds
 .It Fl a Ar LEVEL | Fl \-anonymity= Ns Ar LEVEL
-The \fB\-a\fR option can be used to specify additional anonymity constraints.
-If set to 0, GNUnet will try to download the file as fast as possible, including using non-anonymous methods.
+This option can be used to specify additional anonymity constraints. The default is 1.
+If set to 0, GNUnet will publish the file non-anonymously and in fact sign the advertisement for the file using your peer's private key.
+This will allow other users to download the file as fast as possible, including using non-anonymous methods (discovery via DHT and CADET transfer).
 If you set it to 1 (default), you use the standard anonymous routing algorithm (which does not explicitly leak your identity).
-However, a powerful adversary may still be able to perform traffic analysis (statistics) to over time infer data about your identity.
-You can gain better privacy by specifying a higher level of anonymity, which increases the amount of cover traffic your own traffic will get, at the expense of performance.
-Note that your download performance is not only determined by your own anonymity level, but also by the anonymity level of the peers publishing the file.
-So even if you download with anonymity level 0, the peers publishing the data might be sharing with a higher anonymity level, which in this case will determine performance.
-Also, peers that cache content in the network always use anonymity level 1.
-.sp
-This option can be used to limit requests further than that.
-In particular, you can require GNUnet to receive certain amounts of traffic from other peers before sending your queries.
-This way, you can gain very high levels of anonymity \- at the expense of much more traffic and much higher latency.
-So set it only if you really believe you need it.
-.sp
-The definition of ANONYMITY\-RECEIVE is the following.
-0 means no anonymity is required.
-Otherwise a value of 'v' means that 1 out of v bytes of "anonymous" traffic can be from the local user, leaving 'v-1' bytes of cover traffic per byte on the wire.
-Thus, if GNUnet routes n bytes of messages from foreign peers (using anonymous routing), it may originate n/(v-1) bytes of queries in the same time\-period.
-The time\-period is twice the average delay that GNUnet defers forwarded queries.
-.sp
-The default is 1 and this should be fine for most users.
-Also notice that if you choose very large values, you may end up having no throughput at all, especially if many of your fellow GNUnet\-peers all do the same.
+However, a powerful adversary may still be able to perform traffic analysis (statistics) to over time discovery your identity.
+You can gain better privacy by specifying a higher level of anonymity (using values above 1).
+This tells FS that it must hide your own requests in equivalent\-looking cover traffic.
+This should confound an adversaries traffic analysis, increasing the time and effort it would
+take to discover your identity. However, it also can significantly reduce performance, as
+your requests will be delayed until sufficient cover traffic is available.  The specific
+numeric value (for anonymity levels above 1) is simple:
+Given an anonymity level L (above 1), each request FS makes on your behalf must be hidden in L\-1 equivalent
+requests of cover traffic (traffic your peer routes for others) in the same time\-period.
+The time\-period is twice the average delay by which GNUnet artificially delays traffic.
+Note that regardless of the anonymity level you choose, peers that cache content in the
+network always use anonymity level 1.
 .It Fl c Ar FILENAME | Fl \-config= Ns Ar FILENAME
 use config file (defaults: ~/.config/gnunet.conf)
 .It Fl h | \-help
