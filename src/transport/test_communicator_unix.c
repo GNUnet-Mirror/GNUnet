@@ -105,7 +105,8 @@ queue_create_reply_cb (void *cls,
 
 static void
 add_queue_cb (void *cls,
-              struct GNUNET_TRANSPORT_TESTING_TransportCommunicatorHandle *tc_h)
+              struct GNUNET_TRANSPORT_TESTING_TransportCommunicatorHandle *tc_h,
+              struct GNUNET_TRANSPORT_TESTING_TransportCommunicatorQueue *tc_queue)
 {
   LOG (GNUNET_ERROR_TYPE_DEBUG,
       "Got Queue!\n");
