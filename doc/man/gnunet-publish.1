@@ -23,6 +23,7 @@
 .\"
 .Dd November 16, 2015
 .Dt GNUNET-PUBLISH 1
+.Os
 .Sh NAME
 .Nm gnunet-publish
 .Nd
@@ -51,49 +52,69 @@ a command line interface for publishing new content into GNUnet
 .Ao Ar FILENAME Ac
 .Sh DESCRIPTION
 In order to share files with other GNUnet users, the files must first be made available to GNUnet.
-GNUnet does not automatically share all files from a certain directory (however, you can do this with the gnunet\-auto\-share tool).
+GNUnet does not automatically share all files from a certain directory (however, you can do this with
+.Xr gnunet-auto-share 1 Ns ).
 In fact, even files that are downloaded are not automatically shared.
 .Pp
-In order to start sharing files, the files must be added either using gnunet\-publish or a graphical interface such as gnunet\-fs\-gtk.
-The command line tool gnunet\-publish is more useful if many files are supposed to be added.
-gnunet\-publish can automatically publish batches of files, recursively publish directories, create directories that can be browsed within GNUnet and publish file lists in a namespace.
-When run on a directory, gnunet\-publish will always recursively publish all of the files in the directory.
+In order to start sharing files, the files must be added either using gnunet-publish or a graphical interface such as
+.Xr gnunet-fs-gtk 1 .
+The command line tool gnunet-publish is more useful if many files are supposed to be added.
+gnunet-publish can automatically publish batches of files, recursively publish directories, create directories that can be browsed within GNUnet and publish file lists in a namespace.
+When run on a directory, gnunet-publish will always recursively publish all of the files in the directory.
 .Pp
-gnunet\-publish can automatically extract keywords from the files that are shared.
+gnunet-publish can automatically extract keywords from the files that are shared.
 Users that want to download files from GNUnet use keywords to search for the appropriate content.
-You can disable keyword extraction with the \-D option.
-You can manually add keywords using the \-k option.
-The keywords are case\-sensitive.
+You can disable keyword extraction with the
+.Fl D
+option.
+You can manually add keywords using the
+.Fl k
+option.
+The keywords are case-sensitive.
 .Pp
 In addition to searching for files by keyword, GNUnet allows organizing files into directories.
 With directories, the user only needs to find the directory in order to be able to download any of the files listed in the directory.
 Directories can contain pointers to other directories.
 .Pp
-With gnunet\-publish, it is easy to create new directories simultaneously when adding the files.
+With gnunet-publish, it is easy to create new directories simultaneously when adding the files.
 Simply pass the name of a directory instead of a file.
 .Pp
 Since keywords can be spammed (any user can add any content under any keyword), GNUnet supports namespaces.
 A namespace is a subset of the searchspace into which only the holder of a certain pseudonym can add content.
-Any GNUnet user can create any number of pseudonyms using \fBgnunet\-pseudonym\fR.
+Any GNUnet user can create any number of pseudonyms using
+.Xr gnunet-pseudonym 1 .
 Pseudonyms are stored in the user's GNUnet directory.
 While pseudonyms are locally identified with an arbitrary string that the user selects when the pseudonym is created, the namespace is globally known only under the hash of the public key of the pseudonym.
 Since only the owner of the pseudonym can add content to the namespace, it is impossible for other users to pollute the namespace.
-gnunet\-publish automatically publishes the top\-directory (or the only file if only one file is specified) into the namespace if a pseudonym is specified.
+gnunet-publish automatically publishes the top-directory (or the only file if only one file is specified) into the namespace if a pseudonym is specified.
 .Pp
 It is possible to update content in GNUnet if that content was placed and obtained from a particular namespace.
 Updates are only possible for content in namespaces since this is the only way to assure that a malicious party can not supply counterfeited updates.
 Note that an update with GNUnet does not make the old content unavailable, GNUnet merely allows the publisher to point users to more recent versions.
-You can use the \-N option to specify the future identifier of an update.
-When using this option, a GNUnet client that finds the current (\-t) identifier will automatically begin a search for the update (\-N) identifier.
-If you later publish an update under the (\-N) identifier, both results will be given to the user.
+You can use the
+.Fl N
+option to specify the future identifier of an update.
+When using this option, a GNUnet client that finds the current
+.Pq Fl t
+identifier will automatically begin a search for the update
+.Pq Fl N
+identifier.
+If you later publish an update under the
+.Pq Fl N
+identifier, both results will be given to the user.
 .Pp
-You can use automatic meta\-data extraction (based on libextractor) or the command\-line option \-m to specify meta-data.
-For the \-m option you need to use the form keyword\-type:value.
+You can use automatic meta-data extraction (based on libextractor) or the command-line option
+.Fl m
+to specify meta-data.
+For the
+.Fl m
+option you need to use the form keyword-type:value.
 For example, use "\-m os:Linux" to specify that the operating system is Linux.
-Common meta\-data types are "author", "title" , "mimetype", "filename", "language", "subject" and "keywords".
-A full list can be obtained from the extract tool using the option \-\-list.
-The meta\-data is used to help users in searching for files on the network.
-The keywords are case\-sensitive.
+Common meta-data types are "author", "title", "mimetype", "filename", "language", "subject" and "keywords".
+A full list can be obtained from the extract tool using the option
+.Fl \-list .
+The meta-data is used to help users in searching for files on the network.
+The keywords are case-sensitive.
 .Pp
 GNUnet supports two styles of publishing files on the network.
 Publishing a file means that a copy of the file is made in the local (!) database of the node.
@@ -101,13 +122,14 @@ Indexing a file means that an index is added to the local (!) database with symb
 The links will use the SHA-512 hash of the entire file as the filename.
 Indexing is generally significantly more efficient and the default choice.
 However, indexing only works if the indexed file can be read (using the same absolute path) by gnunet-service-fs.
-If this is not the case, indexing will fail (and gnunet\-publish will automatically revert to publishing instead).
+If this is not the case, indexing will fail (and gnunet-publish will automatically revert to publishing instead).
 Regardless of which method is used to publish the file, the file will be slowly (depending on how often it is requested and on how much bandwidth is available) dispersed into the network.
 If you publish or index a file and then leave the network, it will almost always NOT be available anymore.
 .Bl -tag -width Ds
 .It Fl c Ar FILENAME | Fl \-config= Ns Ar FILENAME
 Use alternate config file FILENAME.
-If this option is not specified, the default is ~/.config/gnunet.conf).
+If this option is not specified, the default is
+.Pa ~/.config/gnunet.conf .
 .It Fl D | \-disable\-extractor
 Disable use of GNU libextractor for finding additional keywords and metadata.
 .It Fl E | \-enable\-creation\-time
@@ -208,7 +230,6 @@ Index a file COPYING with the keywords \fBgpl\fR and \fBtest\fR
 Index a file COPYING with description "GNU License", mime-type "text/plain" and keywords \fBgpl\fR and \fBtest\fR
 .Pp
 .Dl gnunet\-publish \-m "description:GNU License" \-k gpl \-k test \-m "mimetype:text/plain" COPYING
-.Pp
 .Ss USING DIRECTORIES
 Index the files COPYING and AUTHORS with keyword \fBtest\fR and build a directory containing the two files.
 Make the directory itself available under keyword \fBgnu\fR and disable keyword extraction using libextractor
@@ -219,7 +240,6 @@ Neatly publish an image gallery in \fBkittendir/\fR and its subdirs with keyword
 Force description for all files.
 .Pp
 .Dl gnunet\-publish \-n \-m "description:Kitten collection" \-k kittens kittendir/
-.Pp
 .Ss SECURE PUBLISHING WITH NAMESPACES
 Publish file COPYING with pseudonym RIAA-2 (\-P) and with identifier \fBgpl\fR (\-t) and no updates.
 .Pp
@@ -244,19 +264,17 @@ Create a namespace entry 'root' in namespace MPAA-1 and announce that the next u
 Update the previous entry, do not allow any future updates:
 .Pp
 .Dl gnunet\-publish \-P MPAA-1 \-t next noise_updated.mp3
-.Pp
 .Sh FILES
-.TP
-~/.config/gnunet.conf
+.Pa ~/.config/gnunet.conf
 GNUnet configuration file
 .Sh SEE ALSO
-.Xr gnunet-auto-share 1 ,
-.Xr gnunet-fs-gtk 1 ,
-.Xr gnunet-search 1 ,
-.Xr gnunet-download 1 ,
-.Xr gnunet.conf 5 ,
 .Xr extract 1 ,
-.Xr gnunet-identity 1
+.Xr gnunet-auto-share 1 ,
+.Xr gnunet-download 1 ,
+.Xr gnunet-fs-gtk 1 ,
+.Xr gnunet-identity 1 ,
+.Xr gnunet-search 1 ,
+.Xr gnunet.conf 5 ,
 .sp
 The full documentation for gnunet is maintained as a Texinfo manual.
 If the
