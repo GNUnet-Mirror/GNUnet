@@ -435,6 +435,7 @@ src/transport/transport_api_manipulation.c
 src/transport/transport_api_monitor_peers.c
 src/transport/transport_api_monitor_plugins.c
 src/transport/transport_api_offer_hello.c
+src/transport/transport-testing2.c
 src/transport/transport-testing.c
 src/transport/transport-testing-filenames.c
 src/transport/transport-testing-loggers.c

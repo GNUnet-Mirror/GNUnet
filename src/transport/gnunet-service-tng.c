@@ -223,6 +223,7 @@
  */
 #define MAX_ADDRESS_VALID_UNTIL \
   GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MONTHS, 1)
+
 /**
  * How long do we consider an address valid if we just checked?
  */
@@ -1031,7 +1032,7 @@ struct DistanceVectorHop
   /**
    * Array of @e distance hops to the target, excluding @e next_hop.
    * NULL if the entire path is us to @e next_hop to `target`. Allocated
-   * at the end of this struct.
+   * at the end of this struct. Excludes the target itself!
    */
   const struct GNUNET_PeerIdentity *path;
 
@@ -1046,13 +1047,15 @@ struct DistanceVectorHop
    * Set to ZERO if the path is learned by snooping on DV learn messages
    * initiated by other peers, and to the time at which we generated the
    * challenge for DV learn operations this peer initiated.
+   *
+   * FIXME: freshness is currently never set!
    */
   struct GNUNET_TIME_Absolute freshness;
 
   /**
-   * How many hops in total to the `target` (excluding @e next_hop and `target`
-   * itself), thus 0 still means a distance of 2 hops (to @e next_hop and then
-   * to `target`)?
+   * Number of hops in total to the `target` (excluding @e next_hop and `target`
+   * itself). Thus 0 still means a distance of 2 hops (to @e next_hop and then
+   * to `target`).
    */
   unsigned int distance;
 };
@@ -3365,6 +3368,39 @@ route_via_neighbour (const struct Neighbour *n,
 
 
 /**
+ * Given a distance vector path @a dvh route @a payload to
+ * the ultimate destination respecting @a options.
+ * Sets up the boxed message and queues it at the next hop.
+ *
+ * @param dvh choice of the path for the message
+ * @param payload body to transmit
+ * @param options options to use for control
+ */
+static void
+forward_via_dvh (const struct DistanceVectorHop *dvh,
+                 const struct GNUNET_MessageHeader *payload,
+                 enum RouteMessageOptions options)
+{
+  uint16_t mlen = ntohs (payload->size);
+  char boxram[sizeof (struct TransportDVBox) +
+              (dvh->distance + 1) * sizeof (struct GNUNET_PeerIdentity) +
+              mlen] GNUNET_ALIGN;
+  struct TransportDVBox *box = (struct TransportDVBox *) boxram;
+  struct GNUNET_PeerIdentity *path = (struct GNUNET_PeerIdentity *) &box[1];
+
+  box->header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_DV_BOX);
+  box->header.size = htons (sizeof (boxram));
+  box->total_hops = htons (0);
+  box->num_hops = htons (dvh->distance + 1);
+  box->origin = GST_my_identity;
+  memcpy (path, dvh->path, dvh->distance * sizeof (struct GNUNET_PeerIdentity));
+  path[dvh->distance] = dvh->dv->target;
+  memcpy (&path[dvh->distance + 1], payload, mlen);
+  route_via_neighbour (dvh->next_hop, &box->header, options);
+}
+
+
+/**
  * Pick a path of @a dv under constraints @a options and schedule
  * transmission of @a hdr.
  *
@@ -3378,9 +3414,52 @@ route_via_dv (const struct DistanceVector *dv,
               const struct GNUNET_MessageHeader *hdr,
               enum RouteMessageOptions options)
 {
-  // FIXME: pick on or two 'random' paths (under constraints of options)
-  // Then add DVBox and enqueue message (possibly using
-  // route_via_neighbour for 1st hop?)
+  struct DistanceVectorHop *h1;
+  struct DistanceVectorHop *h2;
+  uint64_t num_dv;
+  uint64_t choice1;
+  uint64_t choice2;
+
+  /* Pick random vectors, but weighted by distance, giving more weight
+     to shorter vectors */
+  num_dv = 0;
+  for (struct DistanceVectorHop *pos = dv->dv_head; NULL != pos;
+       pos = pos->next_dv)
+  {
+    if ((0 == (options & RMO_UNCONFIRMED_ALLOWED)) &&
+        (GNUNET_TIME_absolute_get_duration (pos->freshness).rel_value_us >
+         ADDRESS_VALIDATION_LIFETIME.rel_value_us))
+      continue; /* pos unconfirmed and confirmed required */
+    num_dv += MAX_DV_HOPS_ALLOWED - pos->distance;
+  }
+  if (0 == num_dv)
+  {
+    GNUNET_break (0);
+    return;
+  }
+  choice1 = GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_WEAK, num_dv);
+  choice2 = GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_WEAK, num_dv);
+  num_dv = 0;
+  h1 = NULL;
+  h2 = NULL;
+  for (struct DistanceVectorHop *pos = dv->dv_head; NULL != pos;
+       pos = pos->next_dv)
+  {
+    uint32_t delta = MAX_DV_HOPS_ALLOWED - pos->distance;
+
+    if ((0 == (options & RMO_UNCONFIRMED_ALLOWED)) &&
+        (GNUNET_TIME_absolute_get_duration (pos->freshness).rel_value_us >
+         ADDRESS_VALIDATION_LIFETIME.rel_value_us))
+      continue; /* pos unconfirmed and confirmed required */
+    if ((num_dv <= choice1) && (num_dv + delta > choice1))
+      h1 = pos;
+    if ((num_dv <= choice2) && (num_dv + delta > choice2))
+      h2 = pos;
+    num_dv += delta;
+  }
+  forward_via_dvh (h1, hdr, options & (~RMO_REDUNDANT));
+  if (0 == (options & RMO_REDUNDANT))
+    forward_via_dvh (h2, hdr, options & (~RMO_REDUNDANT));
 }
 
 
