@@ -1,63 +1,69 @@
-.TH GNUNET-DATASTORE "1" "April 13, 2017" "GNUnet"
-.SH NAME
-gnunet\-datastore \- dump or insert (restore) GNUnet datastore databases
-.SH SYNOPSIS
-.B gnunet\-datastore
-[\fIOPTIONS\fR]
-.SH DESCRIPTION
-gnunet\-datastore can be used to backup and restore or merge GNUnet
-datastores.
-This is useful if a datastore is to be migrated between SQL databases,
-i.e.  from sqlite to postgres or vice versa.
-gnunet\-datastore will dump the entire contents of the database or
-insert a dump file into the database.
-.TP
-\fB\-c \fIFILENAME\fR, \fB\-\-config=FILENAME\fR
-configuration file to use
-.TP
-\fB\-d\fR, \fB\-\-dump\fR
-dump all records to a file
-.TP
-\fB\-f \fIFILENAME\fR, \fB\-\-file=FILENAME\fR
-file to dump to or insert from.  Otherwise stdin/stdout are used.
-.TP
-\fB\-h\fR, \fB\-\-help\fR
+.Dd April 13, 2017
+.Dt GNUNET-DATASTORE 1
+.Os
+.Sh NAME
+.Nm gnunet-datastore
+.Nd
+dump or insert (restore) GNUnet datastore databases
+.Sh SYNOPSIS
+.Nm
+.Op Fl c Ar FILENAME | Fl \-config= Ns Ar FILENAME
+.Op Fl d | \-dump
+.Op Fl f Ar FILENAME | Fl \-file= Ns Ar FILENAME
+.Op Fl h | \-help
+.Op Fl i | \-insert
+.Op Fl L Ar LOGLEVEL | Fl \-loglevel= Ns Ar LOGLEVEL
+.Op Fl l Ar FILENAME | Fl \-logfile= Ns Ar FILENAME
+.Op Fl v | \-version
+.Sh DESCRIPTION
+.Nm
+can be used to backup and restore or merge GNUnet datastores.
+This is useful if a datastore is to be migrated between SQL databases, i.e. from sqlite to postgres or vice versa.
+gnunet-datastore will dump the entire contents of the database or insert a dump file into the database.
+.Bl -tag -width Ds
+.It Fl c Ar FILENAME | Fl \-config= Ns Ar FILENAME
+Configuration file to use
+.It Fl d | \-dump
+Dump all records to a file
+.It Fl f Ar FILENAME | Fl \-file= Ns Ar FILENAME
+File to dump to or insert from.
+Otherwise stdin/stdout are used.
+.It Fl h | \-help
 print help page
-.TP
-\fB\-i\fR, \fB\-\-insert\fR
-insert from dump file
-.TP
-\fB\-L \fILOGLEVEL\fR, \fB\-\-loglevel=LOGLEVEL\fR
-Change the loglevel.  Possible values for LOGLEVEL are ERROR, WARNING, INFO and DEBUG.
-.TP
-\fB\-l \fIFILENAME\fR, \fB\-\-logfile=FILENAME\fR
-configure logging to write logs to FILENAME
-.TP
-\fB\-v\fR, \fB\-\-version\fR
-print the version number
-.SH BUGS
-Report bugs by using mantis <https://bugs.gnunet.org/> or by sending
-electronic mail to <gnunet\-developers@gnu.org>
-.SH SEE ALSO
-\fBgnunet\-publish\fP(1)
-.PP
-The full documentation for
-.B gnunet
-is maintained as a Texinfo manual.
+.It Fl i | \-insert
+Insert from dump file.
+.It Fl L Ar LOGLEVEL | Fl \-loglevel= Ns Ar LOGLEVEL
+Change the loglevel.
+Possible values for LOGLEVEL are ERROR, WARNING, INFO and DEBUG.
+.It Fl l Ar FILENAME | Fl \-logfile= Ns Ar FILENAME
+Configure logging to write logs to FILENAME
+.It Fl v | \-version
+Print the version number
+.El
+.\".Sh EXAMPLES
+.Sh SEE ALSO
+.Xr gnunet-publish 1
+.sp
+The full documentation for gnunet is maintained as a Texinfo manual.
 If the
-.B info
-and
-.B gnunet
-programs are properly installed at your site, the command
-.IP
-.B info gnunet
-.PP
+.Xr info 1
+and gnunet programs are properly installed at your site, the command
+.Pp
+.Dl info gnunet
+.Pp
 should give you access to the complete handbook,
-.IP
-.B info gnunet-c-tutorial
-.PP
+.Pp
+.Dl info gnunet-c-tutorial
+.Pp
 will give you access to a tutorial for developers.
-.PP
-Depending on your installation, this information is also
-available in
-\fBgnunet\fP(7) and \fBgnunet-c-tutorial\fP(7).
+.sp
+Depending on your installation, this information is also available in
+.Xr gnunet 7 and
+.Xr gnunet-c-tutorial 7 .
+.\".Sh HISTORY
+.\".Sh AUTHORS
+.Sh BUGS
+Report bugs by using
+.Lk https://bugs.gnunet.org
+or by sending electronic mail to
+.Aq Mt gnunet-developers@gnu.org .
