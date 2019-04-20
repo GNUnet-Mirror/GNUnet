@@ -4,7 +4,7 @@ echo "Removing folder 'libltdl'..."
 rm -rf libltdl
 
 # Install clang format symlink (if possible)
-ln -s contrib/conf/editors/clang-format .clang-format &> /dev/null
+ln -s contrib/conf/editors/clang-format .clang-format 2> /dev/null
 
 echo "checking for libtoolize / libtool... "
 
