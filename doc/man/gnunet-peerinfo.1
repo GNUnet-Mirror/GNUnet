@@ -1,60 +1,77 @@
-.TH GNUNET-PEERINFO 1 "March 4, 2013" "GNUnet"
-.SH NAME
-gnunet\-peerinfo \- Display information about other peers.
-.SH SYNOPSIS
-.B gnunet\-peerinfo
-.RI [ options ]
-.SH DESCRIPTION
-.PP
-\fBgnunet\-peerinfo\fP display the known addresses and trust of known peers.
-.SH OPTIONS
-.IP "\-c FILENAME, \-\-config=FILENAME"
-Load config file (default: ~/.config/gnunet.conf)
-.IP "\-g, \-\-get\-hello"
+.Dd March 4, 2013
+.Dt GNUNET-PEERINFO 1
+.Os
+.Sh NAME
+.Nm gnunet-peerinfo
+.Nd
+display information about other peers
+.Sh SYNOPSIS
+.Nm
+.Op Fl c Ar FILENAME | Fl \-config= Ns Ar FILENAME
+.Op Fl g | \-get\-hello
+.Op Fl h | \-help
+.Op Fl i | \-info
+.Op Fl L Ar LOGLEVEL | Fl \-loglevel= Ns Ar LOGLEVEL
+.Op Fl l Ar LOGFILE | Fl \-logfile= ns Ar LOGFILE
+.Op Fl n | \-numeric
+.Op Fl p Ar HELLO | Fl \-put\-hello= Ns Ar HELLO
+.Op Fl q | \-quiet
+.Op Fl s | \-self
+.Op Fl v | \-version
+.Sh DESCRIPTION
+.Nm
+displays the known addresses and trust of known peers.
+.Bl -tag -width Ds
+.It Fl c Ar FILENAME | Fl \-config= Ns Ar FILENAME
+Load config file, default FILENAME of the config is 
+.Pa ~/.config/gnunet.conf .
+.It Fl g | \-get\-hello
 Output HELLO uri(s)
-.IP "\-h, \-\-help"
+.It Fl h | \-help
 Print help page
-.IP "\-i, \-\-info"
-List all known peers (and their addresses)
-.IP "\-L LOGLEVEL, \-\-loglevel=LOGLEVEL"
+.It Fl i | \-info
+List all known peers (and their addresses).
+.It Fl L Ar LOGLEVEL | Fl \-loglevel= Ns Ar LOGLEVEL
 Set the loglevel
-.IP "\-l LOGFILE, \-\-logfile=LOGFILE"
+.It Fl l Ar LOGFILE | Fl \-logfile= ns Ar LOGFILE
 Log messages to LOGFILE
-.IP "\-n, \-\-numeric"
+.It Fl n | \-numeric
 Disable resolution of IPs to hostnames
-.IP "\-p, \-\-put\-hello=HELLO"
+.It Fl p Ar HELLO | Fl \-put\-hello= Ns Ar HELLO
 Add given HELLO uri to the database
-.IP "\-q, \-\-quiet"
+.It Fl q | \-quiet
 Do not print anything but the peer identities
-.IP "\-s, \-\-self"
-Print only our own identity (together with "\-q", this is the exact
-line that other peers would have to put in to their friends file in
-order to consider this peer one of their friends in F2F mode).
-.IP "\-v, \-\-version"
+.It Fl s | \-self
+Print only our own identity.
+Together with
+.Fl q ,
+this is the exact line that other peers would have to put in to their friends file in order to consider this peer one of their friends in F2F mode.
+.It Fl v | \-version
 Print the version number
-.SH BUGS
-Report bugs by using mantis <https://bugs.gnunet.org/> or by sending
-electronic mail to <gnunet\-developers@gnu.org>
-.SH SEE ALSO
-gnunet.conf(5)
-.PP
-The full documentation for
-.B gnunet
-is maintained as a Texinfo manual.
+.El
+.Sh SEE ALSO
+.Xr gnunet.conf 5
+.sp
+The full documentation for gnunet is maintained as a Texinfo manual.
 If the
-.B info
-and
-.B gnunet
-programs are properly installed at your site, the command
-.IP
-.B info gnunet
-.PP
+.Xr info 1
+and gnunet programs are properly installed at your site, the command
+.Pp
+.Dl info gnunet
+.Pp
 should give you access to the complete handbook,
-.IP
-.B info gnunet-c-tutorial
-.PP
+.Pp
+.Dl info gnunet-c-tutorial
+.Pp
 will give you access to a tutorial for developers.
-.PP
-Depending on your installation, this information is also
-available in
-\fBgnunet\fP(7) and \fBgnunet-c-tutorial\fP(7).
+.sp
+Depending on your installation, this information is also available in
+.Xr gnunet 7 and
+.Xr gnunet-c-tutorial 7 .
+.\".Sh HISTORY
+.\".Sh AUTHORS
+.Sh BUGS
+Report bugs by using
+.Lk https://bugs.gnunet.org
+or by sending electronic mail to
+.Aq Mt gnunet-developers@gnu.org .
