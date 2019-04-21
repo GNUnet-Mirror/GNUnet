@@ -33,9 +33,8 @@
 #define GNUNET_BANDWIDTH_LIB_H
 
 #ifdef __cplusplus
-extern "C"
-{
-#if 0                           /* keep Emacsens' auto-indent happy */
+extern "C" {
+#if 0 /* keep Emacsens' auto-indent happy */
 }
 #endif
 #endif
@@ -55,6 +54,7 @@ struct GNUNET_BANDWIDTH_Value32NBO
    */
   uint32_t value__ GNUNET_PACKED;
 };
+
 GNUNET_NETWORK_STRUCT_END
 
 
@@ -64,8 +64,7 @@ GNUNET_NETWORK_STRUCT_END
  *
  * @param cls a closure to pass
  */
-typedef void
-(*GNUNET_BANDWIDTH_TrackerUpdateCallback) (void *cls);
+typedef void (*GNUNET_BANDWIDTH_TrackerUpdateCallback) (void *cls);
 
 
 /**
@@ -74,8 +73,7 @@ typedef void
  *
  * @param cls a closure to pass
  */
-typedef void
-(*GNUNET_BANDWIDTH_ExcessNotificationCallback) (void *cls);
+typedef void (*GNUNET_BANDWIDTH_ExcessNotificationCallback) (void *cls);
 
 
 /**
@@ -158,7 +156,7 @@ GNUNET_BANDWIDTH_value_init (uint32_t bytes_per_second);
 /**
  * Maximum possible bandwidth value.
  */
-#define GNUNET_BANDWIDTH_VALUE_MAX GNUNET_BANDWIDTH_value_init(UINT32_MAX)
+#define GNUNET_BANDWIDTH_VALUE_MAX GNUNET_BANDWIDTH_value_init (UINT32_MAX)
 
 
 /**
@@ -170,8 +168,9 @@ GNUNET_BANDWIDTH_value_init (uint32_t bytes_per_second);
  * @return number of bytes available at bps until deadline
  */
 uint64_t
-GNUNET_BANDWIDTH_value_get_available_until (struct GNUNET_BANDWIDTH_Value32NBO bps,
-                                            struct GNUNET_TIME_Relative deadline);
+GNUNET_BANDWIDTH_value_get_available_until (
+  struct GNUNET_BANDWIDTH_Value32NBO bps,
+  struct GNUNET_TIME_Relative deadline);
 
 
 /**
@@ -212,6 +211,18 @@ GNUNET_BANDWIDTH_value_max (struct GNUNET_BANDWIDTH_Value32NBO b1,
 
 
 /**
+ * Compute the SUM of two bandwidth values.
+ *
+ * @param b1 first value
+ * @param b2 second value
+ * @return the sum of b1 and b2
+ */
+struct GNUNET_BANDWIDTH_Value32NBO
+GNUNET_BANDWIDTH_value_sum (struct GNUNET_BANDWIDTH_Value32NBO b1,
+                            struct GNUNET_BANDWIDTH_Value32NBO b2);
+
+
+/**
  * Initialize bandwidth tracker.  Note that in addition to the
  * 'max_carry_s' limit, we also always allow at least
  * #GNUNET_MAX_MESSAGE_SIZE to accumulate.  So if the
@@ -228,11 +239,12 @@ GNUNET_BANDWIDTH_value_max (struct GNUNET_BANDWIDTH_Value32NBO b1,
  *        may accumulate before it expires
  */
 void
-GNUNET_BANDWIDTH_tracker_init (struct GNUNET_BANDWIDTH_Tracker *av,
-                               GNUNET_BANDWIDTH_TrackerUpdateCallback update_cb,
-                               void *update_cb_cls,
-                               struct GNUNET_BANDWIDTH_Value32NBO bytes_per_second_limit,
-                               uint32_t max_carry_s);
+GNUNET_BANDWIDTH_tracker_init (
+  struct GNUNET_BANDWIDTH_Tracker *av,
+  GNUNET_BANDWIDTH_TrackerUpdateCallback update_cb,
+  void *update_cb_cls,
+  struct GNUNET_BANDWIDTH_Value32NBO bytes_per_second_limit,
+  uint32_t max_carry_s);
 
 
 /**
@@ -254,13 +266,14 @@ GNUNET_BANDWIDTH_tracker_init (struct GNUNET_BANDWIDTH_Tracker *av,
  * @param excess_cb_cls closure for @a excess_cb
  */
 void
-GNUNET_BANDWIDTH_tracker_init2 (struct GNUNET_BANDWIDTH_Tracker *av,
-                                GNUNET_BANDWIDTH_TrackerUpdateCallback update_cb,
-                                void *update_cb_cls,
-                                struct GNUNET_BANDWIDTH_Value32NBO bytes_per_second_limit,
-                                uint32_t max_carry_s,
-                                GNUNET_BANDWIDTH_ExcessNotificationCallback excess_cb,
-                                void *excess_cb_cls);
+GNUNET_BANDWIDTH_tracker_init2 (
+  struct GNUNET_BANDWIDTH_Tracker *av,
+  GNUNET_BANDWIDTH_TrackerUpdateCallback update_cb,
+  void *update_cb_cls,
+  struct GNUNET_BANDWIDTH_Value32NBO bytes_per_second_limit,
+  uint32_t max_carry_s,
+  GNUNET_BANDWIDTH_ExcessNotificationCallback excess_cb,
+  void *excess_cb_cls);
 
 
 /**
@@ -269,7 +282,8 @@ GNUNET_BANDWIDTH_tracker_init2 (struct GNUNET_BANDWIDTH_Tracker *av,
  * @param av the respective trackers
  */
 void
-GNUNET_BANDWIDTH_tracker_notification_stop (struct GNUNET_BANDWIDTH_Tracker *av);
+GNUNET_BANDWIDTH_tracker_notification_stop (
+  struct GNUNET_BANDWIDTH_Tracker *av);
 
 
 /**
@@ -320,12 +334,12 @@ GNUNET_BANDWIDTH_tracker_get_available (struct GNUNET_BANDWIDTH_Tracker *av);
  * @param bytes_per_second_limit new limit to assume
  */
 void
-GNUNET_BANDWIDTH_tracker_update_quota (struct GNUNET_BANDWIDTH_Tracker *av,
-                                       struct GNUNET_BANDWIDTH_Value32NBO
-                                       bytes_per_second_limit);
+GNUNET_BANDWIDTH_tracker_update_quota (
+  struct GNUNET_BANDWIDTH_Tracker *av,
+  struct GNUNET_BANDWIDTH_Value32NBO bytes_per_second_limit);
 
 
-#if 0                           /* keep Emacsens' auto-indent happy */
+#if 0 /* keep Emacsens' auto-indent happy */
 {
 #endif
 #ifdef __cplusplus
@@ -335,6 +349,6 @@ GNUNET_BANDWIDTH_tracker_update_quota (struct GNUNET_BANDWIDTH_Tracker *av,
 /* ifndef GNUNET_BANDWIDTH_LIB_H */
 #endif
 
-/** @} */  /* end of group */
+/** @} */ /* end of group */
 
 /* end of gnunet_bandwidth_lib.h */

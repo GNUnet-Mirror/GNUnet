@@ -23,15 +23,6 @@
  * @author Christian Grothoff
  *
  * TODO:
- * - figure out how to transmit (selective) ACKs in case of uni-directional
- *   communicators (with/without core? DV-only?) When do we use ACKs?
- *   => communicators use selective ACKs for flow control
- *   => transport uses message-level ACKs for RTT, fragment confirmation
- *   => integrate DV into transport, use neither core nor communicators
- *      but rather give communicators transport-encapsulated messages
- *      (which could be core-data, background-channel traffic, or
- *       transport-to-transport traffic)
- *
  * Implement next:
  * - retransmission logic
  * - track RTT, distance, loss, etc. => requires extra data structures!
@@ -1078,6 +1069,20 @@ struct DistanceVector
   struct GNUNET_SCHEDULER_Task *visibility_task;
 
   /**
+   * Quota at which CORE is allowed to transmit to this peer
+   * (note that the value CORE should actually be told is this
+   *  value plus the respective value in `struct Neighbour`).
+   * Should match the sum of the quotas of all of the paths.
+   *
+   * FIXME: not yet set, tricky to get right given multiple paths,
+   *        many of which may be inactive! (=> Idea: measure???)
+   * FIXME: how do we set this value initially when we tell CORE?
+   *    Options: start at a minimum value or at literally zero?
+   *         (=> Current thought: clean would be zero!)
+   */
+  struct GNUNET_BANDWIDTH_Value32NBO quota_out;
+
+  /**
    * Is one of the DV paths in this struct 'confirmed' and thus
    * the cause for CORE to see this peer as connected? (Note that
    * the same may apply to a `struct Neighbour` at the same time.)
@@ -1421,9 +1426,12 @@ struct Neighbour
   struct GNUNET_SCHEDULER_Task *timeout_task;
 
   /**
-   * Quota at which CORE is allowed to transmit to this peer.
+   * Quota at which CORE is allowed to transmit to this peer
+   * (note that the value CORE should actually be told is this
+   *  value plus the respective value in `struct DistanceVector`).
+   * Should match the sum of the quotas of all of the queues.
    *
-   * FIXME: not yet used, tricky to get right given multiple queues!
+   * FIXME: not yet set, tricky to get right given multiple queues!
    *        (=> Idea: measure???)
    * FIXME: how do we set this value initially when we tell CORE?
    *    Options: start at a minimum value or at literally zero?
@@ -4685,7 +4693,11 @@ activate_core_visible_dv_path (struct DistanceVectorHop *hop)
   n = GNUNET_CONTAINER_multipeermap_get (neighbours, &dv->target);
   if ((NULL != n) && (GNUNET_YES == n->core_visible))
     return; /* no need to tell core, connection already up! */
-  cores_send_connect_info (&dv->target, GNUNET_BANDWIDTH_ZERO);
+  cores_send_connect_info (&dv->target,
+                           (NULL != n)
+                             ? GNUNET_BANDWDITH_value_sum (n->quota_out,
+                                                           dv->quota_out)
+                             : dv->quota_out);
 }
 
 
@@ -5626,6 +5638,7 @@ handle_validation_response (void *cls,
   struct GNUNET_TIME_Absolute origin_time;
   struct Queue *q;
   struct DistanceVector *dv;
+  struct Neighbour *n;
 
   /* check this is one of our challenges */
   (void) GNUNET_CONTAINER_multipeermap_get_multiple (validation_map,
@@ -5722,20 +5735,25 @@ handle_validation_response (void *cls,
   }
   q->validated_until = vs->validated_until;
   q->rtt = vs->validation_rtt;
-  if (GNUNET_NO != q->neighbour->core_visible)
+  n = q->neighbour;
+  if (GNUNET_NO != n->core_visible)
     return; /* nothing changed, we are done here */
-  q->neighbour->core_visible = GNUNET_YES;
+  n->core_visible = GNUNET_YES;
   q->visibility_task = GNUNET_SCHEDULER_add_at (q->validated_until,
                                                 &core_queue_visibility_check,
                                                 q);
   /* Check if _any_ DV route to this neighbour is
      currently valid, if so, do NOT tell core anything! */
-  dv = GNUNET_CONTAINER_multipeermap_get (dv_routes, &q->neighbour->pid);
-  if (GNUNET_YES == dv->core_visible)
+  dv = GNUNET_CONTAINER_multipeermap_get (dv_routes, &n->pid);
+  if ((NULL != dv) && (GNUNET_YES == dv->core_visible))
     return; /* nothing changed, done */
   /* We lacked a confirmed connection to the neighbour
      before, so tell CORE about it (finally!) */
-  cores_send_connect_info (&q->neighbour->pid, GNUNET_BANDWIDTH_ZERO);
+  cores_send_connect_info (&n->pid,
+                           (NULL != dv)
+                             ? GNUNET_BANDWIDTH_value_sum (dv->quota_out,
+                                                           n->quota_out)
+                             : n->quota_out);
 }
 
 
