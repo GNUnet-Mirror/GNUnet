@@ -1,3 +1,26 @@
+.\" This file is part of GNUnet.
+.\" Copyright (C) 2001-2019 GNUnet e.V.
+.\"
+.\" Permission is granted to copy, distribute and/or modify this document
+.\" under the terms of the GNU Free Documentation License, Version 1.3 or
+.\" any later version published by the Free Software Foundation; with no
+.\" Invariant Sections, no Front-Cover Texts, and no Back-Cover Texts.  A
+.\" copy of the license is included in the file
+.\" ``FDL-1.3''.
+.\"
+.\" A copy of the license is also available from the Free Software
+.\" Foundation Web site at @url{http://www.gnu.org/licenses/fdl.html}.
+.\"
+.\" Alternately, this document is also available under the General
+.\" Public License, version 3 or later, as published by the Free Software
+.\" Foundation.  A copy of the license is included in the file
+.\" ``GPL3''.
+.\"
+.\" A copy of the license is also available from the Free Software
+.\" Foundation Web site at @url{http://www.gnu.org/licenses/gpl.html}.
+.\"
+.\" SPDX-License-Identifier: GPL3.0-or-later OR FDL1.3-or-later
+.\"
 .Dd February 25, 2012
 .Dt GNUNET-SEARCH 1
 .Os
@@ -24,27 +47,26 @@ Search for content on GNUnet.
 The keywords are case-sensitive.
 .Nm
 can be used both for a search in the global namespace as well as for searching a private subspace.
-.Sh OPTIONS
+The options are as follows:
 .Bl -tag -width Ds
 .It Fl a Ar LEVEL | Fl \-anonymity= Ns Ar LEVEL
-This option can be used to specify additional anonymity constraints. The default is 1.
+This option can be used to specify additional anonymity constraints.
+The default is 1.
 If set to 0, GNUnet will publish the file non-anonymously and in fact sign the advertisement for the file using your peer's private key.
 This will allow other users to download the file as fast as possible, including using non-anonymous methods (discovery via DHT and CADET transfer).
 If you set it to 1 (default), you use the standard anonymous routing algorithm (which does not explicitly leak your identity).
 However, a powerful adversary may still be able to perform traffic analysis (statistics) to over time discovery your identity.
 You can gain better privacy by specifying a higher level of anonymity (using values above 1).
-This tells FS that it must hide your own requests in equivalent\-looking cover traffic.
-This should confound an adversaries traffic analysis, increasing the time and effort it would
-take to discover your identity. However, it also can significantly reduce performance, as
-your requests will be delayed until sufficient cover traffic is available.  The specific
-numeric value (for anonymity levels above 1) is simple:
-Given an anonymity level L (above 1), each request FS makes on your behalf must be hidden in L\-1 equivalent
-requests of cover traffic (traffic your peer routes for others) in the same time\-period.
-The time\-period is twice the average delay by which GNUnet artificially delays traffic.
-Note that regardless of the anonymity level you choose, peers that cache content in the
-network always use anonymity level 1.
+This tells FS that it must hide your own requests in equivalent-looking cover traffic.
+This should confound an adversaries traffic analysis, increasing the time and effort it would take to discover your identity.
+However, it also can significantly reduce performance, as your requests will be delayed until sufficient cover traffic is available.
+The specific numeric value (for anonymity levels above 1) is simple:
+Given an anonymity level L (above 1), each request FS makes on your behalf must be hidden in L-1 equivalent requests of cover traffic (traffic your peer routes for others) in the same time-period.
+The time-period is twice the average delay by which GNUnet artificially delays traffic.
+Note that regardless of the anonymity level you choose, peers that cache content in the network always use anonymity level 1.
 .It Fl c Ar FILENAME | Fl \-config= Ns Ar FILENAME
-use config file (defaults: ~/.config/gnunet.conf)
+Use the configuration file FILENAME (default:
+.Pa ~/.config/gnunet.conf )
 .It Fl h | \-help
 print help page
 .It Fl L Ar LOGLEVEL | Fl \-loglevel= Ns Ar LOGLEVEL
@@ -62,13 +84,13 @@ Automatically terminate the search after receiving VALUE results.
 Automatically timeout search after DELAY.
 The value given must be a number followed by a space and a time unit, for example "500 ms".
 Note that the quotes are required on the shell.
-Otherwise the search runs until gnunet\-search is aborted with CTRL\-C.
+Otherwise the search runs until gnunet-search is aborted with CTRL\-C.
 .It Fl v | \-version
 print the version number
 .It Fl V | \-verbose
 print meta data from search results as well
 .El
-You can run gnunet\-search with an URI instead of a keyword.
+You can run gnunet-search with an URI instead of a keyword.
 The URI can have the format for a namespace search or for a keyword search.
 For a namespace search, the format is
 .Pp
@@ -108,7 +130,7 @@ Search results are printed by gnunet\-search like this:
 The first line contains the command to run to download the file.
 The suggested filename in the example is COPYING.
 The GNUnet URI consists of the key and query hash of the file and finally the size of the file.
-After the command to download the file GNUnet will print meta\-data about the file as advertised in the search result, here "The GNU General Public License" and the mime\-type (see the options for gnunet\-publish on how to supply meta-data by hand).
+After the command to download the file GNUnet will print meta\-data about the file as advertised in the search result, here "The GNU General Public License" and the mime\-type (see the options for gnunet-publish on how to supply meta-data by hand).
 .Sh SEE ALSO
 .Xr gnunet-fs-gtk 1 ,
 .Xr gnunet\-publish 1 ,

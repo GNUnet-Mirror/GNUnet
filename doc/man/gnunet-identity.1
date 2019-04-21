@@ -1,80 +1,112 @@
-.TH GNUNET-IDENTITY "1" "September 5, 2013" "GNUnet"
-.SH NAME
-gnunet\-identity \- create, delete or list egos
-.SH SYNOPSIS
-.B gnunet\-identity
-[options]
-.SH DESCRIPTION
-.PP
-gnunet\-identity is a tool for managing egos.
+.\" This file is part of GNUnet.
+.\" Copyright (C) 2001-2019 GNUnet e.V.
+.\"
+.\" Permission is granted to copy, distribute and/or modify this document
+.\" under the terms of the GNU Free Documentation License, Version 1.3 or
+.\" any later version published by the Free Software Foundation; with no
+.\" Invariant Sections, no Front-Cover Texts, and no Back-Cover Texts.  A
+.\" copy of the license is included in the file
+.\" ``FDL-1.3''.
+.\"
+.\" A copy of the license is also available from the Free Software
+.\" Foundation Web site at @url{http://www.gnu.org/licenses/fdl.html}.
+.\"
+.\" Alternately, this document is also available under the General
+.\" Public License, version 3 or later, as published by the Free Software
+.\" Foundation.  A copy of the license is included in the file
+.\" ``GPL3''.
+.\"
+.\" A copy of the license is also available from the Free Software
+.\" Foundation Web site at @url{http://www.gnu.org/licenses/gpl.html}.
+.\"
+.\" SPDX-License-Identifier: GPL3.0-or-later OR FDL1.3-or-later
+.\"
+.Dd
+.Dt GNUNET-IDENTITY "1" "September 5, 2013" "GNUnet"
+.Os
+.Sh NAME
+.Nm gnunet-identity
+.Nd
+create, delete or list egos
+.Sh SYNOPSIS
+.Nm
+.Op Fl C Ar NAME | Fl \-create= Ns Ar NAME
+.Op Fl D Ar NAME | Fl \-delete= Ns Ar NAME
+.Op Fl e Ar NAME | Fl \-ego= Ns Ar NAME
+.Op Fl h | \-help
+.Op Fl d | \-display
+.Op Fl m | \-monitor
+.Op Fl s Ar SUBSYSTEM | Fl \-set= Ns Ar SUBSYSTEM
+.Sh DESCRIPTION
+.Nm
+is a tool for managing egos.
 An ego is the persona that controls a namespace.
-It is identical to a public\-private ECC key pair.
-.PP
-gnunet\-identity can be used to list all of the egos that were created
-locally, to create new egos, and to delete existing egos (the
-namespace will continue to exist, but it will be impossible to add
-additional data to it).
-.PP
-Creating a new ego requires using the \-C option together with an
-identifier (name) that is to be used for the new ego.
-This identifier is only used locally for this peer and not shared with
-other peers.
-.TP
-\fB\-C NAME\fR, \fB\-\-create=NAME\fR
-Creates a new ego with the given NAME.
-.TP
-\fB\-D NAME\fR, \fB\-\-delete=NAME\fR
-Delete the ego with the given NAME.
-.TP
-\fB\-e NAME\fR, \fB\-\-ego=NAME\fR
+It is identical to a public-private ECC key pair.
+.Pp
+gnunet-identity can be used to list all of the egos that were created locally, to create new egos, and to delete existing egos (the namespace will continue to exist, but it will be impossible to add additional data to it).
+.Pp
+Creating a new ego requires using the
+.Fl C
+option together with an identifier (name) that is to be used for the new ego.
+This identifier is only used locally for this peer and not shared with other peers.
+The options are as follows:
+.Bl -tag -width Ds
+.It Fl C Ar NAME | Fl \-create= Ns Ar NAME
+Creates a new ego with the given
+.Ar NAME .
+.It Fl D Ar NAME | Fl \-delete= Ns Ar NAME
+Delete the ego with the given
+.Ar NAME .
+.It Fl e Ar NAME | Fl \-ego= Ns Ar NAME
 Perform "set" operation with the respective ego.
-Needs to be used together with option \-s.
-.TP
-\fB\-h\fR, \fB\-\-help\fR
-Print help page.
-.TP
-\fB\-d\fR, \fB\-\-display\fR
-display all of our egos
-.TP
-\fB\-m\fR, \fB\-\-monitor\fR
+Needs to be used together with option
+.Fl s .
+.It Fl h | \-help
+Print the help page.
+.It d | \-display
+Display all of our egos.
+.It m | \-monitor
 Run in monitor mode, listing all ouf our egos until CTRL-C is pressed.
-Each ego is listed together with a unique pointer value; if egos are
-renamed, that pointer value remains the same; if egos are deleted,
-they are listed one more time with a name of "<null>".
-.TP
-\fB\-s SUBSYSTEM\fR, \fB\-\-set=SUBSYSTEM\fR
-Perform "set" operation for the specified SUBSYSTEM with the
-respective ego.
-Needs to be used together with option \-e.
-After this, the given SUBSYSTEM will use the ego with the specified
-NAME.
-This will fail if NAME does not yet exist.
-.SH FILES
-.TP
-~/.local/share/gnunet/identity/egos
-Directory where the egos are stored (by default)
-.SH BUGS
-Report bugs by using Mantis <https://bugs.gnunet.org/> or by sending
-electronic mail to <gnunet\-developers@gnu.org>
-.SH SEE ALSO
-\fBgnunet\-gns\fP(1),  \fBgnunet\-namestore\fP(1)
-The full documentation for
-.B gnunet
-is maintained as a Texinfo manual.
+Each ego is listed together with a unique pointer value; if egos are renamed, that pointer value remains the same; if egos are deleted, they are listed one more time with a name of "<null>".
+.It Fl s Ar SUBSYSTEM | Fl \-set= Ns Ar SUBSYSTEM
+Perform "set" operation for the specified
+.Ar SUBSYSTEM
+with the respective ego.
+Needs to be used together with option
+.Fl e .
+After this, the given SUBSYSTEM will use the ego with the specified NAME.
+This will fail if
+.Ar NAME
+does not yet exist.
+.El
+.Sh FILES
+.Pa ~/.local/share/gnunet/identity/egos
+Directory where the egos are stored by default
+.\".Sh EXAMPLES
+.Sh SEE ALSO
+.Xr gnunet-gns 1 ,
+.Xr gnunet-namestore 1
+.sp
+The full documentation for gnunet is maintained as a Texinfo manual.
 If the
-.B info
-and
-.B gnunet
-programs are properly installed at your site, the command
-.IP
-.B info gnunet
-.PP
+.Xr info 1
+and gnunet programs are properly installed at your site, the command
+.Pp
+.Dl info gnunet
+.Pp
 should give you access to the complete handbook,
-.IP
-.B info gnunet-c-tutorial
-.PP
+.Pp
+.Dl info gnunet-c-tutorial
+.Pp
 will give you access to a tutorial for developers.
-.PP
-Depending on your installation, this information is also
-available in
-\fBgnunet\fP(7) and \fBgnunet-c-tutorial\fP(7).
+.sp
+Depending on your installation, this information is also available in
+.Xr gnunet 7 and
+.Xr gnunet-c-tutorial 7 .
+.\".Sh HISTORY
+.\".Sh AUTHORS
+.Sh BUGS
+Report bugs by using
+.Lk https://bugs.gnunet.org
+or by sending electronic mail to
+.Aq Mt gnunet-developers@gnu.org .

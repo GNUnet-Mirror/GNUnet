@@ -1,3 +1,6 @@
+Sun Apr 21 22:22:22 UTC 2019
+	All manpages are now in mdoc format. -ng0
+
 Sat Apr 20 18:38:43 UTC 2019
   Remove optional gnunet-download-manager.scm and
   with it the optional dependency on a no longer

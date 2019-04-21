@@ -1,67 +1,106 @@
-.TH GNUNET-NAT-AUTO 1 "January 6, 2017" "GNUnet"
-.SH NAME
-gnunet\-nat\-auto \- autoconfigure and test NAT traversal
-.SH SYNOPSIS
-.B gnunet\-nat\-auto
-.RI [ options ]
-.SH DESCRIPTION
-This tool allows testing various NAT traversal functions, as well
-as attempting auto\-configuration.
-.SH OPTIONS
-.IP "\-a,  \-\-auto"
-Attempt auto\-configuration for NAT traversal.
-.IP "\-c FILENAME,  \-\-config=FILENAME"
-Use the configuration file FILENAME.
-.IP "\-S NAME,  \-\-section=NAME"
-Name of the configuration section with details about the configuration
-to test. For example "transport-tcp".
-.IP "\-t,  \-\-tcp"
+.\" This file is part of GNUnet.
+.\" Copyright (C) 2001-2019 GNUnet e.V.
+.\"
+.\" Permission is granted to copy, distribute and/or modify this document
+.\" under the terms of the GNU Free Documentation License, Version 1.3 or
+.\" any later version published by the Free Software Foundation; with no
+.\" Invariant Sections, no Front-Cover Texts, and no Back-Cover Texts.  A
+.\" copy of the license is included in the file
+.\" ``FDL-1.3''.
+.\"
+.\" A copy of the license is also available from the Free Software
+.\" Foundation Web site at @url{http://www.gnu.org/licenses/fdl.html}.
+.\"
+.\" Alternately, this document is also available under the General
+.\" Public License, version 3 or later, as published by the Free Software
+.\" Foundation.  A copy of the license is included in the file
+.\" ``GPL3''.
+.\"
+.\" A copy of the license is also available from the Free Software
+.\" Foundation Web site at @url{http://www.gnu.org/licenses/gpl.html}.
+.\"
+.\" SPDX-License-Identifier: GPL3.0-or-later OR FDL1.3-or-later
+.\"
+.Dd January 6, 2017
+.Dt GNUNET-NAT-AUTO 1
+.Sh NAME
+.Nm gnunet-nat-auto
+.Nd
+autoconfigure and test NAT traversal
+.Sh SYNOPSIS
+.Nm
+.Op Fl a | \-auto
+.Op Fl c Ar FILENAME | Fl \-config= Ns Ar FILENAME
+.Op Fl S Ar NAME | Fl \-section= Ns Ar NAME
+.Op Fl t | \-tcp
+.Op Fl u | \-udp
+.Op Fl w | \-write
+.Sh DESCRIPTION
+.Nm
+allows testing various NAT traversal functions, as well as attempting auto-configuration.
+The options are as follows:
+.Bl -tag -width Ds
+.It Fl a | \-auto
+Attempt auto-configuration for NAT traversal.
+.It Fl c Ar FILENAME | Fl \-config= Ns Ar FILENAME
+Use the configuration file
+.Ar FILENAME .
+.It Fl S Ar NAME | Fl \-section= Ns Ar NAME
+Name of the configuration section with details about the configuration to test.
+For example "transport-tcp".
+.It Fl t | \-tcp
 Use TCP.
-.IP "\-u,  \-\-udp"
+.It Fl u | \-udp
 Use UDP.
-.IP "\-w,  \-\-write"
-Write configuration to configuration file, useful in combination with
-autoconfiguration (\-a).
-.SH EXAMPLES
-.PP
-\fBAutomatic configuration:\fR
-.TP
-# gnunet\-nat\-auto \-aw
+.It Fl w | \-write
+Write configuration to configuration file, useful in combination with auto-configuration
+.Pq Fl a .
+.El
+.Sh EXAMPLES
+.Ss Automatic configuration:
+.Pp
+.Dl # gnunet-nat-auto -aw
+.Pp
 Probe and write result to configuration
-.PP
-\fBTest configuration:\fR
-.TP
-# gnunet\-nat\-auto -t \-S transport-tcp
+.Ss Test configuration:
+.Pp
+.Pp
+.Dl # gnunet-nat-auto -t -S transport-tcp
+.Pp
 Test TCP configuration
-.TP
-# gnunet\-nat\-auto -t \-S transport-http
+.Pp
+.Dl # gnunet-nat-auto -t -S transport-http
+.Pp
 Test HTTP configuration
-.TP
-# gnunet\-nat\-auto -u \-S transport-udp
+.Pp
+.Dl # gnunet-nat-auto -u -S transport-udp
+.Pp
 Test UDP configuration
-.SH BUGS
-Report bugs by using Mantis <https://bugs.gnunet.org/> or by sending
-electronic mail to <gnunet\-developers@gnu.org>
-.SH SEE ALSO
-gnunet\-transport(1) gnunet\-nat(1)
-.PP
-The full documentation for
-.B gnunet
-is maintained as a Texinfo manual.
+.\".Sh FILES
+.Sh SEE ALSO
+.Xr gnunet-nat 1 ,
+.Xr gnunet-transport 1
+.sp
+The full documentation for gnunet is maintained as a Texinfo manual.
 If the
-.B info
-and
-.B gnunet
-programs are properly installed at your site, the command
-.IP
-.B info gnunet
-.PP
+.Xr info 1
+and gnunet programs are properly installed at your site, the command
+.Pp
+.Dl info gnunet
+.Pp
 should give you access to the complete handbook,
-.IP
-.B info gnunet-c-tutorial
-.PP
+.Pp
+.Dl info gnunet-c-tutorial
+.Pp
 will give you access to a tutorial for developers.
-.PP
-Depending on your installation, this information is also
-available in
-\fBgnunet\fP(7) and \fBgnunet-c-tutorial\fP(7).
+.sp
+Depending on your installation, this information is also available in
+.Xr gnunet 7 and
+.Xr gnunet-c-tutorial 7 .
+.\".Sh HISTORY
+.\".Sh AUTHORS
+.Sh BUGS
+Report bugs by using
+.Lk https://bugs.gnunet.org
+or by sending electronic mail to
+.Aq Mt gnunet-developers@gnu.org .

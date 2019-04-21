@@ -45,7 +45,7 @@ a command line interface for publishing new content into GNUnet
 .Op Fl P Ar NAME | Fl \-pseudonym= Ns Ar NAME
 .Op Fl r Ar LEVEL | Fl \-replication= Ns Ar LEVEL
 .Op Fl s | \-simulate-only
-.Op Fl t Ar ID, \-this= Ns Ar ID
+.Op Fl t Ar ID | Fl \-this= Ns Ar ID
 .Op Fl u Ar URI | Fl \-uri= Ns Ar URI
 .Op Fl v | \-version
 .Op Fl V | \-verbose
@@ -125,25 +125,24 @@ However, indexing only works if the indexed file can be read (using the same abs
 If this is not the case, indexing will fail (and gnunet-publish will automatically revert to publishing instead).
 Regardless of which method is used to publish the file, the file will be slowly (depending on how often it is requested and on how much bandwidth is available) dispersed into the network.
 If you publish or index a file and then leave the network, it will almost always NOT be available anymore.
-.Sh OPTIONS
+.Pp
+The options are as follows:
 .Bl -tag -width Ds
 .It Fl a Ar LEVEL | Fl \-anonymity= Ns Ar LEVEL
-This option can be used to specify additional anonymity constraints. The default is 1.
+This option can be used to specify additional anonymity constraints.
+The default is 1.
 If set to 0, GNUnet will publish the file non-anonymously and in fact sign the advertisement for the file using your peer's private key.
 This will allow other users to download the file as fast as possible, including using non-anonymous methods (discovery via DHT and CADET transfer).
 If you set it to 1 (default), you use the standard anonymous routing algorithm (which does not explicitly leak your identity).
 However, a powerful adversary may still be able to perform traffic analysis (statistics) to over time discovery your identity.
 You can gain better privacy by specifying a higher level of anonymity (using values above 1).
-This tells FS that it must hide your own requests in equivalent\-looking cover traffic.
-This should confound an adversaries traffic analysis, increasing the time and effort it would
-take to discover your identity. However, it also can significantly reduce performance, as
-your requests will be delayed until sufficient cover traffic is available.  The specific
-numeric value (for anonymity levels above 1) is simple:
-Given an anonymity level L (above 1), each request FS makes on your behalf must be hidden in L\-1 equivalent
-requests of cover traffic (traffic your peer routes for others) in the same time\-period.
-The time\-period is twice the average delay by which GNUnet artificially delays traffic.
-Note that regardless of the anonymity level you choose, peers that cache content in the
-network always use anonymity level 1.
+This tells FS that it must hide your own requests in equivalent-looking cover traffic.
+This should confound an adversaries traffic analysis, increasing the time and effort it would take to discover your identity.
+However, it also can significantly reduce performance, as your requests will be delayed until sufficient cover traffic is available.
+The specific numeric value (for anonymity levels above 1) is simple:
+Given an anonymity level L (above 1), each request FS makes on your behalf must be hidden in L-1 equivalent requests of cover traffic (traffic your peer routes for others) in the same time-period.
+The time-period is twice the average delay by which GNUnet artificially delays traffic.
+Note that regardless of the anonymity level you choose, peers that cache content in the network always use anonymity level 1.
 .It Fl c Ar FILENAME | Fl \-config= Ns Ar FILENAME
 Use alternate config file FILENAME.
 If this option is not specified, the default is
@@ -174,12 +173,20 @@ Executive summary: You probably don't need it.
 Do not index, full publishing.
 Note that directories, information for keyword search, namespace search and indexing data are always published (even without this option).
 With this option, every block of the actual files is stored in encrypted form in the block database of the local peer.
-While this adds security if the local node is compromised (the adversary snags your machine), it is significantly less efficient compared to on\-demand encryption and is definitely not recommended for large files.
+While this adds security if the local node is compromised (the adversary snags your machine), it is significantly less efficient compared to on-demand encryption and is definitely not recommended for large files.
 .It Fl N Ar ID | Fl \-next= Ns Ar ID
 Specifies the next identifier of a future version of the file to be published under the same pseudonym.
-This option is only valid together with the \-P option.
+This option is only valid together with the
+.Fl P
+option.
 This option can be used to specify what the identifier of an updated version will look like.
-Note that specifying \-i and \-N without \-t is not allowed.
+Note that specifying
+.Fl i
+and
+.Fl N
+without
+.Fl t
+is not allowed.
 .It Fl p Ar PRIORITY | Fl \-prio= Ns Ar PRIORITY
 Executive summary: You probably don't need it.
 Set the priority of the published content (default: 365).
@@ -187,8 +194,9 @@ If the local database is full, GNUnet will discard the content with the lowest r
 Note that ranks change over time depending on popularity.
 The default should be high enough to preserve the locally published content in favor of content that migrates from other peers.
 .It Fl P Ar NAME | Fl \-pseudonym= Ns Ar NAME
-For the top\-level directory or file, places the file into the namespace identified by the pseudonym NAME.
-NAME must be a valid pseudonym managed by gnunet\-identity.
+For the top-level directory or file, places the file into the namespace identified by the pseudonym NAME.
+NAME must be a valid pseudonym managed by
+.Xr gnunet-identity 1 .
 .It Fl r Ar LEVEL | Fl \-replication= Ns Ar LEVEL
 Set the desired replication level.
 If CONTENT_PUSHING is set to YES, GNUnet will push each block (for the file) LEVEL times to other peers before doing normal "random" replication of all content.
@@ -197,70 +205,122 @@ Note that pushing content LEVEL times into the network does not guarantee that t
 .It Fl s | \-simulate-only
 When this option is used, gnunet\-publish will not actually publish the file but just simulate what would be done.
 This can be used to compute the GNUnet URI for a file without actually sharing it.
-.It Fl t Ar ID, \-this= Ns Ar ID
+.It Fl t Ar ID | Fl \-this= Ns Ar ID
 Specifies the identifier under which the file is to be published under a pseudonym.
-This option is only valid together with the\ \-P option.
+This option is only valid together with the
+.Fl P
+option.
 .It Fl u Ar URI | Fl \-uri= Ns Ar URI
 This option can be used to specify the URI of a file instead of a filename (this is the only case where the otherwise mandatory filename argument must be omitted).
-Instead of publishing a file or directory and using the corresponding URI, gnunet\-publish will use this URI and perform the selected namespace or keyword operations.
+Instead of publishing a file or directory and using the corresponding URI, gnunet-publish will use this URI and perform the selected namespace or keyword operations.
 This can be used to add additional keywords to a file that has already been shared or to add files to a namespace for which the URI is known but the content is not locally available.
 .It Fl v | \-version
 Print the version number.
 .It Fl V | \-verbose
 Be verbose.
-Using this option causes gnunet\-publish to print progress information and at the end the file identification that can be used to download the file from GNUnet.
+Using this option causes gnunet-publish to print progress information and at the end the file identification that can be used to download the file from GNUnet.
 .El
 .Sh EXAMPLES
 .Ss BASIC EXAMPLES
-Index a file COPYING:
+Index a file
+.Pa COPYING :
 .Pp
 .Dl gnunet-publish COPYING
 .Pp
-Publish a file COPYING:
+Publish a file
+.Pa COPYING :
 .Pp
-.Dl gnunet\-publish \-n COPYING
+.Dl gnunet-publish -n COPYING
 .Pp
-Index a file COPYING with the keywords \fBgpl\fR and \fBtest\fR
+Index a file
+.Pa COPYING
+with the keywords
+.Ar gpl
+and
+.Ar test :
 .Pp
-.Dl gnunet\-publish \-k gpl \-k test COPYING
+.Dl gnunet-publish -k gpl -k test COPYING
 .Pp
-Index a file COPYING with description "GNU License", mime-type "text/plain" and keywords \fBgpl\fR and \fBtest\fR
+Index a file
+.Pa COPYING
+with description
+.Ar "GNU License" ,
+mime-type
+.Ar "text/plain"
+and keywords
+.Ar gpl
+and
+.Ar test:
 .Pp
-.Dl gnunet\-publish \-m "description:GNU License" \-k gpl \-k test \-m "mimetype:text/plain" COPYING
+.Dl gnunet-publish -m "description:GNU License" -k gpl -k test -m "mimetype:text/plain" COPYING
 .Ss USING DIRECTORIES
-Index the files COPYING and AUTHORS with keyword \fBtest\fR and build a directory containing the two files.
-Make the directory itself available under keyword \fBgnu\fR and disable keyword extraction using libextractor
+Index the files
+.Pa COPYING
+and
+.Pa AUTHORS
+with keyword
+.Ar test
+and build a directory containing the two files.
+Make the directory itself available under keyword
+.Ar gnu
+and disable keyword extraction using libextractor:
 .Pp
-.Dl mkdir gnu ; mv COPYING AUTHORS gnu/ ; gnunet\-publish \-k test \-k gnu \-D gnu/
+.Dl mkdir gnu ; mv COPYING AUTHORS gnu/ ; gnunet-publish -k test -k gnu -D gnu/
 .Pp
-Neatly publish an image gallery in \fBkittendir/\fR and its subdirs with keyword \fBkittens\fR for the directory but no keywords for the individual files or subdirs (\-n).
+Neatly publish an image gallery in
+.Pa kittendir/
+and its subdirs with keyword
+.Ar kittens
+for the directory but no keywords for the individual files or subdirs
+.Pq Fl n .
 Force description for all files.
 .Pp
-.Dl gnunet\-publish \-n \-m "description:Kitten collection" \-k kittens kittendir/
+.Dl gnunet-publish -n -m "description:Kitten collection" -k kittens kittendir/
 .Ss SECURE PUBLISHING WITH NAMESPACES
-Publish file COPYING with pseudonym RIAA-2 (\-P) and with identifier \fBgpl\fR (\-t) and no updates.
+Publish file COPYING with pseudonym RIAA-2
+.Pq Fl P
+and with identifier \fBgpl\fR
+.Pq Fl t
+and no updates.
 .Pp
-.Dl gnunet\-publish \-P RIAA-2 \-t gpl COPYING
+.Dl gnunet-publish -P RIAA-2 -t gpl COPYING
 .Pp
-Recursively index /home/ogg and build a matching directory structure.
-Publish the top\-level directory into the namespace under the pseudonym RIAA\-2 (\-P) under identifier 'MUSIC' (\-t) and promise to provide an update with identifier 'VIDEOS' (\-N):
+Recursively index
+.Pa /home/ogg
+and build a matching directory structure.
+Publish the top-level directory into the namespace under the pseudonym
+.Ar RIAA-2
+.Pq Fl P
+under identifier
+.Ar 'MUSIC'
+.Pq Fl t
+and promise to provide an update with identifier
+.Ar 'VIDEOS'
+.Pq Fl N :
 .Pp
-.Dl gnunet\-publish \-P RIAA-2 \-t MUSIC \-N VIDEOS /home/ogg
+.Dl gnunet-publish -P RIAA-2 -t MUSIC -N VIDEOS /home/ogg
 .Pp
-Recursively publish (\-n) /var/lib/mysql and build a matching directory structure, but disable the use of libextractor to extract keywords (\-n).
-Print the file identifiers (\-V) that can be used to retrieve the files.
+Recursively publish
+.Pq Fl n
+/var/lib/mysql and build a matching directory structure, but disable the use of libextractor to extract keywords
+.Pq Fl n .
+Print the file identifiers
+.Pq Fl V
+that can be used to retrieve the files.
 This will store a copy of the MySQL database in GNUnet but without adding any keywords to search for it.
-Thus only people that have been told the secret file identifiers printed with the \-V option can retrieve the (secret?) files:
+Thus only people that have been told the secret file identifiers printed with the
+.Fl V
+option can retrieve the (secret?) files:
 .Pp
-.Dl gnunet\-publish \-nV /var/lib/mysql
+.Dl gnunet-publish -nV /var/lib/mysql
 .Pp
 Create a namespace entry 'root' in namespace MPAA-1 and announce that the next update will be called 'next':
 .Pp
-.Dl gnunet\-publish \-P MPAA-1 \-t root \-N next noise.mp3
+.Dl gnunet-publish -P MPAA-1 -t root -N next noise.mp3
 .Pp
 Update the previous entry, do not allow any future updates:
 .Pp
-.Dl gnunet\-publish \-P MPAA-1 \-t next noise_updated.mp3
+.Dl gnunet-publish -P MPAA-1 -t next noise_updated.mp3
 .Sh FILES
 .Pa ~/.config/gnunet.conf
 GNUnet configuration file
@@ -271,7 +331,7 @@ GNUnet configuration file
 .Xr gnunet-fs-gtk 1 ,
 .Xr gnunet-identity 1 ,
 .Xr gnunet-search 1 ,
-.Xr gnunet.conf 5 ,
+.Xr gnunet.conf 5
 .sp
 The full documentation for gnunet is maintained as a Texinfo manual.
 If the

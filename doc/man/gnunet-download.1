@@ -22,24 +22,23 @@ a command line interface for downloading files from GNUnet
 .Ao Ar GNUNET_URI Ac
 .Sh DESCRIPTION
 Download files from GNUnet.
+The options are as follows:
 .Bl -tag -width Ds
 .It Fl a Ar LEVEL | Fl \-anonymity= Ns Ar LEVEL
-This option can be used to specify additional anonymity constraints. The default is 1.
+This option can be used to specify additional anonymity constraints.
+The default is 1.
 If set to 0, GNUnet will publish the file non-anonymously and in fact sign the advertisement for the file using your peer's private key.
 This will allow other users to download the file as fast as possible, including using non-anonymous methods (discovery via DHT and CADET transfer).
 If you set it to 1 (default), you use the standard anonymous routing algorithm (which does not explicitly leak your identity).
 However, a powerful adversary may still be able to perform traffic analysis (statistics) to over time discovery your identity.
 You can gain better privacy by specifying a higher level of anonymity (using values above 1).
-This tells FS that it must hide your own requests in equivalent\-looking cover traffic.
-This should confound an adversaries traffic analysis, increasing the time and effort it would
-take to discover your identity. However, it also can significantly reduce performance, as
-your requests will be delayed until sufficient cover traffic is available.  The specific
-numeric value (for anonymity levels above 1) is simple:
-Given an anonymity level L (above 1), each request FS makes on your behalf must be hidden in L-1 equivalent
-requests of cover traffic (traffic your peer routes for others) in the same time\-period.
-The time\-period is twice the average delay by which GNUnet artificially delays traffic.
-Note that regardless of the anonymity level you choose, peers that cache content in the
-network always use anonymity level 1.
+This tells FS that it must hide your own requests in equivalent-looking cover traffic.
+This should confound an adversaries traffic analysis, increasing the time and effort it would take to discover your identity.
+However, it also can significantly reduce performance, as your requests will be delayed until sufficient cover traffic is available.
+The specific numeric value (for anonymity levels above 1) is simple:
+Given an anonymity level L (above 1), each request FS makes on your behalf must be hidden in L-1 equivalent requests of cover traffic (traffic your peer routes for others) in the same time-period.
+The time-period is twice the average delay by which GNUnet artificially delays traffic.
+Note that regardless of the anonymity level you choose, peers that cache content in the network always use anonymity level 1.
 .It Fl c Ar FILENAME | Fl \-config= Ns Ar FILENAME
 Use config file (default:
 .Pa ~/.config/gnunet.conf Ns )
@@ -89,9 +88,9 @@ must end in '.gnd' \(em otherwise, you will receive an error.
 You may want to use "DIRNAME/.gnd" for the filename, this way a directory "DIRNAME/" will be created, and GNUnet's internal directory information will be stored in "DIRNAME/.gnd".
 However, it is also possible to specify "DIRNAME.gnd", in which case the files from the directory will end up in "DIRNAME/", while GNUnet's directory meta data will be in "DIRNAME.gnd".
 .It Fl v | \-version
-print the version number
+Print the version number.
 .It Fl V | \-verbose
-print progress information
+Print progress information.
 .El
 .Ss NOTES
 The GNUNET_URI is typically obtained from

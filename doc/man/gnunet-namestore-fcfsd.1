@@ -1,66 +1,104 @@
-.TH GNUNET-NAMESTORE-FCFSD 1 "September 5, 2013" "GNUnet"
-.SH NAME
-gnunet\-namestore-fcfsd \- HTTP server for GNU Name System First-Come-First-Served name registration
-.SH SYNOPSIS
-.B gnunet\-namestore-fcfsd
-.RI [ options ]
-.SH DESCRIPTION
-Most users will not want to run an FCFS\-zone and thus will not need
-this program.
-.PP
-\fBgnunet\-gns-fcfsd\fP runs a web server where users can register
-names to be mapped to their GNS zone.  Names are made available on a
-First Come First Served basis (hence fcfs).  Registered names do not
-expire.  The HTTP server is run on the port that is specified in the
-configuration file in section "[fcfsd]" under the name "HTTPPORT".
-.PP
-It is possible to manage gnunet\-gns\-fcfsd using
-gnunet\-(service\-arm) by starting the daemon using "gnunet\-arm \-i
-fcfsd" or by setting "IMMEDIATE_START=YES" in the "fcfds" section of your
-configuration and the "-z ZONE" in as the "OPTION".
-.PP
-An FCFS\-zone is run at http://gnunet.org/fcfs/.  GNS users are
-encouraged to register their zone with the gnunet.org FCFS authority.
-.PP
-If you want to run your own FCFS registrar, you need to first create a
-pseudonym (using "gnunet\-identity \-C NAME"), and use it with the
-"-z" option.  After that, you can start the FCFSD service (possibly using
-gnunet\-arm).
-.SH OPTIONS
-.IP "\-c FILENAME,  \-\-config=FILENAME"
+.\" This file is part of GNUnet.
+.\" Copyright (C) 2001-2019 GNUnet e.V.
+.\"
+.\" Permission is granted to copy, distribute and/or modify this document
+.\" under the terms of the GNU Free Documentation License, Version 1.3 or
+.\" any later version published by the Free Software Foundation; with no
+.\" Invariant Sections, no Front-Cover Texts, and no Back-Cover Texts.  A
+.\" copy of the license is included in the file
+.\" ``FDL-1.3''.
+.\"
+.\" A copy of the license is also available from the Free Software
+.\" Foundation Web site at @url{http://www.gnu.org/licenses/fdl.html}.
+.\"
+.\" Alternately, this document is also available under the General
+.\" Public License, version 3 or later, as published by the Free Software
+.\" Foundation.  A copy of the license is included in the file
+.\" ``GPL3''.
+.\"
+.\" A copy of the license is also available from the Free Software
+.\" Foundation Web site at @url{http://www.gnu.org/licenses/gpl.html}.
+.\"
+.\" SPDX-License-Identifier: GPL3.0-or-later OR FDL1.3-or-later
+.\"
+.Dd September 5, 2013
+.Dt GNUNET-NAMESTORE-FCFSD 1
+.Os
+.Sh NAME
+.Nm gnunet-namestore-fcfsd
+.Nd
+HTTP server for GNU Name System First-Come-First-Served name registration
+.Sh SYNOPSIS
+.Nm
+.Op Fl c Ar FILENAME | Fl \-config= Ns Ar FILENAME
+.Op Fl h | \-help
+.Op Fl L Ar LOGLEVEL | Fl \-loglevel= Ns Ar LOGLEVEL
+.Op Fl v | \-version
+.Op Fl z Ar EGO | \-zone= Ns Ar EGO
+.Sh DESCRIPTION
+Most users will not want to run an FCFS-zone and thus will not need this program.
+.Pp
+.Nm
+runs a web server where users can register names to be mapped to their GNS zone.
+Names are made available on a First Come First Served basis (hence fcfs).
+Registered names do not expire.
+The HTTP server is run on the port that is specified in the configuration file in section "[fcfsd]" under the name "HTTPPORT".
+.Pp
+It is possible to manage gnunet-gns-fcfsd using gnunet-(service-arm) by starting the daemon using "gnunet-arm -i fcfsd" or by setting "IMMEDIATE_START=YES" in the "fcfds" section of your configuration and the "-z ZONE" in as the "OPTION".
+.Pp
+An FCFS-zone is run at
+.Lk http://gnunet.org/fcfs/ .
+GNS users are encouraged to register their zone with the gnunet.org FCFS authority.
+.Pp
+If you want to run your own FCFS registrar, you need to first create a pseudonym (using "gnunet-identity -C NAME"), and use it with the
+.Fl z
+option.
+After that, you can start the FCFSD service (possibly using
+.Xr gnunet-arm 1 Ns ).
+.Pp
+The options are as follows:
+.Bl -tag -width Ds
+.It Fl c Ar FILENAME | Fl \-config= Ns Ar FILENAME
 Use the configuration file FILENAME.
-.IP "\-h, \-\-help"
+.It Fl h | \-help
 Print short help on options.
-.IP "\-L LOGLEVEL, \-\-loglevel=LOGLEVEL"
-Use LOGLEVEL for logging.  Valid values are DEBUG, INFO, WARNING and
-ERROR.
-.IP "\-v, \-\-version"
+.It Fl L Ar LOGLEVEL | Fl \-loglevel= Ns Ar LOGLEVEL
+Use LOGLEVEL for logging.
+Valid values are DEBUG, INFO, WARNING and ERROR.
+.It Fl v | \-version
 Print GNUnet version number.
-.IP "\-z EGO, \-\-zone=EGO"
-Specifies for which EGO should FCFSD manage the zone.
-.SH BUGS
-Report bugs by using Mantis <https://bugs.gnunet.org/> or by sending
-electronic mail to <bug\-gnunet@gnu.org>
-.SH SEE ALSO
-gnunet\-identity(1), gnunet\-gns(1), gnunet\-gns\-proxy(1)
-.PP
-The full documentation for
-.B gnunet
-is maintained as a Texinfo manual.
+.It Fl z Ar EGO | \-zone= Ns Ar EGO
+Specifies for which
+.Ar EGO
+FCFSD should manage the zone.
+.El
+.\".Sh EXAMPLES
+.\".Sh FILES
+.Sh SEE ALSO
+.Xr gnunet-identity 1 ,
+.Xr gnunet-gns 1 ,
+.Xr gnunet-gns-proxy 1
+.sp
+The full documentation for gnunet is maintained as a Texinfo manual.
 If the
-.B info
-and
-.B gnunet
-programs are properly installed at your site, the command
-.IP
-.B info gnunet
-.PP
+.Xr info 1
+and gnunet programs are properly installed at your site, the command
+.Pp
+.Dl info gnunet
+.Pp
 should give you access to the complete handbook,
-.IP
-.B info gnunet-c-tutorial
-.PP
+.Pp
+.Dl info gnunet-c-tutorial
+.Pp
 will give you access to a tutorial for developers.
-.PP
-Depending on your installation, this information is also
-available in
-\fBgnunet\fP(7) and \fBgnunet-c-tutorial\fP(7).
+.sp
+Depending on your installation, this information is also available in
+.Xr gnunet 7 and
+.Xr gnunet-c-tutorial 7 .
+.\".Sh HISTORY
+.\".Sh AUTHORS
+.Sh BUGS
+Report bugs by using
+.Lk https://bugs.gnunet.org
+or by sending electronic mail to
+.Aq Mt gnunet-developers@gnu.org .

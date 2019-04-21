@@ -1,104 +1,138 @@
-.TH GNUNET\-NAMESTORE 1 "April 15, 2014" "GNUnet"
-
-.SH NAME
-gnunet\-namestore \- manipulate GNU Name System (GNS) zone data
-
-.SH SYNOPSIS
-.B gnunet\-namestore
-.RI [ options ] -z ZONEFILE
-.br
-
-.SH DESCRIPTION
-\fBgnunet\-namestore\fP can be used to manipulate records in a GNS zone.
-
-.SH OPTIONS
-.IP "\-a, \-\-add"
-Desired operation is adding a record
-.IP "\-c FILENAME,  \-\-config=FILENAME"
+.\" This file is part of GNUnet.
+.\" Copyright (C) 2001-2019 GNUnet e.V.
+.\"
+.\" Permission is granted to copy, distribute and/or modify this document
+.\" under the terms of the GNU Free Documentation License, Version 1.3 or
+.\" any later version published by the Free Software Foundation; with no
+.\" Invariant Sections, no Front-Cover Texts, and no Back-Cover Texts.  A
+.\" copy of the license is included in the file
+.\" ``FDL-1.3''.
+.\"
+.\" A copy of the license is also available from the Free Software
+.\" Foundation Web site at @url{http://www.gnu.org/licenses/fdl.html}.
+.\"
+.\" Alternately, this document is also available under the General
+.\" Public License, version 3 or later, as published by the Free Software
+.\" Foundation.  A copy of the license is included in the file
+.\" ``GPL3''.
+.\"
+.\" A copy of the license is also available from the Free Software
+.\" Foundation Web site at @url{http://www.gnu.org/licenses/gpl.html}.
+.\"
+.\" SPDX-License-Identifier: GPL3.0-or-later OR FDL1.3-or-later
+.\"
+.Dd April 15, 2014
+.Dt GNUNET-NAMESTORE 1
+.Os
+.Sh NAME
+.Nm gnunet-namestore
+.Nd
+manipulate GNU Name System (GNS) zone data
+.Sh SYNOPSIS
+.Nm
+.Op Fl a | \-add
+.Op Fl c Ar FILENAME | Fl \-config= Ns Ar FILENAME
+.Op Fl d | \-delete
+.Op Fl D | \-display
+.Op Fl e Ar TIME | Fl \-expiration= Ns Ar TIME
+.Op Fl h | \-help
+.Op Fl i Ar NICKNAME | Fl \-nick= Ns Ar NICKNAME
+.Op Fl L Ar LOGLEVEL | Fl \-loglevel= Ns Ar LOGLEVEL
+.Op Fl m | \-monitor
+.Op Fl n Ar NAME | Fl \-name= Ns Ar NAME
+.Op Fl p | \-public
+.Op Fl r Ar PKEY | Fl \-reverse= Ns Ar PKEY
+.Op Fl R Ar RECORDLINE | Fl \-replace= Ns Ar RECORDLINE
+.Op Fl s | \-shadow
+.Op Fl t Ar TYPE | Fl \-type= Ns Ar TYPE
+.Op Fl u Ar URI | Fl \-uri= Ns Ar URI
+.Op Fl v | \-version
+.Op Fl V Ar VALUE | Fl \-value= Ns Ar VALUE
+.Op Fl z Ar EGO | Fl \-zone= Ns Ar EGO
+.Sh DESCRIPTION
+.Nm
+can be used to manipulate records in a GNS zone.
+.Pp
+The options are as follows:
+.Bl -tag -width Ds
+.It Fl a | \-add
+Desired operation is adding a record.
+.It Fl c Ar FILENAME | Fl \-config= Ns Ar FILENAME
 Use the configuration file FILENAME.
-.IP "\-d, \-\-delete"
-Desired operation is deleting records under the given name that match
-the specified type (\-t) and value (\-V).  If type or value are not
-specified, it means that all types (or values) should be assumed to
-match (and possibly multiple or all values under the given label will
-be deleted).  Specifying a label (\-n) is mandatory.  Note that
-matching by expiration time or flags is (currently) not supported.
-.IP "\-D, \-\-display"
-Desired operation is listing of matching records
-.IP "\-e TIME, \-\-expiration=TIME"
-Specifies expiration time of record to add; format is relative time,
-i.e "1 h" or "7 d 30 m".  Supported units are "ms", "s", "min" or
-"minutes", "h" (hours), "d" (days) and "a" (years).
-.IP "\-h, \-\-help"
+.It Fl d | \-delete
+Desired operation is deleting records under the given name that match the specified type (\-t) and value (\-V).
+If type or value are not specified, it means that all types (or values) should be assumed to match (and possibly multiple or all values under the given label will be deleted).
+Specifying a label (\-n) is mandatory.
+Note that matching by expiration time or flags is (currently) not supported.
+.It Fl D | \-display
+Desired operation is listing of matching records.
+.It Fl e Ar TIME | Fl \-expiration= Ns Ar TIME
+Specifies expiration time of record to add; format is relative time, i.e "1 h" or "7 d 30 m".
+Supported units are "ms", "s", "min" or "minutes", "h" (hours), "d" (days) and "a" (years).
+.It Fl h | \-help
 Print short help on options.
-.IP "\-i NICKNAME, \-\-nick=NICKNAME"
-Set the desired NICKNAME for the zone. The nickname will be included
-in all (public) records and used as the suggested name for this zone.
-.IP "\-L LOGLEVEL, \-\-loglevel=LOGLEVEL"
-Use LOGLEVEL for logging.  Valid values are DEBUG, INFO, WARNING and
-ERROR.
-.IP "\-m, \-\-monitor"
-Monitor changes to the zone on an ongoing basis (in contrast to \-D,
-which merely displays the current records)
-.IP "\-n NAME, \-\-name=NAME"
-Label or name of the record to add/delete/display
-.IP "\-p, \-\-public"
-Create a record that is public (shared with other users that know the
-label)
-.IP "\-r PKEY, \-\-reverse=PKEY"
-Determine our GNS name for the given public key (reverse lookup of the
-PKEY) in the given zone.
-.IP "\-R RECORDLINE, \-\-replace=RECORDLINE"
-Sets record set to values given in RECORDLINE.  This option can be specified multiple
-times to provide multiple records for the record set.  Existing records under the
-same label will be deleted. The format for the RECORDLINE is
-"TTL TYPE FLAGS VALUE" where TTL is the time to live in seconds (unit must not
-be given explicitly, seconds is always implied), TYPE is the
-DNS/GNS record type, FLAGS is "(N)ORMAL", "(S)HADOW" or "(P)UBLIC".  The VALUE
-follows the usual human-readable value format(s) of DNS/GNS.
-.IP "\-s, \-\-shadow"
-Create a record that is a shadow record.  Shadow records are only used
-once all other records of the same type under the same label have
-expired.
-.IP "\-t TYPE, \-\-type=TYPE"
-Type of the record to add/delete/display (i.e. "A", "AAAA", "NS",
-"PKEY", "MX" etc.)
-.IP "\-u URI, \-\-uri=URI"
-Add PKEY record from gnunet://gns/-URI to our zone; the record type is
-always PKEY, if no expiration is given FOREVER is used
-.IP "\-v, \-\-version"
+.It Fl i Ar NICKNAME | Fl \-nick= Ns Ar NICKNAME
+Set the desired NICKNAME for the zone.
+The nickname will be included in all (public) records and used as the suggested name for this zone.
+.It Fl L Ar LOGLEVEL | Fl \-loglevel= Ns Ar LOGLEVEL
+Use LOGLEVEL for logging.
+Valid values are DEBUG, INFO, WARNING and ERROR.
+.It Fl m | \-monitor
+Monitor changes to the zone on an ongoing basis (in contrast to \-D, which merely displays the current records).
+.It Fl n Ar NAME | Fl \-name= Ns Ar NAME
+Label or name of the record to add/delete/display.
+.It Fl p | \-public
+Create a record that is public (shared with other users that know the label).
+.It Fl r Ar PKEY | Fl \-reverse= Ns Ar PKEY
+Determine our GNS name for the given public key (reverse lookup of the PKEY) in the given zone.
+.It Fl R Ar RECORDLINE | Fl \-replace= Ns Ar RECORDLINE
+Sets record set to values given in RECORDLINE.
+This option can be specified multiple times to provide multiple records for the record set.
+Existing records under the same label will be deleted.
+The format for the RECORDLINE is "TTL TYPE FLAGS VALUE" where TTL is the time to live in seconds (unit must not be given explicitly, seconds is always implied), TYPE is the DNS/GNS record type, FLAGS is "(N)ORMAL", "(S)HADOW" or "(P)UBLIC".
+The VALUE follows the usual human-readable value format(s) of DNS/GNS.
+.It Fl s | \-shadow
+Create a record that is a shadow record.
+Shadow records are only used once all other records of the same type under the same label have expired.
+.It Fl t Ar TYPE | Fl \-type= Ns Ar TYPE
+Type of the record to add/delete/display (i.e. "A", "AAAA", "NS", "PKEY", "MX" etc.).
+.It Fl u Ar URI | Fl \-uri= Ns Ar URI
+Add PKEY record from gnunet://gns/-URI to our zone; the record type is always PKEY, if no expiration is given FOREVER is used
+.It Fl v | \-version
 Print GNUnet version number.
-.IP "\-V VALUE, \-\-value=VALUE"
-Value to store or remove from the GNS zone.  Specific format depends
-on the record type.  A records expect a dotted decimal IPv4 address,
-AAAA records an IPv6 address, PKEY a public key in GNUnet's printable
-format, and CNAME and NS records should be a domain name.
-.IP "\-z EGO, \-\-zone=EGO"
-Specifies the name of the ego controlling the private key for the zone
-(mandatory option)
-
-
-.SH BUGS
-Report bugs by using Mantis <https://bugs.gnunet.org/> or by sending
-electronic mail to <gnunet\-developers@gnu.org>
-.SH SEE ALSO
-\fBgnunet\-gns\fP(1), \fBgnunet\-namestore\-gtk\fP(1)
-The full documentation for
-.B gnunet
-is maintained as a Texinfo manual.  If the
-.B info
-and
-.B gnunet
-programs are properly installed at your site, the command
-.IP
-.B info gnunet
-.PP
+.It Fl V Ar VALUE | Fl \-value= Ns Ar VALUE
+Value to store or remove from the GNS zone.
+Specific format depends on the record type.
+A records expect a dotted decimal IPv4 address, AAAA records an IPv6 address, PKEY a public key in GNUnet's printable format, and CNAME and NS records should be a domain name.
+.It Fl z Ar EGO | Fl \-zone= Ns Ar EGO
+Specifies the name of the ego controlling the private key for the zone (mandatory option).
+.El
+.\".Sh EXAMPLES
+.\".Sh FILES
+.Sh SEE ALSO
+.Xr gnunet-gns 1 ,
+.Xr gnunet-namestore-gtk 1
+.sp
+The full documentation for gnunet is maintained as a Texinfo manual.
+If the
+.Xr info 1
+and gnunet programs are properly installed at your site, the command
+.Pp
+.Dl info gnunet
+.Pp
 should give you access to the complete handbook,
-.IP
-.B info gnunet-c-tutorial
-.PP
+.Pp
+.Dl info gnunet-c-tutorial
+.Pp
 will give you access to a tutorial for developers.
-.PP
-Depending on your installation, this information is also
-available in
-\fBgnunet\fP(7) and \fBgnunet-c-tutorial\fP(7).
+.sp
+Depending on your installation, this information is also available in
+.Xr gnunet 7 and
+.Xr gnunet-c-tutorial 7 .
+.\".Sh HISTORY
+.\".Sh AUTHORS
+.Sh BUGS
+Report bugs by using
+.Lk https://bugs.gnunet.org
+or by sending electronic mail to
+.Aq Mt gnunet-developers@gnu.org .
