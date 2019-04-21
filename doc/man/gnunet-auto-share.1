@@ -23,30 +23,30 @@ a command line tool to automatically share an entire directory with other users
 In order to share files with other GNUnet users, the files must first be made available to GNUnet.
 This tool can be used to automatically share all files from a certain directory.
 The program will periodically scan the directory for changes and publish files that are new or that changed on GNUnet.
-Which files have already been shared is remembered in a ".auto-share" file in the shared directory.
+Which files have already been shared is remembered in a
+.Pa .auto-share
+file in the shared directory.
 You can run the tool by hand or automatically by adding the respective options to your configuration.
 gnunet-auto-share has many options in common with gnunet-publish, but can only be used to index files.
 .Pp
 You can use automatic meta-data extraction (based on libextractor).
-.Sh OPTIONS
+The options are as follows:
 .Bl -tag -width Ds
 .It Fl a Ar LEVEL | Fl \-anonymity= Ns Ar LEVEL
-This option can be used to specify additional anonymity constraints. The default is 1.
+This option can be used to specify additional anonymity constraints.
+The default is 1.
 If set to 0, GNUnet will publish the file non-anonymously and in fact sign the advertisement for the file using your peer's private key.
 This will allow other users to download the file as fast as possible, including using non-anonymous methods (discovery via DHT and CADET transfer).
 If you set it to 1 (default), you use the standard anonymous routing algorithm (which does not explicitly leak your identity).
 However, a powerful adversary may still be able to perform traffic analysis (statistics) to over time discovery your identity.
 You can gain better privacy by specifying a higher level of anonymity (using values above 1).
 This tells FS that it must hide your own requests in equivalent\-looking cover traffic.
-This should confound an adversaries traffic analysis, increasing the time and effort it would
-take to discover your identity. However, it also can significantly reduce performance, as
-your requests will be delayed until sufficient cover traffic is available.  The specific
-numeric value (for anonymity levels above 1) is simple:
-Given an anonymity level L (above 1), each request FS makes on your behalf must be hidden in L\-1 equivalent
-requests of cover traffic (traffic your peer routes for others) in the same time\-period.
-The time\-period is twice the average delay by which GNUnet artificially delays traffic.
-Note that regardless of the anonymity level you choose, peers that cache content in the
-network always use anonymity level 1.
+This should confound an adversaries traffic analysis, increasing the time and effort it would take to discover your identity.
+However, it also can significantly reduce performance, as your requests will be delayed until sufficient cover traffic is available.
+The specific numeric value (for anonymity levels above 1) is simple:
+Given an anonymity level L (above 1), each request FS makes on your behalf must be hidden in L\-1 equivalent requests of cover traffic (traffic your peer routes for others) in the same time-period.
+The time-period is twice the average delay by which GNUnet artificially delays traffic.
+Note that regardless of the anonymity level you choose, peers that cache content in the network always use anonymity level 1.
 .It Fl c Ar FILENAME | Fl \-config= Ns Ar FILENAME
 Use alternate config file (if this option is not specified, the default is
 .Pa ~/.config/gnunet.conf Ns ).
@@ -82,9 +82,11 @@ Print the version number.
 .Ss Basic example
 $ gnunet-auto-share $HOME/gnunet-share/ &
 .Pp
-Share a directory "$HOME/gnunet-share/"
+Share a directory
+.Pa $HOME/gnunet-share/
 .Ss Basic configuration
-$ Share a directory "$HOME/gnunet-share/":
+$ Share a directory
+.Pa $HOME/gnunet-share/
 .Pp
 .Bd -literal -offset indent -compact
 [gnunet-auto-share]
