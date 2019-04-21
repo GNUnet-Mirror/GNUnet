@@ -1225,12 +1225,6 @@ struct Queue
   uint32_t mtu;
 
   /**
-   * Distance to the target of this queue.
-   * FIXME: needed? DV is done differently these days...
-   */
-  uint32_t distance;
-
-  /**
    * Messages pending.
    */
   uint32_t num_msg_pending;
@@ -4695,7 +4689,7 @@ activate_core_visible_dv_path (struct DistanceVectorHop *hop)
     return; /* no need to tell core, connection already up! */
   cores_send_connect_info (&dv->target,
                            (NULL != n)
-                             ? GNUNET_BANDWDITH_value_sum (n->quota_out,
+                             ? GNUNET_BANDWIDTH_value_sum (n->quota_out,
                                                            dv->quota_out)
                              : dv->quota_out);
 }
@@ -6638,8 +6632,6 @@ check_connection_quality (void *cls,
   do_inc = GNUNET_NO;
   for (struct Queue *q = n->queue_head; NULL != q; q = q->next_neighbour)
   {
-    if (0 != q->distance)
-      continue; /* DV does not count */
     ctx->num_queues++;
     if (0 == ctx->k--)
       ctx->q = q;
