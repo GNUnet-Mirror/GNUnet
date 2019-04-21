@@ -24,32 +24,23 @@
  *
  * TODO:
  * Implement next:
- * - retransmission logic
+ * - complete backchannel signature verification and
+ *   forwarding of backchannel messages to communicators!
  * - track RTT, distance, loss, etc. => requires extra data structures!
- *
- * Later:
- * - change transport-core API to provide proper flow control in both
- *   directions, allow multiple messages per peer simultaneously (tag
- *   confirmations with unique message ID), and replace quota-out with
- *   proper flow control;
- * - if messages are below MTU, consider adding ACKs and other stuff
- *   (requires planning at receiver, and additional MST-style demultiplex
- *    at receiver!)
- * - could avoid copying body of message into each fragment and keep
- *   fragments as just pointers into the original message and only
- *   fully build fragments just before transmission (optimization, should
- *   reduce CPU and memory use)
- * - When we passively learned DV (with unconfirmed freshness), we
- *   right now add the path to our list but with a zero path_valid_until
- *   time and only use it for unconfirmed routes.  However, we could consider
- *   triggering an explicit validation mechansim ourselves, specifically routing
- *   a challenge-response message over the path (OPTIMIZATION-FIXME).
- *
- * FIXME (without marks in the code!):
  * - proper use/initialization of timestamps in messages exchanged
  *   during DV learning
  * - persistence of monotonic time obtained from other peers
  *   in PEERSTORE (by message type)
+ * - change transport-core API to provide proper flow control in both
+ *   directions, allow multiple messages per peer simultaneously (tag
+ *   confirmations with unique message ID), and replace quota-out with
+ *   proper flow control; specify transmission preferences (latency,
+ *   reliability, etc.) per message!
+ * - add logging
+ *
+ * Later:
+ * - review retransmission logic, right now there is no smartness there!
+ *   => congestion control, flow control, etc (requires RTT, loss, etc.)
  *
  * Optimizations:
  * - use shorthashmap on msg_uuid's when matching reliability/fragment ACKs
@@ -58,6 +49,18 @@
  * - queue_send_msg and route_message both by API design have to make copies
  *   of the payload, and route_message on top of that requires a malloc/free.
  *   Change design to approximate "zero" copy better...
+ * - could avoid copying body of message into each fragment and keep
+ *   fragments as just pointers into the original message and only
+ *   fully build fragments just before transmission (optimization, should
+ *   reduce CPU and memory use)
+ * - if messages are below MTU, consider adding ACKs and other stuff
+ *   (requires planning at receiver, and additional MST-style demultiplex
+ *    at receiver!)
+ * - When we passively learned DV (with unconfirmed freshness), we
+ *   right now add the path to our list but with a zero path_valid_until
+ *   time and only use it for unconfirmed routes.  However, we could consider
+ *   triggering an explicit validation mechansim ourselves, specifically routing
+ *   a challenge-response message over the path (OPTIMIZATION-FIXME).
  *
  * Design realizations / discussion:
  * - communicators do flow control by calling MQ "notify sent"
@@ -250,12 +253,9 @@ struct TransportBackchannelEncapsulationMessage
   struct GNUNET_MessageHeader header;
 
   /**
-   * Distance the backchannel message has traveled, to be updated at
-   * each hop.  Used to bound the number of hops in case a backchannel
-   * message is broadcast and thus travels without routing
-   * information (during initial backchannel discovery).
+   * Reserved, always zero.
    */
-  uint32_t distance;
+  uint32_t reserved GNUNET_PACKED;
 
   /**
    * Target's peer identity (as backchannels may be transmitted
@@ -4260,8 +4260,8 @@ handle_fragment_box (void *cls, const struct TransportFragmentBox *fb)
     rc->frag_uuid = frag_uuid;
     rc->num_acks++;
   }
-  if (65 == rc->num_acks) /* FIXME: maybe use smaller threshold? This is very
-                             aggressive. */
+  if (65 == rc->num_acks) /* OPTIMIZE-FIXME: maybe use smaller threshold? This
+                             is very aggressive. */
     ack_now = GNUNET_YES; /* maximum acks received */
   // FIXME: possibly also ACK based on RTT (but for that we'd need to
   // determine the queue used for the ACK first!)
@@ -4286,7 +4286,7 @@ handle_fragment_box (void *cls, const struct TransportFragmentBox *fb)
   /* successful reassembly */
   send_fragment_ack (rc);
   demultiplex_with_cmc (cmc, msg);
-  /* FIXME: really free here? Might be bad if fragments are still
+  /* FIXME-OPTIMIZE: really free here? Might be bad if fragments are still
      en-route and we forget that we finished this reassembly immediately!
      -> keep around until timeout?
      -> shorten timeout based on ACK? */
@@ -4449,7 +4449,7 @@ handle_reliability_box (void *cls, const struct TransportReliabilityBox *rb)
   {
     struct TransportReliabilityAckMessage *ack;
 
-    /* FIXME: implement cummulative ACKs and ack_countdown,
+    /* FIXME-OPTIMIZE: implement cummulative ACKs and ack_countdown,
        then setting the avg_ack_delay field below: */
     ack = GNUNET_malloc (sizeof (*ack) + sizeof (struct GNUNET_ShortHashCode));
     ack->header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_RELIABILITY_ACK);
@@ -4592,9 +4592,6 @@ handle_backchannel_encapsulation (
   if (0 != GNUNET_memcmp (&be->target, &GST_my_identity))
   {
     /* not for me, try to route to target */
-    /* FIXME: someone needs to update be->distance! */
-    /* FIXME: BE routing can be special, should we put all of this
-       on 'route_message'? Maybe at least pass some more arguments? */
     route_message (&be->target,
                    GNUNET_copy_message (&be->header),
                    RMO_DV_ALLOWED);
