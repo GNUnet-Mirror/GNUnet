@@ -25,8 +25,15 @@
  * TODO:
  * Implement next:
  * - track RTT, distance, loss, etc. => requires extra data structures!
+ * - consider replacing random `struct GNUNET_ShortHashCode` message UUIDs
+ *   with (incrementing) 64-bit numbers (compacting both
+ *   `struct TransportReliabilityBox` and `struct
+ *   TransportReliabilityAckMessage`), and using *different* UUIDs for each
+ *   transmission (even of the same message!)
  * - proper use/initialization of timestamps in messages exchanged
  *   during DV learning
+ * - persistence of monotonic time from DVInit to prevent
+ *   replay attacks using DVInit messages
  * - persistence of monotonic time obtained from other peers
  *   in PEERSTORE (by message type) -- done for backchannel, needed elsewhere?
  * - change transport-core API to provide proper flow control in both
@@ -248,6 +255,42 @@
 GNUNET_NETWORK_STRUCT_BEGIN
 
 /**
+ * Unique identifier we attach to a message.
+ */
+struct MessageUUID
+{
+  /**
+   * Unique value.
+   */
+  struct GNUNET_ShortHashCode uuid;
+};
+
+
+/**
+ * Unique identifier we attach to a message.
+ */
+struct FragmentUUIDP
+{
+  /**
+   * Unique value identifying a fragment, in NBO.
+   */
+  uint32_t uuid GNUNET_PACKED;
+};
+
+
+/**
+ * Type of a nonce used for challenges.
+ */
+struct ChallengeNonce
+{
+  /**
+   * The value of the nonce.  Note that this is NOT a hash.
+   */
+  struct GNUNET_ShortHashCode value;
+};
+
+
+/**
  * Outer layer of an encapsulated backchannel message.
  */
 struct TransportBackchannelEncapsulationMessage
@@ -409,7 +452,7 @@ struct TransportReliabilityBox
    * messages sent over possibly unreliable channels.  Should
    * be a random.
    */
-  struct GNUNET_ShortHashCode msg_uuid;
+  struct MessageUUID msg_uuid;
 };
 
 
@@ -440,7 +483,7 @@ struct TransportReliabilityAckMessage
    */
   struct GNUNET_TIME_RelativeNBO avg_ack_delay;
 
-  /* followed by any number of `struct GNUNET_ShortHashCode`
+  /* followed by any number of `struct MessageUUID`
      messages providing ACKs */
 };
 
@@ -463,13 +506,13 @@ struct TransportFragmentBox
    * fragment (same @e frag_off), it must send
    * #GNUNET_MESSAGE_TYPE_TRANSPORT_FRAGMENT_ACK immediately.
    */
-  uint32_t frag_uuid GNUNET_PACKED;
+  struct FragmentUUIDP frag_uuid;
 
   /**
-   * Original message ID for of the message that all the1
+   * Original message ID for of the message that all the
    * fragments belong to.  Must be the same for all fragments.
    */
-  struct GNUNET_ShortHashCode msg_uuid;
+  struct MessageUUID msg_uuid;
 
   /**
    * Offset of this fragment in the overall message.
@@ -501,7 +544,7 @@ struct TransportFragmentAckMessage
   /**
    * Unique ID of the lowest fragment UUID being acknowledged.
    */
-  uint32_t frag_uuid GNUNET_PACKED;
+  struct FragmentUUIDP frag_uuid;
 
   /**
    * Bitfield of up to 64 additional fragments following the
@@ -513,7 +556,7 @@ struct TransportFragmentAckMessage
    * Original message ID for of the message that all the
    * fragments belong to.
    */
-  struct GNUNET_ShortHashCode msg_uuid;
+  struct MessageUUID msg_uuid;
 
   /**
    * How long was the ACK delayed relative to the average time of
@@ -572,7 +615,7 @@ struct DvInitPS
   /**
    * Challenge value used by the initiator to re-identify the path.
    */
-  struct GNUNET_ShortHashCode challenge;
+  struct ChallengeNonce challenge;
 };
 
 
@@ -612,7 +655,7 @@ struct DvHopPS
   /**
    * Challenge value used by the initiator to re-identify the path.
    */
-  struct GNUNET_ShortHashCode challenge;
+  struct ChallengeNonce challenge;
 };
 
 
@@ -692,7 +735,7 @@ struct TransportDVLearn
   /**
    * Challenge value used by the initiator to re-identify the path.
    */
-  struct GNUNET_ShortHashCode challenge;
+  struct ChallengeNonce challenge;
 
   /* Followed by @e num_hops `struct DVPathEntryP` values,
      excluding the initiator of the DV trace; the last entry is the
@@ -769,7 +812,7 @@ struct TransportValidationChallenge
   /**
    * Challenge to be signed by the receiving peer.
    */
-  struct GNUNET_ShortHashCode challenge;
+  struct ChallengeNonce challenge;
 
   /**
    * Timestamp of the sender, to be copied into the reply
@@ -800,7 +843,7 @@ struct TransportValidationPS
   /**
    * Challenge signed by the receiving peer.
    */
-  struct GNUNET_ShortHashCode challenge;
+  struct ChallengeNonce challenge;
 };
 
 
@@ -830,7 +873,7 @@ struct TransportValidationResponse
   /**
    * The challenge that was signed by the receiving peer.
    */
-  struct GNUNET_ShortHashCode challenge;
+  struct ChallengeNonce challenge;
 
   /**
    * Original timestamp of the sender (was @code{sender_time}),
@@ -900,7 +943,7 @@ struct LearnLaunchEntry
   /**
    * Challenge that uniquely identifies this activity.
    */
-  struct GNUNET_ShortHashCode challenge;
+  struct ChallengeNonce challenge;
 
   /**
    * When did we transmit the DV learn message (used to calculate RTT) and
@@ -1285,7 +1328,7 @@ struct ReassemblyContext
    * Original message ID for of the message that all the
    * fragments belong to.
    */
-  struct GNUNET_ShortHashCode msg_uuid;
+  struct MessageUUID msg_uuid;
 
   /**
    * Which neighbour is this context for?
@@ -1642,7 +1685,7 @@ struct PendingMessage
    * UUID to use for this message (used for reassembly of fragments, only
    * initialized if @e msg_uuid_set is #GNUNET_YES).
    */
-  struct GNUNET_ShortHashCode msg_uuid;
+  struct MessageUUID msg_uuid;
 
   /**
    * Counter incremented per generated fragment.
@@ -1941,7 +1984,7 @@ struct ValidationState
    * (We must not rotate more often as otherwise we may discard valid answers
    * due to packet losses, latency and reorderings on the network).
    */
-  struct GNUNET_ShortHashCode challenge;
+  struct ChallengeNonce challenge;
 
   /**
    * Claimed address of the peer.
@@ -2378,7 +2421,7 @@ free_reassembly_context (struct ReassemblyContext *rc)
   GNUNET_assert (rc == GNUNET_CONTAINER_heap_remove_node (rc->hn));
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_CONTAINER_multishortmap_remove (n->reassembly_map,
-                                                        &rc->msg_uuid,
+                                                        &rc->msg_uuid.uuid,
                                                         rc));
   GNUNET_free (rc);
 }
@@ -3659,6 +3702,9 @@ struct BackchannelKeyState
 };
 
 
+/**
+ * FIXME: comment!
+ */
 static void
 bc_setup_key_state_from_km (const struct GNUNET_HashCode *km,
                             const struct GNUNET_ShortHashCode *iv,
@@ -4177,7 +4223,7 @@ send_fragment_ack (struct ReassemblyContext *rc)
   ack = GNUNET_new (struct TransportFragmentAckMessage);
   ack->header.size = htons (sizeof (struct TransportFragmentAckMessage));
   ack->header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_FRAGMENT_ACK);
-  ack->frag_uuid = htonl (rc->frag_uuid);
+  ack->frag_uuid.uuid = htonl (rc->frag_uuid);
   ack->extra_acks = GNUNET_htonll (rc->extra_acks);
   ack->msg_uuid = rc->msg_uuid;
   ack->avg_ack_delay = GNUNET_TIME_relative_hton (rc->avg_ack_delay);
@@ -4237,7 +4283,8 @@ handle_fragment_box (void *cls, const struct TransportFragmentBox *fb)
                                     n);
   }
   msize = ntohs (fb->msg_size);
-  rc = GNUNET_CONTAINER_multishortmap_get (n->reassembly_map, &fb->msg_uuid);
+  rc =
+    GNUNET_CONTAINER_multishortmap_get (n->reassembly_map, &fb->msg_uuid.uuid);
   if (NULL == rc)
   {
     rc = GNUNET_malloc (sizeof (*rc) + msize + /* reassembly payload buffer */
@@ -4254,7 +4301,7 @@ handle_fragment_box (void *cls, const struct TransportFragmentBox *fb)
     GNUNET_assert (GNUNET_OK ==
                    GNUNET_CONTAINER_multishortmap_put (
                      n->reassembly_map,
-                     &rc->msg_uuid,
+                     &rc->msg_uuid.uuid,
                      rc,
                      GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
     target = (char *) &rc[1];
@@ -4287,7 +4334,7 @@ handle_fragment_box (void *cls, const struct TransportFragmentBox *fb)
   }
 
   /* Compute cummulative ACK */
-  frag_uuid = ntohl (fb->frag_uuid);
+  frag_uuid = ntohl (fb->frag_uuid.uuid);
   cdelay = GNUNET_TIME_absolute_get_duration (rc->last_frag);
   cdelay = GNUNET_TIME_relative_multiply (cdelay, rc->num_acks);
   rc->last_frag = GNUNET_TIME_absolute_get ();
@@ -4379,7 +4426,7 @@ check_ack_against_pm (struct PendingMessage *pm,
 {
   int match;
   struct PendingMessage *nxt;
-  uint32_t fs = ntohl (fa->frag_uuid);
+  uint32_t fs = ntohl (fa->frag_uuid.uuid);
   uint64_t xtra = GNUNET_ntohll (fa->extra_acks);
 
   match = GNUNET_NO;
@@ -4387,7 +4434,7 @@ check_ack_against_pm (struct PendingMessage *pm,
   {
     const struct TransportFragmentBox *tfb =
       (const struct TransportFragmentBox *) &pm[1];
-    uint32_t fu = ntohl (tfb->frag_uuid);
+    uint32_t fu = ntohl (tfb->frag_uuid.uuid);
 
     GNUNET_assert (PMT_FRAGMENT_BOX == frag->pmt);
     nxt = frag->next_frag;
@@ -4521,11 +4568,10 @@ handle_reliability_box (void *cls, const struct TransportReliabilityBox *rb)
 
     /* FIXME-OPTIMIZE: implement cummulative ACKs and ack_countdown,
        then setting the avg_ack_delay field below: */
-    ack = GNUNET_malloc (sizeof (*ack) + sizeof (struct GNUNET_ShortHashCode));
+    ack = GNUNET_malloc (sizeof (*ack) + sizeof (struct MessageUUID));
     ack->header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_RELIABILITY_ACK);
-    ack->header.size =
-      htons (sizeof (*ack) + sizeof (struct GNUNET_ShortHashCode));
-    memcpy (&ack[1], &rb->msg_uuid, sizeof (struct GNUNET_ShortHashCode));
+    ack->header.size = htons (sizeof (*ack) + sizeof (struct MessageUUID));
+    memcpy (&ack[1], &rb->msg_uuid, sizeof (struct MessageUUID));
     route_message (&cmc->im.sender, &ack->header, RMO_DV_ALLOWED);
   }
   /* continue with inner message */
@@ -4547,7 +4593,7 @@ handle_reliability_ack (void *cls,
   struct CommunicatorMessageContext *cmc = cls;
   struct Neighbour *n;
   unsigned int n_acks;
-  const struct GNUNET_ShortHashCode *msg_uuids;
+  const struct MessageUUID *msg_uuids;
   struct PendingMessage *nxt;
   int matched;
 
@@ -4561,9 +4607,9 @@ handle_reliability_ack (void *cls,
     GNUNET_SERVICE_client_drop (client);
     return;
   }
-  n_acks = (ntohs (ra->header.size) - sizeof (*ra)) /
-           sizeof (struct GNUNET_ShortHashCode);
-  msg_uuids = (const struct GNUNET_ShortHashCode *) &ra[1];
+  n_acks =
+    (ntohs (ra->header.size) - sizeof (*ra)) / sizeof (struct MessageUUID);
+  msg_uuids = (const struct MessageUUID *) &ra[1];
 
   /* FIXME-OPTIMIZE: maybe use another hash map here? */
   matched = GNUNET_NO;
@@ -5383,7 +5429,7 @@ forward_dv_learn (const struct GNUNET_PeerIdentity *next_hop,
 static int
 validate_dv_initiator_signature (
   const struct GNUNET_PeerIdentity *init,
-  const struct GNUNET_ShortHashCode *challenge,
+  const struct ChallengeNonce *challenge,
   const struct GNUNET_CRYPTO_EddsaSignature *init_sig)
 {
   struct DvInitPS ip = {.purpose.purpose = htonl (
@@ -5835,7 +5881,7 @@ struct CheckKnownChallengeContext
   /**
    * Set to the challenge we are looking for.
    */
-  const struct GNUNET_ShortHashCode *challenge;
+  const struct ChallengeNonce *challenge;
 
   /**
    * Set to a matching validation state, if one was found.
@@ -6379,7 +6425,7 @@ fragment_message (struct PendingMessage *pm, uint16_t mtu)
     msg = (char *) &frag[1];
     tfb.header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_FRAGMENT);
     tfb.header.size = htons (sizeof (struct TransportFragmentBox) + fragsize);
-    tfb.frag_uuid = htonl (pm->frag_uuidgen++);
+    tfb.frag_uuid.uuid = htonl (pm->frag_uuidgen++);
     tfb.msg_uuid = pm->msg_uuid;
     tfb.frag_off = htons (ff->frag_off + xoff);
     tfb.msg_size = htons (pm->bytes_msg);
@@ -7153,7 +7199,7 @@ start_dv_learn (void *cls)
     lle = lle_tail;
     GNUNET_assert (GNUNET_YES ==
                    GNUNET_CONTAINER_multishortmap_remove (dvlearn_map,
-                                                          &lle->challenge,
+                                                          &lle->challenge.value,
                                                           lle));
     GNUNET_CONTAINER_DLL_remove (lle_head, lle_tail, lle);
     GNUNET_free (lle);
@@ -7167,7 +7213,7 @@ start_dv_learn (void *cls)
   GNUNET_break (GNUNET_YES ==
                 GNUNET_CONTAINER_multishortmap_put (
                   dvlearn_map,
-                  &lle->challenge,
+                  &lle->challenge.value,
                   lle,
                   GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
   dvl.header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_DV_LEARN);
