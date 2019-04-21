@@ -54,12 +54,14 @@
 /**
  * Maximum frequency for re-evaluating latencies for all transport addresses.
  */
-#define LATENCY_EVALUATION_MAX_DELAY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_HOURS, 1)
+#define LATENCY_EVALUATION_MAX_DELAY \
+  GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_HOURS, 1)
 
 /**
  * Maximum frequency for re-evaluating latencies for connected addresses.
  */
-#define CONNECTED_LATENCY_EVALUATION_MAX_DELAY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 1)
+#define CONNECTED_LATENCY_EVALUATION_MAX_DELAY \
+  GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 1)
 
 /**
  * Similiar to GNUNET_TRANSPORT_NotifyDisconnect but in and out quotas are
@@ -71,11 +73,11 @@
  * @param bandwidth_out outbound bandwidth in NBO
  *
  */
-typedef void
-(*NotifyConnect) (void *cls,
-                  const struct GNUNET_PeerIdentity *peer,
-                  struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
-                  struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out);
+typedef void (*NotifyConnect) (
+  void *cls,
+  const struct GNUNET_PeerIdentity *peer,
+  struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
+  struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out);
 
 
 GNUNET_NETWORK_STRUCT_BEGIN
@@ -106,7 +108,6 @@ struct StartMessage
    * receiver should print out an error message and disconnect.
    */
   struct GNUNET_PeerIdentity self;
-
 };
 
 
@@ -155,7 +156,6 @@ struct DisconnectInfoMessage
    * Who got disconnected?
    */
   struct GNUNET_PeerIdentity peer;
-
 };
 
 
@@ -181,7 +181,6 @@ struct QuotaSetMessage
    * About which peer are we talking here?
    */
   struct GNUNET_PeerIdentity peer;
-
 };
 
 
@@ -201,7 +200,6 @@ struct InboundMessage
    * Which peer sent the message?
    */
   struct GNUNET_PeerIdentity peer;
-
 };
 
 
@@ -240,7 +238,6 @@ struct SendOkMessage
    * Which peer can send more now?
    */
   struct GNUNET_PeerIdentity peer;
-
 };
 
 
@@ -270,13 +267,11 @@ struct OutboundMessage
    * Which peer should receive the message?
    */
   struct GNUNET_PeerIdentity peer;
-
 };
 
 
-
-
-#if !(defined(GNUNET_TRANSPORT_COMMUNICATION_VERSION)||defined(GNUNET_TRANSPORT_CORE_VERSION))
+#if ! (defined(GNUNET_TRANSPORT_COMMUNICATION_VERSION) || \
+       defined(GNUNET_TRANSPORT_CORE_VERSION))
 
 
 /**
@@ -428,7 +423,6 @@ struct ValidationMonitorMessage
    * The identity of the peer to look up.
    */
   struct GNUNET_PeerIdentity peer;
-
 };
 
 
@@ -452,7 +446,6 @@ struct PeerMonitorMessage
    * The identity of the peer to look up.
    */
   struct GNUNET_PeerIdentity peer;
-
 };
 
 
@@ -545,7 +538,6 @@ struct PeerIterateResponseMessage
    * Length of the plugin name
    */
   uint32_t pluginlen GNUNET_PACKED;
-
 };
 
 
@@ -572,7 +564,6 @@ struct BlacklistMessage
    * Which peer is being blacklisted or queried?
    */
   struct GNUNET_PeerIdentity peer;
-
 };
 
 
@@ -644,7 +635,6 @@ struct TransportPluginMonitorMessage
 
   /* followed by 0-terminated plugin name and
      @e plugin_address_len bytes of plugin address */
-
 };
 
 #else
@@ -717,7 +707,6 @@ struct GNUNET_TRANSPORT_DelAddressMessage
    * Address identifier.
    */
   uint32_t aid GNUNET_PACKED;
-
 };
 
 
@@ -783,7 +772,6 @@ struct GNUNET_TRANSPORT_IncomingMessageAck
    * Sender identifier of the original message.
    */
   struct GNUNET_PeerIdentity sender;
-
 };
 
 
@@ -847,7 +835,6 @@ struct GNUNET_TRANSPORT_DelQueueMessage
    * Receiver that can be addressed via the queue.
    */
   struct GNUNET_PeerIdentity receiver;
-
 };
 
 
@@ -883,7 +870,8 @@ struct GNUNET_TRANSPORT_CreateQueueResponse
 {
 
   /**
-   * Type will be #GNUNET_MESSAGE_TYPE_TRANSPORT_QUEUE_CREATE_OK or #GNUNET_MESSAGE_TYPE_TRANSPORT_QUEUE_CREATE_FAIL.
+   * Type will be #GNUNET_MESSAGE_TYPE_TRANSPORT_QUEUE_CREATE_OK or
+   * #GNUNET_MESSAGE_TYPE_TRANSPORT_QUEUE_CREATE_FAIL.
    */
   struct GNUNET_MessageHeader header;
 
@@ -949,7 +937,6 @@ struct GNUNET_TRANSPORT_SendMessageToAck
    * Receiver identifier.
    */
   struct GNUNET_PeerIdentity receiver;
-
 };
 
 
@@ -990,7 +977,8 @@ struct GNUNET_TRANSPORT_CommunicatorBackchannel
 struct GNUNET_TRANSPORT_CommunicatorBackchannelIncoming
 {
   /**
-   * Type will be #GNUNET_MESSAGE_TYPE_TRANSPORT_COMMUNICATOR_BACKCHANNEL_INCOMING
+   * Type will be
+   * #GNUNET_MESSAGE_TYPE_TRANSPORT_COMMUNICATOR_BACKCHANNEL_INCOMING
    */
   struct GNUNET_MessageHeader header;
 
@@ -1006,9 +994,7 @@ struct GNUNET_TRANSPORT_CommunicatorBackchannelIncoming
 
   /* Followed by a `struct GNUNET_MessageHeader` with the encapsulated
      message to the communicator */
-
 };
-
 
 
 /**
@@ -1031,7 +1017,6 @@ struct GNUNET_TRANSPORT_MonitorStart
    * Target identifier to monitor, all zeros for "all peers".
    */
   struct GNUNET_PeerIdentity peer;
-
 };
 
 
@@ -1084,7 +1069,6 @@ struct GNUNET_TRANSPORT_MonitorData
   uint32_t num_bytes_pending GNUNET_PACKED;
 
   /* Followed by 0-terminated address of the peer */
-
 };
 
 
@@ -1141,7 +1125,6 @@ struct ExpressPreferenceMessage
    * How much bandwidth in bytes/second does the application expect?
    */
   struct GNUNET_BANDWIDTH_Value32NBO bw;
-
 };
 
 

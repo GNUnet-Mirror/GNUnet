@@ -24,8 +24,6 @@
  *
  * TODO:
  * Implement next:
- * - complete backchannel signature verification and
- *   forwarding of backchannel messages to communicators!
  * - track RTT, distance, loss, etc. => requires extra data structures!
  * - proper use/initialization of timestamps in messages exchanged
  *   during DV learning
@@ -150,6 +148,13 @@
  * further updates on it? Note: the value chosen here might be too low!
  */
 #define DV_PATH_VALIDITY_TIMEOUT \
+  GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 5)
+
+/**
+ * How long do we cache backchannel (struct Backtalker) information
+ * after a backchannel goes inactive?
+ */
+#define BACKCHANNEL_INACTIVITY_TIMEOUT \
   GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 5)
 
 /**
@@ -289,7 +294,7 @@ struct TransportBackchannelEncapsulationMessage
 /**
  * Body by which a peer confirms that it is using an ephemeral key.
  */
-struct EphemeralConfirmation
+struct EphemeralConfirmationPS
 {
 
   /**
@@ -1965,6 +1970,65 @@ struct ValidationState
 
 
 /**
+ * A Backtalker is a peer sending us backchannel messages. We use this
+ * struct to detect monotonic time violations, cache ephemeral key
+ * material (to avoid repeatedly checking signatures), and to synchronize
+ * monotonic time with the PEERSTORE.
+ */
+struct Backtalker
+{
+  /**
+   * Peer this is about.
+   */
+  struct GNUNET_PeerIdentity pid;
+
+  /**
+   * Last (valid) monotonic time received from this sender.
+   */
+  struct GNUNET_TIME_Absolute monotonic_time;
+
+  /**
+   * When will this entry time out?
+   */
+  struct GNUNET_TIME_Absolute timeout;
+
+  /**
+   * Last (valid) ephemeral key received from this sender.
+   */
+  struct GNUNET_CRYPTO_EcdhePublicKey last_ephemeral;
+
+  /**
+   * Task associated with this backtalker. Can be for timeout,
+   * or other asynchronous operations.
+   */
+  struct GNUNET_SCHEDULER_Task *task;
+
+  /**
+   * Communicator context waiting on this backchannel's @e get, or NULL.
+   */
+  struct CommunicatorMessageContext *cmc;
+
+  /**
+   * Handle for an operation to fetch @e monotonic_time information from the
+   * PEERSTORE, or NULL.
+   */
+  struct GNUNET_PEERSTORE_IterateContext *get;
+
+  /**
+   * Handle to a PEERSTORE store operation for this @e pid's @e
+   * monotonic_time.  NULL if no PEERSTORE operation is pending.
+   */
+  struct GNUNET_PEERSTORE_StoreContext *sc;
+
+  /**
+   * Number of bytes of the original message body that follows after this
+   * struct.
+   */
+  size_t body_size;
+};
+
+
+/**
  * Head of linked list of all clients to this service.
  */
 static struct TransportClient *clients_head;
@@ -1999,6 +2063,12 @@ static struct GNUNET_CRYPTO_EddsaPrivateKey *GST_my_private_key;
  * a neighbour if we have an MQ to it from some communicator.
  */
 static struct GNUNET_CONTAINER_MultiPeerMap *neighbours;
+
+/**
+ * Map from PIDs to `struct Backtalker` entries.  A peer is
+ * a backtalker if it recently send us backchannel messages.
+ */
+static struct GNUNET_CONTAINER_MultiPeerMap *backtalkers;
 
 /**
  * Map from PIDs to `struct DistanceVector` entries describing
@@ -3195,7 +3265,7 @@ lookup_ephemeral (const struct GNUNET_PeerIdentity *pid,
                   struct GNUNET_TIME_Absolute *ephemeral_validity)
 {
   struct EphemeralCacheEntry *ece;
-  struct EphemeralConfirmation ec;
+  struct EphemeralConfirmationPS ec;
 
   ece = GNUNET_CONTAINER_multipeermap_get (ephemeral_map, pid);
   if ((NULL != ece) &&
@@ -4570,6 +4640,254 @@ check_backchannel_encapsulation (
 
 
 /**
+ * We received the plaintext @a msg from backtalker @a b. Forward
+ * it to the respective communicator.
+ *
+ * @param b a backtalker
+ * @param msg a message, consisting of a `struct GNUNET_MessageHeader`
+ *        followed by the target name of the communicator
+ * @param msg_size number of bytes in @a msg
+ */
+static void
+forward_backchannel_payload (struct Backtalker *b,
+                             const void *msg,
+                             size_t msg_size)
+{
+  struct GNUNET_TRANSPORT_CommunicatorBackchannelIncoming *cbi;
+  struct GNUNET_MQ_Envelope *env;
+  struct TransportClient *tc;
+  const struct GNUNET_MessageHeader *mh;
+  const char *target_communicator;
+  uint16_t mhs;
+
+  /* Determine target_communicator and check @a msg is well-formed */
+  mh = msg;
+  mhs = ntohs (mh->size);
+  if (mhs <= msg_size)
+  {
+    GNUNET_break_op (0);
+    return;
+  }
+  target_communicator = &((const char *) msg)[ntohs (mh->size)];
+  if ('\0' != target_communicator[msg_size - mhs - 1])
+  {
+    GNUNET_break_op (0);
+    return;
+  }
+  /* Find client providing this communicator */
+  for (tc = clients_head; NULL != tc; tc = tc->next)
+    if ((CT_COMMUNICATOR == tc->type) &&
+        (0 ==
+         strcmp (tc->details.communicator.address_prefix, target_communicator)))
+      break;
+  if (NULL == tc)
+  {
+    char *stastr;
+
+    GNUNET_asprintf (
+      &stastr,
+      "# Backchannel message dropped: target communicator `%s' unknown",
+      target_communicator);
+    GNUNET_STATISTICS_update (GST_stats, stastr, 1, GNUNET_NO);
+    GNUNET_free (stastr);
+    return;
+  }
+  /* Finally, deliver backchannel message to communicator */
+  env = GNUNET_MQ_msg_extra (
+    cbi,
+    msg_size,
+    GNUNET_MESSAGE_TYPE_TRANSPORT_COMMUNICATOR_BACKCHANNEL_INCOMING);
+  cbi->pid = b->pid;
+  memcpy (&cbi[1], msg, msg_size);
+  GNUNET_MQ_send (tc->mq, env);
+}
+
+
+/**
+ * Free data structures associated with @a b.
+ *
+ * @param b data structure to release
+ */
+static void
+free_backtalker (struct Backtalker *b)
+{
+  if (NULL != b->get)
+  {
+    GNUNET_PEERSTORE_iterate_cancel (b->get);
+    b->get = NULL;
+    GNUNET_assert (NULL != b->cmc);
+    finish_cmc_handling (b->cmc);
+    b->cmc = NULL;
+  }
+  if (NULL != b->task)
+  {
+    GNUNET_SCHEDULER_cancel (b->task);
+    b->task = NULL;
+  }
+  if (NULL != b->sc)
+  {
+    GNUNET_PEERSTORE_store_cancel (b->sc);
+    b->sc = NULL;
+  }
+  GNUNET_assert (
+    GNUNET_YES ==
+    GNUNET_CONTAINER_multipeermap_remove (backtalkers, &b->pid, b));
+  GNUNET_free (b);
+}
+
+
+/**
+ * Callback to free backtalker records.
+ *
+ * @param cls NULL
+ * @param pid unused
+ * @param value a `struct Backtalker`
+ * @return #GNUNET_OK (always)
+ */
+static int
+free_backtalker_cb (void *cls,
+                    const struct GNUNET_PeerIdentity *pid,
+                    void *value)
+{
+  struct Backtalker *b = value;
+
+  (void) cls;
+  (void) pid;
+  free_backtalker (b);
+  return GNUNET_OK;
+}
+
+
+/**
+ * Function called when it is time to clean up a backtalker.
+ *
+ * @param cls a `struct Backtalker`
+ */
+static void
+backtalker_timeout_cb (void *cls)
+{
+  struct Backtalker *b = cls;
+
+  b->task = NULL;
+  if (0 != GNUNET_TIME_absolute_get_remaining (b->timeout).rel_value_us)
+  {
+    b->task = GNUNET_SCHEDULER_add_at (b->timeout, &backtalker_timeout_cb, b);
+    return;
+  }
+  GNUNET_assert (NULL == b->sc);
+  free_backtalker (b);
+}
+
+
+/**
+ * Function called with the monotonic time of a backtalker
+ * by PEERSTORE. Updates the time and continues processing.
+ *
+ * @param cls a `struct Backtalker`
+ * @param record the information found, NULL for the last call
+ * @param emsg error message
+ */
+static void
+backtalker_monotime_cb (void *cls,
+                        const struct GNUNET_PEERSTORE_Record *record,
+                        const char *emsg)
+{
+  struct Backtalker *b = cls;
+  struct GNUNET_TIME_AbsoluteNBO *mtbe;
+  struct GNUNET_TIME_Absolute mt;
+
+  (void) emsg;
+  if (NULL == record)
+  {
+    /* we're done with #backtalker_monotime_cb() invocations,
+       continue normal processing */
+    b->get = NULL;
+    GNUNET_assert (NULL != b->cmc);
+    finish_cmc_handling (b->cmc);
+    b->cmc = NULL;
+    if (0 != b->body_size)
+      forward_backchannel_payload (b, &b[1], b->body_size);
+    return;
+  }
+  if (sizeof (*mtbe) != record->value_size)
+  {
+    GNUNET_break (0);
+    return;
+  }
+  mtbe = record->value;
+  mt = GNUNET_TIME_absolute_ntoh (*mtbe);
+  if (mt.abs_value_us > b->monotonic_time.abs_value_us)
+  {
+    GNUNET_STATISTICS_update (
+      GST_stats,
+      "# Backchannel messages dropped: monotonic time not increasing",
+      1,
+      GNUNET_NO);
+    b->monotonic_time = mt;
+    /* Setting body_size to 0 prevents call to #forward_backchannel_payload() */
+    b->body_size = 0;
+    return;
+  }
+}
+
+
+/**
+ * Function called by PEERSTORE when the store operation of
+ * a backtalker's monotonic time is complete.
+ *
+ * @param cls the `struct Backtalker`
+ * @param success #GNUNET_OK on success
+ */
+static void
+backtalker_monotime_store_cb (void *cls, int success)
+{
+  struct Backtalker *b = cls;
+
+  if (GNUNET_OK != success)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Failed to store backtalker's monotonic time in PEERSTORE!\n");
+  }
+  b->sc = NULL;
+  b->task = GNUNET_SCHEDULER_add_at (b->timeout, &backtalker_timeout_cb, b);
+}
+
+
+/**
+ * The backtalker @a b monotonic time changed. Update PEERSTORE.
+ *
+ * @param b a backtalker with updated monotonic time
+ */
+static void
+update_backtalker_monotime (struct Backtalker *b)
+{
+  struct GNUNET_TIME_AbsoluteNBO mtbe;
+
+  if (NULL != b->sc)
+  {
+    GNUNET_PEERSTORE_store_cancel (b->sc);
+    b->sc = NULL;
+  }
+  else
+  {
+    GNUNET_SCHEDULER_cancel (b->task);
+    b->task = NULL;
+  }
+  mtbe = GNUNET_TIME_absolute_hton (b->monotonic_time);
+  b->sc = GNUNET_PEERSTORE_store (peerstore,
+                                  "transport",
+                                  &b->pid,
+                                  "transport-backchannel-monotonic-time",
+                                  &mtbe,
+                                  sizeof (mtbe),
+                                  GNUNET_TIME_UNIT_FOREVER_ABS,
+                                  GNUNET_PEERSTORE_STOREOPTION_REPLACE,
+                                  &backtalker_monotime_store_cb,
+                                  b);
+}
+
+
+/**
  * Communicator gave us a backchannel encapsulation.  Process the request.
  * (We are not the origin of the backchannel here, the communicator simply
  * received a backchannel message and we are expected to forward it.)
@@ -4611,6 +4929,8 @@ handle_backchannel_encapsulation (
   }
   /* begin actual decryption */
   {
+    struct Backtalker *b;
+    struct GNUNET_TIME_Absolute monotime;
     struct TransportBackchannelRequestPayload ppay;
     char body[hdr_len - sizeof (ppay)];
 
@@ -4619,15 +4939,77 @@ handle_backchannel_encapsulation (
     bc_decrypt (&key, &ppay, hdr, sizeof (ppay));
     bc_decrypt (&key, &body, &hdr[sizeof (ppay)], hdr_len - sizeof (ppay));
     bc_key_clean (&key);
-    // FIXME: verify signatures in ppay!
-    // => check if ephemeral key is known & valid, if not
-    // => verify sig, cache ephemeral key
-    // => update monotonic_time of sender for replay detection
+    monotime = GNUNET_TIME_absolute_ntoh (ppay.monotonic_time);
+    b = GNUNET_CONTAINER_multipeermap_get (backtalkers, &ppay.sender);
+    if ((NULL != b) && (monotime.abs_value_us < b->monotonic_time.abs_value_us))
+    {
+      GNUNET_STATISTICS_update (
+        GST_stats,
+        "# Backchannel messages dropped: monotonic time not increasing",
+        1,
+        GNUNET_NO);
+      finish_cmc_handling (cmc);
+      return;
+    }
+    if ((NULL == b) ||
+        (0 != GNUNET_memcmp (&b->last_ephemeral, &be->ephemeral_key)))
+    {
+      /* Check signature */
+      struct EphemeralConfirmationPS ec;
 
-    // FIXME: forward to specified communicator!
-    // (using GNUNET_MESSAGE_TYPE_TRANSPORT_COMMUNICATOR_BACKCHANNEL_INCOMING)
+      ec.purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_TRANSPORT_EPHEMERAL);
+      ec.purpose.size = htonl (sizeof (ec));
+      ec.target = GST_my_identity;
+      ec.ephemeral_key = be->ephemeral_key;
+      if (
+        GNUNET_OK !=
+        GNUNET_CRYPTO_eddsa_verify (GNUNET_SIGNATURE_PURPOSE_TRANSPORT_EPHEMERAL,
+                                    &ec.purpose,
+                                    &ppay.sender_sig,
+                                    &ppay.sender.public_key))
+      {
+        /* Signature invalid, disard! */
+        GNUNET_break_op (0);
+        finish_cmc_handling (cmc);
+        return;
+      }
+    }
+    if (NULL != b)
+    {
+      /* update key cache and mono time */
+      b->last_ephemeral = be->ephemeral_key;
+      b->monotonic_time = monotime;
+      update_backtalker_monotime (b);
+      forward_backchannel_payload (b, body, sizeof (body));
+      b->timeout =
+        GNUNET_TIME_relative_to_absolute (BACKCHANNEL_INACTIVITY_TIMEOUT);
+      finish_cmc_handling (cmc);
+      return;
+    }
+    /* setup data structure to cache signature AND check
+       monotonic time with PEERSTORE before forwarding backchannel payload */
+    b = GNUNET_malloc (sizeof (struct Backtalker) + sizeof (body));
+    b->pid = ppay.sender;
+    b->body_size = sizeof (body);
+    memcpy (&b[1], body, sizeof (body));
+    GNUNET_assert (GNUNET_YES ==
+                   GNUNET_CONTAINER_multipeermap_put (
+                     backtalkers,
+                     &b->pid,
+                     b,
+                     GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
+    b->monotonic_time = monotime; /* NOTE: to be checked still! */
+    b->cmc = cmc;
+    b->timeout =
+      GNUNET_TIME_relative_to_absolute (BACKCHANNEL_INACTIVITY_TIMEOUT);
+    b->task = GNUNET_SCHEDULER_add_at (b->timeout, &backtalker_timeout_cb, b);
+    b->get = GNUNET_PEERSTORE_iterate (peerstore,
+                                       "transport",
+                                       &b->pid,
+                                       "transport-backchannel-monotonic-time",
+                                       &backtalker_monotime_cb,
+                                       b);
   }
-  finish_cmc_handling (cmc);
 }
 
 
@@ -7453,6 +7835,11 @@ do_shutdown (void *cls)
   }
   GNUNET_CONTAINER_multipeermap_destroy (neighbours);
   neighbours = NULL;
+  GNUNET_CONTAINER_multipeermap_iterate (backtalkers,
+                                         &free_backtalker_cb,
+                                         NULL);
+  GNUNET_CONTAINER_multipeermap_destroy (backtalkers);
+  backtalkers = NULL;
   GNUNET_CONTAINER_multipeermap_iterate (validation_map,
                                          &free_validation_state_cb,
                                          NULL);
@@ -7496,6 +7883,7 @@ run (void *cls,
   (void) service;
   /* setup globals */
   GST_cfg = c;
+  backtalkers = GNUNET_CONTAINER_multipeermap_create (16, GNUNET_YES);
   neighbours = GNUNET_CONTAINER_multipeermap_create (1024, GNUNET_YES);
   dv_routes = GNUNET_CONTAINER_multipeermap_create (1024, GNUNET_YES);
   ephemeral_map = GNUNET_CONTAINER_multipeermap_create (32, GNUNET_YES);
