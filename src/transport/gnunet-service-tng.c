@@ -28,7 +28,7 @@
  * - proper use/initialization of timestamps in messages exchanged
  *   during DV learning
  * - persistence of monotonic time obtained from other peers
- *   in PEERSTORE (by message type)
+ *   in PEERSTORE (by message type) -- done for backchannel, needed elsewhere?
  * - change transport-core API to provide proper flow control in both
  *   directions, allow multiple messages per peer simultaneously (tag
  *   confirmations with unique message ID), and replace quota-out with
@@ -4874,16 +4874,17 @@ update_backtalker_monotime (struct Backtalker *b)
     b->task = NULL;
   }
   mtbe = GNUNET_TIME_absolute_hton (b->monotonic_time);
-  b->sc = GNUNET_PEERSTORE_store (peerstore,
-                                  "transport",
-                                  &b->pid,
-                                  "transport-backchannel-monotonic-time",
-                                  &mtbe,
-                                  sizeof (mtbe),
-                                  GNUNET_TIME_UNIT_FOREVER_ABS,
-                                  GNUNET_PEERSTORE_STOREOPTION_REPLACE,
-                                  &backtalker_monotime_store_cb,
-                                  b);
+  b->sc =
+    GNUNET_PEERSTORE_store (peerstore,
+                            "transport",
+                            &b->pid,
+                            GNUNET_PEERSTORE_TRANSPORT_BACKCHANNEL_MONOTIME,
+                            &mtbe,
+                            sizeof (mtbe),
+                            GNUNET_TIME_UNIT_FOREVER_ABS,
+                            GNUNET_PEERSTORE_STOREOPTION_REPLACE,
+                            &backtalker_monotime_store_cb,
+                            b);
 }
 
 
@@ -5003,12 +5004,13 @@ handle_backchannel_encapsulation (
     b->timeout =
       GNUNET_TIME_relative_to_absolute (BACKCHANNEL_INACTIVITY_TIMEOUT);
     b->task = GNUNET_SCHEDULER_add_at (b->timeout, &backtalker_timeout_cb, b);
-    b->get = GNUNET_PEERSTORE_iterate (peerstore,
-                                       "transport",
-                                       &b->pid,
-                                       "transport-backchannel-monotonic-time",
-                                       &backtalker_monotime_cb,
-                                       b);
+    b->get =
+      GNUNET_PEERSTORE_iterate (peerstore,
+                                "transport",
+                                &b->pid,
+                                GNUNET_PEERSTORE_TRANSPORT_BACKCHANNEL_MONOTIME,
+                                &backtalker_monotime_cb,
+                                b);
   }
 }
 
