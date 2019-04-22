@@ -24,27 +24,9 @@
  *
  * TODO:
  * Implement next:
- * - track RTT, distance, loss, etc. => requires extra data structures!
- *   => fragment UUIDs should be 'sequential' 32-bit numbers, for cummulative
- * acks with Bitmask
- *      => fragments carry their own offsets, so receiver will NOT require
- *         seeing all the possible values
- *      => can generate 'fresh' UUIDs for each retransmission to track it
- *         => but need to keep 'map' of 32-bit UUID to queue!
- *   => message UUIDs are currently overkill with 256 bits
- *      => cummulative acks for messages include full UUID list
- *      => message UUID size should be chosen to result in 8 byte alignment
- *      => could encode 32-bit counter + 32-bit queue UUID in 64-bit message
- * UUID?
- *         => Use multihashmap32 on counter for lookup in hashmap?
- *      => FIXME: 2x32 bit introduced, but still set to random value
- *         instead of using the generators!
- *         (and generators not initialized to random starting values either)
- * - consider replacing random `struct GNUNET_ShortHashCode` message UUIDs
- *   with (incrementing) 64-bit numbers (compacting both
- *   `struct TransportReliabilityBox` and `struct
- *   TransportReliabilityAckMessage`), and using *different* UUIDs for each
- *   transmission (even of the same message!)
+ * - FIXME: looping over neighbours when calling forward_dv_learn()!
+ * - FIXME: transmit_on_queue: track dvh we may be using and pass it to
+ *   fragment_message() and reliability_box_message() if applicable
  * - proper use/initialization of timestamps in messages exchanged
  *   during DV learning
  * - persistence of monotonic time from DVInit to prevent
@@ -60,12 +42,11 @@
  *
  * Later:
  * - review retransmission logic, right now there is no smartness there!
- *   => congestion control, flow control, etc (requires RTT, loss, etc.)
+ *   => congestion control, flow control, etc
  *
  * Optimizations:
- * - use shorthashmap on msg_uuid's when matching reliability/fragment ACKs
- *   against our pending message queue (requires additional per neighbour
- *   hash map to be maintained, avoids possible linear scan on pending msgs)
+ * - AcknowledgementUUIDPs are overkill with 256 bits (128 would do)
+ *    => Need 128 bit hash map though!
  * - queue_send_msg and route_message both by API design have to make copies
  *   of the payload, and route_message on top of that requires a malloc/free.
  *   Change design to approximate "zero" copy better...
@@ -128,6 +109,12 @@
  * absence of an MTU for the purpose of flow control?
  */
 #define IN_PACKET_SIZE_WITHOUT_MTU 128
+
+/**
+ * Number of slots we keep of historic data for computation of
+ * goodput / message loss ratio.
+ */
+#define GOODPUT_AGING_SLOTS 4
 
 /**
  * Minimum number of hops we should forward DV learn messages
@@ -1004,6 +991,49 @@ struct EphemeralCacheEntry
 
 
 /**
+ * Information we keep per #GOODPUT_AGING_SLOTS about historic
+ * (or current) transmission performance.
+ */
+struct TransmissionHistoryEntry
+{
+  /**
+   * Number of bytes actually sent in the interval.
+   */
+  uint64_t bytes_sent;
+
+  /**
+   * Number of bytes received and acknowledged by the other peer in
+   * the interval.
+   */
+  uint64_t bytes_received;
+};
+
+
+/**
+ * Performance data for a transmission possibility.
+ */
+struct PerformanceData
+{
+  /**
+   * Weighted average for the RTT.
+   */
+  struct GNUNET_TIME_Relative aged_rtt;
+
+  /**
+   * Historic performance data, using a ring buffer of#GOODPUT_AGING_SLOTS
+   * entries.
+   */
+  struct TransmissionHistoryEntry the[GOODPUT_AGING_SLOTS];
+
+  /**
+   * What was the last age when we wrote to @e the? Used to clear
+   * old entries when the age advances.
+   */
+  unsigned int last_age;
+};
+
+
+/**
  * Client connected to the transport service.
  */
 struct TransportClient;
@@ -1200,6 +1230,11 @@ struct DistanceVectorHop
   struct GNUNET_TIME_Absolute path_valid_until;
 
   /**
+   * Performance data for this transmission possibility.
+   */
+  struct PerformanceData pd;
+
+  /**
    * Number of hops in total to the `target` (excluding @e next_hop and `target`
    * itself). Thus 0 still means a distance of 2 hops (to @e next_hop and then
    * to `target`).
@@ -1377,11 +1412,6 @@ struct Queue
   struct GNUNET_SCHEDULER_Task *visibility_task;
 
   /**
-   * Our current RTT estimate for this queue.
-   */
-  struct GNUNET_TIME_Relative rtt;
-
-  /**
    * How long do *we* consider this @e address to be valid?  In the past or
    * zero if we have not yet validated it.  Can be updated based on
    * challenge-response validations (via address validation logic), or when we
@@ -1389,6 +1419,11 @@ struct Queue
    * queue.
    */
   struct GNUNET_TIME_Absolute validated_until;
+
+  /**
+   * Performance data for this queue.
+   */
+  struct PerformanceData pd;
 
   /**
    * Message ID generator for transmissions on this queue to the
@@ -2377,6 +2412,26 @@ static struct PendingAcknowledgement *pa_tail;
  * limit the size of the data structure.
  */
 static unsigned int pa_count;
+
+
+/**
+ * Get an offset into the transmission history buffer for `struct
+ * PerformanceData`.  Note that the caller must perform the required
+ * modulo #GOODPUT_AGING_SLOTS operation before indexing into the
+ * array!
+ *
+ * An 'age' lasts 15 minute slots.
+ *
+ * @return current age of the world
+ */
+static unsigned int
+get_age ()
+{
+  struct GNUNET_TIME_Absolute now;
+
+  now = GNUNET_TIME_absolute_get ();
+  return now.abs_value_us / GNUNET_TIME_UNIT_MINUTES.rel_value_us / 15;
+}
 
 
 /**
@@ -3964,7 +4019,12 @@ struct BackchannelKeyState
 
 
 /**
- * FIXME: comment!
+ * Given the key material in @a km and the initialization vector
+ * @a iv, setup the key material for the backchannel in @a key.
+ *
+ * @param km raw master secret
+ * @param iv initialization vector
+ * @param key[out] symmetric cipher and HMAC state to generate
  */
 static void
 bc_setup_key_state_from_km (const struct GNUNET_HashCode *km,
@@ -4794,6 +4854,60 @@ handle_reliability_box (void *cls,
 
 
 /**
+ * Check if we have advanced to another age since the last time.  If
+ * so, purge ancient statistics (more than GOODPUT_AGING_SLOTS before
+ * the current age)
+ *
+ * @param pd[in,out] data to update
+ * @param age current age
+ */
+static void
+update_pd_age (struct PerformanceData *pd, unsigned int age)
+{
+  unsigned int sage;
+
+  if (age == pd->last_age)
+    return; /* nothing to do */
+  sage = GNUNET_MAX (pd->last_age, age - 2 * GOODPUT_AGING_SLOTS);
+  for (unsigned int i = sage; i <= age - GOODPUT_AGING_SLOTS; i++)
+  {
+    struct TransmissionHistoryEntry *the = &pd->the[i % GOODPUT_AGING_SLOTS];
+
+    the->bytes_sent = 0;
+    the->bytes_received = 0;
+  }
+  pd->last_age = age;
+}
+
+
+/**
+ * Update @a pd based on the latest @a rtt and the number of bytes
+ * that were confirmed to be successfully transmitted.
+ *
+ * @param pd[in,out] data to update
+ * @param rtt latest round-trip time
+ * @param bytes_transmitted_ok number of bytes receiver confirmed as received
+ */
+static void
+update_performance_data (struct PerformanceData *pd,
+                         struct GNUNET_TIME_Relative rtt,
+                         uint16_t bytes_transmitted_ok)
+{
+  uint64_t nval = rtt.rel_value_us;
+  uint64_t oval = pd->aged_rtt.rel_value_us;
+  unsigned int age = get_age ();
+  struct TransmissionHistoryEntry *the = &pd->the[age % GOODPUT_AGING_SLOTS];
+
+  if (oval == GNUNET_TIME_UNIT_FOREVER_REL.rel_value_us)
+    pd->aged_rtt = rtt;
+  else
+    pd->aged_rtt.rel_value_us = (nval + 7 * oval) / 8;
+  update_pd_age (pd, age);
+  the->bytes_received += bytes_transmitted_ok;
+}
+
+
+/**
  * We have successfully transmitted data via @a q, update metrics.
  *
  * @param q queue to update
@@ -4805,7 +4919,7 @@ update_queue_performance (struct Queue *q,
                           struct GNUNET_TIME_Relative rtt,
                           uint16_t bytes_transmitted_ok)
 {
-  // FIXME: implement!
+  update_performance_data (&q->pd, rtt, bytes_transmitted_ok);
 }
 
 
@@ -4821,7 +4935,7 @@ update_dvh_performance (struct DistanceVectorHop *dvh,
                         struct GNUNET_TIME_Relative rtt,
                         uint16_t bytes_transmitted_ok)
 {
-  // FIXME: implement!
+  update_performance_data (&dvh->pd, rtt, bytes_transmitted_ok);
 }
 
 
@@ -6481,7 +6595,7 @@ handle_validation_response (
     return;
   }
   q->validated_until = vs->validated_until;
-  q->rtt = vs->validation_rtt;
+  q->pd.aged_rtt = vs->validation_rtt;
   n = q->neighbour;
   if (GNUNET_NO != n->core_visible)
     return; /* nothing changed, we are done here */
@@ -7015,7 +7129,8 @@ transmit_on_queue (void *cls)
        message urgency and size when delaying ACKs, etc.) */
     update_pm_next_attempt (s,
                             GNUNET_TIME_relative_to_absolute (
-                              GNUNET_TIME_relative_multiply (queue->rtt, 4)));
+                              GNUNET_TIME_relative_multiply (queue->pd.aged_rtt,
+                                                             4)));
   }
 
   /* finally, re-schedule queue transmission task itself */
@@ -7252,7 +7367,7 @@ notify_client_queues (void *cls,
   for (struct Queue *q = neighbour->queue_head; NULL != q;
        q = q->next_neighbour)
   {
-    struct MonitorEvent me = {.rtt = q->rtt,
+    struct MonitorEvent me = {.rtt = q->pd.aged_rtt,
                               .cs = q->cs,
                               .num_msg_pending = q->num_msg_pending,
                               .num_bytes_pending = q->num_bytes_pending};
@@ -7486,7 +7601,7 @@ check_connection_quality (void *cls,
       ctx->q = q;
     /* OPTIMIZE-FIXME: in the future, add reliability / goodput
        statistics and consider those as well here? */
-    if (q->rtt.rel_value_us < DV_QUALITY_RTT_THRESHOLD.rel_value_us)
+    if (q->pd.aged_rtt.rel_value_us < DV_QUALITY_RTT_THRESHOLD.rel_value_us)
       do_inc = GNUNET_YES;
   }
   if (GNUNET_YES == do_inc)
@@ -7669,7 +7784,7 @@ handle_add_queue_message (void *cls,
   queue = GNUNET_malloc (sizeof (struct Queue) + addr_len);
   queue->tc = tc;
   queue->address = (const char *) &queue[1];
-  queue->rtt = GNUNET_TIME_UNIT_FOREVER_REL;
+  queue->pd.aged_rtt = GNUNET_TIME_UNIT_FOREVER_REL;
   queue->qid = aqm->qid;
   queue->mtu = ntohl (aqm->mtu);
   queue->nt = (enum GNUNET_NetworkType) ntohl (aqm->nt);
@@ -7692,7 +7807,7 @@ handle_add_queue_message (void *cls,
   memcpy (&queue[1], addr, addr_len);
   /* notify monitors about new queue */
   {
-    struct MonitorEvent me = {.rtt = queue->rtt, .cs = queue->cs};
+    struct MonitorEvent me = {.rtt = queue->pd.aged_rtt, .cs = queue->cs};
 
     notify_monitors (&neighbour->pid, queue->address, queue->nt, &me);
   }
