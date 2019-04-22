@@ -257,12 +257,12 @@ GNUNET_NETWORK_STRUCT_BEGIN
 /**
  * Unique identifier we attach to a message.
  */
-struct MessageUUID
+struct MessageUUIDP
 {
   /**
    * Unique value.
    */
-  struct GNUNET_ShortHashCode uuid;
+  struct GNUNET_ShortHashCode uuid; // FIXME: change to 8 bytes
 };
 
 
@@ -274,14 +274,14 @@ struct FragmentUUIDP
   /**
    * Unique value identifying a fragment, in NBO.
    */
-  uint32_t uuid GNUNET_PACKED;
+  uint32_t uuid GNUNET_PACKED; // FIXME: change to 2x 2 bytes?
 };
 
 
 /**
  * Type of a nonce used for challenges.
  */
-struct ChallengeNonce
+struct ChallengeNonceP
 {
   /**
    * The value of the nonce.  Note that this is NOT a hash.
@@ -378,7 +378,7 @@ struct EphemeralConfirmationPS
  * Plaintext of the variable-size payload that is encrypted
  * within a `struct TransportBackchannelEncapsulationMessage`
  */
-struct TransportBackchannelRequestPayload
+struct TransportBackchannelRequestPayloadP
 {
 
   /**
@@ -432,7 +432,7 @@ struct TransportBackchannelRequestPayload
  * Outer layer of an encapsulated unfragmented application message sent
  * over an unreliable channel.
  */
-struct TransportReliabilityBox
+struct TransportReliabilityBoxMessage
 {
   /**
    * Type is #GNUNET_MESSAGE_TYPE_TRANSPORT_RELIABILITY_BOX
@@ -452,7 +452,7 @@ struct TransportReliabilityBox
    * messages sent over possibly unreliable channels.  Should
    * be a random.
    */
-  struct MessageUUID msg_uuid;
+  struct MessageUUIDP msg_uuid;
 };
 
 
@@ -483,7 +483,7 @@ struct TransportReliabilityAckMessage
    */
   struct GNUNET_TIME_RelativeNBO avg_ack_delay;
 
-  /* followed by any number of `struct MessageUUID`
+  /* followed by any number of `struct MessageUUIDP`
      messages providing ACKs */
 };
 
@@ -491,7 +491,7 @@ struct TransportReliabilityAckMessage
 /**
  * Outer layer of an encapsulated fragmented application message.
  */
-struct TransportFragmentBox
+struct TransportFragmentBoxMessage
 {
   /**
    * Type is #GNUNET_MESSAGE_TYPE_TRANSPORT_FRAGMENT
@@ -512,7 +512,7 @@ struct TransportFragmentBox
    * Original message ID for of the message that all the
    * fragments belong to.  Must be the same for all fragments.
    */
-  struct MessageUUID msg_uuid;
+  struct MessageUUIDP msg_uuid;
 
   /**
    * Offset of this fragment in the overall message.
@@ -556,7 +556,7 @@ struct TransportFragmentAckMessage
    * Original message ID for of the message that all the
    * fragments belong to.
    */
-  struct MessageUUID msg_uuid;
+  struct MessageUUIDP msg_uuid;
 
   /**
    * How long was the ACK delayed relative to the average time of
@@ -615,7 +615,7 @@ struct DvInitPS
   /**
    * Challenge value used by the initiator to re-identify the path.
    */
-  struct ChallengeNonce challenge;
+  struct ChallengeNonceP challenge;
 };
 
 
@@ -655,13 +655,13 @@ struct DvHopPS
   /**
    * Challenge value used by the initiator to re-identify the path.
    */
-  struct ChallengeNonce challenge;
+  struct ChallengeNonceP challenge;
 };
 
 
 /**
  * An entry describing a peer on a path in a
- * `struct TransportDVLearn` message.
+ * `struct TransportDVLearnMessage` message.
  */
 struct DVPathEntryP
 {
@@ -691,7 +691,7 @@ struct DVPathEntryP
  * zero, peers that can forward to the initator should always try to
  * forward to the initiator.
  */
-struct TransportDVLearn
+struct TransportDVLearnMessage
 {
   /**
    * Type is #GNUNET_MESSAGE_TYPE_TRANSPORT_DV_LEARN
@@ -735,7 +735,7 @@ struct TransportDVLearn
   /**
    * Challenge value used by the initiator to re-identify the path.
    */
-  struct ChallengeNonce challenge;
+  struct ChallengeNonceP challenge;
 
   /* Followed by @e num_hops `struct DVPathEntryP` values,
      excluding the initiator of the DV trace; the last entry is the
@@ -758,7 +758,7 @@ struct TransportDVLearn
  *
  * If a peer finds itself still on the list, it must drop the message.
  */
-struct TransportDVBox
+struct TransportDVBoxMessage
 {
   /**
    * Type is #GNUNET_MESSAGE_TYPE_TRANSPORT_DV_BOX
@@ -796,7 +796,7 @@ struct TransportDVBox
  * Message send to another peer to validate that it can indeed
  * receive messages at a particular address.
  */
-struct TransportValidationChallenge
+struct TransportValidationChallengeMessage
 {
 
   /**
@@ -812,7 +812,7 @@ struct TransportValidationChallenge
   /**
    * Challenge to be signed by the receiving peer.
    */
-  struct ChallengeNonce challenge;
+  struct ChallengeNonceP challenge;
 
   /**
    * Timestamp of the sender, to be copied into the reply
@@ -843,7 +843,7 @@ struct TransportValidationPS
   /**
    * Challenge signed by the receiving peer.
    */
-  struct ChallengeNonce challenge;
+  struct ChallengeNonceP challenge;
 };
 
 
@@ -851,7 +851,7 @@ struct TransportValidationPS
  * Message send to a peer to respond to a
  * #GNUNET_MESSAGE_TYPE_ADDRESS_VALIDATION_CHALLENGE
  */
-struct TransportValidationResponse
+struct TransportValidationResponseMessage
 {
 
   /**
@@ -873,7 +873,7 @@ struct TransportValidationResponse
   /**
    * The challenge that was signed by the receiving peer.
    */
-  struct ChallengeNonce challenge;
+  struct ChallengeNonceP challenge;
 
   /**
    * Original timestamp of the sender (was @code{sender_time}),
@@ -943,7 +943,7 @@ struct LearnLaunchEntry
   /**
    * Challenge that uniquely identifies this activity.
    */
-  struct ChallengeNonce challenge;
+  struct ChallengeNonceP challenge;
 
   /**
    * When did we transmit the DV learn message (used to calculate RTT) and
@@ -1267,7 +1267,8 @@ struct Queue
   struct GNUNET_TIME_Absolute validated_until;
 
   /**
-   * Message ID generator for transmissions on this queue.
+   * Message ID generator for transmissions on this queue to the
+   * communicator.
    */
   uint64_t mid_gen;
 
@@ -1328,7 +1329,7 @@ struct ReassemblyContext
    * Original message ID for of the message that all the
    * fragments belong to.
    */
-  struct MessageUUID msg_uuid;
+  struct MessageUUIDP msg_uuid;
 
   /**
    * Which neighbour is this context for?
@@ -1685,7 +1686,7 @@ struct PendingMessage
    * UUID to use for this message (used for reassembly of fragments, only
    * initialized if @e msg_uuid_set is #GNUNET_YES).
    */
-  struct MessageUUID msg_uuid;
+  struct MessageUUIDP msg_uuid;
 
   /**
    * Counter incremented per generated fragment.
@@ -1984,7 +1985,7 @@ struct ValidationState
    * (We must not rotate more often as otherwise we may discard valid answers
    * due to packet losses, latency and reorderings on the network).
    */
-  struct ChallengeNonce challenge;
+  struct ChallengeNonceP challenge;
 
   /**
    * Claimed address of the peer.
@@ -3237,7 +3238,7 @@ check_communicator_backchannel (
   msize = ntohs (cb->header.size) - sizeof (*cb);
   if (UINT16_MAX - msize >
       sizeof (struct TransportBackchannelEncapsulationMessage) +
-        sizeof (struct TransportBackchannelRequestPayload))
+        sizeof (struct TransportBackchannelRequestPayloadP))
   {
     GNUNET_break (0);
     return GNUNET_SYSERR;
@@ -3524,10 +3525,10 @@ forward_via_dvh (const struct DistanceVectorHop *dvh,
                  enum RouteMessageOptions options)
 {
   uint16_t mlen = ntohs (payload->size);
-  char boxram[sizeof (struct TransportDVBox) +
+  char boxram[sizeof (struct TransportDVBoxMessage) +
               (dvh->distance + 1) * sizeof (struct GNUNET_PeerIdentity) +
               mlen] GNUNET_ALIGN;
-  struct TransportDVBox *box = (struct TransportDVBox *) boxram;
+  struct TransportDVBoxMessage *box = (struct TransportDVBoxMessage *) boxram;
   struct GNUNET_PeerIdentity *path = (struct GNUNET_PeerIdentity *) &box[1];
 
   box->header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_DV_BOX);
@@ -3868,14 +3869,14 @@ handle_communicator_backchannel (
   struct GNUNET_CRYPTO_EcdhePrivateKey private_key;
   struct GNUNET_TIME_Absolute ephemeral_validity;
   struct TransportBackchannelEncapsulationMessage *enc;
-  struct TransportBackchannelRequestPayload ppay;
+  struct TransportBackchannelRequestPayloadP ppay;
   struct BackchannelKeyState key;
   char *mpos;
   uint16_t msize;
 
   /* encapsulate and encrypt message */
   msize = ntohs (cb->header.size) - sizeof (*cb) +
-          sizeof (struct TransportBackchannelRequestPayload);
+          sizeof (struct TransportBackchannelRequestPayloadP);
   enc = GNUNET_malloc (sizeof (*enc) + msize);
   enc->header.type =
     htons (GNUNET_MESSAGE_TYPE_TRANSPORT_BACKCHANNEL_ENCAPSULATION);
@@ -4186,7 +4187,7 @@ handle_raw_message (void *cls, const struct GNUNET_MessageHeader *mh)
  * @return #GNUNET_YES if message is well-formed
  */
 static int
-check_fragment_box (void *cls, const struct TransportFragmentBox *fb)
+check_fragment_box (void *cls, const struct TransportFragmentBoxMessage *fb)
 {
   uint16_t size = ntohs (fb->header.size);
   uint16_t bsize = size - sizeof (*fb);
@@ -4248,7 +4249,7 @@ send_fragment_ack (struct ReassemblyContext *rc)
  * @param fb the message that was received
  */
 static void
-handle_fragment_box (void *cls, const struct TransportFragmentBox *fb)
+handle_fragment_box (void *cls, const struct TransportFragmentBoxMessage *fb)
 {
   struct CommunicatorMessageContext *cmc = cls;
   struct Neighbour *n;
@@ -4432,8 +4433,8 @@ check_ack_against_pm (struct PendingMessage *pm,
   match = GNUNET_NO;
   for (struct PendingMessage *frag = pm->head_frag; NULL != frag; frag = nxt)
   {
-    const struct TransportFragmentBox *tfb =
-      (const struct TransportFragmentBox *) &pm[1];
+    const struct TransportFragmentBoxMessage *tfb =
+      (const struct TransportFragmentBoxMessage *) &pm[1];
     uint32_t fu = ntohl (tfb->frag_uuid.uuid);
 
     GNUNET_assert (PMT_FRAGMENT_BOX == frag->pmt);
@@ -4541,7 +4542,8 @@ handle_fragment_ack (void *cls, const struct TransportFragmentAckMessage *fa)
  * @return #GNUNET_YES if message is well-formed
  */
 static int
-check_reliability_box (void *cls, const struct TransportReliabilityBox *rb)
+check_reliability_box (void *cls,
+                       const struct TransportReliabilityBoxMessage *rb)
 {
   GNUNET_MQ_check_boxed_message (rb);
   return GNUNET_YES;
@@ -4556,7 +4558,8 @@ check_reliability_box (void *cls, const struct TransportReliabilityBox *rb)
  * @param rb the message that was received
  */
 static void
-handle_reliability_box (void *cls, const struct TransportReliabilityBox *rb)
+handle_reliability_box (void *cls,
+                        const struct TransportReliabilityBoxMessage *rb)
 {
   struct CommunicatorMessageContext *cmc = cls;
   const struct GNUNET_MessageHeader *inbox =
@@ -4568,10 +4571,10 @@ handle_reliability_box (void *cls, const struct TransportReliabilityBox *rb)
 
     /* FIXME-OPTIMIZE: implement cummulative ACKs and ack_countdown,
        then setting the avg_ack_delay field below: */
-    ack = GNUNET_malloc (sizeof (*ack) + sizeof (struct MessageUUID));
+    ack = GNUNET_malloc (sizeof (*ack) + sizeof (struct MessageUUIDP));
     ack->header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_RELIABILITY_ACK);
-    ack->header.size = htons (sizeof (*ack) + sizeof (struct MessageUUID));
-    memcpy (&ack[1], &rb->msg_uuid, sizeof (struct MessageUUID));
+    ack->header.size = htons (sizeof (*ack) + sizeof (struct MessageUUIDP));
+    memcpy (&ack[1], &rb->msg_uuid, sizeof (struct MessageUUIDP));
     route_message (&cmc->im.sender, &ack->header, RMO_DV_ALLOWED);
   }
   /* continue with inner message */
@@ -4593,7 +4596,7 @@ handle_reliability_ack (void *cls,
   struct CommunicatorMessageContext *cmc = cls;
   struct Neighbour *n;
   unsigned int n_acks;
-  const struct MessageUUID *msg_uuids;
+  const struct MessageUUIDP *msg_uuids;
   struct PendingMessage *nxt;
   int matched;
 
@@ -4608,8 +4611,8 @@ handle_reliability_ack (void *cls,
     return;
   }
   n_acks =
-    (ntohs (ra->header.size) - sizeof (*ra)) / sizeof (struct MessageUUID);
-  msg_uuids = (const struct MessageUUID *) &ra[1];
+    (ntohs (ra->header.size) - sizeof (*ra)) / sizeof (struct MessageUUIDP);
+  msg_uuids = (const struct MessageUUIDP *) &ra[1];
 
   /* FIXME-OPTIMIZE: maybe use another hash map here? */
   matched = GNUNET_NO;
@@ -4675,7 +4678,7 @@ check_backchannel_encapsulation (
 
   (void) cls;
   if ((size - sizeof (*be)) <
-      (sizeof (struct TransportBackchannelRequestPayload) +
+      (sizeof (struct TransportBackchannelRequestPayloadP) +
        sizeof (struct GNUNET_MessageHeader)))
   {
     GNUNET_break_op (0);
@@ -4978,7 +4981,7 @@ handle_backchannel_encapsulation (
   {
     struct Backtalker *b;
     struct GNUNET_TIME_Absolute monotime;
-    struct TransportBackchannelRequestPayload ppay;
+    struct TransportBackchannelRequestPayloadP ppay;
     char body[hdr_len - sizeof (ppay)];
 
     GNUNET_assert (hdr_len >=
@@ -5325,7 +5328,7 @@ learn_dv_path (const struct GNUNET_PeerIdentity *path,
  * @return #GNUNET_YES if message is well-formed
  */
 static int
-check_dv_learn (void *cls, const struct TransportDVLearn *dvl)
+check_dv_learn (void *cls, const struct TransportDVLearnMessage *dvl)
 {
   uint16_t size = ntohs (dvl->header.size);
   uint16_t num_hops = ntohs (dvl->num_hops);
@@ -5372,22 +5375,22 @@ check_dv_learn (void *cls, const struct TransportDVLearn *dvl)
  */
 static void
 forward_dv_learn (const struct GNUNET_PeerIdentity *next_hop,
-                  const struct TransportDVLearn *msg,
+                  const struct TransportDVLearnMessage *msg,
                   uint16_t bi_history,
                   uint16_t nhops,
                   const struct DVPathEntryP *hops,
                   struct GNUNET_TIME_Absolute in_time)
 {
   struct DVPathEntryP *dhops;
-  struct TransportDVLearn *fwd;
+  struct TransportDVLearnMessage *fwd;
   struct GNUNET_TIME_Relative nnd;
 
   /* compute message for forwarding */
   GNUNET_assert (nhops < MAX_DV_HOPS_ALLOWED);
-  fwd = GNUNET_malloc (sizeof (struct TransportDVLearn) +
+  fwd = GNUNET_malloc (sizeof (struct TransportDVLearnMessage) +
                        (nhops + 1) * sizeof (struct DVPathEntryP));
   fwd->header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_DV_LEARN);
-  fwd->header.size = htons (sizeof (struct TransportDVLearn) +
+  fwd->header.size = htons (sizeof (struct TransportDVLearnMessage) +
                             (nhops + 1) * sizeof (struct DVPathEntryP));
   fwd->num_hops = htons (nhops + 1);
   fwd->bidirectional = htons (bi_history);
@@ -5429,7 +5432,7 @@ forward_dv_learn (const struct GNUNET_PeerIdentity *next_hop,
 static int
 validate_dv_initiator_signature (
   const struct GNUNET_PeerIdentity *init,
-  const struct ChallengeNonce *challenge,
+  const struct ChallengeNonceP *challenge,
   const struct GNUNET_CRYPTO_EddsaSignature *init_sig)
 {
   struct DvInitPS ip = {.purpose.purpose = htonl (
@@ -5459,7 +5462,7 @@ validate_dv_initiator_signature (
  * @param dvl the message that was received
  */
 static void
-handle_dv_learn (void *cls, const struct TransportDVLearn *dvl)
+handle_dv_learn (void *cls, const struct TransportDVLearnMessage *dvl)
 {
   struct CommunicatorMessageContext *cmc = cls;
   enum GNUNET_TRANSPORT_CommunicatorCharacteristics cc;
@@ -5657,7 +5660,7 @@ handle_dv_learn (void *cls, const struct TransportDVLearn *dvl)
  * @return #GNUNET_YES if message is well-formed
  */
 static int
-check_dv_box (void *cls, const struct TransportDVBox *dvb)
+check_dv_box (void *cls, const struct TransportDVBoxMessage *dvb)
 {
   uint16_t size = ntohs (dvb->header.size);
   uint16_t num_hops = ntohs (dvb->num_hops);
@@ -5719,17 +5722,17 @@ forward_dv_box (struct Neighbour *next_hop,
                 const void *payload,
                 uint16_t payload_size)
 {
-  struct TransportDVBox *dvb;
+  struct TransportDVBoxMessage *dvb;
   struct GNUNET_PeerIdentity *dhops;
 
-  GNUNET_assert (UINT16_MAX < sizeof (struct TransportDVBox) +
+  GNUNET_assert (UINT16_MAX < sizeof (struct TransportDVBoxMessage) +
                                 sizeof (struct GNUNET_PeerIdentity) * num_hops +
                                 payload_size);
-  dvb = GNUNET_malloc (sizeof (struct TransportDVBox) +
+  dvb = GNUNET_malloc (sizeof (struct TransportDVBoxMessage) +
                        sizeof (struct GNUNET_PeerIdentity) * num_hops +
                        payload_size);
   dvb->header.size =
-    htons (sizeof (struct TransportDVBox) +
+    htons (sizeof (struct TransportDVBoxMessage) +
            sizeof (struct GNUNET_PeerIdentity) * num_hops + payload_size);
   dvb->header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_DV_BOX);
   dvb->total_hops = htons (total_hops);
@@ -5750,7 +5753,7 @@ forward_dv_box (struct Neighbour *next_hop,
  * @param dvb the message that was received
  */
 static void
-handle_dv_box (void *cls, const struct TransportDVBox *dvb)
+handle_dv_box (void *cls, const struct TransportDVBoxMessage *dvb)
 {
   struct CommunicatorMessageContext *cmc = cls;
   uint16_t size = ntohs (dvb->header.size) - sizeof (*dvb);
@@ -5834,11 +5837,12 @@ check_incoming_msg (void *cls,
  * @param tvc the message that was received
  */
 static void
-handle_validation_challenge (void *cls,
-                             const struct TransportValidationChallenge *tvc)
+handle_validation_challenge (
+  void *cls,
+  const struct TransportValidationChallengeMessage *tvc)
 {
   struct CommunicatorMessageContext *cmc = cls;
-  struct TransportValidationResponse *tvr;
+  struct TransportValidationResponseMessage *tvr;
 
   if (cmc->total_hops > 0)
   {
@@ -5847,7 +5851,7 @@ handle_validation_challenge (void *cls,
     finish_cmc_handling (cmc);
     return;
   }
-  tvr = GNUNET_new (struct TransportValidationResponse);
+  tvr = GNUNET_new (struct TransportValidationResponseMessage);
   tvr->header.type =
     htons (GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_VALIDATION_RESPONSE);
   tvr->header.size = htons (sizeof (*tvr));
@@ -5881,7 +5885,7 @@ struct CheckKnownChallengeContext
   /**
    * Set to the challenge we are looking for.
    */
-  const struct ChallengeNonce *challenge;
+  const struct ChallengeNonceP *challenge;
 
   /**
    * Set to a matching validation state, if one was found.
@@ -6085,8 +6089,9 @@ update_neighbour_core_visibility (struct Neighbour *n)
  * @param tvr the message that was received
  */
 static void
-handle_validation_response (void *cls,
-                            const struct TransportValidationResponse *tvr)
+handle_validation_response (
+  void *cls,
+  const struct TransportValidationResponseMessage *tvr)
 {
   struct CommunicatorMessageContext *cmc = cls;
   struct ValidationState *vs;
@@ -6247,7 +6252,7 @@ demultiplex_with_cmc (struct CommunicatorMessageContext *cmc,
   struct GNUNET_MQ_MessageHandler handlers[] =
     {GNUNET_MQ_hd_var_size (fragment_box,
                             GNUNET_MESSAGE_TYPE_TRANSPORT_FRAGMENT,
-                            struct TransportFragmentBox,
+                            struct TransportFragmentBoxMessage,
                             &cmc),
      GNUNET_MQ_hd_fixed_size (fragment_ack,
                               GNUNET_MESSAGE_TYPE_TRANSPORT_FRAGMENT_ACK,
@@ -6255,7 +6260,7 @@ demultiplex_with_cmc (struct CommunicatorMessageContext *cmc,
                               &cmc),
      GNUNET_MQ_hd_var_size (reliability_box,
                             GNUNET_MESSAGE_TYPE_TRANSPORT_RELIABILITY_BOX,
-                            struct TransportReliabilityBox,
+                            struct TransportReliabilityBoxMessage,
                             &cmc),
      GNUNET_MQ_hd_fixed_size (reliability_ack,
                               GNUNET_MESSAGE_TYPE_TRANSPORT_RELIABILITY_ACK,
@@ -6267,21 +6272,21 @@ demultiplex_with_cmc (struct CommunicatorMessageContext *cmc,
                             &cmc),
      GNUNET_MQ_hd_var_size (dv_learn,
                             GNUNET_MESSAGE_TYPE_TRANSPORT_DV_LEARN,
-                            struct TransportDVLearn,
+                            struct TransportDVLearnMessage,
                             &cmc),
      GNUNET_MQ_hd_var_size (dv_box,
                             GNUNET_MESSAGE_TYPE_TRANSPORT_DV_BOX,
-                            struct TransportDVBox,
+                            struct TransportDVBoxMessage,
                             &cmc),
      GNUNET_MQ_hd_fixed_size (
        validation_challenge,
        GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_VALIDATION_CHALLENGE,
-       struct TransportValidationChallenge,
+       struct TransportValidationChallengeMessage,
        &cmc),
      GNUNET_MQ_hd_fixed_size (
        validation_response,
        GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_VALIDATION_RESPONSE,
-       struct TransportValidationResponse,
+       struct TransportValidationResponseMessage,
        &cmc),
      GNUNET_MQ_handler_end ()};
   int ret;
@@ -6378,7 +6383,7 @@ fragment_message (struct PendingMessage *pm, uint16_t mtu)
   set_pending_message_uuid (pm);
 
   /* This invariant is established in #handle_add_queue_message() */
-  GNUNET_assert (mtu > sizeof (struct TransportFragmentBox));
+  GNUNET_assert (mtu > sizeof (struct TransportFragmentBoxMessage));
 
   /* select fragment for transmission, descending the tree if it has
      been expanded until we are at a leaf or at a fragment that is small enough
@@ -6394,7 +6399,7 @@ fragment_message (struct PendingMessage *pm, uint16_t mtu)
   {
     /* Did not yet calculate all fragments, calculate next fragment */
     struct PendingMessage *frag;
-    struct TransportFragmentBox tfb;
+    struct TransportFragmentBoxMessage tfb;
     const char *orig;
     char *msg;
     uint16_t fragmax;
@@ -6406,25 +6411,27 @@ fragment_message (struct PendingMessage *pm, uint16_t mtu)
     msize = ff->bytes_msg;
     if (pm != ff)
     {
-      const struct TransportFragmentBox *tfbo;
+      const struct TransportFragmentBoxMessage *tfbo;
 
-      tfbo = (const struct TransportFragmentBox *) orig;
-      orig += sizeof (struct TransportFragmentBox);
-      msize -= sizeof (struct TransportFragmentBox);
+      tfbo = (const struct TransportFragmentBoxMessage *) orig;
+      orig += sizeof (struct TransportFragmentBoxMessage);
+      msize -= sizeof (struct TransportFragmentBoxMessage);
       xoff = ntohs (tfbo->frag_off);
     }
-    fragmax = mtu - sizeof (struct TransportFragmentBox);
+    fragmax = mtu - sizeof (struct TransportFragmentBoxMessage);
     fragsize = GNUNET_MIN (msize - ff->frag_off, fragmax);
-    frag = GNUNET_malloc (sizeof (struct PendingMessage) +
-                          sizeof (struct TransportFragmentBox) + fragsize);
+    frag =
+      GNUNET_malloc (sizeof (struct PendingMessage) +
+                     sizeof (struct TransportFragmentBoxMessage) + fragsize);
     frag->target = pm->target;
     frag->frag_parent = ff;
     frag->timeout = pm->timeout;
-    frag->bytes_msg = sizeof (struct TransportFragmentBox) + fragsize;
+    frag->bytes_msg = sizeof (struct TransportFragmentBoxMessage) + fragsize;
     frag->pmt = PMT_FRAGMENT_BOX;
     msg = (char *) &frag[1];
     tfb.header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_FRAGMENT);
-    tfb.header.size = htons (sizeof (struct TransportFragmentBox) + fragsize);
+    tfb.header.size =
+      htons (sizeof (struct TransportFragmentBoxMessage) + fragsize);
     tfb.frag_uuid.uuid = htonl (pm->frag_uuidgen++);
     tfb.msg_uuid = pm->msg_uuid;
     tfb.frag_off = htons (ff->frag_off + xoff);
@@ -6462,7 +6469,7 @@ fragment_message (struct PendingMessage *pm, uint16_t mtu)
 static struct PendingMessage *
 reliability_box_message (struct PendingMessage *pm)
 {
-  struct TransportReliabilityBox rbox;
+  struct TransportReliabilityBoxMessage rbox;
   struct PendingMessage *bpm;
   char *msg;
 
@@ -6588,7 +6595,7 @@ transmit_on_queue (void *cls)
     return; /* do it later */
   overhead = 0;
   if (GNUNET_TRANSPORT_CC_RELIABLE != queue->tc->details.communicator.cc)
-    overhead += sizeof (struct TransportReliabilityBox);
+    overhead += sizeof (struct TransportReliabilityBoxMessage);
   s = pm;
   if ( ( (0 != queue->mtu) &&
 	 (pm->bytes_msg + overhead > queue->mtu) ) ||
@@ -7032,7 +7039,7 @@ suggest_to_connect (const struct GNUNET_PeerIdentity *pid, const char *address)
 static void
 validation_transmit_on_queue (struct Queue *q, struct ValidationState *vs)
 {
-  struct TransportValidationChallenge tvc;
+  struct TransportValidationChallengeMessage tvc;
 
   vs->last_challenge_use = GNUNET_TIME_absolute_get ();
   tvc.header.type =
@@ -7170,7 +7177,7 @@ start_dv_learn (void *cls)
 {
   struct LearnLaunchEntry *lle;
   struct QueueQualityContext qqc;
-  struct TransportDVLearn dvl;
+  struct TransportDVLearnMessage dvl;
 
   (void) cls;
   dvlearn_task = NULL;
@@ -7301,7 +7308,7 @@ handle_add_queue_message (void *cls,
   const char *addr;
   uint16_t addr_len;
 
-  if (ntohl (aqm->mtu) <= sizeof (struct TransportFragmentBox))
+  if (ntohl (aqm->mtu) <= sizeof (struct TransportFragmentBoxMessage))
   {
     /* MTU so small as to be useless for transmissions,
        required for #fragment_message()! */
