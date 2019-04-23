@@ -2121,7 +2121,7 @@ extern "C" {
 
 /** M<->S<->C: PSYC message which contains a header and one or more message
  * parts. */
-#define GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_HEADER                                \
+#define GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_HEADER \
   692 // FIXME: start using this where appropriate
 
 /** Message part: method */
@@ -3106,11 +3106,6 @@ extern "C" {
  * message length to a queue's MTU.
  */
 #define GNUNET_MESSAGE_TYPE_TRANSPORT_FRAGMENT 1214
-
-/**
- * Acknowledgement generated for a fragment.
- */
-#define GNUNET_MESSAGE_TYPE_TRANSPORT_FRAGMENT_ACK 1215
 
 /**
  * Wrapper around non-fragmented CORE message used to measure RTT
