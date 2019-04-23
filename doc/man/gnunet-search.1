@@ -65,23 +65,30 @@ Given an anonymity level L (above 1), each request FS makes on your behalf must 
 The time-period is twice the average delay by which GNUnet artificially delays traffic.
 Note that regardless of the anonymity level you choose, peers that cache content in the network always use anonymity level 1.
 .It Fl c Ar FILENAME | Fl \-config= Ns Ar FILENAME
-Use the configuration file FILENAME (default:
+Use the configuration file
+.Ar FILENAME
+(default:
 .Pa ~/.config/gnunet.conf )
 .It Fl h | \-help
-print help page
+Print the help page.
 .It Fl L Ar LOGLEVEL | Fl \-loglevel= Ns Ar LOGLEVEL
 Change the loglevel.
 Possible values for LOGLEVEL are ERROR, WARNING, INFO and DEBUG.
 .It Fl l Ar FILENAME | Fl \-logfile= Ns Ar FILENAME
-Write logs to FILENAME.
+Write logs to
+.Ar FILENAME .
 .It Fl o Ar FILENAME | Fl \-output= Ns Ar FILENAME
-Writes a GNUnet directory containing all of the search results to FILENAME.
+Writes a GNUnet directory containing all of the search results to
+.Ar FILENAME .
 .It Fl n | \-no-network
 Only search locally, do not forward requests to other peers.
 .It Fl N Ar VALUE | Fl \-results= Ns Ar VALUE
-Automatically terminate the search after receiving VALUE results.
+Automatically terminate the search after receiving
+.Ar VALUE
+results.
 .It Fl t Ar DELAY | Fl \-timeout= Ns Ar DELAY
-Automatically timeout search after DELAY.
+Automatically timeout search after
+.Ar DELAY .
 The value given must be a number followed by a space and a time unit, for example "500 ms".
 Note that the quotes are required on the shell.
 Otherwise the search runs until gnunet-search is aborted with CTRL\-C.
@@ -102,25 +109,24 @@ For a keyword search, use
 .Pp
 If the format does not correspond to a GNUnet URI, GNUnet will automatically assume that keywords are supplied directly.
 .sp
-If multiple keywords are passed, gnunet-search will look for content
-matching any of the keywords.
+If multiple keywords are passed, gnunet-search will look for content matching any of the keywords.
 The prefix "+" makes a keyword mandatory.
 .Sh FILES
 .Pa ~/.config/gnunet.conf
 GNUnet configuration file; specifies the default value for the timeout
 .Sh EXAMPLES
-.Dl $ gnunet\-search "Das Kapital"
+.Dl $ gnunet-search "Das Kapital"
 .Pp
 Searches for content matching the keyword "Das Kapital".
 .Pp
-.Dl $ gnunet\-search +Das +Kapital
+.Dl $ gnunet-search +Das +Kapital
 .Pp
 Searches for content matching both mandatory keywords "Das" and "Kapital".
 .sp
-Search results are printed by gnunet\-search like this:
+Search results are printed by gnunet-search like this:
 .Pp
 .ad l
-        gnunet\-download \-o "COPYING" gnunet://fs/chk/HASH1.HASH2.SIZE
+        gnunet-download -o "COPYING" gnunet://fs/chk/HASH1.HASH2.SIZE
 
                 Description: The GNU General Public License
 
@@ -130,11 +136,15 @@ Search results are printed by gnunet\-search like this:
 The first line contains the command to run to download the file.
 The suggested filename in the example is COPYING.
 The GNUnet URI consists of the key and query hash of the file and finally the size of the file.
-After the command to download the file GNUnet will print meta\-data about the file as advertised in the search result, here "The GNU General Public License" and the mime\-type (see the options for gnunet-publish on how to supply meta-data by hand).
+After the command to download the file, GNUnet will print meta-data about the file as advertised in the search result.
+The meta-data here is the description ("The GNU General Public License") and the mime-type ("text-plain").
+See the options for
+.Xr gnunet-publish 1
+on how to supply meta-data by hand.
 .Sh SEE ALSO
+.Xr gnunet-download 1 ,
 .Xr gnunet-fs-gtk 1 ,
-.Xr gnunet\-publish 1 ,
-.Xr gnunet\-download 1 ,
+.Xr gnunet-publish 1 ,
 .Xr gnunet.conf 5
 .sp
 The full documentation for gnunet is maintained as a Texinfo manual.
