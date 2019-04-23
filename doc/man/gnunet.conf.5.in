@@ -1,5 +1,5 @@
 .\" -*- mode: nroff -*-
-.\" This file is part of Ascension.
+.\" This file is part of GNUnet.
 .\" Copyright (C) 2012-2015,2018,2019 GNUnet e.V.
 .\"
 .\" Permission is granted to copy, distribute and/or modify this document
@@ -32,25 +32,41 @@ GNUnet configuration file
 .Sh DESCRIPTION
 A GNUnet setup typically consists of a set of service processes run by a user "gnunet" and a set of user-interface processes run by a standard account.
 The default location for the configuration file for the services is
-.Pa ~gnunet/.config/gnunet.conf Ns ;
-however, as normal users also may need read-access to this configuration, you might want to instead put the service process configuration in
+.Pa ~gnunet/.config/gnunet.conf Ns .
+However, as normal users also may need read-access to this configuration, you might want to instead put the service process configuration in
 .Pa @SYSCONFDIR@/gnunet.conf Ns .
-gnunet-setup (part of gnunet-gtk) can be used to edit this configuration.
+.Xr gnunet-setup 1 ,
+part of gnunet-gtk, can be used to edit this configuration.
 The parts of GNUnet that are run as a normal user may have config options too and they read from
 .Pa $HOME/.config/gnunet.conf Ns .
 The latter config file can skip any options for the services.
 .Pp
 The basic structure of the configuration file is the following.
+.Bl -bullet -offset indent -compact
+.It
 The file is split into sections.
-Every section begins with "[SECTIONNAME]" and contains a number of options of the form "OPTION=VALUE".
+.It
+Every section begins with "[SECTIONNAME]".
+A section contains a number of options of the form "OPTION=VALUE".
+.It
 Empty lines and lines beginning with a "#" are treated as comments.
-Almost all options are optional and the tools resort to reasonable defaults if they are not present.
+.It
+Almost all options are optional.
+The tools resort to reasonable defaults if an option is not present.
+.El
 .Pp
 Default values for all of the options can be found in the files in the
 .Pa $GNUNET_PREFIX/share/gnunet/config.d/
 directory.
 A typical setup will work out of the box with those.
 See the examples section below for some common setups on top of that.
+.Ss Variable naming conventions and data types
+Boolean values for options are set via "YES" or "NO" values, without the double-quotes.
+.sp
+Options which include "PATH" or "path" define a path on the file-system and can take additional variables in the path, such as
+.Ev $GNUNET_TMP .
+.sp
+Section names as listed more in detail below, are small letters only enclosed by square brakets.
 .Ss GENERAL OPTIONS
 Many options will be common between sections.
 They can be repeated under each section with different values.
@@ -61,12 +77,24 @@ The main use of this is to redefine "$GNUNET_HOME", which by default points to
 .Pa $HOME/.config/ Ns .
 By setting this variable, you can change the location where GNUnet stores its internal data.
 .Pa gnunet.conf
-accepts the variable "GNUNET_TMP" which we suggest to use in place of the absolute definition of
+accepts the variable
+.Ev GNUNET_TMP
+which we suggest to use in place of the absolute definition of
 .Pa /tmp Ns .
 So instead of
 .Pa /tmp/foo
-you would write "$GNUNET_TMP/foo".
-The usage of "$GNUNET_TMP/foo", will result in "$TMPDIR/gnunet/foo", or  "$TMP/gnunet/foo" and finally, if "TMPDIR" is undefined, "/tmp/gnunet/foo".
+you would write
+.Pa $GNUNET_TMP/foo .
+The usage of
+.Pa $GNUNET_TMP/foo ,
+will result in
+.Pa $TMPDIR/gnunet/foo ,
+or
+.Pa $TMP/gnunet/foo
+and finally, if
+.Ev TMPDIR
+is undefined,
+.Pa /tmp/gnunet/foo .
 The following options are generic and shared by all services:
 .Bl -tag -width Ds
 .It HOSTNAME
@@ -102,41 +130,613 @@ If UNIX domain sockets are used, set this to YES if only users with the same UID
 .It UNIX_MATCH_GID
 If UNIX domain sockets are used, set this to YES if only users with the same GID are allowed to access the service.
 .It RUN_PER_USER
-Set to YES if this service should be run per-user, NO if this is a system service.
 End-users should never have to change the defaults GNUnet provides for this option.
-.El
-.Ss ATS OPTIONS
 .Bl -tag -width Ds
+.It YES
+Set to YES if this service should be run per-user.
+.It NO
+Set to NO if this is a system service.
+.El
+.El
+In the following sections the absence of a default value is either expressed as "Default value:" followed by nothing, or the lack of this line.
+.Ss ARM
+.Bl -tag -width Ds
+.It PORT
+Default value: 2087
+.It HOSTNAME
+Default value: localhost
+.It BINARY
+Default value: gnunet-service-arm
+.It ACCEPT_FROM
+Default value: 127.0.0.1;
+.It ACCEPT_FROM6
+Default value: ::1;
+.It UNIXPATH
+Special case, uses user runtime dir even for per-system service.
+.sp
+Default value: $GNUNET_USER_RUNTIME_DIR/gnunet-service-arm.sock
+.It UNIX_MATCH_UID
+Default value: YES
+.It UNIX_MATCH_GID
+Default value: YES
+.It GLOBAL_POSTFIX
+In the
+.Fl l
+option, format characters from
+.Xr strftime 3
+are allowed; In the GLOBAL_POSTFIX, "{}" stands for the name of the respective service.
+Thus the following example for this option would introduce per-service logging with a new log file each day.
+Note that only the last 3 log files are preserved.
+Example: -l $GNUNET_CACHE_HOME/{}-%Y-%m-%d.log
+.sp
+Default value:
+.It GLOBAL_PREFIX
+Default value:
+.It START_SYSTEM_SERVICES
+If set to YES, ARM will only start services that are marked as system-level services (and we'll expect a second ARM to be run per-user to run user-level services).
+Note that in this case you must have manually created a different configuration file with the user where at least this and the START_USER_SERVICES options differ.
+.It START_USER_SERVICES
+If set to YES, ARM will only start services that are marked as per-user services (and we'll expect a system user to run ARM to provide system-level services).
+Per-user services enable better personalization and  priviledge separation and in particular ensures that personal data is stored under $HOME, which might be important in a multi-user system (or if $HOME is encrypted and /var/ is not).
+.sp
+Note that if you have different ARM services for SYSTEM and USER, and you are not on UNIX, you need to change the PORT option for the USER ARM instances to some free port (counting down from 2085 should provide free ports).
+.It RESOURCE_DIAGNOSTICS
+File where we should log per-service resource consumption on exit.
+.sp
+Default value: resource.log
+.It USERNAME
+Name of the user that will be used to provide the service.
+.sp
+Default value:
+.It MAXBUF
+Default value:
+.It TIMEOUT
+Default value:
+.It DISABLEV6
+Default value:
+.It BINDTO
+Default value:
+.It REJECT_FROM
+Default value:
+.It REJECT_FROM6
+Default value:
+.It PREFIX
+Default value:
+.El
+.Ss ATS
+.Bl -tag -width Ds
+.It PORT
+Default value: 2098
+.It HOSTNAME
+Default value: localhost
+.It BINARY
+Default value: gnunet-service-ats
+.It ACCEPT_FROM
+Default value: 127.0.0.1;
+.It ACCEPT_FROM6
+Default value: ::1;
+.It UNIXPATH
+Default value: $GNUNET_RUNTIME_DIR/gnunet-service-ats.sock
+.It UNIX_MATCH_UID
+Default value: NO
+.It UNIX_MATCH_GID
+Default value: YES
+.It MODE
+Designated assignment mode.
+Possible values: PROPORTIONAL, MLP, RIL.
+.sp
+Default value: proportional
 .It UNSPECIFIED_QUOTA_IN
 quotes in KiB or MiB per seconds.
-Or use the word "unlimited"
+Or use the word "unlimited".
+Default value: 64 KiB
 .It UNSPECIFIED_QUOTA_OUT
 quotes in KiB or MiB per seconds.
-Or use the word "unlimited"
+Or use the word "unlimited".
+Default value: 64 KiB
 .It LOOPBACK_QUOTA_IN
 quotes in KiB or MiB per seconds.
-Or use the word "unlimited"
+Or use the word "unlimited".
+Default value: unlimited
 .It LOOPBACK_QUOTA_OUT
 quotes in KiB or MiB per seconds.
-Or use the word "unlimited"
+Or use the word "unlimited".
+Default value: unlimited
 .It LAN_QUOTA_IN
 quotes in KiB or MiB per seconds.
-Or use the word "unlimited"
+Or use the word "unlimited".
+Default value: unlimited
 .It LAN_QUOTA_OUT
 quotes in KiB or MiB per seconds.
-Or use the word "unlimited"
+Or use the word "unlimited".
+Default value: unlimited
 .It WAN_QUOTA_IN
 quotes in KiB or MiB per seconds.
-Or use the word "unlimited"
+Or use the word "unlimited".
+Default value: 64 KiB
 .It WAN_QUOTA_OUT
 quotes in KiB or MiB per seconds.
-Or use the word "unlimited"
+Or use the word "unlimited".
+Default value: 64 KiB
 .It WLAN_QUOTA_IN
 quotes in KiB or MiB per seconds.
-Or use the word "unlimited"
+Or use the word "unlimited".
+Default value: 1 MiB
 .It WLAN_QUOTA_OUT
 quotes in KiB or MiB per seconds.
-Or use the word "unlimited"
+Or use the word "unlimited".
+Default value: 1 MiB
+.It BLUETOOTH_QUOTA_IN
+Default value: 128 KiB
+.It BLUETOOTH_QUOTA_OUT
+Default value: 128 KiB
+.It PROP_PROPORTIONALITY_FACTOR
+How proportional to preferences is bandwidth distribution in a network?
+Default value: 2.00
+.Bl -tag -width Ds
+.It 1.0
+Fair with respect to addresses without preferences.
+.It > 1.0
+The bigger, the more respect is payed to preferences.
+.El
+.It PROP_STABILITY_FACTOR
+Should we stick to existing connections are prefer to switch?
+[1.0...2.0], lower value prefers to switch, bigger value is more tolerant.
+.sp
+Default value: 1.25
+.It MLP_MAX_DURATION
+Maximum duration for a solution process (both LP and MILP).
+Default value: 3 s
+.It MLP_MAX_ITERATIONS
+Maximum numbero of iterations for a solution process (only LP).
+Tolerated MIP Gap [0.0 .. 1.0].
+.sp
+Default value: 0.025
+.It MLP_MAX_MIP_GAP
+Tolerated LP/MIP Gap [0.0 .. 1.0].
+.sp
+Default value: 0.025
+.It MLP_MAX_LP_MIP_GAP
+Default value: 0.025
+.It MLP_MAX_ITERATIONS
+Maximum number of iterations for a solution process.
+.sp
+Default value: 1024
+.It MLP_COEFFICIENT_D
+Default value: 1.0
+.It MLP_COEFFICIENT_U
+Default value: 1.0
+.It MLP_COEFFICIENT_R
+Default value: 1.0
+.It MLP_MIN_BANDWIDTH
+Default value: 1024
+.It MLP_MIN_CONNECTIONS
+Default value: 4
+.It MLP_DUMP_PROBLEM_ALL
+Dump all problems to disk.
+.sp
+Default value: YES
+.It MLP_DUMP_SOLUTION_ALL
+Dump all solution to disk.
+.sp
+Default value: YES
+.It MLP_GLPK_VERBOSE
+Print GLPK output.
+.sp
+Default value: YES
+.It MLP_DUMP_PROBLEM_ON_FAIL
+Dump all problems to disk.
+.sp
+Default value: YES
+.It MLP_DUMP_SOLUTION_ON_FAIL
+Dump all solution to disk.
+.sp
+Default value: YES
+.It RIL_STEP_TIME_MIN
+Default value: 500 ms
+.It RIL_STEP_TIME_MAX
+Default value: 1000 ms
+.It RIL_ALGORITHM
+Possible values: SARSA or Q-LEARNING.
+.sp
+Default value: Q-LEARNING
+.It RIL_DISCOUNT_BETA
+Default value: 0.7
+.It RIL_GRADIENT_STEP_SIZE
+Default value: 0.3
+.It RIL_TRACE_DECAY
+Default value: 0.2
+.It RIL_EXPLORE_RATIO
+Default value: 0.1
+.It RIL_GLOBAL_REWARD_SHARE
+Default value: 1
+.El
+.Ss AUCTION
+.Bl -tag -width Ds
+.El
+.Ss CADET
+.Bl -tag -width Ds
+.It IMMEDIATE_START
+Default value: YES
+.It START_ON_DEMAND
+Default value: YES
+.It PORT
+Default value: 2096
+.It HOSTNAME
+Default value: localhost
+.It BINARY
+Default value: gnunet-service-cadet
+.It PREFIX
+.It ACCEPT_FROM
+Default value: 127.0.0.1;
+.It ACCEPT_FROM6
+Default value: ::1;
+.It UNIXPATH
+Default value: $GNUNET_RUNTIME_DIR/gnunet-service-cadet.sock
+.It UNIX_MATCH_UID
+Default value: NO
+.It UNIX_MATCH_GID
+Default value: YES
+.It REFRESH_CONNECTION_TIME
+How often do we send KEEPALIVE messages on connections to keep them from timing out?
+.sp
+Default value: 5 min
+.It DROP_PERCENT
+Percentage of packets CADET is artificially dropping.
+Used for testing only!
+.It ID_ANNOUNCE_TIME
+How frequently do we usually anounce our presence in the DHT?
+.sp
+Default value: 1 h
+.It CONNECT_TIMEOUT
+Default value: 30 s
+.It DHT_REPLICATION_LEVEL
+What is the replication level we give to the DHT when announcing our existence?
+Usually there is no need to change this.
+.sp
+Default value: 3
+.It MAX_TUNNELS
+Not implemented
+.sp
+Default value: 1000
+.It MAX_CONNECTIONS
+Not implemented, replaced by MAX_ROUTES in NEW CADET!
+.sp
+Default value: 1000
+.It MAX_ROUTES
+How many routes do we participate in at most?
+Should be smaller than MAX_MSGS_QUEUE.
+.sp
+Default value: 5000
+.It MAX_MSGS_QUEUE
+Not implemented
+.sp
+Default value: 10000
+.It MAX_PEERS
+Not implemented
+.sp
+Default value: 1000
+.It RATCHET_TIME
+How often do we advance the ratchet even if there is not any traffic?
+.sp
+Default value: 1 h
+.It RATCHET_MESSAGES
+How often do we advance the ratched if there is traffic?
+.sp
+Default value: 64
+.El
+.Ss COMMUNICATOR-UNIX
+.Bl -tag -width Ds
+.It UNIXPATH
+Default value: $GNUNET_RUNTIME_DIR/gnunet-communicator-unix.sock
+.El
+.Ss CONSENSUS
+.Bl -tag -width Ds
+.It START_ON_DEMAND
+Default value: YES
+.It PORT
+Default value: 2103
+.It HOSTNAME
+Default value: localhost
+.It BINARY
+Default value: gnunet-service-consensus
+.It ACCEPT_FROM
+Default value: 127.0.0.1;
+.It ACCEPT_FROM6
+Default value: ::1;
+.It UNIXPATH
+Default value: $GNUNET_RUNTIME_DIR/gnunet-service-consensus.sock
+.It UNIX_MATCH_UID
+Default value: YES
+.It UNIX_MATCH_GID
+Default value: YES
+.El
+.Ss CORE
+.Bl -tag -width Ds
+.It START_ON_DEMAND
+Default value: YES
+.It PORT
+Default value: 2092
+.It HOSTNAME
+Default value: localhost
+.It BINARY
+Default value: gnunet-service-core
+.It ACCEPT_FROM
+Default value: 127.0.0.1;
+.It ACCEPT_FROM6
+Default value: ::1;
+.It UNIXPATH
+Default value: $GNUNET_RUNTIME_DIR/gnunet-service-core.sock
+.It UNIX_MATCH_UID
+Default value: NO
+.It UNIX_MATCH_GID
+Default value: YES
+.It DISABLE_SOCKET_FORWARDING
+Default value: NO
+.It USERNAME
+.It MAXBUF
+.It TIMEOUT
+.It DISABLEV6
+.It BINDTO
+.It REJECT_FROM
+.It REJECT_FROM6
+.It PREFIX
+.It USE_EPHEMERAL_KEYS
+Default value: YES
+.sp
+This MUST be set to YES in production, only set to NO for testing for performance (testbed/cluster-scale use!).
+.El
+.Ss DATACACHE-POSTGRES
+.Bl -tag -width Ds
+.It CONFIG
+Default value: postgres:///gnunet
+.El
+.Ss DATASTORE
+.Bl -tag -width Ds
+.It START_ON_DEMAND
+Default value: YES
+.It UNIXPATH
+Default value: $GNUNET_RUNTIME_DIR/gnunet-service-datastore.sock
+.It UNIX_MATCH_UID
+Default value: NO
+.It UNIX_MATCH_GID
+Default value: YES
+.It PORT
+Default value: 2093
+.It HOSTNAME
+Default value: localhost
+.It BINARY
+Default value: gnunet-service-datastore
+.It ACCEPT_FROM
+Default value: 127.0.0.1;
+.It ACCEPT_FROM6
+Default value: ::1;
+.It QUOTA
+Default value: 5 GB
+.It BLOOMFILTER
+Default value: $GNUNET_DATA_HOME/datastore/bloomfilter
+.It DATABASE
+Default value: sqlite
+.It DISABLE_SOCKET_FORWARDING
+Default value: NO
+.El
+.Ss DATASTORE-SQLITE
+.Bl -tag -width Ds
+.It FILENAME
+Default value: $GNUNET_DATA_HOME/datastore/sqlite.db
+.El
+.Ss DATASTORE-POSTGRES
+.Bl -tag -width Ds
+.It CONFIG
+Default value: postgres:///gnunet
+.El
+.Ss DATASTORE-MYSQL
+.Bl -tag -width Ds
+.It DATABASE
+Default value: gnunet
+.It CONFIG
+Default value: ~/.my.cnf
+.It USER
+Default value: gnunet
+.It PASSWORD
+.It HOST
+Default value: localhost
+.It PORT
+Default value: 3306
+.El
+.Ss DATASTORE-HEAP
+.Bl -tag -width Ds
+.It HASHMAPSIZE
+Default value: 1024
+.El
+.Ss DHT
+.Bl -tag -width Ds
+.El
+.Ss EXIT
+.Bl -tag -width Ds
+.El
+.Ss FS
+.Bl -tag -width Ds
+.El
+.Ss GNS
+.Bl -tag -width Ds
+.El
+.Ss HOSTLIST
+.Bl -tag -width Ds
+.El
+.Ss IDENTITY
+.Bl -tag -width Ds
+.El
+.Ss NAMECACHE
+.Bl -tag -width Ds
+.El
+.Ss NAMESTORE
+.Bl -tag -width Ds
+.El
+.Ss NAT-AUTO
+.Bl -tag -width Ds
+.El
+.Ss NAT
+.Bl -tag -width Ds
+.El
+.Ss NSE
+.Bl -tag -width Ds
+.El
+.Ss PEERINFO
+.Bl -tag -width Ds
+.El
+.Ss PEERSTORE
+.Bl -tag -width Ds
+.El
+.Ss PT
+.Bl -tag -width Ds
+.El
+.Ss REGEX
+.Bl -tag -width Ds
+.El
+.Ss RESOLVER
+.Bl -tag -width Ds
+.El
+.Ss REST
+.Bl -tag -width Ds
+.It UNIXPATH
+Default value: $GNUNET_USER_RUNTIME_DIR/gnunet-service-rest.sock
+.It BINARY
+Default value: gnunet-rest-server
+.It BIND_TO
+Default value: 127.0.0.1
+.It BIND_TO6
+Default value: ::1
+.It REST_PORT
+Default value: 7776
+.It REST_ALLOW_HEADERS
+Default value: Authorization,Accept,Content-Type
+.It REST_ALLOW_ORIGIN
+Default value: *
+.It REST_ALLOW_CREDENTIALS
+Default value: true
+.El
+.Ss REVOCATION
+.Ss SCALARPRODUCT
+.Ss SECRETSHARING
+.Ss SET
+.Ss STATISTICS
+.Ss TEMPLATE
+.Ss TESTBED-LOGGER
+.Ss TESTBED
+.Ss TESTING
+.Ss TOPOLOGY
+.Bl -tag -width Ds
+.It IMMEDIATE_START
+Default value: YES
+.It NOARMBIND
+Default value: YES
+.It MINIMUM-FRIENDS
+Default value: 0
+.It FRIENDS-ONLY
+Default value: NO
+.It TARGET-CONNECTION-COUNT
+Default value: 16
+.It FRIENDS
+Default value: $GNUNET_CONFIG_HOME/topology/friends.txt
+.It BINARY
+Default value: gnunet-daemon-topology
+.El
+.Ss TRANSPORT
+.Ss UTIL
+.Ss VPN
+.Bl -tag -width Ds
+.It START_ON_DEMAND
+Default value: YES
+.It PORT
+Default value: 2105
+.It HOSTNAME
+Default value: localhost
+.It BINARY
+Default value: gnunet-service-vpn
+.It ACCEPT_FROM
+Default value: 127.0.0.1;
+.It ACCEPT_FROM6
+Default value: ::1;
+.It UNIXPATH
+Default value: $GNUNET_RUNTIME_DIR/gnunet-service-vpn.sock
+.It UNIX_MATCH_UID
+Default value: NO
+.It UNIX_MATCH_GID
+Default value: YES
+.It IPV6ADDR
+Default value: 1234::1
+.It IPV6PREFIX
+Default value: 32
+.It IPV4ADDR
+Default value: 10.11.10.1
+.It IPV4MASK
+Default value: 255.255.0.0
+.It VIRTDNS
+Default value: 10.11.10.2
+.It VIRTDNS6
+Default value: 1234::17
+.It IFNAME
+Default value: vpn-gnunet
+.El
+.Ss ZONEMASTER
+.Bl -tag -width Ds
+.It START_ON_DEMAND
+Default value: YES
+.It IMMEDIATE_START
+Default value: YES
+.It HOSTNAME
+Default value: localhost
+.It BINARY
+Default value: gnunet-service-zonemaster
+.It UNIXPATH
+Default value: $GNUNET_USER_RUNTIME_DIR/gnunet-service-zonemaster.sock
+.It PORT
+Default value: 2123
+.It UNIX_MATCH_UID
+Do we require users that want to access GNS to run this process (usually not a good idea)?
+.sp
+Default value: NO
+.It UNIX_MATCH_GID
+Do we require users that want to access GNS to be in the 'gnunet' group?
+.sp
+Default value: NO
+.It MAX_PARALLEL_BACKGROUND_QUERIES
+How many queries is GNS allowed to perform in the background at the same time?
+.sp
+Default value: 1000
+.It ZONE_PUBLISH_TIME_WINDOW
+How frequently do we try to publish our full zone?
+.sp
+Default value: 4 h
+.It USE_CACHE
+Using caching or always ask DHT?
+.sp
+Default value: YES
+.It PREFIX
+.El
+.Ss ZONEMASTER-MONITOR
+.Bl -tag -width Ds
+.It START_ON_DEMAND
+Default value: YES
+.It IMMEDIATE_START
+Default value: YES
+.It HOSTNAME
+Default value: localhost
+.It BINARY
+Default value: gnunet-service-zonemaster-monitor
+.It UNIXPATH
+Default value: $GNUNET_USER_RUNTIME_DIR/gnunet-service-zonemaster-monitor.sock
+.It PORT
+Default value: 2124
+.It UNIX_MATCH_UID
+Do we require users that want to access GNS to run this process (usually not a good idea)?
+.sp
+Default value: NO
+.It UNIX_MATCH_GID
+Do we require users that want to access GNS to be in the 'gnunet' group?
+.sp
+Default value: NO
 .El
 .Sh EXAMPLES
 This example is a simple way to get started, using a server that has a known list of peers to get you started.
@@ -157,11 +757,19 @@ Please remember to change your IP address to the actual external address for you
     START_USER_SERVICES = NO
 .Ed
 .Sh FILES
-.Pa ~/.config/gnunet.conf
-GNUnet configuration file
+.Pa ~gnunet/.config/gnunet.conf
+GNUnet syste-user configuration file
+.Pa $HOME/.config/gnunet.conf
+User specific GNUnet configuration file
+.Pa @SYSCONFDIR@/gnunet.conf
+Systemwide GNUnet configuration file
+.Pa $GNUNET_PREFIX/share/gnunet/config.d/
+GNUnet configuration directory with all default option values
 .Sh SEE ALSO
+.Xr env 1 ,
 .Xr gnunet-arm 1 ,
-.Xr gnunet-setup 1
+.Xr gnunet-setup 1 ,
+.Xr strftime 3
 .sp
 The full documentation for gnunet is maintained as a Texinfo manual.
 If the
