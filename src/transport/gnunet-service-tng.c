@@ -24,13 +24,13 @@
  *
  * TODO:
  * Implement next:
- * - FIXME: looping over neighbours when calling forward_dv_learn()!
  * - FIXME: transmit_on_queue: track dvh we may be using and pass it to
  *   fragment_message() and reliability_box_message() if applicable
  * - proper use/initialization of timestamps in messages exchanged
  *   during DV learning
  * - persistence of monotonic time from DVInit to prevent
  *   replay attacks using DVInit messages
+ * - dv hop-by-hop signature verification (at least at initiator)
  * - persistence of monotonic time obtained from other peers
  *   in PEERSTORE (by message type) -- done for backchannel, needed elsewhere?
  * - change transport-core API to provide proper flow control in both
@@ -115,6 +115,12 @@
  * goodput / message loss ratio.
  */
 #define GOODPUT_AGING_SLOTS 4
+
+/**
+ * Maximum number of peers we select for forwarding DVInit
+ * messages at the same time (excluding initiator).
+ */
+#define MAX_DV_DISCOVERY_SELECTION 16
 
 /**
  * Minimum number of hops we should forward DV learn messages
@@ -5853,6 +5859,195 @@ validate_dv_initiator_signature (
 
 
 /**
+ * Closure for #dv_neighbour_selection and #dv_neighbour_transmission.
+ */
+struct NeighbourSelectionContext
+{
+  /**
+   * Original message we received.
+   */
+  const struct TransportDVLearnMessage *dvl;
+
+  /**
+   * The hops taken.
+   */
+  const struct DVPathEntryP *hops;
+
+  /**
+   * Time we received the message.
+   */
+  struct GNUNET_TIME_Absolute in_time;
+
+  /**
+   * Offsets of the selected peers.
+   */
+  uint32_t selections[MAX_DV_DISCOVERY_SELECTION];
+
+  /**
+   * Number of peers eligible for selection.
+   */
+  unsigned int num_eligible;
+
+  /**
+   * Number of peers that were selected for forwarding.
+   */
+  unsigned int num_selections;
+
+  /**
+   * Number of hops in @e hops
+   */
+  uint16_t nhops;
+
+  /**
+   * Bitmap of bidirectional connections encountered.
+   */
+  uint16_t bi_history;
+};
+
+
+/**
+ * Function called for each neighbour during #handle_dv_learn.
+ *
+ * @param cls a `struct NeighbourSelectionContext *`
+ * @param pid identity of the peer
+ * @param value a `struct Neighbour`
+ * @return #GNUNET_YES (always)
+ */
+static int
+dv_neighbour_selection (void *cls,
+                        const struct GNUNET_PeerIdentity *pid,
+                        void *value)
+{
+  struct NeighbourSelectionContext *nsc = cls;
+
+  (void) value;
+  if (0 == GNUNET_memcmp (pid, &nsc->dvl->initiator))
+    return GNUNET_YES; /* skip initiator */
+  for (unsigned int i = 0; i < nsc->nhops; i++)
+    if (0 == GNUNET_memcmp (pid, &nsc->hops[i].hop))
+      return GNUNET_YES; /* skip peers on path */
+  nsc->num_eligible++;
+  return GNUNET_YES;
+}
+
+
+/**
+ * Function called for each neighbour during #handle_dv_learn.
+ * We call #forward_dv_learn() on the neighbour(s) selected
+ * during #dv_neighbour_selection().
+ *
+ * @param cls a `struct NeighbourSelectionContext *`
+ * @param pid identity of the peer
+ * @param value a `struct Neighbour`
+ * @return #GNUNET_YES (always)
+ */
+static int
+dv_neighbour_transmission (void *cls,
+                           const struct GNUNET_PeerIdentity *pid,
+                           void *value)
+{
+  struct NeighbourSelectionContext *nsc = cls;
+
+  (void) value;
+  if (0 == GNUNET_memcmp (pid, &nsc->dvl->initiator))
+    return GNUNET_YES; /* skip initiator */
+  for (unsigned int i = 0; i < nsc->nhops; i++)
+    if (0 == GNUNET_memcmp (pid, &nsc->hops[i].hop))
+      return GNUNET_YES; /* skip peers on path */
+  for (unsigned int i = 0; i < nsc->num_selections; i++)
+  {
+    if (nsc->selections[i] == nsc->num_eligible)
+    {
+      forward_dv_learn (pid,
+                        nsc->dvl,
+                        nsc->bi_history,
+                        nsc->nhops,
+                        nsc->hops,
+                        nsc->in_time);
+      break;
+    }
+  }
+  nsc->num_eligible++;
+  return GNUNET_YES;
+}
+
+
+/**
+ * Computes the number of neighbours we should forward a DVInit
+ * message to given that it has so far taken @a hops_taken hops
+ * though the network and that the number of neighbours we have
+ * in total is @a neighbour_count, out of which @a eligible_count
+ * are not yet on the path.
+ *
+ * NOTE: technically we might want to include NSE in the formula to
+ * get a better grip on the overall network size. However, for now
+ * using NSE here would create a dependency issue in the build system.
+ * => Left for later, hardcoded to 50 for now.
+ *
+ * The goal of the fomula is that we want to reach a total of LOG(NSE)
+ * peers via DV (`target_total`).  We want the reach to be spread out
+ * over various distances to the origin, with a bias towards shorter
+ * distances.
+ *
+ * We make the strong assumption that the network topology looks
+ * "similar" at other hops, in particular the @a neighbour_count
+ * should be comparable at other hops.
+ *
+ * If the local neighbourhood is densely connected, we expect that @a
+ * eligible_count is close to @a neighbour_count minus @a hops_taken
+ * as a lot of the path is already known. In that case, we should
+ * forward to few(er) peers to try to find a path out of the
+ * neighbourhood. OTOH, if @a eligible_count is close to @a
+ * neighbour_count, we should forward to many peers as we are either
+ * still close to the origin (i.e.  @a hops_taken is small) or because
+ * we managed to get beyond a local cluster.  We express this as
+ * the `boost_factor` using the square of the fraction of eligible
+ * neighbours (so if only 50% are eligible, we boost by 1/4, but if
+ * 99% are eligible, the 'boost' will be almost 1).
+ *
+ * Second, the more hops we have taken, the larger the problem of an
+ * exponential traffic explosion gets.  So we take the `target_total`,
+ * and compute our degree such that at each distance d 2^{-d} peers
+ * are selected (corrected by the `boost_factor`).
+ *
+ * @param hops_taken number of hops DVInit has travelled so far
+ * @param neighbour_count number of neighbours we have in total
+ * @param eligible_count number of neighbours we could in
+ *        theory forward to
+ */
+static unsigned int
+calculate_fork_degree (unsigned int hops_taken,
+                       unsigned int neighbour_count,
+                       unsigned int eligible_count)
+{
+  double target_total = 50.0; /* FIXME: use LOG(NSE)? */
+  double eligible_ratio =
+    ((double) eligible_count) / ((double) neighbour_count);
+  double boost_factor = eligible_ratio * eligible_ratio;
+  unsigned int rnd;
+  double left;
+
+  if (hops_taken >= 64)
+    return 0; /* precaution given bitshift below */
+  for (unsigned int i = 1; i < hops_taken; i++)
+  {
+    /* For each hop, subtract the expected number of targets
+       reached at distance d (so what remains divided by 2^d) */
+    target_total -= (target_total * boost_factor / (1LLU << i));
+  }
+  rnd =
+    (unsigned int) floor (target_total * boost_factor / (1LLU << hops_taken));
+  /* round up or down probabilistically depending on how close we were
+     when floor()ing to rnd */
+  left = target_total - (double) rnd;
+  if (UINT32_MAX * left >
+      GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_WEAK, UINT32_MAX))
+    rnd++; /* round up */
+  return rnd;
+}
+
+
+/**
  * Communicator gave us a DV learn message.  Process the request.
  *
  * @param cls a `struct CommunicatorMessageContext` (must call
@@ -6036,17 +6231,34 @@ handle_dv_learn (void *cls, const struct TransportDVLearnMessage *dvl)
   if ((do_fwd) || ((nhops < MIN_DV_PATH_LENGTH_FOR_INITIATOR) &&
                    (GNUNET_NO == did_initiator)))
   {
-    /* FIXME: loop over all neighbours, pick those with low
-       queues AND that are not yet on the path; possibly
-       adapt threshold to nhops! */
-#if FIXME
-    forward_dv_learn (NULL, // fill in peer from iterator here!
-                      dvl,
-                      bi_history,
-                      nhops,
-                      hops,
-                      in_time);
-#endif
+    /* Pick random neighbours that are not yet on the path */
+    struct NeighbourSelectionContext nsc;
+    unsigned int n_cnt;
+
+    n_cnt = GNUNET_CONTAINER_multipeermap_size (neighbours);
+    nsc.nhops = nhops;
+    nsc.dvl = dvl;
+    nsc.bi_history = bi_history;
+    nsc.hops = hops;
+    nsc.in_time = in_time;
+    nsc.num_eligible = 0;
+    GNUNET_CONTAINER_multipeermap_iterate (neighbours,
+                                           &dv_neighbour_selection,
+                                           &nsc);
+    if (0 == nsc.num_eligible)
+      return; /* done here, cannot forward to anyone else */
+    nsc.num_selections = calculate_fork_degree (nhops, n_cnt, nsc.num_eligible);
+    nsc.num_selections =
+      GNUNET_MIN (MAX_DV_DISCOVERY_SELECTION, nsc.num_selections);
+    for (unsigned int i = 0; i < nsc.num_selections; i++)
+      nsc.selections[i] =
+        (nsc.num_selections == n_cnt)
+          ? i /* all were selected, avoid collisions by chance */
+          : GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, n_cnt);
+    nsc.num_eligible = 0;
+    GNUNET_CONTAINER_multipeermap_iterate (neighbours,
+                                           &dv_neighbour_transmission,
+                                           &nsc);
   }
 }
 
