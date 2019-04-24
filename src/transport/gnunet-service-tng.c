@@ -24,8 +24,8 @@
  *
  * TODO:
  * Implement next:
- * - FIXME: transmit_on_queue: track dvh we may be using and pass it to
- *   fragment_message() and reliability_box_message() if applicable
+ * - FIXME: handle_client_send(): pick DVH path, and box
+ *   message accordingly (if applicable, see FIXMEs)
  * - proper use/initialization of timestamps in messages exchanged
  *   during DV learning
  * - persistence of monotonic time from DVInit to prevent
@@ -1194,6 +1194,16 @@ struct DistanceVectorHop
   struct DistanceVectorHop *prev_neighbour;
 
   /**
+   * Head of MDLL of messages routed via this path.
+   */
+  struct PendingMessage *pending_msg_head;
+
+  /**
+   * Tail of MDLL of messages routed via this path.
+   */
+  struct PendingMessage *pending_msg_tail;
+
+  /**
    * Head of DLL of PAs that used our @a path.
    */
   struct PendingAcknowledgement *pa_head;
@@ -1773,6 +1783,18 @@ struct PendingMessage
   struct PendingMessage *prev_frag;
 
   /**
+   * Kept in a MDLL of messages using this @a dvh (if @e dvh is
+   * non-NULL).
+   */
+  struct PendingMessage *next_dvh;
+
+  /**
+   * Kept in a MDLL of messages using this @a dvh (if @e dvh is
+   * non-NULL).
+   */
+  struct PendingMessage *prev_dvh;
+
+  /**
    * Head of DLL of PAs for this pending message.
    */
   struct PendingAcknowledgement *pa_head;
@@ -1789,9 +1811,16 @@ struct PendingMessage
   struct PendingMessage *bpm;
 
   /**
-   * Target of the request.
+   * Target of the request (for transmission, may not be ultimate
+   * destination!).
    */
   struct Neighbour *target;
+
+  /**
+   * Distance vector path selected for this message, or
+   * NULL if transmitted directly.
+   */
+  struct DistanceVectorHop *dvh;
 
   /**
    * Set to non-NULL value if this message is currently being given to a
@@ -2573,7 +2602,16 @@ free_distance_vector_hop (struct DistanceVectorHop *dvh)
   struct Neighbour *n = dvh->next_hop;
   struct DistanceVector *dv = dvh->dv;
   struct PendingAcknowledgement *pa;
+  struct PendingMessage *pm;
 
+  while (NULL != (pm = dvh->pending_msg_head))
+  {
+    GNUNET_CONTAINER_MDLL_remove (dvh,
+                                  dvh->pending_msg_head,
+                                  dvh->pending_msg_tail,
+                                  pm);
+    pm->dvh = NULL;
+  }
   while (NULL != (pa = dvh->pa_head))
   {
     GNUNET_CONTAINER_MDLL_remove (dvh, dvh->pa_head, dvh->pa_tail, pa);
@@ -3122,6 +3160,7 @@ client_disconnect_cb (void *cls,
   struct TransportClient *tc = app_ctx;
 
   (void) cls;
+  (void) client;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Client %p disconnected, cleaning up.\n",
               tc);
@@ -3301,6 +3340,7 @@ free_pending_message (struct PendingMessage *pm)
 {
   struct TransportClient *tc = pm->client;
   struct Neighbour *target = pm->target;
+  struct DistanceVectorHop *dvh = pm->dvh;
   struct PendingAcknowledgement *pa;
 
   if (NULL != tc)
@@ -3308,6 +3348,13 @@ free_pending_message (struct PendingMessage *pm)
     GNUNET_CONTAINER_MDLL_remove (client,
                                   tc->details.core.pending_msg_head,
                                   tc->details.core.pending_msg_tail,
+                                  pm);
+  }
+  if (NULL != dvh)
+  {
+    GNUNET_CONTAINER_MDLL_remove (dvh,
+                                  dvh->pending_msg_head,
+                                  dvh->pending_msg_tail,
                                   pm);
   }
   GNUNET_CONTAINER_MDLL_remove (neighbour,
@@ -3418,14 +3465,22 @@ handle_client_send (void *cls, const struct OutboundMessage *obm)
   struct PendingMessage *pm;
   const struct GNUNET_MessageHeader *obmm;
   struct Neighbour *target;
+  struct DistanceVector *dv;
+  struct DistanceVectorHop *dvh;
   uint32_t bytes_msg;
   int was_empty;
+  const void *payload;
+  size_t payload_size;
 
   GNUNET_assert (CT_CORE == tc->type);
   obmm = (const struct GNUNET_MessageHeader *) &obm[1];
   bytes_msg = ntohs (obmm->size);
   target = lookup_neighbour (&obm->peer);
   if (NULL == target)
+    dv = GNUNET_CONTAINER_multipeermap_get (dv_routes, &obm->peer);
+  else
+    dv = NULL;
+  if ((NULL == target) && ((NULL == dv) || (GNUNET_NO == dv->core_visible)))
   {
     /* Failure: don't have this peer as a neighbour (anymore).
        Might have gone down asynchronously, so this is NOT
@@ -3447,14 +3502,41 @@ handle_client_send (void *cls, const struct OutboundMessage *obm)
                               GNUNET_NO);
     return;
   }
+  if (NULL == target)
+  {
+    // FIXME: overall, similar logic exists already for DV boxing,
+    // re-use!
+
+    // FIXME: dvh = pick_dv_hop (dv);
+    target = dvh->next_hop;
+    // FIXME: dv box message here!
+    // FIXME: set payload & payload_size to box (and free box below!)
+  }
+  else
+  {
+    dvh = NULL;
+    // box = NULL;
+    payload = &obm[1];
+    payload_size = bytes_msg;
+  }
+
   was_empty = (NULL == target->pending_msg_head);
-  pm = GNUNET_malloc (sizeof (struct PendingMessage) + bytes_msg);
+  pm = GNUNET_malloc (sizeof (struct PendingMessage) + payload_size);
   pm->client = tc;
   pm->target = target;
-  pm->bytes_msg = bytes_msg;
+  pm->bytes_msg = payload_size;
   pm->timeout =
     GNUNET_TIME_relative_to_absolute (GNUNET_TIME_relative_ntoh (obm->timeout));
-  memcpy (&pm[1], &obm[1], bytes_msg);
+  memcpy (&pm[1], &obm[1], payload_size);
+  // FIXME: GNUNET_free_non_null (box);
+  pm->dvh = dvh;
+  if (NULL != dvh)
+  {
+    GNUNET_CONTAINER_MDLL_insert (dvh,
+                                  dvh->pending_msg_head,
+                                  dvh->pending_msg_tail,
+                                  pm);
+  }
   GNUNET_CONTAINER_MDLL_insert (neighbour,
                                 target->pending_msg_head,
                                 target->pending_msg_tail,
@@ -3557,7 +3639,7 @@ check_communicator_backchannel (
 
   (void) cls;
   msize = ntohs (cb->header.size) - sizeof (*cb);
-  if (UINT16_MAX - msize >
+  if (((size_t) (UINT16_MAX - msize)) >
       sizeof (struct TransportBackchannelEncapsulationMessage) +
         sizeof (struct TransportBackchannelRequestPayloadP))
   {
@@ -3943,7 +4025,7 @@ route_message (const struct GNUNET_PeerIdentity *target,
   struct Neighbour *n;
   struct DistanceVector *dv;
 
-  n = GNUNET_CONTAINER_multipeermap_get (neighbours, target);
+  n = lookup_neighbour (target);
   dv = (0 != (options & RMO_DV_ALLOWED))
          ? GNUNET_CONTAINER_multipeermap_get (dv_routes, target)
          : NULL;
@@ -4518,6 +4600,7 @@ check_fragment_box (void *cls, const struct TransportFragmentBoxMessage *fb)
   uint16_t size = ntohs (fb->header.size);
   uint16_t bsize = size - sizeof (*fb);
 
+  (void) cls;
   if (0 == bsize)
   {
     GNUNET_break_op (0);
@@ -4706,7 +4789,7 @@ handle_fragment_box (void *cls, const struct TransportFragmentBoxMessage *fb)
   struct GNUNET_TIME_Relative cdelay;
   struct FindByMessageUuidContext fc;
 
-  n = GNUNET_CONTAINER_multipeermap_get (neighbours, &cmc->im.sender);
+  n = lookup_neighbour (&cmc->im.sender);
   if (NULL == n)
   {
     struct GNUNET_SERVICE_Client *client = cmc->tc->client;
@@ -4832,6 +4915,7 @@ static int
 check_reliability_box (void *cls,
                        const struct TransportReliabilityBoxMessage *rb)
 {
+  (void) cls;
   GNUNET_MQ_check_boxed_message (rb);
   return GNUNET_YES;
 }
@@ -5528,7 +5612,7 @@ check_dv_path_down (void *cls)
   }
   /* all paths invalid, make dv core-invisible */
   dv->core_visible = GNUNET_NO;
-  n = GNUNET_CONTAINER_multipeermap_get (neighbours, &dv->target);
+  n = lookup_neighbour (&dv->target);
   if ((NULL != n) && (GNUNET_YES == n->core_visible))
     return; /* no need to tell core, connection still up! */
   cores_send_disconnect_info (&dv->target);
@@ -5554,7 +5638,7 @@ activate_core_visible_dv_path (struct DistanceVectorHop *hop)
   dv->core_visible = GNUNET_YES;
   dv->visibility_task =
     GNUNET_SCHEDULER_add_at (hop->path_valid_until, &check_dv_path_down, dv);
-  n = GNUNET_CONTAINER_multipeermap_get (neighbours, &dv->target);
+  n = lookup_neighbour (&dv->target);
   if ((NULL != n) && (GNUNET_YES == n->core_visible))
     return; /* no need to tell core, connection already up! */
   cores_send_connect_info (&dv->target,
@@ -5608,7 +5692,7 @@ learn_dv_path (const struct GNUNET_PeerIdentity *path,
     return GNUNET_SYSERR;
   }
   GNUNET_assert (0 == GNUNET_memcmp (&GST_my_identity, &path[0]));
-  next_hop = GNUNET_CONTAINER_multipeermap_get (neighbours, &path[1]);
+  next_hop = lookup_neighbour (&path[1]);
   if (NULL == next_hop)
   {
     /* next hop must be a neighbour, otherwise this whole thing is useless! */
@@ -5616,7 +5700,7 @@ learn_dv_path (const struct GNUNET_PeerIdentity *path,
     return GNUNET_SYSERR;
   }
   for (unsigned int i = 2; i < path_len; i++)
-    if (NULL != GNUNET_CONTAINER_multipeermap_get (neighbours, &path[i]))
+    if (NULL != lookup_neighbour (&path[i]))
     {
       /* Useless path, we have a direct connection to some hop
          in the middle of the path, so this one doesn't even
@@ -6388,7 +6472,7 @@ handle_dv_box (void *cls, const struct TransportDVBoxMessage *dvb)
         finish_cmc_handling (cmc);
         return;
       }
-      n = GNUNET_CONTAINER_multipeermap_get (neighbours, &hops[i]);
+      n = lookup_neighbour (&hops[i]);
       if (NULL == n)
         continue;
       forward_dv_box (n,
@@ -6609,7 +6693,7 @@ find_queue (const struct GNUNET_PeerIdentity *pid, const char *address)
 {
   struct Neighbour *n;
 
-  n = GNUNET_CONTAINER_multipeermap_get (neighbours, pid);
+  n = lookup_neighbour (pid);
   if (NULL == n)
     return NULL;
   for (struct Queue *pos = n->queue_head; NULL != pos;
@@ -7267,7 +7351,7 @@ transmit_on_queue (void *cls)
        (NULL != pm->head_frag /* fragments already exist, should
 				 respect that even if MTU is 0 for
 				 this queue */) )
-    s = fragment_message (queue, NULL /*FIXME! */, s);
+    s = fragment_message (queue, pm->dvh, s);
   if (NULL == s)
   {
     /* Fragmentation failed, try next message... */
@@ -7275,7 +7359,8 @@ transmit_on_queue (void *cls)
     return;
   }
   if (GNUNET_TRANSPORT_CC_RELIABLE != queue->tc->details.communicator.cc)
-    s = reliability_box_message (queue, NULL /* FIXME! */, s);
+    // FIXME-OPTIMIZE: and if reliability was requested for 's' by core!
+    s = reliability_box_message (queue, pm->dvh, s);
   if (NULL == s)
   {
     /* Reliability boxing failed, try next message... */
