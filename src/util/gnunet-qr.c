@@ -29,12 +29,14 @@
 #include "platform.h"
 #include "gnunet_util_lib.h"
 
-#define LOG(fmt, ...) if (verbose == true) printf(fmt, ## __VA_ARGS__)
+#define LOG(fmt, ...)  \
+  if (verbose == true) \
+  printf (fmt, ##__VA_ARGS__)
 
 /**
  * Video device to capture from. Sane default for GNU/Linux systems.
  */
-static char* device = "/dev/video0";
+static char *device = "/dev/video0";
 
 /**
  * --verbose option
@@ -74,9 +76,8 @@ maint_child_death (void *cls)
 {
   enum GNUNET_OS_ProcessStatusType type;
 
-  if ( (GNUNET_OK !=
-	GNUNET_OS_process_status (p, &type, &exit_code)) ||
-       (type != GNUNET_OS_PROCESS_EXITED) )
+  if ((GNUNET_OK != GNUNET_OS_process_status (p, &type, &exit_code)) ||
+      (type != GNUNET_OS_PROCESS_EXITED))
     GNUNET_break (0 == GNUNET_OS_process_kill (p, GNUNET_TERM_SIG));
   GNUNET_OS_process_destroy (p);
 }
@@ -100,46 +101,45 @@ gnunet_uri (void *cls,
   const char *slash;
   char *subsystem;
   char *program;
-  struct GNUNET_SCHEDULER_Task * rt;
+  struct GNUNET_SCHEDULER_Task *rt;
 
   orig_uri = uri;
-  if (0 != strncasecmp ("gnunet://", uri, strlen ("gnunet://"))) {
+  if (0 != strncasecmp ("gnunet://", uri, strlen ("gnunet://")))
+  {
     fprintf (stderr,
-	     _("Invalid URI: does not start with `%s'\n"),
-	     "gnunet://");
+             _ ("Invalid URI: does not start with `%s'\n"),
+             "gnunet://");
     return;
   }
   uri += strlen ("gnunet://");
   if (NULL == (slash = strchr (uri, '/')))
   {
-    fprintf (stderr,
-             _("Invalid URI: fails to specify subsystem\n"));
+    fprintf (stderr, _ ("Invalid URI: fails to specify subsystem\n"));
     return;
   }
   subsystem = GNUNET_strndup (uri, slash - uri);
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_string (cfg,
-					     "uri",
-					     subsystem,
-					     &program))
+      GNUNET_CONFIGURATION_get_value_string (cfg, "uri", subsystem, &program))
   {
-    fprintf (stderr,
-             _("No handler known for subsystem `%s'\n"),
-             subsystem);
+    fprintf (stderr, _ ("No handler known for subsystem `%s'\n"), subsystem);
     GNUNET_free (subsystem);
     return;
   }
   GNUNET_free (subsystem);
-  rt = GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL,
-				       GNUNET_DISK_pipe_handle (sigpipe,
-								GNUNET_DISK_PIPE_END_READ),
-				       &maint_child_death, NULL);
-  p = GNUNET_OS_start_process (GNUNET_NO, 0,
-			       NULL, NULL, NULL,
-			       program,
-			       program,
-			       orig_uri,
-			       NULL);
+  rt = GNUNET_SCHEDULER_add_read_file (
+    GNUNET_TIME_UNIT_FOREVER_REL,
+    GNUNET_DISK_pipe_handle (sigpipe, GNUNET_DISK_PIPE_END_READ),
+    &maint_child_death,
+    NULL);
+  p = GNUNET_OS_start_process (GNUNET_NO,
+                               0,
+                               NULL,
+                               NULL,
+                               NULL,
+                               program,
+                               program,
+                               orig_uri,
+                               NULL);
   GNUNET_free (program);
   if (NULL == p)
     GNUNET_SCHEDULER_cancel (rt);
@@ -155,20 +155,18 @@ gnunet_uri (void *cls,
 static const zbar_symbol_t *
 get_symbol (zbar_processor_t *proc)
 {
-  const zbar_symbol_set_t* symbols;
+  const zbar_symbol_set_t *symbols;
   int rc;
   int n;
 
-  if (0 !=
-      zbar_processor_parse_config (proc, "enable"))
+  if (0 != zbar_processor_parse_config (proc, "enable"))
   {
     GNUNET_break (0);
     return NULL;
   }
 
   /* initialize the Processor */
-  if (0 !=
-      (rc = zbar_processor_init(proc, device, 1)))
+  if (0 != (rc = zbar_processor_init (proc, device, 1)))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Failed to open device `%s': %d\n",
@@ -178,8 +176,8 @@ get_symbol (zbar_processor_t *proc)
   }
 
   /* enable the preview window */
-  if ( (0 != (rc = zbar_processor_set_visible (proc, 1))) ||
-       (0 != (rc = zbar_processor_set_active(proc, 1))) )
+  if ((0 != (rc = zbar_processor_set_visible (proc, 1))) ||
+      (0 != (rc = zbar_processor_set_active (proc, 1))))
   {
     GNUNET_break (0);
     return NULL;
@@ -194,8 +192,7 @@ get_symbol (zbar_processor_t *proc)
   (void) zbar_processor_set_visible (proc, 0);
   if (-1 == n)
     return NULL; /* likely user closed the window */
-  LOG ("Got %i images\n",
-       n);
+  LOG ("Got %i images\n", n);
   /* extract results */
   symbols = zbar_processor_get_results (proc);
   if (NULL == symbols)
@@ -218,7 +215,7 @@ run_zbar ()
   zbar_processor_t *proc;
   const char *data;
   char *ret;
-  const zbar_symbol_t* symbol;
+  const zbar_symbol_t *symbol;
 
   /* configure the Processor */
   proc = zbar_processor_create (1);
@@ -242,11 +239,11 @@ run_zbar ()
     return NULL;
   }
   LOG ("Found %s \"%s\"\n",
-       zbar_get_symbol_name (zbar_symbol_get_type(symbol)),
+       zbar_get_symbol_name (zbar_symbol_get_type (symbol)),
        data);
   ret = GNUNET_strdup (data);
   /* clean up */
-  zbar_processor_destroy(proc);
+  zbar_processor_destroy (proc);
   return ret;
 }
 
@@ -270,19 +267,14 @@ run (void *cls,
   data = run_zbar ();
   if (NULL == data)
     return;
-  gnunet_uri (cls,
-              data,
-              cfgfile,
-              cfg);
+  gnunet_uri (cls, data, cfgfile, cfg);
   if (exit_code != 0)
   {
-    printf ("Failed to add URI %s\n",
-            data);
+    printf ("Failed to add URI %s\n", data);
   }
   else
   {
-    printf ("Added URI %s\n",
-            data);
+    printf ("Added URI %s\n", data);
   }
   GNUNET_free (data);
 };
@@ -292,23 +284,31 @@ int
 main (int argc, char *const *argv)
 {
   int ret;
-  struct GNUNET_GETOPT_CommandLineOption options[] = {
-    GNUNET_GETOPT_option_string ('d', "device", "DEVICE",
-     gettext_noop ("use video-device DEVICE (default: /dev/video0"),
-     &device),
-    GNUNET_GETOPT_option_flag ('\0', "verbose",
-     gettext_noop ("be verbose"),
-     &verbose),
-    GNUNET_GETOPT_option_flag ('s', "silent",
-     gettext_noop ("do not show preview windows"),
-			       &silent),
-    GNUNET_GETOPT_OPTION_END
-  };
+  struct GNUNET_GETOPT_CommandLineOption options[] =
+    {GNUNET_GETOPT_option_string (
+       'd',
+       "device",
+       "DEVICE",
+       gettext_noop ("use video-device DEVICE (default: /dev/video0"),
+       &device),
+     GNUNET_GETOPT_option_flag ('\0',
+                                "verbose",
+                                gettext_noop ("be verbose"),
+                                &verbose),
+     GNUNET_GETOPT_option_flag ('s',
+                                "silent",
+                                gettext_noop ("do not show preview windows"),
+                                &silent),
+     GNUNET_GETOPT_OPTION_END};
 
-  ret = GNUNET_PROGRAM_run (argc,
-			    argv,
-			    "gnunet-qr",
-			    gettext_noop ("Scan a QR code using a video device and import the uri read"),
-			    options, &run, NULL);
+  ret = GNUNET_PROGRAM_run (
+    argc,
+    argv,
+    "gnunet-qr",
+    gettext_noop (
+      "Scan a QR code using a video device and import the uri read"),
+    options,
+    &run,
+    NULL);
   return ((GNUNET_OK == ret) && (0 == exit_code)) ? 0 : 1;
 }
