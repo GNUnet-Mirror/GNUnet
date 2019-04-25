@@ -923,6 +923,41 @@ enum ClientType
 
 
 /**
+ * Which transmission options are allowable for transmission?
+ * Interpreted bit-wise!
+ */
+enum RouteMessageOptions
+{
+  /**
+   * Only confirmed, non-DV direct neighbours.
+   */
+  RMO_NONE = 0,
+
+  /**
+   * We are allowed to use DV routing for this @a hdr
+   */
+  RMO_DV_ALLOWED = 1,
+
+  /**
+   * We are allowed to use unconfirmed queues or DV routes for this message
+   */
+  RMO_UNCONFIRMED_ALLOWED = 2,
+
+  /**
+   * Reliable and unreliable, DV and non-DV are all acceptable.
+   */
+  RMO_ANYTHING_GOES = (RMO_DV_ALLOWED | RMO_UNCONFIRMED_ALLOWED),
+
+  /**
+   * If we have multiple choices, it is OK to send this message
+   * over multiple channels at the same time to improve loss tolerance.
+   * (We do at most 2 transmissions.)
+   */
+  RMO_REDUNDANT = 4
+};
+
+
+/**
  * When did we launch this DV learning activity?
  */
 struct LearnLaunchEntry
@@ -3453,6 +3488,130 @@ check_queue_timeouts (void *cls)
 
 
 /**
+ * Create a DV Box message.
+ *
+ * @param total_hops how many hops did the message take so far
+ * @param num_hops length of the @a hops array
+ * @param origin origin of the message
+ * @param hops next peer(s) to the destination, including destination
+ * @param payload payload of the box
+ * @param payload_size number of bytes in @a payload
+ * @return boxed message (caller must #GNUNET_free() it).
+ */
+static struct TransportDVBoxMessage *
+create_dv_box (uint16_t total_hops,
+               const struct GNUNET_PeerIdentity *origin,
+               const struct GNUNET_PeerIdentity *target,
+               uint16_t num_hops,
+               const struct GNUNET_PeerIdentity *hops,
+               const void *payload,
+               uint16_t payload_size)
+{
+  struct TransportDVBoxMessage *dvb;
+  struct GNUNET_PeerIdentity *dhops;
+
+  GNUNET_assert (UINT16_MAX <
+                 sizeof (struct TransportDVBoxMessage) +
+                   sizeof (struct GNUNET_PeerIdentity) * (num_hops + 1) +
+                   payload_size);
+  dvb = GNUNET_malloc (sizeof (struct TransportDVBoxMessage) +
+                       sizeof (struct GNUNET_PeerIdentity) * (num_hops + 1) +
+                       payload_size);
+  dvb->header.size =
+    htons (sizeof (struct TransportDVBoxMessage) +
+           sizeof (struct GNUNET_PeerIdentity) * (num_hops + 1) + payload_size);
+  dvb->header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_DV_BOX);
+  dvb->total_hops = htons (total_hops);
+  dvb->num_hops = htons (num_hops + 1);
+  dvb->origin = *origin;
+  dhops = (struct GNUNET_PeerIdentity *) &dvb[1];
+  memcpy (dhops, hops, num_hops * sizeof (struct GNUNET_PeerIdentity));
+  dhops[num_hops] = *target;
+  memcpy (&dhops[num_hops + 1], payload, payload_size);
+  return dvb;
+}
+
+
+/**
+ * Pick @a hops_array_length random DV paths satisfying @a options
+ *
+ * @param dv data structure to pick paths from
+ * @param options constraints to satisfy
+ * @param hops_array[out] set to the result
+ * @param hops_array_length length of the @a hops_array
+ * @return number of entries set in @a hops_array
+ */
+static unsigned int
+pick_random_dv_hops (const struct DistanceVector *dv,
+                     enum RouteMessageOptions options,
+                     struct DistanceVectorHop **hops_array,
+                     unsigned int hops_array_length)
+{
+  uint64_t choices[hops_array_length];
+  uint64_t num_dv;
+  unsigned int dv_count;
+
+  /* Pick random vectors, but weighted by distance, giving more weight
+     to shorter vectors */
+  num_dv = 0;
+  dv_count = 0;
+  for (struct DistanceVectorHop *pos = dv->dv_head; NULL != pos;
+       pos = pos->next_dv)
+  {
+    if ((0 == (options & RMO_UNCONFIRMED_ALLOWED)) &&
+        (GNUNET_TIME_absolute_get_remaining (pos->path_valid_until)
+           .rel_value_us == 0))
+      continue; /* pos unconfirmed and confirmed required */
+    num_dv += MAX_DV_HOPS_ALLOWED - pos->distance;
+    dv_count++;
+  }
+  if (0 == dv_count)
+    return 0;
+  if (dv_count <= hops_array_length)
+  {
+    dv_count = 0;
+    for (struct DistanceVectorHop *pos = dv->dv_head; NULL != pos;
+         pos = pos->next_dv)
+      hops_array[dv_count++] = pos;
+    return dv_count;
+  }
+  for (unsigned int i = 0; i < hops_array_length; i++)
+  {
+    int ok = GNUNET_NO;
+    while (GNUNET_NO == ok)
+    {
+      choices[i] =
+        GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_WEAK, num_dv);
+      ok = GNUNET_YES;
+      for (unsigned int j = 0; j < i; j++)
+        if (choices[i] == choices[j])
+        {
+          ok = GNUNET_NO;
+          break;
+        }
+    }
+  }
+  dv_count = 0;
+  num_dv = 0;
+  for (struct DistanceVectorHop *pos = dv->dv_head; NULL != pos;
+       pos = pos->next_dv)
+  {
+    uint32_t delta = MAX_DV_HOPS_ALLOWED - pos->distance;
+
+    if ((0 == (options & RMO_UNCONFIRMED_ALLOWED)) &&
+        (GNUNET_TIME_absolute_get_remaining (pos->path_valid_until)
+           .rel_value_us == 0))
+      continue; /* pos unconfirmed and confirmed required */
+    for (unsigned int i = 0; i < hops_array_length; i++)
+      if ((num_dv <= choices[i]) && (num_dv + delta > choices[i]))
+        hops_array[dv_count++] = pos;
+    num_dv += delta;
+  }
+  return dv_count;
+}
+
+
+/**
  * Client asked for transmission to a peer.  Process the request.
  *
  * @param cls the client
@@ -3471,6 +3630,7 @@ handle_client_send (void *cls, const struct OutboundMessage *obm)
   int was_empty;
   const void *payload;
   size_t payload_size;
+  struct TransportDVBoxMessage *dvb;
 
   GNUNET_assert (CT_CORE == tc->type);
   obmm = (const struct GNUNET_MessageHeader *) &obm[1];
@@ -3504,18 +3664,26 @@ handle_client_send (void *cls, const struct OutboundMessage *obm)
   }
   if (NULL == target)
   {
-    // FIXME: overall, similar logic exists already for DV boxing,
-    // re-use!
+    unsigned int res;
+    struct DistanceVectorHop *dvh;
 
-    // FIXME: dvh = pick_dv_hop (dv);
+    res = pick_random_dv_hops (dv, RMO_NONE, &dvh, 1);
+    GNUNET_assert (1 == res);
     target = dvh->next_hop;
-    // FIXME: dv box message here!
-    // FIXME: set payload & payload_size to box (and free box below!)
+    dvb = create_dv_box (0,
+                         &GST_my_identity,
+                         &obm->peer,
+                         dvh->distance,
+                         dvh->path,
+                         &obm[1],
+                         bytes_msg);
+    payload = dvb;
+    payload_size = ntohs (dvb->header.size);
   }
   else
   {
     dvh = NULL;
-    // box = NULL;
+    dvb = NULL;
     payload = &obm[1];
     payload_size = bytes_msg;
   }
@@ -3527,8 +3695,9 @@ handle_client_send (void *cls, const struct OutboundMessage *obm)
   pm->bytes_msg = payload_size;
   pm->timeout =
     GNUNET_TIME_relative_to_absolute (GNUNET_TIME_relative_ntoh (obm->timeout));
-  memcpy (&pm[1], &obm[1], payload_size);
-  // FIXME: GNUNET_free_non_null (box);
+  memcpy (&pm[1], payload, payload_size);
+  GNUNET_free_non_null (dvb);
+  dvb = NULL;
   pm->dvh = dvh;
   if (NULL != dvh)
   {
@@ -3810,41 +3979,6 @@ queue_send_msg (struct Queue *queue,
 
 
 /**
- * Which transmission options are allowable for transmission?
- * Interpreted bit-wise!
- */
-enum RouteMessageOptions
-{
-  /**
-   * Only confirmed, non-DV direct neighbours.
-   */
-  RMO_NONE = 0,
-
-  /**
-   * We are allowed to use DV routing for this @a hdr
-   */
-  RMO_DV_ALLOWED = 1,
-
-  /**
-   * We are allowed to use unconfirmed queues or DV routes for this message
-   */
-  RMO_UNCONFIRMED_ALLOWED = 2,
-
-  /**
-   * Reliable and unreliable, DV and non-DV are all acceptable.
-   */
-  RMO_ANYTHING_GOES = (RMO_DV_ALLOWED | RMO_UNCONFIRMED_ALLOWED),
-
-  /**
-   * If we have multiple choices, it is OK to send this message
-   * over multiple channels at the same time to improve loss tolerance.
-   * (We do at most 2 transmissions.)
-   */
-  RMO_REDUNDANT = 4
-};
-
-
-/**
  * Pick a queue of @a n under constraints @a options and schedule
  * transmission of @a hdr.
  *
@@ -3927,22 +4061,17 @@ forward_via_dvh (const struct DistanceVectorHop *dvh,
                  const struct GNUNET_MessageHeader *payload,
                  enum RouteMessageOptions options)
 {
-  uint16_t mlen = ntohs (payload->size);
-  char boxram[sizeof (struct TransportDVBoxMessage) +
-              (dvh->distance + 1) * sizeof (struct GNUNET_PeerIdentity) +
-              mlen] GNUNET_ALIGN;
-  struct TransportDVBoxMessage *box = (struct TransportDVBoxMessage *) boxram;
-  struct GNUNET_PeerIdentity *path = (struct GNUNET_PeerIdentity *) &box[1];
+  struct TransportDVBoxMessage *dvb;
 
-  box->header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_DV_BOX);
-  box->header.size = htons (sizeof (boxram));
-  box->total_hops = htons (0);
-  box->num_hops = htons (dvh->distance + 1);
-  box->origin = GST_my_identity;
-  memcpy (path, dvh->path, dvh->distance * sizeof (struct GNUNET_PeerIdentity));
-  path[dvh->distance] = dvh->dv->target;
-  memcpy (&path[dvh->distance + 1], payload, mlen);
-  route_via_neighbour (dvh->next_hop, &box->header, options);
+  dvb = create_dv_box (0,
+                       &GST_my_identity,
+                       &dvh->dv->target,
+                       dvh->distance,
+                       dvh->path,
+                       payload,
+                       ntohs (payload->size));
+  route_via_neighbour (dvh->next_hop, &dvb->header, options);
+  GNUNET_free (dvb);
 }
 
 
@@ -3960,52 +4089,15 @@ route_via_dv (const struct DistanceVector *dv,
               const struct GNUNET_MessageHeader *hdr,
               enum RouteMessageOptions options)
 {
-  struct DistanceVectorHop *h1;
-  struct DistanceVectorHop *h2;
-  uint64_t num_dv;
-  uint64_t choice1;
-  uint64_t choice2;
+  struct DistanceVectorHop *hops[2];
+  unsigned int res;
 
-  /* Pick random vectors, but weighted by distance, giving more weight
-     to shorter vectors */
-  num_dv = 0;
-  for (struct DistanceVectorHop *pos = dv->dv_head; NULL != pos;
-       pos = pos->next_dv)
-  {
-    if ((0 == (options & RMO_UNCONFIRMED_ALLOWED)) &&
-        (GNUNET_TIME_absolute_get_remaining (pos->path_valid_until)
-           .rel_value_us == 0))
-      continue; /* pos unconfirmed and confirmed required */
-    num_dv += MAX_DV_HOPS_ALLOWED - pos->distance;
-  }
-  if (0 == num_dv)
-  {
-    GNUNET_break (0);
-    return;
-  }
-  choice1 = GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_WEAK, num_dv);
-  choice2 = GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_WEAK, num_dv);
-  num_dv = 0;
-  h1 = NULL;
-  h2 = NULL;
-  for (struct DistanceVectorHop *pos = dv->dv_head; NULL != pos;
-       pos = pos->next_dv)
-  {
-    uint32_t delta = MAX_DV_HOPS_ALLOWED - pos->distance;
-
-    if ((0 == (options & RMO_UNCONFIRMED_ALLOWED)) &&
-        (GNUNET_TIME_absolute_get_remaining (pos->path_valid_until)
-           .rel_value_us == 0))
-      continue; /* pos unconfirmed and confirmed required */
-    if ((num_dv <= choice1) && (num_dv + delta > choice1))
-      h1 = pos;
-    if ((num_dv <= choice2) && (num_dv + delta > choice2))
-      h2 = pos;
-    num_dv += delta;
-  }
-  forward_via_dvh (h1, hdr, options & (~RMO_REDUNDANT));
-  if (0 == (options & RMO_REDUNDANT))
-    forward_via_dvh (h2, hdr, options & (~RMO_REDUNDANT));
+  res = pick_random_dv_hops (dv,
+                             options,
+                             hops,
+                             (0 == (options & RMO_REDUNDANT)) ? 1 : 2);
+  for (unsigned int i = 0; i < res; i++)
+    forward_via_dvh (hops[i], hdr, options & (~RMO_REDUNDANT));
 }
 
 
@@ -6418,25 +6510,16 @@ forward_dv_box (struct Neighbour *next_hop,
                 uint16_t payload_size)
 {
   struct TransportDVBoxMessage *dvb;
-  struct GNUNET_PeerIdentity *dhops;
 
-  GNUNET_assert (UINT16_MAX < sizeof (struct TransportDVBoxMessage) +
-                                sizeof (struct GNUNET_PeerIdentity) * num_hops +
-                                payload_size);
-  dvb = GNUNET_malloc (sizeof (struct TransportDVBoxMessage) +
-                       sizeof (struct GNUNET_PeerIdentity) * num_hops +
+  dvb = create_dv_box (total_hops,
+                       origin,
+                       &hops[num_hops - 1] /* == target */,
+                       num_hops - 1 /* do not count target twice */,
+                       hops,
+                       payload,
                        payload_size);
-  dvb->header.size =
-    htons (sizeof (struct TransportDVBoxMessage) +
-           sizeof (struct GNUNET_PeerIdentity) * num_hops + payload_size);
-  dvb->header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_DV_BOX);
-  dvb->total_hops = htons (total_hops);
-  dvb->num_hops = htons (num_hops);
-  dvb->origin = *origin;
-  dhops = (struct GNUNET_PeerIdentity *) &dvb[1];
-  memcpy (dhops, hops, num_hops * sizeof (struct GNUNET_PeerIdentity));
-  memcpy (&dhops[num_hops], payload, payload_size);
   route_message (&next_hop->pid, &dvb->header, RMO_NONE);
+  GNUNET_free (dvb);
 }
 
 
