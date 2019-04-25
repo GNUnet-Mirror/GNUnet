@@ -25,8 +25,6 @@
  * TODO:
  * Implement next:
  * - dv hop-by-hop signature verification (at least at initiator)
- * - persistence of monotonic time obtained from other peers
- *   in PEERSTORE (by message type) -- done for backchannel, needed elsewhere?
  * - change transport-core API to provide proper flow control in both
  *   directions, allow multiple messages per peer simultaneously (tag
  *   confirmations with unique message ID), and replace quota-out with
