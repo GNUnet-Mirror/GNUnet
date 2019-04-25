@@ -50,7 +50,7 @@ parse_gnsrecordobject (void *cls,
 {
   struct GNUNET_GNSRECORD_Data *gnsrecord_object;
   struct GNUNET_TIME_Absolute abs_expiration_time;
-  struct GNUNET_TIME_Absolute rel_expiration_time;
+  struct GNUNET_TIME_Relative rel_expiration_time;
   int unpack_state=0;
   const char *value;
   const char *expiration_time;
