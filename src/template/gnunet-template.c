@@ -11,7 +11,7 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -63,21 +63,20 @@ main (int argc, char *const *argv)
 {
   static const struct GNUNET_GETOPT_CommandLineOption options[] = {
     /* FIMXE: add options here */
-    GNUNET_GETOPT_OPTION_END
-  };
-  if (GNUNET_OK !=
-      GNUNET_STRINGS_get_utf8_args (argc, argv,
-				    &argc, &argv))
+    GNUNET_GETOPT_OPTION_END};
+  if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args (argc, argv, &argc, &argv))
     return 2;
 
-  ret = (GNUNET_OK ==
-	 GNUNET_PROGRAM_run (argc, argv,
-			     "gnunet-template",
-			     gettext_noop ("help text"),
-			     options,
-			     &run,
-			     NULL)) ? ret : 1;
-  GNUNET_free ((void*) argv);
+  ret = (GNUNET_OK == GNUNET_PROGRAM_run (argc,
+                                          argv,
+                                          "gnunet-template",
+                                          gettext_noop ("help text"),
+                                          options,
+                                          &run,
+                                          NULL))
+          ? ret
+          : 1;
+  GNUNET_free ((void *) argv);
   return ret;
 }
 
