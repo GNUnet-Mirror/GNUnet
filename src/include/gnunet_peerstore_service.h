@@ -61,6 +61,14 @@ extern "C" {
   "transport-backchannel-monotonic-time"
 
 /**
+ * Key used to store sender's monotonic time from DV learn
+ * messages.
+ */
+#define GNUNET_PEERSTORE_TRANSPORT_DVLEARN_MONOTIME \
+  "transport-dv-learn-monotonic-time"
+
+
+/**
  * Options for storing values in PEERSTORE
  */
 enum GNUNET_PEERSTORE_StoreOption
