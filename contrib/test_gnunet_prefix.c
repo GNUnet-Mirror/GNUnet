@@ -11,7 +11,7 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -28,8 +28,7 @@
 
 
 int
-main (int argc,
-      char **argv)
+main (int argc, char **argv)
 {
   const char *basename;
   const char *dirname;
@@ -37,27 +36,27 @@ main (int argc,
   basename = getenv ("GNUNET_PREFIX");
   if (NULL == basename)
   {
-    fprintf (stderr,
-	     _("Environment variable GNUNET_PREFIX not set\n"));
-    fprintf (stderr,
-	     _("Testcases will not work!\n"));
+    fprintf (stderr, _ ("Environment variable GNUNET_PREFIX not set\n"));
+    fprintf (stderr, _ ("Testcases will not work!\n"));
     return 1;
   }
-  dirname = DIR_SEPARATOR_STR ".." DIR_SEPARATOR_STR "share" DIR_SEPARATOR_STR "gnunet" DIR_SEPARATOR_STR "config.d";
+  dirname = DIR_SEPARATOR_STR ".." DIR_SEPARATOR_STR "share" DIR_SEPARATOR_STR
+                              "gnunet" DIR_SEPARATOR_STR "config.d";
   {
     char tmp[strlen (basename) + strlen (dirname) + 1];
     sprintf (tmp, "%s%s", basename, dirname);
     if (0 != access (tmp, R_OK))
     {
       fprintf (stderr,
-	       _("Failed to access `%s': %s\n"),
-	       tmp,
-	       STRERROR (errno));
-      fprintf (stderr,
-	       _("Check that you did run `make install' and that GNUNET_PREFIX='%s' is the correct prefix.\n"),
-	       basename);
-      fprintf (stderr,
-	       _("Testcases will not work!\n"));
+               _ ("Failed to access `%s': %s\n"),
+               tmp,
+               STRERROR (errno));
+      fprintf (
+        stderr,
+        _ (
+          "Check that you did run `make install' and that GNUNET_PREFIX='%s' is the correct prefix.\n"),
+        basename);
+      fprintf (stderr, _ ("Testcases will not work!\n"));
       return 2;
     }
   }
