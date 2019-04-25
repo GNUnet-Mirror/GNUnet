@@ -14,7 +14,7 @@ endif
 
 if HAVE_MHD
 if HAVE_JSON
-REST_PLUGIN = libgnunet_plugin_rest_identity.la
+plugin_LTLIBRARIES = libgnunet_plugin_rest_identity.la
 endif
 endif
 
@@ -26,8 +26,7 @@ pkgcfg_DATA = \
   identity.conf
 
 lib_LTLIBRARIES = \
-  libgnunetidentity.la \
-  $(REST_PLUGIN)
+  libgnunetidentity.la
 
 
 libgnunet_plugin_rest_identity_la_SOURCES = \

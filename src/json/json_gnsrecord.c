@@ -45,11 +45,12 @@
  */
 static int
 parse_gnsrecordobject (void *cls,
-		       json_t *root,
-		       struct GNUNET_JSON_Specification *spec)
+                       json_t *root,
+                       struct GNUNET_JSON_Specification *spec)
 {
   struct GNUNET_GNSRECORD_Data *gnsrecord_object;
   struct GNUNET_TIME_Absolute abs_expiration_time;
+  struct GNUNET_TIME_Relative rel_expiration_time;
   int unpack_state=0;
   const char *value;
   const char *expiration_time;
@@ -63,21 +64,21 @@ parse_gnsrecordobject (void *cls,
   if(!json_is_object(root))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		"Error json is not array nor object!\n");
+                "Error json is not array nor object!\n");
     return GNUNET_SYSERR;
   }
   //interpret single gns record
   unpack_state = json_unpack(root,
-			     "{s:s, s:s, s:s, s?:i, s:s!}",
-			     GNUNET_JSON_GNSRECORD_VALUE, &value,
-			     GNUNET_JSON_GNSRECORD_TYPE, &record_type,
-			     GNUNET_JSON_GNSRECORD_EXPIRATION_TIME, &expiration_time,
-			     GNUNET_JSON_GNSRECORD_FLAG, &flag,
-			     GNUNET_JSON_GNSRECORD_RECORD_NAME, &name);
+                             "{s:s, s:s, s:s, s?:i, s:s!}",
+                             GNUNET_JSON_GNSRECORD_VALUE, &value,
+                             GNUNET_JSON_GNSRECORD_TYPE, &record_type,
+                             GNUNET_JSON_GNSRECORD_EXPIRATION_TIME, &expiration_time,
+                             GNUNET_JSON_GNSRECORD_FLAG, &flag,
+                             GNUNET_JSON_GNSRECORD_RECORD_NAME, &name);
   if (0 != unpack_state)
   {
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-	       "Error json object has a wrong format!\n");
+               "Error json object has a wrong format!\n");
     return GNUNET_SYSERR;
   }
   gnsrecord_object = GNUNET_new (struct GNUNET_GNSRECORD_Data);
@@ -90,9 +91,9 @@ parse_gnsrecordobject (void *cls,
   }
   if (GNUNET_OK
       != GNUNET_GNSRECORD_string_to_value (gnsrecord_object->record_type,
-					   value,
-					   &rdata,
-					   &rdata_size))
+                                           value,
+                                           &rdata,
+                                           &rdata_size))
   {
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,"Value invalid for record type\n");
     GNUNET_free(gnsrecord_object);
@@ -107,25 +108,20 @@ parse_gnsrecordobject (void *cls,
     gnsrecord_object->expiration_time = GNUNET_TIME_UNIT_FOREVER_ABS.abs_value_us;
   }
   else if (GNUNET_OK
-      == GNUNET_STRINGS_fancy_time_to_absolute (expiration_time,
-						&abs_expiration_time))
+           == GNUNET_STRINGS_fancy_time_to_absolute (expiration_time,
+                                                     &abs_expiration_time))
   {
     gnsrecord_object->expiration_time = abs_expiration_time.abs_value_us;
+  }
+  else if (GNUNET_OK
+           == GNUNET_STRINGS_fancy_time_to_relative (expiration_time,
+                                                     &rel_expiration_time))
+  {
+    gnsrecord_object->expiration_time = rel_expiration_time.rel_value_us;
   }
   else
   {
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Expiration time invalid\n");
-    GNUNET_free_non_null(rdata);
-    GNUNET_free(gnsrecord_object);
-    return GNUNET_SYSERR;
-  }
-  // check if flag is a valid enum value
-  if ((GNUNET_GNSRECORD_RF_NONE != flag)
-      && (GNUNET_GNSRECORD_RF_PRIVATE != flag)
-      && (GNUNET_GNSRECORD_RF_RELATIVE_EXPIRATION != flag)
-      && (GNUNET_GNSRECORD_RF_SHADOW_RECORD) != flag)
-  {
-    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Flag invalid\n");
     GNUNET_free_non_null(rdata);
     GNUNET_free(gnsrecord_object);
     return GNUNET_SYSERR;
