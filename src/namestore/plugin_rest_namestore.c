@@ -320,7 +320,7 @@ do_error (void *cls)
   json_object_set_new(json_error,"error", json_string(handle->emsg));
 
   if (0 == handle->response_code)
-    handle->response_code = MHD_HTTP_OK;
+    handle->response_code = MHD_HTTP_INTERNAL_SERVER_ERROR;
   response = json_dumps (json_error, 0);
   resp = GNUNET_REST_create_response (response);
   handle->proc (handle->proc_cls, resp, handle->response_code);
