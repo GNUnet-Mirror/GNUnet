@@ -201,7 +201,7 @@ struct RequestHandle
    * Rest connection
    */
   struct GNUNET_REST_RequestHandle *rest_handle;
-  
+
   /**
    * Desired timeout for the lookup (default is no timeout).
    */
@@ -495,7 +495,7 @@ namestore_list_iteration (void *cls,
          (0 != strcmp (rname, GNUNET_GNS_EMPTY_LABEL_AT)) )
       continue;
 
-    record_obj = GNUNET_JSON_from_gns_record(rname,rd);
+    record_obj = GNUNET_JSON_from_gns_record (rname, &rd[i]);
 
     if(NULL == record_obj)
       continue;
@@ -1022,14 +1022,14 @@ rest_process_request(struct GNUNET_REST_RequestHandle *rest_handle,
                               void *proc_cls)
 {
   struct RequestHandle *handle = GNUNET_new (struct RequestHandle);
-  
+
   handle->response_code = 0;
   handle->timeout = GNUNET_TIME_UNIT_FOREVER_REL;
   handle->proc_cls = proc_cls;
   handle->proc = proc;
   handle->rest_handle = rest_handle;
   handle->zone_pkey = NULL;
-  
+
   handle->url = GNUNET_strdup (rest_handle->url);
   if (handle->url[strlen (handle->url)-1] == '/')
     handle->url[strlen (handle->url)-1] = '\0';
@@ -1041,7 +1041,7 @@ rest_process_request(struct GNUNET_REST_RequestHandle *rest_handle,
     GNUNET_SCHEDULER_add_delayed (handle->timeout,
                                   &do_error,
                                   handle);
-  
+
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Connected\n");
 }
 
