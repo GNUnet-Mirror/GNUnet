@@ -490,15 +490,6 @@ ego_get_all (struct GNUNET_REST_RequestHandle *con_handle,
     json_decref (json_ego);
   }
 
-  if ((size_t) 0 == json_array_size (json_root))
-  {
-    json_decref (json_root);
-    handle->response_code = MHD_HTTP_NOT_FOUND;
-    handle->emsg = GNUNET_strdup(GNUNET_REST_IDENTITY_NOT_FOUND);
-    GNUNET_SCHEDULER_add_now (&do_error, handle);
-    return;
-  }
-
   result_str = json_dumps (json_root, 0);
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Result %s\n", result_str);
   resp = GNUNET_REST_create_response (result_str);
