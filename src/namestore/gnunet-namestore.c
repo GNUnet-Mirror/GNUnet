@@ -986,6 +986,17 @@ identity_cb (void *cls,
   struct GNUNET_GNSRECORD_Data rd;
 
   el = NULL;
+  if ( (NULL != name) &&
+       (0 != strchr (name, '.')) )
+  {
+    fprintf (stderr,
+	     _("Label `%s' contains `.' which is not allowed\n"),
+	     name);
+    GNUNET_SCHEDULER_shutdown ();
+    ret = -1;
+    return;
+  }
+    
   if (NULL == ego)
   {
     if (NULL != ego_name)
