@@ -195,6 +195,78 @@ OIDC_id_token_new (const struct GNUNET_CRYPTO_EcdsaPublicKey *aud_key,
   return result;
 }
 
+/* Converts a hex character to its integer value */
+static char
+from_hex (char ch)
+{
+  return isdigit (ch) ? ch - '0' : tolower (ch) - 'a' + 10;
+}
+
+/* Converts an integer value to its hex character*/
+static char
+to_hex (char code)
+{
+  static char hex[] = "0123456789abcdef";
+  return hex[code & 15];
+}
+
+/* Returns a url-encoded version of str */
+/* IMPORTANT: be sure to free() the returned string after use */
+static char *
+url_encode (const char *str)
+{
+  char *pstr = (char *) str;
+  char *buf = malloc (strlen (str) * 3 + 1);
+  char *pbuf = buf;
+  while (*pstr)
+  {
+    if (isalnum (*pstr) || *pstr == '-' || *pstr == '_' || *pstr == '.' ||
+        *pstr == '~')
+      *pbuf++ = *pstr;
+    else if (*pstr == ' ')
+      *pbuf++ = '+';
+    else
+      *pbuf++ = '%', *pbuf++ = to_hex (*pstr >> 4),
+      *pbuf++ = to_hex (*pstr & 15);
+    pstr++;
+  }
+  *pbuf = '\0';
+  return buf;
+}
+
+
+/* Returns a url-decoded version of str */
+/* IMPORTANT: be sure to free() the returned string after use */
+static char *
+url_decode (const char *str)
+{
+  char *pstr = (char *) str;
+  char *buf = malloc (strlen (str) + 1);
+  char *pbuf = buf;
+  while (*pstr)
+  {
+    if (*pstr == '%')
+    {
+      if (pstr[1] && pstr[2])
+      {
+        *pbuf++ = from_hex (pstr[1]) << 4 | from_hex (pstr[2]);
+        pstr += 2;
+      }
+    }
+    else if (*pstr == '+')
+    {
+      *pbuf++ = ' ';
+    }
+    else
+    {
+      *pbuf++ = *pstr;
+    }
+    pstr++;
+  }
+  *pbuf = '\0';
+  return buf;
+}
+
 
 /**
  * Returns base64 encoded string urlencoded
@@ -203,33 +275,16 @@ OIDC_id_token_new (const struct GNUNET_CRYPTO_EcdsaPublicKey *aud_key,
  * @return base64 encoded string
  */
 static char *
-base64_encode (const char *data,
-               size_t data_size)
+base64_encode (const char *data, size_t data_size)
 {
   char *enc;
   char *enc_urlencode;
-  char *tmp;
-  int i;
-  int num_pads = 0;
 
   GNUNET_STRINGS_base64_encode (data, data_size, &enc);
-  tmp = strchr (enc, '=');
-  num_pads = strlen (enc) - (tmp - enc);
-  GNUNET_assert ((3 > num_pads) && (0 <= num_pads));
-  if (0 == num_pads)
-    return enc;
-  enc_urlencode = GNUNET_malloc (strlen (enc) + num_pads * 2);
-  strcpy (enc_urlencode, enc);
+  enc_urlencode = url_encode (enc);
   GNUNET_free (enc);
-  tmp = strchr (enc_urlencode, '=');
-  for (i = 0; i < num_pads; i++) {
-    strcpy (tmp, "%3D"); // replace '=' with '%3D'
-    tmp += 3;
-  }
   return enc_urlencode;
 }
-
-
 
 
 /**
@@ -308,8 +363,7 @@ OIDC_build_authz_code (const struct GNUNET_CRYPTO_EcdsaPrivateKey *issuer,
     return NULL;
   }
   memcpy (buf_ptr, &signature, sizeof (signature));
-  code_str = base64_encode ((const char *) &code_payload,
-                            code_payload_len);
+  code_str = base64_encode ((const char *) &code_payload, code_payload_len);
   GNUNET_free (code_payload);
   GNUNET_free_non_null (attrs_ser);
   return code_str;
@@ -351,14 +405,14 @@ OIDC_parse_authz_code (const struct GNUNET_CRYPTO_EcdsaPublicKey *audience,
   purpose = (struct GNUNET_CRYPTO_EccSignaturePurpose *) code_payload;
   attrs_ser_len = code_payload_len;
   attrs_ser_len -= sizeof (struct GNUNET_CRYPTO_EccSignaturePurpose);
-  *ticket = *((struct GNUNET_RECLAIM_Ticket*) &purpose[1]);
+  *ticket = *((struct GNUNET_RECLAIM_Ticket *) &purpose[1]);
   attrs_ser_len -= sizeof (struct GNUNET_RECLAIM_Ticket);
   nonce = ntohs (((unsigned int *) &ticket[1]));
   attrs_ser_len -= sizeof (unsigned int);
   ptr = code_payload;
   signature_offset =
     code_payload_len - sizeof (struct GNUNET_CRYPTO_EcdsaSignature);
-  signature = (struct GNUNET_CRYPTO_EcdsaSignature *)&ptr[signature_offset];
+  signature = (struct GNUNET_CRYPTO_EcdsaSignature *) &ptr[signature_offset];
   attrs_ser_len -= sizeof (struct GNUNET_CRYPTO_EcdsaSignature);
   attrs_ser = ((char *) &ticket[1]) + sizeof (unsigned int);
   *attrs = GNUNET_RECLAIM_ATTRIBUTE_list_deserialize (attrs_ser, attrs_ser_len);
