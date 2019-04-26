@@ -23,9 +23,11 @@ lib_LTLIBRARIES = \
   libgnunetrest.la 
 
 libexec_PROGRAMS = \
- gnunet-rest-server
+  gnunet-rest-server
 
-plugin_LTLIBRARIES = libgnunet_plugin_rest_copying.la 
+plugin_LTLIBRARIES = \
+  libgnunet_plugin_rest_copying.la \
+  libgnunet_plugin_rest_config.la
 
 EXTRA_DIST = \
  rest.conf
@@ -37,6 +39,15 @@ libgnunet_plugin_rest_copying_la_LIBADD = \
   $(top_builddir)/src/util/libgnunetutil.la $(XLIBS) \
   $(LTLIBINTL) -lmicrohttpd
 libgnunet_plugin_rest_copying_la_LDFLAGS = \
+ $(GN_PLUGIN_LDFLAGS)
+
+libgnunet_plugin_rest_config_la_SOURCES = \
+  plugin_rest_config.c
+libgnunet_plugin_rest_config_la_LIBADD = \
+  libgnunetrest.la \
+  $(top_builddir)/src/util/libgnunetutil.la $(XLIBS) \
+  $(LTLIBINTL) -lmicrohttpd -ljansson
+libgnunet_plugin_rest_config_la_LDFLAGS = \
  $(GN_PLUGIN_LDFLAGS)
 
 
