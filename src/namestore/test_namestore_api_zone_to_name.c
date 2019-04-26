@@ -132,9 +132,8 @@ zone_to_name_proc (void *cls,
       GNUNET_break (0);
     }
     if ( (NULL == zone_key) ||
-	 (0 != memcmp (zone_key,
-		       privkey,
-		       sizeof (struct GNUNET_CRYPTO_EcdsaPrivateKey))))
+	 (0 != GNUNET_memcmp (zone_key,
+		       privkey)))
     {
       fail = GNUNET_YES;
       GNUNET_break (0);

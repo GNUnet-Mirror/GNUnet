@@ -103,9 +103,8 @@ lookup_it (void *cls,
 {
   nsqe = NULL;
 
-  if (0 != memcmp (privkey,
-                   zone,
-                   sizeof (struct GNUNET_CRYPTO_EcdsaPrivateKey)))
+  if (0 != GNUNET_memcmp (privkey,
+                   zone))
   {
     GNUNET_break(0);
     GNUNET_SCHEDULER_cancel (endbadly_task);

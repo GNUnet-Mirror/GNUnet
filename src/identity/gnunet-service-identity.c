@@ -429,7 +429,7 @@ static int
 key_cmp (const struct GNUNET_CRYPTO_EcdsaPrivateKey *pk1,
          const struct GNUNET_CRYPTO_EcdsaPrivateKey *pk2)
 {
-  return memcmp (pk1, pk2, sizeof (struct GNUNET_CRYPTO_EcdsaPrivateKey));
+  return GNUNET_memcmp (pk1, pk2);
 }
 
 /**

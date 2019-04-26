@@ -171,13 +171,13 @@ zone_proc (void *cls,
   int failed = GNUNET_NO;
 
   GNUNET_assert (NULL != zone);
-  if (0 == memcmp (zone, privkey, sizeof (struct GNUNET_CRYPTO_EcdsaPrivateKey)))
+  if (0 == GNUNET_memcmp (zone, privkey))
   {
     failed = check_zone_1 (label, rd_count, rd);
     if (GNUNET_YES == failed)
       GNUNET_break (0);
   }
-  else if (0 == memcmp (zone, privkey2, sizeof (struct GNUNET_CRYPTO_EcdsaPrivateKey)))
+  else if (0 == GNUNET_memcmp (zone, privkey2))
   {
     failed = check_zone_2 (label, rd_count, rd);
     if (GNUNET_YES == failed)

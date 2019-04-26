@@ -838,9 +838,8 @@ GNUNET_HELLO_equals (const struct GNUNET_HELLO_Message *h1,
   if (h1->header.type != h2->header.type)
     return GNUNET_TIME_UNIT_ZERO_ABS;
   if (0 !=
-      memcmp (&h1->publicKey,
-              &h2->publicKey,
-              sizeof (struct GNUNET_CRYPTO_EddsaPublicKey)))
+      GNUNET_memcmp (&h1->publicKey,
+              &h2->publicKey))
     return GNUNET_TIME_UNIT_ZERO_ABS;
   ec.expiration_limit = now;
   ec.result = GNUNET_TIME_UNIT_FOREVER_ABS;

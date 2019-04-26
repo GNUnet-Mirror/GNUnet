@@ -230,9 +230,8 @@ find_session (struct GNUNET_ATS_SchedulingHandle *sh,
        as we communicate asynchronously with the ATS service. */
     return NULL;
   }
-  if (0 != memcmp (peer,
-                   &ar->address->peer,
-                   sizeof (struct GNUNET_PeerIdentity)))
+  if (0 != GNUNET_memcmp (peer,
+                   &ar->address->peer))
   {
     GNUNET_break (0);
     return NULL;
@@ -298,9 +297,8 @@ find_session_id (struct GNUNET_ATS_SchedulingHandle *sh,
          (GNUNET_NO == sh->session_array[i]->in_destroy) &&
          ( (session == sh->session_array[i]->session) ||
            (NULL == sh->session_array[i]->session) ) &&
-         (0 == memcmp (&address->peer,
-                       &sh->session_array[i]->address->peer,
-                       sizeof (struct GNUNET_PeerIdentity))) &&
+         (0 == GNUNET_memcmp (&address->peer,
+                       &sh->session_array[i]->address->peer)) &&
          (0 == GNUNET_HELLO_address_cmp (address,
                                          sh->session_array[i]->address)) )
       return i;

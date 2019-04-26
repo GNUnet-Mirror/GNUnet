@@ -368,9 +368,8 @@ try_combine_recent (void *cls,
   struct RecentRequest *in = cls;
   struct RecentRequest *rr = value;
 
-  if ( (0 != memcmp (&in->peer,
-		     &rr->peer,
-		     sizeof (struct GNUNET_PeerIdentity))) ||
+  if ( (0 != GNUNET_memcmp (&in->peer,
+		     &rr->peer)) ||
        (in->type != rr->type) ||
        (in->xquery_size != rr->xquery_size) ||
        (0 != memcmp (in->xquery,

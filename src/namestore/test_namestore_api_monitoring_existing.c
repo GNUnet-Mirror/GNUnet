@@ -150,9 +150,8 @@ zone_proc (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Comparing results name %s\n",
 	      name);
-  if (0 != memcmp (zone_key,
-                   privkey,
-                   sizeof (struct GNUNET_CRYPTO_EcdsaPrivateKey)))
+  if (0 != GNUNET_memcmp (zone_key,
+                   privkey))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		"Monitoring returned wrong zone key\n");

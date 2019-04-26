@@ -1012,9 +1012,8 @@ cb_intersection_request_alice (void *cls,
 {
   struct AliceServiceSession *s = cls;
 
-  if (0 != memcmp (other_peer,
-                   &s->peer,
-                   sizeof (struct GNUNET_PeerIdentity)))
+  if (0 != GNUNET_memcmp (other_peer,
+                   &s->peer))
   {
     GNUNET_break_op (0);
     return;

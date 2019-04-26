@@ -592,9 +592,8 @@ iterate_zones (void *cls,
   if (0 == ic->limit)
     return GNUNET_NO;
   if ( (NULL != ic->zone) &&
-       (0 != memcmp (&entry->private_key,
-                     ic->zone,
-                     sizeof (struct GNUNET_CRYPTO_EcdsaPrivateKey))) )
+       (0 != GNUNET_memcmp (&entry->private_key,
+                     ic->zone)) )
     return GNUNET_YES;
   ic->pos++;
   if (ic->offset > 0)
@@ -676,9 +675,8 @@ zone_to_name (void *cls,
   struct FlatFileEntry *entry = value;
 
   (void) key;
-  if (0 != memcmp (&entry->private_key,
-                   ztn->zone,
-                   sizeof (struct GNUNET_CRYPTO_EcdsaPrivateKey)))
+  if (0 != GNUNET_memcmp (&entry->private_key,
+                   ztn->zone))
     return GNUNET_YES;
 
   for (unsigned int i = 0; i < entry->record_count; i++)

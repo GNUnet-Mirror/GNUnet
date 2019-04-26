@@ -2406,7 +2406,7 @@ get_peer_idx (const struct GNUNET_PeerIdentity *peer, const struct ConsensusSess
 {
   int i;
   for (i = 0; i < session->num_peers; i++)
-    if (0 == memcmp (peer, &session->peers[i], sizeof (struct GNUNET_PeerIdentity)))
+    if (0 == GNUNET_memcmp (peer, &session->peers[i]))
       return i;
   return -1;
 }
@@ -2476,9 +2476,8 @@ initialize_session_peer_list (struct ConsensusSession *session,
   local_peer_in_list = GNUNET_NO;
   for (unsigned int i = 0; i < session->num_peers; i++)
   {
-    if (0 == memcmp (&msg_peers[i],
-                     &my_peer,
-                     sizeof (struct GNUNET_PeerIdentity)))
+    if (0 == GNUNET_memcmp (&msg_peers[i],
+                     &my_peer))
     {
       local_peer_in_list = GNUNET_YES;
       break;

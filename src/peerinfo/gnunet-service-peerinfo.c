@@ -584,9 +584,8 @@ hosts_directory_scan_callback (void *cls,
 
   if (  (NULL != r.hello) &&
         (NULL != r.friend_only_hello) &&
-        (0 != memcmp (&id_friend,
-                      &id_public,
-                      sizeof (id_friend))) )
+        (0 != GNUNET_memcmp (&id_friend,
+                      &id_public)) )
   {
     /* HELLOs are not for the same peer */
     GNUNET_break (0);
@@ -599,7 +598,7 @@ hosts_directory_scan_callback (void *cls,
                                                   strlen (filename),
                                                   &identity.public_key))
   {
-    if (0 != memcmp (&id, &identity, sizeof (id_friend)))
+    if (0 != GNUNET_memcmp (&id, &identity))
     {
       /* HELLOs are not for the same peer */
       GNUNET_break (0);

@@ -1227,12 +1227,10 @@ setup_fresh_address (int af,
 	      = (addr.s6_addr[i] | rnd.s6_addr[i]) & mask.s6_addr[i];
 	  }
 	}
-      while ( (0 == memcmp (&local_address->address.ipv6,
-			    &addr,
-			    sizeof (struct in6_addr))) ||
-	      (0 == memcmp (&local_address->address.ipv6,
-			    &mask,
-			    sizeof (struct in6_addr))) );
+      while ( (0 == GNUNET_memcmp (&local_address->address.ipv6,
+			    &addr)) ||
+	      (0 == GNUNET_memcmp (&local_address->address.ipv6,
+			    &mask)) );
     }
     break;
   default:

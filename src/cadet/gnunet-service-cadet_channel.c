@@ -679,9 +679,8 @@ GCCH_channel_local_new (struct CadetClient *owner,
   GCCH_hash_port (&ch->h_port,
 		  port,
 		  GCP_get_id (destination));
-  if (0 == memcmp (&my_full_id,
-                   GCP_get_id (destination),
-                   sizeof (struct GNUNET_PeerIdentity)))
+  if (0 == GNUNET_memcmp (&my_full_id,
+                   GCP_get_id (destination)))
   {
     struct OpenPort *op;
 
@@ -1185,9 +1184,8 @@ GCCH_handle_channel_open_ack (struct CadetChannel *ch,
       GNUNET_break_op (0);
       return;
     }
-    if (0 != memcmp (&ch->port,
-		     port,
-		     sizeof (struct GNUNET_HashCode)))
+    if (0 != GNUNET_memcmp (&ch->port,
+		     port))
     {
       /* Other peer failed to provide the right port,
 	 refuse connection. */
@@ -1612,9 +1610,8 @@ handle_matching_ack (struct CadetChannel *ch,
        (NULL != cti) )
   {
     GCC_ack_observed (cti);
-    if (0 == memcmp (cti,
-                     &crm->connection_taken,
-                     sizeof (struct GNUNET_CADET_ConnectionTunnelIdentifier)))
+    if (0 == GNUNET_memcmp (cti,
+                     &crm->connection_taken))
     {
       GCC_latency_observed (cti,
                             GNUNET_TIME_absolute_get_duration (crm->first_transmission_time));

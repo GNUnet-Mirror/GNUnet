@@ -122,7 +122,7 @@ find_peer_by_pid (const struct GNUNET_PeerIdentity *pid)
 {
   struct TestPeer *cur;
   for (cur = peer_head; NULL != cur; cur = cur->next)
-    if (0 == memcmp (&cur->peer_id, pid, sizeof (struct GNUNET_PeerIdentity)))
+    if (0 == GNUNET_memcmp (&cur->peer_id, pid))
       return cur;
   return NULL;
 }

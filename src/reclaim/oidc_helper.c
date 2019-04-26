@@ -314,8 +314,7 @@ OIDC_parse_authz_code (const struct GNUNET_CRYPTO_EcdsaPublicKey *audience,
   }
   *ticket = GNUNET_new (struct GNUNET_RECLAIM_Ticket);
   memcpy (*ticket, &purpose[1], sizeof (struct GNUNET_RECLAIM_Ticket));
-  if (0 != memcmp (audience, &(*ticket)->audience,
-                   sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey))) {
+  if (0 != GNUNET_memcmp (audience, &(*ticket)->audience)) {
     GNUNET_free (purpose);
     GNUNET_free (*ticket);
     json_decref (code_json);

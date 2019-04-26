@@ -191,9 +191,8 @@ run_queries (PGconn *conn)
     GNUNET_break (abs_time.abs_value_us == abs_time2.abs_value_us);
     GNUNET_break (forever.abs_value_us == forever2.abs_value_us);
     GNUNET_break (0 ==
-		  memcmp (&hc,
-			  &hc2,
-			  sizeof (struct GNUNET_HashCode)));
+		  GNUNET_memcmp (&hc,
+			  &hc2));
     GNUNET_break (0 ==
 		  GNUNET_CRYPTO_rsa_signature_cmp (sig,
 						   sig2));

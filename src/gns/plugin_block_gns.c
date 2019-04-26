@@ -153,7 +153,7 @@ block_plugin_gns_evaluate (void *cls,
   GNUNET_CRYPTO_hash (&block->derived_key,
 		      sizeof (block->derived_key),
 		      &h);
-  if (0 != memcmp (&h, query, sizeof (struct GNUNET_HashCode)))
+  if (0 != GNUNET_memcmp (&h, query))
     {
       GNUNET_break_op (0);
       return GNUNET_BLOCK_EVALUATION_RESULT_INVALID;

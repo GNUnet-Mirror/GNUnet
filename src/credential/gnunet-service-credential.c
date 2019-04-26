@@ -640,9 +640,8 @@ backward_resolution (void *cls,
       for (cred_pointer = vrh->cred_chain_head; cred_pointer != NULL;
            cred_pointer = cred_pointer->next) {
         if (0
-            != memcmp (&set->subject_key,
-                       &cred_pointer->credential->issuer_key,
-                       sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey)))
+            != GNUNET_memcmp (&set->subject_key,
+                       &cred_pointer->credential->issuer_key))
           continue;
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                     "Checking if %s matches %s\n",
@@ -755,9 +754,8 @@ delegation_chain_resolution_start (void *cls)
   for (cr_entry = vrh->cred_chain_head; cr_entry != NULL;
        cr_entry = cr_entry->next) {
     if (0
-        != memcmp (&cr_entry->credential->issuer_key,
-                   &vrh->issuer_key,
-                   sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey)))
+        != GNUNET_memcmp (&cr_entry->credential->issuer_key,
+                   &vrh->issuer_key))
       continue;
     if (0
         != strcmp (cr_entry->credential->issuer_attribute,

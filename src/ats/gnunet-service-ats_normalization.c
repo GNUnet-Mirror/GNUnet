@@ -250,9 +250,8 @@ GAS_normalization_update_property (struct ATS_Address *address)
   GNUNET_CONTAINER_multipeermap_iterate (GSA_addresses,
                                          &find_min_max_it,
                                          &range);
-  if (0 != memcmp (&range,
-                   &property_range,
-                   sizeof (struct PropertyRange)))
+  if (0 != GNUNET_memcmp (&range,
+                   &property_range))
   {
     /* limits changed, (re)normalize all addresses */
     property_range = range;

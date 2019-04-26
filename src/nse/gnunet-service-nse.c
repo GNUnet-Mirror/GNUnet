@@ -1124,14 +1124,13 @@ handle_p2p_estimate (void *cls,
                               1, GNUNET_NO);
     return;
   }
-  if (0 == (memcmp (peer_entry->id,
-		    &my_identity,
-		    sizeof (struct GNUNET_PeerIdentity))))
+  if (0 == (GNUNET_memcmp (peer_entry->id,
+		    &my_identity)))
   {
     /* send to self, update our own estimate IF this also comes from us! */
     if (0 ==
-        memcmp (&incoming_flood->origin,
-		&my_identity, sizeof (my_identity)))
+        GNUNET_memcmp (&incoming_flood->origin,
+		&my_identity))
       update_network_size_estimate ();
     return;
   }
@@ -1405,9 +1404,8 @@ core_init (void *cls,
     return;
   }
   GNUNET_assert (0 ==
-                 memcmp (&my_identity,
-			 identity,
-                         sizeof (struct GNUNET_PeerIdentity)));
+                 GNUNET_memcmp (&my_identity,
+			 identity));
   now = GNUNET_TIME_absolute_get ();
   current_timestamp.abs_value_us =
       (now.abs_value_us / gnunet_nse_interval.rel_value_us) *

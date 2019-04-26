@@ -306,9 +306,8 @@ attempt_connect (struct Peer *pos)
   uint32_t strength;
 
   if (0 ==
-      memcmp (&my_identity,
-              &pos->pid,
-              sizeof (struct GNUNET_PeerIdentity)))
+      GNUNET_memcmp (&my_identity,
+              &pos->pid))
     return; /* This is myself, nothing to do. */
   if (connection_count < target_connection_count)
     strength = 1;
@@ -602,9 +601,8 @@ connect_notify (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Core told us that we are connecting to `%s'\n",
               GNUNET_i2s (peer));
-  if (0 == memcmp (&my_identity,
-                   peer,
-                   sizeof (struct GNUNET_PeerIdentity)))
+  if (0 == GNUNET_memcmp (&my_identity,
+                   peer))
     return NULL;
   extra = GNUNET_CORE_get_mq_options (GNUNET_YES,
 				      GNUNET_CORE_PRIO_BEST_EFFORT,
@@ -781,9 +779,8 @@ consider_for_advertising (const struct GNUNET_HELLO_Message *hello)
     GNUNET_break (0);
     return;
   }
-  if (0 == memcmp (&pid,
-                   &my_identity,
-                   sizeof (struct GNUNET_PeerIdentity)))
+  if (0 == GNUNET_memcmp (&pid,
+                   &my_identity))
     return;                     /* that's me! */
   have_address = GNUNET_NO;
   GNUNET_HELLO_iterate_addresses (hello,
@@ -869,9 +866,8 @@ process_peer (void *cls,
     return;
   }
   GNUNET_assert (NULL != peer);
-  if (0 == memcmp (&my_identity,
-                   peer,
-                   sizeof (struct GNUNET_PeerIdentity)))
+  if (0 == GNUNET_memcmp (&my_identity,
+                   peer))
     return;                     /* that's me! */
   if (NULL == hello)
   {
@@ -948,9 +944,8 @@ handle_friend (void *cls,
   unsigned int *entries_found = cls;
   struct Peer *fl;
 
-  if (0 == memcmp (pid,
-                   &my_identity,
-                   sizeof (struct GNUNET_PeerIdentity)))
+  if (0 == GNUNET_memcmp (pid,
+                   &my_identity))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                 _("Found myself `%s' in friend list (useless, ignored)\n"),

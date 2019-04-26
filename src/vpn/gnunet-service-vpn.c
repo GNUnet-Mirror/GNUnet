@@ -2437,12 +2437,10 @@ allocate_v6_address (struct in6_addr *v6)
   while ( (GNUNET_YES ==
 	   GNUNET_CONTAINER_multihashmap_contains (destination_map,
 						   &key)) ||
-	  (0 == memcmp (v6,
-			&addr,
-			sizeof (struct in6_addr))) ||
-	  (0 == memcmp (v6,
-			&mask,
-			sizeof (struct in6_addr))) );
+	  (0 == GNUNET_memcmp (v6,
+			&addr)) ||
+	  (0 == GNUNET_memcmp (v6,
+			&mask)) );
   return GNUNET_OK;
 }
 

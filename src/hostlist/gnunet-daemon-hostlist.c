@@ -201,9 +201,8 @@ connect_handler (void *cls,
 		 const struct GNUNET_PeerIdentity *peer,
 		 struct GNUNET_MQ_Handle *mq)
 {
-  if (0 == memcmp (&me,
-		   peer,
-		   sizeof (struct GNUNET_PeerIdentity)))
+  if (0 == GNUNET_memcmp (&me,
+		   peer))
     return NULL;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "A new peer connected, notifying client and server\n");
@@ -235,9 +234,8 @@ disconnect_handler (void *cls,
                     const struct GNUNET_PeerIdentity *peer,
 		    void *internal_cls)
 {
-  if (0 == memcmp (&me,
-		   peer,
-		   sizeof (struct GNUNET_PeerIdentity)))
+  if (0 == GNUNET_memcmp (&me,
+		   peer))
     return;
   /* call hostlist client disconnect handler */
   if (NULL != client_dh)

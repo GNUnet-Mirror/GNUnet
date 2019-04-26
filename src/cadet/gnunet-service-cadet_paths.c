@@ -496,9 +496,8 @@ GCPP_try_path_from_dht (const struct GNUNET_PeerIdentity *get_path,
       ? &get_path[get_path_length - off - 1]
       : &put_path[get_path_length + put_path_length - off - 1];
     /* Check that I am not in the path */
-    if (0 == memcmp (&my_full_id,
-                     pid,
-                     sizeof (struct GNUNET_PeerIdentity)))
+    if (0 == GNUNET_memcmp (&my_full_id,
+                     pid))
     {
       skip = off + 1;
       continue;

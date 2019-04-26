@@ -330,7 +330,7 @@ get_keygen_peer_info (const struct KeygenSession *ks,
 {
   unsigned int i;
   for (i = 0; i < ks->num_peers; i++)
-    if (0 == memcmp (peer, &ks->info[i].peer, sizeof (struct GNUNET_PeerIdentity)))
+    if (0 == GNUNET_memcmp (peer, &ks->info[i].peer))
       return &ks->info[i];
   return NULL;
 }
@@ -349,7 +349,7 @@ get_decrypt_peer_info (const struct DecryptSession *ds,
 {
   unsigned int i;
   for (i = 0; i < ds->share->num_peers; i++)
-    if (0 == memcmp (peer, &ds->info[i].peer, sizeof (struct GNUNET_PeerIdentity)))
+    if (0 == GNUNET_memcmp (peer, &ds->info[i].peer))
       return &ds->info[i];
   return NULL;
 }
@@ -411,9 +411,8 @@ peer_find (const struct GNUNET_PeerIdentity *haystack, unsigned int n,
   unsigned int i;
 
   for (i = 0; i < n; i++)
-    if (0 == memcmp (&haystack[i],
-                     needle,
-                     sizeof (struct GNUNET_PeerIdentity)))
+    if (0 == GNUNET_memcmp (&haystack[i],
+                     needle))
       return i;
   return -1;
 }
@@ -827,7 +826,7 @@ keygen_round2_conclude (void *cls)
                                         GNUNET_SECRETSHARING_ELGAMAL_BITS / 8,
                                         ks->info[i].sigma);
       share->original_indices[i] = j;
-      if (0 == memcmp (&share->peers[i], &my_peer, sizeof (struct GNUNET_PeerIdentity)))
+      if (0 == GNUNET_memcmp (&share->peers[i], &my_peer))
         share->my_peer = j;
       j += 1;
     }
@@ -1897,7 +1896,7 @@ decrypt_new_element (void *cls,
     return;
   }
 
-  if (0 != memcmp (&d->ciphertext, &session->ciphertext, sizeof (struct GNUNET_SECRETSHARING_Ciphertext)))
+  if (0 != GNUNET_memcmp (&d->ciphertext, &session->ciphertext))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "P%u: got decrypt element with non-matching ciphertext from P%u\n",
                 (unsigned int) session->share->my_peer, (unsigned int) (info - session->info));

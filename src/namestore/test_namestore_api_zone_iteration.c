@@ -160,9 +160,8 @@ zone_proc (void *cls,
   int failed = GNUNET_NO;
 
   GNUNET_assert (NULL != zone);
-  if (0 == memcmp (zone,
-                   privkey,
-                   sizeof (struct GNUNET_CRYPTO_EcdsaPrivateKey)))
+  if (0 == GNUNET_memcmp (zone,
+                   privkey))
   {
     if (0 == strcmp (label, s_name_1))
     {
@@ -207,9 +206,8 @@ zone_proc (void *cls,
       GNUNET_break (0);
     }
   }
-  else if (0 == memcmp (zone,
-                        privkey2,
-                        sizeof (struct GNUNET_CRYPTO_EcdsaPrivateKey)))
+  else if (0 == GNUNET_memcmp (zone,
+                        privkey2))
   {
     if (0 == strcmp (label, s_name_3))
     {

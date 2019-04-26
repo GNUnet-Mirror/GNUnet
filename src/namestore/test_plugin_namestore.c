@@ -120,9 +120,8 @@ test_record (void *cls,
 	  (id % 241),
 	  sizeof (tzone_private_key));
   GNUNET_assert (0 == strcmp (label, tname));
-  GNUNET_assert (0 == memcmp (&tzone_private_key,
-                              private_key,
-                              sizeof (struct GNUNET_CRYPTO_EcdsaPrivateKey)));
+  GNUNET_assert (0 == GNUNET_memcmp (&tzone_private_key,
+                              private_key));
 }
 
 

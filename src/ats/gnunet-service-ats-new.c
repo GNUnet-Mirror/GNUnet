@@ -362,9 +362,8 @@ handle_suggest_cancel (void *cls,
        cp = cp->next)
     if ( (cp->pref.pk == (enum GNUNET_MQ_PreferenceKind) ntohl (msg->pk)) &&
 	 (cp->pref.bw.value__ == msg->bw.value__) &&
-	 (0 == memcmp (&cp->pref.peer,
-		       &msg->peer,
-		       sizeof (struct GNUNET_PeerIdentity))) )
+	 (0 == GNUNET_memcmp (&cp->pref.peer,
+		       &msg->peer)) )
       break;
   if (NULL == cp)
   {

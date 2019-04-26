@@ -545,9 +545,8 @@ handle_core_connect (void *cls,
   struct GNUNET_HashCode my_hash;
   struct GNUNET_HashCode peer_hash;
 
-  if (0 == memcmp (peer,
-                   &my_identity,
-                   sizeof (my_identity)))
+  if (0 == GNUNET_memcmp (peer,
+                   &my_identity))
   {
     return NULL;
   }
@@ -608,9 +607,8 @@ handle_core_disconnect (void *cls,
 {
   struct PeerEntry *peer_entry = internal_cls;
 
-  if (0 == memcmp (peer,
-                   &my_identity,
-                   sizeof (my_identity)))
+  if (0 == GNUNET_memcmp (peer,
+                   &my_identity))
     return;
   GNUNET_assert (NULL != peer_entry);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,

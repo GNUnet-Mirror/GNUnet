@@ -72,9 +72,8 @@ got_hello (void *cls,
   if ( (NULL == id) ||
        (NULL == hello) )
     return;
-  if (0 == memcmp (id,
-                   &my_full_id,
-                   sizeof (struct GNUNET_PeerIdentity)))
+  if (0 == GNUNET_memcmp (id,
+                   &my_full_id))
   {
     GNUNET_free_non_null (mine);
     mine = (struct GNUNET_HELLO_Message *) GNUNET_copy_message (&hello->header);

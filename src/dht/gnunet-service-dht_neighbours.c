@@ -727,9 +727,8 @@ handle_core_connect (void *cls,
 
  (void) cls;
  /* Check for connect to self message */
-  if (0 == memcmp (&my_identity,
-		   peer,
-		   sizeof (struct GNUNET_PeerIdentity)))
+  if (0 == GNUNET_memcmp (&my_identity,
+		   peer))
     return NULL;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Connected to %s\n",
@@ -959,9 +958,8 @@ GDS_am_closest_peer (const struct GNUNET_HashCode *key,
   int bucket_num;
   struct PeerInfo *pos;
 
-  if (0 == memcmp (&my_identity_hash,
-		   key,
-		   sizeof (struct GNUNET_HashCode)))
+  if (0 == GNUNET_memcmp (&my_identity_hash,
+		   key))
     return GNUNET_YES;
   bucket_num = find_bucket (key);
   GNUNET_assert (bucket_num >= 0);

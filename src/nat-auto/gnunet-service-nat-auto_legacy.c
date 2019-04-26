@@ -563,8 +563,7 @@ process_if (void *cls,
 
 
   if ( (sizeof (struct sockaddr_in6) == addrlen) &&
-       (0 != memcmp (&in6addr_loopback, &((const struct sockaddr_in6 *) addr)->sin6_addr,
-		     sizeof (struct in6_addr))) &&
+       (0 != GNUNET_memcmp (&in6addr_loopback, &((const struct sockaddr_in6 *) addr)->sin6_addr)) &&
        (! IN6_IS_ADDR_LINKLOCAL(&((const struct sockaddr_in6 *) addr)->sin6_addr)) )
   {
     ah->have_v6 = GNUNET_YES;

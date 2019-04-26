@@ -271,9 +271,8 @@ check_info (void *cls,
     return GNUNET_SYSERR;
   }
   if ( (GNUNET_YES == ic->have_peer) &&
-       (0 != memcmp (&ic->peer,
-                     &im->peer,
-                     sizeof (struct GNUNET_PeerIdentity))) )
+       (0 != GNUNET_memcmp (&ic->peer,
+                     &im->peer)) )
   {
     /* bogus message (from a different iteration call?); out of sequence! */
     LOG (GNUNET_ERROR_TYPE_ERROR,
@@ -303,9 +302,8 @@ check_info (void *cls,
       GNUNET_break (0);
       return GNUNET_SYSERR;
     }
-    if (0 != memcmp (&im->peer,
-                     &id,
-                     sizeof (struct GNUNET_PeerIdentity)))
+    if (0 != GNUNET_memcmp (&im->peer,
+                     &id))
     {
       /* malformed message */
       GNUNET_break (0);

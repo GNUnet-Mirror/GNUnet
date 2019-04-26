@@ -179,9 +179,8 @@ main (int argc,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	   "Testing get_key from HELLO...\n");
   GNUNET_assert (GNUNET_OK == GNUNET_HELLO_get_id (msg2, &pid));
-  GNUNET_assert (0 == memcmp (&publicKey,
-                              &pid.public_key,
-                              sizeof (struct GNUNET_CRYPTO_EddsaPublicKey)));
+  GNUNET_assert (0 == GNUNET_memcmp (&publicKey,
+                              &pid.public_key));
   GNUNET_free (msg1);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,

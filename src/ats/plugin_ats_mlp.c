@@ -1401,7 +1401,7 @@ mlp_propagate_results (void *cls,
       mlpi->b_in = mlp_bw_in;
       address->assigned_bw_out = mlp_bw_out;
       mlpi->b_out = mlp_bw_out;
-      if ((NULL == mlp->exclude_peer) || (0 != memcmp (&address->peer, mlp->exclude_peer, sizeof (address->peer))))
+      if ((NULL == mlp->exclude_peer) || (0 != GNUNET_memcmp (&address->peer, mlp->exclude_peer)))
         mlp->env->bandwidth_changed_cb (mlp->env->cls, address);
       return GNUNET_OK;
     }
@@ -1417,7 +1417,7 @@ mlp_propagate_results (void *cls,
           mlpi->b_in = mlp_bw_in;
           address->assigned_bw_out = mlp_bw_out;
           mlpi->b_out = mlp_bw_out;
-          if ((NULL == mlp->exclude_peer) || (0 != memcmp (&address->peer, mlp->exclude_peer, sizeof (address->peer))))
+          if ((NULL == mlp->exclude_peer) || (0 != GNUNET_memcmp (&address->peer, mlp->exclude_peer)))
             mlp->env->bandwidth_changed_cb (mlp->env->cls, address);
           return GNUNET_OK;
       }

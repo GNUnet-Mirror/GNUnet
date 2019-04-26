@@ -1583,9 +1583,8 @@ ns_lookup_result_cb (void *cls,
                  GNUNET_CONTAINER_multihashmap_remove (ns_pending,
                                                        &hc,
                                                        req));
-  GNUNET_break (0 == memcmp (key,
-			     &req->zone->key,
-			     sizeof (*key)));
+  GNUNET_break (0 == GNUNET_memcmp (key,
+			     &req->zone->key));
   GNUNET_break (0 == strcasecmp (label,
 				 get_label (req)));
   for (unsigned int i=0;i<rd_count;i++)

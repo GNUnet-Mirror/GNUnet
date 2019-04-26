@@ -862,9 +862,8 @@ mysql_plugin_get_keys (void *cls,
   {
     ret = GNUNET_MY_extract_result (plugin->get_all_keys,
                                     results_select);
-    if (0 != memcmp (&last,
-                     &key,
-                     sizeof (key)))
+    if (0 != GNUNET_memcmp (&last,
+                     &key))
     {
       if (0 != cnt)
         proc (proc_cls,

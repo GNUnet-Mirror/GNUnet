@@ -228,7 +228,7 @@ static void decrypt_cb (void *cls,
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "decrypt failed for peer %u\n", n);
     return;
   }
-  else if (0 == memcmp (&reference_plaintext, plaintext, sizeof (struct GNUNET_SECRETSHARING_Plaintext)))
+  else if (0 == GNUNET_memcmp (&reference_plaintext, plaintext))
     GNUNET_log (GNUNET_ERROR_TYPE_INFO, "decrypt got correct result for peer %u\n", n);
   else
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "decrypt got wrong result for peer %u\n", n);
@@ -331,7 +331,7 @@ secret_ready_cb (void *cls,
     {
       common_pubkey = *public_key;
     }
-    else if (0 != memcmp (public_key, &common_pubkey, sizeof (struct GNUNET_SECRETSHARING_PublicKey)))
+    else if (0 != GNUNET_memcmp (public_key, &common_pubkey))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "generated public keys do not match\n");
       GNUNET_SCHEDULER_shutdown ();

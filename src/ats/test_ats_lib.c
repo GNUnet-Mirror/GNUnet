@@ -540,9 +540,8 @@ reservation_cb (void *cls,
   cmd->details.reserve_bandwidth.rc = NULL;
   make_peer (cmd->details.reserve_bandwidth.pid,
              &pid);
-  GNUNET_assert (0 == memcmp (peer,
-                              &pid,
-                              sizeof (struct GNUNET_PeerIdentity)));
+  GNUNET_assert (0 == GNUNET_memcmp (peer,
+                              &pid));
   switch (cmd->details.reserve_bandwidth.expected_result)
   {
   case GNUNET_OK:

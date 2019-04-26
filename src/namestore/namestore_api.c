@@ -552,9 +552,8 @@ check_record_result (void *cls,
     GNUNET_break (0);
     return GNUNET_SYSERR;
   }
-  if (0 == memcmp (&msg->private_key,
-                   &priv_dummy,
-                   sizeof (priv_dummy)) )
+  if (0 == GNUNET_memcmp (&msg->private_key,
+                   &priv_dummy) )
   {
     GNUNET_break (0);
     return GNUNET_SYSERR;

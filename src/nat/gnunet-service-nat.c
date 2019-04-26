@@ -485,9 +485,8 @@ match_ipv6 (const char *network,
 				 network,
 				 &net));
   memset (&mask, 0, sizeof (mask));
-  if (0 == memcmp (&mask,
-		   ip,
-		   sizeof (mask)))
+  if (0 == GNUNET_memcmp (&mask,
+		   ip))
     return GNUNET_YES;
   off = 0;
   while (bits > 8)
@@ -731,9 +730,8 @@ check_notify_client (struct LocalAddressList *delta,
            (! is_nat_v4 (&v4.sin_addr)) )
        continue; /* based on external-IP, but this IP is not
                     from private address range. */
-      if ( (0 != memcmp (&v4.sin_addr,
-                         &c4->sin_addr,
-                         sizeof (struct in_addr))) &&
+      if ( (0 != GNUNET_memcmp (&v4.sin_addr,
+                         &c4->sin_addr)) &&
            (0 != c4->sin_addr.s_addr) &&
            (! is_nat_v4 (&c4->sin_addr)) )
 	continue; /* this IP is not from private address range,
@@ -762,37 +760,31 @@ check_notify_client (struct LocalAddressList *delta,
 	continue; /* IPv4 not relevant */
       c6 = (const struct sockaddr_in6 *) &ch->caddrs[i].ss;
       if ( match_ipv6 ("::1", &c6->sin6_addr, 128) &&
-	   (0 != memcmp (&c6->sin6_addr,
-			 &in6addr_any,
-			 sizeof (struct in6_addr))) &&
+	   (0 != GNUNET_memcmp (&c6->sin6_addr,
+			 &in6addr_any)) &&
 	   (! match_ipv6 ("::1", &v6.sin6_addr, 128)) )
 	continue; /* bound to loopback, but this is not loopback */
       if ( (! match_ipv6 ("::1", &c6->sin6_addr, 128) ) &&
 	   match_ipv6 ("::1", &v6.sin6_addr, 128) )
 	continue; /* bound to non-loopback, but this is loopback */
       if ( (0 != (delta->ac & GNUNET_NAT_AC_EXTERN)) &&
-           (0 != memcmp (&c6->sin6_addr,
-			 &in6addr_any,
-			 sizeof (struct in6_addr))) &&
+           (0 != GNUNET_memcmp (&c6->sin6_addr,
+			 &in6addr_any)) &&
 	   (! is_nat_v6 (&v6.sin6_addr)) )
 	continue; /* based on external-IP, but this IP is not
 		     from private address range. */
-      if ( (0 != memcmp (&v6.sin6_addr,
-			 &c6->sin6_addr,
-			 sizeof (struct in6_addr))) &&
-	   (0 != memcmp (&c6->sin6_addr,
-			 &in6addr_any,
-			 sizeof (struct in6_addr))) &&
+      if ( (0 != GNUNET_memcmp (&v6.sin6_addr,
+			 &c6->sin6_addr)) &&
+	   (0 != GNUNET_memcmp (&c6->sin6_addr,
+			 &in6addr_any)) &&
 	   (! is_nat_v6 (&c6->sin6_addr)) )
 	continue; /* this IP is not from private address range,
 		     and IP does not match. */
       if ( (match_ipv6 ("fe80::", &c6->sin6_addr, 10)) &&
-	   (0 != memcmp (&c6->sin6_addr,
-			 &in6addr_any,
-			 sizeof (struct in6_addr))) &&
-	   (0 != memcmp (&v6.sin6_addr,
-			 &c6->sin6_addr,
-			 sizeof (struct in6_addr))) &&
+	   (0 != GNUNET_memcmp (&c6->sin6_addr,
+			 &in6addr_any)) &&
+	   (0 != GNUNET_memcmp (&v6.sin6_addr,
+			 &c6->sin6_addr)) &&
 	   (0 == (delta->ac & GNUNET_NAT_AC_EXTERN)) )
 	continue; /* client bound to link-local, and the other address
 		     does not match and is not an external IP */
@@ -1726,9 +1718,8 @@ handle_stun (void *cls,
 			 &se->stun_server_addr,
 			 sa_len)) )
 	continue; /* different STUN server */
-      if (0 != memcmp (&external_addr,
-		       &se->external_addr,
-		       sizeof (struct sockaddr_in)))
+      if (0 != GNUNET_memcmp (&external_addr,
+		       &se->external_addr))
       {
 	/* external IP changed, update! */
 	notify_clients_stun_change (&se->external_addr,

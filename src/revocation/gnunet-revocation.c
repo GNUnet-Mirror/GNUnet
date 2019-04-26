@@ -365,9 +365,8 @@ ego_callback (void *cls,
                              rd,
                              sizeof (struct RevocationData))) )
   {
-    if (0 != memcmp (&rd->key,
-                     &key,
-                     sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey)))
+    if (0 != GNUNET_memcmp (&rd->key,
+                     &key))
     {
       fprintf (stderr,
                _("Error: revocation certificate in `%s' is not for `%s'\n"),

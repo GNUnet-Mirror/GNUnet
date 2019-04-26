@@ -919,9 +919,8 @@ GCC_create_inbound (struct CadetPeer *destination,
   {
     int cmp;
 
-    cmp = memcmp (cid,
-                  &cc->cid,
-                  sizeof (*cid));
+    cmp = GNUNET_memcmp (cid,
+                  &cc->cid);
     if (0 == cmp)
     {
       /* Two peers picked the SAME random connection identifier at the

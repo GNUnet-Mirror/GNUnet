@@ -843,9 +843,8 @@ process_bf (struct Operation *op)
 
   if ( (0 == op->state->my_element_count) || /* fully disjoint */
        ( (op->state->my_element_count == op->remote_element_count) &&
-         (0 == memcmp (&op->state->my_xor,
-                       &op->state->other_xor,
-                       sizeof (struct GNUNET_HashCode))) ) )
+         (0 == GNUNET_memcmp (&op->state->my_xor,
+                       &op->state->other_xor)) ) )
   {
     /* we are done */
     op->state->phase = PHASE_MUST_SEND_DONE;
@@ -1059,9 +1058,8 @@ handle_intersection_p2p_done (void *cls,
                                            op);
   }
   if ( (op->state->my_element_count != ntohl (idm->final_element_count)) ||
-       (0 != memcmp (&op->state->my_xor,
-                     &idm->element_xor_hash,
-                     sizeof (struct GNUNET_HashCode))) )
+       (0 != GNUNET_memcmp (&op->state->my_xor,
+                     &idm->element_xor_hash)) )
   {
     /* Other peer thinks we are done, but we disagree on the result! */
     GNUNET_break_op (0);

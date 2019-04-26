@@ -1007,8 +1007,7 @@ code_redirect (void *cls)
       for (handle->ego_entry = handle->ego_head; NULL != handle->ego_entry;
            handle->ego_entry = handle->ego_entry->next) {
         GNUNET_IDENTITY_ego_get_public_key (handle->ego_entry->ego, &ego_pkey);
-        if (0 == memcmp (&ego_pkey, &pubkey,
-                         sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey))) {
+        if (0 == GNUNET_memcmp (&ego_pkey, &pubkey)) {
           handle->priv_key =
               *GNUNET_IDENTITY_ego_get_private_key (handle->ego_entry->ego);
           handle->idp = GNUNET_RECLAIM_connect (cfg);
@@ -1261,8 +1260,7 @@ tld_iter (void *cls, const char *section, const char *option, const char *value)
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Skipping non key %s\n", value);
     return;
   }
-  if (0 == memcmp (&pkey, &handle->oidc->client_pkey,
-                   sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey)))
+  if (0 == GNUNET_memcmp (&pkey, &handle->oidc->client_pkey))
     handle->tld = GNUNET_strdup (option + 1);
 }
 
@@ -1337,8 +1335,7 @@ authorize_endpoint (struct GNUNET_REST_RequestHandle *con_handle,
   for (tmp_ego = handle->ego_head; NULL != tmp_ego; tmp_ego = tmp_ego->next) {
     priv_key = GNUNET_IDENTITY_ego_get_private_key (tmp_ego->ego);
     GNUNET_CRYPTO_ecdsa_key_get_public (priv_key, &pkey);
-    if (0 == memcmp (&pkey, &handle->oidc->client_pkey,
-                     sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey))) {
+    if (0 == GNUNET_memcmp (&pkey, &handle->oidc->client_pkey)) {
       handle->tld = GNUNET_strdup (tmp_ego->identifier);
       handle->ego_entry = handle->ego_tail;
     }
@@ -1522,8 +1519,7 @@ ego_exists (struct RequestHandle *handle,
   for (ego_entry = handle->ego_head; NULL != ego_entry;
        ego_entry = ego_entry->next) {
     GNUNET_IDENTITY_ego_get_public_key (ego_entry->ego, &pub_key);
-    if (0 == memcmp (&pub_key, test_key,
-                     sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey))) {
+    if (0 == GNUNET_memcmp (&pub_key, test_key)) {
       break;
     }
   }

@@ -160,7 +160,7 @@ process_w_fo (void *cls,
     GNUNET_log(GNUNET_ERROR_TYPE_INFO, "Received %s HELLO for peer `%s'\n",
         (GNUNET_YES == GNUNET_HELLO_is_friend_only (hello)) ? "friend only" : "public",
         GNUNET_i2s (peer));
-    if (0 == memcmp (&pid, peer, sizeof(pid)))
+    if (0 == GNUNET_memcmp (&pid, peer))
     {
       res_cb_w_fo = GNUNET_YES;
       GNUNET_SCHEDULER_add_now (&done, NULL);
@@ -199,7 +199,7 @@ process_wo_fo (void *cls, const struct GNUNET_PeerIdentity *peer,
     GNUNET_log(GNUNET_ERROR_TYPE_INFO, "Received %s HELLO for peer `%s'\n",
         (GNUNET_YES == GNUNET_HELLO_is_friend_only (hello)) ? "friend only" : "public",
         GNUNET_i2s (peer));
-    if (0 == memcmp (&pid, peer, sizeof(pid)))
+    if (0 == GNUNET_memcmp (&pid, peer))
     {
       GNUNET_break(0);
       res_cb_wo_fo = GNUNET_YES;

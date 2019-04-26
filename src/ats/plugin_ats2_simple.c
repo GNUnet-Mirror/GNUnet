@@ -492,9 +492,8 @@ watch_cb (void *cls,
   struct GNUNET_TIME_Absolute expiration;
   struct Hello *hello;
 
-  if (0 != memcmp (&p->pid,
-                   &record->peer,
-                   sizeof (struct GNUNET_PeerIdentity)))
+  if (0 != GNUNET_memcmp (&p->pid,
+                   &record->peer))
   {
     GNUNET_break (0);
     return;

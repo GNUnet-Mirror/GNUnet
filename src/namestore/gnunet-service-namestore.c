@@ -553,9 +553,8 @@ cache_nick (const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone,
 	 (oldest->last_used.abs_value_us >
 	  pos->last_used.abs_value_us) )
       oldest = pos;
-    if (0 == memcmp (zone,
-		     &pos->zone,
-		     sizeof (*zone)))
+    if (0 == GNUNET_memcmp (zone,
+		     &pos->zone))
     {
       oldest = pos;
       break;
@@ -592,9 +591,8 @@ get_nick_record (const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone)
   {
     struct NickCache *pos = &nick_cache[i];
     if ( (NULL != pos->rd) &&
-	 (0 == memcmp (zone,
-		       &pos->zone,
-		       sizeof (*zone))) )
+	 (0 == GNUNET_memcmp (zone,
+		       &pos->zone)) )
     {
       nick = GNUNET_malloc (sizeof (*nick) +
 			    pos->rd->data_size);
@@ -1082,12 +1080,10 @@ continue_store_activity (struct StoreActivity *sa)
          NULL != zm;
          zm = sa->zm_pos)
     {
-      if ( (0 != memcmp (&rp_msg->private_key,
-                         &zm->zone,
-                         sizeof (struct GNUNET_CRYPTO_EcdsaPrivateKey))) &&
-           (0 != memcmp (&zm->zone,
-                         &zero,
-                         sizeof (struct GNUNET_CRYPTO_EcdsaPrivateKey))) )
+      if ( (0 != GNUNET_memcmp (&rp_msg->private_key,
+                         &zm->zone)) &&
+           (0 != GNUNET_memcmp (&zm->zone,
+                         &zero)) )
 	{
 	  sa->zm_pos = zm->next; /* not interesting to this monitor */
 	  continue;
@@ -1921,9 +1917,7 @@ run_zone_iteration_round (struct ZoneIteration *zi,
   start = GNUNET_TIME_absolute_get ();
   GNUNET_break (GNUNET_SYSERR !=
                 GSN_database->iterate_records (GSN_database->cls,
-                                               (0 == memcmp (&zi->zone,
-                                                             &zero,
-                                                             sizeof (zero)))
+                                               (0 == GNUNET_is_zero (&zi->zone))
                                                ? NULL
                                                : &zi->zone,
                                                zi->seq,
@@ -2220,9 +2214,7 @@ monitor_iteration_next (void *cls)
   else
     zm->iteration_cnt = zm->limit; /* use it all */
   ret = GSN_database->iterate_records (GSN_database->cls,
-                                       (0 == memcmp (&zm->zone,
-                                                     &zero,
-                                                     sizeof (zero)))
+                                       (0 == GNUNET_is_zero (&zm->zone))
                                        ? NULL
                                        : &zm->zone,
                                        zm->seq,

@@ -241,9 +241,8 @@ zone_proc (void *cls,
     return;
   }
   GNUNET_free (wrd);
-  if (0 != memcmp (zone,
-                   privkey,
-                   sizeof (struct GNUNET_CRYPTO_EcdsaPrivateKey)))
+  if (0 != GNUNET_memcmp (zone,
+                   privkey))
   {
     res = 5;
     GNUNET_break (0);

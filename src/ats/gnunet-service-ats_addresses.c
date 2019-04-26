@@ -682,9 +682,7 @@ GAS_handle_request_address_list (struct GNUNET_SERVICE_Client *client,
   memset (&allzeros,
           '\0',
           sizeof (struct GNUNET_PeerIdentity));
-  if (0 == memcmp (&alrm->peer,
-                   &allzeros,
-                   sizeof (struct GNUNET_PeerIdentity)))
+  if (0 == GNUNET_is_zero (&alrm->peer))
   {
     /* Return addresses for all peers */
     GAS_addresses_get_peer_info (NULL,

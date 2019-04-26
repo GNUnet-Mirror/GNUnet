@@ -383,9 +383,8 @@ handle_reservation_result (void *cls,
 
   amount = ntohl (rr->amount);
   rc = ph->reservation_head;
-  if (0 != memcmp (&rr->peer,
-                   &rc->peer,
-                   sizeof(struct GNUNET_PeerIdentity)))
+  if (0 != GNUNET_memcmp (&rr->peer,
+                   &rc->peer))
   {
     GNUNET_break(0);
     reconnect (ph);
@@ -498,7 +497,7 @@ handle_address_list (void *cls,
     return; /* was canceled */
 
   memset (&allzeros, '\0', sizeof (allzeros));
-  if ( (0 == memcmp (&allzeros, &pi->peer, sizeof(allzeros))) &&
+  if ( (0 == GNUNET_is_zero (&pi->peer)) &&
        (0 == plugin_name_length) &&
        (0 == plugin_address_length) )
   {

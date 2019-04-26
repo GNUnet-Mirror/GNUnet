@@ -843,9 +843,8 @@ handle_connection_create (void *cls,
   }
   /* Initiator is at offset 0, find us */
   for (off=1;off<path_length;off++)
-    if (0 == memcmp (&my_full_id,
-                     &pids[off],
-                     sizeof (struct GNUNET_PeerIdentity)))
+    if (0 == GNUNET_memcmp (&my_full_id,
+                     &pids[off]))
       break;
   if (off == path_length)
   {
@@ -1310,9 +1309,8 @@ core_init_cb (void *cls,
     return;
   }
   GNUNET_break (0 ==
-                memcmp (my_identity,
-                        &my_full_id,
-                        sizeof (struct GNUNET_PeerIdentity)));
+                GNUNET_memcmp (my_identity,
+                        &my_full_id));
 }
 
 

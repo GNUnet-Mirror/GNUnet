@@ -328,8 +328,7 @@ find_partner (struct BenchmarkPeer *me,
   for (c_m = 0; c_m < me->num_partners; c_m++)
   {
     /* Find a partner with other as destination */
-    if (0 == memcmp (peer, &me->partners[c_m].dest->id,
-            sizeof(struct GNUNET_PeerIdentity)))
+    if (0 == GNUNET_memcmp (peer, &me->partners[c_m].dest->id))
     {
       return &me->partners[c_m];
     }

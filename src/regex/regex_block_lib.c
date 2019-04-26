@@ -222,9 +222,8 @@ REGEX_BLOCK_check (const struct RegexBlock *block,
     return GNUNET_SYSERR;
   }
   if (NULL != query &&
-      0 != memcmp (&key,
-                   query,
-                   sizeof (struct GNUNET_HashCode)))
+      0 != GNUNET_memcmp (&key,
+                   query))
   {
     GNUNET_break_op (0);
     return GNUNET_SYSERR;

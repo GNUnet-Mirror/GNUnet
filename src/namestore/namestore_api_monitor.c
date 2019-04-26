@@ -142,12 +142,9 @@ check_result (void *cls,
   const char *rd_ser_tmp;
 
   (void) cls;
-  if ( (0 != memcmp (&lrm->private_key,
-		     &zm->zone,
-		     sizeof (struct GNUNET_CRYPTO_EcdsaPrivateKey))) &&
-       (0 != memcmp (&zero,
-		     &zm->zone,
-		     sizeof (struct GNUNET_CRYPTO_EcdsaPrivateKey))) )
+  if ( (0 != GNUNET_memcmp (&lrm->private_key,
+		     &zm->zone)) &&
+       (0 != GNUNET_is_zero (&zm->zone)) )
   {
     GNUNET_break (0);
     return GNUNET_SYSERR;
