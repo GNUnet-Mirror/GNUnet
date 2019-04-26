@@ -12,9 +12,7 @@ endif
 if HAVE_EXPERIMENTAL
  EXP_DIR = \
   rps \
-  credential \
-  reclaim-attribute \
-  reclaim
+  credential
 if HAVE_ABE
  EXP_DIR += \
   abe
@@ -121,6 +119,8 @@ SUBDIRS = \
   exit \
   pt \
   secretsharing \
+  reclaim-attribute \
+  reclaim \
   $(EXP_DIR) \
   integration-tests
 
