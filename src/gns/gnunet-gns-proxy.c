@@ -561,6 +561,11 @@ struct Socks5Request
   char *url;
 
   /**
+   * The urlencoded URL
+   */
+  char *curl_url;
+
+  /**
    * Handle to cURL
    */
   CURL *curl;
@@ -1909,6 +1914,7 @@ create_response (void *cls,
       return MHD_queue_response (con,
                                  MHD_HTTP_INTERNAL_SERVER_ERROR,
                                  curl_failure_response);
+    s5r->url = curl_easy_escape (s5r->curl, s5r->url, strlen (s5r->url));
     curl_easy_setopt (s5r->curl,
 		      CURLOPT_HEADERFUNCTION,
 		      &curl_check_hdr);
@@ -2315,8 +2321,10 @@ mhd_completed_cb (void *cls,
               "Finished request for %s\n",
               s5r->url);
   GNUNET_free (s5r->url);
+  curl_free (s5r->curl_url);
   s5r->state = SOCKS5_SOCKET_WITH_MHD;
   s5r->url = NULL;
+  s5r->curl_url = NULL;
   s5r->response = NULL;
   *con_cls = NULL;
 }
