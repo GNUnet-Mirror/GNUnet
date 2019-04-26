@@ -346,7 +346,7 @@ OIDC_build_authz_code (const struct GNUNET_CRYPTO_EcdsaPrivateKey *issuer,
     if ((1 != SSCANF (nonce_str, "%u", &nonce)) || (nonce > UINT32_MAX))
     {
       GNUNET_break (0);
-      GNUNET_log (GNUNET_ERROR_LOG_ERROR,
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                   "Invalid nonce %s\n", nonce_str);
       GNUNET_free (code_payload);
       GNUNET_free_non_null (attrs_ser);
@@ -365,7 +365,7 @@ OIDC_build_authz_code (const struct GNUNET_CRYPTO_EcdsaPrivateKey *issuer,
   if (GNUNET_SYSERR == GNUNET_CRYPTO_ecdsa_sign (issuer, purpose, &signature))
   {
     GNUNET_break (0);
-    GNUNET_log (GNUNET_ERROR_LOG_ERROR,
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Unable to sign code\n");
     GNUNET_free (code_payload);
     GNUNET_free_non_null (attrs_ser);
@@ -418,7 +418,7 @@ OIDC_parse_authz_code (const struct GNUNET_CRYPTO_EcdsaPublicKey *audience,
   attrs_ser_len -= sizeof (struct GNUNET_CRYPTO_EccSignaturePurpose);
   *ticket = *((struct GNUNET_RECLAIM_Ticket *) &purpose[1]);
   attrs_ser_len -= sizeof (struct GNUNET_RECLAIM_Ticket);
-  nonce = ntohs (((unsigned int *) &ticket[1]));
+  nonce = ntohs (*((unsigned int *) &ticket[1]));
   attrs_ser_len -= sizeof (unsigned int);
   ptr = code_payload;
   signature_offset =
