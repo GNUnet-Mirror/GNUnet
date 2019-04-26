@@ -11,7 +11,7 @@
       WITHOUT ANY WARRANTY; without even the implied warranty of
       MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
       Affero General Public License for more details.
-     
+
       You should have received a copy of the GNU Affero General Public License
       along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -62,12 +62,14 @@ OIDC_id_token_new (const struct GNUNET_CRYPTO_EcdsaPublicKey *aud_key,
  *
  * @param issuer the issuer of the ticket, used to sign the ticket and nonce
  * @param ticket the ticket to include in the code
+ * @param attrs list of attributes to share
  * @param nonce the nonce to include in the code
  * @return a new authorization code (caller must free)
  */
 char*
 OIDC_build_authz_code (const struct GNUNET_CRYPTO_EcdsaPrivateKey *issuer,
                        const struct GNUNET_RECLAIM_Ticket *ticket,
+                       struct GNUNET_RECLAIM_ATTRIBUTE_ClaimList *attrs,
                        const char* nonce);
 
 /**
@@ -78,13 +80,15 @@ OIDC_build_authz_code (const struct GNUNET_CRYPTO_EcdsaPrivateKey *issuer,
  * @param audience the expected audience of the code
  * @param code the string representation of the code
  * @param ticket where to store the ticket
+ * @param attrs the attributes found in the code
  * @param nonce where to store the nonce
  * @return GNUNET_OK if successful, else GNUNET_SYSERR
  */
 int
 OIDC_parse_authz_code (const struct GNUNET_CRYPTO_EcdsaPublicKey *audience,
                        const char* code,
-                       struct GNUNET_RECLAIM_Ticket **ticket,
+                       struct GNUNET_RECLAIM_Ticket *ticket,
+                       struct GNUNET_RECLAIM_ATTRIBUTE_ClaimList **attrs,
                        char **nonce);
 
 /**

@@ -676,37 +676,6 @@ return_userinfo_response (void *cls)
   cleanup_handle (handle);
 }
 
-/**
- * Returns base64 encoded string urlencoded
- *
- * @param string the string to encode
- * @return base64 encoded string
- */
-static char *
-base64_encode (const char *s)
-{
-  char *enc;
-  char *enc_urlencode;
-  char *tmp;
-  int i;
-  int num_pads = 0;
-
-  GNUNET_STRINGS_base64_encode (s, strlen (s), &enc);
-  tmp = strchr (enc, '=');
-  num_pads = strlen (enc) - (tmp - enc);
-  GNUNET_assert ((3 > num_pads) && (0 <= num_pads));
-  if (0 == num_pads)
-    return enc;
-  enc_urlencode = GNUNET_malloc (strlen (enc) + num_pads * 2);
-  strcpy (enc_urlencode, enc);
-  GNUNET_free (enc);
-  tmp = strchr (enc_urlencode, '=');
-  for (i = 0; i < num_pads; i++) {
-    strcpy (tmp, "%3D"); // replace '=' with '%3D'
-    tmp += 3;
-  }
-  return enc_urlencode;
-}
 
 /**
  * Respond to OPTIONS request
@@ -870,8 +839,7 @@ oidc_ticket_issue_cb (void *cls, const struct GNUNET_RECLAIM_Ticket *ticket)
   struct MHD_Response *resp;
   char *ticket_str;
   char *redirect_uri;
-  char *code_json_string;
-  char *code_base64_final_string;
+  char *code_string;
 
   handle->idp_op = NULL;
   handle->ticket = *ticket;
@@ -884,20 +852,20 @@ oidc_ticket_issue_cb (void *cls, const struct GNUNET_RECLAIM_Ticket *ticket)
   ticket_str = GNUNET_STRINGS_data_to_string_alloc (
       &handle->ticket, sizeof (struct GNUNET_RECLAIM_Ticket));
   // TODO change if more attributes are needed (see max_age)
-  code_json_string = OIDC_build_authz_code (&handle->priv_key, &handle->ticket,
+  code_string = OIDC_build_authz_code (&handle->priv_key, &handle->ticket,
+                                            handle->attr_list,
                                             handle->oidc->nonce);
-  code_base64_final_string = base64_encode (code_json_string);
   if ((NULL != handle->redirect_prefix) && (NULL != handle->redirect_suffix) &&
       (NULL != handle->tld)) {
 
     GNUNET_asprintf (&redirect_uri, "%s.%s/%s?%s=%s&state=%s",
                      handle->redirect_prefix, handle->tld,
                      handle->redirect_suffix, handle->oidc->response_type,
-                     code_base64_final_string, handle->oidc->state);
+                     code_string, handle->oidc->state);
   } else {
     GNUNET_asprintf (&redirect_uri, "%s?%s=%s&state=%s",
                      handle->oidc->redirect_uri, handle->oidc->response_type,
-                     code_base64_final_string, handle->oidc->state);
+                     code_string, handle->oidc->state);
   }
   resp = GNUNET_REST_create_response ("");
   MHD_add_response_header (resp, "Location", redirect_uri);
@@ -905,8 +873,7 @@ oidc_ticket_issue_cb (void *cls, const struct GNUNET_RECLAIM_Ticket *ticket)
   GNUNET_SCHEDULER_add_now (&cleanup_handle_delayed, handle);
   GNUNET_free (redirect_uri);
   GNUNET_free (ticket_str);
-  GNUNET_free (code_json_string);
-  GNUNET_free (code_base64_final_string);
+  GNUNET_free (code_string);
 }
 
 static void
@@ -1653,7 +1620,8 @@ token_endpoint (struct GNUNET_REST_RequestHandle *con_handle, const char *url,
   }
 
   // decode code
-  if (GNUNET_OK != OIDC_parse_authz_code (&cid, code, &ticket, &nonce)) {
+  ticket = GNUNET_new (struct GNUNET_RECLAIM_Ticket);
+  if (GNUNET_OK != OIDC_parse_authz_code (&cid, code, ticket, &cl, &nonce)) {
     handle->emsg = GNUNET_strdup (OIDC_ERROR_KEY_INVALID_REQUEST);
     handle->edesc = GNUNET_strdup ("invalid code");
     handle->response_code = MHD_HTTP_BAD_REQUEST;
@@ -1692,7 +1660,6 @@ token_endpoint (struct GNUNET_REST_RequestHandle *con_handle, const char *url,
     return;
   }
   // TODO We should collect the attributes here. cl always empty
-  cl = GNUNET_new (struct GNUNET_RECLAIM_ATTRIBUTE_ClaimList);
   id_token = OIDC_id_token_new (&ticket->audience, &ticket->identity, cl,
                                 &expiration_time,
                                 (NULL != nonce) ? nonce : NULL, jwt_secret);
