@@ -216,7 +216,7 @@ static char *
 url_encode (const char *str)
 {
   char *pstr = (char *) str;
-  char *buf = malloc (strlen (str) * 3 + 1);
+  char *buf = GNUNET_malloc (strlen (str) * 3 + 1);
   char *pbuf = buf;
   while (*pstr)
   {
@@ -226,8 +226,11 @@ url_encode (const char *str)
     else if (*pstr == ' ')
       *pbuf++ = '+';
     else
-      *pbuf++ = '%', *pbuf++ = to_hex (*pstr >> 4),
+    {
+      *pbuf++ = '%';
+      *pbuf++ = to_hex (*pstr >> 4);
       *pbuf++ = to_hex (*pstr & 15);
+    }
     pstr++;
   }
   *pbuf = '\0';
@@ -241,7 +244,7 @@ static char *
 url_decode (const char *str)
 {
   char *pstr = (char *) str;
-  char *buf = malloc (strlen (str) + 1);
+  char *buf = GNUNET_malloc (strlen (str) + 1);
   char *pbuf = buf;
   while (*pstr)
   {
@@ -342,6 +345,7 @@ OIDC_build_authz_code (const struct GNUNET_CRYPTO_EcdsaPrivateKey *issuer,
   {
     if ((1 != SSCANF (nonce_str, "%u", &nonce)) || (nonce > UINT16_MAX))
     {
+      GNUNET_break (0);
       GNUNET_free (code_payload);
       GNUNET_free_non_null (attrs_ser);
       return NULL;
@@ -358,6 +362,7 @@ OIDC_build_authz_code (const struct GNUNET_CRYPTO_EcdsaPrivateKey *issuer,
   }
   if (GNUNET_SYSERR == GNUNET_CRYPTO_ecdsa_sign (issuer, purpose, &signature))
   {
+    GNUNET_break (0);
     GNUNET_free (code_payload);
     GNUNET_free_non_null (attrs_ser);
     return NULL;
