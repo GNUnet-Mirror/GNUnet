@@ -315,13 +315,13 @@ OIDC_build_authz_code (const struct GNUNET_CRYPTO_EcdsaPrivateKey *issuer,
   size_t signature_payload_len;
   size_t attr_list_len;
   size_t code_payload_len;
-  unsigned int nonce;
-  unsigned int nonce_tmp;
+  uint32_t nonce;
+  uint32_t nonce_tmp;
   struct GNUNET_CRYPTO_EccSignaturePurpose *purpose;
 
   attrs_ser = NULL;
   signature_payload_len =
-    sizeof (struct GNUNET_RECLAIM_Ticket) + sizeof (unsigned int);
+    sizeof (struct GNUNET_RECLAIM_Ticket) + sizeof (uint32_t);
   if (NULL != attrs)
   {
     attr_list_len = GNUNET_RECLAIM_ATTRIBUTE_list_serialize_get_size (attrs);
@@ -361,9 +361,9 @@ OIDC_build_authz_code (const struct GNUNET_CRYPTO_EcdsaPrivateKey *issuer,
       return NULL;
     }
   }
-  nonce_tmp = htons (nonce);
-  memcpy (buf_ptr, &nonce_tmp, sizeof (unsigned int));
-  buf_ptr += sizeof (unsigned int);
+  nonce_tmp = htonl (nonce);
+  memcpy (buf_ptr, &nonce_tmp, sizeof (uint32_t));
+  buf_ptr += sizeof (uint32_t);
   // Finally, attributes
   if (NULL != attrs_ser)
   {
@@ -415,7 +415,7 @@ OIDC_parse_authz_code (const struct GNUNET_CRYPTO_EcdsaPublicKey *audience,
   size_t code_payload_len;
   size_t attrs_ser_len;
   size_t signature_offset;
-  unsigned int nonce;
+  uint32_t nonce;
 
   GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Trying to decode `%s'", code);
   code_payload = NULL;
@@ -424,7 +424,7 @@ OIDC_parse_authz_code (const struct GNUNET_CRYPTO_EcdsaPublicKey *audience,
 
   if (code_payload_len < sizeof (struct GNUNET_CRYPTO_EccSignaturePurpose) +
                            sizeof (struct GNUNET_RECLAIM_Ticket) +
-                           sizeof (unsigned int) +
+                           sizeof (uint32_t) +
                            sizeof (struct GNUNET_CRYPTO_EcdsaSignature))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Authorization code malformed\n");
@@ -439,9 +439,9 @@ OIDC_parse_authz_code (const struct GNUNET_CRYPTO_EcdsaPublicKey *audience,
   *ticket = *((struct GNUNET_RECLAIM_Ticket *) ptr);
   attrs_ser_len -= sizeof (struct GNUNET_RECLAIM_Ticket);
   ptr += sizeof (struct GNUNET_RECLAIM_Ticket);
-  nonce = ntohs (*((unsigned int *) ptr));
-  attrs_ser_len -= sizeof (unsigned int);
-  ptr += sizeof (unsigned int);
+  nonce = ntohl (*((uint32_t *) ptr));
+  attrs_ser_len -= sizeof (uint32_t);
+  ptr += sizeof (uint32_t);
   attrs_ser_len -= sizeof (struct GNUNET_CRYPTO_EcdsaSignature);
   *attrs = GNUNET_RECLAIM_ATTRIBUTE_list_deserialize (ptr, attrs_ser_len);
   signature_offset =
