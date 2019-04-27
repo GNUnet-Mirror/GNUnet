@@ -1600,9 +1600,9 @@ check_authorization (struct RequestHandle *handle,
   return GNUNET_OK;
 }
 
-static int
-ego_exists (struct RequestHandle *handle,
-            struct GNUNET_CRYPTO_EcdsaPublicKey *test_key)
+const struct EgoEntry *
+find_ego (struct RequestHandle *handle,
+          struct GNUNET_CRYPTO_EcdsaPublicKey *test_key)
 {
   struct EgoEntry *ego_entry;
   struct GNUNET_CRYPTO_EcdsaPublicKey pub_key;
@@ -1612,11 +1612,9 @@ ego_exists (struct RequestHandle *handle,
   {
     GNUNET_IDENTITY_ego_get_public_key (ego_entry->ego, &pub_key);
     if (0 == GNUNET_memcmp (&pub_key, test_key))
-      break;
+      return ego_entry;
   }
-  if (NULL == ego_entry)
-    return GNUNET_NO;
-  return GNUNET_YES;
+  return NULL;
 }
 
 static void
@@ -1650,10 +1648,12 @@ token_endpoint (struct GNUNET_REST_RequestHandle *con_handle,
                 void *cls)
 {
   struct RequestHandle *handle = cls;
+  const struct EgoEntry *ego_entry;
   struct GNUNET_TIME_Relative expiration_time;
   struct GNUNET_RECLAIM_ATTRIBUTE_ClaimList *cl;
   struct GNUNET_RECLAIM_Ticket ticket;
   struct GNUNET_CRYPTO_EcdsaPublicKey cid;
+  const struct GNUNET_CRYPTO_EcdsaPrivateKey *privkey;
   struct GNUNET_HashCode cache_key;
   struct MHD_Response *resp;
   char *grant_type;
@@ -1713,9 +1713,17 @@ token_endpoint (struct GNUNET_REST_RequestHandle *con_handle,
     GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
   }
-
+  ego_entry = find_ego (handle, &cid);
+  if (NULL == ego_entry)
+  {
+    handle->emsg = GNUNET_strdup (OIDC_ERROR_KEY_INVALID_REQUEST);
+    handle->edesc = GNUNET_strdup ("Unknown client");
+    handle->response_code = MHD_HTTP_BAD_REQUEST;
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
+  }
+  privkey = GNUNET_IDENTITY_ego_get_private_key (ego_entry->ego);
   // decode code
-  if (GNUNET_OK != OIDC_parse_authz_code (&cid, code, &ticket, &cl, &nonce))
+  if (GNUNET_OK != OIDC_parse_authz_code (privkey, code, &ticket, &cl, &nonce))
   {
     handle->emsg = GNUNET_strdup (OIDC_ERROR_KEY_INVALID_REQUEST);
     handle->edesc = GNUNET_strdup ("invalid code");
@@ -1739,13 +1747,6 @@ token_endpoint (struct GNUNET_REST_RequestHandle *con_handle,
 
 
   // TODO OPTIONAL acr,amr,azp
-  if (GNUNET_NO == ego_exists (handle, &ticket.audience))
-  {
-    handle->emsg = GNUNET_strdup (OIDC_ERROR_KEY_INVALID_REQUEST);
-    handle->edesc = GNUNET_strdup ("invalid code...");
-    handle->response_code = MHD_HTTP_BAD_REQUEST;
-    GNUNET_SCHEDULER_add_now (&do_error, handle);
-  }
   if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_string (cfg,
                                                           "reclaim-rest-plugin",
                                                           "jwt_secret",
@@ -1827,9 +1828,8 @@ userinfo_endpoint (struct GNUNET_REST_RequestHandle *con_handle,
   char *authorization_type;
   char *authorization_access_token;
   struct GNUNET_RECLAIM_Ticket *ticket;
+  const struct EgoEntry *ego_entry;
   const struct GNUNET_CRYPTO_EcdsaPrivateKey *privkey;
-  struct GNUNET_CRYPTO_EcdsaPublicKey pk;
-
 
   GNUNET_CRYPTO_hash (OIDC_AUTHORIZATION_HEADER_KEY,
                       strlen (OIDC_AUTHORIZATION_HEADER_KEY),
@@ -1888,15 +1888,8 @@ userinfo_endpoint (struct GNUNET_REST_RequestHandle *con_handle,
   ticket =
     GNUNET_CONTAINER_multihashmap_get (OIDC_access_token_map, &cache_key);
   GNUNET_assert (NULL != ticket);
-
-  for (handle->ego_entry = handle->ego_head; NULL != handle->ego_entry;
-       handle->ego_entry = handle->ego_entry->next)
-  {
-    GNUNET_IDENTITY_ego_get_public_key (handle->ego_entry->ego, &pk);
-    if (0 == GNUNET_memcmp (&pk, &ticket->audience))
-      break; // Found
-  }
-  if (NULL == handle->ego_entry)
+  ego_entry = find_ego (handle, &ticket->audience);
+  if (NULL == ego_entry)
   {
     handle->emsg = GNUNET_strdup (OIDC_ERROR_KEY_INVALID_TOKEN);
     handle->edesc = GNUNET_strdup ("The access token expired");
@@ -1910,9 +1903,8 @@ userinfo_endpoint (struct GNUNET_REST_RequestHandle *con_handle,
   handle->oidc->response = json_object ();
   json_object_set_new (handle->oidc->response,
                        "sub",
-                       json_string (handle->ego_entry->keystring));
-  privkey = GNUNET_IDENTITY_ego_get_private_key (handle->ego_entry->ego);
-
+                       json_string (ego_entry->keystring));
+  privkey = GNUNET_IDENTITY_ego_get_private_key (ego_entry->ego);
   handle->idp_op = GNUNET_RECLAIM_ticket_consume (handle->idp,
                                                   privkey,
                                                   ticket,

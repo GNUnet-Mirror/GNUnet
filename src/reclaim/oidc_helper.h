@@ -77,7 +77,7 @@ OIDC_build_authz_code (const struct GNUNET_CRYPTO_EcdsaPrivateKey *issuer,
  * authorization code.
  * This also verifies the signature in the code.
  *
- * @param audience the expected audience of the code
+ * @param ecdsa_priv the audience of the ticket
  * @param code the string representation of the code
  * @param ticket where to store the ticket
  * @param attrs the attributes found in the code
@@ -85,7 +85,7 @@ OIDC_build_authz_code (const struct GNUNET_CRYPTO_EcdsaPrivateKey *issuer,
  * @return GNUNET_OK if successful, else GNUNET_SYSERR
  */
 int
-OIDC_parse_authz_code (const struct GNUNET_CRYPTO_EcdsaPublicKey *audience,
+OIDC_parse_authz_code (const struct GNUNET_CRYPTO_EcdsaPrivateKey *ecdsa_priv,
                        const char* code,
                        struct GNUNET_RECLAIM_Ticket *ticket,
                        struct GNUNET_RECLAIM_ATTRIBUTE_ClaimList **attrs,
