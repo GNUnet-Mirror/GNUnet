@@ -303,16 +303,16 @@ derive_aes_key (struct GNUNET_CRYPTO_SymmetricSessionKey *key,
                      sizeof (struct GNUNET_CRYPTO_SymmetricSessionKey),
                      ctx_key,
                      strlen (ctx_key),
-                     &key_material,
-                     sizeof (key_material),
+                     key_material,
+                     sizeof (struct GNUNET_HashCode),
                      NULL);
   GNUNET_CRYPTO_kdf (iv,
                      sizeof (
                        struct GNUNET_CRYPTO_SymmetricInitializationVector),
                      ctx_iv,
                      strlen (ctx_iv),
-                     &key_material,
-                     sizeof (key_material),
+                     key_material,
+                     sizeof (struct GNUNET_HashCode),
                      NULL);
 }
 
