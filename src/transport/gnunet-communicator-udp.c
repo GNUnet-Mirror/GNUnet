@@ -66,7 +66,8 @@
 /**
  * How often do we scan for changes to our network interfaces?
  */
-#define INTERFACE_SCAN_FREQUENCY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 5)
+#define INTERFACE_SCAN_FREQUENCY \
+  GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 5)
 
 /**
  * How long do we believe our addresses to remain up (before
@@ -77,17 +78,17 @@
 /**
  * AES key size.
  */
-#define AES_KEY_SIZE (256/8)
+#define AES_KEY_SIZE (256 / 8)
 
 /**
  * AES (GCM) IV size.
  */
-#define AES_IV_SIZE (96/8)
+#define AES_IV_SIZE (96 / 8)
 
 /**
  * Size of the GCM tag.
  */
-#define GCM_TAG_SIZE (128/8)
+#define GCM_TAG_SIZE (128 / 8)
 
 /**
  * If we fall below this number of available KCNs,
@@ -202,7 +203,6 @@ struct InitialKX
    * key derived from the handshake with sequence number zero.
    */
   char gcm_tag[GCM_TAG_SIZE];
-
 };
 
 
@@ -256,7 +256,6 @@ struct UDPAck
    * CMAC of the base key being acknowledged.
    */
   struct GNUNET_HashCode cmac;
-
 };
 
 
@@ -306,7 +305,6 @@ struct UDPBroadcast
    * #GNUNET_SIGNATURE_COMMUNICATOR_UDP_BROADCAST
    */
   struct GNUNET_CRYPTO_EddsaSignature sender_sig;
-
 };
 
 
@@ -334,7 +332,6 @@ struct UDPBox
    * `struct UdpHandshakeSignature`.
    */
   char gcm_tag[GCM_TAG_SIZE];
-
 };
 
 
@@ -512,7 +509,6 @@ struct SenderAddress
    * Which network type does this queue use?
    */
   enum GNUNET_NetworkType nt;
-
 };
 
 
@@ -594,7 +590,6 @@ struct ReceiverAddress
    * Which network type does this queue use?
    */
   enum GNUNET_NetworkType nt;
-
 };
 
 
@@ -769,21 +764,16 @@ bi_destroy (struct BroadcastInterface *bi)
   if (AF_INET6 == bi->sa->sa_family)
   {
     /* Leave the multicast group */
-    if (GNUNET_OK !=
-        GNUNET_NETWORK_socket_setsockopt
-        (udp_sock,
-	 IPPROTO_IPV6,
-	 IPV6_LEAVE_GROUP,
-         &bi->mcreq,
-	 sizeof (bi->mcreq)))
+    if (GNUNET_OK != GNUNET_NETWORK_socket_setsockopt (udp_sock,
+                                                       IPPROTO_IPV6,
+                                                       IPV6_LEAVE_GROUP,
+                                                       &bi->mcreq,
+                                                       sizeof (bi->mcreq)))
     {
-      GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING,
-			   "setsockopt");
+      GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "setsockopt");
     }
   }
-  GNUNET_CONTAINER_DLL_remove (bi_head,
-			       bi_tail,
-			       bi);
+  GNUNET_CONTAINER_DLL_remove (bi_head, bi_tail, bi);
   GNUNET_SCHEDULER_cancel (bi->broadcast_task);
   GNUNET_free (bi->sa);
   GNUNET_free_non_null (bi->ba);
@@ -802,8 +792,8 @@ receiver_destroy (struct ReceiverAddress *receiver)
   struct GNUNET_MQ_Handle *mq;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Disconnecting receiver for peer `%s'\n",
-	      GNUNET_i2s (&receiver->target));
+              "Disconnecting receiver for peer `%s'\n",
+              GNUNET_i2s (&receiver->target));
   if (NULL != (mq = receiver->mq))
   {
     receiver->mq = NULL;
@@ -816,14 +806,13 @@ receiver_destroy (struct ReceiverAddress *receiver)
   }
   GNUNET_assert (GNUNET_YES ==
                  GNUNET_CONTAINER_multipeermap_remove (receivers,
-						       &receiver->target,
-						       receiver));
-  GNUNET_assert (receiver ==
-		 GNUNET_CONTAINER_heap_remove_node (receiver->hn));
+                                                       &receiver->target,
+                                                       receiver));
+  GNUNET_assert (receiver == GNUNET_CONTAINER_heap_remove_node (receiver->hn));
   GNUNET_STATISTICS_set (stats,
-			 "# receivers active",
-			 GNUNET_CONTAINER_multipeermap_size (receivers),
-			 GNUNET_NO);
+                         "# receivers active",
+                         GNUNET_CONTAINER_multipeermap_size (receivers),
+                         GNUNET_NO);
   GNUNET_free (receiver->address);
   GNUNET_free (receiver->foreign_addr);
   GNUNET_free (receiver);
@@ -841,13 +830,10 @@ kce_destroy (struct KeyCacheEntry *kce)
   struct SharedSecret *ss = kce->ss;
 
   ss->active_kce_count--;
-  GNUNET_CONTAINER_DLL_remove (ss->kce_head,
-			       ss->kce_tail,
-			       kce);
-  GNUNET_assert (GNUNET_YES ==
-		 GNUNET_CONTAINER_multishortmap_remove (key_cache,
-							&kce->kid,
-							kce));
+  GNUNET_CONTAINER_DLL_remove (ss->kce_head, ss->kce_tail, kce);
+  GNUNET_assert (GNUNET_YES == GNUNET_CONTAINER_multishortmap_remove (key_cache,
+                                                                      &kce->kid,
+                                                                      kce));
   GNUNET_free (kce);
 }
 
@@ -861,22 +847,23 @@ kce_destroy (struct KeyCacheEntry *kce)
  */
 static void
 get_kid (const struct GNUNET_HashCode *msec,
-	 uint32_t serial,
-	 struct GNUNET_ShortHashCode *kid)
+         uint32_t serial,
+         struct GNUNET_ShortHashCode *kid)
 {
   uint32_t sid = htonl (serial);
 
   GNUNET_CRYPTO_hkdf (kid,
-		      sizeof (*kid),
-		      GCRY_MD_SHA512,
-		      GCRY_MD_SHA256,
-		      &sid,
-		      sizeof (sid),
-		      msec,
-		      sizeof (*msec),
-		      "UDP-KID",
-		      strlen ("UDP-KID"),
-		      NULL, 0);
+                      sizeof (*kid),
+                      GCRY_MD_SHA512,
+                      GCRY_MD_SHA256,
+                      &sid,
+                      sizeof (sid),
+                      msec,
+                      sizeof (*msec),
+                      "UDP-KID",
+                      strlen ("UDP-KID"),
+                      NULL,
+                      0);
 }
 
 
@@ -887,8 +874,7 @@ get_kid (const struct GNUNET_HashCode *msec,
  * @param seq sequence number for the key cache entry
  */
 static void
-kce_generate (struct SharedSecret *ss,
-	      uint32_t seq)
+kce_generate (struct SharedSecret *ss, uint32_t seq)
 {
   struct KeyCacheEntry *kce;
 
@@ -896,21 +882,18 @@ kce_generate (struct SharedSecret *ss,
   kce = GNUNET_new (struct KeyCacheEntry);
   kce->ss = ss;
   kce->sequence_number = seq;
-  get_kid (&ss->master,
-	   seq,
-	   &kce->kid);
-  GNUNET_CONTAINER_DLL_insert (ss->kce_head,
-			       ss->kce_tail,
-			       kce);
+  get_kid (&ss->master, seq, &kce->kid);
+  GNUNET_CONTAINER_DLL_insert (ss->kce_head, ss->kce_tail, kce);
   ss->active_kce_count++;
-  (void) GNUNET_CONTAINER_multishortmap_put (key_cache,
-					     &kce->kid,
-					     kce,
-					     GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
+  (void) GNUNET_CONTAINER_multishortmap_put (
+    key_cache,
+    &kce->kid,
+    kce,
+    GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
   GNUNET_STATISTICS_set (stats,
-			 "# KIDs active",
-			 GNUNET_CONTAINER_multishortmap_size (key_cache),
-			 GNUNET_NO);
+                         "# KIDs active",
+                         GNUNET_CONTAINER_multishortmap_size (key_cache),
+                         GNUNET_NO);
 }
 
 
@@ -928,30 +911,22 @@ secret_destroy (struct SharedSecret *ss)
 
   if (NULL != (sender = ss->sender))
   {
-    GNUNET_CONTAINER_DLL_remove (sender->ss_head,
-				 sender->ss_tail,
-				 ss);
+    GNUNET_CONTAINER_DLL_remove (sender->ss_head, sender->ss_tail, ss);
     sender->num_secrets--;
   }
   if (NULL != (receiver = ss->receiver))
   {
-    GNUNET_CONTAINER_DLL_remove (receiver->ss_head,
-				 receiver->ss_tail,
-				 ss);
+    GNUNET_CONTAINER_DLL_remove (receiver->ss_head, receiver->ss_tail, ss);
     receiver->num_secrets--;
-    receiver->acks_available
-      -= (ss->sequence_allowed - ss->sequence_used);
+    receiver->acks_available -= (ss->sequence_allowed - ss->sequence_used);
   }
   while (NULL != (kce = ss->kce_head))
     kce_destroy (kce);
-  GNUNET_STATISTICS_update (stats,
-			    "# Secrets active",
-			    -1,
-			    GNUNET_NO);
+  GNUNET_STATISTICS_update (stats, "# Secrets active", -1, GNUNET_NO);
   GNUNET_STATISTICS_set (stats,
-			 "# KIDs active",
-			 GNUNET_CONTAINER_multishortmap_size (key_cache),
-			 GNUNET_NO);
+                         "# KIDs active",
+                         GNUNET_CONTAINER_multishortmap_size (key_cache),
+                         GNUNET_NO);
   GNUNET_free (ss);
 }
 
@@ -965,12 +940,10 @@ secret_destroy (struct SharedSecret *ss)
 static void
 sender_destroy (struct SenderAddress *sender)
 {
-  GNUNET_assert (GNUNET_YES ==
-                 GNUNET_CONTAINER_multipeermap_remove (senders,
-						       &sender->target,
-						       sender));
-  GNUNET_assert (sender ==
-                 GNUNET_CONTAINER_heap_remove_node (sender->hn));
+  GNUNET_assert (
+    GNUNET_YES ==
+    GNUNET_CONTAINER_multipeermap_remove (senders, &sender->target, sender));
+  GNUNET_assert (sender == GNUNET_CONTAINER_heap_remove_node (sender->hn));
   GNUNET_STATISTICS_set (stats,
                          "# senders active",
                          GNUNET_CONTAINER_multipeermap_size (senders),
@@ -990,9 +963,9 @@ sender_destroy (struct SenderAddress *sender)
  */
 static void
 get_iv_key (const struct GNUNET_HashCode *msec,
-	    uint32_t serial,
-	    char key[AES_KEY_SIZE],
-	    char iv[AES_IV_SIZE])
+            uint32_t serial,
+            char key[AES_KEY_SIZE],
+            char iv[AES_IV_SIZE])
 {
   uint32_t sid = htonl (serial);
   char res[AES_KEY_SIZE + AES_IV_SIZE];
@@ -1007,13 +980,10 @@ get_iv_key (const struct GNUNET_HashCode *msec,
                       sizeof (*msec),
                       "UDP-IV-KEY",
                       strlen ("UDP-IV-KEY"),
-                      NULL, 0);
-  memcpy (key,
-          res,
-          AES_KEY_SIZE);
-  memcpy (iv,
-          &res[AES_KEY_SIZE],
-          AES_IV_SIZE);
+                      NULL,
+                      0);
+  memcpy (key, res, AES_KEY_SIZE);
+  memcpy (iv, &res[AES_KEY_SIZE], AES_IV_SIZE);
 }
 
 
@@ -1025,10 +995,9 @@ get_iv_key (const struct GNUNET_HashCode *msec,
 static void
 reschedule_sender_timeout (struct SenderAddress *sender)
 {
-  sender->timeout
-    = GNUNET_TIME_relative_to_absolute (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT);
-  GNUNET_CONTAINER_heap_update_cost (sender->hn,
-                                     sender->timeout.abs_value_us);
+  sender->timeout =
+    GNUNET_TIME_relative_to_absolute (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT);
+  GNUNET_CONTAINER_heap_update_cost (sender->hn, sender->timeout.abs_value_us);
 }
 
 
@@ -1040,10 +1009,10 @@ reschedule_sender_timeout (struct SenderAddress *sender)
 static void
 reschedule_receiver_timeout (struct ReceiverAddress *receiver)
 {
-  receiver->timeout
-    = GNUNET_TIME_relative_to_absolute (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT);
+  receiver->timeout =
+    GNUNET_TIME_relative_to_absolute (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT);
   GNUNET_CONTAINER_heap_update_cost (receiver->hn,
-				     receiver->timeout.abs_value_us);
+                                     receiver->timeout.abs_value_us);
 }
 
 
@@ -1079,12 +1048,9 @@ check_timeouts (void *cls)
       break;
     sender_destroy (sender);
   }
-  delay = GNUNET_TIME_relative_min (rt,
-				    st);
+  delay = GNUNET_TIME_relative_min (rt, st);
   if (delay.rel_value_us < GNUNET_TIME_UNIT_FOREVER_REL.rel_value_us)
-    timeout_task = GNUNET_SCHEDULER_add_delayed (delay,
-						 &check_timeouts,
-						 NULL);
+    timeout_task = GNUNET_SCHEDULER_add_delayed (delay, &check_timeouts, NULL);
 }
 
 
@@ -1106,7 +1072,8 @@ calculate_cmac (struct SharedSecret *ss)
                       sizeof (ss->master),
                       "UDP-CMAC",
                       strlen ("UDP-CMAC"),
-                      NULL, 0);
+                      NULL,
+                      0);
 }
 
 
@@ -1128,15 +1095,17 @@ pass_plaintext_to_core (struct SenderAddress *sender,
   while (ntohs (hdr->size) < plaintext_len)
   {
     GNUNET_STATISTICS_update (stats,
-			      "# bytes given to core",
-			      ntohs (hdr->size),
-			      GNUNET_NO);
-    (void) GNUNET_TRANSPORT_communicator_receive (ch,
-                                                  &sender->target,
-                                                  hdr,
-                                                  ADDRESS_VALIDITY_PERIOD,
-                                                  NULL /* no flow control possible */,
-                                                  NULL);
+                              "# bytes given to core",
+                              ntohs (hdr->size),
+                              GNUNET_NO);
+    (void)
+      GNUNET_TRANSPORT_communicator_receive (ch,
+                                             &sender->target,
+                                             hdr,
+                                             ADDRESS_VALIDITY_PERIOD,
+                                             NULL /* no flow control possible */
+                                             ,
+                                             NULL);
     /* move on to next message, if any */
     plaintext_len -= ntohs (hdr->size);
     if (plaintext_len < sizeof (*hdr))
@@ -1170,16 +1139,9 @@ setup_cipher (const struct GNUNET_HashCode *msec,
                     GCRY_CIPHER_AES256 /* low level: go for speed */,
                     GCRY_CIPHER_MODE_GCM,
                     0 /* flags */);
-  get_iv_key (msec,
-              serial,
-              key,
-              iv);
-  gcry_cipher_setkey (*cipher,
-                      key,
-                      sizeof (key));
-  gcry_cipher_setiv (*cipher,
-                     iv,
-                     sizeof (iv));
+  get_iv_key (msec, serial, key, iv);
+  gcry_cipher_setkey (*cipher, key, sizeof (key));
+  gcry_cipher_setiv (*cipher, iv, sizeof (iv));
 }
 
 
@@ -1205,19 +1167,11 @@ try_decrypt (const struct SharedSecret *ss,
 {
   gcry_cipher_hd_t cipher;
 
-  setup_cipher (&ss->master,
-                serial,
-                &cipher);
-  GNUNET_assert (0 ==
-                 gcry_cipher_decrypt (cipher,
-                                      out_buf,
-                                      in_buf_size,
-                                      in_buf,
-                                      in_buf_size));
-  if (0 !=
-      gcry_cipher_checktag (cipher,
-                            tag,
-                            GCM_TAG_SIZE))
+  setup_cipher (&ss->master, serial, &cipher);
+  GNUNET_assert (
+    0 ==
+    gcry_cipher_decrypt (cipher, out_buf, in_buf_size, in_buf, in_buf_size));
+  if (0 != gcry_cipher_checktag (cipher, tag, GCM_TAG_SIZE))
   {
     gcry_cipher_close (cipher);
     GNUNET_STATISTICS_update (stats,
@@ -1243,9 +1197,7 @@ setup_shared_secret_dec (const struct GNUNET_CRYPTO_EcdhePublicKey *ephemeral)
   struct SharedSecret *ss;
 
   ss = GNUNET_new (struct SharedSecret);
-  GNUNET_CRYPTO_eddsa_ecdh (my_private_key,
-                            ephemeral,
-                            &ss->master);
+  GNUNET_CRYPTO_eddsa_ecdh (my_private_key, ephemeral, &ss->master);
   return ss;
 }
 
@@ -1259,7 +1211,7 @@ setup_shared_secret_dec (const struct GNUNET_CRYPTO_EcdhePublicKey *ephemeral)
  */
 static struct SharedSecret *
 setup_shared_secret_enc (const struct GNUNET_CRYPTO_EcdhePrivateKey *ephemeral,
-			 struct ReceiverAddress *receiver)
+                         struct ReceiverAddress *receiver)
 {
   struct SharedSecret *ss;
 
@@ -1269,14 +1221,9 @@ setup_shared_secret_enc (const struct GNUNET_CRYPTO_EcdhePrivateKey *ephemeral,
                             &ss->master);
   calculate_cmac (ss);
   ss->receiver = receiver;
-  GNUNET_CONTAINER_DLL_insert (receiver->ss_head,
-                               receiver->ss_tail,
-                               ss);
+  GNUNET_CONTAINER_DLL_insert (receiver->ss_head, receiver->ss_tail, ss);
   receiver->num_secrets++;
-  GNUNET_STATISTICS_update (stats,
-                            "# Secrets active",
-                            1,
-                            GNUNET_NO);
+  GNUNET_STATISTICS_update (stats, "# Secrets active", 1, GNUNET_NO);
   return ss;
 }
 
@@ -1303,21 +1250,15 @@ setup_receiver_mq (struct ReceiverAddress *receiver);
  * @return #GNUNET_YES to continue to iterate
  */
 static int
-handle_ack (void *cls,
-            const struct GNUNET_PeerIdentity *pid,
-            void *value)
+handle_ack (void *cls, const struct GNUNET_PeerIdentity *pid, void *value)
 {
   const struct UDPAck *ack = cls;
   struct ReceiverAddress *receiver = value;
 
   (void) pid;
-  for (struct SharedSecret *ss = receiver->ss_head;
-       NULL != ss;
-       ss = ss->next)
+  for (struct SharedSecret *ss = receiver->ss_head; NULL != ss; ss = ss->next)
   {
-    if (0 == memcmp (&ack->cmac,
-                     &ss->cmac,
-                     sizeof (struct GNUNET_HashCode)))
+    if (0 == memcmp (&ack->cmac, &ss->cmac, sizeof (struct GNUNET_HashCode)))
     {
       uint32_t allowed;
 
@@ -1326,20 +1267,15 @@ handle_ack (void *cls,
       if (allowed > ss->sequence_allowed)
       {
         receiver->acks_available += (allowed - ss->sequence_allowed);
-        if ((allowed - ss->sequence_allowed)
-            == receiver->acks_available)
+        if ((allowed - ss->sequence_allowed) == receiver->acks_available)
         {
           /* we just incremented from zero => MTU change! */
           setup_receiver_mq (receiver);
         }
         ss->sequence_allowed = allowed;
         /* move ss to head to avoid discarding it anytime soon! */
-        GNUNET_CONTAINER_DLL_remove (receiver->ss_head,
-                                     receiver->ss_tail,
-                                     ss);
-        GNUNET_CONTAINER_DLL_insert (receiver->ss_head,
-                                     receiver->ss_tail,
-                                     ss);
+        GNUNET_CONTAINER_DLL_remove (receiver->ss_head, receiver->ss_tail, ss);
+        GNUNET_CONTAINER_DLL_insert (receiver->ss_head, receiver->ss_tail, ss);
       }
       return GNUNET_NO;
     }
@@ -1361,10 +1297,9 @@ try_handle_plaintext (struct SenderAddress *sender,
                       const void *buf,
                       size_t buf_size)
 {
-  const struct GNUNET_MessageHeader *hdr
-    = (const struct GNUNET_MessageHeader *) buf;
-  const struct UDPAck *ack
-    = (const struct UDPAck *) buf;
+  const struct GNUNET_MessageHeader *hdr =
+    (const struct GNUNET_MessageHeader *) buf;
+  const struct UDPAck *ack = (const struct UDPAck *) buf;
   uint16_t type;
 
   if (sizeof (*hdr) > buf_size)
@@ -1383,17 +1318,13 @@ try_handle_plaintext (struct SenderAddress *sender,
     /* There could be more messages after the ACK, handle those as well */
     buf += ntohs (hdr->size);
     buf_size -= ntohs (hdr->size);
-    pass_plaintext_to_core (sender,
-                            buf,
-                            buf_size);
+    pass_plaintext_to_core (sender, buf, buf_size);
     break;
   case GNUNET_MESSAGE_TYPE_COMMUNICATOR_UDP_PAD:
     /* skip padding */
     break;
   default:
-    pass_plaintext_to_core (sender,
-                            buf,
-                            buf_size);
+    pass_plaintext_to_core (sender, buf, buf_size);
   }
 }
 
@@ -1411,16 +1342,16 @@ consider_ss_ack (struct SharedSecret *ss)
 {
   GNUNET_assert (NULL != ss->sender);
   /* drop ancient KeyCacheEntries */
-  while ( (NULL != ss->kce_head) &&
-	  (MAX_SQN_DELTA < ss->kce_head->sequence_number - ss->kce_tail->sequence_number) )
+  while ((NULL != ss->kce_head) &&
+         (MAX_SQN_DELTA <
+          ss->kce_head->sequence_number - ss->kce_tail->sequence_number))
     kce_destroy (ss->kce_tail);
   if (ss->active_kce_count < KCN_THRESHOLD)
   {
     struct UDPAck ack;
 
     while (ss->active_kce_count < KCN_TARGET)
-      kce_generate (ss,
-                    ++ss->sequence_allowed);
+      kce_generate (ss, ++ss->sequence_allowed);
     ack.header.type = htons (GNUNET_MESSAGE_TYPE_COMMUNICATOR_UDP_ACK);
     ack.header.size = htons (sizeof (ack));
     ack.sequence_max = htonl (ss->sequence_allowed);
@@ -1449,18 +1380,17 @@ decrypt_box (const struct UDPBox *box,
   char out_buf[box_len - sizeof (*box)];
 
   GNUNET_assert (NULL != ss->sender);
-  if (GNUNET_OK !=
-      try_decrypt (ss,
-                   box->gcm_tag,
-                   kce->sequence_number,
-                   (const char *) &box[1],
-                   sizeof (out_buf),
-                   out_buf))
+  if (GNUNET_OK != try_decrypt (ss,
+                                box->gcm_tag,
+                                kce->sequence_number,
+                                (const char *) &box[1],
+                                sizeof (out_buf),
+                                out_buf))
   {
     GNUNET_STATISTICS_update (stats,
-			      "# Decryption failures with valid KCE",
-			      1,
-			      GNUNET_NO);
+                              "# Decryption failures with valid KCE",
+                              1,
+                              GNUNET_NO);
     kce_destroy (kce);
     return;
   }
@@ -1469,9 +1399,7 @@ decrypt_box (const struct UDPBox *box,
                             "# bytes decrypted with BOX",
                             sizeof (out_buf),
                             GNUNET_NO);
-  try_handle_plaintext (ss->sender,
-                        out_buf,
-                        sizeof (out_buf));
+  try_handle_plaintext (ss->sender, out_buf, sizeof (out_buf));
   consider_ss_ack (ss);
 }
 
@@ -1514,10 +1442,8 @@ find_sender_by_address (void *cls,
   struct SearchContext *sc = cls;
   struct SenderAddress *sender = value;
 
-  if ( (sender->address_len == sc->address_len) &&
-       (0 == memcmp (sender->address,
-                     sc->address,
-                     sender->address_len)) )
+  if ((sender->address_len == sc->address_len) &&
+      (0 == memcmp (sender->address, sc->address, sender->address_len)))
   {
     sc->sender = sender;
     return GNUNET_NO; /* stop iterating! */
@@ -1543,11 +1469,9 @@ setup_sender (const struct GNUNET_PeerIdentity *target,
               socklen_t address_len)
 {
   struct SenderAddress *sender;
-  struct SearchContext sc = {
-    .address = address,
-    .address_len = address_len,
-    .sender = NULL
-  };
+  struct SearchContext sc = {.address = address,
+                             .address_len = address_len,
+                             .sender = NULL};
 
   GNUNET_CONTAINER_multipeermap_get_multiple (senders,
                                               target,
@@ -1560,28 +1484,25 @@ setup_sender (const struct GNUNET_PeerIdentity *target,
   }
   sender = GNUNET_new (struct SenderAddress);
   sender->target = *target;
-  sender->address = GNUNET_memdup (address,
-                                   address_len);
+  sender->address = GNUNET_memdup (address, address_len);
   sender->address_len = address_len;
-  (void) GNUNET_CONTAINER_multipeermap_put (senders,
-                                            &sender->target,
-                                            sender,
-                                            GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
+  (void) GNUNET_CONTAINER_multipeermap_put (
+    senders,
+    &sender->target,
+    sender,
+    GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
   GNUNET_STATISTICS_set (stats,
                          "# senders active",
                          GNUNET_CONTAINER_multipeermap_size (receivers),
                          GNUNET_NO);
-  sender->timeout
-    = GNUNET_TIME_relative_to_absolute (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT);
+  sender->timeout =
+    GNUNET_TIME_relative_to_absolute (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT);
   sender->hn = GNUNET_CONTAINER_heap_insert (senders_heap,
                                              sender,
                                              sender->timeout.abs_value_us);
-  sender->nt = GNUNET_NT_scanner_get_type (is,
-                                           address,
-                                           address_len);
+  sender->nt = GNUNET_NT_scanner_get_type (is, address, address_len);
   if (NULL == timeout_task)
-    timeout_task = GNUNET_SCHEDULER_add_now (&check_timeouts,
-                                             NULL);
+    timeout_task = GNUNET_SCHEDULER_add_now (&check_timeouts, NULL);
   return sender;
 }
 
@@ -1632,15 +1553,13 @@ sockaddr_to_udpaddr_string (const struct sockaddr *address,
     GNUNET_asprintf (&ret,
                      "%s-%s",
                      COMMUNICATOR_ADDRESS_PREFIX,
-                     GNUNET_a2s (address,
-                                 address_len));
+                     GNUNET_a2s (address, address_len));
     break;
   case AF_INET6:
     GNUNET_asprintf (&ret,
                      "%s-%s",
                      COMMUNICATOR_ADDRESS_PREFIX,
-                     GNUNET_a2s (address,
-                                 address_len));
+                     GNUNET_a2s (address, address_len));
     break;
   default:
     GNUNET_assert (0);
@@ -1663,11 +1582,10 @@ sock_read (void *cls)
   ssize_t rcvd;
 
   (void) cls;
-  read_task
-      = GNUNET_SCHEDULER_add_read_net (GNUNET_TIME_UNIT_FOREVER_REL,
-                                       udp_sock,
-                                       &sock_read,
-                                       NULL);
+  read_task = GNUNET_SCHEDULER_add_read_net (GNUNET_TIME_UNIT_FOREVER_REL,
+                                             udp_sock,
+                                             &sock_read,
+                                             NULL);
   rcvd = GNUNET_NETWORK_socket_recvfrom (udp_sock,
                                          buf,
                                          sizeof (buf),
@@ -1675,8 +1593,7 @@ sock_read (void *cls)
                                          &salen);
   if (-1 == rcvd)
   {
-    GNUNET_log_strerror (GNUNET_ERROR_TYPE_DEBUG,
-                         "recv");
+    GNUNET_log_strerror (GNUNET_ERROR_TYPE_DEBUG, "recv");
     return;
   }
 
@@ -1687,13 +1604,10 @@ sock_read (void *cls)
     struct KeyCacheEntry *kce;
 
     box = (const struct UDPBox *) buf;
-    kce = GNUNET_CONTAINER_multishortmap_get (key_cache,
-                                              &box->kid);
+    kce = GNUNET_CONTAINER_multishortmap_get (key_cache, &box->kid);
     if (NULL != kce)
     {
-      decrypt_box (box,
-                   (size_t) rcvd,
-                   kce);
+      decrypt_box (box, (size_t) rcvd, kce);
       return;
     }
   }
@@ -1708,9 +1622,7 @@ sock_read (void *cls)
     uhs.purpose.purpose = htonl (GNUNET_SIGNATURE_COMMUNICATOR_UDP_BROADCAST);
     uhs.purpose.size = htonl (sizeof (uhs));
     uhs.sender = ub->sender;
-    GNUNET_CRYPTO_hash (&sa,
-                        salen,
-                        &uhs.h_address);
+    GNUNET_CRYPTO_hash (&sa, salen, &uhs.h_address);
     if (GNUNET_OK ==
         GNUNET_CRYPTO_eddsa_verify (GNUNET_SIGNATURE_COMMUNICATOR_UDP_BROADCAST,
                                     &uhs.purpose,
@@ -1721,18 +1633,15 @@ sock_read (void *cls)
       struct GNUNET_TIME_Absolute expiration;
       enum GNUNET_NetworkType nt;
 
-      addr_s = sockaddr_to_udpaddr_string ((const struct sockaddr *) &sa,
-                                           salen);
-      GNUNET_STATISTICS_update (stats,
-                                "# broadcasts received",
-                                1,
-                                GNUNET_NO);
-      /* expire at the broadcast frequency, as then we'll get the next one anyway */
+      addr_s =
+        sockaddr_to_udpaddr_string ((const struct sockaddr *) &sa, salen);
+      GNUNET_STATISTICS_update (stats, "# broadcasts received", 1, GNUNET_NO);
+      /* expire at the broadcast frequency, as then we'll get the next one
+       * anyway */
       expiration = GNUNET_TIME_relative_to_absolute (BROADCAST_FREQUENCY);
       /* use our own mechanism to determine network type */
-      nt = GNUNET_NT_scanner_get_type (is,
-                                       (const struct sockaddr *) &sa,
-                                       salen);
+      nt =
+        GNUNET_NT_scanner_get_type (is, (const struct sockaddr *) &sa, salen);
       GNUNET_TRANSPORT_application_validate (ah,
                                              &ub->sender,
                                              expiration,
@@ -1749,9 +1658,9 @@ sock_read (void *cls)
   if (rcvd < sizeof (struct UDPConfirmation) + sizeof (struct InitialKX))
   {
     GNUNET_STATISTICS_update (stats,
-			      "# messages dropped (no kid, too small for KX)",
-			      1,
-			      GNUNET_NO);
+                              "# messages dropped (no kid, too small for KX)",
+                              1,
+                              GNUNET_NO);
     return;
   }
 
@@ -1764,54 +1673,43 @@ sock_read (void *cls)
 
     kx = (const struct InitialKX *) buf;
     ss = setup_shared_secret_dec (&kx->ephemeral);
-    if (GNUNET_OK !=
-	try_decrypt (ss,
-                 kx->gcm_tag,
-                 0,
-                 &buf[sizeof (*kx)],
-                 sizeof (pbuf),
-                 pbuf))
+    if (GNUNET_OK != try_decrypt (ss,
+                                  kx->gcm_tag,
+                                  0,
+                                  &buf[sizeof (*kx)],
+                                  sizeof (pbuf),
+                                  pbuf))
     {
       GNUNET_free (ss);
-      GNUNET_STATISTICS_update (stats,
-				"# messages dropped (no kid, AEAD decryption failed)",
-				1,
-				GNUNET_NO);
+      GNUNET_STATISTICS_update (
+        stats,
+        "# messages dropped (no kid, AEAD decryption failed)",
+        1,
+        GNUNET_NO);
       return;
     }
     uc = (const struct UDPConfirmation *) pbuf;
-    if (GNUNET_OK !=
-        verify_confirmation (&kx->ephemeral,
-                             uc))
+    if (GNUNET_OK != verify_confirmation (&kx->ephemeral, uc))
     {
       GNUNET_break_op (0);
       GNUNET_free (ss);
       GNUNET_STATISTICS_update (stats,
-				"# messages dropped (sender signature invalid)",
-				1,
-				GNUNET_NO);
+                                "# messages dropped (sender signature invalid)",
+                                1,
+                                GNUNET_NO);
       return;
     }
     calculate_cmac (ss);
-    sender = setup_sender (&uc->sender,
-                           (const struct sockaddr *) &sa,
-                           salen);
+    sender = setup_sender (&uc->sender, (const struct sockaddr *) &sa, salen);
     ss->sender = sender;
-    GNUNET_CONTAINER_DLL_insert (sender->ss_head,
-                                 sender->ss_tail,
-                                 ss);
+    GNUNET_CONTAINER_DLL_insert (sender->ss_head, sender->ss_tail, ss);
     sender->num_secrets++;
-    GNUNET_STATISTICS_update (stats,
-                              "# Secrets active",
-                              1,
-                              GNUNET_NO);
+    GNUNET_STATISTICS_update (stats, "# Secrets active", 1, GNUNET_NO);
     GNUNET_STATISTICS_update (stats,
                               "# messages decrypted without BOX",
                               1,
                               GNUNET_NO);
-    try_handle_plaintext (sender,
-                          &uc[1],
-                          sizeof (pbuf) - sizeof (*uc));
+    try_handle_plaintext (sender, &uc[1], sizeof (pbuf) - sizeof (*uc));
     consider_ss_ack (ss);
     if (sender->num_secrets > MAX_SECRETS)
       secret_destroy (sender->ss_tail);
@@ -1827,8 +1725,7 @@ sock_read (void *cls)
  * @return converted bindto specification
  */
 static struct sockaddr *
-udp_address_to_sockaddr (const char *bindto,
-                         socklen_t *sock_len)
+udp_address_to_sockaddr (const char *bindto, socklen_t *sock_len)
 {
   struct sockaddr *in;
   unsigned int port;
@@ -1836,10 +1733,7 @@ udp_address_to_sockaddr (const char *bindto,
   char *colon;
   char *cp;
 
-  if (1 == SSCANF (bindto,
-                   "%u%1s",
-                   &port,
-                   dummy))
+  if (1 == SSCANF (bindto, "%u%1s", &port, dummy))
   {
     /* interpreting value as just a PORT number */
     if (port > UINT16_MAX)
@@ -1849,12 +1743,11 @@ udp_address_to_sockaddr (const char *bindto,
                   bindto);
       return NULL;
     }
-    if ( (GNUNET_NO ==
-          GNUNET_NETWORK_test_pf (PF_INET6)) ||
-         (GNUNET_YES ==
-          GNUNET_CONFIGURATION_get_value_yesno (cfg,
-                                                COMMUNICATOR_CONFIG_SECTION,
-                                                "DISABLE_V6")) )
+    if ((GNUNET_NO == GNUNET_NETWORK_test_pf (PF_INET6)) ||
+        (GNUNET_YES ==
+         GNUNET_CONFIGURATION_get_value_yesno (cfg,
+                                               COMMUNICATOR_CONFIG_SECTION,
+                                               "DISABLE_V6")))
     {
       struct sockaddr_in *i4;
 
@@ -1883,26 +1776,24 @@ udp_address_to_sockaddr (const char *bindto,
     /* interpet value after colon as port */
     *colon = '\0';
     colon++;
-    if (1 == SSCANF (colon,
-                     "%u%1s",
-                     &port,
-                     dummy))
+    if (1 == SSCANF (colon, "%u%1s", &port, dummy))
     {
       /* interpreting value as just a PORT number */
       if (port > UINT16_MAX)
       {
-	GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "BINDTO specification `%s' invalid: value too large for port\n",
-                bindto);
-	GNUNET_free (cp);
-	return NULL;
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                    "BINDTO specification `%s' invalid: value too large for port\n",
+                    bindto);
+        GNUNET_free (cp);
+        return NULL;
       }
     }
     else
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  "BINDTO specification `%s' invalid: last ':' not followed by number\n",
-                  bindto);
+      GNUNET_log (
+        GNUNET_ERROR_TYPE_ERROR,
+        "BINDTO specification `%s' invalid: last ':' not followed by number\n",
+        bindto);
       GNUNET_free (cp);
       return NULL;
     }
@@ -1916,13 +1807,10 @@ udp_address_to_sockaddr (const char *bindto,
     /* try IPv4 */
     struct sockaddr_in v4;
 
-    if (1 == inet_pton (AF_INET,
-			cp,
-			&v4))
+    if (1 == inet_pton (AF_INET, cp, &v4))
     {
       v4.sin_port = htons ((uint16_t) port);
-      in = GNUNET_memdup (&v4,
-                          sizeof (v4));
+      in = GNUNET_memdup (&v4, sizeof (v4));
       *sock_len = sizeof (v4);
       GNUNET_free (cp);
       return in;
@@ -1934,19 +1822,15 @@ udp_address_to_sockaddr (const char *bindto,
     const char *start;
 
     start = cp;
-    if ( ('[' == *cp) &&
-	 (']' == cp[strlen (cp)-1]) )
+    if (('[' == *cp) && (']' == cp[strlen (cp) - 1]))
     {
       start++; /* skip over '[' */
-      cp[strlen (cp) -1] = '\0'; /* eat ']' */
+      cp[strlen (cp) - 1] = '\0'; /* eat ']' */
     }
-    if (1 == inet_pton (AF_INET6,
-                        start,
-                        &v6))
+    if (1 == inet_pton (AF_INET6, start, &v6))
     {
       v6.sin6_port = htons ((uint16_t) port);
-      in = GNUNET_memdup (&v6,
-                          sizeof (v6));
+      in = GNUNET_memdup (&v6, sizeof (v6));
       *sock_len = sizeof (v6);
       GNUNET_free (cp);
       return in;
@@ -1966,32 +1850,22 @@ udp_address_to_sockaddr (const char *bindto,
  * @param pad_size number of bytes of padding to append
  */
 static void
-do_pad (gcry_cipher_hd_t out_cipher,
-        char *dgram,
-        size_t pad_size)
+do_pad (gcry_cipher_hd_t out_cipher, char *dgram, size_t pad_size)
 {
   char pad[pad_size];
 
-  GNUNET_CRYPTO_random_block (GNUNET_CRYPTO_QUALITY_WEAK,
-                              pad,
-                              sizeof (pad));
+  GNUNET_CRYPTO_random_block (GNUNET_CRYPTO_QUALITY_WEAK, pad, sizeof (pad));
   if (sizeof (pad) > sizeof (struct GNUNET_MessageHeader))
   {
-    struct GNUNET_MessageHeader hdr = {
-      .size = htons (sizeof (pad)),
-      .type = htons (GNUNET_MESSAGE_TYPE_COMMUNICATOR_UDP_PAD)
-    };
+    struct GNUNET_MessageHeader hdr =
+      {.size = htons (sizeof (pad)),
+       .type = htons (GNUNET_MESSAGE_TYPE_COMMUNICATOR_UDP_PAD)};
 
-    memcpy (pad,
-	    &hdr,
-	    sizeof (hdr));
+    memcpy (pad, &hdr, sizeof (hdr));
   }
-  GNUNET_assert (0 ==
-                 gcry_cipher_encrypt (out_cipher,
-                                      dgram,
-                                      sizeof (pad),
-                                      pad,
-                                      sizeof (pad)));
+  GNUNET_assert (
+    0 ==
+    gcry_cipher_encrypt (out_cipher, dgram, sizeof (pad), pad, sizeof (pad)));
 }
 
 
@@ -2027,83 +1901,61 @@ mq_send (struct GNUNET_MQ_Handle *mq,
     struct UDPConfirmation uc;
     struct InitialKX kx;
     struct GNUNET_CRYPTO_EcdhePrivateKey epriv;
-    char dgram[receiver->mtu +
-               sizeof (uc) +
-               sizeof (kx)];
+    char dgram[receiver->mtu + sizeof (uc) + sizeof (kx)];
     size_t dpos;
     gcry_cipher_hd_t out_cipher;
     struct SharedSecret *ss;
 
     /* setup key material */
-    GNUNET_assert (GNUNET_OK ==
-                   GNUNET_CRYPTO_ecdhe_key_create2 (&epriv));
+    GNUNET_assert (GNUNET_OK == GNUNET_CRYPTO_ecdhe_key_create2 (&epriv));
 
-    ss = setup_shared_secret_enc (&epriv,
-                                  receiver);
-    setup_cipher (&ss->master,
-                  0,
-                  &out_cipher);
+    ss = setup_shared_secret_enc (&epriv, receiver);
+    setup_cipher (&ss->master, 0, &out_cipher);
     /* compute 'uc' */
     uc.sender = my_identity;
-    uc.monotonic_time = GNUNET_TIME_absolute_hton (GNUNET_TIME_absolute_get_monotonic (cfg));
+    uc.monotonic_time =
+      GNUNET_TIME_absolute_hton (GNUNET_TIME_absolute_get_monotonic (cfg));
     uhs.purpose.purpose = htonl (GNUNET_SIGNATURE_COMMUNICATOR_UDP_HANDSHAKE);
     uhs.purpose.size = htonl (sizeof (uhs));
     uhs.sender = my_identity;
     uhs.receiver = receiver->target;
-    GNUNET_CRYPTO_ecdhe_key_get_public (&epriv,
-					&uhs.ephemeral);
+    GNUNET_CRYPTO_ecdhe_key_get_public (&epriv, &uhs.ephemeral);
     uhs.monotonic_time = uc.monotonic_time;
-    GNUNET_assert (GNUNET_OK ==
-                   GNUNET_CRYPTO_eddsa_sign (my_private_key,
-                                             &uhs.purpose,
-                                             &uc.sender_sig));
+    GNUNET_assert (GNUNET_OK == GNUNET_CRYPTO_eddsa_sign (my_private_key,
+                                                          &uhs.purpose,
+                                                          &uc.sender_sig));
     /* Leave space for kx */
     dpos = sizeof (struct GNUNET_CRYPTO_EcdhePublicKey);
     /* Append encrypted uc to dgram */
-    GNUNET_assert (0 ==
-                   gcry_cipher_encrypt (out_cipher,
-                                        &dgram[dpos],
-                                        sizeof (uc),
-                                        &uc,
-                                        sizeof (uc)));
+    GNUNET_assert (0 == gcry_cipher_encrypt (out_cipher,
+                                             &dgram[dpos],
+                                             sizeof (uc),
+                                             &uc,
+                                             sizeof (uc)));
     dpos += sizeof (uc);
     /* Append encrypted payload to dgram */
-    GNUNET_assert (0 ==
-                   gcry_cipher_encrypt (out_cipher,
-                                        &dgram[dpos],
-                                        msize,
-                                        msg,
-                                        msize));
+    GNUNET_assert (
+      0 == gcry_cipher_encrypt (out_cipher, &dgram[dpos], msize, msg, msize));
     dpos += msize;
-    do_pad (out_cipher,
-	    &dgram[dpos],
-	    sizeof (dgram) - dpos);
+    do_pad (out_cipher, &dgram[dpos], sizeof (dgram) - dpos);
     /* Datagram starts with kx */
     kx.ephemeral = uhs.ephemeral;
-    GNUNET_assert (0 ==
-                   gcry_cipher_gettag (out_cipher,
-                                       kx.gcm_tag,
-                                       sizeof (kx.gcm_tag)));
+    GNUNET_assert (
+      0 == gcry_cipher_gettag (out_cipher, kx.gcm_tag, sizeof (kx.gcm_tag)));
     gcry_cipher_close (out_cipher);
-    memcpy (dgram,
-            &kx,
-            sizeof (kx));
-    if (-1 ==
-        GNUNET_NETWORK_socket_sendto (udp_sock,
-                                      dgram,
-                                      sizeof (dgram),
-                                      receiver->address,
-                                      receiver->address_len))
-      GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING,
-                           "send");
+    memcpy (dgram, &kx, sizeof (kx));
+    if (-1 == GNUNET_NETWORK_socket_sendto (udp_sock,
+                                            dgram,
+                                            sizeof (dgram),
+                                            receiver->address,
+                                            receiver->address_len))
+      GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "send");
     GNUNET_MQ_impl_send_continue (mq);
     return;
   } /* End of KX encryption method */
 
   /* begin "BOX" encryption method, scan for ACKs from tail! */
-  for (struct SharedSecret *ss = receiver->ss_tail;
-       NULL != ss;
-       ss = ss->prev)
+  for (struct SharedSecret *ss = receiver->ss_tail; NULL != ss; ss = ss->prev)
   {
     if (ss->sequence_used < ss->sequence_allowed)
     {
@@ -2114,37 +1966,24 @@ mq_send (struct GNUNET_MQ_Handle *mq,
 
       box = (struct UDPBox *) dgram;
       ss->sequence_used++;
-      get_kid (&ss->master,
-	       ss->sequence_used,
-	       &box->kid);
-      setup_cipher (&ss->master,
-		    ss->sequence_used,
-		    &out_cipher);
+      get_kid (&ss->master, ss->sequence_used, &box->kid);
+      setup_cipher (&ss->master, ss->sequence_used, &out_cipher);
       /* Append encrypted payload to dgram */
       dpos = sizeof (struct UDPBox);
-      GNUNET_assert (0 ==
-                     gcry_cipher_encrypt (out_cipher,
-                                          &dgram[dpos],
-                                          msize,
-                                          msg,
-                                          msize));
+      GNUNET_assert (
+        0 == gcry_cipher_encrypt (out_cipher, &dgram[dpos], msize, msg, msize));
       dpos += msize;
-      do_pad (out_cipher,
-              &dgram[dpos],
-              sizeof (dgram) - dpos);
-      GNUNET_assert (0 ==
-                     gcry_cipher_gettag (out_cipher,
-                                         box->gcm_tag,
-                                         sizeof (box->gcm_tag)));
+      do_pad (out_cipher, &dgram[dpos], sizeof (dgram) - dpos);
+      GNUNET_assert (0 == gcry_cipher_gettag (out_cipher,
+                                              box->gcm_tag,
+                                              sizeof (box->gcm_tag)));
       gcry_cipher_close (out_cipher);
-      if (-1 ==
-          GNUNET_NETWORK_socket_sendto (udp_sock,
-                                        dgram,
-                                        sizeof (dgram),
-                                        receiver->address,
-                                        receiver->address_len))
-        GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING,
-                             "send");
+      if (-1 == GNUNET_NETWORK_socket_sendto (udp_sock,
+                                              dgram,
+                                              sizeof (dgram),
+                                              receiver->address,
+                                              receiver->address_len))
+        GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "send");
       GNUNET_MQ_impl_send_continue (mq);
       receiver->acks_available--;
       if (0 == receiver->acks_available)
@@ -2168,8 +2007,7 @@ mq_send (struct GNUNET_MQ_Handle *mq,
  * @param impl_state our `struct ReceiverAddress`
  */
 static void
-mq_destroy (struct GNUNET_MQ_Handle *mq,
-            void *impl_state)
+mq_destroy (struct GNUNET_MQ_Handle *mq, void *impl_state)
 {
   struct ReceiverAddress *receiver = impl_state;
 
@@ -2188,8 +2026,7 @@ mq_destroy (struct GNUNET_MQ_Handle *mq,
  * @param impl_state our `struct RecvierAddress`
  */
 static void
-mq_cancel (struct GNUNET_MQ_Handle *mq,
-           void *impl_state)
+mq_cancel (struct GNUNET_MQ_Handle *mq, void *impl_state)
 {
   /* Cancellation is impossible with UDP; bail */
   GNUNET_assert (0);
@@ -2206,8 +2043,7 @@ mq_cancel (struct GNUNET_MQ_Handle *mq,
  * @param error error code
  */
 static void
-mq_error (void *cls,
-          enum GNUNET_MQ_Error error)
+mq_error (void *cls, enum GNUNET_MQ_Error error)
 {
   struct ReceiverAddress *receiver = cls;
 
@@ -2240,16 +2076,14 @@ setup_receiver_mq (struct ReceiverAddress *receiver)
   switch (receiver->address->sa_family)
   {
   case AF_INET:
-    base_mtu
-      = 1480 /* Ethernet MTU, 1500 - Ethernet header - VLAN tag */
-      - sizeof (struct GNUNET_TUN_IPv4Header) /* 20 */
-      - sizeof (struct GNUNET_TUN_UdpHeader) /* 8 */;
+    base_mtu = 1480 /* Ethernet MTU, 1500 - Ethernet header - VLAN tag */
+               - sizeof (struct GNUNET_TUN_IPv4Header) /* 20 */
+               - sizeof (struct GNUNET_TUN_UdpHeader) /* 8 */;
     break;
   case AF_INET6:
-    base_mtu
-      = 1280 /* Minimum MTU required by IPv6 */
-      - sizeof (struct GNUNET_TUN_IPv6Header) /* 40 */
-      - sizeof (struct GNUNET_TUN_UdpHeader) /* 8 */;
+    base_mtu = 1280 /* Minimum MTU required by IPv6 */
+               - sizeof (struct GNUNET_TUN_IPv6Header) /* 40 */
+               - sizeof (struct GNUNET_TUN_UdpHeader) /* 8 */;
     break;
   default:
     GNUNET_assert (0);
@@ -2258,35 +2092,31 @@ setup_receiver_mq (struct ReceiverAddress *receiver)
   if (0 == receiver->acks_available)
   {
     /* MTU based on full KX messages */
-    receiver->mtu
-      = base_mtu
-      - sizeof (struct InitialKX) /* 48 */
-      - sizeof (struct UDPConfirmation); /* 104 */
+    receiver->mtu = base_mtu - sizeof (struct InitialKX) /* 48 */
+                    - sizeof (struct UDPConfirmation); /* 104 */
   }
   else
   {
     /* MTU based on BOXed messages */
-    receiver->mtu
-      = base_mtu - sizeof (struct UDPBox);
+    receiver->mtu = base_mtu - sizeof (struct UDPBox);
   }
   /* => Effective MTU for CORE will range from 1080 (IPv6 + KX) to
      1404 (IPv4 + Box) bytes, depending on circumstances... */
-  receiver->mq
-    = GNUNET_MQ_queue_for_callbacks (&mq_send,
-                                     &mq_destroy,
-                                     &mq_cancel,
-                                     receiver,
-                                     NULL,
-                                     &mq_error,
-                                     receiver);
-  receiver->qh
-    = GNUNET_TRANSPORT_communicator_mq_add (ch,
-                                            &receiver->target,
-                                            receiver->foreign_addr,
-                                            receiver->mtu,
-                                            receiver->nt,
-                                            GNUNET_TRANSPORT_CS_OUTBOUND,
-                                            receiver->mq);
+  receiver->mq = GNUNET_MQ_queue_for_callbacks (&mq_send,
+                                                &mq_destroy,
+                                                &mq_cancel,
+                                                receiver,
+                                                NULL,
+                                                &mq_error,
+                                                receiver);
+  receiver->qh =
+    GNUNET_TRANSPORT_communicator_mq_add (ch,
+                                          &receiver->target,
+                                          receiver->foreign_addr,
+                                          receiver->mtu,
+                                          receiver->nt,
+                                          GNUNET_TRANSPORT_CS_OUTBOUND,
+                                          receiver->mq);
 }
 
 
@@ -2307,19 +2137,17 @@ receiver_setup (const struct GNUNET_PeerIdentity *target,
   struct ReceiverAddress *receiver;
 
   receiver = GNUNET_new (struct ReceiverAddress);
-  receiver->address = GNUNET_memdup (address,
-                                     address_len);
+  receiver->address = GNUNET_memdup (address, address_len);
   receiver->address_len = address_len;
   receiver->target = *target;
-  receiver->nt = GNUNET_NT_scanner_get_type (is,
-					     address,
-					     address_len);
-  (void) GNUNET_CONTAINER_multipeermap_put (receivers,
-                                            &receiver->target,
-                                            receiver,
-                                            GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
-  receiver->timeout
-    = GNUNET_TIME_relative_to_absolute (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT);
+  receiver->nt = GNUNET_NT_scanner_get_type (is, address, address_len);
+  (void) GNUNET_CONTAINER_multipeermap_put (
+    receivers,
+    &receiver->target,
+    receiver,
+    GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
+  receiver->timeout =
+    GNUNET_TIME_relative_to_absolute (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT);
   receiver->hn = GNUNET_CONTAINER_heap_insert (receivers_heap,
                                                receiver,
                                                receiver->timeout.abs_value_us);
@@ -2327,13 +2155,12 @@ receiver_setup (const struct GNUNET_PeerIdentity *target,
                          "# receivers active",
                          GNUNET_CONTAINER_multipeermap_size (receivers),
                          GNUNET_NO);
-  receiver->foreign_addr = sockaddr_to_udpaddr_string (receiver->address,
-                                                       receiver->address_len);
+  receiver->foreign_addr =
+    sockaddr_to_udpaddr_string (receiver->address, receiver->address_len);
   setup_receiver_mq (receiver);
 
   if (NULL == timeout_task)
-    timeout_task = GNUNET_SCHEDULER_add_now (&check_timeouts,
-                                             NULL);
+    timeout_task = GNUNET_SCHEDULER_add_now (&check_timeouts, NULL);
   return receiver;
 }
 
@@ -2353,12 +2180,11 @@ receiver_setup (const struct GNUNET_PeerIdentity *target,
  * @param peer identity of the other peer
  * @param address where to send the message, human-readable
  *        communicator-specific format, 0-terminated, UTF-8
- * @return #GNUNET_OK on success, #GNUNET_SYSERR if the provided address is invalid
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR if the provided address is
+ * invalid
  */
 static int
-mq_init (void *cls,
-         const struct GNUNET_PeerIdentity *peer,
-         const char *address)
+mq_init (void *cls, const struct GNUNET_PeerIdentity *peer, const char *address)
 {
   struct ReceiverAddress *receiver;
   const char *path;
@@ -2373,11 +2199,8 @@ mq_init (void *cls,
     return GNUNET_SYSERR;
   }
   path = &address[strlen (COMMUNICATOR_ADDRESS_PREFIX "-")];
-  in = udp_address_to_sockaddr (path,
-                                &in_len);
-  receiver = receiver_setup (peer,
-                             in,
-                             in_len);
+  in = udp_address_to_sockaddr (path, &in_len);
+  receiver = receiver_setup (peer, in, in_len);
   (void) receiver;
   return GNUNET_OK;
 }
@@ -2437,8 +2260,8 @@ do_shutdown (void *cls)
 {
   if (NULL != nat)
   {
-     GNUNET_NAT_unregister (nat);
-     nat = NULL;
+    GNUNET_NAT_unregister (nat);
+    nat = NULL;
   }
   while (NULL != bi_head)
     bi_destroy (bi_head);
@@ -2454,17 +2277,14 @@ do_shutdown (void *cls)
   }
   if (NULL != udp_sock)
   {
-    GNUNET_break (GNUNET_OK ==
-                  GNUNET_NETWORK_socket_close (udp_sock));
+    GNUNET_break (GNUNET_OK == GNUNET_NETWORK_socket_close (udp_sock));
     udp_sock = NULL;
   }
   GNUNET_CONTAINER_multipeermap_iterate (receivers,
                                          &get_receiver_delete_it,
                                          NULL);
   GNUNET_CONTAINER_multipeermap_destroy (receivers);
-  GNUNET_CONTAINER_multipeermap_iterate (senders,
-                                         &get_sender_delete_it,
-                                         NULL);
+  GNUNET_CONTAINER_multipeermap_iterate (senders, &get_sender_delete_it, NULL);
   GNUNET_CONTAINER_multipeermap_destroy (senders);
   GNUNET_CONTAINER_multishortmap_destroy (key_cache);
   GNUNET_CONTAINER_heap_destroy (senders_heap);
@@ -2481,8 +2301,7 @@ do_shutdown (void *cls)
   }
   if (NULL != stats)
   {
-    GNUNET_STATISTICS_destroy (stats,
-                               GNUNET_NO);
+    GNUNET_STATISTICS_destroy (stats, GNUNET_NO);
     stats = NULL;
   }
   if (NULL != my_private_key)
@@ -2515,8 +2334,8 @@ enc_notify_cb (void *cls,
   const struct UDPAck *ack;
 
   (void) cls;
-  if ( (ntohs (msg->type) != GNUNET_MESSAGE_TYPE_COMMUNICATOR_UDP_ACK) ||
-       (ntohs (msg->size) != sizeof (struct UDPAck)) )
+  if ((ntohs (msg->type) != GNUNET_MESSAGE_TYPE_COMMUNICATOR_UDP_ACK) ||
+      (ntohs (msg->size) != sizeof (struct UDPAck)))
   {
     GNUNET_break_op (0);
     return;
@@ -2560,15 +2379,13 @@ nat_address_cb (void *cls,
     GNUNET_asprintf (&my_addr,
                      "%s-%s",
                      COMMUNICATOR_ADDRESS_PREFIX,
-                     GNUNET_a2s (addr,
-                                 addrlen));
-    nt = GNUNET_NT_scanner_get_type (is,
-                                     addr,
-                                     addrlen);
-    ai = GNUNET_TRANSPORT_communicator_address_add (ch,
-                                                    my_addr,
-                                                    nt,
-                                                    GNUNET_TIME_UNIT_FOREVER_REL);
+                     GNUNET_a2s (addr, addrlen));
+    nt = GNUNET_NT_scanner_get_type (is, addr, addrlen);
+    ai =
+      GNUNET_TRANSPORT_communicator_address_add (ch,
+                                                 my_addr,
+                                                 nt,
+                                                 GNUNET_TIME_UNIT_FOREVER_REL);
     GNUNET_free (my_addr);
     *app_ctx = ai;
   }
@@ -2593,67 +2410,57 @@ ifc_broadcast (void *cls)
   struct GNUNET_TIME_Relative delay;
 
   delay = BROADCAST_FREQUENCY;
-  delay.rel_value_us = GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_WEAK,
-                                                 delay.rel_value_us);
-  bi->broadcast_task
-    = GNUNET_SCHEDULER_add_delayed (INTERFACE_SCAN_FREQUENCY,
-				    &ifc_broadcast,
-				    bi);
+  delay.rel_value_us =
+    GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_WEAK, delay.rel_value_us);
+  bi->broadcast_task =
+    GNUNET_SCHEDULER_add_delayed (INTERFACE_SCAN_FREQUENCY, &ifc_broadcast, bi);
 
-  switch (bi->sa->sa_family) {
-  case AF_INET:
-    {
-      static int yes = 1;
-      static int no = 0;
-      ssize_t sent;
+  switch (bi->sa->sa_family)
+  {
+  case AF_INET: {
+    static int yes = 1;
+    static int no = 0;
+    ssize_t sent;
 
-      if (GNUNET_OK !=
-          GNUNET_NETWORK_socket_setsockopt (udp_sock,
-                                            SOL_SOCKET,
-                                            SO_BROADCAST,
-                                            &yes,
-                                            sizeof (int)))
-        GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING,
-                             "setsockopt");
-      sent = GNUNET_NETWORK_socket_sendto (udp_sock,
-                                           &bi->bcm,
-                                           sizeof (bi->bcm),
-                                           bi->ba,
-                                           bi->salen);
-      if (-1 == sent)
-        GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING,
-                             "sendto");
-      if (GNUNET_OK !=
-          GNUNET_NETWORK_socket_setsockopt (udp_sock,
-                                            SOL_SOCKET,
-                                            SO_BROADCAST,
-                                            &no,
-                                            sizeof (int)))
-        GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING,
-                             "setsockopt");
-      break;
-    }
-  case AF_INET6:
-    {
-      ssize_t sent;
-      struct sockaddr_in6 dst;
+    if (GNUNET_OK != GNUNET_NETWORK_socket_setsockopt (udp_sock,
+                                                       SOL_SOCKET,
+                                                       SO_BROADCAST,
+                                                       &yes,
+                                                       sizeof (int)))
+      GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "setsockopt");
+    sent = GNUNET_NETWORK_socket_sendto (udp_sock,
+                                         &bi->bcm,
+                                         sizeof (bi->bcm),
+                                         bi->ba,
+                                         bi->salen);
+    if (-1 == sent)
+      GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "sendto");
+    if (GNUNET_OK != GNUNET_NETWORK_socket_setsockopt (udp_sock,
+                                                       SOL_SOCKET,
+                                                       SO_BROADCAST,
+                                                       &no,
+                                                       sizeof (int)))
+      GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "setsockopt");
+    break;
+  }
+  case AF_INET6: {
+    ssize_t sent;
+    struct sockaddr_in6 dst;
 
-      dst.sin6_family = AF_INET6;
-      dst.sin6_port = htons (my_port);
-      dst.sin6_addr = bi->mcreq.ipv6mr_multiaddr;
-      dst.sin6_scope_id = ((struct sockaddr_in6*) bi->ba)->sin6_scope_id;
+    dst.sin6_family = AF_INET6;
+    dst.sin6_port = htons (my_port);
+    dst.sin6_addr = bi->mcreq.ipv6mr_multiaddr;
+    dst.sin6_scope_id = ((struct sockaddr_in6 *) bi->ba)->sin6_scope_id;
 
-      sent = GNUNET_NETWORK_socket_sendto (udp_sock,
-                                           &bi->bcm,
-                                           sizeof (bi->bcm),
-                                           (const struct sockaddr *)
-                                           &dst,
-                                           sizeof (dst));
-      if (-1 == sent)
-        GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING,
-                             "sendto");
-      break;
-    }
+    sent = GNUNET_NETWORK_socket_sendto (udp_sock,
+                                         &bi->bcm,
+                                         sizeof (bi->bcm),
+                                         (const struct sockaddr *) &dst,
+                                         sizeof (dst));
+    if (-1 == sent)
+      GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "sendto");
+    break;
+  }
   default:
     GNUNET_break (0);
     break;
@@ -2669,7 +2476,8 @@ ifc_broadcast (void *cls)
  * @param name name of the interface (can be NULL for unknown)
  * @param isDefault is this presumably the default interface
  * @param addr address of this interface (can be NULL for unknown or unassigned)
- * @param broadcast_addr the broadcast address (can be NULL for unknown or unassigned)
+ * @param broadcast_addr the broadcast address (can be NULL for unknown or
+ * unassigned)
  * @param netmask the network mask (can be NULL for unknown or unassigned)
  * @param addrlen length of the address
  * @return #GNUNET_OK to continue iteration, #GNUNET_SYSERR to abort
@@ -2680,7 +2488,8 @@ iface_proc (void *cls,
             int isDefault,
             const struct sockaddr *addr,
             const struct sockaddr *broadcast_addr,
-            const struct sockaddr *netmask, socklen_t addrlen)
+            const struct sockaddr *netmask,
+            socklen_t addrlen)
 {
   struct BroadcastInterface *bi;
   enum GNUNET_NetworkType network;
@@ -2688,9 +2497,7 @@ iface_proc (void *cls,
 
   (void) cls;
   (void) netmask;
-  network = GNUNET_NT_scanner_get_type (is,
-                                        addr,
-                                        addrlen);
+  network = GNUNET_NT_scanner_get_type (is, addr, addrlen);
   if (GNUNET_NT_LOOPBACK == network)
   {
     /* Broadcasting on loopback does not make sense */
@@ -2700,58 +2507,42 @@ iface_proc (void *cls,
     return GNUNET_YES; /* need to know our address! */
   for (bi = bi_head; NULL != bi; bi = bi->next)
   {
-    if ( (bi->salen == addrlen) &&
-         (0 == memcmp (addr,
-                       bi->sa,
-                       addrlen)) )
+    if ((bi->salen == addrlen) && (0 == memcmp (addr, bi->sa, addrlen)))
     {
       bi->found = GNUNET_YES;
       return GNUNET_OK;
     }
   }
 
-  if ( (AF_INET6 == addr->sa_family) &&
-       (NULL == broadcast_addr) )
+  if ((AF_INET6 == addr->sa_family) && (NULL == broadcast_addr))
     return GNUNET_OK; /* broadcast_addr is required for IPv6! */
-  if ( (AF_INET6 == addr->sa_family) &&
-       (GNUNET_YES != have_v6_socket) )
+  if ((AF_INET6 == addr->sa_family) && (GNUNET_YES != have_v6_socket))
     return GNUNET_OK; /* not using IPv6 */
 
   bi = GNUNET_new (struct BroadcastInterface);
-  bi->sa = GNUNET_memdup (addr,
-                          addrlen);
+  bi->sa = GNUNET_memdup (addr, addrlen);
   if (NULL != broadcast_addr)
-    bi->ba = GNUNET_memdup (broadcast_addr,
-                            addrlen);
+    bi->ba = GNUNET_memdup (broadcast_addr, addrlen);
   bi->salen = addrlen;
   bi->found = GNUNET_YES;
   bi->bcm.sender = my_identity;
   ubs.purpose.purpose = htonl (GNUNET_SIGNATURE_COMMUNICATOR_UDP_BROADCAST);
   ubs.purpose.size = htonl (sizeof (ubs));
   ubs.sender = my_identity;
-  GNUNET_CRYPTO_hash (addr,
-                      addrlen,
-                      &ubs.h_address);
-  GNUNET_assert (GNUNET_OK ==
-                 GNUNET_CRYPTO_eddsa_sign (my_private_key,
-                                           &ubs.purpose,
-                                           &bi->bcm.sender_sig));
-  bi->broadcast_task = GNUNET_SCHEDULER_add_now (&ifc_broadcast,
-                                                 bi);
-  GNUNET_CONTAINER_DLL_insert (bi_head,
-                               bi_tail,
-                               bi);
-  if ( (AF_INET6 == addr->sa_family) &&
-       (NULL != broadcast_addr) )
+  GNUNET_CRYPTO_hash (addr, addrlen, &ubs.h_address);
+  GNUNET_assert (GNUNET_OK == GNUNET_CRYPTO_eddsa_sign (my_private_key,
+                                                        &ubs.purpose,
+                                                        &bi->bcm.sender_sig));
+  bi->broadcast_task = GNUNET_SCHEDULER_add_now (&ifc_broadcast, bi);
+  GNUNET_CONTAINER_DLL_insert (bi_head, bi_tail, bi);
+  if ((AF_INET6 == addr->sa_family) && (NULL != broadcast_addr))
   {
     /* Create IPv6 multicast request */
-    const struct sockaddr_in6 *s6
-      = (const struct sockaddr_in6 *) broadcast_addr;
+    const struct sockaddr_in6 *s6 =
+      (const struct sockaddr_in6 *) broadcast_addr;
 
-    GNUNET_assert (1 ==
-                   inet_pton (AF_INET6,
-                              "FF05::13B",
-                              &bi->mcreq.ipv6mr_multiaddr));
+    GNUNET_assert (
+      1 == inet_pton (AF_INET6, "FF05::13B", &bi->mcreq.ipv6mr_multiaddr));
 
     /* http://tools.ietf.org/html/rfc2553#section-5.2:
      *
@@ -2767,16 +2558,13 @@ iface_proc (void *cls,
     bi->mcreq.ipv6mr_interface = s6->sin6_scope_id;
 
     /* Join the multicast group */
-    if (GNUNET_OK !=
-        GNUNET_NETWORK_socket_setsockopt
-        (udp_sock,
-         IPPROTO_IPV6,
-         IPV6_JOIN_GROUP,
-         &bi->mcreq,
-         sizeof (bi->mcreq)))
+    if (GNUNET_OK != GNUNET_NETWORK_socket_setsockopt (udp_sock,
+                                                       IPPROTO_IPV6,
+                                                       IPV6_JOIN_GROUP,
+                                                       &bi->mcreq,
+                                                       sizeof (bi->mcreq)))
     {
-      GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING,
-			   "setsockopt");
+      GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "setsockopt");
     }
   }
   return GNUNET_OK;
@@ -2794,24 +2582,18 @@ do_broadcast (void *cls)
   struct BroadcastInterface *bin;
 
   (void) cls;
-  for (struct BroadcastInterface *bi = bi_head;
-       NULL != bi;
-       bi = bi->next)
+  for (struct BroadcastInterface *bi = bi_head; NULL != bi; bi = bi->next)
     bi->found = GNUNET_NO;
-  GNUNET_OS_network_interfaces_list (&iface_proc,
-                                     NULL);
-  for (struct BroadcastInterface *bi = bi_head;
-       NULL != bi;
-       bi = bin)
+  GNUNET_OS_network_interfaces_list (&iface_proc, NULL);
+  for (struct BroadcastInterface *bi = bi_head; NULL != bi; bi = bin)
   {
     bin = bi->next;
     if (GNUNET_NO == bi->found)
       bi_destroy (bi);
   }
-  broadcast_task
-    = GNUNET_SCHEDULER_add_delayed (INTERFACE_SCAN_FREQUENCY,
-                                    &do_broadcast,
-                                    NULL);
+  broadcast_task = GNUNET_SCHEDULER_add_delayed (INTERFACE_SCAN_FREQUENCY,
+                                                 &do_broadcast,
+                                                 NULL);
 }
 
 
@@ -2842,44 +2624,36 @@ run (void *cls,
                                                COMMUNICATOR_CONFIG_SECTION,
                                                "BINDTO",
                                                &bindto))
-    {
+  {
     GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR,
                                COMMUNICATOR_CONFIG_SECTION,
                                "BINDTO");
     return;
   }
 
-  in = udp_address_to_sockaddr (bindto,
-                                &in_len);
+  in = udp_address_to_sockaddr (bindto, &in_len);
   if (NULL == in)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		"Failed to setup UDP socket address with path `%s'\n",
-		bindto);
+                "Failed to setup UDP socket address with path `%s'\n",
+                bindto);
     GNUNET_free (bindto);
     return;
   }
-  udp_sock = GNUNET_NETWORK_socket_create (in->sa_family,
-                                           SOCK_DGRAM,
-                                           IPPROTO_UDP);
+  udp_sock =
+    GNUNET_NETWORK_socket_create (in->sa_family, SOCK_DGRAM, IPPROTO_UDP);
   if (NULL == udp_sock)
   {
-    GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR,
-			 "socket");
+    GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "socket");
     GNUNET_free (in);
     GNUNET_free (bindto);
     return;
   }
   if (AF_INET6 == in->sa_family)
     have_v6_socket = GNUNET_YES;
-  if (GNUNET_OK !=
-      GNUNET_NETWORK_socket_bind (udp_sock,
-                                  in,
-                                  in_len))
+  if (GNUNET_OK != GNUNET_NETWORK_socket_bind (udp_sock, in, in_len))
   {
-    GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR,
-			      "bind",
-			      bindto);
+    GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR, "bind", bindto);
     GNUNET_NETWORK_socket_close (udp_sock);
     udp_sock = NULL;
     GNUNET_free (in);
@@ -2893,9 +2667,7 @@ run (void *cls,
                         (struct sockaddr *) &in_sto,
                         &sto_len))
   {
-    memcpy (&in_sto,
-            in,
-            in_len);
+    memcpy (&in_sto, in, in_len);
     sto_len = in_len;
   }
   GNUNET_free (in);
@@ -2904,8 +2676,7 @@ run (void *cls,
   in_len = sto_len;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Bound to `%s'\n",
-              GNUNET_a2s ((const struct sockaddr *) &in_sto,
-                          sto_len));
+              GNUNET_a2s ((const struct sockaddr *) &in_sto, sto_len));
   switch (in->sa_family)
   {
   case AF_INET:
@@ -2918,29 +2689,26 @@ run (void *cls,
     GNUNET_break (0);
     my_port = 0;
   }
-  stats = GNUNET_STATISTICS_create ("C-UDP",
-                                    cfg);
-  senders = GNUNET_CONTAINER_multipeermap_create (32,
-                                                  GNUNET_YES);
-  receivers = GNUNET_CONTAINER_multipeermap_create (32,
-                                                    GNUNET_YES);
+  stats = GNUNET_STATISTICS_create ("C-UDP", cfg);
+  senders = GNUNET_CONTAINER_multipeermap_create (32, GNUNET_YES);
+  receivers = GNUNET_CONTAINER_multipeermap_create (32, GNUNET_YES);
   senders_heap = GNUNET_CONTAINER_heap_create (GNUNET_CONTAINER_HEAP_ORDER_MIN);
-  receivers_heap = GNUNET_CONTAINER_heap_create (GNUNET_CONTAINER_HEAP_ORDER_MIN);
-  key_cache = GNUNET_CONTAINER_multishortmap_create (1024,
-                                                     GNUNET_YES);
-  GNUNET_SCHEDULER_add_shutdown (&do_shutdown,
-                                 NULL);
+  receivers_heap =
+    GNUNET_CONTAINER_heap_create (GNUNET_CONTAINER_HEAP_ORDER_MIN);
+  key_cache = GNUNET_CONTAINER_multishortmap_create (1024, GNUNET_YES);
+  GNUNET_SCHEDULER_add_shutdown (&do_shutdown, NULL);
   is = GNUNET_NT_scanner_init ();
   my_private_key = GNUNET_CRYPTO_eddsa_key_create_from_configuration (cfg);
   if (NULL == my_private_key)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _("Transport service is lacking key configuration settings. Exiting.\n"));
+    GNUNET_log (
+      GNUNET_ERROR_TYPE_ERROR,
+      _ (
+        "Transport service is lacking key configuration settings. Exiting.\n"));
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
-  GNUNET_CRYPTO_eddsa_key_get_public (my_private_key,
-                                      &my_identity.public_key);
+  GNUNET_CRYPTO_eddsa_key_get_public (my_private_key, &my_identity.public_key);
   /* start reading */
   read_task = GNUNET_SCHEDULER_add_read_net (GNUNET_TIME_UNIT_FOREVER_REL,
                                              udp_sock,
@@ -2973,8 +2741,7 @@ run (void *cls,
                                             COMMUNICATOR_CONFIG_SECTION,
                                             "DISABLE_BROADCAST"))
   {
-    broadcast_task = GNUNET_SCHEDULER_add_now (&do_broadcast,
-                                               NULL);
+    broadcast_task = GNUNET_SCHEDULER_add_now (&do_broadcast, NULL);
   }
   nat = GNUNET_NAT_register (cfg,
                              COMMUNICATOR_CONFIG_SECTION,
@@ -2996,28 +2763,25 @@ run (void *cls,
  * @return 0 ok, 1 on error
  */
 int
-main (int argc,
-      char *const *argv)
+main (int argc, char *const *argv)
 {
   static const struct GNUNET_GETOPT_CommandLineOption options[] = {
-    GNUNET_GETOPT_OPTION_END
-  };
+    GNUNET_GETOPT_OPTION_END};
   int ret;
 
-  if (GNUNET_OK !=
-      GNUNET_STRINGS_get_utf8_args (argc, argv,
-                                    &argc, &argv))
+  if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args (argc, argv, &argc, &argv))
     return 2;
 
-  ret =
-      (GNUNET_OK ==
-       GNUNET_PROGRAM_run (argc, argv,
-                           "gnunet-communicator-udp",
-                           _("GNUnet UDP communicator"),
-                           options,
-			   &run,
-			   NULL)) ? 0 : 1;
-  GNUNET_free ((void*) argv);
+  ret = (GNUNET_OK == GNUNET_PROGRAM_run (argc,
+                                          argv,
+                                          "gnunet-communicator-udp",
+                                          _ ("GNUnet UDP communicator"),
+                                          options,
+                                          &run,
+                                          NULL))
+          ? 0
+          : 1;
+  GNUNET_free ((void *) argv);
   return ret;
 }
 

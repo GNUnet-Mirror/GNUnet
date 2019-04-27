@@ -385,7 +385,7 @@ struct EphemeralConfirmationPS
    * communicators must protect against replay attacks when using backchannel
    * communication!
    */
-  struct GNUNET_TIME_AbsoluteNBO ephemeral_validity;
+  struct GNUNET_TIME_AbsoluteNBO sender_monotonic_time;
 
   /**
    * Target's peer identity.
@@ -417,22 +417,6 @@ struct TransportBackchannelRequestPayloadP
    * #GNUNET_SIGNATURE_PURPOSE_TRANSPORT_EPHEMERAL.
    */
   struct GNUNET_CRYPTO_EddsaSignature sender_sig;
-
-  /**
-   * How long is this signature over the ephemeral key valid?
-   *
-   * Note that the receiver MUST IGNORE the absolute time, and only interpret
-   * the value as a mononic time and reject "older" values than the last one
-   * observed.  This is necessary as we do not want to require synchronized
-   * clocks and may not have a bidirectional communication channel.
-   *
-   * Even with this, there is no real guarantee against replay achieved here,
-   * unless the latest timestamp is persisted.  While persistence should be
-   * provided via PEERSTORE, we do not consider the mechanism reliable!  Thus,
-   * communicators must protect against replay attacks when using backchannel
-   * communication!
-   */
-  struct GNUNET_TIME_AbsoluteNBO ephemeral_validity;
 
   /**
    * Current monotonic time of the sending transport service.  Used to
@@ -1018,6 +1002,11 @@ struct EphemeralCacheEntry
    * How long is @e sender_sig valid
    */
   struct GNUNET_TIME_Absolute ephemeral_validity;
+
+  /**
+   * What time was @e sender_sig created
+   */
+  struct GNUNET_TIME_Absolute monotime;
 
   /**
    * Our ephemeral key.
@@ -3914,14 +3903,14 @@ expire_ephemerals (void *cls)
  * @param private_key[out] set to the private key
  * @param ephemeral_key[out] set to the key
  * @param ephemeral_sender_sig[out] set to the signature
- * @param ephemeral_validity[out] set to the validity expiration time
+ * @param monotime[out] set to the monotime used for the signature
  */
 static void
 lookup_ephemeral (const struct GNUNET_PeerIdentity *pid,
                   struct GNUNET_CRYPTO_EcdhePrivateKey *private_key,
                   struct GNUNET_CRYPTO_EcdhePublicKey *ephemeral_key,
                   struct GNUNET_CRYPTO_EddsaSignature *ephemeral_sender_sig,
-                  struct GNUNET_TIME_Absolute *ephemeral_validity)
+                  struct GNUNET_TIME_Absolute *monotime)
 {
   struct EphemeralCacheEntry *ece;
   struct EphemeralConfirmationPS ec;
@@ -3938,9 +3927,9 @@ lookup_ephemeral (const struct GNUNET_PeerIdentity *pid,
   {
     ece = GNUNET_new (struct EphemeralCacheEntry);
     ece->target = *pid;
+    ece->monotime = GNUNET_TIME_absolute_get_monotonic (GST_cfg);
     ece->ephemeral_validity =
-      GNUNET_TIME_absolute_add (GNUNET_TIME_absolute_get_monotonic (GST_cfg),
-                                EPHEMERAL_VALIDITY);
+      GNUNET_TIME_absolute_add (ece->monotime, EPHEMERAL_VALIDITY);
     GNUNET_assert (GNUNET_OK ==
                    GNUNET_CRYPTO_ecdhe_key_create2 (&ece->private_key));
     GNUNET_CRYPTO_ecdhe_key_get_public (&ece->private_key, &ece->ephemeral_key);
@@ -3969,7 +3958,7 @@ lookup_ephemeral (const struct GNUNET_PeerIdentity *pid,
   *private_key = ece->private_key;
   *ephemeral_key = ece->ephemeral_key;
   *ephemeral_sender_sig = ece->sender_sig;
-  *ephemeral_validity = ece->ephemeral_validity;
+  *monotime = ece->monotime;
 }
 
 
@@ -4410,7 +4399,7 @@ handle_communicator_backchannel (
 {
   struct TransportClient *tc = cls;
   struct GNUNET_CRYPTO_EcdhePrivateKey private_key;
-  struct GNUNET_TIME_Absolute ephemeral_validity;
+  struct GNUNET_TIME_Absolute monotime;
   struct TransportBackchannelEncapsulationMessage *enc;
   struct TransportBackchannelRequestPayloadP ppay;
   struct BackchannelKeyState key;
@@ -4429,14 +4418,12 @@ handle_communicator_backchannel (
                     &private_key,
                     &enc->ephemeral_key,
                     &ppay.sender_sig,
-                    &ephemeral_validity);
+                    &monotime);
   GNUNET_CRYPTO_random_block (GNUNET_CRYPTO_QUALITY_NONCE,
                               &enc->iv,
                               sizeof (enc->iv));
   dh_key_derive_eph_pid (&private_key, &cb->pid, &enc->iv, &key);
-  ppay.ephemeral_validity = GNUNET_TIME_absolute_hton (ephemeral_validity);
-  ppay.monotonic_time =
-    GNUNET_TIME_absolute_hton (GNUNET_TIME_absolute_get_monotonic (GST_cfg));
+  ppay.monotonic_time = GNUNET_TIME_absolute_hton (monotime);
   mpos = (char *) &enc[1];
   bc_encrypt (&key, &ppay, mpos, sizeof (ppay));
   bc_encrypt (&key,
