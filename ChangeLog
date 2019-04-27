@@ -1,3 +1,6 @@
+Sat Apr 27 21:50:57 2019 +0200
+  RECLAIM: Added ECDH encryption for authorization code payload
+
 Sat 27 Apr 2019 06:36:31 AM CEST
   Bump libmicrohttpd version requirement as some intermediate
   versions have relevant bugs that cause problems. -CG
