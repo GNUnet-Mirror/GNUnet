@@ -3284,6 +3284,9 @@ notify_client_connect_info (void *cls,
   struct TransportClient *tc = cls;
   struct Neighbour *neighbour = value;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Telling new CORE client about existing connection to %s\n",
+              GNUNET_i2s (pid));
   core_send_connect_info (tc, pid, neighbour->quota_out);
   return GNUNET_OK;
 }
@@ -3319,6 +3322,9 @@ handle_client_start (void *cls, const struct StartMessage *start)
     return;
   }
   tc->type = CT_CORE;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "New CORE client with PID %s registered\n",
+              GNUNET_i2s (&start->self));
   GNUNET_CONTAINER_multipeermap_iterate (neighbours,
                                          &notify_client_connect_info,
                                          tc);
@@ -3468,6 +3474,12 @@ client_send_response (struct PendingMessage *pm,
     som->bytes_msg = htons (pm->bytes_msg);
     som->bytes_physical = htonl (bytes_physical);
     som->peer = target->pid;
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Confirming %s transmission of %u/%u bytes to %s\n",
+                (GNUNET_OK == success) ? "successful" : "failed",
+                (unsigned int) pm->bytes_msg,
+                (unsigned int) bytes_physical,
+                GNUNET_i2s (&pm->target->pid));
     GNUNET_MQ_send (tc->mq, env);
   }
   free_pending_message (pm);
@@ -3554,6 +3566,27 @@ create_dv_box (uint16_t total_hops,
   memcpy (dhops, hops, num_hops * sizeof (struct GNUNET_PeerIdentity));
   dhops[num_hops] = *target;
   memcpy (&dhops[num_hops + 1], payload, payload_size);
+
+  if (GNUNET_EXTRA_LOGGING > 0)
+  {
+    char *path;
+
+    path = GNUNET_strdup (GNUNET_i2s (&dvb->origin));
+    for (unsigned int i = 0; i <= num_hops; i++)
+    {
+      char *tmp;
+
+      GNUNET_asprintf (&tmp, "%s-%s", path, GNUNET_i2s (&dhops[i]));
+      GNUNET_free (path);
+      path = tmp;
+    }
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Creating DVBox for %u bytes of payload via %s\n",
+                (unsigned int) payload_size,
+                path);
+    GNUNET_free (path);
+  }
+
   return dvb;
 }
 
@@ -3688,6 +3721,11 @@ handle_client_send (void *cls, const struct OutboundMessage *obm)
                               GNUNET_NO);
     return;
   }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Sending %u bytes to %s using %s\n",
+              bytes_msg,
+              GNUNET_i2s (&obm->peer),
+              (NULL == target) ? "distance vector path" : "direct queue");
   if (NULL == target)
   {
     unsigned int res;
@@ -3756,8 +3794,14 @@ handle_client_send (void *cls, const struct OutboundMessage *obm)
   {
     /* try transmission on any queue that is idle */
     if (NULL == queue->transmit_task)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Queue %llu to %s is idle, triggering transmission\n",
+                  (unsigned long long) queue->qid,
+                  GNUNET_i2s (&queue->neighbour->pid));
       queue->transmit_task =
         GNUNET_SCHEDULER_add_now (&transmit_on_queue, queue);
+    }
   }
 }
 
@@ -3806,11 +3850,18 @@ handle_communicator_available (
 
   size = ntohs (cam->header.size) - sizeof (*cam);
   if (0 == size)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Receive-only communicator connected\n");
     return; /* receive-only communicator */
+  }
   tc->details.communicator.address_prefix =
     GNUNET_strdup ((const char *) &cam[1]);
   tc->details.communicator.cc =
     (enum GNUNET_TRANSPORT_CommunicatorCharacteristics) ntohl (cam->cc);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Communicator with prefix `%s' connected\n",
+              tc->details.communicator.address_prefix);
   GNUNET_SERVICE_client_continue (tc->client);
 }
 
@@ -3890,8 +3941,8 @@ expire_ephemerals (void *cls)
 
 
 /**
- * Lookup ephemeral key in our #ephemeral_map. If no valid one exists, generate
- * one, cache it and return it.
+ * Lookup ephemeral key in our #ephemeral_map. If no valid one exists,
+ * generate one, cache it and return it.
  *
  * @param pid peer to look up ephemeral for
  * @param private_key[out] set to the private key
@@ -3975,6 +4026,11 @@ queue_send_msg (struct Queue *queue,
   struct GNUNET_TRANSPORT_SendMessageTo *smt;
   struct GNUNET_MQ_Envelope *env;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Queueing %u bytes of payload for transmission on queue %llu to %s\n",
+              (unsigned int) payload_size,
+              (unsigned long long) queue->qid,
+              GNUNET_i2s (&queue->neighbour->pid));
   env = GNUNET_MQ_msg_extra (smt,
                              payload_size,
                              GNUNET_MESSAGE_TYPE_TRANSPORT_SEND_MSG);
@@ -4003,6 +4059,8 @@ queue_send_msg (struct Queue *queue,
   }
 }
 
+
+// FIXME: improve logging after this point!
 
 /**
  * Pick a queue of @a n under constraints @a options and schedule
@@ -4698,7 +4756,8 @@ handle_raw_message (void *cls, const struct GNUNET_MessageHeader *mh)
   }
   /* FIXME: consider doing this _only_ once the message
      was drained from the CORE MQs to extend flow control to CORE!
-     (basically, increment counter in cmc, decrement on MQ send continuation! */
+     (basically, increment counter in cmc, decrement on MQ send continuation!
+   */
   finish_cmc_handling (cmc);
 }
 
@@ -5149,8 +5208,8 @@ update_dvh_performance (struct DistanceVectorHop *dvh,
  * The @a pa was acknowledged, process the acknowledgement.
  *
  * @param pa the pending acknowledgement that was satisfied
- * @param ack_delay artificial delay from cummulative acks created by the other
- * peer
+ * @param ack_delay artificial delay from cummulative acks created by the
+ * other peer
  */
 static void
 handle_acknowledged (struct PendingAcknowledgement *pa,
