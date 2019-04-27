@@ -360,6 +360,8 @@ OIDC_build_authz_code (const struct GNUNET_CRYPTO_EcdsaPrivateKey *issuer,
       GNUNET_free_non_null (attrs_ser);
       return NULL;
     }
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Got nonce: %u from %s\n", nonce, nonce_str);
   }
   nonce_tmp = htonl (nonce);
   memcpy (buf_ptr, &nonce_tmp, sizeof (uint32_t));
@@ -415,7 +417,7 @@ OIDC_parse_authz_code (const struct GNUNET_CRYPTO_EcdsaPublicKey *audience,
   size_t code_payload_len;
   size_t attrs_ser_len;
   size_t signature_offset;
-  uint32_t nonce;
+  uint32_t nonce = 0;
 
   GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Trying to decode `%s'", code);
   code_payload = NULL;
@@ -440,6 +442,8 @@ OIDC_parse_authz_code (const struct GNUNET_CRYPTO_EcdsaPublicKey *audience,
   attrs_ser_len -= sizeof (struct GNUNET_RECLAIM_Ticket);
   ptr += sizeof (struct GNUNET_RECLAIM_Ticket);
   nonce = ntohl (*((uint32_t *) ptr));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Got nonce: %u\n", nonce);
   attrs_ser_len -= sizeof (uint32_t);
   ptr += sizeof (uint32_t);
   attrs_ser_len -= sizeof (struct GNUNET_CRYPTO_EcdsaSignature);
