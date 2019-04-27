@@ -325,6 +325,9 @@ OIDC_build_authz_code (const struct GNUNET_CRYPTO_EcdsaPrivateKey *issuer,
   if (NULL != attrs)
   {
     attr_list_len = GNUNET_RECLAIM_ATTRIBUTE_list_serialize_get_size (attrs);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Length of serialized attributes: %lu\n",
+                attr_list_len);
     signature_payload_len += attr_list_len;
     attrs_ser = GNUNET_malloc (attr_list_len);
     GNUNET_RECLAIM_ATTRIBUTE_list_serialize (attrs, attrs_ser);
@@ -332,7 +335,11 @@ OIDC_build_authz_code (const struct GNUNET_CRYPTO_EcdsaPrivateKey *issuer,
   code_payload_len = sizeof (struct GNUNET_CRYPTO_EccSignaturePurpose) +
                      signature_payload_len +
                      sizeof (struct GNUNET_CRYPTO_EcdsaSignature);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Length of data to encode: %lu\n",
+              code_payload_len);
   code_payload = GNUNET_malloc (code_payload_len);
+  GNUNET_assert (NULL != code_payload);
   purpose = (struct GNUNET_CRYPTO_EccSignaturePurpose *) code_payload;
   purpose->size = htonl (sizeof (struct GNUNET_CRYPTO_EccSignaturePurpose) +
                          signature_payload_len);
@@ -375,7 +382,7 @@ OIDC_build_authz_code (const struct GNUNET_CRYPTO_EcdsaPrivateKey *issuer,
     GNUNET_free_non_null (attrs_ser);
     return NULL;
   }
-  code_str = base64_encode ((const char *) &code_payload, code_payload_len);
+  code_str = base64_encode (code_payload, code_payload_len);
   GNUNET_free (code_payload);
   GNUNET_free_non_null (attrs_ser);
   return code_str;
