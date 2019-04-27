@@ -1447,7 +1447,7 @@ struct Queue
 
   /**
    * Task scheduled for the time when this queue can (likely) transmit the
-   * next message. Still needs to check with the @e tracker_out to be sure.
+   * next message.
    */
   struct GNUNET_SCHEDULER_Task *transmit_task;
 
@@ -1511,16 +1511,6 @@ struct Queue
    * Connection status for this queue.
    */
   enum GNUNET_TRANSPORT_ConnectionStatus cs;
-
-  /**
-   * How much outbound bandwidth do we have available for this queue?
-   */
-  struct GNUNET_BANDWIDTH_Tracker tracker_out;
-
-  /**
-   * How much inbound bandwidth do we have available for this queue?
-   */
-  struct GNUNET_BANDWIDTH_Tracker tracker_in;
 };
 
 
@@ -2956,6 +2946,9 @@ static void
 cores_send_connect_info (const struct GNUNET_PeerIdentity *pid,
                          struct GNUNET_BANDWIDTH_Value32NBO quota_out)
 {
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Informing CORE clients about connection to %s\n",
+              GNUNET_i2s (pid));
   for (struct TransportClient *tc = clients_head; NULL != tc; tc = tc->next)
   {
     if (CT_CORE != tc->type)
@@ -2973,6 +2966,9 @@ cores_send_connect_info (const struct GNUNET_PeerIdentity *pid,
 static void
 cores_send_disconnect_info (const struct GNUNET_PeerIdentity *pid)
 {
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Informing CORE clients about disconnect from %s\n",
+              GNUNET_i2s (pid));
   for (struct TransportClient *tc = clients_head; NULL != tc; tc = tc->next)
   {
     struct GNUNET_MQ_Envelope *env;
@@ -2988,10 +2984,9 @@ cores_send_disconnect_info (const struct GNUNET_PeerIdentity *pid)
 
 
 /**
- * We believe we are ready to transmit a message on a queue. Double-checks
- * with the queue's "tracker_out" and then gives the message to the
- * communicator for transmission (updating the tracker, and re-scheduling
- * itself if applicable).
+ * We believe we are ready to transmit a message on a queue. Gives the
+ * message to the communicator for transmission (updating the tracker,
+ * and re-scheduling itself if applicable).
  *
  * @param cls the `struct Queue` to process transmissions for
  */
@@ -3017,7 +3012,6 @@ schedule_transmit_on_queue (struct Queue *queue, int inside_job)
   struct Neighbour *n = queue->neighbour;
   struct PendingMessage *pm = n->pending_msg_head;
   struct GNUNET_TIME_Relative out_delay;
-  unsigned int wsize;
 
   GNUNET_assert (NULL != pm);
   if (queue->tc->details.communicator.total_queue_length >=
@@ -3039,14 +3033,16 @@ schedule_transmit_on_queue (struct Queue *queue, int inside_job)
     return;
   }
 
-  wsize = (0 == queue->mtu) ? pm->bytes_msg /* FIXME: add overheads? */
-                            : queue->mtu;
-  out_delay = GNUNET_BANDWIDTH_tracker_get_delay (&queue->tracker_out, wsize);
-  out_delay = GNUNET_TIME_relative_max (GNUNET_TIME_absolute_get_remaining (
-                                          pm->next_attempt),
-                                        out_delay);
+  out_delay = GNUNET_TIME_absolute_get_remaining (pm->next_attempt);
   if ((GNUNET_YES == inside_job) && (0 == out_delay.rel_value_us))
+  {
+    GNUNET_log (
+      GNUNET_ERROR_TYPE_DEBUG,
+      "Schedule transmission on queue %llu of %s decides to run immediately\n",
+      (unsigned long long) queue->qid,
+      GNUNET_i2s (&n->pid));
     return; /* we should run immediately! */
+  }
   /* queue has changed since we were scheduled, reschedule again */
   queue->transmit_task =
     GNUNET_SCHEDULER_add_delayed (out_delay, &transmit_on_queue, queue);
@@ -3142,8 +3138,6 @@ free_queue (struct Queue *queue)
       schedule_transmit_on_queue (s, GNUNET_NO);
   }
   notify_monitors (&neighbour->pid, queue->address, queue->nt, &me);
-  GNUNET_BANDWIDTH_tracker_notification_stop (&queue->tracker_in);
-  GNUNET_BANDWIDTH_tracker_notification_stop (&queue->tracker_out);
   GNUNET_free (queue);
 
   update_neighbour_core_visibility (neighbour);
@@ -5918,6 +5912,7 @@ learn_dv_path (const struct GNUNET_PeerIdentity *path,
   hop->timeout = GNUNET_TIME_relative_to_absolute (DV_PATH_VALIDITY_TIMEOUT);
   hop->path_valid_until = path_valid_until;
   hop->distance = path_len - 2;
+  hop->pd.aged_rtt = network_latency;
   GNUNET_CONTAINER_MDLL_insert (dv, dv->dv_head, dv->dv_tail, hop);
   GNUNET_CONTAINER_MDLL_insert (neighbour,
                                 next_hop->dv_head,
@@ -7185,25 +7180,6 @@ check_add_queue_message (void *cls,
 
 
 /**
- * Bandwidth tracker informs us that the delay until we should receive
- * more has changed.
- *
- * @param cls a `struct Queue` for which the delay changed
- */
-static void
-tracker_update_in_cb (void *cls)
-{
-  struct Queue *queue = cls;
-  struct GNUNET_TIME_Relative in_delay;
-  unsigned int rsize;
-
-  rsize = (0 == queue->mtu) ? IN_PACKET_SIZE_WITHOUT_MTU : queue->mtu;
-  in_delay = GNUNET_BANDWIDTH_tracker_get_delay (&queue->tracker_in, rsize);
-  // FIXME: how exactly do we do inbound flow control?
-}
-
-
-/**
  * If necessary, generates the UUID for a @a pm
  *
  * @param pm pending message to generate UUID for.
@@ -7474,8 +7450,8 @@ update_pm_next_attempt (struct PendingMessage *pm,
 
 
 /**
- * We believe we are ready to transmit a message on a queue. Double-checks
- * with the queue's "tracker_out" and then gives the message to the
+ * We believe we are ready to transmit a message on a queue.
+ * Gives the message to the
  * communicator for transmission (updating the tracker, and re-scheduling
  * itself if applicable).
  *
@@ -7596,73 +7572,6 @@ transmit_on_queue (void *cls)
 
   /* finally, re-schedule queue transmission task itself */
   schedule_transmit_on_queue (queue, GNUNET_NO);
-}
-
-
-/**
- * Bandwidth tracker informs us that the delay until we
- * can transmit again changed.
- *
- * @param cls a `struct Queue` for which the delay changed
- */
-static void
-tracker_update_out_cb (void *cls)
-{
-  struct Queue *queue = cls;
-  struct Neighbour *n = queue->neighbour;
-
-  if (NULL == n->pending_msg_head)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Bandwidth allocation updated for empty transmission queue `%s'\n",
-                queue->address);
-    return; /* no message pending, nothing to do here! */
-  }
-  GNUNET_SCHEDULER_cancel (queue->transmit_task);
-  queue->transmit_task = NULL;
-  schedule_transmit_on_queue (queue, GNUNET_NO);
-}
-
-
-/**
- * Bandwidth tracker informs us that excessive outbound bandwidth was
- * allocated which is not being used.
- *
- * @param cls a `struct Queue` for which the excess was noted
- */
-static void
-tracker_excess_out_cb (void *cls)
-{
-  (void) cls;
-
-  /* FIXME: trigger excess bandwidth report to core? Right now,
-     this is done internally within transport_api2_core already,
-     but we probably want to change the logic and trigger it
-     from here via a message instead! */
-  /* TODO: maybe inform someone at this point? */
-  GNUNET_STATISTICS_update (GST_stats,
-                            "# Excess outbound bandwidth reported",
-                            1,
-                            GNUNET_NO);
-}
-
-
-/**
- * Bandwidth tracker informs us that excessive inbound bandwidth was allocated
- * which is not being used.
- *
- * @param cls a `struct Queue` for which the excess was noted
- */
-static void
-tracker_excess_in_cb (void *cls)
-{
-  (void) cls;
-
-  /* TODO: maybe inform somone at this point? */
-  GNUNET_STATISTICS_update (GST_stats,
-                            "# Excess inbound bandwidth reported",
-                            1,
-                            GNUNET_NO);
 }
 
 
@@ -8220,7 +8129,6 @@ neighbour_dv_monotime_cb (void *cls,
 {
   struct Neighbour *n = cls;
   struct GNUNET_TIME_AbsoluteNBO *mtbe;
-  struct GNUNET_TIME_Absolute mt;
 
   (void) emsg;
   if (NULL == record)
@@ -8299,20 +8207,6 @@ handle_add_queue_message (void *cls,
   queue->nt = (enum GNUNET_NetworkType) ntohl (aqm->nt);
   queue->cs = (enum GNUNET_TRANSPORT_ConnectionStatus) ntohl (aqm->cs);
   queue->neighbour = neighbour;
-  GNUNET_BANDWIDTH_tracker_init2 (&queue->tracker_in,
-                                  &tracker_update_in_cb,
-                                  queue,
-                                  GNUNET_BANDWIDTH_ZERO,
-                                  GNUNET_CONSTANTS_MAX_BANDWIDTH_CARRY_S,
-                                  &tracker_excess_in_cb,
-                                  queue);
-  GNUNET_BANDWIDTH_tracker_init2 (&queue->tracker_out,
-                                  &tracker_update_out_cb,
-                                  queue,
-                                  GNUNET_BANDWIDTH_ZERO,
-                                  GNUNET_CONSTANTS_MAX_BANDWIDTH_CARRY_S,
-                                  &tracker_excess_out_cb,
-                                  queue);
   memcpy (&queue[1], addr, addr_len);
   /* notify monitors about new queue */
   {
