@@ -551,6 +551,7 @@ send_ticket_result (const struct IdpClient *client,
   }
   // TODO add success member
   irm->id = htonl (r_id);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending TICKET_RESULT message\n");
   GNUNET_MQ_send (client->mq, env);
 }
 
@@ -598,6 +599,7 @@ handle_issue_ticket_message (void *cls, const struct IssueTicketMessage *im)
   struct GNUNET_RECLAIM_ATTRIBUTE_ClaimList *attrs;
   size_t attrs_len;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received ISSUE_TICKET message\n");
   tio = GNUNET_new (struct TicketIssueOperation);
   attrs_len = ntohs (im->attr_len);
   attrs = GNUNET_RECLAIM_ATTRIBUTE_list_deserialize ((char *)&im[1], attrs_len);
@@ -624,6 +626,7 @@ revoke_result_cb (void *cls, int32_t success)
   struct GNUNET_MQ_Envelope *env;
   struct RevokeTicketResultMessage *trm;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending REVOKE_TICKET_RESULT message\n");
   rop->rh = NULL;
   env = GNUNET_MQ_msg (trm, GNUNET_MESSAGE_TYPE_RECLAIM_REVOKE_TICKET_RESULT);
   trm->id = htonl (rop->r_id);
@@ -656,6 +659,7 @@ handle_revoke_ticket_message (void *cls, const struct RevokeTicketMessage *rm)
   struct IdpClient *idp = cls;
   struct GNUNET_RECLAIM_Ticket *ticket;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received REVOKE_TICKET message\n");
   rop = GNUNET_new (struct TicketRevocationOperation);
   ticket = (struct GNUNET_RECLAIM_Ticket *)&rm[1];
   rop->r_id = ntohl (rm->id);
@@ -695,6 +699,7 @@ consume_result_cb (void *cls,
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Error consuming ticket: %s\n", emsg);
   }
   attrs_len = GNUNET_RECLAIM_ATTRIBUTE_list_serialize_get_size (attrs);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending CONSUME_TICKET_RESULT message\n");
   env = GNUNET_MQ_msg_extra (crm,
                              attrs_len,
                              GNUNET_MESSAGE_TYPE_RECLAIM_CONSUME_TICKET_RESULT);
@@ -718,6 +723,7 @@ handle_consume_ticket_message (void *cls, const struct ConsumeTicketMessage *cm)
   struct GNUNET_RECLAIM_Ticket *ticket;
   struct IdpClient *idp = cls;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received CONSUME_TICKET message\n");
   cop = GNUNET_new (struct ConsumeTicketOperation);
   cop->r_id = ntohl (cm->id);
   cop->client = idp;
@@ -1073,7 +1079,7 @@ handle_attribute_delete_message (void *cls,
   struct AttributeDeleteHandle *adh;
   struct IdpClient *idp = cls;
   size_t data_len;
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Received ATTRIBUTE_DELETE message\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received ATTRIBUTE_DELETE message\n");
 
   data_len = ntohs (dam->attr_len);
 
@@ -1126,6 +1132,7 @@ attr_iter_finished (void *cls)
   struct GNUNET_MQ_Envelope *env;
   struct AttributeResultMessage *arm;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending ATTRIBUTE_RESULT message\n");
   env = GNUNET_MQ_msg (arm, GNUNET_MESSAGE_TYPE_RECLAIM_ATTRIBUTE_RESULT);
   arm->id = htonl (ai->request_id);
   arm->attr_len = htons (0);
@@ -1158,6 +1165,7 @@ attr_iter_cb (void *cls,
     return;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Found attribute under: %s\n", label);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending ATTRIBUTE_RESULT message\n");
   env = GNUNET_MQ_msg_extra (arm,
                              rd->data_size,
                              GNUNET_MESSAGE_TYPE_RECLAIM_ATTRIBUTE_RESULT);
@@ -1267,6 +1275,7 @@ ticket_iter_cb (void *cls, struct GNUNET_RECLAIM_Ticket *ticket)
     memcpy (&trm[1], ticket, sizeof (struct GNUNET_RECLAIM_Ticket));
   }
   trm->id = htonl (ti->r_id);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending TICKET_RESULT message\n");
   GNUNET_MQ_send (ti->client->mq, env);
   if (NULL == ticket)
     GNUNET_free (ti);

@@ -419,7 +419,7 @@ OIDC_parse_authz_code (const struct GNUNET_CRYPTO_EcdsaPublicKey *audience,
   size_t signature_offset;
   uint32_t nonce = 0;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Trying to decode `%s'", code);
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Trying to decode `%s'\n", code);
   code_payload = NULL;
   code_payload_len =
     GNUNET_STRINGS_base64_decode (code, strlen (code), (void **) &code_payload);
