@@ -111,12 +111,14 @@ OIDC_id_token_new (const struct GNUNET_CRYPTO_EcdsaPublicKey *aud_key,
   // auth_time only if max_age
   // nonce only if nonce
   // OPTIONAL acr,amr,azp
-  subject = GNUNET_STRINGS_data_to_string_alloc (
-    sub_key,
-    sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey));
-  audience = GNUNET_STRINGS_data_to_string_alloc (
-    aud_key,
-    sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey));
+  subject =
+    GNUNET_STRINGS_data_to_string_alloc (sub_key,
+                                         sizeof (struct
+                                                 GNUNET_CRYPTO_EcdsaPublicKey));
+  audience =
+    GNUNET_STRINGS_data_to_string_alloc (aud_key,
+                                         sizeof (struct
+                                                 GNUNET_CRYPTO_EcdsaPublicKey));
   header = create_jwt_header ();
   body = json_object ();
 
@@ -315,7 +317,6 @@ OIDC_build_authz_code (const struct GNUNET_CRYPTO_EcdsaPrivateKey *issuer,
   size_t code_payload_len;
   unsigned int nonce;
   unsigned int nonce_tmp;
-  struct GNUNET_CRYPTO_EcdsaSignature signature;
   struct GNUNET_CRYPTO_EccSignaturePurpose *purpose;
 
   attrs_ser = NULL;
@@ -329,7 +330,8 @@ OIDC_build_authz_code (const struct GNUNET_CRYPTO_EcdsaPrivateKey *issuer,
     GNUNET_RECLAIM_ATTRIBUTE_list_serialize (attrs, attrs_ser);
   }
   code_payload_len = sizeof (struct GNUNET_CRYPTO_EccSignaturePurpose) +
-                     signature_payload_len + sizeof (signature);
+                     signature_payload_len +
+                     sizeof (struct GNUNET_CRYPTO_EcdsaSignature);
   code_payload = GNUNET_malloc (code_payload_len);
   purpose = (struct GNUNET_CRYPTO_EccSignaturePurpose *) code_payload;
   purpose->size = htonl (sizeof (struct GNUNET_CRYPTO_EccSignaturePurpose) +
@@ -346,8 +348,7 @@ OIDC_build_authz_code (const struct GNUNET_CRYPTO_EcdsaPrivateKey *issuer,
     if ((1 != SSCANF (nonce_str, "%u", &nonce)) || (nonce > UINT32_MAX))
     {
       GNUNET_break (0);
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  "Invalid nonce %s\n", nonce_str);
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Invalid nonce %s\n", nonce_str);
       GNUNET_free (code_payload);
       GNUNET_free_non_null (attrs_ser);
       return NULL;
@@ -362,16 +363,18 @@ OIDC_build_authz_code (const struct GNUNET_CRYPTO_EcdsaPrivateKey *issuer,
     memcpy (buf_ptr, attrs_ser, attr_list_len);
     buf_ptr += attr_list_len;
   }
-  if (GNUNET_SYSERR == GNUNET_CRYPTO_ecdsa_sign (issuer, purpose, &signature))
+  if (GNUNET_SYSERR ==
+      GNUNET_CRYPTO_ecdsa_sign (issuer,
+                                purpose,
+                                (struct GNUNET_CRYPTO_EcdsaSignature *)
+                                  buf_ptr))
   {
     GNUNET_break (0);
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Unable to sign code\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Unable to sign code\n");
     GNUNET_free (code_payload);
     GNUNET_free_non_null (attrs_ser);
     return NULL;
   }
-  memcpy (buf_ptr, &signature, sizeof (signature));
   code_str = base64_encode ((const char *) &code_payload, code_payload_len);
   GNUNET_free (code_payload);
   GNUNET_free_non_null (attrs_ser);
@@ -399,7 +402,6 @@ OIDC_parse_authz_code (const struct GNUNET_CRYPTO_EcdsaPublicKey *audience,
                        char **nonce_str)
 {
   char *code_payload;
-  char *attrs_ser;
   char *ptr;
   struct GNUNET_CRYPTO_EccSignaturePurpose *purpose;
   struct GNUNET_CRYPTO_EcdsaSignature *signature;
@@ -408,25 +410,37 @@ OIDC_parse_authz_code (const struct GNUNET_CRYPTO_EcdsaPublicKey *audience,
   size_t signature_offset;
   unsigned int nonce;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-              "Trying to decode `%s'", code);
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Trying to decode `%s'", code);
   code_payload = NULL;
   code_payload_len =
     GNUNET_STRINGS_base64_decode (code, strlen (code), (void **) &code_payload);
+
+  if (code_payload_len < sizeof (struct GNUNET_CRYPTO_EccSignaturePurpose) +
+                           sizeof (struct GNUNET_RECLAIM_Ticket) +
+                           sizeof (unsigned int) +
+                           sizeof (struct GNUNET_CRYPTO_EcdsaSignature))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Authorization code malformed\n");
+    GNUNET_free_non_null (code_payload);
+    return GNUNET_SYSERR;
+  }
+
   purpose = (struct GNUNET_CRYPTO_EccSignaturePurpose *) code_payload;
   attrs_ser_len = code_payload_len;
   attrs_ser_len -= sizeof (struct GNUNET_CRYPTO_EccSignaturePurpose);
-  *ticket = *((struct GNUNET_RECLAIM_Ticket *) &purpose[1]);
+  ptr = (char *) &purpose[1];
+  *ticket = *((struct GNUNET_RECLAIM_Ticket *) ptr);
   attrs_ser_len -= sizeof (struct GNUNET_RECLAIM_Ticket);
-  nonce = ntohs (*((unsigned int *) &ticket[1]));
+  ptr += sizeof (struct GNUNET_RECLAIM_Ticket);
+  nonce = ntohs (*((unsigned int *) ptr));
   attrs_ser_len -= sizeof (unsigned int);
-  ptr = code_payload;
+  ptr += sizeof (unsigned int);
+  attrs_ser_len -= sizeof (struct GNUNET_CRYPTO_EcdsaSignature);
+  *attrs = GNUNET_RECLAIM_ATTRIBUTE_list_deserialize (ptr, attrs_ser_len);
   signature_offset =
     code_payload_len - sizeof (struct GNUNET_CRYPTO_EcdsaSignature);
-  signature = (struct GNUNET_CRYPTO_EcdsaSignature *) &ptr[signature_offset];
-  attrs_ser_len -= sizeof (struct GNUNET_CRYPTO_EcdsaSignature);
-  attrs_ser = ((char *) &ticket[1]) + sizeof (unsigned int);
-  *attrs = GNUNET_RECLAIM_ATTRIBUTE_list_deserialize (attrs_ser, attrs_ser_len);
+  signature =
+    (struct GNUNET_CRYPTO_EcdsaSignature *) &code_payload[signature_offset];
   if (0 != GNUNET_memcmp (audience, &ticket->audience))
   {
     GNUNET_RECLAIM_ATTRIBUTE_list_destroy (*attrs);
@@ -477,10 +491,10 @@ OIDC_build_token_response (const char *access_token,
   GNUNET_assert (NULL != expiration_time);
   json_object_set_new (root_json, "access_token", json_string (access_token));
   json_object_set_new (root_json, "token_type", json_string ("Bearer"));
-  json_object_set_new (
-    root_json,
-    "expires_in",
-    json_integer (expiration_time->rel_value_us / (1000 * 1000)));
+  json_object_set_new (root_json,
+                       "expires_in",
+                       json_integer (expiration_time->rel_value_us /
+                                     (1000 * 1000)));
   json_object_set_new (root_json, "id_token", json_string (id_token));
   *token_response = json_dumps (root_json, JSON_INDENT (0) | JSON_COMPACT);
   json_decref (root_json);
