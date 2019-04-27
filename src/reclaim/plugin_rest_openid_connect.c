@@ -980,6 +980,8 @@ oidc_attr_collect (void *cls,
                                                   attr->type,
                                                   attr->data,
                                                   attr->data_size);
+  le->claim->id = attr->id;
+  le->claim->version = attr->version;
   GNUNET_CONTAINER_DLL_insert (handle->attr_list->list_head,
                                handle->attr_list->list_tail,
                                le);
