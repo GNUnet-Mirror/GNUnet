@@ -222,16 +222,6 @@ static char *OIDC_ignored_parameter_array[] = {"display",
 struct GNUNET_CONTAINER_MultiHashMap *OIDC_cookie_jar_map;
 
 /**
- * OIDC authorized identities and times hashmap
- */
-struct GNUNET_CONTAINER_MultiHashMap *OIDC_identity_grants;
-
-/**
- * OIDC Hash map that keeps track of used authorization code(s)
- */
-struct GNUNET_CONTAINER_MultiHashMap *OIDC_used_ticket_map;
-
-/**
  * Hash map that links the issued access token to the corresponding ticket and
  * ego
  */
@@ -1671,7 +1661,6 @@ token_endpoint (struct GNUNET_REST_RequestHandle *con_handle,
   char *access_token;
   char *jwt_secret;
   char *nonce;
-  int i = 1;
 
   /*
    * Check Authorization
@@ -1693,45 +1682,11 @@ token_endpoint (struct GNUNET_REST_RequestHandle *con_handle,
   GNUNET_CRYPTO_hash (OIDC_GRANT_TYPE_KEY,
                       strlen (OIDC_GRANT_TYPE_KEY),
                       &cache_key);
-  if (GNUNET_NO == GNUNET_CONTAINER_multihashmap_contains (handle->rest_handle
-                                                             ->url_param_map,
-                                                           &cache_key))
+  grant_type = get_url_parameter_copy (handle, OIDC_GRANT_TYPE_KEY);
+  if (NULL == grant_type)
   {
     handle->emsg = GNUNET_strdup (OIDC_ERROR_KEY_INVALID_REQUEST);
     handle->edesc = GNUNET_strdup ("missing parameter grant_type");
-    handle->response_code = MHD_HTTP_BAD_REQUEST;
-    GNUNET_SCHEDULER_add_now (&do_error, handle);
-    return;
-  }
-  grant_type =
-    GNUNET_CONTAINER_multihashmap_get (handle->rest_handle->url_param_map,
-                                       &cache_key);
-
-  // REQUIRED code
-  GNUNET_CRYPTO_hash (OIDC_CODE_KEY, strlen (OIDC_CODE_KEY), &cache_key);
-  if (GNUNET_NO == GNUNET_CONTAINER_multihashmap_contains (handle->rest_handle
-                                                             ->url_param_map,
-                                                           &cache_key))
-  {
-    handle->emsg = GNUNET_strdup (OIDC_ERROR_KEY_INVALID_REQUEST);
-    handle->edesc = GNUNET_strdup ("missing parameter code");
-    handle->response_code = MHD_HTTP_BAD_REQUEST;
-    GNUNET_SCHEDULER_add_now (&do_error, handle);
-    return;
-  }
-  code = GNUNET_CONTAINER_multihashmap_get (handle->rest_handle->url_param_map,
-                                            &cache_key);
-
-  // REQUIRED redirect_uri
-  GNUNET_CRYPTO_hash (OIDC_REDIRECT_URI_KEY,
-                      strlen (OIDC_REDIRECT_URI_KEY),
-                      &cache_key);
-  if (GNUNET_NO == GNUNET_CONTAINER_multihashmap_contains (handle->rest_handle
-                                                             ->url_param_map,
-                                                           &cache_key))
-  {
-    handle->emsg = GNUNET_strdup (OIDC_ERROR_KEY_INVALID_REQUEST);
-    handle->edesc = GNUNET_strdup ("missing parameter redirect_uri");
     handle->response_code = MHD_HTTP_BAD_REQUEST;
     GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
@@ -1745,15 +1700,13 @@ token_endpoint (struct GNUNET_REST_RequestHandle *con_handle,
     GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
   }
-  GNUNET_CRYPTO_hash (code, strlen (code), &cache_key);
-  if (GNUNET_SYSERR == GNUNET_CONTAINER_multihashmap_put (
-                         OIDC_used_ticket_map,
-                         &cache_key,
-                         &i,
-                         GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY))
+
+  // REQUIRED code
+  code = get_url_parameter_copy (handle, OIDC_CODE_KEY);
+  if (NULL == code)
   {
     handle->emsg = GNUNET_strdup (OIDC_ERROR_KEY_INVALID_REQUEST);
-    handle->edesc = GNUNET_strdup ("Cannot use the same code more than once");
+    handle->edesc = GNUNET_strdup ("missing parameter code");
     handle->response_code = MHD_HTTP_BAD_REQUEST;
     GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
@@ -1802,7 +1755,6 @@ token_endpoint (struct GNUNET_REST_RequestHandle *con_handle,
     GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
   }
-  // TODO We should collect the attributes here. cl always empty
   id_token = OIDC_id_token_new (&ticket.audience,
                                 &ticket.identity,
                                 cl,
@@ -2110,10 +2062,6 @@ rest_identity_process_request (struct GNUNET_REST_RequestHandle *rest_handle,
   handle->oidc = GNUNET_new (struct OIDC_Variables);
   if (NULL == OIDC_cookie_jar_map)
     OIDC_cookie_jar_map = GNUNET_CONTAINER_multihashmap_create (10, GNUNET_NO);
-  if (NULL == OIDC_identity_grants)
-    OIDC_identity_grants = GNUNET_CONTAINER_multihashmap_create (10, GNUNET_NO);
-  if (NULL == OIDC_used_ticket_map)
-    OIDC_used_ticket_map = GNUNET_CONTAINER_multihashmap_create (10, GNUNET_NO);
   if (NULL == OIDC_access_token_map)
     OIDC_access_token_map =
       GNUNET_CONTAINER_multihashmap_create (10, GNUNET_NO);
@@ -2166,7 +2114,7 @@ libgnunet_plugin_rest_openid_connect_init (void *cls)
                    MHD_HTTP_METHOD_OPTIONS);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              _ ("Identity Provider REST API initialized\n"));
+              _ ("OpenID Connect REST API initialized\n"));
   return api;
 }
 
@@ -2194,20 +2142,6 @@ libgnunet_plugin_rest_openid_connect_done (void *cls)
   GNUNET_CONTAINER_multihashmap_destroy (OIDC_cookie_jar_map);
 
   hashmap_it =
-    GNUNET_CONTAINER_multihashmap_iterator_create (OIDC_identity_grants);
-  while (GNUNET_YES ==
-         GNUNET_CONTAINER_multihashmap_iterator_next (hashmap_it, NULL, value))
-    GNUNET_free_non_null (value);
-  GNUNET_CONTAINER_multihashmap_destroy (OIDC_identity_grants);
-
-  hashmap_it =
-    GNUNET_CONTAINER_multihashmap_iterator_create (OIDC_used_ticket_map);
-  while (GNUNET_YES ==
-         GNUNET_CONTAINER_multihashmap_iterator_next (hashmap_it, NULL, value))
-    GNUNET_free_non_null (value);
-  GNUNET_CONTAINER_multihashmap_destroy (OIDC_used_ticket_map);
-
-  hashmap_it =
     GNUNET_CONTAINER_multihashmap_iterator_create (OIDC_access_token_map);
   while (GNUNET_YES ==
          GNUNET_CONTAINER_multihashmap_iterator_next (hashmap_it, NULL, value))
@@ -2217,8 +2151,8 @@ libgnunet_plugin_rest_openid_connect_done (void *cls)
   GNUNET_free_non_null (allow_methods);
   GNUNET_free (api);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Identity Provider REST plugin is finished\n");
+              "OpenID Connect REST plugin is finished\n");
   return NULL;
 }
 
-/* end of plugin_rest_identity_provider.c */
+/* end of plugin_rest_openid_connect.c */
