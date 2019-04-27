@@ -1297,12 +1297,12 @@ AC_ARG_WITH(microhttpd,
         AC_CHECK_HEADERS([microhttpd.h],
 	  AC_CHECK_DECL(MHD_OPTION_PER_IP_CONNECTION_LIMIT,
             AC_CHECK_LIB([microhttpd], [MHD_get_fdset2],
-              [AC_MSG_CHECKING([for libmicrohttpd >= 0.9.52])
+              [AC_MSG_CHECKING([for libmicrohttpd >= 0.9.63])
               AC_COMPILE_IFELSE([AC_LANG_SOURCE([
                 #include "$native_srcdir/src/include/platform.h"
                 #include <microhttpd.h>
-                #if (MHD_VERSION < 0x0094200)
-                #error needs at least version 0.9.42
+                #if (MHD_VERSION < 0x0096300)
+                #error needs at least version 0.9.63
                 #endif
                 int main () { return 0; }
                ])],

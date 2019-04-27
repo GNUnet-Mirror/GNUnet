@@ -38,7 +38,7 @@ The mandatory libraries and applications are
 @item libgcrypt 1.6 or above
 @item libextractor
 @item libidn2 or libidn
-@item libmicrohttpd 0.9.52 or above
+@item libmicrohttpd 0.9.63 or above
 @item libunistring
 @item libgmp
 @item libgnurl or libcurl (libcurl has to be linked to GnuTLS) 7.35.0 or above

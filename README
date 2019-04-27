@@ -69,7 +69,7 @@ These are the direct dependencies for running GNUnet:
   * libidn2 (prefered)
   or
   * libidn           >= 1.0
-- libmicrohttpd      >= 0.9.52      (strongly recommended for
+- libmicrohttpd      >= 0.9.63      (strongly recommended for
                                      a wide range of features)
 - makeinfo           >= 4.8
 - make[*3]
