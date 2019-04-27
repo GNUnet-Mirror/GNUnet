@@ -513,15 +513,13 @@ OIDC_build_token_response (const char *access_token,
 char *
 OIDC_access_token_new ()
 {
-  char *access_token_number;
   char *access_token;
   uint64_t random_number;
 
   random_number =
     GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_NONCE, UINT64_MAX);
-  GNUNET_asprintf (&access_token_number, "%" PRIu64, random_number);
-  GNUNET_STRINGS_base64_encode (access_token_number,
-                                strlen (access_token_number),
+  GNUNET_STRINGS_base64_encode (&random_number,
+                                sizeof (uint64_t),
                                 &access_token);
   return access_token;
 }
