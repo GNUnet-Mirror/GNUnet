@@ -11,7 +11,7 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -36,9 +36,8 @@
 #define GNUNET_TRANSPORT_SERVICE_H
 
 #ifdef __cplusplus
-extern "C"
-{
-#if 0                           /* keep Emacsens' auto-indent happy */
+extern "C" {
+#if 0 /* keep Emacsens' auto-indent happy */
 }
 #endif
 #endif
@@ -71,8 +70,8 @@ struct GNUNET_TRANSPORT_OfferHelloHandle;
  *      tc reason #GNUNET_SCHEDULER_REASON_TIMEOUT for fail
  *      tc reasong #GNUNET_SCHEDULER_REASON_READ_READY for success
  * @param cont_cls closure for @a cont
- * @return a `struct GNUNET_TRANSPORT_OfferHelloHandle` handle or NULL on failure,
- *      in case of failure @a cont will not be called
+ * @return a `struct GNUNET_TRANSPORT_OfferHelloHandle` handle or NULL on
+ * failure, in case of failure @a cont will not be called
  *
  */
 struct GNUNET_TRANSPORT_OfferHelloHandle *
@@ -88,7 +87,8 @@ GNUNET_TRANSPORT_offer_hello (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * @param ohh the `struct GNUNET_TRANSPORT_OfferHelloHandle` to cancel
  */
 void
-GNUNET_TRANSPORT_offer_hello_cancel (struct GNUNET_TRANSPORT_OfferHelloHandle *ohh);
+GNUNET_TRANSPORT_offer_hello_cancel (
+  struct GNUNET_TRANSPORT_OfferHelloHandle *ohh);
 
 
 /* *********************** Address to String ******************* */
@@ -115,10 +115,9 @@ struct GNUNET_TRANSPORT_AddressToStringContext;
  *        if #GNUNET_NO: address was invalid (or not supported)
  *        if #GNUNET_SYSERR: communication error (IPC error)
  */
-typedef void
-(*GNUNET_TRANSPORT_AddressToStringCallback) (void *cls,
-                                             const char *address,
-                                             int res);
+typedef void (*GNUNET_TRANSPORT_AddressToStringCallback) (void *cls,
+                                                          const char *address,
+                                                          int res);
 
 
 /**
@@ -134,12 +133,13 @@ typedef void
  * @return handle to cancel the operation, NULL on error
  */
 struct GNUNET_TRANSPORT_AddressToStringContext *
-GNUNET_TRANSPORT_address_to_string (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                                    const struct GNUNET_HELLO_Address *address,
-                                    int numeric,
-                                    struct GNUNET_TIME_Relative timeout,
-                                    GNUNET_TRANSPORT_AddressToStringCallback aluc,
-                                    void *aluc_cls);
+GNUNET_TRANSPORT_address_to_string (
+  const struct GNUNET_CONFIGURATION_Handle *cfg,
+  const struct GNUNET_HELLO_Address *address,
+  int numeric,
+  struct GNUNET_TIME_Relative timeout,
+  GNUNET_TRANSPORT_AddressToStringCallback aluc,
+  void *aluc_cls);
 
 
 /**
@@ -148,14 +148,16 @@ GNUNET_TRANSPORT_address_to_string (const struct GNUNET_CONFIGURATION_Handle *cf
  * @param alc the context handle
  */
 void
-GNUNET_TRANSPORT_address_to_string_cancel (struct GNUNET_TRANSPORT_AddressToStringContext *alc);
+GNUNET_TRANSPORT_address_to_string_cancel (
+  struct GNUNET_TRANSPORT_AddressToStringContext *alc);
 
 
 /* *********************** Monitoring ************************** */
 
 
 /**
- * Possible state of a neighbour.  Initially, we are #GNUNET_TRANSPORT_PS_NOT_CONNECTED.
+ * Possible state of a neighbour.  Initially, we are
+ * #GNUNET_TRANSPORT_PS_NOT_CONNECTED.
  *
  * Then, there are two main paths. If we receive a SYN message, we give
  * the inbound address to ATS. After the check we ask ATS for a suggestion
@@ -174,14 +176,14 @@ GNUNET_TRANSPORT_address_to_string_cancel (struct GNUNET_TRANSPORT_AddressToStri
  * #GNUNET_TRANSPORT_PS_DISCONNECT.
  *
  * If the session is in trouble (i.e. transport-level disconnect or
- * timeout), we go to #GNUNET_TRANSPORT_PS_RECONNECT_ATS where we ask ATS for a new
- * address (we don't notify anyone about the disconnect yet).  Once we
- * have a new address, we enter #GNUNET_TRANSPORT_PS_RECONNECT_SENT and send a
- * SYN message.  If we receive a
- * SYN_ACK, we go to #GNUNET_TRANSPORT_PS_CONNECTED and nobody noticed that we had
- * trouble; we also send a ACK at this time just in case.  If
- * the operation times out, we go to #GNUNET_TRANSPORT_PS_DISCONNECT (and notify everyone
- * about the lost connection).
+ * timeout), we go to #GNUNET_TRANSPORT_PS_RECONNECT_ATS where we ask ATS for a
+ * new address (we don't notify anyone about the disconnect yet).  Once we have
+ * a new address, we enter #GNUNET_TRANSPORT_PS_RECONNECT_SENT and send a SYN
+ * message.  If we receive a SYN_ACK, we go to #GNUNET_TRANSPORT_PS_CONNECTED
+ * and nobody noticed that we had trouble; we also send a ACK at this time just
+ * in case.  If the operation times out, we go to
+ * #GNUNET_TRANSPORT_PS_DISCONNECT (and notify everyone about the lost
+ * connection).
  *
  * If ATS decides to switch addresses while we have a normal
  * connection, we go to #GNUNET_TRANSPORT_PS_CONNECTED_SWITCHING_SYN_SENT
@@ -189,13 +191,14 @@ GNUNET_TRANSPORT_address_to_string_cancel (struct GNUNET_TRANSPORT_AddressToStri
  * primary connection to the suggested alternative from ATS, go back
  * to #GNUNET_TRANSPORT_PS_CONNECTED and send a ACK to the other peer just to be
  * sure.  If the operation times out
- * we go to #GNUNET_TRANSPORT_PS_CONNECTED (and notify ATS that the given alternative
- * address is "invalid").
+ * we go to #GNUNET_TRANSPORT_PS_CONNECTED (and notify ATS that the given
+ * alternative address is "invalid").
  *
- * Once a session is in #GNUNET_TRANSPORT_PS_DISCONNECT, it is cleaned up and then goes
- * to (#GNUNET_TRANSPORT_PS_DISCONNECT_FINISHED).  If we receive an explicit disconnect
- * request, we can go from any state to #GNUNET_TRANSPORT_PS_DISCONNECT, possibly after
- * generating disconnect notifications.
+ * Once a session is in #GNUNET_TRANSPORT_PS_DISCONNECT, it is cleaned up and
+ * then goes to (#GNUNET_TRANSPORT_PS_DISCONNECT_FINISHED).  If we receive an
+ * explicit disconnect request, we can go from any state to
+ * #GNUNET_TRANSPORT_PS_DISCONNECT, possibly after generating disconnect
+ * notifications.
  *
  * Note that it is quite possible that while we are in any of these
  * states, we could receive a 'SYN' request from the other peer.
@@ -323,12 +326,12 @@ struct GNUNET_TRANSPORT_PeerMonitoringContext;
  * @param state current state this peer is in
  * @param state_timeout timeout for the current state of the peer
  */
-typedef void
-(*GNUNET_TRANSPORT_PeerIterateCallback) (void *cls,
-                                         const struct GNUNET_PeerIdentity *peer,
-                                         const struct GNUNET_HELLO_Address *address,
-                                         enum GNUNET_TRANSPORT_PeerState state,
-                                         struct GNUNET_TIME_Absolute state_timeout);
+typedef void (*GNUNET_TRANSPORT_PeerIterateCallback) (
+  void *cls,
+  const struct GNUNET_PeerIdentity *peer,
+  const struct GNUNET_HELLO_Address *address,
+  enum GNUNET_TRANSPORT_PeerState state,
+  struct GNUNET_TIME_Absolute state_timeout);
 
 
 /**
@@ -352,17 +355,18 @@ typedef void
  * @param cfg configuration to use
  * @param peer a specific peer identity to obtain information for,
  *      NULL for all peers
- * @param one_shot #GNUNET_YES to return the current state and then end (with NULL+NULL),
- *                 #GNUNET_NO to monitor peers continuously
+ * @param one_shot #GNUNET_YES to return the current state and then end (with
+ * NULL+NULL), #GNUNET_NO to monitor peers continuously
  * @param peer_callback function to call with the results
  * @param peer_callback_cls closure for @a peer_callback
  */
 struct GNUNET_TRANSPORT_PeerMonitoringContext *
-GNUNET_TRANSPORT_monitor_peers (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                                const struct GNUNET_PeerIdentity *peer,
-                                int one_shot,
-                                GNUNET_TRANSPORT_PeerIterateCallback peer_callback,
-                                void *peer_callback_cls);
+GNUNET_TRANSPORT_monitor_peers (
+  const struct GNUNET_CONFIGURATION_Handle *cfg,
+  const struct GNUNET_PeerIdentity *peer,
+  int one_shot,
+  GNUNET_TRANSPORT_PeerIterateCallback peer_callback,
+  void *peer_callback_cls);
 
 
 /**
@@ -371,7 +375,8 @@ GNUNET_TRANSPORT_monitor_peers (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * @param pic handle for the request to cancel
  */
 void
-GNUNET_TRANSPORT_monitor_peers_cancel (struct GNUNET_TRANSPORT_PeerMonitoringContext *pic);
+GNUNET_TRANSPORT_monitor_peers_cancel (
+  struct GNUNET_TRANSPORT_PeerMonitoringContext *pic);
 
 
 /* *********************** Blacklisting ************************ */
@@ -389,9 +394,9 @@ struct GNUNET_TRANSPORT_Blacklist;
  * @param pid peer to approve or disapproave
  * @return #GNUNET_OK if the connection is allowed, #GNUNET_SYSERR if not
  */
-typedef int
-(*GNUNET_TRANSPORT_BlacklistCallback) (void *cls,
-                                       const struct GNUNET_PeerIdentity *pid);
+typedef int (*GNUNET_TRANSPORT_BlacklistCallback) (
+  void *cls,
+  const struct GNUNET_PeerIdentity *pid);
 
 
 /**
@@ -539,11 +544,11 @@ struct GNUNET_TRANSPORT_SessionInfo
  *        NULL with @a session being non-NULL if the monitor
  *        was being cancelled while sessions were active
  */
-typedef void
-(*GNUNET_TRANSPORT_SessionMonitorCallback) (void *cls,
-                                            struct GNUNET_TRANSPORT_PluginSession *session,
-                                            void **session_ctx,
-                                            const struct GNUNET_TRANSPORT_SessionInfo *info);
+typedef void (*GNUNET_TRANSPORT_SessionMonitorCallback) (
+  void *cls,
+  struct GNUNET_TRANSPORT_PluginSession *session,
+  void **session_ctx,
+  const struct GNUNET_TRANSPORT_SessionInfo *info);
 
 
 /**
@@ -569,11 +574,122 @@ GNUNET_TRANSPORT_monitor_plugins (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * @param pm handle of the request that is to be cancelled
  */
 void
-GNUNET_TRANSPORT_monitor_plugins_cancel (struct GNUNET_TRANSPORT_PluginMonitor *pm);
+GNUNET_TRANSPORT_monitor_plugins_cancel (
+  struct GNUNET_TRANSPORT_PluginMonitor *pm);
 
 
+/**
+ * Opaque handle to the service.
+ */
+struct GNUNET_TRANSPORT_CoreHandle;
 
-#if 0                           /* keep Emacsens' auto-indent happy */
+
+/**
+ * Function called to notify transport users that another
+ * peer connected to us.
+ *
+ * @param cls closure
+ * @param peer the identity of the peer that connected; this
+ *        pointer will remain valid until the disconnect, hence
+ *        applications do not necessarily have to make a copy
+ *        of the value if they only need it until disconnect
+ * @param mq message queue to use to transmit to @a peer
+ * @return closure to use in MQ handlers
+ */
+typedef void *(*GNUNET_TRANSPORT_NotifyConnect) (
+  void *cls,
+  const struct GNUNET_PeerIdentity *peer,
+  struct GNUNET_MQ_Handle *mq);
+
+
+/**
+ * Function called to notify transport users that another peer
+ * disconnected from us.  The message queue that was given to the
+ * connect notification will be destroyed and must not be used
+ * henceforth.
+ *
+ * @param cls closure from #GNUNET_TRANSPORT_core_connect
+ * @param peer the peer that disconnected
+ * @param handlers_cls closure of the handlers, was returned from the
+ *                    connect notification callback
+ */
+typedef void (*GNUNET_TRANSPORT_NotifyDisconnect) (
+  void *cls,
+  const struct GNUNET_PeerIdentity *peer,
+  void *handler_cls);
+
+
+/**
+ * Function called if we have "excess" bandwidth to a peer.
+ * The notification will happen the first time we have excess
+ * bandwidth, and then only again after the client has performed
+ * some transmission to the peer.
+ *
+ * Excess bandwidth is defined as being allowed (by ATS) to send
+ * more data, and us reaching the limit of the capacity build-up
+ * (which, if we go past it, means we don't use available bandwidth).
+ * See also the "max carry" in `struct GNUNET_BANDWIDTH_Tracker`.
+ *
+ * @param cls the closure
+ * @param neighbour peer that we have excess bandwidth to
+ * @param handlers_cls closure of the handlers, was returned from the
+ *                    connect notification callback
+ */
+typedef void (*GNUNET_TRANSPORT_NotifyExcessBandwidth) (
+  void *cls,
+  const struct GNUNET_PeerIdentity *neighbour,
+  void *handlers_cls);
+
+
+/**
+ * Connect to the transport service.  Note that the connection may
+ * complete (or fail) asynchronously.
+ *
+ * @param cfg configuration to use
+ * @param self our own identity (API should check that it matches
+ *             the identity found by transport), or NULL (no check)
+ * @param handlers array of message handlers; note that the
+ *                 closures provided will be ignored and replaced
+ *                 with the respective return value from @a nc
+ * @param handlers array with handlers to call when we receive messages, or NULL
+ * @param cls closure for the @a nc, @a nd and @a neb callbacks
+ * @param nc function to call on connect events, or NULL
+ * @param nd function to call on disconnect events, or NULL
+ * @param neb function to call if we have excess bandwidth to a peer, or NULL
+ * @return NULL on error
+ */
+struct GNUNET_TRANSPORT_CoreHandle *
+GNUNET_TRANSPORT_core_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
+                               const struct GNUNET_PeerIdentity *self,
+                               const struct GNUNET_MQ_MessageHandler *handlers,
+                               void *cls,
+                               GNUNET_TRANSPORT_NotifyConnect nc,
+                               GNUNET_TRANSPORT_NotifyDisconnect nd,
+                               GNUNET_TRANSPORT_NotifyExcessBandwidth neb);
+
+
+/**
+ * Disconnect from the transport service.
+ *
+ * @param handle handle returned from connect
+ */
+void
+GNUNET_TRANSPORT_core_disconnect (struct GNUNET_TRANSPORT_CoreHandle *handle);
+
+
+/**
+ * Checks if a given peer is connected to us and get the message queue.
+ *
+ * @param handle connection to transport service
+ * @param peer the peer to check
+ * @return NULL if disconnected, otherwise message queue for @a peer
+ */
+struct GNUNET_MQ_Handle *
+GNUNET_TRANSPORT_core_get_mq (struct GNUNET_TRANSPORT_CoreHandle *handle,
+                              const struct GNUNET_PeerIdentity *peer);
+
+
+#if 0 /* keep Emacsens' auto-indent happy */
 {
 #endif
 #ifdef __cplusplus
@@ -583,6 +699,6 @@ GNUNET_TRANSPORT_monitor_plugins_cancel (struct GNUNET_TRANSPORT_PluginMonitor *
 /* ifndef GNUNET_TRANSPORT_SERVICE_H */
 #endif
 
-/** @} */  /* end of group */
+/** @} */ /* end of group */
 
 /* end of gnunet_transport_service.h */

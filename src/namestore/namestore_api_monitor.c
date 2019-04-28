@@ -88,7 +88,6 @@ struct GNUNET_NAMESTORE_ZoneMonitor
    * Do we first iterate over all existing records?
    */
   int iterate_first;
-
 };
 
 
@@ -108,8 +107,7 @@ reconnect (struct GNUNET_NAMESTORE_ZoneMonitor *zm);
  * @param msg the sync message
  */
 static void
-handle_sync (void *cls,
-             const struct GNUNET_MessageHeader *msg)
+handle_sync (void *cls, const struct GNUNET_MessageHeader *msg)
 {
   struct GNUNET_NAMESTORE_ZoneMonitor *zm = cls;
 
@@ -128,10 +126,8 @@ handle_sync (void *cls,
  * @param lrm the message from the service.
  */
 static int
-check_result (void *cls,
-              const struct RecordResultMessage *lrm)
+check_result (void *cls, const struct RecordResultMessage *lrm)
 {
-  static struct GNUNET_CRYPTO_EcdsaPrivateKey zero;
   struct GNUNET_NAMESTORE_ZoneMonitor *zm = cls;
   size_t lrm_len;
   size_t exp_lrm_len;
@@ -142,9 +138,8 @@ check_result (void *cls,
   const char *rd_ser_tmp;
 
   (void) cls;
-  if ( (0 != GNUNET_memcmp (&lrm->private_key,
-		     &zm->zone)) &&
-       (0 != GNUNET_is_zero (&zm->zone)) )
+  if ((0 != GNUNET_memcmp (&lrm->private_key, &zm->zone)) &&
+      (0 != GNUNET_is_zero (&zm->zone)))
   {
     GNUNET_break (0);
     return GNUNET_SYSERR;
@@ -170,7 +165,7 @@ check_result (void *cls,
     return GNUNET_SYSERR;
   }
   name_tmp = (const char *) &lrm[1];
-  if (name_tmp[name_len -1] != '\0')
+  if (name_tmp[name_len - 1] != '\0')
   {
     GNUNET_break (0);
     return GNUNET_SYSERR;
@@ -180,10 +175,7 @@ check_result (void *cls,
     struct GNUNET_GNSRECORD_Data rd[rd_count];
 
     if (GNUNET_OK !=
-        GNUNET_GNSRECORD_records_deserialize (rd_len,
-                                              rd_ser_tmp,
-                                              rd_count,
-                                              rd))
+        GNUNET_GNSRECORD_records_deserialize (rd_len, rd_ser_tmp, rd_count, rd))
     {
       GNUNET_break (0);
       return GNUNET_SYSERR;
@@ -201,8 +193,7 @@ check_result (void *cls,
  * @param lrm the message from the service.
  */
 static void
-handle_result (void *cls,
-               const struct RecordResultMessage *lrm)
+handle_result (void *cls, const struct RecordResultMessage *lrm)
 {
   struct GNUNET_NAMESTORE_ZoneMonitor *zm = cls;
   size_t name_len;
@@ -219,16 +210,10 @@ handle_result (void *cls,
   {
     struct GNUNET_GNSRECORD_Data rd[rd_count];
 
-    GNUNET_assert (GNUNET_OK ==
-                   GNUNET_GNSRECORD_records_deserialize (rd_len,
-                                                         rd_ser_tmp,
-                                                         rd_count,
-                                                         rd));
-    zm->monitor (zm->monitor_cls,
-		 &lrm->private_key,
-		 name_tmp,
-		 rd_count,
-                 rd);
+    GNUNET_assert (
+      GNUNET_OK ==
+      GNUNET_GNSRECORD_records_deserialize (rd_len, rd_ser_tmp, rd_count, rd));
+    zm->monitor (zm->monitor_cls, &lrm->private_key, name_tmp, rd_count, rd);
   }
 }
 
@@ -242,8 +227,7 @@ handle_result (void *cls,
  * @param error error code
  */
 static void
-mq_error_handler (void *cls,
-                  enum GNUNET_MQ_Error error)
+mq_error_handler (void *cls, enum GNUNET_MQ_Error error)
 {
   struct GNUNET_NAMESTORE_ZoneMonitor *zm = cls;
 
@@ -260,17 +244,16 @@ mq_error_handler (void *cls,
 static void
 reconnect (struct GNUNET_NAMESTORE_ZoneMonitor *zm)
 {
-  struct GNUNET_MQ_MessageHandler handlers[] = {
-    GNUNET_MQ_hd_fixed_size (sync,
-                             GNUNET_MESSAGE_TYPE_NAMESTORE_MONITOR_SYNC,
-                             struct GNUNET_MessageHeader,
-                             zm),
-    GNUNET_MQ_hd_var_size (result,
-                           GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_RESULT,
-                           struct RecordResultMessage,
-                           zm),
-    GNUNET_MQ_handler_end ()
-  };
+  struct GNUNET_MQ_MessageHandler handlers[] =
+    {GNUNET_MQ_hd_fixed_size (sync,
+                              GNUNET_MESSAGE_TYPE_NAMESTORE_MONITOR_SYNC,
+                              struct GNUNET_MessageHeader,
+                              zm),
+     GNUNET_MQ_hd_var_size (result,
+                            GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_RESULT,
+                            struct RecordResultMessage,
+                            zm),
+     GNUNET_MQ_handler_end ()};
   struct GNUNET_MQ_Envelope *env;
   struct ZoneMonitorStartMessage *sm;
 
@@ -286,12 +269,10 @@ reconnect (struct GNUNET_NAMESTORE_ZoneMonitor *zm)
                                   zm);
   if (NULL == zm->mq)
     return;
-  env = GNUNET_MQ_msg (sm,
-                       GNUNET_MESSAGE_TYPE_NAMESTORE_MONITOR_START);
+  env = GNUNET_MQ_msg (sm, GNUNET_MESSAGE_TYPE_NAMESTORE_MONITOR_START);
   sm->iterate_first = htonl (zm->iterate_first);
   sm->zone = zm->zone;
-  GNUNET_MQ_send (zm->mq,
-                  env);
+  GNUNET_MQ_send (zm->mq, env);
 }
 
 
@@ -304,7 +285,8 @@ reconnect (struct GNUNET_NAMESTORE_ZoneMonitor *zm)
  * @param cfg configuration to use to connect to namestore
  * @param zone zone to monitor
  * @param iterate_first #GNUNET_YES to first iterate over all existing records,
- *                      #GNUNET_NO to only return changes that happen from now on
+ *                      #GNUNET_NO to only return changes that happen from now
+ * on
  * @param error_cb function to call on error (i.e. disconnect); note that
  *         unlike the other error callbacks in this API, a call to this
  *         function does NOT destroy the monitor handle, it merely signals
@@ -318,15 +300,16 @@ reconnect (struct GNUNET_NAMESTORE_ZoneMonitor *zm)
  * @return handle to stop monitoring
  */
 struct GNUNET_NAMESTORE_ZoneMonitor *
-GNUNET_NAMESTORE_zone_monitor_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
-				     const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone,
-                                     int iterate_first,
-                                     GNUNET_SCHEDULER_TaskCallback error_cb,
-                                     void *error_cb_cls,
-				     GNUNET_NAMESTORE_RecordMonitor monitor,
-                                     void *monitor_cls,
-				     GNUNET_SCHEDULER_TaskCallback sync_cb,
-				     void *sync_cb_cls)
+GNUNET_NAMESTORE_zone_monitor_start (
+  const struct GNUNET_CONFIGURATION_Handle *cfg,
+  const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone,
+  int iterate_first,
+  GNUNET_SCHEDULER_TaskCallback error_cb,
+  void *error_cb_cls,
+  GNUNET_NAMESTORE_RecordMonitor monitor,
+  void *monitor_cls,
+  GNUNET_SCHEDULER_TaskCallback sync_cb,
+  void *sync_cb_cls)
 {
   struct GNUNET_NAMESTORE_ZoneMonitor *zm;
 
@@ -379,11 +362,9 @@ GNUNET_NAMESTORE_zone_monitor_next (struct GNUNET_NAMESTORE_ZoneMonitor *zm,
   struct GNUNET_MQ_Envelope *env;
   struct ZoneMonitorNextMessage *nm;
 
-  env = GNUNET_MQ_msg (nm,
-                       GNUNET_MESSAGE_TYPE_NAMESTORE_MONITOR_NEXT);
+  env = GNUNET_MQ_msg (nm, GNUNET_MESSAGE_TYPE_NAMESTORE_MONITOR_NEXT);
   nm->limit = GNUNET_htonll (limit);
-  GNUNET_MQ_send (zm->mq,
-                  env);
+  GNUNET_MQ_send (zm->mq, env);
 }
 
 

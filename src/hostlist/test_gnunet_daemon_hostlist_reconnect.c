@@ -11,7 +11,7 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -26,7 +26,7 @@
 #include "platform.h"
 #include "gnunet_util_lib.h"
 #include "gnunet_arm_service.h"
-#include "gnunet_transport_core_service.h"
+#include "gnunet_transport_service.h"
 #include "gnunet_transport_hello_service.h"
 
 /**
@@ -76,11 +76,10 @@ timeout_error (void *cls)
  */
 static void *
 notify_connect (void *cls,
-		const struct GNUNET_PeerIdentity *peer,
-		struct GNUNET_MQ_Handle *mq)
+                const struct GNUNET_PeerIdentity *peer,
+                struct GNUNET_MQ_Handle *mq)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Peers connected, shutting down.\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peers connected, shutting down.\n");
   ok = 0;
   GNUNET_SCHEDULER_shutdown ();
   return NULL;
@@ -88,8 +87,7 @@ notify_connect (void *cls,
 
 
 static void
-process_hello (void *cls,
-	       const struct GNUNET_MessageHeader *message)
+process_hello (void *cls, const struct GNUNET_MessageHeader *message)
 {
   struct PeerContext *p = cls;
 
@@ -101,39 +99,35 @@ process_hello (void *cls,
 
 
 static void
-setup_peer (struct PeerContext *p,
-	    const char *cfgname)
+setup_peer (struct PeerContext *p, const char *cfgname)
 {
   char *binary;
 
   binary = GNUNET_OS_get_libexec_binary_path ("gnunet-service-arm");
   p->cfg = GNUNET_CONFIGURATION_create ();
-  p->arm_proc =
-    GNUNET_OS_start_process (GNUNET_YES,
-			     GNUNET_OS_INHERIT_STD_OUT_AND_ERR,
-                             NULL,
-			     NULL,
-			     NULL,
-                             binary,
-                             "gnunet-service-arm",
-                             "-c",
-			     cfgname,
-			     NULL);
-  GNUNET_assert (GNUNET_OK ==
-		 GNUNET_CONFIGURATION_load (p->cfg,
-					    cfgname));
+  p->arm_proc = GNUNET_OS_start_process (GNUNET_YES,
+                                         GNUNET_OS_INHERIT_STD_OUT_AND_ERR,
+                                         NULL,
+                                         NULL,
+                                         NULL,
+                                         binary,
+                                         "gnunet-service-arm",
+                                         "-c",
+                                         cfgname,
+                                         NULL);
+  GNUNET_assert (GNUNET_OK == GNUNET_CONFIGURATION_load (p->cfg, cfgname));
   p->th = GNUNET_TRANSPORT_core_connect (p->cfg,
-					 NULL,
-					 NULL,
-					 p,
-					 &notify_connect,
-					 NULL,
-					 NULL);
+                                         NULL,
+                                         NULL,
+                                         p,
+                                         &notify_connect,
+                                         NULL,
+                                         NULL);
   GNUNET_assert (NULL != p->th);
   p->ghh = GNUNET_TRANSPORT_hello_get (p->cfg,
-				       GNUNET_TRANSPORT_AC_ANY,
-				       &process_hello,
-				       p);
+                                       GNUNET_TRANSPORT_AC_ANY,
+                                       &process_hello,
+                                       p);
   GNUNET_free (binary);
 }
 
@@ -143,18 +137,13 @@ waitpid_task (void *cls)
 {
   struct PeerContext *p = cls;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Killing ARM process.\n");
+  if (0 != GNUNET_OS_process_kill (p->arm_proc, GNUNET_TERM_SIG))
+    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
+  if (GNUNET_OK != GNUNET_OS_process_wait (p->arm_proc))
+    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "waitpid");
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Killing ARM process.\n");
-  if (0 != GNUNET_OS_process_kill (p->arm_proc,
-				   GNUNET_TERM_SIG))
-    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING,
-			 "kill");
-  if (GNUNET_OK !=
-      GNUNET_OS_process_wait (p->arm_proc))
-    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING,
-			 "waitpid");
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "ARM process %u stopped\n",
+              "ARM process %u stopped\n",
               GNUNET_OS_process_get_pid (p->arm_proc));
   GNUNET_OS_process_destroy (p->arm_proc);
   p->arm_proc = NULL;
@@ -165,11 +154,8 @@ waitpid_task (void *cls)
 static void
 stop_arm (struct PeerContext *p)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Asking ARM to stop core service\n");
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
-				&waitpid_task,
-				p);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Asking ARM to stop core service\n");
+  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &waitpid_task, p);
 }
 
 
@@ -217,30 +203,22 @@ run (void *cls,
 {
   GNUNET_assert (ok == 1);
   ok++;
-  timeout_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT,
-					       &timeout_error,
-					       NULL);
-  GNUNET_SCHEDULER_add_shutdown (&shutdown_task,
-                                 NULL);
-  setup_peer (&p1,
-	      "test_gnunet_daemon_hostlist_peer1.conf");
-  setup_peer (&p2,
-	      "test_gnunet_daemon_hostlist_peer2.conf");
+  timeout_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT, &timeout_error, NULL);
+  GNUNET_SCHEDULER_add_shutdown (&shutdown_task, NULL);
+  setup_peer (&p1, "test_gnunet_daemon_hostlist_peer1.conf");
+  setup_peer (&p2, "test_gnunet_daemon_hostlist_peer2.conf");
 }
 
 
 int
-main (int argcx,
-      char *argvx[])
+main (int argcx, char *argvx[])
 {
-  static char *const argv[] = {
-    "test-gnunet-daemon-hostlist",
-    "-c", "test_gnunet_daemon_hostlist_data.conf",
-    NULL
-  };
+  static char *const argv[] = {"test-gnunet-daemon-hostlist",
+                               "-c",
+                               "test_gnunet_daemon_hostlist_data.conf",
+                               NULL};
   static struct GNUNET_GETOPT_CommandLineOption options[] = {
-    GNUNET_GETOPT_OPTION_END
-  };
+    GNUNET_GETOPT_OPTION_END};
 
   GNUNET_DISK_purge_cfg_dir ("test_gnunet_daemon_hostlist_peer1.conf",
                              "GNUNET_TEST_HOME");
@@ -248,32 +226,28 @@ main (int argcx,
                              "GNUNET_TEST_HOME");
   GNUNET_DISK_purge_cfg_dir ("test_gnunet_daemon_hostlist_data.conf",
                              "GNUNET_TEST_HOME");
-  GNUNET_log_setup ("test-gnunet-daemon-hostlist",
-                    "WARNING",
-                    NULL);
+  GNUNET_log_setup ("test-gnunet-daemon-hostlist", "WARNING", NULL);
   ok = 1;
   GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1,
-		      argv,
+                      argv,
                       "test-gnunet-daemon-hostlist",
-		      "nohelp",
-		      options,
-		      &run,
+                      "nohelp",
+                      options,
+                      &run,
                       &ok);
   if (0 == ok)
   {
-    FPRINTF (stderr, "%s",  ".");
+    FPRINTF (stderr, "%s", ".");
     /* now do it again */
     ok = 1;
     GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1,
-			argv,
-			"test-gnunet-daemon-hostlist",
-			"nohelp",
-			options,
-			&run,
-			&ok);
-    FPRINTF (stderr,
-	     "%s",
-	     ".\n");
+                        argv,
+                        "test-gnunet-daemon-hostlist",
+                        "nohelp",
+                        options,
+                        &run,
+                        &ok);
+    FPRINTF (stderr, "%s", ".\n");
   }
   GNUNET_DISK_purge_cfg_dir ("test_gnunet_daemon_hostlist_peer1.conf",
                              "GNUNET_TEST_HOME");

@@ -11,7 +11,7 @@
   WITHOUT ANY WARRANTY; without even the implied warranty of
   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
   Affero General Public License for more details.
- 
+
   You should have received a copy of the GNU Affero General Public License
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -25,7 +25,7 @@
  */
 #include "gnunet_ats_service.h"
 #include "gnunet_core_service.h"
-#include "gnunet_transport_core_service.h"
+#include "gnunet_transport_service.h"
 
 /**
  * The request handle for obtaining a pooled connection
@@ -87,13 +87,13 @@ GST_connection_pool_destroy (void);
  *          cases, its value being NULL means that CORE connection has failed.
  * @param cfg configuration of the peer
  */
-typedef void
-(*GST_connection_pool_connection_ready_cb) (void *cls,
-                                            struct GNUNET_CORE_Handle *ch,
-                                            struct GNUNET_TRANSPORT_CoreHandle *th,
-                                            struct GNUNET_ATS_ConnectivityHandle *ac,
-                                            const struct GNUNET_PeerIdentity *peer_id,
-                                            const struct GNUNET_CONFIGURATION_Handle *cfg);
+typedef void (*GST_connection_pool_connection_ready_cb) (
+  void *cls,
+  struct GNUNET_CORE_Handle *ch,
+  struct GNUNET_TRANSPORT_CoreHandle *th,
+  struct GNUNET_ATS_ConnectivityHandle *ac,
+  const struct GNUNET_PeerIdentity *peer_id,
+  const struct GNUNET_CONFIGURATION_Handle *cfg);
 
 
 /**
@@ -104,9 +104,9 @@ typedef void
  *   callback
  * @param target the peer identity of the target peer
  */
-typedef void
-(*GST_connection_pool_peer_connect_notify) (void *cls,
-                                            const struct GNUNET_PeerIdentity *target);
+typedef void (*GST_connection_pool_peer_connect_notify) (
+  void *cls,
+  const struct GNUNET_PeerIdentity *target);
 
 
 /**
@@ -121,9 +121,9 @@ typedef void
  * @note @a connect_notify_cb will not be called if @a target is
  * already connected @a service level. Use
  * GNUNET_TRANSPORT_check_peer_connected() or a similar function from the
- * respective @a service's API to check if the target peer is already connected or
- * not. @a connect_notify_cb will be called only once or never (in case @a target
- * cannot be connected or is already connected).
+ * respective @a service's API to check if the target peer is already connected
+ * or not. @a connect_notify_cb will be called only once or never (in case @a
+ * target cannot be connected or is already connected).
  *
  * @param peer_id the index of the peer
  * @param cfg the configuration with which the transport handle has to be
@@ -132,7 +132,8 @@ typedef void
  * @param cb the callback to notify when the transport handle is available
  * @param cb_cls the closure for @a cb
  * @param target the peer identify of the peer whose connection to our TRANSPORT
- *          subsystem will be notified through the @a connect_notify_cb. Can be NULL
+ *          subsystem will be notified through the @a connect_notify_cb. Can be
+ * NULL
  * @param connect_notify_cb the callback to call when the @a target peer is
  *          connected. This callback will only be called once or never again (in
  *          case the target peer cannot be connected). Can be NULL
@@ -141,14 +142,15 @@ typedef void
  *           longer being used
  */
 struct GST_ConnectionPool_GetHandle *
-GST_connection_pool_get_handle (unsigned int peer_id,
-                                const struct GNUNET_CONFIGURATION_Handle *cfg,
-                                enum GST_ConnectionPool_Service service,
-                                GST_connection_pool_connection_ready_cb cb,
-                                void *cb_cls,
-                                const struct GNUNET_PeerIdentity *target,
-                                GST_connection_pool_peer_connect_notify connect_notify_cb,
-                                void *connect_notify_cb_cls);
+GST_connection_pool_get_handle (
+  unsigned int peer_id,
+  const struct GNUNET_CONFIGURATION_Handle *cfg,
+  enum GST_ConnectionPool_Service service,
+  GST_connection_pool_connection_ready_cb cb,
+  void *cb_cls,
+  const struct GNUNET_PeerIdentity *target,
+  GST_connection_pool_peer_connect_notify connect_notify_cb,
+  void *connect_notify_cb_cls);
 
 
 /**
@@ -157,9 +159,9 @@ GST_connection_pool_get_handle (unsigned int peer_id,
  * #GST_ConnectionPool_GetHandle objects, it is left in the connection pool.  If
  * no other objects are using the connection and the connection pool is not full
  * then it is placed in a LRU queue.  If the connection pool is full, then
- * connections from the LRU queue are evicted and closed to create place for this
- * connection.  If the connection pool if full and the LRU queue is empty, then
- * the connection is closed.
+ * connections from the LRU queue are evicted and closed to create place for
+ * this connection.  If the connection pool if full and the LRU queue is empty,
+ * then the connection is closed.
  *
  * @param gh the handle
  */

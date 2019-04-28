@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     Copyright (C) 2009-2016 GNUnet e.V.
+     Copyright (C) 2009-2019 GNUnet e.V.
 
      GNUnet is free software: you can redistribute it and/or modify it
      under the terms of the GNU Affero General Public License as published
@@ -11,7 +11,7 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -21,7 +21,7 @@
  * @author Christian Grothoff
  *
  * @file
- * API of the transport service towards the CORE service.
+ * API of the transport service towards the CORE service (TNG version)
  *
  * @defgroup transport TRANSPORT service
  * Communication with other peers
@@ -34,9 +34,8 @@
 #define GNUNET_TRANSPORT_CORE_SERVICE_H
 
 #ifdef __cplusplus
-extern "C"
-{
-#if 0                           /* keep Emacsens' auto-indent happy */
+extern "C" {
+#if 0 /* keep Emacsens' auto-indent happy */
 }
 #endif
 #endif
@@ -62,15 +61,15 @@ struct GNUNET_TRANSPORT_CoreHandle;
  * @param cls closure
  * @param peer the identity of the peer that connected; this
  *        pointer will remain valid until the disconnect, hence
- *        applications do not necessarily have to make a copy 
+ *        applications do not necessarily have to make a copy
  *        of the value if they only need it until disconnect
  * @param mq message queue to use to transmit to @a peer
  * @return closure to use in MQ handlers
  */
-typedef void *
-(*GNUNET_TRANSPORT_NotifyConnect) (void *cls,
-                                   const struct GNUNET_PeerIdentity *peer,
-                                   struct GNUNET_MQ_Handle *mq);
+typedef void *(*GNUNET_TRANSPORT_NotifyConnect) (
+  void *cls,
+  const struct GNUNET_PeerIdentity *peer,
+  struct GNUNET_MQ_Handle *mq);
 
 
 /**
@@ -84,33 +83,10 @@ typedef void *
  * @param handlers_cls closure of the handlers, was returned from the
  *                    connect notification callback
  */
-typedef void
-(*GNUNET_TRANSPORT_NotifyDisconnect) (void *cls,
-                                      const struct GNUNET_PeerIdentity *peer,
-                                      void *handler_cls);
-
-
-/**
- * Function called if we have "excess" bandwidth to a peer.
- * The notification will happen the first time we have excess
- * bandwidth, and then only again after the client has performed
- * some transmission to the peer.
- *
- * Excess bandwidth is defined as being allowed (by ATS) to send
- * more data, and us reaching the limit of the capacity build-up
- * (which, if we go past it, means we don't use available bandwidth).
- * See also the "max carry" in `struct GNUNET_BANDWIDTH_Tracker`.
- *
- * @param cls the closure
- * @param neighbour peer that we have excess bandwidth to
- * @param handlers_cls closure of the handlers, was returned from the
- *                    connect notification callback
- */
-typedef void
-(*GNUNET_TRANSPORT_NotifyExcessBandwidth)(void *cls,
-                                          const struct GNUNET_PeerIdentity *neighbour,
-                                          void *handlers_cls);
-
+typedef void (*GNUNET_TRANSPORT_NotifyDisconnect) (
+  void *cls,
+  const struct GNUNET_PeerIdentity *peer,
+  void *handler_cls);
 
 
 /**
@@ -136,8 +112,7 @@ GNUNET_TRANSPORT_core_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
                                const struct GNUNET_MQ_MessageHandler *handlers,
                                void *cls,
                                GNUNET_TRANSPORT_NotifyConnect nc,
-                               GNUNET_TRANSPORT_NotifyDisconnect nd,
-                               GNUNET_TRANSPORT_NotifyExcessBandwidth neb);
+                               GNUNET_TRANSPORT_NotifyDisconnect nd);
 
 
 /**
@@ -150,7 +125,33 @@ GNUNET_TRANSPORT_core_disconnect (struct GNUNET_TRANSPORT_CoreHandle *handle);
 
 
 /**
+ * Notification from the CORE service to the TRANSPORT service
+ * that the CORE service has finished processing a message from
+ * TRANSPORT (via the @code{handlers} of #GNUNET_TRANSPORT_core_connect())
+ * and that it is thus now OK for TRANSPORT to send more messages
+ * for @a pid.
+ *
+ * Used to provide flow control, this is our equivalent to
+ * #GNUNET_SERVICE_client_continue() of an ordinary service.
+ *
+ * Note that due to the use of a window, TRANSPORT may send multiple
+ * messages destined for the same peer even without an intermediate
+ * call to this function. However, CORE must still call this function
+ * once per message received, as otherwise eventually the window will
+ * be full and TRANSPORT will stop providing messages to CORE for @a
+ * pid.
+ *
+ * @param ch core handle
+ * @param pid which peer was the message from that was fully processed by CORE
+ */
+void
+GNUNET_TRANSPORT_core_receive_continue (struct GNUNET_TRANSPORT_CoreHandle *ch,
+                                        const struct GNUNET_PeerIdentity *pid);
+
+
+/**
  * Checks if a given peer is connected to us and get the message queue.
+ * Convenience function.
  *
  * @param handle connection to transport service
  * @param peer the peer to check
@@ -161,7 +162,7 @@ GNUNET_TRANSPORT_core_get_mq (struct GNUNET_TRANSPORT_CoreHandle *handle,
                               const struct GNUNET_PeerIdentity *peer);
 
 
-#if 0                           /* keep Emacsens' auto-indent happy */
+#if 0 /* keep Emacsens' auto-indent happy */
 {
 #endif
 #ifdef __cplusplus
@@ -171,6 +172,6 @@ GNUNET_TRANSPORT_core_get_mq (struct GNUNET_TRANSPORT_CoreHandle *handle,
 /* ifndef GNUNET_TRANSPORT_CORE_SERVICE_H */
 #endif
 
-/** @} */  /* end of group */
+/** @} */ /* end of group */
 
 /* end of gnunet_transport_core_service.h */
