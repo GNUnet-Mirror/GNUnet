@@ -24,7 +24,6 @@
  *
  * TODO:
  * Implement next:
- * - dv hop-by-hop signature verification (at least at initiator)
  * - change transport-core API to provide proper flow control in both
  *   directions, allow multiple messages per peer simultaneously (tag
  *   confirmations with unique message ID), and replace quota-out with
@@ -6421,9 +6420,28 @@ handle_dv_learn (void *cls, const struct TransportDVLearnMessage *dvl)
                                 n);
     }
   }
-  // FIXME: asynchronously (!) verify hop-by-hop signatures!
-  // => if signature verification load too high, implement random drop
-  // strategy!?
+  /* OPTIMIZE-FIXME: asynchronously (!) verify signatures!,
+     If signature verification load too high, implement random drop strategy */
+  for (unsigned int i = 0; i < nhops; i++)
+  {
+    struct DvHopPS dhp = {.purpose.purpose =
+                            htonl (GNUNET_SIGNATURE_PURPOSE_TRANSPORT_DV_HOP),
+                          .purpose.size = htonl (sizeof (dhp)),
+                          .pred = (0 == i) ? dvl->initiator : hops[i - 1].hop,
+                          .succ = (nhops - 1 == i) ? GST_my_identity
+                                                   : hops[i + 1].hop,
+                          .challenge = dvl->challenge};
+
+    if (GNUNET_OK !=
+        GNUNET_CRYPTO_eddsa_verify (GNUNET_SIGNATURE_PURPOSE_TRANSPORT_DV_HOP,
+                                    &dhp.purpose,
+                                    &hops[i].hop_sig,
+                                    &hops[i].hop.public_key))
+    {
+      GNUNET_break_op (0);
+      return;
+    }
+  }
 
   do_fwd = GNUNET_YES;
   if (0 == GNUNET_memcmp (&GST_my_identity, &dvl->initiator))
