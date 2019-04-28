@@ -249,7 +249,8 @@ No serious problems are known in:
 
 
 We reserve judgement (due to lack of data) on:
-* identity-provider
+* reclaim
+* credential
+* abe
 * rest
- 
 
