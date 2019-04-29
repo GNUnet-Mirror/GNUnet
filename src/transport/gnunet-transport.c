@@ -29,12 +29,12 @@
 #include "gnunet_resolver_service.h"
 #include "gnunet_protocols.h"
 #include "gnunet_transport_service.h"
-#include "gnunet_transport_core_service.h"
 
 /**
  * Timeout for a name resolution
  */
-#define RESOLUTION_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 30)
+#define RESOLUTION_TIMEOUT \
+  GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 30)
 
 /**
  * Timeout for an operation
@@ -332,16 +332,13 @@ static struct PeerResolutionContext *rc_tail;
  * @return #GNUNET_OK (continue to iterate)
  */
 static int
-destroy_it (void *cls,
-            const struct GNUNET_PeerIdentity *key,
-            void *value)
+destroy_it (void *cls, const struct GNUNET_PeerIdentity *key, void *value)
 {
   struct MonitoredPeer *m = value;
 
-  GNUNET_assert (GNUNET_OK ==
-                 GNUNET_CONTAINER_multipeermap_remove (monitored_peers,
-                                                       key,
-                                                       value));
+  GNUNET_assert (
+    GNUNET_OK ==
+    GNUNET_CONTAINER_multipeermap_remove (monitored_peers, key, value));
   GNUNET_free_non_null (m->address);
   GNUNET_free (value);
   return GNUNET_OK;
@@ -384,18 +381,14 @@ shutdown_task (void *cls)
     next = cur->next;
 
     GNUNET_TRANSPORT_address_to_string_cancel (cur->asc);
-    GNUNET_CONTAINER_DLL_remove (vc_head,
-				 vc_tail,
-				 cur);
+    GNUNET_CONTAINER_DLL_remove (vc_head, vc_tail, cur);
     GNUNET_free (cur->transport);
     GNUNET_HELLO_address_free (cur->addrcp);
     GNUNET_free (cur);
   }
   while (NULL != (rc = rc_head))
   {
-    GNUNET_CONTAINER_DLL_remove (rc_head,
-				 rc_tail,
-				 rc);
+    GNUNET_CONTAINER_DLL_remove (rc_head, rc_tail, rc);
     GNUNET_TRANSPORT_address_to_string_cancel (rc->asc);
     GNUNET_free (rc->transport);
     GNUNET_free (rc->addrcp);
@@ -410,35 +403,30 @@ shutdown_task (void *cls)
   {
     duration = GNUNET_TIME_absolute_get_duration (start_time);
     FPRINTF (stdout,
-             _("Transmitted %llu bytes/s (%llu bytes in %s)\n"),
+             _ ("Transmitted %llu bytes/s (%llu bytes in %s)\n"),
              1000LL * 1000LL * traffic_sent / (1 + duration.rel_value_us),
              traffic_sent,
-             GNUNET_STRINGS_relative_time_to_string (duration,
-						     GNUNET_YES));
+             GNUNET_STRINGS_relative_time_to_string (duration, GNUNET_YES));
   }
   if (benchmark_receive)
   {
     duration = GNUNET_TIME_absolute_get_duration (start_time);
     FPRINTF (stdout,
-             _("Received %llu bytes/s (%llu bytes in %s)\n"),
+             _ ("Received %llu bytes/s (%llu bytes in %s)\n"),
              1000LL * 1000LL * traffic_received / (1 + duration.rel_value_us),
              traffic_received,
-             GNUNET_STRINGS_relative_time_to_string (duration,
-						     GNUNET_YES));
+             GNUNET_STRINGS_relative_time_to_string (duration, GNUNET_YES));
   }
 
   if (NULL != monitored_peers)
   {
-    GNUNET_CONTAINER_multipeermap_iterate (monitored_peers,
-					   &destroy_it,
-					   NULL);
+    GNUNET_CONTAINER_multipeermap_iterate (monitored_peers, &destroy_it, NULL);
     GNUNET_CONTAINER_multipeermap_destroy (monitored_peers);
     monitored_peers = NULL;
   }
   if (NULL != monitored_plugins)
   {
-    GNUNET_break (0 ==
-                  GNUNET_CONTAINER_multipeermap_size (monitored_plugins));
+    GNUNET_break (0 == GNUNET_CONTAINER_multipeermap_size (monitored_plugins));
     GNUNET_CONTAINER_multipeermap_destroy (monitored_plugins);
     monitored_plugins = NULL;
   }
@@ -463,9 +451,7 @@ operation_timeout (void *cls)
   op_timeout = NULL;
   if ((benchmark_send) || (benchmark_receive))
   {
-    FPRINTF (stdout,
-             _("Failed to connect to `%s'\n"),
-             GNUNET_i2s_full (&pid));
+    FPRINTF (stdout, _ ("Failed to connect to `%s'\n"), GNUNET_i2s_full (&pid));
     GNUNET_SCHEDULER_shutdown ();
     ret = 1;
     return;
@@ -477,21 +463,18 @@ operation_timeout (void *cls)
     {
       next = cur->next;
       FPRINTF (stdout,
-               _("Failed to resolve address for peer `%s'\n"),
+               _ ("Failed to resolve address for peer `%s'\n"),
                GNUNET_i2s (&cur->addrcp->peer));
 
-      GNUNET_CONTAINER_DLL_remove(rc_head,
-				  rc_tail,
-				  cur);
+      GNUNET_CONTAINER_DLL_remove (rc_head, rc_tail, cur);
       GNUNET_TRANSPORT_address_to_string_cancel (cur->asc);
       GNUNET_free (cur->transport);
       GNUNET_free (cur->addrcp);
       GNUNET_free (cur);
-
     }
     FPRINTF (stdout,
              "%s",
-             _("Failed to list connections, timeout occurred\n"));
+             _ ("Failed to list connections, timeout occurred\n"));
     GNUNET_SCHEDULER_shutdown ();
     ret = 1;
     return;
@@ -512,22 +495,15 @@ do_send (void *cls)
   struct GNUNET_MessageHeader *m;
   struct GNUNET_MQ_Envelope *env;
 
-  env = GNUNET_MQ_msg_extra (m,
-			     BLOCKSIZE * 1024,
-			      GNUNET_MESSAGE_TYPE_DUMMY);
-  memset (&m[1],
-	  52,
-	  BLOCKSIZE * 1024 - sizeof(struct GNUNET_MessageHeader));
+  env = GNUNET_MQ_msg_extra (m, BLOCKSIZE * 1024, GNUNET_MESSAGE_TYPE_DUMMY);
+  memset (&m[1], 52, BLOCKSIZE * 1024 - sizeof (struct GNUNET_MessageHeader));
   traffic_sent += BLOCKSIZE * 1024;
-  GNUNET_MQ_notify_sent (env,
-			 &do_send,
-			 mq);
+  GNUNET_MQ_notify_sent (env, &do_send, mq);
   if (verbosity > 0)
     FPRINTF (stdout,
-	     _("Transmitting %u bytes\n"),
-	     (unsigned int) BLOCKSIZE * 1024);
-  GNUNET_MQ_send (mq,
-		  env);
+             _ ("Transmitting %u bytes\n"),
+             (unsigned int) BLOCKSIZE * 1024);
+  GNUNET_MQ_send (mq, env);
 }
 
 
@@ -542,11 +518,9 @@ do_send (void *cls)
 static void *
 notify_connect (void *cls,
                 const struct GNUNET_PeerIdentity *peer,
-		struct GNUNET_MQ_Handle *mq)
+                struct GNUNET_MQ_Handle *mq)
 {
-  if (0 != memcmp (&pid,
-		   peer,
-		   sizeof(struct GNUNET_PeerIdentity)))
+  if (0 != memcmp (&pid, peer, sizeof (struct GNUNET_PeerIdentity)))
     return NULL;
   ret = 0;
   if (! benchmark_send)
@@ -557,10 +531,12 @@ notify_connect (void *cls,
     op_timeout = NULL;
   }
   if (verbosity > 0)
-    FPRINTF (stdout,
-	     _("Successfully connected to `%s', starting to send benchmark data in %u Kb blocks\n"),
-	     GNUNET_i2s (peer),
-	     BLOCKSIZE);
+    FPRINTF (
+      stdout,
+      _ (
+        "Successfully connected to `%s', starting to send benchmark data in %u Kb blocks\n"),
+      GNUNET_i2s (peer),
+      BLOCKSIZE);
   start_time = GNUNET_TIME_absolute_get ();
   do_send (mq);
   return mq;
@@ -578,19 +554,17 @@ notify_connect (void *cls,
 static void
 notify_disconnect (void *cls,
                    const struct GNUNET_PeerIdentity *peer,
-		   void *internal_cls)
+                   void *internal_cls)
 {
-  if (0 != memcmp (&pid,
-		   peer,
-		   sizeof(struct GNUNET_PeerIdentity)))
+  if (0 != memcmp (&pid, peer, sizeof (struct GNUNET_PeerIdentity)))
     return;
   if (NULL == internal_cls)
     return; /* not about target peer */
   if (! benchmark_send)
     return; /* not transmitting */
   FPRINTF (stdout,
-	   _("Disconnected from peer `%s' while benchmarking\n"),
-	   GNUNET_i2s (&pid));
+           _ ("Disconnected from peer `%s' while benchmarking\n"),
+           GNUNET_i2s (&pid));
 }
 
 
@@ -606,16 +580,16 @@ notify_disconnect (void *cls,
 static void *
 monitor_notify_connect (void *cls,
                         const struct GNUNET_PeerIdentity *peer,
-			struct GNUNET_MQ_Handle *mq)
+                        struct GNUNET_MQ_Handle *mq)
 {
   struct GNUNET_TIME_Absolute now = GNUNET_TIME_absolute_get ();
   const char *now_str = GNUNET_STRINGS_absolute_time_to_string (now);
 
   monitor_connect_counter++;
   FPRINTF (stdout,
-           _("%24s: %-17s %4s   (%u connections in total)\n"),
+           _ ("%24s: %-17s %4s   (%u connections in total)\n"),
            now_str,
-           _("Connected to"),
+           _ ("Connected to"),
            GNUNET_i2s (peer),
            monitor_connect_counter);
   return NULL;
@@ -633,18 +607,18 @@ monitor_notify_connect (void *cls,
 static void
 monitor_notify_disconnect (void *cls,
                            const struct GNUNET_PeerIdentity *peer,
-			   void *internal_cls)
+                           void *internal_cls)
 {
   struct GNUNET_TIME_Absolute now = GNUNET_TIME_absolute_get ();
   const char *now_str = GNUNET_STRINGS_absolute_time_to_string (now);
 
-  GNUNET_assert(monitor_connect_counter > 0);
+  GNUNET_assert (monitor_connect_counter > 0);
   monitor_connect_counter--;
 
   FPRINTF (stdout,
-           _("%24s: %-17s %4s   (%u connections in total)\n"),
+           _ ("%24s: %-17s %4s   (%u connections in total)\n"),
            now_str,
-           _("Disconnected from"),
+           _ ("Disconnected from"),
            GNUNET_i2s (peer),
            monitor_connect_counter);
 }
@@ -658,8 +632,7 @@ monitor_notify_disconnect (void *cls,
  * @return #GNUNET_OK
  */
 static int
-check_dummy (void *cls,
-	     const struct GNUNET_MessageHeader *message)
+check_dummy (void *cls, const struct GNUNET_MessageHeader *message)
 {
   return GNUNET_OK; /* all messages are fine */
 }
@@ -672,15 +645,14 @@ check_dummy (void *cls,
  * @param message the message
  */
 static void
-handle_dummy (void *cls,
-	      const struct GNUNET_MessageHeader *message)
+handle_dummy (void *cls, const struct GNUNET_MessageHeader *message)
 {
   if (! benchmark_receive)
     return;
   if (verbosity > 0)
     FPRINTF (stdout,
-	     _("Received %u bytes\n"),
-	     (unsigned int) ntohs (message->size));
+             _ ("Received %u bytes\n"),
+             (unsigned int) ntohs (message->size));
   if (0 == traffic_received)
     start_time = GNUNET_TIME_absolute_get ();
   traffic_received += ntohs (message->size);
@@ -711,24 +683,23 @@ print_info (const struct GNUNET_PeerIdentity *id,
             struct GNUNET_TIME_Absolute state_timeout)
 {
 
-  if ( ((GNUNET_YES == iterate_connections) &&
-	(GNUNET_YES == iterate_all)) ||
-       (GNUNET_YES == monitor_connections))
+  if (((GNUNET_YES == iterate_connections) && (GNUNET_YES == iterate_all)) ||
+      (GNUNET_YES == monitor_connections))
   {
     FPRINTF (stdout,
-             _("Peer `%s': %s %s in state `%s' until %s\n"),
+             _ ("Peer `%s': %s %s in state `%s' until %s\n"),
              GNUNET_i2s (id),
              (NULL == transport) ? "<none>" : transport,
              (NULL == transport) ? "<none>" : addr,
              GNUNET_TRANSPORT_ps2s (state),
              GNUNET_STRINGS_absolute_time_to_string (state_timeout));
   }
-  else if ( (GNUNET_YES == iterate_connections) &&
-	    (GNUNET_TRANSPORT_is_connected(state)) )
+  else if ((GNUNET_YES == iterate_connections) &&
+           (GNUNET_TRANSPORT_is_connected (state)))
   {
     /* Only connected peers, skip state */
     FPRINTF (stdout,
-             _("Peer `%s': %s %s\n"),
+             _ ("Peer `%s': %s %s\n"),
              GNUNET_i2s (id),
              transport,
              addr);
@@ -753,9 +724,7 @@ print_info (const struct GNUNET_PeerIdentity *id,
  *        if #GNUNET_SYSERR: communication error (IPC error)
  */
 static void
-process_peer_string (void *cls,
-                     const char *address,
-                     int res)
+process_peer_string (void *cls, const char *address, int res)
 {
   struct PeerResolutionContext *rc = cls;
 
@@ -763,11 +732,12 @@ process_peer_string (void *cls,
   {
     if (GNUNET_SYSERR == res)
     {
-      FPRINTF (stderr,
-               "Failed to convert address for peer `%s' plugin `%s' length %u to string \n",
-               GNUNET_i2s (&rc->addrcp->peer),
-               rc->addrcp->transport_name,
-               (unsigned int) rc->addrcp->address_length);
+      FPRINTF (
+        stderr,
+        "Failed to convert address for peer `%s' plugin `%s' length %u to string \n",
+        GNUNET_i2s (&rc->addrcp->peer),
+        rc->addrcp->transport_name,
+        (unsigned int) rc->addrcp->address_length);
       print_info (&rc->addrcp->peer,
                   rc->transport,
                   NULL,
@@ -818,9 +788,7 @@ process_peer_string (void *cls,
   }
   GNUNET_free (rc->transport);
   GNUNET_free (rc->addrcp);
-  GNUNET_CONTAINER_DLL_remove (rc_head,
-			       rc_tail,
-			       rc);
+  GNUNET_CONTAINER_DLL_remove (rc_head, rc_tail, rc);
   GNUNET_free (rc);
   if ((0 == address_resolutions) && (iterate_connections))
   {
@@ -854,9 +822,7 @@ resolve_peer_address (const struct GNUNET_HELLO_Address *address,
   struct PeerResolutionContext *rc;
 
   rc = GNUNET_new (struct PeerResolutionContext);
-  GNUNET_CONTAINER_DLL_insert (rc_head,
-			       rc_tail,
-			       rc);
+  GNUNET_CONTAINER_DLL_insert (rc_head, rc_tail, rc);
   address_resolutions++;
   rc->transport = GNUNET_strdup (address->transport_name);
   rc->addrcp = GNUNET_HELLO_address_copy (address);
@@ -869,7 +835,7 @@ resolve_peer_address (const struct GNUNET_HELLO_Address *address,
                                                 numeric,
                                                 RESOLUTION_TIMEOUT,
                                                 &process_peer_string,
-						rc);
+                                                rc);
 }
 
 
@@ -897,15 +863,14 @@ process_peer_iteration_cb (void *cls,
     return;
   }
 
-  if ( (GNUNET_NO == iterate_all) &&
-       (GNUNET_NO == GNUNET_TRANSPORT_is_connected(state)))
-      return; /* Display only connected peers */
+  if ((GNUNET_NO == iterate_all) &&
+      (GNUNET_NO == GNUNET_TRANSPORT_is_connected (state)))
+    return; /* Display only connected peers */
 
   if (NULL != op_timeout)
     GNUNET_SCHEDULER_cancel (op_timeout);
-  op_timeout = GNUNET_SCHEDULER_add_delayed (OP_TIMEOUT,
-                                             &operation_timeout,
-                                             NULL);
+  op_timeout =
+    GNUNET_SCHEDULER_add_delayed (OP_TIMEOUT, &operation_timeout, NULL);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Received address for peer `%s': %s\n",
@@ -913,16 +878,9 @@ process_peer_iteration_cb (void *cls,
               address ? address->transport_name : "");
 
   if (NULL != address)
-    resolve_peer_address (address,
-			  numeric,
-			  state,
-			  state_timeout);
+    resolve_peer_address (address, numeric, state, state_timeout);
   else
-    print_info (peer,
-		NULL,
-		NULL,
-		state,
-		state_timeout);
+    print_info (peer, NULL, NULL, state, state_timeout);
 }
 
 
@@ -958,7 +916,7 @@ struct PluginMonitorAddress
  */
 static void
 print_plugin_event_info (struct PluginMonitorAddress *addr,
-			 const struct GNUNET_TRANSPORT_SessionInfo *info)
+                         const struct GNUNET_TRANSPORT_SessionInfo *info)
 {
   const char *state;
 
@@ -987,20 +945,22 @@ print_plugin_event_info (struct PluginMonitorAddress *addr,
            "%s: state %s timeout in %s @ %s%s\n",
            GNUNET_i2s (&info->address->peer),
            state,
-           GNUNET_STRINGS_relative_time_to_string (GNUNET_TIME_absolute_get_remaining (info->session_timeout),
-						   GNUNET_YES),
-	   addr->str,
+           GNUNET_STRINGS_relative_time_to_string (
+             GNUNET_TIME_absolute_get_remaining (info->session_timeout),
+             GNUNET_YES),
+           addr->str,
            (info->is_inbound == GNUNET_YES) ? " (INBOUND)" : "");
   fprintf (stdout,
            "%s: queue has %3u messages and %6u bytes\n",
            GNUNET_i2s (&info->address->peer),
            info->num_msg_pending,
            info->num_bytes_pending);
-  if (0 != GNUNET_TIME_absolute_get_remaining (info->receive_delay).rel_value_us)
+  if (0 !=
+      GNUNET_TIME_absolute_get_remaining (info->receive_delay).rel_value_us)
     fprintf (stdout,
-	     "%s: receiving blocked until %s\n",
-	     GNUNET_i2s (&info->address->peer),
-	     GNUNET_STRINGS_absolute_time_to_string (info->receive_delay));
+             "%s: receiving blocked until %s\n",
+             GNUNET_i2s (&info->address->peer),
+             GNUNET_STRINGS_absolute_time_to_string (info->receive_delay));
 }
 
 
@@ -1021,9 +981,7 @@ print_plugin_event_info (struct PluginMonitorAddress *addr,
  *        if #GNUNET_SYSERR: communication error (IPC error)
  */
 static void
-address_cb (void *cls,
-            const char *address,
-            int res)
+address_cb (void *cls, const char *address, int res)
 {
   struct PluginMonitorAddress *addr = cls;
 
@@ -1035,8 +993,7 @@ address_cb (void *cls,
   if (NULL != addr->str)
     return;
   addr->str = GNUNET_strdup (address);
-  print_plugin_event_info (addr,
-			   &addr->si);
+  print_plugin_event_info (addr, &addr->si);
 }
 
 
@@ -1065,8 +1022,7 @@ plugin_monitoring_cb (void *cls,
 {
   struct PluginMonitorAddress *addr;
 
-  if ( (NULL == info) &&
-       (NULL == session) )
+  if ((NULL == info) && (NULL == session))
     return; /* in sync with transport service */
   addr = *session_ctx;
   if (NULL == info)
@@ -1084,26 +1040,25 @@ plugin_monitoring_cb (void *cls,
     }
     return; /* shutdown */
   }
-  if (0 != memcmp (&info->address->peer,
-                   &pid,
-                   sizeof (struct GNUNET_PeerIdentity)))
+  if (0 !=
+      memcmp (&info->address->peer, &pid, sizeof (struct GNUNET_PeerIdentity)))
     return; /* filtered */
   if (NULL == addr)
   {
     addr = GNUNET_new (struct PluginMonitorAddress);
-    addr->asc = GNUNET_TRANSPORT_address_to_string (cfg,
-                                                    info->address,
-                                                    numeric,
-                                                    GNUNET_TIME_UNIT_FOREVER_REL,
-                                                    &address_cb,
-                                                    addr);
+    addr->asc =
+      GNUNET_TRANSPORT_address_to_string (cfg,
+                                          info->address,
+                                          numeric,
+                                          GNUNET_TIME_UNIT_FOREVER_REL,
+                                          &address_cb,
+                                          addr);
     *session_ctx = addr;
   }
   if (NULL == addr->str)
     addr->si = *info;
   else
-    print_plugin_event_info (addr,
-			     info);
+    print_plugin_event_info (addr, info);
   if (GNUNET_TRANSPORT_SS_DONE == info->state)
   {
     if (NULL != addr->asc)
@@ -1141,38 +1096,35 @@ process_peer_monitoring_cb (void *cls,
   {
     FPRINTF (stdout,
              "%s",
-             _("Monitor disconnected from transport service. Reconnecting.\n"));
+             _ (
+               "Monitor disconnected from transport service. Reconnecting.\n"));
     return;
   }
 
   if (NULL != op_timeout)
     GNUNET_SCHEDULER_cancel (op_timeout);
-  op_timeout = GNUNET_SCHEDULER_add_delayed (OP_TIMEOUT,
-                                             &operation_timeout,
-                                             NULL);
+  op_timeout =
+    GNUNET_SCHEDULER_add_delayed (OP_TIMEOUT, &operation_timeout, NULL);
 
-  if (NULL == (m = GNUNET_CONTAINER_multipeermap_get (monitored_peers,
-						      peer)))
+  if (NULL == (m = GNUNET_CONTAINER_multipeermap_get (monitored_peers, peer)))
   {
     m = GNUNET_new (struct MonitoredPeer);
-    GNUNET_CONTAINER_multipeermap_put (monitored_peers,
-				       peer,
-				       m,
-				       GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
+    GNUNET_CONTAINER_multipeermap_put (
+      monitored_peers,
+      peer,
+      m,
+      GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
   }
   else
   {
-    if ( (m->state == state) &&
-	 (m->state_timeout.abs_value_us == state_timeout.abs_value_us) &&
-	 (NULL == address) &&
-	 (NULL == m->address) )
+    if ((m->state == state) &&
+        (m->state_timeout.abs_value_us == state_timeout.abs_value_us) &&
+        (NULL == address) && (NULL == m->address))
     {
       return; /* No real change */
     }
-    if ( (m->state == state) &&
-	 (NULL != address) &&
-	 (NULL != m->address) &&
-	 (0 == GNUNET_HELLO_address_cmp(m->address, address)) )
+    if ((m->state == state) && (NULL != address) && (NULL != m->address) &&
+        (0 == GNUNET_HELLO_address_cmp (m->address, address)))
       return; /* No real change */
   }
 
@@ -1187,16 +1139,9 @@ process_peer_monitoring_cb (void *cls,
   m->state_timeout = state_timeout;
 
   if (NULL != address)
-    resolve_peer_address (m->address,
-                          numeric,
-                          m->state,
-                          m->state_timeout);
+    resolve_peer_address (m->address, numeric, m->state, m->state_timeout);
   else
-    print_info (peer,
-                NULL,
-                NULL,
-                m->state,
-                m->state_timeout);
+    print_info (peer, NULL, NULL, m->state, m->state_timeout);
 }
 
 
@@ -1210,12 +1155,9 @@ process_peer_monitoring_cb (void *cls,
  * @return #GNUNET_OK if the connection is allowed, #GNUNET_SYSERR if not
  */
 static int
-blacklist_cb (void *cls,
-              const struct GNUNET_PeerIdentity *cpid)
+blacklist_cb (void *cls, const struct GNUNET_PeerIdentity *cpid)
 {
-  if (0 == memcmp (cpid,
-                   &pid,
-                   sizeof (struct GNUNET_PeerIdentity)))
+  if (0 == memcmp (cpid, &pid, sizeof (struct GNUNET_PeerIdentity)))
     return GNUNET_SYSERR;
   return GNUNET_OK;
 }
@@ -1231,7 +1173,7 @@ blacklist_cb (void *cls,
  */
 static void
 run (void *cls,
-     char * const *args,
+     char *const *args,
      const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *mycfg)
 {
@@ -1241,127 +1183,119 @@ run (void *cls,
 
   cfg = (struct GNUNET_CONFIGURATION_Handle *) mycfg;
 
-  counter = benchmark_send + benchmark_receive + iterate_connections
-      + monitor_connections + monitor_connects + do_disconnect +
-      monitor_plugins;
+  counter = benchmark_send + benchmark_receive + iterate_connections +
+            monitor_connections + monitor_connects + do_disconnect +
+            monitor_plugins;
 
   if (1 < counter)
   {
-    FPRINTF (stderr,
-             _("Multiple operations given. Please choose only one operation: %s, %s, %s, %s, %s, %s %s\n"),
-             "disconnect",
-	     "benchmark send",
-	     "benchmark receive",
-	     "information",
-             "monitor",
-	     "events",
-	     "plugins");
+    FPRINTF (
+      stderr,
+      _ (
+        "Multiple operations given. Please choose only one operation: %s, %s, %s, %s, %s, %s %s\n"),
+      "disconnect",
+      "benchmark send",
+      "benchmark receive",
+      "information",
+      "monitor",
+      "events",
+      "plugins");
     return;
   }
   if (0 == counter)
   {
-    FPRINTF (stderr,
-	     _("No operation given. Please choose one operation: %s, %s, %s, %s, %s, %s, %s\n"),
-             "disconnect",
-	     "benchmark send",
-	     "benchmark receive",
-	     "information",
-             "monitor",
-	     "events",
-	     "plugins");
+    FPRINTF (
+      stderr,
+      _ (
+        "No operation given. Please choose one operation: %s, %s, %s, %s, %s, %s, %s\n"),
+      "disconnect",
+      "benchmark send",
+      "benchmark receive",
+      "information",
+      "monitor",
+      "events",
+      "plugins");
     return;
   }
 
   if (do_disconnect) /* -D: Disconnect from peer */
   {
-    if (0 == memcmp (&zero_pid,
-                     &pid,
-                     sizeof (pid)))
+    if (0 == memcmp (&zero_pid, &pid, sizeof (pid)))
     {
       FPRINTF (stderr,
-               _("Option `%s' makes no sense without option `%s'.\n"),
-               "-D", "-p");
+               _ ("Option `%s' makes no sense without option `%s'.\n"),
+               "-D",
+               "-p");
       ret = 1;
       return;
     }
-    blacklist = GNUNET_TRANSPORT_blacklist (cfg,
-                                            &blacklist_cb,
-                                            NULL);
+    blacklist = GNUNET_TRANSPORT_blacklist (cfg, &blacklist_cb, NULL);
     if (NULL == blacklist)
     {
       FPRINTF (stderr,
                "%s",
-               _("Failed to connect to transport service for disconnection\n"));
+               _ (
+                 "Failed to connect to transport service for disconnection\n"));
       ret = 1;
       return;
     }
     FPRINTF (stdout,
              "%s",
-             _("Blacklisting request in place, stop with CTRL-C\n"));
+             _ ("Blacklisting request in place, stop with CTRL-C\n"));
   }
   else if (benchmark_send) /* -s: Benchmark sending */
   {
-    if (0 == memcmp (&zero_pid,
-                     &pid,
-                     sizeof (pid)))
+    if (0 == memcmp (&zero_pid, &pid, sizeof (pid)))
     {
       FPRINTF (stderr,
-	       _("Option `%s' makes no sense without option `%s'.\n"),
-	       "-s", "-p");
+               _ ("Option `%s' makes no sense without option `%s'.\n"),
+               "-s",
+               "-p");
       ret = 1;
       return;
     }
     handle = GNUNET_TRANSPORT_core_connect (cfg,
-					    NULL,
-					    NULL,
-					    NULL,
-					    &notify_connect,
-					    &notify_disconnect,
-					    NULL);
+                                            NULL,
+                                            NULL,
+                                            NULL,
+                                            &notify_connect,
+                                            &notify_disconnect,
+                                            NULL);
     if (NULL == handle)
     {
-      FPRINTF (stderr,
-	       "%s",
-	       _("Failed to connect to transport service\n"));
+      FPRINTF (stderr, "%s", _ ("Failed to connect to transport service\n"));
       ret = 1;
       return;
     }
     start_time = GNUNET_TIME_absolute_get ();
-    op_timeout = GNUNET_SCHEDULER_add_delayed (OP_TIMEOUT,
-                                               &operation_timeout,
-                                               NULL);
+    op_timeout =
+      GNUNET_SCHEDULER_add_delayed (OP_TIMEOUT, &operation_timeout, NULL);
   }
   else if (benchmark_receive) /* -b: Benchmark receiving */
   {
-    struct GNUNET_MQ_MessageHandler handlers[] = {
-      GNUNET_MQ_hd_var_size (dummy,
-                             GNUNET_MESSAGE_TYPE_DUMMY,
-                             struct GNUNET_MessageHeader,
-                             NULL),
-      GNUNET_MQ_handler_end ()
-    };
+    struct GNUNET_MQ_MessageHandler handlers[] =
+      {GNUNET_MQ_hd_var_size (dummy,
+                              GNUNET_MESSAGE_TYPE_DUMMY,
+                              struct GNUNET_MessageHeader,
+                              NULL),
+       GNUNET_MQ_handler_end ()};
 
     handle = GNUNET_TRANSPORT_core_connect (cfg,
-					    NULL,
-					    handlers,
-					    NULL,
-					    NULL,
-					    NULL,
-					    NULL);
+                                            NULL,
+                                            handlers,
+                                            NULL,
+                                            NULL,
+                                            NULL,
+                                            NULL);
     if (NULL == handle)
     {
-      FPRINTF (stderr,
-	       "%s",
-	       _("Failed to connect to transport service\n"));
+      FPRINTF (stderr, "%s", _ ("Failed to connect to transport service\n"));
       ret = 1;
       return;
     }
     if (verbosity > 0)
-      FPRINTF (stdout,
-	       "%s",
-	       _("Starting to receive benchmark data\n"));
+      FPRINTF (stdout, "%s", _ ("Starting to receive benchmark data\n"));
     start_time = GNUNET_TIME_absolute_get ();
-
   }
   else if (iterate_connections) /* -i: List information about peers once */
   {
@@ -1370,42 +1304,38 @@ run (void *cls,
                                           GNUNET_YES,
                                           &process_peer_iteration_cb,
                                           (void *) cfg);
-    op_timeout = GNUNET_SCHEDULER_add_delayed (OP_TIMEOUT,
-                                               &operation_timeout,
-                                               NULL);
+    op_timeout =
+      GNUNET_SCHEDULER_add_delayed (OP_TIMEOUT, &operation_timeout, NULL);
   }
-  else if (monitor_connections) /* -m: List information about peers continuously */
+  else if (monitor_connections) /* -m: List information about peers continuously
+                                 */
   {
-    monitored_peers = GNUNET_CONTAINER_multipeermap_create (10,
-							    GNUNET_NO);
+    monitored_peers = GNUNET_CONTAINER_multipeermap_create (10, GNUNET_NO);
     pic = GNUNET_TRANSPORT_monitor_peers (cfg,
-					  &pid,
+                                          &pid,
                                           GNUNET_NO,
                                           &process_peer_monitoring_cb,
                                           NULL);
   }
-  else if (monitor_plugins) /* -P: List information about plugins continuously */
+  else if (monitor_plugins) /* -P: List information about plugins continuously
+                             */
   {
     monitored_plugins = GNUNET_CONTAINER_multipeermap_create (10, GNUNET_NO);
-    pm = GNUNET_TRANSPORT_monitor_plugins (cfg,
-                                           &plugin_monitoring_cb,
-                                           NULL);
+    pm = GNUNET_TRANSPORT_monitor_plugins (cfg, &plugin_monitoring_cb, NULL);
   }
   else if (monitor_connects) /* -e : Monitor (dis)connect events continuously */
   {
     monitor_connect_counter = 0;
     handle = GNUNET_TRANSPORT_core_connect (cfg,
-					    NULL,
-					    NULL,
-					    NULL,
-					    &monitor_notify_connect,
-					    &monitor_notify_disconnect,
-					    NULL);
+                                            NULL,
+                                            NULL,
+                                            NULL,
+                                            &monitor_notify_connect,
+                                            &monitor_notify_disconnect,
+                                            NULL);
     if (NULL == handle)
     {
-      FPRINTF (stderr,
-               "%s",
-               _("Failed to connect to transport service\n"));
+      FPRINTF (stderr, "%s", _ ("Failed to connect to transport service\n"));
       ret = 1;
       return;
     }
@@ -1413,75 +1343,86 @@ run (void *cls,
   }
   else
   {
-    GNUNET_break(0);
+    GNUNET_break (0);
     return;
   }
 
-  GNUNET_SCHEDULER_add_shutdown (&shutdown_task,
-				 NULL);
+  GNUNET_SCHEDULER_add_shutdown (&shutdown_task, NULL);
 }
 
 
 int
-main (int argc,
-      char * const *argv)
+main (int argc, char *const *argv)
 {
   int res;
-  struct GNUNET_GETOPT_CommandLineOption options[] = {
-    GNUNET_GETOPT_option_flag ('a',
-                                  "all",
-                                  gettext_noop ("print information for all peers (instead of only connected peers)"),
-                                  &iterate_all),
-    GNUNET_GETOPT_option_flag ('b',
-                                  "benchmark",
-                                  gettext_noop ("measure how fast we are receiving data from all peers (until CTRL-C)"),
-                                  &benchmark_receive),
-    GNUNET_GETOPT_option_flag ('D',
-                                  "disconnect",
-                                  gettext_noop ("disconnect from a peer"),
-                                  &do_disconnect),
-    GNUNET_GETOPT_option_flag ('i',
-                                  "information",
-                                  gettext_noop ("provide information about all current connections (once)"),
-                                  &iterate_connections),
-    GNUNET_GETOPT_option_flag ('m',
-                                  "monitor",
-                                  gettext_noop ("provide information about all current connections (continuously)"),
-                                  &monitor_connections),
-    GNUNET_GETOPT_option_flag ('e',
-                                  "events",
-                                  gettext_noop ("provide information about all connects and disconnect events (continuously)"),
-                                  &monitor_connects),
-    GNUNET_GETOPT_option_flag ('n',
-                                  "numeric",
-                                  gettext_noop ("do not resolve hostnames"),
-                                  &numeric),
-    GNUNET_GETOPT_option_base32_auto ('p',
-                                          "peer",
-                                          "PEER",
-                                          gettext_noop ("peer identity"),
-                                          &pid),
-    GNUNET_GETOPT_option_flag ('P',
-                                  "plugins",
-                                  gettext_noop ("monitor plugin sessions"),
-                                  &monitor_plugins),
-    GNUNET_GETOPT_option_flag ('s',
-                                  "send",
-                                  gettext_noop
-      ("send data for benchmarking to the other peer (until CTRL-C)"),
-                                  &benchmark_send),
-    GNUNET_GETOPT_option_verbose (&verbosity),
-    GNUNET_GETOPT_OPTION_END
-  };
+  struct GNUNET_GETOPT_CommandLineOption options[] =
+    {GNUNET_GETOPT_option_flag (
+       'a',
+       "all",
+       gettext_noop (
+         "print information for all peers (instead of only connected peers)"),
+       &iterate_all),
+     GNUNET_GETOPT_option_flag (
+       'b',
+       "benchmark",
+       gettext_noop (
+         "measure how fast we are receiving data from all peers (until CTRL-C)"),
+       &benchmark_receive),
+     GNUNET_GETOPT_option_flag ('D',
+                                "disconnect",
+                                gettext_noop ("disconnect from a peer"),
+                                &do_disconnect),
+     GNUNET_GETOPT_option_flag (
+       'i',
+       "information",
+       gettext_noop (
+         "provide information about all current connections (once)"),
+       &iterate_connections),
+     GNUNET_GETOPT_option_flag (
+       'm',
+       "monitor",
+       gettext_noop (
+         "provide information about all current connections (continuously)"),
+       &monitor_connections),
+     GNUNET_GETOPT_option_flag (
+       'e',
+       "events",
+       gettext_noop (
+         "provide information about all connects and disconnect events (continuously)"),
+       &monitor_connects),
+     GNUNET_GETOPT_option_flag ('n',
+                                "numeric",
+                                gettext_noop ("do not resolve hostnames"),
+                                &numeric),
+     GNUNET_GETOPT_option_base32_auto ('p',
+                                       "peer",
+                                       "PEER",
+                                       gettext_noop ("peer identity"),
+                                       &pid),
+     GNUNET_GETOPT_option_flag ('P',
+                                "plugins",
+                                gettext_noop ("monitor plugin sessions"),
+                                &monitor_plugins),
+     GNUNET_GETOPT_option_flag (
+       's',
+       "send",
+       gettext_noop (
+         "send data for benchmarking to the other peer (until CTRL-C)"),
+       &benchmark_send),
+     GNUNET_GETOPT_option_verbose (&verbosity),
+     GNUNET_GETOPT_OPTION_END};
 
   if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args (argc, argv, &argc, &argv))
     return 2;
 
-  res = GNUNET_PROGRAM_run (argc, argv,
-                            "gnunet-transport",
-                            gettext_noop ("Direct access to transport service."),
-                            options,
-                            &run, NULL);
+  res =
+    GNUNET_PROGRAM_run (argc,
+                        argv,
+                        "gnunet-transport",
+                        gettext_noop ("Direct access to transport service."),
+                        options,
+                        &run,
+                        NULL);
   GNUNET_free ((void *) argv);
   if (GNUNET_OK == res)
     return ret;

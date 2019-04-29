@@ -123,10 +123,21 @@ struct ConnectInfoMessage
    */
   struct GNUNET_MessageHeader header;
 
+#if (defined(GNUNET_TRANSPORT_COMMUNICATION_VERSION) || \
+     defined(GNUNET_TRANSPORT_CORE_VERSION))
+
+  /**
+   * Always zero, for alignment.
+   */
+  uint32_t reserved GNUNET_PACKED;
+
+#else
+
   /**
    * Current outbound quota for this peer
    */
   struct GNUNET_BANDWIDTH_Value32NBO quota_out;
+#endif
 
   /**
    * Identity of the new neighbour.
@@ -163,6 +174,8 @@ struct DisconnectInfoMessage
  * Message used to set a particular bandwidth quota.  Sent TO the
  * service to set an incoming quota, sent FROM the service to update
  * an outgoing quota.
+ *
+ * NOTE: no longer used in TNG!
  */
 struct QuotaSetMessage
 {
@@ -215,6 +228,13 @@ struct SendOkMessage
    */
   struct GNUNET_MessageHeader header;
 
+#if (defined(GNUNET_TRANSPORT_COMMUNICATION_VERSION) || \
+     defined(GNUNET_TRANSPORT_CORE_VERSION))
+
+  uint32_t reserved GNUNET_PACKED;
+
+#else
+
   /**
    * #GNUNET_OK if the transmission succeeded,
    * #GNUNET_SYSERR if it failed (i.e. network disconnect);
@@ -229,13 +249,41 @@ struct SendOkMessage
   uint16_t bytes_msg GNUNET_PACKED;
 
   /**
-   * Size of message sent over wire
-   * Includes plugin and protocol specific overhead
+   * Size of message sent over wire.
+   * Includes plugin and protocol specific overheads.
    */
   uint32_t bytes_physical GNUNET_PACKED;
 
+#endif
+
   /**
    * Which peer can send more now?
+   */
+  struct GNUNET_PeerIdentity peer;
+};
+
+
+/**
+ * Message used to notify the transport API that it can
+ * send another message to the transport service.
+ * (Used to implement flow control.)
+ */
+struct RecvOkMessage
+{
+
+  /**
+   * Type will be #GNUNET_MESSAGE_TYPE_TRANSPORT_RECV_OK
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Number of messages by which to increase the window, greater or
+   * equal to one.
+   */
+  uint32_t increase_window_delta GNUNET_PACKED;
+
+  /**
+   * Which peer can CORE handle more from now?
    */
   struct GNUNET_PeerIdentity peer;
 };
@@ -258,10 +306,14 @@ struct OutboundMessage
    */
   uint32_t reserved GNUNET_PACKED;
 
+#if ! (defined(GNUNET_TRANSPORT_COMMUNICATION_VERSION) || \
+       defined(GNUNET_TRANSPORT_CORE_VERSION))
+
   /**
    * Allowed delay.
    */
   struct GNUNET_TIME_RelativeNBO timeout;
+#endif
 
   /**
    * Which peer should receive the message?

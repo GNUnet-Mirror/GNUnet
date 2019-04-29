@@ -1089,8 +1089,16 @@ extern "C" {
 
 /**
  * Message telling transport to limit its receive rate.
+ * (FIXME: was the above comment ever accurate?)
+ *
+ * Note: dead in TNG, replaced by RECV_OK!
  */
 #define GNUNET_MESSAGE_TYPE_TRANSPORT_SET_QUOTA 366
+
+/**
+ * Message telling transport to limit its receive rate.
+ */
+#define GNUNET_MESSAGE_TYPE_TRANSPORT_RECV_OK 366
 
 /**
  * Request to look addresses of peers in server.

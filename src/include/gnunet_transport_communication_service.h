@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     Copyright (C) 2009-2018 GNUnet e.V.
+     Copyright (C) 2009-2019 GNUnet e.V.
 
      GNUnet is free software: you can redistribute it and/or modify it
      under the terms of the GNU Affero General Public License as published
@@ -36,9 +36,8 @@
 #define GNUNET_TRANSPORT_COMMUNICATION_SERVICE_H
 
 #ifdef __cplusplus
-extern "C"
-{
-#if 0                           /* keep Emacsens' auto-indent happy */
+extern "C" {
+#if 0 /* keep Emacsens' auto-indent happy */
 }
 #endif
 #endif
@@ -67,12 +66,13 @@ extern "C"
  * @param peer identity of the other peer
  * @param address where to send the message, human-readable
  *        communicator-specific format, 0-terminated, UTF-8
- * @return #GNUNET_OK on success, #GNUNET_SYSERR if the provided address is invalid
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR if the provided address is
+ * invalid
  */
-typedef int
-(*GNUNET_TRANSPORT_CommunicatorMqInit) (void *cls,
-                                        const struct GNUNET_PeerIdentity *peer,
-                                        const char *address);
+typedef int (*GNUNET_TRANSPORT_CommunicatorMqInit) (
+  void *cls,
+  const struct GNUNET_PeerIdentity *peer,
+  const char *address);
 
 
 /**
@@ -87,7 +87,8 @@ struct GNUNET_TRANSPORT_CommunicatorHandle;
  * FIXME: may want to distinguish bi-directional as well,
  * should we define a bit for that? Needed in DV logic (handle_dv_learn)!
  */
-enum GNUNET_TRANSPORT_CommunicatorCharacteristics {
+enum GNUNET_TRANSPORT_CommunicatorCharacteristics
+{
 
   /**
    * Characteristics are unknown (i.e. DV).
@@ -122,10 +123,10 @@ enum GNUNET_TRANSPORT_CommunicatorCharacteristics {
  * @param sender which peer sent the notification
  * @param msg payload
  */
-typedef void
-(*GNUNET_TRANSPORT_CommunicatorNotify) (void *cls,
-                                        const struct GNUNET_PeerIdentity *sender,
-                                        const struct GNUNET_MessageHeader *msg);
+typedef void (*GNUNET_TRANSPORT_CommunicatorNotify) (
+  void *cls,
+  const struct GNUNET_PeerIdentity *sender,
+  const struct GNUNET_MessageHeader *msg);
 
 
 /**
@@ -145,14 +146,15 @@ typedef void
  * @return NULL on error
  */
 struct GNUNET_TRANSPORT_CommunicatorHandle *
-GNUNET_TRANSPORT_communicator_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                                       const char *config_section_name,
-                                       const char *addr_prefix,
-                                       enum GNUNET_TRANSPORT_CommunicatorCharacteristics cc,
-                                       GNUNET_TRANSPORT_CommunicatorMqInit mq_init,
-                                       void *mq_init_cls,
-                                       GNUNET_TRANSPORT_CommunicatorNotify notify_cb,
-                                       void *notify_cb_cls);
+GNUNET_TRANSPORT_communicator_connect (
+  const struct GNUNET_CONFIGURATION_Handle *cfg,
+  const char *config_section_name,
+  const char *addr_prefix,
+  enum GNUNET_TRANSPORT_CommunicatorCharacteristics cc,
+  GNUNET_TRANSPORT_CommunicatorMqInit mq_init,
+  void *mq_init_cls,
+  GNUNET_TRANSPORT_CommunicatorNotify notify_cb,
+  void *notify_cb_cls);
 
 
 /**
@@ -161,22 +163,23 @@ GNUNET_TRANSPORT_communicator_connect (const struct GNUNET_CONFIGURATION_Handle 
  * @param ch handle returned from connect
  */
 void
-GNUNET_TRANSPORT_communicator_disconnect (struct GNUNET_TRANSPORT_CommunicatorHandle *ch);
+GNUNET_TRANSPORT_communicator_disconnect (
+  struct GNUNET_TRANSPORT_CommunicatorHandle *ch);
 
 
 /* ************************* Receiving *************************** */
 
 /**
  * Function called to notify communicator that we have received
- * and processed the message.
+ * and processed the message.  Used for flow control (if supported
+ * by the communicator).
  *
  * @param cls closure
  * @param success #GNUNET_SYSERR on failure (try to disconnect/reset connection)
  *                #GNUNET_OK on success
  */
-typedef void
-(*GNUNET_TRANSPORT_MessageCompletedCallback) (void *cls,
-                                              int success);
+typedef void (*GNUNET_TRANSPORT_MessageCompletedCallback) (void *cls,
+                                                           int success);
 
 
 /**
@@ -200,12 +203,13 @@ typedef void
  *         the tranport service is not yet up
  */
 int
-GNUNET_TRANSPORT_communicator_receive (struct GNUNET_TRANSPORT_CommunicatorHandle *handle,
-                                       const struct GNUNET_PeerIdentity *sender,
-                                       const struct GNUNET_MessageHeader *msg,
-                                       struct GNUNET_TIME_Relative expected_addr_validity,
-                                       GNUNET_TRANSPORT_MessageCompletedCallback cb,
-                                       void *cb_cls);
+GNUNET_TRANSPORT_communicator_receive (
+  struct GNUNET_TRANSPORT_CommunicatorHandle *handle,
+  const struct GNUNET_PeerIdentity *sender,
+  const struct GNUNET_MessageHeader *msg,
+  struct GNUNET_TIME_Relative expected_addr_validity,
+  GNUNET_TRANSPORT_MessageCompletedCallback cb,
+  void *cb_cls);
 
 
 /* ************************* Discovery *************************** */
@@ -220,7 +224,8 @@ struct GNUNET_TRANSPORT_QueueHandle;
 /**
  * Possible states of a connection.
  */
-enum GNUNET_TRANSPORT_ConnectionStatus {
+enum GNUNET_TRANSPORT_ConnectionStatus
+{
 
   /**
    * Connection is down.
@@ -255,13 +260,14 @@ enum GNUNET_TRANSPORT_ConnectionStatus {
  * @return API handle identifying the new MQ
  */
 struct GNUNET_TRANSPORT_QueueHandle *
-GNUNET_TRANSPORT_communicator_mq_add (struct GNUNET_TRANSPORT_CommunicatorHandle *ch,
-                                      const struct GNUNET_PeerIdentity *peer,
-                                      const char *address,
-                                      uint32_t mtu,
-                                      enum GNUNET_NetworkType nt,
-                                      enum GNUNET_TRANSPORT_ConnectionStatus cs,
-                                      struct GNUNET_MQ_Handle *mq);
+GNUNET_TRANSPORT_communicator_mq_add (
+  struct GNUNET_TRANSPORT_CommunicatorHandle *ch,
+  const struct GNUNET_PeerIdentity *peer,
+  const char *address,
+  uint32_t mtu,
+  enum GNUNET_NetworkType nt,
+  enum GNUNET_TRANSPORT_ConnectionStatus cs,
+  struct GNUNET_MQ_Handle *mq);
 
 
 /**
@@ -291,10 +297,11 @@ struct GNUNET_TRANSPORT_AddressIdentifier;
  * @param expiration when does the communicator forsee this address expiring?
  */
 struct GNUNET_TRANSPORT_AddressIdentifier *
-GNUNET_TRANSPORT_communicator_address_add (struct GNUNET_TRANSPORT_CommunicatorHandle *ch,
-                                           const char *address,
-                                           enum GNUNET_NetworkType nt,
-                                           struct GNUNET_TIME_Relative expiration);
+GNUNET_TRANSPORT_communicator_address_add (
+  struct GNUNET_TRANSPORT_CommunicatorHandle *ch,
+  const char *address,
+  enum GNUNET_NetworkType nt,
+  struct GNUNET_TIME_Relative expiration);
 
 
 /**
@@ -304,7 +311,8 @@ GNUNET_TRANSPORT_communicator_address_add (struct GNUNET_TRANSPORT_CommunicatorH
  * @param ai address that is no longer provided
  */
 void
-GNUNET_TRANSPORT_communicator_address_remove (struct GNUNET_TRANSPORT_AddressIdentifier *ai);
+GNUNET_TRANSPORT_communicator_address_remove (
+  struct GNUNET_TRANSPORT_AddressIdentifier *ai);
 
 
 /**
@@ -326,13 +334,14 @@ GNUNET_TRANSPORT_communicator_address_remove (struct GNUNET_TRANSPORT_AddressIde
  *        notify-API to @a pid's communicator @a comm
  */
 void
-GNUNET_TRANSPORT_communicator_notify (struct GNUNET_TRANSPORT_CommunicatorHandle *ch,
-                                      const struct GNUNET_PeerIdentity *pid,
-                                      const char *comm,
-                                      const struct GNUNET_MessageHeader *header);
+GNUNET_TRANSPORT_communicator_notify (
+  struct GNUNET_TRANSPORT_CommunicatorHandle *ch,
+  const struct GNUNET_PeerIdentity *pid,
+  const char *comm,
+  const struct GNUNET_MessageHeader *header);
 
 
-#if 0                           /* keep Emacsens' auto-indent happy */
+#if 0 /* keep Emacsens' auto-indent happy */
 {
 #endif
 #ifdef __cplusplus
@@ -342,6 +351,6 @@ GNUNET_TRANSPORT_communicator_notify (struct GNUNET_TRANSPORT_CommunicatorHandle
 /* ifndef GNUNET_TRANSPORT_COMMUNICATOR_SERVICE_H */
 #endif
 
-/** @} */  /* end of group */
+/** @} */ /* end of group */
 
 /* end of gnunet_transport_communicator_service.h */
