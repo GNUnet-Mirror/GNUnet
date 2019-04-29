@@ -824,14 +824,13 @@ run (void *cls,
 
   /* Get port to bind to */
   if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_number (cfg, "rest",
-                                                          "PORT",
+                                                          "HTTP_PORT",
                                                           &port))
   {
     //No address specified
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Don't know what port to use...\n");
-    GNUNET_SCHEDULER_shutdown ();
-    return;
+                "Using default port...\n");
+    port = GNUNET_REST_SERVICE_PORT;
   }
 
   /* Get address to bind to */
