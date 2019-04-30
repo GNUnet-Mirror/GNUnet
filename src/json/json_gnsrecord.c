@@ -48,24 +48,19 @@ struct GnsRecordInfo
 static void
 cleanup_recordinfo (struct GnsRecordInfo *gnsrecord_info)
 {
-  if (NULL != gnsrecord_info)
+  if (NULL != *(gnsrecord_info->rd))
   {
-    if (NULL != *(gnsrecord_info->rd))
+    for (int i = 0; i < *(gnsrecord_info->rd_count); i++)
     {
-      for (int i = 0; i < *(gnsrecord_info->rd_count); i++)
-      {
-        if (NULL != (*(gnsrecord_info->rd))[i].data)
-          GNUNET_free ((char *) (*(gnsrecord_info->rd))[i].data);
-      }
-      GNUNET_free (*(gnsrecord_info->rd));
-      *(gnsrecord_info->rd) = NULL;
+      if (NULL != (*(gnsrecord_info->rd))[i].data)
+        GNUNET_free ((char *) (*(gnsrecord_info->rd))[i].data);
     }
-    if (NULL != *(gnsrecord_info->name))
-      GNUNET_free (*(gnsrecord_info->name));
-    *(gnsrecord_info->name) = NULL;
-    GNUNET_free (gnsrecord_info);
+    GNUNET_free (*(gnsrecord_info->rd));
+    *(gnsrecord_info->rd) = NULL;
   }
-
+  if (NULL != *(gnsrecord_info->name))
+    GNUNET_free (*(gnsrecord_info->name));
+  *(gnsrecord_info->name) = NULL;
 }
 
 
@@ -210,7 +205,12 @@ parse_gnsrecordobject (void *cls,
   }
   gnsrecord_info = (struct GnsRecordInfo *) spec->ptr;
   *(gnsrecord_info->name) = GNUNET_strdup (name);
-  return parse_record_data (gnsrecord_info, data);
+  if (GNUNET_OK != parse_record_data (gnsrecord_info, data))
+  {
+    cleanup_recordinfo (gnsrecord_info);
+    return GNUNET_SYSERR;
+  }
+  return GNUNET_OK;
 }
 
 
@@ -224,7 +224,7 @@ static void
 clean_gnsrecordobject (void *cls, struct GNUNET_JSON_Specification *spec)
 {
   struct GnsRecordInfo *gnsrecord_info = (struct GnsRecordInfo *) spec->ptr;
-  cleanup_recordinfo (gnsrecord_info);
+  GNUNET_free (gnsrecord_info);
 }
 
 
@@ -244,12 +244,12 @@ GNUNET_JSON_spec_gnsrecord (struct GNUNET_GNSRECORD_Data **rd,
   gnsrecord_info->name = name;
   gnsrecord_info->rd_count = rd_count;
   struct GNUNET_JSON_Specification ret = {.parser = &parse_gnsrecordobject,
-                                          .cleaner = &clean_gnsrecordobject,
-                                          .cls = NULL,
-                                          .field = NULL,
-                                          .ptr = (struct GnsRecordInfo *)
-                                            gnsrecord_info,
-                                          .ptr_size = 0,
-                                          .size_ptr = NULL};
+    .cleaner = &clean_gnsrecordobject,
+    .cls = NULL,
+    .field = NULL,
+    .ptr = (struct GnsRecordInfo *)
+      gnsrecord_info,
+    .ptr_size = 0,
+    .size_ptr = NULL};
   return ret;
 }

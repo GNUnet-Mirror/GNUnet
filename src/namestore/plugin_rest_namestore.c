@@ -628,6 +628,7 @@ namestore_add (struct GNUNET_REST_RequestHandle *con_handle,
     json_decref (data_js);
     return;
   }
+  GNUNET_JSON_parse_free (gnsspec);
   if (0 >= strlen (handle->record_name))
   {
     handle->emsg = GNUNET_strdup (GNUNET_REST_NAMESTORE_INVALID_DATA);
