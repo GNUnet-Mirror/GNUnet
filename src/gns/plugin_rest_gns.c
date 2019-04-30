@@ -190,6 +190,9 @@ do_error (void *cls)
   json_t *json_error = json_object();
   char *response;
 
+  if (NULL != handle->timeout_task)
+    GNUNET_SCHEDULER_cancel (handle->timeout_task);
+  handle->timeout_task = NULL;
   if (NULL == handle->emsg)
     handle->emsg = GNUNET_strdup(GNUNET_REST_GNS_ERROR_UNKNOWN);
 
