@@ -209,6 +209,15 @@ do_error (void *cls)
 }
 
 
+static void
+do_timeout (void *cls)
+{
+  struct RequestHandle *handle = cls;
+  handle->timeout_task = NULL;
+  do_error (handle);
+}
+
+
 /**
  * Iterator called on obtained result for a GNS lookup.
  *
@@ -402,7 +411,7 @@ rest_process_request(struct GNUNET_REST_RequestHandle *rest_handle,
 
   handle->timeout_task =
     GNUNET_SCHEDULER_add_delayed (handle->timeout,
-                                  &do_error,
+                                  &do_timeout,
                                   handle);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Connected\n");
