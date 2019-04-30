@@ -92,7 +92,8 @@ libgnunet_plugin_gnsrecord_reclaim_la_LDFLAGS = \
 
 gnunet_service_reclaim_SOURCES = \
  gnunet-service-reclaim.c \
- gnunet-service-reclaim_tickets.c
+ gnunet-service-reclaim_tickets.c \
+ gnunet-service-reclaim_tickets.h
 gnunet_service_reclaim_LDADD = \
  $(top_builddir)/src/gnsrecord/libgnunetgnsrecord.la \
  $(top_builddir)/src/util/libgnunetutil.la \
