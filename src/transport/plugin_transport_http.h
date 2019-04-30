@@ -41,11 +41,8 @@
 #include "gnunet_os_lib.h"
 #include "gnunet_nat_lib.h"
 #include "microhttpd.h"
-#if HAVE_CURL_CURL_H
-#include <curl/curl.h>
-#elif HAVE_GNURL_CURL_H
-#include <gnurl/curl.h>
-#endif
+/* Just included for the right curl.h */
+#include "gnunet_curl_lib.h"
 
 
 #define DEBUG_HTTP GNUNET_EXTRA_LOGGING

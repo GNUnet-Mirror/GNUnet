@@ -763,14 +763,6 @@ fi
 
 # libgnurl
 LIBGNURL_CHECK_CONFIG(,7.34.0,gnurl=1,gnurl=0)
-if test "$gnurl" = 1
-then
-	AM_CONDITIONAL(HAVE_LIBGNURL, true)
-	AC_DEFINE([HAVE_LIBGNURL],[1],[Have libgnurl])
-else
-	AM_CONDITIONAL(HAVE_LIBGNURL, false)
-	AC_DEFINE([HAVE_LIBGNURL],[0],[Lacking libgnurl])
-fi
 
 SAVE_CPPFLAGS=$CPPFLAGS
 CPPFLAGS="$LIBGNURL_CPPFLAGS $LIBCURL_CPPFLAGS $CPPFLAGS"
@@ -780,38 +772,30 @@ LIBS="$LIBGNURL $LIBCURL $LIBS"
 LIBCURL_CHECK_CONFIG(,7.34.0,[curl=true],[curl=false])
 if test "x$curl" = xtrue
 then
-
- AC_CHECK_HEADERS([curl/curl.h],
+ AC_CHECK_HEADER([curl/curl.h],
   AC_CHECK_DECLS(CURLINFO_TLS_SESSION,[curl=true],[curl=false],[[#include <curl/curl.h>]]),
   [curl=false])
- AC_CHECK_HEADERS([gnurl/curl.h],
-  AC_CHECK_DECLS(CURLINFO_TLS_SESSION,[curl=true],,[[#include <gnurl/curl.h>]]))
  # need libcurl-gnutls.so, everything else is not acceptable
  AC_CHECK_LIB([curl-gnutls],[curl_easy_getinfo],,[curl=false])
  # cURL must support CURLINFO_TLS_SESSION, version >= 7.34
 fi
 
-# Check for curl/curl.h and gnurl/curl.h so we can use #ifdef
-# HAVE_CURL_CURL_H later (the above LIBCURL_CHECK_CONFIG accepted
-# *either* header set).
-AC_CHECK_HEADERS([curl/curl.h],,
-  curl=false
-  AC_CHECK_HEADERS([gnurl/curl.h],,
-  gnurl=false))
-
-
-
-if test x$curl = xfalse
-then
-	AM_CONDITIONAL(HAVE_LIBCURL, false)
-if test "$gnurl" = 0
-then
-	AC_MSG_WARN([ERROR: GNUnet requires libcurl-gnutls or gnurl >= 7.34])
-fi
-else
-	AM_CONDITIONAL(HAVE_LIBCURL, true)
-	AC_DEFINE([HAVE_LIBCURL],[1],[Have CURL])
-fi
+# libcurl and libgnurl should be mutually exclusive
+AS_IF([test "$gnurl" = 1],
+      [AM_CONDITIONAL(HAVE_LIBGNURL, true)
+       AC_DEFINE([HAVE_LIBGNURL],[1],[Have libgnurl])
+       AM_CONDITIONAL(HAVE_LIBCURL, false)
+       AC_DEFINE([HAVE_LIBCURL],[0],[Lacking libcurl])],
+      [AS_IF([test "$curl" = true],
+             [AM_CONDITIONAL(HAVE_LIBGNURL, false)
+              AC_DEFINE([HAVE_LIBGNURL],[0],[Lacking libgnurl])
+              AM_CONDITIONAL(HAVE_LIBCURL, true)
+              AC_DEFINE([HAVE_LIBCURL],[1],[Have libcurl])],
+             [AC_MSG_WARN([ERROR: GNUnet requires libcurl-gnutls or gnurl >= 7.34])
+              AM_CONDITIONAL(HAVE_LIBGNURL, false)
+              AC_DEFINE([HAVE_LIBGNURL],[0],[Lacking libgnurl])
+              AM_CONDITIONAL(HAVE_LIBCURL, false)
+              AC_DEFINE([HAVE_LIBCURL],[0],[Lacking libcurl])])])
 
 AC_SEARCH_LIBS(__atomic_load_8, atomic, [have_libatomic=1 AC_DEFINE(HAVE_LIBATOMIC,1,[external libatomic])])
 AM_CONDITIONAL(HAVE_LIBATOMIC, [test "$have_libatomic" = 1])

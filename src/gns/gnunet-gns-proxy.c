@@ -29,11 +29,8 @@
  */
 #include "platform.h"
 #include <microhttpd.h>
-#if HAVE_CURL_CURL_H
-#include <curl/curl.h>
-#elif HAVE_GNURL_CURL_H
-#include <gnurl/curl.h>
-#endif
+/* Just included for the right curl.h */
+#include "gnunet_curl_lib.h"
 #include <gnutls/gnutls.h>
 #include <gnutls/x509.h>
 #include <gnutls/abstract.h>

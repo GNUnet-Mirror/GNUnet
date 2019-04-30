@@ -37,11 +37,8 @@
  * you should get a warning that gnunet-dns2gns failed to 'bind'.
  */
 #include "platform.h"
-#if HAVE_CURL_CURL_H
-#include <curl/curl.h>
-#elif HAVE_GNURL_CURL_H
-#include <gnurl/curl.h>
-#endif
+/* Just included for the right curl.h */
+#include "gnunet_curl_lib.h"
 #include <microhttpd.h>
 #include "gnunet_identity_service.h"
 #include "gnunet_namestore_service.h"

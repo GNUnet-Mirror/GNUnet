@@ -24,11 +24,8 @@
  * @author Martin Schanzenbach
  */
 #include "platform.h"
-#if HAVE_CURL_CURL_H
-#include <curl/curl.h>
-#elif HAVE_GNURL_CURL_H
-#include <gnurl/curl.h>
-#endif
+/* Just included for the right curl.h */
+#include "gnunet_curl_lib.h"
 #include <microhttpd.h>
 #include "gnunet_util_lib.h"
 #include "gnutls/x509.h"

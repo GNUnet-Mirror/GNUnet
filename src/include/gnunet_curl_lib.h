@@ -29,9 +29,9 @@
  */
 #ifndef GNUNET_CURL_LIB_H
 #define GNUNET_CURL_LIB_H
-#if HAVE_CURL_CURL_H
+#if HAVE_LIBCURL
 #include <curl/curl.h>
-#elif HAVE_GNURL_CURL_H
+#elif HAVE_LIBGNURL
 #include <gnurl/curl.h>
 #else
 #error "needs curl or gnurl"

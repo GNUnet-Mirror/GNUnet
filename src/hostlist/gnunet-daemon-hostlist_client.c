@@ -30,11 +30,8 @@
 #include "gnunet_transport_service.h"
 #include "gnunet_peerinfo_service.h"
 #include "gnunet-daemon-hostlist.h"
-#if HAVE_CURL_CURL_H
-#include <curl/curl.h>
-#elif HAVE_GNURL_CURL_H
-#include <gnurl/curl.h>
-#endif
+/* Just included for the right curl.h */
+#include "gnunet_curl_lib.h"
 
 
 
