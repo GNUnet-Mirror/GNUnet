@@ -11,7 +11,7 @@
   WITHOUT ANY WARRANTY; without even the implied warranty of
   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
   Affero General Public License for more details.
- 
+
   You should have received a copy of the GNU Affero General Public License
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -160,58 +160,56 @@ GNUNET_JSON_from_rsa_signature (const struct GNUNET_CRYPTO_RsaSignature *sig)
 }
 
 /**
- * Convert Gns record to JSON.
+ * Convert GNS record to JSON.
  *
  * @param rname name of record
  * @param rd record data
  * @return corresponding JSON encoding
  */
 json_t *
-GNUNET_JSON_from_gns_record (const char* rname,
-			     const struct GNUNET_GNSRECORD_Data *rd)
+GNUNET_JSON_from_gnsrecord (const char* rname,
+                            const struct GNUNET_GNSRECORD_Data *rd,
+                            unsigned int rd_count)
 {
   struct GNUNET_TIME_Absolute expiration_time;
   const char *expiration_time_str;
   const char *record_type_str;
   char *value_str;
-  json_t *ret;
-  int flags;
+  json_t *data;
+  json_t *record;
+  json_t *records;
 
-  value_str = GNUNET_GNSRECORD_value_to_string(rd->record_type,rd->data,rd->data_size);
-  expiration_time = GNUNET_GNSRECORD_record_get_expiration_time(1, rd);
-  expiration_time_str = GNUNET_STRINGS_absolute_time_to_string(expiration_time);
-  flags = (int)rd->flags; //maybe necessary
-  record_type_str = GNUNET_GNSRECORD_number_to_typename(rd->record_type);
-
-  // ? for possible NULL values
-  if (NULL != rname)
+  data = json_object ();
+  json_object_set_new (data,
+                       "record_name",
+                       json_string (rname));
+  records = json_array ();
+  for (int i = 0; i < rd_count; i++)
   {
-    ret = json_pack ("{s:s?,s:s?,s:s?,s:i,s:s?}",
-		     "value",
-		     value_str,
-		     "record_type",
-		     record_type_str,
-		     "expiration_time",
-		     expiration_time_str,
-		     "flag",
-		     flags,
-		     "record_name",
-		     rname);
+    value_str = GNUNET_GNSRECORD_value_to_string (rd[i].record_type,
+                                                  rd[i].data,
+                                                  rd[i].data_size);
+    expiration_time = GNUNET_GNSRECORD_record_get_expiration_time(1, &rd[i]);
+    expiration_time_str = GNUNET_STRINGS_absolute_time_to_string (expiration_time);
+    record_type_str = GNUNET_GNSRECORD_number_to_typename (rd[i].record_type);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Packing %s %s %s %d\n",
+                value_str, record_type_str, expiration_time_str, rd[i].flags);
+    record = json_pack ("{s:s,s:s,s:s,s:i}",
+                        "value",
+                        value_str,
+                        "record_type",
+                        record_type_str,
+                        "expiration_time",
+                        expiration_time_str,
+                        "flag",
+                        rd[i].flags);
+    GNUNET_assert (NULL != record);
+    GNUNET_free (value_str);
+    json_array_append_new (records, record);
   }
-  else
-  {
-    ret = json_pack ("{s:s?,s:s?,s:s?,s:i}",
-		     "value",
-		     value_str,
-		     "record_type",
-		     record_type_str,
-		     "expiration_time",
-		     expiration_time_str,
-		     "flag",
-		     flags);
-  }
-  GNUNET_free_non_null(value_str);
-  return ret;
+  json_object_set_new (data, "data", records);
+  return data;
 }
 
 

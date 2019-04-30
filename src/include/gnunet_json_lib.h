@@ -11,7 +11,7 @@
   WITHOUT ANY WARRANTY; without even the implied warranty of
   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
   Affero General Public License for more details.
- 
+
   You should have received a copy of the GNU Affero General Public License
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -329,7 +329,9 @@ GNUNET_JSON_spec_rsa_signature (const char *name,
  * @return JSON Specification
  */
 struct GNUNET_JSON_Specification
-GNUNET_JSON_spec_gnsrecord_data (struct GNUNET_GNSRECORD_Data **gnsrecord_object);
+GNUNET_JSON_spec_gnsrecord (struct GNUNET_GNSRECORD_Data **rd,
+                            unsigned int *rd_count,
+                            char **name);
 
 
 /* ****************** Generic generator interface ******************* */
@@ -415,8 +417,9 @@ GNUNET_JSON_from_rsa_signature (const struct GNUNET_CRYPTO_RsaSignature *sig);
  * @return corresponding JSON encoding
  */
 json_t *
-GNUNET_JSON_from_gns_record (const char* rname,
-				const struct GNUNET_GNSRECORD_Data *rd);
+GNUNET_JSON_from_gnsrecord (const char* rname,
+                            const struct GNUNET_GNSRECORD_Data *rd,
+                            unsigned int rd_count);
 
 /* ******************* Helpers for MHD upload handling ******************* */
 
