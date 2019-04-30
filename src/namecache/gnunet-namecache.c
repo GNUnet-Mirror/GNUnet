@@ -11,7 +11,7 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -235,7 +235,7 @@ main (int argc, char *const *argv)
     GNUNET_GETOPT_option_string ('z',
                                  "zone",
                                  "PKEY",
-                                 gettext_noop ("spezifies the public key of the zone to look in"),
+                                 gettext_noop ("specifies the public key of the zone to look in"),
                                  &pkey),
 
     GNUNET_GETOPT_OPTION_END
