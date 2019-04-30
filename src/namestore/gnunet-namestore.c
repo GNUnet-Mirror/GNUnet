@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     Copyright (C) 2012, 2013, 2014 GNUnet e.V.
+     Copyright (C) 2012, 2013, 2014, 2019 GNUnet e.V.
 
      GNUnet is free software: you can redistribute it and/or modify it
      under the terms of the GNU Affero General Public License as published
@@ -417,12 +417,26 @@ display_record (const char *rname,
   const char *ets;
   struct GNUNET_TIME_Absolute at;
   struct GNUNET_TIME_Relative rt;
+  int have_record;
 
   if ((NULL != name) && (0 != strcmp (name, rname)))
   {
     GNUNET_NAMESTORE_zone_iterator_next (list_it, 1);
     return;
   }
+  have_record = GNUNET_NO;
+  for (unsigned int i = 0; i < rd_len; i++)
+  {
+    if ((GNUNET_GNSRECORD_TYPE_NICK == rd[i].record_type) &&
+        (0 != strcmp (rname, GNUNET_GNS_EMPTY_LABEL_AT)))
+      continue;
+    if ((type != rd[i].record_type) && (GNUNET_GNSRECORD_TYPE_ANY != type))
+      continue;
+    have_record = GNUNET_YES;
+    break;
+  }
+  if (GNUNET_NO == have_record)
+    return;
   FPRINTF (stdout, "%s:\n", rname);
   if (NULL != typestring)
     type = GNUNET_GNSRECORD_typename_to_number (typestring);
