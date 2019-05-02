@@ -536,8 +536,8 @@ GNUNET_CURL_perform2 (struct GNUNET_CURL_Context *ctx,
     urd->count++;
     urd->time = GNUNET_TIME_relative_add (urd->time, total);
     urd->time_max = GNUNET_TIME_relative_max (total, urd->time_max);
-    urd->bytes_sent = bytes_sent;
-    urd->bytes_received = bytes_received;
+    urd->bytes_sent += bytes_sent;
+    urd->bytes_received += bytes_received;
   }
 #endif
     job->jcc (job->jcc_cls,
