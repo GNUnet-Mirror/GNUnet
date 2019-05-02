@@ -526,11 +526,20 @@ GNUNET_CURL_perform2 (struct GNUNET_CURL_Context *ctx,
                                      &size_long));
     bytes_sent += size_long;
 
+    /* We obtain this value to check an invariant, but never use it otherwise. */
     GNUNET_break (CURLE_OK ==
                   curl_easy_getinfo (cmsg->easy_handle,
                                      CURLINFO_SIZE_UPLOAD_T,
                                      &size_curl));
-    bytes_sent += size_curl;
+
+    /* CURLINFO_SIZE_UPLOAD_T <= CURLINFO_REQUEST_SIZE should
+       be an invariant.
+       As verified with
+         curl -w "foo%{size_request} -XPOST --data "ABC" $URL
+      the CURLINFO_REQUEST_SIZE should be the whole size of the request
+      including headers and body.
+     */
+    GNUNET_break (size_curl <= size_long);
 
     urd = get_url_benchmark_data (url, (unsigned int) response_code);
     urd->count++;
