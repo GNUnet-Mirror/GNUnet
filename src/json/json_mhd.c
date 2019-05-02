@@ -11,7 +11,7 @@
   WITHOUT ANY WARRANTY; without even the implied warranty of
   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
   Affero General Public License for more details.
- 
+
   You should have received a copy of the GNU Affero General Public License
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -27,12 +27,13 @@
 #include "platform.h"
 #include "gnunet_json_lib.h"
 
+
 /**
  * Initial size for POST request buffers.  Should be big enough to
  * usually not require a reallocation, but not so big that it hurts in
  * terms of memory use.
  */
-#define REQUEST_BUFFER_INITIAL (2*1024)
+#define REQUEST_BUFFER_INITIAL (2 * 1024)
 
 
 /**
@@ -74,8 +75,7 @@ buffer_init (struct Buffer *buf,
              size_t alloc_size,
              size_t max_size)
 {
-  if ( (data_size > max_size) ||
-       (alloc_size > max_size) )
+  if ((data_size > max_size) || (alloc_size > max_size))
     return GNUNET_SYSERR;
   if (data_size > alloc_size)
     alloc_size = data_size;
@@ -145,6 +145,7 @@ buffer_append (struct Buffer *buf,
  * #GNUNET_JSON_post_parser_callback().
  *
  * @param buffer_max maximum allowed size for the buffer
+ * @param connection MHD connection handle (for meta data about the upload)
  * @param con_cls the closure (will point to a `struct Buffer *`)
  * @param upload_data the POST data
  * @param upload_data_size number of bytes in @a upload_data
@@ -153,6 +154,7 @@ buffer_append (struct Buffer *buf,
  */
 enum GNUNET_JSON_PostResult
 GNUNET_JSON_post_parser (size_t buffer_max,
+                         struct MHD_Connection *connection,
                          void **con_cls,
                          const char *upload_data,
                          size_t *upload_data_size,
@@ -165,12 +167,11 @@ GNUNET_JSON_post_parser (size_t buffer_max,
   {
     /* We are seeing a fresh POST request. */
     r = GNUNET_new (struct Buffer);
-    if (GNUNET_OK !=
-        buffer_init (r,
-                     upload_data,
-                     *upload_data_size,
-                     REQUEST_BUFFER_INITIAL,
-                     buffer_max))
+    if (GNUNET_OK != buffer_init (r,
+                                  upload_data,
+                                  *upload_data_size,
+                                  REQUEST_BUFFER_INITIAL,
+                                  buffer_max))
     {
       *con_cls = NULL;
       buffer_deinit (r);
@@ -187,10 +188,7 @@ GNUNET_JSON_post_parser (size_t buffer_max,
     /* We are seeing an old request with more data available. */
 
     if (GNUNET_OK !=
-        buffer_append (r,
-                       upload_data,
-                       *upload_data_size,
-                       buffer_max))
+        buffer_append (r, upload_data, *upload_data_size, buffer_max))
     {
       /* Request too long */
       *con_cls = NULL;
@@ -205,10 +203,7 @@ GNUNET_JSON_post_parser (size_t buffer_max,
 
   /* We have seen the whole request. */
 
-  *json = json_loadb (r->data,
-                      r->fill,
-                      0,
-                      NULL);
+  *json = json_loadb (r->data, r->fill, 0, NULL);
   if (NULL == *json)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
