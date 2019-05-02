@@ -60,8 +60,10 @@ GNUNET_DNSPARSER_check_label (const char *label)
 
   if (NULL != strchr (label, '.'))
     return GNUNET_SYSERR; /* not a label! Did you mean GNUNET_DNSPARSER_check_name? */
-  if (IDNA_SUCCESS !=
-      idna_to_ascii_8z (label, &output, IDNA_ALLOW_UNASSIGNED))
+  if (0 == strcmp (label, "@"))
+    return GNUNET_SYSERR; /* '@' is reserved for the empty label,
+                             see #GNUNET_GNS_EMPTY_LABEL_AT */
+  if (IDNA_SUCCESS != idna_to_ascii_8z (label, &output, IDNA_ALLOW_UNASSIGNED))
     return GNUNET_SYSERR;
   slen = strlen (output);
 #if WINDOWS
@@ -91,15 +93,13 @@ GNUNET_DNSPARSER_check_name (const char *name)
 
   ldup = GNUNET_strdup (name);
   for (tok = strtok (ldup, "."); NULL != tok; tok = strtok (NULL, "."))
-    if (GNUNET_OK !=
-	GNUNET_DNSPARSER_check_label (tok))
+    if (GNUNET_OK != GNUNET_DNSPARSER_check_label (tok))
     {
       GNUNET_free (ldup);
       return GNUNET_SYSERR;
     }
   GNUNET_free (ldup);
-  if (IDNA_SUCCESS !=
-      idna_to_ascii_8z (name, &output, IDNA_ALLOW_UNASSIGNED))
+  if (IDNA_SUCCESS != idna_to_ascii_8z (name, &output, IDNA_ALLOW_UNASSIGNED))
     return GNUNET_SYSERR;
   slen = strlen (output);
 #if WINDOWS
@@ -219,9 +219,9 @@ GNUNET_DNSPARSER_free_record (struct GNUNET_DNSPARSER_Record *r)
  */
 static char *
 parse_name (const char *udp_payload,
-	    size_t udp_payload_length,
-	    size_t *off,
-	    unsigned int depth)
+            size_t udp_payload_length,
+            size_t *off,
+            unsigned int depth)
 {
   const uint8_t *input = (const uint8_t *) udp_payload;
   char *ret;
@@ -250,78 +250,66 @@ parse_name (const char *udp_payload,
     {
       if (*off + 1 + len > udp_payload_length)
       {
-	GNUNET_break_op (0);
-	goto error;
+        GNUNET_break_op (0);
+        goto error;
       }
-      GNUNET_asprintf (&tmp,
-		       "%.*s",
-		       (int) len,
-		       &udp_payload[*off + 1]);
+      GNUNET_asprintf (&tmp, "%.*s", (int) len, &udp_payload[*off + 1]);
       if (IDNA_SUCCESS !=
-	  (rc = idna_to_unicode_8z8z (tmp, &utf8, IDNA_ALLOW_UNASSIGNED)))
+          (rc = idna_to_unicode_8z8z (tmp, &utf8, IDNA_ALLOW_UNASSIGNED)))
       {
-	GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-		    _("Failed to convert DNS IDNA name `%s' to UTF-8: %s\n"),
-		    tmp,
-		    idna_strerror (rc));
-	GNUNET_free (tmp);
-	GNUNET_asprintf (&tmp,
-			 "%s%.*s.",
-			 ret,
-			 (int) len,
-			 &udp_payload[*off + 1]);
+        GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                    _ ("Failed to convert DNS IDNA name `%s' to UTF-8: %s\n"),
+                    tmp,
+                    idna_strerror (rc));
+        GNUNET_free (tmp);
+        GNUNET_asprintf (&tmp,
+                         "%s%.*s.",
+                         ret,
+                         (int) len,
+                         &udp_payload[*off + 1]);
       }
       else
       {
-	GNUNET_free (tmp);
-	GNUNET_asprintf (&tmp,
-			 "%s%s.",
-			 ret,
-			 utf8);
+        GNUNET_free (tmp);
+        GNUNET_asprintf (&tmp, "%s%s.", ret, utf8);
 #if WINDOWS
-	idn_free (utf8);
+        idn_free (utf8);
 #else
-	free (utf8);
+        free (utf8);
 #endif
       }
       GNUNET_free (ret);
       ret = tmp;
       *off += 1 + len;
     }
-    else if ((64 | 128) == (len & (64 | 128)) )
+    else if ((64 | 128) == (len & (64 | 128)))
     {
       if (depth > 32)
       {
-	GNUNET_break_op (0);
-	goto error; /* hard bound on stack to prevent "infinite" recursion, disallow! */
+        GNUNET_break_op (0);
+        goto error; /* hard bound on stack to prevent "infinite" recursion, disallow! */
       }
       /* pointer to string */
       if (*off + 1 > udp_payload_length)
       {
-	GNUNET_break_op (0);
-	goto error;
+        GNUNET_break_op (0);
+        goto error;
       }
-      xoff = ((len - (64 | 128)) << 8) + input[*off+1];
-      xstr = parse_name (udp_payload,
-			 udp_payload_length,
-			 &xoff,
-			 depth + 1);
+      xoff = ((len - (64 | 128)) << 8) + input[*off + 1];
+      xstr = parse_name (udp_payload, udp_payload_length, &xoff, depth + 1);
       if (NULL == xstr)
       {
-	GNUNET_break_op (0);
-	goto error;
+        GNUNET_break_op (0);
+        goto error;
       }
-      GNUNET_asprintf (&tmp,
-		       "%s%s.",
-		       ret,
-		       xstr);
+      GNUNET_asprintf (&tmp, "%s%s.", ret, xstr);
       GNUNET_free (ret);
       GNUNET_free (xstr);
       ret = tmp;
       if (strlen (ret) > udp_payload_length)
       {
-	GNUNET_break_op (0);
-	goto error; /* we are looping (building an infinite string) */
+        GNUNET_break_op (0);
+        goto error; /* we are looping (building an infinite string) */
       }
       *off += 2;
       /* pointers always terminate names */
@@ -334,10 +322,10 @@ parse_name (const char *udp_payload,
       goto error;
     }
   }
-  if (0 < strlen(ret))
-    ret[strlen(ret)-1] = '\0'; /* eat tailing '.' */
+  if (0 < strlen (ret))
+    ret[strlen (ret) - 1] = '\0'; /* eat tailing '.' */
   return ret;
- error:
+error:
   GNUNET_break_op (0);
   GNUNET_free (ret);
   return NULL;
@@ -355,8 +343,8 @@ parse_name (const char *udp_payload,
  */
 char *
 GNUNET_DNSPARSER_parse_name (const char *udp_payload,
-			     size_t udp_payload_length,
-			     size_t *off)
+                             size_t udp_payload_length,
+                             size_t *off)
 {
   return parse_name (udp_payload, udp_payload_length, off, 0);
 }
@@ -374,16 +362,14 @@ GNUNET_DNSPARSER_parse_name (const char *udp_payload,
  */
 int
 GNUNET_DNSPARSER_parse_query (const char *udp_payload,
-			      size_t udp_payload_length,
-			      size_t *off,
-			      struct GNUNET_DNSPARSER_Query *q)
+                              size_t udp_payload_length,
+                              size_t *off,
+                              struct GNUNET_DNSPARSER_Query *q)
 {
   char *name;
   struct GNUNET_TUN_DnsQueryLine ql;
 
-  name = GNUNET_DNSPARSER_parse_name (udp_payload,
-				      udp_payload_length,
-				      off);
+  name = GNUNET_DNSPARSER_parse_name (udp_payload, udp_payload_length, off);
   if (NULL == name)
   {
     GNUNET_break_op (0);
@@ -414,8 +400,8 @@ GNUNET_DNSPARSER_parse_query (const char *udp_payload,
  */
 struct GNUNET_DNSPARSER_SoaRecord *
 GNUNET_DNSPARSER_parse_soa (const char *udp_payload,
-			    size_t udp_payload_length,
-			    size_t *off)
+                            size_t udp_payload_length,
+                            size_t *off)
 {
   struct GNUNET_DNSPARSER_SoaRecord *soa;
   struct GNUNET_TUN_DnsSoaRecord soa_bin;
@@ -423,15 +409,12 @@ GNUNET_DNSPARSER_parse_soa (const char *udp_payload,
 
   old_off = *off;
   soa = GNUNET_new (struct GNUNET_DNSPARSER_SoaRecord);
-  soa->mname = GNUNET_DNSPARSER_parse_name (udp_payload,
-					    udp_payload_length,
-					    off);
-  soa->rname = GNUNET_DNSPARSER_parse_name (udp_payload,
-					    udp_payload_length,
-					    off);
-  if ( (NULL == soa->mname) ||
-       (NULL == soa->rname) ||
-       (*off + sizeof (struct GNUNET_TUN_DnsSoaRecord) > udp_payload_length) )
+  soa->mname =
+    GNUNET_DNSPARSER_parse_name (udp_payload, udp_payload_length, off);
+  soa->rname =
+    GNUNET_DNSPARSER_parse_name (udp_payload, udp_payload_length, off);
+  if ((NULL == soa->mname) || (NULL == soa->rname) ||
+      (*off + sizeof (struct GNUNET_TUN_DnsSoaRecord) > udp_payload_length))
   {
     GNUNET_break_op (0);
     GNUNET_DNSPARSER_free_soa (soa);
@@ -439,8 +422,8 @@ GNUNET_DNSPARSER_parse_soa (const char *udp_payload,
     return NULL;
   }
   GNUNET_memcpy (&soa_bin,
-	  &udp_payload[*off],
-	  sizeof (struct GNUNET_TUN_DnsSoaRecord));
+                 &udp_payload[*off],
+                 sizeof (struct GNUNET_TUN_DnsSoaRecord));
   soa->serial = ntohl (soa_bin.serial);
   soa->refresh = ntohl (soa_bin.refresh);
   soa->retry = ntohl (soa_bin.retry);
@@ -462,8 +445,8 @@ GNUNET_DNSPARSER_parse_soa (const char *udp_payload,
  */
 struct GNUNET_DNSPARSER_MxRecord *
 GNUNET_DNSPARSER_parse_mx (const char *udp_payload,
-			   size_t udp_payload_length,
-			   size_t *off)
+                           size_t udp_payload_length,
+                           size_t *off)
 {
   struct GNUNET_DNSPARSER_MxRecord *mx;
   uint16_t mxpref;
@@ -479,9 +462,8 @@ GNUNET_DNSPARSER_parse_mx (const char *udp_payload,
   (*off) += sizeof (uint16_t);
   mx = GNUNET_new (struct GNUNET_DNSPARSER_MxRecord);
   mx->preference = ntohs (mxpref);
-  mx->mxhost = GNUNET_DNSPARSER_parse_name (udp_payload,
-					    udp_payload_length,
-					    off);
+  mx->mxhost =
+    GNUNET_DNSPARSER_parse_name (udp_payload, udp_payload_length, off);
   if (NULL == mx->mxhost)
   {
     GNUNET_break_op (0);
@@ -504,8 +486,8 @@ GNUNET_DNSPARSER_parse_mx (const char *udp_payload,
  */
 struct GNUNET_DNSPARSER_SrvRecord *
 GNUNET_DNSPARSER_parse_srv (const char *udp_payload,
-			    size_t udp_payload_length,
-			    size_t *off)
+                            size_t udp_payload_length,
+                            size_t *off)
 {
   struct GNUNET_DNSPARSER_SrvRecord *srv;
   struct GNUNET_TUN_DnsSrvRecord srv_bin;
@@ -515,16 +497,15 @@ GNUNET_DNSPARSER_parse_srv (const char *udp_payload,
   if (*off + sizeof (struct GNUNET_TUN_DnsSrvRecord) > udp_payload_length)
     return NULL;
   GNUNET_memcpy (&srv_bin,
-	  &udp_payload[*off],
-	  sizeof (struct GNUNET_TUN_DnsSrvRecord));
+                 &udp_payload[*off],
+                 sizeof (struct GNUNET_TUN_DnsSrvRecord));
   (*off) += sizeof (struct GNUNET_TUN_DnsSrvRecord);
   srv = GNUNET_new (struct GNUNET_DNSPARSER_SrvRecord);
   srv->priority = ntohs (srv_bin.prio);
   srv->weight = ntohs (srv_bin.weight);
   srv->port = ntohs (srv_bin.port);
-  srv->target = GNUNET_DNSPARSER_parse_name (udp_payload,
-					     udp_payload_length,
-					     off);
+  srv->target =
+    GNUNET_DNSPARSER_parse_name (udp_payload, udp_payload_length, off);
   if (NULL == srv->target)
   {
     GNUNET_DNSPARSER_free_srv (srv);
@@ -558,8 +539,8 @@ GNUNET_DNSPARSER_parse_cert (const char *udp_payload,
     return NULL;
   }
   GNUNET_memcpy (&dcert,
-		 &udp_payload[*off],
-		 sizeof (struct GNUNET_TUN_DnsCertRecord));
+                 &udp_payload[*off],
+                 sizeof (struct GNUNET_TUN_DnsCertRecord));
   (*off) += sizeof (struct GNUNET_TUN_DnsCertRecord);
   cert = GNUNET_new (struct GNUNET_DNSPARSER_CertRecord);
   cert->cert_type = ntohs (dcert.cert_type);
@@ -568,8 +549,8 @@ GNUNET_DNSPARSER_parse_cert (const char *udp_payload,
   cert->certificate_size = udp_payload_length - (*off);
   cert->certificate_data = GNUNET_malloc (cert->certificate_size);
   GNUNET_memcpy (cert->certificate_data,
-		 &udp_payload[*off],
-		 cert->certificate_size);
+                 &udp_payload[*off],
+                 cert->certificate_size);
   (*off) += cert->certificate_size;
   return cert;
 }
@@ -587,18 +568,16 @@ GNUNET_DNSPARSER_parse_cert (const char *udp_payload,
  */
 int
 GNUNET_DNSPARSER_parse_record (const char *udp_payload,
-			       size_t udp_payload_length,
-			       size_t *off,
-			       struct GNUNET_DNSPARSER_Record *r)
+                               size_t udp_payload_length,
+                               size_t *off,
+                               struct GNUNET_DNSPARSER_Record *r)
 {
   char *name;
   struct GNUNET_TUN_DnsRecordLine rl;
   size_t old_off;
   uint16_t data_len;
 
-  name = GNUNET_DNSPARSER_parse_name (udp_payload,
-				      udp_payload_length,
-				      off);
+  name = GNUNET_DNSPARSER_parse_name (udp_payload, udp_payload_length, off);
   if (NULL == name)
   {
     GNUNET_break_op (0);
@@ -614,8 +593,8 @@ GNUNET_DNSPARSER_parse_record (const char *udp_payload,
   (*off) += sizeof (rl);
   r->type = ntohs (rl.type);
   r->dns_traffic_class = ntohs (rl.dns_traffic_class);
-  r->expiration_time = GNUNET_TIME_relative_to_absolute (GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS,
-											ntohl (rl.ttl)));
+  r->expiration_time = GNUNET_TIME_relative_to_absolute (
+    GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, ntohl (rl.ttl)));
   data_len = ntohs (rl.data_len);
   if (*off + data_len > udp_payload_length)
   {
@@ -629,41 +608,33 @@ GNUNET_DNSPARSER_parse_record (const char *udp_payload,
   case GNUNET_DNSPARSER_TYPE_CNAME:
   case GNUNET_DNSPARSER_TYPE_DNAME:
   case GNUNET_DNSPARSER_TYPE_PTR:
-    r->data.hostname = GNUNET_DNSPARSER_parse_name (udp_payload,
-						    udp_payload_length,
-						    off);
-    if ( (NULL == r->data.hostname) ||
-	 (old_off + data_len != *off) )
+    r->data.hostname =
+      GNUNET_DNSPARSER_parse_name (udp_payload, udp_payload_length, off);
+    if ((NULL == r->data.hostname) || (old_off + data_len != *off))
       return GNUNET_SYSERR;
     return GNUNET_OK;
   case GNUNET_DNSPARSER_TYPE_SOA:
-    r->data.soa = GNUNET_DNSPARSER_parse_soa (udp_payload,
-					      udp_payload_length,
-					      off);
-    if ( (NULL == r->data.soa) ||
-	 (old_off + data_len != *off) )
+    r->data.soa =
+      GNUNET_DNSPARSER_parse_soa (udp_payload, udp_payload_length, off);
+    if ((NULL == r->data.soa) || (old_off + data_len != *off))
     {
       GNUNET_break_op (0);
       return GNUNET_SYSERR;
     }
     return GNUNET_OK;
   case GNUNET_DNSPARSER_TYPE_MX:
-    r->data.mx = GNUNET_DNSPARSER_parse_mx (udp_payload,
-					    udp_payload_length,
-					    off);
-    if ( (NULL == r->data.mx) ||
-	 (old_off + data_len != *off) )
+    r->data.mx =
+      GNUNET_DNSPARSER_parse_mx (udp_payload, udp_payload_length, off);
+    if ((NULL == r->data.mx) || (old_off + data_len != *off))
     {
       GNUNET_break_op (0);
       return GNUNET_SYSERR;
     }
     return GNUNET_OK;
   case GNUNET_DNSPARSER_TYPE_SRV:
-    r->data.srv = GNUNET_DNSPARSER_parse_srv (udp_payload,
-					      udp_payload_length,
-					      off);
-    if ( (NULL == r->data.srv) ||
-	 (old_off + data_len != *off) )
+    r->data.srv =
+      GNUNET_DNSPARSER_parse_srv (udp_payload, udp_payload_length, off);
+    if ((NULL == r->data.srv) || (old_off + data_len != *off))
     {
       GNUNET_break_op (0);
       return GNUNET_SYSERR;
@@ -672,9 +643,7 @@ GNUNET_DNSPARSER_parse_record (const char *udp_payload,
   default:
     r->data.raw.data = GNUNET_malloc (data_len);
     r->data.raw.data_len = data_len;
-    GNUNET_memcpy (r->data.raw.data,
-                   &udp_payload[*off],
-                   data_len);
+    GNUNET_memcpy (r->data.raw.data, &udp_payload[*off], data_len);
     break;
   }
   (*off) += data_len;
@@ -691,8 +660,7 @@ GNUNET_DNSPARSER_parse_record (const char *udp_payload,
  * @return NULL on error, otherwise the parsed packet
  */
 struct GNUNET_DNSPARSER_Packet *
-GNUNET_DNSPARSER_parse (const char *udp_payload,
-			size_t udp_payload_length)
+GNUNET_DNSPARSER_parse (const char *udp_payload, size_t udp_payload_length)
 {
   struct GNUNET_DNSPARSER_Packet *p;
   const struct GNUNET_TUN_DnsHeader *dns;
@@ -709,63 +677,57 @@ GNUNET_DNSPARSER_parse (const char *udp_payload,
   n = ntohs (dns->query_count);
   if (n > 0)
   {
-    p->queries = GNUNET_new_array (n,
-				   struct GNUNET_DNSPARSER_Query);
+    p->queries = GNUNET_new_array (n, struct GNUNET_DNSPARSER_Query);
     p->num_queries = n;
-    for (unsigned int i=0;i<n;i++)
-      if (GNUNET_OK !=
-	  GNUNET_DNSPARSER_parse_query (udp_payload,
-					udp_payload_length,
-					&off,
-					&p->queries[i]))
-	goto error;
+    for (unsigned int i = 0; i < n; i++)
+      if (GNUNET_OK != GNUNET_DNSPARSER_parse_query (udp_payload,
+                                                     udp_payload_length,
+                                                     &off,
+                                                     &p->queries[i]))
+        goto error;
   }
   n = ntohs (dns->answer_rcount);
   if (n > 0)
   {
-    p->answers = GNUNET_new_array (n,
-				   struct GNUNET_DNSPARSER_Record);
+    p->answers = GNUNET_new_array (n, struct GNUNET_DNSPARSER_Record);
     p->num_answers = n;
-    for (unsigned int i=0;i<n;i++)
-      if (GNUNET_OK !=
-	  GNUNET_DNSPARSER_parse_record (udp_payload,
-					 udp_payload_length,
-					 &off,
-					 &p->answers[i]))
-	goto error;
+    for (unsigned int i = 0; i < n; i++)
+      if (GNUNET_OK != GNUNET_DNSPARSER_parse_record (udp_payload,
+                                                      udp_payload_length,
+                                                      &off,
+                                                      &p->answers[i]))
+        goto error;
   }
   n = ntohs (dns->authority_rcount);
   if (n > 0)
   {
-    p->authority_records = GNUNET_new_array (n,
-					     struct GNUNET_DNSPARSER_Record);
+    p->authority_records = GNUNET_new_array (n, struct GNUNET_DNSPARSER_Record);
     p->num_authority_records = n;
-    for (unsigned int i=0;i<n;i++)
-      if (GNUNET_OK !=
-	  GNUNET_DNSPARSER_parse_record (udp_payload,
-					 udp_payload_length,
-					 &off,
-					 &p->authority_records[i]))
-	goto error;
+    for (unsigned int i = 0; i < n; i++)
+      if (GNUNET_OK != GNUNET_DNSPARSER_parse_record (udp_payload,
+                                                      udp_payload_length,
+                                                      &off,
+                                                      &p->authority_records[i]))
+        goto error;
   }
   n = ntohs (dns->additional_rcount);
   if (n > 0)
   {
-    p->additional_records = GNUNET_new_array (n,
-					      struct GNUNET_DNSPARSER_Record);
+    p->additional_records =
+      GNUNET_new_array (n, struct GNUNET_DNSPARSER_Record);
     p->num_additional_records = n;
-    for (unsigned int i=0;i<n;i++)
+    for (unsigned int i = 0; i < n; i++)
     {
       if (GNUNET_OK !=
-	  GNUNET_DNSPARSER_parse_record (udp_payload,
-					 udp_payload_length,
-					 &off,
-					 &p->additional_records[i]))
-	goto error;
+          GNUNET_DNSPARSER_parse_record (udp_payload,
+                                         udp_payload_length,
+                                         &off,
+                                         &p->additional_records[i]))
+        goto error;
     }
   }
   return p;
- error:
+error:
   GNUNET_break_op (0);
   GNUNET_DNSPARSER_free_packet (p);
   return NULL;
@@ -786,38 +748,31 @@ GNUNET_DNSPARSER_duplicate_record (const struct GNUNET_DNSPARSER_Record *r)
   dup->name = GNUNET_strdup (r->name);
   switch (r->type)
   {
-    case GNUNET_DNSPARSER_TYPE_NS:
-    case GNUNET_DNSPARSER_TYPE_CNAME:
-    case GNUNET_DNSPARSER_TYPE_PTR:
-    {
-      dup->data.hostname = GNUNET_strdup (r->data.hostname);
-      break;
-    }
-    case GNUNET_DNSPARSER_TYPE_SOA:
-    {
-      dup->data.soa = GNUNET_DNSPARSER_duplicate_soa_record (r->data.soa);
-      break;
-    }
-    case GNUNET_DNSPARSER_TYPE_CERT:
-    {
-      dup->data.cert = GNUNET_DNSPARSER_duplicate_cert_record (r->data.cert);
-      break;
-    }
-    case GNUNET_DNSPARSER_TYPE_MX:
-    {
-      dup->data.mx = GNUNET_DNSPARSER_duplicate_mx_record (r->data.mx);
-      break;
-    }
-    case GNUNET_DNSPARSER_TYPE_SRV:
-    {
-      dup->data.srv = GNUNET_DNSPARSER_duplicate_srv_record (r->data.srv);
-      break;
-    }
-    default:
-    {
-      dup->data.raw.data = GNUNET_memdup (r->data.raw.data,
-					  r->data.raw.data_len);
-    }
+  case GNUNET_DNSPARSER_TYPE_NS:
+  case GNUNET_DNSPARSER_TYPE_CNAME:
+  case GNUNET_DNSPARSER_TYPE_PTR: {
+    dup->data.hostname = GNUNET_strdup (r->data.hostname);
+    break;
+  }
+  case GNUNET_DNSPARSER_TYPE_SOA: {
+    dup->data.soa = GNUNET_DNSPARSER_duplicate_soa_record (r->data.soa);
+    break;
+  }
+  case GNUNET_DNSPARSER_TYPE_CERT: {
+    dup->data.cert = GNUNET_DNSPARSER_duplicate_cert_record (r->data.cert);
+    break;
+  }
+  case GNUNET_DNSPARSER_TYPE_MX: {
+    dup->data.mx = GNUNET_DNSPARSER_duplicate_mx_record (r->data.mx);
+    break;
+  }
+  case GNUNET_DNSPARSER_TYPE_SRV: {
+    dup->data.srv = GNUNET_DNSPARSER_duplicate_srv_record (r->data.srv);
+    break;
+  }
+  default: {
+    dup->data.raw.data = GNUNET_memdup (r->data.raw.data, r->data.raw.data_len);
+  }
   }
   return dup;
 }
@@ -830,7 +785,8 @@ GNUNET_DNSPARSER_duplicate_record (const struct GNUNET_DNSPARSER_Record *r)
  * @return the newly allocated record
  */
 struct GNUNET_DNSPARSER_SoaRecord *
-GNUNET_DNSPARSER_duplicate_soa_record (const struct GNUNET_DNSPARSER_SoaRecord *r)
+GNUNET_DNSPARSER_duplicate_soa_record (
+  const struct GNUNET_DNSPARSER_SoaRecord *r)
 {
   struct GNUNET_DNSPARSER_SoaRecord *dup = GNUNET_memdup (r, sizeof (*r));
 
@@ -847,7 +803,8 @@ GNUNET_DNSPARSER_duplicate_soa_record (const struct GNUNET_DNSPARSER_SoaRecord *
  * @return the newly allocated record
  */
 struct GNUNET_DNSPARSER_CertRecord *
-GNUNET_DNSPARSER_duplicate_cert_record (const struct GNUNET_DNSPARSER_CertRecord *r)
+GNUNET_DNSPARSER_duplicate_cert_record (
+  const struct GNUNET_DNSPARSER_CertRecord *r)
 {
   struct GNUNET_DNSPARSER_CertRecord *dup = GNUNET_memdup (r, sizeof (*r));
 
@@ -879,7 +836,8 @@ GNUNET_DNSPARSER_duplicate_mx_record (const struct GNUNET_DNSPARSER_MxRecord *r)
  * @return the newly allocated record
  */
 struct GNUNET_DNSPARSER_SrvRecord *
-GNUNET_DNSPARSER_duplicate_srv_record (const struct GNUNET_DNSPARSER_SrvRecord *r)
+GNUNET_DNSPARSER_duplicate_srv_record (
+  const struct GNUNET_DNSPARSER_SrvRecord *r)
 {
   struct GNUNET_DNSPARSER_SrvRecord *dup = GNUNET_memdup (r, sizeof (*r));
 
@@ -896,16 +854,16 @@ GNUNET_DNSPARSER_duplicate_srv_record (const struct GNUNET_DNSPARSER_SrvRecord *
 void
 GNUNET_DNSPARSER_free_packet (struct GNUNET_DNSPARSER_Packet *p)
 {
-  for (unsigned int i=0;i<p->num_queries;i++)
+  for (unsigned int i = 0; i < p->num_queries; i++)
     GNUNET_free_non_null (p->queries[i].name);
   GNUNET_free_non_null (p->queries);
-  for (unsigned int i=0;i<p->num_answers;i++)
+  for (unsigned int i = 0; i < p->num_answers; i++)
     GNUNET_DNSPARSER_free_record (&p->answers[i]);
   GNUNET_free_non_null (p->answers);
-  for (unsigned int i=0;i<p->num_authority_records;i++)
+  for (unsigned int i = 0; i < p->num_authority_records; i++)
     GNUNET_DNSPARSER_free_record (&p->authority_records[i]);
   GNUNET_free_non_null (p->authority_records);
-  for (unsigned int i=0;i<p->num_additional_records;i++)
+  for (unsigned int i = 0; i < p->num_additional_records; i++)
     GNUNET_DNSPARSER_free_record (&p->additional_records[i]);
   GNUNET_free_non_null (p->additional_records);
   GNUNET_free (p);
@@ -930,9 +888,9 @@ GNUNET_DNSPARSER_free_packet (struct GNUNET_DNSPARSER_Packet *p)
  */
 int
 GNUNET_DNSPARSER_builder_add_name (char *dst,
-				   size_t dst_len,
-				   size_t *off,
-				   const char *name)
+                                   size_t dst_len,
+                                   size_t *off,
+                                   const char *name)
 {
   const char *dot;
   const char *idna_name;
@@ -946,14 +904,13 @@ GNUNET_DNSPARSER_builder_add_name (char *dst,
     return GNUNET_SYSERR;
 
   if (IDNA_SUCCESS !=
-      (rc = idna_to_ascii_8z (name,
-                              &idna_start,
-                              IDNA_ALLOW_UNASSIGNED)))
+      (rc = idna_to_ascii_8z (name, &idna_start, IDNA_ALLOW_UNASSIGNED)))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-		_("Failed to convert UTF-8 name `%s' to DNS IDNA format: %s\n"),
-		name,
-		idna_strerror (rc));
+                _ (
+                  "Failed to convert UTF-8 name `%s' to DNS IDNA format: %s\n"),
+                name,
+                idna_strerror (rc));
     return GNUNET_NO;
   }
   idna_name = idna_start;
@@ -968,7 +925,7 @@ GNUNET_DNSPARSER_builder_add_name (char *dst,
       len = strlen (idna_name);
     else
       len = dot - idna_name;
-    if ( (len >= 64) || (0 == len) )
+    if ((len >= 64) || (0 == len))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                   "Invalid DNS name `%s': label with %u characters encountered\n",
@@ -977,13 +934,10 @@ GNUNET_DNSPARSER_builder_add_name (char *dst,
       goto fail; /* label too long or empty */
     }
     dst[pos++] = (char) (uint8_t) len;
-    GNUNET_memcpy (&dst[pos],
-                   idna_name,
-                   len);
+    GNUNET_memcpy (&dst[pos], idna_name, len);
     pos += len;
     idna_name += len + 1; /* also skip dot */
-  }
-  while (NULL != dot);
+  } while (NULL != dot);
   dst[pos++] = '\0'; /* terminator */
   *off = pos;
 #if WINDOWS
@@ -992,7 +946,7 @@ GNUNET_DNSPARSER_builder_add_name (char *dst,
   free (idna_start);
 #endif
   return GNUNET_OK;
- fail:
+fail:
 #if WINDOWS
   idn_free (idna_start);
 #else
@@ -1016,14 +970,19 @@ GNUNET_DNSPARSER_builder_add_name (char *dst,
  */
 int
 GNUNET_DNSPARSER_builder_add_query (char *dst,
-				    size_t dst_len,
-				    size_t *off,
-				    const struct GNUNET_DNSPARSER_Query *query)
+                                    size_t dst_len,
+                                    size_t *off,
+                                    const struct GNUNET_DNSPARSER_Query *query)
 {
   int ret;
   struct GNUNET_TUN_DnsQueryLine ql;
 
-  ret = GNUNET_DNSPARSER_builder_add_name (dst, dst_len - sizeof (struct GNUNET_TUN_DnsQueryLine), off, query->name);
+  ret = GNUNET_DNSPARSER_builder_add_name (dst,
+                                           dst_len -
+                                             sizeof (
+                                               struct GNUNET_TUN_DnsQueryLine),
+                                           off,
+                                           query->name);
   if (ret != GNUNET_OK)
     return ret;
   ql.type = htons (query->type);
@@ -1048,23 +1007,18 @@ GNUNET_DNSPARSER_builder_add_query (char *dst,
  */
 int
 GNUNET_DNSPARSER_builder_add_mx (char *dst,
-				 size_t dst_len,
-				 size_t *off,
-				 const struct GNUNET_DNSPARSER_MxRecord *mx)
+                                 size_t dst_len,
+                                 size_t *off,
+                                 const struct GNUNET_DNSPARSER_MxRecord *mx)
 {
   uint16_t mxpref;
 
   if (*off + sizeof (uint16_t) > dst_len)
     return GNUNET_NO;
   mxpref = htons (mx->preference);
-  GNUNET_memcpy (&dst[*off],
-		 &mxpref,
-		 sizeof (mxpref));
+  GNUNET_memcpy (&dst[*off], &mxpref, sizeof (mxpref));
   (*off) += sizeof (mxpref);
-  return GNUNET_DNSPARSER_builder_add_name (dst,
-					    dst_len,
-					    off,
-					    mx->mxhost);
+  return GNUNET_DNSPARSER_builder_add_name (dst, dst_len, off, mx->mxhost);
 }
 
 
@@ -1081,10 +1035,11 @@ GNUNET_DNSPARSER_builder_add_mx (char *dst,
  *         #GNUNET_OK if @a cert was added to @a dst
  */
 int
-GNUNET_DNSPARSER_builder_add_cert (char *dst,
-                                   size_t dst_len,
-                                   size_t *off,
-                                   const struct GNUNET_DNSPARSER_CertRecord *cert)
+GNUNET_DNSPARSER_builder_add_cert (
+  char *dst,
+  size_t dst_len,
+  size_t *off,
+  const struct GNUNET_DNSPARSER_CertRecord *cert)
 {
   struct GNUNET_TUN_DnsCertRecord dcert;
 
@@ -1092,8 +1047,7 @@ GNUNET_DNSPARSER_builder_add_cert (char *dst,
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wtautological-constant-out-of-range-compare"
 #endif
-  if ( (cert->cert_type > UINT16_MAX) ||
-       (cert->algorithm > UINT8_MAX) )
+  if ((cert->cert_type > UINT16_MAX) || (cert->algorithm > UINT8_MAX))
   {
     GNUNET_break (0);
     return GNUNET_SYSERR;
@@ -1101,7 +1055,8 @@ GNUNET_DNSPARSER_builder_add_cert (char *dst,
 #ifdef __clang__
 #pragma clang diagnostic pop
 #endif
-  if (*off + sizeof (struct GNUNET_TUN_DnsCertRecord) + cert->certificate_size > dst_len)
+  if (*off + sizeof (struct GNUNET_TUN_DnsCertRecord) + cert->certificate_size >
+      dst_len)
     return GNUNET_NO;
   dcert.cert_type = htons ((uint16_t) cert->cert_type);
   dcert.cert_tag = htons ((uint16_t) cert->cert_tag);
@@ -1128,21 +1083,19 @@ GNUNET_DNSPARSER_builder_add_cert (char *dst,
  */
 int
 GNUNET_DNSPARSER_builder_add_soa (char *dst,
-				  size_t dst_len,
-				  size_t *off,
-				  const struct GNUNET_DNSPARSER_SoaRecord *soa)
+                                  size_t dst_len,
+                                  size_t *off,
+                                  const struct GNUNET_DNSPARSER_SoaRecord *soa)
 {
   struct GNUNET_TUN_DnsSoaRecord sd;
   int ret;
 
-  if ( (GNUNET_OK != (ret = GNUNET_DNSPARSER_builder_add_name (dst,
-                                                               dst_len,
-                                                               off,
-                                                               soa->mname))) ||
-       (GNUNET_OK != (ret = GNUNET_DNSPARSER_builder_add_name (dst,
-                                                               dst_len,
-                                                               off,
-                                                               soa->rname)) ) )
+  if ((GNUNET_OK !=
+       (ret =
+          GNUNET_DNSPARSER_builder_add_name (dst, dst_len, off, soa->mname))) ||
+      (GNUNET_OK !=
+       (ret =
+          GNUNET_DNSPARSER_builder_add_name (dst, dst_len, off, soa->rname))))
     return ret;
   if (*off + sizeof (struct GNUNET_TUN_DnsSoaRecord) > dst_len)
     return GNUNET_NO;
@@ -1171,9 +1124,9 @@ GNUNET_DNSPARSER_builder_add_soa (char *dst,
  */
 int
 GNUNET_DNSPARSER_builder_add_srv (char *dst,
-				  size_t dst_len,
-				  size_t *off,
-				  const struct GNUNET_DNSPARSER_SrvRecord *srv)
+                                  size_t dst_len,
+                                  size_t *off,
+                                  const struct GNUNET_DNSPARSER_SrvRecord *srv)
 {
   struct GNUNET_TUN_DnsSrvRecord sd;
   int ret;
@@ -1183,14 +1136,11 @@ GNUNET_DNSPARSER_builder_add_srv (char *dst,
   sd.prio = htons (srv->priority);
   sd.weight = htons (srv->weight);
   sd.port = htons (srv->port);
-  GNUNET_memcpy (&dst[*off],
-		 &sd,
-		 sizeof (sd));
+  GNUNET_memcpy (&dst[*off], &sd, sizeof (sd));
   (*off) += sizeof (sd);
-  if (GNUNET_OK != (ret = GNUNET_DNSPARSER_builder_add_name (dst,
-							     dst_len,
-							     off,
-							     srv->target)))
+  if (GNUNET_OK !=
+      (ret =
+         GNUNET_DNSPARSER_builder_add_name (dst, dst_len, off, srv->target)))
     return ret;
   return GNUNET_OK;
 }
@@ -1210,9 +1160,9 @@ GNUNET_DNSPARSER_builder_add_srv (char *dst,
  */
 static int
 add_record (char *dst,
-	    size_t dst_len,
-	    size_t *off,
-	    const struct GNUNET_DNSPARSER_Record *record)
+            size_t dst_len,
+            size_t *off,
+            const struct GNUNET_DNSPARSER_Record *record)
 {
   int ret;
   size_t start;
@@ -1221,7 +1171,9 @@ add_record (char *dst,
 
   start = *off;
   ret = GNUNET_DNSPARSER_builder_add_name (dst,
-                                           dst_len - sizeof (struct GNUNET_TUN_DnsRecordLine),
+                                           dst_len -
+                                             sizeof (
+                                               struct GNUNET_TUN_DnsRecordLine),
                                            off,
                                            record->name);
   if (GNUNET_OK != ret)
@@ -1232,36 +1184,27 @@ add_record (char *dst,
   switch (record->type)
   {
   case GNUNET_DNSPARSER_TYPE_MX:
-    ret = GNUNET_DNSPARSER_builder_add_mx (dst,
-					   dst_len,
-					   &pos,
-					   record->data.mx);
+    ret = GNUNET_DNSPARSER_builder_add_mx (dst, dst_len, &pos, record->data.mx);
     break;
   case GNUNET_DNSPARSER_TYPE_CERT:
-    ret = GNUNET_DNSPARSER_builder_add_cert (dst,
-					     dst_len,
-					     &pos,
-					     record->data.cert);
+    ret =
+      GNUNET_DNSPARSER_builder_add_cert (dst, dst_len, &pos, record->data.cert);
     break;
   case GNUNET_DNSPARSER_TYPE_SOA:
-    ret = GNUNET_DNSPARSER_builder_add_soa (dst,
-					    dst_len,
-					    &pos,
-					    record->data.soa);
+    ret =
+      GNUNET_DNSPARSER_builder_add_soa (dst, dst_len, &pos, record->data.soa);
     break;
   case GNUNET_DNSPARSER_TYPE_NS:
   case GNUNET_DNSPARSER_TYPE_CNAME:
   case GNUNET_DNSPARSER_TYPE_PTR:
     ret = GNUNET_DNSPARSER_builder_add_name (dst,
-					     dst_len,
-					     &pos,
-					     record->data.hostname);
+                                             dst_len,
+                                             &pos,
+                                             record->data.hostname);
     break;
   case GNUNET_DNSPARSER_TYPE_SRV:
-    ret = GNUNET_DNSPARSER_builder_add_srv (dst,
-					    dst_len,
-					    &pos,
-					    record->data.srv);
+    ret =
+      GNUNET_DNSPARSER_builder_add_srv (dst, dst_len, &pos, record->data.srv);
     break;
   default:
     if (pos + record->data.raw.data_len > dst_len)
@@ -1269,9 +1212,7 @@ add_record (char *dst,
       ret = GNUNET_NO;
       break;
     }
-    GNUNET_memcpy (&dst[pos],
-		   record->data.raw.data,
-		   record->data.raw.data_len);
+    GNUNET_memcpy (&dst[pos], record->data.raw.data, record->data.raw.data_len);
     pos += record->data.raw.data_len;
     ret = GNUNET_OK;
     break;
@@ -1290,11 +1231,12 @@ add_record (char *dst,
   }
   rl.type = htons (record->type);
   rl.dns_traffic_class = htons (record->dns_traffic_class);
-  rl.ttl = htonl (GNUNET_TIME_absolute_get_remaining (record->expiration_time).rel_value_us / 1000LL / 1000LL); /* in seconds */
-  rl.data_len = htons ((uint16_t) (pos - (*off + sizeof (struct GNUNET_TUN_DnsRecordLine))));
-  GNUNET_memcpy (&dst[*off],
-		 &rl,
-		 sizeof (struct GNUNET_TUN_DnsRecordLine));
+  rl.ttl = htonl (
+    GNUNET_TIME_absolute_get_remaining (record->expiration_time).rel_value_us /
+    1000LL / 1000LL); /* in seconds */
+  rl.data_len = htons (
+    (uint16_t) (pos - (*off + sizeof (struct GNUNET_TUN_DnsRecordLine))));
+  GNUNET_memcpy (&dst[*off], &rl, sizeof (struct GNUNET_TUN_DnsRecordLine));
   *off = pos;
   return GNUNET_OK;
 }
@@ -1316,9 +1258,9 @@ add_record (char *dst,
  */
 int
 GNUNET_DNSPARSER_pack (const struct GNUNET_DNSPARSER_Packet *p,
-		       uint16_t max,
-		       char **buf,
-		       size_t *buf_length)
+                       uint16_t max,
+                       char **buf,
+                       size_t *buf_length)
 {
   struct GNUNET_TUN_DnsHeader dns;
   size_t off;
@@ -1326,10 +1268,9 @@ GNUNET_DNSPARSER_pack (const struct GNUNET_DNSPARSER_Packet *p,
   int ret;
   int trc;
 
-  if ( (p->num_queries > UINT16_MAX) ||
-       (p->num_answers > UINT16_MAX) ||
-       (p->num_authority_records > UINT16_MAX) ||
-       (p->num_additional_records > UINT16_MAX) )
+  if ((p->num_queries > UINT16_MAX) || (p->num_answers > UINT16_MAX) ||
+      (p->num_authority_records > UINT16_MAX) ||
+      (p->num_additional_records > UINT16_MAX))
     return GNUNET_SYSERR;
   dns.id = p->id;
   dns.flags = p->flags;
@@ -1340,62 +1281,53 @@ GNUNET_DNSPARSER_pack (const struct GNUNET_DNSPARSER_Packet *p,
 
   off = sizeof (struct GNUNET_TUN_DnsHeader);
   trc = GNUNET_NO;
-  for (unsigned int i=0;i<p->num_queries;i++)
+  for (unsigned int i = 0; i < p->num_queries; i++)
   {
     ret = GNUNET_DNSPARSER_builder_add_query (tmp,
-					      sizeof (tmp),
-					      &off,
-					      &p->queries[i]);
+                                              sizeof (tmp),
+                                              &off,
+                                              &p->queries[i]);
     if (GNUNET_SYSERR == ret)
       return GNUNET_SYSERR;
     if (GNUNET_NO == ret)
     {
-      dns.query_count = htons ((uint16_t) (i-1));
+      dns.query_count = htons ((uint16_t) (i - 1));
       trc = GNUNET_YES;
       break;
     }
   }
-  for (unsigned int i=0;i<p->num_answers;i++)
+  for (unsigned int i = 0; i < p->num_answers; i++)
   {
-    ret = add_record (tmp,
-		      sizeof (tmp),
-		      &off,
-		      &p->answers[i]);
+    ret = add_record (tmp, sizeof (tmp), &off, &p->answers[i]);
     if (GNUNET_SYSERR == ret)
       return GNUNET_SYSERR;
     if (GNUNET_NO == ret)
     {
-      dns.answer_rcount = htons ((uint16_t) (i-1));
+      dns.answer_rcount = htons ((uint16_t) (i - 1));
       trc = GNUNET_YES;
       break;
     }
   }
-  for (unsigned int i=0;i<p->num_authority_records;i++)
+  for (unsigned int i = 0; i < p->num_authority_records; i++)
   {
-    ret = add_record (tmp,
-		      sizeof (tmp),
-		      &off,
-		      &p->authority_records[i]);
+    ret = add_record (tmp, sizeof (tmp), &off, &p->authority_records[i]);
     if (GNUNET_SYSERR == ret)
       return GNUNET_SYSERR;
     if (GNUNET_NO == ret)
     {
-      dns.authority_rcount = htons ((uint16_t) (i-1));
+      dns.authority_rcount = htons ((uint16_t) (i - 1));
       trc = GNUNET_YES;
       break;
     }
   }
-  for (unsigned int i=0;i<p->num_additional_records;i++)
+  for (unsigned int i = 0; i < p->num_additional_records; i++)
   {
-    ret = add_record (tmp,
-		      sizeof (tmp),
-		      &off,
-		      &p->additional_records[i]);
+    ret = add_record (tmp, sizeof (tmp), &off, &p->additional_records[i]);
     if (GNUNET_SYSERR == ret)
       return GNUNET_SYSERR;
     if (GNUNET_NO == ret)
     {
-      dns.additional_rcount = htons (i-1);
+      dns.additional_rcount = htons (i - 1);
       trc = GNUNET_YES;
       break;
     }
@@ -1403,15 +1335,11 @@ GNUNET_DNSPARSER_pack (const struct GNUNET_DNSPARSER_Packet *p,
 
   if (GNUNET_YES == trc)
     dns.flags.message_truncated = 1;
-  GNUNET_memcpy (tmp,
-		 &dns,
-		 sizeof (struct GNUNET_TUN_DnsHeader));
+  GNUNET_memcpy (tmp, &dns, sizeof (struct GNUNET_TUN_DnsHeader));
 
   *buf = GNUNET_malloc (off);
   *buf_length = off;
-  GNUNET_memcpy (*buf,
-		 tmp,
-		 off);
+  GNUNET_memcpy (*buf, tmp, off);
   if (GNUNET_YES == trc)
     return GNUNET_NO;
   return GNUNET_OK;
@@ -1426,8 +1354,7 @@ GNUNET_DNSPARSER_pack (const struct GNUNET_DNSPARSER_Packet *p,
  * @return HEX string (lower case)
  */
 char *
-GNUNET_DNSPARSER_bin_to_hex (const void *data,
-                             size_t data_size)
+GNUNET_DNSPARSER_bin_to_hex (const void *data, size_t data_size)
 {
   char *ret;
   size_t off;
@@ -1436,9 +1363,7 @@ GNUNET_DNSPARSER_bin_to_hex (const void *data,
   idata = data;
   ret = GNUNET_malloc (data_size * 2 + 1);
   for (off = 0; off < data_size; off++)
-    sprintf (&ret[off * 2],
-             "%02x",
-             idata[off]);
+    sprintf (&ret[off * 2], "%02x", idata[off]);
   return ret;
 }
 
@@ -1452,8 +1377,7 @@ GNUNET_DNSPARSER_bin_to_hex (const void *data,
  * @return number of bytes written to data
  */
 size_t
-GNUNET_DNSPARSER_hex_to_bin (const char *hex,
-                             void *data)
+GNUNET_DNSPARSER_hex_to_bin (const char *hex, void *data)
 {
   size_t data_size;
   size_t off;
