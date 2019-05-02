@@ -18,6 +18,8 @@ UNIX_MATCH_GID = YES
 # GLOBAL_POSTFIX = -l $GNUNET_CACHE_HOME/{}-%Y-%m-%d.log
 GLOBAL_PREFIX =
 
+# By default, when launching GNUnet via gnunet-arm, log
+# everything to a simple flat log file.
 OPTIONS = -l $GNUNET_CACHE_HOME/gnunet-%Y-%m-%d.log
 
 # If set to YES, ARM will only start services that are marked as
