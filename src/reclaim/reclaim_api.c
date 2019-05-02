@@ -610,6 +610,7 @@ handle_attribute_result (void *cls, const struct AttributeResultMessage *msg)
   GNUNET_assert (0);
 }
 
+
 /**
  * Handle an incoming message of type
  * #GNUNET_MESSAGE_TYPE_RECLAIM_TICKET_RESULT

@@ -11,7 +11,7 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -22,10 +22,9 @@
  * @author Martin Schanzenbach
  *
  * @file
- * Plugin API for the idp database backend
+ * Plugin API for reclaim attribute types
  *
- * @defgroup identity-provider-plugin  IdP service plugin API
- * Plugin API for the idp database backend
+ * @defgroup reclaim-attribute-plugin  reclaim plugin API for attributes/claims
  * @{
  */
 #ifndef GNUNET_RECLAIM_ATTRIBUTE_PLUGIN_H
@@ -35,9 +34,8 @@
 #include "gnunet_reclaim_attribute_lib.h"
 
 #ifdef __cplusplus
-extern "C"
-{
-#if 0                           /* keep Emacsens' auto-indent happy */
+extern "C" {
+#if 0 /* keep Emacsens' auto-indent happy */
 }
 #endif
 #endif
@@ -53,10 +51,11 @@ extern "C"
  * @param data_size number of bytes in @a data
  * @return NULL on error, otherwise human-readable representation of the value
  */
-typedef char * (*GNUNET_RECLAIM_ATTRIBUTE_ValueToStringFunction) (void *cls,
-                                                          uint32_t type,
-                                                          const void *data,
-                                                          size_t data_size);
+typedef char *(*GNUNET_RECLAIM_ATTRIBUTE_ValueToStringFunction) (
+  void *cls,
+  uint32_t type,
+  const void *data,
+  size_t data_size);
 
 
 /**
@@ -71,11 +70,12 @@ typedef char * (*GNUNET_RECLAIM_ATTRIBUTE_ValueToStringFunction) (void *cls,
  * @param data_size set to number of bytes in @a data
  * @return #GNUNET_OK on success
  */
-typedef int (*GNUNET_RECLAIM_ATTRIBUTE_StringToValueFunction) (void *cls,
-                                                       uint32_t type,
-                                                       const char *s,
-                                                       void **data,
-                                                       size_t *data_size);
+typedef int (*GNUNET_RECLAIM_ATTRIBUTE_StringToValueFunction) (
+  void *cls,
+  uint32_t type,
+  const char *s,
+  void **data,
+  size_t *data_size);
 
 
 /**
@@ -86,8 +86,9 @@ typedef int (*GNUNET_RECLAIM_ATTRIBUTE_StringToValueFunction) (void *cls,
  * @param typename name to convert
  * @return corresponding number, UINT32_MAX on error
  */
-typedef uint32_t (*GNUNET_RECLAIM_ATTRIBUTE_TypenameToNumberFunction) (void *cls,
-                                                               const char *typename);
+typedef uint32_t (*GNUNET_RECLAIM_ATTRIBUTE_TypenameToNumberFunction) (
+  void *cls,
+  const char *typename);
 
 
 /**
@@ -98,8 +99,9 @@ typedef uint32_t (*GNUNET_RECLAIM_ATTRIBUTE_TypenameToNumberFunction) (void *cls
  * @param type number of a type to convert
  * @return corresponding typestring, NULL on error
  */
-typedef const char * (*GNUNET_RECLAIM_ATTRIBUTE_NumberToTypenameFunction) (void *cls,
-                                                                   uint32_t type);
+typedef const char *(*GNUNET_RECLAIM_ATTRIBUTE_NumberToTypenameFunction) (
+  void *cls,
+  uint32_t type);
 
 
 /**
@@ -133,11 +135,10 @@ struct GNUNET_RECLAIM_ATTRIBUTE_PluginFunctions
    * Number to typename.
    */
   GNUNET_RECLAIM_ATTRIBUTE_NumberToTypenameFunction number_to_typename;
-
 };
 
 
-#if 0                           /* keep Emacsens' auto-indent happy */
+#if 0 /* keep Emacsens' auto-indent happy */
 {
 #endif
 #ifdef __cplusplus
@@ -146,4 +147,4 @@ struct GNUNET_RECLAIM_ATTRIBUTE_PluginFunctions
 
 #endif
 
-/** @} */  /* end of group */
+/** @} */ /* end of group */

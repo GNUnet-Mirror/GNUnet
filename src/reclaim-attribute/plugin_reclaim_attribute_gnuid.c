@@ -11,7 +11,7 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -20,8 +20,9 @@
 
 /**
  * @file reclaim-attribute/plugin_reclaim_attribute_gnuid.c
- * @brief identity attribute plugin to provide the API for fundamental 
- *                 attribute types.
+ * @brief reclaim-attribute-plugin-gnuid attribute plugin to provide the API for
+ *                                       fundamental
+ *                                       attribute types.
  *
  * @author Martin Schanzenbach
  */
@@ -42,9 +43,9 @@
  */
 static char *
 gnuid_value_to_string (void *cls,
-                     uint32_t type,
-                     const void *data,
-                     size_t data_size)
+                       uint32_t type,
+                       const void *data,
+                       size_t data_size)
 {
 
   switch (type)
@@ -70,22 +71,22 @@ gnuid_value_to_string (void *cls,
  */
 static int
 gnuid_string_to_value (void *cls,
-                     uint32_t type,
-                     const char *s,
-                     void **data,
-                     size_t *data_size)
+                       uint32_t type,
+                       const char *s,
+                       void **data,
+                       size_t *data_size)
 {
   if (NULL == s)
     return GNUNET_SYSERR;
   switch (type)
   {
 
-    case GNUNET_RECLAIM_ATTRIBUTE_TYPE_STRING:
-      *data = GNUNET_strdup (s);
-      *data_size = strlen (s);
-      return GNUNET_OK;
-    default:
-      return GNUNET_SYSERR;
+  case GNUNET_RECLAIM_ATTRIBUTE_TYPE_STRING:
+    *data = GNUNET_strdup (s);
+    *data_size = strlen (s);
+    return GNUNET_OK;
+  default:
+    return GNUNET_SYSERR;
   }
 }
 
@@ -94,13 +95,12 @@ gnuid_string_to_value (void *cls,
  * Mapping of attribute type numbers to human-readable
  * attribute type names.
  */
-static struct {
+static struct
+{
   const char *name;
   uint32_t number;
-} gnuid_name_map[] = {
-  { "STRING",  GNUNET_RECLAIM_ATTRIBUTE_TYPE_STRING },
-  { NULL, UINT32_MAX }
-};
+} gnuid_name_map[] = {{"STRING", GNUNET_RECLAIM_ATTRIBUTE_TYPE_STRING},
+                      {NULL, UINT32_MAX}};
 
 
 /**
@@ -111,15 +111,13 @@ static struct {
  * @return corresponding number, UINT32_MAX on error
  */
 static uint32_t
-gnuid_typename_to_number (void *cls,
-                        const char *gnuid_typename)
+gnuid_typename_to_number (void *cls, const char *gnuid_typename)
 {
   unsigned int i;
 
-  i=0;
-  while ( (NULL != gnuid_name_map[i].name) &&
-          (0 != strcasecmp (gnuid_typename,
-                            gnuid_name_map[i].name)) )
+  i = 0;
+  while ((NULL != gnuid_name_map[i].name) &&
+         (0 != strcasecmp (gnuid_typename, gnuid_name_map[i].name)))
     i++;
   return gnuid_name_map[i].number;
 }
@@ -133,14 +131,12 @@ gnuid_typename_to_number (void *cls,
  * @return corresponding typestring, NULL on error
  */
 static const char *
-gnuid_number_to_typename (void *cls,
-                        uint32_t type)
+gnuid_number_to_typename (void *cls, uint32_t type)
 {
   unsigned int i;
 
-  i=0;
-  while ( (NULL != gnuid_name_map[i].name) &&
-          (type != gnuid_name_map[i].number) )
+  i = 0;
+  while ((NULL != gnuid_name_map[i].name) && (type != gnuid_name_map[i].number))
     i++;
   return gnuid_name_map[i].name;
 }

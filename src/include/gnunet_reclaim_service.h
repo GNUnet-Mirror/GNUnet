@@ -22,9 +22,10 @@
  * @author Martin Schanzenbach
  *
  * @file
- * Identity provider service; implements identity provider for GNUnet
+ * reclaim service; implements identity and personal data sharing
+ * for GNUnet
  *
- * @defgroup reclaim  Identity Provider service
+ * @defgroup reclaim service
  * @{
  */
 #ifndef GNUNET_RECLAIM_SERVICE_H
@@ -43,7 +44,7 @@ extern "C" {
 /**
  * Version number of the re:claimID API.
  */
-#define GNUNET_RECLAIM_VERSION 0x00000000
+#define GNUNET_RECLAIM_VERSION 0x00000001
 
 /**
  * Opaque handle to access the service.
@@ -58,10 +59,10 @@ struct GNUNET_RECLAIM_Operation;
 
 
 /**
- * The an authorization ticket. This ticket is meant to be transferred
- * out of band the a relying party.
+ * The authorization ticket. This ticket is meant to be transferred
+ * out of band to a relying party.
  * The contents of a ticket must be protected and should be treated as a
- * SHARED SECRET between user and relying party.
+ * shared secret between user and relying party.
  */
 struct GNUNET_RECLAIM_Ticket
 {
@@ -84,8 +85,8 @@ struct GNUNET_RECLAIM_Ticket
 
 /**
  * Method called when a token has been issued.
- * On success returns a ticket that can be given to the relying party to retrive
- * the token
+ * On success returns a ticket that can be given to a relying party
+ * in order for it retrive identity attributes
  *
  * @param cls closure
  * @param ticket the ticket
@@ -133,7 +134,7 @@ GNUNET_RECLAIM_connect (const struct GNUNET_CONFIGURATION_Handle *cfg);
  * Store an attribute.  If the attribute is already present,
  * it is replaced with the new attribute.
  *
- * @param h handle to the re:claimID service
+ * @param h handle to the reclaim service
  * @param pkey Private key of the identity to add an attribute to
  * @param attr The attribute
  * @param exp_interval The relative expiration interval for the attribute
@@ -246,6 +247,7 @@ GNUNET_RECLAIM_ticket_issue (
     const struct GNUNET_RECLAIM_ATTRIBUTE_ClaimList *attrs,
     GNUNET_RECLAIM_TicketCallback cb, void *cb_cls);
 
+
 /**
  * Revoked an issued ticket. The relying party will be unable to retrieve
  * attributes. Other issued tickets remain unaffected.
@@ -286,6 +288,7 @@ GNUNET_RECLAIM_ticket_consume (
     const struct GNUNET_RECLAIM_Ticket *ticket,
     GNUNET_RECLAIM_AttributeResult cb, void *cb_cls);
 
+
 /**
  * Lists all tickets that have been issued to remote
  * identites (relying parties)
@@ -321,6 +324,7 @@ GNUNET_RECLAIM_ticket_iteration_start (
 void
 GNUNET_RECLAIM_ticket_iteration_next (struct GNUNET_RECLAIM_TicketIterator *it);
 
+
 /**
  * Stops iteration and releases the handle for further calls.  Must
  * be called on any iteration that has not yet completed prior to calling
@@ -330,6 +334,7 @@ GNUNET_RECLAIM_ticket_iteration_next (struct GNUNET_RECLAIM_TicketIterator *it);
  */
 void
 GNUNET_RECLAIM_ticket_iteration_stop (struct GNUNET_RECLAIM_TicketIterator *it);
+
 
 /**
  * Disconnect from identity provider service.
@@ -351,6 +356,7 @@ GNUNET_RECLAIM_disconnect (struct GNUNET_RECLAIM_Handle *h);
 void
 GNUNET_RECLAIM_cancel (struct GNUNET_RECLAIM_Operation *op);
 
+
 #if 0 /* keep Emacsens' auto-indent happy */
 {
 #endif
@@ -362,6 +368,6 @@ GNUNET_RECLAIM_cancel (struct GNUNET_RECLAIM_Operation *op);
 /* ifndef GNUNET_RECLAIM_SERVICE_H */
 #endif
 
-/** @} */ /* end of group identity */
+/** @} */ /* end of group reclaim */
 
 /* end of gnunet_reclaim_service.h */

@@ -24,9 +24,7 @@
  *
  */
 #include "platform.h"
-
 #include "gnunet_util_lib.h"
-
 #include "gnunet-service-reclaim_tickets.h"
 #include "gnunet_constants.h"
 #include "gnunet_gnsrecord_lib.h"
@@ -124,6 +122,7 @@ struct TicketIteration
   struct RECLAIM_TICKETS_Iterator *iter;
 };
 
+
 /**
  * An attribute iteration operation.
  */
@@ -159,6 +158,7 @@ struct AttributeIterator
    */
   uint32_t request_id;
 };
+
 
 /**
  * An idp client
@@ -251,6 +251,9 @@ struct IdpClient
 };
 
 
+/**
+ * Handle for attribute deletion request
+ */
 struct AttributeDeleteHandle
 {
   /**
@@ -311,6 +314,9 @@ struct AttributeDeleteHandle
 };
 
 
+/**
+ * Handle for attribute store request
+ */
 struct AttributeStoreHandle
 {
   /**
@@ -359,6 +365,10 @@ struct AttributeStoreHandle
   uint32_t r_id;
 };
 
+
+/**
+ * Handle for ticket consume request
+ */
 struct ConsumeTicketOperation
 {
   /**
@@ -387,6 +397,7 @@ struct ConsumeTicketOperation
   struct RECLAIM_TICKETS_ConsumeHandle *ch;
 };
 
+
 /**
  * Updated attribute IDs
  */
@@ -412,6 +423,7 @@ struct TicketAttributeUpdateEntry
    */
   uint64_t new_id;
 };
+
 
 /**
  * Ticket revocation request handle
@@ -444,6 +456,7 @@ struct TicketRevocationOperation
   uint32_t r_id;
 };
 
+
 /**
  * Ticket issue operation handle
  */
@@ -469,6 +482,7 @@ struct TicketIssueOperation
    */
   uint32_t r_id;
 };
+
 
 /**
  * DLL for ego handles to egos containing the RECLAIM_ATTRS in a
@@ -498,6 +512,7 @@ struct EgoEntry
   struct GNUNET_CONTAINER_MultiHashMap *attr_map;
 };
 
+
 /**
  * Cleanup task
  */
@@ -517,6 +532,7 @@ cleanup ()
     GNUNET_NAMESTORE_disconnect (nsh);
 }
 
+
 /**
  * Shutdown task
  *
@@ -530,6 +546,14 @@ do_shutdown (void *cls)
 }
 
 
+/**
+ * Sends a ticket result message to the client
+ *
+ * @param client the client to send to
+ * @param r_id the request message ID to reply to
+ * @param ticket the ticket to include (may be NULL)
+ * @param success the success status of the request
+ */
 static void
 send_ticket_result (const struct IdpClient *client,
                     uint32_t r_id,
@@ -555,6 +579,15 @@ send_ticket_result (const struct IdpClient *client,
   GNUNET_MQ_send (client->mq, env);
 }
 
+
+/**
+ * Issue ticket result
+ *
+ * @param cls out ticket issue operation handle
+ * @param ticket the issued ticket
+ * @param success issue success status (GNUNET_OK if successful)
+ * @param emsg error message (NULL of success is GNUNET_OK)
+ */
 static void
 issue_ticket_result_cb (void *cls,
                         struct GNUNET_RECLAIM_Ticket *ticket,
@@ -578,6 +611,14 @@ issue_ticket_result_cb (void *cls,
   GNUNET_free (tio);
 }
 
+
+/**
+ * Check issue ticket message
+ *
+ * @cls unused
+ * @im message to check
+ * @return GNUNET_OK if message is ok
+ */
 static int
 check_issue_ticket_message (void *cls, const struct IssueTicketMessage *im)
 {
@@ -591,6 +632,13 @@ check_issue_ticket_message (void *cls, const struct IssueTicketMessage *im)
   return GNUNET_OK;
 }
 
+
+/**
+ * Handle ticket issue message
+ *
+ * @param cls our client
+ * @param im the message
+ */
 static void
 handle_issue_ticket_message (void *cls, const struct IssueTicketMessage *im)
 {
@@ -615,10 +663,18 @@ handle_issue_ticket_message (void *cls, const struct IssueTicketMessage *im)
   GNUNET_RECLAIM_ATTRIBUTE_list_destroy (attrs);
 }
 
+
+
 /**********************************************************
  * Revocation
  **********************************************************/
 
+/**
+ * Handles revocation result
+ *
+ * @param cls our revocation operation handle
+ * @param success revocation result (GNUNET_OK if successful)
+ */
 static void
 revoke_result_cb (void *cls, int32_t success)
 {
@@ -639,6 +695,13 @@ revoke_result_cb (void *cls, int32_t success)
 }
 
 
+/**
+ * Check revocation message format
+ *
+ * @param cls unused
+ * @param im the message to check
+ * @return GNUNET_OK if message is ok
+ */
 static int
 check_revoke_ticket_message (void *cls, const struct RevokeTicketMessage *im)
 {
@@ -652,6 +715,13 @@ check_revoke_ticket_message (void *cls, const struct RevokeTicketMessage *im)
   return GNUNET_OK;
 }
 
+
+/**
+ * Handle a revocation message to a ticket.
+ *
+ * @param cls our client
+ * @param rm the message to handle
+ */
 static void
 handle_revoke_ticket_message (void *cls, const struct RevokeTicketMessage *rm)
 {
@@ -670,19 +740,16 @@ handle_revoke_ticket_message (void *cls, const struct RevokeTicketMessage *rm)
   GNUNET_SERVICE_client_continue (idp->client);
 }
 
-static int
-check_consume_ticket_message (void *cls, const struct ConsumeTicketMessage *cm)
-{
-  uint16_t size;
 
-  size = ntohs (cm->header.size);
-  if (size <= sizeof (struct ConsumeTicketMessage)) {
-    GNUNET_break (0);
-    return GNUNET_SYSERR;
-  }
-  return GNUNET_OK;
-}
-
+/**
+ * Handle a ticket consume result
+ *
+ * @param cls our consume ticket operation handle
+ * @param identity the attribute authority
+ * @param attrs the attribute/claim list
+ * @param success GNUNET_OK if successful
+ * @param emsg error message (NULL if success=GNUNET_OK)
+ */
 static void
 consume_result_cb (void *cls,
                    const struct GNUNET_CRYPTO_EcdsaPublicKey *identity,
@@ -716,6 +783,33 @@ consume_result_cb (void *cls,
   GNUNET_free (cop);
 }
 
+
+/**
+ * Check a consume ticket message
+ *
+ * @param cls unused
+ * @param cm the message to handle
+ */
+static int
+check_consume_ticket_message (void *cls, const struct ConsumeTicketMessage *cm)
+{
+  uint16_t size;
+
+  size = ntohs (cm->header.size);
+  if (size <= sizeof (struct ConsumeTicketMessage)) {
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
+  return GNUNET_OK;
+}
+
+
+/**
+ * Handle a consume ticket message
+ *
+ * @param cls our client handle
+ * @cm the message to handle
+ */
 static void
 handle_consume_ticket_message (void *cls, const struct ConsumeTicketMessage *cm)
 {
@@ -753,6 +847,14 @@ cleanup_as_handle (struct AttributeStoreHandle *ash)
   GNUNET_free (ash);
 }
 
+
+/**
+ * Attribute store result handler
+ *
+ * @param cls our attribute store handle
+ * @param success GNUNET_OK if successful
+ * @param emsg error message (NULL if success=GNUNET_OK)
+ */
 static void
 attr_store_cont (void *cls, int32_t success, const char *emsg)
 {
@@ -782,8 +884,9 @@ attr_store_cont (void *cls, int32_t success, const char *emsg)
   cleanup_as_handle (ash);
 }
 
+
 /**
- * Adds a new attribute
+ * Add a new attribute
  *
  * @param cls the AttributeStoreHandle
  */
@@ -823,6 +926,13 @@ attr_store_task (void *cls)
   GNUNET_free (buf);
 }
 
+
+/**
+ * Check an attribute store message
+ *
+ * @param cls unused
+ * @param sam the message to check
+ */
 static int
 check_attribute_store_message (void *cls,
                                const struct AttributeStoreMessage *sam)
@@ -837,6 +947,13 @@ check_attribute_store_message (void *cls,
   return GNUNET_OK;
 }
 
+
+/**
+ * Handle an attribute store message
+ *
+ * @param cls our client
+ * @param sam the message to handle
+ */
 static void
 handle_attribute_store_message (void *cls,
                                 const struct AttributeStoreMessage *sam)
@@ -863,6 +980,11 @@ handle_attribute_store_message (void *cls,
 }
 
 
+/**
+ * Cleanup attribute delete handle
+ *
+ * @param adh the attribute to cleanup
+ */
 static void
 cleanup_adh (struct AttributeDeleteHandle *adh)
 {
@@ -889,6 +1011,12 @@ cleanup_adh (struct AttributeDeleteHandle *adh)
 }
 
 
+/**
+ * Send a deletion success response
+ *
+ * @param adh our attribute deletion handle
+ * @param success the success status
+ */
 static void
 send_delete_response (struct AttributeDeleteHandle *adh, int32_t success)
 {
@@ -907,6 +1035,16 @@ send_delete_response (struct AttributeDeleteHandle *adh, int32_t success)
 }
 
 
+/**
+ * Namestore iteration within attribute deletion.
+ * We need to reissue tickets with the deleted attribute removed.
+ *
+ * @param cls our attribute deletion handle
+ * @param zone the private key of the ticket issuer
+ * @param label the label of the record
+ * @param rd_count number of records
+ * @param rd record data
+ */
 static void
 ticket_iter (void *cls,
              const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone,
@@ -944,10 +1082,21 @@ ticket_iter (void *cls,
 }
 
 
+/**
+ * Recursion prototype for function
+ * @param cls our deletion handle
+ */
 static void
 update_tickets (void *cls);
 
 
+/**
+ * Callback called when a ticket was updated
+ *
+ * @param cls our attribute deletion handle
+ * @param success GNUNET_OK if successful
+ * @param emsg error message (NULL if success=GNUNET_OK)
+ */
 static void
 ticket_updated (void *cls, int32_t success, const char *emsg)
 {
@@ -956,6 +1105,14 @@ ticket_updated (void *cls, int32_t success, const char *emsg)
   GNUNET_SCHEDULER_add_now (&update_tickets, adh);
 }
 
+
+/**
+ * Update tickets: Remove shared attribute which has just been deleted.
+ * This method is called recursively until all tickets are processed.
+ * Eventually, the updated tickets are stored using ``update_tickets''.
+ *
+ * @param cls our attribute deletion handle
+ */
 static void
 update_tickets (void *cls)
 {
@@ -1002,6 +1159,11 @@ update_tickets (void *cls)
 }
 
 
+/**
+ * Done collecting affected tickets, start updating.
+ *
+ * @param cls our attribute deletion handle
+ */
 static void
 ticket_iter_fin (void *cls)
 {
@@ -1011,6 +1173,11 @@ ticket_iter_fin (void *cls)
 }
 
 
+/**
+ * Error collecting affected tickets. Abort.
+ *
+ * @param cls our attribute deletion handle
+ */
 static void
 ticket_iter_err (void *cls)
 {
@@ -1024,6 +1191,12 @@ ticket_iter_err (void *cls)
 }
 
 
+/**
+ * Start processing tickets which may still contain reference to deleted
+ * attribute.
+ *
+ * @param cls attribute deletion handle
+ */
 static void
 start_ticket_update (void *cls)
 {
@@ -1039,6 +1212,13 @@ start_ticket_update (void *cls)
 }
 
 
+/**
+ * Attribute deleted callback
+ *
+ * @param cls our handle
+ * @param success success status
+ * @param emsg error message (NULL if success=GNUNET_OK)
+ */
 static void
 attr_delete_cont (void *cls, int32_t success, const char *emsg)
 {
@@ -1052,11 +1232,17 @@ attr_delete_cont (void *cls, int32_t success, const char *emsg)
     cleanup_adh (adh);
     return;
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Updating tickets...\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Updating tickets...\n");
   GNUNET_SCHEDULER_add_now (&start_ticket_update, adh);
 }
 
 
+/**
+ * Check attribute delete message format
+ *
+ * @cls unused
+ * @dam message to check
+ */
 static int
 check_attribute_delete_message (void *cls,
                                 const struct AttributeDeleteMessage *dam)
@@ -1072,6 +1258,12 @@ check_attribute_delete_message (void *cls,
 }
 
 
+/**
+ * Handle attribute deletion
+ *
+ * @param cls our client
+ * @param dam deletion message
+ */
 static void
 handle_attribute_delete_message (void *cls,
                                  const struct AttributeDeleteMessage *dam)
@@ -1107,24 +1299,12 @@ handle_attribute_delete_message (void *cls,
  * Attrubute iteration
  *************************************************/
 
-static void
-cleanup_attribute_iter_handle (struct AttributeIterator *ai)
-{
-  GNUNET_free (ai);
-}
 
-static void
-attr_iter_error (void *cls)
-{
-  struct AttributeIterator *ai = cls;
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Failed to iterate over attributes\n");
-  GNUNET_CONTAINER_DLL_remove (ai->client->attr_iter_head,
-                               ai->client->attr_iter_tail,
-                               ai);
-  cleanup_attribute_iter_handle (ai);
-  GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
-}
-
+/**
+ * Done iterating over attributes
+ *
+ * @param cls our iterator handle
+ */
 static void
 attr_iter_finished (void *cls)
 {
@@ -1140,9 +1320,33 @@ attr_iter_finished (void *cls)
   GNUNET_CONTAINER_DLL_remove (ai->client->attr_iter_head,
                                ai->client->attr_iter_tail,
                                ai);
-  cleanup_attribute_iter_handle (ai);
+  GNUNET_free (ai);
 }
 
+/**
+ * Error iterating over attributes. Abort.
+ *
+ * @param cls our attribute iteration handle
+ */
+static void
+attr_iter_error (void *cls)
+{
+  struct AttributeIterator *ai = cls;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Failed to iterate over attributes\n");
+  attr_iter_finished (ai);
+}
+
+
+/**
+ * Got record. Return if it is an attribute.
+ *
+ * @param cls our attribute iterator
+ * @param zone zone we are iterating
+ * @param label label of the records
+ * @param rd_count record count
+ * @param rd records
+ */
 static void
 attr_iter_cb (void *cls,
               const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone,
@@ -1177,6 +1381,13 @@ attr_iter_cb (void *cls,
   GNUNET_MQ_send (ai->client->mq, env);
 }
 
+
+/**
+ * Iterate over zone to get attributes
+ *
+ * @param cls our client
+ * @param ais_msg the iteration message to start
+ */
 static void
 handle_iteration_start (void *cls,
                         const struct AttributeIterationStartMessage *ais_msg)
@@ -1203,6 +1414,13 @@ handle_iteration_start (void *cls,
   GNUNET_SERVICE_client_continue (idp->client);
 }
 
+
+/**
+ * Handle iteration stop message from client
+ *
+ * @param cls the client
+ * @param ais_msg the stop message
+ */
 static void
 handle_iteration_stop (void *cls,
                        const struct AttributeIterationStopMessage *ais_msg)
@@ -1228,6 +1446,13 @@ handle_iteration_stop (void *cls,
   GNUNET_SERVICE_client_continue (idp->client);
 }
 
+
+/**
+ * Client requests next attribute from iterator
+ *
+ * @param cls the client
+ * @param ais_msg the message
+ */
 static void
 handle_iteration_next (void *cls,
                        const struct AttributeIterationNextMessage *ais_msg)
@@ -1255,6 +1480,12 @@ handle_iteration_next (void *cls,
  * Ticket iteration
  ******************************************************/
 
+/**
+ * Got a ticket. Return to client
+ *
+ * @param cls our ticket iterator
+ * @param ticket the ticket
+ */
 static void
 ticket_iter_cb (void *cls, struct GNUNET_RECLAIM_Ticket *ticket)
 {
@@ -1281,6 +1512,13 @@ ticket_iter_cb (void *cls, struct GNUNET_RECLAIM_Ticket *ticket)
     GNUNET_free (ti);
 }
 
+
+/**
+ * Client requests a ticket iteration
+ *
+ * @param cls the client
+ * @param tis_msg the iteration request message
+ */
 static void
 handle_ticket_iteration_start (
   void *cls,
@@ -1303,6 +1541,13 @@ handle_ticket_iteration_start (
   GNUNET_SERVICE_client_continue (client->client);
 }
 
+
+/**
+ * Client has had enough tickets
+ *
+ * @param cls the client
+ * @param tis_msg the stop message
+ */
 static void
 handle_ticket_iteration_stop (void *cls,
                               const struct TicketIterationStopMessage *tis_msg)
@@ -1331,6 +1576,13 @@ handle_ticket_iteration_stop (void *cls,
   GNUNET_SERVICE_client_continue (client->client);
 }
 
+
+/**
+ * Client requests next result.
+ *
+ * @param cls the client
+ * @param tis_msg the message
+ */
 static void
 handle_ticket_iteration_next (void *cls,
                               const struct TicketIterationNextMessage *tis_msg)
@@ -1353,6 +1605,7 @@ handle_ticket_iteration_next (void *cls,
   RECLAIM_TICKETS_iteration_next (ti->iter);
   GNUNET_SERVICE_client_continue (client->client);
 }
+
 
 /**
  * Main function that will be run
@@ -1400,6 +1653,7 @@ run (void *cls,
   GNUNET_SCHEDULER_add_shutdown (&do_shutdown, NULL);
 }
 
+
 /**
  * Called whenever a client is disconnected.
  *
@@ -1420,8 +1674,6 @@ client_disconnect_cb (void *cls,
   struct ConsumeTicketOperation *ct;
   struct AttributeStoreHandle *as;
   struct AttributeDeleteHandle *adh;
-
-  // TODO other operations
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Client %p disconnected\n", client);
 
@@ -1448,7 +1700,7 @@ client_disconnect_cb (void *cls,
 
   while (NULL != (ai = idp->attr_iter_head)) {
     GNUNET_CONTAINER_DLL_remove (idp->attr_iter_head, idp->attr_iter_tail, ai);
-    cleanup_attribute_iter_handle (ai);
+    GNUNET_free (ai);
   }
   while (NULL != (rop = idp->revoke_op_head)) {
     GNUNET_CONTAINER_DLL_remove (idp->revoke_op_head, idp->revoke_op_tail, rop);
@@ -1464,6 +1716,7 @@ client_disconnect_cb (void *cls,
   }
   GNUNET_free (idp);
 }
+
 
 /**
  * Add a client to our list of active clients.
@@ -1485,6 +1738,7 @@ client_connect_cb (void *cls,
   idp->mq = mq;
   return idp;
 }
+
 
 /**
  * Define "main" method using service macro.

@@ -28,6 +28,9 @@
 
 #include "gnunet_reclaim_service.h"
 
+/**
+ * Serialized claim
+ */
 struct Attribute
 {
   /**
