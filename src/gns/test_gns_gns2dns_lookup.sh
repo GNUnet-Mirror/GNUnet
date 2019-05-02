@@ -83,7 +83,7 @@ gnunet-arm -e -c test_gns_lookup.conf
 rm -rf `gnunet-config -c test_gns_lookup.conf -f -s paths -o GNUNET_TEST_HOME`
 
 ret=0
-if [ "$RES_IP" = "$TEST_IP" ]
+if echo "$RES_IP" | grep "$TEST_IP" > /dev/null
 then
   echo "PASS: Resolved $TEST_DOMAIN to $RES_IP."
 else
@@ -99,7 +99,7 @@ else
   ret=1
 fi
 
-if [ "$RES_IP_ALT" = "$TEST_IP" ]
+if echo "$RES_IP_ALT" | grep "$TEST_IP" > /dev/null
 then
   echo "PASS: Resolved $TEST_DOMAIN_ALT to $RES_IP_ALT."
 else
@@ -107,7 +107,7 @@ else
   ret=1
 fi
 
-if [ "$RES_IP_ALT2" = "$TEST_IP_ALT2" ]
+if echo "$RES_IP_ALT2" | grep "$TEST_IP_ALT2" > /dev/null
 then
   echo "PASS: Resolved $TEST_DOMAIN_ALT2 to $RES_IP_ALT2."
 else

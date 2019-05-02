@@ -77,7 +77,7 @@ gnunet-arm -e -c test_gns_lookup.conf
 rm -rf `gnunet-config -c test_gns_lookup.conf -f -s paths -o GNUNET_TEST_HOME`
 
 ret=0
-if [ "$RES_IP" = "$TEST_IP" ]
+if echo "$RES_IP" | grep "$TEST_IP" > /dev/null
 then
   echo "PASS: Resolved $TEST_DOMAIN to $RES_IP."
 else
