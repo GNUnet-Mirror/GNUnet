@@ -11,7 +11,7 @@
   WITHOUT ANY WARRANTY; without even the implied warranty of
   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
   Affero General Public License for more details.
- 
+
   You should have received a copy of the GNU Affero General Public License
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -39,32 +39,26 @@ test_abs_time ()
   json_t *j;
   struct GNUNET_TIME_Absolute a1;
   struct GNUNET_TIME_Absolute a2;
-  struct GNUNET_JSON_Specification s1[] = {
-    GNUNET_JSON_spec_absolute_time (NULL, &a2),
-    GNUNET_JSON_spec_end()
-  };
-  struct GNUNET_JSON_Specification s2[] = {
-    GNUNET_JSON_spec_absolute_time (NULL, &a2),
-    GNUNET_JSON_spec_end()
-  };
+  struct GNUNET_JSON_Specification s1[] = {GNUNET_JSON_spec_absolute_time (NULL,
+                                                                           &a2),
+                                           GNUNET_JSON_spec_end ()};
+  struct GNUNET_JSON_Specification s2[] = {GNUNET_JSON_spec_absolute_time (NULL,
+                                                                           &a2),
+                                           GNUNET_JSON_spec_end ()};
 
   a1 = GNUNET_TIME_absolute_get ();
   GNUNET_TIME_round_abs (&a1);
   j = GNUNET_JSON_from_time_abs (a1);
   GNUNET_assert (NULL != j);
-  GNUNET_assert (GNUNET_OK ==
-		 GNUNET_JSON_parse (j, s1, NULL, NULL));
-  GNUNET_assert (a1.abs_value_us ==
-		 a2.abs_value_us);
+  GNUNET_assert (GNUNET_OK == GNUNET_JSON_parse (j, s1, NULL, NULL));
+  GNUNET_assert (a1.abs_value_us == a2.abs_value_us);
   json_decref (j);
 
   a1 = GNUNET_TIME_UNIT_FOREVER_ABS;
   j = GNUNET_JSON_from_time_abs (a1);
   GNUNET_assert (NULL != j);
-  GNUNET_assert (GNUNET_OK ==
-		 GNUNET_JSON_parse (j, s2, NULL, NULL));
-  GNUNET_assert (a1.abs_value_us ==
-		 a2.abs_value_us);
+  GNUNET_assert (GNUNET_OK == GNUNET_JSON_parse (j, s2, NULL, NULL));
+  GNUNET_assert (a1.abs_value_us == a2.abs_value_us);
   json_decref (j);
   return 0;
 }
@@ -81,31 +75,25 @@ test_rel_time ()
   json_t *j;
   struct GNUNET_TIME_Relative r1;
   struct GNUNET_TIME_Relative r2;
-  struct GNUNET_JSON_Specification s1[] = {
-    GNUNET_JSON_spec_relative_time (NULL, &r2),
-    GNUNET_JSON_spec_end()
-  };
-  struct GNUNET_JSON_Specification s2[] = {
-    GNUNET_JSON_spec_relative_time (NULL, &r2),
-    GNUNET_JSON_spec_end()
-  };
+  struct GNUNET_JSON_Specification s1[] = {GNUNET_JSON_spec_relative_time (NULL,
+                                                                           &r2),
+                                           GNUNET_JSON_spec_end ()};
+  struct GNUNET_JSON_Specification s2[] = {GNUNET_JSON_spec_relative_time (NULL,
+                                                                           &r2),
+                                           GNUNET_JSON_spec_end ()};
 
   r1 = GNUNET_TIME_UNIT_SECONDS;
   j = GNUNET_JSON_from_time_rel (r1);
   GNUNET_assert (NULL != j);
-  GNUNET_assert (GNUNET_OK ==
-		 GNUNET_JSON_parse (j, s1, NULL, NULL));
-  GNUNET_assert (r1.rel_value_us ==
-		 r2.rel_value_us);
+  GNUNET_assert (GNUNET_OK == GNUNET_JSON_parse (j, s1, NULL, NULL));
+  GNUNET_assert (r1.rel_value_us == r2.rel_value_us);
   json_decref (j);
 
   r1 = GNUNET_TIME_UNIT_FOREVER_REL;
   j = GNUNET_JSON_from_time_rel (r1);
   GNUNET_assert (NULL != j);
-  GNUNET_assert (GNUNET_OK ==
-		 GNUNET_JSON_parse (j, s2, NULL, NULL));
-  GNUNET_assert (r1.rel_value_us ==
-		 r2.rel_value_us);
+  GNUNET_assert (GNUNET_OK == GNUNET_JSON_parse (j, s2, NULL, NULL));
+  GNUNET_assert (r1.rel_value_us == r2.rel_value_us);
   json_decref (j);
   return 0;
 }
@@ -123,24 +111,19 @@ test_raw ()
   unsigned int i;
   json_t *j;
 
-  for (i=0;i<=256;i++)
+  for (i = 0; i <= 256; i++)
   {
     char blob2[256];
-    struct GNUNET_JSON_Specification spec[] = {
-      GNUNET_JSON_spec_fixed (NULL, blob2, i),
-      GNUNET_JSON_spec_end()
-    };
+    struct GNUNET_JSON_Specification spec[] = {GNUNET_JSON_spec_fixed (NULL,
+                                                                       blob2,
+                                                                       i),
+                                               GNUNET_JSON_spec_end ()};
 
     memset (blob, i, i);
     j = GNUNET_JSON_from_data (blob, i);
     GNUNET_assert (NULL != j);
-    GNUNET_assert (GNUNET_OK ==
-		   GNUNET_JSON_parse (j, spec,
-                                      NULL, NULL));
-    GNUNET_assert (0 ==
-		   memcmp (blob,
-			   blob2,
-			   i));
+    GNUNET_assert (GNUNET_OK == GNUNET_JSON_parse (j, spec, NULL, NULL));
+    GNUNET_assert (0 == memcmp (blob, blob2, i));
   }
   return 0;
 }
@@ -156,16 +139,12 @@ test_rsa ()
 {
   struct GNUNET_CRYPTO_RsaPublicKey *pub;
   struct GNUNET_CRYPTO_RsaPublicKey *pub2;
-  struct GNUNET_JSON_Specification pspec[] = {
-    GNUNET_JSON_spec_rsa_public_key (NULL, &pub2),
-    GNUNET_JSON_spec_end()
-  };
+  struct GNUNET_JSON_Specification pspec[] =
+    {GNUNET_JSON_spec_rsa_public_key (NULL, &pub2), GNUNET_JSON_spec_end ()};
   struct GNUNET_CRYPTO_RsaSignature *sig;
   struct GNUNET_CRYPTO_RsaSignature *sig2;
-  struct GNUNET_JSON_Specification sspec[] = {
-    GNUNET_JSON_spec_rsa_signature (NULL, &sig2),
-    GNUNET_JSON_spec_end()
-  };
+  struct GNUNET_JSON_Specification sspec[] =
+    {GNUNET_JSON_spec_rsa_signature (NULL, &sig2), GNUNET_JSON_spec_end ()};
   struct GNUNET_CRYPTO_RsaPrivateKey *priv;
   struct GNUNET_HashCode msg;
   json_t *jp;
@@ -174,22 +153,13 @@ test_rsa ()
   priv = GNUNET_CRYPTO_rsa_private_key_create (1024);
   pub = GNUNET_CRYPTO_rsa_private_key_get_public (priv);
   memset (&msg, 42, sizeof (msg));
-  sig = GNUNET_CRYPTO_rsa_sign_fdh (priv,
-                                    &msg);
+  sig = GNUNET_CRYPTO_rsa_sign_fdh (priv, &msg);
   GNUNET_assert (NULL != (jp = GNUNET_JSON_from_rsa_public_key (pub)));
   GNUNET_assert (NULL != (js = GNUNET_JSON_from_rsa_signature (sig)));
-  GNUNET_assert (GNUNET_OK ==
-                 GNUNET_JSON_parse (jp, pspec,
-                                    NULL, NULL));
-  GNUNET_assert (GNUNET_OK ==
-                 GNUNET_JSON_parse (js, sspec,
-                                    NULL, NULL));
-  GNUNET_break (0 ==
-		GNUNET_CRYPTO_rsa_signature_cmp (sig,
-						 sig2));
-  GNUNET_break (0 ==
-		GNUNET_CRYPTO_rsa_public_key_cmp (pub,
-						  pub2));
+  GNUNET_assert (GNUNET_OK == GNUNET_JSON_parse (jp, pspec, NULL, NULL));
+  GNUNET_assert (GNUNET_OK == GNUNET_JSON_parse (js, sspec, NULL, NULL));
+  GNUNET_break (0 == GNUNET_CRYPTO_rsa_signature_cmp (sig, sig2));
+  GNUNET_break (0 == GNUNET_CRYPTO_rsa_public_key_cmp (pub, pub2));
   GNUNET_CRYPTO_rsa_signature_free (sig);
   GNUNET_CRYPTO_rsa_signature_free (sig2);
   GNUNET_CRYPTO_rsa_private_key_free (priv);
@@ -210,40 +180,33 @@ test_boolean ()
   int b1;
   int b2;
   json_t *json;
-  struct GNUNET_JSON_Specification pspec[] = {
-    GNUNET_JSON_spec_boolean ("b1", &b1),
-    GNUNET_JSON_spec_boolean ("b2", &b2),
-    GNUNET_JSON_spec_end()
-  };
+  struct GNUNET_JSON_Specification pspec[] = {GNUNET_JSON_spec_boolean ("b1",
+                                                                        &b1),
+                                              GNUNET_JSON_spec_boolean ("b2",
+                                                                        &b2),
+                                              GNUNET_JSON_spec_end ()};
 
   json = json_object ();
   json_object_set_new (json, "b1", json_true ());
   json_object_set_new (json, "b2", json_false ());
 
-  GNUNET_assert (GNUNET_OK ==
-                 GNUNET_JSON_parse (json, pspec,
-                                    NULL, NULL));
+  GNUNET_assert (GNUNET_OK == GNUNET_JSON_parse (json, pspec, NULL, NULL));
 
   GNUNET_assert (GNUNET_YES == b1);
   GNUNET_assert (GNUNET_NO == b2);
 
   json_object_set_new (json, "b1", json_integer (42));
 
-  GNUNET_assert (GNUNET_OK !=
-                 GNUNET_JSON_parse (json, pspec,
-                                    NULL, NULL));
+  GNUNET_assert (GNUNET_OK != GNUNET_JSON_parse (json, pspec, NULL, NULL));
 
   return 0;
 }
 
 
 int
-main(int argc,
-     const char *const argv[])
+main (int argc, const char *const argv[])
 {
-  GNUNET_log_setup ("test-json",
-		    "WARNING",
-		    NULL);
+  GNUNET_log_setup ("test-json", "WARNING", NULL);
   if (0 != test_abs_time ())
     return 1;
   if (0 != test_rel_time ())

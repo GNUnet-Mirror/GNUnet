@@ -23,6 +23,7 @@ if HAVE_JSON
 endif
 endif
 
+if HAVE_MHD
 if HAVE_JSON
   JSON_DIR = json
 if HAVE_LIBGNURL
@@ -30,6 +31,7 @@ if HAVE_LIBGNURL
 else
 if HAVE_LIBCURL
   JSON_DIR += curl
+endif
 endif
 endif
 endif
