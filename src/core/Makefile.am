@@ -58,7 +58,7 @@ gnunet_core_LDADD = \
 
 if HAVE_TESTING
   TESTING_TESTS = \
-    test_core_api_send_to_self 
+    test_core_api_send_to_self
 endif
 
 check_PROGRAMS = \

@@ -11,7 +11,7 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -80,12 +80,9 @@ rehash_typemap ()
  * @param hc where to store the hash code
  */
 void
-GSC_TYPEMAP_hash (const struct GSC_TypeMap *tm,
-                  struct GNUNET_HashCode *hc)
+GSC_TYPEMAP_hash (const struct GSC_TypeMap *tm, struct GNUNET_HashCode *hc)
 {
-  GNUNET_CRYPTO_hash (tm,
-                      sizeof (struct GSC_TypeMap),
-                      hc);
+  GNUNET_CRYPTO_hash (tm, sizeof (struct GSC_TypeMap), hc);
 }
 
 
@@ -100,12 +97,12 @@ GSC_TYPEMAP_check_hash (const struct GNUNET_HashCode *hc)
 {
   if (GNUNET_NO == hash_current)
   {
-    GSC_TYPEMAP_hash (&my_type_map,
-                      &my_tm_hash);
+    GSC_TYPEMAP_hash (&my_type_map, &my_tm_hash);
     hash_current = GNUNET_YES;
   }
   return (0 == memcmp (hc, &my_tm_hash, sizeof (struct GNUNET_HashCode)))
-    ? GNUNET_YES : GNUNET_NO;
+           ? GNUNET_YES
+           : GNUNET_NO;
 }
 
 
@@ -130,9 +127,12 @@ GSC_TYPEMAP_compute_type_map_message ()
 #endif
   hdr = GNUNET_malloc (dlen + sizeof (struct GNUNET_MessageHeader));
   tmp = (char *) &hdr[1];
-  if ((Z_OK !=
-       compress2 ((Bytef *) tmp, &dlen, (const Bytef *) &my_type_map,
-                  sizeof (my_type_map), 9)) || (dlen >= sizeof (my_type_map)))
+  if ((Z_OK != compress2 ((Bytef *) tmp,
+                          &dlen,
+                          (const Bytef *) &my_type_map,
+                          sizeof (my_type_map),
+                          9)) ||
+      (dlen >= sizeof (my_type_map)))
   {
     /* compression failed, use uncompressed map */
     dlen = sizeof (my_type_map);
@@ -166,8 +166,10 @@ GSC_TYPEMAP_get_from_message (const struct GNUNET_MessageHeader *msg)
   switch (ntohs (msg->type))
   {
   case GNUNET_MESSAGE_TYPE_CORE_BINARY_TYPE_MAP:
-    GNUNET_STATISTICS_update (GSC_stats, gettext_noop ("# type maps received"),
-                              1, GNUNET_NO);
+    GNUNET_STATISTICS_update (GSC_stats,
+                              gettext_noop ("# type maps received"),
+                              1,
+                              GNUNET_NO);
     if (size != sizeof (struct GSC_TypeMap))
     {
       GNUNET_break_op (0);
@@ -183,9 +185,11 @@ GSC_TYPEMAP_get_from_message (const struct GNUNET_MessageHeader *msg)
                               GNUNET_NO);
     ret = GNUNET_new (struct GSC_TypeMap);
     dlen = sizeof (struct GSC_TypeMap);
-    if ((Z_OK !=
-         uncompress ((Bytef *) ret, &dlen, (const Bytef *) &msg[1],
-                     (uLong) size)) || (dlen != sizeof (struct GSC_TypeMap)))
+    if ((Z_OK != uncompress ((Bytef *) ret,
+                             &dlen,
+                             (const Bytef *) &msg[1],
+                             (uLong) size)) ||
+        (dlen != sizeof (struct GSC_TypeMap)))
     {
       GNUNET_break_op (0);
       GNUNET_free (ret);
@@ -224,8 +228,7 @@ broadcast_my_type_map ()
  * @param tlen number of entries in @a types
  */
 void
-GSC_TYPEMAP_add (const uint16_t *types,
-                 unsigned int tlen)
+GSC_TYPEMAP_add (const uint16_t *types, unsigned int tlen)
 {
   unsigned int i;
   int changed;
@@ -241,8 +244,7 @@ GSC_TYPEMAP_add (const uint16_t *types,
   }
   if (GNUNET_YES == changed)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Typemap changed, broadcasting!\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Typemap changed, broadcasting!\n");
     rehash_typemap ();
     broadcast_my_type_map ();
   }
@@ -256,8 +258,7 @@ GSC_TYPEMAP_add (const uint16_t *types,
  * @param tlen length of the @a types array
  */
 void
-GSC_TYPEMAP_remove (const uint16_t *types,
-                    unsigned int tlen)
+GSC_TYPEMAP_remove (const uint16_t *types, unsigned int tlen)
 {
   int changed;
 
@@ -295,7 +296,7 @@ GSC_TYPEMAP_test_match (const struct GSC_TypeMap *tmap,
   if (NULL == tmap)
     return GNUNET_NO;
   if (0 == tcnt)
-    return GNUNET_YES;          /* matches all */
+    return GNUNET_YES; /* matches all */
   for (unsigned int i = 0; i < tcnt; i++)
     if (0 != (tmap->bits[types[i] / 32] & (1 << (types[i] % 32))))
       return GNUNET_YES;
