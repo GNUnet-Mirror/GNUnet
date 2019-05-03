@@ -26,6 +26,7 @@
  */
 #include "platform.h"
 #include "gnunet_json_lib.h"
+#include <zlib.h>
 
 
 /**
@@ -55,6 +56,11 @@ struct Buffer
    * Number of allocated bytes in buffer.
    */
   size_t alloc;
+
+  /**
+   * Maximum buffer size allowed.
+   */
+  size_t max;
 };
 
 
@@ -80,7 +86,10 @@ buffer_init (struct Buffer *buf,
   if (data_size > alloc_size)
     alloc_size = data_size;
   buf->data = GNUNET_malloc (alloc_size);
+  buf->alloc = alloc_size;
   GNUNET_memcpy (buf->data, data, data_size);
+  buf->fill = data_size;
+  buf->max = max_size;
   return GNUNET_OK;
 }
 
@@ -138,6 +147,99 @@ buffer_append (struct Buffer *buf,
 
 
 /**
+ * Decompress data in @a buf.
+ *
+ * @param buf input data to inflate
+ * @return result code indicating the status of the operation
+ */
+static enum GNUNET_JSON_PostResult
+inflate_data (struct Buffer *buf)
+{
+  z_stream z;
+  char *tmp;
+  size_t tmp_size;
+  int ret;
+
+  memset (&z, 0, sizeof (z));
+  z.next_in = (Bytef *) buf->data;
+  z.avail_in = buf->fill;
+  tmp_size = GNUNET_MIN (buf->max, buf->fill * 4);
+  tmp = GNUNET_malloc (tmp_size);
+  z.next_out = (Bytef *) tmp;
+  z.avail_out = tmp_size;
+  ret = inflateInit (&z);
+  switch (ret)
+  {
+  case Z_MEM_ERROR:
+    GNUNET_break (0);
+    return GNUNET_JSON_PR_OUT_OF_MEMORY;
+  case Z_STREAM_ERROR:
+    GNUNET_break_op (0);
+    return GNUNET_JSON_PR_JSON_INVALID;
+  case Z_OK:
+    break;
+  }
+  while (1)
+  {
+    ret = inflate (&z, 0);
+    switch (ret)
+    {
+    case Z_MEM_ERROR:
+      GNUNET_break (0);
+      GNUNET_break (Z_OK == inflateEnd (&z));
+      GNUNET_free (tmp);
+      return GNUNET_JSON_PR_OUT_OF_MEMORY;
+    case Z_DATA_ERROR:
+      GNUNET_break (0);
+      GNUNET_break (Z_OK == inflateEnd (&z));
+      GNUNET_free (tmp);
+      return GNUNET_JSON_PR_JSON_INVALID;
+    case Z_NEED_DICT:
+      GNUNET_break (0);
+      GNUNET_break (Z_OK == inflateEnd (&z));
+      GNUNET_free (tmp);
+      return GNUNET_JSON_PR_JSON_INVALID;
+    case Z_OK:
+      if ((0 < z.avail_out) && (0 == z.avail_in))
+      {
+        /* truncated input stream */
+        GNUNET_break (0);
+        GNUNET_break (Z_OK == inflateEnd (&z));
+        GNUNET_free (tmp);
+        return GNUNET_JSON_PR_JSON_INVALID;
+      }
+      if (0 < z.avail_out)
+        continue; /* just call it again */
+      /* output buffer full, can we grow it? */
+      if (tmp_size == buf->max)
+      {
+        /* already at max */
+        GNUNET_break (0);
+        GNUNET_break (Z_OK == inflateEnd (&z));
+        GNUNET_free (tmp);
+        return GNUNET_JSON_PR_OUT_OF_MEMORY;
+      }
+      if (tmp_size * 2 < tmp_size)
+        tmp_size = buf->max;
+      else
+        tmp_size = GNUNET_MIN (buf->max, tmp_size * 2);
+      tmp = GNUNET_realloc (tmp, tmp_size);
+      z.next_out = (Bytef *) &tmp[z.total_out];
+      continue;
+    case Z_STREAM_END:
+      /* decompression successful, make 'tmp' the new 'data' */
+      GNUNET_free (buf->data);
+      buf->data = tmp;
+      buf->alloc = tmp_size;
+      buf->fill = z.total_out;
+      GNUNET_break (Z_OK == inflateEnd (&z));
+      return GNUNET_JSON_PR_SUCCESS; /* at least for now */
+    }
+  } /* while (1) */
+}
+
+
+/**
  * Process a POST request containing a JSON object.  This function
  * realizes an MHD POST processor that will (incrementally) process
  * JSON data uploaded to the HTTP server.  It will store the required
@@ -161,10 +263,13 @@ GNUNET_JSON_post_parser (size_t buffer_max,
                          json_t **json)
 {
   struct Buffer *r = *con_cls;
+  const char *ce;
+  int ret;
 
   *json = NULL;
   if (NULL == *con_cls)
   {
+
     /* We are seeing a fresh POST request. */
     r = GNUNET_new (struct Buffer);
     if (GNUNET_OK != buffer_init (r,
@@ -202,12 +307,29 @@ GNUNET_JSON_post_parser (size_t buffer_max,
   }
 
   /* We have seen the whole request. */
+  ce = MHD_lookup_connection_value (connection,
+                                    MHD_HEADER_KIND,
+                                    MHD_HTTP_HEADER_CONTENT_ENCODING);
+  if ((NULL != ce) && (0 == strcasecmp ("deflate", ce)))
+  {
+    ret = inflate_data (r);
+    if (GNUNET_JSON_PR_SUCCESS != ret)
+    {
+      buffer_deinit (r);
+      GNUNET_free (r);
+      *con_cls = NULL;
+      return ret;
+    }
+  }
 
   *json = json_loadb (r->data, r->fill, 0, NULL);
   if (NULL == *json)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                 "Failed to parse JSON request body\n");
+    buffer_deinit (r);
+    GNUNET_free (r);
+    *con_cls = NULL;
     return GNUNET_JSON_PR_JSON_INVALID;
   }
   buffer_deinit (r);

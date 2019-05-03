@@ -22,7 +22,9 @@ libgnunetjson_la_LIBADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/gnsrecord/libgnunetgnsrecord.la \
   -ljansson \
-  $(XLIB)
+  -lmicrohttpd \
+  $(XLIB) \
+  $(Z_LIBS)
 
 check_PROGRAMS = \
   test_json \
@@ -57,6 +59,7 @@ test_json_mhd_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   -ljansson \
   -lmicrohttpd \
+  $(Z_LIBS) \
   $(LIB_GNURL)
 test_json_mhd_CPPFLAGS = \
  $(CPP_GNURL) $(AM_CPPFLAGS)

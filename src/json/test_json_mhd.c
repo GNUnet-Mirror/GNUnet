@@ -27,6 +27,7 @@
 #include "gnunet_util_lib.h"
 #include "gnunet_json_lib.h"
 #include "gnunet_curl_lib.h"
+#include <zlib.h>
 
 #define MAX_SIZE 1024 * 1024
 
@@ -69,7 +70,7 @@ access_handler_cb (void *cls,
       global_ret = 6;
     }
     json_decref (json);
-    resp = MHD_create_response_from_buffer (2, "OK", MHD_RESPMEM_PERSISTENT);
+    resp = MHD_create_response_from_buffer (3, "OK\n", MHD_RESPMEM_PERSISTENT);
     ret = MHD_queue_response (connection, MHD_HTTP_OK, resp);
     MHD_destroy_response (resp);
     return ret;
@@ -100,8 +101,12 @@ main (int argc, const char *const argv[])
   uint16_t port;
   CURL *easy;
   char *url;
+  char *str;
+  size_t slen;
   long post_data_size;
   void *post_data;
+  uLongf dlen;
+  struct curl_slist *json_header;
 
   GNUNET_log_setup ("test-json-mhd", "WARNING", NULL);
   global_ret = 2;
@@ -123,28 +128,60 @@ main (int argc, const char *const argv[])
     GNUNET_snprintf (tmp, sizeof (tmp), "%u", i);
     json_object_set_new (bigj, tmp, json_string (tmp));
   }
-  post_data = json_dumps (bigj, JSON_INDENT (2));
-  post_data_size = strlen (post_data);
+  str = json_dumps (bigj, JSON_INDENT (2));
+  slen = strlen (str);
 
+#ifdef compressBound
+  dlen = compressBound (slen);
+#else
+  dlen = slen + slen / 100 + 20;
+  /* documentation says 100.1% oldSize + 12 bytes, but we
+   * should be able to overshoot by more to be safe */
+#endif
+  post_data = GNUNET_malloc (dlen);
+  if (Z_OK !=
+      compress2 ((Bytef *) post_data, &dlen, (const Bytef *) str, slen, 9))
+  {
+    GNUNET_break (0);
+    MHD_stop_daemon (daemon);
+    GNUNET_free (url);
+    json_decref (bigj);
+    GNUNET_free (post_data);
+    GNUNET_free (str);
+    return 1;
+  }
+  post_data_size = (long) dlen;
   port = MHD_get_daemon_info (daemon, MHD_DAEMON_INFO_BIND_PORT)->port;
   easy = curl_easy_init ();
   GNUNET_asprintf (&url, "http://localhost:%u/", (unsigned int) port);
-  curl_easy_setopt (easy, CURLOPT_VERBOSE, 1);
+  curl_easy_setopt (easy, CURLOPT_VERBOSE, 0);
   curl_easy_setopt (easy, CURLOPT_URL, url);
   curl_easy_setopt (easy, CURLOPT_POST, 1);
   curl_easy_setopt (easy, CURLOPT_POSTFIELDS, post_data);
   curl_easy_setopt (easy, CURLOPT_POSTFIELDSIZE, post_data_size);
+
+  json_header = curl_slist_append (NULL, "Content-Type: application/json");
+  json_header = curl_slist_append (json_header, "Content-Encoding: deflate");
+  curl_easy_setopt (easy, CURLOPT_HTTPHEADER, json_header);
   if (0 != curl_easy_perform (easy))
   {
     GNUNET_break (0);
     MHD_stop_daemon (daemon);
     GNUNET_free (url);
     json_decref (bigj);
+    GNUNET_free (post_data);
+    GNUNET_free (str);
+    curl_slist_free_all (json_header);
+    curl_easy_cleanup (easy);
     return 1;
   }
   MHD_stop_daemon (daemon);
   GNUNET_free (url);
   json_decref (bigj);
+  GNUNET_free (post_data);
+  GNUNET_free (str);
+  curl_slist_free_all (json_header);
+  curl_easy_cleanup (easy);
   return global_ret;
 }
 
